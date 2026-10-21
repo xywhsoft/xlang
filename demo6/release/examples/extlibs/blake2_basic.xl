@@ -1,0 +1,19 @@
+import blake2
+
+// 摘要长度在创建时确定，digestHex 读取快照，不结束对象。
+auto hash = blake2.blake2bHasher(16)
+hash.update("ab")
+auto branch = hash.clone()
+hash.update("c")
+branch.update("d")
+println("b2b/16: " + hash.digestHex())
+println("clone: " + branch.digestHex())
+assert hash.digestHex() == blake2.blake2bHashHex("abc", 16)
+hash.reset()
+hash.update("abc")
+println("reset: " + hash.digestHex())
+
+// 中文使用 UTF-8 原始字节；keyed hash 是 BLAKE2 原生 MAC，不是 HMAC。
+println("b2s/16: " + blake2.blake2sHashHex("abc", 16))
+println("keyed: " + blake2.blake2bKeyedHex("你好 xlang", "密钥", 16))
+println("bytes: " + string(hash.inputBytes))

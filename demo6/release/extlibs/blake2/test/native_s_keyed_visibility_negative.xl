@@ -1,0 +1,4 @@
+import blake2
+
+blake2.Blake2sKeyedHasher hasher = blake2.blake2sKeyedHasher(Buffer())
+hasher.updateNative(null, c_size(1))

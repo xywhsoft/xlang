@@ -87,20 +87,36 @@ func main(...) as int
     end
 
     // 文件哈希与 Buffer 哈希一致。
-    string path = "tmp/extlib_blake2_test.bin"
-    file.writeBytes(path, data)
+    dir.createAll("build/test")
+    string path = "build/test/extlib_blake2_test.bin"
+    file.writeBytes(path, data.toBytes())
     if blake2.blake2bFileHex(path) != b2b then
         return 15
     end
     if blake2.blake2sFileHex(path) != b2s then
         return 16
     end
+    // 带 NUL 的路径不能静默读取前缀文件。
+    bool badPath = false
+    try
+        blake2.blake2bFileHex(path + "\0hidden")
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath
+    badPath = false
+    try
+        blake2.blake2sFileHex(path + "\0hidden")
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath
     file.delete(path)
 
     // 不存在的文件抛出 FileError。
     bool missing = false
     try
-        blake2.blake2bFileHex("tmp/extlib_blake2_missing.bin")
+        blake2.blake2bFileHex("build/test/extlib_blake2_missing.bin")
     catch FileError e
         missing = true
     end

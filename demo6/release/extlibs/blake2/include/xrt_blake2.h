@@ -1,6 +1,9 @@
 #ifndef XRT_BLAKE2_H
 #define XRT_BLAKE2_H
 
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
 #include "xrt.h"
 
 #ifdef __cplusplus
@@ -41,13 +44,17 @@ typedef struct xrtblake2bhasher xrtblake2bhasher;
 typedef struct xrtblake2shasher xrtblake2shasher;
 
 XRT_API void xrtBlake2OptionsInit(xrtblake2options* pOptions);
+/* 文件接口只使用输入字节上限；其余资源字段保持零。 */
+XRT_API void xrtBlake2LimitsInit(xrtresourcelimits* pLimits);
 XRT_API void xrtBlake2ErrorInit(xrtblake2error* pError);
 
 /* BLAKE2b 流式哈希器 */
 XRT_API xrtblake2bhasher* xrtBlake2bHasherCreate(const xrtblake2options* pOptions,
 	size_t iOutLen, const void* pKey, size_t iKeyLen);
 XRT_API bool xrtBlake2bHasherUpdate(xrtblake2bhasher* pHasher, const void* pData, size_t iSize);
-XRT_API bool xrtBlake2bHasherDigest(const xrtblake2bhasher* pHasher, uint8* pOut, size_t iOutLen);
+/* 摘要长度必须等于构造配置；读取不结束状态，仍可继续 Update。 */
+XRT_API bool xrtBlake2bHasherDigest(xrtblake2bhasher* pHasher, uint8* pOut, size_t iOutLen);
+XRT_API size_t xrtBlake2bHasherDigestSize(const xrtblake2bhasher* pHasher);
 XRT_API bool xrtBlake2bHasherReset(xrtblake2bhasher* pHasher);
 XRT_API uint64 xrtBlake2bHasherInputBytes(const xrtblake2bhasher* pHasher);
 XRT_API xrtblake2bhasher* xrtBlake2bHasherClone(const xrtblake2bhasher* pSrc);
@@ -58,7 +65,8 @@ XRT_API void xrtBlake2bHasherDestroy(xrtblake2bhasher* pHasher);
 XRT_API xrtblake2shasher* xrtBlake2sHasherCreate(const xrtblake2options* pOptions,
 	size_t iOutLen, const void* pKey, size_t iKeyLen);
 XRT_API bool xrtBlake2sHasherUpdate(xrtblake2shasher* pHasher, const void* pData, size_t iSize);
-XRT_API bool xrtBlake2sHasherDigest(const xrtblake2shasher* pHasher, uint8* pOut, size_t iOutLen);
+XRT_API bool xrtBlake2sHasherDigest(xrtblake2shasher* pHasher, uint8* pOut, size_t iOutLen);
+XRT_API size_t xrtBlake2sHasherDigestSize(const xrtblake2shasher* pHasher);
 XRT_API bool xrtBlake2sHasherReset(xrtblake2shasher* pHasher);
 XRT_API uint64 xrtBlake2sHasherInputBytes(const xrtblake2shasher* pHasher);
 XRT_API xrtblake2shasher* xrtBlake2sHasherClone(const xrtblake2shasher* pSrc);

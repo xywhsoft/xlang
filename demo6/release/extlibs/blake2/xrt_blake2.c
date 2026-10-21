@@ -1,417 +1,458 @@
 #include "include/xrt_blake2.h"
 #include "third_party/blake2.h"
-
-#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
-#define XRT_BLAKE2_CHUNK 262144u
+#define XRT_BLAKE2_CHUNK 65536u
 
-/* ═══════════════ 内部工具 ═══════════════ */
-
-static void __xrtBlake2SetError(xrtblake2error* pError, int iCode, int iBackend,
-	uint64 iInput, uint64 iOutput, const char* sFormat, ...)
+/* 参数错误必须在接触密钥和输出缓冲之前确定。 */
+static bool blake2_fail(xrtblake2error* error, int code, uint64 input, const char* message)
 {
-	va_list pArgs;
-	if (pError == NULL) { return; }
-	pError->iCode = iCode;
-	pError->iBackendCode = iBackend;
-	pError->iInputOffset = iInput;
-	pError->iOutputOffset = iOutput;
-	va_start(pArgs, sFormat);
-	vsnprintf(pError->sMessage, sizeof(pError->sMessage), sFormat, pArgs);
-	va_end(pArgs);
-	pError->sMessage[sizeof(pError->sMessage) - 1] = '\0';
+    if (error != NULL) {
+        memset(error, 0, sizeof(*error));
+        error->iCode = code;
+        error->iInputOffset = input;
+        snprintf(error->sMessage, sizeof(error->sMessage), "%s", message);
+    }
+    return false;
 }
 
-XRT_API void xrtBlake2ErrorInit(xrtblake2error* pError)
+/* Reader 的内存/IO 失败保留原始分类和消息。 */
+static void blake2_reader_fail(xrtblake2error* error, uint64 input)
 {
-	if (pError == NULL) { return; }
-	memset(pError, 0, sizeof(*pError));
-	pError->iCode = XRT_BLAKE2_OK;
+    const xerror* cause = xrtGetError();
+    blake2_fail(error,
+        cause != NULL && xrtErrorKind(cause) == XERR_MEMORY ?
+            XRT_BLAKE2_ERROR_MEMORY : XRT_BLAKE2_ERROR_IO,
+        input, cause != NULL ? xrtErrorMessage(cause) :
+            "cannot read blake2 input stream");
 }
 
-XRT_API void xrtBlake2OptionsInit(xrtblake2options* pOptions)
+static bool blake2_parameters(size_t outlen, size_t maximum, const void* key,
+    size_t keylen, xrtblake2error* error)
 {
-	if (pOptions == NULL) { return; }
-	memset(pOptions, 0, sizeof(*pOptions));
-	pOptions->iSize = sizeof(*pOptions);
-	pOptions->iVersion = XRT_BLAKE2_OPTIONS_VERSION;
-	xrtResourceLimitsInit(&pOptions->tLimits);
+    if (outlen == 0 || outlen > maximum)
+        return blake2_fail(error, XRT_BLAKE2_ERROR_ARGUMENT, 0, "invalid blake2 digest size");
+    if (keylen > maximum || (keylen != 0 && key == NULL))
+        return blake2_fail(error, XRT_BLAKE2_ERROR_ARGUMENT, 0, "invalid blake2 key");
+    return true;
 }
 
+static bool blake2_limits(const xrtresourcelimits* limits)
+{
+    return limits->iSize == sizeof(*limits) &&
+        limits->iVersion == XRT_RESOURCE_LIMITS_VERSION &&
+        limits->iMaxOutputBytes == 0 && limits->iMaxItemBytes == 0 &&
+        limits->iMaxEntries == 0 && limits->iMaxNodes == 0 &&
+        limits->iMaxDepth == 0 && limits->iMaxCompressionRatio == 0 &&
+        limits->iFlags == 0 && limits->iReserved == 0;
+}
 
-/* ═══════════════ BLAKE2b 流式哈希器 ═══════════════ */
+static bool blake2_options(const xrtblake2options* options)
+{
+    return options == NULL || (options->iSize == sizeof(*options) &&
+        options->iVersion == XRT_BLAKE2_OPTIONS_VERSION && blake2_limits(&options->tLimits));
+}
 
+/* 计数先检查再相加；关闭业务限额也不能发生 uint64 回绕。 */
+static bool blake2_input(uint64 current, uint64 add, uint64 maximum, xrtblake2error* error)
+{
+    if (add > UINT64_MAX - current ||
+        (maximum != 0 && (current > maximum || add > maximum - current)))
+        return blake2_fail(error, XRT_BLAKE2_ERROR_LIMIT, current, "blake2 input exceeds maxInput limit");
+    return true;
+}
+
+XRT_API void xrtBlake2ErrorInit(xrtblake2error* error)
+{
+    if (error != NULL) memset(error, 0, sizeof(*error));
+}
+
+XRT_API void xrtBlake2LimitsInit(xrtresourcelimits* limits)
+{
+    if (limits == NULL) return;
+    xrtResourceLimitsInit(limits);
+    limits->iMaxOutputBytes = 0;
+    limits->iMaxItemBytes = 0;
+    limits->iMaxEntries = 0;
+    limits->iMaxNodes = 0;
+    limits->iMaxDepth = 0;
+    limits->iMaxCompressionRatio = 0;
+}
+
+XRT_API void xrtBlake2OptionsInit(xrtblake2options* options)
+{
+    if (options == NULL) return;
+    memset(options, 0, sizeof(*options));
+    options->iSize = sizeof(*options);
+    options->iVersion = XRT_BLAKE2_OPTIONS_VERSION;
+    xrtBlake2LimitsInit(&options->tLimits);
+}
+
+/* BLAKE2b：对象独占状态，digest 使用快照，clone 才分配副本。 */
 struct xrtblake2bhasher {
-	blake2b_state State;
-	xrtblake2options Options;
-	xrtblake2error Error;
-	uint64 InputBytes;
-	size_t OutLen;
-	uint8 Key[XRT_BLAKE2B_KEY_MAX];
-	size_t KeyLen;
-	bool Initialized;
-	bool Failed;
+    blake2b_state State;
+    xrtblake2options Options;
+    xrtblake2error Error;
+    uint64 InputBytes;
+    size_t OutLen;
+    uint8 Key[64];
+    size_t KeyLen;
+    bool Failed;
 };
 
-XRT_API xrtblake2bhasher* xrtBlake2bHasherCreate(const xrtblake2options* pOptions,
-	size_t iOutLen, const void* pKey, size_t iKeyLen)
+XRT_API xrtblake2bhasher* xrtBlake2bHasherCreate(const xrtblake2options* options,
+    size_t outlen, const void* key, size_t keylen)
 {
-	xrtblake2bhasher* pHasher;
-	if (iOutLen == 0 || iOutLen > XRT_BLAKE2B_OUT_MAX) { iOutLen = XRT_BLAKE2B_OUT_MAX; }
-	if (iKeyLen > XRT_BLAKE2B_KEY_MAX) { iKeyLen = XRT_BLAKE2B_KEY_MAX; }
-	pHasher = (xrtblake2bhasher*)xrtMalloc(sizeof(xrtblake2bhasher));
-	if (pHasher == NULL) { return NULL; }
-	memset(pHasher, 0, sizeof(*pHasher));
-	xrtBlake2ErrorInit(&pHasher->Error);
-	if (pOptions != NULL) {
-		pHasher->Options = *pOptions;
-	} else {
-		xrtBlake2OptionsInit(&pHasher->Options);
-	}
-	pHasher->OutLen = iOutLen;
-	pHasher->KeyLen = iKeyLen;
-	if (iKeyLen > 0 && pKey != NULL) {
-		memcpy(pHasher->Key, pKey, iKeyLen);
-		blake2b_init_key(&pHasher->State, iOutLen, pKey, iKeyLen);
-	} else {
-		blake2b_init(&pHasher->State, iOutLen);
-	}
-	pHasher->Initialized = true;
-	return pHasher;
+    xrtblake2error error;
+    xrtblake2bhasher* h;
+    xrtClearError();
+    if (!blake2_options(options)) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xrt.blake2", 0, "invalid blake2 options");
+        return NULL;
+    }
+    if (!blake2_parameters(outlen, 64, key, keylen, &error)) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xrt.blake2", 0, error.sMessage);
+        return NULL;
+    }
+    h = xrtMalloc(sizeof(*h));
+    if (h == NULL) return NULL;
+    memset(h, 0, sizeof(*h));
+    if (options != NULL) h->Options = *options;
+    else xrtBlake2OptionsInit(&h->Options);
+    h->OutLen = outlen;
+    h->KeyLen = keylen;
+    if (keylen != 0) {
+        memcpy(h->Key, key, keylen);
+        blake2b_init_key(&h->State, outlen, key, keylen);
+    } else blake2b_init(&h->State, outlen);
+    return h;
 }
 
-XRT_API bool xrtBlake2bHasherUpdate(xrtblake2bhasher* pHasher, const void* pData, size_t iSize)
+XRT_API bool xrtBlake2bHasherUpdate(xrtblake2bhasher* h, const void* data, size_t size)
 {
-	if (pHasher == NULL || pHasher->Failed) { return false; }
-	if (iSize != 0u && pData == NULL) {
-		__xrtBlake2SetError(&pHasher->Error, XRT_BLAKE2_ERROR_ARGUMENT, 0,
-			pHasher->InputBytes, 0, "invalid blake2b input");
-		pHasher->Failed = true;
-		return false;
-	}
-	if (pHasher->Options.tLimits.iMaxInputBytes != 0u &&
-		pHasher->InputBytes + iSize > pHasher->Options.tLimits.iMaxInputBytes) {
-		__xrtBlake2SetError(&pHasher->Error, XRT_BLAKE2_ERROR_LIMIT, 0,
-			pHasher->InputBytes, 0, "blake2b input exceeds maxInput limit");
-		pHasher->Failed = true;
-		return false;
-	}
-	if (iSize != 0u) {
-		blake2b_update(&pHasher->State, pData, iSize);
-	}
-	pHasher->InputBytes += (uint64)iSize;
-	return true;
+    if (h == NULL || h->Failed) return false;
+    xrtBlake2ErrorInit(&h->Error);
+    if (size != 0 && data == NULL) {
+        h->Failed = true;
+        return blake2_fail(&h->Error, XRT_BLAKE2_ERROR_ARGUMENT, h->InputBytes, "invalid blake2 input");
+    }
+    if (!blake2_input(h->InputBytes, (uint64)size, h->Options.tLimits.iMaxInputBytes, &h->Error)) {
+        h->Failed = true;
+        return false;
+    }
+    if (size != 0) blake2b_update(&h->State, data, size);
+    h->InputBytes += (uint64)size;
+    return true;
 }
 
-XRT_API bool xrtBlake2bHasherDigest(const xrtblake2bhasher* pHasher, uint8* pOut, size_t iOutLen)
+XRT_API bool xrtBlake2bHasherDigest(xrtblake2bhasher* h, uint8* output, size_t outlen)
 {
-	blake2b_state copy;
-	if (pHasher == NULL || pHasher->Failed || pOut == NULL || iOutLen == 0u) { return false; }
-	if (iOutLen > pHasher->OutLen) { iOutLen = pHasher->OutLen; }
-	memcpy(&copy, &pHasher->State, sizeof(copy));
-	blake2b_final(&copy, pOut, iOutLen);
-	return true;
+    blake2b_state copy;
+    if (h == NULL || h->Failed) return false;
+    xrtBlake2ErrorInit(&h->Error);
+    if (output == NULL || outlen != h->OutLen)
+        return blake2_fail(&h->Error, XRT_BLAKE2_ERROR_ARGUMENT, h->InputBytes,
+            "digest size must equal the configured blake2 size");
+    copy = h->State;
+    blake2b_final(&copy, output, outlen);
+    xrtSecureZero(&copy, sizeof(copy));
+    return true;
 }
 
-XRT_API bool xrtBlake2bHasherReset(xrtblake2bhasher* pHasher)
+XRT_API bool xrtBlake2bHasherReset(xrtblake2bhasher* h)
 {
-	if (pHasher == NULL || pHasher->Failed) { return false; }
-	if (pHasher->KeyLen > 0) {
-		blake2b_init_key(&pHasher->State, pHasher->OutLen, pHasher->Key, pHasher->KeyLen);
-	} else {
-		blake2b_init(&pHasher->State, pHasher->OutLen);
-	}
-	pHasher->InputBytes = 0u;
-	return true;
+    if (h == NULL) return false;
+    xrtSecureZero(&h->State, sizeof(h->State));
+    if (h->KeyLen != 0) blake2b_init_key(&h->State, h->OutLen, h->Key, h->KeyLen);
+    else blake2b_init(&h->State, h->OutLen);
+    h->Failed = false;
+    h->InputBytes = 0;
+    xrtBlake2ErrorInit(&h->Error);
+    return true;
 }
 
-XRT_API uint64 xrtBlake2bHasherInputBytes(const xrtblake2bhasher* pHasher)
+XRT_API uint64 xrtBlake2bHasherInputBytes(const xrtblake2bhasher* h)
 {
-	return pHasher != NULL ? pHasher->InputBytes : 0u;
+    return h != NULL ? h->InputBytes : 0;
 }
 
-XRT_API xrtblake2bhasher* xrtBlake2bHasherClone(const xrtblake2bhasher* pSrc)
+XRT_API size_t xrtBlake2bHasherDigestSize(const xrtblake2bhasher* h)
 {
-	xrtblake2bhasher* pNew;
-	if (pSrc == NULL) { return NULL; }
-	pNew = (xrtblake2bhasher*)xrtMalloc(sizeof(xrtblake2bhasher));
-	if (pNew == NULL) { return NULL; }
-	memcpy(pNew, pSrc, sizeof(*pNew));
-	return pNew;
+    return h != NULL ? h->OutLen : 0;
 }
 
-XRT_API const xrtblake2error* xrtBlake2bHasherError(const xrtblake2bhasher* pHasher)
+XRT_API xrtblake2bhasher* xrtBlake2bHasherClone(const xrtblake2bhasher* h)
 {
-	return pHasher != NULL ? &pHasher->Error : NULL;
+    xrtblake2bhasher* copy;
+    if (h == NULL || h->Failed) {
+        xrtSetErrorInfo(XERR_STATE, "xrt.blake2", 0, "cannot clone invalid blake2 state");
+        return NULL;
+    }
+    copy = xrtMalloc(sizeof(*copy));
+    if (copy != NULL) memcpy(copy, h, sizeof(*copy));
+    return copy;
 }
 
-XRT_API void xrtBlake2bHasherDestroy(xrtblake2bhasher* pHasher)
+XRT_API const xrtblake2error* xrtBlake2bHasherError(const xrtblake2bhasher* h)
 {
-	if (pHasher == NULL) { return; }
-	xrtFree(pHasher);
+    return h != NULL ? &h->Error : NULL;
 }
 
+XRT_API void xrtBlake2bHasherDestroy(xrtblake2bhasher* h)
+{
+    if (h == NULL) return;
+    xrtSecureZero(h, sizeof(*h));
+    xrtFree(h);
+}
 
-/* ═══════════════ BLAKE2s 流式哈希器 ═══════════════ */
+XRT_API bool xrtBlake2bHash(const void* data, size_t size, size_t outlen,
+    const void* key, size_t keylen, uint8* output, xrtblake2error* error)
+{
+    blake2b_state state;
+    xrtBlake2ErrorInit(error);
+    if (!blake2_parameters(outlen, 64, key, keylen, error)) return false;
+    if (output == NULL || (size != 0 && data == NULL))
+        return blake2_fail(error, XRT_BLAKE2_ERROR_ARGUMENT, 0, "invalid blake2 input or output");
+    if (keylen != 0) blake2b_init_key(&state, outlen, key, keylen);
+    else blake2b_init(&state, outlen);
+    if (size != 0) blake2b_update(&state, data, size);
+    blake2b_final(&state, output, outlen);
+    xrtSecureZero(&state, sizeof(state));
+    return true;
+}
 
+/* 从 reader 当前游标开始；取消或失败时不发布部分摘要。 */
+XRT_API bool xrtBlake2bFile(xreader* reader, const xrtresourcelimits* limits,
+    size_t outlen, uint8* output, xrtprogressproc progress, ptr user, xrtblake2error* error)
+{
+    blake2b_state state;
+    xrtresourcelimits defaults;
+    uint8 input[XRT_BLAKE2_CHUNK], digest[64];
+    uint64 total = 0, expected = 0, position = 0, end = 0;
+    bool known = false, ok = false;
+    xrtBlake2ErrorInit(error);
+    if (limits == NULL) { xrtBlake2LimitsInit(&defaults); limits = &defaults; }
+    if (!blake2_limits(limits) || reader == NULL || output == NULL ||
+        !blake2_parameters(outlen, 64, NULL, 0, error))
+        return blake2_fail(error, XRT_BLAKE2_ERROR_ARGUMENT, 0, "invalid blake2 reader or options");
+    if (xrtReaderCanSeek(reader)) {
+        known = xrtReaderTell(reader, &position) && xrtReaderSize(reader, &end) && end >= position;
+        if (known) expected = end - position;
+        else xrtClearError();
+    }
+    blake2b_init(&state, outlen);
+    for (;;) {
+        size_t count = 0;
+        if (!xrtReaderRead(reader, input, sizeof(input), &count) || count > sizeof(input)) {
+            blake2_reader_fail(error, total);
+            goto done;
+        }
+        if (count == 0) break;
+        if (!blake2_input(total, count, limits->iMaxInputBytes, error)) goto done;
+        blake2b_update(&state, input, (size_t)count);
+        total += count;
+        if (!xrtProgressReport(progress, user, total, expected, 0,
+            known ? XRT_PROGRESS_TOTAL_KNOWN : 0)) {
+            blake2_fail(error, XRT_BLAKE2_ERROR_CANCELLED, total, "blake2 operation cancelled");
+            goto done;
+        }
+    }
+    blake2b_final(&state, digest, outlen);
+    if (!xrtProgressReport(progress, user, total, expected, 0,
+        XRT_PROGRESS_FINAL | (known ? XRT_PROGRESS_TOTAL_KNOWN : 0))) {
+        blake2_fail(error, XRT_BLAKE2_ERROR_CANCELLED, total, "blake2 operation cancelled");
+        goto done;
+    }
+    memcpy(output, digest, outlen);
+    ok = true;
+done:
+    xrtSecureZero(&state, sizeof(state));
+    xrtSecureZero(input, sizeof(input));
+    xrtSecureZero(digest, sizeof(digest));
+    return ok;
+}
+
+/* BLAKE2s：对象独占状态，digest 使用快照，clone 才分配副本。 */
 struct xrtblake2shasher {
-	blake2s_state State;
-	xrtblake2options Options;
-	xrtblake2error Error;
-	uint64 InputBytes;
-	size_t OutLen;
-	uint8 Key[XRT_BLAKE2S_KEY_MAX];
-	size_t KeyLen;
-	bool Initialized;
-	bool Failed;
+    blake2s_state State;
+    xrtblake2options Options;
+    xrtblake2error Error;
+    uint64 InputBytes;
+    size_t OutLen;
+    uint8 Key[32];
+    size_t KeyLen;
+    bool Failed;
 };
 
-XRT_API xrtblake2shasher* xrtBlake2sHasherCreate(const xrtblake2options* pOptions,
-	size_t iOutLen, const void* pKey, size_t iKeyLen)
+XRT_API xrtblake2shasher* xrtBlake2sHasherCreate(const xrtblake2options* options,
+    size_t outlen, const void* key, size_t keylen)
 {
-	xrtblake2shasher* pHasher;
-	if (iOutLen == 0 || iOutLen > XRT_BLAKE2S_OUT_MAX) { iOutLen = XRT_BLAKE2S_OUT_MAX; }
-	if (iKeyLen > XRT_BLAKE2S_KEY_MAX) { iKeyLen = XRT_BLAKE2S_KEY_MAX; }
-	pHasher = (xrtblake2shasher*)xrtMalloc(sizeof(xrtblake2shasher));
-	if (pHasher == NULL) { return NULL; }
-	memset(pHasher, 0, sizeof(*pHasher));
-	xrtBlake2ErrorInit(&pHasher->Error);
-	if (pOptions != NULL) {
-		pHasher->Options = *pOptions;
-	} else {
-		xrtBlake2OptionsInit(&pHasher->Options);
-	}
-	pHasher->OutLen = iOutLen;
-	pHasher->KeyLen = iKeyLen;
-	if (iKeyLen > 0 && pKey != NULL) {
-		memcpy(pHasher->Key, pKey, iKeyLen);
-		blake2s_init_key(&pHasher->State, iOutLen, pKey, iKeyLen);
-	} else {
-		blake2s_init(&pHasher->State, iOutLen);
-	}
-	pHasher->Initialized = true;
-	return pHasher;
+    xrtblake2error error;
+    xrtblake2shasher* h;
+    xrtClearError();
+    if (!blake2_options(options)) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xrt.blake2", 0, "invalid blake2 options");
+        return NULL;
+    }
+    if (!blake2_parameters(outlen, 32, key, keylen, &error)) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xrt.blake2", 0, error.sMessage);
+        return NULL;
+    }
+    h = xrtMalloc(sizeof(*h));
+    if (h == NULL) return NULL;
+    memset(h, 0, sizeof(*h));
+    if (options != NULL) h->Options = *options;
+    else xrtBlake2OptionsInit(&h->Options);
+    h->OutLen = outlen;
+    h->KeyLen = keylen;
+    if (keylen != 0) {
+        memcpy(h->Key, key, keylen);
+        blake2s_init_key(&h->State, outlen, key, keylen);
+    } else blake2s_init(&h->State, outlen);
+    return h;
 }
 
-XRT_API bool xrtBlake2sHasherUpdate(xrtblake2shasher* pHasher, const void* pData, size_t iSize)
+XRT_API bool xrtBlake2sHasherUpdate(xrtblake2shasher* h, const void* data, size_t size)
 {
-	if (pHasher == NULL || pHasher->Failed) { return false; }
-	if (iSize != 0u && pData == NULL) {
-		__xrtBlake2SetError(&pHasher->Error, XRT_BLAKE2_ERROR_ARGUMENT, 0,
-			pHasher->InputBytes, 0, "invalid blake2s input");
-		pHasher->Failed = true;
-		return false;
-	}
-	if (pHasher->Options.tLimits.iMaxInputBytes != 0u &&
-		pHasher->InputBytes + iSize > pHasher->Options.tLimits.iMaxInputBytes) {
-		__xrtBlake2SetError(&pHasher->Error, XRT_BLAKE2_ERROR_LIMIT, 0,
-			pHasher->InputBytes, 0, "blake2s input exceeds maxInput limit");
-		pHasher->Failed = true;
-		return false;
-	}
-	if (iSize != 0u) {
-		blake2s_update(&pHasher->State, pData, iSize);
-	}
-	pHasher->InputBytes += (uint64)iSize;
-	return true;
+    if (h == NULL || h->Failed) return false;
+    xrtBlake2ErrorInit(&h->Error);
+    if (size != 0 && data == NULL) {
+        h->Failed = true;
+        return blake2_fail(&h->Error, XRT_BLAKE2_ERROR_ARGUMENT, h->InputBytes, "invalid blake2 input");
+    }
+    if (!blake2_input(h->InputBytes, (uint64)size, h->Options.tLimits.iMaxInputBytes, &h->Error)) {
+        h->Failed = true;
+        return false;
+    }
+    if (size != 0) blake2s_update(&h->State, data, size);
+    h->InputBytes += (uint64)size;
+    return true;
 }
 
-XRT_API bool xrtBlake2sHasherDigest(const xrtblake2shasher* pHasher, uint8* pOut, size_t iOutLen)
+XRT_API bool xrtBlake2sHasherDigest(xrtblake2shasher* h, uint8* output, size_t outlen)
 {
-	blake2s_state copy;
-	if (pHasher == NULL || pHasher->Failed || pOut == NULL || iOutLen == 0u) { return false; }
-	if (iOutLen > pHasher->OutLen) { iOutLen = pHasher->OutLen; }
-	memcpy(&copy, &pHasher->State, sizeof(copy));
-	blake2s_final(&copy, pOut, iOutLen);
-	return true;
+    blake2s_state copy;
+    if (h == NULL || h->Failed) return false;
+    xrtBlake2ErrorInit(&h->Error);
+    if (output == NULL || outlen != h->OutLen)
+        return blake2_fail(&h->Error, XRT_BLAKE2_ERROR_ARGUMENT, h->InputBytes,
+            "digest size must equal the configured blake2 size");
+    copy = h->State;
+    blake2s_final(&copy, output, outlen);
+    xrtSecureZero(&copy, sizeof(copy));
+    return true;
 }
 
-XRT_API bool xrtBlake2sHasherReset(xrtblake2shasher* pHasher)
+XRT_API bool xrtBlake2sHasherReset(xrtblake2shasher* h)
 {
-	if (pHasher == NULL || pHasher->Failed) { return false; }
-	if (pHasher->KeyLen > 0) {
-		blake2s_init_key(&pHasher->State, pHasher->OutLen, pHasher->Key, pHasher->KeyLen);
-	} else {
-		blake2s_init(&pHasher->State, pHasher->OutLen);
-	}
-	pHasher->InputBytes = 0u;
-	return true;
+    if (h == NULL) return false;
+    xrtSecureZero(&h->State, sizeof(h->State));
+    if (h->KeyLen != 0) blake2s_init_key(&h->State, h->OutLen, h->Key, h->KeyLen);
+    else blake2s_init(&h->State, h->OutLen);
+    h->Failed = false;
+    h->InputBytes = 0;
+    xrtBlake2ErrorInit(&h->Error);
+    return true;
 }
 
-XRT_API uint64 xrtBlake2sHasherInputBytes(const xrtblake2shasher* pHasher)
+XRT_API uint64 xrtBlake2sHasherInputBytes(const xrtblake2shasher* h)
 {
-	return pHasher != NULL ? pHasher->InputBytes : 0u;
+    return h != NULL ? h->InputBytes : 0;
 }
 
-XRT_API xrtblake2shasher* xrtBlake2sHasherClone(const xrtblake2shasher* pSrc)
+XRT_API size_t xrtBlake2sHasherDigestSize(const xrtblake2shasher* h)
 {
-	xrtblake2shasher* pNew;
-	if (pSrc == NULL) { return NULL; }
-	pNew = (xrtblake2shasher*)xrtMalloc(sizeof(xrtblake2shasher));
-	if (pNew == NULL) { return NULL; }
-	memcpy(pNew, pSrc, sizeof(*pNew));
-	return pNew;
+    return h != NULL ? h->OutLen : 0;
 }
 
-XRT_API const xrtblake2error* xrtBlake2sHasherError(const xrtblake2shasher* pHasher)
+XRT_API xrtblake2shasher* xrtBlake2sHasherClone(const xrtblake2shasher* h)
 {
-	return pHasher != NULL ? &pHasher->Error : NULL;
+    xrtblake2shasher* copy;
+    if (h == NULL || h->Failed) {
+        xrtSetErrorInfo(XERR_STATE, "xrt.blake2", 0, "cannot clone invalid blake2 state");
+        return NULL;
+    }
+    copy = xrtMalloc(sizeof(*copy));
+    if (copy != NULL) memcpy(copy, h, sizeof(*copy));
+    return copy;
 }
 
-XRT_API void xrtBlake2sHasherDestroy(xrtblake2shasher* pHasher)
+XRT_API const xrtblake2error* xrtBlake2sHasherError(const xrtblake2shasher* h)
 {
-	if (pHasher == NULL) { return; }
-	xrtFree(pHasher);
+    return h != NULL ? &h->Error : NULL;
 }
 
-
-/* ═══════════════ 一次性哈希 ═══════════════ */
-
-XRT_API bool xrtBlake2bHash(const void* pData, size_t iSize, size_t iOutLen,
-	const void* pKey, size_t iKeyLen, uint8* pOut, xrtblake2error* pError)
+XRT_API void xrtBlake2sHasherDestroy(xrtblake2shasher* h)
 {
-	blake2b_state state;
-	xrtBlake2ErrorInit(pError);
-	if (pOut == NULL || iOutLen == 0 || iOutLen > XRT_BLAKE2B_OUT_MAX) {
-		__xrtBlake2SetError(pError, XRT_BLAKE2_ERROR_ARGUMENT, 0, 0, 0, "invalid blake2b outlen");
-		return false;
-	}
-	if (pData == NULL && iSize != 0u) {
-		__xrtBlake2SetError(pError, XRT_BLAKE2_ERROR_ARGUMENT, 0, 0, 0, "invalid blake2b input");
-		return false;
-	}
-	if (iKeyLen > 0 && pKey != NULL) {
-		blake2b_init_key(&state, iOutLen, pKey, iKeyLen);
-	} else {
-		blake2b_init(&state, iOutLen);
-	}
-	if (iSize != 0u) blake2b_update(&state, pData, iSize);
-	blake2b_final(&state, pOut, iOutLen);
-	return true;
+    if (h == NULL) return;
+    xrtSecureZero(h, sizeof(*h));
+    xrtFree(h);
 }
 
-XRT_API bool xrtBlake2sHash(const void* pData, size_t iSize, size_t iOutLen,
-	const void* pKey, size_t iKeyLen, uint8* pOut, xrtblake2error* pError)
+XRT_API bool xrtBlake2sHash(const void* data, size_t size, size_t outlen,
+    const void* key, size_t keylen, uint8* output, xrtblake2error* error)
 {
-	blake2s_state state;
-	xrtBlake2ErrorInit(pError);
-	if (pOut == NULL || iOutLen == 0 || iOutLen > XRT_BLAKE2S_OUT_MAX) {
-		__xrtBlake2SetError(pError, XRT_BLAKE2_ERROR_ARGUMENT, 0, 0, 0, "invalid blake2s outlen");
-		return false;
-	}
-	if (pData == NULL && iSize != 0u) {
-		__xrtBlake2SetError(pError, XRT_BLAKE2_ERROR_ARGUMENT, 0, 0, 0, "invalid blake2s input");
-		return false;
-	}
-	if (iKeyLen > 0 && pKey != NULL) {
-		blake2s_init_key(&state, iOutLen, pKey, iKeyLen);
-	} else {
-		blake2s_init(&state, iOutLen);
-	}
-	if (iSize != 0u) blake2s_update(&state, pData, iSize);
-	blake2s_final(&state, pOut, iOutLen);
-	return true;
+    blake2s_state state;
+    xrtBlake2ErrorInit(error);
+    if (!blake2_parameters(outlen, 32, key, keylen, error)) return false;
+    if (output == NULL || (size != 0 && data == NULL))
+        return blake2_fail(error, XRT_BLAKE2_ERROR_ARGUMENT, 0, "invalid blake2 input or output");
+    if (keylen != 0) blake2s_init_key(&state, outlen, key, keylen);
+    else blake2s_init(&state, outlen);
+    if (size != 0) blake2s_update(&state, data, size);
+    blake2s_final(&state, output, outlen);
+    xrtSecureZero(&state, sizeof(state));
+    return true;
 }
 
-
-/* ═══════════════ 文件流式哈希 ═══════════════ */
-
-XRT_API bool xrtBlake2bFile(xreader* pReader, const xrtresourcelimits* pLimits,
-	size_t iOutLen, uint8* pOut, xrtprogressproc pProgress, ptr pUserData,
-	xrtblake2error* pError)
+/* 从 reader 当前游标开始；取消或失败时不发布部分摘要。 */
+XRT_API bool xrtBlake2sFile(xreader* reader, const xrtresourcelimits* limits,
+    size_t outlen, uint8* output, xrtprogressproc progress, ptr user, xrtblake2error* error)
 {
-	uint8 sInput[XRT_BLAKE2_CHUNK];
-	blake2b_state state;
-	uint64 iTotal = 0u;
-	uint64 iExpected = 0u;
-	bool bTotalKnown;
-	xrtBlake2ErrorInit(pError);
-	if (pReader == NULL || pOut == NULL || iOutLen == 0 || iOutLen > XRT_BLAKE2B_OUT_MAX) {
-		__xrtBlake2SetError(pError, XRT_BLAKE2_ERROR_ARGUMENT, 0, 0, 0, "invalid blake2b stream");
-		return false;
-	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iExpected);
-	if (!bTotalKnown) { xrtClearError(); }
-	blake2b_init(&state, iOutLen);
-	for (;;) {
-		uint64 iRead = 0u;
-		if (!xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead)) {
-			__xrtBlake2SetError(pError, XRT_BLAKE2_ERROR_IO, 0, iTotal, 0,
-				"cannot read blake2b input stream");
-			return false;
-		}
-		if (iRead == 0u) { break; }
-		iTotal += iRead;
-		if (pLimits->iMaxInputBytes != 0u && iTotal > pLimits->iMaxInputBytes) {
-			__xrtBlake2SetError(pError, XRT_BLAKE2_ERROR_LIMIT, 0, iTotal, 0,
-				"blake2b input exceeds maxInput limit");
-			return false;
-		}
-		blake2b_update(&state, sInput, (size_t)iRead);
-		if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
-			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) {
-			__xrtBlake2SetError(pError, XRT_BLAKE2_ERROR_CANCELLED, 0, iTotal, 0,
-				"blake2b operation cancelled");
-			return false;
-		}
-	}
-	blake2b_final(&state, pOut, iOutLen);
-	if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
-		XRT_PROGRESS_FINAL | (bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u))) {
-		__xrtBlake2SetError(pError, XRT_BLAKE2_ERROR_CANCELLED, 0, iTotal, 0,
-			"blake2b operation cancelled");
-		return false;
-	}
-	return true;
-}
-
-XRT_API bool xrtBlake2sFile(xreader* pReader, const xrtresourcelimits* pLimits,
-	size_t iOutLen, uint8* pOut, xrtprogressproc pProgress, ptr pUserData,
-	xrtblake2error* pError)
-{
-	uint8 sInput[XRT_BLAKE2_CHUNK];
-	blake2s_state state;
-	uint64 iTotal = 0u;
-	uint64 iExpected = 0u;
-	bool bTotalKnown;
-	xrtBlake2ErrorInit(pError);
-	if (pReader == NULL || pOut == NULL || iOutLen == 0 || iOutLen > XRT_BLAKE2S_OUT_MAX) {
-		__xrtBlake2SetError(pError, XRT_BLAKE2_ERROR_ARGUMENT, 0, 0, 0, "invalid blake2s stream");
-		return false;
-	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iExpected);
-	if (!bTotalKnown) { xrtClearError(); }
-	blake2s_init(&state, iOutLen);
-	for (;;) {
-		uint64 iRead = 0u;
-		if (!xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead)) {
-			__xrtBlake2SetError(pError, XRT_BLAKE2_ERROR_IO, 0, iTotal, 0,
-				"cannot read blake2s input stream");
-			return false;
-		}
-		if (iRead == 0u) { break; }
-		iTotal += iRead;
-		if (pLimits->iMaxInputBytes != 0u && iTotal > pLimits->iMaxInputBytes) {
-			__xrtBlake2SetError(pError, XRT_BLAKE2_ERROR_LIMIT, 0, iTotal, 0,
-				"blake2s input exceeds maxInput limit");
-			return false;
-		}
-		blake2s_update(&state, sInput, (size_t)iRead);
-		if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
-			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) {
-			__xrtBlake2SetError(pError, XRT_BLAKE2_ERROR_CANCELLED, 0, iTotal, 0,
-				"blake2s operation cancelled");
-			return false;
-		}
-	}
-	blake2s_final(&state, pOut, iOutLen);
-	if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
-		XRT_PROGRESS_FINAL | (bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u))) {
-		__xrtBlake2SetError(pError, XRT_BLAKE2_ERROR_CANCELLED, 0, iTotal, 0,
-			"blake2s operation cancelled");
-		return false;
-	}
-	return true;
+    blake2s_state state;
+    xrtresourcelimits defaults;
+    uint8 input[XRT_BLAKE2_CHUNK], digest[32];
+    uint64 total = 0, expected = 0, position = 0, end = 0;
+    bool known = false, ok = false;
+    xrtBlake2ErrorInit(error);
+    if (limits == NULL) { xrtBlake2LimitsInit(&defaults); limits = &defaults; }
+    if (!blake2_limits(limits) || reader == NULL || output == NULL ||
+        !blake2_parameters(outlen, 32, NULL, 0, error))
+        return blake2_fail(error, XRT_BLAKE2_ERROR_ARGUMENT, 0, "invalid blake2 reader or options");
+    if (xrtReaderCanSeek(reader)) {
+        known = xrtReaderTell(reader, &position) && xrtReaderSize(reader, &end) && end >= position;
+        if (known) expected = end - position;
+        else xrtClearError();
+    }
+    blake2s_init(&state, outlen);
+    for (;;) {
+        size_t count = 0;
+        if (!xrtReaderRead(reader, input, sizeof(input), &count) || count > sizeof(input)) {
+            blake2_reader_fail(error, total);
+            goto done;
+        }
+        if (count == 0) break;
+        if (!blake2_input(total, count, limits->iMaxInputBytes, error)) goto done;
+        blake2s_update(&state, input, (size_t)count);
+        total += count;
+        if (!xrtProgressReport(progress, user, total, expected, 0,
+            known ? XRT_PROGRESS_TOTAL_KNOWN : 0)) {
+            blake2_fail(error, XRT_BLAKE2_ERROR_CANCELLED, total, "blake2 operation cancelled");
+            goto done;
+        }
+    }
+    blake2s_final(&state, digest, outlen);
+    if (!xrtProgressReport(progress, user, total, expected, 0,
+        XRT_PROGRESS_FINAL | (known ? XRT_PROGRESS_TOTAL_KNOWN : 0))) {
+        blake2_fail(error, XRT_BLAKE2_ERROR_CANCELLED, total, "blake2 operation cancelled");
+        goto done;
+    }
+    memcpy(output, digest, outlen);
+    ok = true;
+done:
+    xrtSecureZero(&state, sizeof(state));
+    xrtSecureZero(input, sizeof(input));
+    xrtSecureZero(digest, sizeof(digest));
+    return ok;
 }

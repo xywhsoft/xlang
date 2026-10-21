@@ -1,4 +1,5 @@
 #include "blake2.h"
+#include "xrt.h"
 #include <string.h>
 
 /* BLAKE2 reference C implementation (portable, no SIMD) */
@@ -95,6 +96,7 @@ void blake2b_init_key(blake2b_state* S, size_t outlen, const void* key, size_t k
 		memset(block, 0, 128);
 		memcpy(block, key, keylen);
 		blake2b_update(S, block, 128);
+		xrtSecureZero(block, sizeof(block));
 	}
 }
 
@@ -130,6 +132,7 @@ void blake2b_final(blake2b_state* S, void* out, size_t outlen)
 	blake2b_compress(S, S->buf);
 	for (i = 0; i < 8; ++i) blake2b_store64(buffer + i * 8, S->h[i]);
 	memcpy(out, buffer, outlen < 64 ? outlen : 64);
+	xrtSecureZero(buffer, sizeof(buffer));
 }
 
 
@@ -221,6 +224,7 @@ void blake2s_init_key(blake2s_state* S, size_t outlen, const void* key, size_t k
 		memset(block, 0, 64);
 		memcpy(block, key, keylen);
 		blake2s_update(S, block, 64);
+	xrtSecureZero(block, sizeof(block));
 	}
 }
 
@@ -256,4 +260,5 @@ void blake2s_final(blake2s_state* S, void* out, size_t outlen)
 	blake2s_compress(S, S->buf);
 	for (i = 0; i < 8; ++i) blake2s_store32(buffer + i * 4, S->h[i]);
 	memcpy(out, buffer, outlen < 32 ? outlen : 32);
+	xrtSecureZero(buffer, sizeof(buffer));
 }

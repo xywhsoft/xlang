@@ -1,0 +1,154 @@
+import blake2
+
+func bytesHex(Buffer data) as string
+    return codec.hexEncodeBytes(data.data(), c_size(data.len()))
+end
+
+func rejectSize(int size)
+    bool caught = false
+    try
+        blake2.blake2bHashHex("abc", size)
+    catch ValueError e
+        caught = true
+    end
+    assert caught
+    caught = false
+    try
+        blake2.blake2sHasher(size)
+    catch ValueError e
+        caught = true
+    end
+    assert caught
+end
+
+func main(...) as int
+    // 中文文本和密钥必须传递 UTF-8 字节数，不是字符数量。
+    string text = "你好 xlang"
+    string keyText = "密钥"
+    Buffer data = Buffer()
+    Buffer key = Buffer()
+    data.append(text)
+    key.append(keyText)
+    string b = "fcb3ea1d2fca1aedd097d8362df66ae1"
+    string s = "dc5610dfa68682b055d51ee5e001c90c"
+    string rawB = "FCB3EA1D2FCA1AEDD097D8362DF66AE1"
+    string rawS = "DC5610DFA68682B055D51EE5E001C90C"
+    assert blake2.blake2bKeyedHex(text, keyText, 16) == b
+    assert blake2.blake2sKeyedHex(text, keyText, 16) == s
+    assert blake2.blake2bKeyedHex(data, key, 16) == b
+    assert blake2.blake2sKeyedHex(data, key, 16) == s
+    assert bytesHex(blake2.blake2bKeyedBytes(text, keyText, 16)) == rawB
+    assert bytesHex(blake2.blake2sKeyedBytes(text, keyText, 16)) == rawS
+    assert bytesHex(blake2.blake2bKeyedBytes(data, key, 16)) == rawB
+    assert bytesHex(blake2.blake2sKeyedBytes(data, key, 16)) == rawS
+
+    auto hb = blake2.blake2bKeyedHasher(key, 16)
+    auto hs = blake2.blake2sKeyedHasher(key, 16)
+    hb.update("你好")
+    hs.update("你好")
+    assert hb.inputBytes == 6 and hs.inputBytes == 6
+    auto cb = hb.clone()
+    auto cs = hs.clone()
+    Buffer suffix = Buffer()
+    suffix.append(" xlang")
+    hb.update(suffix)
+    hs.update(suffix)
+    assert hb.digestHex() == b and hs.digestHex() == s
+    assert bytesHex(hb.digestBytes()) == rawB
+    assert bytesHex(hs.digestBytes()) == rawS
+    cb.update(" different")
+    cs.update(" different")
+    assert cb.digestHex() != b and cs.digestHex() != s
+    assert hb.digestHex() == b and hs.digestHex() == s
+    key.clear()
+    assert hb.reset() and hs.reset()
+    hb.update(data)
+    hs.update(data)
+    assert hb.digestHex() == b and hs.digestHex() == s
+
+    // 空密钥等价于未加密钥；短摘要是独立参数化结果，不是长摘要的截断。
+    assert blake2.blake2bKeyedHex("abc", "", 16) == blake2.blake2bHashHex("abc", 16)
+    assert blake2.blake2sKeyedHex("abc", "", 16) == blake2.blake2sHashHex("abc", 16)
+    Buffer binary = Buffer()
+    for i in range(256)
+        binary.appendByte(i)
+    end
+    assert blake2.blake2bHashHex(binary, 16) == "c2472c0ac37a8dbdb25f05ada0d82643"
+    assert blake2.blake2sHashHex(binary, 16) == "f34aabb6e38ab8c17272d90d82e9f56d"
+    assert bytesHex(blake2.blake2bHashBytes(binary, 16)) == "C2472C0AC37A8DBDB25F05ADA0D82643"
+    assert bytesHex(blake2.blake2sHashBytes(binary, 16)) == "F34AABB6E38AB8C17272D90D82E9F56D"
+    assert bytesHex(blake2.blake2bHashBytes("abc", 16)) == "CF4AB791C62B8D2B2109C90275287816"
+    assert bytesHex(blake2.blake2sHashBytes("abc", 16)) == "AA4938119B1DC7B87CBAD0FFD200D0AE"
+    auto shortB = blake2.blake2bHasher(1)
+    auto shortS = blake2.blake2sHasher(1)
+    shortB.update("abc")
+    shortS.update("abc")
+    assert shortB.digestHex() == blake2.blake2bHashHex("abc", 1)
+    assert shortS.digestHex() == blake2.blake2sHashHex("abc", 1)
+    assert shortB.digestBytes().len() == 1 and shortS.digestBytes().len() == 1
+    shortB.update("d")
+    shortS.update("d")
+    assert shortB.digestHex() == blake2.blake2bHashHex("abcd", 1)
+    assert shortS.digestHex() == blake2.blake2sHashHex("abcd", 1)
+
+    rejectSize(0)
+    rejectSize(65)
+    rejectSize(-1)
+    string longKey = ""
+    for i in range(65)
+        longKey += "k"
+    end
+    bool caught = false
+    try
+        blake2.blake2bKeyedHex("abc", longKey)
+    catch ValueError e
+        caught = true
+    end
+    assert caught
+    caught = false
+    try
+        blake2.blake2sKeyedHex("abc", longKey)
+    catch ValueError e
+        caught = true
+    end
+    assert caught
+
+    // 业务限额失败保持原状态但禁止继续使用，显式 reset 后可以重新计算。
+    auto limited = blake2.blake2bHasher(16, 3)
+    limited.update("abc")
+    caught = false
+    try
+        limited.update("d")
+    catch RangeError e
+        caught = true
+    end
+    assert caught and limited.inputBytes == 3
+    caught = false
+    try
+        limited.digestHex()
+    catch RangeError e
+        caught = true
+    end
+    assert caught
+    caught = false
+    try
+        limited.clone()
+    catch RuntimeError e
+        caught = true
+    end
+    assert caught and limited.reset()
+    limited.update("abc")
+    assert limited.digestHex() == blake2.blake2bHashHex("abc", 16)
+
+    auto limitedS = blake2.blake2sHasher(16, 2)
+    caught = false
+    try
+        limitedS.update("你好")
+    catch RangeError e
+        caught = true
+    end
+    assert caught and limitedS.inputBytes == 0 and limitedS.reset()
+    limitedS.update("ab")
+    assert limitedS.digestHex() == blake2.blake2sHashHex("ab", 16)
+    return 0
+end

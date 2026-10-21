@@ -1,0 +1,7 @@
+import blake2
+
+// 仅编译：导入方不能接管任意原生句柄；绝不执行此文件。
+auto state = blake2.Blake2bHasher(null)
+auto keyed = blake2.Blake2bKeyedHasher(null)
+auto shortState = blake2.Blake2sHasher(null)
+auto shortKeyed = blake2.Blake2sKeyedHasher(null)

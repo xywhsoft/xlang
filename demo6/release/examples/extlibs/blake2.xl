@@ -29,8 +29,13 @@ println("clone h1: " + h1.digestHex())
 println("clone h2: " + h2.digestHex())
 
 // 文件哈希
-dir.createAll("examples_out/extlibs")
-file.writeText("examples_out/extlibs/blake2_sample.txt", sample)
-assert blake2.blake2bFileHex("examples_out/extlibs/blake2_sample.txt") == blake2.blake2bHashHex(sample), "blake2 file mismatch"
+string work = dir.temp("", "xlang-blake2-example-", "")
+try
+    string input = path.join(work, "blake2_sample.txt")
+    assert file.writeText(input, sample)
+    assert blake2.blake2bFileHex(input) == blake2.blake2bHashHex(sample), "blake2 file mismatch"
+finally
+    assert dir.delete(work), "BLAKE2 example temporary directory must be removed"
+end
 
 println("blake2 extlib ok")

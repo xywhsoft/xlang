@@ -1,530 +1,427 @@
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
+#ifndef XRT_MODULE_IO_FILE
+#define XRT_MODULE_IO_FILE
+#endif
+#ifndef XRT_MODULE_CODEC_HEX
+#define XRT_MODULE_CODEC_HEX
+#endif
+#ifndef XRT_MODULE_TEMP_MEMORY
+#define XRT_MODULE_TEMP_MEMORY
+#endif
+#ifndef XRT_MODULE_VALUE
+#define XRT_MODULE_VALUE
+#endif
+#ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
-
+#endif
 #include "xruntime.h"
 #include "include/xrt_blake2.h"
-#include "../xlang_extlib_runtime.h"
+#include "include/blake2_native.h"
 
-#include <stdio.h>
-#include <string.h>
-
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
 #define XBLAKE2_EXPORT __declspec(dllexport)
 #else
 #define XBLAKE2_EXPORT
 #endif
 
-#if defined(__GNUC__)
-#define XBLAKE2_THREAD __thread
-#elif defined(_MSC_VER)
-#define XBLAKE2_THREAD __declspec(thread)
-#else
-#define XBLAKE2_THREAD
-#endif
-
-#define XBLAKE2_HEX_SLOTS 8u
-#define XBLAKE2_MAX_OUT 64u
-
-static XBLAKE2_THREAD char g_xblake2_hex[XBLAKE2_HEX_SLOTS][XBLAKE2_MAX_OUT * 2 + 1];
-static XBLAKE2_THREAD size_t g_xblake2_hex_index;
-static XBLAKE2_THREAD int g_xblake2_file_status;
-
-static void xblake2_set_error(xerrkind kind, const char *message)
+/* 类型错误、限额、IO 和取消不再折叠成同一个 ValueError。 */
+static void blake2_publish(const xrtblake2error* error)
 {
-	xl6ExtlibSetError(kind, "xlang.extlib.blake2", message);
+    xerrkind kind = XERR_ARGUMENT;
+    if (error != NULL) {
+        switch (error->iCode) {
+        case XRT_BLAKE2_ERROR_MEMORY: kind = XERR_MEMORY; break;
+        case XRT_BLAKE2_ERROR_IO: kind = XERR_IO; break;
+        case XRT_BLAKE2_ERROR_LIMIT: kind = XERR_RANGE; break;
+        case XRT_BLAKE2_ERROR_STATE: kind = XERR_STATE; break;
+        case XRT_BLAKE2_ERROR_CANCELLED: kind = XERR_CANCELLED; break;
+        default: break;
+        }
+    }
+    xrtSetErrorInfo(kind, "xlang.extlib.blake2", 0,
+        error != NULL && error->sMessage[0] ? error->sMessage : "invalid blake2 handle");
 }
 
-static void xblake2_set_path_error(const char *prefix, const char *path)
+/* XRT 临时区负责线程/协程隔离；不使用在 TCC 下退化成共享全局的环形字符串槽。 */
+static const char* blake2_hex(uint8* digest, size_t size)
 {
-	char message[512];
-	snprintf(message, sizeof(message), "%s%s", prefix,
-		path != NULL ? path : "");
-	message[sizeof(message) - 1u] = '\0';
-	xblake2_set_error(7, message);
+    size_t written;
+    char* text = xrtTemp(size * 2 + 1);
+    bool ok = text != NULL && xrtHexEncode(digest, size, text, size * 2 + 1, &written, 0);
+    xrtSecureZero(digest, size);
+    return ok ? text : "";
 }
 
-
-static const char* xblake2_format_hex(const uint8* pDigest, size_t iLen)
+static void* blake2_buffer(uint8* digest, size_t size)
 {
-	static const char hex[] = "0123456789abcdef";
-	char* sSlot = g_xblake2_hex[g_xblake2_hex_index % XBLAKE2_HEX_SLOTS];
-	size_t i;
-	g_xblake2_hex_index = (g_xblake2_hex_index + 1u) % XBLAKE2_HEX_SLOTS;
-	if (iLen > XBLAKE2_MAX_OUT) iLen = XBLAKE2_MAX_OUT;
-	for (i = 0; i < iLen; ++i) {
-		sSlot[i * 2] = hex[(pDigest[i] >> 4) & 0x0f];
-		sSlot[i * 2 + 1] = hex[pDigest[i] & 0x0f];
-	}
-	sSlot[iLen * 2] = '\0';
-	return sSlot;
+    xbuffer* buffer = xrtBufferFrom((xbytesview){digest, size});
+    xrtSecureZero(digest, size);
+    return buffer;
 }
 
-static void xblake2_publish_error(const xrtblake2error* pError)
+/* 文件读取和关闭均成功才发布摘要；回调异常优先于关闭错误。 */
+static bool blake2_file_complete(xreader* reader, bool ok,
+    bool callback_failed, const xrtblake2error* error)
 {
-	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?
-		pError->sMessage : "blake2 operation failed";
-	xblake2_set_error(3, sMessage);
+    xerror* first = !ok && callback_failed ? xrtTakeError() : NULL;
+    bool closed = xrtReaderDestroy(reader);
+    if (!ok) {
+        if (first != NULL) xrtSetErrorTake(first);
+        else blake2_publish(error);
+        return false;
+    }
+    return closed;
 }
 
+XBLAKE2_EXPORT bool xblake2_available(void) { return true; }
+XBLAKE2_EXPORT const char* xblake2_version(void) { return "1.1.0"; }
+XBLAKE2_EXPORT const char* xblake2_last_error(void) { return xrtErrorMessage(xrtGetError()); }
 
-
-XBLAKE2_EXPORT bool xblake2_available(void)
+/* BLAKE2b 薄绑定：point 对应 void*，只在进入 const 核心接口时借用。 */
+XBLAKE2_EXPORT const char* xblake2b_hash_hex(void* data, size_t size,
+    size_t outlen, void* key, size_t keylen)
 {
-	return true;
+    uint8 digest[64];
+    xrtblake2error error;
+    xrtClearError();
+    if (!xrtBlake2bHash(data, size, outlen, key, keylen, digest, &error)) {
+        blake2_publish(&error);
+        return "";
+    }
+    return blake2_hex(digest, outlen);
 }
 
-XBLAKE2_EXPORT const char* xblake2_version(void)
+XBLAKE2_EXPORT const char* xblake2b_hash_str_hex(const char* data, size_t size,
+    size_t outlen, const char* key, size_t keylen)
 {
-	return "1.1.0";
+    return xblake2b_hash_hex((void*)data, size, outlen, (void*)key, keylen);
 }
 
-XBLAKE2_EXPORT const char* xblake2_last_error(void)
+XBLAKE2_EXPORT void* xblake2b_hash_mac_bytes(void* data, size_t size,
+    void* key, size_t keylen, size_t outlen)
 {
-	return xrtGetError();
+    uint8 digest[64];
+    xrtblake2error error;
+    xrtClearError();
+    if (!xrtBlake2bHash(data, size, outlen, key, keylen, digest, &error)) {
+        blake2_publish(&error);
+        return NULL;
+    }
+    return blake2_buffer(digest, outlen);
 }
 
-XBLAKE2_EXPORT int xblake2_file_status(void)
+XBLAKE2_EXPORT void* xblake2b_hash_bytes(void* data, size_t size, size_t outlen)
 {
-	return g_xblake2_file_status;
+    return xblake2b_hash_mac_bytes(data, size, NULL, 0, outlen);
 }
 
-
-
-/* ---- BLAKE2b 一次性哈希 ---- */
-
-XBLAKE2_EXPORT const char* xblake2b_hash_hex(const void* pData, size_t iSize,
-	size_t iOutLen, const void* pKey, size_t iKeyLen)
+XBLAKE2_EXPORT void* xblake2b_hash_str_bytes(const char* data, size_t size, size_t outlen)
 {
-	uint8 pOut[XRT_BLAKE2B_OUT_MAX];
-	xrtblake2error tError;
-	xrtClearError();
-	if (iOutLen == 0 || iOutLen > XRT_BLAKE2B_OUT_MAX) iOutLen = XRT_BLAKE2B_OUT_MAX;
-	if (!xrtBlake2bHash(pData, iSize, iOutLen, pKey, iKeyLen, pOut, &tError)) {
-		xblake2_publish_error(&tError);
-		return "";
-	}
-	return xblake2_format_hex(pOut, iOutLen);
+    return xblake2b_hash_bytes((void*)data, size, outlen);
 }
 
-XBLAKE2_EXPORT const char* xblake2b_hash_str_hex(const char* sText, size_t iSize,
-	size_t iOutLen, const char* sKey, size_t iKeyLen)
+XBLAKE2_EXPORT void* xblake2b_hash_mac_str_bytes(const char* data, size_t size,
+    const char* key, size_t keylen, size_t outlen)
 {
-	return xblake2b_hash_hex((const void*)sText, iSize, iOutLen, (const void*)sKey, iKeyLen);
+    return xblake2b_hash_mac_bytes((void*)data, size, (void*)key, keylen, outlen);
 }
 
-XBLAKE2_EXPORT void* xblake2b_hash_bytes(const void* pData, size_t iSize, size_t iOutLen)
+/* 每次调用用局部状态，允许回调内执行另一次独立的文件哈希。 */
+XBLAKE2_EXPORT const char* xblake2b_file_hex(const char* path, unsigned long long maximum,
+    size_t outlen, xvalue* callback)
 {
-	uint8* pOut;
-	xrtblake2error tError;
-	xrtClearError();
-	if (iOutLen == 0 || iOutLen > XRT_BLAKE2B_OUT_MAX) iOutLen = XRT_BLAKE2B_OUT_MAX;
-	pOut = (uint8*)xrtMalloc(iOutLen);
-	if (pOut == NULL) { return NULL; }
-	if (!xrtBlake2bHash(pData, iSize, iOutLen, NULL, 0, pOut, &tError)) {
-		xrtFree(pOut);
-		xblake2_publish_error(&tError);
-		return NULL;
-	}
-	return xl6ExtlibBufferTake(pOut, iOutLen);
+    xrtblake2options options;
+    xrtblake2error error;
+    xrtprogresscall progress;
+    xreader* reader;
+    uint8 digest[64];
+    bool ok;
+    xrtClearError();
+    if (path == NULL || path[0] == 0 || outlen == 0 || outlen > 64) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.blake2", 0, "invalid blake2 file path or digest size");
+        return "";
+    }
+    xrtBlake2OptionsInit(&options);
+    if (maximum != 0) options.tLimits.iMaxInputBytes = maximum;
+    xrtProgressCallInit(&progress, callback);
+    reader = xrtReaderOpen(path);
+    if (reader == NULL) return "";
+    ok = xrtBlake2bFile(reader, &options.tLimits, outlen, digest,
+        progress.Callback != NULL ? xrtProgressCallInvoke : NULL, &progress, &error);
+    if (!blake2_file_complete(reader, ok, progress.InvokeFailed, &error)) {
+        xrtSecureZero(digest, sizeof(digest));
+        return "";
+    }
+    return blake2_hex(digest, outlen);
 }
 
-XBLAKE2_EXPORT void* xblake2b_hash_str_bytes(const char* sText, size_t iSize, size_t iOutLen)
+XBLAKE2_EXPORT void* xblake2b_hasher_create_keyed(size_t outlen, void* key,
+    size_t keylen, unsigned long long maximum)
 {
-	return xblake2b_hash_bytes((const void*)sText, iSize, iOutLen);
+    xrtblake2options options;
+    xrtBlake2OptionsInit(&options);
+    if (maximum != 0) options.tLimits.iMaxInputBytes = maximum;
+    return xrtBlake2bHasherCreate(&options, outlen, key, keylen);
 }
 
-XBLAKE2_EXPORT void* xblake2b_hash_mac_bytes(const void* pData, size_t iSize,
-	const void* pKey, size_t iKeyLen, size_t iOutLen)
+/* 从 bytes 值读取真实密钥长度，避免语言侧伪造裸指针长度。 */
+XBLAKE2_EXPORT void* xblake2b_hasher_create_keyed_bytes(size_t outlen,
+    xvalue* key, unsigned long long maximum)
 {
-	uint8* pOut;
-	xrtblake2error tError;
-	xrtClearError();
-	if (iOutLen == 0 || iOutLen > XRT_BLAKE2B_OUT_MAX) iOutLen = XRT_BLAKE2B_OUT_MAX;
-	pOut = (uint8*)xrtMalloc(iOutLen);
-	if (pOut == NULL) { return NULL; }
-	if (!xrtBlake2bHash(pData, iSize, iOutLen, pKey, iKeyLen, pOut, &tError)) {
-		xrtFree(pOut);
-		xblake2_publish_error(&tError);
-		return NULL;
-	}
-	return xl6ExtlibBufferTake(pOut, iOutLen);
+    xbytesview view = {0};
+    xrtClearError();
+    if (key == NULL || !xrtValueGetBytes(key, &view)) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.blake2", 0,
+            "blake2 key must be bytes");
+        return NULL;
+    }
+    return xblake2b_hasher_create_keyed(outlen, (void*)view.Data,
+        view.Size, maximum);
 }
 
-XBLAKE2_EXPORT void* xblake2b_hash_mac_str_bytes(const char* sText, size_t iSize,
-	const char* sKey, size_t iKeyLen, size_t iOutLen)
+XBLAKE2_EXPORT void* xblake2b_hasher_create(size_t outlen, unsigned long long maximum)
 {
-	return xblake2b_hash_mac_bytes((const void*)sText, iSize, (const void*)sKey, iKeyLen, iOutLen);
+    return xblake2b_hasher_create_keyed(outlen, NULL, 0, maximum);
 }
 
-/* ---- BLAKE2s 一次性哈希 ---- */
-
-XBLAKE2_EXPORT const char* xblake2s_hash_hex(const void* pData, size_t iSize,
-	size_t iOutLen, const void* pKey, size_t iKeyLen)
+XBLAKE2_EXPORT void xblake2b_hasher_destroy(void* handle)
 {
-	uint8 pOut[XRT_BLAKE2S_OUT_MAX];
-	xrtblake2error tError;
-	xrtClearError();
-	if (iOutLen == 0 || iOutLen > XRT_BLAKE2S_OUT_MAX) iOutLen = XRT_BLAKE2S_OUT_MAX;
-	if (!xrtBlake2sHash(pData, iSize, iOutLen, pKey, iKeyLen, pOut, &tError)) {
-		xblake2_publish_error(&tError);
-		return "";
-	}
-	return xblake2_format_hex(pOut, iOutLen);
+    xrtBlake2bHasherDestroy(handle);
 }
 
-XBLAKE2_EXPORT const char* xblake2s_hash_str_hex(const char* sText, size_t iSize,
-	size_t iOutLen, const char* sKey, size_t iKeyLen)
+XBLAKE2_EXPORT bool xblake2b_hasher_update(void* handle, void* data, size_t size)
 {
-	return xblake2s_hash_hex((const void*)sText, iSize, iOutLen, (const void*)sKey, iKeyLen);
+    xrtClearError();
+    if (!xrtBlake2bHasherUpdate(handle, data, size)) {
+        blake2_publish(xrtBlake2bHasherError(handle));
+        return false;
+    }
+    return true;
 }
 
-XBLAKE2_EXPORT void* xblake2s_hash_bytes(const void* pData, size_t iSize, size_t iOutLen)
+XBLAKE2_EXPORT bool xblake2b_hasher_update_str(void* handle, const char* text, size_t size)
 {
-	uint8* pOut;
-	xrtblake2error tError;
-	xrtClearError();
-	if (iOutLen == 0 || iOutLen > XRT_BLAKE2S_OUT_MAX) iOutLen = XRT_BLAKE2S_OUT_MAX;
-	pOut = (uint8*)xrtMalloc(iOutLen);
-	if (pOut == NULL) { return NULL; }
-	if (!xrtBlake2sHash(pData, iSize, iOutLen, NULL, 0, pOut, &tError)) {
-		xrtFree(pOut);
-		xblake2_publish_error(&tError);
-		return NULL;
-	}
-	return xl6ExtlibBufferTake(pOut, iOutLen);
+    return xblake2b_hasher_update(handle, (void*)text, size);
 }
 
-XBLAKE2_EXPORT void* xblake2s_hash_str_bytes(const char* sText, size_t iSize, size_t iOutLen)
+XBLAKE2_EXPORT const char* xblake2b_hasher_digest_hex(void* handle)
 {
-	return xblake2s_hash_bytes((const void*)sText, iSize, iOutLen);
+    uint8 digest[64];
+    size_t size = xrtBlake2bHasherDigestSize(handle);
+    xrtClearError();
+    if (!xrtBlake2bHasherDigest(handle, digest, size)) {
+        blake2_publish(xrtBlake2bHasherError(handle));
+        return "";
+    }
+    return blake2_hex(digest, size);
 }
 
-XBLAKE2_EXPORT void* xblake2s_hash_mac_bytes(const void* pData, size_t iSize,
-	const void* pKey, size_t iKeyLen, size_t iOutLen)
+XBLAKE2_EXPORT void* xblake2b_hasher_digest_bytes(void* handle)
 {
-	uint8* pOut;
-	xrtblake2error tError;
-	xrtClearError();
-	if (iOutLen == 0 || iOutLen > XRT_BLAKE2S_OUT_MAX) iOutLen = XRT_BLAKE2S_OUT_MAX;
-	pOut = (uint8*)xrtMalloc(iOutLen);
-	if (pOut == NULL) { return NULL; }
-	if (!xrtBlake2sHash(pData, iSize, iOutLen, pKey, iKeyLen, pOut, &tError)) {
-		xrtFree(pOut);
-		xblake2_publish_error(&tError);
-		return NULL;
-	}
-	return xl6ExtlibBufferTake(pOut, iOutLen);
+    uint8 digest[64];
+    size_t size = xrtBlake2bHasherDigestSize(handle);
+    xrtClearError();
+    if (!xrtBlake2bHasherDigest(handle, digest, size)) {
+        blake2_publish(xrtBlake2bHasherError(handle));
+        return NULL;
+    }
+    return blake2_buffer(digest, size);
 }
 
-XBLAKE2_EXPORT void* xblake2s_hash_mac_str_bytes(const char* sText, size_t iSize,
-	const char* sKey, size_t iKeyLen, size_t iOutLen)
+XBLAKE2_EXPORT bool xblake2b_hasher_reset(void* handle)
 {
-	return xblake2s_hash_mac_bytes((const void*)sText, iSize, (const void*)sKey, iKeyLen, iOutLen);
+    xrtClearError();
+    if (!xrtBlake2bHasherReset(handle)) {
+        blake2_publish(NULL);
+        return false;
+    }
+    return true;
 }
 
-
-
-/* ---- 文件哈希 ---- */
-
-XBLAKE2_EXPORT const char* xblake2b_file_hex(str sPath, unsigned long long iMaxInput,
-	size_t iOutLen, xvalue* pCallback)
+XBLAKE2_EXPORT unsigned long long xblake2b_hasher_input_bytes(void* handle)
 {
-	xrtblake2options tOptions;
-	xrtblake2error tError;
-	xrtprogresscall tProgress;
-	xreader* pReader = NULL;
-	uint8 pOut[XRT_BLAKE2B_OUT_MAX];
-	bool bResult;
-	xrtClearError();
-	g_xblake2_file_status = 0;
-	xrtProgressCallInit(&tProgress, pCallback);
-	if (iOutLen == 0 || iOutLen > XRT_BLAKE2B_OUT_MAX) iOutLen = XRT_BLAKE2B_OUT_MAX;
-	xrtBlake2OptionsInit(&tOptions);
-	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
-	if (sPath == NULL || sPath[0] == 0) {
-		xblake2_set_error(7, "blake2b file path is required");
-		return "";
-	}
-	if (!xrtPathExists(sPath)) {
-		xblake2_set_path_error("blake2b file does not exist: ", sPath);
-		return "";
-	}
-	pReader = xrtReaderOpen(sPath);
-	if (pReader == NULL) {
-		xblake2_set_path_error("cannot open blake2b file: ", sPath);
-		return "";
-	}
-	bResult = xrtBlake2bFile(pReader, &tOptions.tLimits, iOutLen, pOut,
-		tProgress.Callback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError);
-	xrtReaderDestroy(pReader);
-	if (!bResult) {
-		if (tProgress.InvokeFailed) { g_xblake2_file_status = -2; }
-		else {
-			g_xblake2_file_status = tError.iCode == XRT_BLAKE2_ERROR_CANCELLED ? -1 : 0;
-			xblake2_publish_error(&tError);
-		}
-		return "";
-	}
-	g_xblake2_file_status = 1;
-	return xblake2_format_hex(pOut, iOutLen);
+    return (unsigned long long)xrtBlake2bHasherInputBytes(handle);
 }
 
-XBLAKE2_EXPORT const char* xblake2s_file_hex(str sPath, unsigned long long iMaxInput,
-	size_t iOutLen, xvalue* pCallback)
+XBLAKE2_EXPORT void* xblake2b_hasher_adopt(void* handle) { return handle; }
+
+XBLAKE2_EXPORT void* xblake2b_hasher_clone(void* handle)
 {
-	xrtblake2options tOptions;
-	xrtblake2error tError;
-	xrtprogresscall tProgress;
-	xreader* pReader = NULL;
-	uint8 pOut[XRT_BLAKE2S_OUT_MAX];
-	bool bResult;
-	xrtClearError();
-	g_xblake2_file_status = 0;
-	xrtProgressCallInit(&tProgress, pCallback);
-	if (iOutLen == 0 || iOutLen > XRT_BLAKE2S_OUT_MAX) iOutLen = XRT_BLAKE2S_OUT_MAX;
-	xrtBlake2OptionsInit(&tOptions);
-	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
-	if (sPath == NULL || sPath[0] == 0) {
-		xblake2_set_error(7, "blake2s file path is required");
-		return "";
-	}
-	if (!xrtPathExists(sPath)) {
-		xblake2_set_path_error("blake2s file does not exist: ", sPath);
-		return "";
-	}
-	pReader = xrtReaderOpen(sPath);
-	if (pReader == NULL) {
-		xblake2_set_path_error("cannot open blake2s file: ", sPath);
-		return "";
-	}
-	bResult = xrtBlake2sFile(pReader, &tOptions.tLimits, iOutLen, pOut,
-		tProgress.Callback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError);
-	xrtReaderDestroy(pReader);
-	if (!bResult) {
-		if (tProgress.InvokeFailed) { g_xblake2_file_status = -2; }
-		else {
-			g_xblake2_file_status = tError.iCode == XRT_BLAKE2_ERROR_CANCELLED ? -1 : 0;
-			xblake2_publish_error(&tError);
-		}
-		return "";
-	}
-	g_xblake2_file_status = 1;
-	return xblake2_format_hex(pOut, iOutLen);
+    xrtClearError();
+    return xrtBlake2bHasherClone(handle);
 }
 
-
-
-/* ---- BLAKE2b 流式哈希器 ---- */
-
-XBLAKE2_EXPORT void* xblake2b_hasher_create(size_t iOutLen, unsigned long long iMaxInput)
+/* BLAKE2s 薄绑定：point 对应 void*，只在进入 const 核心接口时借用。 */
+XBLAKE2_EXPORT const char* xblake2s_hash_hex(void* data, size_t size,
+    size_t outlen, void* key, size_t keylen)
 {
-	xrtblake2options tOptions;
-	xrtblake2bhasher* pHasher;
-	xrtClearError();
-	xrtBlake2OptionsInit(&tOptions);
-	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
-	pHasher = xrtBlake2bHasherCreate(&tOptions, (size_t)iOutLen, NULL, 0);
-	if (pHasher == NULL) {
-		xblake2_set_error(6, "blake2b hasher create failed");
-		return NULL;
-	}
-	return pHasher;
+    uint8 digest[32];
+    xrtblake2error error;
+    xrtClearError();
+    if (!xrtBlake2sHash(data, size, outlen, key, keylen, digest, &error)) {
+        blake2_publish(&error);
+        return "";
+    }
+    return blake2_hex(digest, outlen);
 }
 
-XBLAKE2_EXPORT void* xblake2b_hasher_create_keyed(size_t iOutLen, const void* pKey,
-	size_t iKeyLen, unsigned long long iMaxInput)
+XBLAKE2_EXPORT const char* xblake2s_hash_str_hex(const char* data, size_t size,
+    size_t outlen, const char* key, size_t keylen)
 {
-	xrtblake2options tOptions;
-	xrtblake2bhasher* pHasher;
-	xrtClearError();
-	xrtBlake2OptionsInit(&tOptions);
-	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
-	pHasher = xrtBlake2bHasherCreate(&tOptions, (size_t)iOutLen, pKey, (size_t)iKeyLen);
-	if (pHasher == NULL) {
-		xblake2_set_error(6, "blake2b keyed hasher create failed");
-		return NULL;
-	}
-	return pHasher;
+    return xblake2s_hash_hex((void*)data, size, outlen, (void*)key, keylen);
 }
 
-XBLAKE2_EXPORT void xblake2b_hasher_destroy(void* pHandle)
+XBLAKE2_EXPORT void* xblake2s_hash_mac_bytes(void* data, size_t size,
+    void* key, size_t keylen, size_t outlen)
 {
-	xrtBlake2bHasherDestroy((xrtblake2bhasher*)pHandle);
+    uint8 digest[32];
+    xrtblake2error error;
+    xrtClearError();
+    if (!xrtBlake2sHash(data, size, outlen, key, keylen, digest, &error)) {
+        blake2_publish(&error);
+        return NULL;
+    }
+    return blake2_buffer(digest, outlen);
 }
 
-XBLAKE2_EXPORT bool xblake2b_hasher_update(void* pHandle, const void* pData, size_t iSize)
+XBLAKE2_EXPORT void* xblake2s_hash_bytes(void* data, size_t size, size_t outlen)
 {
-	xrtblake2bhasher* pHasher = (xrtblake2bhasher*)pHandle;
-	if (!xrtBlake2bHasherUpdate(pHasher, pData, iSize)) {
-		xblake2_publish_error(xrtBlake2bHasherError(pHasher));
-		return false;
-	}
-	return true;
+    return xblake2s_hash_mac_bytes(data, size, NULL, 0, outlen);
 }
 
-XBLAKE2_EXPORT bool xblake2b_hasher_update_str(void* pHandle, const char* sText, size_t iSize)
+XBLAKE2_EXPORT void* xblake2s_hash_str_bytes(const char* data, size_t size, size_t outlen)
 {
-	return xblake2b_hasher_update(pHandle, (const void*)sText, iSize);
+    return xblake2s_hash_bytes((void*)data, size, outlen);
 }
 
-XBLAKE2_EXPORT const char* xblake2b_hasher_digest_hex(void* pHandle, size_t iOutLen)
+XBLAKE2_EXPORT void* xblake2s_hash_mac_str_bytes(const char* data, size_t size,
+    const char* key, size_t keylen, size_t outlen)
 {
-	xrtblake2bhasher* pHasher = (xrtblake2bhasher*)pHandle;
-	uint8 pOut[XRT_BLAKE2B_OUT_MAX];
-	if (iOutLen == 0 || iOutLen > XRT_BLAKE2B_OUT_MAX) iOutLen = XRT_BLAKE2B_OUT_MAX;
-	if (!xrtBlake2bHasherDigest(pHasher, pOut, iOutLen)) {
-		xblake2_publish_error(xrtBlake2bHasherError(pHasher));
-		return "";
-	}
-	return xblake2_format_hex(pOut, iOutLen);
+    return xblake2s_hash_mac_bytes((void*)data, size, (void*)key, keylen, outlen);
 }
 
-XBLAKE2_EXPORT void* xblake2b_hasher_digest_bytes(void* pHandle, size_t iOutLen)
+/* 每次调用用局部状态，允许回调内执行另一次独立的文件哈希。 */
+XBLAKE2_EXPORT const char* xblake2s_file_hex(const char* path, unsigned long long maximum,
+    size_t outlen, xvalue* callback)
 {
-	xrtblake2bhasher* pHasher = (xrtblake2bhasher*)pHandle;
-	uint8* pOut;
-	if (iOutLen == 0 || iOutLen > XRT_BLAKE2B_OUT_MAX) iOutLen = XRT_BLAKE2B_OUT_MAX;
-	pOut = (uint8*)xrtMalloc(iOutLen);
-	if (pOut == NULL) { return NULL; }
-	if (!xrtBlake2bHasherDigest(pHasher, pOut, iOutLen)) {
-		xrtFree(pOut);
-		xblake2_publish_error(xrtBlake2bHasherError(pHasher));
-		return NULL;
-	}
-	return xl6ExtlibBufferTake(pOut, iOutLen);
+    xrtblake2options options;
+    xrtblake2error error;
+    xrtprogresscall progress;
+    xreader* reader;
+    uint8 digest[32];
+    bool ok;
+    xrtClearError();
+    if (path == NULL || path[0] == 0 || outlen == 0 || outlen > 32) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.blake2", 0, "invalid blake2 file path or digest size");
+        return "";
+    }
+    xrtBlake2OptionsInit(&options);
+    if (maximum != 0) options.tLimits.iMaxInputBytes = maximum;
+    xrtProgressCallInit(&progress, callback);
+    reader = xrtReaderOpen(path);
+    if (reader == NULL) return "";
+    ok = xrtBlake2sFile(reader, &options.tLimits, outlen, digest,
+        progress.Callback != NULL ? xrtProgressCallInvoke : NULL, &progress, &error);
+    if (!blake2_file_complete(reader, ok, progress.InvokeFailed, &error)) {
+        xrtSecureZero(digest, sizeof(digest));
+        return "";
+    }
+    return blake2_hex(digest, outlen);
 }
 
-XBLAKE2_EXPORT bool xblake2b_hasher_reset(void* pHandle)
+XBLAKE2_EXPORT void* xblake2s_hasher_create_keyed(size_t outlen, void* key,
+    size_t keylen, unsigned long long maximum)
 {
-	xrtblake2bhasher* pHasher = (xrtblake2bhasher*)pHandle;
-	if (!xrtBlake2bHasherReset(pHasher)) {
-		xblake2_publish_error(xrtBlake2bHasherError(pHasher));
-		return false;
-	}
-	return true;
+    xrtblake2options options;
+    xrtBlake2OptionsInit(&options);
+    if (maximum != 0) options.tLimits.iMaxInputBytes = maximum;
+    return xrtBlake2sHasherCreate(&options, outlen, key, keylen);
 }
 
-XBLAKE2_EXPORT unsigned long long xblake2b_hasher_input_bytes(void* pHandle)
+XBLAKE2_EXPORT void* xblake2s_hasher_create_keyed_bytes(size_t outlen,
+    xvalue* key, unsigned long long maximum)
 {
-	return (unsigned long long)xrtBlake2bHasherInputBytes((const xrtblake2bhasher*)pHandle);
+    xbytesview view = {0};
+    xrtClearError();
+    if (key == NULL || !xrtValueGetBytes(key, &view)) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.blake2", 0,
+            "blake2 key must be bytes");
+        return NULL;
+    }
+    return xblake2s_hasher_create_keyed(outlen, (void*)view.Data,
+        view.Size, maximum);
 }
 
-XBLAKE2_EXPORT void* xblake2b_hasher_adopt(void* pHandle)
+XBLAKE2_EXPORT void* xblake2s_hasher_create(size_t outlen, unsigned long long maximum)
 {
-	return pHandle;
+    return xblake2s_hasher_create_keyed(outlen, NULL, 0, maximum);
 }
 
-XBLAKE2_EXPORT void* xblake2b_hasher_clone(void* pHandle)
+XBLAKE2_EXPORT void xblake2s_hasher_destroy(void* handle)
 {
-	xrtblake2bhasher* pSrc = (xrtblake2bhasher*)pHandle;
-	if (pSrc == NULL) { return NULL; }
-	return xrtBlake2bHasherClone(pSrc);
+    xrtBlake2sHasherDestroy(handle);
 }
 
-
-
-/* ---- BLAKE2s 流式哈希器 ---- */
-
-XBLAKE2_EXPORT void* xblake2s_hasher_create(size_t iOutLen, unsigned long long iMaxInput)
+XBLAKE2_EXPORT bool xblake2s_hasher_update(void* handle, void* data, size_t size)
 {
-	xrtblake2options tOptions;
-	xrtblake2shasher* pHasher;
-	xrtClearError();
-	xrtBlake2OptionsInit(&tOptions);
-	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
-	pHasher = xrtBlake2sHasherCreate(&tOptions, (size_t)iOutLen, NULL, 0);
-	if (pHasher == NULL) {
-		xblake2_set_error(6, "blake2s hasher create failed");
-		return NULL;
-	}
-	return pHasher;
+    xrtClearError();
+    if (!xrtBlake2sHasherUpdate(handle, data, size)) {
+        blake2_publish(xrtBlake2sHasherError(handle));
+        return false;
+    }
+    return true;
 }
 
-XBLAKE2_EXPORT void* xblake2s_hasher_create_keyed(size_t iOutLen, const void* pKey,
-	size_t iKeyLen, unsigned long long iMaxInput)
+XBLAKE2_EXPORT bool xblake2s_hasher_update_str(void* handle, const char* text, size_t size)
 {
-	xrtblake2options tOptions;
-	xrtblake2shasher* pHasher;
-	xrtClearError();
-	xrtBlake2OptionsInit(&tOptions);
-	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
-	pHasher = xrtBlake2sHasherCreate(&tOptions, (size_t)iOutLen, pKey, (size_t)iKeyLen);
-	if (pHasher == NULL) {
-		xblake2_set_error(6, "blake2s keyed hasher create failed");
-		return NULL;
-	}
-	return pHasher;
+    return xblake2s_hasher_update(handle, (void*)text, size);
 }
 
-XBLAKE2_EXPORT void xblake2s_hasher_destroy(void* pHandle)
+XBLAKE2_EXPORT const char* xblake2s_hasher_digest_hex(void* handle)
 {
-	xrtBlake2sHasherDestroy((xrtblake2shasher*)pHandle);
+    uint8 digest[32];
+    size_t size = xrtBlake2sHasherDigestSize(handle);
+    xrtClearError();
+    if (!xrtBlake2sHasherDigest(handle, digest, size)) {
+        blake2_publish(xrtBlake2sHasherError(handle));
+        return "";
+    }
+    return blake2_hex(digest, size);
 }
 
-XBLAKE2_EXPORT bool xblake2s_hasher_update(void* pHandle, const void* pData, size_t iSize)
+XBLAKE2_EXPORT void* xblake2s_hasher_digest_bytes(void* handle)
 {
-	xrtblake2shasher* pHasher = (xrtblake2shasher*)pHandle;
-	if (!xrtBlake2sHasherUpdate(pHasher, pData, iSize)) {
-		xblake2_publish_error(xrtBlake2sHasherError(pHasher));
-		return false;
-	}
-	return true;
+    uint8 digest[32];
+    size_t size = xrtBlake2sHasherDigestSize(handle);
+    xrtClearError();
+    if (!xrtBlake2sHasherDigest(handle, digest, size)) {
+        blake2_publish(xrtBlake2sHasherError(handle));
+        return NULL;
+    }
+    return blake2_buffer(digest, size);
 }
 
-XBLAKE2_EXPORT bool xblake2s_hasher_update_str(void* pHandle, const char* sText, size_t iSize)
+XBLAKE2_EXPORT bool xblake2s_hasher_reset(void* handle)
 {
-	return xblake2s_hasher_update(pHandle, (const void*)sText, iSize);
+    xrtClearError();
+    if (!xrtBlake2sHasherReset(handle)) {
+        blake2_publish(NULL);
+        return false;
+    }
+    return true;
 }
 
-XBLAKE2_EXPORT const char* xblake2s_hasher_digest_hex(void* pHandle, size_t iOutLen)
+XBLAKE2_EXPORT unsigned long long xblake2s_hasher_input_bytes(void* handle)
 {
-	xrtblake2shasher* pHasher = (xrtblake2shasher*)pHandle;
-	uint8 pOut[XRT_BLAKE2S_OUT_MAX];
-	if (iOutLen == 0 || iOutLen > XRT_BLAKE2S_OUT_MAX) iOutLen = XRT_BLAKE2S_OUT_MAX;
-	if (!xrtBlake2sHasherDigest(pHasher, pOut, iOutLen)) {
-		xblake2_publish_error(xrtBlake2sHasherError(pHasher));
-		return "";
-	}
-	return xblake2_format_hex(pOut, iOutLen);
+    return (unsigned long long)xrtBlake2sHasherInputBytes(handle);
 }
 
-XBLAKE2_EXPORT void* xblake2s_hasher_digest_bytes(void* pHandle, size_t iOutLen)
-{
-	xrtblake2shasher* pHasher = (xrtblake2shasher*)pHandle;
-	uint8* pOut;
-	if (iOutLen == 0 || iOutLen > XRT_BLAKE2S_OUT_MAX) iOutLen = XRT_BLAKE2S_OUT_MAX;
-	pOut = (uint8*)xrtMalloc(iOutLen);
-	if (pOut == NULL) { return NULL; }
-	if (!xrtBlake2sHasherDigest(pHasher, pOut, iOutLen)) {
-		xrtFree(pOut);
-		xblake2_publish_error(xrtBlake2sHasherError(pHasher));
-		return NULL;
-	}
-	return xl6ExtlibBufferTake(pOut, iOutLen);
-}
+XBLAKE2_EXPORT void* xblake2s_hasher_adopt(void* handle) { return handle; }
 
-XBLAKE2_EXPORT bool xblake2s_hasher_reset(void* pHandle)
+XBLAKE2_EXPORT void* xblake2s_hasher_clone(void* handle)
 {
-	xrtblake2shasher* pHasher = (xrtblake2shasher*)pHandle;
-	if (!xrtBlake2sHasherReset(pHasher)) {
-		xblake2_publish_error(xrtBlake2sHasherError(pHasher));
-		return false;
-	}
-	return true;
-}
-
-XBLAKE2_EXPORT unsigned long long xblake2s_hasher_input_bytes(void* pHandle)
-{
-	return (unsigned long long)xrtBlake2sHasherInputBytes((const xrtblake2shasher*)pHandle);
-}
-
-XBLAKE2_EXPORT void* xblake2s_hasher_adopt(void* pHandle)
-{
-	return pHandle;
-}
-
-XBLAKE2_EXPORT void* xblake2s_hasher_clone(void* pHandle)
-{
-	xrtblake2shasher* pSrc = (xrtblake2shasher*)pHandle;
-	if (pSrc == NULL) { return NULL; }
-	return xrtBlake2sHasherClone(pSrc);
+    xrtClearError();
+    return xrtBlake2sHasherClone(handle);
 }

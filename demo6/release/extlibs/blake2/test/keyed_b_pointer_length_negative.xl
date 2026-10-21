@@ -1,0 +1,7 @@
+import blake2
+
+// 仅编译：1 字节密钥不能伪称为 64 字节；绝不能运行。
+Buffer key = Buffer()
+key.appendByte(7)
+auto state = blake2.Blake2bKeyedHasher(c_size(16), key.data(),
+    c_size(64), c_ulonglong(1024))

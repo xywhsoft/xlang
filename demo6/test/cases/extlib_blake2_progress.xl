@@ -1,0 +1,88 @@
+import blake2
+
+class Blake2Progress
+    int calls = 0
+    int last = 0
+end
+
+func main(...) as int
+    string root = "build/test/blake2-progress"
+    dir.createAll(root)
+    string source = root + "/中文源.txt"
+    string empty = root + "/empty.txt"
+    string text = ""
+    for i in range(12000)
+        text += "你好 "
+    end
+    file.writeText(source, text)
+    file.writeText(empty, "")
+
+    // 首次分块回调中再发起独立文件哈希，不覆盖外层进度或错误状态。
+    Blake2Progress state = Blake2Progress()
+    string result = blake2.blake2bFileHex(source, digestSize = 16,
+        onProgress = func(int current, int total, int output) as bool
+        assert current >= state.last and total == string.byteLen(text) and output == 0
+        state.calls += 1
+        state.last = current
+        assert blake2.blake2sFileHex(empty) == blake2.blake2sHashHex("")
+        return true
+    end)
+    assert state.calls == 3 and state.last == string.byteLen(text)
+    assert result == blake2.blake2bHashHex(text, 16)
+
+    state = Blake2Progress()
+    result = blake2.blake2sFileHex(source, digestSize = 16,
+        onProgress = func(int current, int total, int output) as bool
+        assert current >= state.last and total == string.byteLen(text) and output == 0
+        state.calls += 1
+        state.last = current
+        return true
+    end)
+    assert state.calls == 3 and result == blake2.blake2sHashHex(text, 16)
+
+    bool caught = false
+    try
+        blake2.blake2bFileHex(source, onProgress = func(int a, int b, int c) as bool
+            return false
+        end)
+    catch CancelledError e
+        caught = true
+    end
+    assert caught
+    caught = false
+    try
+        blake2.blake2sFileHex(source, onProgress = func(int a, int b, int c) as bool
+            throw ValueError "blake2 callback marker"
+        end)
+    catch ValueError e
+        assert e.message == "blake2 callback marker"
+        caught = true
+    end
+    assert caught
+
+    // 空流仍有一次最终回调；最终回调也允许取消。
+    state = Blake2Progress()
+    caught = false
+    try
+        blake2.blake2sFileHex(empty, onProgress = func(int a, int b, int c) as bool
+            assert a == 0 and b == 0 and c == 0
+            state.calls += 1
+            return false
+        end)
+    catch CancelledError e
+        caught = true
+    end
+    assert caught and state.calls == 1
+    caught = false
+    try
+        blake2.blake2bFileHex(source, maxInput = 10)
+    catch RangeError e
+        caught = true
+    end
+    assert caught
+    assert blake2.blake2bFileHex(source) == blake2.blake2bHashHex(text)
+    assert file.readText(source) == text
+    file.delete(source)
+    file.delete(empty)
+    return 0
+end
