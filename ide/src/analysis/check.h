@@ -23,6 +23,10 @@ typedef struct xls_check_diagnostic { const char *path,*message; int line,column
 xls_semantic_check* xlsSemanticCheckCreate(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
+/* Each owner holds a reference. Destroy releases one reference. Immutable
+ * facts may be read concurrently; input validation and lazy compatibility
+ * exports are serialized internally. Invalidation remains permanent. */
+xls_semantic_check* xlsSemanticCheckRetain(xls_semantic_check* result);
 void xlsSemanticCheckDestroy(xls_semantic_check* result);
 xls_check_info xlsSemanticCheckInfo(const xls_semantic_check* result);
 int xlsSemanticCheckDiagnostic(const xls_semantic_check* result,size_t index,xls_check_diagnostic* diagnostic);
