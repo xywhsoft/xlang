@@ -1,0 +1,81 @@
+import crc32
+
+func main(...) as int
+    assert crc32.version() == "1.0.0"
+    assert crc32.checksum("") == 0 and crc32.checksumHex("") == "00000000"
+    assert crc32.checksum("123456789") == 3421780262
+    assert crc32.checksumHex("123456789") == "cbf43926"
+    assert crc32.checksum("abc") == 0x352441c2
+
+    // 多字节文本按字节哈希；嵌入 NUL/255 的二进制序列交给 Buffer。
+    string text = "你好🌍尾"
+    Buffer bytes = Buffer()
+    bytes.append(text)
+    assert bytes.len() == 13, "utf8 byte count"
+    assert crc32.checksum(bytes) == crc32.checksum(text)
+    assert crc32.checksumHex(bytes) == crc32.checksumHex(text)
+    bytes.appendByte(0)
+    bytes.appendByte(255)
+    auto h = crc32.hasher()
+    assert h.valid
+    h.update("你好🌍")
+    Buffer tail = Buffer()
+    tail.append("尾")
+    tail.appendByte(0)
+    tail.appendByte(255)
+    h.update(tail)
+    assert h.inputBytes == uint64(15) and h.digest() == crc32.checksum(bytes)
+    assert h.digestHex() == crc32.checksumHex(bytes)
+    assert h.digestHex() == crc32.checksumHex(bytes)
+    assert h.reset() and h.inputBytes == uint64(0) and h.digest() == 0
+
+    auto limited = crc32.hasher(maxInput = 3)
+    limited.update("abc")
+    bool caught = false
+    try
+        limited.update("d")
+    catch RangeError e
+        caught = true
+    end
+    assert caught and limited.inputBytes == uint64(3)
+    caught = false
+    try
+        limited.digest()
+    catch RangeError e
+        caught = true
+    end
+    assert caught and limited.reset()
+    limited.update("ok")
+    assert limited.digest() == crc32.checksum("ok")
+
+    string saved = crc32.checksumHex("abc")
+    for i in range(32)
+        assert crc32.checksumHex("other") != saved
+    end
+    assert saved == "352441c2"
+    for mode in range(2)
+        int maximum = -mode
+        caught = false
+        try
+            crc32.hasher(maxInput = maximum)
+        catch ValueError e
+            caught = true
+        end
+        assert caught
+        caught = false
+        try
+            crc32.checksumFile("__crc32_missing__", maxInput = maximum)
+        catch ValueError e
+            caught = true
+        end
+        assert caught
+        caught = false
+        try
+            crc32.checksumFileHex("__crc32_missing__", maxInput = maximum)
+        catch ValueError e
+            caught = true
+        end
+        assert caught
+    end
+    return 0
+end
