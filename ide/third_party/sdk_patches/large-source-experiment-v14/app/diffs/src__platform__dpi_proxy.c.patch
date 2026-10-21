@@ -1,0 +1,37 @@
+--- a/src/platform/dpi_proxy.c
++++ b/src/platform/dpi_proxy.c
+@@ -127,6 +127,16 @@
+ { xide_dpi_proxy* s=state(p); dpi_font* f=font(value); return s && f ? s->raw.textMeasure(&s->raw,f->base,text,size) : XUI_ERROR_INVALID_ARGUMENT; }
+ static int textShape(xui_proxy p,xui_font value,const char* text,int length,uint32_t flags,xui_text_shape_t* shaped)
+ { xide_dpi_proxy* s=state(p); dpi_font* f=font(value); return s && f ? s->raw.textShape(&s->raw,f->base,text,length,flags,shaped) : XUI_ERROR_INVALID_ARGUMENT; }
++
++int xideDpiVisitTextShape(xui_proxy p,xui_font value,const char* text,int length,uint32_t flags,
++    xui_text_cluster_visit_proc visitor,void* visitorUser,xui_text_shape_t* shape,void* providerUser)
++{
++    (void)providerUser;
++    if(!p || p->textShape!=textShape) return XUI_ERROR_UNSUPPORTED;
++    xide_dpi_proxy* s=state(p); dpi_font* f=font(value);
++    if(!s || !f) return XUI_ERROR_INVALID_ARGUMENT;
++    return xuiProxyXgeVisitTextShape(&s->raw,f->base,text,length,flags,visitor,visitorUser,shape);
++}
+ static void fontDestroy(xui_proxy p,xui_font value)
+ {
+     xide_dpi_proxy* s=state(p); dpi_font* f=font(value); if(!s || !f) return;
+@@ -416,3 +426,17 @@
+ 
+ int xideDpiFontPixelMetrics(xide_dpi_proxy* s,xui_font value,xui_font_metrics_t* metrics)
+ { dpi_font* f=font(value); return s && f ? s->raw.fontGetMetrics(&s->raw,f->raw,metrics) : XUI_ERROR_INVALID_ARGUMENT; }
++
++#ifndef XIDE_STREAM_LAYOUT_ENABLED
++#define XIDE_STREAM_LAYOUT_ENABLED 1
++#endif
++int xideDpiCodeEditCreate(xui_context context,xui_widget* output,const xui_code_edit_desc_t* desc)
++{
++    int result=xuiCodeEditCreate(context,output,desc);
++    if(result!=XUI_OK) return result;
++#if XIDE_STREAM_LAYOUT_ENABLED
++    result=xuiCodeEditSetTextShapeVisitor(*output,xideDpiVisitTextShape,NULL);
++    if(result!=XUI_OK) { xuiWidgetDestroy(*output); *output=NULL; }
++#endif
++    return result;
++}

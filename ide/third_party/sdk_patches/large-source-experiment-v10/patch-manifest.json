@@ -1,0 +1,290 @@
+{
+  "format": "xlang-ide-experimental-sdk-patch-1",
+  "privateOnly": true,
+  "sdkInstalled": false,
+  "productionAccepted": false,
+  "originalSourceManifestSha256": "3f240e10bddf61f7908ded55ab57314997fd7eb5a4720723b824b6955d5ce4ab",
+  "originalSdkDllSha256": "a48e028acfb96db59277d820a4dbebc482d8635fd79c63ef3da6b00c69382784",
+  "beforeDescriptorSha256": "8bd1b85975b80f0f641ae97a547538a39cb62df4ca581a58529d03e0ec820ff3",
+  "changes": [
+    {
+      "path": "src/xge_emoji.c",
+      "beforeSha256": "f2e6816f188ad04990013c303ed9a5dcb3e10a169b602653d83e83b1ed8ab7dd",
+      "afterSha256": "61fd81d7f45ff77cf85e2f0ceebfd0af88faea9ff3dd20ab2f9f22583835698e",
+      "size": 33553,
+      "material": "files/src/xge_emoji.c",
+      "reviewDiff": "diffs/xge_emoji.c.patch",
+      "reviewDiffSha256": "568a5cb545001dfbc0b8a72ed4778aac73424698fda467154d9a4d943e8403f2"
+    },
+    {
+      "path": "src/xge_text_run.c",
+      "beforeSha256": "bd7814823f24c71f004dd99bde5257e2ab1d53971f489685b70d6fdb2641db83",
+      "afterSha256": "626b70845c4f5cc19dc9a6142d87213cdf8ee1f7fcdb0c4daa41b76e03a39e91",
+      "size": 29152,
+      "material": "files/src/xge_text_run.c",
+      "reviewDiff": "diffs/xge_text_run.c.patch",
+      "reviewDiffSha256": "00e2db928c5ad2033e43f22a948bf7388f93ded4fc1879e8c6edaa0f0351b3d1"
+    },
+    {
+      "path": "src/xui_code_edit.c",
+      "beforeSha256": "973710dd1001960efe171f683a348b41bd237a6dad3a6f0443793bcf8e16341b",
+      "afterSha256": "18588755c5776d23e6337acb34066365d545bdc5f44f40c07d2bd4307cde1c93",
+      "size": 352598,
+      "material": "files/src/xui_code_edit.c",
+      "reviewDiff": "diffs/xui_code_edit.c.patch",
+      "reviewDiffSha256": "4b40284c44830d5684bdaf84df2cb6f198a89285f8e861ba566bebb4536b951a"
+    },
+    {
+      "path": "src/xui_unicode.c",
+      "beforeSha256": "bae125df15ea1265d92b4af5933ecc62ed76d098f48828b8ad3d4d3d93c77dd8",
+      "afterSha256": "bb0d370bd7ae328e43dd7c4fed4cc84bd4b63055acd7a8dcfcb7a38cc78253c8",
+      "size": 31189,
+      "material": "files/src/xui_unicode.c",
+      "reviewDiff": "diffs/xui_unicode.c.patch",
+      "reviewDiffSha256": "e68bf1673ae8b145745dbbe744b99d860a231d9f1945fee44afb8c2bdb570fe8"
+    },
+    {
+      "path": "src/xui_unicode_grapheme_data.inc",
+      "beforeSha256": null,
+      "afterSha256": "992c948a64567a60fb35ebda1e3233dd5d287de03f84a72ed2694d2d7ab7b33f",
+      "size": 84888,
+      "material": "files/src/xui_unicode_grapheme_data.inc",
+      "reviewDiff": "diffs/xui_unicode_grapheme_data.inc.patch",
+      "reviewDiffSha256": "4cb2e3c6afb898b502905704f0d0bc99949f1e852a6b3e5bab7a111332ba4438"
+    },
+    {
+      "path": "src/xui_code_document.c",
+      "beforeSha256": "31c3703160e3cd4eca84b5e44cfbb15fe006410f9f29b3039d4f551895f43654",
+      "afterSha256": "497021d90188e616d8b2cb9b8fc0cc134981db1becd3e69bc93cf0e90a848353",
+      "size": 46107,
+      "material": "files/src/xui_code_document.c",
+      "reviewDiff": "diffs/xui_code_document.c.patch",
+      "reviewDiffSha256": "c37f13e068b2e7aba8994e07e17f1a1f100fea3582d74ffedef0d3ca37fd028e"
+    },
+    {
+      "path": "src/xge_svg.c",
+      "beforeSha256": "4b56530b5b2a4260feb3399827bd04461a052036c682a01525416fd45f8c9f7a",
+      "afterSha256": "05a554994a29d6117ca7c2ea4c0f26f1ffa0c9a3d4b519dc30210ce8e2db8a43",
+      "size": 716962,
+      "material": "files/src/xge_svg.c",
+      "reviewDiff": "diffs/xge_svg.c.patch",
+      "reviewDiffSha256": "9cbe332804f2e87c49876d12230227737d35877aaa4cd8072d34df014876ea5e"
+    },
+    {
+      "path": "src/xui_proxy_xge.c",
+      "material": "files/src/xui_proxy_xge.c",
+      "reviewDiff": "diffs/xui_proxy_xge.c.patch",
+      "beforeSha256": "382979ad8038f3b54992c3135478aa6be397d139596e4ae6f3596b564b959275",
+      "afterSha256": "b5627bdece447656fb6a7b560be7790b1c9d4bbf7ef72ad8790770c0557101c6",
+      "size": 106011,
+      "reviewDiffSha256": "b94d0c1d1ca30ea100420baddbaa7324aeff52db4c3ac309b378613161f16eb0"
+    }
+  ],
+  "sourceFileCount": 237,
+  "publicHeadersChanged": false,
+  "apiExportsChangeIntended": false,
+  "runtimeOwner": "xge.dll",
+  "experimentBuild": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-pointer-v29-build.json",
+  "experimentBuildSha256": "d528122705794d3bf8540f1ce35d20717fde69db9b3dcc23e545b1886cb20635",
+  "unicodeClassEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-class-v3.json",
+  "unicodeClassEquivalenceSha256": "34d1e188329f2f3be35713ec737a61bdefed2a4327acd388f500672051a32e01",
+  "emojiRootEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-lookup-v5.json",
+  "emojiRootEquivalenceSha256": "12c2ff4f94f155ae79dfd7eef292f520fb9372f2684889b5845d41b276f551ff",
+  "note": "Tenth private adaptation, SDK29. Whole SDK strict cold build, 3 SDK and 6 related app checks, pointer/callback boundary equivalence, and 16 native comparisons passed. Native measurements and limitations are recorded separately; full IDE performance is not accepted. No installation. Durable replay is recorded separately to avoid self-reference.",
+  "visibleRangeEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-visible-v12-equivalence.json",
+  "visibleRangeEquivalenceSha256": "b72476c5526c7f5dceb4f79a3ed0acdb651b158a20a2baba05ae8b5acab44eee",
+  "previousBundleManifest": "D:\\GIT\\x-lang\\ide\\third_party\\sdk_patches\\large-source-experiment-v9\\patch-manifest.json",
+  "previousBundleManifestSha256": "dcc5f4f9582e99c859091ebb72da88ef81eef539f83de410f3f87233b1835b51",
+  "newChange": "Specialize pointer-backed UTF-8/grapheme traversal; callback decoder and policy bodies unchanged; no persistent state or heap allocation.",
+  "positionEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-v1-run.json",
+  "positionEquivalenceSha256": "35119bdecc3cbe9cefc62eaf770c069f07b592db88f254d9043bb408722d11ca",
+  "positionComparison": "D:\\GIT\\x-lang\\ide\\build\\editor-position-comparison-v1.json",
+  "positionComparisonSha256": "6b1b2ec56e48d5250e8f253112843915cacdd02deb612b0020cd8690481dc840",
+  "equivalenceTestMaterials": [
+    {
+      "path": "tests/old_model.c",
+      "sha256": "fa70c1569bf22a6217e324064dd9d0ce17ed768994790b13db72a2762fcecd9e",
+      "size": 47116,
+      "original": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-a2af835bdf96\\old_model.c"
+    },
+    {
+      "path": "tests/new_model.c",
+      "sha256": "7e37ceb428382400af4a8219c4608877e43485039fc55fb0a04c52b85c5d0591",
+      "size": 48682,
+      "original": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-a2af835bdf96\\new_model.c"
+    },
+    {
+      "path": "tests/models.h",
+      "sha256": "59a63e0b917bfcb3f2e344aeb4e2822fd005af8af8e22715b770383920802475",
+      "size": 5363,
+      "original": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-a2af835bdf96\\models.h"
+    },
+    {
+      "path": "tests/position_test.c",
+      "sha256": "c2c01f4c38411ff0999e86247d13458124a3b035467fbdaad41755c32c90c38b",
+      "size": 8854,
+      "original": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-a2af835bdf96\\position_test.c"
+    }
+  ],
+  "wholeSdkWerror": true,
+  "outerClipEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-outer-clip-fixture-v2-run.json",
+  "outerClipEquivalenceSha256": "b2b54a55f1670f04c12e8eca29cd7c7db89cedb5897313c34ecc76340e6eeaef",
+  "outerClipTestMaterials": [
+    {
+      "path": "tests/old_emoji_draw.c",
+      "sha256": "e3c07d0024874bb762171c1e5210b3f54fcf6862bf27f2cd198e6ba0c1d4d7aa",
+      "size": 1240
+    },
+    {
+      "path": "tests/outer_clip_test.c",
+      "sha256": "607272ab154a8a6332e5e3f79673e0d2d4e908cb2418dc46b050d6beb42e2e93",
+      "size": 7943
+    }
+  ],
+  "renderComparison": "D:\\GIT\\x-lang\\ide\\build\\editor-render-comparison-v1.json",
+  "renderComparisonSha256": "7589ae2426d4318c0be58073b1fff51cf215ea899f260a08791bce179006d500",
+  "profileObservation": "D:\\GIT\\x-lang\\ide\\build\\editor-performance-render-profile-sdk13-c16-v1-run.json",
+  "profileObservationSha256": "b8640c70acc6810559ce5e9835ab2c5638a26f78965b8e7e0158a81a89d011eb",
+  "shapeLookupEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-shape-fixture-v2-run.json",
+  "shapeLookupEquivalenceSha256": "ed1b48cf4cef68557c2b4a79c2d5f527798c30b9b874f64108ede1dbc23ff807",
+  "shapeLookupTestMaterials": [
+    {
+      "path": "tests/old_text_shape.c",
+      "sha256": "0ca1e1879b4891eb928457139a6c7991e10836545b8d9d228fe34b5df0453cab",
+      "size": 8041
+    },
+    {
+      "path": "tests/shape_lookup_test.c",
+      "sha256": "4a1e2d6ec399489dd0e4d42abb988e6daf4d331c199a005a97994b6d46c00883",
+      "size": 7187
+    }
+  ],
+  "expectedShapeFixtureCounters": {
+    "completeShapeCases": 2822,
+    "scalarLookupChecks": 3365718,
+    "pixelCases": 108,
+    "callLocalTableBytes": 2048
+  },
+  "shapeComparison": "D:\\GIT\\x-lang\\ide\\build\\editor-shape-comparison-v1.json",
+  "shapeComparisonSha256": "40d47bbb72c8ef8905a966a83a1769916ddad79c353f4f7170570b248bc723a0",
+  "previousEvidenceCohort": "D:\\GIT\\x-lang\\ide\\build\\editor-paint-evidence-cohort-v1.json",
+  "previousEvidenceCohortSha256": "b71e8749571735638baf1e7190a411537e63d5ee0b8f3d5e1a9f57694ad1b301",
+  "rejectedMetricExperimentIncluded": false,
+  "rangeEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-range-fixture-v3-verified.json",
+  "rangeEquivalenceSha256": "9ada6a6aee92901778dd26a572f252052f029c97b7c9ce14aa21d000d20f7610",
+  "rangeTestMaterials": [
+    {
+      "path": "tests/new_range_model.c",
+      "sha256": "9c3a41d77dfd688e15faa0e5c2eb0786c9246b4fecb1a19dd8ec94616e29fd6c",
+      "size": 12656
+    },
+    {
+      "path": "tests/old_range_model.c",
+      "sha256": "b6ca7c175c6620d95a9f598cbb2157c284b86e994ed2ab899b627238b51902af",
+      "size": 11659
+    },
+    {
+      "path": "tests/range_models.h",
+      "sha256": "26d2aa581e83a541ae1b4f41c0b70e8dfe7ba5440dcd481b3774e791e2f62027",
+      "size": 1042
+    },
+    {
+      "path": "tests/range_pair_test.c",
+      "sha256": "0096fdc3af458275658f325169255c1a5efe1d13404a89cc0e830187e99a9355",
+      "size": 8976
+    },
+    {
+      "path": "tests/range_patterns.inc",
+      "sha256": "9b0bf20a9d8c77bb3b867c2a7c169e1f0f2c177c223491db05650b1a7627523b",
+      "size": 1530
+    }
+  ],
+  "expectedRangeFixtureCounters": {
+    "assertions": 521973,
+    "oldRepeatGraphemeCalls": 3849696,
+    "newRepeatGraphemeCalls": 0,
+    "additionalPrivateWidgetBytesThisCompiler": 16,
+    "normalizedOwnedPatterns": 1
+  },
+  "performanceAccepted": false,
+  "selectedForPromotion": false,
+  "drawEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-draw-fixture-v2-run.json",
+  "drawEquivalenceSha256": "f99569deab4050b8ae6f9cb6472e55b428e07b083d1f11e38dadace58c440ed9",
+  "drawTestMaterials": [
+    {
+      "path": "tests/draw_cache_proxy.inc",
+      "sha256": "16778a1eb7a3d6a8490de4cff9869fb78f7b147593ee3cfbae89a24e72a3328c",
+      "size": 12996
+    },
+    {
+      "path": "tests/old_draw_text_spans.c",
+      "sha256": "79cf2a297b345470d89d4463511d50854068bc5be1e02027a8c96c9bd91f0fb7",
+      "size": 1853
+    },
+    {
+      "path": "tests/draw_cache_test.c",
+      "sha256": "1c9824efe43273b7505bc4a8ef32f7bae92f785100b04ec6685354423df76462",
+      "size": 11434
+    }
+  ],
+  "drawCacheEntries": 1,
+  "drawTextLimitBytes": 16777216,
+  "drawMinimumTextBytes": 4096,
+  "drawGlyphRunMoved": false,
+  "drawExactTextCopy": true,
+  "drawImmutableBuiltinOnly": true,
+  "retainedFullRunMemoryTradeoffAccepted": false,
+  "paintTestMaterials": [
+    {
+      "path": "tests/paint_cache_proxy.inc",
+      "sha256": "9a727a34b59ee0f97d5b0c4f075287dbd367436947cad92dc5ab51cc36d0c560",
+      "size": 16945
+    },
+    {
+      "path": "tests/old_paint_renderer.c",
+      "sha256": "574ed67c127b2389e219b85eac52b2c8b87bec1cdc330bb745e94075abe40473",
+      "size": 4684
+    },
+    {
+      "path": "tests/paint_cache_test.c",
+      "sha256": "7e62f1f8a2a33bda1616e2f07ef35759db36afe37a2b86b31cf0ac57c649996c",
+      "size": 16964
+    }
+  ],
+  "paintCacheRecordLimit": 4096,
+  "paintTestEngineAllocationHooks": 3,
+  "paintEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-paint-fixture-v3-run.json",
+  "paintEquivalenceSha256": "202bc33f55e2b8e638dd3c6fa28fd3a356f015b25863bae6f84e52cf650e7299",
+  "drawVisibleBackendMoved": true,
+  "paintComparison": "D:\\GIT\\x-lang\\ide\\build\\editor-paint-comparison-v1.json",
+  "paintComparisonSha256": "2c55081d41b0225a6b980fa25008fc5931c99b22d018806d1efcd19f8c0ae822",
+  "idleObservation": "D:\\GIT\\x-lang\\ide\\build\\editor-paint-idle-v1.json",
+  "idleObservationSha256": "7fd3ea5f40271bbdcf13321d8a9298d7c53c1d0f9768ac4789b920a04a6b793f",
+  "pointerTestMaterials": [
+    {
+      "path": "tests/old_pointer_unicode.c",
+      "sha256": "00a4a2cb0398a1b6a94eda77d70317fc69bbfbe31a0825db801d3f3ee1ee65a5",
+      "size": 27818
+    },
+    {
+      "path": "tests/pointer_next_test.c",
+      "sha256": "9654993156f3b243d8d68fe8386a9806e62a7ed157e1947186eddbfd110e06dd",
+      "size": 7162
+    }
+  ],
+  "pointerReferenceSdk27UnicodeSha256": "00a4a2cb0398a1b6a94eda77d70317fc69bbfbe31a0825db801d3f3ee1ee65a5",
+  "pointerEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-pointer-fixture-v1-run.json",
+  "pointerEquivalenceSha256": "ea2c5965fd05781bdaad037b463197d200073d6d16c437380f5ba0f2b6ddd796",
+  "genericCallbackFunctionBodiesUnchanged": true,
+  "pointerSpecializationOnly": true,
+  "pointerComparison": "D:\\GIT\\x-lang\\ide\\build\\editor-pointer-comparison-v1.json",
+  "pointerComparisonSha256": "6d3608e1527c29f3fb527adc3d7e9b15a9fdd89ee142342a38d07f1b763f46b1",
+  "functionalChecks": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-pointer-v29-v1-checks.json",
+  "functionalChecksSha256": "f754d8728d6e34c369a10a4e5f3d27be47d367d3cd958f052264fe2f3f536ee5",
+  "applicationChecks": "D:\\GIT\\x-lang\\ide\\build\\editor-pointer-application-v1-checks.json",
+  "applicationChecksSha256": "ec5f759ec99d1850479be7a18cb330b8f36593bda44f79537e21601aa4188e5e",
+  "exports": "D:\\GIT\\x-lang\\ide\\build\\editor-pointer-exports-v1.json",
+  "exportsSha256": "96fa7326cc351e2096ffab0c1f62e7ebcd663b432e5a4e54f74334e285b57c5a",
+  "pointerProfile": "D:\\GIT\\x-lang\\ide\\build\\editor-performance-input-profile-sdk27-c16-v1-run.json",
+  "pointerProfileSha256": "0b879d0fce177696373c36ce96aa63a1f91f6b52c916d8a94cc2acdb0759129e"
+}

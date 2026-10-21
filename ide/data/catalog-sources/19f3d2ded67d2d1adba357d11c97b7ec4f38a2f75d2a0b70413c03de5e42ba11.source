@@ -1,0 +1,16 @@
+{
+    "format": "xlang-package-1",
+    "name": "redis",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["redis_native.c"],
+        "xlSources": ["src/redis.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

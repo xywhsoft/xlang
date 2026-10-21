@@ -1,0 +1,21 @@
+{
+    "format": "xlang-package-1",
+    "name": "op",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["op_native.c"],
+        "cResources": [
+            "hooks/op_d3d11_hook.c",
+            "hooks/op_d3d9_hook.c",
+            "hooks/op_wgl_hook.c"
+        ],
+        "xlSources": ["src/op.xl"]
+    },
+    "links": ["user32", "gdi32", "kernel32", "d3d11", "dxgi"],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

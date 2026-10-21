@@ -1,0 +1,4 @@
+# Pinned inventories and compatibility patches use hashes of the original bytes.
+/data/** -text
+/third_party/** -text
+/tools/clangd_input_trace/** -text

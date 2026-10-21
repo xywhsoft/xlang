@@ -1,0 +1,31 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "com",
+    "version":  "0.1.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "x_com_artifact.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/com.xl"
+                                   ]
+                 },
+    "links":  [
+                  "ole32",
+                  "oleaut32"
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+
+                     ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

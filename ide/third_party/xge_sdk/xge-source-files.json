@@ -1,0 +1,3791 @@
+{
+  "schemaVersion": 1,
+  "root": "D:\\GIT\\x-lang\\ide\\build\\xge3-upgrade-20261021\\source",
+  "sourceCommit": "f248fd17192b3eb81c2a29dc34549b696e6e4c43",
+  "sourceFileCount": 752,
+  "files": [
+    {
+      "path": "build.bat",
+      "sha256": "a9a5600045a4fc22b156f9ec8cec87c09aefe454dd7847b584664528f4d6f3ec",
+      "size": 90
+    },
+    {
+      "path": "config/includes.rsp",
+      "sha256": "4a0469f5c47db2ec37aecf39c7410f3ac3f2d442932a03d01518ef394bd8be33",
+      "size": 348
+    },
+    {
+      "path": "config/modules.json",
+      "sha256": "3924ac07a1cf9b5893e109b086fe5c73e9aeb4602ef4737ca2a98ed5e4293cb2",
+      "size": 16656
+    },
+    {
+      "path": "config/profiles.json",
+      "sha256": "37f008536de3a53e9e294792780803a2cdeee531682bb38527db3a69625a7d40",
+      "size": 239
+    },
+    {
+      "path": "extlibs/harfbuzz/COPYING",
+      "sha256": "bd836c0ddca8ea0bab54a03cd32b6ff7256cbb3840fca2edc1249a4ed92c5b02",
+      "size": 2013
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Color/CBDT/CBDT.hh",
+      "sha256": "48905fd9b91841bfd8da116697468f10418fe0171d7609c0854d08a901020a1a",
+      "size": 32275
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Color/COLR/COLR.hh",
+      "sha256": "51a42a97f4d2c6b46e889e80ea12b061f0e5fa4d50441d4a08e9fb66bdd77054",
+      "size": 99285
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Color/CPAL/CPAL.hh",
+      "sha256": "853f9c88c684ad8ed67973756f8bf1352b28452e91b5b6dd63f0899caf55943a",
+      "size": 12763
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Color/sbix/sbix.hh",
+      "sha256": "a8489eb2e2ca90b5f57c49618399e76a32138623db6894db52adb9d6da01d776",
+      "size": 14293
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Color/svg/svg.hh",
+      "sha256": "98920b668a5a06059043e730e2bb12c47478bb046a03a3e50b53502145be5e2f",
+      "size": 23532
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/Common/Coverage.hh",
+      "sha256": "4700121660bd68db0c8cca995c8a624a6a15a900dc5f5d4153c84c38e32d89da",
+      "size": 12970
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/Common/CoverageFormat1.hh",
+      "sha256": "d0f96cd45402fd8412e336bd21ff4369f0ac6a77e005599dab8b605a13a56d36",
+      "size": 4233
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/Common/CoverageFormat2.hh",
+      "sha256": "9e75287a787c17132c785354c3f648500c73f3d6d1c8c64e8f2ea91663916186",
+      "size": 7007
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/Common/RangeRecord.hh",
+      "sha256": "08e025154b5ad70c63ff23796e4bdd2b87d20f86b2885c565b250f771c956bfa",
+      "size": 3400
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GDEF/GDEF.hh",
+      "sha256": "c9531e46290c8b8b1f58a02b7d2dab70db77d2eef02f0b649a4a791336e3e4c1",
+      "size": 34145
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/Anchor.hh",
+      "sha256": "1e784199179503c0498e8fb92bba42b2917a6b53beee5828d8946d0cc10036f6",
+      "size": 2492
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/AnchorFormat1.hh",
+      "sha256": "7ff984da4e8956e220bde0cb3dfa1eb2121467b8d24f96f0e05b9830fa0e7dd7",
+      "size": 1151
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/AnchorFormat2.hh",
+      "sha256": "6c3102104f3ea5dc1b1abaa5b8363be48c2165797af68e391f4d7ccb982b056d",
+      "size": 1576
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/AnchorFormat3.hh",
+      "sha256": "09792c15e4504fa3d2e3325e82d68e0a3ca8616d836de486a28d3c447ec7ca65",
+      "size": 4870
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/AnchorMatrix.hh",
+      "sha256": "652715d7d1bf4ddd5834b5b59682cac5b5df33c74478118732a84a97f7d0c746",
+      "size": 2875
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/ChainContextPos.hh",
+      "sha256": "ec3d9c24523444a0d44729103b9c69897c2dfd8ce633a429e4ef8bd6f5d271e4",
+      "size": 253
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/Common.hh",
+      "sha256": "81c4728eb8bc64432f41eed9e4b512da77d03b2a0746976e84abaa19c5bd71e5",
+      "size": 1112
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/ContextPos.hh",
+      "sha256": "670f6ce61184aa800356a82324d6b17baa0babd3b7f0e623cfdc3ac38e9c2705",
+      "size": 228
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/CursivePos.hh",
+      "sha256": "e7757965487a0debdf66ef9839806037358f7599942a25533eed5724ae4758d3",
+      "size": 855
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/CursivePosFormat1.hh",
+      "sha256": "4fcb6e6a4b2b6757a9affdbaa640dcf7f7f44028fed7cdc68e29da785f826d12",
+      "size": 10751
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/ExtensionPos.hh",
+      "sha256": "5f1c837751f2cffbd9960417decd16ad2a819383d87b2457af80a93155e6b6ba",
+      "size": 301
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/GPOS.hh",
+      "sha256": "dd1563e504acbd844167c46b26ae5631eae35298b9b8349a4ef97331955265d5",
+      "size": 6215
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/LigatureArray.hh",
+      "sha256": "d5deab059a81fcc6f53a5851839a3bac7c39474870b9884422bed97d56053103",
+      "size": 2345
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/MarkArray.hh",
+      "sha256": "ab953df426a0605a01e4226514e9058bc9fa4185b6c28391918e1717351d61a3",
+      "size": 5191
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/MarkBasePos.hh",
+      "sha256": "849ddeed7d61c74b2dfc743e7714646117d6889ae246f0592a6a4a3d6048905f",
+      "size": 1081
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/MarkBasePosFormat1.hh",
+      "sha256": "8d84e34fc9cca14484a59dab3eae6cdf5b2a1661d5fb2e5bfd7a67ad858ce6e3",
+      "size": 8904
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/MarkLigPos.hh",
+      "sha256": "33c479848823ff55fc45cab6790868f8fc6edbc1123061feecfb39f55059565c",
+      "size": 1074
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/MarkLigPosFormat1.hh",
+      "sha256": "1ba5a576aee41502757c0c848c1c9a44873d513ae50364450021741079a69bd6",
+      "size": 8543
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/MarkMarkPos.hh",
+      "sha256": "19ba55d10349e813cee41ed5e5f51c9f70dd4da191536dfa009c200e60e576e0",
+      "size": 1083
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/MarkMarkPosFormat1.hh",
+      "sha256": "e350c588e1c02c06da007b345e2bb58ab7ae007421dad3ae98d365cb6f9d9721",
+      "size": 8580
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/MarkRecord.hh",
+      "sha256": "2d21685a90e43d629bd16d57ef453628c07d96b6b2ac53b5ea4b9b00cedc8ca1",
+      "size": 1404
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/PairPos.hh",
+      "sha256": "bcf81532ed2c036afafef28924b1ec9016a93294111a00d64803b5aa899cecbe",
+      "size": 1351
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/PairPosFormat1.hh",
+      "sha256": "5cdf90039f9acd9ce155f7c6fbf09a282ba97942afaa7abce7604e9fc7497a07",
+      "size": 8558
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/PairPosFormat2.hh",
+      "sha256": "949e595d47461da52a219fd2a8e8b0bd7aa7c1da12ebe1f7a00af89d007442fd",
+      "size": 14764
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/PairSet.hh",
+      "sha256": "3ece94ce1510bd9f77ab6f9253727239b855454d443091cfa058f5dce9553d32",
+      "size": 6570
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/PairValueRecord.hh",
+      "sha256": "6fb9fc7f76bbee70550649bfc19495657b784abe75928054bd2f26d747c6e25a",
+      "size": 3201
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/PosLookup.hh",
+      "sha256": "5ad8eb2973c8f168c42b2ac29f17c8df94aa637e1cd0b8f2ccd00763e633f725",
+      "size": 2103
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/PosLookupSubTable.hh",
+      "sha256": "30c9f2983f39976f33e6c56f44b1a75bf743809b1d0bea150fcd7cdc2ac82d8c",
+      "size": 2730
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/SinglePos.hh",
+      "sha256": "f2c5e8f1b7337c2c6819078ab7b6481a7171a11611f32aede6c88b40d3e3abf0",
+      "size": 3142
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/SinglePosFormat1.hh",
+      "sha256": "74575b77000b8c14a7b498c1ec6e8ad200d38e7c0a4ca77f7c594213d33438aa",
+      "size": 6476
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/SinglePosFormat2.hh",
+      "sha256": "dbd0cfda8fa69419458dcddeb521f53af176b1a7cf28da7f734327663e15d825",
+      "size": 7502
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GPOS/ValueFormat.hh",
+      "sha256": "c35df35628b21b701946a99992150cc5ddbc749207e59c6c8059cbfc2000bd36",
+      "size": 16274
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/AlternateSet.hh",
+      "sha256": "6bc66d36c7efc54cfc62f9c3c40cc5431b25ffbcecdb0811723ec5e6526b78a7",
+      "size": 4464
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/AlternateSubst.hh",
+      "sha256": "196c321892b1fae6aeeab26a2fdd09363a70358fb45e4b0bc87549776d8ba4aa",
+      "size": 1964
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/AlternateSubstFormat1.hh",
+      "sha256": "e62858b45653cb5aaf4d4c88ec21c41f86e61f82e4cae45173a72439cfa246a0",
+      "size": 5440
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/ChainContextSubst.hh",
+      "sha256": "5c006ad357fea6af65de9aa03a374f3946ca68f0767a86946a38458eefb719c0",
+      "size": 376
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/Common.hh",
+      "sha256": "8a4f6b1eda58aba329b1fdb2ad6815e6bfa3cb98a5eff33a797612df1a9874a9",
+      "size": 410
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/ContextSubst.hh",
+      "sha256": "5c1bd69eda30e976d4f187683705585842d10e9937b6f2bfdc2c4418195241f4",
+      "size": 351
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/ExtensionSubst.hh",
+      "sha256": "188bfd5903b07c6617e9a871d2d0114ed019ec6faa9aec40ef99142b53375268",
+      "size": 457
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/GSUB.hh",
+      "sha256": "ab8b9316dac5d34ecbff1e71319ac6098985efc233f96c213861a9ccb622405c",
+      "size": 1619
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/Ligature.hh",
+      "sha256": "d7111a686a03e79ad61a6226494c777673b8a59ced3a6bf032bd69d36266e986",
+      "size": 6585
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/LigatureSet.hh",
+      "sha256": "8a82dc144c6f33dcc5c3f164e2fcf036a7e306c6c0b851f4a2a2e10ab852d2c4",
+      "size": 5894
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/LigatureSubst.hh",
+      "sha256": "d4c6a01b2aa8cca8ff90c011f7171e9a8cc2d679f6a38c17f46326862f12c6e0",
+      "size": 2475
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/LigatureSubstFormat1.hh",
+      "sha256": "3696c340d89181ee170370a9bc7d5b417440c4da063b1798d6c27e0adf4630a2",
+      "size": 7351
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/MultipleSubst.hh",
+      "sha256": "ded348a96c02eec07a9f8e1f196b3172c44a151dc224a3efda5e5aa1d47c7ec3",
+      "size": 1634
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/MultipleSubstFormat1.hh",
+      "sha256": "010e2c42a03145377063607984e3e5e5e3eccf572a320b72d104b69888aa09da",
+      "size": 4403
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/ReverseChainSingleSubst.hh",
+      "sha256": "88e0a6dd16fc512c5d2a00482f3053fe17c04be77311188c8f4502c7710012f0",
+      "size": 978
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/ReverseChainSingleSubstFormat1.hh",
+      "sha256": "f29dcd11f6057fe4fed5d2216369e76231ea026a903e560030b420475abcc4d3",
+      "size": 11443
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/Sequence.hh",
+      "sha256": "33c4fa79a3b3b7a9938ecd279da6b8ae2fed799622382dee5acfa4ff58ee78c2",
+      "size": 4668
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/SingleSubst.hh",
+      "sha256": "248bda367cf7745dae1feaf25f4db2fd2d38771c18798b6dee43730b45e6217f",
+      "size": 3377
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/SingleSubstFormat1.hh",
+      "sha256": "3f45152f2277e8743a20f77903ef94ca21c67db9cf66aa051e8430c9ec34b3ea",
+      "size": 7949
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/SingleSubstFormat2.hh",
+      "sha256": "bdd1095195302f99c48ae59cdaa47b75b59ace416a229e65bfbca5ea99c3494b",
+      "size": 6214
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/SubstLookup.hh",
+      "sha256": "4a969a3a2d8800f17e601cb0f936cd209e4b0c4a3854923fa16da8ca471f7ec4",
+      "size": 8133
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/GSUB/SubstLookupSubTable.hh",
+      "sha256": "75f11e3343af986e3fa8ec617329b2f86dbb0f3dcc997fb5138faed98b667eea",
+      "size": 2703
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Layout/types.hh",
+      "sha256": "ae4ba11b5e1bd55252697223f5955f5269c91b6d9bc2401d4648b757b43bbc5c",
+      "size": 2574
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Var/VARC/VARC.cc",
+      "sha256": "ba6d7b2fcc410285a469a5ab5704c4ee7d0a6dc6ab1b39bec6dcae0a2a4a1169",
+      "size": 13583
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Var/VARC/VARC.hh",
+      "sha256": "1c8338cbfd487010d46365036a928f33060b3e31f232dd95c7430dc8056b3283",
+      "size": 6823
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/Var/VARC/coord-setter.hh",
+      "sha256": "fd3a52ef84530eceb264ac58abdfaa07fbbcf6a3aa58243f434091eab3aec620",
+      "size": 1421
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/glyf/CompositeGlyph.hh",
+      "sha256": "6555eefe19e183dc1ce3c4045ee9ab320eec0ba409815ecf650fc34ad2a7912b",
+      "size": 12096
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/glyf/Glyph.hh",
+      "sha256": "94b713e6c27aa806b6a385c1135805978f5925a3126e14ebe5b76c1ef3552402",
+      "size": 18901
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/glyf/GlyphHeader.hh",
+      "sha256": "85c179960012b33d2a75f18b2a2dc8b99eab0fb3dffa4b7d6464199b4dc51e2e",
+      "size": 1571
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/glyf/SimpleGlyph.hh",
+      "sha256": "df50292d2222bbaa9bd28441ce96c76a5c25b6b665f5e91dfbdcd905b76f288d",
+      "size": 10824
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/glyf/SubsetGlyph.hh",
+      "sha256": "04c53307980b7de626a789e2d979dd284d59a1d8b4b7f264f57da6a79120c677",
+      "size": 3956
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/glyf/composite-iter.hh",
+      "sha256": "5c91905f8d4f651256c6adf9c635ece007c376ec238786f3d83181182329304f",
+      "size": 1716
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/glyf/glyf-helpers.hh",
+      "sha256": "6acf94aec904a1da9490d54eea090307a89f2dbe63534b09178339133787fe05",
+      "size": 3722
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/glyf/glyf.hh",
+      "sha256": "eee347c9d1379c5695ff05d403ea361258c897a3a7bc638aea1d940daa5aeb5a",
+      "size": 19777
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/glyf/loca.hh",
+      "sha256": "33bfa4aefc167a8c0508a6fd7edf2ee523aa82ad744204aea3988360e779519f",
+      "size": 861
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/glyf/path-builder.hh",
+      "sha256": "bafc6e7b88d459a69545acc46511ac6ec03a74fe2329c129362e93f054184086",
+      "size": 5022
+    },
+    {
+      "path": "extlibs/harfbuzz/src/OT/name/name.hh",
+      "sha256": "8507edbfdc5243f5cc5b2940e38d893daf6d5bc4dccb78db10295a517deea4ac",
+      "size": 18138
+    },
+    {
+      "path": "extlibs/harfbuzz/src/harfbuzz.cc",
+      "sha256": "2dbf1ffa1228a3fcad35a369fef67a469326b847786d7fa5add6a6b7716d1e44",
+      "size": 1933
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-layout-ankr-table.hh",
+      "sha256": "8907f957e10db411d7f55e887b9a510ac5b1b7714b76b1ac6a8f9bfd528f5692",
+      "size": 2887
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-layout-bsln-table.hh",
+      "sha256": "815c6dc86aacaa53b5efc188385324b3ff95c5efab7df7a4c7bbbb3333db6795",
+      "size": 4855
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-layout-common.hh",
+      "sha256": "e8b9b733a20c8cdab511abbfbcbf2064d83251e63326ea56a9453e21f034427a",
+      "size": 43357
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-layout-feat-table.hh",
+      "sha256": "04bc19acc3fe35945aeb4870ba7f2722f02622a8d5fd8d43a95c3c12eb85376a",
+      "size": 8221
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-layout-just-table.hh",
+      "sha256": "c1eb0510eed50956433f50c6c614f7279b6c0e64e8fecf87ec64c70a45868bf7",
+      "size": 13417
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-layout-kerx-table.hh",
+      "sha256": "3c92ea084185fe88abbeb564f0e71290a8eabe66cf28546d7aabee83a1e1b561",
+      "size": 36848
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-layout-morx-table.hh",
+      "sha256": "732e22883b97d774a6b12a7734b9aaa3552bab0272a6b5ab7675742470c95276",
+      "size": 47691
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-layout-opbd-table.hh",
+      "sha256": "2a081f3254a702adb73dee765a62a76ba60173800b3dab0d5bbc68e5f24de21d",
+      "size": 5410
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-layout-trak-table.hh",
+      "sha256": "be0610a877c03ace95b0e0818e6dc8bd9717708bd06026b9d4cc6ea4b95026ea",
+      "size": 8286
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-layout.cc",
+      "sha256": "05a96327dec4cf218bdbc26decee6b6c5311f8b42f39bff89e0d6252249fa1a7",
+      "size": 27160
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-layout.h",
+      "sha256": "19260855effa365dabbea60543813bdb88c67835aa347b7970e416906f3ff392",
+      "size": 57382
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-layout.hh",
+      "sha256": "6088c09df6f789ebd24906830122b8c41780bc071233d4b95002a9ed5ac97cb1",
+      "size": 2511
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-ltag-table.hh",
+      "sha256": "772f812e236c56febc78944f28f63bf0e9d3f9a7346d1bb675d4fcb93131feb9",
+      "size": 2745
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-map.cc",
+      "sha256": "3abb6e4f0ce0411cad22bf8866e2bce81346657ed61bd40541dd7f1a2cd24da8",
+      "size": 5994
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat-map.hh",
+      "sha256": "b2f266a588f185166f211915e30b4efd4c9cbbd385e54fb5d09eea0718f54d84",
+      "size": 3635
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-aat.h",
+      "sha256": "bce10093cad39cfbd5355d763368b22a04ae2bec9289ef0642e5f752bd6e79ff",
+      "size": 1243
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-algs.hh",
+      "sha256": "eca278350a0f5575a930009b814bc0f621992f1318e2e51e1ff23c312457d4a9",
+      "size": 51850
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-alloc-pool.hh",
+      "sha256": "b4cdc48d1678762d0f08f533832e85cad40d213b2ee17430b405b33d6838ec18",
+      "size": 3742
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-array.hh",
+      "sha256": "c0ea5c18e7e377eb17dfc9490d5e69caac8e50044ea99aacc05abed6ba79da7a",
+      "size": 16213
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-atomic.hh",
+      "sha256": "f4635e4d8dfc32adfee3380e862154bd1ebb2d524deff708f10c6e617aff5a25",
+      "size": 9448
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-bimap.hh",
+      "sha256": "4c4123552040f6bcf455c07a93c525fc044b6df3c6039a8a8c4403383a47f7de",
+      "size": 5614
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-bit-page.hh",
+      "sha256": "95815685c003dbc4b02b06f06fb70c217658b9a038fd41e38990f3a4acc248d5",
+      "size": 12464
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-bit-set-invertible.hh",
+      "sha256": "a3738c310593e03c3a3683f583fc767746513d000f350801bf5d3cc997f59a81",
+      "size": 11281
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-bit-set.hh",
+      "sha256": "0114fcfcde9b0a9ba16f1c3b26fadbaeb3fd53d43be40dd38d62d2bcf09bc697",
+      "size": 29976
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-bit-vector.hh",
+      "sha256": "78951a27fd068a05128f63db2224a23f225208962ae964735a4fc32024a93a60",
+      "size": 5550
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-blob.cc",
+      "sha256": "c2acba1bc99929996eef56989579b2762077bb69d396dc4f4e070508271c8a67",
+      "size": 21073
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-blob.h",
+      "sha256": "710fe0a1be3b3a344154939be9bf6cc30674f6abd4ae0fcc0d3144b9d6b9a6bd",
+      "size": 4731
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-blob.hh",
+      "sha256": "ed433566b665bcad1e20d2f2a0f273de63676d0b78ab06f34be2a60d5a0c4bd9",
+      "size": 7935
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-buffer-serialize.cc",
+      "sha256": "1250fb88d40ccb5f4c29358b1b6dc12fdbe4b50207437d90025ad7859f9e2477",
+      "size": 27061
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-buffer-verify.cc",
+      "sha256": "006a176586dd05e1696bcfd57eb9088116d8e9b62da810d47251096c8c025a56",
+      "size": 13274
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-buffer.cc",
+      "sha256": "360a138d923a7f1302cc818540c58afa5f4fd716f3b1abfe5e008a024e9f1570",
+      "size": 61248
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-buffer.h",
+      "sha256": "c9d608ef2ab9fdcbe3b285418a3662fb075a579fb7fd3010e75cfb1ae8263566",
+      "size": 31931
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-buffer.hh",
+      "sha256": "25b5fd595b047474d21abba501e1c062d7a6c15938a080086616a716d57008ec",
+      "size": 22529
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-cache.hh",
+      "sha256": "ad1cab5a92020405139a212a104414e4e7084a24b1fe48a80a9dd42f5b7e502a",
+      "size": 4320
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-cff-interp-common.hh",
+      "sha256": "96154cde5d344c74d15528ef668e5dc497aa88cd1299a506bdfd1de830657a24",
+      "size": 21130
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-cff-interp-cs-common.hh",
+      "sha256": "27a6f7c4860f0a5104d32f14ad703d35b9432cbca9ee36c028da30df4eec0954",
+      "size": 25116
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-cff-interp-dict-common.hh",
+      "sha256": "5e836abdba6d8498519cff18cc8f38614825c399cb21c6f672d002ef2f0b52bf",
+      "size": 5101
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-cff1-interp-cs.hh",
+      "sha256": "c33178de4782aff8754780a22251fd26c6561af5ae1457922c6128b69434a1d4",
+      "size": 4456
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-common.cc",
+      "sha256": "6c3916962f3dbebfdb40e27d5dcd4eed25f0a8421d6df6151008dfa8a39d04c0",
+      "size": 32249
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-common.h",
+      "sha256": "a8d4765469856d6a34ea2fad587665cdae6aba8922a985eb4d715efce3027f74",
+      "size": 13195
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-config.hh",
+      "sha256": "5b84f27f57796f89369669430448d594f736e2e135b1f13c7283fd469177f3dd",
+      "size": 5033
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-coretext-font.cc",
+      "sha256": "b68efa730c380623a97ce0e5054201b5ae4b2f4af045be9e834e6716efe1ca05",
+      "size": 16432
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-coretext-shape.cc",
+      "sha256": "fa61ca77ea89ce3e44007d9c45c5988c418b8f5f1b78c283a09cc0e55d81bf93",
+      "size": 29860
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-coretext.cc",
+      "sha256": "aa75e5f2ebdddab1ddcdbbac96291a7522d0e3032425740fbf9a0e4b3c06a68d",
+      "size": 18380
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-cplusplus.hh",
+      "sha256": "6b99215c1eefd06e124b55c676f880403ec6ca2bae51e27688b050acd89d7420",
+      "size": 6927
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-debug.hh",
+      "sha256": "7ee52cbe0528975a981fc5a0201c90cee3935110720e77aaf5c46fcae663bad5",
+      "size": 12603
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-decycler.hh",
+      "sha256": "86d21d71cbf1edc7e75412ba1bbfa4cc8647ab923f47d05ad3bd15c39d1d6fa3",
+      "size": 5615
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-depend-data.hh",
+      "sha256": "74d66365e60307f883837923dd03eea9a18d335088f4c6a671b950908053cc4c",
+      "size": 19362
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-deprecated.h",
+      "sha256": "d0b32b536185fc9ee042e5371b581c330fb871d546a7c8a775f7d6d635b7dfb5",
+      "size": 13343
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-directwrite-font.cc",
+      "sha256": "7db420cfef98bf8c15a003509a50a2d3645e1ed6f36a6efaacdfd549a6f62ef7",
+      "size": 11940
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-directwrite-shape.cc",
+      "sha256": "adacc569570f76a036d1d71357bf7ea53a30cb9b9c06438bd95601cd24b37f9f",
+      "size": 18958
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-directwrite.cc",
+      "sha256": "726068b5b9d7627f0623e506404d9d611b15d78dc4409624a690f89497ff0f07",
+      "size": 12425
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-dispatch.hh",
+      "sha256": "0955c189c22896e778cc4a080443f39ce741dfafb0a083dac45af4ecdc100bc6",
+      "size": 2361
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-draw.cc",
+      "sha256": "b380c6a41b6e4368c12e32898c1acd686528235183edbba82184430c34448cfb",
+      "size": 22945
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-draw.h",
+      "sha256": "48d67d60afef4f71edbe7d24b61e13cce0bc834e0123156f2ec56f591851b274",
+      "size": 11610
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-draw.hh",
+      "sha256": "ab789bfc0248eb823029c3e5382675f4361b857f50f68d71020ddb815c6c4151",
+      "size": 6507
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-face-builder.cc",
+      "sha256": "bb9fd0f38fc38938d29815a446aa6f350beb0213152f3be726e2f7de8c5a0503",
+      "size": 8207
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-face.cc",
+      "sha256": "641a6ce07b3c6541205f91a50a2018d0ae116065c7397e279cafe344e217dca6",
+      "size": 25928
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-face.h",
+      "sha256": "fd53fe46728fbd055f2e7232d9c38510320a879ee508147e7c1a2b1c9b5cbaba",
+      "size": 6464
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-face.hh",
+      "sha256": "05027940a778b232ea2cb26f41d5b4486caffcb21b2df6549772d228a404be69",
+      "size": 3256
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-fallback-shape.cc",
+      "sha256": "03c6ea4985478a3132ce8447c52fbbaae3b65a3bcf7271d56d3e5713e0f283e0",
+      "size": 3127
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-font.cc",
+      "sha256": "ccc15405603b2c2aa5e2f288818f72e1d25f0132e54e30095e44e7d17a6a72d4",
+      "size": 100281
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-font.h",
+      "sha256": "a7b0cb846e3cad88578a2435483bf64f6b164d4a63a53e4d79e6228bc0053e73",
+      "size": 41731
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-font.hh",
+      "sha256": "3cce25569eed0741feff39c4803545f1965f033c571b6924dd9df1de63bdc795",
+      "size": 34951
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-free-pool.hh",
+      "sha256": "399699c17048aaa6b9bb353e6e1b6161a6133fb145a1dd2d11fafa553b772cff",
+      "size": 3000
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ft.cc",
+      "sha256": "29f67466935ae1d93c5a7698d3e8d3ab28b5d5beae34044889e973f6d7443fc1",
+      "size": 49406
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-gdi.cc",
+      "sha256": "bf108f1e3f43fda03c92c419faef829b8e5fe04b3ee67e76678e5e25c5289d09",
+      "size": 2549
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-geometry.hh",
+      "sha256": "6ef6b4cc68b1260e5c49b1b56273bb99a6d023fa0974641921d2aeb454ed5baa",
+      "size": 10676
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-glib.cc",
+      "sha256": "ba847c349b06e1e84d9f6e8a15954172e7bd363312a088f95fdfe0857341b107",
+      "size": 6053
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-graphite2.cc",
+      "sha256": "aa80b44f20607055cdd1f318096dcd4c3280d5fde880701e29dd040d261486d4",
+      "size": 12843
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-iter.hh",
+      "sha256": "d68e26f7547b7091adf4d61805b9ab2b4b7030efede2a68bfb8159589c539fb2",
+      "size": 33179
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-kern.hh",
+      "sha256": "a00dff7057ae9cbaa79388b418b1c4015a8f964f011e7ff278454551d0b4ece8",
+      "size": 3774
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-limits.hh",
+      "sha256": "8eee0485d4d0dd690dccdcee0a49714d0d4c23a87ca035cc5e2c1430c57ecf8c",
+      "size": 6099
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-machinery.hh",
+      "sha256": "71ae4eecc5e1018048ff039428fff61660bad2a0098a1ad7bf2faf699486a08f",
+      "size": 11784
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-map.cc",
+      "sha256": "123f976e0db59c148b6f5e647be0e491a95ddbc90f8358476e25b44ffbb3f303",
+      "size": 7866
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-map.h",
+      "sha256": "b073aa19718e43e3535caeddc0015a4e45a89032a76059cc5ab8f3f0d220bece",
+      "size": 3347
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-map.hh",
+      "sha256": "f20052afcc23124e6288d3dc13e05b61b8b562dada16ae49b30c0b0e046ccbed",
+      "size": 16162
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-meta.hh",
+      "sha256": "753b76b97dad6ffa242f66e61095a9ea34757bdd2827b9fcb5226af126c43bad",
+      "size": 11324
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-multimap.hh",
+      "sha256": "389b72628e64f531aa919905df019dda8f1499b9cb3ec1f2e951b28643eaa3cf",
+      "size": 2474
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-mutex.hh",
+      "sha256": "f5fccac76f493d22e856f37c135e6f66f19a242601b9b6890cef0233d8a9df13",
+      "size": 4423
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-null.hh",
+      "sha256": "6c0680df9435ec97eeb72b64fab6c98a4499db4e1e4bc7be991d4a385ec0c51b",
+      "size": 8218
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-number-parser.hh",
+      "sha256": "2cbf1ee8bfefc4bdd70551ac2e8f0e28cfbdee729edf8e8bd2a06d97edd888ec",
+      "size": 5627
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-number.cc",
+      "sha256": "9b5adc49f3c04bb64f2a77553db0f0c7cb4d8d4f846fd6b2ebecc6eb40b95eb7",
+      "size": 2573
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-number.hh",
+      "sha256": "7cbe7814a3168ab2b92e4eeb53e01df6037e0b88ceaf87cf132443dbba7f35af",
+      "size": 1543
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-object.hh",
+      "sha256": "69ae34c42430b99cafdf97feaecac9eb4766f155723f480fa888d912120a213c",
+      "size": 9020
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-open-file.hh",
+      "sha256": "e54abe4f0dae9aea5d5f3fb6d0c88edc7164407fa85ec4bf552bab60a37002ee",
+      "size": 16430
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-open-type.hh",
+      "sha256": "b3a6b02836027bf854e5d1d7a6e93d7be5198ea23f51c0f62b49ab867bfddcf7",
+      "size": 63878
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-cff-common.hh",
+      "sha256": "f7eb10ff208da6a3826c79c5db804e4a4d95e54ffb048797336301e3a0f83744",
+      "size": 11507
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-cff1-std-str.hh",
+      "sha256": "f1d1a01a873f80afeaf5f3b2cbaad89d0bb68969deda575abc346525ecbf466b",
+      "size": 9037
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-cff1-table.cc",
+      "sha256": "8859011ffc1d8c0d7122501f3cc4870b3afe23d45f20cd1016c3351d729d0780",
+      "size": 24069
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-cff1-table.hh",
+      "sha256": "229780a390af8ba10fa469267ac249c05630f3ba89957dfc17c2810b01ed8c65",
+      "size": 45139
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-cff2-table.cc",
+      "sha256": "c6f98a2c49d69e74ed0fa8bc1d674c3335050c75d8e1a1e4e9bbf35a015bc834",
+      "size": 7448
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-cff2-table.hh",
+      "sha256": "6de31df8da150e1d1a60e7dc426c724fdc8855a2603739ffd2fe93727f84953b",
+      "size": 16993
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-cmap-table.hh",
+      "sha256": "8fbf7974b82ec68b0d03202d2092cc6d4cfdbce7ac6687cfae27f0a632462879",
+      "size": 72337
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-color.cc",
+      "sha256": "4bf18d0dbe6bff108628dcb54c4d2dd25a905c010b120adffbcc90df1331771f",
+      "size": 12006
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-color.h",
+      "sha256": "187e95990bb37e5e124ba7fc2fa8b42975717502531759a0f298916df17d5158",
+      "size": 5118
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-deprecated.h",
+      "sha256": "c3a9878ac0633d5e6d7e16821114ad4555458a6924100581f0d16fef5728b1c4",
+      "size": 4130
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-face-table-list.hh",
+      "sha256": "52085181b42c80d8a64d84ba7ff7c52e6d5c086f4ee2c351c0fc47c549b86770",
+      "size": 4330
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-face.cc",
+      "sha256": "a8cdc4a58bc5dcc48ba691e529af05067aa7e71c3bc848f66f3fb5615ba1338a",
+      "size": 2085
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-face.hh",
+      "sha256": "00fdab92f2d6eecfbdc2802618fe1d6d00bc6306a2d517bd1ceb74f13337a16f",
+      "size": 2634
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-fetch.cc",
+      "sha256": "ab8a252c3c0a191fb6747ce9b70d30f6fdc8b6d46463806f4de0ad68310e6ace",
+      "size": 3443
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-fetch.h",
+      "sha256": "e574d686e1a00e3df6d31f2b92849b8330ba295012556bb190056fc7a5d00296",
+      "size": 3736
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-font.cc",
+      "sha256": "f19b9146fd888d7c7754f87625b5c6ff252dc1ed8310860ec0df89543d0656d0",
+      "size": 30631
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-font.h",
+      "sha256": "e62d178aa73ef9c80b08d3c076db3e99bb8cb4e8219e978e793ef7ffe965f8f1",
+      "size": 1410
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-gasp-table.hh",
+      "sha256": "e72474e6a0568bd9a1199cfd25187fae76b78d528fbd08ab838cdb9d9fc0fc73",
+      "size": 2453
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-glyf-table.hh",
+      "sha256": "eab2410d44e0e5c070ce1e78bcd5fc9ecbb52b6de5f40b76a5f25007b5dcee7e",
+      "size": 1402
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-head-table.hh",
+      "sha256": "73e60d2832f22499e536423c57c5bb6e2945f44b7ec13c298c05877fddce5cce",
+      "size": 7975
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-hhea-table.hh",
+      "sha256": "babd644f8ea2085223409357548b2ff289c392ec170d96781f153e5bc0cb0e01",
+      "size": 3512
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-hmtx-table.hh",
+      "sha256": "7f514cfd76628f60a2451fdf46314e25b2aa33fbdc44678e2a8c55bf47f32d47",
+      "size": 15907
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-kern-table.hh",
+      "sha256": "9dcdfd2e2fc651315eaf8fae3b1f46cb0270cea443e279ef68475e4405cc75fb",
+      "size": 13074
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-layout-base-table.hh",
+      "sha256": "29d7af531c59d50860efcb0bfb009b7c5363c05d416a38c3409590e5cf77aef5",
+      "size": 27806
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-layout-common.hh",
+      "sha256": "3c2184832c80c7351224d45dee67972a69f075b9aef92efbed6e327ee570a2b7",
+      "size": 157022
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-layout-gdef-table.hh",
+      "sha256": "916f1628327c22e5270656e6ec2efcef7bcecff5a57b7186689591606b88e648",
+      "size": 1383
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-layout-gpos-table.hh",
+      "sha256": "3f72ad5934deb1a674d8587a2416b0744c208fa2e813e702aa5afdb9b8e08713",
+      "size": 3211
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-layout-gsub-table.hh",
+      "sha256": "e253afed7770c1d8daf067dbc8e3d963f3c0540a0ee87172733b1da54ee32642",
+      "size": 7148
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-layout-gsubgpos.hh",
+      "sha256": "344caad0733ba7ee598016e9dd983c2ee5ed85f56687668464067f5ed8aaf88f",
+      "size": 195317
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-layout-jstf-table.hh",
+      "sha256": "b90b47a60d37bf80c84273c5021a4620c1689a01e66bb08313410779f38323e2",
+      "size": 7485
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-layout.cc",
+      "sha256": "f14782e166839b151f9809e614d1dfcd95f9080e12b9358e9b992ebfc47c7a0d",
+      "size": 93291
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-layout.h",
+      "sha256": "c7b0024750a50cef84cc81d49188e5ceab441ed0c24809fcb63ddcc449691f1c",
+      "size": 19223
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-layout.hh",
+      "sha256": "30837b616b0e7ff0691be82c47cdc64f142ee2d42ba189aaae93e92e83d3dbea",
+      "size": 21216
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-map.cc",
+      "sha256": "6b4b92b7f6e7af908fe179e172bb09122eb1a6ad0fe5243f9402a0c96931d869",
+      "size": 12733
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-map.hh",
+      "sha256": "1ec4ea8477c5f32487d96d71d71e5d103b4ea9949ac48baa00078f69c1895371",
+      "size": 10088
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-math-table.hh",
+      "sha256": "252daf69ff109469956e50a1fba3bde4a4e07a1d00b8e56f0b2fd629c4a8faa5",
+      "size": 41356
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-math.cc",
+      "sha256": "d55ceeb69164b30b8fd2646d10019a9026cce5657c93cbe1d0025ca33f9db338",
+      "size": 12333
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-math.h",
+      "sha256": "4e737e5ed9dcb3db18a64534a1ff2faf638ef720dc30db0ee821324099432f90",
+      "size": 13761
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-maxp-table.hh",
+      "sha256": "1689e3dd35e4bf86e5c5ae29aa32f1bfcb58ec577f23220c0aeefe69bd81b075",
+      "size": 5334
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-meta-table.hh",
+      "sha256": "c0a8da721ed74a5fc9ea04d68382cafc43fa775d130251a62823dae0acd16573",
+      "size": 4098
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-meta.cc",
+      "sha256": "398cf15b2dbc9f3418fc5409fe5fb7c4a6ecb439b40738a1678aca81da2f5a0b",
+      "size": 2444
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-meta.h",
+      "sha256": "1d38c9bcbc0d417f8b7e0e818c2f5f9b83d2abddc39f2f116cc0ae84157a572d",
+      "size": 2553
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-metrics.cc",
+      "sha256": "0c8063840b86d0a6646949c0a6895be388d711805d6a7ea389d924f08b6993a3",
+      "size": 15524
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-metrics.h",
+      "sha256": "c65239f100590cf1b1f647bba6ccd1a548a4e89cb80978601ca3050e9884e724",
+      "size": 6020
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-metrics.hh",
+      "sha256": "852b64acce15511130feb462e6fa0a45829c243cf4634f59cd08461037cb2b99",
+      "size": 1398
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-name-language-static.hh",
+      "sha256": "de35edd3eef1a98b98607b4cf2ec60972111e3ff22d46a8ee264f6451c656efc",
+      "size": 17161
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-name-language.hh",
+      "sha256": "a3e252d96562fe5e71db81b3acdb552eb739140a694784ec0d8db5e425f0c854",
+      "size": 1431
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-name-table.hh",
+      "sha256": "cbad7954dfde8f339e034ae14dae351da8faf23cbb0609077091eafc4c588068",
+      "size": 1264
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-name.cc",
+      "sha256": "bdcab8554abf1e7cd36dfd59c157f9e10f371768bdb864dcea0124cde5ff78ab",
+      "size": 6135
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-name.h",
+      "sha256": "5be924687f71a0f98149b1987f3de3fd766ed9e84c4e144250e97048a36cb1ac",
+      "size": 5536
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-os2-table.hh",
+      "sha256": "f5cdebe60720f932db786446b57ab43995cd07aab859aad583e00d8e5dbc0de6",
+      "size": 13308
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-os2-unicode-ranges.hh",
+      "sha256": "9ea5236fa9ab8c723a16e38db809abba189fc307206630024c2f1fc05cbc9058",
+      "size": 10356
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-post-macroman.hh",
+      "sha256": "ad39661248afa942b38c190f7102ee28ed6f33eda8f49cc3c3304ce71be94f26",
+      "size": 5990
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-post-table.hh",
+      "sha256": "f24c96fed081808923bf751892e002cc5ef2e93567d7573ac3830b2e164de4d8",
+      "size": 10588
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shape-fallback.cc",
+      "sha256": "adfcbf1bba15c6713ab5ceb89a03d16280e0949db469102242b18dc041644c4c",
+      "size": 19677
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shape-fallback.hh",
+      "sha256": "c4efc379564161f8cda00d7228f609e792e311d2a2acfa143f2cc18987b8ed39",
+      "size": 1958
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shape-normalize.cc",
+      "sha256": "5cf41f87b8717f36d0561bbf46f4a7412d971ada0dc365d9e17be7131221a6f6",
+      "size": 15660
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shape-normalize.hh",
+      "sha256": "e6c5567ab18a792aeb8a11b8983136aabcead6d5e3d4cd6a7a2cb121253c05e3",
+      "size": 3468
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shape.cc",
+      "sha256": "92575c190dbec89fed92b9e1dcf8f442532406221ae2be957dcdd5142426be13",
+      "size": 39719
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shape.h",
+      "sha256": "fd484f67e5c0d99cd428a2debadface7e80f7163b9c1be150cf1860fabe050c6",
+      "size": 2339
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shape.hh",
+      "sha256": "473efb5f00864e8e8f3a32123a5a4f5745f95a5369137042a778c88a1924bed3",
+      "size": 4652
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-arabic-fallback.hh",
+      "sha256": "8e279b7e23b1e1bd02dd5864d94a7212093d5b2ba37a6d51a151271215eb951e",
+      "size": 13542
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-arabic-joining-list.hh",
+      "sha256": "1516597868abf9910c157bb4c1b95ba3cfb14b149957a33d87ceea529c1d18f6",
+      "size": 1123
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-arabic-pua.hh",
+      "sha256": "6e00a6d778dcac6d9c3c92d29eb67b1d4505db4250d2ff24fc637196923d590f",
+      "size": 7655
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-arabic-table.hh",
+      "sha256": "039186c044f32bf49d5da2a48fe309b6ef57f73fa4bb0d6ac9f53ab260f11e7e",
+      "size": 22278
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-arabic-win1256.hh",
+      "sha256": "5ea707630e2cf15e7edb14ab7ffb0dd63ce8a2c70badd761644ed4780f896ae7",
+      "size": 10023
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-arabic.cc",
+      "sha256": "3c6e056b90e3aad6e3320d5afc74589067ffa5773254bb265702364068abea3e",
+      "size": 25541
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-arabic.hh",
+      "sha256": "813a9a1c74e0dcc8650c7ffece9aee8b326d7902d8cf392d0242b4ad3ab45cd1",
+      "size": 1698
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-default.cc",
+      "sha256": "0035a3cf8b359f4b4a59ff59b36998c36578174ba836fa74bf00310754451e66",
+      "size": 2343
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-hangul.cc",
+      "sha256": "b6dfbb923473685b44b68770a6f781136ad69a27548721f1d991ee85e2f0fba3",
+      "size": 13725
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-hebrew.cc",
+      "sha256": "4dbb5128ec416028ae347ddac1047a13f5e43cc69df5c3101554577667862a01",
+      "size": 5816
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-indic-machine.hh",
+      "sha256": "4321fa319b80364201c9bbbf24008ea4abb2c1c053dbfb770191a02fc97d9675",
+      "size": 45195
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-indic-table.cc",
+      "sha256": "13ee49510de7101da1a93ec58f9f1710018d6e1f9333d5ab564b38a90ae0ffc9",
+      "size": 11637
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-indic.cc",
+      "sha256": "0719571197291360e2e3d3facb8002bd3503ae2c1b585271af8f0f7f24536bf0",
+      "size": 51073
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-indic.hh",
+      "sha256": "3011115c47c4970a7cdfaba400375dcb870902e04f3c3fd66aa8f540b05c3af5",
+      "size": 1783
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-khmer-machine.hh",
+      "sha256": "2e18d50afac4e80c476e345e249fe6260faa0a8cc1f13bd90f528764e3430d73",
+      "size": 12585
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-khmer.cc",
+      "sha256": "efa2fe5fa2de2e5d0ed6ab4839b506f80a7952ca1c5aeeb896ce140f929a058b",
+      "size": 10865
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-myanmar-machine.hh",
+      "sha256": "866a987c7a287a32e915b0b1fde54bf86a2f277ab57b63b1374c6bc8d4e124e8",
+      "size": 22139
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-myanmar.cc",
+      "sha256": "115f7ca3e0c271d0fbc2a1ae10043af80dc455e30b5f402d9dbe742ba4b91c9b",
+      "size": 10808
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-syllabic.cc",
+      "sha256": "09f5b4e7655231428f8463d7be2462d5e1e0486e2cdfe6aeee9c512bcf83e4c1",
+      "size": 3533
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-syllabic.hh",
+      "sha256": "ad7c71e9998c75d11da9939b60b578f95aea9220de656c4b4a082621d7f0d7b8",
+      "size": 1658
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-thai.cc",
+      "sha256": "77ff4f4b92c7dcdf7c56dd506f1590bcc94a631ae2446bbc7c4343399ea96262",
+      "size": 12157
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-use-machine.hh",
+      "sha256": "8f4e71c3f53e670add9e9979541ca6cd770add39635d517a64ccdd8982547f28",
+      "size": 38228
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-use-table.hh",
+      "sha256": "3db27c092734d56c7071ae438b1befca672d2510757b772135addc6500047c7d",
+      "size": 56446
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-use.cc",
+      "sha256": "1cf33c4ed82b65c16e02971a7f9bd5a4257423474a8aa347bfdfd11d66ed6db0",
+      "size": 14493
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-vowel-constraints.cc",
+      "sha256": "b897a8881135dd55b5232797bc29aa01a374429cd6a040f7a2d32743949c08ba",
+      "size": 11269
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper-vowel-constraints.hh",
+      "sha256": "bcca02643eb000b1f538ddb2f8d75d5c580eb6001b0b07e9ab0dc253723b8ef2",
+      "size": 1504
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-shaper.hh",
+      "sha256": "a9e6693815d1080d3311376710196a990c04174fb9d74b62e38fdc315daa213e",
+      "size": 12398
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-stat-table.hh",
+      "sha256": "ed1896c92800b052b69ef585008236b79cc0364778e30f6f4c8748a6fcfc73f0",
+      "size": 21841
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-tag-table.hh",
+      "sha256": "051d022d1b38bf57d4a3601e82a542f136d639f32ea62d27718ba6bcdafce4f8",
+      "size": 173987
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-tag.cc",
+      "sha256": "a73259bbf67c0c3fb644ff510d6021216cbcb83e40fdd9fd2626f51219891a89",
+      "size": 21416
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-var-avar-table.hh",
+      "sha256": "5a61b2084192e6f964c7f3b8434c9d81de5251a660baecf376ceb56dcadeec7c",
+      "size": 42855
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-var-common.hh",
+      "sha256": "6e552f003a81a7d92760bd48bdb82ac65c1267d68c541eec6154e21b64646fa2",
+      "size": 84426
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-var-fvar-table.hh",
+      "sha256": "2e9436722084da360c4316fd9db3609b28621cbaf0e235f803d7197dec33c08a",
+      "size": 16789
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-var-gvar-table.hh",
+      "sha256": "de1f9439bc714c5d27fdad666735fe033ea0ffd07ecfe656e358d087d32d0586",
+      "size": 38427
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-var-hvar-table.hh",
+      "sha256": "f97e599621fdf15a45a27d361140acef3cef6356d412175fd56cd6d70ba38694",
+      "size": 17130
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-var-mvar-table.hh",
+      "sha256": "66819616208ced63ca52f84e39328d3c60979b127573ca69e571380ebb8162b2",
+      "size": 5912
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-var-varc-table.hh",
+      "sha256": "8ab1cb16d2ee2f895d7b858a1c63b4a53538fc9a8a9961fa565238c7ae1e90a7",
+      "size": 1275
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-var.cc",
+      "sha256": "f5e59b1937d8d055a080aba3b1300a7ecbd71bda3c505a0b45bfa8c70f2eb947",
+      "size": 10534
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-var.h",
+      "sha256": "9c438bc34f43afcc95c3f5f390b929903156af93e19473fc29daa650d98cf20e",
+      "size": 5209
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot-vorg-table.hh",
+      "sha256": "73629d0e8d58c56f0c033e36267b472fbbacd24cf5cf0e14f33ea7c59672dddc",
+      "size": 3859
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ot.h",
+      "sha256": "b1f9eb217039400ca9031f6a84a85cb879fc16fa0ca927ed453c17d2c3e05429",
+      "size": 1527
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-outline.cc",
+      "sha256": "f02e7bf84edd62cd1e5c5ba204295b0d5f276b4c7274036e78a9129f3a9c4feb",
+      "size": 8602
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-outline.hh",
+      "sha256": "a9bddeaf95eb319b1eb425e9bd3458cc30d50d3129fe6d70b0c0031b6aa62b40",
+      "size": 2238
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-paint-bounded.cc",
+      "sha256": "c91c273c22cb739a8fb70adad65616373385dd9a75d0774b77276e8764407835",
+      "size": 6539
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-paint-bounded.hh",
+      "sha256": "ff9f4f2804f74c3c9062a2b29f309ae59fe667f10e01a8de6b145a4bcc4fb7b4",
+      "size": 2938
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-paint-extents.cc",
+      "sha256": "0cf1675e85dc0cc4d07be8a66c700f5e816bcbb9b2c15f4ffd24246ec4e2ac43",
+      "size": 10908
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-paint-extents.hh",
+      "sha256": "0c5ea9429d7ae56d70e53be32dbcf059e4a4d4e19e5e7c27e31d1e8393e18a3f",
+      "size": 4118
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-paint.cc",
+      "sha256": "b35b2d467efacd3e04a42fbca58fb13af8f2155ff623ac662aa8d0a92ba3e649",
+      "size": 35446
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-paint.h",
+      "sha256": "7ac03890a8fa4772f332fd57ae4bc12d60ef112b30ad257b2b66b191e1dc1ee7",
+      "size": 51229
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-paint.hh",
+      "sha256": "d9a8e0d1a10947d2d3019d61d87a24cfbaae79556bd23cd79ceb3fb0de68e929",
+      "size": 10975
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-priority-queue.hh",
+      "sha256": "069daf33cf119ca0702a87ab185708da1da150a33ffacbae7197fa1d2031958e",
+      "size": 4840
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-sanitize.hh",
+      "sha256": "cec955d8f8f017565542e5db13dd017d4a42167d2ea0cf12ef5878ae7a91bd29",
+      "size": 14235
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-script-list.h",
+      "sha256": "18274018858eded78f2a491225e124b3105399a4d22ce14839ba5820df7a4684",
+      "size": 20311
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-serialize.hh",
+      "sha256": "d02fab26f43928eb83b355f86f07d103049add9f195ae1cd27c02c7fd04f6973",
+      "size": 24494
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-set-digest.hh",
+      "sha256": "87b6c79bb387122084d37c61493d2c7838a215580b3160ad3462eb4247150fd9",
+      "size": 5629
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-set.cc",
+      "sha256": "0bd89c0a7120b4c7e6c6e23a1d5593ea1c58874135d75054674789ddc0f2dbc4",
+      "size": 13636
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-set.h",
+      "sha256": "0ee36c1a0926e51bb2a050687930db464b8e719f5823cd93a0c96226b8ccb783",
+      "size": 5054
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-set.hh",
+      "sha256": "d63278880fb77a542f35022d6b4d5ca7cd90a6cd6c53f63af0265f0bd8c8cc06",
+      "size": 7380
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-shape-plan.cc",
+      "sha256": "596571d35963dbcdbce8899e5b54afbddcfc097230b4b2f6539955d273466bc7",
+      "size": 16466
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-shape-plan.h",
+      "sha256": "03555c82558fa347e96549ec99698fae790c2cfb9ee795c5ea48ff4134e06224",
+      "size": 4121
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-shape-plan.hh",
+      "sha256": "9f38fa5d3802ed2602d82b8ff637da427a404e9a6690751208ca663509f0d849",
+      "size": 2506
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-shape.cc",
+      "sha256": "2825723cfe9e101c93fd39adce889be2990751416babab4b16f8e36c1cb2bf6c",
+      "size": 12862
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-shape.h",
+      "sha256": "3adfcf510853bc118a120b7633c0e4d15134e4ac4bdf7911cb85511887e7e328",
+      "size": 2344
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-shaper-impl.hh",
+      "sha256": "aa6f51ed46c2e81dad2bedc60c6dfe3e689a19fb59e2c108675404afadeda2bc",
+      "size": 1370
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-shaper-list.hh",
+      "sha256": "cfee54cc743a9f6928699ded8d0b08bdad53d00ca66a4f75b8d380c9a9716c27",
+      "size": 2084
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-shaper.cc",
+      "sha256": "9b1d7d4edaae3107424510aeeff21524c1893f7b849abf44461e4c0b5566cd8e",
+      "size": 2985
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-shaper.hh",
+      "sha256": "c446aa0b841cbbe106a9659938672a5900c5a1047f15932a062c2e20d38d0912",
+      "size": 4756
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-static.cc",
+      "sha256": "c0176dc0287f3f8578d0c1840423bc60cddf0c7397eebe08bd016ca9bd1f14c6",
+      "size": 3639
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-string-array.hh",
+      "sha256": "75bf0922c60f91e48e1a8261f6334bed8057b1522fed864e588f6e24a2860fa3",
+      "size": 3010
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-style.cc",
+      "sha256": "cf0afde510114915ea06dff35388da1c9ea81716431d9c308fe0c5eaa117b425",
+      "size": 3902
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-style.h",
+      "sha256": "6e88aec3ae6db176b37e4d6089923f78859134a26fd12b33b40b772e91673b5a",
+      "size": 3340
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-subset-accelerator.hh",
+      "sha256": "9325aa4ef0cbd854b185529c021927cf8e3cc6408084e85161416a0a0c186e0c",
+      "size": 3907
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-subset-cff-common.hh",
+      "sha256": "f7063ec1a2cf8eb4449340f45cab956c674a0893f21619c526f0f2c48c695d5f",
+      "size": 37017
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-subset-depend.h",
+      "sha256": "40a7aa1a4093732ec63339f335a1c7fe3e9fddd2bc02c9c0bdaadb8a0f2ab35c",
+      "size": 5097
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-subset-input.hh",
+      "sha256": "90101364a4d73aa56af7ddd7b0f89f24f883db524ed2aded60459c41cd1a62dc",
+      "size": 4287
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-subset-instancer-iup.hh",
+      "sha256": "8a11fa60fe0c62c811b10ff94d9f50f013c59f1fdd2b349f88289376d1c66df7",
+      "size": 2141
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-subset-instancer-solver.hh",
+      "sha256": "50dd53a39eb8096a5b1813244ab31c4b7539739cc2fa1587a17f9e93d53423e2",
+      "size": 3941
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-subset-plan-member-list.hh",
+      "sha256": "803791d8c1e2f8717806656f1c00c4d1bf548878b91ba9bbc0a18fee99c226f4",
+      "size": 8658
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-subset-plan.hh",
+      "sha256": "f363aa71e541949bb92a9ee565d0f1552d940e71b95e4b1ecd2bfec8a8eb5b2e",
+      "size": 10622
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-subset-serialize.h",
+      "sha256": "3c6e7ba4adabe6d07c80c7cfa6f8e731a7b10bc64b195c806810025a13277241",
+      "size": 2802
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-subset.h",
+      "sha256": "7d44add80a70f9e0dd9b32ca8a1e7163808f019f116d9dc320e86fe095bbf31d",
+      "size": 11450
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-subset.hh",
+      "sha256": "534ba7d38f3cb89e40c3f74dd61012a732e0e3b39ee5857aacf81a11cf83df21",
+      "size": 2540
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ucd-table.hh",
+      "sha256": "139d697da61aebe022d1c63f15be8ef6fe8169b34449e03b946154bcc3fbe9c7",
+      "size": 426190
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-ucd.cc",
+      "sha256": "0bb1dc09aee15ca98a2222f7307d1a9d279646c486f8240efd50035c86554420",
+      "size": 7196
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-unicode-emoji-table.hh",
+      "sha256": "d6449a0337814b06dc2b913c56cb7aa67f694522b8191b53de0f1807fceb8d4e",
+      "size": 4005
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-unicode.cc",
+      "sha256": "2c4825a02154815244c971f23078066e8322c4a3d662936b368c7135ac624b94",
+      "size": 17370
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-unicode.h",
+      "sha256": "6131f0eb9e411fa392101f58793f4e4347ec3bc6fe45226736b186004cea8038",
+      "size": 22980
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-unicode.hh",
+      "sha256": "ab24308b3ee95c15f4422b23337c0255607702736e4a982ed0b4ada5565b499d",
+      "size": 17375
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-uniscribe.cc",
+      "sha256": "80da4fb8e822c599cd6a7f42075db3c994a1526a787a6a94ccd257234e6c7cf0",
+      "size": 25091
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-utf.hh",
+      "sha256": "5e2a2222ae2ed8ee63750ac6552a3b5b74e7fe4481c6891e6e1337907bbc06da",
+      "size": 11646
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-vector.hh",
+      "sha256": "aebcc74104aa197aa4be14d117522644125b454ab5d233552e6bce82a527e621",
+      "size": 20592
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-version.h",
+      "sha256": "0023d25fcc88368d599a432f54bd4e9837d6037d6fa587d42b40963cb4638ad2",
+      "size": 2597
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-wasm-api.cc",
+      "sha256": "8cfbdfbf4d48d54dabd0d50e265d80d6d8999823454e9df37174d97f6cc035c5",
+      "size": 1465
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-wasm-shape.cc",
+      "sha256": "2f54762966cd205f5fa3f83d776dd54b54341750c95323072e93337d14588d4b",
+      "size": 12315
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb-zlib.hh",
+      "sha256": "631bda4104d6adba0c6282c8cb362924c306516da139bcf286ddef7b124629f2",
+      "size": 985
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb.h",
+      "sha256": "31a1b53db3ee4395916e6d4f105b2c64772b8037bbb97d0e6d1e4a905eb6c6c9",
+      "size": 1555
+    },
+    {
+      "path": "extlibs/harfbuzz/src/hb.hh",
+      "sha256": "e3c3a138a2975c63b291b0ae8a97bd27760f34a6779e47f85a580808ccf5e9f1",
+      "size": 19679
+    },
+    {
+      "path": "extlibs/libunibreak/LICENCE",
+      "sha256": "8c7b1018f608e05a21af078ca4303d545d6b8719b95306eda83df64845283564",
+      "size": 1066
+    },
+    {
+      "path": "extlibs/libunibreak/UNICODE-LICENSE.txt",
+      "sha256": "85d2c71ce603e6facf0029043f82992556f099eebe55417b456ec27332665fed",
+      "size": 2026
+    },
+    {
+      "path": "extlibs/libunibreak/src/eastasianwidthdata.c",
+      "sha256": "cfdc4c2abb651092cfa92fa8004a8dc7ae1e82841912720cb2b627b02534fab7",
+      "size": 9827
+    },
+    {
+      "path": "extlibs/libunibreak/src/eastasianwidthdef.c",
+      "sha256": "f609d5915e4cf7572765e66aaa8bda6d315cc8ec89e01085c92683a2b1edd42d",
+      "size": 1555
+    },
+    {
+      "path": "extlibs/libunibreak/src/eastasianwidthdef.h",
+      "sha256": "181068f45ca8a6ada6acf3567caee7d86ce12a30c077949b1e7dc3738b4d2707",
+      "size": 2143
+    },
+    {
+      "path": "extlibs/libunibreak/src/emojidata.c",
+      "sha256": "b33ed203eb6bacfc7c9598a726a41c64ab67032b767bc676aecc430a207faeb6",
+      "size": 3283
+    },
+    {
+      "path": "extlibs/libunibreak/src/emojidef.c",
+      "sha256": "4baf8f003201d49cbf78d58c0938eb28e19121095314724e8dedbb610bae327f",
+      "size": 1563
+    },
+    {
+      "path": "extlibs/libunibreak/src/emojidef.h",
+      "sha256": "d14675c270334b046288f647a060186066b4d6d1905a457459d58388879efabe",
+      "size": 1632
+    },
+    {
+      "path": "extlibs/libunibreak/src/graphemebreak.h",
+      "sha256": "1709206d2834b738adea536d09c89860f94fb9c448fcc02492a1adcd07c13421",
+      "size": 2482
+    },
+    {
+      "path": "extlibs/libunibreak/src/linebreak.c",
+      "sha256": "35fa884d87b37105cc541b4cfd085935f0262b8c472532edfb659fe37b9cc51e",
+      "size": 59530
+    },
+    {
+      "path": "extlibs/libunibreak/src/linebreak.h",
+      "sha256": "394d9879d87d6a9930a42a9256c0b732417bbac30d051138b1a0da7c18347538",
+      "size": 2868
+    },
+    {
+      "path": "extlibs/libunibreak/src/linebreakauxdata.c",
+      "sha256": "09b9327653433d22cc1c3ff4cbdd176abe577286365275cc70617a79adea29db",
+      "size": 2160
+    },
+    {
+      "path": "extlibs/libunibreak/src/linebreakdata.c",
+      "sha256": "d2a1008ad93a15c15389e5cdd3c2d21b5e03820ed9daeee5a5a902ef56649719",
+      "size": 557090
+    },
+    {
+      "path": "extlibs/libunibreak/src/linebreakdef.c",
+      "sha256": "105b926c59ed3b1a87e2c7a19ba68adaec69032b501d0c61d9a7043f534bd62b",
+      "size": 5324
+    },
+    {
+      "path": "extlibs/libunibreak/src/linebreakdef.h",
+      "sha256": "5b5c1470331752a11b340eea2c0f48b7f04bd908c20864d475f05aec498a9906",
+      "size": 9241
+    },
+    {
+      "path": "extlibs/libunibreak/src/unibreakbase.c",
+      "sha256": "aa44089bcde4bf6cedb387af7bed3ba58d02d3a2c1202b306812a0be74bc0834",
+      "size": 1338
+    },
+    {
+      "path": "extlibs/libunibreak/src/unibreakbase.h",
+      "sha256": "3880a7c664fe6eec033950935ec99c297d9c44fe154fbd6972b4d8a55fd20976",
+      "size": 1784
+    },
+    {
+      "path": "extlibs/libunibreak/src/unibreakdef.c",
+      "sha256": "9d0f2a973ee07e748091ec18e09131ab7109899ae15b17fa769c93794a7fd58e",
+      "size": 5053
+    },
+    {
+      "path": "extlibs/libunibreak/src/unibreakdef.h",
+      "sha256": "2cffd22ab7ed6a69f819905e30b2214891518c2b601d566e75186a0047095b40",
+      "size": 2745
+    },
+    {
+      "path": "extlibs/md4c/LICENSE.md",
+      "sha256": "e547c9a66c120b19f9838a1f7c2f51137f5c71ba27b70c3611b673f2cdb4e02e",
+      "size": 1096
+    },
+    {
+      "path": "extlibs/md4c/entity.c",
+      "sha256": "7ea50d695d9210958e01b12b3e4d1db78d783d03d95b040fd7d2d9cfe1f1d39c",
+      "size": 73887
+    },
+    {
+      "path": "extlibs/md4c/entity.h",
+      "sha256": "99a8952be6629e4114947cb61a901bf4f73b10d84d1ac5e17ad8299dfbad708e",
+      "size": 1607
+    },
+    {
+      "path": "extlibs/md4c/md4c.c",
+      "sha256": "47fdbf1b37ba8ffbb547626e690b349c6f2a896807b463b2b0611176581503ef",
+      "size": 335850
+    },
+    {
+      "path": "extlibs/md4c/md4c.h",
+      "sha256": "c434777deef7e59d611b40319c391dfa436cfa592bd28c053ba688e90e140c72",
+      "size": 19366
+    },
+    {
+      "path": "extlibs/miniaudio/miniaudio.h",
+      "sha256": "ac7af4de748b7e26b777f37e01cee313a308a7296a3eb080e2906b320cc55c89",
+      "size": 4108168
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBAlgorithm.h",
+      "sha256": "acce84646058c916f89f3654f3197fce0aaa74cca8b1083a942881405985659a",
+      "size": 4854
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBAllocator.h",
+      "sha256": "b85f219092aa21ff38f1d9d4d84f0453f5981c2427e5d6a3fc0a7be9862f30d5",
+      "size": 6197
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBAttributeInfo.h",
+      "sha256": "00e244b5f3b2112fd7ca77bba8b8a1170fa5c5397d7fee068c41f865727fff60",
+      "size": 3800
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBAttributeList.h",
+      "sha256": "1229dd00202ce0dfadf33d0aec7b4cf708b225f7ba01ee157d1063839c7034c1",
+      "size": 1720
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBAttributeRegistry.h",
+      "sha256": "d41efe27aee4afb329f7918668107ae8fcf224e595458d0bc4ba5d04b46114f0",
+      "size": 3468
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBBase.h",
+      "sha256": "377ead469704564097a54c65fd74f7c50ec678ed9d30fd187e344f576e024be4",
+      "size": 3857
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBBidiType.h",
+      "sha256": "a6fd133615641a48f71929db9a3233c85d8694b5b5f7929e42461cabd82017f7",
+      "size": 3111
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBCodepoint.h",
+      "sha256": "b4b135f8bb31d069031ba0e38bb6825522652c5f3d694701e36871210466bb2c",
+      "size": 5689
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBCodepointSequence.h",
+      "sha256": "33f09ce9850a53a755c38e24d75dbbbeba54b864197349f7e07dfbc4b0c00cb1",
+      "size": 2716
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBConfig.h",
+      "sha256": "4879a705a9f1c35f46d6389e00f332f228c6371948dd670cfd333c7938acc087",
+      "size": 1852
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBGeneralCategory.h",
+      "sha256": "4d233398692e1ea853926cef4ac33c120b2cbd2a52f634c2cae9baf37340aaf6",
+      "size": 4193
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBLine.h",
+      "sha256": "3b38ba24e9a5b0c38aa9b47507533e77c5610b11edfda4cc6cdb6a55a3019c23",
+      "size": 2381
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBMirrorLocator.h",
+      "sha256": "38bf114db46d5a0303c6a8576c4b0dcbe862bc7d63873fc5fc3f164bfa8b8ee7",
+      "size": 3377
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBParagraph.h",
+      "sha256": "2b081da245d2526c1d11f1c979dc6992e86b2ffe451b0a71d557bc55a017080d",
+      "size": 3250
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBRun.h",
+      "sha256": "cb0da081631f417dca78dce9db3dd6154100220954b95632bc031ffce3d8681c",
+      "size": 1183
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBScript.h",
+      "sha256": "dd8c72255300893ecc73c220d707668f4d99629769eab1426833c79357d02a08",
+      "size": 10868
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBScriptLocator.h",
+      "sha256": "fe67f3cfdf79e552d2df39816d4a3f1917cd2d34d4c2db38ce6e85ac5c66b9c5",
+      "size": 3448
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBText.h",
+      "sha256": "3389ba63c2a44bdf2b121d79966cce7f905bab87fb6e202b9dbcaae833869cc0",
+      "size": 15357
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBTextConfig.h",
+      "sha256": "9a32100774d062ed807bc5c124c752e5ff89b3823c21e1292e075639b4e9fe73",
+      "size": 2061
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBTextIterators.h",
+      "sha256": "3f80077586896577d21c6521d2884c453dead3a70a51c07df54565e0bab445be",
+      "size": 21078
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBTextType.h",
+      "sha256": "4d0ab85b4639812cb72e9afe7acf1f9136d25255315d3ddc65e9feb06593e5c4",
+      "size": 1035
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SBVersion.h",
+      "sha256": "77d28bff898a2cb19af66221b89fa63fd22711b5043c028d0cf72f35863354fd",
+      "size": 1293
+    },
+    {
+      "path": "extlibs/sheenbidi/Headers/SheenBidi/SheenBidi.h",
+      "sha256": "61e453e9ee9037747027bf3778e5f57a75d56425b9e1fc3e4b673e665233b570",
+      "size": 1238
+    },
+    {
+      "path": "extlibs/sheenbidi/LICENSE",
+      "sha256": "3ddf9be5c28fe27dad143a5dc76eea25222ad1dd68934a047064e56ed2fa40c5",
+      "size": 11560
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBAlgorithm.c",
+      "sha256": "c5ab873ae9ac1bec6c83f94a8adc72263553295d1dbe8c4cd0de31afe42f4aa2",
+      "size": 4041
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBAlgorithm.h",
+      "sha256": "f13380b4861151304095222ae321621b21455ddf9c267779c00cea7dabfdcc6f",
+      "size": 1073
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBAllocator.c",
+      "sha256": "2b4fcde29e50ff8e37c791f8cd9232a198542f4e05ebb81967b20def44cfa38d",
+      "size": 7652
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBAllocator.h",
+      "sha256": "50a5f1bd7dc7647d15a38b48488c6f28da75a06dd04421aa53099f06559060fa",
+      "size": 2081
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBAssert.h",
+      "sha256": "c46f509445555b650c36473ab5308c0b3441962347ba356ae08dbe8d3c6a0c28",
+      "size": 737
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBAttributeList.c",
+      "sha256": "9c90ce9e53aaf99a1205cec3bbbdba2c89647d75328ad4081906657a166fd225",
+      "size": 2186
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBAttributeRegistry.c",
+      "sha256": "c22eb776ff4c09a5672f4d8a79f77b23703199103a1ecd666c1f5a1898fc1b0b",
+      "size": 6631
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBBase.c",
+      "sha256": "8ef81dddc93e03dcc93f3d57c88b2281c2215229b8044c004835af0db08f44e9",
+      "size": 25679
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBBase.h",
+      "sha256": "774c27dc50d56ffc11389cc5df1a2e61305ab0e95f98480e46d30895a3e36c70",
+      "size": 5116
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBCodepoint.c",
+      "sha256": "3414ee6106cf35e932e1d3531e004b9dbc95b3c749c1b90655d46a088dbdc48e",
+      "size": 9734
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBCodepoint.h",
+      "sha256": "b6af4236e10ba4f61ad953996e0ca0ed25b6b22650b72e4f80044b6738c0a006",
+      "size": 1368
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBCodepointSequence.c",
+      "sha256": "e5142b4bbb29428fc98a021d16797fd9e26adf59c39b1f68e30491757590f062",
+      "size": 5453
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBCodepointSequence.h",
+      "sha256": "b9de08ca8bd64469a025209bcd865fc306da880e5ef524091fb403527852156e",
+      "size": 1438
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBLine.c",
+      "sha256": "6a94140b0e117e78ee0459197e73d5b17131f6e735a310f7da8d53d7e443ef31",
+      "size": 8441
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBLine.h",
+      "sha256": "2ed25ccc34ed2295e25a91b5a8fb16c4ea9f87ab8dc3f786917642f59695d648",
+      "size": 1290
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBLog.c",
+      "sha256": "ce0dcacca5bb367dc259f8feb828a7ae0effb5488674912e61c42c7cfa3a3cf5",
+      "size": 7564
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBLog.h",
+      "sha256": "0de452f8b94b1cbde0537b899c220c6295cf4d1d3c6d9c8f108bbb7fba83f4c2",
+      "size": 4838
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBMirrorLocator.c",
+      "sha256": "95eff8afbbe1e4c6d0ec9e7f2520ff1323bd62738d9f78b8f6ed7181368b92db",
+      "size": 3708
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBMirrorLocator.h",
+      "sha256": "69f244276bee970926e8c3a5d20f31389ce5c92bed8ad02beebd6661514a93a0",
+      "size": 1084
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBParagraph.c",
+      "sha256": "d8293214a92bda16f213789d2c9cad4878aab6de4ba2ded4d3c5232761e56844",
+      "size": 24264
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBParagraph.h",
+      "sha256": "a0e260326ff45cd38e48a0eed8013dda0d4f2f02d346f02e06d0a39b09528fd0",
+      "size": 1562
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBScriptLocator.c",
+      "sha256": "f5d9ab811b42060309cf722a330e7f9ad6627a4b24f4c9795467dd3b051c6246",
+      "size": 5805
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBScriptLocator.h",
+      "sha256": "b42c4f6e069ac31c49f4eb98b49fbe20a1dceb4ccf9f210af5319bcdcd3dabda",
+      "size": 1110
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBText.c",
+      "sha256": "e6d08b738a83306553b237786c94868945664c8519f2b3777e8c0e2fa0ff91e4",
+      "size": 30009
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBTextConfig.c",
+      "sha256": "d80f2c7086d7ded2cf0615525af23c3fded06b5eba7a454eb06a84ce417e05b3",
+      "size": 2084
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/API/SBTextIterators.c",
+      "sha256": "d0eff4ce179e26287fade2402f5c6e1cc4568040efbaf7c4e5ddb1daf4bd5c98",
+      "size": 28408
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Core/AtomicFlag.h",
+      "sha256": "ad8c219ad8aed494c5e6e38b68aec09e73b7863da7e1f0667ac79879c1b65aba",
+      "size": 2799
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Core/AtomicPointer.h",
+      "sha256": "518fb5795c8a0a33e509052c3ab353ea66922da04aa865fa42e1cdb6b919a67a",
+      "size": 4835
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Core/AtomicUInt.h",
+      "sha256": "3ece94c721f64c3da1f4437ae8079e9a0ee356ec425ea400e9345360b0077571",
+      "size": 6445
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Core/List.c",
+      "sha256": "a4a027d1152e9e45d40e222fbe21632b85138271d5a65f58342c7809c1dc3134",
+      "size": 5494
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Core/List.h",
+      "sha256": "7d74827e4366c42deaee7ed4d882732582042f0015b50807543a5157d16fcd57",
+      "size": 5203
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Core/Memory.c",
+      "sha256": "1e7ea897708c4e54b1787f6f781c45ded84c70782935b085aacb0f3162fa4ddf",
+      "size": 4023
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Core/Memory.h",
+      "sha256": "3d57fac100a06ef77bd14f1fadf03f0950594535a2d40d9c93b1ce47c9c53752",
+      "size": 3159
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Core/Object.c",
+      "sha256": "851e28b36eda06e65e9c76932e34a57052268184cdca91089bd80c40b2ef6a20",
+      "size": 2338
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Core/Object.h",
+      "sha256": "91765c27fa0fe3110a60f0a1c833c83abe4107e1e421d0cb43519232164b877a",
+      "size": 3989
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Core/Once.c",
+      "sha256": "41dcd5779f371851ed0af333f1735b1dc3279732d5a51d7dba146c42cd8e80fa",
+      "size": 1104
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Core/Once.h",
+      "sha256": "31c62145f15e727b3d9a2186f9a9cc1babcf0f936888dd31d0da7c910fcb4a11",
+      "size": 1146
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Core/ThreadFence.h",
+      "sha256": "b7c82aba9575b1ca8eb1146f21f3a7d43822a483e59aacbc4d502d2a3a2f6e14",
+      "size": 1425
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Core/ThreadLocalStorage.h",
+      "sha256": "f6048f961ee914eec7061fcfa9c14d75d42095e0eb14a96af6224459fdab0f0a",
+      "size": 3208
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Data/BidiTypeLookup.c",
+      "sha256": "866bfe9a0f444dd7989b2120864ed9e59a108091f018c430a484e84f2275bdc3",
+      "size": 73239
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Data/BidiTypeLookup.h",
+      "sha256": "14b3be0ba8c81e405777812ebe412bb82a57e61a823c6a8acb617cfb457f6fac",
+      "size": 351
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Data/GeneralCategoryLookup.c",
+      "sha256": "cd289a1dc6dc2fca255f491c47100abe49e83f66c34803f49b27e8bc9c5153f1",
+      "size": 126516
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Data/GeneralCategoryLookup.h",
+      "sha256": "46b95deac189f7b3c39cf1631f30de01d3a33e11b5665d286dd4fe8c3e79ad67",
+      "size": 380
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Data/PairingLookup.c",
+      "sha256": "29b91248f8bed8817cca0a0515c64d3e4b1649a4d3fd954a989705e72d61b0f5",
+      "size": 19505
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Data/PairingLookup.h",
+      "sha256": "7028bd778793f96488b94457c750524b870784ec25339a133fa2bab88432afe6",
+      "size": 470
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Data/ScriptLookup.c",
+      "sha256": "9674c0798885f3ea74c0a653c366aada1e5e2c8713080df5d7d555013a4e81b8",
+      "size": 154051
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Data/ScriptLookup.h",
+      "sha256": "b2cece6ccf4e14587e596ebef62979b186abc0716933b9f24e25200452f2b01f",
+      "size": 341
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Script/ScriptStack.c",
+      "sha256": "1a70a9c501df31e3b62032a04dac3abc63cf9b781fc4e6b11b91bd3ee8a55abe",
+      "size": 2512
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Script/ScriptStack.h",
+      "sha256": "3c8ee35b5aa62b735602a2a26612b1a63fe057b3a90e12cdec3e9f4f9dca59c9",
+      "size": 1696
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/SheenBidi.c",
+      "sha256": "35afebc9a27615d31e5f1be443bcbb200e932f937ff9a316780a0c367f3a0275",
+      "size": 1753
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Text/AttributeDictionary.c",
+      "sha256": "3a2f15356c114fdf84a1146ccbe899aa1535cc683fe8a377ffb52901727483d4",
+      "size": 13538
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/Text/AttributeManager.c",
+      "sha256": "8d132a5570ca5a1ba85cb6ff71afd1fe31f80e6270b8ecec9225375eacd5ff4e",
+      "size": 36047
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/BidiChain.c",
+      "sha256": "c22b71e5107471da2641a34bec8ad012c09a6758122db70cfc990a865aa99c09",
+      "size": 3190
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/BidiChain.h",
+      "sha256": "7d1eaef7e2e57d13ed9f9e50ed3ee4fd312df5cfa0b26cc01d7bd0c8c6b7c371",
+      "size": 2418
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/BracketQueue.c",
+      "sha256": "1137ac482c758f11bef0eb4508d49a65023c750ce9eea03c15881c591e07d335",
+      "size": 11127
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/BracketQueue.h",
+      "sha256": "5f1277408f9f7ae92bd4aa1fcff5d30f64c8815e0af5e413bce5a65e41ef6c00",
+      "size": 2964
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/BracketType.h",
+      "sha256": "a23e8d654ca16ee036b2c5b7aba56f8cee38a194b6ddee44d003bfbe80fd8cff",
+      "size": 1100
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/IsolatingRun.c",
+      "sha256": "b939695ab08299f542585f6310cc4cb28f4ab37f9c90bcbd25654a1463699dc1",
+      "size": 17286
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/IsolatingRun.h",
+      "sha256": "f5a183ffadd7277c17daef9aeb3af96adc9d49ab107e41c5d2777c22b2b594e8",
+      "size": 1496
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/LevelRun.c",
+      "sha256": "4b8da680f96aa22d3a8d0153f12f1c6934027ddde3105b483b3cd72ddd35755b",
+      "size": 2496
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/LevelRun.h",
+      "sha256": "7d5f532af926a2ef47840eea77696002b2ed223f242544dd492c176b630709f7",
+      "size": 1471
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/RunExtrema.h",
+      "sha256": "7cdbcc769b640f46a96fe80037adff308ef80a3024cb3edb7a8d54d4fcc33fae",
+      "size": 1608
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/RunKind.h",
+      "sha256": "800d64e622e2841dd4357ee501b1a4e42b43c3c5064ca6c3cf0b220fc41cb653",
+      "size": 2405
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/RunQueue.c",
+      "sha256": "322e2e8591cd691e9de5899970f32c9f9c929674b5d8ef6ac6f5c60bf5fba24d",
+      "size": 7181
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/RunQueue.h",
+      "sha256": "43a2f388c1ddf35967d24efc890a67b485da57212189bf107f5cb1374b181fca",
+      "size": 2351
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/StatusStack.c",
+      "sha256": "40bf7beaf6fa2077568be822681db58b648f83632a51af7745dcc5ec5ba836ca",
+      "size": 4174
+    },
+    {
+      "path": "extlibs/sheenbidi/Source/UBA/StatusStack.h",
+      "sha256": "2d19c9aab92ad8d509bae42aa15b9cdcc639d119d219be3ca4c4952915ec7690",
+      "size": 2114
+    },
+    {
+      "path": "extlibs/sokol/sokol_app.h",
+      "sha256": "43d69d2dd52a8a6f52d57ccafb00967742ac499b7fcf5bdcdd6d978c869aa1ad",
+      "size": 580426
+    },
+    {
+      "path": "extlibs/stb/stb_image.h",
+      "sha256": "4da0d9fb792973186fcde195826cbc98363e6ceeb8ee7e31be1c3deceb1cf48f",
+      "size": 260467
+    },
+    {
+      "path": "extlibs/stb/stb_image_write.h",
+      "sha256": "cbd5f0ad7a9cf4468affb36354a1d2338034f2c12473cf1a8e32053cb6914a05",
+      "size": 71221
+    },
+    {
+      "path": "extlibs/stb/stb_truetype.h",
+      "sha256": "b34ba78041e0645bba5e6db6d61697b0a7c4457411c346bbab7984f347f937d8",
+      "size": 191665
+    },
+    {
+      "path": "extlibs/stb/stb_vorbis.c",
+      "sha256": "4c7cb2ff1f7011e9d67950446b7eb9ca044f2e464d76bfbb0b84dd2e23e65636",
+      "size": 192790
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/config/modules.json",
+      "sha256": "89b37a3dd318ed054bbd2cd29f5585cd5576eea369db22942cf807627278947d",
+      "size": 3362
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/include/xllm-session.h",
+      "sha256": "df6bc5bdee305d163e38874252f6d58d4542c67bcb24384c89a56a59a88cda97",
+      "size": 120
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/include/xllm-session/api.h",
+      "sha256": "737969514039b3d072b231dfdfe9925e0478b403ebe95489761e0b08503aeb2b",
+      "size": 29525
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/include/xllm-session/features.h",
+      "sha256": "a0fefc50260d09e1e8d00a1487169d8e9402f6edc61e775f20695d33e3ec2624",
+      "size": 783
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/src/internal/xllm_session_internal.h",
+      "sha256": "1df1879ff315d72f370058c19526076732404b9b1070c9eaad4dbf2821ef22f5",
+      "size": 7571
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_compact.c",
+      "sha256": "0b65e079172432195e86b012c1b95df5d079118a04c2117a53bc3fd348a3e4c5",
+      "size": 44133
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_core.c",
+      "sha256": "662942ee70edef1611d4b016ab93a0ce8dd4c2a3e2fad6eacd7b020d4dc84e27",
+      "size": 37455
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_easy.c",
+      "sha256": "1bbce5371859722a263bb8a12530fceda1fb4e71c49c818632da94b1d5bf8d1e",
+      "size": 10389
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_govern.c",
+      "sha256": "0a617c0d2b1e91174c675024e9e2995ecd44d14e3c70d9218697febb669e1a4d",
+      "size": 5374
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_journal.c",
+      "sha256": "b1bd7122365d8d9bb0ee8ae503bedb349620658b034aa01a17237e10c6e18a58",
+      "size": 17731
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_persist.c",
+      "sha256": "042980ab59de7f2c51d75002164b880b807db92b27680a7ce4fdb7a4e847816a",
+      "size": 20470
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_render.c",
+      "sha256": "970d86adefde762e7b1f0ff8a00f56b0aa09569ec4e289de4362529ae7c8a3ab",
+      "size": 18211
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_run.c",
+      "sha256": "bf1237c3d9adfdd0283a26564d31b422e26beef350aa51eba0c2128edd755a6d",
+      "size": 11638
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/config/modules.json",
+      "sha256": "1268d92d34014181d4e295f604fef93cecd12727bb85dea6b9addb1cab580310",
+      "size": 3571
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/include/xllm.h",
+      "sha256": "53921f2b7888eaea36a91cb014c482de2260b2f21c98c299138783b21fcd4ab1",
+      "size": 115
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/include/xllm/api.h",
+      "sha256": "0182c8e567ea936444666e58be148ef20b6fe693f85db193e3895af5ab436c6d",
+      "size": 34088
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/include/xllm/executor.h",
+      "sha256": "07c29f7190a909c6266f807cf1a675a4b764bfb133db4dd47c0a1a58e9b812cf",
+      "size": 3053
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/include/xllm/features.h",
+      "sha256": "1865a3cca266bb8035d6c313e1dbd18cb6a1f93be72059ef0e4b1619a6c874e8",
+      "size": 2279
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/src/internal/xllm_internal.h",
+      "sha256": "36c04e2f6bcb6588fb5f82bf7f1e5c907f2ea4446fe340421babdedb3319a14e",
+      "size": 15168
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/src/llm/dialect_anthropic.c",
+      "sha256": "2eb8566a2f456c3eaa374858cb556ead54bbbf886a93889e4a1149ec4759318c",
+      "size": 31679
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/src/llm/dialect_completions.c",
+      "sha256": "8bcad0bbd33a85f2de4bc47ed8fdb0a6d693d74e20b81e99ae238367aa9f2bf5",
+      "size": 31382
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/src/llm/dialect_responses.c",
+      "sha256": "51feeb70b877b534e1c0e56752ea9060431922d7d6b9a2229063a6ac12b34a98",
+      "size": 28832
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/src/llm/xllm_assemble.c",
+      "sha256": "37f33160841ee197c5c6b1eec14bedffc66b7e1a87589d7a8ce23d4059ad31d7",
+      "size": 23452
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/src/llm/xllm_client.c",
+      "sha256": "76f83bc2fab0c24b0044ea36224b063e76b0ec6ea4fe188981b453f2ac709ee3",
+      "size": 47450
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/src/llm/xllm_core.c",
+      "sha256": "3ce2c4127c7fe7ccd54a1561d51c28f5814b03d6af65229585e76a19bef09384",
+      "size": 11528
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/src/llm/xllm_dialect.c",
+      "sha256": "0c896b1289747db39010e3d3c08508b0f6a6c6ecbd229df8442b29827a8f4ad3",
+      "size": 687
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/src/llm/xllm_history.c",
+      "sha256": "045753c7e657dc6e9881beb5bf0a0fd51e820f865f88dfe0ff3c53b12cc12720",
+      "size": 4479
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/src/llm/xllm_parts.c",
+      "sha256": "c44d2b5d5706ab3a87a32d376916a854997ad4b098ffc9e208a9271a8641c01e",
+      "size": 22898
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/src/llm/xllm_profile.c",
+      "sha256": "f5cbbb1cbc0f398d231a1b1b3129318d8ee87efa1b1c309f8429a491e837448f",
+      "size": 5840
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/src/llm/xllm_sse.c",
+      "sha256": "5fff1866be1b3c39df9d4d2a10da69500b1c8249313ac470301e4a0e6ab11444",
+      "size": 4983
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/src/llm/xllm_transport.c",
+      "sha256": "38c91164b05a5cdecdfde55a3611cda73f4eda16cca25f5691c1ab85fcae3584",
+      "size": 38356
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/config/modules.json",
+      "sha256": "c52ed4ae07481bdc3e73cd9d85a58dc094c3c2de0a1eaa52cded134492a1f6ed",
+      "size": 2570
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/include/xwork.h",
+      "sha256": "b5683a0fac630c60f51d95bf728b9031aa99a4d05fcc81ba642e2110bcc82c02",
+      "size": 92
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/include/xwork/api.h",
+      "sha256": "e3e05ee6f950d879ed03c63c66d6c7a7108c5aa20bcfabcf69505e6667b41ece",
+      "size": 25187
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/include/xwork/features.h",
+      "sha256": "91996f1fc399ed139543929d919af4a48b2e044979866650f0414ff822fd2be3",
+      "size": 746
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/src/internal/xwork_internal.h",
+      "sha256": "a899e654a4aa31ff7f0c250be83a42c604beb4b7869903dc881b13f743ac7920",
+      "size": 10652
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/src/work/xwork_agent.c",
+      "sha256": "dcc5a7bf49c118caab095f0ebeb03312259a53f26849d169f8bbfa43dd04c729",
+      "size": 53454
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/src/work/xwork_core.c",
+      "sha256": "306ddeeaa3b30b12ee5d23e09652c12c7883ea80b20c37b9e15526fe511dab14",
+      "size": 27420
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/src/work/xwork_executor.c",
+      "sha256": "c7e978721b506d356429c91f7059479b2d9b20fef3a4d9fa9c8edc1bd290dc14",
+      "size": 5854
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/src/work/xwork_explore.c",
+      "sha256": "597dc0cde135d3d251652e2ca3d4de0178b08bd514d9982b7abaeaa7833007ef",
+      "size": 27995
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/src/work/xwork_mcp.c",
+      "sha256": "bf3167d145246b8791f7dba2ea2ad0ff09aa97adaeb2402499e5b3b40c83cfcb",
+      "size": 40131
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c",
+      "sha256": "176c6169733320326daaa137955cd3d4fb34de37d2fb98bae1c0495468f6fe34",
+      "size": 16809
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/src/work/xwork_subagent.c",
+      "sha256": "1eae0635528cdffd9b1cd43ebebcdd2fd3a478193b5092ad93549e0061da4707",
+      "size": 32280
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/src/work/xwork_tools.c",
+      "sha256": "6c7b01485acf16dd6d399274935e924fdb145812888ea360cd664aa6ee38213f",
+      "size": 81721
+    },
+    {
+      "path": "extlibs/xrt/include/xrt/detail/wait.h",
+      "sha256": "f43ec448234fe5155744a832b0bea13c691ab7e369fc23977444eb3d72e56924",
+      "size": 8160
+    },
+    {
+      "path": "extlibs/xrt/upstream.json",
+      "sha256": "024b84f195ac98a5bbb71fbdfb60492bf20cc239e38fbcd96065e46268cd36df",
+      "size": 583
+    },
+    {
+      "path": "extlibs/xrt/xrt.h",
+      "sha256": "a222542a4abe652ee92cd28f6de21d6fa7a76398d04c03c6b24b45329c57d1a3",
+      "size": 8534010
+    },
+    {
+      "path": "extlibs/xrt/xrt_config.h",
+      "sha256": "b756334bb810255d4a2fde3b5df6029a497326c88f9e50c8a91c6821d6cec0ac",
+      "size": 2695
+    },
+    {
+      "path": "extlibs/xrt/xrt_decl.h",
+      "sha256": "f3d9fff774815759265b008f452561f732c5f0d5afb4a19cfdaf60d2e5327845",
+      "size": 1417288
+    },
+    {
+      "path": "extlibs/zstd/LICENSE",
+      "sha256": "e15eea76150c59fc3079289fb170478cbe7d5880a7e0fc8bb12320bfbcfc49ca",
+      "size": 1579
+    },
+    {
+      "path": "extlibs/zstd/zstddeclib.c",
+      "sha256": "21efcf329c10d38d3cae7f61c41efe0768578d0106719e0d333510ecfa733223",
+      "size": 926487
+    },
+    {
+      "path": "include/xge.h",
+      "sha256": "5ea8b0cd04f0a0b702b20a91f563393fd4efcc6ac7e23440618f23ec6802d0f2",
+      "size": 194850
+    },
+    {
+      "path": "include/xge_config.h",
+      "sha256": "e0b1fbf55f6fb50bb14970dc9ff8f356cee38fc42a2353cf82e0559eb8dd33f9",
+      "size": 5644
+    },
+    {
+      "path": "include/xui.h",
+      "sha256": "da0b244785ebb75f1941742b331f6717112ccebcc6f376ba3f647cc2663d5642",
+      "size": 595264
+    },
+    {
+      "path": "include/xui_config.h",
+      "sha256": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+      "size": 22798
+    },
+    {
+      "path": "include/xui_document.h",
+      "sha256": "fc7afc9ff1437df91c7413e37a11ae61081223d022da7409d1c6c16eb8188984",
+      "size": 86259
+    },
+    {
+      "path": "include/xui_document_ui.h",
+      "sha256": "a1144fea60f2240f3a27727d5db08835a9b3475ee93726d1e94ad6cbde3b8419",
+      "size": 43336
+    },
+    {
+      "path": "modules/xlayout/xlayout.c",
+      "sha256": "538128ca3fffeac08d50f4c82a587ab8cb8d3c7565023366d5396aa6ba27aff7",
+      "size": 85601
+    },
+    {
+      "path": "modules/xlayout/xlayout.h",
+      "sha256": "f099e775aea3f066f71a1fda1cd115a4db53becebdbb44b6e1bce29c1b86e23e",
+      "size": 9611
+    },
+    {
+      "path": "platform/windows/xge.rc",
+      "sha256": "52b301212e7e342c2e6183aba23fd33d7a16b74ff7cffb5306678b9ce4582d4a",
+      "size": 37
+    },
+    {
+      "path": "res/xge/emoji/twemoji_core/17.0/LICENSE-GRAPHICS",
+      "sha256": "f7c011ea2361bca6404b53a3e4d7ae8f9ca2d5abdc3916f83787789e71029d07",
+      "size": 18917
+    },
+    {
+      "path": "res/xge/emoji/twemoji_core/17.0/NOTICE.md",
+      "sha256": "a704e4e5eee567288a1c74d61486de8e1f328c29ae475ac9feac1b50df4feeb6",
+      "size": 667
+    },
+    {
+      "path": "res/xge/icons/xx_dll.ico",
+      "sha256": "4d5d6d07045d087c80ae45ff7c8d4bba7261e5d7c20347f3c51306ae75f0ad4a",
+      "size": 5430
+    },
+    {
+      "path": "res/xui/dockpanel_suite/LICENSE.dockpanelsuite.txt",
+      "sha256": "bda3b93fd24606d3a413c35930380c1850658f59876ab6bc5c32d036f9a94967",
+      "size": 1109
+    },
+    {
+      "path": "single/xge.c",
+      "sha256": "5cd315f3736d97173c240b406d10a6e2e4b7ecdc260228517c8822638ae651e0",
+      "size": 108
+    },
+    {
+      "path": "src/xge/audio/xge_audio.c",
+      "sha256": "5c12732cc7cb00031baf6da608dcf744e594f2a7a64052b22b29c9176f206386",
+      "size": 18259
+    },
+    {
+      "path": "src/xge/audio/xge_audio_clip.inc",
+      "sha256": "e4c3efec49d51091b00bd63c2cb94750fa5732db6f46019ab6864229b4c6803d",
+      "size": 5596
+    },
+    {
+      "path": "src/xge/core/xge_buffer.c",
+      "sha256": "787c115f6886805e4fa7f3db31117a96e8746e9dae3d6ef0c35d02c34daa96d5",
+      "size": 3560
+    },
+    {
+      "path": "src/xge/core/xge_clock.h",
+      "sha256": "853b9ad1bb93b92af6d4a9aa90c05fe3d8ed93bb717fc1ce8ed2a2adba355f9a",
+      "size": 298
+    },
+    {
+      "path": "src/xge/core/xge_command.c",
+      "sha256": "858a0291ca8d17efa94e852569b48f4d243e9d364009dadbc549a15a25537c1d",
+      "size": 9531
+    },
+    {
+      "path": "src/xge/core/xge_core.c",
+      "sha256": "67e6d695381b03ce5e5acb1d02c68d8d2edfb5a09db62a6b179a5e9fce632def",
+      "size": 40334
+    },
+    {
+      "path": "src/xge/core/xge_impl.c",
+      "sha256": "a52ca344a5878c04a85849f03f6f68210a83c9a82bc1f41e36b0450779ef41b8",
+      "size": 70206
+    },
+    {
+      "path": "src/xge/input/xge_drag_drop.c",
+      "sha256": "88844a55efd5058d6a54076eb8d04959606e072645f24fa086db1f728313234a",
+      "size": 41030
+    },
+    {
+      "path": "src/xge/input/xge_input.c",
+      "sha256": "b48068c40230f7ab62eade43d0a17f404e08d32f277f03901e146acf7f392341",
+      "size": 21511
+    },
+    {
+      "path": "src/xge/particle/xge_particle.c",
+      "sha256": "feb60d1d5825f28430609fc503e277e2fca991124dd84e5c01fb0bc2bc8b86fa",
+      "size": 43834
+    },
+    {
+      "path": "src/xge/particle/xge_particle_internal.h",
+      "sha256": "e18602727a51199c1d8234aa732963713201c3662e3dd280a4617f99d9067805",
+      "size": 1176
+    },
+    {
+      "path": "src/xge/particle/xge_particle_io.c",
+      "sha256": "d7a003cb604df78344aa8d8c2a1651d1a7cddfbe0c5a79878967b3a2a574ba3e",
+      "size": 18971
+    },
+    {
+      "path": "src/xge/particle/xge_particle_render.c",
+      "sha256": "8319e382b231d81eae0634c3d24f42bf28afcc939feb087399f84b386ec0494e",
+      "size": 11129
+    },
+    {
+      "path": "src/xge/particle/xge_particle_resource.c",
+      "sha256": "c31d979588d5d3885518d2f857f5bf192c08b1b2642bfd7f040dcccafaada4dd",
+      "size": 715
+    },
+    {
+      "path": "src/xge/platform/xge_egl.c",
+      "sha256": "d9b8288ef82e13293ee79c324685f8480f97a49896b59fff86efe0a4d41ea92a",
+      "size": 11530
+    },
+    {
+      "path": "src/xge/platform/xge_miniprogram.c",
+      "sha256": "4e2ac27aae9aa219325a8b37e16a7699ad73325828f3ad663a24a2ea7230bd03",
+      "size": 13758
+    },
+    {
+      "path": "src/xge/render/xge_gl.h",
+      "sha256": "46bfcf0ef907b108a5bea48b3f12c7e325aff04771ede35a98a8eeac7f8c1558",
+      "size": 30449
+    },
+    {
+      "path": "src/xge/render/xge_material.c",
+      "sha256": "bc36112412b7f8ef23ba4c13b8e239fc14816114c7a091b03c373bb1df55fe4f",
+      "size": 19445
+    },
+    {
+      "path": "src/xge/render/xge_math2d.h",
+      "sha256": "b304b893d43e5ce4e528d89a82844420367be582badae85c5dfb20c02707c2f0",
+      "size": 877
+    },
+    {
+      "path": "src/xge/render/xge_mesh.c",
+      "sha256": "feffc610dc3ddb04463968a34ad32305c494758d902a08ff3fee549928e77f0d",
+      "size": 8827
+    },
+    {
+      "path": "src/xge/render/xge_render.c",
+      "sha256": "fbf698ebb000daf7dd0d4113858a0f66fc083250bb5aae5797c6973862ed65e4",
+      "size": 52452
+    },
+    {
+      "path": "src/xge/render/xge_render_target.c",
+      "sha256": "f8413c453c19f959ab49e11f5f1b3bfb601a787f09e15bbec8b8f694a5197793",
+      "size": 11617
+    },
+    {
+      "path": "src/xge/render/xge_shape.c",
+      "sha256": "a0205f9caa34ee8aca5eab59cc483bb54bb8d2ba21796a9e5bedd0856d90078a",
+      "size": 66929
+    },
+    {
+      "path": "src/xge/render/xge_shape_ex.c",
+      "sha256": "401f258da07027d2e13c69488b22b0822799fd61bc7db5134b336ef241a43bd1",
+      "size": 613455
+    },
+    {
+      "path": "src/xge/render/xge_shape_ex_coverage.c",
+      "sha256": "3aa6173e3b5966fc356a84246b03fdfcba06676e6861fca2d07356dbb9f9f382",
+      "size": 29122
+    },
+    {
+      "path": "src/xge/render/xge_shape_ex_stroke.c",
+      "sha256": "aae899f0024392c1fd2f1be53d047e8f6e795c88f7cc63800566f5dd255119d0",
+      "size": 76848
+    },
+    {
+      "path": "src/xge/render/xge_sprite.c",
+      "sha256": "d09ff68cae92e42ed7bc9b6231ea3d5bb78a39465d0ea360df07c716d5b436a5",
+      "size": 6090
+    },
+    {
+      "path": "src/xge/render/xge_svg.c",
+      "sha256": "66b7cf21584f8d5d54ca79b4d89637721d7e8e903fc7c104118ceae8ca66490d",
+      "size": 716103
+    },
+    {
+      "path": "src/xge/resource/xge_async.c",
+      "sha256": "1cbd7812367aa261e1c00a8cdc1be13a63bf5ca8e467a2190a853eb4b6908082",
+      "size": 8959
+    },
+    {
+      "path": "src/xge/resource/xge_resource.c",
+      "sha256": "7d7091de66787aaa51385381e572745f0bab425e8002a7b19ca9e2e097927d12",
+      "size": 9269
+    },
+    {
+      "path": "src/xge/text/xge_builtin_emoji.inc",
+      "sha256": "b63d24ee19dac00b62cfb135713a4f0522d86accd4be47800bfb32e7c90f7721",
+      "size": 7846144
+    },
+    {
+      "path": "src/xge/text/xge_emoji.c",
+      "sha256": "f2e6816f188ad04990013c303ed9a5dcb3e10a169b602653d83e83b1ed8ab7dd",
+      "size": 28344
+    },
+    {
+      "path": "src/xge/text/xge_font.c",
+      "sha256": "328b56538928ff3e4e047ac482943e57c40d1d66393d300e9b1ae055016d1c06",
+      "size": 83068
+    },
+    {
+      "path": "src/xge/text/xge_font_contour_raster.inl",
+      "sha256": "dea5f1a0f41bec0d596a0e16a06b38fe7e9a44d47893696b3d4b79a052c6da79",
+      "size": 3968
+    },
+    {
+      "path": "src/xge/text/xge_font_contours.inl",
+      "sha256": "00535f434128618646a3a159e32b498e5b103e4c07c3f69b8a70a612a0415b5e",
+      "size": 11164
+    },
+    {
+      "path": "src/xge/text/xge_ime_owner_internal.h",
+      "sha256": "8f0cbbcc38fa07a38666c805fd06e9822e5c057ba553466abaf8b6fd9911b13d",
+      "size": 322
+    },
+    {
+      "path": "src/xge/text/xge_ime_win32_compat.h",
+      "sha256": "e422c0edf47103985d5c6501a351afcf552750835fa25732a0d06447411ac6c0",
+      "size": 4741
+    },
+    {
+      "path": "src/xge/text/xge_ime_win32_tsf.c",
+      "sha256": "be8e54b425c77580522f6e67359a6e04653cdae9e59771717ba1a4010a484626",
+      "size": 86997
+    },
+    {
+      "path": "src/xge/text/xge_text_context.h",
+      "sha256": "17760e8342bbc6ca384e20424715216213751dc3bde042c41e303a1595ad36b7",
+      "size": 654
+    },
+    {
+      "path": "src/xge/text/xge_text_ignorable_data.inc",
+      "sha256": "fbf6ccb847c2c288055f477d14a3f90bd097c6a73dc05b68cffc8245c039699e",
+      "size": 1085
+    },
+    {
+      "path": "src/xge/text/xge_text_input.h",
+      "sha256": "bbc47d2de71ebe39892252fbfdad0bb1bd37e46c047f35f0934166b715b572d7",
+      "size": 5006
+    },
+    {
+      "path": "src/xge/text/xge_text_opentype.c",
+      "sha256": "d5e474f7b5f388655ab2468216bb2c6daae0a0609be13f17d2efeca4beb5e5af",
+      "size": 7486
+    },
+    {
+      "path": "src/xge/text/xge_text_opentype_caret_validation.inl",
+      "sha256": "cf969661406d5f54abd8383d73a5b02c455b9717e82476a83e3c2b4ffb9e778c",
+      "size": 3611
+    },
+    {
+      "path": "src/xge/text/xge_text_opentype_carets.inl",
+      "sha256": "f5a4e27d023b3a29298ad163563b36cb3ceadbf68d74ef729c2b86bf2cd77f40",
+      "size": 4340
+    },
+    {
+      "path": "src/xge/text/xge_text_opentype_context.inl",
+      "sha256": "a916d2d26459e8fadaa72fb5cea25d12608e29bfbaebdb01d33d7e7ae9cb15b8",
+      "size": 3175
+    },
+    {
+      "path": "src/xge/text/xge_text_opentype_fallback.inl",
+      "sha256": "49ef91a2a4c6eee0695305f00ffe435405732917f1bbe60c1e20beac2e617e34",
+      "size": 11674
+    },
+    {
+      "path": "src/xge/text/xge_text_opentype_word_context.inl",
+      "sha256": "806da68e515c89e578c02819fb0a73fa1314491018bc07c921abfbac1b59a6a6",
+      "size": 4815
+    },
+    {
+      "path": "src/xge/text/xge_text_run.c",
+      "sha256": "55f020dc9aac47b0e6adff0be07096203cd8e90215821af4d94162707beac9a7",
+      "size": 33827
+    },
+    {
+      "path": "src/xge/text/xge_text_vector.c",
+      "sha256": "b07ec6037daa0e33d362c9c80585177df4d8c01a5b95e97208739a4093e0e8e7",
+      "size": 3664
+    },
+    {
+      "path": "src/xge/text/xge_texture.c",
+      "sha256": "69a87a6c6f57a5a3a475b69b97fbf2b38bbe0c7a11953abdb0330f284d91cc8f",
+      "size": 41205
+    },
+    {
+      "path": "src/xge/text/xge_texture_storage.h",
+      "sha256": "983442d2f94929f008f46e2397856af496f52963140e55055a15301d73328012",
+      "size": 12059
+    },
+    {
+      "path": "src/xge/text/xge_unicode_grapheme.h",
+      "sha256": "0bf2528928ca6c9f1c22587a1ad98a5aa3d70bbde0ea3b6bfb83890b1a199fb6",
+      "size": 4090
+    },
+    {
+      "path": "src/xge/text/xge_unicode_grapheme_data.inc",
+      "sha256": "d434a8d453401875ad54004fa8edd3fbcc0c6106f81c2180b4ae89766675fbbc",
+      "size": 45167
+    },
+    {
+      "path": "src/xge/text/xge_unicode_joining.h",
+      "sha256": "9d553c276361bf0fc6000629047e9ef04d24b6094ff2fcfe2ef3a56f84ee7be0",
+      "size": 714
+    },
+    {
+      "path": "src/xge/text/xge_unicode_joining_data.inc",
+      "sha256": "0c82c3924e83e4c85b26d936171108bd22aa86f4197de0b553e6a2ba2a75ad52",
+      "size": 9403
+    },
+    {
+      "path": "src/xge/text/xge_unicode_script.h",
+      "sha256": "d7d5a75f3b590b8c696856489e1745f0230e29c8bc5cbed8b071b8dd2303773f",
+      "size": 7277
+    },
+    {
+      "path": "src/xge/text/xge_unicode_script_data.inc",
+      "sha256": "e7f0b167e1d49558fe0ea7db8fd3af5f92b7ae3c165370c8c30847bcd815f78d",
+      "size": 73107
+    },
+    {
+      "path": "src/xui/accessibility/xui_accessibility.c",
+      "sha256": "31f2eb7f1eb83b0b277f93b97adbad4b8cf8ac1157613c392a4f99009ae0b70e",
+      "size": 19695
+    },
+    {
+      "path": "src/xui/accessibility/xui_accessibility_text_internal.h",
+      "sha256": "27ac969554772ca438be91f4bfc02f4bd75a09d19bfacb2adb81c754a0e2b4e5",
+      "size": 3492
+    },
+    {
+      "path": "src/xui/accessibility/xui_native_accessibility.c",
+      "sha256": "b4708bfb6fe96d190fd2e1e6ba8f34a8a9e7b578fe0ec3c969fd6ef302f39308",
+      "size": 29736
+    },
+    {
+      "path": "src/xui/accessibility/xui_native_accessibility_internal.h",
+      "sha256": "18e3befd06a87714414419d53093eb6936361eff329be1548b1edc3e85682d9e",
+      "size": 517
+    },
+    {
+      "path": "src/xui/code/xui_code_annotation.c",
+      "sha256": "08eec21cf2b42a2582f5c3ec71ca966aa69c643480c2aaef86bce5495c3a9a42",
+      "size": 19075
+    },
+    {
+      "path": "src/xui/code/xui_code_command.c",
+      "sha256": "d73a370cd0d9f21fb37d789dfd3b5a33d755caa2fb1fdd1bff8a71778832b505",
+      "size": 22134
+    },
+    {
+      "path": "src/xui/code/xui_code_document.c",
+      "sha256": "f9718f808833ac764bf77c8e858302d3f410c08a9af0541652c78f2e54b18a8b",
+      "size": 44075
+    },
+    {
+      "path": "src/xui/code/xui_code_edit.c",
+      "sha256": "c6452f4c087bf6fb03963da99bc237e3c3743f2a7c2d89019fefa41e5330f02c",
+      "size": 379820
+    },
+    {
+      "path": "src/xui/code/xui_code_editing.c",
+      "sha256": "78e8f4664b8d8324b0bbfa6c70b9a2e0ed66a96da0a191184a3b6b7867fb74f8",
+      "size": 13614
+    },
+    {
+      "path": "src/xui/code/xui_code_fold.c",
+      "sha256": "3161c305e0d949ff3a60795a5e75c89c55c16d434ca9b105bb4a246c1612c41b",
+      "size": 7343
+    },
+    {
+      "path": "src/xui/code/xui_code_fold_state.c",
+      "sha256": "35c2c10d746787a307094a7ed8f0e917d36e77211b865f4f428608344164ea52",
+      "size": 13715
+    },
+    {
+      "path": "src/xui/code/xui_code_language.c",
+      "sha256": "267e735823f0d0fda405e24b1c69a9134a3d0f05a928253687bf15f5397afbb1",
+      "size": 15136
+    },
+    {
+      "path": "src/xui/code/xui_code_layout.c",
+      "sha256": "b21b89d9ecb6ccc3b0ab1314ff455a42892230d52f39c546f3947cfaae720f6d",
+      "size": 15703
+    },
+    {
+      "path": "src/xui/code/xui_code_lexer.c",
+      "sha256": "cbadc97fc9902c198213473b3724a0df2693f1f587005d6b141f49dc61264ad2",
+      "size": 3394
+    },
+    {
+      "path": "src/xui/code/xui_code_lexer_c.c",
+      "sha256": "f6e155b1a066a067dc50ccbea730aa4eb2078f50fe15e41896b8b326a017e908",
+      "size": 7849
+    },
+    {
+      "path": "src/xui/code/xui_code_margin.c",
+      "sha256": "b530ff793e343fc19cee911179ba6e6d47589e98acfc4c243e381f8a6e59c43d",
+      "size": 9537
+    },
+    {
+      "path": "src/xui/code/xui_code_provider.c",
+      "sha256": "54843a1c1b20eda4dd36a5358cb92305ef702c9c10b916c166344bbf2230f688",
+      "size": 4953
+    },
+    {
+      "path": "src/xui/code/xui_code_search.c",
+      "sha256": "71fb4a2b291696c976601253b2513d157f001e3f382f338715c3db4c12c07bfd",
+      "size": 22635
+    },
+    {
+      "path": "src/xui/code/xui_code_selection.c",
+      "sha256": "14423a7863427ffd5a15055922f280af740d2b40c1e40b2d9470f7f818742ade",
+      "size": 14894
+    },
+    {
+      "path": "src/xui/code/xui_code_theme.c",
+      "sha256": "114a1b2cb0a95f371b9dd224254b8c86b69b7e315a95b8c8d9d839cd667c9953",
+      "size": 6309
+    },
+    {
+      "path": "src/xui/code/xui_code_token_buffer.c",
+      "sha256": "6eb2a3af7e8a51be69c4123cb43cfaed0306d8c119cac53ccadc6682d02a06b7",
+      "size": 5167
+    },
+    {
+      "path": "src/xui/controls/xui_accordion.c",
+      "sha256": "2e169653db811e6acf1ea34c9e498d7191e03312223131800696eb11583e98d6",
+      "size": 60378
+    },
+    {
+      "path": "src/xui/controls/xui_breadcrumb.c",
+      "sha256": "c124954f6059378572ffe8b4f91b2a1dd5446c07f6ae63de8404bbd726f32a26",
+      "size": 43490
+    },
+    {
+      "path": "src/xui/controls/xui_button.c",
+      "sha256": "ed714ec86e0d42f2bba9115c9809ade8bf8068078a79a4c5d1061dbc21151a17",
+      "size": 66798
+    },
+    {
+      "path": "src/xui/controls/xui_canvas.c",
+      "sha256": "f1404e22e03ce3b0b26736f7357762fada4cbad317b10d9f80c7a1a5b3e675b1",
+      "size": 39264
+    },
+    {
+      "path": "src/xui/controls/xui_carousel.c",
+      "sha256": "c9c252dba54529da9244aa2ddcf29688a84eb50e0d8112af80d227212b8de510",
+      "size": 49746
+    },
+    {
+      "path": "src/xui/controls/xui_cascader.c",
+      "sha256": "77016c79fddb525c8d0a39bd4c7cfb7914b55bc0cd4edcf46722dc757648d0a2",
+      "size": 88310
+    },
+    {
+      "path": "src/xui/controls/xui_chart.c",
+      "sha256": "9163d132a4c511cb8f91d6e462bb64c0dec022ec44626f9a2cc6044330af31bb",
+      "size": 126060
+    },
+    {
+      "path": "src/xui/controls/xui_check_card.c",
+      "sha256": "603ada2e35e0a96a4cf873fede66f060b962a0ddf89096aaa408d4e85b05bd75",
+      "size": 31318
+    },
+    {
+      "path": "src/xui/controls/xui_checkbox.c",
+      "sha256": "0f13d45bfc4a45dd020a1fa1975ac8b6704498b56c9e64b797b63a8571500618",
+      "size": 43415
+    },
+    {
+      "path": "src/xui/controls/xui_color_picker.c",
+      "sha256": "fb1e0af56acfce913b18bc670ad29e5deee872d12226bccddee4e7a318c82e07",
+      "size": 105383
+    },
+    {
+      "path": "src/xui/controls/xui_combobox.c",
+      "sha256": "6abf5671a7aadd94d2a9e6aa2bc54fc521b920a53db031573ecb4ce23bab30e9",
+      "size": 80471
+    },
+    {
+      "path": "src/xui/controls/xui_date_picker.c",
+      "sha256": "1c8d288b88e4ef5c26d67494c8c6297c0be4d9cd9d2136ab8bb399b1ae27fb22",
+      "size": 142604
+    },
+    {
+      "path": "src/xui/controls/xui_dock_panel.c",
+      "sha256": "20787ba5bde32a26ac8b0c789a96cf117a0424c19dc4a5fc97fc023c28aa176a",
+      "size": 295164
+    },
+    {
+      "path": "src/xui/controls/xui_file_dialog.c",
+      "sha256": "eef9f64ddab46fbf97a7df0a1791c628f6c9756ffc62239feb07be883b863c22",
+      "size": 99379
+    },
+    {
+      "path": "src/xui/controls/xui_find.c",
+      "sha256": "2dd3bde220654d7fa5c34f007f8d5064f34e9fa689cb41c8a8f5c634a6852d81",
+      "size": 30564
+    },
+    {
+      "path": "src/xui/controls/xui_hyperlink.c",
+      "sha256": "0cf8791be6fcf23ff0da7420091a996ad060ce644923073e57485582d7a0edfe",
+      "size": 35189
+    },
+    {
+      "path": "src/xui/controls/xui_image.c",
+      "sha256": "9f89dd73acd0021feb7d721365dcef5cf77bb54d1f4260f9e6a70bf452baa17e",
+      "size": 19362
+    },
+    {
+      "path": "src/xui/controls/xui_inventory_grid.c",
+      "sha256": "93007cbb61de0dbc86834c9692d6c397809daf520334e9b8922e3a16b9a839bb",
+      "size": 154763
+    },
+    {
+      "path": "src/xui/controls/xui_label.c",
+      "sha256": "7648a3e85e5417fed031483155696c65dc3ab43dc4618317d6405af82020b308",
+      "size": 22645
+    },
+    {
+      "path": "src/xui/controls/xui_list_view.c",
+      "sha256": "a05edcf3b206ed12c6d0b0f9f308f37441fc1fb91967e9e1861209bf38a66e7f",
+      "size": 76607
+    },
+    {
+      "path": "src/xui/controls/xui_menu.c",
+      "sha256": "c282b5385efac52266f88d91fed965a8696d05348f1af6ad1d6f772864dfa342",
+      "size": 55513
+    },
+    {
+      "path": "src/xui/controls/xui_menubar.c",
+      "sha256": "cca6e2103df8283d220f4eb6825183caaeb913e7100ffccdf57d47460a40ac1b",
+      "size": 45120
+    },
+    {
+      "path": "src/xui/controls/xui_message_list.c",
+      "sha256": "9af3e0746b788bb80c3ec2728834ddb40548b04e77ae739019e7c86e5670ff8d",
+      "size": 211798
+    },
+    {
+      "path": "src/xui/controls/xui_msgbox.c",
+      "sha256": "ac0284c0256da6ad01aefdd2959fd00947a9bb0fc91f5185d6507c5f6983b5ec",
+      "size": 56607
+    },
+    {
+      "path": "src/xui/controls/xui_msgtip.c",
+      "sha256": "d1fb24955ee61e4e3440f42c08d3159784ca96eb342a838b6fdac0ee04e261fd",
+      "size": 30788
+    },
+    {
+      "path": "src/xui/controls/xui_numeric_input.c",
+      "sha256": "b0444cec43b6e0db1c6a2e8687132acd75cdfe7d556910d608cd5ddd21ba1241",
+      "size": 67202
+    },
+    {
+      "path": "src/xui/controls/xui_page.c",
+      "sha256": "03d66cf6000fde4eff01e7989540ba15ed266dbc7e235c8114f85489087b8ae6",
+      "size": 43892
+    },
+    {
+      "path": "src/xui/controls/xui_panel.c",
+      "sha256": "e34fbbfb1c4f146aa4411af07d0d8f7effc2b8ababacfd5d034440f5126c651d",
+      "size": 34689
+    },
+    {
+      "path": "src/xui/controls/xui_popup.c",
+      "sha256": "f5f8db2e04cf122aef105afe4ae2e0802a9d131b9754087f0e251cb1e68a5dfc",
+      "size": 69034
+    },
+    {
+      "path": "src/xui/controls/xui_progress.c",
+      "sha256": "e7ddf04879dd814848c7dcf74133f7bdb20deff282e04d93bc1dc9496678afd8",
+      "size": 42697
+    },
+    {
+      "path": "src/xui/controls/xui_property_grid.c",
+      "sha256": "5b924725276dd4a5ff0b12fb9199d9c4036aa5e835b053d4a312a1d110cf20ad",
+      "size": 86232
+    },
+    {
+      "path": "src/xui/controls/xui_qrcode.c",
+      "sha256": "0bbf04a1bdc435ddd104e4ba1f2f8232da636f8180954ac7eab84f41cdc9efb5",
+      "size": 37848
+    },
+    {
+      "path": "src/xui/controls/xui_radio.c",
+      "sha256": "3d0a8128a29dcd508480076f303e070f565660888b08ab020c6370b4865913ee",
+      "size": 57574
+    },
+    {
+      "path": "src/xui/controls/xui_range_slider.c",
+      "sha256": "61133efce8d8ec0a9f98593fda2dab9d9a6123066ee95ee5a7939c6c98392322",
+      "size": 51438
+    },
+    {
+      "path": "src/xui/controls/xui_scroll_frame.c",
+      "sha256": "1e3269fb0fa8eae15e1ee9e8e4c0aa9652ff40f48af79a2f7ede2df79f656741",
+      "size": 46591
+    },
+    {
+      "path": "src/xui/controls/xui_scroll_view.c",
+      "sha256": "8649760564f695f7f2dd50f951ddb5e97d8297171f5027f928fbde105aea924b",
+      "size": 25804
+    },
+    {
+      "path": "src/xui/controls/xui_scrollbar.c",
+      "sha256": "bc5aee0f0e0a50df968003ba3a5600fc69031db83f53796894cba33abe4acaa7",
+      "size": 62734
+    },
+    {
+      "path": "src/xui/controls/xui_separator.c",
+      "sha256": "30b9d6d66f2ed3e26a3ef7acce71756b5cda438f1d7ae3528133ef055dcf316f",
+      "size": 18299
+    },
+    {
+      "path": "src/xui/controls/xui_slider.c",
+      "sha256": "c80a00d54b53985d8d0f215bba32037858adcdc2c558fd0cbad3a1b86de5eab6",
+      "size": 45837
+    },
+    {
+      "path": "src/xui/controls/xui_split_layout.c",
+      "sha256": "9157af163cbc3a497dd5416d8b5d76739fcfd4fcb05304f81aef07c92a5b59dc",
+      "size": 62539
+    },
+    {
+      "path": "src/xui/controls/xui_statusbar.c",
+      "sha256": "82bed1050a26d37cfb34038bb5a59fc6486dd1826d110af9ae9e494e54c11f0d",
+      "size": 51531
+    },
+    {
+      "path": "src/xui/controls/xui_step_bar.c",
+      "sha256": "1ca76578587ef58627fa851750bc96c2b592e9e8a95e4ab36e2da6e1c6e27882",
+      "size": 38902
+    },
+    {
+      "path": "src/xui/controls/xui_table_grid.c",
+      "sha256": "0bfe645286994cd5e1e5fd8f058cb59bfe648acf5b5494c53590d9367f71120e",
+      "size": 68659
+    },
+    {
+      "path": "src/xui/controls/xui_table_view.c",
+      "sha256": "39a7af273b1900c22730129a4f55b9bc2bffc6a05e9066bd5c1fd3f5ebd1c3a6",
+      "size": 143670
+    },
+    {
+      "path": "src/xui/controls/xui_table_view_paint.h",
+      "sha256": "087cc1e864814b565d1bec071f3911575c4782bdca80556f5c3ab410b069f1e0",
+      "size": 756
+    },
+    {
+      "path": "src/xui/controls/xui_tabs.c",
+      "sha256": "f2e4974f56f0384577257bc23af96e3ad854ef0c625de0406c09e60fabd3c81d",
+      "size": 89092
+    },
+    {
+      "path": "src/xui/controls/xui_tag_input.c",
+      "sha256": "7851372fb9b0d358490009fa63e2865264535b0f40215e96cfb73927ae6a9f45",
+      "size": 62569
+    },
+    {
+      "path": "src/xui/controls/xui_terminal.c",
+      "sha256": "5173fc3089724bae99cc6ec491fd3109aa8780a857a51434997e9fc5413337dd",
+      "size": 269231
+    },
+    {
+      "path": "src/xui/controls/xui_timeline_view.c",
+      "sha256": "855d64dc00395c177235898bad65af2908919f410224ef2178935ef382076aa1",
+      "size": 139269
+    },
+    {
+      "path": "src/xui/controls/xui_toast.c",
+      "sha256": "51d0c10a125daec52743c613b1c8db791944d3cb33a224138a98eb229634cbed",
+      "size": 46891
+    },
+    {
+      "path": "src/xui/controls/xui_toggle.c",
+      "sha256": "33afe012c74a1ca8e0fe574b11c6e3f75b55fde4f63bb1353e3d7c3617621d6a",
+      "size": 53857
+    },
+    {
+      "path": "src/xui/controls/xui_toolbar.c",
+      "sha256": "2055bb9d2e3ae1b58895ba424a1bc461b41cf2dd089091f486e983acc94db06c",
+      "size": 60911
+    },
+    {
+      "path": "src/xui/controls/xui_tree_view.c",
+      "sha256": "782f1966d19bf0aabe3e7e76f39396f565a8bf9d582bce2803c4945a8b7f5b87",
+      "size": 101467
+    },
+    {
+      "path": "src/xui/controls/xui_virtual_joystick.c",
+      "sha256": "3a479d192a37f37de12eee35d4f0d9f81ed3d88e57f3ffa3c3cf92f1c77324c9",
+      "size": 46802
+    },
+    {
+      "path": "src/xui/controls/xui_window.c",
+      "sha256": "d0c030160b924d60dea5d6599f21a5cd590ba8184e65b6f3fbbe16851707bae6",
+      "size": 86059
+    },
+    {
+      "path": "src/xui/controls/xui_window_frame.c",
+      "sha256": "3e4551d6c014a8a814058b300490f33efb144c5a626a24f2d77ebf2f6ef6a17b",
+      "size": 6287
+    },
+    {
+      "path": "src/xui/core/xui_assets.c",
+      "sha256": "5b4f836f8a982b1e4928a0d0e8b0a766c0df2011981b263ecb4df1383429d21f",
+      "size": 4405
+    },
+    {
+      "path": "src/xui/core/xui_builtin_assets.inc",
+      "sha256": "01c2392d6e7ecc7c762f20ed0594c152aa980b755a023dc9b10376e92381700c",
+      "size": 17127
+    },
+    {
+      "path": "src/xui/core/xui_builtin_atlas.c",
+      "sha256": "7939ef3b274eb2f9c499e7f1dc3da7ebf1b55ce3232e208f7c0fe2d3f7c28102",
+      "size": 1164758
+    },
+    {
+      "path": "src/xui/core/xui_builtin_atlas.h",
+      "sha256": "6e1af2f1dbf3bb1c6a769ca9bf70f68c7add0916f7b8ba04ed4d923ede900548",
+      "size": 346
+    },
+    {
+      "path": "src/xui/core/xui_core.c",
+      "sha256": "897f44522cf72ef173903b6458c8f93d90fbedcffdfe26b4225c8cc8b78f96c2",
+      "size": 124715
+    },
+    {
+      "path": "src/xui/core/xui_drag_drop.c",
+      "sha256": "95619131613715093e7cea7c5a8d704f21ead933255f078a4a13d8b1bca1463e",
+      "size": 20308
+    },
+    {
+      "path": "src/xui/core/xui_edit.c",
+      "sha256": "e3b2f9c5c6c3334b6d9962031c58f488eaf8e20caf0e37b33b92f6359579e928",
+      "size": 9884
+    },
+    {
+      "path": "src/xui/core/xui_icon.c",
+      "sha256": "9d4d325ea227e761abf5abb7b7429112ddff5be65c6d8a4d97a845569c36c7f1",
+      "size": 53330
+    },
+    {
+      "path": "src/xui/core/xui_icon_picker.c",
+      "sha256": "4e3e2f5736c2a7adc61a9514f38d9cb7495de9cd278649a4adecf8d15046552a",
+      "size": 80412
+    },
+    {
+      "path": "src/xui/core/xui_input.c",
+      "sha256": "488250fc5b2aaa63df08335e0c57d5f47d6215a956aa75e73670d156fc5616bd",
+      "size": 98431
+    },
+    {
+      "path": "src/xui/core/xui_input_widget.c",
+      "sha256": "d2e181d792ee994daeeb25f9693ab42e1993f20a8f4517b291d2b847f7a4a374",
+      "size": 139549
+    },
+    {
+      "path": "src/xui/core/xui_internal.h",
+      "sha256": "c4a127bf4c725e0a052840e8651d40db0254045d850626fd734bed51b3e44f3c",
+      "size": 25760
+    },
+    {
+      "path": "src/xui/core/xui_layout.c",
+      "sha256": "f1352e83aca0ec5b8f1aeb1ff2c7bbd00509ff9f95979e507fa14b6eb481b0ae",
+      "size": 24970
+    },
+    {
+      "path": "src/xui/core/xui_proxy_xge.c",
+      "sha256": "a92363ecc80f7ed302ae595ae64eb46d557753094b9ef80712fc338d5b257af9",
+      "size": 111777
+    },
+    {
+      "path": "src/xui/core/xui_proxy_xge_shape_paint.inl",
+      "sha256": "93c6af4bef87e85de9c7a343fe7aeb2271234a981c40aa8bf0368fea9950fa2a",
+      "size": 7939
+    },
+    {
+      "path": "src/xui/core/xui_proxy_xge_text_range.inl",
+      "sha256": "226053d1eb59d9f954a9c1a2a3ec3b68fcbeea938c40a63d6ae92fda77b96c4e",
+      "size": 9148
+    },
+    {
+      "path": "src/xui/core/xui_scroll_model.c",
+      "sha256": "ecd3bdd3cfd05dfb9c512fee4e2b59608f5c4c13c9c2ef93f19d9db4a1e0dc78",
+      "size": 7483
+    },
+    {
+      "path": "src/xui/core/xui_text.c",
+      "sha256": "31c1b3d7af7812f52b55e3781165d8c4dda9d2070c19f1bcd12502314823706d",
+      "size": 61425
+    },
+    {
+      "path": "src/xui/core/xui_text_bidi.c",
+      "sha256": "6237b6a227ac815ebc7e16f5421ba7134b1d71d9c7e996051cc2a66dc32b37f8",
+      "size": 11639
+    },
+    {
+      "path": "src/xui/core/xui_text_bidi.h",
+      "sha256": "352da3cf5c31eeaf03f1d1b5e57070358c2924039c771b806f455c15ff8c98af",
+      "size": 2286
+    },
+    {
+      "path": "src/xui/core/xui_text_break.inl",
+      "sha256": "7fa18887916292f2b6ad43040427b36b78ce89c56c70575d88ae305a355a6e8b",
+      "size": 5752
+    },
+    {
+      "path": "src/xui/core/xui_text_carets.inl",
+      "sha256": "cfe6acff961dbadbdd137b0c235e2d79663722c656300440d1e12a669dafb14a",
+      "size": 5514
+    },
+    {
+      "path": "src/xui/core/xui_text_display.h",
+      "sha256": "a470e91dcf08397ada1a596e4b35713471571da77068c5d0790c7159fb711367",
+      "size": 1001
+    },
+    {
+      "path": "src/xui/core/xui_text_edit.c",
+      "sha256": "8f3d9b570104b2fca9ec60c158d27169c7c2af23c389d02584156a5cfe1c1140",
+      "size": 200316
+    },
+    {
+      "path": "src/xui/core/xui_text_internal.h",
+      "sha256": "970610a4b6b71293f4b3549f0432527ec0187c746ab5fe59ce7cb6123f540e4a",
+      "size": 4590
+    },
+    {
+      "path": "src/xui/core/xui_text_item_internal.h",
+      "sha256": "c64624811ff66849e883d58b3b63fa882e29214e141cf43f8c2ade0636e69901",
+      "size": 2572
+    },
+    {
+      "path": "src/xui/core/xui_text_projection.inl",
+      "sha256": "8feaffe28bf02ebdc0f8e5faa73a4f5721e10d47d2e817d1d32ed76d9d422473",
+      "size": 5939
+    },
+    {
+      "path": "src/xui/core/xui_unicode.c",
+      "sha256": "ee3db9a6d6e5253c053776236f287930bb8e56259496d57631db7e6e6345345f",
+      "size": 27512
+    },
+    {
+      "path": "src/xui/core/xui_unicode_core.h",
+      "sha256": "44b5a1c5a4630bf24e4daa7f71f4a88dde5ec030ba4b219a749f7805c2e03b7a",
+      "size": 3427
+    },
+    {
+      "path": "src/xui/core/xui_unicode_word_data.inc",
+      "sha256": "9da71feb4ccbc1bc18ba40037123b4c3b305e034997bd75f372660a7582d90d3",
+      "size": 62197
+    },
+    {
+      "path": "src/xui/core/xui_widget.c",
+      "sha256": "582fed91b370b28c54254aa96270b4a9c8d73573a49bd784145315770a6fe35f",
+      "size": 232252
+    },
+    {
+      "path": "src/xui/core/xui_xrt_port.h",
+      "sha256": "2d73d0c6d5bf0830d257f43da841b2367cfa9153ccd7ce8eb069f5487bf0df9f",
+      "size": 11074
+    },
+    {
+      "path": "src/xui/document/xui_document.c",
+      "sha256": "35bdc12b64013f448fa7eff808dccb59098c676bfaf24910d1d993ff79757ea0",
+      "size": 46680
+    },
+    {
+      "path": "src/xui/document/xui_document_accessible_formats.inl",
+      "sha256": "355bcde0e9cb10f584afd11d9019743e827366f321dc238f6c6947bfe50625bf",
+      "size": 13580
+    },
+    {
+      "path": "src/xui/document/xui_document_accessible_internal.h",
+      "sha256": "44ab12f10b956a4181e30de86298d2cfeb4d4990d0dcc0d3c3daa9981ebd61d7",
+      "size": 1272
+    },
+    {
+      "path": "src/xui/document/xui_document_accessible_lines.inl",
+      "sha256": "eb10c66f28016aa8c14d914d80825a9b5aac4d647fb3021b6d3d975b05546816",
+      "size": 9152
+    },
+    {
+      "path": "src/xui/document/xui_document_accessible_navigation.inl",
+      "sha256": "48aac894bea500ae6870ece70a4a6db9e11b089fdef949185e468d2837df7b46",
+      "size": 14588
+    },
+    {
+      "path": "src/xui/document/xui_document_accessible_paragraphs.inl",
+      "sha256": "139061e5bcc03a1e7aaeac950838bab94596783312f9cb57ad8d79989d1d34f4",
+      "size": 4571
+    },
+    {
+      "path": "src/xui/document/xui_document_accessible_text.inl",
+      "sha256": "46358584a3dfe6ddc9d82513821a27e04c956cb1ab7fcb463c16566e67202220",
+      "size": 20500
+    },
+    {
+      "path": "src/xui/document/xui_document_commands.c",
+      "sha256": "fb6ec5371e7d5cd3201d632b8ecb56a65aac519a4f1f898f1f688f7a2c3184ac",
+      "size": 176116
+    },
+    {
+      "path": "src/xui/document/xui_document_convert.c",
+      "sha256": "756c35b5c123460965be4dab088d86b3bcf4a5e61065f5d273219a9c655d4899",
+      "size": 20946
+    },
+    {
+      "path": "src/xui/document/xui_document_css_named_colors.h",
+      "sha256": "fe258f5217b1e1b06a97a6aaa6216e4fbfeacbdaf6e23d1c885413406dabdd13",
+      "size": 4904
+    },
+    {
+      "path": "src/xui/document/xui_document_cst_collect.h",
+      "sha256": "95e3fa06c20754d6f24ab4dbd6c1f2e15310394098403a452fbca74b25750315",
+      "size": 24210
+    },
+    {
+      "path": "src/xui/document/xui_document_cst_forest.h",
+      "sha256": "5a763e7a6a0a70e7fec25de396c016d717dd764c9d4c61c193f3e584fa4c742d",
+      "size": 26173
+    },
+    {
+      "path": "src/xui/document/xui_document_cst_index.h",
+      "sha256": "29485153745f4711a45a7a31a5cf1b8aea5e467ca90b3185bcf5b1e165d5ebe2",
+      "size": 15511
+    },
+    {
+      "path": "src/xui/document/xui_document_cst_reuse.h",
+      "sha256": "42c16f4ec427833817909f4a201b5ea4a8b2e8a5268416f8c547b44c83bfa999",
+      "size": 7646
+    },
+    {
+      "path": "src/xui/document/xui_document_cst_trivia.h",
+      "sha256": "bf36aa9020c4ecae910f01161c88fb2c393800cbfaa4ccd82c4a1aa9a102280a",
+      "size": 5155
+    },
+    {
+      "path": "src/xui/document/xui_document_edit_adapter.c",
+      "sha256": "efe1615feacc744c5913a511db7479de7a6b1d38b65e5c20ab5fb43161082e76",
+      "size": 71428
+    },
+    {
+      "path": "src/xui/document/xui_document_editor.c",
+      "sha256": "e36522699fe72c1277e34187dcd71efa8813fae9bf802ded03f16f8918a5618c",
+      "size": 214298
+    },
+    {
+      "path": "src/xui/document/xui_document_equivalent.c",
+      "sha256": "587bed59f6e84f008aea504e339ec981ef291123072fbeb4c6de7067fb43b411",
+      "size": 6165
+    },
+    {
+      "path": "src/xui/document/xui_document_file.c",
+      "sha256": "004d4385fddd319d4deacacbec8cdc89e484badb99824ce45958d101a6a15942",
+      "size": 3660
+    },
+    {
+      "path": "src/xui/document/xui_document_find_ui.c",
+      "sha256": "2be4911ad5c94fe67cb5300d366682ba1b68aa127b34029a009b96a4595bb917",
+      "size": 28637
+    },
+    {
+      "path": "src/xui/document/xui_document_find_ui.h",
+      "sha256": "5b49cfba6fa644759b1629b3746a0027dce6029b454f1b53ca9b9bada6c88042",
+      "size": 347
+    },
+    {
+      "path": "src/xui/document/xui_document_fragment.c",
+      "sha256": "6a017a7c461cc183b9c97229987832e304fc616312dd256a70c1e8cdf24edfd2",
+      "size": 28471
+    },
+    {
+      "path": "src/xui/document/xui_document_html.c",
+      "sha256": "b0b6588c1dbd29b2cadee42b32327a5b947d83aa5a21fd5524ea21d90fece5d8",
+      "size": 17323
+    },
+    {
+      "path": "src/xui/document/xui_document_html_import.c",
+      "sha256": "a436cc78762485332677f4068df5c5b300c5366afca3c9f6f6fdf300991cabfd",
+      "size": 81321
+    },
+    {
+      "path": "src/xui/document/xui_document_html_interaction.c",
+      "sha256": "1354c6701ca0c5e3153bab90358c72841d2b8e8ce5c9bcc653fa00ec4b462791",
+      "size": 13960
+    },
+    {
+      "path": "src/xui/document/xui_document_html_legacy_entities.h",
+      "sha256": "2e622af5cfcebc0c68308555ec823c03758da9ef57e77a231cac27bcd608a19e",
+      "size": 1981
+    },
+    {
+      "path": "src/xui/document/xui_document_hyphen_variant.inl",
+      "sha256": "115deb6f69a9897f449682a59da1de93c808c976cb3d58743934b1fa4d534a85",
+      "size": 11141
+    },
+    {
+      "path": "src/xui/document/xui_document_image_async.c",
+      "sha256": "7b8efd2baa7b2c8686195df414d641e53786470f3e824cd823264148db744da5",
+      "size": 14142
+    },
+    {
+      "path": "src/xui/document/xui_document_image_resource.c",
+      "sha256": "151542513223396e3f338e43aa11ef010cde6992358092dcf7b8d5e6c0e5f7d9",
+      "size": 6166
+    },
+    {
+      "path": "src/xui/document/xui_document_image_resource_internal.h",
+      "sha256": "e45f11ab1a69b719faa6db8b58a771d3f82c5c0e63f7e356f0ab9c5147086227",
+      "size": 642
+    },
+    {
+      "path": "src/xui/document/xui_document_incremental.c",
+      "sha256": "376b7e131cf5c01ddd03b7ae91cf70d56e943157b4bffcf582f6f0fc037582ea",
+      "size": 132375
+    },
+    {
+      "path": "src/xui/document/xui_document_input_mapping.inl",
+      "sha256": "054d4ea8aca7588bc434414755b80b3d45677d5795be5eae6bd94fe850eea4b3",
+      "size": 4802
+    },
+    {
+      "path": "src/xui/document/xui_document_internal.h",
+      "sha256": "d2b4cb17d98498f4854c806d6385eafc607b1f548195a755c536552455ef0997",
+      "size": 33299
+    },
+    {
+      "path": "src/xui/document/xui_document_io.c",
+      "sha256": "a984cb7551610c3cc72258ee6ebc31a5cc4cbcd593eaad3d1c88246a6349b93b",
+      "size": 21407
+    },
+    {
+      "path": "src/xui/document/xui_document_layout.c",
+      "sha256": "5340af5697756c2409027055284a139ea267a43cd6d30913c0fd1b96c4275954",
+      "size": 140779
+    },
+    {
+      "path": "src/xui/document/xui_document_layout_internal.h",
+      "sha256": "e58fba9961e44cbf7b9c134a9decdf29f1b412fbcf007c171fb5b2e96bec12f0",
+      "size": 16540
+    },
+    {
+      "path": "src/xui/document/xui_document_markdown.c",
+      "sha256": "a21ae3b09d5543317ec95d863a6fa4bbff1f7955317601928e2ff47f111f796a",
+      "size": 141134
+    },
+    {
+      "path": "src/xui/document/xui_document_markdown_edit.c",
+      "sha256": "dd19f058e42b3c1d0da093250477e751c3765bc05282e51dcb0c149ec47ff35c",
+      "size": 523281
+    },
+    {
+      "path": "src/xui/document/xui_document_md4c.c",
+      "sha256": "76d680723a5a921506684bd30949191cbe658d2423c14f0c6cc7045c54b18b81",
+      "size": 18620
+    },
+    {
+      "path": "src/xui/document/xui_document_md4c.h",
+      "sha256": "0296fa90a94762ed9bbf66df49ad275d263c939153d084aa4b62d8dad8778e41",
+      "size": 4618
+    },
+    {
+      "path": "src/xui/document/xui_document_memory.c",
+      "sha256": "544d7b148c58b90ffac42ec65dd4cf4bd514752c4ac14b3c40a268fb696bcc73",
+      "size": 10161
+    },
+    {
+      "path": "src/xui/document/xui_document_position.c",
+      "sha256": "c0adc71c706e1ab611539f5b8b2b1179530434278a4e782a608725b4c3d3b5c2",
+      "size": 26501
+    },
+    {
+      "path": "src/xui/document/xui_document_prepare.c",
+      "sha256": "a2cbe5679e5d068d33b21be24901f1977142182db798c507d504ba0c97696f5c",
+      "size": 56995
+    },
+    {
+      "path": "src/xui/document/xui_document_prepared_semantic.inl",
+      "sha256": "2435b466b97679ef7c3e23456f92bcdf0477c7da2cbbb900bf177ab1f3137496",
+      "size": 3768
+    },
+    {
+      "path": "src/xui/document/xui_document_publish.c",
+      "sha256": "d2ff14d6b7ce9a4b2b73684ff600b9615fe4e6b33886278c83f5429f547632e0",
+      "size": 17947
+    },
+    {
+      "path": "src/xui/document/xui_document_range.c",
+      "sha256": "c1f07ad64e5861da0b6107792ad83c8abc77feadbb1c4c72f1ba1e08546cdc95",
+      "size": 37509
+    },
+    {
+      "path": "src/xui/document/xui_document_reconcile.c",
+      "sha256": "cf738ea5b812a8f0e7ad3576a2d425d7fc1420798f7712775c846080a538287b",
+      "size": 26855
+    },
+    {
+      "path": "src/xui/document/xui_document_reference.c",
+      "sha256": "0c3e2fb02fa6c4f6eef832da8cd58dc2d36b56bbb288df8bfc05700c979ddb1b",
+      "size": 30743
+    },
+    {
+      "path": "src/xui/document/xui_document_renderer.c",
+      "sha256": "a6f4e3cfb99297ee0069d7054cfe19cc984304a9a4b44601ad6303e296989d90",
+      "size": 190991
+    },
+    {
+      "path": "src/xui/document/xui_document_schema.c",
+      "sha256": "2604330e3f807c062df01813e0b4de5f6fc8a233ee865829df72063827b56a44",
+      "size": 8738
+    },
+    {
+      "path": "src/xui/document/xui_document_search.c",
+      "sha256": "c6ff7688e7973f00685ffda06492aa958c19cf6f594cbadfafa8cba711bf8087",
+      "size": 26975
+    },
+    {
+      "path": "src/xui/document/xui_document_semantic_mapping.inl",
+      "sha256": "66445eebce1e7e95de406669a2c1cea745011e58b46d1f518ff7aedc81161127",
+      "size": 6195
+    },
+    {
+      "path": "src/xui/document/xui_document_sequence_share.c",
+      "sha256": "976ce8a185e0ccc8bcd16a2bdd9a9da8cf31527e147e00c716490221c29d2922",
+      "size": 16941
+    },
+    {
+      "path": "src/xui/document/xui_document_shape_context.inl",
+      "sha256": "106223bbce586ff44ecdc9e2528480512b93bc524c38b83ebe85edbc5000546f",
+      "size": 8003
+    },
+    {
+      "path": "src/xui/document/xui_document_source.c",
+      "sha256": "d30b7aa00ca440561131db5fd4d8a3a9301cf6ee6accce546bd9201f3b1a8160",
+      "size": 111150
+    },
+    {
+      "path": "src/xui/document/xui_document_store.c",
+      "sha256": "21e74be231b5dd1414b92e754bff3eac58781330a87ca3c192211f2e305d4eff",
+      "size": 47434
+    },
+    {
+      "path": "src/xui/document/xui_document_table.c",
+      "sha256": "a6b0c84d220f25b797ffa91de5d055891f39a5426c7d98e2b897616969a4ce70",
+      "size": 46780
+    },
+    {
+      "path": "src/xui/document/xui_document_toolbar.c",
+      "sha256": "a1d4f27f53a007114f1b158393f4b4d646007f8ddb105f275b3dc7fe7604570d",
+      "size": 6862
+    },
+    {
+      "path": "src/xui/document/xui_document_view.c",
+      "sha256": "9d5e96af9ecac9af7daa6937ef7ed005b2a06250b81b5f7a5f38b96f974d3c56",
+      "size": 69977
+    },
+    {
+      "path": "src/xui/document/xui_document_view_internal.h",
+      "sha256": "b2a61c922ed7450af6fc7a566bf42f7b592088b23e79b41e0bec25d2d521bc88",
+      "size": 3959
+    },
+    {
+      "path": "src/xui/document/xui_document_web_provider.c",
+      "sha256": "2bd8f452b72c221ad281b423f3174b402f890dc2c16cac6f75559e7bcb5ac380",
+      "size": 39907
+    },
+    {
+      "path": "src/xui/document/xui_document_worker.h",
+      "sha256": "733fca3724b5cd41906378a8327bbe7aa38f9d75b028c7b3e022f66ed1738c03",
+      "size": 3168
+    },
+    {
+      "path": "src/xui/document/xui_webview.c",
+      "sha256": "768d958b4e090945e7903407f67084eb4f2796158037c1c8b18414d7fd15dafb",
+      "size": 73652
+    },
+    {
+      "path": "src/xui/document/xui_webview_internal.h",
+      "sha256": "90f9b41b09c66d516d6ca86f89b83a8a4a333f75384a119803482aa4b9ee197d",
+      "size": 2728
+    },
+    {
+      "path": "src/xui/workflow/xui_flow_graph.c",
+      "sha256": "d8d90512575164868aa25923cabe773464599a6d900d1290a0bfe7fc94e25c4e",
+      "size": 67403
+    },
+    {
+      "path": "src/xui/workflow/xui_flow_graph_widget.c",
+      "sha256": "e52ffdbb026a19d76a64d5ee49ef34b863c0ce7f7eeefac8a71d9c7146cffb88",
+      "size": 91847
+    },
+    {
+      "path": "src/xui/workflow/xui_workflow.c",
+      "sha256": "c6bf9335d41cbc2f66cee589e23e0836f387e01e2d6070bed192ef2100ed3512",
+      "size": 80689
+    },
+    {
+      "path": "src/xui/workflow/xui_workflow_widget.c",
+      "sha256": "d888d5c75348c85869f0f170bb435c3b7f495a1999d388d6dae801afdb79bf97",
+      "size": 7209
+    },
+    {
+      "path": "tools/build/build.py",
+      "sha256": "df49951ddbcb145c83c3abba3d093c46184c5ade29c03cb49f26e383071ee9fa",
+      "size": 14015
+    },
+    {
+      "path": "tools/build/build_dll.bat",
+      "sha256": "39c83323e86b99acab06534a17327c1da3b4bb004d271d8b1286f641d0fe0c70",
+      "size": 96
+    }
+  ],
+  "fullSourceTreeNotIncludedInConsumerSdk": true,
+  "compatibilityPatches": {
+    "format": "xlang-ide-xge-source-patches-1",
+    "baseCommit": "f248fd17192b3eb81c2a29dc34549b696e6e4c43",
+    "reason": "Preserve the existing SDK67 Unicode zero-width regex iteration and validated escape contracts on XGE 3; preserve invalid-pattern status and clear stale scope results",
+    "publicHeadersChanged": false,
+    "files": [
+      {
+        "path": "src/xui/controls/xui_find.c",
+        "upstreamSha256": "fb13dc156f947b4df1ee9c404cfdc7f71137dde2d808daf2ab70213c20532fea",
+        "sha256": "2dd3bde220654d7fa5c34f007f8d5064f34e9fa689cb41c8a8f5c634a6852d81",
+        "payload": "xui_find.c",
+        "diff": "xui_find.patch"
+      },
+      {
+        "path": "src/xui/code/xui_code_edit.c",
+        "upstreamSha256": "45101a68261a89c8e99143157bebb266e9f65978d41a565779e29a16bb278c7e",
+        "sha256": "c6452f4c087bf6fb03963da99bc237e3c3743f2a7c2d89019fefa41e5330f02c",
+        "payload": "xui_code_edit.c",
+        "diff": "xui_code_edit.patch"
+      }
+    ]
+  }
+}

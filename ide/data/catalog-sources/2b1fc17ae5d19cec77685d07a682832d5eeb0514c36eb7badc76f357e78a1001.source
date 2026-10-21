@@ -1,0 +1,24 @@
+{
+    "format": "xlang-package-1",
+    "name": "bloom",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "bloom_native.c"
+        ],
+        "xlSources": [
+            "src/bloom.xl"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": {
+        "singleton": false,
+        "loadName": "",
+        "version": ""
+    }
+}

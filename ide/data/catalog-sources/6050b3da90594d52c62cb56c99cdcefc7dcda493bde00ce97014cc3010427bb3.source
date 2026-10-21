@@ -1,0 +1,55 @@
+# bloom
+
+分块 Bloom 与 4-bit Counting Bloom，复用 XRT 的内存、hash64、临时区和错误机制。
+对象没有内部锁；同一对象的修改与读取由调用方串行化。
+
+```xlang
+import bloom
+
+auto filter = bloom.create(1000)
+filter.addAll(["alpha", "beta"])
+assert filter.contains("alpha")
+auto restored = bloom.deserialize(filter.serialize())
+assert restored.contains("beta")
+```
+
+## API
+
+| API | 合同 |
+| --- | --- |
+| `create(capacity, fpRate=0.01)` / `createCounting(...)` | capacity 为正的预计元素数，不是强制容量；概率必须严格位于 (0,1) |
+| `add(text)` / `addAll(array<string>)` | 添加；标准版 count 累计本对象 add 调用次数，不是去重计数 |
+| `contains(text)` / `containsAll(...)` / `containsAny(...)` | 可能存在，不可用于精确授权或当作数据库真实记录 |
+| `clear()` | 清零筛选状态和计数 |
+| `clone()` | 独立拥有的完整副本 |
+| `merge(other)` | 相同维度和探针数才能合并，否则 false 且不修改；不转移对象、不累加 count |
+| `serialize()` / `deserialize(text)` | hex 编码的筛选状态；无效头、尺寸、版本及截断抛 ValueError |
+| `deserializeCounting(text)` | 只接受计数版格式，不与标准版互读 |
+| `estimatedCount()` / `estimatedFpp()` | 基于填充率的估计，不是精确基数或实测误判保证 |
+| `valid` / `capacity` / `count` / `hashes` | 状态；标准版另有 bits，计数版另有 slots |
+| Counting `remove(text)` | 只应用于确定添加过且尚未删除的项目，不能仅凭 contains 判断能否删除 |
+
+## 必须理解的限制
+
+- 标准版的成员筛选没有删除路径，未清空时不漏掉已添加项；允许误报。
+- 计数版单槽最大 15，超过后饱和；当前 remove 不能恢复溢出的次数。
+  删除未添加项、饱和后的删除、合并后的独立删除都可能影响其他项目，不能承诺无条件“不漏判”。
+- Counting merge 取逐槽最大值，不是两个多重集合计数相加；count 仍为本对象本地
+  add/remove 统计，不能用它推导合并后的真实基数。
+- 概率参数为 NaN、无穷、0、1 或超出范围时立即拒绝，不悄悄替换为 0.01。
+  容量无法表示时抛 RangeError，实际分配失败为 MemoryError。反序列化先对比实际
+  长度与声明尺寸，再分配；内存失败不能被改报为数据损坏。
+- 文本 API 使用 C 字符串；带 NUL 的二进制由 C 的显式长度入口处理。
+- 反序列化数据包含筛选状态与公开 hash 算法相关布局，不是永久跨版本数据库格式。
+  本轮运行验证仅覆盖小端 Windows/Linux x86-64，不宣称所有平台间二进制兼容。
+
+## C 与验证
+
+公开头 `include/bloom.h`；创建、恢复、clone 的句柄由 C 调用方各释放一次，
+`destroy(NULL)` 安全。不能重复释放同一非空句柄。`serialize` 字符串借用 XRT 临时区，
+长期保存请复制。单独编译 `bloom_native.c` 并链接一份 XRT 即可，不依赖编译器内部类型。
+
+`examples/extlibs/bloom.xl` 覆盖语言 API；`bloom_basic.xl` 与 `bloom_c.c` 是四行
+同结果范例。专项门禁 `tools/check_extlib_argon2_bloom.ps1` 校验所有生成原型、
+C/xlang JIT/AOT、序列化破坏、尺寸和分配故障。结果以每次保存的哈希与输出为准。
+计数器饱和/删除策略和分块算法的实测误判率仍需继续专项审查，不用这些门禁替代算法性能验收。

@@ -1,0 +1,111 @@
+extern "xl6_xrt_last_error_text" func __serial_error() as string
+
+
+
+export class Serial
+    native point handle
+    extern "xserial_open" create(string port, int baudrate, int databits, int stopbits, int parity)
+    extern "xserial_close" destroy()
+
+    extern "xserial_is_open" func isOpenNative() as bool
+    extern "xserial_write_text" func writeNative(string data) as int
+    extern "xserial_write_bytes" func writeBytesNative(point data, c_size len) as int
+    extern "xserial_read" func readNative(int maxLen) as point
+    extern "xserial_available" func availableNative() as int
+    extern "xserial_flush" func flushNative() as bool
+    extern "xserial_get_baudrate" func baudrateNative() as int
+    extern "xserial_get_port" func portNative() as string
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get isOpen() as bool
+        return self.isOpenNative()
+    end
+
+    get baudrate() as int
+        return self.baudrateNative()
+    end
+
+    get port() as string
+        return self.portNative()
+    end
+
+    get available() as int
+        int count = self.availableNative()
+        if count < 0 then
+            throw IOError __serial_error()
+        end
+        return count
+    end
+
+    func write(string data) as int
+        if self.handle == null then
+            throw RuntimeError "serial: port is closed"
+        end
+        int count = self.writeNative(data)
+        if count < 0 then
+            throw IOError __serial_error()
+        end
+        return count
+    end
+
+    // 二进制接口保留零字节；返回值由调用方独立拥有。
+    func writeBytes(Buffer data) as int
+        if self.handle == null then
+            throw RuntimeError "serial: port is closed"
+        end
+        int count = self.writeBytesNative(data.data(), c_size(data.len()))
+        if count < 0 then
+            throw IOError __serial_error()
+        end
+        return count
+    end
+
+    func readBytes(int maxLen = 1024) as Buffer
+        if self.handle == null then
+            throw RuntimeError "serial: port is closed"
+        end
+        if maxLen < 0 then
+            throw ValueError "serial: maxLen must be nonnegative"
+        end
+        point result = self.readNative(maxLen)
+        if result == null then
+            throw IOError __serial_error()
+        end
+        return Buffer(result)
+    end
+
+    // maxLen 始终以字节计数；分块传输 UTF-8 时应先用 Buffer 收齐数据。
+    func read(int maxLen = 1024) as string
+        Buffer result = self.readBytes(maxLen)
+        return result.text()
+    end
+
+    func flush()
+        if self.handle == null then
+            throw RuntimeError "serial: port is closed"
+        end
+        if not self.flushNative() then
+            throw IOError __serial_error()
+        end
+    end
+end
+
+
+
+export func open(string port, int baudrate = 9600) as Serial
+    if string.byteLen(port) == 0 or baudrate <= 0 or baudrate > 4294967295 then
+        throw ValueError "serial: invalid port or baudrate"
+    end
+    Serial result = Serial(port, baudrate, 8, 1, 0)
+    if not result.valid then
+        throw IOError __serial_error()
+    end
+    return result
+end
+
+export func openLoopback(int baudrate = 9600) as Serial
+    return open("LOOPBACK", baudrate)
+end

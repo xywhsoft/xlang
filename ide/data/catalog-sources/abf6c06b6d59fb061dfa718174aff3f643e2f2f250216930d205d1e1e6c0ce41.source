@@ -1,0 +1,26 @@
+{
+    "format": "xlang-package-1",
+    "name": "xge_shape_ex",
+    "version": "2.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [],
+        "xlSources": [
+            "src/xge_shape_ex.xl",
+            "src/xge_svg.xl",
+            "src/xge_shape_ex_oop.xl"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [
+        { "name": "_xge_native", "version": "2.0.0", "abiVersion": "1" }
+    ],
+    "coverage": {
+        "mode": "suite",
+        "tests": ["test/import.xl"]
+    },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

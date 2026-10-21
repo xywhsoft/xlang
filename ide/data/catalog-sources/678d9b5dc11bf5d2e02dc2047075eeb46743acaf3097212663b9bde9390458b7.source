@@ -1,0 +1,200 @@
+import xhttp.body
+import xhttp.body_async
+from xhttp.body import Body, BodyChunk
+from xhttp.body_async import AsyncBodyReader
+
+
+
+export const int STREAM_ERROR = -1
+export const int STREAM_CLOSED = 0
+export const int STREAM_OK = 1
+export const int STREAM_AGAIN = 2
+export const int STREAM_BYTES_DEFAULT = 1048576
+export const int STREAM_CHUNKS_DEFAULT = 256
+
+
+
+// BodyStreamInfo 是一次一致的并发状态快照，不借用流内部存储。
+export class BodyStreamInfo
+    native point handle
+    extern "xhttp_body_stream_info_wrap" create(point handle)
+    extern "xhttp_body_stream_info_destroy" destroy()
+    extern "xhttp_body_stream_info_pending_bytes" func pendingBytesNative() as c_ulonglong
+    extern "xhttp_body_stream_info_pending_chunks" func pendingChunksNative() as c_ulonglong
+    extern "xhttp_body_stream_info_written_bytes" func writtenBytesNative() as c_ulonglong
+    extern "xhttp_body_stream_info_read_bytes" func readBytesNative() as c_ulonglong
+    extern "xhttp_body_stream_info_opened" func openedNative() as bool
+    extern "xhttp_body_stream_info_input_closed" func inputClosedNative() as bool
+    extern "xhttp_body_stream_info_consumer_closed" func consumerClosedNative() as bool
+    extern "xhttp_body_stream_info_failed" func failedNative() as bool
+
+    get pendingBytes() as int
+        return int(self.pendingBytesNative())
+    end
+
+    get pendingChunks() as int
+        return int(self.pendingChunksNative())
+    end
+
+    get writtenBytes() as int
+        return int(self.writtenBytesNative())
+    end
+
+    get readBytes() as int
+        return int(self.readBytesNative())
+    end
+
+    get opened() as bool
+        return self.openedNative()
+    end
+
+    get inputClosed() as bool
+        return self.inputClosedNative()
+    end
+
+    get consumerClosed() as bool
+        return self.consumerClosedNative()
+    end
+
+    get failed() as bool
+        return self.failedNative()
+    end
+end
+
+
+
+// BodyStream 是并发生产端，body() 暴露唯一的一次性异步消费源。
+export class BodyStream
+    native point handle
+    extern "xhttp_body_stream_create" create(
+        c_ulonglong maxBytes, c_ulonglong maxChunks)
+    extern "xhttp_body_stream_wrap" create(point handle)
+    extern "xhttp_body_stream_destroy" destroy()
+    extern "xhttp_body_stream_share" func shareNative() as point
+    extern "xhttp_body_stream_body" func bodyNative() as point
+    extern "xhttp_body_stream_native" func nativeHandle() as point
+    extern "xhttp_body_stream_write" func writeNative(
+        point data, c_size size) as c_longlong
+    extern "xhttp_body_stream_write_text" func writeTextNative(
+        string text, c_size size) as c_longlong
+    extern "xhttp_body_stream_write_take" func writeTakeNative(
+        point buffer) as c_longlong
+    extern "xhttp_body_stream_last_write" func lastWriteNative() as c_longlong
+    extern "xhttp_body_stream_wait_writable" func waitWritableNative() as future<null>
+    extern "xhttp_body_stream_close" func close() as bool
+    extern "xhttp_body_stream_fail" func failNative(
+        string message, c_int code) as bool
+    extern "xhttp_body_stream_info" func infoNative() as point
+
+    static func open(
+        int maxBytes = STREAM_BYTES_DEFAULT,
+        int maxChunks = STREAM_CHUNKS_DEFAULT
+    ) as BodyStream
+        if maxBytes <= 0 or maxChunks <= 0 then
+            throw ValueError "BodyStream budgets must be positive"
+        end
+        return BodyStream(c_ulonglong(maxBytes), c_ulonglong(maxChunks))
+    end
+
+    get lastWriteResult() as int
+        return int(self.lastWriteNative())
+    end
+
+    func share() as BodyStream
+        point result = self.shareNative()
+        if result == null then
+            throw RuntimeError xhttp.body.lastError()
+        end
+        return BodyStream(result)
+    end
+
+    func body() as Body
+        point result = self.bodyNative()
+        if result == null then
+            throw RuntimeError xhttp.body.lastError()
+        end
+        return Body(result)
+    end
+
+    func reader() as AsyncBodyReader
+        return AsyncBodyReader(self.body())
+    end
+
+    func write(Buffer data) as int
+        if data.len() == 0 then
+            throw ValueError "BodyStream chunks must not be empty"
+        end
+        return int(self.writeNative(data.data(), c_size(data.len())))
+    end
+
+    func writeText(string text) as int
+        if string.byteLen(text) == 0 then
+            throw ValueError "BodyStream chunks must not be empty"
+        end
+        return int(self.writeTextNative(
+            text, c_size(string.byteLen(text))))
+    end
+
+    func writeTake(Buffer data) as int
+        if data.len() == 0 then
+            throw ValueError "BodyStream chunks must not be empty"
+        end
+        return int(self.writeTakeNative(data.nativeHandle()))
+    end
+
+    func waitWritable() as future<null>
+        if self.lastWriteResult != STREAM_AGAIN then
+            throw RuntimeError "BodyStream writable wait requires AGAIN"
+        end
+        return self.waitWritableNative()
+    end
+
+    async func writeAsync(Buffer data, bool take = false) as bool
+        while true
+            int result
+            if take then
+                result = self.writeTake(data)
+            else
+                result = self.write(data)
+            end
+            if result == STREAM_OK then
+                return true
+            end
+            if result == STREAM_CLOSED then
+                return false
+            end
+            if result == STREAM_ERROR then
+                throw RuntimeError xhttp.body.lastError()
+            end
+            await self.waitWritable()
+        end
+    end
+
+    async func writeTextAsync(string text) as bool
+        while true
+            int result = self.writeText(text)
+            if result == STREAM_OK then
+                return true
+            end
+            if result == STREAM_CLOSED then
+                return false
+            end
+            if result == STREAM_ERROR then
+                throw RuntimeError xhttp.body.lastError()
+            end
+            await self.waitWritable()
+        end
+    end
+
+    func fail(string message, int code = 1) as bool
+        return self.failNative(message, c_int(code))
+    end
+
+    func info() as BodyStreamInfo
+        point result = self.infoNative()
+        if result == null then
+            throw RuntimeError xhttp.body.lastError()
+        end
+        return BodyStreamInfo(result)
+    end
+end

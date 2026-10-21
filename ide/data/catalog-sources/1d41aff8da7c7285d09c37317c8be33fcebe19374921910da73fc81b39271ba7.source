@@ -1,0 +1,30 @@
+﻿{
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               },
+    "kind":  "demo6-extlib",
+    "version":  "1.0.0",
+    "format":  "xlang-package-1",
+    "dependencies":  [
+
+                     ],
+    "artifact":  {
+                     "cSources":  [
+                                      "libusb_native.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/libusb.xl"
+                                   ],
+                     "kind":  "source"
+                 },
+    "name":  "libusb",
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "abiVersion":  "1"
+}

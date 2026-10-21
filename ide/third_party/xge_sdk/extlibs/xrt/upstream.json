@@ -1,0 +1,15 @@
+{
+  "source_repository": "D:\\GIT\\xrt",
+  "source_branch": "master",
+  "source_commit": "ca0856824f649147419f3dc1342d5e8ce5a893ff",
+  "source_worktree_dirty": true,
+  "source_snapshot_sha256": "b4965f695b0e43ca8e0102cb469163b197fa486645fac93d0de854d372bb8bd6",
+  "header_sha256": "a222542a4abe652ee92cd28f6de21d6fa7a76398d04c03c6b24b45329c57d1a3",
+  "declaration_header_sha256": "f3d9fff774815759265b008f452561f732c5f0d5afb4a19cfdaf60d2e5327845",
+  "generation": "tools/amalgamate.py in isolated source snapshot",
+  "extensions": [
+    "xllm",
+    "xllm-session",
+    "xwork"
+  ]
+}

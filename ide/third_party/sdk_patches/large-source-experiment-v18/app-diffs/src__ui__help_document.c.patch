@@ -1,0 +1,17 @@
+--- original/src/ui/help_document.c
++++ candidate/src/ui/help_document.c
+@@ -1,4 +1,5 @@
+ #include "ui/help_document.h"
++#include "platform/dpi_proxy.h"
+ #include "ui/reading_state.h"
+ #include "xui_document.h"
+ #include "lang/languages.h"
+@@ -110,7 +111,7 @@
+         TRY(xuiWidgetSetLayoutType(block->widget,XUI_LAYOUT_MANUAL));
+         TRY(xuiWidgetSetOverflow(block->widget,XUI_OVERFLOW_HIDDEN));
+         xui_code_edit_desc_t code={0}; code.iSize=sizeof(code); code.pFont=view->app->codeFont; code.sText=text; code.bReadonly=1; code.bShowLineNumbers=1; code.iTabColumns=4; code.iIndentColumns=4;
+-        TRY(xuiCodeEditCreate(view->app->context,&block->editor,&code)); block->code=1;
++        TRY(xideDpiCodeEditCreate(view->app->context,&block->editor,&code)); block->code=1;
+         TRY(xuiWidgetAddChild(block->widget,block->editor));
+         TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(block->editor))); TRY(xideConfigureEditorLanguage(block->editor,language));
+         block->codeCache=xuiWidgetGetCachePolicy(block->editor);

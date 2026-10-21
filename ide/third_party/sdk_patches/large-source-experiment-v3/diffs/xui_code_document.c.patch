@@ -1,0 +1,86 @@
+--- original/src/xui_code_document.c
++++ experimental/src/xui_code_document.c
+@@ -53,6 +53,13 @@
+ 	int iLastEditStart;
+ 	int iLastEditEnd;
+ 	uint32_t iVersion;
++	/* One recent full coordinate conversion; line-only queries do not evict it. */
++	int bPositionCacheValid;
++	uint32_t iPositionCacheVersion;
++	int iPositionCacheOffset;
++	int iPositionCacheLine;
++	int iPositionCacheColumn;
++	int iPositionCacheCanonicalOffset;
+ 	uint32_t iChangeVersion;
+ 	uint32_t iSavedVersion;
+ 	uint64_t iState;
+@@ -275,6 +282,7 @@
+ 	int iGapReserve;
+ 
+ 	if ( pDocument == NULL || sText == NULL || iLength < 0 ) return XUI_ERROR_INVALID_ARGUMENT;
++	pDocument->bPositionCacheValid = 0;
+ 	xrtFree(pDocument->sBuffer);
+ 	pDocument->sBuffer = sText;
+ 	pDocument->iLength = iLength;
+@@ -488,6 +496,7 @@
+ 
+ 	if ( pDocument == NULL || sText == NULL || iTextLength < 0 ) return XUI_ERROR_INVALID_ARGUMENT;
+ 	if ( iStart < 0 || iEnd < iStart || iEnd > pDocument->iLength ) return XUI_ERROR_INVALID_ARGUMENT;
++	pDocument->bPositionCacheValid = 0;
+ 	iOldLength = pDocument->iLength;
+ 	iNewLength = iOldLength - (iEnd - iStart) + iTextLength;
+ 	if ( iNewLength < 0 ) return XUI_ERROR_OUT_OF_MEMORY;
+@@ -991,6 +1000,13 @@
+ 
+ 	if ( pDocument == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+ 	iOffset = __xuiCodeDocumentClampOffset(pDocument, iOffset);
++	if ( pDocument->bPositionCacheValid &&
++	     pDocument->iPositionCacheVersion == pDocument->iVersion &&
++	     pDocument->iPositionCacheOffset == iOffset ) {
++		if ( pLine != NULL ) *pLine = pDocument->iPositionCacheLine;
++		if ( pColumn != NULL ) *pColumn = pDocument->iPositionCacheColumn;
++		return XUI_OK;
++	}
+ 	iLow = 0;
+ 	iHigh = pDocument->iLineCount - 1;
+ 	iLine = 0;
+@@ -1017,6 +1033,12 @@
+ 			iColumn++;
+ 		}
+ 		*pColumn = iColumn;
++		pDocument->iPositionCacheVersion = pDocument->iVersion;
++		pDocument->iPositionCacheOffset = iOffset;
++		pDocument->iPositionCacheLine = iLine;
++		pDocument->iPositionCacheColumn = iColumn;
++		pDocument->iPositionCacheCanonicalOffset = __xuiCodeDocumentClampOffset(pDocument, iPos);
++		pDocument->bPositionCacheValid = 1;
+ 	}
+ 	return XUI_OK;
+ }
+@@ -1030,6 +1052,13 @@
+ 		return XUI_ERROR_INVALID_ARGUMENT;
+ 	}
+ 	if ( iColumn < 0 ) iColumn = 0;
++	if ( pDocument->bPositionCacheValid &&
++	     pDocument->iPositionCacheVersion == pDocument->iVersion &&
++	     pDocument->iPositionCacheLine == iLine &&
++	     pDocument->iPositionCacheColumn == iColumn ) {
++		if ( pOffset != NULL ) *pOffset = pDocument->iPositionCacheCanonicalOffset;
++		return XUI_OK;
++	}
+ 	iOffset = __xuiCodeDocumentLineField(pDocument, iLine, 0);
+ 	for ( i = 0; i < iColumn &&
+ 	     iOffset < __xuiCodeDocumentLineField(pDocument, iLine, 2); i++ ) {
+@@ -1037,6 +1066,12 @@
+ 	}
+ 	iOffset = __xuiCodeDocumentClampOffset(pDocument, iOffset);
+ 	if ( pOffset != NULL ) *pOffset = iOffset;
++	pDocument->iPositionCacheVersion = pDocument->iVersion;
++	pDocument->iPositionCacheOffset = iOffset;
++	pDocument->iPositionCacheLine = iLine;
++	pDocument->iPositionCacheColumn = i;
++	pDocument->iPositionCacheCanonicalOffset = iOffset;
++	pDocument->bPositionCacheValid = 1;
+ 	return XUI_OK;
+ }
+ 

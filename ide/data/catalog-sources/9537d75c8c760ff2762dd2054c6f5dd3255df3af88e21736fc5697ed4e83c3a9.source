@@ -1,0 +1,25 @@
+{
+    "format": "xlang-package-1",
+    "name": "_expat",
+    "version": "2.8.2",
+    "abiVersion": "1",
+    "kind": "demo6-private-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "vendor/expat/lib/xmlparse.c",
+            "vendor/expat/lib/xmlrole.c",
+            "vendor/expat/lib/xmltok.c",
+            "expat_random.c"
+        ],
+        "xlSources": []
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": {
+        "singleton": false,
+        "loadName": "",
+        "version": ""
+    }
+}

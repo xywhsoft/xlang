@@ -1,0 +1,30 @@
+﻿{
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               },
+    "kind":  "demo6-extlib",
+    "version":  "1.0.0",
+    "format":  "xlang-package-1",
+    "dependencies":  [
+
+                     ],
+    "artifact":  {
+                     "cSources":  [
+                                      "coap_native.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/coap.xl"
+                                   ],
+                     "kind":  "source"
+                 },
+    "name":  "coap",
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "abiVersion":  "1"
+}

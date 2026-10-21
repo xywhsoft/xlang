@@ -1,0 +1,646 @@
+import xhttp.protocol
+from xhttp.protocol import Headers
+
+
+
+extern "xhttp_multipart_last_error" func __xhttp_multipart_error_native() as point
+extern "xhttp_multipart_boundary_random" func __xhttp_multipart_boundary_random() as point
+
+extern "xhttp_multipart_writer_content_type" func __xhttp_multipart_content_type(
+    point boundary) as point
+extern "xhttp_multipart_writer_field_head" func __xhttp_multipart_field_head(
+    point boundary, string name, c_size nameSize) as point
+extern "xhttp_multipart_writer_file_head" func __xhttp_multipart_file_head(
+    point boundary,
+    string name, c_size nameSize,
+    string filename, c_size filenameSize,
+    string contentType, c_size contentTypeSize) as point
+extern "xhttp_multipart_writer_part_head" func __xhttp_multipart_part_head(
+    point boundary, point headers) as point
+extern "xhttp_multipart_writer_part_end" func __xhttp_multipart_part_end() as point
+extern "xhttp_multipart_writer_field" func __xhttp_multipart_field(
+    point boundary,
+    string name, c_size nameSize,
+    point value, c_size valueSize) as point
+extern "xhttp_multipart_writer_field_text" func __xhttp_multipart_field_text(
+    point boundary,
+    string name, c_size nameSize,
+    string value, c_size valueSize) as point
+extern "xhttp_multipart_writer_file" func __xhttp_multipart_file(
+    point boundary,
+    string name, c_size nameSize,
+    string filename, c_size filenameSize,
+    string contentType, c_size contentTypeSize,
+    point body, c_size bodySize) as point
+extern "xhttp_multipart_writer_part" func __xhttp_multipart_part(
+    point boundary, point headers,
+    point body, c_size bodySize) as point
+extern "xhttp_multipart_writer_close" func __xhttp_multipart_close(
+    point boundary) as point
+
+
+
+export const int MULTIPART_ERROR_NONE = 0
+export const int MULTIPART_ERROR_ARGUMENT = 1
+export const int MULTIPART_ERROR_BOUNDARY = 2
+export const int MULTIPART_ERROR_DELIMITER = 3
+export const int MULTIPART_ERROR_TRUNCATED = 4
+export const int MULTIPART_ERROR_HEADER = 5
+export const int MULTIPART_ERROR_DUPLICATE_HEADER = 6
+export const int MULTIPART_ERROR_DISPOSITION = 7
+export const int MULTIPART_ERROR_CONTENT_TYPE = 8
+export const int MULTIPART_ERROR_TRANSFER_ENCODING = 9
+export const int MULTIPART_ERROR_PARTS_LIMIT = 10
+export const int MULTIPART_ERROR_HEADERS_LIMIT = 11
+export const int MULTIPART_ERROR_DELIMITER_BYTES_LIMIT = 12
+export const int MULTIPART_ERROR_HEADER_BYTES_LIMIT = 13
+export const int MULTIPART_ERROR_PART_BYTES_LIMIT = 14
+export const int MULTIPART_ERROR_BODY_BYTES_LIMIT = 15
+
+export const int MULTIPART_PART_DISPOSITION = 1
+export const int MULTIPART_PART_CONTENT_TYPE = 2
+export const int MULTIPART_PART_TRANSFER_ENCODING = 4
+
+export const int MULTIPART_READ_ERROR = -1
+export const int MULTIPART_READ_MORE = 0
+export const int MULTIPART_READ_PART = 1
+export const int MULTIPART_READ_DATA = 2
+export const int MULTIPART_READ_PART_END = 3
+export const int MULTIPART_READ_DONE = 4
+
+
+
+// 复制当前线程错误文本并生成稳定字符串。
+func __xhttp_multipart_error() as string
+    point handle = __xhttp_multipart_error_native()
+    if handle == null then
+        return "xhttp.multipart operation failed"
+    end
+    return Buffer(handle).text()
+end
+
+
+
+// 检查拥有型原生句柄并保留 XRT 的结构化失败原因。
+func __xhttp_multipart_handle(point handle) as point
+    if handle == null then
+        throw RuntimeError __xhttp_multipart_error()
+    end
+    return handle
+end
+
+
+
+// 把拥有型原生 Buffer 转换成语言 Buffer。
+func __xhttp_multipart_buffer(point handle) as Buffer
+    return Buffer(__xhttp_multipart_handle(handle))
+end
+
+
+
+// 把拥有型原生 Buffer 转换成稳定字符串。
+func __xhttp_multipart_text(point handle) as string
+    return __xhttp_multipart_buffer(handle).text()
+end
+
+
+
+// 返回当前线程最近一次 xhttp.multipart/XRT 错误文本。
+export func lastError() as string
+    return __xhttp_multipart_error()
+end
+
+
+
+// MultipartLimits 同时约束整包解析和增量 Reader；-1 表示不设上限。
+export class MultipartLimits
+    int maxParts
+    int maxHeaders
+    int maxDelimiterBytes
+    int maxHeaderBytes
+    int maxPartBytes
+    int maxBodyBytes
+
+    create(
+        int maxParts = 1024,
+        int maxHeaders = 64,
+        int maxDelimiterBytes = 1024,
+        int maxHeaderBytes = 65536,
+        int maxPartBytes = -1,
+        int maxBodyBytes = -1
+    )
+        self.maxParts = maxParts
+        self.maxHeaders = maxHeaders
+        self.maxDelimiterBytes = maxDelimiterBytes
+        self.maxHeaderBytes = maxHeaderBytes
+        self.maxPartBytes = maxPartBytes
+        self.maxBodyBytes = maxBodyBytes
+    end
+end
+
+
+
+// MultipartBoundary 拥有解码后的协议 boundary，可直接传入 XRT C API。
+export class MultipartBoundary
+    native point handle
+    extern "xhttp_multipart_boundary_create" create(
+        string text, c_size size, c_longlong mode)
+    extern "xhttp_multipart_boundary_wrap" create(point handle)
+    extern "xhttp_multipart_boundary_destroy" destroy()
+    extern "xhttp_multipart_boundary_native" func nativeHandle() as point
+    extern "xhttp_multipart_boundary_text" func textNative() as point
+
+    static func parse(string text) as MultipartBoundary
+        MultipartBoundary result = MultipartBoundary(
+            text, c_size(string.byteLen(text)), c_longlong(0))
+        if not result.valid then
+            throw ValueError __xhttp_multipart_error()
+        end
+        return result
+    end
+
+    static func fromContentType(string contentType) as MultipartBoundary
+        MultipartBoundary result = MultipartBoundary(
+            contentType,
+            c_size(string.byteLen(contentType)),
+            c_longlong(1))
+        if not result.valid then
+            throw ValueError __xhttp_multipart_error()
+        end
+        return result
+    end
+
+    static func random() as MultipartBoundary
+        return MultipartBoundary(__xhttp_multipart_handle(
+            __xhttp_multipart_boundary_random()))
+    end
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get text() as string
+        return __xhttp_multipart_text(self.textNative())
+    end
+
+    func __toString__() as string
+        return self.text
+    end
+end
+
+
+
+// MultipartPart 是借用正文的零拷贝描述符，owner 保证原始 Buffer 存活。
+export class MultipartPart
+    native point handle
+    var owner = null
+    extern "xhttp_multipart_part_wrap" create(point handle)
+    extern "xhttp_multipart_part_destroy" destroy()
+    extern "xhttp_multipart_part_native" func nativeHandle() as point
+    extern "xhttp_multipart_part_data" func data() as point
+    extern "xhttp_multipart_part_size" func sizeNative() as c_ulonglong
+    extern "xhttp_multipart_part_header_count" func headerCountNative() as c_ulonglong
+    extern "xhttp_multipart_part_flags" func flagsNative() as c_ulonglong
+    extern "xhttp_multipart_part_form_data" func formDataNative() as bool
+    extern "xhttp_multipart_part_has_name" func hasNameNative() as bool
+    extern "xhttp_multipart_part_has_file_name" func hasFileNameNative() as bool
+    extern "xhttp_multipart_part_name" func nameNative() as point
+    extern "xhttp_multipart_part_file_name" func fileNameNative() as point
+    extern "xhttp_multipart_part_raw_headers" func rawHeadersNative() as point
+    extern "xhttp_multipart_part_headers" func headersNative() as point
+    extern "xhttp_multipart_part_body" func bodyNative() as point
+    extern "xhttp_multipart_part_content_type" func contentTypeNative() as point
+    extern "xhttp_multipart_part_transfer_encoding" func transferEncodingNative() as point
+
+    static func own(point handle, var owner) as MultipartPart
+        MultipartPart result = MultipartPart(handle)
+        result.owner = owner
+        return result
+    end
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get size() as int
+        return int(self.sizeNative())
+    end
+
+    get headerCount() as int
+        return int(self.headerCountNative())
+    end
+
+    get flags() as int
+        return int(self.flagsNative())
+    end
+
+    get isFormData() as bool
+        return self.formDataNative()
+    end
+
+    get name() as string?
+        if not self.hasNameNative() then
+            return null
+        end
+        return __xhttp_multipart_text(self.nameNative())
+    end
+
+    get fileName() as string?
+        if not self.hasFileNameNative() then
+            return null
+        end
+        return __xhttp_multipart_text(self.fileNameNative())
+    end
+
+    get contentType() as string?
+        point result = self.contentTypeNative()
+        if result == null then
+            return null
+        end
+        return Buffer(result).text()
+    end
+
+    get transferEncoding() as string?
+        point result = self.transferEncodingNative()
+        if result == null then
+            return null
+        end
+        return Buffer(result).text()
+    end
+
+    func rawHeaders() as string
+        return __xhttp_multipart_text(self.rawHeadersNative())
+    end
+
+    func headers() as Headers
+        return Headers(__xhttp_multipart_handle(self.headersNative()))
+    end
+
+    func body() as Buffer
+        return __xhttp_multipart_buffer(self.bodyNative())
+    end
+end
+
+
+
+// MultipartParser 对完整正文逐项发布零拷贝 Part。
+export class MultipartParser
+    native point handle
+    var source = null
+    extern "xhttp_multipart_parser_create" create(
+        point data, c_size size, point boundary,
+        c_longlong maxParts, c_longlong maxHeaders,
+        c_longlong maxDelimiterBytes, c_longlong maxHeaderBytes,
+        c_longlong maxPartBytes, c_longlong maxBodyBytes,
+        bool validate)
+    extern "xhttp_multipart_parser_wrap" create(point handle)
+    extern "xhttp_multipart_parser_destroy" destroy()
+    extern "xhttp_multipart_parser_native" func nativeHandle() as point
+    extern "xhttp_multipart_parser_next" func nextNative() as point
+    extern "xhttp_multipart_parser_reset" func reset() as bool
+    extern "xhttp_multipart_parser_done" func doneNative() as bool
+    extern "xhttp_multipart_parser_failed" func failedNative() as bool
+    extern "xhttp_multipart_parser_parts" func partsNative() as c_ulonglong
+    extern "xhttp_multipart_parser_offset" func offsetNative() as c_ulonglong
+    extern "xhttp_multipart_parser_error_code" func errorCodeNative() as c_longlong
+    extern "xhttp_multipart_parser_error_offset" func errorOffsetNative() as c_ulonglong
+
+    static func borrow(
+        Buffer source,
+        MultipartBoundary boundary,
+        MultipartLimits? limits = null,
+        bool validate = true
+    ) as MultipartParser
+        MultipartLimits actual = MultipartLimits()
+        if limits != null then
+            actual = limits as MultipartLimits
+        end
+        MultipartParser result = MultipartParser(
+            source.data(), c_size(source.len()), boundary.nativeHandle(),
+            c_longlong(actual.maxParts),
+            c_longlong(actual.maxHeaders),
+            c_longlong(actual.maxDelimiterBytes),
+            c_longlong(actual.maxHeaderBytes),
+            c_longlong(actual.maxPartBytes),
+            c_longlong(actual.maxBodyBytes),
+            validate)
+        if not result.valid then
+            throw ValueError __xhttp_multipart_error()
+        end
+        result.source = source
+        return result
+    end
+
+    static func parse(
+        Buffer source,
+        MultipartBoundary boundary,
+        MultipartLimits? limits = null
+    ) as MultipartParser
+        Buffer stable = Buffer()
+        if not stable.append(source) then
+            throw RuntimeError __xhttp_multipart_error()
+        end
+        return MultipartParser.borrow(stable, boundary, limits, true)
+    end
+
+    static func parse(
+        string source,
+        MultipartBoundary boundary,
+        MultipartLimits? limits = null
+    ) as MultipartParser
+        Buffer stable = Buffer()
+        if not stable.appendBytes(
+            source, c_size(string.byteLen(source))) then
+            throw RuntimeError __xhttp_multipart_error()
+        end
+        return MultipartParser.borrow(stable, boundary, limits, true)
+    end
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get done() as bool
+        return self.doneNative()
+    end
+
+    get failed() as bool
+        return self.failedNative()
+    end
+
+    get parts() as int
+        return int(self.partsNative())
+    end
+
+    get offset() as int
+        return int(self.offsetNative())
+    end
+
+    get errorCode() as int
+        return int(self.errorCodeNative())
+    end
+
+    get errorOffset() as int
+        return int(self.errorOffsetNative())
+    end
+
+    func next() as MultipartPart?
+        point result = self.nextNative()
+        if result == null then
+            if self.failed then
+                throw RuntimeError __xhttp_multipart_error()
+            end
+            return null
+        end
+        return MultipartPart.own(result, self)
+    end
+
+    func __iter__() as MultipartParser
+        return self
+    end
+
+    func __next__() as (bool, MultipartPart)
+        MultipartPart? result = self.next()
+        if result == null then
+            return false, MultipartPart(null)
+        end
+        return true, result as MultipartPart
+    end
+end
+
+
+
+// MultipartWriter 既提供完整便利写出，也保留头、正文、尾分段发送路径。
+export class MultipartWriter
+    MultipartBoundary boundary
+
+    create(MultipartBoundary boundary)
+        self.boundary = boundary
+    end
+
+    get contentType() as string
+        return __xhttp_multipart_text(__xhttp_multipart_content_type(
+            self.boundary.nativeHandle()))
+    end
+
+    func fieldHead(string name) as Buffer
+        return __xhttp_multipart_buffer(__xhttp_multipart_field_head(
+            self.boundary.nativeHandle(),
+            name, c_size(string.byteLen(name))))
+    end
+
+    func fileHead(
+        string name,
+        string filename,
+        string contentType = ""
+    ) as Buffer
+        return __xhttp_multipart_buffer(__xhttp_multipart_file_head(
+            self.boundary.nativeHandle(),
+            name, c_size(string.byteLen(name)),
+            filename, c_size(string.byteLen(filename)),
+            contentType, c_size(string.byteLen(contentType))))
+    end
+
+    func partHead(Headers headers) as Buffer
+        return __xhttp_multipart_buffer(__xhttp_multipart_part_head(
+            self.boundary.nativeHandle(), headers.nativeHandle()))
+    end
+
+    func partEnd() as Buffer
+        return __xhttp_multipart_buffer(__xhttp_multipart_part_end())
+    end
+
+    func field(string name, Buffer value) as Buffer
+        return __xhttp_multipart_buffer(__xhttp_multipart_field(
+            self.boundary.nativeHandle(),
+            name, c_size(string.byteLen(name)),
+            value.data(), c_size(value.len())))
+    end
+
+    func fieldText(string name, string value) as Buffer
+        return __xhttp_multipart_buffer(__xhttp_multipart_field_text(
+            self.boundary.nativeHandle(),
+            name, c_size(string.byteLen(name)),
+            value, c_size(string.byteLen(value))))
+    end
+
+    func file(
+        string name,
+        string filename,
+        Buffer body,
+        string contentType = ""
+    ) as Buffer
+        return __xhttp_multipart_buffer(__xhttp_multipart_file(
+            self.boundary.nativeHandle(),
+            name, c_size(string.byteLen(name)),
+            filename, c_size(string.byteLen(filename)),
+            contentType, c_size(string.byteLen(contentType)),
+            body.data(), c_size(body.len())))
+    end
+
+    func part(Headers headers, Buffer body) as Buffer
+        return __xhttp_multipart_buffer(__xhttp_multipart_part(
+            self.boundary.nativeHandle(), headers.nativeHandle(),
+            body.data(), c_size(body.len())))
+    end
+
+    func close() as Buffer
+        return __xhttp_multipart_buffer(__xhttp_multipart_close(
+            self.boundary.nativeHandle()))
+    end
+end
+
+
+
+// MultipartEvent 保存一次流推进结果，并让其借用的输入 Buffer 保持存活。
+export class MultipartEvent
+    native point handle
+    var source = null
+    extern "xhttp_multipart_event_wrap" create(point handle)
+    extern "xhttp_multipart_event_destroy" destroy()
+    extern "xhttp_multipart_event_status" func statusNative() as c_longlong
+    extern "xhttp_multipart_event_consumed" func consumedNative() as c_ulonglong
+    extern "xhttp_multipart_event_part" func partNative() as point
+    extern "xhttp_multipart_event_data" func data() as point
+    extern "xhttp_multipart_event_size" func sizeNative() as c_ulonglong
+    extern "xhttp_multipart_event_buffer" func bufferNative() as point
+    extern "xhttp_multipart_event_error_code" func errorCodeNative() as c_longlong
+    extern "xhttp_multipart_event_error_offset" func errorOffsetNative() as c_ulonglong
+
+    static func own(point handle, Buffer source) as MultipartEvent
+        MultipartEvent result = MultipartEvent(handle)
+        result.source = source
+        return result
+    end
+
+    get status() as int
+        return int(self.statusNative())
+    end
+
+    get consumed() as int
+        return int(self.consumedNative())
+    end
+
+    get size() as int
+        return int(self.sizeNative())
+    end
+
+    get errorCode() as int
+        return int(self.errorCodeNative())
+    end
+
+    get errorOffset() as int
+        return int(self.errorOffsetNative())
+    end
+
+    func part() as MultipartPart?
+        point result = self.partNative()
+        if result == null then
+            return null
+        end
+        return MultipartPart.own(result, self)
+    end
+
+    func buffer() as Buffer?
+        point result = self.bufferNative()
+        if result == null then
+            return null
+        end
+        return Buffer(result)
+    end
+end
+
+
+
+// MultipartReader 增量消费调用方缓冲，不分配每连接固定正文缓冲。
+export class MultipartReader
+    native point handle
+    extern "xhttp_multipart_reader_create" create(
+        point boundary,
+        c_longlong maxParts, c_longlong maxHeaders,
+        c_longlong maxDelimiterBytes, c_longlong maxHeaderBytes,
+        c_longlong maxPartBytes, c_longlong maxBodyBytes)
+    extern "xhttp_multipart_reader_wrap" create(point handle)
+    extern "xhttp_multipart_reader_destroy" destroy()
+    extern "xhttp_multipart_reader_native" func nativeHandle() as point
+    extern "xhttp_multipart_reader_reset" func reset() as bool
+    extern "xhttp_multipart_reader_read" func readNative(
+        point data, c_size total, c_size offset, c_size size,
+        bool endOfBody) as point
+    extern "xhttp_multipart_reader_done" func doneNative() as bool
+    extern "xhttp_multipart_reader_parts" func partsNative() as c_ulonglong
+    extern "xhttp_multipart_reader_part_bytes" func partBytesNative() as c_ulonglong
+    extern "xhttp_multipart_reader_body_bytes" func bodyBytesNative() as c_ulonglong
+    extern "xhttp_multipart_reader_wire_bytes" func wireBytesNative() as c_ulonglong
+
+    static func open(
+        MultipartBoundary boundary,
+        MultipartLimits? limits = null
+    ) as MultipartReader
+        MultipartLimits actual = MultipartLimits()
+        if limits != null then
+            actual = limits as MultipartLimits
+        end
+        MultipartReader result = MultipartReader(
+            boundary.nativeHandle(),
+            c_longlong(actual.maxParts),
+            c_longlong(actual.maxHeaders),
+            c_longlong(actual.maxDelimiterBytes),
+            c_longlong(actual.maxHeaderBytes),
+            c_longlong(actual.maxPartBytes),
+            c_longlong(actual.maxBodyBytes))
+        if not result.valid then
+            throw ValueError __xhttp_multipart_error()
+        end
+        return result
+    end
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get done() as bool
+        return self.doneNative()
+    end
+
+    get parts() as int
+        return int(self.partsNative())
+    end
+
+    get partBytes() as int
+        return int(self.partBytesNative())
+    end
+
+    get bodyBytes() as int
+        return int(self.bodyBytesNative())
+    end
+
+    get wireBytes() as int
+        return int(self.wireBytesNative())
+    end
+
+    func read(
+        Buffer input,
+        int offset = 0,
+        int size = -1,
+        bool endOfBody = false
+    ) as MultipartEvent
+        if offset < 0 or offset > input.len() then
+            throw IndexError "MultipartReader input offset is out of range"
+        end
+        int actual = size
+        if actual == -1 then
+            actual = input.len() - offset
+        end
+        if actual < 0 or actual > input.len() - offset then
+            throw IndexError "MultipartReader input size is out of range"
+        end
+        point result = self.readNative(
+            input.data(), c_size(input.len()),
+            c_size(offset), c_size(actual), endOfBody)
+        if result == null then
+            throw RuntimeError __xhttp_multipart_error()
+        end
+        return MultipartEvent.own(result, input)
+    end
+end

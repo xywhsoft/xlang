@@ -1,0 +1,130 @@
+{
+  "format": "xlang-ide-private-compiler-patch-1",
+  "seed": "D:\\GIT\\x-lang\\ide\\build\\compiler-c-native-record-layout-v1",
+  "seedSourceManifest": "D:\\GIT\\x-lang\\ide\\build\\compiler-c-native-record-layout-v1\\source-inputs-record-layout-v1.json",
+  "seedSourceManifestSha256": "6106dbc3e9af1a9b261991f7740dd0b125a0b7aa873d95a27ea0b94bfe39147e",
+  "seedSourceFiles": 1532,
+  "rootBuildScripts": [
+    {
+      "path": "build.bat",
+      "sha256": "f4b0fda4147af0c3f28f04b21d3c0d77f8683095280867a52a02a3220e6e0773"
+    },
+    {
+      "path": "build_dll.bat",
+      "sha256": "5cb354486cafdfefcd317cdbf9ad8ee214eca9c3de6899351671336f5dd36478"
+    },
+    {
+      "path": "rc0_guard.bat",
+      "sha256": "b8ba792279740a37fb042420164ed56b8bc6434180116cf34016ae64709a08e1"
+    },
+    {
+      "path": "test.bat",
+      "sha256": "56463ac666e69d4b996e6b9f6e6e708aa468120b71412fe4e696d6905083c4a0"
+    },
+    {
+      "path": "test_all.bat",
+      "sha256": "75e8d1d7f62dc79c6eb68b6c9a38316171db764ede0cd63db71b4320b6692114"
+    },
+    {
+      "path": "test_apps.bat",
+      "sha256": "112a587f67ad0d6971e3ffb683817844db13df9149421164ea0aef7d74bc0f38"
+    },
+    {
+      "path": "test_dll.bat",
+      "sha256": "6d7ee01cf4be5269609020fcff0e482beb178b6f9315abfc1af3e432b74319bc"
+    },
+    {
+      "path": "test_feature_suite.bat",
+      "sha256": "e94436e03ffcf95736a35bb9c1357fab8d6f70f1c5be626fc48598ae3e7aa4d3"
+    },
+    {
+      "path": "test_smoke.bat",
+      "sha256": "b441d30e7cb55b9b3e5d6d27375e226fdd5f7172b670163c48c8457482b18957"
+    },
+    {
+      "path": "test_tutorial.bat",
+      "sha256": "1e17b0281a87dbf3c59779b4dd7d6373d8aeb762b1e20ec248ca1c130559b6c6"
+    },
+    {
+      "path": "test_xlc_shell.bat",
+      "sha256": "6b6b89a28dfa7474f769964d1bfe8978fa78c0333d6152a5003688d80ad016b3"
+    }
+  ],
+  "changedFiles": [
+    {
+      "path": "res/tcc/win64/x86_64/include/stdio.h",
+      "beforeSha256": "9a38e4c23c93494b37d68782397c626cac05c4b877ee743fca2f14e965e80723",
+      "afterSha256": "44833c8cb4f83508c05d45611c1effd566f05323202150f83530971fcda13660",
+      "edits": [
+        {
+          "offset": 7384,
+          "removeBase64": "",
+          "insertBase64": "I2lmZGVmIF9fTk9fSVNPQ0VYVA0K"
+        },
+        {
+          "offset": 7477,
+          "removeBase64": "",
+          "insertBase64": "DQojZW5kaWY="
+        }
+      ]
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_identity_closure.c",
+      "beforeSha256": "7274597d82308ffd36bcc35640a5ce512e379d39862bd850afbf0f50926cf059",
+      "afterSha256": "268c0420931a8878ca82001a1aa2637131797ab95d962e21e1cbd9889f236feb",
+      "edits": [
+        {
+          "offset": 14433,
+          "removeBase64": "",
+          "insertBase64": "V2l0aEJpbmRpbmdz"
+        },
+        {
+          "offset": 14535,
+          "removeBase64": "",
+          "insertBase64": "LAogICAgWEw2X0lyQ2dlbkhlYWRlckJpbmRpbmdWaXNpdG9yIHZpc2l0b3IsIHZvaWQqIGNvbnRleHQ="
+        },
+        {
+          "offset": 16058,
+          "removeBase64": "JXMo",
+          "insertBase64": ""
+        },
+        {
+          "offset": 16074,
+          "removeBase64": "",
+          "insertBase64": "KTsKICAgIHNpemVfdCBzdGFydEJ5dGUgPSBvdXQtPmJ1ZmZlci5TaXplOwogICAgeGw2T3V0cHV0UHV0cyh0YXJnZXQtPmNOYW1lLCBvdXQpOwogICAgaWYgKHZpc2l0b3IgIT0gTlVMTCAmJiAhdmlzaXRvcihjb250ZXh0LCB0YXJnZXQtPnN5bWJvbA=="
+        },
+        {
+          "offset": 16089,
+          "removeBase64": "",
+          "insertBase64": "LAogICAgICAgICAgICAiZnVuY3Rpb24iLCBzdGFydEJ5dGUsIG91dC0+YnVmZmVyLlNpemUpKQogICAgICAgIHJldHVybiB4bDZJckNnZW5EaWFnKGRpYWdzLCBtb2R1bGUsIHRhcmdldC0+ZGVjbGFyYXRpb24sCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgImNhbm5vdCBjb2xsZWN0IGJvdW5kZWQgQyBleHRlcm4gaGVhZGVyIGJpbmRpbmciKTsKICAgIHhsNk91dHB1dFB1dGMoJygnLCBvdXQ="
+        },
+        {
+          "offset": 17083,
+          "removeBase64": "",
+          "insertBase64": "CnN0YXRpYyBpbnQgeGw2SXJDZ2VuRW1pdEV4dGVyblByb3RvdHlwZSgKICAgIFhMNl9PdXRwdXQqIG91dCwgY29uc3QgWEw2X0lyTW9kdWxlKiBtb2R1bGUsIGNvbnN0IFhMNl9JckNhbGxUYXJnZXQqIHRhcmdldCwgWEw2X0RpYWdMaXN0KiBkaWFncykKewogICAgcmV0dXJuIHhsNklyQ2dlbkVtaXRFeHRlcm5Qcm90b3R5cGVXaXRoQmluZGluZ3Mob3V0LCBtb2R1bGUsIHRhcmdldCwgZGlhZ3MsIE5VTEwsIE5VTEwpOwp9Cg=="
+        }
+      ]
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_header_emit.c",
+      "beforeSha256": "25fd281d2cc7b2fb9c6a9d3f0e01f1043e7872619affff4418c1b47d2c1c66b6",
+      "afterSha256": "5a20eed431875edd3d292c416f1a056cb74f95b53bf8a6aaf3245e121d3d4dcf",
+      "edits": [
+        {
+          "offset": 13148,
+          "removeBase64": "",
+          "insertBase64": "V2l0aEJpbmRpbmdz"
+        },
+        {
+          "offset": 13175,
+          "removeBase64": "",
+          "insertBase64": "LCB2aXNpdG9yLCBjb250ZXh0"
+        }
+      ]
+    }
+  ],
+  "scope": "Retain the real stdio inline implementation, guard its conflicting external declaration; record native prototype identifiers at the actual lowered emission site with existing semantic symbol/range validation.",
+  "parentPatch": "D:\\GIT\\x-lang\\ide\\third_party\\compiler_patches\\native-c-record-layout-v1\\changes.json",
+  "parentPatchSha256": "0d76a6287de1983b21b457ffc0529aafde22cdb115c28f6271cd64473e0b164b",
+  "formalRelease": false
+}

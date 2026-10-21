@@ -1,0 +1,103 @@
+--- original/src/xge_text_run.c
++++ experiment/src/xge_text_run.c
+@@ -38,9 +38,44 @@
+ 	return XGE_OK;
+ }
+ 
++/* Bounded, call-local lookup reuse. No font state survives the shape call,
++   and collisions use the original resolver before replacing this slot. */
++#define XGE_TEXT_SHAPE_LOOKUP_SLOTS 128u
++typedef struct xge_text_shape_lookup_t {
++    uint32_t iCodepointKey;
++    int iGlyph;
++    xge_font pFont;
++} xge_text_shape_lookup_t;
++
++static xge_font __xgeTextShapeResolveCodepoint(xge_font pFont, uint32_t iCodepoint,
++    int* pGlyph, xge_text_shape_lookup_t* pLookup)
++{
++    xge_text_shape_lookup_t* pEntry;
++    xge_font pResolved;
++    uint32_t iKey = iCodepoint + 1u;
++    if ( pLookup == NULL || iKey == 0u ) {
++        return __xgeFontResolveCodepoint(pFont, iCodepoint, pGlyph);
++    }
++    pEntry = &pLookup[(iCodepoint * 0x9e3779b9u) >> 25];
++    if ( pEntry->iCodepointKey == iKey ) {
++        *pGlyph = pEntry->iGlyph;
++        return pEntry->pFont;
++    }
++    pResolved = __xgeFontResolveCodepoint(pFont, iCodepoint, pGlyph);
++    /* A failed lookup leaves the caller's glyph output untouched. */
++    if ( pResolved != NULL ) {
++        pEntry->iCodepointKey = iKey;
++        pEntry->iGlyph = *pGlyph;
++        pEntry->pFont = pResolved;
++    }
++    return pResolved;
++}
++
+ int xgeTextShape(const xge_text_shape_desc_t* pDesc, xge_glyph_run_t* pRun)
+ {
+ 	xge_glyph_run_backend_t* pBackend;
++    xge_text_shape_lookup_t tLookup[XGE_TEXT_SHAPE_LOOKUP_SLOTS];
++    xge_text_shape_lookup_t* pLookup;
+ 	xge_glyph_position_t* pPosition;
+ 	xge_glyph_metrics_t tMetrics;
+ 	xge_emoji_match_t tEmojiMatch;
+@@ -93,7 +128,24 @@
+ 		? XGE_EMOJI_LINE_EXPAND : XGE_EMOJI_LINE_STABLE;
+ 	pEmojiPack = pDesc->pEmojiPack;
+ 	if ( iTextSize == 0 ) return XGE_OK;
+-	pRun->pGlyphs = (xge_glyph_position_t*)xrtCalloc((size_t)iTextSize, sizeof(*pRun->pGlyphs));
++    pLookup = NULL;
++    if ( iTextSize >= 256 ) {
++        memset(tLookup, 0, sizeof(tLookup));
++        pLookup = tLookup;
++    }
++    {
++        const char* sCount = pDesc->sText;
++        const char* sCountEnd = sCount + iTextSize;
++        int iCapacity = 0;
++        uint32_t iCountCodepoint;
++        while ( sCount < sCountEnd ) {
++            iRet = __xgeTextUTF8DecodeBounded(&sCount, sCountEnd, &iCountCodepoint);
++            if ( iRet != XGE_OK ) { xgeGlyphRunFree(pRun); return iRet; }
++            ++iCapacity;
++        }
++        /* UTF-8 bytes are an upper bound, but waste most capacity for CJK/emoji. */
++        pRun->pGlyphs = (xge_glyph_position_t*)xrtCalloc((size_t)iCapacity, sizeof(*pRun->pGlyphs));
++    }
+ 	pBackend = (xge_glyph_run_backend_t*)xrtCalloc(1, sizeof(*pBackend));
+ 	if ( (pRun->pGlyphs == NULL) || (pBackend == NULL) ) {
+ 		xrtFree(pRun->pGlyphs);
+@@ -163,7 +215,7 @@
+ 				xgeGlyphRunFree(pRun);
+ 				return XGE_ERROR_OUT_OF_MEMORY;
+ 			}
+-			pGlyphFont = __xgeFontResolveCodepoint(pDesc->pFont, iCodepoint, &iGlyph);
++			pGlyphFont = __xgeTextShapeResolveCodepoint(pDesc->pFont, iCodepoint, &iGlyph, pLookup);
+ 			if ( (pGlyphFont != NULL) && (__xgeGlyphRunKeepFont(pBackend, pGlyphFont) != XGE_OK) ) {
+ 				xgeGlyphRunFree(pRun);
+ 				return XGE_ERROR_OUT_OF_MEMORY;
+@@ -197,7 +249,7 @@
+ 			pPreviousFont = NULL;
+ 			continue;
+ 		}
+-		pGlyphFont = __xgeFontResolveCodepoint(pDesc->pFont, iCodepoint, &iGlyph);
++		pGlyphFont = __xgeTextShapeResolveCodepoint(pDesc->pFont, iCodepoint, &iGlyph, pLookup);
+ 		if ( pGlyphFont == NULL ) continue;
+ 		iRet = xgeFontGlyphGetByIndex(pGlyphFont, iGlyph, &tMetrics);
+ 		if ( iRet != XGE_OK ) continue;
+@@ -415,7 +467,10 @@
+ 			tDraw.tDst.fH = (float)tGlyph.iHeight;
+ 			tDraw.iColor = __xgeGlyphRunSpanColor(pPosition, iColor, pSpans, iSpanCount);
+ 			tDraw.iFlags = iFlags;
+-			xgeDrawEx(&tDraw);
++            if ( (iFlags & XGE_DRAW_SCREEN_SPACE) == 0 ||
++                 !__xgeTextOutsidePixelClip(tDraw.tDst, xgeClipGetPixels()) ) {
++                xgeDrawEx(&tDraw);
++            }
+ 		}
+ 		fPenX += pPosition->fAdvanceX;
+ 	}

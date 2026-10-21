@@ -1,0 +1,30 @@
+﻿{
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               },
+    "kind":  "demo6-extlib",
+    "version":  "1.0.0",
+    "format":  "xlang-package-1",
+    "dependencies":  [
+
+                     ],
+    "artifact":  {
+                     "cSources":  [
+                                      "vault_native.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/vault.xl"
+                                   ],
+                     "kind":  "source"
+                 },
+    "name":  "vault",
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "abiVersion":  "1"
+}

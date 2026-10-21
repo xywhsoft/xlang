@@ -1,0 +1,58 @@
+# argon2
+
+官方 Argon2 参考实现的 xlang/C 包，内存、临时字符串、安全随机数和错误槽复用 XRT。
+支持 Argon2d、Argon2i、Argon2id，默认 Argon2id。当前后端按顺序处理各 lane；
+`parallelism` 是算法参数，不承诺创建相同数量的系统线程。
+
+## 使用
+
+```xlang
+import argon2
+
+string stored = argon2.hash("password")
+assert argon2.verify("password", stored)
+assert not argon2.verify("wrong", stored)
+```
+
+正式密码存储使用自动随机盐，不复制范例中的固定盐或低成本配置。
+成本需要结合部署机器和服务并发量测量，不由库保证统一的响应时间。
+
+## API 与边界
+
+| API | 合同 |
+| --- | --- |
+| `hash(password, salt="", secret="", ad="", timeCost=3, memoryCost=65536, parallelism=4, hashLen=32, saltLen=16, type=ARGON2ID)` | PHC 字符串；空 salt 自动生成安全随机盐 |
+| `hashRaw(...)` | 同参数，输出小写 hex；不携带成本和盐元数据 |
+| `verify(password, encoded)` | 验证 PHC；错误密码或损坏编码返回 false；超出资源上限或分配失败抛异常 |
+| `checkNeedsRehash(encoded, timeCost=3, memoryCost=65536, parallelism=4)` | 参数或版本不同、编码无效时为 true；目标成本必须有效 |
+| `extractType/TimeCost/MemoryCost/Parallelism(encoded)` | 无效编码返回 -1，不执行密码计算 |
+| `generateSalt(len=16)` | len 字节随机数的 hex，字符串长为 len*2 |
+| `recommendedTime/Memory/Parallelism/HashLen/SaltLen()` | 当前默认配置，分别为 3/65536/4/32/16 |
+
+- 文本经 UTF-8 C 字符串 ABI 传递，不承诺保留嵌入 NUL。需要二进制输入时可直接使用
+  包内参考实现的长度型 C API；当前没有对外承诺 Buffer 重载。
+- 输出 4..256 字节，盐 8..64 字节；成本为正数，内存单位 KiB，最大 2097152 KiB。
+  验证外部 PHC 同样先检查此边界。算法还要求内存与 lane 数匹配。
+- 上限不是请求配额：不要把未受信任的 PHC 直接当成可无限运行的任务。
+  本层没有取消、中途预算或自动限制并发。
+- `secret` 与 `ad` 可以参与 hash/hashRaw，但目前 verify 没有对应参数。
+  因此不把本包宣传为其他 Argon2 绑定的全部功能，也不推荐普通字符串比较代替认证比较。
+- 失败使用 XRT 结构化错误。无效参数为 ValueError，分配失败为 MemoryError，
+  随机源失败为 IOError；成功不会清除调用前已有的错误槽。
+
+`PROFILE_LOW_MEMORY_*` 使用 t=3/m=65536/p=4；`PROFILE_HIGH_MEMORY_*` 使用
+t=1/m=2097152/p=4。两组对应 [RFC 9106 第 4 节](https://www.rfc-editor.org/rfc/rfc9106.html#section-4)，
+此前混入的非 RFC 参数已纠正。默认值使用 64 MiB 组，高内存组不是自动升级行为。
+
+## C 与验证
+
+公开声明位于 `include/argon2_native.h`。C 返回字符串借用当前 XRT 临时区，
+需要跨越该临时区生命周期时先复制；失败详情读取 `xrtGetError()`。
+源文件以 package manifest 为准，链接一份 XRT。输入密码由调用方拥有，库不会擦除它。
+
+范例：`examples/extlibs/argon2.xl` 为教学覆盖；`argon2_basic.xl` 与 `argon2_c.c`
+为四行同结果对照，两者都能直接 `xl run` 或 `xl build`。
+
+专项门禁：`tools/check_extlib_argon2_bloom.ps1`，包含生成的全部 C 原型、严格 GCC、
+C/xlang JIT/AOT、负例和分配故障。具体运行结果应查看该次 `results.json`，不能只凭
+测试脚本存在认定通过。secret/ad 验证表面、二进制重载、验证任务预算和性能标定仍是后续项。

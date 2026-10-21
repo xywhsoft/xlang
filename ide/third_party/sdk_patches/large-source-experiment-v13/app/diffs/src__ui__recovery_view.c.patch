@@ -1,0 +1,17 @@
+--- a/src/ui/recovery_view.c
++++ b/src/ui/recovery_view.c
+@@ -1,4 +1,5 @@
+ #include "ui/toolchain_view.h"
++#include "platform/dpi_proxy.h"
+ #include "ui/resource_view.h"
+ #include "ui/import_view.h"
+ #include "ui/template_view.h"
+@@ -151,7 +152,7 @@
+     TRY(xuiListViewCreate(app->context,&v->controls[XIDE_RECOVERY_LIST],&list)); TRY(xuiWidgetSetRect(v->controls[XIDE_RECOVERY_LIST],(xui_rect_t){0,180,740,112})); TRY(xuiListViewSetSelect(v->controls[XIDE_RECOVERY_LIST],selectItem,app)); TRY(xuiWidgetAddChild(v->content,v->controls[XIDE_RECOVERY_LIST]));
+     TRY(readonlyPath(app,"所选恢复正文",(xui_rect_t){0,304,740,28},&v->path));
+     xui_code_edit_desc_t code={0}; code.iSize=sizeof(code); code.pFont=app->codeFont; code.bReadonly=1; code.bShowLineNumbers=1; code.sText="";
+-    TRY(xuiCodeEditCreate(app->context,&v->controls[XIDE_RECOVERY_CODE],&code)); TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(v->controls[XIDE_RECOVERY_CODE]))); TRY(xideConfigureEditorLanguage(v->controls[XIDE_RECOVERY_CODE],"xlang"));
++    TRY(xideDpiCodeEditCreate(app->context,&v->controls[XIDE_RECOVERY_CODE],&code)); TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(v->controls[XIDE_RECOVERY_CODE]))); TRY(xideConfigureEditorLanguage(v->controls[XIDE_RECOVERY_CODE],"xlang"));
+     TRY(xuiWidgetSetRect(v->controls[XIDE_RECOVERY_CODE],(xui_rect_t){0,344,740,172})); TRY(xuiWidgetAddChild(v->content,v->controls[XIDE_RECOVERY_CODE]));
+     TRY(label(app,"取回语法",(xui_rect_t){0,534,88,28},NULL)); const char* choices[]={"C","xlang","纯文本"}; xui_combobox_desc_t combo={0}; combo.iSize=sizeof(combo); combo.pFont=app->uiFont; combo.arrItems=choices; combo.iItemCount=3; combo.iSelected=1;
+     TRY(xuiComboBoxCreate(app->context,&v->controls[XIDE_RECOVERY_LANGUAGE],&combo)); TRY(xuiComboBoxSetSelect(v->controls[XIDE_RECOVERY_LANGUAGE],chooseLanguage,app)); TRY(xuiWidgetSetRect(v->controls[XIDE_RECOVERY_LANGUAGE],(xui_rect_t){96,532,170,32})); TRY(xuiWidgetAddChild(v->content,v->controls[XIDE_RECOVERY_LANGUAGE]));

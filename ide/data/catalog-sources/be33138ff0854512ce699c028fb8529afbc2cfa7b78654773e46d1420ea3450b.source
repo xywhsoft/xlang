@@ -1,0 +1,16 @@
+{
+    "format": "xlang-package-1",
+    "name": "gpio",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["gpio_native.c"],
+        "xlSources": ["src/gpio.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

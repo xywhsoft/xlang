@@ -1,0 +1,164 @@
+import xhttp.body
+import xhttp.body_async
+from xhttp.body import Body
+
+
+
+extern "xhttp_body_ref" func __xhttp_body_file_ref(
+    point handle) as point
+extern "xhttp_body_file_open" func __xhttp_body_file_open(
+    string path, c_ulonglong readSize, bool range,
+    c_ulonglong offset, c_ulonglong length,
+    var boxer) as future<Body>
+extern "xhttp_body_file_adopt" func __xhttp_body_file_adopt(
+    point fileHandle, c_ulonglong offset, c_ulonglong length,
+    c_ulonglong readSize) as point
+
+
+
+export const int DEFAULT_READ_SIZE = 65536
+
+
+
+// BodyFileConfig 只控制单次按需读取上限，不为每个正文预分配固定缓冲。
+export class BodyFileConfig
+    int readSize
+
+    create(int readSize = DEFAULT_READ_SIZE)
+        if readSize <= 0 then
+            throw ValueError "HTTP file body read size must be positive"
+        end
+        self.readSize = readSize
+    end
+
+    get valid() as bool
+        return self.readSize > 0
+    end
+end
+
+
+
+// 为 Future 结果创建拥有独立原生正文引用的语言对象。
+func __xhttp_body_file_box(point handle) as Body
+    point owned = __xhttp_body_file_ref(handle)
+
+    if owned == null then
+        throw RuntimeError xhttp.body.lastError()
+    end
+    return Body(owned)
+end
+
+
+
+// 校验所有语言整数，再进入无符号 C ABI。
+func __xhttp_body_file_range(int offset, int length)
+    if offset < 0 or length < 0 then
+        throw ValueError "HTTP file body range must not be negative"
+    end
+end
+
+
+
+// 按需异步打开完整文件正文。
+export func open(string path) as future<Body>
+    BodyFileConfig config = BodyFileConfig()
+
+    return open(path, config)
+end
+
+
+
+// 按调用方粒度按需异步打开完整文件正文。
+export func open(
+    string path,
+    BodyFileConfig config
+) as future<Body>
+    if path == "" then
+        throw ValueError "HTTP file body path must not be empty"
+    end
+    var boxer = xcall(__xhttp_body_file_box)
+    return __xhttp_body_file_open(
+        path,
+        c_ulonglong(config.readSize),
+        false,
+        c_ulonglong(0),
+        c_ulonglong(0),
+        boxer
+    )
+end
+
+
+
+// 按需异步打开严格文件区间，越过当前文件结尾时 Future 失败。
+export func openRange(
+    string path,
+    int offset,
+    int length
+) as future<Body>
+    BodyFileConfig config = BodyFileConfig()
+
+    return openRange(path, offset, length, config)
+end
+
+
+
+// 按调用方粒度打开严格文件区间。
+export func openRange(
+    string path,
+    int offset,
+    int length,
+    BodyFileConfig config
+) as future<Body>
+    if path == "" then
+        throw ValueError "HTTP file body path must not be empty"
+    end
+    __xhttp_body_file_range(offset, length)
+    var boxer = xcall(__xhttp_body_file_box)
+    return __xhttp_body_file_open(
+        path,
+        c_ulonglong(config.readSize),
+        true,
+        c_ulonglong(offset),
+        c_ulonglong(length),
+        boxer
+    )
+end
+
+
+
+// 接管可读 AsyncFile，并把文件对象置空；正文负责关闭原生文件。
+export func adopt(
+    AsyncFile fileHandle,
+    int offset,
+    int length
+) as Body
+    BodyFileConfig config = BodyFileConfig()
+
+    return adopt(fileHandle, offset, length, config)
+end
+
+
+
+// 按调用方粒度接管可读 AsyncFile。
+export func adopt(
+    AsyncFile fileHandle,
+    int offset,
+    int length,
+    BodyFileConfig config
+) as Body
+    __xhttp_body_file_range(offset, length)
+    point native = fileHandle.detach()
+    if native == null then
+        throw ValueError "HTTP file body requires an open asynchronous file"
+    end
+    point body = __xhttp_body_file_adopt(
+        native,
+        c_ulonglong(offset),
+        c_ulonglong(length),
+        c_ulonglong(config.readSize)
+    )
+    if body == null then
+        throw RuntimeError xhttp.body.lastError()
+    end
+    return Body(body)
+end

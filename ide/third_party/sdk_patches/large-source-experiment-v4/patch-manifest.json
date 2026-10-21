@@ -1,0 +1,145 @@
+{
+  "format": "xlang-ide-experimental-sdk-patch-1",
+  "privateOnly": true,
+  "sdkInstalled": false,
+  "productionAccepted": false,
+  "originalSourceManifestSha256": "3f240e10bddf61f7908ded55ab57314997fd7eb5a4720723b824b6955d5ce4ab",
+  "originalSdkDllSha256": "a48e028acfb96db59277d820a4dbebc482d8635fd79c63ef3da6b00c69382784",
+  "beforeDescriptorSha256": "8bd1b85975b80f0f641ae97a547538a39cb62df4ca581a58529d03e0ec820ff3",
+  "changes": [
+    {
+      "path": "src/xge_emoji.c",
+      "beforeSha256": "f2e6816f188ad04990013c303ed9a5dcb3e10a169b602653d83e83b1ed8ab7dd",
+      "afterSha256": "9795c28caa79727e98a137bd7b79d853472cd537803b218a2af7a808f24e9911",
+      "size": 32181,
+      "material": "files/src/xge_emoji.c",
+      "reviewDiff": "diffs/xge_emoji.c.patch",
+      "reviewDiffSha256": "51dcbd83ba3f5b6a2dcb79ea84428fa2c18eeb7752b061f8be9d45688c177392"
+    },
+    {
+      "path": "src/xge_text_run.c",
+      "beforeSha256": "bd7814823f24c71f004dd99bde5257e2ab1d53971f489685b70d6fdb2641db83",
+      "afterSha256": "54ae9410d90ce6ce3e23a88765ee2f7bc0a5d4902b0d6ab47c30895d250ee654",
+      "size": 22910,
+      "material": "files/src/xge_text_run.c",
+      "reviewDiff": "diffs/xge_text_run.c.patch",
+      "reviewDiffSha256": "7727667b7ec737b58b38a58813b71b600235e8077d8cbcee66b19b2153e48aca"
+    },
+    {
+      "path": "src/xui_code_edit.c",
+      "beforeSha256": "973710dd1001960efe171f683a348b41bd237a6dad3a6f0443793bcf8e16341b",
+      "afterSha256": "1627bb73303373c6406d4c9510b0e734bbb29a54d590ca107f8b6643d4d3965e",
+      "size": 360483,
+      "material": "files/src/xui_code_edit.c",
+      "reviewDiff": "diffs/xui_code_edit.c.patch",
+      "reviewDiffSha256": "421c5db617dae29cf01443b0bae9163e2d41a5c09f97afa6b317c7ac7a31c5cb"
+    },
+    {
+      "path": "src/xui_unicode.c",
+      "beforeSha256": "bae125df15ea1265d92b4af5933ecc62ed76d098f48828b8ad3d4d3d93c77dd8",
+      "afterSha256": "00a4a2cb0398a1b6a94eda77d70317fc69bbfbe31a0825db801d3f3ee1ee65a5",
+      "size": 27818,
+      "material": "files/src/xui_unicode.c",
+      "reviewDiff": "diffs/xui_unicode.c.patch",
+      "reviewDiffSha256": "2742cdd2bb993e341e5394304d18eeae785ccc7bae3d73ec730306f868b3d9ad"
+    },
+    {
+      "path": "src/xui_unicode_grapheme_data.inc",
+      "beforeSha256": null,
+      "afterSha256": "992c948a64567a60fb35ebda1e3233dd5d287de03f84a72ed2694d2d7ab7b33f",
+      "size": 84888,
+      "material": "files/src/xui_unicode_grapheme_data.inc",
+      "reviewDiff": "diffs/xui_unicode_grapheme_data.inc.patch",
+      "reviewDiffSha256": "d09f0ab76b6448a918a5b341b9a32f539a454669d25839857c49fa0d4c94f7a7"
+    },
+    {
+      "path": "src/xui_code_document.c",
+      "beforeSha256": "31c3703160e3cd4eca84b5e44cfbb15fe006410f9f29b3039d4f551895f43654",
+      "afterSha256": "497021d90188e616d8b2cb9b8fc0cc134981db1becd3e69bc93cf0e90a848353",
+      "size": 46107,
+      "material": "files/src/xui_code_document.c",
+      "reviewDiff": "diffs/xui_code_document.c.patch",
+      "reviewDiffSha256": "ec4336abdfd47582e5b64da43b1f622e6d22892bb8002e9bffe429924a8f4005"
+    },
+    {
+      "path": "src/xge_svg.c",
+      "beforeSha256": "4b56530b5b2a4260feb3399827bd04461a052036c682a01525416fd45f8c9f7a",
+      "afterSha256": "05a554994a29d6117ca7c2ea4c0f26f1ffa0c9a3d4b519dc30210ce8e2db8a43",
+      "size": 716962,
+      "material": "files/src/xge_svg.c",
+      "reviewDiff": "diffs/xge_svg.c.patch",
+      "reviewDiffSha256": "21df6bfa2c1526565f9bf696c8a05bf86c21467ea943e7a795edf055f038ecdb"
+    }
+  ],
+  "sourceFileCount": 237,
+  "publicHeadersChanged": false,
+  "apiExportsChangeIntended": false,
+  "runtimeOwner": "xge.dll",
+  "experimentBuild": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-viewport-v15-build.json",
+  "experimentBuildSha256": "960249b0418f4ff89b7638ca08cd7f03852ff58aab346810b6d7c4b7b8378721",
+  "unicodeClassEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-class-v3.json",
+  "unicodeClassEquivalenceSha256": "34d1e188329f2f3be35713ec737a61bdefed2a4327acd388f500672051a32e01",
+  "emojiRootEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-lookup-v5.json",
+  "emojiRootEquivalenceSha256": "12c2ff4f94f155ae79dfd7eef292f520fb9372f2684889b5845d41b276f551ff",
+  "note": "Private fourth adaptation: whole SDK strict cold build succeeded; current six application tests and 16 native comparisons passed. Long-line performance, full SDK replacement and release acceptance remain pending.",
+  "visibleRangeEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-visible-v12-equivalence.json",
+  "visibleRangeEquivalenceSha256": "b72476c5526c7f5dceb4f79a3ed0acdb651b158a20a2baba05ae8b5acab44eee",
+  "previousBundleManifest": "D:\\GIT\\x-lang\\ide\\third_party\\sdk_patches\\large-source-experiment-v3\\patch-manifest.json",
+  "previousBundleManifestSha256": "7fd8d287280a0a3ad02e698af701c2609757f8f1f9acc38962f624bde6544d0f",
+  "newChange": "Use the actual transformed outer SVG clip to skip recursive bounds for invisible screen-space emoji; no glyph or text cache.",
+  "positionEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-v1-run.json",
+  "positionEquivalenceSha256": "35119bdecc3cbe9cefc62eaf770c069f07b592db88f254d9043bb408722d11ca",
+  "positionComparison": "D:\\GIT\\x-lang\\ide\\build\\editor-position-comparison-v1.json",
+  "positionComparisonSha256": "6b1b2ec56e48d5250e8f253112843915cacdd02deb612b0020cd8690481dc840",
+  "functionalChecks": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-viewport-v15-v1-checks.json",
+  "functionalChecksSha256": "0e738b8133ffd63a1514c313d31d723afac104d828a160b8851373e48fb97fae",
+  "applicationChecks": "D:\\GIT\\x-lang\\ide\\build\\editor-render-application-v1-checks.json",
+  "applicationChecksSha256": "05c8e398607f596ebbf09e18e8dc5624438fa4fdf73a5edb8209e3969716e68d",
+  "equivalenceTestMaterials": [
+    {
+      "path": "tests/old_model.c",
+      "sha256": "fa70c1569bf22a6217e324064dd9d0ce17ed768994790b13db72a2762fcecd9e",
+      "size": 47116,
+      "original": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-a2af835bdf96\\old_model.c"
+    },
+    {
+      "path": "tests/new_model.c",
+      "sha256": "7e37ceb428382400af4a8219c4608877e43485039fc55fb0a04c52b85c5d0591",
+      "size": 48682,
+      "original": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-a2af835bdf96\\new_model.c"
+    },
+    {
+      "path": "tests/models.h",
+      "sha256": "59a63e0b917bfcb3f2e344aeb4e2822fd005af8af8e22715b770383920802475",
+      "size": 5363,
+      "original": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-a2af835bdf96\\models.h"
+    },
+    {
+      "path": "tests/position_test.c",
+      "sha256": "c2c01f4c38411ff0999e86247d13458124a3b035467fbdaad41755c32c90c38b",
+      "size": 8854,
+      "original": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-a2af835bdf96\\position_test.c"
+    }
+  ],
+  "wholeSdkWerror": true,
+  "outerClipEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-outer-clip-fixture-v2-run.json",
+  "outerClipEquivalenceSha256": "b2b54a55f1670f04c12e8eca29cd7c7db89cedb5897313c34ecc76340e6eeaef",
+  "outerClipTestMaterials": [
+    {
+      "path": "tests/old_emoji_draw.c",
+      "sha256": "e3c07d0024874bb762171c1e5210b3f54fcf6862bf27f2cd198e6ba0c1d4d7aa",
+      "size": 1240
+    },
+    {
+      "path": "tests/outer_clip_test.c",
+      "sha256": "607272ab154a8a6332e5e3f79673e0d2d4e908cb2418dc46b050d6beb42e2e93",
+      "size": 7943
+    }
+  ],
+  "renderComparison": "D:\\GIT\\x-lang\\ide\\build\\editor-render-comparison-v1.json",
+  "renderComparisonSha256": "7589ae2426d4318c0be58073b1fff51cf215ea899f260a08791bce179006d500",
+  "exports": "D:\\GIT\\x-lang\\ide\\build\\editor-render-exports-v1.json",
+  "exportsSha256": "3e19fec14e6adfa00c87d12e60d92304154e44b5c9e0b729d96b6150c9c6045c",
+  "profileObservation": "D:\\GIT\\x-lang\\ide\\build\\editor-performance-render-profile-sdk13-c16-v1-run.json",
+  "profileObservationSha256": "b8640c70acc6810559ce5e9835ab2c5638a26f78965b8e7e0158a81a89d011eb"
+}

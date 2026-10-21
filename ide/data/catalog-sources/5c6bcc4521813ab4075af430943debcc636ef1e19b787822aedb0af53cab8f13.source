@@ -1,0 +1,204 @@
+// op - Window binding, screen capture, color/image finding, mouse/keyboard simulation,
+//      memory R/W, process enumeration, clipboard, image operations.
+// Pure Win32 API implementation (user32 + gdi32 + kernel32). No COM, TCC-compatible.
+
+extern "xl6_xrt_last_error_text" func __op_error() as string
+
+export class Op
+    native point handle
+    extern "xop_create" create()
+    extern "xop_destroy" destroy()
+
+    // lifecycle & binding
+    extern "xop_bind_window" func bindWindow(int hwnd, string display, string mouse, string keypad, int mode) as int
+    extern "xop_unbind" func unbind() as int
+    extern "xop_is_bind" func isBind() as int
+    extern "xop_get_bind_window" func getBindWindow() as int
+
+    // image & color
+    extern "xop_get_color" func getColor(int x, int y) as string
+    extern "xop_get_colors" func getColors(int x1, int y1, int x2, int y2) as string
+    extern "xop_capture" func capture(int x1, int y1, int x2, int y2, string file) as int
+    extern "xop_capture_to_mem" func captureToMem(int x1, int y1, int x2, int y2) as string
+    extern "xop_find_color" func findColor(int x1, int y1, int x2, int y2, string color, float sim, int dir) as string
+    extern "xop_find_color_ex" func findColorEx(int x1, int y1, int x2, int y2, string color, float sim, int dir) as string
+    extern "xop_find_color_block" func findColorBlock(int x1, int y1, int x2, int y2, string color, float sim, int width, int height) as string
+    extern "xop_get_color_num" func getColorNum(int x1, int y1, int x2, int y2, string color, float sim) as int
+    extern "xop_find_multi_color" func findMultiColor(int x1, int y1, int x2, int y2, string firstColor, string offsetColor, float sim, int dir) as string
+    extern "xop_find_pic" func findPic(int x1, int y1, int x2, int y2, string picFile, string deltaColor, float sim, int dir) as string
+    extern "xop_find_pic_ex" func findPicEx(int x1, int y1, int x2, int y2, string picFile, string deltaColor, float sim, int dir) as string
+    extern "xop_find_pic_n" func findPicN(int x1, int y1, int x2, int y2, string picFiles, string deltaColor, float sim, int dir) as string
+    extern "xop_get_frame_info" func getFrameInfo() as string
+    extern "xop_image_compare" func imageCompare(int x1, int y1, int x2, int y2, string picFile, float sim) as float
+    extern "xop_image_hash" func imageHash(int x1, int y1, int x2, int y2) as string
+
+    // mouse
+    extern "xop_move_to" func moveTo(int x, int y) as int
+    extern "xop_move_to_smooth" func moveToSmooth(int x, int y, int steps, int delay) as int
+    extern "xop_left_click" func leftClick() as int
+    extern "xop_right_click" func rightClick() as int
+    extern "xop_middle_click" func middleClick() as int
+    extern "xop_left_down" func leftDown() as int
+    extern "xop_left_up" func leftUp() as int
+    extern "xop_right_down" func rightDown() as int
+    extern "xop_right_up" func rightUp() as int
+    extern "xop_wheel_up" func wheelUp() as int
+    extern "xop_wheel_down" func wheelDown() as int
+    extern "xop_drag_to" func dragTo(int x1, int y1, int x2, int y2) as int
+    extern "xop_drag_path" func dragPath(string points, int delay) as int
+
+    // keyboard
+    extern "xop_key_press" func keyPress(int vkCode) as int
+    extern "xop_key_down" func keyDown(int vkCode) as int
+    extern "xop_key_up" func keyUp(int vkCode) as int
+    extern "xop_key_press_str" func keyPressStr(string str, int delay) as int
+    extern "xop_key_char" func keyChar(int charCode) as int
+    extern "xop_key_combo" func keyCombo(string combo) as int
+end
+
+// module-level: window management
+extern "xop_find_window" func __op_find_window(string className, string title) as int
+extern "xop_enum_window" func __op_enum_window(int parent, string title, string className, int filter) as string
+extern "xop_enum_window_by_process" func __op_enum_window_by_process(string process, string title, string className, int filter) as string
+extern "xop_get_screen_size" func __op_get_screen_size() as string
+extern "xop_get_cursor_pos" func __op_get_cursor_pos() as string
+extern "xop_get_window_rect" func __op_get_window_rect(int hwnd) as string
+extern "xop_move_window" func __op_move_window(int hwnd, int x, int y) as int
+extern "xop_set_window_size" func __op_set_window_size(int hwnd, int w, int h) as int
+extern "xop_get_window_title" func __op_get_window_title(int hwnd) as string
+extern "xop_set_window_title" func __op_set_window_title(int hwnd, string title) as int
+extern "xop_set_window_state" func __op_set_window_state(int hwnd, int mode) as int
+extern "xop_send_string" func __op_send_string(int hwnd, string str) as int
+extern "xop_client_to_screen" func __op_client_to_screen(int hwnd, int x, int y) as string
+extern "xop_screen_to_client" func __op_screen_to_client(int hwnd, int x, int y) as string
+
+// module-level: memory R/W
+extern "xop_read_int" func __op_read_int(int pid, int addr) as int
+extern "xop_read_float" func __op_read_float(int pid, int addr) as float
+extern "xop_read_string" func __op_read_string(int pid, int addr, int len) as string
+extern "xop_write_int" func __op_write_int(int pid, int addr, int value) as int
+extern "xop_write_float" func __op_write_float(int pid, int addr, float value) as int
+extern "xop_write_string" func __op_write_string(int pid, int addr, string value) as int
+extern "xop_find_memory" func __op_find_memory(int pid, int startAddr, int endAddr, string pattern) as string
+
+// module-level: process
+extern "xop_enum_process" func __op_enum_process(string filter) as string
+extern "xop_get_process_modules" func __op_get_process_modules(int pid) as string
+
+// module-level: system tools
+extern "xop_delay" func __op_delay(int ms)
+extern "xop_random_int" func __op_random_int(int min, int max) as int
+extern "xop_set_clipboard" func __op_set_clipboard(string text) as int
+extern "xop_get_clipboard" func __op_get_clipboard() as string
+
+export func create() as Op
+    return Op()
+end
+
+export func findWindow(string className, string title) as int
+    return __op_find_window(className, title)
+end
+
+export func enumWindow(int parent, string title, string className, int filter) as string
+    return __op_enum_window(parent, title, className, filter)
+end
+
+export func enumWindowByProcess(string process, string title, string className, int filter) as string
+    return __op_enum_window_by_process(process, title, className, filter)
+end
+
+export func getScreenSize() as string
+    return __op_get_screen_size()
+end
+
+export func getCursorPos() as string
+    return __op_get_cursor_pos()
+end
+
+export func getWindowRect(int hwnd) as string
+    return __op_get_window_rect(hwnd)
+end
+
+export func moveWindow(int hwnd, int x, int y) as int
+    return __op_move_window(hwnd, x, y)
+end
+
+export func setWindowSize(int hwnd, int w, int h) as int
+    return __op_set_window_size(hwnd, w, h)
+end
+
+export func getWindowTitle(int hwnd) as string
+    return __op_get_window_title(hwnd)
+end
+
+export func setWindowTitle(int hwnd, string title) as int
+    return __op_set_window_title(hwnd, title)
+end
+
+export func setWindowState(int hwnd, int mode) as int
+    return __op_set_window_state(hwnd, mode)
+end
+
+export func sendString(int hwnd, string str) as int
+    return __op_send_string(hwnd, str)
+end
+
+export func clientToScreen(int hwnd, int x, int y) as string
+    return __op_client_to_screen(hwnd, x, y)
+end
+
+export func screenToClient(int hwnd, int x, int y) as string
+    return __op_screen_to_client(hwnd, x, y)
+end
+
+export func readInt(int pid, int addr) as int
+    return __op_read_int(pid, addr)
+end
+
+export func readFloat(int pid, int addr) as float
+    return __op_read_float(pid, addr)
+end
+
+export func readString(int pid, int addr, int len) as string
+    return __op_read_string(pid, addr, len)
+end
+
+export func writeInt(int pid, int addr, int value) as int
+    return __op_write_int(pid, addr, value)
+end
+
+export func writeFloat(int pid, int addr, float value) as int
+    return __op_write_float(pid, addr, value)
+end
+
+export func writeString(int pid, int addr, string value) as int
+    return __op_write_string(pid, addr, value)
+end
+
+export func findMemory(int pid, int startAddr, int endAddr, string pattern) as string
+    return __op_find_memory(pid, startAddr, endAddr, pattern)
+end
+
+export func enumProcess(string filter) as string
+    return __op_enum_process(filter)
+end
+
+export func getProcessModules(int pid) as string
+    return __op_get_process_modules(pid)
+end
+
+export func delay(int ms)
+    __op_delay(ms)
+end
+
+export func randomInt(int min, int max) as int
+    return __op_random_int(min, max)
+end
+
+export func setClipboard(string text) as int
+    return __op_set_clipboard(text)
+end
+
+export func getClipboard() as string
+    return __op_get_clipboard()
+end

@@ -1,0 +1,140 @@
+--- a/src/xge_emoji.c
++++ b/src/xge_emoji.c
+@@ -28,6 +28,11 @@
+ 	uint32_t iFlags;
+ } xge_emoji_trie_node_t;
+ 
++typedef struct xge_emoji_root_entry_t {
++    uint32_t iCodepoint;
++    int iNode;
++} xge_emoji_root_entry_t;
++
+ struct xge_emoji_pack_t {
+ 	volatile int iRefCount;
+ 	xge_emoji_entry_t* pEntries;
+@@ -36,6 +41,9 @@
+ 	xge_emoji_trie_node_t* pNodes;
+ 	int iNodeCount;
+ 	int iNodeCapacity;
++	xge_emoji_root_entry_t* pRootEntries;
++	int iRootEntryCount;
++	int iRootEntryCapacity;
+ 	const unsigned char* pDictionary;
+ 	int iDictionarySize;
+ 	void* pZstdContext;
+@@ -171,10 +179,52 @@
+ 	return XGE_OK;
+ }
+ 
++static int __xgeEmojiRootLowerBound(xge_emoji_pack pPack, uint32_t iCodepoint)
++{
++    int iLow = 0, iHigh = pPack->iRootEntryCount;
++    while ( iLow < iHigh ) {
++        int iMiddle = iLow + (iHigh - iLow) / 2;
++        if ( pPack->pRootEntries[iMiddle].iCodepoint < iCodepoint ) iLow = iMiddle + 1;
++        else iHigh = iMiddle;
++    }
++    return iLow;
++}
++
++static int __xgeEmojiEnsureRootEntries(xge_emoji_pack pPack, int iRequired)
++{
++    int iCapacity;
++    xge_emoji_root_entry_t* pEntries;
++    if ( iRequired <= pPack->iRootEntryCapacity ) return XGE_OK;
++    iCapacity = pPack->iRootEntryCapacity > 0 ? pPack->iRootEntryCapacity * 2 : 32;
++    if ( iCapacity < iRequired ) iCapacity = iRequired;
++    pEntries = (xge_emoji_root_entry_t*)xrtRealloc(pPack->pRootEntries,
++        sizeof(*pEntries) * (size_t)iCapacity);
++    if ( pEntries == NULL ) return XGE_ERROR_OUT_OF_MEMORY;
++    pPack->pRootEntries = pEntries;
++    pPack->iRootEntryCapacity = iCapacity;
++    return XGE_OK;
++}
++
++static void __xgeEmojiRootInsert(xge_emoji_pack pPack, uint32_t iCodepoint, int iNode)
++{
++    int iAt = __xgeEmojiRootLowerBound(pPack, iCodepoint);
++    memmove(pPack->pRootEntries + iAt + 1, pPack->pRootEntries + iAt,
++        sizeof(*pPack->pRootEntries) * (size_t)(pPack->iRootEntryCount - iAt));
++    pPack->pRootEntries[iAt].iCodepoint = iCodepoint;
++    pPack->pRootEntries[iAt].iNode = iNode;
++    ++pPack->iRootEntryCount;
++}
++
+ static int __xgeEmojiFindChild(xge_emoji_pack pPack, int iParent, uint32_t iCodepoint)
+ {
+ 	int iNode;
+ 
++    if ( iParent == 0 ) {
++        int iAt = __xgeEmojiRootLowerBound(pPack, iCodepoint);
++        return iAt < pPack->iRootEntryCount &&
++            pPack->pRootEntries[iAt].iCodepoint == iCodepoint ?
++            pPack->pRootEntries[iAt].iNode : -1;
++    }
+ 	iNode = pPack->pNodes[iParent].iChild;
+ 	while ( iNode >= 0 ) {
+ 		if ( pPack->pNodes[iNode].iCodepoint == iCodepoint ) return iNode;
+@@ -204,6 +254,8 @@
+ 		iCodepointCount++;
+ 	}
+ 	iRet = __xgeEmojiEnsureNodes(pPack, pPack->iNodeCount + iCodepointCount);
++	if ( iRet != XGE_OK ) return iRet;
++	iRet = __xgeEmojiEnsureRootEntries(pPack, pPack->iRootEntryCount + 1);
+ 	if ( iRet != XGE_OK ) return iRet;
+ 	iParent = 0;
+ 	sScan = sSequence;
+@@ -217,6 +269,7 @@
+ 			pPack->pNodes[iNode].iSibling = pPack->pNodes[iParent].iChild;
+ 			pPack->pNodes[iNode].iEntry = -1;
+ 			pPack->pNodes[iParent].iChild = iNode;
++			if ( iParent == 0 ) __xgeEmojiRootInsert(pPack, iCodepoint, iNode);
+ 		}
+ 		iParent = iNode;
+ 	}
+@@ -332,6 +385,7 @@
+ 	xrtMutexDestroy(pPack->pCacheMutex);
+ 	xrtFree(pPack->pEntries);
+ 	xrtFree(pPack->pNodes);
++	xrtFree(pPack->pRootEntries);
+ 	xrtFree(pPack);
+ }
+ 
+@@ -893,6 +947,18 @@
+ 	return XGE_OK;
+ }
+ 
++static int __xgeTextOutsidePixelClip(xge_rect_t tBounds, xge_rect_i_t tClip)
++{
++    /* Keep a two-pixel fringe for antialiasing and fractional bounds. */
++    if ( tClip.iW <= 0 || tClip.iH <= 0 || tBounds.fW < 0.0f || tBounds.fH < 0.0f ||
++         !isfinite(tBounds.fX) || !isfinite(tBounds.fY) ||
++         !isfinite(tBounds.fW) || !isfinite(tBounds.fH) ) return 0;
++    return (double)tBounds.fX + tBounds.fW < (double)tClip.iX - 2.0 ||
++        (double)tBounds.fY + tBounds.fH < (double)tClip.iY - 2.0 ||
++        (double)tBounds.fX > (double)tClip.iX + tClip.iW + 2.0 ||
++        (double)tBounds.fY > (double)tClip.iY + tClip.iH + 2.0;
++}
++
+ static int __xgeEmojiDraw(xge_emoji_pack pPack, uint32_t iEmojiId, xge_rect_t tDst,
+ 	int bScreenSpace)
+ {
+@@ -913,6 +979,18 @@
+ 	}
+ 	xrtMutexUnlock(pPack->pCacheMutex);
+ 	if ( iRet != XGE_OK ) return iRet;
++    if ( bScreenSpace ) {
++        xge_rect_i_t tPixelClip = xgeClipGetPixels();
++        if ( __xgeTextOutsidePixelClip(tDst, tPixelClip) ) {
++            xge_rect_t tPaintBounds;
++            /* A custom SVG may paint outside its nominal viewport. */
++            if ( xgeSvgGetDrawBounds(pSvg, tDst, 0.35f, &tPaintBounds) == XGE_OK &&
++                 __xgeTextOutsidePixelClip(tPaintBounds, tPixelClip) ) {
++                xgeSvgDestroy(pSvg);
++                return XGE_OK;
++            }
++        }
++    }
+ 	iRet = bScreenSpace ? xgeSvgDrawPx(pSvg, tDst, 0.35f) : xgeSvgDraw(pSvg, tDst, 0.35f);
+ 	xgeSvgDestroy(pSvg);
+ 	return iRet;

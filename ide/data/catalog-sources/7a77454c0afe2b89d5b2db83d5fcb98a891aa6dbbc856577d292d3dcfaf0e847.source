@@ -1,0 +1,30 @@
+{
+    "format": "xlang-package-1",
+    "name": "xml.sax",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "xrt_xml_common.c",
+            "xrt_xml_sax.c",
+            "xml_sax_native.c"
+        ],
+        "xlSources": ["src/sax.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [
+        {
+            "name": "_expat",
+            "version": "2.8.2",
+            "abiVersion": "1"
+        }
+    ],
+    "native": {
+        "singleton": false,
+        "loadName": "",
+        "version": ""
+    }
+}

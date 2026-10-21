@@ -1,0 +1,141 @@
+# lz4
+
+标准 LZ4 Frame 编解码、增量对象、文件事务及同步进度回调。复用官方 LZ4F 和
+XRT 的缓冲、文件、错误、资源限额，不要求额外安装压缩 DLL。
+
+## 快速使用
+
+```xlang
+import lz4
+
+Buffer packed = lz4.compress("hello 世界", acceleration = 4)
+assert lz4.decompressText(packed) == "hello 世界"
+
+auto encoder = lz4.compressor()
+encoder.update("left")
+Buffer wire = encoder.drain()
+encoder.update("right")
+encoder.finish()
+wire.append(encoder.drain())
+assert lz4.decompressText(wire) == "leftright"
+```
+
+任意二进制数据使用 Buffer，包括 NUL 和无效 UTF-8 字节。string 重载面向文本，
+长度通过 string.byteLen 传递；当前共享字符串桥对嵌入 NUL 的限制没有由本库解决。
+decompressText 使用 Buffer.text，不应将它用于任意二进制输出。
+
+## xlang API
+
+下列签名均位于 lz4 模块；同名函数只使用这里列出的参数顺序。
+
+```text
+version() as string
+compress(Buffer|string data, int acceleration=1,
+    int maxInput=268435456, int maxOutput=536870912) as Buffer
+decompress(Buffer data, int maxInput=268435456,
+    int maxOutput=536870912, int maxRatio=1000) as Buffer
+decompressText(Buffer data, int maxInput=268435456,
+    int maxOutput=536870912, int maxRatio=1000) as string
+compressor(int acceleration=1, int maxInput=268435456,
+    int maxOutput=536870912) as Lz4Compressor
+decompressor(int maxInput=268435456, int maxOutput=536870912,
+    int maxRatio=1000) as Lz4Decompressor
+compressFile(string source, string destination, int acceleration=1,
+    bool overwrite=true, int maxInput=268435456, int maxOutput=536870912,
+    (func(int, int, int) as bool)? onProgress=null)
+decompressFile(string source, string destination, bool overwrite=true,
+    int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000,
+    (func(int, int, int) as bool)? onProgress=null)
+```
+
+压缩加速因子范围 1..65537，常量为 LZ4_MIN_ACCELERATION、
+LZ4_MAX_ACCELERATION、LZ4_DEFAULT_ACCELERATION；不是 HC 压缩等级。
+便捷函数要求正数限额，maxRatio 必须能放入 uint32。
+
+| 对象 | 方法 | 只读属性 |
+| --- | --- | --- |
+| Lz4Compressor | update(Buffer)、update(string)、drain() as Buffer、finish() as bool | valid、inputBytes、outputBytes |
+| Lz4Decompressor | update(Buffer)、drain() as Buffer、finish() as bool | valid、inputBytes、outputBytes、finished、members |
+
+优先使用 compressor/decompressor 工厂。原生类构造器的参数分别为
+`(c_int, c_ulonglong, c_ulonglong)` 和 `(c_ulonglong, c_ulonglong, c_uint)`，
+遵循 C 限额合同，零表示关闭对应限制，不等同便捷工厂的正数校验。
+计数器累计输入/输出字节，drain 不会重置它们；超过 xlang int 范围时报 RangeError。
+
+## 流状态和格式
+
+- 压缩产生独立 64 KiB 块，开启块与内容校验和。解压接受标准大小、关联/独立块、
+  拼接数据帧和 16 种 skippable 帧；非零外部字典 ID 不支持。
+- 空内容压缩生成有效空帧；零字节压缩输入是截断错误。完整 skip-only 流可解出空结果。
+- finished 表示当前处于完整帧边界，不表示调用方再也不能 update 下一帧。
+  members 只统计已完成的普通帧，不统计 skippable；最终仍须调用 finish 校验尾部。
+- finish 成功后重复调用成功；之后 update 失败。drain 转移当前结果的拥有权，
+  无数据返回空 Buffer；finish 不会代替最后一次 drain。
+- 参数错误可纠正；数据、限额、IO 和重入错误使对象进入失败终态，须创建新对象。
+  drain 的替换空缓冲分配失败时，原输出保留，可在内存恢复后重试。
+- 对象串行使用；独立对象可用于不同线程。同一个对象不能从其 writer 回调重入或销毁，
+  也不支持多个线程无锁同时操作。
+
+maxInput/maxOutput 为累计字节。解压 maxRatio 按每个数据帧已消费输入计算，
+其他帧及 skippable 数据不能稀释比例；这是逐前缀启发式限制，不是仅比较最终比值。
+C 的 maxEntries 默认 100000，包含数据帧和 skippable 帧。其他通用资源限额字段未被
+本编解码器使用。输入默认 256 MiB、输出 512 MiB、倍率 1000。
+这些不是 CPU 超时或工作内存上限；上游解码器另需标准块和历史窗口的工作空间。
+
+drain/Writer 已交出的前缀无法撤回，完整 finish 成功前不要把它视为已校验数据。
+校验和用于检测损坏，不是加密认证。本接口仅定义标准 Frame，不提供其他私有外层格式。
+
+## 文件和进度
+
+文件接口使用同目录临时文件，完整处理、最终回调、flush/close 成功后才提交。
+支持源与目标同路径。overwrite=false 同时检查初始存在和提交竞争；失败保留原目标，
+并清理本次临时文件。此处不承诺断电持久性，也无法保证操作系统拒绝删除时仍能清理。
+
+onProgress 同步收到 `(inputBytes, totalBytes, outputBytes)`；返回 false 抛
+CancelledError，抛异常则保留其类型、消息及错误因果链。最终通知也可以取消。
+回调可操作其他独立编解码器，不能重入当前对象。流式 C 接口未知总量时 totalBytes 为 0，
+支持 size/tell 的 reader 从当前游标计算剩余总量。
+
+参数错误为 ValueError，限额为 RangeError，状态为 RuntimeError，内存不足为
+MemoryError，压缩数据损坏/截断及文件 IO 为 IOError。C 层保留更细的 xrtlz4status；
+底层 IO 或回调已有错误时不改写为泛化的压缩错误。
+
+## C API 与所有权
+
+[xrt_lz4.h](include/xrt_lz4.h) 是完整公共合同，C 可独立使用，不依赖 xlang。
+options 必须先调用 xrtLz4OptionsInit；传 NULL 使用默认值。版本、结构大小和保留位均校验。
+原始 C 数据借用至调用返回；调用成功得到的 xbuffer 用 xrtBufferDestroy 释放。
+
+- 一次性：xrtLz4Compress / xrtLz4Decompress。
+- 增量：xrtLz4Compressor* / xrtLz4Decompressor*，包含 Update、Finish、Drain、
+  DrainBuffer、TakeBuffer、计数和 Error。TakeBuffer 只能完成后取走一次。
+- 流：xrtLz4CompressStream / xrtLz4DecompressStream，借用 xreader/xwriter，
+  不关闭或 flush，进度使用普通 xrtprogressproc 和 user 指针。
+- 文件：xrtLz4CompressFile / xrtLz4DecompressFile，与 XL 共用同一事务实现。
+
+基础 C 实现只需要 XRT；lz4_native.c 中的语言 callable 适配另需 xruntime。
+只链接一份 XRT/xruntime，不创建第二套堆。打包源码见 xlang.package.json，
+第三方来源、符号隔离和许可见 [VENDOR.md](VENDOR.md)。
+
+## 范例与验证
+
+发行目录中的 `examples/extlibs/lz4.xl` 为综合范例；lz4_basic.xl、lz4_files.xl
+与 [basic.c](examples/basic.c)、[files.c](examples/files.c) 使用相同输入和黄金输出。
+在 demo6 源码目录可执行：
+
+```powershell
+./release/xl.exe run release/examples/extlibs/lz4_basic.xl
+./tools/run_extlib_c.ps1 -Package lz4 -Source release/extlibs/lz4/examples/basic.c
+./tools/check_extlib_lz4.ps1 -Interop
+```
+
+`-Interop` 要求 WSL、Python 3 和系统 liblz4，缺少依赖时报错，不作静默跳过。
+Linux C 门禁：`bash tools/check_extlib_lz4.sh`，当前独立参照路径为
+`/usr/lib/x86_64-linux-gnu/liblz4.so.1`。普通 Windows 门禁不带 -Interop 时仍运行
+C/XL 边界、JIT/AOT、原型和双语范例，但不能据此宣称独立互操作已验证。
+
+2026-09-28 已执行 Windows 63 步专项：23 个实际生成原型、C 严格编译、分配失败、
+短读短写、回调取消/错误/重入、文件提交竞争、四线程 1000 轮，以及 C/XL JIT/AOT。
+Windows 驱动和 Linux 独立 C 驱动各通过 514 项系统 liblz4 互操作检查；Linux 同时
+开启 ASan/UBSan 和泄漏检测。包内 boundaries.xl 还验证与 xxhash 同时链接。
+这些不是 Linux xlang、32 位平台、TSan、长期压力或性能基准的通过证明。

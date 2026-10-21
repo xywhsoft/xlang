@@ -1,0 +1,16 @@
+{
+    "format": "xlang-package-1",
+    "name": "gettext",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["gettext_native.c"],
+        "xlSources": ["src/gettext.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

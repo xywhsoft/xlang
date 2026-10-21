@@ -1,0 +1,12 @@
+{
+    "name": "sentencepiece",
+    "version": "1.0.0",
+    "format": "xlang-package-1",
+    "kind": "demo6-extlib",
+    "abiVersion": "1",
+    "dependencies": [],
+    "links": [],
+    "loadlibs": [],
+    "native": { "singleton": false, "loadName": "", "version": "" },
+    "artifact": { "kind": "source", "cSources": ["sentencepiece_native.c"], "xlSources": ["src/sentencepiece.xl"] }
+}

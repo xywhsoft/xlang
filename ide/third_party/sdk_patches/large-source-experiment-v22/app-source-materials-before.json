@@ -1,0 +1,54 @@
+{
+  "files": [
+    {
+      "path": "src/platform/dpi_proxy.h",
+      "sha256": "aa16c486a85650752ce33999838180664d91c671730ae327e827d73f7f5164b1"
+    },
+    {
+      "path": "src/platform/dpi_proxy.c",
+      "sha256": "586751d845d615de1cffec2b704300ddc5991bf0db0156c181d710b84953651d"
+    },
+    {
+      "path": "src/editor/documents.c",
+      "sha256": "45d713054c07d2118d965a82f07b0726155ae249d8eb4ada000eedf017926c51"
+    },
+    {
+      "path": "src/ui/catalog_view.c",
+      "sha256": "383cde56ce5225f5ec5d9babf6ed557910ec8f6bd2bf6ae8d8c739ce5755da43"
+    },
+    {
+      "path": "src/ui/file_changes_view.c",
+      "sha256": "1716b7359b06d7b9cf7a7ff2d39e2836d06de335721189aa66b7951a1300a049"
+    },
+    {
+      "path": "src/ui/font_view.c",
+      "sha256": "7442026737ade97e83667cbe80177349a1bf9d43af55cbdbdd91f45d7405ab0c"
+    },
+    {
+      "path": "src/ui/help_document.c",
+      "sha256": "131103de91f9b1ea1fe6ef23e8854b424b84d9ae6e1ab1a1c99b18bb355da83d"
+    },
+    {
+      "path": "src/ui/recovery_view.c",
+      "sha256": "e3845d29fb721bfa64354682310e497fc8bad59596069ba4a347db3dce714490"
+    },
+    {
+      "path": "src/ui/template_view.c",
+      "sha256": "f9b2faef9e3b863165376ba339821017c4bfa44c1ad6f7c12c3a437b3ce9aef6"
+    },
+    {
+      "path": "src/ui/workbench.c",
+      "sha256": "ba96e3ed02b6e1949d6332b3bf8478a11a5064741dccdc3c1a905089ce421de6"
+    }
+  ],
+  "constructorSourceFiles": [
+    "src/editor/documents.c",
+    "src/ui/catalog_view.c",
+    "src/ui/file_changes_view.c",
+    "src/ui/font_view.c",
+    "src/ui/help_document.c",
+    "src/ui/recovery_view.c",
+    "src/ui/template_view.c",
+    "src/ui/workbench.c"
+  ]
+}

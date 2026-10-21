@@ -1,0 +1,30 @@
+﻿{
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               },
+    "kind":  "demo6-extlib",
+    "version":  "1.0.0",
+    "format":  "xlang-package-1",
+    "dependencies":  [
+
+                     ],
+    "artifact":  {
+                     "cSources":  [
+                                      "zeromq_native.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/zeromq.xl"
+                                   ],
+                     "kind":  "source"
+                 },
+    "name":  "zeromq",
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "abiVersion":  "1"
+}

@@ -1,0 +1,158 @@
+--- original/src/xui_code_edit.c
++++ experiment/src/xui_code_edit.c
+@@ -193,6 +193,22 @@
+ 	int iReadRangeStart;
+ 	int iReadRangeEnd;
+ 	uint32_t iReadVersion;
++	/* Two viewport results share one owned-buffer validity context. */
++	int bVisibleRangeCached;
++	xui_code_document pVisibleRangeDocument;
++	uint32_t iVisibleRangeVersion;
++	int iVisibleRangeReadStart;
++	int iVisibleRangeReadEnd;
++	int iVisibleRangeFirstColumn;
++	int iVisibleRangeLastColumn;
++	int iVisibleRangeTabColumns;
++	int iVisibleRangeStart;
++	int iVisibleRangeEnd;
++	int bVisibleRangeSecondCached;
++	int iVisibleRangeSecondFirstColumn;
++	int iVisibleRangeSecondLastColumn;
++	int iVisibleRangeSecondStart;
++	int iVisibleRangeSecondEnd;
+ 	uint32_t iEditNotifyVersion;
+ 	int iEditNotifyAnchor;
+ 	int iEditNotifyCaret;
+@@ -833,13 +849,21 @@
+ 	return iLineEnd;
+ }
+ 
+-static void __xuiCodeEditVisibleByteRange(const xui_code_edit_data_t* pData, const char* sText, int iLineStart, int iLineEnd, float fColumnWidth, float fViewportWidth, int* pStart, int* pEnd)
++static void __xuiCodeEditVisibleByteRange(xui_code_edit_data_t* pData, const char* sText, int iLineStart, int iLineEnd, float fColumnWidth, float fViewportWidth, int* pStart, int* pEnd)
+ {
+ 	int iFirstColumn;
+ 	int iLastColumn;
+ 	int iVisibleColumns;
+ 	int iStart;
+ 	int iEnd;
++	int i;
++	int iColumn;
++	int iNextColumn;
++	int iTabColumns;
++	int bOwnRead;
++	int bHaveStart;
++	int bCacheContext;
++	uint32_t iCodepoint;
+ 
+ 	if ( pStart != NULL ) *pStart = iLineStart;
+ 	if ( pEnd != NULL ) *pEnd = iLineEnd;
+@@ -849,11 +873,73 @@
+ 	iVisibleColumns = (int)(fViewportWidth / fColumnWidth) + 24;
+ 	if ( iVisibleColumns < 32 ) iVisibleColumns = 32;
+ 	iLastColumn = iFirstColumn + iVisibleColumns;
+-	iStart = __xuiCodeEditLineOffsetFromVisualColumn(pData, sText, iLineStart, iLineEnd, iFirstColumn);
+-	iEnd = __xuiCodeEditLineOffsetFromVisualColumn(pData, sText, iLineStart, iLineEnd, iLastColumn);
+-	if ( iStart < iLineStart ) iStart = iLineStart;
+-	if ( iEnd > iLineEnd ) iEnd = iLineEnd;
+-	if ( iEnd < iStart ) iEnd = iStart;
++	iTabColumns = __xuiCodeEditTabColumns(pData);
++	bOwnRead = pData->pDocument != NULL && sText == pData->sReadBuffer &&
++		iLineStart == 0 && iLineEnd == pData->iReadRangeEnd - pData->iReadRangeStart &&
++		pData->iReadVersion == xuiCodeDocumentGetVersion(pData->pDocument);
++	bCacheContext = bOwnRead && pData->bVisibleRangeCached &&
++		pData->pVisibleRangeDocument == pData->pDocument &&
++		pData->iVisibleRangeVersion == pData->iReadVersion &&
++		pData->iVisibleRangeReadStart == pData->iReadRangeStart &&
++		pData->iVisibleRangeReadEnd == pData->iReadRangeEnd &&
++		pData->iVisibleRangeTabColumns == iTabColumns;
++	if ( bCacheContext && pData->iVisibleRangeFirstColumn == iFirstColumn &&
++		pData->iVisibleRangeLastColumn == iLastColumn ) {
++		iStart = pData->iVisibleRangeStart;
++		iEnd = pData->iVisibleRangeEnd;
++	} else if ( bCacheContext && pData->bVisibleRangeSecondCached &&
++		pData->iVisibleRangeSecondFirstColumn == iFirstColumn &&
++		pData->iVisibleRangeSecondLastColumn == iLastColumn ) {
++		iStart = pData->iVisibleRangeSecondStart;
++		iEnd = pData->iVisibleRangeSecondEnd;
++	} else {
++		/* Keep the old strict 'next column > target' boundary rule, but
++		   find both viewport endpoints in one grapheme traversal. */
++		iStart = iLineStart;
++		iEnd = iLineEnd;
++		bHaveStart = iFirstColumn == 0;
++		iColumn = 0;
++		for ( i = iLineStart; i < iLineEnd; ) {
++			if ( sText[i] == '\t' ) {
++				iNextColumn = iColumn + __xuiCodeEditTabAdvance(pData, iColumn);
++				i++;
++			} else {
++				i = __xuiCodeEditUtf8Next(sText, iLineEnd, i, &iCodepoint);
++				iNextColumn = iColumn + __xuiCodeEditCodepointColumns(iCodepoint);
++			}
++			if ( !bHaveStart && iNextColumn > iFirstColumn ) {
++				iStart = i;
++				bHaveStart = 1;
++			}
++			if ( iNextColumn > iLastColumn ) { iEnd = i; break; }
++			iColumn = iNextColumn;
++		}
++		if ( !bHaveStart ) iStart = iLineEnd;
++		if ( iStart < iLineStart ) iStart = iLineStart;
++		if ( iEnd > iLineEnd ) iEnd = iLineEnd;
++		if ( iEnd < iStart ) iEnd = iStart;
++		if ( bOwnRead ) {
++			/* Scroll modelling and paint use different viewport widths.
++			   Keep their last two results without retaining another text copy. */
++			pData->bVisibleRangeSecondCached = bCacheContext;
++			if ( bCacheContext ) {
++				pData->iVisibleRangeSecondFirstColumn = pData->iVisibleRangeFirstColumn;
++				pData->iVisibleRangeSecondLastColumn = pData->iVisibleRangeLastColumn;
++				pData->iVisibleRangeSecondStart = pData->iVisibleRangeStart;
++				pData->iVisibleRangeSecondEnd = pData->iVisibleRangeEnd;
++			}
++			pData->bVisibleRangeCached = 1;
++			pData->pVisibleRangeDocument = pData->pDocument;
++			pData->iVisibleRangeVersion = pData->iReadVersion;
++			pData->iVisibleRangeReadStart = pData->iReadRangeStart;
++			pData->iVisibleRangeReadEnd = pData->iReadRangeEnd;
++			pData->iVisibleRangeFirstColumn = iFirstColumn;
++			pData->iVisibleRangeLastColumn = iLastColumn;
++			pData->iVisibleRangeTabColumns = iTabColumns;
++			pData->iVisibleRangeStart = iStart;
++			pData->iVisibleRangeEnd = iEnd;
++		}
++	}
+ 	if ( pStart != NULL ) *pStart = iStart;
+ 	if ( pEnd != NULL ) *pEnd = iEnd;
+ }
+@@ -992,6 +1078,7 @@
+ 	pData->iLineLayoutCount = 0;
+ 	pData->iLineLayoutCapacity = 0;
+ 	pData->iLineLayoutUseStamp = 0;
++	pData->bVisibleRangeCached = 0;
+ }
+ 
+ static int __xuiCodeEditLineLayoutReserveSegments(xui_code_edit_line_layout_t* pLayout, int iCapacity)
+@@ -1227,6 +1314,13 @@
+ 	if ( pData == NULL || pData->pDocument == NULL || pProxy == NULL || pFont == NULL || sText == NULL ) return NULL;
+ 	if ( iTextSize < 0 ) iTextSize = (int)strlen(sText);
+ 	iVersion = xuiCodeDocumentGetVersion(pData->pDocument);
++    /* Layouts from a previous document revision can never pass the cache key.
++       Release them before shaping the new revision, rather than retaining them
++       until all 128 slots fill (and repeatedly falling back on allocation failure). */
++    if ( pData->iLineLayoutCount > 0 &&
++         pData->pLineLayouts[0].iDocumentVersion != iVersion ) {
++        __xuiCodeEditLineLayoutsClear(pData);
++    }
+ 	for ( i = 0; i < pData->iLineLayoutCount; i++ ) {
+ 		pLayout = &pData->pLineLayouts[i];
+ 		if ( pLayout->iDocumentVersion == iVersion && pLayout->pFont == pFont &&
+@@ -1442,6 +1536,8 @@
+ 		return XUI_OK;
+ 	}
+ 	iLength = iEnd - iStart;
++	/* CopyRange can replace bytes in the same allocation, even on failure. */
++	pData->bVisibleRangeCached = 0;
+ 	iRet = __xuiCodeEditTextReserve(&pData->sReadBuffer,
+ 		&pData->iReadBufferCapacity, iLength + 1);
+ 	if ( iRet != XUI_OK ) return iRet;
