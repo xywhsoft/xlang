@@ -1,7 +1,10 @@
 #define main dialBasicPlanMain
 #include "tcp_dial_language_plan.c"
 #undef main
-int main(int argc,char** argv)
+#ifndef XL6_TCP_DIAL_INTERRUPT_PLAN_ENTRY
+#define XL6_TCP_DIAL_INTERRUPT_PLAN_ENTRY main
+#endif
+int XL6_TCP_DIAL_INTERRUPT_PLAN_ENTRY(int argc,char** argv)
 {
     XL6_ArtifactRuntimeSet roots=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_TCP_DIAL_INTERRUPT_FUTURE);
     if(argc==3&&!strcmp(argv[2],"all")){

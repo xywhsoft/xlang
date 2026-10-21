@@ -1,0 +1,105 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto addresses = NetAddressList([listener.localAddress()])
+auto options = TcpDialOptions().withTimeoutMillis(5000)
+auto active = CancellationSource()
+uint64 due = time.clock() + uint64(10000000)
+TcpStream client = tcp.dialCancel(engine, addresses, active.token)
+TcpStream server = listener.accept(5000)
+assert client.state == TcpStreamState.open
+assert server.state == TcpStreamState.open
+client.abort()
+server.abort()
+client = TcpStream.dialCancel(engine, addresses, options, active.token)
+server = listener.accept(5000)
+assert client.state == TcpStreamState.open
+client.abort()
+server.abort()
+client = TcpStream.dialUntil(engine, addresses, due)
+server = listener.accept(5000)
+assert client.state == TcpStreamState.open
+client.abort()
+server.abort()
+client = tcp.dialUntil(engine, addresses, options, due)
+server = listener.accept(5000)
+assert client.state == TcpStreamState.open
+client.abort()
+server.abort()
+client = tcp.dialUntilCancel(engine, addresses, due, active.token)
+server = listener.accept(5000)
+assert client.state == TcpStreamState.open
+client.abort()
+server.abort()
+client = TcpStream.dialUntilCancel(engine, addresses, options, due, active.token)
+server = listener.accept(5000)
+assert client.state == TcpStreamState.open
+client.abort()
+server.abort()
+auto stopped = CancellationSource()
+assert stopped.cancel()
+auto resolver = NetResolver()
+int cancelled = 0
+try
+    client = tcp.dialCancel(engine, resolver, "127.0.0.1", 1234, stopped.token)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+try
+    client = TcpStream.dialCancel(engine, resolver, "127.0.0.1", 1234, options, stopped.token)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+try
+    client = tcp.dialUntilCancel(engine, resolver, "127.0.0.1", 1234, due, stopped.token)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+try
+    client = TcpStream.dialUntilCancel(engine, resolver, "127.0.0.1", 1234, options, due, stopped.token)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+try
+    client = tcp.dialCancel(engine, addresses, stopped.token)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+try
+    client = TcpStream.dialUntilCancel(engine, addresses, options, due, stopped.token)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+assert cancelled == 6
+int expired = 0
+try
+    client = tcp.dialUntil(engine, resolver, "127.0.0.1", 1234, uint64(0))
+catch TimeoutError
+    expired = expired + 1
+end
+try
+    client = TcpStream.dialUntil(engine, resolver, "127.0.0.1", 1234, options, uint64(0))
+catch TimeoutError
+    expired = expired + 1
+end
+try
+    client = tcp.dialUntil(engine, addresses, uint64(0))
+catch TimeoutError
+    expired = expired + 1
+end
+assert expired == 3
+int invalid = 0
+try
+    client = tcp.dialUntilCancel(engine, resolver, "a\0b", 1234, options, due, stopped.token)
+catch ValueError
+    invalid = invalid + 1
+end
+assert invalid == 1
+assert resolver.snapshot().submitted == 0
+assert resolver.snapshot().queriesStarted == 0
+resolver.close()
+assert resolver.wait(5000)
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("synchronous Dial controls: all twelve overloads; no language executor/deadline service or DNS")

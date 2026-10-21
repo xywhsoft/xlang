@@ -65,7 +65,10 @@ static void interruptRun(xnetportbackend backend,unsigned mode)
     xl6DeadlineServiceCloseV1(services.deadline);CHECK(xl6DeadlineServiceDestroyCompletedV1(services.deadline));
     balanced(&before);++interruptCases;
 }
-int main(int argc,char** argv)
+#ifndef XL6_TCP_DIAL_INTERRUPT_TEST_ENTRY
+#define XL6_TCP_DIAL_INTERRUPT_TEST_ENTRY main
+#endif
+int XL6_TCP_DIAL_INTERRUPT_TEST_ENTRY(int argc,char** argv)
 {
     CHECK(dialBasicRegressionMain(argc,argv)==0);CHECK(xrtMemDebugEnable(true));xnetportbackend backend=XNET_PORT_SELECT;
     if(argc>1&&!strcmp(argv[1],"native")){

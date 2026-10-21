@@ -31,6 +31,18 @@ const char* xl6StdlibTcpStreamClassSource=
     "    static extern \"xl6TcpDialV1\" func dial(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options) as TcpStream\n"
     "    static extern \"xl6TcpDialAddressesDefaultV1\" func dial(NetEngine engine, NetAddressList addresses) as TcpStream\n"
     "    static extern \"xl6TcpDialAddressesV1\" func dial(NetEngine engine, NetAddressList addresses, TcpDialOptions options) as TcpStream\n"
+    "    static extern \"xl6TcpDialCancelDefaultV1\" func dialCancel(NetEngine engine, NetResolver resolver, string host, int port, CancellationToken cancel) as TcpStream\n"
+    "    static extern \"xl6TcpDialCancelV1\" func dialCancel(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, CancellationToken cancel) as TcpStream\n"
+    "    static extern \"xl6TcpDialAddressesCancelDefaultV1\" func dialCancel(NetEngine engine, NetAddressList addresses, CancellationToken cancel) as TcpStream\n"
+    "    static extern \"xl6TcpDialAddressesCancelV1\" func dialCancel(NetEngine engine, NetAddressList addresses, TcpDialOptions options, CancellationToken cancel) as TcpStream\n"
+    "    static extern \"xl6TcpDialUntilDefaultV1\" func dialUntil(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline) as TcpStream\n"
+    "    static extern \"xl6TcpDialUntilV1\" func dialUntil(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, uint64 deadline) as TcpStream\n"
+    "    static extern \"xl6TcpDialAddressesUntilDefaultV1\" func dialUntil(NetEngine engine, NetAddressList addresses, uint64 deadline) as TcpStream\n"
+    "    static extern \"xl6TcpDialAddressesUntilV1\" func dialUntil(NetEngine engine, NetAddressList addresses, TcpDialOptions options, uint64 deadline) as TcpStream\n"
+    "    static extern \"xl6TcpDialUntilCancelDefaultV1\" func dialUntilCancel(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline, CancellationToken cancel) as TcpStream\n"
+    "    static extern \"xl6TcpDialUntilCancelV1\" func dialUntilCancel(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as TcpStream\n"
+    "    static extern \"xl6TcpDialAddressesUntilCancelDefaultV1\" func dialUntilCancel(NetEngine engine, NetAddressList addresses, uint64 deadline, CancellationToken cancel) as TcpStream\n"
+    "    static extern \"xl6TcpDialAddressesUntilCancelV1\" func dialUntilCancel(NetEngine engine, NetAddressList addresses, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as TcpStream\n"
     "    private static extern \"xl6TcpPrepareDialV1\" @nonblocking func prepareDialNative(NetEngine engine, NetResolver resolver) as TcpStream\n"
     "    private static extern \"xl6TcpPrepareDialAddressesV1\" @nonblocking func prepareDialAddressesNative(NetEngine engine) as TcpStream\n"
     "    private extern \"xl6TcpDialStartDefaultV1\" @nonblocking func startDialNative(TcpStream value, string host, int port) as future<TcpStream>\n"
@@ -121,6 +133,21 @@ static const char xl6StdTcpDialAsyncUntilCancelBody[] =
     "func __xl_std_tcp_dial_async_until_cancel(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n    return TcpStream.dialAsyncUntilCancel(engine, resolver, host, port, options, deadline, cancel)\nend\n"
     "func __xl_std_tcp_dial_async_until_cancel(NetEngine engine, NetAddressList addresses, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n    return TcpStream.dialAsyncUntilCancel(engine, addresses, deadline, cancel)\nend\n"
     "func __xl_std_tcp_dial_async_until_cancel(NetEngine engine, NetAddressList addresses, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n    return TcpStream.dialAsyncUntilCancel(engine, addresses, options, deadline, cancel)\nend\n";
+static const char xl6StdTcpDialCancelBody[] =
+    "extern \"xl6TcpDialCancelDefaultV1\" func __xl_std_tcp_dial_cancel(NetEngine engine, NetResolver resolver, string host, int port, CancellationToken cancel) as TcpStream\n"
+    "extern \"xl6TcpDialCancelV1\" func __xl_std_tcp_dial_cancel(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, CancellationToken cancel) as TcpStream\n"
+    "extern \"xl6TcpDialAddressesCancelDefaultV1\" func __xl_std_tcp_dial_cancel(NetEngine engine, NetAddressList addresses, CancellationToken cancel) as TcpStream\n"
+    "extern \"xl6TcpDialAddressesCancelV1\" func __xl_std_tcp_dial_cancel(NetEngine engine, NetAddressList addresses, TcpDialOptions options, CancellationToken cancel) as TcpStream\n";
+static const char xl6StdTcpDialUntilBody[] =
+    "extern \"xl6TcpDialUntilDefaultV1\" func __xl_std_tcp_dial_until(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline) as TcpStream\n"
+    "extern \"xl6TcpDialUntilV1\" func __xl_std_tcp_dial_until(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, uint64 deadline) as TcpStream\n"
+    "extern \"xl6TcpDialAddressesUntilDefaultV1\" func __xl_std_tcp_dial_until(NetEngine engine, NetAddressList addresses, uint64 deadline) as TcpStream\n"
+    "extern \"xl6TcpDialAddressesUntilV1\" func __xl_std_tcp_dial_until(NetEngine engine, NetAddressList addresses, TcpDialOptions options, uint64 deadline) as TcpStream\n";
+static const char xl6StdTcpDialUntilCancelBody[] =
+    "extern \"xl6TcpDialUntilCancelDefaultV1\" func __xl_std_tcp_dial_until_cancel(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline, CancellationToken cancel) as TcpStream\n"
+    "extern \"xl6TcpDialUntilCancelV1\" func __xl_std_tcp_dial_until_cancel(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as TcpStream\n"
+    "extern \"xl6TcpDialAddressesUntilCancelDefaultV1\" func __xl_std_tcp_dial_until_cancel(NetEngine engine, NetAddressList addresses, uint64 deadline, CancellationToken cancel) as TcpStream\n"
+    "extern \"xl6TcpDialAddressesUntilCancelV1\" func __xl_std_tcp_dial_until_cancel(NetEngine engine, NetAddressList addresses, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as TcpStream\n";
 static const char xl6StdTcpDialBody[] =
     "extern \"xl6TcpDialDefaultV1\" func __xl_std_tcp_dial(NetEngine engine, NetResolver resolver, string host, int port) as TcpStream\n"
     "extern \"xl6TcpDialV1\" func __xl_std_tcp_dial(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options) as TcpStream\n"
