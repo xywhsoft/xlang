@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>stb_truetype - 扩展库 - xlang</title>
+  <meta name="description" content="stb_truetype 字体指标与字形栅格化，提供自动析构 Font/Bitmap 对象。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / stb_truetype</p><h1>stb_truetype</h1>
+    <p class="extlib-lead">读取字体指标，生成可由 Buffer 获取的灰度字形位图。</p>
+    <p>支持 XRT UTF-8 路径、内存字体和自动析构 Font/Bitmap。XLang 入口拒绝字体索引/码点整数回绕及路径内嵌 NUL。适用于应用随附的可信字体，不是恶意字体解析沙箱。C/XL 包级门禁通过；导出类私有原生构造器的访问控制及 XL AOT 链接问题仍待主线修复，暂未完成发布验收。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数或类型</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>load / loadBytes</code></td><td>从 UTF-8 路径或 Buffer 创建字体</td></tr>
+      <tr><td><code>Font</code></td><td>字体指标、字形索引、步进、字偶距和位图渲染</td></tr>
+      <tr><td><code>Bitmap</code></td><td>宽高、偏移、独立像素副本；自动释放</td></tr>
+      <tr><td><code>defaultFontPath</code></td><td>可选的系统字体查找；生产程序应提供字体</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import stb_truetype
+stb_truetype.Font font = stb_truetype.load("assets/font.ttf")
+stb_truetype.Bitmap glyph = font.bitmap(65, 24.0)
+Buffer alpha = glyph.pixels()</code></pre>
+    <h2 id="c-api">C</h2>
+    <p>包含 <code>include/stb_truetype_native.h</code>。字体与位图句柄分别用 <code>xstbtt_font_release</code>、<code>xstbtt_bitmap_release</code> 释放；像素指针仅借用。</p>
+    <p>双语范例随包附带小型测试字体，运行与验证不依赖系统预装字体；测试资源不进入编译器内置包。</p>
+  </section>
+</main>
+</body>
+</html>

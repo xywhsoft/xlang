@@ -1,0 +1,4 @@
+import stb_truetype
+
+// 不执行：包外不能把任意指针交给字体句柄的析构路径。
+auto font = stb_truetype.Font(null)

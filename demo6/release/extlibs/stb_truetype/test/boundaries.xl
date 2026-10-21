@@ -1,0 +1,71 @@
+import stb_truetype
+
+func main(...) as int
+    string fontPath = "release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf"
+    bytes fontBytes = file.readBytes(fontPath)
+    Buffer source = Buffer(fontBytes)
+    stb_truetype.Font font = stb_truetype.loadBytes(source)
+    stb_truetype.Font fromFile = stb_truetype.load(fontPath)
+    assert font.ascent() == fromFile.ascent()
+    assert font.glyphIndex(65) > 0
+    assert font.advance(65) > 0
+    assert font.scale(24.0) > 0.0
+    stb_truetype.Bitmap glyph = font.bitmap(65, 24.0)
+    assert glyph.width() > 0 and glyph.height() > 0
+    assert glyph.pixels().len() == glyph.byteSize()
+    stb_truetype.Bitmap space = font.bitmap(32, 24.0)
+    assert space.byteSize() == 0
+
+    string workDir = path.join(path.temp(), "xlang_stbtt_xl_test_" + crypto.randomString(20))
+    dir.createAll(workDir)
+    try
+        string copyPath = path.join(workDir, "字体_临时.ttf")
+        assert file.writeBytes(copyPath, fontBytes)
+        stb_truetype.Font copied = stb_truetype.load(copyPath)
+        assert copied.ascent() == font.ascent()
+    finally
+        assert dir.delete(workDir), "temporary font directory must be removed"
+    end
+
+    bool rejected = false
+    try
+        stb_truetype.loadBytes(Buffer())
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "empty font data"
+
+    rejected = false
+    try
+        font.bitmap(65, 2048.0)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "excessive pixel height"
+
+    rejected = false
+    try
+        stb_truetype.loadBytes(source, 4294967296)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "font index must not wrap to C int"
+
+    rejected = false
+    try
+        stb_truetype.load(fontPath + "\0ignored")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "font path must not resolve to its prefix"
+
+    rejected = false
+    try
+        font.bitmap(4294967361, 24.0)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "codepoint must not wrap to C int"
+    println("stb_truetype XL boundaries: PASS")
+    return 0
+end

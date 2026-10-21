@@ -1,0 +1,5 @@
+import stb_truetype
+
+// 不执行：原生字形结果必须由 Bitmap 接管并负责析构。
+auto font = stb_truetype.loadBytes(Buffer())
+point image = font.bitmapNative(c_int(65), c_double(24.0))

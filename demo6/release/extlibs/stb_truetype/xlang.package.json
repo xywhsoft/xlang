@@ -9,6 +9,12 @@
                      "cSources":  [
                                       "stb_truetype_native.c"
                                   ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_ENVIRONMENT",
+                                        "XRT_MODULE_FILE_WHOLE",
+                                        "XRT_MODULE_PATH",
+                                        "XRT_MODULE_STRING"
+                                    ],
                      "xlSources":  [
                                        "src/stb_truetype.xl"
                                    ]
@@ -22,6 +28,7 @@
     "dependencies":  [
 
                      ],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

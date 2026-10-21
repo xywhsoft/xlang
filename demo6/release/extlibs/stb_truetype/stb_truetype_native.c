@@ -1,461 +1,363 @@
-#include <stdio.h>
-#include <stdlib.h>
+/* 字体与位图分别拥有内存；XRT 负责 UTF-8 文件路径和内存分配。 */
+#include <math.h>
+#include <stdint.h>
 #include <string.h>
 
+#ifndef XRT_MODULE_FILE_WHOLE
+#define XRT_MODULE_FILE_WHOLE
+#endif
+#ifndef XRT_MODULE_PATH
+#define XRT_MODULE_PATH
+#endif
+#ifndef XRT_MODULE_ENVIRONMENT
+#define XRT_MODULE_ENVIRONMENT
+#endif
+#ifndef XRT_MODULE_STRING
+#define XRT_MODULE_STRING
+#endif
+#include "xrt.h"
+#include "include/stb_truetype_native.h"
+
+#define STBTT_malloc(size, user) ((void)(user), xrtMalloc(size))
+#define STBTT_free(ptr, user) ((void)(user), xrtFree(ptr))
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "third_party/stb_truetype.h"
 
-#if defined(_WIN32) || defined(_WIN64)
-#define XSTBTT_EXPORT __declspec(dllexport)
-#else
-#define XSTBTT_EXPORT
-#endif
+#define XSTBTT_DOMAIN "xlang.extlib.stb_truetype"
+#define XSTBTT_FONT_LIMIT (32u * 1024u * 1024u)
+#define XSTBTT_BITMAP_LIMIT (64u * 1024u * 1024u)
 
-#if defined(__GNUC__)
-#define XSTBTT_THREAD __thread
-#elif defined(_MSC_VER)
-#define XSTBTT_THREAD __declspec(thread)
-#else
-#define XSTBTT_THREAD
-#endif
+typedef struct xstbtt_font {
+    bytes Bytes;
+    size_t Size;
+    stbtt_fontinfo Info;
+} xstbtt_font;
 
-typedef struct XStbttFont {
-	unsigned char* bytes;
-	long size;
-	int font_index;
-	int offset;
-	stbtt_fontinfo info;
-} XStbttFont;
+typedef struct xstbtt_bitmap {
+    int Width;
+    int Height;
+    int Xoff;
+    int Yoff;
+    bytes Pixels;
+} xstbtt_bitmap;
 
-typedef struct XStbttBitmap {
-	int width;
-	int height;
-	int xoff;
-	int yoff;
-	unsigned char* data;
-} XStbttBitmap;
-
-static XSTBTT_THREAD char g_xstbtt_error[512];
-static XSTBTT_THREAD char g_xstbtt_default_path[512];
-#define XSTBTT_JSON_SLOTS 8u
-
-static XSTBTT_THREAD char g_xstbtt_json[XSTBTT_JSON_SLOTS][256];
-static XSTBTT_THREAD size_t g_xstbtt_json_index;
-
-static void xstbtt_set_error(const char* text)
+static void xstbtt_error(xerrkind Kind, const char* Message)
 {
-    size_t i = 0u;
+    xrtSetErrorInfo(Kind, XSTBTT_DOMAIN, 0, Message);
+}
 
-    if ( text == NULL ) {
-        text = "";
+static uint32_t xstbtt_u32(const uint8_t* Data)
+{
+    return ((uint32_t)Data[0] << 24) | ((uint32_t)Data[1] << 16) |
+        ((uint32_t)Data[2] << 8) | (uint32_t)Data[3];
+}
+
+static size_t xstbtt_font_offset(const uint8_t* Data, size_t Size, int Index)
+{
+    size_t Offset = 0u;
+    size_t Directory;
+    unsigned Tables;
+    unsigned i;
+
+    if (Data == NULL || Size < 12u || Size > XSTBTT_FONT_LIMIT || Index < 0)
+        return SIZE_MAX;
+    if (memcmp(Data, "ttcf", 4u) == 0) {
+        uint32_t Count = xstbtt_u32(Data + 8u);
+        if ((size_t)Count > (Size - 12u) / 4u || (uint32_t)Index >= Count)
+            return SIZE_MAX;
+        Offset = xstbtt_u32(Data + 12u + (size_t)Index * 4u);
+    } else if (Index != 0) {
+        return SIZE_MAX;
     }
+    if (Offset > Size - 12u) return SIZE_MAX;
+    if (xstbtt_u32(Data + Offset) != 0x00010000u &&
+        memcmp(Data + Offset, "OTTO", 4u) != 0 &&
+        memcmp(Data + Offset, "true", 4u) != 0 &&
+        memcmp(Data + Offset, "typ1", 4u) != 0 &&
+        memcmp(Data + Offset, "1\0\0\0", 4u) != 0)
+        return SIZE_MAX;
 
-    while ( i + 1u < sizeof(g_xstbtt_error) && text[i] != '\0' ) {
-        g_xstbtt_error[i] = text[i];
-        ++i;
+    /* 先验证表目录及所有表的文件边界，再让 stb 解析字体。 */
+    Tables = ((unsigned)Data[Offset + 4u] << 8) | Data[Offset + 5u];
+    if (Tables == 0u || Tables > 256u || (size_t)Tables >
+            (Size - Offset - 12u) / 16u)
+        return SIZE_MAX;
+    Directory = Offset + 12u;
+    for (i = 0u; i < Tables; ++i) {
+        size_t Entry = Directory + (size_t)i * 16u;
+        uint32_t Start = xstbtt_u32(Data + Entry + 8u);
+        uint32_t Length = xstbtt_u32(Data + Entry + 12u);
+        if ((size_t)Start > Size || (size_t)Length > Size - (size_t)Start)
+            return SIZE_MAX;
     }
-    g_xstbtt_error[i] = '\0';
+    return Offset;
 }
 
-static int xstbtt_file_exists(const char* path)
+static bool xstbtt_codepoint(int Codepoint)
 {
-	FILE* fp;
-	if ( path == NULL || path[0] == '\0' ) return 0;
-	fp = fopen(path, "rb");
-	if ( fp == NULL ) return 0;
-	fclose(fp);
-	return 1;
+    return Codepoint >= 0 && Codepoint <= 0x10ffff &&
+        (Codepoint < 0xd800 || Codepoint > 0xdfff);
 }
 
-static int xstbtt_try_default_font(const char* root, const char* font_name)
+int xstbtt_available(void)
 {
-	int written;
-	if ( root == NULL || root[0] == '\0' || font_name == NULL || font_name[0] == '\0' ) {
-		return 0;
-	}
-	written = snprintf(g_xstbtt_default_path, sizeof(g_xstbtt_default_path), "%s\\Fonts\\%s", root, font_name);
-	if ( written <= 0 || (size_t)written >= sizeof(g_xstbtt_default_path) ) {
-		g_xstbtt_default_path[0] = '\0';
-		return 0;
-	}
-	if ( xstbtt_file_exists(g_xstbtt_default_path) ) {
-		return 1;
-	}
-	g_xstbtt_default_path[0] = '\0';
-	return 0;
+    return 1;
 }
 
-static unsigned char* xstbtt_read_file(const char* path, long* out_size)
+const char* xstbtt_version(void)
 {
-	FILE* fp;
-	long size;
-	unsigned char* data;
-	size_t read_count;
-	if ( out_size != NULL ) *out_size = 0;
-	if ( path == NULL || path[0] == '\0' ) {
-		xstbtt_set_error("empty font path");
-		return NULL;
-	}
-	fp = fopen(path, "rb");
-	if ( fp == NULL ) {
-		xstbtt_set_error("font open failed");
-		return NULL;
-	}
-	if ( fseek(fp, 0, SEEK_END) != 0 ) {
-		fclose(fp);
-		xstbtt_set_error("font seek failed");
-		return NULL;
-	}
-	size = ftell(fp);
-	if ( size <= 0 ) {
-		fclose(fp);
-		xstbtt_set_error("empty font file");
-		return NULL;
-	}
-	if ( fseek(fp, 0, SEEK_SET) != 0 ) {
-		fclose(fp);
-		xstbtt_set_error("font seek failed");
-		return NULL;
-	}
-	data = (unsigned char*)malloc((size_t)size);
-	if ( data == NULL ) {
-		fclose(fp);
-		xstbtt_set_error("out of memory");
-		return NULL;
-	}
-	read_count = fread(data, 1u, (size_t)size, fp);
-	fclose(fp);
-	if ( read_count != (size_t)size ) {
-		free(data);
-		xstbtt_set_error("font read failed");
-		return NULL;
-	}
-	if ( out_size != NULL ) *out_size = size;
-	return data;
+    return "stb_truetype 1.26";
 }
 
-static XStbttFont* xstbtt_cast_font(void* handle)
+void* xstbtt_default_font_path(void)
 {
-	XStbttFont* font;
-	font = (XStbttFont*)handle;
-	if ( font == NULL || font->bytes == NULL ) {
-		xstbtt_set_error("invalid font handle");
-		return NULL;
-	}
-	return font;
+    static const char* Candidates[] = {
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+        "/System/Library/Fonts/Supplemental/Arial.ttf"
+    };
+    str Root = xrtEnvGet("WINDIR");
+    size_t i;
+    if (Root == NULL) Root = xrtEnvGet("SystemRoot");
+    if (Root != NULL) {
+        static const char* Names[] = {
+            "Fonts/arial.ttf", "Fonts/segoeui.ttf", "Fonts/tahoma.ttf"
+        };
+        for (i = 0u; i < sizeof(Names) / sizeof(Names[0]); ++i) {
+            str Path = xrtPathJoin(Root, Names[i]);
+            if (Path != NULL && xrtFileExists(Path)) {
+                xrtFree(Root);
+                return Path;
+            }
+            xrtFree(Path);
+        }
+        xrtFree(Root);
+    }
+    for (i = 0u; i < sizeof(Candidates) / sizeof(Candidates[0]); ++i)
+        if (xrtFileExists(Candidates[i])) return xrtStrDup(Candidates[i]);
+    return xrtStrDup("");
 }
 
-static XStbttBitmap* xstbtt_cast_bitmap(void* handle)
+void* xstbtt_load_memory(void* Data, size_t Size, int Index)
 {
-	XStbttBitmap* bitmap;
-	bitmap = (XStbttBitmap*)handle;
-	if ( bitmap == NULL ) {
-		xstbtt_set_error("invalid bitmap handle");
-		return NULL;
-	}
-	return bitmap;
+    size_t Offset;
+    xstbtt_font* Font;
+    xrtClearError();
+    Offset = xstbtt_font_offset((const uint8_t*)Data, Size, Index);
+    if (Offset == SIZE_MAX) {
+        xstbtt_error(XERR_VALUE, "invalid font data or font index");
+        return NULL;
+    }
+    Font = (xstbtt_font*)xrtCalloc(1u, sizeof(*Font));
+    if (Font == NULL) {
+        xstbtt_error(XERR_MEMORY, "could not allocate font object");
+        return NULL;
+    }
+    Font->Bytes = (bytes)xrtMalloc(Size);
+    if (Font->Bytes == NULL) {
+        xrtFree(Font);
+        xstbtt_error(XERR_MEMORY, "could not copy font data");
+        return NULL;
+    }
+    memcpy(Font->Bytes, Data, Size);
+    if (!stbtt_InitFont(&Font->Info, Font->Bytes, (int)Offset)) {
+        xrtFree(Font->Bytes);
+        xrtFree(Font);
+        xstbtt_error(XERR_VALUE, "unsupported or corrupt font");
+        return NULL;
+    }
+    Font->Size = Size;
+    return Font;
 }
 
-XSTBTT_EXPORT int xstbtt_available(void)
+void* xstbtt_load(const char* Path, int Index)
 {
-	return 1;
+    size_t Size = 0u;
+    bytes Data;
+    void* Font;
+    xrtClearError();
+    if (Path == NULL || Path[0] == '\0') {
+        xstbtt_error(XERR_ARGUMENT, "empty font path");
+        return NULL;
+    }
+    Data = xrtFileReadAllLimit(Path, XSTBTT_FONT_LIMIT, &Size);
+    if (Data == NULL) {
+        if (xrtGetError() == NULL)
+            xstbtt_error(XERR_IO, "could not read font file");
+        return NULL;
+    }
+    Font = xstbtt_load_memory(Data, Size, Index);
+    xrtFree(Data);
+    return Font;
 }
 
-XSTBTT_EXPORT const char* xstbtt_version(void)
+void* xstbtt_font_adopt(void* Font)
 {
-	return "stb_truetype 1.26";
+    return Font;
 }
 
-XSTBTT_EXPORT const char* xstbtt_last_error(void)
+void xstbtt_font_release(void* Handle)
 {
-	return g_xstbtt_error;
+    xstbtt_font* Font = (xstbtt_font*)Handle;
+    if (Font == NULL) return;
+    xrtFree(Font->Bytes);
+    xrtFree(Font);
 }
 
-XSTBTT_EXPORT const char* xstbtt_default_font_path(void)
+double xstbtt_font_scale(void* Handle, double Height)
 {
-	const char* roots[2];
-	const char* fonts[4];
-	int r;
-	int f;
-	roots[0] = getenv("WINDIR");
-	roots[1] = getenv("SystemRoot");
-	fonts[0] = "arial.ttf";
-	fonts[1] = "segoeui.ttf";
-	fonts[2] = "calibri.ttf";
-	fonts[3] = "tahoma.ttf";
-	for ( r = 0; r < 2; ++r ) {
-		for ( f = 0; f < 4; ++f ) {
-			if ( xstbtt_try_default_font(roots[r], fonts[f]) ) {
-				xstbtt_set_error("");
-				return g_xstbtt_default_path;
-			}
-		}
-	}
-	xstbtt_set_error("default font not found");
-	g_xstbtt_default_path[0] = '\0';
-	return g_xstbtt_default_path;
+    xstbtt_font* Font = (xstbtt_font*)Handle;
+    if (Font == NULL || !isfinite(Height) || Height <= 0.0 || Height > 1024.0)
+        return 0.0;
+    return stbtt_ScaleForPixelHeight(&Font->Info, (float)Height);
 }
 
-XSTBTT_EXPORT void* xstbtt_load(const char* path, int font_index)
+int xstbtt_font_ascent(void* Handle)
 {
-	XStbttFont* font;
-	long size;
-	int offset;
-	unsigned char* data;
-	if ( font_index < 0 ) font_index = 0;
-	data = xstbtt_read_file(path, &size);
-	if ( data == NULL ) return NULL;
-	offset = stbtt_GetFontOffsetForIndex(data, font_index);
-	if ( offset < 0 ) {
-		free(data);
-		xstbtt_set_error("font index not found");
-		return NULL;
-	}
-	font = (XStbttFont*)calloc(1u, sizeof(XStbttFont));
-	if ( font == NULL ) {
-		free(data);
-		xstbtt_set_error("out of memory");
-		return NULL;
-	}
-	if ( !stbtt_InitFont(&font->info, data, offset) ) {
-		free(font);
-		free(data);
-		xstbtt_set_error("font init failed");
-		return NULL;
-	}
-	font->bytes = data;
-	font->size = size;
-	font->font_index = font_index;
-	font->offset = offset;
-	xstbtt_set_error("");
-	return font;
+    int Ascent, Descent, Gap;
+    if (Handle == NULL) return 0;
+    stbtt_GetFontVMetrics(&((xstbtt_font*)Handle)->Info, &Ascent, &Descent, &Gap);
+    return Ascent;
 }
 
-XSTBTT_EXPORT int xstbtt_font_valid(void* handle)
+int xstbtt_font_descent(void* Handle)
 {
-	XStbttFont* font;
-	font = (XStbttFont*)handle;
-	return font != NULL && font->bytes != NULL;
+    int Ascent, Descent, Gap;
+    if (Handle == NULL) return 0;
+    stbtt_GetFontVMetrics(&((xstbtt_font*)Handle)->Info, &Ascent, &Descent, &Gap);
+    return Descent;
 }
 
-XSTBTT_EXPORT int xstbtt_font_release(void* handle)
+int xstbtt_font_line_gap(void* Handle)
 {
-	XStbttFont* font;
-	font = (XStbttFont*)handle;
-	if ( font == NULL ) return 0;
-	free(font->bytes);
-	font->bytes = NULL;
-	free(font);
-	return 1;
+    int Ascent, Descent, Gap;
+    if (Handle == NULL) return 0;
+    stbtt_GetFontVMetrics(&((xstbtt_font*)Handle)->Info, &Ascent, &Descent, &Gap);
+    return Gap;
 }
 
-XSTBTT_EXPORT double xstbtt_scale_for_pixel_height(void* handle, double pixel_height)
+int xstbtt_font_glyph(void* Handle, int Codepoint)
 {
-	XStbttFont* font;
-	font = xstbtt_cast_font(handle);
-	if ( font == NULL || pixel_height <= 0.0 ) return 0.0;
-	return (double)stbtt_ScaleForPixelHeight(&font->info, (float)pixel_height);
+    if (Handle == NULL || !xstbtt_codepoint(Codepoint)) return 0;
+    return stbtt_FindGlyphIndex(&((xstbtt_font*)Handle)->Info, Codepoint);
 }
 
-XSTBTT_EXPORT int xstbtt_ascent(void* handle)
+int xstbtt_font_advance(void* Handle, int Codepoint)
 {
-	XStbttFont* font;
-	int ascent;
-	int descent;
-	int line_gap;
-	font = xstbtt_cast_font(handle);
-	if ( font == NULL ) return 0;
-	stbtt_GetFontVMetrics(&font->info, &ascent, &descent, &line_gap);
-	return ascent;
+    int Advance, Bearing;
+    if (Handle == NULL || !xstbtt_codepoint(Codepoint)) return 0;
+    stbtt_GetCodepointHMetrics(&((xstbtt_font*)Handle)->Info,
+        Codepoint, &Advance, &Bearing);
+    return Advance;
 }
 
-XSTBTT_EXPORT int xstbtt_descent(void* handle)
+int xstbtt_font_bearing(void* Handle, int Codepoint)
 {
-	XStbttFont* font;
-	int ascent;
-	int descent;
-	int line_gap;
-	font = xstbtt_cast_font(handle);
-	if ( font == NULL ) return 0;
-	stbtt_GetFontVMetrics(&font->info, &ascent, &descent, &line_gap);
-	return descent;
+    int Advance, Bearing;
+    if (Handle == NULL || !xstbtt_codepoint(Codepoint)) return 0;
+    stbtt_GetCodepointHMetrics(&((xstbtt_font*)Handle)->Info,
+        Codepoint, &Advance, &Bearing);
+    return Bearing;
 }
 
-XSTBTT_EXPORT int xstbtt_line_gap(void* handle)
+int xstbtt_font_kern(void* Handle, int Left, int Right)
 {
-	XStbttFont* font;
-	int ascent;
-	int descent;
-	int line_gap;
-	font = xstbtt_cast_font(handle);
-	if ( font == NULL ) return 0;
-	stbtt_GetFontVMetrics(&font->info, &ascent, &descent, &line_gap);
-	return line_gap;
+    if (Handle == NULL || !xstbtt_codepoint(Left) || !xstbtt_codepoint(Right))
+        return 0;
+    return stbtt_GetCodepointKernAdvance(&((xstbtt_font*)Handle)->Info,
+        Left, Right);
 }
 
-XSTBTT_EXPORT int xstbtt_find_glyph_index(void* handle, int codepoint)
+void* xstbtt_font_bitmap(void* Handle, int Codepoint, double Height)
 {
-	XStbttFont* font;
-	font = xstbtt_cast_font(handle);
-	if ( font == NULL ) return 0;
-	return stbtt_FindGlyphIndex(&font->info, codepoint);
+    xstbtt_font* Font = (xstbtt_font*)Handle;
+    xstbtt_bitmap* Bitmap;
+    int X0, Y0, X1, Y1;
+    float Scale;
+    size_t Width, Rows;
+    xrtClearError();
+    if (Font == NULL || !xstbtt_codepoint(Codepoint) ||
+        !isfinite(Height) || Height <= 0.0 || Height > 1024.0) {
+        xstbtt_error(XERR_ARGUMENT, "invalid glyph or pixel height");
+        return NULL;
+    }
+    Scale = stbtt_ScaleForPixelHeight(&Font->Info, (float)Height);
+    stbtt_GetCodepointBitmapBox(&Font->Info, Codepoint,
+        Scale, Scale, &X0, &Y0, &X1, &Y1);
+    if (X1 < X0 || Y1 < Y0) {
+        xstbtt_error(XERR_VALUE, "glyph bitmap has invalid dimensions");
+        return NULL;
+    }
+    Width = (size_t)((int64_t)X1 - (int64_t)X0);
+    Rows = (size_t)((int64_t)Y1 - (int64_t)Y0);
+    if (Rows != 0u && Width > XSTBTT_BITMAP_LIMIT / Rows) {
+        xstbtt_error(XERR_RANGE, "glyph bitmap exceeds 64 MiB");
+        return NULL;
+    }
+    Bitmap = (xstbtt_bitmap*)xrtCalloc(1u, sizeof(*Bitmap));
+    if (Bitmap == NULL) {
+        xstbtt_error(XERR_MEMORY, "could not allocate bitmap object");
+        return NULL;
+    }
+    Bitmap->Pixels = stbtt_GetCodepointBitmap(&Font->Info, 0.0f, Scale,
+        Codepoint, &Bitmap->Width, &Bitmap->Height,
+        &Bitmap->Xoff, &Bitmap->Yoff);
+    if (Bitmap->Width < 0 || Bitmap->Height < 0 ||
+        (Bitmap->Height != 0 && (size_t)Bitmap->Width >
+            XSTBTT_BITMAP_LIMIT / (size_t)Bitmap->Height)) {
+        stbtt_FreeBitmap(Bitmap->Pixels, NULL);
+        xrtFree(Bitmap);
+        xstbtt_error(XERR_RANGE, "rasterized glyph exceeds 64 MiB");
+        return NULL;
+    }
+    if (Width * Rows != 0u && Bitmap->Pixels == NULL) {
+        xrtFree(Bitmap);
+        xstbtt_error(XERR_MEMORY, "could not rasterize glyph");
+        return NULL;
+    }
+    return Bitmap;
 }
 
-XSTBTT_EXPORT int xstbtt_h_advance(void* handle, int codepoint)
+void* xstbtt_bitmap_adopt(void* Bitmap)
 {
-	XStbttFont* font;
-	int advance;
-	int left_bearing;
-	font = xstbtt_cast_font(handle);
-	if ( font == NULL ) return 0;
-	stbtt_GetCodepointHMetrics(&font->info, codepoint, &advance, &left_bearing);
-	return advance;
+    return Bitmap;
 }
 
-XSTBTT_EXPORT int xstbtt_left_bearing(void* handle, int codepoint)
+void xstbtt_bitmap_release(void* Handle)
 {
-	XStbttFont* font;
-	int advance;
-	int left_bearing;
-	font = xstbtt_cast_font(handle);
-	if ( font == NULL ) return 0;
-	stbtt_GetCodepointHMetrics(&font->info, codepoint, &advance, &left_bearing);
-	return left_bearing;
+    xstbtt_bitmap* Bitmap = (xstbtt_bitmap*)Handle;
+    if (Bitmap == NULL) return;
+    stbtt_FreeBitmap(Bitmap->Pixels, NULL);
+    xrtFree(Bitmap);
 }
 
-XSTBTT_EXPORT int xstbtt_kern_advance(void* handle, int codepoint1, int codepoint2)
+int xstbtt_bitmap_width(void* Handle)
 {
-	XStbttFont* font;
-	font = xstbtt_cast_font(handle);
-	if ( font == NULL ) return 0;
-	return stbtt_GetCodepointKernAdvance(&font->info, codepoint1, codepoint2);
+    return Handle != NULL ? ((xstbtt_bitmap*)Handle)->Width : 0;
 }
 
-XSTBTT_EXPORT const char* xstbtt_vmetrics_json(void* handle)
+int xstbtt_bitmap_height(void* Handle)
 {
-	XStbttFont* font;
-	int ascent;
-	int descent;
-	int line_gap;
-	font = xstbtt_cast_font(handle);
-	if ( font == NULL ) return "{\"ok\":false,\"ascent\":0,\"descent\":0,\"line_gap\":0}";
-	stbtt_GetFontVMetrics(&font->info, &ascent, &descent, &line_gap);
-	snprintf(g_xstbtt_json, sizeof(g_xstbtt_json), "{\"ok\":true,\"ascent\":%d,\"descent\":%d,\"line_gap\":%d}", ascent, descent, line_gap);
-	xstbtt_set_error("");
-	return g_xstbtt_json;
+    return Handle != NULL ? ((xstbtt_bitmap*)Handle)->Height : 0;
 }
 
-XSTBTT_EXPORT const char* xstbtt_hmetrics_json(void* handle, int codepoint)
+int xstbtt_bitmap_xoff(void* Handle)
 {
-	XStbttFont* font;
-	int advance;
-	int left_bearing;
-	int glyph_index;
-	font = xstbtt_cast_font(handle);
-	if ( font == NULL ) return "{\"ok\":false,\"codepoint\":0,\"glyph_index\":0,\"advance\":0,\"left_bearing\":0}";
-	glyph_index = stbtt_FindGlyphIndex(&font->info, codepoint);
-	stbtt_GetCodepointHMetrics(&font->info, codepoint, &advance, &left_bearing);
-	snprintf(g_xstbtt_json, sizeof(g_xstbtt_json), "{\"ok\":true,\"codepoint\":%d,\"glyph_index\":%d,\"advance\":%d,\"left_bearing\":%d}", codepoint, glyph_index, advance, left_bearing);
-	xstbtt_set_error("");
-	return g_xstbtt_json;
+    return Handle != NULL ? ((xstbtt_bitmap*)Handle)->Xoff : 0;
 }
 
-XSTBTT_EXPORT void* xstbtt_codepoint_bitmap(void* handle, int codepoint, double pixel_height)
+int xstbtt_bitmap_yoff(void* Handle)
 {
-	XStbttFont* font;
-	XStbttBitmap* bitmap;
-	float scale;
-	int width;
-	int height;
-	int xoff;
-	int yoff;
-	unsigned char* data;
-	font = xstbtt_cast_font(handle);
-	if ( font == NULL || pixel_height <= 0.0 ) {
-		xstbtt_set_error("invalid bitmap input");
-		return NULL;
-	}
-	scale = stbtt_ScaleForPixelHeight(&font->info, (float)pixel_height);
-	data = stbtt_GetCodepointBitmap(&font->info, 0.0f, scale, codepoint, &width, &height, &xoff, &yoff);
-	bitmap = (XStbttBitmap*)calloc(1u, sizeof(XStbttBitmap));
-	if ( bitmap == NULL ) {
-		if ( data != NULL ) stbtt_FreeBitmap(data, NULL);
-		xstbtt_set_error("out of memory");
-		return NULL;
-	}
-	bitmap->width = width;
-	bitmap->height = height;
-	bitmap->xoff = xoff;
-	bitmap->yoff = yoff;
-	bitmap->data = data;
-	xstbtt_set_error("");
-	return bitmap;
+    return Handle != NULL ? ((xstbtt_bitmap*)Handle)->Yoff : 0;
 }
 
-XSTBTT_EXPORT const char* xstbtt_codepoint_bitmap_box_json(void* handle, int codepoint, double pixel_height)
+void* xstbtt_bitmap_data(void* Handle)
 {
-	XStbttFont* font;
-	float scale;
-	int x0;
-	int y0;
-	int x1;
-	int y1;
-	font = xstbtt_cast_font(handle);
-	if ( font == NULL || pixel_height <= 0.0 ) return "{\"ok\":false,\"x0\":0,\"y0\":0,\"x1\":0,\"y1\":0}";
-	scale = stbtt_ScaleForPixelHeight(&font->info, (float)pixel_height);
-	stbtt_GetCodepointBitmapBox(&font->info, codepoint, scale, scale, &x0, &y0, &x1, &y1);
-	snprintf(g_xstbtt_json, sizeof(g_xstbtt_json), "{\"ok\":true,\"x0\":%d,\"y0\":%d,\"x1\":%d,\"y1\":%d}", x0, y0, x1, y1);
-	xstbtt_set_error("");
-	return g_xstbtt_json;
+    return Handle != NULL ? ((xstbtt_bitmap*)Handle)->Pixels : NULL;
 }
 
-XSTBTT_EXPORT int xstbtt_bitmap_valid(void* handle)
+size_t xstbtt_bitmap_size(void* Handle)
 {
-	return handle != NULL;
-}
-
-XSTBTT_EXPORT int xstbtt_bitmap_width(void* handle)
-{
-	XStbttBitmap* bitmap;
-	bitmap = xstbtt_cast_bitmap(handle);
-	return bitmap != NULL ? bitmap->width : 0;
-}
-
-XSTBTT_EXPORT int xstbtt_bitmap_height(void* handle)
-{
-	XStbttBitmap* bitmap;
-	bitmap = xstbtt_cast_bitmap(handle);
-	return bitmap != NULL ? bitmap->height : 0;
-}
-
-XSTBTT_EXPORT int xstbtt_bitmap_xoff(void* handle)
-{
-	XStbttBitmap* bitmap;
-	bitmap = xstbtt_cast_bitmap(handle);
-	return bitmap != NULL ? bitmap->xoff : 0;
-}
-
-XSTBTT_EXPORT int xstbtt_bitmap_yoff(void* handle)
-{
-	XStbttBitmap* bitmap;
-	bitmap = xstbtt_cast_bitmap(handle);
-	return bitmap != NULL ? bitmap->yoff : 0;
-}
-
-XSTBTT_EXPORT void* xstbtt_bitmap_data(void* handle)
-{
-	XStbttBitmap* bitmap;
-	bitmap = xstbtt_cast_bitmap(handle);
-	return bitmap != NULL ? bitmap->data : NULL;
-}
-
-XSTBTT_EXPORT int xstbtt_bitmap_release(void* handle)
-{
-	XStbttBitmap* bitmap;
-	bitmap = (XStbttBitmap*)handle;
-	if ( bitmap == NULL ) return 0;
-	if ( bitmap->data != NULL ) stbtt_FreeBitmap(bitmap->data, NULL);
-	bitmap->data = NULL;
-	free(bitmap);
-	return 1;
+    xstbtt_bitmap* Bitmap = (xstbtt_bitmap*)Handle;
+    return Bitmap != NULL ? (size_t)Bitmap->Width * (size_t)Bitmap->Height : 0u;
 }

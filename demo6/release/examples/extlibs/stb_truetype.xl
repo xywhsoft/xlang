@@ -1,40 +1,17 @@
 import stb_truetype
 
-assert stb_truetype.available(), "stb_truetype available failed"
-
-string fontPath = stb_truetype.default_font_path()
-assert string.len(fontPath) > 0, "stb_truetype default_font_path failed"
-point font = stb_truetype.load(fontPath, 0)
-assert stb_truetype.valid(font) != 0, "stb_truetype load failed"
-assert stb_truetype.scale_for_pixel_height(font, 16.0) > 0.0, "stb_truetype scale failed"
-assert stb_truetype.ascent(font) != 0, "stb_truetype ascent missing"
-assert stb_truetype.descent(font) <= 0, "stb_truetype descent mismatch"
-int lineGap = int(stb_truetype.line_gap(font))
-assert lineGap == lineGap, "stb_truetype line_gap call failed"
-assert stb_truetype.find_glyph_index(font, 65) > 0, "stb_truetype glyph missing"
-assert stb_truetype.h_advance(font, 65) > 0, "stb_truetype h_advance missing"
-int leftBearing = int(stb_truetype.left_bearing(font, 65))
-int kern = int(stb_truetype.kern_advance(font, 65, 86))
-assert leftBearing == leftBearing, "stb_truetype left_bearing call failed"
-assert kern == kern, "stb_truetype kern_advance call failed"
-string vm = stb_truetype.vmetrics(font)
-assert string.contains(vm, "\"ok\":true"), "stb_truetype vmetrics failed"
-string hm = stb_truetype.hmetrics(font, 65)
-assert string.contains(hm, "\"glyph_index\":"), "stb_truetype hmetrics failed"
-string box = stb_truetype.codepoint_bitmap_box(font, 65, 24.0)
-assert string.contains(box, "\"ok\":true"), "stb_truetype bitmap box failed"
-point bitmap = stb_truetype.codepoint_bitmap(font, 65, 24.0)
-assert stb_truetype.bitmap_valid(bitmap) != 0, "stb_truetype bitmap invalid"
-assert stb_truetype.bitmap_width(bitmap) > 0, "stb_truetype bitmap width missing"
-assert stb_truetype.bitmap_height(bitmap) > 0, "stb_truetype bitmap height missing"
-assert stb_truetype.bitmap_data(bitmap) != null, "stb_truetype bitmap data missing"
-int xoff = int(stb_truetype.bitmap_xoff(bitmap))
-int yoff = int(stb_truetype.bitmap_yoff(bitmap))
-assert xoff == xoff, "stb_truetype bitmap_xoff call failed"
-assert yoff == yoff, "stb_truetype bitmap_yoff call failed"
-assert stb_truetype.bitmap_release(bitmap) != 0, "stb_truetype bitmap release failed"
-assert stb_truetype.release(font) != 0, "stb_truetype release failed"
-assert string.len(stb_truetype.version()) > 0, "stb_truetype version missing"
-assert string.len(stb_truetype.last_error()) >= 0, "stb_truetype last_error should return a string"
-
-println("stb_truetype extlib ok")
+func main(...) as int
+    // 测试字体随范例提供；正式程序应把自己的字体作为资源提供。
+    string fontPath = path.join(path.appDir(),
+        "extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf")
+    if arg.length > 1 then fontPath = string(arg[1]) end
+    stb_truetype.Font font = stb_truetype.load(fontPath)
+    stb_truetype.Bitmap glyph = font.bitmap(65, 24.0)
+    assert font.glyphIndex(65) > 0
+    assert font.advance(65) > 0
+    assert glyph.width() > 0 and glyph.height() > 0
+    assert glyph.pixels().len() == glyph.byteSize()
+    println("glyph A bytes: ", glyph.byteSize())
+    println("stb_truetype C/XL example: PASS")
+    return 0
+end

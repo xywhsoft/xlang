@@ -1,0 +1,4 @@
+import stb_truetype
+
+// 不执行：包外不能把任意指针交给位图句柄的析构路径。
+auto image = stb_truetype.Bitmap(null)
