@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>volc.core - 扩展库 - xlang</title>
+  <meta name="description" content="火山引擎离线签名和 HTTP 请求共享基础包。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / volc.core</p><h1>volc.core</h1>
+    <p class="extlib-lead">火山引擎签名与请求的共享基础包。</p>
+    <p>离线哈希、规范化查询和签名预览可由 C 调用。XLang 导入链目前被 xhttp.multipart 阻断；真实云请求、并发和资源复用尚未验收。本页不代表生产可用。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>sha256_hex / hmac_sha256_hex</code></td><td>离线摘要与 HMAC</td></tr>
+      <tr><td><code>canonical_query / json_string</code></td><td>签名输入编码</td></tr>
+      <tr><td><code>sign_preview / sign_preview_acep / sign_preview_sts</code></td><td>离线签名预览，不发请求</td></tr>
+      <tr><td><code>request / request_acep / request_sts</code></td><td>经 xhttp.client 发送在线请求，尚未完成验收</td></tr>
+    </tbody></table>
+    <h2>示例</h2>
+    <pre><code>import volc.core
+string query = volc.core.canonical_query("ListApps", "2020-01-01", "Limit=10\nName=x lang")</code></pre>
+    <p>C 声明在 <code>include/volc_core_native.h</code>，离线范例在 <code>examples/signing.c</code>。显式日期须为有效的 <code>YYYYMMDDTHHMMSSZ</code>；省略时由 XRT 生成当前 UTC。C 返回字符串由包持有，跨线程或长期保存前应复制；离线返回槽和诊断已按线程隔离，在线并发仍未验收。详细范围和复现命令见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

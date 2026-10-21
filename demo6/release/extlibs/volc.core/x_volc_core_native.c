@@ -6,9 +6,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
+#ifndef XRT_MODULE_ONCE
+#define XRT_MODULE_ONCE
+#endif
+#ifndef XRT_MODULE_THREAD_KEY
+#define XRT_MODULE_THREAD_KEY
+#endif
+#ifndef XRT_MODULE_TIME_TEXT
+#define XRT_MODULE_TIME_TEXT
+#endif
 #include "xrt.h"
+#include "include/volc_core_native.h"
 #include "../xhttp.client/include/xhttp_client_package.h"
 
 #define XVOLC_CORE_VERSION "0.1.0"
@@ -25,55 +34,93 @@ typedef struct xvolc_buf {
 	size_t cap;
 } xvolc_buf;
 
-/* XRT exposes mutexes as values; the package keeps a pointer handle. */
-static xmutex* g_xvolc_lock = NULL;
-static char* g_xvolc_returns[8];
-static size_t g_xvolc_return_slot = 0u;
-static char g_xvolc_error[512] = "";
-static int g_xvolc_last_status = 0;
+typedef struct xvolc_state {
+	char* returns[8];
+	size_t return_slot;
+	char error[512];
+	int last_status;
+} xvolc_state;
 
-static void xvolc_init(void)
+static xonce g_xvolc_once = XRT_ONCE_INIT;
+static xthreadkey* g_xvolc_key = NULL;
+
+static void xvolc_state_destroy(ptr data)
 {
-	if ( g_xvolc_lock == NULL ) {
-		g_xvolc_lock = xrtMutexCreate();
+	xvolc_state* state = (xvolc_state*)data;
+	size_t i;
+	if ( state == NULL ) return;
+	for ( i = 0; i < sizeof(state->returns) / sizeof(state->returns[0]); ++i ) {
+		xrtFree(state->returns[i]);
 	}
+	xrtFree(state);
+}
+
+static bool xvolc_key_create(ptr unused)
+{
+	(void)unused;
+	g_xvolc_key = xrtThreadKeyCreate(xvolc_state_destroy);
+	return g_xvolc_key != NULL;
+}
+
+/* 结果槽和诊断跟随原生线程；线程退出时由 XRT 销毁。 */
+static xvolc_state* xvolc_state_get(void)
+{
+	xvolc_state* state;
+	if ( !xrtOnce(&g_xvolc_once, xvolc_key_create, NULL) ) return NULL;
+	state = (xvolc_state*)xrtThreadKeyGet(g_xvolc_key);
+	if ( state != NULL ) return state;
+	state = (xvolc_state*)xrtCalloc(1u, sizeof(*state));
+	if ( state == NULL ) return NULL;
+	if ( !xrtThreadKeySet(g_xvolc_key, state) ) {
+		xvolc_state_destroy(state);
+		return NULL;
+	}
+	return state;
 }
 
 static void xvolc_set_error(const char* text)
 {
+	xvolc_state* state = xvolc_state_get();
 	size_t len;
-	xvolc_init();
+	if ( state == NULL ) return;
 	if ( text == NULL ) {
 		text = "";
 	}
+	if ( text[0] == '\0' ) xrtClearError();
 	len = strlen(text);
-	if ( len >= sizeof(g_xvolc_error) ) {
-		len = sizeof(g_xvolc_error) - 1u;
+	if ( len >= sizeof(state->error) ) {
+		len = sizeof(state->error) - 1u;
 	}
 	if ( len > 0u ) {
-		memcpy(g_xvolc_error, text, len);
+		memcpy(state->error, text, len);
 	}
-	g_xvolc_error[len] = '\0';
+	state->error[len] = '\0';
 }
 
 static void xvolc_set_errorf(const char* fmt, ...)
 {
+	xvolc_state* state = xvolc_state_get();
 	va_list ap;
-	xvolc_init();
+	if ( state == NULL ) return;
 	va_start(ap, fmt);
-	vsnprintf(g_xvolc_error, sizeof(g_xvolc_error), fmt, ap);
+	vsnprintf(state->error, sizeof(state->error), fmt, ap);
 	va_end(ap);
-	g_xvolc_error[sizeof(g_xvolc_error) - 1u] = '\0';
+	state->error[sizeof(state->error) - 1u] = '\0';
 }
 
 static const char* xvolc_return_copy(const char* text, size_t len)
 {
+	xvolc_state* state = xvolc_state_get();
 	char* copy;
 	size_t slot;
-	xvolc_init();
+	if ( state == NULL ) return "";
 	if ( text == NULL ) {
 		text = "";
 		len = 0u;
+	}
+	if ( len == SIZE_MAX ) {
+		xvolc_set_error("result is too large");
+		return "";
 	}
 	copy = (char*)xrtMalloc(len + 1u);
 	if ( copy == NULL ) {
@@ -84,13 +131,13 @@ static const char* xvolc_return_copy(const char* text, size_t len)
 		memcpy(copy, text, len);
 	}
 	copy[len] = '\0';
-	slot = g_xvolc_return_slot % (sizeof(g_xvolc_returns) / sizeof(g_xvolc_returns[0]));
-	g_xvolc_return_slot += 1u;
-	if ( g_xvolc_returns[slot] != NULL ) {
-		xrtFree(g_xvolc_returns[slot]);
+	slot = state->return_slot % (sizeof(state->returns) / sizeof(state->returns[0]));
+	state->return_slot += 1u;
+	if ( state->returns[slot] != NULL ) {
+		xrtFree(state->returns[slot]);
 	}
-	g_xvolc_returns[slot] = copy;
-	return g_xvolc_returns[slot];
+	state->returns[slot] = copy;
+	return state->returns[slot];
 }
 
 static const char* xvolc_return_text(const char* text)
@@ -356,11 +403,17 @@ static void xvolc_pairs_free(xvolc_pair* pairs, size_t count)
 static int xvolc_pairs_add(xvolc_pair** pairs, size_t* count, size_t* cap, const char* key, const char* value)
 {
 	xvolc_pair* next;
+	char* key_copy;
+	char* value_copy;
 	if ( key == NULL || key[0] == '\0' ) {
 		return 1;
 	}
 	if ( *count >= *cap ) {
 		size_t new_cap = *cap ? (*cap * 2u) : 8u;
+		if ( new_cap < *cap || new_cap > SIZE_MAX / sizeof(xvolc_pair) ) {
+			xvolc_set_error("query has too many parameters");
+			return 0;
+		}
 		next = (xvolc_pair*)xrtRealloc(*pairs, new_cap * sizeof(xvolc_pair));
 		if ( next == NULL ) {
 			xvolc_set_error("out of memory");
@@ -369,12 +422,21 @@ static int xvolc_pairs_add(xvolc_pair** pairs, size_t* count, size_t* cap, const
 		*pairs = next;
 		*cap = new_cap;
 	}
-	(*pairs)[*count].key = xvolc_strdup(key);
-	(*pairs)[*count].value = xvolc_strdup(value ? value : "");
-	if ( (*pairs)[*count].key == NULL || (*pairs)[*count].value == NULL ) {
+	(*pairs)[*count].key = NULL;
+	(*pairs)[*count].value = NULL;
+	key_copy = xvolc_strdup(key);
+	if ( key_copy == NULL ) {
 		xvolc_set_error("out of memory");
 		return 0;
 	}
+	value_copy = xvolc_strdup(value ? value : "");
+	if ( value_copy == NULL ) {
+		xrtFree(key_copy);
+		xvolc_set_error("out of memory");
+		return 0;
+	}
+	(*pairs)[*count].key = key_copy;
+	(*pairs)[*count].value = value_copy;
 	++(*count);
 	return 1;
 }
@@ -455,19 +517,16 @@ fail:
 	return NULL;
 }
 
-static void xvolc_utc_now(char x_date[17], char date_stamp[9])
+static int xvolc_utc_now(char x_date[17], char date_stamp[9])
 {
-	time_t t = time(NULL);
-	struct tm tmv;
-	struct tm* ptm = gmtime(&t);
-	if ( ptm != NULL ) {
-		tmv = *ptm;
-	} else {
-		memset(&tmv, 0, sizeof(tmv));
+	if ( xrtTimeWrite(x_date, 17u, xrtNow(), 0,
+		XRT_STR_LITERAL("%Y%m%dT%H%M%SZ")) != 16u ) {
+		xvolc_set_error("failed to format current UTC time");
+		return 0;
 	}
-	strftime(x_date, 17u, "%Y%m%dT%H%M%SZ", &tmv);
 	memcpy(date_stamp, x_date, 8u);
 	date_stamp[8] = '\0';
+	return 1;
 }
 
 static int xvolc_sign(const char* method,
@@ -516,12 +575,24 @@ static int xvolc_sign(const char* method,
 		xvolc_set_error("missing host/access_key/secret_key");
 		return 0;
 	}
-	if ( x_date_arg != NULL && strlen(x_date_arg) == 16u ) {
+	if ( x_date_arg != NULL && x_date_arg[0] != '\0' ) {
+		xtime parsed;
+		if ( strlen(x_date_arg) != 16u ) {
+			xvolc_set_error("invalid x_date");
+			return 0;
+		}
+		if ( !xrtTimeParse((xstrview){ x_date_arg, 16u },
+				XRT_STR_LITERAL("%Y%m%dT%H%M%SZ"), &parsed) ) {
+			/* 本接口通过返回值和 last_error 报错，不泄漏时间解析器的线程错误。 */
+			xrtClearError();
+			xvolc_set_error("invalid x_date");
+			return 0;
+		}
 		memcpy(x_date, x_date_arg, 17u);
 		memcpy(date_stamp, x_date, 8u);
 		date_stamp[8] = '\0';
-	} else {
-		xvolc_utc_now(x_date, date_stamp);
+	} else if ( !xvolc_utc_now(x_date, date_stamp) ) {
+		return 0;
 	}
 	xvolc_sha256_hex_into(body ? body : "", payload_hash);
 	signed_headers = xvolc_strdup(has_token
@@ -615,13 +686,14 @@ const char* x_volc_core_version(void)
 
 const char* x_volc_core_last_error(void)
 {
-	xvolc_init();
-	return g_xvolc_error;
+	xvolc_state* state = xvolc_state_get();
+	return state != NULL ? state->error : "thread state unavailable";
 }
 
 int x_volc_core_last_status(void)
 {
-	return g_xvolc_last_status;
+	xvolc_state* state = xvolc_state_get();
+	return state != NULL ? state->last_status : 0;
 }
 
 const char* x_volc_core_sha256_hex(const char* text)
@@ -760,14 +832,16 @@ const char* x_volc_core_request(const char* method,
 	xhttpclientconfig client_cfg;
 	xhttpclient* client = NULL;
 	xhttpcalloptions call_options;
-	uint64 timeout = (uint64)(timeout_ms > 0 ? timeout_ms : XVOLC_DEFAULT_TIMEOUT_MS) * UINT64_C(1000);
+	uint64 timeout = (timeout_ms > 0 ? (uint64)timeout_ms : (uint64)XVOLC_DEFAULT_TIMEOUT_MS) * UINT64_C(1000);
 	const char* ret = "";
 	const char* p_method = method && method[0] ? method : "POST";
 	const char* p_path = path && path[0] ? path : "/";
 	const char* p_content_type = content_type && content_type[0] ? content_type : "application/json";
 	const char* p_body = body ? body : "";
+	xvolc_state* state = xvolc_state_get();
+	if ( state == NULL ) return "";
 	xvolc_set_error("");
-	g_xvolc_last_status = 0;
+	state->last_status = 0;
 	xvolc_buf_init(&url);
 	query = xvolc_build_canonical_query(action, version, extra_pairs);
 	if ( query == NULL ) goto done;
@@ -829,13 +903,13 @@ const char* x_volc_core_request(const char* method,
 		xvolc_set_error("xrt HTTP request failed");
 		goto done;
 	}
-	g_xvolc_last_status = (int)xrtHttpResponseStatus(resp);
+	state->last_status = (int)xrtHttpResponseStatus(resp);
 	{
 		xbytesview response_body = xrtHttpResponseBody(resp);
 		ret = xvolc_return_copy((const char*)response_body.Data, response_body.Size);
 	}
-	if ( g_xvolc_last_status < 200 || g_xvolc_last_status >= 300 ) {
-		xvolc_set_errorf("HTTP returned status %d", g_xvolc_last_status);
+	if ( state->last_status < 200 || state->last_status >= 300 ) {
+		xvolc_set_errorf("HTTP returned status %d", state->last_status);
 	}
 done:
 	if ( result ) xrtHttpResultDestroy(result);
@@ -878,6 +952,16 @@ const char* x_volc_core_sign_preview_acep(const char* action,
 		action, version, access_key, secret_key, session_token, "application/json", "", body, x_date);
 }
 
+static int xvolc_sts_role_fields_valid(const char* role_trn, const char* role_session_name)
+{
+	if ( (role_trn && strpbrk(role_trn, "\r\n")) ||
+		(role_session_name && strpbrk(role_session_name, "\r\n")) ) {
+		xvolc_set_error("invalid STS role field");
+		return 0;
+	}
+	return 1;
+}
+
 const char* x_volc_core_request_sts(const char* access_key,
 	const char* secret_key,
 	const char* role_trn,
@@ -887,6 +971,8 @@ const char* x_volc_core_request_sts(const char* access_key,
 {
 	xvolc_buf pairs;
 	const char* ret = "";
+	xvolc_set_error("");
+	if ( !xvolc_sts_role_fields_valid(role_trn, role_session_name) ) return ret;
 	xvolc_buf_init(&pairs);
 	if ( !xvolc_buf_appendf(&pairs, "RoleTrn=%s\nRoleSessionName=%s\nDurationSeconds=%d",
 		role_trn ? role_trn : "", role_session_name ? role_session_name : "", duration_seconds) ) goto done;
@@ -906,6 +992,8 @@ const char* x_volc_core_sign_preview_sts(const char* access_key,
 {
 	xvolc_buf pairs;
 	const char* ret = "";
+	xvolc_set_error("");
+	if ( !xvolc_sts_role_fields_valid(role_trn, role_session_name) ) return ret;
 	xvolc_buf_init(&pairs);
 	if ( !xvolc_buf_appendf(&pairs, "RoleTrn=%s\nRoleSessionName=%s\nDurationSeconds=%d",
 		role_trn ? role_trn : "", role_session_name ? role_session_name : "", duration_seconds) ) goto done;
