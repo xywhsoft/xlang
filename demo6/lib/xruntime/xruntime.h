@@ -1975,6 +1975,19 @@
 #endif
 #endif
 
+/* net_proxy_dial_future 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_NET_PROXY_DIAL_FUTURE)
+#ifndef XRT_FEATURE_NET_PROXY_DIAL_FUTURE
+#define XRT_FEATURE_NET_PROXY_DIAL_FUTURE
+#endif
+#ifndef XRT_MODULE_NET_PROXY_DIAL
+#define XRT_MODULE_NET_PROXY_DIAL
+#endif
+#ifndef XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#define XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#endif
+#endif
+
 /* net_proxy_dial 及其直接依赖。 */
 #if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_NET_PROXY_DIAL)
 #ifndef XRT_FEATURE_NET_PROXY_DIAL
@@ -4670,8 +4683,18 @@
 #ifndef XRT_MODULE_NET_TCP_DIAL
 #define XRT_MODULE_NET_TCP_DIAL
 #endif
-#ifndef XRT_MODULE_FUTURE
-#define XRT_MODULE_FUTURE
+#ifndef XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#define XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#endif
+#endif
+
+/* net_dial_future_common 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_NET_DIAL_FUTURE_COMMON)
+#ifndef XRT_FEATURE_NET_DIAL_FUTURE_COMMON
+#define XRT_FEATURE_NET_DIAL_FUTURE_COMMON
+#endif
+#ifndef XRT_MODULE_NET_TCP
+#define XRT_MODULE_NET_TCP
 #endif
 #ifndef XRT_MODULE_FUTURE_BRIDGE
 #define XRT_MODULE_FUTURE_BRIDGE
@@ -18927,6 +18950,7 @@ XRT_EXTERN_C_END
 
 #if defined(XRT_FEATURE_NET_TCP_DIAL_FUTURE) && \
 	(!defined(XRT_FEATURE_NET_TCP_DIAL) || \
+	 !defined(XRT_FEATURE_NET_DIAL_FUTURE_COMMON) || \
 	 !defined(XRT_FEATURE_FUTURE) || \
 	 !defined(XRT_FEATURE_FUTURE_BRIDGE))
 	#error "XRT TCP Dial Future support requires TCP Dial, Future and Future bridge support"
@@ -19020,6 +19044,17 @@ typedef struct xnetstreamevents {
 	void (*Close)(xnetstream* pStream, xnetresult Result,
 		const xerror* pError, ptr pData);
 } xnetstreamevents;
+
+/* One explicit event-data owner. A successful SetEventsOwned consumes ONE
+ * actual Data reference; failure consumes none. Callbacks borrow that owner.
+ * Replacement/close drops it on the same Worker AFTER the current task's
+ * callback stack has returned. Descriptor and code must remain resident. */
+typedef struct xnetstreameventsownershipv1 {
+	size_t size;
+	xnetstreamevents Events;
+	void (*Drop)(const void* pData);
+	const xrtownershipops* Ops;
+} xnetstreameventsownershipv1;
 
 
 
@@ -19325,6 +19360,13 @@ XRT_API const xrtownershipquiescencev1* xrtNetStreamOwnershipQuiescenceV1Get(voi
 XRT_API const xrtownershipquiescencev1* xrtNetListenerOwnershipQuiescenceV1Get(void);
 XRT_API const xrtownershipadapterv1* xrtNetStreamOwnershipAdapterV1(
 	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+/* V1 refuses owned event data. V2 additionally admits exact, separately
+ * supplied event-policy identities before inspecting any context metadata.
+ * Retired callback tails remain BUSY until real Worker drain, never a fake
+ * zero count or a hidden context reference. Failure leaves output untouched. */
+XRT_API const xrtownershipadapterv1* xrtNetStreamOwnershipAdapterV2(
+	xrtownershipref Reference, const xnetstreameventsownershipv1* const* pPolicies,
+	size_t iPolicyCount, const xrtownershippreparationv1** ppPreparation);
 XRT_API const xrtownershipadapterv1* xrtNetListenerOwnershipAdapterV1(
 	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
 
@@ -19531,6 +19573,12 @@ XRT_API bool xrtNetStreamSetEvents(
 	const xnetstreamevents* pEvents,
 	ptr pData
 );
+
+/* Worker-only, open Stream. Allocates one uniquely owned binding, not one
+ * allocation per event/packet. SetData cannot overwrite an owned binding.
+ * Legacy SetEvents may replace it, but does not retain its borrowed new Data. */
+XRT_API bool xrtNetStreamSetEventsOwnedV1(xnetstream* pStream, ptr pData,
+	const xnetstreameventsownershipv1* pPolicy);
 
 
 
@@ -27141,6 +27189,12 @@ XRT_EXTERN_C_END
 #if defined(XRT_FEATURE_NET_PROXY_DIAL)
 #endif
 
+#if defined(XRT_FEATURE_NET_PROXY_DIAL_FUTURE)
+	#if !defined(XRT_FEATURE_NET_PROXY_DIAL) || !defined(XRT_FEATURE_NET_DIAL_FUTURE_COMMON)
+		#error "Proxy Dial Future requires Proxy Dial and the shared Dial Future producer"
+	#endif
+#endif
+
 
 
 #if defined(XRT_FEATURE_NET_PROXY) && !defined(XRT_FEATURE_NET)
@@ -27327,6 +27381,15 @@ typedef void (*xnetproxydialproc)(
 	ptr pData
 );
 
+/* Success consumes one actual callback-data reference. Done borrows it;
+ * Drop follows its real callback tail. Failed submission consumes none. */
+typedef struct xnetproxydialownershipv1 {
+	size_t size;
+	xnetproxydialproc Done;
+	void (*Drop)(const void* pData);
+	const xrtownershipops* Ops;
+} xnetproxydialownershipv1;
+
 #endif
 
 
@@ -27479,6 +27542,19 @@ XRT_API xnetproxydial* xrtNetProxyDial(
 	ptr pDoneData
 );
 
+XRT_API xnetproxydial* xrtNetProxyDialOwnedV1(xnetengine* pEngine, xnetresolver* pResolver,
+	const xnetproxy* pProxy, cstr sTargetHost, uint16 iTargetPort,
+	const xnetproxydialconfig* pConfig, const xnetstreamevents* pStreamEvents,
+	ptr pStreamData, ptr pDoneData, const xnetproxydialownershipv1* pPolicy);
+XRT_API xrtownershipref xrtNetProxyDialOwnership(const xnetproxydial* pDial);
+XRT_API const xrtownershipquiescencev1* xrtNetProxyDialOwnershipQuiescenceV1Get(void);
+XRT_API const xnetruntimeownershipv1* xrtNetProxyDialRuntimeOwnershipV1Get(void);
+XRT_API const xnetdialownershipv1* xrtNetProxyDialTransportOwnershipV1Get(void);
+XRT_API const xnetstreameventsownershipv1* xrtNetProxyDialStreamOwnershipV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtNetProxyDialOwnershipAdapterV1(xrtownershipref Reference,
+	const xnetproxydialownershipv1* const* pPolicies, size_t iPolicyCount,
+	const xrtownershippreparationv1** ppPreparation);
+
 
 
 /* 增加 Proxy Dial 引用并返回原指针。 */
@@ -27519,6 +27595,22 @@ XRT_API bool xrtNetProxyDialStats(
 #endif
 
 
+
+#if defined(XRT_FEATURE_NET_PROXY_DIAL_FUTURE)
+/* Success holds one Stream; Value borrows it, Ref acquires another owner.
+ * Cancel requests the real native operation and waits for its actual terminal
+ * callback. No per-wait thread, coroutine stack or synthetic terminal state. */
+XRT_API xfuture* xrtNetProxyDialAsync(xnetengine* pEngine, xnetresolver* pResolver,
+	const xnetproxy* pProxy, cstr sTargetHost, uint16 iTargetPort,
+	const xnetproxydialconfig* pConfig, const xnetstreamevents* pStreamEvents, ptr pStreamData);
+XRT_API const xfutureproducerownershipv1* xrtNetProxyDialFutureProducerPolicyV1Get(void);
+XRT_API const xcancelwatchownershipv1* xrtNetProxyDialFutureCancelPolicyV1Get(void);
+XRT_API const xnetproxydialownershipv1* xrtNetProxyDialFutureDialPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtNetProxyDialFuturePayloadPolicyV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtNetProxyDialFutureOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtNetProxyDialFutureOwnershipAdapterV1(
+	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+#endif
 
 XRT_EXTERN_C_END
 
@@ -54318,6 +54410,24 @@ struct __xrt_net_stream_control {
 
 
 
+/* Uniquely contained binding: no fabricated RC node. Data is ONE actual
+ * strong slot. Retired bindings keep old callback borrows alive until the
+ * current Worker task has returned; their drain borrows the Stream runtime. */
+typedef struct __xrt_net_stream_events_owner {
+	struct __xrt_net_stream_events_owner* Next;
+	const xnetstreameventsownershipv1* Policy;
+	ptr Data;
+} __xrt_net_stream_events_owner;
+
+/* Prepare before asynchronous I/O starts. The unique record consumes Data's
+ * supplied credit only on successful creation/attachment. This makes protocol
+ * setup failure allocation-free after a Stream creator has been delivered. */
+__xrt_net_stream_events_owner* __xrtNetStreamEventsPrepare(ptr pData,
+	const xnetstreameventsownershipv1* pPolicy);
+bool __xrtNetStreamEventsAttach(xnetstream* pStream, __xrt_net_stream_events_owner* pOwner);
+void __xrtNetStreamEventsDiscard(__xrt_net_stream_events_owner* pOwner);
+xnetresult __xrtNetStreamSendSecureTake(xnetstream* pStream, ptr pData, size_t iSize);
+
 /* Stream 的可变 IO 状态只由所属 Worker 访问。 */
 struct xnetstream {
 	__xrt_net_engine_runtime RuntimeOwner;
@@ -54353,6 +54463,11 @@ struct xnetstream {
 	xnetstreamconfig Config;
 	xnetstreamevents Events;
 	xatomicptr Data;
+	__xrt_net_stream_events_owner* EventOwner;
+	__xrt_net_stream_events_owner* RetiredEventOwners;
+	__xrt_net_stream_events_owner* RetiredEventOwnersTail;
+	__xrt_net_engine_internal EventDropCommand;
+	xatomic32 EventDropPending;
 	xnetaddr Local;
 	xnetaddr Remote;
 	xnetcompletion Completion;
@@ -63841,6 +63956,45 @@ bool __xrtNetServerFutureAccept(
 
 #endif
 
+#endif
+#endif
+
+
+/* ========================================================================== */
+/* internal: src/internal/xrt_dial_future.h */
+/* ========================================================================== */
+
+#if defined(XRT_FEATURE_NET_DIAL_FUTURE_COMMON)
+#ifndef XRT_INTERNAL_DIAL_FUTURE_H
+#define XRT_INTERNAL_DIAL_FUTURE_H
+
+
+#if defined(XRT_FEATURE_NET_DIAL_FUTURE_COMMON)
+/* Resident, exact-family operations only. No caller callbacks or borrowed
+ * submission arguments survive Create. One shared physical Future producer
+ * is used by TCP and Proxy; the operation retains its own native state. */
+typedef struct xrt_net_dial_future_policy {
+    ptr (*Ref)(ptr operation);
+    void (*Destroy)(ptr operation);
+    bool (*Cancel)(ptr operation);
+    xrtownershipref (*Ownership)(const void* operation);
+} xrt_net_dial_future_policy;
+typedef ptr (*xrt_net_dial_future_submit)(ptr context, const void* arguments);
+
+extern const xrtownershipops __xrtNetStreamDialFutureOps;
+void __xrtNetStreamDialFutureDrop(const void* data);
+void __xrtNetStreamDialFutureComplete(ptr context, xnetresult result,
+    xnetstream* stream, const xerror* failure);
+xfuture* __xrtNetStreamDialFutureCreate(const xrt_net_dial_future_policy* policy,
+    xrt_net_dial_future_submit submit, const void* arguments);
+const xfutureproducerownershipv1* __xrtNetStreamDialFutureProducerPolicyV1Get(void);
+const xcancelwatchownershipv1* __xrtNetStreamDialFutureCancelPolicyV1Get(void);
+const xfuturepayloadownershipv1* __xrtNetStreamDialFuturePayloadPolicyV1Get(void);
+const xrtownershipquiescencev1* __xrtNetStreamDialFutureOwnershipQuiescenceV1Get(void);
+const xrtownershipadapterv1* __xrtNetStreamDialFutureOwnershipAdapterV1(
+    xrtownershipref ref, const xrt_net_dial_future_policy* policy,
+    const xrtownershippreparationv1** preparation);
+#endif
 #endif
 #endif
 
@@ -135906,7 +136060,9 @@ XRT_API void xrtNetStreamDestroy(xnetstream* pStream)
 	xrtownershipscope Mutation = {0};
 	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
 	bool bLast = xrtRefRelease(&pStream->References) == 0;
-	if (bLast && (pStream->RuntimeOwner.Data || pStream->RuntimeOwner.Previous)) abort();
+	if (bLast && (pStream->RuntimeOwner.Data || pStream->RuntimeOwner.Previous ||
+		pStream->EventOwner || pStream->RetiredEventOwners || pStream->RetiredEventOwnersTail ||
+		xrtAtomic32Load(&pStream->EventDropPending, XMEMORY_ACQUIRE))) abort();
 	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
 	if ( !bLast ) {
 		return;
@@ -136636,12 +136792,65 @@ static void __xrtNetStreamFreeTaken(
 	(void)iSize;
 	xrtFree((ptr)pData);
 }
+static void __xrtNetStreamFreeSecureTaken(ptr pContext,cbytes pData,size_t iSize)
+{(void)pContext;xrtSecureZero((ptr)pData,iSize);xrtFree((ptr)pData);}
 
 
 
 static void __xrtNetStreamDriveRead(xnetstream* pStream);
 static void __xrtNetStreamDriveWrite(xnetstream* pStream);
 static void __xrtNetStreamTryFinish(xnetstream* pStream);
+static void __xrtNetStreamReleaseRuntime(xnetstream* pStream);
+
+/* No per-event pins or allocations. The registered runtime lease stays
+ * physically alive through this queued task, including reentrant Drop work.
+ * A binding is detached before calling its Drop, outside any mutation scope. */
+static void __xrtNetStreamDropEventsTask(xnetworker* pWorker, ptr pData)
+{
+	(void)pWorker;
+	xnetstream* pStream = pData;
+	while (pStream->RetiredEventOwners) {
+		__xrt_net_stream_events_owner* pOwner = pStream->RetiredEventOwners;
+		pStream->RetiredEventOwners = pOwner->Next;
+		if (!pStream->RetiredEventOwners) pStream->RetiredEventOwnersTail = NULL;
+		pOwner->Policy->Drop(pOwner->Data);
+		xrtFree(pOwner);
+	}
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	xrtAtomic32Store(&pStream->EventDropPending, 0, XMEMORY_RELEASE);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (pStream->ReleasePending) __xrtNetStreamReleaseRuntime(pStream); /* last access */
+}
+static bool __xrtNetStreamQueueEventsDrop(xnetstream* pStream)
+{
+	if (xrtAtomic32Load(&pStream->EventDropPending, XMEMORY_ACQUIRE)) return true;
+	if (!pStream->RuntimeHeld || !xrtNetWorkerIsCurrent(pStream->Worker)) abort();
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) return false;
+	xrtAtomic32Store(&pStream->EventDropPending, 1, XMEMORY_RELEASE);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (__xrtNetEnginePostInternal(pStream->Worker, &pStream->EventDropCommand,
+		__xrtNetStreamDropEventsTask, pStream)) return true;
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	xrtAtomic32Store(&pStream->EventDropPending, 0, XMEMORY_RELEASE);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	__xrtErrorSetInvalidState();
+	return false;
+}
+static void __xrtNetStreamRetireEvents(xnetstream* pStream)
+{
+	__xrt_net_stream_events_owner* pOwner = pStream->EventOwner;
+	if (!pOwner) return;
+	/* A current Worker with an unconsumed runtime lease cannot be sealed.
+ * This lifecycle post is allocation-free, including Engine shutdown. */
+	if (!__xrtNetStreamQueueEventsDrop(pStream)) abort();
+	pStream->EventOwner = NULL;
+	pOwner->Next = NULL;
+	if (pStream->RetiredEventOwnersTail) pStream->RetiredEventOwnersTail->Next = pOwner;
+	else pStream->RetiredEventOwners = pOwner;
+	pStream->RetiredEventOwnersTail = pOwner;
+}
 
 
 
@@ -136661,7 +136870,8 @@ static void __xrtNetStreamReleaseRuntime(xnetstream* pStream)
 	if ( !pStream->RuntimeHeld ) {
 		return;
 	}
-	if ( pStream->ActiveDepth != 0 || xrtAtomic32Load(&pStream->OwnershipStop, XMEMORY_ACQUIRE) ) {
+	if ( pStream->ActiveDepth != 0 || xrtAtomic32Load(&pStream->OwnershipStop, XMEMORY_ACQUIRE) ||
+		xrtAtomic32Load(&pStream->EventDropPending, XMEMORY_ACQUIRE) ) {
 		pStream->ReleasePending = true;
 		return;
 	}
@@ -136955,7 +137165,8 @@ static void __xrtNetStreamTryFinish(xnetstream* pStream)
 	#endif
 	/* A queued retirement frame borrows the runtime slot and its Engine.
 	 * Otherwise preserve the existing close-callback/Engine join ordering. */
-	if (!xrtAtomic32Load(&pStream->OwnershipStop, XMEMORY_ACQUIRE)) __xrtNetStreamReleaseEngine(pStream);
+	if (!xrtAtomic32Load(&pStream->OwnershipStop, XMEMORY_ACQUIRE) && !pStream->EventOwner &&
+		!xrtAtomic32Load(&pStream->EventDropPending, XMEMORY_ACQUIRE)) __xrtNetStreamReleaseEngine(pStream);
 	xrtAtomic32Store(
 		&pStream->State,
 		XNET_STREAM_CLOSED,
@@ -136983,6 +137194,11 @@ static void __xrtNetStreamTryFinish(xnetstream* pStream)
 		}
 	#endif
 	__xrtNetStreamNotifyFutures(pStream, false);
+	if (pStream->EventOwner) {
+		__xrtNetStreamRetireEvents(pStream);
+		memset(&pStream->Events, 0, sizeof(pStream->Events));
+		xrtAtomicPtrStore(&pStream->Data, NULL, XMEMORY_RELEASE);
+	}
 	__xrtNetStreamReleaseRuntime(pStream);
 }
 
@@ -138001,6 +138217,7 @@ static xnetstream* __xrtNetStreamCreate(
 		return NULL;
 	}
 	pStream->References = 2;
+	xrtAtomic32Init(&pStream->EventDropPending, 0);
 	xrtAtomicPtrInit(&pStream->OwnershipClaim, NULL);
 	xrtAtomic32Init(&pStream->OwnershipState, 0);
 	/* Construction remains a native call borrow until the public creator has
@@ -138391,10 +138608,12 @@ bool __xrtNetStreamAdopt(
 	在所属 Worker 上切换 Stream 事件和数据。
 	已接受但尚未发布 Open 的 Stream 也允许安装自己的协议处理器。
 */
-XRT_API bool xrtNetStreamSetEvents(
+static bool __xrtNetStreamSetEvents(
 	xnetstream* pStream,
 	const xnetstreamevents* pEvents,
-	ptr pData
+	ptr pData,
+	__xrt_net_stream_events_owner* pOwner,
+	bool bAllowClosing
 )
 {
 	#if defined(XRT_FEATURE_NET_TCP_FUTURE)
@@ -138403,8 +138622,9 @@ XRT_API bool xrtNetStreamSetEvents(
 	#endif
 
 	if ( (pStream == NULL) ||
-		!xrtNetWorkerIsCurrent(pStream->Worker) ||
-		(xrtNetStreamState(pStream) != XNET_STREAM_OPEN) ) {
+		(xrtNetStreamState(pStream) != XNET_STREAM_OPEN &&
+		 (!bAllowClosing || xrtNetStreamState(pStream) != XNET_STREAM_CLOSING)) ||
+		!xrtNetWorkerIsCurrent(pStream->Worker) ) {
 		__xrtNetStreamSetError(
 			pStream == NULL ? XERR_ARGUMENT : XERR_STATE,
 			XNET_ERROR_STREAM_CONFIG,
@@ -138426,6 +138646,14 @@ XRT_API bool xrtNetStreamSetEvents(
 			return false;
 		}
 	#endif
+	if (pStream->EventOwner && !__xrtNetStreamQueueEventsDrop(pStream)) {
+		#if defined(XRT_FEATURE_NET_TCP_FUTURE)
+			__xrtSpinUnlock(&pStream->WaitLock);
+		#endif
+		return false;
+	}
+	__xrtNetStreamRetireEvents(pStream);
+	pStream->EventOwner = pOwner;
 	memset(&pStream->Events, 0, sizeof(pStream->Events));
 	if ( pEvents != NULL ) {
 		pStream->Events = *pEvents;
@@ -138436,6 +138664,57 @@ XRT_API bool xrtNetStreamSetEvents(
 		__xrtSpinUnlock(&pStream->WaitLock);
 	#endif
 	return true;
+}
+
+XRT_API bool xrtNetStreamSetEvents(xnetstream* pStream,
+	const xnetstreamevents* pEvents, ptr pData)
+{
+	if (!__xrtNetStreamOwnershipEnter(pStream, true)) return false;
+	bool bResult = __xrtNetStreamSetEvents(pStream, pEvents, pData, NULL, false);
+	__xrtNetStreamOwnershipLeave(pStream);
+	return bResult;
+}
+__xrt_net_stream_events_owner* __xrtNetStreamEventsPrepare(ptr pData,
+	const xnetstreameventsownershipv1* pPolicy)
+{
+	if (!pData || !pPolicy || pPolicy->size != sizeof(*pPolicy) || !pPolicy->Drop ||
+		!pPolicy->Ops || !pPolicy->Ops->Count || !pPolicy->Ops->Trace) {
+		__xrtErrorSetInvalidArgument();return NULL;
+	}
+	__xrt_net_stream_events_owner* pOwner = xrtCalloc(1, sizeof(*pOwner));
+	if (pOwner) {pOwner->Policy = pPolicy;pOwner->Data = pData;}
+	return pOwner;
+}
+void __xrtNetStreamEventsDiscard(__xrt_net_stream_events_owner* pOwner)
+{
+	if (!pOwner) return;
+	if (pOwner->Next) abort();
+	pOwner->Policy->Drop(pOwner->Data);
+	xrtFree(pOwner);
+}
+bool __xrtNetStreamEventsAttach(xnetstream* pStream, __xrt_net_stream_events_owner* pOwner)
+{
+	if (!pOwner || pOwner->Next) {__xrtErrorSetInvalidArgument();return false;}
+	if (!__xrtNetStreamOwnershipEnter(pStream, true)) return false;
+	bool bResult = __xrtNetStreamSetEvents(pStream, &pOwner->Policy->Events, pOwner->Data, pOwner, true);
+	__xrtNetStreamOwnershipLeave(pStream);return bResult;
+}
+XRT_API bool xrtNetStreamSetEventsOwnedV1(xnetstream* pStream, ptr pData,
+	const xnetstreameventsownershipv1* pPolicy)
+{
+	if (!__xrtNetStreamOwnershipEnter(pStream, true)) return false;
+	bool bResult = false;
+	if (xrtNetStreamState(pStream) != XNET_STREAM_OPEN || !xrtNetWorkerIsCurrent(pStream->Worker)) {
+		__xrtErrorSetInvalidState();
+	} else {
+		__xrt_net_stream_events_owner* pOwner = __xrtNetStreamEventsPrepare(pData, pPolicy);
+		if (pOwner) {
+			bResult = __xrtNetStreamSetEvents(pStream, &pPolicy->Events, pData, pOwner, false);
+			if (!bResult) xrtFree(pOwner); /* failed submission consumes no Data credit */
+		}
+	}
+	__xrtNetStreamOwnershipLeave(pStream);
+	return bResult;
 }
 
 
@@ -139359,6 +139638,10 @@ XRT_API xnetresult xrtNetStreamSendRefs(
 
 
 /* 有界接管发送。 */
+xnetresult __xrtNetStreamSendSecureTake(xnetstream* pStream,ptr pData,size_t iSize)
+{
+	return __xrtNetStreamSend(pStream,pData,iSize,__xrtNetStreamFreeSecureTaken,NULL,false,true,XRT_NET_SEND_TAKE);
+}
 XRT_API xnetresult xrtNetStreamSendTake(
 	xnetstream* pStream,
 	ptr pData,
@@ -141143,16 +141426,20 @@ XRT_API xnetsocket xrtNetStreamSocket(xnetstream* pStream)
 /* 只允许在所属 Worker 回调中替换 Stream 数据。 */
 XRT_API bool xrtNetStreamSetData(xnetstream* pStream, ptr pData)
 {
-	if ( (pStream == NULL) || !xrtNetWorkerIsCurrent(pStream->Worker) ) {
+	if (!__xrtNetStreamOwnershipEnter(pStream, true)) return false;
+	if ( (xrtNetStreamState(pStream) == XNET_STREAM_CLOSED) ||
+		!xrtNetWorkerIsCurrent(pStream->Worker) || pStream->EventOwner ) {
 		__xrtNetStreamSetError(
 			XERR_STATE,
 			XNET_ERROR_STREAM_CONFIG,
 			"set-stream-data",
-			"stream data can only be changed on its worker"
+			"stream data requires its live worker and cannot overwrite owned events"
 		);
+		__xrtNetStreamOwnershipLeave(pStream);
 		return false;
 	}
 	xrtAtomicPtrStore(&pStream->Data, pData, XMEMORY_RELEASE);
+	__xrtNetStreamOwnershipLeave(pStream);
 	return true;
 }
 
@@ -141378,7 +141665,8 @@ static bool __xrtNetStreamBlockTrace(const xnetblock* pBlock, const void* pOwner
 		if (pSend->PayloadOwnership == XRT_NET_SEND_COPY) {
 			if (pSend->Data != pSend->Copy || pSend->Release || pSend->ReleaseContext || pSend->OwnsExternal) return false;
 		} else if (pSend->PayloadOwnership == XRT_NET_SEND_TAKE) {
-			if (!pSend->OwnsExternal || pSend->Release != __xrtNetStreamFreeTaken || pSend->ReleaseContext) return false;
+			if (!pSend->OwnsExternal || (pSend->Release != __xrtNetStreamFreeTaken &&
+				pSend->Release != __xrtNetStreamFreeSecureTaken) || pSend->ReleaseContext) return false;
 		} else if (pSend->PayloadOwnership == XRT_NET_SEND_BYTES) {
 			if (!pSend->OwnsExternal || pSend->Release != __xrtNetStreamFreeBytes || !pSend->ReleaseContext) return false;
 			xbytesview View = xrtNetBytesView(pSend->ReleaseContext);
@@ -143288,17 +143576,17 @@ XRT_API const xrtownershipadapterv1* xrtNetDialOwnershipAdapterV1(xrtownershipre
 
 
 /* ========================================================================== */
-/* source: src/network/tcp_dial_future.c */
+/* source: src/network/dial_future.c */
 /* ========================================================================== */
 
-#if defined(XRT_FEATURE_NET_TCP_DIAL_FUTURE)
+#if defined(XRT_FEATURE_NET_DIAL_FUTURE_COMMON)
 
-#if defined(XRT_FEATURE_NET_TCP_DIAL_FUTURE)
+#if defined(XRT_FEATURE_NET_DIAL_FUTURE_COMMON)
 
 /* One physical producer. Promise is an actual owning endpoint; Bridge borrows
  * that endpoint and owns the cancellation Watch, never a second Promise.
  * Constructor, producer, request and Watch each hold a real context reference. */
-typedef struct xrt_net_dial_future {
+typedef struct xrt_net_stream_dial_future {
     xfuturebridge Bridge;
     volatile int32 References;
     xmutex Lock;
@@ -143306,69 +143594,70 @@ typedef struct xrt_net_dial_future {
     bool Publishing, Completed, Cleared;
     const void* Claim;
     xpromise* Promise;
-    xnetdial* Dial;
-} xrt_net_dial_future;
+    const xrt_net_dial_future_policy* Policy;
+    ptr Dial;
+} xrt_net_stream_dial_future;
 
-static void __xrtNetDialFutureBegin(xrt_net_dial_future* context, xrtownershipscope* scope)
+static void __xrtNetStreamDialFutureBegin(xrt_net_stream_dial_future* context, xrtownershipscope* scope)
 {
     if (!xrtOwnershipMutationBegin(scope) || !xrtMutexLock(&context->Lock)) abort();
 }
-static void __xrtNetDialFutureEnd(xrt_net_dial_future* context, xrtownershipscope* scope)
+static void __xrtNetStreamDialFutureEnd(xrt_net_stream_dial_future* context, xrtownershipscope* scope)
 {
     if (!xrtMutexUnlock(&context->Lock) || !xrtOwnershipScopeEnd(scope)) abort();
 }
-static bool __xrtNetDialFutureCount(const void* data, size_t* count)
+static bool __xrtNetStreamDialFutureCount(const void* data, size_t* count)
 {
-    const xrt_net_dial_future* context = data; xrtownershipref watch; int32 references;
+    const xrt_net_stream_dial_future* context = data; xrtownershipref watch; int32 references;
     if (!context || !count || context->Publishing || context->Active || context->Cleared ||
         !xrtFutureBridgeWatchOwnershipV1(&context->Bridge, &watch)) return false;
     references = __xrtAtomicRefLoad(&context->References);
     if (references <= 0) return false;
     *count = (size_t)references; return true;
 }
-static bool __xrtNetDialFutureTrace(const void* data, xrtownershipvisitor visit, ptr visitor)
+static bool __xrtNetStreamDialFutureTrace(const void* data, xrtownershipvisitor visit, ptr visitor)
 {
-    const xrt_net_dial_future* context = data; xrtownershipref watch; size_t count;
-    if (!visit || !__xrtNetDialFutureCount(data, &count) ||
+    const xrt_net_stream_dial_future* context = data; xrtownershipref watch; size_t count;
+    if (!visit || !__xrtNetStreamDialFutureCount(data, &count) ||
         !xrtFutureBridgeWatchOwnershipV1(&context->Bridge, &watch)) return false;
     if (context->Promise && !visit(xrtPromiseOwnership(context->Promise), visitor)) return false;
-    if (context->Dial && !visit(xrtNetDialOwnership(context->Dial), visitor)) return false;
+    if (context->Dial && !visit(context->Policy->Ownership(context->Dial), visitor)) return false;
     return !watch.Data || visit(watch, visitor);
 }
-static const xrtownershipops __xrtNetDialFutureOps = {
-    __xrtNetDialFutureCount, __xrtNetDialFutureTrace
+const xrtownershipops __xrtNetStreamDialFutureOps = {
+    __xrtNetStreamDialFutureCount, __xrtNetStreamDialFutureTrace
 };
-static bool __xrtNetDialFutureBusy(const void* data)
+static bool __xrtNetStreamDialFutureBusy(const void* data)
 {
-    const xrt_net_dial_future* context = data; xrtownershipref watch;
+    const xrt_net_stream_dial_future* context = data; xrtownershipref watch;
     return context && !context->Cleared && (context->Publishing || context->Active ||
         !xrtFutureBridgeWatchOwnershipV1(&context->Bridge, &watch));
 }
-XRT_API const xrtownershipquiescencev1* xrtNetDialFutureOwnershipQuiescenceV1Get(void)
+const xrtownershipquiescencev1* __xrtNetStreamDialFutureOwnershipQuiescenceV1Get(void)
 {
     static const xrtownershipquiescencev1 policy = {sizeof(policy),
-        &__xrtNetDialFutureOps, __xrtNetDialFutureBusy};
+        &__xrtNetStreamDialFutureOps, __xrtNetStreamDialFutureBusy};
     return &policy;
 }
-static xrtownershipref __xrtNetDialFutureOwnership(const xrt_net_dial_future* context)
-{ return (xrtownershipref){context, context ? &__xrtNetDialFutureOps : NULL}; }
-static bool __xrtNetDialFutureHold(const void* data)
+static xrtownershipref __xrtNetStreamDialFutureOwnership(const xrt_net_stream_dial_future* context)
+{ return (xrtownershipref){context, context ? &__xrtNetStreamDialFutureOps : NULL}; }
+static bool __xrtNetStreamDialFutureHold(const void* data)
 {
-    xrt_net_dial_future* context = (xrt_net_dial_future*)data;
+    xrt_net_stream_dial_future* context = (xrt_net_stream_dial_future*)data;
     xrtownershipscope scope = {0}; bool held;
-    __xrtNetDialFutureBegin(context, &scope);
+    __xrtNetStreamDialFutureBegin(context, &scope);
     held = !context->Cleared && xrtRefRetain(&context->References) > 0;
-    __xrtNetDialFutureEnd(context, &scope); return held;
+    __xrtNetStreamDialFutureEnd(context, &scope); return held;
 }
-static void __xrtNetDialFutureDrop(const void* data)
+void __xrtNetStreamDialFutureDrop(const void* data)
 {
-    xrt_net_dial_future* context = (xrt_net_dial_future*)data;
+    xrt_net_stream_dial_future* context = (xrt_net_stream_dial_future*)data;
     xrtownershipscope scope = {0}; xrtownershipref watch; int32 left;
-    __xrtNetDialFutureBegin(context, &scope); left = xrtRefRelease(&context->References);
+    __xrtNetStreamDialFutureBegin(context, &scope); left = xrtRefRelease(&context->References);
     if (left < 0 || (!left && (context->Publishing || !context->Completed || context->Active ||
         context->Promise || context->Dial ||
         !xrtFutureBridgeWatchOwnershipV1(&context->Bridge, &watch) || watch.Data))) abort();
-    __xrtNetDialFutureEnd(context, &scope);
+    __xrtNetStreamDialFutureEnd(context, &scope);
     if (!left) {
         if (!xrtOwnershipMutationBegin(&scope)) abort();
         if (!xrtMutexUnit(&context->Lock)) abort();
@@ -143378,195 +143667,350 @@ static void __xrtNetDialFutureDrop(const void* data)
 }
 
 /* The terminal payload owns exactly one native Stream reference. */
-static void __xrtNetDialFutureFree(ptr value, ptr data)
+static void __xrtNetStreamDialFutureFree(ptr value, ptr data)
 {
     if (data) abort();
     xrtNetStreamDestroy((xnetstream*)value);
 }
-static bool __xrtNetDialFuturePayloadTrace(const void* value, const void* data,
+static bool __xrtNetStreamDialFuturePayloadTrace(const void* value, const void* data,
     xrtownershipvisitor visit, ptr visitor)
 { return value && !data && visit && visit(xrtNetStreamOwnership(value), visitor); }
-static const xfuturepayloadownershipv1 __xrtNetDialFuturePayloadPolicy = {
-    sizeof(xfuturepayloadownershipv1), __xrtNetDialFutureFree, __xrtNetDialFuturePayloadTrace
+static const xfuturepayloadownershipv1 __xrtNetStreamDialFuturePayloadPolicy = {
+    sizeof(xfuturepayloadownershipv1), __xrtNetStreamDialFutureFree, __xrtNetStreamDialFuturePayloadTrace
 };
-static const xfutureproducerownershipv1 __xrtNetDialFutureProducerPolicy = {
-    sizeof(xfutureproducerownershipv1), __xrtNetDialFutureDrop
+static const xfutureproducerownershipv1 __xrtNetStreamDialFutureProducerPolicy = {
+    sizeof(xfutureproducerownershipv1), __xrtNetStreamDialFutureDrop
 };
 
 /* The Watch owns this activation. Independently retain the Dial while
  * locked, so normal completion can move/release its field concurrently. */
-static void __xrtNetDialFutureCancel(ptr data)
+static void __xrtNetStreamDialFutureCancel(ptr data)
 {
-    xrt_net_dial_future* context = data; xrtownershipscope scope = {0}; xnetdial* dial;
+    xrt_net_stream_dial_future* context = data; xrtownershipscope scope = {0}; ptr dial;
     xerror* previous = xrtTakeError();
-    __xrtNetDialFutureBegin(context, &scope); ++context->Active;
-    dial = context->Dial ? xrtNetDialRef(context->Dial) : NULL;
-    __xrtNetDialFutureEnd(context, &scope);
-    if (dial) { (void)xrtNetDialCancel(dial); xrtNetDialDestroy(dial); }
-    __xrtNetDialFutureBegin(context, &scope); --context->Active;
-    __xrtNetDialFutureEnd(context, &scope);
+    __xrtNetStreamDialFutureBegin(context, &scope); ++context->Active;
+    dial = context->Dial ? context->Policy->Ref(context->Dial) : NULL;
+    __xrtNetStreamDialFutureEnd(context, &scope);
+    if (dial) { (void)context->Policy->Cancel(dial); context->Policy->Destroy(dial); }
+    __xrtNetStreamDialFutureBegin(context, &scope); --context->Active;
+    __xrtNetStreamDialFutureEnd(context, &scope);
     xrtClearError(); xrtSetErrorTake(previous);
 }
-static const xcancelwatchownershipv1 __xrtNetDialFutureCancelPolicy = {
-    sizeof(xcancelwatchownershipv1), __xrtNetDialFutureCancel,
-    __xrtNetDialFutureDrop, &__xrtNetDialFutureOps
+static const xcancelwatchownershipv1 __xrtNetStreamDialFutureCancelPolicy = {
+    sizeof(xcancelwatchownershipv1), __xrtNetStreamDialFutureCancel,
+    __xrtNetStreamDialFutureDrop, &__xrtNetStreamDialFutureOps
 };
 
 /* The native Dial owns the activation through Done AND its release tail.
  * Acquire Ready before reading constructor-published fields. Waits, callbacks,
  * Promise notification and semantic releases run outside the frame lock and
  * shared mutation scope. No native Dial is accepted on bridge setup failure. */
-static void __xrtNetDialFutureDone(xnetdial* dial, xnetresult result,
-    xnetstream* stream, const xerror* failure, ptr data)
+void __xrtNetStreamDialFutureComplete(ptr data, xnetresult result,
+    xnetstream* stream, const xerror* failure)
 {
-    (void)dial;
-    xrt_net_dial_future* context=data; xrtownershipscope scope={0};
-    xpromise* promise; xnetdial* held; xerror* error=NULL;
+    xrt_net_stream_dial_future* context=data; xrtownershipscope scope={0};
+    xpromise* promise; ptr held; xerror* error=NULL;
     xerror* previous=xrtTakeError();
     bool ready=xrtFutureBridgeWait(&context->Bridge);
-    __xrtNetDialFutureBegin(context,&scope); ++context->Active;
-    __xrtNetDialFutureEnd(context,&scope);
+    __xrtNetStreamDialFutureBegin(context,&scope); ++context->Active;
+    __xrtNetStreamDialFutureEnd(context,&scope);
     xrtFutureBridgeUnwatch(&context->Bridge);
     if (result!=XNET_RESULT_OK && failure) error=xrtErrorRef(failure);
     else if (result==XNET_RESULT_OK && !stream) {
-        __xrtNetSetError(XERR_INTERNAL,XNET_ERROR_DIAL_CONNECT,"complete-dial-future",
-            "TCP Dial reported success without a Stream",0);
+        __xrtNetSetError(XERR_INTERNAL,XNET_ERROR_DIAL_CONNECT,"complete-stream-dial-future",
+            "native Dial reported success without a Stream",0);
         error=xrtTakeError();
     }
-    __xrtNetDialFutureBegin(context,&scope);
+    __xrtNetStreamDialFutureBegin(context,&scope);
     promise=context->Promise; context->Promise=NULL;
     held=context->Dial; context->Dial=NULL; context->Completed=true;
-    __xrtNetDialFutureEnd(context,&scope);
-    xrtNetDialDestroy(held);
+    __xrtNetStreamDialFutureEnd(context,&scope);
+    context->Policy->Destroy(held);
     if (!ready || result!=XNET_RESULT_OK) {
         if (stream) { (void)xrtNetStreamAbort(stream); xrtNetStreamDestroy(stream); stream=NULL; }
     }
     if (ready && result==XNET_RESULT_OK && stream) {
-        if (!xrtPromiseResolveOwnedPolicyV1(promise,stream,&__xrtNetDialFuturePayloadPolicy)) {
+        if (!xrtPromiseResolveOwnedPolicyV1(promise,stream,&__xrtNetStreamDialFuturePayloadPolicy)) {
             (void)xrtNetStreamAbort(stream); xrtNetStreamDestroy(stream);
         }
     } else if (ready && result==XNET_RESULT_CANCELLED) (void)xrtPromiseCancel(promise);
     else if (ready && error) (void)xrtPromiseReject(promise,error);
     else if (ready) (void)xrtPromiseClose(promise);
     xrtErrorFree(error); xrtPromiseDestroy(promise);
-    __xrtNetDialFutureBegin(context,&scope); --context->Active;
-    __xrtNetDialFutureEnd(context,&scope);
+    __xrtNetStreamDialFutureBegin(context,&scope); --context->Active;
+    __xrtNetStreamDialFutureEnd(context,&scope);
     xrtClearError(); xrtSetErrorTake(previous);
 }
-static const xnetdialownershipv1 __xrtNetDialFutureDialPolicy = {
-    sizeof(xnetdialownershipv1), __xrtNetDialFutureDone,
-    __xrtNetDialFutureDrop, &__xrtNetDialFutureOps
-};
-XRT_API const xfutureproducerownershipv1* xrtNetDialFutureProducerPolicyV1Get(void)
-{ return &__xrtNetDialFutureProducerPolicy; }
-XRT_API const xcancelwatchownershipv1* xrtNetDialFutureCancelPolicyV1Get(void)
-{ return &__xrtNetDialFutureCancelPolicy; }
-XRT_API const xnetdialownershipv1* xrtNetDialFutureDialPolicyV1Get(void)
-{ return &__xrtNetDialFutureDialPolicy; }
-XRT_API const xfuturepayloadownershipv1* xrtNetDialFuturePayloadPolicyV1Get(void)
-{ return &__xrtNetDialFuturePayloadPolicy; }
+const xfutureproducerownershipv1* __xrtNetStreamDialFutureProducerPolicyV1Get(void)
+{ return &__xrtNetStreamDialFutureProducerPolicy; }
+const xcancelwatchownershipv1* __xrtNetStreamDialFutureCancelPolicyV1Get(void)
+{ return &__xrtNetStreamDialFutureCancelPolicy; }
+const xfuturepayloadownershipv1* __xrtNetStreamDialFuturePayloadPolicyV1Get(void)
+{ return &__xrtNetStreamDialFuturePayloadPolicy; }
 
-static bool __xrtNetDialFutureClaim(const void* data, const void* token)
+static bool __xrtNetStreamDialFutureClaim(const void* data, const void* token)
 {
-    xrt_net_dial_future* context = (xrt_net_dial_future*)data; size_t count;
-    if (!token || !__xrtNetDialFutureCount(data, &count) ||
+    xrt_net_stream_dial_future* context = (xrt_net_stream_dial_future*)data; size_t count;
+    if (!token || !__xrtNetStreamDialFutureCount(data, &count) ||
         (context->Claim && context->Claim != token)) return false;
     context->Claim = token; return true;
 }
-static void __xrtNetDialFutureRestore(const void* data, const void* token)
+static void __xrtNetStreamDialFutureRestore(const void* data, const void* token)
 {
-    xrt_net_dial_future* context = (xrt_net_dial_future*)data;
+    xrt_net_stream_dial_future* context = (xrt_net_stream_dial_future*)data;
     if (!token || context->Claim != token || context->Cleared) abort();
     context->Claim = NULL;
 }
-static bool __xrtNetDialFutureReady(const void* data)
+static bool __xrtNetStreamDialFutureReady(const void* data)
 {
-    const xrt_net_dial_future* context = data; size_t count; xrtownershipref watch;
-    return __xrtNetDialFutureCount(data, &count) && context->Completed && !context->Promise &&
+    const xrt_net_stream_dial_future* context = data; size_t count; xrtownershipref watch;
+    return __xrtNetStreamDialFutureCount(data, &count) && context->Completed && !context->Promise &&
         !context->Dial && xrtFutureBridgeWatchOwnershipV1(&context->Bridge, &watch) && !watch.Data;
 }
-static xrtownershipprepareresult __xrtNetDialFuturePrepare(const void* data, const void* token)
+static xrtownershipprepareresult __xrtNetStreamDialFuturePrepare(const void* data, const void* token)
 {
-    const xrt_net_dial_future* context = data; xrtownershipscope freeze = {0}; bool ready;
+    const xrt_net_stream_dial_future* context = data; xrtownershipscope freeze = {0}; bool ready;
     if (!xrtOwnershipFreezeTryBegin(&freeze)) return XRT_OWNERSHIP_PREPARE_BUSY;
     if (!token || context->Claim != token || context->Cleared) abort();
-    ready = __xrtNetDialFutureReady(data);
+    ready = __xrtNetStreamDialFutureReady(data);
     if (!xrtOwnershipScopeEnd(&freeze)) abort();
     return ready ? XRT_OWNERSHIP_PREPARE_READY : XRT_OWNERSHIP_PREPARE_BUSY;
 }
-static void __xrtNetDialFutureClear(const void* data, const void* token)
+static void __xrtNetStreamDialFutureClear(const void* data, const void* token)
 {
-    xrt_net_dial_future* context = (xrt_net_dial_future*)data;
-    if (!token || context->Claim != token || context->Cleared || !__xrtNetDialFutureReady(data)) abort();
+    xrt_net_stream_dial_future* context = (xrt_net_stream_dial_future*)data;
+    if (!token || context->Claim != token || context->Cleared || !__xrtNetStreamDialFutureReady(data)) abort();
     context->Cleared = true;
 }
-XRT_API const xrtownershipadapterv1* xrtNetDialFutureOwnershipAdapterV1(xrtownershipref ref,
-    const xrtownershippreparationv1** preparation)
+const xrtownershipadapterv1* __xrtNetStreamDialFutureOwnershipAdapterV1(xrtownershipref ref,
+    const xrt_net_dial_future_policy* policy, const xrtownershippreparationv1** preparation)
 {
-    static const xrtownershipadapterv1 adapter = {sizeof(adapter), __xrtNetDialFutureHold,
-        __xrtNetDialFutureDrop, __xrtNetDialFutureClaim, __xrtNetDialFutureRestore,
-        NULL, __xrtNetDialFutureClear, NULL};
+    static const xrtownershipadapterv1 adapter = {sizeof(adapter), __xrtNetStreamDialFutureHold,
+        __xrtNetStreamDialFutureDrop, __xrtNetStreamDialFutureClaim, __xrtNetStreamDialFutureRestore,
+        NULL, __xrtNetStreamDialFutureClear, NULL};
     static const xrtownershippreparationv1 prepare = {sizeof(prepare), &adapter,
-        __xrtNetDialFutureReady, __xrtNetDialFuturePrepare};
+        __xrtNetStreamDialFutureReady, __xrtNetStreamDialFuturePrepare};
     size_t count;
-    if (!preparation || ref.Ops != &__xrtNetDialFutureOps || !__xrtNetDialFutureCount(ref.Data, &count)) return NULL;
+    if (!preparation || ref.Ops != &__xrtNetStreamDialFutureOps || !ref.Data ||
+        ((const xrt_net_stream_dial_future*)ref.Data)->Policy != policy ||
+        !__xrtNetStreamDialFutureCount(ref.Data, &count)) return NULL;
     *preparation = &prepare; return &adapter;
 }
 
-static xfuture* __xrtNetDialFutureCreate(xnetengine* engine, xnetresolver* resolver,
-    cstr host, uint16 port, const xnetdialconfig* config,
-    const xnetstreamevents* events, ptr streamData, const xnetaddrlist* addresses)
+xfuture* __xrtNetStreamDialFutureCreate(const xrt_net_dial_future_policy* policy,
+    xrt_net_dial_future_submit submit, const void* arguments)
 {
-    xrt_net_dial_future* context; xfuture* future; xpromise* promise;
-    xnetdial* dial; xerror* error; xrtownershipscope scope = {0};
+    xrt_net_stream_dial_future* context; xfuture* future; xpromise* promise;
+    ptr dial; xerror* error; xrtownershipscope scope = {0};
+    if (!policy || !policy->Ref || !policy->Destroy || !policy->Cancel ||
+        !policy->Ownership || !submit) abort();
     context = xrtCalloc(1, sizeof(*context));
     if (!context) return NULL;
-    context->References = 1; context->Publishing = true;
+    context->References = 1; context->Publishing = true; context->Policy = policy;
     if (!xrtMutexInit(&context->Lock)) { xrtFree(context); return NULL; }
     future = xrtFutureBridgeCreate(&context->Bridge, NULL);
     if (!future) { (void)xrtMutexUnit(&context->Lock); xrtFree(context); return NULL; }
-    __xrtNetDialFutureBegin(context, &scope);
+    __xrtNetStreamDialFutureBegin(context, &scope);
     context->Promise = xrtFutureBridgePromise(&context->Bridge);
-    __xrtNetDialFutureEnd(context, &scope);
-    if (!__xrtNetDialFutureHold(context)) abort();
-    if (!xrtPromiseProducerBindTakeV1(context->Promise, __xrtNetDialFutureOwnership(context),
-        &__xrtNetDialFutureProducerPolicy)) { __xrtNetDialFutureDrop(context); goto failed; }
-    if (!__xrtNetDialFutureHold(context)) abort();
+    __xrtNetStreamDialFutureEnd(context, &scope);
+    if (!__xrtNetStreamDialFutureHold(context)) abort();
+    if (!xrtPromiseProducerBindTakeV1(context->Promise, __xrtNetStreamDialFutureOwnership(context),
+        &__xrtNetStreamDialFutureProducerPolicy)) { __xrtNetStreamDialFutureDrop(context); goto failed; }
+    if (!__xrtNetStreamDialFutureHold(context)) abort();
     if (!xrtFutureBridgeWatchOwnedV1(&context->Bridge, context,
-        &__xrtNetDialFutureCancelPolicy)) { __xrtNetDialFutureDrop(context); goto failed; }
+        &__xrtNetStreamDialFutureCancelPolicy)) { __xrtNetStreamDialFutureDrop(context); goto failed; }
     /* No fallible bridge setup remains after work acceptance. Dial consumes
      * this reference only on success; an immediate callback waits for Ready. */
-    if (!__xrtNetDialFutureHold(context)) abort();
-    dial = addresses?xrtNetDialAddressesOwnedV1(engine,addresses,config,events,streamData,context,&__xrtNetDialFutureDialPolicy):
-        xrtNetDialOwnedV1(engine,resolver,host,port,config,events,streamData,context,&__xrtNetDialFutureDialPolicy);
-    if (!dial) { __xrtNetDialFutureDrop(context); goto failed; }
-    __xrtNetDialFutureBegin(context, &scope);
+    if (!__xrtNetStreamDialFutureHold(context)) abort();
+    dial = submit(context, arguments);
+    if (!dial) { __xrtNetStreamDialFutureDrop(context); goto failed; }
+    __xrtNetStreamDialFutureBegin(context, &scope);
     context->Dial = dial; context->Publishing = false;
-    __xrtNetDialFutureEnd(context, &scope);
+    __xrtNetStreamDialFutureEnd(context, &scope);
     if (!xrtFutureBridgeReady(&context->Bridge)) abort();
-    __xrtNetDialFutureDrop(context); return future;
+    __xrtNetStreamDialFutureDrop(context); return future;
 failed:
     error = xrtTakeError();
     if (!xrtFutureBridgeFail(&context->Bridge)) abort();
     xrtFutureBridgeUnwatch(&context->Bridge);
-    __xrtNetDialFutureBegin(context, &scope);
+    __xrtNetStreamDialFutureBegin(context, &scope);
     promise = context->Promise; context->Promise = NULL;
     context->Publishing = false; context->Completed = true;
-    __xrtNetDialFutureEnd(context, &scope);
-    xrtPromiseDestroy(promise); xrtFutureDestroy(future); __xrtNetDialFutureDrop(context);
+    __xrtNetStreamDialFutureEnd(context, &scope);
+    xrtPromiseDestroy(promise); xrtFutureDestroy(future); __xrtNetStreamDialFutureDrop(context);
     xrtClearError(); xrtSetErrorTake(error); return NULL;
 }
 
-XRT_API xfuture* xrtNetDialAsync(xnetengine* engine,xnetresolver* resolver,
-    cstr host,uint16 port,const xnetdialconfig* config,const xnetstreamevents* events,ptr streamData)
-{return __xrtNetDialFutureCreate(engine,resolver,host,port,config,events,streamData,NULL);}
-XRT_API xfuture* xrtNetDialAddressesAsync(xnetengine* engine,const xnetaddrlist* addresses,
-    const xnetdialconfig* config,const xnetstreamevents* events,ptr streamData)
-{
-    if(!addresses){__xrtErrorSetInvalidArgument();return NULL;}
-    return __xrtNetDialFutureCreate(engine,NULL,NULL,0,config,events,streamData,addresses);
-}
+#endif
+#endif
 
+
+/* ========================================================================== */
+/* source: src/network/proxy_dial_future.c */
+/* ========================================================================== */
+
+#if defined(XRT_FEATURE_NET_PROXY_DIAL_FUTURE)
+
+#if defined(XRT_FEATURE_NET_PROXY_DIAL_FUTURE)
+
+static ptr __xrtNetProxyDialFutureRef(ptr operation)
+{ return xrtNetProxyDialRef(operation); }
+static void __xrtNetProxyDialFutureDestroy(ptr operation)
+{ xrtNetProxyDialDestroy(operation); }
+static bool __xrtNetProxyDialFutureCancel(ptr operation)
+{ return xrtNetProxyDialCancel(operation); }
+static xrtownershipref __xrtNetProxyDialFutureTraceOperation(const void* operation)
+{ return xrtNetProxyDialOwnership(operation); }
+static const xrt_net_dial_future_policy __xrtNetProxyDialFutureOperations = {
+    __xrtNetProxyDialFutureRef, __xrtNetProxyDialFutureDestroy,
+    __xrtNetProxyDialFutureCancel, __xrtNetProxyDialFutureTraceOperation
+};
+static void __xrtNetProxyDialFutureDone(xnetproxydial* dial, xnetresult result,
+    xnetstream* stream, const xerror* failure, ptr data)
+{
+    (void)dial;
+    __xrtNetStreamDialFutureComplete(data, result, stream, failure);
+}
+static const xnetproxydialownershipv1 __xrtNetProxyDialFutureDialPolicy = {
+    sizeof(xnetproxydialownershipv1), __xrtNetProxyDialFutureDone,
+    __xrtNetStreamDialFutureDrop, &__xrtNetStreamDialFutureOps
+};
+typedef struct xrt_net_proxy_dial_future_arguments {
+    xnetengine* Engine;
+    xnetresolver* Resolver;
+    const xnetproxy* Proxy;
+    cstr TargetHost;
+    uint16 TargetPort;
+    const xnetproxydialconfig* Config;
+    const xnetstreamevents* Events;
+    ptr StreamData;
+} xrt_net_proxy_dial_future_arguments;
+static ptr __xrtNetProxyDialFutureSubmit(ptr context, const void* data)
+{
+    const xrt_net_proxy_dial_future_arguments* a = data;
+    return xrtNetProxyDialOwnedV1(a->Engine, a->Resolver, a->Proxy,
+        a->TargetHost, a->TargetPort, a->Config, a->Events, a->StreamData,
+        context, &__xrtNetProxyDialFutureDialPolicy);
+}
+XRT_API xfuture* xrtNetProxyDialAsync(xnetengine* engine, xnetresolver* resolver,
+    const xnetproxy* proxy, cstr targetHost, uint16 targetPort,
+    const xnetproxydialconfig* config, const xnetstreamevents* events, ptr streamData)
+{
+    xrt_net_proxy_dial_future_arguments args = {
+        engine, resolver, proxy, targetHost, targetPort, config, events, streamData
+    };
+    return __xrtNetStreamDialFutureCreate(&__xrtNetProxyDialFutureOperations,
+        __xrtNetProxyDialFutureSubmit, &args);
+}
+XRT_API const xnetproxydialownershipv1* xrtNetProxyDialFutureDialPolicyV1Get(void)
+{ return &__xrtNetProxyDialFutureDialPolicy; }
+XRT_API const xfutureproducerownershipv1* xrtNetProxyDialFutureProducerPolicyV1Get(void)
+{ return __xrtNetStreamDialFutureProducerPolicyV1Get(); }
+XRT_API const xcancelwatchownershipv1* xrtNetProxyDialFutureCancelPolicyV1Get(void)
+{ return __xrtNetStreamDialFutureCancelPolicyV1Get(); }
+XRT_API const xfuturepayloadownershipv1* xrtNetProxyDialFuturePayloadPolicyV1Get(void)
+{ return __xrtNetStreamDialFuturePayloadPolicyV1Get(); }
+XRT_API const xrtownershipquiescencev1* xrtNetProxyDialFutureOwnershipQuiescenceV1Get(void)
+{ return __xrtNetStreamDialFutureOwnershipQuiescenceV1Get(); }
+XRT_API const xrtownershipadapterv1* xrtNetProxyDialFutureOwnershipAdapterV1(
+    xrtownershipref ref, const xrtownershippreparationv1** preparation)
+{
+    return __xrtNetStreamDialFutureOwnershipAdapterV1(ref,
+        &__xrtNetProxyDialFutureOperations, preparation);
+}
+#endif
+#endif
+
+
+/* ========================================================================== */
+/* source: src/network/tcp_dial_future.c */
+/* ========================================================================== */
+
+#if defined(XRT_FEATURE_NET_TCP_DIAL_FUTURE)
+
+#if defined(XRT_FEATURE_NET_TCP_DIAL_FUTURE)
+
+static ptr __xrtNetDialFutureRef(ptr operation)
+{ return xrtNetDialRef(operation); }
+static void __xrtNetDialFutureDestroy(ptr operation)
+{ xrtNetDialDestroy(operation); }
+static bool __xrtNetDialFutureCancel(ptr operation)
+{ return xrtNetDialCancel(operation); }
+static xrtownershipref __xrtNetDialFutureTraceOperation(const void* operation)
+{ return xrtNetDialOwnership(operation); }
+static const xrt_net_dial_future_policy __xrtNetDialFutureOperations = {
+    __xrtNetDialFutureRef, __xrtNetDialFutureDestroy,
+    __xrtNetDialFutureCancel, __xrtNetDialFutureTraceOperation
+};
+static void __xrtNetDialFutureDone(xnetdial* dial, xnetresult result,
+    xnetstream* stream, const xerror* failure, ptr data)
+{
+    (void)dial;
+    __xrtNetStreamDialFutureComplete(data, result, stream, failure);
+}
+static const xnetdialownershipv1 __xrtNetDialFutureDialPolicy = {
+    sizeof(xnetdialownershipv1), __xrtNetDialFutureDone,
+    __xrtNetStreamDialFutureDrop, &__xrtNetStreamDialFutureOps
+};
+
+/* Arguments are borrowed only while the native constructor deep-copies them.
+ * A successful submission consumes the actual Done-context reference. */
+typedef struct xrt_net_dial_future_arguments {
+    xnetengine* Engine;
+    xnetresolver* Resolver;
+    cstr Host;
+    uint16 Port;
+    const xnetdialconfig* Config;
+    const xnetstreamevents* Events;
+    ptr StreamData;
+    const xnetaddrlist* Addresses;
+} xrt_net_dial_future_arguments;
+static ptr __xrtNetDialFutureSubmit(ptr context, const void* data)
+{
+    const xrt_net_dial_future_arguments* a = data;
+    return a->Addresses ?
+        xrtNetDialAddressesOwnedV1(a->Engine, a->Addresses, a->Config,
+            a->Events, a->StreamData, context, &__xrtNetDialFutureDialPolicy) :
+        xrtNetDialOwnedV1(a->Engine, a->Resolver, a->Host, a->Port, a->Config,
+            a->Events, a->StreamData, context, &__xrtNetDialFutureDialPolicy);
+}
+XRT_API xfuture* xrtNetDialAsync(xnetengine* engine, xnetresolver* resolver,
+    cstr host, uint16 port, const xnetdialconfig* config,
+    const xnetstreamevents* events, ptr streamData)
+{
+    xrt_net_dial_future_arguments args = {
+        engine, resolver, host, port, config, events, streamData, NULL
+    };
+    return __xrtNetStreamDialFutureCreate(&__xrtNetDialFutureOperations,
+        __xrtNetDialFutureSubmit, &args);
+}
+XRT_API xfuture* xrtNetDialAddressesAsync(xnetengine* engine,
+    const xnetaddrlist* addresses, const xnetdialconfig* config,
+    const xnetstreamevents* events, ptr streamData)
+{
+    if (!addresses) { __xrtErrorSetInvalidArgument(); return NULL; }
+    xrt_net_dial_future_arguments args = {
+        engine, NULL, NULL, 0, config, events, streamData, addresses
+    };
+    return __xrtNetStreamDialFutureCreate(&__xrtNetDialFutureOperations,
+        __xrtNetDialFutureSubmit, &args);
+}
+XRT_API const xnetdialownershipv1* xrtNetDialFutureDialPolicyV1Get(void)
+{ return &__xrtNetDialFutureDialPolicy; }
+XRT_API const xfutureproducerownershipv1* xrtNetDialFutureProducerPolicyV1Get(void)
+{ return __xrtNetStreamDialFutureProducerPolicyV1Get(); }
+XRT_API const xcancelwatchownershipv1* xrtNetDialFutureCancelPolicyV1Get(void)
+{ return __xrtNetStreamDialFutureCancelPolicyV1Get(); }
+XRT_API const xfuturepayloadownershipv1* xrtNetDialFuturePayloadPolicyV1Get(void)
+{ return __xrtNetStreamDialFuturePayloadPolicyV1Get(); }
+XRT_API const xrtownershipquiescencev1* xrtNetDialFutureOwnershipQuiescenceV1Get(void)
+{ return __xrtNetStreamDialFutureOwnershipQuiescenceV1Get(); }
+XRT_API const xrtownershipadapterv1* xrtNetDialFutureOwnershipAdapterV1(
+    xrtownershipref ref, const xrtownershippreparationv1** preparation)
+{
+    return __xrtNetStreamDialFutureOwnershipAdapterV1(ref,
+        &__xrtNetDialFutureOperations, preparation);
+}
 #endif
 #endif
 
@@ -231949,6 +232393,7 @@ static bool __xrtNetStreamOwnershipBusy(const void* pData)
 {
 	const xnetstream* pStream = pData;
 	if (!pStream) return false;
+	if (xrtAtomic32Load(&pStream->EventDropPending, XMEMORY_ACQUIRE)) return true;
 	if (xrtAtomic32Load(&pStream->OwnershipActive, XMEMORY_ACQUIRE)) return true;
 	if (xrtAtomic32Load(&pStream->OwnershipState, XMEMORY_ACQUIRE) & XRT_NET_TCP_OWNERSHIP_READY) return false;
 	return xrtNetEngineOwnershipQuiescenceV1Get()->Busy(pStream->Engine) ||
@@ -231968,12 +232413,25 @@ static bool __xrtNetTcpEventsEmpty(const xnetstreamevents* pEvents)
 	return !pEvents->Open && !pEvents->Read && !pEvents->End && !pEvents->HighWater &&
 		!pEvents->LowWater && !pEvents->Drain && !pEvents->Close;
 }
+static bool __xrtNetStreamEventsOwned(const xnetstream* pStream)
+{
+	const __xrt_net_stream_events_owner* pOwner = pStream->EventOwner;
+	if (!pOwner) return __xrtNetTcpEventsEmpty(&pStream->Events) &&
+		!xrtAtomicPtrLoad(&pStream->Data, XMEMORY_ACQUIRE);
+	const xnetstreameventsownershipv1* pPolicy = pOwner->Policy;
+	const xnetstreamevents* a = &pStream->Events;
+	const xnetstreamevents* b = &pPolicy->Events;
+	return pOwner->Data && !pOwner->Next &&
+		xrtAtomicPtrLoad(&pStream->Data, XMEMORY_ACQUIRE) == pOwner->Data &&
+		a->Open==b->Open && a->Read==b->Read && a->End==b->End && a->HighWater==b->HighWater &&
+		a->LowWater==b->LowWater && a->Drain==b->Drain && a->Close==b->Close;
+}
 static bool __xrtNetStreamCount(const void* pData, size_t* pCount)
 {
 	const xnetstream* pStream = pData;
 	if (!pStream || !pCount || __xrtNetStreamOwnershipBusy(pData) ||
 		(xrtAtomic32Load(&pStream->OwnershipState, XMEMORY_ACQUIRE) & XRT_NET_TCP_OWNERSHIP_CLEARED) ||
-		!__xrtNetTcpEventsEmpty(&pStream->Events) || xrtAtomicPtrLoad(&pStream->Data, XMEMORY_ACQUIRE) ||
+		pStream->RetiredEventOwners || pStream->RetiredEventOwnersTail || !__xrtNetStreamEventsOwned(pStream) ||
 		pStream->ActiveDepth || pStream->StartPending ||
 		xrtAtomic32Load(&pStream->ControlRequests, XMEMORY_ACQUIRE)) return false;
 	if (!__xrtNetStreamBuffersOwnership(pStream, NULL, NULL)) return false;
@@ -231985,7 +232443,7 @@ static bool __xrtNetStreamCount(const void* pData, size_t* pCount)
 	#endif
 	if (__xrtNetStreamPrepared(pData)) {
 		if (pStream->RuntimeHeld || pStream->EngineHeld || pStream->RuntimeOwner.Data || pStream->RuntimeOwner.Previous ||
-			pStream->Socket || pStream->BuffersReady || xrtNetStreamState(pStream) != XNET_STREAM_CLOSED) return false;
+			pStream->EventOwner || pStream->Socket || pStream->BuffersReady || xrtNetStreamState(pStream) != XNET_STREAM_CLOSED) return false;
 	} else if (!pStream->RuntimeHeld || !pStream->EngineHeld || pStream->RuntimeOwner.Data != pStream ||
 		pStream->RuntimeOwner.Engine != pStream->Engine || !pStream->RuntimeOwner.Previous ||
 		pStream->RuntimeOwner.Policy != xrtNetStreamRuntimeOwnershipV1Get()) return false;
@@ -231998,6 +232456,8 @@ static bool __xrtNetStreamTrace(const void* pData, xrtownershipvisitor pVisit, p
 	const xnetstream* pStream = pData; size_t iCount;
 	if (!pVisit || !__xrtNetStreamCount(pData, &iCount) ||
 		(pStream->EngineHeld && !pVisit(xrtNetEngineOwnership(pStream->Engine), pContext))) return false;
+	if (pStream->EventOwner && !pVisit((xrtownershipref){pStream->EventOwner->Data,
+		pStream->EventOwner->Policy->Ops}, pContext)) return false;
 	if (!__xrtNetStreamBuffersOwnership(pStream, pVisit, pContext)) return false;
 	#if defined(XRT_FEATURE_NET_TCP_DIAL)
 		if (!__xrtNetDialControlOwnership(pStream, pVisit, pContext)) return false;
@@ -232160,17 +232620,31 @@ static void __xrtNetListenerClear(const void* pData, const void* pToken)
 		(xrtAtomic32Load(&pListener->OwnershipState, XMEMORY_ACQUIRE) & XRT_NET_TCP_OWNERSHIP_CLEARED)) abort();
 	xrtAtomic32Store(&pListener->OwnershipState, XRT_NET_TCP_OWNERSHIP_READY | XRT_NET_TCP_OWNERSHIP_CLEARED, XMEMORY_RELEASE);
 }
-XRT_API const xrtownershipadapterv1* xrtNetStreamOwnershipAdapterV1(
-	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation)
+XRT_API const xrtownershipadapterv1* xrtNetStreamOwnershipAdapterV2(
+	xrtownershipref Reference, const xnetstreameventsownershipv1* const* pPolicies,
+	size_t iPolicyCount, const xrtownershippreparationv1** ppPreparation)
 {
 	static const xrtownershipadapterv1 Adapter = {sizeof(Adapter), __xrtNetStreamHold, __xrtNetStreamDrop,
 		__xrtNetStreamClaim, __xrtNetStreamRestore, NULL, __xrtNetStreamClear, NULL};
 	static const xrtownershippreparationv1 Preparation = {sizeof(Preparation), &Adapter,
 		__xrtNetStreamPrepared, __xrtNetStreamPrepare};
 	size_t iCount;
-	if (!ppPreparation || Reference.Ops != &__xrtNetStreamOwnershipOps || !__xrtNetStreamCount(Reference.Data, &iCount)) return NULL;
+	if (!ppPreparation || Reference.Ops != &__xrtNetStreamOwnershipOps || !Reference.Data ||
+		(iPolicyCount && !pPolicies) || __xrtNetStreamOwnershipBusy(Reference.Data)) return NULL;
+	const xnetstream* pStream = Reference.Data;
+	if (pStream->EventOwner) {
+		const xnetstreameventsownershipv1* pPolicy = pStream->EventOwner->Policy;
+		bool bKnown = false;
+		for (size_t i=0;i<iPolicyCount;++i) if (pPolicies[i] == pPolicy) {bKnown=true;break;}
+		if (!bKnown || !pPolicy || pPolicy->size!=sizeof(*pPolicy) || !pPolicy->Drop ||
+			!pPolicy->Ops || !pPolicy->Ops->Count || !pPolicy->Ops->Trace) return NULL;
+	}
+	if (!__xrtNetStreamCount(Reference.Data, &iCount)) return NULL;
 	*ppPreparation = &Preparation; return &Adapter;
 }
+XRT_API const xrtownershipadapterv1* xrtNetStreamOwnershipAdapterV1(
+	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation)
+{ return xrtNetStreamOwnershipAdapterV2(Reference, NULL, 0, ppPreparation); }
 XRT_API const xrtownershipadapterv1* xrtNetListenerOwnershipAdapterV1(
 	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation)
 {
@@ -262083,12 +262557,29 @@ xnetproxyhandshakestate __xrtNetProxyHttpStep(
 #if defined(XRT_FEATURE_NET_PROXY_DIAL)
 
 #define XRT_NET_PROXY_DIAL_TIMEOUT_DEFAULT 30000000u
+#define XRT_PROXY_GATE_OPEN 0u
+#define XRT_PROXY_GATE_CANCEL 1u
+#define XRT_PROXY_GATE_WINNER 2u
+#define XRT_PROXY_GATE_TERMINAL 3u
+#define XRT_PROXY_OWNERSHIP_READY 1u
+#define XRT_PROXY_OWNERSHIP_CLEARED 2u
 
 
 
 /* Proxy Dial 由调用方、运行阶段和可选 Timer 分别持有引用。 */
 struct xnetproxydial {
 	volatile int32 References;
+	xmutex Lock;
+	xatomic32 OwnershipActive, OwnershipState, OwnershipStop, Resources;
+	xatomicptr OwnershipClaim;
+	__xrt_net_engine_runtime RuntimeOwner;
+	__xrt_net_engine_internal StartCommand, OwnershipCommand;
+	__xrt_net_stream_events_owner* PreparedEvents;
+	const xnetproxydialownershipv1* DonePolicy;
+	xnetproxydialconfig Config;
+	xdeadline Deadline;
+	xnetresult TerminalResult;
+	bool Started, Starting, TransportReady, Published, EngineHeld, LockReady;
 	xatomic32 State;
 	xatomic32 CancelGate;
 	xatomic32 FinishGate;
@@ -262160,203 +262651,158 @@ static void __xrtNetProxyDialSetError(
 
 
 
-/* 用底层 Engine 原因链设置代理拨号装配错误。 */
-static void __xrtNetProxyDialSetCause(
-	xerrkind Kind,
-	xneterror Code,
-	cstr sOperation,
-	cstr sMessage,
-	const xerror* pCause
-)
+static const xrtownershipops __xrtNetProxyDialOps;
+static void __xrtNetProxyDialTryPublish(xnetproxydial* pDial);
+
+static bool __xrtNetProxyDialEnter(xnetproxydial* pDial,bool bSubmit)
 {
-	xerror* pError = __xrtNetProxyDialErrorCreate(
-		Kind,
-		Code,
-		sOperation,
-		sMessage,
-		pCause
-	);
-
-	if ( pError != NULL ) {
-		xrtSetError(pError);
-		xrtErrorFree(pError);
-	} else if ( pCause != NULL ) {
-		xrtSetError(pCause);
+	xrtownershipscope Mutation={0};
+	if (!pDial || !xrtOwnershipMutationBegin(&Mutation)) {if(!pDial)__xrtErrorSetInvalidArgument();return false;}
+	bool bOK=!(xrtAtomic32Load(&pDial->OwnershipState,XMEMORY_ACQUIRE)&XRT_PROXY_OWNERSHIP_CLEARED) &&
+		(!bSubmit || !xrtAtomicPtrLoad(&pDial->OwnershipClaim,XMEMORY_ACQUIRE));
+	if (bOK) {
+		uint32 iActive=xrtAtomic32Load(&pDial->OwnershipActive,XMEMORY_ACQUIRE);
+		bOK=false;
+		while(iActive<UINT32_MAX) {uint32 iExpected=iActive;
+			if(xrtAtomic32CompareExchange(&pDial->OwnershipActive,&iExpected,iActive+1,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE)){bOK=true;break;}
+			iActive=iExpected;
+		}
 	}
+	if(!xrtOwnershipScopeEnd(&Mutation))abort();
+	if(!bOK)__xrtErrorSetInvalidState();
+	return bOK;
 }
-
-
-
-/* 增加 Proxy Dial 引用。 */
+static void __xrtNetProxyDialLeave(xnetproxydial* pDial)
+{
+	xrtownershipscope Mutation={0};if(!xrtOwnershipMutationBegin(&Mutation))abort();
+	if(!xrtAtomic32FetchSub(&pDial->OwnershipActive,1,XMEMORY_ACQ_REL))abort();
+	if(!xrtOwnershipScopeEnd(&Mutation))abort();
+}
+static void __xrtNetProxyDialLock(xnetproxydial* pDial)
+{if(!xrtMutexLock(&pDial->Lock))abort();}
+static void __xrtNetProxyDialUnlock(xnetproxydial* pDial)
+{if(!xrtMutexUnlock(&pDial->Lock))abort();}
 XRT_API xnetproxydial* xrtNetProxyDialRef(xnetproxydial* pDial)
 {
-	if ( (pDial == NULL) ||
-		(xrtRefRetain(&pDial->References) < 0) ) {
-		__xrtNetProxyDialSetError(
-			XERR_ARGUMENT, XNET_ERROR_PROXY_CREATE,
-			"retain-proxy-dial", "proxy dial is null or already released"
-		);
-		return NULL;
-	}
-	return pDial;
+	xrtownershipscope Mutation={0};if(!xrtOwnershipMutationBegin(&Mutation))return NULL;
+	bool bOK=pDial && !(xrtAtomic32Load(&pDial->OwnershipState,XMEMORY_ACQUIRE)&XRT_PROXY_OWNERSHIP_CLEARED) &&
+		xrtRefRetain(&pDial->References)>=0;
+	if(!xrtOwnershipScopeEnd(&Mutation))abort();
+	if(!bOK){__xrtErrorSetInvalidArgument();return NULL;}return pDial;
 }
-
-
-
-/* 释放最后一个引用及尚未转移的网络和协议对象。 */
 XRT_API void xrtNetProxyDialDestroy(xnetproxydial* pDial)
 {
-	xnetdial* pTransportDial;
-	xnetstream* pStream;
-
-	if ( (pDial == NULL) ||
-		(xrtRefRelease(&pDial->References) != 0) ) {
-		return;
-	}
-	pTransportDial = (xnetdial*)xrtAtomicPtrLoad(
-		&pDial->TransportDial,
-		XMEMORY_ACQUIRE
-	);
-	pStream = (xnetstream*)xrtAtomicPtrLoad(
-		&pDial->Stream,
-		XMEMORY_ACQUIRE
-	);
-	xrtNetDialDestroy(pTransportDial);
-	xrtNetStreamDestroy(pStream);
-	xrtNetProxyHandshakeDestroy(pDial->Handshake);
-	xrtNetProxyRelease(pDial->Proxy);
-	xrtErrorFree(pDial->Error);
-	xrtSecureZero(
-		pDial,
-		sizeof(*pDial) + pDial->TargetSize + 1u
-	);
-	xrtFree(pDial);
+	if(!pDial)return;
+	xrtownershipscope Mutation={0};if(!xrtOwnershipMutationBegin(&Mutation))abort();
+	int32 iLeft=xrtRefRelease(&pDial->References);if(iLeft<0)abort();
+	if(!iLeft && (pDial->RuntimeOwner.Data || pDial->RuntimeOwner.Previous ||
+		pDial->PreparedEvents || xrtAtomic32Load(&pDial->Resources,XMEMORY_ACQUIRE)))abort();
+	if(!xrtOwnershipScopeEnd(&Mutation))abort();
+	if(iLeft)return;
+	xrtNetDialDestroy(xrtAtomicPtrLoad(&pDial->TransportDial,XMEMORY_ACQUIRE));
+	xrtNetStreamDestroy(xrtAtomicPtrLoad(&pDial->Stream,XMEMORY_ACQUIRE));
+	xrtNetProxyHandshakeDestroy(pDial->Handshake);xrtNetProxyRelease(pDial->Proxy);xrtErrorFree(pDial->Error);
+	if(pDial->EngineHeld)__xrtNetEngineObjectRelease(pDial->Engine);
+	if(pDial->LockReady && !xrtMutexUnit(&pDial->Lock))abort();
+	xrtSecureZero(pDial,sizeof(*pDial)+pDial->TargetSize+1u);xrtFree(pDial);
 }
-
-
-
-/* Timer 数据引用始终由 Timer 终态回调释放。 */
+/* Every resource credit is an ACTUAL retained Root reference: setup command,
+ * native timer, inner Done data, Stream binding or cancellation command. */
+static bool __xrtNetProxyDialResourceAdd(xnetproxydial* pDial)
+{
+	xrtownershipscope Mutation={0};if(!xrtOwnershipMutationBegin(&Mutation))return false;
+	bool bOK=xrtAtomic32Load(&pDial->Resources,XMEMORY_ACQUIRE)<UINT32_MAX &&
+		xrtRefRetain(&pDial->References)>=0;
+	if(bOK)xrtAtomic32FetchAdd(&pDial->Resources,1,XMEMORY_ACQ_REL);
+	if(!xrtOwnershipScopeEnd(&Mutation))abort();
+	if(!bOK)__xrtErrorSetSizeOverflow();
+	return bOK;
+}
+static void __xrtNetProxyDialResourceDrop(xnetproxydial* pDial)
+{
+	xrtownershipscope Mutation={0};if(!xrtOwnershipMutationBegin(&Mutation))abort();
+	if(!xrtAtomic32FetchSub(&pDial->Resources,1,XMEMORY_ACQ_REL))abort();
+	if(!xrtOwnershipScopeEnd(&Mutation))abort();
+	if(pDial->Started && xrtNetWorkerIsCurrent(pDial->Worker))__xrtNetProxyDialTryPublish(pDial);
+	xrtNetProxyDialDestroy(pDial); /* this resource remains a real pin through publication */
+}
+static void __xrtNetProxyDialDataDrop(const void* pData)
+{__xrtNetProxyDialResourceDrop((xnetproxydial*)pData);}
+static void __xrtNetProxyDialDiscardPrepared(xnetproxydial* pDial)
+{
+	__xrt_net_stream_events_owner* pOwner=pDial->PreparedEvents;pDial->PreparedEvents=NULL;
+	__xrtNetStreamEventsDiscard(pOwner);
+}
+/* A lifecycle cancellation always delivers the real Timer callback, including
+ * cancellation. Only that physical callback consumes its resource credit. */
 static void __xrtNetProxyDialCancelTimer(xnetproxydial* pDial)
 {
-	uint64 Id = xrtAtomic64Exchange(
-		&pDial->Timer,
-		0,
-		XMEMORY_ACQ_REL
-	);
-
-	if ( (Id != 0) && !xrtAtomic32Load(
-		&pDial->TimerDone,
-		XMEMORY_ACQUIRE
-	) && !__xrtNetEngineTimerCancelLifecycle(
-		pDial->Engine,
-		Id
-	) ) {
-		xrtClearError();
+	uint64 Id=xrtAtomic64Exchange(&pDial->Timer,0,XMEMORY_ACQ_REL);
+	if(Id && !xrtAtomic32Load(&pDial->TimerDone,XMEMORY_ACQUIRE)) {
+		xerror* pPrior=xrtTakeError();
+		(void)__xrtNetEngineTimerCancelLifecycle(pDial->Engine,Id);
+		xrtClearError();if(pPrior)xrtSetErrorTake(pPrior);
 	}
 }
-
-
-
-/* 发布一次不可变终态，并转移或释放隧道 Stream 调用方引用。 */
-static void __xrtNetProxyDialFinish(
-	xnetproxydial* pDial,
-	xnetresult Result,
-	const xerror* pError
-)
+static void __xrtNetProxyDialTryPublish(xnetproxydial* pDial)
 {
-	uint32 iExpected = 0;
-	xnetstream* pStream;
-	bool bTimedOut;
-
-	if ( !xrtAtomic32CompareExchange(
-		&pDial->FinishGate,
-		&iExpected,
-		1,
-		XMEMORY_ACQ_REL,
-		XMEMORY_ACQUIRE
-	) ) {
-		return;
+	if(!pDial->Started || pDial->Starting || !xrtAtomic32Load(&pDial->FinishGate,XMEMORY_ACQUIRE))return;
+	__xrtNetProxyDialLock(pDial);
+	if(pDial->Published || xrtAtomic32Load(&pDial->Resources,XMEMORY_ACQUIRE) ||
+		xrtAtomic32Load(&pDial->OwnershipStop,XMEMORY_ACQUIRE)){
+		__xrtNetProxyDialUnlock(pDial);return;
 	}
+	pDial->Published=true;
+	xrtAtomic32Store(&pDial->CancelGate,XRT_PROXY_GATE_TERMINAL,XMEMORY_RELEASE);
+	xnetproxydialproc Done=pDial->Done;ptr pData=pDial->DoneData;
+	const xnetproxydialownershipv1* pDonePolicy=pDial->DonePolicy;
+	pDial->Done=NULL;pDial->DoneData=NULL;pDial->DonePolicy=NULL;
+	memset(&pDial->StreamEvents,0,sizeof(pDial->StreamEvents));pDial->StreamData=NULL;
+	__xrtNetProxyDialUnlock(pDial);
+	xnetstream* pStream=xrtAtomicPtrExchange(&pDial->Stream,NULL,XMEMORY_ACQ_REL);
+	xrtNetProxyHandshakeDestroy(pDial->Handshake);pDial->Handshake=NULL;
+	const xnetruntimeownershipv1* pRuntimePolicy=NULL;xrtownershipscope Mutation={0};
+	if(!xrtOwnershipMutationBegin(&Mutation))abort();
+	if(__xrtNetEngineRuntimeTake(pDial->Engine,&pDial->RuntimeOwner,&pRuntimePolicy)!=pDial ||
+		pRuntimePolicy!=xrtNetProxyDialRuntimeOwnershipV1Get())abort();
+	pDial->RuntimeHeld=false;pDial->EngineHeld=false;__xrtNetEngineObjectRelease(pDial->Engine);
+	if(!xrtOwnershipScopeEnd(&Mutation))abort();
+	xrtAtomic32Store(&pDial->State,pDial->TerminalResult==XNET_RESULT_OK?XNET_PROXY_DIAL_CONNECTED:
+		pDial->TerminalResult==XNET_RESULT_CANCELLED?XNET_PROXY_DIAL_CANCELLED:XNET_PROXY_DIAL_FAILED,XMEMORY_RELEASE);
+	if(Done)Done(pDial,pDial->TerminalResult,pDial->TerminalResult==XNET_RESULT_OK?pStream:NULL,pDial->Error,pData);
+	if(pDonePolicy)pDonePolicy->Drop(pData);
+	if(pDial->TerminalResult!=XNET_RESULT_OK)xrtNetStreamDestroy(pStream);
+	if(!xrtOwnershipMutationBegin(&Mutation))abort();
+	xrtAtomic32Store(&pDial->OwnershipState,XRT_PROXY_OWNERSHIP_READY,XMEMORY_RELEASE);
+	if(!xrtOwnershipScopeEnd(&Mutation))abort();
+	pRuntimePolicy->Release(pDial); /* last access: real runtime lease */
+}
+static void __xrtNetProxyDialFinish(xnetproxydial* pDial,xnetresult Result,const xerror* pError)
+{
+	__xrtNetProxyDialLock(pDial);
+	if(xrtAtomic32Load(&pDial->FinishGate,XMEMORY_ACQUIRE)){__xrtNetProxyDialUnlock(pDial);return;}
+	uint32 iGate=xrtAtomic32Load(&pDial->CancelGate,XMEMORY_ACQUIRE);
+	if(iGate==XRT_PROXY_GATE_CANCEL)Result=XNET_RESULT_CANCELLED;
+	else if(iGate==XRT_PROXY_GATE_OPEN)xrtAtomic32Store(&pDial->CancelGate,XRT_PROXY_GATE_TERMINAL,XMEMORY_RELEASE);
+	xrtAtomic32Store(&pDial->FinishGate,1,XMEMORY_RELEASE);
+	__xrtNetProxyDialUnlock(pDial);
+	xerror* pCause=xrtErrorRef(pError);
 	__xrtNetProxyDialCancelTimer(pDial);
-	bTimedOut = xrtAtomic32Load(
-		&pDial->TimedOut,
-		XMEMORY_ACQUIRE
-	) != 0;
-	pStream = (xnetstream*)xrtAtomicPtrExchange(
-		&pDial->Stream,
-		NULL,
-		XMEMORY_ACQ_REL
-	);
-	if ( Result == XNET_RESULT_OK ) {
-		xrtAtomic32Store(
-			&pDial->State,
-			XNET_PROXY_DIAL_CONNECTED,
-			XMEMORY_RELEASE
-		);
-	} else {
-		if ( bTimedOut ) {
-			xerror* pTimeoutError = __xrtNetProxyDialErrorCreate(
-				XERR_TIMEOUT,
-				XNET_ERROR_PROXY_CONNECT,
-				"dial-proxy",
-				"proxy dial timed out before the tunnel opened",
-				pDial->Error != NULL ? pDial->Error : pError
-			);
-
-			Result = XNET_RESULT_TIMEOUT;
-			xrtErrorFree(pDial->Error);
-			pDial->Error = pTimeoutError;
-		} else if ( pDial->Error == NULL ) {
-			pDial->Error = __xrtNetProxyDialErrorCreate(
-				Result == XNET_RESULT_CANCELLED ?
-					XERR_CANCELLED : XERR_IO,
-				XNET_ERROR_PROXY_CONNECT,
-				"dial-proxy",
-				Result == XNET_RESULT_CANCELLED ?
-					"proxy dial was cancelled" :
-					"proxy dial failed before the tunnel opened",
-				pError
-			);
+	if(Result!=XNET_RESULT_OK){
+		if(xrtAtomic32Load(&pDial->TimedOut,XMEMORY_ACQUIRE)){
+			xerror* pTimeout=__xrtNetProxyDialErrorCreate(XERR_TIMEOUT,XNET_ERROR_PROXY_CONNECT,
+				"dial-proxy","proxy dial timed out before the tunnel opened",pDial->Error?pDial->Error:pCause);
+			xrtErrorFree(pDial->Error);pDial->Error=pTimeout;Result=XNET_RESULT_TIMEOUT;
+		}else if(!pDial->Error){
+			pDial->Error=__xrtNetProxyDialErrorCreate(Result==XNET_RESULT_CANCELLED?XERR_CANCELLED:XERR_IO,
+				XNET_ERROR_PROXY_CONNECT,"dial-proxy",Result==XNET_RESULT_CANCELLED?
+				"proxy dial was cancelled":"proxy dial failed before the tunnel opened",pCause);
 		}
-		xrtAtomic32Store(
-			&pDial->State,
-			Result == XNET_RESULT_CANCELLED ?
-				XNET_PROXY_DIAL_CANCELLED : XNET_PROXY_DIAL_FAILED,
-			XMEMORY_RELEASE
-		);
 	}
-	if ( pDial->Done != NULL ) {
-		pDial->Done(
-			pDial,
-			Result,
-			Result == XNET_RESULT_OK ? pStream : NULL,
-			pDial->Error,
-			pDial->DoneData
-		);
-	}
-	if ( Result != XNET_RESULT_OK ) {
-		xrtNetStreamDestroy(pStream);
-	}
-	if ( pDial->RuntimeHeld ) {
-		pDial->RuntimeHeld = false;
-		xrtNetProxyDialDestroy(pDial);
-	}
+	pDial->TerminalResult=Result;
+	xrtErrorFree(pCause);
+	__xrtNetProxyDialTryPublish(pDial);
 }
-
-
-
-/* TCP 零复制发送释放时先清零代理认证报文。 */
-static void __xrtNetProxyDialReleaseOutput(
-	ptr pContext,
-	cbytes pData,
-	size_t iSize
-)
-{
-	(void)pContext;
-	xrtSecureZero((ptr)pData, iSize);
-	xrtFree((ptr)pData);
-}
-
 
 
 /* 记录协议失败根因并让 TCP Close 统一发布组合终态。 */
@@ -262383,7 +262829,7 @@ static void __xrtNetProxyDialFailStream(
 		xrtAtomic32Load(
 			&pDial->CancelGate,
 			XMEMORY_ACQUIRE
-		) ? XNET_RESULT_CANCELLED : XNET_RESULT_ERROR
+		) == XRT_PROXY_GATE_CANCEL ? XNET_RESULT_CANCELLED : XNET_RESULT_ERROR
 	);
 }
 
@@ -262396,6 +262842,10 @@ static void __xrtNetProxyDialReady(
 )
 {
 	xnetbuf* pInput = &pStream->ReadBuffer;
+	uint32 iExpected=XRT_PROXY_GATE_OPEN;
+	if(!xrtAtomic32CompareExchange(&pDial->CancelGate,&iExpected,XRT_PROXY_GATE_WINNER,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE)){
+		__xrtNetStreamFailCurrent(pStream,XNET_RESULT_CANCELLED);return;
+	}
 
 	if ( !xrtNetStreamSetEvents(
 		pStream,
@@ -262409,11 +262859,6 @@ static void __xrtNetProxyDialReady(
 	}
 	xrtNetProxyHandshakeDestroy(pDial->Handshake);
 	pDial->Handshake = NULL;
-	xrtAtomic32Store(
-		&pDial->State,
-		XNET_PROXY_DIAL_CONNECTED,
-		XMEMORY_RELEASE
-	);
 	if ( pDial->StreamEvents.Open != NULL ) {
 		pDial->StreamEvents.Open(pStream, pDial->StreamData);
 	}
@@ -262475,13 +262920,7 @@ static void __xrtNetProxyDialDriveUnsafe(
 				);
 				return;
 			}
-			Result = xrtNetStreamSendRef(
-				pStream,
-				pCopy,
-				iChunk,
-				__xrtNetProxyDialReleaseOutput,
-				NULL
-			);
+			Result = __xrtNetStreamSendSecureTake(pStream,pCopy,iChunk);
 			if ( Result == XNET_RESULT_AGAIN ) {
 				xrtSecureZero(pCopy, iChunk);
 				xrtFree(pCopy);
@@ -262542,11 +262981,13 @@ static void __xrtNetProxyDialDrive(
 	xnetstream* pStream
 )
 {
+	if(xrtAtomic32Load(&pDial->FinishGate,XMEMORY_ACQUIRE) || !pDial->Handshake ||
+		xrtAtomic32Load(&pDial->CancelGate,XMEMORY_ACQUIRE)==XRT_PROXY_GATE_CANCEL)return;
 	if ( pDial->Driving ) {
 		pDial->DriveAgain = true;
 		return;
 	}
-	if ( xrtRefRetain(&pDial->References) < 0 ) {
+	if ( !xrtNetProxyDialRef(pDial) ) {
 		return;
 	}
 	pDial->Driving = true;
@@ -262572,12 +263013,8 @@ static void __xrtNetProxyDialStreamOpen(
 	xnetproxydial* pDial = (xnetproxydial*)pData;
 	xnetproxyhandshakeconfig Config;
 
-	xrtAtomicPtrStore(
-		&pDial->Stream,
-		pStream,
-		XMEMORY_RELEASE
-	);
-	if ( xrtAtomic32Load(&pDial->CancelGate, XMEMORY_ACQUIRE) ) {
+	if ( xrtAtomic32Load(&pDial->CancelGate, XMEMORY_ACQUIRE)==XRT_PROXY_GATE_CANCEL ||
+		xrtAtomic32Load(&pDial->FinishGate,XMEMORY_ACQUIRE)) {
 		__xrtNetStreamFailCurrent(
 			pStream,
 			XNET_RESULT_CANCELLED
@@ -262686,130 +263123,123 @@ static void __xrtNetProxyDialStreamClose(
 
 
 
-/* 代理握手阶段独占的 TCP 事件表。 */
-static const xnetstreamevents __xrtNetProxyDialStreamEvents = {
-	__xrtNetProxyDialStreamOpen,
-	__xrtNetProxyDialStreamRead,
-	__xrtNetProxyDialStreamEnd,
-	NULL,
-	__xrtNetProxyDialStreamLowWater,
-	__xrtNetProxyDialStreamDrain,
-	__xrtNetProxyDialStreamClose
-};
-
-
-
-/* TCP Dial 失败直接完成，成功则确认获胜 Stream 所有权已经转移。 */
-static void __xrtNetProxyDialTransportDone(
-	xnetdial* pTransportDial,
-	xnetresult Result,
-	xnetstream* pStream,
-	const xerror* pError,
-	ptr pData
-)
+XRT_API const xnetstreameventsownershipv1* xrtNetProxyDialStreamOwnershipV1Get(void)
 {
-	xnetproxydial* pDial = (xnetproxydial*)pData;
-	xnetstream* pExpected = (xnetstream*)xrtAtomicPtrLoad(
-		&pDial->Stream,
-		XMEMORY_ACQUIRE
-	);
-
-	if ( Result != XNET_RESULT_OK ) {
-		__xrtNetProxyDialFinish(
-			pDial,
-			Result,
-			pError != NULL ? pError :
-				xrtNetDialError(pTransportDial)
-		);
-		return;
+	static const xnetstreameventsownershipv1 Policy={sizeof(Policy),
+		{__xrtNetProxyDialStreamOpen,__xrtNetProxyDialStreamRead,__xrtNetProxyDialStreamEnd,NULL,
+		 __xrtNetProxyDialStreamLowWater,__xrtNetProxyDialStreamDrain,__xrtNetProxyDialStreamClose},
+		__xrtNetProxyDialDataDrop,&__xrtNetProxyDialOps};
+	return &Policy;
+}
+/* The inner Dial transfers a REAL creator before protocol callbacks begin.
+ * Binding metadata was prepared before submission, so OOM cannot strand an
+ * unobserved live Stream here. Closing streams still accept this private
+ * lifecycle observer; already-closed streams need no fabricated completion. */
+static void __xrtNetProxyDialBeginTunnel(xnetproxydial* pDial)
+{
+	if(!pDial->Started || pDial->Starting || !pDial->TransportReady || !pDial->PreparedEvents)return;
+	xnetstream* pStream=xrtAtomicPtrLoad(&pDial->Stream,XMEMORY_ACQUIRE);
+	if(xrtNetStreamState(pStream)==XNET_STREAM_CLOSED){
+		__xrtNetProxyDialFinish(pDial,XNET_RESULT_ERROR,xrtNetStreamError(pStream));
+		__xrtNetProxyDialDiscardPrepared(pDial);return;
 	}
-	if ( pExpected != pStream ) {
-		__xrtNetProxyDialSetError(
-			XERR_INTERNAL,
-			XNET_ERROR_PROXY_CONNECT,
-			"dial-proxy",
-			"TCP dial transferred an unexpected proxy transport"
-		);
-		if ( pExpected == NULL ) {
-			xrtAtomicPtrStore(
-				&pDial->Stream,
-				pStream,
-				XMEMORY_RELEASE
-			);
+	__xrt_net_stream_events_owner* pOwner=pDial->PreparedEvents;
+	if(!__xrtNetStreamEventsAttach(pStream,pOwner)){
+		/* No read Future or foreign callback is installed on an inner Dial's
+		 * private winner. Any other rejection is a violated native invariant. */
+		abort();
+	}
+	pDial->PreparedEvents=NULL;
+	if(xrtNetStreamState(pStream)==XNET_STREAM_OPEN)__xrtNetProxyDialStreamOpen(pStream,pDial);
+}
+static void __xrtNetProxyDialTransportDone(xnetdial* pTransport,xnetresult Result,
+	xnetstream* pStream,const xerror* pError,ptr pData)
+{
+	xnetproxydial* pDial=pData;
+	if(Result!=XNET_RESULT_OK){
+		__xrtNetProxyDialFinish(pDial,Result,pError?pError:xrtNetDialError(pTransport));
+		__xrtNetProxyDialDiscardPrepared(pDial);return;
+	}
+	if(!pStream || xrtAtomicPtrLoad(&pDial->Stream,XMEMORY_ACQUIRE))abort();
+	xrtAtomicPtrStore(&pDial->Stream,pStream,XMEMORY_RELEASE);pDial->TransportReady=true;
+	__xrtNetProxyDialBeginTunnel(pDial);
+}
+XRT_API const xnetdialownershipv1* xrtNetProxyDialTransportOwnershipV1Get(void)
+{
+	static const xnetdialownershipv1 Policy={sizeof(Policy),__xrtNetProxyDialTransportDone,
+		__xrtNetProxyDialDataDrop,&__xrtNetProxyDialOps};
+	return &Policy;
+}
+static void __xrtNetProxyDialStopWorker(xnetproxydial* pDial,bool bTimeout)
+{
+	if(xrtAtomic32Load(&pDial->FinishGate,XMEMORY_ACQUIRE))return;
+	__xrtNetProxyDialLock(pDial);
+	uint32 iGate=xrtAtomic32Load(&pDial->CancelGate,XMEMORY_ACQUIRE);
+	if(iGate==XRT_PROXY_GATE_OPEN){
+		xrtAtomic32Store(&pDial->CancelGate,XRT_PROXY_GATE_CANCEL,XMEMORY_RELEASE);
+		if(bTimeout)xrtAtomic32Store(&pDial->TimedOut,1,XMEMORY_RELEASE);
+	}else if(iGate!=XRT_PROXY_GATE_CANCEL || bTimeout){__xrtNetProxyDialUnlock(pDial);return;}
+	__xrtNetProxyDialUnlock(pDial);
+	xnetstream* pStream=xrtAtomicPtrLoad(&pDial->Stream,XMEMORY_ACQUIRE);
+	if(pStream){
+		__xrtNetProxyDialBeginTunnel(pDial);
+		if(xrtNetStreamState(pStream)!=XNET_STREAM_CLOSED)__xrtNetStreamFailCurrent(pStream,XNET_RESULT_CANCELLED);
+		else __xrtNetProxyDialFinish(pDial,XNET_RESULT_CANCELLED,xrtNetStreamError(pStream));
+	}else{
+		xnetdial* pTransport=xrtAtomicPtrLoad(&pDial->TransportDial,XMEMORY_ACQUIRE);
+		if(pTransport)(void)xrtNetDialCancel(pTransport);
+	}
+}
+static void __xrtNetProxyDialCancelTask(xnetworker* pWorker,ptr pData)
+{
+	(void)pWorker;xnetproxydial* pDial=pData;
+	__xrtNetProxyDialStopWorker(pDial,false);
+	__xrtNetProxyDialResourceDrop(pDial);
+}
+static void __xrtNetProxyDialTimer(xnetworker* pWorker,uint64 Id,xnetresult Result,ptr pData)
+{
+	(void)pWorker;(void)Id;xnetproxydial* pDial=pData;
+	xrtAtomic32Store(&pDial->TimerDone,1,XMEMORY_RELEASE);
+	xrtAtomic64Store(&pDial->Timer,0,XMEMORY_RELEASE);
+	if(Result==XNET_RESULT_OK)__xrtNetProxyDialStopWorker(pDial,true);
+	__xrtNetProxyDialResourceDrop(pDial);
+}
+static void __xrtNetProxyDialStartTask(xnetworker* pWorker,ptr pData)
+{
+	(void)pWorker;xnetproxydial* pDial=pData;pDial->Started=true;pDial->Starting=true;
+	bool bHasDeadline=pDial->Config.Timeout!=0;
+	if(!xrtAtomic32Load(&pDial->FinishGate,XMEMORY_ACQUIRE) &&
+		xrtAtomic32Load(&pDial->CancelGate,XMEMORY_ACQUIRE)==XRT_PROXY_GATE_OPEN && bHasDeadline){
+		if(xrtDeadlineExpired(pDial->Deadline)){
+			__xrtNetProxyDialStopWorker(pDial,true);
+		}else if(!__xrtNetProxyDialResourceAdd(pDial)){
+			__xrtNetProxyDialFinish(pDial,XNET_RESULT_ERROR,xrtGetError());
+		}else{
+			uint64 Id=xrtNetEngineSchedule(pDial->Engine,pDial->Config.Transport.Affinity,
+				pDial->Deadline,__xrtNetProxyDialTimer,pDial);
+			if(!Id){
+				xerror* pCause=xrtTakeError();
+				__xrtNetProxyDialResourceDrop(pDial);
+				__xrtNetProxyDialFinish(pDial,XNET_RESULT_ERROR,pCause);
+				xrtErrorFree(pCause);
+			}else{
+				xrtAtomic64Store(&pDial->Timer,Id,XMEMORY_RELEASE);
+				if(!__xrtNetEngineRuntimeTimer(pDial->Worker,Id,xrtNetProxyDialRuntimeOwnershipV1Get()))abort();
+			}
 		}
-		__xrtNetProxyDialFailStream(
-			pDial, pStream, xrtGetError()
-		);
-		return;
 	}
-	if ( xrtAtomic32Load(&pDial->CancelGate, XMEMORY_ACQUIRE) ) {
-		__xrtNetStreamFailCurrent(
-			pStream,
-			XNET_RESULT_CANCELLED
-		);
+	pDial->Starting=false;
+	if(xrtAtomic32Load(&pDial->FinishGate,XMEMORY_ACQUIRE)){
+		xnetdial* pTransport=xrtAtomicPtrLoad(&pDial->TransportDial,XMEMORY_ACQUIRE);
+		if(pTransport)(void)xrtNetDialCancel(pTransport);
 	}
+	__xrtNetProxyDialBeginTunnel(pDial);
+	if(xrtAtomic32Load(&pDial->CancelGate,XMEMORY_ACQUIRE)==XRT_PROXY_GATE_CANCEL)
+		__xrtNetProxyDialStopWorker(pDial,false);
+	__xrtNetProxyDialResourceDrop(pDial); /* actual setup command reference */
 }
 
 
-
-/* 在唯一所属 Worker 上取消已经公开的代理传输。 */
-static void __xrtNetProxyDialCancelTask(
-	xnetworker* pWorker,
-	ptr pData
-)
-{
-	xnetproxydial* pDial = (xnetproxydial*)pData;
-	xnetstream* pStream;
-
-	(void)pWorker;
-	if ( !xrtAtomic32Load(&pDial->FinishGate, XMEMORY_ACQUIRE) ) {
-		pStream = (xnetstream*)xrtAtomicPtrLoad(
-			&pDial->Stream,
-			XMEMORY_ACQUIRE
-		);
-		if ( pStream != NULL ) {
-			__xrtNetStreamFailCurrent(
-				pStream,
-				XNET_RESULT_CANCELLED
-			);
-		}
-	}
-	xrtNetProxyDialDestroy(pDial);
-}
-
-
-
-/* 全过程 Timer 通过正常取消和关闭路径发布超时根因。 */
-static void __xrtNetProxyDialTimer(
-	xnetworker* pWorker,
-	uint64 Id,
-	xnetresult Result,
-	ptr pData
-)
-{
-	xnetproxydial* pDial = (xnetproxydial*)pData;
-
-	(void)pWorker;
-	(void)Id;
-	xrtAtomic32Store(&pDial->TimerDone, 1, XMEMORY_RELEASE);
-	(void)xrtAtomic64Exchange(
-		&pDial->Timer,
-		0,
-		XMEMORY_ACQ_REL
-	);
-	if ( (Result == XNET_RESULT_OK) && !xrtAtomic32Load(
-		&pDial->FinishGate,
-		XMEMORY_ACQUIRE
-	) ) {
-		xrtAtomic32Store(&pDial->TimedOut, 1, XMEMORY_RELEASE);
-		(void)xrtNetProxyDialCancel(pDial);
-	}
-	xrtNetProxyDialDestroy(pDial);
-}
-
-
-
-/* 初始化 TCP Dial、输入硬上限和全过程超时。 */
 XRT_API void xrtNetProxyDialConfigInit(xnetproxydialconfig* pConfig)
 {
 	if ( pConfig == NULL ) {
@@ -262908,255 +263338,116 @@ static bool __xrtNetProxyDialConfigValid(
 
 
 
-/* 复用 TCP Dial 连接代理端点，TCP Open 后才分配协议握手状态。 */
-XRT_API xnetproxydial* xrtNetProxyDial(
-	xnetengine* pEngine,
-	xnetresolver* pResolver,
-	const xnetproxy* pProxy,
-	cstr sTargetHost,
-	uint16 iTargetPort,
-	const xnetproxydialconfig* pConfig,
-	const xnetstreamevents* pStreamEvents,
-	ptr pStreamData,
-	xnetproxydialproc pDone,
-	ptr pDoneData
-)
+static void __xrtNetProxyDialConstructionDrop(xnetproxydial* pDial)
 {
-	xnetproxydialconfig Config;
-	xnetproxyinfo Info;
-	xnetproxydial* pDial;
-	xnetdial* pTransportDial;
-	xstrview Target;
-	xerror* pError;
-	uint64 Id;
-	uint32 iWorkerCount;
-
-	if ( (pEngine == NULL) || (pResolver == NULL) ||
-		(pProxy == NULL) || (sTargetHost == NULL) ||
-		(sTargetHost[0] == 0) || (iTargetPort == 0) ||
-		(pDone == NULL) ) {
-		__xrtNetProxyDialSetError(
-			XERR_ARGUMENT,
-			XNET_ERROR_PROXY_CONFIG,
-			"dial-proxy",
-			"invalid proxy dial arguments"
-		);
-		return NULL;
-	}
-	xrtNetProxyDialConfigInit(&Config);
-	if ( pConfig != NULL ) {
-		Config = *pConfig;
-	}
-	Target.Data = sTargetHost;
-	Target.Size = strlen(sTargetHost);
-	if ( !__xrtNetProxyHostValid(
-		Target,
-		"dial-proxy",
-		"proxy target host is empty"
-	) || !__xrtNetProxyDialConfigValid(pProxy, &Config, Target) ) {
-		return NULL;
-	}
-	if ( !xrtNetProxyInfo(pProxy, &Info) ) {
-		return NULL;
-	}
-	if ( !__xrtNetEngineObjectHold(pEngine) ) {
-		pError = xrtTakeError();
-		__xrtNetProxyDialSetCause(
-			XERR_CLOSED,
-			XNET_ERROR_PROXY_CREATE,
-			"dial-proxy",
-			"proxy dial could not hold the network engine",
-			pError
-		);
-		xrtErrorFree(pError);
-		return NULL;
-	}
-	iWorkerCount = xrtNetEngineWorkerCount(pEngine);
-	if ( (xrtNetEngineState(pEngine) != XNET_ENGINE_RUNNING) ||
-		 (iWorkerCount == 0) ) {
-		__xrtNetEngineObjectRelease(pEngine);
-		__xrtNetProxyDialSetError(
-			XERR_STATE,
-			XNET_ERROR_PROXY_CREATE,
-			"dial-proxy",
-			"proxy dial requires a running network engine"
-		);
-		return NULL;
-	}
-	pDial = (xnetproxydial*)xrtCalloc(
-		1,
-		sizeof(*pDial) + Target.Size + 1u
-	);
-	if ( pDial == NULL ) {
-		__xrtNetEngineObjectRelease(pEngine);
-		return NULL;
-	}
-	memcpy(pDial->TargetHost, sTargetHost, Target.Size + 1u);
-	pDial->TargetSize = Target.Size;
-	pDial->Proxy = xrtNetProxyRetain(pProxy);
-	if ( pDial->Proxy == NULL ) {
-		xrtSecureZero(
-			pDial,
-			sizeof(*pDial) + pDial->TargetSize + 1u
-		);
-		xrtFree(pDial);
-		__xrtNetEngineObjectRelease(pEngine);
-		return NULL;
-	}
-	pDial->References = 2;
-	xrtAtomic32Init(&pDial->State, XNET_PROXY_DIAL_RESOLVING);
-	xrtAtomic32Init(&pDial->CancelGate, 0);
-	xrtAtomic32Init(&pDial->FinishGate, 0);
-	xrtAtomic32Init(&pDial->TimedOut, 0);
-	xrtAtomic32Init(&pDial->TimerDone, 0);
-	xrtAtomic64Init(&pDial->Timer, 0);
-	xrtAtomicPtrInit(&pDial->TransportDial, NULL);
-	xrtAtomicPtrInit(&pDial->Stream, NULL);
-	pDial->Engine = pEngine;
-	pDial->Worker = xrtNetEngineWorker(
-		pEngine,
-		(uint32)(Config.Transport.Affinity % iWorkerCount)
-	);
-	pDial->StreamData = pStreamData;
-	pDial->Done = pDone;
-	pDial->DoneData = pDoneData;
-	pDial->TargetPort = iTargetPort;
-	pDial->ReceiveLimit = Config.ReceiveLimit;
-	pDial->WriteLimit = Config.Transport.Stream.WriteLimit;
-	pDial->RuntimeHeld = true;
-	if ( pStreamEvents != NULL ) {
-		pDial->StreamEvents = *pStreamEvents;
-	}
-	if ( Config.Timeout != 0 ) {
-		xrtNetProxyDialRef(pDial);
-		Id = xrtNetEngineAfter(
-			pEngine,
-			Config.Transport.Affinity,
-			Config.Timeout,
-			__xrtNetProxyDialTimer,
-			pDial
-		);
-		if ( Id == 0 ) {
-			pError = xrtTakeError();
-			xrtNetProxyDialDestroy(pDial);
-			pDial->RuntimeHeld = false;
-			xrtNetProxyDialDestroy(pDial);
-			xrtNetProxyDialDestroy(pDial);
-			__xrtNetEngineObjectRelease(pEngine);
-			xrtSetError(pError);
-			xrtErrorFree(pError);
-			return NULL;
-		}
-		xrtAtomic64Store(&pDial->Timer, Id, XMEMORY_RELEASE);
-		if ( xrtAtomic32Load(&pDial->TimerDone, XMEMORY_ACQUIRE) ) {
-			(void)xrtAtomic64Exchange(
-				&pDial->Timer,
-				0,
-				XMEMORY_ACQ_REL
-			);
-		}
-	}
-	pTransportDial = xrtNetDial(
-		pEngine,
-		pResolver,
-		Info.Host.Data,
-		Info.Port,
-		&Config.Transport,
-		&__xrtNetProxyDialStreamEvents,
-		pDial,
-		__xrtNetProxyDialTransportDone,
-		pDial
-	);
-	if ( pTransportDial == NULL ) {
-		pError = xrtTakeError();
-		__xrtNetProxyDialCancelTimer(pDial);
-		pDial->RuntimeHeld = false;
-		xrtNetProxyDialDestroy(pDial);
-		xrtNetProxyDialDestroy(pDial);
-		__xrtNetEngineObjectRelease(pEngine);
-		xrtSetError(pError);
-		xrtErrorFree(pError);
-		return NULL;
-	}
-	xrtAtomicPtrStore(
-		&pDial->TransportDial,
-		pTransportDial,
-		XMEMORY_RELEASE
-	);
-	if ( xrtAtomic32Load(&pDial->CancelGate, XMEMORY_ACQUIRE) ) {
-		(void)xrtNetDialCancel(pTransportDial);
-	}
-	__xrtNetEngineObjectRelease(pEngine);
-	return pDial;
+	__xrtNetProxyDialDiscardPrepared(pDial);
+	__xrtNetProxyDialResourceDrop(pDial); /* unposted setup credit */
+	if(pDial->RuntimeHeld){
+		const xnetruntimeownershipv1* pPolicy=NULL;
+		if(__xrtNetEngineRuntimeTake(pDial->Engine,&pDial->RuntimeOwner,&pPolicy)!=pDial ||
+			pPolicy!=xrtNetProxyDialRuntimeOwnershipV1Get())abort();
+		pDial->RuntimeHeld=false;pPolicy->Release(pDial);
+	}else xrtNetProxyDialDestroy(pDial); /* unadopted runtime credit */
+	xrtNetProxyDialDestroy(pDial); /* failed creator */
 }
-
-
-
-/* 从任意线程取消当前名称解析、TCP 或代理握手阶段。 */
+static xnetproxydial* __xrtNetProxyDialCreate(xnetengine* pEngine,xnetresolver* pResolver,
+	const xnetproxy* pProxy,cstr sTargetHost,uint16 iTargetPort,const xnetproxydialconfig* pConfig,
+	const xnetstreamevents* pStreamEvents,ptr pStreamData,xnetproxydialproc Done,ptr pDoneData,
+	const xnetproxydialownershipv1* pDonePolicy)
+{
+	if(!pEngine || !pResolver || !pProxy || !sTargetHost || !sTargetHost[0] || !iTargetPort || !Done){
+		__xrtErrorSetInvalidArgument();return NULL;
+	}
+	xnetproxydialconfig Config;xrtNetProxyDialConfigInit(&Config);if(pConfig)Config=*pConfig;
+	xstrview Target={sTargetHost,strlen(sTargetHost)};
+	if(!__xrtNetProxyHostValid(Target,"dial-proxy","proxy target host is empty") ||
+		!__xrtNetProxyDialConfigValid(pProxy,&Config,Target))return NULL;
+	xnetproxyinfo Info;if(!xrtNetProxyInfo(pProxy,&Info))return NULL;
+	if(!__xrtNetEngineObjectHold(pEngine))return NULL;
+	uint32 iWorkers=xrtNetEngineWorkerCount(pEngine);
+	if(!iWorkers){__xrtNetEngineObjectRelease(pEngine);__xrtErrorSetInvalidState();return NULL;}
+	xnetproxydial* pDial=xrtCalloc(1,sizeof(*pDial)+Target.Size+1u);
+	if(!pDial){__xrtNetEngineObjectRelease(pEngine);return NULL;}
+	/* Creator, registered-runtime reservation, and an ACTUAL setup credit. */
+	pDial->References=3;pDial->Engine=pEngine;pDial->EngineHeld=true;
+	pDial->Worker=xrtNetEngineWorker(pEngine,(uint32)(Config.Transport.Affinity%iWorkers));
+	pDial->TargetSize=Target.Size;memcpy(pDial->TargetHost,sTargetHost,Target.Size+1u);
+	xrtAtomic32Init(&pDial->OwnershipActive,1);xrtAtomic32Init(&pDial->OwnershipState,0);
+	xrtAtomic32Init(&pDial->OwnershipStop,0);xrtAtomic32Init(&pDial->Resources,1);
+	xrtAtomicPtrInit(&pDial->OwnershipClaim,NULL);xrtAtomic32Init(&pDial->State,XNET_PROXY_DIAL_RESOLVING);
+	xrtAtomic32Init(&pDial->CancelGate,XRT_PROXY_GATE_OPEN);xrtAtomic32Init(&pDial->FinishGate,0);
+	xrtAtomic32Init(&pDial->TimedOut,0);xrtAtomic32Init(&pDial->TimerDone,0);
+	xrtAtomic64Init(&pDial->Timer,0);xrtAtomicPtrInit(&pDial->TransportDial,NULL);xrtAtomicPtrInit(&pDial->Stream,NULL);
+	pDial->Config=Config;pDial->TargetPort=iTargetPort;pDial->ReceiveLimit=Config.ReceiveLimit;
+	pDial->WriteLimit=Config.Transport.Stream.WriteLimit;
+	pDial->Deadline=Config.Timeout!=0?xrtDeadlineAfter(Config.Timeout):XRT_DEADLINE_NEVER;
+	pDial->Done=Done;pDial->DoneData=pDoneData;pDial->StreamData=pStreamData;
+	if(pStreamEvents)pDial->StreamEvents=*pStreamEvents;
+	if(!xrtMutexInit(&pDial->Lock))goto failed;
+	pDial->LockReady=true;pDial->Proxy=xrtNetProxyRetain(pProxy);if(!pDial->Proxy)goto failed;
+	if(!__xrtNetEngineRuntimeAdopt(pEngine,&pDial->RuntimeOwner,pDial,xrtNetProxyDialRuntimeOwnershipV1Get()))goto failed;
+	pDial->RuntimeHeld=true;
+	/* Reserve the event-data credit and its UNIQUE binding BEFORE any I/O.
+	 * Rejection/OOM after winning a Stream never needs another allocation. */
+	if(!__xrtNetProxyDialResourceAdd(pDial))goto failed;
+	pDial->PreparedEvents=__xrtNetStreamEventsPrepare(pDial,xrtNetProxyDialStreamOwnershipV1Get());
+	if(!pDial->PreparedEvents){__xrtNetProxyDialResourceDrop(pDial);goto failed;}
+	if(!__xrtNetProxyDialResourceAdd(pDial))goto failed;
+	xnetdial* pTransport=xrtNetDialOwnedV1(pEngine,pResolver,Info.Host.Data,Info.Port,&Config.Transport,
+		NULL,NULL,pDial,xrtNetProxyDialTransportOwnershipV1Get());
+	if(!pTransport){__xrtNetProxyDialResourceDrop(pDial);goto failed;}
+	xrtAtomicPtrStore(&pDial->TransportDial,pTransport,XMEMORY_RELEASE);
+	pDial->DonePolicy=pDonePolicy; /* accepted submission consumes ONE DoneData credit */
+	/* LiveObjects is still held, so legal Stop/TryStop cannot seal this
+	 * allocation-free lifecycle post. No callback runs in the caller stack. */
+	if(!__xrtNetEnginePostInternal(pDial->Worker,&pDial->StartCommand,__xrtNetProxyDialStartTask,pDial))abort();
+	__xrtNetProxyDialLeave(pDial);
+	return pDial;
+failed:{
+	xerror* pError=xrtTakeError();
+	__xrtNetProxyDialConstructionDrop(pDial);
+	xrtClearError();if(pError)xrtSetErrorTake(pError);
+	return NULL;
+	}
+}
+XRT_API xnetproxydial* xrtNetProxyDial(xnetengine* pEngine,xnetresolver* pResolver,
+	const xnetproxy* pProxy,cstr sTargetHost,uint16 iTargetPort,const xnetproxydialconfig* pConfig,
+	const xnetstreamevents* pStreamEvents,ptr pStreamData,xnetproxydialproc Done,ptr pDoneData)
+{return __xrtNetProxyDialCreate(pEngine,pResolver,pProxy,sTargetHost,iTargetPort,pConfig,pStreamEvents,pStreamData,Done,pDoneData,NULL);}
+XRT_API xnetproxydial* xrtNetProxyDialOwnedV1(xnetengine* pEngine,xnetresolver* pResolver,
+	const xnetproxy* pProxy,cstr sTargetHost,uint16 iTargetPort,const xnetproxydialconfig* pConfig,
+	const xnetstreamevents* pStreamEvents,ptr pStreamData,ptr pDoneData,const xnetproxydialownershipv1* pPolicy)
+{
+	if(!pDoneData || !pPolicy || pPolicy->size!=sizeof(*pPolicy) || !pPolicy->Done || !pPolicy->Drop ||
+		!pPolicy->Ops || !pPolicy->Ops->Count || !pPolicy->Ops->Trace){__xrtErrorSetInvalidArgument();return NULL;}
+	return __xrtNetProxyDialCreate(pEngine,pResolver,pProxy,sTargetHost,iTargetPort,pConfig,pStreamEvents,
+		pStreamData,pPolicy->Done,pDoneData,pPolicy);
+}
 XRT_API bool xrtNetProxyDialCancel(xnetproxydial* pDial)
 {
-	uint32 iExpected = 0;
-	xnetdial* pTransportDial;
-	xnetproxydialstate State;
-
-	if ( pDial == NULL ) {
-		__xrtNetProxyDialSetError(
-			XERR_ARGUMENT,
-			XNET_ERROR_PROXY_CREATE,
-			"cancel-proxy-dial",
-			"proxy dial is null"
-		);
-		return false;
+	if(!__xrtNetProxyDialEnter(pDial,true))return false;
+	__xrtNetProxyDialLock(pDial);
+	bool bOK=false;
+	if(!xrtAtomic32Load(&pDial->FinishGate,XMEMORY_ACQUIRE) &&
+		xrtAtomic32Load(&pDial->CancelGate,XMEMORY_ACQUIRE)==XRT_PROXY_GATE_OPEN &&
+		__xrtNetProxyDialResourceAdd(pDial)){
+		uint32 iGate=XRT_PROXY_GATE_OPEN;
+		if(xrtAtomic32CompareExchange(&pDial->CancelGate,&iGate,XRT_PROXY_GATE_CANCEL,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE)){
+			bOK=__xrtNetEnginePostInternal(pDial->Worker,&pDial->CancelCommand,__xrtNetProxyDialCancelTask,pDial);
+			if(!bOK)xrtAtomic32Store(&pDial->CancelGate,XRT_PROXY_GATE_OPEN,XMEMORY_RELEASE);
+		}
+		if(!bOK){
+			/* Publication waits for this mutex; no failed command credit is
+			 * leaked and no non-Worker completion is fabricated. */
+			xrtownershipscope Mutation={0};if(!xrtOwnershipMutationBegin(&Mutation))abort();
+			if(!xrtAtomic32FetchSub(&pDial->Resources,1,XMEMORY_ACQ_REL))abort();
+			if(!xrtOwnershipScopeEnd(&Mutation))abort();
+			xrtNetProxyDialDestroy(pDial);
+		}
 	}
-	State = (xnetproxydialstate)xrtAtomic32Load(
-		&pDial->State,
-		XMEMORY_ACQUIRE
-	);
-	if ( xrtAtomic32Load(&pDial->FinishGate, XMEMORY_ACQUIRE) ||
-		 (State == XNET_PROXY_DIAL_CONNECTED) ||
-		 (State == XNET_PROXY_DIAL_FAILED) ||
-		 (State == XNET_PROXY_DIAL_CANCELLED) ) {
-		return false;
-	}
-	if ( !xrtAtomic32CompareExchange(
-		&pDial->CancelGate,
-		&iExpected,
-		1,
-		XMEMORY_ACQ_REL,
-		XMEMORY_ACQUIRE
-	) ) {
-		return false;
-	}
-	pTransportDial = (xnetdial*)xrtAtomicPtrLoad(
-		&pDial->TransportDial,
-		XMEMORY_ACQUIRE
-	);
-	if ( pTransportDial != NULL ) {
-		(void)xrtNetDialCancel(pTransportDial);
-	}
-	if ( xrtNetProxyDialRef(pDial) == NULL ) {
-		xrtAtomic32Store(&pDial->CancelGate, 0, XMEMORY_RELEASE);
-		return false;
-	}
-	if ( !__xrtNetEnginePostInternal(
-		pDial->Worker,
-		&pDial->CancelCommand,
-		__xrtNetProxyDialCancelTask,
-		pDial
-	) ) {
-		xrtAtomic32Store(&pDial->CancelGate, 0, XMEMORY_RELEASE);
-		xrtNetProxyDialDestroy(pDial);
-		__xrtNetProxyDialSetError(
-			XERR_CLOSED,
-			XNET_ERROR_PROXY_CONNECT,
-			"cancel-proxy-dial",
-			"network worker shutdown is sealed"
-		);
-		return false;
-	}
-	return true;
+	__xrtNetProxyDialUnlock(pDial);
+	__xrtNetProxyDialLeave(pDial);return bOK;
 }
-
 
 
 /* 解析和 TCP 连接阶段直接映射底层 TCP Dial 快照。 */
@@ -263261,6 +263552,150 @@ XRT_API bool xrtNetProxyDialStats(
 	memset(pStats, 0, sizeof(*pStats));
 	pStats->State = xrtNetProxyDialState(pDial);
 	return xrtNetDialStats(pTransportDial, &pStats->Transport);
+}
+
+static bool __xrtNetProxyDialPrepared(const void* pData)
+{
+	const xnetproxydial* pDial=pData;
+	return pDial && !xrtAtomic32Load(&pDial->OwnershipActive,XMEMORY_ACQUIRE) &&
+		(xrtAtomic32Load(&pDial->OwnershipState,XMEMORY_ACQUIRE)&XRT_PROXY_OWNERSHIP_READY);
+}
+static bool __xrtNetProxyDialBusy(const void* pData)
+{
+	const xnetproxydial* pDial=pData;if(!pDial)return false;
+	if(xrtAtomic32Load(&pDial->OwnershipActive,XMEMORY_ACQUIRE))return true;
+	if(xrtAtomic32Load(&pDial->OwnershipState,XMEMORY_ACQUIRE)&XRT_PROXY_OWNERSHIP_READY)return false;
+	return !pDial->EngineHeld || xrtNetEngineOwnershipQuiescenceV1Get()->Busy(pDial->Engine);
+}
+static bool __xrtNetProxyDialEmptyEvents(const xnetstreamevents* e)
+{return !e->Open&&!e->Read&&!e->End&&!e->HighWater&&!e->LowWater&&!e->Drain&&!e->Close;}
+/* Handshake and its buffer records are UNIQUE children, not fabricated RC
+ * nodes. Report the actual copied Proxy credit, Error and buffer-pool leases. */
+static bool __xrtNetProxyDialHandshakeWalk(const xnetproxydial* pDial,xrtownershipvisitor visit,ptr context)
+{
+	const xnetproxyhandshake* h=pDial->Handshake;if(!h)return true;
+	if(h->Proxy!=pDial->Proxy || !__xrtNetBufOwnershipWalk(&h->Output,NULL,NULL,visit,context))return false;
+	if(visit){
+		if(!visit(xrtNetProxyOwnership(h->Proxy),context))return false;
+		xrtownershipref error=xrtErrorOwnership(h->Error);if(error.Data&&!visit(error,context))return false;
+	}
+	return true;
+}
+static bool __xrtNetProxyDialCount(const void* pData,size_t* pCount)
+{
+	const xnetproxydial* pDial=pData;
+	if(!pDial || !pCount || __xrtNetProxyDialBusy(pDial) ||
+		(xrtAtomic32Load(&pDial->OwnershipState,XMEMORY_ACQUIRE)&XRT_PROXY_OWNERSHIP_CLEARED) ||
+		pDial->StreamData || !__xrtNetProxyDialEmptyEvents(&pDial->StreamEvents) ||
+		(pDial->Done&&!pDial->DonePolicy) || !pDial->Proxy)return false;
+	if(__xrtNetProxyDialPrepared(pDial)){
+		if(!pDial->Published || pDial->EngineHeld || pDial->RuntimeHeld || pDial->RuntimeOwner.Data || pDial->RuntimeOwner.Previous ||
+			pDial->Done || pDial->DoneData || pDial->DonePolicy || pDial->PreparedEvents || pDial->Handshake ||
+			xrtAtomicPtrLoad(&pDial->Stream,XMEMORY_ACQUIRE) || xrtAtomic64Load(&pDial->Timer,XMEMORY_ACQUIRE) ||
+			xrtAtomic32Load(&pDial->Resources,XMEMORY_ACQUIRE))return false;
+	}else if(!pDial->EngineHeld || !pDial->RuntimeHeld || pDial->RuntimeOwner.Data!=pDial ||
+		!pDial->RuntimeOwner.Previous || pDial->RuntimeOwner.Engine!=pDial->Engine ||
+		pDial->RuntimeOwner.Policy!=xrtNetProxyDialRuntimeOwnershipV1Get())return false;
+	if(pDial->PreparedEvents && (pDial->PreparedEvents->Next || pDial->PreparedEvents->Data!=pDial ||
+		pDial->PreparedEvents->Policy!=xrtNetProxyDialStreamOwnershipV1Get()))return false;
+	if(!__xrtNetProxyDialHandshakeWalk(pDial,NULL,NULL))return false;
+	int32 refs=__xrtAtomicRefLoad(&pDial->References);if(refs<=0)return false;
+	*pCount=(size_t)refs;return true;
+}
+static bool __xrtNetProxyDialTrace(const void* pData,xrtownershipvisitor visit,ptr context)
+{
+	const xnetproxydial* pDial=pData;size_t refs;if(!visit||!__xrtNetProxyDialCount(pData,&refs))return false;
+	if(pDial->EngineHeld&&!visit(xrtNetEngineOwnership(pDial->Engine),context))return false;
+	if(!visit(xrtNetProxyOwnership(pDial->Proxy),context))return false;
+	xnetdial* transport=xrtAtomicPtrLoad(&pDial->TransportDial,XMEMORY_ACQUIRE);
+	if(transport&&!visit(xrtNetDialOwnership(transport),context))return false;
+	xnetstream* stream=xrtAtomicPtrLoad(&pDial->Stream,XMEMORY_ACQUIRE);
+	if(stream&&!visit(xrtNetStreamOwnership(stream),context))return false;
+	if(pDial->PreparedEvents&&!visit(xrtNetProxyDialOwnership(pDial),context))return false;
+	if(pDial->DonePolicy&&!visit((xrtownershipref){pDial->DoneData,pDial->DonePolicy->Ops},context))return false;
+	if(!__xrtNetProxyDialHandshakeWalk(pDial,visit,context))return false;
+	xrtownershipref error=xrtErrorOwnership(pDial->Error);
+	return !error.Data||visit(error,context);
+}
+static const xrtownershipops __xrtNetProxyDialOps={__xrtNetProxyDialCount,__xrtNetProxyDialTrace};
+XRT_API xrtownershipref xrtNetProxyDialOwnership(const xnetproxydial* pDial)
+{return (xrtownershipref){pDial,pDial?&__xrtNetProxyDialOps:NULL};}
+XRT_API const xrtownershipquiescencev1* xrtNetProxyDialOwnershipQuiescenceV1Get(void)
+{
+	static const xrtownershipquiescencev1 Policy={sizeof(Policy),&__xrtNetProxyDialOps,__xrtNetProxyDialBusy};return &Policy;
+}
+static void __xrtNetProxyDialRuntimeRelease(ptr pData)
+{xrtNetProxyDialDestroy(pData);}
+XRT_API const xnetruntimeownershipv1* xrtNetProxyDialRuntimeOwnershipV1Get(void)
+{
+	static const xnettimerproc Timers[]={__xrtNetProxyDialTimer};
+	static const xnetruntimeownershipv1 Policy={sizeof(Policy),&__xrtNetProxyDialOps,__xrtNetProxyDialRuntimeRelease,Timers,1};return &Policy;
+}
+static bool __xrtNetProxyDialHold(const void* pData)
+{return xrtNetProxyDialRef((xnetproxydial*)pData)!=NULL;}
+static void __xrtNetProxyDialDrop(const void* pData)
+{xrtNetProxyDialDestroy((xnetproxydial*)pData);}
+static bool __xrtNetProxyDialClaim(const void* pData,const void* pToken)
+{
+	xnetproxydial* pDial=(xnetproxydial*)pData;size_t count;
+	ptr old=xrtAtomicPtrLoad(&pDial->OwnershipClaim,XMEMORY_ACQUIRE);
+	if(!pToken || (old&&old!=pToken) || !__xrtNetProxyDialCount(pDial,&count))return false;
+	xrtAtomicPtrStore(&pDial->OwnershipClaim,(ptr)pToken,XMEMORY_RELEASE);return true;
+}
+static void __xrtNetProxyDialRestore(const void* pData,const void* pToken)
+{
+	xnetproxydial* pDial=(xnetproxydial*)pData;
+	if(!pToken || xrtAtomicPtrLoad(&pDial->OwnershipClaim,XMEMORY_ACQUIRE)!=pToken ||
+		(xrtAtomic32Load(&pDial->OwnershipState,XMEMORY_ACQUIRE)&XRT_PROXY_OWNERSHIP_CLEARED))abort();
+	xrtAtomicPtrStore(&pDial->OwnershipClaim,NULL,XMEMORY_RELEASE);
+}
+static void __xrtNetProxyDialOwnershipStopTask(xnetworker* pWorker,ptr pData)
+{
+	(void)pWorker;xnetproxydial* pDial=pData;__xrtNetProxyDialStopWorker(pDial,false);
+	xrtownershipscope Mutation={0};if(!xrtOwnershipMutationBegin(&Mutation))abort();
+	xrtAtomic32Store(&pDial->OwnershipStop,0,XMEMORY_RELEASE);
+	if(!xrtOwnershipScopeEnd(&Mutation))abort();
+	__xrtNetProxyDialTryPublish(pDial); /* last access: borrows real runtime */
+}
+static xrtownershipprepareresult __xrtNetProxyDialPrepare(const void* pData,const void* pToken)
+{
+	xnetproxydial* pDial=(xnetproxydial*)pData;xrtownershipscope Freeze={0};
+	if(!xrtOwnershipFreezeTryBegin(&Freeze))return XRT_OWNERSHIP_PREPARE_BUSY;
+	if(!pToken || xrtAtomicPtrLoad(&pDial->OwnershipClaim,XMEMORY_ACQUIRE)!=pToken)abort();
+	xrtownershipprepareresult result=XRT_OWNERSHIP_PREPARE_BUSY;
+	if(__xrtNetProxyDialPrepared(pDial))result=XRT_OWNERSHIP_PREPARE_READY;
+	else if(!__xrtNetProxyDialBusy(pDial)&&!xrtAtomic32Load(&pDial->OwnershipStop,XMEMORY_ACQUIRE)){
+		xrtAtomic32Store(&pDial->OwnershipStop,1,XMEMORY_RELEASE);
+		if(!__xrtNetEnginePostInternal(pDial->Worker,&pDial->OwnershipCommand,__xrtNetProxyDialOwnershipStopTask,pDial)){
+			xrtAtomic32Store(&pDial->OwnershipStop,0,XMEMORY_RELEASE);result=XRT_OWNERSHIP_PREPARE_FAILED;
+		}
+	}
+	if(!xrtOwnershipScopeEnd(&Freeze))abort();
+	return result;
+}
+static void __xrtNetProxyDialClear(const void* pData,const void* pToken)
+{
+	xnetproxydial* pDial=(xnetproxydial*)pData;
+	if(!pToken || xrtAtomicPtrLoad(&pDial->OwnershipClaim,XMEMORY_ACQUIRE)!=pToken || !__xrtNetProxyDialPrepared(pDial) ||
+		(xrtAtomic32Load(&pDial->OwnershipState,XMEMORY_ACQUIRE)&XRT_PROXY_OWNERSHIP_CLEARED))abort();
+	xrtAtomic32Store(&pDial->OwnershipState,XRT_PROXY_OWNERSHIP_READY|XRT_PROXY_OWNERSHIP_CLEARED,XMEMORY_RELEASE);
+}
+XRT_API const xrtownershipadapterv1* xrtNetProxyDialOwnershipAdapterV1(xrtownershipref ref,
+	const xnetproxydialownershipv1* const* policies,size_t count,const xrtownershippreparationv1** prep)
+{
+	static const xrtownershipadapterv1 Adapter={sizeof(Adapter),__xrtNetProxyDialHold,__xrtNetProxyDialDrop,
+		__xrtNetProxyDialClaim,__xrtNetProxyDialRestore,NULL,__xrtNetProxyDialClear,NULL};
+	static const xrtownershippreparationv1 Preparation={sizeof(Preparation),&Adapter,__xrtNetProxyDialPrepared,__xrtNetProxyDialPrepare};
+	if(!prep || ref.Ops!=&__xrtNetProxyDialOps || !ref.Data || (count&&!policies) || __xrtNetProxyDialBusy(ref.Data))return NULL;
+	const xnetproxydial* pDial=ref.Data;
+	if(pDial->DonePolicy){
+		bool known=false;for(size_t i=0;i<count;++i)if(policies[i]==pDial->DonePolicy){known=true;break;}
+		if(!known)return NULL;
+		const xnetproxydialownershipv1* p=pDial->DonePolicy;
+		if(p->size!=sizeof(*p)||p->Done!=pDial->Done||!p->Drop||!p->Ops||!p->Ops->Count||!p->Ops->Trace)return NULL;
+	}
+	size_t refs;if(!__xrtNetProxyDialCount(ref.Data,&refs))return NULL;
+	*prep=&Preparation;return &Adapter;
 }
 
 #endif
