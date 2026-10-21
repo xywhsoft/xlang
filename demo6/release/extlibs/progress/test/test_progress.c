@@ -57,6 +57,42 @@ static int test_large_thresholds(void) {
     return 0;
 }
 
+static unsigned next_random(unsigned *state) {
+    *state = *state * 1664525u + 1013904223u;
+    return *state;
+}
+
+static int test_ratio_properties(void) {
+    unsigned state = 0x51a7u;
+    int case_index;
+    for (case_index = 0; case_index < 512; ++case_index) {
+        long long total = 1 + (long long)(next_random(&state) % 1000000u);
+        long long current = (long long)(next_random(&state) % (unsigned)(total + 1));
+        int width = 10 + (int)(next_random(&state) % 91u);
+        int filled = (int)(current * width / total);
+        void *bar = xprog_create(total);
+        char *rendered;
+        char *open;
+        int i;
+        CHECK(bar != NULL);
+        CHECK(xprog_set(bar, current) == 1 && xprog_set_width(bar, width) == 1);
+        CHECK(xprog_percent(bar) == (int)(current * 100 / total));
+        CHECK(xprog_is_done(bar) == (current == total));
+        rendered = (char *)xprog_render(bar);
+        CHECK(rendered != NULL);
+        open = strchr(rendered, '[');
+        CHECK(open != NULL && open[width + 1] == ']');
+        /* 小整数独立计算期望值，逐列核对渲染进度。 */
+        for (i = 0; i < width; ++i) {
+            char expected = i < filled ? '=' : i == filled ? '>' : ' ';
+            CHECK(open[i + 1] == expected);
+        }
+        xrtFree(rendered);
+        xprog_destroy(bar);
+    }
+    return 0;
+}
+
 static int test_allocation_failure(void) {
     void *bar;
     char *rendered;
@@ -101,6 +137,7 @@ int main(void) {
     char *a, *b;
     CHECK(test_error_recovery() == 0);
     CHECK(test_large_thresholds() == 0);
+    CHECK(test_ratio_properties() == 0);
     CHECK(test_allocation_failure() == 0);
     CHECK(first != NULL && second != NULL);
     CHECK(xprog_percent(first) == 0 && xprog_current(first) == 0);

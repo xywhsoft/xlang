@@ -28,6 +28,11 @@
 
 ## 范例与验证
 
+2026-10-22：C 边界新增 512 组固定种子的总量、当前值和栏宽组合，
+以有界整数算术独立核对百分比、完成状态及渲染柱体的每一格。
+Windows 聚焦门禁和 Linux C ASan/UBSan、XLang 联合门禁均通过；
+完整带输出 AOT 仍受共享缺符号阻断。
+
 - 同输出 XLang/C 范例：`release/examples/extlibs/progress.xl`、`release/examples/extlibs/progress_c.c`，两者均可用发布目录中的 `xl.exe run` 执行。
 - C 边界：`release/extlibs/progress/test/test_progress.c`
 - XLang 边界：`release/extlibs/progress/test/boundaries.xl`、`release/extlibs/progress/test/allocation_oom.xl`、`demo6/test/cases/extlib_progress.xl`
