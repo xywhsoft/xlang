@@ -1,0 +1,8 @@
+import linalg
+
+func main(...) as int
+    if linalg.dot2(1.0, 2.0, 3.0, 4.0) != 11.0 then return 1 end
+    if linalg.mag2(3.0, 4.0) != 5.0 then return 2 end
+    if linalg.det2(1.0, 2.0, 3.0, 4.0) != -2.0 then return 3 end
+    return 0
+end

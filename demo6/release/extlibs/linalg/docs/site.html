@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>linalg - 扩展库 - xlang</title>
+  <meta name="description" content="linalg 二维三维向量与 2×2 矩阵运算，支持 C/XLang 双语调用。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / linalg</p><h1>linalg</h1>
+    <p class="extlib-lead">二维、三维向量与 2×2 矩阵的轻量计算。</p>
+    <p>复用 XRT 的稳定长度计算；多返回值适配 XLang，C 提供输出参数。夹角以缩放后的叉积和点积计算，保留近乎平行或反向的微小角度；异号极大端点插值避免中间差值溢出。多返回值分配失败按内存错误报告，恢复后可继续调用。C/XL 包级测试、Linux sanitizer 与包内 XLang 边界已通过；当前 XL AOT 仍受共享缺符号阻断。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>dot2/dot3, mag2/mag3</code></td><td>点积、长度</td></tr>
+      <tr><td><code>normalize2, cross3, angle2</code></td><td>归一化、叉积、弧度夹角</td></tr>
+      <tr><td><code>det2, inverse2, multiply2</code></td><td>2×2 行序矩阵</td></tr>
+      <tr><td><code>dist2/dist3, lerp</code></td><td>距离与插值</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import linalg
+float x = 0.0
+float y = 0.0
+x, y = linalg.normalize2(3.0, 4.0)</code></pre>
+    <h2 id="c-api">C</h2>
+    <p>包含 <code>include/linalg_native.h</code>。组合结果使用 <code>_into</code> 输出参数；失败返回 0，不覆盖原输出。完整参数及数值边界见包内 README。</p>
+    <p>Windows 包级门禁 <code>release/extlibs/linalg/test/check.ps1</code> 与 Linux <code>test/check.sh</code> 均验证 C/XLang 边界、分配失败和十三项公开函数的固定范例输出；Linux 另有 C ASan/UBSan。中央测试已按当前接口更新，不恢复移至标准库的旧标量 API；完整 AOT 仍受共享运行时缺符号阻断。</p>
+  </section>
+</main>
+</body>
+</html>

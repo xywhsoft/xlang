@@ -1,0 +1,13 @@
+dot2:  11.0
+dot3:  32.0
+mag2:  5.0
+mag3:  7.0
+normalize2(3,4):  0.6 ,  0.8
+cross3:  0.0 ,  0.0 ,  1.0
+det2:  -2.0
+inverse2:  -2.0 ,  1.0 ,  1.5 ,  -0.5
+matrix product:  1.0 ,  0.0 ,  0.0 ,  1.0
+dist2(0,0,3,4):  5.0
+dist3:  7.0
+lerp(2,8,0.25):  3.5
+linalg C/XL example: PASS

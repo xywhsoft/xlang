@@ -13,9 +13,6 @@ extern "xlin_angle2" func __angle2(float ax, float ay, float bx, float by) as fl
 extern "xlin_dist2" func __dist2(float x1, float y1, float x2, float y2) as float
 extern "xlin_dist3" func __dist3(float x1, float y1, float z1, float x2, float y2, float z2) as float
 extern "xlin_lerp" func __lerp(float a, float b, float t) as float
-extern "xlin_clamp" func __clamp(float value, float minimum, float maximum) as float
-extern "xlin_deg2rad" func __deg2rad(float degrees) as float
-extern "xlin_rad2deg" func __rad2deg(float radians) as float
 
 export func dot2(float ax, float ay, float bx, float by) as float
     return __dot2(ax, ay, bx, by)
@@ -87,20 +84,4 @@ end
 
 export func lerp(float a, float b, float t) as float
     return __lerp(a, b, t)
-end
-
-export func clamp(float value, float minimum, float maximum) as float
-    float result = __clamp(value, minimum, maximum)
-    if result != result then
-        throw ValueError "clamp minimum must not exceed maximum"
-    end
-    return result
-end
-
-export func deg2rad(float degrees) as float
-    return __deg2rad(degrees)
-end
-
-export func rad2deg(float radians) as float
-    return __rad2deg(radians)
 end

@@ -1,11 +1,17 @@
 /* 轻量线性代数：每次调用独立写入调用方输出，不使用全局临时结果。 */
 #include <math.h>
+#include <float.h>
 
+#ifndef XRT_MODULE_VALUE_CONTAINER
 #define XRT_MODULE_VALUE_CONTAINER
+#endif
+#ifndef XRT_MODULE_MATH
+#define XRT_MODULE_MATH
+#endif
 #include "xrt.h"
+#include "include/linalg_native.h"
 
 #define XLINALG_DOMAIN "xlang.extlib.linalg"
-#define XLINALG_EPSILON 1e-12
 
 static void xlinalg_error(cstr sMessage)
 {
@@ -14,22 +20,26 @@ static void xlinalg_error(cstr sMessage)
 
 double xlin_dot2(double ax, double ay, double bx, double by)
 {
+    xrtClearError();
     return ax * bx + ay * by;
 }
 
 double xlin_dot3(double ax, double ay, double az, double bx, double by, double bz)
 {
+    xrtClearError();
     return ax * bx + ay * by + az * bz;
 }
 
 double xlin_mag2(double x, double y)
 {
-    return hypot(x, y);
+    xrtClearError();
+    return xrtMathHypot(x, y);
 }
 
 double xlin_mag3(double x, double y, double z)
 {
-    return hypot(hypot(x, y), z);
+    xrtClearError();
+    return xrtMathHypot(xrtMathHypot(x, y), z);
 }
 
 static xvalue* xlinalg_values(const double* pValues, size_t iCount)
@@ -50,15 +60,19 @@ static xvalue* xlinalg_values(const double* pValues, size_t iCount)
 
 int xlin_normalize2_into(double x, double y, double* px, double* py)
 {
-    double fLength = hypot(x, y);
+    double fScale = fmax(fabs(x), fabs(y));
+    double fLength;
     if (px == NULL || py == NULL) {
         xlinalg_error("normalize2 output is missing");
         return 0;
     }
-    if (!(fLength > XLINALG_EPSILON) || !isfinite(fLength)) {
+    if (!(fScale > 0.0) || !isfinite(x) || !isfinite(y)) {
         xlinalg_error("cannot normalize a zero or non-finite vector");
         return 0;
     }
+    x /= fScale;
+    y /= fScale;
+    fLength = xrtMathHypot(x, y);
     *px = x / fLength;
     *py = y / fLength;
     xrtClearError();
@@ -81,25 +95,50 @@ int xlin_cross3_into(double ax, double ay, double az, double bx, double by, doub
 
 double xlin_det2(double a, double b, double c, double d)
 {
+    xrtClearError();
     return a * d - b * c;
 }
 
 int xlin_inverse2_into(double a, double b, double c, double d,
     double* pa, double* pb, double* pc, double* pd)
 {
-    double fDeterminant = a * d - b * c;
+    double fScale1, fScale2;
+    double fDeterminant;
+    double fProducts;
+    double ra, rb, rc, rd;
     if (pa == NULL || pb == NULL || pc == NULL || pd == NULL) {
         xlinalg_error("inverse2 output is missing");
         return 0;
     }
-    if (!(fabs(fDeterminant) > XLINALG_EPSILON) || !isfinite(fDeterminant)) {
+    fScale1 = fmax(fabs(a), fabs(b));
+    fScale2 = fmax(fabs(c), fabs(d));
+    if (!(fScale1 > 0.0) || !(fScale2 > 0.0) ||
+        !isfinite(a) || !isfinite(b) || !isfinite(c) || !isfinite(d)) {
         xlinalg_error("matrix is singular or non-finite");
         return 0;
     }
-    *pa = d / fDeterminant;
-    *pb = -b / fDeterminant;
-    *pc = -c / fDeterminant;
-    *pd = a / fDeterminant;
+    a /= fScale1;
+    b /= fScale1;
+    c /= fScale2;
+    d /= fScale2;
+    fDeterminant = a * d - b * c;
+    fProducts = fabs(a * d) + fabs(b * c);
+    if (!(fabs(fDeterminant) > 4.0 * DBL_EPSILON * fProducts)) {
+        xlinalg_error("matrix is singular or numerically unstable");
+        return 0;
+    }
+    ra = (d / fDeterminant) / fScale1;
+    rb = (-b / fDeterminant) / fScale2;
+    rc = (-c / fDeterminant) / fScale1;
+    rd = (a / fDeterminant) / fScale2;
+    if (!isfinite(ra) || !isfinite(rb) || !isfinite(rc) || !isfinite(rd)) {
+        xlinalg_error("inverse matrix is not representable");
+        return 0;
+    }
+    *pa = ra;
+    *pb = rb;
+    *pc = rc;
+    *pd = rd;
     xrtClearError();
     return 1;
 }
@@ -163,57 +202,45 @@ xvalue* xlin_multiply2(double a1, double b1, double c1, double d1,
 
 double xlin_angle2(double ax, double ay, double bx, double by)
 {
-    double fLength = hypot(ax, ay) * hypot(bx, by);
-    double fCosine;
-    if (!(fLength > XLINALG_EPSILON) || !isfinite(fLength)) {
+    double fScaleA = fmax(fabs(ax), fabs(ay));
+    double fScaleB = fmax(fabs(bx), fabs(by));
+    double fCross;
+    double fDot;
+    if (!(fScaleA > 0.0) || !(fScaleB > 0.0) ||
+        !isfinite(ax) || !isfinite(ay) ||
+        !isfinite(bx) || !isfinite(by)) {
         xlinalg_error("cannot calculate an angle with a zero or non-finite vector");
         return NAN;
     }
-    fCosine = (ax * bx + ay * by) / fLength;
-    if (fCosine > 1.0) { fCosine = 1.0; }
-    if (fCosine < -1.0) { fCosine = -1.0; }
+    ax /= fScaleA;
+    ay /= fScaleA;
+    bx /= fScaleB;
+    by /= fScaleB;
+    /* atan2 保留近乎平行或反向向量的小角度，避免 acos 在端点舍入。 */
+    fCross = ax * by - ay * bx;
+    fDot = ax * bx + ay * by;
     xrtClearError();
-    return acos(fCosine);
+    return atan2(fabs(fCross), fDot);
 }
 
 double xlin_dist2(double x1, double y1, double x2, double y2)
 {
-    return hypot(x2 - x1, y2 - y1);
+    xrtClearError();
+    return xrtMathHypot(x2 - x1, y2 - y1);
 }
 
 double xlin_dist3(double x1, double y1, double z1, double x2, double y2, double z2)
 {
-    return hypot(hypot(x2 - x1, y2 - y1), z2 - z1);
+    xrtClearError();
+    return xrtMathHypot(xrtMathHypot(x2 - x1, y2 - y1), z2 - z1);
 }
 
 double xlin_lerp(double a, double b, double t)
 {
-    return a + (b - a) * t;
-}
-
-double xlin_clamp(double fValue, double fMinimum, double fMaximum)
-{
-    if (fMinimum > fMaximum) {
-        xlinalg_error("clamp minimum must not exceed maximum");
-        return NAN;
+    xrtClearError();
+    /* 异号端点先相减可能溢出，即使插值或轻微外推的结果仍有限。 */
+    if (signbit(a) != signbit(b)) {
+        return (1.0 - t) * a + t * b;
     }
-    if (fValue < fMinimum) { return fMinimum; }
-    if (fValue > fMaximum) { return fMaximum; }
-    return fValue;
-}
-
-double xlin_deg2rad(double fDegrees)
-{
-    return fDegrees * 0.01745329251994329576923690768489;
-}
-
-double xlin_rad2deg(double fRadians)
-{
-    return fRadians * 57.295779513082320876798154814105;
-}
-
-const char* xlin_error_message(void)
-{
-    const xerror* pError = xrtGetError();
-    return pError != NULL ? xrtErrorMessage(pError) : "linear algebra operation failed";
+    return a + (b - a) * t;
 }

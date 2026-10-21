@@ -1,0 +1,52 @@
+import linalg
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func exercise(int operation)
+    if operation == 0 then
+        linalg.normalize2(3.0, 4.0)
+    elseif operation == 1 then
+        linalg.cross3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+    elseif operation == 2 then
+        linalg.inverse2(1.0, 0.0, 0.0, 1.0)
+    else
+        linalg.multiply2(1.0, 2.0, 3.0, 4.0,
+            5.0, 6.0, 7.0, 8.0)
+    end
+end
+
+for operation in range(4)
+    int failures = 0
+    bool completed = false
+    for allocation in range(64)
+        bool memoryError = false
+        bool valueError = false
+        assert failAfter(uint64(allocation))
+        try
+            exercise(operation)
+        catch MemoryError e
+            memoryError = true
+        catch ValueError e
+            valueError = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        if valueError or memoryError != triggered then
+            println("linalg operation=", operation, " allocation=", allocation,
+                " triggered=", triggered, " memory=", memoryError,
+                " value=", valueError)
+        end
+        assert not valueError and memoryError == triggered
+        if triggered then
+            failures += 1
+            exercise(operation)
+        else
+            completed = true
+            break
+        end
+    end
+    assert failures > 0 and completed
+end
+println("linalg allocation: PASS")

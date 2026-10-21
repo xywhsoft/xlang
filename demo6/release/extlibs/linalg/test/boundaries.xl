@@ -1,0 +1,49 @@
+import linalg
+
+func main(...) as int
+    float x = 0.0
+    float y = 0.0
+    x, y = linalg.normalize2(1e-300, 0.0)
+    assert x == 1.0 and y == 0.0, "small vector"
+    x, y = linalg.normalize2(1e300, 0.0)
+    assert x == 1.0 and y == 0.0, "large vector"
+
+    float a = 0.0
+    float b = 0.0
+    float c = 0.0
+    float d = 0.0
+    a, b, c, d = linalg.inverse2(1e-8, 0.0, 0.0, 1e-8)
+    assert a ~= 1e8 and d ~= 1e8 and b == 0.0 and c == 0.0
+    a, b, c, d = linalg.inverse2(1e300, 0.0, 0.0, 1e-300)
+    assert a / 1e-300 ~= 1.0 and d / 1e300 ~= 1.0 and b == 0.0 and c == 0.0, "wide-scale inverse"
+    assert linalg.angle2(1e300, 0.0, 0.0, 1e300) ~= math.pi / 2.0
+    assert linalg.angle2(1e-300, 0.0, 0.0, 1e-300) ~= math.pi / 2.0
+    float smallAngle = linalg.angle2(1.0, 0.0, 1.0, 1e-8)
+    assert smallAngle > 9.9e-9 and smallAngle < 1.01e-8, "nearly parallel"
+    float nearPi = math.pi - linalg.angle2(1.0, 0.0, -1.0, 1e-8)
+    assert nearPi > 9.9e-9 and nearPi < 1.01e-8, "nearly opposite"
+    assert linalg.lerp(-1e308, 1e308, 0.5) == 0.0
+    assert linalg.lerp(-1e308, 1e308, -1e-100) == -1e308
+    assert linalg.lerp(-1e308, 1e308, 1.000000000000001) > 1e308
+    assert linalg.lerp(-1e308, 1e308, 1.000000000000001) < 1.1e308
+
+    bool rejected = false
+    try
+        linalg.normalize2(0.0, 0.0)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "zero vector"
+    assert linalg.dot2(1.0, 2.0, 3.0, 4.0) == 11.0, "dot after caught error"
+    assert linalg.mag2(3.0, 4.0) == 5.0, "magnitude after caught error"
+    assert linalg.det2(1.0, 2.0, 3.0, 4.0) == -2.0, "determinant after caught error"
+    rejected = false
+    try
+        linalg.inverse2(1.0, 2.0, 2.0, 4.0)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "singular matrix"
+    println("linalg XL boundaries: PASS")
+    return 0
+end
