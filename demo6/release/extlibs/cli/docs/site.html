@@ -40,7 +40,7 @@ assert result["ok"] == true</code></pre>
       <tr><td><code>usage(program, spec)</code></td><td>生成简短的用法文本。</td></tr>
       <tr><td><code>xcli_parse(args, spec)</code></td><td>C 入口；结果由调用方以 <code>xrtValueRelease</code> 释放。</td></tr>
     </tbody></table>
-    <p>声明顶层只接受 <code>flags</code>、<code>options</code>、<code>shorts</code>、<code>defaults</code> 和 <code>positional</code>；拼错字段名会报声明错误。<code>defaults</code> 的键必须是 <code>options</code> 中已声明的选项，值必须是无内嵌 NUL 的字符串，使有无命令行输入时的选项类型一致；<code>flags</code> 和 <code>positional</code> 各自不允许重复名称。长选项名和位置参数名可使用有效 UTF-8，但不得包含 Unicode 空白、C0/C1 控制字符、常见零宽格式字符、双向文本控制字符或 BOM；短别名限可打印单字节 ASCII，排除 <code>-</code> 和 <code>=</code>。重复别名、未声明的旗标目标及旗标/长选项同名均拒绝。用户参数错误返回 <code>ok=false</code>，在第一条错误处停止，后续参数不再生效；无效声明或含 NUL 的参数报错。长值、名称及错误说明不使用固定长度缓冲；<code>--verbose=yes</code> 不会被误作普通旗标。</p>
+    <p>声明顶层只接受 <code>flags</code>、<code>options</code>、<code>shorts</code>、<code>defaults</code> 和 <code>positional</code>；拼错字段名会报声明错误。<code>defaults</code> 的键必须是 <code>options</code> 中已声明的选项，值必须是无内嵌 NUL 的字符串，使有无命令行输入时的选项类型一致；<code>flags</code> 和 <code>positional</code> 各自不允许重复名称。长选项名和位置参数名可使用有效 UTF-8，但不得包含 Unicode 空白、C0/C1 控制字符、常见零宽格式字符、双向文本控制字符或 BOM；短别名限可打印单字节 ASCII，排除 <code>-</code> 和 <code>=</code>。短选项输入中的非 ASCII 或控制字符返回固定的可打印错误文本；<code>-o中文.txt</code> 的 UTF-8 附加值仍可正常使用。重复别名、未声明的旗标目标及旗标/长选项同名均拒绝。用户参数错误返回 <code>ok=false</code>，在第一条错误处停止，后续参数不再生效；无效声明或含 NUL 的参数报错。长值、名称及错误说明不使用固定长度缓冲；<code>--verbose=yes</code> 不会被误作普通旗标。</p>
   </section>
   <section id="verify">
     <h2>验证状态</h2>

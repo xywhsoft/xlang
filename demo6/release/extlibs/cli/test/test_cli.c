@@ -50,7 +50,7 @@ cleanup:
 	return ok;
 }
 
-static bool test_utf8_names(bool short_form)
+static bool test_utf8_names(int short_form)
 {
 	static const char option[] = "\xE8\xBE\x93\xE5\x87\xBA"; /* 输出 */
 	static const char positional[] = "\xE6\xBA\x90"; /* 源 */
@@ -70,7 +70,10 @@ static bool test_utf8_names(bool short_form)
 		!add_text(names, positional, strlen(positional)) ||
 		!xrtValueObjectSetTake(spec, view("options"), &options) ||
 		!xrtValueObjectSetTake(spec, view("positional"), &names)) goto cleanup;
-	if (short_form) {
+	if (short_form == 2) {
+		static const char attached[] = "-o\xE7\xBB\x93\xE6\x9E\x9C.txt";
+		if (!add_text(args, attached, sizeof(attached) - 1u)) goto cleanup;
+	} else if (short_form) {
 		if (!add_text(args, "-o", 2u) || !add_text(args, value, strlen(value)))
 			goto cleanup;
 	} else {
@@ -191,6 +194,31 @@ static bool test_short_error_stops(void)
 cleanup:
 	xrtValueRelease(result);
 	xrtValueRelease(flags);
+	xrtValueRelease(spec);
+	xrtValueRelease(args);
+	return ok;
+}
+
+static bool test_invalid_short_byte(const char* token, size_t size)
+{
+	xvalue* args = xrtValueArray();
+	xvalue* spec = xrtValueObject();
+	xvalue* result = NULL;
+	xstrview message;
+	bool accepted = true;
+	bool ok = false;
+	if (args == NULL || spec == NULL ||
+		!add_text(args, token, size)) goto cleanup;
+	result = xcli_parse(args, spec);
+	ok = result != NULL &&
+		xrtValueGetBool(xrtValueObjectGet(result, view("ok")), &accepted) &&
+		!accepted &&
+		xrtValueGetString(xrtValueObjectGet(result, view("error")), &message) &&
+		message.Size == strlen("short option must be printable ASCII") &&
+		memcmp(message.Data, "short option must be printable ASCII",
+			message.Size) == 0;
+cleanup:
+	xrtValueRelease(result);
 	xrtValueRelease(spec);
 	xrtValueRelease(args);
 	return ok;
@@ -644,7 +672,8 @@ int main(void)
 		fputs("cli inline value was truncated\n", stderr);
 		return 1;
 	}
-	if ( !test_utf8_names(false) || !test_utf8_names(true) ) {
+	if ( !test_utf8_names(0) || !test_utf8_names(1) ||
+		!test_utf8_names(2) ) {
 		fputs("cli UTF-8 option or positional name was not preserved\n", stderr);
 		return 1;
 	}
@@ -671,6 +700,12 @@ int main(void)
 	}
 	if ( !test_short_error_stops() ) {
 		fputs("cli short option error did not stop parsing\n", stderr);
+		return 1;
+	}
+	if ( !test_invalid_short_byte("-\xE4\xB8\xAD", 4u) ||
+		!test_invalid_short_byte("-\t", 2u) ||
+		!test_invalid_short_byte("-\x1B", 2u) ) {
+		fputs("cli invalid short option produced an invalid error\n", stderr);
 		return 1;
 	}
 	if ( !test_end_of_options() ) {

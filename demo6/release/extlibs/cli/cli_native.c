@@ -528,7 +528,12 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
             int stop = 0;
             while (!stop && *p != '\0') {
                 char letter = *p;
-                if (xcli_short_in(optionsSpec, letter, &longName)) {
+                if ((unsigned char)letter < 0x21 ||
+                    (unsigned char)letter > 0x7e) {
+                    if (!xcli_fail_result(result,
+                        "short option must be printable ASCII")) goto fail;
+                    stop = 2;
+                } else if (xcli_short_in(optionsSpec, letter, &longName)) {
                     if (p[1] != '\0') {
                         if (!xcli_set_str_view(optionsOut, longName, p + 1)) goto fail;
                         stop = 1;
