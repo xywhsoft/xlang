@@ -1,25 +1,20 @@
-/* Terraform state read-only query helpers backed by XRT JSON/xvalue. */
+/* Terraform 原始 state 的只读查询；值和文本的所有权由 API 明确区分。 */
 #include <limits.h>
 #include <string.h>
 
+#ifndef XRT_MODULE_BUFFER
 #define XRT_MODULE_BUFFER
-#define XRT_MODULE_JSON
-#define XRT_MODULE_VALUE_CONTAINER
-#include "xrt.h"
-
-#if defined(_WIN32) || defined(_WIN64)
-#define XTF_THREAD __declspec(thread)
-#elif defined(__GNUC__) || defined(__clang__)
-#define XTF_THREAD __thread
-#else
-#define XTF_THREAD
 #endif
+#ifndef XRT_MODULE_JSON
+#define XRT_MODULE_JSON
+#endif
+#ifndef XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_VALUE_CONTAINER
+#endif
+#include "include/terraform_state.h"
 
 #define XTF_DOMAIN "xlang.extlib.terraform_state"
-#define XTF_RESULT_SLOTS 4u
-
-static XTF_THREAD xbuffer g_xtf_results[XTF_RESULT_SLOTS];
-static XTF_THREAD size_t g_xtf_result_index;
+#define XTF_MAX_INPUT (64u * 1024u * 1024u)
 
 
 
@@ -41,21 +36,6 @@ static bool xtf_view_equal(xstrview Left, xstrview Right)
 {
     return Left.Size == Right.Size &&
         (Left.Size == 0u || memcmp(Left.Data, Right.Data, Left.Size) == 0);
-}
-
-
-
-static cstr xtf_store(xstrview Text)
-{
-    xbuffer* pOutput = &g_xtf_results[g_xtf_result_index++ % XTF_RESULT_SLOTS];
-
-    xrtBufferClear(pOutput);
-    if (!xrtBufferAppend(pOutput, (xbytesview){ (cbytes)Text.Data, Text.Size }) ||
-        !xrtBufferAppendByte(pOutput, 0u)) {
-        xrtBufferClear(pOutput);
-        return "";
-    }
-    return (cstr)pOutput->Data;
 }
 
 
@@ -97,7 +77,10 @@ static xvalue* xtf_resources(const xvalue* pState)
 
     if (!xtf_state(pState)) return NULL;
     pResources = xtf_member(pState, "resources");
-    if (pResources == NULL) return NULL;
+    if (pResources == NULL) {
+        xtf_error(XERR_VALUE, "Terraform state field 'resources' is required");
+        return NULL;
+    }
     if (xrtValueType(pResources) != XVALUE_ARRAY) {
         xtf_error(XERR_TYPE, "Terraform state field 'resources' must be an array");
         return NULL;
@@ -124,18 +107,33 @@ static bool xtf_resource_address(xbuffer* pOutput, const xvalue* pResource)
         !xtf_string_member(pResource, "name", &Name)) {
         return false;
     }
+    if (Type.Size == 0u || Name.Size == 0u ||
+        memchr(Type.Data, 0, Type.Size) != NULL ||
+        memchr(Name.Data, 0, Name.Size) != NULL) {
+        xtf_error(XERR_VALUE, "Terraform resource type and name must be nonempty text");
+        return false;
+    }
     pModule = xtf_member(pResource, "module");
     if (pModule != NULL && !xrtValueGetString(pModule, &Module)) {
         xtf_error(XERR_TYPE, "Terraform resource field 'module' must be a string");
         return false;
     }
     if (pModule == NULL) Module = XRT_STR_LITERAL("");
+    if (memchr(Module.Data, 0, Module.Size) != NULL) {
+        xtf_error(XERR_VALUE, "Terraform module address cannot contain NUL");
+        return false;
+    }
     pMode = xtf_member(pResource, "mode");
     if (pMode != NULL && !xrtValueGetString(pMode, &Mode)) {
         xtf_error(XERR_TYPE, "Terraform resource field 'mode' must be a string");
         return false;
     }
     if (pMode == NULL) Mode = XRT_STR_LITERAL("managed");
+    if (!xtf_view_equal(Mode, XRT_STR_LITERAL("managed")) &&
+        !xtf_view_equal(Mode, XRT_STR_LITERAL("data"))) {
+        xtf_error(XERR_VALUE, "Terraform resource mode must be managed or data");
+        return false;
+    }
 
     xrtBufferClear(pOutput);
     if ((Module.Size != 0u &&
@@ -161,14 +159,13 @@ static xvalue* xtf_find_resource(const xvalue* pState, cstr sAddress)
     xstrview Target;
     size_t i;
 
+    xrtClearError();
     if (sAddress == NULL || sAddress[0] == 0) {
         xtf_error(XERR_ARGUMENT, "Terraform resource address is required");
         return NULL;
     }
     pResources = xtf_resources(pState);
-    if (pResources == NULL) {
-        return xrtGetError() == NULL ? xrtValueRetain(xrtValueNull()) : NULL;
-    }
+    if (pResources == NULL) return NULL;
     Target = xtf_view(sAddress);
     for (i = 0u; i < xrtValueCount(pResources); ++i) {
         xvalue* pResource = xrtValueArrayGet(pResources, i);
@@ -189,17 +186,82 @@ static xvalue* xtf_find_resource(const xvalue* pState, cstr sAddress)
 
 
 
-xvalue* xtf_parse(cstr sText)
+static xvalue* xtf_parse_view(xstrview Text)
 {
-    xvalue* pState = xrtJsonParse(xtf_view(sText));
+    xvalue* pState;
+    xvalue* pVersion;
+    xvalue* pSerial;
+    xvalue* pLineage;
+    xvalue* pResources;
+    xvalue* pOutputs;
+    int64 version;
+    int64 serial;
+    xstrview lineage;
 
+    xrtClearError();
+    if (Text.Data == NULL || Text.Size == 0u || Text.Size > XTF_MAX_INPUT) {
+        xtf_error(XERR_RANGE, "Terraform state input is empty or exceeds 64 MiB");
+        return NULL;
+    }
+    pState = xrtJsonParse(Text);
     if (pState == NULL) return NULL;
     if (!xtf_state(pState)) {
         xrtValueRelease(pState);
         return NULL;
     }
+    pVersion = xtf_member(pState, "version");
+    pSerial = xtf_member(pState, "serial");
+    pLineage = xtf_member(pState, "lineage");
+    pResources = xtf_member(pState, "resources");
+    pOutputs = xtf_member(pState, "outputs");
+    if (pVersion == NULL || !xrtValueGetInt(pVersion, &version) || version != 4 ||
+        pSerial == NULL || !xrtValueGetInt(pSerial, &serial) || serial < 0 ||
+        pLineage == NULL || !xrtValueGetString(pLineage, &lineage) ||
+        pResources == NULL || xrtValueType(pResources) != XVALUE_ARRAY ||
+        pOutputs == NULL || xrtValueType(pOutputs) != XVALUE_OBJECT) {
+        xrtValueRelease(pState);
+        xtf_error(XERR_VALUE, "expected raw Terraform state v4 with serial, lineage, resources and outputs");
+        return NULL;
+    }
+    if (lineage.Size != 0u && memchr(lineage.Data, 0, lineage.Size) != NULL) {
+        xrtValueRelease(pState);
+        xtf_error(XERR_VALUE, "Terraform lineage cannot contain NUL");
+        return NULL;
+    }
     xrtClearError();
     return pState;
+}
+
+
+
+/* XL 的 var 保留字符串长度，避免 C 字符串在内嵌 NUL 处被截断。 */
+xvalue* xtf_parse_value(xvalue* pText)
+{
+    xstrview Text;
+    xrtClearError();
+    if (pText == NULL || !xrtValueGetString(pText, &Text)) {
+        xtf_error(XERR_TYPE, "Terraform state input must be a string");
+        return NULL;
+    }
+    return xtf_parse_view(Text);
+}
+
+
+
+xvalue* xtf_parse_len(cstr sText, size_t iLength)
+{
+    return xtf_parse_view((xstrview){ sText, iLength });
+}
+
+
+
+xvalue* xtf_parse(cstr sText)
+{
+    size_t iLength = 0u;
+    if (sText != NULL) {
+        while (iLength <= XTF_MAX_INPUT && sText[iLength] != 0) ++iLength;
+    }
+    return xtf_parse_len(sText, iLength);
 }
 
 
@@ -209,7 +271,8 @@ bool xtf_valid(cstr sText)
     xvalue* pState = xtf_parse(sText);
 
     if (pState == NULL) {
-        xrtClearError();
+        if (xrtGetError() == NULL || xrtErrorKind(xrtGetError()) != XERR_MEMORY)
+            xrtClearError();
         return false;
     }
     xrtValueRelease(pState);
@@ -219,7 +282,22 @@ bool xtf_valid(cstr sText)
 
 
 
-long long xtf_version(const xvalue* pState)
+bool xtf_valid_value(xvalue* pText)
+{
+    xvalue* pState = xtf_parse_value(pText);
+    if (pState == NULL) {
+        if (xrtGetError() == NULL || xrtErrorKind(xrtGetError()) != XERR_MEMORY)
+            xrtClearError();
+        return false;
+    }
+    xrtValueRelease(pState);
+    xrtClearError();
+    return true;
+}
+
+
+
+int64_t xtf_version(xvalue* pState)
 {
     int64 iValue;
     xvalue* pValue;
@@ -231,12 +309,12 @@ long long xtf_version(const xvalue* pState)
         return -1;
     }
     xrtClearError();
-    return (long long)iValue;
+    return iValue;
 }
 
 
 
-long long xtf_serial(const xvalue* pState)
+int64_t xtf_serial(xvalue* pState)
 {
     int64 iValue;
     xvalue* pValue;
@@ -248,33 +326,53 @@ long long xtf_serial(const xvalue* pState)
         return -1;
     }
     xrtClearError();
-    return (long long)iValue;
+    return iValue;
 }
 
 
 
-cstr xtf_lineage(const xvalue* pState)
+char* xtf_lineage(xvalue* pState)
 {
     xstrview Text;
 
-    if (!xtf_state(pState) || !xtf_string_member(pState, "lineage", &Text)) return "";
     xrtClearError();
-    return xtf_store(Text);
+    if (!xtf_state(pState) || !xtf_string_member(pState, "lineage", &Text)) return NULL;
+    if (memchr(Text.Data, 0, Text.Size) != NULL) {
+        xtf_error(XERR_VALUE, "Terraform lineage cannot contain NUL");
+        return NULL;
+    }
+    xrtClearError();
+    return xrtStrDupView(Text);
 }
 
 
 
-xvalue* xtf_addresses(const xvalue* pState)
+const char* xtf_lineage_borrowed(xvalue* pState)
 {
-    xvalue* pResources = xtf_resources(pState);
+    xstrview Text;
+    xrtClearError();
+    if (!xtf_state(pState) || !xtf_string_member(pState, "lineage", &Text)) return NULL;
+    if (memchr(Text.Data, 0, Text.Size) != NULL) {
+        xtf_error(XERR_VALUE, "Terraform lineage cannot contain NUL");
+        return NULL;
+    }
+    return Text.Data;
+}
+
+
+
+xvalue* xtf_addresses(xvalue* pState)
+{
+    xvalue* pResources;
     xvalue* pResult;
     xbuffer Address = { 0 };
     size_t i;
 
-    if (pResources == NULL && xrtGetError() != NULL) return NULL;
+    xrtClearError();
+    pResources = xtf_resources(pState);
+    if (pResources == NULL) return NULL;
     pResult = xrtValueArray();
     if (pResult == NULL) return NULL;
-    if (pResources == NULL) return pResult;
     for (i = 0u; i < xrtValueCount(pResources); ++i) {
         xvalue* pAddress;
 
@@ -285,7 +383,6 @@ xvalue* xtf_addresses(const xvalue* pState)
         }
         pAddress = xrtValueString((xstrview){ (cstr)Address.Data, Address.Size });
         if (pAddress == NULL || !xrtValueArrayAppendNew(pResult, pAddress)) {
-            xrtValueRelease(pAddress);
             xrtBufferUnit(&Address);
             xrtValueRelease(pResult);
             return NULL;
@@ -298,14 +395,14 @@ xvalue* xtf_addresses(const xvalue* pState)
 
 
 
-xvalue* xtf_find(const xvalue* pState, cstr sAddress)
+xvalue* xtf_find(xvalue* pState, cstr sAddress)
 {
     return xtf_find_resource(pState, sAddress);
 }
 
 
 
-xvalue* xtf_instances(const xvalue* pState, cstr sAddress)
+xvalue* xtf_instances(xvalue* pState, cstr sAddress)
 {
     xvalue* pResource = xtf_find_resource(pState, sAddress);
     xvalue* pInstances;
@@ -317,14 +414,15 @@ xvalue* xtf_instances(const xvalue* pState, cstr sAddress)
         xtf_error(XERR_VALUE, "Terraform resource field 'instances' must be an array");
         return NULL;
     }
+    pInstances = xrtValueRetain(pInstances);
     xrtValueRelease(pResource);
     xrtClearError();
-    return xrtValueRetain(pInstances);
+    return pInstances;
 }
 
 
 
-xvalue* xtf_attributes(const xvalue* pState, cstr sAddress, long long iIndex)
+xvalue* xtf_attributes(xvalue* pState, cstr sAddress, int64_t iIndex)
 {
     xvalue* pInstances = xtf_instances(pState, sAddress);
     xvalue* pInstance;
@@ -356,13 +454,17 @@ xvalue* xtf_attributes(const xvalue* pState, cstr sAddress, long long iIndex)
 
 
 
-xvalue* xtf_outputs(const xvalue* pState)
+xvalue* xtf_outputs(xvalue* pState)
 {
     xvalue* pOutputs;
 
+    xrtClearError();
     if (!xtf_state(pState)) return NULL;
     pOutputs = xtf_member(pState, "outputs");
-    if (pOutputs == NULL) return xrtValueRetain(xrtValueNull());
+    if (pOutputs == NULL) {
+        xtf_error(XERR_VALUE, "Terraform state field 'outputs' is required");
+        return NULL;
+    }
     if (xrtValueType(pOutputs) != XVALUE_OBJECT) {
         xtf_error(XERR_TYPE, "Terraform state field 'outputs' must be an object");
         return NULL;
@@ -373,7 +475,7 @@ xvalue* xtf_outputs(const xvalue* pState)
 
 
 
-xvalue* xtf_output(const xvalue* pState, cstr sName)
+xvalue* xtf_output(xvalue* pState, cstr sName)
 {
     xvalue* pOutputs = xtf_outputs(pState);
     xvalue* pValue;
@@ -396,65 +498,7 @@ xvalue* xtf_output(const xvalue* pState, cstr sName)
     return pValue;
 }
 
-
-
 cstr xtf_last_error(void)
 {
     return xrtErrorMessage(xrtGetError());
-}
-
-
-
-/*
-    xlang extern 的 byref var ABI 把变量槽位地址按 xvalue* 传入。
-    普通 C 调用继续使用上面的 xtf_*，不需要了解这个桥接细节。
-*/
-static const xvalue* xtf_borrowed_state(xvalue* pStateSlot)
-{
-    return pStateSlot != NULL ? *(xvalue**)pStateSlot : NULL;
-}
-
-long long xtf_version_ref(xvalue* pStateSlot)
-{
-    return xtf_version(xtf_borrowed_state(pStateSlot));
-}
-
-long long xtf_serial_ref(xvalue* pStateSlot)
-{
-    return xtf_serial(xtf_borrowed_state(pStateSlot));
-}
-
-cstr xtf_lineage_ref(xvalue* pStateSlot)
-{
-    return xtf_lineage(xtf_borrowed_state(pStateSlot));
-}
-
-xvalue* xtf_addresses_ref(xvalue* pStateSlot)
-{
-    return xtf_addresses(xtf_borrowed_state(pStateSlot));
-}
-
-xvalue* xtf_find_ref(xvalue* pStateSlot, cstr sAddress)
-{
-    return xtf_find(xtf_borrowed_state(pStateSlot), sAddress);
-}
-
-xvalue* xtf_instances_ref(xvalue* pStateSlot, cstr sAddress)
-{
-    return xtf_instances(xtf_borrowed_state(pStateSlot), sAddress);
-}
-
-xvalue* xtf_attributes_ref(xvalue* pStateSlot, cstr sAddress, long long iIndex)
-{
-    return xtf_attributes(xtf_borrowed_state(pStateSlot), sAddress, iIndex);
-}
-
-xvalue* xtf_outputs_ref(xvalue* pStateSlot)
-{
-    return xtf_outputs(xtf_borrowed_state(pStateSlot));
-}
-
-xvalue* xtf_output_ref(xvalue* pStateSlot, cstr sName)
-{
-    return xtf_output(xtf_borrowed_state(pStateSlot), sName);
 }

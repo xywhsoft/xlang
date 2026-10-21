@@ -1,0 +1,7 @@
+version=4
+lineage=demo
+resources=2
+id=i-demo
+source=module.site.data.aws_ami.ubuntu
+image=ami-demo
+answer=42

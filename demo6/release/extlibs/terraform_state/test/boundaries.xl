@@ -1,0 +1,76 @@
+import terraform_state
+
+func main(...) as int
+    var state = terraform_state.parse("{\"version\":4,\"serial\":0,\"lineage\":\"probe\",\"resources\":[],\"outputs\":{}}")
+    assert terraform_state.lineage(state) == "probe", "state lineage"
+    assert terraform_state.valid("{\"version\":4,\"serial\":0,\"lineage\":\"probe\",\"resources\":[],\"outputs\":{}}")
+    assert not terraform_state.valid("{}"), "incomplete state"
+    assert not terraform_state.valid("{\"format_version\":\"1.0\",\"values\":{}}"), "show-json is distinct"
+    string nulLineage = "{\"version\":4,\"serial\":0,\"lineage\":\"x\\u0000hidden\",\"resources\":[],\"outputs\":{}}"
+    assert not terraform_state.valid(nulLineage), "lineage cannot contain NUL"
+    bool badLineage = false
+    try
+        terraform_state.parse(nulLineage)
+    catch ValueError
+        badLineage = true
+    end
+    assert badLineage, "parse must reject NUL lineage"
+    assert terraform_state.addresses(state).length == 0, "empty resources"
+    assert terraform_state.output(state, "missing") == null, "missing output"
+
+    state = terraform_state.parse("""
+    {"version":4,"serial":2,"lineage":"module-state","outputs":{},
+     "resources":[{"module":"module.site","mode":"data","type":"aws_ami",
+                   "name":"ubuntu","instances":[{"attributes":{"id":"ami-1"}}]}]}
+    """)
+    assert terraform_state.addresses(state).length == 1
+    assert terraform_state.find(state, "module.site.data.aws_ami.ubuntu") != null
+    assert terraform_state.attributes(state, "module.site.data.aws_ami.ubuntu")["id"] == "ami-1"
+    assert terraform_state.find(state, "missing") == null
+
+    int nulRejected = 0
+    try
+        terraform_state.find(state, "module.site.data.aws_ami.ubuntu\0other")
+    catch ValueError
+        nulRejected += 1
+    end
+    try
+        terraform_state.instances(state, "module.site.data.aws_ami.ubuntu\0other")
+    catch ValueError
+        nulRejected += 1
+    end
+    try
+        terraform_state.attributes(state, "module.site.data.aws_ami.ubuntu\0other")
+    catch ValueError
+        nulRejected += 1
+    end
+    var outputState = terraform_state.parse("{\"version\":4,\"serial\":0,\"lineage\":\"probe\",\"resources\":[],\"outputs\":{\"safe\":{\"value\":1}}}")
+    assert terraform_state.output(outputState, "safe")["value"] == 1
+    try
+        terraform_state.output(outputState, "safe\0other")
+    catch ValueError
+        nulRejected += 1
+    end
+    assert nulRejected == 4, "query names must not be truncated at NUL"
+
+    bool caught = false
+    try
+        terraform_state.attributes(state, "module.site.data.aws_ami.ubuntu", -1)
+    catch RangeError error
+        caught = true
+    end
+    assert caught, "negative instance index"
+
+    state = terraform_state.parse("""
+    {"version":4,"serial":0,"lineage":"invalid-mode","outputs":{},
+     "resources":[{"mode":"unknown","type":"x","name":"y"}]}
+    """)
+    caught = false
+    try
+        terraform_state.addresses(state)
+    catch ValueError error
+        caught = true
+    end
+    assert caught, "invalid resource mode"
+    return 0
+end

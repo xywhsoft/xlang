@@ -1,0 +1,29 @@
+import terraform_state
+
+func main(...) as int
+    string text = """
+    {
+        "version": 4,
+        "serial": 7,
+        "lineage": "demo",
+        "outputs": {"answer": {"value": 42}},
+        "resources": [
+            {"type": "aws_instance", "name": "web", "instances": [
+                {"attributes": {"id": "i-demo"}}
+            ]},
+            {"module": "module.site", "mode": "data", "type": "aws_ami",
+             "name": "ubuntu", "instances": [{"attributes": {"id": "ami-demo"}}]}
+        ]
+    }
+    """
+    var state = terraform_state.parse(text)
+    auto addresses = terraform_state.addresses(state)
+    println("version=" + string(terraform_state.version(state)))
+    println("lineage=" + terraform_state.lineage(state))
+    println("resources=" + string(addresses.length))
+    println("id=" + string(terraform_state.attributes(state, "aws_instance.web")["id"]))
+    println("source=" + addresses[1])
+    println("image=" + string(terraform_state.attributes(state, "module.site.data.aws_ami.ubuntu")["id"]))
+    println("answer=" + string(terraform_state.output(state, "answer")["value"]))
+    return 0
+end

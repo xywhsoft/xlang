@@ -1,16 +1,22 @@
 // Terraform state 的只读查询接口。解析结果保留为 var，方便直接访问原始字段。
-extern "xtf_parse" func __parse(string text) as var
-extern "xtf_valid" func __valid(string text) as bool
-extern "xtf_version_ref" func __version(byref var state) as int
-extern "xtf_serial_ref" func __serial(byref var state) as int
-extern "xtf_lineage_ref" func __lineage(byref var state) as string
-extern "xtf_addresses_ref" func __addresses(byref var state) as var
-extern "xtf_find_ref" func __find(byref var state, string address) as var
-extern "xtf_instances_ref" func __instances(byref var state, string address) as var
-extern "xtf_attributes_ref" func __attributes(byref var state, string address, int index) as var
-extern "xtf_outputs_ref" func __outputs(byref var state) as var
-extern "xtf_output_ref" func __output(byref var state, string name) as var
+extern "xtf_parse_value" func __parse(var text) as var
+extern "xtf_valid_value" func __valid(var text) as bool
+extern "xtf_version" func __version(var state) as int
+extern "xtf_serial" func __serial(var state) as int
+extern "xtf_lineage_borrowed" func __lineage(var state) as string
+extern "xtf_addresses" func __addresses(var state) as var
+extern "xtf_find" func __find(var state, string address) as var
+extern "xtf_instances" func __instances(var state, string address) as var
+extern "xtf_attributes" func __attributes(var state, string address, int index) as var
+extern "xtf_outputs" func __outputs(var state) as var
+extern "xtf_output" func __output(var state, string name) as var
 extern "xtf_last_error" func __last_error() as string
+
+func __queryName(string name)
+    if string.indexOf(name, "\0", false, string.byteLen(name), 1) >= 0 then
+        throw ValueError "Terraform query name contains NUL"
+    end
+end
 
 export func parse(string text) as var
     var state = __parse(text)
@@ -25,19 +31,19 @@ export func valid(string text) as bool
 end
 
 export func version(var state) as int
-    return __version(byref state)
+    return __version(state)
 end
 
 export func serial(var state) as int
-    return __serial(byref state)
+    return __serial(state)
 end
 
 export func lineage(var state) as string
-    return __lineage(byref state)
+    return __lineage(state)
 end
 
 export func addresses(var state) as var
-    var result = __addresses(byref state)
+    var result = __addresses(state)
     if result == null then
         throw ValueError __last_error()
     end
@@ -45,11 +51,17 @@ export func addresses(var state) as var
 end
 
 export func find(var state, string address) as var
-    return __find(byref state, address)
+    __queryName(address)
+    var result = __find(state, address)
+    if result == null and __last_error() != "" then
+        throw ValueError __last_error()
+    end
+    return result
 end
 
 export func instances(var state, string address) as var
-    var result = __instances(byref state, address)
+    __queryName(address)
+    var result = __instances(state, address)
     if result == null and __last_error() != "" then
         throw ValueError __last_error()
     end
@@ -57,7 +69,8 @@ export func instances(var state, string address) as var
 end
 
 export func attributes(var state, string address, int index = 0) as var
-    var result = __attributes(byref state, address, index)
+    __queryName(address)
+    var result = __attributes(state, address, index)
     if result == null and __last_error() != "" then
         throw ValueError __last_error()
     end
@@ -65,7 +78,7 @@ export func attributes(var state, string address, int index = 0) as var
 end
 
 export func outputs(var state) as var
-    var result = __outputs(byref state)
+    var result = __outputs(state)
     if result == null and __last_error() != "" then
         throw ValueError __last_error()
     end
@@ -73,7 +86,8 @@ export func outputs(var state) as var
 end
 
 export func output(var state, string name) as var
-    var result = __output(byref state, name)
+    __queryName(name)
+    var result = __output(state, name)
     if result == null and __last_error() != "" then
         throw ValueError __last_error()
     end

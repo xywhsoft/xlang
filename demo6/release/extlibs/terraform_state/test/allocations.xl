@@ -1,0 +1,62 @@
+import terraform_state
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    string source = "{\"version\":4,\"serial\":0,\"lineage\":\"test\",\"resources\":[],\"outputs\":{}}"
+    assert not terraform_state.valid("[]")
+    for api in range(2)
+        for point in range(16)
+            bool memoryError = false
+            bool valueError = false
+            bool accepted = false
+            assert failAfter(uint64(point))
+            try
+                if api == 0 then accepted = terraform_state.valid(source) end
+                if api == 1 then
+                    var state = terraform_state.parse(source)
+                    accepted = terraform_state.version(state) == 4
+                end
+            catch MemoryError e
+                memoryError = true
+            catch ValueError e
+                valueError = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert triggered == memoryError and not valueError
+            if not triggered then assert accepted end
+            assert terraform_state.valid(source)
+        end
+    end
+
+    string querySource = "{\"version\":4,\"serial\":0,\"lineage\":\"test\",\"resources\":[{\"type\":\"aws_instance\",\"name\":\"web\",\"instances\":[]}],\"outputs\":{}}"
+    var queryState = terraform_state.parse(querySource)
+    for api in range(2)
+        for point in range(16)
+            bool memoryError = false
+            bool valueError = false
+            bool accepted = false
+            assert failAfter(uint64(point))
+            try
+                if api == 0 then
+                    accepted = terraform_state.addresses(queryState) != null
+                else
+                    accepted = terraform_state.find(queryState, "aws_instance.web") != null
+                end
+            catch MemoryError e
+                memoryError = true
+            catch ValueError e
+                valueError = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert triggered == memoryError and not valueError
+            if not triggered then assert accepted end
+            assert terraform_state.find(queryState, "aws_instance.web") != null
+        end
+    end
+    return 0
+end
