@@ -70,6 +70,12 @@ int main(void)
         strcmp(xlangdetect_detect("the\xF0\x9F\x98\x80", 7), "english") != 0) {
         return fail("UTF-8 word boundaries");
     }
+    if (strcmp(xlangdetect_detect("the\xC3\x97", 5), "english") != 0 ||
+        strcmp(xlangdetect_detect("\xC3\x97the", 5), "english") != 0 ||
+        strcmp(xlangdetect_detect("the\xC3\xB7", 5), "english") != 0 ||
+        strcmp(xlangdetect_script("\xC3\x97\xC3\xB7", 4), "Unknown") != 0) {
+        return fail("Latin-1 mathematical symbols are not letters");
+    }
     if (strcmp(xlangdetect_detect(BadUtf8, sizeof(BadUtf8) - 1), "unknown") != 0 ||
         strstr(xlangdetect_last_error(), "UTF-8") == NULL) {
         return fail("malformed UTF-8 error");

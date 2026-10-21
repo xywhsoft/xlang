@@ -13,6 +13,10 @@ func main(...) as int
     assert langdetect.detect("theé") == "unknown"
     assert langdetect.detect("éthe") == "unknown"
     assert langdetect.detect("the😀") == "english"
+    assert langdetect.detect("the×") == "english"
+    assert langdetect.detect("×the") == "english"
+    assert langdetect.detect("the÷") == "english"
+    assert langdetect.script("×÷") == "Unknown"
 
     // 汉字与韩文平分时不能猜成韩语；增加一个韩文字后才有明确多数。
     assert langdetect.detect("你好한글") == "unknown"

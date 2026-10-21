@@ -65,7 +65,8 @@ static void xlangdetect_count_scalar(xlangdetect_stats* pStats, uint32 iScalar)
     pStats->Scalars++;
     if (((iScalar >= UINT32_C(0x0041)) && (iScalar <= UINT32_C(0x005A))) ||
         ((iScalar >= UINT32_C(0x0061)) && (iScalar <= UINT32_C(0x007A))) ||
-        ((iScalar >= UINT32_C(0x00C0)) && (iScalar <= UINT32_C(0x024F)))) {
+        ((iScalar >= UINT32_C(0x00C0)) && (iScalar <= UINT32_C(0x024F)) &&
+         iScalar != UINT32_C(0x00D7) && iScalar != UINT32_C(0x00F7))) {
         pStats->Latin++;
         pStats->Letters++;
     } else if (((iScalar >= UINT32_C(0x3400)) && (iScalar <= UINT32_C(0x4DBF))) ||
