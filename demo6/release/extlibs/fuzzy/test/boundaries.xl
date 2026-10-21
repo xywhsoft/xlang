@@ -1,0 +1,73 @@
+import fuzzy
+
+assert fuzzy.levenshtein("你好", "你们") == 1
+assert fuzzy.ratio("你好", "你们") == 50
+assert fuzzy.levenshtein("a你🙂", "你a🙂") == 2
+assert fuzzy.ratio("a你🙂", "你a🙂") == 33
+assert fuzzy.score("你", "你好") >= 0
+assert fuzzy.score("汉", "你好") == -1
+assert fuzzy.isMatch("FOO", "foobar")
+assert fuzzy.score("abc", "abc") > fuzzy.score("abc", "a_b_c")
+assert fuzzy.best("abc", "a_b_c\nabc") == "abc"
+assert fuzzy.best("abc", "abcx\nabc") == "abc"
+assert fuzzy.best("pc", "src/main.c\nlib/parser.c\r\nlib/lexer.c") == "lib/parser.c"
+assert fuzzy.best("missing", "abc\ndef") == ""
+assert fuzzy.best("x", "x\r") == "x\r"
+assert fuzzy.best("x", "x\r\n") == "x"
+
+string longCandidate = ""
+for i in range(100)
+    longCandidate += "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+end
+assert string.byteLen(fuzzy.best("x", longCandidate)) == 5000
+string maxCandidate = string.repeat("x", 1024 * 1024)
+assert string.byteLen(fuzzy.best("x", maxCandidate)) == 1024 * 1024
+
+string held = fuzzy.best("pc", "lib/parser.c\nsrc/main.c")
+for i in range(50)
+    fuzzy.best("a", "a\nb")
+end
+assert held == "lib/parser.c"
+
+string tooLong = ""
+for i in range(41)
+    tooLong += "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+end
+int failures = 0
+try
+    fuzzy.levenshtein(tooLong, "")
+catch ValueError error
+    failures += 1
+end
+try
+    fuzzy.ratio(tooLong, "")
+catch ValueError error
+    failures += 1
+end
+try
+    fuzzy.levenshtein("a\0b", "a")
+catch ValueError error
+    failures += 1
+end
+try
+    fuzzy.ratio("a", "a\0b")
+catch ValueError error
+    failures += 1
+end
+try
+    fuzzy.score("a\0b", "abc")
+catch ValueError error
+    failures += 1
+end
+try
+    fuzzy.best("a", "alpha\0hidden")
+catch ValueError error
+    failures += 1
+end
+try
+    fuzzy.best("x", maxCandidate + "x")
+catch ValueError error
+    failures += 1
+end
+assert failures == 7
+println("fuzzy boundaries: PASS")

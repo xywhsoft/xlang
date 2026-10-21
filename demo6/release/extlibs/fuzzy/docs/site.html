@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>fuzzy - 扩展库 - xlang</title>
+  <meta name="description" content="fuzzy 提供 Unicode 编辑距离、相似度和子序列候选选择。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / fuzzy</p><h1>fuzzy</h1>
+    <p class="extlib-lead">Unicode 文本编辑距离与候选排序。</p>
+    <p>编辑距离复用 XRT，长候选不会静默截断；C/XL 调用均有明确的结果所有权。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>levenshtein(a, b)</code></td><td>Unicode 标量编辑距离</td></tr>
+      <tr><td><code>ratio(a, b)</code></td><td>0..100 整数相似度</td></tr>
+      <tr><td><code>score / isMatch</code></td><td>子序列评分与布尔匹配；完整词和连续命中优先</td></tr>
+      <tr><td><code>best(pattern, candidates)</code></td><td>换行分隔候选中选最高分；只剥离 CRLF 中的回车</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import fuzzy
+println(fuzzy.levenshtein("你好", "你们"))  // 1
+println(fuzzy.best("pc", "src/main.c\nlib/parser.c"))
+println(fuzzy.best("abc", "a_b_c\nabc"))  // abc</code></pre>
+    <p>子序列评分只对 ASCII 字母忽略大小写；XLang 文本入口拒绝内嵌 NUL。C 入口在长度预算内有界扫描，超限不执行无界 <code>strlen</code>；失败后可直接重试，正常不匹配不保留旧线程错误。三个整数 C 返回值为 <code>int64_t</code>，与 XLang <code>int</code> 的跨平台 ABI 一致；C 范例用 <code>PRId64</code> 可移植打印。Windows <code>test/check.ps1</code> 单入口覆盖严格 C、三组 C 测试、XLang 边界、双语同输出及无输出核心 AOT；Linux <code>test/check.sh</code> 覆盖 C ASan/UBSan、四线程、XLang 与双语对照。C 测试还以 512 组候选列表核对 <code>best</code> 按最高分选择、并列取首项；评分不承诺全局最优对齐。长度预算和 C 结果释放见包内 README；带输出的完整 AOT 仍受主线缺符号阻断。</p>
+  </section>
+</main>
+</body>
+</html>

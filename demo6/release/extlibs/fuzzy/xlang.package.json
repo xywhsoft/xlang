@@ -7,10 +7,12 @@
     "artifact": {
         "kind": "source",
         "cSources": ["fuzzy_native.c"],
-        "xlSources": ["src/fuzzy.xl"]
+        "xlSources": ["src/fuzzy.xl"],
+        "xrtModules": ["XRT_MODULE_UNICODE_DISTANCE", "XRT_MODULE_STRING"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

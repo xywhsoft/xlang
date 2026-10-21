@@ -1,112 +1,200 @@
-/*
- * fuzzy_native.c - Fuzzy string matching (Levenshtein, subsequence match, ratio)
- */
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-/* Levenshtein edit distance */
-long long xfuzzy_levenshtein(const char *a, const char *b) {
-    int la, lb, i, j;
-    int *prev, *curr, *tmp;
-    if (!a) a = "";
-    if (!b) b = "";
-    la = (int)strlen(a);
-    lb = (int)strlen(b);
-    if (la == 0) return lb;
-    if (lb == 0) return la;
+/* Unicode 编辑距离交给 XRT；本包只负责有界子序列评分和候选选择。 */
+#ifndef XRT_MODULE_UNICODE_DISTANCE
+#define XRT_MODULE_UNICODE_DISTANCE
+#endif
+#ifndef XRT_MODULE_STRING
+#define XRT_MODULE_STRING
+#endif
+#include "xrt.h"
+#include "include/fuzzy_native.h"
 
-    prev = (int *)malloc(sizeof(int) * (lb + 1));
-    curr = (int *)malloc(sizeof(int) * (lb + 1));
-    for (j = 0; j <= lb; j++) prev[j] = j;
+#define XFUZZY_DOMAIN "xlang.extlib.fuzzy"
+#define XFUZZY_MAX_SCALARS 4096u
+#define XFUZZY_MAX_MATCH_BYTES (1024u * 1024u)
+#define XFUZZY_MAX_CANDIDATES (8u * 1024u * 1024u)
 
-    for (i = 1; i <= la; i++) {
-        curr[0] = i;
-        for (j = 1; j <= lb; j++) {
-            int cost = (a[i-1] == b[j-1]) ? 0 : 1;
-            int del = prev[j] + 1;
-            int ins = curr[j-1] + 1;
-            int sub = prev[j-1] + cost;
-            int min = del < ins ? del : ins;
-            curr[j] = min < sub ? min : sub;
-        }
-        tmp = prev; prev = curr; curr = tmp;
-    }
-    i = prev[lb];
-    free(prev);
-    free(curr);
-    return i;
+static void xfuzzy_error(xerrkind kind, const char* message)
+{
+    xrtSetErrorInfo(kind, XFUZZY_DOMAIN, 0, message);
 }
 
-/* Subsequence fuzzy match: returns score >= 0 if pattern is subsequence of text, -1 otherwise */
-long long xfuzzy_match(const char *pattern, const char *text) {
-    int score = 0;
-    int consecutive = 0;
-    int last_match = -2;
-    int pi = 0, ti = 0;
-    int plen, tlen;
-    if (!pattern || !text) return -1;
-    plen = (int)strlen(pattern);
-    tlen = (int)strlen(text);
-    if (plen == 0) return 0;
-    if (plen > tlen) return -1;
-
-    while (pi < plen && ti < tlen) {
-        if (pattern[pi] == text[ti] ||
-            (pattern[pi] >= 'A' && pattern[pi] <= 'Z' && pattern[pi] + 32 == text[ti]) ||
-            (text[ti] >= 'A' && text[ti] <= 'Z' && text[ti] + 32 == pattern[pi])) {
-            /* bonus for consecutive matches */
-            if (ti == last_match + 1) { consecutive++; score += consecutive * 2; }
-            else { consecutive = 0; }
-            /* bonus for match at start or after separator */
-            if (ti == 0 || text[ti-1] == '_' || text[ti-1] == '-' || text[ti-1] == ' ' || text[ti-1] == '/') {
-                score += 5;
-            }
-            score += 1;
-            last_match = ti;
-            pi++;
-        }
-        ti++;
+/* 先按公开上限找终止符，避免无界 strlen 早于限额检查。 */
+static bool xfuzzy_view(const char* text, size_t limit, const char* message,
+    xstrview* output)
+{
+    size_t size = 0u;
+    if (text == NULL) text = "";
+    while (size <= limit && text[size] != '\0') ++size;
+    if (size > limit) {
+        xfuzzy_error(XERR_RANGE, message);
+        return false;
     }
-    if (pi < plen) return -1;  /* not all pattern chars matched */
+    *output = xrtStrViewN(text, size);
+    return true;
+}
+
+static bool xfuzzy_distance_input(xstrview text, size_t* count)
+{
+    if (text.Size > 4u * XFUZZY_MAX_SCALARS) {
+        xfuzzy_error(XERR_RANGE, "distance input exceeds 4096 Unicode scalars");
+        return false;
+    }
+    *count = xrtUtf8Count(text);
+    if (*count == XRT_NPOS) {
+        xfuzzy_error(XERR_VALUE, "input is not valid UTF-8");
+        return false;
+    }
+    if (*count > XFUZZY_MAX_SCALARS) {
+        xfuzzy_error(XERR_RANGE, "distance input exceeds 4096 Unicode scalars");
+        return false;
+    }
+    return true;
+}
+
+static bool xfuzzy_match_input(xstrview text)
+{
+    if (text.Size > XFUZZY_MAX_MATCH_BYTES) {
+        xfuzzy_error(XERR_RANGE, "match input exceeds 1 MiB");
+        return false;
+    }
+    if (!xrtUtf8Valid(text, NULL)) {
+        xfuzzy_error(XERR_VALUE, "input is not valid UTF-8");
+        return false;
+    }
+    return true;
+}
+
+int64_t xfuzzy_levenshtein(const char* a, const char* b)
+{
+    xstrview left, right;
+    size_t left_count, right_count, distance;
+    xrtClearError();
+    if (!xfuzzy_view(a, 4u * XFUZZY_MAX_SCALARS,
+            "distance input exceeds 4096 Unicode scalars", &left) ||
+        !xfuzzy_view(b, 4u * XFUZZY_MAX_SCALARS,
+            "distance input exceeds 4096 Unicode scalars", &right)) return -1;
+    if (!xfuzzy_distance_input(left, &left_count) ||
+        !xfuzzy_distance_input(right, &right_count)) return -1;
+    distance = xrtUtf8Distance(left, right, XRT_NPOS);
+    return distance == XRT_NPOS ? -1 : (int64_t)distance;
+}
+
+int64_t xfuzzy_ratio(const char* a, const char* b)
+{
+    xstrview left, right;
+    size_t left_count, right_count, maximum, distance;
+    xrtClearError();
+    if (!xfuzzy_view(a, 4u * XFUZZY_MAX_SCALARS,
+            "distance input exceeds 4096 Unicode scalars", &left) ||
+        !xfuzzy_view(b, 4u * XFUZZY_MAX_SCALARS,
+            "distance input exceeds 4096 Unicode scalars", &right)) return -1;
+    if (!xfuzzy_distance_input(left, &left_count) ||
+        !xfuzzy_distance_input(right, &right_count)) return -1;
+    maximum = left_count > right_count ? left_count : right_count;
+    if (maximum == 0u) return 100;
+    distance = xrtUtf8Distance(left, right, XRT_NPOS);
+    return distance == XRT_NPOS ? -1 :
+        (int64_t)(((maximum - distance) * 100u) / maximum);
+}
+
+static uint32 xfuzzy_ascii_fold(uint32 scalar)
+{
+    return scalar >= 'A' && scalar <= 'Z' ? scalar + ('a' - 'A') : scalar;
+}
+
+static bool xfuzzy_separator(uint32 scalar)
+{
+    return scalar == '_' || scalar == '-' || scalar == ' ' || scalar == '/';
+}
+
+/* 输入已验证 UTF-8；按 Unicode 标量评分，ASCII 字母忽略大小写。 */
+static long long xfuzzy_score_view(xstrview pattern, xstrview text)
+{
+    size_t pattern_at = 0u, text_at = 0u, index = 0u;
+    size_t last_match = XRT_NPOS, consecutive = 0u;
+    uint32 previous = 0u;
+    long long score = 0;
+    if (pattern.Size == 0u) return 0;
+    while (pattern_at < pattern.Size && text_at < text.Size) {
+        uint32 expected, current;
+        size_t expected_size, current_size;
+        xstrview remainder = xrtStrViewN(pattern.Data + pattern_at,
+            pattern.Size - pattern_at);
+        if (xrtUtf8Decode(remainder, &expected, &expected_size) != XUTF_OK)
+            return -2;
+        remainder = xrtStrViewN(text.Data + text_at, text.Size - text_at);
+        if (xrtUtf8Decode(remainder, &current, &current_size) != XUTF_OK)
+            return -2;
+        if (xfuzzy_ascii_fold(expected) == xfuzzy_ascii_fold(current)) {
+            if (last_match != XRT_NPOS && index == last_match + 1u) {
+                ++consecutive;
+                score += (long long)(consecutive * 6u);
+            } else {
+                consecutive = 0u;
+            }
+            if (index == 0u || xfuzzy_separator(previous)) score += 5;
+            ++score;
+            last_match = index;
+            pattern_at += expected_size;
+        }
+        previous = current;
+        text_at += current_size;
+        ++index;
+    }
+    if (pattern_at != pattern.Size) return -1;
+    /* 完整命中比同分的前缀命中更靠前。 */
+    if (pattern.Size == text.Size) ++score;
     return score;
 }
 
-/* Similarity ratio 0-100 based on Levenshtein */
-long long xfuzzy_ratio(const char *a, const char *b) {
-    int la, lb, dist, max_len;
-    if (!a) a = "";
-    if (!b) b = "";
-    la = (int)strlen(a);
-    lb = (int)strlen(b);
-    if (la == 0 && lb == 0) return 100;
-    max_len = la > lb ? la : lb;
-    dist = xfuzzy_levenshtein(a, b);
-    return (int)((1.0 - (double)dist / max_len) * 100.0);
+int64_t xfuzzy_match(const char* pattern, const char* text)
+{
+    xstrview query, target;
+    xrtClearError();
+    if (!xfuzzy_view(pattern, XFUZZY_MAX_MATCH_BYTES,
+            "match input exceeds 1 MiB", &query) ||
+        !xfuzzy_view(text, XFUZZY_MAX_MATCH_BYTES,
+            "match input exceeds 1 MiB", &target)) return -2;
+    if (!xfuzzy_match_input(query) || !xfuzzy_match_input(target)) return -2;
+    return xfuzzy_score_view(query, target);
 }
 
-/* Best match from a list of candidates (newline-separated) */
-static char fuzzy_buf[4096];
-
-const char *xfuzzy_best(const char *pattern, const char *candidates) {
-    char buf[8192];
-    char *line, *save;
-    int best_score = -1;
-    const char *best_match = "";
-    if (!pattern || !candidates) return "";
-    strncpy(buf, candidates, sizeof(buf) - 1);
-    buf[sizeof(buf) - 1] = '\0';
-
-    fuzzy_buf[0] = '\0';
-    line = strtok(buf, "\n");
-    while (line) {
-        int score = xfuzzy_match(pattern, line);
-        if (score > best_score) {
-            best_score = score;
-            strncpy(fuzzy_buf, line, sizeof(fuzzy_buf) - 1);
-            fuzzy_buf[sizeof(fuzzy_buf) - 1] = '\0';
-        }
-        line = strtok(NULL, "\n");
+void* xfuzzy_best(const char* pattern, const char* candidates)
+{
+    xstrview query, list;
+    xstrview best = xrtStrViewN("", 0u);
+    long long best_score = -1;
+    size_t start = 0u;
+    xrtClearError();
+    if (!xfuzzy_view(pattern, XFUZZY_MAX_MATCH_BYTES,
+            "match input exceeds 1 MiB", &query) ||
+        !xfuzzy_view(candidates, XFUZZY_MAX_CANDIDATES,
+            "candidate list exceeds 8 MiB", &list)) return NULL;
+    if (!xfuzzy_match_input(query)) return NULL;
+    if (!xrtUtf8Valid(list, NULL)) {
+        xfuzzy_error(XERR_VALUE, "candidate list is not valid UTF-8");
+        return NULL;
     }
-    if (best_score < 0) return "";
-    return fuzzy_buf;
+    while (start < list.Size) {
+        size_t end = start;
+        xstrview candidate;
+        long long score;
+        while (end < list.Size && list.Data[end] != '\n') ++end;
+        if (end < list.Size && end > start && list.Data[end - 1u] == '\r') --end;
+        candidate = xrtStrViewN(list.Data + start, end - start);
+        if (candidate.Size > XFUZZY_MAX_MATCH_BYTES) {
+            xfuzzy_error(XERR_RANGE, "candidate exceeds 1 MiB");
+            return NULL;
+        }
+        score = xfuzzy_score_view(query, candidate);
+        if (score < -1) {
+            xfuzzy_error(XERR_VALUE, "candidate is not valid UTF-8");
+            return NULL;
+        }
+        if (score > best_score) { best_score = score; best = candidate; }
+        start = end;
+        if (start < list.Size && list.Data[start] == '\r') ++start;
+        if (start < list.Size && list.Data[start] == '\n') ++start;
+    }
+    return xrtStrDupView(best);
 }

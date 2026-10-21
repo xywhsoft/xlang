@@ -1,28 +1,43 @@
 extern "xfuzzy_levenshtein" func __fuzzy_levenshtein(string a, string b) as int
 extern "xfuzzy_match" func __fuzzy_match(string pattern, string text) as int
 extern "xfuzzy_ratio" func __fuzzy_ratio(string a, string b) as int
-extern "xfuzzy_best" func __fuzzy_best(string pattern, string candidates) as string
+extern "xfuzzy_best" func __fuzzy_best(string pattern, string candidates) as point
+extern "xl6_xrt_last_error_text" func __fuzzy_error() as string
 
-
+// C 字符串接口不能表示内嵌 NUL，拒绝静默只比较前缀。
+func __fuzzy_text(string value) as string
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "fuzzy: text contains NUL"
+    end
+    return value
+end
 
 export func levenshtein(string a, string b) as int
-    return __fuzzy_levenshtein(a, b)
+    int distance = __fuzzy_levenshtein(__fuzzy_text(a), __fuzzy_text(b))
+    if distance < 0 then throw ValueError __fuzzy_error() end
+    return distance
 end
 
 // 返回子序列匹配分数；不匹配时返回 -1。
 // `match` 是语言关键字，公开 API 使用更准确的 score 命名。
 export func score(string pattern, string text) as int
-    return __fuzzy_match(pattern, text)
+    int result = __fuzzy_match(__fuzzy_text(pattern), __fuzzy_text(text))
+    if result < -1 then throw ValueError __fuzzy_error() end
+    return result
 end
 
 export func isMatch(string pattern, string text) as bool
-    return __fuzzy_match(pattern, text) >= 0
+    return score(pattern, text) >= 0
 end
 
 export func ratio(string a, string b) as int
-    return __fuzzy_ratio(a, b)
+    int result = __fuzzy_ratio(__fuzzy_text(a), __fuzzy_text(b))
+    if result < 0 then throw ValueError __fuzzy_error() end
+    return result
 end
 
 export func best(string pattern, string candidates) as string
-    return __fuzzy_best(pattern, candidates)
+    point result = __fuzzy_best(__fuzzy_text(pattern), __fuzzy_text(candidates))
+    if result == null then throw ValueError __fuzzy_error() end
+    return __xl_runtime.takeCstr(result)
 end

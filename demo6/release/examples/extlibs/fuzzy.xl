@@ -10,6 +10,7 @@ func main(...) as int
 
     string candidates = "src/main.c\nsrc/utils.c\nlib/parser.c\nlib/lexer.c"
     println("best(pc, ...):", fuzzy.best("pc", candidates))
+    println("best(abc, ...):", fuzzy.best("abc", "a_b_c\nabc"))
 
     println("fuzzy example: PASS")
     return 0
