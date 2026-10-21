@@ -43,6 +43,19 @@ static int verify(void* user)
  CHECK(xideEditorOpen(&app,entry,&error) && settle(&app)); xide_document* xl=app.activeDocument; xide_completion_view* v=app.completionView;
  CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app) && v->count==1 && has(v,"zzResult") && !strcmp(v->items[0].sDetail,"int") && xuiCodeEditIsCompletionOpen(xl->editor));
  CHECK(v->start==(int)(strstr(local,"zzROther")-local) && v->end==v->start+8 && capture(&app,light));
+ /* Repeating a query keeps the connection, wire documents and captured body. */
+ xls_sync_stats syncBefore={0},syncAfter={0}; xlsSyncStats(v->sync,&syncBefore);
+ xide_language_client* retainedClient=v->client; char* retainedText=v->inputs[0].text;
+ CHECK(v->sync && (v->syncKind==1 || v->syncKind==2) && invoke(&app) && has(v,"zzResult"));
+ xlsSyncStats(v->sync,&syncAfter);
+ CHECK(v->client==retainedClient && v->inputs[0].text==retainedText && !memcmp(&syncBefore,&syncAfter,sizeof(syncBefore)));
+ int literal=(int)(strstr(local,"= 7")-local)+2;
+ CHECK(xuiCodeDocumentReplace(xuiCodeEditGetDocument(xl->editor),literal,literal+1,"8")==XUI_OK &&
+       position(&app,xl,(int)(strstr(local,"zzROther")-local)+3) && invoke(&app) && has(v,"zzResult"));
+ xlsSyncStats(v->sync,&syncAfter);
+ CHECK(v->client==retainedClient && syncAfter.opens==syncBefore.opens && syncAfter.closes==syncBefore.closes && syncAfter.changes==syncBefore.changes+1);
+ CHECK(syncAfter.textBytes-syncBefore.textBytes==(v->syncKind==2 ? 1u : strlen(local)));
+ CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app) && has(v,"zzResult"));
  CHECK(key(&app,XUI_KEY_ENTER,0) && strstr(xuiCodeEditGetText(xl->editor),"return zzResult\n") && !strstr(xuiCodeEditGetText(xl->editor),"Other") && xl->dirty);
  CHECK(key(&app,'Z',XUI_MOD_CTRL) && !strcmp(xuiCodeEditGetText(xl->editor),local));
  CHECK(key(&app,'Y',XUI_MOD_CTRL) && strstr(xuiCodeEditGetText(xl->editor),"return zzResult\n"));
@@ -54,7 +67,10 @@ static int verify(void* user)
  CHECK(xideEditorOpen(&app,dep,&error) && settle(&app)); xide_document* dependency=app.activeDocument;
  CHECK(replace(dependency,"export class Box\n    string value\nend\n") && prepare(&app,xl,imported,"box.",4) && invoke(&app) && v->count==1 && has(v,"value") && !strcmp(v->items[0].sDetail,"string"));
  CHECK(key(&app,XUI_KEY_ENTER,0) && strstr(xuiCodeEditGetText(xl->editor),"return box.value\n") && key(&app,'Z',XUI_MOD_CTRL) && !strcmp(xuiCodeEditGetText(xl->editor),imported));
+ CHECK(position(&app,xl,(int)(strstr(imported,"box.")-imported)+4) && invoke(&app) && has(v,"value")); xlsSyncStats(v->sync,&syncBefore); retainedClient=v->client;
  CHECK(position(&app,xl,(int)(strstr(xuiCodeEditGetText(xl->editor),"return box.")-xuiCodeEditGetText(xl->editor))+11) && replace(dependency,helper) && invoke(&app) && has(v,"value") && !strcmp(v->items[0].sDetail,"int"));
+ xlsSyncStats(v->sync,&syncAfter);
+ CHECK(v->client==retainedClient && syncAfter.opens==syncBefore.opens && syncAfter.closes==syncBefore.closes && syncAfter.changes==syncBefore.changes+1);
  CHECK(prepare(&app,xl,local,"zzROther",3) && key(&app,XUI_KEY_SPACE,XUI_MOD_CTRL) && key(&app,XUI_KEY_ESCAPE,0) && idle(&app,250) && !v->wanted && !xuiCodeEditIsCompletionOpen(xl->editor));
  CHECK(invoke(&app) && has(v,"zzResult") && position(&app,xl,0) && settle(&app) && !v->result && !xuiCodeEditIsCompletionOpen(xl->editor));
  CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app) && xuiSetFocusWidget(app.context,app.commands)==XUI_OK && settle(&app) && !v->result && !xuiCodeEditIsCompletionOpen(xl->editor));

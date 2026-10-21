@@ -5,6 +5,7 @@
 #include "platform/file_watch.h"
 #include "platform/path.h"
 #include "platform/startup_alias.h"
+#include "protocol/document_sync.h"
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,11 +14,11 @@
 #include <math.h>
 #define COMPLETION_DOCS 64u
 #define COMPLETION_ITEMS 4096u
-typedef struct completion_input { xide_document* document; uint64_t id; uint32_t version; int wireVersion,externalState; char *path,*uri,*text,*language; } completion_input;
+typedef struct completion_input { xide_document* document; uint64_t id; uint32_t version; int wireVersion,externalState; char *path,*uri,*text,*language; size_t length; } completion_input;
 typedef struct completion_binding { struct completion_binding* next; xide_app* app; xui_widget editor; xui_widget_event_proc handlers[5]; void* users[5]; } completion_binding;
 struct xide_completion_view {
  xide_app* app; xide_language_client* client; char *compiler,*directory,*package;
- completion_input inputs[COMPLETION_DOCS]; size_t inputCount; int synced,wireVersion,nextId,initialized,supported;
+ completion_input inputs[COMPLETION_DOCS]; size_t inputCount; int nextId,initialized,supported,syncKind; xls_sync* sync;
  xide_document* document; uint64_t id,due; uint32_t version; int offset,wanted,pending,request,ready,sawOpen,refreshing;
  xvalue* result; xui_code_completion_item_t* items; const char** nameIndex; int count,start,end,collectEligible;
  xui_widget repeatEditor; uint64_t repeatId; int repeatOffset;
@@ -62,6 +63,8 @@ static int cvsend(xide_completion_view* v,const char* method,xvalue* params,int 
  if(ok) ok=xideLanguageClientSend(v->client,m,NULL);
  xrtValueRelease(m); xrtValueRelease(params); return ok;
 }
+static int cvsyncEmit(void* user,const char* method,const xvalue* params)
+{ return cvsend(user,method,xrtValueRetain((xvalue*)params),0); }
 static void cvclearResult(xide_completion_view* v)
 {
  if(v->document && v->document->editor) xuiCodeEditCancelCompletion(v->document->editor);
@@ -72,18 +75,13 @@ static void cvdismiss(xide_completion_view* v)
  if(v->request && v->client && v->initialized) { xvalue* p=xrtValueObject(); cvput(p,"id",xrtValueInt(v->request)); cvsend(v,"$/cancelRequest",p,0); }
  cvclearResult(v); v->wanted=v->pending=v->ready=v->request=0; v->repeatEditor=NULL;
 }
+static void cvfreeInput(completion_input* b)
+{ free(b->path); free(b->uri); free(b->text); free(b->language); memset(b,0,sizeof(*b)); }
 static void cvfreeInputs(xide_completion_view* v)
-{
- for(size_t i=0;i<v->inputCount;++i) { completion_input* b=&v->inputs[i]; free(b->path); free(b->uri); free(b->text); free(b->language); memset(b,0,sizeof(*b)); } v->inputCount=0;
-}
-static void cvcloseInputs(xide_completion_view* v)
-{
- if(v->synced && v->client && v->initialized) for(size_t i=0;i<v->inputCount;++i) { xvalue *p=xrtValueObject(),*d=xrtValueObject(); cvput(d,"uri",xrtValueString(cvsv(v->inputs[i].uri))); cvput(p,"textDocument",d); cvsend(v,"textDocument/didClose",p,0); }
- v->synced=0; cvfreeInputs(v);
-}
+{ for(size_t i=0;i<v->inputCount;++i) cvfreeInput(&v->inputs[i]); v->inputCount=0; }
 static void cvstopClient(xide_completion_view* v)
 {
- cvdismiss(v); xideLanguageClientStop(v->client); v->client=NULL; cvfreeInputs(v); free(v->compiler); free(v->directory); free(v->package); v->compiler=v->directory=v->package=NULL; v->initialized=v->supported=v->synced=0;
+ cvdismiss(v); xideLanguageClientStop(v->client); v->client=NULL; cvfreeInputs(v); xlsSyncDestroy(v->sync); v->sync=NULL; free(v->compiler); free(v->directory); free(v->package); v->compiler=v->directory=v->package=NULL; v->initialized=v->supported=v->syncKind=0;
 }
 static void cvwake(void* user) { (void)user; xgeRenderRequest(); }
 static char* cvserverPath(void)
@@ -101,6 +99,8 @@ static int cvconnectionCurrent(xide_completion_view* v)
 static int cvstartClient(xide_completion_view* v)
 {
  if(v->client) return 1;
+ xlsSyncDestroy(v->sync); v->sync=NULL; free(v->compiler); free(v->directory); free(v->package);
+ v->compiler=v->directory=v->package=NULL; v->initialized=v->supported=v->syncKind=0;
  const char* compiler=xideTaskViewCompiler(v->app); char* program=cvserverPath();
  v->compiler=compiler ? cvcopy(compiler) : NULL; v->directory=xidePathDirectory(v->document->path);
  int ok=program && v->compiler && v->directory && xideLanguageCheckPackagePath(&v->package,NULL);
@@ -110,21 +110,39 @@ static int cvstartClient(xide_completion_view* v)
  xvalue *p=xrtValueObject(),*options=xrtValueObject(); cvput(p,"capabilities",xrtValueObject()); cvput(options,"checkOnSave",xrtValueBool(false)); cvput(p,"initializationOptions",options);
  if(!cvsend(v,"initialize",p,1)) { cvstopClient(v); return 0; } return 1;
 }
+static int cvcapture(xide_completion_view* v)
+{
+ completion_input previous[COMPLETION_DOCS]={0}; size_t count=v->inputCount;
+ memcpy(previous,v->inputs,count*sizeof(*previous)); memset(v->inputs,0,sizeof(v->inputs)); v->inputCount=0;
+ int okay=1;
+ for(size_t i=0;i<v->app->documents.count && okay;++i) {
+  xide_document* d=v->app->documents.items[i]; if(!cvnamed(d)) continue;
+  if(v->inputCount>=COMPLETION_DOCS) { okay=0; break; }
+  completion_input* b=&v->inputs[v->inputCount++]; uint32_t version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor));
+  for(size_t j=0;j<count;++j) if(previous[j].document==d && previous[j].id==d->id && previous[j].version==version &&
+      previous[j].externalState==d->externalState && !strcmp(previous[j].path,d->path) && !strcmp(previous[j].language,d->language)) {
+   *b=previous[j]; memset(&previous[j],0,sizeof(previous[j])); break;
+  }
+  if(b->document) continue;
+  b->document=d; b->id=d->id; b->version=version; b->externalState=d->externalState;
+  b->path=cvcopy(d->path); b->uri=xideLspPathToUri(d->path,NULL); b->text=cvcopy(xuiCodeEditGetText(d->editor)); b->language=cvcopy(d->language);
+  okay=b->path && b->uri && b->text && b->language;
+  if(okay) b->length=strlen(b->text);
+ }
+ for(size_t i=0;i<count;++i) cvfreeInput(&previous[i]);
+ if(!okay) cvfreeInputs(v);
+ return okay;
+}
 static int cvbegin(xide_completion_view* v)
 {
- if(!cvcontext(v,0) || !v->supported) return 0;
- cvcloseInputs(v); completion_input* target=NULL;
- for(size_t i=0;i<v->app->documents.count;++i) { xide_document* d=v->app->documents.items[i]; if(!cvnamed(d)) continue;
-  if(v->inputCount>=COMPLETION_DOCS) return 0;
-  completion_input* b=&v->inputs[v->inputCount++]; b->document=d; b->id=d->id; b->version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)); b->externalState=d->externalState;
-  b->path=cvcopy(d->path); b->uri=xideLspPathToUri(d->path,NULL); b->text=cvcopy(xuiCodeEditGetText(d->editor)); b->language=cvcopy(d->language);
-  if(!b->path || !b->uri || !b->text || !b->language) return 0;
-  v->wireVersion=v->wireVersion==INT_MAX ? 1 : v->wireVersion+1; b->wireVersion=v->wireVersion; if(d==v->document) target=b;
+ if(!cvcontext(v,0) || !v->supported || !v->sync || !cvcapture(v) || !cvinputsCurrent(v)) return 0;
+ completion_input* target=NULL; xls_sync_document documents[COMPLETION_DOCS];
+ for(size_t i=0;i<v->inputCount;++i) { completion_input* b=&v->inputs[i];
+  documents[i]=(xls_sync_document){b->uri,b->text,b->length,b->id,b->version}; if(b->document==v->document) target=b;
  }
- if(!target || !cvinputsCurrent(v)) return 0;
- for(size_t i=0;i<v->inputCount;++i) { completion_input* b=&v->inputs[i]; xvalue *p=xrtValueObject(),*d=xrtValueObject(); cvput(d,"uri",xrtValueString(cvsv(b->uri))); cvput(d,"languageId",xrtValueString(cvsv("xlang"))); cvput(d,"version",xrtValueInt(b->wireVersion)); cvput(d,"text",xrtValueString(cvsv(b->text))); cvput(p,"textDocument",d); v->synced=1;
-  if(!cvsend(v,"textDocument/didOpen",p,0)) return 0;
- }
+ if(!target) return 0;
+ if(!xlsSyncUpdate(v->sync,documents,v->inputCount,cvsyncEmit,v)) { cvstopClient(v); return 0; }
+ for(size_t i=0;i<v->inputCount;++i) v->inputs[i].wireVersion=xlsSyncVersion(v->sync,v->inputs[i].uri);
  int line=0,character=0; if(!xideLspOffsetToPosition(target->text,v->offset,&line,&character)) return 0;
  xvalue *p=xrtValueObject(),*d=xrtValueObject(),*pos=xrtValueObject(); cvput(d,"uri",xrtValueString(cvsv(target->uri))); cvput(pos,"line",xrtValueInt(line)); cvput(pos,"character",xrtValueInt(character)); cvput(p,"textDocument",d); cvput(p,"position",pos); cvput(p,"version",xrtValueInt(target->wireVersion));
  if(v->nextId==INT_MAX) return 0;
@@ -210,6 +228,13 @@ static void cvread(xide_completion_view* v,int refresh)
   if(method && !strcmp(method,"xlang/completionInvalidated")) { int query=0; if(cvnumber(cvget(cvget(m,"params"),"queryId"),&query) && query==v->request) cvdismiss(v); }
   else if(cvnumber(cvget(m,"id"),&id) && id==1 && !v->initialized) {
    const xvalue* caps=cvget(cvget(m,"result"),"capabilities"); v->initialized=1; v->supported=cvbool(cvget(cvget(caps,"experimental"),"cursorCompletion"),1) && xrtValueType(cvget(caps,"completionProvider"))==XVALUE_OBJECT;
+   int64 kind=1; const xvalue* sync=cvget(caps,"textDocumentSync");
+   if(xrtValueType(sync)==XVALUE_OBJECT) sync=cvget(sync,"change");
+   if(sync && !xrtValueGetInt(sync,&kind)) kind=0;
+   if(kind!=1 && kind!=2) kind=0;
+   v->syncKind=(int)kind;
+   if(v->supported) v->sync=xlsSyncCreate((int)kind);
+   v->supported=v->supported && v->sync!=NULL;
    if(v->supported) cvsend(v,"initialized",xrtValueObject(),0); else cvdismiss(v);
   } else if(id>1 && id==v->request && v->wanted && !v->ready) {
    v->ready=1; const xvalue* result=cvget(m,"result");
@@ -229,7 +254,7 @@ void xideCompletionViewPoll(xide_app* app)
   if(app->activeDocument && app->activeDocument->id==id && app->activeDocument->editor==editor) xideCompletionViewRequest(app,editor,offset,0);
  }
  cvread(v,1); if(!v->wanted) return;
- if(!cvcontext(v,0) || (v->inputCount && !v->pending && !cvinputsCurrent(v))) { cvstopClient(v); return; }
+ if(!cvcontext(v,0) || (v->inputCount && !v->pending && !cvinputsCurrent(v))) { cvdismiss(v); return; }
  if((v->client && (!cvconnectionCurrent(v) || xideLanguageClientState(v->client,NULL,0)>=XIDE_LS_STOPPED)) || (!v->client && !v->pending)) {
   int retry=v->pending; xui_widget editor=v->document->editor; int offset=v->offset; cvstopClient(v);
   if(!retry) return;
@@ -307,6 +332,6 @@ void xideCompletionViewDestroy(xide_app* app)
 {
  xide_completion_view* v=app ? app->completionView : NULL; if(!v) return;
  /* Stop runs before the context/documents are destroyed. No widget access here. */
- xideLanguageClientStop(v->client); cvfreeInputs(v); free(v->compiler); free(v->directory); free(v->package); free(v->items); free(v->nameIndex); xrtValueRelease(v->result);
+ xideLanguageClientStop(v->client); cvfreeInputs(v); xlsSyncDestroy(v->sync); free(v->compiler); free(v->directory); free(v->package); free(v->items); free(v->nameIndex); xrtValueRelease(v->result);
  while(v->bindings) { completion_binding* next=v->bindings->next; free(v->bindings); v->bindings=next; } free(v); app->completionView=NULL;
 }

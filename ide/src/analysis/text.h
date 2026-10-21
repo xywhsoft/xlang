@@ -26,6 +26,11 @@ size_t xlsTextLines(const xls_text* text);
 /* UTF-16 positions. Columns beyond EOL clamp to EOL; nonexistent lines and
  * surrogate-interior positions fail. Newlines retain original LF/CRLF/CR. */
 int xlsTextOffset(const xls_text* text, xls_position position, size_t* offset);
+/* Indexed UTF-8 byte offset to UTF-16 position; rejects scalar/CRLF interiors. */
+int xlsTextPosition(const xls_text* text, size_t offset, xls_position* position);
+/* One scalar/CRLF-aligned edit. Result borrows updated text until it is released.
+ * Returns 1 for a change, 0 for identical content, -1 for invalid arguments. */
+int xlsTextDiff(const xls_text* base, const xls_text* updated, xls_text_edit* edit);
 /* Changes are sequential against the preceding change's output. Failure leaves
  * base unchanged. An empty change batch retains base. Returned result is owned.
  * M1 copies the text and rebuilds its line index; this is not semantic reuse. */

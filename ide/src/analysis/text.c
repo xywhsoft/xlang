@@ -94,6 +94,48 @@ int xlsTextOffset(const xls_text* text, xls_position position, size_t* offset)
     return columnOffset(xlsTextData(text),text->bytes.Size,*start,position.character,offset);
 }
 
+int xlsTextPosition(const xls_text* text, size_t offset, xls_position* position)
+{
+    if(!text || !position || offset>text->bytes.Size) return 0;
+    size_t first=0,last=text->lines.Count;
+    while(first<last) {
+        size_t middle=first+(last-first)/2;
+        const size_t* start=xrtArrayConstGet(&text->lines,middle);
+        if(*start<=offset) first=middle+1; else last=middle;
+    }
+    size_t line=first-1,at=*(const size_t*)xrtArrayConstGet(&text->lines,line),units=0;
+    const char* bytes=xlsTextData(text);
+    while(at<offset) {
+        if(bytes[at]=='\r' || bytes[at]=='\n') return 0;
+        uint32 scalar=0; size_t read=0;
+        if(xrtUtf8Decode((xstrview){bytes+at,text->bytes.Size-at},&scalar,&read)!=XUTF_OK || read>offset-at) return 0;
+        units+=scalar>0xffff ? 2u : 1u; at+=read;
+    }
+    *position=(xls_position){line,units}; return 1;
+}
+
+static int boundary(const char* bytes, size_t size, size_t offset)
+{
+    return offset==size || (!((unsigned char)bytes[offset]>=0x80 && (unsigned char)bytes[offset]<0xc0) &&
+        (!offset || bytes[offset-1]!='\r' || bytes[offset]!='\n'));
+}
+
+int xlsTextDiff(const xls_text* base, const xls_text* updated, xls_text_edit* edit)
+{
+    if(!base || !updated || !edit) return -1;
+    memset(edit,0,sizeof(*edit));
+    const char *left=xlsTextData(base),*right=xlsTextData(updated);
+    size_t before=xlsTextSize(base),after=xlsTextSize(updated),prefix=0,suffix=0;
+    while(prefix<before && prefix<after && left[prefix]==right[prefix]) ++prefix;
+    if(prefix==before && prefix==after) return 0;
+    while(prefix && (!boundary(left,before,prefix) || !boundary(right,after,prefix))) --prefix;
+    while(suffix<before-prefix && suffix<after-prefix && left[before-suffix-1]==right[after-suffix-1]) ++suffix;
+    while(suffix && (!boundary(left,before,before-suffix) || !boundary(right,after,after-suffix))) --suffix;
+    if(!xlsTextPosition(base,prefix,&edit->start) || !xlsTextPosition(base,before-suffix,&edit->end)) return -1;
+    edit->hasRange=1; edit->text=right+prefix; edit->length=after-prefix-suffix;
+    return 1;
+}
+
 static int bufferOffset(const xstrbuf* buffer, xls_position position, size_t* offset)
 {
     size_t at=0,line=0;
