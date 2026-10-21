@@ -1,14 +1,21 @@
 extern "xgt_parse_po" func __gt_parse_po(string text) as var
 extern "xgt_parse_mo" func __gt_parse_mo(var data) as var
-extern "xgt_load_mo" func __gt_load_mo(string path) as var
-extern "xgt_t" func __gt_t(var catalog, string msgid) as string
-extern "xgt_tn" func __gt_tn(var catalog, string msgid, string msgidPlural, int n) as string
+extern "xgt_t" func __gt_t(var catalog, string msgid) as point
+extern "xgt_tn" func __gt_tn(var catalog, string msgid, string msgidPlural, int n) as point
+extern "xgt_tc" func __gt_tc(var catalog, string context, string msgid) as point
+extern "xgt_tnc" func __gt_tnc(var catalog, string context, string msgid, string msgidPlural, int n) as point
 
+func __gt_cstr(string text)
+    if string.indexOf(text, "\0", false, string.byteLen(text), 1) >= 0 then
+        throw ValueError "gettext: text contains an embedded NUL byte"
+    end
+end
 
 
 // parsePo 解析 PO 文本为目录对象；支持多行字符串、转义与复数形式
 // 复数条目在目录中保存为 [单数译文, 复数译文, ...] 数组
 export func parsePo(string text) as var
+    __gt_cstr(text)
     var r = __gt_parse_po(text)
     if r == null then
         throw ValueError "gettext: po text is null"
@@ -16,7 +23,7 @@ export func parsePo(string text) as var
     return r
 end
 
-// parseMo 解析 MO 二进制目录（来自 file.readBytes 的 Buffer）
+// parseMo 解析 MO 二进制目录；file.readBytes 返回的 bytes 可直接传入
 export func parseMo(var data) as var
     var r = __gt_parse_mo(data)
     if r == null then
@@ -25,21 +32,41 @@ export func parseMo(var data) as var
     return r
 end
 
-// loadMo 直接读取并解析 .mo 文件；文件不可读抛 ValueError
+// loadMo 使用标准文件读取；文件错误与 MO 格式错误分别保留原有类别。
 export func loadMo(string path) as var
-    var r = __gt_load_mo(path)
-    if r == null then
-        throw ValueError "gettext: mo file cannot be read: " + path
-    end
-    return r
+    __gt_cstr(path)
+    return parseMo(file.readBytes(path))
 end
 
 // t 查询单数译文；缺失时返回 msgid 本身
 export func t(var catalog, string msgid) as string
-    return __gt_t(catalog, msgid)
+    __gt_cstr(msgid)
+    return __xl_runtime.takeCstr(__gt_t(catalog, msgid))
 end
 
-// tn 查询复数译文；n==1 取单数，否则取第一个复数形式；缺失时回退原文
+// tn 按目录的 Plural-Forms 选择复数译文；缺失时回退原文
 export func tn(var catalog, string msgid, string msgidPlural, int n) as string
-    return __gt_tn(catalog, msgid, msgidPlural, n)
+    if n < 0 then
+        throw ValueError "gettext: plural count must be nonnegative"
+    end
+    __gt_cstr(msgid)
+    __gt_cstr(msgidPlural)
+    return __xl_runtime.takeCstr(__gt_tn(catalog, msgid, msgidPlural, n))
+end
+
+// tc/tnc 使用 msgctxt 区分同名译文；未命中时仍回退无上下文原文。
+export func tc(var catalog, string context, string msgid) as string
+    __gt_cstr(context)
+    __gt_cstr(msgid)
+    return __xl_runtime.takeCstr(__gt_tc(catalog, context, msgid))
+end
+
+export func tnc(var catalog, string context, string msgid, string msgidPlural, int n) as string
+    if n < 0 then
+        throw ValueError "gettext: plural count must be nonnegative"
+    end
+    __gt_cstr(context)
+    __gt_cstr(msgid)
+    __gt_cstr(msgidPlural)
+    return __xl_runtime.takeCstr(__gt_tnc(catalog, context, msgid, msgidPlural, n))
 end

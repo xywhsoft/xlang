@@ -1,0 +1,274 @@
+import gettext
+
+func main(...) as int
+    // 长译文和未命中回退均不得被固定缓冲区截断。
+    string longText = ""
+    for i in range(0, 2500)
+        longText += "x"
+    end
+    var catalog = gettext.parsePo("msgid \"long\"\nmsgstr \"" + longText + "\"\n")
+    assert string.len(gettext.t(catalog, "long")) == 2500, "long translation"
+    assert gettext.tn(catalog, "missing", longText, 2) == longText, "long fallback"
+
+    // file.readBytes 的公开类型是 bytes，不把任意 handle 当 xbuffer。
+    bytes data = file.readBytes("test/fixtures/gettext_mini.mo")
+    var mo = gettext.parseMo(data)
+    assert gettext.t(mo, "hello") == "world!", "bytes mo"
+    bool caught = false
+    try
+        gettext.parseMo(42)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "reject non-bytes"
+
+    string contextual = """msgid ""
+msgstr "Plural-Forms: nplurals=3; plural=n==1?0:n==2?1:2;\\n"
+
+msgctxt "menu"
+msgid "Open"
+msgstr "打开菜单"
+
+msgctxt "verb"
+msgid "Open"
+msgstr "打开动作"
+
+msgctxt "storage"
+msgid "file"
+msgid_plural "files"
+msgstr[0] "one"
+msgstr[1] "two"
+msgstr[2] "many"
+"""
+    var c = gettext.parsePo(contextual)
+    assert gettext.tc(c, "menu", "Open") == "打开菜单", "context menu"
+    assert gettext.tc(c, "verb", "Open") == "打开动作", "context verb"
+    caught = false
+    try
+        gettext.t(c, "menu\u0004Open")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "plain lookup must not reach a context key"
+    caught = false
+    try
+        gettext.tc(c, "menu\u0004sub", "Open")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "context lookup must reject a second separator"
+    assert gettext.tnc(c, "storage", "file", "files", 1) == "one", "form 0"
+    assert gettext.tnc(c, "storage", "file", "files", 2) == "two", "form 1"
+    assert gettext.tnc(c, "storage", "file", "files", 9) == "many", "form 2"
+
+    // 六复数形式同时覆盖条件、取模与两位数分组。
+    string sixForms = """msgid ""
+msgstr "Plural-Forms: nplurals=6; plural=n==0?0:n==1?1:n==2?2:(n%100>=3&&n%100<=10)?3:(n%100>=11&&n%100<=99)?4:5;\\n"
+
+msgid "item"
+msgid_plural "items"
+msgstr[0] "zero"
+msgstr[1] "one"
+msgstr[2] "two"
+msgstr[3] "few"
+msgstr[4] "many"
+msgstr[5] "other"
+"""
+    var six = gettext.parsePo(sixForms)
+    assert gettext.tn(six, "item", "items", 0) == "zero", "six-form zero"
+    assert gettext.tn(six, "item", "items", 1) == "one", "six-form one"
+    assert gettext.tn(six, "item", "items", 2) == "two", "six-form two"
+    assert gettext.tn(six, "item", "items", 10) == "few", "six-form few"
+    assert gettext.tn(six, "item", "items", 99) == "many", "six-form many"
+    assert gettext.tn(six, "item", "items", 100) == "other", "six-form other"
+    assert gettext.tn(six, "item", "items", 103) == "few", "six-form modulo"
+
+    // 未触发的条件分支不执行除法；特定计数除零须可捕获且不污染后续查询。
+    string conditional = "msgid \"\"\nmsgstr \"Plural-Forms: nplurals=2; plural=n==7?1/0:n!=1;\\n\"\n\nmsgid \"item\"\nmsgid_plural \"items\"\nmsgstr[0] \"one\"\nmsgstr[1] \"many\"\n"
+    var conditionalCatalog = gettext.parsePo(conditional)
+    assert gettext.tn(conditionalCatalog, "item", "items", 8) == "many"
+    caught = false
+    try
+        gettext.tn(conditionalCatalog, "item", "items", 7)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "conditional plural division by zero"
+    assert gettext.tn(conditionalCatalog, "item", "items", 1) == "one"
+
+    // PO 采用 C 风格转义；十六进制字节须在解码后组成有效 UTF-8。
+    var escaped = gettext.parsePo("msgid \"escaped\"\nmsgstr \"\\x41\\x42\\?\"\n")
+    assert gettext.t(escaped, "escaped") == "AB?", "PO hex and question-mark escapes"
+    var utf8Escaped = gettext.parsePo("msgid \"utf8\"\nmsgstr \"\\xC3\\xA9\"\n")
+    assert gettext.t(utf8Escaped, "utf8") == "é", "PO escaped UTF-8 bytes"
+    caught = false
+    try
+        gettext.parsePo("msgid \"bad\"\nmsgstr \"\\x\"\n")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "PO hex escape requires a digit"
+    caught = false
+    try
+        gettext.parsePo("msgid \"bad\"\nmsgstr \"\\x100\"\n")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "PO hex escape cannot overflow a byte"
+    caught = false
+    try
+        gettext.parsePo("msgid \"bad\"\nmsgstr \"\\401\"\n")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "PO octal escape cannot overflow a byte"
+    caught = false
+    try
+        gettext.parsePo("msgid \"bad\"\nmsgstr \"\\xFF\"\n")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "PO escaped bytes must be valid UTF-8"
+
+    // 连续一元运算符也计入复数公式的总递归深度。
+    string unary = ""
+    for i in range(0, 47)
+        unary += "!"
+    end
+    string pluralPrefix = "msgid \"\"\nmsgstr \"Plural-Forms: nplurals=2; plural="
+    string pluralSuffix = "n;\\n\"\n"
+    var shallow = gettext.parsePo(pluralPrefix + unary + pluralSuffix)
+    assert gettext.t(shallow, "missing") == "missing"
+    caught = false
+    try
+        gettext.parsePo(pluralPrefix + unary + "!" + pluralSuffix)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "plural unary depth limit"
+
+    // 未审核与空译文按原文回退，标记不污染相邻条目。
+    string draft = "msgid \"Ready\"\nmsgstr \"done\"\n#, c-format, fuzzy\nmsgid \"Review\"\nmsgstr \"draft\"\n\nmsgid \"Blank\"\nmsgstr \"\"\n"
+    var drafts = gettext.parsePo(draft)
+    assert gettext.t(drafts, "Ready") == "done", "approved translation"
+    assert gettext.t(drafts, "Review") == "Review", "fuzzy fallback"
+    assert gettext.t(drafts, "Blank") == "Blank", "empty translation fallback"
+
+    caught = false
+    try
+        gettext.parsePo("msgid \"x\"\nmsgstr \"unterminated\n")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "malformed po"
+
+    caught = false
+    try
+        gettext.parsePo("msgid \"same\"\nmsgstr \"first\"\n\nmsgid \"same\"\nmsgstr \"second\"\n")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "duplicate PO message key must fail"
+
+    caught = false
+    try
+        gettext.parsePo("msgid \"menu\\004Open\"\nmsgstr \"wrong\"\n")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "reserved context separator must not enter plain msgid"
+
+    caught = false
+    try
+        gettext.parsePo("msgid \"x\"\nmsgstr \"\\377\"\n")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "PO escape must not create a non-UTF-8 translation"
+
+    caught = false
+    try
+        gettext.tn(c, "file", "files", -1)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "negative plural count"
+    caught = false
+    try
+        gettext.parsePo("msgid \"x\"\nmsgstr \"y\"\n\0hidden")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "PO text must not truncate at NUL"
+    caught = false
+    try
+        gettext.loadMo("test/fixtures/gettext_mini.mo\0hidden")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "MO path must not truncate at NUL"
+    caught = false
+    try
+        gettext.loadMo("build/test/gettext_guard/never-created/missing.mo")
+    catch FileError e
+        caught = true
+    end
+    assert caught, "missing MO file must report a file error"
+    caught = false
+    try
+        gettext.loadMo("release/extlibs/gettext/test/invalid.mo")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "malformed MO file must report a format error"
+    // MO 描述符长度之外还必须有结束 NUL，不能把坏目录当作有效翻译。
+    for rawHex in [
+        "de12049500000000010000001c000000240000000000000000000000050000002c000000050000003200000068656c6c6f78776f726c6400",
+        "de12049500000000010000001c000000240000000000000000000000050000002c000000050000003200000068656c6c6f00776f726c6478"
+    ]
+        caught = false
+        try
+            gettext.parseMo(Buffer.fromHex(rawHex).toBytes())
+        catch ValueError e
+            caught = true
+        end
+        assert caught, "MO strings must end with NUL"
+    end
+    assert gettext.t(gettext.loadMo("test/fixtures/gettext_mini.mo"), "hello") == "world!"
+    caught = false
+    try
+        gettext.parseMo(Buffer.fromHex("de12049500000000010000001c000000240000000000000000000000050000002c000000050000003200000068656c6c6f00776f006c6400").toBytes())
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "singular MO translation must not contain NUL"
+    caught = false
+    try
+        gettext.t(c, "Open\0hidden")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "message id must not truncate at NUL"
+    caught = false
+    try
+        gettext.tn(c, "file", "files\0hidden", 2)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "plural id must not truncate at NUL"
+    caught = false
+    try
+        gettext.tc(c, "menu\0hidden", "Open")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "context must not truncate at NUL"
+    caught = false
+    try
+        gettext.tnc(c, "storage", "file\0hidden", "files", 2)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "contextual plural id must not truncate at NUL"
+    return 0
+end

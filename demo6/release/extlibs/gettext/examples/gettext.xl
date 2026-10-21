@@ -1,0 +1,35 @@
+import gettext
+
+func main(...) as int
+    // PO 元数据控制复数形式，同名 msgid 还能通过上下文消歧。
+    var catalog = gettext.parsePo("""msgid ""
+msgstr "Plural-Forms: nplurals=3; plural=n==1?0:n==2?1:2;\\n"
+
+msgctxt "menu"
+msgid "Open"
+msgstr "打开菜单"
+
+msgid "file"
+msgid_plural "files"
+msgstr[0] "一个文件"
+msgstr[1] "两个文件"
+msgstr[2] "多个文件"
+
+#, fuzzy
+msgid "Draft"
+msgstr "未审核"
+
+msgid "Blank"
+msgstr ""
+
+msgid "escaped"
+msgstr "\\x41\\x42\\?"
+""")
+    println("menu:", gettext.tc(catalog, "menu", "Open"))
+    println("many:", gettext.tn(catalog, "file", "files", 3))
+    println(gettext.t(catalog, "missing"))
+    println(gettext.t(catalog, "Draft"))
+    println(gettext.t(catalog, "Blank"))
+    println(gettext.t(catalog, "escaped"))
+    return 0
+end

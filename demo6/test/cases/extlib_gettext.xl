@@ -45,9 +45,9 @@ msgstr[1] "%d 个苹果"
     assert gettext.tn(c3, "one apple", "%d apples", 5) == "%d 个苹果", "plural form"
     assert gettext.tn(c3, "no entry", "no entries", 2) == "no entries", "plural fallback"
 
-    // 空翻译条目
+    // 未翻译条目回退原文
     var c4 = gettext.parsePo("msgid \"only\"\nmsgstr \"\"\n")
-    assert gettext.t(c4, "only") == "", "empty translation kept"
+    assert gettext.t(c4, "only") == "only", "empty translation fallback"
 
     // MO 二进制：手工构造最小 MO 文件并解析
     var catalogMo = gettext.loadMo("test/fixtures/gettext_mini.mo")

@@ -1,0 +1,17 @@
+import gettext
+
+func main(...) as int
+    // 独立验证大输入错误类别，避免日常目录 smoke 重复分配 64 MiB。
+    string oversized = string.repeat("#", 64 * 1024 * 1024 + 1)
+    bool rejected = false
+    try
+        gettext.parsePo(oversized)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected, "oversized PO must report RangeError"
+
+    var catalog = gettext.parsePo("msgid \"ok\"\nmsgstr \"ready\"\n")
+    assert gettext.t(catalog, "ok") == "ready", "parse recovers after limit error"
+    return 0
+end

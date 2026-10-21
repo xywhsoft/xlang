@@ -1,0 +1,13 @@
+import gettext
+
+func main(...) as int
+    assert arg.length == 2
+    var catalog = gettext.loadMo(string(arg[1]))
+    assert gettext.tc(catalog, "menu", "Open") == "打开菜单"
+    assert gettext.tn(catalog, "file", "files", 1) == "一个文件"
+    assert gettext.tn(catalog, "file", "files", 2) == "两个文件"
+    assert gettext.tn(catalog, "file", "files", 3) == "多个文件"
+    assert gettext.t(catalog, "Draft") == "Draft"
+    println("GNU MO to XLang: PASS")
+    return 0
+end

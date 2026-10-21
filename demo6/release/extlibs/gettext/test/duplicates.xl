@@ -1,0 +1,26 @@
+import gettext
+
+func main(...) as int
+    bool rejected = false
+    try
+        gettext.parsePo("msgid \"same\"\nmsgstr \"first\"\n\nmsgid \"same\"\nmsgstr \"second\"\n")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "duplicate PO key"
+
+    var distinct = gettext.parsePo("msgctxt \"menu\"\nmsgid \"same\"\nmsgstr \"menu\"\n\nmsgctxt \"action\"\nmsgid \"same\"\nmsgstr \"action\"\n")
+    assert gettext.tc(distinct, "menu", "same") == "menu"
+    assert gettext.tc(distinct, "action", "same") == "action"
+
+    // 同一原文在两个 MO 描述符中出现，不能让第二个译文覆盖第一个。
+    bytes mo = Buffer.fromHex("de12049500000000020000001c0000002c0000000000000000000000030000003c000000030000003c000000010000004000000001000000420000006b65790041004200").toBytes()
+    rejected = false
+    try
+        gettext.parseMo(mo)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "duplicate MO key"
+    return 0
+end

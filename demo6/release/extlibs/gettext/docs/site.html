@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>gettext - 扩展库 - xlang</title>
+  <meta name="description" content="读取 GNU PO/MO 翻译目录，支持上下文和复数形式，提供 C/xlang 双语接口。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-txt" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / gettext</p>
+    <h1>gettext</h1>
+    <p class="extlib-lead">读取 GNU PO/MO 翻译目录，按消息 ID、上下文与复数规则查找译文。</p>
+    <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import gettext
+
+var catalog = gettext.parsePo("msgid \"hello\"\nmsgstr \"你好\"\n")
+println(gettext.t(catalog, "hello"))
+println(gettext.t(catalog, "missing"))</code></pre>
+    <p>输出“你好”和原文“missing”。目录是独立数据对象，可同时保留多个语种。</p>
+  </section>
+  <section id="api">
+    <h2>接口与边界</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>parsePo(text) / parseMo(bytes) / loadMo(path)</code></td><td>解析 PO 文本或大小端 MO 二进制目录。</td></tr>
+      <tr><td><code>t(catalog, msgid) / tc(catalog, context, msgid)</code></td><td>查询单数译文；未命中回退原文。</td></tr>
+      <tr><td><code>tn(catalog, id, plural, n) / tnc(catalog, context, id, plural, n)</code></td><td>按 Plural-Forms 和上下文查询复数译文。</td></tr>
+    </tbody></table>
+    <p>复数公式在导入时做语法检查和常见计数抽样，不保证任意计数都不会触发除零。实际查询遇到公式错误时抛 <code>ValueError</code>；未选中的条件分支不会执行，其他计数仍可继续查询。</p>
+    <p>支持 PO 多行文本、转义、上下文及顺序编号的复数项；无 Plural-Forms 时采用英语 n != 1 规则，n 必须非负。PO 的 fuzzy 普通译文不进入目录，空译文回退原文；空 msgid 的目录头仍保留。MO 空译文也回退原文。实际进入目录的重复译文键报格式错误，不再静默覆盖；被跳过的 fuzzy 或空单数译文不占键，不同上下文的同名消息仍可共存。PO 源文本与 MO 原文、译文仅接受 UTF-8；不会按目录头的 charset 自动转码，其他编码须先转为 UTF-8。MO 描述符长度之外的原文、译文结束 NUL 都会校验，缺失时拒绝目录；单数译文内部 NUL 也会拒绝，复数译文仍允许格式规定的 NUL 分隔符。原文只承载单数和复数两段，出现额外 NUL 段时报错，不会静默丢弃。PO 文本、路径及查询键不允许内嵌 NUL；MO 字节数据本身允许 NUL，因为它是二进制格式的一部分。上下文键分隔符 0x04 不能进入 PO 消息键或查询参数；MO 原文最多允许一个上下文分隔符。<code>parsePo</code>、<code>parseMo</code> 和 <code>loadMo</code> 均最多接受 64 MiB 输入；C 超限返回 <code>XERR_RANGE</code>，XLang 抛 <code>RangeError</code>。缺文件或读取失败保留 XRT 文件错误，坏 MO 为 <code>XERR_VALUE</code>。</p>
+    <p>C 的 <code>parsePo</code> 入口在 64 MiB 上限外一字节停止扫描，超限输入不再先执行无界 <code>strlen</code>；Linux ASan 已覆盖该边界。调用方仍须提供在终止字节或限额边界之前可读取的内存。</p>
+    <p>PO 的 C 风格转义包含 <code>\x</code> 十六进制字节、最多三位八进制字节及 <code>\?</code>；数字转义必须在 1–255 范围内，空十六进制、NUL 和超范围值会报格式错误，解码后的文本仍须是有效 UTF-8。按 <a href="https://www.gnu.org/software/gettext/manual/html_node/More-Details.html">GNU PO 字符串规则</a>，不接受 <code>\u</code> / <code>\U</code>。</p>
+  </section>
+  <section id="c-api">
+    <h2>C 对照</h2>
+    <pre><code>#define XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_UNICODE
+#include "xrt.h"
+#include "gettext_native.h"
+
+int main(void)
+{
+    xvalue* catalog = xgt_parse_po("msgid \"hi\"\nmsgstr \"hello\"\n");
+    char* text = xgt_t(catalog, "hi");
+    int ok = text &amp;&amp; text[0] == 'h';
+    xrtFree(text);
+    xrtValueRelease(catalog);
+    return ok ? 0 : 1;
+}</code></pre>
+    <p>C 查询字符串用 <code>xrtFree</code> 释放，解析目录用 <code>xrtValueRelease</code>。完整双语对照范例位于 <code>release/extlibs/gettext/examples/</code>；从 demo6 根目录可直接运行 <code>release/xl.exe run release/extlibs/gettext/examples/gettext_c.c</code>。正式包仍分别编译目录与复数表达式源码。</p>
+    <p>解析或查询失败后可直接重试；后续成功调用会清除本线程旧的 XRT 错误。有效上下文的查找键分配失败返回 <code>NULL</code> 和内存错误，不会回退为原文。C 的 <code>xgt_load_mo</code> 使用 XRT 限额读取，保留文件读取的原始错误类别。</p>
+  </section>
+  <section id="verify">
+    <h2>验证状态</h2>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/gettext/test/check.ps1 -SkipAot
+bash release/extlibs/gettext/test/check.sh</code></pre>
+    <p>Windows 严格 GCC、C/XLang 边界和双语范例，以及 Linux C ASan/UBSan、包内 XLang 边界/重复键负例与双语范例逐字节对照通过；两平台均对照 C 范例的 GCC 编译运行与单文件 <code>xl run</code> 输出。包 C 源文件只依赖公开 XRT 头文件。C/XLang 六复数形式测试覆盖嵌套条件与取模分组。PO/MO 解析的 C 逐点分配故障测试要求内存错误、无半成品目录和恢复后正常解析；XLang 的 PO/MO 解析及四种查询各自扫描至首个无故障成功，并在每次故障后立即重试。无效 UTF-8 负例也已覆盖。完整 AOT 尚受共享缺符号问题阻断，未签收发布级。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

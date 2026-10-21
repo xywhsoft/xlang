@@ -39,6 +39,24 @@ msgstr[1] "保存对 %d 个文件的更改？"
     var mo = gettext.loadMo(moPath)
     println("mo catalog: hello ->", gettext.t(mo, "hello"))
 
+    // 同一个目录中的上下文和三复数规则。
+    var contextual = gettext.parsePo("""msgid ""
+msgstr "Plural-Forms: nplurals=3; plural=n==1?0:n==2?1:2;\\n"
+
+msgctxt "menu"
+msgid "Open"
+msgstr "打开菜单"
+
+msgid "file"
+msgid_plural "files"
+msgstr[0] "一个文件"
+msgstr[1] "两个文件"
+msgstr[2] "多个文件"
+""")
+    println("menu:", gettext.tc(contextual, "menu", "Open"))
+    println("many:", gettext.tn(contextual, "file", "files", 3))
+    println(gettext.t(contextual, "missing"))
+
     println("gettext example: PASS")
     return 0
 end

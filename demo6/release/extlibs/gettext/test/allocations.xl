@@ -1,0 +1,68 @@
+import gettext
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func exercise(int operation, string source, bytes moBytes, var catalog)
+    if operation == 0 then
+        gettext.parsePo(source)
+    elseif operation == 1 then
+        gettext.parseMo(moBytes)
+    elseif operation == 2 then
+        gettext.t(catalog, "hello")
+    elseif operation == 3 then
+        gettext.tn(catalog, "missing", "missing plural", 2)
+    elseif operation == 4 then
+        gettext.tc(catalog, "menu", "hello")
+    else
+        gettext.tnc(catalog, "menu", "missing", "missing plural", 2)
+    end
+end
+
+string source = "msgid \"hello\"\nmsgstr \"world\"\n"
+bytes moBytes = file.readBytes("test/fixtures/gettext_mini.mo")
+var catalog = gettext.parsePo(source)
+
+for operation in range(6)
+    int failures = 0
+    bool completed = false
+    for allocation in range(128)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        assert failAfter(uint64(allocation))
+        try
+            exercise(operation, source, moBytes, catalog)
+        catch MemoryError error
+            memoryCaught = true
+        catch RuntimeError error
+            wrongCaught = true
+        catch ValueError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        if wrongCaught or memoryCaught != triggered then
+            println("operation=", operation, " allocation=", allocation,
+                " triggered=", triggered, " memory=", memoryCaught,
+                " wrong=", wrongCaught)
+        end
+        assert not wrongCaught and memoryCaught == triggered, "allocation error kind"
+        if triggered then
+            failures += 1
+            exercise(operation, source, moBytes, catalog)
+        else
+            completed = true
+            break
+        end
+    end
+    assert failures > 0 and completed
+end
+
+assert gettext.t(gettext.parsePo(source), "hello") == "world"
+assert gettext.t(gettext.parseMo(moBytes), "hello") == "world!"
+assert gettext.t(catalog, "hello") == "world"
+assert gettext.tn(catalog, "missing", "missing plural", 2) == "missing plural"
+assert gettext.tc(catalog, "menu", "hello") == "hello"
+assert gettext.tnc(catalog, "menu", "missing", "missing plural", 2) == "missing plural"
+println("gettext allocation: PASS")
