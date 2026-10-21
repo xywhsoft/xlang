@@ -302,6 +302,24 @@ static bool test_scanner_error_locations(void)
 			return false;
 		}
 	}
+	{
+		static const char sCommentCr[] =
+			"machine h login a # note\rmachine h login b\n";
+		xrtnetrcerror Error;
+		xvalue* pDocument = xrtNetrcParseMemory(sCommentCr,
+			sizeof(sCommentCr) - 1u, NULL, &Error);
+		bool bOk = pDocument == NULL &&
+			Error.iCode == XRT_NETRC_ERROR_DUPLICATE &&
+			Error.iLine == 2u && Error.iColumn == 1u &&
+			Error.iOffset == (uint64)(strchr(sCommentCr, '\r') - sCommentCr + 1);
+		xrtValueRelease(pDocument);
+		if ( !bOk ) {
+			fprintf(stderr, "comment CR boundary: code=%d line=%llu column=%llu\n",
+				Error.iCode, (unsigned long long)Error.iLine,
+				(unsigned long long)Error.iColumn);
+			return false;
+		}
+	}
 	return true;
 }
 

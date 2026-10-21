@@ -75,8 +75,10 @@ static bool __xrtNetrcSkipSpace(xrt_netrc_scanner* pScanner)
 		}
 		if ( pScanner->iPos >= pScanner->iSize ||
 			pScanner->pData[pScanner->iPos] != '#' ) { return true; }
+		/* 注释也在单独 CR 处结束，不吞掉下一行的凭据。 */
 		while ( pScanner->iPos < pScanner->iSize &&
-			pScanner->pData[pScanner->iPos] != '\n' ) {
+			pScanner->pData[pScanner->iPos] != '\n' &&
+			pScanner->pData[pScanner->iPos] != '\r' ) {
 			if ( pScanner->pData[pScanner->iPos] == '\0' ) {
 				__xrtNetrcSetError(pScanner->Context->Error,
 					XRT_NETRC_ERROR_SYNTAX, pScanner->iLine,

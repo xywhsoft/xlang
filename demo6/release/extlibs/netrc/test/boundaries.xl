@@ -74,6 +74,15 @@ func main(...) as int
     bool crLocation = duplicateAfterCr and netrc.errorLine() == 2 and netrc.errorColumn() == 1 and netrc.errorOffset() == 18
     assert crLocation, "standalone CR separator must advance the diagnostic line"
 
+    bool duplicateAfterCommentCr = false
+    try
+        netrc.parse("machine h login a # note\rmachine h login b\n")
+    catch ConfigError e
+        duplicateAfterCommentCr = true
+    end
+    bool commentCrLocation = duplicateAfterCommentCr and netrc.errorLine() == 2 and netrc.errorColumn() == 1 and netrc.errorOffset() == 25
+    assert commentCrLocation, "standalone CR must end a netrc comment"
+
     bool badLimit = false
     try
         netrc.parse("machine h login a\n", maxInput = -1)

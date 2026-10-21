@@ -45,7 +45,7 @@ println(auth["login"])</code></pre>
     </tbody></table>
     <p>C 端包含 <code>extlibs/netrc/include/xrt_netrc.h</code>；文档由调用方用 <code>xrtValueRelease</code> 释放。拥有型 Reader/Writer 在退出时关闭；正文成功但关闭失败时报告 <code>IO</code>，借用型流仍由调用方关闭。Reader 输入限额按当前游标之后的字节计算；无法同时查询总大小和当前位置时由实际限额读取裁决。传入选项结构时须先调用 <code>xrtNetrcOptionsInit</code>；结构或内嵌资源限额的版本、长度无效会报 <code>ARGUMENT</code>，不会回退到默认限额。netrc 不使用深度、压缩比或资源标志；这些字段及保留字段必须保持初始化值，否则报 <code>ARGUMENT</code>。传入 <code>NULL</code> 才使用默认选项。解析结果只存储在当前对象中，本库不会自动读取用户主目录的凭据，也不会自行向网络请求附加认证信息。</p>
     <p>文档顶层只接受 <code>hosts</code> 和 <code>macros</code>；主机条目只接受 <code>login</code>、<code>account</code>、<code>password</code>。未知字段或空主机名、空宏名会使 <code>stringify/save</code> 报错，不会写出无法读回的凭据。写出时具名 <code>machine</code> 总在 <code>default</code> 前面，与外部 netrc 读取器的匹配顺序一致。保存失败时原文件保持不变。</p>
-    <p>宏正文支持 CRLF 行尾，但行内独立 CR 会报语法错误；解析成功的宏能够写出并再次读回。</p>
+    <p>单独 CR 与 CRLF 均可结束注释行，不会吞掉后一行的凭据声明；宏正文支持 CRLF 行尾，但行内独立 CR 会报语法错误。解析成功的宏能够写出并再次读回。</p>
   </section>
   <section id="verify">
     <h2>验证与边界</h2>

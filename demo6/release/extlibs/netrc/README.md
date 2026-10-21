@@ -36,7 +36,8 @@ C 流入口 `xrtNetrcParse` / `xrtNetrcWrite` 的 `bTakeOwnership=true` 表示
 序列化器始终先写具名 `machine`，最后写 `default`，即使输入文档先定义了
 `default`；这样生成的凭据文件也符合外部 `.netrc` 读取器的匹配顺序要求。
 保留宏行原文，空行结束宏。NUL（包括注释内）、token 中的换行、`macdef` 名称后
-的意外内容均拒绝，不静默丢弃。支持 UTF-8 BOM 与 CRLF。
+的意外内容均拒绝，不静默丢弃。支持 UTF-8 BOM 与 CRLF；单独 CR 也结束注释行，
+不会吞掉后一行的凭据声明。
 宏正文允许 CRLF 行尾，但拒绝行内独立 CR；解析成功的宏必须能够由
 `stringify` 写出并再次读回。C 边界测试从合法凭据与宏派生截断和字符替换
 矩阵，固定检查拒绝错误类别及成功结果的二次规范化往返。
