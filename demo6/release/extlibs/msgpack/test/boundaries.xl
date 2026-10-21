@@ -1,0 +1,86 @@
+import msgpack
+
+func main(...) as int
+    var nothing = msgpack.decode(msgpack.fromHex("c0"))
+    assert nothing == null, "nil is a valid value"
+    bool rejected = false
+    try
+        msgpack.fromHex("c0\0suffix")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "hex input must not be silently truncated"
+    assert msgpack.decode(msgpack.fromHex("ca3fc00000")) == 1.5, "float32"
+    assert msgpack.decode(msgpack.fromHex("d6ff00000000")) == time(0), "timestamp32"
+    assert msgpack.toHex(msgpack.encode(time(1))) == "d7ff00000fa000000000", "timestamp64"
+    assert msgpack.decode(msgpack.fromHex("c70cff1dcd6500ffffffffffffffff")) == time(-500000), "timestamp96"
+    assert msgpack.toHex(msgpack.decodeBytes(msgpack.fromHex("c40200ff"))) == "00ff", "bytes"
+    uint64 maximum = uint64(18446744073709551615)
+    assert msgpack.toHex(msgpack.encode(maximum)) == "cfffffffffffffffff", "uint64 wire"
+    assert msgpack.decode(msgpack.fromHex("cfffffffffffffffff")) == maximum, "uint64 decode"
+
+    var nulMap = msgpack.decode(msgpack.encode({"a\0b": "x\0y"}))
+    assert string.byteLen(string(nulMap["a\0b"])) == 3, "text key and value NUL length"
+    assert nulMap["a\0b"] == "x\0y", "text key and value NUL roundtrip"
+
+    rejected = false
+    try
+        msgpack.decode(msgpack.fromHex("82a16101a16102"))
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "duplicate map key"
+    rejected = false
+    try
+        msgpack.decode(msgpack.fromHex("a1ff"))
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "invalid UTF-8"
+    rejected = false
+    try
+        msgpack.decode(msgpack.fromHex("d30000"))
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "truncated input"
+    rejected = false
+    try
+        msgpack.decode(msgpack.fromHex("d7ff0000000400000000"))
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "submicrosecond timestamp cannot be represented"
+    rejected = false
+    try
+        msgpack.decode(msgpack.fromHex("c70cff2e3de400000008637bd05af6"))
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "timestamp beyond XRT time range"
+    rejected = false
+    try
+        msgpack.decode(msgpack.fromHex("db04000001"))
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "oversized str32 must have an error"
+    Buffer nested = Buffer()
+    for i in range(66)
+        nested.appendByte(0x91)
+    end
+    nested.appendByte(0xc0)
+    rejected = false
+    try
+        msgpack.decode(nested)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "nesting limit must have an error"
+    assert msgpack.decode(msgpack.fromHex("c0")) == null, "valid nil after an error"
+    for size in [31, 32, 255, 256]
+        string sample = string.repeat("a", size)
+        assert msgpack.decode(msgpack.encode(sample)) == sample, "string length boundary"
+    end
+    return 0
+end

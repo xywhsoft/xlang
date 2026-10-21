@@ -1,0 +1,17 @@
+import msgpack
+
+func main(...) as int
+    var document = {"name": "xlang", "count": 7}
+    var packed = msgpack.encode(document)
+    var restored = msgpack.decode(packed)
+    if msgpack.toHex(msgpack.fromHex("c0")) != "c0"
+        return 1
+    end
+    if msgpack.decode(msgpack.fromHex("c0")) != null
+        return 2
+    end
+    if packed.len() == 0
+        return 3
+    end
+    return 0
+end

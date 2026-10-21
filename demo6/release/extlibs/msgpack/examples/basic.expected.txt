@@ -1,0 +1,6 @@
+name=xlang
+count=7
+maximum=18446744073709551615
+when=1
+bytes=51
+binary=00ff41

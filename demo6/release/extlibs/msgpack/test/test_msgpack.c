@@ -1,14 +1,10 @@
 /* MessagePack C smoke: xvalue maps and byte strings use the same codec. */
 #define XRT_MODULE_ALL
 #include "xrt.h"
+#include "../msgpack_native.h"
 
 #include <stdio.h>
 #include <string.h>
-
-xbuffer* xmsgpack_encode(xvalue* pValue);
-xvalue* xmsgpack_decode(const void* pData, size_t iSize);
-xbuffer* xmsgpack_encode_bytes(const void* pData, size_t iSize);
-xbuffer* xmsgpack_decode_bytes(const void* pData, size_t iSize);
 
 int main(void)
 {
@@ -47,5 +43,3 @@ int main(void)
     puts("msgpack C smoke: PASS");
     return 0;
 }
-
-#include "../msgpack_native.c"

@@ -1,0 +1,26 @@
+import msgpack
+
+func main(...) as int
+    assert arg.length == 1 or arg.length == 2
+    var value = {"name": "xlang", "count": 7,
+        "maximum": uint64(18446744073709551615), "when": time(1)}
+    Buffer packed = msgpack.encode(value)
+    var restored = msgpack.decode(packed)
+    println("name=" + string(restored["name"]))
+    println("count=" + string(restored["count"]))
+    assert restored["maximum"] == uint64(18446744073709551615)
+    println("maximum=" + string(restored["maximum"]))
+    assert restored["when"] == time(1)
+    println("when=1")
+    println("bytes=" + string(packed.len()))
+    Buffer binary = msgpack.fromHex("00ff41")
+    Buffer binaryPacked = msgpack.encodeBytes(binary)
+    assert msgpack.toHex(binaryPacked) == "c40300ff41"
+    Buffer binaryRestored = msgpack.decodeBytes(binaryPacked)
+    assert msgpack.toHex(binaryRestored) == "00ff41"
+    println("binary=" + msgpack.toHex(binaryRestored))
+    if arg.length == 2 then
+        assert file.writeBytes(string(arg[1]), packed.toBytes())
+    end
+    return 0
+end

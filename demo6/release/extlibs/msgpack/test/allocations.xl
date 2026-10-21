@@ -1,0 +1,67 @@
+import msgpack
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func exercise(int operation, var source, Buffer objectWire,
+    Buffer nestedWire, Buffer bytesWire, Buffer rawBytes)
+    if operation == 0 then
+        msgpack.encode(source)
+    elseif operation == 1 then
+        msgpack.decode(nestedWire)
+    elseif operation == 2 then
+        msgpack.encodeBytes(rawBytes)
+    elseif operation == 3 then
+        msgpack.decodeBytes(bytesWire)
+    elseif operation == 4 then
+        msgpack.toHex(objectWire)
+    else
+        msgpack.fromHex("c404deadbeef")
+    end
+end
+
+var source = {"name": "xlang"}
+Buffer objectWire = msgpack.fromHex("81a46e616d65a5786c616e67")
+Buffer nestedWire = msgpack.fromHex("9281a46e616d65a5786c616e6781a176c404deadbeef")
+Buffer bytesWire = msgpack.fromHex("c404deadbeef")
+Buffer rawBytes = msgpack.fromHex("deadbeef")
+for operation in range(6)
+    int failures = 0
+    bool completed = false
+    for allocation in range(128)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        assert failAfter(uint64(allocation))
+        try
+            exercise(operation, source, objectWire, nestedWire,
+                bytesWire, rawBytes)
+        catch MemoryError error
+            memoryCaught = true
+        catch RuntimeError error
+            wrongCaught = true
+        catch ValueError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        if wrongCaught or memoryCaught != triggered then
+            println("msgpack operation=", operation, " allocation=", allocation,
+                " triggered=", triggered, " memory=", memoryCaught,
+                " other=", wrongCaught)
+        end
+        assert not wrongCaught and memoryCaught == triggered
+        if triggered then
+            failures += 1
+            exercise(operation, source, objectWire, nestedWire,
+                bytesWire, rawBytes)
+        else
+            completed = true
+            break
+        end
+    end
+    assert failures > 0 and completed
+end
+assert msgpack.decode(objectWire)["name"] == "xlang"
+assert msgpack.toHex(msgpack.decodeBytes(bytesWire)) == "deadbeef"
+println("msgpack allocation: PASS")

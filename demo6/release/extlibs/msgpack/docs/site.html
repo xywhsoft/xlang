@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>msgpack - 扩展库 - xlang</title>
+  <meta name="description" content="基于 XRT var/Buffer 的 MessagePack 编解码，支持 C/xlang 双语接口。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-fmt" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / msgpack</p>
+    <h1>msgpack</h1>
+    <p class="extlib-lead">使用 Buffer 传输二进制 MessagePack，以 var 表达动态值。</p>
+    <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import msgpack
+
+var source = {"name": "xlang", "count": 7}
+Buffer packed = msgpack.encode(source)
+var document = msgpack.decode(packed)
+println(document["name"])
+assert msgpack.decode(msgpack.fromHex("c0")) == null</code></pre>
+    <p>输出 <code>xlang</code>。合法 <code>nil</code> 返回 xlang 的 <code>null</code>；畸形输入抛 <code>ValueError</code>。</p>
+  </section>
+  <section id="api">
+    <h2>接口与边界</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>encode(value) / decode(Buffer)</code></td><td>在 var 与 MessagePack 二进制之间转换。</td></tr>
+      <tr><td><code>encodeBytes(Buffer) / decodeBytes(Buffer)</code></td><td>直接处理 bin 字节串。</td></tr>
+      <tr><td><code>toHex(Buffer) / fromHex(text)</code></td><td>诊断或固定测试向量；HEX 文本拒绝内嵌 NUL，C 文本入口按 128 MiB 限界扫描。</td></tr>
+    </tbody></table>
+    <p>映射 null、bool、int、uint64、float、UTF-8 字符串、字节、时间、数组和文本键字典。标准 uint64 可编码至 2^64-1；解码时不超过 INT64_MAX 的正整数沿用 int，超过时用 uint64，线格式不保留较小正整数的原始有符号类型。文本键和值均按显式长度处理，内嵌 NUL 不会截断；HEX 文本入口拒绝 NUL。time 使用标准 timestamp 扩展类型 -1 的 32/64/96 位布局；解码 float32 后转换为 xlang 浮点。时间精度为微秒，外部非整微秒纳秒值与超界时间报错，不静默舍入。其他 ext 类型及非文本映射键不在本包模型内。重复键、坏 UTF-8、截断和尾随字节报错。二进制输入/输出上限 64 MiB，调试用 HEX 文本上限 128 MiB；C 入口将缺失输入报为参数错误、超限报为范围错误；这些输入错误在 XLang 层抛 ValueError，分配故障另抛 MemoryError。整个文档的数组项与字典项合计最多 100 万，编解码采用相同预算；深度最多 64。</p>
+  </section>
+  <section id="c-api">
+    <h2>C 对照</h2>
+    <pre><code>#define XRT_MODULE_ALL
+#include "xrt.h"
+#include "msgpack_native.h"
+
+int main(void)
+{
+    const unsigned char wire[] = {0xc0};
+    xvalue* value = xmsgpack_decode(wire, sizeof(wire));
+    if (value == NULL) return 1;
+    int ok = xrtValueType(value) == XVALUE_NULL;
+    xrtValueRelease(value);
+    return ok ? 0 : 2;
+}</code></pre>
+    <p><code>xmsgpack_encode(NULL)</code> 表示缺少参数，返回 <code>NULL</code> 并设置 <code>XERR_ARGUMENT</code>；传入 <code>xrtValueNull()</code> 才会编码合法 nil。C 解码失败返回 <code>NULL</code>，合法 nil 返回拥有型 <code>XVALUE_NULL</code>。拥有型 Buffer 和 HEX 字符串分别用 <code>xrtBufferDestroy</code>、<code>xrtFree</code> 释放。完整 C/XLang 对照范例位于 <code>extlibs/msgpack/examples/</code>。</p>
+    <p><code>examples/msgpack_c.c</code> 可直接使用 <code>xl run release/extlibs/msgpack/examples/msgpack_c.c</code> 单文件执行；成对 C/XLang 范例覆盖六个公开入口，二进制样本含 NUL 与 <code>0xFF</code>，固定 bin8 线格式 <code>c40300ff41</code>。Windows/Linux 门禁将三条运行路径与独立预期输出对照，Linux ASan 还覆盖参数和文件写入失败时的释放路径。</p>
+  </section>
+  <section id="verify">
+    <h2>验证状态</h2>
+    <p>2026-10-21 XLang 六个公开入口的分配故障用例改为逐入口扫描到首次成功，并在每次失败后立即清除故障、重试。Windows/Linux 正式运行器均通过；包实现及线格式未改，完整 AOT 的共享阻断未变。</p>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/msgpack/test/check.ps1 -SkipAot
+sh release/extlibs/msgpack/test/check.sh</code></pre>
+    <p>2026-10-19：Windows 严格 GCC、C/XLang 边界、固定种子畸形输入及双语范例通过；Linux 同一包级脚本完成 C ASan/UBSan、XLang 边界与 C/XLang 范例逐字节对照。六个公开入口的逐点分配故障扫描保留 <code>XERR_MEMORY</code> 并可恢复；新增文本键和值内嵌 NUL 的固定线格式和 XLang 往返验证。标准 timestamp 的 32/64/96 位固定向量及与 Python msgpack 1.2.3 的双向互通通过，非整微秒与超界时间明确拒绝。累计项数的编解码预算已统一并有红绿回归。此前核心/边界 AOT 在旧构建下通过；当前构建的完整门禁受共享缺符号阻断，尚未签收全部发布形态。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>
