@@ -12,7 +12,9 @@ string preview = volc.core.sign_preview_acep(
 
 `extra_pairs` 是逐行 `key=value` 文本，规范化时按键和值排序并对 UTF-8 字节做百分号编码。`x_date` 为空时使用 XRT 当前 UTC 时间；显式指定时必须是有效的 `YYYYMMDDTHHMMSSZ`，无效日期直接报错，不静默改用当前时间。预览返回含 `query`、`x_date`、`x_content_sha256`、`signed_headers`、`authorization` 的 JSON 字符串，不发网络请求。预览中的凭据只应使用测试值；真实授权头不应写入日志。
 
-直接拼入规范请求或授权头的方法、主机、路径、服务、区域、访问密钥 ID、会话令牌和内容类型不能包含 ASCII 控制字符（含 CR/LF、TAB 和 DEL）；签名前会报 `invalid signed field`。请求体仍可包含换行，查询值由百分号编码路径处理。此校验不代替真实服务的凭据和请求参数验证。
+直接拼入规范请求或授权头的方法、主机、路径、服务、区域、访问密钥 ID、会话令牌和内容类型不能包含 ASCII 控制字符（含 CR/LF、TAB 和 DEL）；路径报 `invalid path`，其余字段报 `invalid signed field`。请求体仍可包含换行，查询值由百分号编码路径处理。此校验不代替真实服务的凭据和请求参数验证。
+
+通用 `sign_preview` / `request` 的 `path` 是**未编码、以 `/` 开头**的绝对路径；空值按 `/` 处理。签名和请求 URL 共用按路径片段编码的结果，保留 `/`，将空格、非 ASCII 字节和已有 `%` 分别编码；调用方不要预先对路径做百分号编码。非绝对路径报 `invalid path`。此规则与[火山引擎官方 Go SDK 的规范 URI 处理](https://github.com/volcengine/volc-sdk-golang/blob/main/base/sign.go)一致；包内 C 测试固定了含空格和中文路径的完整签名向量。
 
 ## C 接口
 
@@ -45,3 +47,5 @@ C 边界与离线范例均通过。XLang 导入链仍在 `xhttp.multipart` 的
 同轮横查发现四个在线/STS 入口的 `timeout_ms`、`duration_seconds` 在 C 侧也是 `int`，XLang extern 原来直接接收 64 位 `int`。现在公开函数保持原签名，传入 C 前检查 `[-2147483648, 2147483647]` 并转换为 `c_int`；超出范围抛 `RangeError`，不会静默截断。`xl parse` 通过，但完整 `xl check` 仍先被上述导入链阻断，恢复后须补 XLang 正常值、上下界和越界调用回归，并验收真实请求路径。
 
 2026-10-22：通用签名入口拒绝上述签名字段中的控制字符，防止改变规范请求行结构或授权头；C 离线测试覆盖八个字段的 CR/LF、主机 TAB/DEL，以及含换行请求体的成功恢复。Windows 严格 GCC 和 Linux ASan/UBSan 离线门禁通过；XLang 与在线路径仍未验收。
+
+2026-10-22：签名与请求改用同一条规范 URI；C 离线测试及范例固定验证 `/a b/中文` 的授权签名，另测 `%` 二次编码和非绝对路径拒绝。Windows 严格 GCC、Linux ASan/UBSan 离线门禁通过；真实在线 URL 仍待网络验收，XLang 导入阻断未解除。

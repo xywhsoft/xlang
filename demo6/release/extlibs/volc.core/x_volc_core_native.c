@@ -370,12 +370,12 @@ static int xvolc_is_unreserved(unsigned char ch)
 		ch == '-' || ch == '_' || ch == '.' || ch == '~';
 }
 
-static int xvolc_url_encode_append(xvolc_buf* b, const char* text)
+static int xvolc_url_encode_append(xvolc_buf* b, const char* text, int preserve_slash)
 {
 	static const char* hex = "0123456789ABCDEF";
 	const unsigned char* p = (const unsigned char*)(text ? text : "");
 	while ( *p != 0u ) {
-		if ( xvolc_is_unreserved(*p) ) {
+		if ( xvolc_is_unreserved(*p) || (preserve_slash && *p == '/') ) {
 			if ( !xvolc_buf_append_n(b, (const char*)p, 1u) ) return 0;
 		} else {
 			char esc[3];
@@ -513,9 +513,9 @@ static char* xvolc_build_canonical_query(const char* action, const char* version
 	qsort(pairs, count, sizeof(xvolc_pair), xvolc_pair_cmp);
 	for ( i = 0u; i < count; ++i ) {
 		if ( i > 0u && !xvolc_buf_append(&b, "&") ) goto fail;
-		if ( !xvolc_url_encode_append(&b, pairs[i].key) ) goto fail;
+		if ( !xvolc_url_encode_append(&b, pairs[i].key, 0) ) goto fail;
 		if ( !xvolc_buf_append(&b, "=") ) goto fail;
-		if ( !xvolc_url_encode_append(&b, pairs[i].value) ) goto fail;
+		if ( !xvolc_url_encode_append(&b, pairs[i].value, 0) ) goto fail;
 	}
 	ret = xvolc_strdup(b.data ? b.data : "");
 	xvolc_buf_free(&b);
@@ -550,6 +550,23 @@ static int xvolc_signed_field_valid(const char* text)
 		++p;
 	}
 	return 1;
+}
+
+/* 路径按片段编码，斜杠保留；签名与发出的 URL 必须使用相同字节。 */
+static char* xvolc_normalize_path(const char* path)
+{
+	xvolc_buf encoded;
+	const char* text = path && path[0] ? path : "/";
+	if ( text[0] != '/' || !xvolc_signed_field_valid(text) ) {
+		xvolc_set_error("invalid path");
+		return NULL;
+	}
+	xvolc_buf_init(&encoded);
+	if ( !xvolc_url_encode_append(&encoded, text, 1) ) {
+		xvolc_buf_free(&encoded);
+		return NULL;
+	}
+	return encoded.data;
 }
 
 static int xvolc_sign(const char* method,
@@ -801,6 +818,7 @@ const char* x_volc_core_sign_preview(const char* method,
 	const char* x_date)
 {
 	char* query = NULL;
+	char* normalized_path = NULL;
 	char* signed_x_date = NULL;
 	char* payload_hash = NULL;
 	char* signed_headers = NULL;
@@ -811,7 +829,9 @@ const char* x_volc_core_sign_preview(const char* method,
 	xvolc_buf_init(&json);
 	query = xvolc_build_canonical_query(action, version, extra_pairs);
 	if ( query == NULL ) goto done;
-	if ( !xvolc_sign(method, host, path, service, region, access_key, secret_key, session_token,
+	normalized_path = xvolc_normalize_path(path);
+	if ( normalized_path == NULL ) goto done;
+	if ( !xvolc_sign(method, host, normalized_path, service, region, access_key, secret_key, session_token,
 		content_type, query, body, x_date, &signed_x_date, &payload_hash, &signed_headers, &authorization) ) goto done;
 	if ( !xvolc_buf_append(&json, "{") ) goto done;
 	if ( !xvolc_buf_append(&json, "\"query\":") || !xvolc_json_escape_append(&json, query) ) goto done;
@@ -826,6 +846,7 @@ const char* x_volc_core_sign_preview(const char* method,
 	ret = xvolc_return_text(json.data ? json.data : "{}");
 done:
 	if ( query ) xrtFree(query);
+	if ( normalized_path ) xrtFree(normalized_path);
 	if ( signed_x_date ) xrtFree(signed_x_date);
 	if ( payload_hash ) xrtFree(payload_hash);
 	if ( signed_headers ) xrtFree(signed_headers);
@@ -850,6 +871,7 @@ const char* x_volc_core_request(const char* method,
 	int timeout_ms)
 {
 	char* query = NULL;
+	char* normalized_path = NULL;
 	char* signed_x_date = NULL;
 	char* payload_hash = NULL;
 	char* signed_headers = NULL;
@@ -876,9 +898,11 @@ const char* x_volc_core_request(const char* method,
 	xvolc_buf_init(&url);
 	query = xvolc_build_canonical_query(action, version, extra_pairs);
 	if ( query == NULL ) goto done;
-	if ( !xvolc_sign(p_method, host, p_path, service, region, access_key, secret_key, session_token,
+	normalized_path = xvolc_normalize_path(p_path);
+	if ( normalized_path == NULL ) goto done;
+	if ( !xvolc_sign(p_method, host, normalized_path, service, region, access_key, secret_key, session_token,
 		p_content_type, query, p_body, NULL, &signed_x_date, &payload_hash, &signed_headers, &authorization) ) goto done;
-	if ( !xvolc_buf_appendf(&url, "https://%s%s?%s", host ? host : "", p_path, query) ) goto done;
+	if ( !xvolc_buf_appendf(&url, "https://%s%s?%s", host ? host : "", normalized_path, query) ) goto done;
 	xrtNetEngineConfigInit(&engine_cfg);
 	engine_cfg.Workers = 1u;
 	engine = xrtNetEngineCreate(&engine_cfg);
@@ -951,6 +975,7 @@ done:
 		(void)xrtNetEngineDestroy(engine);
 	}
 	if ( query ) xrtFree(query);
+	if ( normalized_path ) xrtFree(normalized_path);
 	if ( signed_x_date ) xrtFree(signed_x_date);
 	if ( payload_hash ) xrtFree(payload_hash);
 	if ( signed_headers ) xrtFree(signed_headers);

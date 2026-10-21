@@ -14,6 +14,7 @@ static void test_pair_allocation_failure(void);
 static void test_thread_isolation(void);
 static void test_buffer_bounds(void);
 static void test_signed_fields(void);
+static void test_canonical_path(void);
 
 static int fail(const char* message)
 {
@@ -57,6 +58,7 @@ int main(void)
     test_pair_allocation_failure();
     test_buffer_bounds();
     test_signed_fields();
+    test_canonical_path();
     test_thread_isolation();
     puts("volc.core C smoke: PASS");
     return 0;
@@ -75,12 +77,12 @@ static void test_signed_fields(void)
     for (i = 0u; i < sizeof(fields) / sizeof(fields[0]); ++i) {
         const char* original = fields[i];
         const char* preview;
-        fields[i] = "bad\r\nheader";
+        fields[i] = i == 2u ? "/bad\r\nheader" : "bad\r\nheader";
         preview = x_volc_core_sign_preview(fields[0], fields[1], fields[2],
             fields[3], fields[4], "ListApps", "2020-01-01", fields[5],
             "SECRET", fields[6], fields[7], "", "{}", "20240102T030405Z");
         assert(strcmp(preview, "") == 0);
-        assert(strcmp(x_volc_core_last_error(), "invalid signed field") == 0);
+        assert(strcmp(x_volc_core_last_error(), i == 2u ? "invalid path" : "invalid signed field") == 0);
         fields[i] = original;
     }
     fields[1] = "bad\thost";
@@ -97,6 +99,30 @@ static void test_signed_fields(void)
         "SECRET", fields[6], fields[7], "", "line\nbody", "20240102T030405Z"),
         "authorization") != NULL);
     assert(x_volc_core_last_error()[0] == '\0');
+}
+
+/* 规范 URI 与请求 URL 共用此编码，签名向量独立按官方算法计算。 */
+static void test_canonical_path(void)
+{
+    char* path = xvolc_normalize_path("/a b/\xe4\xb8\xad\xe6\x96\x87");
+    const char* preview;
+    assert(path != NULL);
+    assert(strcmp(path, "/a%20b/%E4%B8%AD%E6%96%87") == 0);
+    xrtFree(path);
+    path = xvolc_normalize_path("/a%20b");
+    assert(path != NULL && strcmp(path, "/a%2520b") == 0);
+    xrtFree(path);
+    preview = x_volc_core_sign_preview("POST", "open.volcengineapi.com",
+        "/a b/\xe4\xb8\xad\xe6\x96\x87", "ACEP", "cn-north-1",
+        "ListApps", "2020-01-01", "AKID", "SECRET", "", "application/json",
+        "", "{}", "20240102T030405Z");
+    assert(strstr(preview, "Signature=b7314969a3890d3f9d541282fc8814269023fc1f6945a7e1ff80a52b465ba485") != NULL);
+    assert(x_volc_core_last_error()[0] == '\0');
+    assert(strcmp(x_volc_core_sign_preview("POST", "open.volcengineapi.com",
+        "relative", "ACEP", "cn-north-1", "ListApps", "2020-01-01",
+        "AKID", "SECRET", "", "application/json", "", "{}",
+        "20240102T030405Z"), "") == 0);
+    assert(strcmp(x_volc_core_last_error(), "invalid path") == 0);
 }
 
 /* 正常扩容保留内容，极限长度必须在计算容量前拒绝。 */
