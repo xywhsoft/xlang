@@ -202,8 +202,11 @@ static xvalue *xsrt_parse_cues(const char *text, size_t size, int vtt) {
         size_t k;
         if (!line.size) continue;
         if (vtt && xsrt_vtt_control(line)) {
-            if (xsrt_equal(line, "STYLE") && xrtValueCount(result) > 0) goto invalid;
-            while (xsrt_next(&cursor, limit, &line) && line.size) {}
+            if ((xsrt_equal(line, "STYLE") || xsrt_equal(line, "REGION")) &&
+                xrtValueCount(result) > 0) goto invalid;
+            if (xsrt_arrow(line) != SIZE_MAX) goto invalid;
+            while (xsrt_next(&cursor, limit, &line) && line.size)
+                if (xsrt_arrow(line) != SIZE_MAX) goto invalid;
             continue;
         }
         if (xsrt_arrow(line) == SIZE_MAX) {

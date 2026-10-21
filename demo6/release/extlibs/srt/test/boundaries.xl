@@ -17,8 +17,8 @@ func main(...) as int
     assert srt.parseTime("2562047788015:00:00,000") == 9223372036854000000, "int64 timestamp bound"
     var noted = srt.parseVtt("WEBVTT\n\nNOTE\tcomment\nskipped\n\n00:00.000 --> 00:01.000\nVisible\n")
     assert noted.length == 1, "tab-prefixed VTT note skipped"
-    var styled = srt.parseVtt("WEBVTT\n\nSTYLE\n::cue { color: white }\n\n00:00.000 --> 00:01.000\nVisible\n\nNOTE after cue\ncomment\n")
-    assert styled.length == 1, "style before cue and note after cue"
+    var styled = srt.parseVtt("WEBVTT\n\nSTYLE\n::cue { color: white }\n\nREGION\nid:main\n\n00:00.000 --> 00:01.000\nVisible\n\nNOTE after cue\ncomment\n")
+    assert styled.length == 1, "layout blocks before cue and note after cue"
 
     int badPayload = 0
     try
@@ -27,6 +27,41 @@ func main(...) as int
         badPayload = 1
     end
     assert badPayload == 1, "VTT payload arrow rejected"
+    badPayload = 0
+    try
+        srt.parseVtt("WEBVTT\n\nNOTE bad --> note\nignored\n\n00:00.000 --> 00:01.000\nVisible\n")
+    catch e
+        badPayload = 1
+    end
+    assert badPayload == 1, "VTT note arrow rejected"
+    badPayload = 0
+    try
+        srt.parseVtt("WEBVTT\n\n00:00.000 --> 00:01.000\nVisible\n\nNOTE after cue\nignored --> text\n")
+    catch e
+        badPayload = 1
+    end
+    assert badPayload == 1, "VTT trailing note arrow rejected"
+    badPayload = 0
+    try
+        srt.parseVtt("WEBVTT\n\nSTYLE\n::cue { content: '-->'; }\n\n00:00.000 --> 00:01.000\nVisible\n")
+    catch e
+        badPayload = 1
+    end
+    assert badPayload == 1, "VTT style arrow rejected"
+    badPayload = 0
+    try
+        srt.parseVtt("WEBVTT\n\nREGION\nid:bad-->region\n\n00:00.000 --> 00:01.000\nVisible\n")
+    catch e
+        badPayload = 1
+    end
+    assert badPayload == 1, "VTT region arrow rejected"
+    badPayload = 0
+    try
+        srt.parseVtt("WEBVTT\n\n00:00.000 --> 00:01.000\nVisible\n\nREGION\nid:late\n")
+    catch e
+        badPayload = 1
+    end
+    assert badPayload == 1, "VTT region after cue rejected"
     badPayload = 0
     try
         srt.parseVtt("WEBVTT\n\n00:00.000 --> 00:01.000\nHi\n\nSTYLE\n::cue { color: white }\n")

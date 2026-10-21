@@ -194,12 +194,23 @@ int main(void) {
     {
         xvalue *styled = xsrt_parse_vtt(
             "WEBVTT\n\nSTYLE\n::cue { color: white }\n\n"
+            "REGION\nid:main\n\n"
             "00:00.000 --> 00:01.000\nVisible\n\nNOTE after cue\ncomment\n");
         CHECK(styled != NULL && xrtValueType(styled) == XVALUE_ARRAY &&
             xrtValueCount(styled) == 1);
         xrtValueRelease(styled);
     }
     CHECK(invalid_vtt("WEBVTT\n\n00:00.000 --> 00:01.000\nHi --> there\n"));
+    CHECK(invalid_vtt("WEBVTT\n\nNOTE bad --> note\nignored\n\n"
+        "00:00.000 --> 00:01.000\nVisible\n"));
+    CHECK(invalid_vtt("WEBVTT\n\n00:00.000 --> 00:01.000\nVisible\n\n"
+        "NOTE after cue\nignored --> text\n"));
+    CHECK(invalid_vtt("WEBVTT\n\nSTYLE\n::cue { content: '-->'; }\n\n"
+        "00:00.000 --> 00:01.000\nVisible\n"));
+    CHECK(invalid_vtt("WEBVTT\n\nREGION\nid:bad-->region\n\n"
+        "00:00.000 --> 00:01.000\nVisible\n"));
+    CHECK(invalid_vtt("WEBVTT\n\n00:00.000 --> 00:01.000\nVisible\n\n"
+        "REGION\nid:late\n"));
     CHECK(invalid_vtt("WEBVTT\n\n00:00.000 --> 00:01.000\nHi\n\n"
         "STYLE\n::cue { color: white }\n"));
     CHECK(invalid_vtt("WEBVTT\n\n00:02.000 --> 00:03.000\nLater\n\n"
