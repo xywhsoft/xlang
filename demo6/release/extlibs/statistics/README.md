@@ -80,12 +80,14 @@ bash release/extlibs/statistics/test/check.sh
 
 去掉 `-SkipAot` 会增加独立可执行文件验证。脚本只跑本包 C/XLang 测试，
 并对照 `examples/basic.xl` 与 `examples/statistics_c.c`、
-`examples/trend.xl` 与 `examples/trend_c.c` 两组成对范例的共同黄金输出。
-两份 C 范例均自包含统计实现，可在 `demo6` 目录直接运行：
+`examples/trend.xl` 与 `examples/trend_c.c`、
+`examples/distribution.xl` 与 `examples/distribution_c.c` 三组成对范例的
+共同黄金输出。三份 C 范例均自包含统计实现，可在 `demo6` 目录直接运行：
 
 ```powershell
 release/xl.exe run release/extlibs/statistics/examples/statistics_c.c
 release/xl.exe run release/extlibs/statistics/examples/trend_c.c
+release/xl.exe run release/extlibs/statistics/examples/distribution_c.c
 ```
 
 包门禁同时对照 GCC 编译运行、`xl run` 和 XLang 范例的输出。
