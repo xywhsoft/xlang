@@ -19,14 +19,7 @@ void __xrtXmlDomSetError(xrtxmlerror* pError, int iCode,
 
 bool __xrtXmlDomValidName(const char* sName)
 {
-	const unsigned char* p = (const unsigned char*)sName;
-	if ( p == NULL || *p == 0u ) { return false; }
-	while ( *p != 0u ) {
-		if ( *p <= 0x20u || *p == '<' || *p == '>' || *p == '&' ||
-			*p == '\'' || *p == '"' || *p == '/' || *p == '=' ) { return false; }
-		p++;
-	}
-	return true;
+	return xrtXmlNameValid((str)sName);
 }
 
 static bool __xrtXmlDomTrackNode(xrtxmldomdocument* pDocument,
@@ -339,21 +332,51 @@ XRT_API bool xrtXmlDomAppendChild(xrtxmldomnode* pParent,
 	return true;
 }
 
+typedef struct {
+	const xrtxmldomnode* pNode;
+	uint32 iNextChild;
+} xrtxmldomtextframe;
+
 static bool __xrtXmlDomTextContentAppend(const xrtxmldomnode* pNode,
 	xbuffer* pBuffer)
 {
-	uint32 i;
-	if ( pNode->iType == XRT_XML_DOM_TEXT_NODE ) {
-		size_t iLength = strlen((const char*)pNode->sValue);
-		return iLength == 0u || xrtBufferAppend(pBuffer,
-			(xbytesview){ (cbytes)pNode->sValue, iLength });
+	xrtxmldomtextframe* pStack = (xrtxmldomtextframe*)xrtMalloc(
+		32u * sizeof(*pStack));
+	size_t iCapacity = 32u;
+	size_t iDepth = 1u;
+	bool bOk = pStack != NULL;
+	if ( !bOk ) { return false; }
+	pStack[0] = (xrtxmldomtextframe){ pNode, 0u };
+	while ( iDepth != 0u ) {
+		xrtxmldomtextframe* pFrame = &pStack[iDepth - 1u];
+		if ( pFrame->pNode->iType == XRT_XML_DOM_TEXT_NODE ) {
+			size_t iLength = strlen((const char*)pFrame->pNode->sValue);
+			if ( iLength != 0u && !xrtBufferAppend(pBuffer,
+				(xbytesview){ (cbytes)pFrame->pNode->sValue, iLength }) ) {
+				bOk = false;
+				break;
+			}
+			iDepth--;
+		} else if ( pFrame->iNextChild < pFrame->pNode->iChildCount ) {
+			const xrtxmldomnode* pChild =
+				pFrame->pNode->pChildren[pFrame->iNextChild++];
+			if ( iDepth == iCapacity ) {
+				xrtxmldomtextframe* pNew;
+				if ( iCapacity > SIZE_MAX / (2u * sizeof(*pStack)) ) {
+					bOk = false;
+					break;
+				}
+				pNew = (xrtxmldomtextframe*)xrtRealloc(pStack,
+					2u * iCapacity * sizeof(*pStack));
+				if ( pNew == NULL ) { bOk = false; break; }
+				pStack = pNew;
+				iCapacity *= 2u;
+			}
+			pStack[iDepth++] = (xrtxmldomtextframe){ pChild, 0u };
+		} else { iDepth--; }
 	}
-	for ( i = 0u; i < pNode->iChildCount; i++ ) {
-		if ( !__xrtXmlDomTextContentAppend(pNode->pChildren[i], pBuffer) ) {
-			return false;
-		}
-	}
-	return true;
+	xrtFree(pStack);
+	return bOk;
 }
 
 XRT_API str xrtXmlDomTextContent(const xrtxmldomnode* pNode)
@@ -362,7 +385,6 @@ XRT_API str xrtXmlDomTextContent(const xrtxmldomnode* pNode)
 	str sResult;
 	if ( pNode == NULL ) { return NULL; }
 	pBuffer = xrtBufferCreate();
-	if ( pBuffer != NULL ) { (void)xrtBufferReserve(pBuffer, 256u); }
 	if ( pBuffer == NULL || !__xrtXmlDomTextContentAppend(pNode, pBuffer) ) {
 		xrtBufferDestroy(pBuffer);
 		return NULL;

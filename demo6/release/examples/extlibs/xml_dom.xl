@@ -10,6 +10,6 @@ func main(...) as int
     book.appendChild(document.createText("XLang DOM"))
     document.appendChild(catalog)
     catalog.appendChild(book)
-    println(document.stringify(true, 2, true))
+    print(document.stringify(true, 2, true))
     return 0
 end

@@ -43,11 +43,12 @@ static void __xdomClearError(xrtxmlerror* pError)
 static void __xdomPublishError(const xrtxmlerror* pError)
 {
 	if ( pError == NULL ) {
-		xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.xml.dom",
-			XRT_XML_ERROR_FORMAT, "XML DOM operation failed");
+		xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.xml.dom",
+			XRT_XML_ERROR_MEMORY, "XML DOM error state is unavailable");
 		return;
 	}
-	xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.xml.dom", pError->iCode,
+	xrtSetErrorInfo(pError->iCode == XRT_XML_ERROR_MEMORY ? XERR_MEMORY : XERR_VALUE,
+		"xlang.extlib.xml.dom", pError->iCode,
 		pError->sMessage[0] != 0 ? pError->sMessage : "XML DOM operation failed");
 }
 
@@ -69,9 +70,10 @@ static str __xdomCopy(const char* sText)
 	return __xrtXmlDomCopy(sText != NULL ? sText : "");
 }
 
-XRT_API ptr xdom_parse(ptr pData, uint64 iSize, uint64 iMaxInput,
-	uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxEntries,
-	uint64 iMaxNodes, uint32 iMaxDepth)
+XRT_API ptr xdom_parse(const char* pData, unsigned long long iSize,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput,
+	unsigned long long iMaxItem, unsigned long long iMaxEntries,
+	unsigned long long iMaxNodes, uint32 iMaxDepth)
 {
 	xrtxmloptions tOptions;
 	xrtxmlerror* pError = __xdomError();
@@ -84,8 +86,10 @@ XRT_API ptr xdom_parse(ptr pData, uint64 iSize, uint64 iMaxInput,
 	return pResult;
 }
 
-XRT_API ptr xdom_load(str sPath, uint64 iMaxInput, uint64 iMaxOutput,
-	uint64 iMaxItem, uint64 iMaxEntries, uint64 iMaxNodes, uint32 iMaxDepth)
+XRT_API ptr xdom_load(const char* sPath, unsigned long long iMaxInput,
+	unsigned long long iMaxOutput, unsigned long long iMaxItem,
+	unsigned long long iMaxEntries, unsigned long long iMaxNodes,
+	uint32 iMaxDepth)
 {
 	xrtxmloptions tOptions;
 	xrtxmlerror* pError = __xdomError();
@@ -93,7 +97,7 @@ XRT_API ptr xdom_load(str sPath, uint64 iMaxInput, uint64 iMaxOutput,
 	__xdomOptions(&tOptions, iMaxInput, iMaxOutput, iMaxItem, iMaxEntries,
 		iMaxNodes, iMaxDepth);
 	__xdomClearError(pError);
-	pResult = xrtXmlDomLoad(sPath, &tOptions, pError);
+	pResult = xrtXmlDomLoad((str)sPath, &tOptions, pError);
 	if ( pResult == NULL ) { __xdomPublishError(pError); }
 	return pResult;
 }
@@ -102,14 +106,14 @@ XRT_API ptr xdom_create_document(void) { return xrtXmlDomCreateDocument(); }
 XRT_API ptr xdom_adopt(ptr pHandle) { return pHandle; }
 XRT_API void xdom_release(ptr pHandle) { xrtXmlDomNodeRelease((xrtxmldomnode*)pHandle); }
 XRT_API int64 xdom_type(ptr pHandle) { return xrtXmlDomNodeType((xrtxmldomnode*)pHandle); }
-XRT_API str xdom_type_name(ptr pHandle) { return __xdomCopy((const char*)xrtXmlDomNodeTypeName((xrtxmldomnode*)pHandle)); }
-XRT_API str xdom_name(ptr pHandle) { return __xdomCopy((const char*)xrtXmlDomNodeName((xrtxmldomnode*)pHandle)); }
-XRT_API str xdom_local_name(ptr pHandle) { return __xdomCopy((const char*)xrtXmlDomNodeLocalName((xrtxmldomnode*)pHandle)); }
-XRT_API str xdom_namespace_uri(ptr pHandle) { return __xdomCopy((const char*)xrtXmlDomNodeNamespaceUri((xrtxmldomnode*)pHandle)); }
-XRT_API str xdom_prefix(ptr pHandle) { return __xdomCopy((const char*)xrtXmlDomNodePrefix((xrtxmldomnode*)pHandle)); }
-XRT_API str xdom_value(ptr pHandle) { return __xdomCopy((const char*)xrtXmlDomNodeValue((xrtxmldomnode*)pHandle)); }
-XRT_API bool xdom_set_value(ptr pHandle, str sValue) { return xrtXmlDomNodeSetValue((xrtxmldomnode*)pHandle, sValue); }
-XRT_API str xdom_text_content(ptr pHandle) { return xrtXmlDomTextContent((xrtxmldomnode*)pHandle); }
+XRT_API ptr xdom_type_name(ptr pHandle) { return __xdomCopy((const char*)xrtXmlDomNodeTypeName((xrtxmldomnode*)pHandle)); }
+XRT_API ptr xdom_name(ptr pHandle) { return __xdomCopy((const char*)xrtXmlDomNodeName((xrtxmldomnode*)pHandle)); }
+XRT_API ptr xdom_local_name(ptr pHandle) { return __xdomCopy((const char*)xrtXmlDomNodeLocalName((xrtxmldomnode*)pHandle)); }
+XRT_API ptr xdom_namespace_uri(ptr pHandle) { return __xdomCopy((const char*)xrtXmlDomNodeNamespaceUri((xrtxmldomnode*)pHandle)); }
+XRT_API ptr xdom_prefix(ptr pHandle) { return __xdomCopy((const char*)xrtXmlDomNodePrefix((xrtxmldomnode*)pHandle)); }
+XRT_API ptr xdom_value(ptr pHandle) { return __xdomCopy((const char*)xrtXmlDomNodeValue((xrtxmldomnode*)pHandle)); }
+XRT_API bool xdom_set_value(ptr pHandle, const char* sValue) { return xrtXmlDomNodeSetValue((xrtxmldomnode*)pHandle, (str)sValue); }
+XRT_API ptr xdom_text_content(ptr pHandle) { return xrtXmlDomTextContent((xrtxmldomnode*)pHandle); }
 XRT_API ptr xdom_parent(ptr pHandle) { return xrtXmlDomNodeParent((xrtxmldomnode*)pHandle); }
 XRT_API int64 xdom_child_count(ptr pHandle) { return xrtXmlDomNodeChildCount((xrtxmldomnode*)pHandle); }
 XRT_API ptr xdom_child(ptr pHandle, uint32 iIndex) { return xrtXmlDomNodeChild((xrtxmldomnode*)pHandle, iIndex); }
@@ -117,19 +121,19 @@ XRT_API ptr xdom_document_element(ptr pHandle) { return xrtXmlDomDocumentElement
 XRT_API bool xdom_append_child(ptr pParent, ptr pChild) { return xrtXmlDomAppendChild((xrtxmldomnode*)pParent, (xrtxmldomnode*)pChild); }
 XRT_API bool xdom_remove_child(ptr pParent, ptr pChild) { return xrtXmlDomRemoveChild((xrtxmldomnode*)pParent, (xrtxmldomnode*)pChild); }
 
-XRT_API ptr xdom_create_element(ptr pDocument, str sName) { return xrtXmlDomCreateElement((xrtxmldomnode*)pDocument, sName); }
-XRT_API ptr xdom_create_text(ptr pDocument, str sText) { return xrtXmlDomCreateText((xrtxmldomnode*)pDocument, sText); }
-XRT_API ptr xdom_create_comment(ptr pDocument, str sText) { return xrtXmlDomCreateComment((xrtxmldomnode*)pDocument, sText); }
-XRT_API ptr xdom_create_pi(ptr pDocument, str sTarget, str sText) { return xrtXmlDomCreateProcessingInstruction((xrtxmldomnode*)pDocument, sTarget, sText); }
+XRT_API ptr xdom_create_element(ptr pDocument, const char* sName) { return xrtXmlDomCreateElement((xrtxmldomnode*)pDocument, (str)sName); }
+XRT_API ptr xdom_create_text(ptr pDocument, const char* sText) { return xrtXmlDomCreateText((xrtxmldomnode*)pDocument, (str)sText); }
+XRT_API ptr xdom_create_comment(ptr pDocument, const char* sText) { return xrtXmlDomCreateComment((xrtxmldomnode*)pDocument, (str)sText); }
+XRT_API ptr xdom_create_pi(ptr pDocument, const char* sTarget, const char* sText) { return xrtXmlDomCreateProcessingInstruction((xrtxmldomnode*)pDocument, (str)sTarget, (str)sText); }
 
-XRT_API str xdom_get_attribute(ptr pHandle, str sName)
+XRT_API ptr xdom_get_attribute(ptr pHandle, const char* sName)
 {
-	str sValue = xrtXmlDomGetAttribute((xrtxmldomnode*)pHandle, sName);
+	str sValue = xrtXmlDomGetAttribute((xrtxmldomnode*)pHandle, (str)sName);
 	return sValue != NULL ? __xdomCopy((const char*)sValue) : NULL;
 }
 
-XRT_API bool xdom_set_attribute(ptr pHandle, str sName, str sValue) { return xrtXmlDomSetAttribute((xrtxmldomnode*)pHandle, sName, sValue); }
-XRT_API bool xdom_remove_attribute(ptr pHandle, str sName) { return xrtXmlDomRemoveAttribute((xrtxmldomnode*)pHandle, sName); }
+XRT_API bool xdom_set_attribute(ptr pHandle, const char* sName, const char* sValue) { return xrtXmlDomSetAttribute((xrtxmldomnode*)pHandle, (str)sName, (str)sValue); }
+XRT_API bool xdom_remove_attribute(ptr pHandle, const char* sName) { return xrtXmlDomRemoveAttribute((xrtxmldomnode*)pHandle, (str)sName); }
 
 XRT_API xvalue* xdom_attributes(ptr pHandle)
 {
@@ -162,7 +166,7 @@ static void __xdomWriteOptions(xrtxmldomwriteoptions* pOptions,
 }
 
 XRT_API ptr xdom_stringify(ptr pHandle, bool bPretty, uint32 iIndent,
-	bool bDeclaration, uint64 iMaxOutput)
+	bool bDeclaration, unsigned long long iMaxOutput)
 {
 	xrtxmldomwriteoptions tOptions;
 	xrtxmlerror* pError = __xdomError();
@@ -174,15 +178,15 @@ XRT_API ptr xdom_stringify(ptr pHandle, bool bPretty, uint32 iIndent,
 	return pResult;
 }
 
-XRT_API bool xdom_save(ptr pHandle, str sPath, bool bPretty,
-	uint32 iIndent, bool bDeclaration, uint64 iMaxOutput)
+XRT_API bool xdom_save(ptr pHandle, const char* sPath, bool bPretty,
+	uint32 iIndent, bool bDeclaration, unsigned long long iMaxOutput)
 {
 	xrtxmldomwriteoptions tOptions;
 	xrtxmlerror* pError = __xdomError();
 	bool bResult;
 	__xdomWriteOptions(&tOptions, bPretty, iIndent, bDeclaration, iMaxOutput);
 	__xdomClearError(pError);
-	bResult = xrtXmlDomSave(sPath, (xrtxmldomnode*)pHandle, &tOptions, pError);
+	bResult = xrtXmlDomSave((str)sPath, (xrtxmldomnode*)pHandle, &tOptions, pError);
 	if ( !bResult ) { __xdomPublishError(pError); }
 	return bResult;
 }
@@ -191,4 +195,4 @@ XRT_API int64 xdom_error_code(void) { xrtxmlerror* p = __xdomError(); return p !
 XRT_API int64 xdom_error_line(void) { xrtxmlerror* p = __xdomError(); return p != NULL ? (int64)p->iLine : 0; }
 XRT_API int64 xdom_error_column(void) { xrtxmlerror* p = __xdomError(); return p != NULL ? (int64)p->iColumn : 0; }
 XRT_API int64 xdom_error_offset(void) { xrtxmlerror* p = __xdomError(); return p != NULL ? (int64)p->iOffset : 0; }
-XRT_API str xdom_error_message(void) { xrtxmlerror* p = __xdomError(); return __xdomCopy(p != NULL ? p->sMessage : "XML DOM state is unavailable"); }
+XRT_API ptr xdom_error_message(void) { xrtxmlerror* p = __xdomError(); return __xdomCopy(p != NULL ? p->sMessage : "XML DOM state is unavailable"); }

@@ -1,0 +1,182 @@
+import xml.dom
+
+func main(...) as int
+    string input = "<root id='one'><child>你好</child>" + "</root>"
+    auto document = xml.dom.parse(input)
+    input = ""
+    auto root = document.documentElement
+    assert root.name == "root"
+    assert root.getAttribute("id") == "one"
+    assert root.getAttribute("missing", "fallback") == "fallback"
+    assert root.childCount == 1
+
+    auto child = root.child(0)
+    assert child.name == "child"
+    assert child.textContent == "你好"
+    assert child.parent.name == "root"
+    child.setAttribute("escaped", "&<>")
+    string encoded = document.stringify()
+    assert string.contains(encoded, "escaped=\"&amp;&lt;&gt;\"")
+
+    auto mixed = xml.dom.parse("<root>head<child>one</child>tail</root>")
+    string mixedPretty = mixed.stringify(true)
+    assert string.contains(mixedPretty, "<root>head<child>one</child>tail</root>")
+
+    bool rejected = false
+    try
+        document.createElement("1root")
+    catch XmlError error
+        rejected = true
+    end
+    assert rejected, "XML names cannot begin with a digit"
+    rejected = false
+    try
+        document.stringify(maxOutput=1)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "output limit must be enforced before subtraction"
+
+    rejected = false
+    try
+        xml.dom.parse("<root>")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    assert xml.dom.errorLine() > 0
+
+    rejected = false
+    try
+        xml.dom.parse("<!DOCTYPE root [<!ENTITY value 'secret'>]><root>&value;</root>")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        xml.dom.parse("<!DOCTYPE root SYSTEM 'file:///xlang-extlib-no-such-entity'><root/>")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "external DTD rejected"
+    rejected = false
+    try
+        xml.dom.parse("<!DOCTYPE root [<!ENTITY x SYSTEM 'file:///xlang-extlib-no-such-entity'>]><root>&x;</root>")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "external entity rejected"
+    rejected = false
+    try
+        xml.dom.parse("<root/>", maxInput=-1)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "negative input limit must not become unlimited"
+
+    rejected = false
+    try
+        xml.dom.parse("<root/>", maxInput=4)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "known-size input limit must reject before native parsing"
+
+    rejected = false
+    try
+        xml.dom.parse("<root/>\0<hidden/>")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "XML DOM input must not stop at an embedded NUL"
+
+    rejected = false
+    try
+        xml.dom.parse("<root/>", maxDepth=4294967424)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "depth must not wrap to 128"
+
+    rejected = false
+    try
+        document.stringify(true, 4294967298)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "indent must not wrap to 2"
+
+    rejected = false
+    try
+        document.createElement("item\0ignored")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "element name must not be truncated"
+    rejected = false
+    try
+        document.createText("hello\0ignored")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "text content must not be truncated"
+    rejected = false
+    try
+        root.getAttribute("id\0ignored")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "attribute lookup must not use a prefix name"
+    rejected = false
+    try
+        root.removeAttribute("id\0ignored")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "attribute removal must not use a prefix name"
+    assert root.getAttribute("id") == "one"
+
+    string workDir = dir.temp(path.temp(), "xlang_xml_dom_", "")
+    try
+        string fixture = path.join(workDir, "ffi.xml")
+        assert file.writeText(fixture, "<root/>")
+        rejected = false
+        try
+            xml.dom.load(fixture + "\0ignored")
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected, "load must not use a truncated path"
+        rejected = false
+        try
+            document.save(fixture + "\0ignored")
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected, "save must not overwrite a truncated path"
+        assert file.readText(fixture) == "<root/>"
+
+        auto textNode = child.child(0)
+        textNode.value = "bad \uFFFE"
+        rejected = false
+        try
+            document.stringify()
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected, "UTF-8 scalar U+FFFE is not an XML 1.0 character"
+        rejected = false
+        try
+            document.save(fixture)
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected
+        assert file.readText(fixture) == "<root/>"
+    finally
+        dir.delete(workDir)
+    end
+    println("xml.dom boundaries: ok")
+    return 0
+end

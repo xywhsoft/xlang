@@ -1,0 +1,4 @@
+import xml.dom
+
+auto document = xml.dom.createDocument()
+document.appendChildNative(null)

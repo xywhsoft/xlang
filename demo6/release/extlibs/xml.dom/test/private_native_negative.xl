@@ -1,0 +1,5 @@
+import xml.dom
+
+// 公开 Node 不得绕过 createElement 的 C 字符串校验。
+auto document = xml.dom.createDocument()
+document.createElementNative("item\0ignored")

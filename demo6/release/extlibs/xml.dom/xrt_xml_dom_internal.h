@@ -1,7 +1,30 @@
 #ifndef XRT_XML_DOM_INTERNAL_H
 #define XRT_XML_DOM_INTERNAL_H
 
-#define XRT_MODULE_ALL
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
+#ifndef XRT_MODULE_IO_FILE
+#define XRT_MODULE_IO_FILE
+#endif
+#ifndef XRT_MODULE_FILE_WHOLE
+#define XRT_MODULE_FILE_WHOLE
+#endif
+#ifndef XRT_MODULE_STRING
+#define XRT_MODULE_STRING
+#endif
+#ifndef XRT_MODULE_ONCE
+#define XRT_MODULE_ONCE
+#endif
+#ifndef XRT_MODULE_THREAD_KEY
+#define XRT_MODULE_THREAD_KEY
+#endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
+#ifndef XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_VALUE_CONTAINER
+#endif
 #include "xrt.h"
 #include "include/xrt_xml_dom.h"
 

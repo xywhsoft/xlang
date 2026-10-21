@@ -1,4 +1,11 @@
-#define XRT_MODULE_ALL
+#define XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_FILE
+#define XRT_MODULE_FILE_WHOLE
+#define XRT_MODULE_STRING
+#define XRT_MODULE_ONCE
+#define XRT_MODULE_THREAD_KEY
+#define XRT_MODULE_UNICODE
+#define XRT_MODULE_VALUE_CONTAINER
 #include "xrt.h"
 #include "../../extlibs/xml.dom/include/xrt_xml_dom.h"
 

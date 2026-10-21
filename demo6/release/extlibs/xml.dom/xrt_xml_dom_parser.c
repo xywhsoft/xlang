@@ -1,4 +1,5 @@
 #include "xrt_xml_dom_internal.h"
+#include "../xml.sax/xrt_xml_internal.h"
 
 
 
@@ -251,8 +252,16 @@ XRT_API xrtxmldomnode* xrtXmlDomParse(xreader* pReader, bool bTakeOwnership,
 XRT_API xrtxmldomnode* xrtXmlDomParseMemory(const void* pData, uint64 iSize,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError)
 {
-	xreader* pReader = xrtReaderFromMemory(
-		(xbytesview){ (cbytes)pData, (size_t)iSize });
+	xreader* pReader;
+	if ( !__xrtXmlMemoryPreflight(pData, iSize, pOptions, false, pError) ) {
+		return NULL;
+	}
+	pReader = xrtReaderFromMemory((xbytesview){ (cbytes)pData, (size_t)iSize });
+	if ( pReader == NULL ) {
+		__xrtXmlDomSetError(pError, XRT_XML_ERROR_MEMORY,
+			"could not allocate XML DOM memory reader");
+		return NULL;
+	}
 	return xrtXmlDomParse(pReader, true, pOptions, pError);
 }
 
@@ -261,7 +270,10 @@ XRT_API xrtxmldomnode* xrtXmlDomLoad(str sPath,
 {
 	xreader* pReader = xrtReaderOpen(sPath);
 	if ( pReader == NULL ) {
-		__xrtXmlDomSetError(pError, XRT_XML_ERROR_IO,
+		const xerror* pCause = xrtGetError();
+		__xrtXmlDomSetError(pError,
+			pCause != NULL && xrtErrorKind(pCause) == XERR_MEMORY ?
+				XRT_XML_ERROR_MEMORY : XRT_XML_ERROR_IO,
 			"could not open XML DOM file");
 		return NULL;
 	}
