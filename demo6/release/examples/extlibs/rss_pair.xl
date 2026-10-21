@@ -1,0 +1,18 @@
+import rss
+
+func main(...) as int
+    var channel = {
+        "title": "xlang release notes",
+        "link": "https://xlang.dev",
+        "description": "compiler and ecosystem updates"
+    }
+    var items = [{"title": "new package", "description": "C & XLang"}]
+    string xml = rss.buildRSS(channel, items)
+    var feed = rss.parse(xml)
+    assert rss.detect(xml) == "rss"
+    assert feed["items"].length == 1
+    assert feed["items"][0]["title"] == "new package"
+    println("type:", rss.detect(xml))
+    println("items:", feed["items"].length)
+    return 0
+end

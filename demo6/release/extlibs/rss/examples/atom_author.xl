@@ -1,0 +1,14 @@
+import rss
+
+func main(...) as int
+    string xml = ("<feed xmlns='http://www.w3.org/2005/Atom'>" +
+        "<author><name>Editor</name></author>" +
+        "<entry><title>One</title></entry>" +
+        "<entry><source><author><name>Source</name></author></source>" +
+        "<title>Two</title></entry></feed>")
+    var feed = rss.parseAtom(xml)
+    for item in feed["items"]
+        println(item["author"])
+    end
+    return 0
+end

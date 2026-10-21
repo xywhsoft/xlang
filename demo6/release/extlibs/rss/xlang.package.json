@@ -6,11 +6,16 @@
     "kind": "demo6-extlib",
     "artifact": {
         "kind": "source",
-        "cSources": ["rss_native.c"],
+        "cSources": ["rss_parse.c", "rss_build.c"],
+        "xrtModules": ["XRT_MODULE_BUFFER", "XRT_MODULE_UNICODE", "XRT_MODULE_VALUE_CONTAINER"],
+        "includeDirs": ["include"],
         "xlSources": ["src/rss.xl"]
     },
     "links": [],
     "loadlibs": [],
-    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/author_inheritance.xl"] },
+    "dependencies": [
+        {"name": "xml.dom", "version": "1.0.0", "abiVersion": "1"}
+    ],
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

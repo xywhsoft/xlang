@@ -1,0 +1,30 @@
+import rss
+
+func main(...) as int
+    var feed = {"title": "News", "id": "urn:news", "updated": "2026-10-16T00:00:00Z",
+        "author": "Editor"}
+    var entries = [{"title": "Post", "id": "urn:news:post",
+        "updated": "2026-10-16T00:00:00Z", "link": "https://example.test/post"}]
+    var parsed = rss.parseAtom(rss.buildAtom(feed, entries))
+    assert parsed["items"][0]["author"] == "Editor", "entry inherits feed author"
+
+    entries[0]["author"] = "Writer"
+    parsed = rss.parseAtom(rss.buildAtom(feed, entries))
+    assert parsed["items"][0]["author"] == "Writer", "entry author overrides feed"
+
+    string xml = ("<feed xmlns='http://www.w3.org/2005/Atom'>" +
+        "<author><name>Editor</name></author><entry>" +
+        "<source><author><name>Source</name></author></source>" +
+        "<title>Post</title></entry></feed>")
+    parsed = rss.parseAtom(xml)
+    assert parsed["items"][0]["author"] == "Source", "source author overrides feed"
+
+    feed["link"] = "https://example.test/a\tb\nc\rd"
+    parsed = rss.parseAtom(rss.buildAtom(feed, entries))
+    assert parsed["link"] == feed["link"], "Atom href preserves XML whitespace"
+
+    var channel = {"title": "A\rB", "link": "https://example.test", "description": "News"}
+    parsed = rss.parseRSS(rss.buildRSS(channel, []))
+    assert parsed["title"] == channel["title"], "RSS text preserves CR"
+    return 0
+end

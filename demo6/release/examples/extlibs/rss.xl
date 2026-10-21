@@ -22,11 +22,8 @@ func main(...) as int
     string xml = rss.buildRSS(channel, items)
     println(xml)
 
-    // 写入文件并读回解析
-    string path = "examples_out/extlibs/rss_demo.xml"
-    file.writeText(path, xml)
-    string text = file.readText(path)
-    var parsed = rss.parse(text)
+    // 直接在内存中解析生成结果；不依赖工作目录或临时文件。
+    var parsed = rss.parse(xml)
     println("---")
     println("parsed type:", parsed["type"])
     println("channel title:", parsed["title"])
@@ -35,8 +32,15 @@ func main(...) as int
     end
 
     // Atom 输出
-    var feed = {"title": string(parsed["title"]), "link": string(parsed["link"]), "id": "urn:xlang:notes"}
-    string atom = rss.buildAtom(feed, parsed["items"])
+    var feed = {"title": string(parsed["title"]), "link": string(parsed["link"]),
+        "id": "urn:xlang:notes", "updated": "2026-08-12T08:00:00Z", "author": "xlang"}
+    var atomEntries = []
+    for item in parsed["items"]
+        atomEntries.append({"title": item["title"], "link": item["link"],
+            "id": item["guid"], "updated": "2026-08-12T08:00:00Z",
+            "summary": item["description"]})
+    end
+    string atom = rss.buildAtom(feed, atomEntries)
     var back = rss.parse(atom)
     println("---")
     println("atom round trip entries:", back["items"].length)
