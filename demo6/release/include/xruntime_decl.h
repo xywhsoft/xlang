@@ -21698,6 +21698,15 @@ typedef void (*xnetdialproc)(
 	const xerror* pError,
 	ptr pData
 );
+/* Successful owned submission consumes ONE callback-context reference. Done
+ * borrows it; Drop runs after Done (including its physical callback tail).
+ * Failure consumes none. The policy and all callbacks must remain resident. */
+typedef struct xnetdialownershipv1 {
+	size_t size;
+	xnetdialproc Done;
+	void (*Drop)(const void* pData);
+	const xrtownershipops* Ops;
+} xnetdialownershipv1;
 #endif
 
 
@@ -21775,6 +21784,33 @@ XRT_API xnetdial* xrtNetDial(
 	xnetdialproc pDone,
 	ptr pDoneData
 );
+XRT_API xnetdial* xrtNetDialOwnedV1(xnetengine* pEngine, xnetresolver* pResolver,
+	cstr sHost, uint16 iPort, const xnetdialconfig* pConfig,
+	const xnetstreamevents* pStreamEvents, ptr pStreamData,
+	ptr pDoneData, const xnetdialownershipv1* pPolicy);
+/* Race already-resolved immutable endpoints using the SAME Dial algorithm.
+ * No Resolver is created or consulted. Eligible endpoints must have nonzero
+ * ports; each port is preserved. Config.Family filters candidates explicitly.
+ * The list is borrowed for this call and retained for asynchronous setup. */
+XRT_API xnetdial* xrtNetDialAddresses(xnetengine* pEngine, const xnetaddrlist* pAddresses,
+	const xnetdialconfig* pConfig, const xnetstreamevents* pStreamEvents, ptr pStreamData,
+	xnetdialproc pDone, ptr pDoneData);
+XRT_API xnetdial* xrtNetDialAddressesOwnedV1(xnetengine* pEngine, const xnetaddrlist* pAddresses,
+	const xnetdialconfig* pConfig, const xnetstreamevents* pStreamEvents, ptr pStreamData,
+	ptr pDoneData, const xnetdialownershipv1* pPolicy);
+
+/* Query adapters under whole-domain Freeze, with exact Done-policy identities
+ * admitted before following context metadata. Real runtime, Resolver callback,
+ * candidate and timer references are preserved; unknown callback/data remains
+ * opaque. Prepare is nonwaiting and requires the actual terminal callback and
+ * runtime-slot removal before READY. Diagnostics remain immutable owned DAGs. */
+XRT_API xrtownershipref xrtNetDialOwnership(const xnetdial* pDial);
+XRT_API const xnetruntimeownershipv1* xrtNetDialRuntimeOwnershipV1Get(void);
+XRT_API const xnetresolveownershipv1* xrtNetDialResolverPolicyV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtNetDialOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtNetDialOwnershipAdapterV1(xrtownershipref Reference,
+	const xnetdialownershipv1* const* pPolicies, size_t iPolicyCount,
+	const xrtownershippreparationv1** ppPreparation);
 
 
 
@@ -22199,6 +22235,15 @@ XRT_API xfuture* xrtNetDialAsync(
 	const xnetstreamevents* pStreamEvents,
 	ptr pStreamData
 );
+XRT_API xfuture* xrtNetDialAddressesAsync(xnetengine* pEngine, const xnetaddrlist* pAddresses,
+	const xnetdialconfig* pConfig, const xnetstreamevents* pStreamEvents, ptr pStreamData);
+XRT_API const xfutureproducerownershipv1* xrtNetDialFutureProducerPolicyV1Get(void);
+XRT_API const xcancelwatchownershipv1* xrtNetDialFutureCancelPolicyV1Get(void);
+XRT_API const xnetdialownershipv1* xrtNetDialFutureDialPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtNetDialFuturePayloadPolicyV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtNetDialFutureOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtNetDialFutureOwnershipAdapterV1(xrtownershipref Reference,
+	const xrtownershippreparationv1** ppPreparation);
 #endif
 
 

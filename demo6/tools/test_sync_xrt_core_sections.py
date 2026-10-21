@@ -32,6 +32,19 @@ class SnapshotSectionTests(unittest.TestCase):
     def test_repeat_does_not_duplicate(self):
         self.assertEqual(self.apply(self.new), self.new)
 
+    def test_exact_section_with_ambiguous_local_diff_context(self):
+        # Repeated native guard/brace lines are harmless when the WHOLE
+        # selected section matches; a local conflict must still be rejected.
+        lines = (["guard\n"] * 20 + ["first body\n"] +
+                 ["guard\n"] * 20 + ["second body\n"] + ["guard\n"] * 20)
+        old = block(lines)
+        new = block(lines[:10] + ["owned slot\n"] + lines[10:])
+        self.assertEqual(replace(old, old, new, "public", "include/xrt/value.h"), new)
+        self.assertEqual(replace(new, old, new, "public", "include/xrt/value.h"), new)
+        with self.assertRaises(ValueError):
+            replace(old.replace("guard\n", "conflict\n", 1), old, new,
+                    "public", "include/xrt/value.h")
+
     def test_changed_context_refuses(self):
         with self.assertRaises(ValueError):
             self.apply(self.old.replace("old line 9", "conflicting local change"))

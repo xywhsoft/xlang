@@ -26,6 +26,7 @@
 #include "src/runtime/xl6_execution_worker_exit.h"
 #include "src/runtime/xl6_executor_jobs.h"
 #include "src/runtime/xl6_execution_resource.h"
+#include "src/runtime/xl6_execution_tcp_dial.h"
 #include "src/runtime/xl6_execution_module_abi.h"
 #include "src/runtime/xl6_network_service.h"
 #include "src/runtime/xl6_log.h"
@@ -535,6 +536,10 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, #Getter, (const void*)Getter)) return 0;
 #include "src/runtime/xl6_ownership_domains.inc"
 #undef XL6_OWNERSHIP_DOMAIN_ENTRY
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionTcpPrepareDialV1", (const void*)xl6ExecutionTcpPrepareDialV1) ||
+        !xlApiAddTccSymbol(s, "xl6ExecutionTcpDialSourceV1", (const void*)xl6ExecutionTcpDialSourceV1) ||
+        !xlApiAddTccSymbol(s, "xl6ExecutionTcpDialAddressesSourceV1", (const void*)xl6ExecutionTcpDialAddressesSourceV1) ||
+        !xlApiAddTccSymbol(s, "xl6ExecutionTcpPromoteDialV1", (const void*)xl6ExecutionTcpPromoteDialV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClassDynamicFieldPathV3", (const void*)xl6ClassDynamicFieldPathV3)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6CodeLeaseAcquire", (const void*)xl6CodeLeaseAcquire) ||
         !xlApiAddTccSymbol(s, "xl6CodeActivityEnterV1", (const void*)xl6CodeActivityEnterV1) ||

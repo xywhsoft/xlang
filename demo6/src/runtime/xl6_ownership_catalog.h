@@ -17,6 +17,7 @@
     X(QueuedStorage, XL6_ContinuationStorageV2) \
     X(ChannelSubscription, xchannelsubscribeownershipv1) \
     X(ResolverRequest, xnetresolveownershipv1) \
+    X(DialDone, xnetdialownershipv1) \
     X(Quiescence, xrtownershipquiescencev1) \
     X(Executor, xexecutordataownershipv1) \
     X(ExecutionFamily, XL6_ExecutionFamilyV1) \

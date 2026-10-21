@@ -163,6 +163,8 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_ownership_domain_net_engine_native.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_net_buffer_native.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_net_tcp_native.c"
+	"$ROOT/src/runtime/xl6_ownership_domain_net_dial_native.c"
+	"$ROOT/src/runtime/xl6_execution_tcp_dial.c"
 	"$ROOT/src/runtime/xl6_execution_tcp.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_execution_tcp.c"
 	"$ROOT/src/runtime/xl6_tcp_language.c"

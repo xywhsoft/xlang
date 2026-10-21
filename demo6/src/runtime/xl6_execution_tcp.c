@@ -2,7 +2,7 @@
 #include "xl6_execution_net_engine.h"
 #include <stdlib.h>
 typedef XL6_ExecutionResourceV1 Resource;
-typedef struct Stream {Resource base;Resource *parent,*accepting;xatomicptr native,pending;xatomic32 prepared;} Stream;
+typedef XL6_TcpStreamResourceV1 Stream;
 typedef struct Listener {Resource base;Resource* parent;xatomicptr native;} Listener;
 _Static_assert(offsetof(Stream,base)==0&&offsetof(Listener,base)==0,"Typed resource base must be first");
 static xnetstream* stream(const Resource* r)
@@ -29,11 +29,17 @@ static bool streamCreate(Resource* base,const XL6_ExecutionCreateOptionsV1* opti
     xrtAtomicPtrInit(&r->native,NULL);
     xrtAtomicPtrInit(&r->pending,NULL);
     xrtAtomic32Init(&r->prepared,0);
-    if(!c||(!c->accepted&&!c->accepting&&!c->remote)){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    if(!c||(!c->accepted&&!c->accepting&&!c->remote&&!c->dialing)){
+        xrtSetErrorKind(XERR_ARGUMENT);return false;}
     XL6_ExecutionScopeV1 scope={0};if(!engineEnter(c->engine,&scope))return false;
     r->parent=xl6ExecutionResourceRetainV1(c->engine);xnetstream* native=NULL;
     if(r->parent){
-        if(c->accepting){
+        if(c->dialing){
+            r->pendingKind=XL6_TCP_PENDING_DIAL_V1;
+            if(c->resolving)r->resolving=xl6ExecutionResourceRetainV1(c->resolving);
+            if(!c->resolving||r->resolving)xrtAtomic32Store(&r->prepared,1,XMEMORY_RELEASE);
+        }else if(c->accepting){
+            r->pendingKind=XL6_TCP_PENDING_ACCEPT_V1;
             r->accepting=xl6ExecutionResourceRetainV1(c->accepting);
             if(r->accepting)xrtAtomic32Store(&r->prepared,1,XMEMORY_RELEASE);
         }else if(c->accepted){
@@ -80,7 +86,7 @@ static bool streamRollback(Resource* base)
         xrtFutureDestroy(pending);
     }
     if(native){(void)xrtNetStreamAbort(native);xrtNetStreamDestroy(native);}
-    parentDrop(&r->accepting);parentDrop(&r->parent);return true;
+    parentDrop(&r->accepting);parentDrop(&r->resolving);parentDrop(&r->parent);return true;
 }
 static bool listenerRollback(Resource* base)
 {
@@ -119,7 +125,8 @@ static bool streamFinish(Resource* base)
     Stream* r=(Stream*)base;xnetstream* native=xrtAtomicPtrExchange(&r->native,NULL,XMEMORY_ACQ_REL);
     xfuture* pending=xrtAtomicPtrExchange(&r->pending,NULL,XMEMORY_ACQ_REL);
     xrtAtomic32Store(&r->prepared,0,XMEMORY_RELEASE);
-    xrtFutureDestroy(pending);xrtNetStreamDestroy(native);parentDrop(&r->accepting);parentDrop(&r->parent);return true;
+    xrtFutureDestroy(pending);xrtNetStreamDestroy(native);
+    parentDrop(&r->accepting);parentDrop(&r->resolving);parentDrop(&r->parent);return true;
 }
 static bool listenerFinish(Resource* base)
 {
@@ -128,7 +135,7 @@ static bool listenerFinish(Resource* base)
 }
 static void streamDrop(Resource* base)
 {Stream* r=(Stream*)base;if(stream(base)||xrtAtomicPtrLoad(&r->pending,XMEMORY_ACQUIRE)||
-    xrtAtomic32Load(&r->prepared,XMEMORY_ACQUIRE)||r->parent||r->accepting)abort();}
+    xrtAtomic32Load(&r->prepared,XMEMORY_ACQUIRE)||r->parent||r->accepting||r->resolving)abort();}
 static void listenerDrop(Resource* base)
 {Listener* r=(Listener*)base;if(listener(base)||r->parent)abort();}
 static bool streamTrace(const Resource* base,xrtownershipvisitor visit,void* context)
@@ -138,6 +145,7 @@ static bool streamTrace(const Resource* base,xrtownershipvisitor visit,void* con
     return (!native||visit(xrtNetStreamOwnership(native),context))&&
         (!pending||visit(xrtFutureOwnership(pending),context))&&
         (!r->accepting||visit(xl6ExecutionResourceOwnershipV1(r->accepting),context))&&
+        (!r->resolving||visit(xl6ExecutionResourceOwnershipV1(r->resolving),context))&&
         (!r->parent||visit(xl6ExecutionResourceOwnershipV1(r->parent),context));
 }
 static bool listenerTrace(const Resource* base,xrtownershipvisitor visit,void* context)
@@ -208,6 +216,8 @@ static xfuture* acceptSource(Resource* base,Resource* expected)
     else{
         Stream* r=(Stream*)base;
         xfuture* pending=xrtAtomicPtrLoad(&r->pending,XMEMORY_ACQUIRE);
+        if(r->pendingKind!=XL6_TCP_PENDING_ACCEPT_V1){
+            xl6ExecutionResourceLeaveV1(&scope);xrtSetErrorKind(XERR_STATE);return NULL;}
         if(expected&&r->accepting!=expected)xrtSetErrorKind(XERR_STATE);
         else if(!pending&&xrtAtomic32Load(&r->prepared,XMEMORY_ACQUIRE)){
             XL6_TcpScopeV1 accepting={0};
@@ -227,24 +237,26 @@ static xfuture* acceptSource(Resource* base,Resource* expected)
 xfuture* xl6ExecutionTcpAcceptSourceV1(Resource* base){return acceptSource(base,NULL);}
 xfuture* xl6ExecutionTcpAcceptSourceForV1(Resource* base,Resource* listener)
 {if(!listener){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}return acceptSource(base,listener);}
-bool xl6ExecutionTcpPromoteAcceptV1(Resource* base)
+bool xl6ExecutionTcpPromotePendingInternalV1(Resource* base,XL6_TcpPendingKindV1 kind)
 {
     XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionResourceControlV1(base,true,&scope))return false;
     bool ok=false;
     if(base->family!=xl6ExecutionTcpStreamFamilyV1Get())xrtSetErrorKind(XERR_TYPE);
     else{
         Stream* r=(Stream*)base;xfuture* pending=xrtAtomicPtrLoad(&r->pending,XMEMORY_ACQUIRE);
-        if(!pending||stream(base)||xrtFutureState(pending)!=XFUTURE_RESOLVED)xrtSetErrorKind(XERR_STATE);
+        if(r->pendingKind!=kind||!pending||stream(base)||xrtFutureState(pending)!=XFUTURE_RESOLVED)xrtSetErrorKind(XERR_STATE);
         else{
             xnetstream* owned=xrtNetStreamRef(xrtFutureValue(pending));
             if(owned){xrtownershipscope mutation={0};if(!xrtOwnershipMutationBegin(&mutation))abort();
                 xrtAtomicPtrStore(&r->native,owned,XMEMORY_RELEASE);xrtAtomicPtrStore(&r->pending,NULL,XMEMORY_RELEASE);
                 if(!xrtOwnershipScopeEnd(&mutation))abort();
-                xrtFutureDestroy(pending);parentDrop(&r->accepting);ok=true;}
+                xrtFutureDestroy(pending);parentDrop(&r->accepting);parentDrop(&r->resolving);ok=true;}
         }
     }
     xl6ExecutionResourceLeaveV1(&scope);return ok;
 }
+bool xl6ExecutionTcpPromoteAcceptV1(Resource* base)
+{return xl6ExecutionTcpPromotePendingInternalV1(base,XL6_TCP_PENDING_ACCEPT_V1);}
 bool xl6ExecutionTcpEnterInternalV1(Resource* r,XL6_ExecutionKindV1 kind,bool submit,XL6_TcpScopeV1* scope)
 {
     if(!scope||scope->execution.resource||(kind!=XL6_EXECUTION_TCP_STREAM_V1&&kind!=XL6_EXECUTION_TCP_LISTENER_V1)){

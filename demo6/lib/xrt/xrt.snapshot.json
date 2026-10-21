@@ -3,13 +3,13 @@
   "product": "xrt",
   "implementation": {
     "source": "xrt/single/xrt.h",
-    "sha256": "FBBEC8DC1E5113C22334E9A7BA92BB042327917D8296EF3C7D066D22FC34742D",
-    "bytes": 8576679
+    "sha256": "02674D8B6DEE254B7E170E6AB0AD0706F12A53F6108BF1A6B003853F54D04838",
+    "bytes": 8607717
   },
   "declarations": {
     "source": "xrt/single/xrt_decl.h",
-    "sha256": "BD9F1E36585486A2D3DDE7B6556AD7669756D7B2A64E216DF641C7F764D0D235",
-    "bytes": 1421231
+    "sha256": "9693F487B3BA5C8404A646131B3BA8139D58B5CB8E80E42FE15E3D286B883186",
+    "bytes": 1424293
   },
-  "publicApiCount": 3272
+  "publicApiCount": 3287
 }
