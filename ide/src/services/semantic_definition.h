@@ -14,6 +14,12 @@ typedef struct xide_semantic_range_query {
 } xide_semantic_range_query;
 int xideSemanticRangesToLsp(const xide_semantic_source* sources,size_t count,xide_semantic_range_query* ranges,size_t rangeCount);
 xide_semantic_definitions* xideSemanticDefinitionsCreate(const xvalue* index,const xide_semantic_source* sources,size_t count,xide_model_error* error);
+#ifdef XLS_COMPILER_XRT
+#include "analysis/index.h"
+/* Borrows the checked native facts only during construction. The returned
+ * navigation table owns all paths, text and UTF-16 ranges independently. */
+xide_semantic_definitions* xideSemanticDefinitionsCreateTyped(const xls_semantic_index* index,const xide_semantic_source* sources,size_t count,xide_model_error* error);
+#endif
 void xideSemanticDefinitionsDestroy(xide_semantic_definitions* definitions);
 /* Returns a Location or JSON null. Explicit type facts can resolve a unique
    same-compilation declaration, including bases, constraints and generic

@@ -33,6 +33,7 @@ SERVER_SOURCES = (
     "src/server/xlang_ls.c",
 )
 CORE_TESTS = ("analysis_check_test", "analysis_index_test", "analysis_index_limit_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_text_test", "document_sync_test")
+HOST_TESTS = ("analysis_index_view_test",)
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 
 
@@ -90,6 +91,7 @@ def main() -> None:
     parser.add_argument("--skip-tests", action="store_true", help="build only, without compiling or running core fixtures")
     parser.add_argument("--configuration", choices=("Debug", "Release"), default="Release")
     args = parser.parse_args()
+    tests = CORE_TESTS + (HOST_TESTS if args.server else ())
     frontend, output = args.frontend_root.resolve(), args.output.resolve()
     cc = Path(args.cc).resolve()
     if not cc.is_file():
@@ -101,7 +103,7 @@ def main() -> None:
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
-        sources += [(ide / "tests" / (name + ".c"), True) for name in CORE_TESTS]
+        sources += [(ide / "tests" / (name + ".c"), True) for name in tests]
     if args.server:
         if os.name != "nt":
             parser.error("the current host still uses Windows transport/process adapters; the standalone core is separate")
@@ -195,11 +197,14 @@ def main() -> None:
             run([str(cc), *limited_flags, "-DXL6_INDEX_BYTES=1024u", *shared, "-c", str(generated_index),
                  "-o", str(limited_index)], "index-limit-fixture")
         suffix = ".exe" if os.name == "nt" else ""
-        for name in (() if args.skip_tests else CORE_TESTS):
+        for name in (() if args.skip_tests else tests):
             program = output / (name + suffix)
             extra = [str(objects["document_sync"])] if name == "document_sync_test" else []
             if name == "analysis_index_limit_test":
                 extra.append(str(limited_index))
+            if name in HOST_TESTS:
+                extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
+                          if Path(source).stem != "xlang_ls"]
             run([str(cc), str(objects[name]), *extra, str(core), "-Wl,--gc-sections", *libraries, "-o", str(program)], name + "-link")
             result = run([str(program)], name + "-run", 30)
             if b"passed:" not in result.stdout:

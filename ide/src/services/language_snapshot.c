@@ -29,7 +29,7 @@ static int fail(xide_model_error* e,const char* message) { e->code=XIDE_MODEL_IN
 static int cancelled(xide_language_check* q) { return InterlockedCompareExchange(&q->cancel,0,0)!=0 || (q->externalCancel && q->externalCancel(q->externalUser)); }
 #ifdef XLS_COMPILER_XRT
 static int nativeCancelled(void* user) { return cancelled(user); }
-static int nativeAnalysis(xide_language_check* q,char** json,int* code,xide_model_error* e)
+static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_semantic_check** checked,xide_model_error* e)
 {
  xls_semantic_input inputs[64];
  for(size_t i=0;i<q->snapshotCount;++i) inputs[i]=(xls_semantic_input){q->snapshots[i].path,q->snapshots[i].text,strlen(q->snapshots[i].text)};
@@ -44,9 +44,9 @@ static int nativeAnalysis(xide_language_check* q,char** json,int* code,xide_mode
  } else {
   xls_semantic_check* result=xlsSemanticCheckCreate(q->path,inputs,q->snapshotCount,1,nativeCancelled,q,e->message,sizeof(e->message));
   if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
-  report=xlsSemanticCheckJson(result,&size);
+  *checked=result;
+  report=xlsSemanticCheckReportJson(result,&size);
   *code=xlsSemanticCheckInfo(result).accepted ? 0 : 1;
-  xlsSemanticCheckDestroy(result);
  }
  /* Keep the legacy adapter's malloc ownership at this one compatibility
     boundary; the analysis API itself has typed facts and explicit ownership. */
@@ -262,6 +262,9 @@ static char* temporary(xide_model_error* e)
 int xideLanguageSnapshotRun(xide_language_check* q,xvalue** output,xide_model_error* e)
 {
  xide_toolchain_stamp stamp={0}; xide_toolchain_profile profile={0}; source_graph graph={0}; char *help=NULL,*json=NULL,*temp=NULL,*files[64]={0}; int indexed=0; xvalue *raw=NULL,*result=NULL;
+#ifdef XLS_COMPILER_XRT
+ xls_semantic_check* nativeCheck=NULL;
+#endif
  HANDLE leases[64]; for(size_t i=0;i<64;++i) leases[i]=INVALID_HANDLE_VALUE;
  char cursor[32]; snprintf(cursor,sizeof(cursor),"%d",q->queryOffset);
  const char* args[2560]={"check",q->path,"--json","--source-report"}; size_t count=4; int code=0,success=0; bool okay=false; uint64_t began=GetTickCount64();
@@ -269,7 +272,7 @@ int xideLanguageSnapshotRun(xide_language_check* q,xvalue** output,xide_model_er
  q->packagePathCaptured=1;
 #ifdef XLS_COMPILER_XRT
  if(q->nativeSemantic) {
-  if(q->nativeBridge || !nativeAnalysis(q,&json,&code,e)) goto done;
+  if(q->nativeBridge || !nativeAnalysis(q,&json,&code,&nativeCheck,e)) goto done;
   indexed=q->queryPath==NULL;
   goto analysed;
  }
@@ -342,15 +345,32 @@ analysed:
   result=xrtValueObject(); if(!result || !buildDiagnostics(q,raw,&graph,result,e) || (!okay && !xrtValueCount(get(result,"diagnostics")))) { if(!e->code) fail(e,"检查失败但没有可验证的分文件诊断。"); goto done; }
  }
  if(indexed) {
-  const xvalue* index=get(raw,"semanticIndex"); bool complete=false; const xvalue* nodes=get(index,"nodes");
-  if(!index || !xrtValueGetBool(get(index,"complete"),&complete) || complete!=okay || !nodes || xrtValueType(nodes)!=XVALUE_ARRAY || (!okay && xrtValueCount(nodes))) { fail(e,"语义索引状态与同次检查结果不一致。"); goto done; }
+  const xvalue* index=get(raw,"semanticIndex");
+#ifdef XLS_COMPILER_XRT
+  if(nativeCheck) {
+   xls_check_info info=xlsSemanticCheckInfo(nativeCheck);
+   if(info.accepted!=okay || info.hasIndex!=okay) { fail(e,"原生语义索引与同次检查结果不一致。"); goto done; }
+  } else
+#endif
+  {
+   bool complete=false; const xvalue* nodes=get(index,"nodes");
+   if(!index || !xrtValueGetBool(get(index,"complete"),&complete) || complete!=okay || !nodes || xrtValueType(nodes)!=XVALUE_ARRAY || (!okay && xrtValueCount(nodes))) { fail(e,"语义索引状态与同次检查结果不一致。"); goto done; }
+  }
   if(okay) {
    xide_semantic_source sources[512];
    for(size_t i=0;i<graph.count;++i) { int64 kind=0; xrtValueGetInt(get(graph.items[i].report,"kind"),&kind); sources[i]=(xide_semantic_source){graph.items[i].path,graph.items[i].original,(int)kind,graph.items[i].overlay>=0 && strlen(q->snapshots[graph.items[i].overlay].text)>=3 && !memcmp(q->snapshots[graph.items[i].overlay].text,"\xef\xbb\xbf",3) ? 1 : 0}; }
-   q->definitions=xideSemanticDefinitionsCreate(index,sources,graph.count,e); if(!q->definitions) goto done;
+#ifdef XLS_COMPILER_XRT
+   if(nativeCheck) q->definitions=xideSemanticDefinitionsCreateTyped(xlsSemanticCheckTypedIndex(nativeCheck),sources,graph.count,e);
+   else
+#endif
+   q->definitions=xideSemanticDefinitionsCreate(index,sources,graph.count,e);
+   if(!q->definitions) goto done;
   }
  }
  if(!q->queryPath && !q->nativeBridge && !put(result,"semanticDefinitions",xrtValueBool(q->definitions!=NULL))) goto done;
+#ifdef XLS_COMPILER_XRT
+ if(nativeCheck && !xlsSemanticCheckValidate(nativeCheck)) { fail(e,"原生分析的输入在发布前已改变。"); goto done; }
+#endif
  if(!validateGraph(q,&graph,e) || (!q->nativeSemantic && !xideToolchainValidate(q->compiler,&stamp,e)) || cancelled(q)) goto done;
  q->guardFiles=xrtValueDeepClone(get(get(raw,"sourceReport"),"files"));
  q->guardResolution=xrtValueDeepClone(get(raw,"resolutionReport")); q->guardToolchain=stamp;
@@ -358,6 +378,9 @@ analysed:
  success=put(result,"ok",xrtValueBool(okay)) && put(result,"phase",xrtValueString(sv(phase))) && put(result,"version",xrtValueInt(q->queryPath ? q->queryVersion : q->version)) && put(result,"scope",xrtValueString(sv(q->nativeBridge ? "native-c-bridge" : q->queryPath ? "cursor-query" : "entry-with-open-overlays"))) && put(result,"guardScope",xrtValueString(sv("background-poll"))) && put(result,"durationMs",xrtValueInt((int64)(GetTickCount64()-began)));
  if(success) { *output=result; result=NULL; }
 done:
+#ifdef XLS_COMPILER_XRT
+ xlsSemanticCheckDestroy(nativeCheck);
+#endif
  for(size_t i=0;i<q->snapshotCount;++i) { if(leases[i]!=INVALID_HANDLE_VALUE) CloseHandle(leases[i]); free(files[i]); } free(temp);
  clearGraph(&graph); xrtValueRelease(raw); xrtValueRelease(result); free(help); free(json); xideToolchainProfileClear(&profile); return success;
 }
