@@ -108,6 +108,50 @@ static int test_parse(void) {
     return 0;
 }
 
+static int test_mutated_feeds(void) {
+    static const char *sources[] = {
+        "<rss version='2.0'><channel><title>News</title></channel></rss>",
+        "<feed xmlns='http://www.w3.org/2005/Atom'><title>News</title></feed>"
+    };
+    static const unsigned char replacements[] = {0, '<', '>', '&', 0xff};
+    unsigned source, mode, trial;
+    uint32_t state = 0x72a5f31bu;
+    for (source = 0; source < 2; ++source) {
+        size_t original = strlen(sources[source]);
+        for (mode = 0; mode < 4; ++mode) {
+            for (trial = 0; trial < 128; ++trial) {
+                char text[128];
+                size_t length = original, position;
+                xvalue *result;
+                state ^= state << 13;
+                state ^= state >> 17;
+                state ^= state << 5;
+                position = (size_t)state % (length + (mode == 2));
+                memcpy(text, sources[source], length);
+                if (mode == 0) {
+                    text[position] = (char)replacements[trial % sizeof(replacements)];
+                } else if (mode == 1) {
+                    memmove(text + position, text + position + 1, length - position - 1);
+                    --length;
+                } else if (mode == 2) {
+                    memmove(text + position + 1, text + position, length - position);
+                    text[position] = (char)replacements[trial % sizeof(replacements)];
+                    ++length;
+                } else {
+                    length = position;
+                }
+                result = xrss_parse(text, (int64)length);
+                CHECK(result != NULL);
+                CHECK(xrtValueType(result) == XVALUE_OBJECT ||
+                    xrtValueType(result) == XVALUE_NULL);
+                CHECK((xrtValueType(result) == XVALUE_OBJECT) == (xrtGetError() == NULL));
+                xrtValueRelease(result);
+            }
+        }
+    }
+    return 0;
+}
+
 static int test_input_limit(void) {
     static const char prefix[] = "<rss version='2.0'><channel/></rss>";
     const size_t limit = 8u * 1024u * 1024u;
@@ -448,6 +492,7 @@ static int test_allocation_errors(void) {
 int main(void) {
     CHECK(test_allocation_errors() == 0);
     CHECK(test_parse() == 0);
+    CHECK(test_mutated_feeds() == 0);
     CHECK(test_input_limit() == 0);
     CHECK(test_build() == 0);
     CHECK(test_output_limit() == 0);

@@ -102,3 +102,10 @@ feed/entry 地址。C/XLang 负例先红后绿，原有显式 alternate 用例�
 Windows `-SkipAot` 与 Linux C ASan/UBSan、XLang、双语门禁通过。
 默认 Windows 门禁的核心 AOT 通过，Atom 范例 AOT 仍缺共享符号
 `xl6ValueDataSnapshotV1`，整包不签收发布级。
+
+2026-10-22：C 边界新增固定种子的 RSS/Atom 畸变输入回归。对两份有效
+feed 各做单字节替换、删除、插入和截断，共 1024 次；输入使用显式字节
+长度，包含内嵌 NUL 和无效 UTF-8，检查解析结果与错误槽一致。Windows
+`-SkipAot` 的严格 C/XLang/双语门禁与 Linux C ASan/UBSan、XLang/双语
+门禁通过。该回归只压实短输入的解析与释放路径，不等同于通用模糊测试；
+完整 Atom 范例 AOT 仍受上述共享缺符号阻断。
