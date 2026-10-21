@@ -149,6 +149,7 @@ extern const char* xl6StdlibNetBytesClassSource;
 extern const char* xl6StdlibNetBytesAdoptSource;
 extern const char* xl6StdlibTcpSendRefMembersSource;
 extern const char* xl6StdlibTcpSendMoveMembersSource;
+extern const char* xl6StdlibTcpRecvOwnedMembersSource;
 extern const char* xl6StdlibNetFrameClassSource;
 extern const char* xl6StdlibLineFramerClassSource;
 extern const char* xl6StdlibLengthFramerClassSource;

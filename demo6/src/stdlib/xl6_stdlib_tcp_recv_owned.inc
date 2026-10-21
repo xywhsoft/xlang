@@ -1,0 +1,17 @@
+const char* xl6StdlibTcpRecvOwnedMembersSource=
+    "    extern \"xl6TcpStreamRecvOwnedV1\" func recvOwned(int maxBytes = 65536, int timeoutMillis = -1) as NetBytes\n"
+    "    extern \"xl6TcpStreamRecvOwnedCancelV1\" func recvOwnedCancel(CancellationToken cancel, int maxBytes = 65536, int timeoutMillis = -1) as NetBytes\n"
+    "    extern \"xl6TcpStreamRecvOwnedUntilV1\" func recvOwnedUntil(uint64 deadline, int maxBytes = 65536) as NetBytes\n"
+    "    extern \"xl6TcpStreamRecvOwnedUntilCancelV1\" func recvOwnedUntilCancel(uint64 deadline, CancellationToken cancel, int maxBytes = 65536) as NetBytes\n"
+    "    private extern \"xl6TcpStreamRecvOwnedStartV1\" @nonblocking func startRecvOwnedNative(NetBytes pending, int maxBytes) as future<NetBytes>\n"
+    "    private extern \"xl6TcpStreamRecvOwnedStartCancelV1\" @nonblocking func startRecvOwnedCancelNative(NetBytes pending, CancellationToken cancel, int maxBytes) as future<NetBytes>\n"
+    "    private extern \"xl6TcpStreamRecvOwnedStartUntilV1\" @nonblocking func startRecvOwnedUntilNative(NetBytes pending, uint64 deadline, int maxBytes) as future<NetBytes>\n"
+    "    private extern \"xl6TcpStreamRecvOwnedStartUntilCancelV1\" @nonblocking func startRecvOwnedUntilCancelNative(NetBytes pending, uint64 deadline, CancellationToken cancel, int maxBytes) as future<NetBytes>\n"
+    "    func recvOwnedAsync(int maxBytes = 65536) as future<NetBytes>\n"
+    "        auto pending = NetBytes()\n        return self.startRecvOwnedNative(pending, maxBytes)\n    end\n"
+    "    func recvOwnedAsyncCancel(CancellationToken cancel, int maxBytes = 65536) as future<NetBytes>\n"
+    "        auto pending = NetBytes()\n        return self.startRecvOwnedCancelNative(pending, cancel, maxBytes)\n    end\n"
+    "    func recvOwnedAsyncUntil(uint64 deadline, int maxBytes = 65536) as future<NetBytes>\n"
+    "        auto pending = NetBytes()\n        return self.startRecvOwnedUntilNative(pending, deadline, maxBytes)\n    end\n"
+    "    func recvOwnedAsyncUntilCancel(uint64 deadline, CancellationToken cancel, int maxBytes = 65536) as future<NetBytes>\n"
+    "        auto pending = NetBytes()\n        return self.startRecvOwnedUntilCancelNative(pending, deadline, cancel, maxBytes)\n    end\n";

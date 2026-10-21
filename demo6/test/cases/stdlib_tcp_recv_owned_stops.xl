@@ -1,0 +1,70 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto sender = TcpStream(engine, listener.localAddress())
+auto receiver = listener.accept(5000)
+assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+auto stopped = CancellationSource()
+assert stopped.cancel()
+int cancelled = 0
+try
+    auto unused = receiver.recvOwnedCancel(stopped.token, 1, 5000)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+try
+    auto unused = await receiver.recvOwnedAsyncCancel(stopped.token, 1)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+try
+    auto unused = await receiver.recvOwnedAsyncUntilCancel(time.clock() + uint64(5000000), stopped.token, 1)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+auto live = CancellationSource()
+auto pending = receiver.recvOwnedAsyncCancel(live.token, 1)
+assert live.cancel()
+try
+    auto unused = await pending
+catch CancelledError
+    cancelled = cancelled + 1
+end
+assert cancelled == 4
+int expired = 0
+try
+    auto unused = receiver.recvOwned(1, 0)
+catch TimeoutError
+    expired = expired + 1
+end
+try
+    auto unused = receiver.recvOwnedUntil(uint64(0), 1)
+catch TimeoutError
+    expired = expired + 1
+end
+try
+    auto unused = await receiver.recvOwnedAsyncUntil(uint64(0), 1)
+catch TimeoutError
+    expired = expired + 1
+end
+assert expired == 3
+int invalid = 0
+try
+    auto unused = receiver.recvOwned(0, 5000)
+catch RangeError
+    invalid = invalid + 1
+end
+try
+    auto unused = await receiver.recvOwnedAsync(-1)
+catch RangeError
+    invalid = invalid + 1
+end
+assert invalid == 2
+assert sender.send(b"z") == NetStatus.ok
+assert (await receiver.recvOwnedAsync(1)).toBytes() == b"z"
+sender.close()
+receiver.close()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("TCP owned receive stops: checked cancel/timeout/range, no abandoned read consumes later data")

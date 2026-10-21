@@ -1,0 +1,3 @@
+func wrong(TcpStream stream) as future<bytes>
+    return stream.recvOwnedAsync()
+end

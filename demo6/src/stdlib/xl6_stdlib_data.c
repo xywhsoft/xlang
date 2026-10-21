@@ -367,6 +367,7 @@ const char* xl6StdlibSipHasher64ClassEndSource = "end\n";
 
 
 #include "xl6_stdlib_net_bytes.inc"
+#include "xl6_stdlib_tcp_recv_owned.inc"
 
 
 

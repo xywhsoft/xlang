@@ -1,0 +1,32 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto sender = TcpStream(engine, listener.localAddress())
+auto receiver = listener.accept(5000)
+assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+bool timedOut = false
+try
+    auto unused = await receiver.recvOwnedAsyncUntil(time.clock() + uint64(20000), 1)
+catch TimeoutError
+    timedOut = true
+end
+assert timedOut
+auto pending = receiver.recvOwnedAsync(1)
+assert pending.cancel()
+bool cancelled = false
+try
+    auto unused = await pending
+catch CancelledError
+    cancelled = true
+end
+assert cancelled
+assert sender.send(b"z") == NetStatus.ok
+assert (await receiver.recvOwnedAsync(1)).toBytes() == b"z"
+pending = receiver.recvOwnedAsync(1)
+receiver.close()
+assert (await pending).length == 0
+sender.close()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("TCP owned receive lifecycle: active deadline, direct Future cancellation, later data and close drain")
