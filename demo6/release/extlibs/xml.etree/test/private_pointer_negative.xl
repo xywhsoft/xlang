@@ -1,0 +1,5 @@
+import xml.etree
+
+// 原生返回指针由 Element 属性包装层接管，导入方不能直接获取。
+auto element = xml.etree.create("item")
+point name = element.nameNative()

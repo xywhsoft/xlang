@@ -12,10 +12,21 @@
             "xrt_xml_etree_writer.c",
             "xml_etree_native.c"
         ],
-        "xlSources": ["src/etree.xl"]
+        "xlSources": ["src/etree.xl"],
+        "xrtModules": [
+            "XRT_MODULE_IO_BUFFER",
+            "XRT_MODULE_IO_FILE",
+            "XRT_MODULE_FILE_WHOLE",
+            "XRT_MODULE_STRING",
+            "XRT_MODULE_ONCE",
+            "XRT_MODULE_THREAD_KEY",
+            "XRT_MODULE_UNICODE",
+            "XRT_MODULE_VALUE_CONTAINER"
+        ]
     },
     "links": [],
     "loadlibs": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
     "dependencies": [
         {
             "name": "xml.sax",

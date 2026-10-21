@@ -1,4 +1,5 @@
 #include "xrt_xml_etree_internal.h"
+#include "../xml.sax/xrt_xml_internal.h"
 
 
 
@@ -269,8 +270,16 @@ XRT_API xrtxmlelement* xrtXmlElementParse(xreader* pReader, bool bTakeOwnership,
 XRT_API xrtxmlelement* xrtXmlElementParseMemory(const void* pData, uint64 iSize,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError)
 {
-	xreader* pReader = xrtReaderFromMemory(
-		(xbytesview){ (cbytes)pData, (size_t)iSize });
+	xreader* pReader;
+	if ( !__xrtXmlMemoryPreflight(pData, iSize, pOptions, false, pError) ) {
+		return NULL;
+	}
+	pReader = xrtReaderFromMemory((xbytesview){ (cbytes)pData, (size_t)iSize });
+	if ( pReader == NULL ) {
+		__xrtXmlEtreeSetError(pError, XRT_XML_ERROR_MEMORY,
+			"could not allocate XML element memory reader");
+		return NULL;
+	}
 	return xrtXmlElementParse(pReader, true, pOptions, pError);
 }
 
@@ -279,7 +288,10 @@ XRT_API xrtxmlelement* xrtXmlElementLoad(str sPath,
 {
 	xreader* pReader = xrtReaderOpen(sPath);
 	if ( pReader == NULL ) {
-		__xrtXmlEtreeSetError(pError, XRT_XML_ERROR_IO,
+		const xerror* pCause = xrtGetError();
+		__xrtXmlEtreeSetError(pError,
+			pCause != NULL && xrtErrorKind(pCause) == XERR_MEMORY ?
+				XRT_XML_ERROR_MEMORY : XRT_XML_ERROR_IO,
 			"could not open XML file");
 		return NULL;
 	}

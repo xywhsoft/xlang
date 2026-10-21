@@ -10,7 +10,7 @@ func main(...) as int
     auto second = catalog.append("book")
     second.set("id", "xrt")
     second.text = "XRT 运行库"
-    println(catalog.stringify(true, 2, true))
-    println("xml.etree example: PASS")
+    print(catalog.stringify(true, 2, true))
+    println("xml.etree C/XL example: PASS")
     return 0
 end

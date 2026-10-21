@@ -1,0 +1,4 @@
+import xml.etree
+
+// 元素必须由受校验的工厂创建，不能直接调用原生 C 字符串构造器。
+auto element = xml.etree.Element("item\0ignored")

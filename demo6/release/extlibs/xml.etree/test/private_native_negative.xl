@@ -1,0 +1,5 @@
+import xml.etree
+
+// 公开 Element 不得绕过 text 属性的 C 字符串校验。
+auto element = xml.etree.create("item")
+element.setTextNative("text\0ignored")
