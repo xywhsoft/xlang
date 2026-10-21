@@ -1,32 +1,38 @@
 /*
- * qr_native.c - QR code generation with Reed-Solomon error correction.
- *
- * Implements the full encoding pipeline: mode selection (numeric,
- * alphanumeric, byte), version selection 1-40, data interleaving across
- * RS blocks, function module drawing, zigzag data placement, all eight
- * mask patterns with penalty scoring, and format/version BCH coding.
- * Level names follow the standard: L (7%), M (15%), Q (25%), H (30%).
+ * QR 编码：单段数字/字母/字节模式、版本 1-40、RS 纠错、8 种掩码与格式位。
+ * 非 ASCII 文本使用 UTF-8 字节模式并写入 ECI 26。
  */
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <inttypes.h>
 
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+#ifndef XRT_MODULE_VALUE_CONTAINER
 #define XRT_MODULE_VALUE_CONTAINER
+#endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
 #include "xrt.h"
+#include "include/qr_native.h"
 
 #define XQR_DOMAIN "xlang.extlib.qr"
 #define XQR_MAX_VERSION 40
 #define XQR_MAX_SIZE 177
+#define XQR_MAX_TEXT 7089
 
 static void xqr_error(const char *message) {
     xrtSetErrorInfo(XERR_VALUE, XQR_DOMAIN, 0, message);
 }
 
 /* ------------------------------------------------------------------ */
-/* Spec tables                                                         */
+/* 规范常量表                                                           */
 /* ------------------------------------------------------------------ */
 
-/* Error correction codewords per block, indexed [level][version]. */
+/* 每块纠错码字数，下标为 [纠错级别][版本]。 */
 static const int xqr_ecc_per_block[4][XQR_MAX_VERSION + 1] = {
     {0, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28,
      30, 28, 28, 28, 28, 30, 30, 26, 28, 28, 28, 28, 28, 28, 28, 28, 30,
@@ -42,7 +48,7 @@ static const int xqr_ecc_per_block[4][XQR_MAX_VERSION + 1] = {
      30, 30, 30, 30, 30, 30},
 };
 
-/* Number of error correction blocks, indexed [level][version]. */
+/* 纠错块数，下标同上。 */
 static const int xqr_num_blocks[4][XQR_MAX_VERSION + 1] = {
     {0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 7, 8, 8, 9,
      9, 10, 12, 12, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 24, 25},
@@ -57,7 +63,7 @@ static const int xqr_num_blocks[4][XQR_MAX_VERSION + 1] = {
      70, 74, 77, 81},
 };
 
-/* Alignment pattern center coordinates; row 0 is unused. */
+/* 校正图案中心坐标；第 0 行不用。 */
 static const int xqr_align_centers[][7] = {
     {0},
     {6, 0}, {6, 18}, {6, 22}, {6, 26}, {6, 30}, {6, 34},
@@ -80,11 +86,11 @@ static const int xqr_align_centers[][7] = {
 static const char *xqr_alnum_charset =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
 
-/* Format info bits per level: L, M, Q, H. */
+/* L、M、Q、H 的格式位编码。 */
 static const int xqr_ecl_format_bits[4] = {1, 0, 3, 2};
 
 /* ------------------------------------------------------------------ */
-/* GF(256) and Reed-Solomon                                            */
+/* GF(256) 与 Reed-Solomon                                              */
 /* ------------------------------------------------------------------ */
 
 static int xqr_gf_mul(int x, int y) {
@@ -97,8 +103,7 @@ static int xqr_gf_mul(int x, int y) {
     return z & 0xFF;
 }
 
-/* Generator polynomial of the given degree, big-endian including the
-   leading 1: g(x) = prod_{i=0}^{degree-1} (x + alpha^i). */
+/* 生成多项式含首项 1：g(x) = prod(x + alpha^i)。 */
 static void xqr_rs_generator(int degree, unsigned char *gen) {
     int len = 2;
     int i;
@@ -116,8 +121,7 @@ static void xqr_rs_generator(int degree, unsigned char *gen) {
     }
 }
 
-/* Remainder of data(x) * x^degree modulo the generator, via synthetic
-   division over [data, zeros] with the full generator polynomial. */
+/* 对数据后补 degree 个零，以综合除法求 RS 余数。 */
 static void xqr_rs_remainder(const unsigned char *data, int dataLen,
     int degree, unsigned char *out) {
     unsigned char gen[70];
@@ -139,7 +143,7 @@ static void xqr_rs_remainder(const unsigned char *data, int dataLen,
 }
 
 /* ------------------------------------------------------------------ */
-/* Version capacity                                                    */
+/* 版本容量                                                             */
 /* ------------------------------------------------------------------ */
 
 static int xqr_raw_data_modules(int ver) {
@@ -174,7 +178,7 @@ static int xqr_char_count_bits(int mode, int ver) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Bit buffer                                                          */
+/* 位缓冲                                                               */
 /* ------------------------------------------------------------------ */
 
 typedef struct {
@@ -185,21 +189,22 @@ typedef struct {
 static void xqr_append_bits(XqrBits *b, unsigned int value, int count) {
     int i;
     for (i = count - 1; i >= 0; i--) {
-        b->bits[b->length >> 3] &= (unsigned char)~(1 << (b->length & 7));
+        b->bits[b->length >> 3] &= (unsigned char)~(1 << (7 - (b->length & 7)));
         b->bits[b->length >> 3] |= (unsigned char)(((value >> i) & 1) <<
-            (b->length & 7));
+            (7 - (b->length & 7)));
         b->length++;
     }
 }
 
-/* Detect the best single mode for the whole text. */
-static int xqr_detect_mode(const char *text, int *numeric, int *alnum) {
+/* 全文选一个最紧凑的单段模式。 */
+static int xqr_detect_mode(const char *text, size_t length,
+    int *numeric, int *alnum) {
     const unsigned char *p = (const unsigned char *)text;
     int mode = 0;
     int i;
     *numeric = 1;
     *alnum = 1;
-    for (i = 0; text[i] != '\0'; ++i) {
+    for (i = 0; i < (int)length; ++i) {
         if (text[i] < '0' || text[i] > '9') {
             *numeric = 0;
         }
@@ -207,7 +212,7 @@ static int xqr_detect_mode(const char *text, int *numeric, int *alnum) {
             *alnum = 0;
         }
     }
-    if (text[0] == '\0') {
+    if (length == 0) {
         *numeric = 0;
         *alnum = 0;
     }
@@ -217,8 +222,17 @@ static int xqr_detect_mode(const char *text, int *numeric, int *alnum) {
     return mode;
 }
 
-static int xqr_payload_bits(const char *text, int mode) {
-    int n = (int)strlen(text);
+static int xqr_uses_eci(const char *text, size_t length, int mode) {
+    size_t index;
+    if (mode != 2) return 0;
+    for (index = 0; index < length; ++index) {
+        if ((unsigned char)text[index] >= 0x80u) return 1;
+    }
+    return 0;
+}
+
+static int xqr_payload_bits(size_t length, int mode) {
+    int n = (int)length;
     if (mode == 0) {
         return (n / 3) * 10 + (n % 3 == 2 ? 7 : (n % 3 == 1 ? 4 : 0));
     }
@@ -226,19 +240,20 @@ static int xqr_payload_bits(const char *text, int mode) {
         return (n / 2) * 11 + (n % 2) * 6;
     }
     {
-        /* UTF-8 byte count equals strlen for the raw buffer */
+        /* 字节模式的长度已经由调用方按 UTF-8 字节数传入。 */
         return n * 8;
     }
 }
 
-static int xqr_pick_version(const char *text, int mode, int level,
+static int xqr_pick_version(size_t length, int mode, int level, int useEci,
     int *capacityBits) {
     int v;
     for (v = 1; v <= XQR_MAX_VERSION; v++) {
-        int dataBits = 4 + xqr_char_count_bits(mode, v) +
-            xqr_payload_bits(text, mode);
+        int countBits = xqr_char_count_bits(mode, v);
+        int dataBits = 4 + countBits + xqr_payload_bits(length, mode) +
+            (useEci ? 12 : 0);
         int cap = xqr_data_codewords(v, level) * 8;
-        if (dataBits <= cap) {
+        if (length < (size_t)(1u << countBits) && dataBits <= cap) {
             *capacityBits = cap;
             return v;
         }
@@ -246,10 +261,14 @@ static int xqr_pick_version(const char *text, int mode, int level,
     return 0;
 }
 
-static void xqr_encode_payload(XqrBits *b, const char *text, int mode,
-    int ver) {
-    int n = (int)strlen(text);
+static void xqr_encode_payload(XqrBits *b, const char *text,
+    size_t length, int mode, int ver, int useEci) {
+    int n = (int)length;
     int i;
+    if (useEci) {
+        xqr_append_bits(b, 7, 4);
+        xqr_append_bits(b, 26, 8);
+    }
     xqr_append_bits(b, (unsigned int)(mode == 0 ? 1 : (mode == 1 ? 2 : 4)),
         4);
     xqr_append_bits(b, (unsigned int)n, xqr_char_count_bits(mode, ver));
@@ -287,11 +306,12 @@ static void xqr_encode_payload(XqrBits *b, const char *text, int mode,
     }
 }
 
-/* Full codeword sequence: data blocks interleaved with EC codewords. */
-static int xqr_build_codewords(const char *text, int level,
+/* 先按块计算纠错码字，再交错数据块和纠错块。 */
+static int xqr_build_codewords(const char *text, size_t length, int level,
     unsigned char *out) {
     int mode;
     int version;
+    int useEci;
     int capacityBits = 0;
     XqrBits bits;
     int dataCap;
@@ -306,23 +326,24 @@ static int xqr_build_codewords(const char *text, int level,
     unsigned char *allData;
     unsigned char ecc[81 * 30];
 
-    mode = xqr_detect_mode(text, &i, &j);
+    mode = xqr_detect_mode(text, length, &i, &j);
     (void)i;
     (void)j;
-    version = xqr_pick_version(text, mode, level, &capacityBits);
+    useEci = xqr_uses_eci(text, length, mode);
+    version = xqr_pick_version(length, mode, level, useEci, &capacityBits);
     if (version == 0) {
         xqr_error("text is too long for any qr version at this level");
         return 0;
     }
     memset(&bits, 0, sizeof(bits));
-    xqr_encode_payload(&bits, text, mode, version);
-    /* terminator */
+    xqr_encode_payload(&bits, text, length, mode, version, useEci);
+    /* 终止位。 */
     xqr_append_bits(&bits, 0,
         (bits.length + 4 <= capacityBits) ? 4 : (capacityBits - bits.length));
-    /* pad to byte boundary with zeros (already zero) */
+    /* 补零到字节边界，缓冲已初始化为零。 */
     bits.length = (bits.length + 7) / 8 * 8;
     dataCap = xqr_data_codewords(version, level);
-    /* pad codewords */
+    /* 交替填充码字。 */
     for (i = bits.length / 8; i < dataCap; i++) {
         xqr_append_bits(&bits, (i & 1) ? 0x11 : 0xEC, 8);
     }
@@ -334,7 +355,7 @@ static int xqr_build_codewords(const char *text, int level,
     largeBlocks = dataLen % numBlocks;
     allData = bits.bits;
 
-    /* collect EC codewords per block */
+    /* 为每块计算纠错码字。 */
     {
         int block = 0;
         int offset = 0;
@@ -345,7 +366,7 @@ static int xqr_build_codewords(const char *text, int level,
             offset += dc;
         }
     }
-    /* interleave data */
+    /* 交错数据码字。 */
     {
         int maxDc = smallDc + (largeBlocks > 0 ? 1 : 0);
         int block = 0;
@@ -362,7 +383,7 @@ static int xqr_build_codewords(const char *text, int level,
             }
         }
     }
-    /* interleave EC */
+    /* 交错纠错码字。 */
     {
         int block = 0;
         int idx = 0;
@@ -376,7 +397,7 @@ static int xqr_build_codewords(const char *text, int level,
 }
 
 /* ------------------------------------------------------------------ */
-/* Matrix                                                              */
+/* 模块矩阵                                                             */
 /* ------------------------------------------------------------------ */
 
 typedef struct {
@@ -429,7 +450,7 @@ static void xqr_draw_format(XqrMatrix *m, int eclBits, int mask) {
         rem = (rem << 1) ^ ((rem >> 9) * 0x537);
     }
     bits = ((data << 10) | rem) ^ 0x5412;
-    /* first copy */
+    /* 第一份格式信息。 */
     for (i = 0; i <= 5; i++) {
         xqr_set_fn(m, 8, i, (bits >> i) & 1);
     }
@@ -439,14 +460,14 @@ static void xqr_draw_format(XqrMatrix *m, int eclBits, int mask) {
     for (i = 9; i < 15; i++) {
         xqr_set_fn(m, 14 - i, 8, (bits >> i) & 1);
     }
-    /* second copy */
+    /* 第二份格式信息。 */
     for (i = 0; i < 8; i++) {
         xqr_set_fn(m, m->size - 1 - i, 8, (bits >> i) & 1);
     }
     for (i = 8; i < 15; i++) {
         xqr_set_fn(m, 8, m->size - 15 + i, (bits >> i) & 1);
     }
-    xqr_set_fn(m, 8, m->size - 8, 1); /* always-dark module */
+    xqr_set_fn(m, 8, m->size - 8, 1); /* 固定暗模块。 */
 }
 
 static void xqr_draw_version(XqrMatrix *m, int version) {
@@ -484,7 +505,7 @@ static void xqr_draw_function_patterns(XqrMatrix *m, int version, int eclBits,
     int mask) {
     int i;
     int n = m->size;
-    /* version 1 has no alignment patterns; v2+ has version/7+2 of them */
+    /* v1 无校正图案；v2 起中心数为 version/7+2。 */
     int numAlign = (version == 1) ? 0 : version / 7 + 2;
     const int *centers = xqr_align_centers[version];
     for (i = 0; i < n; i++) {
@@ -505,9 +526,7 @@ static void xqr_draw_function_patterns(XqrMatrix *m, int version, int eclBits,
     }
     xqr_draw_format(m, eclBits, mask);
     xqr_draw_version(m, version);
-    /* reserve format areas before data placement by drawing twice is not
-       needed: format is drawn last with the chosen mask, and the areas
-       were already marked as function modules by the first draw. */
+    /* 格式区域已经标为功能模块，数据放置不会覆盖它。 */
 }
 
 static void xqr_draw_codewords(XqrMatrix *m, const unsigned char *data,
@@ -540,7 +559,7 @@ static long xqr_penalty(const XqrMatrix *m) {
     long result = 0;
     int y;
     int x;
-    /* rule 1: runs */
+    /* 规则 1：同色连续段。 */
     for (y = 0; y < n; y++) {
         int runColor = m->modules[y][0];
         int runLen = 1;
@@ -569,7 +588,7 @@ static long xqr_penalty(const XqrMatrix *m) {
         }
         if (runLen >= 5) result += runLen - 2;
     }
-    /* rule 2: 2x2 blocks */
+    /* 规则 2：同色 2x2 方块。 */
     for (y = 0; y < n - 1; y++) {
         for (x = 0; x < n - 1; x++) {
             int c = m->modules[y][x];
@@ -580,7 +599,7 @@ static long xqr_penalty(const XqrMatrix *m) {
             }
         }
     }
-    /* rule 3: finder-like patterns (simplified 1:1:3:1:1 ratios) */
+    /* 规则 3：类似定位图案的 11 模块序列。 */
     {
         static const int pattern[] = {1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0};
         int k;
@@ -607,7 +626,7 @@ static long xqr_penalty(const XqrMatrix *m) {
             }
         }
     }
-    /* rule 4: dark ratio */
+    /* 规则 4：暗模块占比。 */
     {
         long dark = 0;
         long total = (long)n * n;
@@ -625,15 +644,16 @@ static long xqr_penalty(const XqrMatrix *m) {
     return result;
 }
 
-/* Build the full matrix; returns the version or 0 on failure. */
-static int xqr_build_matrix(const char *text, int level, XqrMatrix *m) {
+/* 生成完整矩阵；失败返回 0。 */
+static int xqr_build_matrix(const char *text, size_t length,
+    int level, XqrMatrix *m) {
     unsigned char data[3706];
     int version;
     int mask;
     int bestMask = 0;
     long bestPenalty = -1;
     memset(m, 0, sizeof(*m));
-    version = xqr_build_codewords(text, level, data);
+    version = xqr_build_codewords(text, length, level, data);
     if (version == 0) {
         return 0;
     }
@@ -652,7 +672,7 @@ static int xqr_build_matrix(const char *text, int level, XqrMatrix *m) {
             }
         }
     }
-    /* redraw with the best mask */
+    /* 使用得分最低的掩码重绘。 */
     memset(m->modules, 0, sizeof(m->modules));
     memset(m->isFunction, 0, sizeof(m->isFunction));
     xqr_draw_function_patterns(m, version, xqr_ecl_format_bits[level],
@@ -661,45 +681,57 @@ static int xqr_build_matrix(const char *text, int level, XqrMatrix *m) {
     return version;
 }
 
-static int xqr_parse_level(const char *level) {
-    if (level == NULL) return -1;
-    if (strcmp(level, "L") == 0 || strcmp(level, "l") == 0) return 0;
-    if (strcmp(level, "M") == 0 || strcmp(level, "m") == 0) return 1;
-    if (strcmp(level, "Q") == 0 || strcmp(level, "q") == 0) return 2;
-    if (strcmp(level, "H") == 0 || strcmp(level, "h") == 0) return 3;
+static int xqr_parse_level(const char *level, size_t size) {
+    if (level == NULL || size != 1) return -1;
+    if (level[0] == 'L' || level[0] == 'l') return 0;
+    if (level[0] == 'M' || level[0] == 'm') return 1;
+    if (level[0] == 'Q' || level[0] == 'q') return 2;
+    if (level[0] == 'H' || level[0] == 'h') return 3;
     return -1;
 }
 
-static int xqr_build_checked(const char *text, const char *level,
-    XqrMatrix *m) {
-    int lv = xqr_parse_level(level);
-    int version;
+static int xqr_valid_input(const char *text, size_t length,
+    const char *level, size_t levelSize) {
+    int lv = xqr_parse_level(level, levelSize);
     if (lv < 0) {
         xqr_error("level must be one of L, M, Q, H");
-        return 0;
+        return -1;
     }
-    if (text == NULL || text[0] == '\0') {
-        xqr_error("qr text must not be empty");
-        return 0;
+    if (text == NULL || length == 0 || length > XQR_MAX_TEXT ||
+        memchr(text, 0, length) != NULL ||
+        !xrtUtf8Valid((xstrview){text, length}, NULL)) {
+        xqr_error("qr text must be valid UTF-8 without NUL and at most 7089 bytes");
+        return -1;
     }
-    version = xqr_build_matrix(text, lv, m);
+    return lv;
+}
+
+static int xqr_build_checked(const char *text, size_t length,
+    const char *level, size_t levelSize,
+    XqrMatrix *m) {
+    int lv = xqr_valid_input(text, length, level, levelSize);
+    int version;
+    if (lv < 0) return 0;
+    version = xqr_build_matrix(text, length, lv, m);
     return version;
 }
 
 /* ------------------------------------------------------------------ */
-/* Public API                                                          */
+/* 公开接口                                                             */
 /* ------------------------------------------------------------------ */
 
 static xvalue *xqr_null(void) {
     return xrtValueNull();
 }
 
-xvalue *xqr_matrix(const char *text, const char *level) {
+xvalue *xqr_matrix_n(const char *text, size_t length,
+    const char *level, size_t levelSize) {
     XqrMatrix m;
     xvalue *rows;
     int version;
     int y;
-    version = xqr_build_checked(text, level, &m);
+    xrtClearError();
+    version = xqr_build_checked(text, length, level, levelSize, &m);
     if (version == 0) {
         return xqr_null();
     }
@@ -708,13 +740,14 @@ xvalue *xqr_matrix(const char *text, const char *level) {
     for (y = 0; y < m.size; y++) {
         xvalue *row = xrtValueArray();
         int x;
-        if (row == NULL ||
-            !xrtValueArrayAppendNew(rows, row)) {
+        if (row == NULL || !xrtValueArrayAppendNew(rows, row)) {
+            xrtValueRelease(rows);
             return xqr_null();
         }
         for (x = 0; x < m.size; x++) {
             if (!xrtValueArrayAppendNew(row,
                     xrtValueInt(m.modules[y][x]))) {
+                xrtValueRelease(rows);
                 return xqr_null();
             }
         }
@@ -722,66 +755,109 @@ xvalue *xqr_matrix(const char *text, const char *level) {
     return rows;
 }
 
-long long xqr_version(const char *text, const char *level) {
-    XqrMatrix m;
-    return xqr_build_checked(text, level, &m);
+int64_t xqr_version_n(const char *text, size_t length,
+    const char *level, size_t levelSize) {
+    int lv;
+    int numeric, alnum, mode, version, capacityBits;
+    xrtClearError();
+    lv = xqr_valid_input(text, length, level, levelSize);
+    if (lv < 0) return 0;
+    mode = xqr_detect_mode(text, length, &numeric, &alnum);
+    version = xqr_pick_version(length, mode, lv,
+        xqr_uses_eci(text, length, mode), &capacityBits);
+    if (version == 0) xqr_error("text is too long for any qr version at this level");
+    return version;
 }
 
-const char *xqr_ascii(const char *text, const char *level,
-    const char *dark, const char *light) {
-    static char ring[2][70000];
-    static int next;
+static int xqr_append(xbuffer *output, const char *text, size_t size) {
+    return xrtBufferAppend(output, (xbytesview){(const uint8 *)text, size});
+}
+
+static void *xqr_finish(xbuffer *output) {
+    void *result;
+    if (!xrtBufferAppendByte(output, 0)) {
+        xrtBufferUnit(output);
+        return NULL;
+    }
+    result = xrtBufferTake(output, NULL, NULL);
+    if (result == NULL) xrtBufferUnit(output);
+    return result;
+}
+
+static int xqr_valid_cell(const char *text, size_t size) {
+    size_t at = 0;
+    if (text == NULL) return 0;
+    while (at < size) {
+        uint32 scalar;
+        size_t read;
+        if (xrtUtf8Decode((xstrview){text + at, size - at},
+            &scalar, &read) != XUTF_OK || read == 0u || scalar < 0x20u ||
+            (scalar >= 0x7fu && scalar <= 0x9fu) ||
+            scalar == 0x2028u || scalar == 0x2029u) return 0;
+        at += read;
+    }
+    return 1;
+}
+
+void *xqr_ascii_n(const char *text, size_t length,
+    const char *level, size_t levelSize,
+    const char *dark, size_t darkSize,
+    const char *light, size_t lightSize) {
     XqrMatrix m;
-    char *out;
+    xbuffer output;
     int version;
-    size_t pos = 0;
+    size_t width;
+    size_t stride;
     int y;
     int x;
-    int border = 2;
-    int stride;
-    next = (next + 1) % 2;
-    out = ring[next];
-    out[0] = '\0';
-    version = xqr_build_checked(text, level, &m);
-    if (version == 0) return out;
-    if (dark == NULL || dark[0] == '\0') dark = "##";
-    if (light == NULL || light[0] == '\0') light = "  ";
-    stride = (int)strlen(dark) > (int)strlen(light)
-        ? (int)strlen(dark) : (int)strlen(light);
+    const int border = 4;
+    xrtClearError();
+    version = xqr_build_checked(text, length, level, levelSize, &m);
+    if (version == 0) return NULL;
+    if (darkSize == 0) { dark = "##"; darkSize = 2; }
+    if (lightSize == 0) { light = "  "; lightSize = 2; }
+    if (!xqr_valid_cell(dark, darkSize) ||
+        !xqr_valid_cell(light, lightSize)) {
+        xqr_error("render cells must be single-line UTF-8 text");
+        return NULL;
+    }
+    width = (size_t)m.size + border * 2;
+    stride = darkSize > lightSize ? darkSize : lightSize;
+    if (stride > (4u * 1024u * 1024u / width) ||
+        width * stride + 1 > (4u * 1024u * 1024u / width)) {
+        xqr_error("ASCII rendering exceeds 4 MiB");
+        return NULL;
+    }
+    if (!xrtBufferInit(&output)) return NULL;
     for (y = -border; y < m.size + border; y++) {
         for (x = -border; x < m.size + border; x++) {
             int inRange = x >= 0 && x < m.size && y >= 0 && y < m.size;
             int darkCell = inRange && m.modules[y][x];
             const char *cell = darkCell ? dark : light;
-            if (pos + stride + 2 < sizeof(ring[0])) {
-                strcpy(out + pos, cell);
-                pos += strlen(cell);
-            }
+            size_t cellSize = darkCell ? darkSize : lightSize;
+            if (!xqr_append(&output, cell, cellSize)) goto fail;
         }
-        if (pos + 2 < sizeof(ring[0])) {
-            out[pos++] = '\n';
-        }
+        if (!xrtBufferAppendByte(&output, '\n')) goto fail;
     }
-    out[pos] = '\0';
-    return out;
+    return xqr_finish(&output);
+fail:
+    xrtBufferUnit(&output);
+    return NULL;
 }
 
-const char *xqr_utf8(const char *text, const char *level) {
-    /* half-block rendering: two rows per output line using U+2580/2584 */
-    static char ring[2][60000];
-    static int next;
+void *xqr_utf8_n(const char *text, size_t length,
+    const char *level, size_t levelSize) {
+    /* 两行模块合成一行，半块字符直接写入独立缓冲。 */
     XqrMatrix m;
-    char *out;
+    xbuffer output;
     int version;
-    size_t pos = 0;
     int y;
     int x;
-    int border = 2;
-    next = (next + 1) % 2;
-    out = ring[next];
-    out[0] = '\0';
-    version = xqr_build_checked(text, level, &m);
-    if (version == 0) return out;
+    const int border = 4;
+    xrtClearError();
+    version = xqr_build_checked(text, length, level, levelSize, &m);
+    if (version == 0) return NULL;
+    if (!xrtBufferInit(&output)) return NULL;
     for (y = -border; y < m.size + border; y += 2) {
         for (x = -border; x < m.size + border; x++) {
             int inTop = x >= 0 && x < m.size && y >= 0 && y < m.size;
@@ -794,64 +870,66 @@ const char *xqr_utf8(const char *text, const char *level) {
             else if (top) cell = "\xE2\x96\x80";
             else if (bot) cell = "\xE2\x96\x84";
             else cell = " ";
-            if (pos + 4 < sizeof(ring[0])) {
-                strcpy(out + pos, cell);
-                pos += strlen(cell);
-            }
+            if (!xqr_append(&output, cell, strlen(cell))) goto fail;
         }
-        if (pos + 2 < sizeof(ring[0])) {
-            out[pos++] = '\n';
-        }
+        if (!xrtBufferAppendByte(&output, '\n')) goto fail;
     }
-    out[pos] = '\0';
-    return out;
+    return xqr_finish(&output);
+fail:
+    xrtBufferUnit(&output);
+    return NULL;
 }
 
-const char *xqr_svg(const char *text, const char *level,
-    long long border, long long scale) {
-    static char ring[2][80000];
-    static int next;
+void *xqr_svg_n(const char *text, size_t length,
+    const char *level, size_t levelSize,
+    int64_t border, int64_t scale) {
     XqrMatrix m;
-    char *out;
+    xbuffer output;
     int version;
-    size_t pos = 0;
     int y;
     int x;
     char header[512];
-    next = (next + 1) % 2;
-    out = ring[next];
-    out[0] = '\0';
-    if (border < 0) border = 0;
-    if (scale < 1) scale = 1;
-    version = xqr_build_checked(text, level, &m);
-    if (version == 0) return out;
+    int written;
+    xrtClearError();
+    if (border < 0 || border > 64 || scale < 1 || scale > 1024) {
+        xqr_error("SVG border must be 0..64 and scale must be 1..1024");
+        return NULL;
+    }
+    version = xqr_build_checked(text, length, level, levelSize, &m);
+    if (version == 0) return NULL;
+    if (!xrtBufferInit(&output)) return NULL;
     {
-        long long dim = (m.size + border * 2) * scale;
-        snprintf(header, sizeof(header),
+        int64_t dim = (m.size + border * 2) * scale;
+        written = snprintf(header, sizeof(header),
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
             "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" "
-            "viewBox=\"0 0 %lld %lld\" shape-rendering=\"crispEdges\">\n"
+            "width=\"%" PRId64 "\" height=\"%" PRId64 "\" "
+            "viewBox=\"0 0 %" PRId64 " %" PRId64 "\" "
+            "shape-rendering=\"crispEdges\">\n"
             "  <rect width=\"100%%\" height=\"100%%\" fill=\"#ffffff\"/>\n"
             "  <path fill=\"#000000\" d=\"",
-            dim, dim);
-        strcpy(out, header);
-        pos = strlen(out);
+            dim, dim, dim, dim);
+        if (written < 0 || (size_t)written >= sizeof(header) ||
+            !xqr_append(&output, header, (size_t)written)) goto fail;
     }
     for (y = 0; y < m.size; y++) {
         for (x = 0; x < m.size; x++) {
             if (m.modules[y][x]) {
                 char cell[64];
-                snprintf(cell, sizeof(cell), "M%lld,%lldh%lldv%lldh-%lldz",
-                    (long long)(x + border) * scale,
-                    (long long)(y + border) * scale,
+                written = snprintf(cell, sizeof(cell),
+                    "M%" PRId64 ",%" PRId64 "h%" PRId64
+                    "v%" PRId64 "h-%" PRId64 "z",
+                    (int64_t)(x + border) * scale,
+                    (int64_t)(y + border) * scale,
                     scale, scale, scale);
-                if (pos + strlen(cell) + 1 < sizeof(ring[0]) - 40) {
-                    strcpy(out + pos, cell);
-                    pos += strlen(cell);
-                }
+                if (written < 0 || (size_t)written >= sizeof(cell) ||
+                    !xqr_append(&output, cell, (size_t)written)) goto fail;
             }
         }
     }
-    strcpy(out + pos, "\"/>\n</svg>\n");
-    return out;
+    if (!xqr_append(&output, "\"/>\n</svg>\n", 11)) goto fail;
+    return xqr_finish(&output);
+fail:
+    xrtBufferUnit(&output);
+    return NULL;
 }

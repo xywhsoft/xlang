@@ -1,15 +1,22 @@
-extern "xqr_matrix" func __qr_matrix(string text, string level) as var
-extern "xqr_version" func __qr_version(string text, string level) as int
-extern "xqr_ascii" func __qr_ascii(string text, string level, string dark, string light) as string
-extern "xqr_utf8" func __qr_utf8(string text, string level) as string
-extern "xqr_svg" func __qr_svg(string text, string level, int border, int scale) as string
+extern "xqr_matrix_n" func __qr_matrix(string text, c_size length,
+    string level, c_size levelLength) as var
+extern "xqr_version_n" func __qr_version(string text, c_size length,
+    string level, c_size levelLength) as int
+extern "xqr_ascii_n" func __qr_ascii(string text, c_size length,
+    string level, c_size levelLength, string dark, c_size darkLength,
+    string light, c_size lightLength) as point
+extern "xqr_utf8_n" func __qr_utf8(string text, c_size length,
+    string level, c_size levelLength) as point
+extern "xqr_svg_n" func __qr_svg(string text, c_size length,
+    string level, c_size levelLength, int border, int scale) as point
 
 
 
 // matrix 生成二维码模块矩阵，返回行数组的数组，每个元素为 0/1
 // level 取 "L"/"M"/"Q"/"H"；文本为空、纠错级别非法或内容过长抛 ValueError
-export func matrix(string text, string level) as var
-    var r = __qr_matrix(text, level)
+export func matrix(string text, string level = "M") as var
+    var r = __qr_matrix(text, c_size(string.byteLen(text)),
+        level, c_size(string.byteLen(level)))
     if r == null then
         throw ValueError "qr: cannot encode text (empty input, bad level, or too long)"
     end
@@ -17,8 +24,9 @@ export func matrix(string text, string level) as var
 end
 
 // version 返回将要使用的版本号 1-40；不满足时报错
-export func version(string text, string level) as int
-    int v = __qr_version(text, level)
+export func version(string text, string level = "M") as int
+    int v = __qr_version(text, c_size(string.byteLen(text)),
+        level, c_size(string.byteLen(level)))
     if v <= 0 then
         throw ValueError "qr: cannot encode text"
     end
@@ -26,16 +34,29 @@ export func version(string text, string level) as int
 end
 
 // ascii 用给定明暗字符渲染二维码（默认可传空串使用 "##" 与 "  "）
-export func ascii(string text, string level, string dark, string light) as string
-    return __qr_ascii(text, level, dark, light)
+export func ascii(string text, string level = "M", string dark = "##",
+    string light = "  ") as string
+    point result = __qr_ascii(text, c_size(string.byteLen(text)),
+        level, c_size(string.byteLen(level)),
+        dark, c_size(string.byteLen(dark)),
+        light, c_size(string.byteLen(light)))
+    if result == null then throw ValueError "qr: cannot render ASCII code" end
+    return __xl_runtime.takeCstr(result)
 end
 
 // utf8 用半块字符渲染，两行模块合并为一行输出
-export func utf8(string text, string level) as string
-    return __qr_utf8(text, level)
+export func utf8(string text, string level = "M") as string
+    point result = __qr_utf8(text, c_size(string.byteLen(text)),
+        level, c_size(string.byteLen(level)))
+    if result == null then throw ValueError "qr: cannot render UTF-8 code" end
+    return __xl_runtime.takeCstr(result)
 end
 
 // svg 生成矢量图；border 为静区模块数，scale 为每模块像素
-export func svg(string text, string level, int border, int scale) as string
-    return __qr_svg(text, level, border, scale)
+export func svg(string text, string level = "M", int border = 4,
+    int scale = 4) as string
+    point result = __qr_svg(text, c_size(string.byteLen(text)),
+        level, c_size(string.byteLen(level)), border, scale)
+    if result == null then throw ValueError "qr: cannot render SVG code" end
+    return __xl_runtime.takeCstr(result)
 end

@@ -1,0 +1,57 @@
+# qr
+
+生成标准 QR Code：版本 1-40、L/M/Q/H 四种纠错级别、数字/字母/UTF-8 字节模式、Reed-Solomon 纠错及 8 种掩码选择。非 ASCII 文本写入 UTF-8 ECI 26。编码器按整段选择一种模式，不做混合模式分段优化，因此某些混合文本可能比理论最小版本大；生成结果仍符合规范。
+
+```xlang
+import qr
+var modules = qr.matrix("HELLO WORLD")
+string image = qr.svg("你好，世界", "M", 4, 4)
+println(qr.version("HELLO WORLD"))  // 1
+```
+
+## API
+
+- `matrix(text, level = "M")` 返回行数组，每个元素为 0 或 1；矩阵不含静区。
+- `version(text, level = "M")` 只进行容量估算，不生成矩阵。
+- `ascii(text, level = "M", dark = "##", light = "  ")` 返回文本二维码，静区为 4 模块。自定义格子须为无控制字符和行分隔符的单行 UTF-8 文本；不同终端的字符显示宽度由调用者负责。
+- `utf8(text, level = "M")` 返回半块字符二维码，静区为 4 模块。
+- `svg(text, level = "M", border = 4, scale = 4)` 返回可直接显示的 SVG。
+
+`text` 必须是非空合法 UTF-8，不能包含 NUL；最大输入为 7089 字节，实际可编码长度取决于模式与纠错级别。`level` 取 L/M/Q/H，不区分大小写。SVG `border` 为 0..64，`scale` 为 1..1024；ASCII 输出超过 4 MiB 时显式失败，不截断。
+
+C API 见 `include/qr_native.h`。`_n` 接口显式接收 UTF-8 字节长度；矩阵返回值用 `xrtValueRelease`，ASCII/UTF-8/SVG 独立字符串用 `xrtFree`。三种渲染均不使用共享结果缓冲。每次公开调用先清除当前线程上一次的 XRT 错误，调用方可按本次调用的返回值和错误状态判断结果。
+
+## 范例与验证
+
+- Windows 包级门禁从 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/qr/test/check.ps1 -SkipAot`；去掉 `-SkipAot` 可检查全部 AOT 阶段并报告首个阻断。
+- Linux 原生 C sanitizer、XLang 中央/包内边界及 C/XLang 范例逐字对照门禁从 `demo6` 目录运行 `bash release/extlibs/qr/test/check.sh`。
+- `release/examples/extlibs/qr.xl` 与 `qr_c.c` 可直接 `xl run`，输出一致。
+- `release/extlibs/qr/test/test_qr.c` 与 `test/boundaries.xl` 覆盖格式、所有权、超长、无效输入和大矩阵。
+- `test/aot_core.xl` 只覆盖无输出的公开 `version` 路径，用于在完整 AOT 受主线阻断时验证本包的依赖裁剪；不代替矩阵或渲染的 AOT 验收。
+- `test/dump_matrix.c` 与 `test/verify_decode.py` 使用独立 ZXing 解码生成矩阵；此附加验证需要测试环境安装 `numpy`、`zxing-cpp`，不是运行时依赖。覆盖 v1、中文、长文本与 v40 的 7089 位数字。
+
+2026-10-12：Windows 严格 GCC、Linux ASan/UBSan、C/XLang 边界、双语同输出与独立扫码通过。当时的无输出边界 AOT 曾通过；当前发布版必须按下方复核结果重新验收。
+
+2026-10-14：自定义明暗格原允许换行、ESC 和 Unicode 行分隔符，导致文本矩阵损坏；C/XLang 红绿边界后改为按 XRT UTF-8 标量拒绝 C0/C1、DEL、U+2028/U+2029。C 入口失败后成功仍留旧错误的回归先红后绿；Windows 严格 GCC、C/XLang 边界与双语范例、包内 Linux ASan/UBSan 门禁通过；编码核心和独立解码基线未改。当前 `xl build test/cases/extlib_qr.xl -o build/test/qr_core.exe` 缺 `xl6ValueIndexReadCopyV1`；带输出范例另受 `xl6ValueDataSnapshotV1` 阻断。两者均为共享 AOT 链接问题，见 `demo6/dev/extlib_blockers/value_index_link.md` 和 `text_snapshot_link.md`；尚不能签收发布级 AOT。
+
+2026-10-15：清单声明原生代码直接使用的 XRT Buffer、Value Container、Unicode 模块，源码宏条件化；新增只测 `version` 的无输出 AOT 探针，同一程序从 3,559,424 降至 568,832 字节且运行通过。矩阵前 16 个、ASCII 渲染前 8 个分配点的故障注入均保持 `XERR_MEMORY`，Windows C/XLang 边界、双语范例和 Linux ASan/UBSan 复跑通过；完整边界 AOT 仍缺 `xl6ValueIndexReadCopyV1`。本轮未重跑独立扫码解码：当前 Python 环境缺少可选测试依赖 `zxingcpp`，既有解码结果不计入本轮验证。
+
+2026-10-15：新增 Windows 包级 `test/check.ps1`，按 manifest 严格编译、C 边界、中央 XLang JIT、包内边界、C/XLang 范例同输出及核心 AOT 均通过。当前发布物的包内 `test/boundaries.xl` AOT 也已构建运行；上段所述缺索引符号仍在中央 `test/cases/extlib_qr.xl` AOT 复现，不能扩大包内边界结果。完整门禁准确停在中央 AOT 的 `xl6ValueIndexReadCopyV1`；独立构建带输出范例则缺 `xl6ValueDataSnapshotV1`。Linux ASan/UBSan 复跑通过；可选 ZXing 独立解码未重跑。
+
+2026-10-16：从当前源码以严格 GCC 重建矩阵输出夹具，用独立 ZXing-C++ 3.1.1 解码九组固定样本全部通过，含 UTF-8 中文、500/1000/1800 字节高纠错文本及 7089 位数字容量边界。测试依赖仅安装在 `build/test/qr_guard/pydeps`，不进入发布包。同日 Windows 包级 `-SkipAot` 门禁通过 C、XLang、双语输出及无输出核心 AOT；中央完整 AOT 链接阻断不变。
+
+2026-10-16：Linux XLang 导入复现 `version` 的 `long long`/`int64_t` 原型冲突；`version` 返回值及 `svg` 的数值参数统一为 `int64_t`，实现包含公开头，新增 C ABI 门禁。跨平台调用与 C/XLang 范例复验；完整 AOT 阻断不变。
+
+同日将包内 `test/boundaries.xl` 登记为 `coverage.tests`，供目录 smoke
+自动发现；当前发布物的该用例和 C 边界测试通过。未重跑独立扫码或
+完整 AOT，不因本次登记签收发布级验收。
+
+2026-10-17：Linux 包级脚本加入中央与包内 XLang JIT 用例，并严格比较
+C 和 XLang 范例的输出；与 C ASan/UBSan 同次执行。完整 AOT 和可选的
+独立 ZXing 解码不在本轮 Linux 脚本内，不因此签收发布级。
+
+2026-10-18：使用临时目录中的 ZXing-C++ 3.1.1 重新运行独立解码；
+测试向量从九组扩至十一组，新增补充平面 Unicode 字符和 byte 模式
+2953 字节容量边界，2954 字节输入明确拒绝。十一组二维码均由独立
+解码器读回原文。测试脚本限制 NumPy/OpenBLAS 为单线程，仅影响可选
+验证进程。该结果不覆盖所有模式组合，也不解除共享 AOT 链接阻断。

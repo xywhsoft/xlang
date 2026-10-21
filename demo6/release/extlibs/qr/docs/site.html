@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>qr - 扩展库 - xlang</title>
+  <meta name="description" content="支持 UTF-8、四种纠错级别及版本 1-40 的二维码生成。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / qr</p><h1>qr</h1>
+    <p class="extlib-lead">二维码生成。</p>
+    <p>支持版本 1-40、四种纠错级别和 UTF-8 ECI。可输出模块矩阵、文本、半块字符与 SVG；结果独立持有，不静默截断。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>matrix(text, level="M")</code></td><td>返回 0/1 模块矩阵</td></tr>
+      <tr><td><code>version(text, level="M")</code></td><td>查询所需版本</td></tr>
+      <tr><td><code>ascii / utf8 / svg</code></td><td>生成可展示的二维码</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import qr
+string image = qr.svg("你好，世界", "M", 4, 4)
+println(qr.version("HELLO WORLD"))</code></pre>
+    <p>文本须为无 NUL 的合法 UTF-8。自定义文本格拒绝控制字符与行分隔符；不同终端的字符显示宽度由调用者负责。C 版本号和 SVG 数值参数使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。编码按整段选择单一模式；完整参数与验证见包内 README。2026-10-15 Windows 严格 C、中央与包内 XLang JIT、双语范例同输出、核心与包内边界 AOT，以及 Linux ASan/UBSan 均通过。中央回归的 AOT 仍缺 <code>xl6ValueIndexReadCopyV1</code>，带输出范例另缺 <code>xl6ValueDataSnapshotV1</code>；可选 ZXing 独立解码本轮未重跑，尚未完成发布验收。</p>
+  </section>
+</main>
+</body>
+</html>

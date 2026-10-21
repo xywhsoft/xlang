@@ -1,0 +1,7 @@
+import qr
+
+func main(...) as int
+    assert qr.version("HELLO WORLD") == 1
+    assert qr.version("你好", "H") >= 1
+    return 0
+end

@@ -1,0 +1,47 @@
+import qr
+
+func main(...) as int
+    assert qr.version("HELLO WORLD") == 1
+    assert qr.matrix("HELLO WORLD").length == 21
+    assert qr.version("你好，世界") >= 2
+
+    string first = qr.svg("HELLO WORLD")
+    string second = qr.svg("你好，世界", "H")
+    assert first.contains("width=\"116\" height=\"116\"")
+    assert first.contains("viewBox=\"0 0 116 116\"")
+    assert first.contains("</svg>") and second.contains("</svg>")
+    assert first != second
+    assert qr.ascii("HELLO WORLD").contains("##")
+    assert qr.utf8("HELLO WORLD").contains("█")
+
+    bool badCell = false
+    try
+        qr.ascii("HELLO WORLD", "M", "#\n", "  ")
+    catch ValueError e
+        badCell = true
+    end
+    assert badCell, "line break in render cell rejected"
+
+    string longText = ""
+    for i in range(1000)
+        longText += "A"
+    end
+    assert string.byteLen(qr.svg(longText, "H")) > 80000
+
+    bool rejected = false
+    try
+        qr.version("a\x00b")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        qr.svg("HELLO WORLD", "M", -1)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+    return 0
+end
