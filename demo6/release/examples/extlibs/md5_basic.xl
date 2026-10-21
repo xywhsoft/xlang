@@ -1,0 +1,12 @@
+import md5
+
+// 已有摘要格式兼容；MD5 不用于密码存储或认证。
+println("empty=" + md5.hashHex(""))
+println("abc=" + md5.hashHex("abc"))
+auto h = md5.hasher()
+h.update("a")
+h.update("bc")
+println("stream=" + h.digestHex())
+println("bytes=" + string(h.inputBytes))
+h.reset()
+println("reset=" + h.digestHex())

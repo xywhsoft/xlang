@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>md5 - 扩展库 - xlang</title>
+  <meta name="description" content="复用 XRT 的 MD5：UTF-8 文本、Buffer、增量对象、文件进度和取消，C 与 xlang 双语使用。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout c-hash" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / md5</p>
+    <div class="extlib-title-row"><h1>md5</h1><span class="extlib-cat-badge">摘要兼容</span></div>
+    <p class="extlib-lead">16 字节 MD5，直接复用 XRT 算法，不重复引入摘要核心或外部 DLL。用于既有格式兼容，不用于密码、认证或防恶意篡改。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api">
+    <h2 id="api">公开函数</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>参数与结果</th></tr></thead><tbody>
+      <tr><td><code>version()</code></td><td>包引擎版本 1.0.0。</td></tr>
+      <tr><td><code>hashHex(data)</code></td><td>Buffer 或 string，返回 32 个小写 hex 字符。</td></tr>
+      <tr><td><code>hash(data)</code></td><td>同样的输入，返回 16 字节 Buffer。</td></tr>
+      <tr><td><code>hashFileHex(path, maxInput, onProgress)</code></td><td>文件摘要。默认 maxInput=268435456、onProgress=null。</td></tr>
+      <tr><td><code>hashFile(...)</code></td><td>相同参数，返回 16 字节 Buffer。</td></tr>
+      <tr><td><code>hasher(maxInput=268435456)</code></td><td>返回 Md5Hasher。</td></tr>
+      <tr><td><code>MD5_DIGEST_SIZE</code></td><td>常量 16。</td></tr>
+    </tbody></table>
+    <p>文本按 UTF-8 字节计算，空输入合法；包含 NUL 的二进制输入使用 Buffer。
+      maxInput 必须为正，一次性函数不另设业务预算。失败抛异常，不用空结果表示成功。</p>
+    <h2 id="stream">增量对象</h2>
+    <pre><code class="language-xlang">import md5
+
+auto h = md5.hasher()
+h.update("a")
+h.update("bc")
+assert h.digestHex() == "900150983cd24fb0d6963f7d28e17f72"
+assert h.inputBytes == uint64(3)
+h.reset()</code></pre>
+    <p><code>update(Buffer|string)</code> 追加输入；digest 返回 Buffer，digestHex 返回文本，
+      两者都是可重复读取、之后可继续追加的快照。reset 清空输入与失败状态、保留预算。
+      inputBytes 为 uint64；valid 仅检查句柄非空。错误 update 不部分接收，需 reset 后恢复。
+      独立对象可并发，同一可变对象必须串行；底层 Native 方法不接受任意指针。</p>
+    <h2 id="progress">文件与进度</h2>
+    <pre><code class="language-xlang">string digest = md5.hashFileHex("data.bin",
+    onProgress = func(int current, int total, int output) as bool
+        return true
+    end)</code></pre>
+    <p>每块最多 64 KiB，EOF 另通知一次，空文件也通知；末尾计数可能重复。
+      参数分别为已读字节、总长度、输出字节。未知总长为零，输出恒为零，uint64 转 int 前检查范围。
+      返回 false 抛 CancelledError，最终通知也可取消；回调抛错保留原类别和消息，允许嵌套独立操作。</p>
+    <p>参数错误为 ValueError、超限为 RangeError、分配失败为 MemoryError；文件错误保留 XRT 分类。
+      路径通过 XRT UTF-8 文件 API，不修改输入、不交付部分摘要。输入预算不等于 CPU 时限或文件快照。</p>
+    <h2 id="c-api">C API 与所有权</h2>
+    <p><code>include/xrt_md5.h</code> 提供 xrtMd5Hash、OptionsInit/ErrorInit、
+      HasherCreate/Update/Digest/Reset/InputBytes/Error/Destroy、File。
+      File 借用 Reader，从当前游标读取，不关闭、不回退；最终通知成功后才写摘要。
+      C 进度帧保留 uint64 计数及 FINAL/TOTAL_KNOWN 标志。核心零预算表示不设业务上限，仍检查位计数溢出。</p>
+    <p>核心可独立使用，不依赖 xlang；已有宿主 XRT 时复用唯一运行库。
+      <code>include/md5_native.h</code> 声明精确薄绑定 ABI。hex 借用 XRT 临时区，清理/回退后失效；
+      后续调用不覆盖此前文本。二进制 xbuffer* 归调用方所有，C 用 xrtBufferDestroy，语言由 Buffer 接管。</p>
+    <h2 id="verification">范例与验证范围</h2>
+    <p>教学：<code>examples/extlibs/md5.xl</code>。双语对照：<code>examples/extlibs/md5_basic.xl</code>
+      与 <code>extlibs/md5/examples/basic.c</code>，固定输出相同。</p>
+    <p><code>tools/check_extlib_md5.ps1</code> 检查 149 组独立答案及 8 种地址偏移、填充/分块、百万 a、
+      15 个生成原型、UTF-8/Buffer、Reader、回调取消/异常、分配故障、四线程独立对象、C/xlang JIT/AOT/GCC。
+      <code>tools/check_extlib_md5.sh</code> 检查 Linux 独立 C ASan/UBSan/泄漏边界。
+      门禁记录输入哈希，不是跨版本永久认证；未验收 Linux xlang、大端、32 位/ARM、共享可变对象或吞吐性能。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

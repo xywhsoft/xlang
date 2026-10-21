@@ -41,7 +41,7 @@ assert streaming.inputBytes == string.byteLen(sample), "md5 streaming inputBytes
 try
     md5.hashFileHex("")
     assert false, "md5 empty path should fail"
-catch FileError
+catch ValueError
 end
 
 println("md5 extlib ok")

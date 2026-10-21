@@ -1,9 +1,12 @@
 #ifndef XRT_MD5_H
 #define XRT_MD5_H
 
-/* MD5 文件哈希契约直接依赖通用 Reader。 */
-#ifndef XRT_MODULE_IO
-#define XRT_MODULE_IO
+/* 独立 C 用户只需选择本公开头；算法复用 XRT，不另带 MD5 实现。 */
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
+#ifndef XRT_MODULE_CRYPTO_MD5
+#define XRT_MODULE_CRYPTO_MD5
 #endif
 
 #include "xrt.h"
