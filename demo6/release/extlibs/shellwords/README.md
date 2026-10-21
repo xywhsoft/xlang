@@ -61,6 +61,8 @@ Windows 门禁还会构建 `test/windows_argv.c`，把 `quoteWindows` 的结果�
 Linux C 门禁另将 `quote` 的九种代表性输入交给真实 `/bin/sh` 的 `printf`，
 核对空串、空格、单引号、UTF-8、变量/命令替换文本和换行不会改变参数字节；
 这与本包 `split` 的自测互为独立验证，不执行输入中的命令替换。
+同一门禁还把 ASCII 1–127 的单字节参数用 `join` 一次编码，交给真实
+`/bin/sh` 输出并逐字节核对，覆盖控制字符及相邻参数的引用边界。
 2026-10-15 追加四个原生入口的逐点分配故障测试：`split`、`join`、
 `quote`、`quoteWindows` 均在故障时返回内存错误，故障清除后可恢复；
 Windows 严格 GCC/C/XLang 与 Linux ASan/UBSan 包级门禁通过。

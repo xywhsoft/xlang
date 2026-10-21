@@ -243,6 +243,49 @@ static bool test_posix_shell_quote(void)
 	return true;
 }
 
+/* 一次交给真实 shell 校验整段参数序列，避免仅由 split 自证。 */
+static bool test_posix_ascii_join(void)
+{
+	xvalue* pWords = xrtValueArray();
+	char expected[127];
+	char output[128];
+	char command[1024];
+	str joined = NULL;
+	FILE* shell = NULL;
+	size_t i;
+	size_t received;
+	int command_length;
+	int status;
+	bool bOk = false;
+	if ( pWords == NULL ) { return false; }
+	for ( i = 1u; i < 128u; ++i ) {
+		char word[2] = { (char)i, 0 };
+		xvalue* pWord = xrtValueString((xstrview){ word, 1u });
+		if ( pWord == NULL || !xrtValueArrayAppendTake(pWords, &pWord) ) {
+			xrtValueRelease(pWord);
+			goto cleanup;
+		}
+		expected[i - 1u] = (char)i;
+	}
+	joined = xrtShellwordsJoin(pWords);
+	if ( joined == NULL ) { goto cleanup; }
+	command_length = snprintf(command, sizeof(command), "printf '%%s' %s", joined);
+	if ( command_length < 0 || command_length >= (int)sizeof(command) ) { goto cleanup; }
+	shell = popen(command, "r");
+	if ( shell == NULL ) { goto cleanup; }
+	received = fread(output, 1u, sizeof(output), shell);
+	status = pclose(shell);
+	shell = NULL;
+	bOk = status == 0 && received == sizeof(expected) &&
+		memcmp(output, expected, sizeof(expected)) == 0;
+cleanup:
+	if ( shell != NULL ) { pclose(shell); }
+	xrtFree(joined);
+	xrtValueRelease(pWords);
+	if ( !bOk ) { fputs("POSIX shell ASCII join failed\n", stderr); }
+	return bOk;
+}
+
 static bool test_posix_command_words(void)
 {
 	static const char* const Words[] = { "if", "case", "time", "label:" };
@@ -415,7 +458,8 @@ int main(void)
 		test_reserved_words() &&
 		test_quote_roundtrip() && test_quote_pairs() && test_errors();
 #ifndef _WIN32
-	bOk = bOk && test_posix_shell_quote() && test_posix_command_words();
+	bOk = bOk && test_posix_shell_quote() && test_posix_ascii_join() &&
+		test_posix_command_words();
 #endif
 	if ( !bOk || !test_alloc_failures() ||
 		!test_quote_alloc_failures(xrtShellwordsQuote, "a'b") ||
