@@ -124,7 +124,7 @@ func main(...) as int
     try
         Automaton invalidPattern = aho_corasick.create()
         invalidPattern.addPattern("")
-    catch RuntimeError e
+    catch ValueError e
         emptyPatternCaught = true
     end
     assert emptyPatternCaught, "empty pattern must throw"
@@ -144,7 +144,7 @@ func main(...) as int
         Automaton duplicateCase = aho_corasick.create([], ignoreCase = true)
         duplicateCase.addPattern("Hello")
         duplicateCase.addPattern("hello")
-    catch RuntimeError e
+    catch ValueError e
         duplicateCaught = true
     end
     assert duplicateCaught, "case-equivalent duplicate must throw"
@@ -237,7 +237,7 @@ func main(...) as int
         Automaton limitedPattern = aho_corasick.create([],
             maxPatternBytes = 2)
         limitedPattern.addPattern("abc")
-    catch RuntimeError e
+    catch RangeError e
         patternLimitCaught = true
     end
     assert patternLimitCaught, "pattern limit must throw"
@@ -247,7 +247,7 @@ func main(...) as int
         Automaton limitedInput = aho_corasick.create(["a"],
             maxInputBytes = 2)
         limitedInput.count("abc")
-    catch RuntimeError e
+    catch RangeError e
         inputLimitCaught = true
     end
     assert inputLimitCaught, "input limit must throw"
