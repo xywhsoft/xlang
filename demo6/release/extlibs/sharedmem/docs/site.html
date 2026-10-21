@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sharedmem - 扩展库 - xlang</title>
+  <meta name="description" content="sharedmem 提供 Windows/Linux 命名共享内存与 C/XLang 双语接口。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / sharedmem</p><h1>sharedmem</h1>
+    <p class="extlib-lead">Windows/Linux 命名共享内存，字节安全的双语接口。</p>
+    <p>Windows/Linux C 子进程测试、Linux sanitizer、XLang JIT 与双语范例逐字对照已通过；范例使用独立随机名称。C 范例可直接由 <code>xl run</code> 执行。当前发布物的 AOT 核心构建缺共享主线符号，旧构建的通过记录不作为发布验收。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>create(name, size) / open(name)</code></td><td>创建或打开命名映射，创建不覆盖现有名称</td></tr>
+      <tr><td><code>SharedMemory.write/read</code></td><td>通过 Buffer 读写原始字节，读取返回独立副本</td></tr>
+      <tr><td><code>writeText/readText</code></td><td>按明确的 UTF-8 字节长度读写文本</td></tr>
+      <tr><td><code>writeInt/readInt / zero</code></td><td>小端有符号 64 位整数和清零</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import sharedmem
+auto owner = sharedmem.create("demo_exchange", 128)
+auto reader = sharedmem.open(owner.name)
+owner.writeText(0, "hello")
+println(reader.readText(0, 5))</code></pre>
+    <h2 id="c-api">C 与边界</h2>
+    <p>头文件 <code>include/sharedmem_native.h</code>；C 调用方显式关闭句柄并释放读取缓冲。名称最长 128 UTF-8 字节，XLang 在进入 C 前拒绝内嵌 NUL；大小 1 至 64 MiB。没有内建进程间锁，应用须自行同步。POSIX 创建者关闭会 unlink；显式 unlink 后同名重建时，旧创建者不会误删新对象，但并发名称操作仍需同步。Windows 名称随最后句柄关闭而消失。Windows <code>test/check.ps1 -SkipAot</code> 与 Linux <code>test/check.sh</code> 覆盖独立 C 子进程、语言边界及三路径范例对照；默认 AOT 仍缺 <code>xl6NativeHandleTraceLeaf</code>，README 记录复现和另一项私有构造器阻断。</p>
+  </section>
+</main>
+</body>
+</html>

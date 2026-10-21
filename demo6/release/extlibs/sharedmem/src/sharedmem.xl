@@ -1,23 +1,26 @@
+// 命名共享内存保存原始字节；不同进程的并发读写须另行同步。
 extern "xl6_xrt_last_error_text" func __shm_error() as string
+extern "xshm_create" func __shm_create(string name, int size) as point
+extern "xshm_open" func __shm_open(string name) as point
 
+func __shmCheckName(string name)
+    if string.indexOf(name, "\0", false, string.byteLen(name), 1) >= 0 then
+        throw ValueError "shared memory name contains an embedded NUL byte"
+    end
+end
 
-
-class SharedMemory
+export class SharedMemory
     native point handle
-    extern "xshm_create" create(string name, int size)
+    private extern "xshm_adopt" create(point raw)
     extern "xshm_close" destroy()
 
-    extern "xshm_write" func writeNative(int offset, string data) as int
-    extern "xshm_read" func readNative(int offset, int maxLen) as string
-    extern "xshm_write_int" func writeIntNative(int offset, int value) as bool
-    extern "xshm_read_int" func readIntNative(int offset) as int
-    extern "xshm_size" func sizeNative() as int
-    extern "xshm_name" func nameNative() as string
-    extern "xshm_zero" func zeroNative()
-
-    get valid() as bool
-        return self.handle != null
-    end
+    private extern "xshm_size" func sizeNative() as int
+    private extern "xshm_name_of" func nameNative() as string
+    private extern "xshm_write_abi" func writeNative(int offset, point data, c_size length) as c_int
+    private extern "xshm_read" func readNative(int offset, c_size length) as point
+    private extern "xshm_write_int64" func writeIntNative(int offset, int value) as c_int
+    private extern "xshm_read_int64_value" func readIntNative(int offset) as int
+    private extern "xshm_zero" func zeroNative() as c_int
 
     get size() as int
         return self.sizeNative()
@@ -27,44 +30,57 @@ class SharedMemory
         return self.nameNative()
     end
 
-    func writeStr(int offset, string data) as int
-        if self.handle == null then
-            throw RuntimeError "sharedmem: closed"
+    func write(int offset, Buffer data)
+        if self.writeNative(offset, data.data(), c_size(data.len())) == 0 then
+            throw RangeError __shm_error()
         end
-        return self.writeNative(offset, data)
     end
 
-    func readStr(int offset, int maxLen = 256) as string
-        if self.handle == null then
-            throw RuntimeError "sharedmem: closed"
-        end
-        return self.readNative(offset, maxLen)
+    func read(int offset, int length) as Buffer
+        if length < 0 then throw RangeError "shared memory length is negative" end
+        point result = self.readNative(offset, c_size(length))
+        if result == null then throw RangeError __shm_error() end
+        return Buffer(result)
     end
 
-    func writeInt(int offset, int value) as bool
-        if self.handle == null then
-            throw RuntimeError "sharedmem: closed"
+    func writeText(int offset, string text)
+        Buffer bytes = Buffer()
+        if not bytes.append(text) then throw RuntimeError "shared memory text allocation failed" end
+        self.write(offset, bytes)
+    end
+
+    func readText(int offset, int length) as string
+        return self.read(offset, length).text()
+    end
+
+    func writeInt(int offset, int value)
+        if self.writeIntNative(offset, value) == 0 then
+            throw RangeError __shm_error()
         end
-        return self.writeIntNative(offset, value)
     end
 
     func readInt(int offset) as int
-        if self.handle == null then
-            throw RuntimeError "sharedmem: closed"
+        if offset < 0 or offset > self.size - 8 then
+            throw RangeError "shared memory integer is out of bounds"
         end
         return self.readIntNative(offset)
     end
 
     func zero()
-        if self.handle == null then
-            throw RuntimeError "sharedmem: closed"
-        end
-        self.zeroNative()
+        if self.zeroNative() == 0 then throw RuntimeError __shm_error() end
     end
 end
 
-
-
 export func create(string name, int size) as SharedMemory
-    return SharedMemory(name, size)
+    __shmCheckName(name)
+    point raw = __shm_create(name, size)
+    if raw == null then throw ValueError __shm_error() end
+    return SharedMemory(raw)
+end
+
+export func open(string name) as SharedMemory
+    __shmCheckName(name)
+    point raw = __shm_open(name)
+    if raw == null then throw ValueError __shm_error() end
+    return SharedMemory(raw)
 end

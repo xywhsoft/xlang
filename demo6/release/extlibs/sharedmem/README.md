@@ -1,0 +1,114 @@
+# sharedmem
+
+`sharedmem` 提供 Windows/Linux 的命名共享内存。它保存原始字节，不隐式
+序列化对象，也不提供进程间锁。适合事先约定偏移、长度和同步方式的进程。
+
+```xlang
+import sharedmem
+
+auto owner = sharedmem.create("my_exchange", 1024)
+auto peer = sharedmem.open("my_exchange")
+owner.writeText(0, "hello")
+println(peer.readText(0, 5))
+peer.writeInt(16, 42)
+assert owner.readInt(16) == 42
+```
+
+`SharedMemory` 提供 `name`、`size`、`write(offset, Buffer)`、
+`read(offset, length) as Buffer`、`writeText`、`readText`、
+`writeInt`、`readInt` 和 `zero()`。`read` 返回独立副本；`writeInt/readInt`
+按固定小端序读写有符号 64 位整数。文本按 UTF-8 字节写入；
+`readText` 的长度也是**字节数**，不是字符数，也没有自动尾零协议。
+二进制数据包括 NUL 时请用 `Buffer`。
+
+名称是 1 至 128 字节的有效 UTF-8，不能含 NUL、斜线、反斜线或控制字符。
+XLang 的 `create/open` 在进入 C ABI 前拒绝内嵌 NUL，不会意外访问前缀名称。
+原生 C 名称校验最多探测 129 字节，超长名称在访问共享内存前拒绝；
+C 接口仍要求有效的 NUL 结尾字符串。
+大小必须在 1 至 64 MiB 之间。创建采用独占名称，重复创建失败；
+`open` 不会静默创建。Windows 使用当前会话的 `Local\xlang.` 命名空间，
+最后一个句柄关闭时名称消失。POSIX 使用权限 `0600` 的 `/xlang.` 名称；
+创建者关闭时 unlink，已打开的句柄仍可使用，但不能再通过名称打开。
+C API 的 `xshm_unlink` 可用于 POSIX 显式移除名称；Windows 不支持该操作。
+显式移除后可以同名重建；旧创建者关闭时会核对共享段身份，不会误删
+已经重建的名称。名称的并发移除与重建仍需由应用自行同步，身份核对
+不是跨进程的原子改名或锁。
+异常退出可能在 POSIX 留下名称，可由进程或运维按需清理。
+
+不同进程可同时访问同一映射，但本库**不保证并发读写原子性或顺序**。
+应用必须自行选择同步原语和数据协议。头文件为
+`include/sharedmem_native.h`，C 调用方用 `xshm_close` 释放句柄、
+`xrtBufferDestroy` 释放 `xshm_read` 返回的缓冲。XLang 的
+`SharedMemory` 管理句柄生命周期。
+原生 `*Native` 方法只供类内部调用，公开读写接口负责检查参数并接管
+返回缓冲。`xl check extlibs/sharedmem/test/private_native_negative.xl`
+应报告访问错误。原生 `create(point)` 虽标记为私有，目前主线仍允许
+导入方调用；`private_constructor_negative.xl` 仅用于编译检查，绝不可运行。
+详见 `demo6/dev/extlib_blockers/sharedmem_private_native_constructor.md`，
+此问题修复前本包不签收完整发布级验收。
+公开 C 查询、读写、清零及 unlink 操作在调用开始清除本线程旧错误；失败时
+可由 `xrtGetError()` 读取本次诊断。析构操作不清除正在传播的错误。
+`xshm_size(NULL)` 和 `xshm_name_of(NULL)` 分别返回 0 与空串，并设置
+`XERR_ARGUMENT`；不要把这两个哨兵当成有效共享段信息。
+
+2026-10-17：补齐这两个 C 查询入口的空句柄诊断，并验证失败后立即查询
+有效句柄会清除旧错误；Windows C 边界和 Linux ASan/UBSan、XLang、
+双语对照门禁通过。带输出 AOT 的共享缺符号阻断不变。
+
+定向验证（在 `demo6` 目录）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sharedmem/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package sharedmem -Source release/extlibs/sharedmem/test/test_sharedmem.c
+release/xl.exe run release/extlibs/sharedmem/examples/sharedmem_c.c
+release/xl.exe run release/extlibs/sharedmem/test/boundaries.xl
+release/xl.exe run test/cases/extlib_sharedmem.xl
+release/xl.exe run release/examples/extlibs/sharedmem.xl
+bash release/extlibs/sharedmem/test/check.sh
+```
+
+2026-10-17：原生校验原在 128 字节上限前使用无界 `strlen`；
+129 字节未终止输入的 ASan 用例先复现越界读取，现改为限界探测。
+128 字节名称可实际创建、打开；129 字节名称在创建、打开和 unlink
+入口均报参数错误。Windows C 边界与 Linux ASan/UBSan、跨进程、
+XLang/双语包级门禁通过；带输出 AOT 的共享阻断不变。
+
+Windows 严格 GCC 独立程序验证真实子进程访问；Linux GCC + ASan/UBSan
+验证 `fork` 子进程、边界、释放与同名重建。Linux 脚本还会执行中央及包内
+XLang 用例，并逐字比较 C/XLang 范例输出；可在 WSL 的仓库目录内运行。
+Windows 门禁每次独立构建 XRT 与原生测试对象，只清理本次独占目录；
+不会复用 `build/test/sharedmem_guard` 中的历史文件。
+C 范例在 `examples/sharedmem_c.c`，两个范例均使用独立随机名称，避免
+并行运行和异常退出后的名称冲突。
+旧发布物的中央无输出核心 AOT 曾构建运行；当前 `release/xl.exe` 默认
+门禁在同一核心用例首先缺 `xl6NativeHandleTraceLeaf`，最小复现见
+`demo6/dev/extlib_blockers/native_handle_trace_aot.md`。带输出范例还可能
+遇到 `xl6ValueDataSnapshotV1`；主线修复后须重跑默认门禁和完整范例，
+不能沿用旧 AOT 结果签收发布级。
+
+2026-10-17：Linux 门禁加入中央与包内 XLang 用例、C/XLang 双语范例
+输出对照；严格 GCC + ASan/UBSan 与全部语言入口通过。范例改用独立
+随机名称，不再共享固定命名映射。AOT 阻断不变。
+
+2026-10-16：包内与中央 XLang 用例改用独立随机名称，避免并行测试或异常
+退出后的同名资源干扰；包内用例连续两次、中央用例一次从 `demo6`
+工作目录运行通过，包内用例登记到 `coverage.tests`。
+
+同日 C 子进程用例的共享段名称加入 XRT 安全随机后缀，中文名称使用同一
+独立前缀；Windows TCC C 用例与 Linux 严格 GCC、ASan/UBSan 门禁通过。
+仍未重跑带输出 AOT。
+
+2026-10-15：修复 `create/open` 的名称 NUL 前缀误访问和成功读写残留旧
+XRT 错误，C/XL 负例先红后绿。中央旧 API 用例已迁移为当前公开接口。
+清单声明 buffer/Unicode 依赖后，同一核心 AOT 从 3,654,144 降至
+675,328 字节，构建运行通过；C/XL 边界、双语同输出范例及包内 Linux
+ASan/UBSan 门禁复跑通过。完整范例 AOT 阻断不变。
+
+2026-10-19：C 范例现在可直接以
+`release/xl.exe run release/extlibs/sharedmem/examples/sharedmem_c.c` 执行；
+仅 TCC 单文件路径包含包实现，正式包与 GCC 仍独立编译。
+新增 Windows `test/check.ps1`：独立 GCC 子进程验证、中央/包内 XLang
+边界、原生私有入口负例，以及 GCC/单文件 C/XLang 三路径同输出；
+`-SkipAot` 门禁通过。Linux C ASan/UBSan、XLang 与三路径对照也通过。
+默认 AOT 核心用例在当前发布物首先缺 `xl6NativeHandleTraceLeaf`，
+且私有原生构造器的主线缺陷仍在；不签收整包发布级。

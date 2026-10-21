@@ -1,18 +1,17 @@
 import sharedmem
 
+// 两个句柄访问同一个命名映射；进程间数据协议和同步由应用负责。
+auto owner = sharedmem.create("xlang_sharedmem_example_" + crypto.randomString(20), 128)
+auto reader = sharedmem.open(owner.name)
 
+owner.writeText(0, "hello")
+reader.writeInt(16, 42)
+Buffer binary = Buffer()
+binary.appendByte(65)
+binary.appendByte(0)
+binary.appendByte(66)
+owner.write(32, binary)
 
-func main(...) as int
-    auto sm = sharedmem.create("xlang_demo_shm", 1024)
-    println("name: ", sm.name)
-    println("size: ", sm.size)
-
-    sm.writeStr(0, "shared memory message")
-    println("read: ", sm.readStr(0, 100))
-
-    sm.writeInt(64, 999)
-    println("int at 64: ", sm.readInt(64))
-
-    println("sharedmem example: PASS")
-    return 0
-end
+println("text: " + reader.readText(0, 5))
+println("integer: " + string(owner.readInt(16)))
+println("binary size: " + string(reader.read(32, 3).len()))

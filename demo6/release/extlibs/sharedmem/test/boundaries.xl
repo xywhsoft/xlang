@@ -1,0 +1,65 @@
+import sharedmem
+
+string testName = "xlang_sharedmem_xl_test_" + crypto.randomString(20)
+auto owner = sharedmem.create(testName, 64)
+auto peer = sharedmem.open(owner.name)
+assert owner.size == 64
+assert peer.name == owner.name
+
+Buffer data = Buffer()
+assert data.appendByte(65)
+assert data.appendByte(0)
+assert data.appendByte(255)
+owner.write(0, data)
+Buffer copy = peer.read(0, 3)
+assert copy.len() == 3
+assert copy.byteAt(0) == 65
+assert copy.byteAt(1) == 0
+assert copy.byteAt(2) == 255
+
+peer.writeInt(16, -123456789)
+assert owner.readInt(16) == -123456789
+owner.writeText(32, "你好")
+assert peer.readText(32, 6) == "你好"
+
+int failures = 0
+try
+    owner.writeText(63, "ab")
+catch e
+    failures += 1
+end
+try
+    owner.read(-1, 1)
+catch e
+    failures += 1
+end
+try
+    owner.readInt(57)
+catch e
+    failures += 1
+end
+try
+    sharedmem.create(testName, 64)
+catch e
+    failures += 1
+end
+assert failures == 4
+owner.zero()
+assert peer.readInt(16) == 0
+
+bool rejectedCreate = false
+try
+    sharedmem.create("xlang_sharedmem_nul_test\0suffix", 16)
+catch ValueError error
+    rejectedCreate = true
+end
+assert rejectedCreate
+
+bool rejectedOpen = false
+try
+    sharedmem.open(testName + "\0suffix")
+catch ValueError error
+    rejectedOpen = true
+end
+assert rejectedOpen
+println("sharedmem boundaries: PASS")

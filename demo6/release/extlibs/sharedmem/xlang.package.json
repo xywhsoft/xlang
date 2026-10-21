@@ -7,10 +7,12 @@
     "artifact": {
         "kind": "source",
         "cSources": ["sharedmem_native.c"],
-        "xlSources": ["src/sharedmem.xl"]
+        "xlSources": ["src/sharedmem.xl"],
+        "xrtModules": ["XRT_MODULE_BUFFER", "XRT_MODULE_UNICODE"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

@@ -1,0 +1,5 @@
+import sharedmem
+
+// 不执行：原生写入口不能接受导入方任意构造的指针与长度。
+auto memory = sharedmem.create("private_native_compile_only", 16)
+memory.writeNative(0, null, c_size(1))
