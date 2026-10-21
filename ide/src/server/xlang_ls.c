@@ -147,6 +147,8 @@ static void analysisStats(server* s,const xvalue* id)
  xls_worker_load load={0}; xlsWorkerLoad(s->analysis,&load); xvalue* result=xrtValueObject();
  put(result,"runtime",xrtValueString(sv("compiler-xrt"))); put(result,"parses",xrtValueInt((int64)s->analysisStats.parses)); put(result,"cacheHits",xrtValueInt((int64)s->analysisStats.cacheHits));
  put(result,"documents",xrtValueInt((int64)s->analysisStats.documents)); put(result,"textBytes",xrtValueInt((int64)s->analysisStats.textBytes));
+ put(result,"fullParses",xrtValueInt((int64)s->analysisStats.fullParses)); put(result,"fragmentParses",xrtValueInt((int64)s->analysisStats.fragmentParses));
+ put(result,"reusedDeclarations",xrtValueInt((int64)s->analysisStats.reusedDeclarations)); put(result,"parsedBytes",xrtValueInt((int64)s->analysisStats.parsedBytes));
  put(result,"workerThreadId",xrtValueInt((int64)s->analysisThread)); put(result,"ownerThreadId",xrtValueInt((int64)xrtThreadCurrentId()));
  put(result,"queued",xrtValueInt((int64)load.queued)); put(result,"running",xrtValueInt((int64)load.running)); put(result,"submitted",xrtValueInt((int64)load.submitted)); put(result,"completed",xrtValueInt((int64)load.completed)); put(result,"rejected",xrtValueInt((int64)load.rejected));
  response(s,id,result,0,NULL);
@@ -387,7 +389,7 @@ static void dispatch(server* s,const xvalue* message)
   put(scope,"retainedSemanticChecks",xrtValueBool(!s->cliDiagnostics)); put(scope,"retainedNativeInputs",xrtValueBool(!s->cliDiagnostics || !s->cliCompletion));
   put(scope,"savedDiagnosticsBackend",xrtValueString(sv("cli")));
   put(scope,"savedEntryDiagnostics",xrtValueBool(true)); put(scope,"unsavedDependencies",xrtValueBool(true)); put(scope,"snapshotDiagnostics",xrtValueBool(true)); put(scope,"snapshotDocumentFingerprint",xrtValueBool(true)); put(scope,"snapshotInputGuard",xrtValueString(sv("background-poll"))); put(scope,"cSemantics",xrtValueBool(false)); put(scope,"snapshotDefinition",xrtValueBool(true)); put(cap,"definitionProvider",xrtValueBool(true)); put(cap,"hoverProvider",xrtValueBool(true)); put(cap,"documentSymbolProvider",xrtValueBool(true)); xvalue *completion=xrtValueObject(),*triggers=xrtValueArray(),*dot=xrtValueString(sv(".")); xrtValueArrayAppend(triggers,dot); xrtValueRelease(dot); put(completion,"resolveProvider",xrtValueBool(false)); put(completion,"triggerCharacters",triggers); put(cap,"completionProvider",completion); put(scope,"cursorCompletion",xrtValueBool(true)); put(scope,"completionInputGuard",xrtValueString(sv("background-poll"))); put(scope,"snapshotHover",xrtValueBool(true)); put(scope,"snapshotDocumentSymbols",xrtValueBool(true)); put(cap,"experimental",scope); put(result,"capabilities",cap);
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.9"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.10"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }

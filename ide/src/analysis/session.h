@@ -14,6 +14,7 @@ typedef struct xls_session_limits { size_t documents,documentBytes,totalBytes; }
 typedef struct xls_session_stats {
     uint64_t generation,parses,cacheHits;
     size_t documents,textBytes;
+    uint64_t fullParses,fragmentParses,reusedDeclarations,parsedBytes;
 } xls_session_stats;
 typedef struct xls_analysis_snapshot {
     xls_syntax* syntax;

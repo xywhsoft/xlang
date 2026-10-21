@@ -3,7 +3,6 @@
 #include <stdlib.h>
 
 struct xls_folding { xarray ranges; };
-typedef struct walk_frame { const XL6_AstNode* node; size_t next; } walk_frame;
 static int structural(XL6_AstKind kind)
 {
     switch(kind) {
@@ -21,6 +20,16 @@ static int compare(const void* a,const void* b)
     if(left->startLine!=right->startLine) return left->startLine<right->startLine ? -1 : 1;
     return left->endLine==right->endLine ? 0 : left->endLine>right->endLine ? -1 : 1;
 }
+typedef struct fold_visit { xls_folding* result; size_t limit,lines; } fold_visit;
+static int collect(const XL6_AstNode* node,const XL6_AstRange* current,void* user)
+{
+    fold_visit* context=user;
+    if(structural(node->kind) && current->known && current->startLine>0 && current->endLine>current->startLine && (size_t)current->endLine<=context->lines) {
+        xls_fold_range range={(size_t)current->startLine-1,(size_t)current->endLine-1};
+        if(!xrtArrayPush(&context->result->ranges,&range)) return -1;
+    }
+    return context->result->ranges.Count<context->limit;
+}
 xls_folding* xlsFoldingCreate(const xls_syntax* syntax,size_t limit,int (*cancelled)(void*),void* user)
 {
     if(!syntax || (cancelled && cancelled(user))) return NULL;
@@ -28,27 +37,8 @@ xls_folding* xlsFoldingCreate(const xls_syntax* syntax,size_t limit,int (*cancel
     if(!result) return NULL;
     if(!xrtArrayInit(&result->ranges,sizeof(xls_fold_range))) { xrtFree(result); return NULL; }
     if(!limit || !xlsSyntaxAccepted(syntax)) return result;
-    xarray stack={0}; int okay=xrtArrayInit(&stack,sizeof(walk_frame));
-    const XL6_AstNode* root=xlsSyntaxAst(syntax); size_t visited=0,lines=xlsTextLines(xlsSyntaxText(syntax));
-    walk_frame initial={root,0};
-    if(root && okay) okay=xrtArrayPush(&stack,&initial);
-    while(okay && stack.Count && result->ranges.Count<limit) {
-        walk_frame* frame=xrtArrayGet(&stack,stack.Count-1); const XL6_AstNode* node=frame->node;
-        if(!frame->next) {
-            if((visited++&63u)==0 && cancelled && cancelled(user)) { okay=0; break; }
-            if(structural(node->kind) && node->range.known && node->range.startLine>0 &&
-                node->range.endLine>node->range.startLine && (size_t)node->range.endLine<=lines) {
-                xls_fold_range range={(size_t)node->range.startLine-1,(size_t)node->range.endLine-1};
-                okay=xrtArrayPush(&result->ranges,&range); if(!okay) break;
-            }
-        }
-        if(frame->next<node->childCount) {
-            const XL6_AstNode* child=node->children[frame->next++];
-            if(child) { walk_frame next={child,0}; okay=xrtArrayPush(&stack,&next); }
-        } else --stack.Count;
-    }
-    xrtArrayUnit(&stack);
-    if(cancelled && cancelled(user)) okay=0;
+    fold_visit context={result,limit,xlsTextLines(xlsSyntaxText(syntax))};
+    int okay=xlsSyntaxVisit(syntax,collect,&context,cancelled,user);
     if(!okay) { xlsFoldingDestroy(result); return NULL; }
     if(result->ranges.Count>1) {
         qsort(result->ranges.Data,result->ranges.Count,sizeof(xls_fold_range),compare);
