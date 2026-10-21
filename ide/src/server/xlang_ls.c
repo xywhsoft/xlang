@@ -2,6 +2,7 @@
 #include "protocol/lsp_wire.h"
 #include "services/language_check.h"
 #include "platform/path.h"
+#include "analysis/text.h"
 #include <windows.h>
 #include <shellapi.h>
 #include <stdio.h>
@@ -13,7 +14,7 @@
 #define TOTAL_LIMIT (32u*1024u*1024u)
 #define QUEUE_LIMIT (64u*1024u*1024u)
 typedef struct message { struct message* next; xvalue* value; size_t size; } message;
-typedef struct document { char *uri,*path,*text; int version; unsigned long long generation; } document;
+typedef struct document { char *uri,*path; const char* text; xls_text* content; int version; unsigned long long generation; } document;
 typedef struct server {
  CRITICAL_SECTION lock; HANDLE reader,event; volatile LONG stop; message *head,*tail; size_t queueBytes,queueCount; int eof,readFailed;
  int initialized,shutdown,exitRequested,exitCode,writeFailed,checkOnSave; char *compiler,*directory; xide_toolchains* cache;
@@ -86,7 +87,7 @@ static void cancel(server* s,int code,const char* reason)
 { if(s->check) { s->cancelCode=code; s->cancelReason=reason; xideLanguageCheckCancel(s->check); } }
 static int find(server* s,const char* uri) { if(uri) for(int i=0;i<DOC_LIMIT;++i) if(s->docs[i].uri && !strcmp(s->docs[i].uri,uri)) return i; return -1; }
 static void clearDocument(server* s,int i)
-{ document* d=&s->docs[i]; if(d->text) s->textBytes-=strlen(d->text); free(d->uri); free(d->path); free(d->text); memset(d,0,sizeof(*d)); }
+{ document* d=&s->docs[i]; s->textBytes-=xlsTextSize(d->content); free(d->uri); free(d->path); xlsTextRelease(d->content); memset(d,0,sizeof(*d)); }
 static void startCheck(server* s,int index,const xvalue* id,int snapshots)
 {
  document* d=&s->docs[index]; xide_model_error e={0};
@@ -229,21 +230,38 @@ static void documents(server* s,const char* method,const xvalue* params)
   for(i=0;i<DOC_LIMIT && s->docs[i].uri;++i) {} if(i==DOC_LIMIT) goto invalid;
   xide_model_error e={0}; char* path=xideLspUriToPath(uri,&e); if(!path || !xidePathHasExtension(path,".xl")) { free(path); goto invalid; }
   for(int j=0;j<DOC_LIMIT;++j) if(s->docs[j].uri && (xidePathLexicalEqual(path,s->docs[j].path) || xidePathEqual(path,s->docs[j].path))) { free(path); goto invalid; }
-  char *body=copy(text),*name=copy(uri); if(!body || !name) { free(path); free(body); free(name); goto invalid; }
-  s->docs[i]=(document){.uri=name,.path=path,.text=body,.version=version,.generation=++s->generation}; s->textBytes+=strlen(text); cancelCompletion(s,-32801,"Open-document cursor input set changed.",1); if(s->check && s->snapshotMode) cancel(s,-32801,"Open-document snapshot set changed."); clearPublished(s); return;
+  xls_text* content=xlsTextCreate(text,strlen(text),TEXT_LIMIT,NULL); char* name=copy(uri);
+  if(!content || !name) { free(path); xlsTextRelease(content); free(name); goto invalid; }
+  s->docs[i]=(document){.uri=name,.path=path,.text=xlsTextData(content),.content=content,.version=version,.generation=++s->generation}; s->textBytes+=xlsTextSize(content); cancelCompletion(s,-32801,"Open-document cursor input set changed.",1); if(s->check && s->snapshotMode) cancel(s,-32801,"Open-document snapshot set changed."); clearPublished(s); return;
  }
  if(i<0) goto invalid;
  document* d=&s->docs[i];
  if(!strcmp(method,"textDocument/didClose")) { cancelCompletion(s,-32800,"Document closed.",1); if(s->check && (s->snapshotMode || s->checkDocument==i)) cancel(s,-32800,"Document closed."); if(s->pending==i) s->pending=-1; clearPublished(s); publish(s,d,NULL); ++s->generation; clearDocument(s,i); return; }
  if(!strcmp(method,"textDocument/didChange")) {
   const xvalue* changes=get(params,"contentChanges"); int version=0;
-  if(!integer(get(item,"version"),&version) || version<=d->version || !changes || xrtValueType(changes)!=XVALUE_ARRAY || xrtValueCount(changes)!=1) goto invalid;
-  const xvalue* change=xrtValueArrayGet(changes,0); const char* text=string(get(change,"text"));
-  if(get(change,"range") || !validText(text) || strlen(text)>TOTAL_LIMIT-(s->textBytes-strlen(d->text))) goto invalid;
-  char* body=copy(text); if(!body) goto invalid;
+  if(!integer(get(item,"version"),&version) || version<=d->version || !changes || xrtValueType(changes)!=XVALUE_ARRAY || xrtValueCount(changes)>1024) goto invalid;
+  xarray edits; if(!xrtArrayInit(&edits,sizeof(xls_text_edit))) goto invalid;
+  int okay=1;
+  for(size_t j=0;j<xrtValueCount(changes) && okay;++j) {
+   const xvalue* change=xrtValueArrayGet(changes,j); const char* text=string(get(change,"text"));
+   const xvalue *range=get(change,"range"),*length=get(change,"rangeLength");
+   xls_text_edit edit={.text=text,.length=text ? strlen(text) : 0,.hasRange=range!=NULL,.hasRangeLength=length!=NULL};
+   if(!text) { okay=0; break; }
+   if(range) {
+    const xvalue *start=get(range,"start"),*end=get(range,"end"); int sl=0,sc=0,el=0,ec=0;
+    okay=integer(get(start,"line"),&sl) && integer(get(start,"character"),&sc) && integer(get(end,"line"),&el) && integer(get(end,"character"),&ec) && sl>=0 && sc>=0 && el>=0 && ec>=0;
+    if(okay) { edit.start=(xls_position){(size_t)sl,(size_t)sc}; edit.end=(xls_position){(size_t)el,(size_t)ec}; }
+   }
+   if(length) { int units=0; okay=okay && integer(length,&units) && units>=0; if(okay) edit.rangeLength=(size_t)units; }
+   if(okay) okay=xrtArrayPush(&edits,&edit);
+  }
+  xls_text* content=okay ? xlsTextApply(d->content,(const xls_text_edit*)edits.Data,edits.Count,TEXT_LIMIT,NULL) : NULL;
+  xrtArrayUnit(&edits);
+  if(!content) goto invalid;
+  if(xlsTextSize(content)>TOTAL_LIMIT-(s->textBytes-xlsTextSize(d->content))) { xlsTextRelease(content); goto invalid; }
   if(s->check && (s->snapshotMode || s->checkDocument==i)) cancel(s,-32801,"Document content changed.");
   cancelCompletion(s,-32801,"Open-document cursor content changed.",1);
-  s->textBytes=s->textBytes-strlen(d->text)+strlen(text); free(d->text); d->text=body; d->version=version; d->generation=++s->generation; clearPublished(s); publish(s,d,NULL); return;
+  s->textBytes=s->textBytes-xlsTextSize(d->content)+xlsTextSize(content); xlsTextRelease(d->content); d->content=content; d->text=xlsTextData(content); d->version=version; d->generation=++s->generation; clearPublished(s); publish(s,d,NULL); return;
  }
  if(!strcmp(method,"textDocument/didSave")) {
   const xvalue* supplied=get(params,"text"); const char* text=string(supplied); if(supplied && (!text || strcmp(text,d->text))) goto invalid;
@@ -274,9 +292,9 @@ static void dispatch(server* s,const xvalue* message)
   if(!utf16) { response(s,id,NULL,-32602,"UTF-16 position encoding is required."); return; }
   const xvalue* options=get(params,"initializationOptions"); bool check=true; const xvalue* enabled=get(options,"checkOnSave"); if(enabled && !xrtValueGetBool(enabled,&check)) { response(s,id,NULL,-32602,"checkOnSave must be boolean."); return; }
   xvalue *result=xrtValueObject(),*cap=xrtValueObject(),*sync=xrtValueObject(),*save=xrtValueObject(),*info=xrtValueObject(),*scope=xrtValueObject();
-  put(cap,"positionEncoding",xrtValueString(sv("utf-16"))); put(sync,"openClose",xrtValueBool(true)); put(sync,"change",xrtValueInt(1)); put(save,"includeText",xrtValueBool(true)); put(sync,"save",save); put(cap,"textDocumentSync",sync);
+  put(cap,"positionEncoding",xrtValueString(sv("utf-16"))); put(sync,"openClose",xrtValueBool(true)); put(sync,"change",xrtValueInt(2)); put(save,"includeText",xrtValueBool(true)); put(sync,"save",save); put(cap,"textDocumentSync",sync);
   put(scope,"savedEntryDiagnostics",xrtValueBool(true)); put(scope,"unsavedDependencies",xrtValueBool(true)); put(scope,"snapshotDiagnostics",xrtValueBool(true)); put(scope,"snapshotDocumentFingerprint",xrtValueBool(true)); put(scope,"snapshotInputGuard",xrtValueString(sv("background-poll"))); put(scope,"cSemantics",xrtValueBool(false)); put(scope,"snapshotDefinition",xrtValueBool(true)); put(cap,"definitionProvider",xrtValueBool(true)); put(cap,"hoverProvider",xrtValueBool(true)); put(cap,"documentSymbolProvider",xrtValueBool(true)); xvalue *completion=xrtValueObject(),*triggers=xrtValueArray(),*dot=xrtValueString(sv(".")); xrtValueArrayAppend(triggers,dot); xrtValueRelease(dot); put(completion,"resolveProvider",xrtValueBool(false)); put(completion,"triggerCharacters",triggers); put(cap,"completionProvider",completion); put(scope,"cursorCompletion",xrtValueBool(true)); put(scope,"completionInputGuard",xrtValueString(sv("background-poll"))); put(scope,"snapshotHover",xrtValueBool(true)); put(scope,"snapshotDocumentSymbols",xrtValueBool(true)); put(cap,"experimental",scope); put(result,"capabilities",cap);
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.4"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.5"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
