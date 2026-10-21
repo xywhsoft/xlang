@@ -1,0 +1,35 @@
+extern "xquic_packet_type" func __packet_type(int type) as string
+extern "xquic_frame_type" func __frame_type(int type) as string
+extern "xquic_error_name" func __error_name(int code) as string
+extern "xquic_param_name" func __param_name(int id) as string
+extern "xquic_version_name" func __version_name(int version) as string
+extern "xquic_stream_type" func __stream_type(int stream_id) as string
+extern "xquic_encode_varint" func __encode_varint(int value) as string
+
+export func packetType(int type) as string
+    return __packet_type(type)
+end
+
+export func frameType(int type) as string
+    return __frame_type(type)
+end
+
+export func errorName(int code) as string
+    return __error_name(code)
+end
+
+export func paramName(int id) as string
+    return __param_name(id)
+end
+
+export func versionName(int version) as string
+    return __version_name(version)
+end
+
+export func streamType(int stream_id) as string
+    return __stream_type(stream_id)
+end
+
+export func encodeVarint(int value) as string
+    return __encode_varint(value)
+end
