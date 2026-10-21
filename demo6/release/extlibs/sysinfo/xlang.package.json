@@ -7,10 +7,12 @@
     "artifact": {
         "kind": "source",
         "cSources": ["sysinfo_native.c"],
-        "xlSources": ["src/sysinfo.xl"]
+        "xlSources": ["src/sysinfo.xl"],
+        "xrtModules": ["XRT_MODULE_UNICODE", "XRT_MODULE_NUMBER_INTEGER"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

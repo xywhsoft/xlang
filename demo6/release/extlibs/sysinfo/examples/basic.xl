@@ -1,0 +1,10 @@
+import sysinfo
+
+func main(...) as int
+    // 这些字段不依赖采样瞬间的空闲内存，适合与 C 输出对照。
+    println("os:", sysinfo.osName())
+    println("version:", sysinfo.osVersion())
+    println("arch:", sysinfo.arch())
+    println("host:", sysinfo.hostname())
+    return 0
+end

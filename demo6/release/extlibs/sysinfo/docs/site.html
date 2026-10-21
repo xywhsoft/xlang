@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sysinfo - 扩展库 - xlang</title>
+  <meta name="description" content="Windows/Linux 主机系统、CPU、内存与运行时间信息，提供 C/xlang 双语接口。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-sys" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / sysinfo</p>
+    <h1>sysinfo</h1>
+    <p class="extlib-lead">读取 Windows 和 Linux 主机的系统标识、CPU、内存与运行时间。</p>
+    <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import sysinfo
+
+println(sysinfo.osName(), sysinfo.arch())
+println(sysinfo.cpuCount())
+println(sysinfo.memAvailable())</code></pre>
+    <p>内存值是瞬时快照，连续调用可能不同；探测失败或 CPU 型号字段只有空白时，文本返回 <code>unknown</code>、数值返回 0。</p>
+  </section>
+  <section id="api">
+    <h2>接口</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>osName / osVersion / arch / hostname</code></td><td>系统、版本、架构及主机名的 UTF-8 文本。</td></tr>
+      <tr><td><code>cpuName / cpuCount</code></td><td>处理器名称及全系统在线逻辑处理器数量；Windows 覆盖所有处理器组。</td></tr>
+      <tr><td><code>memTotal / memAvailable / memUsagePct</code></td><td>物理内存总量、可用字节数及整数使用率百分比；Linux 可用量按 <code>/proc/meminfo</code> 的 <code>MemAvailable</code> 计算，不等同空闲页。探测失败返回 0，不伪报满载。</td></tr>
+      <tr><td><code>pageSize / uptime</code></td><td>内存页字节数与系统运行秒数。</td></tr>
+    </tbody></table>
+    <p>Windows 版本来自系统 API，主机名和 CPU 名经 Unicode API 转 UTF-8；Linux 的系统标识来自 <code>uname</code>，CPU 名和运行时间读取 <code>/proc</code>。Linux 内核的 CPU 信息字段因架构而异；没有 <code>model name</code> 时返回 <code>unknown</code>，不会以架构名冒充型号。系统返回非 UTF-8 文本也降级为 <code>unknown</code>。支持范围为 Windows/Linux，不承诺其他平台。</p>
+  </section>
+  <section id="c-api">
+    <h2>C 对照</h2>
+    <pre><code>#include "xrt.h"
+#include "sysinfo_native.h"
+
+int main(void)
+{
+    char* name = xsysinfo_os_name();
+    int ok = name &amp;&amp; name[0] != 0;
+    xrtFree(name);
+    return ok ? 0 : 1;
+}</code></pre>
+    <p>C 字符串结果由调用方用 <code>xrtFree</code> 释放；XLang 包装自动接管。每次公开调用清除之前的 XRT 错误；转换时若内存分配失败，则保留内存错误并返回空结果，不伪装为 <code>unknown</code>。完整双语范例位于 <code>release/extlibs/sysinfo/examples/</code>。</p>
+  </section>
+  <section id="verify">
+    <h2>验证状态</h2>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sysinfo/test/check.ps1 -SkipAot
+bash release/extlibs/sysinfo/test/check.sh</code></pre>
+    <p>2026-10-19 复跑：C 范例可直接使用 <code>xl run release/extlibs/sysinfo/examples/sysinfo_c.c</code> 运行；Windows/Linux 包门禁将其与 GCC 编译运行、XLang 范例的同机输出对照。Windows 严格 GCC、C/XLang 双语输出通过；Linux 同次运行 C ASan/UBSan 与 XLang 边界。Windows 包级脚本每次使用独占构建目录，退出后只清理本次产物，不与并行门禁共用对象。六个整数 C 结果统一为 <code>int64_t</code>，与 XLang <code>int</code> 的 LP64 ABI 一致。Linux 内存可用量以前后两次系统快照对照；链接器夹具还验证不可读、负数、尾部垃圾及整数溢出时的降级，以及非 UTF-8 系统文本降级。Windows 伪注册表夹具验证首次分配失败及恢复。本机未覆盖多处理器组硬件。带输出范例 AOT 尚缺共享符号 <code>xl6ValueDataSnapshotV1</code>，未签收完整发布门禁。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

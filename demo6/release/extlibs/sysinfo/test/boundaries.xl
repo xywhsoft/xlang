@@ -1,0 +1,18 @@
+import sysinfo
+
+func main(...) as int
+    string os = sysinfo.osName()
+    string version = sysinfo.osVersion()
+    string arch = sysinfo.arch()
+    string host = sysinfo.hostname()
+    assert string.len(os) > 0 and string.len(version) > 0, "os text"
+    assert string.len(arch) > 0 and string.len(host) > 0, "machine text"
+    assert string.len(sysinfo.cpuName()) > 0, "cpu name"
+    assert sysinfo.cpuCount() >= 1, "cpu count"
+    assert sysinfo.memTotal() > 0, "physical memory"
+    assert sysinfo.memAvailable() <= sysinfo.memTotal(), "available memory"
+    assert sysinfo.memUsagePct() >= 0 and sysinfo.memUsagePct() <= 100, "memory percent"
+    assert sysinfo.pageSize() >= 4096, "page size"
+    assert sysinfo.uptime() >= 0, "uptime"
+    return 0
+end
