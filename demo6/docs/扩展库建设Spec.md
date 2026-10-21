@@ -90,8 +90,8 @@ release/extlibs/<name>/
 ### 3.2 xlang API 层规范
 
 ```xlang
-// 错误获取（固定模式）
-extern "xrtGetError" func __<name>_error() as string
+// 由薄绑定返回当前 XRT 错误的文本；xrtGetError 自身返回错误对象，不是字符串。
+extern "x<name>_last_error" func __<name>_error() as string
 
 // native-backed class（推荐）
 class <ClassName>
@@ -103,7 +103,7 @@ class <ClassName>
     // 高层包装方法
     func method(...) as ...
         ...
-        throw <Name>Error __<name>_error()
+        throw RuntimeError __<name>_error()
     end
 end
 
@@ -116,9 +116,21 @@ end
 ### 3.3 C 桥接层规范
 
 - 函数前缀：`x<name>_`（公开）/ `__xl_<name>_`（内部）
-- 错误报告：`xrtSetError("message")`
-- 字符串分配：`xrtAlloc(len)` + `__xl_std_runtime_take_cstr`
-- 类型映射：point→void*, string→const char*, int→int64_t, bool→int, float→double
+- 错误报告：`xrtSetErrorInfo(kind, domain, code, message)`；错误对象通过
+  `xrtGetError()` 获取，文本通过 `xrtErrorMessage(error)` 获取。
+- 字符串返回：明确静态、借用或拥有语义。借用副本可使用
+  `xrtTempStr(xrtTempCurrent(), view)`，寿命到当前临时区清理/回退为止；不得使用
+  少量轮换槽让后续调用覆写此前结果，也不得依赖 xlang 的私有运行时接管函数。
+- 类型映射按真实 C 原型逐项声明，不按“看起来相近”转换：C `int` 使用 `c_int`，
+  C `size_t` 使用 `c_size`，`int64_t` 使用 `int64`，C `double` 使用 `c_double`。
+  C `int` 返回 0/1 也不能直接声明为 xlang `bool`，应在公开包装层比较 `!= 0`。
+  真正的 C `bool`/`_Bool` 才使用匹配的布尔类型；`point` 对应 `void*`，普通借用
+  文本对应 `const char*`。const 指针、typed 容器和回调同样必须精确核对。
+- 公开层接受 xlang `int` 而后端接受 C `int` 时，在收窄前检查范围，不能静默截断。
+- 原生库已有状态码 API 时保留其合同，不把正常的 `ROW`/`DONE` 或业务状态误判为
+  XRT 异常；高层便利 API 必须检查失败，不得返回部分结果或伪装成空成功。
+- 公共 C 头、实现定义、实际 cgen 声明须一起通过严格编译；仅修改 extern 文本、
+  关闭原型检查或添加不兼容强转不构成验收。
 
 ---
 

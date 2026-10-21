@@ -8,7 +8,7 @@ that have a dedicated page on the xlang website.
 The gate covers these 19 packages:
 
 - aho_corasick, argon2, blake2, blake3, bloom, brotli, bson, bz2
-- crc32, lz4, lzma, md5, miniz, murmur3, sha3, siphash, snappy, xxhash, zstd
+- crc32, lz4, lzma, md5, miniz, murmur3, sha3, siphash128, snappy, xxhash, zstd
 
 `test/featured_extlibs.json` is the executable manifest.  It binds each
 package to a focused xlang test and an executable example.  Packages with a
