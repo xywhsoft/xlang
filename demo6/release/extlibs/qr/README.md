@@ -23,6 +23,8 @@ C API 见 `include/qr_native.h`。`_n` 接口显式接收 UTF-8 字节长度；�
 
 ## 范例与验证
 
+2026-10-22：半块 UTF-8 渲染改用已知的 1/3 字节长度，不再逐格扫描固定字符。C 边界测试按版本 1 矩阵逐格核对四种半块字符、静区、换行与末行；Windows 严格 C、XLang 边界/双语范例和无输出核心 AOT，以及 Linux C ASan/UBSan、XLang/双语门禁通过。完整带输出 AOT 的共享链接阻断未在本轮复验，不签收整包发布级。
+
 - Windows 包级门禁从 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/qr/test/check.ps1 -SkipAot`；去掉 `-SkipAot` 可检查全部 AOT 阶段并报告首个阻断。
 - Linux 原生 C sanitizer、XLang 中央/包内边界及 C/XLang 范例逐字对照门禁从 `demo6` 目录运行 `bash release/extlibs/qr/test/check.sh`。
 - `release/examples/extlibs/qr.xl` 与 `qr_c.c` 可直接 `xl run`，输出一致。

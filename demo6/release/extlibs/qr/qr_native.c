@@ -870,7 +870,7 @@ void *xqr_utf8_n(const char *text, size_t length,
             else if (top) cell = "\xE2\x96\x80";
             else if (bot) cell = "\xE2\x96\x84";
             else cell = " ";
-            if (!xqr_append(&output, cell, strlen(cell))) goto fail;
+            if (!xqr_append(&output, cell, (top || bot) ? 3u : 1u)) goto fail;
         }
         if (!xrtBufferAppendByte(&output, '\n')) goto fail;
     }

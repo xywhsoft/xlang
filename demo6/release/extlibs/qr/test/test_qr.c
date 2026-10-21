@@ -46,6 +46,45 @@ static int test_allocation_failures(void) {
     return 0;
 }
 
+/* 按矩阵逐格核对半块字符，包含静区和末尾单独一行。 */
+static int test_utf8_render(const char *text, const xvalue *matrix) {
+    size_t at = 0, size = strlen(text);
+    int seen[4] = {0, 0, 0, 0};
+    int y, x;
+    for (y = -4; y < 25; y += 2) {
+        for (x = -4; x < 25; ++x) {
+            int top = 0, bottom = 0;
+            const char *cell;
+            size_t cellSize;
+            if (x >= 0 && x < 21 && y >= 0 && y < 21) {
+                int64 value;
+                const xvalue *row = xrtValueArrayGet(matrix, (size_t)y);
+                CHECK(xrtValueGetInt(xrtValueArrayGet(row, (size_t)x), &value));
+                top = value != 0;
+            }
+            if (x >= 0 && x < 21 && y + 1 >= 0 && y + 1 < 21) {
+                int64 value;
+                const xvalue *row = xrtValueArrayGet(matrix, (size_t)(y + 1));
+                CHECK(xrtValueGetInt(xrtValueArrayGet(row, (size_t)x), &value));
+                bottom = value != 0;
+            }
+            if (top && bottom) cell = "\xE2\x96\x88";
+            else if (top) cell = "\xE2\x96\x80";
+            else if (bottom) cell = "\xE2\x96\x84";
+            else cell = " ";
+            ++seen[(top << 1) | bottom];
+            cellSize = (top || bottom) ? 3u : 1u;
+            CHECK(at + cellSize <= size && memcmp(text + at, cell, cellSize) == 0);
+            at += cellSize;
+        }
+        CHECK(at < size && text[at] == '\n');
+        ++at;
+    }
+    CHECK(at == size);
+    for (x = 0; x < 4; ++x) CHECK(seen[x] > 0);
+    return 0;
+}
+
 int main(void) {
     const char *hello = "HELLO WORLD";
     const char *chinese = "你好，世界";
@@ -66,7 +105,6 @@ int main(void) {
     matrix = xqr_matrix_n(hello, strlen(hello), "M", 1);
     CHECK(matrix != NULL && xrtValueCount(matrix) == 21);
     CHECK(xrtValueCount(xrtValueArrayGet(matrix, 0)) == 21);
-    xrtValueRelease(matrix);
 
     svg = (char *)xqr_svg_n(hello, strlen(hello), "M", 1, 4, 4);
     ascii = (char *)xqr_ascii_n(hello, strlen(hello), "M", 1,
@@ -75,6 +113,8 @@ int main(void) {
     CHECK(svg != NULL && ascii != NULL && utf8 != NULL);
     CHECK(strstr(svg, "</svg>") != NULL && strstr(ascii, "##") != NULL);
     CHECK(strstr(utf8, "\xe2\x96\x88") != NULL);
+    CHECK(test_utf8_render(utf8, matrix) == 0);
+    xrtValueRelease(matrix);
     second = (char *)xqr_svg_n(chinese, strlen(chinese), "H", 1, 4, 4);
     CHECK(second != NULL && second != svg);
     CHECK(strstr(svg, "width=\"116\" height=\"116\"") != NULL);
