@@ -1,6 +1,12 @@
 #ifndef XRT_SNAPPY_H
 #define XRT_SNAPPY_H
 
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
+#ifndef XRT_MODULE_IO_FILE
+#define XRT_MODULE_IO_FILE
+#endif
 #include "xrt.h"
 
 #ifdef __cplusplus
@@ -33,6 +39,7 @@ typedef struct {
 	uint32 iSize;
 	uint32 iVersion;
 	uint8 sReserved[4];
+	/* iMaxEntries 限制 framed stream identifier 数量；nodes/depth/flags 不适用。 */
 	xrtresourcelimits tLimits;
 } xrtsnappyoptions;
 

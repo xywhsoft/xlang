@@ -6,11 +6,11 @@ class SnappyProgressState
     int lastTotal = 0
 end
 
-func main(...) as int
-    string sourcePath = "tmp/extlib_snappy_progress_source.txt"
-    string packedPath = "tmp/extlib_snappy_progress.bin"
-    string plainPath = "tmp/extlib_snappy_progress_plain.txt"
-    string cancelledPath = "tmp/extlib_snappy_progress_cancelled.bin"
+func exercise(string workDir)
+    string sourcePath = path.join(workDir, "source.txt")
+    string packedPath = path.join(workDir, "packed.sz")
+    string plainPath = path.join(workDir, "plain.txt")
+    string cancelledPath = path.join(workDir, "cancelled.sz")
     string text = ""
     int i = 0
     while i < 6000
@@ -43,6 +43,40 @@ func main(...) as int
     assert plainState.lastInput == plainState.lastTotal
     assert file.readText(plainPath) == text
 
+    // 含 NUL 的源/目标路径都不能退化成前缀路径。
+    string nulPacked = path.join(workDir, "nul_packed.sz")
+    string nulPlain = path.join(workDir, "nul_plain.txt")
+    if file.exists(nulPacked) then file.delete(nulPacked) end
+    if file.exists(nulPlain) then file.delete(nulPlain) end
+    bool badPath = false
+    try
+        snappy.compressFile(sourcePath + "\0hidden", nulPacked)
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath and not file.exists(nulPacked)
+    badPath = false
+    try
+        snappy.compressFile(sourcePath, nulPacked + "\0hidden")
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath and not file.exists(nulPacked)
+    badPath = false
+    try
+        snappy.decompressFile(packedPath + "\0hidden", nulPlain)
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath and not file.exists(nulPlain)
+    badPath = false
+    try
+        snappy.decompressFile(packedPath, nulPlain + "\0hidden")
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath and not file.exists(nulPlain)
+
     bool cancelled = false
     try
         snappy.compressFile(sourcePath, cancelledPath, onProgress = func(int inputBytes,
@@ -55,8 +89,26 @@ func main(...) as int
     assert cancelled
     assert not file.exists(cancelledPath)
 
-    file.delete(sourcePath)
-    file.delete(packedPath)
-    file.delete(plainPath)
+end
+
+func main(...) as int
+    string workDir = dir.temp(path.temp(), "xlang_snappy_progress_", "")
+    try
+        exercise(workDir)
+    finally
+        string sourcePath = path.join(workDir, "source.txt")
+        string packedPath = path.join(workDir, "packed.sz")
+        string plainPath = path.join(workDir, "plain.txt")
+        string cancelledPath = path.join(workDir, "cancelled.sz")
+        string nulPacked = path.join(workDir, "nul_packed.sz")
+        string nulPlain = path.join(workDir, "nul_plain.txt")
+        if file.exists(sourcePath) then assert file.delete(sourcePath) end
+        if file.exists(packedPath) then assert file.delete(packedPath) end
+        if file.exists(plainPath) then assert file.delete(plainPath) end
+        if file.exists(cancelledPath) then assert file.delete(cancelledPath) end
+        if file.exists(nulPacked) then assert file.delete(nulPacked) end
+        if file.exists(nulPlain) then assert file.delete(nulPlain) end
+        assert dir.delete(workDir)
+    end
     return 0
 end

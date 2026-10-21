@@ -13,7 +13,16 @@
                                   ],
                      "xlSources":  [
                                        "src/snappy.xl"
-                                   ]
+                                   ],
+                     "includeDirs":  ["include"],
+                     "xrtModules":  [
+                                        "XRT_MODULE_IO_BUFFER",
+                                        "XRT_MODULE_IO_FILE",
+                                        "XRT_MODULE_FILE_TEMP",
+                                        "XRT_MODULE_ERROR_FORMAT",
+                                        "XRT_MODULE_PATH",
+                                        "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"
+                                    ]
                  },
     "links":  [
 
@@ -24,6 +33,7 @@
     "dependencies":  [
 
                      ],
+    "coverage": { "mode": "suite", "tests": ["test/file_ops.xl", "test/allocations.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

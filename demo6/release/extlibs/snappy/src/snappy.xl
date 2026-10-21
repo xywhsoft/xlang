@@ -21,6 +21,27 @@ func __snappy_check_limit(int value, string name)
     end
 end
 
+func __snappy_file_path(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "snappy file path contains NUL"
+    end
+end
+
+// C 计数器和进度均为无符号 64 位，语言公开 int 前先检查范围。
+func __snappy_count(c_ulonglong value) as int
+    if value > c_ulonglong(9223372036854775807) then
+        throw RangeError "snappy byte count exceeds int range"
+    end
+    return int(value)
+end
+
+func __snappy_progress(func(int, int, int) as bool callback) as var
+    return xcall(func(uint64 inputBytes, uint64 totalBytes, uint64 outputBytes) as bool
+        return callback(__snappy_count(c_ulonglong(inputBytes)),
+            __snappy_count(c_ulonglong(totalBytes)), __snappy_count(c_ulonglong(outputBytes)))
+    end)
+end
+
 func __snappy_check_file_result(int status)
     if status == -1 then
         throw CancelledError "snappy operation cancelled"
@@ -54,7 +75,7 @@ export func compress(string text, int maxInput = 268435456,
     int maxOutput = 536870912) as Buffer
     __snappy_check_limit(maxInput, "maxInput")
     __snappy_check_limit(maxOutput, "maxOutput")
-    point result = __snappy_compress_str(text, c_size(string.len(text)),
+    point result = __snappy_compress_str(text, c_size(string.byteLen(text)),
         c_ulonglong(maxInput), c_ulonglong(maxOutput))
     if result == null then
         throw CompressionError __snappy_error()
@@ -67,6 +88,9 @@ export func decompress(Buffer data, int maxInput = 268435456,
     __snappy_check_limit(maxInput, "maxInput")
     __snappy_check_limit(maxOutput, "maxOutput")
     __snappy_check_limit(maxRatio, "maxRatio")
+    if maxRatio > 4294967295 then
+        throw RangeError "snappy maxRatio must fit uint32"
+    end
     point result = __snappy_decompress(data.data(), c_size(data.len()),
         c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
     if result == null then
@@ -83,11 +107,13 @@ end
 export func compressFile(string source, string destination, bool overwrite = true,
     int maxInput = 268435456, int maxOutput = 536870912,
     (func(int, int, int) as bool)? onProgress = null)
+    __snappy_file_path(source)
+    __snappy_file_path(destination)
     __snappy_check_limit(maxInput, "maxInput")
     __snappy_check_limit(maxOutput, "maxOutput")
     var progress = null
     if onProgress != null then
-        progress = xcall(onProgress)
+        progress = __snappy_progress(onProgress)
     end
     int status = __snappy_compress_file(source, destination, c_bool(overwrite),
         c_ulonglong(maxInput), c_ulonglong(maxOutput), progress)
@@ -97,12 +123,17 @@ end
 export func decompressFile(string source, string destination, bool overwrite = true,
     int maxInput = 268435456, int maxOutput = 536870912, int maxRatio = 1000,
     (func(int, int, int) as bool)? onProgress = null)
+    __snappy_file_path(source)
+    __snappy_file_path(destination)
     __snappy_check_limit(maxInput, "maxInput")
     __snappy_check_limit(maxOutput, "maxOutput")
     __snappy_check_limit(maxRatio, "maxRatio")
+    if maxRatio > 4294967295 then
+        throw RangeError "snappy maxRatio must fit uint32"
+    end
     var progress = null
     if onProgress != null then
-        progress = xcall(onProgress)
+        progress = __snappy_progress(onProgress)
     end
     int status = __snappy_decompress_file(source, destination, c_bool(overwrite),
         c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio), progress)
@@ -117,12 +148,12 @@ export class SnappyCompressor
     native point handle
     extern "xsnappy_compressor_create" create(c_ulonglong maxInput, c_ulonglong maxOutput)
     extern "xsnappy_compressor_destroy" destroy()
-    extern "xsnappy_compressor_update" func updateNative(point data, c_size size) as bool
-    extern "xsnappy_compressor_update_str" func updateStrNative(string data, c_size size) as bool
-    extern "xsnappy_compressor_finish" func finishNative() as bool
-    extern "xsnappy_compressor_drain" func drainNative() as point
-    extern "xsnappy_compressor_input_bytes" func inputBytesNative() as int
-    extern "xsnappy_compressor_output_bytes" func outputBytesNative() as int
+    private extern "xsnappy_compressor_update" func updateNative(point data, c_size size) as bool
+    private extern "xsnappy_compressor_update_str" func updateStrNative(string data, c_size size) as bool
+    private extern "xsnappy_compressor_finish" func finishNative() as bool
+    private extern "xsnappy_compressor_drain" func drainNative() as point
+    private extern "xsnappy_compressor_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xsnappy_compressor_output_bytes" func outputBytesNative() as c_ulonglong
 
     get valid() as bool
         return self.handle != null
@@ -130,12 +161,12 @@ export class SnappyCompressor
 
     // 已喂入的原始字节数（进度回显用）。
     get inputBytes() as int
-        return self.inputBytesNative()
+        return __snappy_count(self.inputBytesNative())
     end
 
     // 已产出的压缩字节数（进度回显用）。
     get outputBytes() as int
-        return self.outputBytesNative()
+        return __snappy_count(self.outputBytesNative())
     end
 
     func update(Buffer data)
@@ -145,7 +176,7 @@ export class SnappyCompressor
     end
 
     func update(string text)
-        if not self.updateStrNative(text, c_size(string.len(text))) then
+        if not self.updateStrNative(text, c_size(string.byteLen(text))) then
             throw CompressionError __snappy_error()
         end
     end
@@ -159,7 +190,7 @@ export class SnappyCompressor
         return Buffer(result)
     end
 
-    // 封存压缩流（写入成员结束标记）。返回后 drain() 可取走最后的压缩字节。
+    // 刷出最后一个块。标准 framing 无结束标记；随后可 drain()。
     func finish() as bool
         if not self.finishNative() then
             throw CompressionError __snappy_error()
@@ -171,18 +202,18 @@ end
 
 
 // 增量流式解压器：update() 喂入压缩字节，drain() 随时取走已解压数据，
-// finished 反映当前成员是否结束，members 统计已完整解出的成员数（支持串联多成员流）。
+// finished 在 finish() 成功后为真；members 统计 stream identifier 数量。
 export class SnappyDecompressor
     native point handle
     extern "xsnappy_decompressor_create" create(c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio)
     extern "xsnappy_decompressor_destroy" destroy()
-    extern "xsnappy_decompressor_update" func updateNative(point data, c_size size) as bool
-    extern "xsnappy_decompressor_finish" func finishNative() as bool
-    extern "xsnappy_decompressor_drain" func drainNative() as point
-    extern "xsnappy_decompressor_input_bytes" func inputBytesNative() as int
-    extern "xsnappy_decompressor_output_bytes" func outputBytesNative() as int
-    extern "xsnappy_decompressor_finished" func finishedNative() as bool
-    extern "xsnappy_decompressor_members" func membersNative() as int
+    private extern "xsnappy_decompressor_update" func updateNative(point data, c_size size) as bool
+    private extern "xsnappy_decompressor_finish" func finishNative() as bool
+    private extern "xsnappy_decompressor_drain" func drainNative() as point
+    private extern "xsnappy_decompressor_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xsnappy_decompressor_output_bytes" func outputBytesNative() as c_ulonglong
+    private extern "xsnappy_decompressor_finished" func finishedNative() as bool
+    private extern "xsnappy_decompressor_members" func membersNative() as c_ulonglong
 
     get valid() as bool
         return self.handle != null
@@ -190,22 +221,22 @@ export class SnappyDecompressor
 
     // 已喂入的压缩字节数（进度回显用）。
     get inputBytes() as int
-        return self.inputBytesNative()
+        return __snappy_count(self.inputBytesNative())
     end
 
     // 已产出的解压字节数（进度回显用）。
     get outputBytes() as int
-        return self.outputBytesNative()
+        return __snappy_count(self.outputBytesNative())
     end
 
-    // 当前成员是否已完整解出（流结束时为 true）。
+    // finish() 是否已成功完成。
     get finished() as bool
         return self.finishedNative()
     end
 
-    // 已完整解出的成员数；大于 1 表示输入是串联的多成员 snappy 流。
+    // 已读到的 stream identifier 数；大于 1 表示串联流。
     get members() as int
-        return self.membersNative()
+        return __snappy_count(self.membersNative())
     end
 
     func update(Buffer data)
@@ -249,6 +280,9 @@ export func decompressor(int maxInput = 268435456, int maxOutput = 536870912,
     __snappy_check_limit(maxInput, "maxInput")
     __snappy_check_limit(maxOutput, "maxOutput")
     __snappy_check_limit(maxRatio, "maxRatio")
+    if maxRatio > 4294967295 then
+        throw RangeError "snappy maxRatio must fit uint32"
+    end
     SnappyDecompressor result = SnappyDecompressor(c_ulonglong(maxInput),
         c_ulonglong(maxOutput), c_uint(maxRatio))
     if not result.valid then

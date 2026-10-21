@@ -1,0 +1,9 @@
+import snappy
+
+func main(...) as int
+    Buffer packed = snappy.compress("hello snappy")
+    string plain = snappy.decompressText(packed)
+    assert plain == "hello snappy"
+    println(plain)
+    return 0
+end

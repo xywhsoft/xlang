@@ -18,9 +18,8 @@ func main(...) as int
     Buffer packed = snappy.compress(source)
     Buffer plain = snappy.decompress(packed)
     assert plain == source, "snappy Buffer round trip failed"
-    for i in range(packed.len() - 8, packed.len())
-        assert packed[i] == 0, "snappy member end record must be deterministic"
-    end
+    assert packed.len() >= 10
+    assert packed[0] == 255 and packed[1] == 6, "snappy stream identifier missing"
     println("一次性: ", source.len(), " 字节 -> ", packed.len(), " 字节")
 
     // 直接压缩字符串（内部自动转 Buffer）。
@@ -36,7 +35,7 @@ func main(...) as int
     streamPacked.append(encoder.drain())
     encoder.update("stream")
     streamPacked.append(encoder.drain())
-    encoder.finish()                 // 封存流（写入成员结束标记）
+    encoder.finish()                 // 刷出最后一个块；标准 framing 没有结束标记
     streamPacked.append(encoder.drain())
     println("流式压缩: 喂入 ", encoder.inputBytes, " 字节, 产出 ",
         encoder.outputBytes, " 字节")
@@ -52,16 +51,16 @@ func main(...) as int
     restored.append(decoder.drain())
     assert restored.text() == "hello stream", "snappy incremental round trip failed"
 
-    // 前一成员完整时，不能掩盖后一成员缺失结束记录。
+    // 末尾 chunk 截断必须拒绝；标准 framing 在完整 chunk 边界没有结束标记。
     Buffer chainedTruncated = Buffer()
     chainedTruncated.append(packed)
-    for i in range(0, streamPacked.len() - 12)
+    for i in range(0, streamPacked.len() - 1)
         chainedTruncated.appendByte(streamPacked[i])
     end
     bool truncatedRejected = false
     try
         snappy.decompress(chainedTruncated)
-    catch CompressionError e
+    catch IOError e
         truncatedRejected = true
     end
     assert truncatedRejected, "truncated final snappy member must be rejected"
@@ -81,34 +80,38 @@ func main(...) as int
     // ─── 5. 损坏数据必然抛出 CompressionError（块体安全校验生效）───
     bool rejected = false
     int mid = streamPacked.len() / 2
-    streamPacked[mid] = streamPacked[mid] ^ 255
+    streamPacked[mid] = 0
     try
         snappy.decompress(streamPacked)
-    catch CompressionError e
+    catch IOError e
         rejected = true
     end
     assert rejected, "corrupt snappy must raise CompressionError"
     println("损坏检出: OK")
 
     // ─── 6. 文件便捷接口（XRT reader/writer，临时文件+原子重命名）───
-    dir.createAll("tmp")
-    file.writeBytes("tmp/snappy_example_source.bin", source)
-    FileProgress progress = FileProgress()
-    snappy.compressFile("tmp/snappy_example_source.bin", "tmp/snappy_example.sz",
-        onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
-            progress.calls += 1
-            progress.inputBytes = inputBytes
-            progress.totalBytes = totalBytes
-            return true
-        end)
-    assert progress.calls > 0
-    assert progress.inputBytes == source.len()
-    assert progress.totalBytes == source.len()
-    snappy.decompressFile("tmp/snappy_example.sz", "tmp/snappy_example_plain.bin")
-    assert file.readBytes("tmp/snappy_example_plain.bin") == source
-    file.delete("tmp/snappy_example_source.bin")
-    file.delete("tmp/snappy_example.sz")
-    file.delete("tmp/snappy_example_plain.bin")
+    string directory = dir.temp("", "xlang-snappy-example-", "")
+    string sourcePath = path.join(directory, "source.bin")
+    string packedPath = path.join(directory, "packed.sz")
+    string restoredPath = path.join(directory, "restored.bin")
+    try
+        assert file.writeBytes(sourcePath, source.toBytes())
+        FileProgress progress = FileProgress()
+        snappy.compressFile(sourcePath, packedPath,
+            onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+                progress.calls += 1
+                progress.inputBytes = inputBytes
+                progress.totalBytes = totalBytes
+                return true
+            end)
+        assert progress.calls > 0
+        assert progress.inputBytes == source.len()
+        assert progress.totalBytes == source.len()
+        snappy.decompressFile(packedPath, restoredPath)
+        assert file.readBytes(restoredPath) == source.toBytes()
+    finally
+        assert dir.delete(directory), "snappy example temporary directory must be removed"
+    end
 
     println("snappy example: PASS")
     return 0

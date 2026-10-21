@@ -16,13 +16,6 @@
 
 /* ----------------------------- varint 长度头 ----------------------------- */
 
-static size_t xs_varint_size(size_t v)
-{
-	size_t n = 1u;
-	while ( v >= 0x80u ) { v >>= 7; ++n; }
-	return n;
-}
-
 static size_t xs_write_varint(unsigned char* out, size_t v)
 {
 	size_t i = 0u;
@@ -157,12 +150,12 @@ int xsCodecCompress(const unsigned char* input, size_t n,
 	size_t ip = 0u;
 	size_t i;
 
-	if ( out_len == NULL ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
-	if ( output == NULL && out_capacity != 0u ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
-	if ( input == NULL && n != 0u ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
+	if ( out_len == NULL ) { return XS_CODEC_ERROR_BAD_INPUT; }
+	if ( output == NULL && out_capacity != 0u ) { return XS_CODEC_ERROR_BAD_INPUT; }
+	if ( input == NULL && n != 0u ) { return XS_CODEC_ERROR_BAD_INPUT; }
 
 	table = (size_t*)malloc(sizeof(size_t) * XS_HASH_SIZE);
-	if ( table == NULL ) { return XRT_SNAPPY_ERROR_BUFFER_TOO_SMALL; }
+	if ( table == NULL ) { return XS_CODEC_ERROR_BUFFER_TOO_SMALL; }
 
 	w.buf = output;
 	w.cap = out_capacity;
@@ -177,10 +170,10 @@ int xsCodecCompress(const unsigned char* input, size_t n,
 	}
 
 	if ( n == 0u ) {
-		if ( w.overflow ) { free(table); return XRT_SNAPPY_ERROR_BUFFER_TOO_SMALL; }
+		if ( w.overflow ) { free(table); return XS_CODEC_ERROR_BUFFER_TOO_SMALL; }
 		*out_len = w.len;
 		free(table);
-		return XRT_SNAPPY_OK;
+		return XS_CODEC_OK;
 	}
 
 	for ( i = 0u; i < XS_HASH_SIZE; ++i ) { table[i] = (size_t)-1; }
@@ -214,10 +207,10 @@ int xsCodecCompress(const unsigned char* input, size_t n,
 		xs_emit_literal(&w, input + lit_start, n - lit_start);
 	}
 
-	if ( w.overflow ) { free(table); return XRT_SNAPPY_ERROR_BUFFER_TOO_SMALL; }
+	if ( w.overflow ) { free(table); return XS_CODEC_ERROR_BUFFER_TOO_SMALL; }
 	*out_len = w.len;
 	free(table);
-	return XRT_SNAPPY_OK;
+	return XS_CODEC_OK;
 }
 
 
@@ -228,13 +221,13 @@ int xsCodecUncompressedLength(const unsigned char* compressed, size_t n,
 	size_t* out_len)
 {
 	size_t len = 0u;
-	if ( out_len == NULL ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
-	if ( compressed == NULL && n != 0u ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
+	if ( out_len == NULL ) { return XS_CODEC_ERROR_BAD_INPUT; }
+	if ( compressed == NULL && n != 0u ) { return XS_CODEC_ERROR_BAD_INPUT; }
 	if ( xs_read_varint(compressed, n, &len) == 0u ) {
-		return XRT_SNAPPY_ERROR_BAD_INPUT;
+		return XS_CODEC_ERROR_BAD_INPUT;
 	}
 	*out_len = len;
-	return XRT_SNAPPY_OK;
+	return XS_CODEC_OK;
 }
 
 int xsCodecDecompress(const unsigned char* compressed, size_t n,
@@ -245,13 +238,13 @@ int xsCodecDecompress(const unsigned char* compressed, size_t n,
 	size_t ip;
 	size_t op = 0u;
 
-	if ( out_len == NULL ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
-	if ( compressed == NULL && n != 0u ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
-	if ( output == NULL && out_capacity != 0u ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
+	if ( out_len == NULL ) { return XS_CODEC_ERROR_BAD_INPUT; }
+	if ( compressed == NULL && n != 0u ) { return XS_CODEC_ERROR_BAD_INPUT; }
+	if ( output == NULL && out_capacity != 0u ) { return XS_CODEC_ERROR_BAD_INPUT; }
 
 	hdr = xs_read_varint(compressed, n, &declared);
-	if ( hdr == 0u ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
-	if ( declared > out_capacity ) { return XRT_SNAPPY_ERROR_BUFFER_TOO_SMALL; }
+	if ( hdr == 0u ) { return XS_CODEC_ERROR_BAD_INPUT; }
+	if ( declared > out_capacity ) { return XS_CODEC_ERROR_BUFFER_TOO_SMALL; }
 
 	ip = hdr;
 	while ( ip < n ) {
@@ -264,15 +257,15 @@ int xsCodecDecompress(const unsigned char* compressed, size_t n,
 				size_t extra = len - 60u;   /* 1..4 字节长度 */
 				size_t i;
 				len = 0u;
-				if ( ip + extra > n ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
+				if ( ip + extra > n ) { return XS_CODEC_ERROR_BAD_INPUT; }
 				for ( i = 0u; i < extra; ++i ) {
 					len |= (size_t)compressed[ip + i] << (8u * i);
 				}
 				ip += extra;
 				len += 1u;
 			}
-			if ( ip + len > n ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
-			if ( op + len > declared ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
+			if ( ip + len > n ) { return XS_CODEC_ERROR_BAD_INPUT; }
+			if ( op + len > declared ) { return XS_CODEC_ERROR_BAD_INPUT; }
 			memcpy(output + op, compressed + ip, len);
 			ip += len;
 			op += len;
@@ -281,24 +274,24 @@ int xsCodecDecompress(const unsigned char* compressed, size_t n,
 			size_t len;
 			size_t offset;
 			if ( type == 1u ) {
-				if ( ip + 1u > n ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
+				if ( ip + 1u > n ) { return XS_CODEC_ERROR_BAD_INPUT; }
 				len = 4u + ((size_t)(tag >> 2) & 7u);
 				offset = ((size_t)(tag >> 5) << 8) | (size_t)compressed[ip];
 				ip += 1u;
 			} else if ( type == 2u ) {
-				if ( ip + 2u > n ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
+				if ( ip + 2u > n ) { return XS_CODEC_ERROR_BAD_INPUT; }
 				len = ((size_t)(tag >> 2)) + 1u;
 				offset = (size_t)compressed[ip] | ((size_t)compressed[ip + 1] << 8);
 				ip += 2u;
 			} else {
-				if ( ip + 4u > n ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
+				if ( ip + 4u > n ) { return XS_CODEC_ERROR_BAD_INPUT; }
 				len = ((size_t)(tag >> 2)) + 1u;
 				offset = (size_t)compressed[ip] | ((size_t)compressed[ip + 1] << 8) |
 					((size_t)compressed[ip + 2] << 16) | ((size_t)compressed[ip + 3] << 24);
 				ip += 4u;
 			}
-			if ( offset == 0u || offset > op ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
-			if ( op + len > declared ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
+			if ( offset == 0u || offset > op ) { return XS_CODEC_ERROR_BAD_INPUT; }
+			if ( op + len > declared ) { return XS_CODEC_ERROR_BAD_INPUT; }
 			{
 				size_t k;
 				for ( k = 0u; k < len; ++k ) {
@@ -309,7 +302,7 @@ int xsCodecDecompress(const unsigned char* compressed, size_t n,
 		}
 	}
 
-	if ( op != declared ) { return XRT_SNAPPY_ERROR_BAD_INPUT; }
+	if ( op != declared ) { return XS_CODEC_ERROR_BAD_INPUT; }
 	*out_len = op;
-	return XRT_SNAPPY_OK;
+	return XS_CODEC_OK;
 }

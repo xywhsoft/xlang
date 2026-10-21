@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09090a">
+  <title>snappy - 扩展库 - xlang</title>
+  <meta name="description" content="snappy 扩展库：标准 Snappy framed stream 压缩，支持一次性、文件级与增量流式接口，并使用 masked CRC32C 校验数据块。">
+  <link rel="icon" href="../favicon.png">
+  <meta property="og:title" content="snappy - xlang 扩展库">
+  <meta property="og:description" content="Snappy 高速压缩：一次性、文件级与增量流式。">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+    <ul class="nav-links" id="site-navigation">
+      <li><a href="../index.html#highlights">亮点</a></li>
+      <li><a href="../index.html#features">特性</a></li>
+      <li><a href="../index.html#start">快速开始</a></li>
+      <li><a href="../tour.html">语法导览</a></li>
+      <li><a href="../book/index.html">教程</a></li>
+      <li><a href="../stdlib.html">标准库</a></li>
+      <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+      <li><a href="../guide.html">文档</a></li>
+      <li><a href="../download.html">下载</a></li>
+      <li><a href="https://gitee.com/xywhsoft/x-lang" target="_blank" rel="noopener">Gitee</a></li>
+    </ul>
+    <div class="nav-actions" aria-label="页面工具"></div>
+  </div>
+</nav>
+
+<div class="extlib-layout c-zip" id="main-content">
+  <div class="extlib-head">
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;"><a href="../extlibs.html" style="color:var(--brand);text-decoration:none;">扩展库</a><span style="margin:0 6px;">/</span><span style="color:var(--text-soft);">snappy</span></p>
+    <div class="extlib-title-row"><h1>snappy</h1><span class="extlib-cat-badge">压缩归档</span></div>
+    <div class="extlib-badges"><span class="extlib-badge">v1.0.0</span><span class="extlib-badge hot">C 混编</span><span class="extlib-badge">0 依赖</span><span class="extlib-badge">ABI 1</span></div>
+    <p class="extlib-lead">标准 Snappy framed stream 压缩。纯 C codec 与 xlang API 提供二进制安全的 <code>Buffer</code> 一次性、文件及 <code>update → drain → finish</code> 增量流式处理；输出可与遵循官方 framing 格式的工具互通。</p>
+  </div>
+
+  <div class="ext-tabs" id="extTabs">
+    <button class="ext-tab active" data-panel="overview">概览</button>
+    <button class="ext-tab" data-panel="api">API 参考</button>
+    <button class="ext-tab" data-panel="examples">范例</button>
+    <button class="ext-tab" data-panel="tests">测试</button>
+  </div>
+
+  <div class="ext-panel active" id="panel-overview">
+    <h2>典型场景</h2>
+    <div class="ext-scenes"><span class="ext-scene">大数据管道</span><span class="ext-scene">实时流压缩</span><span class="ext-scene">缓存压缩</span><span class="ext-scene">RPC 载荷</span><span class="ext-scene">日志压缩</span><span class="ext-scene">进度回显传输</span></div>
+    <h2>快速开始</h2>
+    <div class="code-block"><div class="code-header"><span>quick_start.xl</span></div><div class="code-body"><pre>import snappy
+
+func main(...) as int
+    Buffer packed = snappy.compress("hello snappy")
+    println(snappy.decompressText(packed))   // hello snappy
+
+    auto enc = snappy.compressor()
+    enc.update("part1 ")
+    enc.update("part2")
+    enc.finish()
+    Buffer blob = enc.drain()
+
+    auto dec = snappy.decompressor()
+    dec.update(blob)
+    dec.finish()
+    println(dec.drain().text())           // part1 part2
+    return 0
+end</pre></div></div>
+    <h2>核心特性</h2>
+    <ul>
+      <li><strong>标准 framing</strong> — 产出符合 Google Snappy framed stream 格式的 <code>.sz</code> 数据</li>
+      <li><strong>块校验</strong> — 使用 masked CRC32C；损坏的块会被拒绝</li>
+      <li><strong>二进制安全</strong> — 输入输出统一 <code>Buffer</code></li>
+      <li><strong>三种粒度</strong> — 一次性内存、文件级、增量流式（<code>SnappyCompressor</code>/<code>SnappyDecompressor</code>）</li>
+      <li><strong>真流式输出</strong> — <code>drain()</code> 随时取走已产出字节</li>
+      <li><strong>分段输入</strong> — 压缩按 64 KiB 原文块处理；解压的大输入分段解析，可跳过 chunk 不缓存主体</li>
+      <li><strong>进度回显</strong> — <code>inputBytes</code>/<code>outputBytes</code> 字节计数器</li>
+      <li><strong>串联流</strong> — <code>members</code> 统计 stream identifier；C 选项的 <code>iMaxEntries</code> 限制其数量，<code>finished</code> 表示 <code>finish()</code> 成功</li>
+      <li><strong>文件原子写</strong> — 临时文件 + 原子重命名</li>
+    </ul>
+    <h2>包信息</h2>
+    <table class="ext-kv">
+      <tr><th>包名</th><td>snappy</td></tr><tr><th>版本</th><td>1.0.0</td></tr>
+      <tr><th>引擎</th><td>纯 C Snappy 格式兼容实现 1.0.0</td></tr>
+      <tr><th>实现方式</th><td>C 混编（Snappy 引擎 C，API 层 xlang）</td></tr>
+      <tr><th>依赖</th><td>无</td></tr><tr><th>ABI 版本</th><td>1</td></tr>
+      <tr><th>导出符号</th><td>compress(), decompress(), decompressText(), compressFile(), decompressFile(), compressor(), decompressor(), SnappyCompressor, SnappyDecompressor</td></tr>
+      <tr><th>源文件</th><td>extlibs/snappy/src/snappy.xl</td></tr>
+    </table>
+  </div>
+
+  <div class="ext-panel" id="panel-api">
+    <div class="api-group-title">一次性 / 文件 / 流式</div>
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export func</span> <span class="fn">compress</span>(<span class="type">Buffer</span> data, ...) <span class="kw">as</span> <span class="type">Buffer</span>
+<span class="kw">export func</span> <span class="fn">decompress</span>(<span class="type">Buffer</span> data, ...) <span class="kw">as</span> <span class="type">Buffer</span>
+<span class="kw">export func</span> <span class="fn">compressFile</span>(...) / <span class="fn">decompressFile</span>(...)
+<span class="kw">export func</span> <span class="fn">compressor</span>(...) <span class="kw">as</span> <span class="type">SnappyCompressor</span>
+<span class="kw">export func</span> <span class="fn">decompressor</span>(...) <span class="kw">as</span> <span class="type">SnappyDecompressor</span></div>
+    <p>提供一次性、文件级、增量流式三种接口。流式类提供 update/drain/finish + inputBytes/outputBytes/finished/members。framing 没有结束标记：不完整的末尾 chunk 会报错，但无法检测完整 chunk 边界处的提前终止。</p>
+      <div class="api-note">文件接口末尾支持可空 <code>onProgress(inputBytes, totalBytes, outputBytes)</code>。含 NUL 的源/目标路径报 <code>ValueError</code>；返回 false 删除临时输出并抛 <code>CancelledError</code>；回调异常原样传播。C 层对应 <code>xrtprogressproc</code> + <code>void* userData</code>。C 流式接口的进度从 Reader 当前读取位置起算；无法同时取得总长和当前位置时不设置 <code>TOTAL_KNOWN</code>。</div>
+      <div class="api-note">Snappy 为固定策略算法，<strong>无级别/质量参数</strong>，因此也不导出调优常量；数据损坏抛 <code>CompressionError</code>。</div>
+    </div>
+  </div>
+
+  <div class="ext-panel" id="panel-examples">
+    <h2>教学范例</h2>
+    <p>完整源文件：<code>examples/extlibs/snappy.xl</code></p>
+    <h3>1. 一次性 + 流式</h3>
+    <div class="code-block"><div class="code-header"><span>snappy.xl</span></div><div class="code-body"><pre>import snappy
+
+Buffer packed = snappy.compress("xlang snappy")
+assert snappy.decompressText(packed) == "xlang snappy"
+println("引擎版本: ", snappy.version())
+
+auto encoder = snappy.compressor()
+Buffer streamPacked = Buffer()
+encoder.update("hello ")
+streamPacked.append(encoder.drain())
+encoder.update("stream")
+streamPacked.append(encoder.drain())
+encoder.finish()
+streamPacked.append(encoder.drain())
+
+auto decoder = snappy.decompressor()
+decoder.update(streamPacked)
+decoder.finish()
+assert decoder.drain().text() == "hello stream"</pre></div></div>
+    <h3>2. 高冗余数据压缩率</h3>
+    <div class="code-block"><div class="code-header"><span>压缩率</span></div><div class="code-body"><pre>Buffer redundant = Buffer()
+int i = 0
+while i &lt; 256
+    redundant.append("snappy-snappy-")
+    i = i + 1
+end
+Buffer packed = snappy.compress(redundant)
+println(redundant.size(), " -> ", packed.size(), " 字节")   // 3584 -> 202
+assert snappy.decompress(packed) == redundant</pre></div></div>
+    <h3>运行范例</h3>
+    <div class="code-block"><div class="code-header"><span>终端（demo6 目录）</span></div><div class="code-body"><pre>release\xl.exe run release\examples\extlibs\snappy.xl
+release\xl.exe run release\extlibs\snappy\examples\basic.c</pre></div></div>
+  </div>
+
+  <div class="ext-panel" id="panel-tests">
+    <h2>测试覆盖</h2>
+    <p>测试文件：<code>extlibs/snappy/test/file_ops.xl</code>、<code>extlibs/snappy/test/test_snappy.c</code>，以及中央 <code>test/cases/extlib_snappy.xl</code> 和 <code>extlib_snappy_progress.xl</code>。C 接口先校验选项和资源限制结构的版本、长度与保留字段，无效选项不会消费文件流输入；资源配置只接受有效限额，串联流成员数按 <code>iMaxEntries</code> 检查。Windows/Linux 包级门禁对照 GCC、包运行器、直接 <code>xl run</code> C 与 XLang 基础范例；Linux 同次运行 C ASan/UBSan。字节算术 XLIR 与完整 AOT 的主线阻断尚未解除。</p>
+    <p><code>test/test_allocations.c</code> 和 <code>test/allocations.xl</code> 验证 XRT 分配失败时的空结果、释放平衡、恢复和语言层 MemoryError 分类；不覆盖上游 Snappy 内部 allocator。</p>
+    <ul>
+      <li>一次性二进制往返（含 NUL / 0xFF）</li>
+      <li>流式往返 + members 计数</li>
+      <li>分块收集 + inputBytes 计数器 + finished</li>
+      <li>高冗余数据压缩后显著更小</li>
+      <li>串联多成员流</li>
+      <li>损坏数据抛 CompressionError</li>
+      <li>文件级往返 + overwrite 拒绝</li>
+      <li>文件进度回调、取消清理及限额失败时的既有目标保护</li>
+      <li>可选 Python Snappy 0.7.3 双向 framed 互通：二进制、重复数据及跨 64 KiB 分块</li>
+    </ul>
+    <h3>运行测试</h3>
+    <div class="code-block"><div class="code-header"><span>终端（demo6 目录）</span></div><div class="code-body"><pre>./release/xl run release/extlibs/snappy/test/file_ops.xl
+bash release/extlibs/snappy/test/check.sh</pre></div></div>
+  </div>
+
+  <a href="../extlibs.html" class="ext-back">← 返回扩展库列表</a>
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a class="brand-wordmark" href="../index.html" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+      <p>以 C 为后端的现代编程语言。生成本地二进制，也可作为运行时嵌入现有 C/C++ 工程。</p>
+    </div>
+    <div class="footer-col">
+      <h4>文档</h4>
+      <ul>
+        <li><a href="../tour.html">语法导览</a></li>
+        <li><a href="../book/index.html">系统教程</a></li>
+        <li><a href="../stdlib.html">标准库</a></li>
+        <li><a href="../extlibs.html">扩展库</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>项目</h4>
+      <ul>
+        <li><a href="../download.html">下载</a></li>
+        <li><a href="https://gitee.com/xywhsoft/x-lang" target="_blank" rel="noopener">Gitee 仓库</a></li>
+        <li><a href="https://gitee.com/xywhsoft/x-lang/issues" target="_blank" rel="noopener">问题反馈</a></li>
+        <li><a href="https://xrt.xywhsoft.com" target="_blank" rel="noopener">XRT 文档</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">xlang &copy; 2026 xLeaves (xywhsoft) · MIT License</div>
+</footer>
+<script src="../main.js"></script>
+<script>(function(){var tabs=document.querySelectorAll('#extTabs .ext-tab');var panels=document.querySelectorAll('.ext-panel');tabs.forEach(function(tab){tab.addEventListener('click',function(){tabs.forEach(function(t){t.classList.remove('active');});panels.forEach(function(p){p.classList.remove('active');});tab.classList.add('active');document.getElementById('panel-'+tab.dataset.panel).classList.add('active');});});})();</script>
+</body>
+</html>

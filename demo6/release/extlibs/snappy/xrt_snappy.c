@@ -8,18 +8,13 @@
 
 
 
-/* 单个块最大原始字节数。snappy 一次性 API 以 size_t 传递长度，
- * 这里取 1MB 以便流式产出粒度适中、内存占用可控。 */
-#define XRT_SNAPPY_BLOCK_SIZE 1048576u
+/* 官方 framing 每个数据块最多包含 64 KiB 原文。 */
+#define XRT_SNAPPY_BLOCK_SIZE 65536u
 #define XRT_SNAPPY_CHUNK 65536u
-#define XRT_SNAPPY_HEADER_SIZE 12u
-
-/* 容器格式（自定义多块成员流，支持串联多成员）：
- *   成员 = 块* + 结束标记
- *   块   = u32le(原始大小 n, n>0) + u32le(压缩大小 c) + u32le(原始数据 CRC32) + snappy 压缩字节(c 字节)
- *   结束 = u32le(0)
- * snappy 流自身不含校验和，故额外记录原始数据 CRC32 以检出损坏，
- * 解压侧据此精确定位块边界、校验完整性并统计 members。 */
+#define XRT_SNAPPY_HEADER_SIZE 4u
+static const uint8 __xrtSnappyStreamId[10] = {
+	0xffu, 0x06u, 0x00u, 0x00u, 's', 'N', 'a', 'P', 'p', 'Y'
+};
 
 struct xrtsnappycompressor {
 	xbuffer* Pending;            /* 尚未成块的原始输入 */
@@ -32,11 +27,6 @@ struct xrtsnappycompressor {
 	bool Failed;
 };
 
-typedef enum {
-	XRT_SNAPPY_DEC_HEADER = 0,   /* 读取 12 字节块头 */
-	XRT_SNAPPY_DEC_BLOCK = 1     /* 读取压缩块体 */
-} xrtsnappydecstate;
-
 struct xrtsnappydecompressor {
 	xbuffer* Carry;              /* 尚未消费完的输入字节 */
 	xbuffer* Output;             /* 已产出的原始字节 */
@@ -45,11 +35,9 @@ struct xrtsnappydecompressor {
 	uint64 InputBytes;
 	uint64 OutputBytes;
 	uint64 MemberCount;
-	size_t BlockDeclared;       /* 当前块声明的原始大小 */
-	size_t BlockCompressed;     /* 当前块声明的压缩大小 */
-	uint32 BlockCrc;            /* 当前块声明的原始数据 CRC32 */
-	int State;
-	bool MemberEnded;
+	size_t ChunkLength;
+	uint8 ChunkType;
+	bool HaveChunkHeader;
 	bool Finished;
 	bool Failed;
 };
@@ -120,9 +108,8 @@ static uint32 __xrtSnappyReadU32LE(const uint8* pSrc)
 		((uint32)pSrc[2] << 16) | ((uint32)pSrc[3] << 24);
 }
 
-/* 标准 CRC32（IEEE 802.3，多项式 0xEDB88320，反射输入输出，异或 0xFFFFFFFF）。
- * 逐位计算，无需查表，仅用于块级完整性校验，性能需求不高。 */
-static uint32 __xrtSnappyCrc32(const void* pData, size_t iLen)
+/* Framing 使用 masked CRC32C；XRT 当前只提供普通 CRC32。 */
+static uint32 __xrtSnappyMaskedCrc32c(const void* pData, size_t iLen)
 {
 	const uint8* pBuf = (const uint8*)pData;
 	uint32 iCrc = 0xFFFFFFFFu;
@@ -131,10 +118,11 @@ static uint32 __xrtSnappyCrc32(const void* pData, size_t iLen)
 		int j;
 		iCrc ^= (uint32)pBuf[i];
 		for ( j = 0; j < 8; ++j ) {
-			iCrc = (iCrc >> 1) ^ (0xEDB88320u & (0u - (iCrc & 1u)));
+			iCrc = (iCrc >> 1) ^ (0x82F63B78u & (0u - (iCrc & 1u)));
 		}
 	}
-	return iCrc ^ 0xFFFFFFFFu;
+	iCrc ^= 0xFFFFFFFFu;
+	return ((iCrc >> 15) | (iCrc << 17)) + 0xa282ead8u;
 }
 
 
@@ -153,6 +141,28 @@ XRT_API void xrtSnappyOptionsInit(xrtsnappyoptions* pOptions)
 	pOptions->iSize = sizeof(*pOptions);
 	pOptions->iVersion = XRT_SNAPPY_OPTIONS_VERSION;
 	xrtResourceLimitsInit(&pOptions->tLimits);
+	pOptions->tLimits.iMaxNodes = 0u;
+	pOptions->tLimits.iMaxDepth = 0u;
+}
+
+/* 外层长度未确认前不可读取内嵌限额或复制整份结构。 */
+static bool __xrtSnappyCopyOptions(xrtsnappyoptions* pOutput,
+	const xrtsnappyoptions* pInput)
+{
+	xrtSnappyOptionsInit(pOutput);
+	if ( pInput == NULL ) { return true; }
+	if ( pInput->iSize != sizeof(*pInput) ||
+		pInput->iVersion != XRT_SNAPPY_OPTIONS_VERSION ) { return false; }
+	if ( pInput->sReserved[0] != 0u || pInput->sReserved[1] != 0u ||
+		pInput->sReserved[2] != 0u || pInput->sReserved[3] != 0u ||
+		pInput->tLimits.iSize != sizeof(pInput->tLimits) ||
+		pInput->tLimits.iVersion != XRT_RESOURCE_LIMITS_VERSION ||
+		pInput->tLimits.iReserved != 0u ||
+		pInput->tLimits.iFlags != 0u ||
+		pInput->tLimits.iMaxNodes != 0u ||
+		pInput->tLimits.iMaxDepth != 0u ) { return false; }
+	*pOutput = *pInput;
+	return true;
 }
 
 
@@ -166,10 +176,11 @@ XRT_API xrtsnappycompressor* xrtSnappyCompressorCreate(const xrtsnappyoptions* p
 	if ( pCompressor == NULL ) { return NULL; }
 	memset(pCompressor, 0, sizeof(*pCompressor));
 	xrtSnappyErrorInit(&pCompressor->Error);
-	if ( pOptions != NULL ) {
-		pCompressor->Options = *pOptions;
-	} else {
-		xrtSnappyOptionsInit(&pCompressor->Options);
+	if ( !__xrtSnappyCopyOptions(&pCompressor->Options, pOptions) ) {
+		__xrtSnappySetError(&pCompressor->Error, XRT_SNAPPY_ERROR_ARGUMENT,
+			0, 0, 0, "invalid snappy options");
+		pCompressor->Failed = true;
+		return pCompressor;
 	}
 	pCompressor->Pending = __xrtSnappyBufferCreate(XRT_SNAPPY_CHUNK);
 	pCompressor->Output = __xrtSnappyBufferCreate(XRT_SNAPPY_CHUNK);
@@ -179,10 +190,20 @@ XRT_API xrtsnappycompressor* xrtSnappyCompressorCreate(const xrtsnappyoptions* p
 		pCompressor->Failed = true;
 		return pCompressor;
 	}
+	if ( __xrtSnappyAddOverLimit(0u, sizeof(__xrtSnappyStreamId),
+		pCompressor->Options.tLimits.iMaxOutputBytes) ||
+		!xrtBufferAppend(pCompressor->Output,
+			(xbytesview){ __xrtSnappyStreamId, sizeof(__xrtSnappyStreamId) }) ) {
+		__xrtSnappySetError(&pCompressor->Error, XRT_SNAPPY_ERROR_LIMIT, 0, 0, 0,
+			"cannot write snappy stream identifier");
+		pCompressor->Failed = true;
+		return pCompressor;
+	}
+	pCompressor->OutputBytes = sizeof(__xrtSnappyStreamId);
 	return pCompressor;
 }
 
-/* 将 Pending 中恰好 iSize 字节压缩为一个块（大小头 + 压缩体）写入 Output。 */
+/* 写入标准 compressed/uncompressed data chunk。 */
 static bool __xrtSnappyFlushBlock(xrtsnappycompressor* pCompressor, size_t iSize)
 {
 	size_t iBound;
@@ -192,6 +213,9 @@ static bool __xrtSnappyFlushBlock(xrtsnappycompressor* pCompressor, size_t iSize
 	int iResult;
 	xbytesview Pending;
 	size_t iGenerated;
+	bool bCompressed;
+	const uint8* pBody;
+	size_t iBodySize;
 	if ( iSize == 0u ) { return true; }
 	Pending = xrtBufferView(pCompressor->Pending);
 	if ( iSize > Pending.Size ) {
@@ -216,25 +240,22 @@ static bool __xrtSnappyFlushBlock(xrtsnappycompressor* pCompressor, size_t iSize
 	}
 	iResult = xsCodecCompress((const unsigned char*)Pending.Data, iSize,
 		(unsigned char*)pCompressed, iBound, &iWritten);
-	if ( iResult != XRT_SNAPPY_OK ) {
+	if ( iResult != XS_CODEC_OK ) {
 		__xrtSnappySetError(&pCompressor->Error, XRT_SNAPPY_ERROR_DATA, iResult,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "snappy compression failed");
 		xrtFree(pCompressed);
 		pCompressor->Failed = true;
 		return false;
 	}
-	if ( iWritten > UINT32_MAX ) {
-		__xrtSnappySetError(&pCompressor->Error, XRT_SNAPPY_ERROR_DATA, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "snappy compressed block is too large");
-		xrtFree(pCompressed);
-		pCompressor->Failed = true;
-		return false;
-	}
-	__xrtSnappyWriteU32LE(sHeader, (uint32)iSize);
-	__xrtSnappyWriteU32LE(sHeader + 4u, (uint32)iWritten);
-	__xrtSnappyWriteU32LE(sHeader + 8u,
-		__xrtSnappyCrc32(Pending.Data, iSize));
-	iGenerated = XRT_SNAPPY_HEADER_SIZE + iWritten;
+	bCompressed = iWritten < iSize;
+	pBody = bCompressed ? (const uint8*)pCompressed : (const uint8*)Pending.Data;
+	iBodySize = bCompressed ? iWritten : iSize;
+	/* 长度字段只计 CRC 与块体，不含四字节 chunk header。 */
+	sHeader[0] = bCompressed ? 0x00u : 0x01u;
+	sHeader[1] = (uint8)((iBodySize + 4u) & 0xffu);
+	sHeader[2] = (uint8)(((iBodySize + 4u) >> 8) & 0xffu);
+	sHeader[3] = (uint8)(((iBodySize + 4u) >> 16) & 0xffu);
+	iGenerated = XRT_SNAPPY_HEADER_SIZE + 4u + iBodySize;
 	if ( __xrtSnappyAddOverLimit(pCompressor->OutputBytes, iGenerated,
 		pCompressor->Options.tLimits.iMaxOutputBytes) ) {
 		__xrtSnappySetError(&pCompressor->Error, XRT_SNAPPY_ERROR_LIMIT, 0,
@@ -243,15 +264,21 @@ static bool __xrtSnappyFlushBlock(xrtsnappycompressor* pCompressor, size_t iSize
 		pCompressor->Failed = true;
 		return false;
 	}
-	if ( !xrtBufferAppend(pCompressor->Output,
-			(xbytesview){ (const unsigned char*)sHeader, XRT_SNAPPY_HEADER_SIZE }) ||
-		 !xrtBufferAppend(pCompressor->Output,
-			(xbytesview){ (const unsigned char*)pCompressed, iWritten }) ) {
+	{
+		uint8 sCrc[4];
+		__xrtSnappyWriteU32LE(sCrc, __xrtSnappyMaskedCrc32c(Pending.Data, iSize));
+		if ( !xrtBufferAppend(pCompressor->Output,
+				(xbytesview){ sHeader, sizeof(sHeader) }) ||
+			 !xrtBufferAppend(pCompressor->Output,
+				(xbytesview){ sCrc, sizeof(sCrc) }) ||
+			 !xrtBufferAppend(pCompressor->Output,
+				(xbytesview){ pBody, iBodySize }) ) {
 		__xrtSnappySetError(&pCompressor->Error, XRT_SNAPPY_ERROR_MEMORY, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow snappy output buffer");
 		xrtFree(pCompressed);
 		pCompressor->Failed = true;
 		return false;
+		}
 	}
 	xrtFree(pCompressed);
 	pCompressor->OutputBytes += (uint64)iGenerated;
@@ -266,6 +293,8 @@ static bool __xrtSnappyFlushBlock(xrtsnappycompressor* pCompressor, size_t iSize
 
 XRT_API bool xrtSnappyCompressorUpdate(xrtsnappycompressor* pCompressor, const void* pData, size_t iSize)
 {
+	const uint8* pInput = (const uint8*)pData;
+	size_t iRemaining = iSize;
 	if ( pCompressor == NULL || pCompressor->Failed ) { return false; }
 	if ( pCompressor->Finished ) {
 		__xrtSnappySetError(&pCompressor->Error, XRT_SNAPPY_ERROR_STATE, 0,
@@ -286,24 +315,29 @@ XRT_API bool xrtSnappyCompressorUpdate(xrtsnappycompressor* pCompressor, const v
 		pCompressor->Failed = true;
 		return false;
 	}
-	if ( iSize != 0u &&
-		!xrtBufferAppend(pCompressor->Pending,
-			(xbytesview){ (const unsigned char*)pData, iSize }) ) {
-		__xrtSnappySetError(&pCompressor->Error, XRT_SNAPPY_ERROR_MEMORY, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow snappy pending buffer");
-		pCompressor->Failed = true;
-		return false;
-	}
-	pCompressor->InputBytes += iSize;
-	while ( xrtBufferView(pCompressor->Pending).Size >= XRT_SNAPPY_BLOCK_SIZE ) {
-		if ( !__xrtSnappyFlushBlock(pCompressor, XRT_SNAPPY_BLOCK_SIZE) ) { return false; }
+	while ( iRemaining != 0u ) {
+		size_t iPending = xrtBufferView(pCompressor->Pending).Size;
+		size_t iTake = XRT_SNAPPY_BLOCK_SIZE - iPending;
+		if ( iTake > iRemaining ) { iTake = iRemaining; }
+		if ( iTake != 0u &&
+			!xrtBufferAppend(pCompressor->Pending, (xbytesview){ pInput, iTake }) ) {
+			__xrtSnappySetError(&pCompressor->Error, XRT_SNAPPY_ERROR_MEMORY, 0,
+				pCompressor->InputBytes, pCompressor->OutputBytes,
+				"cannot grow snappy pending buffer");
+			pCompressor->Failed = true;
+			return false;
+		}
+		pInput += iTake;
+		iRemaining -= iTake;
+		pCompressor->InputBytes += iTake;
+		if ( (iPending + iTake == XRT_SNAPPY_BLOCK_SIZE) &&
+			!__xrtSnappyFlushBlock(pCompressor, XRT_SNAPPY_BLOCK_SIZE) ) { return false; }
 	}
 	return true;
 }
 
 XRT_API bool xrtSnappyCompressorFinish(xrtsnappycompressor* pCompressor)
 {
-	uint8 sEnd[XRT_SNAPPY_HEADER_SIZE] = { 0 };
 	size_t iPending;
 	if ( pCompressor == NULL || pCompressor->Failed ) { return false; }
 	if ( pCompressor->Finished ) { return true; }
@@ -311,21 +345,6 @@ XRT_API bool xrtSnappyCompressorFinish(xrtsnappycompressor* pCompressor)
 	if ( iPending != 0u ) {
 		if ( !__xrtSnappyFlushBlock(pCompressor, iPending) ) { return false; }
 	}
-	if ( __xrtSnappyAddOverLimit(pCompressor->OutputBytes, XRT_SNAPPY_HEADER_SIZE,
-		pCompressor->Options.tLimits.iMaxOutputBytes) ) {
-		__xrtSnappySetError(&pCompressor->Error, XRT_SNAPPY_ERROR_LIMIT, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "snappy output exceeds maxOutput limit");
-		pCompressor->Failed = true;
-		return false;
-	}
-	if ( !xrtBufferAppend(pCompressor->Output,
-		(xbytesview){ (const unsigned char*)sEnd, sizeof(sEnd) }) ) {
-		__xrtSnappySetError(&pCompressor->Error, XRT_SNAPPY_ERROR_MEMORY, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow snappy output buffer");
-		pCompressor->Failed = true;
-		return false;
-	}
-	pCompressor->OutputBytes += XRT_SNAPPY_HEADER_SIZE;
 	pCompressor->Finished = true;
 	return true;
 }
@@ -398,10 +417,11 @@ XRT_API xrtsnappydecompressor* xrtSnappyDecompressorCreate(const xrtsnappyoption
 	if ( pDecompressor == NULL ) { return NULL; }
 	memset(pDecompressor, 0, sizeof(*pDecompressor));
 	xrtSnappyErrorInit(&pDecompressor->Error);
-	if ( pOptions != NULL ) {
-		pDecompressor->Options = *pOptions;
-	} else {
-		xrtSnappyOptionsInit(&pDecompressor->Options);
+	if ( !__xrtSnappyCopyOptions(&pDecompressor->Options, pOptions) ) {
+		__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_ARGUMENT,
+			0, 0, 0, "invalid snappy options");
+		pDecompressor->Failed = true;
+		return pDecompressor;
 	}
 	pDecompressor->Carry = __xrtSnappyBufferCreate(XRT_SNAPPY_CHUNK);
 	pDecompressor->Output = __xrtSnappyBufferCreate(XRT_SNAPPY_CHUNK);
@@ -411,7 +431,6 @@ XRT_API xrtsnappydecompressor* xrtSnappyDecompressorCreate(const xrtsnappyoption
 		pDecompressor->Failed = true;
 		return pDecompressor;
 	}
-	pDecompressor->State = XRT_SNAPPY_DEC_HEADER;
 	return pDecompressor;
 }
 
@@ -423,44 +442,89 @@ static bool __xrtSnappyDecompressConsume(xrtsnappydecompressor* pDecompressor, s
 	const uint8* pBuf = (const uint8*)Carry.Data;
 	size_t iLen = Carry.Size;
 	while ( iPos < iLen ) {
-		if ( pDecompressor->State == XRT_SNAPPY_DEC_HEADER ) {
-			uint32 iDeclared;
-			uint32 iCompressed;
+		const uint8* pChunk;
+		if ( !pDecompressor->HaveChunkHeader ) {
 			if ( iLen - iPos < XRT_SNAPPY_HEADER_SIZE ) { break; }
-			iDeclared = __xrtSnappyReadU32LE(pBuf + iPos);
-			iCompressed = __xrtSnappyReadU32LE(pBuf + iPos + 4u);
+			pDecompressor->ChunkType = pBuf[iPos];
+			pDecompressor->ChunkLength = (size_t)pBuf[iPos + 1u] |
+				((size_t)pBuf[iPos + 2u] << 8) |
+				((size_t)pBuf[iPos + 3u] << 16);
 			iPos += XRT_SNAPPY_HEADER_SIZE;
-			if ( iDeclared == 0u ) {
-				pDecompressor->MemberEnded = true;
-				pDecompressor->MemberCount += 1u;
-				continue;   /* 可能紧跟下一个成员 */
-			}
-			pDecompressor->MemberEnded = false;
-			pDecompressor->BlockDeclared = (size_t)iDeclared;
-			pDecompressor->BlockCompressed = (size_t)iCompressed;
-			pDecompressor->BlockCrc = __xrtSnappyReadU32LE(pBuf + iPos - 4u);
-			pDecompressor->State = XRT_SNAPPY_DEC_BLOCK;
-		} else {
-			size_t iWritten;
-			ptr pPlain;
-			int iResult;
-			if ( pDecompressor->BlockCompressed == 0u ) {
+			pDecompressor->HaveChunkHeader = true;
+			if ( (pDecompressor->MemberCount == 0u && pDecompressor->ChunkType != 0xffu) ||
+				(pDecompressor->ChunkType == 0xffu && pDecompressor->ChunkLength != 6u) ||
+				(pDecompressor->ChunkType >= 0x02u && pDecompressor->ChunkType <= 0x7fu) ||
+				(pDecompressor->ChunkType <= 0x01u &&
+				 (pDecompressor->ChunkLength < 5u ||
+				  (pDecompressor->ChunkType == 0x01u &&
+				   pDecompressor->ChunkLength > XRT_SNAPPY_BLOCK_SIZE + 4u))) ) {
 				__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_DATA, 0,
 					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"snappy block declares invalid compressed size");
+					"invalid snappy framed chunk");
 				pDecompressor->Failed = true;
 				*pConsumed = iPos;
 				return false;
 			}
-			if ( iLen - iPos < pDecompressor->BlockCompressed ) { break; }
+		}
+		/* 可跳过 chunk 不需要保留主体，跨 Update 逐段丢弃即可。 */
+		if ( pDecompressor->ChunkType >= 0x80u &&
+			pDecompressor->ChunkType <= 0xfeu ) {
+			size_t iSkip = iLen - iPos;
+			if ( iSkip > pDecompressor->ChunkLength ) {
+				iSkip = pDecompressor->ChunkLength;
+			}
+			iPos += iSkip;
+			pDecompressor->ChunkLength -= iSkip;
+			if ( pDecompressor->ChunkLength != 0u ) { break; }
+			pDecompressor->HaveChunkHeader = false;
+			continue;
+		}
+		if ( iLen - iPos < pDecompressor->ChunkLength ) { break; }
+		pChunk = pBuf + iPos;
+		if ( pDecompressor->ChunkType == 0xffu ) {
+			if ( memcmp(pChunk, __xrtSnappyStreamId + 4u, 6u) != 0 ) {
+				__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_DATA, 0,
+					pDecompressor->InputBytes, pDecompressor->OutputBytes,
+					"invalid snappy stream identifier");
+				pDecompressor->Failed = true;
+				*pConsumed = iPos;
+				return false;
+			}
+			if ( pDecompressor->MemberCount == UINT64_MAX ||
+				(pDecompressor->Options.tLimits.iMaxEntries != 0u &&
+				 pDecompressor->MemberCount >=
+				 pDecompressor->Options.tLimits.iMaxEntries) ) {
+				__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_LIMIT, 0,
+					pDecompressor->InputBytes, pDecompressor->OutputBytes,
+					"snappy stream count exceeds maxEntries limit");
+				pDecompressor->Failed = true;
+				*pConsumed = iPos;
+				return false;
+			}
+			pDecompressor->MemberCount += 1u;
+		} else if ( pDecompressor->ChunkType <= 0x01u ) {
+			size_t iDeclared = pDecompressor->ChunkLength - 4u;
+			size_t iWritten = 0u;
+			const uint8* pPlain = pChunk + 4u;
+			ptr pAllocated = NULL;
+			int iResult = XS_CODEC_OK;
+			if ( pDecompressor->ChunkType == 0x00u ) {
+				iResult = xsCodecUncompressedLength(pChunk + 4u, iDeclared, &iDeclared);
+			}
+			if ( iResult != XS_CODEC_OK || iDeclared == 0u || iDeclared > XRT_SNAPPY_BLOCK_SIZE ) {
+				__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_DATA, iResult,
+					pDecompressor->InputBytes, pDecompressor->OutputBytes,
+					"invalid snappy data chunk size");
+				pDecompressor->Failed = true;
+				*pConsumed = iPos;
+				return false;
+			}
 			if ( ((pDecompressor->Options.tLimits.iMaxItemBytes != 0u) &&
-				  (pDecompressor->BlockDeclared > pDecompressor->Options.tLimits.iMaxItemBytes)) ||
-				 __xrtSnappyAddOverLimit(pDecompressor->OutputBytes,
-					pDecompressor->BlockDeclared,
+				  (iDeclared > pDecompressor->Options.tLimits.iMaxItemBytes)) ||
+				 __xrtSnappyAddOverLimit(pDecompressor->OutputBytes, iDeclared,
 					pDecompressor->Options.tLimits.iMaxOutputBytes) ||
 				 __xrtSnappyOverRatio(&pDecompressor->Options.tLimits,
-					pDecompressor->InputBytes,
-					pDecompressor->OutputBytes + (uint64)pDecompressor->BlockDeclared) ) {
+					pDecompressor->InputBytes, pDecompressor->OutputBytes + (uint64)iDeclared) ) {
 				__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_LIMIT, 0,
 					pDecompressor->InputBytes, pDecompressor->OutputBytes,
 					"snappy output exceeds decompression limit");
@@ -468,49 +532,45 @@ static bool __xrtSnappyDecompressConsume(xrtsnappydecompressor* pDecompressor, s
 				*pConsumed = iPos;
 				return false;
 			}
-			pPlain = xrtMalloc(pDecompressor->BlockDeclared);
-			if ( pPlain == NULL ) {
-				__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_MEMORY, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes, "out of memory");
-				pDecompressor->Failed = true;
-				*pConsumed = iPos;
-				return false;
+			if ( pDecompressor->ChunkType == 0x00u ) {
+				pAllocated = xrtMalloc(iDeclared);
+				if ( pAllocated == NULL ) {
+					__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_MEMORY, 0,
+						pDecompressor->InputBytes, pDecompressor->OutputBytes, "out of memory");
+					pDecompressor->Failed = true;
+					*pConsumed = iPos;
+					return false;
+				}
+				iResult = xsCodecDecompress(pChunk + 4u, pDecompressor->ChunkLength - 4u,
+					(unsigned char*)pAllocated, iDeclared, &iWritten);
+				pPlain = (const uint8*)pAllocated;
+			} else {
+				iWritten = iDeclared;
 			}
-			iResult = xsCodecDecompress(pBuf + iPos, pDecompressor->BlockCompressed,
-				(unsigned char*)pPlain, pDecompressor->BlockDeclared, &iWritten);
-			if ( iResult != XRT_SNAPPY_OK || iWritten != pDecompressor->BlockDeclared ) {
+			if ( iResult != XS_CODEC_OK || iWritten != iDeclared ||
+				__xrtSnappyMaskedCrc32c(pPlain, iWritten) != __xrtSnappyReadU32LE(pChunk) ) {
 				__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_DATA, iResult,
 					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"snappy decompression failed");
-				xrtFree(pPlain);
+					"snappy data chunk or checksum is invalid");
+				xrtFree(pAllocated);
 				pDecompressor->Failed = true;
 				*pConsumed = iPos;
 				return false;
 			}
-			iPos += pDecompressor->BlockCompressed;
-			if ( __xrtSnappyCrc32(pPlain, iWritten) != pDecompressor->BlockCrc ) {
-				__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_DATA, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"snappy block checksum mismatch");
-				xrtFree(pPlain);
-				pDecompressor->Failed = true;
-				*pConsumed = iPos;
-				return false;
-			}
-			if ( !xrtBufferAppend(pDecompressor->Output,
-				(xbytesview){ (const unsigned char*)pPlain, iWritten }) ) {
+			if ( !xrtBufferAppend(pDecompressor->Output, (xbytesview){ pPlain, iWritten }) ) {
 				__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_MEMORY, 0,
 					pDecompressor->InputBytes, pDecompressor->OutputBytes,
 					"cannot grow snappy output buffer");
-				xrtFree(pPlain);
+				xrtFree(pAllocated);
 				pDecompressor->Failed = true;
 				*pConsumed = iPos;
 				return false;
 			}
-			xrtFree(pPlain);
+			xrtFree(pAllocated);
 			pDecompressor->OutputBytes += (uint64)iWritten;
-			pDecompressor->State = XRT_SNAPPY_DEC_HEADER;
 		}
+		iPos += pDecompressor->ChunkLength;
+		pDecompressor->HaveChunkHeader = false;
 	}
 	*pConsumed = iPos;
 	return true;
@@ -518,8 +578,16 @@ static bool __xrtSnappyDecompressConsume(xrtsnappydecompressor* pDecompressor, s
 
 XRT_API bool xrtSnappyDecompressorUpdate(xrtsnappydecompressor* pDecompressor, const void* pData, size_t iSize)
 {
-	size_t iConsumed = 0u;
+	const uint8* pInput = (const uint8*)pData;
+	size_t iRemaining = iSize;
 	if ( pDecompressor == NULL || pDecompressor->Failed ) { return false; }
+	if ( pDecompressor->Finished ) {
+		__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_STATE, 0,
+			pDecompressor->InputBytes, pDecompressor->OutputBytes,
+			"snappy decompressor already finished");
+		pDecompressor->Failed = true;
+		return false;
+	}
 	if ( iSize != 0u && pData == NULL ) {
 		__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_ARGUMENT, 0,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "invalid snappy input");
@@ -533,22 +601,29 @@ XRT_API bool xrtSnappyDecompressorUpdate(xrtsnappydecompressor* pDecompressor, c
 		pDecompressor->Failed = true;
 		return false;
 	}
-	if ( iSize != 0u &&
-		!xrtBufferAppend(pDecompressor->Carry,
-			(xbytesview){ (const unsigned char*)pData, iSize }) ) {
-		__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_MEMORY, 0,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot grow snappy input buffer");
-		pDecompressor->Failed = true;
-		return false;
-	}
-	pDecompressor->InputBytes += iSize;
-	if ( !__xrtSnappyDecompressConsume(pDecompressor, &iConsumed) ) { return false; }
-	if ( (iConsumed != 0u) &&
-		 !xrtBufferRemove(pDecompressor->Carry, 0u, iConsumed) ) {
-		__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_STATE, 0,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot consume snappy input buffer");
-		pDecompressor->Failed = true;
-		return false;
+	while ( iRemaining != 0u ) {
+		size_t iTake = iRemaining < XRT_SNAPPY_CHUNK ? iRemaining : XRT_SNAPPY_CHUNK;
+		size_t iConsumed = 0u;
+		if ( !xrtBufferAppend(pDecompressor->Carry,
+				(xbytesview){ pInput, iTake }) ) {
+			__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_MEMORY, 0,
+				pDecompressor->InputBytes, pDecompressor->OutputBytes,
+				"cannot grow snappy input buffer");
+			pDecompressor->Failed = true;
+			return false;
+		}
+		pInput += iTake;
+		iRemaining -= iTake;
+		pDecompressor->InputBytes += iTake;
+		if ( !__xrtSnappyDecompressConsume(pDecompressor, &iConsumed) ) { return false; }
+		if ( iConsumed != 0u &&
+			!xrtBufferRemove(pDecompressor->Carry, 0u, iConsumed) ) {
+			__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_STATE, 0,
+				pDecompressor->InputBytes, pDecompressor->OutputBytes,
+				"cannot consume snappy input buffer");
+			pDecompressor->Failed = true;
+			return false;
+		}
 	}
 	return true;
 }
@@ -557,8 +632,7 @@ XRT_API bool xrtSnappyDecompressorFinish(xrtsnappydecompressor* pDecompressor)
 {
 	if ( pDecompressor == NULL || pDecompressor->Failed ) { return false; }
 	if ( pDecompressor->Finished ) { return true; }
-	if ( (pDecompressor->MemberCount == 0u) || !pDecompressor->MemberEnded ||
-		(pDecompressor->State != XRT_SNAPPY_DEC_HEADER) ||
+	if ( (pDecompressor->MemberCount == 0u) || pDecompressor->HaveChunkHeader ||
 		(xrtBufferView(pDecompressor->Carry).Size != 0u) ) {
 		__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_TRUNCATED, 0,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "snappy stream is truncated or empty");
@@ -615,7 +689,7 @@ XRT_API uint64 xrtSnappyDecompressorOutputBytes(const xrtsnappydecompressor* pDe
 
 XRT_API bool xrtSnappyDecompressorFinished(const xrtsnappydecompressor* pDecompressor)
 {
-	return pDecompressor != NULL && pDecompressor->MemberEnded;
+	return pDecompressor != NULL && pDecompressor->Finished;
 }
 
 XRT_API uint64 xrtSnappyDecompressorMembers(const xrtsnappydecompressor* pDecompressor)
@@ -652,7 +726,11 @@ XRT_API bool xrtSnappyCompress(const void* pData, size_t iSize, const xrtsnappyo
 		__xrtSnappySetError(pError, XRT_SNAPPY_ERROR_ARGUMENT, 0, 0, 0, "invalid snappy input");
 		return false;
 	}
-	if ( pOptions != NULL ) { tOptions = *pOptions; } else { xrtSnappyOptionsInit(&tOptions); }
+	if ( !__xrtSnappyCopyOptions(&tOptions, pOptions) ) {
+		__xrtSnappySetError(pError, XRT_SNAPPY_ERROR_ARGUMENT,
+			0, 0, 0, "invalid snappy options");
+		return false;
+	}
 	pCompressor = xrtSnappyCompressorCreate(&tOptions);
 	if ( pCompressor == NULL ) {
 		__xrtSnappySetError(pError, XRT_SNAPPY_ERROR_MEMORY, 0, iSize, 0, "cannot allocate snappy compressor");
@@ -678,7 +756,11 @@ XRT_API bool xrtSnappyDecompress(const void* pData, size_t iSize, const xrtsnapp
 		__xrtSnappySetError(pError, XRT_SNAPPY_ERROR_ARGUMENT, 0, 0, 0, "invalid snappy input");
 		return false;
 	}
-	if ( pOptions != NULL ) { tOptions = *pOptions; } else { xrtSnappyOptionsInit(&tOptions); }
+	if ( !__xrtSnappyCopyOptions(&tOptions, pOptions) ) {
+		__xrtSnappySetError(pError, XRT_SNAPPY_ERROR_ARGUMENT,
+			0, 0, 0, "invalid snappy options");
+		return false;
+	}
 	pDecompressor = xrtSnappyDecompressorCreate(&tOptions);
 	if ( pDecompressor == NULL ) {
 		__xrtSnappySetError(pError, XRT_SNAPPY_ERROR_MEMORY, 0, iSize, 0, "cannot allocate snappy decompressor");
@@ -696,6 +778,20 @@ XRT_API bool xrtSnappyDecompress(const void* pData, size_t iSize, const xrtsnapp
 
 // ------------------------------------ 文件流接口 ------------------------------------
 
+/* 进度总量只包含本次读取的剩余字节，不包含 Reader 已跳过的前缀。 */
+static bool __xrtSnappyReaderRemaining(xreader* pReader, uint64* pRemaining)
+{
+	uint64 iSize = 0u;
+	uint64 iPosition = 0u;
+	if ( xrtReaderSize(pReader, &iSize) &&
+		xrtReaderTell(pReader, &iPosition) && iPosition <= iSize ) {
+		*pRemaining = iSize - iPosition;
+		return true;
+	}
+	xrtClearError();
+	return false;
+}
+
 XRT_API bool xrtSnappyCompressStream(xreader* pReader, xwriter* pWriter, const xrtsnappyoptions* pOptions,
 	xrtprogressproc pProgress, ptr pUserData, xrtsnappyerror* pError)
 {
@@ -709,10 +805,18 @@ XRT_API bool xrtSnappyCompressStream(xreader* pReader, xwriter* pWriter, const x
 		__xrtSnappySetError(pError, XRT_SNAPPY_ERROR_ARGUMENT, 0, 0, 0, "invalid snappy stream");
 		return false;
 	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iTotal);
-	if ( !bTotalKnown ) { xrtClearError(); }
+	bTotalKnown = __xrtSnappyReaderRemaining(pReader, &iTotal);
 	pCompressor = xrtSnappyCompressorCreate(pOptions);
-	if ( pCompressor == NULL ) { return false; }
+	if ( pCompressor == NULL ) {
+		__xrtSnappySetError(pError, XRT_SNAPPY_ERROR_MEMORY,
+			0, 0, 0, "cannot allocate snappy compressor");
+		return false;
+	}
+	if ( pCompressor->Failed ) {
+		__xrtSnappyCopyError(pError, &pCompressor->Error);
+		xrtSnappyCompressorDestroy(pCompressor);
+		return false;
+	}
 	while ( bRet ) {
 		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
@@ -758,10 +862,18 @@ XRT_API bool xrtSnappyDecompressStream(xreader* pReader, xwriter* pWriter, const
 		__xrtSnappySetError(pError, XRT_SNAPPY_ERROR_ARGUMENT, 0, 0, 0, "invalid snappy stream");
 		return false;
 	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iTotal);
-	if ( !bTotalKnown ) { xrtClearError(); }
+	bTotalKnown = __xrtSnappyReaderRemaining(pReader, &iTotal);
 	pDecompressor = xrtSnappyDecompressorCreate(pOptions);
-	if ( pDecompressor == NULL ) { return false; }
+	if ( pDecompressor == NULL ) {
+		__xrtSnappySetError(pError, XRT_SNAPPY_ERROR_MEMORY,
+			0, 0, 0, "cannot allocate snappy decompressor");
+		return false;
+	}
+	if ( pDecompressor->Failed ) {
+		__xrtSnappyCopyError(pError, &pDecompressor->Error);
+		xrtSnappyDecompressorDestroy(pDecompressor);
+		return false;
+	}
 	while ( bRet ) {
 		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
