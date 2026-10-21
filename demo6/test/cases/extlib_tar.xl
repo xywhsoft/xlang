@@ -29,8 +29,8 @@ func main(...) as int
     try
         auto unsafe = tar.create()
         unsafe.add("../escape.txt", "bad")
-    catch ArchiveError e
-        rejected = true
+    catch IOError e
+        rejected = string.contains(e.message, "unsafe TAR entry path")
     end
     if not rejected then
         return 6
