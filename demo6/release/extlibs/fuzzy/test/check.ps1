@@ -5,12 +5,20 @@ $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
-$aot = Join-Path $root ("build/test/fuzzy_core_$([guid]::NewGuid().ToString('N')).exe")
+$workRoot = Join-Path $root 'build/test'
+$work = Join-Path $workRoot ("fuzzy_guard_$([guid]::NewGuid().ToString('N'))")
 
 function Run([string]$label, [string]$program, [string[]]$arguments) {
-    $output = @(& $program @arguments 2>&1 | ForEach-Object { $_.ToString() })
-    if ($LASTEXITCODE -ne 0) {
-        throw "${label}: exit $LASTEXITCODE`n$($output -join "`n")"
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = @(& $program @arguments 2>&1 | ForEach-Object { $_.ToString() })
+        $code = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previous
+    }
+    if ($code -ne 0) {
+        throw "${label}: exit $code`n$($output -join "`n")"
     }
     Write-Host "[fuzzy] ${label}: PASS"
     return ($output -join "`n").Replace("`r", '').TrimEnd("`n")
@@ -44,14 +52,30 @@ try {
     }
     Write-Host '[fuzzy] C/XLang example parity: PASS'
     if (-not $SkipAot) {
-        [IO.Directory]::CreateDirectory((Split-Path -Parent $aot)) | Out-Null
+        [IO.Directory]::CreateDirectory($work) | Out-Null
+        $aot = Join-Path $work 'core.exe'
         $null = Run 'core AOT build' $xl @('build',
             'test/cases/extlib_fuzzy.xl', '-o', $aot)
-        $null = Run 'core AOT' $aot @()
+        if ((Run 'core AOT' $aot @()) -cne '') {
+            throw '[fuzzy] core AOT produced unexpected output'
+        }
+        $example = Join-Path $work 'example.exe'
+        $null = Run 'example AOT build' $xl @('build',
+            'release/examples/extlibs/fuzzy.xl', '-o', $example)
+        if ((Run 'example AOT' $example @()) -cne $cOutput) {
+            throw '[fuzzy] example AOT and C output differs'
+        }
+        Write-Host '[fuzzy] AOT/C example parity: PASS'
     }
 } finally {
     Pop-Location
-    if (Test-Path -LiteralPath $aot -PathType Leaf) {
-        Remove-Item -LiteralPath $aot -Force
+    $resolvedRoot = [IO.Path]::GetFullPath($workRoot).TrimEnd('\') + '\'
+    $resolvedWork = [IO.Path]::GetFullPath($work)
+    if (-not $resolvedWork.StartsWith($resolvedRoot, [StringComparison]::OrdinalIgnoreCase) -or
+        -not [IO.Path]::GetFileName($resolvedWork).StartsWith('fuzzy_guard_')) {
+        throw "Fuzzy test directory escapes build/test: $resolvedWork"
+    }
+    if (Test-Path -LiteralPath $resolvedWork -PathType Container) {
+        Remove-Item -LiteralPath $resolvedWork -Recurse -Force
     }
 }
