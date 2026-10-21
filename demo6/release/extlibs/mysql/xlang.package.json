@@ -8,5 +8,5 @@
     "links": [],
     "loadlibs": [],
     "native": { "singleton": false, "loadName": "", "version": "" },
-    "artifact": { "kind": "source", "cSources": ["mysql_native.c"], "xlSources": ["src/mysql.xl"] }
+    "artifact": { "kind": "source", "cSources": ["mysql_native.c"], "xlSources": ["src/mysql.xl"], "xrtModules": ["XRT_MODULE_TEMP_MEMORY"] }
 }

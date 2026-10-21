@@ -1,36 +1,30 @@
 /* mysql_native.c - MySQL wire protocol helpers */
+#define XRT_MODULE_TEMP_MEMORY
+#include "xrt.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
+#include "include/mysql_native.h"
 
-static char str_buf[4096];
-
-/* MySQL command name */
+/* 经典协议命令编号；名称查询不代表服务器仍接受已废弃命令。 */
 const char* xmysql_cmd_name(long long cmd) {
-    switch (cmd) {
-        case 0x01: return "COM_QUIT";
-        case 0x02: return "COM_INIT_DB";
-        case 0x03: return "COM_QUERY";
-        case 0x05: return "COM_CREATE_DB";
-        case 0x06: return "COM_DROP_DB";
-        case 0x07: return "COM_REFRESH";
-        case 0x08: return "COM_STATISTICS";
-        case 0x09: return "COM_PROCESS_INFO";
-        case 0x0B: return "COM_PROCESS_KILL";
-        case 0x0E: return "COM_PING";
-        case 0x10: return "COM_CHANGE_USER";
-        case 0x11: return "COM_RESET_CONNECTION";
-        case 0x16: return "COM_STMT_PREPARE";
-        case 0x17: return "COM_STMT_EXECUTE";
-        case 0x19: return "COM_STMT_CLOSE";
-        case 0x1F: return "COM_SET_OPTION";
-        default: return "UNKNOWN";
-    }
+    static const char* const names[] = {
+        "COM_SLEEP", "COM_QUIT", "COM_INIT_DB", "COM_QUERY", "COM_FIELD_LIST",
+        "COM_CREATE_DB", "COM_DROP_DB", "COM_REFRESH", "COM_SHUTDOWN",
+        "COM_STATISTICS", "COM_PROCESS_INFO", "COM_CONNECT", "COM_PROCESS_KILL",
+        "COM_DEBUG", "COM_PING", "COM_TIME", "COM_DELAYED_INSERT", "COM_CHANGE_USER",
+        "COM_BINLOG_DUMP", "COM_TABLE_DUMP", "COM_CONNECT_OUT", "COM_REGISTER_SLAVE",
+        "COM_STMT_PREPARE", "COM_STMT_EXECUTE", "COM_STMT_SEND_LONG_DATA",
+        "COM_STMT_CLOSE", "COM_STMT_RESET", "COM_SET_OPTION", "COM_STMT_FETCH",
+        "COM_DAEMON", "COM_BINLOG_DUMP_GTID", "COM_RESET_CONNECTION"
+    };
+    xrtClearError();
+    return cmd >= 0 && cmd < (long long)(sizeof(names) / sizeof(names[0])) ? names[cmd] : "UNKNOWN";
 }
 
 /* MySQL column type name */
 const char* xmysql_col_type(long long type) {
+    xrtClearError();
     switch (type) {
         case 0x00: return "DECIMAL";
         case 0x01: return "TINY";
@@ -65,21 +59,37 @@ const char* xmysql_col_type(long long type) {
 
 /* MySQL server status flag decode */
 const char* xmysql_status_str(long long status) {
-    static char sbuf[64];
-    int pos = 0;
-    if (status & 0x0001) pos += sprintf(sbuf + pos, "IN_TRANS ");
-    if (status & 0x0002) pos += sprintf(sbuf + pos, "AUTOCOMMIT ");
-    if (status & 0x0008) pos += sprintf(sbuf + pos, "MORE_RESULTS ");
-    if (status & 0x0010) pos += sprintf(sbuf + pos, "NO_GOOD_INDEX ");
-    if (status & 0x0020) pos += sprintf(sbuf + pos, "NO_INDEX ");
-    if (status & 0x0040) pos += sprintf(sbuf + pos, "CURSOR_EXISTS ");
-    if (status & 0x0100) pos += sprintf(sbuf + pos, "SESSION_STATE_CHANGED ");
-    if (pos > 0) sbuf[pos - 1] = '\0'; else sbuf[0] = '\0';
-    return sbuf;
+    static const struct { unsigned mask; const char* name; } flags[] = {
+        {0x0001, "IN_TRANS"}, {0x0002, "AUTOCOMMIT"}, {0x0008, "MORE_RESULTS"},
+        {0x0010, "NO_GOOD_INDEX"}, {0x0020, "NO_INDEX"}, {0x0040, "CURSOR_EXISTS"},
+        {0x0080, "LAST_ROW_SENT"}, {0x0100, "DB_DROPPED"},
+        {0x0200, "NO_BACKSLASH_ESCAPES"}, {0x0400, "METADATA_CHANGED"},
+        {0x0800, "QUERY_WAS_SLOW"}, {0x1000, "PS_OUT_PARAMS"},
+        {0x2000, "IN_TRANS_READONLY"}, {0x4000, "SESSION_STATE_CHANGED"}
+    };
+    size_t i, size = 1, pos = 0;
+    char* text;
+    xrtClearError();
+    /* 从同一张表计算上界，后续增加标志也不会越界；返回区交给 XRT 管理。 */
+    for (i = 0; i < sizeof(flags) / sizeof(flags[0]); ++i)
+        if (status & flags[i].mask) size += strlen(flags[i].name) + 1;
+    text = xrtTemp(size);
+    if (text == NULL) return NULL;
+    for (i = 0; i < sizeof(flags) / sizeof(flags[0]); ++i) {
+        if (status & flags[i].mask) {
+            size_t length = strlen(flags[i].name);
+            if (pos != 0) text[pos++] = ' ';
+            memcpy(text + pos, flags[i].name, length);
+            pos += length;
+        }
+    }
+    text[pos] = '\0';
+    return text;
 }
 
 /* MySQL capability flag name */
 const char* xmysql_cap_name(long long cap) {
+    xrtClearError();
     switch (cap) {
         case 0x0001: return "LONG_PASSWORD";
         case 0x0002: return "FOUND_ROWS";
@@ -94,72 +104,120 @@ const char* xmysql_cap_name(long long cap) {
     }
 }
 
-/* Escape MySQL string */
-const char* xmysql_escape(const char *input) {
-    int pos = 0;
-    for (const char *p = input; *p && pos < 4080; p++) {
+// ----------------------------- 临时文本与参数边界 -----------------------------
+
+static const char* mysql_argument(const char* message) {
+    xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.mysql", 1, message);
+    return NULL;
+}
+
+/* 仅实现反斜杠字符串字面量转义，不代替数据库驱动的参数绑定。 */
+const char* xmysql_escape(const char* input) {
+    const char* p;
+    char* text;
+    size_t length, pos = 0;
+    xrtClearError();
+    if (input == NULL) return mysql_argument("mysql escape input is required");
+    length = strlen(input);
+    if (length > (SIZE_MAX - 1) / 2) {
+        xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.mysql", 2, "mysql escaped text is too large");
+        return NULL;
+    }
+    text = xrtTemp(length * 2 + 1);
+    if (text == NULL) return NULL;
+    for (p = input; *p; ++p) {
+        char escaped = 0;
         switch (*p) {
-            case '\'': str_buf[pos++] = '\\'; str_buf[pos++] = '\''; break;
-            case '"': str_buf[pos++] = '\\'; str_buf[pos++] = '"'; break;
-            case '\\': str_buf[pos++] = '\\'; str_buf[pos++] = '\\'; break;
-            case '\0': str_buf[pos++] = '\\'; str_buf[pos++] = '0'; break;
-            case '\n': str_buf[pos++] = '\\'; str_buf[pos++] = 'n'; break;
-            case '\r': str_buf[pos++] = '\\'; str_buf[pos++] = 'r'; break;
-            case '\x1a': str_buf[pos++] = '\\'; str_buf[pos++] = 'Z'; break;
-            default: str_buf[pos++] = *p; break;
+        case '\'': case '"': case '\\': escaped = *p; break;
+        case '\n': escaped = 'n'; break;
+        case '\r': escaped = 'r'; break;
+        case '\x1a': escaped = 'Z'; break;
+        default: break;
         }
+        if (escaped) { text[pos++] = '\\'; text[pos++] = escaped; }
+        else text[pos++] = *p;
     }
-    str_buf[pos] = '\0';
-    return str_buf;
+    text[pos] = 0;
+    return text;
 }
 
-/* Format MySQL DSN */
-const char* xmysql_format_dsn(const char *host, int port, const char *dbname, const char *user) {
-    snprintf(str_buf, sizeof(str_buf), "mysql://%s@%s:%d/%s", user, host, port, dbname);
-    return str_buf;
+/* DSN 辅助格式不承载密码/查询参数，拒绝会改变结构的分隔符。 */
+static bool mysql_component(const char* text, const char* forbidden) {
+    const unsigned char* p = (const unsigned char*)text;
+    if (p == NULL) return false;
+    for (; *p; ++p) if (*p <= 32 || *p == 127 || strchr(forbidden, *p)) return false;
+    return true;
 }
 
-/* Parse MySQL DSN: mysql://user@host:port/db - extract component */
-const char* xmysql_dsn_part(const char *dsn, const char *part) {
-    /* Simple parser for mysql://user@host:port/db */
-    const char *p = dsn;
-    if (strncmp(p, "mysql://", 8) == 0) p += 8;
-    static char buf[512];
-    if (strcmp(part, "user") == 0) {
-        int i = 0;
-        while (*p && *p != '@' && i < 510) buf[i++] = *p++;
-        buf[i] = '\0'; return buf;
+const char* xmysql_format_dsn(const char* host, int port, const char* dbname, const char* user) {
+    int size;
+    char* text;
+    bool ipv6;
+    xrtClearError();
+    if (!mysql_component(host, "/@?#[]") || !host[0] ||
+        !mysql_component(dbname, "/@?#") || !mysql_component(user, "/@:#?") ||
+        port < 1 || port > 65535)
+        return mysql_argument("invalid mysql DSN component or port");
+    ipv6 = strchr(host, ':') != NULL;
+    size = snprintf(NULL, 0, "mysql://%s@%s%s%s:%d/%s",
+        user, ipv6 ? "[" : "", host, ipv6 ? "]" : "", port, dbname);
+    if (size < 0) {
+        xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.mysql", 2, "mysql DSN is too large");
+        return NULL;
     }
-    /* skip user@ */
-    while (*p && *p != '@') p++;
-    if (*p == '@') p++;
-    if (strcmp(part, "host") == 0) {
-        int i = 0;
-        while (*p && *p != ':' && *p != '/' && i < 510) buf[i++] = *p++;
-        buf[i] = '\0'; return buf;
-    }
-    if (strcmp(part, "port") == 0) {
-        while (*p && *p != ':') p++;
-        if (*p == ':') p++;
-        int i = 0;
-        while (*p && *p != '/' && i < 510) buf[i++] = *p++;
-        buf[i] = '\0'; return buf;
-    }
-    if (strcmp(part, "db") == 0) {
-        while (*p && *p != '/') p++;
-        if (*p == '/') p++;
-        int i = 0;
-        while (*p && i < 510) buf[i++] = *p++;
-        buf[i] = '\0'; return buf;
-    }
-    return "";
+    text = xrtTemp((size_t)size + 1);
+    if (text != NULL) snprintf(text, (size_t)size + 1, "mysql://%s@%s%s%s:%d/%s",
+        user, ipv6 ? "[" : "", host, ipv6 ? "]" : "", port, dbname);
+    return text;
 }
 
-/* MySQL error code category */
+const char* xmysql_dsn_part(const char* dsn, const char* part) {
+    const char *user, *at, *host, *endHost, *port, *slash, *begin, *end, *p;
+    unsigned number = 0;
+    xrtClearError();
+    if (dsn == NULL || part == NULL || strncmp(dsn, "mysql://", 8) != 0)
+        return mysql_argument("mysql DSN must start with mysql://");
+    user = dsn + 8;
+    at = strchr(user, '@');
+    if (at == NULL) return mysql_argument("mysql DSN user separator is missing");
+    for (p = user; p < at; ++p)
+        if ((unsigned char)*p <= 32 || *p == 127 || strchr("/:#?", *p)) return mysql_argument("invalid mysql DSN user");
+    host = at + 1;
+    if (*host == '[') {
+        ++host;
+        endHost = strchr(host, ']');
+        if (endHost == NULL || endHost[1] != ':') return mysql_argument("invalid mysql DSN host");
+        port = endHost + 2;
+    } else {
+        endHost = strchr(host, ':');
+        if (endHost == NULL) return mysql_argument("mysql DSN port is missing");
+        port = endHost + 1;
+    }
+    if (host == endHost) return mysql_argument("mysql DSN host is empty");
+    for (p = host; p < endHost; ++p)
+        if ((unsigned char)*p <= 32 || *p == 127 || strchr("/@?#[]", *p)) return mysql_argument("invalid mysql DSN host");
+    slash = strchr(port, '/');
+    if (slash == NULL || slash == port || !mysql_component(slash + 1, "/@?#"))
+        return mysql_argument("invalid mysql DSN database or port");
+    for (p = port; p < slash; ++p) {
+        if (*p < '0' || *p > '9' || number > 6553)
+            return mysql_argument("invalid mysql DSN port");
+        number = number * 10 + (unsigned)(*p - '0');
+    }
+    if (number < 1 || number > 65535) return mysql_argument("invalid mysql DSN port");
+    if (strcmp(part, "user") == 0) { begin = user; end = at; }
+    else if (strcmp(part, "host") == 0) { begin = host; end = endHost; }
+    else if (strcmp(part, "port") == 0) { begin = port; end = slash; }
+    else if (strcmp(part, "db") == 0) { begin = slash + 1; end = begin + strlen(begin); }
+    else return mysql_argument("unknown mysql DSN component");
+    return xrtTempStr(xrtTempCurrent(), (xstrview){begin, (size_t)(end - begin)});
+}
+
+/* 按经典公开范围分类，不声称范围内每一个编号都已定义。 */
 const char* xmysql_error_class(long long code) {
-    if (code >= 1000 && code < 2000) return "client";
-    if (code >= 2000 && code < 3000) return "server";
-    if (code >= 3000 && code < 4000) return "extended";
-    if (code >= 4000 && code < 5000) return "plugin";
+    xrtClearError();
+    if (code > 0 && code < 1000) return "global";
+    if (code >= 2000 && code < 3000) return "client";
+    if ((code >= 1000 && code < 2000) || (code >= 3000 && code < 5000)) return "server";
     return "unknown";
 }

@@ -3,7 +3,7 @@ extern "xmysql_col_type" func __col_type(int type) as string
 extern "xmysql_status_str" func __status_str(int status) as string
 extern "xmysql_cap_name" func __cap_name(int cap) as string
 extern "xmysql_escape" func __escape(string input) as string
-extern "xmysql_format_dsn" func __format_dsn(string host, int port, string dbname, string user) as string
+extern "xmysql_format_dsn" func __format_dsn(string host, c_int port, string dbname, string user) as string
 extern "xmysql_dsn_part" func __dsn_part(string dsn, string part) as string
 extern "xmysql_error_class" func __error_class(int code) as string
 
@@ -28,7 +28,10 @@ export func escape(string input) as string
 end
 
 export func formatDsn(string host, int port, string dbname, string user) as string
-    return __format_dsn(host, port, dbname, user)
+    if port < 1 or port > 65535 then
+        throw ValueError "mysql port must be in 1..65535"
+    end
+    return __format_dsn(host, c_int(port), dbname, user)
 end
 
 export func dsnPart(string dsn, string part) as string

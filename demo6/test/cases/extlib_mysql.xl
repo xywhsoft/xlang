@@ -18,11 +18,16 @@ func main(...) as int
 
     // Status flags
     auto st = mysql.statusStr(0x0003)
-    assert string.len(st) > 5, "status str"
+    assert st == "IN_TRANS AUTOCOMMIT", "status str"
+    assert mysql.statusStr(0x100) == "DB_DROPPED", "database dropped bit"
+    assert mysql.statusStr(0x4000) == "SESSION_STATE_CHANGED", "session changed bit"
+    assert mysql.cmdName(31) == "COM_RESET_CONNECTION", "reset connection command"
 
     // Capability names
     assert mysql.capName(0x0200) == "PROTOCOL_41", "cap proto41"
     assert mysql.capName(0x8000) == "SECURE_CONNECTION", "cap secure"
+    assert mysql.capName(0x100000) == "CONNECT_ATTRS", "connect attrs bit"
+    assert mysql.capName(0x200000) == "PLUGIN_AUTH_LENENC", "lenenc auth bit"
 
     // Escape
     assert mysql.escape("hello") == "hello", "escape plain"
@@ -40,10 +45,11 @@ func main(...) as int
     assert mysql.dsnPart("mysql://admin@localhost:3306/testdb", "db") == "testdb", "dsn db"
 
     // Error class
-    assert mysql.errorClass(1045) == "client", "err client"
-    assert mysql.errorClass(2003) == "server", "err server"
-    assert mysql.errorClass(3000) == "extended", "err extended"
-    assert mysql.errorClass(99) == "unknown", "err unknown"
+    assert mysql.errorClass(1045) == "server", "server access denied"
+    assert mysql.errorClass(2003) == "client", "client connection error"
+    assert mysql.errorClass(3000) == "server", "extended server range"
+    assert mysql.errorClass(99) == "global", "shared global range"
+    assert mysql.errorClass(5000) == "unknown", "outside current ranges"
 
     return 0
 end
