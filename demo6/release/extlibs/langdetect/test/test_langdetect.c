@@ -25,6 +25,10 @@ int main(void)
     static const char TiedHanCyrillic[] = "\xE4\xBD\xA0\xE5\xA5\xBD" "\xD0\x9F\xD1\x80";
     static const char TiedCyrillicArabic[] = "\xD0\x9F\xD1\x80" "\xD9\x85\xD8\xB1";
     static const char TiedHanLatin[] = "\xE4\xBD\xA0\xE5\xA5\xBD" "is";
+    static const char KanaPunctuation[] = "\xE3\x83\xBB\xE3\x83\xBB";
+    static const char KanaMarks[] = "\xE3\x82\x9B\xE3\x82\x9C";
+    static const char OneKanaWithMark[] = "\xE3\x81\x82\xE3\x82\x99";
+    static const char KanaWithSeparator[] = "\xE3\x82\xAB\xE3\x83\xBB\xE3\x83\x8A";
     static const char KoreanMajority[] = "\xE4\xBD\xA0\xE5\xA5\xBD" "\xED\x95\x9C\xEA\xB8\x80\xEC\x96\xB4";
     static const char WithNul[] = {'t', 'h', 'e', 0, 'a', 'n', 'd'};
     char *tooLong;
@@ -64,6 +68,13 @@ int main(void)
     if (strcmp(xlangdetect_detect(TiedHanLatin, sizeof(TiedHanLatin) - 1), "unknown") != 0 ||
         strcmp(xlangdetect_script(TiedHanLatin, sizeof(TiedHanLatin) - 1), "Unknown") != 0) {
         return fail("Latin word cannot win a script tie");
+    }
+    if (strcmp(xlangdetect_detect(KanaPunctuation, sizeof(KanaPunctuation) - 1), "unknown") != 0 ||
+        strcmp(xlangdetect_script(KanaPunctuation, sizeof(KanaPunctuation) - 1), "Unknown") != 0 ||
+        strcmp(xlangdetect_detect(KanaMarks, sizeof(KanaMarks) - 1), "unknown") != 0 ||
+        strcmp(xlangdetect_detect(OneKanaWithMark, sizeof(OneKanaWithMark) - 1), "unknown") != 0 ||
+        strcmp(xlangdetect_detect(KanaWithSeparator, sizeof(KanaWithSeparator) - 1), "japanese") != 0) {
+        return fail("Kana punctuation and marks are not standalone letters");
     }
     if (strcmp(xlangdetect_detect("the\xC3\xA9", 5), "unknown") != 0 ||
         strcmp(xlangdetect_detect("\xC3\xA9the", 5), "unknown") != 0 ||

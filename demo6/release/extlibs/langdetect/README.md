@@ -15,12 +15,15 @@ assert langdetect.script("Привет") == "Cyrillic"
 `isValidUtf8` 对非法 UTF-8 返回 `false`，这是普通布尔结果，不设置错误；每次调用都会清除前一次检测留下的错误。C 接口收到空指针时返回 `false` 并设置参数错误。`lastError` 只报告最近一次原生调用的错误，不应将旧诊断当作当前结果。
 
 拉丁字母分类不把 Latin-1 范围中的乘号 `×` 和除号 `÷` 计为字母；它们可以分隔 ASCII 常见词，例如 `the×` 仍可命中独立的 `the`。这仍是有限词表和脚本范围的启发式规则，不是完整 Unicode 分词。
+平假名和片假名区间中的中点、双连字符、浊音附标与未分配码位不计为假名字母；`・・` 不足以判为日语，`カ・ナ` 中的两个假名字母仍能提供日语证据。组合附标不单独增加假名数量。
 
 ## C 接口
 
 `include/langdetect_native.h` 的每个文本入口都接收指针与真实字节长度。`confidence` 返回 `int64_t`，与 XLang `int` 的 C ABI 一致，包括 LP64 平台。`detect` / `code` / `script` / `last_error` 返回借用的静态或 XRT 错误文字，不释放；没有共享可写结果环。文本最长 1 MiB，调用方可先用 `xlangdetect_valid_utf8` 检查原始输入。脚本识别仅覆盖本包列出的 Unicode 范围，不宣称完整 Unicode Script 数据库。
 
 ## 验证
+
+2026-10-22：C/XLang 红例复现 `・・`、`゛゜` 和单个假名加组合附标被误计为足够的日语证据；假名字母范围收紧后，这些输入返回 `unknown`，`カ・ナ` 仍判为日语。Windows 严格 C/XLang 双语包门禁和 Linux C ASan/UBSan、XLang/双语门禁通过；完整带输出 AOT 未在本轮复验，不签收整包发布级。
 
 2026-10-22：C 红例复现 `the×`、`×the`、`the÷` 被漏判为独立英文词，`×÷` 被误记为 Latin 脚本；排除 U+00D7/U+00F7 后，C/XLang 边界与原有重音字母、emoji 用例均通过。Windows 严格 C/XLang 双语包门禁及 Linux C ASan/UBSan、XLang/双语门禁通过；完整带输出 AOT 未在本轮复验，不签收整包发布级。
 

@@ -27,6 +27,11 @@ func main(...) as int
     assert langdetect.detect("Прمر") == "unknown"
     assert langdetect.detect("你好is") == "unknown"
     assert langdetect.script("你好is") == "Unknown"
+    assert langdetect.detect("・・") == "unknown"
+    assert langdetect.script("・・") == "Unknown"
+    assert langdetect.detect("゛゜") == "unknown"
+    assert langdetect.detect("あ゙") == "unknown"
+    assert langdetect.detect("カ・ナ") == "japanese"
 
     string oversized = string.repeat("a", 1048577)
     bool rejected = false
