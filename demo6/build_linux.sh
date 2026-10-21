@@ -171,6 +171,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_future_callback_interrupt.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_future_callback_interrupt.c"
 	"$ROOT/src/runtime/xl6_tcp_dial_sync.c"
+	"$ROOT/src/runtime/xl6_tcp_dial_interrupt_sync.c"
 	"$ROOT/src/runtime/xl6_execution_tcp.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_execution_tcp.c"
 	"$ROOT/src/runtime/xl6_tcp_language.c"

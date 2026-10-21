@@ -1007,7 +1007,10 @@ static int xl6StdlibNeedsTcpStreamClass(const XL6_AstNode* root, const int* used
            xl6StdlibFuncUsed(used, "tcp", "dialAsync") ||
            xl6StdlibFuncUsed(used, "tcp", "dialAsyncCancel") ||
            xl6StdlibFuncUsed(used, "tcp", "dialAsyncUntil") ||
-           xl6StdlibFuncUsed(used, "tcp", "dialAsyncUntilCancel");
+           xl6StdlibFuncUsed(used, "tcp", "dialAsyncUntilCancel") ||
+           xl6StdlibFuncUsed(used, "tcp", "dialCancel") ||
+           xl6StdlibFuncUsed(used, "tcp", "dialUntil") ||
+           xl6StdlibFuncUsed(used, "tcp", "dialUntilCancel");
 }
 
 

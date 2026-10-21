@@ -15,8 +15,10 @@ def main():
     parser.add_argument('--dial',action='store_true',help='Include real managed Dial class projection and its sync/async closure')
     parser.add_argument('--interrupt',action='store_true',help='Include optional parent/deadline transport and its offline source-terminal acceptance')
     parser.add_argument('--dial-interrupt',action='store_true',help='Include real managed Dial interruption and the offline interruption baseline')
+    parser.add_argument('--dial-sync-controls',action='store_true',help='Include actual synchronous stop/drain and caller-only wait acceptance')
     parser.add_argument('--probe',action='store_true',help='Discovery only: first GCC O0 TCP fixture, not acceptance')
     args=parser.parse_args();root=Path(__file__).resolve().parents[1];out=args.out.resolve()
+    if args.dial_sync_controls:args.dial_interrupt=True
     if args.dial_interrupt:args.dial=args.interrupt=True
     assert not out.exists() and (not args.sanitize or os.name!='nt')
     compilers=[Path(shutil.which(cc) or cc).resolve() for cc in args.compiler]
@@ -29,6 +31,7 @@ def main():
     if args.dial:files.update(root/('test/support/'+name+'.c') for name in ('tcp_dial_language_plan','tcp_dial_language_runtime'))
     if args.interrupt:files.update(root/('test/support/'+name+'.c') for name in ('future_callback_interrupt_plan','future_callback_interrupt'))
     if args.dial_interrupt:files.update(root/('test/support/'+name+'.c') for name in ('tcp_dial_interrupt_plan','tcp_dial_interrupt_runtime'))
+    if args.dial_sync_controls:files.update(root/('test/support/'+name+'.c') for name in ('tcp_dial_sync_controls_plan','tcp_dial_sync_controls_runtime'))
     for area in ('src','lib/xrt','lib/xruntime','release/include'):
         files.update(path for path in (root/area).rglob('*') if path.is_file() and path.suffix in ('.c','.h','.inc'))
     inputs={str(path):sha(path) for path in sorted(files)};out.mkdir(parents=True)
@@ -37,7 +40,8 @@ def main():
         SharedCallbackFixtureCompiler='GCC on Linux: system TCC lacks C11 _Atomic/stdatomic.h; resident closure still uses each selected compiler',
         NegativeControls=[],OrdinaryLiteralLoopback=True,ExternalNetworkTests=False,NetworkSecurityTests=False,
         PublicLanguageApiAccepted=False,ShippingLibraryAcceptance=False,DialResidentAbi=args.dial,
-        InterruptResidentAbi=args.interrupt,DialInterruptResidentAbi=args.dial_interrupt,DiscoveryOnly=args.probe,Scope=__doc__)
+        InterruptResidentAbi=args.interrupt,DialInterruptResidentAbi=args.dial_interrupt,
+        DialSyncControlsResidentAbi=args.dial_sync_controls,DiscoveryOnly=args.probe,Scope=__doc__)
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
     def product(path):products.append(dict(Path=str(path),Sha256=sha(path)));save()
     def run(name,command,instrumented=False,reject=False):
@@ -74,7 +78,7 @@ def main():
             assert f'XL6_TEXT_API {result} xl6Tcp{name}Stats{field}V1(const void*);' in header
         assert '.inc"' not in header
         for kind in ('tcp','callback'):
-            fixture=root/('test/support/'+(('tcp_dial_interrupt_plan' if args.dial_interrupt else 'tcp_dial_language_plan' if args.dial else 'tcp_language_plan') if kind=='tcp' else
+            fixture=root/('test/support/'+(('tcp_dial_sync_controls_plan' if args.dial_sync_controls else 'tcp_dial_interrupt_plan' if args.dial_interrupt else 'tcp_dial_language_plan' if args.dial else 'tcp_language_plan') if kind=='tcp' else
                 'future_callback_interrupt_plan' if args.interrupt else 'future_callback_plan')+'.c')
             for opt in ('O0','O2'):
                 plan=out/(kind+'.plan.'+opt+ext)
@@ -101,7 +105,7 @@ def main():
             if args.probe:modes=modes[:1]
             for opt,mode in modes:
                 for kind,fixture,extra in (
-                    ('tcp',root/('test/support/'+('tcp_dial_interrupt_runtime' if args.dial_interrupt else 'tcp_dial_language_runtime' if args.dial else 'tcp_language_runtime')+'.c'),[]),
+                    ('tcp',root/('test/support/'+('tcp_dial_sync_controls_runtime' if args.dial_sync_controls else 'tcp_dial_interrupt_runtime' if args.dial_interrupt else 'tcp_dial_language_runtime' if args.dial else 'tcp_language_runtime')+'.c'),[]),
                     ('callback',root/('test/support/'+('future_callback_interrupt' if args.interrupt else 'future_callback_exclusive_queue')+'.c'),[]),
                     ('callback-shared',root/'test/cases/xlir_future_callback_queue_native.c',[impl,'-DTEST_PRODUCT_CATALOG'])):
                     name=f'{index}.{opt}.{kind}';binary=out/(name+ext)
@@ -123,6 +127,7 @@ def main():
                             assert ('balanced' in text if kind!='callback-shared' else '1024 shared waits' in text)
                             if args.dial and kind=='tcp':assert 'Dial class Future: cases=3 prefixes=96' in text
                             if args.dial_interrupt and kind=='tcp':assert 'Dial interruption: cases=7 prefixes=64' in text
+                            if args.dial_sync_controls and kind=='tcp':assert 'real-pending-joins=2 undelivered=2 worker-guards=3' in text
                             if args.interrupt and kind=='callback':assert 'interruptible callbacks: cases=112 prefixes=96' in text
                     except Exception as error:failures.append(dict(Name=name,Error=repr(error)));save()
         # Independently prove the new test detects losing exclusive source
@@ -174,6 +179,16 @@ def main():
                 root/'test/support/tcp_dial_interrupt_runtime.c',*sources,*libs,'-o',binary]);product(binary)
             run('dial-pre-submit-negative.refused',[binary],reject=True)
             report['NegativeControls'].append('stopped-before-native-dial-submission');save()
+        if args.dial_sync_controls:
+            original=root/'src/runtime/xl6_tcp_dial_sync.c';body=original.read_text(encoding='utf8')
+            needle='(void)xrtFutureCancel(source);(void)xrtFutureWait(source);';assert body.count(needle)==1
+            mutant=out/'no-sync-native-join.c';mutant.write_text(body.replace(needle,'(void)xrtFutureCancel(source);'),encoding='utf8');product(mutant)
+            binary=out/('sync-join-negative'+ext)
+            sources=[mutant if root/s==original else root/s for s in report['Plans']['tcp']['sources']]
+            run('sync-join-negative.build',flags(gcc,['-O0'])+['-I'+str(root/'src/runtime'),
+                root/'test/support/tcp_dial_sync_controls_runtime.c',*sources,*libs,'-o',binary]);product(binary)
+            run('sync-join-negative.refused',[binary],reject=True)
+            report['NegativeControls'].append('sync-stop-is-not-native-terminal');save()
     except Exception as error:failures.append(dict(Name='planning',Error=repr(error)));save()
     report['InputsUnchanged']=all(sha(path)==digest for path,digest in inputs.items())
     report['LogsUnchanged']=all(sha(row['Log'])==row['Sha256'] for row in rows)

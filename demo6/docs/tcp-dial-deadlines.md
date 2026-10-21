@@ -1,6 +1,6 @@
 # Dial 的绝对期限与显式取消
 
-本批公开异步组合；同步组合、代理及其他网络范围继续在长期任务中，不因此视为完成。
+已公开异步及同步组合；代理及其他网络范围继续在长期任务中，不因此视为完成。
 方法同时存在于 `tcp` 命名空间和 `TcpStream` 静态方法。
 
 ```text
@@ -11,9 +11,16 @@ dialAsyncUntilCancel(engine, resolver, host, port [, options], deadline, cancel)
 dialAsyncCancel(engine, addresses [, options], cancel)
 dialAsyncUntil(engine, addresses [, options], deadline)
 dialAsyncUntilCancel(engine, addresses [, options], deadline, cancel)
+
+dialCancel(engine, resolver, host, port [, options], cancel)
+dialUntil(engine, resolver, host, port [, options], deadline)
+dialUntilCancel(engine, resolver, host, port [, options], deadline, cancel)
+dialCancel(engine, addresses [, options], cancel)
+dialUntil(engine, addresses [, options], deadline)
+dialUntilCancel(engine, addresses [, options], deadline, cancel)
 ```
 
-全部返回 `future<TcpStream>`。`cancel` 是 CancellationToken，不接受 CancellationSource 代替。
+异步返回 `future<TcpStream>`，同步直接返回已打开的 `TcpStream`。`cancel` 是 CancellationToken，不接受 CancellationSource 代替。
 `deadline` 为与 `time.clock()` 相同单调时钟域的绝对微秒 `uint64`，不是毫秒或墙上时间。
 `0` 已到期，`UINT64_MAX` 表示无限。相对连接超时仍由 TcpDialOptions.withTimeoutMillis 控制；
 原生连接超时和本次绝对期限都会保留，较早生效的失败／中断按实际交付边界处理。
@@ -44,6 +51,17 @@ TcpStream stream = await tcp.dialAsyncUntilCancel(engine, addresses, due, cancel
 没有语言 onCancel 闭包、中间 Promise、每等待线程或另一套 Dial 算法。
 
 ## ABI、裁剪与验证
+
+同步组合直接复用 XRT 的绝对期限／可取消等待，无语言就绪队列、语言期限服务或每等待线程。
+检查已停止时不提交工作；停止与提交竞争时，等待报告的明确取消／超时优先。
+原生已完成而尚未交付时，先观察父取消，再检查绝对期限，随后才选择并提升结果。
+这规定的是观察顺序，不推断同时发生事件的物理先后；已经选择的结果不被撤回。
+停止或等待登记失败后，请求真实源取消，并等待其终态再释放普通拥有者；原生已成功但未交付的连接主动中止。
+因此，期限不硬截断必要的安全清理耗时。若底层等待本身失败，实际载体仍保留原生拥有图进入既有 checked 退役／恢复，不伪造终态。
+分配／等待登记的首个失败在取消和回收时保留。I/O Worker 上的同步调用在提交前拒绝，即使令牌已取消或期限已过。
+
+受控 native Worker 门禁测试使用真实 Dial/Future：确认源仍 Pending 时不能因外层停止而返回；
+独立反向控制删除实际终态等待，必须被该测试拒绝。它不是用假 Promise 或延迟替身模拟真实源。
 
 十二个原生声明的参数拥有者、类字段投影、泛型 Future、checked 错误及 nonblocking 效果均明确登记。
 Until 入口要求 executor + deadline 服务；仅 Cancel 的声明只要求 executor，不启动期限线程。

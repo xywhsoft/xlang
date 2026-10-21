@@ -85,4 +85,16 @@ XL6_TEXT_API struct xfuture* xl6TcpDialAddressesStartUntilDefaultV1(XL6_RuntimeS
 XL6_TEXT_API struct xfuture* xl6TcpDialAddressesStartUntilV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,const void* addresses,const void* options,uint64_t due);
 XL6_TEXT_API struct xfuture* xl6TcpDialAddressesStartUntilCancelDefaultV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,const void* addresses,uint64_t due,void* parent);
 XL6_TEXT_API struct xfuture* xl6TcpDialAddressesStartUntilCancelV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,const void* addresses,const void* options,uint64_t due,void* parent);
+XL6_TEXT_API void* xl6TcpDialCancelDefaultV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,xstrview host,int64_t port,void* parent);
+XL6_TEXT_API void* xl6TcpDialCancelV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,xstrview host,int64_t port,const void* options,void* parent);
+XL6_TEXT_API void* xl6TcpDialAddressesCancelDefaultV1(XL6_ExecutionServicesV1 services,void* engine,const void* addresses,void* parent);
+XL6_TEXT_API void* xl6TcpDialAddressesCancelV1(XL6_ExecutionServicesV1 services,void* engine,const void* addresses,const void* options,void* parent);
+XL6_TEXT_API void* xl6TcpDialUntilDefaultV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,xstrview host,int64_t port,uint64_t due);
+XL6_TEXT_API void* xl6TcpDialUntilV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,xstrview host,int64_t port,const void* options,uint64_t due);
+XL6_TEXT_API void* xl6TcpDialAddressesUntilDefaultV1(XL6_ExecutionServicesV1 services,void* engine,const void* addresses,uint64_t due);
+XL6_TEXT_API void* xl6TcpDialAddressesUntilV1(XL6_ExecutionServicesV1 services,void* engine,const void* addresses,const void* options,uint64_t due);
+XL6_TEXT_API void* xl6TcpDialUntilCancelDefaultV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,xstrview host,int64_t port,uint64_t due,void* parent);
+XL6_TEXT_API void* xl6TcpDialUntilCancelV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,xstrview host,int64_t port,const void* options,uint64_t due,void* parent);
+XL6_TEXT_API void* xl6TcpDialAddressesUntilCancelDefaultV1(XL6_ExecutionServicesV1 services,void* engine,const void* addresses,uint64_t due,void* parent);
+XL6_TEXT_API void* xl6TcpDialAddressesUntilCancelV1(XL6_ExecutionServicesV1 services,void* engine,const void* addresses,const void* options,uint64_t due,void* parent);
 #endif

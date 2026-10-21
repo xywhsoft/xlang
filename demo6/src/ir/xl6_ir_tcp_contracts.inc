@@ -37,6 +37,18 @@
 {"xl6TcpDialDefaultV1",T,V,4,{V,V,S,I},.parameterOwners={TC_ENGINE,"xl6NetResolverDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
 {"xl6TcpDialAddressesV1",T,V,3,{V,V,V},.parameterOwners={TC_ENGINE,"xl6NetAddressListDestroyV1","xl6TcpDialOptionsDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
 {"xl6TcpDialAddressesDefaultV1",T,V,2,{V,V},.parameterOwners={TC_ENGINE,"xl6NetAddressListDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialCancelDefaultV1",T,V,5,{V,V,S,I,V},.parameterOwners={TC_ENGINE,"xl6NetResolverDestroyV1",NULL,NULL,"xl6CancellationTokenDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialCancelV1",T,V,6,{V,V,S,I,V,V},.parameterOwners={TC_ENGINE,"xl6NetResolverDestroyV1",NULL,NULL,"xl6TcpDialOptionsDestroyV1","xl6CancellationTokenDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialAddressesCancelDefaultV1",T,V,3,{V,V,V},.parameterOwners={TC_ENGINE,"xl6NetAddressListDestroyV1","xl6CancellationTokenDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialAddressesCancelV1",T,V,4,{V,V,V,V},.parameterOwners={TC_ENGINE,"xl6NetAddressListDestroyV1","xl6TcpDialOptionsDestroyV1","xl6CancellationTokenDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialUntilDefaultV1",T,V,5,{V,V,S,I,U},.parameterOwners={TC_ENGINE,"xl6NetResolverDestroyV1",NULL,NULL,NULL},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialUntilV1",T,V,6,{V,V,S,I,V,U},.parameterOwners={TC_ENGINE,"xl6NetResolverDestroyV1",NULL,NULL,"xl6TcpDialOptionsDestroyV1",NULL},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialAddressesUntilDefaultV1",T,V,3,{V,V,U},.parameterOwners={TC_ENGINE,"xl6NetAddressListDestroyV1",NULL},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialAddressesUntilV1",T,V,4,{V,V,V,U},.parameterOwners={TC_ENGINE,"xl6NetAddressListDestroyV1","xl6TcpDialOptionsDestroyV1",NULL},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialUntilCancelDefaultV1",T,V,6,{V,V,S,I,U,V},.parameterOwners={TC_ENGINE,"xl6NetResolverDestroyV1",NULL,NULL,NULL,"xl6CancellationTokenDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialUntilCancelV1",T,V,7,{V,V,S,I,V,U,V},.parameterOwners={TC_ENGINE,"xl6NetResolverDestroyV1",NULL,NULL,"xl6TcpDialOptionsDestroyV1",NULL,"xl6CancellationTokenDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialAddressesUntilCancelDefaultV1",T,V,4,{V,V,U,V},.parameterOwners={TC_ENGINE,"xl6NetAddressListDestroyV1",NULL,"xl6CancellationTokenDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialAddressesUntilCancelV1",T,V,5,{V,V,V,U,V},.parameterOwners={TC_ENGINE,"xl6NetAddressListDestroyV1","xl6TcpDialOptionsDestroyV1",NULL,"xl6CancellationTokenDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
 #define TC_DIAL_CONTEXT .nonblocking=1,TC_QUEUE,TC_ERROR, \
     .nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeClassParameter=2,.nativeClassOwner=TC_STREAM,.genericFutureResult=1
 {"xl6TcpDialStartV1",T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,5,{V,V,S,I,V},.parameterOwners={TC_STREAM,NULL,NULL,NULL,"xl6TcpDialOptionsDestroyV1"},TC_DIAL_CONTEXT},
