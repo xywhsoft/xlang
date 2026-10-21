@@ -7,10 +7,12 @@
     "artifact": {
         "kind": "source",
         "cSources": ["semver_native.c"],
-        "xlSources": ["src/semver.xl"]
+        "xlSources": ["src/semver.xl"],
+        "xrtModules": []
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

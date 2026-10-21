@@ -1,0 +1,69 @@
+import semver
+
+func main(...) as int
+    // build 标识符中的连字符不属于 prerelease 分隔符。
+    assert semver.valid("1.2.3+build-5"), "build hyphen"
+    assert semver.valid("1.2.3-alpha+build-5"), "prerelease and build hyphen"
+    assert semver.build("1.2.3+build-5") == "build-5", "build value"
+    assert semver.clean(" v1.2.3+build-5 ") == "1.2.3+build-5", "clean metadata"
+    assert semver.clean("\r\nv1.2.3+build-5\r\n") == "1.2.3+build-5", "clean line breaks"
+    assert semver.compare("1.2.3+build-5", "1.2.3+build-6") == 0, "build precedence"
+    assert semver.satisfies("1.2.3", " \t "), "whitespace-only range"
+    assert not semver.satisfies("1.2.3-alpha", " \t "), "whitespace-only prerelease"
+    assert semver.satisfies("1.2.2", "<=1.2.3"), "inclusive upper bound"
+    assert not semver.satisfies("1.2.4", "<=1.2.3"), "upper bound exclusion"
+
+    // 数值溢出或格式错误不能被转换成某个有效范围。
+    assert not semver.valid("9223372036854775808.0.0"), "major overflow"
+    assert not semver.valid("1.9223372036854775808.0"), "minor overflow"
+    assert not semver.satisfies("1.2.3", ">=9223372036854775808.0.0"), "range overflow"
+    assert semver.satisfies("1.2.3", "1.2.3" + string.repeat(" ", 506)), "511-byte range"
+    assert not semver.satisfies("1.2.3", "1.2.3" + string.repeat(" ", 507)), "512-byte range"
+    assert semver.satisfies("9223372036854775807.0.0", ">=9223372036854775807"), "max major lower bound"
+    assert semver.satisfies("1.0.0", "<9223372036854775807"), "max major upper bound"
+    assert semver.satisfies("1.9223372036854775807.0", ">=1.9223372036854775807"), "max minor lower bound"
+    assert not semver.satisfies("1.0.0", "<=1.9223372036854775807"), "minor successor overflow"
+    assert not semver.satisfies("1.0.0", "^0.0.9223372036854775807"), "patch successor overflow"
+    assert not semver.satisfies("1.2.3", "1..3"), "empty component"
+    assert not semver.satisfies("1.2.3", "1.x.3"), "component after wildcard"
+    assert not semver.satisfies("1.2.3", ">="), "missing lower bound"
+    assert not semver.satisfies("1.2.3", "<="), "missing upper bound"
+    assert not semver.satisfies("1.2.3", ">"), "missing greater-than operand"
+    assert not semver.satisfies("1.2.3", "<"), "missing less-than operand"
+    assert not semver.satisfies("1.2.3", "="), "missing equality operand"
+    assert not semver.satisfies("1.2.3", "^"), "missing caret operand"
+    assert not semver.satisfies("1.2.3", "~"), "missing tilde operand"
+    assert not semver.satisfies("1.2.3", "1.2.3 || >="), "invalid alternative operand"
+    assert semver.satisfies("1.2.3", "*"), "explicit wildcard"
+    assert not semver.satisfies("1.2.3", "<1.0.0 ||"), "trailing empty branch"
+    assert not semver.satisfies("1.2.3", "|| >=1.0.0"), "leading empty branch"
+    assert not semver.satisfies("1.2.3", ">=1.0.0 || invalid"), "invalid branch"
+
+    // ^ 范围各占两个基础比较器；每个交集分支最多容纳 32 个。
+    string comparatorRange = ""
+    for i in range(16)
+        comparatorRange += "^1.0.0 "
+    end
+    assert semver.satisfies("1.2.3", comparatorRange), "32 comparators"
+    comparatorRange += "^1.0.0 "
+    assert not semver.satisfies("1.2.3", comparatorRange), "34 comparators"
+
+    // C 字符串入口不能把 NUL 后的内容当作不存在。
+    assert not semver.valid("1.2.3\0invalid"), "NUL valid"
+    assert semver.major("1.2.3\0invalid") == -1, "NUL major"
+    assert semver.minor("1.2.3\0invalid") == -1, "NUL minor"
+    assert semver.patch("1.2.3\0invalid") == -1, "NUL patch"
+    assert semver.prerelease("1.2.3-alpha\0invalid") == "", "NUL prerelease"
+    assert semver.build("1.2.3+build\0invalid") == "", "NUL build"
+    assert semver.clean("v1.2.3\0invalid") == "", "NUL clean"
+    assert semver.compare("1.2.3\0invalid", "1.2.3") == -2, "NUL compare left"
+    assert semver.compare("1.2.3", "1.2.3\0invalid") == -2, "NUL compare right"
+    assert not semver.satisfies("1.2.3\0invalid", "^1.0.0"), "NUL version"
+    assert not semver.satisfies("1.2.3", "^1.0.0\0invalid"), "NUL range"
+
+    // 不同调用的字符串结果互不影响。
+    string before = semver.prerelease("1.2.3-alpha")
+    string after = semver.build("2.0.0+build-5")
+    assert before == "alpha" and after == "build-5", "owned results"
+    return 0
+end

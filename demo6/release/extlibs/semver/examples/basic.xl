@@ -1,0 +1,26 @@
+import semver
+
+func main(...) as int
+    // 同一组输入在 C 范例中也逐项验证。
+    string version = "2.4.1-beta.2+build-5"
+    println("version:", version)
+    println("valid:", semver.valid(version))
+    println("major:", semver.major(version))
+    println("minor:", semver.minor(version))
+    println("patch:", semver.patch(version))
+    println("prerelease:", semver.prerelease(version))
+    println("build:", semver.build(version))
+    println("clean:", semver.clean(" v2.4.1 "))
+    println("compare:", semver.compare("2.4.1-beta.2", "2.4.1"))
+    if semver.satisfies("2.4.9", "~2.4.0") then
+        println("compatible: yes")
+    else
+        println("compatible: no")
+    end
+    if semver.satisfies("2.4.0", "<=2.4.1") then
+        println("upper-bound: yes")
+    else
+        println("upper-bound: no")
+    end
+    return 0
+end

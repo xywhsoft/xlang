@@ -1,0 +1,26 @@
+import semver
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func result(int which) as string
+    if which == 0 then return semver.prerelease("1.2.3-alpha+build") end
+    if which == 1 then return semver.build("1.2.3-alpha+build") end
+    return semver.clean("v1.2.3")
+end
+
+array<string> expected = ["alpha", "build", "1.2.3"]
+for which in range(3)
+    bool caught = false
+    assert failAfter(0)
+    try
+        result(which)
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert triggered and caught, "semver allocation failure must raise MemoryError"
+    assert result(which) == expected[which], "semver call must recover after allocation failure"
+end

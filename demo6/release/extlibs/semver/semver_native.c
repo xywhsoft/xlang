@@ -10,15 +10,19 @@
  *     canonical form, or "" when the remainder is not valid SemVer.
  *   - xsemver_satisfies returns false for an invalid version or range.
  */
+#include "xrt.h"
+#include "semver_native.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <ctype.h>
+#include <stdbool.h>
+#include <errno.h>
+#include <limits.h>
 
 #define XSEMVER_MAX_TEXT 512
 #define XSEMVER_MAX_FIELD 256
 #define XSEMVER_MAX_SET_COMPARATORS 32
-#define XSEMVER_RING 8
+#define XSEMVER_MAX_CLEAN_LENGTH (XSEMVER_MAX_TEXT - 1 + 2 * XSEMVER_MAX_FIELD)
 
 typedef struct {
     long long major;
@@ -28,19 +32,26 @@ typedef struct {
     char build[XSEMVER_MAX_FIELD];
 } SemVer;
 
-/* Result strings rotate through a small ring so several calls can coexist
-   in one expression before the xlang layer copies them. */
-static char semver_ring[XSEMVER_RING][XSEMVER_MAX_FIELD];
-static int semver_ring_next = 0;
-
-static char *semver_ring_take(void) {
-    char *slot = semver_ring[semver_ring_next];
-    semver_ring_next = (semver_ring_next + 1) % XSEMVER_RING;
-    return slot;
-}
-
 static int semver_is_digit(int c) {
     return c >= '0' && c <= '9';
+}
+
+static int semver_is_ascii_space(char c) {
+    return c == ' ' || c == '\t' || c == '\n' ||
+        c == '\r' || c == '\f' || c == '\v';
+}
+
+/* 超过格式限额即可拒绝，不要求继续寻找远处的 NUL。 */
+static int semver_bounded_length(const char *text, size_t max, size_t *length) {
+    size_t i;
+    if (!text) return 0;
+    for (i = 0; i <= max; ++i) {
+        if (text[i] == '\0') {
+            *length = i;
+            return 1;
+        }
+    }
+    return 0;
 }
 
 /* Non-empty, digits only, and no leading zero unless the value itself is 0. */
@@ -67,7 +78,8 @@ static int semver_is_identifier_id(const char *s, size_t len) {
     }
     for (i = 0; i < len; i++) {
         int c = (unsigned char)s[i];
-        if (!(isalnum(c) || c == '-')) {
+        if (!semver_is_digit(c) && !(c >= 'A' && c <= 'Z') &&
+            !(c >= 'a' && c <= 'z') && c != '-') {
             return 0;
         }
     }
@@ -123,6 +135,23 @@ static int semver_copy_part(char *dst, const char *src, size_t len) {
     return 1;
 }
 
+/* Decimal identifiers must fit the public int64 result without saturation. */
+static int semver_parse_number(const char *text, long long *out) {
+    char *end = NULL;
+    errno = 0;
+    *out = strtoll(text, &end, 10);
+    return errno != ERANGE && end != text && *end == '\0' && *out >= 0;
+}
+
+static char *semver_dup(const char *text) {
+    size_t len = strlen(text);
+    char *copy = xrtMalloc(len + 1);
+    if (copy) {
+        memcpy(copy, text, len + 1);
+    }
+    return copy;
+}
+
 /* Strict SemVer 2.0.0 parse: MAJOR.MINOR.PATCH[-pre][+build]. */
 static int semver_parse(const char *v, SemVer *out) {
     char core[XSEMVER_MAX_TEXT];
@@ -132,18 +161,21 @@ static int semver_parse(const char *v, SemVer *out) {
     size_t core_len;
     char *dot1;
     char *dot2;
-    char *endp = NULL;
+    size_t input_len;
 
     memset(out, 0, sizeof(*out));
-    if (!v) {
+    if (!semver_bounded_length(v, XSEMVER_MAX_CLEAN_LENGTH, &input_len)) {
         return 0;
     }
 
-    /* In valid SemVer the '-' separator always precedes '+', so the numeric
-       core ends at the first '-' if present, else at the first '+'. */
+    /* A hyphen after '+' belongs to build metadata, not prerelease. */
     plus = strchr(p, '+');
     dash = strchr(p, '-');
-    core_len = (size_t)(dash ? dash - p : (plus ? plus - p : strlen(p)));
+    if (plus && dash && dash > plus) {
+        dash = NULL;
+    }
+    core_len = dash ? (size_t)(dash - p) :
+        (plus ? (size_t)(plus - p) : input_len);
     if (core_len == 0 || core_len >= sizeof(core)) {
         return 0;
     }
@@ -166,12 +198,14 @@ static int semver_parse(const char *v, SemVer *out) {
         !semver_is_numeric_id(dot2 + 1, strlen(dot2 + 1))) {
         return 0;
     }
-    out->major = strtoll(core, &endp, 10);
-    out->minor = strtoll(dot1 + 1, &endp, 10);
-    out->patch = strtoll(dot2 + 1, &endp, 10);
+    if (!semver_parse_number(core, &out->major) ||
+        !semver_parse_number(dot1 + 1, &out->minor) ||
+        !semver_parse_number(dot2 + 1, &out->patch)) {
+        return 0;
+    }
 
     if (dash) {
-        size_t pre_len = (size_t)((plus ? plus : (p + strlen(p))) - (dash + 1));
+        size_t pre_len = (size_t)((plus ? plus : (p + input_len)) - (dash + 1));
         if (pre_len == 0) {
             return 0;
         }
@@ -183,7 +217,7 @@ static int semver_parse(const char *v, SemVer *out) {
         }
     }
     if (plus) {
-        size_t build_len = strlen(plus + 1);
+        size_t build_len = input_len - (size_t)(plus + 1 - p);
         if (build_len == 0) {
             return 0;
         }
@@ -265,101 +299,88 @@ static int semver_cmp_core(const SemVer *a, const SemVer *b) {
     return semver_cmp_prerelease(a->pre, b->pre);
 }
 
-long long xsemver_valid(const char *v) {
+bool xsemver_valid(const char *v) {
     SemVer parsed;
+    xrtClearError();
     return semver_parse(v, &parsed);
 }
 
-long long xsemver_major(const char *v) {
+int64_t xsemver_major(const char *v) {
     SemVer parsed;
+    xrtClearError();
     if (!semver_parse(v, &parsed)) {
         return -1;
     }
     return parsed.major;
 }
 
-long long xsemver_minor(const char *v) {
+int64_t xsemver_minor(const char *v) {
     SemVer parsed;
+    xrtClearError();
     if (!semver_parse(v, &parsed)) {
         return -1;
     }
     return parsed.minor;
 }
 
-long long xsemver_patch(const char *v) {
+int64_t xsemver_patch(const char *v) {
     SemVer parsed;
+    xrtClearError();
     if (!semver_parse(v, &parsed)) {
         return -1;
     }
     return parsed.patch;
 }
 
-const char *xsemver_prerelease(const char *v) {
+void *xsemver_prerelease(const char *v) {
     SemVer parsed;
-    char *slot = semver_ring_take();
-    slot[0] = '\0';
-    if (semver_parse(v, &parsed)) {
-        strcpy(slot, parsed.pre);
-    }
-    return slot;
+    xrtClearError();
+    return semver_dup(semver_parse(v, &parsed) ? parsed.pre : "");
 }
 
-const char *xsemver_build(const char *v) {
+void *xsemver_build(const char *v) {
     SemVer parsed;
-    char *slot = semver_ring_take();
-    slot[0] = '\0';
-    if (semver_parse(v, &parsed)) {
-        strcpy(slot, parsed.build);
-    }
-    return slot;
+    xrtClearError();
+    return semver_dup(semver_parse(v, &parsed) ? parsed.build : "");
 }
 
-const char *xsemver_clean(const char *v) {
+void *xsemver_clean(const char *v) {
     SemVer parsed;
-    char *slot = semver_ring_take();
     const char *p = v;
-    size_t pos = 0;
-    slot[0] = '\0';
+    char *trimmed;
+    size_t len;
+    xrtClearError();
     if (!v) {
-        return slot;
+        return semver_dup("");
     }
-    while (*p == ' ' || *p == '\t') {
+    while (semver_is_ascii_space(*p)) {
         p++;
     }
     if (*p == 'v' || *p == 'V' || *p == '=') {
         p++;
     }
-    while (*p == ' ' || *p == '\t') {
+    while (semver_is_ascii_space(*p)) {
         p++;
     }
-    {
-        /* Trim trailing whitespace so padded input still cleans. */
-        char trimmed[XSEMVER_MAX_TEXT];
-        size_t len;
-        strncpy(trimmed, p, sizeof(trimmed) - 1);
-        trimmed[sizeof(trimmed) - 1] = '\0';
-        len = strlen(trimmed);
-        while (len > 0 && (trimmed[len - 1] == ' ' || trimmed[len - 1] == '\t')) {
-            trimmed[--len] = '\0';
-        }
-        if (!semver_parse(trimmed, &parsed)) {
-            return slot;
-        }
+    len = strlen(p);
+    while (len > 0 && semver_is_ascii_space(p[len - 1])) --len;
+    /* 超过解析器允许的最大完整版本长度时，无需复制原始输入。 */
+    if (len > XSEMVER_MAX_CLEAN_LENGTH) return semver_dup("");
+    trimmed = (char *)xrtMalloc(len + 1);
+    if (!trimmed) return NULL;
+    memcpy(trimmed, p, len);
+    trimmed[len] = '\0';
+    if (semver_parse(trimmed, &parsed)) {
+        return trimmed;
     }
-    pos = (size_t)snprintf(slot, XSEMVER_MAX_FIELD, "%lld.%lld.%lld",
-        parsed.major, parsed.minor, parsed.patch);
-    if (parsed.pre[0] != '\0' && pos < XSEMVER_MAX_FIELD) {
-        pos += (size_t)snprintf(slot + pos, XSEMVER_MAX_FIELD - pos, "-%s", parsed.pre);
-    }
-    if (parsed.build[0] != '\0' && pos < XSEMVER_MAX_FIELD) {
-        snprintf(slot + pos, XSEMVER_MAX_FIELD - pos, "+%s", parsed.build);
-    }
-    return slot;
+    xrtFree(trimmed);
+    return semver_dup("");
 }
 
-long long xsemver_compare(const char *a, const char *b) {
+int64_t xsemver_compare(const char *a, const char *b) {
     SemVer va;
     SemVer vb;
+    xrtClearError();
     if (!semver_parse(a, &va) || !semver_parse(b, &vb)) {
         return -2;
     }
@@ -403,16 +424,19 @@ static int semver_parse_partial(const char *s, Partial *out) {
     char buf[XSEMVER_MAX_TEXT];
     char *parts[4];
     int count = 0;
-    char *tok;
     char *meta;
+    char *part;
+    char *cursor;
     int i;
 
     memset(out, 0, sizeof(*out));
     if (!s) {
         return 0;
     }
-    strncpy(buf, s, sizeof(buf) - 1);
-    buf[sizeof(buf) - 1] = '\0';
+    if (strlen(s) >= sizeof(buf)) {
+        return 0;
+    }
+    strcpy(buf, s);
 
     /* Split off prerelease/build metadata; only meaningful when the numeric
        core is fully concrete. The metadata separator is the first '-' or '+'
@@ -422,45 +446,49 @@ static int semver_parse_partial(const char *s, Partial *out) {
         meta++;
     }
     if (*meta != '\0') {
-        char pre_buf[XSEMVER_MAX_FIELD];
-        if (*meta == '-') {
-            const char *pre_start = meta + 1;
-            const char *plus = strchr(pre_start, '+');
-            size_t pre_len = plus ? (size_t)(plus - pre_start) : strlen(pre_start);
-            if (pre_len == 0 || pre_len >= sizeof(pre_buf)) {
-                return 0;
-            }
-            memcpy(pre_buf, pre_start, pre_len);
-            pre_buf[pre_len] = '\0';
-            if (!semver_valid_identifiers(pre_buf, 0)) {
-                return 0;
-            }
-            strcpy(out->pre, pre_buf);
+        SemVer full;
+        if (!semver_parse(s, &full)) {
+            return 0;
         }
+        strcpy(out->pre, full.pre);
+        strcpy(out->build, full.build);
         *meta = '\0';
     }
 
-    tok = strtok(buf, ".");
-    while (tok && count < 4) {
-        parts[count++] = tok;
-        tok = strtok(NULL, ".");
-    }
-    if (count < 1 || count > 3) {
-        return 0;
+    /* Preserve empty components; strtok would silently skip them. */
+    part = buf;
+    for (cursor = buf; ; cursor++) {
+        if (*cursor != '.' && *cursor != '\0') {
+            continue;
+        }
+        if (count == 3 || cursor == part) {
+            return 0;
+        }
+        parts[count++] = part;
+        if (*cursor == '\0') {
+            break;
+        }
+        *cursor = '\0';
+        part = cursor + 1;
     }
     for (i = 0; i < 3; i++) {
         if (i < count) {
             const char *t = parts[i];
-            if (strcmp(t, "x") == 0 || strcmp(t, "X") == 0 || strcmp(t, "*") == 0 || t[0] == '\0') {
+            if (strcmp(t, "x") == 0 || strcmp(t, "X") == 0 || strcmp(t, "*") == 0) {
                 out->star[i] = 1;
             } else if (semver_is_numeric_id(t, strlen(t))) {
                 out->present[i] = 1;
-                out->num[i] = strtoll(t, NULL, 10);
+                if (!semver_parse_number(t, &out->num[i])) {
+                    return 0;
+                }
             } else {
                 return 0;
             }
         } else {
             out->star[i] = 1;
+        }
+        if (i > 0 && out->present[i] && !out->present[i - 1]) {
+            return 0;
         }
     }
     out->ok = 1;
@@ -474,8 +502,7 @@ static void semver_fill(SemVer *v, long long major, long long minor,
     v->minor = minor;
     v->patch = patch;
     if (pre) {
-        strncpy(v->pre, pre, XSEMVER_MAX_FIELD - 1);
-        v->pre[XSEMVER_MAX_FIELD - 1] = '\0';
+        strcpy(v->pre, pre);
     }
 }
 
@@ -499,6 +526,7 @@ static int semver_desugar(ComparatorSet *set, const char *token) {
     long long M;
     long long m;
     long long pt;
+    int next_component = -1;
 
     if (strncmp(rest, ">=", 2) == 0) { op = XSEMVER_OP_GE; rest += 2; }
     else if (strncmp(rest, "<=", 2) == 0) { op = XSEMVER_OP_LE; rest += 2; }
@@ -509,7 +537,10 @@ static int semver_desugar(ComparatorSet *set, const char *token) {
     else if (rest[0] == '^') { op = 101; rest += 1; }
     else { op = XSEMVER_OP_EQ; }
 
-    if (rest[0] == '\0' || strcmp(rest, "*") == 0 || strcmp(rest, "x") == 0 ||
+    if (rest[0] == '\0') {
+        return 0;
+    }
+    if (strcmp(rest, "*") == 0 || strcmp(rest, "x") == 0 ||
         strcmp(rest, "X") == 0) {
         /* "*" matches every version, including none added here. */
         if (op == XSEMVER_OP_GT || op == XSEMVER_OP_LT) {
@@ -520,9 +551,28 @@ static int semver_desugar(ComparatorSet *set, const char *token) {
     if (!semver_parse_partial(rest, &p)) {
         return 0;
     }
+    /* 仅在简写范围确实要计算排他上界时，检查被加一的版本段。 */
+    if (!p.present[2] && (op == XSEMVER_OP_GT ||
+        op == XSEMVER_OP_LE || op == XSEMVER_OP_EQ)) {
+        next_component = p.present[1] ? 1 : 0;
+    } else if (op == 100) {
+        next_component = p.present[1] ? 1 : 0;
+    } else if (op == 101) {
+        next_component = p.num[0] > 0 ? 0 :
+            (p.present[1] && p.num[1] > 0 ? 1 :
+            (p.present[2] ? 2 : (p.present[1] ? 1 : 0)));
+    }
+    if (next_component >= 0 && p.num[next_component] == LLONG_MAX) {
+        return 0;
+    }
     M = p.present[0] ? p.num[0] : 0;
     m = p.present[1] ? p.num[1] : 0;
     pt = p.present[2] ? p.num[2] : 0;
+
+    if (op == XSEMVER_OP_LE && p.present[2]) {
+        return semver_add(set, XSEMVER_OP_LE, M, m, pt,
+            p.pre[0] ? p.pre : NULL);
+    }
 
     if (op == XSEMVER_OP_GT || op == XSEMVER_OP_LT || op == XSEMVER_OP_GE) {
         if (!p.present[0]) {
@@ -612,12 +662,13 @@ static int semver_desugar(ComparatorSet *set, const char *token) {
 static int semver_parse_set(const char *text, ComparatorSet *set) {
     char buf[XSEMVER_MAX_TEXT];
     char *hyphen;
-    char *tok;
     int i;
 
     set->count = 0;
-    strncpy(buf, text, sizeof(buf) - 1);
-    buf[sizeof(buf) - 1] = '\0';
+    if (strlen(text) >= sizeof(buf)) {
+        return 0;
+    }
+    strcpy(buf, text);
 
     hyphen = strstr(buf, " - ");
     if (hyphen) {
@@ -640,6 +691,10 @@ static int semver_parse_set(const char *text, ComparatorSet *set) {
         if (!lo.present[0] || !hi.present[0]) {
             return 0;
         }
+        if ((hi.num[0] == LLONG_MAX && !hi.present[1]) ||
+            (hi.num[1] == LLONG_MAX && !hi.present[2])) {
+            return 0;
+        }
         if (!semver_add(set, XSEMVER_OP_GE,
                 lo.num[0], lo.present[1] ? lo.num[1] : 0,
                 lo.present[2] ? lo.num[2] : 0, lo.pre[0] ? lo.pre : NULL)) {
@@ -655,18 +710,28 @@ static int semver_parse_set(const char *text, ComparatorSet *set) {
             hi.pre[0] ? hi.pre : NULL);
     }
 
-    /* Collect tokens first, then desugar: parse_partial uses strtok
-       internally, so the outer scan must complete before it runs. */
+    /* Tokenize this buffer only; no shared state between concurrent calls. */
     {
         char *tokens[32];
         int ntokens = 0;
-        tok = strtok(buf, " \t");
-        while (tok) {
+        char *cursor = buf;
+        while (*cursor) {
+            while (*cursor == ' ' || *cursor == '\t') {
+                cursor++;
+            }
+            if (!*cursor) {
+                break;
+            }
             if (ntokens >= 32) {
                 return 0;
             }
-            tokens[ntokens++] = tok;
-            tok = strtok(NULL, " \t");
+            tokens[ntokens++] = cursor;
+            while (*cursor && *cursor != ' ' && *cursor != '\t') {
+                cursor++;
+            }
+            if (*cursor) {
+                *cursor++ = '\0';
+            }
         }
         for (i = 0; i < ntokens; i++) {
             if (!semver_desugar(set, tokens[i])) {
@@ -714,22 +779,33 @@ static int semver_set_matches(const ComparatorSet *set, const SemVer *v) {
     return 1;
 }
 
-long long xsemver_satisfies(const char *version, const char *range) {
+bool xsemver_satisfies(const char *version, const char *range) {
     SemVer v;
     char range_buf[XSEMVER_MAX_TEXT];
     char *alt;
     char *cursor;
+    int matches = 0;
+    size_t range_len;
+
+    xrtClearError();
 
     if (!semver_parse(version, &v)) {
         return 0;
     }
-    if (!range) {
+    if (!semver_bounded_length(range, sizeof(range_buf) - 1, &range_len)) {
         return 0;
     }
-    strncpy(range_buf, range, sizeof(range_buf) - 1);
-    range_buf[sizeof(range_buf) - 1] = '\0';
+    memcpy(range_buf, range, range_len + 1);
 
+    /* 整个范围仅有空白时等同空范围；OR 中的空分支仍必须拒绝。 */
     cursor = range_buf;
+    while (*cursor == ' ' || *cursor == '\t') {
+        cursor++;
+    }
+    if (*cursor == '\0') {
+        return v.pre[0] == '\0';
+    }
+
     while (1) {
         ComparatorSet set;
         alt = strstr(cursor, "||");
@@ -746,19 +822,16 @@ long long xsemver_satisfies(const char *version, const char *range) {
                 cursor[--len] = '\0';
             }
         }
-        if (cursor[0] == '\0') {
-            /* Empty alternative matches everything. */
-            if (v.pre[0] == '\0') {
-                return 1;
-            }
-        } else if (semver_parse_set(cursor, &set) &&
-                   semver_set_matches(&set, &v)) {
-            return 1;
+        if (cursor[0] == '\0' || !semver_parse_set(cursor, &set)) {
+            return 0;
+        }
+        if (semver_set_matches(&set, &v)) {
+            matches = 1;
         }
         if (!alt) {
             break;
         }
         cursor = alt + 2;
     }
-    return 0;
+    return matches;
 }
