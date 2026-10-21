@@ -1,0 +1,94 @@
+import xxhash
+
+func main(...) as int
+    assert xxhash.version() == "0.8.3"
+    assert xxhash.XXHASH_DEFAULT_SEED == uint64(0)
+    assert xxhash.hash64Hex("") == "ef46db3751d8e999"
+    assert xxhash.hash32Hex("") == "02cc5d05"
+    assert xxhash.hash64Hex("abc") == "44bc2cf5ad770999"
+    assert xxhash.hash32Hex("abc") == "32d153ff"
+    assert xxhash.hash64("") > uint64(9223372036854775807)
+    assert xxhash.hash32("abc") == uint32(0x32d153ff)
+
+    Buffer bytes = Buffer()
+    bytes.append("你好🌍")
+    assert bytes.len() == 10
+    assert xxhash.hash64(bytes) == xxhash.hash64("你好🌍")
+    assert xxhash.hash32(bytes) == xxhash.hash32("你好🌍")
+    assert xxhash.hash32Hex(bytes) == xxhash.hash32Hex("你好🌍")
+    bytes.appendByte(0)
+    bytes.appendByte(255)
+    auto h = xxhash.hasher()
+    assert h.valid
+    h.update("你好🌍")
+    Buffer tail = Buffer()
+    tail.appendByte(0)
+    tail.appendByte(255)
+    h.update(tail)
+    assert h.inputBytes == uint64(12) and h.digest() == xxhash.hash64(bytes)
+    assert h.digestHex() == xxhash.hash64Hex(bytes)
+    assert h.digestHex() == xxhash.hash64Hex(bytes)
+    assert h.reset() and h.inputBytes == uint64(0)
+
+    // 高位种子和摘要不会通过有符号 int 缩窄。
+    uint64 seed = uint64(9223372036854775807) + uint64(1)
+    auto seeded = xxhash.hasher(seed)
+    seeded.update(bytes)
+    assert seeded.digest() == xxhash.hash64(bytes, seed)
+    assert seeded.digestHex() == xxhash.hash64Hex(bytes, seed)
+    assert seeded.reset()
+    seeded.update("abc")
+    assert seeded.digestHex() == xxhash.hash64Hex("abc", seed)
+
+    auto limited = xxhash.hasher(maxInput = 3)
+    limited.update("abc")
+    bool caught = false
+    try
+        limited.update("d")
+    catch RangeError e
+        caught = true
+    end
+    assert caught and limited.inputBytes == uint64(3)
+    caught = false
+    try
+        limited.digest()
+    catch RangeError e
+        caught = true
+    end
+    assert caught and limited.reset()
+    limited.update("ok")
+    assert limited.digest() == xxhash.hash64("ok")
+
+    string saved = xxhash.hash64Hex("abc")
+    for i in range(32)
+        assert xxhash.hash64Hex("other") != saved
+    end
+    assert saved == "44bc2cf5ad770999"
+
+    // 语言层预算为正；在打开文件之前就拒绝无效配置。
+    for mode in range(2)
+        int maximum = -mode
+        caught = false
+        try
+            xxhash.hasher(maxInput = maximum)
+        catch ValueError e
+            caught = true
+        end
+        assert caught
+        caught = false
+        try
+            xxhash.hashFile64("__xxhash_missing__", maxInput = maximum)
+        catch ValueError e
+            caught = true
+        end
+        assert caught
+        caught = false
+        try
+            xxhash.hashFile64Hex("__xxhash_missing__", maxInput = maximum)
+        catch ValueError e
+            caught = true
+        end
+        assert caught
+    end
+    return 0
+end

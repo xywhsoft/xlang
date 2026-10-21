@@ -2,13 +2,13 @@ import xxhash
 
 
 
-func main(...) as int
+func exercise(string workDir) as int
     // 一次性哈希：Buffer 与字符串重载结果一致。
     Buffer data = Buffer()
     data.append("abc")
     data.appendByte(0)
     data.appendByte(255)
-    int h64 = xxhash.hash64(data)
+    uint64 h64 = xxhash.hash64(data)
     if xxhash.hash64(data) != h64 then
         return 1
     end
@@ -56,25 +56,38 @@ func main(...) as int
     end
 
     // 32 位一次性与字符串重载一致。
-    if xxhash.hash32(data) != xxhash.hash32(data) then
+    if xxhash.hash32("abc") != uint32(0x32d153ff) then
         return 10
     end
 
     // 文件哈希与等内容的 Buffer 哈希一致（XRT reader 分块读取）。
-    string path = "tmp/extlib_xxhash_source.bin"
-    file.writeBytes(path, data)
-    if xxhash.hashFile64(path) != h64 then
+    string sourcePath = path.join(workDir, "source.bin")
+    file.writeBytes(sourcePath, data.toBytes())
+    if xxhash.hashFile64(sourcePath) != h64 then
         return 11
     end
-    if xxhash.hashFile64Hex(path) != hex64 then
+    if xxhash.hashFile64Hex(sourcePath) != hex64 then
         return 12
     end
-    file.delete(path)
-
+    // 文件名包含 NUL 不能退化为读取已存在的前缀文件。
+    bool badPath = false
+    try
+        xxhash.hashFile64(sourcePath + "\0hidden")
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath
+    badPath = false
+    try
+        xxhash.hashFile64Hex(sourcePath + "\0hidden")
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath
     // 不存在的文件抛出 FileError。
     bool missing = false
     try
-        xxhash.hashFile64("tmp/extlib_xxhash_missing.bin")
+        xxhash.hashFile64(path.join(workDir, "missing.bin"))
     catch FileError e
         missing = true
     end
@@ -94,4 +107,17 @@ func main(...) as int
     end
 
     return 0
+end
+
+func main(...) as int
+    string workDir = dir.temp(path.temp(), "xlang_xxhash_", "")
+    int result = 0
+    try
+        result = exercise(workDir)
+    finally
+        string sourcePath = path.join(workDir, "source.bin")
+        if file.exists(sourcePath) then assert file.delete(sourcePath) end
+        assert dir.delete(workDir)
+    end
+    return result
 end
