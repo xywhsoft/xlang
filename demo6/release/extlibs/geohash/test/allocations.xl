@@ -1,0 +1,38 @@
+import geohash
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+for operation in range(3)
+    int failures = 0
+    int successes = 0
+    for allocation in range(16)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        assert failAfter(uint64(allocation))
+        try
+            if operation == 0 then
+                geohash.encode(42.6, -5.6, 5)
+            elseif operation == 1 then
+                geohash.bbox("ezs42")
+            else
+                geohash.east("ezs42")
+            end
+        catch MemoryError error
+            memoryCaught = true
+        catch ValueError error
+            wrongCaught = true
+        catch RuntimeError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert not wrongCaught and memoryCaught == triggered
+        if triggered then failures += 1 else successes += 1 end
+        assert geohash.encode(42.6, -5.6, 5) == "ezs42"
+    end
+    assert failures > 0 and successes > 0
+end
+
+println("geohash allocation: PASS")

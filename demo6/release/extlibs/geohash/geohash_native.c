@@ -1,133 +1,217 @@
-/*
- * geohash_native.c - Geohash encode/decode/neighbor
- */
-#include <stdlib.h>
+/* Geohash 的位序以经度开头；经纬网格整数用于精确计算邻格。 */
+#ifndef XRT_MODULE_STRING
+#define XRT_MODULE_STRING
+#endif
+#ifndef XRT_MODULE_STRING_FORMAT
+#define XRT_MODULE_STRING_FORMAT
+#endif
+#ifndef XRT_MODULE_NUMBER_FLOAT
+#define XRT_MODULE_NUMBER_FLOAT
+#endif
+#include "xrt.h"
+#include "include/geohash_native.h"
 #include <string.h>
-#include <stdio.h>
-#include <math.h>
-static char geo_buf[4096];
 
-static const char GEO_BASE32[] = "0123456789bcdefghjkmnpqrstuvwxyz";
+#define XGEO_DOMAIN "xlang.extlib.geohash"
 
-static int geo_base32_index(char c) {
-    const char *p = strchr(GEO_BASE32, c);
-    if (!p) return -1;
-    return (int)(p - GEO_BASE32);
+static const char XGEO_ALPHABET[] = "0123456789bcdefghjkmnpqrstuvwxyz";
+
+typedef struct xgeo_cell {
+    uint32 lon;
+    uint32 lat;
+    int lon_bits;
+    int lat_bits;
+    int precision;
+} xgeo_cell;
+
+static void xgeo_error(xerrkind kind, const char* message)
+{
+    xrtSetErrorInfo(kind, XGEO_DOMAIN, 0, message);
 }
 
-/* encode lat/lon to geohash string with given precision (1-12) */
-const char *xgeohash_encode(double lat, double lon, int precision) {
-    double lat_min = -90.0, lat_max = 90.0;
-    double lon_min = -180.0, lon_max = 180.0;
-    int is_lon = 1;
-    int bit = 0, ch = 0;
-    int i = 0;
+static int xgeo_digit(char value)
+{
+    const char* found = strchr(XGEO_ALPHABET, value);
+    return found != NULL ? (int)(found - XGEO_ALPHABET) : -1;
+}
 
-    if (precision < 1) precision = 1;
-    if (precision > 12) precision = 12;
-
-    while (i < precision) {
-        if (is_lon) {
-            double mid = (lon_min + lon_max) / 2.0;
-            if (lon >= mid) { ch = ch * 2 + 1; lon_min = mid; }
-            else { ch = ch * 2; lon_max = mid; }
-        } else {
-            double mid = (lat_min + lat_max) / 2.0;
-            if (lat >= mid) { ch = ch * 2 + 1; lat_min = mid; }
-            else { ch = ch * 2; lat_max = mid; }
-        }
-        is_lon = !is_lon;
-        bit++;
-        if (bit == 5) {
-            geo_buf[i++] = GEO_BASE32[ch];
-            bit = 0;
-            ch = 0;
-        }
+static bool xgeo_parse(const char* hash, xgeo_cell* cell)
+{
+    int i, bit, position = 0;
+    if (hash == NULL || hash[0] == '\0') {
+        xgeo_error(XERR_VALUE, "geohash must contain 1..12 characters");
+        return false;
     }
-    geo_buf[i] = '\0';
-    return geo_buf;
-}
-
-/* decode geohash -> center lat (returned as double via sprintf trick) */
-static void geohash_decode(const char *hash, double *lat_out, double *lon_out,
-                           double *lat_err, double *lon_err) {
-    double lat_min = -90.0, lat_max = 90.0;
-    double lon_min = -180.0, lon_max = 180.0;
-    int is_lon = 1;
-    const char *p = hash;
-
-    while (*p) {
-        int idx = geo_base32_index(*p);
-        int b;
-        if (idx < 0) { p++; continue; }
-        for (b = 4; b >= 0; b--) {
-            int bit = (idx >> b) & 1;
-            if (is_lon) {
-                double mid = (lon_min + lon_max) / 2.0;
-                if (bit) lon_min = mid; else lon_max = mid;
+    memset(cell, 0, sizeof(*cell));
+    for (i = 0; i < 12 && hash[i] != '\0'; ++i) {
+        int digit = xgeo_digit(hash[i]);
+        if (digit < 0) {
+            xgeo_error(XERR_VALUE, "geohash contains an invalid character");
+            return false;
+        }
+        for (bit = 4; bit >= 0; --bit, ++position) {
+            if ((position & 1) == 0) {
+                cell->lon = (cell->lon << 1) | (uint32)((digit >> bit) & 1);
+                ++cell->lon_bits;
             } else {
-                double mid = (lat_min + lat_max) / 2.0;
-                if (bit) lat_min = mid; else lat_max = mid;
+                cell->lat = (cell->lat << 1) | (uint32)((digit >> bit) & 1);
+                ++cell->lat_bits;
             }
-            is_lon = !is_lon;
         }
-        p++;
     }
-    *lat_out = (lat_min + lat_max) / 2.0;
-    *lon_out = (lon_min + lon_max) / 2.0;
-    *lat_err = (lat_max - lat_min) / 2.0;
-    *lon_err = (lon_max - lon_min) / 2.0;
+    if (i == 12 && hash[i] != '\0') {
+        xgeo_error(XERR_RANGE, "geohash exceeds 12 characters");
+        return false;
+    }
+    cell->precision = i;
+    return true;
 }
 
-double xgeohash_decode_lat(const char *hash) {
-    double lat, lon, lat_err, lon_err;
-    if (!hash || !hash[0]) return 0.0;
-    geohash_decode(hash, &lat, &lon, &lat_err, &lon_err);
-    return lat;
+/* 交错网格位，不经浮点数往返，跨经线邻格也不会跳格。 */
+static void xgeo_cell_text(const xgeo_cell* cell, char output[13])
+{
+    int i, lon_at = 0, lat_at = 0, digit = 0;
+    for (i = 0; i < cell->precision * 5; ++i) {
+        uint32 bit;
+        if ((i & 1) == 0) {
+            bit = (cell->lon >> (cell->lon_bits - ++lon_at)) & 1u;
+        } else {
+            bit = (cell->lat >> (cell->lat_bits - ++lat_at)) & 1u;
+        }
+        digit = (digit << 1) | (int)bit;
+        if (i % 5 == 4) {
+            output[i / 5] = XGEO_ALPHABET[digit];
+            digit = 0;
+        }
+    }
+    output[cell->precision] = '\0';
 }
 
-double xgeohash_decode_lon(const char *hash) {
-    double lat, lon, lat_err, lon_err;
-    if (!hash || !hash[0]) return 0.0;
-    geohash_decode(hash, &lat, &lon, &lat_err, &lon_err);
-    return lon;
+void* xgeohash_encode(double lat, double lon, int precision)
+{
+    double lat_min = -90.0, lat_max = 90.0;
+    double lon_min = -180.0, lon_max = 180.0;
+    char output[13];
+    int i, digit = 0;
+    xrtClearError();
+    if (!(lat >= -90.0 && lat <= 90.0) ||
+        !(lon >= -180.0 && lon <= 180.0)) {
+        xgeo_error(XERR_RANGE, "latitude or longitude is out of range");
+        return NULL;
+    }
+    if (precision < 1 || precision > 12) {
+        xgeo_error(XERR_RANGE, "precision must be between 1 and 12");
+        return NULL;
+    }
+    for (i = 0; i < precision * 5; ++i) {
+        double midpoint;
+        int bit;
+        if ((i & 1) == 0) {
+            midpoint = (lon_min + lon_max) / 2.0;
+            bit = lon >= midpoint;
+            if (bit) lon_min = midpoint; else lon_max = midpoint;
+        } else {
+            midpoint = (lat_min + lat_max) / 2.0;
+            bit = lat >= midpoint;
+            if (bit) lat_min = midpoint; else lat_max = midpoint;
+        }
+        digit = (digit << 1) | bit;
+        if (i % 5 == 4) {
+            output[i / 5] = XGEO_ALPHABET[digit];
+            digit = 0;
+        }
+    }
+    output[precision] = '\0';
+    return xrtStrDup(output);
 }
 
-/* return bounding box as "min_lat,min_lon,max_lat,max_lon" */
-const char *xgeohash_bbox(const char *hash) {
-    double lat, lon, lat_err, lon_err;
-    if (!hash || !hash[0]) return "";
-    geohash_decode(hash, &lat, &lon, &lat_err, &lon_err);
-    snprintf(geo_buf, sizeof(geo_buf), "%.8f,%.8f,%.8f,%.8f",
-             lat - lat_err, lon - lon_err, lat + lat_err, lon + lon_err);
-    return geo_buf;
+int xgeohash_decode_bounds(const char* hash, xgeohash_bounds* output)
+{
+    xgeo_cell cell;
+    xgeohash_bounds bounds;
+    double lat_size, lon_size;
+    xrtClearError();
+    if (output == NULL) {
+        xgeo_error(XERR_ARGUMENT, "bounds output is null");
+        return 0;
+    }
+    if (!xgeo_parse(hash, &cell)) return 0;
+    lat_size = 180.0 / (double)(1u << cell.lat_bits);
+    lon_size = 360.0 / (double)(1u << cell.lon_bits);
+    bounds.min_lat = -90.0 + (double)cell.lat * lat_size;
+    bounds.min_lon = -180.0 + (double)cell.lon * lon_size;
+    bounds.max_lat = bounds.min_lat + lat_size;
+    bounds.max_lon = bounds.min_lon + lon_size;
+    *output = bounds;
+    return 1;
 }
 
-/* neighbor: direction 0=N, 1=S, 2=E, 3=W */
-const char *xgeohash_neighbor(const char *hash, int direction) {
-    double lat, lon, lat_err, lon_err;
-    int len;
-    if (!hash || !hash[0]) return "";
-    geohash_decode(hash, &lat, &lon, &lat_err, &lon_err);
-    len = (int)strlen(hash);
+double xgeohash_decode_lat(const char* hash)
+{
+    xgeohash_bounds bounds;
+    if (!xgeohash_decode_bounds(hash, &bounds)) return 0.0;
+    return (bounds.min_lat + bounds.max_lat) / 2.0;
+}
 
+double xgeohash_decode_lon(const char* hash)
+{
+    xgeohash_bounds bounds;
+    if (!xgeohash_decode_bounds(hash, &bounds)) return 0.0;
+    return (bounds.min_lon + bounds.max_lon) / 2.0;
+}
+
+void* xgeohash_bbox(const char* hash)
+{
+    xgeohash_bounds bounds;
+    char numbers[4][40];
+    double values[4];
+    size_t length, i;
+    if (!xgeohash_decode_bounds(hash, &bounds)) return NULL;
+    values[0] = bounds.min_lat;
+    values[1] = bounds.min_lon;
+    values[2] = bounds.max_lat;
+    values[3] = bounds.max_lon;
+    for (i = 0; i < 4; ++i)
+        if (!xrtNumWrite(values[i], numbers[i], sizeof(numbers[i]),
+            &length, XNUMBER_FLOAT_COMPACT)) return NULL;
+    return xrtFormat("%s,%s,%s,%s", numbers[0], numbers[1],
+        numbers[2], numbers[3]);
+}
+
+void* xgeohash_neighbor(const char* hash, int direction)
+{
+    xgeo_cell cell;
+    uint32 lat_count, lon_count;
+    char output[13];
+    xrtClearError();
+    if (!xgeo_parse(hash, &cell)) return NULL;
+    lat_count = 1u << cell.lat_bits;
+    lon_count = 1u << cell.lon_bits;
     switch (direction) {
-        case 0: lat += lat_err * 2.0; break;  /* N */
-        case 1: lat -= lat_err * 2.0; break;  /* S */
-        case 2: lon += lon_err * 2.0; break;  /* E */
-        case 3: lon -= lon_err * 2.0; break;  /* W */
-        default: return "";
+    case 0:
+        if (cell.lat + 1u == lat_count) goto pole;
+        ++cell.lat;
+        break;
+    case 1:
+        if (cell.lat == 0u) goto pole;
+        --cell.lat;
+        break;
+    case 2: cell.lon = (cell.lon + 1u) % lon_count; break;
+    case 3: cell.lon = (cell.lon + lon_count - 1u) % lon_count; break;
+    default:
+        xgeo_error(XERR_ARGUMENT, "direction must be north, south, east or west");
+        return NULL;
     }
-    /* clamp */
-    if (lat > 90.0) lat = 90.0;
-    if (lat < -90.0) lat = -90.0;
-    if (lon > 180.0) lon -= 360.0;
-    if (lon < -180.0) lon += 360.0;
-
-    return xgeohash_encode(lat, lon, len);
+    xgeo_cell_text(&cell, output);
+    return xrtStrDup(output);
+pole:
+    xgeo_error(XERR_RANGE, "no geohash neighbor beyond a pole");
+    return NULL;
 }
 
-int xgeohash_precision(const char *hash) {
-    if (!hash) return 0;
-    return (int)strlen(hash);
+int xgeohash_precision(const char* hash)
+{
+    xgeo_cell cell;
+    xrtClearError();
+    return xgeo_parse(hash, &cell) ? cell.precision : -1;
 }

@@ -8,9 +8,10 @@ func main(...) as int
     println("Beijing geohash:", h)
     println("precision:", geohash.precision(h))
 
-    // Decode back
-    println("lat:", geohash.decodeLat(h))
-    println("lon:", geohash.decodeLon(h))
+    // Decode back and check that the center remains in Beijing.
+    float lat = geohash.decodeLat(h)
+    float lon = geohash.decodeLon(h)
+    println("center near Beijing:", lat > 39.9 and lat < 39.91 and lon > 116.4 and lon < 116.41)
 
     // Bounding box
     println("bbox:", geohash.bbox(h))

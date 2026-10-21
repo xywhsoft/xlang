@@ -1,0 +1,43 @@
+# geohash
+
+`geohash` 将经纬度编码为 1..12 字符的标准小写 Geohash Base32 文本。经度位先于纬度位交错；处于分割中点的坐标归入上半格。仅接受有限范围内的纬度 `[-90, 90]`、经度 `[-180, 180]`；最大端点归入最后一格。解码严格校验长度和字符，不跳过错误输入，也不静默修改精度。
+
+## XLang API
+
+- `encode(lat, lon, precision = 6)`：创建编码；精度必须为 1..12。
+- `decodeLat(hash)` / `decodeLon(hash)`：返回该格中心坐标。
+- `bbox(hash)`：返回 `minLat,minLon,maxLat,maxLon`，使用足以往返双精度的十进制表示；字段分隔符固定为逗号，小数点固定为 `.`，不受进程区域设置影响。
+- `north/south/east/west(hash)`：返回同精度的相邻格；经度在 ±180 度处环绕，极点外没有北/南邻格，会抛 `ValueError`。
+- `precision(hash)`：严格校验后返回字符数。
+
+## C 接口与所有权
+
+公开声明在 `include/geohash_native.h`。文本结果为独立 XRT 分配，C 调用方使用 `xrtFree`；错误返回 `NULL`，通过 XRT 错误对象读取原因。`xgeohash_decode_bounds` 以结构体输出精确格边界，失败返回 0 且不修改输出；`xgeohash_precision` 失败返回 -1。单独的 C `decode_lat` / `decode_lon` 失败时返回 0.0，因此需要可靠诊断时应使用 `decode_bounds`，不可仅凭数值判断成功。XLang 封装已做严格校验并自动接管字符串所有权。
+
+每次公开 C 调用开始时会清除本线程上次遗留的 XRT 错误；成功返回不会让调用方读到前次失败的诊断。失败后仍可直接从 `xrtGetError()` 读取本次原因。
+
+邻格在经纬网格的整数索引上计算，避免在高精度下由浮点中心加减造成跳格；东/西环绕，北/南在极点报错。C 输入是 NUL 结尾字符串，不能表达嵌入 NUL 的 hash；XLang 在调用 C 前检查完整字符串，发现内嵌 NUL 则抛 `ValueError`，不会按有效前缀查询。
+
+## 范例与验证
+
+- XLang：`release/examples/extlibs/geohash.xl`
+- 同输出 C：`release/extlibs/geohash/examples/geohash_c.c`
+
+在 `demo6/release` 可直接运行 `xl run extlibs/geohash/examples/geohash_c.c`；
+普通 C 编译仍按包清单单独链接 `geohash_native.c`。
+- 边界：包内 `test/test_geohash.c`、`test/test_threads.c`、`test/boundaries.xl`（含内嵌 NUL 前缀负例），以及 `demo6/test/cases/extlib_geohash.xl`
+
+在 `demo6/release` 运行 `xl run extlibs/geohash/test/boundaries.xl`。在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package geohash -Source release/extlibs/geohash/test/test_geohash.c`。
+`pwsh -NoProfile -File release/extlibs/geohash/test/check.ps1 -SkipAot` 汇总严格 GCC manifest 宏、C/XLang 边界和范例同输出检查。去掉 `-SkipAot` 会继续构建并运行核心 AOT、尝试边界 AOT；当前边界构建在下述共享缺符号处失败，因此完整门禁不会误报通过。
+
+2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、C/XL 边界与线程测试、同输出范例及 `test/cases/extlib_geohash.xl` 无输出核心 AOT。`xl build extlibs/geohash/test/boundaries.xl -o ../build/test/geohash_xl_test.exe` 当前因共享链接缺少 `xl6ValueDataSnapshotV1` 而失败，完整 AOT 尚未验收；见 `dev/extlib_blockers/text_snapshot_link.md`。
+
+Linux 可在 `demo6` 目录运行 `bash release/extlibs/geohash/test/check.sh`，同次验证严格 GCC/ASan/UBSan 的 C 边界、中央与包内 XLang 用例，以及 C/XLang 范例逐字同输出。2026-10-14 新增全部 1、2 字符格子（1056 格）的中心点重新编码与邻格互逆验证，并在 C/XLang 测试最高 12 字符精度的经线环绕和极点终止；实现未改。此测试不是全部 12 字符编码空间的穷举证明。
+
+2026-10-15：修复 `bbox` 在逗号小数点区域设置下产生歧义的输出，改用 XRT 数字写出函数；Windows 区域设置负例先红后绿。Windows C/XLang 同输出、线程边界、无输出核心 AOT 与 Linux ASan/UBSan 复验通过；完整带输出 AOT 仍受上述主线缺符号阻断。
+
+2026-10-18：C 边界测试增加固定种子的 512 组跨经纬度坐标，逐组覆盖 1..12 位精度，检查格子包含原坐标、精度增加时前缀稳定、格子中心可重新编码以及东西邻格往返。Windows 严格 GCC/C、XLang 边界、双语范例与 Linux C ASan/UBSan/XLang 联合门禁通过；实现未改，完整带输出 AOT 仍待共享主线修复。
+
+2026-10-19：`encode`、`bbox`、邻格三条文本结果路径增加 C/XLang 逐点分配故障测试；C 侧验证 `XERR_MEMORY` 与下一次调用恢复，语言侧验证 `MemoryError` 不会被误判为输入错误。Windows 包级及 Linux C ASan/UBSan、XLang、双语门禁通过；原生实现无需修改。完整带输出 AOT 的共享缺符号阻断不变。
+
+2026-10-20：Windows 包门禁增加显式 `-SkipAot` 与独占 AOT 构建目录，快速模式输出明确注明跳过 AOT；默认模式验证中央核心 AOT，再验证包内边界 AOT。当前严格 C/JIT、双语同输出和核心 AOT 均通过，边界 AOT 链接仍缺共享 `xl6ValueDataSnapshotV1`，默认门禁正确以非零状态退出，成功或失败均清理本次构建目录。原生算法未改，整包仍未签收发布级。

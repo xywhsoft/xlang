@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>geohash - 扩展库 - xlang</title>
+  <meta name="description" content="geohash 提供经纬度编码、格边界解码与精确邻格计算。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / geohash</p><h1>geohash</h1>
+    <p class="extlib-lead">经纬度网格编码与相邻格查询。</p>
+    <p>严格校验坐标、精度及编码字符；XLang 输入拒绝内嵌 NUL；经度环绕，极点方向显式报错。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>encode(lat, lon, precision = 6)</code></td><td>创建 1..12 字符的 geohash</td></tr>
+      <tr><td><code>decodeLat / decodeLon</code></td><td>取格中心坐标</td></tr>
+      <tr><td><code>bbox / precision</code></td><td>取精确格边界与编码精度；bbox 固定逗号分隔、点号小数</td></tr>
+      <tr><td><code>north / south / east / west</code></td><td>返回同精度相邻格</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import geohash
+string cell = geohash.encode(42.6, -5.6, 5)
+println(cell)                 // ezs42
+println(geohash.east(cell))</code></pre>
+    <p>文本结果在 C API 中由 XRT 独立分配；成功调用不会继承前次失败的线程错误。encode、bbox 和邻格的分配故障与恢复均有 C/XLang 回归。bbox 的数字写出不受进程区域设置影响。全部 1、2 字符格子、12 字符端点及逗号小数点区域设置已有聚焦验证；输入边界、极点规则和验证命令见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

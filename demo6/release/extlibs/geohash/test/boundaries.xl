@@ -1,0 +1,79 @@
+import geohash
+
+assert geohash.encode(0.0, 0.0, 1) == "s"
+assert geohash.encode(42.6, -5.6, 5) == "ezs42"
+assert geohash.bbox("s") == "0,0,45,45"
+assert geohash.decodeLat("s") == 22.5
+assert geohash.decodeLon("s") == 22.5
+
+int failures = 0
+try
+    geohash.encode(91.0, 0.0, 6)
+catch ValueError error
+    failures += 1
+end
+try
+    geohash.encode(0.0, 0.0, 13)
+catch ValueError error
+    failures += 1
+end
+try
+    geohash.decodeLat("s!")
+catch ValueError error
+    failures += 1
+end
+try
+    geohash.precision("S")
+catch ValueError error
+    failures += 1
+end
+assert failures == 4
+
+string held = geohash.encode(42.6, -5.6, 5)
+for i in range(64)
+    geohash.encode(39.9, 116.4, 8)
+end
+assert held == "ezs42"
+
+string lastLongitude = geohash.encode(0.0, 180.0, 6)
+string east = geohash.east(lastLongitude)
+assert geohash.decodeLon(east) < 0.0
+assert geohash.west(east) == lastLongitude
+string polar = geohash.encode(90.0, 0.0, 6)
+try
+    geohash.north(polar)
+catch ValueError error
+    failures += 1
+end
+assert failures == 5
+string edge = geohash.encode(90.0, 180.0, 12)
+assert geohash.west(geohash.east(edge)) == edge
+try
+    geohash.north(edge)
+catch ValueError error
+    failures += 1
+end
+assert failures == 6
+string truncated = "s\0invalid"
+try
+    geohash.precision(truncated)
+catch ValueError error
+    failures += 1
+end
+try
+    geohash.decodeLat(truncated)
+catch ValueError error
+    failures += 1
+end
+try
+    geohash.bbox(truncated)
+catch ValueError error
+    failures += 1
+end
+try
+    geohash.east(truncated)
+catch ValueError error
+    failures += 1
+end
+assert failures == 10, "embedded NUL must not resolve a prefix geohash"
+println("geohash boundaries: PASS")
