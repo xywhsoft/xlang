@@ -20,6 +20,10 @@
 
 ## 范例和验证
 
+2026-10-22：C 边界补齐两侧同时达到 2048 行的完整 LCS 表用例，
+核对统计结果及首尾输出行。Windows 聚焦门禁和 Linux C ASan/UBSan、
+XLang 双语门禁均通过；完整范例 AOT 仍被共享缺符号阻断。
+
 2026-10-21：`test/test_unterminated.c` 的关键边界调用位于 `assert` 内；现即使编译参数包含 `-DNDEBUG`，断言及其中的调用仍会执行。Linux 包门禁显式以 `-DNDEBUG` 编译此用例，严格 C、ASan/UBSan、XLang 与双语对照通过；Windows `-SkipAot` 聚焦门禁也通过。库算法未改，完整 AOT 的共享缺符号阻断仍在。
 
 - XLang：`release/examples/extlibs/diff.xl`

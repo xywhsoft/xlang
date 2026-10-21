@@ -181,6 +181,13 @@ int main(void)
     }
     many[4096] = '\0';
     CHECK(same(xdiff_stats(many, ""), "0,2048,0"));
+    /* 两侧都到行数上限时，完整 LCS 表仍须给出正确结果。 */
+    CHECK(same(xdiff_stats(many, many), "0,0,2048"));
+    output = (char*)xdiff_lines(many, many);
+    CHECK(output != NULL && strlen(output) == 2048u * 3u &&
+        memcmp(output, " a\n", 3u) == 0 &&
+        memcmp(output + 2047u * 3u, " a\n", 3u) == 0);
+    xrtFree(output);
     for (i = 2048; i < 2050; ++i) {
         many[2 * i] = 'a';
         many[2 * i + 1] = '\n';
