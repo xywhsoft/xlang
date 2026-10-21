@@ -1,4 +1,5 @@
 #include "analysis/check.h"
+#include "analysis/frontend_index.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
 #include "src/stdlib/xl6_stdlib.h"
@@ -14,6 +15,7 @@ struct xls_semantic_check {
     XL6_SourceOverlay overlay;
     XL6_IrModule ir;
     char *path,*index;
+    xls_semantic_index* typedIndex;
     const char* phase;
     int accepted,invalid,captureIndex;
 };
@@ -23,7 +25,8 @@ static void fail(char* error,size_t capacity,const char* message)
 void xlsSemanticCheckDestroy(xls_semantic_check* r)
 {
     if(!r) return;
-    xrtFree(r->index); xl6IrModuleFree(&r->ir); xl6ParseResultFree(&r->parse);
+    xrtFree(r->index); xlsFrontendIndexDestroy(r->typedIndex);
+    xl6IrModuleFree(&r->ir); xl6ParseResultFree(&r->parse);
     xl6ImportDepsFree(&r->deps); xl6SourceOverlayClear(&r->overlay); xl6SourceReportFree(&r->report);
     xrtFree(r->path); xrtFree(r);
 }
@@ -68,8 +71,8 @@ xls_semantic_check* xlsSemanticCheckCreate(const char* entry,
     r->accepted=okay && !r->parse.diags.count;
     if(r->accepted && captureIndex) {
         char indexError[256]={0};
-        r->index=xl6SemIndexJson(r->parse.root,&r->report,indexError,sizeof(indexError));
-        if(!r->index) {
+        r->typedIndex=xlsFrontendIndexCreate(r->parse.root,&r->report,indexError,sizeof(indexError));
+        if(!r->typedIndex) {
             /* An index budget/allocation failure is infrastructure failure,
              * never a diagnostic claiming that valid user code is wrong. */
             fail(error,capacity,*indexError ? indexError : "cannot retain semantic index");
@@ -95,7 +98,7 @@ xls_check_info xlsSemanticCheckInfo(const xls_semantic_check* r)
     if(!r) return (xls_check_info){0};
     return (xls_check_info){r->path,r->phase,r->invalid ? "semantic inputs changed" : NULL,
         r->parse.diags.count,r->ir.types.count,r->ir.nodeCount,r->accepted && !r->invalid,
-        r->index && r->accepted && !r->invalid};
+        r->typedIndex && r->accepted && !r->invalid};
 }
 int xlsSemanticCheckDiagnostic(const xls_semantic_check* r,size_t index,xls_check_diagnostic* out)
 {
@@ -103,20 +106,27 @@ int xlsSemanticCheckDiagnostic(const xls_semantic_check* r,size_t index,xls_chec
     const XL6_Diag* d=&r->parse.diags.items[index];
     *out=(xls_check_diagnostic){d->file ? d->file : r->path,d->message,d->line,d->column}; return 1;
 }
-const char* xlsSemanticCheckIndex(const xls_semantic_check* r)
-{ return r && !r->invalid && r->accepted ? r->index : NULL; }
+const xls_semantic_index* xlsSemanticCheckTypedIndex(const xls_semantic_check* r)
+{ return r && !r->invalid && r->accepted ? r->typedIndex : NULL; }
+const char* xlsSemanticCheckIndex(xls_semantic_check* r)
+{
+    if(!xlsSemanticCheckTypedIndex(r)) return NULL;
+    if(!r->index) r->index=xl6SemIndexJson(r->parse.root,&r->report,NULL,0);
+    return r->index;
+}
 int xlsSemanticCheckValidate(xls_semantic_check* r)
 {
     if(!r || r->invalid) return 0;
     if(!xl6SourceReportValidate(&r->report)) { r->invalid=1; return 0; }
     return 1;
 }
-char* xlsSemanticCheckJson(xls_semantic_check* r,size_t* size)
+static char* reportJson(xls_semantic_check* r,size_t* size,int includeIndex)
 {
     if(size) *size=0;
     if(!r || !xlsSemanticCheckValidate(r)) return NULL;
-    const char* index=r->captureIndex ? (r->accepted ? r->index :
+    const char* index=includeIndex && r->captureIndex ? (r->accepted ? xlsSemanticCheckIndex(r) :
         "{\"schema\":1,\"scope\":\"checked-compilation\",\"complete\":false,\"nodes\":[]}") : NULL;
+    if(includeIndex && r->captureIndex && r->accepted && !index) return NULL;
     XL6_Output out; char* text=NULL; size_t length=0;
     if(xl6OutputOpenMemory(&out)) {
         xl6DiagPrintJsonWithIndex(&out,&r->parse.diags,r->path,r->phase,r->accepted,&r->report,index);
@@ -127,3 +137,5 @@ char* xlsSemanticCheckJson(xls_semantic_check* r,size_t* size)
     if(size) *size=length;
     return text;
 }
+char* xlsSemanticCheckJson(xls_semantic_check* r,size_t* size) { return reportJson(r,size,1); }
+char* xlsSemanticCheckReportJson(xls_semantic_check* r,size_t* size) { return reportJson(r,size,0); }

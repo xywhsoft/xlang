@@ -32,7 +32,7 @@ SERVER_SOURCES = (
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
     "src/server/xlang_ls.c",
 )
-CORE_TESTS = ("analysis_check_test", "analysis_index_limit_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_text_test", "document_sync_test")
+CORE_TESTS = ("analysis_check_test", "analysis_index_test", "analysis_index_limit_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_text_test", "document_sync_test")
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 
 
@@ -41,7 +41,7 @@ def sha(path: Path) -> str:
 
 
 def prepare_native_index(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
-    """Parameterize one existing resource limit, keeping upstream immutable."""
+    """Expose the shared collector and parameterize its limit, keeping upstream immutable."""
     original = frontend / "src/sem/xl6_sem_index.c"
     body = original.read_bytes()
     source = body.decode("utf-8").replace("\r\n", "\n")
@@ -51,11 +51,12 @@ def prepare_native_index(frontend: Path, output: Path) -> tuple[Path, Path, dict
     generated_root = output / "frontend"
     generated_root.mkdir()
     compiled = generated_root / "xl6_sem_index.c"
-    compiled.write_bytes(source.replace(definition,
-        "#ifndef XL6_INDEX_BYTES\n" + definition + "\n#endif").encode("utf-8"))
+    compiled.write_bytes((source.replace(definition,
+        "#ifndef XL6_INDEX_BYTES\n" + definition + "\n#endif") +
+        '\n#include "analysis/frontend_index.inc"\n').encode("utf-8"))
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
-        change="allow the existing index byte budget to be configured", indexBytes=NATIVE_INDEX_BYTES)
+        change="configure existing index budget and include typed collector views", indexBytes=NATIVE_INDEX_BYTES)
 
 
 def dependencies(body: str) -> list[Path]:
