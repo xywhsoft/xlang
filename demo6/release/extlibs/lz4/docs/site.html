@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>lz4 - xlang 扩展库</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+</head>
+<body>
+<main class="extlib-layout">
+  <h1>lz4</h1>
+  <p>标准 LZ4 Frame、增量编解码、文件事务和同步进度回调。复用 LZ4F 与 XRT，无需额外压缩 DLL。</p>
+  <h2>验证范围</h2>
+  <p>2026-09-28：Windows 63 步专项通过，包含 23 个实际生成 C 原型、故障注入、四线程 1000 轮和 C/XL JIT/AOT 同输出范例。Windows 和 Linux C 驱动各通过 514 项系统 liblz4 互操作检查；Linux C 通过 ASan/UBSan 与泄漏检测。2026-10-20 中央 XLang 文件范例改为独占系统临时目录并在异常路径清理，Linux 门禁通过 C/XLang 文件黄金对照；完整中央用例仍被共享字节位运算 XLIR 问题阻断，其中后续固定目录文件段尚未运行复验，不代表 Linux AOT、32 位、TSan、长期压力或性能基准已验收。</p>
+  <h2>快速使用</h2>
+  <pre><code>import lz4
+
+Buffer packed = lz4.compress("hello 世界", acceleration = 4)
+assert lz4.decompressText(packed) == "hello 世界"
+
+auto encoder = lz4.compressor()
+encoder.update("left")
+Buffer wire = encoder.drain()
+encoder.update("right")
+encoder.finish()
+wire.append(encoder.drain())
+assert lz4.decompressText(wire) == "leftright"</code></pre>
+  <h2>接口</h2>
+  <table class="ext-kv">
+    <tr><th>接口</th><th>合同</th></tr>
+    <tr><td><code>version()</code></td><td>引擎版本文本。</td></tr>
+    <tr><td><code>compress(Buffer|string, acceleration=1)</code></td><td>返回 Buffer；acceleration 为 1..65537，不是 HC 等级。</td></tr>
+    <tr><td><code>decompress(Buffer) / decompressText(Buffer)</code></td><td>返回 Buffer 或文本；二进制，包括 NUL，使用 Buffer。</td></tr>
+    <tr><td><code>compressor / decompressor</code></td><td>增量对象，update/drain/finish，累计字节只读属性；解压器另有 finished/members。</td></tr>
+    <tr><td><code>compressFile / decompressFile</code></td><td>source、destination、overwrite=true、限额及可选同步 onProgress；具体参数顺序见 README。</td></tr>
+  </table>
+  <p>便捷函数默认 maxInput=268435456、maxOutput=536870912，解压另有 maxRatio=1000，要求正数。倍率按每帧已消费前缀计算，不是最终压缩率，也不是 CPU 或工作内存限制。C 的 maxEntries 限制数据帧及 skippable 帧；OptionsInit 清零无关的单项、节点、深度字段，显式设置这些字段或 iFlags 会报参数错误。原生类 C 类型构造器的有效零限额表示不限，优先使用带校验的工厂。</p>
+  <h2>流式与文件</h2>
+  <p>finish 成功后重复调用成功，但不能继续 update；finish 后仍需 drain 最后一段。finished 仅表示完整帧边界，members 不含 skippable 帧。串联帧、关联块、标准块大小和跳过帧均可解压，不支持外部字典 ID。已 drain 的前缀无法撤回，完整验证成功后再发布结果；校验和不是加密认证。</p>
+  <p>文件接口经同目录临时文件，完整校验、最终进度、flush/close 成功后提交；支持原地转换。含 NUL 的源/目标路径报 ValueError，不访问前缀路径。取消、回调异常、输入损坏与限额失败不覆盖已有目标，overwrite=false 处理提交竞争。不承诺断电持久性或操作系统拒绝清理时仍能删除临时文件。</p>
+  <p>onProgress 参数依次为 inputBytes、totalBytes、outputBytes，返回 false 为 CancelledError，最终通知也可以取消；异常保留类型、消息和因果链。同一对象串行使用，可在回调中操作其他独立对象。</p>
+  <h2>错误与边界</h2>
+  <p>ValueError 为参数错误，RangeError 为限额，RuntimeError 为状态，MemoryError 为内存不足，IOError 为压缩数据/文件错误。共享 string 桥的嵌入 NUL 限制没有由本库消除；任意字节输入走 Buffer 路径。包内 VENDOR.md 保留上游许可、哈希及基础 lz4.c/h 精确来源仍待确认的事实。</p>
+  <h2>C 同等能力</h2>
+  <p><code>xrt_lz4.h</code> 提供 options/error、一次性、增量、Reader/Writer、文件和普通 C 进度回调。输入借用，输出 xbuffer 归调用方释放，reader/writer 不由接口关闭或 flush。C 核心只依赖 XRT；语言 callable 适配另需 xruntime。</p>
+  <h2>范例与复验</h2>
+  <p>发行目录提供综合范例 <code>examples/extlibs/lz4.xl</code>、可运行的 <code>lz4_basic.xl</code> 和 <code>lz4_files.xl</code>；C 对照在 <code>extlibs/lz4/examples/basic.c</code> 和 <code>files.c</code>。基础与文件两组使用相同输入和黄金输出。综合范例的文件段已改用独占临时目录，但当前仍在此前的 typed XLIR 字节 XOR 处编译失败，不能作为通过的完整范例。</p>
+  <p><code>tools/check_extlib_lz4.ps1 -Interop</code> 运行完整 Windows 专项及独立互操作；不带 -Interop 不表示已验证互通。<code>tools/check_extlib_lz4.sh</code> 运行 Linux C sanitizer、XLang 边界与双语对照。实际输入哈希、参照库版本和输出由门禁保存。</p>
+</main>
+</body>
+</html>

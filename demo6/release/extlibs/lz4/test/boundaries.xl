@@ -1,0 +1,106 @@
+import lz4
+// 此边界用例同时检验与独立 xxhash 包的符号共存。
+import xxhash
+
+func main(...) as int
+    assert lz4.version() != ""
+    assert lz4.decompressText(lz4.compress("你好，LZ4")) == "你好，LZ4"
+    Buffer source = Buffer()
+    source.append("中文")
+    source.appendByte(0)
+    source.appendByte(255)
+    Buffer packed = lz4.compress(source)
+    Buffer result = lz4.decompress(packed)
+    assert result == source
+    // 两包同时链接：Frame 内部的旧 xxHash 不得与公开 xxhash 包冲突。
+    assert xxhash.hash64(result) == xxhash.hash64(source)
+    assert packed[0] == 4 and packed[1] == 34 and packed[2] == 77 and packed[3] == 24
+
+    auto encoder = lz4.compressor()
+    assert encoder.valid and encoder.inputBytes == 0
+    Buffer collected = encoder.drain()
+    encoder.update(source)
+    collected.append(encoder.drain())
+    assert encoder.drain().len() == 0
+    assert encoder.finish() and encoder.finish()
+    collected.append(encoder.drain())
+    assert encoder.inputBytes == source.len() and encoder.outputBytes == collected.len()
+    bool rejected = false
+    try
+        encoder.update("late")
+    catch RuntimeError e
+        rejected = true
+    end
+    assert rejected
+
+    auto decoder = lz4.decompressor()
+    assert decoder.valid and not decoder.finished and decoder.members == 0
+    Buffer plain = Buffer()
+    // 每字节喂入并立即取出，覆盖帧头、块头和校验值的所有分界。
+    for i in range(collected.len())
+        Buffer one = Buffer()
+        one.appendByte(collected[i])
+        decoder.update(one)
+        plain.append(decoder.drain())
+    end
+    assert decoder.finished and decoder.finish() and decoder.finish()
+    assert decoder.members == 1 and decoder.inputBytes == collected.len()
+    assert decoder.outputBytes == source.len() and plain == source
+
+    rejected = false
+    try
+        lz4.decompress(packed, maxOutput = source.len() - 1)
+    catch RangeError e
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        lz4.decompress(packed, maxRatio = 4294967296)
+    catch RangeError e
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        lz4.compress("data", maxInput = 0)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        lz4.compressor(65538)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+
+    // 错误流不能在 catch 之后继续使用为有效解压器。
+    auto broken = lz4.decompressor()
+    Buffer junk = Buffer()
+    junk.append("junk!")
+    rejected = false
+    try
+        broken.update(junk)
+    catch IOError e
+        rejected = true
+    end
+    assert rejected and not broken.finished
+    rejected = false
+    try
+        broken.finish()
+    catch IOError e
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        lz4.decompress(Buffer())
+    catch IOError e
+        rejected = true
+    end
+    assert rejected
+    assert lz4.decompress(lz4.compress(Buffer())).len() == 0
+    return 0
+end

@@ -92,26 +92,27 @@ func main(...) as int
     incremental[mid] = incremental[mid] ^ 255
     try
         lz4.decompress(incremental)
-    catch CompressionError e
+    catch IOError e
         rejected = true
     end
     if not rejected then
         return 3
     end
 
-    string sourcePath = "tmp/extlib_lz4_source.bin"
-    string packedPath = "tmp/extlib_lz4_stream.lz4"
-    string plainPath = "tmp/extlib_lz4_plain.bin"
-    file.writeBytes(sourcePath, source)
+    dir.createAll("build/test/lz4-baseline")
+    string sourcePath = "build/test/lz4-baseline/source.bin"
+    string packedPath = "build/test/lz4-baseline/stream.lz4"
+    string plainPath = "build/test/lz4-baseline/plain.bin"
+    file.writeBytes(sourcePath, source.toBytes())
     lz4.compressFile(sourcePath, packedPath)
     lz4.decompressFile(packedPath, plainPath)
-    if file.readBytes(plainPath) != source then
+    if file.readBytes(plainPath) != source.toBytes() then
         return 4
     end
     bool overwriteRejected = false
     try
         lz4.compressFile(sourcePath, packedPath, overwrite = false)
-    catch CompressionError e
+    catch ValueError e
         overwriteRejected = true
     end
     if not overwriteRejected then

@@ -1,0 +1,46 @@
+import lz4
+
+class FileProgress
+    int calls = 0
+end
+
+func main(...) as int
+    string directory = dir.temp("", "xlang-lz4-example-", "")
+    string source = path.join(directory, "输入.bin")
+    string packed = path.join(directory, "data.lz4")
+    string target = path.join(directory, "输出.bin")
+    try
+        // 与 C 范例使用相同字节、UTF-8 路径及黄金输出。
+        Buffer text = Buffer()
+        text.append("hello 世界")
+        text.appendByte(0)
+        text.appendByte(255)
+        assert file.writeBytes(source, text.toBytes())
+        FileProgress progress = FileProgress()
+        lz4.compressFile(source, packed, onProgress = func(int a, int b, int c) as bool
+            progress.calls += 1
+            return true
+        end)
+        lz4.decompressFile(packed, target)
+        assert file.readBytes(target) == text.toBytes()
+        println("files: ok")
+        assert progress.calls > 0
+        println("progress: ok")
+
+        // 取消抛出 CancelledError，但目标仍保留原内容。
+        assert file.writeText(target, "keep")
+        bool cancelled = false
+        try
+            lz4.decompressFile(packed, target, onProgress = func(int a, int b, int c) as bool
+                return false
+            end)
+        catch CancelledError e
+            cancelled = true
+        end
+        assert cancelled and file.readText(target) == "keep"
+        println("cancel: preserved")
+    finally
+        assert dir.delete(directory), "LZ4 example temporary directory must be removed"
+    end
+    return 0
+end

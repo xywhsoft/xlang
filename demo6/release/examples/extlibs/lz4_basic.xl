@@ -1,0 +1,39 @@
+import lz4
+
+func main(...) as int
+    // 与 C 范例使用相同 UTF-8 字节和输出，压缩后数据总是 Buffer。
+    string text = "hello 世界"
+    assert lz4.decompressText(lz4.compress(text, acceleration = 4)) == text
+    println("utf8: ok")
+
+    Buffer binary = Buffer()
+    for value in [0, 255, 128, 65]
+        binary.appendByte(int(value))
+    end
+    assert lz4.decompress(lz4.compress(binary, acceleration = 4)) == binary
+    println("binary: ok")
+
+    lz4.Lz4Compressor encoder = lz4.compressor(acceleration = 4)
+    encoder.update("left")
+    Buffer packed = encoder.drain()
+    encoder.update("right")
+    encoder.finish()
+    packed.append(encoder.drain())
+    lz4.Lz4Decompressor decoder = lz4.decompressor()
+    decoder.update(packed)
+    decoder.finish()
+    assert decoder.drain().text() == "leftright"
+    assert encoder.inputBytes == 9 and decoder.outputBytes == 9
+    println("stream: ok")
+
+    // 空内容的合法 lz4 与零字节的非法压缩输入不同。
+    bool rejected = false
+    try
+        lz4.decompress(Buffer())
+    catch IOError e
+        rejected = true
+    end
+    assert rejected
+    println("truncated: rejected")
+    return 0
+end
