@@ -1,40 +1,54 @@
 import stb_image
 import stb_image_write
 
-assert stb_image_write.available(), "stb_image_write available failed"
+func runExample(string outDir)
+    // 解码取得带长度的像素缓冲，再分别编码为各格式。
+    string source = path.join(path.appDir(), "examples/extlibs/assets/tiny.png")
+    stb_image.StbImage image = stb_image.load(source, 4)
+    Buffer pixels = image.pixels()
+    int width = image.width()
+    int height = image.height()
+    int channels = image.channels()
 
-string imagePath = "examples/extlibs/assets/tiny.png"
-string outDir = "examples_out/extlibs/stb_image_write"
-dir.createAll(outDir)
+    Buffer png = stb_image_write.encodePng(pixels, width, height, channels)
+    Buffer jpeg = stb_image_write.encodeJpeg(pixels, width, height, channels)
+    Buffer bmp = stb_image_write.encodeBmp(pixels, width, height, channels)
+    Buffer tga = stb_image_write.encodeTga(pixels, width, height, channels)
+    stb_image.StbImage roundtrip = stb_image.loadBytes(png, 4)
+    assert roundtrip.pixels() == pixels, "PNG roundtrip pixels"
+    assert jpeg.len() > 0 and bmp.len() > 0 and tga.len() > 0, "encoded formats"
 
-point image = stb_image.load(imagePath, 4)
-assert stb_image.valid(image) != 0, "write source load failed"
-point data = stb_image.data(image)
-c_int width = c_int(stb_image.width(image))
-c_int height = c_int(stb_image.height(image))
-c_int channels = c_int(stb_image.channels(image))
-c_int stride = c_int(0)
-c_int jpgQuality = c_int(90)
+    stb_image.StbImage floats = stb_image.loadf(source, 4)
+    Buffer hdr = stb_image_write.encodeHdr(floats.pixels(), width, height, channels)
+    assert hdr.len() > 0, "HDR encoding"
 
-assert stb_image_write.write_png(outDir + "/tiny.png", data, width, height, channels, stride) != 0, "write_png failed"
-assert stb_image_write.write_jpg(outDir + "/tiny.jpg", data, width, height, channels, jpgQuality) != 0, "write_jpg failed"
-assert stb_image_write.write_bmp(outDir + "/tiny.bmp", data, width, height, channels) != 0, "write_bmp failed"
-assert stb_image_write.write_tga(outDir + "/tiny.tga", data, width, height, channels) != 0, "write_tga failed"
-assert file.exists(outDir + "/tiny.png"), "png output missing"
-assert file.exists(outDir + "/tiny.jpg"), "jpg output missing"
-assert file.exists(outDir + "/tiny.bmp"), "bmp output missing"
-assert file.exists(outDir + "/tiny.tga"), "tga output missing"
-assert stb_image.release(image) != 0, "write source release failed"
+    dir.createAll(outDir)
+    assert stb_image_write.writePng(outDir + "/tiny.png", pixels,
+        width, height, channels), "PNG file"
+    assert stb_image_write.writeJpeg(outDir + "/tiny.jpg", pixels,
+        width, height, channels), "JPEG file"
+    assert stb_image_write.writeBmp(outDir + "/tiny.bmp", pixels,
+        width, height, channels), "BMP file"
+    assert stb_image_write.writeTga(outDir + "/tiny.tga", pixels,
+        width, height, channels), "TGA file"
+    assert stb_image_write.writeHdr(outDir + "/tiny.hdr", floats.pixels(),
+        width, height, channels), "HDR file"
+    assert Buffer(file.readBytes(outDir + "/tiny.png")) == png, "PNG file bytes"
+    println("stb_image_write C/XL example: PASS")
+end
 
-point floatImage = stb_image.loadf(imagePath, 4)
-assert stb_image.valid(floatImage) != 0, "write hdr source loadf failed"
-c_int floatWidth = c_int(stb_image.width(floatImage))
-c_int floatHeight = c_int(stb_image.height(floatImage))
-c_int floatChannels = c_int(stb_image.channels(floatImage))
-assert stb_image_write.write_hdr(outDir + "/tiny.hdr", stb_image.data(floatImage), floatWidth, floatHeight, floatChannels) != 0, "write_hdr failed"
-assert file.exists(outDir + "/tiny.hdr"), "hdr output missing"
-assert stb_image.release(floatImage) != 0, "write hdr source release failed"
-assert string.len(stb_image_write.version()) > 0, "stb_image_write version missing"
-assert string.len(stb_image_write.last_error()) >= 0, "stb_image_write last_error should return a string"
+func main(...) as int
+    if arg.length > 1 then
+        runExample(string(arg[1]))
+        return 0
+    end
 
-println("stb_image_write extlib ok")
+    string workDir = path.join(path.temp(), "xlang_stbiw_example_" + crypto.randomString(20))
+    dir.createAll(workDir)
+    try
+        runExample(workDir)
+    finally
+        assert dir.delete(workDir), "temporary image directory must be removed"
+    end
+    return 0
+end

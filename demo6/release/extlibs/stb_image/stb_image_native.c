@@ -1,193 +1,284 @@
+/* stb_image 只负责解码；文件访问与错误状态统一交给 XRT。 */
+#include <limits.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
+#ifndef XRT_MODULE_FILE_WHOLE
+#define XRT_MODULE_FILE_WHOLE
+#endif
+#include "xrt.h"
+#include "include/stb_image_native.h"
+
+#define STBI_MALLOC(size) xrtMalloc(size)
+#define STBI_REALLOC(ptr, size) xrtRealloc(ptr, size)
+#define STBI_FREE(ptr) xrtFree(ptr)
+#define STBI_NO_STDIO
 #define STBI_NO_SIMD
 #define STB_IMAGE_IMPLEMENTATION
 #include "third_party/stb_image.h"
 
-#if defined(_WIN32) || defined(_WIN64)
-#define XSTBI_EXPORT __declspec(dllexport)
-#else
-#define XSTBI_EXPORT
-#endif
+#define XSTBI_DOMAIN "xlang.extlib.stb_image"
+#define XSTBI_INPUT_LIMIT (128u * 1024u * 1024u)
+#define XSTBI_OUTPUT_LIMIT (256u * 1024u * 1024u)
 
-#if defined(__GNUC__)
-#define XSTBI_THREAD __thread
-#elif defined(_MSC_VER)
-#define XSTBI_THREAD __declspec(thread)
-#else
-#define XSTBI_THREAD
-#endif
+typedef struct xstbiimage {
+    int Width;
+    int Height;
+    int Channels;
+    int IsFloat;
+    size_t Size;
+    void* Data;
+} xstbiimage;
 
-typedef struct XStbiImage {
-	int width;
-	int height;
-	int channels;
-	int is_float;
-	void* data;
-} XStbiImage;
-
-static XSTBI_THREAD char g_xstbi_error[512];
-#define XSTBI_JSON_SLOTS 8u
-
-static XSTBI_THREAD char g_xstbi_json[XSTBI_JSON_SLOTS][256];
-static XSTBI_THREAD size_t g_xstbi_json_index;
-
-static void xstbi_set_error(const char* text)
+static void xstbi_error(xerrkind Kind, const char* Message)
 {
-    size_t i = 0u;
+    if (xrtGetError() == NULL)
+        xrtSetErrorInfo(Kind, XSTBI_DOMAIN, 0, Message);
+}
 
-    if ( text == NULL ) {
-        text = "";
+static bool xstbi_input(void* Data, size_t Size)
+{
+    if (Data == NULL || Size == 0u) {
+        xstbi_error(XERR_ARGUMENT, "image data is empty");
+        return false;
     }
-
-    while ( i + 1u < sizeof(g_xstbi_error) && text[i] != '\0' ) {
-        g_xstbi_error[i] = text[i];
-        ++i;
+    if (Size > XSTBI_INPUT_LIMIT || Size > INT_MAX) {
+        xstbi_error(XERR_RANGE, "encoded image exceeds 128 MiB");
+        return false;
     }
-    g_xstbi_error[i] = '\0';
+    return true;
 }
 
-static XStbiImage* xstbi_wrap(void* data, int width, int height, int channels, int is_float)
+static bool xstbi_dimensions(void* Data, size_t Size,
+    int Desired, int IsFloat, int* Width, int* Height, int* Channels,
+    size_t* OutputSize)
 {
-	XStbiImage* image;
-	if ( data == NULL ) {
-		xstbi_set_error(stbi_failure_reason());
-		return NULL;
-	}
-	image = (XStbiImage*)calloc(1u, sizeof(XStbiImage));
-	if ( image == NULL ) {
-		stbi_image_free(data);
-		xstbi_set_error("out of memory");
-		return NULL;
-	}
-	image->width = width;
-	image->height = height;
-	image->channels = channels;
-	image->is_float = is_float;
-	image->data = data;
-	xstbi_set_error("");
-	return image;
+    size_t Pixels;
+    size_t PixelSize;
+    int SourceChannels;
+
+    if (!xstbi_input(Data, Size)) return false;
+    if (Desired < 0 || Desired > 4) {
+        xstbi_error(XERR_RANGE, "desired channels must be between 0 and 4");
+        return false;
+    }
+    if (!stbi_info_from_memory((const stbi_uc*)Data, (int)Size,
+            Width, Height, &SourceChannels)) {
+        xstbi_error(XERR_VALUE, stbi_failure_reason());
+        return false;
+    }
+    if (*Width <= 0 || *Height <= 0 || SourceChannels < 1 || SourceChannels > 4) {
+        xstbi_error(XERR_VALUE, "image dimensions or channels are invalid");
+        return false;
+    }
+    *Channels = Desired != 0 ? Desired : SourceChannels;
+    PixelSize = (size_t)*Channels * (IsFloat != 0 ? sizeof(float) : 1u);
+    if ((size_t)*Width > XSTBI_OUTPUT_LIMIT / (size_t)*Height / PixelSize) {
+        xstbi_error(XERR_RANGE, "decoded image exceeds 256 MiB");
+        return false;
+    }
+    Pixels = (size_t)*Width * (size_t)*Height;
+    *OutputSize = Pixels * PixelSize;
+    xrtClearError();
+    return true;
 }
 
-XSTBI_EXPORT int xstbi_available(void)
+static void* xstbi_decode(void* Data, size_t Size, int Desired, int IsFloat)
 {
-	return 1;
+    int Width;
+    int Height;
+    int Channels;
+    size_t OutputSize;
+    void* Pixels;
+    xstbiimage* Image;
+
+    if (!xstbi_dimensions(Data, Size, Desired, IsFloat,
+            &Width, &Height, &Channels, &OutputSize)) return NULL;
+    Pixels = IsFloat != 0
+        ? (void*)stbi_loadf_from_memory((const stbi_uc*)Data, (int)Size,
+            &Width, &Height, &Channels, Desired)
+        : (void*)stbi_load_from_memory((const stbi_uc*)Data, (int)Size,
+            &Width, &Height, &Channels, Desired);
+    if (Pixels == NULL) {
+        xstbi_error(XERR_VALUE, stbi_failure_reason());
+        return NULL;
+    }
+    Image = (xstbiimage*)xrtCalloc(1u, sizeof(*Image));
+    if (Image == NULL) {
+        stbi_image_free(Pixels);
+        xstbi_error(XERR_MEMORY, "could not allocate image handle");
+        return NULL;
+    }
+    Image->Width = Width;
+    Image->Height = Height;
+    Image->Channels = Desired != 0 ? Desired : Channels;
+    Image->IsFloat = IsFloat != 0;
+    Image->Size = OutputSize;
+    Image->Data = Pixels;
+    xrtClearError();
+    return Image;
 }
 
-XSTBI_EXPORT const char* xstbi_version(void)
+static bytes xstbi_read(const char* Path, size_t* Size)
 {
-	return "stb_image 2.30";
+    bytes Data;
+    if (Path == NULL || Path[0] == '\0') {
+        xstbi_error(XERR_ARGUMENT, "image path is empty");
+        return NULL;
+    }
+    Data = xrtFileReadAllLimit(Path, XSTBI_INPUT_LIMIT, Size);
+    if (Data == NULL) xstbi_error(XERR_IO, "could not read image file");
+    return Data;
 }
 
-XSTBI_EXPORT const char* xstbi_last_error(void)
+bool xstbi_available(void)
 {
-	return g_xstbi_error;
+    return true;
 }
 
-XSTBI_EXPORT void* xstbi_load(const char* path, int desired_channels)
+const char* xstbi_version(void)
 {
-	int width = 0;
-	int height = 0;
-	int channels = 0;
-	unsigned char* data;
-	if ( path == NULL || path[0] == '\0' ) {
-		xstbi_set_error("empty image path");
-		return NULL;
-	}
-	if ( desired_channels < 0 || desired_channels > 4 ) desired_channels = 0;
-	data = stbi_load(path, &width, &height, &channels, desired_channels);
-	if ( desired_channels > 0 ) channels = desired_channels;
-	return xstbi_wrap(data, width, height, channels, 0);
+    return "stb_image 2.30";
 }
 
-XSTBI_EXPORT void* xstbi_loadf(const char* path, int desired_channels)
+void* xstbi_load_memory(void* Data, size_t Size, int Desired, int IsFloat)
 {
-	int width = 0;
-	int height = 0;
-	int channels = 0;
-	float* data;
-	if ( path == NULL || path[0] == '\0' ) {
-		xstbi_set_error("empty image path");
-		return NULL;
-	}
-	if ( desired_channels < 0 || desired_channels > 4 ) desired_channels = 0;
-	data = stbi_loadf(path, &width, &height, &channels, desired_channels);
-	if ( desired_channels > 0 ) channels = desired_channels;
-	return xstbi_wrap(data, width, height, channels, 1);
+    xrtClearError();
+    return xstbi_decode(Data, Size, Desired, IsFloat);
 }
 
-XSTBI_EXPORT int xstbi_is_hdr(const char* path)
+void* xstbi_load(const char* Path, int Desired)
 {
-	if ( path == NULL || path[0] == '\0' ) return 0;
-	return stbi_is_hdr(path);
+    size_t Size;
+    bytes Data;
+    void* Image;
+
+    xrtClearError();
+    Data = xstbi_read(Path, &Size);
+    if (Data == NULL) return NULL;
+    Image = xstbi_decode(Data, Size, Desired, 0);
+    xrtFree(Data);
+    return Image;
 }
 
-XSTBI_EXPORT const char* xstbi_info_json(const char* path)
+void* xstbi_loadf(const char* Path, int Desired)
 {
-	char* json;
-	int width = 0;
-	int height = 0;
-	int channels = 0;
-	int ok;
-	if ( path == NULL || path[0] == '\0' ) {
-		xstbi_set_error("empty image path");
-		return "{\"ok\":false,\"width\":0,\"height\":0,\"channels\":0}";
-	}
-	ok = stbi_info(path, &width, &height, &channels);
-	if ( !ok ) {
-		xstbi_set_error(stbi_failure_reason());
-		return "{\"ok\":false,\"width\":0,\"height\":0,\"channels\":0}";
-	}
-	json = g_xstbi_json[g_xstbi_json_index++ % XSTBI_JSON_SLOTS];
-	snprintf(json, sizeof(g_xstbi_json[0]), "{\"ok\":true,\"width\":%d,\"height\":%d,\"channels\":%d}", width, height, channels);
-	xstbi_set_error("");
-	return json;
+    size_t Size;
+    bytes Data;
+    void* Image;
+
+    xrtClearError();
+    Data = xstbi_read(Path, &Size);
+    if (Data == NULL) return NULL;
+    Image = xstbi_decode(Data, Size, Desired, 1);
+    xrtFree(Data);
+    return Image;
 }
 
-XSTBI_EXPORT int xstbi_image_valid(void* handle)
+int xstbi_is_hdr(const char* Path)
 {
-	XStbiImage* image = (XStbiImage*)handle;
-	return image != NULL && image->data != NULL;
+    size_t Size;
+    bytes Data;
+    int Width;
+    int Height;
+    int Channels;
+    size_t OutputSize;
+    int Result;
+
+    xrtClearError();
+    Data = xstbi_read(Path, &Size);
+    if (Data == NULL) return -1;
+    if (!xstbi_dimensions(Data, Size, 0, 0,
+            &Width, &Height, &Channels, &OutputSize)) {
+        xrtFree(Data);
+        return -1;
+    }
+    Result = stbi_is_hdr_from_memory(Data, (int)Size);
+    xrtFree(Data);
+    xrtClearError();
+    return Result;
 }
 
-XSTBI_EXPORT int xstbi_image_width(void* handle)
+void* xstbi_info_json(const char* Path)
 {
-	XStbiImage* image = (XStbiImage*)handle;
-	return image != NULL ? image->width : 0;
+    size_t Size;
+    bytes Data;
+    int Width;
+    int Height;
+    int Channels;
+    size_t OutputSize;
+    char* Result;
+
+    xrtClearError();
+    Data = xstbi_read(Path, &Size);
+    if (Data == NULL) return NULL;
+    if (!xstbi_dimensions(Data, Size, 0, 0,
+            &Width, &Height, &Channels, &OutputSize)) {
+        xrtFree(Data);
+        return NULL;
+    }
+    xrtFree(Data);
+    Result = (char*)xrtMalloc(128u);
+    if (Result == NULL) {
+        xstbi_error(XERR_MEMORY, "could not allocate image metadata");
+        return NULL;
+    }
+    (void)snprintf(Result, 128u,
+        "{\"width\":%d,\"height\":%d,\"channels\":%d}",
+        Width, Height, Channels);
+    return Result;
 }
 
-XSTBI_EXPORT int xstbi_image_height(void* handle)
+void* xstbi_image_adopt(void* Image)
 {
-	XStbiImage* image = (XStbiImage*)handle;
-	return image != NULL ? image->height : 0;
+    return Image;
 }
 
-XSTBI_EXPORT int xstbi_image_channels(void* handle)
+int xstbi_image_valid(void* Handle)
 {
-	XStbiImage* image = (XStbiImage*)handle;
-	return image != NULL ? image->channels : 0;
+    xstbiimage* Image = (xstbiimage*)Handle;
+    return Image != NULL && Image->Data != NULL;
 }
 
-XSTBI_EXPORT void* xstbi_image_data(void* handle)
+int xstbi_image_width(void* Handle)
 {
-	XStbiImage* image = (XStbiImage*)handle;
-	return image != NULL ? image->data : NULL;
+    xstbiimage* Image = (xstbiimage*)Handle;
+    return Image != NULL ? Image->Width : 0;
 }
 
-XSTBI_EXPORT int xstbi_image_is_float(void* handle)
+int xstbi_image_height(void* Handle)
 {
-	XStbiImage* image = (XStbiImage*)handle;
-	return image != NULL ? image->is_float : 0;
+    xstbiimage* Image = (xstbiimage*)Handle;
+    return Image != NULL ? Image->Height : 0;
 }
 
-XSTBI_EXPORT int xstbi_image_release(void* handle)
+int xstbi_image_channels(void* Handle)
 {
-	XStbiImage* image = (XStbiImage*)handle;
-	if ( image == NULL ) return 0;
-	if ( image->data != NULL ) stbi_image_free(image->data);
-	image->data = NULL;
-	free(image);
-	return 1;
+    xstbiimage* Image = (xstbiimage*)Handle;
+    return Image != NULL ? Image->Channels : 0;
+}
+
+int xstbi_image_is_float(void* Handle)
+{
+    xstbiimage* Image = (xstbiimage*)Handle;
+    return Image != NULL ? Image->IsFloat : 0;
+}
+
+size_t xstbi_image_byte_size(void* Handle)
+{
+    xstbiimage* Image = (xstbiimage*)Handle;
+    return Image != NULL ? Image->Size : 0u;
+}
+
+void* xstbi_image_data(void* Handle)
+{
+    xstbiimage* Image = (xstbiimage*)Handle;
+    return Image != NULL ? Image->Data : NULL;
+}
+
+void xstbi_image_release(void* Handle)
+{
+    xstbiimage* Image = (xstbiimage*)Handle;
+    if (Image == NULL) return;
+    stbi_image_free(Image->Data);
+    xrtFree(Image);
 }

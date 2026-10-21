@@ -1,0 +1,6 @@
+import stb_image
+
+// 仅编译：包外使用 valid()/isFloat()，不使用原生状态码入口。
+stb_image.StbImage image = stb_image.load("unused.png")
+image.validNative()
+image.floatNative()

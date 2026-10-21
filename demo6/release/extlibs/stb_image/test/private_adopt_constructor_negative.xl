@@ -1,0 +1,4 @@
+import stb_image
+
+// 仅编译：导入方不能接管任意图片句柄；绝不执行此文件。
+auto image = stb_image.StbImage(null)

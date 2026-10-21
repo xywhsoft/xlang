@@ -1,0 +1,75 @@
+import stb_image
+
+func main(...) as int
+    string path = "release/examples/extlibs/assets/tiny.png"
+    Buffer source = Buffer(file.readBytes(path))
+    stb_image.StbImage image = stb_image.loadBytes(source, 4)
+    assert image.width() == 16
+    assert image.height() == 16
+    assert image.channels() == 4
+    assert image.byteSize() == 1024
+    assert image.pixels().len() == 1024
+
+    stb_image.StbImage floats = stb_image.loadf(path, 4)
+    assert floats.isFloat()
+    assert floats.byteSize() == 4096
+    assert string.contains(stb_image.info(path), "\"width\":16")
+
+    bool rejected = false
+    try
+        stb_image.loadBytes(Buffer(), 4)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        stb_image.loadBytes(source, 5)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        stb_image.load("missing_image.png")
+    catch IOError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        stb_image.loadBytes(source, 4294967296)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected, "channel count must not wrap to C int"
+
+    rejected = false
+    try
+        stb_image.load(path + "\0ignored", 4)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "truncated path must not load prefix file"
+
+    rejected = false
+    try
+        stb_image.isHdr(path + "\0ignored")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "HDR probe must reject embedded NUL"
+
+    rejected = false
+    try
+        stb_image.info(path + "\0ignored")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "image info must reject embedded NUL"
+    println("stb_image boundaries: ok")
+    return 0
+end

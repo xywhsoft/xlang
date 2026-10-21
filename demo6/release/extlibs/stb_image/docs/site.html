@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>stb_image - 扩展库 - xlang</title>
+  <meta name="description" content="stb_image 图片解码，支持 XRT UTF-8 文件路径和自动析构图像对象。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / stb_image</p><h1>stb_image</h1>
+    <p class="extlib-lead">从 UTF-8 路径或内存 Buffer 解码图片。</p>
+    <p>基于 stb_image 2.30；XRT 负责文件读取，StbImage 自动释放像素内存。输入上限 128 MiB，解码像素上限 256 MiB；XLang 入口拒绝通道数回绕和路径内嵌 NUL。XL AOT 当前受共享运行时链接缺符号阻断，尚未完成发布验收。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数或类型</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>load / loadf</code></td><td>按 XRT UTF-8 路径读取并解码</td></tr>
+      <tr><td><code>loadBytes / loadfBytes</code></td><td>从 Buffer 解码</td></tr>
+      <tr><td><code>StbImage</code></td><td>自动析构；宽高、通道、像素大小与像素副本</td></tr>
+      <tr><td><code>info / isHdr</code></td><td>查询图片元数据和 HDR 标记</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import stb_image
+stb_image.StbImage image = stb_image.load("photo.png", 4)
+Buffer pixels = image.pixels()</code></pre>
+    <h2 id="c-api">C</h2>
+    <p>包含 <code>include/stb_image_native.h</code>。图像句柄用 <code>xstbi_image_release</code> 释放；元数据 JSON 用 <code>xrtFree</code> 释放。像素指针只在句柄存活期间有效。</p>
+  </section>
+</main>
+</body>
+</html>

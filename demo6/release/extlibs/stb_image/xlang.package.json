@@ -9,6 +9,7 @@
                      "cSources":  [
                                       "stb_image_native.c"
                                   ],
+                     "xrtModules": ["XRT_MODULE_FILE_WHOLE"],
                      "xlSources":  [
                                        "src/stb_image.xl"
                                    ]
@@ -22,6 +23,7 @@
     "dependencies":  [
 
                      ],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",
