@@ -29,6 +29,7 @@ XL6_TEXT_API struct xfuture* xl6TcpServerAcceptStartCancelV1(XL6_RuntimeServices
 XL6_TEXT_API struct xfuture* xl6TcpServerAcceptStartUntilV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* a0,const xvalue* a1,uint64_t a2);
 XL6_TEXT_API struct xfuture* xl6TcpServerAcceptStartUntilCancelV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* a0,const xvalue* a1,uint64_t a2,void* a3);
 XL6_TEXT_API void* xl6TcpServerAcceptV1(XL6_ExecutionServicesV1 services,void* a0,int64_t a1);
+XL6_TEXT_API void* xl6TcpServerTryAcceptV1(XL6_ExecutionServicesV1 services,void* a0);
 XL6_TEXT_API void* xl6TcpServerAcceptCancelV1(XL6_ExecutionServicesV1 services,void* a0,void* a1,int64_t a2);
 XL6_TEXT_API void* xl6TcpServerAcceptUntilV1(XL6_ExecutionServicesV1 services,void* a0,uint64_t a1);
 XL6_TEXT_API void* xl6TcpServerAcceptUntilCancelV1(XL6_ExecutionServicesV1 services,void* a0,uint64_t a1,void* a2);

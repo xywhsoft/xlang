@@ -20409,6 +20409,12 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
             if (inner != NULL && inner->childCount == 0 && xl6TextEquals(inner->text, "string"))
                 return ok;
         }
+        /* Nullable classes have the same sentinel carrier as ordinary class
+         * results. Native factories additionally require typed XLIR's exact
+         * registered field/destructor and independently checked error ABI. */
+        const XL6_AstNode* innerClass = xl6SemNullableInnerType(typeNode);
+        if (innerClass && (xl6SemIsCAbiClassType(ctx, (XL6_AstNode*)innerClass) ||
+            xl6SemIsCAbiClassHandleType(ctx, (XL6_AstNode*)innerClass))) return ok;
         if ( typeNode == NULL ||
              (!xl6SemIsCAbiClassHandleType(ctx, typeNode) &&
               !xl6SemIsCAbiClassType(ctx, typeNode) &&

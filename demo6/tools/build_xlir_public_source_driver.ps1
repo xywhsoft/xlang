@@ -86,6 +86,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_tcp_server_future.c',
     'src/runtime/xl6_tcp_server_interrupt_future.c',
     'src/runtime/xl6_tcp_server_sync.c',
+    'src/runtime/xl6_tcp_server_poll.c',
     'src/runtime/xl6_tcp_server_stats.c',
     'src/runtime/xl6_ownership_domain_tcp_server_stats.c',
     'src/runtime/xl6_ownership_domain_net_dial_native.c',

@@ -19,7 +19,7 @@ def main():
     gcc=next(cc for cc in compilers if cc.stem!='tcc')
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     files={Path(__file__).resolve(),*compilers,*[root/('test/support/'+name+'.c')
-        for name in ('net_engine_plan','executor_catalog_plan','tcp_server_execution_resource')]}
+        for name in ('net_engine_plan','executor_catalog_plan','tcp_server_execution_resource','tcp_server_poll_runtime')]}
     for area in ('src','lib/xrt','lib/xruntime','release/include'):
         files.update(path for path in (root/area).rglob('*') if path.is_file() and path.suffix in ('.c','.h','.inc'))
     inputs={str(path):sha(path) for path in sorted(files)};out.mkdir(parents=True)
@@ -91,6 +91,12 @@ def main():
                         text=run(name+'.'+backend,[binary,*extra],opt=='instrumented')
                         assert all(word in text for word in ('graphs=24 ordinary=3 abandoned=1 deferred=1',
                             'allocation-budgets=80','NUL roundtrip; balanced'))
+                    poll_name=f'{index}.{opt}.poll';poll_binary=out/(poll_name+ext)
+                    run(poll_name+'.build',flags(cc,mode)+[root/'test/support/tcp_server_poll_runtime.c',
+                        *[root/source for source in sources],root/'src/runtime/xl6_tcp_server_poll.c',*libs,'-o',poll_binary]);product(poll_binary)
+                    for backend,extra in (('select',[]),('native',['native'])):
+                        text=run(poll_name+'.'+backend,[poll_binary,*extra],opt=='instrumented')
+                        assert 'empty=16000 allocation-free, budgets=16 failures=' in text and 'abort rollback and balanced' in text
                 except Exception as error:failures.append(dict(Name=name,Error=repr(error)));save()
         domain=root/'src/runtime/xl6_ownership_domain_execution_tcp.c';body=domain.read_text(encoding='utf8')
         controls=[]

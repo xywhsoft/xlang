@@ -1157,6 +1157,27 @@ static int xl6IrDirectBridgeResourceMatches(const XL6_IrModule* module,
     return 1;
 }
 
+static int xl6IrDirectBridgeResultResourceMatches(const XL6_IrModule* module,
+    const XL6_IrCallTarget* target, const XL6_IrDirectBridgeContract* contract)
+{
+    XL6_IrTypeId owner = target->returnType;
+    const XL6_IrType* type = xl6IrTypeGet(&module->types, owner);
+    if (!type || (type->kind == XL6_IR_TYPE_NULLABLE) != !!contract->nullableResult) return 0;
+    if (contract->nullableResult) {
+        /* NULL is an ordinary success value, never an error discriminator.
+         * A separate checked outcome is mandatory for optional owners. */
+        if (contract->managedHandleResult || type->paramCount != 1 || !type->params ||
+            type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+            type->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL ||
+            type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+            (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
+             target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE)) return 0;
+        owner = type->params[0];
+    }
+    return xl6IrDirectBridgeResourceMatches(module, owner,
+        target->resultPhysicalFieldDeclaration, target->resultPhysicalDestroySymbol, contract->resultOwner);
+}
+
 static int xl6IrDirectBridgeCollectionMatches(const XL6_IrModule* module,
     const XL6_IrType* type, XL6_IrCAbi itemAbi, XL6_IrCollectionAbi collection)
 {
@@ -1204,8 +1225,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                     ? XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_HANDLE_VALUE_TAKE
                     : XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE) ||
                !target->resultPhysicalDestroySymbol ||
-               !xl6IrDirectBridgeResourceMatches(module, target->returnType,
-                    target->resultPhysicalFieldDeclaration, target->resultPhysicalDestroySymbol, contract->resultOwner))
+               !xl6IrDirectBridgeResultResourceMatches(module, target, contract))
             : (target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
                target->resultPhysicalFieldDeclaration != XL6_IR_NODE_INVALID || target->resultPhysicalDestroySymbol != 0)) ||
         target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||

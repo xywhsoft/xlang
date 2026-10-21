@@ -118,8 +118,9 @@ Linux `reusePort` 的两个实际 Worker Listener 及累计统计。
 
 ## 后续仍开放
 
-廉价的拥有型 `tryAccept`／空队列返回合同不以 `accept(0)` 冒充；低层裸 poll、借用
-Listener、Data／回调指针不直接提升为默认类 API。后续继续完整传输的引用／接管发送、
+廉价的拥有型 `tryAccept` 及可空结果合同见 [非阻塞轮询](tcp-server-poll.md)，不以
+`accept(0)` 冒充；低层裸 poll、借用 Listener、Data／回调指针不直接提升为默认类 API。
+后续继续完整传输的引用／接管发送、
 UDP／多播、网络文件／任务组合和剩余并发，以及 P4 非对称密钥、P5 X.509、P6 TLS、
 P7 发布产品联合验收。当前源码与专项通过不能代替这些目标完成。
 未决策仍 CRT 0／XRT 11，范围与上一批不变。

@@ -16583,7 +16583,19 @@ const XL6_IrClassField* xl6IrCallTargetNativeClassResultField(
           target->resultPhysicalAbi !=
               XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_HANDLE_VALUE_TAKE) )
         return NULL;
-    field = xl6IrManagedNativeConstructorField(module, target->returnType);
+    XL6_IrTypeId ownerType = target->returnType;
+    const XL6_IrType* result = xl6IrTypeGet(&module->types, ownerType);
+    if (result && result->kind == XL6_IR_TYPE_NULLABLE) {
+        /* Optional owning results use the same raw pointer transfer, but
+         * only the present CFG edge may construct its language owner. */
+        if (result->paramCount != 1 || !result->params ||
+            result->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+            result->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL ||
+            target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE)
+            return NULL;
+        ownerType = result->params[0];
+    }
+    field = xl6IrManagedNativeConstructorField(module, ownerType);
     if ( field == NULL ||
          field->declaration != target->resultPhysicalFieldDeclaration )
         return NULL;
@@ -25440,7 +25452,8 @@ static int xl6IrInstructionTerminates(XL6_IrInstructionKind kind)
            kind == XL6_IR_INSTR_ERROR_TEST;
 }
 
-/* A foreign owning result has two mutually exclusive consumers. Prove the
+/* A foreign owning result has exclusive rollback/present consumers and, for
+ * optional owners, one allocation-free empty success successor. Prove the
  * partition from CALL/ERROR_TEST dataflow and resolved physical field ABI,
  * never from source names or from the pointer-shaped result type alone. */
 static int xl6IrForeignResultOwnershipMatches(
@@ -25455,6 +25468,8 @@ static int xl6IrForeignResultOwnershipMatches(
     const XL6_IrBlock* failure;
     const XL6_IrInstruction* test;
     const XL6_IrInstruction* rollback;
+    const XL6_IrInstruction* emptyTest = NULL;
+    const XL6_IrInstruction* emptyBranch = NULL;
     size_t i, takes = 0;
     if (call == NULL || call->kind != XL6_IR_INSTR_CALL ||
         call->result == XL6_IR_VALUE_INVALID) return 0;
@@ -25508,6 +25523,40 @@ static int xl6IrForeignResultOwnershipMatches(
         rollback->immediateText != NULL || rollback->trueTarget != XL6_IR_BLOCK_INVALID ||
         rollback->falseTarget != XL6_IR_BLOCK_INVALID)
         return 0;
+    const XL6_IrType* publicResult = xl6IrTypeGet(&module->types, factory->returnType);
+    if (publicResult && publicResult->kind == XL6_IR_TYPE_NULLABLE) {
+        if (success->instructionCount != 2 || success->firstInstruction >= module->instructionCount ||
+            success->instructionCount > module->instructionCount - success->firstInstruction) return 0;
+        emptyTest = &module->instructions[success->firstInstruction];
+        emptyBranch = emptyTest + 1;
+        if (emptyTest->kind != XL6_IR_INSTR_NULL_TEST || emptyTest->operandCount != 1 ||
+            emptyTest->firstOperand >= module->operandCount ||
+            module->operands[emptyTest->firstOperand] != call->result || !emptyTest->result ||
+            emptyBranch->kind != XL6_IR_INSTR_BRANCH || emptyBranch->operandCount != 1 ||
+            emptyBranch->firstOperand >= module->operandCount ||
+            module->operands[emptyBranch->firstOperand] != emptyTest->result ||
+            emptyBranch->trueTarget == emptyBranch->falseTarget ||
+            emptyBranch->trueTarget <= function->firstBlock || emptyBranch->falseTarget <= function->firstBlock ||
+            emptyBranch->trueTarget > function->firstBlock + function->blockCount ||
+            emptyBranch->falseTarget > function->firstBlock + function->blockCount ||
+            emptyBranch->trueTarget > module->blockCount || emptyBranch->falseTarget > module->blockCount ||
+            emptyBranch->trueTarget == function->entryBlock || emptyBranch->falseTarget == function->entryBlock ||
+            emptyBranch->trueTarget == test->trueTarget || emptyBranch->falseTarget == test->trueTarget ||
+            emptyBranch->trueTarget == test->falseTarget || emptyBranch->falseTarget == test->falseTarget) return 0;
+        const XL6_IrBlock* empty = &module->blocks[emptyBranch->trueTarget - 1];
+        if (empty->instructionCount != 3 || empty->firstInstruction >= module->instructionCount ||
+            empty->instructionCount > module->instructionCount - empty->firstInstruction) return 0;
+        const XL6_IrInstruction* value = &module->instructions[empty->firstInstruction];
+        const XL6_IrInstruction* store = value + 1;
+        const XL6_IrInstruction* jump = value + 2;
+        if (value->kind != XL6_IR_INSTR_NULL || value->type != factory->returnType || !value->result ||
+            store->kind != XL6_IR_INSTR_STORE || store->type != factory->returnType ||
+            store->operandCount != 1 || store->firstOperand >= module->operandCount ||
+            module->operands[store->firstOperand] != value->result ||
+            jump->kind != XL6_IR_INSTR_JUMP || !jump->trueTarget ||
+            jump->trueTarget == emptyBranch->trueTarget || jump->trueTarget == emptyBranch->falseTarget) return 0;
+        success = &module->blocks[emptyBranch->falseTarget - 1];
+    }
     for (i = function->firstInstruction; i < function->firstInstruction + function->instructionCount; ++i) {
         const XL6_IrInstruction* use = &module->instructions[i];
         size_t operand;
@@ -25520,9 +25569,12 @@ static int xl6IrForeignResultOwnershipMatches(
             (use->trueTarget == test->trueTarget || use->falseTarget == test->trueTarget ||
              use->trueTarget == test->falseTarget || use->falseTarget == test->falseTarget))
             return 0;
+        if (emptyBranch && use != emptyBranch &&
+            (use->trueTarget == emptyBranch->trueTarget || use->falseTarget == emptyBranch->trueTarget ||
+             use->trueTarget == emptyBranch->falseTarget || use->falseTarget == emptyBranch->falseTarget)) return 0;
         for (operand = 0; operand < use->operandCount; ++operand) {
             if (module->operands[use->firstOperand + operand] != call->result) continue;
-            if (use == test || use == rollback) continue;
+            if (use == test || use == rollback || use == emptyTest) continue;
             if (use->kind != XL6_IR_INSTR_RUNTIME_CALL ||
                 use->runtimeOp != XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE ||
                 use->targetSymbol != destroy->symbol || use->operandCount != 1 ||
@@ -38787,8 +38839,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     "XLIR generator call target has no complete lazy worker ABI");
         } else if ( target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY &&
                     (target->returnType == XL6_IR_TYPE_INVALID ||
-                     xl6IrTypeGet(&module->types, target->returnType)->kind !=
-                         XL6_IR_TYPE_CLASS ||
+                     xl6IrCallTargetNativeClassResultField(module, target) == NULL ||
                      xl6IrTypeGet(&module->types, target->returnType)->cAbi !=
                          XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
                      xl6IrCallTargetPhysicalResultType(module, target) ==

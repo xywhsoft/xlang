@@ -29,10 +29,11 @@ def main():
     driver = Path(build['Driver'])
     assert sha(driver) == build['DriverSha256'].lower()
     cc = Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
-    cases=tuple('stdlib_tcp_server_'+name for name in ('options','core','sync','async','stops'))+('stdlib_tcp_managed_async','stdlib_tcp_data_buffer_async_only')
+    cases=tuple('stdlib_tcp_server_'+name for name in ('options','core','sync','async','stops','poll'))+('stdlib_tcp_managed_async','stdlib_tcp_data_buffer_async_only')
     negatives=tuple('bad_stdlib_tcp_server_'+name for name in ('mode','options','future'))
     contract = root / 'test/cases/xlir_tcp_server_contract.c'
-    inputs = {str(path): sha(path) for path in (Path(__file__).resolve(), manifest, driver, cc, contract, root/'test/cases/xlir_tcp_managed_contract.c',
+    poll_contract = root/'test/cases/xlir_tcp_server_poll_contract.c'
+    inputs = {str(path): sha(path) for path in (Path(__file__).resolve(), manifest, driver, cc, contract, poll_contract, root/'test/cases/xlir_tcp_managed_contract.c',
         *[root / ('test/cases/' + name + '.xl') for name in cases + negatives])}
     env = dict(os.environ)
     if os.name != 'nt':
@@ -95,6 +96,10 @@ def main():
             if case=='stdlib_tcp_server_core':
                 assert 'xl6TcpServerCreateV1(' in text and 'xl6TcpServerAcceptStartV1(' not in text
                 assert 'xl6OwnershipDomainNetServerFutureNativeV1Get(),' not in text
+            if case=='stdlib_tcp_server_poll':
+                assert 'xl6TcpServerTryAcceptV1(' in text
+                assert 'xl6OwnershipDomainNetServerFutureNativeV1Get(),' not in text
+                assert 'xl6TcpServerAcceptV1(' not in text and 'xl6TcpServerAcceptStartV1(' not in text
             if case=='stdlib_tcp_server_options':
                 assert 'xl6OwnershipDomainExecutionTcpServerV1Get(),' not in text
             if case=='stdlib_tcp_server_async':
@@ -120,6 +125,9 @@ def main():
             if case in ('stdlib_tcp_server_options','stdlib_tcp_server_core'):
                 assert all('#define XRT_MODULE_'+module+'\n' not in native_text for module in ('NET_TCP_SERVER_FUTURE','NET_TCP_FUTURE'))
                 assert 'xl6_future_callback_queue.c' not in native_text
+            if case=='stdlib_tcp_server_poll':
+                assert '#define XRT_MODULE_NET_TCP_SERVER_FUTURE\n' not in native_text
+                assert 'xl6_future_callback_queue.c' not in native_text and 'xl6_tcp_server_sync.c' not in native_text
             imports = run(case + '.imports', ['E:/software/w64devkit/bin/objdump.exe', '-p', exe]
                 if os.name == 'nt' else ['readelf', '-d', exe])
             assert not any(name in imports.lower() for name in ('xl.dll', 'xlc.dll', 'libxl.so', 'libxlc.so'))
@@ -131,12 +139,17 @@ def main():
         objects = [row['Path'] for row in build['Objects'] if Path(row['Source']).name not in
             ('xlir_public_source_driver.c', 'xlir_public_source_linux_driver.c')]
         assert len(objects) == len(build['Objects']) - 1
-        for opt in ('O0', 'O2'):
-            obj = out / ('contract.' + opt + '.o')
-            run('contract.' + opt + '.build', [cc, *flags, '-Wno-missing-field-initializers', '-' + opt,
-                '-c', contract, '-o', obj])
+        contracts=(('contract',contract,[root/'test/cases/stdlib_tcp_server_async.xl',
+            root/'test/cases/stdlib_tcp_data_receive_async.xl'],'TCP XLIR:'),
+            ('poll-contract',poll_contract,[root/'test/cases/stdlib_tcp_server_poll.xl'],'TCP optional owner:'))
+        for label,source,arguments,marker in contracts:
+          for opt in ('O0', 'O2'):
+            name=label+'.'+opt
+            obj = out / (name + '.o')
+            run(name + '.build', [cc, *flags, '-Wno-missing-field-initializers', '-' + opt,
+                '-c', source, '-o', obj])
             product(obj)
-            binary = out / ('contract.' + opt + ('.exe' if os.name == 'nt' else ''))
+            binary = out / (name + ('.exe' if os.name == 'nt' else ''))
             links = [*objects, obj]
             if os.name == 'nt':
                 links += [root / 'release/xl.dll', '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
@@ -146,14 +159,13 @@ def main():
             else:
                 lib = args.native_root.resolve() / 'release'
                 links += ['-L' + str(lib), '-lxl', '-Wl,-rpath,' + str(lib), '-Wl,--export-dynamic', '-pthread', '-ldl', '-lm']
-            rsp = out / ('contract.' + opt + '.rsp')
+            rsp = out / (name + '.rsp')
             rsp.write_text('\n'.join('"' + str(arg).replace('\\', '/') + '"' for arg in [*links, '-o', binary]) + '\n', encoding='utf8')
             product(rsp)
-            run('contract.' + opt + '.link', [cc, '@' + str(rsp)])
+            run(name + '.link', [cc, '@' + str(rsp)])
             product(binary)
-            proof = run('contract.' + opt + '.run', [binary, root / 'test/cases/stdlib_tcp_server_async.xl',
-                root / 'test/cases/stdlib_tcp_data_receive_async.xl'])
-            assert 'TCP XLIR:' in proof and 'before C/header output' in proof
+            proof = run(name + '.run', [binary,*arguments])
+            assert marker in proof
         report['InputsUnchanged'] = all(sha(path) == digest for path, digest in inputs.items()) and all(
             sha(row['Path']) == row['Sha256'].lower() for row in frozen)
         report['LogsUnchanged'] = all(sha(row['Log']) == row['Sha256'] for row in rows)
