@@ -92,26 +92,27 @@ func main(...) as int
     incremental[mid] = incremental[mid] ^ 255
     try
         lzma.decompress(incremental)
-    catch CompressionError e
+    catch IOError e
         rejected = true
     end
     if not rejected then
         return 3
     end
 
-    string sourcePath = "tmp/extlib_lzma_source.bin"
-    string packedPath = "tmp/extlib_lzma_stream.lzma"
-    string plainPath = "tmp/extlib_lzma_plain.bin"
-    file.writeBytes(sourcePath, source)
+    dir.createAll("build/test/lzma-baseline")
+    string sourcePath = "build/test/lzma-baseline/source.bin"
+    string packedPath = "build/test/lzma-baseline/stream.lzma"
+    string plainPath = "build/test/lzma-baseline/plain.bin"
+    file.writeBytes(sourcePath, source.toBytes())
     lzma.compressFile(sourcePath, packedPath)
     lzma.decompressFile(packedPath, plainPath)
-    if file.readBytes(plainPath) != source then
+    if file.readBytes(plainPath) != source.toBytes() then
         return 4
     end
     bool overwriteRejected = false
     try
         lzma.compressFile(sourcePath, packedPath, overwrite = false)
-    catch CompressionError e
+    catch ValueError e
         overwriteRejected = true
     end
     if not overwriteRejected then

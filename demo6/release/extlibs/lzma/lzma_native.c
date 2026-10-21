@@ -1,12 +1,25 @@
+#ifndef XRT_MODULE_ERROR_FORMAT
 #define XRT_MODULE_ERROR_FORMAT
+#endif
+#ifndef XRT_MODULE_FILE_TEMP
 #define XRT_MODULE_FILE_TEMP
+#endif
+#ifndef XRT_MODULE_IO_BUFFER
 #define XRT_MODULE_IO_BUFFER
+#endif
+#ifndef XRT_MODULE_IO_FILE
 #define XRT_MODULE_IO_FILE
+#endif
+#ifndef XRT_MODULE_PATH
 #define XRT_MODULE_PATH
+#endif
+#ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+#endif
 
 #include "xruntime.h"
 #include "include/xrt_lzma.h"
+#include "include/lzma_native.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define XLZMA_EXPORT __declspec(dllexport)
@@ -46,8 +59,19 @@ static void xlzma_publish_error(const xrtlzmaerror* pError)
 		pError->sMessage : "lzma operation failed";
 	int iCode = pError != NULL ? pError->iCode : XRT_LZMA_ERROR_IO;
 
+	/* 保留分配器、IO 或回调已经发布的首个错误。 */
+	if ( xrtGetError() != NULL ) { return; }
+
 	xrtSetErrorInfo(xlzma_error_kind(iCode), "xlang.extlib.lzma",
 		iCode, sMessage);
+}
+
+static bool xlzma_handle_required(const void* pHandle)
+{
+	if ( pHandle != NULL ) { return true; }
+	xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.lzma",
+		XRT_LZMA_ERROR_ARGUMENT, "lzma object handle is required");
+	return false;
 }
 
 
@@ -63,24 +87,8 @@ static void xlzma_options(xrtlzmaoptions* pOptions, int iLevel, uint64 iMaxInput
 }
 
 
-/* 删除失败事务的临时文件，同时保留原始失败原因。 */
-static void xlzma_remove_temp(cstr sTemp)
-{
-	xerror* pError;
-
-	if ( sTemp == NULL ) { return; }
-	pError = xrtTakeError();
-	if ( xrtFileExists(sTemp) ) { (void)xrtFileDelete(sTemp); }
-	xrtClearError();
-	if ( pError != NULL ) {
-		xrtSetError(pError);
-		xrtErrorFree(pError);
-	}
-}
-
-
 /* 1 成功，0 处理失败，-1 用户取消，-2 回调抛错。 */
-static int xlzma_transform_file(str sSource, str sDestination, bool bCompress,
+static int xlzma_transform_file(const char* sSource, const char* sDestination, bool bCompress,
 	bool bOverwrite, const xrtlzmaoptions* pOptions, xvalue* pCallback)
 {
 	xrtlzmaerror tError;
@@ -92,6 +100,7 @@ static int xlzma_transform_file(str sSource, str sDestination, bool bCompress,
 	str sTemp = NULL;
 	bool bResult = false;
 	int iResult = 0;
+	xerror* pSaved;
 
 	xrtLzmaErrorInit(&tError);
 	xrtProgressCallInit(&tProgress, pCallback);
@@ -101,10 +110,15 @@ static int xlzma_transform_file(str sSource, str sDestination, bool bCompress,
 			XRT_LZMA_ERROR_ARGUMENT, "lzma source and destination paths are required");
 		return 0;
 	}
-	if ( xrtPathExists(sDestination) && !bOverwrite ) {
-		xrtSetErrorFormat(XERR_EXISTS, "xlang.extlib.lzma", XRT_LZMA_ERROR_IO,
-			"lzma destination already exists: %s", sDestination);
-		return 0;
+	if ( !bOverwrite ) {
+		xfileinfo Info;
+		if ( xrtPathStat(sDestination, false, &Info) ) {
+			xrtSetErrorFormat(XERR_EXISTS, "xlang.extlib.lzma", XRT_LZMA_ERROR_IO,
+				"lzma destination already exists: %s", sDestination);
+			return 0;
+		}
+		if ( xrtErrorKind(xrtGetError()) != XERR_NOT_FOUND ) { return 0; }
+		xrtClearError();
 	}
 	pReader = xrtReaderOpen(sSource);
 	if ( pReader == NULL ) { goto cleanup; }
@@ -126,17 +140,32 @@ static int xlzma_transform_file(str sSource, str sDestination, bool bCompress,
 	}
 
 cleanup:
-	if ( (pWriter != NULL) && !xrtWriterDestroy(pWriter) && bResult ) { bResult = false; }
-	if ( (TempFile != NULL) && !xrtClose(TempFile) && bResult ) { bResult = false; }
-	if ( (pReader != NULL) && !xrtReaderDestroy(pReader) && bResult ) { bResult = false; }
-	if ( bResult && !xrtPathRename(sTemp, sDestination, bOverwrite) ) { bResult = false; }
-	if ( !bResult ) {
-		if ( (xrtGetError() == NULL) && !tProgress.InvokeFailed &&
-			(tError.iCode == XRT_LZMA_OK) ) {
-			xrtSetErrorInfo(XERR_IO, "xlang.extlib.lzma",
-				XRT_LZMA_ERROR_IO, "lzma file operation failed");
-		}
-		xlzma_remove_temp(sTemp);
+	/* 析构或删除临时文件不得覆盖回调、内存和首个 IO 错误。 */
+	pSaved = xrtTakeError();
+	if ( pSaved != NULL ) { bResult = false; }
+	if ( (pWriter != NULL) && !xrtWriterDestroy(pWriter) && bResult ) {
+		bResult = false; pSaved = xrtTakeError();
+	}
+	xrtClearError();
+	if ( (TempFile != NULL) && !xrtClose(TempFile) && bResult ) {
+		bResult = false; pSaved = xrtTakeError();
+	}
+	xrtClearError();
+	if ( (pReader != NULL) && !xrtReaderDestroy(pReader) && bResult ) {
+		bResult = false; pSaved = xrtTakeError();
+	}
+	xrtClearError();
+	if ( bResult && !xrtPathRename(sTemp, sDestination, bOverwrite) ) {
+		bResult = false; pSaved = xrtTakeError();
+	}
+	if ( !bResult && sTemp != NULL ) { (void)xrtFileDelete(sTemp); }
+	xrtClearError();
+	if ( pSaved != NULL ) {
+		xrtSetError(pSaved);
+		xrtErrorFree(pSaved);
+	} else if ( !bResult && !tProgress.InvokeFailed ) {
+		xrtSetErrorInfo(XERR_IO, "xlang.extlib.lzma", XRT_LZMA_ERROR_IO,
+			"lzma file operation failed");
 	}
 	xrtFree(sDirectory);
 	xrtFree(sTemp);
@@ -150,12 +179,14 @@ cleanup:
 
 XLZMA_EXPORT bool xlzma_available(void)
 {
+	xrtClearError();
 	return true;
 }
 
 XLZMA_EXPORT const char* xlzma_version(void)
 {
-	return "lzma sdk 23.01";
+	xrtClearError();
+	return "lzma sdk 26.03";
 }
 
 XLZMA_EXPORT const char* xlzma_last_error(void)
@@ -165,8 +196,8 @@ XLZMA_EXPORT const char* xlzma_last_error(void)
 
 
 
-XLZMA_EXPORT void* xlzma_compress(const void* pData, size_t iSize, int iLevel,
-	uint64 iMaxInput, uint64 iMaxOutput)
+XLZMA_EXPORT void* xlzma_compress(void* pData, size_t iSize, int iLevel,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput)
 {
 	xrtlzmaoptions tOptions;
 	xrtlzmaerror tError;
@@ -181,13 +212,13 @@ XLZMA_EXPORT void* xlzma_compress(const void* pData, size_t iSize, int iLevel,
 }
 
 XLZMA_EXPORT void* xlzma_compress_str(const char* sText, size_t iSize, int iLevel,
-	uint64 iMaxInput, uint64 iMaxOutput)
+	unsigned long long iMaxInput, unsigned long long iMaxOutput)
 {
-	return xlzma_compress((const void*)sText, iSize, iLevel, iMaxInput, iMaxOutput);
+	return xlzma_compress((void*)sText, iSize, iLevel, iMaxInput, iMaxOutput);
 }
 
-XLZMA_EXPORT void* xlzma_decompress(const void* pData, size_t iSize, uint64 iMaxInput,
-	uint64 iMaxOutput, uint32 iMaxRatio)
+XLZMA_EXPORT void* xlzma_decompress(void* pData, size_t iSize, unsigned long long iMaxInput,
+	unsigned long long iMaxOutput, unsigned int iMaxRatio)
 {
 	xrtlzmaoptions tOptions;
 	xrtlzmaerror tError;
@@ -201,8 +232,8 @@ XLZMA_EXPORT void* xlzma_decompress(const void* pData, size_t iSize, uint64 iMax
 	return pOutput;
 }
 
-XLZMA_EXPORT int xlzma_compress_file(str sSource, str sDestination, int iLevel,
-	bool bOverwrite, uint64 iMaxInput, uint64 iMaxOutput, xvalue* pCallback)
+XLZMA_EXPORT int xlzma_compress_file(const char* sSource, const char* sDestination, int iLevel,
+	bool bOverwrite, unsigned long long iMaxInput, unsigned long long iMaxOutput, xvalue* pCallback)
 {
 	xrtlzmaoptions tOptions;
 	xrtClearError();
@@ -210,8 +241,8 @@ XLZMA_EXPORT int xlzma_compress_file(str sSource, str sDestination, int iLevel,
 	return xlzma_transform_file(sSource, sDestination, true, bOverwrite, &tOptions, pCallback);
 }
 
-XLZMA_EXPORT int xlzma_decompress_file(str sSource, str sDestination, bool bOverwrite,
-	uint64 iMaxInput, uint64 iMaxOutput, uint32 iMaxRatio, xvalue* pCallback)
+XLZMA_EXPORT int xlzma_decompress_file(const char* sSource, const char* sDestination, bool bOverwrite,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio, xvalue* pCallback)
 {
 	xrtlzmaoptions tOptions;
 	xrtClearError();
@@ -221,14 +252,21 @@ XLZMA_EXPORT int xlzma_decompress_file(str sSource, str sDestination, bool bOver
 
 
 
-XLZMA_EXPORT void* xlzma_compressor_create(int iLevel, uint64 iMaxInput, uint64 iMaxOutput)
+XLZMA_EXPORT void* xlzma_compressor_create(int iLevel, unsigned long long iMaxInput, unsigned long long iMaxOutput)
 {
 	xrtlzmaoptions tOptions;
 	xrtlzmacompressor* pCompressor;
 	xrtClearError();
 	xlzma_options(&tOptions, iLevel, iMaxInput, iMaxOutput, 0u);
 	pCompressor = xrtLzmaCompressorCreate(&tOptions);
-	if ( pCompressor == NULL || xrtLzmaCompressorError(pCompressor)->iCode != XRT_LZMA_OK ) {
+	if ( pCompressor == NULL ) {
+		if ( xrtGetError() == NULL ) {
+			xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.lzma",
+				XRT_LZMA_ERROR_MEMORY, "cannot allocate lzma compressor");
+		}
+		return NULL;
+	}
+	if ( xrtLzmaCompressorError(pCompressor)->iCode != XRT_LZMA_OK ) {
 		xlzma_publish_error(xrtLzmaCompressorError(pCompressor));
 		xrtLzmaCompressorDestroy(pCompressor);
 		return NULL;
@@ -241,9 +279,11 @@ XLZMA_EXPORT void xlzma_compressor_destroy(void* pHandle)
 	xrtLzmaCompressorDestroy((xrtlzmacompressor*)pHandle);
 }
 
-XLZMA_EXPORT bool xlzma_compressor_update(void* pHandle, const void* pData, size_t iSize)
+XLZMA_EXPORT bool xlzma_compressor_update(void* pHandle, void* pData, size_t iSize)
 {
 	xrtlzmacompressor* pCompressor = (xrtlzmacompressor*)pHandle;
+	xrtClearError();
+	if ( !xlzma_handle_required(pHandle) ) { return false; }
 	if ( !xrtLzmaCompressorUpdate(pCompressor, pData, iSize) ) {
 		xlzma_publish_error(xrtLzmaCompressorError(pCompressor));
 		return false;
@@ -253,12 +293,14 @@ XLZMA_EXPORT bool xlzma_compressor_update(void* pHandle, const void* pData, size
 
 XLZMA_EXPORT bool xlzma_compressor_update_str(void* pHandle, const char* sText, size_t iSize)
 {
-	return xlzma_compressor_update(pHandle, (const void*)sText, iSize);
+	return xlzma_compressor_update(pHandle, (void*)sText, iSize);
 }
 
 XLZMA_EXPORT bool xlzma_compressor_finish(void* pHandle)
 {
 	xrtlzmacompressor* pCompressor = (xrtlzmacompressor*)pHandle;
+	xrtClearError();
+	if ( !xlzma_handle_required(pHandle) ) { return false; }
 	if ( !xrtLzmaCompressorFinish(pCompressor) ) {
 		xlzma_publish_error(xrtLzmaCompressorError(pCompressor));
 		return false;
@@ -269,6 +311,8 @@ XLZMA_EXPORT bool xlzma_compressor_finish(void* pHandle)
 XLZMA_EXPORT void* xlzma_compressor_drain(void* pHandle)
 {
 	xrtlzmacompressor* pCompressor = (xrtlzmacompressor*)pHandle;
+	xrtClearError();
+	if ( !xlzma_handle_required(pHandle) ) { return NULL; }
 	xbuffer* pOutput = xrtLzmaCompressorDrainBuffer(pCompressor);
 	if ( pOutput == NULL ) {
 		xlzma_publish_error(xrtLzmaCompressorError(pCompressor));
@@ -277,27 +321,38 @@ XLZMA_EXPORT void* xlzma_compressor_drain(void* pHandle)
 	return pOutput;
 }
 
-XLZMA_EXPORT uint64 xlzma_compressor_input_bytes(void* pHandle)
+XLZMA_EXPORT unsigned long long xlzma_compressor_input_bytes(void* pHandle)
 {
+	xrtClearError();
+	if ( !xlzma_handle_required(pHandle) ) { return 0u; }
 	return xrtLzmaCompressorInputBytes((const xrtlzmacompressor*)pHandle);
 }
 
-XLZMA_EXPORT uint64 xlzma_compressor_output_bytes(void* pHandle)
+XLZMA_EXPORT unsigned long long xlzma_compressor_output_bytes(void* pHandle)
 {
+	xrtClearError();
+	if ( !xlzma_handle_required(pHandle) ) { return 0u; }
 	return xrtLzmaCompressorOutputBytes((const xrtlzmacompressor*)pHandle);
 }
 
 
 
-XLZMA_EXPORT void* xlzma_decompressor_create(uint64 iMaxInput, uint64 iMaxOutput,
-	uint32 iMaxRatio)
+XLZMA_EXPORT void* xlzma_decompressor_create(unsigned long long iMaxInput, unsigned long long iMaxOutput,
+	unsigned int iMaxRatio)
 {
 	xrtlzmaoptions tOptions;
 	xrtlzmadecompressor* pDecompressor;
 	xrtClearError();
 	xlzma_options(&tOptions, -1, iMaxInput, iMaxOutput, iMaxRatio);
 	pDecompressor = xrtLzmaDecompressorCreate(&tOptions);
-	if ( pDecompressor == NULL || xrtLzmaDecompressorError(pDecompressor)->iCode != XRT_LZMA_OK ) {
+	if ( pDecompressor == NULL ) {
+		if ( xrtGetError() == NULL ) {
+			xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.lzma",
+				XRT_LZMA_ERROR_MEMORY, "cannot allocate lzma decompressor");
+		}
+		return NULL;
+	}
+	if ( xrtLzmaDecompressorError(pDecompressor)->iCode != XRT_LZMA_OK ) {
 		xlzma_publish_error(xrtLzmaDecompressorError(pDecompressor));
 		xrtLzmaDecompressorDestroy(pDecompressor);
 		return NULL;
@@ -310,9 +365,11 @@ XLZMA_EXPORT void xlzma_decompressor_destroy(void* pHandle)
 	xrtLzmaDecompressorDestroy((xrtlzmadecompressor*)pHandle);
 }
 
-XLZMA_EXPORT bool xlzma_decompressor_update(void* pHandle, const void* pData, size_t iSize)
+XLZMA_EXPORT bool xlzma_decompressor_update(void* pHandle, void* pData, size_t iSize)
 {
 	xrtlzmadecompressor* pDecompressor = (xrtlzmadecompressor*)pHandle;
+	xrtClearError();
+	if ( !xlzma_handle_required(pHandle) ) { return false; }
 	if ( !xrtLzmaDecompressorUpdate(pDecompressor, pData, iSize) ) {
 		xlzma_publish_error(xrtLzmaDecompressorError(pDecompressor));
 		return false;
@@ -323,6 +380,8 @@ XLZMA_EXPORT bool xlzma_decompressor_update(void* pHandle, const void* pData, si
 XLZMA_EXPORT bool xlzma_decompressor_finish(void* pHandle)
 {
 	xrtlzmadecompressor* pDecompressor = (xrtlzmadecompressor*)pHandle;
+	xrtClearError();
+	if ( !xlzma_handle_required(pHandle) ) { return false; }
 	if ( !xrtLzmaDecompressorFinish(pDecompressor) ) {
 		xlzma_publish_error(xrtLzmaDecompressorError(pDecompressor));
 		return false;
@@ -333,6 +392,8 @@ XLZMA_EXPORT bool xlzma_decompressor_finish(void* pHandle)
 XLZMA_EXPORT void* xlzma_decompressor_drain(void* pHandle)
 {
 	xrtlzmadecompressor* pDecompressor = (xrtlzmadecompressor*)pHandle;
+	xrtClearError();
+	if ( !xlzma_handle_required(pHandle) ) { return NULL; }
 	xbuffer* pOutput = xrtLzmaDecompressorDrainBuffer(pDecompressor);
 	if ( pOutput == NULL ) {
 		xlzma_publish_error(xrtLzmaDecompressorError(pDecompressor));
@@ -341,22 +402,30 @@ XLZMA_EXPORT void* xlzma_decompressor_drain(void* pHandle)
 	return pOutput;
 }
 
-XLZMA_EXPORT uint64 xlzma_decompressor_input_bytes(void* pHandle)
+XLZMA_EXPORT unsigned long long xlzma_decompressor_input_bytes(void* pHandle)
 {
+	xrtClearError();
+	if ( !xlzma_handle_required(pHandle) ) { return 0u; }
 	return xrtLzmaDecompressorInputBytes((const xrtlzmadecompressor*)pHandle);
 }
 
-XLZMA_EXPORT uint64 xlzma_decompressor_output_bytes(void* pHandle)
+XLZMA_EXPORT unsigned long long xlzma_decompressor_output_bytes(void* pHandle)
 {
+	xrtClearError();
+	if ( !xlzma_handle_required(pHandle) ) { return 0u; }
 	return xrtLzmaDecompressorOutputBytes((const xrtlzmadecompressor*)pHandle);
 }
 
 XLZMA_EXPORT bool xlzma_decompressor_finished(void* pHandle)
 {
+	xrtClearError();
+	if ( !xlzma_handle_required(pHandle) ) { return false; }
 	return xrtLzmaDecompressorFinished((const xrtlzmadecompressor*)pHandle);
 }
 
-XLZMA_EXPORT uint64 xlzma_decompressor_members(void* pHandle)
+XLZMA_EXPORT unsigned long long xlzma_decompressor_members(void* pHandle)
 {
+	xrtClearError();
+	if ( !xlzma_handle_required(pHandle) ) { return 0u; }
 	return xrtLzmaDecompressorMembers((const xrtlzmadecompressor*)pHandle);
 }

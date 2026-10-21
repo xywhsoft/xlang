@@ -1,0 +1,7 @@
+import lzma
+
+func main(...) as int
+    Buffer packed = lzma.compress("hello xz")
+    if lzma.decompressText(packed) != "hello xz" then return 1 end
+    return 0
+end

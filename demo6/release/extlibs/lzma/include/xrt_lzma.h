@@ -5,6 +5,9 @@
 #ifndef XRT_MODULE_IO_BUFFER
 #define XRT_MODULE_IO_BUFFER
 #endif
+#ifndef XRT_MODULE_ONCE
+#define XRT_MODULE_ONCE
+#endif
 
 #include "xrt.h"
 
@@ -13,6 +16,9 @@ extern "C" {
 #endif
 
 #define XRT_LZMA_OPTIONS_VERSION 1u
+
+/* 所有公开入口均使用标准 .xz 流；压缩器 update 缓冲输入，
+ * finish 后 drain 才有压缩字节。文件流入口直接逐块读取和写出。 */
 
 typedef enum {
 	XRT_LZMA_OK = 0,
@@ -39,6 +45,7 @@ typedef struct {
 	uint32 iVersion;
 	int iLevel;
 	uint8 sReserved[4];
+	/* 单项限额保护解码分配；条目、节点、深度与标志必须为零。 */
 	xrtresourcelimits tLimits;
 } xrtlzmaoptions;
 

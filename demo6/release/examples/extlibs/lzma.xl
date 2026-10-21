@@ -25,15 +25,14 @@ func main(...) as int
     assert lzma.decompressText(textPacked) == "hello lzma"
     println("引擎版本: ", lzma.version())
 
-    // ─── 2. 增量流式压缩：update -> drain -> finish ───
-    // drain() 随时取走已产出的压缩字节，适合边喂数据边落盘/发送。
+    // ─── 2. 分段输入：update -> finish -> drain ───
+    // 对象暂存输入；真正的大文件流式压缩请使用 compressFile()。
     auto encoder = lzma.compressor()
     Buffer streamPacked = Buffer()
     encoder.update("hello ")
-    streamPacked.append(encoder.drain())
+    assert encoder.drain().len() == 0
     encoder.update("stream")
-    streamPacked.append(encoder.drain())
-    encoder.finish()                 // 封存流（写入成员结束标记）
+    encoder.finish()                 // 编码并封存标准 .xz 单流
     streamPacked.append(encoder.drain())
     println("流式压缩: 喂入 ", encoder.inputBytes, " 字节, 产出 ",
         encoder.outputBytes, " 字节")
@@ -59,7 +58,7 @@ func main(...) as int
     bool truncatedRejected = false
     try
         lzma.decompress(chainedTruncated)
-    catch CompressionError e
+    catch IOError e
         truncatedRejected = true
     end
     assert truncatedRejected, "truncated final lzma member must be rejected"
@@ -71,37 +70,39 @@ func main(...) as int
     assert lzma.decompress(tuned.drain()).text() == "tune me"
     println("最高级别 L9 流式往返: OK")
 
-    // ─── 5. 损坏数据必然抛 CompressionError（CRC32 校验生效）───
+    // ─── 5. 非法流抛 IOError；LZMA 不提供内容认证 ───
     bool rejected = false
-    int mid = streamPacked.len() / 2
-    streamPacked[mid] = streamPacked[mid] ^ 255
     try
-        lzma.decompress(streamPacked)
-    catch CompressionError e
+        lzma.decompress(Buffer())
+    catch IOError e
         rejected = true
     end
-    assert rejected, "corrupt lzma must raise CompressionError"
-    println("损坏检出: OK")
+    assert rejected, "invalid lzma must raise IOError"
+    println("非法流检出: OK")
 
     // ─── 6. 文件便捷接口（XRT reader/writer，临时文件+原子重命名）───
-    dir.createAll("tmp")
-    file.writeBytes("tmp/lzma_example_source.bin", source)
-    FileProgress progress = FileProgress()
-    lzma.compressFile("tmp/lzma_example_source.bin", "tmp/lzma_example.lzma",
-        onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
-            progress.calls += 1
-            progress.inputBytes = inputBytes
-            progress.totalBytes = totalBytes
-            return true
-        end)
-    assert progress.calls > 0
-    assert progress.inputBytes == source.len()
-    assert progress.totalBytes == source.len()
-    lzma.decompressFile("tmp/lzma_example.lzma", "tmp/lzma_example_plain.bin")
-    assert file.readBytes("tmp/lzma_example_plain.bin") == source
-    file.delete("tmp/lzma_example_source.bin")
-    file.delete("tmp/lzma_example.lzma")
-    file.delete("tmp/lzma_example_plain.bin")
+    string directory = dir.temp("", "xlang-lzma-example-", "")
+    string sourcePath = path.join(directory, "source.bin")
+    string packedPath = path.join(directory, "packed.xz")
+    string restoredPath = path.join(directory, "restored.bin")
+    try
+        assert file.writeBytes(sourcePath, source.toBytes())
+        FileProgress progress = FileProgress()
+        lzma.compressFile(sourcePath, packedPath,
+            onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+                progress.calls += 1
+                progress.inputBytes = inputBytes
+                progress.totalBytes = totalBytes
+                return true
+            end)
+        assert progress.calls > 0
+        assert progress.inputBytes == source.len()
+        assert progress.totalBytes == source.len()
+        lzma.decompressFile(packedPath, restoredPath)
+        assert file.readBytes(restoredPath) == source.toBytes()
+    finally
+        assert dir.delete(directory), "lzma example temporary directory must be removed"
+    end
 
     println("lzma example: PASS")
     return 0

@@ -1,0 +1,5 @@
+import lzma
+
+// 仅编译：包外不能自造输入指针与长度。
+auto stream = lzma.decompressor()
+stream.updateNative(null, c_size(1))

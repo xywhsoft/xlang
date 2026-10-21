@@ -1,10 +1,6 @@
 /* LzmaEnc.c -- LZMA Encoder
 Igor Pavlov : Public domain */
 
-#ifndef Z7_ST
-#define Z7_ST
-#endif
-
 #include "Precomp.h"
 
 #include <string.h>
@@ -696,7 +692,10 @@ Z7_NO_INLINE static void Z7_FASTCALL RangeEnc_ShiftLow(CRangeEnc *p)
 {
   UInt32 low = (UInt32)p->low;
   unsigned high = (unsigned)(p->low >> 32);
-  p->low = (UInt32)(low << 8);
+  {
+    const UInt32 low2 = low << 8;
+    p->low = low2;
+  }
   if (low < (UInt32)0xFF000000 || high != 0)
   {
     {
@@ -962,7 +961,8 @@ static void LenEnc_Encode(CLenEnc *p, CRangeEnc *rc, unsigned sym, unsigned posS
     unsigned m;
     unsigned bit;
     RC_BIT_0(rc, probs)
-    probs += (posState << (1 + kLenNumLowBits));
+    posState <<= (1 + kLenNumLowBits);
+    probs += posState;
     bit = (sym >> 2)    ; RC_BIT(rc, probs + 1, bit)  m = (1 << 1) + bit;
     bit = (sym >> 1) & 1; RC_BIT(rc, probs + m, bit)  m = (m << 1) + bit;
     bit =  sym       & 1; RC_BIT(rc, probs + m, bit)
@@ -1004,7 +1004,8 @@ Z7_NO_INLINE static void Z7_FASTCALL LenPriceEnc_UpdateTables(
     for (posState = 0; posState < numPosStates; posState++)
     {
       UInt32 *prices = p->prices[posState];
-      const CLzmaProb *probs = enc->low + (posState << (1 + kLenNumLowBits));
+      const unsigned posState2 = posState << (1 + kLenNumLowBits);
+      const CLzmaProb *probs = enc->low + posState2;
       SetPrices_3(probs, a, prices, ProbPrices);
       SetPrices_3(probs + kLenNumLowSymbols, c, prices + kLenNumLowSymbols, ProbPrices);
     }
@@ -2224,7 +2225,7 @@ Z7_NO_INLINE static void FillAlignPrices(CLzmaEnc *p)
     UInt32 prob;
     bit = sym & 1; sym >>= 1; price += GET_PRICEa(probs[m], bit); m = (m << 1) + bit;
     bit = sym & 1; sym >>= 1; price += GET_PRICEa(probs[m], bit); m = (m << 1) + bit;
-    bit = sym & 1; sym >>= 1; price += GET_PRICEa(probs[m], bit); m = (m << 1) + bit;
+    bit = sym & 1;            price += GET_PRICEa(probs[m], bit); m = (m << 1) + bit;
     prob = probs[m];
     p->alignPrices[i    ] = price + GET_PRICEa_0(prob);
     p->alignPrices[i + 8] = price + GET_PRICEa_1(prob);
@@ -2355,10 +2356,9 @@ static void LzmaEnc_Construct(CLzmaEnc *p)
 
 CLzmaEncHandle LzmaEnc_Create(ISzAllocPtr alloc)
 {
-  void *p;
-  p = ISzAlloc_Alloc(alloc, sizeof(CLzmaEnc));
+  CLzmaEncHandle p = (CLzmaEncHandle)ISzAlloc_Alloc(alloc, sizeof(CLzmaEnc));
   if (p)
-    LzmaEnc_Construct((CLzmaEnc *)p);
+    LzmaEnc_Construct(p);
   return p;
 }
 
@@ -3074,7 +3074,11 @@ SRes LzmaEnc_WriteProperties(CLzmaEncHandle p, Byte *props, SizeT *size)
       while (v < dictSize);
     }
 
-    SetUi32(props + 1, v)
+    /* props + 1 可能未对齐；按字节写避免严格对齐平台上的未定义行为。 */
+    props[1] = (Byte)v;
+    props[2] = (Byte)(v >> 8);
+    props[3] = (Byte)(v >> 16);
+    props[4] = (Byte)(v >> 24);
     return SZ_OK;
   }
 }

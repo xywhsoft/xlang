@@ -1,8 +1,11 @@
 /* Precomp.h -- precompilation file
-2024-01-25 : Igor Pavlov : Public domain */
+: Igor Pavlov : Public domain */
 
 #ifndef ZIP7_INC_PRECOMP_H
 #define ZIP7_INC_PRECOMP_H
+
+/* 扩展包按单线程构建，避免引入不需要的线程运行时。 */
+#define Z7_ST
 
 /*
   this file must be included before another *.h files and before <windows.h>.
@@ -40,17 +43,17 @@
 #endif
 */
 
+#ifndef Z7_LARGE_PAGES
+#if !defined(Z7_NO_LARGE_PAGES) && !defined(UNDER_CE)
+#define Z7_LARGE_PAGES 1
+#endif
+#endif
+
 #ifdef _WIN32
 /*
   this "Precomp.h" file must be included before <windows.h>,
   if we want to define _WIN32_WINNT before <windows.h>.
 */
-
-#ifndef Z7_LARGE_PAGES
-#ifndef Z7_NO_LARGE_PAGES
-#define Z7_LARGE_PAGES 1
-#endif
-#endif
 
 #ifndef Z7_LONG_PATH
 #ifndef Z7_NO_LONG_PATH

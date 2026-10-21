@@ -242,7 +242,7 @@ void __declspec(naked) Z7_FASTCALL z7_x86_cpuid_subFunc(UInt32 p[4], UInt32 func
       #include <intrin.h>
       #define MY_cpuidex  __cpuidex
 
-
+static
 void Z7_FASTCALL z7_x86_cpuid_subFunc(UInt32 p[4], UInt32 func, UInt32 subFunc)
 {
   __cpuidex((int *)p, func, subFunc);
@@ -271,7 +271,6 @@ Z7_NO_INLINE void Z7_FASTCALL MY_cpuidex_HACK(Int32 subFunction, Int32 func, Int
 }
       #define MY_cpuidex(info, func, func2)  MY_cpuidex_HACK(func2, func, info)
       #pragma message("======== MY_cpuidex_HACK WAS USED ========")
-
 static
 void Z7_FASTCALL z7_x86_cpuid_subFunc(UInt32 p[4], UInt32 func, UInt32 subFunc)
 {
@@ -864,7 +863,7 @@ BoolInt CPU_IsSupported_AES (void) { return APPLE_CRYPTO_SUPPORT_VAL; }
 
 #if defined(__GLIBC__) && (__GLIBC__ * 100 + __GLIBC_MINOR__ >= 216)
   #define Z7_GETAUXV_AVAILABLE
-#else
+#elif !defined(__QNXNTO__)
 // #pragma message("=== is not NEW GLIBC === ")
   #if defined __has_include
   #if __has_include (<sys/auxv.h>)
@@ -882,7 +881,7 @@ BoolInt CPU_IsSupported_AES (void) { return APPLE_CRYPTO_SUPPORT_VAL; }
 
 #ifdef USE_HWCAP
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
 static unsigned long MY_getauxval(int aux)
 {
   unsigned long val;

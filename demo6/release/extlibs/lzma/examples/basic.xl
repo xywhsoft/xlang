@@ -1,0 +1,8 @@
+import lzma
+
+func main(...) as int
+    Buffer packed = lzma.compress("hello lzma")
+    assert lzma.decompressText(packed) == "hello lzma"
+    println("lzma round trip: hello lzma")
+    return 0
+end

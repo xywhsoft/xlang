@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09090a">
+  <title>lzma - 扩展库 - xlang</title>
+  <meta name="description" content="lzma 扩展库：使用 7-Zip SDK 输出标准 .xz（LZMA2）流。提供一次性内存、分段输入和文件流式编解码，支持二进制 Buffer、串联流及 0..9 压缩级别。">
+  <link rel="icon" href="../favicon.png">
+  <meta property="og:title" content="lzma - xlang 扩展库">
+  <meta property="og:description" content="标准 .xz 压缩与解压：一次性、分段输入和文件流式接口。">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+    <ul class="nav-links" id="site-navigation">
+      <li><a href="../index.html#highlights">亮点</a></li>
+      <li><a href="../index.html#features">特性</a></li>
+      <li><a href="../index.html#start">快速开始</a></li>
+      <li><a href="../tour.html">语法导览</a></li>
+      <li><a href="../book/index.html">教程</a></li>
+      <li><a href="../stdlib.html">标准库</a></li>
+      <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+      <li><a href="../guide.html">文档</a></li>
+      <li><a href="../download.html">下载</a></li>
+      <li><a href="https://gitee.com/xywhsoft/x-lang" target="_blank" rel="noopener">Gitee</a></li>
+    </ul>
+    <div class="nav-actions" aria-label="页面工具"></div>
+  </div>
+</nav>
+
+<div class="extlib-layout c-zip" id="main-content">
+  <div class="extlib-head">
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;"><a href="../extlibs.html" style="color:var(--brand);text-decoration:none;">扩展库</a><span style="margin:0 6px;">/</span><span style="color:var(--text-soft);">lzma</span></p>
+    <div class="extlib-title-row"><h1>lzma</h1><span class="extlib-cat-badge">压缩归档</span></div>
+    <div class="extlib-badges"><span class="extlib-badge">v1.0.0</span><span class="extlib-badge hot">C 混编</span><span class="extlib-badge">0 依赖</span><span class="extlib-badge">ABI 1</span></div>
+    <p class="extlib-lead">基于 7-Zip SDK 的标准 .xz 编解码，提供一次性内存、分段输入和文件流式 C/XLang API。</p>
+    <p>默认输出标准 XZ <code>.xz</code> 流（LZMA2 + CRC64），可与通用工具交换；解码还验证 CRC32、SHA-256、无校验、Delta 与 x86 BCJ 滤镜的外部样本。支持串联流及 4 字节对齐的零填充，拒绝不完整填充和尾随垃圾；不读取旧 <code>.lzma</code> 流。无校验流不检测内容损坏；CRC64 也不是内容认证。</p>
+  </div>
+
+  <div class="ext-tabs" id="extTabs">
+    <button class="ext-tab active" data-panel="overview">概览</button>
+    <button class="ext-tab" data-panel="api">API 参考</button>
+    <button class="ext-tab" data-panel="examples">范例</button>
+    <button class="ext-tab" data-panel="tests">测试</button>
+  </div>
+
+  <div class="ext-panel active" id="panel-overview">
+    <h2>典型场景</h2>
+    <div class="ext-scenes"><span class="ext-scene">归档压缩</span><span class="ext-scene">固件 / 安装包分发</span><span class="ext-scene">冷存储</span><span class="ext-scene">大文件流式</span><span class="ext-scene">备份存储</span><span class="ext-scene">进度回显传输</span></div>
+    <h2>快速开始</h2>
+    <div class="code-block"><div class="code-header"><span>quick_start.xl</span></div><div class="code-body"><pre>import lzma
+
+func main(...) as int
+    Buffer packed = lzma.compress("hello lzma")
+    println(lzma.decompressText(packed))   // hello lzma
+
+    auto enc = lzma.compressor()
+    enc.update("part1 ")
+    enc.update("part2")
+    enc.finish()
+    Buffer blob = enc.drain()
+
+    auto dec = lzma.decompressor()
+    dec.update(blob)
+    dec.finish()
+    println(dec.drain().text())           // part1 part2
+    return 0
+end</pre></div></div>
+    <h2>核心特性</h2>
+    <ul>
+      <li><strong>极高压缩率</strong> — LZMA 在级别 9 下压缩率通常优于 gzip/bzip2</li>
+      <li><strong>二进制安全</strong> — 输入输出统一 <code>Buffer</code></li>
+      <li><strong>三种粒度</strong> — 一次性内存、文件级、分段输入与增量解压</li>
+      <li><strong>大文件流式</strong> — <code>compressFile()</code> / <code>decompressFile()</code>；压缩器对象在 <code>finish()</code> 前暂存输入</li>
+      <li><strong>进度回显</strong> — <code>inputBytes</code>/<code>outputBytes</code> 字节计数器</li>
+      <li><strong>多成员流</strong> — 解压器 <code>finished</code>/<code>members</code></li>
+      <li><strong>级别 0..9</strong> — 0 最快、9 最高压缩率、5 默认平衡</li>
+      <li><strong>文件原子写</strong> — 临时文件 + 原子重命名</li>
+    </ul>
+    <h2>包信息</h2>
+    <table class="ext-kv">
+      <tr><th>包名</th><td>lzma</td></tr><tr><th>版本</th><td>1.0.0</td></tr>
+      <tr><th>引擎</th><td>LZMA SDK 26.03</td></tr>
+      <tr><th>实现方式</th><td>C 混编（LZMA SDK C，API 层 xlang）</td></tr>
+      <tr><th>依赖</th><td>无</td></tr><tr><th>ABI 版本</th><td>1</td></tr>
+      <tr><th>导出符号</th><td>compress(), decompress(), decompressText(), compressFile(), decompressFile(), compressor(), decompressor(), LzmaCompressor, LzmaDecompressor, LZMA_* 常量</td></tr>
+      <tr><th>源文件</th><td>extlibs/lzma/src/lzma.xl</td></tr>
+    </table>
+  </div>
+
+  <div class="ext-panel" id="panel-api">
+    <div class="api-group-title">常量</div>
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export const int</span> <span class="fn">LZMA_MIN_LEVEL</span> = <span class="kw">0</span>
+<span class="kw">export const int</span> <span class="fn">LZMA_MAX_LEVEL</span> = <span class="kw">9</span>
+<span class="kw">export const int</span> <span class="fn">LZMA_DEFAULT_LEVEL</span> = <span class="kw">5</span></div>
+      <p>压缩级别常量。0 最快、9 压缩率最高、5 为默认平衡点。</p>
+    </div>
+    <div class="api-group-title">一次性 / 文件 / 流式</div>
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export func</span> <span class="fn">compress</span>(<span class="type">Buffer</span> data, <span class="type">int</span> level = <span class="kw">5</span>, ...) <span class="kw">as</span> <span class="type">Buffer</span>
+<span class="kw">export func</span> <span class="fn">decompress</span>(<span class="type">Buffer</span> data, ...) <span class="kw">as</span> <span class="type">Buffer</span>
+<span class="kw">export func</span> <span class="fn">compressFile</span>(...) / <span class="fn">decompressFile</span>(...)
+<span class="kw">export func</span> <span class="fn">compressor</span>(<span class="type">int</span> level = <span class="kw">5</span>, ...) <span class="kw">as</span> <span class="type">LzmaCompressor</span>
+<span class="kw">export func</span> <span class="fn">decompressor</span>(...) <span class="kw">as</span> <span class="type">LzmaDecompressor</span></div>
+      <p>API 分为一次性、文件级和分段对象。压缩器对象在 finish() 时生成一条标准 .xz 流，此前 drain() 返回空 Buffer；文件接口直接通过 XRT reader/writer 流动。解压器可边输入边 drain()，但仅在 finish() 成功后才能信任输出。</p>
+      <div class="api-note">文件接口末尾支持可空 <code>onProgress(inputBytes, totalBytes, outputBytes)</code>。含 NUL 的源/目标路径报 <code>ValueError</code>；返回 false 删除临时输出并抛 <code>CancelledError</code>；回调异常原样传播。C 层对应 <code>xrtprogressproc</code> + <code>void* userData</code>。</div>
+      <div class="api-note"><code>level</code> 越界抛 <code>ValueError</code>；数据损坏或截断经 XRT 映射为 <code>IOError</code>，资源限额为 <code>RangeError</code>。C 的 <code>iMaxItemBytes</code> 是有效的解码单次分配上限，默认 256 MiB，可在分配前拒绝小输入声明的 1 GiB 字典；它不是进程总内存配额。OptionsInit 清零无关的条目、节点与深度字段，显式设置这些字段或 iFlags 会报参数错误。LZMA 不提供内容认证。</div>
+    </div>
+  </div>
+
+  <div class="ext-panel" id="panel-examples">
+    <h2>教学范例</h2>
+    <p>完整源文件：<code>examples/extlibs/lzma.xl</code></p>
+    <h3>1. 一次性 + 流式</h3>
+    <div class="code-block"><div class="code-header"><span>lzma.xl</span></div><div class="code-body"><pre>import lzma
+
+Buffer packed = lzma.compress("xlang lzma")
+assert lzma.decompressText(packed) == "xlang lzma"
+println("引擎版本: ", lzma.version())
+
+auto encoder = lzma.compressor()
+Buffer streamPacked = Buffer()
+encoder.update("hello ")
+encoder.update("stream")
+encoder.finish()
+streamPacked.append(encoder.drain())
+
+auto decoder = lzma.decompressor()
+decoder.update(streamPacked)
+decoder.finish()
+assert decoder.drain().text() == "hello stream"</pre></div></div>
+    <h3>2. 最高级别 L9</h3>
+    <div class="code-block"><div class="code-header"><span>调优</span></div><div class="code-body"><pre>auto tuned = lzma.compressor(lzma.LZMA_MAX_LEVEL)
+tuned.update("tune me")
+tuned.finish()
+assert lzma.decompress(tuned.drain()).text() == "tune me"</pre></div></div>
+    <h3>运行范例</h3>
+    <div class="code-block"><div class="code-header"><span>终端</span></div><div class="code-body"><pre>cd release
+xl.exe run examples\extlibs\lzma.xl</pre></div></div>
+  </div>
+
+  <div class="ext-panel" id="panel-tests">
+    <h2>测试覆盖</h2>
+    <p>聚焦测试：Linux 包级脚本同次运行 C 边界、XLang 边界与隔离目录文件用例、C/XLang 范例逐字节输出对照、Python 标准库双向互通及 C 侧 ASan/UBSan。C 入口验证选项和资源限制结构的当前完整长度、版本及零保留字段；无效选项不开始读写流。C Reader/Writer 流接口验证成功往返与进度计数；XLang 文件接口验证回调、取消、拒绝覆盖和限额失败时保留原文件。非默认校验与滤镜也由独立编码器生成验证，损坏的 CRC32/CRC64/SHA-256 块校验会被拒绝；CRC32 与 SHA-256 混合串联可解码，次流损坏时不返回首流明文。原 <code>extlib_lzma.xl</code> 仍被已记录的主线 XLIR 字节异或错误阻断。</p>
+    <ul>
+      <li>一次性二进制往返（含 NUL / 0xFF）</li>
+      <li>流式往返 + members 计数 + finished</li>
+      <li>分块收集 + inputBytes 计数器</li>
+      <li>最高级别 LZMA_MAX_LEVEL 往返</li>
+      <li>级别越界抛 ValueError</li>
+      <li>串联多成员流</li>
+      <li>非法流与截断拒绝、限额错误分类</li>
+      <li>与 Python <code>lzma.FORMAT_XZ</code> 双向互通</li>
+      <li>文件级往返、进度与取消、overwrite 拒绝、限额失败保留原文件</li>
+      <li>C 与 XLang 分配故障注入：内存错误分类、空结果和恢复；Linux ASan/UBSan</li>
+    </ul>
+    <h3>运行测试</h3>
+    <div class="code-block"><div class="code-header"><span>终端</span></div><div class="code-body"><pre>cd release
+xl.exe run extlibs\lzma\examples\basic.xl
+xl.exe run extlibs\lzma\examples\basic_c.c
+xl.exe run extlibs\lzma\test\boundaries.xl
+xl.exe run extlibs\lzma\test\allocations.xl
+xl.exe run ..\test\cases\extlib_lzma_progress.xl</pre></div></div>
+  </div>
+
+  <a href="../extlibs.html" class="ext-back">← 返回扩展库列表</a>
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a class="brand-wordmark" href="../index.html" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+      <p>以 C 为后端的现代编程语言。生成本地二进制，也可作为运行时嵌入现有 C/C++ 工程。</p>
+    </div>
+    <div class="footer-col">
+      <h4>文档</h4>
+      <ul>
+        <li><a href="../tour.html">语法导览</a></li>
+        <li><a href="../book/index.html">系统教程</a></li>
+        <li><a href="../stdlib.html">标准库</a></li>
+        <li><a href="../extlibs.html">扩展库</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>项目</h4>
+      <ul>
+        <li><a href="../download.html">下载</a></li>
+        <li><a href="https://gitee.com/xywhsoft/x-lang" target="_blank" rel="noopener">Gitee 仓库</a></li>
+        <li><a href="https://gitee.com/xywhsoft/x-lang/issues" target="_blank" rel="noopener">问题反馈</a></li>
+        <li><a href="https://xrt.xywhsoft.com" target="_blank" rel="noopener">XRT 文档</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">xlang &copy; 2026 xLeaves (xywhsoft) · MIT License</div>
+</footer>
+<script src="../main.js"></script>
+<script>(function(){var tabs=document.querySelectorAll('#extTabs .ext-tab');var panels=document.querySelectorAll('.ext-panel');tabs.forEach(function(tab){tab.addEventListener('click',function(){tabs.forEach(function(t){t.classList.remove('active');});panels.forEach(function(p){p.classList.remove('active');});tab.classList.add('active');document.getElementById('panel-'+tab.dataset.panel).classList.add('active');});});})();</script>
+</body>
+</html>

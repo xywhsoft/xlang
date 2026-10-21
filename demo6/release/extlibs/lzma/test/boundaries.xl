@@ -1,0 +1,114 @@
+import lzma
+
+func main(...) as int
+    assert lzma.version() == "lzma sdk 26.03"
+    Buffer first = lzma.compress("first")
+    Buffer second = lzma.compress("second")
+    assert lzma.decompressText(first) == "first"
+
+    // 标准 .xz 流在 finish 前尚未编码；drain 返回空缓冲区。
+    auto encoder = lzma.compressor()
+    encoder.update("hello ")
+    assert encoder.drain().len() == 0
+    encoder.update("stream")
+    assert encoder.inputBytes == 12
+    encoder.finish()
+    Buffer packed = encoder.drain()
+    assert packed.len() > 12
+    assert encoder.outputBytes == packed.len()
+    assert lzma.decompressText(packed) == "hello stream"
+
+    // 解码器可按片接收输入，也能连续读取多个 .xz 流。
+    Buffer joined = Buffer()
+    joined.append(first)
+    joined.append(second)
+    auto decoder = lzma.decompressor()
+    Buffer restored = Buffer()
+    for i in range(0, joined.len())
+        Buffer part = Buffer()
+        part.appendByte(joined[i])
+        decoder.update(part)
+        restored.append(decoder.drain())
+    end
+    decoder.finish()
+    restored.append(decoder.drain())
+    assert restored.text() == "firstsecond"
+    assert decoder.members == 2
+    assert decoder.finished
+
+    // .xz 允许 4 字节对齐的零填充和后续流，不允许不完整填充。
+    Buffer padded = Buffer()
+    padded.append(first)
+    for i in range(0, 4)
+        padded.appendByte(0)
+    end
+    assert lzma.decompressText(padded) == "first"
+    padded.append(second)
+    assert lzma.decompressText(padded) == "firstsecond"
+
+    bool badPadding = false
+    try
+        Buffer brokenPadding = Buffer()
+        brokenPadding.append(first)
+        brokenPadding.appendByte(0)
+        lzma.decompress(brokenPadding)
+    catch IOError e
+        badPadding = true
+    end
+    assert badPadding
+
+    bool trailingGarbage = false
+    try
+        Buffer brokenTail = Buffer()
+        brokenTail.append(first)
+        brokenTail.appendByte(42)
+        lzma.decompress(brokenTail)
+    catch IOError e
+        trailingGarbage = true
+    end
+    assert trailingGarbage
+
+    bool truncated = false
+    try
+        Buffer broken = Buffer()
+        for i in range(0, first.len() - 1)
+            broken.appendByte(first[i])
+        end
+        lzma.decompress(broken)
+    catch IOError e
+        truncated = true
+    end
+    assert truncated
+
+    // 损坏标准 .xz 的尾部 CRC，不能把已解出的内容当成成功结果。
+    Buffer brokenCrc = Buffer()
+    for i in range(0, first.len())
+        if i == first.len() - 12 then
+            if first[i] == 0 then
+                brokenCrc.appendByte(1)
+            else
+                brokenCrc.appendByte(0)
+            end
+        else
+            brokenCrc.appendByte(first[i])
+        end
+    end
+    bool badCrc = false
+    try
+        lzma.decompress(brokenCrc)
+    catch IOError e
+        badCrc = true
+    end
+    assert badCrc
+    assert lzma.decompressText(first) == "first"
+
+    bool limited = false
+    try
+        lzma.decompress(first, maxOutput = 3)
+    catch RangeError e
+        limited = true
+    end
+    assert limited
+    println("lzma XLang boundaries: PASS")
+    return 0
+end

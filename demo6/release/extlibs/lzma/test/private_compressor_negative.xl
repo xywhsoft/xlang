@@ -1,0 +1,5 @@
+import lzma
+
+// 仅编译：包外不能绕开 Buffer 的实际长度。
+auto stream = lzma.compressor()
+stream.updateNative(null, c_size(1))
