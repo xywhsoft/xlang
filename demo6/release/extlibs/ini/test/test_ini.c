@@ -27,6 +27,94 @@ static int textEquals(const char* sValue, const char* sExpected)
 	return sValue != NULL && sExpected != NULL && strcmp(sValue, sExpected) == 0;
 }
 
+static int sameIniValues(const xrtiniconfig* pLeft, const xrtiniconfig* pRight)
+{
+	uint32 iSection, iKey;
+	if ( xrtIniSectionCount(pLeft) != xrtIniSectionCount(pRight) ) { return 0; }
+	for ( iSection = 0u; iSection < xrtIniSectionCount(pLeft); ++iSection ) {
+		const char* sSection = xrtIniSectionName(pLeft, iSection);
+		if ( sSection == NULL || !xrtIniHasSection(pRight, (str)sSection) ||
+			xrtIniKeyCount(pLeft, (str)sSection) !=
+			xrtIniKeyCount(pRight, (str)sSection) ) { return 0; }
+		for ( iKey = 0u; iKey < xrtIniKeyCount(pLeft, (str)sSection); ++iKey ) {
+			const char* sKey = xrtIniKeyName(pLeft, (str)sSection, iKey);
+			const char* sLeft = sKey != NULL ?
+				xrtIniGetRaw(pLeft, (str)sSection, (str)sKey) : NULL;
+			const char* sRight = sKey != NULL ?
+				xrtIniGetRaw(pRight, (str)sSection, (str)sKey) : NULL;
+			if ( sLeft == NULL || sRight == NULL || strcmp(sLeft, sRight) != 0 ) {
+				return 0;
+			}
+		}
+	}
+	return 1;
+}
+
+/* 畸变输入即使能解析，也不能写出一份自身无法再读取的配置。 */
+static int testMutationRoundTrip(void)
+{
+	static const char* const aSeeds[] = {
+		"# note\n[server]\nhost=localhost\nport=8080\n\n[app]\nname=demo\n",
+		"root=value\n[empty]\n[utf8]\nname=\xe4\xb8\xad\xe6\x96\x87\n"
+	};
+	static const unsigned char aChanges[] = { 0u, '\n', '=', '[', '#', 0xffu };
+	char sInput[128];
+	size_t iSeed, iLength, iPosition, iChange;
+	int bOk = 1;
+	for ( iSeed = 0u; iSeed < sizeof(aSeeds) / sizeof(aSeeds[0]); ++iSeed ) {
+		iLength = strlen(aSeeds[iSeed]);
+		for ( iPosition = 0u; iPosition <= iLength; ++iPosition ) {
+			for ( iChange = 0u; iChange <= sizeof(aChanges); ++iChange ) {
+				xrtiniconfig* pConfig;
+				xrtiniconfig* pAgain = NULL;
+				xbuffer* pOutput = NULL;
+				xbuffer* pCanonical = NULL;
+				size_t iSize = iChange == sizeof(aChanges) ? iPosition : iLength;
+				memcpy(sInput, aSeeds[iSeed], iLength);
+				if ( iChange < sizeof(aChanges) && iPosition == iLength ) { continue; }
+				if ( iChange < sizeof(aChanges) ) {
+					sInput[iPosition] = (char)aChanges[iChange];
+				}
+				pConfig = xrtIniParseMemory(sInput, iSize, NULL);
+				if ( !check(pConfig != NULL, "INI mutation parser returned no result") ) {
+					return 0;
+				}
+				if ( xrtIniError(pConfig)->iCode == XRT_INI_OK ) {
+					pOutput = xrtIniStringify(pConfig);
+					if ( pOutput != NULL ) {
+						pAgain = xrtIniParseMemory(pOutput->Data, pOutput->Size, NULL);
+						bOk &= check(pAgain != NULL &&
+							xrtIniError(pAgain)->iCode == XRT_INI_OK,
+							"INI writer emitted unreadable mutated input");
+						if ( pAgain != NULL && xrtIniError(pAgain)->iCode == XRT_INI_OK ) {
+							bOk &= check(sameIniValues(pConfig, pAgain),
+								"INI writer changed mutated input values");
+							pCanonical = xrtIniStringify(pAgain);
+							bOk &= check(pCanonical != NULL &&
+								pOutput->Size == pCanonical->Size &&
+								(pOutput->Size == 0u || memcmp(pOutput->Data,
+									pCanonical->Data, pOutput->Size) == 0),
+								"INI canonical output changed after reparse");
+						}
+					} else {
+						bOk &= check(xrtIniError(pConfig)->iCode == XRT_INI_ERROR_FORMAT,
+							"INI writer failed without a format error");
+					}
+				} else {
+					bOk &= check(xrtIniError(pConfig)->iCode != XRT_INI_ERROR_MEMORY,
+						"INI mutation exhausted memory without fault injection");
+				}
+				xrtBufferDestroy(pCanonical);
+				xrtIniDestroy(pAgain);
+				xrtBufferDestroy(pOutput);
+				xrtIniDestroy(pConfig);
+				if ( !bOk ) { return 0; }
+			}
+		}
+	}
+	return bOk;
+}
+
 static int testOptionVersions(void)
 {
 	static const char sText[] = "name=value\n";
@@ -1044,6 +1132,7 @@ int main(void)
 	int bOk;
 	bOk = testParseAndModel();
 	bOk &= testOptionVersions();
+	bOk &= testMutationRoundTrip();
 	bOk &= testWritableContract();
 	bOk &= testStrictInt();
 	bOk &= testFloatLocale();
