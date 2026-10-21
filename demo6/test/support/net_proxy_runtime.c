@@ -2,6 +2,7 @@
  * No Socket, DNS, external proxy, traffic, malformed protocol or security test. */
 #include "src/runtime/xl6_net_proxy_internal.h"
 #include "src/runtime/xl6_native_handle.h"
+#include "src/runtime/xl6_ownership_domains.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -29,6 +30,33 @@ static void errorEnd(xl6_error_scope* scope,xerrkind kind)
 {xl6_error_result result=xl6ErrorScopeEnd(scope);assert(!result.ok&&xrtErrorKind(result.error)==kind);xrtErrorFree(result.error);assert(!xrtGetError());}
 static void* proxy(int64_t type)
 {void* result=xl6NetProxyCreateTextV1(type,VIEW("127.0.0.1"),1080,VIEW(""),VIEW(""),XNET_PROXY_AUTH_AUTO);assert(result);return result;}
+typedef struct ProxyEdge {xrtownershipref native;size_t visits;} ProxyEdge;
+static bool proxyEdge(xrtownershipref ref,void* raw)
+{
+    ProxyEdge* edge=raw;assert(ref.Data==edge->native.Data&&ref.Ops==edge->native.Ops);
+    ++edge->visits;return true;
+}
+static void sharedOwnership(void)
+{
+    void* p=proxy(XNET_PROXY_SOCKS5);void* copy=xl6NetProxyCloneV1(p);assert(copy==p);
+    const XL6_NativeHandlePolicyV1* policy=xl6NetProxyHandlePolicyV1Get();
+    ProxyEdge edge={xrtNetProxyOwnership(p),0};
+    xvalue* first=xl6NativeHandleTakeV1(&p,policy);xvalue* second=xl6NativeHandleTakeV1(&copy,policy);
+    assert(first&&second&&!p&&!copy);
+    xrtownershipscope freeze={0};assert(xrtOwnershipFreezeTryBegin(&freeze));size_t count=0;
+    assert(policy->Trace(first,proxyEdge,&edge)&&policy->Trace(second,proxyEdge,&edge)&&edge.visits==2);
+    assert(edge.native.Ops->Count(edge.native.Data,&count)&&count==2);
+    const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* prepare=NULL;
+    const XL6_OwnershipFinishV1* finish=NULL;XL6_OwnershipPoliciesV1 policies={0};
+    const XL6_OwnershipDomainV1* domain=xl6OwnershipDomainNetProxyV1Get();
+    assert(domain->Resolve&&domain->Resolve(edge.native,&policies,&adapter,&prepare,&finish)&&
+        adapter==xrtNetProxyOwnershipAdapterV1(edge.native)&&!prepare&&!finish);
+    xrtownershipops forged=*edge.native.Ops;adapter=NULL;
+    assert(!domain->Resolve((xrtownershipref){edge.native.Data,&forged},&policies,&adapter,&prepare,&finish)&&!adapter&&!prepare&&!finish);
+    assert(xrtOwnershipScopeEnd(&freeze));xrtValueRelease(first);
+    assert(xrtOwnershipFreezeTryBegin(&freeze)&&edge.native.Ops->Count(edge.native.Data,&count)&&count==1);
+    assert(xrtOwnershipScopeEnd(&freeze));xrtValueRelease(second);
+}
 static void endpoints(void)
 {
     void* p=proxy(XNET_PROXY_SOCKS5);assert(xl6NetProxyTypeV1(p)==XNET_PROXY_SOCKS5&&xl6NetProxyPortV1(p)==1080&&xl6NetProxyAuthV1(p)==XNET_PROXY_AUTH_NONE);
@@ -130,7 +158,7 @@ done:;
 #endif
 int main(void)
 {
-    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);endpoints();
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);endpoints();sharedOwnership();
 #if TEST_ROOT==1||TEST_ROOT==7
     endpointValues();
 #endif

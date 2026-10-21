@@ -26879,6 +26879,14 @@ XRT_API xnetproxy* xrtNetProxyRetain(const xnetproxy* pProxy);
 /* 释放代理对象引用；最后一个引用会清零整块配置存储。 */
 XRT_API void xrtNetProxyRelease(xnetproxy* pProxy);
 
+/* Physical immutable configuration owner. Count is the real native RC;
+ * copied host/credential storage has no outgoing strong references. Inspect
+ * and resolve the adapter only at a whole-graph ownership freeze. */
+XRT_API xrtownershipref xrtNetProxyOwnership(const xnetproxy* pProxy);
+XRT_API const xrtownershipadapterv1* xrtNetProxyOwnershipAdapterV1(
+	xrtownershipref Reference
+);
+
 
 
 /* 复制代理对象的只读信息视图。 */
@@ -255253,7 +255261,7 @@ XRT_API xnetproxy* xrtNetProxyRetain(const xnetproxy* pProxy)
 		);
 		return NULL;
 	}
-	if ( xrtRefRetain((volatile int32*)&pProxy->References) < 0 ) {
+	if ( xrtOwnershipRefRetain((volatile int32*)&pProxy->References) < 0 ) {
 		(void)__xrtNetProxyError(
 			XERR_STATE, XNET_ERROR_PROXY_CREATE,
 			"retain-proxy", "proxy reference is invalid"
@@ -255269,14 +255277,62 @@ XRT_API xnetproxy* xrtNetProxyRetain(const xnetproxy* pProxy)
 XRT_API void xrtNetProxyRelease(xnetproxy* pProxy)
 {
 	size_t iSize;
+	xrtownershipscope Mutation = {0};
 
-	if ( (pProxy == NULL) ||
-		(xrtRefRelease(&pProxy->References) != 0) ) {
-		return;
+	if (pProxy == NULL) return;
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	int32 iLeft = xrtRefRelease(&pProxy->References);
+	if (iLeft < 0) abort();
+	if (iLeft == 0) {
+		iSize = pProxy->AllocationSize;
+		xrtSecureZero(pProxy, iSize);
+		xrtFree(pProxy);
 	}
-	iSize = pProxy->AllocationSize;
-	xrtSecureZero(pProxy, iSize);
-	xrtFree(pProxy);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+}
+
+static bool __xrtNetProxyOwnershipCount(const void* pData, size_t* pCount)
+{
+	const xnetproxy* pProxy = pData;
+	if (!pProxy || !pCount) return false;
+	int32 iCount = __xrtAtomicRefLoad(&pProxy->References);
+	if (iCount <= 0) return false;
+	*pCount = (size_t)iCount;
+	return true;
+}
+static bool __xrtNetProxyOwnershipTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{
+	size_t iCount;
+	(void)pContext;
+	return pVisit && __xrtNetProxyOwnershipCount(pData, &iCount);
+}
+static const xrtownershipops __xrtNetProxyOwnershipOps = {
+	__xrtNetProxyOwnershipCount, __xrtNetProxyOwnershipTrace
+};
+XRT_API xrtownershipref xrtNetProxyOwnership(const xnetproxy* pProxy)
+{
+	return (xrtownershipref){pProxy, pProxy ? &__xrtNetProxyOwnershipOps : NULL};
+}
+static bool __xrtNetProxyOwnershipHold(const void* pData)
+{ return xrtNetProxyRetain(pData) != NULL; }
+static void __xrtNetProxyOwnershipDrop(const void* pData)
+{ xrtNetProxyRelease((xnetproxy*)pData); }
+/* No weak acquisition, mutable payload or outgoing edge can be quarantined.
+ * Claim/Restore/Clear are consequently no-ops, as for immutable AddrList. */
+static bool __xrtNetProxyOwnershipClaim(const void* pData, const void* pToken)
+{ return pData && pToken; }
+static void __xrtNetProxyOwnershipKeep(const void* pData, const void* pToken)
+{ (void)pData; (void)pToken; }
+XRT_API const xrtownershipadapterv1* xrtNetProxyOwnershipAdapterV1(xrtownershipref Reference)
+{
+	static const xrtownershipadapterv1 Adapter = {
+		sizeof(Adapter), __xrtNetProxyOwnershipHold, __xrtNetProxyOwnershipDrop,
+		__xrtNetProxyOwnershipClaim, __xrtNetProxyOwnershipKeep, NULL,
+		__xrtNetProxyOwnershipKeep, NULL
+	};
+	size_t iCount;
+	return Reference.Ops == &__xrtNetProxyOwnershipOps &&
+		__xrtNetProxyOwnershipCount(Reference.Data, &iCount) ? &Adapter : NULL;
 }
 
 

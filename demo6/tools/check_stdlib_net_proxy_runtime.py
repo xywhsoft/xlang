@@ -29,7 +29,7 @@ def main():
     inputs = {str(path): sha(path) for path in sorted(files)}
     out.mkdir(parents=True)
     rows, products, failures, plans = [], [], [], {}
-    report = dict(Complete=False, InputsUnchanged=False, LogsUnchanged=False, Inputs=inputs,
+    report = dict(Complete=False, InputsUnchanged=False, LogsUnchanged=False, ProductsUnchanged=False, Inputs=inputs,
                   Rows=rows, Products=products, Failures=failures, Plans=plans,
                   DiscoveryOnly=args.discovery, InstrumentedSelectedClosure=False,
                   NetworkTraffic=False, ExternalNetworkTests=False, NetworkSecurityTests=False,
@@ -42,16 +42,16 @@ def main():
         products.append(dict(Path=str(path), Sha256=sha(path)))
         save()
 
-    def run(name, command, proof=None, sanitize=False):
+    def run(name, command, proof=None, sanitize=False, reject=False):
         log = out / (name + '.log'); env = dict(os.environ)
         if sanitize:
             env.update(ASAN_OPTIONS='detect_leaks=1:halt_on_error=1', UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1')
         command = list(map(str, command))
         with log.open('wb') as stream:
             result = subprocess.run(command, cwd=root, env=env, stdout=stream, stderr=subprocess.STDOUT, timeout=240)
-        rows.append(dict(Name=name, Command=command, Exit=result.returncode, Log=str(log), Sha256=sha(log)))
+        rows.append(dict(Name=name, Command=command, Exit=result.returncode, Log=str(log), Sha256=sha(log), ExpectedRejection=reject))
         save(); print(name + ': ' + str(result.returncode), flush=True)
-        assert result.returncode == 0, str(log)
+        assert (result.returncode != 0) if reject else (result.returncode == 0), str(log)
         text = log.read_text(encoding='utf-8', errors='replace')
         if proof:assert proof in text, str(log)
         return text
@@ -105,10 +105,31 @@ def main():
                     product(binary);run(label + '.run', [binary], 'offline lifecycle balanced', sanitize=True)
                 except Exception as error:
                     failures.append(dict(Name=label, Error=repr(error)));save()
+        if not args.discovery:
+            # Independent old-behavior controls: neither a successful link nor
+            # ordinary endpoint calls prove the shared native graph is visible.
+            native = root / 'src/runtime/xl6_net_proxy.c'
+            original = native.read_text(encoding='utf-8');start=original.index('static bool trace(')
+            trace=original[start:]
+            assert trace.count('XL6_DEFINE_NATIVE_HANDLE_POLICY(')==1
+            old_leaf=original[:start]+'XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6NetProxyHandlePolicyV1Get,xl6NetProxyDestroyV1)\n'
+            domain=root/'src/runtime/xl6_ownership_domain_net_proxy.c'
+            original_domain=domain.read_text(encoding='utf-8');start=original_domain.index('static bool load(')
+            old_domain=original_domain[:start]+'XL6_OWNERSHIP_DOMAIN_POLICY(NetProxy,Handle,xl6NetProxyHandlePolicyV1Get)\n'
+            for name, replaced, content, proof in (
+                ('native-edge-omitted',native,old_leaf,'edge.visits==2'),
+                ('native-adapter-omitted',domain,old_domain,'domain->Resolve')):
+                source=out/(name+'.c');source.write_text(content,encoding='utf-8');product(source)
+                selected=[source if root/path==replaced else root/path for path in plans['proxy-core']['Sources']]
+                binary=out/(name+extension)
+                run(name+'.build',[*flags(gcc),'-I'+str(root/'src/runtime'),'-DTEST_ROOT=0','-O0',
+                    runtime_source,out/'proxy-core.impl.c',*selected,*libraries,'-o',binary]);product(binary)
+                run(name+'.refusal',[binary],proof,reject=True)
         report['InstrumentedSelectedClosure'] = args.sanitize
         report['InputsUnchanged'] = all(sha(path) == digest for path, digest in inputs.items())
         report['LogsUnchanged'] = all(sha(row['Log']) == row['Sha256'] for row in rows)
-        report['Complete'] = not failures and report['InputsUnchanged'] and report['LogsUnchanged']
+        report['ProductsUnchanged'] = all(sha(row['Path']) == row['Sha256'] for row in products)
+        report['Complete'] = not failures and all(report[key] for key in ('InputsUnchanged','LogsUnchanged','ProductsUnchanged'))
         save();assert report['Complete'], failures
     except BaseException as error:
         failures.append(dict(Name='batch', Error=repr(error)));save();raise
