@@ -1,141 +1,168 @@
 import sha3
 
-
+func hex(Buffer data) as string
+    return codec.hexEncodeBytes(data.data(), c_size(data.len()))
+end
 
 func main(...) as int
-    // SHA3-256 一次性哈希：Buffer 与 string 重载一致。
+    assert sha3.version() == "1.0.0"
+    string abc = "3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532"
+    string abcBytes = "3A985DA74FE225B2045C172D6BD390BD855F086E3E9D525B46BFE24511431532"
     Buffer data = Buffer()
     data.append("abc")
-    string h256 = sha3.hash256Hex(data)
-    if sha3.hash256Hex("abc") != h256 then
-        return 1
-    end
-    // SHA3-256 = 32 字节 = 64 hex 字符。
-    if string.len(h256) != 64 then
-        return 2
-    end
-    // NIST 测试向量：SHA3-256("abc")。
-    if h256 != "3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532" then
-        return 3
+    assert sha3.hash256Hex("abc") == abc and sha3.hash256Hex(data) == abc
+    assert hex(sha3.hash256Bytes("abc")) == abcBytes and hex(sha3.hash256Bytes(data)) == abcBytes
+    string text = "你好世界"
+    Buffer utf8 = Buffer()
+    utf8.append(text)
+    Buffer binary = Buffer()
+    binary.append("你好")
+    binary.appendByte(0)
+    binary.append("世界")
+    assert binary.len() == 13
+    assert sha3.hash256Hex(binary) == "22a5e88a6bd346d9f287dfdead1d65c1f98388646ebe112da129a3e094b69f0c"
+
+    // 全部固定算法、两类输入和两类输出，摘要读取不终结流。
+    for bits in [224, 256, 384, 512]
+        assert sha3.hashHex(text, bits) == sha3.hashHex(utf8, bits)
+        assert hex(sha3.hashBytes(text, bits)) == hex(sha3.hashBytes(utf8, bits))
+        auto h = sha3.sha3Hasher(bits)
+        assert h.valid and h.inputBytes == uint64(0)
+        h.update("a")
+        auto branch = h.clone()
+        h.update("bc")
+        branch.update("x")
+        assert h.digestHex() == sha3.hashHex("abc", bits)
+        assert branch.digestHex() == sha3.hashHex("ax", bits)
+        assert h.digestHex(bits / 8) == h.digestHex()
+        assert hex(h.digestBytes()) == hex(sha3.hashBytes(data, bits))
+        assert hex(h.digestBytes(bits / 8)) == hex(h.digestBytes())
+        assert h.reset() and h.inputBytes == uint64(0)
+        h.update(utf8)
+        assert h.digestHex() == sha3.hashHex(text, bits)
+        assert h.inputBytes == uint64(12)
     end
 
-    // SHA3-512 = 64 字节 = 128 hex 字符。
-    string h512 = sha3.hashHex(data, 512)
-    if string.len(h512) != 128 then
-        return 4
+    // SHAKE 超过 128 字节不截断；零长度返回空成功结果。
+    for strength in [128, 256]
+        auto h = sha3.shakeHasher(strength)
+        assert h.valid
+        h.update("a")
+        auto branch = h.clone()
+        h.update("bc")
+        branch.update("x")
+        for size in [0, 1, 32, 128, 129, 257, 1024]
+            string digest = ""
+            Buffer bytes = Buffer()
+            if strength == 128 then
+                digest = sha3.shake128Hex("abc", size)
+                bytes = sha3.shake128Bytes("abc", size)
+                assert digest == sha3.shake128Hex(data, size)
+                assert hex(bytes) == hex(sha3.shake128Bytes(data, size))
+            else
+                digest = sha3.shake256Hex("abc", size)
+                bytes = sha3.shake256Bytes("abc", size)
+                assert digest == sha3.shake256Hex(data, size)
+                assert hex(bytes) == hex(sha3.shake256Bytes(data, size))
+            end
+            assert string.byteLen(digest) == 2 * size and bytes.len() == size
+            assert digest == h.digestHex(size) and hex(bytes) == hex(h.digestBytes(size))
+        end
+        assert h.inputBytes == uint64(3) and branch.inputBytes == uint64(2)
+        assert branch.digestHex() != h.digestHex()
+        assert h.reset()
+        h.update(utf8)
+        if strength == 128 then
+            assert h.digestHex() == sha3.shake128Hex(text)
+            assert hex(h.digestBytes()) == hex(sha3.shake128Bytes(text))
+        else
+            assert h.digestHex() == sha3.shake256Hex(text)
+            assert hex(h.digestBytes()) == hex(sha3.shake256Bytes(text))
+        end
     end
 
-    // SHA3-224 = 28 字节 = 56 hex 字符。
-    string h224 = sha3.hashHex(data, 224)
-    if string.len(h224) != 56 then
-        return 5
+    // 参数错误不能静默收窄、取默认值或使有效流失效。
+    auto stable = sha3.sha3Hasher()
+    stable.update("abc")
+    for operation in range(11)
+        bool caught = false
+        try
+            if operation == 0 then
+                sha3.hashHex("", 4294967552)
+            elseif operation == 1 then
+                sha3.sha3Hasher(0)
+            elseif operation == 2 then
+                sha3.shakeHasher(224)
+            elseif operation == 3 then
+                sha3.shake128Hex("", -1)
+            elseif operation == 4 then
+                stable.digestHex(31)
+            elseif operation == 5 then
+                stable.digestBytes(33)
+            elseif operation == 6 then
+                sha3.sha3Hasher(maxInput = 0)
+            elseif operation == 7 then
+                sha3.shakeHasher(maxInput = -1)
+            elseif operation == 8 then
+                sha3.hashFileHex("", maxInput = 0)
+            elseif operation == 9 then
+                sha3.hashFileBytes("", maxInput = -1)
+            else
+                stable.digestBytes(-1)
+            end
+        catch ValueError e
+            caught = true
+        end
+        assert caught and stable.digestHex() == abc
     end
-
-    // SHAKE128 默认 32 字节 = 64 hex 字符。
-    string shake = sha3.shake128Hex(data)
-    if string.len(shake) != 64 then
-        return 6
+    for operation in range(3)
+        bool caught = false
+        try
+            if operation == 0 then
+                sha3.shake128Hex("", 536870913)
+            elseif operation == 1 then
+                sha3.shake256Bytes("", 536870913)
+            else
+                auto h = sha3.shakeHasher()
+                h.digestBytes(9223372036854775807)
+            end
+        catch RangeError e
+            caught = true
+        end
+        assert caught
     end
-
-    // SHAKE256 可变输出。
-    string shake256 = sha3.shake256Hex(data, 64)
-    if string.len(shake256) != 128 then
-        return 7
+    auto limited = sha3.sha3Hasher(256, 3)
+    limited.update("abc")
+    for operation in range(3)
+        bool caught = false
+        try
+            if operation == 0 then
+                limited.update("d")
+            elseif operation == 1 then
+                limited.digestHex()
+            else
+                limited.clone()
+            end
+        catch RangeError e
+            caught = true
+        end
+        assert caught and limited.inputBytes == uint64(3)
     end
-
-    // 流式 SHA3 哈希器：分段 update 与一次性一致。
-    auto hasher = sha3.sha3Hasher(256)
-    hasher.update("ab")
-    hasher.update("c")
-    if hasher.digestHex() != h256 then
-        return 8
+    assert limited.reset()
+    limited.update(data)
+    assert limited.digestHex() == abc
+    for shake in [false, true]
+        bool caught = false
+        try
+            if shake then
+                sha3.ShakeHasher(null)
+            else
+                sha3.Sha3Hasher(null)
+            end
+        catch RuntimeError e
+            caught = true
+        end
+        assert caught
     end
-    if hasher.inputBytes != 3 then
-        return 9
-    end
-
-    // SHA3-512 流式：默认 digestHex() 输出自然长度（64 字节 = 128 hex）。
-    auto hasher512 = sha3.sha3Hasher(512)
-    hasher512.update("abc")
-    string stream512 = hasher512.digestHex()
-    if string.len(stream512) != 128 then
-        return 10
-    end
-    if stream512 != h512 then
-        return 11
-    end
-
-    // reset 复位。
-    hasher.reset()
-    hasher.update("abc")
-    if hasher.digestHex() != h256 then
-        return 12
-    end
-
-    // clone 独立副本。
-    auto h1 = sha3.sha3Hasher(256)
-    h1.update("ab")
-    auto h2 = h1.clone()
-    h1.update("c")
-    h2.update("x")
-    if h1.digestHex() != h256 then
-        return 13
-    end
-    if h2.digestHex() == h256 then
-        return 14
-    end
-
-    // SHAKE 流式哈希器。
-    auto shaker = sha3.shakeHasher(128)
-    shaker.update("abc")
-    if shaker.digestHex() != shake then
-        return 15
-    end
-
-    // 文件哈希。
-    string path = "tmp/extlib_sha3_test.bin"
-    file.writeBytes(path, data)
-    if sha3.hashFileHex(path) != h256 then
-        return 16
-    end
-    file.delete(path)
-
-    // 不存在的文件抛出 FileError。
-    bool missing = false
-    try
-        sha3.hashFileHex("tmp/extlib_sha3_missing.bin")
-    catch FileError e
-        missing = true
-    end
-    if not missing then
-        return 17
-    end
-
-    // 非法限额抛出 ValueError。
-    bool badLimit = false
-    try
-        sha3.sha3Hasher(256, 0)
-    catch ValueError e
-        badLimit = true
-    end
-    if not badLimit then
-        return 18
-    end
-
-    // digestBytes / hashBytes 返回 Buffer 长度正确。
-    Buffer raw = sha3.hash256Bytes(data)
-    if raw.len() != 32 then
-        return 19
-    end
-    Buffer raw512 = sha3.hashBytes(data, 512)
-    if raw512.len() != 64 then
-        return 20
-    end
-    auto hb = sha3.sha3Hasher(256)
-    hb.update("abc")
-    if hb.digestBytes().len() != 32 then
-        return 21
-    end
-
     return 0
 end

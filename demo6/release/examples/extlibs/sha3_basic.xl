@@ -1,0 +1,36 @@
+import sha3
+
+// 与 extlibs/sha3/examples/basic.c 输出完全一致。
+func main(...) as int
+    assert sha3.version() == "1.0.0"
+    for bits in [224, 256, 384, 512]
+        println("sha3-" + string(bits) + "=" + sha3.hashHex("abc", bits))
+        assert sha3.hashBytes("abc", bits).len() == bits / 8
+    end
+    println("shake128=" + sha3.shake128Hex("abc"))
+    println("shake256=" + sha3.shake256Hex("abc", 64))
+
+    // NUL 和任意二进制用 Buffer，普通文本直接传 UTF-8 string。
+    Buffer binary = Buffer()
+    binary.append("你好")
+    binary.appendByte(0)
+    binary.append("世界")
+    println("binary=" + sha3.hash256Hex(binary))
+    assert sha3.hash256Bytes(binary).len() == 32
+    assert sha3.shake128Bytes(binary, 257).len() == 257
+    assert sha3.shake256Bytes(binary, 0).len() == 0
+    auto h = sha3.sha3Hasher()
+    h.update("a")
+    auto branch = h.clone()
+    h.update("bc")
+    branch.update("x")
+    println("stream=" + h.digestHex())
+    println("branch=" + branch.digestHex())
+    println("input=" + string(h.inputBytes))
+    println("reset=" + string(h.reset()))
+    auto shake = sha3.shakeHasher()
+    shake.update("abc")
+    println("empty-xof=" + string(shake.digestBytes(0).len()))
+    println("long-xof=" + string(shake.digestBytes(257).len()))
+    return 0
+end

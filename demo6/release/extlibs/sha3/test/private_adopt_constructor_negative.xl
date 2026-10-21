@@ -1,0 +1,5 @@
+import sha3
+
+// 仅编译：导入方不能接管任意原生句柄；绝不运行本文件。
+auto fixed = sha3.Sha3Hasher(null)
+auto shake = sha3.ShakeHasher(null)

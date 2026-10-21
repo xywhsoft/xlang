@@ -1,6 +1,9 @@
 #ifndef XRT_SHA3_H
 #define XRT_SHA3_H
 
+#ifndef XRT_MODULE_IO_FILE
+#define XRT_MODULE_IO_FILE
+#endif
 #include "xrt.h"
 
 #ifdef __cplusplus
@@ -16,7 +19,8 @@ typedef enum {
 	XRT_SHA3_ERROR_MEMORY = 2,
 	XRT_SHA3_ERROR_IO = 3,
 	XRT_SHA3_ERROR_LIMIT = 4,
-	XRT_SHA3_ERROR_CANCELLED = 5
+	XRT_SHA3_ERROR_CANCELLED = 5,
+	XRT_SHA3_ERROR_STATE = 6
 } xrtsha3status;
 
 typedef struct {
@@ -37,14 +41,19 @@ typedef struct xrtsha3hasher xrtsha3hasher;
 
 XRT_API void xrtSha3OptionsInit(xrtsha3options* pOptions);
 XRT_API void xrtSha3ErrorInit(xrtsha3error* pError);
+/* 固定摘要的自然字节数；非法位宽返回零并设置 XRT 错误。 */
+XRT_API size_t xrtSha3DigestSize(int iBits);
 
 /* 流式哈希器 */
 XRT_API xrtsha3hasher* xrtSha3HasherCreate(const xrtsha3options* pOptions, int iBits);
 XRT_API xrtsha3hasher* xrtSha3ShakeHasherCreate(const xrtsha3options* pOptions, int iStrength);
 XRT_API bool xrtSha3HasherUpdate(xrtsha3hasher* pHasher, const void* pData, size_t iSize);
 XRT_API bool xrtSha3HasherDigest(const xrtsha3hasher* pHasher, uint8* pOut, size_t iOutLen);
+/* 分配输出前检查状态、精确长度与预算，不改变流状态。 */
+XRT_API bool xrtSha3HasherCheckOutput(const xrtsha3hasher* pHasher, size_t iOutLen);
 XRT_API bool xrtSha3HasherReset(xrtsha3hasher* pHasher);
 XRT_API uint64 xrtSha3HasherInputBytes(const xrtsha3hasher* pHasher);
+/* SHA3 返回自然长度，SHAKE 返回零，表示变长输出。 */
 XRT_API int xrtSha3HasherOutBytes(const xrtsha3hasher* pHasher);
 XRT_API xrtsha3hasher* xrtSha3HasherClone(const xrtsha3hasher* pSrc);
 XRT_API const xrtsha3error* xrtSha3HasherError(const xrtsha3hasher* pHasher);

@@ -1,0 +1,3894 @@
+{
+  "oracle": "Node.js crypto / OpenSSL",
+  "node": "v24.19.0",
+  "openssl": "3.5.7",
+  "standard": "https://csrc.nist.gov/pubs/fips/202/final",
+  "generatorSha256": "269f364de4d066c5194c0209f87153b38ef85e749bb23e8bbcd07d52b4bb6656",
+  "pattern": "(i * 37 + 11) & 255",
+  "vectors": [
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 0,
+      "output": 28,
+      "hex": "6b4e03423667dbb73b6e15454f0eb1abd4597f9a1b078e3f5b5a6bc7"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 1,
+      "output": 28,
+      "hex": "32a1705829fd73451324b467aca5b07819fcebe68f2a10a0910724d4"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 2,
+      "output": 28,
+      "hex": "ec0d0d6d53e356424b6fbf93fb08e4c98bca6fb56bf6ff6565971e08"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 3,
+      "output": 28,
+      "hex": "4565ec16ea5ea856ed3fecfca03214e151b2e9c9850925dfb10278c5"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 4,
+      "output": 28,
+      "hex": "aedbc8f72028f1c046ead456e3fcaadf73e1929ab51d97cdebfebda0"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 5,
+      "output": 28,
+      "hex": "c077b9903d0d7f28a6ed26bbfbf69b09423de722731ffdf308215ed5"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 6,
+      "output": 28,
+      "hex": "f499f40d379d3d3874ddb0cb236295eb8c08c181325fb360a480e538"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 7,
+      "output": 28,
+      "hex": "38aaa835cb06c93ef95995f0975185c01d1a11b296f917a82236a382"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 8,
+      "output": 28,
+      "hex": "b94ccedef71f4b40a33344aab592ac2f1189a386cd873ef3b36775df"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 9,
+      "output": 28,
+      "hex": "79230ee214c48e753a34ba7c47915f588ec083e81d705ca762a977c1"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 10,
+      "output": 28,
+      "hex": "72ae1013e6c9a608cf32971c35bffab7251e2a6abb169351484faa66"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 11,
+      "output": 28,
+      "hex": "ace863ce6738921f090aa86727f80333c70bf56afd063339089d4f32"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 12,
+      "output": 28,
+      "hex": "c07f97033dc83b46ee66064e7e1d38b4967e349c427c29d999012e0f"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 13,
+      "output": 28,
+      "hex": "04da3c272f98cd3572f3af7b1771aa3ff5c6e34e30636a19a2677d96"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 14,
+      "output": 28,
+      "hex": "675492268d64b7739344f62a28feea38ca96ab36fd88b51b6555fe2c"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 15,
+      "output": 28,
+      "hex": "f429492eaecf92198bf978aae44837dccf734df75672ed43ffe7212a"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 16,
+      "output": 28,
+      "hex": "fa680dc6198e57fe75179b08371d0df0b0d1cae9f8aa46298bd28194"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 17,
+      "output": 28,
+      "hex": "5485bc70716d6d9ba2f7db1efb55bcc8f4866a08269b254d08ee21f9"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 18,
+      "output": 28,
+      "hex": "b66e9c79c811bdf97c0c315225489d325f0029125dba4078a059778d"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 19,
+      "output": 28,
+      "hex": "3d2a0ad9ee3a445b218eb72d064f2dbd016a4a350fb5c3425dee293c"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 20,
+      "output": 28,
+      "hex": "b97d9b24172d88c10a9ad7a14776dc66521e02a3b1f6be47b75e427b"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 21,
+      "output": 28,
+      "hex": "77f366a7e645aa3a805de024e6d44b87756e3d50426376883887e638"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 22,
+      "output": 28,
+      "hex": "853dee2d31ad0d350501cccdd07114b2a26448b9def636eadef9e176"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 23,
+      "output": 28,
+      "hex": "f74673c33103592cce8dbdaf38a51e08dc493d0804669bd1f0db9d2c"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 24,
+      "output": 28,
+      "hex": "edb104d4ec0cb293309a5e57efd4e98b10fe359f697878fe44413731"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 25,
+      "output": 28,
+      "hex": "6921c549141fc82ecffc5fe3ea03b8964ee5f4ab07741f10f0a3c179"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 26,
+      "output": 28,
+      "hex": "aa1f67277cdf637657b089444acee4a6977ebe99df7718daeb191ae7"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 27,
+      "output": 28,
+      "hex": "05d8bd922719d0dd9b29aeee762531966966a1b0f5c1a88cc5f47db4"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 28,
+      "output": 28,
+      "hex": "f9ec1ba46b7c513e04bb6a7f61f189dd9466ee10df2b828a4680f28e"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 29,
+      "output": 28,
+      "hex": "8bb6fcee2b21ec1b92dbb3580cb4a5900edca21bdb2ce47d5166bc92"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 30,
+      "output": 28,
+      "hex": "58e612b27810f7daf18dc57b2fbf254126d8536d6a2f1f41e686f2f1"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 31,
+      "output": 28,
+      "hex": "fce0eb4efdb5f6598a99a584974698f7a58e27c149a1c0fc6bae2709"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 32,
+      "output": 28,
+      "hex": "dd2aee77da59851e00866e837d6faa0d0490bd0fec65516b5752a864"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 33,
+      "output": 28,
+      "hex": "9c5ba2d8141217965ae9401545f7f4db8e0c906fb54fd8d0ae03ffd4"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 71,
+      "output": 28,
+      "hex": "ccb5383466a489bbcd7151c2f74a4e2d83707c0899fd2f32af7ff91e"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 72,
+      "output": 28,
+      "hex": "4e7613111c5c484931506e953bd8f37c0449b5e1e6343cdd728d25b9"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 73,
+      "output": 28,
+      "hex": "27ef62bb78db3035cfa845499cfd023b33bc63805141537835dbec7e"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 103,
+      "output": 28,
+      "hex": "3658fa82051a53ef13062bf5a7872f3003bdf69d6a93cc13cee57e0a"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 104,
+      "output": 28,
+      "hex": "de9525fd24777a6ca0744a313beaf268dceca09f9fb8802604a9e699"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 105,
+      "output": 28,
+      "hex": "0091e14aacd30421247b3fb8d7009c7d0032742c0f512cce398e32d1"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 135,
+      "output": 28,
+      "hex": "78eca161402d4c08441305dd49fcfc24ed5924cf4e4b6deafc355fa1"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 136,
+      "output": 28,
+      "hex": "0e5dd7905f31fb9a09c8045d2c01e3fa4cb02280b14a5a767878ac25"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 137,
+      "output": 28,
+      "hex": "e5f0d3956ead06e854f0deb4d667141c007739fa0dca8727f2b90183"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 143,
+      "output": 28,
+      "hex": "6b5a38053122870b68c0892afe9978d0ebc787a47ed36f570e3cb2d7"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 144,
+      "output": 28,
+      "hex": "7d7a1d3ab15a323d7d4bef30103361d00b995d033a8647fc39521bfd"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 145,
+      "output": 28,
+      "hex": "35c009f71b2e266863b539f7fb51ae1a565a561b2f82e750c8292b0f"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 167,
+      "output": 28,
+      "hex": "1ed0e8b15c4661db0f87645a317a757f1451f6f3277adf6b0ba6ea16"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 168,
+      "output": 28,
+      "hex": "bd08cdf70e92a1f0f35c0a9ee0d6bc8fa43aa0913f4e2ca8b94e13b7"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 169,
+      "output": 28,
+      "hex": "61381cd241f39a13c103a6ce0d8bd0398a74a22c5ece97682b4fab1a"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 207,
+      "output": 28,
+      "hex": "93cb12acc3f727aa28f4b3c811a8e2da7d1b5bbfb80d6325b7675878"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 208,
+      "output": 28,
+      "hex": "70ab1748f8818046c16845b5d5855db3d6364eb9ef806cbe40328cd9"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 209,
+      "output": 28,
+      "hex": "0b777e1da4a75ef913e39e78a0db06a6bd1fdfbc18a97c78870c56e3"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 271,
+      "output": 28,
+      "hex": "52c125eb8d4520bd2787f9ab64471ce59b7f6adf41cb13307dca4d62"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 272,
+      "output": 28,
+      "hex": "d2e72986f48e567dacff01875f72b37f39896a73f3890fc796506ccd"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 273,
+      "output": 28,
+      "hex": "25450b940c0590cbd952886aad6f1f37bc1022615bf49e0dd14db6ba"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 287,
+      "output": 28,
+      "hex": "8038aaeb311038b7f9ea723832e26ad06c82345bdf16d88e172b6410"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 288,
+      "output": 28,
+      "hex": "9f7e8ff7becca5e864822acc5d944fe77d8309f168e64ced8b6c271f"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 289,
+      "output": 28,
+      "hex": "960db578ed728d164393a860b5042a2dda9fe7fbd8d133b5efd05467"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 335,
+      "output": 28,
+      "hex": "3204f2a1fd7d9c34e780dcdb9dec489a7cfbeb1d18ea25c28f24d693"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 336,
+      "output": 28,
+      "hex": "93a04315c16cf4d51dcbb172aa9fc8acefa65fd35fdab9dab87745c0"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 337,
+      "output": 28,
+      "hex": "ad09ee77fcceaec382d2f4e901826946d3d6869a89b3ac343d40251d"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 65535,
+      "output": 28,
+      "hex": "5eef770b34f7344f391451c9d67979ecc51e3830485ea6018e8b0a15"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 65536,
+      "output": 28,
+      "hex": "79f2e126199e2451a0345e4a846d37fdbf0acaa3d81986cf0908a324"
+    },
+    {
+      "shake": false,
+      "bits": 224,
+      "size": 65537,
+      "output": 28,
+      "hex": "e9978b156127685af9c4bb0a6893b429f5e813bc84707ebbab66e60d"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 0,
+      "output": 32,
+      "hex": "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 1,
+      "output": 32,
+      "hex": "962f8420917d7fa5479f4a767bf9b9a30a4ab377af26d72dbcff167d6ce3f6f5"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 2,
+      "output": 32,
+      "hex": "54dfcd201bc3edecbf150d75923f86e7e1ef7f624795086fb9364b3ef503b16c"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 3,
+      "output": 32,
+      "hex": "49e580eb827c41eef7a105c0d4accdc58663ad774662ec919ee23c99214d856b"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 4,
+      "output": 32,
+      "hex": "1585b0b8c7415c503d80a6d9145dbefc113e89c8bce4ec7c916071284caea306"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 5,
+      "output": 32,
+      "hex": "d2d550ed5ca08cc3a13df64320a514626944253e9577654fd04cb25e15afd8d3"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 6,
+      "output": 32,
+      "hex": "0ade7ab6d3b561fe26cad80c9753d79f3f223117c9321547d2104f39da1d79e5"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 7,
+      "output": 32,
+      "hex": "2543e489a05ab0fc44a5733a5b5828cbf95a9f03f3a0430cab3d68891c846c78"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 8,
+      "output": 32,
+      "hex": "fbd8182efbfdda25ccd2e91ee28e5883c493a6e0f33b9881978290a3e99b7b94"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 9,
+      "output": 32,
+      "hex": "9970896ab2f49e2eed920b5891254c86ddc58b7617c136b7a3cac6bbe5664438"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 10,
+      "output": 32,
+      "hex": "d5ac81f544296c80e8b908a33a915b70dabbd08ede56dff1fe3bcb29724b890f"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 11,
+      "output": 32,
+      "hex": "7e89009be53e6c0cc22d80c34b9da1dc6924829e29e6353a5dc5e7e20d0d1a5f"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 12,
+      "output": 32,
+      "hex": "5879a8d1f935aef553c7ed4b1473dea3ebf64c15fd60b017378493008eb145fe"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 13,
+      "output": 32,
+      "hex": "0e0475a497d7dd0e7b0a34d4d4ba0d666520abc4392d0e3fd8347f833a4a3032"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 14,
+      "output": 32,
+      "hex": "04a56a2ca97cef8703a3e9ce680f6a195e92d5d1d9827e848b7f42a1b6dafaf8"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 15,
+      "output": 32,
+      "hex": "d83860835dfa7956d35677a8bb012674fb0607ca9afcc622dff3cf7ea0937f43"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 16,
+      "output": 32,
+      "hex": "7f9f1bfaa90a8cc16ae23f5db587b65b794b09349a55614ca1a5882f3d7bb11b"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 17,
+      "output": 32,
+      "hex": "cdc0dd2bc2f21ffb96797d93363c2362a2dc956ecd3d6e10b310099bb1db74cb"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 18,
+      "output": 32,
+      "hex": "d55458e9ec823a177d042985fa0d5b2b2fddd0dd79f3617dc35cc6bcb5226e9d"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 19,
+      "output": 32,
+      "hex": "345b40743524b8b493ff8279242ee3538fd8d15e85273603977793ee451b96c1"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 20,
+      "output": 32,
+      "hex": "7a36491b49786ef72d78abac71f21fb39796fe3c0920e2dd60ac984026e6401c"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 21,
+      "output": 32,
+      "hex": "3ade372e93477c7d595d86de59e19f82b9b99b733f8e53d328e6ab790936ecc7"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 22,
+      "output": 32,
+      "hex": "507b975ee480f421dcf95ce1a0f8642a466eaeacc14d4532cb91fc72f4048c79"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 23,
+      "output": 32,
+      "hex": "dc884a401b8559039c8a234e8ce684fef7b4148a06e03ec0edefe92b40702136"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 24,
+      "output": 32,
+      "hex": "59ed53ac2825e77e3b987e11b516d6f49a44aa96b0f47add8ee2b6f6ece19a0f"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 25,
+      "output": 32,
+      "hex": "29c051386a4ee82fbd3a32dbb8e0a16aea1c74ea89272b09f656e64b5302f385"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 26,
+      "output": 32,
+      "hex": "a9f1d9d275c19ae519ff307d3ea20cc9fd34a3ac3e1994c50ca25988d2c15a43"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 27,
+      "output": 32,
+      "hex": "8f8948cb563e2bb9cb88595719152b02a57bf861f2278b0c42b8a0b040676870"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 28,
+      "output": 32,
+      "hex": "bca040beae03803f06c90fa9154149d871547013b8769cc41bf94f933a6164cf"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 29,
+      "output": 32,
+      "hex": "e9bd3fbd69c8568789a19ccb1c38624b49753e06007ee454b05852ef0b18b8a0"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 30,
+      "output": 32,
+      "hex": "617ad5445759962a46c8f58b78c30665863a95adfa87cfac1f14f67b24eec81d"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 31,
+      "output": 32,
+      "hex": "012f24d1e3b7a276828f253f431d4a492bf0235b6d1b8612cf64240a03a6db96"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 32,
+      "output": 32,
+      "hex": "12275b6ff2bc715e7135fa717773bd3d90874a04203867169f0712a129101517"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 33,
+      "output": 32,
+      "hex": "882340caf7291a8be15fc3d2997929d9842ce448899b754a5c05633f2dc5a10f"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 71,
+      "output": 32,
+      "hex": "0ac3a06a527eab9ecf5919ebe035b8c8149ba22ccaf469a1f1c50e7184d913e4"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 72,
+      "output": 32,
+      "hex": "401dd44fde549e7492a9fd98636f2628017afe9e9fa097d68c2826cf8a1b6d44"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 73,
+      "output": 32,
+      "hex": "251563a59aa1a2870976627239fb83020e9472e33cc5b2621d89fc9bb230926d"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 103,
+      "output": 32,
+      "hex": "c95e6ac37375a0d5b32a6be4651db7f1ff3e0be84a9d719a1a65612204b91073"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 104,
+      "output": 32,
+      "hex": "60c6e1f2490d3c037cb5770729bf8fb4e3a3ddb6c692546538ebd64013dfa0a5"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 105,
+      "output": 32,
+      "hex": "3b2805fdce65fd84db1ce7829b1cb02ed89f12b155dee54b7b3b3a443389e4ea"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 135,
+      "output": 32,
+      "hex": "3aa81a5b233ce753b2ab56b3c922338134eb11b8dc3d877d0bc8d19751684b76"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 136,
+      "output": 32,
+      "hex": "9f065722983c1b643b3fabbed6e791f6d74f77e6cf5a2d38c07c124465ed5d9f"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 137,
+      "output": 32,
+      "hex": "30efe517346c818828634cb8a3eb3538c14bc2f280132cf0261ed18a7dd85a8b"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 143,
+      "output": 32,
+      "hex": "2e41d3cab4d2b4cbfc6fbc1304bf76713e42318b8553822b4eeadf83cf677a71"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 144,
+      "output": 32,
+      "hex": "a473258584eb3e0156d196d492d681e4761f025bbcb939aedd51f0e2085264c5"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 145,
+      "output": 32,
+      "hex": "366bcbd8220200ebadf69629d03e3ee85bdcde0e6d59c259b6766fc4f604d415"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 167,
+      "output": 32,
+      "hex": "90f6c93fa5782818ad1f9638581a7ef2eacd1519d18f1c6f1caa0731cc82610d"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 168,
+      "output": 32,
+      "hex": "7e8b80b812f0f04e0fa496af6ee58dffdf39d2ec1703b100ff54375840040505"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 169,
+      "output": 32,
+      "hex": "f7d07cd3435d250189e6a27678191b73b8df6be1b9c68595e0a895f1b7d43576"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 207,
+      "output": 32,
+      "hex": "5b5a7a520ca39ac1d3a50f047e6b7e7e1eb9f6110f8d8ccb382891794baa05c6"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 208,
+      "output": 32,
+      "hex": "52a5452aff2696bf96ebeb8bea5bf6a7ec27bdd42e6ac1cd11d16ad3b0417e04"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 209,
+      "output": 32,
+      "hex": "76b3ca003d286f6c36fcfa9f358e840d2b135fd50d412e7c68b43902ff41d904"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 271,
+      "output": 32,
+      "hex": "5a7767ca7008df01b1c78e3a8253f409cf6d25ad5db6425309a6ce29ed7bc01b"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 272,
+      "output": 32,
+      "hex": "860dffd36d6a668d3cac04f1e8b99eaa980fe26172f8d34da87fc963b086e665"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 273,
+      "output": 32,
+      "hex": "5e0efcddf8e134669d518911b0fc762d8498516bff137166c2be548904847dda"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 287,
+      "output": 32,
+      "hex": "31bdbe48503b80b2c37446915f2732b780634a6dbd2829d6639a59d03cfd656b"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 288,
+      "output": 32,
+      "hex": "372f168068362ab0e6514315ced4b2a3ccb946c7e89b79870fa3ecc1c312b80d"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 289,
+      "output": 32,
+      "hex": "67e53f9a47d137c31f23c4b5bf813e94fd671d20e46578bf36a510bf89b18265"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 335,
+      "output": 32,
+      "hex": "3809f314acc78beb59c52445be7a26f708b45767df77ead9c8a09903e2697812"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 336,
+      "output": 32,
+      "hex": "79d7699020de9fecc8fa71a097adf3314cd8aed16fbd5fac4637c244c3200811"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 337,
+      "output": 32,
+      "hex": "4f117c78297913f2db559c53e31da3ca35ca233022e72293eb00df1de5557c2e"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 65535,
+      "output": 32,
+      "hex": "ec534266b7606e6cb29d736bca715fdb622215cbb79f3947d422a3305a67426f"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 65536,
+      "output": 32,
+      "hex": "4658c0f4740ad6a52343b6770c3c946afcb6be3bc7b2f003aedaf55c038c3185"
+    },
+    {
+      "shake": false,
+      "bits": 256,
+      "size": 65537,
+      "output": 32,
+      "hex": "031879cfeca03c321a4f918d1e299d01188dd0efb25405eab86c88f1532eae92"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 0,
+      "output": 48,
+      "hex": "0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 1,
+      "output": 48,
+      "hex": "9b0446ad3c50f45c08cd3ca2484f7519c8b8a3a7d1c535e5e33d079a6e3c4062acc4f460111f94ac2695eb9463c29b71"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 2,
+      "output": 48,
+      "hex": "c7c61a7f6475e8515ced928ba4b1b4570ec090f0c641970bf041c3b575ea4ebeac82ac34955f61ddb859df404bd9be23"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 3,
+      "output": 48,
+      "hex": "08d35d40434972a1eb1ff5ea0c9873e76ffa6cd550a506d4251ae8253208bdfc52284386d3bfc5aa32c7756ddccb8af5"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 4,
+      "output": 48,
+      "hex": "3218154cba6b0a4685c7b2604b08d78fd7d45e8133c7ffdaf744bfdac0f5e35c5f29d8d0b3842d0762ac6b6cec3bc98a"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 5,
+      "output": 48,
+      "hex": "0b5c894342c47c669b8da0447734bf5f681ed6602d8f76296afff04b93a5038f96f328447ed9755df0b6d6044320485a"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 6,
+      "output": 48,
+      "hex": "864badd5767999f9159e900e6a4e38540cd57c12c6ff3394ba64763f5107a97a85594bc74d76761c4161a5d752024659"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 7,
+      "output": 48,
+      "hex": "3966c745881bc1e8748059367cf5e3d481118b50ab6709b612f0762a056d1ac122c3b11b1b644b30f464017eed63bdf6"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 8,
+      "output": 48,
+      "hex": "22bf6708049e80e2dbc3e153de0732b5fb9e5769599e68b1893ee8da5febb53f1628774a5afeb1c57d929bd33504a11f"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 9,
+      "output": 48,
+      "hex": "75515f17791679bc6763c87e43727cf247597e5506687be2a1145cdb0fd38cf5c3d8df838ffe485f65f292595131c97c"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 10,
+      "output": 48,
+      "hex": "b3e71b76f80ce4afb69a3ca53d6b429d6c6735cd33368f14a1fb1e2ce8fa90c6629ac2f95dd1d3e5f2f65931feb05191"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 11,
+      "output": 48,
+      "hex": "0eabfbfce914881784f42ad1935ad9532709c256b33691ff230351a6f7b49c90693a50cc6f2299165fd3759752f7a7fd"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 12,
+      "output": 48,
+      "hex": "3c0456aff2d8a0f57db0a6f69f84cf2a8f37991d1c06c3bf0463243fbec2d65512c0b25eff304948d59161b7b5447d65"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 13,
+      "output": 48,
+      "hex": "cb5285584262f1e8630f153a51e5160e64be4ea5b0698eaf0dc99319998e347df972fe3f28738d67a22170dd3dfb779a"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 14,
+      "output": 48,
+      "hex": "21f81dc4300cff93e06b8cbc403f3bf62734c7398a5e7c3cd349b708eeac7732f785ca75a541e0c0882f087013bdc49b"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 15,
+      "output": 48,
+      "hex": "16c398575b496edc36c9c03a9dd702311bb242e89ddf9d88cd7e29cfe803f5c57fcbcb7ba32694ed8d5344d36d65c885"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 16,
+      "output": 48,
+      "hex": "4cd5fcd1e6cbcfab639c6192ca33dbd663d5464ea5fecfa7dd0f0b323a2893d7b9cd263e6e2a6790921b4c6f6c1b6184"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 17,
+      "output": 48,
+      "hex": "d83eec8177f5aff1f6c6a5dea5636d1744584c218d7f6b977c3526124fe8985f42acde164c950dc684d4d127ecdba23e"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 18,
+      "output": 48,
+      "hex": "94a0a692003659a8aa2a6460fb4ae46a989d729a6d471549d221e74284a87c647d7934f9fce91f86f563019be65d25da"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 19,
+      "output": 48,
+      "hex": "eb2d53d04d5914696a7dce70b6936b869327ecd83331c602d4c314ac1d12f7ddb501a137dd394e624cb27db88cffa1f3"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 20,
+      "output": 48,
+      "hex": "6a68247a52fa2a7094e883c9684cd8b696c1c2fd64ac0a18294587aee0dd3d09f100bdb162b2cbae73a03b415a904db6"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 21,
+      "output": 48,
+      "hex": "4ef344d3472eb03da5b704c0e9f31246809ac06d3fa271eff4b5dcdecd22b3b0e6a72d392ba98d5e372100e7f5a1a98a"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 22,
+      "output": 48,
+      "hex": "e3e8891f887856a69e7d78ce97a2ac376eaa222af64eda744e04d670c12f36c1ab8cbfd09a3489a5858a5a6abf2238a4"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 23,
+      "output": 48,
+      "hex": "5054025c76abb9a2662e9be6b873ff7915148de97266532ccbbd50b8d30a3575d0991958fa5c1579042e5e2b8aa26dfb"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 24,
+      "output": 48,
+      "hex": "6005134fe0b2b515431fb261560bfdb52efa2d628b2f24711c5fad354d2443da9b84b0a7ed7ba1bbbd1de485e070fedd"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 25,
+      "output": 48,
+      "hex": "1e44676c1d48bc914c3c9b70bb4093a9d297577092ede18c3119143c78bd44f27388c1c920ca18fa0a4afcfcfa98c253"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 26,
+      "output": 48,
+      "hex": "39f81e50ed07f43963ccaadd5c9a84defefe9aead6a6e4e54c62a70e9eda981f1ef7fb08e915ba69d3a6c5ae6fb8b2d3"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 27,
+      "output": 48,
+      "hex": "1cf56bdda58c0a5cff8947b881048a52a9749520ad0e89e1cda07e920c5b5d2622f95d698fd463b2ff0a56eade17457d"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 28,
+      "output": 48,
+      "hex": "bd40c0e9c4eeede8db96eeea7b8928216eb6a4670b4ea9ecc5c562343c571e896b40e40d44e541e26badb6d19a812025"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 29,
+      "output": 48,
+      "hex": "838119512c8ace8e9445ff3c4b8ca7f4507d045cf3d9ab6849bd2548dc6f1dbf709c354c032486bbaa0723cba24189de"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 30,
+      "output": 48,
+      "hex": "7125a0279709a7c1e197e701ecf11cb17c3e11bfdfa3d0a2c8eb3efb6ddbaa3c89fdcea2810efed15d5404bb03fc4665"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 31,
+      "output": 48,
+      "hex": "1e108bc2cd81332265589d13d6856fd9320269321fe51be3a1146040ddb27a7568f3d64c54c26fa01ed4a0603f5b5141"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 32,
+      "output": 48,
+      "hex": "94376615989b4fcd5ddc7f08bd9582c4a0f889f8dcd4db28189f67de689bbfe4e6ed47dbdc04ddb41dbd96c70bcea889"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 33,
+      "output": 48,
+      "hex": "197d1b148123eb52fe464a4ce9301573cf33b560a98ad9c2e78d131cb97e84e3dc8ba551b172121d323567e3fe3bf0d1"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 71,
+      "output": 48,
+      "hex": "def2021def211a88905ed3a4735b8998bd37c10bf06393360984018a47d8a5dc953cdbe6becfabf8203cd79501a6fee9"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 72,
+      "output": 48,
+      "hex": "2de995156d5da277387eb73e42bc999930321b42b2fcacd3bb642661fd0f5b6e682d227e3be71acede41aacd434cbadd"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 73,
+      "output": 48,
+      "hex": "39d8a788e26e1a146f10c07e310ee965dc5430713e83d790c3113e9bb2beadc6b4f037b39a184065ff60548be5aad27a"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 103,
+      "output": 48,
+      "hex": "a8d6dc0c5b130f495d07b62285ee34bab4a94235f95795ef511e92318c22e0944835ce22062ac004f66999cd340b5dc7"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 104,
+      "output": 48,
+      "hex": "86f4554684f5ef3111af066f8a2be32f07fc0fee484320ea1ccb42203da40655ee24caab2f1b60d1c7cccee8a54fd3f7"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 105,
+      "output": 48,
+      "hex": "563fa155b2a1181161208301853f10fa377319147c5bf8ba4d8be2f022bcfd390e94a383383860ec621cba31e6dd1d24"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 135,
+      "output": 48,
+      "hex": "6628fe3f235b49d493b2db7a1187b51b331c35a3455ccf71f65c343f3b98e0545ae3b6927ecd87d08c9c0d8fa3a98927"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 136,
+      "output": 48,
+      "hex": "2fba408057cdb4914bb92224158f9ecba7d126cbf1d2b169cc86828de457e542e515940319f7a94da44c867683d8f031"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 137,
+      "output": 48,
+      "hex": "c63f12b4b0290de4b97f23aaa288123bf23e8c589dd6923fe0fa4bfc98a87df6b8416bc87b5d60676d6f731b35778982"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 143,
+      "output": 48,
+      "hex": "41d5feada49160cc003406445149e88b8af2bb4fbbad50c2d445358375d0a64ec03ffc21b3dd958c2f34c367ae03d1e3"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 144,
+      "output": 48,
+      "hex": "46e964756c994aedf61940713b7601d075c6a01815eedd1ab3fd6cf7e0280bc7f4904806974f43cc50a6f26385399b0a"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 145,
+      "output": 48,
+      "hex": "d4b82b6763588410d72831e8236e4c69693b81d2f11620f52bba9e4edac55a12d0cb23aee42d0a64c5a68ac6829ca8d2"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 167,
+      "output": 48,
+      "hex": "037ceec56fd29bc2c65d7e8be016e7535fca96e456dd0bf63a5128c95b0bce032b01074ba3fba53ea7bb78e29ccfb95b"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 168,
+      "output": 48,
+      "hex": "042cedfa7ab7b562ecf3a6170ad965ff07b565e506bf1d37fbcbf2b5546b9c2f3cf3fa2346d4ee93319be69717bd2133"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 169,
+      "output": 48,
+      "hex": "c383bd60fac7e9a18a68087d179f61401b29d42a2150f3eeb9516d7937c0ee2b0132caab01d9f4c685b283c7d311ba99"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 207,
+      "output": 48,
+      "hex": "cdd3b8fe85f54fd4a8bcb0fb884c65476525dd5013146f1b0c9d3524d0efd7ba176429bc040e75b6b72e24e0866db0f2"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 208,
+      "output": 48,
+      "hex": "d66b7e92a5139181ac26d6347c70287771baaf31fa60a577ea7abe1e1a283ecfffb03b66141902a8571f76f457d89c5d"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 209,
+      "output": 48,
+      "hex": "1dcd5214c6b6981b7f51f2d7f7a40418d8341c5bc01052cdd04c8f44ee1593fbd252daf59c22a47281eb1f1e6d668b15"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 271,
+      "output": 48,
+      "hex": "4710d957ca2ec54e55ab121b97b745c2f98688e9c07983e95ce025a0a9e6f9465d8cabfb6ba5f3d418f1a49a7b80ae19"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 272,
+      "output": 48,
+      "hex": "a92eca6f1c60ab35c60eb8bd5ede03b5d50887a3e91516947698bc39e7f3e1ff79b535215e10d452a1e51e0a6f4d285c"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 273,
+      "output": 48,
+      "hex": "6a21e008b926758e5a495803a0545004a486c643f4c74dd97ee3c028be580eab3205c4ac18ec94c5a06837775bc8bae0"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 287,
+      "output": 48,
+      "hex": "d4ad1d15d9e07116fe6e8407bf03816ce42d9212227adc8a49b68a2198b02f5ec69e90623840080ccb886bba72ec7289"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 288,
+      "output": 48,
+      "hex": "eb7da7df6b0c74ce7e73e80b9ee177f1197e4d5f5d56cc74268cbbf9edd07fa9392406716188d6b6b7017794c1f151ce"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 289,
+      "output": 48,
+      "hex": "9bb17d829ac28cf83fc33f29d408a195c79b539e5c362fb76f9852bf35268913b2c2d80017facea6c0999179bf8e9756"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 335,
+      "output": 48,
+      "hex": "d66c0e2e71d49c6ce2dad1b2421897aaca714b8ed04fe195d1e80fbaf8f30609ec2ea996b04a6902d137509b04f2d62b"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 336,
+      "output": 48,
+      "hex": "6da106d4fd9b8d7aa8c4fc0fa4a4e9520dc9a6d4bf04be89f8f02cf17919eefaac6265288260cede66ab606ab8990e0f"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 337,
+      "output": 48,
+      "hex": "d6c7a6f5195e2fd401cbad73320f926975b9012c6eafcff0dc8cc9740b1d111792a4c12d0142e8721b417695ac144e20"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 65535,
+      "output": 48,
+      "hex": "04af52b2abcb17f7bb8a4f978607d6dd3ae7f1096fa5504abcd1b193ee4f4793af197a34033af412bf9e7fad075c81b2"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 65536,
+      "output": 48,
+      "hex": "5b3a7d4be6023ce343a59d25682f77f41127c96d64c47fb424db620bce0e311c4fcddc2a20279895b892f381e27f19d9"
+    },
+    {
+      "shake": false,
+      "bits": 384,
+      "size": 65537,
+      "output": 48,
+      "hex": "bb4ce3fe11bfd92cfd3ed3105956fc7f7e1ccf81d2d6c4eb44f01b5d6da2bd84e8c2f6e0d61a7ec489645ec387b630bb"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 0,
+      "output": 64,
+      "hex": "a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 1,
+      "output": 64,
+      "hex": "f2ce06537b57df321b623522d6cd5a09a6fd85c65ddf058827c52589ef632e2a6d49d473496f15a84322ccb05b7594be00dfb778091abad5b172ee963dfe2777"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 2,
+      "output": 64,
+      "hex": "9c59f413181510b26613edbc1cb5767329332745eeaf1b58f6a2a5aa92219e5e08e696cf5a2e8584fcc08f018c56e907142ee3e822372a4915d7fd59a4eec8a8"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 3,
+      "output": 64,
+      "hex": "a3e84e7e94ffa3a487df8295969df6f2338c4dec641e9c95f17e2407082147c670051cf9659b001f0cb13bb44ff9cdcd665f6fbbf562a3413d52bc412caa39d7"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 4,
+      "output": 64,
+      "hex": "fe023877b4b9f7d0d34373c8e9aac2ab23526b3373d7cfaab1b67e1f61e3011d065894b7049ef0e91297028973f6622dad5324db500a99896c3eb546d53480b8"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 5,
+      "output": 64,
+      "hex": "bc6e6b1443b047252aa5616a9291225e447f5a3bc191e381107ca9bbd084830d4c51487bb334a6c33b58939855479e0d9ff6b7c3953ea648af8ad9d9d763ea15"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 6,
+      "output": 64,
+      "hex": "2f0c5f97514ae4de0cf6a4d893afd74fabe2044081acb0d40bb223e298cc7886814647033cc9e3f1b9b9ecfb77cfde6d0bff19d2eb93df151c195baebe661cd7"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 7,
+      "output": 64,
+      "hex": "9a6e2a9433d2e8997a18bb2fe6fd2a59e818ff90a355dc955a4a6d61e0b428bfcaca458076a86fab728fe17456261eda5412b5b744fab2d3c009394c9643ab79"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 8,
+      "output": 64,
+      "hex": "db209ed10c3f667f502d8522b376011b877bcc009f1a7b3dc27ad6418f8c8be367dd74831e1e9aee051aa8aed72e544010d64e52dbd59df39133651a3e7e0e6d"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 9,
+      "output": 64,
+      "hex": "f2a2e7e2d810d1ff94a2ae1feadb1992a3fabc3458838b51b0b443104bb3772dc6032d2750d04bf09fba22c88e2ea2257ff7ceff3d56066a28a8141504f3cfce"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 10,
+      "output": 64,
+      "hex": "3f552fef914109f92161e025fa8d90ed63c6bdcdc8716a930809bf398c3bfd90b2ff60923cdcf267e10c45cde510b1e3d3e0979fc40b9ca040c535504f4a5c08"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 11,
+      "output": 64,
+      "hex": "aefc73d7c8b189d447c6ae811b5eda8e4e74165599594c6e9a1b98806edcf4d8811ea8773ad9b9b07e98c1ff184a5bcbdbd85888a7648e7e9c9f15533a4d396f"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 12,
+      "output": 64,
+      "hex": "fecd71f87930175b47cb9b3a25f7b01bc440861b412a096a78d2c10bd17b368b5522fb5ef8fd709eb5bd19261767e21172ef6bfbccca42482e51762b56e347ac"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 13,
+      "output": 64,
+      "hex": "2baf928eb5e215194916be6c956b2cc8f6ebcc3682a7e785cd07500cf0c05e6a02bb5fc040faadaee491e8b93cf83dd0c5e77121381e3da57a69b0be92368445"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 14,
+      "output": 64,
+      "hex": "debf508ddbd583517b27c6053c6cd6532b3a15ab92795828c7dc1a3dbfae94ede3f4795a9ee283ff0ccba31febd4677746e9ddba853c1020129aa9deb06cdc4a"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 15,
+      "output": 64,
+      "hex": "fce79155c2972306862ccb0dcec22b1df8ba5a4db7ee22746d137418f588de379daa70e9c50c8fac9dfd556a4a19e6ed20283fd93c4b80379406fca6175f5074"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 16,
+      "output": 64,
+      "hex": "930486558cd9f6cd731a0dc241572b81e004a419e7ddbfd770fa0688261ef93d6460ad90434d5563df2e3f453c529ac39be19baae4c5b8ad7093911352ff84e4"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 17,
+      "output": 64,
+      "hex": "0355fe30ad74f109243ae45198414eb906461420f2fbc5ec4df513742b6ce99099f4fc2ec0aebba3dcde098b2a577a95f31148b9192e8ad565516ba25dc4c68f"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 18,
+      "output": 64,
+      "hex": "06c5736dc923832af512dc16c49840bfd87c6315adfdcb03fddf4711b37bf1955502cbba5bd41d015a3aa0fad3e3a7c443cc3be578defde6b07c4b908803ae65"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 19,
+      "output": 64,
+      "hex": "5ebc4f71d888a8bb7a611d9859d77d132f03c8a3661d279d9f34a78b200e6f6e3b7a2cabdfa56b09a317611017348f6e40a754fc51663670bbf2858e6f81acc4"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 20,
+      "output": 64,
+      "hex": "73481257ec14e897fae3a4fe8e6cb8a513f5e03bef9dcc15e50c0180bf2cb3c0ddecb9fdf9a78988a347c8bc259132d053600db69ff2b92c9d9ac23df440bbd9"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 21,
+      "output": 64,
+      "hex": "6617c50d292fd62be2d0854d44c5a3aa1d0fab4225eb3e890651e6539d58a259cf7efcbdb7d8c8eae1b9fd501c414873f22ea77b991c9a44974b92cecff2c6ed"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 22,
+      "output": 64,
+      "hex": "6f5528c9d97ac3fad9994232f45af675ed807d52f60c9d0ac2b5dd67dbb7c07d245ae265dfaf04ed3a9e6b355237778e89bef538c1bf313980fc5e0ff5c6e1df"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 23,
+      "output": 64,
+      "hex": "da400c5ecdf41f147f528c75e2317e947dee411b43bad997977a428fc6fce8c7c6b22d114f84b38ee45d7b26d3a6aa4eb4a90738ce2f6b4dac49cee2770eb5e3"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 24,
+      "output": 64,
+      "hex": "f4d552bc3e965e278220af06bc467c389cb6853a78e67d3c5dd7a701f535390260c23ffdb44c7ab968a909f1728f7b0ba59f4589abbb76ca23d0e8dbb7ac15a2"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 25,
+      "output": 64,
+      "hex": "8309a8461e4fb608095f3b3f6272bf15ca52d24d299d7d40fabb925ca615bb1866eeb9f357d9678140f1bbed39dcdfd7e33ef531c99871debbdbe56b18334831"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 26,
+      "output": 64,
+      "hex": "5c9089db71deeb099c1ae759f3a3b741b6c53f7d1e6a2c8545eb1b091dfa9a19ea39e5b838055138e3a2afe5475b8f285b46945b7d028e1d5de92171949ff4ce"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 27,
+      "output": 64,
+      "hex": "9f9a2f04956fa2f631668ab4fe7690e7f586df676401d2de2ab021ae514f8b60a9ceb2b4944294f93bf12cb741091fb44d07644662937cb5f46458832cf1767f"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 28,
+      "output": 64,
+      "hex": "5de30a8e83ca9c57211e4503ca4ad5cc0a8727ca941e62710237fdd861b273a2bd3137f9be42ae730c83d253f902ea1645a8f43567477e154745bcc656f2ab65"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 29,
+      "output": 64,
+      "hex": "6d23343e03eb5e7233cb9cab07819c8d05aec225f49c9f660811718c637d9656758489cd4f11422b8b0481f6203fd2454cad48a51e2efa0c7cf3e059c3d52f58"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 30,
+      "output": 64,
+      "hex": "04ed9e3006df8e1e80a7a92369985b6308eeee11f50bfe4cc564127874788f1641e825686ddd609c58d3b30c5a84d775933c0bf0c4d30236d63848efc03ab960"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 31,
+      "output": 64,
+      "hex": "a2624211a8a079d3158667d9e0dc75123d45b911c0bed1dc379a98285f1480e50195a5a45f375bee4088b4d80bd87978617ff0d65b02ae3963cc23f0d8a7c2d1"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 32,
+      "output": 64,
+      "hex": "9af4d6c742b6272de626809983b9e875190fe0421f04fb1e0c45f7e29924e5b90cce9f6fd2c5d555d0111d4d4bbc974fd1f3124f936de304215eb3b8f40ce269"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 33,
+      "output": 64,
+      "hex": "8e578c438809d43927cb6aefd606c68a1e739b9b3b4539c603fe8348dd13ee33d69226c34979419451460d3fe7f2e5914e486edb287ea0fa2c6ee8486a0cdcc4"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 71,
+      "output": 64,
+      "hex": "bf5828621a2ea8d1d96d5a0100852a995705cd5a60bf13e8d5161dd8fc051f0a51c5c0cae86438659f1a0fb30efc8a1ed01a837fd93725245f24f3efcc79e1de"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 72,
+      "output": 64,
+      "hex": "7163023fb85589362e8f184399accaa14e0d17da87dcc69cece725c9bef23b0e4dfb12ed015213d3e6f5c5cc98f23c20303dd5a2091df35815f5f242e7a9bfeb"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 73,
+      "output": 64,
+      "hex": "c2823e8b428215ecacce41592b976554f6dbdb5aeba524cdcda69d3e86ac791f7750c24720fc0ffec0966909c519fb53a915f8c9c7b9caba1d2b25d5a3b97cab"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 103,
+      "output": 64,
+      "hex": "05a53c769d4f8c9c7e522a635f06f1d06a8c591a3e64a190ea913ee8ede858db68613b4135b2da01d5c87ef6e8fe944cb24612506233868204536fa580d3cf3e"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 104,
+      "output": 64,
+      "hex": "cfa2059b6728e2b6809ea5f8877763e4617a882f7cb3796407ef20ad955f22e19bdfa6af575ff98f65140c0a237a3445c2d5f6f34f723b7b4e4a8843927ea836"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 105,
+      "output": 64,
+      "hex": "f87a1d504a6eeedffd5976cc9fb0e27ded52da991e71441aa1a1a5aee90605f7c290aa06599a44d99f7c1d00aded03b342bb4e6f3c5cb9d2314fc2173edcde7c"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 135,
+      "output": 64,
+      "hex": "005f39bf14bf6415e8fefc32818ed75fe9b3d699d7ec433aa9c1a6eadda13b5dbafdd891e8479c18e35d5900574cacafd738147318247e3801390b03b8197024"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 136,
+      "output": 64,
+      "hex": "fb248e7301ec5132372ef30c98b0da3d1c32aa9d9bd72a976fc5c707443ea92951487b9f7112a8c53b87b95701a6a1fadcbf97d9330ec919f04397bec7098aa4"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 137,
+      "output": 64,
+      "hex": "c6395c46ab62779c67b7cd85e21ca20aae1b6c3c683cbbb4cfd536bf1b325e7423dff4b20f057eba3c458f935e8278cbceeb97af14e6194e067a335cf346a0be"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 143,
+      "output": 64,
+      "hex": "184fc1e3dd25ba031bf141c649b7b235d73a43bd6eb469fcca15e7b7b209eb4277ddfba7bdb7a87cec74d960c6b6aa26bbc2e1922ad2d995eb7a5222d6bed1a0"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 144,
+      "output": 64,
+      "hex": "aa338f9f30a37ff886c24a7b4beec1694f3a59a1dc4757e035155525dd791fd9f8e0247228421e60b4c6fa6fb11f1790c4ae40c90883dc5eafd0da054d2f09b8"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 145,
+      "output": 64,
+      "hex": "39359856a4904c9273d5a33fd6927213abd7ba2d608748c4963ee796ee6aede8dd193c820de4b4e0c49880ce63ed09d4058f1c6ec1797c1c00c659c883980b8c"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 167,
+      "output": 64,
+      "hex": "f8cbd4aaae865dc484625d922b79d89446c87585d97ef23ee14de87fefb3b7402387d5917511ad921936c0e79d0a4e7fc65278dbe3b800c0ceb546f69015d1aa"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 168,
+      "output": 64,
+      "hex": "03585f36d49cbeb997c3745da9250decc6aa01d3139fc3e648e99dc45e8f29b5fb3f3943315b464325c34413d04231ddde05c44f7ec1b78e6c23670021a04ff8"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 169,
+      "output": 64,
+      "hex": "53daccd60a66f52b05b38fb61dc44b4bdf2ab90d8b404a58f46b0df84945baa1dd1cc21df9080770fdd4be9d1cae360cf1117c7f98640c472fbd2ce6b8993d31"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 207,
+      "output": 64,
+      "hex": "4794614b1a787943b3b79d6fab3ca84f7154833dc3b6d442d63b9263b5b24d9ce227fbe724624339760939ec1f59fbae0f4f2cec8d5cab37b5b6897ae9a9e500"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 208,
+      "output": 64,
+      "hex": "250954d71f0d7f33a340d00888abf0d4bed39938f87fe8918627df0f67f7e763392f6a5f2266294d7f5428761cd47a505f863c7b39ca62ba4e4ff95994d04d05"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 209,
+      "output": 64,
+      "hex": "33a8bab3321735e9505a66908e4ff2f6d28db7c0baad503712f84e7c7b83eaf53fb30a7ccd2f0048b80d58a8c634b90fa7f712693c362dd0e4165f91e2d335fa"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 271,
+      "output": 64,
+      "hex": "1e68a3bbfe0c4213c506b6b202c14df05d934a57119af5c9ad96ecd32abd8bd26b8159155091aaf26bb38c163f7a1dd775f49d2110404355a43478965d4375cc"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 272,
+      "output": 64,
+      "hex": "23459a6111d3c67cab379c16572d4ce5ebffd53981fb3b96887e6edeca20ad0f46d915c0b563c31cc28fee00da9696859a80aa859b5db94817a8db640fee3a05"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 273,
+      "output": 64,
+      "hex": "37ce34d1f3b3cea4e2066dd4d46fa75b36488bc6c757671e203155dc7990d7ce068045ac1def1b752cebaadcb158f666ad6a39c1cbc6e974b2d77db66f8f5f5c"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 287,
+      "output": 64,
+      "hex": "bc7226d1e8d4e7a95c315ed8fd4feb953570584b0005e6a46085cca49cdd8656d4056759f27ed54ab891ed9d662f8c0b4c7c93c71bb0abfc321ae49525f18b9e"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 288,
+      "output": 64,
+      "hex": "11c4524ff39368706cab1dc3495abac2868f301e1bde09551e68f9b79751934df0323cadd62f8d56a4ea19b8d11f62464422197636e8dd8afb5a624e3e19a9c2"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 289,
+      "output": 64,
+      "hex": "b2accc16def0fe889a0af83429f3ef3e9078cd60d8ff9867d3543ffc599b97319135fae21616b6d85cba1696b16953f3613c36714749d99a10798f8e99de53ad"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 335,
+      "output": 64,
+      "hex": "102f7afb39361fbbadd80cf07543404afe0121601550970fd3a74dca712a1c83f642f61bb0494a9cfa91f7c75c06511ea0d191c1e44426882474e77a7ab1ed01"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 336,
+      "output": 64,
+      "hex": "0a2c029c3bd9d6fa829d94b0d033597c051aec7378c33c69122a93eedac89aac46297731059bacb09bc843f586a7d31a9e266c787b5d0ef0c1d6223bfcee8d14"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 337,
+      "output": 64,
+      "hex": "4650fba83687b786629eae60edb27eef6ccdd3741aa4349c5061b1c080fad70c414dcd112f0eb8e38b774fe90fa45813f2b92cf296bf825a64d8f23421f16f2f"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 65535,
+      "output": 64,
+      "hex": "7eefedc61831beb6aa5fded5e99edf8c33b3f8fc778c9f14b6eebed26432d2d1cd23ad588bb160057ed478a36227473e9b9cefaf41efed41281cbe45c4182ca8"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 65536,
+      "output": 64,
+      "hex": "0ceacb960e742f5643f839d28c5c17244c5abbe1917a9f983126cda7e645dd00b34b04df971e60448b97b7643b0c7a7d334d446d76b78098267d02cb08481a7b"
+    },
+    {
+      "shake": false,
+      "bits": 512,
+      "size": 65537,
+      "output": 64,
+      "hex": "858ede00048093b6fc454628006ebc9eafbb12695a812d58e093b48fbc79a5f470f9c407d432b9ebc29e6f9c10833d3fdda5b6489a0101294bb776acd755f535"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 0,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 0,
+      "output": 1,
+      "hex": "7f"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 0,
+      "output": 7,
+      "hex": "7f9c2ba4e88f82"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 0,
+      "output": 8,
+      "hex": "7f9c2ba4e88f827d"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 0,
+      "output": 31,
+      "hex": "7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 0,
+      "output": 32,
+      "hex": "7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef26"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 0,
+      "output": 64,
+      "hex": "7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef263cb1eea988004b93103cfb0aeefd2a686e01fa4a58e8a3639ca8a1e3f9ae57e2"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 0,
+      "output": 128,
+      "hex": "7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef263cb1eea988004b93103cfb0aeefd2a686e01fa4a58e8a3639ca8a1e3f9ae57e235b8cc873c23dc62b8d260169afa2f75ab916a58d974918835d25e6a435085b2badfd6dfaac359a5efbb7bcc4b59d538df9a04302e10c8bc1cbf1a0b3a5120ea"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 0,
+      "output": 129,
+      "hex": "7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef263cb1eea988004b93103cfb0aeefd2a686e01fa4a58e8a3639ca8a1e3f9ae57e235b8cc873c23dc62b8d260169afa2f75ab916a58d974918835d25e6a435085b2badfd6dfaac359a5efbb7bcc4b59d538df9a04302e10c8bc1cbf1a0b3a5120ea17"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 0,
+      "output": 136,
+      "hex": "7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef263cb1eea988004b93103cfb0aeefd2a686e01fa4a58e8a3639ca8a1e3f9ae57e235b8cc873c23dc62b8d260169afa2f75ab916a58d974918835d25e6a435085b2badfd6dfaac359a5efbb7bcc4b59d538df9a04302e10c8bc1cbf1a0b3a5120ea17cda7cfad765f56"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 0,
+      "output": 168,
+      "hex": "7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef263cb1eea988004b93103cfb0aeefd2a686e01fa4a58e8a3639ca8a1e3f9ae57e235b8cc873c23dc62b8d260169afa2f75ab916a58d974918835d25e6a435085b2badfd6dfaac359a5efbb7bcc4b59d538df9a04302e10c8bc1cbf1a0b3a5120ea17cda7cfad765f5623474d368ccca8af0007cd9f5e4c849f167a580b14aabdefaee7eef47cb0fca9"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 0,
+      "output": 257,
+      "hex": "7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef263cb1eea988004b93103cfb0aeefd2a686e01fa4a58e8a3639ca8a1e3f9ae57e235b8cc873c23dc62b8d260169afa2f75ab916a58d974918835d25e6a435085b2badfd6dfaac359a5efbb7bcc4b59d538df9a04302e10c8bc1cbf1a0b3a5120ea17cda7cfad765f5623474d368ccca8af0007cd9f5e4c849f167a580b14aabdefaee7eef47cb0fca9767be1fda69419dfb927e9df07348b196691abaeb580b32def58538b8d23f87732ea63b02b4fa0f4873360e2841928cd60dd4cee8cc0d4c922a96188d032675c8ac850933c7aff1533b94c834adbb69c6115bad4692d8619f9"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 1,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 1,
+      "output": 1,
+      "hex": "96"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 1,
+      "output": 7,
+      "hex": "965e6070bf20c4"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 1,
+      "output": 8,
+      "hex": "965e6070bf20c4f4"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 1,
+      "output": 31,
+      "hex": "965e6070bf20c4f407ed231d82437a1f7a5f9c36f8319fcee7ebbeb72e43df"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 1,
+      "output": 32,
+      "hex": "965e6070bf20c4f407ed231d82437a1f7a5f9c36f8319fcee7ebbeb72e43df2c"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 1,
+      "output": 64,
+      "hex": "965e6070bf20c4f407ed231d82437a1f7a5f9c36f8319fcee7ebbeb72e43df2cd0bd00336ddaaa96418205bc8a6b4d048d16956701512bcb787ae967f6222c0d"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 1,
+      "output": 128,
+      "hex": "965e6070bf20c4f407ed231d82437a1f7a5f9c36f8319fcee7ebbeb72e43df2cd0bd00336ddaaa96418205bc8a6b4d048d16956701512bcb787ae967f6222c0d4609b80344225bd1a7223dec508e853f6143fcf647d02157ea31e572087851adb292208c71a06e8d27c7249d7927d4bb5ace50820e4def8e83a9274f7f91b296"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 1,
+      "output": 129,
+      "hex": "965e6070bf20c4f407ed231d82437a1f7a5f9c36f8319fcee7ebbeb72e43df2cd0bd00336ddaaa96418205bc8a6b4d048d16956701512bcb787ae967f6222c0d4609b80344225bd1a7223dec508e853f6143fcf647d02157ea31e572087851adb292208c71a06e8d27c7249d7927d4bb5ace50820e4def8e83a9274f7f91b296f2"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 1,
+      "output": 136,
+      "hex": "965e6070bf20c4f407ed231d82437a1f7a5f9c36f8319fcee7ebbeb72e43df2cd0bd00336ddaaa96418205bc8a6b4d048d16956701512bcb787ae967f6222c0d4609b80344225bd1a7223dec508e853f6143fcf647d02157ea31e572087851adb292208c71a06e8d27c7249d7927d4bb5ace50820e4def8e83a9274f7f91b296f2f87479b8b63596"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 1,
+      "output": 168,
+      "hex": "965e6070bf20c4f407ed231d82437a1f7a5f9c36f8319fcee7ebbeb72e43df2cd0bd00336ddaaa96418205bc8a6b4d048d16956701512bcb787ae967f6222c0d4609b80344225bd1a7223dec508e853f6143fcf647d02157ea31e572087851adb292208c71a06e8d27c7249d7927d4bb5ace50820e4def8e83a9274f7f91b296f2f87479b8b6359654c64568f8618c62531ad3fe0d82c1cfce07c81b3d354aa30a6cd9922ee200e5"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 1,
+      "output": 257,
+      "hex": "965e6070bf20c4f407ed231d82437a1f7a5f9c36f8319fcee7ebbeb72e43df2cd0bd00336ddaaa96418205bc8a6b4d048d16956701512bcb787ae967f6222c0d4609b80344225bd1a7223dec508e853f6143fcf647d02157ea31e572087851adb292208c71a06e8d27c7249d7927d4bb5ace50820e4def8e83a9274f7f91b296f2f87479b8b6359654c64568f8618c62531ad3fe0d82c1cfce07c81b3d354aa30a6cd9922ee200e58a680eca8d9b7fd0a30187a1675112316991a8a7770a3db3b21c166c369756fb999dd446cceadcbb747f317a8e3a182bebd51683de4c73bd59e6ca83d13f93bb35d558d04b6655689250323e681ae13033ec940b7b346dd239"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 135,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 135,
+      "output": 1,
+      "hex": "ad"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 135,
+      "output": 7,
+      "hex": "ad5ac71763cdcc"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 135,
+      "output": 8,
+      "hex": "ad5ac71763cdcc32"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 135,
+      "output": 31,
+      "hex": "ad5ac71763cdcc32984e9d0b81f9bb2e5688dd8697109aa880c0a1144b50e6"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 135,
+      "output": 32,
+      "hex": "ad5ac71763cdcc32984e9d0b81f9bb2e5688dd8697109aa880c0a1144b50e67d"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 135,
+      "output": 64,
+      "hex": "ad5ac71763cdcc32984e9d0b81f9bb2e5688dd8697109aa880c0a1144b50e67de4f93ce938d14e3bf75c9338b04d2391f82f551ff5f5fb9b349c226fa3102b9a"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 135,
+      "output": 128,
+      "hex": "ad5ac71763cdcc32984e9d0b81f9bb2e5688dd8697109aa880c0a1144b50e67de4f93ce938d14e3bf75c9338b04d2391f82f551ff5f5fb9b349c226fa3102b9a8810f5a236942542bf6a3781c4f90f3da385cef87dea7811ee2131bd9939d9ccdc0ddf658f9d320e43a6c6340c1f19ad7fe26014d5898f48df32cb7215814ed1"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 135,
+      "output": 129,
+      "hex": "ad5ac71763cdcc32984e9d0b81f9bb2e5688dd8697109aa880c0a1144b50e67de4f93ce938d14e3bf75c9338b04d2391f82f551ff5f5fb9b349c226fa3102b9a8810f5a236942542bf6a3781c4f90f3da385cef87dea7811ee2131bd9939d9ccdc0ddf658f9d320e43a6c6340c1f19ad7fe26014d5898f48df32cb7215814ed1d2"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 135,
+      "output": 136,
+      "hex": "ad5ac71763cdcc32984e9d0b81f9bb2e5688dd8697109aa880c0a1144b50e67de4f93ce938d14e3bf75c9338b04d2391f82f551ff5f5fb9b349c226fa3102b9a8810f5a236942542bf6a3781c4f90f3da385cef87dea7811ee2131bd9939d9ccdc0ddf658f9d320e43a6c6340c1f19ad7fe26014d5898f48df32cb7215814ed1d2dacc45f0db1c51"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 135,
+      "output": 168,
+      "hex": "ad5ac71763cdcc32984e9d0b81f9bb2e5688dd8697109aa880c0a1144b50e67de4f93ce938d14e3bf75c9338b04d2391f82f551ff5f5fb9b349c226fa3102b9a8810f5a236942542bf6a3781c4f90f3da385cef87dea7811ee2131bd9939d9ccdc0ddf658f9d320e43a6c6340c1f19ad7fe26014d5898f48df32cb7215814ed1d2dacc45f0db1c51f462ea68b5415b39bc8c383f58400303b7f08754accdb6eeb36b2a8f3eebfdf4"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 135,
+      "output": 257,
+      "hex": "ad5ac71763cdcc32984e9d0b81f9bb2e5688dd8697109aa880c0a1144b50e67de4f93ce938d14e3bf75c9338b04d2391f82f551ff5f5fb9b349c226fa3102b9a8810f5a236942542bf6a3781c4f90f3da385cef87dea7811ee2131bd9939d9ccdc0ddf658f9d320e43a6c6340c1f19ad7fe26014d5898f48df32cb7215814ed1d2dacc45f0db1c51f462ea68b5415b39bc8c383f58400303b7f08754accdb6eeb36b2a8f3eebfdf434dfbaee9a2048d0528f7fbc8ab40c86193175f55d778f3d3991e3cb33b9f00031fc76c234baab55fceaf99b9d8b59933e2c9abee3eced7d8b7efbd5fe9e1e7bc3cd5d0ac174bb1fb25a17bfcd2e123b6229ecc0460f958fb8"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 136,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 136,
+      "output": 1,
+      "hex": "c5"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 136,
+      "output": 7,
+      "hex": "c5c2d088bd2e20"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 136,
+      "output": 8,
+      "hex": "c5c2d088bd2e20dd"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 136,
+      "output": 31,
+      "hex": "c5c2d088bd2e20dda99724f9d95fe709958509b3ec69f2499a7a4aa92cb2a5"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 136,
+      "output": 32,
+      "hex": "c5c2d088bd2e20dda99724f9d95fe709958509b3ec69f2499a7a4aa92cb2a5d1"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 136,
+      "output": 64,
+      "hex": "c5c2d088bd2e20dda99724f9d95fe709958509b3ec69f2499a7a4aa92cb2a5d17021009ad11a591ec3b947054e0a8e1363b16dc4876ebc0d250bc570c89d2f41"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 136,
+      "output": 128,
+      "hex": "c5c2d088bd2e20dda99724f9d95fe709958509b3ec69f2499a7a4aa92cb2a5d17021009ad11a591ec3b947054e0a8e1363b16dc4876ebc0d250bc570c89d2f418ba70bbeb4e2a73c79b33ff2be98921de7fc4bc3e82414f6b463ed350f8e5879af3fb053bd5e24933357afa4e9a9f3208db70b1c65e59c7ba24dcd8bd88c7e26"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 136,
+      "output": 129,
+      "hex": "c5c2d088bd2e20dda99724f9d95fe709958509b3ec69f2499a7a4aa92cb2a5d17021009ad11a591ec3b947054e0a8e1363b16dc4876ebc0d250bc570c89d2f418ba70bbeb4e2a73c79b33ff2be98921de7fc4bc3e82414f6b463ed350f8e5879af3fb053bd5e24933357afa4e9a9f3208db70b1c65e59c7ba24dcd8bd88c7e26ce"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 136,
+      "output": 136,
+      "hex": "c5c2d088bd2e20dda99724f9d95fe709958509b3ec69f2499a7a4aa92cb2a5d17021009ad11a591ec3b947054e0a8e1363b16dc4876ebc0d250bc570c89d2f418ba70bbeb4e2a73c79b33ff2be98921de7fc4bc3e82414f6b463ed350f8e5879af3fb053bd5e24933357afa4e9a9f3208db70b1c65e59c7ba24dcd8bd88c7e26cec1d56e319253ea"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 136,
+      "output": 168,
+      "hex": "c5c2d088bd2e20dda99724f9d95fe709958509b3ec69f2499a7a4aa92cb2a5d17021009ad11a591ec3b947054e0a8e1363b16dc4876ebc0d250bc570c89d2f418ba70bbeb4e2a73c79b33ff2be98921de7fc4bc3e82414f6b463ed350f8e5879af3fb053bd5e24933357afa4e9a9f3208db70b1c65e59c7ba24dcd8bd88c7e26cec1d56e319253eaff2cf6df8e33da2185ba59756f61ba805f121deb85f79b4431ad2cd744829e17"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 136,
+      "output": 257,
+      "hex": "c5c2d088bd2e20dda99724f9d95fe709958509b3ec69f2499a7a4aa92cb2a5d17021009ad11a591ec3b947054e0a8e1363b16dc4876ebc0d250bc570c89d2f418ba70bbeb4e2a73c79b33ff2be98921de7fc4bc3e82414f6b463ed350f8e5879af3fb053bd5e24933357afa4e9a9f3208db70b1c65e59c7ba24dcd8bd88c7e26cec1d56e319253eaff2cf6df8e33da2185ba59756f61ba805f121deb85f79b4431ad2cd744829e1773397ef966a4ae352beea9252c757e453b873c0cc879b57c5141067700069e863bb5a0704a093a533d79797c6d18f61c640dcd48ff728527c6f87987aa4d2da0b8c9322e95f083b40420402bb27f00e4018e999e87a64ab754"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 137,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 137,
+      "output": 1,
+      "hex": "1f"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 137,
+      "output": 7,
+      "hex": "1f5238c5edb360"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 137,
+      "output": 8,
+      "hex": "1f5238c5edb36069"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 137,
+      "output": 31,
+      "hex": "1f5238c5edb360693fcd7dc98d3bf3b52a87fa15d385ed83a4e6e2cfbb50e9"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 137,
+      "output": 32,
+      "hex": "1f5238c5edb360693fcd7dc98d3bf3b52a87fa15d385ed83a4e6e2cfbb50e9e5"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 137,
+      "output": 64,
+      "hex": "1f5238c5edb360693fcd7dc98d3bf3b52a87fa15d385ed83a4e6e2cfbb50e9e5260c5af932c4c0facae259415a15fafc0886be2e9a2cde447e3ad6c053fe080b"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 137,
+      "output": 128,
+      "hex": "1f5238c5edb360693fcd7dc98d3bf3b52a87fa15d385ed83a4e6e2cfbb50e9e5260c5af932c4c0facae259415a15fafc0886be2e9a2cde447e3ad6c053fe080b29658bce2ef8c436b23206603795eabfbb3fbbefc1d79e3f6fbe832a81a4f5b37e363af662fa7c4976e60ef4db0bce54cd8c871ef041fd4c8f66a225a40e0524"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 137,
+      "output": 129,
+      "hex": "1f5238c5edb360693fcd7dc98d3bf3b52a87fa15d385ed83a4e6e2cfbb50e9e5260c5af932c4c0facae259415a15fafc0886be2e9a2cde447e3ad6c053fe080b29658bce2ef8c436b23206603795eabfbb3fbbefc1d79e3f6fbe832a81a4f5b37e363af662fa7c4976e60ef4db0bce54cd8c871ef041fd4c8f66a225a40e052403"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 137,
+      "output": 136,
+      "hex": "1f5238c5edb360693fcd7dc98d3bf3b52a87fa15d385ed83a4e6e2cfbb50e9e5260c5af932c4c0facae259415a15fafc0886be2e9a2cde447e3ad6c053fe080b29658bce2ef8c436b23206603795eabfbb3fbbefc1d79e3f6fbe832a81a4f5b37e363af662fa7c4976e60ef4db0bce54cd8c871ef041fd4c8f66a225a40e05240367c319fa6726b4"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 137,
+      "output": 168,
+      "hex": "1f5238c5edb360693fcd7dc98d3bf3b52a87fa15d385ed83a4e6e2cfbb50e9e5260c5af932c4c0facae259415a15fafc0886be2e9a2cde447e3ad6c053fe080b29658bce2ef8c436b23206603795eabfbb3fbbefc1d79e3f6fbe832a81a4f5b37e363af662fa7c4976e60ef4db0bce54cd8c871ef041fd4c8f66a225a40e05240367c319fa6726b483cc73abea2f9f831f4b03ef3f1d115ef8e90ffc857c2714b5be65dc21f2e635"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 137,
+      "output": 257,
+      "hex": "1f5238c5edb360693fcd7dc98d3bf3b52a87fa15d385ed83a4e6e2cfbb50e9e5260c5af932c4c0facae259415a15fafc0886be2e9a2cde447e3ad6c053fe080b29658bce2ef8c436b23206603795eabfbb3fbbefc1d79e3f6fbe832a81a4f5b37e363af662fa7c4976e60ef4db0bce54cd8c871ef041fd4c8f66a225a40e05240367c319fa6726b483cc73abea2f9f831f4b03ef3f1d115ef8e90ffc857c2714b5be65dc21f2e6351a050ddbbe3299ca2d0485475c14196c08d5e38c8eff2c5757bfb14dc1a4c347e378a751e7f6c9b912c7da885a2aecbb7a42ac1aa653463edd461269cf594cb72d68956dd50aa546657c926aa5d0bec8a54e1ba25e863e6661"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 167,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 167,
+      "output": 1,
+      "hex": "c1"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 167,
+      "output": 7,
+      "hex": "c1778ab7f9dfaf"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 167,
+      "output": 8,
+      "hex": "c1778ab7f9dfaf56"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 167,
+      "output": 31,
+      "hex": "c1778ab7f9dfaf5647f3c10704f096592bccce6855487c48b4988bbbb5ce4a"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 167,
+      "output": 32,
+      "hex": "c1778ab7f9dfaf5647f3c10704f096592bccce6855487c48b4988bbbb5ce4a71"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 167,
+      "output": 64,
+      "hex": "c1778ab7f9dfaf5647f3c10704f096592bccce6855487c48b4988bbbb5ce4a71f5033ff50db69e7444265a7b8e9bc4b3f11e11d6166e144ce49978a1934ece6e"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 167,
+      "output": 128,
+      "hex": "c1778ab7f9dfaf5647f3c10704f096592bccce6855487c48b4988bbbb5ce4a71f5033ff50db69e7444265a7b8e9bc4b3f11e11d6166e144ce49978a1934ece6efef772346361193e4371680cc4b11501fb852b65615af15f13b36a7b1e0e907ac71859d14a7f26401ab5016ffcf1acc32db9f75ca3d7e8c206a43ef74a9464f4"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 167,
+      "output": 129,
+      "hex": "c1778ab7f9dfaf5647f3c10704f096592bccce6855487c48b4988bbbb5ce4a71f5033ff50db69e7444265a7b8e9bc4b3f11e11d6166e144ce49978a1934ece6efef772346361193e4371680cc4b11501fb852b65615af15f13b36a7b1e0e907ac71859d14a7f26401ab5016ffcf1acc32db9f75ca3d7e8c206a43ef74a9464f45c"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 167,
+      "output": 136,
+      "hex": "c1778ab7f9dfaf5647f3c10704f096592bccce6855487c48b4988bbbb5ce4a71f5033ff50db69e7444265a7b8e9bc4b3f11e11d6166e144ce49978a1934ece6efef772346361193e4371680cc4b11501fb852b65615af15f13b36a7b1e0e907ac71859d14a7f26401ab5016ffcf1acc32db9f75ca3d7e8c206a43ef74a9464f45c2f1c3c579eccec"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 167,
+      "output": 168,
+      "hex": "c1778ab7f9dfaf5647f3c10704f096592bccce6855487c48b4988bbbb5ce4a71f5033ff50db69e7444265a7b8e9bc4b3f11e11d6166e144ce49978a1934ece6efef772346361193e4371680cc4b11501fb852b65615af15f13b36a7b1e0e907ac71859d14a7f26401ab5016ffcf1acc32db9f75ca3d7e8c206a43ef74a9464f45c2f1c3c579eccec3a7c503491259f0fc378231d404bdf47798ff17f46b86f44acb64a9f55fcef85"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 167,
+      "output": 257,
+      "hex": "c1778ab7f9dfaf5647f3c10704f096592bccce6855487c48b4988bbbb5ce4a71f5033ff50db69e7444265a7b8e9bc4b3f11e11d6166e144ce49978a1934ece6efef772346361193e4371680cc4b11501fb852b65615af15f13b36a7b1e0e907ac71859d14a7f26401ab5016ffcf1acc32db9f75ca3d7e8c206a43ef74a9464f45c2f1c3c579eccec3a7c503491259f0fc378231d404bdf47798ff17f46b86f44acb64a9f55fcef858e8b8b411fdc76a2f397fb3aef23bf74c7345560b665aaca25407f9b4ed2cb1596f7a6969473155d049671c241c66783714f7ffcd4d0412a69c1af958466fb21fb0f6c18989f645e25dabf5d34851c6cbb320a5ca9ed4a11ef"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 168,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 168,
+      "output": 1,
+      "hex": "a9"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 168,
+      "output": 7,
+      "hex": "a9463d8b6c707a"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 168,
+      "output": 8,
+      "hex": "a9463d8b6c707a86"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 168,
+      "output": 31,
+      "hex": "a9463d8b6c707a86c89b504b082980a82f166f75d858d6bc25aa05081847df"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 168,
+      "output": 32,
+      "hex": "a9463d8b6c707a86c89b504b082980a82f166f75d858d6bc25aa05081847df17"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 168,
+      "output": 64,
+      "hex": "a9463d8b6c707a86c89b504b082980a82f166f75d858d6bc25aa05081847df171826cc3e4daef8af8d7cab3bd6cffc1c9d284957edf6fdf50a0b38fe3a52cad6"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 168,
+      "output": 128,
+      "hex": "a9463d8b6c707a86c89b504b082980a82f166f75d858d6bc25aa05081847df171826cc3e4daef8af8d7cab3bd6cffc1c9d284957edf6fdf50a0b38fe3a52cad670ccb74adfcb15716361489f102aea6573b38896f0250ba8c88779479ff1a7ede9e66089aae196133ce6ecdde9cb597b9cf768a02af4fbe7e664e183b53a7faa"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 168,
+      "output": 129,
+      "hex": "a9463d8b6c707a86c89b504b082980a82f166f75d858d6bc25aa05081847df171826cc3e4daef8af8d7cab3bd6cffc1c9d284957edf6fdf50a0b38fe3a52cad670ccb74adfcb15716361489f102aea6573b38896f0250ba8c88779479ff1a7ede9e66089aae196133ce6ecdde9cb597b9cf768a02af4fbe7e664e183b53a7faafb"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 168,
+      "output": 136,
+      "hex": "a9463d8b6c707a86c89b504b082980a82f166f75d858d6bc25aa05081847df171826cc3e4daef8af8d7cab3bd6cffc1c9d284957edf6fdf50a0b38fe3a52cad670ccb74adfcb15716361489f102aea6573b38896f0250ba8c88779479ff1a7ede9e66089aae196133ce6ecdde9cb597b9cf768a02af4fbe7e664e183b53a7faafb25101625f56684"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 168,
+      "output": 168,
+      "hex": "a9463d8b6c707a86c89b504b082980a82f166f75d858d6bc25aa05081847df171826cc3e4daef8af8d7cab3bd6cffc1c9d284957edf6fdf50a0b38fe3a52cad670ccb74adfcb15716361489f102aea6573b38896f0250ba8c88779479ff1a7ede9e66089aae196133ce6ecdde9cb597b9cf768a02af4fbe7e664e183b53a7faafb25101625f56684caefbfc12a56170b5a75882cbd58a2d751a321254d8e90fed9e33e051e5bb784"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 168,
+      "output": 257,
+      "hex": "a9463d8b6c707a86c89b504b082980a82f166f75d858d6bc25aa05081847df171826cc3e4daef8af8d7cab3bd6cffc1c9d284957edf6fdf50a0b38fe3a52cad670ccb74adfcb15716361489f102aea6573b38896f0250ba8c88779479ff1a7ede9e66089aae196133ce6ecdde9cb597b9cf768a02af4fbe7e664e183b53a7faafb25101625f56684caefbfc12a56170b5a75882cbd58a2d751a321254d8e90fed9e33e051e5bb78447c48acb95949f1095dcd81a83273b43f90199bd88465d6b995e8f00515c5999cd1c4f4342d636fbd552a5c1d639ff506bf3a963f2861e469850682949b9627a85a266ba0396d363bfb4c05223bef86f4c75848a6e9f3cd4c3"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 169,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 169,
+      "output": 1,
+      "hex": "52"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 169,
+      "output": 7,
+      "hex": "529e1b66db25b2"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 169,
+      "output": 8,
+      "hex": "529e1b66db25b200"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 169,
+      "output": 31,
+      "hex": "529e1b66db25b20062f24004fcce114858c69af5cc49a63c65d8df4daa6621"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 169,
+      "output": 32,
+      "hex": "529e1b66db25b20062f24004fcce114858c69af5cc49a63c65d8df4daa662109"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 169,
+      "output": 64,
+      "hex": "529e1b66db25b20062f24004fcce114858c69af5cc49a63c65d8df4daa66210910faa4dacf346122e2b5ffc094f4968d5474b3ce82f300a777896b2d6d3a717d"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 169,
+      "output": 128,
+      "hex": "529e1b66db25b20062f24004fcce114858c69af5cc49a63c65d8df4daa66210910faa4dacf346122e2b5ffc094f4968d5474b3ce82f300a777896b2d6d3a717dc47832ed106cbbada6ce91e5e2d215043bf1cc1da814bc30bfa89028d73b297561608ce22bbf04d68691025463af7b9e9f9cf5e1d6195acad4809ebc385812fd"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 169,
+      "output": 129,
+      "hex": "529e1b66db25b20062f24004fcce114858c69af5cc49a63c65d8df4daa66210910faa4dacf346122e2b5ffc094f4968d5474b3ce82f300a777896b2d6d3a717dc47832ed106cbbada6ce91e5e2d215043bf1cc1da814bc30bfa89028d73b297561608ce22bbf04d68691025463af7b9e9f9cf5e1d6195acad4809ebc385812fdc7"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 169,
+      "output": 136,
+      "hex": "529e1b66db25b20062f24004fcce114858c69af5cc49a63c65d8df4daa66210910faa4dacf346122e2b5ffc094f4968d5474b3ce82f300a777896b2d6d3a717dc47832ed106cbbada6ce91e5e2d215043bf1cc1da814bc30bfa89028d73b297561608ce22bbf04d68691025463af7b9e9f9cf5e1d6195acad4809ebc385812fdc7577158f8ecdc74"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 169,
+      "output": 168,
+      "hex": "529e1b66db25b20062f24004fcce114858c69af5cc49a63c65d8df4daa66210910faa4dacf346122e2b5ffc094f4968d5474b3ce82f300a777896b2d6d3a717dc47832ed106cbbada6ce91e5e2d215043bf1cc1da814bc30bfa89028d73b297561608ce22bbf04d68691025463af7b9e9f9cf5e1d6195acad4809ebc385812fdc7577158f8ecdc74a9ca9eadbb4c362d6e5a12bb7064376fc800b9448fd8d1671c14d4d916c867db"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 169,
+      "output": 257,
+      "hex": "529e1b66db25b20062f24004fcce114858c69af5cc49a63c65d8df4daa66210910faa4dacf346122e2b5ffc094f4968d5474b3ce82f300a777896b2d6d3a717dc47832ed106cbbada6ce91e5e2d215043bf1cc1da814bc30bfa89028d73b297561608ce22bbf04d68691025463af7b9e9f9cf5e1d6195acad4809ebc385812fdc7577158f8ecdc74a9ca9eadbb4c362d6e5a12bb7064376fc800b9448fd8d1671c14d4d916c867db3adc24945b0780ca73fa518b8c8831eef2eb83e2ae8f696fdef71f99a423ce3e771e78d46ad4ce057810456ce5353e6c8490aee0d00e89721c36f5aa8949ff94b15efb8d36b75b3d82e2e787d8ff7c64dc884b7e9a945fd1d9"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 335,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 335,
+      "output": 1,
+      "hex": "c8"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 335,
+      "output": 7,
+      "hex": "c80e44a32afd50"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 335,
+      "output": 8,
+      "hex": "c80e44a32afd50fd"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 335,
+      "output": 31,
+      "hex": "c80e44a32afd50fd475824c66a3794a4aa25a3dbc8cabbc392dc9fb7dcbdb9"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 335,
+      "output": 32,
+      "hex": "c80e44a32afd50fd475824c66a3794a4aa25a3dbc8cabbc392dc9fb7dcbdb95d"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 335,
+      "output": 64,
+      "hex": "c80e44a32afd50fd475824c66a3794a4aa25a3dbc8cabbc392dc9fb7dcbdb95da171e8d1a8fe8fac584e8b43ea34f9e4b13ebdb1bb684ae0a68c1b1914fecc32"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 335,
+      "output": 128,
+      "hex": "c80e44a32afd50fd475824c66a3794a4aa25a3dbc8cabbc392dc9fb7dcbdb95da171e8d1a8fe8fac584e8b43ea34f9e4b13ebdb1bb684ae0a68c1b1914fecc32741d989005ac8839bfff14ab17b4046779721c1fe2e79b6cb3de16c3621d09b96e7e7a0904d8c3886765a51399fe27ca80b696b69759f7d948911537955e0635"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 335,
+      "output": 129,
+      "hex": "c80e44a32afd50fd475824c66a3794a4aa25a3dbc8cabbc392dc9fb7dcbdb95da171e8d1a8fe8fac584e8b43ea34f9e4b13ebdb1bb684ae0a68c1b1914fecc32741d989005ac8839bfff14ab17b4046779721c1fe2e79b6cb3de16c3621d09b96e7e7a0904d8c3886765a51399fe27ca80b696b69759f7d948911537955e06355e"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 335,
+      "output": 136,
+      "hex": "c80e44a32afd50fd475824c66a3794a4aa25a3dbc8cabbc392dc9fb7dcbdb95da171e8d1a8fe8fac584e8b43ea34f9e4b13ebdb1bb684ae0a68c1b1914fecc32741d989005ac8839bfff14ab17b4046779721c1fe2e79b6cb3de16c3621d09b96e7e7a0904d8c3886765a51399fe27ca80b696b69759f7d948911537955e06355e5109ff27c5af4a"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 335,
+      "output": 168,
+      "hex": "c80e44a32afd50fd475824c66a3794a4aa25a3dbc8cabbc392dc9fb7dcbdb95da171e8d1a8fe8fac584e8b43ea34f9e4b13ebdb1bb684ae0a68c1b1914fecc32741d989005ac8839bfff14ab17b4046779721c1fe2e79b6cb3de16c3621d09b96e7e7a0904d8c3886765a51399fe27ca80b696b69759f7d948911537955e06355e5109ff27c5af4a7877c03957d9d04992c122fb28e676cb2d3375f690d648655715529c69ff8e66"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 335,
+      "output": 257,
+      "hex": "c80e44a32afd50fd475824c66a3794a4aa25a3dbc8cabbc392dc9fb7dcbdb95da171e8d1a8fe8fac584e8b43ea34f9e4b13ebdb1bb684ae0a68c1b1914fecc32741d989005ac8839bfff14ab17b4046779721c1fe2e79b6cb3de16c3621d09b96e7e7a0904d8c3886765a51399fe27ca80b696b69759f7d948911537955e06355e5109ff27c5af4a7877c03957d9d04992c122fb28e676cb2d3375f690d648655715529c69ff8e666b11e4827257ca699c898471342be36276bcfb65d6f38ad3b5e79f9779bb79e3e32ca27379d8fffa44868aff5260c684bc85c6085ea4d09884a7eb61347ff51ad454f579d65e87a46cc72be4c143a2c9c219f0cd9214f2cdfa"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 336,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 336,
+      "output": 1,
+      "hex": "6f"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 336,
+      "output": 7,
+      "hex": "6f1475e8a3c12b"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 336,
+      "output": 8,
+      "hex": "6f1475e8a3c12ba7"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 336,
+      "output": 31,
+      "hex": "6f1475e8a3c12ba7ee66bf2c31b4db663f2eab3ee8eacb912b078890f9a433"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 336,
+      "output": 32,
+      "hex": "6f1475e8a3c12ba7ee66bf2c31b4db663f2eab3ee8eacb912b078890f9a433db"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 336,
+      "output": 64,
+      "hex": "6f1475e8a3c12ba7ee66bf2c31b4db663f2eab3ee8eacb912b078890f9a433db29c3dce9cf906aeef674476a0081f02f002eed58c2085e446d80cb26ea4d891a"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 336,
+      "output": 128,
+      "hex": "6f1475e8a3c12ba7ee66bf2c31b4db663f2eab3ee8eacb912b078890f9a433db29c3dce9cf906aeef674476a0081f02f002eed58c2085e446d80cb26ea4d891a47ee5447e33ef39d8f5aa8d39ff08c6b6933d799340711c5fcbeb60bc5480f0fcc42e6f16b9150011d0e41753040e92e4003ed2f1bfb2dc8b15cb22ecce52cc5"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 336,
+      "output": 129,
+      "hex": "6f1475e8a3c12ba7ee66bf2c31b4db663f2eab3ee8eacb912b078890f9a433db29c3dce9cf906aeef674476a0081f02f002eed58c2085e446d80cb26ea4d891a47ee5447e33ef39d8f5aa8d39ff08c6b6933d799340711c5fcbeb60bc5480f0fcc42e6f16b9150011d0e41753040e92e4003ed2f1bfb2dc8b15cb22ecce52cc530"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 336,
+      "output": 136,
+      "hex": "6f1475e8a3c12ba7ee66bf2c31b4db663f2eab3ee8eacb912b078890f9a433db29c3dce9cf906aeef674476a0081f02f002eed58c2085e446d80cb26ea4d891a47ee5447e33ef39d8f5aa8d39ff08c6b6933d799340711c5fcbeb60bc5480f0fcc42e6f16b9150011d0e41753040e92e4003ed2f1bfb2dc8b15cb22ecce52cc5306db1a41bd85a3a"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 336,
+      "output": 168,
+      "hex": "6f1475e8a3c12ba7ee66bf2c31b4db663f2eab3ee8eacb912b078890f9a433db29c3dce9cf906aeef674476a0081f02f002eed58c2085e446d80cb26ea4d891a47ee5447e33ef39d8f5aa8d39ff08c6b6933d799340711c5fcbeb60bc5480f0fcc42e6f16b9150011d0e41753040e92e4003ed2f1bfb2dc8b15cb22ecce52cc5306db1a41bd85a3a24326eb5503b8113c2332d8d6d4a15791c9ba8a41c91c34aa26e9d03f017c4ee"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 336,
+      "output": 257,
+      "hex": "6f1475e8a3c12ba7ee66bf2c31b4db663f2eab3ee8eacb912b078890f9a433db29c3dce9cf906aeef674476a0081f02f002eed58c2085e446d80cb26ea4d891a47ee5447e33ef39d8f5aa8d39ff08c6b6933d799340711c5fcbeb60bc5480f0fcc42e6f16b9150011d0e41753040e92e4003ed2f1bfb2dc8b15cb22ecce52cc5306db1a41bd85a3a24326eb5503b8113c2332d8d6d4a15791c9ba8a41c91c34aa26e9d03f017c4ee1bf2f9b44037e7e43132417407ddcbc7cda42e0efaa6706674a4beae3add7bc0ba1a45630c808b47fc2c5031f919021e652edefb280bbbc743b85a36477a7fe8339dce52ddffe509d11350d9a3c0ebcd393e2c48988386c1de"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 337,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 337,
+      "output": 1,
+      "hex": "fe"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 337,
+      "output": 7,
+      "hex": "febbc2cee13813"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 337,
+      "output": 8,
+      "hex": "febbc2cee1381374"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 337,
+      "output": 31,
+      "hex": "febbc2cee1381374aa5501047a8485dd0d8010b76fdd72b04f021bdd40588c"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 337,
+      "output": 32,
+      "hex": "febbc2cee1381374aa5501047a8485dd0d8010b76fdd72b04f021bdd40588c97"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 337,
+      "output": 64,
+      "hex": "febbc2cee1381374aa5501047a8485dd0d8010b76fdd72b04f021bdd40588c9770fb402210ceaab550360645a9bf17aad0617b034953674c5d21a381900b1691"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 337,
+      "output": 128,
+      "hex": "febbc2cee1381374aa5501047a8485dd0d8010b76fdd72b04f021bdd40588c9770fb402210ceaab550360645a9bf17aad0617b034953674c5d21a381900b16912d4af84f9e01e41e9e4d22cc96b436ff5ec6f61436938d22d13ac3bc74e4d9f244acbcea7be2ca6fa2fa07368f46d4a5a8da9f87d8400e3d49237e3f2c9d369e"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 337,
+      "output": 129,
+      "hex": "febbc2cee1381374aa5501047a8485dd0d8010b76fdd72b04f021bdd40588c9770fb402210ceaab550360645a9bf17aad0617b034953674c5d21a381900b16912d4af84f9e01e41e9e4d22cc96b436ff5ec6f61436938d22d13ac3bc74e4d9f244acbcea7be2ca6fa2fa07368f46d4a5a8da9f87d8400e3d49237e3f2c9d369e5e"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 337,
+      "output": 136,
+      "hex": "febbc2cee1381374aa5501047a8485dd0d8010b76fdd72b04f021bdd40588c9770fb402210ceaab550360645a9bf17aad0617b034953674c5d21a381900b16912d4af84f9e01e41e9e4d22cc96b436ff5ec6f61436938d22d13ac3bc74e4d9f244acbcea7be2ca6fa2fa07368f46d4a5a8da9f87d8400e3d49237e3f2c9d369e5e42a2f325fd5fa1"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 337,
+      "output": 168,
+      "hex": "febbc2cee1381374aa5501047a8485dd0d8010b76fdd72b04f021bdd40588c9770fb402210ceaab550360645a9bf17aad0617b034953674c5d21a381900b16912d4af84f9e01e41e9e4d22cc96b436ff5ec6f61436938d22d13ac3bc74e4d9f244acbcea7be2ca6fa2fa07368f46d4a5a8da9f87d8400e3d49237e3f2c9d369e5e42a2f325fd5fa14a56baa8514aca507da9d124979c97ee2fc8a770c026f5c6cf22db92d39b91fb"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 337,
+      "output": 257,
+      "hex": "febbc2cee1381374aa5501047a8485dd0d8010b76fdd72b04f021bdd40588c9770fb402210ceaab550360645a9bf17aad0617b034953674c5d21a381900b16912d4af84f9e01e41e9e4d22cc96b436ff5ec6f61436938d22d13ac3bc74e4d9f244acbcea7be2ca6fa2fa07368f46d4a5a8da9f87d8400e3d49237e3f2c9d369e5e42a2f325fd5fa14a56baa8514aca507da9d124979c97ee2fc8a770c026f5c6cf22db92d39b91fb41e994e2697a97f4b91782496872c00242cec99d4d2b5496eca1fc96cea2a000c3a5c0151ba9b52cab43dd3fdb6e8d516fe2e403be2dda412156d2c085b78b142e93fb24378e0569d13adb6aecfa035d62f366e199b826ed94"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 65537,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 65537,
+      "output": 1,
+      "hex": "4c"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 65537,
+      "output": 7,
+      "hex": "4cdb9fb04712d6"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 65537,
+      "output": 8,
+      "hex": "4cdb9fb04712d636"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 65537,
+      "output": 31,
+      "hex": "4cdb9fb04712d636e7b7fb86d7dd91ec3d905e8caae4035a0ecac49c32ab68"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 65537,
+      "output": 32,
+      "hex": "4cdb9fb04712d636e7b7fb86d7dd91ec3d905e8caae4035a0ecac49c32ab6887"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 65537,
+      "output": 64,
+      "hex": "4cdb9fb04712d636e7b7fb86d7dd91ec3d905e8caae4035a0ecac49c32ab68875f2e28aba195436e1c1e0cfd96bf7d122826cb039a88204e68e613d6aac0f69e"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 65537,
+      "output": 128,
+      "hex": "4cdb9fb04712d636e7b7fb86d7dd91ec3d905e8caae4035a0ecac49c32ab68875f2e28aba195436e1c1e0cfd96bf7d122826cb039a88204e68e613d6aac0f69e47b61cf6caa98cd1c7f9bfbaa54abcc9cf54570ca8f3df4b75f756549f0e932fbdf816be284cd50b50d42cf5647f297280344232d0a4ed25f2f86c77462ade50"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 65537,
+      "output": 129,
+      "hex": "4cdb9fb04712d636e7b7fb86d7dd91ec3d905e8caae4035a0ecac49c32ab68875f2e28aba195436e1c1e0cfd96bf7d122826cb039a88204e68e613d6aac0f69e47b61cf6caa98cd1c7f9bfbaa54abcc9cf54570ca8f3df4b75f756549f0e932fbdf816be284cd50b50d42cf5647f297280344232d0a4ed25f2f86c77462ade50a1"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 65537,
+      "output": 136,
+      "hex": "4cdb9fb04712d636e7b7fb86d7dd91ec3d905e8caae4035a0ecac49c32ab68875f2e28aba195436e1c1e0cfd96bf7d122826cb039a88204e68e613d6aac0f69e47b61cf6caa98cd1c7f9bfbaa54abcc9cf54570ca8f3df4b75f756549f0e932fbdf816be284cd50b50d42cf5647f297280344232d0a4ed25f2f86c77462ade50a1d1fe7cc16db643"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 65537,
+      "output": 168,
+      "hex": "4cdb9fb04712d636e7b7fb86d7dd91ec3d905e8caae4035a0ecac49c32ab68875f2e28aba195436e1c1e0cfd96bf7d122826cb039a88204e68e613d6aac0f69e47b61cf6caa98cd1c7f9bfbaa54abcc9cf54570ca8f3df4b75f756549f0e932fbdf816be284cd50b50d42cf5647f297280344232d0a4ed25f2f86c77462ade50a1d1fe7cc16db643751d43231ad4a56cf212aa26cab0c76c031243ae9e28ab5696c8ff2420ae37fe"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 65537,
+      "output": 257,
+      "hex": "4cdb9fb04712d636e7b7fb86d7dd91ec3d905e8caae4035a0ecac49c32ab68875f2e28aba195436e1c1e0cfd96bf7d122826cb039a88204e68e613d6aac0f69e47b61cf6caa98cd1c7f9bfbaa54abcc9cf54570ca8f3df4b75f756549f0e932fbdf816be284cd50b50d42cf5647f297280344232d0a4ed25f2f86c77462ade50a1d1fe7cc16db643751d43231ad4a56cf212aa26cab0c76c031243ae9e28ab5696c8ff2420ae37fef0aaed75e7e5cc3936e8b79d27af1dbe21e9420f9690831bc5708fcd495081ecaae23743fe4d71383c4fb4e99d838e0ceabd3238fe3884867e56736b61da0207d90f2efafa408210d8d098a08fab26c07a250dbab19362ffa8"
+    },
+    {
+      "shake": true,
+      "bits": 128,
+      "size": 65537,
+      "output": 1024,
+      "hex": "4cdb9fb04712d636e7b7fb86d7dd91ec3d905e8caae4035a0ecac49c32ab68875f2e28aba195436e1c1e0cfd96bf7d122826cb039a88204e68e613d6aac0f69e47b61cf6caa98cd1c7f9bfbaa54abcc9cf54570ca8f3df4b75f756549f0e932fbdf816be284cd50b50d42cf5647f297280344232d0a4ed25f2f86c77462ade50a1d1fe7cc16db643751d43231ad4a56cf212aa26cab0c76c031243ae9e28ab5696c8ff2420ae37fef0aaed75e7e5cc3936e8b79d27af1dbe21e9420f9690831bc5708fcd495081ecaae23743fe4d71383c4fb4e99d838e0ceabd3238fe3884867e56736b61da0207d90f2efafa408210d8d098a08fab26c07a250dbab19362ffa80d17cd79bab093788e8d72979d669dea5e97225208470caaa0abfe4448dda01bbf46c99727a5c9c1d4d4c463e3c0cc3bb422eecc78ff703dfcf71e62db98cae01799160f67bbaad50477900945f51b8dc7dd70ccb844de82d5f465ae81541e73ab289b8c7b4d106b8016f66520e8a2a7e10d9176b3c53bb183edb994e7a1a5f42a85c4ffa3442df7768a1e77b99892932ee12cc88130e64fa9787bbcef4a16ff4397ac36706ea41371a58f2fd4382c430313775eb90c53c0f58d6f3a0310d3001c32ddbf6ce5206ab339054b3f8bf249169b7f6e5ba94ed466eb97b96a4230e540de3bc5e1c9d04f74148f8d72a32a7c53c7b5162b08fc5a0651ad44976c6c4e973a391b772f06f3004c9a09e0b130112724d758853d62b77cb3b82bfb904fab40a55d4688cae0e70843154c4d874eb8ff9c60425c31ec5ddf232edb1ab2b8ba489ed1a08d67978dc5d66a5e58fc52cacaf0128ab8c96fb5860d6843a7e8f68bf8b0024a336862038a00aad1427bdb12d9587c4db8a05fa94a619737847a920178a63ebfc90c4415d85e618ad4ec63b53fdd59cd704c2612be6e278a0062fbe5dff8e518dce8945ecc1975e7f61dbca33cd83df544efe50fb4b5d198f5c50a39612ef9a12903cd5f543ed7eed4bd1f1a1fda7d03ce00c5b505f56de08e5ce3148740dead987bf105799d57360e8244cde3d8e146d38fc3de819c64c1afc417fdad9648e45cc395a96a4ec7b6a292410582082218ef4851ddb56f6ea0539a088579b2d8811ca14afa34ebe2dfed4201f5e1fc1905e31512fa2ca706107d8f6bbb45631e3ffa120436dd9ac7305ea9a6da20024a9b11497cc7c2cbe0d2c3ba0fb13d3c289c67964afdfca3fe1ad0b54cb01889753ab6a473ec339fdd8b13d539dac5909a84810ab5390cecf25c941f57fabd3f72617c03ced45a66a4c50c5a6129c0c8598871f1a4b2403134d119037f003ca395977bc44e87d7a2e6ba93a69c6297bc9bc3f57801620b245b69cc4a0fffc5fa3dd7308b515731ce112a39b2fcac0ec034baaeb265c62346743040fde46cd4d059535ee3726adc294598cd7bec"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 0,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 0,
+      "output": 1,
+      "hex": "46"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 0,
+      "output": 7,
+      "hex": "46b9dd2b0ba88d"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 0,
+      "output": 8,
+      "hex": "46b9dd2b0ba88d13"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 0,
+      "output": 31,
+      "hex": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed576"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 0,
+      "output": 32,
+      "hex": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 0,
+      "output": 64,
+      "hex": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 0,
+      "output": 128,
+      "hex": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be141e96616fb13957692cc7edd0b45ae3dc07223c8e92937bef84bc0eab862853349ec75546f58fb7c2775c38462c5010d846c185c15111e595522a6bcd16cf86"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 0,
+      "output": 129,
+      "hex": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be141e96616fb13957692cc7edd0b45ae3dc07223c8e92937bef84bc0eab862853349ec75546f58fb7c2775c38462c5010d846c185c15111e595522a6bcd16cf86f3"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 0,
+      "output": 136,
+      "hex": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be141e96616fb13957692cc7edd0b45ae3dc07223c8e92937bef84bc0eab862853349ec75546f58fb7c2775c38462c5010d846c185c15111e595522a6bcd16cf86f3d122109e3b1fdd"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 0,
+      "output": 168,
+      "hex": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be141e96616fb13957692cc7edd0b45ae3dc07223c8e92937bef84bc0eab862853349ec75546f58fb7c2775c38462c5010d846c185c15111e595522a6bcd16cf86f3d122109e3b1fdd943b6aec468a2d621a7c06c6a957c62b54dafc3be87567d677231395f6147293"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 0,
+      "output": 257,
+      "hex": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be141e96616fb13957692cc7edd0b45ae3dc07223c8e92937bef84bc0eab862853349ec75546f58fb7c2775c38462c5010d846c185c15111e595522a6bcd16cf86f3d122109e3b1fdd943b6aec468a2d621a7c06c6a957c62b54dafc3be87567d677231395f6147293b68ceab7a9e0c58d864e8efde4e1b9a46cbe854713672f5caaae314ed9083dab4b099f8e300f01b8650f1f4b1d8fcf3f3cb53fb8e9eb2ea203bdc970f50ae55428a91f7f53ac266b28419c3778a15fd248d339ede785fb7f5a"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 1,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 1,
+      "output": 1,
+      "hex": "ef"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 1,
+      "output": 7,
+      "hex": "eff575e75502a0"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 1,
+      "output": 8,
+      "hex": "eff575e75502a07a"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 1,
+      "output": 31,
+      "hex": "eff575e75502a07a1dcf57937dfd53a90073659eededed0b7e6f6ebb886d39"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 1,
+      "output": 32,
+      "hex": "eff575e75502a07a1dcf57937dfd53a90073659eededed0b7e6f6ebb886d39ad"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 1,
+      "output": 64,
+      "hex": "eff575e75502a07a1dcf57937dfd53a90073659eededed0b7e6f6ebb886d39ad540a88447c5fe6f5d49af9bdfe7039a62231d169e7483bda475d526b76bd18e9"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 1,
+      "output": 128,
+      "hex": "eff575e75502a07a1dcf57937dfd53a90073659eededed0b7e6f6ebb886d39ad540a88447c5fe6f5d49af9bdfe7039a62231d169e7483bda475d526b76bd18e91c7ffe5e4536e630d8572ebdebc8146ad3d455495cb4d6ca228caa3e0cd56e645d49cf7692665e86a5aaeaacfe86165b47a4872704e5b4d4525df9f1e493898f"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 1,
+      "output": 129,
+      "hex": "eff575e75502a07a1dcf57937dfd53a90073659eededed0b7e6f6ebb886d39ad540a88447c5fe6f5d49af9bdfe7039a62231d169e7483bda475d526b76bd18e91c7ffe5e4536e630d8572ebdebc8146ad3d455495cb4d6ca228caa3e0cd56e645d49cf7692665e86a5aaeaacfe86165b47a4872704e5b4d4525df9f1e493898fd9"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 1,
+      "output": 136,
+      "hex": "eff575e75502a07a1dcf57937dfd53a90073659eededed0b7e6f6ebb886d39ad540a88447c5fe6f5d49af9bdfe7039a62231d169e7483bda475d526b76bd18e91c7ffe5e4536e630d8572ebdebc8146ad3d455495cb4d6ca228caa3e0cd56e645d49cf7692665e86a5aaeaacfe86165b47a4872704e5b4d4525df9f1e493898fd9f919f948689a77"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 1,
+      "output": 168,
+      "hex": "eff575e75502a07a1dcf57937dfd53a90073659eededed0b7e6f6ebb886d39ad540a88447c5fe6f5d49af9bdfe7039a62231d169e7483bda475d526b76bd18e91c7ffe5e4536e630d8572ebdebc8146ad3d455495cb4d6ca228caa3e0cd56e645d49cf7692665e86a5aaeaacfe86165b47a4872704e5b4d4525df9f1e493898fd9f919f948689a7716f841e4fc2ffd9184432809b26257006dd4649c42be4af59ddd5c7b338dd216"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 1,
+      "output": 257,
+      "hex": "eff575e75502a07a1dcf57937dfd53a90073659eededed0b7e6f6ebb886d39ad540a88447c5fe6f5d49af9bdfe7039a62231d169e7483bda475d526b76bd18e91c7ffe5e4536e630d8572ebdebc8146ad3d455495cb4d6ca228caa3e0cd56e645d49cf7692665e86a5aaeaacfe86165b47a4872704e5b4d4525df9f1e493898fd9f919f948689a7716f841e4fc2ffd9184432809b26257006dd4649c42be4af59ddd5c7b338dd2161ea3a76479c242fa7553f82c8f39cfe7de282aaf07dec1d6a9e29c7726be83862e0d154c0e28b3a6b074e0bb0ad622259c2adad493bd3e1f856f36e666a19a174885025f3ee535354293b61c3ac1fd5b72c9a042c02cb7ca3d"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 135,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 135,
+      "output": 1,
+      "hex": "87"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 135,
+      "output": 7,
+      "hex": "8718c5da8c17af"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 135,
+      "output": 8,
+      "hex": "8718c5da8c17af4e"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 135,
+      "output": 31,
+      "hex": "8718c5da8c17af4eddafe058d4d6cdb76d17fed735aea8367049bd5cf34fc6"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 135,
+      "output": 32,
+      "hex": "8718c5da8c17af4eddafe058d4d6cdb76d17fed735aea8367049bd5cf34fc69c"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 135,
+      "output": 64,
+      "hex": "8718c5da8c17af4eddafe058d4d6cdb76d17fed735aea8367049bd5cf34fc69c4c858bfaea7db94370390ea21fa709a1ac133a47901ee708190342d659b1d6a5"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 135,
+      "output": 128,
+      "hex": "8718c5da8c17af4eddafe058d4d6cdb76d17fed735aea8367049bd5cf34fc69c4c858bfaea7db94370390ea21fa709a1ac133a47901ee708190342d659b1d6a51716d6896abac85e4da6283d308d42e25c843a11c4426982389a193b38e764ad26c7925bfda504066b04296ca5c226f40c2c4700fc11f6603a44c1ecde748592"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 135,
+      "output": 129,
+      "hex": "8718c5da8c17af4eddafe058d4d6cdb76d17fed735aea8367049bd5cf34fc69c4c858bfaea7db94370390ea21fa709a1ac133a47901ee708190342d659b1d6a51716d6896abac85e4da6283d308d42e25c843a11c4426982389a193b38e764ad26c7925bfda504066b04296ca5c226f40c2c4700fc11f6603a44c1ecde748592e4"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 135,
+      "output": 136,
+      "hex": "8718c5da8c17af4eddafe058d4d6cdb76d17fed735aea8367049bd5cf34fc69c4c858bfaea7db94370390ea21fa709a1ac133a47901ee708190342d659b1d6a51716d6896abac85e4da6283d308d42e25c843a11c4426982389a193b38e764ad26c7925bfda504066b04296ca5c226f40c2c4700fc11f6603a44c1ecde748592e4331bbea9ed639b"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 135,
+      "output": 168,
+      "hex": "8718c5da8c17af4eddafe058d4d6cdb76d17fed735aea8367049bd5cf34fc69c4c858bfaea7db94370390ea21fa709a1ac133a47901ee708190342d659b1d6a51716d6896abac85e4da6283d308d42e25c843a11c4426982389a193b38e764ad26c7925bfda504066b04296ca5c226f40c2c4700fc11f6603a44c1ecde748592e4331bbea9ed639b9e0f395c3f902c4aa8f6282ed23fe0e0cff5bd2839d4fc0360a0bf10bf5e2ad6"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 135,
+      "output": 257,
+      "hex": "8718c5da8c17af4eddafe058d4d6cdb76d17fed735aea8367049bd5cf34fc69c4c858bfaea7db94370390ea21fa709a1ac133a47901ee708190342d659b1d6a51716d6896abac85e4da6283d308d42e25c843a11c4426982389a193b38e764ad26c7925bfda504066b04296ca5c226f40c2c4700fc11f6603a44c1ecde748592e4331bbea9ed639b9e0f395c3f902c4aa8f6282ed23fe0e0cff5bd2839d4fc0360a0bf10bf5e2ad6300bbc5964003ec46542763e87e6990fb2fcd55d448641ccd1c88e44521569015faae3ffcdc9eb6610ae24c9d1ddb75244ded9c366d9b4645a6707dd31e61d50a15025cf90d3518389ddb79543b8bf9d50160f2dd3c7f1d852"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 136,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 136,
+      "output": 1,
+      "hex": "57"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 136,
+      "output": 7,
+      "hex": "579616897b9db8"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 136,
+      "output": 8,
+      "hex": "579616897b9db8dc"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 136,
+      "output": 31,
+      "hex": "579616897b9db8dc567cd07f9b81d4e4a2d823203b5ae45e9d285fd9097058"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 136,
+      "output": 32,
+      "hex": "579616897b9db8dc567cd07f9b81d4e4a2d823203b5ae45e9d285fd909705860"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 136,
+      "output": 64,
+      "hex": "579616897b9db8dc567cd07f9b81d4e4a2d823203b5ae45e9d285fd909705860130d55b7d9525249700802ece60854a318b30b90950a615f4cb015a3eb334401"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 136,
+      "output": 128,
+      "hex": "579616897b9db8dc567cd07f9b81d4e4a2d823203b5ae45e9d285fd909705860130d55b7d9525249700802ece60854a318b30b90950a615f4cb015a3eb334401dd8baec3b832d034691a6292a295724e640bd1456c75b5aa1735add4977c7949b57290c0237894c7a11b20c75e39bd1e7a31e25fd4d2d674e5050aea03e5a7ac"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 136,
+      "output": 129,
+      "hex": "579616897b9db8dc567cd07f9b81d4e4a2d823203b5ae45e9d285fd909705860130d55b7d9525249700802ece60854a318b30b90950a615f4cb015a3eb334401dd8baec3b832d034691a6292a295724e640bd1456c75b5aa1735add4977c7949b57290c0237894c7a11b20c75e39bd1e7a31e25fd4d2d674e5050aea03e5a7ace8"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 136,
+      "output": 136,
+      "hex": "579616897b9db8dc567cd07f9b81d4e4a2d823203b5ae45e9d285fd909705860130d55b7d9525249700802ece60854a318b30b90950a615f4cb015a3eb334401dd8baec3b832d034691a6292a295724e640bd1456c75b5aa1735add4977c7949b57290c0237894c7a11b20c75e39bd1e7a31e25fd4d2d674e5050aea03e5a7ace88c129d528c5ac0"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 136,
+      "output": 168,
+      "hex": "579616897b9db8dc567cd07f9b81d4e4a2d823203b5ae45e9d285fd909705860130d55b7d9525249700802ece60854a318b30b90950a615f4cb015a3eb334401dd8baec3b832d034691a6292a295724e640bd1456c75b5aa1735add4977c7949b57290c0237894c7a11b20c75e39bd1e7a31e25fd4d2d674e5050aea03e5a7ace88c129d528c5ac02f22f5c3ec133f95f5aef5c71cb95f4a3078d0450b0ce9b73a5e075c924c1551"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 136,
+      "output": 257,
+      "hex": "579616897b9db8dc567cd07f9b81d4e4a2d823203b5ae45e9d285fd909705860130d55b7d9525249700802ece60854a318b30b90950a615f4cb015a3eb334401dd8baec3b832d034691a6292a295724e640bd1456c75b5aa1735add4977c7949b57290c0237894c7a11b20c75e39bd1e7a31e25fd4d2d674e5050aea03e5a7ace88c129d528c5ac02f22f5c3ec133f95f5aef5c71cb95f4a3078d0450b0ce9b73a5e075c924c1551752d25b4f06e8af8d5fe4152123e6b2b2883dac49765684d668379cf7ec4ec0d79ec60cc69802733c6201ae72d4e1ce7d55ae19c670f8ee854e112a81efa310b82b5438fc2586eaecf1ae21d8514287581a0ef3bb297a1d8af"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 137,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 137,
+      "output": 1,
+      "hex": "59"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 137,
+      "output": 7,
+      "hex": "59df4c6a3829ea"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 137,
+      "output": 8,
+      "hex": "59df4c6a3829eace"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 137,
+      "output": 31,
+      "hex": "59df4c6a3829eaceca408cdbab359adc237e09090b085c98709ba7424cfe72"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 137,
+      "output": 32,
+      "hex": "59df4c6a3829eaceca408cdbab359adc237e09090b085c98709ba7424cfe72a5"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 137,
+      "output": 64,
+      "hex": "59df4c6a3829eaceca408cdbab359adc237e09090b085c98709ba7424cfe72a50ea77c38803a5355c00123bf4db292d2377675a18fe7694dc20e076697944295"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 137,
+      "output": 128,
+      "hex": "59df4c6a3829eaceca408cdbab359adc237e09090b085c98709ba7424cfe72a50ea77c38803a5355c00123bf4db292d2377675a18fe7694dc20e076697944295a90f2315086ce6f82e5bf8be8bf1adaa0a48abdf4ca86bbdd1b3e09acc955c624d139ffb80d1aa7d548feeebaa3fe5141744444642b2daa9916545cac7659c0c"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 137,
+      "output": 129,
+      "hex": "59df4c6a3829eaceca408cdbab359adc237e09090b085c98709ba7424cfe72a50ea77c38803a5355c00123bf4db292d2377675a18fe7694dc20e076697944295a90f2315086ce6f82e5bf8be8bf1adaa0a48abdf4ca86bbdd1b3e09acc955c624d139ffb80d1aa7d548feeebaa3fe5141744444642b2daa9916545cac7659c0c07"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 137,
+      "output": 136,
+      "hex": "59df4c6a3829eaceca408cdbab359adc237e09090b085c98709ba7424cfe72a50ea77c38803a5355c00123bf4db292d2377675a18fe7694dc20e076697944295a90f2315086ce6f82e5bf8be8bf1adaa0a48abdf4ca86bbdd1b3e09acc955c624d139ffb80d1aa7d548feeebaa3fe5141744444642b2daa9916545cac7659c0c072688e3a87edcbe"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 137,
+      "output": 168,
+      "hex": "59df4c6a3829eaceca408cdbab359adc237e09090b085c98709ba7424cfe72a50ea77c38803a5355c00123bf4db292d2377675a18fe7694dc20e076697944295a90f2315086ce6f82e5bf8be8bf1adaa0a48abdf4ca86bbdd1b3e09acc955c624d139ffb80d1aa7d548feeebaa3fe5141744444642b2daa9916545cac7659c0c072688e3a87edcbed4fb32eeb58a2d48496a8e2e2363c7319a6e785a81e3596e3253ab26add5d6c0"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 137,
+      "output": 257,
+      "hex": "59df4c6a3829eaceca408cdbab359adc237e09090b085c98709ba7424cfe72a50ea77c38803a5355c00123bf4db292d2377675a18fe7694dc20e076697944295a90f2315086ce6f82e5bf8be8bf1adaa0a48abdf4ca86bbdd1b3e09acc955c624d139ffb80d1aa7d548feeebaa3fe5141744444642b2daa9916545cac7659c0c072688e3a87edcbed4fb32eeb58a2d48496a8e2e2363c7319a6e785a81e3596e3253ab26add5d6c055860ab6e561802c23bb822ac67656e553c8a6396e69a2ab1bcc98a4c2877ccb0d0a7b31f133831d87e0f7400782ba086ef02ddb48f276f77ecaf44898da755e1589a1c6b44aebcb5be26d482d7a8ef6d7396fa33985464224"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 167,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 167,
+      "output": 1,
+      "hex": "5f"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 167,
+      "output": 7,
+      "hex": "5f88fc10db5983"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 167,
+      "output": 8,
+      "hex": "5f88fc10db5983cd"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 167,
+      "output": 31,
+      "hex": "5f88fc10db5983cdffcc5dade45faedb1792b2f925d1db4cee4cbb3aaf6959"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 167,
+      "output": 32,
+      "hex": "5f88fc10db5983cdffcc5dade45faedb1792b2f925d1db4cee4cbb3aaf6959cc"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 167,
+      "output": 64,
+      "hex": "5f88fc10db5983cdffcc5dade45faedb1792b2f925d1db4cee4cbb3aaf6959ccf59f8ef27b0876e2324c08d2681c5b124582f1c67e106298262a105a6d64fd3f"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 167,
+      "output": 128,
+      "hex": "5f88fc10db5983cdffcc5dade45faedb1792b2f925d1db4cee4cbb3aaf6959ccf59f8ef27b0876e2324c08d2681c5b124582f1c67e106298262a105a6d64fd3fb79d8a6792652146f4da3a6813d0239ccade8589ff48b4a76e707a3939ea144610b1e4f0e9be36c10403e31699fcb508d53c9854a60d9cb71fe055ea7b8069b9"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 167,
+      "output": 129,
+      "hex": "5f88fc10db5983cdffcc5dade45faedb1792b2f925d1db4cee4cbb3aaf6959ccf59f8ef27b0876e2324c08d2681c5b124582f1c67e106298262a105a6d64fd3fb79d8a6792652146f4da3a6813d0239ccade8589ff48b4a76e707a3939ea144610b1e4f0e9be36c10403e31699fcb508d53c9854a60d9cb71fe055ea7b8069b968"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 167,
+      "output": 136,
+      "hex": "5f88fc10db5983cdffcc5dade45faedb1792b2f925d1db4cee4cbb3aaf6959ccf59f8ef27b0876e2324c08d2681c5b124582f1c67e106298262a105a6d64fd3fb79d8a6792652146f4da3a6813d0239ccade8589ff48b4a76e707a3939ea144610b1e4f0e9be36c10403e31699fcb508d53c9854a60d9cb71fe055ea7b8069b968d10ab840bc8d31"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 167,
+      "output": 168,
+      "hex": "5f88fc10db5983cdffcc5dade45faedb1792b2f925d1db4cee4cbb3aaf6959ccf59f8ef27b0876e2324c08d2681c5b124582f1c67e106298262a105a6d64fd3fb79d8a6792652146f4da3a6813d0239ccade8589ff48b4a76e707a3939ea144610b1e4f0e9be36c10403e31699fcb508d53c9854a60d9cb71fe055ea7b8069b968d10ab840bc8d310cbb1774cbf74dd3f1c028852f21e51420c5a53a2e6f780cd4e317aaad76146a"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 167,
+      "output": 257,
+      "hex": "5f88fc10db5983cdffcc5dade45faedb1792b2f925d1db4cee4cbb3aaf6959ccf59f8ef27b0876e2324c08d2681c5b124582f1c67e106298262a105a6d64fd3fb79d8a6792652146f4da3a6813d0239ccade8589ff48b4a76e707a3939ea144610b1e4f0e9be36c10403e31699fcb508d53c9854a60d9cb71fe055ea7b8069b968d10ab840bc8d310cbb1774cbf74dd3f1c028852f21e51420c5a53a2e6f780cd4e317aaad76146a622617620c7a52ae291d98acc91c452f04aacc9f6b61cd616bb6a9dcdbd8c517347150554ea310ae2c164f49899c492a311dcd02024c56eece01d0fd6a55f70fb09ac9ab864cdc49e369e1f1927156b87bb2bc0f9b524bf8b5"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 168,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 168,
+      "output": 1,
+      "hex": "0d"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 168,
+      "output": 7,
+      "hex": "0d8cfc39587027"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 168,
+      "output": 8,
+      "hex": "0d8cfc39587027b4"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 168,
+      "output": 31,
+      "hex": "0d8cfc39587027b47afefafca0e5acb5b52da2f1182ef27b0ad796d37be0f2"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 168,
+      "output": 32,
+      "hex": "0d8cfc39587027b47afefafca0e5acb5b52da2f1182ef27b0ad796d37be0f206"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 168,
+      "output": 64,
+      "hex": "0d8cfc39587027b47afefafca0e5acb5b52da2f1182ef27b0ad796d37be0f2061b119dda17534cfa58cf1e16128c72e35a207c63a63feb7ce88dabea2bf447c4"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 168,
+      "output": 128,
+      "hex": "0d8cfc39587027b47afefafca0e5acb5b52da2f1182ef27b0ad796d37be0f2061b119dda17534cfa58cf1e16128c72e35a207c63a63feb7ce88dabea2bf447c4f0674b1bd3a8d5101c8aaef028a32d973c94e099a24894f9874f11b2f96a939f4f657742b06c48247ba4b52a2d1bfb1750f57c848cfcec1f3de4efed8880b70f"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 168,
+      "output": 129,
+      "hex": "0d8cfc39587027b47afefafca0e5acb5b52da2f1182ef27b0ad796d37be0f2061b119dda17534cfa58cf1e16128c72e35a207c63a63feb7ce88dabea2bf447c4f0674b1bd3a8d5101c8aaef028a32d973c94e099a24894f9874f11b2f96a939f4f657742b06c48247ba4b52a2d1bfb1750f57c848cfcec1f3de4efed8880b70f88"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 168,
+      "output": 136,
+      "hex": "0d8cfc39587027b47afefafca0e5acb5b52da2f1182ef27b0ad796d37be0f2061b119dda17534cfa58cf1e16128c72e35a207c63a63feb7ce88dabea2bf447c4f0674b1bd3a8d5101c8aaef028a32d973c94e099a24894f9874f11b2f96a939f4f657742b06c48247ba4b52a2d1bfb1750f57c848cfcec1f3de4efed8880b70f883eb6b8940dfaa2"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 168,
+      "output": 168,
+      "hex": "0d8cfc39587027b47afefafca0e5acb5b52da2f1182ef27b0ad796d37be0f2061b119dda17534cfa58cf1e16128c72e35a207c63a63feb7ce88dabea2bf447c4f0674b1bd3a8d5101c8aaef028a32d973c94e099a24894f9874f11b2f96a939f4f657742b06c48247ba4b52a2d1bfb1750f57c848cfcec1f3de4efed8880b70f883eb6b8940dfaa2a1bee8b6432b7c858ed625c3cfaa7b3a87136be94c6741d8a20f6defbd1a7afe"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 168,
+      "output": 257,
+      "hex": "0d8cfc39587027b47afefafca0e5acb5b52da2f1182ef27b0ad796d37be0f2061b119dda17534cfa58cf1e16128c72e35a207c63a63feb7ce88dabea2bf447c4f0674b1bd3a8d5101c8aaef028a32d973c94e099a24894f9874f11b2f96a939f4f657742b06c48247ba4b52a2d1bfb1750f57c848cfcec1f3de4efed8880b70f883eb6b8940dfaa2a1bee8b6432b7c858ed625c3cfaa7b3a87136be94c6741d8a20f6defbd1a7afee45bb5407d44e1ef4ecc22b44803f15ca69b51e41b2c3c3a247777a606ba951fc5b330c994d8ee6afb3815f767ef56f3eb93370df4c2599e9e832426b577dccddd5d658a0f3700b9b44746f16364639e01f6f5955e6bf9a549"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 169,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 169,
+      "output": 1,
+      "hex": "52"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 169,
+      "output": 7,
+      "hex": "52864bbd398f27"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 169,
+      "output": 8,
+      "hex": "52864bbd398f27d2"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 169,
+      "output": 31,
+      "hex": "52864bbd398f27d2ae6f05e34fd58f53b1596a70f508030ebd7f211d8263a5"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 169,
+      "output": 32,
+      "hex": "52864bbd398f27d2ae6f05e34fd58f53b1596a70f508030ebd7f211d8263a598"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 169,
+      "output": 64,
+      "hex": "52864bbd398f27d2ae6f05e34fd58f53b1596a70f508030ebd7f211d8263a598c20c5d849384e7a5ae666b71a47940aa6f70c52451d1582af8df1c4a0f62028a"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 169,
+      "output": 128,
+      "hex": "52864bbd398f27d2ae6f05e34fd58f53b1596a70f508030ebd7f211d8263a598c20c5d849384e7a5ae666b71a47940aa6f70c52451d1582af8df1c4a0f62028a2365b62ee9a0e396392dd8e58ef55ffc1d9085c0ca7ea2e2c5186081506a247d5f17f2eeb11d90e2419d447bb874b5c97062c85d2eeb4928e2f2fa5cbbc67fde"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 169,
+      "output": 129,
+      "hex": "52864bbd398f27d2ae6f05e34fd58f53b1596a70f508030ebd7f211d8263a598c20c5d849384e7a5ae666b71a47940aa6f70c52451d1582af8df1c4a0f62028a2365b62ee9a0e396392dd8e58ef55ffc1d9085c0ca7ea2e2c5186081506a247d5f17f2eeb11d90e2419d447bb874b5c97062c85d2eeb4928e2f2fa5cbbc67fdeeb"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 169,
+      "output": 136,
+      "hex": "52864bbd398f27d2ae6f05e34fd58f53b1596a70f508030ebd7f211d8263a598c20c5d849384e7a5ae666b71a47940aa6f70c52451d1582af8df1c4a0f62028a2365b62ee9a0e396392dd8e58ef55ffc1d9085c0ca7ea2e2c5186081506a247d5f17f2eeb11d90e2419d447bb874b5c97062c85d2eeb4928e2f2fa5cbbc67fdeebcb7fd2fa09e44c"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 169,
+      "output": 168,
+      "hex": "52864bbd398f27d2ae6f05e34fd58f53b1596a70f508030ebd7f211d8263a598c20c5d849384e7a5ae666b71a47940aa6f70c52451d1582af8df1c4a0f62028a2365b62ee9a0e396392dd8e58ef55ffc1d9085c0ca7ea2e2c5186081506a247d5f17f2eeb11d90e2419d447bb874b5c97062c85d2eeb4928e2f2fa5cbbc67fdeebcb7fd2fa09e44c06399d926b8e50127e7a27ebd9854587a65198b7e9b9105ef143f983d1f2c0a4"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 169,
+      "output": 257,
+      "hex": "52864bbd398f27d2ae6f05e34fd58f53b1596a70f508030ebd7f211d8263a598c20c5d849384e7a5ae666b71a47940aa6f70c52451d1582af8df1c4a0f62028a2365b62ee9a0e396392dd8e58ef55ffc1d9085c0ca7ea2e2c5186081506a247d5f17f2eeb11d90e2419d447bb874b5c97062c85d2eeb4928e2f2fa5cbbc67fdeebcb7fd2fa09e44c06399d926b8e50127e7a27ebd9854587a65198b7e9b9105ef143f983d1f2c0a43bf2b706f8f2ce8c356375dd6452f2f8b3fabbd1bd4409c08f1347ba515e0330cb483561b4109dab1f73c736a8b7528a6e2ee83a21ffc52375d5527474dcc1c08ee1b26b8de69ddec70d00d44ef647d0bca4ee1096ff8dd870"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 335,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 335,
+      "output": 1,
+      "hex": "f9"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 335,
+      "output": 7,
+      "hex": "f9bd47b7355bf4"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 335,
+      "output": 8,
+      "hex": "f9bd47b7355bf4aa"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 335,
+      "output": 31,
+      "hex": "f9bd47b7355bf4aab245ace35e84e12c361bc55422a1acf70685aa7ba44e5d"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 335,
+      "output": 32,
+      "hex": "f9bd47b7355bf4aab245ace35e84e12c361bc55422a1acf70685aa7ba44e5dbc"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 335,
+      "output": 64,
+      "hex": "f9bd47b7355bf4aab245ace35e84e12c361bc55422a1acf70685aa7ba44e5dbc53ab27e0abc0a9efe362a6c9b1526af5e49cc925982bad33703b8b183bf58a40"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 335,
+      "output": 128,
+      "hex": "f9bd47b7355bf4aab245ace35e84e12c361bc55422a1acf70685aa7ba44e5dbc53ab27e0abc0a9efe362a6c9b1526af5e49cc925982bad33703b8b183bf58a4014e8533866f049a54d6aba14b407eba5c163560cc884add1f733f0da961fe917702d49cfcbe2dd26db8b2f18113f3f1b49493a49bcd1ce53ca62b37100b273f8"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 335,
+      "output": 129,
+      "hex": "f9bd47b7355bf4aab245ace35e84e12c361bc55422a1acf70685aa7ba44e5dbc53ab27e0abc0a9efe362a6c9b1526af5e49cc925982bad33703b8b183bf58a4014e8533866f049a54d6aba14b407eba5c163560cc884add1f733f0da961fe917702d49cfcbe2dd26db8b2f18113f3f1b49493a49bcd1ce53ca62b37100b273f823"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 335,
+      "output": 136,
+      "hex": "f9bd47b7355bf4aab245ace35e84e12c361bc55422a1acf70685aa7ba44e5dbc53ab27e0abc0a9efe362a6c9b1526af5e49cc925982bad33703b8b183bf58a4014e8533866f049a54d6aba14b407eba5c163560cc884add1f733f0da961fe917702d49cfcbe2dd26db8b2f18113f3f1b49493a49bcd1ce53ca62b37100b273f82305dfbd4541ca69"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 335,
+      "output": 168,
+      "hex": "f9bd47b7355bf4aab245ace35e84e12c361bc55422a1acf70685aa7ba44e5dbc53ab27e0abc0a9efe362a6c9b1526af5e49cc925982bad33703b8b183bf58a4014e8533866f049a54d6aba14b407eba5c163560cc884add1f733f0da961fe917702d49cfcbe2dd26db8b2f18113f3f1b49493a49bcd1ce53ca62b37100b273f82305dfbd4541ca698530ded65a6ff175bc9527e023906d9455a9ad3d594c01059e8f2d1a6b9f5123"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 335,
+      "output": 257,
+      "hex": "f9bd47b7355bf4aab245ace35e84e12c361bc55422a1acf70685aa7ba44e5dbc53ab27e0abc0a9efe362a6c9b1526af5e49cc925982bad33703b8b183bf58a4014e8533866f049a54d6aba14b407eba5c163560cc884add1f733f0da961fe917702d49cfcbe2dd26db8b2f18113f3f1b49493a49bcd1ce53ca62b37100b273f82305dfbd4541ca698530ded65a6ff175bc9527e023906d9455a9ad3d594c01059e8f2d1a6b9f5123cc0a97eedb82ffee59899f5cab72018693a8e674c38d9a1033676ed492169ff49fe5a68bc9cd9766f31ae6c4759267312caa9090ba7657995382c7f2fd20c6aee3ccceb69c30820644d5753228ee5bde84877de3031f056406"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 336,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 336,
+      "output": 1,
+      "hex": "28"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 336,
+      "output": 7,
+      "hex": "2808254d2c1455"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 336,
+      "output": 8,
+      "hex": "2808254d2c1455d2"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 336,
+      "output": 31,
+      "hex": "2808254d2c1455d25343c372dfae06fe5f39a55709b4b39d79bb4e8f63cc8f"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 336,
+      "output": 32,
+      "hex": "2808254d2c1455d25343c372dfae06fe5f39a55709b4b39d79bb4e8f63cc8f47"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 336,
+      "output": 64,
+      "hex": "2808254d2c1455d25343c372dfae06fe5f39a55709b4b39d79bb4e8f63cc8f477d93757bd7d115c2989798e1d6250ff862aa1dcea12e4e210ebb8aaaac6ec23b"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 336,
+      "output": 128,
+      "hex": "2808254d2c1455d25343c372dfae06fe5f39a55709b4b39d79bb4e8f63cc8f477d93757bd7d115c2989798e1d6250ff862aa1dcea12e4e210ebb8aaaac6ec23b9d747a8375b32e7149bcc525d5c346acba1c84882b87232c343a39c9ac27370033e15304f71fdbb7caa740a11e201897fec855e765133e1170601a6e618522b0"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 336,
+      "output": 129,
+      "hex": "2808254d2c1455d25343c372dfae06fe5f39a55709b4b39d79bb4e8f63cc8f477d93757bd7d115c2989798e1d6250ff862aa1dcea12e4e210ebb8aaaac6ec23b9d747a8375b32e7149bcc525d5c346acba1c84882b87232c343a39c9ac27370033e15304f71fdbb7caa740a11e201897fec855e765133e1170601a6e618522b017"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 336,
+      "output": 136,
+      "hex": "2808254d2c1455d25343c372dfae06fe5f39a55709b4b39d79bb4e8f63cc8f477d93757bd7d115c2989798e1d6250ff862aa1dcea12e4e210ebb8aaaac6ec23b9d747a8375b32e7149bcc525d5c346acba1c84882b87232c343a39c9ac27370033e15304f71fdbb7caa740a11e201897fec855e765133e1170601a6e618522b017144dd5410a1e45"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 336,
+      "output": 168,
+      "hex": "2808254d2c1455d25343c372dfae06fe5f39a55709b4b39d79bb4e8f63cc8f477d93757bd7d115c2989798e1d6250ff862aa1dcea12e4e210ebb8aaaac6ec23b9d747a8375b32e7149bcc525d5c346acba1c84882b87232c343a39c9ac27370033e15304f71fdbb7caa740a11e201897fec855e765133e1170601a6e618522b017144dd5410a1e45583a09ba060f06a7baf76fb7319b04910cad2f6c5072d99b378538e03067fc78"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 336,
+      "output": 257,
+      "hex": "2808254d2c1455d25343c372dfae06fe5f39a55709b4b39d79bb4e8f63cc8f477d93757bd7d115c2989798e1d6250ff862aa1dcea12e4e210ebb8aaaac6ec23b9d747a8375b32e7149bcc525d5c346acba1c84882b87232c343a39c9ac27370033e15304f71fdbb7caa740a11e201897fec855e765133e1170601a6e618522b017144dd5410a1e45583a09ba060f06a7baf76fb7319b04910cad2f6c5072d99b378538e03067fc78037c311eaa1d654b875f063ce9054ef86bf50cdca49772bccc79f979c7cea90216af414faec3d8e7f4a77cad587612432d38173cc4009eaeba2900f53103dcbb3a51f4d021503ec86a4d2855ae6f3e30b8a1983b4256a39867"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 337,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 337,
+      "output": 1,
+      "hex": "97"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 337,
+      "output": 7,
+      "hex": "97cb4c9e32ba2c"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 337,
+      "output": 8,
+      "hex": "97cb4c9e32ba2c48"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 337,
+      "output": 31,
+      "hex": "97cb4c9e32ba2c484728082c2c5cce1303ee9162821e7fc2d98ef8466c1ded"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 337,
+      "output": 32,
+      "hex": "97cb4c9e32ba2c484728082c2c5cce1303ee9162821e7fc2d98ef8466c1dedd9"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 337,
+      "output": 64,
+      "hex": "97cb4c9e32ba2c484728082c2c5cce1303ee9162821e7fc2d98ef8466c1dedd9d3343aaf0d71f994cd0ac77d38aadb266665c5c822d63145766ca7e01b8f1b1b"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 337,
+      "output": 128,
+      "hex": "97cb4c9e32ba2c484728082c2c5cce1303ee9162821e7fc2d98ef8466c1dedd9d3343aaf0d71f994cd0ac77d38aadb266665c5c822d63145766ca7e01b8f1b1b6a5851c2386a65fbab18b1646a5b9899583ecf25c8ae875601fb9e2eff277a709626f9aa536405905b1c630ba32212e9c3ac3f92ec11de25afe4893170216358"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 337,
+      "output": 129,
+      "hex": "97cb4c9e32ba2c484728082c2c5cce1303ee9162821e7fc2d98ef8466c1dedd9d3343aaf0d71f994cd0ac77d38aadb266665c5c822d63145766ca7e01b8f1b1b6a5851c2386a65fbab18b1646a5b9899583ecf25c8ae875601fb9e2eff277a709626f9aa536405905b1c630ba32212e9c3ac3f92ec11de25afe489317021635854"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 337,
+      "output": 136,
+      "hex": "97cb4c9e32ba2c484728082c2c5cce1303ee9162821e7fc2d98ef8466c1dedd9d3343aaf0d71f994cd0ac77d38aadb266665c5c822d63145766ca7e01b8f1b1b6a5851c2386a65fbab18b1646a5b9899583ecf25c8ae875601fb9e2eff277a709626f9aa536405905b1c630ba32212e9c3ac3f92ec11de25afe489317021635854ba1760f4515d88"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 337,
+      "output": 168,
+      "hex": "97cb4c9e32ba2c484728082c2c5cce1303ee9162821e7fc2d98ef8466c1dedd9d3343aaf0d71f994cd0ac77d38aadb266665c5c822d63145766ca7e01b8f1b1b6a5851c2386a65fbab18b1646a5b9899583ecf25c8ae875601fb9e2eff277a709626f9aa536405905b1c630ba32212e9c3ac3f92ec11de25afe489317021635854ba1760f4515d88ddadd30a9f12b4fde31c8be2258d9ef748ef52cf21a41f0896d8d82f7145eae4"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 337,
+      "output": 257,
+      "hex": "97cb4c9e32ba2c484728082c2c5cce1303ee9162821e7fc2d98ef8466c1dedd9d3343aaf0d71f994cd0ac77d38aadb266665c5c822d63145766ca7e01b8f1b1b6a5851c2386a65fbab18b1646a5b9899583ecf25c8ae875601fb9e2eff277a709626f9aa536405905b1c630ba32212e9c3ac3f92ec11de25afe489317021635854ba1760f4515d88ddadd30a9f12b4fde31c8be2258d9ef748ef52cf21a41f0896d8d82f7145eae4276a346accf8e8315cc379512dfa60d77e533f18874e8482b0bbe4a8b6b8211abda28dbc8654851745809966e66c11aaa11f361c79aa3fadcd87989752b022eab983077fcbb62ae19a0a7274a5ab225c1efb2eb23bca6b3bba"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 65537,
+      "output": 0,
+      "hex": ""
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 65537,
+      "output": 1,
+      "hex": "c5"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 65537,
+      "output": 7,
+      "hex": "c5f7bbe617492d"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 65537,
+      "output": 8,
+      "hex": "c5f7bbe617492dbe"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 65537,
+      "output": 31,
+      "hex": "c5f7bbe617492dbe0e739937d5d2548968ca9dca387105453800396be3e931"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 65537,
+      "output": 32,
+      "hex": "c5f7bbe617492dbe0e739937d5d2548968ca9dca387105453800396be3e9311f"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 65537,
+      "output": 64,
+      "hex": "c5f7bbe617492dbe0e739937d5d2548968ca9dca387105453800396be3e9311fda01686f42b8f87e03b299c383eaa09041bfb9fac9e4055845f473b74a5a4575"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 65537,
+      "output": 128,
+      "hex": "c5f7bbe617492dbe0e739937d5d2548968ca9dca387105453800396be3e9311fda01686f42b8f87e03b299c383eaa09041bfb9fac9e4055845f473b74a5a4575b5397b7382cf01d238815627ba109cb50d806aa811c1c8b346b4ec90f664d929214b1a75e232217a0ab7e8294e8e6b8891bb159d7eff5329e88e08b14e309263"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 65537,
+      "output": 129,
+      "hex": "c5f7bbe617492dbe0e739937d5d2548968ca9dca387105453800396be3e9311fda01686f42b8f87e03b299c383eaa09041bfb9fac9e4055845f473b74a5a4575b5397b7382cf01d238815627ba109cb50d806aa811c1c8b346b4ec90f664d929214b1a75e232217a0ab7e8294e8e6b8891bb159d7eff5329e88e08b14e30926315"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 65537,
+      "output": 136,
+      "hex": "c5f7bbe617492dbe0e739937d5d2548968ca9dca387105453800396be3e9311fda01686f42b8f87e03b299c383eaa09041bfb9fac9e4055845f473b74a5a4575b5397b7382cf01d238815627ba109cb50d806aa811c1c8b346b4ec90f664d929214b1a75e232217a0ab7e8294e8e6b8891bb159d7eff5329e88e08b14e30926315ca1b7707946069"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 65537,
+      "output": 168,
+      "hex": "c5f7bbe617492dbe0e739937d5d2548968ca9dca387105453800396be3e9311fda01686f42b8f87e03b299c383eaa09041bfb9fac9e4055845f473b74a5a4575b5397b7382cf01d238815627ba109cb50d806aa811c1c8b346b4ec90f664d929214b1a75e232217a0ab7e8294e8e6b8891bb159d7eff5329e88e08b14e30926315ca1b770794606931c59724d5e648871b05dd371b9ee3895a33e6a2e7647cb75db58e15f85fbc80"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 65537,
+      "output": 257,
+      "hex": "c5f7bbe617492dbe0e739937d5d2548968ca9dca387105453800396be3e9311fda01686f42b8f87e03b299c383eaa09041bfb9fac9e4055845f473b74a5a4575b5397b7382cf01d238815627ba109cb50d806aa811c1c8b346b4ec90f664d929214b1a75e232217a0ab7e8294e8e6b8891bb159d7eff5329e88e08b14e30926315ca1b770794606931c59724d5e648871b05dd371b9ee3895a33e6a2e7647cb75db58e15f85fbc8050ba2724610eb2b5c0d7a5541929e30efb61496a71c9d89a5fdc124f449a6417b20824de6c1f20a3c4c22ac38e2ffcb4fefe91215a8d8633990f0de424af309f8f73426cee3f906b360d4d16b68593f381d990ecd024f6d01c"
+    },
+    {
+      "shake": true,
+      "bits": 256,
+      "size": 65537,
+      "output": 1024,
+      "hex": "c5f7bbe617492dbe0e739937d5d2548968ca9dca387105453800396be3e9311fda01686f42b8f87e03b299c383eaa09041bfb9fac9e4055845f473b74a5a4575b5397b7382cf01d238815627ba109cb50d806aa811c1c8b346b4ec90f664d929214b1a75e232217a0ab7e8294e8e6b8891bb159d7eff5329e88e08b14e30926315ca1b770794606931c59724d5e648871b05dd371b9ee3895a33e6a2e7647cb75db58e15f85fbc8050ba2724610eb2b5c0d7a5541929e30efb61496a71c9d89a5fdc124f449a6417b20824de6c1f20a3c4c22ac38e2ffcb4fefe91215a8d8633990f0de424af309f8f73426cee3f906b360d4d16b68593f381d990ecd024f6d01cbdb90ae58b0014197ed51eb5f084cc3e3f77ec791bb347e707daf910a2682dbc504b5e7f435b542181ca6934256b9cde95ea03d5ba1a72a5882a256fd235bc4e5cba53c7f693acea7bef8d5f927b733a454bfc62618f1c79fce5a5d9c0b2476646c569854af671b89364b097f13990ed18c84637fdd46639928d9e9dc32ae713bf0f383c9e8336eccfb8eabdafd0a71632513c9c2c1a72e375b3767bc6bb86845a10d1dedbc428260dedcd2c8fd733ffb405c71329fb55728c6e004138bfbaa98555bd5ef0be2c982229ab38fecab6662efbecd559f086f1c5cd2a946321c7d083bec9655520f7196c67ca64d5d938d06db24a70546d49204bc0ed746bcf83d4445acaa1753cce9364df5fdfd4fade0166f3bb18c9e2fdaad75722f6331d1a6f2ce97d6ad01eaef2b6cc1415cdeab6990498ff3c6eb62e8ef4f31bb9d5d15fbb8c3b0856b28ae56ebcea4e541cf432dc12e8304584484417a710501ced58845c6634b4f7db21da6dc3404edd27b81495b273e58a7d2d18d7a0f64a58d3e2a9343b43221bc4b45caeac5b10edf2944fdf5e2a4feba4eef2ee101bdea5e0cf0fe832a09b3bdf75e249f5fb026db1d17d1110748768550b66f3e981953b9d2a02544ca61703ea820c0c7f665e774b2a23fdaaecf73ec54ab66b4f3364d8444131dd6e703222625cda468f753ea816832f14a65f23d47f6521725bce06a86cbde8f0b8f8d46ca112f55b12a77eab1d8d1c8af6ad8806655756ee6bfb020e7ffa5b30dabd031247921633b31a24495aff1a7b1057b14af3657c09933e5ce94ce94e6340250247986fd6081a5a5a4095eb1e5f3ded7358b937fe8ed220eb4231436629ad914a26a5aa256d64c5079e7423fca000224aece457ce8d7b0dae2cd391f98e01cbedc51c64ded18d02b19f3b77c23f7249ff2f76f3194b6341cbe49c9e3fd5363b010865d092cf509c7e55897bdf1ea329d4b2dc7dca0993e8f802447a670bcf86336d565b8bb3b5563a1a5e01d6a16708eb21f7f889bd60040870a89dd8736bbf522cb928b405754e54579671b72101ce119b0ebf5a3292946d9280e90a"
+    }
+  ],
+  "known": [
+    {
+      "name": "abc",
+      "bits": 224,
+      "hex": "e642824c3f8cf24ad09234ee7d3c766fc9a3a5168d0c94ad73b46fdf"
+    },
+    {
+      "name": "abc",
+      "bits": 256,
+      "hex": "3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532"
+    },
+    {
+      "name": "abc",
+      "bits": 384,
+      "hex": "ec01498288516fc926459f58e2c6ad8df9b473cb0fc08c2596da7cf0e49be4b298d88cea927ac7f539f1edf228376d25"
+    },
+    {
+      "name": "abc",
+      "bits": 512,
+      "hex": "b751850b1a57168a5693cd924b6b096e08f621827444f70d884f5d0240d2712e10e116e9192af3c91a7ec57647e3934057340b4cf408d5a56592f8274eec53f0"
+    },
+    {
+      "name": "utf8",
+      "bits": 224,
+      "hex": "353ba9d309fd4c61082ffc18120e2df5f34ce87f7adc9a1361f96bea"
+    },
+    {
+      "name": "utf8",
+      "bits": 256,
+      "hex": "22a5e88a6bd346d9f287dfdead1d65c1f98388646ebe112da129a3e094b69f0c"
+    },
+    {
+      "name": "utf8",
+      "bits": 384,
+      "hex": "88651c4f872f4dfa1f205573064f17676027e79eb25579729fe5fecaa9a892345c5c563a73df0feccf5bfadc9826f01b"
+    },
+    {
+      "name": "utf8",
+      "bits": 512,
+      "hex": "2d2db0775d0939b976137bb8b4e17e70997395ac9ef319dfec9ff1638df4d0c7a8536f75077b1b27151bb7953cf7dc20b3b17e445015e31a8c779aaa6db729f1"
+    },
+    {
+      "name": "million_a",
+      "bits": 224,
+      "hex": "d69335b93325192e516a912e6d19a15cb51c6ed5c15243e7a7fd653c"
+    },
+    {
+      "name": "million_a",
+      "bits": 256,
+      "hex": "5c8875ae474a3634ba4fd55ec85bffd661f32aca75c6d699d0cdcb6c115891c1"
+    },
+    {
+      "name": "million_a",
+      "bits": 384,
+      "hex": "eee9e24d78c1855337983451df97c8ad9eedf256c6334f8e948d252d5e0e76847aa0774ddb90a842190d2c558b4b8340"
+    },
+    {
+      "name": "million_a",
+      "bits": 512,
+      "hex": "3c3a876da14034ab60627c077bb98f7e120a2a5370212dffb3385a18d4f38859ed311d0a9d5141ce9cc5c66ee689b266a8aa18ace8282a0e0db596c90b0a7b87"
+    }
+  ]
+}

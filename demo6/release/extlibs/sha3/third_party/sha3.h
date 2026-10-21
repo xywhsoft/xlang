@@ -28,7 +28,7 @@ void sha3_update(sha3_ctx* ctx, const void* in, size_t inlen);
 /* Finalize SHA3 (fixed output) */
 void sha3_final(sha3_ctx* ctx, uint8_t* out, size_t outlen);
 
-/* Finalize SHAKE (variable output, can call multiple times for more) */
+/* Finalize once. Snapshot callers copy the state before this operation. */
 void shake_final(sha3_ctx* ctx, uint8_t* out, size_t outlen);
 
 /* One-shot convenience */

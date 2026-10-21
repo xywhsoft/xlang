@@ -1,50 +1,56 @@
 import sha3
 
-// SHA-3 (Keccak) 哈希 + SHAKE XOF，NIST 标准。
+class Progress
+    int calls = 0
+end
 
-string sample = "hello xlang"
+// 文件示例使用独占临时目录；与 examples/files.c 输出一致。
+func main(...) as int
+    string root = dir.temp("", "xlang-sha3-example-", "")
+    try
+        string source = path.join(root, "中文.txt")
+        assert file.writeText(source, "abc"), "SHA3 example input write failed"
+        Progress state = Progress()
+        string digest = sha3.hashFileHex(source,
+            onProgress = func(int current, int total, int output) as bool
+                assert current == 3 and total == 3 and output == 0
+                state.calls += 1
+                return true
+            end)
+        println("file=" + digest)
+        println("callbacks=" + string(state.calls))
+        println("bytes=" + string(sha3.hashFileBytes(source).len()))
 
-// SHA3 一次性哈希（224/256/384/512）
-println("SHA3-256: " + sha3.hash256Hex(sample))
-println("SHA3-224: " + sha3.hashHex(sample, 224))
-println("SHA3-384: " + sha3.hashHex(sample, 384))
-println("SHA3-512: " + sha3.hashHex(sample, 512))
-
-// SHAKE XOF（可变输出长度）
-println("SHAKE128 (32B): " + sha3.shake128Hex(sample))
-println("SHAKE256 (64B): " + sha3.shake256Hex(sample, 64))
-
-// 流式 SHA3 哈希器（默认自然输出长度）
-auto hasher = sha3.sha3Hasher(256)
-hasher.update("hello ")
-hasher.update("xlang")
-assert hasher.digestHex() == sha3.hash256Hex(sample), "sha3 streaming mismatch"
-println("streaming inputBytes: " + string(hasher.inputBytes))
-
-// SHA3-512 流式：默认输出 128 hex 字符（自然长度 64 字节）
-auto h512 = sha3.sha3Hasher(512)
-h512.update(sample)
-string d512 = h512.digestHex()
-assert string.len(d512) == 128, "sha3-512 natural length should be 128 hex chars"
-assert d512 == sha3.hashHex(sample, 512), "sha3-512 streaming mismatch"
-
-// SHAKE 流式哈希器
-auto shaker = sha3.shakeHasher(128)
-shaker.update(sample)
-assert shaker.digestHex() == sha3.shake128Hex(sample), "shake128 streaming mismatch"
-
-// clone 独立副本
-auto h1 = sha3.sha3Hasher(256)
-h1.update("hello")
-auto h2 = h1.clone()
-h1.update(" xlang")
-h2.update(" world")
-println("clone h1: " + h1.digestHex())
-println("clone h2: " + h2.digestHex())
-
-// 文件哈希
-dir.createAll("examples_out/extlibs")
-file.writeText("examples_out/extlibs/sha3_sample.txt", sample)
-assert sha3.hashFileHex("examples_out/extlibs/sha3_sample.txt") == sha3.hash256Hex(sample), "sha3 file mismatch"
-
-println("sha3 extlib ok")
+        // 返回 false 取消，抛出异常保留类别与说明，不交付部分摘要。
+        bool cancelled = false
+        try
+            sha3.hashFileHex(source,
+                onProgress = func(int current, int total, int output) as bool
+                    return false
+                end)
+        catch CancelledError e
+            cancelled = true
+        end
+        println("cancelled=" + string(cancelled))
+        bool callbackError = false
+        try
+            sha3.hashFileHex(source,
+                onProgress = func(int current, int total, int output) as bool
+                    throw ValueError "callback marker"
+                end)
+        catch ValueError e
+            callbackError = e.message == "callback marker"
+        end
+        println("callback-error=" + string(callbackError))
+        bool exceeded = false
+        try
+            sha3.hashFileHex(source, maxInput = 2)
+        catch RangeError e
+            exceeded = true
+        end
+        println("budget=" + string(exceeded))
+    finally
+        assert dir.delete(root), "SHA3 example temporary directory must be removed"
+    end
+    return 0
+end

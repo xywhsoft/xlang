@@ -1,0 +1,7 @@
+import sha3
+
+// 仅编译：裸指针与长度由包内封装配对；绝不运行本文件。
+auto fixed = sha3.sha3Hasher()
+fixed.updateNative(null, c_size(1))
+auto shake = sha3.shakeHasher()
+shake.updateNative(null, c_size(1))

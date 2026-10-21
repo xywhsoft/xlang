@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sha3 - 扩展库 - xlang</title>
+  <meta name="description" content="SHA3 固定摘要与 SHAKE 变长输出，UTF-8、Buffer、流式快照与文件回调，C/xlang 双语支持。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout c-hash" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / sha3</p>
+    <div class="extlib-title-row"><h1>sha3</h1><span class="extlib-cat-badge">密码学摘要</span></div>
+    <p class="extlib-lead">SHA3-224/256/384/512 与 SHAKE128/256。它们不是 Keccak-256、SHA-256、HMAC、密码哈希或签名接口。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api">
+    <h2 id="api">公开函数</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>合同</th></tr></thead><tbody>
+      <tr><td><code>version()</code></td><td>包版本 1.0.0。</td></tr>
+      <tr><td><code>hashHex(data, bits=256)</code> / <code>hashBytes(data, bits=256)</code></td><td>bits 仅 224、256、384、512，小写 hex 或自然长度 Buffer。</td></tr>
+      <tr><td><code>hash256Hex(data)</code> / <code>hash256Bytes(data)</code></td><td>固定 SHA3-256 的便捷调用。</td></tr>
+      <tr><td><code>shake128Hex(data, outLen=32)</code> / <code>shake256Hex(data, outLen=32)</code></td><td>outLen 是字节数，hex 长度为两倍；零长度合法，不限制为 128 字节。</td></tr>
+      <tr><td><code>shake128Bytes(data, outLen=32)</code> / <code>shake256Bytes(data, outLen=32)</code></td><td>对应二进制输出 Buffer。</td></tr>
+      <tr><td><code>hashFileHex(path, bits=256, maxInput=268435456, onProgress=null)</code></td><td>UTF-8 路径，文件固定摘要。</td></tr>
+      <tr><td><code>hashFileBytes(path, bits=256, maxInput=268435456, onProgress=null)</code></td><td>文件摘要 Buffer。</td></tr>
+      <tr><td><code>sha3Hasher(bits=256, maxInput=268435456)</code></td><td>Sha3Hasher 流式对象。</td></tr>
+      <tr><td><code>shakeHasher(strength=128, maxInput=268435456)</code></td><td>ShakeHasher 对象，strength 仅 128、256。</td></tr>
+    </tbody></table>
+    <p>所有 data 函数均有 string/Buffer 重载。文本按 UTF-8 字节处理；
+      任意二进制与 NUL 使用 Buffer，空输入合法。无效参数不静默转为默认值。</p>
+
+    <h2 id="stream">流式快照与独立克隆</h2>
+    <pre><code class="language-xlang">import sha3
+
+auto h = sha3.sha3Hasher()
+h.update("你")
+h.update("好")
+string digest = h.digestHex()
+auto branch = h.clone()
+branch.update("!")
+assert h.inputBytes == uint64(6)
+h.reset()</code></pre>
+    <p><code>update(string|Buffer)</code> 追加数据，<code>inputBytes</code> 为 uint64，
+      <code>valid</code> 只表示句柄非空。<code>clone()</code> 创建独立状态；
+      <code>reset()</code> 返回 bool，清空输入与失败状态，保留算法和预算。</p>
+    <p>Sha3Hasher 的 <code>digestHex(outLen=0)</code> / <code>digestBytes(outLen=0)</code>
+      默认选择自然长度，显式长度必须精确匹配 28/32/48/64 字节。
+      ShakeHasher 的默认输出为 32 字节，允许零与更长输出。
+      每次 digest 都是非终结快照，重复结果为同一前缀，不是推进游标的 squeeze。</p>
+    <p>update 失败不会部分接收输入，后续 update/digest/clone 失败直到 reset。
+      digest 参数错误不使流失效。独立对象可以并发，共享可变对象需要串行访问。</p>
+
+    <h2 id="progress">文件、回调与错误</h2>
+    <pre><code class="language-xlang">string digest = sha3.hashFileHex("data.bin",
+    onProgress = func(int current, int total, int output) as bool
+        return true
+    end)</code></pre>
+    <p>同步回调每块最多 64 KiB，EOF 另通知一次，空文件也通知；
+      current/total 是字节数，未知总长为零，output 恒为零。
+      最后一次 current 可能重复，uint64 计数转换为公开 int 前检查范围。
+      回调可嵌套独立操作，返回 false 抛 CancelledError，EOF 通知也可取消。
+      回调异常保留类别与说明，失败不交付部分摘要。</p>
+    <p>参数错误为 ValueError，范围/预算错误为 RangeError，分配失败为 MemoryError；
+      文件错误保留 XRT 类别。路径使用 XRT UTF-8 API。预算不是超时控制，
+      不承诺并发修改文件时的快照一致性。</p>
+    <p>maxInput 必须大于零，默认 256 MiB。分配型输出使用 XRT 默认 512 MiB 预算；
+      hex 临时工作区约为 3*outLen+1 字节，还存在宿主结果复制，不建议盲目分配到上限。</p>
+
+    <h2 id="c-api">C 接口与所有权</h2>
+    <p><code>include/xrt_sha3.h</code> 提供 Hash/ShakeHash、OptionsInit/ErrorInit、DigestSize、
+      HasherCreate/ShakeHasherCreate/Update/CheckOutput/Digest/Clone/Reset/InputBytes/OutBytes/Error/Destroy 和 File。
+      公开 C 核心独立于 xlang/xruntime；XRT 宿主只使用一份实现，在首次包含 XRT 前配置模块。</p>
+    <p>C 固定摘要输出要求自然长度；SHAKE 零字节可传 NULL。
+      调用方保证输出空间，核心一次性函数不人为限制为分配型接口的 512 MiB。
+      Options/ResourceLimits 严格验证大小与版本，C 显式零限额表示无业务上限，仍检查累计溢出。</p>
+    <p>File 借用 Reader，从当前游标读，不回退、不销毁；已知剩余长度可预检，
+      未知长度逐块检查。最终回调成功后才提交摘要，Reader/回调的原始错误优先。</p>
+    <p><code>include/sha3_native.h</code> 定义 25 个薄绑定入口。
+      hex 借用 XRT 临时区，清理/回退后失效，不会被正常后续调用覆盖；
+      Buffer 归调用者所有，C 调用 xrtBufferDestroy，xlang 自动接管。
+      零输出也是合法空串，C 必须查看 XRT 错误区分失败。
+      adopt 只接受真实句柄并转移所有权，不允许重复接管或伪造指针。</p>
+
+    <h2 id="verification">双语范例与验证边界</h2>
+    <p><code>examples/extlibs/sha3_basic.xl</code> 与 <code>extlibs/sha3/examples/basic.c</code>，
+      <code>examples/extlibs/sha3.xl</code> 与 <code>extlibs/sha3/examples/files.c</code>
+      分别展示算法、二进制、流状态，以及中文路径、进度、取消、异常和预算，逐行对照固定输出。</p>
+    <p><code>tools/check_extlib_sha3.ps1</code> 检查 546 组独立 OpenSSL 边界向量、
+      8 种地址偏移、12 组已知答案、短输入全切点、23 个生成声明、25 个 native 入口、
+      176 个分配故障位置、四线程独立对象、文件回调和 C/xlang JIT/AOT/GCC。
+      <code>tools/check_extlib_sha3.sh</code> 联合检查 Linux C ASan/UBSan/泄漏、XLang JIT 及双语范例输出。
+      门禁绑定输入文件集合和哈希，Node/OpenSSL 仅用于测试答案生成，不是运行依赖。</p>
+    <p>实现是仓库已有的本地可移植算法，不伪称官方上游发行版。
+      测试不等于 FIPS 认证、独立密码学审计、Linux xlang AOT、大端、32 位/ARM、
+      共享对象并发或吞吐性能验收，也不承诺敏感数据安全擦除。</p>
+    <p>2026-10-21：两组文件范例改用独占临时目录；C 范例移除有副作用的 assert，Windows 门禁以 -DNDEBUG 执行。Windows -SkipAot 与 Linux C ASan/UBSan、XLang JIT、双语对照通过。原生指针/长度方法标记私有后包外调用被拒绝，但私有句柄接管构造器仍被 xl check 错误放行；默认 Windows XLang AOT 仍缺 xl6NativeHandleTraceLeaf。两项主线阻断未解除，不签收发布级。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

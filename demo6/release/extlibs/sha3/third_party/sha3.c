@@ -1,7 +1,7 @@
 #include "sha3.h"
 #include <string.h>
 
-/* SHA-3 / Keccak reference C implementation (portable) */
+/* 本地可移植 SHA-3 / SHAKE 核心；公开参数校验在 xrt_sha3.c。 */
 
 static const uint64_t keccak_rc[24] = {
 	0x0000000000000001ULL, 0x0000000000008082ULL, 0x800000000000808aULL,
@@ -72,12 +72,12 @@ static void store64(uint8_t* p, uint64_t v)
 	p[4]=(uint8_t)(v>>32); p[5]=(uint8_t)(v>>40); p[6]=(uint8_t)(v>>48); p[7]=(uint8_t)(v>>56);
 }
 
-static void keccak_absorb(sha3_ctx* ctx)
+static void keccak_absorb(sha3_ctx* ctx, const uint8_t* block)
 {
 	size_t i;
 	size_t lanes = ctx->rate / 8;
 	for (i = 0; i < lanes; ++i)
-		ctx->st[i] ^= load64(ctx->buf + i * 8);
+		ctx->st[i] ^= load64(block + i * 8);
 	keccakf(ctx->st);
 }
 
@@ -89,7 +89,7 @@ void sha3_init(sha3_ctx* ctx, int bits)
 	case 256: ctx->rate = 136; break;
 	case 384: ctx->rate = 104; break;
 	case 512: ctx->rate = 72;  break;
-	default:  ctx->rate = 136; break;
+	default:  ctx->rate = 0; break;
 	}
 	ctx->pad = 0x06;
 }
@@ -99,7 +99,7 @@ void shake_init(sha3_ctx* ctx, int strength)
 	memset(ctx, 0, sizeof(*ctx));
 	if (strength == 128) {
 		ctx->rate = 168;
-	} else {
+	} else if (strength == 256) {
 		ctx->rate = 136;
 	}
 	ctx->pad = 0x1f;
@@ -110,10 +110,17 @@ void sha3_update(sha3_ctx* ctx, const void* in, size_t inlen)
 	const uint8_t* p = (const uint8_t*)in;
 	while (inlen > 0) {
 		size_t fill = ctx->rate - ctx->buflen;
+		/* 整块直接吸收，只有跨 update 的尾块需要复制。 */
+		if (ctx->buflen == 0 && inlen >= ctx->rate) {
+			keccak_absorb(ctx, p);
+			p += ctx->rate;
+			inlen -= ctx->rate;
+			continue;
+		}
 		if (inlen >= fill) {
 			memcpy(ctx->buf + ctx->buflen, p, fill);
 			ctx->buflen = ctx->rate;
-			keccak_absorb(ctx);
+			keccak_absorb(ctx, ctx->buf);
 			ctx->buflen = 0;
 			p += fill;
 			inlen -= fill;
@@ -127,20 +134,7 @@ void sha3_update(sha3_ctx* ctx, const void* in, size_t inlen)
 
 void sha3_final(sha3_ctx* ctx, uint8_t* out, size_t outlen)
 {
-	size_t i;
-	/* Pad: pad byte | 0x00...0x00 | 0x80 */
-	memset(ctx->buf + ctx->buflen, 0, ctx->rate - ctx->buflen);
-	ctx->buf[ctx->buflen] |= ctx->pad;
-	ctx->buf[ctx->rate - 1] |= 0x80;
-	keccak_absorb(ctx);
-	/* Squeeze */
-	for (i = 0; i < outlen / 8 && i < ctx->rate / 8; ++i)
-		store64(out + i * 8, ctx->st[i]);
-	if (outlen % 8 != 0) {
-		uint8_t tmp[8];
-		store64(tmp, ctx->st[outlen / 8]);
-		memcpy(out + (outlen / 8) * 8, tmp, outlen % 8);
-	}
+	shake_final(ctx, out, outlen);
 }
 
 void shake_final(sha3_ctx* ctx, uint8_t* out, size_t outlen)
@@ -150,7 +144,7 @@ void shake_final(sha3_ctx* ctx, uint8_t* out, size_t outlen)
 	memset(ctx->buf + ctx->buflen, 0, ctx->rate - ctx->buflen);
 	ctx->buf[ctx->buflen] |= ctx->pad;
 	ctx->buf[ctx->rate - 1] |= 0x80;
-	keccak_absorb(ctx);
+	keccak_absorb(ctx, ctx->buf);
 	/* Squeeze multiple blocks if needed */
 	while (offset < outlen) {
 		size_t chunk = outlen - offset;
