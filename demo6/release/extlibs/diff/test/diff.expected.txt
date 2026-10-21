@@ -1,0 +1,11 @@
+=== Diff ===
+-func main()
+-    println(hello)
++func main(...) as int
++    println(hello world)
+     return 0
+ end
+
+=== Stats (adds,dels,same) ===
+2,2,2
+diff example: PASS

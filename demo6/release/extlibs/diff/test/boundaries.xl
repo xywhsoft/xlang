@@ -1,0 +1,53 @@
+import diff
+
+assert diff.lines("a\nb\nc", "a\nB\nc") == " a\n-b\n+B\n c\n"
+assert diff.stats("a\nb\nc", "a\nB\nc") == "1,1,2"
+assert diff.lines("", "") == ""
+assert diff.lines("a\r\nb\r\n", "a\nb") == " a\n b\n"
+assert diff.lines("你好\n旧", "你好\n新") == " 你好\n-旧\n+新\n"
+
+string longLine = ""
+for i in range(32)
+    longLine += "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ--"
+end
+string large = diff.lines("", longLine)
+assert string.byteLen(large) == string.byteLen(longLine) + 2
+assert diff.stats("", longLine) == "1,0,0"
+
+string held = diff.lines("old", "new")
+for i in range(64)
+    diff.lines("x", "y")
+end
+assert held == "-old\n+new\n"
+
+string many = ""
+for i in range(2048)
+    many += "a\n"
+end
+assert diff.stats(many, "") == "0,2048,0"
+for i in range(2)
+    many += "a\n"
+end
+int failures = 0
+try
+    diff.lines(many, "")
+catch ValueError error
+    failures += 1
+end
+try
+    diff.stats(many, "")
+catch ValueError error
+    failures += 1
+end
+try
+    diff.lines("a\0hidden", "a")
+catch ValueError error
+    failures += 1
+end
+try
+    diff.stats("a", "a\0hidden")
+catch ValueError error
+    failures += 1
+end
+assert failures == 4
+println("diff boundaries: PASS")

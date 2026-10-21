@@ -7,10 +7,12 @@
     "artifact": {
         "kind": "source",
         "cSources": ["diff_native.c"],
-        "xlSources": ["src/diff.xl"]
+        "xlSources": ["src/diff.xl"],
+        "xrtModules": ["XRT_MODULE_HASH64", "XRT_MODULE_STRING_FORMAT", "XRT_MODULE_UNICODE"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

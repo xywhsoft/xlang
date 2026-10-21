@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>diff - 扩展库 - xlang</title>
+  <meta name="description" content="diff 提供中小文本的行级 LCS 差异与统计。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / diff</p><h1>diff</h1>
+    <p class="extlib-lead">中小文本的行级 LCS 差异。</p>
+    <p>保留长行和完整输出，超出明确预算时报错。Windows/Linux 门禁联合验证 C 边界与线程、XLang 边界及双语范例固定输出；Linux 另有 C sanitizer。Windows 默认门禁还要求完整范例 AOT 与黄金输出一致，当前构建因共享 <code>xl6ValueDataSnapshotV1</code> 缺符号失败；<code>-SkipAot</code> 仅用于 C/JIT 聚焦验证。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>lines(oldText, newText)</code></td><td>以空格、减号、加号前缀输出相同/删除/新增行</td></tr>
+      <tr><td><code>stats(oldText, newText)</code></td><td>返回新增数、删除数、相同行数</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import diff
+println(diff.lines("a\nb", "a\nB"))
+println(diff.stats("a\nb", "a\nB"))</code></pre>
+    <p>输出不是可直接应用的 unified patch。每侧最多 8 MiB/2048 行，输入须为有效 UTF-8，XLang 文本入口另拒绝内嵌 NUL；C 接口要求 NUL 结尾字符串，超限检测使用有界扫描。采用 O(m×n) 的完整 LCS 表。C 入口失败后可直接重试，成功不会保留旧线程错误。C 教学范例可直接运行 <code>xl run release/extlibs/diff/examples/diff_c.c</code>，Windows/Linux 门禁均与 GCC 分离编译及 XLang 范例对照固定输出。C 所有权和验证命令见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

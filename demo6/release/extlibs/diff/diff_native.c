@@ -1,133 +1,190 @@
-/*
- * diff_native.c - Line-based diff (LCS algorithm)
- */
-#include <stdio.h>
-#include "../xlang_extlib_error.h"
-static char diff_buf[16384];
+/* 有界行级 LCS：输入不截断，超过明确预算时直接报错。 */
+#ifndef XRT_MODULE_HASH64
+#define XRT_MODULE_HASH64
+#endif
+#ifndef XRT_MODULE_STRING_FORMAT
+#define XRT_MODULE_STRING_FORMAT
+#endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
+#include "xrt.h"
+#include "include/diff_native.h"
+#include <stdint.h>
+#include <string.h>
 
-#define DIFF_MAX_LINES 512
-#define DIFF_LINE_MAX 1024
+#define XDIFF_DOMAIN "xlang.extlib.diff"
+#define XDIFF_MAX_TEXT (8u * 1024u * 1024u)
+#define XDIFF_MAX_LINES 2048u
 
-/* Split text into lines, returns count */
-static int split_lines(const char *text, char lines[][DIFF_LINE_MAX], int max_lines) {
-    int count = 0;
-    const char *p = text;
-    if (!text) return 0;
-    while (*p && count < max_lines) {
-        int i = 0;
-        while (*p && *p != '\n' && i < DIFF_LINE_MAX - 1) {
-            lines[count][i++] = *p++;
-        }
-        lines[count][i] = '\0';
-        /* strip \r */
-        if (i > 0 && lines[count][i-1] == '\r') lines[count][i-1] = '\0';
-        count++;
-        if (*p == '\n') p++;
-    }
-    return count;
+typedef struct xdiff_line {
+    const char* data;
+    size_t size;
+    uint64 hash;
+} xdiff_line;
+
+typedef struct xdiff_step {
+    xdiff_line line;
+    char prefix;
+} xdiff_step;
+
+typedef struct xdiff_plan {
+    xdiff_line* old_lines;
+    xdiff_line* new_lines;
+    uint16_t* table;
+    xdiff_step* steps;
+    size_t old_count;
+    size_t new_count;
+    size_t step_count;
+    size_t added;
+    size_t deleted;
+    size_t unchanged;
+} xdiff_plan;
+
+static void xdiff_error(const char* message)
+{
+    xrtSetErrorInfo(XERR_RANGE, XDIFF_DOMAIN, 0, message);
 }
 
-/* LCS-based diff: outputs unified-style diff */
-const char *xdiff_lines(const char *old_text, const char *new_text) {
-    static char old_lines[DIFF_MAX_LINES][DIFF_LINE_MAX];
-    static char new_lines[DIFF_MAX_LINES][DIFF_LINE_MAX];
-    int m, n, i, j;
-    int *lcs;  /* (m+1)*(n+1) table */
-    int pos = 0;
-    int max = (int)sizeof(diff_buf);
-
-    if (!old_text) old_text = "";
-    if (!new_text) new_text = "";
-
-    m = split_lines(old_text, old_lines, DIFF_MAX_LINES);
-    n = split_lines(new_text, new_lines, DIFF_MAX_LINES);
-
-    /* allocate LCS table */
-    lcs = (int *)calloc((m + 1) * (n + 1), sizeof(int));
-    if (!lcs) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.diff", "cannot allocate diff table"); return ""; }
-
-    /* fill LCS table */
-    for (i = 1; i <= m; i++) {
-        for (j = 1; j <= n; j++) {
-            if (strcmp(old_lines[i-1], new_lines[j-1]) == 0)
-                lcs[i*(n+1)+j] = lcs[(i-1)*(n+1)+(j-1)] + 1;
-            else {
-                int a = lcs[(i-1)*(n+1)+j];
-                int b = lcs[i*(n+1)+(j-1)];
-                lcs[i*(n+1)+j] = a > b ? a : b;
-            }
-        }
-    }
-
-    /* backtrack to produce diff */
-    diff_buf[0] = '\0';
-    i = m; j = n;
-    /* we need to output in forward order, so collect then reverse */
-    {
-        char tmp[16384];
-        int tpos = 0;
-        while (i > 0 || j > 0) {
-            if (i > 0 && j > 0 && strcmp(old_lines[i-1], new_lines[j-1]) == 0) {
-                tpos += snprintf(tmp + tpos, sizeof(tmp) - tpos, " %s\n", old_lines[i-1]);
-                i--; j--;
-            } else if (j > 0 && (i == 0 || lcs[i*(n+1)+(j-1)] >= lcs[(i-1)*(n+1)+j])) {
-                tpos += snprintf(tmp + tpos, sizeof(tmp) - tpos, "+%s\n", new_lines[j-1]);
-                j--;
-            } else {
-                tpos += snprintf(tmp + tpos, sizeof(tmp) - tpos, "-%s\n", old_lines[i-1]);
-                i--;
-            }
-        }
-        /* reverse lines */
-        {
-            char *lines_out[DIFF_MAX_LINES * 2];
-            int lcount = 0;
-            char *p = tmp;
-            while (*p && lcount < DIFF_MAX_LINES * 2) {
-                lines_out[lcount++] = p;
-                while (*p && *p != '\n') p++;
-                if (*p == '\n') *p++ = '\0';
-            }
-            for (i = lcount - 1; i >= 0; i--) {
-                pos += snprintf(diff_buf + pos, max - pos, "%s\n", lines_out[i]);
-            }
-        }
-    }
-    free(lcs);
-    return diff_buf;
+static void xdiff_unit(xdiff_plan* plan)
+{
+    xrtFree(plan->steps);
+    xrtFree(plan->table);
+    xrtFree(plan->new_lines);
+    xrtFree(plan->old_lines);
 }
 
-/* Simple stats: additions, deletions, unchanged */
-const char *xdiff_stats(const char *old_text, const char *new_text) {
-    static char old_lines[DIFF_MAX_LINES][DIFF_LINE_MAX];
-    static char new_lines[DIFF_MAX_LINES][DIFF_LINE_MAX];
-    int m, n, i, j;
-    int *lcs;
-    int adds = 0, dels = 0, same = 0;
+static bool xdiff_split(const char* text, xdiff_line** output, size_t* count)
+{
+    size_t size = 0u, lines;
+    size_t i, start = 0u, next = 0u;
+    xdiff_line* result;
 
-    if (!old_text) old_text = "";
-    if (!new_text) new_text = "";
-    m = split_lines(old_text, old_lines, DIFF_MAX_LINES);
-    n = split_lines(new_text, new_lines, DIFF_MAX_LINES);
-
-    lcs = (int *)calloc((m + 1) * (n + 1), sizeof(int));
-    if (!lcs) return "0,0,0";
-    for (i = 1; i <= m; i++)
-        for (j = 1; j <= n; j++) {
-            if (strcmp(old_lines[i-1], new_lines[j-1]) == 0)
-                lcs[i*(n+1)+j] = lcs[(i-1)*(n+1)+(j-1)] + 1;
-            else {
-                int a = lcs[(i-1)*(n+1)+j], b = lcs[i*(n+1)+(j-1)];
-                lcs[i*(n+1)+j] = a > b ? a : b;
-            }
-        }
-    i = m; j = n;
-    while (i > 0 || j > 0) {
-        if (i > 0 && j > 0 && strcmp(old_lines[i-1], new_lines[j-1]) == 0) { same++; i--; j--; }
-        else if (j > 0 && (i == 0 || lcs[i*(n+1)+(j-1)] >= lcs[(i-1)*(n+1)+j])) { adds++; j--; }
-        else { dels++; i--; }
+    while (size <= XDIFF_MAX_TEXT && text[size] != '\0') ++size;
+    if (size > XDIFF_MAX_TEXT) {
+        xdiff_error("text exceeds 8 MiB");
+        return false;
     }
-    free(lcs);
-    snprintf(diff_buf, sizeof(diff_buf), "%d,%d,%d", adds, dels, same);
-    return diff_buf;
+    if (!xrtUtf8Valid((xstrview){text, size}, NULL)) {
+        xrtSetErrorInfo(XERR_VALUE, XDIFF_DOMAIN, 0, "text is not valid UTF-8");
+        return false;
+    }
+    lines = size != 0u ? 1u : 0u;
+    for (i = 0u; i + 1u < size; ++i)
+        if (text[i] == '\n') ++lines;
+    if (lines > XDIFF_MAX_LINES) {
+        xdiff_error("text exceeds 2048 lines");
+        return false;
+    }
+    result = lines != 0u ? (xdiff_line*)xrtMalloc(lines * sizeof(*result)) : NULL;
+    if (lines != 0u && result == NULL) return false;
+    for (i = 0u; i <= size && next < lines; ++i) {
+        size_t end;
+        if (i != size && text[i] != '\n') continue;
+        end = i;
+        if (end > start && text[end - 1u] == '\r') --end;
+        result[next].data = text + start;
+        result[next].size = end - start;
+        result[next].hash = xrtHash64(text + start, end - start);
+        ++next;
+        start = i + 1u;
+    }
+    *output = result;
+    *count = lines;
+    return true;
+}
+
+static bool xdiff_equal(const xdiff_line* a, const xdiff_line* b)
+{
+    return a->size == b->size && a->hash == b->hash &&
+        memcmp(a->data, b->data, a->size) == 0;
+}
+
+static bool xdiff_prepare(const char* old_text, const char* new_text, xdiff_plan* plan)
+{
+    size_t i, j, stride;
+    xrtClearError();
+    memset(plan, 0, sizeof(*plan));
+    if (!xdiff_split(old_text != NULL ? old_text : "",
+        &plan->old_lines, &plan->old_count) ||
+        !xdiff_split(new_text != NULL ? new_text : "",
+        &plan->new_lines, &plan->new_count)) goto fail;
+
+    stride = plan->new_count + 1u;
+    plan->table = (uint16_t*)xrtCalloc((plan->old_count + 1u) * stride,
+        sizeof(uint16_t));
+    plan->steps = (xdiff_step*)xrtMalloc((plan->old_count + plan->new_count + 1u) *
+        sizeof(xdiff_step));
+    if (plan->table == NULL || plan->steps == NULL) goto fail;
+
+    for (i = 1u; i <= plan->old_count; ++i) {
+        for (j = 1u; j <= plan->new_count; ++j) {
+            uint16_t above = plan->table[(i - 1u) * stride + j];
+            uint16_t left = plan->table[i * stride + j - 1u];
+            plan->table[i * stride + j] = xdiff_equal(&plan->old_lines[i - 1u],
+                &plan->new_lines[j - 1u]) ?
+                (uint16_t)(plan->table[(i - 1u) * stride + j - 1u] + 1u) :
+                (above > left ? above : left);
+        }
+    }
+
+    i = plan->old_count;
+    j = plan->new_count;
+    while (i != 0u || j != 0u) {
+        xdiff_step* step = &plan->steps[plan->step_count++];
+        if (i != 0u && j != 0u &&
+            xdiff_equal(&plan->old_lines[i - 1u], &plan->new_lines[j - 1u])) {
+            step->prefix = ' ';
+            step->line = plan->old_lines[--i];
+            --j;
+            ++plan->unchanged;
+        } else if (j != 0u && (i == 0u ||
+            plan->table[i * stride + j - 1u] >= plan->table[(i - 1u) * stride + j])) {
+            step->prefix = '+';
+            step->line = plan->new_lines[--j];
+            ++plan->added;
+        } else {
+            step->prefix = '-';
+            step->line = plan->old_lines[--i];
+            ++plan->deleted;
+        }
+    }
+    return true;
+fail:
+    xdiff_unit(plan);
+    memset(plan, 0, sizeof(*plan));
+    return false;
+}
+
+void* xdiff_lines(const char* old_text, const char* new_text)
+{
+    xdiff_plan plan;
+    size_t i, size = 0u, position = 0u;
+    char* result;
+    if (!xdiff_prepare(old_text, new_text, &plan)) return NULL;
+    for (i = 0u; i < plan.step_count; ++i)
+        size += plan.steps[i].line.size + 2u;
+    result = (char*)xrtMalloc(size + 1u);
+    if (result == NULL) { xdiff_unit(&plan); return NULL; }
+    for (i = plan.step_count; i > 0u; --i) {
+        const xdiff_step* step = &plan.steps[i - 1u];
+        result[position++] = step->prefix;
+        memcpy(result + position, step->line.data, step->line.size);
+        position += step->line.size;
+        result[position++] = '\n';
+    }
+    result[position] = '\0';
+    xdiff_unit(&plan);
+    return result;
+}
+
+void* xdiff_stats(const char* old_text, const char* new_text)
+{
+    xdiff_plan plan;
+    void* result;
+    if (!xdiff_prepare(old_text, new_text, &plan)) return NULL;
+    result = xrtFormat("%llu,%llu,%llu", (unsigned long long)plan.added,
+        (unsigned long long)plan.deleted, (unsigned long long)plan.unchanged);
+    xdiff_unit(&plan);
+    return result;
 }
