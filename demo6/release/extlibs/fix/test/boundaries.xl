@@ -1,0 +1,66 @@
+import fix
+
+func main(...) as int
+    var fields = [fix.field(35, "D"), fix.field(49, "SENDER"), fix.field(49, "ALIAS")]
+    string message = fix.build("FIX.4.4", fields)
+    assert fix.validate(message), "valid frame"
+    assert fix.parse(message)["fields"][4]["tag"] == 49, "duplicate tag retained"
+
+    // validate 是谓词，坏报文返回 false；parse 则抛出值错误。
+    string corrupted = string.replace(message, "10=", "10=999")
+    assert not fix.validate(corrupted), "invalid checksum"
+    assert not fix.validate("35=D\x01"), "missing header"
+    string emptyBegin = "8=\x01" + "9=0\x01" + "10=029\x01"
+    assert not fix.validate(emptyBegin), "empty BeginString"
+    string zeroChecksum = "8=FIX.4.4\x01" + "9=11\x01" + "35=0\x01" + "58=AD\x01" + "10=000\x01"
+    assert fix.validate(zeroChecksum), "zero checksum"
+    var numeric = [{"tag": 35, "value": "D"}, {"tag": 38, "value": 100}]
+    assert fix.validate(fix.build("FIX.4.4", numeric)), "numeric field value"
+    uint64 unsignedAmount = uint64(42)
+    var unsignedFields = [{"tag": 38, "value": unsignedAmount}]
+    assert string.indexOf(fix.build("FIX.4.4", unsignedFields), "38=42\x01") >= 0, "unsigned integer field value"
+    bool caught = false
+    try
+        fix.parse(corrupted)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "parse invalid frame"
+    caught = false
+    try
+        fix.parse(emptyBegin)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "parse empty BeginString"
+    caught = false
+    try
+        fix.field(58, "visible\0hidden")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "field text must not be truncated"
+    caught = false
+    try
+        fix.build("FIX.4.4\0hidden", fields)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "BeginString must not be truncated"
+    caught = false
+    try
+        fix.parse(message + "\0hidden")
+    catch ValueError e
+        caught = true
+    end
+    assert caught and not fix.validate(message + "\0hidden"), "input frame must not be truncated"
+
+    var bulk = []
+    for i in range(0, 4096)
+        bulk.append(fix.field(58, "x"))
+    end
+    string bulkMessage = fix.build("FIX.4.4", bulk)
+    assert fix.validate(bulkMessage), "maximum application field count"
+    assert fix.parse(bulkMessage)["fields"].length == 4099, "frame fields included"
+    return 0
+end

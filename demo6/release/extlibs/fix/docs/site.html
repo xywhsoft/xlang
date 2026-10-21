@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>fix - 扩展库 - xlang</title>
+  <meta name="description" content="FIX 4.x 文本报文帧编解码，自动生成 BodyLength 和 CheckSum，提供 C/xlang 双语接口。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-fmt" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / fix</p>
+    <h1>fix</h1>
+    <p class="extlib-lead">构造并校验 FIX 4.x 文本报文帧，按输入顺序保留字段和重复标签。</p>
+    <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import fix
+
+var fields = [fix.field(35, "D"), fix.field(49, "BUY_SIDE"),
+    fix.field(56, "SELL_SIDE")]
+string message = fix.build("FIX.4.4", fields)
+assert fix.validate(message)
+var decoded = fix.parse(message)
+println(decoded["fields"][2]["value"])</code></pre>
+    <p>自动生成 8=BeginString、9=BodyLength 和 10=CheckSum；字段值用 SOH（字节 0x01）分隔。</p>
+  </section>
+  <section id="api">
+    <h2>接口与边界</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>field(tag, value)</code></td><td>创建包含 tag/value 的字段对象；8、9、10 为保留标签。</td></tr>
+      <tr><td><code>build(beginString, fields)</code></td><td>从有序字段数组生成完整报文；保留重复标签。</td></tr>
+      <tr><td><code>parse(message)</code></td><td>校验并返回包含完整字段数组的对象，坏帧抛 ValueError。</td></tr>
+      <tr><td><code>validate(message)</code></td><td>坏帧返回 false；分配失败不是坏帧，在 XLang 中抛 MemoryError。</td></tr>
+    </tbody></table>
+    <p>单帧最多 16 MiB、4096 个应用字段；加上自动生成的 8、9、10，最大合法解析结果有 4099 项。8=BeginString 必须非空；文本值不能含 SOH 或 NUL，XL 传入 C 字符串接口的文本也拒绝内嵌 NUL，避免静默截断。C 的 BeginString 和字段文本入口按 16 MiB 限界扫描，超限报告 RANGE；独立字段文本可恰好达到 16 MiB，但完整帧仍须留出头尾字段空间。字段对象的值支持字符串、有符号/无符号整数、浮点和布尔值；无符号整数按十进制完整写出。浮点字段使用点号小数，不受进程区域设置影响。它是帧编解码器，不提供交易会话、序号/重发、场所字典验证或网络连接。</p>
+  </section>
+  <section id="c-api">
+    <h2>C 对照</h2>
+    <pre><code>#define XRT_MODULE_VALUE_CONTAINER
+#include "xrt.h"
+#include "fix_native.h"
+
+int main(void)
+{
+    xvalue* fields = xrtValueArray();
+    xvalue* field = xfix_field(35, "D");
+    xrtValueArrayAppendTake(fields, &amp;field);
+    char* message = xfix_build("FIX.4.4", fields);
+    int ok = message &amp;&amp; xfix_validate(message);
+    xrtFree(message);
+    xrtValueRelease(fields);
+    return ok ? 0 : 1;
+}</code></pre>
+    <p>C 的报文缓冲用 <code>xrtFree</code>，字段与解析结果用 <code>xrtValueRelease</code>。完整 C/XLang 对照范例位于 <code>release/extlibs/fix/examples/</code> 和 <code>release/examples/extlibs/fix.xl</code>。C 范例可从发布目录直接运行 <code>./xl run extlibs/fix/examples/fix_c.c</code>；单文件范例包含原生实现，正式包构建仍将其作为独立源码编译。</p>
+  </section>
+  <section id="verify">
+    <h2>验证状态</h2>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/fix/test/check.ps1 -SkipAot
+bash release/extlibs/fix/test/check.sh</code></pre>
+    <p>Windows 严格 GCC、C 范例单文件 <code>xl run</code>、C/XLang 边界与双语同输出已通过；Linux 同次覆盖 C ASan/UBSan、C 范例单文件运行、中央及包内 XLang 边界、分配失败，以及 C/XLang 范例逐字节对照。两平台还用独立检查器按报文字节重算 <code>9=BodyLength</code> 与 <code>10=CheckSum</code> 并核对字段顺序，不只依赖本包的 <code>validate</code>；包门禁需要 Python 3。最大应用字段数、逗号小数点区域设置，以及四个公开入口的首次分配失败与恢复已有回归。C 的 <code>validate</code> 在内存不足时保留 XRT 内存错误，其他格式错误仍按谓词返回；XLang 的四个入口将分配失败报告为 <code>MemoryError</code>。当前完整 AOT 在共享符号 <code>xl6ValueDataSnapshotV1</code> 处阻断；尚未签收完整发布门禁。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

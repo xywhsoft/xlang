@@ -13,11 +13,11 @@ func main(...) as int
         fix.field(44, "12.50")
     ]
     string message = fix.build("FIX.4.4", order)
-    println("FIX message: ", string.replace(message, "\x01", "|"))
-    println("valid: ", fix.validate(message))
+    println("FIX message:", string.replace(message, "\x01", "|"))
+    println("valid:", fix.validate(message))
     var parsed = fix.parse(message)
-    println("message type: ", parsed["fields"][2]["value"])
-    println("first application tag: ", parsed["fields"][2]["tag"])
+    println("message type:", parsed["fields"][2]["value"])
+    println("first application tag:", parsed["fields"][2]["tag"])
     println("fix example: PASS")
     return 0
 end

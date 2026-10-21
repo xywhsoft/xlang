@@ -1,0 +1,10 @@
+import fix
+
+func main(...) as int
+    var fields = [fix.field(35, "D"), fix.field(49, "SENDER")]
+    string frame = fix.build("FIX.4.4", fields)
+    if not fix.validate(frame)
+        return 1
+    end
+    return 0
+end

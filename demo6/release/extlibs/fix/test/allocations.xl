@@ -1,0 +1,35 @@
+import fix
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+var fields = [fix.field(35, "D")]
+string frame = fix.build("FIX.4.4", fields)
+
+func probe(int which, string frame, var fields) as bool
+    if which == 0 then
+        fix.field(58, "value")
+    elseif which == 1 then
+        fix.build("FIX.4.4", fields)
+    elseif which == 2 then
+        fix.parse(frame)
+    else
+        fix.validate(frame)
+    end
+    return true
+end
+
+for which in range(4)
+    bool caught = false
+    assert failAfter(0)
+    try
+        probe(which, frame, fields)
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert triggered and caught, "FIX allocation error must be visible in XLang"
+    assert fix.validate(frame), "FIX call must recover after allocation failure"
+end
