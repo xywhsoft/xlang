@@ -76,3 +76,5 @@ XLang 与双语同输出门禁通过。完整带输出 AOT 共享阻断未变。
 XLang 范例匹配该结果，再比较双语输出；Windows 完整 AOT 分支也使用
 同一预期。两平台 C/XLang 聚焦门禁通过，Linux 包含 ASan/UBSan。
 渲染实现未改，完整 AOT 仍受共享缺符号阻断，不签收整包发布级。
+
+2026-10-21：补 `render()` 分配失败的 C/XLang 双侧回归，确认 C 保留 `XERR_MEMORY`、XLang 抛 `MemoryError`，解除故障后同一进度对象仍可读取并渲染。Windows `-SkipAot` 和 Linux C ASan/UBSan、XLang 联合门禁通过；实现无需修改，完整 AOT 的共享缺符号阻断仍在。

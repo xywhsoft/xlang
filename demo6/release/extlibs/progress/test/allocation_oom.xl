@@ -31,5 +31,17 @@ func main(...) as int
     assert bar.current == 3 and bar.render().contains("before")
     bar.setPrefix("after")
     assert bar.render().contains("after")
+
+    assert failAfter(uint64(0))
+    bool renderFailed = false
+    try
+        bar.render()
+    catch MemoryError
+        renderFailed = true
+    finally
+        failClear()
+    end
+    assert renderFailed, "render allocation failure must remain a memory error"
+    assert bar.current == 3 and bar.render().contains("after")
     return 0
 end

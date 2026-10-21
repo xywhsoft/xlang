@@ -82,6 +82,14 @@ static int test_allocation_failure(void) {
     rendered = (char *)xprog_render(bar);
     CHECK(rendered != NULL && strstr(rendered, "after") != NULL);
     xrtFree(rendered);
+    CHECK(xrtMemDebugFailAfter(0));
+    CHECK(xprog_render(bar) == NULL);
+    xrtMemDebugFailClear();
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+    CHECK(xprog_current(bar) == 0 && xrtGetError() == NULL);
+    rendered = (char *)xprog_render(bar);
+    CHECK(rendered != NULL && strstr(rendered, "after") != NULL);
+    xrtFree(rendered);
     xprog_destroy(bar);
     return 0;
 }
