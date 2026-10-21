@@ -7,12 +7,12 @@ func main(...) as int
     assert t.valid, "table should be valid"
     assert t.rowCount == 0, "initial row count"
 
-    t.setHeaders("Name,Age,City")
+    t.setHeaders(["Name", "Age", "City"])
     assert t.colCount == 3, "col count after headers"
 
-    t.addRow("Alice,30,Beijing")
-    t.addRow("Bob,25,Shanghai")
-    t.addRow("Carol,35,Shenzhen")
+    t.addRow(["Alice", "30", "Beijing"])
+    t.addRow(["Bob", "25", "Shanghai"])
+    t.addRow(["Carol", "35", "Shenzhen"])
     assert t.rowCount == 3, "row count after adds"
 
     string rendered = t.render()
@@ -26,8 +26,8 @@ func main(...) as int
 
     // table without headers
     auto t2 = tabulate.create()
-    t2.addRow("1,2,3")
-    t2.addRow("4,5,6")
+    t2.addRow(["1", "2", "3"])
+    t2.addRow(["4", "5", "6"])
     string r2 = t2.render()
     assert r2.contains("1"), "no-header table has data"
     assert t2.rowCount == 2, "t2 row count"
