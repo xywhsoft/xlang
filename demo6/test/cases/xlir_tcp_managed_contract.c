@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-static size_t targets,refusals,contexts,byteFutures,policies,emissionGuards,deadlines;
+static size_t targets,refusals,contexts,byteFutures,policies,emissionGuards,deadlines,arrays,intFutures;
 static unsigned guardedKinds;
 static void refused(XL6_IrModule* module,const XL6_IrCallTarget* target,unsigned kind)
 {
@@ -59,6 +59,19 @@ static void check(const char* path)
             ++contexts;target->nativeContextType=0;refused(module,target,5);*target=saved;
             target->nativeContextAbi=XL6_IR_CALL_NATIVE_CONTEXT_NONE;refused(module,target,6);*target=saved;
         }
+        if(saved.nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1){
+            ++arrays;target->nativeContextType=0;refused(module,target,9);*target=saved;
+            const XL6_IrClassField* field=xl6IrNativeClassArrayContextField(module,target);assert(field);
+            XL6_IrClassField* change=(XL6_IrClassField*)field;XL6_IrClassField original=*change;
+            change->nativeHandlePolicyCName="WrongTcpArrayPolicy";refused(module,NULL,9);*change=original;
+        }
+        if(strstr(saved.cName,"RecvInto")&&strstr(saved.cName,"Async")){
+            XL6_IrType* future=(XL6_IrType*)xl6IrTypeGet(&module->types,saved.returnType);
+            assert(future&&future->paramCount==1);XL6_IrTypeId original=future->params[0],boolean=0;
+            const XL6_IrType* element=xl6IrTypeGet(&module->types,original);assert(element&&element->cAbi==XL6_IR_C_ABI_I64);
+            for(size_t n=0;n<module->types.count;++n)if(module->types.items[n].cAbi==XL6_IR_C_ABI_BOOL){boolean=(XL6_IrTypeId)n+1;break;}
+            assert(boolean);future->params[0]=boolean;refused(module,target,10);future->params[0]=original;++intFutures;
+        }
         if(!strcmp(saved.cName,"xl6TcpStreamRecvAsyncV1")){
             const XL6_IrType* future=xl6IrTypeGet(&module->types,saved.returnType);
             assert(future&&future->paramCount==1);
@@ -75,7 +88,8 @@ static void check(const char* path)
 int main(int argc,char** argv)
 {
     assert(argc==3);check(argv[1]);check(argv[2]);
-    assert(targets>50&&refusals>200&&contexts>=2&&policies>=4&&byteFutures>=1&&emissionGuards==(deadlines?9u:8u));
+    assert(targets>50&&refusals>200&&contexts>=2&&policies>=4&&byteFutures>=1&&
+        emissionGuards==(deadlines?9u:8u)+(arrays?1u:0u)+(intFutures?1u:0u));
     printf("TCP XLIR: %zu targets, %zu descriptor refusals, %zu violation kinds guarded by full verifier before C/header output; exact services, class fields, byte Futures, ownership and effects\n",targets,refusals,emissionGuards);
     return 0;
 }

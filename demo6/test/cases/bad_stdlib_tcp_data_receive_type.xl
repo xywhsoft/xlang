@@ -1,0 +1,3 @@
+func invalid(TcpStream stream, NetBuffer unused)
+    auto result = stream.recvInto(Buffer(b"x"))
+end

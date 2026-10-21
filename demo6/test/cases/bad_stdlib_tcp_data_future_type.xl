@@ -1,0 +1,3 @@
+func invalid(TcpStream stream)
+    future<bool> result = stream.recvIntoAsync(NetBuffer())
+end

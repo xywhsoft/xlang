@@ -1,0 +1,51 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto sender = TcpStream(engine, listener.localAddress())
+auto receiver = listener.accept(5000)
+assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+auto chain = NetBuffer()
+auto waiting = receiver.recvIntoAsync(chain, 3)
+assert sender.send(b"a\0b") == NetStatus.ok
+int received = await waiting
+assert received > 0
+while chain.length < 3
+    assert await receiver.recvIntoAsync(chain, 3 - chain.length) > 0
+end
+assert chain.peek() == b"a\0b"
+auto line = NetLineFramer("\n", 64)
+auto readLine = receiver.recvIntoAsync(line, 32)
+assert sender.send(b"one\0two\n") == NetStatus.ok
+assert await readLine > 0
+auto first = line.next()
+while first.more
+    assert await receiver.recvIntoAsync(line, 32) > 0
+    first = line.next()
+end
+assert first.bytes() == b"one\0two"
+auto framed = NetLengthFramer()
+auto readPacket = receiver.recvIntoAsync(framed, 32)
+assert sender.send(b"\x00\x00\x00\x03a\0b") == NetStatus.ok
+assert await readPacket > 0
+auto packet = framed.next()
+while packet.more
+    assert await receiver.recvIntoAsync(framed, 32) > 0
+    packet = framed.next()
+end
+assert packet.bytes() == b"a\0b"
+auto cancelled = receiver.recvIntoAsync(chain, 1)
+assert cancelled.cancel()
+try
+    auto unused = await cancelled
+    assert false
+catch CancelledError
+end
+assert chain.peek() == b"a\0b"
+sender.shutdownWrite()
+assert await receiver.recvIntoAsync(chain, 1) == 0
+sender.abort()
+receiver.abort()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("TCP queued receive-into: exact int results, retained targets, cancellation and EOF: ok")

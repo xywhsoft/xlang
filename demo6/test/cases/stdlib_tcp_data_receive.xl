@@ -1,0 +1,43 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto sender = TcpStream(engine, listener.localAddress())
+auto receiver = listener.accept(5000)
+assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+auto chain = NetBuffer(16)
+chain.append(b"prefix:")
+assert sender.send(b"a\0b") == NetStatus.ok
+while chain.length < 10
+    assert receiver.recvInto(chain, 3, 5000) > 0
+end
+assert chain.peek() == b"prefix:a\0b"
+auto line = NetLineFramer("\n", 64)
+assert sender.send(b"one\0two\nnext\n") == NetStatus.ok
+auto first = line.next()
+while first.more
+    assert receiver.recvInto(line, 64, 5000) > 0
+    first = line.next()
+end
+assert first.bytes() == b"one\0two"
+auto second = line.next()
+while second.more
+    assert receiver.recvInto(line, 64, 5000) > 0
+    second = line.next()
+end
+assert second.bytes() == b"next"
+auto framed = NetLengthFramer()
+assert sender.send(b"\x00\x00\x00\x03a\0b") == NetStatus.ok
+auto packet = framed.next()
+while packet.more
+    assert receiver.recvInto(framed, 64, 5000) > 0
+    packet = framed.next()
+end
+assert packet.bytes() == b"a\0b"
+sender.shutdownWrite()
+assert receiver.recvInto(chain, 1, 5000) == 0
+sender.abort()
+receiver.abort()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("TCP direct receive: NetBuffer, line and length framing, NUL and EOF: ok")

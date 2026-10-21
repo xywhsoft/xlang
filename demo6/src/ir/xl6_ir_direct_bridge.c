@@ -146,6 +146,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_tcp_options_contracts.inc"
 #include "xl6_ir_tcp_contracts.inc"
 #include "xl6_ir_tcp_proxy_contracts.inc"
+#include "xl6_ir_tcp_data_contracts.inc"
 #include "xl6_ir_net_interfaces_contracts.inc"
 #include "xl6_ir_net_backends_contracts.inc"
 #include "xl6_ir_concurrent_contracts.inc"
