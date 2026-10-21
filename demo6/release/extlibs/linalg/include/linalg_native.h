@@ -9,6 +9,7 @@ double xlin_dot2(double ax, double ay, double bx, double by);
 double xlin_dot3(double ax, double ay, double az, double bx, double by, double bz);
 double xlin_mag2(double x, double y);
 double xlin_mag3(double x, double y, double z);
+/* 所有 _into 输出指针须非空且两两不同；失败时不写入任何输出。 */
 int xlin_normalize2_into(double x, double y, double* px, double* py);
 int xlin_cross3_into(double ax, double ay, double az, double bx, double by,
     double bz, double* px, double* py, double* pz);

@@ -66,6 +66,10 @@ int xlin_normalize2_into(double x, double y, double* px, double* py)
         xlinalg_error("normalize2 output is missing");
         return 0;
     }
+    if (px == py) {
+        xlinalg_error("normalize2 outputs must be distinct");
+        return 0;
+    }
     if (!(fScale > 0.0) || !isfinite(x) || !isfinite(y)) {
         xlinalg_error("cannot normalize a zero or non-finite vector");
         return 0;
@@ -84,6 +88,10 @@ int xlin_cross3_into(double ax, double ay, double az, double bx, double by, doub
 {
     if (px == NULL || py == NULL || pz == NULL) {
         xlinalg_error("cross3 output is missing");
+        return 0;
+    }
+    if (px == py || px == pz || py == pz) {
+        xlinalg_error("cross3 outputs must be distinct");
         return 0;
     }
     *px = ay * bz - az * by;
@@ -108,6 +116,10 @@ int xlin_inverse2_into(double a, double b, double c, double d,
     double ra, rb, rc, rd;
     if (pa == NULL || pb == NULL || pc == NULL || pd == NULL) {
         xlinalg_error("inverse2 output is missing");
+        return 0;
+    }
+    if (pa == pb || pa == pc || pa == pd || pb == pc || pb == pd || pc == pd) {
+        xlinalg_error("inverse2 outputs must be distinct");
         return 0;
     }
     fScale1 = fmax(fabs(a), fabs(b));
@@ -149,6 +161,10 @@ int xlin_multiply2_into(double a1, double b1, double c1, double d1,
 {
     if (pa == NULL || pb == NULL || pc == NULL || pd == NULL) {
         xlinalg_error("multiply2 output is missing");
+        return 0;
+    }
+    if (pa == pb || pa == pc || pa == pd || pb == pc || pb == pd || pc == pd) {
+        xlinalg_error("multiply2 outputs must be distinct");
         return 0;
     }
     *pa = a1 * a2 + b1 * c2;

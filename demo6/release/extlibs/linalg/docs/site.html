@@ -33,7 +33,7 @@ float x = 0.0
 float y = 0.0
 x, y = linalg.normalize2(3.0, 4.0)</code></pre>
     <h2 id="c-api">C</h2>
-    <p>包含 <code>include/linalg_native.h</code>。组合结果使用 <code>_into</code> 输出参数；失败返回 0，不覆盖原输出。完整参数及数值边界见包内 README。</p>
+    <p>包含 <code>include/linalg_native.h</code>。组合结果使用 <code>_into</code> 输出参数；各输出指针必须非空且互异，失败返回 0，不覆盖原输出。完整参数及数值边界见包内 README。</p>
     <p>Windows 包级门禁 <code>release/extlibs/linalg/test/check.ps1</code> 与 Linux <code>test/check.sh</code> 均验证 C/XLang 边界、分配失败和十三项公开函数的固定范例输出；Linux 另有 C ASan/UBSan。中央测试已按当前接口更新，不恢复移至标准库的旧标量 API；完整 AOT 仍受共享运行时缺符号阻断。</p>
   </section>
 </main>

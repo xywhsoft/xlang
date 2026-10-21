@@ -37,6 +37,9 @@ C 头文件为 `include/linalg_native.h`。XLang 多返回值所需的 `xvalue`
 输入或结果指针，适合多线程并发调用。`dot`、`det` 等纯算术入口遵循
 IEEE 浮点传播规则；成功的标量调用会清除当前线程的旧 XRT 错误，
 不会让前一次失败污染本次结果。它们不替代数值分析库的条件数评估。
+四个 `_into` 入口的输出指针必须非空且两两不同；缺失或重复时返回 0、
+设置 XRT 错误，且不会写入任何输出。XLang 的多返回值包装不需要调用方
+提供输出指针，因此不受此约束。
 
 聚焦验证：
 
@@ -81,3 +84,8 @@ Windows 目录 smoke 3/3 和 Linux 包级 C ASan/UBSan、语言与双语门禁�
 `test/aot_core.xl` 仍缺 `xl6ValueIndexReadCopyV1`，不能报告 AOT 体积收益。
 
 2026-10-19：新增 Windows `test/check.ps1` 与覆盖十三项公开函数的固定数值输出；Linux `test/check.sh` 同步核对预期。两平台 C 边界、XLang 边界和三条 C/XLang 范例路径通过，Linux 包含 ASan/UBSan。数值算法未改，完整 AOT 的共享缺符号阻断仍在，不签收发布级。
+
+2026-10-21：C `_into` 四入口原接受别名输出指针并返回成功，较早结果会被
+后续写入覆盖。C 负例先红后绿，现先检查指针互异，再进行计算和写入；
+失败时调用方输出保持不变。Windows 严格 C、XLang 边界与双语范例，
+Linux C ASan/UBSan、XLang 与双语门禁通过。完整 AOT 仍受共享缺符号阻断。

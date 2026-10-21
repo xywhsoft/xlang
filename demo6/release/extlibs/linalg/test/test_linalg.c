@@ -42,6 +42,9 @@ int main(void)
     CHECK(!xlin_normalize2_into(NAN, 1, &x, &y));
     CHECK(!xlin_normalize2_into(1, 2, NULL, &y));
     CHECK(xrtGetError() != NULL);
+    x = 123;
+    CHECK(!xlin_normalize2_into(3, 4, &x, &x) && x == 123 &&
+        xrtGetError() != NULL);
     CHECK(xlin_dot2(1, 2, 3, 4) == 11 && xrtGetError() == NULL);
     CHECK_SCALAR_RECOVERY(xlin_dot3(1, 2, 3, 4, 5, 6) == 32);
     CHECK_SCALAR_RECOVERY(xlin_mag2(3, 4) == 5);
@@ -67,6 +70,11 @@ int main(void)
     CHECK(!xlin_inverse2_into(1, 1, 1, 1 + 2.220446049250313e-16,
         &a, &b, &c, &d));
     CHECK(!xlin_inverse2_into(INFINITY, 0, 0, 1, &a, &b, &c, &d));
+    a = 123;
+    b = 456;
+    c = 789;
+    CHECK(!xlin_inverse2_into(1, 2, 3, 4, &a, &b, &c, &a) &&
+        a == 123 && b == 456 && c == 789 && xrtGetError() != NULL);
 
     /* 不对称矩阵和不同量级的行缩放，核对 A * inverse(A) = I。 */
     {
@@ -118,9 +126,19 @@ int main(void)
 
     CHECK(xlin_cross3_into(1, 0, 0, 0, 1, 0, &x, &y, &z));
     CHECK(x == 0 && y == 0 && z == 1);
+    x = 123;
+    y = 456;
+    CHECK(!xlin_cross3_into(1, 0, 0, 0, 1, 0, &x, &y, &x) &&
+        x == 123 && y == 456 && xrtGetError() != NULL);
     CHECK(xlin_multiply2_into(1, 2, 3, 4, -2, 1, 1.5, -0.5,
         &a, &b, &c, &d));
     CHECK(a == 1 && b == 0 && c == 0 && d == 1);
+    a = 123;
+    b = 456;
+    d = 999;
+    CHECK(!xlin_multiply2_into(1, 2, 3, 4, -2, 1, 1.5, -0.5,
+        &a, &b, &b, &d) && a == 123 && b == 456 && d == 999 &&
+        xrtGetError() != NULL);
     Cross = xlin_cross3(1, 0, 0, 0, 1, 0);
     CHECK(Cross != NULL && xrtValueCount(Cross) == 3u &&
         xrtValueGetFloat(xrtValueArrayGet(Cross, 2u), &z) && z == 1);
