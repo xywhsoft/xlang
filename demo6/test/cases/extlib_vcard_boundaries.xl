@@ -1,0 +1,41 @@
+import vcard
+
+func main(...) as int
+    var contact = {
+        "fn": "陈小明",
+        "n": "陈;小明;;;",
+        "email": ["a@example.com", "b@example.com"],
+        "note": "第一行\n第二行;逗号,反斜线\\"
+    }
+    string text = vcard.build(contact)
+    assert text.contains("EMAIL:a@example.com\r\nEMAIL:b@example.com")
+    var back = vcard.parse(text)
+    assert back["version"] == "3.0"
+    assert back["fn"] == "陈小明"
+    assert back["n"] == "陈;小明;;;"
+    assert back["email"].length == 2
+    assert back["note"] == "第一行\n第二行;逗号,反斜线\\"
+    var modern = vcard.parse("BEGIN:VCARD\r\nVERSION:4.0\r\nFN:Alex\r\nEMAIL:alex@example.com\r\nEND:VCARD\r\n")
+    assert modern["version"] == "4.0"
+    assert vcard.build(modern).contains("VERSION:4.0\r\n")
+
+    int caught = 0
+    try
+        vcard.parse("BEGIN:VCARD\nVERSION:2.1\nFN:A\nEND:VCARD\n")
+    catch e
+        caught += 1
+    end
+    try
+        vcard.parse("BEGIN:VCARD\nVERSION:3.0\nFN:A\u0000B\nEND:VCARD\n")
+    catch e
+        caught += 1
+    end
+    try
+        vcard.build({"fn": "A", "unknown": "B"})
+    catch e
+        caught += 1
+    end
+    assert caught == 3
+    println("vcard boundaries: PASS")
+    return 0
+end
