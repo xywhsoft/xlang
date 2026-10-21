@@ -29227,6 +29227,14 @@ XRT_API xnetproxy* xrtNetProxyRetain(const xnetproxy* pProxy);
 /* 释放代理对象引用；最后一个引用会清零整块配置存储。 */
 XRT_API void xrtNetProxyRelease(xnetproxy* pProxy);
 
+/* Physical immutable configuration owner. Count is the real native RC;
+ * copied host/credential storage has no outgoing strong references. Inspect
+ * and resolve the adapter only at a whole-graph ownership freeze. */
+XRT_API xrtownershipref xrtNetProxyOwnership(const xnetproxy* pProxy);
+XRT_API const xrtownershipadapterv1* xrtNetProxyOwnershipAdapterV1(
+	xrtownershipref Reference
+);
+
 
 
 /* 复制代理对象的只读信息视图。 */

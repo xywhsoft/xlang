@@ -26,4 +26,10 @@ bool xl6NetProxyInfoV1(const void* raw,xnetproxyinfo* info)
 int64_t xl6NetProxyTypeV1(const void* raw){xnetproxyinfo info;return xl6NetProxyInfoV1(raw,&info)?info.Type:0;}
 int64_t xl6NetProxyAuthV1(const void* raw){xnetproxyinfo info;return xl6NetProxyInfoV1(raw,&info)?info.Auth:0;}
 int64_t xl6NetProxyPortV1(const void* raw){xnetproxyinfo info;return xl6NetProxyInfoV1(raw,&info)?info.Port:0;}
-XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6NetProxyHandlePolicyV1Get,xl6NetProxyDestroyV1)
+static bool trace(const xvalue* value,xrtownershipvisitor visit,void* context)
+{
+    void* raw=NULL;void* user=NULL;const xvaluehandleops* ops=NULL;
+    return visit&&xrtValueGetHandle(value,&raw,&ops,&user)&&raw&&!user&&
+        ops==xl6NetProxyHandlePolicyV1Get()->Ops&&visit(xrtNetProxyOwnership(raw),context);
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6NetProxyHandlePolicyV1Get,xl6NetProxyDestroyV1,trace)

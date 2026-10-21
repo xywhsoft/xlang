@@ -2,7 +2,9 @@
 #define XL6_NET_PROXY_INTERNAL_H
 #include "xl6_net_buffer_internal.h"
 /* Native proxy storage is immutable, owns copied host/credentials and contains
- * no language/callback references. Handshakes retain it inside XRT, own their
+ * no language/callback references. Each Value handle owns one reference to
+ * the SAME native ownership node; clones are not independent graph leaves.
+ * Handshakes retain it inside XRT, own their
  * input blocks, and never borrow a caller pool or caller input storage. */
 typedef struct XL6_NetProxyHandshakeV1 {
     XL6_NetBufferV1 input;
