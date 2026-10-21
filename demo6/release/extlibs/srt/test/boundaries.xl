@@ -1,0 +1,79 @@
+import srt
+
+func main(...) as int
+    var cues = srt.parse("1\r\n00:00:01,000 --> 00:00:02,000\r\n你好\r\n\r\n")
+    assert cues.length == 1, "CRLF cue count"
+    assert cues[0]["lines"][0] == "你好", "UTF-8 body"
+
+    string first = srt.build(cues)
+    var web = srt.parseVtt("WEBVTT\n\nopening\n00:00:00.500 --> 00:00:01.500 align:start\nHi\n\n")
+    assert web[0]["id"] == "opening", "VTT identifier"
+    assert web[0]["settings"] == "align:start", "VTT settings"
+    string second = srt.buildVtt(web)
+    assert first.contains("你好"), "independent SRT result"
+    assert second.contains("align:start"), "VTT settings round trip"
+    assert srt.parseVtt(second)[0]["id"] == "opening", "VTT id round trip"
+    assert srt.parseTime("00:02.500") == 2500, "VTT minute timestamp"
+    assert srt.parseTime("2562047788015:00:00,000") == 9223372036854000000, "int64 timestamp bound"
+    var noted = srt.parseVtt("WEBVTT\n\nNOTE\tcomment\nskipped\n\n00:00.000 --> 00:01.000\nVisible\n")
+    assert noted.length == 1, "tab-prefixed VTT note skipped"
+
+    int malformedSettings = 0
+    try
+        srt.parseVtt("WEBVTT\n\n00:00.000 --> 00:01.000 align:start --> hidden\nVisible\n")
+    catch e
+        malformedSettings = 1
+    end
+    assert malformedSettings == 1, "second VTT arrow in settings rejected"
+
+    int raised = 0
+    try
+        srt.parse("1\n00:00:01,1234 --> 00:00:02,000\nBad\n")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "four-digit milliseconds rejected"
+    raised = 0
+    try
+        srt.build([{"startMs": 2000, "endMs": 1000, "lines": ["Bad"]}])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "reversed build range rejected"
+    raised = 0
+    try
+        srt.buildVtt([{"id": "NOTE", "startMs": 0, "endMs": 1000, "lines": ["Bad"]}])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "VTT control-block identifier rejected"
+    raised = 0
+    try
+        srt.formatTime(-1)
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "negative format rejected"
+    raised = 0
+    try
+        srt.parse("1\n00:00:01,000 --> 00:00:02,000\nGood\n\0hidden")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "embedded NUL rejected"
+    raised = 0
+    try
+        srt.parse("1\n00:00:00,000 --> 00:00:01,000\nline\rbroken\n")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "bare carriage return rejected"
+    raised = 0
+    try
+        srt.parseVtt("WEBVTT\n\n00:00.000 --> 00:01.000\nline\r")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "VTT trailing bare carriage return rejected"
+    return 0
+end

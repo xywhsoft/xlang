@@ -1,0 +1,9 @@
+import srt
+
+func main(...) as int
+    assert srt.parseTime("00:00:01,500") == 1500, "timestamp"
+    assert srt.formatTime(1500) == "00:00:01,500", "format"
+    string text = srt.build([{"startMs": 1000, "endMs": 2000, "lines": ["Hello"]}])
+    assert text.contains("Hello"), "SRT output"
+    return 0
+end

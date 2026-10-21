@@ -1,0 +1,18 @@
+import srt
+
+func main(...) as int
+    string source = "1\n00:00:01,000 --> 00:00:03,500\n你好，世界\n\n"
+    var cues = srt.parse(source)
+    assert srt.build(cues) == source
+    assert srt.buildVtt(cues) == "WEBVTT\n\n00:00:01.000 --> 00:00:03.500\n你好，世界\n\n"
+    print(srt.build(cues))
+    print(srt.buildVtt(cues))
+    string webSource = "WEBVTT\n\nintro\n00:00.500 --> 00:01.000 align:start\nHello\n\n"
+    string expectedWeb = "WEBVTT\n\nintro\n00:00:00.500 --> 00:00:01.000 align:start\nHello\n\n"
+    assert srt.buildVtt(srt.parseVtt(webSource)) == expectedWeb
+    assert srt.parseTime("00:00:03.500") == 3500
+    assert srt.formatTime(3500) == "00:00:03,500"
+    print(srt.buildVtt(srt.parseVtt(webSource)))
+    println(srt.formatTime(srt.parseTime("00:00:03.500")))
+    return 0
+end

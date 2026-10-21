@@ -1,400 +1,412 @@
-/*
- * srt_native.c - SRT and WebVTT subtitle parsing and generation.
- *
- * Cue model: {index, startMs, endMs, lines: [...]}. SRT uses comma
- * milliseconds and numeric cue indexes; WebVTT uses dot milliseconds and
- * optional ids. Parse failures report an XRT error and return null;
- * individual malformed cues abort the whole parse.
- */
-#include <stdlib.h>
-#include <string.h>
+/* SRT/WebVTT 文本边界在此处理；值对象与动态缓冲均使用 XRT。 */
+#include <stdint.h>
 #include <stdio.h>
-#include <ctype.h>
+#include <string.h>
 
+#ifndef XRT_MODULE_VALUE_CONTAINER
 #define XRT_MODULE_VALUE_CONTAINER
+#endif
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
 #include "xrt.h"
+#include "include/srt_native.h"
 
 #define XSRT_DOMAIN "xlang.extlib.srt"
+
+typedef struct { const char *data; size_t size; } XsrtLine;
 
 static void xsrt_error(const char *message) {
     xrtSetErrorInfo(XERR_VALUE, XSRT_DOMAIN, 0, message);
 }
 
-static xvalue *xsrt_text(const char *s, size_t n) {
-    str owned = (str)xrtMalloc(n + 1);
-    xvalue *value;
-    if (owned == NULL) return NULL;
-    if (n > 0) memcpy(owned, s, n);
-    owned[n] = '\0';
-    value = xrtValueStringTake(&owned, n);
-    if (value == NULL && owned != NULL) xrtFree(owned);
-    return value;
+static int xsrt_equal(XsrtLine line, const char *text) {
+    size_t size = strlen(text);
+    return line.size == size && memcmp(line.data, text, size) == 0;
 }
 
-static int xsrt_set(xvalue *obj, const char *key, xvalue *value) {
-    xstrview view;
-    view.Data = key;
-    view.Size = strlen(key);
-    return xrtValueObjectSetNew(obj, view, value);
+static int xsrt_prefix(XsrtLine line, const char *text) {
+    size_t size = strlen(text);
+    return line.size >= size && memcmp(line.data, text, size) == 0;
 }
 
-/* "HH:MM:SS,mmm" or "HH:MM:SS.mmm"; returns -1 on mismatch. */
-static long long xsrt_parse_stamp(const char *s) {
-    int h;
-    int m;
-    int sec;
-    int ms;
-    char tail;
-    const char *frac;
-    size_t digits;
-    if (s == NULL) return -1;
-    if (sscanf(s, "%d:%d:%d%c%d", &h, &m, &sec, &tail, &ms) != 5) return -1;
-    if (tail != ',' && tail != '.') return -1;
-    if (h < 0 || m < 0 || m > 59 || sec < 0 || sec > 59 || ms < 0) return -1;
-    /* scale by written digit count: 4 -> 400ms, 04 -> 40ms, 004 -> 4ms */
-    frac = strpbrk(s, ",.");
-    digits = frac != NULL ? strspn(frac + 1, "0123456789") : 0;
-    if (digits == 1) ms *= 100;
-    else if (digits == 2) ms *= 10;
-    return (long long)h * 3600000 + m * 60000 + sec * 1000 + ms;
+static int xsrt_vtt_control(XsrtLine line) {
+    return xsrt_equal(line, "NOTE") || xsrt_prefix(line, "NOTE ") ||
+           xsrt_prefix(line, "NOTE\t") || xsrt_equal(line, "STYLE") ||
+           xsrt_equal(line, "REGION");
 }
 
-static void xsrt_format_stamp(long long ms, char *out, size_t cap, char sep) {
-    long long h = ms / 3600000;
-    long long m = (ms / 60000) % 60;
-    long long s = (ms / 1000) % 60;
-    long long frac = ms % 1000;
-    snprintf(out, cap, "%02lld:%02lld:%02lld%c%03lld", h, m, s, sep, frac);
-}
-
-static int xsrt_contains_arrow(const char *line) {
-    const char *p = strstr(line, "-->");
-    return p != NULL;
-}
-
-/* Parse one timecode line: "start --> end". */
-static int xsrt_parse_range(const char *line, long long *start,
-    long long *end) {
-    char buf[128];
-    char *arrow;
-    char *s1;
-    char *s2;
-    size_t len = strlen(line);
-    if (len >= sizeof(buf)) return 0;
-    strcpy(buf, line);
-    arrow = strstr(buf, "-->");
-    if (arrow == NULL) return 0;
-    *arrow = '\0';
-    s1 = buf;
-    s2 = arrow + 3;
-    /* strip trailing spaces/settings from s1 */
-    {
-        char *q = s1 + strlen(s1);
-        while (q > s1 && isspace((unsigned char)*(q - 1))) *--q = '\0';
-    }
-    /* strip leading spaces and trailing settings from s2 */
-    while (*s2 == ' ' || *s2 == '\t') s2++;
-    {
-        char *sp = strchr(s2, ' ');
-        if (sp != NULL) *sp = '\0';
-    }
-    *start = xsrt_parse_stamp(s1);
-    *end = xsrt_parse_stamp(s2);
-    return *start >= 0 && *end >= 0 && *end >= *start;
-}
-
-static xvalue *xsrt_parse_cues(const char *text, int isVtt) {
-    xvalue *result = xrtValueArray();
-    const char *p = text;
-    long long autoIndex = 0;
-    if (result == NULL) return NULL;
-    if (text == NULL) {
-        xsrt_error("subtitle text is null");
-        return xrtValueNull();
-    }
-    while (p != NULL && *p != '\0') {
-        /* collect one line */
-        const char *eol = strchr(p, '\n');
-        const char *lineEnd = eol ? eol : p + strlen(p);
-        char line[512];
-        size_t len = (size_t)(lineEnd - p);
-        int hasIndex = 0;
-        long long index = 0;
-        if (len >= sizeof(line)) len = sizeof(line) - 1;
-        memcpy(line, p, len);
-        /* strip \r */
-        while (len > 0 && (line[len - 1] == '\r' || line[len - 1] == ' ' ||
-               line[len - 1] == '\t')) {
-            len--;
-        }
-        line[len] = '\0';
-        if (eol != NULL) eol++;
-        p = eol;
-        if (line[0] == '\0') continue;
-        /* skip headers and notes */
-        if (strncmp(line, "WEBVTT", 6) == 0) continue;
-        if (line[0] == '#') continue;
-        if (strncmp(line, "NOTE", 4) == 0 &&
-            (line[4] == '\0' || line[4] == ' ' || line[4] == '\t')) {
-            continue;
-        }
-        /* optional index line before the arrow line */
-        if (!xsrt_contains_arrow(line)) {
-            char *endp = NULL;
-            index = strtoll(line, &endp, 10);
-            if (!isVtt) {
-                if (endp == NULL || *endp != '\0') {
-                    xsrt_error("expected cue index or timecode");
-                    return xrtValueNull();
-                }
-                hasIndex = 1;
-            } else {
-                /* VTT ids are optional arbitrary strings */
-                hasIndex = 1;
-            }
-            /* read the arrow line */
-            if (p == NULL || *p == '\0') break;
-            {
-                const char *eol2 = strchr(p, '\n');
-                const char *line2End = eol2 ? eol2 : p + strlen(p);
-                size_t len2 = (size_t)(line2End - p);
-                if (len2 >= sizeof(line)) len2 = sizeof(line) - 1;
-                memcpy(line, p, len2);
-                while (len2 > 0 && (line[len2 - 1] == '\r' ||
-                       line[len2 - 1] == ' ')) {
-                    len2--;
-                }
-                line[len2] = '\0';
-                p = eol2 ? eol2 + 1 : NULL;
-            }
-        }
-        if (!xsrt_contains_arrow(line)) {
-            xsrt_error("cue is missing a timecode line");
-            return xrtValueNull();
-        }
-        {
-            long long start;
-            long long end;
-            xvalue *cue;
-            xvalue *lines = xrtValueArray();
-            if (!xsrt_parse_range(line, &start, &end)) {
-                xsrt_error("invalid cue timecode");
-                return xrtValueNull();
-            }
-            if (lines == NULL) return NULL;
-            /* read text lines until blank */
-            while (p != NULL && *p != '\0') {
-                const char *eol3 = strchr(p, '\n');
-                const char *textEnd = eol3 ? eol3 : p + strlen(p);
-                size_t tlen = (size_t)(textEnd - p);
-                char textLine[512];
-                if (tlen >= sizeof(textLine)) tlen = sizeof(textLine) - 1;
-                memcpy(textLine, p, tlen);
-                while (tlen > 0 && textLine[tlen - 1] == '\r') tlen--;
-                textLine[tlen] = '\0';
-                if (textLine[0] == '\0') {
-                    p = eol3 ? eol3 + 1 : NULL;
-                    break;
-                }
-                xrtValueArrayAppendNew(lines,
-                    xsrt_text(textLine, strlen(textLine)));
-                p = eol3 ? eol3 + 1 : NULL;
-            }
-            cue = xrtValueObject();
-            if (cue == NULL) return NULL;
-            if (!hasIndex) index = ++autoIndex;
-            xsrt_set(cue, "index", xrtValueInt(index));
-            xsrt_set(cue, "startMs", xrtValueInt(start));
-            xsrt_set(cue, "endMs", xrtValueInt(end));
-            xsrt_set(cue, "lines", lines);
-            if (!xrtValueArrayAppendNew(result, cue)) {
-                return xrtValueNull();
-            }
-        }
-    }
-    return result;
-}
-
-xvalue *xsrt_parse(const char *text) {
-    return xsrt_parse_cues(text, 0);
-}
-
-xvalue *xsrt_parse_vtt(const char *text) {
-    return xsrt_parse_cues(text, 1);
-}
-
-typedef struct {
-    char *data;
-    size_t len;
-    size_t cap;
-} XsrtBuf;
-
-static int xsrt_buf_put(XsrtBuf *b, const char *text) {
-    size_t n = strlen(text);
-    if (b->len + n + 1 > b->cap) {
-        size_t cap = b->cap ? b->cap * 2 : 2048;
-        char *grown;
-        while (cap < b->len + n + 1) cap *= 2;
-        grown = (char *)xrtMalloc(cap);
-        if (grown == NULL) return 0;
-        memcpy(grown, b->data, b->len);
-        grown[b->len] = '\0';
-        xrtFree(b->data);
-        b->data = grown;
-        b->cap = cap;
-    }
-    memcpy(b->data + b->len, text, n);
-    b->len += n;
-    b->data[b->len] = '\0';
+static int xsrt_next(const char **cursor, const char *limit, XsrtLine *line) {
+    const char *end;
+    if (*cursor == NULL || *cursor == limit) return 0;
+    end = (const char *)memchr(*cursor, '\n', (size_t)(limit - *cursor));
+    if (end == NULL) end = limit;
+    line->data = *cursor;
+    line->size = (size_t)(end - *cursor);
+    *cursor = end < limit ? end + 1 : NULL;
+    if (line->size && line->data[line->size - 1] == '\r') line->size--;
     return 1;
 }
 
-/* Read a string field from an object; returns "" when absent. */
-static xvalue *xsrt_read_lines(xvalue *obj) {
-    int64 i;
-    int64 n;
-    size_t len = strlen("lines");
-    if (obj == NULL) return NULL;
-    n = xrtValueCount(obj);
-    for (i = 0; i < n; ++i) {
-        xstrview k;
-        xvalue *v = xrtValueObjectAt(obj, i, &k);
-        if (v != NULL && k.Size == len &&
-            memcmp(k.Data, "lines", len) == 0) {
-            return v;
+static XsrtLine xsrt_trim(XsrtLine line) {
+    while (line.size && (line.data[0] == ' ' || line.data[0] == '\t')) {
+        line.data++; line.size--;
+    }
+    while (line.size && (line.data[line.size - 1] == ' ' ||
+                         line.data[line.size - 1] == '\t')) line.size--;
+    return line;
+}
+
+static size_t xsrt_arrow(XsrtLine line) {
+    size_t i;
+    for (i = 0; i + 3 <= line.size; ++i)
+        if (memcmp(line.data + i, "-->", 3) == 0) return i;
+    return SIZE_MAX;
+}
+
+static xvalue *xsrt_string(XsrtLine line) {
+    str owned = (str)xrtMalloc(line.size + 1);
+    xvalue *result;
+    if (owned == NULL) return NULL;
+    memcpy(owned, line.data, line.size);
+    owned[line.size] = '\0';
+    result = xrtValueStringTake(&owned, line.size);
+    xrtFree(owned);
+    return result;
+}
+
+static int xsrt_two(XsrtLine *line, int *value) {
+    unsigned char a, b;
+    if (line->size < 2) return 0;
+    a = (unsigned char)line->data[0];
+    b = (unsigned char)line->data[1];
+    if (a < '0' || a > '9' || b < '0' || b > '9') return 0;
+    *value = (a - '0') * 10 + (b - '0');
+    line->data += 2; line->size -= 2;
+    return 1;
+}
+
+/* 毫秒固定三位；不接受尾随垃圾、负数或 int64 溢出。 */
+static int xsrt_stamp(XsrtLine line, int vtt, int64_t *out) {
+    int64_t first = 0, hours = 0;
+    int minutes, seconds, millis, second;
+    size_t digits = 0;
+    while (line.size && line.data[0] >= '0' && line.data[0] <= '9') {
+        int digit = line.data[0] - '0';
+        if (first > (INT64_MAX / 3600000 - digit) / 10) return 0;
+        first = first * 10 + digit;
+        line.data++; line.size--; digits++;
+    }
+    if (digits < 2 || !line.size || line.data[0] != ':') return 0;
+    line.data++; line.size--;
+    if (!xsrt_two(&line, &second)) return 0;
+    if (vtt && line.size && line.data[0] == '.') {
+        if (first > 59) return 0;
+        minutes = (int)first;
+        seconds = second;
+    } else {
+        if (!line.size || line.data[0] != ':') return 0;
+        line.data++; line.size--;
+        if (!xsrt_two(&line, &seconds)) return 0;
+        hours = first;
+        minutes = second;
+    }
+    if (minutes > 59 || seconds > 59 || !line.size ||
+        line.data[0] != (vtt ? '.' : ',')) return 0;
+    line.data++; line.size--;
+    if (line.size != 3) return 0;
+    if (!xsrt_two(&line, &millis)) return 0;
+    if (line.data[0] < '0' || line.data[0] > '9') return 0;
+    millis = millis * 10 + line.data[0] - '0';
+    if (hours > (INT64_MAX - (int64_t)minutes * 60000 - seconds * 1000 - millis) / 3600000) return 0;
+    *out = hours * 3600000 + (int64_t)minutes * 60000 + seconds * 1000 + millis;
+    return 1;
+}
+
+static int xsrt_range(XsrtLine line, int vtt, int64_t *start, int64_t *end,
+                      XsrtLine *settings) {
+    size_t arrow = xsrt_arrow(line);
+    XsrtLine left, right;
+    size_t i;
+    if (arrow == SIZE_MAX) return 0;
+    left = xsrt_trim((XsrtLine){line.data, arrow});
+    right = xsrt_trim((XsrtLine){line.data + arrow + 3, line.size - arrow - 3});
+    settings->data = right.data + right.size;
+    settings->size = 0;
+    if (vtt) {
+        for (i = 0; i < right.size; ++i)
+            if (right.data[i] == ' ' || right.data[i] == '\t') break;
+        if (i < right.size) {
+            *settings = xsrt_trim((XsrtLine){right.data + i, right.size - i});
+            right.size = i;
+            if (xsrt_arrow(*settings) != SIZE_MAX) return 0;
         }
+    }
+    return xsrt_stamp(left, vtt, start) && xsrt_stamp(right, vtt, end) && *end >= *start;
+}
+
+static int xsrt_put(xvalue *object, const char *key, xvalue *item) {
+    xstrview name = {key, strlen(key)};
+    return item != NULL && xrtValueObjectSetNew(object, name, item);
+}
+
+static xvalue *xsrt_parse_cues(const char *text, size_t size, int vtt) {
+    const char *cursor = text;
+    const char *limit;
+    XsrtLine line = {0};
+    xvalue *result;
+    int64_t nextIndex = 1;
+    size_t i;
+    xrtClearError();
+    if (text == NULL) { xsrt_error("subtitle text is null"); return xrtValueNull(); }
+    if (size == SIZE_MAX || memchr(text, 0, size) != NULL) {
+        xsrt_error("subtitle contains an embedded NUL or invalid input");
+        return xrtValueNull();
+    }
+    if (!xrtUtf8Valid((xstrview){text, size}, NULL)) {
+        xsrt_error("subtitle text must be valid UTF-8");
+        return xrtValueNull();
+    }
+    for (i = 0; i < size; ++i) {
+        if (text[i] == '\r' && (i + 1 == size || text[i + 1] != '\n')) {
+            xsrt_error("subtitle lines must use LF or CRLF");
+            return xrtValueNull();
+        }
+    }
+    limit = text + size;
+    result = xrtValueArray();
+    if (result == NULL) return NULL;
+    if (vtt) {
+        int headerEnded = 0;
+        if (!xsrt_next(&cursor, limit, &line)) goto invalid;
+        if (line.size >= 3 && memcmp(line.data, "\xef\xbb\xbf", 3) == 0) {
+            line.data += 3; line.size -= 3;
+        }
+        if (!xsrt_prefix(line, "WEBVTT") ||
+            (line.size > 6 && line.data[6] != ' ' && line.data[6] != '\t')) goto invalid;
+        while (xsrt_next(&cursor, limit, &line)) {
+            if (!line.size) { headerEnded = 1; break; }
+        }
+        if (!headerEnded) goto invalid;
+    } else if (size >= 3 && memcmp(cursor, "\xef\xbb\xbf", 3) == 0) cursor += 3;
+
+    while (xsrt_next(&cursor, limit, &line)) {
+        XsrtLine id = {0}, settings = {0};
+        int64_t start, end, index;
+        xvalue *cue = NULL, *lines = NULL;
+        size_t k;
+        if (!line.size) continue;
+        if (vtt && xsrt_vtt_control(line)) {
+            while (xsrt_next(&cursor, limit, &line) && line.size) {}
+            continue;
+        }
+        if (xsrt_arrow(line) == SIZE_MAX) {
+            id = line;
+            if (!xsrt_next(&cursor, limit, &line)) goto invalid;
+        }
+        if (!xsrt_range(line, vtt, &start, &end, &settings)) goto invalid;
+        index = nextIndex++;
+        if (!vtt) {
+            if (!id.size) goto invalid;
+            index = 0;
+            for (k = 0; k < id.size; ++k) {
+                unsigned char ch = (unsigned char)id.data[k];
+                if (ch < '0' || ch > '9' || index > (INT64_MAX - (ch - '0')) / 10) goto invalid;
+                index = index * 10 + (ch - '0');
+            }
+            if (!index) goto invalid;
+        }
+        cue = xrtValueObject();
+        lines = xrtValueArray();
+        if (cue == NULL || lines == NULL) goto oom;
+        if (!xsrt_put(cue, "index", xrtValueInt(index)) ||
+            !xsrt_put(cue, "startMs", xrtValueInt(start)) ||
+            !xsrt_put(cue, "endMs", xrtValueInt(end))) goto oom;
+        if (vtt && id.size && !xsrt_put(cue, "id", xsrt_string(id))) goto oom;
+        if (vtt && settings.size && !xsrt_put(cue, "settings", xsrt_string(settings))) goto oom;
+        while (xsrt_next(&cursor, limit, &line) && line.size)
+            if (!xrtValueArrayAppendNew(lines, xsrt_string(line))) goto oom;
+        if (!xsrt_put(cue, "lines", lines)) { lines = NULL; goto oom; }
+        lines = NULL;
+        if (!xrtValueArrayAppendNew(result, cue)) { cue = NULL; goto oom; }
+        continue;
+oom:
+        xrtValueRelease(lines);
+        xrtValueRelease(cue);
+        xrtValueRelease(result);
+        return NULL;
+    }
+    return result;
+invalid:
+    xrtValueRelease(result);
+    xsrt_error("invalid subtitle cue or timestamp");
+    return xrtValueNull();
+}
+
+xvalue *xsrt_parse(const char *text) {
+    return xsrt_parse_cues(text, text != NULL ? strlen(text) : 0, 0);
+}
+xvalue *xsrt_parse_vtt(const char *text) {
+    return xsrt_parse_cues(text, text != NULL ? strlen(text) : 0, 1);
+}
+
+xvalue *xsrt_parse_n(const char *text, size_t size) {
+    return xsrt_parse_cues(text, size, 0);
+}
+
+xvalue *xsrt_parse_vtt_n(const char *text, size_t size) {
+    return xsrt_parse_cues(text, size, 1);
+}
+
+static xvalue *xsrt_field(xvalue *object, const char *name) {
+    int64 i, count;
+    size_t size = strlen(name);
+    if (object == NULL || xrtValueType(object) != XVALUE_OBJECT) return NULL;
+    count = xrtValueCount(object);
+    for (i = 0; i < count; ++i) {
+        xstrview key;
+        xvalue *value = xrtValueObjectAt(object, i, &key);
+        if (key.Size == size && memcmp(key.Data, name, size) == 0) return value;
     }
     return NULL;
 }
 
-static long long xsrt_read_int(xvalue *obj, const char *key) {
-    int64 value = 0;
-    int64 i;
-    int64 n;
-    size_t len = strlen(key);
-    if (obj == NULL) return 0;
-    n = xrtValueCount(obj);
-    for (i = 0; i < n; ++i) {
-        xstrview k;
-        xvalue *v = xrtValueObjectAt(obj, i, &k);
-        if (v != NULL && k.Size == len && memcmp(k.Data, key, len) == 0) {
-            double d = 0;
-            if (xrtValueGetFloat(v, &d)) return (long long)d;
-            (void)xrtValueGetInt(v, &value);
-            return value;
-        }
-    }
-    return 0;
+static int xsrt_integer(xvalue *cue, const char *name, int64_t *out) {
+    xvalue *value = xsrt_field(cue, name);
+    return value != NULL && xrtValueType(value) == XVALUE_INT &&
+           xrtValueGetInt(value, out) && *out >= 0;
 }
 
-const char *xsrt_build(xvalue *cues) {
-    static char ring[2][65536];
-    static int next;
-    XsrtBuf buf = {NULL, 0, 0};
-    int64 i;
-    int64 n;
-    next = (next + 1) % 2;
-    n = cues != NULL ? xrtValueCount(cues) : 0;
-    for (i = 0; i < n; ++i) {
+static int xsrt_append(xbuffer *buffer, const char *text, size_t size) {
+    return xrtBufferAppend(buffer, (xbytesview){(const uint8 *)text, size});
+}
+
+static int xsrt_literal(xbuffer *buffer, const char *text) {
+    return xsrt_append(buffer, text, strlen(text));
+}
+
+static int xsrt_format(xbuffer *buffer, int64_t ms, char separator) {
+    char stamp[64];
+    int n;
+    if (ms < 0) return 0;
+    n = snprintf(stamp, sizeof(stamp), "%02lld:%02lld:%02lld%c%03lld",
+        (long long)(ms / 3600000), (long long)((ms / 60000) % 60),
+        (long long)((ms / 1000) % 60), separator, (long long)(ms % 1000));
+    return n > 0 && (size_t)n < sizeof(stamp) && xsrt_append(buffer, stamp, (size_t)n);
+}
+
+static int xsrt_optional(xbuffer *buffer, xvalue *cue, const char *name, const char *suffix) {
+    xvalue *value = xsrt_field(cue, name);
+    xstrview view;
+    size_t i;
+    if (value == NULL) return 1;
+    if (xrtValueType(value) != XVALUE_STRING || !xrtValueGetString(value, &view)) return 0;
+    if (!view.Size || !xrtUtf8Valid(view, NULL)) return 0;
+    if (strcmp(name, "id") == 0 && xsrt_vtt_control((XsrtLine){view.Data, view.Size})) return 0;
+    for (i = 0; i < view.Size; ++i)
+        if (view.Data[i] == '\n' || view.Data[i] == '\r' || view.Data[i] == '\0' ||
+            (i + 3 <= view.Size && memcmp(view.Data + i, "-->", 3) == 0)) return 0;
+    return xsrt_append(buffer, view.Data, view.Size) && xsrt_literal(buffer, suffix);
+}
+
+/* 返回独立 XRT 缓冲；C 侧 xrtFree，XL 包装调用 takeCstr。 */
+static char *xsrt_build_cues(xvalue *cues, int vtt) {
+    xbuffer buffer;
+    int64 count, i;
+    xrtClearError();
+    if (cues == NULL || xrtValueType(cues) != XVALUE_ARRAY) goto invalid;
+    if (!xrtBufferInit(&buffer)) return NULL;
+    if (vtt && !xsrt_literal(&buffer, "WEBVTT\n\n")) goto fail;
+    count = xrtValueCount(cues);
+    for (i = 0; i < count; ++i) {
         xvalue *cue = xrtValueArrayAt(cues, i);
-        char stamp[2][32];
-        xvalue *lines;
-        char text[32];
-        int64 li;
-        int64 ln;
-        if (cue == NULL) continue;
-        xsrt_format_stamp(xsrt_read_int(cue, "startMs"), stamp[0],
-            sizeof(stamp[0]), ',');
-        xsrt_format_stamp(xsrt_read_int(cue, "endMs"), stamp[1],
-            sizeof(stamp[1]), ',');
-        snprintf(text, sizeof(text), "%lld", (long long)(i + 1));
-        xsrt_buf_put(&buf, text);
-        xsrt_buf_put(&buf, "\n");
-        xsrt_buf_put(&buf, stamp[0]);
-        xsrt_buf_put(&buf, " --> ");
-        xsrt_buf_put(&buf, stamp[1]);
-        xsrt_buf_put(&buf, "\n");
-        lines = xsrt_read_lines(cue);
-        ln = lines != NULL ? xrtValueCount(lines) : 0;
-        for (li = 0; li < ln; ++li) {
-            xvalue *item = xrtValueArrayAt(lines, li);
-            xstrview t;
-            if (item != NULL && xrtValueGetString(item, &t)) {
-                char copy[512];
-                if (t.Size >= sizeof(copy)) t.Size = sizeof(copy) - 1;
-                memcpy(copy, t.Data, t.Size);
-                copy[t.Size] = '\0';
-                xsrt_buf_put(&buf, copy);
-                xsrt_buf_put(&buf, "\n");
-            }
+        xvalue *lines = xsrt_field(cue, "lines");
+        int64_t start, end;
+        int64 j, lineCount;
+        char index[32];
+        int n;
+        if (lines == NULL || xrtValueType(lines) != XVALUE_ARRAY ||
+            !xsrt_integer(cue, "startMs", &start) ||
+            !xsrt_integer(cue, "endMs", &end) || end < start) goto bad_buffer;
+        if (vtt) {
+            if (!xsrt_optional(&buffer, cue, "id", "\n")) goto bad_buffer;
+        } else {
+            n = snprintf(index, sizeof(index), "%lld\n", (long long)(i + 1));
+            if (n <= 0 || !xsrt_append(&buffer, index, (size_t)n)) goto fail;
         }
-        xsrt_buf_put(&buf, "\n");
-    }
-    strncpy(ring[next], buf.data ? buf.data : "", sizeof(ring[next]) - 1);
-    ring[next][sizeof(ring[next]) - 1] = '\0';
-    xrtFree(buf.data);
-    return ring[next];
-}
-
-const char *xsrt_build_vtt(xvalue *cues) {
-    static char ring[2][65536];
-    static int next;
-    XsrtBuf buf = {NULL, 0, 0};
-    int64 i;
-    int64 n;
-    next = (next + 1) % 2;
-    xsrt_buf_put(&buf, "WEBVTT\n\n");
-    n = cues != NULL ? xrtValueCount(cues) : 0;
-    for (i = 0; i < n; ++i) {
-        xvalue *cue = xrtValueArrayAt(cues, i);
-        char stamp[2][32];
-        xvalue *lines;
-        int64 li;
-        int64 ln;
-        if (cue == NULL) continue;
-        xsrt_format_stamp(xsrt_read_int(cue, "startMs"), stamp[0],
-            sizeof(stamp[0]), '.');
-        xsrt_format_stamp(xsrt_read_int(cue, "endMs"), stamp[1],
-            sizeof(stamp[1]), '.');
-        xsrt_buf_put(&buf, stamp[0]);
-        xsrt_buf_put(&buf, " --> ");
-        xsrt_buf_put(&buf, stamp[1]);
-        xsrt_buf_put(&buf, "\n");
-        lines = xsrt_read_lines(cue);
-        ln = lines != NULL ? xrtValueCount(lines) : 0;
-        for (li = 0; li < ln; ++li) {
-            xvalue *item = xrtValueArrayAt(lines, li);
-            xstrview t;
-            if (item != NULL && xrtValueGetString(item, &t)) {
-                char copy[512];
-                if (t.Size >= sizeof(copy)) t.Size = sizeof(copy) - 1;
-                memcpy(copy, t.Data, t.Size);
-                copy[t.Size] = '\0';
-                xsrt_buf_put(&buf, copy);
-                xsrt_buf_put(&buf, "\n");
-            }
+        if (!xsrt_format(&buffer, start, vtt ? '.' : ',') ||
+            !xsrt_literal(&buffer, " --> ") ||
+            !xsrt_format(&buffer, end, vtt ? '.' : ',')) goto fail;
+        if (vtt && xsrt_field(cue, "settings")) {
+            if (!xsrt_literal(&buffer, " ") ||
+                !xsrt_optional(&buffer, cue, "settings", "")) goto bad_buffer;
         }
-        xsrt_buf_put(&buf, "\n");
+        if (!xsrt_literal(&buffer, "\n")) goto fail;
+        lineCount = xrtValueCount(lines);
+        for (j = 0; j < lineCount; ++j) {
+            xvalue *item = xrtValueArrayAt(lines, j);
+            xstrview view;
+            size_t k;
+            if (item == NULL || xrtValueType(item) != XVALUE_STRING ||
+                !xrtValueGetString(item, &view)) goto bad_buffer;
+            if (!view.Size || !xrtUtf8Valid(view, NULL)) goto bad_buffer;
+            for (k = 0; k < view.Size; ++k)
+                if (view.Data[k] == '\n' || view.Data[k] == '\r' || view.Data[k] == '\0') goto bad_buffer;
+            if (!xsrt_append(&buffer, view.Data, view.Size) ||
+                !xsrt_literal(&buffer, "\n")) goto fail;
+        }
+        if (!xsrt_literal(&buffer, "\n")) goto fail;
     }
-    strncpy(ring[next], buf.data ? buf.data : "", sizeof(ring[next]) - 1);
-    ring[next][sizeof(ring[next]) - 1] = '\0';
-    xrtFree(buf.data);
-    return ring[next];
+    if (!xrtBufferAppendByte(&buffer, 0)) goto fail;
+    return (char *)xrtBufferTake(&buffer, NULL, NULL);
+bad_buffer:
+    /* 可选字段写入失败也会到达这里，不得覆盖分配错误。 */
+    if (xrtGetError() == NULL || xrtErrorKind(xrtGetError()) != XERR_MEMORY)
+        xsrt_error("invalid cue: expected ordered milliseconds and string lines");
+fail:
+    xrtBufferUnit(&buffer);
+    return NULL;
+invalid:
+    xsrt_error("cues must be an array");
+    return NULL;
 }
 
-const char *xsrt_format_time(long long ms) {
-    static char ring[4][32];
-    static int next;
-    char *slot = ring[next];
-    next = (next + 1) % 4;
-    xsrt_format_stamp(ms, slot, 32, ',');
-    return slot;
+void *xsrt_build(xvalue *cues) { return xsrt_build_cues(cues, 0); }
+void *xsrt_build_vtt(xvalue *cues) { return xsrt_build_cues(cues, 1); }
+
+void *xsrt_format_time(int64_t ms) {
+    xbuffer buffer;
+    xrtClearError();
+    if (ms < 0) { xsrt_error("timestamp must be non-negative"); return NULL; }
+    if (!xrtBufferInit(&buffer)) return NULL;
+    if (!xsrt_format(&buffer, ms, ',') || !xrtBufferAppendByte(&buffer, 0)) {
+        xrtBufferUnit(&buffer);
+        return NULL;
+    }
+    return (char *)xrtBufferTake(&buffer, NULL, NULL);
 }
 
-long long xsrt_parse_time(const char *stamp) {
-    long long ms = xsrt_parse_stamp(stamp);
-    if (ms < 0) {
-        xsrt_error("invalid timestamp");
+int64_t xsrt_parse_time(const char *text) {
+    XsrtLine line;
+    int64_t result;
+    xrtClearError();
+    if (text != NULL) {
+        line = (XsrtLine){text, strlen(text)};
+        if (xsrt_stamp(line, 0, &result) || xsrt_stamp(line, 1, &result)) return result;
     }
-    return ms;
+    xsrt_error("invalid timestamp");
+    return -1;
+}
+
+int64_t xsrt_parse_time_n(const char *text, size_t size) {
+    XsrtLine line = {text, size};
+    int64_t result;
+    xrtClearError();
+    if (text != NULL && size != SIZE_MAX && (xsrt_stamp(line, 0, &result) ||
+                         xsrt_stamp(line, 1, &result))) return result;
+    xsrt_error("invalid timestamp");
+    return -1;
 }

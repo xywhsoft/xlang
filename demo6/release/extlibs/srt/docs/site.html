@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>srt - 扩展库 - xlang</title>
+  <meta name="description" content="SRT 和 WebVTT 字幕文本、时间轴解析与生成。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / srt</p><h1>srt</h1>
+    <p class="extlib-lead">解析、生成字幕时间轴。</p>
+    <p>支持 SRT 与常用 WebVTT cue、ID 和设置文本；C 与 XLang 共享 XRT 值模型。完整 AOT 发布验收仍受共享链接问题阻断。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>parse / build</code></td><td>SRT 文本和 cue 数组互转</td></tr>
+      <tr><td><code>parseVtt / buildVtt</code></td><td>WebVTT 文本和 cue 数组互转</td></tr>
+      <tr><td><code>parseTime / formatTime</code></td><td>毫秒时间戳转换</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import srt
+var cues = srt.parse("1\n00:00:01,000 --&gt; 00:00:02,000\n你好\n\n")
+print(srt.buildVtt(cues))</code></pre>
+    <p>WebVTT 的 NOTE（含空格或 tab 注释）、STYLE 和 REGION 块会跳过。解析与生成均要求有效 UTF-8 和 LF/CRLF 换行；孤立回车会被拒绝。解析器拒绝设置中的第二个 <code>--&gt;</code>，生成器还拒绝与控制块冲突或含 <code>--&gt;</code> 的 cue ID，避免产出无法读回的文件。C 时间参数与结果使用 <code>int64_t</code>。Windows C/XLang 包级门禁和 Linux C sanitizer、XLang 边界及双语范例逐字节对照已通过；完整 AOT 仍受主线缺符号阻断。样式和 cue 标记不作解释；详见包内 README 的支持范围、C 所有权与测试记录。</p>
+  </section>
+</main>
+</body>
+</html>
