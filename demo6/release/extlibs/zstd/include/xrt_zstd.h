@@ -1,6 +1,12 @@
 #ifndef XRT_ZSTD_H
 #define XRT_ZSTD_H
 
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
+#ifndef XRT_MODULE_IO_FILE
+#define XRT_MODULE_IO_FILE
+#endif
 #include "xrt.h"
 
 #ifdef __cplusplus
@@ -34,6 +40,7 @@ typedef struct {
 	uint32 iVersion;
 	int iLevel;
 	uint8 sReserved[4];
+	/* iMaxEntries 限制解压帧数；nodes/depth/flags 不适用。 */
 	xrtresourcelimits tLimits;
 } xrtzstdoptions;
 

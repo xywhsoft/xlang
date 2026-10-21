@@ -1,0 +1,5 @@
+import zstd
+
+// 不执行：解压输入不能接收导入方伪造的指针与长度。
+auto stream = zstd.decompressor()
+stream.updateNative(null, c_size(1))

@@ -1,8 +1,25 @@
+#ifndef XRT_MODULE_ERROR_FORMAT
 #define XRT_MODULE_ERROR_FORMAT
+#endif
+#ifndef XRT_MODULE_FILE_TEMP
+#define XRT_MODULE_FILE_TEMP
+#endif
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
+#ifndef XRT_MODULE_IO_FILE
+#define XRT_MODULE_IO_FILE
+#endif
+#ifndef XRT_MODULE_PATH
+#define XRT_MODULE_PATH
+#endif
+#ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+#endif
 
 #include "xruntime.h"
 #include "include/xrt_zstd.h"
+#include "include/zstd_native.h"
 #include "third_party/zstd.h"
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -43,6 +60,9 @@ static void xzstd_publish_error(const xrtzstderror* pError)
 		pError->sMessage : "zstd operation failed";
 	int iCode = pError != NULL ? pError->iCode : XRT_ZSTD_ERROR_IO;
 
+	/* 保留分配器、IO 或回调已经发布的首个错误。 */
+	if ( xrtGetError() != NULL ) { return; }
+
 	xrtSetErrorInfo(
 		xzstd_error_kind(iCode),
 		"xlang.extlib.zstd",
@@ -64,24 +84,8 @@ static void xzstd_options(xrtzstdoptions* pOptions, int iLevel, uint64 iMaxInput
 }
 
 
-/* 删除失败事务的临时文件，同时保留原始失败原因。 */
-static void xzstd_remove_temp(cstr sTemp)
-{
-	xerror* pError;
-
-	if ( sTemp == NULL ) { return; }
-	pError = xrtTakeError();
-	if ( xrtFileExists(sTemp) ) { (void)xrtFileDelete(sTemp); }
-	xrtClearError();
-	if ( pError != NULL ) {
-		xrtSetError(pError);
-		xrtErrorFree(pError);
-	}
-}
-
-
 /* 1 成功，0 处理失败，-1 用户取消，-2 回调抛错。 */
-static int xzstd_transform_file(str sSource, str sDestination, bool bCompress,
+static int xzstd_transform_file(const char* sSource, const char* sDestination, bool bCompress,
 	bool bOverwrite, const xrtzstdoptions* pOptions, xvalue* pCallback)
 {
 	xrtzstderror tError;
@@ -93,6 +97,7 @@ static int xzstd_transform_file(str sSource, str sDestination, bool bCompress,
 	str sTemp = NULL;
 	bool bResult = false;
 	int iResult = 0;
+	xerror* pSaved;
 
 	xrtZstdErrorInit(&tError);
 	xrtProgressCallInit(&tProgress, pCallback);
@@ -102,10 +107,15 @@ static int xzstd_transform_file(str sSource, str sDestination, bool bCompress,
 			XRT_ZSTD_ERROR_ARGUMENT, "zstd source and destination paths are required");
 		return 0;
 	}
-	if ( xrtPathExists(sDestination) && !bOverwrite ) {
-		xrtSetErrorFormat(XERR_EXISTS, "xlang.extlib.zstd", XRT_ZSTD_ERROR_IO,
-			"zstd destination already exists: %s", sDestination);
-		return 0;
+	if ( !bOverwrite ) {
+		xfileinfo Info;
+		if ( xrtPathStat(sDestination, false, &Info) ) {
+			xrtSetErrorFormat(XERR_EXISTS, "xlang.extlib.zstd", XRT_ZSTD_ERROR_IO,
+				"zstd destination already exists: %s", sDestination);
+			return 0;
+		}
+		if ( xrtErrorKind(xrtGetError()) != XERR_NOT_FOUND ) { return 0; }
+		xrtClearError();
 	}
 	pReader = xrtReaderOpen(sSource);
 	if ( pReader == NULL ) { goto cleanup; }
@@ -127,17 +137,32 @@ static int xzstd_transform_file(str sSource, str sDestination, bool bCompress,
 	}
 
 cleanup:
-	if ( (pWriter != NULL) && !xrtWriterDestroy(pWriter) && bResult ) { bResult = false; }
-	if ( (TempFile != NULL) && !xrtClose(TempFile) && bResult ) { bResult = false; }
-	if ( (pReader != NULL) && !xrtReaderDestroy(pReader) && bResult ) { bResult = false; }
-	if ( bResult && !xrtPathRename(sTemp, sDestination, bOverwrite) ) { bResult = false; }
-	if ( !bResult ) {
-		if ( (xrtGetError() == NULL) && !tProgress.InvokeFailed &&
-			(tError.iCode == XRT_ZSTD_OK) ) {
-			xrtSetErrorInfo(XERR_IO, "xlang.extlib.zstd",
-				XRT_ZSTD_ERROR_IO, "zstd file operation failed");
-		}
-		xzstd_remove_temp(sTemp);
+	/* 析构或删除临时文件不得覆盖回调、内存和首个 IO 错误。 */
+	pSaved = xrtTakeError();
+	if ( pSaved != NULL ) { bResult = false; }
+	if ( (pWriter != NULL) && !xrtWriterDestroy(pWriter) && bResult ) {
+		bResult = false; pSaved = xrtTakeError();
+	}
+	xrtClearError();
+	if ( (TempFile != NULL) && !xrtClose(TempFile) && bResult ) {
+		bResult = false; pSaved = xrtTakeError();
+	}
+	xrtClearError();
+	if ( (pReader != NULL) && !xrtReaderDestroy(pReader) && bResult ) {
+		bResult = false; pSaved = xrtTakeError();
+	}
+	xrtClearError();
+	if ( bResult && !xrtPathRename(sTemp, sDestination, bOverwrite) ) {
+		bResult = false; pSaved = xrtTakeError();
+	}
+	if ( !bResult && sTemp != NULL ) { (void)xrtFileDelete(sTemp); }
+	xrtClearError();
+	if ( pSaved != NULL ) {
+		xrtSetError(pSaved);
+		xrtErrorFree(pSaved);
+	} else if ( !bResult && !tProgress.InvokeFailed ) {
+		xrtSetErrorInfo(XERR_IO, "xlang.extlib.zstd", XRT_ZSTD_ERROR_IO,
+			"zstd file operation failed");
 	}
 	xrtFree(sDirectory);
 	xrtFree(sTemp);
@@ -166,8 +191,8 @@ XZSTD_EXPORT const char* xzstd_last_error(void)
 
 
 
-XZSTD_EXPORT void* xzstd_compress(const void* pData, size_t iSize, int iLevel,
-	uint64 iMaxInput, uint64 iMaxOutput)
+XZSTD_EXPORT void* xzstd_compress(void* pData, size_t iSize, int iLevel,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput)
 {
 	xrtzstdoptions tOptions;
 	xrtzstderror tError;
@@ -181,8 +206,8 @@ XZSTD_EXPORT void* xzstd_compress(const void* pData, size_t iSize, int iLevel,
 	return pOutput;
 }
 
-XZSTD_EXPORT void* xzstd_decompress(const void* pData, size_t iSize, uint64 iMaxInput,
-	uint64 iMaxOutput, uint32 iMaxRatio)
+XZSTD_EXPORT void* xzstd_decompress(void* pData, size_t iSize, unsigned long long iMaxInput,
+	unsigned long long iMaxOutput, unsigned int iMaxRatio)
 {
 	xrtzstdoptions tOptions;
 	xrtzstderror tError;
@@ -196,8 +221,8 @@ XZSTD_EXPORT void* xzstd_decompress(const void* pData, size_t iSize, uint64 iMax
 	return pOutput;
 }
 
-XZSTD_EXPORT int xzstd_compress_file(str sSource, str sDestination, int iLevel,
-	bool bOverwrite, uint64 iMaxInput, uint64 iMaxOutput, xvalue* pCallback)
+XZSTD_EXPORT int xzstd_compress_file(const char* sSource, const char* sDestination, int iLevel,
+	bool bOverwrite, unsigned long long iMaxInput, unsigned long long iMaxOutput, xvalue* pCallback)
 {
 	xrtzstdoptions tOptions;
 	xrtClearError();
@@ -205,8 +230,8 @@ XZSTD_EXPORT int xzstd_compress_file(str sSource, str sDestination, int iLevel,
 	return xzstd_transform_file(sSource, sDestination, true, bOverwrite, &tOptions, pCallback);
 }
 
-XZSTD_EXPORT int xzstd_decompress_file(str sSource, str sDestination, bool bOverwrite,
-	uint64 iMaxInput, uint64 iMaxOutput, uint32 iMaxRatio, xvalue* pCallback)
+XZSTD_EXPORT int xzstd_decompress_file(const char* sSource, const char* sDestination, bool bOverwrite,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio, xvalue* pCallback)
 {
 	xrtzstdoptions tOptions;
 	xrtClearError();
@@ -216,14 +241,21 @@ XZSTD_EXPORT int xzstd_decompress_file(str sSource, str sDestination, bool bOver
 
 
 
-XZSTD_EXPORT void* xzstd_compressor_create(int iLevel, uint64 iMaxInput, uint64 iMaxOutput)
+XZSTD_EXPORT void* xzstd_compressor_create(int iLevel, unsigned long long iMaxInput, unsigned long long iMaxOutput)
 {
 	xrtzstdoptions tOptions;
 	xrtzstdcompressor* pCompressor;
 	xrtClearError();
 	xzstd_options(&tOptions, iLevel, iMaxInput, iMaxOutput, 0u);
 	pCompressor = xrtZstdCompressorCreate(&tOptions);
-	if ( pCompressor == NULL || xrtZstdCompressorError(pCompressor)->iCode != XRT_ZSTD_OK ) {
+	if ( pCompressor == NULL ) {
+		if ( xrtGetError() == NULL ) {
+			xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.zstd",
+				XRT_ZSTD_ERROR_MEMORY, "cannot allocate zstd compressor");
+		}
+		return NULL;
+	}
+	if ( xrtZstdCompressorError(pCompressor)->iCode != XRT_ZSTD_OK ) {
 		xzstd_publish_error(xrtZstdCompressorError(pCompressor));
 		xrtZstdCompressorDestroy(pCompressor);
 		return NULL;
@@ -236,7 +268,7 @@ XZSTD_EXPORT void xzstd_compressor_destroy(void* pHandle)
 	xrtZstdCompressorDestroy((xrtzstdcompressor*)pHandle);
 }
 
-XZSTD_EXPORT bool xzstd_compressor_update(void* pHandle, const void* pData, size_t iSize)
+XZSTD_EXPORT bool xzstd_compressor_update(void* pHandle, void* pData, size_t iSize)
 {
 	xrtzstdcompressor* pCompressor = (xrtzstdcompressor*)pHandle;
 	if ( !xrtZstdCompressorUpdate(pCompressor, pData, iSize) ) {
@@ -267,27 +299,34 @@ XZSTD_EXPORT void* xzstd_compressor_drain(void* pHandle)
 	return pOutput;
 }
 
-XZSTD_EXPORT uint64 xzstd_compressor_input_bytes(void* pHandle)
+XZSTD_EXPORT unsigned long long xzstd_compressor_input_bytes(void* pHandle)
 {
 	return xrtZstdCompressorInputBytes((const xrtzstdcompressor*)pHandle);
 }
 
-XZSTD_EXPORT uint64 xzstd_compressor_output_bytes(void* pHandle)
+XZSTD_EXPORT unsigned long long xzstd_compressor_output_bytes(void* pHandle)
 {
 	return xrtZstdCompressorOutputBytes((const xrtzstdcompressor*)pHandle);
 }
 
 
 
-XZSTD_EXPORT void* xzstd_decompressor_create(uint64 iMaxInput, uint64 iMaxOutput,
-	uint32 iMaxRatio)
+XZSTD_EXPORT void* xzstd_decompressor_create(unsigned long long iMaxInput, unsigned long long iMaxOutput,
+	unsigned int iMaxRatio)
 {
 	xrtzstdoptions tOptions;
 	xrtzstddecompressor* pDecompressor;
 	xrtClearError();
 	xzstd_options(&tOptions, 0, iMaxInput, iMaxOutput, iMaxRatio);
 	pDecompressor = xrtZstdDecompressorCreate(&tOptions);
-	if ( pDecompressor == NULL || xrtZstdDecompressorError(pDecompressor)->iCode != XRT_ZSTD_OK ) {
+	if ( pDecompressor == NULL ) {
+		if ( xrtGetError() == NULL ) {
+			xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.zstd",
+				XRT_ZSTD_ERROR_MEMORY, "cannot allocate zstd decompressor");
+		}
+		return NULL;
+	}
+	if ( xrtZstdDecompressorError(pDecompressor)->iCode != XRT_ZSTD_OK ) {
 		xzstd_publish_error(xrtZstdDecompressorError(pDecompressor));
 		xrtZstdDecompressorDestroy(pDecompressor);
 		return NULL;
@@ -300,7 +339,7 @@ XZSTD_EXPORT void xzstd_decompressor_destroy(void* pHandle)
 	xrtZstdDecompressorDestroy((xrtzstddecompressor*)pHandle);
 }
 
-XZSTD_EXPORT bool xzstd_decompressor_update(void* pHandle, const void* pData, size_t iSize)
+XZSTD_EXPORT bool xzstd_decompressor_update(void* pHandle, void* pData, size_t iSize)
 {
 	xrtzstddecompressor* pDecompressor = (xrtzstddecompressor*)pHandle;
 	if ( !xrtZstdDecompressorUpdate(pDecompressor, pData, iSize) ) {
@@ -331,12 +370,12 @@ XZSTD_EXPORT void* xzstd_decompressor_drain(void* pHandle)
 	return pOutput;
 }
 
-XZSTD_EXPORT uint64 xzstd_decompressor_input_bytes(void* pHandle)
+XZSTD_EXPORT unsigned long long xzstd_decompressor_input_bytes(void* pHandle)
 {
 	return xrtZstdDecompressorInputBytes((const xrtzstddecompressor*)pHandle);
 }
 
-XZSTD_EXPORT uint64 xzstd_decompressor_output_bytes(void* pHandle)
+XZSTD_EXPORT unsigned long long xzstd_decompressor_output_bytes(void* pHandle)
 {
 	return xrtZstdDecompressorOutputBytes((const xrtzstddecompressor*)pHandle);
 }
@@ -346,7 +385,7 @@ XZSTD_EXPORT bool xzstd_decompressor_finished(void* pHandle)
 	return xrtZstdDecompressorFinished((const xrtzstddecompressor*)pHandle);
 }
 
-XZSTD_EXPORT uint64 xzstd_decompressor_members(void* pHandle)
+XZSTD_EXPORT unsigned long long xzstd_decompressor_members(void* pHandle)
 {
 	return xrtZstdDecompressorMembers((const xrtzstddecompressor*)pHandle);
 }

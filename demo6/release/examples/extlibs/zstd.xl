@@ -99,24 +99,28 @@ func main(...) as int
     println("损坏检出: OK")
 
     // ─── 6. 文件便捷接口（XRT reader/writer，临时文件+原子重命名）───
-    dir.createAll("tmp")
-    file.writeBytes("tmp/zstd_example_source.bin", source)
-    FileProgress progress = FileProgress()
-    zstd.compressFile("tmp/zstd_example_source.bin", "tmp/zstd_example.zst",
-        onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
-            progress.calls += 1
-            progress.inputBytes = inputBytes
-            progress.totalBytes = totalBytes
-            return true
-        end)
-    assert progress.calls > 0
-    assert progress.inputBytes == source.len()
-    assert progress.totalBytes == source.len()
-    zstd.decompressFile("tmp/zstd_example.zst", "tmp/zstd_example_plain.bin")
-    assert file.readBytes("tmp/zstd_example_plain.bin") == source
-    file.delete("tmp/zstd_example_source.bin")
-    file.delete("tmp/zstd_example.zst")
-    file.delete("tmp/zstd_example_plain.bin")
+    string directory = dir.temp("", "xlang-zstd-example-", "")
+    string sourcePath = path.join(directory, "source.bin")
+    string packedPath = path.join(directory, "packed.zst")
+    string restoredPath = path.join(directory, "restored.bin")
+    try
+        assert file.writeBytes(sourcePath, source.toBytes())
+        FileProgress progress = FileProgress()
+        zstd.compressFile(sourcePath, packedPath,
+            onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+                progress.calls += 1
+                progress.inputBytes = inputBytes
+                progress.totalBytes = totalBytes
+                return true
+            end)
+        assert progress.calls > 0
+        assert progress.inputBytes == source.len()
+        assert progress.totalBytes == source.len()
+        zstd.decompressFile(packedPath, restoredPath)
+        assert file.readBytes(restoredPath) == source.toBytes()
+    finally
+        assert dir.delete(directory), "zstd example temporary directory must be removed"
+    end
 
     println("zstd example: PASS")
     return 0

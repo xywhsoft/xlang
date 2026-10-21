@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>zstd - 扩展库 - xlang</title>
+  <meta name="description" content="Zstandard 压缩扩展库，提供 XLang Buffer、增量流与文件接口，以及可复用的 C API。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / zstd</p><h1>zstd</h1>
+    <p class="extlib-lead">Zstandard 二进制压缩、增量流和文件处理；同时提供 XLang 与 C 接口。</p>
+    <p>基础双语往返、C 文件 ABI、XLang 文件进度与取消、Python Zstandard 0.25.0 双向标准帧互通，以及 Linux sanitizer 门禁已通过。C 解压器在 finish 后拒绝新输入；这类错误的 XLang 公开异常转换仍受主线 extern 自动派发问题阻断。完整教学范例另被主线 XLIR 运算错误阻断，完整 AOT 尚未签收。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>compress(data)</code></td><td>压缩 Buffer 或 string，返回 Buffer；默认级别 3。</td></tr>
+      <tr><td><code>decompress(data)</code></td><td>解压 Buffer，返回 Buffer；支持串联帧。</td></tr>
+      <tr><td><code>decompressText(data)</code></td><td>将解压结果作为文本读取。</td></tr>
+      <tr><td><code>compressor() / decompressor()</code></td><td>增量 update、drain、finish 和累计字节数。</td></tr>
+      <tr><td><code>compressFile() / decompressFile()</code></td><td>文件处理、限额、覆盖选项和进度回调；含 NUL 的源/目标路径报 ValueError。</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import zstd
+Buffer packed = zstd.compress("hello zstd")
+assert zstd.decompressText(packed) == "hello zstd"</code></pre>
+    <p>包内 <code>examples/basic.xl</code> 与 <code>examples/basic_c.c</code> 同输入、同输出；C 范例可直接用 <code>xl run extlibs/zstd/examples/basic_c.c</code> 运行。C 调用方可直接包含 <code>include/xrt_zstd.h</code>，并负责释放返回的 xbuffer。C 流式接口的进度从 Reader 当前读取位置起算；无法同时取得总长和当前位置时不设置 <code>TOTAL_KNOWN</code>。C 编解码入口拒绝选项和资源限制结构的无效版本、长度及保留字段；无效选项不消费输入流。<code>iMaxEntries</code> 限制串联帧数，<code>iMaxItemBytes</code> 限制单帧原文大小；节点数、深度和未知标志不适用。资源限额、所有权及当前验收范围见包内 README。</p>
+    <p>包级 C 门禁还逐点注入 XRT 分配失败，检查一次性编解码的错误与释放平衡；此测试不覆盖上游库的内部 allocator。完整 XLang AOT 仍未签收。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

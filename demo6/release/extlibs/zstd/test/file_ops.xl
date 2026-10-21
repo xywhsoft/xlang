@@ -1,0 +1,40 @@
+import zstd
+
+func main(...) as int
+    string directory = dir.temp("", "xlang-zstd-files-", "")
+    string source = path.join(directory, "source.txt")
+    string packed = path.join(directory, "packed.zst")
+    string restored = path.join(directory, "restored.txt")
+    string cancelled = path.join(directory, "cancelled.zst")
+    string content = "你好 zstd\n" + string.repeat("file-boundary\n", 256)
+
+    try
+        assert file.writeText(source, content)
+
+        int progressCalls = 0
+        zstd.compressFile(source, packed, onProgress = func(int inputBytes,
+            int totalBytes, int outputBytes) as bool
+            progressCalls += 1
+            return inputBytes <= totalBytes and outputBytes >= 0
+        end)
+        assert progressCalls > 0
+        zstd.decompressFile(packed, restored)
+        assert file.readText(restored) == content
+
+        bool rejected = false
+        try
+            zstd.compressFile(source, cancelled, onProgress = func(int inputBytes,
+                int totalBytes, int outputBytes) as bool
+                return false
+            end)
+        catch CancelledError e
+            rejected = true
+        end
+        assert rejected and not file.exists(cancelled)
+    finally
+        assert dir.delete(directory), "zstd file test temporary directory must be removed"
+    end
+
+    println("zstd file operations: PASS")
+    return 0
+end

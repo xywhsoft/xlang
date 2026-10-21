@@ -92,26 +92,27 @@ func main(...) as int
     incremental[mid] = incremental[mid] ^ 255
     try
         zstd.decompress(incremental)
-    catch CompressionError e
+    catch IOError e
         rejected = true
     end
     if not rejected then
         return 3
     end
 
-    string sourcePath = "tmp/extlib_zstd_source.bin"
-    string packedPath = "tmp/extlib_zstd_stream.zst"
-    string plainPath = "tmp/extlib_zstd_plain.bin"
-    file.writeBytes(sourcePath, source)
+    dir.createAll("build/test/zstd-baseline")
+    string sourcePath = "build/test/zstd-baseline/source.bin"
+    string packedPath = "build/test/zstd-baseline/stream.zst"
+    string plainPath = "build/test/zstd-baseline/plain.bin"
+    file.writeBytes(sourcePath, source.toBytes())
     zstd.compressFile(sourcePath, packedPath)
     zstd.decompressFile(packedPath, plainPath)
-    if file.readBytes(plainPath) != source then
+    if file.readBytes(plainPath) != source.toBytes() then
         return 4
     end
     bool overwriteRejected = false
     try
         zstd.compressFile(sourcePath, packedPath, overwrite = false)
-    catch CompressionError e
+    catch ValueError e
         overwriteRejected = true
     end
     if not overwriteRejected then

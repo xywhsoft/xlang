@@ -1,0 +1,5 @@
+import zstd
+
+// 不执行：压缩输入不能绕开 Buffer 的实际长度。
+auto stream = zstd.compressor()
+stream.updateNative(null, c_size(1))

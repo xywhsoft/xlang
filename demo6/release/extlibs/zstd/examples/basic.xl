@@ -1,0 +1,8 @@
+import zstd
+
+func main(...) as int
+    Buffer packed = zstd.compress("hello zstd")
+    assert zstd.decompressText(packed) == "hello zstd"
+    println("zstd round trip: hello zstd")
+    return 0
+end

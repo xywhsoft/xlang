@@ -128,6 +128,27 @@ XRT_API void xrtZstdOptionsInit(xrtzstdoptions* pOptions)
 	pOptions->iVersion = XRT_ZSTD_OPTIONS_VERSION;
 	pOptions->iLevel = ZSTD_defaultCLevel();
 	xrtResourceLimitsInit(&pOptions->tLimits);
+	pOptions->tLimits.iMaxNodes = 0u;
+	pOptions->tLimits.iMaxDepth = 0u;
+}
+
+/* 先核对外层长度，再读取内嵌限额，避免旧结构越界访问。 */
+static bool __xrtZstdCopyOptions(xrtzstdoptions* pOutput, const xrtzstdoptions* pInput)
+{
+	xrtZstdOptionsInit(pOutput);
+	if ( pInput == NULL ) { return true; }
+	if ( pInput->iSize != sizeof(*pInput) ||
+		pInput->iVersion != XRT_ZSTD_OPTIONS_VERSION ) { return false; }
+	if ( pInput->sReserved[0] != 0u || pInput->sReserved[1] != 0u ||
+		pInput->sReserved[2] != 0u || pInput->sReserved[3] != 0u ||
+		pInput->tLimits.iSize != sizeof(pInput->tLimits) ||
+		pInput->tLimits.iVersion != XRT_RESOURCE_LIMITS_VERSION ||
+		pInput->tLimits.iReserved != 0u ||
+		pInput->tLimits.iFlags != 0u ||
+		pInput->tLimits.iMaxNodes != 0u ||
+		pInput->tLimits.iMaxDepth != 0u ) { return false; }
+	*pOutput = *pInput;
+	return true;
 }
 
 
@@ -141,10 +162,11 @@ XRT_API xrtzstdcompressor* xrtZstdCompressorCreate(const xrtzstdoptions* pOption
 	if ( pCompressor == NULL ) { return NULL; }
 	memset(pCompressor, 0, sizeof(*pCompressor));
 	xrtZstdErrorInit(&pCompressor->Error);
-	if ( pOptions != NULL ) {
-		pCompressor->Options = *pOptions;
-	} else {
-		xrtZstdOptionsInit(&pCompressor->Options);
+	if ( !__xrtZstdCopyOptions(&pCompressor->Options, pOptions) ) {
+		__xrtZstdSetError(&pCompressor->Error, XRT_ZSTD_ERROR_ARGUMENT, 0, 0, 0,
+			"invalid zstd options");
+		pCompressor->Failed = true;
+		return pCompressor;
 	}
 	pCompressor->Stream = ZSTD_createCStream();
 	pCompressor->Output = __xrtZstdBufferCreate(XRT_ZSTD_CHUNK);
@@ -315,10 +337,11 @@ XRT_API xrtzstddecompressor* xrtZstdDecompressorCreate(const xrtzstdoptions* pOp
 	if ( pDecompressor == NULL ) { return NULL; }
 	memset(pDecompressor, 0, sizeof(*pDecompressor));
 	xrtZstdErrorInit(&pDecompressor->Error);
-	if ( pOptions != NULL ) {
-		pDecompressor->Options = *pOptions;
-	} else {
-		xrtZstdOptionsInit(&pDecompressor->Options);
+	if ( !__xrtZstdCopyOptions(&pDecompressor->Options, pOptions) ) {
+		__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_ARGUMENT, 0, 0, 0,
+			"invalid zstd options");
+		pDecompressor->Failed = true;
+		return pDecompressor;
 	}
 	pDecompressor->Stream = ZSTD_createDStream();
 	pDecompressor->Output = __xrtZstdBufferCreate(XRT_ZSTD_CHUNK);
@@ -336,6 +359,18 @@ XRT_API xrtzstddecompressor* xrtZstdDecompressorCreate(const xrtzstdoptions* pOp
 		return pDecompressor;
 	}
 	return pDecompressor;
+}
+
+/* 在下一帧解码前检查，避免超限帧消耗内存和 CPU。 */
+static bool __xrtZstdAllowNextFrame(xrtzstddecompressor* pDecompressor)
+{
+	uint64 iLimit = pDecompressor->Options.tLimits.iMaxEntries;
+	if ( iLimit == 0u || pDecompressor->MemberCount < iLimit ) { return true; }
+	__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_LIMIT, 0,
+		pDecompressor->InputBytes, pDecompressor->OutputBytes,
+		"zstd frame count exceeds maxEntries limit");
+	pDecompressor->Failed = true;
+	return false;
 }
 
 static bool __xrtZstdDecompressRun(xrtzstddecompressor* pDecompressor, const uint8* pData,
@@ -394,10 +429,18 @@ static bool __xrtZstdDecompressRun(xrtzstddecompressor* pDecompressor, const uin
 			pDecompressor->MemberOutputBytes = iProjectedMember;
 		}
 		if ( tResult == 0u ) {
+			if ( pDecompressor->MemberCount == UINT64_MAX ) {
+				__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_LIMIT, 0,
+					pDecompressor->InputBytes, pDecompressor->OutputBytes,
+					"zstd frame count overflow");
+				pDecompressor->Failed = true;
+				return false;
+			}
 			pDecompressor->FrameEnded = true;
 			pDecompressor->MemberCount += 1u;
 			pDecompressor->MemberOutputBytes = 0u;
 			if ( tInput.pos < tInput.size ) {
+				if ( !__xrtZstdAllowNextFrame(pDecompressor) ) { return false; }
 				size_t tReset = ZSTD_initDStream(pDecompressor->Stream);
 				if ( ZSTD_isError(tReset) ) {
 					__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_STATE, (int)tReset,
@@ -423,6 +466,13 @@ XRT_API bool xrtZstdDecompressorUpdate(xrtzstddecompressor* pDecompressor, const
 	size_t tReset;
 
 	if ( pDecompressor == NULL || pDecompressor->Failed ) { return false; }
+	if ( pDecompressor->Finished ) {
+		__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_STATE, 0,
+			pDecompressor->InputBytes, pDecompressor->OutputBytes,
+			"zstd decompressor already finished");
+		pDecompressor->Failed = true;
+		return false;
+	}
 	if ( iSize != 0u && pData == NULL ) {
 		__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_ARGUMENT, 0,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "invalid zstd input");
@@ -438,6 +488,7 @@ XRT_API bool xrtZstdDecompressorUpdate(xrtzstddecompressor* pDecompressor, const
 	}
 	if ( iSize == 0u ) { return true; }
 	if ( pDecompressor->FrameEnded ) {
+		if ( !__xrtZstdAllowNextFrame(pDecompressor) ) { return false; }
 		tReset = ZSTD_initDStream(pDecompressor->Stream);
 		if ( ZSTD_isError(tReset) ) {
 			__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_STATE, (int)tReset,
@@ -553,7 +604,10 @@ XRT_API bool xrtZstdCompress(const void* pData, size_t iSize, const xrtzstdoptio
 		__xrtZstdSetError(pError, XRT_ZSTD_ERROR_ARGUMENT, 0, 0, 0, "invalid zstd input");
 		return false;
 	}
-	if ( pOptions != NULL ) { tOptions = *pOptions; } else { xrtZstdOptionsInit(&tOptions); }
+	if ( !__xrtZstdCopyOptions(&tOptions, pOptions) ) {
+		__xrtZstdSetError(pError, XRT_ZSTD_ERROR_ARGUMENT, 0, 0, 0, "invalid zstd options");
+		return false;
+	}
 	if ( tOptions.tLimits.iMaxInputBytes != 0u && iSize > tOptions.tLimits.iMaxInputBytes ) {
 		__xrtZstdSetError(pError, XRT_ZSTD_ERROR_LIMIT, 0, iSize, 0, "zstd input exceeds maxInput limit");
 		return false;
@@ -623,7 +677,10 @@ XRT_API bool xrtZstdDecompress(const void* pData, size_t iSize, const xrtzstdopt
 		__xrtZstdSetError(pError, XRT_ZSTD_ERROR_ARGUMENT, 0, 0, 0, "invalid zstd input");
 		return false;
 	}
-	if ( pOptions != NULL ) { tOptions = *pOptions; } else { xrtZstdOptionsInit(&tOptions); }
+	if ( !__xrtZstdCopyOptions(&tOptions, pOptions) ) {
+		__xrtZstdSetError(pError, XRT_ZSTD_ERROR_ARGUMENT, 0, 0, 0, "invalid zstd options");
+		return false;
+	}
 	if ( tOptions.tLimits.iMaxInputBytes != 0u && iSize > tOptions.tLimits.iMaxInputBytes ) {
 		__xrtZstdSetError(pError, XRT_ZSTD_ERROR_LIMIT, 0, iSize, 0, "zstd input exceeds maxInput limit");
 		return false;
@@ -656,6 +713,11 @@ XRT_API bool xrtZstdDecompress(const void* pData, size_t iSize, const xrtzstdopt
 			"cannot allocate zstd decompressor");
 		return false;
 	}
+	if ( pDecompressor->Failed ) {
+		__xrtZstdCopyError(pError, &pDecompressor->Error);
+		xrtZstdDecompressorDestroy(pDecompressor);
+		return false;
+	}
 	if ( (tContentSize != ZSTD_CONTENTSIZE_UNKNOWN) &&
 		 (tContentSize != 0u) &&
 		 !xrtBufferReserve(pDecompressor->Output, (size_t)tContentSize) ) {
@@ -678,6 +740,20 @@ XRT_API bool xrtZstdDecompress(const void* pData, size_t iSize, const xrtzstdopt
 
 // ------------------------------------ 文件流接口 ------------------------------------
 
+/* 进度总量按本次读取位置计算，不包括 Reader 已消费的前缀。 */
+static bool __xrtZstdReaderRemaining(xreader* pReader, uint64* pRemaining)
+{
+	uint64 iSize = 0u;
+	uint64 iPosition = 0u;
+	if ( xrtReaderSize(pReader, &iSize) &&
+		xrtReaderTell(pReader, &iPosition) && iPosition <= iSize ) {
+		*pRemaining = iSize - iPosition;
+		return true;
+	}
+	xrtClearError();
+	return false;
+}
+
 XRT_API bool xrtZstdCompressStream(xreader* pReader, xwriter* pWriter, const xrtzstdoptions* pOptions,
 	xrtprogressproc pProgress, ptr pUserData, xrtzstderror* pError)
 {
@@ -691,10 +767,18 @@ XRT_API bool xrtZstdCompressStream(xreader* pReader, xwriter* pWriter, const xrt
 		__xrtZstdSetError(pError, XRT_ZSTD_ERROR_ARGUMENT, 0, 0, 0, "invalid zstd stream");
 		return false;
 	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iTotal);
-	if ( !bTotalKnown ) { xrtClearError(); }
+	bTotalKnown = __xrtZstdReaderRemaining(pReader, &iTotal);
 	pCompressor = xrtZstdCompressorCreate(pOptions);
-	if ( pCompressor == NULL ) { return false; }
+	if ( pCompressor == NULL ) {
+		__xrtZstdSetError(pError, XRT_ZSTD_ERROR_MEMORY, 0, 0, 0,
+			"cannot allocate zstd compressor");
+		return false;
+	}
+	if ( pCompressor->Failed ) {
+		__xrtZstdCopyError(pError, &pCompressor->Error);
+		xrtZstdCompressorDestroy(pCompressor);
+		return false;
+	}
 	while ( bRet ) {
 		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
@@ -740,10 +824,18 @@ XRT_API bool xrtZstdDecompressStream(xreader* pReader, xwriter* pWriter, const x
 		__xrtZstdSetError(pError, XRT_ZSTD_ERROR_ARGUMENT, 0, 0, 0, "invalid zstd stream");
 		return false;
 	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iTotal);
-	if ( !bTotalKnown ) { xrtClearError(); }
+	bTotalKnown = __xrtZstdReaderRemaining(pReader, &iTotal);
 	pDecompressor = xrtZstdDecompressorCreate(pOptions);
-	if ( pDecompressor == NULL ) { return false; }
+	if ( pDecompressor == NULL ) {
+		__xrtZstdSetError(pError, XRT_ZSTD_ERROR_MEMORY, 0, 0, 0,
+			"cannot allocate zstd decompressor");
+		return false;
+	}
+	if ( pDecompressor->Failed ) {
+		__xrtZstdCopyError(pError, &pDecompressor->Error);
+		xrtZstdDecompressorDestroy(pDecompressor);
+		return false;
+	}
 	while ( bRet ) {
 		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
