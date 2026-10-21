@@ -1,0 +1,12 @@
+import clipboard
+
+func main(...) as int
+    assert not clipboard.set_files([1]), "non-string path must be rejected"
+    assert clipboard.last_error() == "clipboard: invalid input or data", "wrong error category"
+    assert not clipboard.set_file(""), "empty path must be rejected"
+    assert clipboard.last_error() == "clipboard: invalid input or data"
+    assert not clipboard.set_files([""]), "empty file-list path must be rejected"
+    assert clipboard.last_error() == "clipboard: invalid input or data"
+    println("clipboard invalid file list: PASS")
+    return 0
+end

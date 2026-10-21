@@ -1,0 +1,76 @@
+import clipboard
+
+func main(...) as int
+    assert clipboard.get_text() == "before"
+    auto saved = clipboard.snapshot()
+    assert saved.valid()
+    assert clipboard.set_text("temporary")
+    assert saved.restore()
+    assert clipboard.get_text() == "before"
+    assert saved.release()
+    int formatId = clipboard.register_format("xlang.clipboard.test")
+    assert formatId > 0
+    assert clipboard.format_name(formatId) == "xlang.clipboard.test"
+    assert not clipboard.is_format_available(formatId)
+    string longName = ""
+    int nameIndex = 0
+    while nameIndex < 120
+        longName += "中"
+        nameIndex += 1
+    end
+    int longFormatId = clipboard.register_format(longName)
+    assert longFormatId > 0
+    assert clipboard.format_name(longFormatId) == longName
+    assert clipboard.set_file("C:\\测试\\one.txt")
+    assert clipboard.has_files()
+    assert clipboard.get_file() == "C:\\测试\\one.txt"
+    array files = ["C:\\测试\\one.txt", "C:\\测试\\two.txt"]
+    assert clipboard.set_files(files)
+    assert clipboard.get_files().length == 2
+    assert clipboard.get_file() == "C:\\测试\\one.txt"
+    assert clipboard.set_text("after")
+    assert clipboard.get_text() == "after"
+    assert string.indexOf("a\0b", "\0", false, 3, 1) == 1
+    bool rejected = false
+    try
+        clipboard.set_text("left\0right")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "embedded NUL text must be rejected"
+    rejected = false
+    try
+        clipboard.register_format("xlang\0hidden")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "embedded NUL format name must be rejected"
+    rejected = false
+    try
+        clipboard.set_file("C:\\test\0hidden")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "embedded NUL file path must be rejected"
+    rejected = false
+    try
+        clipboard.set_image("image\0hidden.bmp")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "embedded NUL image input path must be rejected"
+    rejected = false
+    try
+        clipboard.save_image("image\0hidden.bmp")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "embedded NUL image output path must be rejected"
+    assert not clipboard.set_files(["C:\\test\0hidden"])
+    assert not clipboard.set_files([1]), "non-string path must be rejected"
+    assert clipboard.last_error() == "clipboard: invalid input or data"
+    assert not clipboard.set_file(""), "empty path must be rejected"
+    assert not clipboard.set_files([""]), "empty file-list path must be rejected"
+    assert clipboard.get_text() == "after", "rejected text must not change clipboard"
+    return 0
+end

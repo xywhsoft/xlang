@@ -1,13 +1,20 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <limits.h>
+#include <errno.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 
-#include "xrt.h"
+#include "include/clipboard.h"
+
+#ifndef WC_ERR_INVALID_CHARS
+#define WC_ERR_INVALID_CHARS 0x00000080
+#endif
 
 #if defined(__TINYC__)
 #ifndef CF_HDROP
@@ -32,11 +39,8 @@ typedef struct XClipDropFiles {
 	BOOL fWide;
 } XClipDropFiles;
 
-static char g_xclip_error[512];
-static char* g_xclip_text = NULL;
-static size_t g_xclip_text_cap = 0u;
-
 static void xclip_set_error(const char* text);
+static void xclip_set_win_error(const char* op);
 
 typedef struct XClipSnapshotItem {
 	UINT format;
@@ -49,105 +53,186 @@ typedef struct XClipSnapshotItem {
 #define XCLIP_SNAPSHOT_GLOBAL 1
 #define XCLIP_SNAPSHOT_BITMAP 2
 #define XCLIP_SNAPSHOT_ENHMETAFILE 3
+#define XCLIP_SNAPSHOT_METAFILEPICT 4
+#define XCLIP_MAX_IMAGE_BYTES (256u * 1024u * 1024u)
+#define XCLIP_MAX_SNAPSHOT_BYTES (256u * 1024u * 1024u)
+#define XCLIP_MAX_SNAPSHOT_FORMATS 256u
 
-static XClipSnapshotItem* g_xclip_snapshot_items = NULL;
-static size_t g_xclip_snapshot_count = 0u;
-static int g_xclip_snapshot_valid = 0;
+typedef struct XClipSnapshot {
+	uint32_t magic;
+	XClipSnapshotItem* snapshot_items;
+	size_t snapshot_count;
+	size_t total_bytes;
+} XClipSnapshot;
 
-static void xclip_snapshot_clear(void)
+#define XCLIP_SNAPSHOT_MAGIC UINT32_C(0x58434c53)
+
+static void xclip_free_handle(int kind, HANDLE handle)
 {
-	size_t i;
-	for ( i = 0u; i < g_xclip_snapshot_count; ++i ) {
-		if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_BITMAP && g_xclip_snapshot_items[i].handle != NULL ) {
-			DeleteObject(g_xclip_snapshot_items[i].handle);
-		} else if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_ENHMETAFILE && g_xclip_snapshot_items[i].handle != NULL ) {
-			DeleteEnhMetaFile((HENHMETAFILE)g_xclip_snapshot_items[i].handle);
+	if ( handle == NULL ) return;
+	if ( kind == XCLIP_SNAPSHOT_BITMAP ) DeleteObject(handle);
+	else if ( kind == XCLIP_SNAPSHOT_ENHMETAFILE ) DeleteEnhMetaFile((HENHMETAFILE)handle);
+	else if ( kind == XCLIP_SNAPSHOT_METAFILEPICT ) {
+		METAFILEPICT* picture = (METAFILEPICT*)GlobalLock((HGLOBAL)handle);
+		if ( picture != NULL ) {
+			if ( picture->hMF != NULL ) DeleteMetaFile(picture->hMF);
+			GlobalUnlock((HGLOBAL)handle);
 		}
-		free(g_xclip_snapshot_items[i].data);
+		GlobalFree((HGLOBAL)handle);
 	}
-	free(g_xclip_snapshot_items);
-	g_xclip_snapshot_items = NULL;
-	g_xclip_snapshot_count = 0u;
-	g_xclip_snapshot_valid = 0;
+	else GlobalFree((HGLOBAL)handle);
 }
 
-static int xclip_snapshot_append(UINT format, const void* data, SIZE_T size)
+/* CF_METAFILEPICT 的 HGLOBAL 内还持有一个 HMETAFILE，两个句柄都要独立复制。 */
+static HGLOBAL xclip_copy_metafile_pict(HGLOBAL source, size_t* out_bytes)
+{
+	METAFILEPICT* original;
+	METAFILEPICT* copy_data;
+	HGLOBAL copy;
+	UINT bits;
+	if ( source == NULL || GlobalSize(source) < sizeof(METAFILEPICT) ) {
+		xclip_set_error("invalid metafile picture");
+		return NULL;
+	}
+	original = (METAFILEPICT*)GlobalLock(source);
+	if ( original == NULL ) {
+		xclip_set_win_error("GlobalLock");
+		return NULL;
+	}
+	bits = original->hMF != NULL ? GetMetaFileBitsEx(original->hMF, 0u, NULL) : 0u;
+	if ( bits == 0u || bits > XCLIP_MAX_SNAPSHOT_BYTES - sizeof(METAFILEPICT) ) {
+		GlobalUnlock(source);
+		xclip_set_error("invalid or oversized metafile picture");
+		return NULL;
+	}
+	copy = GlobalAlloc(GMEM_MOVEABLE, sizeof(METAFILEPICT));
+	if ( copy == NULL ) {
+		GlobalUnlock(source);
+		xclip_set_win_error("GlobalAlloc");
+		return NULL;
+	}
+	copy_data = (METAFILEPICT*)GlobalLock(copy);
+	if ( copy_data == NULL ) {
+		GlobalUnlock(source);
+		GlobalFree(copy);
+		xclip_set_win_error("GlobalLock");
+		return NULL;
+	}
+	*copy_data = *original;
+	copy_data->hMF = CopyMetaFileW(original->hMF, NULL);
+	GlobalUnlock(source);
+	if ( copy_data->hMF == NULL ) {
+		GlobalUnlock(copy);
+		GlobalFree(copy);
+		xclip_set_win_error("CopyMetaFileW");
+		return NULL;
+	}
+	GlobalUnlock(copy);
+	if ( out_bytes != NULL ) *out_bytes = (size_t)bits + sizeof(METAFILEPICT);
+	return copy;
+}
+
+static void xclip_snapshot_clear(XClipSnapshot* snapshot)
+{
+	size_t i;
+	for ( i = 0u; i < snapshot->snapshot_count; ++i ) {
+		if ( snapshot->snapshot_items[i].kind != XCLIP_SNAPSHOT_GLOBAL )
+			xclip_free_handle(snapshot->snapshot_items[i].kind, snapshot->snapshot_items[i].handle);
+		xrtFree(snapshot->snapshot_items[i].data);
+	}
+	xrtFree(snapshot->snapshot_items);
+	snapshot->snapshot_items = NULL;
+	snapshot->snapshot_count = 0u;
+	snapshot->total_bytes = 0u;
+}
+
+static int xclip_snapshot_append(XClipSnapshot* snapshot, UINT format, const void* data, SIZE_T size)
 {
 	XClipSnapshotItem* next;
 	unsigned char* copy;
 	if ( data == NULL || size == 0u ) {
 		return 1;
 	}
-	copy = (unsigned char*)malloc((size_t)size);
+	if ( snapshot->snapshot_count >= XCLIP_MAX_SNAPSHOT_FORMATS ||
+		size > XCLIP_MAX_SNAPSHOT_BYTES - snapshot->total_bytes ) {
+		xclip_set_error("clipboard snapshot limit exceeded");
+		return 0;
+	}
+	copy = (unsigned char*)xrtMalloc((size_t)size);
 	if ( copy == NULL ) {
 		xclip_set_error("out of memory");
 		return 0;
 	}
 	memcpy(copy, data, (size_t)size);
-	next = (XClipSnapshotItem*)realloc(g_xclip_snapshot_items, (g_xclip_snapshot_count + 1u) * sizeof(XClipSnapshotItem));
+	next = (XClipSnapshotItem*)xrtRealloc(snapshot->snapshot_items, (snapshot->snapshot_count + 1u) * sizeof(XClipSnapshotItem));
 	if ( next == NULL ) {
-		free(copy);
+		xrtFree(copy);
 		xclip_set_error("out of memory");
 		return 0;
 	}
-	g_xclip_snapshot_items = next;
-	g_xclip_snapshot_items[g_xclip_snapshot_count].format = format;
-	g_xclip_snapshot_items[g_xclip_snapshot_count].kind = XCLIP_SNAPSHOT_GLOBAL;
-	g_xclip_snapshot_items[g_xclip_snapshot_count].size = size;
-	g_xclip_snapshot_items[g_xclip_snapshot_count].data = copy;
-	g_xclip_snapshot_items[g_xclip_snapshot_count].handle = NULL;
-	g_xclip_snapshot_count++;
+	snapshot->snapshot_items = next;
+	snapshot->snapshot_items[snapshot->snapshot_count].format = format;
+	snapshot->snapshot_items[snapshot->snapshot_count].kind = XCLIP_SNAPSHOT_GLOBAL;
+	snapshot->snapshot_items[snapshot->snapshot_count].size = size;
+	snapshot->snapshot_items[snapshot->snapshot_count].data = copy;
+	snapshot->snapshot_items[snapshot->snapshot_count].handle = NULL;
+	snapshot->snapshot_count++;
+	snapshot->total_bytes += (size_t)size;
 	return 1;
 }
 
-static int xclip_snapshot_append_handle(UINT format, HANDLE handle, int kind)
+static int xclip_snapshot_append_handle(XClipSnapshot* snapshot, UINT format, HANDLE handle, int kind, size_t bytes)
 {
 	XClipSnapshotItem* next;
 	if ( handle == NULL ) {
 		return 1;
 	}
-	next = (XClipSnapshotItem*)realloc(g_xclip_snapshot_items, (g_xclip_snapshot_count + 1u) * sizeof(XClipSnapshotItem));
+	if ( snapshot->snapshot_count >= XCLIP_MAX_SNAPSHOT_FORMATS ||
+		bytes > XCLIP_MAX_SNAPSHOT_BYTES - snapshot->total_bytes ) {
+		xclip_free_handle(kind, handle);
+		xclip_set_error("clipboard snapshot limit exceeded");
+		return 0;
+	}
+	next = (XClipSnapshotItem*)xrtRealloc(snapshot->snapshot_items, (snapshot->snapshot_count + 1u) * sizeof(XClipSnapshotItem));
 	if ( next == NULL ) {
-		if ( kind == XCLIP_SNAPSHOT_BITMAP ) {
-			DeleteObject(handle);
-		} else if ( kind == XCLIP_SNAPSHOT_ENHMETAFILE ) {
-			DeleteEnhMetaFile((HENHMETAFILE)handle);
-		}
+		xclip_free_handle(kind, handle);
 		xclip_set_error("out of memory");
 		return 0;
 	}
-	g_xclip_snapshot_items = next;
-	g_xclip_snapshot_items[g_xclip_snapshot_count].format = format;
-	g_xclip_snapshot_items[g_xclip_snapshot_count].kind = kind;
-	g_xclip_snapshot_items[g_xclip_snapshot_count].size = 0u;
-	g_xclip_snapshot_items[g_xclip_snapshot_count].data = NULL;
-	g_xclip_snapshot_items[g_xclip_snapshot_count].handle = handle;
-	g_xclip_snapshot_count++;
+	snapshot->snapshot_items = next;
+	snapshot->snapshot_items[snapshot->snapshot_count].format = format;
+	snapshot->snapshot_items[snapshot->snapshot_count].kind = kind;
+	snapshot->snapshot_items[snapshot->snapshot_count].size = 0u;
+	snapshot->snapshot_items[snapshot->snapshot_count].data = NULL;
+	snapshot->snapshot_items[snapshot->snapshot_count].handle = handle;
+	snapshot->snapshot_count++;
+	snapshot->total_bytes += bytes;
 	return 1;
-}
-
-static void xclip_copy_cstr(char* out, size_t out_size, const char* text)
-{
-	size_t len;
-	if ( out == NULL || out_size == 0u ) {
-		return;
-	}
-	if ( text == NULL ) {
-		text = "";
-	}
-	len = strlen(text);
-	if ( len >= out_size ) {
-		len = out_size - 1u;
-	}
-	if ( len != 0u ) {
-		memcpy(out, text, len);
-	}
-	out[len] = '\0';
 }
 
 static void xclip_set_error(const char* text)
 {
-	xclip_copy_cstr(g_xclip_error, sizeof(g_xclip_error), text);
+	if ( text == NULL || text[0] == '\0' ) errno = 0;
+	else if ( strstr(text, "out of memory") != NULL ) errno = ENOMEM;
+	else if ( strstr(text, "not available") != NULL || strstr(text, "empty") != NULL ) errno = ENOENT;
+	else if ( strstr(text, "invalid") != NULL || strstr(text, "must be") != NULL ||
+		strstr(text, "is null") != NULL ) errno = EINVAL;
+	else if ( strstr(text, "limit") != NULL || strstr(text, "too large") != NULL ) errno = ERANGE;
+	else errno = EIO;
+}
+
+static void xclip_set_xrt_error(void)
+{
+	const xerror* error = xrtGetError();
+	switch ( error != NULL ? xrtErrorKind(error) : XERR_IO ) {
+	case XERR_MEMORY: errno = ENOMEM; break;
+	case XERR_NOT_FOUND: errno = ENOENT; break;
+	case XERR_ARGUMENT:
+	case XERR_TYPE:
+	case XERR_VALUE: errno = EINVAL; break;
+	case XERR_RANGE: errno = ERANGE; break;
+	default: errno = EIO; break;
+	}
 }
 
 
@@ -175,69 +260,47 @@ static int xclip_array_append_text(xvalue* pArray, const char* sText)
 static void xclip_set_win_error(const char* op)
 {
 	DWORD code = GetLastError();
-	snprintf(g_xclip_error, sizeof(g_xclip_error), "%s failed: %lu", op != NULL ? op : "Win32 API", (unsigned long)code);
+	(void)op;
+	errno = code == ERROR_NOT_ENOUGH_MEMORY ? ENOMEM :
+		(code == ERROR_INVALID_PARAMETER ? EINVAL :
+		(code == ERROR_FILE_NOT_FOUND ? ENOENT : EIO));
 }
 
-static int xclip_ensure_text(size_t cap)
+static xvalue* xclip_value_text(const char* text)
 {
-	char* next;
-	if ( cap == 0u ) {
-		cap = 1u;
-	}
-	if ( g_xclip_text_cap >= cap && g_xclip_text != NULL ) {
-		return 1;
-	}
-	next = (char*)realloc(g_xclip_text, cap);
-	if ( next == NULL ) {
-		xclip_set_error("out of memory");
-		return 0;
-	}
-	g_xclip_text = next;
-	g_xclip_text_cap = cap;
-	return 1;
+	const char* value = text != NULL ? text : "";
+	return xrtValueString((xstrview){ value, strlen(value) });
 }
 
-static const char* xclip_set_text_buffer(const char* text)
+static xvalue* xclip_take_text(char* text)
 {
-	size_t len = text != NULL ? strlen(text) : 0u;
-	if ( !xclip_ensure_text(len + 1u) ) {
-		return "";
-	}
-	if ( len != 0u ) {
-		memcpy(g_xclip_text, text, len);
-	}
-	g_xclip_text[len] = '\0';
-	return g_xclip_text;
+	xvalue* result = xclip_value_text(text);
+	xrtFree(text);
+	return result;
 }
 
-static void xclip_text_reset(void)
+static xvalue* xclip_value_buffer(xbuffer* buffer)
 {
-	if ( xclip_ensure_text(1u) ) {
-		g_xclip_text[0] = '\0';
-	}
+	xvalue* result = xrtValueString((xstrview){
+		buffer->Data != NULL ? (const char*)buffer->Data : "", buffer->Size });
+	xrtBufferUnit(buffer);
+	return result;
 }
 
-static int xclip_text_append_len(const char* text, size_t len)
+static int xclip_text_append_len(xbuffer* buffer, const char* text, size_t len)
 {
-	size_t old_len;
-	if ( text == NULL || len == 0u ) {
-		return 1;
-	}
-	old_len = g_xclip_text != NULL ? strlen(g_xclip_text) : 0u;
-	if ( !xclip_ensure_text(old_len + len + 1u) ) {
-		return 0;
-	}
-	memcpy(g_xclip_text + old_len, text, len);
-	g_xclip_text[old_len + len] = '\0';
-	return 1;
+	if ( text == NULL || len == 0u ) return 1;
+	if ( xrtBufferAppend(buffer, (xbytesview){ (const uint8*)text, len }) ) return 1;
+	xclip_set_error("clipboard text result is too large or out of memory");
+	return 0;
 }
 
-static int xclip_text_append(const char* text)
+static int xclip_text_append(xbuffer* buffer, const char* text)
 {
-	return xclip_text_append_len(text, text != NULL ? strlen(text) : 0u);
+	return xclip_text_append_len(buffer, text, text != NULL ? strlen(text) : 0u);
 }
 
-static int xclip_text_appendf(const char* fmt, ...)
+static int xclip_text_appendf(xbuffer* buffer, const char* fmt, ...)
 {
 	char stack[256];
 	va_list args;
@@ -252,9 +315,9 @@ static int xclip_text_appendf(const char* fmt, ...)
 		return 0;
 	}
 	if ( (size_t)n < sizeof(stack) ) {
-		return xclip_text_append_len(stack, (size_t)n);
+		return xclip_text_append_len(buffer, stack, (size_t)n);
 	}
-	heap = (char*)malloc((size_t)n + 1u);
+	heap = (char*)xrtMalloc((size_t)n + 1u);
 	if ( heap == NULL ) {
 		xclip_set_error("out of memory");
 		return 0;
@@ -262,38 +325,41 @@ static int xclip_text_appendf(const char* fmt, ...)
 	va_start(args, fmt);
 	vsnprintf(heap, (size_t)n + 1u, fmt, args);
 	va_end(args);
-	ok = xclip_text_append_len(heap, (size_t)n);
-	free(heap);
+	ok = xclip_text_append_len(buffer, heap, (size_t)n);
+	xrtFree(heap);
 	return ok;
 }
 
-static void xclip_json_escape_append(const char* text)
+static int xclip_json_escape_append(xbuffer* buffer, const char* text)
 {
 	const unsigned char* p = (const unsigned char*)text;
 	if ( p == NULL ) {
-		return;
+		return 1;
 	}
 	while ( *p != '\0' ) {
 		char tmp[8];
+		int ok;
 		if ( *p == '"' || *p == '\\' ) {
 			tmp[0] = '\\';
 			tmp[1] = (char)*p;
 			tmp[2] = '\0';
-			xclip_text_append(tmp);
+			ok = xclip_text_append(buffer, tmp);
 		} else if ( *p == '\n' ) {
-			xclip_text_append("\\n");
+			ok = xclip_text_append(buffer, "\\n");
 		} else if ( *p == '\r' ) {
-			xclip_text_append("\\r");
+			ok = xclip_text_append(buffer, "\\r");
 		} else if ( *p == '\t' ) {
-			xclip_text_append("\\t");
+			ok = xclip_text_append(buffer, "\\t");
 		} else if ( *p < 0x20u ) {
 			snprintf(tmp, sizeof(tmp), "\\u%04x", (unsigned int)*p);
-			xclip_text_append(tmp);
+			ok = xclip_text_append(buffer, tmp);
 		} else {
-			xclip_text_append_len((const char*)p, 1u);
+			ok = xclip_text_append_len(buffer, (const char*)p, 1u);
 		}
+		if ( !ok ) return 0;
 		++p;
 	}
+	return 1;
 }
 
 static int xclip_open(void)
@@ -313,26 +379,21 @@ static wchar_t* xclip_utf8_to_wide_alloc(const char* src)
 {
 	wchar_t* out;
 	int n;
-	UINT cp = CP_UTF8;
 	if ( src == NULL ) {
 		src = "";
 	}
-	n = MultiByteToWideChar(CP_UTF8, 0, src, -1, NULL, 0);
-	if ( n <= 0 ) {
-		cp = CP_ACP;
-		n = MultiByteToWideChar(cp, 0, src, -1, NULL, 0);
-	}
+	n = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, -1, NULL, 0);
 	if ( n <= 0 ) {
 		xclip_set_win_error("MultiByteToWideChar");
 		return NULL;
 	}
-	out = (wchar_t*)calloc((size_t)n, sizeof(wchar_t));
+	out = (wchar_t*)xrtCalloc((size_t)n, sizeof(wchar_t));
 	if ( out == NULL ) {
 		xclip_set_error("out of memory");
 		return NULL;
 	}
-	if ( MultiByteToWideChar(cp, 0, src, -1, out, n) <= 0 ) {
-		free(out);
+	if ( MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, -1, out, n) <= 0 ) {
+		xrtFree(out);
 		xclip_set_win_error("MultiByteToWideChar");
 		return NULL;
 	}
@@ -344,37 +405,34 @@ static wchar_t* xclip_xvalue_text_to_wide_alloc(const xvalue* pValue)
 	xstrview Text;
 	wchar_t* out;
 	int n;
-	UINT cp = CP_UTF8;
 	int size;
-	if ( !xrtValueGetString(pValue, &Text) ||
-		(Text.Size > (size_t)INT_MAX) ) {
-		xclip_set_error("file path item is not a string");
+	if ( xrtValueType(pValue) != XVALUE_STRING ||
+		!xrtValueGetString(pValue, &Text) ||
+		(Text.Size > (size_t)INT_MAX) ||
+		(Text.Size != 0u && memchr(Text.Data, '\0', Text.Size) != NULL) ) {
+		xclip_set_error("invalid file path item");
 		return NULL;
 	}
 	if ( Text.Size == 0u ) {
-		out = (wchar_t*)calloc(1u, sizeof(wchar_t));
+		out = (wchar_t*)xrtCalloc(1u, sizeof(wchar_t));
 		if ( out == NULL ) {
 			xclip_set_error("out of memory");
 		}
 		return out;
 	}
 	size = (int)Text.Size;
-	n = MultiByteToWideChar(CP_UTF8, 0, Text.Data, size, NULL, 0);
+	n = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Text.Data, size, NULL, 0);
 	if ( n <= 0 ) {
-		cp = CP_ACP;
-		n = MultiByteToWideChar(cp, 0, Text.Data, size, NULL, 0);
-	}
-	if ( n < 0 ) {
 		xclip_set_win_error("MultiByteToWideChar");
 		return NULL;
 	}
-	out = (wchar_t*)calloc((size_t)n + 1u, sizeof(wchar_t));
+	out = (wchar_t*)xrtCalloc((size_t)n + 1u, sizeof(wchar_t));
 	if ( out == NULL ) {
 		xclip_set_error("out of memory");
 		return NULL;
 	}
-	if ( n > 0 && MultiByteToWideChar(cp, 0, Text.Data, size, out, n) <= 0 ) {
-		free(out);
+	if ( MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Text.Data, size, out, n) <= 0 ) {
+		xrtFree(out);
 		xclip_set_win_error("MultiByteToWideChar");
 		return NULL;
 	}
@@ -382,70 +440,41 @@ static wchar_t* xclip_xvalue_text_to_wide_alloc(const xvalue* pValue)
 	return out;
 }
 
-static const char* xclip_wide_to_utf8(const wchar_t* src)
+static char* xclip_wide_to_utf8(const wchar_t* src)
 {
-	int n;
 	if ( src == NULL ) {
-		return xclip_set_text_buffer("");
+		xclip_set_error("wide text is null");
+		return NULL;
 	}
-	n = WideCharToMultiByte(CP_UTF8, 0, src, -1, NULL, 0, NULL, NULL);
-	if ( n <= 0 ) {
-		xclip_set_win_error("WideCharToMultiByte");
-		return xclip_set_text_buffer("");
-	}
-	if ( !xclip_ensure_text((size_t)n) ) {
-		return "";
-	}
-	if ( WideCharToMultiByte(CP_UTF8, 0, src, -1, g_xclip_text, n, NULL, NULL) <= 0 ) {
-		xclip_set_win_error("WideCharToMultiByte");
-		return xclip_set_text_buffer("");
-	}
-	return g_xclip_text;
+	return xrtUtf16To8((const uint16*)src, NULL);
 }
 
-static int xclip_wide_to_utf8_buf(const wchar_t* src, char* dst, size_t dst_size)
-{
-	int n;
-	if ( dst == NULL || dst_size == 0u ) {
-		return 0;
-	}
-	dst[0] = '\0';
-	if ( src == NULL ) {
-		return 1;
-	}
-	n = WideCharToMultiByte(CP_UTF8, 0, src, -1, dst, (int)dst_size, NULL, NULL);
-	if ( n <= 0 ) {
-		n = WideCharToMultiByte(CP_ACP, 0, src, -1, dst, (int)dst_size, NULL, NULL);
-	}
-	dst[dst_size - 1u] = '\0';
-	return n > 0;
-}
-
-static const char* xclip_multibyte_to_utf8(const char* src, UINT code_page)
+static char* xclip_multibyte_to_utf8(const char* src, UINT code_page)
 {
 	wchar_t* wide;
 	int n;
-	const char* out;
+	char* out;
 	if ( src == NULL ) {
-		return xclip_set_text_buffer("");
+		xclip_set_error("text is null");
+		return NULL;
 	}
 	n = MultiByteToWideChar(code_page, 0, src, -1, NULL, 0);
 	if ( n <= 0 ) {
 		xclip_set_win_error("MultiByteToWideChar");
-		return xclip_set_text_buffer("");
+		return NULL;
 	}
-	wide = (wchar_t*)calloc((size_t)n, sizeof(wchar_t));
+	wide = (wchar_t*)xrtCalloc((size_t)n, sizeof(wchar_t));
 	if ( wide == NULL ) {
 		xclip_set_error("out of memory");
-		return xclip_set_text_buffer("");
+		return NULL;
 	}
 	if ( MultiByteToWideChar(code_page, 0, src, -1, wide, n) <= 0 ) {
-		free(wide);
+		xrtFree(wide);
 		xclip_set_win_error("MultiByteToWideChar");
-		return xclip_set_text_buffer("");
+		return NULL;
 	}
 	out = xclip_wide_to_utf8(wide);
-	free(wide);
+	xrtFree(wide);
 	return out;
 }
 
@@ -473,23 +502,45 @@ static const char* xclip_standard_format_name(UINT fmt)
 	}
 }
 
-static void xclip_format_name_buf(UINT fmt, char* out, size_t out_size)
+static char* xclip_format_name_alloc(UINT fmt)
 {
 	const char* standard = xclip_standard_format_name(fmt);
-	wchar_t wide[256];
-	if ( out == NULL || out_size == 0u ) {
-		return;
-	}
-	out[0] = '\0';
+	char fallback[32];
+	char* name;
+	size_t capacity = 256u;
 	if ( standard != NULL ) {
-		xclip_copy_cstr(out, out_size, standard);
-		return;
+		name = xrtStrDup(standard);
+		if ( name == NULL ) xclip_set_error("out of memory");
+		return name;
 	}
-	if ( GetClipboardFormatNameW(fmt, wide, (int)(sizeof(wide) / sizeof(wide[0]))) > 0 ) {
-		xclip_wide_to_utf8_buf(wide, out, out_size);
-		return;
+	// Win32 会截断过小的缓冲区；接近边界时重新读取完整名称。
+	while ( capacity <= 65536u ) {
+		wchar_t* wide = (wchar_t*)xrtCalloc(capacity, sizeof(wchar_t));
+		int length;
+		if ( wide == NULL ) {
+			xclip_set_error("out of memory");
+			return NULL;
+		}
+		length = GetClipboardFormatNameW(fmt, wide, (int)capacity);
+		if ( length > 0 && (size_t)length >= capacity - 1u ) {
+			xrtFree(wide);
+			capacity *= 2u;
+			continue;
+		}
+		if ( length > 0 ) {
+			name = xclip_wide_to_utf8(wide);
+			xrtFree(wide);
+			if ( name == NULL ) xclip_set_error("invalid clipboard format name");
+			return name;
+		}
+		xrtFree(wide);
+		snprintf(fallback, sizeof(fallback), "FORMAT_%u", (unsigned int)fmt);
+		name = xrtStrDup(fallback);
+		if ( name == NULL ) xclip_set_error("out of memory");
+		return name;
 	}
-	snprintf(out, out_size, "FORMAT_%u", (unsigned int)fmt);
+	xclip_set_error("clipboard format name exceeds the supported limit");
+	return NULL;
 }
 
 static void xclip_write_u32_le(unsigned char* p, DWORD value)
@@ -511,7 +562,7 @@ static DWORD xclip_dib_pixel_offset(const void* dib, SIZE_T dib_size)
 	DWORD header_size;
 	DWORD color_count = 0u;
 	DWORD masks_size = 0u;
-	DWORD offset;
+	uint64_t offset;
 	if ( dib == NULL || dib_size < sizeof(BITMAPINFOHEADER) ) {
 		return 0u;
 	}
@@ -527,81 +578,43 @@ static DWORD xclip_dib_pixel_offset(const void* dib, SIZE_T dib_size)
 	} else if ( bi->biBitCount > 0 && bi->biBitCount <= 8 ) {
 		color_count = 1u << bi->biBitCount;
 	}
-	offset = header_size + masks_size + color_count * sizeof(RGBQUAD);
-	if ( offset > dib_size ) {
+	offset = (uint64_t)header_size + masks_size +
+		(uint64_t)color_count * sizeof(RGBQUAD);
+	if ( offset > dib_size || offset > UINT32_MAX ) {
 		return 0u;
 	}
-	return offset;
+	return (DWORD)offset;
 }
 
-static int xclip_write_file_wide(const wchar_t* path, const void* data, DWORD size)
+/* BMP 文件剥掉 14 字节文件头后直接成为 CF_DIB，不能保留未声明的像素间隙。 */
+static int xclip_validate_bmp(const unsigned char* file, DWORD size)
 {
-	HANDLE file;
-	DWORD written = 0u;
-	BOOL ok;
-	if ( path == NULL || path[0] == L'\0' || (data == NULL && size != 0u) ) {
-		xclip_set_error("invalid output path or data");
+	const BITMAPINFOHEADER* bi;
+	DWORD offset;
+	uint64_t row_bits, row_bytes, pixel_bytes, height;
+	if ( size < 14u + sizeof(BITMAPINFOHEADER) || file[0] != 'B' ||
+		file[1] != 'M' || xclip_read_u32_le(file + 2) != size ) {
 		return 0;
 	}
-	file = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if ( file == INVALID_HANDLE_VALUE ) {
-		xclip_set_win_error("CreateFileW");
+	bi = (const BITMAPINFOHEADER*)(file + 14);
+	offset = xclip_dib_pixel_offset(file + 14, size - 14u);
+	if ( offset == 0u || xclip_read_u32_le(file + 10) != 14u + offset ||
+		bi->biWidth <= 0 || bi->biHeight == 0 || bi->biHeight == INT_MIN ||
+		bi->biPlanes != 1 ||
+		!(bi->biBitCount == 1 || bi->biBitCount == 4 || bi->biBitCount == 8 ||
+		  bi->biBitCount == 16 || bi->biBitCount == 24 || bi->biBitCount == 32) ||
+		!(bi->biCompression == BI_RGB || bi->biCompression == BI_BITFIELDS) ||
+		(bi->biCompression == BI_BITFIELDS &&
+		 bi->biBitCount != 16 && bi->biBitCount != 32) ) {
 		return 0;
 	}
-	ok = WriteFile(file, data, size, &written, NULL);
-	CloseHandle(file);
-	if ( !ok || written != size ) {
-		xclip_set_win_error("WriteFile");
-		return 0;
-	}
-	return 1;
-}
-
-static unsigned char* xclip_read_file_wide(const wchar_t* path, DWORD* out_size)
-{
-	HANDLE file;
-	DWORD size_high = 0u;
-	DWORD size_low;
-	DWORD read_count = 0u;
-	unsigned char* data;
-	if ( out_size != NULL ) {
-		*out_size = 0u;
-	}
-	if ( path == NULL || path[0] == L'\0' || out_size == NULL ) {
-		xclip_set_error("invalid input path");
-		return NULL;
-	}
-	file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if ( file == INVALID_HANDLE_VALUE ) {
-		xclip_set_win_error("CreateFileW");
-		return NULL;
-	}
-	size_low = GetFileSize(file, &size_high);
-	if ( size_low == INVALID_FILE_SIZE && GetLastError() != NO_ERROR ) {
-		CloseHandle(file);
-		xclip_set_win_error("GetFileSize");
-		return NULL;
-	}
-	if ( size_high != 0u || size_low == 0u ) {
-		CloseHandle(file);
-		xclip_set_error("file is empty or too large");
-		return NULL;
-	}
-	data = (unsigned char*)malloc((size_t)size_low);
-	if ( data == NULL ) {
-		CloseHandle(file);
-		xclip_set_error("out of memory");
-		return NULL;
-	}
-	if ( !ReadFile(file, data, size_low, &read_count, NULL) || read_count != size_low ) {
-		free(data);
-		CloseHandle(file);
-		xclip_set_win_error("ReadFile");
-		return NULL;
-	}
-	CloseHandle(file);
-	*out_size = size_low;
-	return data;
+	height = bi->biHeight < 0 ? (uint64_t)-(int64_t)bi->biHeight :
+		(uint64_t)bi->biHeight;
+	row_bits = (uint64_t)bi->biWidth * bi->biBitCount;
+	row_bytes = ((row_bits + 31u) / 32u) * 4u;
+	pixel_bytes = row_bytes * height;
+	return pixel_bytes <= size - 14u - offset &&
+		(bi->biSizeImage == 0u || bi->biSizeImage >= pixel_bytes);
 }
 
 static HGLOBAL xclip_bitmap_to_dib(HBITMAP bitmap)
@@ -616,15 +629,23 @@ static HGLOBAL xclip_bitmap_to_dib(HBITMAP bitmap)
 	DWORD row_stride;
 	DWORD pixel_bytes;
 	DWORD total_bytes;
+	uint64_t required;
 	if ( bitmap == NULL ) {
 		xclip_set_error("bitmap handle is null");
 		return NULL;
 	}
-	if ( GetObjectW(bitmap, sizeof(bm), &bm) == 0 || bm.bmWidth <= 0 || bm.bmHeight == 0 ) {
+	if ( GetObjectW(bitmap, sizeof(bm), &bm) == 0 || bm.bmWidth <= 0 ||
+		bm.bmHeight == 0 || bm.bmHeight == INT_MIN ) {
 		xclip_set_win_error("GetObjectW");
 		return NULL;
 	}
 	height_abs = bm.bmHeight < 0 ? -bm.bmHeight : bm.bmHeight;
+	required = (uint64_t)bm.bmWidth * 4u * (uint64_t)height_abs +
+		sizeof(BITMAPINFOHEADER);
+	if ( required > XCLIP_MAX_IMAGE_BYTES ) {
+		xclip_set_error("clipboard bitmap is too large");
+		return NULL;
+	}
 	row_stride = (DWORD)bm.bmWidth * 4u;
 	pixel_bytes = row_stride * (DWORD)height_abs;
 	total_bytes = (DWORD)sizeof(BITMAPINFOHEADER) + pixel_bytes;
@@ -668,28 +689,30 @@ static HGLOBAL xclip_bitmap_to_dib(HBITMAP bitmap)
 	return hglobal;
 }
 
-static int xclip_save_dib_as_bmp(const wchar_t* path, const void* dib, SIZE_T dib_size)
+static unsigned char* xclip_bmp_from_dib(const void* dib, SIZE_T dib_size,
+	DWORD* out_size)
 {
 	DWORD pixel_offset;
 	DWORD file_size;
 	DWORD bmp_offset;
 	unsigned char* file_data;
-	int ok;
-	if ( dib == NULL || dib_size < sizeof(BITMAPINFOHEADER) || dib_size > 0x7ffff000u ) {
+	*out_size = 0u;
+	if ( dib == NULL || dib_size < sizeof(BITMAPINFOHEADER) ||
+		dib_size > XCLIP_MAX_IMAGE_BYTES ) {
 		xclip_set_error("invalid DIB data");
-		return 0;
+		return NULL;
 	}
 	pixel_offset = xclip_dib_pixel_offset(dib, dib_size);
 	if ( pixel_offset == 0u ) {
 		xclip_set_error("unsupported DIB header");
-		return 0;
+		return NULL;
 	}
 	file_size = 14u + (DWORD)dib_size;
 	bmp_offset = 14u + pixel_offset;
-	file_data = (unsigned char*)malloc((size_t)file_size);
+	file_data = (unsigned char*)xrtMalloc((size_t)file_size);
 	if ( file_data == NULL ) {
 		xclip_set_error("out of memory");
-		return 0;
+		return NULL;
 	}
 	memset(file_data, 0, 14u);
 	file_data[0] = 'B';
@@ -697,9 +720,8 @@ static int xclip_save_dib_as_bmp(const wchar_t* path, const void* dib, SIZE_T di
 	xclip_write_u32_le(file_data + 2, file_size);
 	xclip_write_u32_le(file_data + 10, bmp_offset);
 	memcpy(file_data + 14u, dib, (size_t)dib_size);
-	ok = xclip_write_file_wide(path, file_data, file_size);
-	free(file_data);
-	return ok;
+	*out_size = file_size;
+	return file_data;
 }
 
 static HGLOBAL xclip_get_clipboard_dib(UINT* out_format, int* out_owned)
@@ -746,8 +768,9 @@ static HGLOBAL xclip_get_clipboard_dib(UINT* out_format, int* out_owned)
 	return NULL;
 }
 
-XL_EXPORT int x_clipboard_available(void)
+XL_EXPORT int64_t x_clipboard_available(void)
 {
+	xclip_set_error("");
 	return 1;
 }
 
@@ -758,10 +781,17 @@ XL_EXPORT const char* x_clipboard_version(void)
 
 XL_EXPORT const char* x_clipboard_last_error(void)
 {
-	return g_xclip_error;
+	switch ( errno ) {
+	case 0: return "";
+	case ENOMEM: return "clipboard: out of memory";
+	case ENOENT: return "clipboard: data is not available";
+	case EINVAL: return "clipboard: invalid input or data";
+	case ERANGE: return "clipboard: size limit exceeded";
+	default: return "clipboard: operation failed";
+	}
 }
 
-XL_EXPORT int x_clipboard_clear(void)
+XL_EXPORT int64_t x_clipboard_clear(void)
 {
 	int ok;
 	if ( !xclip_open() ) {
@@ -777,56 +807,123 @@ XL_EXPORT int x_clipboard_clear(void)
 	return ok;
 }
 
-XL_EXPORT int x_clipboard_snapshot(void)
+XL_EXPORT void* x_clipboard_snapshot(void)
 {
+	XClipSnapshot capture;
+	XClipSnapshot* snapshot;
 	UINT fmt = 0u;
 	int ok = 1;
-	xclip_snapshot_clear();
+	memset(&capture, 0, sizeof(capture));
 	if ( !xclip_open() ) {
-		return 0;
+		return NULL;
 	}
-	while ( (fmt = EnumClipboardFormats(fmt)) != 0u ) {
+	for (;;) {
+		SetLastError(NO_ERROR);
+		fmt = EnumClipboardFormats(fmt);
+		if ( fmt == 0u ) {
+			if ( GetLastError() != NO_ERROR ) {
+				xclip_set_win_error("EnumClipboardFormats");
+				ok = 0;
+			}
+			break;
+		}
 		HANDLE hdata = GetClipboardData(fmt);
 		SIZE_T size;
 		void* data;
 		if ( hdata == NULL ) {
-			continue;
+			xclip_set_win_error("GetClipboardData");
+			ok = 0;
+			break;
 		}
 		if ( fmt == CF_BITMAP ) {
+			BITMAP bitmap;
+			uint64_t height;
+			size_t bytes;
+			if ( GetObjectW(hdata, sizeof(bitmap), &bitmap) < (int)sizeof(bitmap) ||
+				bitmap.bmWidthBytes <= 0 ) {
+				xclip_set_error("invalid clipboard bitmap");
+				ok = 0;
+				break;
+			}
+			height = bitmap.bmHeight < 0 ? (uint64_t)(-(int64_t)bitmap.bmHeight) : (uint64_t)bitmap.bmHeight;
+			if ( height > XCLIP_MAX_SNAPSHOT_BYTES / (size_t)bitmap.bmWidthBytes ) {
+				xclip_set_error("clipboard snapshot limit exceeded");
+				ok = 0;
+				break;
+			}
+			bytes = (size_t)bitmap.bmWidthBytes * (size_t)height;
+			if ( capture.snapshot_count >= XCLIP_MAX_SNAPSHOT_FORMATS ||
+				bytes > XCLIP_MAX_SNAPSHOT_BYTES - capture.total_bytes ) {
+				xclip_set_error("clipboard snapshot limit exceeded");
+				ok = 0;
+				break;
+			}
 			HANDLE copy = CopyImage(hdata, IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
 			if ( copy == NULL ) {
 				xclip_set_win_error("CopyImage");
 				ok = 0;
 				break;
 			}
-			if ( !xclip_snapshot_append_handle(fmt, copy, XCLIP_SNAPSHOT_BITMAP) ) {
+			if ( !xclip_snapshot_append_handle(&capture, fmt, copy, XCLIP_SNAPSHOT_BITMAP, bytes) ) {
 				ok = 0;
 				break;
 			}
 			continue;
 		}
 		if ( fmt == CF_ENHMETAFILE ) {
+			UINT bytes = GetEnhMetaFileBits((HENHMETAFILE)hdata, 0u, NULL);
+			if ( bytes == 0u ) {
+				xclip_set_win_error("GetEnhMetaFileBits");
+				ok = 0;
+				break;
+			}
+			if ( capture.snapshot_count >= XCLIP_MAX_SNAPSHOT_FORMATS ||
+				bytes > XCLIP_MAX_SNAPSHOT_BYTES - capture.total_bytes ) {
+				xclip_set_error("clipboard snapshot limit exceeded");
+				ok = 0;
+				break;
+			}
 			HENHMETAFILE copy = CopyEnhMetaFileW((HENHMETAFILE)hdata, NULL);
 			if ( copy == NULL ) {
 				xclip_set_win_error("CopyEnhMetaFileW");
 				ok = 0;
 				break;
 			}
-			if ( !xclip_snapshot_append_handle(fmt, (HANDLE)copy, XCLIP_SNAPSHOT_ENHMETAFILE) ) {
+			if ( !xclip_snapshot_append_handle(&capture, fmt, (HANDLE)copy, XCLIP_SNAPSHOT_ENHMETAFILE, bytes) ) {
 				ok = 0;
 				break;
 			}
 			continue;
 		}
+		if ( fmt == CF_METAFILEPICT ) {
+			size_t bytes = 0u;
+			HGLOBAL copy = xclip_copy_metafile_pict((HGLOBAL)hdata, &bytes);
+			if ( copy == NULL ) { ok = 0; break; }
+			if ( !xclip_snapshot_append_handle(&capture, fmt, copy,
+				XCLIP_SNAPSHOT_METAFILEPICT, bytes) ) { ok = 0; break; }
+			continue;
+		}
+		/* GDI/owner-display 格式不是可复制的 HGLOBAL 数据。 */
+		if ( fmt == CF_PALETTE ||
+			fmt == CF_OWNERDISPLAY || fmt == CF_DSPBITMAP ||
+			fmt == CF_DSPMETAFILEPICT || fmt == CF_DSPENHMETAFILE ) {
+			xclip_set_error("clipboard format cannot be snapshotted");
+			ok = 0;
+			break;
+		}
 		size = GlobalSize((HGLOBAL)hdata);
 		if ( size == 0u ) {
-			continue;
+			xclip_set_error("clipboard format has no HGLOBAL data");
+			ok = 0;
+			break;
 		}
 		data = GlobalLock((HGLOBAL)hdata);
 		if ( data == NULL ) {
-			continue;
+			xclip_set_win_error("GlobalLock");
+			ok = 0;
+			break;
 		}
-		if ( !xclip_snapshot_append(fmt, data, size) ) {
+		if ( !xclip_snapshot_append(&capture, fmt, data, size) ) {
 			GlobalUnlock((HGLOBAL)hdata);
 			ok = 0;
 			break;
@@ -835,90 +932,119 @@ XL_EXPORT int x_clipboard_snapshot(void)
 	}
 	CloseClipboard();
 	if ( !ok ) {
-		xclip_snapshot_clear();
-		return 0;
+		xclip_snapshot_clear(&capture);
+		return NULL;
 	}
-	g_xclip_snapshot_valid = 1;
+	snapshot = (XClipSnapshot*)xrtMalloc(sizeof(*snapshot));
+	if ( snapshot == NULL ) {
+		xclip_snapshot_clear(&capture);
+		xclip_set_error("out of memory");
+		return NULL;
+	}
+	*snapshot = capture;
+	snapshot->magic = XCLIP_SNAPSHOT_MAGIC;
 	xclip_set_error("");
-	return 1;
+	return snapshot;
 }
 
-XL_EXPORT int x_clipboard_restore(void)
+XL_EXPORT int64_t x_clipboard_restore(void* handle)
 {
+	XClipSnapshot* snapshot = (XClipSnapshot*)handle;
+	HANDLE* copies;
 	size_t i;
-	int ok = 1;
-	if ( !g_xclip_snapshot_valid ) {
+	int ok = 0;
+	if ( snapshot == NULL || snapshot->magic != XCLIP_SNAPSHOT_MAGIC ) {
 		xclip_set_error("clipboard snapshot is not available");
 		return 0;
 	}
-	if ( !xclip_open() ) {
+	if ( snapshot->snapshot_count > SIZE_MAX / sizeof(HANDLE) ) {
+		xclip_set_error("clipboard snapshot is too large");
 		return 0;
 	}
-	if ( !EmptyClipboard() ) {
-		CloseClipboard();
-		xclip_set_win_error("EmptyClipboard");
+	copies = (HANDLE*)xrtCalloc(snapshot->snapshot_count == 0u ? 1u : snapshot->snapshot_count, sizeof(HANDLE));
+	if ( copies == NULL ) {
+		xclip_set_error("out of memory");
 		return 0;
 	}
-	for ( i = 0u; i < g_xclip_snapshot_count; ++i ) {
+	/* 先准备所有待转交句柄，避免清空剪贴板之后再遇到分配失败。 */
+	for ( i = 0u; i < snapshot->snapshot_count; ++i ) {
 		HANDLE hdata = NULL;
-		if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_GLOBAL ) {
+		if ( snapshot->snapshot_items[i].kind == XCLIP_SNAPSHOT_GLOBAL ) {
 			void* memory;
-			hdata = GlobalAlloc(GMEM_MOVEABLE, g_xclip_snapshot_items[i].size);
+			hdata = GlobalAlloc(GMEM_MOVEABLE, snapshot->snapshot_items[i].size);
 			if ( hdata == NULL ) {
 				xclip_set_win_error("GlobalAlloc");
-				ok = 0;
-				break;
+				goto cleanup;
 			}
 			memory = GlobalLock((HGLOBAL)hdata);
 			if ( memory == NULL ) {
 				GlobalFree((HGLOBAL)hdata);
 				xclip_set_win_error("GlobalLock");
-				ok = 0;
-				break;
+				goto cleanup;
 			}
-			memcpy(memory, g_xclip_snapshot_items[i].data, (size_t)g_xclip_snapshot_items[i].size);
+			memcpy(memory, snapshot->snapshot_items[i].data, (size_t)snapshot->snapshot_items[i].size);
 			GlobalUnlock((HGLOBAL)hdata);
-		} else if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_BITMAP ) {
-			hdata = CopyImage(g_xclip_snapshot_items[i].handle, IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
+		} else if ( snapshot->snapshot_items[i].kind == XCLIP_SNAPSHOT_BITMAP ) {
+			hdata = CopyImage(snapshot->snapshot_items[i].handle, IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
 			if ( hdata == NULL ) {
 				xclip_set_win_error("CopyImage");
-				ok = 0;
-				break;
+				goto cleanup;
 			}
-		} else if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_ENHMETAFILE ) {
-			hdata = (HANDLE)CopyEnhMetaFileW((HENHMETAFILE)g_xclip_snapshot_items[i].handle, NULL);
+		} else if ( snapshot->snapshot_items[i].kind == XCLIP_SNAPSHOT_ENHMETAFILE ) {
+			hdata = (HANDLE)CopyEnhMetaFileW((HENHMETAFILE)snapshot->snapshot_items[i].handle, NULL);
 			if ( hdata == NULL ) {
 				xclip_set_win_error("CopyEnhMetaFileW");
-				ok = 0;
-				break;
+				goto cleanup;
 			}
+		} else if ( snapshot->snapshot_items[i].kind == XCLIP_SNAPSHOT_METAFILEPICT ) {
+			hdata = (HANDLE)xclip_copy_metafile_pict(
+				(HGLOBAL)snapshot->snapshot_items[i].handle, NULL);
+			if ( hdata == NULL ) goto cleanup;
+		} else {
+			xclip_set_error("unsupported snapshot format");
+			goto cleanup;
 		}
-		if ( hdata != NULL && SetClipboardData(g_xclip_snapshot_items[i].format, hdata) == NULL ) {
-			if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_GLOBAL ) {
-				GlobalFree((HGLOBAL)hdata);
-			} else if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_BITMAP ) {
-				DeleteObject(hdata);
-			} else if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_ENHMETAFILE ) {
-				DeleteEnhMetaFile((HENHMETAFILE)hdata);
-			}
+		copies[i] = hdata;
+	}
+	if ( !xclip_open() ) goto cleanup;
+	if ( !EmptyClipboard() ) {
+		xclip_set_win_error("EmptyClipboard");
+		CloseClipboard();
+		goto cleanup;
+	}
+	for ( i = 0u; i < snapshot->snapshot_count; ++i ) {
+		if ( SetClipboardData(snapshot->snapshot_items[i].format, copies[i]) == NULL ) {
 			xclip_set_win_error("SetClipboardData");
-			ok = 0;
 			break;
 		}
+		copies[i] = NULL;
 	}
 	CloseClipboard();
-	if ( ok ) {
-		xclip_set_error("");
-	}
+	ok = i == snapshot->snapshot_count;
+cleanup:
+	for ( i = 0u; i < snapshot->snapshot_count; ++i )
+		xclip_free_handle(snapshot->snapshot_items[i].kind, copies[i]);
+	xrtFree(copies);
+	if ( ok ) xclip_set_error("");
 	return ok;
 }
 
-XL_EXPORT int x_clipboard_sequence_number(void)
+XL_EXPORT int64_t x_clipboard_snapshot_release(void* handle)
 {
-	return (int)GetClipboardSequenceNumber();
+	XClipSnapshot* snapshot = (XClipSnapshot*)handle;
+	if ( snapshot == NULL || snapshot->magic != XCLIP_SNAPSHOT_MAGIC ) return 0;
+	snapshot->magic = 0u;
+	xclip_snapshot_clear(snapshot);
+	xrtFree(snapshot);
+	return 1;
 }
 
-XL_EXPORT int x_clipboard_count_formats(void)
+XL_EXPORT int64_t x_clipboard_sequence_number(void)
+{
+	return (int64_t)GetClipboardSequenceNumber();
+}
+
+XL_EXPORT int64_t x_clipboard_count_formats(void)
 {
 	return CountClipboardFormats();
 }
@@ -931,72 +1057,95 @@ XL_EXPORT xvalue* x_clipboard_formats(void)
 		return NULL;
 	}
 	if ( !xclip_open() ) {
-		return out;
+		xrtValueRelease(out);
+		return NULL;
 	}
-	SetLastError(NO_ERROR);
-	while ( (fmt = EnumClipboardFormats(fmt)) != 0u ) {
-		char name[256];
-		xclip_format_name_buf(fmt, name, sizeof(name));
-		if ( !xclip_array_append_text(out, name) ) {
+	for (;;) {
+		SetLastError(NO_ERROR);
+		fmt = EnumClipboardFormats(fmt);
+		if ( fmt == 0u ) {
+			if ( GetLastError() != NO_ERROR ) {
+				xclip_set_win_error("EnumClipboardFormats");
+				CloseClipboard();
+				xrtValueRelease(out);
+				return NULL;
+			}
+			break;
+		}
+		char* name = xclip_format_name_alloc(fmt);
+		int appended = name != NULL && xclip_array_append_text(out, name);
+		xrtFree(name);
+		if ( !appended ) {
 			CloseClipboard();
 			xrtValueRelease(out);
 			return NULL;
 		}
 	}
-	if ( GetLastError() != NO_ERROR ) {
-		xclip_set_win_error("EnumClipboardFormats");
-	} else {
-		xclip_set_error("");
-	}
+	xclip_set_error("");
 	CloseClipboard();
 	return out;
 }
 
-XL_EXPORT const char* x_clipboard_formats_json(void)
+XL_EXPORT xvalue* x_clipboard_formats_json(void)
 {
+	xbuffer buffer;
+	xvalue* result;
 	UINT fmt = 0u;
 	int first = 1;
-	xclip_text_reset();
-	xclip_text_append("[");
-	if ( !xclip_open() ) {
-		xclip_text_append("]");
-		return g_xclip_text != NULL ? g_xclip_text : "[]";
-	}
-	SetLastError(NO_ERROR);
-	while ( (fmt = EnumClipboardFormats(fmt)) != 0u ) {
-		char name[256];
-		xclip_format_name_buf(fmt, name, sizeof(name));
-		if ( !first ) {
-			xclip_text_append(",");
+	if ( !xrtBufferInit(&buffer) ) return NULL;
+	if ( !xclip_text_append(&buffer, "[") ) goto failed_without_clipboard;
+	if ( !xclip_open() ) goto failed_without_clipboard;
+	for (;;) {
+		char* name;
+		int appended;
+		SetLastError(NO_ERROR);
+		fmt = EnumClipboardFormats(fmt);
+		if ( fmt == 0u ) {
+			if ( GetLastError() != NO_ERROR ) {
+				xclip_set_win_error("EnumClipboardFormats");
+				goto fail;
+			}
+			break;
 		}
+		if ( !first && !xclip_text_append(&buffer, ",") ) goto fail;
+		name = xclip_format_name_alloc(fmt);
+		if ( name == NULL ) goto fail;
 		first = 0;
-		xclip_text_appendf("{\"id\":%u,\"name\":\"", (unsigned int)fmt);
-		xclip_json_escape_append(name);
-		xclip_text_append("\"}");
-	}
-	if ( GetLastError() != NO_ERROR ) {
-		xclip_set_win_error("EnumClipboardFormats");
-	} else {
-		xclip_set_error("");
+		appended = xclip_text_appendf(&buffer, "{\"id\":%u,\"name\":\"", (unsigned int)fmt) &&
+			xclip_json_escape_append(&buffer, name) && xclip_text_append(&buffer, "\"}");
+		xrtFree(name);
+		if ( !appended ) goto fail;
 	}
 	CloseClipboard();
-	xclip_text_append("]");
-	return g_xclip_text != NULL ? g_xclip_text : "[]";
-}
-
-XL_EXPORT const char* x_clipboard_format_name(int format_id)
-{
-	char name[256];
-	if ( format_id <= 0 ) {
-		xclip_set_error("format id must be positive");
-		return xclip_set_text_buffer("");
-	}
-	xclip_format_name_buf((UINT)format_id, name, sizeof(name));
+	if ( !xclip_text_append(&buffer, "]") ) goto failed_without_clipboard;
+	result = xclip_value_buffer(&buffer);
+	if ( result == NULL ) return NULL;
 	xclip_set_error("");
-	return xclip_set_text_buffer(name);
+	return result;
+fail:
+	CloseClipboard();
+failed_without_clipboard:
+	xrtBufferUnit(&buffer);
+	return xclip_value_text("[]");
 }
 
-XL_EXPORT int x_clipboard_register_format(const char* name)
+XL_EXPORT xvalue* x_clipboard_format_name(int64_t format_id)
+{
+	char* name;
+	xvalue* result;
+	if ( format_id <= 0 || format_id > UINT_MAX ) {
+		xclip_set_error("format id must be positive");
+		return xrtValueString(XRT_STR_LITERAL(""));
+	}
+	name = xclip_format_name_alloc((UINT)format_id);
+	if ( name == NULL ) return NULL;
+	result = xrtValueString((xstrview){ name, strlen(name) });
+	xrtFree(name);
+	if ( result != NULL ) xclip_set_error("");
+	return result;
+}
+
+XL_EXPORT int64_t x_clipboard_register_format(const char* name)
 {
 	wchar_t* wide = xclip_utf8_to_wide_alloc(name);
 	UINT id;
@@ -1004,7 +1153,7 @@ XL_EXPORT int x_clipboard_register_format(const char* name)
 		return 0;
 	}
 	id = RegisterClipboardFormatW(wide);
-	free(wide);
+	xrtFree(wide);
 	if ( id == 0u ) {
 		xclip_set_win_error("RegisterClipboardFormatW");
 		return 0;
@@ -1013,59 +1162,73 @@ XL_EXPORT int x_clipboard_register_format(const char* name)
 	return (int)id;
 }
 
-XL_EXPORT int x_clipboard_is_format_available(int format_id)
+XL_EXPORT int64_t x_clipboard_is_format_available(int64_t format_id)
 {
-	if ( format_id <= 0 ) {
+	if ( format_id <= 0 || format_id > UINT_MAX ) {
 		return 0;
 	}
 	return IsClipboardFormatAvailable((UINT)format_id) ? 1 : 0;
 }
 
-XL_EXPORT int x_clipboard_has_text(void)
+XL_EXPORT int64_t x_clipboard_has_text(void)
 {
 	return (IsClipboardFormatAvailable(CF_UNICODETEXT) ||
 		IsClipboardFormatAvailable(CF_TEXT) ||
 		IsClipboardFormatAvailable(CF_OEMTEXT)) ? 1 : 0;
 }
 
-XL_EXPORT int x_clipboard_has_image(void)
+XL_EXPORT int64_t x_clipboard_has_image(void)
 {
 	return (IsClipboardFormatAvailable(CF_DIBV5) ||
 		IsClipboardFormatAvailable(CF_DIB) ||
 		IsClipboardFormatAvailable(CF_BITMAP)) ? 1 : 0;
 }
 
-XL_EXPORT int x_clipboard_has_files(void)
+XL_EXPORT int64_t x_clipboard_has_files(void)
 {
 	return IsClipboardFormatAvailable(CF_HDROP) ? 1 : 0;
 }
 
-XL_EXPORT const char* x_clipboard_get_text(void)
+XL_EXPORT xvalue* x_clipboard_get_text(void)
 {
 	HGLOBAL hglobal;
 	void* data;
-	const char* out;
+	char* out;
+	xvalue* result;
+	SIZE_T size;
 	if ( !xclip_open() ) {
-		return xclip_set_text_buffer("");
+		return xclip_value_text("");
 	}
 	if ( IsClipboardFormatAvailable(CF_UNICODETEXT) ) {
 		hglobal = (HGLOBAL)GetClipboardData(CF_UNICODETEXT);
 		if ( hglobal == NULL ) {
 			CloseClipboard();
 			xclip_set_win_error("GetClipboardData");
-			return xclip_set_text_buffer("");
+			return xclip_value_text("");
 		}
 		data = GlobalLock(hglobal);
 		if ( data == NULL ) {
 			CloseClipboard();
 			xclip_set_win_error("GlobalLock");
-			return xclip_set_text_buffer("");
+			return xclip_value_text("");
+		}
+		size = GlobalSize(hglobal);
+		if ( size < sizeof(wchar_t) || size % sizeof(wchar_t) != 0u ||
+			wmemchr((const wchar_t*)data, L'\0', size / sizeof(wchar_t)) == NULL ) {
+			GlobalUnlock(hglobal);
+			CloseClipboard();
+			xclip_set_error("clipboard Unicode text is not terminated");
+			return xclip_value_text("");
 		}
 		out = xclip_wide_to_utf8((const wchar_t*)data);
 		GlobalUnlock(hglobal);
 		CloseClipboard();
-		xclip_set_error("");
-		return out;
+		if ( out == NULL ) {
+			return xclip_value_text("");
+		}
+		result = xclip_take_text(out);
+		if ( result != NULL ) xclip_set_error("");
+		return result;
 	}
 	if ( IsClipboardFormatAvailable(CF_TEXT) || IsClipboardFormatAvailable(CF_OEMTEXT) ) {
 		UINT fmt = IsClipboardFormatAvailable(CF_TEXT) ? CF_TEXT : CF_OEMTEXT;
@@ -1074,26 +1237,37 @@ XL_EXPORT const char* x_clipboard_get_text(void)
 		if ( hglobal == NULL ) {
 			CloseClipboard();
 			xclip_set_win_error("GetClipboardData");
-			return xclip_set_text_buffer("");
+			return xclip_value_text("");
 		}
 		data = GlobalLock(hglobal);
 		if ( data == NULL ) {
 			CloseClipboard();
 			xclip_set_win_error("GlobalLock");
-			return xclip_set_text_buffer("");
+			return xclip_value_text("");
+		}
+		size = GlobalSize(hglobal);
+		if ( size == 0u || memchr(data, '\0', size) == NULL ) {
+			GlobalUnlock(hglobal);
+			CloseClipboard();
+			xclip_set_error("clipboard text is not terminated");
+			return xclip_value_text("");
 		}
 		out = xclip_multibyte_to_utf8((const char*)data, code_page);
 		GlobalUnlock(hglobal);
 		CloseClipboard();
-		xclip_set_error("");
-		return out;
+		if ( out == NULL ) {
+			return xclip_value_text("");
+		}
+		result = xclip_take_text(out);
+		if ( result != NULL ) xclip_set_error("");
+		return result;
 	}
 	CloseClipboard();
 	xclip_set_error("clipboard text is not available");
-	return xclip_set_text_buffer("");
+	return xclip_value_text("");
 }
 
-XL_EXPORT int x_clipboard_set_text(const char* text)
+XL_EXPORT int64_t x_clipboard_set_text(const char* text)
 {
 	wchar_t* wide = xclip_utf8_to_wide_alloc(text);
 	size_t bytes;
@@ -1105,20 +1279,20 @@ XL_EXPORT int x_clipboard_set_text(const char* text)
 	bytes = ((size_t)lstrlenW(wide) + 1u) * sizeof(wchar_t);
 	hglobal = GlobalAlloc(GMEM_MOVEABLE, bytes);
 	if ( hglobal == NULL ) {
-		free(wide);
+		xrtFree(wide);
 		xclip_set_win_error("GlobalAlloc");
 		return 0;
 	}
 	memory = GlobalLock(hglobal);
 	if ( memory == NULL ) {
-		free(wide);
+		xrtFree(wide);
 		GlobalFree(hglobal);
 		xclip_set_win_error("GlobalLock");
 		return 0;
 	}
 	memcpy(memory, wide, bytes);
 	GlobalUnlock(hglobal);
-	free(wide);
+	xrtFree(wide);
 	if ( !xclip_open() ) {
 		GlobalFree(hglobal);
 		return 0;
@@ -1144,7 +1318,8 @@ XL_EXPORT xvalue* x_clipboard_get_files(void)
 		return NULL;
 	}
 	if ( !xclip_open() ) {
-		return out;
+		xrtValueRelease(out);
+		return NULL;
 	}
 	if ( !IsClipboardFormatAvailable(CF_HDROP) ) {
 		CloseClipboard();
@@ -1155,32 +1330,34 @@ XL_EXPORT xvalue* x_clipboard_get_files(void)
 	if ( drop == NULL ) {
 		CloseClipboard();
 		xclip_set_win_error("GetClipboardData");
-		return out;
+		xrtValueRelease(out);
+		return NULL;
 	}
 	count = DragQueryFileW(drop, 0xFFFFFFFFu, NULL, 0u);
 	for ( i = 0u; i < count; ++i ) {
 		UINT chars = DragQueryFileW(drop, i, NULL, 0u);
-		wchar_t* wide = (wchar_t*)calloc((size_t)chars + 1u, sizeof(wchar_t));
-		if ( wide != NULL ) {
-			char* utf8;
-			int n;
-			DragQueryFileW(drop, i, wide, chars + 1u);
-			n = WideCharToMultiByte(CP_UTF8, 0, wide, -1, NULL, 0, NULL, NULL);
-			if ( n > 0 ) {
-				utf8 = (char*)malloc((size_t)n);
-				if ( utf8 != NULL ) {
-					WideCharToMultiByte(CP_UTF8, 0, wide, -1, utf8, n, NULL, NULL);
-					if ( !xclip_array_append_text(out, utf8) ) {
-						free(utf8);
-						free(wide);
-						CloseClipboard();
-						xrtValueRelease(out);
-						return NULL;
-					}
-					free(utf8);
-				}
-			}
-			free(wide);
+		wchar_t* wide = (wchar_t*)xrtCalloc((size_t)chars + 1u, sizeof(wchar_t));
+		if ( wide == NULL ) {
+			xclip_set_error("out of memory");
+			CloseClipboard();
+			xrtValueRelease(out);
+			return NULL;
+		}
+		if ( DragQueryFileW(drop, i, wide, chars + 1u) != chars ) {
+			xrtFree(wide);
+			xclip_set_win_error("DragQueryFileW");
+			CloseClipboard();
+			xrtValueRelease(out);
+			return NULL;
+		}
+		char* utf8 = xclip_wide_to_utf8(wide);
+		int appended = utf8 != NULL && xclip_array_append_text(out, utf8);
+		xrtFree(wide);
+		xrtFree(utf8);
+		if ( !appended ) {
+			CloseClipboard();
+			xrtValueRelease(out);
+			return NULL;
 		}
 	}
 	CloseClipboard();
@@ -1188,44 +1365,51 @@ XL_EXPORT xvalue* x_clipboard_get_files(void)
 	return out;
 }
 
-XL_EXPORT const char* x_clipboard_get_file(void)
+XL_EXPORT xvalue* x_clipboard_get_file(void)
 {
 	HDROP drop;
 	UINT chars;
 	wchar_t* wide;
-	const char* out;
+	char* out;
+	xvalue* result;
 	if ( !xclip_open() ) {
-		return xclip_set_text_buffer("");
+		return xclip_value_text("");
 	}
 	if ( !IsClipboardFormatAvailable(CF_HDROP) ) {
 		CloseClipboard();
 		xclip_set_error("clipboard files are not available");
-		return xclip_set_text_buffer("");
+		return xclip_value_text("");
 	}
 	drop = (HDROP)GetClipboardData(CF_HDROP);
 	if ( drop == NULL || DragQueryFileW(drop, 0xFFFFFFFFu, NULL, 0u) == 0u ) {
 		CloseClipboard();
 		xclip_set_error("clipboard file list is empty");
-		return xclip_set_text_buffer("");
+		return xclip_value_text("");
 	}
 	chars = DragQueryFileW(drop, 0u, NULL, 0u);
-	wide = (wchar_t*)calloc((size_t)chars + 1u, sizeof(wchar_t));
+	wide = (wchar_t*)xrtCalloc((size_t)chars + 1u, sizeof(wchar_t));
 	if ( wide == NULL ) {
 		CloseClipboard();
 		xclip_set_error("out of memory");
-		return xclip_set_text_buffer("");
+		return xclip_value_text("");
 	}
 	DragQueryFileW(drop, 0u, wide, chars + 1u);
 	out = xclip_wide_to_utf8(wide);
-	free(wide);
+	xrtFree(wide);
 	CloseClipboard();
-	xclip_set_error("");
-	return out;
+	if ( out == NULL ) {
+		return xclip_value_text("");
+	}
+	result = xclip_take_text(out);
+	if ( result != NULL ) xclip_set_error("");
+	return result;
 }
 
 static int xclip_set_files_wide(wchar_t** paths, size_t count)
 {
 	SIZE_T total_chars = 1u;
+	const SIZE_T limit_chars = (XCLIP_MAX_SNAPSHOT_BYTES - sizeof(XClipDropFiles)) /
+		sizeof(wchar_t);
 	SIZE_T bytes;
 	HGLOBAL hglobal;
 	void* memory;
@@ -1237,11 +1421,17 @@ static int xclip_set_files_wide(wchar_t** paths, size_t count)
 		return 0;
 	}
 	for ( i = 0u; i < count; ++i ) {
+		SIZE_T length;
 		if ( paths[i] == NULL || paths[i][0] == L'\0' ) {
-			xclip_set_error("file path is empty");
+			xclip_set_error("invalid file path");
 			return 0;
 		}
-		total_chars += (SIZE_T)lstrlenW(paths[i]) + 1u;
+		length = (SIZE_T)lstrlenW(paths[i]);
+		if ( total_chars >= limit_chars || length >= limit_chars - total_chars ) {
+			xclip_set_error("file list size limit exceeded");
+			return 0;
+		}
+		total_chars += length + 1u;
 	}
 	bytes = sizeof(XClipDropFiles) + total_chars * sizeof(wchar_t);
 	hglobal = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, bytes);
@@ -1281,17 +1471,26 @@ static int xclip_set_files_wide(wchar_t** paths, size_t count)
 	return 1;
 }
 
-XL_EXPORT int x_clipboard_set_files(xvalue* paths_value)
+XL_EXPORT int64_t x_clipboard_set_files(xvalue* paths_value)
 {
-	size_t count = xrtValueCount(paths_value);
+	size_t count;
 	wchar_t** paths;
 	size_t i;
 	int ok;
-	if ( count == 0u ) {
-		xclip_set_error("file list is empty");
+	if ( xrtValueType(paths_value) != XVALUE_ARRAY ) {
+		xclip_set_error("invalid file list");
 		return 0;
 	}
-	paths = (wchar_t**)calloc((size_t)count, sizeof(wchar_t*));
+	count = xrtValueCount(paths_value);
+	if ( count == 0u ) {
+		xclip_set_error("invalid file list");
+		return 0;
+	}
+	if ( count > SIZE_MAX / sizeof(*paths) ) {
+		xclip_set_error("file list size limit exceeded");
+		return 0;
+	}
+	paths = (wchar_t**)xrtCalloc((size_t)count, sizeof(wchar_t*));
 	if ( paths == NULL ) {
 		xclip_set_error("out of memory");
 		return 0;
@@ -1302,21 +1501,21 @@ XL_EXPORT int x_clipboard_set_files(xvalue* paths_value)
 		if ( paths[i] == NULL ) {
 			size_t j;
 			for ( j = 0u; j < count; ++j ) {
-				free(paths[j]);
+				xrtFree(paths[j]);
 			}
-			free(paths);
+			xrtFree(paths);
 			return 0;
 		}
 	}
 	ok = xclip_set_files_wide(paths, count);
 	for ( i = 0u; i < count; ++i ) {
-		free(paths[i]);
+		xrtFree(paths[i]);
 	}
-	free(paths);
+	xrtFree(paths);
 	return ok;
 }
 
-XL_EXPORT int x_clipboard_set_file(const char* path)
+XL_EXPORT int64_t x_clipboard_set_file(const char* path)
 {
 	wchar_t* wide = xclip_utf8_to_wide_alloc(path);
 	wchar_t* paths[1];
@@ -1326,32 +1525,31 @@ XL_EXPORT int x_clipboard_set_file(const char* path)
 	}
 	paths[0] = wide;
 	ok = xclip_set_files_wide(paths, 1u);
-	free(wide);
+	xrtFree(wide);
 	return ok;
 }
 
-XL_EXPORT int x_clipboard_save_image(const char* path)
+XL_EXPORT int64_t x_clipboard_save_image(const char* path)
 {
-	wchar_t* wide_path;
 	HGLOBAL hglobal;
 	void* dib;
 	SIZE_T size;
 	UINT fmt;
 	int owned = 0;
 	int ok;
-	wide_path = xclip_utf8_to_wide_alloc(path);
-	if ( wide_path == NULL ) {
+	DWORD bmp_size = 0u;
+	unsigned char* bmp;
+	if ( path == NULL || path[0] == '\0' ) {
+		xclip_set_error("invalid output path");
 		return 0;
 	}
 	if ( !xclip_open() ) {
-		free(wide_path);
 		return 0;
 	}
 	hglobal = xclip_get_clipboard_dib(&fmt, &owned);
 	(void)fmt;
 	if ( hglobal == NULL ) {
 		CloseClipboard();
-		free(wide_path);
 		return 0;
 	}
 	size = GlobalSize(hglobal);
@@ -1364,73 +1562,70 @@ XL_EXPORT int x_clipboard_save_image(const char* path)
 			GlobalFree(hglobal);
 		}
 		CloseClipboard();
-		free(wide_path);
 		xclip_set_win_error("GlobalLock");
 		return 0;
 	}
-	ok = xclip_save_dib_as_bmp(wide_path, dib, size);
+	bmp = xclip_bmp_from_dib(dib, size, &bmp_size);
 	GlobalUnlock(hglobal);
 	if ( owned ) {
 		GlobalFree(hglobal);
 	}
 	CloseClipboard();
-	free(wide_path);
+	if ( bmp == NULL ) {
+		return 0;
+	}
+	ok = xrtFileWriteAtomic(path, (xbytesview){ bmp, bmp_size });
+	xrtFree(bmp);
+	if ( !ok ) {
+		xclip_set_xrt_error();
+	}
 	if ( ok ) {
 		xclip_set_error("");
 	}
 	return ok;
 }
 
-XL_EXPORT int x_clipboard_set_image(const char* path)
+XL_EXPORT int64_t x_clipboard_set_image(const char* path)
 {
-	wchar_t* wide_path;
 	unsigned char* file_data;
+	size_t read_size = 0u;
 	DWORD file_size;
 	DWORD dib_size;
 	HGLOBAL hglobal;
 	void* memory;
 	int ok;
-	wide_path = xclip_utf8_to_wide_alloc(path);
-	if ( wide_path == NULL ) {
+	if ( path == NULL || path[0] == '\0' ) {
+		xclip_set_error("invalid input path");
 		return 0;
 	}
-	file_data = xclip_read_file_wide(wide_path, &file_size);
-	free(wide_path);
+	file_data = xrtFileReadAllLimit(path, XCLIP_MAX_IMAGE_BYTES, &read_size);
 	if ( file_data == NULL ) {
+		xclip_set_xrt_error();
 		return 0;
 	}
-	if ( file_size < 14u || file_data[0] != 'B' || file_data[1] != 'M' ) {
-		free(file_data);
-		xclip_set_error("set_image currently expects a BMP file");
-		return 0;
-	}
-	if ( xclip_read_u32_le(file_data + 10) >= file_size || xclip_read_u32_le(file_data + 10) < 14u ) {
-		free(file_data);
-		xclip_set_error("invalid BMP file");
+	file_size = (DWORD)read_size;
+	if ( !xclip_validate_bmp(file_data, file_size) ) {
+		xrtFree(file_data);
+		xclip_set_error("invalid or unsupported BMP file");
 		return 0;
 	}
 	dib_size = file_size - 14u;
-	if ( dib_size < sizeof(BITMAPINFOHEADER) ) {
-		free(file_data);
-		xclip_set_error("invalid BMP DIB data");
-		return 0;
-	}
 	hglobal = GlobalAlloc(GMEM_MOVEABLE, dib_size);
 	if ( hglobal == NULL ) {
-		free(file_data);
+		xrtFree(file_data);
 		xclip_set_win_error("GlobalAlloc");
 		return 0;
 	}
 	memory = GlobalLock(hglobal);
 	if ( memory == NULL ) {
 		GlobalFree(hglobal);
-		free(file_data);
+		xrtFree(file_data);
 		xclip_set_win_error("GlobalLock");
 		return 0;
 	}
 	memcpy(memory, file_data + 14u, dib_size);
 	GlobalUnlock(hglobal);
-	free(file_data);
+	xrtFree(file_data);
 	if ( !xclip_open() ) {
 		GlobalFree(hglobal);
 		return 0;
@@ -1446,7 +1641,7 @@ XL_EXPORT int x_clipboard_set_image(const char* path)
 	return ok ? 1 : 0;
 }
 
-XL_EXPORT const char* x_clipboard_image_info_json(void)
+XL_EXPORT xvalue* x_clipboard_image_info_json(void)
 {
 	HGLOBAL hglobal;
 	UINT fmt = 0u;
@@ -1454,14 +1649,16 @@ XL_EXPORT const char* x_clipboard_image_info_json(void)
 	void* dib;
 	SIZE_T size;
 	const BITMAPINFOHEADER* bi;
-	char fmt_name[64];
+	const char* fmt_name;
+	xbuffer buffer;
+	xvalue* result;
 	if ( !xclip_open() ) {
-		return xclip_set_text_buffer("{\"available\":false}");
+		return xclip_value_text("{\"available\":false}");
 	}
 	hglobal = xclip_get_clipboard_dib(&fmt, &owned);
 	if ( hglobal == NULL ) {
 		CloseClipboard();
-		return xclip_set_text_buffer("{\"available\":false}");
+		return xclip_value_text("{\"available\":false}");
 	}
 	size = GlobalSize(hglobal);
 	dib = GlobalLock(hglobal);
@@ -1474,24 +1671,47 @@ XL_EXPORT const char* x_clipboard_image_info_json(void)
 		}
 		CloseClipboard();
 		xclip_set_win_error("GlobalLock");
-		return xclip_set_text_buffer("{\"available\":false}");
+		return xclip_value_text("{\"available\":false}");
 	}
 	bi = (const BITMAPINFOHEADER*)dib;
-	xclip_format_name_buf(fmt, fmt_name, sizeof(fmt_name));
-	xclip_text_reset();
-	xclip_text_append("{\"available\":true,\"format\":\"");
-	xclip_json_escape_append(fmt_name);
-	xclip_text_appendf("\",\"width\":%ld,\"height\":%ld,\"bit_count\":%u,\"compression\":%lu,\"bytes\":%lu}",
+	if ( xclip_dib_pixel_offset(dib, size) == 0u || bi->biWidth <= 0 ||
+		bi->biHeight == 0 || bi->biHeight == INT_MIN || bi->biPlanes != 1 ) {
+		GlobalUnlock(hglobal);
+		if ( owned ) {
+			GlobalFree(hglobal);
+		}
+		CloseClipboard();
+		xclip_set_error("invalid clipboard DIB");
+		return xclip_value_text("{\"available\":false}");
+	}
+	fmt_name = xclip_standard_format_name(fmt);
+	if ( !xrtBufferInit(&buffer) ) {
+		GlobalUnlock(hglobal);
+		if ( owned ) GlobalFree(hglobal);
+		CloseClipboard();
+		return NULL;
+	}
+	if ( !xclip_text_append(&buffer, "{\"available\":true,\"format\":\"") ||
+		!xclip_json_escape_append(&buffer, fmt_name) ||
+		!xclip_text_appendf(&buffer, "\",\"width\":%ld,\"height\":%ld,\"bit_count\":%u,\"compression\":%lu,\"bytes\":%lu}",
 		(long)bi->biWidth,
 		(long)(bi->biHeight < 0 ? -bi->biHeight : bi->biHeight),
 		(unsigned int)bi->biBitCount,
 		(unsigned long)bi->biCompression,
-		(unsigned long)size);
+		(unsigned long)size) ) {
+		GlobalUnlock(hglobal);
+		if ( owned ) GlobalFree(hglobal);
+		CloseClipboard();
+		xrtBufferUnit(&buffer);
+		return xclip_value_text("{\"available\":false}");
+	}
 	GlobalUnlock(hglobal);
 	if ( owned ) {
 		GlobalFree(hglobal);
 	}
 	CloseClipboard();
+	result = xclip_value_buffer(&buffer);
+	if ( result == NULL ) return NULL;
 	xclip_set_error("");
-	return g_xclip_text != NULL ? g_xclip_text : "{\"available\":true}";
+	return result;
 }

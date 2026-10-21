@@ -1,13 +1,5 @@
 import clipboard
 
-dir.createAll("examples_out/extlibs")
-string sample = "demo6 clipboard text"
-string filePath = "examples_out/extlibs/clipboard_file.txt"
-string imagePath = "examples_out/extlibs/clipboard_image.bmp"
-string missingImagePath = "examples_out/extlibs/clipboard_missing.bmp"
-int cfText = 1
-int cfUnicodeText = 13
-
 func clipboard_clear_retry() as bool
     for i in range(0, 10)
         if clipboard.clear() then
@@ -158,71 +150,106 @@ func clipboard_write_files_get_file_retry(string path) as bool
     return false
 end
 
-file.writeText(filePath, "clipboard file marker")
-file.delete(imagePath)
+func main(...) as int
+    string work = dir.temp("", "xlang-clipboard-example-", "")
+    string sample = "demo6 clipboard text"
+    string filePath = path.join(work, "clipboard_file.txt")
+    string imagePath = path.join(work, "clipboard_image.bmp")
+    string missingImagePath = path.join(work, "clipboard_missing.bmp")
+    int cfText = 1
+    int cfUnicodeText = 13
+    try
+        assert file.writeText(filePath, "clipboard file marker")
+        assert not file.exists(imagePath)
+        assert clipboard.available(), "clipboard should be available on Windows"
+        assert clipboard.version() == "clipboard 0.1.0", "clipboard version mismatch"
+        auto saved = clipboard.snapshot()
+        bool snapshotOk = saved.valid()
+        for i in range(0, 5)
+            if snapshotOk then
+                break
+            end
+            time.sleep(25)
+            saved = clipboard.snapshot()
+            snapshotOk = saved.valid()
+        end
+        assert snapshotOk, "clipboard snapshot unavailable; refusing to modify clipboard"
+        try
+            assert cfText == 1, "CF_TEXT mismatch"
+            assert cfUnicodeText == 13, "CF_UNICODETEXT mismatch"
+            assert clipboard.format_name(cfUnicodeText) == "CF_UNICODETEXT", "format_name mismatch"
+            assert clipboard.is_format_available(-1) == false, "negative format should not be available"
 
-assert clipboard.available(), "clipboard should be available on Windows"
-assert clipboard.version() == "clipboard 0.1.0", "clipboard version mismatch"
-bool snapshotOk = false
-for i in range(0, 5)
-    if clipboard.snapshot() then
-        snapshotOk = true
-        break
+            assert clipboard_clear_retry(), "clipboard clear failed"
+            assert clipboard.count_formats() == 0, "clear should remove formats"
+            assert clipboard.has_text() == false, "text should not be available after clear"
+            assert clipboard.has_image() == false, "image should not be available after clear"
+            assert clipboard.has_files() == false, "files should not be available after clear"
+            var emptyTypes = clipboard.types()
+            assert emptyTypes.length == 0, "types should be empty after clear"
+            assert clipboard.types_json() == clipboard.formats_json(), "types_json alias mismatch"
+
+            assert clipboard_set_text_retry(sample), "set_text failed"
+            assert clipboard.has_text(), "has_text failed"
+            assert clipboard_get_text_retry(sample), "get_text mismatch"
+            assert clipboard_read_text_retry(sample), "read_text alias mismatch"
+            assert clipboard_write_text_retry(sample + " write"), "write_text failed"
+            assert clipboard_get_text_retry(sample + " write"), "write_text mismatch"
+            assert clipboard.count_formats() > 0, "set_text should create formats"
+            assert string.contains(clipboard.formats_json(), "CF_UNICODETEXT"), "formats_json should include text format"
+            var textTypes = clipboard.types()
+            assert textTypes.length > 0, "types should include text format"
+
+            assert clipboard_set_file_retry(filePath), "set_file failed"
+            assert clipboard_has_files_retry(filePath), "has_files failed"
+            assert clipboard_get_file_retry(filePath), "get_file mismatch"
+            assert clipboard_get_files_retry(filePath), "get_files mismatch"
+            assert clipboard_read_files_retry(filePath), "read_files mismatch"
+            assert clipboard_set_files_retry([filePath]), "set_files failed"
+            assert clipboard_set_files_get_file_retry(filePath), "set_files get_file mismatch"
+            assert clipboard_write_files_retry([filePath]), "write_files failed"
+            assert clipboard_write_files_get_file_retry(filePath), "write_files get_file mismatch"
+
+            assert clipboard_get_file_retry(filePath), "file clipboard state mismatch"
+            assert clipboard.save_image(imagePath) == false, "save_image should fail when clipboard has file data"
+            assert clipboard_get_file_retry(filePath), "file clipboard state mismatch"
+            assert clipboard.read_image(imagePath) == false, "read_image alias should fail when clipboard has file data"
+            assert string.contains(clipboard.image_info_json(), "\"available\":false"), "image_info_json no-image mismatch"
+            bool missingRejected = false
+            try
+                clipboard.set_image(missingImagePath)
+            catch FileError e
+                missingRejected = true
+            end
+            assert missingRejected, "set_image missing file should raise FileError"
+            missingRejected = false
+            try
+                clipboard.write_image(missingImagePath)
+            catch FileError e
+                missingRejected = true
+            end
+            assert missingRejected, "write_image missing file should raise FileError"
+            assert string.len(clipboard.last_error()) > 0, "last_error should report the last image failure"
+
+            int customFormat = clipboard.register_format("xlang.demo6.clipboard")
+            assert customFormat > 0, "register_format failed"
+            assert clipboard.sequence_number() >= 0, "sequence_number should be non-negative"
+        finally
+            bool restored = false
+            for i in range(0, 10)
+                if saved.restore() then
+                    restored = true
+                    break
+                end
+                time.sleep(30)
+            end
+            bool released = saved.release()
+            assert restored and released, "clipboard snapshot must be restored and released"
+        end
+        assert clipboard.count_formats() >= 0, "clipboard should remain callable after restore"
+    finally
+        assert dir.delete(work), "clipboard example temporary directory must be removed"
     end
-    time.sleep(25)
+    println("clipboard extlib ok")
+    return 0
 end
-assert cfText == 1, "CF_TEXT mismatch"
-assert cfUnicodeText == 13, "CF_UNICODETEXT mismatch"
-assert clipboard.format_name(cfUnicodeText) == "CF_UNICODETEXT", "format_name mismatch"
-assert clipboard.is_format_available(-1) == false, "negative format should not be available"
-
-assert clipboard_clear_retry(), "clipboard clear failed"
-assert clipboard.count_formats() == 0, "clear should remove formats"
-assert clipboard.has_text() == false, "text should not be available after clear"
-assert clipboard.has_image() == false, "image should not be available after clear"
-assert clipboard.has_files() == false, "files should not be available after clear"
-var emptyTypes = clipboard.types()
-assert emptyTypes.length == 0, "types should be empty after clear"
-assert clipboard.types_json() == clipboard.formats_json(), "types_json alias mismatch"
-
-assert clipboard_set_text_retry(sample), "set_text failed"
-assert clipboard.has_text(), "has_text failed"
-assert clipboard_get_text_retry(sample), "get_text mismatch"
-assert clipboard_read_text_retry(sample), "read_text alias mismatch"
-assert clipboard_write_text_retry(sample + " write"), "write_text failed"
-assert clipboard_get_text_retry(sample + " write"), "write_text mismatch"
-assert clipboard.count_formats() > 0, "set_text should create formats"
-assert string.contains(clipboard.formats_json(), "CF_UNICODETEXT"), "formats_json should include text format"
-var textTypes = clipboard.types()
-assert textTypes.length > 0, "types should include text format"
-
-assert clipboard_set_file_retry(filePath), "set_file failed"
-assert clipboard_has_files_retry(filePath), "has_files failed"
-assert clipboard_get_file_retry(filePath), "get_file mismatch"
-assert clipboard_get_files_retry(filePath), "get_files mismatch"
-assert clipboard_read_files_retry(filePath), "read_files mismatch"
-assert clipboard_set_files_retry([filePath]), "set_files failed"
-assert clipboard_set_files_get_file_retry(filePath), "set_files get_file mismatch"
-assert clipboard_write_files_retry([filePath]), "write_files failed"
-assert clipboard_write_files_get_file_retry(filePath), "write_files get_file mismatch"
-
-assert clipboard_get_file_retry(filePath), "file clipboard state mismatch"
-assert clipboard.save_image(imagePath) == false, "save_image should fail when clipboard has file data"
-assert clipboard_get_file_retry(filePath), "file clipboard state mismatch"
-assert clipboard.read_image(imagePath) == false, "read_image alias should fail when clipboard has file data"
-assert string.contains(clipboard.image_info_json(), "\"available\":false"), "image_info_json no-image mismatch"
-assert clipboard.set_image(missingImagePath) == false, "set_image missing file should fail"
-assert clipboard.write_image(missingImagePath) == false, "write_image alias should fail"
-assert string.len(clipboard.last_error()) > 0, "last_error should report the last image failure"
-
-int customFormat = clipboard.register_format("xlang.demo6.clipboard")
-assert customFormat > 0, "register_format failed"
-assert clipboard.sequence_number() >= 0, "sequence_number should be non-negative"
-if snapshotOk then
-    assert clipboard.restore(), "clipboard restore failed"
-else
-    clipboard_clear_retry()
-end
-assert clipboard.count_formats() >= 0, "count_formats should remain callable after restore"
-
-println("clipboard extlib ok")

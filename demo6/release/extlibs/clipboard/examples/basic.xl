@@ -1,0 +1,8 @@
+import clipboard
+
+func main(...) as int
+    assert clipboard.available()
+    println("available=true")
+    println("format=" + clipboard.format_name(13))
+    return 0
+end

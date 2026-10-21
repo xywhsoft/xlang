@@ -1,0 +1,13 @@
+import clipboard
+
+func main(...) as int
+    println("available")
+    assert clipboard.available()
+    println("format")
+    assert clipboard.format_name(13) == "CF_UNICODETEXT"
+    println("error")
+    assert clipboard.format_name(0) == ""
+    assert clipboard.last_error() != ""
+    println("done")
+    return 0
+end

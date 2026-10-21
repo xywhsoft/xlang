@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>clipboard - 扩展库 - xlang</title>
+  <meta name="description" content="Windows 剪贴板的 UTF-8 文本、文件列表、BMP 图片、格式信息与快照接口。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-sys" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / clipboard</p>
+    <h1>clipboard</h1>
+    <p class="extlib-lead">读取与写入 Windows 剪贴板中的 UTF-8 文本、文件列表和 BMP 图片，并检查格式或保存临时快照。</p>
+    <p>版本 0.1.0 · Windows 专用 · C / xlang</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import clipboard
+
+auto saved = clipboard.snapshot()
+assert saved.valid()
+assert clipboard.set_text("临时内容")
+assert saved.restore()
+saved.release()</code></pre>
+    <p>快照是拥有型对象，可多次恢复，析构时自动释放；<code>release()</code> 可提前释放。写入操作会改动当前 Windows 剪贴板，测试时请使用隔离环境。</p>
+  </section>
+  <section id="api">
+    <h2>接口</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>get_text / set_text / has_text</code></td><td>读取、写入和检测 UTF-8 文本。</td></tr>
+      <tr><td><code>get_files / set_files / has_files</code></td><td>处理路径列表，xlang 侧路径使用 UTF-8。</td></tr>
+      <tr><td><code>set_image / save_image / image_info_json</code></td><td>导入或导出 BMP 图片，并读取尺寸与格式。</td></tr>
+      <tr><td><code>formats / formats_json / format_name</code></td><td>枚举和查询剪贴板格式。</td></tr>
+      <tr><td><code>snapshot / Snapshot.restore / Snapshot.release</code></td><td>独立保存可复制的格式并按需恢复，支持位图与增强/传统元文件。</td></tr>
+      <tr><td><code>last_error</code></td><td>紧接着 clipboard 调用读取当前线程的错误类别。</td></tr>
+    </tbody></table>
+    <p>C 程序可包含 <code>extlibs/clipboard/include/clipboard.h</code>。C 快照由调用方用 <code>x_clipboard_snapshot_release</code> 释放；文本、JSON 和其他 <code>xvalue*</code> 结果均由调用方用 <code>xrtValueRelease</code> 释放，不借用包内线程缓冲区。</p>
+  </section>
+  <section id="verify">
+    <h2>验证与边界</h2>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/clipboard/test/check.ps1 -SkipAot</code></pre>
+    <p>隔离 Windows window station 的 C 与 xlang 测试、严格 GCC 构建、中文路径 BMP、内嵌 NUL 截断拒绝、快照和双语范例已通过。120 字符中文注册格式名在 <code>format_name</code>、<code>formats</code> 和 <code>formats_json</code> 中完整返回，不受旧 256 字节缓冲限制。图形快照另验证 <code>CF_BITMAP</code>、<code>CF_ENHMETAFILE</code> 及系统合成的 <code>CF_METAFILEPICT</code>；恢复后的内层元文件数据可读，快照可重复恢复。循环创建 30 个导入 clipboard 的上下文后，Windows FLS 槽数量不变。XLang 的文本、格式名及单文件/图片路径遇内嵌 NUL 会在调用 C 接口前抛 <code>ValueError</code>。快照限制为 256 个格式、256 MiB；部分 GDI/owner-display 格式不可复制。恢复并非事务：系统在中途拒绝 <code>SetClipboardData</code> 时可能只恢复部分格式。真实桌面第三方格式和 AOT 发布门禁仍待验收；当前 AOT 受主线链接缺符号阻断。</p>
+    <p>2026-10-21：公开综合范例改用独占临时文件，仅在快照有效后写入剪贴板，退出时恢复并释放；独立 window station 门禁确认原文本不变。不存在的 BMP 输入在 XLang 层抛 <code>FileError</code>，而非返回 false。完整 AOT 仍受主线缺符号阻断。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>
