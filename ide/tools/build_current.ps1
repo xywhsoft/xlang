@@ -2,12 +2,14 @@
 param(
     [ValidateSet('Debug','Release')][string]$Configuration='Release',
     [switch]$Tests,
-    [string]$ToolchainDirectory=''
+    [string]$ToolchainDirectory='',
+    [string]$FrontendRoot=''
 )
 $ErrorActionPreference='Stop'
 $python = (Get-Command python -ErrorAction Stop).Source
 $arguments = @('-X','utf8',(Join-Path $PSScriptRoot 'build_current.py'),'--configuration',$Configuration)
 if ($Tests) { $arguments += '--tests' }
 if ($ToolchainDirectory) { $arguments += @('--toolchain-directory',$ToolchainDirectory) }
+if ($FrontendRoot) { $arguments += @('--frontend-root',$FrontendRoot) }
 & $python @arguments
 exit $LASTEXITCODE

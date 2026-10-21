@@ -16,8 +16,9 @@ def main():
     output=args.output.resolve();output.mkdir(parents=True,exist_ok=False)
     entry=output/'main.xl';disk=b'func main(...) as int\n return 0\nend\n';entry.write_bytes(disk)
     server=args.server.resolve(strict=True);compiler=args.compiler.resolve(strict=True)
-    inputs=[dict(path=str(p),sha256=hashlib.sha256(p.read_bytes()).hexdigest())
-            for p in [server,server.with_name('xge.dll'),compiler,compiler.with_name('xlc.dll'),compiler.with_name('xl.dll')]]
+    protected=[server,compiler,compiler.with_name('xlc.dll'),compiler.with_name('xl.dll')]
+    if server.with_name('xge.dll').is_file():protected.append(server.with_name('xge.dll'))
+    inputs=[dict(path=str(p),sha256=hashlib.sha256(p.read_bytes()).hexdigest()) for p in protected]
     client=Client(server,compiler,output);rows=[];request_id=10
     version=1;text='func main(...) as int\n int result = 7\n return res\nend\n'
     def query(expected,body=None,revision=None):

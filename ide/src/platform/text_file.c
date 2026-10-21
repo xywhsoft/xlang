@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "xui.h"
 static int failure(xide_model_error* error,int code,const char* message)
 {
     if(error) { error->code=code; snprintf(error->message,sizeof(error->message),"%s",message); }
@@ -40,21 +39,21 @@ int xideTextFileDecode(const unsigned char* data,size_t size,xide_text_file* fil
         else { if(data[i]=='\n') ++lf; loaded.text[output++]=(char)data[i]; }
     }
     loaded.text[output]=0;
-    loaded.eol=crlf>lf && crlf>=cr ? XUI_CODE_EOL_CRLF : cr>lf ? XUI_CODE_EOL_CR : XUI_CODE_EOL_LF;
+    loaded.eol=crlf>lf && crlf>=cr ? XIDE_TEXT_EOL_CRLF : cr>lf ? XIDE_TEXT_EOL_CR : XIDE_TEXT_EOL_LF;
     xideTextFileClear(file); *file=loaded; return 1;
 }
 int xideTextFileEncode(const char* text,int length,int bom,int eol,xide_text_file* file,xide_model_error* error)
 {
     if(!text || length<0 || !file) return failure(error,XIDE_MODEL_INVALID,"Invalid text serialization request.");
     size_t size=(size_t)length+(bom ? 3u : 0u);
-    if(eol==XUI_CODE_EOL_CRLF) for(int i=0;i<length;++i) if(text[i]=='\n') ++size;
+    if(eol==XIDE_TEXT_EOL_CRLF) for(int i=0;i<length;++i) if(text[i]=='\n') ++size;
     xide_text_file encoded={0}; encoded.raw=malloc(size+1); encoded.text=malloc((size_t)length+1);
     if(!encoded.raw || !encoded.text) { xideTextFileClear(&encoded); return failure(error,XIDE_MODEL_MEMORY,"Text serialization allocation failed."); }
     size_t output=0;
     if(bom) { memcpy(encoded.raw,"\xef\xbb\xbf",3); output=3; }
     for(int i=0;i<length;++i) {
-        if(text[i]=='\n' && eol==XUI_CODE_EOL_CRLF) encoded.raw[output++]='\r';
-        encoded.raw[output++]=(unsigned char)(text[i]=='\n' && eol==XUI_CODE_EOL_CR ? '\r' : text[i]);
+        if(text[i]=='\n' && eol==XIDE_TEXT_EOL_CRLF) encoded.raw[output++]='\r';
+        encoded.raw[output++]=(unsigned char)(text[i]=='\n' && eol==XIDE_TEXT_EOL_CR ? '\r' : text[i]);
     }
     encoded.raw[output]=0; memcpy(encoded.text,text,(size_t)length); encoded.text[length]=0;
     encoded.rawLength=output; encoded.bom=bom; encoded.eol=eol;
