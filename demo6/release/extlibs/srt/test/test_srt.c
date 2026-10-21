@@ -16,6 +16,14 @@ static int invalid_srt(const char *text) {
     return invalid;
 }
 
+static int invalid_vtt(const char *text) {
+    xvalue *result = xsrt_parse_vtt(text);
+    int invalid = result != NULL && xrtValueType(result) == XVALUE_NULL;
+    xrtValueRelease(result);
+    xrtClearError();
+    return invalid;
+}
+
 static int test_explicit_lengths(void) {
     static const char srt[] = "1\n00:00:00,000 --> 00:00:01,000\nHi\n";
     static const char vtt[] = "WEBVTT\n\n00:00.000 --> 00:01.000\nHi\n";
@@ -182,6 +190,36 @@ int main(void) {
         xvalue *comment = xsrt_parse_vtt("WEBVTT\n\nNOTE\tcomment\nskipped\n\n00:00.000 --> 00:01.000\nVisible\n");
         CHECK(comment != NULL && xrtValueType(comment) == XVALUE_ARRAY && xrtValueCount(comment) == 1);
         xrtValueRelease(comment);
+    }
+    {
+        xvalue *styled = xsrt_parse_vtt(
+            "WEBVTT\n\nSTYLE\n::cue { color: white }\n\n"
+            "00:00.000 --> 00:01.000\nVisible\n\nNOTE after cue\ncomment\n");
+        CHECK(styled != NULL && xrtValueType(styled) == XVALUE_ARRAY &&
+            xrtValueCount(styled) == 1);
+        xrtValueRelease(styled);
+    }
+    CHECK(invalid_vtt("WEBVTT\n\n00:00.000 --> 00:01.000\nHi --> there\n"));
+    CHECK(invalid_vtt("WEBVTT\n\n00:00.000 --> 00:01.000\nHi\n\n"
+        "STYLE\n::cue { color: white }\n"));
+    {
+        xvalue *plain = xsrt_parse("1\n00:00:00,000 --> 00:00:01,000\nHi --> there\n");
+        char *again = plain != NULL && xrtValueType(plain) == XVALUE_ARRAY
+            ? (char *)xsrt_build(plain) : NULL;
+        CHECK(again != NULL && strstr(again, "Hi --> there\n") != NULL);
+        xrtFree(again);
+        xrtValueRelease(plain);
+    }
+    {
+        xvalue *cue = xrtValueArrayAt(web, 0);
+        xvalue *lines = xrtValueObjectGet(cue, XRT_STR_LITERAL("lines"));
+        CHECK(lines != NULL && xrtValueArraySetNew(lines, 0,
+            xrtValueString(XRT_STR_LITERAL("Hi --> there"))));
+        CHECK(xsrt_build_vtt(web) == NULL && xrtGetError() != NULL &&
+            xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        xrtClearError();
+        CHECK(xrtValueArraySetNew(lines, 0,
+            xrtValueString(XRT_STR_LITERAL("Hi"))));
     }
     {
         xvalue *invalid = xsrt_parse_vtt(

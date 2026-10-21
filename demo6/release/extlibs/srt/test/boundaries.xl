@@ -17,6 +17,32 @@ func main(...) as int
     assert srt.parseTime("2562047788015:00:00,000") == 9223372036854000000, "int64 timestamp bound"
     var noted = srt.parseVtt("WEBVTT\n\nNOTE\tcomment\nskipped\n\n00:00.000 --> 00:01.000\nVisible\n")
     assert noted.length == 1, "tab-prefixed VTT note skipped"
+    var styled = srt.parseVtt("WEBVTT\n\nSTYLE\n::cue { color: white }\n\n00:00.000 --> 00:01.000\nVisible\n\nNOTE after cue\ncomment\n")
+    assert styled.length == 1, "style before cue and note after cue"
+
+    int badPayload = 0
+    try
+        srt.parseVtt("WEBVTT\n\n00:00.000 --> 00:01.000\nHi --> there\n")
+    catch e
+        badPayload = 1
+    end
+    assert badPayload == 1, "VTT payload arrow rejected"
+    badPayload = 0
+    try
+        srt.parseVtt("WEBVTT\n\n00:00.000 --> 00:01.000\nHi\n\nSTYLE\n::cue { color: white }\n")
+    catch e
+        badPayload = 1
+    end
+    assert badPayload == 1, "VTT style after first cue rejected"
+    badPayload = 0
+    try
+        srt.buildVtt([{"startMs": 0, "endMs": 1000, "lines": ["Hi --> there"]}])
+    catch e
+        badPayload = 1
+    end
+    assert badPayload == 1, "VTT builder rejects payload arrow"
+    var srtArrow = srt.parse("1\n00:00:00,000 --> 00:00:01,000\nHi --> there\n")
+    assert srt.build(srtArrow).contains("Hi --> there"), "SRT payload arrow preserved"
 
     int malformedSettings = 0
     try

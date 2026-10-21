@@ -200,6 +200,7 @@ static xvalue *xsrt_parse_cues(const char *text, size_t size, int vtt) {
         size_t k;
         if (!line.size) continue;
         if (vtt && xsrt_vtt_control(line)) {
+            if (xsrt_equal(line, "STYLE") && xrtValueCount(result) > 0) goto invalid;
             while (xsrt_next(&cursor, limit, &line) && line.size) {}
             continue;
         }
@@ -227,12 +228,18 @@ static xvalue *xsrt_parse_cues(const char *text, size_t size, int vtt) {
             !xsrt_put(cue, "endMs", xrtValueInt(end))) goto oom;
         if (vtt && id.size && !xsrt_put(cue, "id", xsrt_string(id))) goto oom;
         if (vtt && settings.size && !xsrt_put(cue, "settings", xsrt_string(settings))) goto oom;
-        while (xsrt_next(&cursor, limit, &line) && line.size)
+        while (xsrt_next(&cursor, limit, &line) && line.size) {
+            if (vtt && xsrt_arrow(line) != SIZE_MAX) goto invalid_cue;
             if (!xrtValueArrayAppendNew(lines, xsrt_string(line))) goto oom;
+        }
         if (!xsrt_put(cue, "lines", lines)) { lines = NULL; goto oom; }
         lines = NULL;
         if (!xrtValueArrayAppendNew(result, cue)) { cue = NULL; goto oom; }
         continue;
+invalid_cue:
+        xrtValueRelease(lines);
+        xrtValueRelease(cue);
+        goto invalid;
 oom:
         xrtValueRelease(lines);
         xrtValueRelease(cue);
@@ -353,6 +360,8 @@ static char *xsrt_build_cues(xvalue *cues, int vtt) {
             if (item == NULL || xrtValueType(item) != XVALUE_STRING ||
                 !xrtValueGetString(item, &view)) goto bad_buffer;
             if (!view.Size || !xrtUtf8Valid(view, NULL)) goto bad_buffer;
+            if (vtt && xsrt_arrow((XsrtLine){view.Data, view.Size}) != SIZE_MAX)
+                goto bad_buffer;
             for (k = 0; k < view.Size; ++k)
                 if (view.Data[k] == '\n' || view.Data[k] == '\r' || view.Data[k] == '\0') goto bad_buffer;
             if (!xsrt_append(&buffer, view.Data, view.Size) ||

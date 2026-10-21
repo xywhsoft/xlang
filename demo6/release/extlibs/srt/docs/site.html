@@ -30,7 +30,7 @@
     <pre><code>import srt
 var cues = srt.parse("1\n00:00:01,000 --&gt; 00:00:02,000\n你好\n\n")
 print(srt.buildVtt(cues))</code></pre>
-    <p>WebVTT 的 NOTE（含空格或 tab 注释）、STYLE 和 REGION 块会跳过。解析与生成均要求有效 UTF-8 和 LF/CRLF 换行；孤立回车会被拒绝。解析器拒绝设置中的第二个 <code>--&gt;</code>，生成器还拒绝与控制块冲突或含 <code>--&gt;</code> 的 cue ID，避免产出无法读回的文件。C 时间参数与结果使用 <code>int64_t</code>。Windows C/XLang 包级门禁和 Linux C sanitizer、XLang 边界及双语范例逐字节对照已通过；完整 AOT 仍受主线缺符号阻断。样式和 cue 标记不作解释；详见包内 README 的支持范围、C 所有权与测试记录。</p>
+    <p>WebVTT 的 NOTE（含空格或 tab 注释）、STYLE 和 REGION 块会跳过；STYLE 只能位于首个 cue 之前，NOTE 可位于 cue 后。解析与生成均要求有效 UTF-8 和 LF/CRLF 换行；孤立回车会被拒绝。WebVTT cue 正文与设置中的额外 <code>--&gt;</code> 被拒绝，生成器还拒绝与控制块冲突或含 <code>--&gt;</code> 的 cue ID，避免产出不合法文件。普通 SRT 正文不受 WebVTT 箭头规则限制。C 时间参数与结果使用 <code>int64_t</code>。Windows C/XLang 包级门禁和 Linux C sanitizer、XLang 边界及双语范例逐字节对照已通过；完整 AOT 仍受主线缺符号阻断。样式和 cue 标记不作解释；详见包内 README 的支持范围、C 所有权与测试记录。</p>
   </section>
 </main>
 </body>
