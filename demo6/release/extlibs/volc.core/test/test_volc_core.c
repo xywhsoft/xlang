@@ -12,6 +12,7 @@
 #include "../include/volc_core_native.h"
 static void test_pair_allocation_failure(void);
 static void test_thread_isolation(void);
+static void test_buffer_bounds(void);
 
 static int fail(const char* message)
 {
@@ -53,12 +54,37 @@ int main(void)
             return fail("successful call retained stale XRT error");
     }
     test_pair_allocation_failure();
+    test_buffer_bounds();
     test_thread_isolation();
     puts("volc.core C smoke: PASS");
     return 0;
 }
 
 #include "../x_volc_core_native.c"
+
+/* 正常扩容保留内容，极限长度必须在计算容量前拒绝。 */
+static void test_buffer_bounds(void)
+{
+    xvolc_buf b;
+    char text[600];
+    memset(text, 'x', sizeof(text));
+    xvolc_buf_init(&b);
+    assert(xvolc_buf_append_n(&b, text, sizeof(text)));
+    assert(b.len == sizeof(text) && b.cap > b.len);
+    assert(memcmp(b.data, text, sizeof(text)) == 0 && b.data[b.len] == '\0');
+    assert(xvolc_buf_appendf(&b, "-%d", 42));
+    assert(strcmp(b.data + sizeof(text), "-42") == 0);
+    xvolc_buf_free(&b);
+
+    b.len = SIZE_MAX - 1u;
+    assert(!xvolc_buf_append_n(&b, "x", 1u));
+    assert(strcmp(x_volc_core_last_error(), "result is too large") == 0);
+    assert(!xvolc_buf_appendf(&b, "%s", "x"));
+    assert(strcmp(x_volc_core_last_error(), "result is too large") == 0);
+    b.len = 0u;
+    assert(!xvolc_buf_append_n(&b, "x", SIZE_MAX));
+    assert(strcmp(x_volc_core_last_error(), "result is too large") == 0);
+}
 
 /* 查询参数构造失败后，不得留下半成品键值或泄漏分配。 */
 static void test_pair_allocation_failure(void)

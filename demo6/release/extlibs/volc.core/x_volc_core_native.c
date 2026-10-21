@@ -171,6 +171,10 @@ static int xvolc_buf_reserve(xvolc_buf* b, size_t need)
 	}
 	cap = b->cap ? b->cap : 256u;
 	while ( cap < need ) {
+		if ( cap > SIZE_MAX / 2u ) {
+			cap = need;
+			break;
+		}
 		cap *= 2u;
 	}
 	next = (char*)xrtRealloc(b->data, cap);
@@ -187,6 +191,10 @@ static int xvolc_buf_append_n(xvolc_buf* b, const char* text, size_t len)
 {
 	if ( len == 0u ) {
 		return 1;
+	}
+	if ( len >= SIZE_MAX - b->len ) {
+		xvolc_set_error("result is too large");
+		return 0;
 	}
 	if ( !xvolc_buf_reserve(b, b->len + len + 1u) ) {
 		return 0;
@@ -217,6 +225,11 @@ static int xvolc_buf_appendf(xvolc_buf* b, const char* fmt, ...)
 	if ( n < 0 ) {
 		va_end(ap2);
 		xvolc_set_error("format failed");
+		return 0;
+	}
+	if ( (size_t)n >= SIZE_MAX - b->len ) {
+		va_end(ap2);
+		xvolc_set_error("result is too large");
 		return 0;
 	}
 	if ( !xvolc_buf_reserve(b, b->len + (size_t)n + 1u) ) {
