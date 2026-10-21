@@ -1,0 +1,105 @@
+import ansi
+
+string longText = ""
+for i in range(4096)
+    longText += "z"
+end
+string styled = ansi.underline(longText)
+assert string.byteLen(styled) == 4104
+assert ansi.strip(styled) == longText
+
+string saved = ansi.bold("keep")
+for i in range(128)
+    ansi.fg256("next", i)
+end
+assert saved == "\x1b[1mkeep\x1b[0m"
+assert ansi.strip("\x1b]8;;url\x1b\\link\x1b]8;;\x1b\\") == "link"
+assert ansi.displayWidth("A中文") == 5
+assert ansi.displayWidth("e\xcc\x81") == 1
+assert ansi.displayWidth("😀") == 2
+assert ansi.displayWidth("a\xe2\x80\x8bb") == 2
+assert ansi.displayWidth("a\xe2\x80\x8cb") == 2
+
+int failures = 0
+try
+    ansi.fg("x", 0)
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.bg256("x", 256)
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.fgTrue("x", 1, 2, -1)
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.column(0)
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.title("unsafe\x1b")
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.title("safe\xe2\x80\xaeunsafe")
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.title("safe\xe2\x80\xa8unsafe")
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.strip("a\x1b[31")
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.displayWidth("a\n")
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.displayWidth("a\xe2\x80\xaeb")
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.displayWidth("a\xe2\x80\xa9b")
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.strip("\x1b]0;a\xe2\x80\xa8b\a")
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.bold("a\0b")
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.title("a\0b")
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.strip("a\0b")
+catch ValueError error
+    failures += 1
+end
+try
+    ansi.displayWidth("a\0b")
+catch ValueError error
+    failures += 1
+end
+assert failures == 16
+println("ansi boundaries: PASS")

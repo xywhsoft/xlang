@@ -1,0 +1,11 @@
+import ansi
+
+func main(...) as int
+    // 样式串可以作为普通文本处理，也可以写到支持 ANSI 的终端。
+    string styled = ansi.fg("中文", 32)
+    println("visible: ", ansi.strip(styled))
+    println("width: ", ansi.displayWidth(styled))
+    println("cursor: ", ansi.up(2) == "\x1b[2A")
+    println("ansi example: PASS")
+    return 0
+end

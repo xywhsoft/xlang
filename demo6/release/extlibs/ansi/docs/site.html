@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ansi - 扩展库 - xlang</title>
+  <meta name="description" content="ansi 构造终端样式与光标序列，并提供转义剥离和显示宽度估算。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / ansi</p><h1>ansi</h1>
+    <p class="extlib-lead">ANSI 样式、颜色和光标序列的纯文本构件。</p>
+    <p>使用 XRT 分配独立结果，不会写终端，也不会截断长文本。C/XL 包级测试与 Linux sanitizer 已通过；XL AOT 当前受共享缺符号阻断。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>bold / dim / italic / underline / blink / inverse / hidden / strike</code></td><td>文本样式</td></tr>
+      <tr><td><code>fg / bg / fg256 / bg256 / fgTrue / bgTrue</code></td><td>16 色、256 色和 RGB 颜色</td></tr>
+      <tr><td><code>up / down / left / right / nextLine / prevLine / column</code></td><td>光标移动</td></tr>
+      <tr><td><code>clearScreen / clearLine / clearToEnd / hideCursor / showCursor</code></td><td>终端控制序列</td></tr>
+      <tr><td><code>title / strip / displayWidth</code></td><td>安全标题、CSI/OSC 剥离与单行列宽估算</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import ansi
+string styled = ansi.fg("中文", 32)
+println(ansi.strip(styled))
+println(ansi.displayWidth(styled))</code></pre>
+    <p><code>displayWidth</code> 将常见零宽字符计为零列，但只是终端列宽估算，不承诺 ZWJ 复合 emoji 等所有 Unicode 字素簇精确；文本入口拒绝内嵌 NUL，标题和 OSC 载荷拒绝双向控制符，畸形 ANSI/UTF-8、OSC 载荷中的 DEL/C1 控制字符和非法颜色参数报错。2026-10-20：Windows 默认门禁新增完整带输出范例 AOT 与 C 输出对照，当前构建因共享 <code>xl6ValueDataSnapshotV1</code> 缺符号失败；<code>-SkipAot</code> 的 C/JIT 快测通过，不代表发布签收。完整合同、C 所有权及验证命令见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

@@ -1,161 +1,167 @@
-extern "xansi_reset" func __ansi_reset() as string
-extern "xansi_bold" func __ansi_bold(string text) as string
-extern "xansi_dim" func __ansi_dim(string text) as string
-extern "xansi_italic" func __ansi_italic(string text) as string
-extern "xansi_underline" func __ansi_underline(string text) as string
-extern "xansi_blink" func __ansi_blink(string text) as string
-extern "xansi_inverse" func __ansi_inverse(string text) as string
-extern "xansi_hidden" func __ansi_hidden(string text) as string
-extern "xansi_strike" func __ansi_strike(string text) as string
-extern "xansi_fg" func __ansi_fg(string text, int code) as string
-extern "xansi_bg" func __ansi_bg(string text, int code) as string
-extern "xansi_fg256" func __ansi_fg256(string text, int n) as string
-extern "xansi_bg256" func __ansi_bg256(string text, int n) as string
-extern "xansi_fg_true" func __ansi_fg_true(string text, int r, int g, int b) as string
-extern "xansi_bg_true" func __ansi_bg_true(string text, int r, int g, int b) as string
-extern "xansi_up" func __ansi_up(int n) as string
-extern "xansi_down" func __ansi_down(int n) as string
-extern "xansi_right" func __ansi_right(int n) as string
-extern "xansi_left" func __ansi_left(int n) as string
-extern "xansi_next_line" func __ansi_next_line(int n) as string
-extern "xansi_prev_line" func __ansi_prev_line(int n) as string
-extern "xansi_column" func __ansi_column(int n) as string
-extern "xansi_clear_screen" func __ansi_clear_screen() as string
-extern "xansi_clear_line" func __ansi_clear_line() as string
-extern "xansi_clear_to_end" func __ansi_clear_to_end() as string
-extern "xansi_hide_cursor" func __ansi_hide_cursor() as string
-extern "xansi_show_cursor" func __ansi_show_cursor() as string
-extern "xansi_title" func __ansi_title(string text) as string
-extern "xansi_strip" func __ansi_strip(string text) as string
+// 原生结果为调用方所有的文本指针；接管后由 xlang 管理生命周期。
+extern "xl6_xrt_last_error_text" func __ansi_error() as string
+extern "xansi_reset" func __ansi_reset() as point
+extern "xansi_bold" func __ansi_bold(string text) as point
+extern "xansi_dim" func __ansi_dim(string text) as point
+extern "xansi_italic" func __ansi_italic(string text) as point
+extern "xansi_underline" func __ansi_underline(string text) as point
+extern "xansi_blink" func __ansi_blink(string text) as point
+extern "xansi_inverse" func __ansi_inverse(string text) as point
+extern "xansi_hidden" func __ansi_hidden(string text) as point
+extern "xansi_strike" func __ansi_strike(string text) as point
+extern "xansi_fg" func __ansi_fg(string text, int code) as point
+extern "xansi_bg" func __ansi_bg(string text, int code) as point
+extern "xansi_fg256" func __ansi_fg256(string text, int index) as point
+extern "xansi_bg256" func __ansi_bg256(string text, int index) as point
+extern "xansi_fg_true" func __ansi_fg_true(string text, int r, int g, int b) as point
+extern "xansi_bg_true" func __ansi_bg_true(string text, int r, int g, int b) as point
+extern "xansi_up" func __ansi_up(int count) as point
+extern "xansi_down" func __ansi_down(int count) as point
+extern "xansi_right" func __ansi_right(int count) as point
+extern "xansi_left" func __ansi_left(int count) as point
+extern "xansi_next_line" func __ansi_next_line(int count) as point
+extern "xansi_prev_line" func __ansi_prev_line(int count) as point
+extern "xansi_column" func __ansi_column(int column) as point
+extern "xansi_clear_screen" func __ansi_clear_screen() as point
+extern "xansi_clear_line" func __ansi_clear_line() as point
+extern "xansi_clear_to_end" func __ansi_clear_to_end() as point
+extern "xansi_hide_cursor" func __ansi_hide_cursor() as point
+extern "xansi_show_cursor" func __ansi_show_cursor() as point
+extern "xansi_title" func __ansi_title(string text) as point
+extern "xansi_strip" func __ansi_strip(string text) as point
 extern "xansi_display_width" func __ansi_display_width(string text) as int
 
+func __ansi_take(point result) as string
+    if result == null then throw ValueError __ansi_error() end
+    return __xl_runtime.takeCstr(result)
+end
 
+// C 入口使用零结尾文本；先拒绝内嵌 NUL，避免静默只处理前缀。
+func __ansi_text(string text) as string
+    if string.indexOf(text, "\0", false, string.byteLen(text), 1) >= 0 then
+        throw ValueError "ansi: text contains NUL"
+    end
+    return text
+end
 
-// 样式函数返回「转义开头 + 文本 + 重置结尾」的完整字符串
+export func reset() as string
+    return __ansi_take(__ansi_reset())
+end
+
 export func bold(string text) as string
-    return __ansi_bold(text)
+    return __ansi_take(__ansi_bold(__ansi_text(text)))
 end
 
 export func dim(string text) as string
-    return __ansi_dim(text)
+    return __ansi_take(__ansi_dim(__ansi_text(text)))
 end
 
 export func italic(string text) as string
-    return __ansi_italic(text)
+    return __ansi_take(__ansi_italic(__ansi_text(text)))
 end
 
 export func underline(string text) as string
-    return __ansi_underline(text)
+    return __ansi_take(__ansi_underline(__ansi_text(text)))
 end
 
 export func blink(string text) as string
-    return __ansi_blink(text)
+    return __ansi_take(__ansi_blink(__ansi_text(text)))
 end
 
 export func inverse(string text) as string
-    return __ansi_inverse(text)
+    return __ansi_take(__ansi_inverse(__ansi_text(text)))
 end
 
 export func hidden(string text) as string
-    return __ansi_hidden(text)
+    return __ansi_take(__ansi_hidden(__ansi_text(text)))
 end
 
 export func strike(string text) as string
-    return __ansi_strike(text)
+    return __ansi_take(__ansi_strike(__ansi_text(text)))
 end
 
-// reset 返回单独的重置序列
-export func reset() as string
-    return __ansi_reset()
-end
-
-// fg/bg 使用基本 16 色 SGR 码：前景 30-37/90-97，背景 40-47/100-107；越界返回空字符串
 export func fg(string text, int code) as string
-    return __ansi_fg(text, code)
+    return __ansi_take(__ansi_fg(__ansi_text(text), code))
 end
 
 export func bg(string text, int code) as string
-    return __ansi_bg(text, code)
+    return __ansi_take(__ansi_bg(__ansi_text(text), code))
 end
 
-// fg256/bg256 使用 256 色调色板索引
-export func fg256(string text, int n) as string
-    return __ansi_fg256(text, n)
+export func fg256(string text, int index) as string
+    return __ansi_take(__ansi_fg256(__ansi_text(text), index))
 end
 
-export func bg256(string text, int n) as string
-    return __ansi_bg256(text, n)
+export func bg256(string text, int index) as string
+    return __ansi_take(__ansi_bg256(__ansi_text(text), index))
 end
 
-// fgTrue/bgTrue 使用 24 位真彩色
 export func fgTrue(string text, int r, int g, int b) as string
-    return __ansi_fg_true(text, r, g, b)
+    return __ansi_take(__ansi_fg_true(__ansi_text(text), r, g, b))
 end
 
 export func bgTrue(string text, int r, int g, int b) as string
-    return __ansi_bg_true(text, r, g, b)
+    return __ansi_take(__ansi_bg_true(__ansi_text(text), r, g, b))
 end
 
-// 光标与屏幕控制：只生成序列，不直接操作控制台
-export func up(int n) as string
-    return __ansi_up(n)
+export func up(int count) as string
+    return __ansi_take(__ansi_up(count))
 end
 
-export func down(int n) as string
-    return __ansi_down(n)
+export func down(int count) as string
+    return __ansi_take(__ansi_down(count))
 end
 
-export func right(int n) as string
-    return __ansi_right(n)
+export func right(int count) as string
+    return __ansi_take(__ansi_right(count))
 end
 
-export func left(int n) as string
-    return __ansi_left(n)
+export func left(int count) as string
+    return __ansi_take(__ansi_left(count))
 end
 
-export func nextLine(int n) as string
-    return __ansi_next_line(n)
+export func nextLine(int count) as string
+    return __ansi_take(__ansi_next_line(count))
 end
 
-export func prevLine(int n) as string
-    return __ansi_prev_line(n)
+export func prevLine(int count) as string
+    return __ansi_take(__ansi_prev_line(count))
 end
 
-export func column(int n) as string
-    return __ansi_column(n)
+export func column(int column) as string
+    return __ansi_take(__ansi_column(column))
 end
 
 export func clearScreen() as string
-    return __ansi_clear_screen()
+    return __ansi_take(__ansi_clear_screen())
 end
 
 export func clearLine() as string
-    return __ansi_clear_line()
+    return __ansi_take(__ansi_clear_line())
 end
 
 export func clearToEnd() as string
-    return __ansi_clear_to_end()
+    return __ansi_take(__ansi_clear_to_end())
 end
 
 export func hideCursor() as string
-    return __ansi_hide_cursor()
+    return __ansi_take(__ansi_hide_cursor())
 end
 
 export func showCursor() as string
-    return __ansi_show_cursor()
+    return __ansi_take(__ansi_show_cursor())
 end
 
-// title 生成设置终端窗口标题的 OSC 序列
 export func title(string text) as string
-    return __ansi_title(text)
+    return __ansi_take(__ansi_title(__ansi_text(text)))
 end
 
-// strip 去掉文本中的 ANSI 转义序列
 export func strip(string text) as string
-    return __ansi_strip(text)
+    return __ansi_take(__ansi_strip(__ansi_text(text)))
 end
 
-// displayWidth 返回终端显示宽度：跳过转义序列，东亚宽字符按 2 列计
 export func displayWidth(string text) as int
-    return __ansi_display_width(text)
+    int width = __ansi_display_width(__ansi_text(text))
+    if width < 0 then throw ValueError __ansi_error() end
+    return width
 end

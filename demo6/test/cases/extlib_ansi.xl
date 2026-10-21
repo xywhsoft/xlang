@@ -16,15 +16,12 @@ func main(...) as int
     assert ansi.fg("hi", 31) == "\x1b[31mhi\x1b[0m", "fg basic red"
     assert ansi.fg("hi", 91) == "\x1b[91mhi\x1b[0m", "fg bright"
     assert ansi.bg("hi", 44) == "\x1b[44mhi\x1b[0m", "bg blue"
-    assert ansi.fg("hi", 29) == "", "fg code out of range"
-    assert ansi.bg("hi", 38) == "", "bg code out of range"
 
     // 256 色与真彩色
     assert ansi.fg256("hi", 208) == "\x1b[38;5;208mhi\x1b[0m", "fg 256"
     assert ansi.bg256("hi", 17) == "\x1b[48;5;17mhi\x1b[0m", "bg 256"
     assert ansi.fgTrue("hi", 255, 128, 0) == "\x1b[38;2;255;128;0mhi\x1b[0m", "fg truecolor"
     assert ansi.bgTrue("hi", 0, 0, 0) == "\x1b[48;2;0;0;0mhi\x1b[0m", "bg truecolor"
-    assert ansi.fg256("hi", 999) == "", "256 index out of range"
 
     // 光标控制
     assert ansi.up(2) == "\x1b[2A", "cursor up"

@@ -9,7 +9,7 @@ func main(...) as int
     println(" " + ansi.inverse("inverse") + " " + ansi.strike("strike"))
 
     // 混合样式
-    println(ansi.bgTrue(ansi.fg(" progress ", 0), 46, 204, 113) + " " + ansi.underline("underlined"))
+    println(ansi.bgTrue(" progress ", 46, 204, 113) + " " + ansi.underline("underlined"))
 
     // 对齐辅助：显示宽度跳过转义序列、宽字符按 2 列计
     array<string> rows = [ansi.fg("ok", 32) + " 中文标签", ansi.fg("pending", 33) + " ascii-label"]

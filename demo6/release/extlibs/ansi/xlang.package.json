@@ -7,10 +7,12 @@
     "artifact": {
         "kind": "source",
         "cSources": ["ansi_native.c"],
-        "xlSources": ["src/ansi.xl"]
+        "xlSources": ["src/ansi.xl"],
+        "xrtModules": ["XRT_MODULE_STRING", "XRT_MODULE_STRING_FORMAT", "XRT_MODULE_UNICODE"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

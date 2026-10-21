@@ -1,284 +1,303 @@
-/*
- * ansi_native.c - Terminal ANSI escape sequence builders.
- *
- * All functions return strings without side effects; they never touch the
- * console themselves. Static ring buffers keep several results alive in one
- * expression. Escape-aware helpers skip CSI sequences when measuring or
- * stripping text.
- */
-#include <stdlib.h>
+/* ANSI 文本构件：只生成字节序列，不修改终端状态。结果由调用方持有。 */
+#ifndef XRT_MODULE_STRING
+#define XRT_MODULE_STRING
+#endif
+#ifndef XRT_MODULE_STRING_FORMAT
+#define XRT_MODULE_STRING_FORMAT
+#endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
+#include "xrt.h"
+#include "include/ansi_native.h"
+#include <limits.h>
 #include <string.h>
-#include <stdio.h>
 
-#define XANSI_RING 8
-#define XANSI_TEXT 512
+#define XANSI_DOMAIN "xlang.extlib.ansi"
 
-static char xansi_ring[XANSI_RING][XANSI_TEXT];
-static int xansi_ring_next = 0;
-
-static char *xansi_slot(void) {
-    char *slot = xansi_ring[xansi_ring_next];
-    xansi_ring_next = (xansi_ring_next + 1) % XANSI_RING;
-    slot[0] = '\0';
-    return slot;
+static void xansi_error(const char* message)
+{
+    xrtClearError();
+    xrtSetErrorInfo(XERR_VALUE, XANSI_DOMAIN, 0, message);
 }
 
-/* Wrap text in "\x1b[Nm" ... "\x1b[0m". */
-static const char *xansi_wrap(const char *text, const char *code) {
-    char *slot = xansi_slot();
-    snprintf(slot, XANSI_TEXT, "\x1b[%sm%s\x1b[0m", code,
-        text ? text : "");
-    return slot;
+static void* xansi_copy(const char* text)
+{
+    xrtClearError();
+    return xrtStrDup(text);
 }
 
-/* Wrap with numeric parameters, e.g. fg 256-color: 38;5;N. */
-static const char *xansi_wrap_num3(const char *text, const char *prefix,
-    long long a, long long b, long long c) {
-    char *slot = xansi_slot();
-    snprintf(slot, XANSI_TEXT, "\x1b[%s;%lld;%lld;%lldm%s\x1b[0m", prefix,
-        a, b, c, text ? text : "");
-    return slot;
+static const char* xansi_text(const char* text)
+{
+    return text != NULL ? text : "";
 }
 
-static const char *xansi_sgr1(const char *code) {
-    char *slot = xansi_slot();
-    snprintf(slot, XANSI_TEXT, "\x1b[%sm", code);
-    return slot;
+/* 双向控制符会改变终端文本的可见顺序，不能作为安全标题或列宽输入。 */
+static bool xansi_bidi_control(uint32 scalar)
+{
+    return scalar == 0x061cu || (scalar >= 0x200eu && scalar <= 0x200fu) ||
+        (scalar >= 0x202au && scalar <= 0x202eu) ||
+        (scalar >= 0x2066u && scalar <= 0x206fu);
 }
 
-static const char *xansi_csi1(const char *seq) {
-    char *slot = xansi_slot();
-    snprintf(slot, XANSI_TEXT, "\x1b[%s", seq);
-    return slot;
+static bool xansi_line_break(uint32 scalar)
+{
+    return scalar == 0x2028u || scalar == 0x2029u;
 }
 
-static const char *xansi_csi_num(const char *suffix, long long n) {
-    char *slot = xansi_slot();
-    if (n < 0) n = 0;
-    snprintf(slot, XANSI_TEXT, "\x1b[%lld%s", n, suffix);
-    return slot;
+static void* xansi_wrap(const char* text, const char* code)
+{
+    xrtClearError();
+    return xrtFormat("\x1b[%sm%s\x1b[0m", code, xansi_text(text));
 }
 
-const char *xansi_reset(void) {
-    return xansi_sgr1("0");
+static void* xansi_color(const char* text, int64_t code)
+{
+    xrtClearError();
+    return xrtFormat("\x1b[%lldm%s\x1b[0m", (long long)code, xansi_text(text));
 }
 
-const char *xansi_bold(const char *text) { return xansi_wrap(text, "1"); }
-const char *xansi_dim(const char *text) { return xansi_wrap(text, "2"); }
-const char *xansi_italic(const char *text) { return xansi_wrap(text, "3"); }
-const char *xansi_underline(const char *text) { return xansi_wrap(text, "4"); }
-const char *xansi_blink(const char *text) { return xansi_wrap(text, "5"); }
-const char *xansi_inverse(const char *text) { return xansi_wrap(text, "7"); }
-const char *xansi_hidden(const char *text) { return xansi_wrap(text, "8"); }
-const char *xansi_strike(const char *text) { return xansi_wrap(text, "9"); }
-
-/* Basic 8/16 color: code 30-37 foreground, 40-47 background, 90-97/100-107 bright. */
-const char *xansi_fg(const char *text, long long code) {
-    char *slot = xansi_slot();
-    if (code < 30 || (code > 37 && code < 90) || code > 97) {
-        slot[0] = '\0';
-        return slot;
+static void* xansi_palette(const char* text, int foreground, int64_t index)
+{
+    xrtClearError();
+    if (index < 0 || index > 255) {
+        xansi_error("palette index must be 0..255");
+        return NULL;
     }
-    snprintf(slot, XANSI_TEXT, "\x1b[%lldm%s\x1b[0m", code, text ? text : "");
-    return slot;
+    return xrtFormat("\x1b[%d;5;%lldm%s\x1b[0m", foreground ? 38 : 48,
+        (long long)index, xansi_text(text));
 }
 
-const char *xansi_bg(const char *text, long long code) {
-    char *slot = xansi_slot();
-    if (code < 40 || (code > 47 && code < 100) || code > 107) {
-        slot[0] = '\0';
-        return slot;
+static void* xansi_rgb(const char* text, int foreground,
+    int64_t red, int64_t green, int64_t blue)
+{
+    xrtClearError();
+    if (red < 0 || red > 255 || green < 0 || green > 255 ||
+        blue < 0 || blue > 255) {
+        xansi_error("RGB channel must be 0..255");
+        return NULL;
     }
-    snprintf(slot, XANSI_TEXT, "\x1b[%lldm%s\x1b[0m", code, text ? text : "");
-    return slot;
+    return xrtFormat("\x1b[%d;2;%lld;%lld;%lldm%s\x1b[0m",
+        foreground ? 38 : 48, (long long)red, (long long)green,
+        (long long)blue, xansi_text(text));
 }
 
-const char *xansi_fg256(const char *text, long long n) {
-    char *slot = xansi_slot();
-    if (n < 0 || n > 255) {
-        slot[0] = '\0';
-        return slot;
+static void* xansi_move(char direction, int64_t count)
+{
+    xrtClearError();
+    if (count < 1) {
+        xansi_error("cursor count or column must be positive");
+        return NULL;
     }
-    snprintf(slot, XANSI_TEXT, "\x1b[38;5;%lldm%s\x1b[0m", n, text ? text : "");
-    return slot;
+    return xrtFormat("\x1b[%lld%c", (long long)count, direction);
 }
 
-const char *xansi_bg256(const char *text, long long n) {
-    char *slot = xansi_slot();
-    if (n < 0 || n > 255) {
-        slot[0] = '\0';
-        return slot;
+void* xansi_reset(void) { return xansi_copy("\x1b[0m"); }
+void* xansi_bold(const char* text) { return xansi_wrap(text, "1"); }
+void* xansi_dim(const char* text) { return xansi_wrap(text, "2"); }
+void* xansi_italic(const char* text) { return xansi_wrap(text, "3"); }
+void* xansi_underline(const char* text) { return xansi_wrap(text, "4"); }
+void* xansi_blink(const char* text) { return xansi_wrap(text, "5"); }
+void* xansi_inverse(const char* text) { return xansi_wrap(text, "7"); }
+void* xansi_hidden(const char* text) { return xansi_wrap(text, "8"); }
+void* xansi_strike(const char* text) { return xansi_wrap(text, "9"); }
+
+void* xansi_fg(const char* text, int64_t code)
+{
+    if (!((code >= 30 && code <= 37) || (code >= 90 && code <= 97))) {
+        xansi_error("foreground SGR code must be 30..37 or 90..97");
+        return NULL;
     }
-    snprintf(slot, XANSI_TEXT, "\x1b[48;5;%lldm%s\x1b[0m", n, text ? text : "");
-    return slot;
+    return xansi_color(text, code);
 }
 
-const char *xansi_fg_true(const char *text, long long r, long long g, long long b) {
-    char *slot = xansi_slot();
-    if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) {
-        slot[0] = '\0';
-        return slot;
+void* xansi_bg(const char* text, int64_t code)
+{
+    if (!((code >= 40 && code <= 47) || (code >= 100 && code <= 107))) {
+        xansi_error("background SGR code must be 40..47 or 100..107");
+        return NULL;
     }
-    snprintf(slot, XANSI_TEXT, "\x1b[38;2;%lld;%lld;%lldm%s\x1b[0m", r, g, b,
-        text ? text : "");
-    return slot;
+    return xansi_color(text, code);
 }
 
-const char *xansi_bg_true(const char *text, long long r, long long g, long long b) {
-    char *slot = xansi_slot();
-    if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) {
-        slot[0] = '\0';
-        return slot;
-    }
-    snprintf(slot, XANSI_TEXT, "\x1b[48;2;%lld;%lld;%lldm%s\x1b[0m", r, g, b,
-        text ? text : "");
-    return slot;
-}
+void* xansi_fg256(const char* text, int64_t index)
+{ return xansi_palette(text, 1, index); }
+void* xansi_bg256(const char* text, int64_t index)
+{ return xansi_palette(text, 0, index); }
+void* xansi_fg_true(const char* text, int64_t r, int64_t g, int64_t b)
+{ return xansi_rgb(text, 1, r, g, b); }
+void* xansi_bg_true(const char* text, int64_t r, int64_t g, int64_t b)
+{ return xansi_rgb(text, 0, r, g, b); }
 
-const char *xansi_up(long long n) { return xansi_csi_num("A", n); }
-const char *xansi_down(long long n) { return xansi_csi_num("B", n); }
-const char *xansi_right(long long n) { return xansi_csi_num("C", n); }
-const char *xansi_left(long long n) { return xansi_csi_num("D", n); }
-const char *xansi_next_line(long long n) { return xansi_csi_num("E", n); }
-const char *xansi_prev_line(long long n) { return xansi_csi_num("F", n); }
-const char *xansi_column(long long n) { return xansi_csi_num("G", n); }
+void* xansi_up(int64_t count) { return xansi_move('A', count); }
+void* xansi_down(int64_t count) { return xansi_move('B', count); }
+void* xansi_right(int64_t count) { return xansi_move('C', count); }
+void* xansi_left(int64_t count) { return xansi_move('D', count); }
+void* xansi_next_line(int64_t count) { return xansi_move('E', count); }
+void* xansi_prev_line(int64_t count) { return xansi_move('F', count); }
+void* xansi_column(int64_t column) { return xansi_move('G', column); }
 
-const char *xansi_clear_screen(void) { return xansi_csi1("2J"); }
+void* xansi_clear_screen(void) { return xansi_copy("\x1b[2J"); }
+void* xansi_clear_line(void) { return xansi_copy("\x1b[2K"); }
+void* xansi_clear_to_end(void) { return xansi_copy("\x1b[K"); }
+void* xansi_hide_cursor(void) { return xansi_copy("\x1b[?25l"); }
+void* xansi_show_cursor(void) { return xansi_copy("\x1b[?25h"); }
 
-const char *xansi_clear_line(void) { return xansi_csi1("2K"); }
-const char *xansi_clear_to_end(void) { return xansi_csi1("K"); }
-const char *xansi_hide_cursor(void) { return xansi_csi1("?25l"); }
-const char *xansi_show_cursor(void) { return xansi_csi1("?25h"); }
-
-const char *xansi_title(const char *text) {
-    char *slot = xansi_slot();
-    snprintf(slot, XANSI_TEXT, "\x1b]0;%s\x07", text ? text : "");
-    return slot;
-}
-
-/* Skip one escape sequence starting at s (s[0] == 0x1b); returns pointer
-   past the sequence end, or NULL when the sequence is incomplete. */
-static const char *xansi_skip_sequence(const char *s) {
-    const char *p = s + 1;
-    if (*p == '[') {
-        p++;
-        while (*p != '\0' && *p != '@' && !(*p >= 'A' && *p <= 'Z') &&
-               !(*p >= 'a' && *p <= 'z')) {
-            p++;
+void* xansi_title(const char* text)
+{
+    size_t i = 0u, size;
+    xrtClearError();
+    text = xansi_text(text);
+    size = strlen(text);
+    while (i < size) {
+        size_t read = 0u;
+        uint32 scalar;
+        if (xrtUtf8Decode((xstrview){text + i, size - i},
+            &scalar, &read) != XUTF_OK) {
+            xansi_error("title must be valid UTF-8");
+            return NULL;
         }
-        return *p == '\0' ? NULL : p + 1;
-    }
-    if (*p == ']') {
-        p++;
-        while (*p != '\0' && *p != '\x07') {
-            p++;
+        if (scalar < 32u || (scalar >= 127u && scalar <= 159u) ||
+            xansi_bidi_control(scalar) || xansi_line_break(scalar)) {
+            xansi_error("title cannot contain terminal or bidi controls");
+            return NULL;
         }
-        return *p == '\0' ? NULL : p + 1;
+        i += read;
     }
-    return p + 1;
+    return xrtFormat("\x1b]0;%s\x07", text);
 }
 
-const char *xansi_strip(const char *text) {
-    char *slot = xansi_slot();
-    const char *p = text;
-    size_t pos = 0;
-    if (!text) return slot;
-    while (*p != '\0') {
-        if (*p == '\x1b') {
-            const char *next = xansi_skip_sequence(p);
-            if (!next) break;
-            p = next;
-        } else {
-            if (pos < XANSI_TEXT - 1) {
-                slot[pos++] = *p;
+static bool xansi_osc_text(const char* text, size_t size)
+{
+    size_t i = 0u;
+    while (i < size) {
+        uint32 scalar;
+        size_t read = 0u;
+        if (xrtUtf8Decode((xstrview){text + i, size - i},
+            &scalar, &read) != XUTF_OK || read == 0u || scalar < 32u ||
+            (scalar >= 127u && scalar <= 159u) ||
+            xansi_bidi_control(scalar) || xansi_line_break(scalar)) return false;
+        i += read;
+    }
+    return true;
+}
+
+/* 只识别完整的 CSI 与 OSC；残缺或未知 ESC 不做静默吞噬。 */
+static bool xansi_escape(const char* text, size_t size, size_t* consumed)
+{
+    size_t i = 2;
+    if (size < 3u) return false;
+    if (text[1] == '[') {
+        while (i < size && (unsigned char)text[i] >= 0x30u &&
+            (unsigned char)text[i] <= 0x3fu) ++i;
+        while (i < size && (unsigned char)text[i] >= 0x20u &&
+            (unsigned char)text[i] <= 0x2fu) ++i;
+        if (i == size || (unsigned char)text[i] < 0x40u ||
+            (unsigned char)text[i] > 0x7eu) return false;
+        *consumed = i + 1u;
+        return true;
+    }
+    if (text[1] == ']') {
+        while (i < size) {
+            if (text[i] == '\a') {
+                if (!xansi_osc_text(text + 2, i - 2u)) return false;
+                *consumed = i + 1u;
+                return true;
             }
-            p++;
+            if (text[i] == '\x1b' && i + 1u < size && text[i + 1u] == '\\') {
+                if (!xansi_osc_text(text + 2, i - 2u)) return false;
+                *consumed = i + 2u;
+                return true;
+            }
+            if ((unsigned char)text[i] < 32u) return false;
+            ++i;
         }
     }
-    slot[pos] = '\0';
-    return slot;
+    return false;
 }
 
-long long xansi_width(const char *text) {
-    const char *p = text;
-    long long width = 0;
-    if (!text) return 0;
-    while (*p != '\0') {
-        if (*p == '\x1b') {
-            const char *next = xansi_skip_sequence(p);
-            if (!next) break;
-            p = next;
+void* xansi_strip(const char* text)
+{
+    size_t size, read = 0u, written = 0u;
+    char* result;
+    xrtClearError();
+    text = xansi_text(text);
+    size = strlen(text);
+    if (!xrtUtf8Valid((xstrview){text, size}, NULL)) {
+        xansi_error("input must be valid UTF-8");
+        return NULL;
+    }
+    result = (char*)xrtMalloc(size + 1u);
+    if (result == NULL) return NULL;
+    while (read < size) {
+        size_t escaped;
+        if (text[read] == '\x1b') {
+            if (!xansi_escape(text + read, size - read, &escaped)) goto invalid;
+            read += escaped;
         } else {
-            width++;
-            p++;
+            result[written++] = text[read++];
         }
     }
-    return width;
+    result[written] = '\0';
+    return result;
+invalid:
+    xrtFree(result);
+    xansi_error("invalid or incomplete ANSI escape sequence");
+    return NULL;
 }
 
-/* Visible width in terminal cells: count UTF-8 code points and treat
-   East Asian wide ranges as two cells. */
-static long long xansi_utf8_width(const char *text) {
-    const unsigned char *p = (const unsigned char *)text;
-    long long width = 0;
-    if (!text) return 0;
-    while (*p != '\0') {
-        unsigned int cp;
-        int len = 1;
-        if (*p == 0x1b) {
-            const char *next = xansi_skip_sequence((const char *)p);
-            if (!next) break;
-            p = (const unsigned char *)next;
+static int xansi_cell_width(uint32 scalar)
+{
+    if ((scalar >= 0x0300u && scalar <= 0x036fu) ||
+        (scalar >= 0x1ab0u && scalar <= 0x1affu) ||
+        (scalar >= 0x1dc0u && scalar <= 0x1dffu) ||
+        (scalar >= 0x20d0u && scalar <= 0x20ffu) ||
+        (scalar >= 0xfe00u && scalar <= 0xfe0fu) ||
+        (scalar >= 0xfe20u && scalar <= 0xfe2fu) ||
+        (scalar >= 0xe0100u && scalar <= 0xe01efu) ||
+        (scalar >= 0x200bu && scalar <= 0x200du) ||
+        (scalar >= 0x2060u && scalar <= 0x2064u) ||
+        scalar == 0xfeffu) return 0;
+    if ((scalar >= 0x1100u && scalar <= 0x115fu) ||
+        (scalar >= 0x2329u && scalar <= 0x232au) ||
+        (scalar >= 0x2e80u && scalar <= 0xa4cfu) ||
+        (scalar >= 0xac00u && scalar <= 0xd7a3u) ||
+        (scalar >= 0xf900u && scalar <= 0xfaffu) ||
+        (scalar >= 0xfe10u && scalar <= 0xfe19u) ||
+        (scalar >= 0xfe30u && scalar <= 0xfe6fu) ||
+        (scalar >= 0xff00u && scalar <= 0xff60u) ||
+        (scalar >= 0xffe0u && scalar <= 0xffe6u) ||
+        (scalar >= 0x1f300u && scalar <= 0x1faffu) ||
+        (scalar >= 0x20000u && scalar <= 0x3fffdu)) return 2;
+    return 1;
+}
+
+int64_t xansi_display_width(const char* text)
+{
+    size_t size, position = 0u;
+    int64_t width = 0;
+    xrtClearError();
+    text = xansi_text(text);
+    size = strlen(text);
+    while (position < size) {
+        size_t consumed = 0u;
+        uint32 scalar;
+        if (text[position] == '\x1b') {
+            if (!xansi_escape(text + position, size - position, &consumed)) goto invalid;
+            position += consumed;
             continue;
         }
-        if (*p < 0x80) {
-            cp = *p;
-            len = 1;
-        } else if ((*p & 0xE0) == 0xC0) {
-            cp = *p & 0x1F;
-            len = 2;
-        } else if ((*p & 0xF0) == 0xE0) {
-            cp = *p & 0x0F;
-            len = 3;
-        } else if ((*p & 0xF8) == 0xF0) {
-            cp = *p & 0x07;
-            len = 4;
-        } else {
-            cp = *p;
-            len = 1;
-        }
-        {
-            int i;
-            for (i = 1; i < len && p[i] != '\0'; i++) {
-                cp = (cp << 6) | (p[i] & 0x3F);
-            }
-            if (p[len - 1] == '\0' && len > 1) {
-                len = 1;
-            }
-        }
-        /* CJK wide ranges: approximate common blocks (CJK ideographs,
-           Hangul, Kana, fullwidth forms, CJK punctuation). */
-        if ((cp >= 0x1100 && cp <= 0x115F) ||
-            (cp >= 0x2E80 && cp <= 0x303E) ||
-            (cp >= 0x3041 && cp <= 0x33FF) ||
-            (cp >= 0x3400 && cp <= 0x4DBF) ||
-            (cp >= 0x4E00 && cp <= 0x9FFF) ||
-            (cp >= 0xA000 && cp <= 0xA4CF) ||
-            (cp >= 0xAC00 && cp <= 0xD7A3) ||
-            (cp >= 0xF900 && cp <= 0xFAFF) ||
-            (cp >= 0xFE30 && cp <= 0xFE4F) ||
-            (cp >= 0xFF00 && cp <= 0xFF60) ||
-            (cp >= 0xFFE0 && cp <= 0xFFE6) ||
-            (cp >= 0x20000 && cp <= 0x3FFFD)) {
-            width += 2;
-        } else {
-            width += 1;
-        }
-        p += len;
+        if (xrtUtf8Decode((xstrview){text + position, size - position},
+            &scalar, &consumed) != XUTF_OK || scalar < 32u ||
+            (scalar >= 127u && scalar <= 159u) ||
+            xansi_bidi_control(scalar) || xansi_line_break(scalar))
+            goto invalid;
+        if (width > INT64_MAX - 2) goto invalid;
+        width += xansi_cell_width(scalar);
+        position += consumed;
     }
     return width;
-}
-
-long long xansi_display_width(const char *text) {
-    return xansi_utf8_width(text);
+invalid:
+    xansi_error("displayWidth requires single-line UTF-8 without bidi controls and valid ANSI sequences");
+    return -1;
 }
