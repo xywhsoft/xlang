@@ -1,0 +1,54 @@
+import barcode
+
+func main(...) as int
+    // UPC-A 11 位自动校验与完整 12 位，必须和前缀 0 的 EAN-13 完全同码。
+    var shortUpc = barcode.upcA("12345678901")
+    var fullUpc = barcode.upcA("123456789012")
+    var equivalent = barcode.ean13("0123456789012")
+    for i in range(0, 95)
+        assert shortUpc[i] == equivalent[i]
+        assert fullUpc[i] == equivalent[i]
+    end
+    assert barcode.upcAAscii("12345678901") == barcode.ean13Ascii("0123456789012")
+    assert barcode.checksumEan("4006381333931") == -1
+    assert not barcode.validateEan("4006381333932")
+    assert not barcode.validateEan("40063813339\u0000")
+
+    // 返回的渲染文本彼此独立，连续调用不会改写先前结果。
+    string first = barcode.ean13Ascii("4006381333931")
+    string svg = barcode.ean13Svg("4006381333931", 1000000, 1000000)
+    assert first.length == 95
+    assert svg.contains("viewBox=\"0 0 113000000 1000000\"")
+    assert svg.contains("d=\"M11000000,0h1000000v1000000h-1000000z")
+    assert svg.contains("M105000000,0h1000000v1000000h-1000000z")
+    string upcSvg = barcode.upcASvg("12345678901", 60, 3)
+    assert upcSvg.contains("viewBox=\"0 0 339 60\"")
+    assert upcSvg.contains("d=\"M27,0h3v60h-3z")
+    assert upcSvg.contains("M309,0h3v60h-3z")
+    assert svg.contains("</svg>")
+
+    int caught = 0
+    try
+        barcode.upcA("123456789019")
+    catch e
+        caught += 1
+    end
+    try
+        barcode.ean13("400638133393\u0000")
+    catch e
+        caught += 1
+    end
+    try
+        barcode.ean13Svg("4006381333931", 0, 3)
+    catch e
+        caught += 1
+    end
+    try
+        barcode.upcAAscii("123")
+    catch e
+        caught += 1
+    end
+    assert caught == 4
+    println("barcode boundaries: PASS")
+    return 0
+end
