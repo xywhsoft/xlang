@@ -1,0 +1,115 @@
+import blake3
+
+class Blake3Progress
+    int calls = 0
+    int last = 0
+end
+
+func main(...) as int
+    string root = "build/test/blake3-progress"
+    dir.createAll(root)
+    string source = root + "/中文源.txt"
+    string empty = root + "/empty.txt"
+    string text = ""
+    for i in range(12000)
+        text += "你好 "
+    end
+    file.writeText(source, text)
+    file.writeText(empty, "")
+    try
+        Blake3Progress state = Blake3Progress()
+        string result = blake3.hashFileHex(source, outLen = 131,
+            onProgress = func(int current, int total, int output) as bool
+            assert current >= state.last and total == string.byteLen(text) and output == 0
+            state.calls += 1
+            state.last = current
+            // 嵌套调用不能覆盖外层状态或临时结果。
+            assert blake3.hashFileHex(empty) == blake3.hashHex("")
+            bool handled = false
+            try
+                blake3.hashFileHex(root + "/missing.txt")
+            catch FileError e
+                handled = true
+            end
+            assert handled
+            return true
+        end)
+        assert state.calls == 3 and state.last == string.byteLen(text)
+        assert result == blake3.hashHex(text, 131)
+
+        bool caught = false
+        try
+            blake3.hashFileHex(source, onProgress = func(int a, int b, int c) as bool
+                return false
+            end)
+        catch CancelledError e
+            caught = true
+        end
+        assert caught
+        state = Blake3Progress()
+        caught = false
+        try
+            blake3.hashFileHex(source, onProgress = func(int a, int b, int c) as bool
+                state.calls += 1
+                return state.calls < 3
+            end)
+        catch CancelledError e
+            caught = true
+        end
+        assert caught and state.calls == 3
+
+        // 原回调异常的类别和消息必须穿过 C 桥，不被重写为普通文件错误。
+        caught = false
+        try
+            blake3.hashFileHex(source, onProgress = func(int a, int b, int c) as bool
+                throw ValueError "blake3 value marker"
+            end)
+        catch ValueError e
+            assert e.message == "blake3 value marker"
+            caught = true
+        end
+        assert caught
+        caught = false
+        try
+            blake3.hashFileHex(source, onProgress = func(int a, int b, int c) as bool
+                throw IOError "blake3 io marker"
+            end)
+        catch IOError e
+            assert e.message == "blake3 io marker"
+            caught = true
+        end
+        assert caught
+        state = Blake3Progress()
+        caught = false
+        try
+            blake3.hashFileHex(empty, onProgress = func(int a, int b, int c) as bool
+                assert a == 0 and b == 0 and c == 0
+                state.calls += 1
+                return false
+            end)
+        catch CancelledError e
+            caught = true
+        end
+        assert caught and state.calls == 1
+        caught = false
+        try
+            blake3.hashFileHex(source, maxInput = 1)
+        catch RangeError e
+            caught = true
+        end
+        assert caught
+        caught = false
+        try
+            blake3.hashFileHex(root + "/missing.txt")
+        catch FileError e
+            caught = true
+        end
+        assert caught
+        assert blake3.hashFileHex(source) == blake3.hashHex(text)
+        assert file.readText(source) == text
+    finally
+        file.delete(source)
+        file.delete(empty)
+    end
+    return 0
+end

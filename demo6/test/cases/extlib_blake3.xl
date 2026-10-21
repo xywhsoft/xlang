@@ -80,17 +80,25 @@ func main(...) as int
     end
 
     // 文件哈希与 Buffer 哈希一致。
-    string path = "tmp/extlib_blake3_test.bin"
-    file.writeBytes(path, data)
+    dir.createAll("build/test/blake3_cases")
+    string path = "build/test/blake3_cases/main.bin"
+    file.writeBytes(path, data.toBytes())
     if blake3.hashFileHex(path) != hex then
         return 14
     end
+    bool badPath = false
+    try
+        blake3.hashFileHex(path + "\0hidden")
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath
     file.delete(path)
 
     // 不存在的文件抛出 FileError。
     bool missing = false
     try
-        blake3.hashFileHex("tmp/extlib_blake3_missing.bin")
+        blake3.hashFileHex("build/test/blake3_cases/missing.bin")
     catch FileError e
         missing = true
     end
