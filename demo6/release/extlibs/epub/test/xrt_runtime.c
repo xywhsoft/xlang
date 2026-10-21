@@ -1,0 +1,10 @@
+/* EPUB C 门禁只链接实际使用的 XRT 模块。 */
+#define XRT_MODULE_BUFFER
+#define XRT_MODULE_FILE_WHOLE
+#define XRT_MODULE_DIR_TEMP
+#define XRT_MODULE_TIME_TEXT
+#define XRT_MODULE_UNICODE
+#define XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_MEMORY_DEBUG
+#define XRT_IMPLEMENTATION
+#include "xrt.h"

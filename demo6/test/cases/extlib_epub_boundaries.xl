@@ -1,0 +1,60 @@
+import epub
+
+func main(...) as int
+    string target = "build/test/epub_boundaries.epub"
+    var meta = {"title": "边界测试", "language": "zh-CN",
+        "identifier": "urn:xlang:test:epub-boundaries",
+        "modified": "2026-08-01T00:00:00Z"}
+    var chapters = [{"title": "第一章", "text": "# 标题\n\n含 <XML> 与中文"}]
+    assert epub.build(target, meta, chapters) > 0
+    string chapter = epub.readEntry(target, "OEBPS/ch1.xhtml")
+    assert chapter.contains("<h1>标题</h1>")
+    assert chapter.contains("&lt;XML&gt;")
+    assert epub.readEntry(target, "missing.xhtml") == ""
+
+    var escapedMeta = {"title": "行\r标题", "author": "甲\t乙\n丙",
+        "language": "zh\tCN", "identifier": "urn:xlang:test:epub-escape",
+        "modified": "2026-08-01T00:00:00Z"}
+    assert epub.build(target, escapedMeta,
+        [{"title": "章\r名", "text": "正文"}]) > 0
+    assert epub.readEntry(target, "OEBPS/content.opf").contains("行&#xD;标题")
+    assert epub.readEntry(target, "OEBPS/content.opf").contains("甲&#x9;乙&#xA;丙")
+    assert epub.readEntry(target, "OEBPS/ch1.xhtml").contains("zh&#x9;CN")
+    assert epub.readEntry(target, "OEBPS/ch1.xhtml").contains("章&#xD;名")
+    assert epub.build(target, meta, chapters) > 0
+
+    int caught = 0
+    try
+        epub.build(target, {"title": "缺少标识符", "language": "zh"}, chapters)
+    catch e
+        caught += 1
+    end
+    try
+        epub.build(target, {"title": "错误日期", "language": "zh",
+            "identifier": "urn:xlang:test:invalid",
+            "modified": "2026-99-99T00:00:00Z"}, chapters)
+    catch e
+        caught += 1
+    end
+    try
+        epub.build(target, meta, [])
+    catch e
+        caught += 1
+    end
+    try
+        epub.build(target, {"title": "bad \uFFFE title", "language": "zh",
+            "identifier": "urn:xlang:test:invalid-xml"}, chapters)
+    catch e
+        caught += 1
+    end
+    try
+        epub.build(target, meta, [{"title": "第一章", "text": "bad \uFFFF chapter"}])
+    catch e
+        caught += 1
+    end
+    assert caught == 5
+    assert epub.readEntry(target, "OEBPS/ch1.xhtml") == chapter
+    file.delete(target)
+    println("epub boundaries: PASS")
+    return 0
+end

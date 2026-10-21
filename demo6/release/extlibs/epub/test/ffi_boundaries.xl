@@ -1,0 +1,47 @@
+import epub
+
+func checkBoundaries(string outputPath)
+    var meta = {"title": "FFI 边界", "language": "zh-CN",
+        "identifier": "urn:xlang:test:epub-ffi",
+        "modified": "2026-08-01T00:00:00Z"}
+    var chapters = [{"title": "第一章", "text": "你好"}]
+    assert epub.build(outputPath, meta, chapters) > 0
+    assert epub.readEntry(outputPath, "mimetype") == "application/epub+zip"
+
+    bool badPath = false
+    try
+        epub.readEntry(outputPath + "\0hidden", "mimetype")
+    catch ValueError error
+        badPath = true
+    end
+    assert badPath
+
+    bool badName = false
+    try
+        epub.readEntry(outputPath, "mimetype\0hidden")
+    catch ValueError error
+        badName = true
+    end
+    assert badName
+
+    bool badOutput = false
+    try
+        epub.build(outputPath + "\0hidden", meta, chapters)
+    catch ValueError error
+        badOutput = true
+    end
+    assert badOutput
+    assert epub.readEntry(outputPath, "mimetype") == "application/epub+zip"
+    println("epub FFI boundaries: PASS")
+end
+
+func main(...) as int
+    string workDir = path.join(path.temp(), "xlang_epub_ffi_test_" + crypto.randomString(20))
+    dir.createAll(workDir)
+    try
+        checkBoundaries(path.join(workDir, "book.epub"))
+    finally
+        assert dir.delete(workDir), "temporary EPUB test directory must be removed"
+    end
+    return 0
+end

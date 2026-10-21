@@ -1,0 +1,16 @@
+import epub
+
+func main(...) as int
+    var meta = {"title": "AOT 测试", "language": "zh-CN",
+        "identifier": "urn:xlang:test:epub-aot",
+        "modified": "2026-08-01T00:00:00Z"}
+    var chapters = [{"title": "一", "text": "# 标题\n\n内容"}]
+    string outputPath = path.join(path.temp(),
+        "xlang-epub-aot-" + crypto.randomString(20) + ".epub")
+    try
+        assert epub.build(outputPath, meta, chapters) > 0
+    finally
+        file.delete(outputPath)
+    end
+    return 0
+end

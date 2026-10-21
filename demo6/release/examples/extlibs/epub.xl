@@ -1,35 +1,32 @@
 import epub
-import md4c
 
-
+func runExample(string outputPath)
+    var meta = {"title": "xlang 电子书", "language": "zh-CN",
+        "identifier": "urn:xlang:example:epub",
+        "modified": "2026-08-01T00:00:00Z"}
+    var chapters = [
+        {"title": "第一章", "text": "# 开始\n\n你好，xlang。"},
+        {"title": "第二章", "text": "# 下一步\n\n使用 C 与 xlang。"}
+    ]
+    assert epub.build(outputPath, meta, chapters) > 0
+    string nav = epub.readEntry(outputPath, "OEBPS/nav.xhtml")
+    assert nav.contains("第一章") and nav.contains("第二章")
+    println("chapters: 2")
+    println("title: xlang 电子书")
+    println("epub example: PASS")
+end
 
 func main(...) as int
-    // 用 markdown 写两章内容
-    string ch1Text = "# 引言\n\n本书描述 xlang 扩展库生态的建设过程。\n\n## 目标\n\n让协议逻辑可离线验证。"
-    string ch2Text = "# 架构\n\n编解码在 C 层，连接走标准库 tcp/udp。\n\n字段与帧格式以 hex 跨 ABI。"
-
-    // markdown 转 XHTML（md4c 扩展库）
-    string ch1Html = md4c.html(ch1Text)
-    println("markdown chapter preview:")
-    println(string.left(ch1Html, 120))
-
-    // 生成 EPUB（这里直接用内置文本格式）
-    var meta = {"title": "xlang 生态手记", "author": "xlang 社区", "language": "zh"}
-    var chapters = [
-        {"title": "引言", "text": ch1Text},
-        {"title": "架构", "text": ch2Text}
-    ]
-    dir.createAll("examples_out/extlibs")
-    string path = "examples_out/extlibs/notes.epub"
-    int size = epub.build(path, meta, chapters)
-    println("epub written:", path, size, "bytes")
-
-    // 验证内容
-    string opf = epub.readEntry(path, "OEBPS/content.opf")
-    println("opf title present:", opf.contains("xlang 生态手记"))
-    string nav = epub.readEntry(path, "OEBPS/nav.xhtml")
-    println("nav has both chapters:", nav.contains("引言") and nav.contains("架构"))
-
-    println("epub example: PASS")
+    if arg.length > 1 then
+        runExample(string(arg[1]))
+        return 0
+    end
+    string workDir = path.join(path.temp(), "xlang_epub_example_" + crypto.randomString(20))
+    dir.createAll(workDir)
+    try
+        runExample(path.join(workDir, "book.epub"))
+    finally
+        assert dir.delete(workDir), "temporary EPUB example directory must be removed"
+    end
     return 0
 end

@@ -8,5 +8,18 @@
     "links": [],
     "loadlibs": [],
     "native": { "singleton": false, "loadName": "", "version": "" },
-    "artifact": { "kind": "source", "cSources": ["epub_native.c"], "xlSources": ["src/epub.xl"] }
+    "coverage": { "mode": "suite", "tests": ["test/ffi_boundaries.xl"] },
+    "artifact": {
+        "kind": "source",
+        "includeDirs": ["include"],
+        "cSources": ["epub_native.c", "epub_zip.c"],
+        "xlSources": ["src/epub.xl"],
+        "xrtModules": [
+            "XRT_MODULE_BUFFER",
+            "XRT_MODULE_FILE_WHOLE",
+            "XRT_MODULE_TIME_TEXT",
+            "XRT_MODULE_UNICODE",
+            "XRT_MODULE_VALUE_CONTAINER"
+        ]
+    }
 }

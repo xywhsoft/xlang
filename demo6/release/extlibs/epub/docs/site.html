@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>epub - 扩展库 - xlang</title>
+  <meta name="description" content="用简单 UTF-8 文本章节生成 EPUB 3 电子书。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / epub</p><h1>epub</h1>
+    <p class="extlib-lead">将简洁的文本章节生成 EPUB 3 电子书。</p>
+    <p>自动生成目录、阅读顺序与必要元数据；C 和 xlang 均可使用。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>epub.build(path, meta, chapters)</code></td><td>原子写入 EPUB，返回字节数</td></tr>
+      <tr><td><code>epub.readEntry(path, name)</code></td><td>读取本库生成的 stored 文本条目</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import epub
+var meta = {"title": "xlang 电子书", "language": "zh-CN",
+            "identifier": "urn:xlang:example:epub"}
+var chapters = [{"title": "第一章", "text": "# 开始\n\n你好，xlang。"}]
+epub.build("book.epub", meta, chapters)</code></pre>
+    <p>适合纯文本手册；不解析完整 Markdown，也不打包图片、CSS 或字体。缺省修改时间需要有效系统时钟；时钟失败时构建报错且不写目标文件。生成和读取上限均为 8 MiB，读取超限时报范围错误；元数据与章节文本按 XML 1.0 字符范围校验，元数据、章节标题及语言属性中的 Tab/LF/CR 使用字符引用保留原值，章节正文仍按分段规则处理；路径和条目名中的内嵌 NUL 会被拒绝。C 构建结果使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。C 教学范例可直接使用 <code>xl run release/extlibs/epub/examples/basic.c</code>；Linux 门禁核对它与 GCC 分离编译生成的 EPUB 字节一致。Windows/Linux 门禁均检查 C/XLang 边界、双语同字节 EPUB，并用 Python 标准库验证 ZIP CRC、容器、manifest、spine 和 XHTML；Linux 另有时钟故障注入及 C ASan/UBSan。固定范例检查不替代全面 EPUBCheck 认证；完整 AOT 仍待主线缺符号修复。C 接口及验收范围见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

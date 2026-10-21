@@ -1,543 +1,252 @@
-/*
- * epub_native.c - Self-contained EPUB 3 writer (stored ZIP).
- *
- * Emits a valid EPUB without external dependencies: the ZIP container
- * uses stored (uncompressed) entries, which the OCF permits, with the
- * mimetype entry first. Content files generated: META-INF/container.xml,
- * OEBPS/content.opf, OEBPS/nav.xhtml, and one XHTML chapter per input.
- * Chapter text is plain UTF-8 with simple block markup: leading "# " or
- * "## " becomes a heading, blank lines split paragraphs, all markup is
- * escaped. readEntry scans local headers so tests can verify content
- * without unzipping.
- */
-#include <stdlib.h>
-#include <string.h>
+/* 将 UTF-8 纯文本章节写成 EPUB 3；ZIP 封装集中在 epub_zip.c。 */
+#include "epub_internal.h"
+#include "include/epub_native.h"
+
 #include <stdio.h>
-
-#define XRT_MODULE_FILE_WHOLE
-#define XRT_MODULE_VALUE_CONTAINER
-#include "xrt.h"
-
-#define XEP_DOMAIN "xlang.extlib.epub"
-
-#define XEP_MAX_ENTRIES 128
-#define XEP_MAX_CONTENT (8 * 1024 * 1024)
+#include <string.h>
 
 static void xep_error(const char *message) {
-    xrtSetErrorInfo(XERR_VALUE, XEP_DOMAIN, 0, message);
+    xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.epub", 0, message);
 }
 
-static xvalue *xep_null(void) {
-    return xrtValueNull();
-}
-
-static xvalue *xep_text(const char *s, size_t n) {
-    str owned = (str)xrtMalloc(n + 1);
-    xvalue *value;
-    if (owned == NULL) return NULL;
-    if (n > 0) memcpy(owned, s, n);
-    owned[n] = '\0';
-    value = xrtValueStringTake(&owned, n);
-    if (value == NULL && owned != NULL) xrtFree(owned);
-    return value;
-}
-
-static int xep_set_str(xvalue *obj, const char *key, const char *s) {
-    xstrview view;
-    view.Data = key;
-    view.Size = strlen(key);
-    return xrtValueObjectSetNew(obj, view, xep_text(s, strlen(s)));
-}
-
-/* ---------------- CRC-32 ---------------- */
-
-static unsigned int xep_crc_table[256];
-static int xep_crc_ready = 0;
-
-static void xep_crc_init(void) {
-    unsigned int i;
-    unsigned int j;
-    unsigned int c;
-    for (i = 0; i < 256; i++) {
-        c = i;
-        for (j = 0; j < 8; j++) {
-            c = (c & 1) ? (0xEDB88320u ^ (c >> 1)) : (c >> 1);
-        }
-        xep_crc_table[i] = c;
+/* EPUB 内嵌 XML 1.0，合法 UTF-8 还必须满足 XML Char 范围。 */
+static int xep_xml_text_valid(xstrview text) {
+    size_t pos = 0;
+    while (pos < text.Size) {
+        uint32 scalar;
+        size_t read;
+        if (xrtUtf8Decode((xstrview){text.Data + pos, text.Size - pos},
+                &scalar, &read) != XUTF_OK || read == 0 ||
+            (scalar < 0x20 && scalar != '\t' && scalar != '\n' && scalar != '\r') ||
+            scalar == 0xfffe || scalar == 0xffff) return 0;
+        pos += read;
     }
-    xep_crc_ready = 1;
+    return 1;
 }
 
-static unsigned int xep_crc32(const unsigned char *data, size_t n) {
-    unsigned int crc = 0xFFFFFFFFu;
+static int xep_field(const xvalue *object, const char *key, int required,
+    xstrview *out) {
+    xvalue *value = xrtValueObjectGet(object, (xstrview){key, strlen(key)});
+    if (value == NULL) {
+        *out = (xstrview){"", 0};
+        return !required;
+    }
+    if (!xrtValueGetString(value, out) || (required && out->Size == 0) ||
+        !xep_xml_text_valid(*out)) return 0;
+    return 1;
+}
+
+static int xep_xml(xbuffer *out, xstrview text) {
     size_t i;
-    if (!xep_crc_ready) xep_crc_init();
-    for (i = 0; i < n; i++) {
-        crc = xep_crc_table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
-    }
-    return crc ^ 0xFFFFFFFFu;
-}
-
-/* ---------------- growable buffer ---------------- */
-
-typedef struct {
-    unsigned char *data;
-    size_t len;
-    size_t cap;
-} XepBuf;
-
-static int xep_reserve(XepBuf *b, size_t extra) {
-    if (b->len + extra > b->cap) {
-        size_t cap = b->cap ? b->cap * 2 : 65536;
-        unsigned char *grown;
-        while (cap < b->len + extra) cap *= 2;
-        if (cap > XEP_MAX_CONTENT) return 0;
-        grown = (unsigned char *)xrtMalloc(cap);
-        if (grown == NULL) return 0;
-        if (b->len > 0) memcpy(grown, b->data, b->len);
-        xrtFree(b->data);
-        b->data = grown;
-        b->cap = cap;
-    }
-    return 1;
-}
-
-static int xep_put(XepBuf *b, const void *data, size_t n) {
-    if (n == 0) return 1;
-    if (!xep_reserve(b, n)) return 0;
-    memcpy(b->data + b->len, data, n);
-    b->len += n;
-    return 1;
-}
-
-static int xep_puts(XepBuf *b, const char *s) {
-    return xep_put(b, s, strlen(s));
-}
-
-static void xep_le16(XepBuf *b, unsigned int v) {
-    unsigned char p[2] = {(unsigned char)(v & 0xFF),
-                          (unsigned char)((v >> 8) & 0xFF)};
-    xep_put(b, p, 2);
-}
-
-static void xep_le32(XepBuf *b, unsigned int v) {
-    unsigned char p[4] = {(unsigned char)(v & 0xFF),
-                          (unsigned char)((v >> 8) & 0xFF),
-                          (unsigned char)((v >> 16) & 0xFF),
-                          (unsigned char)((v >> 24) & 0xFF)};
-    xep_put(b, p, 4);
-}
-
-/* ---------------- content generation ---------------- */
-
-static int xep_escape_put(XepBuf *b, const char *s) {
-    const char *p;
-    for (p = s; *p != '\0'; p++) {
-        switch (*p) {
-            case '&': if (!xep_puts(b, "&amp;")) return 0; break;
-            case '<': if (!xep_puts(b, "&lt;")) return 0; break;
-            case '>': if (!xep_puts(b, "&gt;")) return 0; break;
-            case '"': if (!xep_puts(b, "&quot;")) return 0; break;
-            default:
-                if (!xep_put(b, p, 1)) return 0;
+    for (i = 0; i < text.Size; ++i) {
+        const char *escape = NULL;
+        switch (text.Data[i]) {
+            case '&': escape = "&amp;"; break;
+            case '<': escape = "&lt;"; break;
+            case '>': escape = "&gt;"; break;
+            case '"': escape = "&quot;"; break;
+            case '\'': escape = "&apos;"; break;
+            /* 属性和文本均保留原始空白，避免 XML 解析时归一化。 */
+            case '\t': escape = "&#x9;"; break;
+            case '\n': escape = "&#xA;"; break;
+            case '\r': escape = "&#xD;"; break;
+            default: break;
         }
+        if (escape != NULL) {
+            if (!xep_literal(out, escape)) return 0;
+        } else if (!xep_append(out, text.Data + i, 1)) return 0;
     }
     return 1;
 }
 
-/* Convert chapter source text into an XHTML body. */
-static int xep_chapter_body(XepBuf *out, const char *text) {
-    const char *line = text;
-    int inParagraph = 0;
-    while (line != NULL && *line != '\0') {
-        const char *eol = strchr(line, '\n');
-        const char *lineEnd = eol ? eol : line + strlen(line);
-        size_t len = (size_t)(lineEnd - line);
-        char trimmed[1024];
-        size_t t = 0;
-        size_t i;
-        for (i = 0; i < len && t < sizeof(trimmed) - 1; i++) {
-            if (line[i] != '\r') trimmed[t++] = line[i];
-        }
-        trimmed[t] = '\0';
-        if (trimmed[0] == '\0') {
-            if (inParagraph) {
-                if (!xep_puts(out, "</p>\n")) return 0;
-                inParagraph = 0;
+/* 行长度不设固定数组；只把 # / ## 行识别为标题，其余作为纯文本。 */
+static int xep_body(xbuffer *out, xstrview text) {
+    size_t pos = 0;
+    int paragraph = 0;
+    while (pos < text.Size) {
+        size_t end = pos;
+        xstrview line;
+        int level = 0;
+        while (end < text.Size && text.Data[end] != '\n') ++end;
+        line = (xstrview){text.Data + pos, end - pos};
+        if (line.Size != 0 && line.Data[line.Size - 1] == '\r') --line.Size;
+        if (memchr(line.Data, '\r', line.Size) != NULL) return 0;
+        if (line.Size > 2 && line.Data[0] == '#' && line.Data[1] == ' ')
+            level = 1;
+        else if (line.Size > 3 && line.Data[0] == '#' &&
+            line.Data[1] == '#' && line.Data[2] == ' ') level = 2;
+        if (line.Size == 0 || level != 0) {
+            if (paragraph && !xep_literal(out, "</p>\n")) return 0;
+            paragraph = 0;
+            if (level != 0) {
+                line.Data += level + 1;
+                line.Size -= (size_t)level + 1;
+                if (!xep_literal(out, level == 1 ? "<h1>" : "<h2>") ||
+                    !xep_xml(out, line) ||
+                    !xep_literal(out, level == 1 ? "</h1>\n" : "</h2>\n")) return 0;
             }
-        } else if (trimmed[0] == '#' && trimmed[1] == '#' &&
-                   trimmed[2] == ' ') {
-            if (inParagraph) {
-                if (!xep_puts(out, "</p>\n")) return 0;
-                inParagraph = 0;
-            }
-            if (!xep_puts(out, "    <h2>") ||
-                !xep_escape_put(out, trimmed + 3) ||
-                !xep_puts(out, "</h2>\n")) return 0;
-        } else if (trimmed[0] == '#' && trimmed[1] == ' ') {
-            if (inParagraph) {
-                if (!xep_puts(out, "</p>\n")) return 0;
-                inParagraph = 0;
-            }
-            if (!xep_puts(out, "    <h1>") ||
-                !xep_escape_put(out, trimmed + 2) ||
-                !xep_puts(out, "</h1>\n")) return 0;
         } else {
-            if (!inParagraph) {
-                if (!xep_puts(out, "    <p>")) return 0;
-                inParagraph = 1;
-            } else {
-                if (!xep_puts(out, " ")) return 0;
-            }
-            if (!xep_escape_put(out, trimmed)) return 0;
+            if (!paragraph) {
+                if (!xep_literal(out, "<p>")) return 0;
+                paragraph = 1;
+            } else if (!xep_literal(out, " ")) return 0;
+            if (!xep_xml(out, line)) return 0;
         }
-        line = eol ? eol + 1 : NULL;
+        pos = end < text.Size ? end + 1 : end;
     }
-    if (inParagraph) {
-        if (!xep_puts(out, "</p>\n")) return 0;
-    }
-    return 1;
+    return !paragraph || xep_literal(out, "</p>\n");
 }
 
-static int xep_chapter_page(XepBuf *page, const char *title,
-    const char *text) {
-    if (!xep_puts(page,
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            "<!DOCTYPE html>\n"
-            "<html xmlns=\"http://www.w3.org/1999/xhtml\" "
-            "xmlns:epub=\"http://www.idpf.org/2007/ops\" "
-            "lang=\"zh\" xml:lang=\"zh\">\n"
-            "<head><title>") ||
-        !xep_escape_put(page, title) ||
-        !xep_puts(page, "</title></head>\n<body>\n") ||
-        !xep_chapter_body(page, text) ||
-        !xep_puts(page, "</body>\n</html>\n")) {
-        return 0;
-    }
-    return 1;
+static int xep_page(xbuffer *out, xstrview title, xstrview language,
+    xstrview text) {
+    return xep_literal(out,
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<!DOCTYPE html>\n"
+        "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"") &&
+        xep_xml(out, language) && xep_literal(out, "\" lang=\"") &&
+        xep_xml(out, language) && xep_literal(out, "\"><head><title>") &&
+        xep_xml(out, title) && xep_literal(out, "</title></head><body>\n") &&
+        xep_body(out, text) && xep_literal(out, "</body></html>\n");
 }
 
-/* ---------------- reading inputs ---------------- */
-
-/* strdup replacement avoiding CRT naming clashes */
-static char *strdup_(const char *s) {
-    size_t n = strlen(s);
-    char *copy = (char *)xrtMalloc(n + 1);
-    if (copy != NULL) {
-        memcpy(copy, s, n + 1);
-    }
-    return copy;
+static int xep_nav_start(xbuffer *out, xstrview language) {
+    return xep_literal(out,
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<!DOCTYPE html>\n"
+        "<html xmlns=\"http://www.w3.org/1999/xhtml\" "
+        "xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"") &&
+        xep_xml(out, language) &&
+        xep_literal(out,
+            "\"><head><title>Contents</title></head><body>"
+            "<nav epub:type=\"toc\" id=\"toc\"><h1>Contents</h1><ol>\n");
 }
 
-static char *xep_obj_str(xvalue *obj, const char *key, const char *fallback) {
-    int64 i;
-    int64 n;
-    size_t len = strlen(key);
-    if (obj != NULL) {
-        n = xrtValueCount(obj);
-        for (i = 0; i < n; i++) {
-            xstrview k;
-            xvalue *v = xrtValueObjectAt(obj, i, &k);
-            if (v != NULL && k.Size == len &&
-                memcmp(k.Data, key, len) == 0) {
-                xstrview text;
-                if (xrtValueGetString(v, &text)) {
-                    char *copy = (char *)xrtMalloc(text.Size + 1);
-                    if (copy == NULL) return NULL;
-                    memcpy(copy, text.Data, text.Size);
-                    copy[text.Size] = '\0';
-                    return copy;
-                }
-            }
-        }
-    }
-    return strdup_(fallback);
+static int xep_opf_start(xbuffer *out, xstrview title, xstrview author,
+    xstrview language, xstrview identifier, xstrview modified) {
+    if (!xep_literal(out,
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" "
+        "unique-identifier=\"bookid\"><metadata "
+        "xmlns:dc=\"http://purl.org/dc/elements/1.1/\">"
+        "<dc:identifier id=\"bookid\">") ||
+        !xep_xml(out, identifier) ||
+        !xep_literal(out, "</dc:identifier><dc:title>") ||
+        !xep_xml(out, title) ||
+        !xep_literal(out, "</dc:title><dc:language>") ||
+        !xep_xml(out, language) || !xep_literal(out, "</dc:language>")) return 0;
+    if (author.Size != 0 && (!xep_literal(out, "<dc:creator>") ||
+        !xep_xml(out, author) || !xep_literal(out, "</dc:creator>"))) return 0;
+    return xep_literal(out, "<meta property=\"dcterms:modified\">") &&
+        xep_xml(out, modified) &&
+        xep_literal(out,
+            "</meta></metadata><manifest>"
+            "<item id=\"nav\" href=\"nav.xhtml\" "
+            "media-type=\"application/xhtml+xml\" properties=\"nav\"/>\n");
 }
 
-/* strdup replacement avoiding CRT naming clashes */
-
-typedef struct {
-    char name[128];
-    unsigned int crc;
-    unsigned int size;
-    unsigned int offset;
-} XepEntry;
-
-static int xep_add_entry(XepBuf *zip, XepEntry *entries, int *count,
-    const char *name, const char *content, size_t contentLen) {
-    size_t size = contentLen;
-    size_t nameLen = strlen(name);
-    unsigned int crc;
-    XepEntry *e;
-    if (*count >= XEP_MAX_ENTRIES || nameLen > 127) return 0;
-    crc = xep_crc32((const unsigned char *)content, size);
-    e = &entries[*count];
-    strcpy(e->name, name);
-    e->crc = crc;
-    e->size = (unsigned int)size;
-    e->offset = (unsigned int)zip->len;
-    (*count)++;
-    if (!xep_puts(zip, "PK\x03\x04")) return 0;
-    xep_le16(zip, 20);      /* version needed */
-    xep_le16(zip, 0);       /* flags */
-    xep_le16(zip, 0);       /* method: stored */
-    xep_le16(zip, 0);       /* time */
-    xep_le16(zip, 0x5821);  /* date: 2021-01-01 */
-    xep_le32(zip, crc);
-    xep_le32(zip, (unsigned int)size);
-    xep_le32(zip, (unsigned int)size);
-    xep_le16(zip, (unsigned int)nameLen);
-    xep_le16(zip, 0);       /* extra len */
-    if (!xep_put(zip, name, nameLen)) return 0;
-    if (!xep_put(zip, content, size)) return 0;
-    return 1;
+static int xep_modified_valid(xstrview text) {
+    static const char shape[] = "0000-00-00T00:00:00Z";
+    xtime parsed;
+    size_t i;
+    if (text.Size != sizeof(shape) - 1) return 0;
+    for (i = 0; i < text.Size; ++i) {
+        if (shape[i] == '0') {
+            if (text.Data[i] < '0' || text.Data[i] > '9') return 0;
+        } else if (shape[i] != text.Data[i]) return 0;
+    }
+    return xrtTimeParse(text, XRT_STR_LITERAL("%Y-%m-%dT%H:%M:%SZ"), &parsed);
 }
 
-static int xep_finish_zip(XepBuf *zip, const XepEntry *entries, int count) {
-    unsigned int cdStart = (unsigned int)zip->len;
-    unsigned int cdSize;
-    int i;
-    for (i = 0; i < count; i++) {
-        size_t nameLen = strlen(entries[i].name);
-        if (!xep_puts(zip, "PK\x01\x02")) return 0;
-        xep_le16(zip, 20);  /* version made by */
-        xep_le16(zip, 20);  /* version needed */
-        xep_le16(zip, 0);   /* flags */
-        xep_le16(zip, 0);   /* method */
-        xep_le16(zip, 0);   /* time */
-        xep_le16(zip, 0x5821);
-        xep_le32(zip, entries[i].crc);
-        xep_le32(zip, entries[i].size);
-        xep_le32(zip, entries[i].size);
-        xep_le16(zip, (unsigned int)nameLen);
-        xep_le16(zip, 0);   /* extra */
-        xep_le16(zip, 0);   /* comment */
-        xep_le16(zip, 0);   /* disk */
-        xep_le16(zip, 0);   /* internal attrs */
-        xep_le32(zip, 0);   /* external attrs */
-        xep_le32(zip, entries[i].offset);
-        if (!xep_put(zip, entries[i].name, nameLen)) return 0;
+int64_t xep_build(const char *path, xvalue *meta, xvalue *chapters) {
+    static const char container[] =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+        "<container version=\"1.0\" "
+        "xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">"
+        "<rootfiles><rootfile full-path=\"OEBPS/content.opf\" "
+        "media-type=\"application/oebps-package+xml\"/>"
+        "</rootfiles></container>";
+    XepArchive archive = {0};
+    xbuffer opf = {0}, nav = {0};
+    xstrview title, author, language, identifier, modified;
+    char now[32];
+    int64_t count, i;
+    int64_t result = 0;
+    xrtClearError();
+    if (path == NULL || path[0] == 0 || meta == NULL ||
+        xrtValueType(meta) != XVALUE_OBJECT || chapters == NULL ||
+        xrtValueType(chapters) != XVALUE_ARRAY ||
+        (count = xrtValueCount(chapters)) < 1 || count > 100 ||
+        !xep_field(meta, "title", 1, &title) ||
+        !xep_field(meta, "identifier", 1, &identifier) ||
+        !xep_field(meta, "language", 1, &language) ||
+        !xep_field(meta, "author", 0, &author) ||
+        !xep_field(meta, "modified", 0, &modified)) goto invalid;
+    if (modified.Size == 0) {
+        xtime current = xrtNow();
+        size_t length;
+        if (xrtGetError() != NULL) goto invalid;
+        length = xrtTimeWrite(now, sizeof(now), current, 0,
+            XRT_STR_LITERAL("%Y-%m-%dT%H:%M:%SZ"));
+        if (length == 0 || length >= sizeof(now)) goto invalid;
+        modified = (xstrview){now, length};
     }
-    cdSize = (unsigned int)zip->len - cdStart;
-    if (!xep_puts(zip, "PK\x05\x06")) return 0;
-    xep_le16(zip, 0);
-    xep_le16(zip, 0);
-    xep_le16(zip, (unsigned int)count);
-    xep_le16(zip, (unsigned int)count);
-    xep_le32(zip, cdSize);
-    xep_le32(zip, cdStart);
-    xep_le16(zip, 0);
-    return 1;
-}
-
-/* ---------------- public API ---------------- */
-
-long long xep_build(const char *path, xvalue *meta, xvalue *chapters) {
-    static const char *mimetype = "application/epub+zip";
-    XepBuf zip = {NULL, 0, 0};
-    XepEntry entries[XEP_MAX_ENTRIES];
-    int count = 0;
-    char *title;
-    char *author;
-    char *language;
-    char *identifier;
-    int64 chapterCount;
-    int64 i;
-    XepBuf opf = {NULL, 0, 0};
-    XepBuf nav = {NULL, 0, 0};
-    long long result = 0;
-    title = xep_obj_str(meta, "title", "Untitled");
-    author = xep_obj_str(meta, "author", "Unknown");
-    language = xep_obj_str(meta, "language", "zh");
-    identifier = xep_obj_str(meta, "identifier", "urn:xlang:epub:demo");
-    if (title == NULL || author == NULL || language == NULL ||
-        identifier == NULL) {
-        goto done;
-    }
-    if (!xep_add_entry(&zip, entries, &count, "mimetype", mimetype, strlen(mimetype))) {
-        goto done;
-    }
-    if (!xep_add_entry(&zip, entries, &count,
-            "META-INF/container.xml",
-            "<?xml version=\"1.0\"?>\n"
-            "<container version=\"1.0\" "
-            "xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">\n"
-            "  <rootfiles>\n"
-            "    <rootfile full-path=\"OEBPS/content.opf\" "
-            "media-type=\"application/oebps-package+xml\"/>\n"
-            "  </rootfiles>\n"
-            "</container>\n",
-            strlen("<?xml version=\"1.0\"?>\n"
-            "<container version=\"1.0\" "
-            "xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">\n"
-            "  <rootfiles>\n"
-            "    <rootfile full-path=\"OEBPS/content.opf\" "
-            "media-type=\"application/oebps-package+xml\"/>\n"
-            "  </rootfiles>\n"
-            "</container>\n"))) {
-        goto done;
-    }
-    chapterCount = chapters != NULL ? xrtValueCount(chapters) : 0;
-    if (chapterCount < 1 || chapterCount > 100) {
-        xep_error("epub needs 1-100 chapters");
-        goto done;
-    }
-    /* nav document */
-    if (!xep_puts(&nav,
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            "<!DOCTYPE html>\n"
-            "<html xmlns=\"http://www.w3.org/1999/xhtml\" "
-            "xmlns:epub=\"http://www.idpf.org/2007/ops\" "
-            "lang=\"zh\" xml:lang=\"zh\">\n"
-            "<head><title>目录</title></head>\n"
-            "<body>\n"
-            "  <nav epub:type=\"toc\" id=\"toc\">\n"
-            "    <h1>目录</h1>\n"
-            "    <ol>\n")) {
-        goto done;
-    }
-    /* chapters */
-    for (i = 0; i < chapterCount; i++) {
+    if (!xep_modified_valid(modified) ||
+        !xrtBufferInit(&archive.data) || !xrtBufferInit(&opf) ||
+        !xrtBufferInit(&nav)) goto invalid;
+    if (!xep_archive_add(&archive, "mimetype", "application/epub+zip", 20) ||
+        !xep_archive_add(&archive, "META-INF/container.xml",
+            container, sizeof(container) - 1) ||
+        !xep_nav_start(&nav, language) ||
+        !xep_opf_start(&opf, title, author, language, identifier, modified))
+        goto invalid;
+    for (i = 0; i < count; ++i) {
         xvalue *chapter = xrtValueArrayAt(chapters, i);
-        char *chTitle = xep_obj_str(chapter, "title", "Chapter");
-        char *chText = xep_obj_str(chapter, "text", "");
-        char fileName[64];
-        char href[80];
-        XepBuf page = {NULL, 0, 0};
-        if (chTitle == NULL || chText == NULL) {
-            xrtFree(chTitle);
-            xrtFree(chText);
-            goto done;
+        xstrview chapter_title, chapter_text;
+        xbuffer page = {0};
+        char name[64], href[32], item[160];
+        if (chapter == NULL || xrtValueType(chapter) != XVALUE_OBJECT ||
+            !xep_field(chapter, "title", 1, &chapter_title) ||
+            !xep_field(chapter, "text", 0, &chapter_text) ||
+            !xrtBufferInit(&page)) goto invalid;
+        snprintf(name, sizeof(name), "OEBPS/ch%lld.xhtml", (long long)i + 1);
+        snprintf(href, sizeof(href), "ch%lld.xhtml", (long long)i + 1);
+        if (!xep_page(&page, chapter_title, language, chapter_text) ||
+            !xep_archive_add(&archive, name, page.Data, page.Size)) {
+            xrtBufferUnit(&page);
+            goto invalid;
         }
-        snprintf(fileName, sizeof(fileName), "OEBPS/ch%lld.xhtml",
-            (long long)(i + 1));
-        snprintf(href, sizeof(href), "ch%lld.xhtml", (long long)(i + 1));
-        if (!xep_chapter_page(&page, chTitle, chText) ||
-            !xep_add_entry(&zip, entries, &count, fileName,
-                (const char *)(page.data ? (const char *)page.data : ""), page.len)) {
-            xrtFree(page.data);
-            xrtFree(chTitle);
-            xrtFree(chText);
-            goto done;
-        }
-        xrtFree(page.data);
-        if (!xep_puts(&nav, "      <li><a href=\"") ||
-            !xep_puts(&nav, href) ||
-            !xep_puts(&nav, "\">") ||
-            !xep_escape_put(&nav, chTitle) ||
-            !xep_puts(&nav, "</a></li>\n")) {
-            xrtFree(chTitle);
-            xrtFree(chText);
-            goto done;
-        }
-        xrtFree(chTitle);
-        xrtFree(chText);
-    }
-    if (!xep_puts(&nav,
-            "    </ol>\n"
-            "  </nav>\n"
-            "</body>\n"
-            "</html>\n") ||
-        !xep_add_entry(&zip, entries, &count, "OEBPS/nav.xhtml",
-            (const char *)(nav.data ? (const char *)nav.data : ""), nav.len)) {
-        goto done;
-    }
-    /* package document */
-    if (!xep_puts(&opf,
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            "<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" "
-            "unique-identifier=\"bookid\">\n"
-            "  <metadata "
-            "xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n"
-            "    <dc:identifier id=\"bookid\">") ||
-        !xep_escape_put(&opf, identifier) ||
-        !xep_puts(&opf, "</dc:identifier>\n    <dc:title>") ||
-        !xep_escape_put(&opf, title) ||
-        !xep_puts(&opf, "</dc:title>\n    <dc:creator>") ||
-        !xep_escape_put(&opf, author) ||
-        !xep_puts(&opf, "</dc:creator>\n    <dc:language>") ||
-        !xep_escape_put(&opf, language) ||
-        !xep_puts(&opf, "</dc:language>\n  </metadata>\n  <manifest>\n"
-            "    <item id=\"nav\" href=\"nav.xhtml\" "
-            "media-type=\"application/xhtml+xml\" "
-            "properties=\"nav\"/>\n")) {
-        goto done;
-    }
-    for (i = 0; i < chapterCount; i++) {
-        char item[128];
+        xrtBufferUnit(&page);
+        if (!xep_literal(&nav, "<li><a href=\"") ||
+            !xep_literal(&nav, href) || !xep_literal(&nav, "\">") ||
+            !xep_xml(&nav, chapter_title) ||
+            !xep_literal(&nav, "</a></li>\n")) goto invalid;
         snprintf(item, sizeof(item),
-            "    <item id=\"ch%lld\" href=\"ch%lld.xhtml\" "
+            "<item id=\"ch%lld\" href=\"ch%lld.xhtml\" "
             "media-type=\"application/xhtml+xml\"/>\n",
-            (long long)(i + 1), (long long)(i + 1));
-        if (!xep_puts(&opf, item)) goto done;
+            (long long)i + 1, (long long)i + 1);
+        if (!xep_literal(&opf, item)) goto invalid;
     }
-    if (!xep_puts(&opf, "  </manifest>\n  <spine>\n")) goto done;
-    for (i = 0; i < chapterCount; i++) {
+    if (!xep_literal(&nav, "</ol></nav></body></html>\n") ||
+        !xep_archive_add(&archive, "OEBPS/nav.xhtml", nav.Data, nav.Size) ||
+        !xep_literal(&opf, "</manifest><spine>\n")) goto invalid;
+    for (i = 0; i < count; ++i) {
         char item[64];
-        snprintf(item, sizeof(item), "    <itemref idref=\"ch%lld\"/>\n",
-            (long long)(i + 1));
-        if (!xep_puts(&opf, item)) goto done;
+        snprintf(item, sizeof(item), "<itemref idref=\"ch%lld\"/>\n",
+            (long long)i + 1);
+        if (!xep_literal(&opf, item)) goto invalid;
     }
-    if (!xep_puts(&opf, "  </spine>\n</package>\n") ||
-        !xep_add_entry(&zip, entries, &count, "OEBPS/content.opf",
-            (const char *)(opf.data ? (const char *)opf.data : ""), opf.len)) {
-        goto done;
-    }
-    if (!xep_finish_zip(&zip, entries, count)) goto done;
-    {
-        xbytesview view;
-        view.Data = zip.data;
-        view.Size = zip.len;
-        if (!xrtFileWriteAll(path, view)) {
-            xep_error("epub file cannot be written");
-            goto done;
-        }
-    }
-    result = (long long)zip.len;
+    if (!xep_literal(&opf, "</spine></package>\n") ||
+        !xep_archive_add(&archive, "OEBPS/content.opf", opf.Data, opf.Size) ||
+        !xep_archive_finish(&archive)) goto invalid;
+    if (!xrtFileWriteAtomic(path,
+        (xbytesview){archive.data.Data, archive.data.Size})) goto done;
+    result = (int64_t)archive.data.Size;
+    goto done;
+invalid:
+    if (xrtGetError() == NULL) xep_error("invalid EPUB metadata, chapter or 8 MiB limit");
 done:
-    xrtFree(zip.data);
-    xrtFree(opf.data);
-    xrtFree(nav.data);
-    xrtFree(title);
-    xrtFree(author);
-    xrtFree(language);
-    xrtFree(identifier);
+    xrtBufferUnit(&archive.data);
+    xrtBufferUnit(&opf);
+    xrtBufferUnit(&nav);
     return result;
-}
-
-const char *xep_read_entry(const char *path, const char *name) {
-    static char *slot = NULL;
-    size_t size = 0;
-    bytes data = xrtFileReadAll(path, &size);
-    const unsigned char *p;
-    const unsigned char *end;
-    if (data == NULL) {
-        xep_error("epub file cannot be read");
-        return "";
-    }
-    xrtFree(slot);
-    slot = NULL;
-    p = data;
-    end = data + size;
-    while (p + 4 <= end && memcmp(p, "PK\x03\x04", 4) == 0) {
-        unsigned int nameLen = p[26] | (p[27] << 8);
-        unsigned int extraLen = p[28] | (p[29] << 8);
-        unsigned int compSize = p[18] | (p[19] << 8) |
-                                 (p[20] << 16) | (p[21] << 24);
-        if (p + 30 + nameLen > end) break;
-        if (nameLen == strlen(name) &&
-            memcmp(p + 30, name, nameLen) == 0) {
-            const unsigned char *content = p + 30 + nameLen + extraLen;
-            if (content + compSize > end) break;
-            slot = (char *)xrtMalloc(compSize + 1);
-            if (slot == NULL) break;
-            memcpy(slot, content, compSize);
-            slot[compSize] = '\0';
-            xrtFree(data);
-            return slot;
-        }
-        p = p + 30 + nameLen + extraLen + compSize;
-    }
-    xrtFree(data);
-    return "";
 }
