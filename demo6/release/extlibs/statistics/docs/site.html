@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>statistics - 扩展库 - xlang</title>
+  <meta name="description" content="数组描述性统计、分位数、相关性与线性拟合，提供 C/xlang 双语接口。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-sci" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / statistics</p>
+    <h1>statistics</h1>
+    <p class="extlib-lead">对数值数组计算描述性统计、分位数和双变量关系。</p>
+    <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import statistics
+
+var values = [2, 4, 4, 4, 5, 5, 7, 9]
+println(statistics.mean(values))
+println(statistics.median(values))
+println(statistics.stdev(values))</code></pre>
+    <p>上述结果分别为 5、4.5、2。除 <code>count</code> 外，输入必须是非空的有限数值数组。</p>
+  </section>
+  <section id="api">
+    <h2>接口与边界</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>count / sum / mean / median / mode / min / max / range</code></td><td>计数和单变量汇总；并列众数取最小值。</td></tr>
+      <tr><td><code>variance / stdev / varianceSample / stdevSample</code></td><td>总体和样本方差/标准差。</td></tr>
+      <tr><td><code>percentile(values, p) / quartiles / iqr / mad</code></td><td>线性插值分位数、四分位距和平均绝对偏差；p 为 0–100。</td></tr>
+      <tr><td><code>geomean / harmmean</code></td><td>几何与调和平均数；前者要求正值，后者要求非零。</td></tr>
+      <tr><td><code>covariance / covarianceSample / correlation / linearFit</code></td><td>同长度数组的协方差、Pearson 相关系数和最小二乘拟合。</td></tr>
+      <tr><td><code>histogram(values, bins)</code></td><td>1–100000 个等宽分箱的计数数组。</td></tr>
+    </tbody></table>
+    <p>样本计算至少需要两个元素；常量输入不能计算相关系数或斜率。无效元素、非有限输入与无法表示为有限 float64 的结果会报错。求和、均值及分位数在安全区间保留次正规数，不因逐项缩放提前下溢；极值求和与均值共用缩放补偿累加，并单独保留缩放后可能下溢的小项。C/XLang 测试覆盖 <code>[DBL_MAX, 1, -DBL_MAX]</code> 及极值抵消后均值中的次正规残差，但不承诺任意输入的正确舍入。极值均值在恢复尺度前除以样本数，并把舍入结果限制在输入范围内；三个最大有限值的均值仍为最大有限值。方差和平均绝对偏差先缩放偏差再聚合；标准差独立计算，即使方差不可表示，只要标准差可表示，仍返回有限结果。调和平均数缩放倒数项，避免极小非零输入的中间溢出；倒数和为零仍报错。<code>count</code> 对非数组输入返回 0。</p>
+    <p>调和平均数的缩放倒数使用补偿求和；<code>[1e-16, 1, -1e-16]</code> 的有限结果不会因大项抵消而误报未定义。倒数和确实为零仍报错。</p>
+  </section>
+  <section id="c-api">
+    <h2>C 对照</h2>
+    <pre><code>#define XRT_MODULE_VALUE_CONTAINER
+#include "xrt.h"
+#include "statistics_native.h"
+
+int main(void)
+{
+    xvalue* values = xrtValueArray();
+    xrtValueArrayAppendNew(values, xrtValueFloat(2.0));
+    xrtValueArrayAppendNew(values, xrtValueFloat(4.0));
+    xvalue* average = xstat_mean(values);
+    double number = 0;
+    int ok = average &amp;&amp; xrtValueGetFloat(average, &amp;number) &amp;&amp; number == 3.0;
+    xrtValueRelease(average);
+    xrtValueRelease(values);
+    return ok ? 0 : 1;
+}</code></pre>
+    <p>C 结果由调用方 <code>xrtValueRelease</code>；失败返回 XRT null 值并设置错误。参数/定义域错误为 <code>XERR_VALUE</code>，分配失败为 <code>XERR_MEMORY</code>，XLang 分别抛出 <code>ValueError</code> 与 <code>MemoryError</code>。<code>min/max/range</code> 逐项校验并扫描极值，不复制整份输入数组；除结果外只用常量额外内存。完整双语对照范例位于 <code>release/extlibs/statistics/examples/</code>。</p>
+    <p>失败后可直接重试；后续成功的单数组、双数组或 <code>count</code> 调用会清除本线程旧的 XRT 错误。</p>
+  </section>
+  <section id="verify">
+    <h2>验证状态</h2>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/statistics/test/check.ps1 -SkipAot
+bash release/extlibs/statistics/test/check.sh</code></pre>
+    <p>两份 C 范例可直接使用 <code>xl run release/extlibs/statistics/examples/statistics_c.c</code> 和 <code>xl run release/extlibs/statistics/examples/trend_c.c</code> 运行；Windows/Linux 门禁均将其输出与 GCC 编译运行及 XLang 范例逐字对照。Linux 门禁还运行 C ASan/UBSan、XLang 数值与分配边界。<code>count</code> 结果与 <code>histogram</code> 箱数使用跨平台 <code>int64_t</code> ABI，C 范例用 <code>PRId64</code> 可移植打印。极值方差、标准差、平均绝对偏差、次正规数求和/均值/插值、大数抵消、极小调和平均数及分配失败分类均有定向测试；另用 512 组有符号整数数组的独立模型对照聚合、分位数、众数与直方图。完整 AOT 的共享链接阻断未解除；尚未签收完整发布门禁。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+import statistics
+
+func main(...) as int
+    var numbers = [2, 4, 4, 4, 5, 5, 7, 9]
+    assert statistics.mean(numbers) == 5, "integer inputs"
+    assert statistics.stdev(numbers) == 2, "standard deviation"
+    assert statistics.percentile(numbers, 50) == 4.5, "percentile"
+    assert statistics.mode([7, 5, 7, 5]) == 5, "tied mode selects smallest value"
+    assert statistics.mode([7, 5, 3]) == 3, "all-unique mode uses the same tie rule"
+    var px = [1, 2, 3]
+    var py = [2, 4, 6]
+    assert statistics.covariance(px, py) > 1.3333, "population covariance"
+    assert statistics.covarianceSample(px, py) == 2, "sample covariance"
+    assert statistics.correlation(px, py) > 0.999999, "ordinary correlation"
+    float tiny = 1e-320
+    assert tiny > 0, "subnormal input"
+    float tinyHarmonic = statistics.harmmean([tiny, tiny])
+    assert tinyHarmonic > 0 and tinyHarmonic / tiny > 0.999999 and tinyHarmonic / tiny < 1.000001, "finite tiny harmonic mean"
+    float smallest = 1e-320 / 2024
+    assert smallest > 0, "smallest positive input"
+    var smallestPair = [smallest, smallest]
+    assert statistics.sum(smallestPair) == smallest * 2, "subnormal sum"
+    assert statistics.mean(smallestPair) == smallest, "subnormal mean"
+    assert statistics.mad([0.0, smallest * 2]) == smallest, "subnormal MAD"
+    assert statistics.percentile(smallestPair, 50) == smallest, "subnormal percentile"
+    assert statistics.percentile([smallest, smallest * 2], 50) == smallest * 2, "subnormal interpolation"
+    assert statistics.geomean(smallestPair) == smallest, "subnormal geometric mean"
+    assert statistics.geomean([2, 8]) == 4, "geometric mean"
+    var cancellation = [1e16, 1, -1e16]
+    assert statistics.sum(cancellation) == 1, "cancellation preserves small remainder"
+    assert statistics.mean(cancellation) > 0.3333333 and statistics.mean(cancellation) < 0.3333334, "cancellation mean"
+    float harmonicRemainder = statistics.harmmean([1e-16, 1.0, -1e-16])
+    assert harmonicRemainder > 2.999999 and harmonicRemainder < 3.000001, "harmonic cancellation preserves remainder"
+    bool cancellingHarmonicRejected = false
+    try
+        statistics.harmmean([1, -1])
+    catch ValueError e
+        cancellingHarmonicRejected = true
+    end
+    assert cancellingHarmonicRejected, "undefined cancelling harmonic mean"
+
+    int failures = 0
+    try
+        statistics.percentile(numbers, -1)
+    catch e
+        failures += 1
+    end
+    try
+        statistics.percentile(numbers, 101)
+    catch e
+        failures += 1
+    end
+    try
+        statistics.histogram(numbers, 100001)
+    catch e
+        failures += 1
+    end
+    assert failures == 3, "invalid arguments"
+    var extremes = [-1e308, 1e308]
+    float largest = 1.7976931348623157e308
+    float hugeGeometric = statistics.geomean([largest, largest])
+    assert hugeGeometric > 1.79e308 and hugeGeometric <= largest, "finite extreme geometric mean"
+    var repeatedHuge = []
+    int sample = 0
+    while sample < 100
+        repeatedHuge.append(largest)
+        sample += 1
+    end
+    float repeatedGeometric = statistics.geomean(repeatedHuge)
+    assert repeatedGeometric > 1.79e308 and repeatedGeometric <= largest, "repeated extreme geometric mean"
+    bool invalidGeometricRejected = false
+    try
+        statistics.geomean([0, 1])
+    catch ValueError e
+        invalidGeometricRejected = true
+    end
+    assert invalidGeometricRejected, "geometric mean rejects zero"
+    assert statistics.sum([largest, smallest * 2, -largest]) == smallest * 2, "subnormal residual after large cancellation"
+    assert statistics.mean([largest, smallest * 3, -largest]) == smallest, "subnormal mean after large cancellation"
+    assert statistics.mean([largest, -largest, smallest * 3]) == smallest, "order-independent subnormal mean"
+    var constantHuge = [largest, largest, largest]
+    assert statistics.mean(constantHuge) == largest, "finite extreme mean"
+    assert statistics.variance(constantHuge) == 0, "constant extreme variance"
+    assert statistics.stdev(constantHuge) == 0, "constant extreme stdev"
+    assert statistics.mad(constantHuge) == 0, "constant extreme MAD"
+    float orderedMean = statistics.mean([1e308, 1e308, -1e308])
+    assert orderedMean > 3e307 and orderedMean < 4e307, "finite order-independent mean"
+    float orderedSum = statistics.sum([1e308, 1e308, -1e308])
+    assert orderedSum > 9e307 and orderedSum < 1.1e308, "finite cancelled sum"
+    assert statistics.sum([largest, 1.0, -largest]) == 1.0, "small residual after large cancellation"
+    assert statistics.mean(extremes) == 0, "finite mean of opposite extremes"
+    assert statistics.percentile(extremes, 50) == 0, "finite median of opposite extremes"
+    float deviation = statistics.stdev(extremes)
+    assert deviation > 9e307 and deviation < 1.1e308, "finite extreme deviation"
+    float sampleDeviation = statistics.stdevSample(extremes)
+    assert sampleDeviation > 1.4e308 and sampleDeviation < 1.5e308, "finite extreme sample deviation"
+    float absoluteDeviation = statistics.mad(extremes)
+    assert absoluteDeviation > 9e307 and absoluteDeviation < 1.1e308, "finite extreme mean absolute deviation"
+    var varianceValues = [-9e153, 9e153, -9e153, 9e153]
+    float populationVariance = statistics.variance(varianceValues)
+    float sampleVariance = statistics.varianceSample(varianceValues)
+    assert populationVariance > 8e307 and populationVariance < 8.2e307, "finite extreme population variance"
+    assert sampleVariance > 1.07e308 and sampleVariance < 1.09e308, "finite extreme sample variance"
+    float corr = statistics.correlation(extremes, extremes)
+    assert corr > 0.999999 and corr <= 1, "extreme correlation"
+    float slope = 0
+    float intercept = 0
+    slope, intercept = statistics.linearFit(extremes, extremes)
+    assert slope > 0.999999 and slope < 1.000001 and intercept == 0, "extreme linear fit"
+    slope, intercept = statistics.linearFit([9e307, 1.1e308], [8e307, 1.2e308])
+    assert slope > 1.999999 and slope < 2.000001, "finite shifted slope"
+    assert intercept < -9.99e307 and intercept > -1.001e308, "finite shifted intercept"
+    bool fitOverflowRejected = false
+    try
+        statistics.linearFit([0, 1e-300], [0, 1e308])
+    catch ValueError e
+        fitOverflowRejected = true
+    end
+    assert fitOverflowRejected, "non-finite slope must be rejected"
+    var buckets = statistics.histogram(extremes, 2)
+    assert buckets[0] == 1 and buckets[1] == 1, "extreme histogram bins"
+    bool overflowRejected = false
+    try
+        statistics.sum([1e308, 1e308])
+    catch ValueError e
+        overflowRejected = true
+    end
+    assert overflowRejected, "non-finite output must be rejected"
+    return 0
+end

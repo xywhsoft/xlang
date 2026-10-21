@@ -1,0 +1,14 @@
+import statistics
+
+func main(...) as int
+    // 描述性统计：同一组整数由 C 范例计算并对照输出。
+    var values = [2, 4, 4, 4, 5, 5, 7, 9]
+    println("count:", statistics.count(values))
+    println("mean:", statistics.mean(values))
+    println("median:", statistics.median(values))
+    println("min:", statistics.min(values))
+    println("max:", statistics.max(values))
+    println("range:", statistics.range(values))
+    println("stdev:", statistics.stdev(values))
+    return 0
+end

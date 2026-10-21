@@ -1,0 +1,7 @@
+count: 8
+mean: 5.0
+median: 4.5
+min: 2.0
+max: 9.0
+range: 7.0
+stdev: 2.0

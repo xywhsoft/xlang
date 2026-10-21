@@ -1,0 +1,22 @@
+import statistics
+
+func main(...) as int
+    var periods = [1, 2, 3, 4, 5]
+    var sales = [3, 5, 7, 9, 11]
+
+    float q1 = 0.0
+    float median = 0.0
+    float q3 = 0.0
+    q1, median, q3 = statistics.quartiles(sales)
+
+    float slope = 0.0
+    float intercept = 0.0
+    slope, intercept = statistics.linearFit(periods, sales)
+    var buckets = statistics.histogram(sales, 4)
+
+    println("quartiles:", q1, median, q3)
+    println("linearFit:", slope, intercept)
+    println("correlation:", math.round(statistics.correlation(periods, sales)))
+    println("histogram:", buckets[0], buckets[1], buckets[2], buckets[3])
+    return 0
+end

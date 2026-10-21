@@ -7,10 +7,12 @@
     "artifact": {
         "kind": "source",
         "cSources": ["statistics_native.c"],
-        "xlSources": ["src/statistics.xl"]
+        "xlSources": ["src/statistics.xl"],
+        "xrtModules": ["XRT_MODULE_VALUE_CONTAINER"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

@@ -1,0 +1,10 @@
+import statistics
+
+func main(...) as int
+    var extremes = [-1e308, 1e308]
+    float population = statistics.stdev(extremes)
+    float sample = statistics.stdevSample(extremes)
+    assert population > 9e307 and population < 1.1e308, "finite population deviation"
+    assert sample > 1.4e308 and sample < 1.5e308, "finite sample deviation"
+    return 0
+end

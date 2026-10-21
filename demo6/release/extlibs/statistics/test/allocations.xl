@@ -1,0 +1,55 @@
+import statistics
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    var values = [1, 2, 3]
+    bool memoryError = false
+    bool valueError = false
+    assert failAfter(0)
+    try
+        statistics.sum(values)
+    catch MemoryError e
+        memoryError = true
+    catch ValueError e
+        valueError = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert triggered and memoryError and not valueError
+    assert statistics.sum(values) == 6
+
+    memoryError = false
+    valueError = false
+    assert failAfter(0)
+    try
+        statistics.min(values)
+    catch MemoryError e
+        memoryError = true
+    catch ValueError e
+        valueError = true
+    end
+    triggered = failTriggered()
+    failClear()
+    assert triggered and memoryError and not valueError
+    assert statistics.min(values) == 1
+
+    // 非法箱数应在复制输入前拒绝；预留一次分配给 XRT 错误对象。
+    memoryError = false
+    valueError = false
+    assert failAfter(1)
+    try
+        statistics.histogram(values, 0)
+    catch MemoryError e
+        memoryError = true
+    catch ValueError e
+        valueError = true
+    end
+    triggered = failTriggered()
+    failClear()
+    assert valueError and not memoryError and not triggered, "invalid bins must precede input allocation"
+    assert statistics.histogram(values, 2)[0] == 1, "histogram must recover after rejection"
+    return 0
+end
