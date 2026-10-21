@@ -170,6 +170,34 @@ static int input_size_limit(void) {
     return 0;
 }
 
+static int hex_output_size_limit(void) {
+    const size_t limit = 32u * 1024u * 1024u;
+    bytes owned = xrtCalloc(limit + 1u, 1u);
+    xvalue* source;
+    char* hex;
+    bool rejected;
+    CHECK(owned != NULL);
+    source = xrtValueBytesTake(&owned, limit + 1u);
+    CHECK(source != NULL);
+    hex = xbson_to_hex(source);
+    rejected = hex == NULL && xrtGetError() != NULL &&
+        xrtErrorKind(xrtGetError()) == XERR_RANGE;
+    xrtFree(hex);
+    xrtValueRelease(source);
+    CHECK(rejected);
+    owned = xrtCalloc(limit, 1u);
+    CHECK(owned != NULL);
+    source = xrtValueBytesTake(&owned, limit);
+    CHECK(source != NULL);
+    hex = xbson_to_hex(source);
+    rejected = hex != NULL && strlen(hex) == limit * 2u &&
+        hex[0] == '0' && hex[limit * 2u - 1u] == '0' && xrtGetError() == NULL;
+    xrtFree(hex);
+    xrtValueRelease(source);
+    CHECK(rejected);
+    return 0;
+}
+
 static int string_nul_boundaries(void) {
     static const char embedded[] = {'a', 0, 'b'};
     static const char key_with_nul[] = {'a', 0, 'b'};
@@ -603,6 +631,7 @@ int main(int argc, char** argv) {
     CHECK(nested_mutations() == 0);
     CHECK(nesting_limit() == 0);
     CHECK(input_size_limit() == 0);
+    CHECK(hex_output_size_limit() == 0);
     CHECK(string_nul_boundaries() == 0);
 
     /* 稀疏 list 不能假装是连续 BSON array。 */

@@ -965,6 +965,10 @@ char *xbson_to_hex(xvalue* data) {
         bson_range_error("bson: input exceeds the 64 MiB safety limit");
         return NULL;
     }
+    if (wire.Size > MAX_BSON_BYTES / 2u) {
+        bson_range_error("bson: hex output exceeds the 64 MiB safety limit");
+        return NULL;
+    }
     out = (char *)xrtMalloc(wire.Size * 2u + 1u);
     if (!out) return NULL;
     for (i = 0; i < wire.Size; i++) {

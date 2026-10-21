@@ -24,6 +24,10 @@ println(document["name"])
 
 根值必须是字典。`encode` 和 `concat` 返回的原始 BSON 是 `bytes`，`decode`、`decodeAll`、`toHex`、`docLength` 只接受 `bytes`，不接受用字符串伪装的二进制。BSON String 映射为 UTF-8 `string`，Binary subtype 0 映射为任意内容的 `bytes`，后者可原样往返。ObjectId 解码为 24 位十六进制字符串，仅是值投影，再次编码不会保留 ObjectId 类型。其余特殊 BSON 类型（包括 regex、timestamp、undefined、MinKey/MaxKey）明确拒绝，不能把本库当作全类型 BSON 驱动使用。未知类型、重复键、非连续数组索引、非法 UTF-8、截断或尾随数据都会拒绝，不会静默变成 `null`。单个输入或输出上限 64 MiB，嵌套深度上限 64；整份文档的字段/数组项合计最多 100 万，编解码均执行该预算。
 
+`toHex` 的输出是输入字节数的两倍，因此它最多接受 32 MiB 输入；
+再多一个字节就会在分配输出前报告 `XERR_RANGE` / `RangeError`。
+恰好 32 MiB 输入可生成 64 MiB 十六进制文本。
+
 深度按文档层数计算，根文档是第 1 层：63 层子文档可编解码，第 64 层子文档会被编解码两侧共同拒绝。编解码、`concat` 和 `toHex` 的资源预算超限报告 C `XERR_RANGE` / XLang `RangeError`；畸形 BSON 和不支持的值类型仍是值错误。`docLength` 是不抛异常的长度查询，非法输入返回 0。
 
 UTF-8 字符串**值**可包含内嵌 NUL，编解码按真实字节长度保留；文档**键**是 BSON C 字符串，不能包含 NUL。两种情况均有 C/XLang 回归，不能把值的可往返性推广到键或文件路径。

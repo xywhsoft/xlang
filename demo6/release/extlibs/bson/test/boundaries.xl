@@ -34,6 +34,15 @@ func main(...) as int
     assert documents.length == 2, "concatenated stream"
     assert documents[1]["name"] == "你好", "second document"
     assert string.len(bson.toHex(wire)) == bson.docLength(wire) * 2, "hex length"
+    Buffer oversizedHex = Buffer(33554433)
+    assert oversizedHex.resize(33554433), "create BSON hex limit input"
+    bool rejectedHexOutput = false
+    try
+        bson.toHex(oversizedHex.toBytes())
+    catch RangeError e
+        rejectedHexOutput = true
+    end
+    assert rejectedHexOutput, "hex output must honor the 64 MiB limit"
 
     string first = bson.objectId()
     string second = bson.objectId()
