@@ -812,7 +812,12 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_tcp_server_sync.c",D(R(TCP_SERVER_LANGUAGE),R(EXECUTION_TCP),R(OWNERSHIP_DOMAIN_NET_SERVER_FUTURE_NATIVE)),{"XRT_MODULE_NET_TCP_SERVER_SYNC"}},
     {"src/runtime/xl6_tcp_server_stats.c",D(R(TCP_SERVER_LANGUAGE)),{NULL}},
     {"src/runtime/xl6_ownership_domain_tcp_server_stats.c",D(R(OWNERSHIP_CATALOG),R(TCP_SERVER_STATS)),{NULL}},
-    {"src/runtime/xl6_tcp_server_poll.c",D(R(TCP_SERVER_LANGUAGE),R(EXECUTION_TCP)),{NULL}}
+    {"src/runtime/xl6_tcp_server_poll.c",D(R(TCP_SERVER_LANGUAGE),R(EXECUTION_TCP)),{NULL}},
+    {"src/runtime/xl6_net_bytes.c",D(R(NATIVE_HANDLE),R(FOREIGN_ERROR),R(OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE)),{"XRT_MODULE_NET_BUFFER","XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_net_bytes_buffer.c",D(R(NET_BYTES),R(BUFFER_CORE)),{"XRT_MODULE_BUFFER"}},
+    {"src/runtime/xl6_ownership_domain_net_bytes.c",D(R(OWNERSHIP_CATALOG),R(NET_BYTES)),{NULL}},
+    {"src/runtime/xl6_tcp_send_ref.c",D(R(TCP_LANGUAGE),R(NET_BYTES)),{NULL}},
+    {"src/runtime/xl6_tcp_send_move.c",D(R(TCP_LANGUAGE),R(BUFFER_CORE)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

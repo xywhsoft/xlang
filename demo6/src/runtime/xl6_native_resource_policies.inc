@@ -91,3 +91,4 @@ XL6_NATIVE_RESOURCE_POLICY("xl6DerReaderDestroyV1",DER_READER,xl6DerReaderHandle
 XL6_NATIVE_RESOURCE_POLICY("xl6DerBuilderDestroyV1",DER_BUILDER,xl6DerBuilderHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6PemBlockDestroyV1",PEM_BLOCK,xl6PemBlockHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6PemReaderDestroyV1",PEM_READER,xl6PemReaderHandlePolicyV1Get)
+XL6_NATIVE_RESOURCE_POLICY("xl6NetBytesDestroyV1",NET_BYTES,xl6NetBytesHandlePolicyV1Get)

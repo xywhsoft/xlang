@@ -1,0 +1,11 @@
+auto input = Buffer(b"a\x00bc")
+auto payload = NetBytes(input, 3)
+assert input.clear()
+assert input.append(b"other")
+assert payload.toBytes() == b"a\x00b"
+auto output = Buffer(b">")
+assert payload.appendTo(output, 20, 1) == 2
+assert output.toBytes() == b">\x00b"
+assert payload.appendTo(output, 0) == 0
+assert NetBytes(output).length == 3
+println("NetBytes Buffer: independent snapshots and direct append, no transport")

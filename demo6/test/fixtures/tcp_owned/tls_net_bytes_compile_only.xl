@@ -1,0 +1,5 @@
+// Offline declaration/owned-result compatibility only. No TLS connection.
+func pending(TlsStream stream) as future<NetBytes>
+    return stream.recvBytesAsync()
+end
+assert true

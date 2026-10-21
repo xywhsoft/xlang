@@ -1,0 +1,36 @@
+auto empty = NetBytes()
+assert empty.length == 0
+assert empty.toBytes() == b""
+auto binary = NetBytes(b"a\x00b\xff")
+assert binary.length == 4
+assert binary.byteAt(1) == 0
+assert binary.byteAt(3) == 255
+assert binary.toBytes(20) == b"a\x00b\xff"
+assert binary.toBytes(2, 1) == b"\x00b"
+assert binary.toBytes(-1, 4) == b""
+assert NetBytes("你\x00x").length == 5
+assert NetBytes("你\x00x", 4).toBytes() == b"\xe4\xbd\xa0\x00"
+assert NetBytes(b"abcdef", 3).toBytes() == b"abc"
+int refused = 0
+try
+    auto bad = NetBytes(b"x", -2)
+catch RangeError
+    refused = refused + 1
+end
+try
+    auto bad = binary.toBytes(-1, 5)
+catch RangeError
+    refused = refused + 1
+end
+try
+    auto bad = binary.byteAt(4)
+catch RangeError
+    refused = refused + 1
+end
+try
+    auto bad = binary.byteAt(-1)
+catch RangeError
+    refused = refused + 1
+end
+assert refused == 4
+println("NetBytes: immutable exact-byte values, NUL/UTF-8 prefixes, ranges, no transport")
