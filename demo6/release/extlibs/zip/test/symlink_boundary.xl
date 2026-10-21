@@ -1,0 +1,63 @@
+import zip
+
+func main(...) as int
+    assert arg.length >= 8, "expected extraction destinations"
+    auto writer = zip.create()
+    writer.add("link/payload.txt", "must stay inside")
+    Buffer packed = writer.finish()
+    auto reader = zip.open(packed)
+
+    bool rejected = false
+    try
+        reader.extractAll(string(arg[1]))
+    catch error
+        rejected = string.contains(error.message, "ZIP output path is a link")
+    end
+    assert rejected, "ZIP extraction followed a directory symlink"
+
+    auto leafWriter = zip.create()
+    leafWriter.add("target.txt", "must not replace a link")
+    auto leafReader = zip.open(leafWriter.finish())
+    rejected = false
+    try
+        leafReader.extractAll(string(arg[1]), true)
+    catch error
+        rejected = string.contains(error.message, "ZIP output path is a link")
+    end
+    assert rejected, "ZIP extraction accepted a file symlink"
+
+    auto rootWriter = zip.create()
+    rootWriter.add("payload.txt", "must stay inside")
+    auto rootReader = zip.open(rootWriter.finish())
+    for destination in [string(arg[2]), string(arg[3]), string(arg[4]), string(arg[5])]
+        rejected = false
+        try
+            rootReader.extractAll(destination)
+        catch error
+            rejected = string.contains(error.message, "ZIP extraction destination is a link")
+        end
+        assert rejected, "ZIP extraction accepted a symlink destination"
+    end
+
+    rejected = false
+    try
+        reader.extractAll(string(arg[6]))
+    catch error
+        rejected = string.contains(error.message, "ZIP output path is a link")
+    end
+    assert rejected, "ZIP extraction accepted a child link under a dotted root"
+
+    rejected = false
+    try
+        rootReader.extractAll(string(arg[7]))
+    catch error
+        rejected = string.contains(error.message, "ZIP extraction destination is a link")
+    end
+    assert rejected, "ZIP extraction followed a link above the destination"
+
+    auto safeWriter = zip.create()
+    safeWriter.add("safe.txt", "inside")
+    auto safeReader = zip.open(safeWriter.finish())
+    safeReader.extractAll(string(arg[6]))
+    return 0
+end

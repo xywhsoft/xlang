@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>zip - 扩展库 - xlang</title>
+  <meta name="description" content="ZIP/ZIP64 归档的内存及文件读写，支持二进制条目、元数据、解压和资源配额。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-zip" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / zip</p>
+    <h1>zip</h1>
+    <p class="extlib-lead">创建、读取和修改 ZIP/ZIP64 归档，支持内存与文件入口、二进制条目和资源限制。</p>
+    <p>版本 1.0.0 · C / xlang · 依赖 _libzip</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import zip
+
+zip.ZipArchive writer = zip.create()
+writer.add("hello.txt", "你好")
+Buffer packed = writer.finish()
+
+zip.ZipArchive reader = zip.open(packed)
+println(reader.readText("hello.txt"))
+reader.close()</code></pre>
+    <p>输出 <code>你好</code>。二进制数据使用 <code>add(name, Buffer)</code> 与 <code>read(name) as Buffer</code>；不要将二进制内容交给 <code>readText</code>。</p>
+  </section>
+  <section id="api">
+    <h2>接口</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>create / open(Buffer) / open(path, mode)</code></td><td>创建内存归档，或打开内存/文件归档；文件模式为 r、w、a、x。</td></tr>
+      <tr><td><code>ZipArchive.add / addFile / mkdir</code></td><td>加入文本、Buffer、磁盘文件或目录条目。</td></tr>
+      <tr><td><code>contains / names / info / read / readText</code></td><td>查找、读取条目与元数据；<code>ZipInfo</code> 可显式声明。</td></tr>
+      <tr><td><code>remove / rename / setComment / setEntryComment</code></td><td>修改归档内容或注释。</td></tr>
+      <tr><td><code>extractAll(destination, overwrite = false)</code></td><td>检查归档路径、已有链接与输出限额后解压；目标目录须由应用控制。</td></tr>
+      <tr><td><code>close / finish</code></td><td>关闭归档；内存归档使用 <code>finish()</code> 取走独立 Buffer。</td></tr>
+    </tbody></table>
+    <p>工厂限额要求为正；条目数、大小、压缩比和输出量由 XRT ZIP 后端约束。条目名、文件路径、注释与解压目标拒绝内嵌 NUL；归档条目内容仍允许任意二进制字节。解压会拒绝目标目录已有父级、根目录和下级中已存在的链接，但尚不能抵御其他进程并发替换目录；不要把不可信或可并发修改的目标目录当作安全沙箱。</p>
+  </section>
+  <section id="c-api">
+    <h2>C 对照</h2>
+    <pre><code>#include "xrt_zip.h"
+
+int main(void)
+{
+    xrtziparchive* archive = xrtZipArchiveCreate(NULL);
+    if (archive == NULL) return 1;
+    const char text[] = "hello";
+    if (!xrtZipArchiveAdd(archive, "hello.txt", text, sizeof(text) - 1u,
+        false, XRT_ZIP_METHOD_DEFAULT, -1) || !xrtZipArchiveClose(archive)) {
+        xrtZipArchiveDestroy(archive);
+        return 2;
+    }
+    xbuffer* packed = xrtZipArchiveTakeBuffer(archive);
+    xrtZipArchiveDestroy(archive);
+    if (packed == NULL) return 3;
+    xrtBufferDestroy(packed);
+    return 0;
+}</code></pre>
+    <p>公共头为 <code>extlibs/zip/include/xrt_zip.h</code>。C 选项用 <code>xrtZipOptionsInit</code> 初始化；ZIP 只执行输入、输出、单项、条目数及压缩倍率限额，节点数、深度、资源标志和保留字段必须为零，尺寸/版本必须匹配。完整双语对照范例位于 <code>examples/extlibs/zip.xl</code> 与 <code>examples/extlibs/zip_c.c</code>；C 返回的 xbuffer 由调用方销毁。C 范例依赖多份 ZIP 封装源和 <code>_libzip</code>，从 <code>demo6</code> 目录使用 <code>tools/run_extlib_c.ps1 -Package zip -Source release/examples/extlibs/zip_c.c</code> 按包清单运行；单独 <code>xl run zip_c.c</code> 不会自动链接这些源。</p>
+  </section>
+  <section id="verify">
+    <h2>验证状态</h2>
+    <pre><code>xl run extlibs/zip/test/boundaries.xl
+xl run examples/extlibs/zip.xl
+powershell -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package zip -Source release/extlibs/zip/test/test_zip.c</code></pre>
+    <p>包内 XLang 边界、C 包级测试及双语范例固定输出在当前 Windows 发行版通过；默认门禁还会构建并运行核心与带输出范例 AOT。当前核心 AOT 构建先被主线 <code>xl6NativeHandleTraceLeaf</code> 缺符号阻断，后续范例 AOT 尚未执行，其他边界仍有 <code>xl6ValueDataSnapshotV1</code> 缺符号。危险路径的原生错误会在包装层转换前被抛为 <code>IOError</code>，中央用例期待的 <code>ArchiveError</code> 合同尚未满足。不能视为最终发布签收。</p>
+    <p>自定义 C Writer 的流式条目输出区分内存故障和普通 I/O；文件提取的 Writer 阶段也有写入、刷新、关闭与复合失败的注入回归，保留最先失败阶段的错误类别。Windows 聚焦门禁、Linux C ASan/UBSan 与符号链接专项通过；真实文件句柄的操作系统刷新/关闭失败仍未注入。完整 AOT、包外私有构造器和并发修改目标目录的安全边界仍未签收。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

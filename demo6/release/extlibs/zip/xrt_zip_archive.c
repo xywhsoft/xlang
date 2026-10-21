@@ -145,6 +145,24 @@ void __xrtZipSetBackendError(xrtziparchive* pArchive, const zip_error_t* pError,
 	__xrtZipSetError(pArchive, iCode, iZip, iSystem, iEntry, "%s: %s", sAction, sDetail);
 }
 
+/* 调用方 Writer 的内存故障保留原分类，其他失败作为 I/O。 */
+void __xrtZipSetOutputError(xrtziparchive* pArchive, uint64 iEntry,
+	int iBackend, const char* sMessage, cstr sPath)
+{
+	const xerror* pCause = xrtGetError();
+	bool bMemory = pCause != NULL && xrtErrorKind(pCause) == XERR_MEMORY;
+	if ( sPath != NULL ) {
+		__xrtZipSetError(pArchive,
+			bMemory ? XRT_ZIP_ERROR_MEMORY : XRT_ZIP_ERROR_IO,
+			bMemory ? ZIP_ER_MEMORY : iBackend, 0, iEntry,
+			"%s: %s", sMessage, sPath);
+	} else {
+		__xrtZipSetError(pArchive,
+			bMemory ? XRT_ZIP_ERROR_MEMORY : XRT_ZIP_ERROR_IO,
+			bMemory ? ZIP_ER_MEMORY : iBackend, 0, iEntry, "%s", sMessage);
+	}
+}
+
 bool __xrtZipCheckOpen(xrtziparchive* pArchive, bool bWrite)
 {
 	if ( pArchive == NULL || pArchive->Zip == NULL || pArchive->Committed ) {
@@ -171,6 +189,8 @@ XRT_API void xrtZipOptionsInit(xrtzipoptions* pOptions)
 	pOptions->iDefaultMethod = XRT_ZIP_METHOD_DEFLATE;
 	pOptions->iDefaultLevel = 6;
 	xrtResourceLimitsInit(&pOptions->tLimits);
+	pOptions->tLimits.iMaxNodes = 0u;
+	pOptions->tLimits.iMaxDepth = 0u;
 }
 
 XRT_API void xrtZipErrorInit(xrtziperror* pError)
@@ -192,9 +212,17 @@ static bool __xrtZipOptionsCopy(xrtziparchive* pArchive, const xrtzipoptions* pO
 {
 	xrtZipOptionsInit(&pArchive->Options);
 	if ( pOptions != NULL ) {
-		if ( pOptions->iSize < sizeof(*pOptions) || pOptions->iVersion != XRT_ZIP_OPTIONS_VERSION ) {
+		if ( pOptions->iSize != sizeof(*pOptions) ||
+			pOptions->iVersion != XRT_ZIP_OPTIONS_VERSION ||
+			pOptions->iReserved != 0u ||
+			pOptions->tLimits.iSize != sizeof(pOptions->tLimits) ||
+			pOptions->tLimits.iVersion != XRT_RESOURCE_LIMITS_VERSION ||
+			pOptions->tLimits.iMaxNodes != 0u ||
+			pOptions->tLimits.iMaxDepth != 0u ||
+			pOptions->tLimits.iFlags != 0u ||
+			pOptions->tLimits.iReserved != 0u ) {
 			__xrtZipSetError(pArchive, XRT_ZIP_ERROR_ARGUMENT, ZIP_ER_INVAL, 0, UINT64_MAX,
-				"invalid ZIP options version");
+				"invalid ZIP options");
 			return false;
 		}
 		pArchive->Options = *pOptions;
@@ -610,8 +638,8 @@ XRT_API bool xrtZipArchiveReadAtTo(xrtziparchive* pArchive, uint64 iIndex,
 			return false;
 		}
 		if ( !xrtWriterWriteFull(pWriter, sChunk, (size_t)iRead, NULL) ) {
-			__xrtZipSetError(pArchive, XRT_ZIP_ERROR_IO, ZIP_ER_WRITE, 0, iIndex,
-				"cannot write ZIP entry output");
+			__xrtZipSetOutputError(pArchive, iIndex, ZIP_ER_WRITE,
+				"cannot write ZIP entry output", NULL);
 			zip_fclose(pFile);
 			return false;
 		}
@@ -672,8 +700,8 @@ XRT_API xbuffer* xrtZipArchiveReadAt(xrtziparchive* pArchive, uint64 iIndex)
 	bClose = xrtWriterDestroy(pWriter);
 	if ( !bRead || !bClose ) {
 		if ( bRead ) {
-			__xrtZipSetError(pArchive, XRT_ZIP_ERROR_IO, ZIP_ER_CLOSE, 0, iIndex,
-				"cannot close ZIP entry output Writer");
+			__xrtZipSetOutputError(pArchive, iIndex, ZIP_ER_CLOSE,
+				"cannot close ZIP entry output Writer", NULL);
 		}
 		xrtBufferDestroy(pOutput);
 		return NULL;

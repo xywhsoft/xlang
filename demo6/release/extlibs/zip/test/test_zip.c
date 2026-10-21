@@ -1,10 +1,20 @@
 #define XRT_MODULE_FILE_TREE
 #define XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_DIR_TEMP
+#ifndef XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_VALUE_CONTAINER
+#endif
 
 #include "../include/xrt_zip.h"
+#include "../xrt_zip_internal.h"
 
 #include <stdio.h>
 #include <string.h>
+
+void* xzip_archive_open_file_value(xvalue* pPath, int iMode, int iMethod,
+	int iLevel, unsigned long long iMaxInput, unsigned long long iMaxOutput,
+	unsigned long long iMaxItem, unsigned long long iMaxEntries,
+	unsigned int iMaxRatio);
 
 
 
@@ -213,6 +223,7 @@ static int testUtf8FileAndExtract(void)
 	str sExtractPath = (str)"build/tmp/zip_中文_test/输出";
 	str sExtracted = (str)"build/tmp/zip_中文_test/输出/目录/内容.txt";
 	xrtziparchive* pArchive;
+	xvalue* pPath;
 	bytes pData;
 	size_t iSize = 0u;
 	int bOk = 1;
@@ -226,6 +237,39 @@ static int testUtf8FileAndExtract(void)
 	bOk &= check(xrtZipArchiveClose(pArchive), xrtZipArchiveError(pArchive)->sMessage);
 	xrtZipArchiveDestroy(pArchive);
 	bOk &= check(xrtFileExists(sArchivePath), "UTF-8 ZIP file was not saved");
+	pPath = xrtValueString((xstrview){ sArchivePath, strlen(sArchivePath) });
+	pArchive = xzip_archive_open_file_value(pPath, XRT_ZIP_MODE_READ,
+		XRT_ZIP_METHOD_DEFLATE, 6, 268435456u, 536870912u,
+		268435456u, 100000u, 1000u);
+	bOk &= check(pArchive != NULL && xrtZipArchiveCount(pArchive) == 1u,
+		"length-aware ZIP path could not open UTF-8 archive");
+	xrtZipArchiveDestroy(pArchive);
+	xrtValueRelease(pPath);
+	pPath = xrtValueString((xstrview){ "test.zip\0suffix", 15u });
+	pArchive = xzip_archive_open_file_value(pPath, XRT_ZIP_MODE_READ,
+		XRT_ZIP_METHOD_DEFLATE, 6, 268435456u, 536870912u,
+		268435456u, 100000u, 1000u);
+	bOk &= check(pArchive == NULL && xrtGetError() != NULL &&
+		xrtErrorKind(xrtGetError()) == XERR_VALUE,
+		"length-aware ZIP path accepted an embedded NUL");
+	xrtZipArchiveDestroy(pArchive);
+	xrtValueRelease(pPath);
+	pPath = xrtValueString((xstrview){ NULL, 0u });
+	pArchive = xzip_archive_open_file_value(pPath, XRT_ZIP_MODE_READ,
+		XRT_ZIP_METHOD_DEFLATE, 6, 268435456u, 536870912u,
+		268435456u, 100000u, 1000u);
+	bOk &= check(pArchive == NULL, "length-aware ZIP path accepted an empty string");
+	xrtZipArchiveDestroy(pArchive);
+	xrtValueRelease(pPath);
+	pPath = xrtValueInt(123);
+	pArchive = xzip_archive_open_file_value(pPath, XRT_ZIP_MODE_READ,
+		XRT_ZIP_METHOD_DEFLATE, 6, 268435456u, 536870912u,
+		268435456u, 100000u, 1000u);
+	bOk &= check(pArchive == NULL && xrtGetError() != NULL &&
+		xrtErrorKind(xrtGetError()) == XERR_TYPE,
+		"length-aware ZIP path accepted a nonstring value");
+	xrtZipArchiveDestroy(pArchive);
+	xrtValueRelease(pPath);
 
 	pArchive = xrtZipArchiveOpenFile(sArchivePath, XRT_ZIP_MODE_READ, NULL);
 	bOk &= check(pArchive != NULL && xrtZipArchiveIsOpen(pArchive),
@@ -278,6 +322,150 @@ static int testStreamingRead(void)
 		"streaming ZIP output mismatch");
 	xrtBufferUnit(&Output);
 	xrtZipArchiveDestroy(pArchive);
+	xrtBufferDestroy(pPacked);
+	return bOk;
+}
+
+
+typedef struct {
+	xerrkind Kind;
+} zipwritefailure;
+
+static bool failZipOutputWrite(ptr pContext, const void* pData,
+	size_t iRequest, size_t* pWritten)
+{
+	zipwritefailure* pFailure = (zipwritefailure*)pContext;
+	(void)pData;
+	(void)iRequest;
+	*pWritten = 0u;
+	xrtSetErrorInfo(pFailure->Kind, "test.zip", 0, "injected output failure");
+	return false;
+}
+
+/* 调用方 Writer 的内存故障不能被归档层改写成设备 I/O。 */
+static int testStreamingOutputErrors(void)
+{
+	static const char sData[] = "stream data";
+	xwriterops Ops = {0};
+	xbuffer* pPacked = makeArchive("stream.bin", sData, sizeof(sData) - 1u);
+	int bOk = check(pPacked != NULL, "cannot create ZIP output error fixture");
+	int i;
+	Ops.Write = failZipOutputWrite;
+	for ( i = 0; bOk && i < 2; ++i ) {
+		zipwritefailure Failure;
+		xrtziparchive* pArchive = xrtZipArchiveOpenMemory(
+			pPacked->Data, pPacked->Size, false, NULL);
+		xwriter* pWriter;
+		int iExpected;
+		Failure.Kind = i == 0 ? XERR_MEMORY : XERR_IO;
+		iExpected = i == 0 ? XRT_ZIP_ERROR_MEMORY : XRT_ZIP_ERROR_IO;
+		pWriter = xrtWriterCreate(&Ops, &Failure);
+		bOk &= check(pArchive != NULL && pWriter != NULL &&
+			!xrtZipArchiveReadTo(pArchive, "stream.bin", pWriter) &&
+			xrtZipArchiveError(pArchive)->iCode == iExpected,
+			"ZIP changed output Writer failure category");
+		(void)xrtWriterDestroy(pWriter);
+		xrtZipArchiveDestroy(pArchive);
+		xrtClearError();
+	}
+	xrtBufferDestroy(pPacked);
+	return bOk;
+}
+
+
+typedef struct {
+	xerrkind WriteKind;
+	xerrkind FlushKind;
+	xerrkind CloseKind;
+	int CloseCalls;
+} zipextractfailure;
+
+static bool acceptZipExtractWrite(ptr pContext, const void* pData,
+	size_t iRequest, size_t* pWritten)
+{
+	zipextractfailure* pFailure = (zipextractfailure*)pContext;
+	(void)pData;
+	if ( pFailure->WriteKind != XERR_NONE ) {
+		*pWritten = 0u;
+		xrtSetErrorInfo(pFailure->WriteKind, "test.zip", 0,
+			"injected extraction write failure");
+		return false;
+	}
+	*pWritten = iRequest;
+	return true;
+}
+
+static bool failZipExtractFlush(ptr pContext)
+{
+	zipextractfailure* pFailure = (zipextractfailure*)pContext;
+	if ( pFailure->FlushKind == XERR_NONE ) { return true; }
+	xrtSetErrorInfo(pFailure->FlushKind, "test.zip", 0,
+		"injected extraction flush failure");
+	return false;
+}
+
+static bool failZipExtractClose(ptr pContext)
+{
+	zipextractfailure* pFailure = (zipextractfailure*)pContext;
+	++pFailure->CloseCalls;
+	if ( pFailure->CloseKind == XERR_NONE ) { return true; }
+	xrtSetErrorInfo(pFailure->CloseKind, "test.zip", 0,
+		"injected extraction close failure");
+	return false;
+}
+
+/* 提取事务必须关闭 Writer，并保留刷新/关闭的原始故障类别。 */
+static int testExtractionWriterErrors(void)
+{
+	static const struct {
+		xerrkind WriteKind;
+		xerrkind FlushKind;
+		xerrkind CloseKind;
+		int ExpectedCode;
+	} arrCases[] = {
+		{XERR_NONE, XERR_NONE, XERR_NONE, 0},
+		{XERR_NONE, XERR_MEMORY, XERR_NONE, XRT_ZIP_ERROR_MEMORY},
+		{XERR_NONE, XERR_IO, XERR_NONE, XRT_ZIP_ERROR_IO},
+		{XERR_NONE, XERR_NONE, XERR_MEMORY, XRT_ZIP_ERROR_MEMORY},
+		{XERR_NONE, XERR_NONE, XERR_IO, XRT_ZIP_ERROR_IO},
+		{XERR_NONE, XERR_MEMORY, XERR_IO, XRT_ZIP_ERROR_MEMORY},
+		{XERR_MEMORY, XERR_NONE, XERR_IO, XRT_ZIP_ERROR_MEMORY},
+		{XERR_IO, XERR_NONE, XERR_MEMORY, XRT_ZIP_ERROR_IO}
+	};
+	static const char sData[] = "extract data";
+	xwriterops Ops = {0};
+	xbuffer* pPacked = makeArchive("extract.txt", sData, sizeof(sData) - 1u);
+	int bOk = check(pPacked != NULL, "cannot create ZIP extraction error fixture");
+	size_t i;
+	Ops.Write = acceptZipExtractWrite;
+	Ops.Flush = failZipExtractFlush;
+	Ops.Close = failZipExtractClose;
+	for ( i = 0u; bOk && i < sizeof(arrCases) / sizeof(arrCases[0]); ++i ) {
+		zipextractfailure Failure = {arrCases[i].WriteKind, arrCases[i].FlushKind,
+			arrCases[i].CloseKind, 0};
+		xrtziparchive* pArchive = xrtZipArchiveOpenMemory(
+			pPacked->Data, pPacked->Size, false, NULL);
+		xwriter* pWriter = xrtWriterCreate(&Ops, &Failure);
+		bool bExtract;
+		xrtClearError();
+		bOk &= check(pArchive != NULL && pWriter != NULL,
+			"cannot prepare ZIP extraction output Writer");
+		if ( !bOk ) {
+			(void)xrtWriterDestroy(pWriter);
+			xrtZipArchiveDestroy(pArchive);
+			break;
+		}
+		bExtract = __xrtZipExtractEntryToWriter(pArchive, 0u, pWriter, "test output");
+		bOk &= check(bExtract == (arrCases[i].ExpectedCode == 0) &&
+			Failure.CloseCalls == 1 &&
+			xrtZipArchiveError(pArchive)->iCode == arrCases[i].ExpectedCode &&
+			(arrCases[i].ExpectedCode == 0 ||
+			 strstr(xrtZipArchiveError(pArchive)->sMessage, "test output") != NULL ||
+			 arrCases[i].WriteKind != XERR_NONE),
+			"ZIP extraction Writer failure category or close count mismatch");
+		xrtZipArchiveDestroy(pArchive);
+		xrtClearError();
+	}
 	xrtBufferDestroy(pPacked);
 	return bOk;
 }
@@ -384,6 +572,28 @@ static int testArgumentErrors(void)
 		"invalid ZIP options were overwritten by a later argument error");
 	xrtZipArchiveDestroy(pInvalid);
 
+	for (int iMode = 0; iMode < 10; ++iMode) {
+		xrtZipOptionsInit(&Options);
+		switch (iMode) {
+		case 0: --Options.iSize; break;
+		case 1: ++Options.iSize; break;
+		case 2: ++Options.iVersion; break;
+		case 3: Options.iReserved = 1u; break;
+		case 4: --Options.tLimits.iSize; break;
+		case 5: ++Options.tLimits.iVersion; break;
+		case 6: Options.tLimits.iReserved = 1u; break;
+		case 7: Options.tLimits.iMaxNodes = 1u; break;
+		case 8: Options.tLimits.iMaxDepth = 1u; break;
+		case 9: Options.tLimits.iFlags = 1u; break;
+		}
+		pInvalid = xrtZipArchiveOpenMemory(NULL, 1u, false, &Options);
+		bOk &= check(pInvalid != NULL && !xrtZipArchiveIsOpen(pInvalid) &&
+			xrtZipArchiveError(pInvalid)->iCode == XRT_ZIP_ERROR_ARGUMENT &&
+			strstr(xrtZipArchiveError(pInvalid)->sMessage, "options") != NULL,
+			"invalid ZIP resource options were accepted");
+		xrtZipArchiveDestroy(pInvalid);
+	}
+
 	pArchive = xrtZipArchiveCreate(NULL);
 	bOk &= check((pArchive != NULL) && xrtZipArchiveIsOpen(pArchive),
 		"cannot create ZIP argument fixture");
@@ -445,14 +655,43 @@ static int testArgumentErrors(void)
 
 int main(void)
 {
-	int bOk;
-	bOk = testMemoryArchive();
-	bOk &= testLimitsAndCorruption();
-	bOk &= testUnsafeExtractionAndOverwrite();
-	bOk &= testUtf8FileAndExtract();
-	bOk &= testStreamingRead();
-	bOk &= testFileTransactions();
-	bOk &= testArgumentErrors();
+	str sPrevious = xrtPathCwd();
+	str sTemporary = sPrevious != NULL ?
+		xrtDirTemp(NULL, "xlang-zip-test-", "") : NULL;
+	str sWorkspace = sTemporary != NULL ? xrtPathAbs(sTemporary) : NULL;
+	int bOk = check(sPrevious != NULL && sWorkspace != NULL,
+		"cannot create isolated ZIP test directory");
+	if ( !bOk ) {
+		if ( sTemporary != NULL ) { xrtDirRemoveAll(sTemporary); }
+		xrtFree(sWorkspace);
+		xrtFree(sTemporary);
+		xrtFree(sPrevious);
+		return 1;
+	}
+	if ( !check(xrtPathSetCwd(sWorkspace), "cannot enter ZIP test directory") ) {
+		bOk = 0;
+	} else {
+		bOk = testMemoryArchive();
+		bOk &= testLimitsAndCorruption();
+		bOk &= testUnsafeExtractionAndOverwrite();
+		bOk &= testUtf8FileAndExtract();
+		bOk &= testStreamingRead();
+		bOk &= testStreamingOutputErrors();
+		bOk &= testExtractionWriterErrors();
+		bOk &= testFileTransactions();
+		bOk &= testArgumentErrors();
+		if ( !check(xrtPathSetCwd(sPrevious), "cannot restore ZIP test directory") ) {
+			/* 当前目录可能仍在临时目录内，不递归删除它。 */
+			xrtFree(sWorkspace);
+			xrtFree(sTemporary);
+			xrtFree(sPrevious);
+			return 1;
+		}
+	}
+	bOk &= check(xrtDirRemoveAll(sWorkspace), "cannot remove ZIP test directory");
+	xrtFree(sWorkspace);
+	xrtFree(sTemporary);
+	xrtFree(sPrevious);
 	if ( bOk ) { puts("test_zip: PASS"); }
 	return bOk ? 0 : 1;
 }

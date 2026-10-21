@@ -1,0 +1,141 @@
+import zip
+
+func main(...) as int
+    zip.ZipArchive writer = zip.create()
+    writer.add("你好.txt", "UTF-8 内容")
+    Buffer binary = Buffer()
+    binary.appendByte(0)
+    binary.appendByte(255)
+    writer.add("data.bin", binary, method="store", level=0)
+    writer.setEntryComment("data.bin", "binary")
+    assert writer.count == 2
+    assert writer.contains("你好.txt")
+    assert not writer.contains("missing.txt")
+
+    // C 字符串不能把 NUL 后缀丢掉，误命中已有条目或文件路径。
+    bool nulRejected = false
+    try
+        writer.contains("你好.txt\0suffix")
+    catch ValueError error
+        nulRejected = true
+    end
+    assert nulRejected
+    nulRejected = false
+    try
+        writer.add("wrong.txt\0suffix", "data")
+    catch ValueError error
+        nulRejected = true
+    end
+    assert nulRejected and writer.count == 2
+    for mode in range(8)
+        nulRejected = false
+        try
+            if mode == 0 then writer.mkdir("dir\0suffix") end
+            if mode == 1 then writer.remove("你好.txt\0suffix") end
+            if mode == 2 then writer.rename("你好.txt\0suffix", "new.txt") end
+            if mode == 3 then writer.rename("你好.txt", "new.txt\0suffix") end
+            if mode == 4 then writer.setComment("comment\0suffix") end
+            if mode == 5 then writer.setEntryComment("data.bin\0suffix", "comment") end
+            if mode == 6 then writer.setEntryComment("data.bin", "comment\0suffix") end
+            if mode == 7 then writer.addFile("new.txt", "missing.txt\0suffix") end
+        catch ValueError error
+            nulRejected = true
+        end
+        assert nulRejected
+    end
+    assert writer.count == 2
+
+    Buffer packed = writer.finish()
+    auto reader = zip.open(packed)
+    assert reader.count == 2
+    assert reader.nameAt(0) == "你好.txt"
+    assert reader.readText("你好.txt") == "UTF-8 内容"
+    nulRejected = false
+    try
+        reader.read("你好.txt\0suffix")
+    catch ValueError error
+        nulRejected = true
+    end
+    assert nulRejected
+    assert reader.read("data.bin") == binary
+    zip.ZipInfo binaryInfo = reader.info(1)
+    assert binaryInfo.comment == "binary"
+
+    string workDir = path.join(path.temp(), "xlang_zip_boundary_" + crypto.randomString(20))
+    dir.createAll(workDir)
+    string archivePath = path.join(workDir, "boundary.zip")
+    try
+        assert file.writeBytes(archivePath, packed.toBytes())
+        auto fileReader = zip.open(archivePath)
+        assert fileReader.count == 2
+        fileReader.close()
+        zip.ZipArchive directReader = zip.ZipArchive(archivePath, c_int(0), c_int(8),
+            c_int(6), c_ulonglong(268435456), c_ulonglong(536870912),
+            c_ulonglong(268435456), c_ulonglong(100000), c_uint(1000))
+        assert directReader.count == 2
+        directReader.close()
+        nulRejected = false
+        try
+            zip.open(archivePath + "\0suffix")
+        catch ValueError error
+            nulRejected = true
+        end
+        assert nulRejected
+        nulRejected = false
+        try
+            zip.ZipArchive(archivePath + "\0suffix", c_int(0), c_int(8),
+                c_int(6), c_ulonglong(268435456), c_ulonglong(536870912),
+                c_ulonglong(268435456), c_ulonglong(100000), c_uint(1000))
+        catch ValueError error
+            nulRejected = true
+        end
+        assert nulRejected, "direct ZIP constructor must reject embedded NUL"
+        bool typeRejected = false
+        try
+            zip.ZipArchive(123, c_int(0), c_int(8), c_int(6),
+                c_ulonglong(268435456), c_ulonglong(536870912),
+                c_ulonglong(268435456), c_ulonglong(100000), c_uint(1000))
+        catch TypeError error
+            typeRejected = true
+        end
+        assert typeRejected, "direct ZIP constructor must require string path"
+        nulRejected = false
+        try
+            reader.extractAll(path.join(workDir, "extract") + "\0suffix")
+        catch ValueError error
+            nulRejected = true
+        end
+        assert nulRejected
+    finally
+        if file.exists(archivePath) then assert file.delete(archivePath) end
+        assert dir.delete(workDir), "temporary ZIP test directory must be removed"
+    end
+
+    bool rejected = false
+    try
+        zip.create(maxInput=-1)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        reader.nameAt(-1)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        reader.read("missing.txt")
+    catch KeyError error
+        rejected = true
+    end
+    assert rejected
+    assert reader.readText("你好.txt") == "UTF-8 内容"
+    reader.close()
+    println("zip boundaries: ok")
+    return 0
+end

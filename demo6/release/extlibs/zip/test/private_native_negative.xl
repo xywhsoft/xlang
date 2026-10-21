@@ -1,0 +1,5 @@
+import zip
+
+// 仅编译：包外不能自造指针和长度；绝不执行此文件。
+zip.ZipArchive archive = zip.create()
+archive.addNative("unsafe", null, c_size(1), c_bool(false), c_int(0), c_int(0))

@@ -14,6 +14,15 @@
         ],
         "xlSources": [
             "src/zip.xl"
+        ],
+        "xrtModules": [
+            "XRT_MODULE_DIR",
+            "XRT_MODULE_FILE_WHOLE",
+            "XRT_MODULE_IO_BUFFER",
+            "XRT_MODULE_IO_FILE",
+            "XRT_MODULE_PATH_SAFE",
+            "XRT_MODULE_STRING_FORMAT",
+            "XRT_MODULE_VALUE_CONTAINER"
         ]
     },
     "links": [],
@@ -25,6 +34,7 @@
             "abiVersion": "1"
         }
     ],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",

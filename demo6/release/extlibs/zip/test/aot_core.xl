@@ -1,0 +1,14 @@
+import zip
+
+func main(...) as int
+    zip.ZipArchive writer = zip.create(method="store", level=0)
+    writer.add("hello.txt", "hello")
+    assert writer.count == 1
+
+    Buffer packed = writer.finish()
+    zip.ZipArchive reader = zip.open(packed)
+    assert reader.count == 1
+    assert reader.readText("hello.txt") == "hello"
+    reader.close()
+    return 0
+end

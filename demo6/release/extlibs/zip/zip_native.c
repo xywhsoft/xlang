@@ -1,6 +1,10 @@
 #define XRT_MODULE_STRING
+#ifndef XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_VALUE_CONTAINER
+#endif
 
 #include "include/xrt_zip.h"
+#include <string.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 #define XZIP_EXPORT __declspec(dllexport)
@@ -84,8 +88,9 @@ XZIP_EXPORT const char* xzip_last_error(void)
 
 
 XZIP_EXPORT void* xzip_archive_create(int iMethod, int iLevel,
-	uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxEntries,
-	uint32 iMaxRatio)
+	unsigned long long iMaxInput, unsigned long long iMaxOutput,
+	unsigned long long iMaxItem, unsigned long long iMaxEntries,
+	unsigned int iMaxRatio)
 {
 	xrtzipoptions tOptions;
 	xrtClearError();
@@ -93,9 +98,10 @@ XZIP_EXPORT void* xzip_archive_create(int iMethod, int iLevel,
 	return xzip_validate_archive(xrtZipArchiveCreate(&tOptions));
 }
 
-XZIP_EXPORT void* xzip_archive_open_memory(const void* pData, size_t iSize, bool bWritable,
-	int iMethod, int iLevel, uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem,
-	uint64 iMaxEntries, uint32 iMaxRatio)
+XZIP_EXPORT void* xzip_archive_open_memory(void* pData, size_t iSize, bool bWritable,
+	int iMethod, int iLevel, unsigned long long iMaxInput,
+	unsigned long long iMaxOutput, unsigned long long iMaxItem,
+	unsigned long long iMaxEntries, unsigned int iMaxRatio)
 {
 	xrtzipoptions tOptions;
 	xrtClearError();
@@ -103,14 +109,44 @@ XZIP_EXPORT void* xzip_archive_open_memory(const void* pData, size_t iSize, bool
 	return xzip_validate_archive(xrtZipArchiveOpenMemory(pData, iSize, bWritable, &tOptions));
 }
 
-XZIP_EXPORT void* xzip_archive_open_file(str sPath, int iMode, int iMethod, int iLevel,
-	uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxEntries,
-	uint32 iMaxRatio)
+XZIP_EXPORT void* xzip_archive_open_file(const char* sPath, int iMode,
+	int iMethod, int iLevel, unsigned long long iMaxInput,
+	unsigned long long iMaxOutput, unsigned long long iMaxItem,
+	unsigned long long iMaxEntries, unsigned int iMaxRatio)
 {
 	xrtzipoptions tOptions;
 	xrtClearError();
 	xzip_options(&tOptions, iMethod, iLevel, iMaxInput, iMaxOutput, iMaxItem, iMaxEntries, iMaxRatio);
-	return xzip_validate_archive(xrtZipArchiveOpenFile(sPath, iMode, &tOptions));
+	return xzip_validate_archive(xrtZipArchiveOpenFile((str)sPath, iMode, &tOptions));
+}
+
+/* XLang 字符串保留显式长度；公开构造器不能只读取 NUL 前缀。 */
+XZIP_EXPORT void* xzip_archive_open_file_value(xvalue* pPath, int iMode,
+	int iMethod, int iLevel, unsigned long long iMaxInput,
+	unsigned long long iMaxOutput, unsigned long long iMaxItem,
+	unsigned long long iMaxEntries, unsigned int iMaxRatio)
+{
+	xstrview Path;
+	str sPath;
+	void* pResult;
+	xrtClearError();
+	if (pPath == NULL || xrtValueType(pPath) != XVALUE_STRING ||
+		!xrtValueGetString(pPath, &Path)) {
+		xrtSetErrorInfo(XERR_TYPE, "xlang.extlib.zip", XRT_ZIP_ERROR_ARGUMENT,
+			"ZIP path must be a string");
+		return NULL;
+	}
+	if (Path.Size != 0u && (Path.Data == NULL || memchr(Path.Data, 0, Path.Size) != NULL)) {
+		xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.zip", XRT_ZIP_ERROR_ARGUMENT,
+			"ZIP path contains an embedded NUL byte");
+		return NULL;
+	}
+	sPath = xrtStrDupView(Path);
+	if (sPath == NULL) { return NULL; }
+	pResult = xzip_archive_open_file(sPath, iMode, iMethod, iLevel,
+		iMaxInput, iMaxOutput, iMaxItem, iMaxEntries, iMaxRatio);
+	xrtFree(sPath);
+	return pResult;
 }
 
 XZIP_EXPORT void xzip_archive_destroy(void* pHandle)
@@ -133,22 +169,27 @@ XZIP_EXPORT int64 xzip_archive_count(void* pHandle)
 	return (int64)xrtZipArchiveCount((xrtziparchive*)pHandle);
 }
 
-XZIP_EXPORT int64 xzip_archive_locate(void* pHandle, str sName)
+XZIP_EXPORT int64 xzip_archive_locate(void* pHandle, const char* sName)
 {
-	return xrtZipArchiveLocate((xrtziparchive*)pHandle, sName);
+	return xrtZipArchiveLocate((xrtziparchive*)pHandle, (str)sName);
 }
 
-static bool xzip_entry(void* pHandle, uint64 iIndex, xrtzipentry* pEntry)
+static bool xzip_entry(void* pHandle, int64_t iIndex, xrtzipentry* pEntry)
 {
 	xrtziparchive* pArchive = (xrtziparchive*)pHandle;
-	if ( !xrtZipArchiveEntryAt(pArchive, iIndex, pEntry) ) {
+	if ( iIndex < 0 ) {
+		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.zip", XRT_ZIP_ERROR_ARGUMENT,
+			"ZIP entry index is negative");
+		return false;
+	}
+	if ( !xrtZipArchiveEntryAt(pArchive, (uint64)iIndex, pEntry) ) {
 		xzip_publish_error(pArchive);
 		return false;
 	}
 	return true;
 }
 
-XZIP_EXPORT void* xzip_archive_name_at(void* pHandle, uint64 iIndex)
+XZIP_EXPORT void* xzip_archive_name_at(void* pHandle, int64_t iIndex)
 {
 	xrtzipentry tEntry;
 	str sResult;
@@ -162,43 +203,43 @@ XZIP_EXPORT void* xzip_archive_name_at(void* pHandle, uint64 iIndex)
 	return sResult;
 }
 
-XZIP_EXPORT int64 xzip_archive_size_at(void* pHandle, uint64 iIndex)
+XZIP_EXPORT int64 xzip_archive_size_at(void* pHandle, int64_t iIndex)
 {
 	xrtzipentry tEntry;
 	return xzip_entry(pHandle, iIndex, &tEntry) ? (int64)tEntry.iUncompressedSize : -1;
 }
 
-XZIP_EXPORT int64 xzip_archive_compressed_size_at(void* pHandle, uint64 iIndex)
+XZIP_EXPORT int64 xzip_archive_compressed_size_at(void* pHandle, int64_t iIndex)
 {
 	xrtzipentry tEntry;
 	return xzip_entry(pHandle, iIndex, &tEntry) ? (int64)tEntry.iCompressedSize : -1;
 }
 
-XZIP_EXPORT int64 xzip_archive_mtime_at(void* pHandle, uint64 iIndex)
+XZIP_EXPORT int64 xzip_archive_mtime_at(void* pHandle, int64_t iIndex)
 {
 	xrtzipentry tEntry;
 	return xzip_entry(pHandle, iIndex, &tEntry) ? tEntry.iMTime : -1;
 }
 
-XZIP_EXPORT uint32 xzip_archive_crc_at(void* pHandle, uint64 iIndex)
+XZIP_EXPORT int64_t xzip_archive_crc_at(void* pHandle, int64_t iIndex)
 {
 	xrtzipentry tEntry;
 	return xzip_entry(pHandle, iIndex, &tEntry) ? tEntry.iCRC32 : 0u;
 }
 
-XZIP_EXPORT int xzip_archive_method_at(void* pHandle, uint64 iIndex)
+XZIP_EXPORT int64_t xzip_archive_method_at(void* pHandle, int64_t iIndex)
 {
 	xrtzipentry tEntry;
 	return xzip_entry(pHandle, iIndex, &tEntry) ? tEntry.iCompressionMethod : -1;
 }
 
-XZIP_EXPORT bool xzip_archive_directory_at(void* pHandle, uint64 iIndex)
+XZIP_EXPORT bool xzip_archive_directory_at(void* pHandle, int64_t iIndex)
 {
 	xrtzipentry tEntry;
 	return xzip_entry(pHandle, iIndex, &tEntry) ? tEntry.bDirectory : false;
 }
 
-XZIP_EXPORT void* xzip_archive_comment_at(void* pHandle, uint64 iIndex)
+XZIP_EXPORT void* xzip_archive_comment_at(void* pHandle, int64_t iIndex)
 {
 	xrtzipentry tEntry;
 	str sResult;
@@ -212,75 +253,81 @@ XZIP_EXPORT void* xzip_archive_comment_at(void* pHandle, uint64 iIndex)
 	return sResult;
 }
 
-XZIP_EXPORT void* xzip_archive_read_at(void* pHandle, uint64 iIndex)
+XZIP_EXPORT void* xzip_archive_read_at(void* pHandle, int64_t iIndex)
 {
 	xrtziparchive* pArchive = (xrtziparchive*)pHandle;
-	xbuffer* pData = xrtZipArchiveReadAt(pArchive, iIndex);
+	xbuffer* pData;
+	if ( iIndex < 0 ) {
+		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.zip", XRT_ZIP_ERROR_ARGUMENT,
+			"ZIP entry index is negative");
+		return NULL;
+	}
+	pData = xrtZipArchiveReadAt(pArchive, (uint64)iIndex);
 	if ( pData == NULL ) { xzip_publish_error(pArchive); }
 	return pData;
 }
 
-XZIP_EXPORT bool xzip_archive_add(void* pHandle, str sName, const void* pData, size_t iSize,
+XZIP_EXPORT bool xzip_archive_add(void* pHandle, const char* sName, void* pData, size_t iSize,
 	bool bOverwrite, int iMethod, int iLevel)
 {
 	xrtziparchive* pArchive = (xrtziparchive*)pHandle;
-	if ( !xrtZipArchiveAdd(pArchive, sName, pData, iSize, bOverwrite, iMethod, iLevel) ) {
+	if ( !xrtZipArchiveAdd(pArchive, (str)sName, pData, iSize, bOverwrite, iMethod, iLevel) ) {
 		xzip_publish_error(pArchive);
 		return false;
 	}
 	return true;
 }
 
-XZIP_EXPORT bool xzip_archive_add_file(void* pHandle, str sName, str sPath,
+XZIP_EXPORT bool xzip_archive_add_file(void* pHandle, const char* sName, const char* sPath,
 	bool bOverwrite, int iMethod, int iLevel)
 {
 	xrtziparchive* pArchive = (xrtziparchive*)pHandle;
-	if ( !xrtZipArchiveAddFile(pArchive, sName, sPath, bOverwrite, iMethod, iLevel) ) {
+	if ( !xrtZipArchiveAddFile(pArchive, (str)sName, (str)sPath, bOverwrite, iMethod, iLevel) ) {
 		xzip_publish_error(pArchive);
 		return false;
 	}
 	return true;
 }
 
-XZIP_EXPORT bool xzip_archive_add_directory(void* pHandle, str sName)
+XZIP_EXPORT bool xzip_archive_add_directory(void* pHandle, const char* sName)
 {
 	xrtziparchive* pArchive = (xrtziparchive*)pHandle;
-	if ( !xrtZipArchiveAddDirectory(pArchive, sName) ) { xzip_publish_error(pArchive); return false; }
+	if ( !xrtZipArchiveAddDirectory(pArchive, (str)sName) ) { xzip_publish_error(pArchive); return false; }
 	return true;
 }
 
-XZIP_EXPORT bool xzip_archive_delete(void* pHandle, str sName)
+XZIP_EXPORT bool xzip_archive_delete(void* pHandle, const char* sName)
 {
 	xrtziparchive* pArchive = (xrtziparchive*)pHandle;
-	if ( !xrtZipArchiveDelete(pArchive, sName) ) { xzip_publish_error(pArchive); return false; }
+	if ( !xrtZipArchiveDelete(pArchive, (str)sName) ) { xzip_publish_error(pArchive); return false; }
 	return true;
 }
 
-XZIP_EXPORT bool xzip_archive_rename(void* pHandle, str sOldName, str sNewName)
+XZIP_EXPORT bool xzip_archive_rename(void* pHandle, const char* sOldName, const char* sNewName)
 {
 	xrtziparchive* pArchive = (xrtziparchive*)pHandle;
-	if ( !xrtZipArchiveRename(pArchive, sOldName, sNewName) ) { xzip_publish_error(pArchive); return false; }
+	if ( !xrtZipArchiveRename(pArchive, (str)sOldName, (str)sNewName) ) { xzip_publish_error(pArchive); return false; }
 	return true;
 }
 
-XZIP_EXPORT bool xzip_archive_set_comment(void* pHandle, str sComment)
+XZIP_EXPORT bool xzip_archive_set_comment(void* pHandle, const char* sComment)
 {
 	xrtziparchive* pArchive = (xrtziparchive*)pHandle;
-	if ( !xrtZipArchiveSetComment(pArchive, sComment) ) { xzip_publish_error(pArchive); return false; }
+	if ( !xrtZipArchiveSetComment(pArchive, (str)sComment) ) { xzip_publish_error(pArchive); return false; }
 	return true;
 }
 
-XZIP_EXPORT bool xzip_archive_set_entry_comment(void* pHandle, str sName, str sComment)
+XZIP_EXPORT bool xzip_archive_set_entry_comment(void* pHandle, const char* sName, const char* sComment)
 {
 	xrtziparchive* pArchive = (xrtziparchive*)pHandle;
-	if ( !xrtZipArchiveSetEntryComment(pArchive, sName, sComment) ) { xzip_publish_error(pArchive); return false; }
+	if ( !xrtZipArchiveSetEntryComment(pArchive, (str)sName, (str)sComment) ) { xzip_publish_error(pArchive); return false; }
 	return true;
 }
 
-XZIP_EXPORT bool xzip_archive_extract_all(void* pHandle, str sDestination, bool bOverwrite)
+XZIP_EXPORT bool xzip_archive_extract_all(void* pHandle, const char* sDestination, bool bOverwrite)
 {
 	xrtziparchive* pArchive = (xrtziparchive*)pHandle;
-	if ( !xrtZipArchiveExtractAll(pArchive, sDestination, bOverwrite) ) { xzip_publish_error(pArchive); return false; }
+	if ( !xrtZipArchiveExtractAll(pArchive, (str)sDestination, bOverwrite) ) { xzip_publish_error(pArchive); return false; }
 	return true;
 }
 

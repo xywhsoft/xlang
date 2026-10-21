@@ -20,6 +20,6 @@ func main(...) as int
     assert reader.info(2).comment == "binary example", "ZIP metadata mismatch"
     reader.close()
 
-    println("zip example: PASS")
+    println("zip C/XL example: PASS")
     return 0
 end

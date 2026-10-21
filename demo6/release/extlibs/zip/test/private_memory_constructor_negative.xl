@@ -1,0 +1,6 @@
+import zip
+
+// 仅编译：导入方不能自造归档输入地址和长度；绝不执行此文件。
+auto archive = zip.ZipArchive(null, c_size(1), c_bool(false),
+    c_int(0), c_int(0), c_ulonglong(1), c_ulonglong(1),
+    c_ulonglong(1), c_ulonglong(1), c_uint(1))
