@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / roaring</p><h1>roaring</h1>
     <p class="extlib-lead">精确的 uint32 整数集合。</p>
-    <p>高 16 位分桶，桶内有序数组按密度升级为位图，适合 ID 去重。</p>
+    <p>高 16 位分桶，桶内有序数组按密度升级为位图；删除后会回退并收缩，适合 ID 去重。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
@@ -32,7 +32,7 @@ roaring.RoaringBitmap ids = roaring.create()
 ids.add(65536)
 println(ids.contains(65536))</code></pre>
     <p>范围为 0..4294967295。没有 Roaring 二进制格式互操作或集合并交差；C 接口和验证范围见包内 README。当前完整 AOT 验收受共享主线缺符号阻断。</p>
-    <p>C 侧空句柄返回参数错误，与合法空集合或成员未命中区分；成功调用会清除本线程旧的 XRT 错误。创建或插入分配失败抛 <code>MemoryError</code>；Linux 门禁已联合验证 C ASan/UBSan、XLang 边界与故障注入、双语范例逐字输出对照。无输出 AOT 已验证，带输出 AOT 仍受主线阻断。</p>
+    <p>C 侧空句柄返回参数错误，与合法空集合或成员未命中区分；成功调用会清除本线程旧的 XRT 错误。创建、插入或删除时分配失败抛 <code>MemoryError</code>，失败的删除不改变集合；Linux 门禁已联合验证 C ASan/UBSan、XLang 边界与故障注入、双语范例逐字输出对照。无输出 AOT 已验证，带输出 AOT 仍受主线阻断。</p>
     <p>从 demo6 目录可直接运行 <code>xl run release/extlibs/roaring/examples/roaring.c</code>；Windows 包级 <code>test/check.ps1</code> 与 Linux <code>test/check.sh</code> 同时验证单文件 C、分离编译 C 和 XLang 范例的固定输出。</p>
   </section>
 </main>
