@@ -103,6 +103,10 @@ C 接口见 `include/redis_native.h`，输入 `xvalue*` 仅借用；
   C ASan/UBSan、XLang 真服务和双语离线范例全部通过；另单独运行四连接
   各 10,000 轮并发用例通过。测试实例已关闭。这是当前构建的短时高请求量
   验证，不替代长时稳定性或完整 AOT 验收。
+  2026-10-22 增量帧扫描器接入后重跑包内 `check_live.sh`：临时 Redis 上的
+  C ASan/UBSan、XLang 真服务、错误后复用、重连、四连接并发（各 50 轮）和
+  双语范例通过；服务由脚本清理。新增扫描器的真实网络主路径得到复验，
+  完整 AOT 和长时稳定性仍未据此签收。
 - WSL/Linux 已安装 Redis 并监听 `127.0.0.1:6379` 时，可从 `demo6`
   运行 `REDIS_LIVE=1 bash release/extlibs/redis/test/check.sh`。该可选分支
   以 ASan/UBSan 跑 C 真服务用例，再跑 XLang 单连接与四连接并发用例；
