@@ -1,0 +1,109 @@
+import lru
+
+auto cache = lru.create(1)
+string longValue = ""
+for i in range(8192)
+    longValue += "v"
+end
+cache.put("a", longValue)
+string saved = cache.get("a")
+cache.put("b", "")
+assert saved == longValue
+assert cache.count == 1 and not cache.contains("a")
+assert cache.contains("b") and cache.get("b", "fallback") == ""
+assert cache.get("a", "fallback") == "fallback"
+cache.put("b", "new")
+assert cache.get("b") == "new"
+assert not cache.remove("missing") and cache.remove("b")
+cache.clear()
+assert cache.count == 0 and cache.hits == 0 and cache.misses == 0
+cache.put("", "empty key")
+assert cache.contains("") and cache.get("", "missing") == "empty key"
+assert cache.remove("") and cache.count == 0
+
+auto lfu = lru.createLFU(2)
+lfu.put("hot", "h")
+lfu.put("cold", "c")
+lfu.get("hot")
+lfu.get("hot")
+lfu.put("new", "n")
+assert lfu.contains("hot") and not lfu.contains("cold")
+
+auto updated = lru.createLFU(2)
+updated.put("older", "old")
+updated.put("newer", "new")
+updated.put("older", "updated")
+updated.put("third", "third")
+assert updated.contains("older") and updated.get("older") == "updated"
+assert not updated.contains("newer") and updated.contains("third")
+
+auto order = lru.create(2)
+order.put("first", "1")
+order.put("second", "2")
+assert order.contains("first")
+order.put("third", "3")
+assert not order.contains("first") and order.contains("second")
+order.put("second", "updated")
+order.put("fourth", "4")
+assert order.contains("second") and order.get("second") == "updated"
+assert not order.contains("third")
+
+auto tied = lru.createLFU(2)
+tied.put("first", "1")
+tied.put("second", "2")
+tied.put("third", "3")
+assert not tied.contains("first") and tied.contains("second")
+
+auto longKeys = lru.create(2)
+string firstKey = string.repeat("k", 8191) + "a"
+string secondKey = string.repeat("k", 8191) + "b"
+longKeys.put(firstKey, "first")
+assert not longKeys.contains(secondKey)
+string heldValue = longKeys.get(firstKey)
+longKeys.put(secondKey, "second")
+longKeys.put("third", "third")
+assert not longKeys.contains(firstKey) and longKeys.contains(secondKey)
+assert longKeys.get(secondKey) == "second" and heldValue == "first"
+
+int failures = 0
+try
+    lru.create(0)
+catch ValueError error
+    failures += 1
+end
+
+auto nulCache = lru.create(1)
+nulCache.put("safe", "ok")
+try
+    nulCache.put("safe\0hidden", "bad")
+catch ValueError error
+    failures += 1
+end
+try
+    nulCache.put("safe", "bad\0hidden")
+catch ValueError error
+    failures += 1
+end
+try
+    nulCache.get("safe\0hidden")
+catch ValueError error
+    failures += 1
+end
+try
+    nulCache.get("missing", "fallback\0hidden")
+catch ValueError error
+    failures += 1
+end
+try
+    nulCache.contains("safe\0hidden")
+catch ValueError error
+    failures += 1
+end
+try
+    nulCache.remove("safe\0hidden")
+catch ValueError error
+    failures += 1
+end
+assert failures == 7
+assert nulCache.count == 1 and nulCache.get("safe") == "ok"
+println("lru boundaries: PASS")

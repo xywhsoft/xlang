@@ -1,221 +1,282 @@
-/*
- * lru_native.c - LRU and LFU cache implementations
- * Hash map + doubly linked list for O(1) get/put/evict.
- */
-#include "../xlang_extlib_error.h"
-static char lru_buf[4096];
+/* LRU/LFU 字符串缓存：XRT 映射负责键查找，双向链表负责淘汰次序。 */
+#ifndef XRT_MODULE_MAP
+#define XRT_MODULE_MAP
+#endif
+#ifndef XRT_MODULE_MUTEX
+#define XRT_MODULE_MUTEX
+#endif
+#ifndef XRT_MODULE_STRING
+#define XRT_MODULE_STRING
+#endif
+#include "xrt.h"
+#include "include/lru_native.h"
+#include <limits.h>
+#include <string.h>
 
-/* ------------------------------------------------------------------ */
-/* Simple hash map (open addressing) for key -> node lookup            */
-/* ------------------------------------------------------------------ */
+#define XLRU_DOMAIN "xlang.extlib.lru"
 
-#define LRU_HASH_SIZE 4096
+typedef struct xlru_entry {
+    char* key;
+    char* value;
+    int64_t frequency;
+    struct xlru_entry* previous;
+    struct xlru_entry* next;
+} xlru_entry;
 
-typedef struct LruEntry {
-    char *key;
-    char *value;
-    long long freq;             /* for LFU */
-    struct LruEntry *prev;      /* LRU list */
-    struct LruEntry *next;
-    struct LruEntry *hash_next; /* hash chain */
-} LruEntry;
+typedef struct xlru_cache {
+    xmutex guard;
+    xmap* items;
+    xlru_entry* head;
+    xlru_entry* tail;
+    int64_t capacity;
+    int64_t count;
+    int64_t hits;
+    int64_t misses;
+    int mode;
+} xlru_cache;
 
-typedef struct {
-    LruEntry *buckets[LRU_HASH_SIZE];
-    LruEntry *head;             /* most recently used */
-    LruEntry *tail;             /* least recently used */
-    long long capacity;
-    long long count;
-    long long hits;
-    long long misses;
-    int mode;                   /* 0=LRU, 1=LFU */
-} XLru;
-
-static unsigned long long lru_hash(const char *s) {
-    unsigned long long h = 14695981039346656037ULL;
-    while (*s) { h ^= (unsigned char)*s++; h *= 1099511628211ULL; }
-    return h;
+static void xlru_error(xerrkind kind, const char* message)
+{
+    xrtSetErrorInfo(kind, XLRU_DOMAIN, 0, message);
 }
 
-static int lru_bucket(unsigned long long h) {
-    return (int)(h % LRU_HASH_SIZE);
+static xbytesview xlru_key(const char* key)
+{
+    return (xbytesview){(const unsigned char*)key, strlen(key)};
 }
 
-static LruEntry *lru_find(XLru *c, const char *key) {
-    int b = lru_bucket(lru_hash(key));
-    LruEntry *e = c->buckets[b];
-    while (e) {
-        if (strcmp(e->key, key) == 0) return e;
-        e = e->hash_next;
+static void xlru_detach(xlru_cache* cache, xlru_entry* entry)
+{
+    if (entry->previous != NULL) entry->previous->next = entry->next;
+    else cache->head = entry->next;
+    if (entry->next != NULL) entry->next->previous = entry->previous;
+    else cache->tail = entry->previous;
+}
+
+static void xlru_front(xlru_cache* cache, xlru_entry* entry)
+{
+    entry->previous = NULL;
+    entry->next = cache->head;
+    if (cache->head != NULL) cache->head->previous = entry;
+    else cache->tail = entry;
+    cache->head = entry;
+}
+
+static void xlru_free_entry(xlru_entry* entry)
+{
+    xrtFree(entry->key);
+    xrtFree(entry->value);
+    xrtFree(entry);
+}
+
+static xlru_entry* xlru_victim(xlru_cache* cache)
+{
+    xlru_entry* victim = cache->tail;
+    xlru_entry* entry;
+    if (cache->mode == 0) return victim;
+    /* LFU 同频时从尾端选最久未访问者。 */
+    for (entry = cache->tail; entry != NULL; entry = entry->previous)
+        if (entry->frequency < victim->frequency) victim = entry;
+    return victim;
+}
+
+static bool xlru_drop(xlru_cache* cache, xlru_entry* entry)
+{
+    if (!xrtMapRemove(cache->items, xlru_key(entry->key))) return false;
+    xlru_detach(cache, entry);
+    xlru_free_entry(entry);
+    --cache->count;
+    return true;
+}
+
+void* xlru_create(int64_t capacity, int64_t mode)
+{
+    xlru_cache* cache;
+    xrtClearError();
+    if (capacity <= 0 || (mode != 0 && mode != 1)) {
+        xlru_error(XERR_ARGUMENT, "capacity must be positive and mode must be LRU or LFU");
+        return NULL;
     }
-    return NULL;
-}
-
-static void lru_unlink(XLru *c, LruEntry *e) {
-    if (e->prev) e->prev->next = e->next;
-    else c->head = e->next;
-    if (e->next) e->next->prev = e->prev;
-    else c->tail = e->prev;
-    e->prev = e->next = NULL;
-}
-
-static void lru_push_front(XLru *c, LruEntry *e) {
-    e->prev = NULL;
-    e->next = c->head;
-    if (c->head) c->head->prev = e;
-    c->head = e;
-    if (!c->tail) c->tail = e;
-}
-
-static void lru_hash_insert(XLru *c, LruEntry *e) {
-    int b = lru_bucket(lru_hash(e->key));
-    e->hash_next = c->buckets[b];
-    c->buckets[b] = e;
-}
-
-static void lru_hash_remove(XLru *c, LruEntry *e) {
-    int b = lru_bucket(lru_hash(e->key));
-    LruEntry **pp = &c->buckets[b];
-    while (*pp) {
-        if (*pp == e) { *pp = e->hash_next; return; }
-        pp = &(*pp)->hash_next;
+    cache = (xlru_cache*)xrtCalloc(1u, sizeof(*cache));
+    if (cache == NULL) return NULL;
+    cache->items = xrtMapCreate(sizeof(void*));
+    if (cache->items == NULL) { xrtFree(cache); return NULL; }
+    if (!xrtMutexInit(&cache->guard)) {
+        xrtMapDestroy(cache->items);
+        xrtFree(cache);
+        return NULL;
     }
+    cache->capacity = capacity;
+    cache->mode = (int)mode;
+    return cache;
 }
 
-static void lru_evict(XLru *c) {
-    LruEntry *victim = c->tail;
-    if (!victim) return;
+void xlru_destroy(void* handle)
+{
+    xlru_cache* cache = (xlru_cache*)handle;
+    xlru_entry* entry;
+    if (cache == NULL) return;
+    /* 销毁前调用方须结束其它线程对句柄的使用。 */
+    entry = cache->head;
+    while (entry != NULL) {
+        xlru_entry* next = entry->next;
+        xlru_free_entry(entry);
+        entry = next;
+    }
+    xrtMapDestroy(cache->items);
+    xrtMutexUnit(&cache->guard);
+    xrtFree(cache);
+}
 
-    if (c->mode == 1) {
-        /* LFU: find min frequency entry (scan from tail) */
-        LruEntry *cur = c->tail;
-        victim = cur;
-        while (cur) {
-            if (cur->freq < victim->freq) victim = cur;
-            cur = cur->prev;
+int64_t xlru_put(void* handle, const char* key, const char* value)
+{
+    xlru_cache* cache = (xlru_cache*)handle;
+    xlru_entry* entry;
+    xlru_entry* victim;
+    char* replacement;
+    xrtClearError();
+    if (cache == NULL || key == NULL) {
+        xlru_error(XERR_ARGUMENT, "cache and key are required");
+        return 0;
+    }
+    if (value == NULL) value = "";
+    if (!xrtMutexLock(&cache->guard)) return 0;
+    entry = (xlru_entry*)xrtMapGetPtr(cache->items, xlru_key(key));
+    if (entry != NULL) {
+        replacement = xrtStrDup(value);
+        if (replacement == NULL) goto fail;
+        xrtFree(entry->value);
+        entry->value = replacement;
+        if (entry->frequency < INT64_MAX) ++entry->frequency;
+        xlru_detach(cache, entry);
+        xlru_front(cache, entry);
+    } else {
+        victim = cache->count == cache->capacity ? xlru_victim(cache) : NULL;
+        entry = (xlru_entry*)xrtCalloc(1u, sizeof(*entry));
+        if (entry == NULL) goto fail;
+        entry->key = xrtStrDup(key);
+        entry->value = xrtStrDup(value);
+        if (entry->key == NULL || entry->value == NULL ||
+            !xrtMapSetPtr(cache->items, xlru_key(key), entry)) {
+            xlru_free_entry(entry);
+            goto fail;
+        }
+        entry->frequency = 1;
+        xlru_front(cache, entry);
+        ++cache->count;
+        if (victim != NULL && !xlru_drop(cache, victim)) goto fail;
+    }
+    xrtMutexUnlock(&cache->guard);
+    return 1;
+fail:
+    xrtMutexUnlock(&cache->guard);
+    return 0;
+}
+
+void* xlru_get(void* handle, const char* key, const char* fallback)
+{
+    xlru_cache* cache = (xlru_cache*)handle;
+    xlru_entry* entry;
+    void* result;
+    xrtClearError();
+    if (cache == NULL || key == NULL) {
+        xlru_error(XERR_ARGUMENT, "cache and key are required");
+        return NULL;
+    }
+    if (!xrtMutexLock(&cache->guard)) return NULL;
+    entry = (xlru_entry*)xrtMapGetPtr(cache->items, xlru_key(key));
+    result = xrtStrDup(entry != NULL ? entry->value :
+        (fallback != NULL ? fallback : ""));
+    if (result != NULL) {
+        if (entry != NULL) {
+            if (cache->hits < INT64_MAX) ++cache->hits;
+            if (entry->frequency < INT64_MAX) ++entry->frequency;
+            xlru_detach(cache, entry);
+            xlru_front(cache, entry);
+        } else if (cache->misses < INT64_MAX) {
+            ++cache->misses;
         }
     }
-
-    lru_unlink(c, victim);
-    lru_hash_remove(c, victim);
-    free(victim->key);
-    free(victim->value);
-    free(victim);
-    c->count--;
+    xrtMutexUnlock(&cache->guard);
+    return result;
 }
 
-void *xlru_create(long long capacity, int mode) {
-    XLru *c;
-    if (capacity <= 0) { xl6ExtlibError(XL6_EXTERR_ARGUMENT, "xlang.extlib.lru", "LRU capacity must be positive"); return NULL; }
-    c = (XLru *)calloc(1, sizeof(XLru));
-    if (!c) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.lru", "cannot allocate LRU cache"); return NULL; }
-    c->capacity = capacity;
-    c->mode = mode;
-    return c;
-}
-
-void xlru_destroy(void *ptr) {
-    XLru *c = (XLru *)ptr;
-    LruEntry *e, *next;
-    if (!c) return;
-    e = c->head;
-    while (e) { next = e->next; free(e->key); free(e->value); free(e); e = next; }
-    free(c);
-}
-
-void xlru_put(void *ptr, const char *key, const char *value) {
-    XLru *c = (XLru *)ptr;
-    LruEntry *e;
-    if (!c || !key) return;
-
-    e = lru_find(c, key);
-    if (e) {
-        free(e->value);
-        e->value = strdup(value ? value : "");
-        e->freq++;
-        lru_unlink(c, e);
-        lru_push_front(c, e);
-        return;
+int64_t xlru_contains(void* handle, const char* key)
+{
+    xlru_cache* cache = (xlru_cache*)handle;
+    int64_t result;
+    xrtClearError();
+    if (cache == NULL || key == NULL) {
+        xlru_error(XERR_ARGUMENT, "cache and key are required");
+        return -1;
     }
-
-    if (c->count >= c->capacity) lru_evict(c);
-
-    e = (LruEntry *)calloc(1, sizeof(LruEntry));
-    if (!e) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.lru", "cannot allocate LRU entry"); return; }
-    e->key = strdup(key);
-    e->value = strdup(value ? value : "");
-    e->freq = 1;
-    lru_hash_insert(c, e);
-    lru_push_front(c, e);
-    c->count++;
+    if (!xrtMutexLock(&cache->guard)) return -1;
+    result = xrtMapHas(cache->items, xlru_key(key)) ? 1 : 0;
+    xrtMutexUnlock(&cache->guard);
+    return result;
 }
 
-const char *xlru_get(void *ptr, const char *key) {
-    XLru *c = (XLru *)ptr;
-    LruEntry *e;
-    if (!c || !key) return "";
-    e = lru_find(c, key);
-    if (!e) { c->misses++; return ""; }
-    c->hits++;
-    e->freq++;
-    lru_unlink(c, e);
-    lru_push_front(c, e);
-    strncpy(lru_buf, e->value, sizeof(lru_buf) - 1);
-    lru_buf[sizeof(lru_buf) - 1] = '\0';
-    return lru_buf;
+int64_t xlru_remove(void* handle, const char* key)
+{
+    xlru_cache* cache = (xlru_cache*)handle;
+    xlru_entry* entry;
+    int64_t result;
+    xrtClearError();
+    if (cache == NULL || key == NULL) {
+        xlru_error(XERR_ARGUMENT, "cache and key are required");
+        return -1;
+    }
+    if (!xrtMutexLock(&cache->guard)) return -1;
+    entry = (xlru_entry*)xrtMapGetPtr(cache->items, xlru_key(key));
+    result = entry == NULL ? 0 : (xlru_drop(cache, entry) ? 1 : -1);
+    xrtMutexUnlock(&cache->guard);
+    return result;
 }
 
-int xlru_contains(void *ptr, const char *key) {
-    XLru *c = (XLru *)ptr;
-    if (!c || !key) return 0;
-    return lru_find(c, key) != NULL;
-}
-
-int xlru_remove(void *ptr, const char *key) {
-    XLru *c = (XLru *)ptr;
-    LruEntry *e;
-    if (!c || !key) return 0;
-    e = lru_find(c, key);
-    if (!e) return 0;
-    lru_unlink(c, e);
-    lru_hash_remove(c, e);
-    free(e->key);
-    free(e->value);
-    free(e);
-    c->count--;
+int64_t xlru_clear(void* handle)
+{
+    xlru_cache* cache = (xlru_cache*)handle;
+    xlru_entry* entry;
+    xrtClearError();
+    if (cache == NULL) {
+        xlru_error(XERR_ARGUMENT, "cache is required");
+        return 0;
+    }
+    if (!xrtMutexLock(&cache->guard)) return 0;
+    entry = cache->head;
+    while (entry != NULL) {
+        xlru_entry* next = entry->next;
+        xlru_free_entry(entry);
+        entry = next;
+    }
+    xrtMapClear(cache->items);
+    cache->head = cache->tail = NULL;
+    cache->count = cache->hits = cache->misses = 0;
+    xrtMutexUnlock(&cache->guard);
     return 1;
 }
 
-void xlru_clear(void *ptr) {
-    XLru *c = (XLru *)ptr;
-    LruEntry *e, *next;
-    int i;
-    if (!c) return;
-    e = c->head;
-    while (e) { next = e->next; free(e->key); free(e->value); free(e); e = next; }
-    for (i = 0; i < LRU_HASH_SIZE; i++) c->buckets[i] = NULL;
-    c->head = c->tail = NULL;
-    c->count = 0;
-    c->hits = 0;
-    c->misses = 0;
+static int64_t xlru_stat(void* handle, int kind)
+{
+    xlru_cache* cache = (xlru_cache*)handle;
+    int64_t result;
+    xrtClearError();
+    if (cache == NULL) {
+        xlru_error(XERR_ARGUMENT, "cache is required");
+        return -1;
+    }
+    if (!xrtMutexLock(&cache->guard)) return -1;
+    switch (kind) {
+    case 0: result = cache->count; break;
+    case 1: result = cache->capacity; break;
+    case 2: result = cache->hits; break;
+    default: result = cache->misses; break;
+    }
+    xrtMutexUnlock(&cache->guard);
+    return result;
 }
 
-long long xlru_count(void *ptr) {
-    XLru *c = (XLru *)ptr;
-    return c ? c->count : 0;
-}
-
-long long xlru_capacity(void *ptr) {
-    XLru *c = (XLru *)ptr;
-    return c ? c->capacity : 0;
-}
-
-long long xlru_hits(void *ptr) {
-    XLru *c = (XLru *)ptr;
-    return c ? c->hits : 0;
-}
-
-long long xlru_misses(void *ptr) {
-    XLru *c = (XLru *)ptr;
-    return c ? c->misses : 0;
-}
+int64_t xlru_count(void* handle) { return xlru_stat(handle, 0); }
+int64_t xlru_capacity(void* handle) { return xlru_stat(handle, 1); }
+int64_t xlru_hits(void* handle) { return xlru_stat(handle, 2); }
+int64_t xlru_misses(void* handle) { return xlru_stat(handle, 3); }

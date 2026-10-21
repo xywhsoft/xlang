@@ -1,0 +1,4 @@
+import lru
+
+auto cache = lru.create(4)
+cache.putNative("key\0hidden", "value")

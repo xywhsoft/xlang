@@ -7,10 +7,12 @@
     "artifact": {
         "kind": "source",
         "cSources": ["lru_native.c"],
-        "xlSources": ["src/lru.xl"]
+        "xlSources": ["src/lru.xl"],
+        "xrtModules": ["XRT_MODULE_MAP", "XRT_MODULE_MUTEX", "XRT_MODULE_STRING"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

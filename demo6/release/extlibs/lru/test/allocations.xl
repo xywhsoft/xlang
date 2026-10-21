@@ -1,0 +1,111 @@
+import lru
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func createCache(int mode) as lru.LruCache
+    if mode == 0 then return lru.create(2) end
+    return lru.createLFU(2)
+end
+
+for mode in range(2)
+    int createFailures = 0
+    int createSuccesses = 0
+    for allocation in range(16)
+        bool caught = false
+        assert failAfter(uint64(allocation))
+        try
+            lru.LruCache candidate = createCache(mode)
+            assert candidate.valid
+        catch MemoryError
+            caught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert caught == triggered
+        if caught then createFailures += 1 else createSuccesses += 1 end
+    end
+    assert createFailures > 0 and createSuccesses > 0
+
+    int insertFailures = 0
+    int insertSuccesses = 0
+    for allocation in range(24)
+        lru.LruCache cache = createCache(mode)
+        cache.put("a", "first")
+        cache.put("b", "second")
+        bool caught = false
+        assert failAfter(uint64(allocation))
+        try
+            cache.put("c", "third")
+        catch MemoryError
+            caught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert caught == triggered
+        if caught then
+            assert cache.count == 2 and cache.contains("a") and cache.contains("b")
+            assert not cache.contains("c")
+            insertFailures += 1
+        else
+            assert cache.count == 2 and cache.contains("c")
+            insertSuccesses += 1
+        end
+    end
+    assert insertFailures > 0 and insertSuccesses > 0
+
+    int overwriteFailures = 0
+    int overwriteSuccesses = 0
+    for allocation in range(24)
+        lru.LruCache cache = createCache(mode)
+        cache.put("a", "old")
+        bool caught = false
+        assert failAfter(uint64(allocation))
+        try
+            cache.put("a", "new")
+        catch MemoryError
+            caught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert caught == triggered
+        if caught then
+            assert cache.get("a") == "old"
+            overwriteFailures += 1
+        else
+            assert cache.get("a") == "new"
+            overwriteSuccesses += 1
+        end
+    end
+    assert overwriteFailures > 0 and overwriteSuccesses > 0
+
+    lru.LruCache cache = createCache(mode)
+    cache.put("a", "first")
+    int readFailures = 0
+    int readSuccesses = 0
+    int afterNativeFailures = 0
+    for allocation in range(16)
+        bool caught = false
+        int hits = cache.hits
+        assert failAfter(uint64(allocation))
+        try
+            assert cache.get("a") == "first"
+        catch MemoryError
+            caught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert caught == triggered
+        if caught then
+            assert cache.hits == hits or cache.hits == hits + 1
+            if cache.hits == hits + 1 then afterNativeFailures += 1 end
+            assert cache.count == 1 and cache.contains("a")
+            readFailures += 1
+        else
+            assert cache.hits == hits + 1
+            readSuccesses += 1
+        end
+    end
+    assert readFailures > 0 and readSuccesses > 0 and afterNativeFailures > 0
+end

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>lru - 扩展库 - xlang</title>
+  <meta name="description" content="lru 提供字符串键值的有界 LRU 与 LFU 缓存。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / lru</p><h1>lru</h1>
+    <p class="extlib-lead">有界 LRU / LFU 字符串缓存。</p>
+    <p>复用 XRT 映射、内存和互斥锁；C/XL 边界、并发和 Linux sanitizer 通过。XL AOT 当前受共享缺符号阻断。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>create / createLFU</code></td><td>以正容量创建 LRU / LFU 缓存</td></tr>
+      <tr><td><code>put / get / contains / remove / clear</code></td><td>键值操作，get 支持缺失默认值</td></tr>
+      <tr><td><code>count / capacity / hits / misses</code></td><td>容量与统计快照</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import lru
+auto cache = lru.create(2)
+cache.put("user:1", "Alice")
+println(cache.get("user:1", "missing"))</code></pre>
+    <p>LFU 淘汰时 O(capacity) 扫描，同频选择最久未访问条目。XLang 的键、值和默认值拒绝内嵌 NUL；无 TTL 或持久化。C/XLang 边界覆盖只在末字节不同的 8 KiB 键、淘汰后返回文本的独立所有权。C 原生读取分配失败不计命中；若读取成功后周边 XLang 表达式才分配失败，命中可能已计入。C 教学范例现可在 Windows/Linux 单文件 <code>xl run</code>；两平台包级门禁覆盖严格 C、线程、XLang 与双语输出。完整边界 AOT 仍缺共享 <code>xl6ValueDataSnapshotV1</code>，未签收发布级。所有权与并发限制见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>
