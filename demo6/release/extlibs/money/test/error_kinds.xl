@@ -1,0 +1,55 @@
+import money
+
+func main(...) as int
+    int maximum = 9223372036854775807
+    int minimum = -9223372036854775807 - 1
+    bool overflow = false
+    try
+        money.rate(maximum, 2.0)
+    catch RangeError error
+        overflow = true
+    end
+    assert overflow
+
+    overflow = false
+    try
+        money.sub(minimum, 1)
+    catch RangeError error
+        overflow = true
+    end
+    assert overflow
+
+    overflow = false
+    try
+        money.mul(minimum, -1)
+    catch RangeError error
+        overflow = true
+    end
+    assert overflow
+
+    overflow = false
+    try
+        money.add(maximum, 1)
+    catch RangeError error
+        overflow = true
+    end
+    assert overflow
+
+    overflow = false
+    try
+        money.scale(maximum, 2, 1)
+    catch RangeError error
+        overflow = true
+    end
+    assert overflow
+
+    bool invalid = false
+    try
+        money.scale(1, 1, 0)
+    catch ValueError error
+        invalid = true
+    end
+    assert invalid
+    println("money error kinds: PASS")
+    return 0
+end

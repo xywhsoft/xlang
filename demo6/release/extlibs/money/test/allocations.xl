@@ -1,0 +1,37 @@
+import money
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+for operation in range(2)
+    int failures = 0
+    int successes = 0
+    for allocation in range(24)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        assert failAfter(uint64(allocation))
+        try
+            if operation == 0 then
+                money.format(123, "USD")
+            else
+                money.split(101, 3)
+            end
+        catch MemoryError error
+            memoryCaught = true
+        catch ValueError error
+            wrongCaught = true
+        catch RuntimeError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert not wrongCaught and memoryCaught == triggered
+        if triggered then failures += 1 else successes += 1 end
+        assert money.format(123, "USD") == "$1.23"
+        assert money.split(101, 3) == [34, 34, 33]
+    end
+    assert failures > 0 and successes > 0
+end
+
+println("money allocation: PASS")

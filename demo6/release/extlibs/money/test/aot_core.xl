@@ -1,0 +1,13 @@
+import money
+
+func main(...) as int
+    int subtotal = money.add(7999, 3499)
+    int discounted = money.scale(subtotal, 9, 10)
+    assert discounted == 10348
+    assert money.format(123456, "USD") == "$1,234.56"
+    assert money.exponent("JPY") == 0
+    int maximum = 9223372036854775807
+    assert money.rate(maximum, 1.0) == maximum
+    assert money.rate(-maximum - 1, 1.0) == -maximum - 1
+    return 0
+end

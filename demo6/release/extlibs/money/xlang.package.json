@@ -7,10 +7,13 @@
     "artifact": {
         "kind": "source",
         "cSources": ["money_native.c"],
-        "xlSources": ["src/money.xl"]
+        "xlSources": ["src/money.xl"],
+        "includeDirs": ["include"],
+        "xrtModules": ["XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_STRING"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/error_kinds.xl", "test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }
