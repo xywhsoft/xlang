@@ -15,7 +15,22 @@
             "xrt_plist_binary_writer.c",
             "plist_native.c"
         ],
-        "xlSources": ["src/plist.xl"]
+        "xlSources": ["src/plist.xl"],
+        "xrtModules": [
+            "XRT_MODULE_BUFFER",
+            "XRT_MODULE_CODEC_BASE64",
+            "XRT_MODULE_FILE_WHOLE",
+            "XRT_MODULE_IO_BUFFER",
+            "XRT_MODULE_IO_FILE",
+            "XRT_MODULE_NUMBER_FLOAT",
+            "XRT_MODULE_NUMBER_INTEGER",
+            "XRT_MODULE_ONCE",
+            "XRT_MODULE_STRING",
+            "XRT_MODULE_THREAD_KEY",
+            "XRT_MODULE_TIME_TEXT",
+            "XRT_MODULE_UNICODE",
+            "XRT_MODULE_VALUE_CONTAINER"
+        ]
     },
     "links": [],
     "loadlibs": [],
@@ -26,6 +41,7 @@
             "abiVersion": "1"
         }
     ],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",

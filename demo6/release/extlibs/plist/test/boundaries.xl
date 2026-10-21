@@ -1,0 +1,210 @@
+import plist
+
+func main(...) as int
+    plist.UID identifier = plist.uid(42)
+    Buffer payload = Buffer()
+    payload.appendByte(0)
+    payload.appendByte(255)
+    var source = {
+        "a\0b": "x\0y",
+        "small": 200,
+        "medium": 40000,
+        "negative": -7,
+        "items": [true, "你好"],
+        "payload": payload,
+        "uid": identifier
+    }
+
+    Buffer encoded = plist.dumps(source, "binary", true, true)
+    var decoded = plist.loads(encoded)
+    assert decoded["a\0b"] == "x\0y", "NUL string/key round trip"
+    assert decoded["small"] == 200, "one-byte unsigned integer"
+    assert decoded["medium"] == 40000, "two-byte unsigned integer"
+    assert decoded["negative"] == -7, "signed integer"
+    assert decoded["items"][1] == "你好", "Unicode array value"
+    assert plist.isUid(decoded["uid"]), "UID type"
+    assert plist.uidValue(decoded["uid"]) == 42, "UID value"
+    Buffer restored = decoded["payload"] as Buffer
+    assert restored.len() == 2, "binary data length"
+    assert restored.byteAt(0) == 0 and restored.byteAt(1) == 255, "binary data bytes"
+
+    string xml = plist.stringify({"name": "你好", "line\rkey": "A\rB", "count": 2})
+    var fromXml = plist.loads(xml)
+    bool rejectedText = false
+    try
+        plist.loads(xml, maxInput = string.byteLen(xml) - 1)
+    catch PlistError e
+        rejectedText = true
+        assert plist.errorCode() == 5, "text input limit error code"
+    end
+    assert rejectedText, "text input limit counts UTF-8 bytes"
+    xml = ""
+    assert fromXml["name"] == "你好", "XML Unicode"
+    assert fromXml["line\rkey"] == "A\rB", "XML CR in key and value"
+    assert fromXml["count"] == 2, "XML integer"
+    rejectedText = false
+    try
+        plist.loads("<plist version=\"1.0\"><string>ok</string></plist>\0<plist/>")
+    catch PlistError e
+        rejectedText = true
+    end
+    assert rejectedText, "text input must not truncate at an embedded NUL"
+    assert plist.loads("<plist version=\"1.0\"><integer> +42 </integer></plist>") == 42, "XML integer whitespace and sign"
+    bool rejectedXmlInteger = false
+    try
+        plist.loads("<plist version=\"1.0\"><integer>9223372036854775808</integer></plist>")
+    catch PlistError e
+        rejectedXmlInteger = true
+        assert plist.errorCode() == 3, "XML integer overflow is a format error"
+    end
+    assert rejectedXmlInteger, "XML integer overflow"
+    var preciseTime = {"when": time(1)}
+    var restoredTime = plist.loads(plist.dumps(preciseTime, "binary"))
+    assert restoredTime["when"] == time(1), "binary date microseconds"
+    bool rejectedXmlTime = false
+    try
+        plist.stringify(preciseTime)
+    catch PlistError e
+        rejectedXmlTime = true
+    end
+    assert rejectedXmlTime, "XML date must not discard microseconds"
+    bool rejectedBinaryTime = false
+    try
+        plist.dumps({"when": time(9000000000000000001)}, "binary")
+    catch PlistError e
+        rejectedBinaryTime = true
+    end
+    assert rejectedBinaryTime, "binary date must not lose microseconds"
+
+    bool rejected = false
+    try
+        plist.loads("not a plist")
+    catch PlistError e
+        rejected = true
+    end
+    assert rejected, "malformed input"
+    rejected = false
+    try
+        plist.dumps(source, "auto")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "output format"
+    rejected = false
+    try
+        plist.loads(encoded, "binary", maxInput = 8)
+    catch PlistError e
+        rejected = true
+        assert plist.errorCode() == 5, "input limit error code"
+    end
+    assert rejected, "input limit"
+    rejected = false
+    try
+        plist.loads(encoded, "binary", maxInput = -1)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "negative limit"
+    rejected = false
+    try
+        plist.dumps(source, "xml", indent = -1)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "negative indent"
+
+    rejected = false
+    try
+        plist.dumps([1, 2], "binary", maxNodes = 2)
+    catch PlistError e
+        rejected = true
+    end
+    assert rejected, "node limit must be checked while building"
+    var limited = plist.loads(plist.dumps([1, 2], "binary", maxNodes = 3))
+    assert limited[0] == 1 and limited[1] == 2, "node limit exact boundary"
+    rejected = false
+    try
+        plist.dumps([1, 2], maxEntries = 1)
+    catch PlistError e
+        rejected = true
+    end
+    assert rejected, "array entry limit"
+    assert plist.dumps([1, 2], maxEntries = 2).len() > 0
+    rejected = false
+    try
+        plist.dumps({"a": 1, "b": 2}, maxEntries = 1)
+    catch PlistError e
+        rejected = true
+    end
+    assert rejected, "dict entry limit"
+    assert plist.dumps({"a": 1, "b": 2}, maxEntries = 2).len() > 0
+    rejected = false
+    try
+        plist.dumps("你好", maxItem = 5)
+    catch PlistError e
+        rejected = true
+    end
+    assert rejected, "UTF-8 string byte limit"
+    assert plist.dumps("你好", maxItem = 6).len() > 0
+    rejected = false
+    try
+        plist.dumps({"长": 1}, maxItem = 2)
+    catch PlistError e
+        rejected = true
+    end
+    assert rejected, "UTF-8 dict key byte limit"
+    assert plist.dumps({"长": 1}, maxItem = 3).len() > 0
+    rejected = false
+    try
+        plist.dumps(payload, maxItem = 1)
+    catch PlistError e
+        rejected = true
+    end
+    assert rejected, "binary data item limit"
+    assert plist.dumps(payload, maxItem = 2).len() > 0
+
+    string workDir = path.join(path.temp(), "xlang_plist_boundary_" + crypto.randomString(20))
+    dir.createAll(workDir)
+    string fixture = path.join(workDir, "path.xml")
+    string original = plist.stringify({"mark": 1})
+    try
+        assert file.writeText(fixture, original)
+        rejected = false
+        try
+            plist.dump(fixture, [1, 2], maxNodes = 2)
+        catch PlistError e
+            rejected = true
+        end
+        assert rejected and file.readText(fixture) == original, "dump limit preserves file"
+        rejected = false
+        try
+            plist.load(fixture + "\0ignored")
+        catch ValueError e
+            rejected = true
+        end
+        assert rejected, "load must reject a truncated path"
+        rejected = false
+        try
+            plist.dump(fixture + "\0ignored", {"mark": 2})
+        catch ValueError e
+            rejected = true
+        end
+        assert rejected, "dump must reject a truncated path"
+        assert file.readText(fixture) == original, "dump must not overwrite the prefix file"
+        assert file.delete(fixture)
+    finally
+        assert dir.delete(workDir), "temporary plist directory must be removed"
+    end
+    rejected = false
+    try
+        plist.load(fixture)
+    catch PlistError e
+        rejected = true
+        assert plist.errorCode() == 2, "missing file error code"
+    end
+    assert rejected, "missing file"
+    assert plist.loads(original)["mark"] == 1, "read recovery"
+    assert plist.errorCode() == 0, "successful read clears native error"
+    println("plist XL boundaries: PASS")
+    return 0
+end

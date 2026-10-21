@@ -104,41 +104,6 @@ static bool __xrtPlistXmlDate(const char* sText, xtime* pValue)
 	return xrtTimeParseRFC3339(xrtStrView(sText), pValue);
 }
 
-static bool __xrtPlistBase64(const char* sText, uint8** ppData,
-	uint64* pSize)
-{
-	size_t i, iLength = strlen(sText);
-	char* sClean = (char*)xrtMalloc(iLength + 1u);
-	size_t iClean = 0u;
-	size_t iPadding = 0u;
-	ptr pDecoded;
-	if ( sClean == NULL ) { return false; }
-	for ( i = 0u; i < iLength; i++ ) {
-		unsigned char c = (unsigned char)sText[i];
-		if ( c == ' ' || c == '\t' || c == '\r' || c == '\n' ) { continue; }
-		if ( !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
-			(c >= '0' && c <= '9') || c == '+' || c == '/' || c == '=') ) {
-			xrtFree(sClean); return false;
-		}
-		sClean[iClean++] = (char)c;
-	}
-	sClean[iClean] = 0;
-	if ( iClean == 0u ) {
-		xrtFree(sClean); *ppData = NULL; *pSize = 0u; return true;
-	}
-	if ( iClean % 4u != 0u ) { xrtFree(sClean); return false; }
-	if ( sClean[iClean - 1u] == '=' ) { iPadding++; }
-	if ( iClean > 1u && sClean[iClean - 2u] == '=' ) { iPadding++; }
-	for ( i = 0u; i + iPadding < iClean; i++ ) {
-		if ( sClean[i] == '=' ) { xrtFree(sClean); return false; }
-	}
-	pDecoded = xrtBase64DecodeNew(sClean, iClean, (size_t*)pSize, NULL);
-	xrtFree(sClean);
-	if ( pDecoded == NULL ) { return false; }
-	*ppData = (uint8*)pDecoded;
-	return true;
-}
-
 static xrtplistnode* __xrtPlistXmlValue(xrtplistdocument* pDocument,
 	xrtxmldomnode* pElement, xrtplistcontext* pContext, uint32 iDepth)
 {
@@ -211,41 +176,68 @@ container_cleanup:
 		return pResult;
 	}
 	sContent = xrtXmlDomTextContent(pElement);
-	if ( sContent == NULL || !__xrtPlistLimitItem(pContext,
+	if ( sContent == NULL ) {
+		__xrtPlistSetError(pContext->Error, XRT_PLIST_ERROR_MEMORY,
+			0u, 0u, 0u, "could not read plist XML value text");
+		goto cleanup;
+	}
+	if ( !__xrtPlistLimitItem(pContext,
 		strlen((const char*)sContent), 0u) ) { goto cleanup; }
 	if ( strcmp(sName, "string") == 0 ) {
 		pResult = xrtPlistCreateStringEx(pDocument, sContent,
 			strlen((const char*)sContent));
+		if ( pResult == NULL ) {
+			__xrtPlistSetError(pContext->Error, XRT_PLIST_ERROR_MEMORY,
+				0u, 0u, 0u, "could not allocate plist XML string");
+		}
 	} else if ( strcmp(sName, "integer") == 0 ) {
-		char* pEnd;
-		long long iValue;
-		sTrimmed = __xrtPlistXmlTrim(sContent);
-		errno = 0;
-		iValue = strtoll(sTrimmed, &pEnd, 10);
-		if ( errno == 0 && pEnd != sTrimmed && *pEnd == 0 ) {
-			pResult = xrtPlistCreateInt(pDocument, (int64)iValue);
+		int64 iValue;
+		if ( xrtIntParse((xstrview){ sContent, strlen((const char*)sContent) },
+			10u, XNUMBER_PARSE_SPACE, &iValue) ) {
+			pResult = xrtPlistCreateInt(pDocument, iValue);
+			if ( pResult == NULL ) {
+				__xrtPlistSetError(pContext->Error, XRT_PLIST_ERROR_MEMORY,
+					0u, 0u, 0u, "could not allocate plist XML integer");
+			}
 		}
 	} else if ( strcmp(sName, "real") == 0 ) {
-		char* pEnd;
 		double fValue;
-		sTrimmed = __xrtPlistXmlTrim(sContent);
-		errno = 0;
-		fValue = strtod(sTrimmed, &pEnd);
-		if ( errno == 0 && pEnd != sTrimmed && *pEnd == 0 && isfinite(fValue) ) {
+		if ( xrtNumParse((xstrview){ sContent,
+			strlen((const char*)sContent) }, XNUMBER_PARSE_SPACE,
+			&fValue) && isfinite(fValue) ) {
 			pResult = xrtPlistCreateReal(pDocument, fValue);
+			if ( pResult == NULL ) {
+				__xrtPlistSetError(pContext->Error, XRT_PLIST_ERROR_MEMORY,
+					0u, 0u, 0u, "could not allocate plist XML real");
+			}
 		}
 	} else if ( strcmp(sName, "date") == 0 ) {
 		xtime tValue;
 		sTrimmed = __xrtPlistXmlTrim(sContent);
 		if ( __xrtPlistXmlDate(sTrimmed, &tValue) ) {
 			pResult = xrtPlistCreateDate(pDocument, tValue);
+			if ( pResult == NULL ) {
+				__xrtPlistSetError(pContext->Error, XRT_PLIST_ERROR_MEMORY,
+					0u, 0u, 0u, "could not allocate plist XML date");
+			}
 		}
 	} else if ( strcmp(sName, "data") == 0 ) {
-		uint8* pData = NULL;
-		uint64 iSize = 0u;
-		if ( __xrtPlistBase64((const char*)sContent, &pData, &iSize) &&
-			__xrtPlistLimitItem(pContext, iSize, 0u) ) {
-			pResult = xrtPlistCreateData(pDocument, pData, iSize);
+		xbase64config tBase64 = { NULL, XBASE64_IGNORE_SPACE };
+		size_t iSize = 0u;
+		uint8* pData;
+		xrtClearError();
+		pData = (uint8*)xrtBase64DecodeNew((const char*)sContent,
+			strlen((const char*)sContent), &iSize, &tBase64);
+		if ( pData != NULL && __xrtPlistLimitItem(pContext, iSize, 0u) ) {
+			pResult = xrtPlistCreateData(pDocument, pData, (uint64)iSize);
+			if ( pResult == NULL ) {
+				__xrtPlistSetError(pContext->Error, XRT_PLIST_ERROR_MEMORY,
+					0u, 0u, 0u, "could not allocate plist XML data");
+			}
+		} else if ( pData == NULL &&
+			xrtErrorKind(xrtGetError()) == XERR_MEMORY ) {
+			__xrtPlistSetError(pContext->Error, XRT_PLIST_ERROR_MEMORY,
+				0u, 0u, 0u, "could not decode plist XML data");
 		}
 		xrtFree(pData);
 	} else {
@@ -253,7 +245,9 @@ container_cleanup:
 			0u, 0u, 0u, "unsupported plist XML element: %s", sName);
 	}
 	if ( pResult == NULL && pContext->Error->iCode == XRT_PLIST_OK ) {
-		__xrtPlistSetError(pContext->Error, XRT_PLIST_ERROR_FORMAT,
+		int iCode = sTrimmed == NULL && strcmp(sName, "date") == 0 ?
+			XRT_PLIST_ERROR_MEMORY : XRT_PLIST_ERROR_FORMAT;
+		__xrtPlistSetError(pContext->Error, iCode,
 			0u, 0u, 0u, "invalid plist XML value: %s", sName);
 	}
 cleanup:
@@ -290,7 +284,14 @@ xrtplistdocument* __xrtPlistParseXml(const void* pData, uint64 iSize,
 	tXmlOptions.bAllowExternalEntities = false;
 	pXmlDocument = xrtXmlDomParseMemory(pData, iSize, &tXmlOptions, &tXmlError);
 	if ( pXmlDocument == NULL ) {
-		__xrtPlistSetError(pError, XRT_PLIST_ERROR_FORMAT,
+		int iCode = XRT_PLIST_ERROR_FORMAT;
+		if ( tXmlError.iCode == XRT_XML_ERROR_MEMORY )
+			iCode = XRT_PLIST_ERROR_MEMORY;
+		else if ( tXmlError.iCode == XRT_XML_ERROR_LIMIT )
+			iCode = XRT_PLIST_ERROR_LIMIT;
+		else if ( tXmlError.iCode == XRT_XML_ERROR_IO )
+			iCode = XRT_PLIST_ERROR_IO;
+		__xrtPlistSetError(pError, iCode,
 			tXmlError.iLine, tXmlError.iColumn, tXmlError.iOffset,
 			"invalid plist XML: %s", tXmlError.sMessage);
 		return NULL;

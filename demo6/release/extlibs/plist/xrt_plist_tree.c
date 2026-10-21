@@ -14,6 +14,62 @@ bool __xrtPlistAppleEpoch(xtime* pResult)
 	return xrtTimeMake(&tDateTime, pResult);
 }
 
+bool __xrtPlistBinarySecondsToTime(double fSeconds, xtime* pResult)
+{
+	const int64 iScale = XRT_TIME_SECOND;
+	const int64 iMinSecond = INT64_MIN / iScale - 1;
+	const int64 iMinMicrosecond = INT64_MIN -
+		(INT64_MIN / iScale) * iScale + iScale;
+	const int64 iMaxSecond = INT64_MAX / iScale;
+	const int64 iMaxMicrosecond = INT64_MAX - iMaxSecond * iScale;
+	double fWhole;
+	double fFraction;
+	int64 iSecond;
+	int64 iMicrosecond;
+	xtime tEpoch;
+
+	if ( pResult == NULL || !isfinite(fSeconds) ||
+		!__xrtPlistAppleEpoch(&tEpoch) ) { return false; }
+	fFraction = modf(fSeconds, &fWhole);
+	if ( fWhole < -1e13 || fWhole > 1e13 ) { return false; }
+	iSecond = (int64)fWhole + tEpoch / iScale;
+	iMicrosecond = (int64)round(fFraction * (double)iScale);
+	if ( iMicrosecond < 0 ) {
+		iSecond--;
+		iMicrosecond += iScale;
+	} else if ( iMicrosecond >= iScale ) {
+		iSecond++;
+		iMicrosecond -= iScale;
+	}
+	if ( iSecond < iMinSecond || iSecond > iMaxSecond ||
+		(iSecond == iMinSecond && iMicrosecond < iMinMicrosecond) ||
+		(iSecond == iMaxSecond && iMicrosecond > iMaxMicrosecond) ) {
+		return false;
+	}
+	/* 最小秒值先加一秒，避免中间乘法在 INT64_MIN 附近溢出。 */
+	*pResult = iSecond == iMinSecond ?
+		(iSecond + 1) * iScale + (iMicrosecond - iScale) :
+		iSecond * iScale + iMicrosecond;
+	return true;
+}
+
+bool __xrtPlistBinaryTimeToSeconds(xtime tValue, double* pResult)
+{
+	const int64 iScale = XRT_TIME_SECOND;
+	xtime tEpoch;
+	xtime tRecovered;
+	double fSeconds;
+
+	if ( pResult == NULL || !__xrtPlistAppleEpoch(&tEpoch) ) { return false; }
+	/* 整数秒与余微秒分开转换，避免先把绝对微秒值舍入为 double。 */
+	fSeconds = (double)(tValue / iScale - tEpoch / iScale) +
+		(double)(tValue % iScale) / (double)iScale;
+	if ( !__xrtPlistBinarySecondsToTime(fSeconds, &tRecovered) ||
+		tRecovered != tValue ) { return false; }
+	*pResult = fSeconds;
+	return true;
+}
+
 static bool __xrtPlistTrackNode(xrtplistdocument* pDocument,
 	xrtplistnode* pNode)
 {
@@ -211,7 +267,7 @@ XRT_API bool xrtPlistDictSet(xrtplistnode* pNode, const void* pKey,
 	uint8* pCopy;
 	uint32 iCapacity;
 	if ( pNode == NULL || pValue == NULL || pNode->iType != XRT_PLIST_DICT ||
-		pNode->pDocument != pValue->pDocument || iKeySize > SIZE_MAX ||
+		pNode->pDocument != pValue->pDocument || iKeySize > SIZE_MAX - 1u ||
 		(pKey == NULL && iKeySize != 0u) ||
 		(iKeySize != 0u && !xrtUtf8Valid(
 			(xstrview){ (cstr)pKey, (size_t)iKeySize }, NULL)) ) { return false; }

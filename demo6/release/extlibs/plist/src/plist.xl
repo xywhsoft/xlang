@@ -1,10 +1,14 @@
-extern "xplist_parse" func __plist_parse(point data, c_ulonglong size,
-    c_int format, c_ulonglong maxInput, c_ulonglong maxOutput,
-    c_ulonglong maxItem, c_ulonglong maxEntries, c_ulonglong maxNodes,
+extern "xplist_parse" func __plist_parse(point data, uint64 size,
+    c_int format, uint64 maxInput, uint64 maxOutput,
+    uint64 maxItem, uint64 maxEntries, uint64 maxNodes,
+    c_uint maxDepth) as point
+extern "xplist_parse_text" func __plist_parse_text(string data, uint64 size,
+    c_int format, uint64 maxInput, uint64 maxOutput,
+    uint64 maxItem, uint64 maxEntries, uint64 maxNodes,
     c_uint maxDepth) as point
 extern "xplist_load" func __plist_load(string path, c_int format,
-    c_ulonglong maxInput, c_ulonglong maxOutput, c_ulonglong maxItem,
-    c_ulonglong maxEntries, c_ulonglong maxNodes, c_uint maxDepth) as point
+    uint64 maxInput, uint64 maxOutput, uint64 maxItem,
+    uint64 maxEntries, uint64 maxNodes, c_uint maxDepth) as point
 extern "xplist_error_code" func __plist_error_code() as int
 extern "xplist_error_line" func __plist_error_line() as int
 extern "xplist_error_column" func __plist_error_column() as int
@@ -13,7 +17,7 @@ extern "xplist_error_message" func __plist_error_message() as point
 
 
 
-class UID
+export class UID
     uint64 value
 
     create(uint64 value)
@@ -36,7 +40,7 @@ class NativeDocument
     extern "xplist_int" func intValue(point node) as int
     extern "xplist_real" func realValue(point node) as float
     extern "xplist_date_value" func dateValue(point node) as var
-    extern "xplist_uid" func uidValue(point node) as c_ulonglong
+    extern "xplist_uid" func uidValue(point node) as uint64
     extern "xplist_string" func stringValue(point node) as var
     extern "xplist_data" func dataValue(point node) as point
     extern "xplist_count" func count(point node) as int
@@ -48,26 +52,26 @@ class NativeDocument
     extern "xplist_new_bool" func newBool(c_bool value) as point
     extern "xplist_new_int" func newInt(int value) as point
     extern "xplist_new_real" func newReal(float value) as point
-    extern "xplist_new_string" func newString(string value) as point
+    extern "xplist_new_string" func newString(var value) as point
     extern "xplist_new_data" func newData(point data,
-        c_ulonglong size) as point
+        uint64 size) as point
     extern "xplist_new_date_value" func newDate(var value) as point
     extern "xplist_new_array" func newArray() as point
     extern "xplist_new_dict" func newDict() as point
-    extern "xplist_new_uid" func newUid(c_ulonglong value) as point
+    extern "xplist_new_uid" func newUid(uint64 value) as point
     extern "xplist_array_append" func arrayAppend(point node,
         point value) as bool
-    extern "xplist_dict_set" func dictSet(point node, string key,
+    extern "xplist_dict_set" func dictSet(point node, var key,
         point value) as bool
     extern "xplist_stringify" func stringifyNative(c_int format,
         c_bool pretty, c_bool sortKeys, c_uint indent,
-        c_ulonglong maxOutput, c_ulonglong maxItem,
-        c_ulonglong maxEntries, c_ulonglong maxNodes,
+        uint64 maxOutput, uint64 maxItem,
+        uint64 maxEntries, uint64 maxNodes,
         c_uint maxDepth) as point
     extern "xplist_save" func saveNative(string path, c_int format,
         c_bool pretty, c_bool sortKeys, c_uint indent,
-        c_ulonglong maxOutput, c_ulonglong maxItem,
-        c_ulonglong maxEntries, c_ulonglong maxNodes,
+        uint64 maxOutput, uint64 maxItem,
+        uint64 maxEntries, uint64 maxNodes,
         c_uint maxDepth) as bool
 end
 
@@ -75,6 +79,20 @@ end
 
 func __plist_error() as string
     return __xl_std_runtime_take_cstr(__plist_error_message())
+end
+
+func __plist_raise_error()
+    if __plist_error_code() == 6 then
+        throw MemoryError __plist_error()
+    end
+    throw PlistError __plist_error()
+end
+
+func __plist_raise_build_error(string message)
+    if __plist_error_code() == 6 then
+        throw MemoryError message
+    end
+    throw PlistError message
 end
 
 func __plist_read_format(string format) as int
@@ -88,6 +106,27 @@ func __plist_write_format(string format) as int
     int result = __plist_read_format(format)
     if result == 0 then throw ValueError "plist output format must be xml or binary" end
     return result
+end
+
+func __plist_check_limits(int maxInput, int maxOutput, int maxItem,
+    int maxEntries, int maxNodes, int maxDepth)
+    if (maxInput <= 0 or maxOutput <= 0 or maxItem <= 0 or
+        maxEntries <= 0 or maxNodes <= 0 or maxDepth <= 0 or maxDepth > 512) then
+        throw ValueError "plist limits must be positive and maxDepth at most 512"
+    end
+end
+
+func __plist_check_indent(int indent)
+    if indent < 0 or indent > 16 then
+        throw ValueError "plist indent must be between 0 and 16"
+    end
+end
+
+// 文件路径经 C 字符串传递，不能静默截断；plist 值仍允许 NUL。
+func __plist_check_path(string path)
+    if string.indexOf(path, "\0", false, string.byteLen(path), 1) >= 0 then
+        throw ValueError "plist path contains an embedded NUL byte"
+    end
 end
 
 func __plist_to_value(NativeDocument document, point node,
@@ -113,16 +152,17 @@ func __plist_to_value(NativeDocument document, point node,
     elseif kind == 6 then
         return document.dateValue(node)
     elseif kind == 7 then
-        var result = []
+        array<var> result = []
         int index = 0
         while index < document.count(node)
-            result.append(__plist_to_value(document,
-                document.arrayGet(node, c_uint(index)), depth + 1, maxDepth))
+            point child = document.arrayGet(node, c_uint(index))
+            var item = __plist_to_value(document, child, depth + 1, maxDepth)
+            result.append(item)
             index += 1
         end
         return result
     elseif kind == 8 then
-        var result = {}
+        dict<var> result = {}
         int index = 0
         while index < document.count(node)
             string key = string(document.dictKey(node, c_uint(index)))
@@ -132,21 +172,27 @@ func __plist_to_value(NativeDocument document, point node,
         end
         return result
     elseif kind == 9 then
-        return UID(uint64(document.uidValue(node)))
+        return UID(document.uidValue(node))
     end
     throw PlistError "unsupported plist node type"
 end
 
 func __plist_from_value(NativeDocument document, var value,
-    int depth, int maxDepth) as point
+    int depth, int maxDepth, int maxNodes, int maxEntries,
+    int maxItem) as point
     if depth > maxDepth then throw PlistError "plist nesting depth exceeds the configured limit" end
+    // 构树时就限制资源，不能等原生写出阶段才发现超限。
+    if document.nodeCount() >= maxNodes then
+        throw PlistError "plist node count exceeds the configured limit"
+    end
     if value is Buffer then
         Buffer data = value as Buffer
-        return document.newData(data.data(), c_ulonglong(data.len()))
+        if data.len() > maxItem then throw PlistError "plist item exceeds the configured limit" end
+        return document.newData(data.data(), uint64(data.len()))
     end
     if value is UID then
         UID uid = value as UID
-        return document.newUid(c_ulonglong(uid.value))
+        return document.newUid(uid.value)
     end
     type valueType = type(value)
     if valueType == null then
@@ -158,29 +204,49 @@ func __plist_from_value(NativeDocument document, var value,
     elseif valueType == float then
         return document.newReal(float(value))
     elseif valueType == string then
-        return document.newString(string(value))
+        string text = string(value)
+        if string.byteLen(text) > maxItem then
+            throw PlistError "plist item exceeds the configured limit"
+        end
+        return document.newString(value)
     elseif valueType == time then
         return document.newDate(value)
     elseif valueType == array then
         point result = document.newArray()
+        if result == null then __plist_raise_build_error("could not build plist array") end
+        int count = 0
         for item in value
-            point child = __plist_from_value(document, item,
-                depth + 1, maxDepth)
-            if child == null or not document.arrayAppend(result, child) then
-                throw PlistError "could not build plist array"
+            if count >= maxEntries then
+                throw PlistError "plist array exceeds the configured entry limit"
             end
+            point child = __plist_from_value(document, item,
+                depth + 1, maxDepth, maxNodes, maxEntries, maxItem)
+            if child == null or not document.arrayAppend(result, child) then
+                __plist_raise_build_error("could not build plist array")
+            end
+            count += 1
         end
         return result
     elseif valueType == dict then
         point result = document.newDict()
+        if result == null then __plist_raise_build_error("could not build plist dict") end
+        int count = 0
         for key, item in value
             if type(key) != string then throw TypeError "plist dict keys must be strings" end
-            point child = __plist_from_value(document, item,
-                depth + 1, maxDepth)
-            if child == null or not document.dictSet(result,
-                string(key), child) then
-                throw PlistError "could not build plist dict"
+            string textKey = string(key)
+            if count >= maxEntries then
+                throw PlistError "plist dict exceeds the configured entry limit"
             end
+            if string.byteLen(textKey) > maxItem then
+                throw PlistError "plist item exceeds the configured limit"
+            end
+            point child = __plist_from_value(document, item,
+                depth + 1, maxDepth, maxNodes, maxEntries, maxItem)
+            if child == null or not document.dictSet(result,
+                key, child) then
+                __plist_raise_build_error("could not build plist dict")
+            end
+            count += 1
         end
         return result
     end
@@ -188,7 +254,7 @@ func __plist_from_value(NativeDocument document, var value,
 end
 
 func __plist_finish_load(point handle, int maxDepth) as var
-    if handle == null then throw PlistError __plist_error() end
+    if handle == null then __plist_raise_error() end
     NativeDocument document = NativeDocument(handle)
     return __plist_to_value(document, document.root(), 1, maxDepth)
 end
@@ -226,12 +292,12 @@ export func loads(string text, string format = "auto",
     int maxInput = 268435456, int maxOutput = 536870912,
     int maxItem = 268435456, int maxEntries = 100000,
     int maxNodes = 1000000, int maxDepth = 128) as var
-    Buffer data = Buffer()
-    data.append(text)
-    point result = __plist_parse(data.data(), c_ulonglong(data.len()),
-        c_int(__plist_read_format(format)), c_ulonglong(maxInput),
-        c_ulonglong(maxOutput), c_ulonglong(maxItem),
-        c_ulonglong(maxEntries), c_ulonglong(maxNodes), c_uint(maxDepth))
+    __plist_check_limits(maxInput, maxOutput, maxItem,
+        maxEntries, maxNodes, maxDepth)
+    point result = __plist_parse_text(text, uint64(string.byteLen(text)),
+        c_int(__plist_read_format(format)), uint64(maxInput),
+        uint64(maxOutput), uint64(maxItem),
+        uint64(maxEntries), uint64(maxNodes), c_uint(maxDepth))
     return __plist_finish_load(result, maxDepth)
 end
 
@@ -239,10 +305,12 @@ export func loads(Buffer data, string format = "auto",
     int maxInput = 268435456, int maxOutput = 536870912,
     int maxItem = 268435456, int maxEntries = 100000,
     int maxNodes = 1000000, int maxDepth = 128) as var
-    point result = __plist_parse(data.data(), c_ulonglong(data.len()),
-        c_int(__plist_read_format(format)), c_ulonglong(maxInput),
-        c_ulonglong(maxOutput), c_ulonglong(maxItem),
-        c_ulonglong(maxEntries), c_ulonglong(maxNodes), c_uint(maxDepth))
+    __plist_check_limits(maxInput, maxOutput, maxItem,
+        maxEntries, maxNodes, maxDepth)
+    point result = __plist_parse(data.data(), uint64(data.len()),
+        c_int(__plist_read_format(format)), uint64(maxInput),
+        uint64(maxOutput), uint64(maxItem),
+        uint64(maxEntries), uint64(maxNodes), c_uint(maxDepth))
     return __plist_finish_load(result, maxDepth)
 end
 
@@ -250,10 +318,13 @@ export func load(string path, string format = "auto",
     int maxInput = 268435456, int maxOutput = 536870912,
     int maxItem = 268435456, int maxEntries = 100000,
     int maxNodes = 1000000, int maxDepth = 128) as var
+    __plist_check_path(path)
+    __plist_check_limits(maxInput, maxOutput, maxItem,
+        maxEntries, maxNodes, maxDepth)
     point result = __plist_load(path, c_int(__plist_read_format(format)),
-        c_ulonglong(maxInput), c_ulonglong(maxOutput),
-        c_ulonglong(maxItem), c_ulonglong(maxEntries),
-        c_ulonglong(maxNodes), c_uint(maxDepth))
+        uint64(maxInput), uint64(maxOutput),
+        uint64(maxItem), uint64(maxEntries),
+        uint64(maxNodes), c_uint(maxDepth))
     return __plist_finish_load(result, maxDepth)
 end
 
@@ -261,19 +332,20 @@ export func dumps(var value, string format = "xml", bool pretty = true,
     bool sortKeys = false, int indent = 2, int maxOutput = 536870912,
     int maxItem = 268435456, int maxEntries = 100000,
     int maxNodes = 1000000, int maxDepth = 128) as Buffer
+    __plist_check_limits(1, maxOutput, maxItem,
+        maxEntries, maxNodes, maxDepth)
+    __plist_check_indent(indent)
     NativeDocument document = NativeDocument()
-    point root = __plist_from_value(document, value, 1, maxDepth)
+    point root = __plist_from_value(document, value, 1, maxDepth,
+        maxNodes, maxEntries, maxItem)
     if root == null or not document.setRoot(root) then
-        throw PlistError "could not build plist document"
-    end
-    if document.nodeCount() > maxNodes then
-        throw PlistError "plist node count exceeds the configured limit"
+        __plist_raise_build_error("could not build plist document")
     end
     point result = document.stringifyNative(c_int(__plist_write_format(format)),
         c_bool(pretty), c_bool(sortKeys), c_uint(indent),
-        c_ulonglong(maxOutput), c_ulonglong(maxItem),
-        c_ulonglong(maxEntries), c_ulonglong(maxNodes), c_uint(maxDepth))
-    if result == null then throw PlistError __plist_error() end
+        uint64(maxOutput), uint64(maxItem),
+        uint64(maxEntries), uint64(maxNodes), c_uint(maxDepth))
+    if result == null then __plist_raise_error() end
     return Buffer(result)
 end
 
@@ -291,19 +363,21 @@ export func dump(string path, var value, string format = "xml",
     int maxOutput = 536870912, int maxItem = 268435456,
     int maxEntries = 100000, int maxNodes = 1000000,
     int maxDepth = 128)
+    __plist_check_path(path)
+    __plist_check_limits(1, maxOutput, maxItem,
+        maxEntries, maxNodes, maxDepth)
+    __plist_check_indent(indent)
     NativeDocument document = NativeDocument()
-    point root = __plist_from_value(document, value, 1, maxDepth)
+    point root = __plist_from_value(document, value, 1, maxDepth,
+        maxNodes, maxEntries, maxItem)
     if root == null or not document.setRoot(root) then
-        throw PlistError "could not build plist document"
-    end
-    if document.nodeCount() > maxNodes then
-        throw PlistError "plist node count exceeds the configured limit"
+        __plist_raise_build_error("could not build plist document")
     end
     if not document.saveNative(path, c_int(__plist_write_format(format)),
         c_bool(pretty), c_bool(sortKeys), c_uint(indent),
-        c_ulonglong(maxOutput), c_ulonglong(maxItem),
-        c_ulonglong(maxEntries), c_ulonglong(maxNodes),
+        uint64(maxOutput), uint64(maxItem),
+        uint64(maxEntries), uint64(maxNodes),
         c_uint(maxDepth)) then
-        throw PlistError __plist_error()
+        __plist_raise_error()
     end
 end

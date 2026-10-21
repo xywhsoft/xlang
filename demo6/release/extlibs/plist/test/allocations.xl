@@ -1,0 +1,69 @@
+import plist
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    var source = {"name": "test", "count": 1}
+    int failures = 0
+    int successes = 0
+    for point in range(64)
+        bool caught = false
+        assert failAfter(uint64(point))
+        try
+            Buffer encoded = plist.dumps(source, "binary")
+            assert encoded.len() > 0
+        catch MemoryError e
+            caught = true
+        catch PlistError e
+            caught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert triggered == caught
+        if caught then failures += 1 else successes += 1 end
+        assert plist.dumps(source, "binary").len() > 0
+    end
+    assert failures > 0 and successes > 0
+
+    string directory = dir.temp("", "xlang-plist-allocation-", "")
+    string outputPath = path.join(directory, "output.plist")
+    int saveFailures = 0
+    int saveSuccesses = 0
+    try
+        for point in range(64)
+            bool memoryCaught = false
+            bool wrongCaught = false
+            assert failAfter(uint64(point))
+            try
+                plist.dump(outputPath, source, "xml")
+            catch MemoryError e
+                memoryCaught = true
+            catch PlistError e
+                wrongCaught = true
+                println("plist dump unexpected PlistError: ", e.message,
+                    ", native code=", plist.errorCode())
+            catch IOError e
+                wrongCaught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            if wrongCaught or memoryCaught != triggered then
+                println("plist dump allocation mismatch at ", point,
+                    ": triggered=", triggered, ", memory=", memoryCaught,
+                    ", other=", wrongCaught)
+            end
+            assert not wrongCaught and memoryCaught == triggered
+            if triggered then saveFailures += 1 else saveSuccesses += 1 end
+            if saveSuccesses > 0 then break end
+        end
+        assert saveFailures > 0 and saveSuccesses > 0
+        plist.dump(outputPath, source, "xml")
+        assert plist.load(outputPath)["name"] == "test"
+    finally
+        failClear()
+        assert dir.delete(directory)
+    end
+    return 0
+end

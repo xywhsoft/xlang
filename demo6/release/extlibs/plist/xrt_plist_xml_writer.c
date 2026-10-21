@@ -90,6 +90,8 @@ static bool __xrtPlistXmlEscape(xrtplistxmlwriter* pWriter,
 		if ( iCodepoint == '&' ) { sEscape = "&amp;"; }
 		else if ( iCodepoint == '<' ) { sEscape = "&lt;"; }
 		else if ( iCodepoint == '>' ) { sEscape = "&gt;"; }
+		/* 字面 CR 会被 XML 解析器规范化为 LF，字符引用才能原值往返。 */
+		else if ( iCodepoint == '\r' ) { sEscape = "&#xD;"; }
 		if ( sEscape != NULL ) {
 			if ( !__xrtPlistXmlAppend(pWriter, pData + iStart,
 				(size_t)(iCharacter - iStart)) ||
@@ -186,15 +188,18 @@ static bool __xrtPlistXmlWriteValue(xrtplistxmlwriter* pWriter,
 			__xrtPlistXmlText(pWriter, sNumber) &&
 			__xrtPlistXmlText(pWriter, "</integer>");
 		break;
-	case XRT_PLIST_REAL:
+	case XRT_PLIST_REAL: {
+		size_t iNumberSize;
 		if ( !isfinite(pNode->Value.fValue) ||
-			snprintf(sNumber, sizeof(sNumber), "%.17g", pNode->Value.fValue) <= 0 ) {
+			!xrtNumWrite(pNode->Value.fValue, sNumber, sizeof(sNumber),
+				&iNumberSize, XNUMBER_FLOAT_COMPACT) ) {
 			break;
 		}
 		bResult = __xrtPlistXmlText(pWriter, "<real>") &&
 			__xrtPlistXmlText(pWriter, sNumber) &&
 			__xrtPlistXmlText(pWriter, "</real>");
 		break;
+	}
 	case XRT_PLIST_STRING:
 		bResult = __xrtPlistLimitItem(&pWriter->Context,
 			pNode->Value.Bytes.iSize, 0u) &&
@@ -221,6 +226,11 @@ static bool __xrtPlistXmlWriteValue(xrtplistxmlwriter* pWriter,
 	}
 	case XRT_PLIST_DATE: {
 		xdatetime tDateTime;
+		if ( pNode->Value.tValue % XRT_TIME_SECOND != 0 ) {
+			__xrtPlistSetError(pWriter->Context.Error, XRT_PLIST_ERROR_TYPE,
+				0u, 0u, 0u, "plist XML dates require whole seconds");
+			break;
+		}
 		if ( !xrtTimeSplit(pNode->Value.tValue, &tDateTime) ||
 			tDateTime.Year < 0 || tDateTime.Year > 9999 ) { break; }
 		snprintf(sNumber, sizeof(sNumber),
@@ -283,8 +293,12 @@ static bool __xrtPlistXmlWriteValue(xrtplistxmlwriter* pWriter,
 	}
 	pWriter->iStackCount--;
 	if ( !bResult && pWriter->Context.Error->iCode == XRT_PLIST_OK ) {
-		__xrtPlistSetError(pWriter->Context.Error, XRT_PLIST_ERROR_TYPE,
-			0u, 0u, 0u, "plist value cannot be encoded as XML");
+		const xerror* pCause = xrtGetError();
+		bool bMemory = pCause != NULL && xrtErrorKind(pCause) == XERR_MEMORY;
+		__xrtPlistSetError(pWriter->Context.Error,
+			bMemory ? XRT_PLIST_ERROR_MEMORY : XRT_PLIST_ERROR_TYPE,
+			0u, 0u, 0u, bMemory ? "could not allocate plist XML output" :
+			"plist value cannot be encoded as XML");
 	}
 	return bResult;
 }

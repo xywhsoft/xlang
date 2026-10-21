@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>plist - 扩展库 - xlang</title>
+  <meta name="description" content="plist 提供 Apple XML 与二进制 property list 读写。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / plist</p><h1>plist</h1>
+    <p class="extlib-lead">读取和写出 Apple XML 与二进制 property list。</p>
+    <p>基于 XRT；XLang 值与 C 接口共享解析和写出核心，支持 UID、日期、数组、字典及二进制 Buffer。文本解析直接传递字符串和显式字节长度，不创建整份输入的临时 Buffer。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>loads(textOrBuffer) / load(path)</code></td><td>解析 XML 或自动识别二进制格式</td></tr>
+      <tr><td><code>dumps(value) / stringify(value) / dump(path, value)</code></td><td>生成 Buffer、XML 文本或原子保存文件</td></tr>
+      <tr><td><code>uid / isUid / uidValue</code></td><td>表达二进制 plist UID</td></tr>
+      <tr><td><code>plist.UID</code></td><td>导出 UID 类型，可用于显式声明</td></tr>
+      <tr><td><code>errorCode / errorLine / errorColumn / errorOffset</code></td><td>读取当前线程的原生错误位置</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import plist
+Buffer data = plist.dumps({"name": "xlang", "items": [1, 2]}, "binary")
+var restored = plist.loads(data)
+assert restored["name"] == "xlang"
+plist.UID id = plist.uid(42)</code></pre>
+    <p>二进制值和键可含 NUL，文件路径不可含嵌入 NUL；解析和写出均有可配置的资源上限。C 限额中的 0 表示不限制；传入 C 选项结构时须先调用 <code>xrtPlistOptionsInit</code>，外层或内嵌资源限额的版本、长度无效、保留字段或未支持的策略标志非零会报 <code>ARGUMENT</code>，不会回退到默认限额。读取、分配、限额、格式错误分别报告，不把失败混作格式错误。拥有型 Reader/Writer 在退出时关闭；正文成功但关闭失败时报告 <code>IO</code>，借用型流由调用方关闭。保存先完成序列化，再通过 XRT 原子替换目标，失败不先截断旧文件。XML 实数固定使用点号小数，不受进程区域设置影响；XML 日期只写整秒 UTC，带微秒的 time 会报错；binary plist 可以保存可精确往返的微秒时间，对无法精确表示的极值也会报错，不静默舍入。C API 见包内 <code>include/xrt_plist.h</code>，文档和输出缓冲由调用方释放。</p>
+    <p>2026-10-21 保存、流写入/关闭与 XML 字典排序中的内存故障按内存错误报告，XLang <code>dump()</code> 抛 <code>MemoryError</code>；真实 IO 与不支持的 XML 值仍按原错误类别报告。C 标量/字典逐点保存与 XLang 公开入口故障恢复通过 Windows/Linux 门禁；完整 AOT 的共享阻断未变。</p>
+    <p>XML 字符串及字典键中的 CR 写为 <code>&amp;#xD;</code>，回读不会被规范化为 LF；C/XLang 往返用例均覆盖这一边界。XML 的 LF/Tab 与二进制编码保持原有语义。</p>
+    <p>C Reader 的输入限额从当前读取位置计算，不包含已跳过的前缀；只有 <code>Size</code> 而没有 <code>Tell</code> 的 Reader 由实际读取阶段执行限额。</p>
+    <p>C <code>uint64_t</code> 与 XLang <code>uint64</code> 直接对应，限额、字节长度和 UID 在 Linux LP64 下也保持同一原型。双语范例先生成无 UID 的 XML，再生成含 UID(42) 的 binary；Linux 门禁用 Python <code>plistlib</code> 独立读取两种语言的四份产物。2026-10-17 日期秒数与微秒分开换算，修复 Linux 内嵌 TCC 下合法微秒时间被误拒绝；同一份 C 日期向量现由 GCC 和内嵌 TCC 验证。XML 整数/实数使用 XRT 严格解析，不复制数值文本；Base64 数据使用 XRT 忽略空白的严格解码。整数极值、非法文本及五种标量的分配故障有 C/XLang 回归。Windows C/XLang 包门禁与 Linux GCC ASan/UBSan、XLang 边界/分配故障、双语范例逐字节对照通过。XML 实数区域设置与日期精度回归、Python plistlib 的 1 微秒二进制固定向量仍保留。最小导入 AOT 仍缺 <code>xl6ValueDataSnapshotV1</code>，完整 AOT 也受共享序列运行时问题阻断，当前证据不代表已完成发布验收。</p>
+  </section>
+</main>
+</body>
+</html>

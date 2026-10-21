@@ -1,0 +1,4 @@
+import plist
+
+// 仅编译：导入方不得取得原生文档，避免绕过公开解析和写出检查。
+plist.NativeDocument document = plist.NativeDocument()

@@ -300,12 +300,13 @@ static bool __xrtPlistBinaryWriteObject(xrtplistbinarywriter* pWriter,
 		iMarker = pNode->Value.bValue ? 0x09u : 0x08u;
 		return __xrtPlistBinaryAppend(pWriter, &iMarker, 1u);
 	case XRT_PLIST_INT:
-		if ( pNode->Value.iValue >= INT8_MIN && pNode->Value.iValue <= INT8_MAX ) {
+		/* Binary plist 的短整数是无符号的；负数必须写为 8 字节。 */
+		if ( pNode->Value.iValue >= 0 && pNode->Value.iValue <= UINT8_MAX ) {
 			iSize = 1u; iMarker = 0x10u;
-		} else if ( pNode->Value.iValue >= INT16_MIN &&
-			pNode->Value.iValue <= INT16_MAX ) { iSize = 2u; iMarker = 0x11u; }
-		else if ( pNode->Value.iValue >= INT32_MIN &&
-			pNode->Value.iValue <= INT32_MAX ) { iSize = 4u; iMarker = 0x12u; }
+		} else if ( pNode->Value.iValue >= 0 &&
+			pNode->Value.iValue <= UINT16_MAX ) { iSize = 2u; iMarker = 0x11u; }
+		else if ( pNode->Value.iValue >= 0 &&
+			pNode->Value.iValue <= UINT32_MAX ) { iSize = 4u; iMarker = 0x12u; }
 		else { iSize = 8u; iMarker = 0x13u; }
 		return __xrtPlistBinaryAppend(pWriter, &iMarker, 1u) &&
 			__xrtPlistBinaryAppendUInt(pWriter,
@@ -326,12 +327,13 @@ static bool __xrtPlistBinaryWriteObject(xrtplistbinarywriter* pWriter,
 			__xrtPlistBinaryAppend(pWriter, pNode->Value.Bytes.pData,
 				pNode->Value.Bytes.iSize);
 	case XRT_PLIST_DATE: {
-		xtime tEpoch;
 		double fSeconds;
-		if ( !__xrtPlistAppleEpoch(&tEpoch) ) { return false; }
-		/* binary plist 日期使用 2001-01-01 起的秒数，XRT 时间单位为微秒。 */
-		fSeconds = (double)(((long double)pNode->Value.tValue -
-			(long double)tEpoch) / (long double)XRT_TIME_SECOND);
+		if ( !__xrtPlistBinaryTimeToSeconds(pNode->Value.tValue,
+			&fSeconds) ) {
+			__xrtPlistSetError(pWriter->Context.Error, XRT_PLIST_ERROR_TYPE,
+				0u, 0u, 0u, "binary plist date cannot preserve microseconds");
+			return false;
+		}
 		iMarker = 0x33u;
 		memcpy(&iBits, &fSeconds, sizeof(iBits));
 		return __xrtPlistBinaryAppend(pWriter, &iMarker, 1u) &&

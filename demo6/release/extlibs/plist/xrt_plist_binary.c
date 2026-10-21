@@ -133,9 +133,7 @@ static xrtplistnode* __xrtPlistBinaryObject(xrtplistbinaryreader* pReader,
 		if ( iBytes <= 8u ) {
 			if ( !__xrtPlistBinaryUInt(pReader->pData + iOffset + 1u,
 				(uint8)iBytes, &iRaw) ) { goto invalid; }
-			if ( iBytes < 8u && (iRaw & (1ull << (iBytes * 8u - 1u))) != 0u ) {
-				iRaw |= ~((1ull << (iBytes * 8u)) - 1u);
-			}
+			/* 1/2/4 字节为无符号值，8 字节才采用有符号解释。 */
 			pNode = xrtPlistCreateInt(pReader->pDocument, (int64)iRaw);
 		} else {
 			uint64 iHigh;
@@ -167,22 +165,16 @@ static xrtplistnode* __xrtPlistBinaryObject(xrtplistbinaryreader* pReader,
 		}
 	} else if ( iKind == 0x3u && iInfo == 0x3u ) {
 		double fSeconds;
-		long double fMicroseconds;
-		xtime tEpoch;
-		if ( !__xrtPlistAppleEpoch(&tEpoch) ) { goto invalid; }
+		xtime tValue;
 		if ( !__xrtPlistBinaryRange(pReader, iOffset + 1u, 8u) ||
 			!__xrtPlistBinaryUInt(pReader->pData + iOffset + 1u, 8u, &iRaw) ) {
 			goto invalid;
 		}
 		memcpy(&fSeconds, &iRaw, sizeof(fSeconds));
-		/* 外部格式以秒为单位，换算后再检查 xtime 的微秒范围。 */
-		fMicroseconds = (long double)tEpoch +
-			((long double)fSeconds * (long double)XRT_TIME_SECOND);
-		if ( !isfinite(fSeconds) ||
-			fMicroseconds < (long double)INT64_MIN ||
-			fMicroseconds > (long double)INT64_MAX ) { goto invalid; }
-		pNode = xrtPlistCreateDate(pReader->pDocument,
-			(xtime)llround((double)fMicroseconds));
+		if ( !__xrtPlistBinarySecondsToTime(fSeconds, &tValue) ) {
+			goto invalid;
+		}
+		pNode = xrtPlistCreateDate(pReader->pDocument, tValue);
 	} else if ( iKind == 0x4u || iKind == 0x5u || iKind == 0x6u ) {
 		uint8* pUtf8 = NULL;
 		uint64 iUtf8Size = 0u;

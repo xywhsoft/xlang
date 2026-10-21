@@ -3,6 +3,7 @@ import plist
 
 
 func main(...) as int
+    assert arg.length == 1 or arg.length == 3
     Buffer icon = Buffer()
     icon.appendByte(0)
     icon.append("XL")
@@ -13,8 +14,18 @@ func main(...) as int
         "icon": icon,
         "tags": ["compiler", "script"]
     }
-    println(plist.stringify(settings, true, true))
+    string xml = plist.stringify(settings, true, true)
+    println(xml)
+    settings["uid"] = plist.uid(42)
     Buffer binary = plist.dumps(settings, "binary")
     println("binary bytes: " + string(binary.len()))
+    var restored = plist.loads(binary)
+    assert plist.isUid(restored["uid"])
+    assert plist.uidValue(restored["uid"]) == 42
+    println("uid: " + string(plist.uidValue(restored["uid"])))
+    if arg.length == 3 then
+        assert file.writeText(string(arg[1]), xml)
+        assert file.writeBytes(string(arg[2]), binary.toBytes())
+    end
     return 0
 end

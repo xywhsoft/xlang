@@ -70,6 +70,7 @@ typedef struct {
 XRT_API void xrtPlistOptionsInit(xrtplistoptions* pOptions);
 XRT_API void xrtPlistErrorInit(xrtplisterror* pError);
 
+/* 拥有型 Reader 在退出时关闭；正文成功但关闭失败返回 IO。 */
 XRT_API xrtplistdocument* xrtPlistParse(xreader* pReader, bool bTakeOwnership,
 	const xrtplistoptions* pOptions, xrtplisterror* pError);
 XRT_API xrtplistdocument* xrtPlistParseMemory(const void* pData, uint64 iSize,
@@ -131,6 +132,7 @@ XRT_API bool xrtPlistDictSet(xrtplistnode* pNode, const void* pKey,
 
 XRT_API xbuffer* xrtPlistStringify(const xrtplistdocument* pDocument,
 	const xrtplistoptions* pOptions, xrtplisterror* pError);
+/* 拥有型 Writer 关闭失败返回 false；已有错误保持首因。 */
 XRT_API bool xrtPlistWrite(const xrtplistdocument* pDocument, xwriter* pWriter,
 	bool bTakeOwnership, const xrtplistoptions* pOptions,
 	xrtplisterror* pError);
