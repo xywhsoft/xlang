@@ -398,6 +398,16 @@ int main(void)
 	/* 写出限额、XML 字符和失败保存的边界。 */
 	bOk = bOk && xrtXmlElementCreate((str)"1root") == NULL &&
 		!xrtXmlElementSetAttribute(pRoot, (str)"bad?", (str)"value");
+	if ( bOk ) {
+		int bArguments = !xrtXmlElementWrite(pRoot, NULL, false, NULL,
+			&tError) && tError.iCode == XRT_XML_ERROR_ARGUMENT;
+		bArguments = !xrtXmlElementSave(NULL, pRoot, NULL, &tError) &&
+			tError.iCode == XRT_XML_ERROR_ARGUMENT && bArguments;
+		bArguments = !xrtXmlElementSave((str)"", pRoot, NULL, &tError) &&
+			tError.iCode == XRT_XML_ERROR_ARGUMENT && bArguments;
+		if ( !bArguments ) { fputs("ElementTree output arguments were misclassified\n", stderr); }
+		bOk = bArguments;
+	}
 	xrtXmlElementWriteOptionsInit(&tWrite);
 	tWrite.iMaxOutputBytes = 1u;
 	{

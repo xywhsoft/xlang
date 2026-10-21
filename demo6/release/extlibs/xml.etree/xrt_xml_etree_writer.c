@@ -356,9 +356,15 @@ XRT_API bool xrtXmlElementWrite(const xrtxmlelement* pElement, xwriter* pWriter,
 	bool bTakeOwnership, const xrtxmletreewriteoptions* pOptions,
 	xrtxmlerror* pError)
 {
-	xbuffer* pBuffer = xrtXmlElementStringify(pElement, pOptions, pError);
+	xbuffer* pBuffer;
 	bool bOk = false;
 	int iOutputError = XRT_XML_ERROR_IO;
+	if ( pWriter == NULL ) {
+		__xrtXmlEtreeSetError(pError, XRT_XML_ERROR_ARGUMENT,
+			"XML ElementTree output writer is null");
+		return false;
+	}
+	pBuffer = xrtXmlElementStringify(pElement, pOptions, pError);
 	if ( pBuffer != NULL && pWriter != NULL ) {
 		xrtClearError();
 		bOk = xrtWriterWriteFull(pWriter, pBuffer->Data, pBuffer->Size, NULL) &&
@@ -383,8 +389,14 @@ XRT_API bool xrtXmlElementWrite(const xrtxmlelement* pElement, xwriter* pWriter,
 XRT_API bool xrtXmlElementSave(str sPath, const xrtxmlelement* pElement,
 	const xrtxmletreewriteoptions* pOptions, xrtxmlerror* pError)
 {
-	xbuffer* pBuffer = xrtXmlElementStringify(pElement, pOptions, pError);
+	xbuffer* pBuffer;
 	bool bOk;
+	if ( sPath == NULL || sPath[0] == 0 ) {
+		__xrtXmlEtreeSetError(pError, XRT_XML_ERROR_ARGUMENT,
+			"XML ElementTree output path is empty");
+		return false;
+	}
+	pBuffer = xrtXmlElementStringify(pElement, pOptions, pError);
 	if ( pBuffer == NULL ) { return false; }
 	xrtClearError();
 	bOk = xrtFileWriteAtomic((cstr)sPath,

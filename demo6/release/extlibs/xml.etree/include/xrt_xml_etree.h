@@ -74,6 +74,7 @@ XRT_API xvalue* xrtXmlElementFindAll(const xrtxmlelement* pElement, str sPath);
 
 XRT_API xbuffer* xrtXmlElementStringify(const xrtxmlelement* pElement,
 	const xrtxmletreewriteoptions* pOptions, xrtxmlerror* pError);
+/* 空 Writer 或空保存路径在序列化前报告 ARGUMENT。 */
 XRT_API bool xrtXmlElementWrite(const xrtxmlelement* pElement, xwriter* pWriter,
 	bool bTakeOwnership, const xrtxmletreewriteoptions* pOptions,
 	xrtxmlerror* pError);

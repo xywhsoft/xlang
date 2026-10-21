@@ -23,6 +23,8 @@ XLang `parse(text)` 先检查 UTF-8 字节长度，再将只读字符串及显�
 `save` 在序列化成功后才原子替换文件，失败时旧文件保持不变。
 保存及流写出遇到底层内存失败时，C 层报告 `XRT_XML_ERROR_MEMORY`，
 XLang `save()` 抛 `MemoryError`；真实写入和关闭失败仍按 IO 报告。
+C 的 `xrtXmlElementWrite` 空 Writer、`xrtXmlElementSave` 空路径在序列化前
+报告 `XRT_XML_ERROR_ARGUMENT`，不会把无效参数误报为 I/O 故障。
 
 验证：
 
