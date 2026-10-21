@@ -93,6 +93,19 @@ static int verify(void* user)
  CHECK(xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xl->editor))==xv && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(dependency->editor))==dv && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(c->editor))==cv && xl->dirty && dependency->dirty && !c->dirty && capture(&app,light));
  CHECK(xideWorkbenchApplyTheme(&app,1)==XUI_OK && capture(&app,dark));
  CHECK(xideUiFontApply(&app,app.uiFontPath,24,&error) && resize(&app,900,600) && capture(&app,large) && xideUiFontApply(&app,app.uiFontPath,16,&error) && resize(&app,1280,800));
+ /* Rechecking preserves the wire mirror and unchanged captured bodies. */
+ CHECK(xideEditorShow(&app,xl)==XUI_OK);
+ xide_language_view* view=app.languageView; xide_language_client* retainedClient=view->client;
+ char* retainedRoot=inputPath(view,entry)->text; xls_sync_stats syncBefore={0},syncAfter={0}; xlsSyncStats(view->sync,&syncBefore);
+ CHECK(view->sync && (view->syncKind==1 || view->syncKind==2) && menuCheck(&app) && ready(&app,1));
+ xlsSyncStats(view->sync,&syncAfter);
+ CHECK(view->client==retainedClient && inputPath(view,entry)->text==retainedRoot && !memcmp(&syncBefore,&syncAfter,sizeof(syncBefore)));
+ int literal=(int)(strstr(unicode,"return 7")-unicode)+7;
+ CHECK(xuiCodeDocumentReplace(xuiCodeEditGetDocument(dependency->editor),literal,literal+1,"8")==XUI_OK && settle(&app) && ready(&app,1));
+ xlsSyncStats(view->sync,&syncAfter);
+ CHECK(view->client==retainedClient && inputPath(view,entry)->text==retainedRoot && syncAfter.opens==syncBefore.opens && syncAfter.closes==syncBefore.closes && syncAfter.changes==syncBefore.changes+1);
+ CHECK(syncAfter.textBytes-syncBefore.textBytes==(view->syncKind==2 ? 1u : strlen(unicode)));
+ CHECK(replace(dependency,unicode) && settle(&app) && ready(&app,1));
  /* Unrelated C changes preserve the xlang result; automatic recheck keeps its original root. */
  CHECK(xideEditorShow(&app,c)==XUI_OK && xuiCodeDocumentInsert(xuiCodeEditGetDocument(c->editor),xuiCodeDocumentGetLength(xuiCodeEditGetDocument(c->editor)),"//编辑😀\n")==XUI_OK && settle(&app) && xideLanguageViewDiagnosticCount(&app)==1 && replace(dependency,good) && settle(&app) && !xideLanguageViewDiagnosticCount(&app) && ready(&app,0) && app.activeDocument==c);
  CHECK(replace(dependency,bad) && settle(&app) && ready(&app,1));
