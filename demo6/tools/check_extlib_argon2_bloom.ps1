@@ -6,7 +6,10 @@ $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
 $xl = Join-Path $Root 'release/xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
-$work = Join-Path $Root 'build/test/argon2_bloom_guard'
+$workRoot = Join-Path $Root 'build/test/argon2_bloom_guard'
+$runName = 'run_' + [guid]::NewGuid().ToString('N')
+$work = Join-Path $workRoot $runName
+$reportPath = Join-Path $workRoot "$runName.results.json"
 $utf8 = [Text.UTF8Encoding]::new($false)
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $checks = [Collections.Generic.List[object]]::new()
@@ -114,5 +117,15 @@ try {
     $outcome = 'passed'
 } finally {
     $report = [ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;scope='Windows x64 strict C ABI, boundary/allocation, JIT/AOT, paired examples';inputs=$hashes;checks=@($checks.ToArray())}
-    [IO.File]::WriteAllText((Join-Path $work 'results.json'),($report | ConvertTo-Json -Depth 7),$utf8)
+    try {
+        [IO.File]::WriteAllText($reportPath,($report | ConvertTo-Json -Depth 7),$utf8)
+        Write-Host "[argon2/bloom] report: $reportPath"
+    } finally {
+        $parent = [IO.Path]::GetFullPath($workRoot).TrimEnd('\') + '\'
+        $target = [IO.Path]::GetFullPath($work)
+        if (!$target.StartsWith($parent, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "argon2/bloom temporary work path escaped build/test: $target"
+        }
+        Remove-Item -LiteralPath $target -Recurse -Force
+    }
 }
