@@ -1,39 +1,135 @@
 import dotenv
 
-
-
 func main(...) as int
-    dotenv.clear()
-    assert dotenv.count() == 0, "initial count 0"
+    // 解析结果属于各自的配置对象，不隐式污染进程环境。
+    auto config = dotenv.parse("\xef\xbb\xbf# comment\r\nexport DB_HOST=localhost\r\nEMPTY=\r\nNAME=first\r\nNAME=second\r\nTEXT=\"hello\\nworld\" # note\r\nRAW='a#b'\r\nUTF8=你好\r\n")
+    assert config.count == 6
+    assert config.get("DB_HOST") == "localhost"
+    assert config.get("EMPTY", "fallback") == ""
+    assert config.get("NAME") == "second"
+    assert config.get("TEXT") == "hello\nworld"
+    assert config.get("RAW") == "a#b"
+    assert config.get("UTF8") == "你好"
+    assert config.get("MISSING", "fallback") == "fallback"
+    assert not config.has("MISSING")
 
-    int n = dotenv.load("test/data/dotenv_test.env")
-    assert n == 7, "loaded 7 vars"
-    assert dotenv.count() == 7, "count matches"
+    // C 字符串边界不能将 NUL 后的后缀忽略并命中另一个键。
+    bool nulRejected = false
+    try
+        config.get("NAME\0suffix")
+    catch ValueError e
+        nulRejected = true
+    end
+    assert nulRejected
+    nulRejected = false
+    try
+        config.has("NAME\0suffix")
+    catch ValueError e
+        nulRejected = true
+    end
+    assert nulRejected
+    nulRejected = false
+    try
+        config.set("NAME\0suffix", "wrong")
+    catch ConfigError e
+        nulRejected = true
+    end
+    assert nulRejected and config.get("NAME") == "second"
+    nulRejected = false
+    try
+        config.set("NAME", "wrong\0suffix")
+    catch ConfigError e
+        nulRejected = true
+    end
+    assert nulRejected and config.get("NAME") == "second"
 
-    assert dotenv.get("DB_HOST") == "localhost", "DB_HOST"
-    assert dotenv.get("DB_PORT") == "5432", "DB_PORT"
-    assert dotenv.get("DB_NAME") == "mydb", "DB_NAME strips quotes"
-    assert dotenv.get("API_KEY") == "secret123", "API_KEY strips single quotes"
-    assert dotenv.get("PATH_EXTRA") == "/usr/local/bin", "export prefix handled"
-    assert dotenv.get("EMPTY_VAL") == "", "empty value"
-    assert dotenv.get("SPACED_KEY") == "spaced_value", "spaced key trimmed"
+    auto other = dotenv.parse("NAME=independent\n")
+    assert other.get("NAME") == "independent"
+    config.set("NAME", "updated")
+    assert config.get("NAME") == "updated"
+    assert other.get("NAME") == "independent"
 
-    assert dotenv.has("DB_HOST"), "has DB_HOST"
-    assert not dotenv.has("NONEXIST"), "not has NONEXIST"
+    bool malformed = false
+    try
+        dotenv.parse("OK=1\nnot a key\n")
+    catch ConfigError e
+        malformed = true
+    end
+    assert malformed, "invalid line must fail, never silently skip"
 
-    // default value
-    assert dotenv.get("NONEXIST", "fallback") == "fallback", "default value"
+    bool limit = false
+    try
+        dotenv.parse("KEY=value\n", maxBytes=4)
+    catch RangeError e
+        limit = true
+    end
+    assert limit, "byte limit must be enforced"
 
-    // set / override
-    dotenv.set("DB_HOST", "remotehost")
-    assert dotenv.get("DB_HOST") == "remotehost", "override works"
+    bool badKey = false
+    try
+        config.set("bad-key", "value")
+    catch ConfigError e
+        badKey = true
+    end
+    assert badKey, "invalid key must fail"
 
-    dotenv.set("NEW_KEY", "new_val")
-    assert dotenv.get("NEW_KEY") == "new_val", "new key set"
-    assert dotenv.count() == 8, "count after new key"
+    bool missingFile = false
+    try
+        dotenv.load("build/test/dotenv-does-not-exist.env")
+    catch FileError e
+        missingFile = true
+    end
+    assert missingFile, "missing file must throw FileError"
 
-    dotenv.clear()
-    assert dotenv.count() == 0, "cleared"
+    nulRejected = false
+    try
+        dotenv.load("build/test/dotenv-does-not-exist.env\0suffix")
+    catch ValueError e
+        nulRejected = true
+    end
+    assert nulRejected
 
+    bool fileLimit = false
+    try
+        dotenv.load("test/data/dotenv_test.env", maxBytes=4)
+    catch RangeError e
+        fileLimit = true
+    end
+    assert fileLimit, "file byte limit must throw RangeError"
+
+    string workDir = dir.temp(path.temp(), "xlang_dotenv_", "")
+    try
+        string fixture = path.join(workDir, "dotenv_中文.env")
+        file.writeText(fixture, "FILE_KEY=loaded\n")
+        auto loaded = dotenv.load(fixture)
+        assert loaded.get("FILE_KEY") == "loaded"
+    finally
+        dir.delete(workDir)
+    end
+
+    string key = "XLANG_DOTENV_TEST_ONLY"
+    string? previous = env.get(key)
+    try
+        env.set(key, "original")
+        config.set(key, "new")
+        config.apply()
+        assert (env.get(key) ?? "") == "original", "default apply preserves existing env"
+        config.apply(true)
+        assert (env.get(key) ?? "") == "new", "overwrite is explicit"
+        config.set(key, "你好")
+        config.apply(true)
+        assert (env.get(key) ?? "") == "你好", "UTF-8 environment value must round-trip"
+    finally
+        if previous == null then
+            env.remove(key)
+        else
+            env.set(key, previous)
+        end
+    end
+
+    string saved = config.get("NAME")
+    config.clear()
+    assert config.count == 0 and other.count == 1
+    assert saved == "updated", "XLang string must outlive borrowed C value"
     return 0
 end
