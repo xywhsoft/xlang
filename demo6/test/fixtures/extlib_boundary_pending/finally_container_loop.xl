@@ -1,0 +1,19 @@
+// 待编译器收口的独立探针，不计入 gzip 已通过的验收门。
+import gzip
+
+func exercise() as int
+    return gzip.compress("probe").len() - gzip.compress("probe").len()
+end
+
+func main(...) as int
+    try
+        return exercise()
+    finally
+        for name in ["one", "two"]
+            string target = "build/test/gzip-progress/" + string(name)
+            if file.exists(target) then
+                file.delete(target)
+            end
+        end
+    end
+end

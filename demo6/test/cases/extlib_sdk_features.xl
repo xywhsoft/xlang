@@ -1,0 +1,7 @@
+import sdk_feature_probe
+
+func main(...) as int
+    assert sdk_feature_probe.probe() == 0, "SDK selected feature symbols and round trips"
+    println("SDK selected features ok")
+    return 0
+end

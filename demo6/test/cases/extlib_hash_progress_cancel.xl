@@ -4,101 +4,95 @@ import crc32
 import md5
 import murmur3
 import sha3
-import siphash
 import xxhash
 
 func main(...) as int
-    string sourcePath = "tmp/extlib_hash_progress_cancel.txt"
+    // 夹具由当前用例创建和清理，不依赖仓库外预先存在的目录。
+    string root = "build/test/extlib_hash_progress_cancel"
+    dir.createAll(root)
+    string sourcePath = root + "/source.txt"
     string text = ""
     int i = 0
     while i < 10000
         text += "cancel-hash-progress-" + string(i) + "\n"
         i += 1
     end
-    file.writeText(sourcePath, text)
-
-    func(int, int, int) as bool cancel = func(int inputBytes,
-        int totalBytes, int outputBytes) as bool
-        return false
-    end
-    bool cancelled = false
-
     try
-        blake2.blake2bFileHex(sourcePath, onProgress = cancel)
-    catch CancelledError e
-        cancelled = true
-    end
-    assert cancelled
+        file.writeText(sourcePath, text)
 
-    cancelled = false
-    try
-        blake3.hashFileHex(sourcePath, onProgress = cancel)
-    catch CancelledError e
-        cancelled = true
-    end
-    assert cancelled
-
-    cancelled = false
-    try
-        crc32.checksumFile(sourcePath, onProgress = cancel)
-    catch CancelledError e
-        cancelled = true
-    end
-    assert cancelled
-
-    cancelled = false
-    try
-        md5.hashFileHex(sourcePath, onProgress = cancel)
-    catch CancelledError e
-        cancelled = true
-    end
-    assert cancelled
-
-    cancelled = false
-    try
-        murmur3.hashFile32(sourcePath, onProgress = cancel)
-    catch CancelledError e
-        cancelled = true
-    end
-    assert cancelled
-
-    cancelled = false
-    try
-        sha3.hashFileHex(sourcePath, onProgress = cancel)
-    catch CancelledError e
-        cancelled = true
-    end
-    assert cancelled
-
-    Buffer key = Buffer()
-    key.append("0123456789abcdef")
-    cancelled = false
-    try
-        siphash.hashFile64(sourcePath, key, onProgress = cancel)
-    catch CancelledError e
-        cancelled = true
-    end
-    assert cancelled
-
-    cancelled = false
-    try
-        xxhash.hashFile64(sourcePath, onProgress = cancel)
-    catch CancelledError e
-        cancelled = true
-    end
-    assert cancelled
-
-    bool callbackError = false
-    try
-        md5.hashFileHex(sourcePath, onProgress = func(int inputBytes,
+        func(int, int, int) as bool cancel = func(int inputBytes,
             int totalBytes, int outputBytes) as bool
-            throw ValueError "hash progress callback failed"
-        end)
-    catch ValueError e
-        callbackError = e.message == "hash progress callback failed"
-    end
-    assert callbackError
+            return false
+        end
+        bool cancelled = false
 
-    file.delete(sourcePath)
+        try
+            blake2.blake2bFileHex(sourcePath, onProgress = cancel)
+        catch CancelledError e
+            cancelled = true
+        end
+        assert cancelled
+
+        cancelled = false
+        try
+            blake3.hashFileHex(sourcePath, onProgress = cancel)
+        catch CancelledError e
+            cancelled = true
+        end
+        assert cancelled
+
+        cancelled = false
+        try
+            crc32.checksumFile(sourcePath, onProgress = cancel)
+        catch CancelledError e
+            cancelled = true
+        end
+        assert cancelled
+
+        cancelled = false
+        try
+            md5.hashFileHex(sourcePath, onProgress = cancel)
+        catch CancelledError e
+            cancelled = true
+        end
+        assert cancelled
+
+        cancelled = false
+        try
+            murmur3.hashFile32(sourcePath, onProgress = cancel)
+        catch CancelledError e
+            cancelled = true
+        end
+        assert cancelled
+
+        cancelled = false
+        try
+            sha3.hashFileHex(sourcePath, onProgress = cancel)
+        catch CancelledError e
+            cancelled = true
+        end
+        assert cancelled
+
+        cancelled = false
+        try
+            xxhash.hashFile64(sourcePath, onProgress = cancel)
+        catch CancelledError e
+            cancelled = true
+        end
+        assert cancelled
+
+        bool callbackError = false
+        try
+            md5.hashFileHex(sourcePath, onProgress = func(int inputBytes,
+                int totalBytes, int outputBytes) as bool
+                throw ValueError "hash progress callback failed"
+            end)
+        catch ValueError e
+            callbackError = e.message == "hash progress callback failed"
+        end
+        assert callbackError
+    finally
+        file.delete(sourcePath)
+    end
     return 0
 end

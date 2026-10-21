@@ -1,0 +1,43 @@
+import mysql
+import faiss
+
+func main(...) as int
+    string full = "IN_TRANS AUTOCOMMIT MORE_RESULTS NO_GOOD_INDEX NO_INDEX CURSOR_EXISTS LAST_ROW_SENT DB_DROPPED NO_BACKSLASH_ESCAPES METADATA_CHANGED QUERY_WAS_SLOW PS_OUT_PARAMS IN_TRANS_READONLY SESSION_STATE_CHANGED"
+    assert mysql.statusStr(0x7ffb) == full
+    string saved = mysql.statusStr(0x7ffb)
+    assert mysql.statusStr(0) == "" and saved == full
+    assert mysql.statusStr(0x100) == "DB_DROPPED"
+    assert mysql.statusStr(0x4000) == "SESSION_STATE_CHANGED"
+    assert mysql.cmdName(0x1f) == "COM_RESET_CONNECTION"
+    assert mysql.cmdName(0x1b) == "COM_SET_OPTION"
+    assert mysql.capName(0x200000) == "PLUGIN_AUTH_LENENC"
+    assert mysql.errorClass(1045) == "server" and mysql.errorClass(2003) == "client"
+    assert mysql.formatDsn("localhost", 3306, "test", "user") == "mysql://user@localhost:3306/test"
+    string dsn = mysql.formatDsn("::1", 3306, "数据库", "用户")
+    assert mysql.dsnPart(dsn, "host") == "::1"
+    assert mysql.dsnPart(dsn, "db") == "数据库" and mysql.dsnPart(dsn, "user") == "用户"
+    for port in [0, 65536, 4294970602]
+        bool caught = false
+        try
+            mysql.formatDsn("h", port, "db", "user")
+        catch ValueError
+            caught = true
+        end
+        assert caught
+    end
+    assert faiss.l2Distance("1.5,2.5", "4.5,6.5") == 5.0
+    assert faiss.innerProduct("-1.5,2e1", "2,3") == 57.0
+    assert faiss.cosine("0,0", "2,3") == 0.0
+    for text in ["oops", "1,", "nan", "1 2", "1,2"]
+        bool caught = false
+        try
+            faiss.l2Distance(text, "1")
+        catch ValueError
+            caught = true
+        end
+        assert caught
+    end
+    assert faiss.l2Distance("1,2", "4,6") == 5.0
+    println("partial helpers: xlang boundaries passed")
+    return 0
+end
