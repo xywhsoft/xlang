@@ -1,0 +1,159 @@
+import sitemap
+
+func main(...) as int
+    string xml = sitemap.build([{"loc": "https://example.test/?a=1&b=2", "lastmod": "2026-10-12"}])
+    var entries = sitemap.parse(xml)
+    assert entries.length == 1, "one URL"
+    assert entries[0]["loc"] == "https://example.test/?a=1&b=2", "XML entity round trip"
+    assert entries[0]["lastmod"] == "2026-10-12", "lastmod round trip"
+
+    string lineXml = sitemap.build([{"loc": "https://example.test/a", "lastmod": "2026-10-12\rZ"}])
+    assert sitemap.parse(lineXml)[0]["lastmod"] == "2026-10-12\rZ", "XML CR round trip"
+
+    string index = sitemap.buildIndex([{"loc": "https://example.test/a.xml"}])
+    assert sitemap.parseIndex(index)[0]["loc"] == "https://example.test/a.xml", "index round trip"
+    int raised = 0
+    try
+        sitemap.build([{"loc": "https://example.test/a", "image": "hidden"}])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "unknown URL field rejected"
+    raised = 0
+    try
+        sitemap.buildIndex([{"loc": "https://example.test/a.xml", "priority": "0.5"}])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "unknown index field rejected"
+    raised = 0
+    try
+        sitemap.parse("<urlset><url><loc>broken</url></urlset>")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "mismatched tag rejected"
+    raised = 0
+    try
+        sitemap.parse("<!DOCTYPE urlset [<!ENTITY x 'bad'>]><urlset/>")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "DTD rejected"
+    raised = 0
+    try
+        sitemap.parse("<urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9' xmlns:x='urn:other'><url><x:loc>https://example.test/</x:loc></url></urlset>")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "foreign namespace loc rejected"
+    raised = 0
+    try
+        sitemap.parse("<urlset><url><loc>first</loc><loc>second</loc></url></urlset>")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "duplicate loc rejected"
+    raised = 0
+    try
+        sitemap.parse("<urlset><url><loc>ok</loc><lastmod>one</lastmod><lastmod>two</lastmod></url></urlset>")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "duplicate optional field rejected"
+    raised = 0
+    try
+        sitemap.build([{"lastmod": "2026-10-12"}])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "missing loc rejected"
+    string longLoc = "https://example.test/" + string.repeat("a", 2047 - string.len("https://example.test/"))
+    string longXml = sitemap.build([{"loc": longLoc}])
+    assert sitemap.parse(longXml)[0]["loc"] == longLoc, "2047 character loc accepted"
+    raised = 0
+    try
+        sitemap.build([{"loc": longLoc + "a"}])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "2048 character loc rejected by builder"
+    raised = 0
+    try
+        sitemap.parse("<urlset><url><loc>" + longLoc + "a</loc></url></urlset>")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "2048 character loc rejected by parser"
+    raised = 0
+    try
+        sitemap.build([{"loc": "https://example.test/\uFFFE"}])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "XML 1.0 noncharacter rejected"
+    raised = 0
+    try
+        sitemap.buildIndex([{"loc": "https://example.test/\uFFFF"}])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "index XML 1.0 noncharacter rejected"
+    raised = 0
+    try
+        sitemap.parse("<urlset/>\0ignored")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "embedded NUL rejected"
+
+    var robots = sitemap.robotsParse("User-agent: Bot\nUser-agent: Other\nDisallow: /private\nAllow: /private/public\nDisallow: /download/*/secret$\n\nUser-agent: Bot\nDisallow: /admin\n\nUser-agent: *\nDisallow: /\nSitemap: https://example.test/map.xml\n")
+    assert robots["sitemaps"].length == 1, "sitemap directive"
+    assert not sitemap.robotsAllows(robots, "Bot", "/private/x"), "matching group"
+    assert sitemap.robotsAllows(robots, "Bot", "/private/public/x"), "longest allow"
+    assert not sitemap.robotsAllows(robots, "Other", "/download/a/secret"), "wildcard end"
+    assert sitemap.robotsAllows(robots, "Other", "/download/a/secret/next"), "end anchor"
+    assert not sitemap.robotsAllows(robots, "Bot", "/admin/x"), "later group merged"
+    assert sitemap.robotsAllows(robots, "Bot", "/open"), "specific agent beats wildcard"
+    assert not sitemap.robotsAllows(robots, "Unknown", "/open"), "wildcard fallback"
+
+    var exactAgent = sitemap.robotsParse("User-agent: Bot\nDisallow: /private\nUser-agent: *\nAllow: /private\n")
+    assert not sitemap.robotsAllows(exactAgent, "bOt", "/private/x"), "product token ignores case"
+    assert sitemap.robotsAllows(exactAgent, "NotBot", "/private/x"), "product token is not a suffix"
+    assert sitemap.robotsAllows(exactAgent, "BotPlus", "/private/x"), "product token is not a prefix"
+
+    var wildcardRules = sitemap.robotsParse("User-agent: *\nDisallow: /a*b*c$\nAllow: /a*b/c$\nDisallow: /equal\nAllow: /equal\nDisallow: /a$b\nAllow: /a*b\n")
+    assert not sitemap.robotsAllows(wildcardRules, "Bot", "/abc"), "wildcards match empty spans"
+    assert not sitemap.robotsAllows(wildcardRules, "Bot", "/axbyc"), "multiple wildcards match spans"
+    assert sitemap.robotsAllows(wildcardRules, "Bot", "/a/b/c"), "longer allow rule wins"
+    assert sitemap.robotsAllows(wildcardRules, "Bot", "/axbyc/next"), "end anchor rejects suffix"
+    assert sitemap.robotsAllows(wildcardRules, "Bot", "/equal/next"), "equal specificity favors allow"
+    assert not sitemap.robotsAllows(wildcardRules, "Bot", "/a$b"), "interior dollar is a literal byte"
+
+    var separated = sitemap.robotsParse("User-agent: Bot\n# comment\n\nUser-agent: Also\nDisallow: /private\n\nDisallow: /hidden\n\nUser-agent: Other\nDisallow: /other\n")
+    assert not sitemap.robotsAllows(separated, "Bot", "/private/x"), "comment does not end group"
+    assert not sitemap.robotsAllows(separated, "Bot", "/hidden/x"), "blank line does not end group"
+    assert not sitemap.robotsAllows(separated, "Also", "/private/x"), "agent declarations stay grouped"
+    assert sitemap.robotsAllows(separated, "Other", "/private/x"), "new agent starts group"
+
+    var withBom = sitemap.robotsParse("\uFEFFUser-agent: *\nDisallow: /private\n")
+    assert not sitemap.robotsAllows(withBom, "Bot", "/private/x"), "UTF-8 BOM preserves first group"
+
+    raised = 0
+    try
+        sitemap.robotsAllows(robots, "Bot", "/private\0/hidden")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "NUL path rejected"
+    assert sitemap.robotsAllows(robots, "Bot", "/open"), "robots query recovers after error"
+    string largeRobots = "#" + string.repeat("a", 1024 * 1024)
+    raised = 0
+    try
+        sitemap.robotsParse(largeRobots)
+    catch RangeError error
+        raised = 1
+    end
+    assert raised == 1, "oversized robots.txt rejected"
+    return 0
+end

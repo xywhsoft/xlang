@@ -1,0 +1,10 @@
+import sitemap
+
+func main(...) as int
+    var entries = [{"loc": "https://example.test/?a=1&b=2"}]
+    string xml = sitemap.build(entries)
+    print(xml)
+    var robots = sitemap.robotsParse("User-agent: *\n# site policy\n\nDisallow: /admin\n")
+    println(sitemap.robotsAllows(robots, "Crawler", "/admin/panel"))
+    return 0
+end

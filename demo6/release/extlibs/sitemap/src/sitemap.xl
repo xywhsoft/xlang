@@ -1,27 +1,31 @@
-extern "xsm_build" func __sm_build(var urls) as string
-extern "xsm_build_index" func __sm_build_index(var sitemaps) as string
-extern "xsm_parse" func __sm_parse(string xml) as var
-extern "xsm_parse_index" func __sm_parse_index(string xml) as var
-extern "xsm_robots_parse" func __sm_robots_parse(string text) as var
-extern "xsm_robots_allows" func __sm_robots_allows(var robots, string userAgent, string path) as bool
+extern "xsm_build" func __sm_build(var urls) as point
+extern "xsm_build_index" func __sm_build_index(var sitemaps) as point
+extern "xsm_parse_n" func __sm_parse(string xml, c_size size) as var
+extern "xsm_parse_index_n" func __sm_parse_index(string xml, c_size size) as var
+extern "xsm_robots_parse_n" func __sm_robots_parse(string text, c_size size) as var
+extern "xsm_robots_allows_n" func __sm_robots_allows(var robots, string userAgent, c_size agentSize, string path, c_size pathSize) as c_longlong
 
 
 
 // build 由 URL 数组生成 sitemap.xml 0.9 文本
 // 每项支持 loc、lastmod、changefreq、priority 字段，仅 loc 必填
 export func build(var urls) as string
-    return __sm_build(urls)
+    point result = __sm_build(urls)
+    if result == null then throw ValueError "sitemap: invalid URL entries" end
+    return __xl_runtime.takeCstr(result)
 end
 
 // buildIndex 由子 sitemap 列表生成 sitemap 索引文件
 export func buildIndex(var sitemaps) as string
-    return __sm_build_index(sitemaps)
+    point result = __sm_build_index(sitemaps)
+    if result == null then throw ValueError "sitemap: invalid index entries" end
+    return __xl_runtime.takeCstr(result)
 end
 
 // parse 解析 sitemap.xml，返回 [{loc, lastmod?, changefreq?, priority?}]
 // 非 urlset 文档抛 ValueError
 export func parse(string xml) as var
-    var r = __sm_parse(xml)
+    var r = __sm_parse(xml, c_size(string.byteLen(xml)))
     if r == null then
         throw ValueError "sitemap: not a urlset document"
     end
@@ -30,20 +34,25 @@ end
 
 // parseIndex 解析 sitemap 索引文档
 export func parseIndex(string xml) as var
-    var r = __sm_parse_index(xml)
+    var r = __sm_parse_index(xml, c_size(string.byteLen(xml)))
     if r == null then
         throw ValueError "sitemap: not a sitemap index document"
     end
     return r
 end
 
-// robotsParse 解析 robots.txt，返回 {agents: {name: {allow, disallow}}, sitemaps}
+// robotsParse 解析 robots.txt，保留规则组和 Sitemap 声明
 export func robotsParse(string text) as var
-    return __sm_robots_parse(text)
+    var result = __sm_robots_parse(text, c_size(string.byteLen(text)))
+    if result == null then throw ValueError "sitemap: invalid robots.txt" end
+    return result
 end
 
-// robotsAllows 按 Google 语义判断爬取许可：最长规则胜出，平局允许赢
-// 未匹配到规则视为允许；代理名大小写不敏感并回退到 *
-export func robotsAllows(var robots, string userAgent, string path) as bool
-    return __sm_robots_allows(robots, userAgent, path)
+// robotsAllows 使用常见 robots 规则：最长字面规则胜出，平局允许赢
+// 支持 *、末尾 $；传入爬虫产品标识，精确匹配时忽略大小写，未命中回退到 *
+export func robotsAllows(var robots, string productToken, string path) as bool
+    c_longlong result = __sm_robots_allows(robots, productToken,
+        c_size(string.byteLen(productToken)), path, c_size(string.byteLen(path)))
+    if result < 0 then throw ValueError "sitemap: invalid robots decision input" end
+    return result != 0
 end

@@ -14,10 +14,8 @@ func main(...) as int
     string xml = sitemap.build(urls)
     println(xml)
 
-    // 写入文件并可读回
-    string path = "examples_out/extlibs/sitemap.xml"
-    file.writeText(path, xml)
-    var parsed = sitemap.parse(file.readText(path))
+    // 直接解析生成的 XML，范例运行不写文件
+    var parsed = sitemap.parse(xml)
     println("---")
     println("parsed entries:", parsed.length)
 

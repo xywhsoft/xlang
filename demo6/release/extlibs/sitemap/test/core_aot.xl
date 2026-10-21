@@ -1,0 +1,11 @@
+import sitemap
+
+func main(...) as int
+    string xml = sitemap.build([{"loc": "https://example.test/"}])
+    assert xml.contains("<urlset"), "XML build"
+    var parsed = sitemap.parse(xml)
+    assert parsed.length == 1, "XML parse"
+    var robots = sitemap.robotsParse("User-agent: *\nDisallow: /private\n")
+    assert not sitemap.robotsAllows(robots, "Bot", "/private/x"), "robots decision"
+    return 0
+end

@@ -1,0 +1,32 @@
+import sitemap
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+string rules = "User-agent: Bot\nDisallow: /private\nAllow: /private/public\nSitemap: https://example.test/map.xml\n"
+int failures = 0
+int successes = 0
+
+for allocation in range(48)
+    bool memoryCaught = false
+    bool wrongCaught = false
+    assert failAfter(uint64(allocation))
+    try
+        sitemap.robotsParse(rules)
+    catch MemoryError error
+        memoryCaught = true
+    catch ValueError error
+        wrongCaught = true
+    catch RuntimeError error
+        wrongCaught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert not wrongCaught and memoryCaught == triggered
+    if triggered then failures += 1 else successes += 1 end
+end
+
+assert failures > 0 and successes > 0
+assert not sitemap.robotsAllows(sitemap.robotsParse(rules), "Bot", "/private/x")
+println("sitemap allocation: PASS")

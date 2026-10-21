@@ -1,0 +1,55 @@
+import sitemap
+
+func main(...) as int
+    array<var> entries = []
+    var entry = {"loc": "https://example.test/a"}
+    int index = 0
+    while index < 50000
+        entries.append(entry)
+        index += 1
+    end
+
+    string xml = sitemap.build(entries)
+    string indexXml = sitemap.buildIndex(entries)
+    assert sitemap.parse(xml).length == 50000
+    assert sitemap.parseIndex(indexXml).length == 50000
+
+    string overXml = string.replace(xml, "</urlset>",
+        "<url><loc>https://example.test/extra</loc></url></urlset>")
+    string overIndex = string.replace(indexXml, "</sitemapindex>",
+        "<sitemap><loc>https://example.test/extra</loc></sitemap></sitemapindex>")
+    bool limited = false
+    try
+        sitemap.parse(overXml)
+    catch RangeError error
+        limited = true
+    end
+    assert limited, "urlset parse entry limit"
+
+    limited = false
+    try
+        sitemap.parseIndex(overIndex)
+    catch RangeError error
+        limited = true
+    end
+    assert limited, "index parse entry limit"
+
+    entries.append(entry)
+
+    limited = false
+    try
+        sitemap.build(entries)
+    catch RangeError error
+        limited = true
+    end
+    assert limited, "urlset entry limit"
+
+    limited = false
+    try
+        sitemap.buildIndex(entries)
+    catch RangeError error
+        limited = true
+    end
+    assert limited, "index entry limit"
+    return 0
+end
