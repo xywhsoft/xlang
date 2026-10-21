@@ -4,6 +4,7 @@
 #include "../include/consistent_hash_native.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define CHECK(condition) do { if (!(condition)) { \
@@ -168,6 +169,66 @@ static int test_fixed_layout(void)
     return 0;
 }
 
+typedef struct {
+    uint64_t hash;
+    const char* name;
+    unsigned replica;
+} ReferenceVnode;
+
+static int reference_compare(const void* left, const void* right)
+{
+    const ReferenceVnode* a = (const ReferenceVnode*)left;
+    const ReferenceVnode* b = (const ReferenceVnode*)right;
+    int order;
+    if (a->hash != b->hash) return a->hash < b->hash ? -1 : 1;
+    order = strcmp(a->name, b->name);
+    if (order != 0) return order;
+    return (a->replica > b->replica) - (a->replica < b->replica);
+}
+
+static int test_incremental_layout(void)
+{
+    enum { NODE_COUNT = 64, REPLICAS = 128, KEY_COUNT = 2048 };
+    char names[NODE_COUNT][24], key[24];
+    ReferenceVnode* reference = (ReferenceVnode*)xrtMalloc(
+        NODE_COUNT * REPLICAS * sizeof(*reference));
+    void* ring = xchash_create(REPLICAS);
+    unsigned node, replica, sample;
+    size_t count = NODE_COUNT * REPLICAS;
+    CHECK(reference != NULL && ring != NULL);
+    for (node = 0; node < NODE_COUNT; ++node) {
+        size_t size;
+        snprintf(names[node], sizeof(names[node]), "node-%03u", node);
+        size = strlen(names[node]);
+        CHECK(xchash_add_node(ring, names[node]) == 1);
+        for (replica = 0; replica < REPLICAS; ++replica) {
+            ReferenceVnode* vnode = &reference[node * REPLICAS + replica];
+            vnode->hash = xrtHash64Seed(names[node], size, replica);
+            vnode->name = names[node];
+            vnode->replica = replica;
+        }
+    }
+    CHECK(xchash_node_count(ring) == NODE_COUNT &&
+          xchash_vnode_count(ring) == (int64_t)count);
+    qsort(reference, count, sizeof(*reference), reference_compare);
+    /* 与一次性完整排序独立对照，不依赖增量合并器自身求期望值。 */
+    for (sample = 0; sample < KEY_COUNT; ++sample) {
+        uint64_t hash;
+        size_t i;
+        char* actual;
+        snprintf(key, sizeof(key), "request-%04u", sample);
+        hash = xrtHash64(key, strlen(key));
+        for (i = 0; i < count && reference[i].hash < hash; ++i) {}
+        actual = (char*)xchash_get_node(ring, key);
+        CHECK(actual != NULL &&
+              strcmp(actual, reference[i == count ? 0u : i].name) == 0);
+        xrtFree(actual);
+    }
+    xchash_destroy(ring);
+    xrtFree(reference);
+    return 0;
+}
+
 static int test_error_recovery(void)
 {
     void* ring;
@@ -291,6 +352,7 @@ int main(void)
     CHECK(test_dual_growth_failure() == 0);
     CHECK(test_name_limit() == 0);
     CHECK(test_fixed_layout() == 0);
+    CHECK(test_incremental_layout() == 0);
     CHECK(test_error_recovery() == 0);
     puts("consistent_hash C boundaries: PASS");
     return 0;

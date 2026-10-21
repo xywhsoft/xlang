@@ -13,6 +13,7 @@
 | `ring.nodeCount` / `ring.vnodeCount` | 物理节点/虚拟节点数快照 |
 
 节点名最多 4096 UTF-8 字节，虚拟节点总数最多 1,000,000。键按 C 字符串字节散列，不能为空指针；空字符串键有效。XLang 的节点名和键若含内嵌 NUL，会在进入 C 前抛 `ValueError`，不会静默按前缀操作。虚拟节点位置为 `xrtHash64Seed(name, replicaIndex)`，键位置为 `xrtHash64(key)`；哈希冲突按节点名和副本序号排序，与添加顺序无关。更改哈希算法或副本数会重排映射，部署时必须将它们视为数据布局参数。添加节点的内存失败不会提交半个节点；已有节点和查询仍可使用。C 侧保留 `XERR_MEMORY`，XLang 侧抛 `MemoryError`，清除故障后同一环可继续查询或添加节点。
+新增节点只排序本次的副本，再与已有有序环线性合并；虚拟节点更新部分为 O(r log r + v)，额外临时空间 O(r)，其中 r 是单节点副本数、v 是已有虚拟节点数。重复节点名检测仍须扫描物理节点名。不会在每次添加时重新排序全部 v 个旧虚拟节点。
 节点名校验最多读取前 4097 字节，超限输入不会先做整串扫描。
 
 每个环内部用 XRT 互斥锁串行化节点环读写；查询键的哈希在加锁前计算，长键不会延长环锁持有时间。返回的节点名是独立副本，因此后续查询、扩容、删除节点不会使结果失效。**销毁对象前**，调用方仍需确保没有线程正在使用这个环；互斥锁不能让悬垂句柄自动变安全。
@@ -39,6 +40,8 @@ Linux 可在 `demo6` 运行 `bash release/extlibs/consistent_hash/test/check.sh`
 Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/consistent_hash/test/check.ps1 -SkipAot`，一并检查严格 GCC、C 故障与线程、中央和包内 XLang、原生入口私有性及双语黄金输出。去掉 `-SkipAot` 会依次构建运行核心、带输出范例及边界 AOT；当前范例构建会明确停在共享缺符号问题，不能签收整包。C 教学范例内含包的原生实现，可在两平台直接 `xl run release/extlibs/consistent_hash/examples/consistent_hash_c.c`；正式包仍按清单分别编译该原生源码。
 
 2026-10-22：新增固定节点映射黄金输出，Windows 快测和 Linux C ASan/UBSan、XLang 门禁通过。Windows 默认模式核心 AOT 通过，范例 AOT 构建缺共享 `xl6ValueDataSnapshotV1`，所以范例运行比较及后续边界 AOT 尚未执行；每次独占构建目录已清理。本轮不修改哈希算法或 C/XLang API。
+
+2026-10-22：增量合并替代每次新增节点后的全环 `qsort`。C 测试用 64 个节点、每节点 128 个副本及 2048 个键，对照独立的一次性完整排序；原有添加顺序、固定映射、扩容分配失败与回滚用例保持通过。Windows `test/check.ps1 -SkipAot` 的 C、线程、XLang 和双语固定输出，以及 Linux `test/check.sh` 的 C ASan/UBSan、线程、XLang 与双语门禁通过。公开映射/API 不变；完整带输出 AOT 的共享缺符号阻断未变，不签收整包发布级。
 
 当前 `xl build extlibs/consistent_hash/test/boundaries.xl -o ../build/test/consistent_hash_xl_test.exe` 报共享链接缺符号 `xl6ValueDataSnapshotV1`；**AOT 尚未验收**。阻断记录见 `dev/extlib_blockers/text_snapshot_link.md`，修复后需重跑该命令。
 

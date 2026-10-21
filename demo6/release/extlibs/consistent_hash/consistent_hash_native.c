@@ -98,8 +98,9 @@ int64_t xchash_add_node(void* handle, const char* name)
     xch_ring* ring = (xch_ring*)handle;
     char** grown_nodes;
     xch_vnode* grown_vnodes;
+    xch_vnode* added_vnodes = NULL;
     char* owned_name;
-    size_t i, needed, capacity, name_size;
+    size_t i, j, write, needed, capacity, name_size;
     xrtClearError();
     if (ring == NULL || !xch_name_valid(name)) {
         xch_error(XERR_ARGUMENT, "node name must be 1..4096 valid UTF-8 bytes");
@@ -119,6 +120,14 @@ int64_t xchash_add_node(void* handle, const char* name)
     }
     owned_name = xrtStrDup(name);
     if (owned_name == NULL) goto fail;
+    added_vnodes = (xch_vnode*)xrtMalloc(ring->replicas * sizeof(*added_vnodes));
+    if (added_vnodes == NULL) goto fail_name;
+    for (i = 0u; i < ring->replicas; ++i) {
+        added_vnodes[i].hash = xrtHash64Seed(name, name_size, (uint64)i);
+        added_vnodes[i].name = owned_name;
+        added_vnodes[i].replica = (uint32)i;
+    }
+    qsort(added_vnodes, ring->replicas, sizeof(*added_vnodes), xch_compare);
     if (ring->node_count == ring->node_capacity) {
         capacity = ring->node_capacity == 0u ? 4u : ring->node_capacity * 2u;
         grown_nodes = (char**)xrtRealloc(ring->nodes, capacity * sizeof(char*));
@@ -137,18 +146,24 @@ int64_t xchash_add_node(void* handle, const char* name)
         ring->vnodes = grown_vnodes;
         ring->vnode_capacity = capacity;
     }
-    for (i = 0u; i < ring->replicas; ++i) {
-        xch_vnode* vnode = &ring->vnodes[ring->vnode_count + i];
-        vnode->hash = xrtHash64Seed(name, name_size, (uint64)i);
-        vnode->name = owned_name;
-        vnode->replica = (uint32)i;
+    /* 新节点单独排序，再从尾部原地合并；查询期间仍由同一把锁保护。 */
+    i = ring->vnode_count;
+    j = ring->replicas;
+    write = needed;
+    while (j != 0u) {
+        if (i != 0u && xch_compare(&ring->vnodes[i - 1u],
+                                  &added_vnodes[j - 1u]) > 0)
+            ring->vnodes[--write] = ring->vnodes[--i];
+        else
+            ring->vnodes[--write] = added_vnodes[--j];
     }
     ring->nodes[ring->node_count++] = owned_name;
     ring->vnode_count = needed;
-    qsort(ring->vnodes, ring->vnode_count, sizeof(xch_vnode), xch_compare);
+    xrtFree(added_vnodes);
     xrtMutexUnlock(&ring->guard);
     return 1;
 fail_name:
+    xrtFree(added_vnodes);
     xrtFree(owned_name);
 fail:
     xrtMutexUnlock(&ring->guard);
