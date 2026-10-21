@@ -5,6 +5,8 @@ import rss
 func main(...) as int
     // 检测
     assert rss.detect("<rss version=\"2.0\"><channel></channel></rss>") == "rss", "detect rss"
+    assert rss.detect("<rss><channel/></rss>") == "", "missing RSS version"
+    assert rss.detect("<rss version=\"0.91\"><channel/></rss>") == "", "wrong RSS version"
     assert rss.detect("<feed xmlns=\"http://www.w3.org/2005/Atom\"></feed>") == "atom", "detect atom"
     assert rss.detect("<html></html>") == "", "detect neither"
 
@@ -83,6 +85,14 @@ func main(...) as int
 
     raised = 0
     try
+        rss.parseRSS("<rss version=\"0.91\"><channel/></rss>")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "parseRSS rejects old RSS version"
+
+    raised = 0
+    try
         rss.parseAtom(rssDoc)
     catch e
         raised = 1
@@ -110,9 +120,17 @@ func main(...) as int
     assert reparsed["items"].length == 2, "round trip count"
     assert reparsed["items"][0]["title"] == "t <1>", "round trip escaped title"
     assert reparsed["items"][0]["description"] == "d & d", "round trip escaped desc"
+    raised = 0
+    try
+        rss.buildRSS({"title": "bad \uFFFE", "link": "https://gen.dev", "description": "generated"}, [])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "RSS XML 1.0 noncharacter rejected"
 
     // 生成 Atom 并回读
-    var feedMeta = {"title": "gen atom", "link": "https://gen.dev/atom", "id": "urn:uuid:0", "updated": "2026-08-13T00:00:00Z"}
+    var feedMeta = {"title": "gen atom", "link": "https://gen.dev/atom", "id": "urn:uuid:0",
+        "updated": "2026-08-13T00:00:00Z", "author": "xlang"}
     var entries = [
         {"title": "a1", "link": "https://gen.dev/a1", "id": "urn:uuid:a1", "updated": "2026-08-13T00:00:00Z", "summary": "s1"}
     ]
@@ -120,7 +138,69 @@ func main(...) as int
     var atomBack = rss.parse(atomOut)
     assert atomBack["type"] == "atom", "round trip atom type"
     assert atomBack["title"] == "gen atom", "round trip atom title"
+    assert atomBack["author"] == "xlang", "round trip feed author"
     assert atomBack["items"][0]["summary"] == "s1", "round trip summary"
+    raised = 0
+    try
+        rss.buildAtom({"title": "bad \uFFFF"}, [])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "Atom XML 1.0 noncharacter rejected"
+
+    raised = 0
+    try
+        rss.buildRSS({"title": "missing metadata"}, [])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "RSS requires channel metadata"
+
+    raised = 0
+    try
+        rss.buildAtom({"title": "missing id", "updated": "2026-08-13T00:00:00Z"}, [])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "Atom requires feed id"
+
+    raised = 0
+    try
+        rss.buildAtom(feedMeta, [{"title": "missing entry id", "link": "https://gen.dev/x",
+            "updated": "2026-08-13T00:00:00Z"}])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "Atom requires entry id"
+
+    // 解析必须看真实根节点，并拒绝 DTD、尾随垃圾和畸形实体。
+    assert rss.detect("<html><rss><channel/></rss></html>") == "", "nested rss is not root"
+    raised = 0
+    try
+        rss.parse("<rss version=\"2.0\"><channel/></rss>junk")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "trailing content rejected"
+
+    raised = 0
+    try
+        rss.parse("<!DOCTYPE rss [<!ENTITY x 'bad'>]><rss version=\"2.0\"><channel/></rss>")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "DTD rejected"
+
+    raised = 0
+    try
+        rss.buildRSS({"title": 42}, [])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "wrong field type rejected"
+
+    var extra = rss.parse("<rss version=\"2.0\"><channel><item><category>&#x1F600;</category></item></channel></rss>")
+    assert extra["items"][0]["categories"][0] == "😀", "numeric entity decoded"
 
     return 0
 end
