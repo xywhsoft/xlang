@@ -1,0 +1,2 @@
+auto engine = NetEngine()
+auto forged = TcpStream.prepareDialAddressesNative(engine)

@@ -5645,6 +5645,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
 
     {"tcp", "connect", "__xl_std_tcp_connect", NULL, NULL, 0, "TcpStream", xl6StdTcpConnectBody},
     {"tcp", "connectAsync", "__xl_std_tcp_connect_async", NULL, NULL, 0, "future<TcpStream>", xl6StdTcpConnectAsyncBody},
+    {"tcp", "dialAsync", "__xl_std_tcp_dial_async", NULL, NULL, 0, "future<TcpStream>", xl6StdTcpDialAsyncBody},
+    {"tcp", "dial", "__xl_std_tcp_dial", NULL, NULL, 0, "TcpStream", xl6StdTcpDialBody},
     {"tcp", "listen", "__xl_std_tcp_listen", NULL, NULL, 0, "TcpListener", xl6StdTcpListenBody},
 
     {"udp", "bind", "__xl_std_udp_bind", NULL, NULL, 0, "UdpSocket", xl6StdUdpBindBody},

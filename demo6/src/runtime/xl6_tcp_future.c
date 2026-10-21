@@ -2,19 +2,22 @@
 #include "xl6_native_class_borrow.h"
 #include "xl6_future_callback.h"
 #include "xl6_future_payload.h"
-typedef enum Mode {RECEIVE,WAIT,ACCEPT,CONNECTED} Mode;
-typedef struct Capture {
+#include "xl6_tcp_future_internal.h"
+typedef enum Mode {RECEIVE,WAIT,CLASS_RESULT} Mode;
+typedef struct XL6_TcpClassCaptureV1 {
     xvalue *receiver,*object,*resultHandle;
     xstrview field;
     Mode mode;
+    XL6_TcpPromoteResidentV1 promote;
 } Capture;
 static const XL6_CaptureSlotV2 slots[]={
     {{XL6_CAPTURE_XVALUE,offsetof(Capture,receiver),sizeof(xvalue*)},NULL},
     {{XL6_CAPTURE_XVALUE,offsetof(Capture,object),sizeof(xvalue*)},NULL},
     {{XL6_CAPTURE_XVALUE,offsetof(Capture,resultHandle),sizeof(xvalue*)},NULL},
     {{XL6_CAPTURE_STRING,offsetof(Capture,field),sizeof(xstrview)},NULL},
-    {{XL6_CAPTURE_TRIVIAL,offsetof(Capture,mode),sizeof(Mode)},NULL}};
-static const XL6_CaptureLayoutV2 layout={sizeof(layout),sizeof(Capture),5,slots};
+    {{XL6_CAPTURE_TRIVIAL,offsetof(Capture,mode),sizeof(Mode)},NULL},
+    {{XL6_CAPTURE_TRIVIAL,offsetof(Capture,promote),sizeof(XL6_TcpPromoteResidentV1)},NULL}};
+static const XL6_CaptureLayoutV2 layout={sizeof(layout),sizeof(Capture),sizeof(slots)/sizeof(slots[0]),slots};
 static xvalue* resourceHandle(void* resource,const XL6_NativeHandlePolicyV1* policy)
 {
     void* owned=xl6ExecutionResourceRetainV1(resource);if(!owned)return NULL;
@@ -46,7 +49,7 @@ static bool acceptValue(Capture* capture,xvalue** output)
         if(!xrtGetError())xrtSetErrorKind(XERR_STATE);
         return false;
     }
-    if(capture->mode==ACCEPT&&!xl6ExecutionTcpPromoteAcceptV1(resource))return false;
+    if(capture->promote&&!capture->promote(resource))return false;
     *output=xrtValueRetain(capture->object);return *output!=NULL;
 }
 static void completed(const xfutureresult* input,xpromise* output,xcancel* cancel,void* raw)
@@ -57,14 +60,14 @@ static void completed(const xfutureresult* input,xpromise* output,xcancel* cance
     if(!input){outcome=(xl6_error_result){false,xrtTakeError()};}
     else if(xrtCancelRequested(cancel)||input->State==XFUTURE_CANCELLED)terminal=XFUTURE_CANCELLED;
     else if(input->State==XFUTURE_FAILED){outcome=(xl6_error_result){false,xrtErrorRef(input->Error)};}
-    else if(input->State==XFUTURE_CLOSED&&(mode==ACCEPT||mode==CONNECTED))terminal=XFUTURE_CLOSED;
+    else if(input->State==XFUTURE_CLOSED&&mode==CLASS_RESULT)terminal=XFUTURE_CLOSED;
     else if(input->State!=XFUTURE_RESOLVED&&input->State!=XFUTURE_CLOSED){
         xrtSetErrorKind(XERR_STATE);outcome=(xl6_error_result){false,xrtTakeError()};
     }else{
         box=xrtCalloc(1,mode==WAIT?sizeof(bool):sizeof(xvalue*));
         bool ok=box!=NULL;
         if(ok&&mode==WAIT)*(bool*)box=input->State==XFUTURE_RESOLVED;
-        else if(ok&&(mode==ACCEPT||mode==CONNECTED))ok=acceptValue(capture,box);
+        else if(ok&&mode==CLASS_RESULT)ok=acceptValue(capture,box);
         else if(ok){
             if(input->State==XFUTURE_RESOLVED&&!input->Value){xrtSetErrorKind(XERR_STATE);ok=false;}
             else{ /* One direct native-view -> language bytes copy, no Buffer or C string. */
@@ -103,26 +106,41 @@ static xfuture* publish(XL6_RuntimeServicesV1 services,Capture* capture,xfuture*
     if(!result)return failed(capture,source);
     xrtFutureDestroy(source);return result;
 }
-static xfuture* classFuture(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,Mode mode)
+XL6_TcpClassCaptureV1* xl6TcpClassCapturePrepareInternalV1(XL6_NativeClassFieldContextV1 context,
+    void* receiver,const xvalue* object,const XL6_NativeHandlePolicyV1* receiverPolicy,
+    XL6_TcpPromoteResidentV1 promote,bool same,XL6_ExecutionResourceV1** output)
 {
-    Capture* capture=prepare(mode,receiver,mode==ACCEPT?xl6TcpListenerHandlePolicyV1Get():xl6TcpStreamHandlePolicyV1Get());
-    if(!capture||!capture->receiver)return failed(capture,NULL);
+    if(!output){xrtSetErrorKind(XERR_ARGUMENT);(void)failed(NULL,NULL);return NULL;}*output=NULL;
+    Capture* capture=prepare(CLASS_RESULT,receiver,receiverPolicy);
+    if(!capture||!capture->receiver){(void)failed(capture,NULL);return NULL;}
+    capture->promote=promote;
     void* carrier=NULL;
     capture->resultHandle=xl6NativeClassFieldRetainV1(context,object,xl6TcpStreamHandlePolicyV1Get(),&carrier);
-    if(!capture->resultHandle)return failed(capture,NULL);
-    if(mode==CONNECTED&&carrier!=receiver){xrtSetErrorKind(XERR_STATE);return failed(capture,NULL);}
-    capture->object=xrtValueRetain(object);if(!capture->object)return failed(capture,NULL);
-    char* field=xrtMalloc(context.fieldSize);if(!field)return failed(capture,NULL);
+    if(!capture->resultHandle){(void)failed(capture,NULL);return NULL;}
+    if(same&&carrier!=receiver){xrtSetErrorKind(XERR_STATE);(void)failed(capture,NULL);return NULL;}
+    capture->object=xrtValueRetain(object);if(!capture->object){(void)failed(capture,NULL);return NULL;}
+    char* field=xrtMalloc(context.fieldSize);if(!field){(void)failed(capture,NULL);return NULL;}
     memcpy(field,context.fieldName,context.fieldSize);capture->field=(xstrview){field,context.fieldSize};
-    if(mode==ACCEPT)return publish(services,capture,xl6ExecutionTcpAcceptSourceForV1(carrier,receiver));
+    *output=carrier;return capture;
+}
+xfuture* xl6TcpClassCapturePublishInternalV1(XL6_RuntimeServicesV1 services,XL6_TcpClassCaptureV1* capture,xfuture* source)
+{return publish(services,capture,source);}
+static xfuture* classFuture(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,bool accept)
+{
+    XL6_ExecutionResourceV1* carrier=NULL;
+    Capture* capture=xl6TcpClassCapturePrepareInternalV1(context,receiver,object,
+        accept?xl6TcpListenerHandlePolicyV1Get():xl6TcpStreamHandlePolicyV1Get(),
+        accept?xl6ExecutionTcpPromoteAcceptV1:NULL,!accept,&carrier);
+    if(!capture)return NULL;
+    if(accept)return publish(services,capture,xl6ExecutionTcpAcceptSourceForV1(carrier,receiver));
     XL6_TcpScopeV1 scope={0};if(!xl6TcpEnterV1(receiver,XL6_EXECUTION_TCP_STREAM_V1,true,&scope))return failed(capture,NULL);
     xfuture* source=xrtNetStreamWaitAsync(scope.stream,XNET_STREAM_WAIT_OPEN);xl6ExecutionTcpLeaveInternalV1(&scope);
     return publish(services,capture,source);
 }
 xfuture* xl6TcpAcceptStartV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* listener,const xvalue* object)
-{return classFuture(services,context,listener,object,ACCEPT);}
+{return classFuture(services,context,listener,object,true);}
 xfuture* xl6TcpConnectedStartV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* stream,const xvalue* object)
-{return classFuture(services,context,stream,object,CONNECTED);}
+{return classFuture(services,context,stream,object,false);}
 static xfuture* streamFuture(XL6_RuntimeServicesV1 services,void* receiver,int64_t argument,unsigned operation)
 {
     size_t bytes=0;

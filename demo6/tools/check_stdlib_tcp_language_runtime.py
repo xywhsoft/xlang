@@ -12,6 +12,7 @@ def main():
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--compiler',action='append',required=True)
     parser.add_argument('--sanitize',action='store_true')
+    parser.add_argument('--dial',action='store_true',help='Include real managed Dial class projection and its sync/async closure')
     args=parser.parse_args();root=Path(__file__).resolve().parents[1];out=args.out.resolve()
     assert not out.exists() and (not args.sanitize or os.name!='nt')
     compilers=[Path(shutil.which(cc) or cc).resolve() for cc in args.compiler]
@@ -20,6 +21,7 @@ def main():
     files={Path(__file__).resolve(),*compilers,root/'test/cases/xlir_future_callback_queue_native.c'}
     files.update(root/('test/support/'+name+'.c') for name in
         ('tcp_language_plan','tcp_language_runtime','future_callback_plan','future_callback_exclusive_queue'))
+    if args.dial:files.update(root/('test/support/'+name+'.c') for name in ('tcp_dial_language_plan','tcp_dial_language_runtime'))
     for area in ('src','lib/xrt','lib/xruntime','release/include'):
         files.update(path for path in (root/area).rglob('*') if path.is_file() and path.suffix in ('.c','.h','.inc'))
     inputs={str(path):sha(path) for path in sorted(files)};out.mkdir(parents=True)
@@ -27,7 +29,7 @@ def main():
     report=dict(Complete=False,Inputs=inputs,Rows=rows,Products=products,Failures=failures,Plans={},
         SharedCallbackFixtureCompiler='GCC on Linux: system TCC lacks C11 _Atomic/stdatomic.h; resident closure still uses each selected compiler',
         NegativeControls=[],OrdinaryLiteralLoopback=True,ExternalNetworkTests=False,NetworkSecurityTests=False,
-        PublicLanguageApiAccepted=False,ShippingLibraryAcceptance=False,Scope=__doc__)
+        PublicLanguageApiAccepted=False,ShippingLibraryAcceptance=False,DialResidentAbi=args.dial,Scope=__doc__)
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
     def product(path):products.append(dict(Path=str(path),Sha256=sha(path)));save()
     def run(name,command,instrumented=False,reject=False):
@@ -64,7 +66,7 @@ def main():
             assert f'XL6_TEXT_API {result} xl6Tcp{name}Stats{field}V1(const void*);' in header
         assert '.inc"' not in header
         for kind in ('tcp','callback'):
-            fixture=root/('test/support/'+('tcp_language_plan' if kind=='tcp' else 'future_callback_plan')+'.c')
+            fixture=root/('test/support/'+(('tcp_dial_language_plan' if args.dial else 'tcp_language_plan') if kind=='tcp' else 'future_callback_plan')+'.c')
             for opt in ('O0','O2'):
                 plan=out/(kind+'.plan.'+opt+ext)
                 run(kind+'.plan.'+opt+'.build',flags(gcc,['-'+opt])+['-Wno-missing-field-initializers',
@@ -89,7 +91,7 @@ def main():
                 ['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']))
             for opt,mode in modes:
                 for kind,fixture,extra in (
-                    ('tcp',root/'test/support/tcp_language_runtime.c',[]),
+                    ('tcp',root/('test/support/'+('tcp_dial_language_runtime' if args.dial else 'tcp_language_runtime')+'.c'),[]),
                     ('callback',root/'test/support/future_callback_exclusive_queue.c',[]),
                     ('callback-shared',root/'test/cases/xlir_future_callback_queue_native.c',[impl,'-DTEST_PRODUCT_CATALOG'])):
                     name=f'{index}.{opt}.{kind}';binary=out/(name+ext)
@@ -108,6 +110,7 @@ def main():
                         for backend,arguments in ([('select',[]),('native',['native'])] if kind=='tcp' else [('offline',[])]):
                             text=run(name+'.'+backend,[binary,*arguments],opt=='instrumented')
                             assert ('balanced' in text if kind!='callback-shared' else '1024 shared waits' in text)
+                            if args.dial and kind=='tcp':assert 'Dial class Future: cases=3 prefixes=96' in text
                     except Exception as error:failures.append(dict(Name=name,Error=repr(error)));save()
         # Independently prove the new test detects losing exclusive source
         # cancellation, without changing production sources or shared V5.
@@ -119,6 +122,17 @@ def main():
         run('exclusive-negative.build',flags(gcc,['-O0'])+['-I'+str(root/'src/runtime'),
             root/'test/support/future_callback_exclusive_queue.c',*sources,*libs,'-o',binary]);product(binary)
         run('exclusive-negative.refused',[binary],reject=True);report['NegativeControls'].append('exclusive-source-cancellation');save()
+        if args.dial:
+            original=root/'src/runtime/xl6_tcp_dial_future.c';body=original.read_text(encoding='utf8')
+            assert body.count('xl6ExecutionTcpPromoteDialV1')==2
+            mutant=out/'wrong-dial-promotion.c'
+            mutant.write_text(body.replace('xl6ExecutionTcpPromoteDialV1','xl6ExecutionTcpPromoteAcceptV1'),encoding='utf8');product(mutant)
+            binary=out/('dial-promotion-negative'+ext)
+            sources=[mutant if root/s==original else root/s for s in report['Plans']['tcp']['sources']]
+            run('dial-promotion-negative.build',flags(gcc,['-O0'])+['-I'+str(root/'src/runtime'),
+                root/'test/support/tcp_dial_language_runtime.c',*sources,*libs,'-o',binary]);product(binary)
+            run('dial-promotion-negative.refused',[binary],reject=True)
+            report['NegativeControls'].append('dial-is-not-accept');save()
     except Exception as error:failures.append(dict(Name='planning',Error=repr(error)));save()
     report['InputsUnchanged']=all(sha(path)==digest for path,digest in inputs.items())
     report['LogsUnchanged']=all(sha(row['Log'])==row['Sha256'] for row in rows)

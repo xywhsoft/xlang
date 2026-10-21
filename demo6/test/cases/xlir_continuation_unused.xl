@@ -1,0 +1,9 @@
+class DormantContinuation
+    private async func work(future<int> source) as int
+        return await source
+    end
+    private func map(future<int> source) as future<int>
+        return source.then(func(int value) as int => value + 1)
+    end
+end
+println("unused async machines and continuation closures require no executor")

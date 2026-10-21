@@ -1,0 +1,44 @@
+async func dialReadExact(TcpStream stream, int count) as bytes
+    bytes result = b""
+    while result.length < count
+        bytes part = await stream.recvAsync(count - result.length)
+        assert part.length > 0
+        result = result + part
+    end
+    return result
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto addresses = NetAddressList([listener.localAddress()])
+auto options = TcpDialOptions().withTimeoutMillis(5000)
+auto accepted = listener.acceptAsync()
+TcpStream client = await tcp.dialAsync(engine, addresses)
+TcpStream server = await accepted
+assert client.state == TcpStreamState.open
+assert server.state == TcpStreamState.open
+assert client.send("a\0b") == NetStatus.ok
+assert await dialReadExact(server, 3) == b"a\x00b"
+client.abort()
+server.abort()
+accepted = listener.acceptAsync()
+client = await TcpStream.dialAsync(engine, addresses, options)
+server = await accepted
+assert server.send(b"x\x00y") == NetStatus.ok
+assert await dialReadExact(client, 3) == b"x\x00y"
+client.abort()
+server.abort()
+accepted = listener.acceptAsync()
+client = await tcp.dialAsync(engine, addresses, options)
+server = await accepted
+client.abort()
+server.abort()
+accepted = listener.acceptAsync()
+client = await TcpStream.dialAsync(engine, addresses)
+server = await accepted
+client.abort()
+server.abort()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("managed Dial async class projection and exact NUL bytes: ok")

@@ -1,0 +1,53 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto resolver = NetResolver()
+auto options = TcpDialOptions()
+int rejected = 0
+try
+    auto pending = tcp.dialAsync(engine, resolver, "a\0b", 1234)
+catch ValueError
+    rejected = rejected + 1
+end
+try
+    auto pending = TcpStream.dialAsync(engine, resolver, "a\0b", 1234, options)
+catch ValueError
+    rejected = rejected + 1
+end
+try
+    auto pending = tcp.dialAsync(engine, resolver, "127.0.0.1", 65536, options)
+catch RangeError
+    rejected = rejected + 1
+end
+try
+    auto pending = TcpStream.dialAsync(engine, resolver, "127.0.0.1", 0)
+catch RangeError
+    rejected = rejected + 1
+end
+try
+    auto client = tcp.dial(engine, resolver, "a\0b", 1234)
+catch ValueError
+    rejected = rejected + 1
+end
+try
+    auto client = TcpStream.dial(engine, resolver, "a\0b", 1234, options)
+catch ValueError
+    rejected = rejected + 1
+end
+try
+    auto client = tcp.dial(engine, resolver, "127.0.0.1", 0, options)
+catch RangeError
+    rejected = rejected + 1
+end
+try
+    auto client = TcpStream.dial(engine, resolver, "127.0.0.1", 65536)
+catch RangeError
+    rejected = rejected + 1
+end
+assert rejected == 8
+assert resolver.snapshot().submitted == 0
+assert resolver.snapshot().queriesStarted == 0
+resolver.close()
+assert resolver.wait(5000)
+engine.close()
+assert engine.wait(5000)
+println("Dial host validation before work acceptance: no DNS or network submission")
