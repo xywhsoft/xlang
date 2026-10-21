@@ -132,3 +132,8 @@ C 与 XLang 边界及对照范例已覆盖。固定 node-semver 7.8.5 标签
 `6e05b7637396ac66522cff8731f07cfe0ef49a29` 的 203,136 组范围对照零差异；
 Windows `-SkipAot` 严格 C/语言门禁及 Linux C ASan/UBSan/语言门禁通过。
 本次未运行完整带输出 AOT，不据此签收发布级。
+
+同日对当前产物补跑完整 Windows 门禁：边界和分配故障 AOT 均构建运行通过，
+带输出的 `examples/basic.xl` 在 AOT 构建阶段仍缺共享
+`xl6ValueDataSnapshotV1`，门禁退出 1。该阻断不属于范围解析器；主线修复后
+须重跑完整门禁，不能用 JIT 或无输出 AOT 代替发布签收。
