@@ -738,6 +738,7 @@ xvalue *xstat_linear_fit(xvalue *x, xvalue *y) {
 
 xvalue *xstat_histogram(xvalue *values, int64_t bins) {
     double *a;
+    int64_t *counts;
     size_t n;
     size_t i;
     long long b;
@@ -756,17 +757,10 @@ xvalue *xstat_histogram(xvalue *values, int64_t bins) {
         if (a[i] > hi) hi = a[i];
     }
     span = hi - lo;
-    result = xrtValueArray();
-    if (result == NULL) {
+    counts = (int64_t *)xrtCalloc((size_t)bins, sizeof(*counts));
+    if (counts == NULL) {
         xrtFree(a);
         return xrtValueNull();
-    }
-    for (b = 0; b < bins; ++b) {
-        if (!xrtValueArrayAppendNew(result, xrtValueInt(0))) {
-            xrtValueRelease(result);
-            xrtFree(a);
-            return xrtValueNull();
-        }
     }
     for (i = 0; i < n; ++i) {
         long long bin;
@@ -780,19 +774,21 @@ xvalue *xstat_histogram(xvalue *values, int64_t bins) {
             if (bin >= bins) bin = bins - 1;
             if (bin < 0) bin = 0;
         }
-        {
-            xvalue *slot = xrtValueArrayAt(result, (int64)bin);
-            double current = 0;
-            if (slot != NULL && !xstat_as_double(slot, &current)) {
-                current = 0;
-            }
-            if (!xrtValueArraySetNew(result, (int64)bin, xrtValueInt((int64)current + 1))) {
-                xrtValueRelease(result);
-                xrtFree(a);
-                return xrtValueNull();
-            }
-        }
+        counts[bin] += 1;
     }
     xrtFree(a);
+    result = xrtValueArray();
+    if (result == NULL) {
+        xrtFree(counts);
+        return xrtValueNull();
+    }
+    for (b = 0; b < bins; ++b) {
+        if (!xrtValueArrayAppendNew(result, xrtValueInt(counts[b]))) {
+            xrtValueRelease(result);
+            xrtFree(counts);
+            return xrtValueNull();
+        }
+    }
+    xrtFree(counts);
     return result;
 }

@@ -110,6 +110,48 @@ static int test_integer_reference(void)
     return 0;
 }
 
+/* 箱数固定时，中间计数不应为每个样本反复分配 xvalue。 */
+static int test_histogram_allocation_bound(void)
+{
+    xvalue *values = xrtValueArray();
+    xvalue *buckets;
+    size_t i;
+    int triggered;
+    CHECK(values != NULL);
+    for (i = 0; i < 4096u; ++i)
+        CHECK(xrtValueArrayAppendNew(values, xrtValueInt((int64_t)(i % 4u))));
+    CHECK(xrtMemDebugFailAfter(64u));
+    buckets = xstat_histogram(values, 4);
+    triggered = xrtMemDebugFailTriggered();
+    xrtMemDebugFailClear();
+    CHECK(!triggered && buckets != NULL && xrtValueCount(buckets) == 4);
+    for (i = 0; i < 4u; ++i) {
+        int64_t count = -1;
+        CHECK(xrtValueGetInt(xrtValueArrayAt(buckets, (int64_t)i), &count));
+        CHECK(count == 1024);
+    }
+    xrtValueRelease(buckets);
+    for (i = 0; i < 20u; ++i) {
+        CHECK(xrtMemDebugFailAfter(i));
+        buckets = xstat_histogram(values, 4);
+        triggered = xrtMemDebugFailTriggered();
+        xrtMemDebugFailClear();
+        if (triggered) {
+            CHECK(buckets != NULL && xrtValueType(buckets) == XVALUE_NULL);
+            CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+        } else {
+            CHECK(buckets != NULL && xrtValueCount(buckets) == 4);
+            CHECK(xrtGetError() == NULL);
+        }
+        xrtValueRelease(buckets);
+    }
+    buckets = xstat_histogram(values, 4);
+    CHECK(buckets != NULL && xrtValueCount(buckets) == 4);
+    xrtValueRelease(buckets);
+    xrtValueRelease(values);
+    return 0;
+}
+
 int main(void)
 {
     const double numbers[] = {2, 4, 4, 4, 5, 5, 7, 9};
@@ -127,6 +169,7 @@ int main(void)
     int64 count;
 
     CHECK(test_integer_reference() == 0);
+    CHECK(test_histogram_allocation_bound() == 0);
 
     CHECK(values && empty && append_numbers(values, numbers, 8));
     CHECK(xstat_count(values) == 8);
