@@ -817,7 +817,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_net_bytes_buffer.c",D(R(NET_BYTES),R(BUFFER_CORE)),{"XRT_MODULE_BUFFER"}},
     {"src/runtime/xl6_ownership_domain_net_bytes.c",D(R(OWNERSHIP_CATALOG),R(NET_BYTES)),{NULL}},
     {"src/runtime/xl6_tcp_send_ref.c",D(R(TCP_LANGUAGE),R(NET_BYTES)),{NULL}},
-    {"src/runtime/xl6_tcp_send_move.c",D(R(TCP_LANGUAGE),R(BUFFER_CORE)),{NULL}}
+    {"src/runtime/xl6_tcp_send_move.c",D(R(TCP_LANGUAGE),R(BUFFER_CORE)),{NULL}},
+    {"src/runtime/xl6_tcp_recv_owned_sync.c",D(R(TCP_LANGUAGE),R(NET_BYTES)),{"XRT_MODULE_NET_TCP_SYNC"}},
+    {"src/runtime/xl6_tcp_recv_owned_future.c",D(R(TCP_FUTURE),R(NET_BYTES)),{NULL}},
+    {"src/runtime/xl6_tcp_recv_owned_interrupt.c",D(R(TCP_RECV_OWNED_FUTURE),R(FUTURE_CALLBACK_INTERRUPT)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

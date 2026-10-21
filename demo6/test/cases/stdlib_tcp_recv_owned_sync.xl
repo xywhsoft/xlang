@@ -1,0 +1,30 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto sender = TcpStream(engine, listener.localAddress())
+auto receiver = listener.accept(5000)
+assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+auto live = CancellationSource()
+
+assert sender.send(b"a") == NetStatus.ok
+NetBytes first = receiver.recvOwned(1, 5000)
+assert first.toBytes() == b"a"
+assert sender.send(b"\0") == NetStatus.ok
+assert receiver.recvOwnedCancel(live.token, 1, 5000).byteAt(0) == 0
+assert sender.send(b"b") == NetStatus.ok
+assert receiver.recvOwnedUntil(time.clock() + uint64(5000000), 1).toBytes() == b"b"
+assert sender.send(b"c") == NetStatus.ok
+NetBytes retained = receiver.recvOwnedUntilCancel(time.clock() + uint64(5000000), live.token, 1)
+assert retained.toBytes() == b"c"
+
+assert receiver.sendRef(first) == NetStatus.ok
+assert sender.recvOwned(1, 5000).toBytes() == b"a"
+sender.shutdownWrite()
+assert receiver.recvOwned(1, 5000).length == 0
+sender.close()
+receiver.close()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+assert first.toBytes() == b"a" and retained.toBytes() == b"c"
+println("TCP owned receive sync: four entries, NUL, retained relay, EOF and independent payload lifetime")

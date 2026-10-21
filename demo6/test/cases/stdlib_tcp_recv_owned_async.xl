@@ -1,0 +1,36 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto accepted = listener.acceptAsync()
+auto connected = tcp.connectAsync(engine, listener.localAddress())
+auto sender = await connected
+auto receiver = await accepted
+auto live = CancellationSource()
+
+auto pending = receiver.recvOwnedAsync(1)
+assert sender.send(b"a") == NetStatus.ok
+NetBytes first = await pending
+assert first.toBytes() == b"a"
+pending = receiver.recvOwnedAsyncCancel(live.token, 1)
+assert sender.send(b"\0") == NetStatus.ok
+assert (await pending).byteAt(0) == 0
+pending = receiver.recvOwnedAsyncUntil(time.clock() + uint64(5000000), 1)
+assert sender.send(b"b") == NetStatus.ok
+assert (await pending).toBytes() == b"b"
+pending = receiver.recvOwnedAsyncUntilCancel(time.clock() + uint64(5000000), live.token, 1)
+assert sender.send(b"c") == NetStatus.ok
+NetBytes retained = await pending
+assert retained.toBytes() == b"c"
+
+auto reply = sender.recvOwnedAsync(1)
+assert receiver.sendRef(first) == NetStatus.ok
+assert (await reply).toBytes() == b"a"
+sender.shutdownWrite()
+assert (await receiver.recvOwnedAsync(1)).length == 0
+sender.close()
+receiver.close()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+assert first.toBytes() == b"a" and retained.toBytes() == b"c"
+println("TCP owned receive async: typed class Future, four entries, retained relay, NUL, EOF and payload lifetime")

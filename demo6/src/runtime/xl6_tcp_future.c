@@ -3,12 +3,13 @@
 #include "xl6_future_callback.h"
 #include "xl6_future_payload.h"
 #include "xl6_tcp_future_internal.h"
-typedef enum Mode {RECEIVE,WAIT,CLASS_RESULT} Mode;
+typedef enum Mode {RECEIVE,WAIT,CLASS_RESULT,CLASS_VALUE} Mode;
 typedef struct XL6_TcpClassCaptureV1 {
     xvalue *receiver,*object,*resultHandle;
     xstrview field;
     Mode mode;
     XL6_TcpPromoteResidentV1 promote;
+    XL6_TcpClassMapResidentV1 map;
 } Capture;
 static const XL6_CaptureSlotV2 slots[]={
     {{XL6_CAPTURE_XVALUE,offsetof(Capture,receiver),sizeof(xvalue*)},NULL},
@@ -16,7 +17,8 @@ static const XL6_CaptureSlotV2 slots[]={
     {{XL6_CAPTURE_XVALUE,offsetof(Capture,resultHandle),sizeof(xvalue*)},NULL},
     {{XL6_CAPTURE_STRING,offsetof(Capture,field),sizeof(xstrview)},NULL},
     {{XL6_CAPTURE_TRIVIAL,offsetof(Capture,mode),sizeof(Mode)},NULL},
-    {{XL6_CAPTURE_TRIVIAL,offsetof(Capture,promote),sizeof(XL6_TcpPromoteResidentV1)},NULL}};
+    {{XL6_CAPTURE_TRIVIAL,offsetof(Capture,promote),sizeof(XL6_TcpPromoteResidentV1)},NULL},
+    {{XL6_CAPTURE_TRIVIAL,offsetof(Capture,map),sizeof(XL6_TcpClassMapResidentV1)},NULL}};
 static const XL6_CaptureLayoutV2 layout={sizeof(layout),sizeof(Capture),sizeof(slots)/sizeof(slots[0]),slots};
 static xvalue* resourceHandle(void* resource,const XL6_NativeHandlePolicyV1* policy)
 {
@@ -68,6 +70,8 @@ static void completed(const xfutureresult* input,xpromise* output,xcancel* cance
         bool ok=box!=NULL;
         if(ok&&mode==WAIT)*(bool*)box=input->State==XFUTURE_RESOLVED;
         else if(ok&&mode==CLASS_RESULT)ok=acceptValue(capture,box);
+        else if(ok&&mode==CLASS_VALUE)ok=capture->map&&capture->map(capture->object,
+            capture->resultHandle,capture->field,input,box);
         else if(ok){
             if(input->State==XFUTURE_RESOLVED&&!input->Value){xrtSetErrorKind(XERR_STATE);ok=false;}
             else{ /* One direct native-view -> language bytes copy, no Buffer or C string. */
@@ -106,22 +110,40 @@ static xfuture* publish(XL6_RuntimeServicesV1 services,Capture* capture,xfuture*
     if(!result)return failed(capture,source);
     xrtFutureDestroy(source);return result;
 }
+static Capture* prepareClass(Mode mode,XL6_NativeClassFieldContextV1 context,
+    void* receiver,const xvalue* object,const XL6_NativeHandlePolicyV1* receiverPolicy,
+    const XL6_NativeHandlePolicyV1* resultPolicy,void** output)
+{
+    if(!output){xrtSetErrorKind(XERR_ARGUMENT);(void)failed(NULL,NULL);return NULL;}*output=NULL;
+    Capture* capture=prepare(mode,receiver,receiverPolicy);
+    if(!capture||!capture->receiver){(void)failed(capture,NULL);return NULL;}
+    void* carrier=NULL;
+    capture->resultHandle=xl6NativeClassFieldRetainV1(context,object,resultPolicy,&carrier);
+    if(!capture->resultHandle){(void)failed(capture,NULL);return NULL;}
+    capture->object=xrtValueRetain(object);if(!capture->object){(void)failed(capture,NULL);return NULL;}
+    char* field=xrtMalloc(context.fieldSize);if(!field){(void)failed(capture,NULL);return NULL;}
+    memcpy(field,context.fieldName,context.fieldSize);capture->field=(xstrview){field,context.fieldSize};
+    *output=carrier;return capture;
+}
 XL6_TcpClassCaptureV1* xl6TcpClassCapturePrepareInternalV1(XL6_NativeClassFieldContextV1 context,
     void* receiver,const xvalue* object,const XL6_NativeHandlePolicyV1* receiverPolicy,
     XL6_TcpPromoteResidentV1 promote,bool same,XL6_ExecutionResourceV1** output)
 {
     if(!output){xrtSetErrorKind(XERR_ARGUMENT);(void)failed(NULL,NULL);return NULL;}*output=NULL;
-    Capture* capture=prepare(CLASS_RESULT,receiver,receiverPolicy);
-    if(!capture||!capture->receiver){(void)failed(capture,NULL);return NULL;}
-    capture->promote=promote;
-    void* carrier=NULL;
-    capture->resultHandle=xl6NativeClassFieldRetainV1(context,object,xl6TcpStreamHandlePolicyV1Get(),&carrier);
-    if(!capture->resultHandle){(void)failed(capture,NULL);return NULL;}
+    void* carrier=NULL;Capture* capture=prepareClass(CLASS_RESULT,context,receiver,object,receiverPolicy,
+        xl6TcpStreamHandlePolicyV1Get(),&carrier);
+    if(!capture)return NULL;
     if(same&&carrier!=receiver){xrtSetErrorKind(XERR_STATE);(void)failed(capture,NULL);return NULL;}
-    capture->object=xrtValueRetain(object);if(!capture->object){(void)failed(capture,NULL);return NULL;}
-    char* field=xrtMalloc(context.fieldSize);if(!field){(void)failed(capture,NULL);return NULL;}
-    memcpy(field,context.fieldName,context.fieldSize);capture->field=(xstrview){field,context.fieldSize};
-    *output=carrier;return capture;
+    capture->promote=promote;*output=carrier;return capture;
+}
+XL6_TcpClassCaptureV1* xl6TcpValueClassCapturePrepareInternalV1(XL6_NativeClassFieldContextV1 context,
+    void* receiver,const xvalue* object,const XL6_NativeHandlePolicyV1* receiverPolicy,
+    const XL6_NativeHandlePolicyV1* resultPolicy,XL6_TcpClassMapResidentV1 map,void** output)
+{
+    if(!map||!output){xrtSetErrorKind(XERR_ARGUMENT);(void)failed(NULL,NULL);return NULL;}
+    Capture* capture=prepareClass(CLASS_VALUE,context,receiver,object,receiverPolicy,resultPolicy,output);
+    if(capture)capture->map=map;
+    return capture;
 }
 xfuture* xl6TcpClassCapturePublishInternalV1(XL6_RuntimeServicesV1 services,XL6_TcpClassCaptureV1* capture,xfuture* source)
 {return publish(services,capture,source);}

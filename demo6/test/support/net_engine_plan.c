@@ -15,6 +15,7 @@ static XL6_ArtifactOwnershipPlan plan(const char* choice)
         !strcmp(choice,"net-bytes")?XL6_ARTIFACT_NET_BYTES:
         !strcmp(choice,"net-bytes-buffer")?XL6_ARTIFACT_NET_BYTES_BUFFER:
         !strcmp(choice,"tcp-owned")?XL6_ARTIFACT_EXECUTION_TCP_SERVER_ACCEPT:
+        !strcmp(choice,"tcp-recv-owned")?XL6_ARTIFACT_EXECUTION_TCP_SERVER_ACCEPT:
         !strcmp(choice,"buffer-native")?XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE:
         !strcmp(choice,"config")?XL6_ARTIFACT_NET_ENGINE_CONFIG:
         !strcmp(choice,"stats")?XL6_ARTIFACT_NET_ENGINE_STATS:XL6_ARTIFACT_NET_ENGINE_LANGUAGE);
@@ -28,6 +29,10 @@ static XL6_ArtifactOwnershipPlan plan(const char* choice)
         assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_TCP_SEND_REF));
         assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_TCP_SEND_MOVE));
         assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_NET_BYTES_BUFFER));
+    }
+    if(!strcmp(choice,"tcp-recv-owned")){
+        assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_TCP_RECV_OWNED_SYNC));
+        assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_TCP_RECV_OWNED_INTERRUPT));
     }
     XL6_ArtifactRuntimePlan base;XL6_ArtifactOwnershipPlan result;
     assert(xl6ArtifactRuntimeClosePlan(&roots,&base)&&xl6ArtifactOwnershipPlanBuild(&base,&result));return result;

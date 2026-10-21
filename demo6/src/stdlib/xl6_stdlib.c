@@ -1820,6 +1820,11 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if(needsNetSocketClass)needsNetAddressClass=1;
     needsNetInterfaceClass = xl6StdlibNeedsNetInterfaceClass(root, used);
     needsNetBytesClass = xl6StdlibNodeUsesTypeName(root, "NetBytes") || xl6StdlibNodeUsesMemberName(root,"sendRef");
+    needsNetBytesClass = needsNetBytesClass||xl6StdlibNodeUsesMemberName(root,"recvOwned")||
+        xl6StdlibNodeUsesMemberName(root,"recvOwnedCancel")||xl6StdlibNodeUsesMemberName(root,"recvOwnedUntil")||
+        xl6StdlibNodeUsesMemberName(root,"recvOwnedUntilCancel")||xl6StdlibNodeUsesMemberName(root,"recvOwnedAsync")||
+        xl6StdlibNodeUsesMemberName(root,"recvOwnedAsyncCancel")||xl6StdlibNodeUsesMemberName(root,"recvOwnedAsyncUntil")||
+        xl6StdlibNodeUsesMemberName(root,"recvOwnedAsyncUntilCancel");
     needsNetEngineStatsClass = xl6StdlibNeedsNetEngineStatsClass(root, used);
     needsNetResolverStatsClass = xl6StdlibNeedsNetResolverStatsClass(root, used);
     needsNetResolverStatsClass=needsNetResolverStatsClass||needsNetResolverClass;
@@ -2119,6 +2124,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         if(needsTcpProxyDial)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpProxyDialMembersSource);
         if(xl6StdlibNodeUsesMemberName(root,"sendVector"))xl6StdlibBuilderAppend(&builder,xl6StdlibTcpVectorMembersSource);
         if(needsNetBytesClass)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpSendRefMembersSource);
+        if(needsNetBytesClass)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpRecvOwnedMembersSource);
         if(xl6StdlibNodeUsesMemberName(root,"sendMove"))xl6StdlibBuilderAppend(&builder,xl6StdlibTcpSendMoveMembersSource);
         if(needsNetBuffer)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpNetBufferMembersSource);
         if(needsNetLineFramer)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpLineMembersSource);
