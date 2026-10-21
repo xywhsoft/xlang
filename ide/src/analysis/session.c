@@ -96,6 +96,27 @@ int xlsSessionClose(xls_session* session,const char* key)
     if(!xrtMapRemove(&session->documents,keyView(key))) return 0;
     ++session->stats.generation; --session->stats.documents; session->stats.textBytes-=bytes; return 1;
 }
+typedef struct prune_context { xls_session_live live; void* user; xarray keys; int okay; } prune_context;
+static bool pruneKey(xbytesview key,void* value,void* user)
+{
+    (void)value; prune_context* context=user;
+    if(!context->live((const char*)key.Data,key.Size,context->user)) context->okay=xrtArrayPush(&context->keys,&key);
+    return context->okay;
+}
+int xlsSessionPrune(xls_session* session,xls_session_live live,void* user)
+{
+    if(!session || !live) return 0;
+    prune_context context={.live=live,.user=user,.okay=1};
+    if(!xrtArrayInit(&context.keys,sizeof(xbytesview))) return 0;
+    xrtMapVisit(&session->documents,pruneKey,&context);
+    if(context.keys.Count>UINT64_MAX-session->stats.generation) context.okay=0;
+    if(context.okay) for(size_t i=0;i<context.keys.Count;++i) {
+        xbytesview key=*(xbytesview*)xrtArrayGet(&context.keys,i);
+        analysis_document* document=xrtMapGet(&session->documents,key); size_t bytes=xlsTextSize(document->text);
+        xrtMapRemove(&session->documents,key); ++session->stats.generation; --session->stats.documents; session->stats.textBytes-=bytes;
+    }
+    xrtArrayUnit(&context.keys); return context.okay;
+}
 int xlsSessionSyntax(xls_session* session,const char* key,xls_analysis_snapshot* result)
 {
     if(!result) return 0;

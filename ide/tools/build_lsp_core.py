@@ -61,8 +61,8 @@ def main() -> None:
     sources = [(frontend / source, False) for source in FRONTEND_SOURCES]
     sources += [(ide / "src/analysis/runtime.c", False)]
     sources += [(ide / path, True) for path in (
-        "src/analysis/text.c", "src/analysis/session.c", "src/protocol/document_sync.c",
-        "tests/analysis_session_test.c", "tests/analysis_text_test.c", "tests/document_sync_test.c",
+        "src/analysis/text.c", "src/analysis/session.c", "src/analysis/worker.c", "src/protocol/document_sync.c",
+        "tests/analysis_worker_test.c", "tests/analysis_session_test.c", "tests/analysis_text_test.c", "tests/document_sync_test.c",
     )]
     if any(not path.is_file() for path, _ in sources):
         parser.error("frontend root must contain the shared xlang lexer, parser, AST and XRT assets")
@@ -116,7 +116,7 @@ def main() -> None:
         members = [target for name, target in objects.items() if not name.endswith("_test") and name != "document_sync"]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         suffix = ".exe" if os.name == "nt" else ""
-        for name in ("analysis_session_test", "analysis_text_test", "document_sync_test"):
+        for name in ("analysis_worker_test", "analysis_session_test", "analysis_text_test", "document_sync_test"):
             program = output / (name + suffix)
             extra = [str(objects["document_sync"])] if name == "document_sync_test" else []
             run([str(cc), str(objects[name]), *extra, str(core), "-Wl,--gc-sections", *libraries, "-o", str(program)], name + "-link")
