@@ -15,7 +15,8 @@
             "third_party/bzip2/decompress.c",
             "third_party/bzip2/bzlib.c"
         ],
-        "xlSources": []
+        "xlSources": [],
+        "xrtModules": []
     },
     "links": [],
     "loadlibs": [],
