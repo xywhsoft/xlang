@@ -1,0 +1,39 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(2).withBackend(NetBackend.select))
+engine.start()
+auto server = TcpServer(engine, TcpServerOptions(TcpListenOptions(NetAddress.loopback(4, 0))))
+int i = 0
+while i < 1000
+    assert server.tryAccept() == null
+    i = i + 1
+end
+assert server.snapshot().acceptWaiters == 0
+auto client = TcpStream(engine, server.localAddress())
+assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+TcpStream? peer = null
+uint64 due = time.clock() + uint64(5000000)
+while peer == null and time.clock() < due
+    peer = server.tryAccept()
+end
+assert peer != null
+if peer != null
+    assert client.send(b"p\x00q") == NetStatus.ok
+    bytes data = b""
+    while data.length < 3
+        data = data + peer.recv(3 - data.length, 5000)
+    end
+    assert data == b"p\x00q"
+    peer.abort()
+end
+client.abort()
+assert server.tryAccept() == null
+server.close()
+bool closed = false
+try
+    auto unused = server.tryAccept()
+catch ClosedError
+    closed = true
+end
+assert closed
+engine.close()
+assert engine.wait(5000)
+println("Server poll: empty nullable results, owning acceptance, NUL roundtrip, checked close")

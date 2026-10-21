@@ -10331,7 +10331,33 @@ static int xl6IrLowerCompleteCall(
                     symbol, XL6_IR_VALUE_INVALID, 0,
                     cleanup->nativeDestroys != NULL ? cleanup->nativeDestroys[i] : 0)) return 0;
         }
-        result = xl6IrLowerManagedNativeObjectFromRaw(
+        const XL6_IrType* publicType = xl6IrTypeGet(&ctx->module->types, target->returnType);
+        if (publicType && publicType->kind == XL6_IR_TYPE_NULLABLE) {
+            XL6_IrBlockId emptyBlock, presentBlock, mergeBlock;
+            XL6_IrValueId isNull, lifted;
+            XL6_IrTypeId boolean = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
+            XL6_SymbolId joined = xl6IrLowerNewTempStorage(ctx, target->returnType, origin);
+            if (managed || publicType->paramCount != 1 || !publicType->params || !joined ||
+                !xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULL_TEST, origin, boolean, 0, &result, 1, &isNull) ||
+                !xl6IrLowerNewBlock(ctx, &emptyBlock) || !xl6IrLowerNewBlock(ctx, &presentBlock) ||
+                !xl6IrLowerNewBlock(ctx, &mergeBlock) ||
+                !xl6IrLowerEmit(ctx, XL6_IR_INSTR_BRANCH, origin, XL6_IR_TYPE_INVALID, 0, &isNull, 1, NULL)) return 0;
+            ctx->module->instructions[ctx->module->instructionCount - 1].trueTarget = emptyBlock;
+            ctx->module->instructions[ctx->module->instructionCount - 1].falseTarget = presentBlock;
+            xl6IrLowerEnterBlock(ctx, presentBlock);
+            lifted = xl6IrLowerManagedNativeObjectFromRaw(ctx, origin, publicType->params[0],
+                field, result, target->resultPhysicalDestroySymbol, 0);
+            if (lifted == XL6_IR_VALUE_INVALID ||
+                !xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULLABLE_WRAP, origin, target->returnType, 0, &lifted, 1, &lifted) ||
+                !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin, target->returnType, joined, &lifted, 1, NULL) ||
+                !xl6IrLowerEmitJump(ctx, origin, mergeBlock)) return 0;
+            xl6IrLowerEnterBlock(ctx, emptyBlock);
+            if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULL, origin, target->returnType, 0, NULL, 0, &lifted) ||
+                !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin, target->returnType, joined, &lifted, 1, NULL) ||
+                !xl6IrLowerEmitJump(ctx, origin, mergeBlock)) return 0;
+            xl6IrLowerEnterBlock(ctx, mergeBlock);
+            result = xl6IrLowerReadJoinStorage(ctx, origin, target->returnType, joined);
+        } else result = xl6IrLowerManagedNativeObjectFromRaw(
             ctx, origin, target->returnType, field, result, target->resultPhysicalDestroySymbol,managed);
         if (result == XL6_IR_VALUE_INVALID || !xl6IrLowerCommitEvaluationOwners(ctx, origin, first)) return 0;
     }
@@ -13004,13 +13030,20 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
     if (target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
         xl6IrRuntimeDirectBridgeFactory(target->cName)) {
         const XL6_IrType* declaredResult = xl6IrTypeGet(&module->types, target->returnType);
-        if (declaredResult && declaredResult->kind == XL6_IR_TYPE_CLASS)
+        if (declaredResult && (declaredResult->kind == XL6_IR_TYPE_CLASS ||
+            (declaredResult->kind == XL6_IR_TYPE_NULLABLE && declaredResult->paramCount == 1 &&
+             declaredResult->params && xl6IrTypeGet(&module->types, declaredResult->params[0]) &&
+             xl6IrTypeGet(&module->types, declaredResult->params[0])->kind == XL6_IR_TYPE_CLASS)))
             target->kind = XL6_IR_CALL_TARGET_NATIVE_FACTORY;
     }
     if ( target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY ) {
         XL6_IrTypeId ownerType = target->returnType != XL6_IR_TYPE_INVALID
             ? target->returnType : xl6IrLowerClassReceiverType(module, declaration);
         const XL6_IrType* owner = xl6IrTypeGet(&module->types, ownerType);
+        if (owner && owner->kind == XL6_IR_TYPE_NULLABLE && owner->paramCount == 1 && owner->params) {
+            ownerType = owner->params[0];
+            owner = xl6IrTypeGet(&module->types, ownerType);
+        }
         const XL6_IrClassField* field = xl6IrLowerManagedNativeConstructorField(
             module, ownerType, XL6_IR_NODE_INVALID);
         if ( owner == NULL || owner->kind != XL6_IR_TYPE_CLASS ||
@@ -13018,7 +13051,7 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
              owner->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED || field == NULL )
             return xl6IrLowerDiag(ctx, declaration,
                 "XLIR native factory declaration has no canonical owner/field ABI");
-        target->returnType = ownerType;
+        if (target->returnType == XL6_IR_TYPE_INVALID) target->returnType = ownerType;
         target->resultPhysicalAbi = xl6IrRuntimeDirectBridgeManagedHandleResult(target->cName)
             ? XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_HANDLE_VALUE_TAKE : field->nativeDestroySymbol != 0
             ? XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE

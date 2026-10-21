@@ -35,6 +35,7 @@ const char* xl6StdlibTcpServerClassSource=
     "    extern \"xl6TcpServerListenerCountV1\" @nonblocking get listenerCount() as uint64\n"
     "    extern \"xl6TcpServerLocalV1\" @nonblocking func localAddress(int endpoint = 0) as NetAddress\n"
     "    extern \"xl6TcpServerSnapshotV1\" @nonblocking func snapshot() as TcpServerStats\n"
+    "    extern \"xl6TcpServerTryAcceptV1\" @nonblocking func tryAccept() as TcpStream?\n"
     "    extern \"xl6TcpServerAcceptV1\" func accept(int timeoutMillis = -1) as TcpStream\n"
     "    extern \"xl6TcpServerAcceptCancelV1\" func acceptCancel(CancellationToken cancel, int timeoutMillis = -1) as TcpStream\n"
     "    extern \"xl6TcpServerAcceptUntilV1\" func acceptUntil(uint64 deadline) as TcpStream\n"
