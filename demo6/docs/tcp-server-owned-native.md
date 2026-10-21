@@ -54,7 +54,8 @@ DNS、公网、畸形协议、攻击模拟或网络安全性质专项。早期�
 只提交选定 TCP／Server 区段，未纳入文件／内存工作区修改。
 没有更新 xlang 固定 XRT／xruntime 头、时间 ABI、发布二进制或 VFS。
 
-下一步统一同步 Listener＋Server 闭包，保留固定微秒／绝对期限合同，并接入
+后续已完成 Listener＋Server 闭包的固定快照同步和驻留目录，保留微秒／绝对期限
+合同，详见 [Server 固定 ABI 与目录](tcp-server-pinned-catalog.md)。下一步仍需
 不可变多端点配置、聚合 Server 驻留资源、同步／异步接受、状态与统计及语言验收。
 引用／接管发送、完整 UDP／多播、文件／网络任务组合、P0／P1 剩余项和 P4—P7
 继续开放。未决策 CRT 0／XRT 11 不变。

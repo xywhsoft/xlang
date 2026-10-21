@@ -95,19 +95,22 @@ def main():
                                 'concurrent-final-drops=24','allocation-budgets=16 failures=6','balanced'))
                             if kind=='resident':assert 'catalog OOM prefixes=32' in text
                     except Exception as error:failures.append(dict(Name=name,Error=repr(error)));save()
+        base_original=root/'src/runtime/xl6_ownership_domain_net_tcp_base_native.c'
         controls=(
             ('missing-stream-runtime','xrtNetStreamRuntimeOwnershipV1Get()','xrtNetListenerRuntimeOwnershipV1Get()'),
             ('missing-producer','xl6OwnershipCatalogAddProducerV1(catalog,xrtNetTcpFutureProducerPolicyV1Get())','true'),
             ('missing-cancel','xl6OwnershipCatalogAddCancelWatchV1(catalog,xrtNetTcpFutureCancelPolicyV1Get())','true'),
             ('missing-accept-payload','xrtNetTcpFutureStreamPayloadPolicyV1Get()','xrtNetTcpFutureBytesPayloadPolicyV1Get()'),
             ('missing-bytes-payload','xrtNetTcpFutureBytesPayloadPolicyV1Get()','xrtNetTcpFutureStreamPayloadPolicyV1Get()'),
-            ('missing-activation','if(!*adapter)*adapter=xrtNetTcpFutureOwnershipAdapterV1(ref,preparation);',''))
+            ('missing-activation','*adapter=xrtNetTcpFutureOwnershipAdapterV1(ref,preparation);','(void)ref;(void)preparation;'))
         original=root/'src/runtime/xl6_ownership_domain_net_tcp_native.c';body=original.read_text(encoding='utf8')
         for name,old,new in controls:
             try:
-                assert body.count(old)==1,(name,'inexact control')
-                mutant=out/(name+'.c');mutant.write_text(body.replace(old,new),encoding='utf8');product(mutant)
-                binary=out/(name+ext);selected=[mutant if root/source==original else root/source for source in sources]
+                target=base_original if name=='missing-stream-runtime' else original
+                target_body=target.read_text(encoding='utf8')
+                assert target_body.count(old)==1,(name,'inexact control')
+                mutant=out/(name+'.c');mutant.write_text(target_body.replace(old,new),encoding='utf8');product(mutant)
+                binary=out/(name+ext);selected=[mutant if root/source==target else root/source for source in sources]
                 run(name+'.build',flags(gcc,['-O0'])+['-I'+str(root/'src/runtime'),
                     root/'test/support/tcp_resident_future_ownership.c',*selected,*libs,'-o',binary]);product(binary)
                 run(name+'.refused',[binary],reject=True);report['NegativeControls'].append(name);save()
