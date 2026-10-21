@@ -26,9 +26,9 @@ func main(...) as int
     auto emptycnt = t.searchCount(50.0, 50.0, 60.0, 60.0)
     assert emptycnt == 0, "search empty"
 
-    // Search results string
+    // Search returns all matching integer IDs, not a truncated text buffer.
     auto results = t.search(0.0, 0.0, 1.2, 1.2)
-    assert string.len(results) > 0, "results non-empty"
+    assert results.length == 2, "results count"
 
     // Remove
     assert t.remove(2), "remove 2"
