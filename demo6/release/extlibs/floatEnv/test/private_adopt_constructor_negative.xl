@@ -1,0 +1,4 @@
+import floatEnv
+
+// 仅编译：导入方不能接管任意快照指针；绝不执行此文件。
+auto snapshot = floatEnv.Snapshot(null)

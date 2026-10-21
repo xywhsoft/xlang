@@ -1,10 +1,11 @@
 #include <fenv.h>
-#include <stdint.h>
-#include <stdlib.h>
+#ifndef XRT_MODULE_THREAD
+#define XRT_MODULE_THREAD
+#endif
+#include "xrt.h"
+#include "include/float_env_native.h"
 
-/* TinyCC's bundled Windows CRT has fenv.h but no linked libmingwex fenv
- * implementation.  Keep its x87 and SSE state in sync without a compiler-
- * specific import library.  The normal CRT implementation is used elsewhere. */
+/* TinyCC 的 Windows CRT 只有 fenv.h 声明；同步维护 x87 与 SSE 状态。 */
 #if defined(__TINYC__) && defined(_WIN64) && defined(__x86_64__)
 static unsigned xfenv_win_mxcsr(void)
 {
@@ -106,12 +107,10 @@ static int xfenv_win_hold(fenv_t* saved)
 #define XFENV_HOLDEXCEPT(saved) feholdexcept(saved)
 #endif
 
-/* XRT's current-thread identity is shared by the host and loaded packages. */
-extern uint64_t xrtThreadCurrentId(void);
-
+/* 线程身份由宿主和扩展包共用的 XRT 提供。 */
 typedef struct xfenv_snapshot {
     fenv_t value;
-    uint64_t owner_thread;
+    uint64 owner_thread;
 } xfenv_snapshot;
 
 static int xfenv_round_to_native(int mode)
@@ -182,11 +181,11 @@ int xfenv_raise_flags(int flags)
 
 static xfenv_snapshot* xfenv_snapshot_new(int hold)
 {
-    xfenv_snapshot* snapshot = (xfenv_snapshot*)malloc(sizeof(*snapshot));
+    xfenv_snapshot* snapshot = (xfenv_snapshot*)xrtMalloc(sizeof(*snapshot));
     if (snapshot == NULL) return NULL;
     snapshot->owner_thread = xrtThreadCurrentId();
     if ((hold ? XFENV_HOLDEXCEPT(&snapshot->value) : XFENV_GETENV(&snapshot->value)) != 0) {
-        free(snapshot);
+        xrtFree(snapshot);
         return NULL;
     }
     return snapshot;
@@ -195,9 +194,23 @@ static xfenv_snapshot* xfenv_snapshot_new(int hold)
 void* xfenv_capture(void) { return xfenv_snapshot_new(0); }
 void* xfenv_hold(void) { return xfenv_snapshot_new(1); }
 void* xfenv_snapshot_adopt(void* snapshot) { return snapshot; }
-void xfenv_snapshot_destroy(void* snapshot) { free(snapshot); }
+void xfenv_snapshot_destroy(void* snapshot) { xrtFree(snapshot); }
 
-/* -1 means wrong thread, 0 means the CRT rejected the environment. */
+/* 已持有快照后才改变当前线程环境，避免语言对象构造失败时留下 hold 状态。 */
+int xfenv_snapshot_hold(void* raw)
+{
+    xfenv_snapshot* snapshot = (xfenv_snapshot*)raw;
+    fenv_t previous;
+    if (snapshot == NULL) return 0;
+    if (snapshot->owner_thread != xrtThreadCurrentId()) return -1;
+    if (XFENV_GETENV(&previous) != 0) return 0;
+    if (XFENV_HOLDEXCEPT(&snapshot->value) == 0) return 1;
+    snapshot->value = previous;
+    (void)XFENV_SETENV(&previous);
+    return 0;
+}
+
+/* -1 表示跨线程，0 表示 CRT 拒绝恢复。 */
 int xfenv_snapshot_restore(void* raw)
 {
     const xfenv_snapshot* snapshot = (const xfenv_snapshot*)raw;

@@ -1,0 +1,6 @@
+import floatEnv
+
+func main(...) as int
+    floatEnv.__holdSnapshot(null)
+    return 0
+end

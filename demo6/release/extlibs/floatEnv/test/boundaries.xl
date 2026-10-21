@@ -1,0 +1,36 @@
+import floatEnv
+
+floatEnv.Snapshot original = floatEnv.capture()
+floatEnv.clearFlags()
+assert floatEnv.getFlags() == 0
+
+int rejected = 0
+try
+    floatEnv.clearFlags(-1)
+catch RangeError error
+    rejected += 1
+end
+try
+    floatEnv.raiseFlags(32)
+catch RangeError error
+    rejected += 1
+end
+assert rejected == 2
+
+floatEnv.setRounding(floatEnv.RoundingMode.downward)
+floatEnv.Snapshot nested = floatEnv.capture()
+floatEnv.setRounding(floatEnv.RoundingMode.upward)
+nested.restore()
+assert floatEnv.getRounding() == floatEnv.RoundingMode.downward
+floatEnv.setRounding(floatEnv.RoundingMode.towardZero)
+nested.restore()
+assert floatEnv.getRounding() == floatEnv.RoundingMode.downward
+
+floatEnv.raiseFlags(int(floatEnv.ExceptionFlag.divideByZero))
+floatEnv.Snapshot held = floatEnv.hold()
+assert floatEnv.getFlags() == 0
+held.restore()
+assert floatEnv.getFlags() == int(floatEnv.ExceptionFlag.divideByZero)
+
+original.restore()
+println("floatEnv boundaries: PASS")

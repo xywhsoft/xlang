@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>floatEnv - 扩展库 - xlang</title>
+  <meta name="description" content="floatEnv 管理当前线程的浮点舍入模式、异常标志和环境快照。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / floatEnv</p><h1>floatEnv</h1>
+    <p class="extlib-lead">当前线程的浮点环境控制。</p>
+    <p>调整舍入模式、查询异常标志，并保存或恢复线程局部状态。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>getRounding / setRounding</code></td><td>读取或设置四种舍入模式</td></tr>
+      <tr><td><code>getFlags / clearFlags / raiseFlags</code></td><td>读取或操作五种异常标志</td></tr>
+      <tr><td><code>capture / hold</code></td><td>保存状态；hold 同时屏蔽陷阱并清除标志</td></tr>
+      <tr><td><code>Snapshot.restore</code></td><td>仅在创建快照的线程恢复</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import floatEnv
+floatEnv.Snapshot saved = floatEnv.capture()
+floatEnv.setRounding(floatEnv.RoundingMode.downward)
+// 在当前线程使用新的舍入模式
+saved.restore()</code></pre>
+    <p>状态属于 OS 线程，不能把快照带到其他线程恢复。<code>hold()</code> 先持有快照再改变环境；分配失败时保持原舍入模式和异常标志。C 范例可直接使用 <code>xl run release/extlibs/floatEnv/examples/float_env_c.c</code>，与包运行器及 XLang 范例同输出。模块级裸句柄入口不可从导入方访问，已有只编译负例；但 <code>Snapshot(point)</code> 仍受主线私有构造器缺陷阻断。Windows 包级门禁通过 C/XLang 分配边界、双语对照和无输出 AOT 核心；Linux 严格 GCC、ASan/UBSan 与 XLang 门禁通过。完整边界 AOT 仍待共享运行时符号修复。C API 与异常路径注意事项见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

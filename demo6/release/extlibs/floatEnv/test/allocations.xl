@@ -1,0 +1,51 @@
+import floatEnv
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    floatEnv.Snapshot original = floatEnv.capture()
+    floatEnv.clearFlags()
+    floatEnv.raiseFlags(int(floatEnv.ExceptionFlag.divideByZero))
+    floatEnv.setRounding(floatEnv.RoundingMode.downward)
+
+    // 捕获快照分配失败不能误报为普通运行时错误，也不能改变当前线程环境。
+    assert failAfter(uint64(0))
+    bool captureCaught = false
+    bool captureTriggered = false
+    try
+        floatEnv.capture()
+    catch MemoryError
+        captureCaught = true
+    finally
+        captureTriggered = failTriggered()
+        failClear()
+    end
+    assert captureCaught and captureTriggered
+    assert floatEnv.getRounding() == floatEnv.RoundingMode.downward
+    assert floatEnv.getFlags() == int(floatEnv.ExceptionFlag.divideByZero)
+
+    assert failAfter(uint64(0))
+    bool caught = false
+    bool triggered = false
+    try
+        floatEnv.hold()
+    catch MemoryError
+        caught = true
+    finally
+        triggered = failTriggered()
+        failClear()
+    end
+    assert caught and triggered
+    assert floatEnv.getRounding() == floatEnv.RoundingMode.downward
+    assert floatEnv.getFlags() == int(floatEnv.ExceptionFlag.divideByZero)
+
+    floatEnv.Snapshot held = floatEnv.hold()
+    assert floatEnv.getFlags() == 0
+    held.restore()
+    assert floatEnv.getFlags() == int(floatEnv.ExceptionFlag.divideByZero)
+    original.restore()
+    println("floatEnv allocation: PASS")
+    return 0
+end

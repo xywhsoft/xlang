@@ -1,0 +1,5 @@
+import floatEnv
+
+// 仅编译：hold() 的原生状态变更入口不能从包外直接调用。
+floatEnv.Snapshot saved = floatEnv.capture()
+saved.holdNative()

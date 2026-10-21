@@ -1,0 +1,5 @@
+import floatEnv
+
+// 仅编译：导入方必须通过 restore() 接收跨线程/CRT 错误。
+floatEnv.Snapshot saved = floatEnv.capture()
+saved.restoreNative()

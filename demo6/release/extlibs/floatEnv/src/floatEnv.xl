@@ -20,14 +20,14 @@ extern "xfenv_set_round" func __setRoundNative(c_int mode) as c_int
 extern "xfenv_get_flags" func __getFlagsNative() as c_int
 extern "xfenv_clear_flags" func __clearFlagsNative(c_int flags) as c_int
 extern "xfenv_raise_flags" func __raiseFlagsNative(c_int flags) as c_int
-extern "xfenv_hold" func __holdNative() as point
+extern "xfenv_snapshot_hold" func __holdSnapshot(point handle) as c_int
 
 export class Snapshot
     native point handle
     extern "xfenv_capture" create()
-    extern "xfenv_snapshot_adopt" create(point handle)
+    private extern "xfenv_snapshot_adopt" create(point handle)
     extern "xfenv_snapshot_destroy" destroy()
-    extern "xfenv_snapshot_restore" func restoreNative() as c_int
+    private extern "xfenv_snapshot_restore" func restoreNative() as c_int
 
     func restore()
         if self.handle == null then
@@ -94,9 +94,12 @@ end
 
 // feholdexcept saves the environment, clears flags and disables traps until restore().
 export func hold() as Snapshot
-    point raw = __holdNative()
-    if raw == null then
+    Snapshot saved = Snapshot()
+    if saved.handle == null then
+        throw MemoryError "floating-point environment snapshot allocation failed"
+    end
+    if __holdSnapshot(saved.handle) != 1 then
         throw RuntimeError "floating-point environment hold failed"
     end
-    return Snapshot(raw)
+    return saved
 end

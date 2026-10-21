@@ -1,0 +1,20 @@
+import floatEnv
+
+func main(...) as int
+    floatEnv.Snapshot original = floatEnv.capture()
+    floatEnv.clearFlags()
+    floatEnv.setRounding(floatEnv.RoundingMode.downward)
+    println("round mode: " + string(int(floatEnv.getRounding())))
+
+    floatEnv.raiseFlags(int(floatEnv.ExceptionFlag.divideByZero))
+    println("flags: " + string(floatEnv.getFlags()))
+
+    floatEnv.Snapshot held = floatEnv.hold()
+    println("held flags: " + string(floatEnv.getFlags()))
+    held.restore()
+    println("restored flags: " + string(floatEnv.getFlags()))
+
+    original.restore()
+    println("floatEnv example: PASS")
+    return 0
+end

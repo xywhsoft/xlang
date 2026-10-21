@@ -1,0 +1,4 @@
+import floatEnv
+
+// 仅编译：未导出的原生入口不能绕过公开舍入模式接口。
+floatEnv.__getRoundNative()

@@ -7,10 +7,12 @@
     "artifact": {
         "kind": "source",
         "cSources": ["float_env_native.c"],
-        "xlSources": ["src/floatEnv.xl"]
+        "xlSources": ["src/floatEnv.xl"],
+        "xrtModules": ["XRT_MODULE_THREAD"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }
