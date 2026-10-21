@@ -1,0 +1,5 @@
+precision: 14
+added: 10000
+estimated unique: 8038
+daily unique pages: 2
+hyperloglog example: PASS

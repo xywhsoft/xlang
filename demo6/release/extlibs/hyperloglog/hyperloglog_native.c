@@ -1,189 +1,166 @@
-/*
- * hyperloglog_native.c - HyperLogLog cardinality estimator
- *
- * Pure C implementation using 64-bit FNV-1a hash.
- * Supports precision 4-18 (default 14, ~0.81% standard error).
- */
-
-#include "xl_runtime.h"
+/* 固定 64 位 XRT 哈希的 HyperLogLog；寄存器按精度独立分配。 */
+#ifndef XRT_MODULE_HASH64
+#define XRT_MODULE_HASH64
+#endif
+#include "xrt.h"
+#include "include/hyperloglog_native.h"
+#include <limits.h>
 #include <math.h>
+#include <string.h>
 
-/* 所有错误统一写入当前 XRT 错误槽，不能调用已经废弃的 xrtSetError ABI。 */
-static void hll_error(int kind, const char *message)
+#define XHLL_DOMAIN "xlang.extlib.hyperloglog"
+
+typedef struct xhll_state {
+    unsigned char* registers;
+    unsigned int precision;
+    unsigned int nregisters;
+    uint64 added;
+} xhll_state;
+
+static void xhll_error(xerrkind kind, const char* message)
 {
-    xrtSetErrorInfo(kind, "xlang.extlib.hyperloglog", 0, message);
+    xrtSetErrorInfo(kind, XHLL_DOMAIN, 0, message);
 }
-/* ------------------------------------------------------------------ */
-/* Hashing                                                             */
-/* ------------------------------------------------------------------ */
 
-static unsigned long long hll_hash(const unsigned char *data, unsigned long long len) {
-    unsigned long long h = 14695981039346656037ULL;
-    unsigned long long i;
-    for (i = 0; i < len; i++) {
-        h ^= (unsigned long long)data[i];
-        h *= 1099511628211ULL;
+/* 最高 p 位是寄存器索引；rho 只扫描剩余的 64-p 位。 */
+static int xhll_rank(uint64 hash, unsigned int precision)
+{
+    uint64 remainder = hash << precision;
+    int rank = 1;
+    int limit = 64 - (int)precision;
+    while (rank <= limit && (remainder & (UINT64_C(1) << 63)) == 0u) {
+        remainder <<= 1;
+        ++rank;
     }
-    /* Additional mixing for better distribution */
-    h ^= h >> 33;
-    h *= 0xFF51AFD7ED558CCDULL;
-    h ^= h >> 33;
-    h *= 0xC4CEB9FE1A85EC53ULL;
-    h ^= h >> 33;
-    return h;
+    return rank;
 }
 
-/* ------------------------------------------------------------------ */
-/* HyperLogLog                                                         */
-/* ------------------------------------------------------------------ */
-
-typedef struct {
-    unsigned char *registers;
-    unsigned int precision;     /* p: 4..18 */
-    unsigned int nregisters;    /* m = 2^p */
-    unsigned long long added;   /* total add calls (for reference) */
-} XHll;
-
-static int hll_leading_zeros(unsigned long long value, int maxbits) {
-    int count = 1;
-    int i;
-    for (i = maxbits - 1; i >= 0; i--) {
-        if (value & (1ULL << i)) {
-            break;
-        }
-        count++;
-    }
-    return count;
-}
-
-void *xhll_create(int precision) {
-    XHll *hll;
-    unsigned int m;
-
+void* xhll_create(int precision)
+{
+    xhll_state* state;
+    unsigned int count;
+    xrtClearError();
     if (precision < 4 || precision > 18) {
-        hll_error(1, "hyperloglog precision must be 4..18");
+        xhll_error(XERR_RANGE, "precision must be between 4 and 18");
         return NULL;
     }
-
-    m = 1u << precision;
-
-    hll = (XHll *)xrtCalloc(1u, sizeof(XHll));
-    if (!hll) {
-        hll_error(6, "cannot allocate HyperLogLog state");
-        return NULL;
-    }
-    hll->registers = (unsigned char *)xrtCalloc(m, 1u);
-    if (!hll->registers) {
-        xrtFree(hll);
-        hll_error(6, "cannot allocate HyperLogLog registers");
-        return NULL;
-    }
-    hll->precision = (unsigned int)precision;
-    hll->nregisters = m;
-    hll->added = 0;
-    return hll;
+    count = 1u << precision;
+    state = (xhll_state*)xrtCalloc(1u, sizeof(*state));
+    if (state == NULL) return NULL;
+    state->registers = (unsigned char*)xrtCalloc(count, 1u);
+    if (state->registers == NULL) { xrtFree(state); return NULL; }
+    state->precision = (unsigned int)precision;
+    state->nregisters = count;
+    return state;
 }
 
-void xhll_destroy(void *ptr) {
-    XHll *hll = (XHll *)ptr;
-    if (hll) {
-        xrtFree(hll->registers);
-        xrtFree(hll);
-    }
+void xhll_destroy(void* handle)
+{
+    xhll_state* state = (xhll_state*)handle;
+    if (state == NULL) return;
+    xrtFree(state->registers);
+    xrtFree(state);
 }
 
-void xhll_add(void *ptr, const char *data, long long len) {
-    XHll *hll = (XHll *)ptr;
-    unsigned long long hash;
-    unsigned int idx;
-    int rho;
-    const unsigned char *bytes = (const unsigned char *)data;
-
-    if (!hll || !data) return;
-    if (len < 0) len = (long long)strlen(data);
-
-    hash = hll_hash(bytes, (unsigned long long)len);
-
-    /* Use top p bits as register index */
-    idx = (unsigned int)(hash >> (64 - hll->precision));
-    /* Count leading zeros in remaining bits */
-    rho = hll_leading_zeros(hash << hll->precision, 64 - (int)hll->precision);
-
-    if ((unsigned char)rho > hll->registers[idx]) {
-        hll->registers[idx] = (unsigned char)rho;
-    }
-    hll->added++;
-}
-
-long long xhll_count(void *ptr) {
-    XHll *hll = (XHll *)ptr;
-    double alpha, sum, estimate;
-    unsigned int m, i;
-    int zeros;
-
-    if (!hll) return 0;
-
-    m = hll->nregisters;
-
-    /* Alpha constant */
-    if (m == 16) alpha = 0.673;
-    else if (m == 32) alpha = 0.697;
-    else if (m == 64) alpha = 0.709;
-    else alpha = 0.7213 / (1.0 + 1.079 / (double)m);
-
-    sum = 0.0;
-    zeros = 0;
-    for (i = 0; i < m; i++) {
-        sum += 1.0 / (double)(1ULL << hll->registers[i]);
-        if (hll->registers[i] == 0) zeros++;
-    }
-
-    estimate = alpha * (double)m * (double)m / sum;
-
-    /* Small range correction (linear counting) */
-    if (estimate <= 2.5 * (double)m && zeros > 0) {
-        estimate = (double)m * log((double)m / (double)zeros);
-    }
-
-    /* Large range correction (for 64-bit hash, threshold is 2^63 / 30) */
-    /* Not needed in practice for reasonable cardinalities */
-
-    return (long long)(estimate + 0.5);
-}
-
-void xhll_clear(void *ptr) {
-    XHll *hll = (XHll *)ptr;
-    if (!hll) return;
-    memset(hll->registers, 0, hll->nregisters);
-    hll->added = 0;
-}
-
-int xhll_merge(void *dst_ptr, void *src_ptr) {
-    XHll *dst = (XHll *)dst_ptr;
-    XHll *src = (XHll *)src_ptr;
-    unsigned int i;
-
-    if (!dst || !src) return 0;
-    if (dst->precision != src->precision) {
-        hll_error(3, "cannot merge HyperLogLog values with different precision");
+int xhll_add(void* handle, const char* data, long long length)
+{
+    xhll_state* state = (xhll_state*)handle;
+    uint64 hash;
+    unsigned int index;
+    int rank;
+    xrtClearError();
+    if (state == NULL || data == NULL || length < -1) {
+        xhll_error(XERR_ARGUMENT, "state, data or length is invalid");
         return 0;
     }
-
-    for (i = 0; i < dst->nregisters; i++) {
-        if (src->registers[i] > dst->registers[i]) {
-            dst->registers[i] = src->registers[i];
-        }
+    if (length == -1) length = (long long)strlen(data);
+    if ((uint64)length > SIZE_MAX) {
+        xhll_error(XERR_RANGE, "item length exceeds address space");
+        return 0;
     }
-    dst->added += src->added;
+    hash = xrtHash64(data, (size_t)length);
+    index = (unsigned int)(hash >> (64 - state->precision));
+    rank = xhll_rank(hash, state->precision);
+    if ((unsigned char)rank > state->registers[index])
+        state->registers[index] = (unsigned char)rank;
+    if (state->added < (uint64)LLONG_MAX) ++state->added;
     return 1;
 }
 
-int xhll_precision(void *ptr) {
-    XHll *hll = (XHll *)ptr;
-    return hll ? (int)hll->precision : 0;
+int64_t xhll_count(void* handle)
+{
+    xhll_state* state = (xhll_state*)handle;
+    double alpha, sum = 0.0, estimate;
+    unsigned int count, i, zeros = 0u;
+    xrtClearError();
+    if (state == NULL) {
+        xhll_error(XERR_ARGUMENT, "state is null");
+        return -1;
+    }
+    count = state->nregisters;
+    if (count == 16u) alpha = 0.673;
+    else if (count == 32u) alpha = 0.697;
+    else if (count == 64u) alpha = 0.709;
+    else alpha = 0.7213 / (1.0 + 1.079 / (double)count);
+    for (i = 0u; i < count; ++i) {
+        sum += 1.0 / (double)(UINT64_C(1) << state->registers[i]);
+        if (state->registers[i] == 0u) ++zeros;
+    }
+    estimate = alpha * (double)count * (double)count / sum;
+    if (estimate <= 2.5 * (double)count && zeros != 0u)
+        estimate = (double)count * log((double)count / (double)zeros);
+    if (estimate >= (double)LLONG_MAX) return LLONG_MAX;
+    return (int64_t)(estimate + 0.5);
 }
 
-long long xhll_added(void *ptr) {
-    XHll *hll = (XHll *)ptr;
-    return hll ? (long long)hll->added : 0;
+int xhll_clear(void* handle)
+{
+    xhll_state* state = (xhll_state*)handle;
+    xrtClearError();
+    if (state == NULL) {
+        xhll_error(XERR_ARGUMENT, "state is null");
+        return 0;
+    }
+    memset(state->registers, 0, state->nregisters);
+    state->added = 0u;
+    return 1;
+}
+
+int xhll_merge(void* destination, void* source)
+{
+    xhll_state* dst = (xhll_state*)destination;
+    xhll_state* src = (xhll_state*)source;
+    unsigned int i;
+    xrtClearError();
+    if (dst == NULL || src == NULL) {
+        xhll_error(XERR_ARGUMENT, "state is null");
+        return 0;
+    }
+    if (dst->precision != src->precision) {
+        xhll_error(XERR_VALUE, "cannot merge different precisions");
+        return 0;
+    }
+    if (dst == src) return 1;
+    for (i = 0u; i < dst->nregisters; ++i)
+        if (src->registers[i] > dst->registers[i])
+            dst->registers[i] = src->registers[i];
+    dst->added = src->added > (uint64)LLONG_MAX - dst->added ?
+        (uint64)LLONG_MAX : dst->added + src->added;
+    return 1;
+}
+
+int xhll_precision(void* handle)
+{
+    xhll_state* state = (xhll_state*)handle;
+    xrtClearError();
+    if (state == NULL) { xhll_error(XERR_ARGUMENT, "state is null"); return -1; }
+    return (int)state->precision;
+}
+
+int64_t xhll_added(void* handle)
+{
+    xhll_state* state = (xhll_state*)handle;
+    xrtClearError();
+    if (state == NULL) { xhll_error(XERR_ARGUMENT, "state is null"); return -1; }
+    return (int64_t)state->added;
 }

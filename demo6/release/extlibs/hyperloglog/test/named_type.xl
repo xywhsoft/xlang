@@ -1,0 +1,13 @@
+import hyperloglog
+
+func readPrecision(hyperloglog.HyperLogLog value) as int
+    return value.precision
+end
+
+hyperloglog.HyperLogLog sketch = hyperloglog.create(8)
+sketch.add("named-type")
+assert readPrecision(sketch) == 8
+assert sketch.added == 1
+assert sketch.count() >= 1
+
+println("hyperloglog named type: PASS")

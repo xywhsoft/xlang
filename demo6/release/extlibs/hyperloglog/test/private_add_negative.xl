@@ -1,0 +1,5 @@
+import hyperloglog
+
+// 不执行：不能向原生哈希入口提供与字符串不符的长度。
+auto sketch = hyperloglog.create()
+sketch.addNative("x", c_longlong(4096))

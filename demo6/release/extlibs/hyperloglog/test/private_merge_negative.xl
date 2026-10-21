@@ -1,0 +1,5 @@
+import hyperloglog
+
+// 不执行：合并必须经过 HyperLogLog 参数和句柄检查。
+auto sketch = hyperloglog.create()
+sketch.mergeNative(null)

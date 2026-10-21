@@ -1,0 +1,67 @@
+import hyperloglog
+
+auto smallest = hyperloglog.create(4)
+assert smallest.precision == 4 and smallest.count() == 0
+smallest.add("edge")
+assert smallest.added == 1 and smallest.count() >= 1
+
+auto largest = hyperloglog.create(18)
+assert largest.precision == 18 and largest.count() == 0
+largest.add("edge")
+assert largest.added == 1 and largest.count() >= 1
+
+auto sketch = hyperloglog.create(14)
+assert sketch.count() == 0
+sketch.add("a")
+sketch.add("a\0b")
+sketch.add("a")
+assert sketch.added == 3
+assert sketch.count() >= 2 and sketch.count() <= 3
+
+auto other = hyperloglog.create(14)
+other.add("c")
+sketch.merge(other)
+assert sketch.added == 4
+assert sketch.count() >= 2 and sketch.count() <= 4
+auto direct = hyperloglog.create(14)
+direct.add("a")
+direct.add("a\0b")
+direct.add("c")
+assert sketch.count() == direct.count()
+sketch.merge(other)
+assert sketch.count() == direct.count() and sketch.added == 5
+sketch.merge(sketch)
+assert sketch.added == 5
+
+for precision in [4, 14]
+    auto overlapLeft = hyperloglog.create(precision)
+    auto overlapRight = hyperloglog.create(precision)
+    auto overlapDirect = hyperloglog.create(precision)
+    for i in range(128)
+        string item = "overlap:" + string(i)
+        overlapDirect.add(item)
+        if i < 96 then overlapLeft.add(item) end
+        if i >= 32 then overlapRight.add(item) end
+    end
+    overlapLeft.merge(overlapRight)
+    assert overlapLeft.count() == overlapDirect.count()
+    assert overlapLeft.added == 192
+    overlapLeft.merge(overlapRight)
+    assert overlapLeft.count() == overlapDirect.count()
+end
+
+int rejected = 0
+try
+    sketch.merge(hyperloglog.create(10))
+catch ValueError error
+    rejected += 1
+end
+try
+    hyperloglog.create(3)
+catch ValueError error
+    rejected += 1
+end
+assert rejected == 2
+sketch.clear()
+assert sketch.count() == 0 and sketch.added == 0
+println("hyperloglog boundaries: PASS")

@@ -11,11 +11,13 @@
         ],
         "xlSources": [
             "src/hyperloglog.xl"
-        ]
+        ],
+        "xrtModules": ["XRT_MODULE_HASH64"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/named_type.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",

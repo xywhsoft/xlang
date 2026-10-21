@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>hyperloglog - 扩展库 - xlang</title>
+  <meta name="description" content="hyperloglog 使用固定大小寄存器估计不同数据项的数量。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / hyperloglog</p><h1>hyperloglog</h1>
+    <p class="extlib-lead">固定内存的近似去重计数。</p>
+    <p>复用 XRT 64 位哈希，支持同精度合并、清空及显式二进制长度；估计值不保证精确。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>成员</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>create(precision = 14)</code></td><td>创建 4..18 精度的草图</td></tr>
+      <tr><td><code>hyperloglog.HyperLogLog</code></td><td>导出草图类型，可用于显式声明和函数签名</td></tr>
+      <tr><td><code>add / count</code></td><td>加入数据并估计唯一值数量</td></tr>
+      <tr><td><code>merge / clear</code></td><td>同精度合并与复位</td></tr>
+      <tr><td><code>added / precision</code></td><td>读取累计写入计数与寄存器精度；重复合并会再次累加源计数</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import hyperloglog
+hyperloglog.HyperLogLog hll = hyperloglog.create()
+hll.add("visitor:1")
+hll.add("visitor:2")
+println(hll.count())</code></pre>
+    <p>单实例没有并发锁；误差性质、C 接口、测试范围与 AOT 状态见包内 README。</p>
+    <p>C API 失败后可直接重试，成功调用会清除本线程旧的 XRT 错误。<code>count/added</code> 使用跨平台 <code>int64_t</code> 结果，<code>add</code> 长度仍为 C <code>long long</code>。C 范例可直接 <code>xl run release/extlibs/hyperloglog/examples/hyperloglog_c.c</code>；Windows/Linux 门禁将它与分离编译 C、XLang 范例及固定输出对照，Linux 另含 ASan/UBSan。估计值不是精确基数；完整 AOT 仍受共享符号 <code>xl6ValueDataSnapshotV1</code> 阻断。</p>
+  </section>
+</main>
+</body>
+</html>
