@@ -57,6 +57,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 局部复验 C/JIT 和线格式时可在 `check.ps1` 后加 `-SkipAot`，不能以快测替代发布验收。
 
 C/XL 测试覆盖事件/待办、RRULE、TZID/VALUE、嵌套提醒隔离、重复分类、长中文字段、折行、异常输入、控制字符拒绝、内存故障与独立所有权；Windows 严格 GCC、Linux ASan/UBSan、双语同输出和无索引核心 AOT 通过。完整 AOT 仍受主线 `xl6ValueIndexReadCopyV1`、`xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/`，因此暂不签收正式发布级验收。
+原生 C 边界还对有效事件的 `SUMMARY` 值逐字节替换为分隔符、反斜杠、换行、NUL 与非法 UTF-8：拒绝时必须有诊断；接受后生成、重新解析并再次生成须得到同一文本。该有限矩阵不代替持续模糊测试。
 
 Windows 包级脚本在本次专属构建目录运行严格 GCC 的三个独立实现单元、
 C 边界、中央及包内 XLang 用例、双语范例、Python 标准库线格式检查和

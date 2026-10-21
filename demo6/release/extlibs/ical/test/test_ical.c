@@ -87,6 +87,42 @@ static int test_text_identifiers(void) {
     return 0;
 }
 
+static int test_mutated_text(void) {
+    char sample[] = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:test\r\n"
+        "BEGIN:VEVENT\r\nUID:one@demo\r\nDTSTAMP:20260801T000000Z\r\n"
+        "DTSTART:20260810T090000Z\r\nSUMMARY:hello\\nworld\r\n"
+        "END:VEVENT\r\nEND:VCALENDAR\r\n";
+    const unsigned char replacements[] = {'A', ';', ':', '\\', '\n', '\r', 0, 0xff};
+    char *summary = strstr(sample, "SUMMARY:") + strlen("SUMMARY:");
+    size_t i, j;
+    for (i = 0; i < strlen("hello\\nworld"); ++i) {
+        char original = summary[i];
+        for (j = 0; j < sizeof(replacements); ++j) {
+            xvalue *calendar, *back;
+            char *built, *rebuilt;
+            summary[i] = (char)replacements[j];
+            calendar = xi_parse(sample, sizeof(sample) - 1);
+            if (calendar == NULL) {
+                CHECK(xrtGetError() != NULL);
+                continue;
+            }
+            CHECK(xrtGetError() == NULL);
+            built = xi_build(calendar);
+            CHECK(built != NULL);
+            back = xi_parse(built, strlen(built));
+            CHECK(back != NULL);
+            rebuilt = xi_build(back);
+            CHECK(rebuilt != NULL && strcmp(built, rebuilt) == 0);
+            xrtFree(rebuilt);
+            xrtValueRelease(back);
+            xrtFree(built);
+            xrtValueRelease(calendar);
+        }
+        summary[i] = original;
+    }
+    return 0;
+}
+
 static int test_build_long(const char *output_path) {
     xvalue *calendar = xrtValueObject();
     xvalue *events = xrtValueArray();
@@ -312,6 +348,7 @@ static int test_output_limit(void) {
 int main(int argc, char **argv) {
     CHECK(test_parse() == 0);
     CHECK(test_text_identifiers() == 0);
+    CHECK(test_mutated_text() == 0);
     CHECK(test_build_long(argc > 1 ? argv[1] : NULL) == 0);
     CHECK(test_invalid_and_failure() == 0);
     CHECK(test_companion_key_case() == 0);
