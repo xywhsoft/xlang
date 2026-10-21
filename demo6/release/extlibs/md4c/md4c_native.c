@@ -1,11 +1,18 @@
-#include <stdint.h>
 #include <string.h>
 
+#ifndef XRT_MODULE_BUFFER
 #define XRT_MODULE_BUFFER
-#define XRT_MODULE_FILE
+#endif
+#ifndef XRT_MODULE_FILE_WHOLE
+#define XRT_MODULE_FILE_WHOLE
+#endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
 #include "xrt.h"
 
 #include "third_party/md4c/md4c-html.h"
+#include "md4c_native.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define XMD4C_EXPORT __declspec(dllexport)
@@ -13,90 +20,105 @@
 #define XMD4C_EXPORT
 #endif
 
-#if defined(__GNUC__)
-#define XMD4C_THREAD __thread
-#elif defined(_MSC_VER)
-#define XMD4C_THREAD __declspec(thread)
-#else
-#define XMD4C_THREAD
-#endif
+#define XMD4C_DOMAIN "xlang.extlib.md4c"
+#define XMD4C_INPUT_LIMIT (64u * 1024u * 1024u)
+#define XMD4C_PARSER_FLAGS (MD_FLAG_COLLAPSEWHITESPACE | \
+	MD_FLAG_PERMISSIVEATXHEADERS | MD_FLAG_PERMISSIVEURLAUTOLINKS | \
+	MD_FLAG_PERMISSIVEEMAILAUTOLINKS | MD_FLAG_NOINDENTEDCODEBLOCKS | \
+	MD_FLAG_NOHTMLBLOCKS | MD_FLAG_NOHTMLSPANS | MD_FLAG_TABLES | \
+	MD_FLAG_STRIKETHROUGH | MD_FLAG_PERMISSIVEWWWAUTOLINKS | \
+	MD_FLAG_TASKLISTS | MD_FLAG_LATEXMATHSPANS | MD_FLAG_WIKILINKS | \
+	MD_FLAG_UNDERLINE | MD_FLAG_HARD_SOFT_BREAKS)
+#define XMD4C_RENDER_FLAGS (MD_HTML_FLAG_DEBUG | \
+	MD_HTML_FLAG_VERBATIM_ENTITIES | MD_HTML_FLAG_SKIP_UTF8_BOM | \
+	MD_HTML_FLAG_XHTML)
 
-static XMD4C_THREAD char g_xmd4c_error[512];
+typedef struct {
+	xbuffer Buffer;
+	bool Failed;
+} xmd4c_output;
 
-#define XMD4C_RESULT_SLOTS 8u
-
-static XMD4C_THREAD xbuffer g_xmd4c_html[XMD4C_RESULT_SLOTS];
-static XMD4C_THREAD size_t g_xmd4c_html_index;
-
-static void xmd4c_set_error(const char* text)
+static void xmd4c_fail(xerrkind kind, const char* message)
 {
-    size_t i = 0u;
+	if ( xrtGetError() == NULL ) xrtSetErrorInfo(kind, XMD4C_DOMAIN, 0, message);
+}
 
-    if ( text == NULL ) {
-        text = "";
-    }
-
-    while ( i + 1u < sizeof(g_xmd4c_error) && text[i] != '\0' ) {
-        g_xmd4c_error[i] = text[i];
-        ++i;
-    }
-    g_xmd4c_error[i] = '\0';
+static bool xmd4c_flags_valid(int parser_flags, int renderer_flags)
+{
+	if ( parser_flags < 0 || renderer_flags < 0 ||
+		(((unsigned)parser_flags & ~(unsigned)XMD4C_PARSER_FLAGS) != 0u) ||
+		(((unsigned)renderer_flags & ~(unsigned)XMD4C_RENDER_FLAGS) != 0u) ) {
+		xmd4c_fail(XERR_VALUE, "md4c flags contain unsupported bits");
+		return false;
+	}
+	return true;
 }
 
 static void xmd4c_append_html(const MD_CHAR* text, MD_SIZE size, void* userdata)
 {
-	xbuffer* buffer = (xbuffer*)userdata;
+	xmd4c_output* output = (xmd4c_output*)userdata;
 
-	if ( buffer == NULL || text == NULL ||
-		 !xrtBufferAppend(buffer, (xbytesview){ (cbytes)text, (size_t)size }) ) {
-		xmd4c_set_error("out of memory");
+	if ( output == NULL || output->Failed ) return;
+	if ( text == NULL ||
+		 !xrtBufferAppend(&output->Buffer, (xbytesview){ (cbytes)text, (size_t)size }) ) {
+		output->Failed = true;
+		xmd4c_fail(XERR_MEMORY, "could not grow HTML output");
 	}
 }
 
-static const char* xmd4c_store_result(xbuffer* buffer)
+static void* xmd4c_store_result(xbuffer* buffer)
 {
-	size_t slot = g_xmd4c_html_index % XMD4C_RESULT_SLOTS;
-	xbuffer* output = &g_xmd4c_html[slot];
-
-	g_xmd4c_html_index = (g_xmd4c_html_index + 1u) % XMD4C_RESULT_SLOTS;
+	void* result;
 	if ( !xrtBufferAppendByte(buffer, 0u) ) {
-		xmd4c_set_error("out of memory");
+		xmd4c_fail(XERR_MEMORY, "could not terminate HTML output");
 		xrtBufferUnit(buffer);
-		return "";
+		return NULL;
 	}
-	xrtBufferUnit(output);
-	*output = *buffer;
-	memset(buffer, 0, sizeof(*buffer));
-	xmd4c_set_error("");
-	return (const char*)output->Data;
+	result = xrtBufferTake(buffer, NULL, NULL);
+	xrtBufferUnit(buffer);
+	if ( result == NULL ) {
+		xmd4c_fail(XERR_MEMORY, "could not take HTML output");
+		return NULL;
+	}
+	xrtClearError();
+	return result;
 }
 
-static const char* xmd4c_render(const char* markdown, size_t size, unsigned parser_flags, unsigned renderer_flags)
+static void* xmd4c_render(const char* markdown, size_t size, unsigned parser_flags, unsigned renderer_flags)
 {
-	xbuffer buffer;
+	xmd4c_output output;
 	int rc;
 
-	if ( !xrtBufferInit(&buffer) ) {
-		xmd4c_set_error("out of memory");
-		return "";
-	}
-	xmd4c_set_error("");
+	xrtClearError();
+	output.Failed = false;
 	if ( markdown == NULL ) {
 		markdown = "";
 		size = 0u;
 	}
-	if ( size > (size_t)((MD_SIZE)-1) ) {
-		xmd4c_set_error("markdown input is too large");
-		xrtBufferUnit(&buffer);
-		return "";
+	if ( size > XMD4C_INPUT_LIMIT || size > (size_t)((MD_SIZE)-1) ) {
+		xmd4c_fail(XERR_RANGE, "markdown input exceeds 64 MiB");
+		return NULL;
 	}
-	rc = md_html((const MD_CHAR*)markdown, (MD_SIZE)size, xmd4c_append_html, &buffer, parser_flags, renderer_flags);
-	if ( rc != 0 || g_xmd4c_error[0] != '\0' ) {
-		xrtBufferUnit(&buffer);
-		if ( rc != 0 ) xmd4c_set_error("md4c parse failed");
-		return "";
+	if ( memchr(markdown, '\0', size) != NULL ) {
+		xmd4c_fail(XERR_VALUE, "markdown input contains NUL");
+		return NULL;
 	}
-	return xmd4c_store_result(&buffer);
+	if ( !xrtUtf8Valid((xstrview){ markdown, size }, NULL) ) {
+		xmd4c_fail(XERR_VALUE, "markdown input is not valid UTF-8");
+		return NULL;
+	}
+	if ( !xrtBufferInit(&output.Buffer) ) {
+		xmd4c_fail(XERR_MEMORY, "could not initialize HTML output");
+		return NULL;
+	}
+	rc = md_html((const MD_CHAR*)markdown, (MD_SIZE)size,
+		xmd4c_append_html, &output, parser_flags, renderer_flags);
+	if ( rc != 0 || output.Failed ) {
+		xrtBufferUnit(&output.Buffer);
+		if ( rc != 0 ) xmd4c_fail(XERR_VALUE, "md4c parse failed");
+		return NULL;
+	}
+	return xmd4c_store_result(&output.Buffer);
 }
 
 XMD4C_EXPORT int xmd4c_available(void)
@@ -111,35 +133,49 @@ XMD4C_EXPORT const char* xmd4c_version(void)
 
 XMD4C_EXPORT const char* xmd4c_last_error(void)
 {
-	return g_xmd4c_error;
+	const xerror* error = xrtGetError();
+	return error != NULL ? xrtErrorMessage(error) : "";
 }
 
-XMD4C_EXPORT const char* xmd4c_html(const char* markdown)
+static void* xmd4c_render_string(const char* markdown, int parser_flags, int renderer_flags)
 {
-	return xmd4c_render(markdown, (markdown != NULL) ? strlen(markdown) : 0u, MD_DIALECT_COMMONMARK, 0u);
+	size_t size = 0u;
+	xrtClearError();
+	if ( !xmd4c_flags_valid(parser_flags, renderer_flags) ) return NULL;
+	if ( markdown != NULL )
+		while ( size <= XMD4C_INPUT_LIMIT && markdown[size] != '\0' ) ++size;
+	return xmd4c_render(markdown, size,
+		(unsigned)parser_flags, (unsigned)renderer_flags);
 }
 
-XMD4C_EXPORT const char* xmd4c_html_flags(const char* markdown, int parser_flags, int renderer_flags)
+XMD4C_EXPORT void* xmd4c_html(const char* markdown)
 {
-	return xmd4c_render(markdown, (markdown != NULL) ? strlen(markdown) : 0u, (unsigned)parser_flags, (unsigned)renderer_flags);
+	return xmd4c_render_string(markdown, MD_DIALECT_COMMONMARK, 0u);
 }
 
-XMD4C_EXPORT const char* xmd4c_file_html(const char* path, int parser_flags, int renderer_flags)
+XMD4C_EXPORT void* xmd4c_html_flags(const char* markdown, int parser_flags, int renderer_flags)
+{
+	return xmd4c_render_string(markdown, parser_flags, renderer_flags);
+}
+
+XMD4C_EXPORT void* xmd4c_file_html(const char* path, int parser_flags, int renderer_flags)
 {
 	bytes data;
 	size_t size;
-	const char* result;
+	void* result;
 
+	xrtClearError();
+	if ( !xmd4c_flags_valid(parser_flags, renderer_flags) ) return NULL;
 	if ( path == NULL || path[0] == '\0' ) {
-		xmd4c_set_error("empty file path");
-		return "";
+		xmd4c_fail(XERR_ARGUMENT, "empty file path");
+		return NULL;
 	}
-	data = xrtFileReadAll(path, &size);
+	data = xrtFileReadAllLimit(path, XMD4C_INPUT_LIMIT, &size);
 	if ( data == NULL ) {
-		xmd4c_set_error("failed to read file");
-		return "";
+		xmd4c_fail(XERR_IO, "failed to read file");
+		return NULL;
 	}
-	result = xmd4c_render(data, size, (unsigned)parser_flags, (unsigned)renderer_flags);
+	result = xmd4c_render((const char*)data, size, (unsigned)parser_flags, (unsigned)renderer_flags);
 	xrtFree(data);
 	return result;
 }

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>md4c - 扩展库 - xlang</title>
+  <meta name="description" content="基于 md4c 的 CommonMark 和 GitHub 风格 Markdown 到 HTML 渲染。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-fmt" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / md4c</p>
+    <h1>md4c</h1>
+    <p class="extlib-lead">把 CommonMark 或 GitHub 风格 Markdown 渲染成 HTML，也可直接读取 Markdown 文件。</p>
+    <p>版本 0.1.0 · C / xlang · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import md4c
+
+string page = md4c.html("# Title\n\nHello **xlang**.")
+print(page)
+
+string plain = md4c.html_flags("Hello &lt;b&gt;world&lt;/b&gt;",
+    md4c.github_flags() + md4c.no_html_flag(), 0)
+print(plain)</code></pre>
+    <p><code>html</code> 默认使用 CommonMark；<code>html_flags</code> 接收解析标志和渲染标志。<code>file_html(path, parserFlags, rendererFlags)</code> 读取指定文件。负数及未知标志位在读取前拒绝，不会静默忽略。Markdown 输入必须为合法 UTF-8，最多 64 MiB；非法内容拒绝解析，超限文件在读取前拒绝。C 内存入口要求有效的 NUL 结尾字符串，超限判断使用有界扫描。</p>
+  </section>
+  <section id="api">
+    <h2>接口</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>html(markdown)</code></td><td>按 CommonMark 渲染内存中的 Markdown。</td></tr>
+      <tr><td><code>html_flags(markdown, parserFlags, rendererFlags)</code></td><td>选择解析方言和 HTML 输出选项。</td></tr>
+      <tr><td><code>file_html(path, parserFlags, rendererFlags)</code></td><td>读取文件并渲染，路径支持 UTF-8。</td></tr>
+      <tr><td><code>commonmark_flags / github_flags / no_html_flag</code></td><td>常用解析标志；<code>no_html_flag</code> 禁用原生 HTML。</td></tr>
+      <tr><td><code>xhtml_flag / skip_utf8_bom_flag / verbatim_entities_flag</code></td><td>HTML 渲染选项。</td></tr>
+      <tr><td><code>available / version / last_error</code></td><td>可用性、内核版本及最近一次原生错误。</td></tr>
+    </tbody></table>
+    <p>原生 HTML 默认允许。<code>no_html_flag</code> 不是 HTML 净化器；处理不可信 Markdown 时仍须审查链接和图片 URL，并使用应用级安全策略。</p>
+  </section>
+  <section id="c-api">
+    <h2>C 混编</h2>
+    <pre><code>#include "xrt.h"
+#include "extlibs/md4c/md4c_native.h"
+
+char *html = xmd4c_html("# Hello");
+if (html != NULL) {
+    /* 使用 html */
+    xrtFree(html);
+}</code></pre>
+    <p>C 渲染结果归调用方所有，失败返回 <code>NULL</code>，可通过线程内 <code>xmd4c_last_error()</code> 取错误。XLang 文本和路径包含内嵌 NUL 时抛出 <code>ValueError</code>；文件内容中的 NUL 以及内存或文件内容中的非法 UTF-8 都会被拒绝，而非截断或生成非法 HTML。</p>
+  </section>
+  <section id="verify">
+    <h2>验证与边界</h2>
+    <pre><code>xl run release/extlibs/md4c/examples/md4c_c.c
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/md4c/test/check.ps1 -SkipAot
+bash release/extlibs/md4c/test/check.sh</code></pre>
+    <p>C 教学范例可单文件直跑；Linux 包级门禁同时覆盖 C ASan/UBSan、XLang 边界、直跑与严格 C 编译结果对照，以及 C/XLang HTML 逐字节对照。此前 Windows 严格 GCC、C/XLang 边界与双语同输出、无输出边界 AOT 已通过；本轮 Windows 总门禁在 GCC 重编 XRT 时遇本机内存不足，未重新签收。带输出范例的 AOT 仍受主线 <code>xl6ValueDataSnapshotV1</code> 缺符号阻断，尚未签收完整发布验收。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

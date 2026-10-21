@@ -1,18 +1,20 @@
 import md4c
 
 string markdown = "# Title\n\nHello **xlang**"
-string path = "release/examples_out/extlibs/md4c_case.md"
-
-dir.createAll("release/examples_out/extlibs")
-file.writeText(path, markdown)
+string path = "release/extlibs/md4c/test/fixture.md"
 
 assert md4c.available(), "md4c should be available"
 assert string.contains(md4c.html(markdown), "<strong>xlang</strong>"), "markdown should render emphasis"
 assert string.contains(md4c.html_flags("# Title", md4c.github_flags(), md4c.xhtml_flag()), "<h1>Title</h1>"), "flagged rendering should work"
 assert string.contains(md4c.file_html(path, md4c.commonmark_flags(), md4c.skip_utf8_bom_flag()), "<h1>Title</h1>"), "file rendering should work"
 assert not string.contains(md4c.html_flags("<script>x</script>", md4c.github_flags() + md4c.no_html_flag(), 0), "<script>"), "no_html should suppress HTML"
-assert md4c.file_html("release/examples_out/extlibs/missing.md", md4c.commonmark_flags(), 0) == "", "missing file should fail"
-assert md4c.last_error() == "failed to read file", "missing file diagnostic mismatch"
+bool missing = false
+try
+    md4c.file_html("release/extlibs/md4c/test/missing.md", md4c.commonmark_flags(), 0)
+catch IOError error
+    missing = true
+end
+assert missing, "missing file should raise IOError"
 assert string.contains(md4c.html("plain"), "<p>plain</p>"), "a later render should clear earlier error state"
 assert md4c.last_error() == "", "successful render should clear the error state"
 

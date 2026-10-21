@@ -3,10 +3,10 @@ import md4c
 assert md4c.available(), "md4c available failed"
 
 string markdown = "# Title\n\nHello **xlang**"
-string markdownPath = "examples_out/extlibs/md4c_sample.md"
-
-dir.createAll("examples_out/extlibs")
-file.writeText(markdownPath, markdown)
+string markdownPath = "extlibs/md4c/test/fixture.md"
+if not path.exists(markdownPath) then
+    markdownPath = "release/extlibs/md4c/test/fixture.md"
+end
 
 c_int commonmark = md4c.commonmark_flags()
 c_int github = md4c.github_flags()
@@ -25,6 +25,6 @@ assert not string.contains(safeHtml, "<script>"), "md4c no-html flag failed"
 assert string.contains(htmlFlags, "<h1>Title</h1>"), "md4c html_flags h1 missing"
 string fileHtml = md4c.file_html(markdownPath, commonmark, skipBom)
 assert string.contains(fileHtml, "<strong>xlang</strong>"), "md4c file_html strong missing"
-assert string.len(md4c.last_error()) >= 0, "md4c last_error should return a string"
+assert md4c.last_error() == "", "md4c should clear last_error after success"
 
 println("md4c extlib ok")

@@ -14,7 +14,12 @@
                                   ],
                      "xlSources":  [
                                        "src/md4c.xl"
-                                   ]
+                                   ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_BUFFER",
+                                        "XRT_MODULE_FILE_WHOLE",
+                                        "XRT_MODULE_UNICODE"
+                                    ]
                  },
     "links":  [
 
@@ -25,6 +30,7 @@
     "dependencies":  [
 
                      ],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

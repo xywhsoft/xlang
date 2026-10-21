@@ -1,0 +1,67 @@
+import md4c
+
+func main(...) as int
+    string first = md4c.html("# xlang")
+    for i in range(0, 20)
+        assert md4c.html("next") == "<p>next</p>\n", "repeated render"
+    end
+    assert first == "<h1>xlang</h1>\n", "independent result"
+    assert md4c.html("") == "", "empty document"
+    assert string.contains(md4c.html("# 中文"), "中文"), "valid UTF-8 markdown"
+    assert md4c.last_error() == "", "success clears error"
+    string html = md4c.file_html("release/extlibs/md4c/test/fixture.md", md4c.commonmark_flags(), 0)
+    assert string.contains(html, "<strong>xlang</strong>"), "file render"
+    bool failed = false
+    try
+        md4c.file_html("release/extlibs/md4c/test/missing.md", md4c.commonmark_flags(), 0)
+    catch IOError e
+        failed = true
+    end
+    assert failed, "missing file error"
+    failed = false
+    try
+        md4c.html("# visible\0hidden")
+    catch ValueError e
+        failed = true
+    end
+    assert failed, "markdown must not truncate at NUL"
+    failed = false
+    try
+        md4c.html_flags("# visible\0hidden", md4c.github_flags(), 0)
+    catch ValueError e
+        failed = true
+    end
+    assert failed, "flagged markdown must not truncate at NUL"
+    failed = false
+    try
+        md4c.html_flags("# x", -1, 0)
+    catch ValueError e
+        failed = true
+    end
+    assert failed, "negative parser flags must fail"
+    failed = false
+    try
+        md4c.html_flags("# x", 0, 16)
+    catch ValueError e
+        failed = true
+    end
+    assert failed, "unknown renderer flags must fail"
+    failed = false
+    try
+        md4c.file_html("release/extlibs/md4c/test/fixture.md", 128, 0)
+    catch ValueError e
+        failed = true
+    end
+    assert failed, "unknown file parser flags must fail before reading"
+    assert string.contains(md4c.html_flags("# x", md4c.github_flags(),
+        md4c.xhtml_flag()), "<h1>x</h1>"), "valid flags still render"
+    failed = false
+    try
+        md4c.file_html("release/extlibs/md4c/test/fixture.md\0hidden",
+            md4c.commonmark_flags(), 0)
+    catch ValueError e
+        failed = true
+    end
+    assert failed, "file path must not truncate at NUL"
+    return 0
+end

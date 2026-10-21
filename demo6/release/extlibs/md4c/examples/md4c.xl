@@ -1,0 +1,8 @@
+import md4c
+
+func main(...) as int
+    print(md4c.html("# Title\n\nHello **xlang**."))
+    print(md4c.html_flags("safe <script>bad</script>",
+        md4c.github_flags() + md4c.no_html_flag(), 0))
+    return 0
+end
