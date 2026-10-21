@@ -1,0 +1,21 @@
+import ui.auto
+import opencv
+
+func main(...) as int
+	assert arg.length == 2, "screenshot test requires an output path"
+	string imagePath = string(arg[1])
+	assert ui.auto.available(), "OpenCV backend unavailable"
+	auto window = ui.auto.test_window()
+	assert window.valid(), "test window unavailable"
+	auto edit = ui.auto.within(ui.auto.by_class_name("Edit", "", 50004), window.hwnd())
+	assert ui.auto.type_text(edit, "capture 123"), "test text input failed"
+	assert ui.auto.screenshot(edit, imagePath), "screenshot failed"
+	auto image = opencv.read(imagePath)
+	auto parent = opencv.capture_window(window.hwnd())
+	assert not image.empty() and not parent.empty(), "screenshot image unavailable"
+	assert image.width() < parent.width() and image.height() < parent.height(), "locator screenshot must contain the control, not its parent window"
+	assert window.release(), "window release failed"
+	assert ui.auto.shutdown(), "uia shutdown failed"
+	println("ui.auto screenshot ok")
+	return 0
+end

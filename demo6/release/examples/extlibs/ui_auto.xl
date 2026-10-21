@@ -1,17 +1,17 @@
-import ui.auto
+import ui.auto as uiauto
 
-auto window = ui.auto.test_window()
+auto window = uiauto.test_window()
 assert window.valid(), "cannot create the UI automation test window"
 
-auto edit = ui.auto.within(ui.auto.by_class_name("Edit", "", 50004), window.hwnd())
-assert ui.auto.wait_exists(edit)
-assert ui.auto.type_text(edit, "xlang UI automation")
-println("edit text: ", ui.auto.read(edit))
+uiauto.Locator edit = uiauto.within(uiauto.by_class_name("Edit", "", 50004), window.hwnd())
+assert uiauto.wait_exists(edit)
+assert uiauto.type_text(edit, "xlang UI automation")
+println("edit text: ", uiauto.read(edit))
 
-auto button = ui.auto.within(ui.auto.by_class_name("Button", "", 50000), window.hwnd())
-assert ui.auto.click(button)
+uiauto.Locator button = uiauto.within(uiauto.by_class_name("Button", "", 50000), window.hwnd())
+assert uiauto.click(button)
 
 assert window.close()
 assert window.release()
-assert ui.auto.shutdown()
+assert uiauto.shutdown()
 println("ui.auto example: PASS")

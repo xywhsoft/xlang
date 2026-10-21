@@ -31,6 +31,7 @@
                              "abiVersion":  "1"
                          }
                      ],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/named_type.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

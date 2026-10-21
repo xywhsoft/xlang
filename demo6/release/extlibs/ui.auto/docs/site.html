@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ui.auto - 扩展库 - xlang</title>
+  <meta name="description" content="xlang 桌面自动化组合层：定位、点击、输入、读取和截图。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-ui" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / ui.auto</p>
+    <h1>ui.auto</h1>
+    <p class="extlib-lead">用定位器完成常见桌面操作：等待控件、点击、输入、读取和截图。</p>
+    <p>版本 0.1.0 · Windows 专用 · 依赖 uia 与 opencv</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import ui.auto as uiauto
+
+auto window = uiauto.test_window()
+uiauto.Locator edit = uiauto.within(
+    uiauto.by_class_name("Edit", "", 50004),
+    window.hwnd()
+)
+assert uiauto.wait_exists(edit)
+assert uiauto.type_text(edit, "hello")
+println(uiauto.read(edit))
+window.release()
+uiauto.shutdown()</code></pre>
+    <p><code>test_window()</code> 是可重复验证用的自建窗口；面向已有应用时使用 <code>within(locator, hwnd)</code> 限定搜索范围。</p>
+  </section>
+  <section id="api">
+    <h2>接口</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>by_automation_id / by_class_name / by_name / by_control_type / by_process_id</code></td><td>构造定位器。</td></tr>
+      <tr><td><code>uiauto.Locator</code></td><td>导出的定位器类型，可用于参数和变量声明；<code>import ui.auto as uiauto</code>。</td></tr>
+      <tr><td><code>within / with_timeout</code></td><td>限定窗口与等待时间；缺失目标是正常的 false/空文本结果。</td></tr>
+      <tr><td><code>locator_from_json</code></td><td>读取定位信息；已提供的字段全部参与匹配，不支持的 <code>processClassPath</code> 策略明确报错。</td></tr>
+      <tr><td><code>wait_exists / click / type_text / read</code></td><td>基础交互。</td></tr>
+      <tr><td><code>screenshot(locator, path)</code></td><td>将目标区域保存为图像；依赖 OpenCV 后端。</td></tr>
+    </tbody></table>
+  </section>
+  <section id="verify">
+    <h2>验证与边界</h2>
+    <pre><code>xl run examples/extlibs/ui_auto.xl
+powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/ui.auto/test/check.ps1</code></pre>
+    <p>自建窗口上的成功/缺失/错误进程定位、生成器 JSON 往返、输入读取、内嵌 NUL 拒绝和包含固定文字像素的真实 PNG 截图已通过；另有直接调用 UIA C API 的对照范例 <code>examples/extlibs/ui_auto_c.c</code>。本包只验收 OpenCV 的公开调用链，不承担其桥接实现的内部测试。UIA 上下文限定在创建线程使用；真实桌面权限、DPI/多屏、远程会话、取消和长期事件处理尚未签收。当前 AOT 构建还受编译器缺符号问题阻断。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

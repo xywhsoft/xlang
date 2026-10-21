@@ -1,0 +1,92 @@
+import ui.auto
+import uia
+
+func main(...) as int
+	auto window = ui.auto.test_window()
+	assert window.valid(), "test window unavailable"
+
+	auto missing = ui.auto.within(
+		ui.auto.with_timeout(ui.auto.by_automation_id("missing-uia-test-id", 0), 0),
+		window.hwnd()
+	)
+	assert not ui.auto.wait_exists(missing), "missing locator should not match"
+	assert not ui.auto.click(missing), "missing locator should not click"
+	assert not ui.auto.type_text(missing, "x"), "missing locator should not accept text"
+	assert ui.auto.read(missing) == "", "missing locator should read empty text"
+
+	auto edit = ui.auto.within(ui.auto.by_class_name("Edit", "", 50004), window.hwnd())
+	assert ui.auto.wait_exists(edit), "edit locator should match"
+	assert ui.auto.type_text(edit, "hello"), "edit input failed"
+	assert ui.auto.read(edit) == "hello", "edit read failed"
+	bool rejected = false
+	try
+		ui.auto.type_text(edit, "hello\0hidden")
+	catch ValueError e
+		rejected = true
+	end
+	assert rejected, "embedded NUL must not truncate text input"
+	assert ui.auto.read(edit) == "hello", "rejected input must not change the control"
+	auto truncated = ui.auto.within(
+		ui.auto.by_class_name("Edit\0hidden", "", 50004), window.hwnd())
+	rejected = false
+	try
+		ui.auto.wait_exists(truncated)
+	catch ValueError e
+		rejected = true
+	end
+	assert rejected, "embedded NUL must not turn a locator into a prefix match"
+
+	// 复合定位器必须同时约束控件类和进程，不能只命中第一个条件。
+	auto wrong_process = ui.auto.within(
+		ui.auto.with_timeout(ui.auto.locator_from_json(
+			"{\"className\":\"Edit\",\"controlType\":50004,\"processId\":2147483647}"), 0),
+		window.hwnd())
+	assert not ui.auto.wait_exists(wrong_process), "process filter was ignored"
+	string generated = uia.from_hwnd(window.edit_hwnd()).locator_json()
+	auto from_json = ui.auto.within(
+		ui.auto.with_timeout(ui.auto.locator_from_json(generated), 0), window.hwnd())
+	assert ui.auto.wait_exists(from_json), "generated locator should match"
+
+	rejected = false
+	try
+		ui.auto.locator_from_json("{}")
+	catch ValueError e
+		rejected = true
+	end
+	assert rejected, "empty locator must be rejected"
+	rejected = false
+	try
+		ui.auto.locator_from_json("{\"controlType\":\"50004\"}")
+	catch TypeError e
+		rejected = true
+	end
+	assert rejected, "locator field type must be checked"
+	rejected = false
+	try
+		ui.auto.locator_from_json("{\"strategy\":\"processClassPath\",\"processId\":1}")
+	catch ValueError e
+		rejected = true
+	end
+	assert rejected, "unsupported locator strategy must be rejected"
+	rejected = false
+	try
+		ui.auto.with_timeout(edit, -1)
+	catch ValueError e
+		rejected = true
+	end
+	assert rejected, "negative timeout must be rejected"
+	edit.process_id = -1
+	rejected = false
+	try
+		ui.auto.wait_exists(edit)
+	catch ValueError e
+		rejected = true
+	end
+	assert rejected, "negative direct field must be rejected"
+	edit.process_id = 0
+
+	assert window.release(), "window release failed"
+	assert ui.auto.shutdown(), "uia shutdown failed"
+	println("ui.auto boundaries ok")
+	return 0
+end

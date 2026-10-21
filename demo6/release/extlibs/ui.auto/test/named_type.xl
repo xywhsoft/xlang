@@ -1,0 +1,12 @@
+import ui.auto as uiauto
+
+func keepLocator(uiauto.Locator value) as uiauto.Locator
+    return value
+end
+
+func main(...) as int
+    uiauto.Locator loc = keepLocator(uiauto.by_name("missing-uia-test-id", 0))
+    assert loc.name == "missing-uia-test-id"
+    assert uiauto.with_timeout(loc, 0).timeout_ms == 0
+    return 0
+end
