@@ -9,6 +9,9 @@
 #include <stdio.h>
 
 struct xls_semantic_check {
+    xatomic32 references,invalid;
+    xmutex lock;
+    int lockInitialized;
     XL6_ParseResult parse;
     XL6_ImportDeps deps;
     XL6_SourceReport report;
@@ -17,18 +20,22 @@ struct xls_semantic_check {
     char *path,*index;
     xls_semantic_index* typedIndex;
     const char* phase;
-    int accepted,invalid,captureIndex;
+    int accepted,captureIndex;
 };
 static int stopped(int (*cancelled)(void*),void* user) { return cancelled && cancelled(user); }
 static void fail(char* error,size_t capacity,const char* message)
 { if(error && capacity) snprintf(error,capacity,"%s",message); }
+static int invalid(const xls_semantic_check* r)
+{ return xrtAtomic32Load(&r->invalid,XMEMORY_ACQUIRE)!=0; }
+xls_semantic_check* xlsSemanticCheckRetain(xls_semantic_check* r)
+{ if(r) xrtAtomic32FetchAdd(&r->references,1,XMEMORY_RELAXED); return r; }
 void xlsSemanticCheckDestroy(xls_semantic_check* r)
 {
-    if(!r) return;
+    if(!r || xrtAtomic32FetchSub(&r->references,1,XMEMORY_ACQ_REL)!=1) return;
     xrtFree(r->index); xlsFrontendIndexDestroy(r->typedIndex);
     xl6IrModuleFree(&r->ir); xl6ParseResultFree(&r->parse);
     xl6ImportDepsFree(&r->deps); xl6SourceOverlayClear(&r->overlay); xl6SourceReportFree(&r->report);
-    xrtFree(r->path); xrtFree(r);
+    xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
 }
 xls_semantic_check* xlsSemanticCheckCreate(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,
@@ -42,6 +49,9 @@ xls_semantic_check* xlsSemanticCheckCreate(const char* entry,
     }
     if(stopped(cancelled,user)) { fail(error,capacity,"semantic check cancelled"); return NULL; }
     r=xrtCalloc(1,sizeof(*r)); if(!r) { fail(error,capacity,"cannot allocate semantic check"); return NULL; }
+    xrtAtomic32Init(&r->references,1); xrtAtomic32Init(&r->invalid,0);
+    if(!xrtMutexInit(&r->lock)) goto invalid;
+    r->lockInitialized=1;
     xl6ParseResultInit(&r->parse); xl6ImportDepsInit(&r->deps); xl6SourceReportInit(&r->report); xl6IrModuleInit(&r->ir);
     r->path=xrtPathAbs(entry); r->captureIndex=captureIndex;
     if(!r->path) goto invalid;
@@ -96,35 +106,46 @@ cancel:
 xls_check_info xlsSemanticCheckInfo(const xls_semantic_check* r)
 {
     if(!r) return (xls_check_info){0};
-    return (xls_check_info){r->path,r->phase,r->invalid ? "semantic inputs changed" : NULL,
-        r->parse.diags.count,r->ir.types.count,r->ir.nodeCount,r->accepted && !r->invalid,
-        r->typedIndex && r->accepted && !r->invalid};
+    int stale=invalid(r);
+    return (xls_check_info){r->path,r->phase,stale ? "semantic inputs changed" : NULL,
+        r->parse.diags.count,r->ir.types.count,r->ir.nodeCount,r->accepted && !stale,
+        r->typedIndex && r->accepted && !stale};
 }
 int xlsSemanticCheckDiagnostic(const xls_semantic_check* r,size_t index,xls_check_diagnostic* out)
 {
-    if(!r || r->invalid || !out || index>=r->parse.diags.count) return 0;
+    if(!r || invalid(r) || !out || index>=r->parse.diags.count) return 0;
     const XL6_Diag* d=&r->parse.diags.items[index];
     *out=(xls_check_diagnostic){d->file ? d->file : r->path,d->message,d->line,d->column}; return 1;
 }
 const xls_semantic_index* xlsSemanticCheckTypedIndex(const xls_semantic_check* r)
-{ return r && !r->invalid && r->accepted ? r->typedIndex : NULL; }
-const char* xlsSemanticCheckIndex(xls_semantic_check* r)
+{ return r && !invalid(r) && r->accepted ? r->typedIndex : NULL; }
+static const char* indexLocked(xls_semantic_check* r)
 {
     if(!xlsSemanticCheckTypedIndex(r)) return NULL;
     if(!r->index) r->index=xl6SemIndexJson(r->parse.root,&r->report,NULL,0);
     return r->index;
 }
-int xlsSemanticCheckValidate(xls_semantic_check* r)
+const char* xlsSemanticCheckIndex(xls_semantic_check* r)
 {
-    if(!r || r->invalid) return 0;
-    if(!xl6SourceReportValidate(&r->report)) { r->invalid=1; return 0; }
+    if(!r || !xrtMutexLock(&r->lock)) return NULL;
+    const char* index=indexLocked(r); xrtMutexUnlock(&r->lock); return index;
+}
+static int validateLocked(xls_semantic_check* r)
+{
+    if(invalid(r)) return 0;
+    if(!xl6SourceReportValidate(&r->report)) { xrtAtomic32Store(&r->invalid,1,XMEMORY_RELEASE); return 0; }
     return 1;
 }
-static char* reportJson(xls_semantic_check* r,size_t* size,int includeIndex)
+int xlsSemanticCheckValidate(xls_semantic_check* r)
+{
+    if(!r || !xrtMutexLock(&r->lock)) return 0;
+    int okay=validateLocked(r); xrtMutexUnlock(&r->lock); return okay;
+}
+static char* reportLocked(xls_semantic_check* r,size_t* size,int includeIndex)
 {
     if(size) *size=0;
-    if(!r || !xlsSemanticCheckValidate(r)) return NULL;
-    const char* index=includeIndex && r->captureIndex ? (r->accepted ? xlsSemanticCheckIndex(r) :
+    if(!validateLocked(r)) return NULL;
+    const char* index=includeIndex && r->captureIndex ? (r->accepted ? indexLocked(r) :
         "{\"schema\":1,\"scope\":\"checked-compilation\",\"complete\":false,\"nodes\":[]}") : NULL;
     if(includeIndex && r->captureIndex && r->accepted && !index) return NULL;
     XL6_Output out; char* text=NULL; size_t length=0;
@@ -133,9 +154,15 @@ static char* reportJson(xls_semantic_check* r,size_t* size,int includeIndex)
         if(!xl6OutputHasFailed(&out)) text=xl6OutputTakeMemoryText(&out,&length);
         xl6OutputDiscard(&out);
     }
-    if(length>XLS_CHECK_REPORT_BYTES || !xlsSemanticCheckValidate(r)) { xrtFree(text); text=NULL; length=0; }
+    if(length>XLS_CHECK_REPORT_BYTES || !validateLocked(r)) { xrtFree(text); text=NULL; length=0; }
     if(size) *size=length;
     return text;
+}
+static char* reportJson(xls_semantic_check* r,size_t* size,int includeIndex)
+{
+    if(size) *size=0;
+    if(!r || !xrtMutexLock(&r->lock)) return NULL;
+    char* text=reportLocked(r,size,includeIndex); xrtMutexUnlock(&r->lock); return text;
 }
 char* xlsSemanticCheckJson(xls_semantic_check* r,size_t* size) { return reportJson(r,size,1); }
 char* xlsSemanticCheckReportJson(xls_semantic_check* r,size_t* size) { return reportJson(r,size,0); }

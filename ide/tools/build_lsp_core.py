@@ -32,7 +32,7 @@ SERVER_SOURCES = (
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
     "src/server/xlang_ls.c",
 )
-CORE_TESTS = ("analysis_check_test", "analysis_index_test", "analysis_index_limit_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_text_test", "document_sync_test")
+CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_index_test", "analysis_index_limit_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_text_test", "document_sync_test")
 HOST_TESTS = ("analysis_index_view_test",)
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 
@@ -99,7 +99,7 @@ def main() -> None:
     sources = [(frontend / source, False) for source in FRONTEND_SOURCES]
     sources += [(ide / "src/analysis/runtime.c", False)]
     sources += [(ide / path, True) for path in (
-        "src/analysis/text.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/check.c",
+        "src/analysis/text.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/check.c", "src/analysis/check_session.c",
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
@@ -188,7 +188,7 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "session", "worker", "folding", "semantic", "check"}
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "session", "worker", "folding", "semantic", "check", "check_session"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         limited_index = output / "xl6_sem_index_limit.o"

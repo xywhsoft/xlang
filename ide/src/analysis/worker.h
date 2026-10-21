@@ -5,11 +5,6 @@
 
 typedef struct xls_worker xls_worker;
 typedef struct xls_query xls_query;
-typedef struct xls_analysis_document {
-    const char *key,*path;
-    xls_text* text;
-    uint64_t identity,revision;
-} xls_analysis_document;
 enum xls_query_state { XLS_QUERY_FAILED=-1,XLS_QUERY_PENDING=0,XLS_QUERY_READY=1,XLS_QUERY_CANCELLED=2 };
 typedef struct xls_worker_load { size_t queued,running; uint64_t submitted,completed,cancelled,rejected; } xls_worker_load;
 

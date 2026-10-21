@@ -5,6 +5,11 @@
 
 typedef struct xls_session xls_session;
 typedef struct xls_syntax xls_syntax;
+typedef struct xls_analysis_document {
+    const char *key,*path;
+    xls_text* text;
+    uint64_t identity,revision;
+} xls_analysis_document;
 typedef struct xls_session_limits { size_t documents,documentBytes,totalBytes; } xls_session_limits;
 typedef struct xls_session_stats {
     uint64_t generation,parses,cacheHits;
