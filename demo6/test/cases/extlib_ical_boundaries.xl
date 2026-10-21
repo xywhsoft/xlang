@@ -1,0 +1,58 @@
+import ical
+
+func main(...) as int
+    string source = """BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//test//EN
+BEGIN:VEVENT
+UID:one@demo
+DTSTAMP:20260801T000000Z
+DTSTART;TZID=Asia/Shanghai:20260810T090000
+SUMMARY:真实标题
+RRULE:FREQ=WEEKLY;BYDAY=MO,TU
+BEGIN:VALARM
+SUMMARY:警报标题
+END:VALARM
+END:VEVENT
+END:VCALENDAR
+"""
+    var calendar = ical.parse(source)
+    var event = calendar["events"][0]
+    assert event["summary"] == "真实标题"
+    assert event["dtstartTzid"] == "Asia/Shanghai"
+    assert event["rrule"] == "FREQ=WEEKLY;BYDAY=MO,TU"
+    string output = ical.build(calendar)
+    assert output.contains("RRULE:FREQ=WEEKLY;BYDAY=MO,TU\r\n")
+    assert output.contains("DTSTART;TZID=Asia/Shanghai:20260810T090000")
+    assert not output.contains("警报标题")
+
+    int caught = 0
+    try
+        ical.parse("BEGIN:VCALENDAR\nVERSION:2.0\nEND:VCALENDAR\n")
+    catch e
+        caught += 1
+    end
+    try
+        ical.parse("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nEND:VTODO\n")
+    catch e
+        caught += 1
+    end
+    try
+        ical.parse("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:a\u0000b\nEND:VCALENDAR\n")
+    catch e
+        caught += 1
+    end
+    try
+        ical.build({"events": [{"uid": "missing-stamp", "dtstart": "20260810T090000Z"}]})
+    catch e
+        caught += 1
+    end
+    try
+        ical.build({"event": []})
+    catch e
+        caught += 1
+    end
+    assert caught == 5
+    println("ical boundaries: PASS")
+    return 0
+end
