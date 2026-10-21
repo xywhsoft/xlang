@@ -15,6 +15,7 @@ typedef struct XL6_TcpScopeV1 {
     XL6_ExecutionScopeV1 execution;
     xnetstream* stream;
     xnetlistener* listener;
+    XL6_ExecutionResourceV1* engineOwner; /* call-only borrow, protected by receiver scope */
 } XL6_TcpScopeV1;
 /* Physical scope, same thread, not copyable. Returned native pointers are
  * call-only borrows; every successful Enter must reach Leave. */

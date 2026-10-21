@@ -57,6 +57,7 @@ static int xl6IrDirectNumericEnumMatches(const XL6_IrModule* module,
 #include "xl6_ir_net_frame_status_enum.inc"
 #include "xl6_ir_net_proxy_enums.inc"
 #include "xl6_ir_tcp_options_enums.inc"
+#include "xl6_ir_tcp_enums.inc"
 typedef struct XL6_IrDirectBridgeContract {
     const char* name;
     XL6_IrRuntimeBridgeKind kind;
@@ -143,6 +144,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_net_buffer_contracts.inc"
 #include "xl6_ir_net_proxy_contracts.inc"
 #include "xl6_ir_tcp_options_contracts.inc"
+#include "xl6_ir_tcp_contracts.inc"
 #include "xl6_ir_net_interfaces_contracts.inc"
 #include "xl6_ir_net_backends_contracts.inc"
 #include "xl6_ir_concurrent_contracts.inc"
@@ -1312,7 +1314,10 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 !element || element->kind != XL6_IR_TYPE_BUILTIN || element->paramCount || element->returnCount ||
                 element->collectionAbi != XL6_IR_COLLECTION_NONE) return 0;
             if(contract->resultFutureAbi){
-                if(contract->resultFutureElementAbi ||
+                /* A managed codec alone may describe several builtins. An
+                 * explicit element C ABI additionally seals its logical
+                 * family (for example bytes, not arbitrary xvalue). */
+                if((contract->resultFutureElementAbi&&element->cAbi!=contract->resultFutureElementAbi) ||
                     xl6IrBuildAsyncResultAbi(module,result->params[0])!=contract->resultFutureAbi)return 0;
             }else if(element->cAbi!=contract->resultFutureElementAbi ||
                 element->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL ||

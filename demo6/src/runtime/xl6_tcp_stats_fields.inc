@@ -1,0 +1,27 @@
+#ifdef XL6_TCP_STREAM_UINT
+XL6_TCP_STREAM_UINT(ReceivedBytes,receivedBytes)
+XL6_TCP_STREAM_UINT(SentBytes,sentBytes)
+XL6_TCP_STREAM_UINT(ReadEvents,readEvents)
+XL6_TCP_STREAM_UINT(WriteEvents,writeEvents)
+XL6_TCP_STREAM_UINT(SendRejected,sendRejected)
+XL6_TCP_STREAM_UINT(BufferedBytes,bufferedBytes)
+XL6_TCP_STREAM_UINT(QueuedBytes,queuedBytes)
+XL6_TCP_STREAM_UINT(PeakQueuedBytes,peakQueuedBytes)
+#endif
+#ifdef XL6_TCP_STREAM_BOOL
+XL6_TCP_STREAM_BOOL(ReadPaused,readPaused)
+XL6_TCP_STREAM_BOOL(ReadBlocked,readBlocked)
+XL6_TCP_STREAM_BOOL(ReadEnded,readEnded)
+XL6_TCP_STREAM_BOOL(WriteEnded,writeEnded)
+XL6_TCP_STREAM_BOOL(WriteBackpressured,writeBackpressured)
+#endif
+#ifdef XL6_TCP_LISTENER_UINT
+XL6_TCP_LISTENER_UINT(Accepted,accepted)
+XL6_TCP_LISTENER_UINT(Rejected,rejected)
+XL6_TCP_LISTENER_UINT(Errors,errors)
+XL6_TCP_LISTENER_UINT(ActiveAccepts,activeAccepts)
+XL6_TCP_LISTENER_UINT(ActiveDispatches,activeDispatches)
+XL6_TCP_LISTENER_UINT(QueuedAccepts,queuedAccepts)
+XL6_TCP_LISTENER_UINT(PeakQueuedAccepts,peakQueuedAccepts)
+XL6_TCP_LISTENER_UINT(AcceptWaiters,acceptWaiters)
+#endif

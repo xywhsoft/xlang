@@ -34,6 +34,9 @@ void xl6CallbackFrameBeginV1(XL6_FutureCallbackFrameV1*,xrtownershipscope*);
 void xl6CallbackFrameEndV1(XL6_FutureCallbackFrameV1*,xrtownershipscope*);
 void xl6CallbackFrameReleaseV1(XL6_FutureCallbackFrameV1*);
 bool xl6CallbackFrameBindOutputV1(XL6_FutureCallbackFrameV1*);
+/* Private frame, before transport publication. Both inline and queued
+ * exclusive starts own the SAME certified cancellation Watch reference. */
+bool xl6CallbackFrameBindCancellationV1(XL6_FutureCallbackFrameV1*);
 void xl6CallbackFrameDetachV1(XL6_FutureCallbackFrameV1*);
 void xl6CallbackFrameInvokeV1(XL6_FutureCallbackFrameV1*);
 /* Cleanup on the designated executor; consume only for legacy/private owners.

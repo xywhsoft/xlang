@@ -98,6 +98,17 @@ typedef struct XL6_FutureCallbackRuntimeV5 {
     void (*Fail)(struct xpromise*,struct xerror*);
 } XL6_FutureCallbackRuntimeV5;
 XL6_CODE_LEASE_API const XL6_FutureCallbackRuntimeV5* xl6FutureCallbackRuntimeV5Get(void);
+/* Additive V6: use V5 Allocate/Cleanup and V1 Discard, but the producer owns
+ * this source's complete operation. Output cancellation requests that source
+ * without unwatching it, inventing a terminal state or running capture drops
+ * on its I/O thread. Accepted invocation AND cleanup still use the fixed
+ * executor, even if cancellation synchronously completes the source. NULL
+ * preserves the private frame and does not request source cancellation.
+ * V5 Start remains shared-source; never use V6 for unrelated consumers. */
+typedef struct XL6_FutureCallbackRuntimeV6 {
+    struct xfuture* (*StartExclusive)(struct XL6_ContinuationExecutor*,void*,struct xfuture*);
+} XL6_FutureCallbackRuntimeV6;
+XL6_CODE_LEASE_API const XL6_FutureCallbackRuntimeV6* xl6FutureCallbackRuntimeV6Get(void);
 XL6_CODE_LEASE_API const struct xfuturewatchownershipv1* xl6FutureCallbackQueuedWatchPolicyV1Get(void);
 XL6_CODE_LEASE_API const struct XL6_ContinuationStorageV2* xl6FutureCallbackQueuedStorageV2Get(void);
 /* Immutable identity for the real output-Future -> producer-frame reference.

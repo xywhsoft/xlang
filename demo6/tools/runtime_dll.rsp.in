@@ -29,6 +29,12 @@
     src\runtime\xl6_ownership_domain_net_tcp_native.c
     src\runtime\xl6_execution_tcp.c
     src\runtime\xl6_ownership_domain_execution_tcp.c
+    src\runtime\xl6_tcp_language.c
+    src\runtime\xl6_tcp_future.c
+    src\runtime\xl6_tcp_stats.c
+    src\runtime\xl6_tcp_sync.c
+    src\runtime\xl6_ownership_domain_tcp_language.c
+    src\runtime\xl6_ownership_domain_tcp_stats.c
     src\runtime\xl6_net_engine_config.c
     src\runtime\xl6_net_engine_language.c
     src\runtime\xl6_net_engine_stats.c

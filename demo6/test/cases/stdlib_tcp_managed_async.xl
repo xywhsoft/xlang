@@ -1,0 +1,37 @@
+async func readExact(TcpStream stream, int count) as bytes
+    bytes result = b""
+    while result.length < count
+        bytes chunk = await stream.recvAsync(count - result.length)
+        assert chunk.length > 0
+        result = result + chunk
+    end
+    return result
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto accepted = listener.acceptAsync()
+auto connected = tcp.connectAsync(engine, listener.localAddress())
+TcpStream client = await connected
+TcpStream server = await accepted
+assert client.state == TcpStreamState.open
+assert server.state == TcpStreamState.open
+auto receiving = readExact(server, 3)
+assert client.send(b"a\x00b") == NetStatus.ok
+bytes message = await receiving
+assert message == b"a\x00b"
+auto available = client.waitAvailableAsync(2)
+assert server.send("xy") == NetStatus.ok
+assert await available
+assert await readExact(client, 2) == b"xy"
+auto eof = server.recvAsync()
+client.shutdownWrite()
+assert await eof == b""
+server.shutdownWrite()
+assert await client.recvAsync() == b""
+client.close()
+server.close()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("managed TCP Future class and bytes projection: ok")

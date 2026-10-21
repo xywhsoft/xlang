@@ -200,7 +200,7 @@ Resource* xl6ExecutionTcpPrepareAcceptV1(XL6_ExecutionSourceV1* source,Resource*
     Resource* result=xl6ExecutionCreateInternalV1(source,xl6ExecutionTcpStreamFamilyV1Get(),&options);
     xl6ExecutionTcpLeaveInternalV1(&scope);return result;
 }
-xfuture* xl6ExecutionTcpAcceptSourceV1(Resource* base)
+static xfuture* acceptSource(Resource* base,Resource* expected)
 {
     XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionResourceControlV1(base,true,&scope))return NULL;
     xfuture* result=NULL;
@@ -208,7 +208,8 @@ xfuture* xl6ExecutionTcpAcceptSourceV1(Resource* base)
     else{
         Stream* r=(Stream*)base;
         xfuture* pending=xrtAtomicPtrLoad(&r->pending,XMEMORY_ACQUIRE);
-        if(!pending&&xrtAtomic32Load(&r->prepared,XMEMORY_ACQUIRE)){
+        if(expected&&r->accepting!=expected)xrtSetErrorKind(XERR_STATE);
+        else if(!pending&&xrtAtomic32Load(&r->prepared,XMEMORY_ACQUIRE)){
             XL6_TcpScopeV1 accepting={0};
             if(xl6ExecutionTcpEnterInternalV1(r->accepting,XL6_EXECUTION_TCP_LISTENER_V1,true,&accepting)){
                 pending=xrtNetListenerAcceptAsync(accepting.listener);
@@ -218,10 +219,14 @@ xfuture* xl6ExecutionTcpAcceptSourceV1(Resource* base)
                 xl6ExecutionTcpLeaveInternalV1(&accepting);
             }
         }
-        if(pending)result=xrtFutureRef(pending);else if(!xrtGetError())xrtSetErrorKind(XERR_STATE);
+        if(expected&&r->accepting!=expected)result=NULL;
+        else if(pending)result=xrtFutureRef(pending);else if(!xrtGetError())xrtSetErrorKind(XERR_STATE);
     }
     xl6ExecutionResourceLeaveV1(&scope);return result;
 }
+xfuture* xl6ExecutionTcpAcceptSourceV1(Resource* base){return acceptSource(base,NULL);}
+xfuture* xl6ExecutionTcpAcceptSourceForV1(Resource* base,Resource* listener)
+{if(!listener){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}return acceptSource(base,listener);}
 bool xl6ExecutionTcpPromoteAcceptV1(Resource* base)
 {
     XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionResourceControlV1(base,true,&scope))return false;
@@ -248,12 +253,13 @@ bool xl6ExecutionTcpEnterInternalV1(Resource* r,XL6_ExecutionKindV1 kind,bool su
     const XL6_ExecutionFamilyV1* expected=kind==XL6_EXECUTION_TCP_STREAM_V1?
         xl6ExecutionTcpStreamFamilyV1Get():xl6ExecutionTcpListenerFamilyV1Get();
     if(r->kind!=kind||r->family!=expected){xl6ExecutionResourceLeaveV1(&scope->execution);xrtSetErrorKind(XERR_TYPE);return false;}
-    if(kind==XL6_EXECUTION_TCP_STREAM_V1)scope->stream=stream(r);else scope->listener=listener(r);
-    if(!scope->stream&&!scope->listener){xl6ExecutionResourceLeaveV1(&scope->execution);xrtSetErrorKind(XERR_STATE);return false;}
+    if(kind==XL6_EXECUTION_TCP_STREAM_V1){scope->stream=stream(r);scope->engineOwner=((Stream*)r)->parent;}
+    else{scope->listener=listener(r);scope->engineOwner=((Listener*)r)->parent;}
+    if(!scope->stream&&!scope->listener){scope->engineOwner=NULL;xl6ExecutionResourceLeaveV1(&scope->execution);xrtSetErrorKind(XERR_STATE);return false;}
     return true;
 }
 void xl6ExecutionTcpLeaveInternalV1(XL6_TcpScopeV1* scope)
-{xl6ExecutionResourceLeaveV1(&scope->execution);scope->stream=NULL;scope->listener=NULL;}
+{xl6ExecutionResourceLeaveV1(&scope->execution);scope->stream=NULL;scope->listener=NULL;scope->engineOwner=NULL;}
 bool xl6ExecutionTcpStateV1(Resource* r,int* output)
 {
     if(!output){xrtSetErrorKind(XERR_ARGUMENT);return false;}

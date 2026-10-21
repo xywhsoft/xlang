@@ -163,6 +163,17 @@ static void cancel_source(void* data)
 }
 static const xcancelwatchownershipv1 cancel_policy={sizeof(cancel_policy),cancel_source,producer_drop,&xl6FutureCallbackFrameOpsV1};
 const xcancelwatchownershipv1* xl6FutureCallbackCancelPolicyV1Get(void) { return &cancel_policy; }
+bool xl6CallbackFrameBindCancellationV1(FutureCallback* frame)
+{
+    if(!frame||!frame->source||!frame->output||!frame->cancel||frame->cancelSource||
+        frame->committed||frame->publishing){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    xrtownershipscope mutation={0};frame_begin(frame,&mutation);
+    if(frame->references==SIZE_MAX){frame_end(frame,&mutation);xrtSetErrorKind(XERR_RANGE);return false;}
+    ++frame->references;frame_end(frame,&mutation);
+    frame->cancelSource=xrtCancelWatchOwnedV1(frame->cancel,frame,&cancel_policy);
+    if(frame->cancelSource)return true;
+    frame_release(frame);return false;
+}
 static const xfutureproducerownershipv1 producer_policy={sizeof(producer_policy),producer_drop};
 const xfutureproducerownershipv1* xl6FutureCallbackProducerPolicyV1Get(void) { return &producer_policy; }
 static bool bind_output(FutureCallback* frame)
@@ -282,11 +293,7 @@ static xfuture* start_body(void* data,xfuture* source,bool exclusive)
     frame->output=xrtPromiseCreate(&future,NULL);if(!frame->output)goto failed;
     if(!bind_output(frame))goto failed;
     frame->cancel=xrtPromiseCancelToken(frame->output);if(!frame->cancel)goto failed;
-    if(exclusive){
-        frame_begin(frame,&mutation);++frame->references;frame_end(frame,&mutation);
-        frame->cancelSource=xrtCancelWatchOwnedV1(frame->cancel,frame,&cancel_policy);
-        if(!frame->cancelSource){frame_release(frame);goto failed;}
-    }
+    if(exclusive&&!xl6CallbackFrameBindCancellationV1(frame))goto failed;
     if(frame_has_layout(frame)){
         if(!xrtFutureWatchInitOwnershipV1(&frame->watch,frame,&watch_policy))goto failed;
     }else if(!xrtFutureWatchInitPhased(&frame->watch,notify,drop_release,frame,watch_trace))goto failed;

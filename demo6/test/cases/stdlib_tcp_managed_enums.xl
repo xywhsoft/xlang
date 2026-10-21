@@ -1,0 +1,7 @@
+auto stream = TcpStreamState.open
+auto listener = TcpListenerState.closed
+auto wait = TcpWait.readable
+auto status = NetStatus.again
+assert int(stream) == 1 and int(listener) == 2
+assert int(wait) == 1 and int(status) == 1
+println("TCP closed enums without transport resources: ok")
