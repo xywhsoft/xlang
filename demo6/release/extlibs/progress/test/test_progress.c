@@ -62,6 +62,56 @@ static unsigned next_random(unsigned *state) {
     return *state;
 }
 
+/* 逐次累加余数作为大整数比例的独立参照，不计算 current * scale。 */
+static int reference_ratio(uint64_t current, uint64_t total, int scale) {
+    uint64_t remainder = 0;
+    int result = 0;
+    int i;
+    for (i = 0; i < scale; ++i) {
+        if (remainder >= total - current) {
+            remainder -= total - current;
+            ++result;
+        } else {
+            remainder += current;
+        }
+    }
+    return result;
+}
+
+static int test_large_ratio_properties(void) {
+    unsigned state = 0x7d18u;
+    int case_index;
+    for (case_index = 0; case_index < 512; ++case_index) {
+        uint64_t bits = ((uint64_t)next_random(&state) << 32) | next_random(&state);
+        uint64_t total = case_index < 4 ? (uint64_t)LLONG_MAX :
+            bits % (uint64_t)LLONG_MAX + 1u;
+        uint64_t current = case_index == 0 ? 0u : case_index == 1 ? total / 2u :
+            case_index == 2 ? total - 1u : case_index == 3 ? total :
+            (((uint64_t)next_random(&state) << 32) | next_random(&state)) % (total + 1u);
+        int width = 10 + (int)(next_random(&state) % 91u);
+        int filled = reference_ratio(current, total, width);
+        void *bar = xprog_create((int64_t)total);
+        char *rendered;
+        char *open;
+        int i;
+        CHECK(bar != NULL);
+        CHECK(xprog_set(bar, (int64_t)current) == 1);
+        CHECK(xprog_set_width(bar, width) == 1);
+        CHECK(xprog_percent(bar) == reference_ratio(current, total, 100));
+        rendered = (char *)xprog_render(bar);
+        CHECK(rendered != NULL);
+        open = strchr(rendered, '[');
+        CHECK(open != NULL && open[width + 1] == ']');
+        for (i = 0; i < width; ++i) {
+            char expected = i < filled ? '=' : i == filled ? '>' : ' ';
+            CHECK(open[i + 1] == expected);
+        }
+        xrtFree(rendered);
+        xprog_destroy(bar);
+    }
+    return 0;
+}
+
 static int test_ratio_properties(void) {
     unsigned state = 0x51a7u;
     int case_index;
@@ -138,6 +188,7 @@ int main(void) {
     CHECK(test_error_recovery() == 0);
     CHECK(test_large_thresholds() == 0);
     CHECK(test_ratio_properties() == 0);
+    CHECK(test_large_ratio_properties() == 0);
     CHECK(test_allocation_failure() == 0);
     CHECK(first != NULL && second != NULL);
     CHECK(xprog_percent(first) == 0 && xprog_current(first) == 0);
