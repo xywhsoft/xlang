@@ -86,6 +86,36 @@ static int test_growth_failure(void) {
     return 0;
 }
 
+static int test_compaction_failure(void) {
+    void *set = xroaring_create();
+    int i;
+    CHECK(set != NULL);
+    for (i = 0; i <= 4096; ++i) CHECK(xroaring_add(set, i));
+
+    /* 降级和收缩分配失败时，删除必须保持原集合不变。 */
+    CHECK(xrtMemDebugFailAfter(0u));
+    CHECK(!xroaring_remove(set, 4096) && xrtMemDebugFailTriggered() &&
+        xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+    xrtMemDebugFailClear();
+    CHECK(xroaring_count(set) == 4097 && xroaring_contains(set, 4096));
+    CHECK(xroaring_remove(set, 4096) && xroaring_count(set) == 4096);
+
+    for (i = 4095; i > 1024; --i) CHECK(xroaring_remove(set, i));
+    CHECK(xroaring_count(set) == 1025);
+    CHECK(xrtMemDebugFailAfter(0u));
+    CHECK(!xroaring_remove(set, 1024) && xrtMemDebugFailTriggered() &&
+        xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+    xrtMemDebugFailClear();
+    CHECK(xroaring_count(set) == 1025 && xroaring_contains(set, 1024));
+    CHECK(xroaring_remove(set, 1024) && xroaring_count(set) == 1024);
+    for (i = 1023; i > 0; --i) CHECK(xroaring_remove(set, i));
+    CHECK(xroaring_count(set) == 1 && xroaring_min(set) == 0 &&
+        xroaring_max(set) == 0);
+    CHECK(xroaring_add(set, 4096) && xroaring_count(set) == 2);
+    xroaring_destroy(set);
+    return 0;
+}
+
 static int test_full_bucket_lifecycle(void) {
     void *set = xroaring_create();
     int i;
@@ -196,6 +226,7 @@ int main(void) {
     CHECK(test_domain_and_order() == 0);
     CHECK(test_bitmap_and_failures() == 0);
     CHECK(test_growth_failure() == 0);
+    CHECK(test_compaction_failure() == 0);
     CHECK(test_full_bucket_lifecycle() == 0);
     CHECK(test_error_recovery() == 0);
     CHECK(test_differential() == 0);

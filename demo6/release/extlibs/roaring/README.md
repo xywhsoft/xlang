@@ -12,7 +12,7 @@ assert ids.count == 1
 assert ids.remove(65536)
 ```
 
-取值范围为 `0..4294967295`，越界抛 `ValueError`。`add` 重复值不改变数量；`remove` 返回是否确实删除；空集合的 `min` / `max` 为 `-1`。创建或插入的内存分配失败由原生调用桥接抛 `MemoryError`，已有元素不丢失。同一实例的并发访问需调用方同步。
+取值范围为 `0..4294967295`，越界抛 `ValueError`。`add` 重复值不改变数量；`remove` 返回是否确实删除；空集合的 `min` / `max` 为 `-1`。桶从数组升为位图后，删除至 4096 项时降回有序数组；继续删减时逐级收缩容量，避免稀疏桶长期占用整张位图。创建、插入或删除期间的内存分配失败由原生调用桥接抛 `MemoryError`，失败的操作不改变集合。同一实例的并发访问需调用方同步。
 
 ## C 接口
 
@@ -40,7 +40,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 bash release/extlibs/roaring/test/check.sh
 ```
 
-专项测试覆盖跨桶、`UINT32_MAX`、重复值、数组转位图、删除、复用，以及新桶/数组扩容/位图升级时的分配失败回滚。C 用例另以固定种子对照朴素位图，交错验证三桶的插入、删除、查询、计数及最小/最大值。Windows 严格 GCC、Linux ASan/UBSan、xlang JIT、双语同输出和无输出 AOT 核心均通过。带输出范例 AOT 仍受主线 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`；因此发布级验收尚未签收。
+专项测试覆盖跨桶、`UINT32_MAX`、重复值、数组转位图、删除、复用，以及新桶/数组扩容/位图升级和降级收缩时的分配失败回滚。C 用例另以固定种子对照朴素位图，交错验证三桶的插入、删除、查询、计数及最小/最大值。Windows 严格 GCC、Linux ASan/UBSan、xlang JIT、双语同输出和无输出 AOT 核心均通过。带输出范例 AOT 仍受主线 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`；因此发布级验收尚未签收。
 2026-10-15 新增满 65536 项单桶回归：逆序插入、重复插入、逐项删空、相邻桶保留及原位置重建均通过 Windows C 和 Linux ASan/UBSan；现有 XLang 边界用例复跑通过。完整 AOT 阻断未变。
 2026-10-14 新增失败→成功 C 错误状态及空句柄负例，包内 Linux 脚本可用
 严格 GCC + ASan/UBSan 复跑该测试；XLang 完整边界与核心 AOT 保持通过。

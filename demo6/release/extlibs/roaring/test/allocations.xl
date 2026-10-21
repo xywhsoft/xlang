@@ -62,3 +62,31 @@ failClear()
 assert upgraded.count == 4096 and not upgraded.contains(4096)
 upgraded.add(4096)
 assert upgraded.count == 4097 and upgraded.contains(4096)
+
+assert failAfter(0)
+caught = false
+try
+    upgraded.remove(4096)
+catch MemoryError
+    caught = true
+end
+assert caught and failTriggered()
+failClear()
+assert upgraded.count == 4097 and upgraded.contains(4096)
+assert upgraded.remove(4096) and upgraded.count == 4096
+
+for i in range(1025, 4096)
+    assert upgraded.remove(i)
+end
+assert upgraded.count == 1025
+assert failAfter(0)
+caught = false
+try
+    upgraded.remove(1024)
+catch MemoryError
+    caught = true
+end
+assert caught and failTriggered()
+failClear()
+assert upgraded.count == 1025 and upgraded.contains(1024)
+assert upgraded.remove(1024) and upgraded.count == 1024

@@ -154,12 +154,50 @@ static int xr_erase(XRContainer *bucket, uint16_t value) {
         uint64_t mask = UINT64_C(1) << (value & 63);
         uint64_t *word = bucket->bitmap + value / 64;
         if ((*word & mask) == 0) return 0;
+        /* 先建完整数组再切换存储，分配失败时不删除元素。 */
+        if (bucket->count == XR_ARRAY_LIMIT + 1u) {
+            uint16_t *values = xrtMalloc(XR_ARRAY_LIMIT * sizeof(*values));
+            size_t used = 0, index;
+            if (values == NULL) return -1;
+            for (index = 0; index < XR_BITMAP_WORDS; ++index) {
+                uint64_t bits = bucket->bitmap[index];
+                unsigned bit;
+                if (bits == 0) continue;
+                for (bit = 0; bit < 64u; ++bit) {
+                    uint16_t item = (uint16_t)(index * 64u + bit);
+                    if (item != value && (bits & (UINT64_C(1) << bit)) != 0)
+                        values[used++] = item;
+                }
+            }
+            xrtFree(bucket->bitmap);
+            bucket->bitmap = NULL;
+            bucket->array = values;
+            bucket->capacity = XR_ARRAY_LIMIT;
+            --bucket->count;
+            return 1;
+        }
         *word &= ~mask;
     } else {
         position = xr_array_index(bucket, value, &found);
         if (!found) return 0;
-        memmove(bucket->array + position, bucket->array + position + 1,
-            (bucket->count - position - 1) * sizeof(*bucket->array));
+        /* 容量降至利用率四分之一时收缩，避免稀疏桶保留大数组。 */
+        if (bucket->capacity > 16u &&
+            bucket->count - 1u <= bucket->capacity / 4u) {
+            uint32_t capacity = bucket->capacity / 2u;
+            uint16_t *values;
+            if (capacity < 16u) capacity = 16u;
+            values = xrtMalloc((size_t)capacity * sizeof(*values));
+            if (values == NULL) return -1;
+            memcpy(values, bucket->array, position * sizeof(*values));
+            memcpy(values + position, bucket->array + position + 1,
+                (bucket->count - position - 1u) * sizeof(*values));
+            xrtFree(bucket->array);
+            bucket->array = values;
+            bucket->capacity = capacity;
+        } else {
+            memmove(bucket->array + position, bucket->array + position + 1,
+                (bucket->count - position - 1u) * sizeof(*bucket->array));
+        }
     }
     --bucket->count;
     return 1;
@@ -220,7 +258,7 @@ bool xroaring_remove(void *handle, int64_t value) {
     position = xr_bucket_index(set, (uint16_t)(number >> 16), &found);
     if (!found) return false;
     bucket = set->items + position;
-    if (!xr_erase(bucket, (uint16_t)number)) return false;
+    if (xr_erase(bucket, (uint16_t)number) != 1) return false;
     --set->total;
     if (bucket->count == 0) {
         xrtFree(bucket->array);
