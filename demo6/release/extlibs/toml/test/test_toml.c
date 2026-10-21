@@ -208,6 +208,50 @@ static int testParserAllocator(void)
 		"tomlc17 parser bypasses XRT allocation faults");
 }
 
+/* 日期字段写入失败时，SetTake 未接管的临时值不能遗留。 */
+static int testDateAllocationOwnership(void)
+{
+	xmemdebugsnapshot tBefore;
+	xmemdebugsnapshot tAfter;
+	uint64 iPoint;
+	int bSawFailure = 0;
+	int bSawSuccess = 0;
+	for ( iPoint = 0u; iPoint < 80u; iPoint++ ) {
+		xvalue* pDate;
+		bool bTriggered;
+		xrtClearError();
+		xrtMemDebugSnapshot(&tBefore);
+		if ( !xrtMemDebugFailAfter(iPoint) ) { return 0; }
+		pDate = xrtTomlCreateOffsetDateTime(2026, 10, 22, 8, 9, 10,
+			123456, 330);
+		bTriggered = xrtMemDebugFailTriggered();
+		xrtMemDebugFailClear();
+		if ( bTriggered ) {
+			bSawFailure = 1;
+			if ( pDate != NULL || xrtErrorKind(xrtGetError()) != XERR_MEMORY ) {
+				xrtValueRelease(pDate); return 0;
+			}
+		} else {
+			xrttomldatetime tDate;
+			bSawSuccess = 1;
+			if ( pDate == NULL || !xrtTomlGetDateTime(pDate, &tDate) ||
+				tDate.iKind != XRT_TOML_OFFSET_DATETIME ) {
+				xrtValueRelease(pDate); return 0;
+			}
+		}
+		xrtValueRelease(pDate);
+		xrtClearError();
+		xrtMemDebugSnapshot(&tAfter);
+		if ( tAfter.LiveCount != tBefore.LiveCount ||
+			tAfter.LiveBytes != tBefore.LiveBytes ) {
+			fprintf(stderr, "TOML date allocation point %llu leaked: %zu -> %zu\n",
+				(unsigned long long)iPoint, tBefore.LiveCount, tAfter.LiveCount);
+			return 0;
+		}
+	}
+	return bSawFailure && bSawSuccess;
+}
+
 static int testParseAllocationFailures(void)
 {
 	static const char sSource[] = "value = \"text\"\n";
@@ -1172,6 +1216,7 @@ int main(void)
 {
 	int bOk;
 	bOk = testParserAllocator();
+	bOk &= testDateAllocationOwnership();
 	bOk &= testParseAllocationFailures();
 	bOk &= testParseAndRoundTrip();
 	bOk &= testExcessFraction();

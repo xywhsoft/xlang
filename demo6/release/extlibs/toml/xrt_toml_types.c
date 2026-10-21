@@ -58,16 +58,14 @@ static bool __xrtTomlValidDateTime(const xrttomldatetime* pValue)
 static bool __xrtTomlSetInt(xvalue* pObject, const char* sKey, int iValue)
 {
 	xvalue* pValue = xrtValueInt(iValue);
-	return pValue != NULL && xrtValueObjectSetTake(pObject, xrtStrView(sKey),
-		&pValue);
+	return xrtValueObjectSetNew(pObject, xrtStrView(sKey), pValue);
 }
 
 static bool __xrtTomlSetText(xvalue* pObject, const char* sKey,
 	const char* sValue)
 {
 	xvalue* pValue = xrtValueString(xrtStrView(sValue));
-	return pValue != NULL && xrtValueObjectSetTake(pObject, xrtStrView(sKey),
-		&pValue);
+	return xrtValueObjectSetNew(pObject, xrtStrView(sKey), pValue);
 }
 
 static bool __xrtTomlGetInt(const xvalue* pObject, const char* sKey,

@@ -243,3 +243,11 @@ ASan/UBSan、XLang 与 Python `tomllib` 格式门禁通过；当前核心 AOT �
 分配点并验证清除故障后文件往返；用例已接入 manifest 和两平台门禁。
 Windows 严格 C、XLang 与双语输出，Linux C ASan/UBSan、XLang 与
 `tomllib` 格式对照均通过。完整 AOT 的主线缺符号阻断仍未解除。
+
+2026-10-22：日期时间对象构造中的两个字段辅助函数原使用 `SetTake`，
+字段写入分配失败时未释放尚未被接管的临时值。C 活动分配红例在第 3 个
+故障点确认泄漏；现改用成功或失败均消费临时值的 XRT `SetNew`。
+80 点分配故障扫描验证结果、内存错误分类、释放后活动分配数与字节数；
+Windows 严格 C/XLang、双语范例、Python `tomllib` 文件互通，以及 Linux
+C ASan/UBSan、XLang/格式互通门禁通过。完整 AOT 本轮未复验，
+不据此签收整包发布级。
