@@ -66,7 +66,7 @@ static int verify(void* user)
  CHECK(replace(h,"typedef struct Box { const char *value; } Box;\n") && replace(c,source) && position(&app,c,(int)(strstr(source,"box.value")-source)+5) && check(&app));
  CHECK(v->received==2 && v->diagnosticCount>0 && v->symbolCount>=2 && c->dirty && h->dirty);
  CHECK(xideTaskViewLanguageProblemsOwner(&app)==v && xuiCodeAnnotationGetDiagnosticCount(xuiCodeEditGetAnnotations(c->editor))>0);
- CHECK(xideActionQuery(&app,XIDE_ACTION_DEFINITION).enabled && xideActionQuery(&app,XIDE_ACTION_HOVER).enabled && xideActionCount()==71);
+ CHECK(xideActionQuery(&app,XIDE_ACTION_DEFINITION).enabled && xideActionQuery(&app,XIDE_ACTION_HOVER).enabled && xideActionCount()==73);
  CHECK(record(root,"symbols.json",v->symbolResult));
  for(size_t i=0;i<v->eventCount;++i) if(v->diagnostics[i].documentId==c->id) CHECK(record(root,"diagnostics.json",v->diagnostics[i].message));
  CHECK(xideTaskViewJump(&app,0) && app.activeDocument==c); xui_code_selection_t selection={0}; CHECK(xuiCodeSelectionGetState(xuiCodeEditGetSelection(c->editor),&selection)==XUI_OK && selection.iAnchorOffset==v->flat[0].start && selection.iCaretOffset==v->flat[0].end);

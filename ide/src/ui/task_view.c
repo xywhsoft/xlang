@@ -280,9 +280,15 @@ int xideTaskViewSettled(xide_app* app)
 {
     return !xideTasksBusy(app->tasks) && (!app->taskView || !app->taskView->selected || app->taskView->settled);
 }
+int xideTaskViewCanBuildFile(xide_app* app)
+{
+    xide_document* d=app ? app->activeDocument : NULL;
+    return d && d->open && (d->path ? xidePathHasExtension(d->path,".c") || xidePathHasExtension(d->path,".xl") :
+        !xuiCodeEditIsReadonly(d->editor) && (!strcmp(d->language,"c") || !strcmp(d->language,"xlang")));
+}
 int xideTaskViewAction(xide_app* app,int action)
 {
-    if((action<XIDE_ACTION_BUILD || action>XIDE_ACTION_CLOSE_INPUT) && action!=XIDE_ACTION_TEST) return 0;
+    if((action<XIDE_ACTION_BUILD || action>XIDE_ACTION_CLOSE_INPUT) && action!=XIDE_ACTION_TEST && action!=XIDE_ACTION_BUILD_FILE && action!=XIDE_ACTION_RUN_FILE) return 0;
     xide_task_view* view=app->taskView; if(!view) return 1;
     if(action==XIDE_ACTION_STOP) { for(size_t i=0;i<xideTasksCount(app->tasks);++i) xideTaskCancel(xideTasksAt(app->tasks,i)); return 1; }
     if(action==XIDE_ACTION_CLOSE_INPUT) { xideTaskCloseInput(view->selected); return 1; }
@@ -290,8 +296,22 @@ int xideTaskViewAction(xide_app* app,int action)
         char* compiler=xideMessageChoosePath(app,XUI_FILE_DIALOG_MODE_OPEN_FILE,"选择 xlang 编译器","可执行程序|*.exe;*|所有文件|*.*",view->compiler,NULL,UINT64_C(720),0);
         if(compiler) { xide_model_error error={0}; if(!xideSettingsSetCompiler(&app->preferences,compiler,&error)) { report(app,error.message);free(compiler); } else { free(view->compiler); view->compiler=compiler; } } return 1;
     }
-    int run=action==XIDE_ACTION_RUN,test=action==XIDE_ACTION_TEST; const char* id=run ? app->workspaceModel.startupProject : app->selectedProject;
+    int run=action==XIDE_ACTION_RUN || action==XIDE_ACTION_RUN_FILE,test=action==XIDE_ACTION_TEST;
+    int file=action==XIDE_ACTION_BUILD_FILE || action==XIDE_ACTION_RUN_FILE || (!test && !app->workspaceModel.projectCount);
+    const char* id=run ? app->workspaceModel.startupProject : app->selectedProject;
     xide_project* project=xideWorkspaceFindProject(&app->workspaceModel,id ? id : ""); xide_model_error error={0};
+    if(file) {
+        if(!view->compiler || !*view->compiler || !xideTaskViewCanBuildFile(app)) { report(app,"请打开 C/xlang 源文件并选择编译器。"); app->taskExit=1; return 1; }
+        xide_document* document=app->activeDocument;
+        if(!xideEditorSaveForTask(app,document)) { if(!xideMessagePending(app)) app->taskExit=1; return 1; }
+        if(!xideTaskViewCanBuildFile(app) || !document->path) { report(app,"单文件构建需要保存为 .c 或 .xl 文件。"); app->taskExit=1; return 1; }
+        xide_strings pending={0}; pending.items=calloc(app->documents.count+1,sizeof(*pending.items));
+        if(!pending.items) { report(app,"无法冻结单文件构建的输入保护。"); app->taskExit=1; return 1; }
+        for(size_t i=0;i<app->documents.count;++i) { xide_document* d=app->documents.items[i]; if(d->open && d->dirty && d->path) pending.items[pending.count++]=d->path; }
+        xide_task* task=xideTasksBuildFileGuarded(app->tasks,document->path,view->compiler,run,&pending,&error); free(pending.items);
+        if(!task) { report(app,error.message); app->taskExit=1; return 1; }
+        xideTaskViewSelect(app,task); view->automatic=task; view->autoTerminal=0; view->autoInputProblems=0; app->taskExit=0; show(app,XIDE_OUTPUT); xgeRenderRequest(); return 1;
+    }
     if(!project || !project->available || (!test && !view->compiler)) { report(app,test ? "请选择可用项目并配置测试程序。" : "请选择可用项目和 xlang 编译器；运行还需要设置启动项目。"); app->taskExit=1; return 1; }
     char* selected=malloc(strlen(project->id)+1); if(!selected) { app->taskExit=1; return 1; } strcpy(selected,project->id);
     if(!xideEditorSaveForProject(app,project)) { free(selected); if(!xideMessagePending(app)) app->taskExit=1; return 1; }

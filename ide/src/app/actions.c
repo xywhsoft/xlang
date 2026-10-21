@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 enum requirement { WORKBENCH, WORKSPACE_VIEW, WORKSPACE, NEW_PROJECT, IMPORT_VIEW, PROJECT, AVAILABLE_PROJECT, REFERENCES, RESOURCES, NEW_RESOURCE, ADD_FILE, REMOVE_FILE, RENAME_SELECTED_FILE, MIGRATE_PROJECT, PROPERTIES,
-    DOCUMENTS, DOCUMENT, NAMED_DOCUMENT, RENAME_DOCUMENT, DIRTY_DOCUMENTS, UNDO, REDO, WRITABLE_DOCUMENT, SELECTED_TEXT, WRITABLE_SELECTION, NONEMPTY_DOCUMENT, LINE_COMMENT, COMPLETION, GOTO_VIEW, BUILD, RUN, TEST, STOP, INPUT, TASK_VIEW, FONT_VIEW, RECOVERY_VIEW, CHANGES_VIEW, TOOLCHAIN_VIEW, SAVED_CHECK, CURRENT_CHECK, CANCEL_CHECK, DEFINITION, HOVER, SOURCE_DECLARATION, SOURCE_DOCUMENT };
+    DOCUMENTS, DOCUMENT, NAMED_DOCUMENT, RENAME_DOCUMENT, DIRTY_DOCUMENTS, UNDO, REDO, WRITABLE_DOCUMENT, SELECTED_TEXT, WRITABLE_SELECTION, NONEMPTY_DOCUMENT, LINE_COMMENT, COMPLETION, GOTO_VIEW, BUILD, RUN, BUILD_FILE, TEST, STOP, INPUT, TASK_VIEW, FONT_VIEW, RECOVERY_VIEW, CHANGES_VIEW, TOOLCHAIN_VIEW, SAVED_CHECK, CURRENT_CHECK, CANCEL_CHECK, DEFINITION, HOVER, SOURCE_DECLARATION, SOURCE_DOCUMENT };
 enum check_kind { NO_CHECK, THEME_CHECK, LANGUAGE_CHECK, STARTUP_CHECK };
 typedef struct action_def { xide_action_info info; enum requirement need; enum check_kind check; int (*execute)(xide_app*,int); } action_def;
 static int fontAction(xide_app* a,int id) { return id==XIDE_ACTION_UI_FONT ? xideFontViewOpenUi(a) : xideFontViewOpen(a); }
@@ -90,8 +90,10 @@ static const action_def definitions[]={
     E(XIDE_ACTION_EDITOR_REPLACE,"editor.replace","替换…","Ctrl+H",'H',XUI_MOD_CTRL,WRITABLE_DOCUMENT,XIDE_SHORTCUT_EDITOR,XUI_CODE_COMMAND_OPEN_REPLACE),
     A(XIDE_ACTION_EDITOR_GOTO,"editor.gotoLine","跳转到行…",NULL,"Ctrl+G",'G',XUI_MOD_CTRL,XIDE_SHORTCUT_EDITOR,XUI_CODE_COMMAND_GOTO_LINE,GOTO_VIEW,NO_CHECK,gotoAction),
     E(XIDE_ACTION_EDITOR_COMPLETE,"editor.complete","代码补全","Ctrl+Space",XUI_KEY_SPACE,XUI_MOD_CTRL,COMPLETION,XIDE_SHORTCUT_EDITOR,0),
-    A(XIDE_ACTION_BUILD,"task.build","构建所选项目","构建","F7",XUI_KEY_F7,0,XIDE_SHORTCUT_GLOBAL,0,BUILD,NO_CHECK,xideTaskViewAction),
-    A(XIDE_ACTION_RUN,"task.run","构建并运行启动项目","运行","F5",XUI_KEY_F5,0,XIDE_SHORTCUT_GLOBAL,0,RUN,NO_CHECK,xideTaskViewAction),
+    A(XIDE_ACTION_BUILD,"task.build","构建当前目标","构建","F7",XUI_KEY_F7,0,XIDE_SHORTCUT_GLOBAL,0,BUILD,NO_CHECK,xideTaskViewAction),
+    A(XIDE_ACTION_RUN,"task.run","构建并运行当前目标","运行","F5",XUI_KEY_F5,0,XIDE_SHORTCUT_GLOBAL,0,RUN,NO_CHECK,xideTaskViewAction),
+    A(XIDE_ACTION_BUILD_FILE,"task.buildFile","构建当前文件",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,BUILD_FILE,NO_CHECK,xideTaskViewAction),
+    A(XIDE_ACTION_RUN_FILE,"task.runFile","构建并运行当前文件",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,BUILD_FILE,NO_CHECK,xideTaskViewAction),
     A(XIDE_ACTION_TEST,"task.test","运行所选项目测试","测试","Ctrl+F7",XUI_KEY_F7,XUI_MOD_CTRL,XIDE_SHORTCUT_GLOBAL,0,TEST,NO_CHECK,xideTaskViewAction),
     A(XIDE_ACTION_STOP,"task.stop","停止任务","停止","Shift+F5",XUI_KEY_F5,XUI_MOD_SHIFT,XIDE_SHORTCUT_GLOBAL,0,STOP,NO_CHECK,xideTaskViewAction),
     A(XIDE_ACTION_C_SERVER,"language.cServer","选择 C 语言服务器…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideCCompletionViewAction),
@@ -172,8 +174,9 @@ xide_action_state xideActionQuery(xide_app* a,int id)
         state.reason="当前文档只读或当前语法没有行注释"; break;
     }
     case COMPLETION: state.enabled=writable && strcmp(doc->language,"text") && a->catalogView; state.reason="当前文档没有目录补全"; break;
-    case BUILD: state.enabled=a->tasks && compiler && *compiler && available; state.reason="请选择可用项目和编译器"; break;
-    case RUN: state.enabled=a->tasks && compiler && *compiler && startup && startup->available && !strcmp(startup->kind,"exe"); state.reason="运行需要可用的 exe 启动项目和编译器"; break;
+    case BUILD: state.enabled=a->tasks && compiler && *compiler && (available || (!a->workspaceModel.projectCount && xideTaskViewCanBuildFile(a))); state.reason="请打开 C/xlang 文件或可用项目，并选择编译器"; break;
+    case RUN: state.enabled=a->tasks && compiler && *compiler && ((startup && startup->available && !strcmp(startup->kind,"exe")) || (!a->workspaceModel.projectCount && xideTaskViewCanBuildFile(a))); state.reason="请打开 C/xlang 文件或配置可运行的启动项目，并选择编译器"; break;
+    case BUILD_FILE: state.enabled=a->tasks && compiler && *compiler && xideTaskViewCanBuildFile(a); state.reason="请打开 C/xlang 源文件并选择编译器；未命名文件会先另存为"; break;
     case TEST: {
         const char* id=a->configurationId ? a->configurationId : available ? project->activeConfiguration : NULL;
         xide_configuration* config=available ? xideProjectFindConfiguration(project,id) : NULL;

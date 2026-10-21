@@ -1,6 +1,8 @@
 # 工作区与发布目录
 
-2026-10-21 XGE 3 更新后，`release` 为 `portable-20261021-xge3-v4` 的完整干净运行副本，`dist` 仅保留该候选。新版 SDK 与构建、标准回归、真实提供者及便携验证绑定同一构建 `cb-4a6a6215`。本次归档位于 `D:\GIT\x-lang-ide-archive\20261021-xge3-upgrade`，`publication.json` 记录原位置和归档位置。旧文件通过同卷移动保留，未删除。
+2026-10-22 四种构建形态交付后，`release` 为 `portable-20261022-standalone-v2` 的完整干净运行副本，`dist` 仅保留该候选。当前构建 `cb-bd75b462`、相关回归与便携验收绑定同一精确源码。本轮归档位于 `D:\GIT\x-lang-ide-archive\20261022-standalone-targets`，`publication.json` 记录原位置和归档位置，保留上一发布、上一构建及本轮中间候选／构建；旧文件通过同卷移动保留，未删除。
+
+上次 XGE 3 更新材料仍保留在 `D:\GIT\x-lang-ide-archive\20261021-xge3-upgrade`。固定 SDK 源码与编译器、C 服务器材料继续在工作区供打包核验使用。
 
 此前工作区清理归档了 148 项、268,813 个普通文件，约 38.26 GiB，仍保存在 `20261021-cleanup-v1`；这属于此前阶段数量，不包含本次升级归档，也不表示释放了相应磁盘空间。
 
@@ -11,14 +13,15 @@
 | `src`、`res`、`tests`、`tools`、`docs` | 源码、资源、测试与开发资料 |
 | `data`、`third_party` | 固定数据、匹配 SDK 与来源材料 |
 | `release` | 当前验证包的完整运行副本，可直接运行 `xlang_ide.exe` |
-| `dist/portable-20261021-xge3-v4` | 原验证包、ZIP 与原始打包收据 |
-| `build/current-build.json`、`build/cb-4a6a6215` | 当前成功构建的指针、源码快照、编译日志及应用／测试产物 |
+| `dist/portable-20261022-standalone-v2` | 原验证包、ZIP 与原始打包收据 |
+| `build/current-build.json`、`build/cb-bd75b462` | 当前成功构建的指针、源码快照、编译日志及应用／测试产物 |
 | `build/compiler-c-native-extensions-v1` | 固定编译器、对应源码及构建证据 |
 | `build/c-trace-provider-v1` | 固定 C 服务器、运行资产及来源材料 |
 | `build/xge3-upgrade-20261021/source` | 当前 XGE 3 提交的隔离源码及明确记录的查找兼容补丁，打包固定输入 |
 | `build/editor-sdk-find-boundaries-051be50ae701` | SDK67 历史冻结材料 |
 | `build/*manifest*.json` 与固定输入／构建报告 | `data/portable-build-inputs.json` 依赖的摘要与证据 |
-| `build/tests/portable/acceptance-1c5dee0b2b07463ab9e7f730e045b74d` | 当前候选的便携验收证据 |
+| `build/tests/portable/acceptance-ac792df5adc24d7e80a15f96391e9854` | 当前候选的便携验收证据 |
+| `build/standalone-targets-20261021` | 本轮单文件、项目与工作空间构建运行证据、发布后入口检查 |
 | `build/xui-file-dialogs-20261012`、`build/window-msgbox-20261012` | 此前 XUI 窗口与文件选择增量的核验记录 |
 
 不要整体删除 `build`：当前打包配置和收据仍引用其中的编译器、C 服务器、SDK 源码、实际构建及其证据。这些材料与普通缓存不同。
@@ -49,10 +52,10 @@ $build = Get-Content .\build\current-build.json -Raw | ConvertFrom-Json
 
 ## 本次检查
 
-当前候选的 5,241 份载荷文件、ZIP、打包收据与 5,235 项输入逐项核对。整理后的 `release` 与候选使用同一清单和摘要，没有额外文件；当前源码、构建指针与固定工具链材料继续可核验。发布后帮助输出、C 文档及 xlang 文档的实际隐藏启动／截图通过；使用 `build/xge3-upgrade-20261021/release-smoke` 中的独立设置与证据，没有向发布目录写入测试状态。启动后再次严格核对全部载荷。
+当前候选的 5,241 份载荷文件、ZIP、打包收据与 5,235 项输入逐项核对。`release` 与候选使用同一清单和摘要，没有额外文件。20 个相关原生 fixture、7 次主程序入口及便携验收通过；发布后再次使用随包编译器检查七种入口场景（含历史会话），测试设置和证据只写入 `build/standalone-targets-20261021/release-smoke`，之后再次严格核对载荷。
 
-SDK 更新的构建、回归、发布与整理证据见 [本轮核验](../build/xge3-upgrade-20261021/result.json)。此前清理记录仍见 [原清理核验](../build/workspace-cleanup-20261021.json)。历史收据中的绝对路径保留原文；查找已移动文件时，先查看两处归档中的 `cleanup-report.json` 或 `publication.json`，按映射定位。
+本轮证据见 [构建形态核验](../build/standalone-targets-20261021/result.json)，SDK 更新见 [上轮核验](../build/xge3-upgrade-20261021/result.json)，此前清理见 [原清理核验](../build/workspace-cleanup-20261021.json)。历史绝对路径保留原文；查找已移动产物时查看对应归档的 `cleanup-report.json` 或 `publication.json`，按映射定位。
 
-ZIP SHA-256：`d1f4e799e4643de2dcd067e670e5e04b1ad0a4913eb2b8df09a03d0fbbeedf97`。
+ZIP SHA-256：`dca6307bdf2bfd82b96e0cde21c623878e5db5b9cee8ff67394eaf1f410750ba`。
 
 正式发行和跨设备验收状态以 [当前候选](../CURRENT-CANDIDATE.md) 为准。

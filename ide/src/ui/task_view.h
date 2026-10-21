@@ -6,6 +6,7 @@ void xideTaskViewDestroy(xide_app* app);
 void xideTaskViewPoll(xide_app* app);
 int xideTaskViewSettled(xide_app* app);
 int xideTaskViewAction(xide_app* app,int action);
+int xideTaskViewCanBuildFile(xide_app* app);
 int xideTaskViewTheme(xide_app* app);
 xide_task* xideTaskViewSelected(xide_app* app);
 int xideTaskViewSelect(xide_app* app,xide_task* task);

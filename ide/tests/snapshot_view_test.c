@@ -78,7 +78,7 @@ static int verify(void* user)
  CHECK(root && entry && dep && native && xrtDirCreateAll(root) && writeText(entry,saved) && writeText(dep,good) && writeText(native,nativeText));
  CHECK(xideFileSnapshotInspect(entry,&before[0],&error) && xideFileSnapshotInspect(dep,&before[1],&error) && xideFileSnapshotInspect(native,&before[2],&error));
  app.hidden=1; app.noSession=1; app.highDpi=1; app.dpiOverride=1.25f; app.compilerPath=f->compiler; app.settingsPath=settings; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
- CHECK(xideActionCount()==71 && xideActionNamed("language.check")->id==68 && !xideActionQuery(&app,XIDE_ACTION_CHECK_CURRENT).enabled);
+ CHECK(xideActionCount()==73 && xideActionNamed("language.check")->id==68 && !xideActionQuery(&app,XIDE_ACTION_CHECK_CURRENT).enabled);
  CHECK(xideEditorOpen(&app,entry,&error) && xideEditorOpen(&app,dep,&error) && xideEditorOpen(&app,native,&error) && settle(&app));
  xide_document *xl=xideDocumentsFind(&app.documents,entry),*dependency=xideDocumentsFind(&app.documents,dep),*c=app.activeDocument;
  CHECK(xl && dependency && c && token(xl->editor,"func",XUI_CODE_TOKEN_KEYWORD) && token(c->editor,"return",XUI_CODE_TOKEN_KEYWORD) && !xideActionQuery(&app,XIDE_ACTION_CHECK_CURRENT).enabled);

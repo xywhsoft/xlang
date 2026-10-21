@@ -42,7 +42,7 @@ static int verify(void* user)
  const char *saved="func main(...) as int\n    return 0\nend\n",*overload="func pick(int value) as int\n    return value\nend\nfunc pick(string value) as int\n    return 2\nend\nfunc main(...) as int\n    string 中文 = \"😀\"; auto second = pick(\"x\")\n    return second - 2\nend\n",*helper="export func answer() as int\n    return 42\nend\n",*overlay="\n\nexport func answer() as int\n    return 42\nend\n",*imported="import helper\nfunc main(...) as int\n    return helper.answer() - 42\nend\n";
  CHECK(root && entry && dep && native && light && dark && xrtDirCreateAll(root) && writeText(entry,saved) && writeText(dep,helper) && writeText(native,"int helper(void) { return 1; }\n"));
  app.hidden=1; app.noSession=1; app.compilerPath=f->compiler; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
- CHECK(xideActionCount()==71 && xideActionNamed("language.outline")->id==74 && xideActionNamed("language.hover")->id==75 && !xideLanguageViewCanHover(&app));
+ CHECK(xideActionCount()==73 && xideActionNamed("language.outline")->id==74 && xideActionNamed("language.hover")->id==75 && !xideLanguageViewCanHover(&app));
  CHECK(xuiDockPanelGetPaneActiveWindow(app.dock,app.helpPane)==app.windows[XIDE_HELP]);
  state=xideLayoutCapture(&app,&error); CHECK(state && legacyRemove(state) && xideLayoutRestore(&app,state,&error) && settle(&app)); xrtValueRelease(state); state=NULL;
  xui_dock_window_info_t help={.iSize=sizeof(help)},left={.iSize=sizeof(left)},right={.iSize=sizeof(right)};
