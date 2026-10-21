@@ -7,6 +7,7 @@ static bool load(XL6_OwnershipCatalog* catalog)
 {
     return xl6OwnershipCatalogAddProducerV1(catalog,xl6FutureCallbackProducerPolicyV1Get()) &&
         xl6OwnershipCatalogAddWatchV1(catalog,xl6FutureCallbackQueuedWatchPolicyV1Get()) &&
+        xl6OwnershipCatalogAddCancelWatchV1(catalog,xl6FutureCallbackCancelPolicyV1Get()) &&
         xl6OwnershipCatalogAddQueuedStorageV1(catalog,xl6FutureCallbackQueuedStorageV2Get());
 }
 XL6_OWNERSHIP_QUERY(FutureCallbackQueue)

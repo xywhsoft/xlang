@@ -1,0 +1,40 @@
+func readExact(TcpStream stream, int count) as bytes
+    bytes result = b""
+    while result.length < count
+        bytes chunk = stream.recv(count - result.length, 5000)
+        assert chunk.length > 0
+        result = result + chunk
+    end
+    return result
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = tcp.listen(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto address = listener.localAddress()
+auto client = tcp.connect(engine, address)
+auto server = listener.accept(5000)
+assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+assert client.send("ab\0cd", 20) == NetStatus.ok
+bytes received = readExact(server, 5)
+assert received == b"ab\x00cd"
+assert server.send(b"\xFF\x00\x80") == NetStatus.ok
+assert readExact(client, 3) == b"\xFF\x00\x80"
+auto streamStats = server.snapshot()
+auto listenerStats = listener.snapshot()
+assert streamStats.state == TcpStreamState.open
+assert listenerStats.state == TcpListenerState.open
+assert server.localAddress().port == address.port
+server.pauseRead()
+server.resumeRead()
+client.shutdownWrite()
+assert server.recv(16, 5000) == b""
+server.shutdownWrite()
+assert client.recv(16, 5000) == b""
+client.close()
+server.close()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+assert streamStats.state == TcpStreamState.open
+assert listenerStats.state == TcpListenerState.open
+println("managed TCP sync bytes and detached snapshots: ok")

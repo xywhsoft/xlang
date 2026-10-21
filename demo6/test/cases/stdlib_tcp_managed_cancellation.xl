@@ -1,0 +1,43 @@
+async func readExact(TcpStream stream, int count) as bytes
+    bytes result = b""
+    while result.length < count
+        bytes chunk = await stream.recvAsync(count - result.length)
+        assert chunk.length > 0
+        result = result + chunk
+    end
+    return result
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto pending = listener.acceptAsync()
+assert pending.cancel()
+bool cancelled = false
+try
+    TcpStream ignored = await pending
+catch failure
+    cancelled = true
+end
+assert cancelled
+assert listener.state == TcpListenerState.open
+assert listener.snapshot().acceptWaiters == 0
+auto accepted = listener.acceptAsync()
+auto client = await tcp.connectAsync(engine, listener.localAddress())
+auto server = await accepted
+auto receive = server.recvAsync()
+assert receive.cancel()
+cancelled = false
+try
+    bytes ignored = await receive
+catch failure
+    cancelled = true
+end
+assert cancelled
+assert client.send(b"ok") == NetStatus.ok
+assert await readExact(server, 2) == b"ok"
+client.abort()
+server.abort()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("exclusive TCP cancellation preserves listener and streams: ok")

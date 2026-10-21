@@ -1024,26 +1024,10 @@ static int xl6StdlibNeedsLengthFramerClass(const XL6_AstNode* root)
 
 
 
-static int xl6StdlibNeedsTcpServerClass(const XL6_AstNode* root, const int* used)
+static int xl6StdlibNeedsTcpListenerClass(const XL6_AstNode* root, const int* used)
 {
-    return xl6StdlibNodeUsesTypeName(root, "TcpServer") ||
+    return xl6StdlibNodeUsesTypeName(root, "TcpListener") ||
            xl6StdlibFuncUsed(used, "tcp", "listen");
-}
-
-
-
-static int xl6StdlibNeedsTcpConnectConfigClass(const XL6_AstNode* root, const int* used)
-{
-    return xl6StdlibNodeUsesTypeName(root, "TcpConnectConfig") ||
-           xl6StdlibFuncUsed(used, "tcp", "connectConfig");
-}
-
-
-
-static int xl6StdlibNeedsTcpListenConfigClass(const XL6_AstNode* root, const int* used)
-{
-    return xl6StdlibNodeUsesTypeName(root, "TcpListenConfig") ||
-           xl6StdlibFuncUsed(used, "tcp", "listenConfig");
 }
 
 
@@ -1649,12 +1633,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsTcpStreamOptions,needsTcpDialOptions,needsTcpListenOptions;
     int needsNetEngineClass;
     int needsTcpStreamStatsClass;
-    int needsTcpServerStatsClass;
+    int needsTcpListenerStatsClass;
     int needsTcpStreamClass;
-    int needsTcpStreamFile;
-    int needsTcpServerClass;
-    int needsTcpConnectConfigClass;
-    int needsTcpListenConfigClass;
+    int needsTcpListenerClass;
     int needsUdpStatsClass;
     int needsUdpClass;
     int needsUdpConfigClass;
@@ -1806,7 +1787,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetAddressListClass=needsNetResolverClass||xl6StdlibNodeUsesTypeName(root,"NetAddressList")||
         xl6StdlibFuncUsed(used,"net","resolveAll");
     if(needsNetAddressListClass)needsNetAddressClass=1;
-    needsNetSocketClass=xl6StdlibNodeUsesTypeName(root,"NetSocket")||xl6StdlibNodeUsesTypeName(root,"NetStatus")||
+    needsNetSocketClass=xl6StdlibNodeUsesTypeName(root,"NetSocket")||
         xl6StdlibNodeUsesTypeName(root,"NetSocketKind")||xl6StdlibNodeUsesTypeName(root,"NetSocketOption")||
         xl6StdlibNodeUsesTypeName(root,"NetShutdown")||xl6StdlibNodeUsesTypeName(root,"NetDatagramInfo")||
         xl6StdlibNodeUsesTypeName(root,"NetDatagramControl")||xl6StdlibNodeUsesTypeName(root,"NetDatagramMetadata")||
@@ -1823,40 +1804,32 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetProxyClass = needsNetProxyHandshake || xl6StdlibNeedsNetProxyClass(root, used);
     needsNetEngineClass = xl6StdlibNeedsNetEngineClass(root, used);
     needsTcpStreamStatsClass = xl6StdlibNodeUsesTypeName(root, "TcpStreamStats");
-    needsTcpServerStatsClass = xl6StdlibNodeUsesTypeName(root, "TcpServerStats");
+    needsTcpListenerStatsClass = xl6StdlibNodeUsesTypeName(root, "TcpListenerStats");
     needsTcpStreamClass = xl6StdlibNeedsTcpStreamClass(root, used);
     needsTcpStreamClass = needsTcpStreamClass || needsWebSocketClass;
-    needsTcpServerClass = xl6StdlibNeedsTcpServerClass(root, used);
-    needsTcpConnectConfigClass = xl6StdlibNeedsTcpConnectConfigClass(root, used);
-    needsTcpListenConfigClass = xl6StdlibNeedsTcpListenConfigClass(root, used);
+    needsTcpListenerClass = xl6StdlibNeedsTcpListenerClass(root, used);
     needsUdpStatsClass = xl6StdlibNodeUsesTypeName(root, "UdpStats");
     needsUdpClass = xl6StdlibNeedsUdpClass(root, used);
     needsUdpConfigClass = xl6StdlibNeedsUdpConfigClass(root, used);
 
     /* 依赖由高层类型向基础类型单向闭包。 */
-    needsNetProxyClass = needsNetProxyClass || needsTcpConnectConfigClass;
-    needsTcpServerClass = needsTcpServerClass || needsTcpListenConfigClass;
-    needsTcpStreamClass = needsTcpStreamClass || needsTcpServerClass ||
-        needsTcpConnectConfigClass;
-    needsTcpStreamFile = needsTcpStreamClass &&
-        (xl6StdlibNodeUsesMemberName(root, "sendFile") ||
-         xl6StdlibNodeUsesMemberName(root, "sendFileResult") ||
-         xl6StdlibNodeUsesMemberName(root, "sendFileHandle") ||
-         xl6StdlibNodeUsesMemberName(root, "sendFileHandleResult"));
-    needsNetBytesClass = needsNetBytesClass || needsTcpStreamClass ||
-        needsTlsStreamClass;
+    needsTcpStreamClass = needsTcpStreamClass || needsTcpListenerClass;
+    needsNetEngineClass=needsNetEngineClass||needsTcpStreamClass;
+    needsNetAddressClass=needsNetAddressClass||needsTcpStreamClass;
+    needsTcpStreamOptions=needsTcpStreamOptions||needsTcpStreamClass;
+    needsTcpListenOptions=needsTcpListenOptions||needsTcpListenerClass;
+    needsNetBytesClass = needsNetBytesClass || needsTlsStreamClass;
     needsNetEngineStatsClass = needsNetEngineStatsClass || needsNetEngineClass;
     needsTcpStreamStatsClass = needsTcpStreamStatsClass || needsTcpStreamClass;
-    needsTcpServerStatsClass = needsTcpServerStatsClass || needsTcpServerClass;
+    needsTcpListenerStatsClass = needsTcpListenerStatsClass || needsTcpListenerClass;
     needsUdpClass = needsUdpClass || needsUdpConfigClass;
     needsUdpStatsClass = needsUdpStatsClass || needsUdpClass;
     needsNetRuntime = needsNetAddressClass || needsNetInterfaceClass ||
         needsNetBytesClass ||
         needsNetEngineStatsClass || needsNetResolverStatsClass ||
         needsNetEngineClass ||
-        needsTcpStreamStatsClass || needsTcpServerStatsClass ||
-        needsTcpStreamClass || needsTcpServerClass ||
-        needsTcpConnectConfigClass || needsTcpListenConfigClass ||
+        needsTcpStreamStatsClass || needsTcpListenerStatsClass ||
+        needsTcpStreamClass || needsTcpListenerClass ||
         needsUdpStatsClass || needsUdpClass || needsUdpConfigClass;
     needsFileClass = xl6StdlibNeedsFileClass(root, used);
     needsFileClass = needsFileClass || xl6StdlibNeedsAsyncFileClass(root,used) || needsVfs || xl6StdlibFuncUsed(used, "file", "info") || xl6StdlibFuncUsed(used, "file", "temp") || xl6StdlibFuncUsed(used, "file", "stat") ||
@@ -1909,7 +1882,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         只有公开面真正交换字节容器时才注入 Buffer。同步地址解析等纯网络
         能力不依赖 Buffer，不能因为同属网络体系就拉入文件和二进制运行时。
     */
-    needsBufferClass = needsNetBuffer || needsNetFrameResult || needsNetSocketClass || needsTemplateBuffer || needsDeflater || needsInflater || xl6StdlibFuncUsed(used, "compress", "encodeBuffer") ||
+    needsBufferClass = needsTcpStreamClass || needsNetBuffer || needsNetFrameResult || needsNetSocketClass || needsTemplateBuffer || needsDeflater || needsInflater || xl6StdlibFuncUsed(used, "compress", "encodeBuffer") ||
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer") || needsRegexBuffer || xl6StdlibFuncUsed(used, "io", "writeFile") || (needsIoBuffer && (needsIoReader || needsIoWriter)) || needsRandomBufferMethods || xl6StdlibNeedsBufferClass(root, used) ||
         needsNetBytesClass ||
         needsTcpStreamClass || needsUdpClass ||
@@ -1929,8 +1902,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsNetBytesClass ||
         needsNetEngineStatsClass || needsNetResolverStatsClass ||
         needsNetProxyClass || needsNetEngineClass || needsTcpStreamStatsClass ||
-        needsTcpServerStatsClass || needsTcpStreamClass || needsTcpServerClass ||
-        needsTcpConnectConfigClass || needsTcpListenConfigClass ||
+        needsTcpListenerStatsClass || needsTcpStreamClass || needsTcpListenerClass ||
         needsUdpStatsClass || needsUdpClass || needsUdpConfigClass ||
         needsTlsSessionClass || needsTlsStreamClass || needsTlsServerClass ||
         needsHttp1Class || needsHttpDecoderClass || needsWsFrameClass ||
@@ -2064,6 +2036,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsNetInterfaceClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetInterfaceClassSource);
     }
+    if(needsNetSocketClass||needsTcpStreamClass||xl6StdlibNodeUsesTypeName(root,"NetStatus"))
+        xl6StdlibBuilderAppend(&builder,xl6StdlibNetStatusSource);
     if(needsNetSocketClass)xl6StdlibBuilderAppend(&builder,xl6StdlibNetSocketSource);
     if ( needsNetBytesClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetBytesClassSource);
@@ -2093,30 +2067,26 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsTcpStreamStatsClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTcpStreamStatsClassSource);
     }
-    if ( needsTcpServerStatsClass ) {
-        xl6StdlibBuilderAppend(&builder, xl6StdlibTcpServerStatsClassSource);
+    if ( needsTcpListenerStatsClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibTcpListenerStatsClassSource);
     }
+    if(needsTcpStreamClass||needsTcpStreamStatsClass||xl6StdlibNodeUsesTypeName(root,"TcpStreamState"))
+        xl6StdlibBuilderAppend(&builder,xl6StdlibTcpStreamStateSource);
+    if(needsTcpListenerClass||needsTcpListenerStatsClass||xl6StdlibNodeUsesTypeName(root,"TcpListenerState"))
+        xl6StdlibBuilderAppend(&builder,xl6StdlibTcpListenerStateSource);
+    if(needsTcpStreamClass||xl6StdlibNodeUsesTypeName(root,"TcpWait"))
+        xl6StdlibBuilderAppend(&builder,xl6StdlibTcpWaitSource);
     if ( needsTcpStreamClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTcpStreamClassSource);
-        if ( needsTcpStreamFile ) {
-            xl6StdlibBuilderAppend(&builder, xl6StdlibTcpStreamFileMethodSource);
-        }
-        xl6StdlibBuilderAppend(&builder, xl6StdlibTcpStreamClassEndSource);
     }
-    if ( needsTcpServerClass ) {
-        xl6StdlibBuilderAppend(&builder, xl6StdlibTcpServerClassSource);
+    if ( needsTcpListenerClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibTcpListenerClassSource);
     }
     if ( needsUdpStatsClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibUdpStatsClassSource);
     }
     if ( needsUdpClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibUdpClassSource);
-    }
-    if ( needsTcpConnectConfigClass ) {
-        xl6StdlibBuilderAppend(&builder, xl6StdlibTcpConnectConfigClassSource);
-    }
-    if ( needsTcpListenConfigClass ) {
-        xl6StdlibBuilderAppend(&builder, xl6StdlibTcpListenConfigClassSource);
     }
     if ( needsUdpConfigClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibUdpConfigClassSource);

@@ -1,0 +1,37 @@
+async func readExact(TcpStream stream, int count) as bytes
+    bytes result = b""
+    while result.length < count
+        bytes chunk = await stream.recvAsync(count - result.length)
+        assert chunk.length > 0
+        result = result + chunk
+    end
+    return result
+end
+func makeListener() as TcpListener
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    return TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+end
+func makeConnection(NetAddress address) as future<TcpStream>
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    return tcp.connectAsync(engine, address)
+end
+async func exercise() as TcpStreamStats
+    auto listener = makeListener()
+    auto accepted = listener.acceptAsync()
+    auto connection = makeConnection(listener.localAddress())
+    auto client = await connection
+    auto server = await accepted
+    assert client.send(b"parent") == NetStatus.ok
+    assert await readExact(server, 6) == b"parent"
+    auto stats = server.snapshot()
+    client.abort()
+    server.abort()
+    listener.close()
+    return stats
+end
+auto stats = await exercise()
+assert stats.receivedBytes == 6
+assert stats.state == TcpStreamState.open
+println("TCP child and class Future own actual engine after variable loss: ok")

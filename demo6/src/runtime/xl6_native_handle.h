@@ -211,4 +211,8 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetProxyHandshakeHandlePol
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TcpStreamOptionsHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TcpDialOptionsHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TcpListenOptionsHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TcpStreamHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TcpListenerHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TcpStreamStatsHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TcpListenerStatsHandlePolicyV1Get(void);
 #endif

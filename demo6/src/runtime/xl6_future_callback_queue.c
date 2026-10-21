@@ -59,7 +59,7 @@ static const XL6_ContinuationStorageV2 storage={hold,release,ownership,watch_ini
 const XL6_ContinuationStorageV2* xl6FutureCallbackQueuedStorageV2Get(void) {return &storage;}
 static void run(void* data) {xl6CallbackFrameInvokeV1(xl6CallbackFrameHeaderV1(data));}
 static void retire(void* data) {xl6CallbackFrameRetireV1(xl6CallbackFrameHeaderV1(data),false);}
-static xfuture* start_body(XL6_ContinuationExecutor* executor,void* data,xfuture* source)
+static xfuture* start_body(XL6_ContinuationExecutor* executor,void* data,xfuture* source,bool exclusive)
 {
     Frame* frame=xl6CallbackFrameHeaderV1(data);xfuture* future=NULL;xrtownershipscope mutation={0};
     if(!executor||!frame||!frame->queued||!frame->layoutV2||!source||frame->references!=1||
@@ -68,6 +68,7 @@ static xfuture* start_body(XL6_ContinuationExecutor* executor,void* data,xfuture
     frame->output=xrtPromiseCreate(&future,NULL);if(!frame->output)goto failed;
     if(!xl6CallbackFrameBindOutputV1(frame))goto failed;
     frame->cancel=xrtPromiseCancelToken(frame->output);if(!frame->cancel)goto failed;
+    if(exclusive&&!xl6CallbackFrameBindCancellationV1(frame))goto failed;
     XL6_ContinuationAdmission admitted=xl6ContinuationExecutorReserve(executor,frame->ticket,run,retire,data);
     if(admitted!=XL6_CONTINUATION_ADMITTED){
         if(!xrtGetError())xrtSetErrorKind(admitted==XL6_CONTINUATION_FULL?XERR_RANGE:
@@ -91,8 +92,14 @@ failed:;
     return NULL;
 }
 static xfuture* start(XL6_ContinuationExecutor* executor,void* data,xfuture* source)
-{XL6_OWNERSHIP_RETURN(xfuture*,start_body(executor,data,source));}
+{XL6_OWNERSHIP_RETURN(xfuture*,start_body(executor,data,source,false));}
+static xfuture* start_exclusive(XL6_ContinuationExecutor* executor,void* data,xfuture* source)
+{XL6_OWNERSHIP_RETURN(xfuture*,start_body(executor,data,source,true));}
 const XL6_FutureCallbackRuntimeV5* xl6FutureCallbackRuntimeV5Get(void)
 {
     static const XL6_FutureCallbackRuntimeV5 api={allocate,cleanup,start,xl6FutureCallbackFailV1};return &api;
+}
+const XL6_FutureCallbackRuntimeV6* xl6FutureCallbackRuntimeV6Get(void)
+{
+    static const XL6_FutureCallbackRuntimeV6 api={start_exclusive};return &api;
 }

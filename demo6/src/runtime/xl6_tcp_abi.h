@@ -1,0 +1,66 @@
+#ifndef XL6_TCP_ABI_H
+#define XL6_TCP_ABI_H
+#include "xl6_runtime_services.h"
+#include "xl6_native_class_abi.h"
+XL6_TEXT_API void* xl6TcpStreamCreateDefaultV1(XL6_ExecutionServicesV1,void*,const void*);
+XL6_TEXT_API void* xl6TcpStreamCreateV1(XL6_ExecutionServicesV1,void*,const void*,const void*,int64_t);
+XL6_TEXT_API void* xl6TcpListenerCreateV1(XL6_ExecutionServicesV1,void*,const void*);
+XL6_TEXT_API void xl6TcpStreamDestroyV1(void*);
+XL6_TEXT_API void xl6TcpListenerDestroyV1(void*);
+XL6_TEXT_API void xl6TcpStreamCloseV1(void*);
+XL6_TEXT_API void xl6TcpStreamAbortV1(void*);
+XL6_TEXT_API void xl6TcpListenerCloseV1(void*);
+XL6_TEXT_API int64_t xl6TcpStreamStateV1(void*);
+XL6_TEXT_API int64_t xl6TcpListenerStateV1(void*);
+XL6_TEXT_API uint64_t xl6TcpStreamAvailableV1(void*);
+XL6_TEXT_API uint64_t xl6TcpStreamPendingSendV1(void*);
+XL6_TEXT_API uint64_t xl6TcpStreamWriteLimitV1(void*);
+XL6_TEXT_API uint64_t xl6TcpStreamWritableV1(void*);
+XL6_TEXT_API int64_t xl6TcpStreamSendTextV1(void*,xstrview,int64_t);
+XL6_TEXT_API int64_t xl6TcpStreamSendBytesV1(void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6TcpStreamSendBufferV1(void*,void*,int64_t);
+XL6_TEXT_API void xl6TcpStreamShutdownWriteV1(void*);
+XL6_TEXT_API void xl6TcpStreamPauseReadV1(void*);
+XL6_TEXT_API void xl6TcpStreamResumeReadV1(void*);
+XL6_TEXT_API void* xl6TcpStreamLocalV1(void*);
+XL6_TEXT_API void* xl6TcpStreamRemoteV1(void*);
+XL6_TEXT_API void* xl6TcpListenerLocalV1(void*);
+XL6_TEXT_API void* xl6TcpPrepareAcceptV1(XL6_ExecutionServicesV1,void*);
+XL6_TEXT_API struct xfuture* xl6TcpAcceptStartV1(XL6_RuntimeServicesV1,XL6_NativeClassFieldContextV1,void*,const xvalue*);
+XL6_TEXT_API struct xfuture* xl6TcpConnectedStartV1(XL6_RuntimeServicesV1,XL6_NativeClassFieldContextV1,void*,const xvalue*);
+XL6_TEXT_API struct xfuture* xl6TcpStreamRecvAsyncV1(XL6_RuntimeServicesV1,void*,int64_t);
+XL6_TEXT_API struct xfuture* xl6TcpStreamWaitAsyncV1(XL6_RuntimeServicesV1,void*,int64_t);
+XL6_TEXT_API struct xfuture* xl6TcpStreamWaitAvailableAsyncV1(XL6_RuntimeServicesV1,void*,int64_t);
+XL6_TEXT_API xvalue* xl6TcpStreamRecvV1(void*,int64_t,int64_t);
+XL6_TEXT_API int64_t xl6TcpStreamWaitV1(void*,int64_t,int64_t);
+XL6_TEXT_API void* xl6TcpListenerAcceptV1(XL6_ExecutionServicesV1,void*,int64_t);
+XL6_TEXT_API void* xl6TcpStreamSnapshotV1(void*);
+XL6_TEXT_API void* xl6TcpListenerSnapshotV1(void*);
+XL6_TEXT_API void xl6TcpStreamStatsDestroyV1(void*);
+XL6_TEXT_API void xl6TcpListenerStatsDestroyV1(void*);
+XL6_TEXT_API int64_t xl6TcpStreamStatsStateV1(const void*);
+XL6_TEXT_API int64_t xl6TcpListenerStatsStateV1(const void*);
+/* Installed declarations are standalone; resident .inc tables are not SDK
+ * headers. Acceptance checks all table rows against these exact signatures. */
+XL6_TEXT_API uint64_t xl6TcpStreamStatsReceivedBytesV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpStreamStatsSentBytesV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpStreamStatsReadEventsV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpStreamStatsWriteEventsV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpStreamStatsSendRejectedV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpStreamStatsBufferedBytesV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpStreamStatsQueuedBytesV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpStreamStatsPeakQueuedBytesV1(const void*);
+XL6_TEXT_API bool xl6TcpStreamStatsReadPausedV1(const void*);
+XL6_TEXT_API bool xl6TcpStreamStatsReadBlockedV1(const void*);
+XL6_TEXT_API bool xl6TcpStreamStatsReadEndedV1(const void*);
+XL6_TEXT_API bool xl6TcpStreamStatsWriteEndedV1(const void*);
+XL6_TEXT_API bool xl6TcpStreamStatsWriteBackpressuredV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpListenerStatsAcceptedV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpListenerStatsRejectedV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpListenerStatsErrorsV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpListenerStatsActiveAcceptsV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpListenerStatsActiveDispatchesV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpListenerStatsQueuedAcceptsV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpListenerStatsPeakQueuedAcceptsV1(const void*);
+XL6_TEXT_API uint64_t xl6TcpListenerStatsAcceptWaitersV1(const void*);
+#endif

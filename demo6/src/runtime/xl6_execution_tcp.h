@@ -27,6 +27,7 @@ XL6_CODE_LEASE_API XL6_ExecutionResourceV1* xl6ExecutionTcpAdoptV1(
 XL6_CODE_LEASE_API XL6_ExecutionResourceV1* xl6ExecutionTcpPrepareAcceptV1(
     XL6_ExecutionSourceV1*,XL6_ExecutionResourceV1*);
 XL6_CODE_LEASE_API struct xfuture* xl6ExecutionTcpAcceptSourceV1(XL6_ExecutionResourceV1*);
+XL6_CODE_LEASE_API struct xfuture* xl6ExecutionTcpAcceptSourceForV1(XL6_ExecutionResourceV1*,XL6_ExecutionResourceV1*);
 XL6_CODE_LEASE_API bool xl6ExecutionTcpPromoteAcceptV1(XL6_ExecutionResourceV1*);
 XL6_CODE_LEASE_API bool xl6ExecutionTcpStateV1(XL6_ExecutionResourceV1*,int*);
 XL6_CODE_LEASE_API bool xl6ExecutionTcpLocalV1(XL6_ExecutionResourceV1*,struct xnetaddr*);

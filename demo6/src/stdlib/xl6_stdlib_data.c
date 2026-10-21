@@ -491,116 +491,6 @@ const char* xl6StdlibLengthFramerClassSource =
 
 
 
-const char* xl6StdlibTcpStreamStatsClassSource =
-    "class TcpStreamStats\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_net_stats_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_net_stats_value\" func value(int index) as uint64\n"
-    "\n"
-    "    get state() as int\n"
-    "        return int(self.value(0))\n"
-    "    end\n"
-    "\n"
-    "    get receivedBytes() as uint64\n"
-    "        return self.value(1)\n"
-    "    end\n"
-    "\n"
-    "    get sentBytes() as uint64\n"
-    "        return self.value(2)\n"
-    "    end\n"
-    "\n"
-    "    get readEvents() as uint64\n"
-    "        return self.value(3)\n"
-    "    end\n"
-    "\n"
-    "    get writeEvents() as uint64\n"
-    "        return self.value(4)\n"
-    "    end\n"
-    "\n"
-    "    get sendRejected() as uint64\n"
-    "        return self.value(5)\n"
-    "    end\n"
-    "\n"
-    "    get bufferedBytes() as uint64\n"
-    "        return self.value(6)\n"
-    "    end\n"
-    "\n"
-    "    get queuedBytes() as uint64\n"
-    "        return self.value(7)\n"
-    "    end\n"
-    "\n"
-    "    get peakQueuedBytes() as uint64\n"
-    "        return self.value(8)\n"
-    "    end\n"
-    "\n"
-    "    get readPaused() as bool\n"
-    "        return self.value(9) != 0\n"
-    "    end\n"
-    "\n"
-    "    get readBlocked() as bool\n"
-    "        return self.value(10) != 0\n"
-    "    end\n"
-    "\n"
-    "    get readEnded() as bool\n"
-    "        return self.value(11) != 0\n"
-    "    end\n"
-    "\n"
-    "    get writeEnded() as bool\n"
-    "        return self.value(12) != 0\n"
-    "    end\n"
-    "\n"
-    "    get writeBackpressured() as bool\n"
-    "        return self.value(13) != 0\n"
-    "    end\n"
-    "end\n";
-
-
-
-const char* xl6StdlibTcpServerStatsClassSource =
-    "class TcpServerStats\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_net_stats_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_net_stats_value\" func value(int index) as uint64\n"
-    "\n"
-    "    get state() as int\n"
-    "        return int(self.value(0))\n"
-    "    end\n"
-    "\n"
-    "    get accepted() as uint64\n"
-    "        return self.value(1)\n"
-    "    end\n"
-    "\n"
-    "    get rejected() as uint64\n"
-    "        return self.value(2)\n"
-    "    end\n"
-    "\n"
-    "    get errors() as uint64\n"
-    "        return self.value(3)\n"
-    "    end\n"
-    "\n"
-    "    get activeAccepts() as uint64\n"
-    "        return self.value(4)\n"
-    "    end\n"
-    "\n"
-    "    get activeDispatches() as uint64\n"
-    "        return self.value(5)\n"
-    "    end\n"
-    "\n"
-    "    get queuedAccepts() as uint64\n"
-    "        return self.value(6)\n"
-    "    end\n"
-    "\n"
-    "    get peakQueuedAccepts() as uint64\n"
-    "        return self.value(7)\n"
-    "    end\n"
-    "\n"
-    "    get acceptWaiters() as uint64\n"
-    "        return self.value(8)\n"
-    "    end\n"
-    "end\n";
-
-
-
 const char* xl6StdlibUdpStatsClassSource =
     "class UdpStats\n"
     "    native point handle\n"
@@ -710,213 +600,7 @@ const char* xl6StdlibUdpStatsClassSource =
 
 
 
-const char* xl6StdlibTcpStreamClassSource =
-    "class TcpStream\n"
-    "    native point handle\n"
-	"    extern \"xl6_xrt_tcp_stream_destroy\" destroy()\n"
-	"    extern \"xl6_xrt_tcp_stream_native\" func nativeHandle() as point\n"
-	"    extern \"xl6_xrt_tcp_stream_close\" func close()\n"
-	"    extern \"xl6_xrt_tcp_stream_shutdown_write\" func shutdownWrite() as bool\n"
-	"    extern \"xl6_xrt_tcp_stream_abort\" func abort() as bool\n"
-	"    extern \"xl6_xrt_tcp_stream_send_text\" func send(string text) as bool\n"
-	"    extern \"xl6_xrt_tcp_stream_send_text_result\" func sendResult(string text) as int\n"
-	"    extern \"xl6_xrt_tcp_stream_available\" func availableNative() as c_size\n"
-	"    extern \"xl6_xrt_tcp_stream_read_text\" func readNative(c_size maxBytes) as point\n"
-	"    extern \"xl6_xrt_tcp_stream_recv_text\" func recvNative(c_size maxBytes, int timeoutMs) as point\n"
-	"    extern \"xl6_xrt_tcp_stream_send_bytes\" func sendBytesRaw(point data, c_size size) as bool\n"
-	"    extern \"xl6_xrt_tcp_stream_send_bytes_result\" func sendBytesResult(point data, c_size size) as int\n"
-    "    extern \"xl6_xrt_tcp_stream_read_buffer\" func readBytesNative(c_size maxBytes) as point\n"
-    "    extern \"xl6_xrt_tcp_stream_recv_buffer\" func recvBytesNative(c_size maxBytes, int timeoutMs) as point\n"
-	"    extern \"xl6_xrt_tcp_stream_recv_text_async\" func recvAsyncNative(c_size maxBytes) as future<string>\n"
-	"    extern \"xl6_xrt_tcp_stream_recv_owned\" func recvOwnedNative(c_size maxBytes, int timeoutMs) as point\n"
-	"    extern \"xl6_xrt_tcp_stream_recv_owned_async\" func recvBytesAsyncNative(c_size maxBytes) as future<NetBytes>\n"
-	"    extern \"xl6_xrt_tcp_stream_peek_buffer\" func peekNative(int maxBytes) as point\n"
-	"    extern \"xl6_xrt_tcp_stream_consume_exact\" func consumeNative(int size) as bool\n"
-	"    extern \"xl6_xrt_tcp_stream_wait_available\" func waitAvailable(int minimum, int timeoutMs) as bool\n"
-	"    extern \"xl6_xrt_tcp_stream_wait_available_async\" func waitAvailableAsync(int minimum) as future<bool>\n"
-	"    extern \"xl6_xrt_tcp_stream_drain\" func drainNative(int timeoutMs) as bool\n"
-	"    extern \"xl6_xrt_tcp_stream_drain_async\" func drainAsync() as future<bool>\n"
-	"    extern \"xl6_xrt_tcp_stream_writable_async\" func writableAsync() as future<bool>\n"
-	"    extern \"xl6_xrt_tcp_stream_local_addr\" func localAddrNative() as point\n"
-	"    extern \"xl6_xrt_tcp_stream_remote_addr\" func remoteAddrNative() as point\n"
-	"    extern \"xl6_xrt_tcp_stream_local_port\" func localPort() as int\n"
-	"    extern \"xl6_xrt_tcp_stream_remote_port\" func remotePort() as int\n"
-    "    extern \"xl6_xrt_net_stream_pause\" func pauseRead()\n"
-    "    extern \"xl6_xrt_net_stream_resume\" func resumeRead()\n"
-    "    extern \"xl6_xrt_net_stream_pending_send\" func pendingSend() as int\n"
-    "    extern \"xl6_xrt_net_stream_write_limit\" func writeLimit() as int\n"
-    "    extern \"xl6_xrt_net_stream_writable\" func writable() as int\n"
-    "    extern \"xl6_xrt_net_stream_wait\" func waitNative(int kind, int timeoutMs) as bool\n"
-    "    extern \"xl6_xrt_net_stream_send_vec\" func sendVec(array buffers) as bool\n"
-	"    extern \"xl6_xrt_net_stream_send_move\" func sendMoveNative(point buffer) as bool\n"
-    "    extern \"xl6_xrt_tcp_stream_stats\" func statsNative() as point\n"
-    "\n"
-    "    func available() as int\n"
-    "        return int(self.availableNative())\n"
-    "    end\n"
-    "\n"
-    "    func read(int maxBytes = 0) as string\n"
-    "        return __xl_std_runtime_take_cstr(self.readNative(c_size(maxBytes)))\n"
-    "    end\n"
-    "\n"
-    /*
-        XRT 的零上限表示“取走当前全部缓冲”，适合底层批量读取，
-        但不适合作为语言层同步 recv 的默认值：高并发下调用方需要
-        稳定等待一段数据，而不是暴露底层缓冲快照语义。
-    */
-    "    func recv(int timeoutMs = -1, int maxBytes = 65536) as string\n"
-    "        return __xl_std_runtime_take_cstr(self.recvNative(c_size(maxBytes), timeoutMs))\n"
-    "    end\n"
-    "\n"
-    "    func sendBytes(point data, c_size size) as bool\n"
-    "        return self.sendBytesRaw(data, size)\n"
-    "    end\n"
-    "\n"
-    "    func readBytes(int maxBytes = 0) as Buffer\n"
-    "        point handle = self.readBytesNative(c_size(maxBytes))\n"
-    "        return Buffer(point(handle))\n"
-    "    end\n"
-    "\n"
-    "    func recvBytes(int timeoutMs = -1, int maxBytes = 65536) as Buffer\n"
-    "        point handle = self.recvBytesNative(c_size(maxBytes), timeoutMs)\n"
-    "        return Buffer(point(handle))\n"
-    "    end\n"
-    "\n"
-	"    func recvOwned(int timeoutMs = -1, int maxBytes = 65536) as NetBytes\n"
-	"        return NetBytes(point(self.recvOwnedNative(c_size(maxBytes), timeoutMs)))\n"
-	"    end\n"
-	"\n"
-	"    func recvBytesAsync(int maxBytes = 65536) as future<NetBytes>\n"
-	"        return self.recvBytesAsyncNative(c_size(maxBytes))\n"
-	"    end\n"
-	"\n"
-	"    func peek(int maxBytes = 0) as Buffer\n"
-	"        return Buffer(point(self.peekNative(maxBytes)))\n"
-	"    end\n"
-	"\n"
-	"    func consume(int size) as bool\n"
-	"        return self.consumeNative(size)\n"
-	"    end\n"
-	"\n"
-	"    func recvAsync(int maxBytes = 65536) as future<string>\n"
-	"        return self.recvAsyncNative(c_size(maxBytes))\n"
-    "    end\n"
-    "\n"
-    "    func drain(int timeoutMs = -1) as bool\n"
-    "        return self.drainNative(timeoutMs)\n"
-    "    end\n"
-    "\n"
-    "    func localAddr() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.localAddrNative())\n"
-    "    end\n"
-    "\n"
-    "    func remoteAddr() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.remoteAddrNative())\n"
-    "    end\n"
-    "\n"
-    "    func sendMove(Buffer data) as bool\n"
-    "        return self.sendMoveNative(data.nativeHandle())\n"
-    "    end\n"
-    "\n"
-    "    func waitReadable(int timeoutMs = -1) as bool\n"
-    "        return self.waitNative(0, timeoutMs)\n"
-    "    end\n"
-    "\n"
-    "    func waitWritable(int timeoutMs = -1) as bool\n"
-    "        return self.waitNative(1, timeoutMs)\n"
-    "    end\n"
-    "\n"
-    "    func waitDrain(int timeoutMs = -1) as bool\n"
-    "        return self.waitNative(2, timeoutMs)\n"
-    "    end\n"
-    "\n"
-    "    func waitClose(int timeoutMs = -1) as bool\n"
-    "        return self.waitNative(3, timeoutMs)\n"
-    "    end\n"
-    "\n"
-    "    func stats() as TcpStreamStats\n"
-    "        return TcpStreamStats(point(self.statsNative()))\n"
-    "    end\n";
-
-
-
-const char* xl6StdlibTcpStreamFileMethodSource =
-    "    extern \"xl6_xrt_tcp_stream_send_file_result\" func sendFileResultNative(string path, int offset, int size) as int\n"
-    "    extern \"xl6_xrt_tcp_stream_send_file_handle_result\" func sendFileHandleResultNative(point file, int offset, int size) as int\n"
-    "    extern \"xl6_xrt_tcp_stream_send_file\" func sendFileNative(string path, int offset, int size, int timeoutMs) as bool\n"
-    "    extern \"xl6_xrt_tcp_stream_send_file_handle\" func sendFileHandleNative(point file, int offset, int size, int timeoutMs) as bool\n"
-    "\n"
-    "    func sendFileResult(string path, int offset = 0, int size = -1) as int\n"
-    "        return self.sendFileResultNative(path, offset, size)\n"
-    "    end\n"
-    "\n"
-    "    func sendFile(string path, int offset = 0, int size = -1, int timeoutMs = -1) as bool\n"
-    "        return self.sendFileNative(path, offset, size, timeoutMs)\n"
-    "    end\n"
-    "\n"
-    "    func sendFileHandleResult(point file, int offset = 0, int size = -1) as int\n"
-    "        return self.sendFileHandleResultNative(file, offset, size)\n"
-    "    end\n"
-    "\n"
-    "    func sendFileHandle(point file, int offset = 0, int size = -1, int timeoutMs = -1) as bool\n"
-    "        return self.sendFileHandleNative(file, offset, size, timeoutMs)\n"
-    "    end\n";
-
-
-
-const char* xl6StdlibTcpStreamLineFrameMethodSource =
-    "    extern \"xl6_xrt_net_line_framer_create_text\" func lineFramerTextNative(string delimiter, int maxPayload, bool includeDelimiter) as point\n"
-    "    extern \"xl6_xrt_net_line_framer_create_bytes\" func lineFramerBytesNative(point data, c_size size, int maxPayload, bool includeDelimiter) as point\n"
-    "\n"
-    "    func lineFramer(string delimiter = \"\\n\", int maxPayload = 8192, bool includeDelimiter = false) as LineFramer\n"
-    "        return LineFramer(point(self.lineFramerTextNative(delimiter, maxPayload, includeDelimiter)))\n"
-    "    end\n"
-    "\n"
-    "    func lineFramer(Buffer delimiter, int maxPayload = 8192, bool includeDelimiter = false) as LineFramer\n"
-    "        return LineFramer(point(self.lineFramerBytesNative(delimiter.data(), c_size(delimiter.len()), maxPayload, includeDelimiter)))\n"
-    "    end\n";
-
-
-
-const char* xl6StdlibTcpStreamLengthFrameMethodSource =
-    "    extern \"xl6_xrt_net_length_framer_create\" func lengthFramerNative(int lengthOffset, int lengthSize, int adjustment, int strip, int maxFrame, bool littleEndian) as point\n"
-    "\n"
-    "    func lengthFramer(int lengthOffset = 0, int lengthSize = 4, int adjustment = 0, int strip = 4, int maxFrame = 1048576, bool littleEndian = false) as LengthFramer\n"
-    "        return LengthFramer(point(self.lengthFramerNative(lengthOffset, lengthSize, adjustment, strip, maxFrame, littleEndian)))\n"
-    "    end\n";
-
-
-
-const char* xl6StdlibTcpStreamClassEndSource =
-    "end\n";
-
-
-
-const char* xl6StdlibTcpServerClassSource =
-    "class TcpServer\n"
-    "    native point handle\n"
-	"    extern \"xl6_xrt_tcp_listener_destroy\" destroy()\n"
-	"    extern \"xl6_xrt_tcp_listener_port\" func port() as uint16\n"
-	"    extern \"xl6_xrt_tcp_listener_close\" func close() as bool\n"
-	"    extern \"xl6_xrt_tcp_listener_state\" get state() as int\n"
-	"    extern \"xl6_xrt_tcp_accept\" func acceptNative(int timeoutMs) as point\n"
-	"    extern \"xl6_xrt_tcp_accept_async\" func acceptAsyncNative() as future<TcpStream>\n"
-    "    extern \"xl6_xrt_tcp_listener_stats\" func statsNative() as point\n"
-    "\n"
-    "    func accept(int timeoutMs = -1) as TcpStream\n"
-    "        return TcpStream(point(self.acceptNative(timeoutMs)))\n"
-    "    end\n"
-    "\n"
-	"    func acceptAsync() as future<TcpStream>\n"
-	"        return self.acceptAsyncNative()\n"
-	"    end\n"
-    "\n"
-    "    func stats() as TcpServerStats\n"
-    "        return TcpServerStats(point(self.statsNative()))\n"
-    "    end\n"
-    "end\n";
-
-
+#include "src/stdlib/xl6_stdlib_tcp.inc"
 
 const char* xl6StdlibUdpClassSource =
     "class UdpPacket\n"
@@ -1782,45 +1466,6 @@ const char* xl6StdlibWebSocketTlsMethodSource =
 const char* xl6StdlibWebSocketClassEndSource =
     "end\n";
 
-const char* xl6StdlibTcpConnectConfigClassSource =
-    "class TcpConnectConfig\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_tcp_connect_config_create\" create(string host, int port)\n"
-    "    extern \"xl6_xrt_tcp_connect_config_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_tcp_connect_config_timeout\" func timeout(int timeoutMs) as bool\n"
-    "    extern \"xl6_xrt_tcp_connect_config_water\" func watermarks(int high, int low) as bool\n"
-    "    extern \"xl6_xrt_tcp_connect_config_recv_limit\" func recvLimit(int size) as bool\n"
-    "    extern \"xl6_xrt_tcp_connect_config_proxy\" func proxyNative(NetProxy proxy) as bool\n"
-    "    extern \"xl6_xrt_tcp_connect_config_connect\" func connectNative() as point\n"
-    "\n"
-    "    func proxy(NetProxy proxy) as bool\n"
-    "        return self.proxyNative(proxy)\n"
-    "    end\n"
-    "\n"
-    "    func connect() as TcpStream\n"
-    "        return TcpStream(point(self.connectNative()))\n"
-    "    end\n"
-    "end\n";
-
-
-
-const char* xl6StdlibTcpListenConfigClassSource =
-    "class TcpListenConfig\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_tcp_listen_config_create\" create(string host, int port)\n"
-    "    extern \"xl6_xrt_tcp_listen_config_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_tcp_listen_config_backlog\" func backlog(int value) as bool\n"
-    "    extern \"xl6_xrt_tcp_listen_config_water\" func watermarks(int high, int low) as bool\n"
-    "    extern \"xl6_xrt_tcp_listen_config_recv_limit\" func recvLimit(int size) as bool\n"
-    "    extern \"xl6_xrt_tcp_listen_config_listen\" func listenNative() as point\n"
-    "\n"
-    "    func listen() as TcpServer\n"
-    "        return TcpServer(point(self.listenNative()))\n"
-    "    end\n"
-    "end\n";
-
-
-
 const char* xl6StdlibUdpConfigClassSource =
     "class UdpConfig\n"
     "    native point handle\n"
@@ -2509,23 +2154,6 @@ static const XL6_StdlibParam xl6StdXrtFileCopyMoveParams[] = {
 static const XL6_StdlibParam xl6StdFileReplaceParams[] = {
     {"string", "source"},
     {"string", "target"}
-};
-
-static const XL6_StdlibParam xl6StdTcpConnectParams[] = {
-    {"string", "host"},
-    {"uint16", "port"},
-    {"int", "timeoutMs"}
-};
-
-static const XL6_StdlibParam xl6StdTcpListenParams[] = {
-    {"string", "host"},
-    {"uint16", "port"},
-    {"c_uint", "backlog"}
-};
-
-static const XL6_StdlibParam xl6StdTcpAcceptParams[] = {
-    {"point", "server"},
-    {"int", "timeoutMs"}
 };
 
 static const XL6_StdlibParam xl6StdNetHandleParams[] = {
@@ -4647,16 +4275,6 @@ static const char xl6StdNetProxyBody[] =
 static const char xl6StdNetEngineBody[] =
     "extern \"xl6NetEngineCreateWorkersV1\" func __xl_std_net_engine(int workerCount = 0) as NetEngine\n";
 
-static const char xl6StdTcpConnectConfigBody[] =
-    "func __xl_std_tcp_connect_config(string host, int port) as TcpConnectConfig\n"
-    "    return TcpConnectConfig(host, port)\n"
-    "end\n";
-
-static const char xl6StdTcpListenConfigBody[] =
-    "func __xl_std_tcp_listen_config(int port, string host = \"127.0.0.1\") as TcpListenConfig\n"
-    "    return TcpListenConfig(host, port)\n"
-    "end\n";
-
 static const char xl6StdUdpConfigBody[] =
     "func __xl_std_udp_config(int port, string host = \"127.0.0.1\") as UdpConfig\n"
     "    return UdpConfig(host, port)\n"
@@ -4693,30 +4311,26 @@ static const char xl6StdTlsListenBody[] =
     "end\n";
 
 static const char xl6StdTcpConnectBody[] =
-    "func __xl_std_tcp_connect(string host, int port, int timeoutMs = 5000) as TcpStream\n"
-    "    if port <= 0 or port > 65535 then\n"
-    "        return TcpStream()\n"
-    "    end\n"
-    "    return TcpStream(point(__xl_std_xrt_tcp_connect(host, uint16(port), timeoutMs)))\n"
+    "func __xl_std_tcp_connect(NetEngine engine, NetAddress remote) as TcpStream\n"
+    "    return TcpStream(engine, remote)\n"
+    "end\n"
+    "func __xl_std_tcp_connect(NetEngine engine, NetAddress remote, TcpStreamOptions options, int worker = 0) as TcpStream\n"
+    "    return TcpStream(engine, remote, options, worker)\n"
     "end\n";
 
 static const char xl6StdTcpConnectAsyncBody[] =
-    "func __xl_std_tcp_connect_async(string host, int port, int timeoutMs = 5000) as future<TcpStream>\n"
-    "    if port <= 0 or port > 65535 then\n"
-    "        return __xl_std_xrt_tcp_connect_async(\"\", uint16(0), timeoutMs)\n"
-    "    end\n"
-    "    return __xl_std_xrt_tcp_connect_async(host, uint16(port), timeoutMs)\n"
+    "func __xl_std_tcp_connect_async(NetEngine engine, NetAddress remote) as future<TcpStream>\n"
+    "    TcpStream stream = TcpStream(engine, remote)\n"
+    "    return stream.connectedAsync()\n"
+    "end\n"
+    "func __xl_std_tcp_connect_async(NetEngine engine, NetAddress remote, TcpStreamOptions options, int worker = 0) as future<TcpStream>\n"
+    "    TcpStream stream = TcpStream(engine, remote, options, worker)\n"
+    "    return stream.connectedAsync()\n"
     "end\n";
 
 static const char xl6StdTcpListenBody[] =
-    "func __xl_std_tcp_listen(int port, string host = \"127.0.0.1\", int backlog = 128) as TcpServer\n"
-    "    if port < 0 or port > 65535 then\n"
-    "        return TcpServer()\n"
-    "    end\n"
-    "    if backlog < 0 then\n"
-    "        backlog = 0\n"
-    "    end\n"
-    "    return TcpServer(point(__xl_std_xrt_tcp_listen(host, uint16(port), c_uint(backlog))))\n"
+    "func __xl_std_tcp_listen(NetEngine engine, TcpListenOptions options) as TcpListener\n"
+    "    return TcpListener(engine, options)\n"
     "end\n";
 
 static const char xl6StdUdpBindBody[] =
@@ -5297,12 +4911,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_id", "compare", "__xl_std_xrt_xid_compare", "xl6_xrt_xid_compare", xl6StdXidPairParams, 2, "int", NULL},
     {"__xrt_id", "equal", "__xl_std_xrt_xid_equal", "xl6_xrt_xid_equal", xl6StdXidPairParams, 2, "bool", NULL},
     {"__xrt_id", "isZero", "__xl_std_xrt_xid_is_zero", "xl6_xrt_xid_is_zero", xl6StdXidValueParams, 1, "bool", NULL},
-    {"__xrt_tcp", "connect", "__xl_std_xrt_tcp_connect", "xl6_xrt_tcp_connect", xl6StdTcpConnectParams, 3, "point", NULL},
-    {"__xrt_tcp", "connectAsync", "__xl_std_xrt_tcp_connect_async", "xl6_xrt_tcp_connect_async", xl6StdTcpConnectParams, 3, "future<TcpStream>", NULL},
-    {"__xrt_tcp", "listen", "__xl_std_xrt_tcp_listen", "xl6_xrt_tcp_listen", xl6StdTcpListenParams, 3, "point", NULL},
-    {"__xrt_tcp", "accept", "__xl_std_xrt_tcp_accept", "xl6_xrt_tcp_accept", xl6StdTcpAcceptParams, 2, "point", NULL},
-    {"__xrt_tcp", "listenerDestroy", "__xl_std_xrt_tcp_listener_destroy", "xl6_xrt_tcp_listener_destroy", xl6StdNetHandleParams, 1, "", NULL},
-    {"__xrt_tcp", "listenerPort", "__xl_std_xrt_tcp_listener_port", "xl6_xrt_tcp_listener_port", xl6StdNetHandleParams, 1, "uint16", NULL},
     {"__xrt_udp", "bind", "__xl_std_xrt_udp_bind", "xl6_xrt_udp_bind", xl6StdUdpBindParams, 2, "point", NULL},
     {"__xrt_udp", "sendText", "__xl_std_xrt_udp_send_text", "xl6_xrt_udp_send_text", xl6StdUdpSendParams, 4, "c_bool", NULL},
     {"__xrt_udp", "recv", "__xl_std_xrt_udp_recv", "xl6_xrt_udp_recv", xl6StdUdpRecvParams, 2, "point", NULL},
@@ -6037,9 +5645,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
 
     {"tcp", "connect", "__xl_std_tcp_connect", NULL, NULL, 0, "TcpStream", xl6StdTcpConnectBody},
     {"tcp", "connectAsync", "__xl_std_tcp_connect_async", NULL, NULL, 0, "future<TcpStream>", xl6StdTcpConnectAsyncBody},
-    {"tcp", "listen", "__xl_std_tcp_listen", NULL, NULL, 0, "TcpServer", xl6StdTcpListenBody},
-    {"tcp", "connectConfig", "__xl_std_tcp_connect_config", NULL, NULL, 0, "TcpConnectConfig", xl6StdTcpConnectConfigBody},
-    {"tcp", "listenConfig", "__xl_std_tcp_listen_config", NULL, NULL, 0, "TcpListenConfig", xl6StdTcpListenConfigBody},
+    {"tcp", "listen", "__xl_std_tcp_listen", NULL, NULL, 0, "TcpListener", xl6StdTcpListenBody},
 
     {"udp", "bind", "__xl_std_udp_bind", NULL, NULL, 0, "UdpSocket", xl6StdUdpBindBody},
     {"udp", "config", "__xl_std_udp_config", NULL, NULL, 0, "UdpConfig", xl6StdUdpConfigBody},

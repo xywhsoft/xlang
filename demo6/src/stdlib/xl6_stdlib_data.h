@@ -6,11 +6,12 @@
 #include "src/ast/xl6_ast.h"
 
 #define XL6_STDLIB_CONST_COUNT 202
-#define XL6_STDLIB_FUNC_COUNT 998
+#define XL6_STDLIB_FUNC_COUNT 990
 extern const char* xl6StdlibNetBackendSource;
 extern const char* xl6StdlibNetEngineStateSource;
 extern const char* xl6StdlibNetEngineOptionsSource;
 extern const char* xl6StdlibNetSocketSource;
+extern const char* xl6StdlibNetStatusSource;
 extern const char* xl6StdlibOnceSource;
 extern const char* xl6StdlibExecutorSource;
 extern const char* xl6StdlibTaskPoolSource;
@@ -157,13 +158,12 @@ extern const char* xl6StdlibTcpDialOptionsSource;
 extern const char* xl6StdlibTcpListenOptionsSource;
 extern const char* xl6StdlibNetEngineClassSource;
 extern const char* xl6StdlibTcpStreamStatsClassSource;
-extern const char* xl6StdlibTcpServerStatsClassSource;
+extern const char* xl6StdlibTcpListenerStatsClassSource;
 extern const char* xl6StdlibTcpStreamClassSource;
-extern const char* xl6StdlibTcpStreamFileMethodSource;
-extern const char* xl6StdlibTcpStreamLineFrameMethodSource;
-extern const char* xl6StdlibTcpStreamLengthFrameMethodSource;
-extern const char* xl6StdlibTcpStreamClassEndSource;
-extern const char* xl6StdlibTcpServerClassSource;
+extern const char* xl6StdlibTcpListenerClassSource;
+extern const char* xl6StdlibTcpStreamStateSource;
+extern const char* xl6StdlibTcpListenerStateSource;
+extern const char* xl6StdlibTcpWaitSource;
 extern const char* xl6StdlibUdpStatsClassSource;
 extern const char* xl6StdlibUdpClassSource;
 extern const char* xl6StdlibTlsSessionClassSource;
@@ -179,8 +179,6 @@ extern const char* xl6StdlibWebSocketConfigClassSource;
 extern const char* xl6StdlibWebSocketClassSource;
 extern const char* xl6StdlibWebSocketTlsMethodSource;
 extern const char* xl6StdlibWebSocketClassEndSource;
-extern const char* xl6StdlibTcpConnectConfigClassSource;
-extern const char* xl6StdlibTcpListenConfigClassSource;
 extern const char* xl6StdlibUdpConfigClassSource;
 extern const char* xl6StdlibAsyncFileClassSource;
 extern const char* xl6StdlibFsAsyncStatsSource;

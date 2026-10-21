@@ -1,0 +1,3 @@
+func misuse(TcpStream stream)
+    stream.wait(NetBackend.select)
+end

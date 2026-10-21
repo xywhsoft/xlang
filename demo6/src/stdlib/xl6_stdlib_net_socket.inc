@@ -1,11 +1,12 @@
 #include "xl6_stdlib_net_datagram.inc"
 #include "xl6_stdlib_net_vector.inc"
 #include "xl6_stdlib_net_batch.inc"
+const char* xl6StdlibNetStatusSource=
+    "enum NetStatus as int\n    failed = -1\n    ok = 0\n    again = 1\n    closed = 2\n"
+    "    truncated = 3\n    timeout = 4\n    cancelled = 5\nend\n";
 const char* xl6StdlibNetSocketSource=
     XL6_NET_DATAGRAM_SOURCE
     XL6_NET_BATCH_SOURCE
-    "enum NetStatus as int\n    failed = -1\n    ok = 0\n    again = 1\n    closed = 2\n"
-    "    truncated = 3\n    timeout = 4\n    cancelled = 5\nend\n"
     "enum NetSocketKind as int\n    stream = 1\n    datagram = 2\nend\n"
     "enum NetShutdown as int\n    read = 1\n    write = 2\n    both = 3\nend\n"
     "enum NetSocketOption as int\n"
