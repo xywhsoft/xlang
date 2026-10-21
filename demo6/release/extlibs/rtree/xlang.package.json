@@ -7,10 +7,13 @@
     "artifact": {
         "kind": "source",
         "cSources": ["rtree_native.c"],
+        "xrtModules": ["XRT_MODULE_MATH", "XRT_MODULE_VALUE_CONTAINER"],
+        "includeDirs": ["include"],
         "xlSources": ["src/rtree.xl"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

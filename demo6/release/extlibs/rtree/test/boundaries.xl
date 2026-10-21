@@ -1,0 +1,60 @@
+import rtree
+
+func main(...) as int
+    rtree.RTree tree = rtree.create()
+    for i in range(600)
+        float x = float(i)
+        tree.insert(i, x, 0.0, x + 1.0, 1.0)
+    end
+    var all = tree.search(-1.0, -1.0, 700.0, 2.0)
+    assert all.length == 600 and tree.searchCount(-1.0, -1.0, 700.0, 2.0) == 600
+    assert tree.searchCount(100.0, 0.0, 100.0, 1.0) == 2
+
+    for i in range(300)
+        assert tree.remove(i)
+    end
+    assert tree.count == 300
+    assert tree.search(-1.0, -1.0, 700.0, 2.0).length == 300
+    for i in range(300)
+        tree.insert(i, float(i), 0.0, float(i) + 1.0, 1.0)
+    end
+    assert tree.count == 600
+
+    bool rejected = false
+    try
+        tree.insert(999, 2.0, 2.0, 1.0, 3.0)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected and tree.count == 600
+
+    rejected = false
+    try
+        tree.searchCount(2.0, 2.0, 1.0, 3.0)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        tree.search(2.0, 2.0, 1.0, 3.0)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+    tree.clear()
+    assert tree.count == 0
+
+    rtree.RTree huge = rtree.create()
+    for i in range(16)
+        huge.insert(i, -1.0e308, -1.0e308, 1.0e308, 1.0e308)
+    end
+    assert huge.searchCount(-1.0e308, -1.0e308, 1.0e308, 1.0e308) == 16
+    assert huge.search(-1.0e308, -1.0e308, 1.0e308, 1.0e308).length == 16
+    for i in range(16)
+        assert huge.remove(i)
+    end
+    assert huge.count == 0
+    return 0
+end

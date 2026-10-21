@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>rtree - 扩展库 - xlang</title>
+  <meta name="description" content="支持完整结果集的二维矩形 R-tree 空间索引。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / rtree</p><h1>rtree</h1>
+    <p class="extlib-lead">二维空间索引。</p>
+    <p>以 R-tree 保存矩形及整数 ID，支持完整结果集查询、相交计数、删除和复用；无共享结果缓冲。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>rtree.create()</code></td><td>创建原生支持的 <code>rtree.RTree</code></td></tr>
+      <tr><td><code>insert / search / searchCount</code></td><td>管理矩形和查询相交 ID</td></tr>
+      <tr><td><code>remove / clear / count</code></td><td>删除、清空与计数</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import rtree
+rtree.RTree tree = rtree.create()
+tree.insert(10, 0.0, 0.0, 2.0, 2.0)
+var ids = tree.search(1.0, 1.0, 3.0, 3.0)
+println(ids.length)</code></pre>
+    <p>查询使用闭区间相交，结果顺序未定义；有限极值坐标也可插入和查询。C 整数 ID 与计数使用 <code>int64_t</code>，与 XLang <code>int</code> 的 LP64 ABI 一致。创建、插入和查询的分配失败抛 <code>MemoryError</code>，非法矩形抛 <code>ValueError</code>；仅按 ID 删除需扫描树。Windows <code>test/check.ps1</code> 与 Linux <code>test/check.sh</code> 覆盖 C 暴力参照、XLang 故障边界和三路范例固定输出；Linux 另以两档 long double 运行 ASan/UBSan。完整带输出 AOT 仍待主线共享符号修复。边界与 C 所有权见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

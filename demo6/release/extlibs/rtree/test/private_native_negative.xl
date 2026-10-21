@@ -1,0 +1,5 @@
+import rtree
+
+// 查询结果必须由公开方法检查后交给调用方。
+auto tree = rtree.create()
+var ids = tree.searchNative(c_double(0), c_double(0), c_double(1), c_double(1))

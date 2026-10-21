@@ -2,23 +2,24 @@ extern "xl6_xrt_last_error_text" func __rtree_error() as string
 
 
 
-class RTree
+export class RTree
     native point handle
     extern "xrtree_create" create()
     extern "xrtree_destroy" destroy()
 
-    extern "xrtree_insert" func insertNative(int id, c_double minx, c_double miny, c_double maxx, c_double maxy)
-    extern "xrtree_search" func searchNative(c_double minx, c_double miny, c_double maxx, c_double maxy) as string
-    extern "xrtree_search_count" func searchCountNative(c_double minx, c_double miny, c_double maxx, c_double maxy) as int
-    extern "xrtree_remove" func removeNative(int id) as bool
-    extern "xrtree_count" func countNative() as int
-    extern "xrtree_clear" func clearNative()
+    private extern "xrtree_insert" func insertNative(int id, c_double minx, c_double miny, c_double maxx, c_double maxy) as bool
+    private extern "xrtree_search" func searchNative(c_double minx, c_double miny, c_double maxx, c_double maxy) as var
+    private extern "xrtree_search_count" func searchCountNative(c_double minx, c_double miny, c_double maxx, c_double maxy) as int
+    private extern "xrtree_remove" func removeNative(int id) as bool
+    private extern "xrtree_count" func countNative() as int
+    private extern "xrtree_clear" func clearNative()
 
     get valid() as bool
         return self.handle != null
     end
 
     get count() as int
+        if self.handle == null then throw RuntimeError "rtree: instance is destroyed" end
         return self.countNative()
     end
 
@@ -26,21 +27,32 @@ class RTree
         if self.handle == null then
             throw RuntimeError "rtree: instance is destroyed"
         end
-        self.insertNative(id, c_double(minx), c_double(miny), c_double(maxx), c_double(maxy))
+        if not self.insertNative(id, c_double(minx), c_double(miny),
+            c_double(maxx), c_double(maxy)) then
+            throw ValueError __rtree_error()
+        end
     end
 
-    func search(float minx, float miny, float maxx, float maxy) as string
+    func search(float minx, float miny, float maxx, float maxy) as var
         if self.handle == null then
             throw RuntimeError "rtree: instance is destroyed"
         end
-        return self.searchNative(c_double(minx), c_double(miny), c_double(maxx), c_double(maxy))
+        var result = self.searchNative(c_double(minx), c_double(miny),
+            c_double(maxx), c_double(maxy))
+        if result == null then
+            throw ValueError __rtree_error()
+        end
+        return result
     end
 
     func searchCount(float minx, float miny, float maxx, float maxy) as int
         if self.handle == null then
             throw RuntimeError "rtree: instance is destroyed"
         end
-        return self.searchCountNative(c_double(minx), c_double(miny), c_double(maxx), c_double(maxy))
+        int result = self.searchCountNative(c_double(minx), c_double(miny),
+            c_double(maxx), c_double(maxy))
+        if result < 0 then throw ValueError "rtree: invalid query rectangle" end
+        return result
     end
 
     func remove(int id) as bool
@@ -61,5 +73,9 @@ end
 
 
 export func create() as RTree
-    return RTree()
+    RTree tree = RTree()
+    if not tree.valid then
+        throw RuntimeError __rtree_error()
+    end
+    return tree
 end

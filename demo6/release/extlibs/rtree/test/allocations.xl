@@ -1,0 +1,68 @@
+import rtree
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+bool caught = false
+int createFailures = 0
+int createSuccesses = 0
+for allocation in range(16)
+    caught = false
+    assert failAfter(uint64(allocation))
+    try
+        rtree.RTree candidate = rtree.create()
+        assert candidate.valid
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert triggered == caught
+    if caught then createFailures += 1 else createSuccesses += 1 end
+end
+assert createFailures > 0 and createSuccesses > 0
+
+rtree.RTree tree = rtree.create()
+for i in range(8)
+    tree.insert(i, float(i), 0.0, float(i) + 1.0, 1.0)
+end
+
+for allocation in range(2)
+    caught = false
+    assert failAfter(uint64(allocation))
+    try
+        tree.insert(8, 8.0, 0.0, 9.0, 1.0)
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert triggered and caught and tree.count == 8
+end
+
+int queryFailures = 0
+int querySuccesses = 0
+for allocation in range(16)
+    caught = false
+    var matches = null
+    assert failAfter(uint64(allocation))
+    try
+        matches = tree.search(-1.0, -1.0, 10.0, 2.0)
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert triggered == caught
+    if caught then
+        queryFailures += 1
+    else
+        assert matches.length == 8
+        querySuccesses += 1
+    end
+end
+assert queryFailures > 0 and querySuccesses > 0
+assert tree.search(-1.0, -1.0, 10.0, 2.0).length == 8
+tree.insert(8, 8.0, 0.0, 9.0, 1.0)
+assert tree.count == 9

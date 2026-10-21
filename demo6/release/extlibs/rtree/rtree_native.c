@@ -1,177 +1,209 @@
-/* rtree_native.c - Simplified R-tree spatial index */
-#include <stdlib.h>
+/* 平面矩形 R-tree：每节点最多 8 项，二次分裂；不同树没有共享可变状态。 */
+#include <float.h>
+#include <limits.h>
 #include <string.h>
 
-#define MAX_ENTRIES 8
-#define MIN_ENTRIES 3
-#define MAX_DEPTH 16
+#ifndef XRT_MODULE_MATH
+#define XRT_MODULE_MATH
+#endif
+#ifndef XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_VALUE_CONTAINER
+#endif
+#include "xrt.h"
+#include "include/rtree_native.h"
+
+#define XRTREE_DOMAIN "xlang.extlib.rtree"
+#define XRTREE_MAX_ENTRIES 8
+#define XRTREE_MIN_ENTRIES 4
+#define XRTREE_MAX_HEIGHT 64
 
 typedef struct {
     double minx, miny, maxx, maxy;
-} Rect;
+} XrtreeRect;
 
-typedef struct Entry {
-    Rect rect;
-    long long id;       /* for leaf entries */
-    struct Node *child; /* for internal entries */
-} Entry;
+typedef struct XrtreeNode XrtreeNode;
+typedef struct {
+    XrtreeRect rect;
+    long long id;
+    XrtreeNode *child;
+} XrtreeEntry;
 
-typedef struct Node {
-    int is_leaf;
+struct XrtreeNode {
+    int leaf;
     int count;
-    Entry entries[MAX_ENTRIES + 1]; /* +1 for overflow during split */
-} Node;
+    XrtreeEntry entries[XRTREE_MAX_ENTRIES + 1];
+};
 
 typedef struct {
-    Node *root;
+    XrtreeNode *root;
     long long size;
-} RTree;
+} Xrtree;
 
-static Rect combine_rect(Rect a, Rect b) {
-    Rect r;
-    r.minx = a.minx < b.minx ? a.minx : b.minx;
-    r.miny = a.miny < b.miny ? a.miny : b.miny;
-    r.maxx = a.maxx > b.maxx ? a.maxx : b.maxx;
-    r.maxy = a.maxy > b.maxy ? a.maxy : b.maxy;
-    return r;
+static void xrtree_error(const char *message) {
+    xrtSetErrorInfo(XERR_VALUE, XRTREE_DOMAIN, 0, message);
 }
 
-static double rect_area(Rect r) {
-    return (r.maxx - r.minx) * (r.maxy - r.miny);
+static int xrtree_rect_valid(XrtreeRect rect) {
+    return xrtMathIsFinite(rect.minx) && xrtMathIsFinite(rect.miny) &&
+        xrtMathIsFinite(rect.maxx) && xrtMathIsFinite(rect.maxy) &&
+        rect.minx <= rect.maxx && rect.miny <= rect.maxy;
 }
 
-static int rect_intersects(Rect a, Rect b) {
+static XrtreeRect xrtree_combine(XrtreeRect a, XrtreeRect b) {
+    XrtreeRect result = {
+        a.minx < b.minx ? a.minx : b.minx,
+        a.miny < b.miny ? a.miny : b.miny,
+        a.maxx > b.maxx ? a.maxx : b.maxx,
+        a.maxy > b.maxy ? a.maxy : b.maxy
+    };
+    return result;
+}
+
+static long double xrtree_area(XrtreeRect rect) {
+    long double width = (long double)rect.maxx - rect.minx;
+    long double height = (long double)rect.maxy - rect.miny;
+    /* 面积只用于分裂启发式；使用所有目标均能表示的上限避免 inf - inf。 */
+    if (width == 0 || height == 0) return 0;
+    if (width > DBL_MAX || height > DBL_MAX ||
+        width > (long double)DBL_MAX / height) return DBL_MAX;
+    return width * height;
+}
+
+static long double xrtree_enlargement(XrtreeRect bounds, XrtreeRect item) {
+    return xrtree_area(xrtree_combine(bounds, item)) - xrtree_area(bounds);
+}
+
+static int xrtree_intersects(XrtreeRect a, XrtreeRect b) {
     return a.minx <= b.maxx && a.maxx >= b.minx &&
-           a.miny <= b.maxy && a.maxy >= b.miny;
+        a.miny <= b.maxy && a.maxy >= b.miny;
 }
 
-static int rect_contains(Rect outer, Rect inner) {
-    return outer.minx <= inner.minx && outer.maxx >= inner.maxx &&
-           outer.miny <= inner.miny && outer.maxy >= inner.maxy;
+static XrtreeNode *xrtree_node_new(int leaf) {
+    XrtreeNode *node = (XrtreeNode *)xrtMalloc(sizeof(*node));
+    if (node == NULL) return NULL;
+    memset(node, 0, sizeof(*node));
+    node->leaf = leaf;
+    return node;
 }
 
-static Node *node_create(int is_leaf) {
-    Node *n = (Node *)calloc(1, sizeof(Node));
-    n->is_leaf = is_leaf;
-    n->count = 0;
-    return n;
-}
-
-static void node_free(Node *n) {
-    int i;
-    if (!n) return;
-    if (!n->is_leaf) {
-        for (i = 0; i < n->count; i++)
-            node_free(n->entries[i].child);
+static void xrtree_node_free(XrtreeNode *node) {
+    int index;
+    if (node == NULL) return;
+    if (!node->leaf) {
+        for (index = 0; index < node->count; ++index)
+            xrtree_node_free(node->entries[index].child);
     }
-    free(n);
+    xrtFree(node);
 }
 
-static Rect node_bounds(Node *n) {
-    Rect r = n->entries[0].rect;
-    int i;
-    for (i = 1; i < n->count; i++)
-        r = combine_rect(r, n->entries[i].rect);
-    return r;
+static XrtreeRect xrtree_bounds(const XrtreeNode *node) {
+    XrtreeRect bounds = node->entries[0].rect;
+    int index;
+    for (index = 1; index < node->count; ++index)
+        bounds = xrtree_combine(bounds, node->entries[index].rect);
+    return bounds;
 }
 
-/* Choose subtree: pick child needing least enlargement */
-static int choose_subtree(Node *n, Rect r) {
-    int best = 0, i;
-    double best_enlarge = 1e300;
-    for (i = 0; i < n->count; i++) {
-        Rect combined = combine_rect(n->entries[i].rect, r);
-        double enlarge = rect_area(combined) - rect_area(n->entries[i].rect);
-        if (enlarge < best_enlarge) {
-            best_enlarge = enlarge;
-            best = i;
+static int xrtree_choose(const XrtreeNode *node, XrtreeRect rect) {
+    int index, best = 0;
+    long double bestGrowth = xrtree_enlargement(node->entries[0].rect, rect);
+    long double bestArea = xrtree_area(node->entries[0].rect);
+    for (index = 1; index < node->count; ++index) {
+        long double growth = xrtree_enlargement(node->entries[index].rect, rect);
+        long double area = xrtree_area(node->entries[index].rect);
+        if (growth < bestGrowth || (growth == bestGrowth && area < bestArea)) {
+            best = index;
+            bestGrowth = growth;
+            bestArea = area;
         }
     }
     return best;
 }
 
-/* Split node using linear split */
-static Node *node_split(Node *n) {
-    Node *newn = node_create(n->is_leaf);
-    int total = n->count;
-
-    /* Simple split: first half stays, second half moves */
-    int mid = total / 2;
-    newn->count = total - mid;
-    int i;
-    for (i = 0; i < newn->count; i++)
-        newn->entries[i] = n->entries[mid + i];
-    n->count = mid;
-    return newn;
-}
-
-/* Insert into subtree, returns new sibling if split occurred */
-static Node *insert_internal(Node *n, Rect r, long long id, int depth) {
-    if (n->is_leaf) {
-        n->entries[n->count].rect = r;
-        n->entries[n->count].id = id;
-        n->entries[n->count].child = NULL;
-        n->count++;
-        if (n->count > MAX_ENTRIES)
-            return node_split(n);
-        return NULL;
-    }
-
-    int idx = choose_subtree(n, r);
-    Node *sibling = insert_internal(n->entries[idx].child, r, id, depth + 1);
-    n->entries[idx].rect = node_bounds(n->entries[idx].child);
-
-    if (sibling) {
-        n->entries[n->count].rect = node_bounds(sibling);
-        n->entries[n->count].child = sibling;
-        n->entries[n->count].id = 0;
-        n->count++;
-        if (n->count > MAX_ENTRIES)
-            return node_split(n);
-    }
-    return NULL;
-}
-
-/* Search: collect IDs of entries intersecting query rect */
-static int search_internal(Node *n, Rect query, long long *results, int max_results, int count) {
-    int i;
-    if (n->is_leaf) {
-        for (i = 0; i < n->count && count < max_results; i++) {
-            if (rect_intersects(n->entries[i].rect, query))
-                results[count++] = n->entries[i].id;
-        }
-    } else {
-        for (i = 0; i < n->count && count < max_results; i++) {
-            if (rect_intersects(n->entries[i].rect, query))
-                count = search_internal(n->entries[i].child, query, results, max_results, count);
+/* 9 项分成至少 4+4；节点已预分配，因此分裂不会在树更新中途失败。 */
+static void xrtree_split(XrtreeNode *node, XrtreeNode *sibling) {
+    XrtreeEntry items[XRTREE_MAX_ENTRIES + 1];
+    int assigned[XRTREE_MAX_ENTRIES + 1] = {0};
+    int first = 0, second = 1, remaining = XRTREE_MAX_ENTRIES - 1;
+    long double worst = -1.0e300L;
+    int i, j;
+    memcpy(items, node->entries, sizeof(items));
+    sibling->leaf = node->leaf;
+    sibling->count = 0;
+    for (i = 0; i < XRTREE_MAX_ENTRIES + 1; ++i) {
+        for (j = i + 1; j < XRTREE_MAX_ENTRIES + 1; ++j) {
+            long double waste = xrtree_area(xrtree_combine(items[i].rect,
+                items[j].rect)) - xrtree_area(items[i].rect) -
+                xrtree_area(items[j].rect);
+            if (waste > worst) { worst = waste; first = i; second = j; }
         }
     }
-    return count;
-}
-
-/* Delete entry by id from leaf */
-static int delete_internal(Node *n, long long id) {
-    int i;
-    if (n->is_leaf) {
-        for (i = 0; i < n->count; i++) {
-            if (n->entries[i].id == id) {
-                memmove(&n->entries[i], &n->entries[i+1],
-                        (n->count - i - 1) * sizeof(Entry));
-                n->count--;
-                return 1;
+    node->count = 0;
+    node->entries[node->count++] = items[first];
+    sibling->entries[sibling->count++] = items[second];
+    assigned[first] = assigned[second] = 1;
+    while (remaining > 0) {
+        int pick = -1, group = 0;
+        long double biggestDifference = -1;
+        XrtreeRect left = xrtree_bounds(node);
+        XrtreeRect right = xrtree_bounds(sibling);
+        for (i = 0; i < XRTREE_MAX_ENTRIES + 1; ++i) {
+            long double leftGrowth, rightGrowth, difference;
+            if (assigned[i]) continue;
+            leftGrowth = xrtree_enlargement(left, items[i].rect);
+            rightGrowth = xrtree_enlargement(right, items[i].rect);
+            difference = leftGrowth > rightGrowth ?
+                leftGrowth - rightGrowth : rightGrowth - leftGrowth;
+            if (difference > biggestDifference) {
+                biggestDifference = difference;
+                pick = i;
+                group = leftGrowth < rightGrowth ? 0 :
+                    (rightGrowth < leftGrowth ? 1 :
+                    (xrtree_area(left) <= xrtree_area(right) ? 0 : 1));
             }
         }
-        return 0;
+        if (node->count + remaining == XRTREE_MIN_ENTRIES) group = 0;
+        if (sibling->count + remaining == XRTREE_MIN_ENTRIES) group = 1;
+        if (group == 0) node->entries[node->count++] = items[pick];
+        else sibling->entries[sibling->count++] = items[pick];
+        assigned[pick] = 1;
+        --remaining;
     }
-    for (i = 0; i < n->count; i++) {
-        if (delete_internal(n->entries[i].child, id)) {
-            if (n->entries[i].child->count == 0) {
-                node_free(n->entries[i].child);
-                memmove(&n->entries[i], &n->entries[i+1],
-                        (n->count - i - 1) * sizeof(Entry));
-                n->count--;
+}
+
+static XrtreeNode *xrtree_insert_node(XrtreeNode *node, XrtreeRect rect,
+    long long id, XrtreeNode **spares, int *used) {
+    if (node->leaf) {
+        XrtreeEntry item = {rect, id, NULL};
+        node->entries[node->count++] = item;
+    } else {
+        int index = xrtree_choose(node, rect);
+        XrtreeNode *sibling = xrtree_insert_node(node->entries[index].child,
+            rect, id, spares, used);
+        node->entries[index].rect = xrtree_bounds(node->entries[index].child);
+        if (sibling != NULL) {
+            XrtreeEntry item = {xrtree_bounds(sibling), 0, sibling};
+            node->entries[node->count++] = item;
+        }
+    }
+    if (node->count <= XRTREE_MAX_ENTRIES) return NULL;
+    xrtree_split(node, spares[*used]);
+    return spares[(*used)++];
+}
+
+static int xrtree_remove_node(XrtreeNode *node, long long id) {
+    int index;
+    for (index = 0; index < node->count; ++index) {
+        if (node->leaf ? node->entries[index].id == id :
+            xrtree_remove_node(node->entries[index].child, id)) {
+            if (!node->leaf && node->entries[index].child->count != 0) {
+                node->entries[index].rect =
+                    xrtree_bounds(node->entries[index].child);
             } else {
-                n->entries[i].rect = node_bounds(n->entries[i].child);
+                if (!node->leaf) xrtree_node_free(node->entries[index].child);
+                memmove(&node->entries[index], &node->entries[index + 1],
+                    (size_t)(node->count - index - 1) * sizeof(node->entries[0]));
+                --node->count;
             }
             return 1;
         }
@@ -179,94 +211,169 @@ static int delete_internal(Node *n, long long id) {
     return 0;
 }
 
-static long long count_internal(Node *n) {
-    long long c = 0;
-    int i;
-    if (n->is_leaf) return n->count;
-    for (i = 0; i < n->count; i++)
-        c += count_internal(n->entries[i].child);
-    return c;
+static long long xrtree_count_matches(const XrtreeNode *node,
+    XrtreeRect query) {
+    long long count = 0;
+    int index;
+    for (index = 0; index < node->count; ++index) {
+        if (!xrtree_intersects(node->entries[index].rect, query)) continue;
+        count += node->leaf ? 1 :
+            xrtree_count_matches(node->entries[index].child, query);
+    }
+    return count;
 }
 
-/* === Exported API === */
+static int xrtree_collect(const XrtreeNode *node, XrtreeRect query,
+    xvalue *results) {
+    int index;
+    for (index = 0; index < node->count; ++index) {
+        if (!xrtree_intersects(node->entries[index].rect, query)) continue;
+        if (node->leaf) {
+            if (!xrtValueArrayAppendNew(results,
+                xrtValueInt(node->entries[index].id))) return 0;
+        } else if (!xrtree_collect(node->entries[index].child, query,
+            results)) return 0;
+    }
+    return 1;
+}
 
+/* 公开 C 接口：句柄属于调用方；查询数组用 xrtValueRelease 释放。 */
 void *xrtree_create(void) {
-    RTree *t = (RTree *)calloc(1, sizeof(RTree));
-    t->root = node_create(1);
-    t->size = 0;
-    return t;
+    Xrtree *tree;
+    xrtClearError();
+    tree = (Xrtree *)xrtMalloc(sizeof(*tree));
+    if (tree == NULL) return NULL;
+    tree->root = xrtree_node_new(1);
+    tree->size = 0;
+    if (tree->root == NULL) { xrtFree(tree); return NULL; }
+    return tree;
 }
 
 void xrtree_destroy(void *handle) {
-    RTree *t = (RTree *)handle;
-    if (!t) return;
-    node_free(t->root);
-    free(t);
+    Xrtree *tree = (Xrtree *)handle;
+    if (tree == NULL) return;
+    xrtree_node_free(tree->root);
+    xrtFree(tree);
 }
 
-void xrtree_insert(void *handle, long long id, double minx, double miny, double maxx, double maxy) {
-    RTree *t = (RTree *)handle;
-    Rect r = { minx, miny, maxx, maxy };
-    Node *sibling = insert_internal(t->root, r, id, 0);
-    if (sibling) {
-        Node *newroot = node_create(0);
-        newroot->entries[0].rect = node_bounds(t->root);
-        newroot->entries[0].child = t->root;
-        newroot->entries[1].rect = node_bounds(sibling);
-        newroot->entries[1].child = sibling;
-        newroot->count = 2;
-        t->root = newroot;
+bool xrtree_insert(void *handle, int64_t id,
+    double minx, double miny, double maxx, double maxy) {
+    Xrtree *tree = (Xrtree *)handle;
+    XrtreeRect rect = {minx, miny, maxx, maxy};
+    XrtreeNode *path[XRTREE_MAX_HEIGHT];
+    XrtreeNode *spares[XRTREE_MAX_HEIGHT + 1];
+    XrtreeNode *node;
+    int depth = 0, need = 0, carry = 1, used = 0, index;
+    xrtClearError();
+    if (tree == NULL || !xrtree_rect_valid(rect) || tree->size == LLONG_MAX) {
+        xrtree_error("invalid tree, rectangle, or entry count");
+        return false;
     }
-    t->size++;
-}
-
-/* Search returns count, fills results buffer (comma-separated IDs) */
-static char search_buf[4096];
-const char *xrtree_search(void *handle, double minx, double miny, double maxx, double maxy) {
-    RTree *t = (RTree *)handle;
-    Rect query = { minx, miny, maxx, maxy };
-    long long results[256];
-    int n = search_internal(t->root, query, results, 256, 0);
-    int i, pos = 0;
-    search_buf[0] = '\0';
-    for (i = 0; i < n; i++) {
-        if (i > 0) search_buf[pos++] = ',';
-        pos += sprintf(search_buf + pos, "%lld", results[i]);
-    }
-    search_buf[pos] = '\0';
-    return search_buf;
-}
-
-long long xrtree_search_count(void *handle, double minx, double miny, double maxx, double maxy) {
-    RTree *t = (RTree *)handle;
-    Rect query = { minx, miny, maxx, maxy };
-    long long results[256];
-    return search_internal(t->root, query, results, 256, 0);
-}
-
-long long xrtree_remove(void *handle, long long id) {
-    RTree *t = (RTree *)handle;
-    if (delete_internal(t->root, id)) {
-        t->size--;
-        /* Shrink root if needed */
-        while (!t->root->is_leaf && t->root->count == 1) {
-            Node *old = t->root;
-            t->root = old->entries[0].child;
-            free(old);
+    node = tree->root;
+    while (node != NULL) {
+        if (depth == XRTREE_MAX_HEIGHT) {
+            xrtree_error("R-tree height limit exceeded");
+            return false;
         }
-        return 1;
+        path[depth++] = node;
+        if (node->leaf) break;
+        node = node->entries[xrtree_choose(node, rect)].child;
     }
-    return 0;
+    for (index = depth - 1; index >= 0 && carry; --index) {
+        if (path[index]->count == XRTREE_MAX_ENTRIES) ++need;
+        else carry = 0;
+    }
+    if (carry) {
+        if (depth == XRTREE_MAX_HEIGHT) {
+            xrtree_error("R-tree height limit exceeded");
+            return false;
+        }
+        ++need;
+    }
+    for (index = 0; index < need; ++index) {
+        spares[index] = xrtree_node_new(0);
+        if (spares[index] == NULL) {
+            while (index > 0) xrtFree(spares[--index]);
+            return false;
+        }
+    }
+    node = xrtree_insert_node(tree->root, rect, id, spares, &used);
+    if (node != NULL) {
+        XrtreeNode *root = spares[used++];
+        root->entries[0] = (XrtreeEntry){xrtree_bounds(tree->root), 0, tree->root};
+        root->entries[1] = (XrtreeEntry){xrtree_bounds(node), 0, node};
+        root->count = 2;
+        tree->root = root;
+    }
+    while (used < need) xrtFree(spares[used++]);
+    ++tree->size;
+    return true;
 }
 
-long long xrtree_count(void *handle) {
-    RTree *t = (RTree *)handle;
-    return t->size;
+struct xvalue *xrtree_search(void *handle,
+    double minx, double miny, double maxx, double maxy) {
+    Xrtree *tree = (Xrtree *)handle;
+    XrtreeRect query = {minx, miny, maxx, maxy};
+    xvalue *results;
+    xrtClearError();
+    if (tree == NULL || !xrtree_rect_valid(query)) {
+        xrtree_error("invalid tree or query rectangle");
+        return xrtValueNull();
+    }
+    results = xrtValueArray();
+    if (results == NULL) return xrtValueNull();
+    if (!xrtree_collect(tree->root, query, results)) {
+        xrtValueRelease(results);
+        return xrtValueNull();
+    }
+    return results;
+}
+
+int64_t xrtree_search_count(void *handle,
+    double minx, double miny, double maxx, double maxy) {
+    Xrtree *tree = (Xrtree *)handle;
+    XrtreeRect query = {minx, miny, maxx, maxy};
+    xrtClearError();
+    if (tree == NULL || !xrtree_rect_valid(query)) {
+        xrtree_error("invalid tree or query rectangle");
+        return -1;
+    }
+    return xrtree_count_matches(tree->root, query);
+}
+
+bool xrtree_remove(void *handle, int64_t id) {
+    Xrtree *tree = (Xrtree *)handle;
+    xrtClearError();
+    if (tree == NULL) { xrtree_error("invalid tree handle"); return false; }
+    if (!xrtree_remove_node(tree->root, id)) return false;
+    --tree->size;
+    while (!tree->root->leaf && tree->root->count == 1) {
+        XrtreeNode *old = tree->root;
+        tree->root = old->entries[0].child;
+        xrtFree(old);
+    }
+    if (tree->root->count == 0) tree->root->leaf = 1;
+    return true;
+}
+
+int64_t xrtree_count(void *handle) {
+    Xrtree *tree = (Xrtree *)handle;
+    xrtClearError();
+    if (tree != NULL) return tree->size;
+    xrtree_error("invalid tree handle");
+    return -1;
 }
 
 void xrtree_clear(void *handle) {
-    RTree *t = (RTree *)handle;
-    node_free(t->root);
-    t->root = node_create(1);
-    t->size = 0;
+    Xrtree *tree = (Xrtree *)handle;
+    int index;
+    xrtClearError();
+    if (tree == NULL) { xrtree_error("invalid tree handle"); return; }
+    if (!tree->root->leaf) {
+        for (index = 0; index < tree->root->count; ++index)
+            xrtree_node_free(tree->root->entries[index].child);
+    }
+    memset(tree->root, 0, sizeof(*tree->root));
+    tree->root->leaf = 1;
+    tree->size = 0;
 }
