@@ -1,5 +1,6 @@
 #include "analysis/check.h"
 #include "analysis/frontend_index.h"
+#include "analysis/frontend_internal.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
 #include "src/stdlib/xl6_stdlib.h"
@@ -37,8 +38,8 @@ void xlsSemanticCheckDestroy(xls_semantic_check* r)
     xl6ImportDepsFree(&r->deps); xl6SourceOverlayClear(&r->overlay); xl6SourceReportFree(&r->report);
     xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
 }
-xls_semantic_check* xlsSemanticCheckCreate(const char* entry,
-    const xls_semantic_input* inputs,size_t count,int captureIndex,
+xls_semantic_check* xlsSemanticCheckCreateParsed(const char* entry,
+    const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
     xls_semantic_check* r=NULL;
@@ -64,7 +65,21 @@ xls_semantic_check* xlsSemanticCheckCreate(const char* entry,
         if(!xl6SourceOverlaySet(&r->overlay,in->path,in->text+bom,in->size-bom)) goto invalid;
     }
     r->overlay.report=&r->report; r->overlay.semanticIndex=captureIndex; r->deps.sourceOverlay=&r->overlay;
-    r->phase="parse"; int okay=xl6SourceOverlayParse(&r->overlay,r->path,&r->parse);
+    r->phase="parse"; int okay;
+    if(syntax) {
+        /* Keep exactly the overlay/report contract used by the shared parser.
+         * Reject an unrelated parse rather than silently accepting stale facts. */
+        const XL6_SourceOverlayItem* item=xl6SourceOverlayFind(&r->overlay,r->path);
+        const xls_text* text=xlsSyntaxText(syntax); size_t skip=0;
+        if(text && xlsTextSize(text)>=3 && !memcmp(xlsTextData(text),"\xef\xbb\xbf",3)) skip=3;
+        if(!item || !text || strcmp(item->path,xlsSyntaxPath(syntax)) ||
+           item->size!=xlsTextSize(text)-skip || memcmp(item->text,xlsTextData(text)+skip,item->size)) goto invalid;
+        if(!xl6SourceReportText(&r->report,item->path,item->text,item->size,"overlay") ||
+           !xlsSyntaxCopyParse(syntax,&r->parse)) {
+            fail(error,capacity,"cannot own parsed entry or source report"); xlsSemanticCheckDestroy(r); return NULL;
+        }
+        okay=xlsSyntaxAccepted(syntax);
+    } else okay=xl6SourceOverlayParse(&r->overlay,r->path,&r->parse);
     if(stopped(cancelled,user)) goto cancel;
     if(okay) { r->phase="import"; okay=xl6ImportsExpandModule(r->parse.root,r->path,&r->parse.diags,&r->deps); }
     if(stopped(cancelled,user)) goto cancel;
@@ -103,6 +118,10 @@ cancel:
     fail(error,capacity,"semantic check cancelled");
     xlsSemanticCheckDestroy(r); return NULL;
 }
+xls_semantic_check* xlsSemanticCheckCreate(const char* entry,
+    const xls_semantic_input* inputs,size_t count,int captureIndex,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{ return xlsSemanticCheckCreateParsed(entry,inputs,count,captureIndex,NULL,cancelled,user,error,capacity); }
 xls_check_info xlsSemanticCheckInfo(const xls_semantic_check* r)
 {
     if(!r) return (xls_check_info){0};

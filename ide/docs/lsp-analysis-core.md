@@ -116,3 +116,9 @@ M3b1 增加 `analysis/worker`：用 XRT 单线程任务池拥有整个分析会�
 `xlang/analysisStats` 新增 `fullParses`、`fragmentParses`、`reusedDeclarations`、`parsedBytes`，统计真正调用解析器的工作，包括片段失败后的完整回退。`parses` 为两种解析调用之和。静态语义／IR 和光标查询此时尚未消费该语法缓存，不能将这些计数解释为语义增量已完成。
 
 `analysis_incremental_syntax_test` 的 1073 次断言逐项对照全新共享解析器的 AST、诊断、范围和字面量，覆盖连续 100 次编辑、真实未改节点复用、Unicode／BOM／CRLF、文档注释、泛型／导出／异步函数、错误恢复和跨线程旧快照生命周期。独立严格构建 `m5a-function-syntax-core/build-result.json` 的 13 组核心／宿主检查通过；原有 16 项真实折叠协议回归继续通过。
+
+服务 0.11 将该缓存接入常驻完整检查会话。会话额外保留一份入口语法；入口正文／身份／路径未变而依赖、索引模式或其他上下文变化时复用语法，函数体修改则尝试局部解析。入口路径先规范化，私有检查接口必须核对语法路径、正文及实际覆盖完全一致，仍记录同一份共享来源报告。解析结果复制成独立可变树再交给原有导入、标准库、语义和 typed IR 阶段，已发布片段与旧检查结果保持只读。源码错误是有效结果；取消或基础设施失败保留上一份已提交会话输入。
+
+实际检查结果的 `analysis` 新增 `entryFullParses`、`entryFragmentParses`、`entryReusedDeclarations`、`entryParsedBytes`、`entrySyntaxHits`，客户端实验能力为 `incrementalEntrySyntax`。计数限定为入口解析；导入文件仍全新解析，完整语义／IR 与索引仍重建。它们与已有 `builds/cacheHits` 分开，防止把局部解析误报为完整增量分析。
+
+新增 `analysis_incremental_check_test` 验证完整 JSON、诊断阶段、类型／节点数量与全新共享检查一致，覆盖连续局部编辑、坐标位移、Unicode／BOM／CRLF、未保存依赖变化、词法及类型错误、索引模式／身份变化和错误语法输入拒绝。严格完整构建 `cb-3afd6211` 的 14 组核心／宿主检查及 110 个程序通过。实际协议与 IDE 验证、完整检查时延及凭据见 [开发记录](lsp-development.md)。

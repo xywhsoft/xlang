@@ -213,20 +213,38 @@ xls_syntax* xlsSyntaxBuild(const char* path,xls_text* text,const xls_syntax* pre
 int xlsSyntaxAccepted(const xls_syntax* syntax) { return syntax && syntax->accepted; }
 const char* xlsSyntaxPath(const xls_syntax* syntax) { return syntax ? syntax->path : NULL; }
 const xls_text* xlsSyntaxText(const xls_syntax* syntax) { return syntax ? syntax->text : NULL; }
+static XL6_AstNode* materialize(const xls_syntax* s)
+{
+    XL6_AstNode* root=copyNode(s->parse.root,NULL,0); int okay=root!=NULL;
+    if(okay && s->units.Count) {
+        root->children=xrtCalloc(s->units.Count,sizeof(*root->children)); okay=root->children!=NULL; root->childCapacity=s->units.Count;
+    }
+    for(size_t i=0;okay && i<s->units.Count;++i) {
+        const placement* p=xrtArrayConstGet(&s->units,i); XL6_AstNode* node=copyNode(p->unit->node,p,0);
+        if(!node) okay=0; else root->children[root->childCount++]=node;
+    }
+    if(okay) okay=xl6AstSetSourceTree(root,s->path);
+    if(okay) return root;
+    xl6AstFree(root); return NULL;
+}
+int xlsSyntaxCopyParse(const xls_syntax* s,XL6_ParseResult* result)
+{
+    if(!s || !result || result->root || result->diags.count) return 0;
+    XL6_ParseResult copy; xl6ParseResultInit(&copy);
+    if(s->parse.root && !(copy.root=materialize(s))) goto failed;
+    for(size_t i=0;i<s->parse.diags.count;++i) {
+        const XL6_Diag* d=&s->parse.diags.items[i];
+        xl6DiagAddFile(&copy.diags,d->file ? d->file : s->path,d->line,d->column,d->message);
+        if(copy.diags.count!=i+1) goto failed;
+    }
+    xl6ParseResultFree(result); *result=copy; return 1;
+failed: xl6ParseResultFree(&copy); return 0;
+}
 const XL6_AstNode* xlsSyntaxAst(const xls_syntax* s)
 {
     if(!s || !s->units.Count) return s ? s->parse.root : NULL;
     if(!xrtMutexLock(&s->view->lock)) return NULL;
-    if(!s->view->root) {
-        XL6_AstNode* root=copyNode(s->parse.root,NULL,0); int okay=root!=NULL;
-        if(okay) { root->children=xrtCalloc(s->units.Count,sizeof(*root->children)); okay=root->children!=NULL; root->childCapacity=s->units.Count; }
-        for(size_t i=0;okay && i<s->units.Count;++i) {
-            const placement* p=xrtArrayConstGet(&s->units,i); XL6_AstNode* node=copyNode(p->unit->node,p,0);
-            if(!node) okay=0; else root->children[root->childCount++]=node;
-        }
-        if(okay) okay=xl6AstSetSourceTree(root,s->path);
-        if(okay) s->view->root=root; else xl6AstFree(root);
-    }
+    if(!s->view->root) s->view->root=materialize(s);
     const XL6_AstNode* root=s->view->root; xrtMutexUnlock(&s->view->lock); return root;
 }
 typedef struct walk_node { const XL6_AstNode* node; const placement* place; } walk_node;

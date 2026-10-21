@@ -1,4 +1,5 @@
 #include "analysis/check_session.h"
+#include "analysis/frontend_internal.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
@@ -10,6 +11,7 @@ struct xls_check_session {
     int captureIndex;
     xls_session_limits limits;
     xls_semantic_check* result;
+    xls_syntax* entrySyntax;
     xls_check_stats stats;
 };
 static xbytesview key(const char* s) { return (xbytesview){(const unsigned char*)s,strlen(s)}; }
@@ -32,7 +34,7 @@ xls_check_session* xlsCheckSessionCreate(const xls_session_limits* limits)
     return s;
 }
 void xlsCheckSessionDestroy(xls_check_session* s)
-{ if(s) { xrtMapUnit(&s->documents); xlsSemanticCheckDestroy(s->result); xrtFree(s->target); xrtFree(s->directory); xrtFree(s); } }
+{ if(s) { xrtMapUnit(&s->documents); xlsSyntaxRelease(s->entrySyntax); xlsSemanticCheckDestroy(s->result); xrtFree(s->target); xrtFree(s->directory); xrtFree(s); } }
 void xlsCheckSessionStats(const xls_check_session* s,xls_check_stats* stats)
 { if(stats) *stats=s ? s->stats : (xls_check_stats){0}; }
 xls_semantic_check* xlsCheckSessionCheck(xls_check_session* s,
@@ -40,12 +42,13 @@ xls_semantic_check* xlsCheckSessionCheck(xls_check_session* s,
     int captureIndex,int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
     xmap staged={0}; char *directory=NULL,*nextTarget=NULL; xls_semantic_check* result=NULL;
+    xls_syntax* syntax=NULL;
     if(error && capacity) *error=0;
     if(!s || !documents || !count || count>s->limits.documents || !label(target) || (captureIndex!=0 && captureIndex!=1)) goto invalid;
     if(stopped(cancelled,user)) goto cancel;
     directory=xrtPathAbs("."); nextTarget=xrtStrDup(target);
     if(!directory || !nextTarget || !xrtMapInit(&staged,sizeof(binding)) || !xrtMapSetDrop(&staged,drop,NULL)) goto memory;
-    size_t bytes=0; const char* entry=NULL;
+    size_t bytes=0; const char* entry=NULL; const xls_analysis_document* entryDocument=NULL;
     int equal=s->result && s->stats.documents==count && s->captureIndex==captureIndex &&
         !strcmp(s->target,target) && !strcmp(s->directory,directory);
     xls_semantic_input inputs[64];
@@ -62,7 +65,7 @@ xls_semantic_check* xlsCheckSessionCheck(xls_check_session* s,
         if(!b.key || !b.path || !xrtMapSet(&staged,key(in->key),&b)) { drop((xbytesview){0},&b,NULL); goto memory; }
         bytes+=xlsTextSize(in->text);
         inputs[i]=(xls_semantic_input){in->path,xlsTextData(in->text),xlsTextSize(in->text)};
-        if(!strcmp(in->key,target)) entry=in->path;
+        if(!strcmp(in->key,target)) { entry=in->path; entryDocument=in; }
     }
     if(!entry) goto invalid;
     if(equal && !xlsSemanticCheckValidate(s->result)) { equal=0; ++s->stats.invalidations; }
@@ -70,7 +73,18 @@ xls_semantic_check* xlsCheckSessionCheck(xls_check_session* s,
     if(equal) result=xlsSemanticCheckRetain(s->result);
     else {
         ++s->stats.builds;
-        result=xlsSemanticCheckCreate(entry,inputs,count,captureIndex,cancelled,user,error,capacity);
+        const binding* old=s->target && !strcmp(s->target,target) ? xrtMapConstGet(&s->documents,key(target)) : NULL;
+        const xls_syntax* previous=old && old->identity==entryDocument->identity && !strcmp(old->path,entry) ? s->entrySyntax : NULL;
+        if(previous && sameBody(old,entryDocument)) { syntax=xlsSyntaxRetain(s->entrySyntax); ++s->stats.entrySyntaxHits; }
+        else {
+            char* path=xrtPathAbs(entry); if(!path) goto memory;
+            xls_parse_work work={0}; syntax=xlsSyntaxBuild(path,entryDocument->text,previous,&work); xrtFree(path);
+            s->stats.entryFullParses+=work.full; s->stats.entryFragmentParses+=work.fragments;
+            s->stats.entryReusedDeclarations+=work.reused; s->stats.entryParsedBytes+=work.bytes;
+            if(!syntax) goto memory;
+        }
+        if(stopped(cancelled,user)) goto cancel;
+        result=xlsSemanticCheckCreateParsed(entry,inputs,count,captureIndex,syntax,cancelled,user,error,capacity);
         if(!result) goto done;
     }
     if(stopped(cancelled,user)) { xlsSemanticCheckDestroy(result); result=NULL; goto cancel; }
@@ -80,9 +94,10 @@ xls_semantic_check* xlsCheckSessionCheck(xls_check_session* s,
     xrtFree(s->directory); s->directory=directory; directory=NULL;
     xlsSemanticCheckDestroy(s->result); s->result=xlsSemanticCheckRetain(result);
     s->captureIndex=captureIndex; s->stats.documents=count; s->stats.textBytes=bytes;
+    if(syntax) { xlsSyntaxRelease(s->entrySyntax); s->entrySyntax=syntax; syntax=NULL; }
     goto done;
 invalid: fail(error,capacity,"invalid semantic batch identity, revision, path or capacity"); goto done;
 memory: fail(error,capacity,"cannot retain semantic input batch"); goto done;
 cancel: fail(error,capacity,"semantic session cancelled");
-done: xrtMapUnit(&staged); xrtFree(directory); xrtFree(nextTarget); return result;
+done: xlsSyntaxRelease(syntax); xrtMapUnit(&staged); xrtFree(directory); xrtFree(nextTarget); return result;
 }
