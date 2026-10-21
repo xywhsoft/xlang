@@ -142,11 +142,15 @@ static int verify(void* user)
  CHECK(xideEditorClose(&app,xl,1,&error) && settle(&app) && !v->result); xide_document* reused=xideDocumentNew(&app.documents,"c",&error);
  CHECK(reused==xl && reused->id!=oldId && xideEditorShow(&app,reused)==XUI_OK && idle(&app,150) && !v->wanted && !v->result);
  xide_text_file original={0}; CHECK(xideTextFileRead(entry,&original,&error) && !strcmp(original.text,saved)); xideTextFileClear(&original); CHECK(xideTextFileRead(dep,&original,&error) && !strcmp(original.text,helper)); xideTextFileClear(&original);
- /* An older compiler returns no semantic items, retaining native catalog help. */
+ /* Native analysis is independent of the selected execution compiler. An
+    older external LS still keeps its existing catalog fallback behavior. */
  xgeEnd(); began=0; xideAppDestroy(&app); memset(&app,0,sizeof(app)); app.hidden=1; app.noSession=1; app.compilerPath=f->legacy;
  CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1; CHECK(xideEditorOpen(&app,entry,&error) && settle(&app)); xl=app.activeDocument; v=app.completionView;
+ CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app));
+ if(v->nativeBackend) { CHECK(has(v,"zzResult") && v->count==1); }
+ else { CHECK(!v->count); }
  CHECK(prepare(&app,xl,"math.sq","math.sq",7) && invoke(&app) && !v->count && xuiCodeEditIsCompletionOpen(xl->editor) && key(&app,XUI_KEY_ENTER,0) && !strcmp(xuiCodeEditGetText(xl->editor),"math.sqrt"));
- printf("completion_view_test passed: %d native assertions; whole-token Enter/Tab and undo, BOM/CRLF/Unicode, dot trigger, real overloads and shadowing, unsaved dependencies, malformed responses, typing refresh, Esc/caret/focus/tab/edit/close/reuse/C rejection, modal/environment, static-name deduplication, concurrent diagnostics, source guard, restart and old-compiler catalog fallback; renders in %s.\n",f->checks,root);
+ printf("completion_view_test passed: %d native assertions; native-backend=%d; whole-token Enter/Tab and undo, BOM/CRLF/Unicode, dot trigger, real overloads and shadowing, unsaved dependencies, malformed responses, typing refresh, Esc/caret/focus/tab/edit/close/reuse/C rejection, modal/environment, static-name deduplication, concurrent diagnostics, source guard, restart and old-compiler compatibility; renders in %s.\n",f->checks,v->nativeBackend,root);
 cleanup:
  if(packageTouched) { wchar_t restore[32768]; if(!previousPackage || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,previousPackage,-1,restore,32768)) SetEnvironmentVariableW(L"XLANG_PACKAGE_PATH",previousPackage ? restore : NULL); } free(previousPackage);
  free(composed); xrtValueRelease(fake); xrtValueRelease(valid); if(began) xgeEnd(); xideAppDestroy(&app); free(root); free(entry); free(dep); free(disk); free(native); free(light); free(dark); free(canonicalChinese); xgeQuit(); return XGE_OK;

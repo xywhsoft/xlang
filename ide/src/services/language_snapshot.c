@@ -1,5 +1,5 @@
 /* Immutable open-document overlays and verified per-file diagnostics.
-   Worker-only disk/process work; the fixed xge.dll remains the sole XRT. */
+   Runtime is owned by XGE in the GUI, compiler XRT in the standalone LS. */
 #include "services/language_check_internal.h"
 #include "services/semantic_completion.h"
 #include "services/c_bridge_map.h"
@@ -11,6 +11,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <limits.h>
+#ifdef XLS_COMPILER_XRT
+#include "analysis/semantic.h"
+static int nativeCancelled(void* user);
+#endif
 #define FILE_LIMIT (8u*1024u*1024u)
 #define GRAPH_LIMIT (64u*1024u*1024u)
 #define OUTPUT_LIMIT (4u*1024u*1024u)
@@ -22,6 +26,26 @@ static const char* string(const xvalue* v) { xstrview s={0}; return v && xrtValu
 static int put(xvalue* o,const char* key,xvalue* value) { return value && xrtValueObjectSetNew(o,sv(key),value); }
 static int fail(xide_model_error* e,const char* message) { e->code=XIDE_MODEL_INVALID; snprintf(e->message,sizeof(e->message),"%s",message); return 0; }
 static int cancelled(xide_language_check* q) { return InterlockedCompareExchange(&q->cancel,0,0)!=0 || (q->externalCancel && q->externalCancel(q->externalUser)); }
+#ifdef XLS_COMPILER_XRT
+static int nativeCancelled(void* user) { return cancelled(user); }
+static int nativeCompletion(xide_language_check* q,char** json,int* code,xide_model_error* e)
+{
+ xls_semantic_input inputs[64];
+ for(size_t i=0;i<q->snapshotCount;++i) inputs[i]=(xls_semantic_input){q->snapshots[i].path,q->snapshots[i].text,strlen(q->snapshots[i].text)};
+ xls_semantic_completion* result=xlsSemanticCompletionCreate(q->path,q->queryPath,(size_t)q->queryOffset,
+  inputs,q->snapshotCount,nativeCancelled,q,e->message,sizeof(e->message));
+ if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
+ size_t size=0; char* report=xlsSemanticCompletionJson(result,&size);
+ *code=xlsSemanticCompletionInfo(result).available ? 0 : 1;
+ /* Keep the legacy adapter's malloc ownership at this one compatibility
+    boundary; the analysis API itself has typed facts and explicit ownership. */
+ if(report && size<=12u*1024u*1024u && !cancelled(q)) {
+  *json=malloc(size+1); if(*json) memcpy(*json,report,size+1);
+ }
+ xlsSemanticStringFree(report); xlsSemanticCompletionDestroy(result);
+ return *json!=NULL;
+}
+#endif
 static int integer(const xvalue* v,int64* n,int64 min,int64 max) { return xrtValueGetInt(v,n) && *n>=min && *n<=max; }
 static int hash(const void* bytes,size_t size,const xvalue* value)
 {
@@ -161,7 +185,7 @@ int xideLanguageSnapshotGuard(xide_language_check* q,xide_model_error* e)
   const xvalue* p=xrtValueArrayGet(probes,i); bool exists=false; xrtValueGetBool(get(p,"exists"),&exists);
   if((xrtFileExists((char*)string(get(p,"path")))!=0)!=exists) return fail(e,"发布后导入候选的普通文件状态已变化。");
  }
- return !cancelled(q) && xideToolchainValidate(q->compiler,&q->guardToolchain,e);
+ return !cancelled(q) && (q->nativeSemantic || xideToolchainValidate(q->compiler,&q->guardToolchain,e));
 }
 static xvalue* position(int line,int character)
 { xvalue* out=xrtValueObject(); if(!out || !put(out,"line",xrtValueInt(line)) || !put(out,"character",xrtValueInt(character))) { xrtValueRelease(out); return NULL; } return out; }
@@ -232,6 +256,12 @@ int xideLanguageSnapshotRun(xide_language_check* q,xvalue** output,xide_model_er
  const char* args[2560]={"check",q->path,"--json","--source-report"}; size_t count=4; int code=0,success=0; bool okay=false; uint64_t began=GetTickCount64();
  if(cancelled(q) || !xideLanguageCheckPackagePath(&q->packagePath,e)) goto done;
  q->packagePathCaptured=1;
+#ifdef XLS_COMPILER_XRT
+ if(q->nativeSemantic) {
+  if(!q->queryPath || q->nativeBridge || !nativeCompletion(q,&json,&code,e)) goto done;
+  goto analysed;
+ }
+#endif
  if(!xideToolchainCapture(q->compiler,&stamp,e)) goto done;
  const char* helpArgs[]={"--help"}; if(!xideLanguageCheckRunCompiler(q,helpArgs,1,65535,&help,&code,e) || code!=0 || !xideToolchainObserve(q->cache,q->compiler,q->directory,&stamp,help,strlen(help),&profile,e)) goto done;
  uint32_t required=XIDE_TOOL_CHECK_JSON|XIDE_TOOL_CHECK_OVERLAY|XIDE_TOOL_CHECK_SOURCE_REPORT;
@@ -254,6 +284,9 @@ int xideLanguageSnapshotRun(xide_language_check* q,xvalue** output,xide_model_er
   args[count++]="--source-overlay"; args[count++]=q->snapshots[i].path; args[count++]=files[i];
  }
  if(!xideLanguageCheckRunCompiler(q,args,count,q->nativeBridge ? 80u*1024u*1024u : indexed || q->queryPath ? 12u*1024u*1024u : OUTPUT_LIMIT,&json,&code,e)) goto done;
+#ifdef XLS_COMPILER_XRT
+analysed:
+#endif
  if(q->nativeBridge) {
   xjsonreadconfig config; xrtJsonReadConfigInit(&config); config.MaxInputBytes=80u*1024u*1024u; config.MaxStringBytes=24u*1024u*1024u; config.MaxValues=2097152; config.MaxContainerItems=32768; config.MaxDepth=32; raw=xrtJsonRead(sv(json),&config);
  } else raw=xrtJsonParse(sv(json));
@@ -298,7 +331,7 @@ int xideLanguageSnapshotRun(xide_language_check* q,xvalue** output,xide_model_er
   }
  }
  if(!q->queryPath && !q->nativeBridge && !put(result,"semanticDefinitions",xrtValueBool(q->definitions!=NULL))) goto done;
- if(!validateGraph(q,&graph,e) || !xideToolchainValidate(q->compiler,&stamp,e) || cancelled(q)) goto done;
+ if(!validateGraph(q,&graph,e) || (!q->nativeSemantic && !xideToolchainValidate(q->compiler,&stamp,e)) || cancelled(q)) goto done;
  q->guardFiles=xrtValueDeepClone(get(get(raw,"sourceReport"),"files"));
  q->guardResolution=xrtValueDeepClone(get(raw,"resolutionReport")); q->guardToolchain=stamp;
  if(!q->guardFiles || !q->guardResolution) { fail(e,"无法保留发布后的输入报告。"); goto done; }
