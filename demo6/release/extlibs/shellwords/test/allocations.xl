@@ -1,0 +1,49 @@
+import shellwords
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+string line = "one 'two words' three"
+string word = "it's a long argument"
+var words = ["one", "two words", "it's three"]
+int failures = 0
+int successes = 0
+
+for operation in range(4)
+    for allocation in range(32)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        assert failAfter(uint64(allocation))
+        try
+            if operation == 0 then
+                shellwords.split(line)
+            elseif operation == 1 then
+                shellwords.quote(word)
+            elseif operation == 2 then
+                shellwords.quoteWindows(word)
+            else
+                shellwords.join(words)
+            end
+        catch MemoryError error
+            memoryCaught = true
+        catch ValueError error
+            wrongCaught = true
+        catch TypeError error
+            wrongCaught = true
+        catch RuntimeError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert not wrongCaught and memoryCaught == triggered
+        if triggered then failures += 1 else successes += 1 end
+    end
+end
+
+assert failures > 0 and successes > 0
+assert shellwords.split(line) == ["one", "two words", "three"]
+assert shellwords.quote(word) == "'it'\\''s a long argument'"
+assert shellwords.quoteWindows("a b\\") == "\"a b\\\\\""
+assert shellwords.split(shellwords.join(words)) == words
+println("shellwords allocation: PASS")

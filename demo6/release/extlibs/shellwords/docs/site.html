@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>shellwords - 扩展库 - xlang</title>
+  <meta name="description" content="命令行词法拆分、POSIX 单参数引用和 Windows CRT argv 引用。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-fmt" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / shellwords</p>
+    <h1>shellwords</h1>
+    <p class="extlib-lead">拆分命令行词法文本，或将参数编码为可安全传递的单个 shell 词。</p>
+    <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import shellwords
+
+var words = shellwords.split("tool 'two words' --flag")
+assert words[1] == "two words"
+assert shellwords.split(shellwords.join(words))[1] == "two words"
+assert shellwords.quote("A=B") == "'A=B'"
+println(shellwords.quoteWindows("a b\\"))</code></pre>
+    <p>本库只处理参数词法，不执行命令，也不做变量、通配符或命令替换。</p>
+  </section>
+  <section id="api">
+    <h2>接口</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>split(text)</code></td><td>按空白、引号和反斜杠拆分，保留空参数；不完整引号或转义报错。</td></tr>
+      <tr><td><code>quote(word)</code></td><td>按 POSIX shell 的单参数规则引用；赋值词、保留词及尾随冒号的词也整体加引号，避免在命令位置被当作语法。</td></tr>
+      <tr><td><code>join(words)</code></td><td>逐项引用字符串数组并用空格连接。</td></tr>
+      <tr><td><code>quoteWindows(word)</code></td><td>按 MSVCRT 的 <code>argv</code> 引号与反斜杠规则编码单个参数。</td></tr>
+    </tbody></table>
+    <p><code>quoteWindows</code> 不负责 <code>cmd.exe</code> 的 <code>&amp;</code>、<code>|</code>、<code>%</code> 等元字符，也不是 PowerShell 转义。POSIX C 入口保留非 NUL 的原始参数字节；Windows 入口只处理 CRT 引号，使用 <code>CreateProcessW</code> 时需由调用方转换有效 UTF-8 到 UTF-16。C 端包含 <code>extlibs/shellwords/include/xrt_shellwords.h</code>；拆分结果由调用方用 <code>xrtValueRelease</code> 释放，引用后的字符串用 <code>xrtFree</code> 释放。</p>
+  </section>
+  <section id="verify">
+    <h2>验证与边界</h2>
+    <pre><code>xl run release/extlibs/shellwords/examples/basic.c
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/shellwords/test/check.ps1 -SkipAot
+bash release/extlibs/shellwords/test/check.sh</code></pre>
+    <p>C 教学范例可直接用 xl 单文件运行；Windows/Linux 包门禁核对直跑与严格 C 编译输出一致。Windows 严格 GCC、XLang 边界与双语同输出已通过；Linux 同次覆盖 C ASan/UBSan、中央与包内 XLang 边界，并将 C/XLang 范例逐字节对照共同的 golden 文件。C 测试逐字节验证 ASCII 1–127 的 <code>split(quote(word))</code> 往返，并固定赋值词 <code>A=B</code>、<code>A+=B</code>、命令位置保留词和尾随冒号的词须整体引用；真实 <code>/bin/sh</code> 另核对参数字节及命令位置语法。测试逐点注入分配失败，验证拆分、拼接和两种引用入口的内存错误与恢复；Windows 子进程通过 <code>CreateProcessW</code> 与宽字符 <code>wmain</code> 核对 <code>quoteWindows</code> 的空参数、空格、引号、反斜杠、中文和非 BMP 字符在实际 <code>argv</code> 中往返。此验证不覆盖 <code>cmd.exe</code> 或 PowerShell 转义。C/XLang 另覆盖空参数、中文与引号混合及 UTF-8 组合字符往返。XLang 的单字符串入口遇内嵌 NUL 会拒绝，不会静默截断。完整 AOT 因主线缺少 <code>xl6ValueIndexReadCopyV1</code> 尚未签收。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

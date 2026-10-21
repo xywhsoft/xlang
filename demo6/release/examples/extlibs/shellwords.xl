@@ -1,30 +1,12 @@
 import shellwords
 
-
-
 func main(...) as int
-    // 解析一条复杂命令
-    string line = "git commit -m 'fix: handle \"edge cases\" in parser' --amend"
-    var args = shellwords.split(line)
-    println("command:", args[0])
-    println("args count:", args.length)
-    for a in args
-        println("  [", a, "]")
-    end
-
-    // 重新组装（quote 按需添加）
-    string rebuilt = shellwords.join(args)
-    println("rebuilt:", rebuilt)
-    var back = shellwords.split(rebuilt)
-    println("round trip equal count:", back.length == args.length)
-
-    // Windows 与 POSIX 引用差异
-    array<string> tricky = ["%ProgramFiles%\\app.exe", "a b", "it's", ""]
-    for w in tricky
-        println("posix:", shellwords.quote(w))
-        println("windows:", shellwords.quoteWindows(w))
-    end
-
-    println("shellwords example: PASS")
+    var words = shellwords.split("tool 'two words' \"你好\"")
+    assert words.length == 3
+    println("shellwords: " + string(words.length) + " " +
+        string(words[1]) + " " + string(words[2]))
+    println("quote: " + shellwords.quote("A=B"))
+    println("join: " + shellwords.join(words))
+    println("windows: " + shellwords.quoteWindows("a b\\"))
     return 0
 end

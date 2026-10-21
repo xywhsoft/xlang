@@ -1,298 +1,278 @@
-/*
- * shellwords_native.c - Shell-style argument splitting and quoting.
- *
- * split follows POSIX shell word rules: single quotes preserve everything,
- * double quotes preserve except $ ` \ and line continuations (kept simple
- * here: backslash escapes the next character), and unquoted backslash
- * escapes any next character. Empty results from quotes are preserved as
- * empty arguments. Unbalanced quotes report an error and return null.
- *
- * quote produces a POSIX-safe single word: wraps in single quotes and
- * escapes embedded quotes as '\'' . quoteWindows produces a double-quoted
- * Windows command line argument per MSVCRT rules.
- */
-#include <stdlib.h>
+#include "include/xrt_shellwords.h"
 #include <string.h>
-#include <stdio.h>
-
-#define XRT_MODULE_VALUE_CONTAINER
-#include "xrt.h"
 
 #define XSW_DOMAIN "xlang.extlib.shellwords"
-#define XSW_MAX_ARGS 512
-#define XSW_MAX_LEN 8192
 
-static void xsw_error(const char *message) {
-    xrtSetErrorInfo(XERR_VALUE, XSW_DOMAIN, 0, message);
+static void __xswError(const char* sMessage)
+{
+	xrtSetErrorInfo(XERR_VALUE, XSW_DOMAIN, 0, sMessage);
 }
 
-static xvalue *xsw_text(const char *s, size_t n) {
-    str owned = (str)xrtMalloc(n + 1);
-    xvalue *value;
-    if (owned == NULL) {
-        return xrtValueNull();
-    }
-    if (n > 0) {
-        memcpy(owned, s, n);
-    }
-    owned[n] = '\0';
-    value = xrtValueStringTake(&owned, n);
-    if (value == NULL && owned != NULL) {
-        xrtFree(owned);
-    }
-    return value;
+static bool __xswPush(xvalue* pWords, xbuffer* pWord)
+{
+	xvalue* pText = xrtValueString((xstrview){
+		(const char*)pWord->Data, pWord->Size });
+	if ( pText == NULL ) { return false; }
+	if ( !xrtValueArrayAppendTake(pWords, &pText) ) {
+		xrtValueRelease(pText);
+		return false;
+	}
+	xrtBufferClear(pWord);
+	return true;
 }
 
-static int xsw_is_space(int c) {
-    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+static bool __xswSpace(char c)
+{
+	return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
-xvalue *xsw_split(const char *line) {
-    xvalue *result;
-    const char *p = line;
-    char buf[XSW_MAX_LEN];
-    size_t pos = 0;
-    int inSingle = 0;
-    int inDouble = 0;
-    int started = 0;
-
-    result = xrtValueArray();
-    if (result == NULL) {
-        return xrtValueNull();
-    }
-    if (line == NULL) {
-        xsw_error("split input is null");
-        return xrtValueNull();
-    }
-    while (*p != '\0') {
-        int c = (unsigned char)*p;
-        if (inSingle) {
-            if (c == '\'') {
-                inSingle = 0;
-            } else {
-                if (pos < sizeof(buf)) buf[pos++] = (char)c;
-            }
-        } else if (inDouble) {
-            if (c == '"') {
-                inDouble = 0;
-            } else if (c == '\\' &&
-                       (p[1] == '"' || p[1] == '\\' || p[1] == '\n')) {
-                if (p[1] == '\n') {
-                    p++;
-                } else {
-                    if (pos < sizeof(buf)) buf[pos++] = p[1];
-                    p++;
-                }
-            } else {
-                if (pos < sizeof(buf)) buf[pos++] = (char)c;
-            }
-        } else if (xsw_is_space(c)) {
-            if (started) {
-                if (xrtValueCount(result) >= XSW_MAX_ARGS) {
-                    xsw_error("too many arguments");
-                    return xrtValueNull();
-                }
-                if (!xrtValueArrayAppendNew(result, xsw_text(buf, pos))) {
-                    return xrtValueNull();
-                }
-                pos = 0;
-                started = 0;
-            }
-        } else if (c == '\'') {
-            inSingle = 1;
-            started = 1;
-        } else if (c == '"') {
-            inDouble = 1;
-            started = 1;
-        } else if (c == '\\' && p[1] != '\0') {
-            if (pos < sizeof(buf)) buf[pos++] = p[1];
-            p++;
-            started = 1;
-        } else {
-            if (pos < sizeof(buf)) buf[pos++] = (char)c;
-            started = 1;
-        }
-        p++;
-    }
-    if (inSingle || inDouble) {
-        xsw_error("unbalanced quotes");
-        return xrtValueNull();
-    }
-    if (started) {
-        if (!xrtValueArrayAppendNew(result, xsw_text(buf, pos))) {
-            return xrtValueNull();
-        }
-    }
-    if (result == NULL || xrtValueType(result) != XVALUE_ARRAY) {
-        return xrtValueNull();
-    }
-    return result;
+/* 不执行变量展开、通配符或命令替换，只处理词法引号与转义。 */
+xvalue* xrtShellwordsSplit(cstr sLine)
+{
+	xvalue* pWords = NULL;
+	xbuffer* pWord = NULL;
+	bool bStarted = false;
+	char cQuote = 0;
+	const char* p;
+	xrtClearError();
+	if ( sLine == NULL ) {
+		__xswError("shellwords input is null");
+		return xrtValueNull();
+	}
+	pWords = xrtValueArray();
+	pWord = xrtBufferCreate();
+	if ( pWords == NULL || pWord == NULL ) { goto fail; }
+	for ( p = sLine; *p != 0; ++p ) {
+		char c = *p;
+		if ( cQuote == '\'' ) {
+			if ( c == '\'' ) { cQuote = 0; }
+			else if ( !xrtBufferAppendByte(pWord, (uint8)c) ) { goto fail; }
+			continue;
+		}
+		if ( cQuote == '"' ) {
+			if ( c == '"' ) { cQuote = 0; continue; }
+			if ( c == '\\' && p[1] != 0 &&
+				(p[1] == '$' || p[1] == '`' || p[1] == '"' ||
+				p[1] == '\\' || p[1] == '\n') ) {
+				++p;
+				if ( *p == '\n' ) { continue; }
+				c = *p;
+			}
+			if ( !xrtBufferAppendByte(pWord, (uint8)c) ) { goto fail; }
+			continue;
+		}
+		if ( __xswSpace(c) ) {
+			if ( bStarted && !__xswPush(pWords, pWord) ) { goto fail; }
+			bStarted = false;
+			continue;
+		}
+		if ( c == '\'' || c == '"' ) {
+			cQuote = c;
+			bStarted = true;
+			continue;
+		}
+		if ( c == '\\' ) {
+			if ( p[1] == 0 ) {
+				__xswError("shellwords ends with an escape character");
+				goto fail;
+			}
+			++p;
+			if ( *p == '\n' ) { continue; }
+			c = *p;
+		}
+		if ( !xrtBufferAppendByte(pWord, (uint8)c) ) { goto fail; }
+		bStarted = true;
+	}
+	if ( cQuote != 0 ) {
+		__xswError("shellwords has unbalanced quotes");
+		goto fail;
+	}
+	if ( bStarted && !__xswPush(pWords, pWord) ) { goto fail; }
+	xrtBufferDestroy(pWord);
+	return pWords;
+fail:
+	xrtBufferDestroy(pWord);
+	xrtValueRelease(pWords);
+	return xrtValueNull();
 }
 
-const char *xsw_quote(const char *word) {
-    static char ring[4][XSW_MAX_LEN];
-    static int next = 0;
-    char *out = ring[next];
-    size_t pos = 0;
-    const char *p = word;
-    next = (next + 1) % 4;
-    if (word == NULL) {
-        out[0] = '\0';
-        return out;
-    }
-    /* plain safe words need no quoting */
-    {
-        int plain = p[0] != '\0';
-        const char *q = p;
-        while (*q != '\0') {
-            if (!((*q >= 'a' && *q <= 'z') || (*q >= 'A' && *q <= 'Z') ||
-                  (*q >= '0' && *q <= '9') ||
-                  *q == '-' || *q == '_' || *q == '.' || *q == '/' ||
-                  *q == '=' || *q == ':' || *q == ',' || *q == '+')) {
-                plain = 0;
-                break;
-            }
-            q++;
-        }
-        if (plain) {
-            strncpy(out, p, XSW_MAX_LEN - 1);
-            out[XSW_MAX_LEN - 1] = '\0';
-            return out;
-        }
-    }
-    if (pos < XSW_MAX_LEN - 1) out[pos++] = '\'';
-    while (*p != '\0' && pos < XSW_MAX_LEN - 4) {
-        if (*p == '\'') {
-            out[pos++] = '\'';
-            out[pos++] = '\\';
-            out[pos++] = '\'';
-            out[pos++] = '\'';
-        } else {
-            out[pos++] = *p;
-        }
-        p++;
-    }
-    if (pos < XSW_MAX_LEN - 1) out[pos++] = '\'';
-    out[pos] = '\0';
-    return out;
+static str __xswTake(xbuffer* pBuffer)
+{
+	str sResult;
+	if ( !xrtBufferAppendByte(pBuffer, 0u) ) { return NULL; }
+	sResult = (str)xrtBufferTake(pBuffer, NULL, NULL);
+	return sResult;
 }
 
-const char *xsw_quote_windows(const char *word) {
-    static char ring[4][XSW_MAX_LEN];
-    static int next = 0;
-    char *out = ring[next];
-    size_t pos = 0;
-    const char *p = word;
-    size_t backslashes = 0;
-    int needsQuotes = 0;
-    next = (next + 1) % 4;
-    if (word == NULL) {
-        out[0] = '\0';
-        return out;
-    }
-    /* quoting needed for space, tab, quote, or empty */
-    {
-        const char *q = p;
-        if (*q == '\0') {
-            needsQuotes = 1;
-        }
-        while (*q != '\0') {
-            if (*q == ' ' || *q == '\t' || *q == '"') {
-                needsQuotes = 1;
-                break;
-            }
-            q++;
-        }
-    }
-    if (!needsQuotes) {
-        strncpy(out, p, XSW_MAX_LEN - 1);
-        out[XSW_MAX_LEN - 1] = '\0';
-        return out;
-    }
-    if (pos < XSW_MAX_LEN - 1) out[pos++] = '"';
-    while (*p != '\0' && pos < XSW_MAX_LEN - 4) {
-        if (*p == '\\' || *p == '"') {
-            backslashes = 0;
-            while (*p == '\\') {
-                backslashes++;
-                p++;
-            }
-            if (*p == '"') {
-                size_t i;
-                for (i = 0; i < backslashes * 2 + 1 && pos < XSW_MAX_LEN - 2;
-                     i++) {
-                    out[pos++] = '\\';
-                }
-                out[pos++] = '"';
-                p++;
-            } else {
-                size_t i;
-                for (i = 0; i < backslashes && pos < XSW_MAX_LEN - 1; i++) {
-                    out[pos++] = '\\';
-                }
-            }
-        } else {
-            out[pos++] = *p++;
-        }
-    }
-    /* trailing backslashes before the closing quote double up */
-    {
-        size_t tail = 0;
-        while (tail < pos && out[pos - 1 - tail] == '\\') {
-            tail++;
-        }
-        if (tail > 0 && pos + tail < XSW_MAX_LEN - 1) {
-            size_t i;
-            for (i = 0; i < tail; i++) {
-                out[pos++] = '\\';
-            }
-        }
-    }
-    if (pos < XSW_MAX_LEN - 1) out[pos++] = '"';
-    out[pos] = '\0';
-    return out;
+static bool __xswSafe(char c)
+{
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+		(c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' ||
+		c == '/' || c == '=' || c == ':' || c == ',' || c == '+';
 }
 
-const char *xsw_join(xvalue *words) {
-    static char ring[2][XSW_MAX_LEN];
-    static int next = 0;
-    char *out = ring[next];
-    size_t pos = 0;
-    int64 i;
-    int64 n;
-    next = (next + 1) % 2;
-    out[0] = '\0';
-    if (words == NULL || xrtValueType(words) != XVALUE_ARRAY) {
-        xsw_error("join requires an array of strings");
-        return out;
-    }
-    n = xrtValueCount(words);
-    for (i = 0; i < n; ++i) {
-        xvalue *item = xrtValueArrayAt(words, i);
-        xstrview text;
-        const char *quoted;
-        if (item == NULL || !xrtValueGetString(item, &text)) {
-            xsw_error("join entries must be strings");
-            out[0] = '\0';
-            return out;
-        }
-        {
-            char word[XSW_MAX_LEN / 4];
-            if (text.Size >= sizeof(word)) text.Size = sizeof(word) - 1;
-            memcpy(word, text.Data, text.Size);
-            word[text.Size] = '\0';
-            quoted = xsw_quote(word);
-        }
-        if (i > 0 && pos < XSW_MAX_LEN - 1) {
-            out[pos++] = ' ';
-        }
-        {
-            size_t len = strlen(quoted);
-            if (pos + len >= XSW_MAX_LEN) break;
-            memcpy(out + pos, quoted, len);
-            pos += len;
-        }
-    }
-    out[pos] = '\0';
-    return out;
+/* 命令位置的保留词即使只含安全字符，也必须保留引用标记。 */
+static bool __xswReserved(const char* sWord, size_t iSize)
+{
+	static const char* const Words[] = {
+		"case", "do", "done", "elif", "else", "esac", "fi", "for",
+		"if", "in", "then", "until", "while", "function", "namespace",
+		"select", "time", "coproc"
+	};
+	size_t i;
+	for ( i = 0u; i < sizeof(Words) / sizeof(Words[0]); ++i ) {
+		if ( strlen(Words[i]) == iSize &&
+			memcmp(Words[i], sWord, iSize) == 0 ) { return true; }
+	}
+	return false;
 }
+
+static str __xswQuote(const char* sWord, size_t iSize)
+{
+	xbuffer* pOutput;
+	size_t i;
+	bool bSafe;
+	bool bName;
+	str sResult = NULL;
+	pOutput = xrtBufferCreate();
+	if ( pOutput == NULL ) { return NULL; }
+	bSafe = iSize != 0u && sWord[iSize - 1u] != ':' &&
+		!__xswReserved(sWord, iSize);
+	bName = iSize != 0u &&
+		((sWord[0] >= 'a' && sWord[0] <= 'z') ||
+		 (sWord[0] >= 'A' && sWord[0] <= 'Z') || sWord[0] == '_');
+	for ( i = 0u; i < iSize; ++i ) {
+		if ( !__xswSafe(sWord[i]) ) { bSafe = false; break; }
+		/* POSIX 的 NAME=value 和 Bash 的 NAME+=value 都不是普通参数。 */
+		if ( bName && (sWord[i] == '=' ||
+			(sWord[i] == '+' && i + 1u < iSize && sWord[i + 1u] == '=')) ) {
+			bSafe = false;
+			break;
+		}
+		bName = bName &&
+			((sWord[i] >= 'a' && sWord[i] <= 'z') ||
+			 (sWord[i] >= 'A' && sWord[i] <= 'Z') ||
+			 (sWord[i] >= '0' && sWord[i] <= '9') || sWord[i] == '_');
+	}
+	if ( bSafe ) {
+		if ( !xrtBufferAppend(pOutput, (xbytesview){
+			(cbytes)sWord, iSize }) ) {
+			goto cleanup;
+		}
+	} else {
+		if ( !xrtBufferAppendByte(pOutput, '\'') ) { goto cleanup; }
+		for ( i = 0u; i < iSize; ++i ) {
+			if ( sWord[i] == '\'' ) {
+				if ( !xrtBufferAppend(pOutput, (xbytesview){
+					(cbytes)"'\\''", 4u }) ) {
+					goto cleanup;
+				}
+			} else if ( !xrtBufferAppendByte(pOutput, (uint8)sWord[i]) ) {
+				goto cleanup;
+			}
+		}
+		if ( !xrtBufferAppendByte(pOutput, '\'') ) { goto cleanup; }
+	}
+	sResult = __xswTake(pOutput);
+cleanup:
+	xrtBufferDestroy(pOutput);
+	return sResult;
+}
+
+str xrtShellwordsQuote(cstr sWord)
+{
+	xrtClearError();
+	if ( sWord == NULL ) { __xswError("shellwords word is null"); return NULL; }
+	return __xswQuote(sWord, strlen(sWord));
+}
+
+static bool __xswSlashes(xbuffer* pOutput, size_t iCount)
+{
+	while ( iCount-- != 0u ) {
+		if ( !xrtBufferAppendByte(pOutput, '\\') ) { return false; }
+	}
+	return true;
+}
+
+/* 仅编码 MSVCRT argv 规则；不负责 cmd.exe 的元字符转义。 */
+str xrtShellwordsQuoteWindows(cstr sWord)
+{
+	xbuffer* pOutput;
+	const char* p;
+	bool bQuote;
+	size_t iSlashes = 0u;
+	str sResult = NULL;
+	xrtClearError();
+	if ( sWord == NULL ) { __xswError("shellwords word is null"); return NULL; }
+	bQuote = sWord[0] == 0 || strpbrk(sWord, " \t\r\n\"") != NULL;
+	pOutput = xrtBufferCreate();
+	if ( pOutput == NULL ) { return NULL; }
+	if ( !bQuote ) {
+		if ( !xrtBufferAppend(pOutput, (xbytesview){
+			(cbytes)sWord, strlen(sWord) }) ) {
+			goto cleanup;
+		}
+		sResult = __xswTake(pOutput);
+		goto cleanup;
+	}
+	if ( !xrtBufferAppendByte(pOutput, '"') ) { goto cleanup; }
+	for ( p = sWord; *p != 0; ++p ) {
+		if ( *p == '\\' ) { ++iSlashes; continue; }
+		if ( *p == '"' ) {
+			if ( iSlashes > (SIZE_MAX - 1u) / 2u ||
+				!__xswSlashes(pOutput, iSlashes * 2u + 1u) ||
+				!xrtBufferAppendByte(pOutput, '"') ) { goto cleanup; }
+		} else if ( !__xswSlashes(pOutput, iSlashes) ||
+			!xrtBufferAppendByte(pOutput, (uint8)*p) ) { goto cleanup; }
+		iSlashes = 0u;
+	}
+	if ( iSlashes > SIZE_MAX / 2u ||
+		!__xswSlashes(pOutput, iSlashes * 2u) ||
+		!xrtBufferAppendByte(pOutput, '"') ) { goto cleanup; }
+	sResult = __xswTake(pOutput);
+cleanup:
+	xrtBufferDestroy(pOutput);
+	return sResult;
+}
+
+str xrtShellwordsJoin(const xvalue* pWords)
+{
+	xbuffer* pOutput;
+	size_t i;
+	str sResult = NULL;
+	xrtClearError();
+	if ( xrtValueType(pWords) != XVALUE_ARRAY ) {
+		__xswError("shellwords join requires an array");
+		return NULL;
+	}
+	pOutput = xrtBufferCreate();
+	if ( pOutput == NULL ) { return NULL; }
+	for ( i = 0u; i < xrtValueCount(pWords); ++i ) {
+		xstrview Text;
+		xvalue* pValue = xrtValueArrayGet(pWords, i);
+		str sQuoted;
+		if ( !xrtValueGetString(pValue, &Text) ||
+			memchr(Text.Data, 0, Text.Size) != NULL ) {
+			__xswError("shellwords join entries must be strings without NUL");
+			goto cleanup;
+		}
+		sQuoted = __xswQuote(Text.Data, Text.Size);
+		if ( sQuoted == NULL ) { goto cleanup; }
+		if ( (i != 0u && !xrtBufferAppendByte(pOutput, ' ')) ||
+			!xrtBufferAppend(pOutput, (xbytesview){
+				(cbytes)sQuoted, strlen(sQuoted) }) ) {
+			xrtFree(sQuoted);
+			goto cleanup;
+		}
+		xrtFree(sQuoted);
+	}
+	sResult = __xswTake(pOutput);
+cleanup:
+	xrtBufferDestroy(pOutput);
+	return sResult;
+}
+
+/* point 返回值由 XLang 的 take_cstr 接管；C 调用方使用上述 xrt API。 */
+void* xsw_quote(cstr sWord) { return xrtShellwordsQuote(sWord); }
+void* xsw_quote_windows(cstr sWord) { return xrtShellwordsQuoteWindows(sWord); }
+void* xsw_join(xvalue* pWords) { return xrtShellwordsJoin(pWords); }

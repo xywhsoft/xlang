@@ -1,0 +1,84 @@
+import shellwords
+
+func main(...) as int
+    string longWord = string.repeat("x", 12000)
+    assert shellwords.quote(longWord) == longWord, "long quote"
+    var parsed = shellwords.split(longWord)
+    assert parsed.length == 1 and parsed[0] == longWord, "long split"
+
+    var words = []
+    words.append(longWord)
+    int i = 0
+    while i < 600
+        words.append("x")
+        i += 1
+    end
+    parsed = shellwords.split(shellwords.join(words))
+    assert parsed.length == 601 and parsed[0] == longWord and parsed[600] == "x", "many words and long join"
+
+    string first = shellwords.quote("a b")
+    string second = shellwords.quote("it's")
+    assert first == "'a b'" and second == "'it'\\''s'", "POSIX quote"
+    assert shellwords.quote("A=B") == "'A=B'", "assignment word must be quoted"
+    assert shellwords.quote("A+=B") == "'A+=B'", "append assignment word must be quoted"
+    assert shellwords.quote("if") == "'if'", "reserved word must be quoted"
+    assert shellwords.quote("time") == "'time'", "optional reserved word must be quoted"
+    assert shellwords.quote("coproc") == "'coproc'", "Bash reserved word must be quoted"
+    assert shellwords.quote("label:") == "'label:'", "trailing colon must be quoted"
+    assert shellwords.quote("a:b") == "a:b", "internal colon remains ordinary"
+    assert shellwords.join(["if", "then"]) == "'if' 'then'", "join must quote reserved words"
+    assert shellwords.quote("a-b_c.d/e=f:g,h+i") == "a-b_c.d/e=f:g,h+i", "ordinary equals remains safe"
+    var multilingual = ["", "你好 世界", "it's 中文", "café", "🙂\t参数"]
+    parsed = shellwords.split(shellwords.join(multilingual))
+    assert parsed.length == multilingual.length, "UTF-8 argument count"
+    for index in range(multilingual.length)
+        assert parsed[index] == multilingual[index], "UTF-8 quote/join round trip"
+    end
+    assert shellwords.quoteWindows("a b\\") == "\"a b\\\\\"", "Windows trailing slash"
+    assert shellwords.quoteWindows("a\\\"b") == "\"a\\\\\\\"b\"", "Windows slash before quote"
+
+    bool bad = false
+    try
+        shellwords.split("a\\")
+    catch ValueError e
+        bad = true
+    end
+    assert bad, "dangling escape"
+    bad = false
+    try
+        shellwords.join([1])
+    catch ValueError e
+        bad = true
+    end
+    assert bad, "non-string join"
+    bad = false
+    try
+        shellwords.split("first\0second")
+    catch ValueError e
+        bad = true
+    end
+    assert bad, "split must reject embedded NUL"
+    bad = false
+    try
+        shellwords.quote("first\0second")
+    catch ValueError e
+        bad = true
+    end
+    assert bad, "quote must reject embedded NUL"
+    bad = false
+    try
+        shellwords.quoteWindows("first\0second")
+    catch ValueError e
+        bad = true
+    end
+    assert bad, "quoteWindows must reject embedded NUL"
+    bad = false
+    try
+        shellwords.join(["first\0second"])
+    catch ValueError e
+        bad = true
+    end
+    assert bad, "join must reject embedded NUL"
+    assert shellwords.split("recovered")[0] == "recovered", "recovery"
+    return 0
+end

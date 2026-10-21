@@ -1,0 +1,4 @@
+shellwords: 3 two words 你好
+quote: 'A=B'
+join: tool 'two words' '你好'
+windows: "a b\\"
