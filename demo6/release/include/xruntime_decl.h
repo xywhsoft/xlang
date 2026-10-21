@@ -558,6 +558,9 @@
 #if !defined(XRT_FEATURE_NET_BUFFER)
 #define XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_BUFFER 1
 #endif
+#if !defined(XRT_FEATURE_NET_DIAL_FUTURE_COMMON)
+#define XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_DIAL_FUTURE_COMMON 1
+#endif
 #if !defined(XRT_FEATURE_NET_DNS)
 #define XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_DNS 1
 #endif
@@ -605,6 +608,9 @@
 #endif
 #if !defined(XRT_FEATURE_NET_PROXY_DIAL)
 #define XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_PROXY_DIAL 1
+#endif
+#if !defined(XRT_FEATURE_NET_PROXY_DIAL_FUTURE)
+#define XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_PROXY_DIAL_FUTURE 1
 #endif
 #if !defined(XRT_FEATURE_NET_PROXY_HANDSHAKE)
 #define XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_PROXY_HANDSHAKE 1
@@ -1725,6 +1731,9 @@
 #if !defined(XRT_MODULE_NET_BUFFER)
 #define XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_BUFFER 1
 #endif
+#if !defined(XRT_MODULE_NET_DIAL_FUTURE_COMMON)
+#define XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_DIAL_FUTURE_COMMON 1
+#endif
 #if !defined(XRT_MODULE_NET_DNS)
 #define XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_DNS 1
 #endif
@@ -1772,6 +1781,9 @@
 #endif
 #if !defined(XRT_MODULE_NET_PROXY_DIAL)
 #define XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_PROXY_DIAL 1
+#endif
+#if !defined(XRT_MODULE_NET_PROXY_DIAL_FUTURE)
+#define XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_PROXY_DIAL_FUTURE 1
 #endif
 #if !defined(XRT_MODULE_NET_PROXY_HANDSHAKE)
 #define XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_PROXY_HANDSHAKE 1
@@ -4512,6 +4524,19 @@
 #endif
 #endif
 
+/* net_proxy_dial_future 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_NET_PROXY_DIAL_FUTURE)
+#ifndef XRT_FEATURE_NET_PROXY_DIAL_FUTURE
+#define XRT_FEATURE_NET_PROXY_DIAL_FUTURE
+#endif
+#ifndef XRT_MODULE_NET_PROXY_DIAL
+#define XRT_MODULE_NET_PROXY_DIAL
+#endif
+#ifndef XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#define XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#endif
+#endif
+
 /* net_proxy_dial 及其直接依赖。 */
 #if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_NET_PROXY_DIAL)
 #ifndef XRT_FEATURE_NET_PROXY_DIAL
@@ -7207,8 +7232,18 @@
 #ifndef XRT_MODULE_NET_TCP_DIAL
 #define XRT_MODULE_NET_TCP_DIAL
 #endif
-#ifndef XRT_MODULE_FUTURE
-#define XRT_MODULE_FUTURE
+#ifndef XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#define XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#endif
+#endif
+
+/* net_dial_future_common 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_NET_DIAL_FUTURE_COMMON)
+#ifndef XRT_FEATURE_NET_DIAL_FUTURE_COMMON
+#define XRT_FEATURE_NET_DIAL_FUTURE_COMMON
+#endif
+#ifndef XRT_MODULE_NET_TCP
+#define XRT_MODULE_NET_TCP
 #endif
 #ifndef XRT_MODULE_FUTURE_BRIDGE
 #define XRT_MODULE_FUTURE_BRIDGE
@@ -21492,6 +21527,7 @@ XRT_EXTERN_C_END
 
 #if defined(XRT_FEATURE_NET_TCP_DIAL_FUTURE) && \
 	(!defined(XRT_FEATURE_NET_TCP_DIAL) || \
+	 !defined(XRT_FEATURE_NET_DIAL_FUTURE_COMMON) || \
 	 !defined(XRT_FEATURE_FUTURE) || \
 	 !defined(XRT_FEATURE_FUTURE_BRIDGE))
 	#error "XRT TCP Dial Future support requires TCP Dial, Future and Future bridge support"
@@ -21585,6 +21621,17 @@ typedef struct xnetstreamevents {
 	void (*Close)(xnetstream* pStream, xnetresult Result,
 		const xerror* pError, ptr pData);
 } xnetstreamevents;
+
+/* One explicit event-data owner. A successful SetEventsOwned consumes ONE
+ * actual Data reference; failure consumes none. Callbacks borrow that owner.
+ * Replacement/close drops it on the same Worker AFTER the current task's
+ * callback stack has returned. Descriptor and code must remain resident. */
+typedef struct xnetstreameventsownershipv1 {
+	size_t size;
+	xnetstreamevents Events;
+	void (*Drop)(const void* pData);
+	const xrtownershipops* Ops;
+} xnetstreameventsownershipv1;
 
 
 
@@ -21890,6 +21937,13 @@ XRT_API const xrtownershipquiescencev1* xrtNetStreamOwnershipQuiescenceV1Get(voi
 XRT_API const xrtownershipquiescencev1* xrtNetListenerOwnershipQuiescenceV1Get(void);
 XRT_API const xrtownershipadapterv1* xrtNetStreamOwnershipAdapterV1(
 	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+/* V1 refuses owned event data. V2 additionally admits exact, separately
+ * supplied event-policy identities before inspecting any context metadata.
+ * Retired callback tails remain BUSY until real Worker drain, never a fake
+ * zero count or a hidden context reference. Failure leaves output untouched. */
+XRT_API const xrtownershipadapterv1* xrtNetStreamOwnershipAdapterV2(
+	xrtownershipref Reference, const xnetstreameventsownershipv1* const* pPolicies,
+	size_t iPolicyCount, const xrtownershippreparationv1** ppPreparation);
 XRT_API const xrtownershipadapterv1* xrtNetListenerOwnershipAdapterV1(
 	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
 
@@ -22096,6 +22150,12 @@ XRT_API bool xrtNetStreamSetEvents(
 	const xnetstreamevents* pEvents,
 	ptr pData
 );
+
+/* Worker-only, open Stream. Allocates one uniquely owned binding, not one
+ * allocation per event/packet. SetData cannot overwrite an owned binding.
+ * Legacy SetEvents may replace it, but does not retain its borrowed new Data. */
+XRT_API bool xrtNetStreamSetEventsOwnedV1(xnetstream* pStream, ptr pData,
+	const xnetstreameventsownershipv1* pPolicy);
 
 
 
@@ -29706,6 +29766,12 @@ XRT_EXTERN_C_END
 #if defined(XRT_FEATURE_NET_PROXY_DIAL)
 #endif
 
+#if defined(XRT_FEATURE_NET_PROXY_DIAL_FUTURE)
+	#if !defined(XRT_FEATURE_NET_PROXY_DIAL) || !defined(XRT_FEATURE_NET_DIAL_FUTURE_COMMON)
+		#error "Proxy Dial Future requires Proxy Dial and the shared Dial Future producer"
+	#endif
+#endif
+
 
 
 #if defined(XRT_FEATURE_NET_PROXY) && !defined(XRT_FEATURE_NET)
@@ -29892,6 +29958,15 @@ typedef void (*xnetproxydialproc)(
 	ptr pData
 );
 
+/* Success consumes one actual callback-data reference. Done borrows it;
+ * Drop follows its real callback tail. Failed submission consumes none. */
+typedef struct xnetproxydialownershipv1 {
+	size_t size;
+	xnetproxydialproc Done;
+	void (*Drop)(const void* pData);
+	const xrtownershipops* Ops;
+} xnetproxydialownershipv1;
+
 #endif
 
 
@@ -30044,6 +30119,19 @@ XRT_API xnetproxydial* xrtNetProxyDial(
 	ptr pDoneData
 );
 
+XRT_API xnetproxydial* xrtNetProxyDialOwnedV1(xnetengine* pEngine, xnetresolver* pResolver,
+	const xnetproxy* pProxy, cstr sTargetHost, uint16 iTargetPort,
+	const xnetproxydialconfig* pConfig, const xnetstreamevents* pStreamEvents,
+	ptr pStreamData, ptr pDoneData, const xnetproxydialownershipv1* pPolicy);
+XRT_API xrtownershipref xrtNetProxyDialOwnership(const xnetproxydial* pDial);
+XRT_API const xrtownershipquiescencev1* xrtNetProxyDialOwnershipQuiescenceV1Get(void);
+XRT_API const xnetruntimeownershipv1* xrtNetProxyDialRuntimeOwnershipV1Get(void);
+XRT_API const xnetdialownershipv1* xrtNetProxyDialTransportOwnershipV1Get(void);
+XRT_API const xnetstreameventsownershipv1* xrtNetProxyDialStreamOwnershipV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtNetProxyDialOwnershipAdapterV1(xrtownershipref Reference,
+	const xnetproxydialownershipv1* const* pPolicies, size_t iPolicyCount,
+	const xrtownershippreparationv1** ppPreparation);
+
 
 
 /* 增加 Proxy Dial 引用并返回原指针。 */
@@ -30084,6 +30172,22 @@ XRT_API bool xrtNetProxyDialStats(
 #endif
 
 
+
+#if defined(XRT_FEATURE_NET_PROXY_DIAL_FUTURE)
+/* Success holds one Stream; Value borrows it, Ref acquires another owner.
+ * Cancel requests the real native operation and waits for its actual terminal
+ * callback. No per-wait thread, coroutine stack or synthetic terminal state. */
+XRT_API xfuture* xrtNetProxyDialAsync(xnetengine* pEngine, xnetresolver* pResolver,
+	const xnetproxy* pProxy, cstr sTargetHost, uint16 iTargetPort,
+	const xnetproxydialconfig* pConfig, const xnetstreamevents* pStreamEvents, ptr pStreamData);
+XRT_API const xfutureproducerownershipv1* xrtNetProxyDialFutureProducerPolicyV1Get(void);
+XRT_API const xcancelwatchownershipv1* xrtNetProxyDialFutureCancelPolicyV1Get(void);
+XRT_API const xnetproxydialownershipv1* xrtNetProxyDialFutureDialPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtNetProxyDialFuturePayloadPolicyV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtNetProxyDialFutureOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtNetProxyDialFutureOwnershipAdapterV1(
+	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+#endif
 
 XRT_EXTERN_C_END
 
@@ -51300,6 +51404,10 @@ XRT_EXTERN_C_END
 #undef XRT_FEATURE_NET_BUFFER
 #undef XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_BUFFER
 #endif
+#if defined(XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_DIAL_FUTURE_COMMON)
+#undef XRT_FEATURE_NET_DIAL_FUTURE_COMMON
+#undef XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_DIAL_FUTURE_COMMON
+#endif
 #if defined(XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_DNS)
 #undef XRT_FEATURE_NET_DNS
 #undef XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_DNS
@@ -51363,6 +51471,10 @@ XRT_EXTERN_C_END
 #if defined(XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_PROXY_DIAL)
 #undef XRT_FEATURE_NET_PROXY_DIAL
 #undef XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_PROXY_DIAL
+#endif
+#if defined(XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_PROXY_DIAL_FUTURE)
+#undef XRT_FEATURE_NET_PROXY_DIAL_FUTURE
+#undef XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_PROXY_DIAL_FUTURE
 #endif
 #if defined(XRT_DECLARATIONS_RESTORE_XRT_FEATURE_NET_PROXY_HANDSHAKE)
 #undef XRT_FEATURE_NET_PROXY_HANDSHAKE
@@ -52856,6 +52968,10 @@ XRT_EXTERN_C_END
 #undef XRT_MODULE_NET_BUFFER
 #undef XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_BUFFER
 #endif
+#if defined(XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_DIAL_FUTURE_COMMON)
+#undef XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#undef XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#endif
 #if defined(XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_DNS)
 #undef XRT_MODULE_NET_DNS
 #undef XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_DNS
@@ -52919,6 +53035,10 @@ XRT_EXTERN_C_END
 #if defined(XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_PROXY_DIAL)
 #undef XRT_MODULE_NET_PROXY_DIAL
 #undef XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_PROXY_DIAL
+#endif
+#if defined(XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_PROXY_DIAL_FUTURE)
+#undef XRT_MODULE_NET_PROXY_DIAL_FUTURE
+#undef XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_PROXY_DIAL_FUTURE
 #endif
 #if defined(XRT_DECLARATIONS_RESTORE_XRT_MODULE_NET_PROXY_HANDSHAKE)
 #undef XRT_MODULE_NET_PROXY_HANDSHAKE
@@ -55923,6 +56043,19 @@ XRT_EXTERN_C_END
 #endif
 #endif
 
+/* net_proxy_dial_future 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_NET_PROXY_DIAL_FUTURE)
+#ifndef XRT_FEATURE_NET_PROXY_DIAL_FUTURE
+#define XRT_FEATURE_NET_PROXY_DIAL_FUTURE
+#endif
+#ifndef XRT_MODULE_NET_PROXY_DIAL
+#define XRT_MODULE_NET_PROXY_DIAL
+#endif
+#ifndef XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#define XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#endif
+#endif
+
 /* net_proxy_dial 及其直接依赖。 */
 #if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_NET_PROXY_DIAL)
 #ifndef XRT_FEATURE_NET_PROXY_DIAL
@@ -58618,8 +58751,18 @@ XRT_EXTERN_C_END
 #ifndef XRT_MODULE_NET_TCP_DIAL
 #define XRT_MODULE_NET_TCP_DIAL
 #endif
-#ifndef XRT_MODULE_FUTURE
-#define XRT_MODULE_FUTURE
+#ifndef XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#define XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#endif
+#endif
+
+/* net_dial_future_common 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_NET_DIAL_FUTURE_COMMON)
+#ifndef XRT_FEATURE_NET_DIAL_FUTURE_COMMON
+#define XRT_FEATURE_NET_DIAL_FUTURE_COMMON
+#endif
+#ifndef XRT_MODULE_NET_TCP
+#define XRT_MODULE_NET_TCP
 #endif
 #ifndef XRT_MODULE_FUTURE_BRIDGE
 #define XRT_MODULE_FUTURE_BRIDGE
