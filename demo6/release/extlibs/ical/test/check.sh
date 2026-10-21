@@ -39,6 +39,7 @@ diff -u "$work/c.txt" "$work/c_direct.txt"
 ./release/xl run release/extlibs/ical/test/allocations.xl
 ./release/xl run release/extlibs/ical/test/text_identifiers.xl
 ./release/xl run release/extlibs/ical/test/nested_calendar.xl
+./release/xl run release/extlibs/ical/test/limits.xl
 ./release/xl run release/examples/extlibs/ical.xl -- "$work/xl.ics" > "$work/xl.txt"
 diff -u "$work/c.txt" "$work/xl.txt"
 python3 release/extlibs/ical/test/check_wire.py "$work/c.ics" "$work/xl.ics" "$work/long.ics"

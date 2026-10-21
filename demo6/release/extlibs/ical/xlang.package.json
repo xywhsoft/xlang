@@ -18,6 +18,6 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/control_characters.xl", "test/allocations.xl", "test/text_identifiers.xl", "test/nested_calendar.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/control_characters.xl", "test/allocations.xl", "test/text_identifiers.xl", "test/nested_calendar.xl", "test/limits.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

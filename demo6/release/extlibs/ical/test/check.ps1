@@ -69,6 +69,7 @@ try {
         'release/extlibs/ical/test/nested_calendar.xl')) {
         $null = Run $case $xl @('run', $case)
     }
+    $null = Run 'XLang limits' $xl @('run', 'release/extlibs/ical/test/limits.xl')
     $xlOutput = Run 'XLang example' $xl @('run',
         'release/examples/extlibs/ical.xl', '--', $xlFile)
     if ($xlOutput -cne $cOutput) { throw 'C/XLang example output differs' }

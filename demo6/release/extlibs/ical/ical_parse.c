@@ -242,7 +242,12 @@ xvalue *xi_parse(const char *text, size_t size) {
     size_t pos = 0;
     int closed = 0;
     xrtClearError();
-    if (text == NULL || size == 0 || size > XI_LIMIT ||
+    if (size > XI_LIMIT) {
+        xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.ical", 0,
+            "iCalendar input exceeds 8 MiB");
+        return NULL;
+    }
+    if (text == NULL || size == 0 ||
         memchr(text, 0, size) != NULL ||
         !xrtUtf8Valid((xstrview){text, size}, NULL)) {
         xi_error("invalid iCalendar input or UTF-8");

@@ -345,6 +345,22 @@ static int test_output_limit(void) {
     return 0;
 }
 
+static int test_input_limit(void) {
+    const char valid[] = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:test\r\nEND:VCALENDAR\r\n";
+    size_t size = 8u * 1024u * 1024u + 1u;
+    char *large = xrtMalloc(size);
+    xvalue *calendar;
+    CHECK(large != NULL);
+    memset(large, 'x', size);
+    CHECK(xi_parse(large, size) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    xrtFree(large);
+    calendar = xi_parse(valid, sizeof(valid) - 1u);
+    CHECK(calendar != NULL && xrtGetError() == NULL);
+    xrtValueRelease(calendar);
+    return 0;
+}
+
 int main(int argc, char **argv) {
     CHECK(test_parse() == 0);
     CHECK(test_text_identifiers() == 0);
@@ -354,6 +370,7 @@ int main(int argc, char **argv) {
     CHECK(test_companion_key_case() == 0);
     CHECK(test_build_control() == 0);
     CHECK(test_output_limit() == 0);
+    CHECK(test_input_limit() == 0);
     puts("ical C test: PASS");
     return 0;
 }

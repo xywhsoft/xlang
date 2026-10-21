@@ -1,0 +1,31 @@
+import ical
+
+func main(...) as int
+    string oversized = string.repeat("x", 8 * 1024 * 1024 + 1)
+    bool rejected = false
+    try
+        ical.parse(oversized)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    var calendar = {"events": [{
+        "uid": "limit@example",
+        "dtstamp": "20260801T000000Z",
+        "dtstart": "20260810T090000Z",
+        "summary": string.repeat(",", 5 * 1024 * 1024)
+    }]}
+    try
+        ical.build(calendar)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+
+    string valid = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:test\r\nEND:VCALENDAR\r\n"
+    assert ical.parse(valid)["prodid"] == "test"
+    println("ical limits: PASS")
+    return 0
+end
