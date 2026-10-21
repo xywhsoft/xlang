@@ -1,0 +1,9 @@
+count: 3
+user:1001 = Alice
+user:1002 = Bob
+contains user:1003: true
+first key: user:1001
+range count: 2
+after remove, count: 2
+get removed: (none)
+skiplist example: PASS

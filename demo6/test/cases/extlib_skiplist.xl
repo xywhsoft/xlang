@@ -36,5 +36,24 @@ func main(...) as int
     sl.clear()
     assert sl.count == 0, "skiplist count after clear"
     assert not sl.contains("apple"), "skiplist cleared"
+
+    // 结果按完整字节长度保存，keys/range 按键的字节序有序。
+    sl.set("你", "中文")
+    sl.set("a\0b", "v\0x")
+    sl.set("apple", "green")
+    assert sl.get("a\0b") == "v\0x", "nul value round trip"
+    assert not sl.contains("a"), "nul key not truncated"
+    var ordered = sl.keys()
+    assert ordered.length == 3, "keys count"
+    assert ordered[0] == "a\0b", "keys sorted first"
+    assert ordered[1] == "apple", "keys sorted second"
+    var subset = sl.range("a", "apple")
+    assert subset.length == 2, "inclusive range"
+    assert subset[0]["key"] == "a\0b", "range key"
+    assert subset[0]["value"] == "v\0x", "range value"
+    assert sl.range("z", "a").length == 0, "reversed range empty"
+    sl.set("empty", "")
+    assert sl.get("empty", "fallback") == "", "stored empty is not missing"
+    assert sl.get("absent", "fallback") == "fallback", "missing uses default"
     return 0
 end

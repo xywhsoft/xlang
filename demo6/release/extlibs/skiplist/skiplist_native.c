@@ -1,222 +1,302 @@
-/*
- * skiplist_native.c - Skip List ordered key-value store
- * O(log n) insert/lookup/delete with ordered traversal.
- */
-#include "../xlang_extlib_error.h"
-static char sl_buf[4096];
+/* 有序字节串键值表；每个节点只持有自己的一份 key/value。 */
+#include <limits.h>
+#include <string.h>
+
+#ifndef XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_VALUE_CONTAINER
+#endif
+#include "include/skiplist_native.h"
 
 #define SL_MAX_LEVEL 32
-#define SL_PROB 0.5
+#define SL_DOMAIN "xlang.extlib.skiplist"
 
 typedef struct SLNode {
     char *key;
     char *value;
+    size_t keySize;
+    size_t valueSize;
     int level;
     struct SLNode *forward[];
 } SLNode;
 
 typedef struct {
-    SLNode *header;
+    SLNode *head;
     int level;
     long long count;
     unsigned long long rng;
 } XSkipList;
 
-static SLNode *sl_new_node(int level, const char *key, const char *value) {
-    SLNode *n = (SLNode *)calloc(1, sizeof(SLNode) + level * sizeof(SLNode *));
-    if (!n) return NULL;
-    n->level = level;
-    if (key) { n->key = strdup(key); }
-    if (value) { n->value = strdup(value); }
-    return n;
+static void sl_error(int kind, const char *message) {
+    xrtSetErrorInfo(kind, SL_DOMAIN, 0, message);
 }
 
-static void sl_free_node(SLNode *n) {
-    if (n) { free(n->key); free(n->value); free(n); }
+static bool sl_input(const XSkipList *list, const char *text, size_t size) {
+    xrtClearError();
+    if (list != NULL && (text != NULL || size == 0u)) return true;
+    sl_error(XERR_ARGUMENT, "invalid skiplist or text buffer");
+    return false;
 }
 
-static int sl_random_level(XSkipList *sl) {
-    int lvl = 1;
-    while (lvl < SL_MAX_LEVEL) {
-        sl->rng = sl->rng * 6364136223846793005ULL + 1442695040888963407ULL;
-        if ((sl->rng >> 33) & 1) break;
-        lvl++;
+static char *sl_copy(const char *text, size_t size) {
+    char *copy;
+    if (size == SIZE_MAX) return NULL;
+    copy = (char *)xrtMalloc(size + 1u);
+    if (copy == NULL) return NULL;
+    if (size != 0u) memcpy(copy, text, size);
+    copy[size] = 0;
+    return copy;
+}
+
+static SLNode *sl_new_node(int level, const char *key, size_t keySize,
+    const char *value, size_t valueSize) {
+    SLNode *node = (SLNode *)xrtCalloc(1u,
+        sizeof(*node) + (size_t)level * sizeof(node->forward[0]));
+    if (node == NULL) return NULL;
+    node->level = level;
+    if (key == NULL) return node; /* 头节点没有键和值。 */
+    node->key = sl_copy(key, keySize);
+    node->value = sl_copy(value, valueSize);
+    if (node->key == NULL || node->value == NULL) {
+        xrtFree(node->key);
+        xrtFree(node->value);
+        xrtFree(node);
+        return NULL;
     }
-    return lvl;
+    node->keySize = keySize;
+    node->valueSize = valueSize;
+    return node;
+}
+
+static void sl_free_node(SLNode *node) {
+    if (node == NULL) return;
+    xrtFree(node->key);
+    xrtFree(node->value);
+    xrtFree(node);
+}
+
+static int sl_compare(const char *left, size_t leftSize,
+    const char *right, size_t rightSize) {
+    size_t common = leftSize < rightSize ? leftSize : rightSize;
+    int result = common != 0u ? memcmp(left, right, common) : 0;
+    if (result != 0) return result;
+    return (leftSize > rightSize) - (leftSize < rightSize);
+}
+
+static SLNode *sl_find(XSkipList *list, const char *key, size_t keySize,
+    SLNode **update) {
+    SLNode *node = list->head;
+    int i;
+    for (i = list->level - 1; i >= 0; --i) {
+        while (node->forward[i] != NULL &&
+            sl_compare(node->forward[i]->key, node->forward[i]->keySize,
+                key, keySize) < 0) node = node->forward[i];
+        if (update != NULL) update[i] = node;
+    }
+    return node->forward[0];
+}
+
+static int sl_random_level(unsigned long long *state) {
+    int level = 1;
+    while (level < SL_MAX_LEVEL) {
+        *state = *state * 6364136223846793005ULL + 1442695040888963407ULL;
+        if (((*state >> 33u) & 1u) != 0u) break;
+        level++;
+    }
+    return level;
 }
 
 void *xskiplist_create(void) {
-    XSkipList *sl = (XSkipList *)calloc(1, sizeof(XSkipList));
-    if (!sl) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.skiplist", "cannot allocate skiplist"); return NULL; }
-    sl->header = sl_new_node(SL_MAX_LEVEL, NULL, NULL);
-    if (!sl->header) { free(sl); xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.skiplist", "cannot allocate skiplist head"); return NULL; }
-    sl->level = 1;
-    sl->count = 0;
-    sl->rng = 12345678901234567ULL;
-    return sl;
-}
-
-void xskiplist_destroy(void *ptr) {
-    XSkipList *sl = (XSkipList *)ptr;
-    if (!sl) return;
-    SLNode *cur = sl->header->forward[0];
-    while (cur) { SLNode *next = cur->forward[0]; sl_free_node(cur); cur = next; }
-    sl_free_node(sl->header);
-    free(sl);
-}
-
-void xskiplist_set(void *ptr, const char *key, const char *value) {
-    XSkipList *sl = (XSkipList *)ptr;
-    SLNode *update[SL_MAX_LEVEL];
-    SLNode *cur;
-    int i, lvl;
-
-    if (!sl || !key) return;
-    cur = sl->header;
-    for (i = sl->level - 1; i >= 0; i--) {
-        while (cur->forward[i] && strcmp(cur->forward[i]->key, key) < 0)
-            cur = cur->forward[i];
-        update[i] = cur;
+    xrtClearError();
+    XSkipList *list = (XSkipList *)xrtCalloc(1u, sizeof(*list));
+    if (list == NULL) {
+        sl_error(XERR_MEMORY, "cannot allocate skiplist");
+        return NULL;
     }
-    cur = cur->forward[0];
+    list->head = sl_new_node(SL_MAX_LEVEL, NULL, 0u, NULL, 0u);
+    if (list->head == NULL) {
+        xrtFree(list);
+        sl_error(XERR_MEMORY, "cannot allocate skiplist head");
+        return NULL;
+    }
+    list->level = 1;
+    list->rng = 12345678901234567ULL;
+    return list;
+}
 
-    if (cur && strcmp(cur->key, key) == 0) {
-        free(cur->value);
-        cur->value = strdup(value ? value : "");
+void xskiplist_destroy(void *handle) {
+    XSkipList *list = (XSkipList *)handle;
+    SLNode *node, *next;
+    if (list == NULL) return;
+    node = list->head->forward[0];
+    while (node != NULL) {
+        next = node->forward[0];
+        sl_free_node(node);
+        node = next;
+    }
+    sl_free_node(list->head);
+    xrtFree(list);
+}
+
+bool xskiplist_set(void *handle, const char *key, size_t keySize,
+    const char *value, size_t valueSize) {
+    XSkipList *list = (XSkipList *)handle;
+    SLNode *update[SL_MAX_LEVEL], *node;
+    unsigned long long nextRng;
+    int level, i;
+    if (!sl_input(list, key, keySize) || !sl_input(list, value, valueSize)) return false;
+    if (key == NULL) key = "";
+    if (value == NULL) value = "";
+    node = sl_find(list, key, keySize, update);
+    if (node != NULL && sl_compare(node->key, node->keySize, key, keySize) == 0) {
+        char *replacement = sl_copy(value, valueSize);
+        char *old;
+        if (replacement == NULL) goto memory_failure;
+        old = node->value;
+        node->value = replacement;
+        node->valueSize = valueSize;
+        xrtFree(old);
+        return true;
+    }
+    if (list->count == LLONG_MAX) {
+        sl_error(XERR_VALUE, "skiplist item count overflow");
+        return false;
+    }
+    nextRng = list->rng;
+    level = sl_random_level(&nextRng);
+    node = sl_new_node(level, key, keySize, value, valueSize);
+    if (node == NULL) goto memory_failure;
+    for (i = list->level; i < level; ++i) update[i] = list->head;
+    for (i = 0; i < level; ++i) {
+        node->forward[i] = update[i]->forward[i];
+        update[i]->forward[i] = node;
+    }
+    if (level > list->level) list->level = level;
+    list->rng = nextRng;
+    list->count++;
+    return true;
+memory_failure:
+    sl_error(XERR_MEMORY, "cannot allocate skiplist node or value");
+    return false;
+}
+
+xvalue *xskiplist_get(void *handle, const char *key, size_t keySize) {
+    XSkipList *list = (XSkipList *)handle;
+    SLNode *node;
+    if (!sl_input(list, key, keySize)) return NULL;
+    node = sl_find(list, key, keySize, NULL);
+    if (node == NULL || sl_compare(node->key, node->keySize, key, keySize) != 0)
+        return xrtValueNull();
+    return xrtValueString((xstrview){node->value, node->valueSize});
+}
+
+bool xskiplist_contains(void *handle, const char *key, size_t keySize) {
+    XSkipList *list = (XSkipList *)handle;
+    SLNode *node;
+    if (!sl_input(list, key, keySize)) return false;
+    node = sl_find(list, key, keySize, NULL);
+    return node != NULL && sl_compare(node->key, node->keySize, key, keySize) == 0;
+}
+
+bool xskiplist_remove(void *handle, const char *key, size_t keySize) {
+    XSkipList *list = (XSkipList *)handle;
+    SLNode *update[SL_MAX_LEVEL], *node;
+    int i;
+    if (!sl_input(list, key, keySize)) return false;
+    node = sl_find(list, key, keySize, update);
+    if (node == NULL || sl_compare(node->key, node->keySize, key, keySize) != 0)
+        return false;
+    for (i = 0; i < node->level; ++i) update[i]->forward[i] = node->forward[i];
+    sl_free_node(node);
+    while (list->level > 1 && list->head->forward[list->level - 1] == NULL)
+        list->level--;
+    list->count--;
+    return true;
+}
+
+void xskiplist_clear(void *handle) {
+    XSkipList *list = (XSkipList *)handle;
+    SLNode *node, *next;
+    xrtClearError();
+    if (list == NULL) {
+        sl_error(XERR_ARGUMENT, "invalid skiplist");
         return;
     }
-
-    lvl = sl_random_level(sl);
-    if (lvl > sl->level) {
-        for (i = sl->level; i < lvl; i++) update[i] = sl->header;
-        sl->level = lvl;
+    node = list->head->forward[0];
+    while (node != NULL) {
+        next = node->forward[0];
+        sl_free_node(node);
+        node = next;
     }
+    memset(list->head->forward, 0, SL_MAX_LEVEL * sizeof(list->head->forward[0]));
+    list->level = 1;
+    list->count = 0;
+}
 
-    {
-        SLNode *node = sl_new_node(lvl, key, value ? value : "");
-        if (!node) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.skiplist", "cannot allocate skiplist node"); return; }
-        for (i = 0; i < lvl; i++) {
-            node->forward[i] = update[i]->forward[i];
-            update[i]->forward[i] = node;
+int64_t xskiplist_count(void *handle) {
+    XSkipList *list = (XSkipList *)handle;
+    xrtClearError();
+    if (list == NULL) {
+        sl_error(XERR_ARGUMENT, "invalid skiplist");
+        return 0;
+    }
+    return list->count;
+}
+
+/* New 容器 API 消费传入的临时值，失败时只释放外层容器。 */
+static bool sl_append_entry(xvalue *result, const SLNode *node, bool includeValue) {
+    xvalue *item;
+    if (!includeValue) {
+        return xrtValueArrayAppendNew(result,
+            xrtValueString((xstrview){node->key, node->keySize}));
+    }
+    item = xrtValueObject();
+    if (item == NULL) return false;
+    if (!xrtValueObjectSetNew(item, (xstrview){"key", 3},
+            xrtValueString((xstrview){node->key, node->keySize})) ||
+        !xrtValueObjectSetNew(item, (xstrview){"value", 5},
+            xrtValueString((xstrview){node->value, node->valueSize}))) {
+        xrtValueRelease(item);
+        return false;
+    }
+    return xrtValueArrayAppendNew(result, item);
+}
+
+xvalue *xskiplist_keys(void *handle) {
+    XSkipList *list = (XSkipList *)handle;
+    xvalue *result;
+    SLNode *node;
+    xrtClearError();
+    if (list == NULL) {
+        sl_error(XERR_ARGUMENT, "invalid skiplist");
+        return NULL;
+    }
+    result = xrtValueArray();
+    if (result == NULL) return NULL;
+    for (node = list->head->forward[0]; node != NULL; node = node->forward[0]) {
+        if (!sl_append_entry(result, node, false)) {
+            xrtValueRelease(result);
+            return NULL;
         }
     }
-    sl->count++;
+    return result;
 }
 
-/* Returns string from thread-local buffer, or empty string if not found */
-const char *xskiplist_get(void *ptr, const char *key) {
-    XSkipList *sl = (XSkipList *)ptr;
-    SLNode *cur;
-    int i;
-    if (!sl || !key) return "";
-    cur = sl->header;
-    for (i = sl->level - 1; i >= 0; i--) {
-        while (cur->forward[i] && strcmp(cur->forward[i]->key, key) < 0)
-            cur = cur->forward[i];
-    }
-    cur = cur->forward[0];
-    if (cur && strcmp(cur->key, key) == 0) {
-        strncpy(sl_buf, cur->value, sizeof(sl_buf) - 1);
-        sl_buf[sizeof(sl_buf) - 1] = '\0';
-        return sl_buf;
-    }
-    return "";
-}
-
-int xskiplist_contains(void *ptr, const char *key) {
-    XSkipList *sl = (XSkipList *)ptr;
-    SLNode *cur;
-    int i;
-    if (!sl || !key) return 0;
-    cur = sl->header;
-    for (i = sl->level - 1; i >= 0; i--) {
-        while (cur->forward[i] && strcmp(cur->forward[i]->key, key) < 0)
-            cur = cur->forward[i];
-    }
-    cur = cur->forward[0];
-    return (cur && strcmp(cur->key, key) == 0) ? 1 : 0;
-}
-
-int xskiplist_remove(void *ptr, const char *key) {
-    XSkipList *sl = (XSkipList *)ptr;
-    SLNode *update[SL_MAX_LEVEL];
-    SLNode *cur;
-    int i;
-    if (!sl || !key) return 0;
-    cur = sl->header;
-    for (i = sl->level - 1; i >= 0; i--) {
-        while (cur->forward[i] && strcmp(cur->forward[i]->key, key) < 0)
-            cur = cur->forward[i];
-        update[i] = cur;
-    }
-    cur = cur->forward[0];
-    if (!cur || strcmp(cur->key, key) != 0) return 0;
-    for (i = 0; i < sl->level; i++) {
-        if (update[i]->forward[i] != cur) break;
-        update[i]->forward[i] = cur->forward[i];
-    }
-    sl_free_node(cur);
-    while (sl->level > 1 && sl->header->forward[sl->level - 1] == NULL)
-        sl->level--;
-    sl->count--;
-    return 1;
-}
-
-void xskiplist_clear(void *ptr) {
-    XSkipList *sl = (XSkipList *)ptr;
-    SLNode *cur, *next;
-    int i;
-    if (!sl) return;
-    cur = sl->header->forward[0];
-    while (cur) { next = cur->forward[0]; sl_free_node(cur); cur = next; }
-    for (i = 0; i < SL_MAX_LEVEL; i++) sl->header->forward[i] = NULL;
-    sl->level = 1;
-    sl->count = 0;
-}
-
-long long xskiplist_count(void *ptr) {
-    XSkipList *sl = (XSkipList *)ptr;
-    return sl ? sl->count : 0;
-}
-
-/* Collect keys in order. Returns count written. Caller provides array. */
-long long xskiplist_keys(void *ptr, char **out, long long max) {
-    XSkipList *sl = (XSkipList *)ptr;
-    SLNode *cur;
-    long long n = 0;
-    if (!sl || !out) return 0;
-    cur = sl->header->forward[0];
-    while (cur && n < max) {
-        out[n] = cur->key;
-        n++;
-        cur = cur->forward[0];
-    }
-    return n;
-}
-
-/* Range query: keys where start <= key <= end */
-long long xskiplist_range(void *ptr, const char *start, const char *end, char **out_keys, char **out_vals, long long max) {
-    XSkipList *sl = (XSkipList *)ptr;
-    SLNode *cur;
-    int i;
-    long long n = 0;
-    if (!sl || !out_keys) return 0;
-    cur = sl->header;
-    if (start) {
-        for (i = sl->level - 1; i >= 0; i--) {
-            while (cur->forward[i] && strcmp(cur->forward[i]->key, start) < 0)
-                cur = cur->forward[i];
+xvalue *xskiplist_range(void *handle, const char *start, size_t startSize,
+    const char *end, size_t endSize) {
+    XSkipList *list = (XSkipList *)handle;
+    xvalue *result;
+    SLNode *node;
+    if (!sl_input(list, start, startSize) || !sl_input(list, end, endSize)) return NULL;
+    result = xrtValueArray();
+    if (result == NULL) return NULL;
+    if (sl_compare(start, startSize, end, endSize) > 0) return result;
+    node = sl_find(list, start, startSize, NULL);
+    while (node != NULL && sl_compare(node->key, node->keySize, end, endSize) <= 0) {
+        if (!sl_append_entry(result, node, true)) {
+            xrtValueRelease(result);
+            return NULL;
         }
-        cur = cur->forward[0];
-    } else {
-        cur = cur->forward[0];
+        node = node->forward[0];
     }
-    while (cur && n < max) {
-        if (end && strcmp(cur->key, end) > 0) break;
-        out_keys[n] = cur->key;
-        if (out_vals) out_vals[n] = cur->value;
-        n++;
-        cur = cur->forward[0];
-    }
-    return n;
+    return result;
 }

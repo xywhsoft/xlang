@@ -12,6 +12,9 @@ func main(...) as int
     println("user:1001 =", sl.get("user:1001"))
     println("user:1002 =", sl.get("user:1002"))
     println("contains user:1003:", sl.contains("user:1003"))
+    var ordered = sl.keys()
+    println("first key:", ordered[0])
+    println("range count:", sl.range("user:1001", "user:1002").length)
 
     sl.remove("user:1002")
     println("after remove, count:", sl.count)

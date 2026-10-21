@@ -1,0 +1,4 @@
+import skiplist
+
+auto list = skiplist.create()
+list.setNative("a", c_size(4096), "b", c_size(1))

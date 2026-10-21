@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>skiplist - 扩展库 - xlang</title>
+  <meta name="description" content="按完整字节序排序的跳表键值库。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / skiplist</p><h1>skiplist</h1>
+    <p class="extlib-lead">有序字符串键值表。</p>
+    <p>支持完整长度的键和值、原子覆盖、全量有序键和闭区间遍历。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>skiplist.create()</code></td><td>创建有序键值表；分配失败时抛 <code>MemoryError</code></td></tr>
+      <tr><td><code>set / get / contains / remove</code></td><td>管理键值</td></tr>
+      <tr><td><code>keys / range</code></td><td>按键字节序遍历</td></tr>
+      <tr><td><code>count / clear</code></td><td>总数与清空</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import skiplist
+skiplist.SkipList table = skiplist.create()
+table.set("a", "first")
+table.set("b", "second")
+println(table.range("a", "b").length)  // 2</code></pre>
+    <p>区间两端均包含；创建、插入、覆盖、读取及结果遍历的分配故障已用 C/XLang 定向验证，失败的写入保持原值。Windows <code>test/check.ps1</code> 与 Linux <code>test/check.sh</code> 验证 C 独立模型、XLang 用例及双语范例固定输出；Linux 另含 ASan/UBSan。C 计数返回 <code>int64_t</code>，可在 LP64 平台直接与 XLang <code>int</code> 互通。C 所有权、复杂度和 AOT 主线阻断见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

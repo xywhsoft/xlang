@@ -7,10 +7,13 @@
     "artifact": {
         "kind": "source",
         "cSources": ["skiplist_native.c"],
+        "xrtModules": ["XRT_MODULE_VALUE_CONTAINER"],
+        "includeDirs": ["include"],
         "xlSources": ["src/skiplist.xl"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }
