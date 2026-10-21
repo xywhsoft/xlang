@@ -1,12 +1,19 @@
 #ifndef XLANG_ANALYSIS_FRONTEND_INTERNAL_H
 #define XLANG_ANALYSIS_FRONTEND_INTERNAL_H
 #include "analysis/session.h"
+#include "analysis/check.h"
 #include "src/parser/xl6_parser_api.h"
 /* Compiler facts remain inside the analysis layer. Never mutate a published
  * parse tree; semantic passes require their own owned representation. */
 const XL6_AstNode* xlsSyntaxAst(const xls_syntax* syntax);
 typedef struct xls_parse_work { uint64_t full,fragments,reused,bytes; } xls_parse_work;
 xls_syntax* xlsSyntaxBuild(const char* path,xls_text* text,const xls_syntax* previous,xls_parse_work* work);
+/* Private mutable copy for compiler semantic passes. Destination must be
+ * empty/initialized. Diagnostics and sources are independently owned. */
+int xlsSyntaxCopyParse(const xls_syntax* syntax,XL6_ParseResult* result);
+xls_semantic_check* xlsSemanticCheckCreateParsed(const char* entry,
+    const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity);
 /* Nodes are immutable chunk facts, with original chunk coordinates. Use the
  * supplied current range; it includes edits before reused declarations.
  * Visitor >0 continues, 0 stops normally, <0 fails. No AST is materialized. */

@@ -32,7 +32,7 @@ SERVER_SOURCES = (
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
     "src/server/xlang_ls.c",
 )
-CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_text_test", "document_sync_test")
+CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_text_test", "document_sync_test")
 HOST_TESTS = ("analysis_index_view_test",)
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 

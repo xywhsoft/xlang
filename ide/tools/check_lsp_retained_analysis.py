@@ -1,7 +1,7 @@
 """Verify actual retained semantic/IR analysis over stdio, without xl.exe.
 
-Counters come from the XRT-owned checked session. Body edits still rebuild;
-this fixture does not claim function incrementality or UI latency acceptance.
+Counters come from the XRT-owned checked session. Entry parsing can reuse
+function chunks; semantics/IR still rebuild. This is not UI latency acceptance.
 """
 import argparse
 import hashlib
@@ -33,7 +33,7 @@ def main():
     bad = 'export func value() as int\n return "bad"\nend\n'
     clients, cases, request = [], [], 10
     protected = {str(p): sha(p) for p in (server, Path(__file__), entry)}
-    report = dict(status='failed', scope='actual retained full semantic/IR session and current-version adapters; not function incrementality or UI latency',
+    report = dict(status='failed', scope='actual retained full semantic/IR session, entry syntax incrementality and current-version adapters; not semantic/IR incrementality or UI latency',
                   protected=protected, cases=cases)
 
     def done(name, **data):
@@ -44,7 +44,7 @@ def main():
         clients.append(c)
         c.initialize()
         caps = c.transcript[1]['receive']['result']['capabilities']['experimental']
-        assert caps['retainedSemanticChecks'] and caps['retainedNativeInputs'], caps
+        assert caps['retainedSemanticChecks'] and caps['retainedNativeInputs'] and caps['incrementalEntrySyntax'], caps
         return c
 
     def call(c, method, params):
@@ -70,6 +70,7 @@ def main():
         r, _ = check(c, 1, 1)
         stats = r['analysis']
         assert stats['cacheHits'] == 0 and stats['documents'] == 1 and stats['textBytes'] == len(good.encode()), stats
+        assert stats['entryFullParses'] == 1 and not stats['entryFragmentParses'] and not stats['entrySyntaxHits'], stats
         owner, _ = call(c, 'xlang/analysisStats', {})
         assert owner['ownerThreadId'] == stats['captureThreadId'], (owner, stats)
         done('real-semantic-thread-and-protocol-owner-identities', stats=stats)
@@ -87,25 +88,31 @@ def main():
         done('same-body-new-version-rebinds-diagnostics-and-navigation')
         broken = 'func main(...) as int\n return missingName\nend\n'
         c.change(entry, broken, 3)
-        check(c, 3, 2, 1)
+        r, _ = check(c, 3, 2, 1)
+        assert r['analysis']['entryFullParses'] == 1 and r['analysis']['entryFragmentParses'] == 1, r
         r, _ = check(c, 3, 2, 1)
         assert r['analysis']['cacheHits'] == 12, r
         done('source-error-result-reused-without-false-success')
         c.change(entry, good, 4)
-        check(c, 4, 3)
+        r, _ = check(c, 4, 3)
+        assert r['analysis']['entryFullParses'] == 1 and r['analysis']['entryFragmentParses'] == 2, r
         extra = root / 'extra.xl'
         c.open(extra, dependency, 1)
         r, _ = check(c, 4, 4)
         assert r['analysis']['documents'] == 2, r
+        assert r['analysis']['entrySyntaxHits'] == 1 and r['analysis']['entryFullParses'] == 1, r
         c.send('textDocument/didClose', dict(textDocument=dict(uri=extra.as_uri())))
-        check(c, 4, 5)
+        r, _ = check(c, 4, 5)
+        assert r['analysis']['entrySyntaxHits'] == 2, r
         done('complete-input-set-add-and-close-invalidate')
         c.change(entry, imported, 5)
         c.open(dep, dependency, 7)
-        check(c, 5, 6)
+        r, _ = check(c, 5, 6)
+        assert r['analysis']['entryFullParses'] == 2, r
         c.change(dep, bad, 8)
         r, _ = check(c, 5, 7, 1)
         assert Path(r['diagnostics'][0]['file']).resolve() == dep, r
+        assert r['analysis']['entrySyntaxHits'] == 3 and r['analysis']['entryFullParses'] == 2, r
         c.change(dep, dependency, 9)
         check(c, 5, 8)
         c.change(dep, dependency, 10)
@@ -123,6 +130,7 @@ def main():
         os.replace(replacement, dep)
         r, _ = check(c, 1, 2)
         assert r['analysis']['invalidations'] == 1, r
+        assert r['analysis']['entrySyntaxHits'] == 1 and r['analysis']['entryFullParses'] == 1, r
         done('same-byte-physical-disk-replacement-invalidates')
         dep.write_bytes(bad.encode())
         r, _ = check(c, 1, 3, 1)
@@ -138,7 +146,46 @@ def main():
         (root / 'new_dep.xl').write_bytes(dependency.encode())
         r, _ = check(c, 1, 2)
         assert r['analysis']['invalidations'] == 1, r
+        assert r['analysis']['entrySyntaxHits'] == 1 and r['analysis']['entryFullParses'] == 1, r
         done('negative-import-candidate-change-invalidates-cached-error')
+        c.stop()
+
+        c = client()
+        prefix = ''.join('func helper_%d() as int\n return %d\nend\n' % (i, i) for i in range(100))
+        tail = 'func tail() as int\n int trailing = 9\n return trailing\nend\n'
+        def edited(i):
+            return '\ufeff' + prefix + ('func main(...) as int\n string 文本 = "😀%d"\n%s int result = %d\n return result + tail()\nend\n' %
+                (i, ' // extra shifted line\n' if i & 1 else '', i)) + tail
+        body = edited(0)
+        c.open(entry, body, 1)
+        r, _ = check(c, 1, 1)
+        initial_bytes = len(body.encode())
+        for i in range(1, 16):
+            body = edited(i)
+            c.change(entry, body, i + 1)
+            r, _ = check(c, i + 1, i + 1)
+            stats = r['analysis']
+            assert stats['entryFullParses'] == 1 and stats['entryFragmentParses'] == i and stats['entryReusedDeclarations'] == 101 * i, stats
+            assert stats['entryParsedBytes'] < initial_bytes + 256 * i, stats
+            definition, _ = call(c, 'textDocument/definition', dict(textDocument=dict(uri=entry.as_uri()), version=i + 1,
+                position=position(body, body.rindex('trailing'))))
+            assert definition['range']['start'] == position(body, body.index('trailing')), (definition, i)
+            definition, _ = call(c, 'textDocument/definition', dict(textDocument=dict(uri=entry.as_uri()), version=i + 1,
+                position=position(body, body.index('tail()'))))
+            assert definition['range']['start'] == position(body, body.rindex('tail()')), (definition, i)
+        done('fifteen-real-local-entry-parses-with-full-IR-checks-and-rebased-navigation', stats=stats)
+        broken = body.replace('return result + tail()', 'return "unterminated')
+        c.change(entry, broken, 17)
+        r, _ = check(c, 17, 17, 1)
+        assert r['phase'] == 'parse' and r['analysis']['entryFullParses'] == 2 and r['analysis']['entryFragmentParses'] == 16, r
+        c.change(entry, body, 18)
+        r, _ = check(c, 18, 18)
+        assert r['analysis']['entryFullParses'] == 3, r
+        c.send('textDocument/didClose', dict(textDocument=dict(uri=entry.as_uri())))
+        c.open(entry, body, 1)
+        r, _ = check(c, 1, 19)
+        assert r['analysis']['entryFullParses'] == 4, r
+        done('lexical-error-full-fallback-recovery-and-new-document-identity')
         c.stop()
 
         c = client()

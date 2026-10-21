@@ -404,7 +404,10 @@ analysed:
   int okayStats=stats && put(stats,"builds",xrtValueInt((int64)q->semanticStats.builds)) && put(stats,"cacheHits",xrtValueInt((int64)q->semanticStats.hits)) &&
    put(stats,"invalidations",xrtValueInt((int64)q->semanticStats.invalidations)) && put(stats,"documents",xrtValueInt((int64)q->semanticStats.documents)) &&
    put(stats,"textBytes",xrtValueInt((int64)q->semanticStats.textBytes)) && put(stats,"workerThreadId",xrtValueInt((int64)q->semanticThread)) &&
-   put(stats,"captureThreadId",xrtValueInt((int64)q->captureThread)) && put(stats,"adapterThreadId",xrtValueInt((int64)xrtThreadCurrentId()));
+   put(stats,"captureThreadId",xrtValueInt((int64)q->captureThread)) && put(stats,"adapterThreadId",xrtValueInt((int64)xrtThreadCurrentId())) &&
+   put(stats,"entryFullParses",xrtValueInt((int64)q->semanticStats.entryFullParses)) && put(stats,"entryFragmentParses",xrtValueInt((int64)q->semanticStats.entryFragmentParses)) &&
+   put(stats,"entryReusedDeclarations",xrtValueInt((int64)q->semanticStats.entryReusedDeclarations)) && put(stats,"entryParsedBytes",xrtValueInt((int64)q->semanticStats.entryParsedBytes)) &&
+   put(stats,"entrySyntaxHits",xrtValueInt((int64)q->semanticStats.entrySyntaxHits));
   if(!okayStats) { xrtValueRelease(stats); goto done; }
   if(!put(result,"analysis",stats)) goto done;
  }
