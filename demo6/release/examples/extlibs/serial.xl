@@ -11,7 +11,9 @@ func main(...) as int
     println(f"open: {sp.isOpen}")
 
     // 返回值与 maxLen 都以字节计数，不是字符数。
-    println(f"text bytes: {sp.write('你好')}")
+    int textBytes = sp.write("你好")
+    assert textBytes == 6
+    println(f"text bytes: {textBytes}")
     println(f"text: {sp.read(6)}")
 
     // 协议报文用 Buffer，零字节和非 UTF-8 字节不会被截断。
@@ -21,8 +23,15 @@ func main(...) as int
     Buffer received = sp.readBytes(3)
     println(f"binary: {received.len()},{received.byteAt(0)},{received.byteAt(1)},{received.byteAt(2)}")
 
+    // 字符串本身也可包含零字节；write 仍按完整字节长度发送。
+    assert sp.write("A\0B") == 3
+    Buffer nulText = sp.readBytes(3)
+    assert nulText.byteAt(0) == 65 and nulText.byteAt(1) == 0 and nulText.byteAt(2) == 66
+    println(f"nul text bytes: {nulText.len()}")
+
     // 读取允许返回小于 maxLen 的结果，未读部分保留在队列中。
     assert sp.write("abcd") == 4 and sp.read(2) == "ab"
+    assert sp.available == 2
     println(f"pending: {sp.available}")
     sp.flush()
 
@@ -31,9 +40,16 @@ func main(...) as int
     for i in range(5000)
         assert large.appendByte(i % 256)
     end
-    println(f"short write: {sp.writeBytes(large)}")
-    println(f"full write: {sp.write('more')}")
-    println(f"drained: {sp.readBytes(65536).len()}")
+    int shortWrite = sp.writeBytes(large)
+    assert shortWrite == 4096
+    println(f"short write: {shortWrite}")
+    int fullWrite = sp.write("more")
+    assert fullWrite == 0
+    println(f"full write: {fullWrite}")
+    Buffer drained = sp.readBytes(65536)
+    assert drained.len() == 4096
+    println(f"drained: {drained.len()}")
+    assert sp.available == 0
     println(f"after flush: {sp.available}")
     println("serial example: PASS")
     return 0

@@ -14,5 +14,6 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/nul_port.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

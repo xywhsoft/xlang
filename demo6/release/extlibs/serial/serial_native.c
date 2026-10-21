@@ -4,6 +4,14 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <errno.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <time.h>
+#include <unistd.h>
 #endif
 
 
@@ -16,6 +24,9 @@ typedef struct xserial_port {
     str Name;
     int64_t Baudrate;
     bool Loopback;
+#ifndef _WIN32
+    int Fd;
+#endif
 } xserial_port;
 
 
@@ -108,6 +119,182 @@ static bool serial_open_device(xserial_port* port,
 
 
 
+#ifndef _WIN32
+static bool serial_posix_error(const char* operation)
+{
+    int code = errno;
+    bool opening = strcmp(operation, "open") == 0;
+    xerrordesc error = {XERR_IO, opening ? XFILE_ERROR_OPEN : 0, code,
+        opening ? "xrt.file" : "xlang.extlib.serial", operation,
+        "serial: device operation failed", NULL, NULL};
+    xrtSetErrorTake(xrtErrorBuild(&error));
+    return false;
+}
+
+
+
+static speed_t serial_posix_speed(int64_t baudrate)
+{
+    switch (baudrate) {
+    case 50: return B50;
+    case 75: return B75;
+    case 110: return B110;
+    case 134: return B134;
+    case 150: return B150;
+    case 200: return B200;
+    case 300: return B300;
+    case 600: return B600;
+    case 1200: return B1200;
+    case 1800: return B1800;
+    case 2400: return B2400;
+    case 4800: return B4800;
+    case 9600: return B9600;
+    case 19200: return B19200;
+    case 38400: return B38400;
+#ifdef B57600
+    case 57600: return B57600;
+#endif
+#ifdef B115200
+    case 115200: return B115200;
+#endif
+#ifdef B230400
+    case 230400: return B230400;
+#endif
+#ifdef B460800
+    case 460800: return B460800;
+#endif
+#ifdef B500000
+    case 500000: return B500000;
+#endif
+#ifdef B576000
+    case 576000: return B576000;
+#endif
+#ifdef B921600
+    case 921600: return B921600;
+#endif
+#ifdef B1000000
+    case 1000000: return B1000000;
+#endif
+#ifdef B1500000
+    case 1500000: return B1500000;
+#endif
+#ifdef B2000000
+    case 2000000: return B2000000;
+#endif
+#ifdef B2500000
+    case 2500000: return B2500000;
+#endif
+#ifdef B3000000
+    case 3000000: return B3000000;
+#endif
+#ifdef B3500000
+    case 3500000: return B3500000;
+#endif
+#ifdef B4000000
+    case 4000000: return B4000000;
+#endif
+    default: return (speed_t)0;
+    }
+}
+
+
+
+/* 串口打开必须使用 O_NOCTTY/O_NONBLOCK；通用 XRT 文件选项不表达这两个设备语义。 */
+static bool serial_open_device(xserial_port* port,
+    int64_t databits, int64_t stopbits, int64_t parity)
+{
+    speed_t speed = serial_posix_speed(port->Baudrate);
+    struct termios config;
+    int fd;
+    if (speed == (speed_t)0) {
+        serial_error(XERR_UNSUPPORTED, "serial: unsupported POSIX baudrate");
+        return false;
+    }
+    fd = open(port->Name, O_RDWR | O_NOCTTY | O_NONBLOCK | O_CLOEXEC);
+    if (fd < 0) return serial_posix_error("open");
+    if (!isatty(fd)) {
+        close(fd);
+        serial_error(XERR_UNSUPPORTED, "serial: path is not a terminal device");
+        return false;
+    }
+    if (tcgetattr(fd, &config) != 0) {
+        (void)serial_posix_error("get-state");
+        close(fd);
+        return false;
+    }
+    config.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON | IXOFF);
+    config.c_oflag &= ~OPOST;
+    config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+    config.c_cflag &= ~(CSIZE | PARENB | CSTOPB);
+#ifdef CRTSCTS
+    config.c_cflag &= ~CRTSCTS;
+#endif
+    config.c_cflag |= CREAD | CLOCAL;
+    config.c_cflag |= databits == 5 ? CS5 : databits == 6 ? CS6 : databits == 7 ? CS7 : CS8;
+    if (stopbits == 2) config.c_cflag |= CSTOPB;
+    if (parity != 0) {
+        config.c_cflag |= PARENB;
+        config.c_iflag |= INPCK;
+        if (parity == 1) config.c_cflag |= PARODD;
+        else config.c_cflag &= ~PARODD;
+    } else {
+        config.c_iflag &= ~INPCK;
+    }
+    config.c_cc[VMIN] = 0;
+    config.c_cc[VTIME] = 0;
+    if (cfsetispeed(&config, speed) != 0 || cfsetospeed(&config, speed) != 0 ||
+        tcsetattr(fd, TCSANOW, &config) != 0) {
+        (void)serial_posix_error("set-state");
+        close(fd);
+        return false;
+    }
+#ifdef TIOCEXCL
+    if (ioctl(fd, TIOCEXCL) != 0) {
+        (void)serial_posix_error("exclusive");
+        close(fd);
+        return false;
+    }
+#endif
+    port->Fd = fd;
+    return true;
+}
+
+
+
+/* 非阻塞描述符配合 poll 给读/写明确的等待上限。 */
+static int serial_posix_wait(int fd, short events, int timeout)
+{
+    struct pollfd request = {fd, events, 0};
+    struct timespec now;
+    int64_t deadline;
+    int result;
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+        (void)serial_posix_error("clock");
+        return -1;
+    }
+    deadline = (int64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000 + timeout;
+    for (;;) {
+        result = poll(&request, 1, timeout);
+        if (result >= 0 || errno != EINTR) break;
+        if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+            (void)serial_posix_error("clock");
+            return -1;
+        }
+        int64_t remaining = deadline - ((int64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000);
+        timeout = remaining > 0 ? (int)remaining : 0;
+    }
+    if (result < 0) { (void)serial_posix_error("poll"); return -1; }
+    if (result == 0) return 0;
+    if ((request.revents & (POLLERR | POLLHUP | POLLNVAL)) == 0 &&
+        (request.revents & events) != 0) return 1;
+    errno = EIO;
+    (void)serial_posix_error("disconnected");
+    return -1;
+}
+#endif
+
+
+
 void* xserial_open(const char* name, int64_t baudrate,
     int64_t databits, int64_t stopbits, int64_t parity)
 {
@@ -120,6 +307,9 @@ void* xserial_open(const char* name, int64_t baudrate,
     }
     port = (xserial_port*)xrtCalloc(1, sizeof(*port));
     if (port == NULL) return NULL;
+#ifndef _WIN32
+    port->Fd = -1;
+#endif
     port->Baudrate = baudrate;
     port->Loopback = strcmp(name, "LOOPBACK") == 0 || strcmp(name, "SIM") == 0;
     port->Name = xrtStrDup(name);
@@ -129,16 +319,10 @@ void* xserial_open(const char* name, int64_t baudrate,
         return NULL;
     }
     if (!port->Loopback) {
-#ifdef _WIN32
         if (!serial_open_device(port, databits, stopbits, parity)) {
             xserial_close(port);
             return NULL;
         }
-#else
-        serial_error(XERR_UNSUPPORTED, "serial: physical ports require Windows");
-        xserial_close(port);
-        return NULL;
-#endif
     }
     return port;
 }
@@ -151,6 +335,9 @@ void xserial_close(void* handle)
     xserial_port* port = (xserial_port*)handle;
     if (port == NULL) return;
     if (port->File != NULL) (void)xrtClose(port->File);
+#ifndef _WIN32
+    if (port->Fd >= 0) (void)close(port->Fd);
+#endif
     xrtBufferUnit(&port->Queue);
     if (port->Mutex != NULL) (void)xrtMutexDestroy(port->Mutex);
     xrtFree(port->Name);
@@ -183,7 +370,21 @@ int64_t xserial_write(void* handle, const void* data, size_t size)
             (xbytesview){(cbytes)data, count});
     } else {
         size_t request = size < XSERIAL_IO_CHUNK ? size : XSERIAL_IO_CHUNK;
+#ifdef _WIN32
         ok = xrtWrite(port->File, data, request, &count);
+#else
+        int ready = request == 0 ? 0 : serial_posix_wait(port->Fd, POLLOUT, 1000);
+        if (ready > 0) {
+            ssize_t written;
+            do { written = write(port->Fd, data, request); } while (written < 0 && errno == EINTR);
+            if (written >= 0) count = (size_t)written;
+            else if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                (void)serial_posix_error("write");
+                ready = -1;
+            }
+        }
+        ok = ready >= 0;
+#endif
     }
     (void)xrtMutexUnlock(port->Mutex);
     return ok ? (int64_t)count : -1;
@@ -199,6 +400,14 @@ int64_t xserial_write_text(void* handle, const char* text)
         return -1;
     }
     return xserial_write(handle, text, strlen(text));
+}
+
+
+
+/* XLang 字符串可包含 NUL，按显式字节长度传输。 */
+int64_t xserial_write_text_len(void* handle, const char* text, size_t size)
+{
+    return xserial_write(handle, text, size);
 }
 
 
@@ -237,7 +446,21 @@ void* xserial_read(void* handle, int64_t maxBytes)
             ok = xrtBufferRemove(&port->Queue, 0, count);
         }
     } else if (count != 0) {
+#ifdef _WIN32
         ok = xrtRead(port->File, result->Data, count, &count);
+#else
+        int ready = serial_posix_wait(port->Fd, POLLIN, 50);
+        if (ready > 0) {
+            ssize_t received;
+            do { received = read(port->Fd, result->Data, count); } while (received < 0 && errno == EINTR);
+            if (received >= 0) count = (size_t)received;
+            else if (errno == EAGAIN || errno == EWOULDBLOCK) count = 0;
+            else ok = serial_posix_error("read");
+        } else {
+            count = 0;
+            ok = ready == 0;
+        }
+#endif
     }
     result->Size = ok ? count : 0;
     (void)xrtMutexUnlock(port->Mutex);
@@ -267,6 +490,13 @@ int64_t xserial_available(void* handle)
         else (void)serial_windows_error("available");
     }
 #endif
+#ifndef _WIN32
+    else {
+        int pending = 0;
+        if (ioctl(port->Fd, FIONREAD, &pending) == 0) result = pending;
+        else (void)serial_posix_error("available");
+    }
+#endif
     (void)xrtMutexUnlock(port->Mutex);
     return result;
 }
@@ -283,6 +513,10 @@ bool xserial_flush(void* handle)
 #ifdef _WIN32
     else if (!PurgeComm((HANDLE)xrtFileNative(port->File), PURGE_RXCLEAR | PURGE_TXCLEAR))
         ok = serial_windows_error("flush");
+#endif
+#ifndef _WIN32
+    else if (tcflush(port->Fd, TCIOFLUSH) != 0)
+        ok = serial_posix_error("flush");
 #endif
     (void)xrtMutexUnlock(port->Mutex);
     return ok;

@@ -1,0 +1,5 @@
+import serial
+
+// 不执行：不能向原生文本写入传入与字符串不符的长度。
+auto port = serial.openLoopback()
+port.writeNative("x", c_size(4096))

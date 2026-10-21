@@ -32,6 +32,7 @@ bool xserial_is_open(void* handle);
 /* write 返回实际写入的字节数，允许短写；失败为 -1。 */
 int64_t xserial_write(void* handle, const void* data, size_t size);
 int64_t xserial_write_text(void* handle, const char* text);
+int64_t xserial_write_text_len(void* handle, const char* text, size_t size);
 
 /* xlang point 的精确 C 原型；只读借用 data，不接管或修改缓冲。 */
 int64_t xserial_write_bytes(void* handle, void* data, size_t size);

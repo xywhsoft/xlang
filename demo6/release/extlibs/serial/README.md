@@ -3,14 +3,19 @@
 同步串口 I/O，提供 xlang `Serial` 对象和同一套独立 C 接口。
 句柄、UTF-8 路径、分配、缓冲、锁与线程错误由 XRT 管理，Windows 串口参数通过系统 API 配置。
 
+> 2026-10-13 复验当前 `release/xl.exe`：严格 GCC、回环 C 测试、故障注入、
+> C/XLang JIT 通过；首个 XLang AOT 构建因共享运行时缺少
+> `xl6ValueDataSnapshotV1` 而停止。下文的旧快照 AOT 结果不代表当前发布物
+> 已通过；主线修复后需重跑完整门禁。
+
 ## 平台与验收范围
 
 | 能力 | 范围 |
 | --- | --- |
-| 真实串口 | Windows；例如 `COM3` 或 `\\.\COM3`，独占打开 |
+| 真实串口 | Windows `COM3` / `\\.\COM3`；Linux `/dev/tty*`、`/dev/serial/by-id/*` 等 POSIX TTY 路径 |
 | 内存回环 | `LOOPBACK` / `SIM`；Windows、Linux，不访问设备 |
-| 本地已验 | 回环文本/二进制、短读短写、C/xlang ABI、拥有权、并发、分配失败 |
-| 尚未验收 | 实际设备、热拔插、驱动差异、串口线与流控；Linux 真实设备尚无实现 |
+| 本地已验 | 回环文本/二进制、短读短写、C/xlang ABI、拥有权、并发、分配失败；Linux PTY 的实际 FD 双向 I/O、配置、独占状态、超时、断线与 C/XLang 对照 |
+| 尚未验收 | 实际串口硬件、热拔插、驱动差异、串口线与流控；macOS/BSD 未测试 |
 
 回环测试通过不代表真实设备达到生产级验收。
 目前没有异步串口、可配置超时、硬件流控或串口枚举 API。
@@ -37,30 +42,33 @@ end
 
 | API | 约定 |
 | --- | --- |
-| `serial.open(string port, int baudrate = 9600) as Serial` | 默认 8 数据位、1 停止位、无校验；参数无效抛 ValueError，设备失败抛 IOError |
+| `serial.open(string port, int baudrate = 9600) as Serial` | 默认 8 数据位、1 停止位、无校验；参数无效或端口名含 NUL 抛 ValueError，设备失败抛 IOError |
 | `serial.openLoopback(int baudrate = 9600) as Serial` | 创建独立的有界内存回环对象 |
-| `Serial(port, baudrate, databits, stopbits, parity)` | 完整配置构造；dataBits 为 5..8，stopBits 为 1/2，parity 为 0 无/1 奇/2 偶；失败句柄为空，必须先检查 `valid` |
+| `Serial(port, baudrate, databits, stopbits, parity)` | 完整配置构造；dataBits 为 5..8，stopBits 为 1/2，parity 为 0 无/1 奇/2 偶；端口名含 NUL 抛 ValueError，打开设备失败抛相应异常 |
 | `valid as bool` / `isOpen as bool` | 当前对象是否有句柄；不是设备健康探针，不检测拔线 |
 | `port as string` | 创建时使用的端口名，语言侧返回独立字符串 |
 | `baudrate as int` | 创建时配置的波特率 |
 | `available as int` | 当时可读的字节数；并发下是快照，不构成下一次读取量保证 |
-| `write(string data) as int` | UTF-8 文本写入，返回实际字节数，不是字符数 |
+| `write(string data) as int` | UTF-8 文本按完整字节长度写入，包括内嵌 NUL；返回实际字节数，不是字符数 |
 | `writeBytes(Buffer data) as int` | 二进制写入，不修改或接管输入 |
 | `read(int maxLen = 1024) as string` | 将本次读取转为文本；maxLen 按字节计数 |
 | `readBytes(int maxLen = 1024) as Buffer` | 返回独立拥有的 Buffer；负长度抛 ValueError，0 返回空缓冲且不消费数据 |
 | `flush()` | 丢弃接收/发送队列；不是等待数据发送完毕 |
 
 所有 I/O 失败均应按异常处理；成功的零字节结果不是异常。
-直接 native 构造的失败状态通过 `valid` 检查，通常优先使用会抛出异常的工厂函数。
-类中的 `*Native` 方法是声明层入口，原始返回码遵循下方 C 约定；应用优先使用上表的检查型方法。
+直接构造和工厂函数都会报告打开失败；工厂函数另外提供默认参数。
+类中的 `*Native` 方法仅供包装层内部使用。XLang 应用使用上表的检查型
+方法；C 应用仍可直接使用下方公开的 C API。
 
 ## 字节、短读与短写
 
 - 输入长度、`maxLen`、`available` 和所有 I/O 返回值统一为字节数。
+- `Serial(...)` 直接构造与 `serial.open(...)` 都拒绝端口名中的内嵌 NUL；文本写入不会在 NUL 处截断。
 - `readBytes` 不返回借用缓冲；下一次读取、flush 或端口销毁不会影响已有结果。
 - 回环队列容量 4096 字节。写不下时返回实际写入量，满队列返回 0，不丢弃未计入返回值的输入。
 - 单次真实设备 I/O 最多 65536 字节；更大的请求允许短读/短写，不进行无界分配。
-- 真实设备采用同步 I/O：当前固定首字节读取等待约 50ms、写入超时 1000ms，最终行为仍受 Windows 驱动约束。
+- 真实设备采用同步 I/O：当前固定首字节读取等待约 50ms、写入等待约 1000ms；Windows 最终行为仍受驱动约束，POSIX 使用非阻塞描述符和有期限的 `poll`，超时返回成功的零字节结果。
+- Linux 使用 `O_NOCTTY` 打开 TTY，以 `termios` 配置原始字节模式、数据位/停止位/奇偶校验和支持的标准波特率，关闭前由包持有原生 FD；支持时启用 `TIOCEXCL`，特权进程可能绕过独占限制。非 TTY 路径明确失败，不当作普通文件写入。
 - `read` 不是消息帧解析器。UTF-8 字符可能跨读取边界；有 framing、二进制或分块 UTF-8 要求时，先用 `readBytes` 收齐再解码。
 - 每次操作内部加锁，但 `available` 后紧接 `read`、或 `write` 后紧接 `read` 并非原子事务。请求/响应协议应由调用方协调。
 
@@ -78,6 +86,7 @@ C 侧负责恰好一次 `xserial_close`，并在关闭前结束所有使用该�
 | `xserial_close(handle)` | 消费句柄 | 不再使用或再次关闭 |
 | `xserial_is_open(handle)` | `bool` | NULL 为 false；不是存活指针检测器 |
 | `xserial_write(handle, const void* data, size_t size)` | `int64_t` 实际字节数 | -1；输入只读借用到返回 |
+| `xserial_write_text_len(handle, const char* text, size_t size)` | 与 write 相同，允许内嵌 NUL | -1；输入只读借用到返回 |
 | `xserial_write_text(handle, const char* text)` | `int64_t` 实际 UTF-8 字节数 | -1；文本按 C 字符串读取 |
 | `xserial_write_bytes(handle, void* data, size_t size)` | 与 write 相同 | xlang `point` 的精确 ABI 入口，不接管或修改 data |
 | `xserial_read(handle, int64_t maxBytes)` | 拥有型 `void*`，实际为 `xbuffer*` | NULL 只表示失败；结果须 `xrtBufferDestroy` |
@@ -92,12 +101,21 @@ C 侧负责恰好一次 `xserial_close`，并在关闭前结束所有使用该�
 
 ## 范例与测试
 
-发行目录下可直接运行，两份范例实现相同行为且 12 行输出逐字一致：
+发行目录下可直接运行，两份范例实现相同行为且输出逐字一致：
 
 ```text
 xl run examples/extlibs/serial.xl
 xl run examples/extlibs/serial_c.c
 ```
+
+包内 `examples/device_c.c` 也可直接用 `xl build` 构建；运行时需传入真实串口路径。
+Linux 门禁会给直接构建和 `xl run` 的 C 范例传入独立 PTY 并核对请求和响应；Windows 无设备门禁只检查构建，
+不能据此宣称物理串口已验收。
+
+C 范例中的写入、读取和清空操作不依赖 `assert` 的副作用；Linux 包内门禁
+在 `-DNDEBUG` 下编译运行，并与 XLang 范例逐字核对输出。两份范例还分别
+校验剩余 2 字节、容量 4096 字节、满队列零写入及最终零剩余，避免共同
+打印错误值时仅凭输出一致而误判通过。
 
 仓库 `demo6` 下：
 
@@ -105,6 +123,9 @@ xl run examples/extlibs/serial_c.c
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_serial.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_platform_extlibs.ps1 -Package serial
 ```
+
+共享 AOT 链接符号尚未修复时，可用 `tools/check_extlib_serial.ps1 -SkipAot`
+完整执行包内 C/JIT、ABI 与双语范例门禁；这不等于发布级验收。
 
 专用门禁用独立进程验证严格 GCC、生成 C 原型、C/xlang JIT、xlang AOT、双语范例。
 分配故障测试使用独立 C 运行库，不在已经运行的 xl.dll 宿主里切换分配器。
@@ -114,5 +135,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_platform_extlibs.p
 - `test/serial_runtime.c`：仅用于独立测试，不能加入包的 cSources，避免编译第二份宿主 XRT。
 - `test/cases/extlib_serial.xl`：仓库级语言边界、异常、别名、跨函数返回读取结果和重复生命周期测试。
 
-Linux 可独立用 GCC 编译同一批 C 测试，追加 `-pthread -lm -ldl`。
-其结果仅覆盖回环；真实端口会返回 XRT 的 Unsupported 错误。
+2026-10-18：`writeNative(text,length)` 与 `writeBytesNative(point,length)`
+原可由导入方直接调用，绕过实际字符串/Buffer 长度及所有权边界。
+两条只编译负例先确认可达，八个 `*Native` 方法现均为类内私有；
+`xl check extlibs/serial/test/private_text_negative.xl` 和
+`private_bytes_negative.xl` 应报告访问错误，禁止运行这些负例。
+Windows `check_extlib_serial.ps1 -SkipAot` 的严格 GCC、生成原型、
+C/XLang JIT 与双语范例，以及 Linux C ASan/UBSan、PTY 真设备路径和
+C/XLang PTY 对照全部通过；完整 AOT 与物理串口验收仍未完成。
+
+Linux/WSL 聚焦门禁：
+
+```sh
+sh release/extlibs/serial/test/check.sh
+```
+
+该脚本对回环、故障注入和 PTY 设备路径在 `-DNDEBUG` 下运行严格 GCC 与 ASan/UBSan；三个 C 测试单元会保持断言生效，使断言中的读写操作不会被发布构建删除。可用 `release/xl` 和 Python 时，还将 C/XLang 回环范例对照，并把独立 GCC、直接 `xl build`、直接 `xl run` 和 XLang 的 `examples/device.*` 分别接到独立 PTY，核对 `PING`/`PONG` 与相同输出。PTY 是真实内核 TTY/FD 路径，但不等于 USB/物理串口、拔线和驱动兼容性验收。完整 AOT 仍由共享缺符号问题阻断。

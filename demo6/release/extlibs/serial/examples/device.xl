@@ -1,0 +1,12 @@
+import serial
+
+func main(...) as int
+    if arg.length != 2 then
+        return 2
+    end
+    auto port = serial.open(string(arg[1]), 115200)
+    assert port.write("PING") == 4
+    assert port.read(4) == "PONG"
+    println("serial device: PASS")
+    return 0
+end

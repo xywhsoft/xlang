@@ -1,20 +1,39 @@
 extern "xl6_xrt_last_error_text" func __serial_error() as string
+extern "xserial_open" func __serial_open(string port, int baudrate,
+    int databits, int stopbits, int parity) as point
+extern "xserial_close" func __serial_close(point handle)
+
+func __serial_require_port(string port)
+    if string.indexOf(port, "\0", false, string.byteLen(port), 1) >= 0 then
+        throw ValueError "serial: port contains an embedded NUL"
+    end
+end
 
 
 
 export class Serial
     native point handle
-    extern "xserial_open" create(string port, int baudrate, int databits, int stopbits, int parity)
-    extern "xserial_close" destroy()
 
-    extern "xserial_is_open" func isOpenNative() as bool
-    extern "xserial_write_text" func writeNative(string data) as int
-    extern "xserial_write_bytes" func writeBytesNative(point data, c_size len) as int
-    extern "xserial_read" func readNative(int maxLen) as point
-    extern "xserial_available" func availableNative() as int
-    extern "xserial_flush" func flushNative() as bool
-    extern "xserial_get_baudrate" func baudrateNative() as int
-    extern "xserial_get_port" func portNative() as string
+    create(string port, int baudrate, int databits, int stopbits, int parity)
+        __serial_require_port(port)
+        self.handle = __serial_open(port, baudrate, databits, stopbits, parity)
+    end
+
+    destroy()
+        if self.handle != null then
+            __serial_close(self.handle)
+            self.handle = null
+        end
+    end
+
+    private extern "xserial_is_open" func isOpenNative() as bool
+    private extern "xserial_write_text_len" func writeNative(string data, c_size length) as int
+    private extern "xserial_write_bytes" func writeBytesNative(point data, c_size len) as int
+    private extern "xserial_read" func readNative(int maxLen) as point
+    private extern "xserial_available" func availableNative() as int
+    private extern "xserial_flush" func flushNative() as bool
+    private extern "xserial_get_baudrate" func baudrateNative() as int
+    private extern "xserial_get_port" func portNative() as string
 
     get valid() as bool
         return self.handle != null
@@ -44,7 +63,7 @@ export class Serial
         if self.handle == null then
             throw RuntimeError "serial: port is closed"
         end
-        int count = self.writeNative(data)
+        int count = self.writeNative(data, c_size(string.byteLen(data)))
         if count < 0 then
             throw IOError __serial_error()
         end

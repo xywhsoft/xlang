@@ -1,6 +1,10 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #include "../include/serial.h"
 
+/* 故障注入步骤写在断言中，发布配置也必须执行。 */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

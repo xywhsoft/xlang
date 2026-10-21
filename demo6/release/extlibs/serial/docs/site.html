@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>serial - 扩展库 - xlang</title>
+  <meta name="description" content="serial 同步串口：Windows 和 Linux TTY 设备、独立内存回环、UTF-8 与二进制 I/O，以及 C/xlang 双语接口。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <style>
+    .serial-toc {display:flex;flex-wrap:wrap;gap:12px 24px;margin:24px 0;}
+    .serial-table {overflow-x:auto;margin:16px 0;}
+    .serial-table table {min-width:540px;}
+    .serial-table td {overflow-wrap:anywhere;}
+    .serial-table code {white-space:normal;}
+    .serial-note {border-left:3px solid var(--brand);padding:4px 16px;margin:24px 0;}
+    .serial-detail section {scroll-margin-top:90px;}
+    .serial-detail pre {overflow:auto;}
+  </style>
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+    <ul class="nav-links" id="site-navigation">
+      <li><a href="../tour.html">语法导览</a></li>
+      <li><a href="../book/index.html">教程</a></li>
+      <li><a href="../stdlib.html">标准库</a></li>
+      <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+      <li><a href="../guide.html">文档</a></li>
+      <li><a href="../download.html">下载</a></li>
+    </ul>
+    <div class="nav-actions" aria-label="页面工具"></div>
+  </div>
+</nav>
+<main class="extlib-layout c-sys serial-detail" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / serial</p>
+    <div class="extlib-title-row"><h1>serial</h1><span class="extlib-cat-badge">系统与硬件</span></div>
+    <div class="extlib-badges"><span class="extlib-badge">1.0.0</span><span class="extlib-badge">C / xlang</span><span class="extlib-badge">同步 I/O</span></div>
+    <p class="extlib-lead">Windows 与 Linux 串口设备、独立内存回环。文本和二进制接口统一按字节计数，读取结果独立拥有，短读短写保留真实传输量。C 与 xlang 共用缓冲、锁和错误合同。</p>
+  </header>
+  <p class="serial-note"><strong>验收边界：</strong>Windows / Linux 回环、并发和分配失败已验证；Linux 另通过真实内核 PTY 的双向 I/O、超时、断线、配置及 C/xlang 对照。USB/物理串口、热拔插和驱动差异仍未验收，不能把 PTY 结果等同硬件发布认证。当前完整 AOT 门禁受编译器缺符号阻断。</p>
+  <nav class="serial-toc" aria-label="本文目录"><a href="#start">快速开始</a><a href="#api">xlang API</a><a href="#contract">I/O 约定</a><a href="#c-api">C API</a><a href="#tests">范例与验证</a></nav>
+
+  <section id="start">
+    <h2>快速开始</h2>
+    <div class="code-block"><div class="code-header"><span>回环不需要硬件</span></div><div class="code-body"><pre><code>import serial
+from serial import Serial
+
+func main(...) as int
+    Serial port = serial.openLoopback(115200)
+    assert port.write("你好") == 6
+    println(port.read(6))
+
+    Buffer bytes = Buffer()
+    assert bytes.appendByte(0) and bytes.appendByte(255)
+    assert port.writeBytes(bytes) == 2
+    Buffer result = port.readBytes(2)
+    assert result.byteAt(0) == 0 and result.byteAt(1) == 255
+    return 0
+end</code></pre></div></div>
+    <p>连接 Windows 设备使用 <code>serial.open("COM3", 115200)</code>，Linux 使用 <code>serial.open("/dev/ttyUSB0", 115200)</code> 或稳定的 <code>/dev/serial/by-id/...</code> 路径。程序必须有设备权限；对象自动释放句柄。Linux 打开时启用原始模式与内核支持的独占标志。</p>
+  </section>
+
+  <section id="api">
+    <h2>xlang API</h2>
+    <div class="serial-table"><table class="ext-kv"><thead><tr><th>入口</th><th>返回 / 约定</th></tr></thead><tbody>
+      <tr><td><code>serial.open(string port, int baudrate = 9600)</code></td><td>Serial；默认 8 数据位、1 停止位、无校验。无效参数或含 NUL 的端口名抛 ValueError；设备失败抛 IOError。</td></tr>
+      <tr><td><code>serial.openLoopback(int baudrate = 9600)</code></td><td>Serial；创建独立的 4096 字节内存回环队列。</td></tr>
+      <tr><td><code>Serial(port, baudrate, databits, stopbits, parity)</code></td><td>完整构造；5..8 数据位，1/2 停止位，校验为 0 无 / 1 奇 / 2 偶。含 NUL 的端口名抛 ValueError，设备打开失败抛相应异常。</td></tr>
+      <tr><td><code>valid</code> / <code>isOpen</code></td><td>bool；是否持有句柄，不是设备健康或拔线检测。</td></tr>
+      <tr><td><code>port</code> / <code>baudrate</code></td><td>string / int；创建时的设备名与波特率。</td></tr>
+      <tr><td><code>available</code></td><td>int；当前可读字节数，失败抛 IOError。并发下只是快照。</td></tr>
+      <tr><td><code>write(string data)</code></td><td>int；完整写入 UTF-8 字节，包括内嵌 NUL；返回实际写入数。</td></tr>
+      <tr><td><code>writeBytes(Buffer data)</code></td><td>int；实际写入二进制字节数，不修改或接管输入。</td></tr>
+      <tr><td><code>read(int maxLen = 1024)</code></td><td>string；将本次读取转成文本，maxLen 是字节数。</td></tr>
+      <tr><td><code>readBytes(int maxLen = 1024)</code></td><td>独立拥有的 Buffer；负数抛 ValueError，0 不消费数据。</td></tr>
+      <tr><td><code>flush()</code></td><td>丢弃收发队列；不等待数据发送完成。失败抛 IOError。</td></tr>
+    </tbody></table></div>
+    <p>构造和读写失败均会抛出异常。类中的 <code>*Native</code> 方法仅供包装层内部使用；XLang 应用使用上表的检查型方法，C 应用可直接使用公开 C API。</p>
+  </section>
+
+  <section id="contract">
+    <h2>I/O 与拥有权约定</h2>
+    <ul>
+      <li>长度与返回值统一为字节数。<code>"你好"</code> 是 6 个 UTF-8 字节。</li>
+      <li>工厂函数与直接 <code>Serial(...)</code> 构造均拒绝端口名中的内嵌 NUL，不会悄悄打开截断后的端口。</li>
+      <li>允许短读、短写和成功的零字节结果。回环满队列返回 0，不会丢数据后谎报成功。</li>
+      <li>单次真实设备 I/O 最多 65536 字节；更大的请求会被限制为一次有界操作。</li>
+      <li>读取结果不会被下一次读取、flush 或端口析构影响。C 调用方独立销毁结果缓冲。</li>
+      <li>UTF-8 字符可以跨读取边界。处理协议帧、分块文本或二进制时，先用 Buffer 收齐数据。</li>
+      <li>每次操作内部加锁，但多个操作组成的事务不会自动加锁。请求与响应的对应关系由调用方管理。</li>
+      <li>真实设备使用同步 I/O，当前固定首字节读取等待约 50ms、写入超时 1000ms；实际行为仍受驱动约束。</li>
+      <li>目前没有串口枚举、异步串口、可配置超时或硬件流控 API。</li>
+    </ul>
+    <p>C 关闭句柄前，必须结束所有使用该句柄的操作。<code>close(NULL)</code> 安全；重复关闭、关闭后使用和并发关闭不属于有效调用。xlang 赋值或传参保留对象引用，不复制串口资源。</p>
+  </section>
+
+  <section id="c-api">
+    <h2>C API</h2>
+    <p>公开头文件为 <code>extlibs/serial/include/serial.h</code>。编译 <code>serial_native.c</code> 并链接一份 XRT，无需链接 xlang 编译器。失败详情通过当前线程的 <code>xrtGetError()</code> 读取。</p>
+    <div class="serial-table"><table class="ext-kv"><thead><tr><th>函数</th><th>合同</th></tr></thead><tbody>
+      <tr><td><code>xserial_open(name, baudrate, databits, stopbits, parity)</code></td><td>拥有型 void*；失败 NULL。数值参数为 int64_t。</td></tr>
+      <tr><td><code>xserial_close(handle)</code></td><td>消费句柄，恰好关闭一次。</td></tr>
+      <tr><td><code>xserial_is_open(handle)</code></td><td>bool；NULL 为 false，不验证悬空指针。</td></tr>
+      <tr><td><code>xserial_write(handle, const void* data, size_t size)</code></td><td>int64_t 实际字节数，失败 -1；只读借用输入。</td></tr>
+      <tr><td><code>xserial_write_text(handle, const char* text)</code></td><td>按 C 字符串的 UTF-8 字节长度写入，失败 -1。</td></tr>
+      <tr><td><code>xserial_write_text_len(handle, const char* text, size_t size)</code></td><td>显式长度的文本字节写入；允许内嵌 NUL，行为与 write 相同。</td></tr>
+      <tr><td><code>xserial_write_bytes(handle, void* data, size_t size)</code></td><td>xlang point 的精确 ABI 入口；行为与 write 相同。</td></tr>
+      <tr><td><code>xserial_read(handle, int64_t maxBytes)</code></td><td>返回 void*，实际为拥有型 xbuffer*；用 xrtBufferDestroy 释放。NULL 只表示失败。</td></tr>
+      <tr><td><code>xserial_available(handle)</code></td><td>int64_t；失败 -1。</td></tr>
+      <tr><td><code>xserial_flush(handle)</code></td><td>bool；清空队列，失败 false。</td></tr>
+      <tr><td><code>xserial_get_baudrate(handle)</code></td><td>int64_t；NULL 为 0。</td></tr>
+      <tr><td><code>xserial_get_port(handle)</code></td><td>借用字符串，保持到 close；NULL 返回空字符串。</td></tr>
+      <tr><td><code>xserial_error()</code></td><td>借用当前线程错误文本，保持到错误槽变化；无错误为空字符串。</td></tr>
+    </tbody></table></div>
+    <p>以返回值判断本次 C 操作，不要把之前的 last-error 当成新操作的失败。记录或处理错误后使用 XRT 清理接口；错误槽在线程之间隔离。</p>
+  </section>
+
+  <section id="tests">
+    <h2>范例与验证</h2>
+    <p>发行目录中，两份范例可以直接运行，13 行输出逐字一致：</p>
+    <div class="code-block"><div class="code-body"><pre><code>xl run examples/extlibs/serial.xl
+xl run examples/extlibs/serial_c.c</code></pre></div></div>
+    <p>设备范例 <code>extlibs/serial/examples/device_c.c</code> 可直接用 <code>xl build</code> 或 <code>xl run</code>；运行时需提供串口路径。Linux 门禁使用独立 PTY 核对请求与响应，Windows 无设备门禁只验证构建。</p>
+    <p>源码仓库 demo6 目录下的专用门禁：</p>
+    <div class="code-block"><div class="code-body"><pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_serial.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_serial.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_platform_extlibs.ps1 -Package serial</code></pre></div></div>
+    <ul>
+      <li>Windows 严格 GCC 与生成 C 原型核对、C/xlang 内存运行；完整 AOT 仍待编译器缺符号修复。</li>
+      <li>Linux 以 <code>-DNDEBUG</code> 编译运行 C 回环范例，确保读写操作不会随断言关闭而消失，并与 xlang 范例逐字核对。</li>
+      <li>C 与 xlang 范例分别校验 2 字节剩余、4096 字节容量、满队列零写入和最终零剩余，避免两者同时打印错误值却通过对照。</li>
+      <li>满队列、空值、负长度、int64 极值、超长设备名、UTF-8 与内嵌零字节。</li>
+      <li>跨读取/析构的独立结果、对象别名与反复创建释放。</li>
+      <li>双线程写入、不同块大小的 64KiB 连续传输、当前线程错误隔离。</li>
+      <li>96 组分配位置测试，检查失败不消费队列以及存活内存、双重释放与越界计数。</li>
+      <li>Linux 用 <code>sh release/extlibs/serial/test/check.sh</code> 运行 ASan/UBSan 回环、故障注入及 PTY 设备测试；独立 GCC、直接 <code>xl build</code>、直接 <code>xl run</code> 与 xlang 的设备范例分别发送 PING 并接收 PONG。</li>
+    </ul>
+    <p>真实设备与热拔插尚未验证，不能以回环测试代替。分配故障注入在独立 C 进程执行，不改变正在运行的 xl.dll 宿主分配策略。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

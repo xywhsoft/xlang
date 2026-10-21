@@ -3,6 +3,10 @@
 #endif
 #include "../include/serial.h"
 
+/* 测试的操作与断言不可在 -DNDEBUG 构建中消失。 */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
@@ -55,6 +59,11 @@ static void check_bytes(void)
     assert(xserial_write(port, NULL, 0) == 0);
     first = (xbuffer*)xserial_read(port, 1);
     assert(first != NULL && first->Size == 0);
+    xrtBufferDestroy(first);
+    assert(xserial_write_text_len(port, "A\0B", 3) == 3);
+    first = (xbuffer*)xserial_read(port, 3);
+    assert(first != NULL && first->Size == 3);
+    assert(memcmp(first->Data, "A\0B", 3) == 0);
     xrtBufferDestroy(first);
     xserial_close(port);
 }
