@@ -86,30 +86,30 @@ func main(...) as int
     end
 
     bool rejected = false
-    int mid = incremental.len() / 2
-    incremental[mid] = incremental[mid] ^ 255
+    incremental[10] = 2
     try
         snappy.decompress(incremental)
-    catch CompressionError e
+    catch IOError e
         rejected = true
     end
     if not rejected then
         return 3
     end
 
-    string sourcePath = "tmp/extlib_snappy_source.bin"
-    string packedPath = "tmp/extlib_snappy_stream.sz"
-    string plainPath = "tmp/extlib_snappy_plain.bin"
-    file.writeBytes(sourcePath, source)
+    dir.createAll("build/test/snappy-baseline")
+    string sourcePath = "build/test/snappy-baseline/source.bin"
+    string packedPath = "build/test/snappy-baseline/stream.sz"
+    string plainPath = "build/test/snappy-baseline/plain.bin"
+    file.writeBytes(sourcePath, source.toBytes())
     snappy.compressFile(sourcePath, packedPath)
     snappy.decompressFile(packedPath, plainPath)
-    if file.readBytes(plainPath) != source then
+    if file.readBytes(plainPath) != source.toBytes() then
         return 4
     end
     bool overwriteRejected = false
     try
         snappy.compressFile(sourcePath, packedPath, overwrite = false)
-    catch CompressionError e
+    catch ValueError e
         overwriteRejected = true
     end
     if not overwriteRejected then
