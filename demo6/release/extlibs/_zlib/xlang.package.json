@@ -19,7 +19,8 @@
             "third_party/zlib/uncompr.c",
             "third_party/zlib/zutil.c"
         ],
-        "xlSources": []
+        "xlSources": [],
+        "xrtModules": []
     },
     "links": [],
     "loadlibs": [],
