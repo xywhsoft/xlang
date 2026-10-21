@@ -1,23 +1,29 @@
 extern "xl6_xrt_last_error_text" func __watch_error() as string
 
+func __watch_has_nul(string path) as bool
+    return string.indexOf(path, "\0", false, string.byteLen(path), 1) >= 0
+end
 
 
-class Watcher
+export class Watcher
     native point handle
     extern "xwatch_create" create()
     extern "xwatch_destroy" destroy()
 
-    extern "xwatch_add" func addNative(string path) as int
-    extern "xwatch_remove" func removeNative(int idx) as bool
-    extern "xwatch_poll" func pollNative() as string
-    extern "xwatch_count" func countNative() as int
-    extern "xwatch_path" func pathNative(int idx) as string
+    private extern "xwatch_add" func addNative(string path) as int
+    private extern "xwatch_remove" func removeNative(int idx) as bool
+    private extern "xwatch_poll" func pollNative() as point
+    private extern "xwatch_count" func countNative() as int
+    private extern "xwatch_path" func pathNative(int idx) as string
 
     get valid() as bool
         return self.handle != null
     end
 
     get count() as int
+        if self.handle == null then
+            throw RuntimeError "watch: instance is destroyed"
+        end
         return self.countNative()
     end
 
@@ -25,7 +31,14 @@ class Watcher
         if self.handle == null then
             throw RuntimeError "watch: instance is destroyed"
         end
-        return self.addNative(path)
+        if __watch_has_nul(path) then
+            throw ValueError "watch: path contains an embedded NUL byte"
+        end
+        int index = self.addNative(path)
+        if index < 0 then
+            throw ValueError "watch: cannot add path: " + __watch_error()
+        end
+        return index
     end
 
     func remove(int idx) as bool
@@ -39,10 +52,17 @@ class Watcher
         if self.handle == null then
             throw RuntimeError "watch: instance is destroyed"
         end
-        return self.pollNative()
+        point event = self.pollNative()
+        if event == null then
+            throw IOError "watch: poll failed: " + __watch_error()
+        end
+        return __xl_runtime.takeCstr(event)
     end
 
     func path(int idx) as string
+        if self.handle == null then
+            throw RuntimeError "watch: instance is destroyed"
+        end
         return self.pathNative(idx)
     end
 end
@@ -52,9 +72,14 @@ extern "xwatch_exists" func __watch_exists(string path) as bool
 
 
 export func create() as Watcher
-    return Watcher()
+    Watcher watcher = Watcher()
+    if not watcher.valid then throw RuntimeError __watch_error() end
+    return watcher
 end
 
 export func exists(string path) as bool
+    if __watch_has_nul(path) then
+        return false
+    end
     return __watch_exists(path)
 end

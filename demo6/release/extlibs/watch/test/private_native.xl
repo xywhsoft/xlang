@@ -1,0 +1,4 @@
+import watch
+
+auto watcher = watch.create()
+watcher.addNative("path\0hidden")

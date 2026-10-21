@@ -5,8 +5,13 @@ import watch
 func main(...) as int
     auto w = watch.create()
 
-    // Watch a file
-    auto idx = w.add("release\\extlibs\\watch\\src\\watch.xl")
+    // 从 release 或 demo6 目录运行都能找到同一份源文件。
+    string watched = "extlibs/watch/src/watch.xl"
+    if not path.exists(watched) then
+        watched = "release/extlibs/watch/src/watch.xl"
+    end
+    assert watch.exists(watched), "watch example file missing"
+    auto idx = w.add(watched)
     println("watching index: ", idx)
     println("path: ", w.path(idx))
     println("active watches: ", w.count)
@@ -20,7 +25,7 @@ func main(...) as int
     end
 
     // Check file existence
-    println("exists: ", watch.exists("release\\extlibs\\watch\\src\\watch.xl"))
+    println("exists: ", watch.exists(watched))
 
     println("watch example: PASS")
     return 0

@@ -1,0 +1,44 @@
+import watch
+
+extern "xrtMemDebugFailAfter" func __watch_fail_after(uint64 count) as c_bool
+extern "xrtMemDebugFailClear" func __watch_fail_clear()
+
+func main(...) as int
+    assert __watch_fail_after(uint64(0))
+    bool createError = false
+    try
+        watch.create()
+    catch MemoryError error
+        createError = true
+    finally
+        __watch_fail_clear()
+    end
+    assert createError, "create allocation failure must be MemoryError"
+
+    auto watcher = watch.create()
+    assert __watch_fail_after(uint64(0))
+    bool addError = false
+    try
+        watcher.add("missing-watch-allocation")
+    catch MemoryError error
+        addError = true
+    finally
+        __watch_fail_clear()
+    end
+    assert addError and watcher.count == 0, "add failure must preserve watcher"
+    int index = watcher.add("missing-watch-allocation")
+    assert index == 0 and watcher.remove(index), "add recovers after allocation failure"
+
+    assert __watch_fail_after(uint64(0))
+    bool memoryError = false
+    try
+        watcher.poll()
+    catch MemoryError error
+        memoryError = true
+    finally
+        __watch_fail_clear()
+    end
+    assert memoryError, "poll allocation failure must be MemoryError"
+    assert watcher.poll() == "", "poll recovers after allocation failure"
+    return 0
+end

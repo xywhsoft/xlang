@@ -1,0 +1,11 @@
+import watch
+
+func main(...) as int
+    string watched = "extlibs/watch/src/watch.xl"
+    auto watcher = watch.create()
+    watcher.add(watched)
+    assert watcher.poll() == "", "no change before first poll"
+    println("count:", watcher.count)
+    println("exists:", watch.exists(watched))
+    return 0
+end

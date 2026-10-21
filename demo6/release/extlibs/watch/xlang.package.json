@@ -7,10 +7,12 @@
     "artifact": {
         "kind": "source",
         "cSources": ["watch_native.c"],
-        "xlSources": ["src/watch.xl"]
+        "xlSources": ["src/watch.xl"],
+        "xrtModules": ["XRT_MODULE_DIR", "XRT_MODULE_PATH", "XRT_MODULE_HASH64"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/cwd_snapshot.xl", "test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

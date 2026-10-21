@@ -1,0 +1,25 @@
+import watch
+
+func main(...) as int
+    string original = path.cwd()
+    string root = dir.temp("", "xlang-watch-cwd-", "")
+    try
+        assert path.setCwd(root)
+        string relative = "cwd_target_xl.txt"
+        string target = path.abs(relative)
+        string elsewhere = path.join(root, "elsewhere")
+        assert dir.createAll(elsewhere)
+
+        auto watcher = watch.create()
+        int index = watcher.add(relative)
+        assert path.setCwd(elsewhere)
+        assert file.writeText(target, "created")
+        assert watcher.poll() == "CREATED:" + relative
+        assert watcher.path(index) == relative
+    finally
+        bool restored = path.setCwd(original)
+        assert restored, "watch test must restore the working directory"
+        assert dir.delete(root), "watch cwd temporary directory must be removed"
+    end
+    return 0
+end

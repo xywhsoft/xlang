@@ -1,0 +1,53 @@
+import watch
+
+func main(...) as int
+    string root = dir.temp("", "xlang-watch-boundary-", "")
+    try
+        string target = path.join(root, "监视.xl.txt")
+        watch.Watcher watcher = watch.create()
+        int index = watcher.add(target)
+        assert index == 0 and watcher.count == 1, "add missing path"
+        assert watcher.path(index) == target, "path kept as UTF-8"
+        assert watcher.poll() == "", "no change"
+
+        assert file.writeText(target, "a")
+        assert watcher.poll() == "CREATED:" + target, "create event"
+        assert not watch.exists(target + "\0suffix"), "exists must not truncate a path"
+        bool rejectedNul = false
+        try
+            watcher.add(target + "\0suffix")
+        catch ValueError e
+            rejectedNul = true
+        end
+        assert rejectedNul and watcher.count == 1, "add must not truncate a path"
+        assert file.writeText(target, "second")
+        assert watcher.poll() == "MODIFIED:" + target, "modify event"
+        assert file.delete(target)
+        assert watcher.poll() == "DELETED:" + target, "delete event"
+        assert watcher.remove(index), "remove"
+        assert watcher.count == 0 and watcher.path(index) == "", "removed entry"
+        assert watcher.add(target) == index, "recycle slot"
+        bool rejected = false
+        try
+            watcher.add("")
+        catch ValueError e
+            rejected = true
+        end
+        assert rejected, "reject empty path"
+        int recovered = watcher.add(root)
+        assert recovered == 1 and watcher.remove(recovered), "add recovers after failure"
+
+        string directory = path.join(root, "目录")
+        assert dir.createAll(directory)
+        int dirIndex = watcher.add(directory)
+        string child = path.join(directory, "item.txt")
+        assert file.writeText(child, "item")
+        assert watcher.poll() == "MODIFIED:" + directory, "child created"
+        assert file.delete(child)
+        assert watcher.poll() == "MODIFIED:" + directory, "child deleted"
+        assert watcher.remove(dirIndex), "remove directory watch"
+    finally
+        assert dir.delete(root), "watch boundary temporary directory must be removed"
+    end
+    return 0
+end

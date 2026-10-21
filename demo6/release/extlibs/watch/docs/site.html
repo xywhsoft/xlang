@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>watch - 扩展库 - xlang</title>
+  <meta name="description" content="基于 XRT UTF-8 路径的文件与目录轮询监视，提供 C/xlang 双语接口。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-sys" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / watch</p>
+    <h1>watch</h1>
+    <p class="extlib-lead">轮询文件及目录元数据，获取创建、修改、删除事件。</p>
+    <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import watch
+
+watch.Watcher watcher = watch.create()
+int index = watcher.add("config.json")
+string event = watcher.poll()
+if event != "" then println(event)
+watcher.remove(index)</code></pre>
+    <p><code>add</code> 允许路径尚不存在；以后创建时可得到 <code>CREATED:path</code>。相对路径按添加时的工作目录固定监视目标，事件仍显示原路径；之后切换工作目录不会改指向。无变化时 <code>poll</code> 返回空串。</p>
+  </section>
+  <section id="api">
+    <h2>接口与范围</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>watch.create() / watch.exists(path)</code></td><td>创建监视实例或检查路径；创建分配失败时抛错。</td></tr>
+      <tr><td><code>Watcher.add(path) / remove(index)</code></td><td>登记监视路径、删除监视项；空槽位可重用。</td></tr>
+      <tr><td><code>Watcher.poll()</code></td><td>每次最多返回一个 CREATED/MODIFIED/DELETED 事件。</td></tr>
+      <tr><td><code>Watcher.path(index) / count</code></td><td>读取路径和活跃监视数量。</td></tr>
+    </tbody></table>
+    <p>这是基于 XRT 元数据的轮询实现，不是操作系统通知接口。可用时比较文件身份和创建时间，同大小、保留修改时间的原子替换也能报告变化；目录直接子项同样纳入可用元数据。目录只扫描直接子项，事件指向被监视目录；两次轮询之间的全部中间变化不能还原。目录在元数据查询后、枚举前消失或变为文件时有界重取样一次；权限和内存错误仍返回失败。单个实例不支持多线程同时操作。XL 的路径入口不接受内嵌 NUL，避免 C 字符串截断。</p>
+  </section>
+  <section id="c-api">
+    <h2>C 对照</h2>
+    <pre><code>#include "xrt.h"
+#include "watch_native.h"
+
+int main(void)
+{
+    void* watcher = xwatch_create();
+    if (!watcher) return 1;
+    int64_t index = xwatch_add(watcher, "config.json");
+    char* event = xwatch_poll(watcher);
+    int ok = index &gt;= 0 &amp;&amp; event != 0;
+    xrtFree(event);
+    xwatch_destroy(watcher);
+    return ok ? 0 : 1;
+}</code></pre>
+    <p><code>xwatch_poll</code> 的事件由调用方用 <code>xrtFree</code> 释放；<code>xwatch_path</code> 是借用指针，删除或销毁实例后失效。公开操作成功时不残留先前失败的 XRT 线程错误；析构不清错。完整双语范例位于 <code>release/extlibs/watch/examples/</code>。</p>
+  </section>
+  <section id="verify">
+    <h2>验证状态</h2>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/watch/test/check.ps1 -SkipAot
+bash release/extlibs/watch/test/check.sh</code></pre>
+    <p>C 范例可从 demo6 根目录直接以 <code>xl run release/extlibs/watch/examples/watch_c.c</code> 运行；Windows/Linux 包门禁均将其与 GCC、XLang 的输出对照。Windows 严格 GCC、C/XLang 边界和双语范例通过；两平台的定向目录竞争测试覆盖删除、变更类型与真实 I/O 错误，Linux C 文件/目录事件通过 ASan/UBSan，Linux XLang 包内边界用例也通过。2026-10-20 两份 XLang 文件/工作目录边界用例改用独占临时目录，单独运行及两平台包门禁通过，不再写删固定的 <code>build/test/watch_guard</code>。C 源仅使用公开 XRT 头文件。带输出范例 AOT 尚缺共享符号 <code>xl6ValueDataSnapshotV1</code>，未签收完整发布门禁。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>
