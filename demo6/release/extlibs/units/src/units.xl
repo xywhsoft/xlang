@@ -1,50 +1,55 @@
-extern "xu_bytes" func __u_bytes(float n) as string
-extern "xu_bytes_decimal" func __u_bytes_decimal(float n) as string
-extern "xu_parse_bytes" func __u_parse_bytes(string text) as float
-extern "xu_duration" func __u_duration(float seconds) as string
-extern "xu_duration_short" func __u_duration_short(float seconds) as string
-extern "xu_parse_duration" func __u_parse_duration(string text) as float
-extern "xu_count" func __u_count(float n) as string
-extern "xu_is_pow2" func __u_is_pow2(int n) as bool
+extern "xu_bytes" func __u_bytes(float n) as point
+extern "xu_bytes_decimal" func __u_bytes_decimal(float n) as point
+extern "xu_parse_bytes" func __u_parse_bytes(string text, c_longlong length) as float
+extern "xu_duration" func __u_duration(float seconds) as point
+extern "xu_duration_short" func __u_duration_short(float seconds) as point
+extern "xu_parse_duration" func __u_parse_duration(string text, c_longlong length) as float
+extern "xu_count" func __u_count(float n) as point
+extern "xu_is_pow2" func __u_is_pow2(int n) as c_int
+extern "xl6_xrt_last_error_text" func __u_error() as string
 
-
-
-// bytes 格式化为 1024 进制可读文本：1.50 KB、2.00 MB
 export func bytes(float n) as string
-    return __u_bytes(n)
+    point result = __u_bytes(n)
+    if result == null then throw ValueError __u_error() end
+    return __xl_runtime.takeCstr(result)
 end
 
-// bytesDecimal 格式化为 1000 进制文本
 export func bytesDecimal(float n) as string
-    return __u_bytes_decimal(n)
+    point result = __u_bytes_decimal(n)
+    if result == null then throw ValueError __u_error() end
+    return __xl_runtime.takeCstr(result)
 end
 
-// parseBytes 解析 "10MB"、"1.5GiB"、"512K" 为字节数；非法输入返回 -1
 export func parseBytes(string text) as float
-    return __u_parse_bytes(text)
+    float result = __u_parse_bytes(text, c_longlong(string.byteLen(text)))
+    if math.isNaN(result) then throw ValueError __u_error() end
+    return result
 end
 
-// duration 把秒数格式化为 "1d 2h 3m 4s" 风格
 export func duration(float seconds) as string
-    return __u_duration(seconds)
+    point result = __u_duration(seconds)
+    if result == null then throw ValueError __u_error() end
+    return __xl_runtime.takeCstr(result)
 end
 
-// durationShort 把秒数格式化为 "1:02:03" 风格
 export func durationShort(float seconds) as string
-    return __u_duration_short(seconds)
+    point result = __u_duration_short(seconds)
+    if result == null then throw ValueError __u_error() end
+    return __xl_runtime.takeCstr(result)
 end
 
-// parseDuration 解析 "1h30m"、"45s"、"1d2h"；非法输入返回 -1
 export func parseDuration(string text) as float
-    return __u_parse_duration(text)
+    float result = __u_parse_duration(text, c_longlong(string.byteLen(text)))
+    if math.isNaN(result) then throw ValueError __u_error() end
+    return result
 end
 
-// count 格式化大数字：1.2K、3.4M、5.6B
 export func count(float n) as string
-    return __u_count(n)
+    point result = __u_count(n)
+    if result == null then throw ValueError __u_error() end
+    return __xl_runtime.takeCstr(result)
 end
 
-// isPow2 判断非负整数是否为 2 的幂
 export func isPow2(int n) as bool
-    return __u_is_pow2(n)
+    return __u_is_pow2(n) == 1
 end

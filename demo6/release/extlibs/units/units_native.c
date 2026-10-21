@@ -1,245 +1,315 @@
-/*
- * units_native.c - Human-readable byte sizes, durations, and counts.
- *
- * Conventions:
- *   - bytes uses 1024-based units (KB/MB/GB/TB/PB/EB).
- *   - bytesDecimal uses 1000-based units.
- *   - parseBytes accepts 1024 and 1000 style suffixes (MB and MiB) plus the
- *     bare single letters K/M/G/T; the number may carry a sign.
- *   - duration input is seconds; formatting keeps two significant groups.
- *   - parseDuration accepts d/h/m/s combinations like "1d2h30m".
- *   - parse failures return a negative value (-1) rather than raising.
- */
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
+/* 可读单位：仅组合 CRT 算术/格式化与 XRT 错误、内存能力。 */
+#ifndef XRT_MODULE_NUMBER_FORMAT
+#define XRT_MODULE_NUMBER_FORMAT
+#endif
+#include "xrt.h"
+#include "include/units_native.h"
 #include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
 
-#define XU_RING 8
-#define XU_TEXT 64
+#define XU_DOMAIN "xlang.extlib.units"
+#define XU_MAX_BYTES 1e21
+#define XU_MAX_SECONDS 1e12
 
-static char xu_ring[XU_RING][XU_TEXT];
-static int xu_ring_next = 0;
-
-static char *xu_slot(void) {
-    char *slot = xu_ring[xu_ring_next];
-    xu_ring_next = (xu_ring_next + 1) % XU_RING;
-    return slot;
+static void xu_error(const char* message)
+{
+    xrtSetErrorInfo(XERR_VALUE, XU_DOMAIN, 0, message);
 }
 
-/* Manual decimal parser: TCC's strtod accepts FORTRAN 'd' exponents
-   ("1d2" == 100), which corrupts duration input like "1d2h30m". */
-static double xu_parse_number(const char **pp, int *ok) {
-    const char *p = *pp;
-    double value = 0;
-    int seen = 0;
-    int neg = 0;
-    double scale = 0.1;
-    if (*p == '-') {
-        neg = 1;
-        p++;
+static void* xu_copy(const char* text)
+{
+    size_t length = strlen(text) + 1u;
+    char* result = (char*)xrtMalloc(length);
+    if (result != NULL) memcpy(result, text, length);
+    return result;
+}
+
+static bool xu_valid(double value, double limit)
+{
+    if (isfinite(value) && fabs(value) <= limit) return true;
+    xu_error("value must be finite and within supported range");
+    return false;
+}
+
+/* 整数显示沿用当前舍入模式，但不向用户呈现负零。 */
+static double xu_display_whole(double value)
+{
+    double rounded = nearbyint(value);
+    return rounded == 0.0 ? 0.0 : rounded;
+}
+
+/* 固定小数位使用 XRT 数字格式，避免 CRT 区域设置改变小数点。 */
+static bool xu_fixed(char* text, size_t capacity, double value, int digits)
+{
+    xstrview format = digits == 0 ? XRT_STR_LITERAL(".0f") :
+        digits == 1 ? XRT_STR_LITERAL(".1f") : XRT_STR_LITERAL(".2f");
+    size_t length;
+    return xrtNumFormatTo(value, format, text, capacity, &length);
+}
+
+/* 升档依据最终显示值，避免 fenv 舍入与 XRT 固定精度舍入产生分歧。 */
+static bool xu_shown_reaches(double value, int digits,
+    const char* threshold, bool* reaches)
+{
+    char text[64];
+    const char* point;
+    size_t whole;
+    if (!xu_fixed(text, sizeof(text), value, digits)) return false;
+    point = strchr(text, '.');
+    whole = point != NULL ? (size_t)(point - text) : strlen(text);
+    *reaches = whole > 4u ||
+        (whole == 4u && memcmp(text, threshold, 4u) >= 0);
+    return true;
+}
+
+static void* xu_format_bytes(double value, double scale, const char* const* names)
+{
+    char text[96];
+    char number[64];
+    double amount = fabs(value);
+    int unit = 0;
+    int length;
+    xrtClearError();
+    if (!xu_valid(value, XU_MAX_BYTES)) return NULL;
+    /* 舍入后的显示值到达下一档时同步升档，避免输出 1024.00 KiB。 */
+    while (unit < 6) {
+        bool reaches;
+        if (unit == 0) reaches = fabs(xu_display_whole(value)) >= scale;
+        else if (amount >= scale) reaches = true;
+        else if (amount < scale - 0.01) reaches = false;
+        else if (!xu_shown_reaches(amount, 2,
+            scale == 1024.0 ? "1024" : "1000", &reaches)) return NULL;
+        if (!reaches) break;
+        amount /= scale;
+        ++unit;
     }
+    if (!xu_fixed(number, sizeof(number),
+        unit == 0 ? xu_display_whole(value) : amount, unit == 0 ? 0 : 2)) return NULL;
+    length = snprintf(text, sizeof(text), "%s%s %s",
+        unit != 0 && value < 0 ? "-" : "", number, names[unit]);
+    if (length < 0 || (size_t)length >= sizeof(text)) {
+        xu_error("formatted byte size exceeds output limit");
+        return NULL;
+    }
+    return xu_copy(text);
+}
+
+void* xu_bytes(double value)
+{
+    static const char* const names[] =
+        {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
+    return xu_format_bytes(value, 1024.0, names);
+}
+
+void* xu_bytes_decimal(double value)
+{
+    static const char* const names[] =
+        {"B", "kB", "MB", "GB", "TB", "PB", "EB"};
+    return xu_format_bytes(value, 1000.0, names);
+}
+
+/* 避开 TCC strtod 接受 Fortran d 指数造成的 "1d2h" 误读。 */
+static bool xu_number(const char** cursor, double* output)
+{
+    const char* p = *cursor;
+    double number = 0.0, fraction = 0.1;
+    bool seen = false;
     while (*p >= '0' && *p <= '9') {
-        value = value * 10.0 + (*p - '0');
-        p++;
-        seen = 1;
+        number = number * 10.0 + (*p++ - '0');
+        if (!isfinite(number) || number > XU_MAX_BYTES) return false;
+        seen = true;
     }
     if (*p == '.') {
-        p++;
+        ++p;
         while (*p >= '0' && *p <= '9') {
-            value += (*p - '0') * scale;
-            scale /= 10.0;
-            p++;
-            seen = 1;
+            number += (*p++ - '0') * fraction;
+            fraction /= 10.0;
+            seen = true;
         }
     }
-    *pp = p;
-    *ok = seen;
-    return neg ? -value : value;
+    *cursor = p;
+    *output = number;
+    return seen;
 }
 
-static const char *xu_bytes_with(double n, double scale) {
-    static const char *names[] = {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
-    char *slot = xu_slot();
-    int unit = 0;
-    double value = n;
-    int neg = value < 0;
-    if (neg) value = -value;
-    while (value >= scale && unit < 6) {
-        value /= scale;
-        unit++;
+static const char* xu_spaces(const char* p)
+{
+    while (*p == ' ' || *p == '\t') ++p;
+    return p;
+}
+
+static bool xu_input(const char* text, long long length, char copy[129])
+{
+    if (text == NULL || length < 0 || length > 128 ||
+        memchr(text, '\0', (size_t)length) != NULL) {
+        xu_error("input must be at most 128 bytes without embedded NUL");
+        return false;
     }
-    if (unit == 0) {
-        snprintf(slot, XU_TEXT, "%s%.0f %s", neg ? "-" : "", value, names[0]);
-    } else {
-        snprintf(slot, XU_TEXT, "%s%.2f %s", neg ? "-" : "", value, names[unit]);
+    memcpy(copy, text, (size_t)length);
+    copy[length] = '\0';
+    return true;
+}
+
+double xu_parse_bytes(const char* text, long long length)
+{
+    static const char* const si[] = {"KB", "MB", "GB", "TB", "PB", "EB"};
+    static const char* const iec[] = {"KIB", "MIB", "GIB", "TIB", "PIB", "EIB"};
+    static const double si_factor[] = {1e3, 1e6, 1e9, 1e12, 1e15, 1e18};
+    static const double iec_factor[] =
+        {1024.0, 1048576.0, 1073741824.0, 1099511627776.0,
+         1125899906842624.0, 1152921504606846976.0};
+    const char* p;
+    char input[129];
+    char suffix[5] = {0};
+    double number, factor = 1.0;
+    int sign = 1, i;
+    size_t suffix_length = 0u;
+    xrtClearError();
+    if (!xu_input(text, length, input)) return NAN;
+    p = xu_spaces(input);
+    if (*p == '+' || *p == '-') { if (*p == '-') sign = -1; ++p; }
+    if (!xu_number(&p, &number)) goto bad;
+    p = xu_spaces(p);
+    while (*p != '\0' && *p != ' ' && *p != '\t') {
+        if (suffix_length >= sizeof(suffix) - 1u) goto bad;
+        suffix[suffix_length++] = (char)toupper((unsigned char)*p++);
     }
-    return slot;
-}
-
-const char *xu_bytes(double n) {
-    return xu_bytes_with(n, 1024.0);
-}
-
-const char *xu_bytes_decimal(double n) {
-    return xu_bytes_with(n, 1000.0);
-}
-
-double xu_parse_bytes(const char *text) {
-    static const char *suffixes[] = {
-        "", "B", "K", "KB", "KI", "KIB", "M", "MB", "MI", "MIB",
-        "G", "GB", "GI", "GIB", "T", "TB", "TI", "TIB",
-        "P", "PB", "PI", "PIB", "E", "EB", "EI", "EIB"
-    };
-    static const double factors[] = {
-        1, 1, 1024, 1024, 1024, 1024, 1024 * 1024, 1024 * 1024,
-        1024 * 1024, 1024 * 1024,
-        1024.0 * 1024 * 1024, 1024.0 * 1024 * 1024, 1024.0 * 1024 * 1024,
-        1024.0 * 1024 * 1024,
-        1024.0 * 1024 * 1024 * 1024, 1024.0 * 1024 * 1024 * 1024,
-        1024.0 * 1024 * 1024 * 1024, 1024.0 * 1024 * 1024 * 1024,
-        1024.0 * 1024 * 1024 * 1024 * 1024, 1024.0 * 1024 * 1024 * 1024 * 1024,
-        1024.0 * 1024 * 1024 * 1024 * 1024,
-        1024.0 * 1024 * 1024 * 1024 * 1024,
-        1024.0 * 1024 * 1024 * 1024 * 1024 * 1024,
-        1024.0 * 1024 * 1024 * 1024 * 1024 * 1024,
-        1024.0 * 1024 * 1024 * 1024 * 1024 * 1024,
-        1024.0 * 1024 * 1024 * 1024 * 1024 * 1024
-    };
-    const char *end = NULL;
-    double value;
-    char upper[16];
-    size_t len;
-    size_t i;
-    int numOk = 0;
-    if (text == NULL) return -1;
-    end = text;
-    value = xu_parse_number(&end, &numOk);
-    if (!numOk) return -1;
-    while (*end == ' ') end++;
-    len = strlen(end);
-    if (len >= sizeof(upper)) return -1;
-    for (i = 0; i < len; ++i) {
-        upper[i] = (char)toupper((unsigned char)end[i]);
-    }
-    upper[len] = '\0';
-    for (i = 0; i < sizeof(suffixes) / sizeof(suffixes[0]); ++i) {
-        if (strcmp(upper, suffixes[i]) == 0) {
-            return value * factors[i];
+    if (*xu_spaces(p) != '\0') goto bad;
+    if (suffix_length != 0u && strcmp(suffix, "B") != 0) {
+        factor = 0.0;
+        for (i = 0; i < 6; ++i) {
+            if (strcmp(suffix, si[i]) == 0) factor = si_factor[i];
+            if (strcmp(suffix, iec[i]) == 0) factor = iec_factor[i];
         }
+        if (factor == 0.0) goto bad;
     }
-    return -1;
+    number *= factor * sign;
+    if (!xu_valid(number, XU_MAX_BYTES)) return NAN;
+    return number;
+bad:
+    xu_error("invalid byte size; use B, kB..EB or KiB..EiB");
+    return NAN;
 }
 
-const char *xu_duration(double seconds) {
-    char *slot = xu_slot();
-    double rest = seconds;
-    int neg = rest < 0;
-    int d;
-    int h;
-    int m;
-    int s;
-    int pos = 0;
-    if (neg) rest = -rest;
-    d = (int)(rest / 86400.0);
-    rest -= d * 86400.0;
-    h = (int)(rest / 3600.0);
-    rest -= h * 3600.0;
-    m = (int)(rest / 60.0);
-    rest -= m * 60.0;
-    s = (int)lround(rest);
-    if (s == 60) { s = 0; m++; }
-    if (m == 60) { m = 0; h++; }
-    if (h == 24) { h = 0; d++; }
-    if (neg) slot[pos++] = '-';
-    if (d > 0) pos += snprintf(slot + pos, XU_TEXT - pos, "%dd ", d);
-    if (h > 0) pos += snprintf(slot + pos, XU_TEXT - pos, "%dh ", h);
-    if (m > 0) pos += snprintf(slot + pos, XU_TEXT - pos, "%dm ", m);
-    if (pos == (neg ? 1 : 0) || s > 0 || seconds == 0) {
-        pos += snprintf(slot + pos, XU_TEXT - pos, "%ds", s);
+static void* xu_format_duration(double seconds, bool short_style)
+{
+    char text[96];
+    unsigned long long rounded, days, hours, minutes, rest;
+    int length;
+    xrtClearError();
+    if (!xu_valid(seconds, XU_MAX_SECONDS)) return NULL;
+    rounded = (unsigned long long)(fabs(seconds) + 0.5);
+    days = rounded / 86400u;
+    hours = (rounded / 3600u) % 24u;
+    minutes = (rounded / 60u) % 60u;
+    rest = rounded % 60u;
+    if (short_style) {
+        if (days != 0u)
+            length = snprintf(text, sizeof(text), "%s%llud%02llu:%02llu:%02llu",
+                seconds < 0 ? "-" : "", days, hours, minutes, rest);
+        else if (hours != 0u)
+            length = snprintf(text, sizeof(text), "%s%llu:%02llu:%02llu",
+                seconds < 0 ? "-" : "", hours, minutes, rest);
+        else
+            length = snprintf(text, sizeof(text), "%s%llu:%02llu",
+                seconds < 0 && rounded != 0u ? "-" : "", minutes, rest);
     } else {
-        /* trim a trailing space */
-        if (pos > 0 && slot[pos - 1] == ' ') slot[--pos] = '\0';
+        char* out = text;
+        size_t left = sizeof(text);
+#define XU_PART(...) do { \
+    int written = snprintf(out, left, __VA_ARGS__); \
+    if (written < 0 || (size_t)written >= left) goto overflow; \
+    out += written; left -= (size_t)written; \
+} while (0)
+        if (seconds < 0 && rounded != 0u) XU_PART("-");
+        if (days != 0u) XU_PART("%llud", days);
+        if (hours != 0u) XU_PART("%s%lluh", out == text || (out == text + 1 && text[0] == '-') ? "" : " ", hours);
+        if (minutes != 0u) XU_PART("%s%llum", out == text || (out == text + 1 && text[0] == '-') ? "" : " ", minutes);
+        if (rest != 0u || rounded == 0u) XU_PART("%s%llus", out == text || (out == text + 1 && text[0] == '-') ? "" : " ", rest);
+        length = (int)(out - text);
+#undef XU_PART
     }
-    slot[pos] = '\0';
-    return slot;
+    if (length < 0 || (size_t)length >= sizeof(text)) goto overflow;
+    return xu_copy(text);
+overflow:
+    xu_error("formatted duration exceeds output limit");
+    return NULL;
 }
 
-const char *xu_duration_short(double seconds) {
-    char *slot = xu_slot();
-    double rest = seconds;
-    int neg = rest < 0;
-    int d;
-    int h;
-    int m;
-    int s;
-    int pos = 0;
-    if (neg) rest = -rest;
-    d = (int)(rest / 86400.0);
-    rest -= d * 86400.0;
-    h = (int)(rest / 3600.0);
-    rest -= h * 3600.0;
-    m = (int)(rest / 60.0);
-    rest -= m * 60.0;
-    s = (int)lround(rest);
-    if (s == 60) { s = 0; m++; }
-    if (m == 60) { m = 0; h++; }
-    if (h == 24) { h = 0; d++; }
-    if (neg) slot[pos++] = '-';
-    if (d > 0) {
-        pos += snprintf(slot + pos, XU_TEXT - pos, "%dd%02d:%02d:%02d", d, h, m, s);
-    } else if (h > 0) {
-        pos += snprintf(slot + pos, XU_TEXT - pos, "%d:%02d:%02d", h, m, s);
-    } else {
-        pos += snprintf(slot + pos, XU_TEXT - pos, "%d:%02d", m, s);
-    }
-    slot[pos] = '\0';
-    return slot;
-}
+void* xu_duration(double seconds) { return xu_format_duration(seconds, false); }
+void* xu_duration_short(double seconds) { return xu_format_duration(seconds, true); }
 
-double xu_parse_duration(const char *text) {
-    const char *p = text;
-    double total = 0;
-    int any = 0;
-    if (text == NULL) return -1;
-    while (*p != '\0') {
-        double value;
-        int numOk = 0;
-        while (*p == ' ') p++;
-        if (*p == '\0') break;
-        value = xu_parse_number(&p, &numOk);
-        if (!numOk) return -1;
-        while (*p == ' ') p++;
-        if (*p == 'd') { total += value * 86400.0; p++; }
-        else if (*p == 'h') { total += value * 3600.0; p++; }
-        else if (*p == 'm') { total += value * 60.0; p++; }
-        else if (*p == 's') { total += value; p++; }
-        else if (*p == '\0') { total += value; }
-        else return -1;
+double xu_parse_duration(const char* text, long long length)
+{
+    const char* p;
+    char input[129];
+    double total = 0.0;
+    int previous_rank = 5, sign = 1, any = 0;
+    xrtClearError();
+    if (!xu_input(text, length, input)) return NAN;
+    p = xu_spaces(input);
+    if (*p == '+' || *p == '-') { if (*p == '-') sign = -1; ++p; }
+    while (*(p = xu_spaces(p)) != '\0') {
+        double number, factor;
+        int rank;
+        if (!xu_number(&p, &number)) goto bad;
+        p = xu_spaces(p);
+        if (*p == 'd') { rank = 4; factor = 86400.0; }
+        else if (*p == 'h') { rank = 3; factor = 3600.0; }
+        else if (*p == 'm') { rank = 2; factor = 60.0; }
+        else if (*p == 's') { rank = 1; factor = 1.0; }
+        else if (*p == '\0' && any == 0) { rank = 0; factor = 1.0; }
+        else goto bad;
+        if (rank >= previous_rank) goto bad;
+        previous_rank = rank;
+        total += number * factor;
+        if (!isfinite(total) || total > XU_MAX_SECONDS) goto bad;
         any = 1;
+        if (*p == '\0') break;
+        ++p;
     }
-    return any ? total : -1;
+    if (any) return total * sign;
+bad:
+    xu_error("invalid duration; use ordered d, h, m, s components");
+    return NAN;
 }
 
-const char *xu_count(double n) {
-    char *slot = xu_slot();
-    double value = n;
-    int neg = value < 0;
-    const char *suffix = "";
-    if (neg) value = -value;
-    if (value >= 1000000000000.0) { value /= 1000000000000.0; suffix = "T"; }
-    else if (value >= 1000000000.0) { value /= 1000000000.0; suffix = "B"; }
-    else if (value >= 1000000.0) { value /= 1000000.0; suffix = "M"; }
-    else if (value >= 1000.0) { value /= 1000.0; suffix = "K"; }
-    if (suffix[0] == '\0') {
-        snprintf(slot, XU_TEXT, "%s%.0f", neg ? "-" : "", value);
-    } else {
-        snprintf(slot, XU_TEXT, "%s%.1f%s", neg ? "-" : "", value, suffix);
+void* xu_count(double value)
+{
+    static const char* const suffixes[] = {"", "K", "M", "B", "T"};
+    static const double factors[] = {1.0, 1e3, 1e6, 1e9, 1e12};
+    char text[96];
+    char number[64];
+    double magnitude;
+    int unit = 0, length;
+    xrtClearError();
+    if (!xu_valid(value, XU_MAX_BYTES)) return NULL;
+    magnitude = fabs(value);
+    while (unit < 4) {
+        bool reaches;
+        if (unit == 0) reaches = fabs(xu_display_whole(value)) >= 1000.0;
+        else if (magnitude / factors[unit] >= 1000.0) reaches = true;
+        else if (magnitude / factors[unit] < 999.9) reaches = false;
+        else if (!xu_shown_reaches(magnitude / factors[unit], 1,
+            "1000", &reaches)) return NULL;
+        if (!reaches) break;
+        ++unit;
     }
-    return slot;
+    if (!xu_fixed(number, sizeof(number), unit == 0 ?
+        xu_display_whole(value) : magnitude / factors[unit], unit == 0 ? 0 : 1)) return NULL;
+    length = snprintf(text, sizeof(text), "%s%s%s",
+        unit != 0 && value < 0 ? "-" : "", number, suffixes[unit]);
+    if (length < 0 || (size_t)length >= sizeof(text)) {
+        xu_error("formatted count exceeds output limit");
+        return NULL;
+    }
+    return xu_copy(text);
 }
 
-long long xu_is_pow2(long long n) {
-    return n > 0 && (n & (n - 1)) == 0;
+int xu_is_pow2(int64_t value)
+{
+    xrtClearError();
+    return value > 0 && (value & (value - 1)) == 0;
 }

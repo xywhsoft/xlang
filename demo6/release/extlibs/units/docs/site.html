@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>units - 扩展库 - xlang</title>
+  <meta name="description" content="units 格式化并解析字节、时长及计数单位。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / units</p><h1>units</h1>
+    <p class="extlib-lead">字节、时长与计数的人类可读格式。</p>
+    <p>1024 进制使用 KiB/MiB，1000 进制使用 kB/MB；解析失败抛错，合法负数不再与错误混淆。完整发布验收仍受共享 AOT 链接问题阻断。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>bytes / bytesDecimal / parseBytes</code></td><td>格式化和解析 IEC/SI 字节单位</td></tr>
+      <tr><td><code>duration / durationShort / parseDuration</code></td><td>秒数与时长文本</td></tr>
+      <tr><td><code>count / isPow2</code></td><td>计数缩写与整数判断</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import units
+println(units.bytes(1536.0))         // 1.50 KiB
+println(units.bytes(1048575.0))      // 1.00 MiB
+println(units.bytesDecimal(1500.0))  // 1.50 kB
+println(units.parseDuration("1h30m"))</code></pre>
+    <p>显示值会舍入，不应当成精确存储格式；舍入到下一单位时自动升档，整数舍入为零时写作 0 而非 -0。升档依据 XRT 最终小数文本，即使线程切换 CRT 舍入模式也不会输出已满额的低一级单位。字节和计数固定使用点号小数，不受进程区域设置影响，parseBytes 也只接受点号。C <code>isPow2</code> 输入使用与 XLang <code>int</code> 一致的 <code>int64_t</code>，结果为 C <code>int</code>。C 入口成功调用会清除前次失败的线程错误；边界测试和 AOT 状态见包内 README。</p>
+    <p>Windows 包级门禁覆盖严格 GCC、C ABI/边界/四线程、XLang 边界、双语同输出和无输出核心 AOT；Linux 门禁另以 ASan/UBSan 验证 C 边界与并发。长时长格式另以 C 4096 组、XLang 200 组整数秒往返检查；短格式仅用于显示。五条格式化入口的分配失败在 C 保留内存错误、在 XLang 抛 <code>MemoryError</code>，故障清除后可以继续使用。Windows 默认门禁现于核心后构建运行带输出范例并与 C 对照；当前核心通过，完整范例在共享 <code>xl6ValueDataSnapshotV1</code> 缺符号处失败，不能签收完整 AOT。验证命令见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

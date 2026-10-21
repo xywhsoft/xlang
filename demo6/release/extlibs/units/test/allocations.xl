@@ -1,0 +1,41 @@
+import units
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+for operation in range(5)
+    bool memoryCaught = false
+    bool wrongCaught = false
+    assert failAfter(0)
+    try
+        if operation == 0 then
+            units.bytes(1536)
+        elseif operation == 1 then
+            units.bytesDecimal(1536)
+        elseif operation == 2 then
+            units.duration(1536)
+        elseif operation == 3 then
+            units.durationShort(1536)
+        else
+            units.count(1536)
+        end
+    catch MemoryError error
+        memoryCaught = true
+    catch ValueError error
+        wrongCaught = true
+    catch RuntimeError error
+        wrongCaught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert triggered and memoryCaught and not wrongCaught
+end
+
+assert units.bytes(1536) == "1.50 KiB"
+assert units.bytesDecimal(1536) == "1.54 kB"
+assert units.duration(1536) == "25m 36s"
+assert units.durationShort(1536) == "25:36"
+assert units.count(1536) == "1.5K"
+
+println("units allocation: PASS")
