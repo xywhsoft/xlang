@@ -1,0 +1,12 @@
+import op
+
+extern "op_example_pid" func example_pid() as int
+extern "op_example_text_address" func example_text_address() as int
+
+func main(...) as int
+    int pid = example_pid()
+    int address = example_text_address()
+    println(op.readString(pid, address, 9))
+    println(op.findMemory(pid, address, address + 9, "78 6C 61 6E 67") != "")
+    return 0
+end

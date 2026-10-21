@@ -1,13 +1,15 @@
 /*
  * op_d3d9_hook.c - D3D9 Present Hook DLL
- * Injected into target process, hooks IDirect3DDevice9::Present via vtable patch.
+ * Injected into target process, hooks the shared IDirect3DDevice9::Present function.
  * Captures back buffer to shared memory after each Present call.
- * TCC-compatible: compile with `tcc -shared -o op_d3d9_hook.dll op_d3d9_hook.c -luser32 -lgdi32`
+ * Build with MinGW GCC and the vendored MinHook sources.
  */
 #include <windows.h>
 #include <string.h>
 #include <stdio.h>
+#include <stddef.h>
 #include "op_hook_shared.h"
+#include "third_party/minhook/include/MinHook.h"
 
 /* ------------------------------------------------------------------ */
 /* Minimal D3D9 vtable declarations                                    */
@@ -32,8 +34,9 @@ typedef struct {
     void *pBits;
 } D3DLOCKED_RECT;
 
-#define D3DPOOL_SYSTEMMEM 0
+#define D3DPOOL_SYSTEMMEM 2
 #define D3DFMT_A8R8G8B8  21
+#define D3DFMT_X8R8G8B8  22
 #define D3DLOCK_READONLY  0x10
 
 /* IDirect3DSurface9 vtable (IUnknown=3 + IDirect3DResource9=8 + Surface=4) */
@@ -44,7 +47,8 @@ typedef struct IDirect3DSurface9Vtbl {
     /* IDirect3DResource9 */
     void *m[8];
     /* IDirect3DSurface9 */
-    void *p1[2]; /* GetContainer, GetDesc */
+    void *GetContainer;
+    HRESULT (WINAPI *GetDesc)(IDirect3DSurface9*, D3DSURFACE_DESC*);
     HRESULT (WINAPI *LockRect)(IDirect3DSurface9*, D3DLOCKED_RECT*, const void*, unsigned int);
     HRESULT (WINAPI *UnlockRect)(IDirect3DSurface9*);
 } IDirect3DSurface9Vtbl;
@@ -59,26 +63,62 @@ typedef struct IDirect3DDevice9Vtbl {
     void *m[14];
     /* slot 17: Present */
     HRESULT (WINAPI *Present)(IDirect3DDevice9*, const void*, const void*, void*, const void*);
-    /* slot 18+: more methods */
-    void *m2[3]; /* GetBackBuffer is at 21 */
-    void *m3[2];
+    /* slot 18: GetBackBuffer */
     HRESULT (WINAPI *GetBackBuffer)(IDirect3DDevice9*, unsigned int, unsigned int, unsigned int, IDirect3DSurface9**);
-    void *m4[28]; /* up to CreateOffscreenPlainSurface at slot 52? */
-    /* We'll use GetRenderTarget (slot 21+?) - actually let's use a simpler approach */
+    void *before_readback[13]; /* slots 19-31 */
+    HRESULT (WINAPI *GetRenderTargetData)(IDirect3DDevice9*, IDirect3DSurface9*, IDirect3DSurface9*);
+    void *before_surface[3]; /* slots 33-35 */
+    HRESULT (WINAPI *CreateOffscreenPlainSurface)(IDirect3DDevice9*, unsigned int, unsigned int,
+                                                   unsigned int, unsigned int, IDirect3DSurface9**, void*);
 } IDirect3DDevice9Vtbl;
 struct IDirect3DDevice9 { const IDirect3DDevice9Vtbl *lpVtbl; };
+
+typedef char op_d3d9_present_slot_check[(offsetof(IDirect3DDevice9Vtbl, Present) / sizeof(void*) == 17u) ? 1 : -1];
+typedef char op_d3d9_backbuffer_slot_check[(offsetof(IDirect3DDevice9Vtbl, GetBackBuffer) / sizeof(void*) == 18u) ? 1 : -1];
+typedef char op_d3d9_readback_slot_check[(offsetof(IDirect3DDevice9Vtbl, GetRenderTargetData) / sizeof(void*) == 32u) ? 1 : -1];
+typedef char op_d3d9_offscreen_slot_check[(offsetof(IDirect3DDevice9Vtbl, CreateOffscreenPlainSurface) / sizeof(void*) == 36u) ? 1 : -1];
+typedef char op_d3d9_surface_desc_slot_check[(offsetof(IDirect3DSurface9Vtbl, GetDesc) / sizeof(void*) == 12u) ? 1 : -1];
+typedef char op_d3d9_surface_lock_slot_check[(offsetof(IDirect3DSurface9Vtbl, LockRect) / sizeof(void*) == 13u) ? 1 : -1];
 
 /* ------------------------------------------------------------------ */
 /* Hook state                                                          */
 /* ------------------------------------------------------------------ */
 
 static void *g_shared_mem = NULL;
-static unsigned int g_map_size = 4 * 1024 * 1024;
-static IDirect3DDevice9 *g_device = NULL;
+static unsigned int g_map_size = OP_HOOK_MAP_SIZE;
+static CRITICAL_SECTION g_capture_lock;
+static IDirect3DDevice9 *g_capture_device = NULL;
+static IDirect3DSurface9 *g_readback = NULL;
+static unsigned int g_readback_w = 0, g_readback_h = 0, g_readback_format = 0;
+static volatile LONG g_hook_status = 0;
+static volatile LONG g_hook_error = 0;
+static volatile LONG g_hook_calls = 0;
+static void *g_probe_vtable = NULL;
+static void *g_target_present = NULL;
+
+__declspec(dllexport) LONG op_d3d9_hook_status(void) {
+    return InterlockedCompareExchange(&g_hook_status, 0, 0);
+}
+
+__declspec(dllexport) LONG op_d3d9_hook_error(void) {
+    return InterlockedCompareExchange(&g_hook_error, 0, 0);
+}
+
+__declspec(dllexport) LONG op_d3d9_hook_calls(void) {
+    return InterlockedCompareExchange(&g_hook_calls, 0, 0);
+}
+
+__declspec(dllexport) void *op_d3d9_probe_vtable(void) {
+    return g_probe_vtable;
+}
 
 /* Original Present function pointer */
 typedef HRESULT (WINAPI *PFN_Present)(IDirect3DDevice9*, const void*, const void*, void*, const void*);
 static PFN_Present g_orig_present = NULL;
+
+__declspec(dllexport) void *op_d3d9_probe_present(void) {
+    return g_target_present;
+}
 
 /* ------------------------------------------------------------------ */
 /* Hooked Present                                                      */
@@ -86,57 +126,95 @@ static PFN_Present g_orig_present = NULL;
 
 static HRESULT WINAPI hook_present(IDirect3DDevice9 *dev, const void *src,
                                    const void *dst, void *wnd, const void *dirty) {
-    /* Capture back buffer before presenting */
+    InterlockedIncrement(&g_hook_calls);
     if (g_shared_mem && dev) {
+        EnterCriticalSection(&g_capture_lock);
         IDirect3DSurface9 *backbuf = NULL;
+        if (g_capture_device != dev) {
+            if (g_readback) { g_readback->lpVtbl->Release(g_readback); g_readback = NULL; }
+            g_capture_device = dev;
+            g_readback_w = g_readback_h = g_readback_format = 0;
+        }
         /* GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO=0, &surface) */
         HRESULT hr = dev->lpVtbl->GetBackBuffer(dev, 0, 0, 0, &backbuf);
         if (SUCCEEDED(hr) && backbuf) {
-            D3DLOCKED_RECT lr;
-            hr = backbuf->lpVtbl->LockRect(backbuf, &lr, NULL, D3DLOCK_READONLY);
-            if (SUCCEEDED(hr)) {
-                /* Get surface dimensions via desc - use pitch heuristic */
-                /* We'll read width from shared mem header if set, otherwise guess */
-                op_hook_header *hdr = (op_hook_header *)g_shared_mem;
-                unsigned int w = hdr->width;
-                unsigned int h = hdr->height;
-                if (w == 0 || h == 0) {
-                    /* First frame: try to get dimensions from client rect */
-                    RECT rc;
-                    if (wnd && IsWindow((HWND)wnd)) {
-                        GetClientRect((HWND)wnd, &rc);
-                        w = rc.right - rc.left;
-                        h = rc.bottom - rc.top;
+            D3DSURFACE_DESC desc;
+            hr = backbuf->lpVtbl->GetDesc(backbuf, &desc);
+            if (SUCCEEDED(hr) &&
+                (desc.Format == D3DFMT_A8R8G8B8 || desc.Format == D3DFMT_X8R8G8B8) &&
+                op_hook_frame_fits(desc.Width, desc.Height, g_map_size, sizeof(op_hook_header))) {
+                /* 默认交换链后缓冲区不可锁；先复制到可读的系统内存 surface。 */
+                if (!g_readback || g_readback_w != desc.Width || g_readback_h != desc.Height ||
+                    g_readback_format != desc.Format) {
+                    if (g_readback) { g_readback->lpVtbl->Release(g_readback); g_readback = NULL; }
+                    hr = dev->lpVtbl->CreateOffscreenPlainSurface(dev, desc.Width, desc.Height,
+                               desc.Format, D3DPOOL_SYSTEMMEM, &g_readback, NULL);
+                    if (SUCCEEDED(hr) && g_readback) {
+                        g_readback_w = desc.Width;
+                        g_readback_h = desc.Height;
+                        g_readback_format = desc.Format;
                     }
-                    if (w == 0 || h == 0) { w = 800; h = 600; }
                 }
-                if (w * h * 4 + sizeof(op_hook_header) <= g_map_size) {
-                    op_hook_write_frame(g_shared_mem, w, h, lr.pBits, lr.Pitch);
+                if (g_readback) hr = dev->lpVtbl->GetRenderTargetData(dev, backbuf, g_readback);
+                if (SUCCEEDED(hr) && g_readback) {
+                    D3DLOCKED_RECT lr;
+                    hr = g_readback->lpVtbl->LockRect(g_readback, &lr, NULL, D3DLOCK_READONLY);
+                    if (SUCCEEDED(hr)) {
+                        if (lr.pBits && lr.Pitch > 0 && (unsigned int)lr.Pitch >= desc.Width * 4u) {
+                            op_hook_write_frame(g_shared_mem, desc.Width, desc.Height,
+                                                lr.pBits, (unsigned int)lr.Pitch);
+                            InterlockedExchange(&g_hook_error, 0);
+                        }
+                        g_readback->lpVtbl->UnlockRect(g_readback);
+                    }
                 }
-                backbuf->lpVtbl->UnlockRect(backbuf);
+                if (FAILED(hr)) InterlockedExchange(&g_hook_error, (LONG)hr);
             }
             backbuf->lpVtbl->Release(backbuf);
         }
+        LeaveCriticalSection(&g_capture_lock);
     }
     return g_orig_present(dev, src, dst, wnd, dirty);
 }
 
 /* ------------------------------------------------------------------ */
-/* Vtable patching                                                     */
+/* 函数级拦截：不同设备可以各有 vtable，但指向同一个 Present 实现。 */
 /* ------------------------------------------------------------------ */
 
-static int patch_device_vtable(IDirect3DDevice9 *dev) {
+static int hook_present_function(IDirect3DDevice9 *dev) {
+    MH_STATUS status;
+    LPVOID trampoline = NULL;
+    LPVOID target;
+    HMODULE pinned;
     if (!dev) return 0;
-    /* Present is at vtable index 17 */
     void **vtable = *(void***)dev;
-    g_orig_present = (PFN_Present)vtable[17];
-
-    DWORD old_prot;
-    if (!VirtualProtect(&vtable[17], sizeof(void*), PAGE_READWRITE, &old_prot))
+    target = vtable[17];
+    g_probe_vtable = vtable;
+    g_target_present = target;
+    status = MH_Initialize();
+    if (status != MH_OK) goto failed;
+    status = MH_CreateHook(target, (LPVOID)hook_present, &trampoline);
+    if (status != MH_OK) goto failed;
+    memcpy(&g_orig_present, &trampoline, sizeof(g_orig_present));
+    status = MH_EnableHook(target);
+    if (status != MH_OK) {
+        MH_RemoveHook(target);
+        MH_Uninitialize();
+        goto failed;
+    }
+    /* 注入 DLL 随目标进程存活；禁止卸载仍被 Present 跳转引用的代码。 */
+    if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+            GET_MODULE_HANDLE_EX_FLAG_PIN, (LPCSTR)&g_hook_status, &pinned)) {
+        InterlockedExchange(&g_hook_error, (LONG)GetLastError());
+        MH_DisableHook(target);
+        MH_RemoveHook(target);
+        MH_Uninitialize();
         return 0;
-    vtable[17] = (void*)hook_present;
-    VirtualProtect(&vtable[17], sizeof(void*), old_prot, &old_prot);
+    }
     return 1;
+failed:
+    InterlockedExchange(&g_hook_error, (LONG)status);
+    return 0;
 }
 
 /* ------------------------------------------------------------------ */
@@ -144,14 +222,19 @@ static int patch_device_vtable(IDirect3DDevice9 *dev) {
 /* ------------------------------------------------------------------ */
 
 static void try_find_and_hook(void) {
-    /* Create a temporary D3D9 device to get the vtable address */
+    /* 工作线程内创建探针设备，避免在 DllMain 的 loader lock 下加载图形运行库。 */
+    HWND window = CreateWindowExW(0, L"STATIC", L"op d3d9 probe", WS_POPUP,
+                                   0, 0, 1, 1, NULL, NULL, NULL, NULL);
+    if (!window) { InterlockedExchange(&g_hook_status, -1); return; }
     HMODULE d3d9 = GetModuleHandleA("d3d9.dll");
     if (!d3d9) d3d9 = LoadLibraryA("d3d9.dll");
-    if (!d3d9) return;
+    if (!d3d9) { InterlockedExchange(&g_hook_status, -2); goto finish; }
 
     typedef void* (WINAPI *PFN_Direct3DCreate9)(unsigned int);
-    PFN_Direct3DCreate9 pCreate = (PFN_Direct3DCreate9)GetProcAddress(d3d9, "Direct3DCreate9");
-    if (!pCreate) return;
+    FARPROC symbol = GetProcAddress(d3d9, "Direct3DCreate9");
+    PFN_Direct3DCreate9 pCreate = NULL;
+    if (sizeof(symbol) == sizeof(pCreate)) memcpy(&pCreate, &symbol, sizeof(pCreate));
+    if (!pCreate) { InterlockedExchange(&g_hook_status, -3); goto finish; }
 
     /* IDirect3D9 vtable: IUnknown(3) + padding(13) + CreateDevice at index 16 */
     typedef struct IDirect3D9 IDirect3D9;
@@ -166,17 +249,7 @@ static void try_find_and_hook(void) {
     struct IDirect3D9 { const IDirect3D9Vtbl *lpVtbl; };
 
     IDirect3D9 *d3d = (IDirect3D9*)pCreate(32); /* D3D_SDK_VERSION = 32 */
-    if (!d3d) return;
-
-    /* Create a dummy device to get vtable */
-    typedef struct {
-        unsigned int AdapterOrdinal;
-        unsigned int DeviceType;
-        void *hFocusWindow;
-        unsigned int BehaviorFlags;
-        void *pPresentationParameters;
-        IDirect3DDevice9 **ppReturnedDeviceInterface;
-    } dummy_params;
+    if (!d3d) { InterlockedExchange(&g_hook_status, -4); goto finish; }
 
     /* Use a minimal presentation parameters struct */
     typedef struct {
@@ -203,19 +276,26 @@ static void try_find_and_hook(void) {
     pp.BackBufferFormat = 0; /* D3DFMT_UNKNOWN */
     pp.BackBufferCount = 1;
     pp.SwapEffect = 1; /* D3DSWAPEFFECT_DISCARD */
-    pp.hDeviceWindow = GetDesktopWindow();
+    pp.hDeviceWindow = window;
     pp.Windowed = 1;
     pp.PresentationInterval = 0x80000000; /* D3DPRESENT_INTERVAL_IMMEDIATE */
 
     IDirect3DDevice9 *dev = NULL;
-    HRESULT hr = d3d->lpVtbl->CreateDevice(d3d, 0, 1/*HAL*/, GetDesktopWindow(),
-                                            0x20/*MIXED_VERTEXPROCESSING*/, &pp, &dev);
+    HRESULT hr = d3d->lpVtbl->CreateDevice(d3d, 0, 1/*HAL*/, window,
+                                            0x20/*SOFTWARE_VERTEXPROCESSING*/, &pp, &dev);
     if (SUCCEEDED(hr) && dev) {
-        patch_device_vtable(dev);
-        g_device = dev;
-        /* Don't release - we need the vtable patched */
-    }
+        InterlockedExchange(&g_hook_status, hook_present_function(dev) ? 1 : -6);
+        dev->lpVtbl->Release(dev);
+    } else { InterlockedExchange(&g_hook_error, (LONG)hr); InterlockedExchange(&g_hook_status, -5); }
     d3d->lpVtbl->Release(d3d);
+finish:
+    DestroyWindow(window);
+}
+
+static DWORD WINAPI op_init_hook_thread(void *unused) {
+    (void)unused;
+    try_find_and_hook();
+    return 0u;
 }
 
 /* ------------------------------------------------------------------ */
@@ -226,18 +306,24 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, void *reserved) {
     (void)hinst; (void)reserved;
     if (reason == DLL_PROCESS_ATTACH) {
         DisableThreadLibraryCalls(hinst);
+        InitializeCriticalSection(&g_capture_lock);
 
         /* Open shared memory created by op_native.c */
         DWORD pid = GetCurrentProcessId();
         g_shared_mem = op_hook_open_shared(pid, g_map_size);
 
-        /* Find and hook D3D9 device */
-        try_find_and_hook();
-    } else if (reason == DLL_PROCESS_DETACH) {
+        if (g_shared_mem) {
+            HANDLE thread = CreateThread(NULL, 0, op_init_hook_thread, NULL, 0, NULL);
+            if (thread) CloseHandle(thread);
+            else InterlockedExchange(&g_hook_status, -7);
+        } else InterlockedExchange(&g_hook_status, -8);
+    } else if (reason == DLL_PROCESS_DETACH && reserved == NULL) {
+        if (g_readback) { g_readback->lpVtbl->Release(g_readback); g_readback = NULL; }
         if (g_shared_mem) {
             UnmapViewOfFile(g_shared_mem);
             g_shared_mem = NULL;
         }
+        DeleteCriticalSection(&g_capture_lock);
     }
     return TRUE;
 }

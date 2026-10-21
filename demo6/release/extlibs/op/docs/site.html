@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>op - 扩展库 - xlang</title>
+  <meta name="description" content="Windows 桌面自动化与图像捕获插件的 xlang/C 调用接口。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / op</p><h1>op</h1>
+    <p class="extlib-lead">Windows 桌面、窗口、输入和图像捕获的 C/xlang 接口。</p>
+    <p>提供普通/GDI 截屏、窗口与进程查询、颜色/图片查找和输入操作；D3D9、D3D11、WGL 捕获需要包内对应 hook DLL。当前仅将公开调用链、ABI 与本机成功/失败路径纳入扩展库验收，底层插件在其他设备、驱动和权限环境中的完整行为由插件独立维护。无输出只读调用 AOT 已通过；带输出范例仍受共享运行时缺符号阻断。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">主要接口</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>op.create()</code> / <code>Op</code></td><td>创建自动管理原生句柄的上下文</td></tr>
+      <tr><td><code>getScreenSize()</code>、<code>findWindow()</code>、<code>enumWindow()</code></td><td>屏幕和窗口查询</td></tr>
+      <tr><td><code>context.bindWindow()</code>、<code>unbind()</code>、<code>getFrameInfo()</code></td><td>窗口绑定与帧状态</td></tr>
+      <tr><td><code>context.getColor()</code>、<code>findColor()</code>、<code>findPic()</code></td><td>像素与图像搜索</td></tr>
+      <tr><td><code>readInt()</code>、<code>writeInt()</code>、<code>findMemory()</code></td><td>指定进程内存读写与扫描；需目标进程权限</td></tr>
+      <tr><td><code>getClipboard()</code>、<code>setClipboard()</code></td><td>文本剪贴板</td></tr>
+      <tr><td><code>randomInt(min, max)</code></td><td>XRT 非密码学随机数，含两端的 int64 区间；反向区间报错</td></tr>
+      <tr><td><code>delay(ms)</code></td><td>XRT 分段等待；负数和微秒换算溢出报错</td></tr>
+    </tbody></table>
+    <p>XLang 的文本参数在进入零结尾 C 接口前拒绝内嵌 NUL，不会把窗口名称、模式、文件路径或颜色条件静默截成有效前缀。C 调用方仍需传入正常的零结尾字符串。</p>
+    <h2 id="example">xlang</h2>
+    <pre><code>import op
+
+string screen = op.getScreenSize()
+auto context = op.create()
+println("screen: " + screen)
+println("bound: " + string(context.isBind()))</code></pre>
+    <h2 id="c-api">C</h2>
+    <p>包含 <code>include/op.h</code>。用 <code>xop_create</code> / <code>xop_destroy</code> 管理上下文；返回的独立文本结果用 <code>xrtFree</code> 释放。包内 <code>release/examples/extlibs/op_c.c</code> 与上面的 XLang 范例输出一致。</p>
+    <h2 id="verification">验证范围</h2>
+    <p>Windows 默认门禁验证 GCC ABI、C/XLang 只读调用、文本 NUL 拒绝、随机数和等待边界、双语范例同输出及无输出 AOT 查询/对象创建；加入 XRT 默认随机与时间模块后，当前裁剪 AOT 产物为 752,640 字节并运行通过。窗口、hook、UTF-8 和内存专项可显式使用 <code>-Stress</code>；<code>-RealGpu</code> 才运行真实图形测试。本机曾验证 D3D9/D3D11/WGL 的有限帧路径，这不构成跨驱动、权限或长期运行认证。交互范例需显式启动，会操作桌面。</p>
+  </section>
+</main>
+</body>
+</html>

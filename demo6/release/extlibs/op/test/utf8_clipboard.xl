@@ -1,0 +1,12 @@
+import op
+
+func main(...) as int
+    assert op.getClipboard() == "before"
+    assert op.setClipboard("A\u4f60\u597d") == 1
+    assert op.getClipboard() == "A\u4f60\u597d"
+    string longText = string.repeat("x", 70000)
+    assert op.setClipboard(longText) == 1
+    assert op.getClipboard() == longText
+    assert op.setClipboard("after") == 1
+    return 0
+end

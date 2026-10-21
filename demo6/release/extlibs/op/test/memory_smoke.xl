@@ -1,0 +1,43 @@
+import op
+
+extern "op_test_memory_pid" func test_memory_pid() as int
+extern "op_test_memory_addr" func test_memory_addr() as int
+extern "op_test_number_addr" func test_number_addr() as int
+extern "op_test_fraction_addr" func test_fraction_addr() as int
+
+func main(...) as int
+    int pid = test_memory_pid()
+    int addr = test_memory_addr()
+    string text = op.readString(pid, addr, 6)
+    assert text == "hello", "readString should return the full UTF-8 text"
+    assert op.findMemory(pid, addr, addr + 6, "68 65 6C 6C 6F") == string(addr)
+    assert op.findMemory(pid, addr, addr + 6, "DE AD") == ""
+    int numberAddr = test_number_addr()
+    int fractionAddr = test_fraction_addr()
+    bool intCaught = false
+    try
+        op.writeInt(pid, numberAddr, 2147483648)
+    catch RuntimeError error
+        intCaught = true
+    end
+    assert intCaught
+    assert op.readInt(pid, numberAddr) == 42
+    bool floatCaught = false
+    try
+        op.writeFloat(pid, fractionAddr, 1e100)
+    catch RuntimeError error
+        floatCaught = true
+    end
+    assert floatCaught
+    assert op.readFloat(pid, fractionAddr) == 1.5
+    floatCaught = false
+    try
+        op.writeFloat(pid, fractionAddr, 1e-100)
+    catch RuntimeError error
+        floatCaught = true
+    end
+    assert floatCaught
+    assert op.readFloat(pid, fractionAddr) == 1.5
+    println("op memory smoke: ok")
+    return 0
+end

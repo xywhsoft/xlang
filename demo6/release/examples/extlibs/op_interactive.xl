@@ -1,0 +1,85 @@
+import op
+
+// OP Plugin - Window binding, screen capture, color/image finding, mouse/keyboard,
+//             memory R/W, process enumeration, clipboard, image operations.
+// Pure Win32 API implementation (user32 + gdi32 + kernel32). No COM, TCC-compatible.
+
+func main(...) as int
+    assert arg.length >= 2 and string(arg[1]) == "--allow-desktop-effects", "interactive demo requires -- --allow-desktop-effects"
+    println("=== OP Plugin Demo ===")
+
+    // --- Module-level: screen & cursor ---
+    println("Screen size: " + op.getScreenSize())
+    println("Cursor pos: " + op.getCursorPos())
+
+    // --- Module-level: window management ---
+    int hwnd = op.findWindow("Notepad", "")
+    if hwnd == 0 then
+        hwnd = op.findWindow("Progman", "")
+        println("Using desktop window (hwnd=" + string(hwnd) + ")")
+    else
+        println("Found Notepad (hwnd=" + string(hwnd) + ")")
+    end
+
+    println("Window rect: " + op.getWindowRect(hwnd))
+    println("Window title: " + op.getWindowTitle(hwnd))
+    println("ClientToScreen(10,20): " + op.clientToScreen(hwnd, 10, 20))
+    println("ScreenToClient(10,20): " + op.screenToClient(hwnd, 10, 20))
+
+    // --- Module-level: system tools ---
+    println("Random(1-100): " + string(op.randomInt(1, 100)))
+    op.setClipboard("hello from op")
+    println("Clipboard: " + op.getClipboard())
+
+    // --- Module-level: process enumeration ---
+    string procs = op.enumProcess("xl")
+    println("Processes matching 'xl': " + procs)
+
+    // --- Create Op instance and bind ---
+    auto o = op.create()
+    o.bindWindow(hwnd, "normal", "normal", "normal", 0)
+    println("Bound: " + string(o.isBind()) + ", Frame: " + o.getFrameInfo())
+
+    // --- Get color & count ---
+    string color = o.getColor(5, 5)
+    println("Color at (5,5): " + color)
+    println("Color count in 20x20: " + string(o.getColorNum(0, 0, 20, 20, color, 1.0)))
+
+    // --- Find color & block ---
+    string found = o.findColor(0, 0, 100, 100, color, 0.9, 0)
+    println("FindColor: " + found)
+    string block = o.findColorBlock(0, 0, 100, 100, color, 0.9, 2, 2)
+    println("FindColorBlock(2x2): " + block)
+
+    // --- Capture & image ops ---
+    string capturePath = "op_demo_capture.bmp"
+    file.delete(capturePath)
+    int ok = o.capture(0, 0, 64, 64, capturePath)
+    println("Capture: " + string(ok))
+    string memCap = o.captureToMem(0, 0, 4, 4)
+    println("CaptureToMem(4x4): " + string(string.len(memCap)) + " chars")
+    println("ImageHash(64x64): " + o.imageHash(0, 0, 64, 64))
+    float cmp = o.imageCompare(0, 0, 64, 64, capturePath, 1.0)
+    println("ImageCompare: " + string(cmp))
+
+    // --- FindPicN (multi-pic) ---
+    string picN = o.findPicN(0, 0, 200, 200, capturePath, "", 0.9, 0)
+    println("FindPicN: " + picN)
+    file.delete(capturePath)
+
+    // --- Mouse (safe demos) ---
+    o.moveTo(100, 100)
+    println("Mouse moved to (100,100)")
+    // o.moveToSmooth(200, 200, 20, 5)  // smooth move
+    // o.dragPath("50,50,100,100,150,50", 30)  // drag along path
+
+    // --- Keyboard ---
+    // o.keyCombo("ctrl+c")  // uncomment to test
+    println("Keyboard ready (keyCombo: ctrl+c, alt+f4, shift+a)")
+
+    // --- Cleanup ---
+    o.unbind()
+    println("Unbound: " + string(o.isBind()))
+    println("=== Done ===")
+    return 0
+end

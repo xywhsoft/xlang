@@ -7,6 +7,7 @@
 #define OP_DXGI_DEFS_H
 
 #include <windows.h>
+#include <stddef.h>
 
 /* ------------------------------------------------------------------ */
 /* GUID helpers                                                        */
@@ -16,7 +17,6 @@ typedef struct { unsigned long Data1; unsigned short Data2, Data3; unsigned char
 #define OP_DEFINE_GUID(name, l, w1, w2, b1,b2,b3,b4,b5,b6,b7,b8) \
     static const OP_GUID name = { l, w1, w2, { b1,b2,b3,b4,b5,b6,b7,b8 } }
 
-OP_DEFINE_GUID(IID_IUnknown,           0x00000000,0x0000,0x0000, 0xC0,0x00,0x00,0x00,0x00,0x00,0x00,0x46);
 OP_DEFINE_GUID(IID_IDXGIDevice,        0x54ec77fa,0x1377,0x44e6, 0x8c,0x32,0x88,0xfd,0x5f,0x44,0xc8,0x4c);
 OP_DEFINE_GUID(IID_IDXGIAdapter,       0x2411e7e1,0x12ac,0x4ccf, 0xbd,0x14,0x97,0x98,0xe8,0x53,0x4d,0xc0);
 OP_DEFINE_GUID(IID_IDXGIOutput,        0xae02eedb,0xc735,0x4690, 0x8d,0x52,0x5a,0x8d,0xc2,0x02,0x13,0xaa);
@@ -29,15 +29,15 @@ OP_DEFINE_GUID(IID_ID3D11Device,       0xdb6f6ddb,0xac77,0x4e88, 0x82,0x53,0x81,
 /* IUnknown                                                            */
 /* ------------------------------------------------------------------ */
 
-typedef struct IUnknown IUnknown;
-typedef struct IUnknownVtbl {
-    HRESULT (WINAPI *QueryInterface)(IUnknown*, const OP_GUID*, void**);
-    ULONG   (WINAPI *AddRef)(IUnknown*);
-    ULONG   (WINAPI *Release)(IUnknown*);
-} IUnknownVtbl;
-struct IUnknown { const IUnknownVtbl *lpVtbl; };
+typedef struct OP_IUnknown OP_IUnknown;
+typedef struct OP_IUnknownVtbl {
+    HRESULT (WINAPI *QueryInterface)(OP_IUnknown*, const OP_GUID*, void**);
+    ULONG   (WINAPI *AddRef)(OP_IUnknown*);
+    ULONG   (WINAPI *Release)(OP_IUnknown*);
+} OP_IUnknownVtbl;
+struct OP_IUnknown { const OP_IUnknownVtbl *lpVtbl; };
 
-#define OP_RELEASE(p) do { if (p) { ((IUnknown*)(p))->lpVtbl->Release((IUnknown*)(p)); (p) = NULL; } } while(0)
+#define OP_RELEASE(p) do { if (p) { ((OP_IUnknown*)(p))->lpVtbl->Release((OP_IUnknown*)(p)); (p) = NULL; } } while(0)
 
 /* ------------------------------------------------------------------ */
 /* DXGI structures                                                     */
@@ -107,9 +107,12 @@ typedef struct {
     unsigned int AccumulatedFrames;
     int RectsCoalesced;
     int ProtectedContentMaskedOut;
-    int PointerShapeBufferSize;
-    int MouseMove;
+    struct { POINT Position; int Visible; } PointerPosition;
+    unsigned int TotalMetadataBufferSize;
+    unsigned int PointerShapeBufferSize;
 } DXGI_OUTDUPL_FRAME_INFO;
+
+typedef char op_frame_info_size_check[(sizeof(DXGI_OUTDUPL_FRAME_INFO) == 48u) ? 1 : -1];
 
 typedef struct {
     unsigned int Width;
@@ -125,14 +128,17 @@ typedef struct {
 } D3D11_TEXTURE2D_DESC;
 
 typedef struct {
+    void *pData;
     unsigned int RowPitch;
     unsigned int DepthPitch;
-    void *pData;
 } D3D11_MAPPED_SUBRESOURCE;
+
+typedef char op_mapped_subresource_size_check[(sizeof(D3D11_MAPPED_SUBRESOURCE) == 16u) ? 1 : -1];
+typedef char op_mapped_subresource_data_check[(offsetof(D3D11_MAPPED_SUBRESOURCE, pData) == 0u) ? 1 : -1];
 
 /* D3D11 constants */
 #define D3D11_USAGE_STAGING     3
-#define D3D11_CPU_ACCESS_READ   0x10000
+#define D3D11_CPU_ACCESS_READ   0x20000
 #define D3D11_SDK_VERSION       7
 #define D3D_DRIVER_TYPE_HARDWARE 1
 #define D3D_FEATURE_LEVEL_11_0  0xb000
@@ -171,10 +177,13 @@ typedef struct ID3D11DeviceContextVtbl {
     void *p2[7];  /* VSSetConstantBuffers..Draw (slots 7-13) */
     HRESULT (WINAPI *Map)(ID3D11DeviceContext*, void*, unsigned int, unsigned int, unsigned int, D3D11_MAPPED_SUBRESOURCE*);
     void (WINAPI *Unmap)(ID3D11DeviceContext*, void*, unsigned int);
-    void *p3[80]; /* remaining methods up to CopyResource */
+    void *p3[31]; /* slots 16-46; CopyResource is slot 47 */
     void (WINAPI *CopyResource)(ID3D11DeviceContext*, void*, void*);
 } ID3D11DeviceContextVtbl;
 struct ID3D11DeviceContext { const ID3D11DeviceContextVtbl *lpVtbl; };
+
+typedef char op_copy_resource_slot_check[
+    (offsetof(ID3D11DeviceContextVtbl, CopyResource) / sizeof(void*) == 47u) ? 1 : -1];
 
 /* ------------------------------------------------------------------ */
 /* ID3D11Device                                                         */
@@ -188,7 +197,7 @@ typedef struct ID3D11DeviceVtbl {
     /* CreateBuffer, CreateTexture1D, CreateTexture2D... */
     void *p1[2]; /* CreateBuffer, CreateTexture1D */
     HRESULT (WINAPI *CreateTexture2D)(ID3D11Device*, const D3D11_TEXTURE2D_DESC*, const void*, ID3D11Texture2D**);
-    void *p2[35]; /* remaining up to GetImmediateContext */
+    void *p2[34]; /* slots 6-39; GetImmediateContext is slot 40 */
     void (WINAPI *GetImmediateContext)(ID3D11Device*, ID3D11DeviceContext**);
 } ID3D11DeviceVtbl;
 struct ID3D11Device { const ID3D11DeviceVtbl *lpVtbl; };
@@ -243,9 +252,12 @@ typedef struct IDXGIOutput1Vtbl {
     void *p2[12];
     /* IDXGIOutput1: GetDisplayModeList1, FindClosestMatchingMode1, GetDisplaySurfaceData1, DuplicateOutput */
     void *p3[3];
-    HRESULT (WINAPI *DuplicateOutput)(IDXGIOutput1*, IUnknown*, IDXGIOutputDuplication**);
+    HRESULT (WINAPI *DuplicateOutput)(IDXGIOutput1*, OP_IUnknown*, IDXGIOutputDuplication**);
 } IDXGIOutput1Vtbl;
 struct IDXGIOutput1 { const IDXGIOutput1Vtbl *lpVtbl; };
+
+typedef char op_duplicate_output_slot_check[
+    (offsetof(IDXGIOutput1Vtbl, DuplicateOutput) / sizeof(void*) == 22u) ? 1 : -1];
 
 /* ------------------------------------------------------------------ */
 /* IDXGIAdapter                                                         */
@@ -259,10 +271,23 @@ typedef struct IDXGIAdapterVtbl {
     /* IDXGIObject: 4 methods */
     void *p1[4];
     /* IDXGIAdapter: EnumOutputs, GetDesc, CheckInterfaceSupport */
-    HRESULT (WINAPI *EnumOutputs)(IDXGIAdapter*, unsigned int, IDXGIOutput1**);
+    HRESULT (WINAPI *EnumOutputs)(IDXGIAdapter*, unsigned int, OP_IUnknown**);
     void *p2[2];
 } IDXGIAdapterVtbl;
 struct IDXGIAdapter { const IDXGIAdapterVtbl *lpVtbl; };
+
+typedef struct IDXGIDevice IDXGIDevice;
+typedef struct IDXGIDeviceVtbl {
+    HRESULT (WINAPI *QueryInterface)(IDXGIDevice*, const OP_GUID*, void**);
+    ULONG   (WINAPI *AddRef)(IDXGIDevice*);
+    ULONG   (WINAPI *Release)(IDXGIDevice*);
+    void *p1[4]; /* IDXGIObject */
+    HRESULT (WINAPI *GetAdapter)(IDXGIDevice*, IDXGIAdapter**);
+} IDXGIDeviceVtbl;
+struct IDXGIDevice { const IDXGIDeviceVtbl *lpVtbl; };
+
+typedef char op_get_adapter_slot_check[
+    (offsetof(IDXGIDeviceVtbl, GetAdapter) / sizeof(void*) == 7u) ? 1 : -1];
 
 /* ------------------------------------------------------------------ */
 /* IDXGIFactory1                                                        */
@@ -293,8 +318,8 @@ typedef struct IDXGISwapChainVtbl {
     ULONG   (WINAPI *Release)(IDXGISwapChain*);
     /* IDXGIObject: 4 */
     void *p1[4];
-    /* IDXGIDeviceSubObject: 3 */
-    void *p2[3];
+    /* IDXGIDeviceSubObject: GetDevice at slot 7 */
+    void *p2[1];
     /* IDXGISwapChain: Present, GetBuffer, SetFullscreenState, GetFullscreenState, GetDesc, ResizeBuffers, ResizeTarget, GetContainingOutput, GetFrameStatistics, GetLastPresentCount */
     HRESULT (WINAPI *Present)(IDXGISwapChain*, unsigned int, unsigned int);
     HRESULT (WINAPI *GetBuffer)(IDXGISwapChain*, unsigned int, const OP_GUID*, void**);

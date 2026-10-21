@@ -1,0 +1,39 @@
+import op
+
+extern "op_test_create_utf8_window" func test_create_window() as int
+extern "op_test_pump_utf8_window" func test_pump_window(int hwnd) as int
+extern "op_test_received_utf16_at" func test_received_at(int index) as int
+
+func main(...) as int
+    int hwnd = test_create_window()
+    assert hwnd != 0
+    assert op.setWindowTitle(hwnd, "\u4f60\u597d OP") == 1
+    assert op.getWindowTitle(hwnd) == "\u4f60\u597d OP"
+    assert op.findWindow("op_utf8_title_test", "\u4f60\u597d OP") == hwnd
+    assert op.enumWindow(0, "\u4f60\u597d OP", "op_utf8_title_test", 0) == string(hwnd)
+    assert op.sendString(hwnd, "A\u4f60\u597d") == 1
+    assert test_pump_window(hwnd) == 3
+    assert test_received_at(0) == 65
+    assert test_received_at(1) == 0x4f60
+    assert test_received_at(2) == 0x597d
+    auto instance = op.create()
+    assert instance.bindWindow(hwnd, "normal", "normal", "windows", 0) == 1
+    assert instance.keyPressStr("B\u4f60", 1) == 1
+    assert test_pump_window(hwnd) == 5
+    assert test_received_at(3) == 66
+    assert test_received_at(4) == 0x4f60
+    assert instance.keyChar(0x1f600) == 1
+    assert test_pump_window(hwnd) == 7
+    assert test_received_at(5) == 0xd83d
+    assert test_received_at(6) == 0xde00
+    bool invalidCaught = false
+    try
+        instance.keyChar(0xd800)
+    catch RuntimeError error
+        invalidCaught = true
+    end
+    assert invalidCaught
+    assert test_pump_window(hwnd) == 7
+    println("op utf8 window title: ok")
+    return 0
+end

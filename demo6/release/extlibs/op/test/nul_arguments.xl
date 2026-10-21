@@ -1,0 +1,26 @@
+import op
+
+extern "op_test_desktop_window" func test_desktop_window() as int
+
+func main(...) as int
+    auto instance = op.create()
+    int desktop = test_desktop_window()
+    assert desktop != 0
+
+    bool rejected = false
+    try
+        instance.bindWindow(desktop, "normal\0ignored", "normal", "normal", 0)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected and instance.isBind() == 0, "NUL must not bind the prefix mode"
+
+    rejected = false
+    try
+        op.findWindow("", "missing\0suffix")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "NUL must not search for a prefix title"
+    return 0
+end

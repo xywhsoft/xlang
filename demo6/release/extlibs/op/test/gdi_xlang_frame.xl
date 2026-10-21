@@ -1,0 +1,27 @@
+import op
+
+extern "op_test_gdi_window_create" func test_create_window() as int
+extern "op_test_gdi_window_destroy" func test_destroy_window(int hwnd)
+
+func main(...) as int
+    int hwnd = test_create_window()
+    assert hwnd != 0
+    auto context = op.create()
+    assert context.bindWindow(hwnd, "gdi", "normal", "normal", 0) == 1
+    assert context.getFrameInfo() == "8x8"
+    assert context.getColor(0, 0) == "FF0000"
+    assert context.getColor(7, 7) == "FF0000"
+    assert context.unbind() == 1
+    assert context.bindWindow(hwnd, "opengl", "normal", "normal", 0) == 1
+    bool noContextCaught = false
+    try
+        context.getColor(0, 0)
+    catch RuntimeError error
+        noContextCaught = true
+    end
+    assert noContextCaught
+    assert context.unbind() == 1
+    test_destroy_window(hwnd)
+    println("op XLang GDI frame: ok")
+    return 0
+end

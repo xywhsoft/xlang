@@ -7,8 +7,37 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <float.h>
+#include <wchar.h>
+#ifndef XRT_MODULE_PATH_SYSTEM
+#define XRT_MODULE_PATH_SYSTEM
+#endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
+#ifndef XRT_MODULE_ONCE
+#define XRT_MODULE_ONCE
+#endif
+#ifndef XRT_MODULE_MUTEX
+#define XRT_MODULE_MUTEX
+#endif
+#ifndef XRT_MODULE_FILE_WHOLE
+#define XRT_MODULE_FILE_WHOLE
+#endif
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+#ifndef XRT_MODULE_RANDOM_DEFAULT
+#define XRT_MODULE_RANDOM_DEFAULT
+#endif
+#ifndef XRT_MODULE_TIME
+#define XRT_MODULE_TIME
+#endif
 #include "xrt.h"
+#include "include/op.h"
 #include "op_dxgi_defs.h"
+#include "hooks/op_hook_shared.h"
 
 /* Manual Toolhelp32 declarations (TCC has no tlhelp32.h) */
 #define TH32CS_SNAPPROCESS  0x00000002
@@ -16,7 +45,7 @@
 #define TH32CS_SNAPMODULE32 0x00000010
 #define MAX_MODULE_NAME32   255
 
-typedef struct tagPROCESSENTRY32 {
+typedef struct op_process_entry32w {
     DWORD dwSize;
     DWORD cntUsage;
     DWORD th32ProcessID;
@@ -26,15 +55,15 @@ typedef struct tagPROCESSENTRY32 {
     DWORD th32ParentProcessID;
     LONG  pcPriClassBase;
     DWORD dwFlags;
-    char  szExeFile[260];
-} PROCESSENTRY32;
+    WCHAR szExeFile[260];
+} op_process_entry32w;
 
 /*
  * Toolhelp 的 64 位结构必须与 Win32 ABI 完全一致。
  * 缺少 dwSize 时 Process32First/Module32First 可能直接写越界，
  * 因此不自行猜测窄化结构，也不把系统 PID 当作可靠测试对象。
  */
-typedef struct tagMODULEENTRY32 {
+typedef struct op_module_entry32w {
     DWORD   dwSize;
     DWORD   th32ModuleID;
     DWORD   th32ProcessID;
@@ -43,54 +72,91 @@ typedef struct tagMODULEENTRY32 {
     BYTE   *modBaseAddr;
     DWORD   modBaseSize;
     HMODULE hModule;
-    char    szModule[MAX_MODULE_NAME32 + 1];
-    char    szExePath[260];
-} MODULEENTRY32;
+    WCHAR   szModule[MAX_MODULE_NAME32 + 1];
+    WCHAR   szExePath[260];
+} op_module_entry32w;
 
 typedef HANDLE (WINAPI *PFN_CreateToolhelp32Snapshot)(DWORD, DWORD);
-typedef BOOL   (WINAPI *PFN_Process32First)(HANDLE, PROCESSENTRY32*);
-typedef BOOL   (WINAPI *PFN_Process32Next)(HANDLE, PROCESSENTRY32*);
-typedef BOOL   (WINAPI *PFN_Module32First)(HANDLE, MODULEENTRY32*);
-typedef BOOL   (WINAPI *PFN_Module32Next)(HANDLE, MODULEENTRY32*);
+typedef BOOL   (WINAPI *PFN_Process32First)(HANDLE, op_process_entry32w*);
+typedef BOOL   (WINAPI *PFN_Process32Next)(HANDLE, op_process_entry32w*);
+typedef BOOL   (WINAPI *PFN_Module32First)(HANDLE, op_module_entry32w*);
+typedef BOOL   (WINAPI *PFN_Module32Next)(HANDLE, op_module_entry32w*);
 
 static PFN_CreateToolhelp32Snapshot p_CreateToolhelp32Snapshot = NULL;
 static PFN_Process32First  p_Process32First  = NULL;
 static PFN_Process32Next   p_Process32Next   = NULL;
 static PFN_Module32First   p_Module32First   = NULL;
 static PFN_Module32Next    p_Module32Next    = NULL;
-static int op_toolhelp_inited = 0;
+static xonce op_toolhelp_once = XRT_ONCE_INIT;
 
-static void op_init_toolhelp(void) {
-    if (op_toolhelp_inited) return;
-    op_toolhelp_inited = 1;
-    HMODULE k32 = GetModuleHandleA("kernel32.dll");
-    if (!k32) k32 = LoadLibraryA("kernel32.dll");
+static bool op_load_toolhelp(void *unused) {
+    HMODULE k32 = GetModuleHandleW(L"kernel32.dll");
+    (void)unused;
+    if (!k32) k32 = LoadLibraryW(L"kernel32.dll");
     if (k32) {
         p_CreateToolhelp32Snapshot = (PFN_CreateToolhelp32Snapshot)GetProcAddress(k32, "CreateToolhelp32Snapshot");
-        p_Process32First = (PFN_Process32First)GetProcAddress(k32, "Process32First");
-        p_Process32Next  = (PFN_Process32Next)GetProcAddress(k32, "Process32Next");
-        p_Module32First  = (PFN_Module32First)GetProcAddress(k32, "Module32First");
-        p_Module32Next   = (PFN_Module32Next)GetProcAddress(k32, "Module32Next");
+        p_Process32First = (PFN_Process32First)GetProcAddress(k32, "Process32FirstW");
+        p_Process32Next  = (PFN_Process32Next)GetProcAddress(k32, "Process32NextW");
+        p_Module32First  = (PFN_Module32First)GetProcAddress(k32, "Module32FirstW");
+        p_Module32Next   = (PFN_Module32Next)GetProcAddress(k32, "Module32NextW");
     }
+    return true;
+}
+
+static void op_init_toolhelp(void) {
+    (void)xrtOnce(&op_toolhelp_once, op_load_toolhelp, NULL);
 }
 
 /* Minimal OpenGL declarations (TCC has no GL/gl.h) */
 #define GL_FRONT        0x0404
 #define GL_BGRA_EXT     0x80E1
 #define GL_UNSIGNED_BYTE 0x1401
-typedef void (*PFN_glReadBuffer)(unsigned int);
-typedef void (*PFN_glReadPixels)(int, int, int, int, unsigned int, unsigned int, void*);
+#define OP_GL_READ_BUFFER 0x0C02u
+#define OP_GL_PACK_ALIGNMENT 0x0D05u
+#define OP_GL_PACK_ROW_LENGTH 0x0D02u
+#define OP_GL_PACK_SKIP_ROWS 0x0D03u
+#define OP_GL_PACK_SKIP_PIXELS 0x0D04u
+#define OP_GL_PIXEL_PACK_BUFFER_BINDING 0x88EDu
+#define OP_GL_FRAMEBUFFER_BINDING 0x8CA6u
+#define OP_GL_READ_FRAMEBUFFER_BINDING 0x8CAAu
+#define OP_GL_VERSION 0x1F02u
+#define OP_GL_EXTENSIONS 0x1F03u
+typedef void (WINAPI *PFN_glReadBuffer)(unsigned int);
+typedef void (WINAPI *PFN_glReadPixels)(int, int, int, int, unsigned int, unsigned int, void*);
+typedef void (WINAPI *PFN_glGetIntegerv)(unsigned int, int *);
+typedef void (WINAPI *PFN_glPixelStorei)(unsigned int, int);
+typedef const unsigned char *(WINAPI *PFN_glGetString)(unsigned int);
+typedef HGLRC (WINAPI *PFN_wglGetCurrentContext)(void);
+typedef HDC (WINAPI *PFN_wglGetCurrentDC)(void);
 static PFN_glReadBuffer  p_glReadBuffer  = NULL;
 static PFN_glReadPixels  p_glReadPixels  = NULL;
+static PFN_glGetIntegerv p_glGetIntegerv = NULL;
+static PFN_glPixelStorei p_glPixelStorei = NULL;
+static PFN_glGetString p_glGetString = NULL;
+static PFN_wglGetCurrentContext p_wglGetCurrentContext = NULL;
+static PFN_wglGetCurrentDC p_wglGetCurrentDC = NULL;
+static xonce op_gl_once = XRT_ONCE_INIT;
 
-static void op_init_gl(void) {
-    if (p_glReadBuffer) return;
-    HMODULE gl = GetModuleHandleA("opengl32.dll");
-    if (!gl) gl = LoadLibraryA("opengl32.dll");
+static bool op_load_gl(void *unused) {
+    HMODULE gl = GetModuleHandleW(L"opengl32.dll");
+    (void)unused;
+    if (!gl) gl = LoadLibraryW(L"opengl32.dll");
     if (gl) {
         p_glReadBuffer = (PFN_glReadBuffer)GetProcAddress(gl, "glReadBuffer");
         p_glReadPixels = (PFN_glReadPixels)GetProcAddress(gl, "glReadPixels");
+        p_glGetIntegerv = (PFN_glGetIntegerv)GetProcAddress(gl, "glGetIntegerv");
+        p_glPixelStorei = (PFN_glPixelStorei)GetProcAddress(gl, "glPixelStorei");
+        p_glGetString = (PFN_glGetString)GetProcAddress(gl, "glGetString");
+        p_wglGetCurrentContext = (PFN_wglGetCurrentContext)GetProcAddress(gl,
+                                                                          "wglGetCurrentContext");
+        p_wglGetCurrentDC = (PFN_wglGetCurrentDC)GetProcAddress(gl,
+                                                                 "wglGetCurrentDC");
     }
+    return true;
+}
+
+static void op_init_gl(void) {
+    (void)xrtOnce(&op_gl_once, op_load_gl, NULL);
 }
 
 /* Dynamically loaded user32 functions (may be missing from TCC import lib) */
@@ -98,23 +164,49 @@ typedef BOOL (WINAPI *PFN_PrintWindow)(HWND, HDC, UINT);
 typedef UINT (WINAPI *PFN_SendInput)(UINT, LPVOID, int);
 static PFN_PrintWindow p_PrintWindow = NULL;
 static PFN_SendInput   p_SendInput   = NULL;
-static int op_user32_inited = 0;
+static xonce op_user32_once = XRT_ONCE_INIT;
 
-static void op_init_user32(void) {
-    if (op_user32_inited) return;
-    op_user32_inited = 1;
-    HMODULE u32 = GetModuleHandleA("user32.dll");
-    if (!u32) u32 = LoadLibraryA("user32.dll");
+static bool op_load_user32(void *unused) {
+    HMODULE u32 = GetModuleHandleW(L"user32.dll");
+    (void)unused;
+    if (!u32) u32 = LoadLibraryW(L"user32.dll");
     if (u32) {
         p_PrintWindow = (PFN_PrintWindow)GetProcAddress(u32, "PrintWindow");
         p_SendInput = (PFN_SendInput)GetProcAddress(u32, "SendInput");
     }
+    return true;
+}
+
+static void op_init_user32(void) {
+    (void)xrtOnce(&op_user32_once, op_load_user32, NULL);
 }
 static void opSetError(const char* sMessage)
 {
     xrtSetErrorInfo(XERR_STATE, "xlang.extlib.op", 0,
         sMessage != NULL ? sMessage : "op error");
 }
+typedef struct {
+    HANDLE map_handle;
+    BYTE *map_ptr;
+    HANDLE target_process;
+    HANDLE load_thread;
+    void *remote_path;
+    DWORD pid;
+    char map_name[64];
+    int injected;
+} op_hook_state;
+
+typedef struct {
+    HMODULE                 d3d11_module;
+    ID3D11Device           *device;
+    ID3D11DeviceContext    *device_ctx;
+    IDXGIOutputDuplication *dup;
+    ID3D11Texture2D        *staging;
+    int                     staging_w, staging_h;
+    BYTE                   *last_frame;
+    int                     last_w, last_h;
+} op_dxgi_state;
+
 /* Context definition (needed early for DXGI/hook capture) */
 typedef struct op_context {
     HWND    bind_hwnd;
@@ -127,108 +219,184 @@ typedef struct op_context {
     char    mouse_mode[16];
     char    keypad_mode[16];
     int     bound;
+    op_hook_state hook;
+    int     dxgi_attached;
 } op_context;
 
 /* ------------------------------------------------------------------ */
 /* DXGI Desktop Duplication state                                      */
 /* ------------------------------------------------------------------ */
 
-typedef struct {
-    ID3D11Device           *device;
-    ID3D11DeviceContext    *device_ctx;
-    IDXGIOutputDuplication *dup;
-    ID3D11Texture2D        *staging;
-    int                     staging_w, staging_h;
-    int                     inited;
-} op_dxgi_state;
+static op_dxgi_state g_dxgi;
+static unsigned int g_dxgi_users;
+static xmutex g_dxgi_mutex;
+static xonce g_dxgi_once = XRT_ONCE_INIT;
 
-static op_dxgi_state g_dxgi = {0};
+static bool op_dxgi_init_mutex(void *unused) {
+    (void)unused;
+    return xrtMutexInit(&g_dxgi_mutex);
+}
 
-static int op_dxgi_init(void) {
-    if (g_dxgi.inited) return g_dxgi.dup ? 1 : 0;
-    g_dxgi.inited = 1;
-
-    HMODULE d3d11 = LoadLibraryA("d3d11.dll");
-    HMODULE dxgi  = LoadLibraryA("dxgi.dll");
-    if (!d3d11 || !dxgi) return 0;
-
-    PFN_D3D11CreateDevice pD3D11CreateDevice =
-        (PFN_D3D11CreateDevice)GetProcAddress(d3d11, "D3D11CreateDevice");
-    PFN_CreateDXGIFactory1 pCreateDXGIFactory1 =
-        (PFN_CreateDXGIFactory1)GetProcAddress(dxgi, "CreateDXGIFactory1");
-    if (!pD3D11CreateDevice || !pCreateDXGIFactory1) return 0;
-
-    /* Create D3D11 device */
-    unsigned int feature_level = D3D_FEATURE_LEVEL_11_0;
-    HRESULT hr = pD3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0,
-                                    &feature_level, 1, D3D11_SDK_VERSION,
-                                    &g_dxgi.device, NULL, &g_dxgi.device_ctx);
-    if (FAILED(hr) || !g_dxgi.device) return 0;
-
-    /* Get DXGI adapter from device */
-    IDXGIAdapter *adapter = NULL;
-    hr = g_dxgi.device->lpVtbl->QueryInterface((IUnknown*)g_dxgi.device,
-                                               &IID_IDXGIDevice, (void**)&adapter);
-    /* IDXGIDevice::GetAdapter is at vtable slot 7 */
-    if (FAILED(hr) || !adapter) return 0;
-
-    /* EnumOutputs(0) to get primary output */
-    IDXGIOutput1 *output1 = NULL;
-    hr = adapter->lpVtbl->EnumOutputs(adapter, 0, &output1);
-    OP_RELEASE(adapter);
-    if (FAILED(hr) || !output1) return 0;
-
-    /* DuplicateOutput */
-    hr = output1->lpVtbl->DuplicateOutput(output1,
-             (IUnknown*)g_dxgi.device, &g_dxgi.dup);
-    OP_RELEASE(output1);
-    if (FAILED(hr) || !g_dxgi.dup) return 0;
-
+static int op_dxgi_lock(void) {
+    if (!xrtOnce(&g_dxgi_once, op_dxgi_init_mutex, NULL) ||
+        !xrtMutexLock(&g_dxgi_mutex)) {
+        opSetError("op: DXGI lock initialization failed");
+        return 0;
+    }
     return 1;
 }
 
-static int op_dxgi_capture(op_context *ctx) {
-    if (!op_dxgi_init()) {
-        opSetError("op: DXGI Desktop Duplication init failed");
+static void op_dxgi_cleanup(op_dxgi_state *dxgi) {
+    free(dxgi->last_frame);
+    dxgi->last_frame = NULL;
+    dxgi->last_w = dxgi->last_h = 0;
+    OP_RELEASE(dxgi->staging);
+    OP_RELEASE(dxgi->dup);
+    OP_RELEASE(dxgi->device_ctx);
+    OP_RELEASE(dxgi->device);
+    if (dxgi->d3d11_module) {
+        FreeLibrary(dxgi->d3d11_module);
+        dxgi->d3d11_module = NULL;
+    }
+    dxgi->staging_w = dxgi->staging_h = 0;
+}
+
+static int op_dxgi_init(op_dxgi_state *dxgi) {
+    PFN_D3D11CreateDevice create_device;
+    unsigned int feature_level = D3D_FEATURE_LEVEL_11_0;
+    IDXGIDevice *dxgi_device = NULL;
+    IDXGIAdapter *adapter = NULL;
+    OP_IUnknown *output = NULL;
+    IDXGIOutput1 *output1 = NULL;
+    HRESULT hr = E_FAIL;
+    const char *stage = "LoadLibraryW";
+
+    if (dxgi->dup) return 1;
+    dxgi->d3d11_module = LoadLibraryW(L"d3d11.dll");
+    if (!dxgi->d3d11_module) goto failed;
+    stage = "D3D11CreateDevice symbol";
+    create_device = (PFN_D3D11CreateDevice)GetProcAddress(dxgi->d3d11_module,
+                                                            "D3D11CreateDevice");
+    if (!create_device) goto failed;
+    stage = "D3D11CreateDevice";
+    hr = create_device(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0,
+                       &feature_level, 1, D3D11_SDK_VERSION,
+                       &dxgi->device, NULL, &dxgi->device_ctx);
+    if (FAILED(hr) || !dxgi->device || !dxgi->device_ctx) goto failed;
+
+    /* 设备所属适配器上的第一个输出；所有 Op 共享这一份 duplication。 */
+    stage = "QueryInterface IDXGIDevice";
+    hr = dxgi->device->lpVtbl->QueryInterface(dxgi->device,
+                                               &IID_IDXGIDevice, (void**)&dxgi_device);
+    if (FAILED(hr) || !dxgi_device) goto failed;
+    stage = "GetAdapter";
+    hr = dxgi_device->lpVtbl->GetAdapter(dxgi_device, &adapter);
+    if (FAILED(hr) || !adapter) goto failed;
+    stage = "EnumOutputs";
+    hr = adapter->lpVtbl->EnumOutputs(adapter, 0, &output);
+    if (FAILED(hr) || !output) goto failed;
+    stage = "QueryInterface IDXGIOutput1";
+    hr = output->lpVtbl->QueryInterface(output, &IID_IDXGIOutput1, (void**)&output1);
+    if (FAILED(hr) || !output1) goto failed;
+    stage = "DuplicateOutput";
+    hr = output1->lpVtbl->DuplicateOutput(output1,
+             (OP_IUnknown*)dxgi->device, &dxgi->dup);
+    if (FAILED(hr) || !dxgi->dup) goto failed;
+    OP_RELEASE(output1);
+    OP_RELEASE(output);
+    OP_RELEASE(adapter);
+    OP_RELEASE(dxgi_device);
+    return 1;
+
+failed:
+    {
+        char message[128];
+        snprintf(message, sizeof(message), "op: DXGI %s failed (0x%08x)",
+                 stage, (unsigned int)hr);
+        opSetError(message);
+    }
+    OP_RELEASE(output1);
+    OP_RELEASE(output);
+    OP_RELEASE(adapter);
+    OP_RELEASE(dxgi_device);
+    op_dxgi_cleanup(dxgi);
+    return 0;
+}
+
+static int op_dxgi_copy_cached(op_context *ctx, const op_dxgi_state *dxgi) {
+    BYTE *next = NULL;
+    size_t bytes;
+    if (!dxgi->last_frame || dxgi->last_w <= 0 || dxgi->last_h <= 0)
         return 0;
+    bytes = (size_t)dxgi->last_w * (size_t)dxgi->last_h * 4u;
+    if (!ctx->frame_buf || ctx->frame_w != dxgi->last_w ||
+        ctx->frame_h != dxgi->last_h) {
+        next = (BYTE *)malloc(bytes);
+        if (!next) {
+            opSetError("op: out of memory for DXGI frame");
+            return 0;
+        }
+    }
+    memcpy(next ? next : ctx->frame_buf, dxgi->last_frame, bytes);
+    if (next) {
+        free(ctx->frame_buf);
+        ctx->frame_buf = next;
+        ctx->frame_w = dxgi->last_w;
+        ctx->frame_h = dxgi->last_h;
+    }
+    return 1;
+}
+
+static int op_dxgi_capture_locked(op_context *ctx) {
+    op_dxgi_state *dxgi = &g_dxgi;
+    if (!op_dxgi_init(dxgi)) return 0;
+    if (!ctx->dxgi_attached) {
+        ctx->dxgi_attached = 1;
+        g_dxgi_users++;
     }
 
     IDXGIResource *desktop_res = NULL;
     DXGI_OUTDUPL_FRAME_INFO fi;
-    HRESULT hr = g_dxgi.dup->lpVtbl->AcquireNextFrame(g_dxgi.dup, 100, &fi, &desktop_res);
+    HRESULT hr = dxgi->dup->lpVtbl->AcquireNextFrame(dxgi->dup, 100, &fi, &desktop_res);
     if (FAILED(hr) || !desktop_res) {
-        /* timeout or no new frame - try to use last frame */
-        if (ctx->frame_buf && ctx->frame_w > 0) return 1;
-        opSetError("op: DXGI AcquireNextFrame failed");
+        char message[96];
+        /* 只有等待超时可复用上一帧；设备丢失等错误不可伪装成成功。 */
+        if ((unsigned int)hr == 0x887A0027u &&
+            dxgi->last_frame) return op_dxgi_copy_cached(ctx, dxgi);
+        snprintf(message, sizeof(message), "op: DXGI AcquireNextFrame failed (0x%08x)",
+                 (unsigned int)hr);
+        opSetError(message);
         return 0;
     }
 
     /* Get ID3D11Texture2D from resource */
     ID3D11Texture2D *desktop_tex = NULL;
-    hr = ((IUnknown*)desktop_res)->lpVtbl->QueryInterface(
-             (IUnknown*)desktop_res, &IID_ID3D11Texture2D, (void**)&desktop_tex);
+    hr = desktop_res->lpVtbl->QueryInterface(
+             desktop_res, &IID_ID3D11Texture2D, (void**)&desktop_tex);
     OP_RELEASE(desktop_res);
     if (FAILED(hr) || !desktop_tex) {
-        g_dxgi.dup->lpVtbl->ReleaseFrame(g_dxgi.dup);
+        dxgi->dup->lpVtbl->ReleaseFrame(dxgi->dup);
         return 0;
     }
 
     /* Get texture dimensions */
     D3D11_TEXTURE2D_DESC desc;
     desktop_tex->lpVtbl->GetDesc(desktop_tex, &desc);
-    int w = (int)desc.Width, h = (int)desc.Height;
-
-    /* Ensure frame buffer */
-    if (ctx->frame_w != w || ctx->frame_h != h || !ctx->frame_buf) {
-        if (ctx->frame_buf) free(ctx->frame_buf);
-        ctx->frame_buf = (BYTE *)malloc(w * h * 4);
-        ctx->frame_w = w;
-        ctx->frame_h = h;
+    if (desc.Format != DXGI_FORMAT_B8G8R8A8_UNORM ||
+        !op_hook_frame_fits(desc.Width, desc.Height, OP_HOOK_MAP_SIZE,
+                            sizeof(op_hook_header))) {
+        OP_RELEASE(desktop_tex);
+        dxgi->dup->lpVtbl->ReleaseFrame(dxgi->dup);
+        opSetError("op: unsupported DXGI frame format or size");
+        return 0;
     }
+    int w = (int)desc.Width, h = (int)desc.Height;
+    BYTE *next = NULL;
+    BYTE *next_cache = NULL;
 
     /* Create/recreate staging texture if needed */
-    if (!g_dxgi.staging || g_dxgi.staging_w != w || g_dxgi.staging_h != h) {
-        OP_RELEASE(g_dxgi.staging);
+    if (!dxgi->staging || dxgi->staging_w != w || dxgi->staging_h != h) {
+        OP_RELEASE(dxgi->staging);
         D3D11_TEXTURE2D_DESC sd;
         memset(&sd, 0, sizeof(sd));
         sd.Width = w;
@@ -239,174 +407,317 @@ static int op_dxgi_capture(op_context *ctx) {
         sd.SampleDesc.Count = 1;
         sd.Usage = D3D11_USAGE_STAGING;
         sd.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        g_dxgi.device->lpVtbl->CreateTexture2D(g_dxgi.device, &sd, NULL, &g_dxgi.staging);
-        g_dxgi.staging_w = w;
-        g_dxgi.staging_h = h;
+        hr = dxgi->device->lpVtbl->CreateTexture2D(dxgi->device, &sd, NULL, &dxgi->staging);
+        if (FAILED(hr) || !dxgi->staging) {
+            OP_RELEASE(desktop_tex);
+            dxgi->dup->lpVtbl->ReleaseFrame(dxgi->dup);
+            opSetError("op: DXGI staging texture creation failed");
+            return 0;
+        }
+        dxgi->staging_w = w;
+        dxgi->staging_h = h;
     }
 
-    if (g_dxgi.staging) {
-        /* Copy desktop texture to staging */
-        g_dxgi.device_ctx->lpVtbl->CopyResource(
-            g_dxgi.device_ctx, g_dxgi.staging, desktop_tex);
-
-        /* Map and read pixels */
-        D3D11_MAPPED_SUBRESOURCE mapped;
-        hr = g_dxgi.device_ctx->lpVtbl->Map(
-            g_dxgi.device_ctx, g_dxgi.staging, 0, 1/*READ*/, 0, &mapped);
-        if (SUCCEEDED(hr)) {
-            int row;
-            for (row = 0; row < h; row++) {
-                memcpy(ctx->frame_buf + row * w * 4,
-                       (BYTE*)mapped.pData + row * mapped.RowPitch,
-                       w * 4);
-            }
-            g_dxgi.device_ctx->lpVtbl->Unmap(g_dxgi.device_ctx, g_dxgi.staging, 0);
+    if (ctx->frame_w != w || ctx->frame_h != h || !ctx->frame_buf) {
+        next = (BYTE *)malloc((size_t)w * (size_t)h * 4u);
+        if (!next) {
+            OP_RELEASE(desktop_tex);
+            dxgi->dup->lpVtbl->ReleaseFrame(dxgi->dup);
+            opSetError("op: out of memory for DXGI frame");
+            return 0;
+        }
+    }
+    if (dxgi->last_w != w || dxgi->last_h != h || !dxgi->last_frame) {
+        next_cache = (BYTE *)malloc((size_t)w * (size_t)h * 4u);
+        if (!next_cache) {
+            free(next);
+            OP_RELEASE(desktop_tex);
+            dxgi->dup->lpVtbl->ReleaseFrame(dxgi->dup);
+            opSetError("op: out of memory for DXGI cache");
+            return 0;
         }
     }
 
+    dxgi->device_ctx->lpVtbl->CopyResource(
+        dxgi->device_ctx, dxgi->staging, desktop_tex);
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    hr = dxgi->device_ctx->lpVtbl->Map(
+        dxgi->device_ctx, dxgi->staging, 0, 1/*READ*/, 0, &mapped);
+    if (FAILED(hr) || !mapped.pData || mapped.RowPitch < (unsigned int)w * 4u) {
+        if (SUCCEEDED(hr))
+            dxgi->device_ctx->lpVtbl->Unmap(dxgi->device_ctx, dxgi->staging, 0);
+        free(next);
+        free(next_cache);
+        OP_RELEASE(desktop_tex);
+        dxgi->dup->lpVtbl->ReleaseFrame(dxgi->dup);
+        opSetError("op: DXGI staging read failed");
+        return 0;
+    }
+    BYTE *target = next ? next : ctx->frame_buf;
+    int row;
+    for (row = 0; row < h; row++) {
+        memcpy(target + (size_t)row * (size_t)w * 4u,
+               (BYTE*)mapped.pData + (size_t)row * mapped.RowPitch,
+               (size_t)w * 4u);
+    }
+    dxgi->device_ctx->lpVtbl->Unmap(dxgi->device_ctx, dxgi->staging, 0);
+    if (next_cache) {
+        free(dxgi->last_frame);
+        dxgi->last_frame = next_cache;
+        dxgi->last_w = w;
+        dxgi->last_h = h;
+    }
+    memcpy(dxgi->last_frame, target, (size_t)w * (size_t)h * 4u);
+    if (next) {
+        free(ctx->frame_buf);
+        ctx->frame_buf = next;
+        ctx->frame_w = w;
+        ctx->frame_h = h;
+    }
+
     OP_RELEASE(desktop_tex);
-    g_dxgi.dup->lpVtbl->ReleaseFrame(g_dxgi.dup);
+    dxgi->dup->lpVtbl->ReleaseFrame(dxgi->dup);
     return 1;
+}
+
+static int op_dxgi_capture(op_context *ctx) {
+    int result;
+    if (!op_dxgi_lock()) return 0;
+    result = op_dxgi_capture_locked(ctx);
+    xrtMutexUnlock(&g_dxgi_mutex);
+    return result;
+}
+
+static void op_dxgi_detach(op_context *ctx) {
+    if (!ctx->dxgi_attached || !op_dxgi_lock()) return;
+    ctx->dxgi_attached = 0;
+    if (--g_dxgi_users == 0) op_dxgi_cleanup(&g_dxgi);
+    xrtMutexUnlock(&g_dxgi_mutex);
 }
 
 /* ------------------------------------------------------------------ */
 /* Hook shared memory (for d3d9/d3d11/wgl injected modes)              */
 /* ------------------------------------------------------------------ */
 
-#define OP_HOOK_MAGIC 0x4F50484B  /* "OPHK" */
+static void op_hook_cleanup(op_context *ctx);
 
-typedef struct {
-    unsigned int magic;
-    unsigned int width;
-    unsigned int height;
-    unsigned int frame_counter;
-    unsigned int format; /* 0 = BGRA */
-    /* pixel data follows */
-} op_hook_header;
-
-typedef struct {
-    HANDLE  map_handle;
-    BYTE   *map_ptr;
-    DWORD   pid;
-    char    map_name[64];
-    char    dll_path[512];
-    HANDLE  remote_thread;
-    int     injected;
-} op_hook_state;
-
-static op_hook_state g_hook = {0};
+static int op_hook_finish_load(op_hook_state *hook) {
+    DWORD result, loaded = 0;
+    if (!hook->load_thread) return hook->injected;
+    result = WaitForSingleObject(hook->load_thread, 0u);
+    if (result == WAIT_TIMEOUT) {
+        opSetError("op: hook DLL load is still pending");
+        return 0;
+    }
+    if (result != WAIT_OBJECT_0) {
+        opSetError("op: hook DLL load status unavailable");
+        return 0;
+    }
+    GetExitCodeThread(hook->load_thread, &loaded);
+    VirtualFreeEx(hook->target_process, hook->remote_path, 0, MEM_RELEASE);
+    CloseHandle(hook->load_thread);
+    hook->load_thread = NULL;
+    hook->remote_path = NULL;
+    if (result != WAIT_OBJECT_0 || loaded == 0u) {
+        opSetError("op: target process could not load hook DLL");
+        return 0;
+    }
+    hook->injected = 1;
+    return 1;
+}
 
 static int op_hook_inject(op_context *ctx, const char *mode) {
-    if (g_hook.injected) return 1;
-
-    /* Determine DLL path based on mode */
-    char exe_dir[512];
-    GetModuleFileNameA(NULL, exe_dir, sizeof(exe_dir));
-    char *slash = strrchr(exe_dir, '\\');
-    if (slash) *slash = '\0';
+    op_hook_state *hook = &ctx->hook;
+    str app_dir = NULL;
+    str hooks_dir = NULL;
+    str dll_path = NULL;
+    uint16 *wide_path = NULL;
+    HANDLE process = NULL;
+    HANDLE thread = NULL;
+    void *remote_path = NULL;
+    size_t path_bytes;
+    SIZE_T written = 0;
+    DWORD wait_result;
+    DWORD load_result = 0;
+    int success = 0;
+    if (hook->injected) return 1;
+    if (hook->load_thread) {
+        if (op_hook_finish_load(hook)) return 1;
+        if (!hook->load_thread) op_hook_cleanup(ctx);
+        return 0;
+    }
 
     const char *dll_name = "op_d3d9_hook.dll";
     if (strcmp(mode, "d3d11") == 0) dll_name = "op_d3d11_hook.dll";
     else if (strcmp(mode, "wgl") == 0) dll_name = "op_wgl_hook.dll";
 
-    snprintf(g_hook.dll_path, sizeof(g_hook.dll_path),
-             "%s\\extlibs\\op\\hooks\\%s", exe_dir, dll_name);
-
-    /* Check DLL exists */
-    if (GetFileAttributesA(g_hook.dll_path) == INVALID_FILE_ATTRIBUTES) {
+    app_dir = xrtPathAppDir();
+    if (app_dir != NULL) hooks_dir = xrtPathJoin(app_dir, "extlibs/op/hooks");
+    if (hooks_dir != NULL) dll_path = xrtPathJoin(hooks_dir, dll_name);
+    if (dll_path != NULL) wide_path = xrtUtf8To16(dll_path, NULL);
+    if (wide_path == NULL) {
+        opSetError("op: hook DLL path conversion failed");
+        goto done;
+    }
+    if (GetFileAttributesW((const wchar_t*)wide_path) == INVALID_FILE_ATTRIBUTES) {
         opSetError("op: hook DLL not found");
-        return 0;
+        goto done;
     }
 
-    /* Get target PID from hwnd */
     DWORD pid = 0;
     GetWindowThreadProcessId(ctx->bind_hwnd, &pid);
-    if (!pid) { opSetError("op: cannot get target PID"); return 0; }
-    g_hook.pid = pid;
+    if (!pid) { opSetError("op: cannot get target PID"); goto done; }
+    hook->pid = pid;
 
-    /* Create shared memory */
-    snprintf(g_hook.map_name, sizeof(g_hook.map_name), "op_hook_%lu", pid);
-    /* 4MB shared memory (enough for 1024x1024 BGRA) */
-    DWORD map_size = 4 * 1024 * 1024;
-    g_hook.map_handle = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL,
-                                           PAGE_READWRITE, 0, map_size, g_hook.map_name);
-    if (!g_hook.map_handle) { opSetError("op: CreateFileMapping failed"); return 0; }
-    g_hook.map_ptr = (BYTE*)MapViewOfFile(g_hook.map_handle, FILE_MAP_ALL_ACCESS, 0, 0, map_size);
-    if (!g_hook.map_ptr) { opSetError("op: MapViewOfFile failed"); return 0; }
-    memset(g_hook.map_ptr, 0, map_size);
+    snprintf(hook->map_name, sizeof(hook->map_name), "op_hook_v2_%lu", pid);
+    DWORD map_size = OP_HOOK_MAP_SIZE;
+    hook->map_handle = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL,
+                                         PAGE_READWRITE, 0, map_size, hook->map_name);
+    if (!hook->map_handle) { opSetError("op: CreateFileMapping failed"); goto done; }
+    hook->map_ptr = (BYTE*)MapViewOfFile(hook->map_handle, FILE_MAP_ALL_ACCESS, 0, 0, map_size);
+    if (!hook->map_ptr) { opSetError("op: MapViewOfFile failed"); goto done; }
+    memset(hook->map_ptr, 0, sizeof(op_hook_header));
 
-    /* Inject DLL via CreateRemoteThread + LoadLibraryA */
-    HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
-    if (!hProc) { opSetError("op: OpenProcess failed"); return 0; }
+    process = OpenProcess(SYNCHRONIZE | PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION |
+                          PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ,
+                          FALSE, pid);
+    if (!process) { opSetError("op: OpenProcess failed"); goto done; }
+    path_bytes = ((size_t)wcslen((const wchar_t*)wide_path) + 1u) * sizeof(wchar_t);
+    remote_path = VirtualAllocEx(process, NULL, path_bytes,
+                                 MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    if (!remote_path) { opSetError("op: VirtualAllocEx failed"); goto done; }
+    if (!WriteProcessMemory(process, remote_path, wide_path, path_bytes, &written) ||
+        written != path_bytes) {
+        opSetError("op: WriteProcessMemory failed");
+        goto done;
+    }
 
-    void *remote_mem = VirtualAllocEx(hProc, NULL, strlen(g_hook.dll_path) + 1,
-                                      MEM_COMMIT, PAGE_READWRITE);
-    if (!remote_mem) { CloseHandle(hProc); opSetError("op: VirtualAllocEx failed"); return 0; }
-
-    WriteProcessMemory(hProc, remote_mem, g_hook.dll_path, strlen(g_hook.dll_path) + 1, NULL);
-
-    HMODULE k32 = GetModuleHandleA("kernel32.dll");
-    void *pLoadLib = (void*)GetProcAddress(k32, "LoadLibraryA");
-    g_hook.remote_thread = CreateRemoteThread(hProc, NULL, 0,
-                                              (LPTHREAD_START_ROUTINE)pLoadLib,
-                                              remote_mem, 0, NULL);
-    CloseHandle(hProc);
-
-    if (!g_hook.remote_thread) { opSetError("op: CreateRemoteThread failed"); return 0; }
-
-    /* Wait for injection to complete */
-    WaitForSingleObject(g_hook.remote_thread, 5000);
-    g_hook.injected = 1;
-
-    /* Wait a bit for the hook to initialize and capture first frame */
-    Sleep(200);
-    return 1;
+    HMODULE kernel = GetModuleHandleW(L"kernel32.dll");
+    void *load_library = kernel ? (void*)GetProcAddress(kernel, "LoadLibraryW") : NULL;
+    if (!load_library) { opSetError("op: LoadLibraryW not found"); goto done; }
+    thread = CreateRemoteThread(process, NULL, 0,
+                                (LPTHREAD_START_ROUTINE)load_library,
+                                remote_path, 0, NULL);
+    if (!thread) { opSetError("op: CreateRemoteThread failed"); goto done; }
+    wait_result = WaitForSingleObject(thread, 5000u);
+    if (wait_result == WAIT_TIMEOUT) {
+        opSetError("op: hook DLL load is still pending");
+        hook->target_process = process;
+        hook->load_thread = thread;
+        hook->remote_path = remote_path;
+        process = NULL;
+        thread = NULL;
+        remote_path = NULL;
+        goto done;
+    }
+    if (wait_result != WAIT_OBJECT_0) {
+        opSetError("op: hook DLL load wait failed");
+        /* 无法证明线程已退出时，同样由延迟回收器持有远程路径。 */
+        hook->target_process = process;
+        hook->load_thread = thread;
+        hook->remote_path = remote_path;
+        process = NULL;
+        thread = NULL;
+        remote_path = NULL;
+        goto done;
+    }
+    if (!GetExitCodeThread(thread, &load_result) || load_result == 0u) {
+        opSetError("op: target process could not load hook DLL");
+        goto done;
+    }
+    VirtualFreeEx(process, remote_path, 0, MEM_RELEASE);
+    remote_path = NULL;
+    hook->injected = 1;
+    hook->target_process = process;
+    process = NULL;
+    success = 1;
+done:
+    if (thread) CloseHandle(thread);
+    if (remote_path && process) VirtualFreeEx(process, remote_path, 0, MEM_RELEASE);
+    if (process) CloseHandle(process);
+    xrtFree(wide_path);
+    xrtFree(dll_path);
+    xrtFree(hooks_dir);
+    xrtFree(app_dir);
+    if (!success && !hook->load_thread) op_hook_cleanup(ctx);
+    return success;
 }
 
 static int op_hook_capture(op_context *ctx) {
-    if (!g_hook.injected || !g_hook.map_ptr) {
+    op_hook_state *hook = &ctx->hook;
+    int attempt;
+    if (!hook->injected || !hook->map_ptr) {
         opSetError("op: hook not injected");
         return 0;
     }
-
-    op_hook_header *hdr = (op_hook_header*)g_hook.map_ptr;
-    if (hdr->magic != OP_HOOK_MAGIC) {
-        /* hook not ready yet */
-        if (ctx->frame_buf && ctx->frame_w > 0) return 1; /* use last frame */
-        opSetError("op: hook not ready");
-        return 0;
+    if (hook->target_process) {
+        DWORD state = WaitForSingleObject(hook->target_process, 0u);
+        if (state == WAIT_OBJECT_0) {
+            opSetError("op: target process exited");
+            op_hook_cleanup(ctx);
+            return 0;
+        }
+        if (state != WAIT_TIMEOUT) {
+            char message[96];
+            snprintf(message, sizeof(message), "op: target status check failed (%lu, error %lu)",
+                     (unsigned long)state, (unsigned long)GetLastError());
+            opSetError(message);
+            return 0;
+        }
     }
 
-    int w = (int)hdr->width;
-    int h = (int)hdr->height;
-    if (w <= 0 || h <= 0 || w > 4096 || h > 4096) return 0;
-
-    /* Ensure frame buffer */
-    if (ctx->frame_w != w || ctx->frame_h != h || !ctx->frame_buf) {
-        if (ctx->frame_buf) free(ctx->frame_buf);
-        ctx->frame_buf = (BYTE *)malloc(w * h * 4);
-        ctx->frame_w = w;
-        ctx->frame_h = h;
+    for (attempt = 0; attempt < 3; ++attempt) {
+        op_hook_header *hdr = (op_hook_header*)hook->map_ptr;
+        unsigned int w = hdr->width;
+        unsigned int h = hdr->height;
+        unsigned int copied_w;
+        unsigned int copied_h;
+        size_t capacity;
+        if (hdr->magic != OP_HOOK_MAGIC ||
+            !op_hook_frame_fits(w, h, OP_HOOK_MAP_SIZE, sizeof(op_hook_header))) continue;
+        if (ctx->frame_w != (int)w || ctx->frame_h != (int)h || !ctx->frame_buf) {
+            BYTE *next = (BYTE *)malloc((size_t)w * (size_t)h * 4u);
+            if (next == NULL) {
+                opSetError("op: out of memory for hook frame");
+                return 0;
+            }
+            free(ctx->frame_buf);
+            ctx->frame_buf = next;
+            ctx->frame_w = (int)w;
+            ctx->frame_h = (int)h;
+        }
+        capacity = (size_t)ctx->frame_w * (size_t)ctx->frame_h * 4u;
+        if (op_hook_snapshot(hook->map_ptr, ctx->frame_buf, capacity,
+                             &copied_w, &copied_h)) {
+            ctx->frame_w = (int)copied_w;
+            ctx->frame_h = (int)copied_h;
+            return 1;
+        }
     }
-
-    /* Copy pixel data from shared memory */
-    BYTE *src = g_hook.map_ptr + sizeof(op_hook_header);
-    memcpy(ctx->frame_buf, src, w * h * 4);
-    return 1;
+    opSetError("op: hook frame is not ready or changed during read");
+    return 0;
 }
 
-static void op_hook_cleanup(void) {
-    if (g_hook.map_ptr) { UnmapViewOfFile(g_hook.map_ptr); g_hook.map_ptr = NULL; }
-    if (g_hook.map_handle) { CloseHandle(g_hook.map_handle); g_hook.map_handle = NULL; }
-    if (g_hook.remote_thread) { CloseHandle(g_hook.remote_thread); g_hook.remote_thread = NULL; }
-    g_hook.injected = 0;
+static void op_hook_cleanup(op_context *ctx) {
+    op_hook_state *hook = &ctx->hook;
+    if (hook->load_thread) {
+        DWORD state = WaitForSingleObject(hook->load_thread, 0u);
+        /* 已完成才释放路径；未完成时不能留下可能执行已卸载 JIT 代码的线程。 */
+        if (state == WAIT_OBJECT_0)
+            VirtualFreeEx(hook->target_process, hook->remote_path, 0, MEM_RELEASE);
+        CloseHandle(hook->load_thread);
+        hook->load_thread = NULL;
+        hook->remote_path = NULL;
+    }
+    if (hook->map_ptr) { UnmapViewOfFile(hook->map_ptr); hook->map_ptr = NULL; }
+    if (hook->map_handle) { CloseHandle(hook->map_handle); hook->map_handle = NULL; }
+    if (hook->target_process) { CloseHandle(hook->target_process); hook->target_process = NULL; }
+    hook->injected = 0;
 }
 
 /* ------------------------------------------------------------------ */
 /* Context (definition moved above for DXGI/hook)                      */
 /* ------------------------------------------------------------------ */
-
-static char op_buf[65536];
 
 /* ------------------------------------------------------------------ */
 /* Lifecycle                                                           */
@@ -430,7 +741,8 @@ void xop_destroy(void *ptr) {
     }
     if (ctx->mem_bmp) DeleteObject(ctx->mem_bmp);
     if (ctx->frame_buf) free(ctx->frame_buf);
-    op_hook_cleanup();
+    op_dxgi_detach(ctx);
+    op_hook_cleanup(ctx);
     free(ctx);
 }
 
@@ -438,11 +750,15 @@ void xop_destroy(void *ptr) {
 /* Window binding                                                      */
 /* ------------------------------------------------------------------ */
 
+long long xop_unbind(void *ptr);
+
 long long xop_bind_window(void *ptr, long long hwnd, const char *display,
                           const char *mouse, const char *keypad, long long mode) {
     op_context *ctx = (op_context *)ptr;
     if (!ctx) { opSetError("op: null context"); return 0; }
     if (!IsWindow((HWND)(intptr_t)hwnd)) { opSetError("op: invalid hwnd"); return 0; }
+
+    if (ctx->bound) xop_unbind(ptr);
 
     ctx->bind_hwnd = (HWND)(intptr_t)hwnd;
     ctx->bound = 1;
@@ -473,7 +789,8 @@ long long xop_unbind(void *ptr) {
     ctx->frame_w = ctx->frame_h = 0;
     ctx->bind_hwnd = NULL;
     ctx->bound = 0;
-    op_hook_cleanup();
+    op_dxgi_detach(ctx);
+    op_hook_cleanup(ctx);
     return 1;
 }
 
@@ -493,29 +810,145 @@ long long xop_get_bind_window(void *ptr) {
 /* Capture frame (internal)                                            */
 /* ------------------------------------------------------------------ */
 
-static int op_ensure_frame(op_context *ctx, int w, int h) {
-    if (ctx->frame_w == w && ctx->frame_h == h && ctx->mem_dc) return 1;
+static int op_frame_bytes(int w, int h, size_t *bytes) {
+    if (w <= 0 || h <= 0 ||
+        (size_t)w > ((size_t)256u * 1024u * 1024u / 4u) / (size_t)h) {
+        opSetError("op: frame size exceeds limit");
+        return 0;
+    }
+    *bytes = (size_t)w * (size_t)h * 4u;
+    return 1;
+}
 
-    /* release old */
+static int op_ensure_frame(op_context *ctx, int w, int h) {
+    HDC screen_dc, next_dc;
+    HBITMAP next_bmp, next_old;
+    BYTE *next_frame;
+    size_t bytes;
+    /* 普通/GDI 帧独立于 hook 映射，最多占 256 MiB。 */
+    if (!op_frame_bytes(w, h, &bytes)) return 0;
+    if (ctx->frame_w == w && ctx->frame_h == h && ctx->mem_dc &&
+        ctx->mem_bmp && ctx->frame_buf) return 1;
+    screen_dc = GetDC(NULL);
+    if (!screen_dc) { opSetError("op: screen DC unavailable"); return 0; }
+    next_dc = CreateCompatibleDC(screen_dc);
+    next_bmp = CreateCompatibleBitmap(screen_dc, w, h);
+    ReleaseDC(NULL, screen_dc);
+    next_frame = (BYTE *)malloc(bytes);
+    next_old = next_dc && next_bmp ? (HBITMAP)SelectObject(next_dc, next_bmp) : NULL;
+    if (!next_dc || !next_bmp || !next_frame || !next_old) {
+        if (next_old) SelectObject(next_dc, next_old);
+        if (next_bmp) DeleteObject(next_bmp);
+        if (next_dc) DeleteDC(next_dc);
+        free(next_frame);
+        opSetError("op: GDI frame allocation failed");
+        return 0;
+    }
     if (ctx->mem_dc) {
         if (ctx->old_bmp) SelectObject(ctx->mem_dc, ctx->old_bmp);
         DeleteDC(ctx->mem_dc);
-        ctx->mem_dc = NULL;
-        ctx->old_bmp = NULL;
     }
-    if (ctx->mem_bmp) { DeleteObject(ctx->mem_bmp); ctx->mem_bmp = NULL; }
-    if (ctx->frame_buf) { free(ctx->frame_buf); ctx->frame_buf = NULL; }
-
-    HDC screen_dc = GetDC(NULL);
-    ctx->mem_dc = CreateCompatibleDC(screen_dc);
-    ctx->mem_bmp = CreateCompatibleBitmap(screen_dc, w, h);
-    ctx->old_bmp = (HBITMAP)SelectObject(ctx->mem_dc, ctx->mem_bmp);
-    ReleaseDC(NULL, screen_dc);
-
-    ctx->frame_buf = (BYTE *)malloc(w * h * 4);
+    if (ctx->mem_bmp) DeleteObject(ctx->mem_bmp);
+    free(ctx->frame_buf);
+    ctx->mem_dc = next_dc;
+    ctx->mem_bmp = next_bmp;
+    ctx->old_bmp = next_old;
+    ctx->frame_buf = next_frame;
     ctx->frame_w = w;
     ctx->frame_h = h;
-    return (ctx->mem_dc && ctx->frame_buf) ? 1 : 0;
+    return 1;
+}
+
+static int op_gl_direct_capture(op_context *ctx, int w, int h) {
+    const unsigned char *version, *extensions = NULL;
+    int major = 0, minor = 0, binding = 0;
+    int read_buffer, alignment, row_length, skip_rows, skip_pixels;
+    size_t row_bytes, frame_bytes;
+    BYTE *row, *next_frame = NULL, *target;
+    int y;
+
+    if (!op_frame_bytes(w, h, &frame_bytes)) return 0;
+    row_bytes = (size_t)w * 4u;
+    op_init_gl();
+    if (!p_glReadBuffer || !p_glReadPixels || !p_glGetIntegerv ||
+        !p_glPixelStorei || !p_glGetString || !p_wglGetCurrentContext ||
+        !p_wglGetCurrentDC || !p_wglGetCurrentContext() ||
+        WindowFromDC(p_wglGetCurrentDC()) != ctx->bind_hwnd) {
+        opSetError("op: OpenGL mode requires the bound window's current context");
+        return 0;
+    }
+    version = p_glGetString(OP_GL_VERSION);
+    if (!version || sscanf((const char *)version, "%d.%d", &major, &minor) != 2) {
+        opSetError("op: OpenGL version unavailable");
+        return 0;
+    }
+    if (major < 3) extensions = p_glGetString(OP_GL_EXTENSIONS);
+    if (major > 2 || (major == 2 && minor >= 1) ||
+        (extensions && (strstr((const char *)extensions, "GL_ARB_pixel_buffer_object") ||
+                        strstr((const char *)extensions, "GL_EXT_pixel_buffer_object")))) {
+        p_glGetIntegerv(OP_GL_PIXEL_PACK_BUFFER_BINDING, &binding);
+        if (binding) {
+            opSetError("op: OpenGL pixel pack buffer is unsupported");
+            return 0;
+        }
+    }
+    binding = 0;
+    if (major >= 3) {
+        p_glGetIntegerv(OP_GL_READ_FRAMEBUFFER_BINDING, &binding);
+    } else if (extensions &&
+               (strstr((const char *)extensions, "GL_ARB_framebuffer_object") ||
+                strstr((const char *)extensions, "GL_EXT_framebuffer_object"))) {
+        p_glGetIntegerv(OP_GL_FRAMEBUFFER_BINDING, &binding);
+    }
+    if (binding) {
+        opSetError("op: OpenGL framebuffer object is unsupported");
+        return 0;
+    }
+    if (!ctx->frame_buf || ctx->frame_w != w || ctx->frame_h != h) {
+        next_frame = (BYTE *)malloc(frame_bytes);
+        if (!next_frame) {
+            opSetError("op: out of memory for OpenGL frame");
+            return 0;
+        }
+    }
+    row = (BYTE *)malloc(row_bytes);
+    if (!row) {
+        free(next_frame);
+        opSetError("op: out of memory for OpenGL row");
+        return 0;
+    }
+    target = next_frame ? next_frame : ctx->frame_buf;
+    p_glGetIntegerv(OP_GL_READ_BUFFER, &read_buffer);
+    p_glGetIntegerv(OP_GL_PACK_ALIGNMENT, &alignment);
+    p_glGetIntegerv(OP_GL_PACK_ROW_LENGTH, &row_length);
+    p_glGetIntegerv(OP_GL_PACK_SKIP_ROWS, &skip_rows);
+    p_glGetIntegerv(OP_GL_PACK_SKIP_PIXELS, &skip_pixels);
+    p_glReadBuffer(GL_FRONT);
+    p_glPixelStorei(OP_GL_PACK_ALIGNMENT, 1);
+    p_glPixelStorei(OP_GL_PACK_ROW_LENGTH, 0);
+    p_glPixelStorei(OP_GL_PACK_SKIP_ROWS, 0);
+    p_glPixelStorei(OP_GL_PACK_SKIP_PIXELS, 0);
+    p_glReadPixels(0, 0, w, h, GL_BGRA_EXT, GL_UNSIGNED_BYTE, target);
+    p_glPixelStorei(OP_GL_PACK_SKIP_PIXELS, skip_pixels);
+    p_glPixelStorei(OP_GL_PACK_SKIP_ROWS, skip_rows);
+    p_glPixelStorei(OP_GL_PACK_ROW_LENGTH, row_length);
+    p_glPixelStorei(OP_GL_PACK_ALIGNMENT, alignment);
+    p_glReadBuffer((unsigned int)read_buffer);
+    for (y = 0; y < h / 2; ++y) {
+        BYTE *top = target + (size_t)y * row_bytes;
+        BYTE *bottom = target + (size_t)(h - 1 - y) * row_bytes;
+        memcpy(row, top, row_bytes);
+        memcpy(top, bottom, row_bytes);
+        memcpy(bottom, row, row_bytes);
+    }
+    free(row);
+    if (next_frame) {
+        free(ctx->frame_buf);
+        ctx->frame_buf = next_frame;
+        ctx->frame_w = w;
+        ctx->frame_h = h;
+    }
+    return 1;
 }
 
 static int op_capture_frame(op_context *ctx) {
@@ -533,47 +966,47 @@ static int op_capture_frame(op_context *ctx) {
     if (strcmp(ctx->display_mode, "d3d9") == 0 ||
         strcmp(ctx->display_mode, "d3d11") == 0 ||
         strcmp(ctx->display_mode, "wgl") == 0) {
-        if (!g_hook.injected) {
+        if (!ctx->hook.injected) {
             if (!op_hook_inject(ctx, ctx->display_mode)) return 0;
         }
         return op_hook_capture(ctx);
     }
 
     RECT rc;
-    GetClientRect(ctx->bind_hwnd, &rc);
+    if (!GetClientRect(ctx->bind_hwnd, &rc)) {
+        opSetError("op: window rectangle unavailable");
+        return 0;
+    }
     int w = rc.right - rc.left;
     int h = rc.bottom - rc.top;
     if (w <= 0 || h <= 0) { opSetError("op: window has zero size"); return 0; }
 
-    if (!op_ensure_frame(ctx, w, h)) { opSetError("op: frame alloc failed"); return 0; }
+    if (strcmp(ctx->display_mode, "opengl") == 0)
+        return op_gl_direct_capture(ctx, w, h);
+    if (!op_ensure_frame(ctx, w, h)) return 0;
 
     if (strcmp(ctx->display_mode, "gdi") == 0) {
         /* PrintWindow - works for occluded/minimized windows */
         op_init_user32();
         if (p_PrintWindow) {
-            p_PrintWindow(ctx->bind_hwnd, ctx->mem_dc, 2);
+            if (!p_PrintWindow(ctx->bind_hwnd, ctx->mem_dc, PW_CLIENTONLY)) {
+                opSetError("op: PrintWindow failed");
+                return 0;
+            }
         } else {
             HDC src_dc2 = GetDC(ctx->bind_hwnd);
-            BitBlt(ctx->mem_dc, 0, 0, w, h, src_dc2, 0, 0, SRCCOPY);
+            if (!src_dc2) { opSetError("op: window DC unavailable"); return 0; }
+            int copied = BitBlt(ctx->mem_dc, 0, 0, w, h, src_dc2, 0, 0, SRCCOPY);
             ReleaseDC(ctx->bind_hwnd, src_dc2);
+            if (!copied) { opSetError("op: BitBlt failed"); return 0; }
         }
-    } else if (strcmp(ctx->display_mode, "opengl") == 0) {
-        /* glReadPixels - only works in-process with current GL context */
-        op_init_gl();
-        if (p_glReadBuffer && p_glReadPixels) {
-            p_glReadBuffer(GL_FRONT);
-            p_glReadPixels(0, 0, w, h, GL_BGRA_EXT, GL_UNSIGNED_BYTE, ctx->frame_buf);
-            return 1;
-        }
-        /* fallback to BitBlt if GL not available */
-        HDC src_dc = GetDC(ctx->bind_hwnd);
-        BitBlt(ctx->mem_dc, 0, 0, w, h, src_dc, 0, 0, SRCCOPY);
-        ReleaseDC(ctx->bind_hwnd, src_dc);
     } else {
         /* normal: GetDC + BitBlt */
         HDC src_dc = GetDC(ctx->bind_hwnd);
-        BitBlt(ctx->mem_dc, 0, 0, w, h, src_dc, 0, 0, SRCCOPY);
+        if (!src_dc) { opSetError("op: window DC unavailable"); return 0; }
+        int copied = BitBlt(ctx->mem_dc, 0, 0, w, h, src_dc, 0, 0, SRCCOPY);
         ReleaseDC(ctx->bind_hwnd, src_dc);
+        if (!copied) { opSetError("op: BitBlt failed"); return 0; }
     }
 
     /* extract pixels from mem_dc to frame_buf */
@@ -585,8 +1018,16 @@ static int op_capture_frame(op_context *ctx) {
     bi.biPlanes = 1;
     bi.biBitCount = 32;
     bi.biCompression = BI_RGB;
-    GetDIBits(ctx->mem_dc, ctx->mem_bmp, 0, h, ctx->frame_buf,
-              (BITMAPINFO *)&bi, DIB_RGB_COLORS);
+    if (!SelectObject(ctx->mem_dc, ctx->old_bmp)) {
+        opSetError("op: GDI bitmap deselection failed");
+        return 0;
+    }
+    int lines = GetDIBits(ctx->mem_dc, ctx->mem_bmp, 0, (UINT)h, ctx->frame_buf,
+                          (BITMAPINFO *)&bi, DIB_RGB_COLORS);
+    if (!SelectObject(ctx->mem_dc, ctx->mem_bmp) || lines != h) {
+        opSetError("op: GDI pixel read failed");
+        return 0;
+    }
     return 1;
 }
 
@@ -594,61 +1035,100 @@ static int op_capture_frame(op_context *ctx) {
 /* Image & Color                                                       */
 /* ------------------------------------------------------------------ */
 
-const char *xop_get_color(void *ptr, long long x, long long y) {
+/* 搜索区域使用闭区间；先按 64 位与帧求交，避免窄化回绕后索引越界。 */
+static int op_clip_search_rect(const op_context *ctx,
+                               long long x1, long long y1,
+                               long long x2, long long y2,
+                               int *sx1, int *sy1, int *sx2, int *sy2) {
+    if (!ctx || ctx->frame_w <= 0 || ctx->frame_h <= 0 ||
+        x2 < x1 || y2 < y1 || x2 < 0 || y2 < 0 ||
+        x1 >= ctx->frame_w || y1 >= ctx->frame_h) return 0;
+    *sx1 = (int)(x1 < 0 ? 0 : x1);
+    *sy1 = (int)(y1 < 0 ? 0 : y1);
+    *sx2 = (int)(x2 >= ctx->frame_w ? ctx->frame_w - 1 : x2);
+    *sy2 = (int)(y2 >= ctx->frame_h ? ctx->frame_h - 1 : y2);
+    return *sx1 <= *sx2 && *sy1 <= *sy2;
+}
+
+static void *op_coordinate_text(int x, int y) {
+    char result[64];
+    snprintf(result, sizeof(result), "%d,%d", x, y);
+    return xrtStrDup(result);
+}
+
+void *xop_get_color(void *ptr, long long x, long long y) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { opSetError("op: null context"); return ""; }
-    if (!op_capture_frame(ctx)) return "";
+    char result[8];
+    if (!ctx) { opSetError("op: null context"); return NULL; }
+    if (!op_capture_frame(ctx)) return NULL;
     if (x < 0 || x >= ctx->frame_w || y < 0 || y >= ctx->frame_h) {
         opSetError("op: coordinates out of range");
-        return "";
+        return NULL;
     }
     int idx = ((int)y * ctx->frame_w + (int)x) * 4;
     BYTE b = ctx->frame_buf[idx];
     BYTE g = ctx->frame_buf[idx + 1];
     BYTE r = ctx->frame_buf[idx + 2];
-    snprintf(op_buf, sizeof(op_buf), "%02X%02X%02X", r, g, b);
-    return op_buf;
+    snprintf(result, sizeof(result), "%02X%02X%02X", r, g, b);
+    return xrtStrDup(result);
 }
 
-const char *xop_get_colors(void *ptr, long long x1, long long y1,
-                           long long x2, long long y2) {
+void *xop_get_colors(void *ptr, long long x1, long long y1,
+                     long long x2, long long y2) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { opSetError("op: null context"); return ""; }
-    if (!op_capture_frame(ctx)) return "";
-
-    int pos = 0;
+    int sx1, sy1, sx2, sy2;
+    xbuffer result;
     int yy, xx;
-    for (yy = (int)y1; yy <= (int)y2 && pos < (int)sizeof(op_buf) - 16; yy++) {
-        for (xx = (int)x1; xx <= (int)x2 && pos < (int)sizeof(op_buf) - 16; xx++) {
-            if (xx < 0 || xx >= ctx->frame_w || yy < 0 || yy >= ctx->frame_h) continue;
+    if (!ctx) { opSetError("op: null context"); return NULL; }
+    if (!op_capture_frame(ctx)) return NULL;
+    if (!op_clip_search_rect(ctx, x1, y1, x2, y2,
+                             &sx1, &sy1, &sx2, &sy2)) return xrtStrDup("");
+
+    /* 每个像素占六个十六进制字符和一个分隔符，拒绝截断。 */
+    if ((size_t)(sx2 - sx1 + 1) * (size_t)(sy2 - sy1 + 1) >
+        (16u * 1024u * 1024u - 1u) / 7u) {
+        opSetError("op: color result exceeds output limit");
+        return NULL;
+    }
+    if (!xrtBufferInit(&result)) return NULL;
+
+    for (yy = sy1; yy <= sy2; yy++) {
+        for (xx = sx1; xx <= sx2; xx++) {
             int idx = (yy * ctx->frame_w + xx) * 4;
             BYTE b = ctx->frame_buf[idx];
             BYTE g = ctx->frame_buf[idx + 1];
             BYTE r = ctx->frame_buf[idx + 2];
-            pos += snprintf(op_buf + pos, sizeof(op_buf) - pos, "%02X%02X%02X|", r, g, b);
+            char pixel[8];
+            int size = snprintf(pixel, sizeof(pixel), "%s%02X%02X%02X",
+                                result.Size ? "|" : "", r, g, b);
+            if (size < 0 || !xrtBufferAppend(&result,
+                              (xbytesview){(const uint8 *)pixel, (size_t)size})) {
+                xrtBufferUnit(&result);
+                return NULL;
+            }
         }
     }
-    if (pos > 0 && op_buf[pos - 1] == '|') op_buf[pos - 1] = '\0';
-    return op_buf;
+    if (!xrtBufferAppendByte(&result, 0)) { xrtBufferUnit(&result); return NULL; }
+    return xrtBufferTake(&result, NULL, NULL);
 }
 
 static int op_save_bmp(const char *path, BYTE *buf, int w, int h) {
-    FILE *f = fopen(path, "wb");
-    if (!f) return 0;
-
-    int row_size = w * 4;
-    int data_size = row_size * h;
-    int file_size = 54 + data_size;
-
+    xfile file;
+    int data_size;
+    int ok;
     BITMAPFILEHEADER fh;
+    BITMAPINFOHEADER ih;
+
+    if (!path || !buf || w <= 0 || h <= 0 || w > 4096 || h > 4096)
+        return 0;
+    data_size = w * h * 4;
     memset(&fh, 0, sizeof(fh));
     fh.bfType = 0x4D42; /* 'BM' */
-    fh.bfSize = file_size;
-    fh.bfOffBits = 54;
+    fh.bfOffBits = sizeof(fh) + sizeof(ih);
+    fh.bfSize = fh.bfOffBits + data_size;
 
-    BITMAPINFOHEADER ih;
     memset(&ih, 0, sizeof(ih));
-    ih.biSize = 40;
+    ih.biSize = sizeof(ih);
     ih.biWidth = w;
     ih.biHeight = -h; /* top-down */
     ih.biPlanes = 1;
@@ -656,11 +1136,13 @@ static int op_save_bmp(const char *path, BYTE *buf, int w, int h) {
     ih.biCompression = BI_RGB;
     ih.biSizeImage = data_size;
 
-    fwrite(&fh, 1, sizeof(fh), f);
-    fwrite(&ih, 1, sizeof(ih), f);
-    fwrite(buf, 1, data_size, f);
-    fclose(f);
-    return 1;
+    file = xrtOpen(path, XFILE_WRITE | XFILE_CREATE | XFILE_TRUNCATE);
+    if (!file) return 0;
+    ok = xrtWriteFull(file, &fh, sizeof(fh), NULL) &&
+         xrtWriteFull(file, &ih, sizeof(ih), NULL) &&
+         xrtWriteFull(file, buf, (size_t)data_size, NULL);
+    if (!xrtClose(file)) ok = 0;
+    return ok;
 }
 
 long long xop_capture(void *ptr, long long x1, long long y1,
@@ -697,12 +1179,13 @@ long long xop_capture(void *ptr, long long x1, long long y1,
     return ok;
 }
 
-const char *xop_get_frame_info(void *ptr) {
+void *xop_get_frame_info(void *ptr) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { opSetError("op: null context"); return "0x0"; }
-    if (!op_capture_frame(ctx)) return "0x0";
-    snprintf(op_buf, sizeof(op_buf), "%dx%d", ctx->frame_w, ctx->frame_h);
-    return op_buf;
+    char result[64];
+    if (!ctx) { opSetError("op: null context"); return NULL; }
+    if (!op_capture_frame(ctx)) return xrtStrDup("0x0");
+    snprintf(result, sizeof(result), "%dx%d", ctx->frame_w, ctx->frame_h);
+    return xrtStrDup(result);
 }
 
 /* ------------------------------------------------------------------ */
@@ -789,23 +1272,21 @@ static int op_match_any(BYTE pr, BYTE pg, BYTE pb, op_color_t *colors, int count
 /* FindColor                                                           */
 /* ------------------------------------------------------------------ */
 
-const char *xop_find_color(void *ptr, long long x1, long long y1,
-                           long long x2, long long y2,
-                           const char *color, double sim, long long dir) {
+void *xop_find_color(void *ptr, long long x1, long long y1,
+                      long long x2, long long y2,
+                      const char *color, double sim, long long dir) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { opSetError("op: null context"); return ""; }
-    if (!color || !*color) { opSetError("op: empty color"); return ""; }
-    if (!op_capture_frame(ctx)) return "";
+    if (!ctx) { opSetError("op: null context"); return NULL; }
+    if (!color || !*color) { opSetError("op: empty color"); return NULL; }
+    if (!op_capture_frame(ctx)) return NULL;
 
     op_color_t colors[OP_MAX_COLORS];
     int ncolors = op_parse_colors(color, colors, OP_MAX_COLORS);
-    if (ncolors == 0) { opSetError("op: invalid color format"); return ""; }
+    if (ncolors == 0) { opSetError("op: invalid color format"); return NULL; }
 
-    int sx1 = (int)x1, sy1 = (int)y1, sx2 = (int)x2, sy2 = (int)y2;
-    if (sx1 < 0) sx1 = 0;
-    if (sy1 < 0) sy1 = 0;
-    if (sx2 >= ctx->frame_w) sx2 = ctx->frame_w - 1;
-    if (sy2 >= ctx->frame_h) sy2 = ctx->frame_h - 1;
+    int sx1, sy1, sx2, sy2;
+    if (!op_clip_search_rect(ctx, x1, y1, x2, y2,
+                             &sx1, &sy1, &sx2, &sy2)) return xrtStrDup("");
 
     int x_start, x_end, x_step, y_start, y_end, y_step;
     if (dir == 2 || dir == 3) { x_start = sx2; x_end = sx1; x_step = -1; }
@@ -821,33 +1302,32 @@ const char *xop_find_color(void *ptr, long long x1, long long y1,
             BYTE g = ctx->frame_buf[idx + 1];
             BYTE r = ctx->frame_buf[idx + 2];
             if (op_match_any(r, g, b, colors, ncolors, sim)) {
-                snprintf(op_buf, sizeof(op_buf), "%d,%d", xx, yy);
-                return op_buf;
+                return op_coordinate_text(xx, yy);
             }
             if (xx == x_end) break;
         }
         if (yy == y_end) break;
     }
-    return "";
+    return xrtStrDup("");
 }
 
-const char *xop_find_color_ex(void *ptr, long long x1, long long y1,
-                              long long x2, long long y2,
-                              const char *color, double sim, long long dir) {
+void *xop_find_color_ex(void *ptr, long long x1, long long y1,
+                        long long x2, long long y2,
+                        const char *color, double sim, long long dir) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { opSetError("op: null context"); return ""; }
-    if (!color || !*color) { opSetError("op: empty color"); return ""; }
-    if (!op_capture_frame(ctx)) return "";
+    xbuffer result;
+    if (!ctx) { opSetError("op: null context"); return NULL; }
+    if (!color || !*color) { opSetError("op: empty color"); return NULL; }
+    if (!op_capture_frame(ctx)) return NULL;
 
     op_color_t colors[OP_MAX_COLORS];
     int ncolors = op_parse_colors(color, colors, OP_MAX_COLORS);
-    if (ncolors == 0) { opSetError("op: invalid color format"); return ""; }
+    if (ncolors == 0) { opSetError("op: invalid color format"); return NULL; }
 
-    int sx1 = (int)x1, sy1 = (int)y1, sx2 = (int)x2, sy2 = (int)y2;
-    if (sx1 < 0) sx1 = 0;
-    if (sy1 < 0) sy1 = 0;
-    if (sx2 >= ctx->frame_w) sx2 = ctx->frame_w - 1;
-    if (sy2 >= ctx->frame_h) sy2 = ctx->frame_h - 1;
+    int sx1, sy1, sx2, sy2;
+    if (!op_clip_search_rect(ctx, x1, y1, x2, y2,
+                             &sx1, &sy1, &sx2, &sy2)) return xrtStrDup("");
+    if (!xrtBufferInit(&result)) return NULL;
 
     int x_start, x_end, x_step, y_start, y_end, y_step;
     if (dir == 2 || dir == 3) { x_start = sx2; x_end = sx1; x_step = -1; }
@@ -855,7 +1335,6 @@ const char *xop_find_color_ex(void *ptr, long long x1, long long y1,
     if (dir == 1 || dir == 3) { y_start = sy2; y_end = sy1; y_step = -1; }
     else { y_start = sy1; y_end = sy2; y_step = 1; }
 
-    int pos = 0;
     int yy, xx;
     for (yy = y_start; ; yy += y_step) {
         for (xx = x_start; ; xx += x_step) {
@@ -864,17 +1343,26 @@ const char *xop_find_color_ex(void *ptr, long long x1, long long y1,
             BYTE g = ctx->frame_buf[idx + 1];
             BYTE r = ctx->frame_buf[idx + 2];
             if (op_match_any(r, g, b, colors, ncolors, sim)) {
-                if (pos > 0 && pos < (int)sizeof(op_buf) - 1) op_buf[pos++] = '|';
-                pos += snprintf(op_buf + pos, sizeof(op_buf) - pos, "%d,%d", xx, yy);
-                if (pos >= (int)sizeof(op_buf) - 16) goto done_ex;
+                char entry[48];
+                int size = snprintf(entry, sizeof(entry), "%s%d,%d",
+                                    result.Size ? "|" : "", xx, yy);
+                if (size < 0 || result.Size > 16u * 1024u * 1024u - 1u - (size_t)size) {
+                    opSetError("op: color matches exceed output limit");
+                    xrtBufferUnit(&result);
+                    return NULL;
+                }
+                if (!xrtBufferAppend(&result,
+                         (xbytesview){(const uint8 *)entry, (size_t)size})) {
+                    xrtBufferUnit(&result);
+                    return NULL;
+                }
             }
             if (xx == x_end) break;
         }
         if (yy == y_end) break;
     }
-done_ex:
-    op_buf[pos] = '\0';
-    return op_buf;
+    if (!xrtBufferAppendByte(&result, 0)) { xrtBufferUnit(&result); return NULL; }
+    return xrtBufferTake(&result, NULL, NULL);
 }
 
 /* ------------------------------------------------------------------ */
@@ -914,29 +1402,27 @@ static int op_parse_offsets(const char *s, op_offset_point_t *pts, int max) {
     return count;
 }
 
-const char *xop_find_multi_color(void *ptr, long long x1, long long y1,
-                                 long long x2, long long y2,
-                                 const char *first_color, const char *offset_color,
-                                 double sim, long long dir) {
+void *xop_find_multi_color(void *ptr, long long x1, long long y1,
+                            long long x2, long long y2,
+                            const char *first_color, const char *offset_color,
+                            double sim, long long dir) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { opSetError("op: null context"); return ""; }
-    if (!first_color || !*first_color) { opSetError("op: empty first_color"); return ""; }
-    if (!offset_color || !*offset_color) { opSetError("op: empty offset_color"); return ""; }
-    if (!op_capture_frame(ctx)) return "";
+    if (!ctx) { opSetError("op: null context"); return NULL; }
+    if (!first_color || !*first_color) { opSetError("op: empty first_color"); return NULL; }
+    if (!offset_color || !*offset_color) { opSetError("op: empty offset_color"); return NULL; }
+    if (!op_capture_frame(ctx)) return NULL;
 
     op_color_t first_colors[OP_MAX_COLORS];
     int nfirst = op_parse_colors(first_color, first_colors, OP_MAX_COLORS);
-    if (nfirst == 0) { opSetError("op: invalid first_color"); return ""; }
+    if (nfirst == 0) { opSetError("op: invalid first_color"); return NULL; }
 
     op_offset_point_t offsets[OP_MAX_OFFSETS];
     int noffsets = op_parse_offsets(offset_color, offsets, OP_MAX_OFFSETS);
-    if (noffsets == 0) { opSetError("op: invalid offset_color"); return ""; }
+    if (noffsets == 0) { opSetError("op: invalid offset_color"); return NULL; }
 
-    int sx1 = (int)x1, sy1 = (int)y1, sx2 = (int)x2, sy2 = (int)y2;
-    if (sx1 < 0) sx1 = 0;
-    if (sy1 < 0) sy1 = 0;
-    if (sx2 >= ctx->frame_w) sx2 = ctx->frame_w - 1;
-    if (sy2 >= ctx->frame_h) sy2 = ctx->frame_h - 1;
+    int sx1, sy1, sx2, sy2;
+    if (!op_clip_search_rect(ctx, x1, y1, x2, y2,
+                             &sx1, &sy1, &sx2, &sy2)) return xrtStrDup("");
 
     int x_start, x_end, x_step, y_start, y_end, y_step;
     if (dir == 2 || dir == 3) { x_start = sx2; x_end = sx1; x_step = -1; }
@@ -971,8 +1457,7 @@ const char *xop_find_multi_color(void *ptr, long long x1, long long y1,
                     }
                 }
                 if (all_ok) {
-                    snprintf(op_buf, sizeof(op_buf), "%d,%d", xx, yy);
-                    return op_buf;
+                    return op_coordinate_text(xx, yy);
                 }
             }
 next_mc:
@@ -980,7 +1465,7 @@ next_mc:
         }
         if (yy == y_end) break;
     }
-    return "";
+    return xrtStrDup("");
 }
 
 /* ------------------------------------------------------------------ */
@@ -993,42 +1478,49 @@ typedef struct {
 } op_bitmap_t;
 
 static int op_load_bmp(const char *path, op_bitmap_t *bmp) {
-    FILE *f = fopen(path, "rb");
-    if (!f) return 0;
-
+    BYTE *raw;
+    size_t size;
+    size_t row_size;
+    size_t pixel_bytes;
+    size_t offset;
+    int w, h, top_down, bpp;
+    int row, col;
     BITMAPFILEHEADER fh;
     BITMAPINFOHEADER ih;
-    if (fread(&fh, 1, sizeof(fh), f) != sizeof(fh)) { fclose(f); return 0; }
-    if (fh.bfType != 0x4D42) { fclose(f); return 0; }
-    if (fread(&ih, 1, sizeof(ih), f) != sizeof(ih)) { fclose(f); return 0; }
 
-    int w = ih.biWidth;
-    int h = ih.biHeight < 0 ? -ih.biHeight : ih.biHeight;
-    int top_down = ih.biHeight < 0;
-    int bpp = ih.biBitCount;
+    if (!path || !bmp) return 0;
+    raw = xrtFileReadAllLimit(path, 65u * 1024u * 1024u, &size);
+    if (!raw) return 0;
+    if (size < sizeof(fh) + sizeof(ih)) goto invalid;
+    memcpy(&fh, raw, sizeof(fh));
+    memcpy(&ih, raw + sizeof(fh), sizeof(ih));
+    if (fh.bfType != 0x4D42 || ih.biSize < sizeof(ih) ||
+        ih.biSize > size - sizeof(fh) || ih.biPlanes != 1 ||
+        ih.biCompression != BI_RGB || (ih.biBitCount != 24 && ih.biBitCount != 32) ||
+        ih.biWidth <= 0 || ih.biWidth > 4096 ||
+        ih.biHeight == 0 || ih.biHeight < -4096 || ih.biHeight > 4096)
+        goto invalid;
 
-    if (bpp != 24 && bpp != 32) { fclose(f); return 0; }
-
-    int src_row = ((w * bpp / 8) + 3) & ~3;
-    BYTE *raw = (BYTE *)malloc(src_row * h);
-    if (!raw) { fclose(f); return 0; }
-
-    fseek(f, fh.bfOffBits, SEEK_SET);
-    if ((int)fread(raw, 1, src_row * h, f) != src_row * h) {
-        free(raw); fclose(f); return 0;
-    }
-    fclose(f);
+    w = ih.biWidth;
+    h = ih.biHeight < 0 ? -ih.biHeight : ih.biHeight;
+    top_down = ih.biHeight < 0;
+    bpp = ih.biBitCount;
+    row_size = (((size_t)w * bpp + 31u) / 32u) * 4u;
+    pixel_bytes = row_size * (size_t)h;
+    offset = fh.bfOffBits;
+    if (offset < sizeof(fh) + ih.biSize || offset > size ||
+        pixel_bytes > size - offset)
+        goto invalid;
 
     bmp->w = w;
     bmp->h = h;
-    bmp->data = (BYTE *)malloc(w * h * 4);
-    if (!bmp->data) { free(raw); return 0; }
+    bmp->data = (BYTE *)malloc((size_t)w * (size_t)h * 4u);
+    if (!bmp->data) goto invalid;
 
-    int row, col;
     for (row = 0; row < h; row++) {
         int src_y = top_down ? row : (h - 1 - row);
-        BYTE *src = raw + src_y * src_row;
-        BYTE *dst = bmp->data + row * w * 4;
+        BYTE *src = raw + offset + (size_t)src_y * row_size;
+        BYTE *dst = bmp->data + (size_t)row * (size_t)w * 4u;
         for (col = 0; col < w; col++) {
             if (bpp == 32) {
                 dst[col * 4 + 0] = src[col * 4 + 0]; /* B */
@@ -1043,8 +1535,12 @@ static int op_load_bmp(const char *path, op_bitmap_t *bmp) {
             }
         }
     }
-    free(raw);
+    xrtFree(raw);
     return 1;
+
+invalid:
+    xrtFree(raw);
+    return 0;
 }
 
 static int op_match_at(BYTE *screen, int sw, int sx, int sy,
@@ -1068,17 +1564,17 @@ static int op_match_at(BYTE *screen, int sw, int sx, int sy,
     return (double)matched / (double)total >= sim;
 }
 
-const char *xop_find_pic(void *ptr, long long x1, long long y1,
-                         long long x2, long long y2,
-                         const char *pic_file, const char *delta_color,
-                         double sim, long long dir) {
+void *xop_find_pic(void *ptr, long long x1, long long y1,
+                    long long x2, long long y2,
+                    const char *pic_file, const char *delta_color,
+                    double sim, long long dir) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { opSetError("op: null context"); return ""; }
-    if (!pic_file || !*pic_file) { opSetError("op: empty pic_file"); return ""; }
-    if (!op_capture_frame(ctx)) return "";
+    if (!ctx) { opSetError("op: null context"); return NULL; }
+    if (!pic_file || !*pic_file) { opSetError("op: empty pic_file"); return NULL; }
+    if (!op_capture_frame(ctx)) return NULL;
 
     op_bitmap_t tmpl;
-    if (!op_load_bmp(pic_file, &tmpl)) { opSetError("op: failed to load bmp"); return ""; }
+    if (!op_load_bmp(pic_file, &tmpl)) { opSetError("op: failed to load bmp"); return NULL; }
 
     /* parse delta color "RRGGBB" as tolerance */
     int dr = 0, dg = 0, db = 0;
@@ -1088,16 +1584,17 @@ const char *xop_find_pic(void *ptr, long long x1, long long y1,
         db = op_hex2(delta_color + 4);
     }
 
-    int sx1 = (int)x1, sy1 = (int)y1, sx2 = (int)x2, sy2 = (int)y2;
-    if (sx1 < 0) sx1 = 0;
-    if (sy1 < 0) sy1 = 0;
-    if (sx2 >= ctx->frame_w) sx2 = ctx->frame_w - 1;
-    if (sy2 >= ctx->frame_h) sy2 = ctx->frame_h - 1;
+    int sx1, sy1, sx2, sy2;
+    if (!op_clip_search_rect(ctx, x1, y1, x2, y2,
+                             &sx1, &sy1, &sx2, &sy2)) {
+        free(tmpl.data);
+        return xrtStrDup("");
+    }
 
     /* limit search so template fits */
     if (sx2 - sx1 + 1 < tmpl.w || sy2 - sy1 + 1 < tmpl.h) {
         free(tmpl.data);
-        return "";
+        return xrtStrDup("");
     }
 
     int x_start, x_end, x_step, y_start, y_end, y_step;
@@ -1110,29 +1607,30 @@ const char *xop_find_pic(void *ptr, long long x1, long long y1,
     for (yy = y_start; ; yy += y_step) {
         for (xx = x_start; ; xx += x_step) {
             if (op_match_at(ctx->frame_buf, ctx->frame_w, xx, yy, &tmpl, dr, dg, db, sim)) {
-                snprintf(op_buf, sizeof(op_buf), "%d,%d", xx, yy);
+                void *result = op_coordinate_text(xx, yy);
                 free(tmpl.data);
-                return op_buf;
+                return result;
             }
             if (xx == x_end) break;
         }
         if (yy == y_end) break;
     }
     free(tmpl.data);
-    return "";
+    return xrtStrDup("");
 }
 
-const char *xop_find_pic_ex(void *ptr, long long x1, long long y1,
-                            long long x2, long long y2,
-                            const char *pic_file, const char *delta_color,
-                            double sim, long long dir) {
+void *xop_find_pic_ex(void *ptr, long long x1, long long y1,
+                       long long x2, long long y2,
+                       const char *pic_file, const char *delta_color,
+                       double sim, long long dir) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { opSetError("op: null context"); return ""; }
-    if (!pic_file || !*pic_file) { opSetError("op: empty pic_file"); return ""; }
-    if (!op_capture_frame(ctx)) return "";
+    xbuffer result;
+    if (!ctx) { opSetError("op: null context"); return NULL; }
+    if (!pic_file || !*pic_file) { opSetError("op: empty pic_file"); return NULL; }
+    if (!op_capture_frame(ctx)) return NULL;
 
     op_bitmap_t tmpl;
-    if (!op_load_bmp(pic_file, &tmpl)) { opSetError("op: failed to load bmp"); return ""; }
+    if (!op_load_bmp(pic_file, &tmpl)) { opSetError("op: failed to load bmp"); return NULL; }
 
     int dr = 0, dg = 0, db = 0;
     if (delta_color && strlen(delta_color) >= 6) {
@@ -1141,16 +1639,18 @@ const char *xop_find_pic_ex(void *ptr, long long x1, long long y1,
         db = op_hex2(delta_color + 4);
     }
 
-    int sx1 = (int)x1, sy1 = (int)y1, sx2 = (int)x2, sy2 = (int)y2;
-    if (sx1 < 0) sx1 = 0;
-    if (sy1 < 0) sy1 = 0;
-    if (sx2 >= ctx->frame_w) sx2 = ctx->frame_w - 1;
-    if (sy2 >= ctx->frame_h) sy2 = ctx->frame_h - 1;
+    int sx1, sy1, sx2, sy2;
+    if (!op_clip_search_rect(ctx, x1, y1, x2, y2,
+                             &sx1, &sy1, &sx2, &sy2)) {
+        free(tmpl.data);
+        return xrtStrDup("");
+    }
 
     if (sx2 - sx1 + 1 < tmpl.w || sy2 - sy1 + 1 < tmpl.h) {
         free(tmpl.data);
-        return "";
+        return xrtStrDup("");
     }
+    if (!xrtBufferInit(&result)) { free(tmpl.data); return NULL; }
 
     int x_start, x_end, x_step, y_start, y_end, y_step;
     if (dir == 2 || dir == 3) { x_start = sx2 - tmpl.w + 1; x_end = sx1; x_step = -1; }
@@ -1158,23 +1658,33 @@ const char *xop_find_pic_ex(void *ptr, long long x1, long long y1,
     if (dir == 1 || dir == 3) { y_start = sy2 - tmpl.h + 1; y_end = sy1; y_step = -1; }
     else { y_start = sy1; y_end = sy2 - tmpl.h + 1; y_step = 1; }
 
-    int pos = 0;
     int yy, xx;
     for (yy = y_start; ; yy += y_step) {
         for (xx = x_start; ; xx += x_step) {
             if (op_match_at(ctx->frame_buf, ctx->frame_w, xx, yy, &tmpl, dr, dg, db, sim)) {
-                if (pos > 0 && pos < (int)sizeof(op_buf) - 1) op_buf[pos++] = '|';
-                pos += snprintf(op_buf + pos, sizeof(op_buf) - pos, "%d,%d", xx, yy);
-                if (pos >= (int)sizeof(op_buf) - 16) goto done_pic_ex;
+                char entry[48];
+                int size = snprintf(entry, sizeof(entry), "%s%d,%d",
+                                    result.Size ? "|" : "", xx, yy);
+                if (size < 0 || result.Size > 16u * 1024u * 1024u - 1u - (size_t)size) {
+                    opSetError("op: picture matches exceed output limit");
+                    xrtBufferUnit(&result);
+                    free(tmpl.data);
+                    return NULL;
+                }
+                if (!xrtBufferAppend(&result,
+                         (xbytesview){(const uint8 *)entry, (size_t)size})) {
+                    xrtBufferUnit(&result);
+                    free(tmpl.data);
+                    return NULL;
+                }
             }
             if (xx == x_end) break;
         }
         if (yy == y_end) break;
     }
-done_pic_ex:
-    op_buf[pos] = '\0';
     free(tmpl.data);
-    return op_buf;
+    if (!xrtBufferAppendByte(&result, 0)) { xrtBufferUnit(&result); return NULL; }
+    return xrtBufferTake(&result, NULL, NULL);
 }
 
 /* ------------------------------------------------------------------ */
@@ -1349,52 +1859,75 @@ long long xop_key_up(void *ptr, long long vk) {
     return 1;
 }
 
+static int op_send_unicode_unit(op_context *ctx, uint16 unit) {
+    INPUT inp;
+
+    if (strcmp(ctx->keypad_mode, "windows") == 0 && ctx->bind_hwnd)
+        return PostMessageW(ctx->bind_hwnd, WM_CHAR, (WPARAM)unit, 0) != 0;
+    if (!p_SendInput) return 0;
+    memset(&inp, 0, sizeof(inp));
+    inp.type = INPUT_KEYBOARD;
+    inp.ki.wScan = unit;
+    inp.ki.dwFlags = KEYEVENTF_UNICODE;
+    if (p_SendInput(1, &inp, sizeof(inp)) != 1) return 0;
+    inp.ki.dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP;
+    return p_SendInput(1, &inp, sizeof(inp)) == 1;
+}
+
 long long xop_key_press_str(void *ptr, const char *str, long long delay) {
     op_context *ctx = (op_context *)ptr;
+    uint16 *wide;
+    size_t units;
+    size_t i;
+    DWORD ms;
+
     if (!ctx) { opSetError("op: null context"); return 0; }
     if (!str) return 0;
-    op_init_user32();
-    int ms = (delay > 0) ? (int)delay : 50;
-    const char *p;
-    for (p = str; *p; p++) {
-        if (strcmp(ctx->keypad_mode, "windows") == 0 && ctx->bind_hwnd) {
-            PostMessage(ctx->bind_hwnd, WM_CHAR, (WPARAM)(unsigned char)*p, 0);
-        } else if (p_SendInput) {
-            INPUT inp;
-            memset(&inp, 0, sizeof(inp));
-            inp.type = INPUT_KEYBOARD;
-            inp.ki.wScan = (unsigned char)*p;
-            inp.ki.dwFlags = KEYEVENTF_UNICODE;
-            p_SendInput(1, &inp, sizeof(inp));
-            inp.ki.dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP;
-            p_SendInput(1, &inp, sizeof(inp));
-        } else {
-            keybd_event((BYTE)VkKeyScanA(*p), 0, 0, 0);
-            keybd_event((BYTE)VkKeyScanA(*p), 0, KEYEVENTF_KEYUP, 0);
-        }
-        Sleep(ms);
+    wide = xrtUtf8To16(str, &units);
+    if (!wide) { opSetError("op: invalid UTF-8 keyboard text"); return 0; }
+    ms = delay > 0 ? (DWORD)(delay > 0xffffffffLL ? 0xffffffffLL : delay) : 50;
+    if (strcmp(ctx->keypad_mode, "windows") != 0 || !ctx->bind_hwnd)
+        op_init_user32();
+
+    for (i = 0; i < units; ++i) {
+        if (!op_send_unicode_unit(ctx, wide[i])) break;
+        /* 代理对属于一个字符，延迟只放在完整字符后。 */
+        if (!(wide[i] >= 0xD800 && wide[i] <= 0xDBFF &&
+              i + 1 < units && wide[i + 1] >= 0xDC00 && wide[i + 1] <= 0xDFFF))
+            Sleep(ms);
     }
+    xrtFree(wide);
+    if (i != units) { opSetError("op: cannot send Unicode keyboard text"); return 0; }
     return 1;
 }
 
 long long xop_key_char(void *ptr, long long char_code) {
     op_context *ctx = (op_context *)ptr;
+    uint16 units[2];
+    size_t count = 1;
+    size_t i;
+
     if (!ctx) { opSetError("op: null context"); return 0; }
-    op_init_user32();
-    if (strcmp(ctx->keypad_mode, "windows") == 0 && ctx->bind_hwnd) {
-        PostMessage(ctx->bind_hwnd, WM_CHAR, (WPARAM)char_code, 0);
-    } else if (p_SendInput) {
-        INPUT inp;
-        memset(&inp, 0, sizeof(inp));
-        inp.type = INPUT_KEYBOARD;
-        inp.ki.wScan = (unsigned short)char_code;
-        inp.ki.dwFlags = KEYEVENTF_UNICODE;
-        p_SendInput(1, &inp, sizeof(inp));
-        inp.ki.dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP;
-        p_SendInput(1, &inp, sizeof(inp));
+    if (char_code < 0 || char_code > 0x10FFFF ||
+        (char_code >= 0xD800 && char_code <= 0xDFFF)) {
+        opSetError("op: invalid Unicode character");
+        return 0;
+    }
+    if (char_code <= 0xFFFF) {
+        units[0] = (uint16)char_code;
     } else {
-        keybd_event((BYTE)char_code, 0, 0, 0);
-        keybd_event((BYTE)char_code, 0, KEYEVENTF_KEYUP, 0);
+        uint32 scalar = (uint32)char_code - 0x10000;
+        units[0] = (uint16)(0xD800 + (scalar >> 10));
+        units[1] = (uint16)(0xDC00 + (scalar & 0x3FF));
+        count = 2;
+    }
+    if (strcmp(ctx->keypad_mode, "windows") != 0 || !ctx->bind_hwnd)
+        op_init_user32();
+    for (i = 0; i < count; ++i) {
+        if (!op_send_unicode_unit(ctx, units[i])) {
+            opSetError("op: cannot send Unicode character");
+            return 0;
+        }
     }
     return 1;
 }
@@ -1404,21 +1937,31 @@ long long xop_key_char(void *ptr, long long char_code) {
 /* ------------------------------------------------------------------ */
 
 long long xop_find_window(const char *class_name, const char *title) {
-    HWND hwnd = FindWindowA(
-        (class_name && *class_name) ? class_name : NULL,
-        (title && *title) ? title : NULL
-    );
+    uint16 *wide_class = (class_name && *class_name) ? xrtUtf8To16(class_name, NULL) : NULL;
+    uint16 *wide_title = (title && *title) ? xrtUtf8To16(title, NULL) : NULL;
+    HWND hwnd;
+
+    if ((class_name && *class_name && !wide_class) ||
+        (title && *title && !wide_title)) {
+        xrtFree(wide_class);
+        xrtFree(wide_title);
+        return 0;
+    }
+    hwnd = FindWindowW((const WCHAR *)wide_class, (const WCHAR *)wide_title);
+    xrtFree(wide_class);
+    xrtFree(wide_title);
     return (long long)(intptr_t)hwnd;
 }
 
 typedef struct {
-    char title_filter[256];
-    char class_filter[256];
+    uint16 *title_filter;
+    uint16 *class_filter;
     int filter_visible;
     DWORD process_ids[1024];
     int process_count;
     char result[65536];
     int pos;
+    int failed;
 } op_enum_ctx_t;
 
 static int op_enum_process_matches(const op_enum_ctx_t *ec, DWORD pid) {
@@ -1432,39 +1975,56 @@ static int op_enum_process_matches(const op_enum_ctx_t *ec, DWORD pid) {
 }
 
 static void op_enum_collect_processes(op_enum_ctx_t *ec, const char *process) {
-    PROCESSENTRY32 pe;
+    op_process_entry32w pe;
     HANDLE snap;
     char *end = NULL;
-    unsigned long numeric_pid;
+    unsigned long long numeric_pid;
+    uint16 *wide_process;
 
     if (!ec || !process || !*process) return;
-    numeric_pid = strtoul(process, &end, 10);
+    numeric_pid = strtoull(process, &end, 10);
     if (end != process && *end == '\0' && numeric_pid != 0) {
+        if (numeric_pid > UINT32_MAX) { ec->failed = 1; return; }
         ec->process_ids[ec->process_count++] = (DWORD)numeric_pid;
         return;
     }
 
+    wide_process = xrtUtf8To16(process, NULL);
+    if (!wide_process) { ec->failed = 1; return; }
     op_init_toolhelp();
-    if (!p_CreateToolhelp32Snapshot || !p_Process32First || !p_Process32Next) return;
+    if (!p_CreateToolhelp32Snapshot || !p_Process32First || !p_Process32Next) {
+        xrtFree(wide_process);
+        ec->failed = 1;
+        return;
+    }
     snap = p_CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (snap == INVALID_HANDLE_VALUE) return;
+    if (snap == INVALID_HANDLE_VALUE) {
+        xrtFree(wide_process);
+        ec->failed = 1;
+        return;
+    }
 
     memset(&pe, 0, sizeof(pe));
     pe.dwSize = sizeof(pe);
     if (p_Process32First(snap, &pe)) {
         do {
-            if (strstr(pe.szExeFile, process) != NULL &&
-                ec->process_count < (int)(sizeof(ec->process_ids) / sizeof(ec->process_ids[0]))) {
+            if (wcsstr(pe.szExeFile, (const WCHAR *)wide_process) != NULL) {
+                if (ec->process_count == (int)(sizeof(ec->process_ids) / sizeof(ec->process_ids[0]))) {
+                    ec->failed = 1;
+                    break;
+                }
                 ec->process_ids[ec->process_count++] = pe.th32ProcessID;
             }
         } while (p_Process32Next(snap, &pe));
     }
     CloseHandle(snap);
+    xrtFree(wide_process);
 }
 
 static BOOL CALLBACK op_enum_proc(HWND hwnd, LPARAM lParam) {
     op_enum_ctx_t *ec = (op_enum_ctx_t *)lParam;
     DWORD pid = 0;
+    WCHAR class_name[256] = L"";
 
     if (ec->filter_visible && !IsWindowVisible(hwnd)) return TRUE;
     if (ec->process_count > 0) {
@@ -1472,27 +2032,55 @@ static BOOL CALLBACK op_enum_proc(HWND hwnd, LPARAM lParam) {
         if (!op_enum_process_matches(ec, pid)) return TRUE;
     }
 
-    char title[256] = "";
-    char cls[256] = "";
-    GetWindowTextA(hwnd, title, sizeof(title));
-    GetClassNameA(hwnd, cls, sizeof(cls));
+    if (ec->title_filter) {
+        int units = GetWindowTextLengthW(hwnd);
+        uint16 *title;
+        BOOL match;
 
-    if (ec->title_filter[0] && !strstr(title, ec->title_filter)) return TRUE;
-    if (ec->class_filter[0] && !strstr(cls, ec->class_filter)) return TRUE;
+        if (units <= 0 || units > 65535) return TRUE;
+        title = (uint16 *)xrtMalloc(((size_t)units + 1u) * sizeof(uint16));
+        if (!title) { ec->failed = 1; return FALSE; }
+        title[0] = 0;
+        if (!GetWindowTextW(hwnd, (WCHAR *)title, units + 1)) {
+            xrtFree(title);
+            return TRUE;
+        }
+        match = wcsstr((const WCHAR *)title,
+                       (const WCHAR *)ec->title_filter) != NULL;
+        xrtFree(title);
+        if (!match) return TRUE;
+    }
+    if (ec->class_filter) {
+        if (!GetClassNameW(hwnd, class_name, 256) ||
+            !wcsstr(class_name, (const WCHAR *)ec->class_filter)) return TRUE;
+    }
 
-    if (ec->pos > 0 && ec->pos < (int)sizeof(ec->result) - 1)
-        ec->result[ec->pos++] = ',';
-    ec->pos += snprintf(ec->result + ec->pos, sizeof(ec->result) - ec->pos,
-                        "%lld", (long long)(intptr_t)hwnd);
+    {
+        int remaining = (int)sizeof(ec->result) - ec->pos;
+        int written = snprintf(ec->result + ec->pos, remaining,
+                               "%s%lld", ec->pos ? "," : "",
+                               (long long)(intptr_t)hwnd);
+        if (written < 0 || written >= remaining) {
+            ec->failed = 1;
+            return FALSE;
+        }
+        ec->pos += written;
+    }
     return TRUE;
 }
 
-const char *xop_enum_window(long long parent, const char *title,
-                            const char *class_name, long long filter) {
+void *xop_enum_window(long long parent, const char *title,
+                      const char *class_name, long long filter) {
     op_enum_ctx_t ec;
     memset(&ec, 0, sizeof(ec));
-    if (title && *title) strncpy(ec.title_filter, title, 255);
-    if (class_name && *class_name) strncpy(ec.class_filter, class_name, 255);
+    ec.title_filter = (title && *title) ? xrtUtf8To16(title, NULL) : NULL;
+    ec.class_filter = (class_name && *class_name) ? xrtUtf8To16(class_name, NULL) : NULL;
+    if ((title && *title && !ec.title_filter) ||
+        (class_name && *class_name && !ec.class_filter)) {
+        xrtFree(ec.title_filter);
+        xrtFree(ec.class_filter);
+        return xrtStrDup("");
+    }
     ec.filter_visible = (filter & 1) ? 1 : 0;
 
     if (parent) {
@@ -1500,52 +2088,69 @@ const char *xop_enum_window(long long parent, const char *title,
     } else {
         EnumWindows(op_enum_proc, (LPARAM)&ec);
     }
+    xrtFree(ec.title_filter);
+    xrtFree(ec.class_filter);
+    if (ec.failed) return xrtStrDup("");
     ec.result[ec.pos] = '\0';
-    /* copy to static buffer for return */
-    memcpy(op_buf, ec.result, ec.pos + 1);
-    return op_buf;
+    return xrtStrDup(ec.result);
 }
 
-const char *xop_enum_window_by_process(const char *process, const char *title,
-                                       const char *class_name, long long filter) {
+void *xop_enum_window_by_process(const char *process, const char *title,
+                                 const char *class_name, long long filter) {
     op_enum_ctx_t ec;
 
     memset(&ec, 0, sizeof(ec));
-    if (title && *title) strncpy(ec.title_filter, title, 255);
-    if (class_name && *class_name) strncpy(ec.class_filter, class_name, 255);
+    ec.title_filter = (title && *title) ? xrtUtf8To16(title, NULL) : NULL;
+    ec.class_filter = (class_name && *class_name) ? xrtUtf8To16(class_name, NULL) : NULL;
+    if ((title && *title && !ec.title_filter) ||
+        (class_name && *class_name && !ec.class_filter)) {
+        xrtFree(ec.title_filter);
+        xrtFree(ec.class_filter);
+        return xrtStrDup("");
+    }
     ec.filter_visible = (filter & 1) ? 1 : 0;
     op_enum_collect_processes(&ec, process);
+    if (ec.failed) {
+        xrtFree(ec.title_filter);
+        xrtFree(ec.class_filter);
+        return xrtStrDup("");
+    }
     if (ec.process_count > 0) {
         EnumWindows(op_enum_proc, (LPARAM)&ec);
     }
+    xrtFree(ec.title_filter);
+    xrtFree(ec.class_filter);
+    if (ec.failed) return xrtStrDup("");
     ec.result[ec.pos] = '\0';
-    memcpy(op_buf, ec.result, ec.pos + 1);
-    return op_buf;
+    return xrtStrDup(ec.result);
 }
 
-const char *xop_get_screen_size(void) {
+void *xop_get_screen_size(void) {
     int w = GetSystemMetrics(SM_CXSCREEN);
     int h = GetSystemMetrics(SM_CYSCREEN);
-    snprintf(op_buf, sizeof(op_buf), "%dx%d", w, h);
-    return op_buf;
+    char result[64];
+    snprintf(result, sizeof(result), "%dx%d", w, h);
+    return xrtStrDup(result);
 }
 
-const char *xop_get_cursor_pos(void) {
+void *xop_get_cursor_pos(void) {
     POINT pt;
+    char result[64];
     GetCursorPos(&pt);
-    snprintf(op_buf, sizeof(op_buf), "%ld,%ld", pt.x, pt.y);
-    return op_buf;
+    snprintf(result, sizeof(result), "%ld,%ld", pt.x, pt.y);
+    return xrtStrDup(result);
 }
 
 /* ------------------------------------------------------------------ */
 /* Window management (module-level)                                    */
 /* ------------------------------------------------------------------ */
 
-const char *xop_get_window_rect(long long hwnd) {
+void *xop_get_window_rect(long long hwnd) {
     RECT rc;
-    if (!GetWindowRect((HWND)(intptr_t)hwnd, &rc)) return "0,0,0,0";
-    snprintf(op_buf, sizeof(op_buf), "%ld,%ld,%ld,%ld", rc.left, rc.top, rc.right, rc.bottom);
-    return op_buf;
+    char result[64];
+    if (!GetWindowRect((HWND)(intptr_t)hwnd, &rc)) return xrtStrDup("0,0,0,0");
+    snprintf(result, sizeof(result), "%ld,%ld,%ld,%ld", rc.left, rc.top, rc.right, rc.bottom);
+    return xrtStrDup(result);
 }
 
 long long xop_move_window(long long hwnd, long long x, long long y) {
@@ -1564,17 +2169,37 @@ long long xop_set_window_size(long long hwnd, long long w, long long ht) {
     return MoveWindow(hw, rc.left, rc.top, (int)w, (int)ht, TRUE);
 }
 
-const char *xop_get_window_title(long long hwnd) {
+void *xop_get_window_title(long long hwnd) {
     HWND h = (HWND)(intptr_t)hwnd;
-    if (!IsWindow(h)) return "";
-    GetWindowTextA(h, op_buf, sizeof(op_buf));
-    return op_buf;
+    int units;
+    uint16 *wide;
+    char *utf8;
+
+    if (!IsWindow(h)) return xrtStrDup("");
+    units = GetWindowTextLengthW(h);
+    if (units < 0) return xrtStrDup("");
+    wide = (uint16 *)xrtMalloc(((size_t)units + 1u) * sizeof(uint16));
+    if (!wide) return NULL;
+    if (!GetWindowTextW(h, (WCHAR *)wide, units + 1) && units != 0) {
+        xrtFree(wide);
+        return xrtStrDup("");
+    }
+    utf8 = xrtUtf16To8(wide, NULL);
+    xrtFree(wide);
+    return utf8;
 }
 
 long long xop_set_window_title(long long hwnd, const char *title) {
     HWND h = (HWND)(intptr_t)hwnd;
+    uint16 *wide;
+    BOOL ok;
+
     if (!IsWindow(h)) return 0;
-    return SetWindowTextA(h, title ? title : "");
+    wide = xrtUtf8To16(title ? title : "", NULL);
+    if (!wide) return 0;
+    ok = SetWindowTextW(h, (const WCHAR *)wide);
+    xrtFree(wide);
+    return ok != 0;
 }
 
 long long xop_set_window_state(long long hwnd, long long mode) {
@@ -1595,54 +2220,63 @@ long long xop_set_window_state(long long hwnd, long long mode) {
 
 long long xop_send_string(long long hwnd, const char *str) {
     HWND h = (HWND)(intptr_t)hwnd;
+    uint16 *wide;
+    size_t units;
+    size_t i;
+
     if (!IsWindow(h) || !str) return 0;
-    const char *p;
-    for (p = str; *p; p++) {
-        PostMessageA(h, WM_CHAR, (WPARAM)(unsigned char)*p, 0);
+    wide = xrtUtf8To16(str, &units);
+    if (!wide) return 0;
+    for (i = 0; i < units; ++i) {
+        if (!PostMessageW(h, WM_CHAR, (WPARAM)wide[i], 0)) {
+            xrtFree(wide);
+            opSetError("op: cannot post window text");
+            return 0;
+        }
     }
+    xrtFree(wide);
     return 1;
 }
 
-const char *xop_client_to_screen(long long hwnd, long long x, long long y) {
+void *xop_client_to_screen(long long hwnd, long long x, long long y) {
     POINT pt = {(LONG)x, (LONG)y};
+    char result[64];
     ClientToScreen((HWND)(intptr_t)hwnd, &pt);
-    snprintf(op_buf, sizeof(op_buf), "%ld,%ld", pt.x, pt.y);
-    return op_buf;
+    snprintf(result, sizeof(result), "%ld,%ld", pt.x, pt.y);
+    return xrtStrDup(result);
 }
 
-const char *xop_screen_to_client(long long hwnd, long long x, long long y) {
+void *xop_screen_to_client(long long hwnd, long long x, long long y) {
     POINT pt = {(LONG)x, (LONG)y};
+    char result[64];
     ScreenToClient((HWND)(intptr_t)hwnd, &pt);
-    snprintf(op_buf, sizeof(op_buf), "%ld,%ld", pt.x, pt.y);
-    return op_buf;
+    snprintf(result, sizeof(result), "%ld,%ld", pt.x, pt.y);
+    return xrtStrDup(result);
 }
 
 /* ------------------------------------------------------------------ */
 /* FindColorBlock & GetColorNum                                        */
 /* ------------------------------------------------------------------ */
 
-const char *xop_find_color_block(void *ptr, long long x1, long long y1,
-                                 long long x2, long long y2,
-                                 const char *color, double sim,
-                                 long long width, long long height) {
+void *xop_find_color_block(void *ptr, long long x1, long long y1,
+                            long long x2, long long y2,
+                            const char *color, double sim,
+                            long long width, long long height) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { opSetError("op: null context"); return ""; }
-    if (!color || !*color) { opSetError("op: empty color"); return ""; }
-    if (!op_capture_frame(ctx)) return "";
+    if (!ctx) { opSetError("op: null context"); return NULL; }
+    if (!color || !*color) { opSetError("op: empty color"); return NULL; }
+    if (!op_capture_frame(ctx)) return NULL;
 
     op_color_t colors[OP_MAX_COLORS];
     int ncolors = op_parse_colors(color, colors, OP_MAX_COLORS);
-    if (ncolors == 0) { opSetError("op: invalid color format"); return ""; }
+    if (ncolors == 0) { opSetError("op: invalid color format"); return NULL; }
 
+    int sx1, sy1, sx2, sy2;
+    if (!op_clip_search_rect(ctx, x1, y1, x2, y2,
+                             &sx1, &sy1, &sx2, &sy2)) return xrtStrDup("");
+    if (width < 1 || height < 1 || width > sx2 - sx1 + 1 ||
+        height > sy2 - sy1 + 1) return xrtStrDup("");
     int bw = (int)width, bh = (int)height;
-    if (bw < 1) bw = 1;
-    if (bh < 1) bh = 1;
-
-    int sx1 = (int)x1, sy1 = (int)y1, sx2 = (int)x2, sy2 = (int)y2;
-    if (sx1 < 0) sx1 = 0;
-    if (sy1 < 0) sy1 = 0;
-    if (sx2 >= ctx->frame_w) sx2 = ctx->frame_w - 1;
-    if (sy2 >= ctx->frame_h) sy2 = ctx->frame_h - 1;
 
     int yy, xx;
     for (yy = sy1; yy <= sy2 - bh + 1; yy++) {
@@ -1660,12 +2294,11 @@ const char *xop_find_color_block(void *ptr, long long x1, long long y1,
                 }
             }
             if (matched == total) {
-                snprintf(op_buf, sizeof(op_buf), "%d,%d", xx, yy);
-                return op_buf;
+                return op_coordinate_text(xx, yy);
             }
         }
     }
-    return "";
+    return xrtStrDup("");
 }
 
 long long xop_get_color_num(void *ptr, long long x1, long long y1,
@@ -1680,11 +2313,9 @@ long long xop_get_color_num(void *ptr, long long x1, long long y1,
     int ncolors = op_parse_colors(color, colors, OP_MAX_COLORS);
     if (ncolors == 0) return 0;
 
-    int sx1 = (int)x1, sy1 = (int)y1, sx2 = (int)x2, sy2 = (int)y2;
-    if (sx1 < 0) sx1 = 0;
-    if (sy1 < 0) sy1 = 0;
-    if (sx2 >= ctx->frame_w) sx2 = ctx->frame_w - 1;
-    if (sy2 >= ctx->frame_h) sy2 = ctx->frame_h - 1;
+    int sx1, sy1, sx2, sy2;
+    if (!op_clip_search_rect(ctx, x1, y1, x2, y2,
+                             &sx1, &sy1, &sx2, &sy2)) return 0;
 
     long long count = 0;
     int yy, xx;
@@ -1706,14 +2337,17 @@ long long xop_get_color_num(void *ptr, long long x1, long long y1,
 /* Returns: "index,x,y" or "" if not found                             */
 /* ------------------------------------------------------------------ */
 
-const char *xop_find_pic_n(void *ptr, long long x1, long long y1,
-                           long long x2, long long y2,
-                           const char *pic_files, const char *delta_color,
-                           double sim, long long dir) {
+void *xop_find_pic_n(void *ptr, long long x1, long long y1,
+                      long long x2, long long y2,
+                      const char *pic_files, const char *delta_color,
+                      double sim, long long dir) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { opSetError("op: null context"); return ""; }
-    if (!pic_files || !*pic_files) { opSetError("op: empty pic_files"); return ""; }
-    if (!op_capture_frame(ctx)) return "";
+    int sx1, sy1, sx2, sy2;
+    if (!ctx) { opSetError("op: null context"); return NULL; }
+    if (!pic_files || !*pic_files) { opSetError("op: empty pic_files"); return NULL; }
+    if (!op_capture_frame(ctx)) return NULL;
+    if (!op_clip_search_rect(ctx, x1, y1, x2, y2,
+                             &sx1, &sy1, &sx2, &sy2)) return xrtStrDup("");
 
     int dr = 0, dg = 0, db = 0;
     if (delta_color && strlen(delta_color) >= 6) {
@@ -1723,6 +2357,10 @@ const char *xop_find_pic_n(void *ptr, long long x1, long long y1,
     }
 
     char tmp[4096];
+    if (strlen(pic_files) >= sizeof(tmp)) {
+        opSetError("op: pic_files exceeds input limit");
+        return NULL;
+    }
     strncpy(tmp, pic_files, sizeof(tmp) - 1);
     tmp[sizeof(tmp) - 1] = '\0';
 
@@ -1734,12 +2372,6 @@ const char *xop_find_pic_n(void *ptr, long long x1, long long y1,
 
         op_bitmap_t tmpl;
         if (op_load_bmp(p, &tmpl)) {
-            int sx1 = (int)x1, sy1 = (int)y1, sx2 = (int)x2, sy2 = (int)y2;
-            if (sx1 < 0) sx1 = 0;
-            if (sy1 < 0) sy1 = 0;
-            if (sx2 >= ctx->frame_w) sx2 = ctx->frame_w - 1;
-            if (sy2 >= ctx->frame_h) sy2 = ctx->frame_h - 1;
-
             if (sx2 - sx1 + 1 >= tmpl.w && sy2 - sy1 + 1 >= tmpl.h) {
                 int x_start, x_end, x_step, y_start, y_end, y_step;
                 if (dir == 2 || dir == 3) { x_start = sx2 - tmpl.w + 1; x_end = sx1; x_step = -1; }
@@ -1751,9 +2383,10 @@ const char *xop_find_pic_n(void *ptr, long long x1, long long y1,
                 for (yy = y_start; ; yy += y_step) {
                     for (xx = x_start; ; xx += x_step) {
                         if (op_match_at(ctx->frame_buf, ctx->frame_w, xx, yy, &tmpl, dr, dg, db, sim)) {
-                            snprintf(op_buf, sizeof(op_buf), "%d,%d,%d", index, xx, yy);
+                            char result[64];
+                            snprintf(result, sizeof(result), "%d,%d,%d", index, xx, yy);
                             free(tmpl.data);
-                            return op_buf;
+                            return xrtStrDup(result);
                         }
                         if (xx == x_end) break;
                     }
@@ -1765,46 +2398,57 @@ const char *xop_find_pic_n(void *ptr, long long x1, long long y1,
         index++;
         p = sep ? sep + 1 : NULL;
     }
-    return "";
+    return xrtStrDup("");
 }
 
 /* ------------------------------------------------------------------ */
 /* CaptureToMem - returns hex string of BGRA pixels                    */
 /* ------------------------------------------------------------------ */
 
-const char *xop_capture_to_mem(void *ptr, long long x1, long long y1,
-                               long long x2, long long y2) {
+void *xop_capture_to_mem(void *ptr, long long x1, long long y1,
+                         long long x2, long long y2) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { opSetError("op: null context"); return ""; }
-    if (!op_capture_frame(ctx)) return "";
+    int sx1, sy1, sx2, sy2, w, h, head, x, y, k;
+    size_t pixels, size, pos;
+    char header[64];
+    char *result;
+    static const char hex[] = "0123456789ABCDEF";
 
-    int w = (int)(x2 - x1);
-    int h = (int)(y2 - y1);
-    if (w <= 0 || h <= 0) { opSetError("op: invalid region"); return ""; }
-    if (x1 < 0) x1 = 0;
-    if (y1 < 0) y1 = 0;
-    if (x1 + w > ctx->frame_w) w = ctx->frame_w - (int)x1;
-    if (y1 + h > ctx->frame_h) h = ctx->frame_h - (int)y1;
-    if (w <= 0 || h <= 0) return "";
-
-    /* limit output size to avoid overflow: max ~16k pixels */
-    int max_pixels = ((int)sizeof(op_buf) - 64) / 8;
-    int total = w * h;
-    if (total > max_pixels) total = max_pixels;
-
-    int pos = 0;
-    pos += snprintf(op_buf + pos, sizeof(op_buf) - pos, "%dx%d|", w, h);
-    int i;
-    for (i = 0; i < total && pos < (int)sizeof(op_buf) - 10; i++) {
-        int px = (int)x1 + (i % w);
-        int py = (int)y1 + (i / w);
-        int idx = (py * ctx->frame_w + px) * 4;
-        pos += snprintf(op_buf + pos, sizeof(op_buf) - pos, "%02X%02X%02X%02X",
-                        ctx->frame_buf[idx], ctx->frame_buf[idx+1],
-                        ctx->frame_buf[idx+2], ctx->frame_buf[idx+3]);
+    if (!ctx) { opSetError("op: null context"); return NULL; }
+    if (!op_capture_frame(ctx)) return NULL;
+    if (x2 <= x1 || y2 <= y1) { opSetError("op: invalid region"); return NULL; }
+    if (x2 <= 0 || y2 <= 0 || x1 >= ctx->frame_w || y1 >= ctx->frame_h)
+        return xrtStrDup("");
+    sx1 = (int)(x1 < 0 ? 0 : x1);
+    sy1 = (int)(y1 < 0 ? 0 : y1);
+    sx2 = (int)(x2 > ctx->frame_w ? ctx->frame_w : x2);
+    sy2 = (int)(y2 > ctx->frame_h ? ctx->frame_h : y2);
+    w = sx2 - sx1;
+    h = sy2 - sy1;
+    if (w <= 0 || h <= 0) return xrtStrDup("");
+    head = snprintf(header, sizeof(header), "%dx%d|", w, h);
+    pixels = (size_t)w * (size_t)h;
+    if (head <= 0 || pixels > (16u * 1024u * 1024u - 1u - (size_t)head) / 8u) {
+        opSetError("op: capture result exceeds output limit");
+        return NULL;
     }
-    op_buf[pos] = '\0';
-    return op_buf;
+    size = (size_t)head + pixels * 8u;
+    result = (char *)xrtMalloc(size + 1u);
+    if (!result) { opSetError("op: capture result allocation failed"); return NULL; }
+    memcpy(result, header, (size_t)head);
+    pos = (size_t)head;
+    for (y = sy1; y < sy2; y++) {
+        for (x = sx1; x < sx2; x++) {
+            size_t index = ((size_t)y * (size_t)ctx->frame_w + (size_t)x) * 4u;
+            for (k = 0; k < 4; k++) {
+                BYTE value = ctx->frame_buf[index + (size_t)k];
+                result[pos++] = hex[value >> 4];
+                result[pos++] = hex[value & 15];
+            }
+        }
+    }
+    result[pos] = '\0';
+    return result;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1818,6 +2462,8 @@ double xop_image_compare(void *ptr, long long x1, long long y1,
     if (!ctx) { opSetError("op: null context"); return 0.0; }
     if (!pic_file || !*pic_file) { opSetError("op: empty pic_file"); return 0.0; }
     if (!op_capture_frame(ctx)) return 0.0;
+    if (x1 < 0 || y1 < 0 || x2 <= x1 || y2 <= y1 ||
+        x2 > ctx->frame_w || y2 > ctx->frame_h) return 0.0;
 
     op_bitmap_t tmpl;
     if (!op_load_bmp(pic_file, &tmpl)) { opSetError("op: failed to load bmp"); return 0.0; }
@@ -1825,10 +2471,6 @@ double xop_image_compare(void *ptr, long long x1, long long y1,
     int w = (int)(x2 - x1);
     int h = (int)(y2 - y1);
     if (w != tmpl.w || h != tmpl.h) { free(tmpl.data); return 0.0; }
-    if (x1 < 0 || y1 < 0 || x1 + w > ctx->frame_w || y1 + h > ctx->frame_h) {
-        free(tmpl.data); return 0.0;
-    }
-
     int total = w * h, matched = 0;
     int yy, xx;
     for (yy = 0; yy < h; yy++) {
@@ -1847,19 +2489,21 @@ double xop_image_compare(void *ptr, long long x1, long long y1,
     return (double)matched / (double)total;
 }
 
-const char *xop_image_hash(void *ptr, long long x1, long long y1,
-                           long long x2, long long y2) {
+void *xop_image_hash(void *ptr, long long x1, long long y1,
+                     long long x2, long long y2) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { opSetError("op: null context"); return ""; }
-    if (!op_capture_frame(ctx)) return "";
+    char result[32];
+    if (!ctx) { opSetError("op: null context"); return NULL; }
+    if (!op_capture_frame(ctx)) return NULL;
 
-    int w = (int)(x2 - x1);
-    int h = (int)(y2 - y1);
-    if (w <= 0 || h <= 0) return "";
+    if (x2 <= x1 || y2 <= y1 || x1 >= ctx->frame_w ||
+        y1 >= ctx->frame_h || x2 <= 0 || y2 <= 0) return xrtStrDup("");
     if (x1 < 0) x1 = 0;
     if (y1 < 0) y1 = 0;
-    if (x1 + w > ctx->frame_w) w = ctx->frame_w - (int)x1;
-    if (y1 + h > ctx->frame_h) h = ctx->frame_h - (int)y1;
+    if (x2 > ctx->frame_w) x2 = ctx->frame_w;
+    if (y2 > ctx->frame_h) y2 = ctx->frame_h;
+    int w = (int)(x2 - x1);
+    int h = (int)(y2 - y1);
 
     /* simple average hash: resize to 8x8, compute mean, output 16 hex chars */
     unsigned char hash8x8[64];
@@ -1881,8 +2525,8 @@ const char *xop_image_hash(void *ptr, long long x1, long long y1,
     for (i = 0; i < 64; i++) {
         if (hash8x8[i] > mean) hv |= (1ULL << i);
     }
-    snprintf(op_buf, sizeof(op_buf), "%016llX", hv);
-    return op_buf;
+    snprintf(result, sizeof(result), "%016llX", hv);
+    return xrtStrDup(result);
 }
 
 /* ------------------------------------------------------------------ */
@@ -2038,174 +2682,320 @@ long long xop_key_combo(void *ptr, const char *combo) {
 /* Memory R/W (module-level)                                           */
 /* ------------------------------------------------------------------ */
 
-static HANDLE op_open_proc(long long pid) {
-    return OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION,
-                       FALSE, (DWORD)pid);
+static HANDLE op_open_proc(long long pid, DWORD access) {
+    HANDLE h;
+    if (pid <= 0 || pid > UINT32_MAX) {
+        opSetError("op: invalid process id");
+        return NULL;
+    }
+    h = OpenProcess(access, FALSE, (DWORD)pid);
+    if (!h) opSetError("op: cannot open process");
+    return h;
 }
 
 long long xop_read_int(long long pid, long long addr) {
-    HANDLE h = op_open_proc(pid);
-    if (!h) { opSetError("op: cannot open process"); return 0; }
+    HANDLE h = op_open_proc(pid, PROCESS_VM_READ);
+    if (!h) return 0;
     int val = 0;
     SIZE_T rd = 0;
-    ReadProcessMemory(h, (LPCVOID)(intptr_t)addr, &val, sizeof(val), &rd);
+    BOOL ok = ReadProcessMemory(h, (LPCVOID)(intptr_t)addr, &val, sizeof(val), &rd);
     CloseHandle(h);
+    if (!ok || rd != sizeof(val)) { opSetError("op: cannot read int"); return 0; }
     return (long long)val;
 }
 
 double xop_read_float(long long pid, long long addr) {
-    HANDLE h = op_open_proc(pid);
-    if (!h) { opSetError("op: cannot open process"); return 0.0; }
+    HANDLE h = op_open_proc(pid, PROCESS_VM_READ);
+    if (!h) return 0.0;
     float val = 0.0f;
     SIZE_T rd = 0;
-    ReadProcessMemory(h, (LPCVOID)(intptr_t)addr, &val, sizeof(val), &rd);
+    BOOL ok = ReadProcessMemory(h, (LPCVOID)(intptr_t)addr, &val, sizeof(val), &rd);
     CloseHandle(h);
+    if (!ok || rd != sizeof(val)) { opSetError("op: cannot read float"); return 0.0; }
     return (double)val;
 }
 
-const char *xop_read_string(long long pid, long long addr, long long len) {
-    HANDLE h = op_open_proc(pid);
-    if (!h) { opSetError("op: cannot open process"); return ""; }
-    int n = (len > 0 && len < (long long)sizeof(op_buf) - 1) ? (int)len : 256;
+void *xop_read_string(long long pid, long long addr, long long len) {
+    HANDLE h;
+    char *result;
     SIZE_T rd = 0;
-    memset(op_buf, 0, n + 1);
-    ReadProcessMemory(h, (LPCVOID)(intptr_t)addr, op_buf, n, &rd);
-    op_buf[rd] = '\0';
+    size_t size;
+    BOOL ok;
+    if (len <= 0 || len > 16 * 1024 * 1024) {
+        opSetError("op: invalid string read length");
+        return NULL;
+    }
+    h = op_open_proc(pid, PROCESS_VM_READ);
+    if (!h) return NULL;
+    size = (size_t)len;
+    result = (char *)xrtMalloc(size + 1u);
+    if (!result) { CloseHandle(h); opSetError("op: string allocation failed"); return NULL; }
+    ok = ReadProcessMemory(h, (LPCVOID)(intptr_t)addr, result, size, &rd);
     CloseHandle(h);
-    return op_buf;
+    if (!ok || rd != size) {
+        xrtFree(result);
+        opSetError("op: cannot read complete string range");
+        return NULL;
+    }
+    result[size] = '\0';
+    size = strlen(result);
+    if (!xrtUtf8Valid((xstrview){result, size}, NULL)) {
+        xrtFree(result);
+        opSetError("op: process string is not UTF-8");
+        return NULL;
+    }
+    return result;
 }
 
 long long xop_write_int(long long pid, long long addr, long long value) {
-    HANDLE h = op_open_proc(pid);
-    if (!h) { opSetError("op: cannot open process"); return 0; }
+    if (value < INT32_MIN || value > INT32_MAX) {
+        opSetError("op: int value exceeds 32-bit range");
+        return 0;
+    }
+    HANDLE h = op_open_proc(pid, PROCESS_VM_WRITE | PROCESS_VM_OPERATION);
+    if (!h) return 0;
     int val = (int)value;
     SIZE_T wr = 0;
     BOOL ok = WriteProcessMemory(h, (LPVOID)(intptr_t)addr, &val, sizeof(val), &wr);
     CloseHandle(h);
-    return ok ? 1 : 0;
+    if (!ok || wr != sizeof(val)) { opSetError("op: cannot write int"); return 0; }
+    return 1;
 }
 
 long long xop_write_float(long long pid, long long addr, double value) {
-    HANDLE h = op_open_proc(pid);
-    if (!h) { opSetError("op: cannot open process"); return 0; }
+    if (value != value || value < -FLT_MAX || value > FLT_MAX ||
+        (value != 0.0 && (float)value == 0.0f)) {
+        opSetError("op: float value exceeds finite 32-bit range");
+        return 0;
+    }
+    HANDLE h = op_open_proc(pid, PROCESS_VM_WRITE | PROCESS_VM_OPERATION);
+    if (!h) return 0;
     float val = (float)value;
     SIZE_T wr = 0;
     BOOL ok = WriteProcessMemory(h, (LPVOID)(intptr_t)addr, &val, sizeof(val), &wr);
     CloseHandle(h);
-    return ok ? 1 : 0;
+    if (!ok || wr != sizeof(val)) { opSetError("op: cannot write float"); return 0; }
+    return 1;
 }
 
 long long xop_write_string(long long pid, long long addr, const char *value) {
-    HANDLE h = op_open_proc(pid);
-    if (!h) { opSetError("op: cannot open process"); return 0; }
+    HANDLE h = op_open_proc(pid, PROCESS_VM_WRITE | PROCESS_VM_OPERATION);
+    if (!h) return 0;
     if (!value) value = "";
     SIZE_T wr = 0;
     BOOL ok = WriteProcessMemory(h, (LPVOID)(intptr_t)addr, value, strlen(value) + 1, &wr);
     CloseHandle(h);
-    return ok ? 1 : 0;
+    if (!ok || wr != strlen(value) + 1u) { opSetError("op: cannot write string"); return 0; }
+    return 1;
 }
 
-const char *xop_find_memory(long long pid, long long start_addr,
-                            long long end_addr, const char *pattern) {
-    HANDLE h = op_open_proc(pid);
-    if (!h) { opSetError("op: cannot open process"); return ""; }
-    if (!pattern || !*pattern) { CloseHandle(h); return ""; }
+static int op_memory_hex_digit(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    return -1;
+}
 
-    /* parse hex pattern "AABB CC DD" (spaces = wildcards) */
-    unsigned char pat[256];
-    unsigned char mask[256]; /* 1=match, 0=wildcard */
-    int plen = 0;
-    const char *pp = pattern;
-    while (*pp && plen < 256) {
-        if (*pp == ' ') { pp++; continue; }
-        if (pp[0] == '?' && pp[1] == '?') {
-            pat[plen] = 0; mask[plen] = 0; plen++; pp += 2;
-        } else {
-            pat[plen] = (unsigned char)op_hex2(pp);
-            mask[plen] = 1; plen++;
-            pp += 2;
-        }
+static int op_memory_readable(const MEMORY_BASIC_INFORMATION *info) {
+    DWORD access = info->Protect & 0xffu;
+    if (info->State != MEM_COMMIT || (info->Protect & PAGE_GUARD)) return 0;
+    return access == PAGE_READONLY || access == PAGE_READWRITE ||
+           access == PAGE_WRITECOPY || access == PAGE_EXECUTE_READ ||
+           access == PAGE_EXECUTE_READWRITE || access == PAGE_EXECUTE_WRITECOPY;
+}
+
+void *xop_find_memory(long long pid, long long start_addr,
+                      long long end_addr, const char *pattern) {
+    unsigned char pat[256], mask[256], chunk[4096 + 255];
+    const char *p = pattern;
+    size_t plen = 0, carry = 0;
+    uintptr_t cursor, end;
+    HANDLE h;
+    int incomplete = 0;
+
+    if (start_addr < 0 || end_addr <= start_addr ||
+        (uint64_t)end_addr > (uint64_t)UINTPTR_MAX) {
+        opSetError("op: invalid memory search range");
+        return NULL;
     }
-    if (plen == 0) { CloseHandle(h); return ""; }
+    if (!p || !*p) { opSetError("op: empty memory pattern"); return NULL; }
+    /* 十六进制字节可连续书写或由空白分隔；只有 ?? 表示一个通配字节。 */
+    while (*p) {
+        int hi, lo;
+        if (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') { p++; continue; }
+        if (plen == sizeof(pat)) { opSetError("op: memory pattern too long"); return NULL; }
+        if (p[0] == '?' && p[1] == '?') {
+            pat[plen] = 0;
+            mask[plen++] = 0;
+            p += 2;
+            continue;
+        }
+        hi = op_memory_hex_digit(p[0]);
+        lo = p[1] ? op_memory_hex_digit(p[1]) : -1;
+        if (hi < 0 || lo < 0) { opSetError("op: invalid memory pattern"); return NULL; }
+        pat[plen] = (unsigned char)((hi << 4) | lo);
+        mask[plen++] = 1;
+        p += 2;
+    }
+    if (!plen) { opSetError("op: empty memory pattern"); return NULL; }
+    h = op_open_proc(pid, PROCESS_VM_READ | PROCESS_QUERY_INFORMATION);
+    if (!h) return NULL;
 
-    /* scan memory in 4KB pages */
-    long long addr;
-    unsigned char page[4096];
-    SIZE_T rd;
-    for (addr = start_addr; addr < end_addr; addr += 4096) {
-        if (!ReadProcessMemory(h, (LPCVOID)(intptr_t)addr, page, 4096, &rd)) continue;
-        long long i;
-        for (i = 0; i <= (long long)rd - plen; i++) {
-            int j, found = 1;
-            for (j = 0; j < plen; j++) {
-                if (mask[j] && page[i + j] != pat[j]) { found = 0; break; }
+    cursor = (uintptr_t)start_addr;
+    end = (uintptr_t)end_addr;
+    while (cursor < end) {
+        MEMORY_BASIC_INFORMATION info;
+        uintptr_t base, limit;
+        if (!VirtualQueryEx(h, (LPCVOID)cursor, &info, sizeof(info))) {
+            incomplete = 1;
+            break;
+        }
+        base = (uintptr_t)info.BaseAddress;
+        limit = info.RegionSize > UINTPTR_MAX - base ? UINTPTR_MAX :
+                base + (uintptr_t)info.RegionSize;
+        if (limit <= cursor) { incomplete = 1; break; }
+        if (limit > end) limit = end;
+        if (!op_memory_readable(&info)) {
+            carry = 0;
+            cursor = limit;
+            continue;
+        }
+        while (cursor < limit) {
+            size_t want = (size_t)(limit - cursor);
+            SIZE_T read = 0;
+            size_t total, i;
+            if (want > 4096) want = 4096;
+            if (!ReadProcessMemory(h, (LPCVOID)cursor, chunk + carry, want, &read) ||
+                read != want) {
+                incomplete = 1;
+                carry = 0;
+                cursor += want;
+                continue;
             }
-            if (found) {
-                snprintf(op_buf, sizeof(op_buf), "%lld", addr + i);
-                CloseHandle(h);
-                return op_buf;
+            total = carry + want;
+            for (i = 0; i + plen <= total; i++) {
+                size_t j;
+                for (j = 0; j < plen; j++) {
+                    if (mask[j] && chunk[i + j] != pat[j]) break;
+                }
+                if (j == plen) {
+                    char result[32];
+                    snprintf(result, sizeof(result), "%lld",
+                             (long long)(cursor - carry + i));
+                    CloseHandle(h);
+                    return xrtStrDup(result);
+                }
             }
+            carry = total < plen - 1u ? total : plen - 1u;
+            memmove(chunk, chunk + total - carry, carry);
+            cursor += want;
         }
     }
     CloseHandle(h);
-    return "";
+    if (incomplete) { opSetError("op: memory scan incomplete"); return NULL; }
+    return xrtStrDup("");
 }
 
 /* ------------------------------------------------------------------ */
 /* Process enumeration (module-level)                                  */
 /* ------------------------------------------------------------------ */
 
-const char *xop_enum_process(const char *filter) {
+void *xop_enum_process(const char *filter) {
+    uint16 *wide_filter = (filter && *filter) ? xrtUtf8To16(filter, NULL) : NULL;
+    int failed = 0;
+    op_process_entry32w pe;
+    HANDLE snap;
+    xbuffer result;
+
+    if (filter && *filter && !wide_filter) return NULL;
     op_init_toolhelp();
     if (!p_CreateToolhelp32Snapshot || !p_Process32First || !p_Process32Next) {
-        opSetError("op: toolhelp not available"); return "";
+        xrtFree(wide_filter);
+        opSetError("op: toolhelp not available"); return NULL;
     }
-    HANDLE snap = p_CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (snap == INVALID_HANDLE_VALUE) { opSetError("op: snapshot failed"); return ""; }
+    snap = p_CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snap == INVALID_HANDLE_VALUE) {
+        xrtFree(wide_filter);
+        opSetError("op: snapshot failed"); return NULL;
+    }
+    if (!xrtBufferInit(&result)) { CloseHandle(snap); xrtFree(wide_filter); return NULL; }
 
-    PROCESSENTRY32 pe;
     memset(&pe, 0, sizeof(pe));
     pe.dwSize = sizeof(pe);
-
-    int pos = 0;
     if (p_Process32First(snap, &pe)) {
         do {
-            if (filter && *filter && !strstr(pe.szExeFile, filter)) continue;
-            if (pos > 0 && pos < (int)sizeof(op_buf) - 1) op_buf[pos++] = '|';
-            pos += snprintf(op_buf + pos, sizeof(op_buf) - pos, "%lu:%s",
-                            pe.th32ProcessID, pe.szExeFile);
-            if (pos >= (int)sizeof(op_buf) - 64) break;
+            char *name;
+            char entry[1024];
+            int written;
+
+            if (wide_filter && !wcsstr(pe.szExeFile, (const WCHAR *)wide_filter)) continue;
+            name = xrtUtf16To8((const uint16 *)pe.szExeFile, NULL);
+            if (!name) { failed = 1; break; }
+            written = snprintf(entry, sizeof(entry), "%s%lu:%s",
+                               result.Size ? "|" : "", pe.th32ProcessID, name);
+            xrtFree(name);
+            if (written < 0 || written >= (int)sizeof(entry) ||
+                (size_t)written > 16u * 1024u * 1024u - result.Size) {
+                opSetError("op: process list exceeds output limit");
+                failed = 1;
+                break;
+            }
+            if (!xrtBufferAppend(&result, (xbytesview){(const uint8 *)entry, (size_t)written})) {
+                failed = 1;
+                break;
+            }
         } while (p_Process32Next(snap, &pe));
     }
     CloseHandle(snap);
-    op_buf[pos] = '\0';
-    return op_buf;
+    xrtFree(wide_filter);
+    if (!failed && !xrtBufferAppendByte(&result, 0)) failed = 1;
+    if (failed) { xrtBufferUnit(&result); return NULL; }
+    return xrtBufferTake(&result, NULL, NULL);
 }
 
-const char *xop_get_process_modules(long long pid) {
+void *xop_get_process_modules(long long pid) {
+    op_module_entry32w me;
+    HANDLE snap;
+    int failed = 0;
+    xbuffer result;
+
+    if (pid < 0 || pid > UINT32_MAX) { opSetError("op: invalid process id"); return NULL; }
     op_init_toolhelp();
     if (!p_CreateToolhelp32Snapshot || !p_Module32First || !p_Module32Next) {
-        opSetError("op: toolhelp not available"); return "";
+        opSetError("op: toolhelp not available"); return NULL;
     }
-    HANDLE snap = p_CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, (DWORD)pid);
-    if (snap == INVALID_HANDLE_VALUE) { opSetError("op: module snapshot failed"); return ""; }
+    snap = p_CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, (DWORD)pid);
+    if (snap == INVALID_HANDLE_VALUE) { opSetError("op: module snapshot failed"); return NULL; }
+    if (!xrtBufferInit(&result)) { CloseHandle(snap); return NULL; }
 
-    MODULEENTRY32 me;
     memset(&me, 0, sizeof(me));
     me.dwSize = sizeof(me);
-
-    int pos = 0;
     if (p_Module32First(snap, &me)) {
         do {
-            if (pos > 0 && pos < (int)sizeof(op_buf) - 1) op_buf[pos++] = '|';
-            pos += snprintf(op_buf + pos, sizeof(op_buf) - pos, "%08llX:%s",
-                            (long long)(intptr_t)me.modBaseAddr, me.szModule);
-            if (pos >= (int)sizeof(op_buf) - 64) break;
+            char *name = xrtUtf16To8((const uint16 *)me.szModule, NULL);
+            char entry[1024];
+            int written;
+
+            if (!name) { failed = 1; break; }
+            written = snprintf(entry, sizeof(entry), "%s%08llX:%s",
+                               result.Size ? "|" : "", (long long)(intptr_t)me.modBaseAddr, name);
+            xrtFree(name);
+            if (written < 0 || written >= (int)sizeof(entry) ||
+                (size_t)written > 16u * 1024u * 1024u - result.Size) {
+                opSetError("op: module list exceeds output limit");
+                failed = 1;
+                break;
+            }
+            if (!xrtBufferAppend(&result, (xbytesview){(const uint8 *)entry, (size_t)written})) {
+                failed = 1;
+                break;
+            }
         } while (p_Module32Next(snap, &me));
     }
     CloseHandle(snap);
-    op_buf[pos] = '\0';
-    return op_buf;
+    if (!failed && !xrtBufferAppendByte(&result, 0)) failed = 1;
+    if (failed) { xrtBufferUnit(&result); return NULL; }
+    return xrtBufferTake(&result, NULL, NULL);
 }
 
 /* ------------------------------------------------------------------ */
@@ -2213,42 +3003,110 @@ const char *xop_get_process_modules(long long pid) {
 /* ------------------------------------------------------------------ */
 
 void xop_delay(long long ms) {
-    if (ms > 0) Sleep((DWORD)ms);
+    xrtClearError();
+    if (ms < 0) {
+        xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.op", 0,
+            "delay requires non-negative milliseconds");
+        return;
+    }
+    if ((uint64)ms > UINT64_MAX / 1000u) {
+        xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.op", 0,
+            "delay exceeds the supported duration");
+        return;
+    }
+    xrtSleepUs((uint64)ms * 1000u);
 }
 
 long long xop_random_int(long long min, long long max) {
-    if (min >= max) return min;
-    long long range = max - min + 1;
-    return min + (long long)(rand() % (int)range);
+    xrtClearError();
+    if (min > max) {
+        xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.op", 0,
+            "randomInt requires min <= max");
+        return 0;
+    }
+    return xrtFastRandRangeClosed(min, max);
 }
 
 long long xop_set_clipboard(const char *text) {
-    if (!text) text = "";
-    if (!OpenClipboard(NULL)) { opSetError("op: cannot open clipboard"); return 0; }
-    EmptyClipboard();
-    int len = (int)strlen(text) + 1;
-    HGLOBAL hg = GlobalAlloc(GMEM_MOVEABLE, len);
-    if (!hg) { CloseClipboard(); return 0; }
-    char *dst = (char *)GlobalLock(hg);
-    memcpy(dst, text, len);
-    GlobalUnlock(hg);
-    SetClipboardData(CF_TEXT, hg);
-    CloseClipboard();
-    return 1;
-}
+    uint16 *wide;
+    size_t units;
+    size_t bytes;
+    HGLOBAL block;
+    void *dst;
+    int ok = 0;
 
-const char *xop_get_clipboard(void) {
-    if (!OpenClipboard(NULL)) { opSetError("op: cannot open clipboard"); return ""; }
-    HANDLE hg = GetClipboardData(CF_TEXT);
-    if (!hg) { CloseClipboard(); op_buf[0] = '\0'; return op_buf; }
-    char *src = (char *)GlobalLock(hg);
-    if (src) {
-        strncpy(op_buf, src, sizeof(op_buf) - 1);
-        op_buf[sizeof(op_buf) - 1] = '\0';
-        GlobalUnlock(hg);
+    wide = xrtUtf8To16(text ? text : "", &units);
+    if (!wide || units >= SIZE_MAX / sizeof(WCHAR)) {
+        xrtFree(wide);
+        opSetError("op: invalid or oversized UTF-8 clipboard text");
+        return 0;
+    }
+    bytes = (units + 1) * sizeof(WCHAR);
+    block = GlobalAlloc(GMEM_MOVEABLE, bytes);
+    if (!block) {
+        xrtFree(wide);
+        opSetError("op: cannot allocate clipboard text");
+        return 0;
+    }
+    dst = GlobalLock(block);
+    if (!dst) {
+        xrtFree(wide);
+        GlobalFree(block);
+        opSetError("op: cannot lock clipboard text");
+        return 0;
+    }
+    memcpy(dst, wide, bytes);
+    xrtFree(wide);
+    GlobalUnlock(block);
+    if (!OpenClipboard(NULL)) {
+        GlobalFree(block);
+        opSetError("op: cannot open clipboard");
+        return 0;
+    }
+    if (EmptyClipboard() && SetClipboardData(CF_UNICODETEXT, block)) {
+        ok = 1;
     } else {
-        op_buf[0] = '\0';
+        GlobalFree(block);
+        opSetError("op: cannot set Unicode clipboard text");
     }
     CloseClipboard();
-    return op_buf;
+    return ok;
+}
+
+void *xop_get_clipboard(void) {
+    HGLOBAL block;
+    const uint16 *wide;
+    size_t units;
+    size_t limit;
+    size_t bytes;
+    char *utf8;
+
+    if (!OpenClipboard(NULL)) { opSetError("op: cannot open clipboard"); return NULL; }
+    block = GetClipboardData(CF_UNICODETEXT);
+    if (!block) { CloseClipboard(); return xrtStrDup(""); }
+    wide = (const uint16 *)GlobalLock(block);
+    if (!wide) {
+        CloseClipboard();
+        opSetError("op: cannot lock clipboard text");
+        return NULL;
+    }
+    limit = GlobalSize(block) / sizeof(uint16);
+    if (limit > 16u * 1024u * 1024u) limit = 16u * 1024u * 1024u;
+    for (units = 0; units < limit && wide[units]; ++units) {}
+    if (units == limit) {
+        utf8 = NULL;
+        opSetError("op: clipboard text is unterminated or exceeds read limit");
+    } else {
+        utf8 = xrtUtf16To8(wide, &bytes);
+        if (!utf8) {
+            opSetError("op: invalid Unicode clipboard text");
+        } else if (bytes > 16u * 1024u * 1024u) {
+            xrtFree(utf8);
+            utf8 = NULL;
+            opSetError("op: clipboard text exceeds read limit");
+        }
+    }
+    GlobalUnlock(block);
+    CloseClipboard();
+    return utf8;
 }

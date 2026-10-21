@@ -1,0 +1,7 @@
+LIBRARY op_d3d11_hook.dll
+
+EXPORTS
+op_d3d11_capture_stage
+op_d3d11_hook_calls
+op_d3d11_hook_error
+op_d3d11_hook_status

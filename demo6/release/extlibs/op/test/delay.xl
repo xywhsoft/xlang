@@ -1,0 +1,23 @@
+import op
+
+func main(...) as int
+    op.delay(0)
+    bool invalid = false
+    try
+        op.delay(-1)
+    catch ValueError error
+        invalid = true
+    end
+    assert invalid
+
+    bool overflow = false
+    try
+        op.delay(9223372036854775807)
+    catch RangeError error
+        overflow = true
+    end
+    assert overflow
+    op.delay(0)
+    println("op delay: PASS")
+    return 0
+end

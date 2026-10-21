@@ -1,0 +1,24 @@
+import op
+
+func main(...) as int
+    assert op.randomInt(7, 7) == 7
+    bool rejected = false
+    try
+        op.randomInt(4, 3)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    assert op.randomInt(2, 2) == 2
+
+    int i = 0
+    while i < 1000
+        int wide = op.randomInt(0, 4294967295)
+        assert wide >= 0 and wide <= 4294967295
+        int large = op.randomInt(9223372036854775797, 9223372036854775807)
+        assert large >= 9223372036854775797 and large <= 9223372036854775807
+        i += 1
+    end
+    println("op random int: PASS")
+    return 0
+end

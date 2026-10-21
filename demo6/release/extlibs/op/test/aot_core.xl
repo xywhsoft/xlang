@@ -1,0 +1,9 @@
+import op
+
+func main(...) as int
+    string screen = op.getScreenSize()
+    assert string.contains(screen, "x"), "invalid screen size"
+    auto instance = op.create()
+    assert instance.isBind() == 0
+    return 0
+end

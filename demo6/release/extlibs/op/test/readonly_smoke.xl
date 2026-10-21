@@ -1,0 +1,41 @@
+import op
+extern "op_test_desktop_window" func test_desktop_window() as int
+
+func main(...) as int
+    string screen = op.getScreenSize()
+    assert string.contains(screen, "x"), "screen size format"
+
+    auto instance = op.create()
+    assert instance.isBind() == 0, "new instance should be unbound"
+    assert instance.getBindWindow() == 0, "new instance should not have a window"
+
+    int desktop = test_desktop_window()
+    assert desktop != 0
+    assert instance.bindWindow(desktop, "normal", "normal", "normal", 0) == 1
+    assert instance.isBind() == 1
+    assert instance.getBindWindow() == desktop
+    string frame = instance.getFrameInfo()
+    assert string.contains(frame, "x") and frame != "0x0"
+    assert string.len(instance.getColor(0, 0)) == 6
+    string firstColor = instance.getColor(0, 0)
+    bool invalidColorCaught = false
+    try
+        instance.getColor(-1, -1)
+    catch RuntimeError error
+        invalidColorCaught = true
+    end
+    assert invalidColorCaught, "invalid coordinate should report a native failure"
+    assert instance.getColor(0, 0) == firstColor, "failure must not poison later calls"
+    assert string.len(instance.getColors(0, 0, 99, 99)) == 69999
+    assert instance.findColorEx(0, 0, 0, 0, "000000", 0.0, 0) == "0,0"
+    assert instance.findColor(0, 0, 0, 0, "000000", 0.0, 0) == "0,0"
+    assert instance.findMultiColor(0, 0, 1, 0, "000000", "1|0|000000", 0.0, 0) == "0,0"
+    assert string.len(instance.captureToMem(0, 0, 100, 100)) == 80008
+    assert string.len(instance.captureToMem(-1, -1, 2, 2)) == 36
+    assert string.len(instance.imageHash(0, 0, 8, 8)) == 16
+    assert instance.unbind() == 1
+    assert instance.isBind() == 0
+
+    println("op read-only smoke: ok")
+    return 0
+end

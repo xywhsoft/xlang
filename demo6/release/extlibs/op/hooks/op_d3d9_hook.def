@@ -1,0 +1,8 @@
+LIBRARY op_d3d9_hook.dll
+
+EXPORTS
+op_d3d9_hook_calls
+op_d3d9_hook_error
+op_d3d9_hook_status
+op_d3d9_probe_vtable
+op_d3d9_probe_present
