@@ -1,0 +1,45 @@
+func detachedOptions() as TcpServerOptions
+    auto a = TcpListenOptions(NetAddress.loopback(4, 0)).withBacklog(16)
+    auto b = a.withBacklog(32)
+    return TcpServerOptions(a).withAddedEndpoint(b)
+end
+auto original = detachedOptions()
+assert original.endpointCount == 2
+assert original.endpoint(0).backlog == 16
+assert original.endpoint(1).backlog == 32
+auto projected = original.endpoint(1)
+auto changed = original.withEndpoint(1, TcpListenOptions().withBacklog(64))
+assert changed.endpoint(1).backlog == 64
+assert projected.backlog == 32
+assert original.endpoint(1).backlog == 32
+assert changed.withoutEndpoint(0).endpoint(0).backlog == 64
+assert changed.withoutEndpoint(1).endpoint(0).backlog == 16
+auto configured = original.withMode(TcpServerMode.reusePort).withSharedPort(true).withAcceptQueueLimit(9)
+assert configured.mode == TcpServerMode.reusePort
+assert configured.sharedPort
+assert configured.acceptQueueLimit == 9
+assert original.mode == TcpServerMode.shared
+assert !original.sharedPort
+int rejected = 0
+try
+    auto invalid = original.endpoint(-1)
+catch RangeError
+    rejected = rejected + 1
+end
+try
+    auto invalid = original.withEndpoint(2, TcpListenOptions())
+catch RangeError
+    rejected = rejected + 1
+end
+try
+    auto invalid = TcpServerOptions().withoutEndpoint(0)
+catch RangeError
+    rejected = rejected + 1
+end
+try
+    auto invalid = original.withAcceptQueueLimit(0)
+catch RangeError
+    rejected = rejected + 1
+end
+assert rejected == 4
+println("Server options: independent multi-endpoint values, bounds and complete configuration")

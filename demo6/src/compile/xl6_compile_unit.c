@@ -798,7 +798,20 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_tcp_receive_into_length_future.c",D(R(TCP_RECEIVE_INTO_FUTURE),R(NET_FRAME_LENGTH)),{NULL}},
     {"src/runtime/xl6_ownership_domain_net_tcp_base_native.c",D(R(OWNERSHIP_CATALOG),R(OWNERSHIP_DOMAIN_NET_ENGINE_NATIVE)),{"XRT_MODULE_NET_TCP"}},
     {"src/runtime/xl6_ownership_domain_net_server_native.c",D(R(OWNERSHIP_CATALOG),R(OWNERSHIP_DOMAIN_NET_TCP_BASE_NATIVE)),{"XRT_MODULE_NET_TCP_SERVER"}},
-    {"src/runtime/xl6_ownership_domain_net_server_future_native.c",D(R(OWNERSHIP_CATALOG),R(OWNERSHIP_DOMAIN_NET_SERVER_NATIVE),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE)),{"XRT_MODULE_NET_TCP_SERVER_FUTURE"}}
+    {"src/runtime/xl6_ownership_domain_net_server_future_native.c",D(R(OWNERSHIP_CATALOG),R(OWNERSHIP_DOMAIN_NET_SERVER_NATIVE),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE)),{"XRT_MODULE_NET_TCP_SERVER_FUTURE"}},
+    {"src/runtime/xl6_execution_tcp_server.c",D(R(EXECUTION_SOURCE),R(EXECUTION_NET_ENGINE),R(OWNERSHIP_DOMAIN_NET_SERVER_NATIVE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_execution_tcp_server.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_TCP_SERVER)),{NULL}},
+    {"src/runtime/xl6_execution_tcp_server_accept.c",D(R(EXECUTION_TCP_SERVER),R(EXECUTION_TCP),R(OWNERSHIP_DOMAIN_NET_SERVER_FUTURE_NATIVE)),{NULL}},
+    {"src/runtime/xl6_tcp_server_options.c",D(R(NATIVE_HANDLE),R(FOREIGN_ERROR),R(TCP_LISTEN_OPTIONS)),{"XRT_MODULE_NET_TCP_SERVER"}},
+    {"src/runtime/xl6_ownership_domain_tcp_server_options.c",D(R(OWNERSHIP_CATALOG),R(TCP_SERVER_OPTIONS)),{NULL}},
+    {"src/runtime/xl6_tcp_server_language.c",D(R(EXECUTION_TCP_SERVER),R(NATIVE_HANDLE),R(FOREIGN_ERROR),R(NET_ADDRESS)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_tcp_server.c",D(R(OWNERSHIP_CATALOG),R(TCP_SERVER_LANGUAGE)),{NULL}},
+    {"src/runtime/xl6_tcp_server_accept.c",D(R(TCP_SERVER_LANGUAGE),R(EXECUTION_TCP_SERVER_ACCEPT)),{NULL}},
+    {"src/runtime/xl6_tcp_server_future.c",D(R(TCP_SERVER_LANGUAGE),R(EXECUTION_TCP_SERVER_ACCEPT),R(TCP_FUTURE)),{NULL}},
+    {"src/runtime/xl6_tcp_server_interrupt_future.c",D(R(TCP_SERVER_FUTURE),R(FUTURE_CALLBACK_INTERRUPT)),{NULL}},
+    {"src/runtime/xl6_tcp_server_sync.c",D(R(TCP_SERVER_LANGUAGE),R(EXECUTION_TCP),R(OWNERSHIP_DOMAIN_NET_SERVER_FUTURE_NATIVE)),{"XRT_MODULE_NET_TCP_SERVER_SYNC"}},
+    {"src/runtime/xl6_tcp_server_stats.c",D(R(TCP_SERVER_LANGUAGE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_tcp_server_stats.c",D(R(OWNERSHIP_CATALOG),R(TCP_SERVER_STATS)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

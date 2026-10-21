@@ -32,4 +32,5 @@ static inline int64_t xl6TcpOptionsMillisV1(uint64_t micros)
  * which allocate a NetAddress. Copy returns an independent configuration. */
 void* xl6TcpStreamOptionsCopyV1(const xnetstreamconfig*);
 void* xl6TcpDialOptionsCopyV1(const xnetdialconfig*);
+void* xl6TcpListenOptionsCopyV1(const xnetlistenconfig*);
 #endif

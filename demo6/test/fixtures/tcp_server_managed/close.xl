@@ -1,0 +1,18 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(2).withBackend(NetBackend.select))
+engine.start()
+auto server = TcpServer(engine, TcpServerOptions(TcpListenOptions(NetAddress.loopback(4, 0))))
+auto pending = server.acceptAsync()
+server.close()
+bool closed = false
+try
+    auto stream = await pending
+catch ClosedError
+    closed = true
+end
+assert closed
+assert server.snapshot().acceptWaiters == 0
+assert server.snapshot().accepted == 0
+engine.close()
+assert engine.wait(5000)
+assert server.state == TcpServerState.closed
+println("Server public close: pending accept reaches checked terminal, no orphan result")

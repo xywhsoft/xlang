@@ -9,6 +9,9 @@ static XL6_ArtifactOwnershipPlan plan(const char* choice)
         !strcmp(choice,"server-native")?XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_SERVER_NATIVE:
         !strcmp(choice,"server-future-native")?XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_SERVER_FUTURE_NATIVE:
         !strcmp(choice,"server-all-native")?XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_SERVER_FUTURE_NATIVE:
+        !strcmp(choice,"server-resource")?XL6_ARTIFACT_EXECUTION_TCP_SERVER_ACCEPT:
+        !strcmp(choice,"server-language")?XL6_ARTIFACT_TCP_SERVER_LANGUAGE:
+        !strcmp(choice,"server-options")?XL6_ARTIFACT_TCP_SERVER_OPTIONS:
         !strcmp(choice,"buffer-native")?XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE:
         !strcmp(choice,"config")?XL6_ARTIFACT_NET_ENGINE_CONFIG:
         !strcmp(choice,"stats")?XL6_ARTIFACT_NET_ENGINE_STATS:XL6_ARTIFACT_NET_ENGINE_LANGUAGE);
@@ -58,6 +61,15 @@ int main(int argc,char** argv)
     assert(xl6ArtifactRuntimeSymbolOwner("xl6OwnershipDomainNetServerNativeV1Get")==XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_SERVER_NATIVE);
     assert(xl6ArtifactRuntimeSymbolOwner("xl6OwnershipDomainNetServerFutureNativeV1Get")==XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_SERVER_FUTURE_NATIVE);
     assert(xl6ArtifactRuntimeSymbolOwner("xl6OwnershipCatalogAddListenerEventsV1")==XL6_ARTIFACT_OWNERSHIP_CATALOG);
+    XL6_ArtifactOwnershipPlan serverResource=plan("server-resource"),serverLanguage=plan("server-language"),serverOptions=plan("server-options");
+    assert(xl6ArtifactRuntimeSetHas(&serverResource.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_EXECUTION_TCP_SERVER));
+    assert(xl6ArtifactRuntimeSetHas(&serverResource.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_EXECUTION_TCP));
+    assert(!xl6ArtifactRuntimeSetHas(&serverResource.runtime.components,XL6_ARTIFACT_FUTURE_CALLBACK_QUEUE));
+    assert(!has_module(&serverLanguage.runtime,"XRT_MODULE_NET_TCP_SERVER_FUTURE"));
+    assert(!has_module(&serverLanguage.runtime,"XRT_MODULE_NET_TCP_FUTURE"));
+    assert(!xl6ArtifactRuntimeSetHas(&serverLanguage.runtime.components,XL6_ARTIFACT_FUTURE_CALLBACK_QUEUE));
+    assert(!xl6ArtifactRuntimeSetHas(&serverOptions.runtime.components,XL6_ARTIFACT_EXECUTION_SOURCE));
+    assert(!has_module(&serverOptions.runtime,"XRT_MODULE_NET_ENGINE"));
     XL6_ArtifactOwnershipPlan resource=plan("tcp-resource");
     assert(xl6ArtifactRuntimeSetHas(&resource.runtime.components,XL6_ARTIFACT_EXECUTION_TCP));
     assert(xl6ArtifactRuntimeSetHas(&resource.runtime.components,XL6_ARTIFACT_EXECUTION_NET_ENGINE));

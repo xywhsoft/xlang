@@ -14,7 +14,8 @@ typedef enum XL6_ExecutionKindV1 {
     XL6_EXECUTION_NET_ENGINE_V1=3,
     XL6_EXECUTION_NET_RESOLVER_V1=4,
     XL6_EXECUTION_TCP_STREAM_V1=5,
-    XL6_EXECUTION_TCP_LISTENER_V1=6
+    XL6_EXECUTION_TCP_LISTENER_V1=6,
+    XL6_EXECUTION_TCP_SERVER_V1=7
 } XL6_ExecutionKindV1;
 typedef struct XL6_ExecutionSourceSnapshotV1 {
     size_t size,resources,entries;

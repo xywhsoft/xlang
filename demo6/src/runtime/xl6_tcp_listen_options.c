@@ -4,6 +4,7 @@ static void* publish(const xnetlistenconfig* value)
     if(!xrtNetListenConfigValid(value)){xl6TcpOptionsFailedV1();return NULL;}
     xnetlistenconfig* result=xrtMalloc(sizeof(*result));if(result)*result=*value;else xl6TcpOptionsFailedV1();return result;
 }
+void* xl6TcpListenOptionsCopyV1(const xnetlistenconfig* value){return publish(value);}
 void* xl6TcpListenOptionsCreateV1(void)
 {xnetlistenconfig value;xrtNetListenConfigInit(&value);return publish(&value);}
 void* xl6TcpListenOptionsCreateAddressV1(const void* address)

@@ -15,6 +15,7 @@ typedef struct XL6_ExecutionCreateOptionsV1 {
         const struct xnetengineconfig* engine; /* call-only, copied by the native ctor */
         const struct xnetresolverconfig* resolver; /* call-only, copied by the native ctor */
         const struct XL6_TcpCreateOptionsV1* tcp; /* call-only typed transport factory */
+        const struct XL6_TcpServerCreateOptionsV1* server;
     } value;
 } XL6_ExecutionCreateOptionsV1;
 typedef struct XL6_ExecutionFamilyV1 {
