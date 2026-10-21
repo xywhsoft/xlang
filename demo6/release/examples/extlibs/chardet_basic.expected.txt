@@ -1,0 +1,7 @@
+text=UTF-8; confidence=90; bom=0
+ascii=true; utf8=true
+empty=UNKNOWN; ascii=true; utf8=true
+utf16=UTF-16LE; confidence=100; bom=2
+bom-only=UTF-8-BOM; confidence=100
+bom-invalid=UTF-8-BOM; valid=false
+binary=UNKNOWN; valid=false

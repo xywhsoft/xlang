@@ -1,0 +1,28 @@
+import chardet
+
+// 普通文本不复制 Buffer；原始文件/网络字节使用 Buffer 重载。
+println("text=" + chardet.detect("你好") + "; confidence=" + string(chardet.confidence("你好")) + "; bom=" + string(chardet.bomSize("你好")))
+println("ascii=" + string(chardet.isAscii("hello")) + "; utf8=" + string(chardet.isUtf8("hello")))
+println("empty=" + chardet.detect("") + "; ascii=" + string(chardet.isAscii("")) + "; utf8=" + string(chardet.isUtf8("")))
+
+Buffer utf16 = Buffer()
+utf16.appendByte(255)
+utf16.appendByte(254)
+utf16.appendByte(65)
+utf16.appendByte(0)
+println("utf16=" + chardet.detect(utf16) + "; confidence=" + string(chardet.confidence(utf16)) + "; bom=" + string(chardet.bomSize(utf16)))
+
+// BOM 说明声明的编码；是否是合法正文是另一项检查。
+Buffer bom = Buffer()
+bom.appendByte(239)
+bom.appendByte(187)
+bom.appendByte(191)
+println("bom-only=" + chardet.detect(bom) + "; confidence=" + string(chardet.confidence(bom)))
+bom.appendByte(255)
+println("bom-invalid=" + chardet.detect(bom) + "; valid=" + string(chardet.isUtf8(bom)))
+
+Buffer binary = Buffer()
+binary.appendByte(65)
+binary.appendByte(0)
+binary.appendByte(255)
+println("binary=" + chardet.detect(binary) + "; valid=" + string(chardet.isUtf8(binary)))

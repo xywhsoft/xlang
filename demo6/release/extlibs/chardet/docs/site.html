@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>chardet - 扩展库 - xlang</title>
+  <meta name="description" content="Unicode 编码猜测、BOM 长度、UTF-8 与 ASCII 字节检查。提供 string 和 Buffer 重载及对应 C API。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+  <style>
+    .extlib-layout { overflow-wrap: anywhere; }
+    .extlib-layout h1 { font-size: 40px; letter-spacing: 0; }
+    .extlib-layout h2 { letter-spacing: 0; }
+    .extlib-layout pre { max-width: 100%; overflow-x: auto; }
+  </style>
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / chardet</p>
+    <div class="extlib-title-row"><h1>chardet</h1><span class="extlib-cat-badge">文本处理</span></div>
+    <p class="extlib-lead">基于 XRT 的 Unicode 编码猜测与字节检查。读取普通文本或原始 Buffer，区分 BOM、编码置信等级与 UTF-8 有效性。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api">
+    <h2 id="api">文本与原始字节</h2>
+    <pre><code class="language-xlang">import chardet
+
+println(chardet.detect("你好"))       // UTF-8
+println(chardet.confidence("你好"))   // 90
+println(chardet.isAscii("hello"))     // true</code></pre>
+    <p>五项函数均接受 string 或 Buffer，没有额外可选参数。普通文本直接借用，不先复制成 Buffer；原始文件、网络数据和 UTF-16/32 使用 Buffer。</p>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>返回值与含义</th></tr></thead><tbody>
+      <tr><td><code>detect(data) as string</code></td><td>UNKNOWN、UTF-8、UTF-8-BOM、UTF-16LE、UTF-16BE、UTF-32LE、UTF-32BE。</td></tr>
+      <tr><td><code>confidence(data) as int</code></td><td>0..100 的猜测等级，不是统计概率，也不保证正文有效。</td></tr>
+      <tr><td><code>bomSize(data) as int</code></td><td>BOM 的字节数：0、2、3、4，不删除或消费输入。</td></tr>
+      <tr><td><code>isUtf8(data) as bool</code></td><td>整个字节区间是否为合法 UTF-8，检查截断、过长编码、代理项及 Unicode 范围。</td></tr>
+      <tr><td><code>isAscii(data) as bool</code></td><td>所有字节小于 128，允许 NUL 和控制字符；不是可打印字符检查。</td></tr>
+    </tbody></table>
+    <p>空输入依次得到 UNKNOWN、0、0、true、true。无法识别、非法 UTF-8 都是正常结果，不抛异常。
+    本库没有 GBK、Shift-JIS 等传统字符集统计识别模型，也不执行转码。</p>
+
+    <h2 id="bom">BOM 不等于正文校验</h2>
+    <pre><code class="language-xlang">import chardet
+
+Buffer raw = Buffer()
+raw.appendByte(239)
+raw.appendByte(187)
+raw.appendByte(191)
+raw.appendByte(255)
+println(chardet.detect(raw))    // UTF-8-BOM
+println(chardet.bomSize(raw))   // 3
+println(chardet.isUtf8(raw))    // false</code></pre>
+    <p>BOM 优先，置信等级为 100；无 BOM 的 UTF-16/32 使用字节分布和编码合法性启发式，短输入可能不确定。
+    普通 ASCII 文本当前为 UTF-8/40，合法非 ASCII UTF-8 文本为 UTF-8/90。</p>
+    <p>编码猜测与字节有效性是独立问题。例如含零字节的 UTF-16 ASCII 文本，也可能同时是合法的 UTF-8/ASCII 字节序列。
+    应保留原始数据，由应用决定是否接受猜测，不能把猜测直接当成格式验证。</p>
+
+    <h2 id="ownership">长度、所有权与错误</h2>
+    <p>Buffer 保留真实长度和 NUL 后的字节。当前共享运行库 string.byteLen 对含 NUL 的语言字符串仍有已知截短问题；
+    此类输入使用 Buffer，语言层缺陷仍在独立用例中跟踪，不作为本库已解决的边界。</p>
+    <p>原生输入只借用、不修改、不保留；返回名称为静态只读数据，不能释放。xlang 的 string 返回边界复制名称，由语言管理释放。
+    独立调用可以并发；检测期间不能并发修改输入内存。</p>
+    <p>C 的空指针加零长度是空输入；空指针加非零长度为 XERR_ARGUMENT，在 xlang 中映射为 ValueError。
+    原生入口清除旧错误，C 调用者检查 xrtGetError()。原生检测不分配内存，语言返回字符串复制仍可能发生内存分配。</p>
+
+    <h2 id="c-api">C API</h2>
+    <p>公共头为 <code>extlibs/chardet/include/chardet.h</code>，实现为 <code>chardet_native.c</code>。
+    依赖 XRT_MODULE_CHARSET_DETECT，不需要另一份字符集检测引擎。</p>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>合同</th></tr></thead><tbody>
+      <tr><td><code>xchardet_detect_name_n</code></td><td>void* 与 size_t 输入，返回借用 const char*。</td></tr>
+      <tr><td><code>xchardet_detect_conf_n / xchardet_detect_bom_size_n</code></td><td>相同输入，返回 int。</td></tr>
+      <tr><td><code>xchardet_is_utf8_n / xchardet_is_ascii_n</code></td><td>相同输入，返回 bool。</td></tr>
+    </tbody></table>
+    <p>每项另有 _str 入口，首参数是 const char*，仍显式传 size_t；两组共 10 个 ABI。
+    一次需要编码、BOM 和置信等级时，C 可直接调用 xrtEncodingGuess(xbytesview)，避免分别探测三次。</p>
+
+    <h2 id="examples">双语范例</h2>
+    <p>发行目录运行 <code>xl run examples/extlibs/chardet_basic.xl</code>。
+    C 对照为 <code>extlibs/chardet/examples/basic.c</code>，需要一同编译 <code>chardet_native.c</code>；
+    开发仓库也提供 <code>tools/run_extlib_c.ps1 -Package chardet -Source release/extlibs/chardet/examples/basic.c</code>。
+    两者对照同一份 chardet_basic.expected.txt，覆盖全部五项 API。</p>
+
+    <h2 id="verification">验证范围</h2>
+    <p>Windows 限定门禁覆盖 10 个实际生成原型、22 组字节、非法参数、错误恢复、无分配、四线程 8000 轮、
+    借用名称寿命、C/XL JIT/AOT 同输出，以及 xl.dll / xlc.dll 上下文重复运行。</p>
+    <p>Linux 独立 C 使用 ASan/UBSan、泄漏检查和 LP64 原型核对。不表示 Linux xlang、32 位/ARM、TSan、
+    共享字符串 NUL 缺陷或全部平台已经验收。门禁为 tools/check_extlib_chardet.ps1 与 .sh；源码和构建变化后须复验。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

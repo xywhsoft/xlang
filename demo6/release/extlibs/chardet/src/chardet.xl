@@ -1,39 +1,45 @@
-extern "xchardet_detect_name_n" func __chardet_name(point data,
-    c_ulonglong size) as point
-extern "xchardet_detect_conf_n" func __chardet_conf(point data,
-    c_ulonglong size) as int
-extern "xchardet_detect_bom_size_n" func __chardet_bom_size(point data,
-    c_ulonglong size) as int
+// 原生名称是借用字符串，extern string 边界复制为语言所有；不能交给 takeCstr。
+extern "xchardet_detect_name_n" func __name(point data, c_size size) as string
+extern "xchardet_detect_conf_n" func __conf(point data, c_size size) as c_int
+extern "xchardet_detect_bom_size_n" func __bom(point data, c_size size) as c_int
+extern "xchardet_is_utf8_n" func __utf8(point data, c_size size) as bool
+extern "xchardet_is_ascii_n" func __ascii(point data, c_size size) as bool
+extern "xchardet_detect_name_str" func __nameText(string data, c_size size) as string
+extern "xchardet_detect_conf_str" func __confText(string data, c_size size) as c_int
+extern "xchardet_detect_bom_size_str" func __bomText(string data, c_size size) as c_int
+extern "xchardet_is_utf8_str" func __utf8Text(string data, c_size size) as bool
+extern "xchardet_is_ascii_str" func __asciiText(string data, c_size size) as bool
 
-func __chardet_bytes(Buffer data) as string
-    return __xl_std_runtime_take_cstr(__chardet_name(data.data(),
-        c_ulonglong(data.len())))
-end
-
+// 文本直接借用，不再为了探测复制一整个 Buffer。
 export func detect(string text) as string
-    Buffer data = Buffer()
-    data.append(text)
-    return __chardet_bytes(data)
+    return __nameText(text, c_size(string.byteLen(text)))
 end
-
 export func confidence(string text) as int
-    Buffer data = Buffer()
-    data.append(text)
-    return __chardet_conf(data.data(), c_ulonglong(data.len()))
+    return int(__confText(text, c_size(string.byteLen(text))))
 end
-
 export func bomSize(string text) as int
-    Buffer data = Buffer()
-    data.append(text)
-    return __chardet_bom_size(data.data(), c_ulonglong(data.len()))
+    return int(__bomText(text, c_size(string.byteLen(text))))
 end
-
 export func isUtf8(string text) as bool
-    string encoding = detect(text)
-    return encoding == "UTF-8" or encoding == "UTF-8-BOM"
+    return __utf8Text(text, c_size(string.byteLen(text)))
+end
+export func isAscii(string text) as bool
+    return __asciiText(text, c_size(string.byteLen(text)))
 end
 
-export func isAscii(string text) as bool
-    // XRT 将 ASCII 识别为无 BOM 的合法 UTF-8；这是 Unicode 层的正确结论。
-    return detect(text) == "UTF-8" and confidence(text) == 40
+// 原始字节必须携带长度；UTF-16/32 和 NUL 不经过 C 字符串处理。
+export func detect(Buffer data) as string
+    return __name(data.data(), c_size(data.len()))
+end
+export func confidence(Buffer data) as int
+    return int(__conf(data.data(), c_size(data.len())))
+end
+export func bomSize(Buffer data) as int
+    return int(__bom(data.data(), c_size(data.len())))
+end
+export func isUtf8(Buffer data) as bool
+    return __utf8(data.data(), c_size(data.len()))
+end
+export func isAscii(Buffer data) as bool
+    return __ascii(data.data(), c_size(data.len()))
 end

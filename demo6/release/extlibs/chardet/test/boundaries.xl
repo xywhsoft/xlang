@@ -1,0 +1,73 @@
+import chardet
+
+func makeBytes(array<int> values) as Buffer
+    Buffer result = Buffer()
+    for i in range(values.length)
+        assert result.appendByte(values[i])
+    end
+    return result
+end
+
+func verify(Buffer data, string name, int confidence, int bom, bool utf8, bool ascii)
+    int size = data.len()
+    assert chardet.detect(data) == name
+    assert chardet.confidence(data) == confidence
+    assert chardet.bomSize(data) == bom
+    assert chardet.isUtf8(data) == utf8
+    assert chardet.isAscii(data) == ascii
+    assert data.len() == size
+end
+
+// 空输入不是编码证据，但符合 ASCII 和 UTF-8 的合法空串定义。
+verify(Buffer(), "UNKNOWN", 0, 0, true, true)
+assert chardet.detect("") == "UNKNOWN"
+assert chardet.confidence("") == 0
+assert chardet.bomSize("") == 0
+assert chardet.isAscii("") and chardet.isUtf8("")
+assert chardet.isAscii("ABC\r\n")
+assert chardet.detect("你好") == "UTF-8"
+assert chardet.confidence("你好") == 90
+assert not chardet.isAscii("你好")
+assert chardet.isUtf8("你好")
+
+// 五种 BOM；UTF-16/32 的原始零字节必须保留。
+verify(makeBytes([239,187,191,65]), "UTF-8-BOM", 100, 3, true, false)
+verify(makeBytes([255,254,65,0]), "UTF-16LE", 100, 2, false, false)
+verify(makeBytes([254,255,0,65]), "UTF-16BE", 100, 2, false, false)
+verify(makeBytes([255,254,0,0,65,0,0,0]), "UTF-32LE", 100, 4, false, false)
+verify(makeBytes([0,0,254,255,0,0,0,65]), "UTF-32BE", 100, 4, false, false)
+verify(makeBytes([239,187,191]), "UTF-8-BOM", 100, 3, true, false)
+verify(makeBytes([239,187,191,255]), "UTF-8-BOM", 100, 3, false, false)
+
+// 无 BOM 的宽编码是启发式结论，不是从合法字节唯一反推编码。
+verify(makeBytes([65,0,66,0,67,0,68,0]), "UTF-16LE", 85, 0, true, true)
+verify(makeBytes([0,65,0,66,0,67,0,68]), "UTF-16BE", 85, 0, true, true)
+verify(makeBytes([65,0,0,0,66,0,0,0]), "UTF-32LE", 80, 0, true, true)
+verify(makeBytes([0,0,0,65,0,0,0,66]), "UTF-32BE", 80, 0, true, true)
+verify(makeBytes([65,0,66]), "UTF-8", 50, 0, true, true)
+verify(makeBytes([65,0,255]), "UNKNOWN", 0, 0, false, false)
+verify(makeBytes([228,189]), "UNKNOWN", 0, 0, false, false)
+verify(makeBytes([192,175]), "UNKNOWN", 0, 0, false, false)
+verify(makeBytes([237,160,128]), "UNKNOWN", 0, 0, false, false)
+verify(makeBytes([244,144,128,128]), "UNKNOWN", 0, 0, false, false)
+
+// 保存多次借用返回值；复制属于语言边界，不释放底层静态名称。
+array<string> saved = array<string>[]
+for i in range(512)
+    saved.append(chardet.detect("你好"))
+    assert chardet.detect("abc") == "UTF-8"
+end
+for i in range(saved.length)
+    assert saved[i] == "UTF-8"
+end
+
+extern "xchardet_detect_name_n" func invalidInput(point data, c_size size) as string
+bool caught = false
+try
+    invalidInput(null, c_size(1))
+catch e
+    caught = e.kind == "ValueError"
+end
+assert caught
+assert chardet.detect("abc") == "UTF-8"
+println("chardet boundaries: PASS")
