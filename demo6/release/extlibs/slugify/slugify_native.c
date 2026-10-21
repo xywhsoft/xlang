@@ -1,28 +1,22 @@
-/*
- * slugify_native.c - URL slug generation with Latin transliteration.
- *
- * ASCII text lowercases, collapses separators, and strips anything
- * outside [a-z0-9]. Latin-1/Latin-Extended letters and common symbols
- * map through a transliteration table (é->e, ü->u, &->and ...).
- * CJK and other non-Latin scripts are preserved as-is between
- * separators so Chinese titles stay readable; callers wanting pure
- * ASCII can check isAscii first.
- */
-#include <stdlib.h>
+/* URL slug：XRT 负责 UTF-8 解码与动态结果，表只承担有限拉丁转写。 */
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
+#include "xrt.h"
+#include "include/slugify_native.h"
 #include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-
-#include "xl_runtime.h"
 
 #define XSL_DOMAIN "xlang.extlib.slugify"
+#define XSL_MAX_INPUT (1024u * 1024u)
 
 static void xsl_error(const char *message) {
     xrtSetErrorInfo(XERR_VALUE, XSL_DOMAIN, 0, message);
 }
 
-/* Transliterate one Latin-1/Latin-Extended code point; returns the
-   replacement ASCII (as malloc'd string) or NULL when none. */
+/* 只映射明确列出的拉丁变体和少量符号；返回静态文本。 */
 static const char *xsl_latin1(unsigned int cp) {
     static const struct { unsigned int cp; const char *rep; } table[] = {
         {0xE0,"a"},{0xE1,"a"},{0xE2,"a"},{0xE3,"a"},{0xE4,"a"},{0xE5,"a"},
@@ -96,106 +90,119 @@ static const char *xsl_latin1(unsigned int cp) {
     return NULL;
 }
 
-const char *xsl_slugify(const char *text) {
-    static char ring[2][4096];
-    static int next;
-    char *out = ring[next];
-    size_t pos = 0;
-    const char *p;
-    int lastSep = 1;
-    next = (next + 1) % 2;
-    out[0] = '\0';
-    if (text == NULL) return out;
-    for (p = text; *p != '\0';) {
-        unsigned char c = (unsigned char)*p;
-        unsigned int cp = c;
-        int len = 1;
-        /* decode UTF-8 code point */
-        if ((c & 0xE0) == 0xC0 && p[1] != '\0') {
-            cp = ((c & 0x1F) << 6) | (p[1] & 0x3F);
-            len = 2;
-        } else if ((c & 0xF0) == 0xE0 && p[1] != '\0' && p[2] != '\0') {
-            cp = ((c & 0x0F) << 12) | ((p[1] & 0x3F) << 6) | (p[2] & 0x3F);
-            len = 3;
-        } else if ((c & 0xF8) == 0xF0 && p[1] != '\0' && p[2] != '\0' &&
-                   p[3] != '\0') {
-            cp = ((c & 0x07) << 18) | ((p[1] & 0x3F) << 12) |
-                 ((p[2] & 0x3F) << 6) | (p[3] & 0x3F);
-            len = 4;
-        }
-        if (cp < 0x80) {
-            char lower = (char)tolower(c);
-            if ((lower >= 'a' && lower <= 'z') ||
-                (lower >= '0' && lower <= '9')) {
-                if (pos < 4095) out[pos++] = lower;
-                lastSep = 0;
-            } else if (c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
-                       c == '-' || c == '_' || c == '.' || c == '/' ||
-                       c == '+' || c == '=' || c == '&' || c == '@') {
-                /* & -> and, @ -> at handled below; others separate */
-                if (c == '&') {
-                    if (pos + 3 < 4095) {
-                        out[pos++] = 'a';
-                        out[pos++] = 'n';
-                        out[pos++] = 'd';
-                    }
-                    lastSep = 0;
-                    p += len;
-                    continue;
-                }
-                if (c == '@') {
-                    if (pos + 2 < 4095) {
-                        out[pos++] = 'a';
-                        out[pos++] = 't';
-                    }
-                    lastSep = 0;
-                    p += len;
-                    continue;
-                }
-                if (!lastSep && pos < 4095) {
-                    out[pos++] = '-';
-                }
-                lastSep = 1;
-            }
-            /* other ASCII punctuation is dropped */
-        } else {
-            const char *rep = xsl_latin1(cp);
-            if (rep != NULL) {
-                const char *q;
-                for (q = rep; *q != '\0'; q++) {
-                    if (pos < 4095) out[pos++] = *q;
-                }
-                lastSep = 0;
-            } else if ((cp >= 0x3000 && cp <= 0x303F) ||
-                       (cp >= 0xFF00 && cp <= 0xFFEF)) {
-                /* CJK and fullwidth punctuation act as separators */
-                if (!lastSep && pos < 4095) {
-                    out[pos++] = '-';
-                }
-                lastSep = 1;
-            } else if (cp >= 0x2E80) {
-                /* CJK and other scripts: keep the raw UTF-8 bytes */
-                int k;
-                for (k = 0; k < len; k++) {
-                    if (pos < 4095) out[pos++] = p[k];
-                }
-                lastSep = 0;
-            }
-            /* Latin letters outside the table and unknown symbols drop */
-        }
-        p += len;
+static bool xsl_input(const char* text, long long length)
+{
+    if (text == NULL || length < 0 || length > XSL_MAX_INPUT) {
+        xrtSetErrorInfo(XERR_RANGE, XSL_DOMAIN, 0, "text exceeds 1 MiB or is null");
+        return false;
     }
-    while (pos > 0 && out[pos - 1] == '-') pos--;
-    out[pos] = '\0';
-    return out;
+    if (memchr(text, '\0', (size_t)length) != NULL) {
+        xsl_error("text contains an embedded NUL");
+        return false;
+    }
+    return true;
 }
 
-long long xsl_is_ascii(const char *text) {
-    const unsigned char *p = (const unsigned char *)text;
-    if (text == NULL) return 1;
-    while (*p != '\0') {
-        if (*p >= 0x80) return 0;
-        p++;
+static bool xsl_token(xbuffer* output, bool* separator, const char* text, size_t length)
+{
+    if (length == 0u) return true;
+    if (*separator && output->Size != 0u && !xrtBufferAppendByte(output, '-'))
+        return false;
+    *separator = false;
+    return xrtBufferAppend(output, (xbytesview){(cbytes)text, length});
+}
+
+/* 分隔符只标记边界，下一个有效词到来时再插入 '-'。 */
+static bool xsl_ascii(xbuffer* output, bool* separator, unsigned char c)
+{
+    char lower = (char)(c >= 'A' && c <= 'Z' ? c + ('a' - 'A') : c);
+    if ((lower >= 'a' && lower <= 'z') || (lower >= '0' && lower <= '9'))
+        return xsl_token(output, separator, &lower, 1u);
+    if (c == '&' || c == '@') {
+        /* 替换词独立成词，避免 a&b 变成 aandb。 */
+        *separator = true;
+        if (!xsl_token(output, separator, c == '&' ? "and" : "at",
+            c == '&' ? 3u : 2u)) return false;
+        *separator = true;
+        return true;
     }
-    return 1;
+    if (c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
+        c == '-' || c == '_' || c == '.' || c == '/' || c == '+' ||
+        c == '=' || c == ':' || c == ',' || c == ';' || c == '?' || c == '!')
+        *separator = true;
+    /* 引号和其他 ASCII 符号被丢弃；不会制造额外连接符。 */
+    return true;
+}
+
+static bool xsl_cjk(uint32 scalar)
+{
+    return (scalar >= 0x3400u && scalar <= 0x9fffu) ||
+        (scalar >= 0xf900u && scalar <= 0xfaffu) ||
+        (scalar >= 0x20000u && scalar <= 0x2fa1fu) ||
+        (scalar >= 0x3040u && scalar <= 0x30ffu) ||
+        (scalar >= 0xac00u && scalar <= 0xd7afu);
+}
+
+void* xsl_slugify(const char* text, long long length)
+{
+    xbuffer output;
+    size_t position = 0u;
+    bool separator = false;
+    void* result = NULL;
+    xrtClearError();
+    if (!xsl_input(text, length)) return NULL;
+    if (!xrtBufferInit(&output)) return NULL;
+    if (!xrtBufferReserve(&output, (size_t)length + 1u)) goto done;
+    while (position < (size_t)length) {
+        xstrview view = {text + position, (size_t)length - position};
+        uint32 scalar;
+        size_t read;
+        const char* replacement;
+        const char* p;
+        if (xrtUtf8Decode(view, &scalar, &read) != XUTF_OK) {
+            xsl_error("text is not valid UTF-8");
+            goto done;
+        }
+        if (scalar >= 0xff01u && scalar <= 0xff5eu) scalar -= 0xfee0u;
+        replacement = (scalar >= 0x80u && (scalar <= 0x0217u || scalar == 0x0268u ||
+                       (scalar >= 0x1e00u && scalar <= 0x1effu) ||
+                       (scalar >= 0x2018u && scalar <= 0x2026u) ||
+                       (scalar >= 0x2663u && scalar <= 0x2666u)))
+            ? xsl_latin1(scalar) : NULL;
+        if (scalar < 0x80u) {
+            if (!xsl_ascii(&output, &separator, (unsigned char)scalar)) goto done;
+        } else if (replacement != NULL) {
+            for (p = replacement; *p != '\0'; ++p)
+                if (!xsl_ascii(&output, &separator, (unsigned char)*p)) goto done;
+        } else if (scalar == 0x00a0u || scalar == 0x30fbu ||
+                   (scalar >= 0x2000u && scalar <= 0x206fu) ||
+                   (scalar >= 0x3000u && scalar <= 0x303fu) ||
+                   (scalar >= 0xff00u && scalar <= 0xffefu)) {
+            separator = true;
+        } else if (xsl_cjk(scalar)) {
+            if (!xsl_token(&output, &separator, text + position, read)) goto done;
+        }
+        position += read;
+    }
+    if (!xrtBufferAppendByte(&output, '\0')) goto done;
+    result = xrtBufferTake(&output, NULL, NULL);
+done:
+    xrtBufferUnit(&output);
+    return result;
+}
+
+int xsl_is_ascii(const char* text, long long length)
+{
+    size_t i;
+    xrtClearError();
+    if (!xsl_input(text, length)) return -1;
+    for (i = 0u; i < (size_t)length; ++i)
+        if ((unsigned char)text[i] >= 0x80u) break;
+    if (i == (size_t)length) return 1;
+    /* ASCII 输入保持单次扫描；仅非 ASCII 输入需要校验 UTF-8。 */
+    if (!xrtUtf8Valid((xstrview){text, (size_t)length}, NULL)) {
+        xsl_error("text is not valid UTF-8");
+        return -1;
+    }
+    return 0;
 }

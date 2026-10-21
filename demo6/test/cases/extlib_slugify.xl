@@ -19,7 +19,8 @@ func main(...) as int
 
     // 符号词
     assert slugify.slugify("Tom & Jerry") == "tom-and-jerry", "ampersand"
-    assert slugify.slugify("user@example.com") == "useratexample-com", "at sign"
+    assert slugify.slugify("a&b") == "a-and-b", "ampersand without spaces"
+    assert slugify.slugify("user@example.com") == "user-at-example-com", "at sign"
 
     // Latin 变音转写
     assert slugify.slugify("café münchen") == "cafe-munchen", "latin1 transliteration"

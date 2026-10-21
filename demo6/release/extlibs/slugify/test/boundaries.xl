@@ -1,0 +1,37 @@
+import slugify
+
+assert slugify.slugify("Café & 你好") == "cafe-and-你好"
+assert slugify.slugify("a&b") == "a-and-b"
+assert slugify.slugify("user@example.com") == "user-at-example-com"
+assert slugify.slugify("cafe\u0301") == "cafe"
+assert slugify.slugify("你好：世界") == "你好-世界"
+assert slugify.slugify("Ｆｕｌｌ１２３") == "full123"
+assert slugify.slugify("a÷b") == "a-b"
+assert slugify.slugify("日本・語") == "日本-語"
+assert slugify.slugify("hi😀there") == "hithere"
+string stable = slugify.slugify("Café & 你好：😀")
+assert slugify.slugify(stable) == stable
+assert slugify.slugify("!!!") == ""
+assert slugify.isAscii("abc")
+assert not slugify.isAscii("你好")
+string maxTitle = string.repeat("A", 1024 * 1024)
+assert string.byteLen(slugify.slugify(maxTitle)) == 1024 * 1024
+
+int rejected = 0
+try
+    slugify.slugify("a\0b")
+catch ValueError error
+    rejected += 1
+end
+try
+    slugify.isAscii("a\0b")
+catch ValueError error
+    rejected += 1
+end
+try
+    slugify.slugify(maxTitle + "A")
+catch ValueError error
+    rejected += 1
+end
+assert rejected == 3
+println("slugify boundaries: PASS")

@@ -1,16 +1,17 @@
-extern "xsl_slugify" func __sl_slugify(string text) as string
-extern "xsl_is_ascii" func __sl_is_ascii(string text) as bool
+extern "xsl_slugify" func __sl_slugify(string text, c_longlong length) as point
+extern "xsl_is_ascii" func __sl_is_ascii(string text, c_longlong length) as c_int
+extern "xl6_xrt_last_error_text" func __sl_error() as string
 
 
 
-// slugify 把标题转成 URL slug：
-// ASCII 小写化、分隔符合并为 -；Latin 变音符转写（é→e、ü→u）；
-// & → and、@ → at；CJK 等非拉丁文字原样保留
 export func slugify(string text) as string
-    return __sl_slugify(text)
+    point result = __sl_slugify(text, c_longlong(string.byteLen(text)))
+    if result == null then throw ValueError __sl_error() end
+    return __xl_runtime.takeCstr(result)
 end
 
-// isAscii 判断文本是否为纯 ASCII（需要纯 ASCII slug 时可先检查）
 export func isAscii(string text) as bool
-    return __sl_is_ascii(text)
+    c_int result = __sl_is_ascii(text, c_longlong(string.byteLen(text)))
+    if result < 0 then throw ValueError __sl_error() end
+    return result == 1
 end

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>slugify - 扩展库 - xlang</title>
+  <meta name="description" content="slugify 把标题转成可读的 URL 路径段。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / slugify</p><h1>slugify</h1>
+    <p class="extlib-lead">把标题变成可读的 URL 路径段。</p>
+    <p>ASCII 小写、有限拉丁转写、汉字/假名/韩文保留；严格验证 UTF-8 和输入长度。完整 AOT 发布验收仍受共享链接问题阻断。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>slugify(text)</code></td><td>生成可读 slug</td></tr>
+      <tr><td><code>isAscii(text)</code></td><td>判断原文是否仅含 ASCII 字节</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import slugify
+println(slugify.slugify("Café &amp; 你好"))  // cafe-and-你好</code></pre>
+    <p><code>&amp;</code> 和 <code>@</code> 作为独立词转换，例如 <code>a&amp;b</code> 得到 <code>a-and-b</code>。这不是完整 Unicode 转写，也不是 URL 编码或路径安全验证；不同标题可能产生同一 slug。范围、C 所有权和测试证据见包内 README。</p>
+    <h2 id="verify">验证</h2>
+    <p>Windows <code>test/check.ps1</code> 与 Linux <code>test/check.sh</code> 均运行 C 边界、线程、XLang 边界和双语范例同输出；Linux C 路径使用 ASan/UBSan。2026-10-20：Windows 默认门禁新增核心及完整范例 AOT，<code>-SkipAot</code> 保留 C/JIT 快测；当前核心 AOT 通过，完整范例构建因共享的 <code>xl6ValueDataSnapshotV1</code> 缺符号失败。完整 AOT 尚未签收。</p>
+  </section>
+</main>
+</body>
+</html>

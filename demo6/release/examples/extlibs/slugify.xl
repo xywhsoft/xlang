@@ -3,24 +3,9 @@ import slugify
 
 
 func main(...) as int
-    // 博客文章标题 → URL slug
-    array<string> titles = [
-        "Hello World",
-        "深入理解类型系统",
-        "Café Culture in München",
-        "Tom & Jerry: The Movie",
-        "Release v2.0 -- 新特性"
-    ]
-    for t in titles
-        println(slugify.slugify(t))
-    end
-
-    // 文件名净化
-    println(slugify.slugify("报告: 2026 Q3 财报(最终版)"))
-
-    // 需要 ASCII-only slug 时可先检查
-    println("has cjk:", not slugify.isAscii("中文标题"))
-
-    println("slugify example: PASS")
+    println(slugify.slugify("Café & 你好"))
+    println(slugify.slugify("Ｆｕｌｌ１２３"))
+    println(slugify.slugify("Release v2.0 -- 新特性"))
+    println("ASCII:", slugify.isAscii("hello-world"))
     return 0
 end
