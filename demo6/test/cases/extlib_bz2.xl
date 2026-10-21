@@ -1,103 +1,126 @@
 import bz2
 
-
-
 func main(...) as int
+    assert bz2.decompressText(bz2.compress("你好，bz2")) == "你好，bz2"
+    assert bz2.decompressText(bz2.compress(""), smallMemory = true) == ""
     Buffer source = Buffer()
     source.append("abc")
     source.appendByte(0)
     source.appendByte(255)
-    Buffer packed = bz2.compress(source)
-    Buffer plain = bz2.decompress(packed)
-    if not (plain == source) then
-        return 1
-    end
+    Buffer packed = bz2.compress(source, level = bz2.BZ2_MIN_LEVEL)
+    assert packed[0] == 66 and packed[1] == 90 and packed[2] == 104 and packed[3] == 49
+    assert bz2.decompress(packed, smallMemory = true) == source
 
-    auto encoder = bz2.compressor()
-    encoder.update("left")
-    encoder.update("right")
-    encoder.finish()
+    // drain 移交独立 Buffer；finish 封存流，但不替调用者取走最后一段。
+    bz2.Bz2Compressor encoder = bz2.compressor(workFactor = bz2.BZ2_MIN_WORK_FACTOR)
+    assert encoder.valid and not encoder.finished
+    encoder.update("左")
     Buffer incremental = encoder.drain()
-    auto decoder = bz2.decompressor()
+    encoder.update("右")
+    encoder.update(source)
+    assert encoder.finish() and encoder.finish() and encoder.finished
+    incremental.append(encoder.drain())
+    assert encoder.drain().len() == 0
+    assert encoder.inputBytes == 6 + source.len()
+    assert encoder.outputBytes == incremental.len()
+    bz2.Bz2Decompressor decoder = bz2.decompressor(smallMemory = true)
+    assert decoder.valid and not decoder.finished
     decoder.update(incremental)
-    decoder.finish()
-    if decoder.drain().text() != "leftright" then
-        return 2
-    end
-    if decoder.members != 1 then
-        return 6
-    end
-
-    // 流式分块收集 + 字节计数器（进度回显基础）。
-    auto enc2 = bz2.compressor(6)
-    Buffer collected = Buffer()
-    enc2.update("aaaa")
-    collected.append(enc2.drain())
-    enc2.update("bbbb")
-    collected.append(enc2.drain())
-    enc2.finish()
-    collected.append(enc2.drain())
-    if enc2.inputBytes != 8 then
-        return 7
-    end
-    auto dec2 = bz2.decompressor()
-    dec2.update(collected)
-    dec2.finish()
-    if dec2.drain().text() != "aaaabbbb" then
-        return 8
-    end
-    if not dec2.finished then
-        return 9
-    end
-
-    // workFactor 调优参数与常量。
-    auto enc3 = bz2.compressor(bz2.BZ2_MAX_LEVEL, bz2.BZ2_MAX_WORK_FACTOR)
-    enc3.update("tune")
-    enc3.finish()
-    if bz2.decompress(enc3.drain()).text() != "tune" then
-        return 10
-    end
-    bool badFactor = false
-    try
-        bz2.compressor(9, 999)
-    catch ValueError e
-        badFactor = true
-    end
-    if not badFactor then
-        return 11
-    end
+    Buffer plain = decoder.drain()
+    assert decoder.finished and decoder.members == 1
+    assert decoder.finish() and decoder.finish()
+    assert decoder.drain().len() == 0
+    Buffer expected = Buffer()
+    expected.append("左右")
+    expected.append(source)
+    assert plain == expected
+    assert decoder.inputBytes == incremental.len() and decoder.outputBytes == expected.len()
 
     bool rejected = false
-    incremental[10] = incremental[10] ^ 1
     try
-        bz2.decompress(incremental)
-    catch CompressionError e
+        encoder.update("late")
+    catch RuntimeError e
         rejected = true
     end
-    if not rejected then
-        return 3
-    end
-
-    string sourcePath = "tmp/extlib_bz2_source.bin"
-    string packedPath = "tmp/extlib_bz2_stream.bz2"
-    string plainPath = "tmp/extlib_bz2_plain.bin"
-    file.writeBytes(sourcePath, source)
-    bz2.compressFile(sourcePath, packedPath)
-    bz2.decompressFile(packedPath, plainPath)
-    if file.readBytes(plainPath) != source then
-        return 4
-    end
-    bool overwriteRejected = false
+    assert rejected
+    rejected = false
     try
-        bz2.compressFile(sourcePath, packedPath, overwrite = false)
-    catch CompressionError e
-        overwriteRejected = true
+        decoder.update(packed)
+    catch RuntimeError e
+        rejected = true
     end
-    if not overwriteRejected then
-        return 5
+    assert rejected
+
+    Buffer joined = bz2.compress("one")
+    joined.append(bz2.compress(""))
+    joined.append(bz2.compress("two"))
+    bz2.Bz2Decompressor members = bz2.decompressor()
+    members.update(joined)
+    assert members.members == 3 and members.finished
+    assert members.finish() and members.drain().text() == "onetwo"
+    assert bz2.decompressText(joined) == "onetwo"
+    bz2.Bz2Compressor tuned = bz2.compressor(bz2.BZ2_MAX_LEVEL, bz2.BZ2_MAX_WORK_FACTOR)
+    tuned.update("tune")
+    tuned.finish()
+    assert bz2.decompressText(tuned.drain()) == "tune"
+
+    // 格式/截断沿 XRT 映射成 IOError；限额和参数错误保持各自类型。
+    incremental[10] = incremental[10] ^ 1
+    rejected = false
+    try
+        bz2.decompress(incremental)
+    catch IOError e
+        rejected = true
     end
-    file.delete(sourcePath)
-    file.delete(packedPath)
-    file.delete(plainPath)
+    assert rejected
+    rejected = false
+    try
+        bz2.decompress(Buffer())
+    catch IOError e
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        bz2.decompress(packed, maxOutput = 1)
+    catch RangeError e
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        bz2.compress("你", maxInput = 2)
+    catch RangeError e
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        bz2.decompress(packed, maxRatio = 4294967296)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        bz2.compressor(level = 10)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        bz2.compressor(workFactor = 251)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        bz2.decompressor(maxInput = 0)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
     return 0
 end

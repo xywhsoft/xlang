@@ -6,11 +6,12 @@ class Bz2ProgressState
     int lastTotal = 0
 end
 
-func main(...) as int
-    string sourcePath = "tmp/extlib_bz2_progress_source.txt"
-    string packedPath = "tmp/extlib_bz2_progress.bin"
-    string plainPath = "tmp/extlib_bz2_progress_plain.txt"
-    string cancelledPath = "tmp/extlib_bz2_progress_cancelled.bin"
+func exercise() as int
+    dir.createAll("build/test/bz2-progress")
+    string sourcePath = "build/test/bz2-progress/source.txt"
+    string packedPath = "build/test/bz2-progress/packed.bz2"
+    string plainPath = "build/test/bz2-progress/plain.txt"
+    string cancelledPath = "build/test/bz2-progress/cancelled.bz2"
     string text = ""
     int i = 0
     while i < 6000
@@ -43,6 +44,26 @@ func main(...) as int
     assert plainState.lastInput == plainState.lastTotal
     assert file.readText(plainPath) == text
 
+    // 零结尾 C 路径不能忽略 NUL 后缀。
+    string nulPacked = "build/test/bz2-progress/nul_packed.bz2"
+    string nulPlain = "build/test/bz2-progress/nul_plain.txt"
+    if file.exists(nulPacked) then file.delete(nulPacked) end
+    if file.exists(nulPlain) then file.delete(nulPlain) end
+    bool badPath = false
+    try
+        bz2.compressFile(sourcePath + "\0hidden", nulPacked)
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath and not file.exists(nulPacked)
+    badPath = false
+    try
+        bz2.decompressFile(packedPath, nulPlain + "\0hidden")
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath and not file.exists(nulPlain)
+
     bool cancelled = false
     try
         bz2.compressFile(sourcePath, cancelledPath, onProgress = func(int inputBytes,
@@ -55,8 +76,126 @@ func main(...) as int
     assert cancelled
     assert not file.exists(cancelledPath)
 
+    // 失败只清理本次临时文件，不覆盖旧目标；回调异常必须保持类型与原消息。
+    file.writeText(cancelledPath, "keep destination")
+    bool callbackError = false
+    try
+        bz2.compressFile(sourcePath, cancelledPath, onProgress = func(int a, int b, int c) as bool
+            throw ValueError "callback marker"
+        end)
+    catch ValueError e
+        assert e.message == "callback marker"
+        callbackError = true
+    end
+    assert callbackError
+    assert file.readText(cancelledPath) == "keep destination"
+
+    cancelled = false
+    try
+        bz2.decompressFile(packedPath, cancelledPath, onProgress = func(int a, int b, int c) as bool
+            return false
+        end)
+    catch CancelledError e
+        cancelled = true
+    end
+    assert cancelled and file.readText(cancelledPath) == "keep destination"
+
+    // 空文件仅触发最终进度，最终通知取消同样不能提交输出。
+    string emptyPath = "build/test/bz2-progress/empty.txt"
+    file.writeText(emptyPath, "")
+    Bz2ProgressState finalState = Bz2ProgressState()
+    cancelled = false
+    try
+        bz2.compressFile(emptyPath, cancelledPath, onProgress = func(int a, int b, int c) as bool
+            assert a == 0 and b == 0 and c > 0
+            finalState.calls += 1
+            return false
+        end)
+    catch CancelledError e
+        cancelled = true
+    end
+    assert cancelled and finalState.calls == 1
+    assert file.readText(cancelledPath) == "keep destination"
+
+    bool truncated = false
+    try
+        bz2.decompressFile(emptyPath, cancelledPath)
+    catch IOError e
+        truncated = true
+    end
+    assert truncated and file.readText(cancelledPath) == "keep destination"
+    file.delete(emptyPath)
+
+    // 嵌套调用有独立进度状态；UTF-8 路径也走同一事务文件路径。
+    string unicodePath = "build/test/bz2-progress/中文结果.txt"
+    Bz2ProgressState nested = Bz2ProgressState()
+    bz2.decompressFile(packedPath, unicodePath, onProgress = func(int a, int b, int c) as bool
+        nested.calls += 1
+        assert bz2.decompressText(bz2.compress("你好", level = 1)) == "你好"
+        return true
+    end)
+    assert nested.calls > 0 and file.readText(unicodePath) == text
+    bz2.compressFile(unicodePath, unicodePath, level = 4)
+    bz2.decompressFile(unicodePath, unicodePath)
+    assert file.readText(unicodePath) == text
+    file.delete(unicodePath)
+
+    bool overwriteRejected = false
+    try
+        bz2.compressFile(sourcePath, cancelledPath, overwrite = false)
+    catch ValueError e
+        overwriteRejected = true
+    end
+    assert overwriteRejected and file.readText(cancelledPath) == "keep destination"
+
+    // 缺失源文件、非法流以及回调异常均不得截断原目标。
+    bool missing = false
+    try
+        bz2.compressFile(sourcePath + ".missing", cancelledPath)
+    catch IOError e
+        missing = true
+    end
+    assert missing and file.readText(cancelledPath) == "keep destination"
+    callbackError = false
+    try
+        bz2.decompressFile(packedPath, cancelledPath, onProgress = func(int a, int b, int c) as bool
+            throw ValueError "decode callback marker"
+        end)
+    catch ValueError e
+        assert e.message == "decode callback marker"
+        callbackError = true
+    end
+    assert callbackError and file.readText(cancelledPath) == "keep destination"
+
+    // 目录中不能遗留事务临时文件。
+    for name in dir.files("build/test/bz2-progress")
+        assert not string.contains(string(name), ".xrt-bz2-")
+    end
+
     file.delete(sourcePath)
     file.delete(packedPath)
     file.delete(plainPath)
+    file.delete(cancelledPath)
     return 0
+end
+
+func cleanup(string name)
+    string target = "build/test/bz2-progress/" + name
+    if file.exists(target) then
+        file.delete(target)
+    end
+end
+
+func main(...) as int
+    try
+        return exercise()
+    finally
+        // 即使断言失败，也只清理本测试明确拥有的文件。
+        cleanup("source.txt")
+        cleanup("packed.bz2")
+        cleanup("plain.txt")
+        cleanup("cancelled.bz2")
+        cleanup("empty.txt")
+        cleanup("中文结果.txt")
+    end
 end
