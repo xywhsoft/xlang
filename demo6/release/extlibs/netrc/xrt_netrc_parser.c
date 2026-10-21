@@ -36,7 +36,9 @@ static void __xrtNetrcAdvance(xrt_netrc_scanner* pScanner)
 	char c;
 	if ( pScanner == NULL || pScanner->iPos >= pScanner->iSize ) { return; }
 	c = pScanner->pData[pScanner->iPos++];
-	if ( c == '\n' ) {
+	/* CRLF 由 LF 计行；已接受的单独 CR 分隔符也应计行。 */
+	if ( c == '\n' || (c == '\r' && (pScanner->iPos >= pScanner->iSize ||
+		pScanner->pData[pScanner->iPos] != '\n')) ) {
 		pScanner->iLine++;
 		pScanner->iColumn = 1u;
 	} else {

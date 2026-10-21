@@ -65,6 +65,15 @@ func main(...) as int
     bool locationKept = badToken and netrc.errorLine() == 1 and netrc.errorColumn() == 17
     assert locationKept, "scanner error must keep the quoted value location"
 
+    bool duplicateAfterCr = false
+    try
+        netrc.parse("machine h login a\rmachine h login b\n")
+    catch ConfigError e
+        duplicateAfterCr = true
+    end
+    bool crLocation = duplicateAfterCr and netrc.errorLine() == 2 and netrc.errorColumn() == 1 and netrc.errorOffset() == 18
+    assert crLocation, "standalone CR separator must advance the diagnostic line"
+
     bool badLimit = false
     try
         netrc.parse("machine h login a\n", maxInput = -1)

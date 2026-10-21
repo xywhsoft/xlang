@@ -283,6 +283,25 @@ static bool test_scanner_error_locations(void)
 		xrtValueRelease(pDocument);
 		if ( !bOk ) { return false; }
 	}
+	{
+		static const char sBareCr[] =
+			"machine h login a\rmachine h login b\n";
+		xrtnetrcerror Error;
+		xvalue* pDocument = xrtNetrcParseMemory(sBareCr,
+			sizeof(sBareCr) - 1u, NULL, &Error);
+		bool bOk = pDocument == NULL &&
+			Error.iCode == XRT_NETRC_ERROR_DUPLICATE &&
+			Error.iLine == 2u && Error.iColumn == 1u &&
+			Error.iOffset == 18u;
+		xrtValueRelease(pDocument);
+		if ( !bOk ) {
+			fprintf(stderr, "bare CR diagnostic: code=%d line=%llu column=%llu offset=%llu\n",
+				Error.iCode, (unsigned long long)Error.iLine,
+				(unsigned long long)Error.iColumn,
+				(unsigned long long)Error.iOffset);
+			return false;
+		}
+	}
 	return true;
 }
 
