@@ -1,0 +1,15 @@
+import dinov3
+
+func main(...) as int
+    assert arg.length == 3, "usage: live_model.xl model.onnx image.png"
+    string modelPath = string(arg[1])
+    string imagePath = string(arg[2])
+    auto model = dinov3.DinoV3(modelPath)
+    model.set_direct_resize(true)
+    auto output = model.op_call(imagePath)
+    assert output.ok(), output.error()
+    assert output.count() == 384, "unexpected embedding size"
+    assert output.shape_json() == "[1,384]", "unexpected embedding shape"
+    println(output.to_json())
+    return 0
+end

@@ -1,0 +1,23 @@
+import dinov3
+
+func main(...) as int
+    auto model = dinov3.DinoV3("__missing_dinov3_model__.onnx")
+    bool rejected = false
+    try
+        model.set_input_name("image\0hidden")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "input name must reject embedded NUL"
+
+    rejected = false
+    try
+        model.set_output_names("[\"embedding\"]\0hidden")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "output names must reject embedded NUL"
+    assert model.set_input_name("image")
+    assert model.set_output_names("[\"embedding\"]")
+    return 0
+end

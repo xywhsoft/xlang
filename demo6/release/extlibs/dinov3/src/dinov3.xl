@@ -1,17 +1,30 @@
 import opencv
 import onnxruntime
 
-const string DEFAULT_MODEL = "__missing_dinov3_model__.onnx"
-const string DEFAULT_INPUT_NAME = "image"
-const string DEFAULT_OUTPUT_NAMES = "[\"embedding\"]"
-
 extern "dinov3_version_native" func dinov3_version_native() as string
-extern "dinov3_available_native" func dinov3_available_native() as int
+extern "dinov3_available_native" func dinov3_available_native() as c_int
 extern "dinov3_last_error_native" func dinov3_last_error_native() as string
-extern "dinov3_embedding_json_native" func dinov3_embedding_json_native(point result_handle) as string
-extern "dinov3_output_json_native" func dinov3_output_json_native(point result_handle, string source_path) as string
+extern "dinov3_embedding_json_native" func dinov3_embedding_json_raw_native(point result_handle) as point
+extern "dinov3_output_json_native" func dinov3_output_json_raw_native(point result_handle, string source_path) as point
 extern "dinov3_l2_norm_native" func dinov3_l2_norm_native(point result_handle) as float
 extern "dinov3_cosine_native" func dinov3_cosine_native(point left_handle, point right_handle) as float
+extern "ort_session_run_tensor_fast_native" func dinov3_run_tensor_native(point session, string input_name, point tensor, string output_names) as point
+extern "ort_result_release_native" func dinov3_result_release_native(point handle) as c_int
+extern "ort_result_float_shape_json_native" func dinov3_result_shape_native(point handle) as string
+extern "ort_result_float_count_native" func dinov3_result_count_native(point handle) as c_int
+extern "ort_result_float_at_native" func dinov3_result_at_native(point handle, c_int index) as float
+
+func dinov3_embedding_json_native(point result_handle) as string
+	point raw = dinov3_embedding_json_raw_native(result_handle)
+	if raw == null then return "[]" end
+	return __xl_runtime.takeCstr(raw)
+end
+
+func dinov3_output_json_native(point result_handle, string source_path) as string
+	point raw = dinov3_output_json_raw_native(result_handle, source_path)
+	if raw == null then return "{}" end
+	return __xl_runtime.takeCstr(raw)
+end
 
 func dinov3_resize_width(int width, int height, int short_side) as int
 	if width <= 0 or height <= 0 then
@@ -68,12 +81,18 @@ class DinoV3Output
 
 	func release() as bool
 		if self.handle != null then
-			RunResult result = onnxruntime.RunResultFromHandle(self.handle)
-			result.release()
+			dinov3_result_release_native(self.handle)
 			self.handle = null
 			return true
 		end
 		return false
+	end
+
+	destroy()
+		if self.handle != null then
+			dinov3_result_release_native(self.handle)
+			self.handle = null
+		end
 	end
 
 	func ok() as bool
@@ -89,18 +108,16 @@ class DinoV3Output
 	end
 
 	func shape_json() as string
-		RunResult result = onnxruntime.RunResultFromHandle(self.handle)
-		return result.float_shape_json()
+		return dinov3_result_shape_native(self.handle)
 	end
 
 	func count() as int
-		RunResult result = onnxruntime.RunResultFromHandle(self.handle)
-		return result.float_count()
+		return dinov3_result_count_native(self.handle)
 	end
 
 	func at(int index) as float
-		RunResult result = onnxruntime.RunResultFromHandle(self.handle)
-		return result.float_at(index)
+		if index < 0 or index > 2147483647 then return 0 end
+		return dinov3_result_at_native(self.handle, c_int(index))
 	end
 
 	func embedding_json() as string
@@ -133,24 +150,6 @@ class DinoV3Model
     float std1
     float std2
 
-	create()
-		self.model_path = "__missing_dinov3_model__.onnx"
-		self.session = onnxruntime.InferenceSession(self.model_path)
-		self.input_name = "image"
-		self.output_names = "[\"embedding\"]"
-		self.input_width = 224
-		self.input_height = 224
-		self.resize_short = 256
-		self.keep_aspect = true
-		self.scale = 0.0039215689
-		self.mean0 = 0.485
-		self.mean1 = 0.456
-		self.mean2 = 0.406
-		self.std0 = 0.229
-		self.std1 = 0.224
-		self.std2 = 0.225
-	end
-
 	create(string model_path)
 		self.model_path = model_path
 		self.session = onnxruntime.InferenceSession(self.model_path)
@@ -182,6 +181,9 @@ class DinoV3Model
 		if value == "" then
 			return false
 		end
+		if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+			throw ValueError "dinov3 input name contains NUL"
+		end
 		self.input_name = value
 		return true
 	end
@@ -189,6 +191,9 @@ class DinoV3Model
 	func set_output_names(string value) as bool
 		if value == "" then
 			return false
+		end
+		if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+			throw ValueError "dinov3 output names contain NUL"
 		end
 		self.output_names = value
 		return true
@@ -239,29 +244,19 @@ class DinoV3Model
 			Image resized = opencv.resize(rgb, resize_w, resize_h)
 			Image cropped = dinov3_center_crop(resized, self.input_width, self.input_height)
 			TensorObject tensor = onnxruntime.TensorFromOpenCV(cropped.handle, self.scale, self.mean0, self.mean1, self.mean2, self.std0, self.std1, self.std2)
-			RunResult result = self.session.run_tensor_fast(self.input_name, tensor, self.output_names)
-			return DinoV3Output(result.handle, image_path)
+			point result = dinov3_run_tensor_native(self.session.handle, self.input_name, tensor.handle, self.output_names)
+			return DinoV3Output(result, image_path)
 		end
 		Image direct = opencv.resize(rgb, self.input_width, self.input_height)
 		TensorObject direct_tensor = onnxruntime.TensorFromOpenCV(direct.handle, self.scale, self.mean0, self.mean1, self.mean2, self.std0, self.std1, self.std2)
-		RunResult direct_result = self.session.run_tensor_fast(self.input_name, direct_tensor, self.output_names)
-		return DinoV3Output(direct_result.handle, image_path)
+		point direct_result = dinov3_run_tensor_native(self.session.handle, self.input_name, direct_tensor.handle, self.output_names)
+		return DinoV3Output(direct_result, image_path)
 	end
 
 end
 
-func dinov3_DinoV3() as DinoV3Model
-	return DinoV3Model()
-end
-
 func dinov3_DinoV3(string model_path) as DinoV3Model
 	return DinoV3Model(model_path)
-end
-
-func dinov3_embedding_json(string image_path) as string
-	DinoV3Model model = DinoV3Model()
-	DinoV3Output result = model.op_call(image_path)
-	return result.embedding_json()
 end
 
 func dinov3_embedding_json(string model_path, string image_path) as string
@@ -270,26 +265,10 @@ func dinov3_embedding_json(string model_path, string image_path) as string
 	return result.embedding_json()
 end
 
-func dinov3_infer_json(string image_path) as string
-	DinoV3Model model = DinoV3Model()
-	DinoV3Output result = model.op_call(image_path)
-	return result.to_json()
-end
-
 func dinov3_infer_json(string model_path, string image_path) as string
 	DinoV3Model model = DinoV3Model(model_path)
 	DinoV3Output result = model.op_call(image_path)
 	return result.to_json()
-end
-
-func dinov3_similarity(string left_image_path, string right_image_path) as float
-	DinoV3Model model = DinoV3Model()
-	DinoV3Output left = model.op_call(left_image_path)
-	DinoV3Output right = model.op_call(right_image_path)
-	if left.ok() == false or right.ok() == false then
-		return 0.0
-	end
-	return dinov3_cosine_native(left.handle, right.handle)
 end
 
 func dinov3_similarity(string model_path, string left_image_path, string right_image_path) as float
@@ -300,10 +279,6 @@ func dinov3_similarity(string model_path, string left_image_path, string right_i
 		return 0.0
 	end
 	return dinov3_cosine_native(left.handle, right.handle)
-end
-
-func dinov3_cosine_similarity(string left_image_path, string right_image_path) as float
-	return dinov3_similarity(left_image_path, right_image_path)
 end
 
 func dinov3_cosine_similarity(string model_path, string left_image_path, string right_image_path) as float
@@ -322,40 +297,20 @@ func dinov3_last_error() as string
 	return dinov3_last_error_native()
 end
 
-export func DinoV3() as DinoV3Model
-    return dinov3_DinoV3()
-end
-
 export func DinoV3(string p0) as DinoV3Model
     return dinov3_DinoV3(p0)
-end
-
-export func embedding_json(string p0) as string
-    return dinov3_embedding_json(p0)
 end
 
 export func embedding_json(string p0, string p1) as string
     return dinov3_embedding_json(p0, p1)
 end
 
-export func infer_json(string p0) as string
-    return dinov3_infer_json(p0)
-end
-
 export func infer_json(string p0, string p1) as string
     return dinov3_infer_json(p0, p1)
 end
 
-export func similarity(string p0, string p1) as float
-    return dinov3_similarity(p0, p1)
-end
-
 export func similarity(string p0, string p1, string p2) as float
     return dinov3_similarity(p0, p1, p2)
-end
-
-export func cosine_similarity(string p0, string p1) as float
-    return dinov3_cosine_similarity(p0, p1)
 end
 
 export func cosine_similarity(string p0, string p1, string p2) as float

@@ -1,0 +1,34 @@
+import dinov3
+
+string parallelModelPath = ""
+string parallelImagePath = ""
+float parallelExpected = 0.0
+
+func inferOnce() as int
+    auto model = dinov3.DinoV3(parallelModelPath)
+    model.set_direct_resize(true)
+    auto output = model.op_call(parallelImagePath)
+    if not output.ok() or output.count() != 384 then return 1 end
+    float first = output.at(0)
+    output.release()
+    if first < parallelExpected - 0.00001 or first > parallelExpected + 0.00001 then return 2 end
+    return 0
+end
+
+func main(...) as int
+    assert arg.length == 3, "usage: parallel_model.xl model.onnx image.png"
+    parallelModelPath = string(arg[1])
+    parallelImagePath = string(arg[2])
+    auto baselineModel = dinov3.DinoV3(parallelModelPath)
+    baselineModel.set_direct_resize(true)
+    auto baseline = baselineModel.op_call(parallelImagePath)
+    assert baseline.ok() and baseline.count() == 384, baseline.error()
+    parallelExpected = baseline.at(0)
+    baseline.release()
+    thread first = thread(inferOnce)
+    thread second = thread(inferOnce)
+    assert first.wait() and second.wait(), "worker wait failed"
+    assert first.exitCode() == 0 and second.exitCode() == 0, "parallel inference failed"
+    println("dinov3 parallel call: PASS")
+    return 0
+end

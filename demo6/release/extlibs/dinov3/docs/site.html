@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>dinov3 - 扩展库 - xlang</title>
+  <meta name="description" content="使用 ONNX Runtime 提取图像的 DinoV3 特征向量。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / dinov3</p><h1>dinov3</h1>
+    <p class="extlib-lead">从图片提取特征向量，并比较两张图片的相似度。</p>
+    <p>依赖 OpenCV 与 ONNX Runtime。模型权重须由使用者提供；包不包含权重，也不假定所有 DinoV3 导出模型具有相同的输入、输出与归一化参数。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>dinov3.DinoV3(modelPath)</code></td><td>创建模型对象</td></tr>
+      <tr><td><code>model.op_call(imagePath)</code></td><td>运行图片推理，返回拥有型结果</td></tr>
+      <tr><td><code>output.embedding_json()</code></td><td>读取浮点向量 JSON</td></tr>
+      <tr><td><code>output.shape_json() / output.count() / output.at(i)</code></td><td>读取张量维度与元素</td></tr>
+      <tr><td><code>dinov3.similarity(model, left, right)</code></td><td>计算余弦相似度</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import dinov3
+
+auto model = dinov3.DinoV3(modelPath)
+model.set_direct_resize(true)
+auto output = model.op_call(imagePath)
+assert output.ok(), output.error()
+println(output.count())
+println(output.embedding_json())</code></pre>
+    <p>以上直接缩放配置适用于已验证的 224×224、384 维模型。其他模型需核对输入/输出名称、尺寸与归一化参数。C/XLang 同图范例在包内 <code>examples/</code>；设置 <code>DINOV3_MODEL</code> 与 <code>DINOV3_TEST_IMAGE</code> 后可运行包级真实模型门禁，另可加 <code>-ParallelLive</code> 做两线程独立调用。两端 384 个元素和两线程结果已核对；完整 AOT 仍受共享主线阻断，当前不标记为生产发布完成。</p>
+  </section>
+</main>
+</body>
+</html>

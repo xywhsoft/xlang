@@ -24,13 +24,9 @@ assert output.embedding_json() == "[]", "dinov3 missing output embedding failed"
 assert output.to_json() == "{}", "dinov3 missing output json failed"
 assert output.l2_norm() == 0, "dinov3 missing output norm failed"
 
-assert dinov3.embedding_json("__missing_image__.png") == "[]", "dinov3 embedding_json default failed"
 assert dinov3.embedding_json("__missing_dinov3_model__.onnx", "__missing_image__.png") == "[]", "dinov3 embedding_json model failed"
-assert dinov3.infer_json("__missing_image__.png") == "{}", "dinov3 infer_json default failed"
 assert dinov3.infer_json("__missing_dinov3_model__.onnx", "__missing_image__.png") == "{}", "dinov3 infer_json model failed"
-assert dinov3.similarity("__missing_left__.png", "__missing_right__.png") == 0, "dinov3 similarity default failed"
 assert dinov3.similarity("__missing_dinov3_model__.onnx", "__missing_left__.png", "__missing_right__.png") == 0, "dinov3 similarity model failed"
-assert dinov3.cosine_similarity("__missing_left__.png", "__missing_right__.png") == 0, "dinov3 cosine default failed"
 assert dinov3.cosine_similarity("__missing_dinov3_model__.onnx", "__missing_left__.png", "__missing_right__.png") == 0, "dinov3 cosine model failed"
 
 assert output.release() == false, "dinov3 output release failed"

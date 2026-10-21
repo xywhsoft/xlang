@@ -1,0 +1,17 @@
+#ifndef XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_VALUE_CONTAINER
+#endif
+#ifndef XRT_MODULE_JSON
+#define XRT_MODULE_JSON
+#endif
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+#ifndef XRT_MODULE_ONCE
+#define XRT_MODULE_ONCE
+#endif
+#ifndef XRT_MODULE_THREAD_KEY
+#define XRT_MODULE_THREAD_KEY
+#endif
+#define XRT_IMPLEMENTATION
+#include "xrt.h"

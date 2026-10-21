@@ -11,8 +11,16 @@
                                   ],
                      "xlSources":  [
                                        "src/dinov3.xl"
+                                   ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_VALUE_CONTAINER",
+                                        "XRT_MODULE_JSON",
+                                        "XRT_MODULE_BUFFER",
+                                        "XRT_MODULE_ONCE",
+                                        "XRT_MODULE_THREAD_KEY"
                                    ]
                  },
+    "coverage": { "mode": "suite", "tests": ["test/nul_names.xl"] },
     "links":  [
 
               ],

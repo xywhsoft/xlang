@@ -1,0 +1,7 @@
+import dinov3
+
+func main(...) as int
+    bool ready = dinov3.available()
+    if ready then return 0 end
+    return 0
+end
