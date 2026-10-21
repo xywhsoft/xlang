@@ -1,89 +1,102 @@
-extern "xpkcs_get_tag" func __pkcs_tag(string der_hex) as int
-extern "xpkcs_get_length" func __pkcs_len(string der_hex) as int
-extern "xpkcs_get_content" func __pkcs_content(string der_hex) as string
-extern "xpkcs_encode_int" func __pkcs_enc_int(int value) as string
-extern "xpkcs_decode_int" func __pkcs_dec_int(string der_hex) as int
-extern "xpkcs_encode_oid" func __pkcs_enc_oid(string dotted) as string
-extern "xpkcs_decode_oid" func __pkcs_dec_oid(string der_hex) as string
-extern "xpkcs_wrap_sequence" func __pkcs_seq(string content_hex) as string
-extern "xpkcs_wrap_set" func __pkcs_set(string content_hex) as string
-extern "xpkcs_encode_octet" func __pkcs_oct(string data_hex) as string
-extern "xpkcs_encode_null" func __pkcs_null() as string
-extern "xpkcs_encode_bitstring" func __pkcs_bits(string data_hex) as string
-extern "xpkcs_concat" func __pkcs_cat(string a, string b) as string
-extern "xpkcs_der_len" func __pkcs_dlen(string der_hex) as int
-extern "xpkcs_next_offset" func __pkcs_next(string der_hex, int offset) as int
-extern "xpkcs_tag_name" func __pkcs_tname(string der_hex) as string
-extern "xpkcs_last_error" func __pkcs_last_error() as string
+// 常用 ASN.1/DER 构件的严格十六进制接口；非法编码直接抛异常。
+extern "xl6_xrt_last_error_text" func __pkcs_error() as string
+extern "xpkcs_get_tag" func __pkcs_tag(string derHex) as int
+extern "xpkcs_get_length" func __pkcs_length(string derHex) as int
+extern "xpkcs_get_content" func __pkcs_content(string derHex) as point
+extern "xpkcs_encode_int" func __pkcs_encode_int(int value) as point
+extern "xpkcs_decode_int_value" func __pkcs_decode_int(string derHex) as var
+extern "xpkcs_encode_oid" func __pkcs_encode_oid(string dotted) as point
+extern "xpkcs_decode_oid" func __pkcs_decode_oid(string derHex) as point
+extern "xpkcs_wrap_sequence" func __pkcs_sequence(string contentHex) as point
+extern "xpkcs_wrap_set" func __pkcs_set(string contentHex) as point
+extern "xpkcs_encode_octet" func __pkcs_octet(string contentHex) as point
+extern "xpkcs_encode_null" func __pkcs_null() as point
+extern "xpkcs_encode_bitstring" func __pkcs_bitstring(string contentHex) as point
+extern "xpkcs_concat" func __pkcs_concat(string left, string right) as point
+extern "xpkcs_der_len" func __pkcs_der_len(string derHex) as int
+extern "xpkcs_next_offset" func __pkcs_next(string derHex, int offset) as int
+extern "xpkcs_tag_name" func __pkcs_tag_name(string derHex) as point
 
-
-
-export func getTag(string der_hex) as int
-    return __pkcs_tag(der_hex)
+// C 接口使用零结尾文本，不能把含 NUL 的 XLang 字符串当成有效前缀。
+func __pkcs_text(string value) as string
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "pkcs text contains NUL"
+    end
+    return value
 end
 
-export func getLength(string der_hex) as int
-    return __pkcs_len(der_hex)
+func __pkcs_take(point value) as string
+    if value == null then throw ValueError __pkcs_error() end
+    return __xl_runtime.takeCstr(value)
 end
 
-export func getContent(string der_hex) as string
-    return __pkcs_content(der_hex)
+func __pkcs_checked(int value) as int
+    if value < 0 then throw ValueError __pkcs_error() end
+    return value
+end
+
+export func getTag(string derHex) as int
+    return __pkcs_checked(__pkcs_tag(__pkcs_text(derHex)))
+end
+
+export func getLength(string derHex) as int
+    return __pkcs_checked(__pkcs_length(__pkcs_text(derHex)))
+end
+
+export func getContent(string derHex) as string
+    return __pkcs_take(__pkcs_content(__pkcs_text(derHex)))
 end
 
 export func encodeInt(int value) as string
-    return __pkcs_enc_int(value)
+    return __pkcs_take(__pkcs_encode_int(value))
 end
 
-export func decodeInt(string der_hex) as int
-    return __pkcs_dec_int(der_hex)
+export func decodeInt(string derHex) as int
+    var value = __pkcs_decode_int(__pkcs_text(derHex))
+    if value == null then throw ValueError __pkcs_error() end
+    return int(value)
 end
 
 export func encodeOid(string dotted) as string
-    return __pkcs_enc_oid(dotted)
+    return __pkcs_take(__pkcs_encode_oid(__pkcs_text(dotted)))
 end
 
-export func decodeOid(string der_hex) as string
-    return __pkcs_dec_oid(der_hex)
+export func decodeOid(string derHex) as string
+    return __pkcs_take(__pkcs_decode_oid(__pkcs_text(derHex)))
 end
 
-export func wrapSequence(string content_hex) as string
-    return __pkcs_seq(content_hex)
+export func wrapSequence(string contentHex) as string
+    return __pkcs_take(__pkcs_sequence(__pkcs_text(contentHex)))
 end
 
-export func wrapSet(string content_hex) as string
-    return __pkcs_set(content_hex)
+export func wrapSet(string contentHex) as string
+    return __pkcs_take(__pkcs_set(__pkcs_text(contentHex)))
 end
 
-export func encodeOctet(string data_hex) as string
-    return __pkcs_oct(data_hex)
+export func encodeOctet(string contentHex) as string
+    return __pkcs_take(__pkcs_octet(__pkcs_text(contentHex)))
 end
 
 export func encodeNull() as string
-    return __pkcs_null()
+    return __pkcs_take(__pkcs_null())
 end
 
-export func encodeBitString(string data_hex) as string
-    return __pkcs_bits(data_hex)
+export func encodeBitString(string contentHex) as string
+    return __pkcs_take(__pkcs_bitstring(__pkcs_text(contentHex)))
 end
 
-export func concat(string a, string b) as string
-    return __pkcs_cat(a, b)
+export func concat(string left, string right) as string
+    return __pkcs_take(__pkcs_concat(__pkcs_text(left), __pkcs_text(right)))
 end
 
-export func derLen(string der_hex) as int
-    return __pkcs_dlen(der_hex)
+export func derLen(string derHex) as int
+    return __pkcs_checked(__pkcs_der_len(__pkcs_text(derHex)))
 end
 
-export func nextOffset(string der_hex, int offset) as int
-    return __pkcs_next(der_hex, offset)
+export func nextOffset(string derHex, int offset) as int
+    return __pkcs_checked(__pkcs_next(__pkcs_text(derHex), offset))
 end
 
-export func tagName(string der_hex) as string
-    return __pkcs_tname(der_hex)
-end
-
-
-
-export func lastError() as string
-    return __pkcs_last_error()
+export func tagName(string derHex) as string
+    return __pkcs_take(__pkcs_tag_name(__pkcs_text(derHex)))
 end

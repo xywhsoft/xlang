@@ -70,12 +70,19 @@ func main(...) as int
     auto c = pkcs.concat("0102", "0304")
     assert c == "01020304", "concat works"
 
-    // Source extension packages report native failures through lastError().
-    assert pkcs.decodeInt("0202007f") == 0, "non-canonical INTEGER fails"
-    assert pkcs.lastError() != "", "non-canonical INTEGER provides error"
-
-    assert pkcs.wrapSet(pkcs.concat(pkcs.encodeNull(), der1)) == "", "non-canonical SET order fails"
-    assert pkcs.lastError() != "", "non-canonical SET provides error"
+    // 失败直接抛异常，合法整数零不会与解码错误混淆。
+    int failures = 0
+    try
+        pkcs.decodeInt("0202007f")
+    catch ValueError error
+        failures += 1
+    end
+    try
+        pkcs.wrapSet(pkcs.concat(pkcs.encodeNull(), der1))
+    catch ValueError error
+        failures += 1
+    end
+    assert failures == 2, "invalid DER raises an error"
 
     return 0
 end

@@ -1,0 +1,96 @@
+import pkcs
+
+assert pkcs.decodeInt(pkcs.encodeInt(0)) == 0
+assert pkcs.decodeInt(pkcs.encodeInt(9223372036854775807)) == 9223372036854775807
+assert pkcs.wrapSequence("") == "3000"
+assert pkcs.wrapSet("") == "3100"
+assert pkcs.wrapSet("020100") == "3103020100"
+assert pkcs.wrapSet("020100020101") == "3106020100020101"
+assert pkcs.wrapSequence("020101020100") == "3006020101020100"
+assert pkcs.encodeBitString("a0") == "030200a0"
+assert pkcs.getTag("020100") == 2
+assert pkcs.getLength("020100") == 1
+assert pkcs.nextOffset("0201000500", 0) == 3
+assert pkcs.nextOffset("0201000500", 3) == 5
+assert pkcs.getContent("0400") == ""
+
+// 保存旧结果并超过原实现的八个复用槽。
+string saved = pkcs.encodeInt(12345)
+for i in range(64)
+    pkcs.encodeInt(i)
+end
+assert saved == "02023039"
+
+int failures = 0
+try
+    pkcs.decodeInt("0202007f")
+catch e
+    failures += 1
+end
+try
+    pkcs.decodeInt("0500")
+catch e
+    failures += 1
+end
+try
+    pkcs.encodeOid("1.2.bad")
+catch e
+    failures += 1
+end
+try
+    pkcs.wrapSet("0500020101")
+catch e
+    failures += 1
+end
+try
+    pkcs.wrapSet("020101020100")
+catch ValueError
+    failures += 1
+end
+try
+    pkcs.wrapSequence("0201")
+catch e
+    failures += 1
+end
+try
+    pkcs.derLen("0201000500")
+catch e
+    failures += 1
+end
+try
+    pkcs.nextOffset("0201010500", 1)
+catch e
+    failures += 1
+end
+try
+    pkcs.nextOffset("0201010201", 0)
+catch ValueError e
+    failures += 1
+end
+try
+    pkcs.nextOffset("0201013106020101020100", 0)
+catch ValueError e
+    failures += 1
+end
+try
+    pkcs.concat("abc", "00")
+catch e
+    failures += 1
+end
+try
+    pkcs.decodeInt("020101\0hidden")
+catch ValueError e
+    failures += 1
+end
+try
+    pkcs.encodeOid("1.2.3\0.invalid")
+catch ValueError e
+    failures += 1
+end
+try
+    pkcs.concat("0500", "0500\0hidden")
+catch ValueError e
+    failures += 1
+end
+assert failures == 14
+println("pkcs boundaries: PASS")

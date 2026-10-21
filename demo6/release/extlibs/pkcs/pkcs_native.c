@@ -1,472 +1,380 @@
-/*
-	PKCS DER 便捷接口。
-	这一层只处理 xlang 使用的 hex 文本；DER 规则、边界和编码全部复用 XRT ASN.1 模块。
-*/
+/* PKCS 常用 DER 构件：编码与校验交给 XRT ASN.1，文本结果由调用方持有。 */
+#ifndef XRT_MODULE_ASN1_DER
+#define XRT_MODULE_ASN1_DER
+#endif
+#ifndef XRT_MODULE_BUFFER_HEX
+#define XRT_MODULE_BUFFER_HEX
+#endif
+#ifndef XRT_MODULE_VALUE
+#define XRT_MODULE_VALUE
+#endif
+#ifndef XRT_MODULE_STRING
+#define XRT_MODULE_STRING
+#endif
+#include "xrt.h"
+#include "include/pkcs_native.h"
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
-#include <limits.h>
-
-#define XRT_MODULE_ASN1_DER
-#define XRT_MODULE_BUFFER_HEX
-#include "xrt.h"
-
 #define XPKCS_DOMAIN "xlang.extlib.pkcs"
-#define XPKCS_RESULT_SLOTS 8u
 
-#if defined(_WIN32) || defined(_WIN64)
-#define XPKCS_THREAD __declspec(thread)
-#elif defined(__GNUC__) || defined(__clang__)
-#define XPKCS_THREAD __thread
-#else
-#define XPKCS_THREAD
-#endif
-
-static XPKCS_THREAD xbuffer g_xpkcs_results[XPKCS_RESULT_SLOTS];
-static XPKCS_THREAD size_t g_xpkcs_result_index;
-
-
-
-static void xpkcs_error(xerrkind Kind, cstr sMessage)
+static void xpkcs_error(xerrkind kind, const char* message)
 {
-    xrtSetErrorInfo(Kind, XPKCS_DOMAIN, 0, sMessage);
+    xrtSetErrorInfo(kind, XPKCS_DOMAIN, 0, message);
 }
 
-
-
-/* 不引入 XRT string 模块；封装层只需要构造借用文本视图。 */
-static xstrview xpkcs_view(cstr sText)
+static xstrview xpkcs_view(const char* text)
 {
-    return (xstrview){ sText, sText != NULL ? strlen(sText) : 0u };
+    return (xstrview){text, text != NULL ? strlen(text) : 0u};
 }
 
-
-
-/* 遵循源码型扩展库的统一失败查询约定。 */
-cstr xpkcs_last_error(void)
+static xbuffer* xpkcs_hex(const char* hex, bool allow_empty)
 {
-    const xerror* pError = xrtGetError();
-    cstr sMessage = pError != NULL ? xrtErrorMessage(pError) : NULL;
-
-    return sMessage != NULL ? sMessage : "";
+    xbuffer* bytes;
+    if (hex == NULL) {
+        xpkcs_error(XERR_ARGUMENT, "DER hex text is null");
+        return NULL;
+    }
+    bytes = xrtBufferFromHex(xpkcs_view(hex), 0u);
+    if (bytes == NULL) return NULL;
+    if (!allow_empty && bytes->Size == 0u) {
+        xrtBufferDestroy(bytes);
+        xpkcs_error(XERR_VALUE, "DER value is empty");
+        return NULL;
+    }
+    return bytes;
 }
 
-
-
-/* 把临时 DER 缓冲安全转交线程局部结果槽。 */
-static cstr xpkcs_result_hex(const xbuffer* pDer)
+static xbuffer* xpkcs_one(const char* hex, xdervalue* value)
 {
-    str sHex;
-
-    if (pDer == NULL) {
-        xpkcs_error(XERR_ARGUMENT, "DER result buffer is invalid");
-        return "";
+    xbuffer* bytes = xpkcs_hex(hex, false);
+    xdercursor cursor;
+    if (bytes == NULL) return NULL;
+    if (!xrtDerValidate(bytes->Data, bytes->Size) ||
+        !xrtDerInit(&cursor, bytes->Data, bytes->Size) ||
+        xrtDerRead(&cursor, value) != XDER_VALUE || !xrtDerDone(&cursor)) {
+        xrtBufferDestroy(bytes);
+        xpkcs_error(XERR_VALUE, "input must contain one canonical DER value");
+        return NULL;
     }
-    sHex = xrtHexEncodeNew(pDer->Data, pDer->Size, 0u);
-    if (sHex == NULL) {
-        xpkcs_error(XERR_MEMORY, "could not encode DER result as hexadecimal text");
-        return "";
-    }
-    {
-        size_t iSlot = g_xpkcs_result_index++ % XPKCS_RESULT_SLOTS;
-        xbuffer* pSlot = &g_xpkcs_results[iSlot];
-
-        xrtBufferUnit(pSlot);
-        if (!xrtBufferAppend(pSlot, (xbytesview){ (cbytes)sHex, strlen(sHex) }) ||
-            !xrtBufferAppendByte(pSlot, 0)) {
-            xrtFree(sHex);
-            xpkcs_error(XERR_MEMORY, "could not store DER hexadecimal result");
-            return "";
-        }
-        xrtFree(sHex);
-        xrtClearError();
-        return (cstr)pSlot->Data;
-    }
+    return bytes;
 }
 
-
-
-/* 把一段 UTF-8/ASCII 文本写入线程局部结果槽。 */
-static cstr xpkcs_result_text(xbytesview Text)
+static void* xpkcs_result(const xbuffer* bytes)
 {
-    size_t iSlot = g_xpkcs_result_index++ % XPKCS_RESULT_SLOTS;
-    xbuffer* pSlot = &g_xpkcs_results[iSlot];
+    return xrtHexEncodeNew(bytes->Data, bytes->Size, 0u);
+}
 
-    xrtBufferUnit(pSlot);
-    if (!xrtBufferAppend(pSlot, Text) || !xrtBufferAppendByte(pSlot, 0)) {
-        xpkcs_error(XERR_MEMORY, "could not store text result");
-        return "";
-    }
+int64_t xpkcs_get_tag(const char* hex)
+{
+    xdervalue value;
+    xbuffer* bytes = xpkcs_one(hex, &value);
+    int64_t tag;
+    if (bytes == NULL) return -1;
+    tag = value.Raw.Data[0];
+    xrtBufferDestroy(bytes);
     xrtClearError();
-    return (cstr)pSlot->Data;
+    return tag;
 }
 
-
-
-/* 解码严格 hex 输入，并视需要求为只含一个完整 DER 值。 */
-static xbuffer* xpkcs_parse(cstr sHex, xdervalue* pValue, bool bWhole)
+int64_t xpkcs_get_length(const char* hex)
 {
-    xbuffer* pDer;
-    xdercursor Cursor;
-
-    if ((sHex == NULL) || (pValue == NULL)) {
-        xpkcs_error(XERR_ARGUMENT, "DER hexadecimal text is invalid");
-        return NULL;
-    }
-    pDer = xrtBufferFromHex(xpkcs_view(sHex), 0u);
-    if ((pDer == NULL) || (pDer->Size == 0u) ||
-        (bWhole && !xrtDerValidate(pDer->Data, pDer->Size)) ||
-        !xrtDerInit(&Cursor, pDer->Data, pDer->Size) ||
-        (xrtDerRead(&Cursor, pValue) != XDER_VALUE) ||
-        (bWhole && !xrtDerDone(&Cursor))) {
-        xrtBufferDestroy(pDer);
-        xpkcs_error(XERR_PROTOCOL, "input must contain exactly one valid DER value");
-        return NULL;
-    }
-    return pDer;
-}
-
-
-
-/* 解码 hex 内容，空串在封装类 API 中合法。 */
-static xbuffer* xpkcs_content(cstr sHex)
-{
-    if (sHex == NULL) {
-        xpkcs_error(XERR_ARGUMENT, "hexadecimal text is invalid");
-        return NULL;
-    }
-    return xrtBufferFromHex(xpkcs_view(sHex), 0u);
-}
-
-
-
-long long xpkcs_get_tag(cstr sHex)
-{
-    xbuffer* pDer;
-    xdervalue Value;
-    long long iResult;
-
-    pDer = xpkcs_parse(sHex, &Value, true);
-    if (pDer == NULL) { return -1; }
-    /* 保持 xlang 已有 API 口径：getTag 返回 DER 首个标签字节。 */
-    iResult = (long long)Value.Raw.Data[0];
-    xrtBufferDestroy(pDer);
-    xrtClearError();
-    return iResult;
-}
-
-
-
-long long xpkcs_get_length(cstr sHex)
-{
-    xbuffer* pDer;
-    xdervalue Value;
-    long long iResult;
-
-    pDer = xpkcs_parse(sHex, &Value, true);
-    if (pDer == NULL) { return -1; }
-    if (Value.Value.Size > (size_t)INT64_MAX) {
-        xrtBufferDestroy(pDer);
-        xpkcs_error(XERR_RANGE, "DER content length exceeds xlang int range");
+    xdervalue value;
+    xbuffer* bytes = xpkcs_one(hex, &value);
+    int64_t length;
+    if (bytes == NULL) return -1;
+    if (value.Value.Size > (size_t)INT64_MAX) {
+        xrtBufferDestroy(bytes);
+        xpkcs_error(XERR_RANGE, "DER content length exceeds int range");
         return -1;
     }
-    iResult = (long long)Value.Value.Size;
-    xrtBufferDestroy(pDer);
+    length = (int64_t)value.Value.Size;
+    xrtBufferDestroy(bytes);
     xrtClearError();
-    return iResult;
+    return length;
 }
 
-
-
-cstr xpkcs_get_content(cstr sHex)
+void* xpkcs_get_content(const char* hex)
 {
-    xbuffer* pDer;
-    xdervalue Value;
-    xbuffer Content;
-    cstr sResult;
+    xdervalue value;
+    xbuffer* bytes = xpkcs_one(hex, &value);
+    char* result;
+    if (bytes == NULL) return NULL;
+    result = xrtHexEncodeNew(value.Value.Data, value.Value.Size, 0u);
+    xrtBufferDestroy(bytes);
+    if (result != NULL) xrtClearError();
+    return result;
+}
 
-    pDer = xpkcs_parse(sHex, &Value, true);
-    if (pDer == NULL) { return ""; }
-    if (!xrtBufferInit(&Content) || !xrtBufferAppend(&Content, Value.Value)) {
-        xrtBufferDestroy(pDer);
-        xrtBufferUnit(&Content);
-        return "";
+void* xpkcs_encode_int(int64_t number)
+{
+    xbuffer der = {0};
+    char* result;
+    if (!xrtBufferInit(&der) || !xrtDerAppendInt64(&der, number)) {
+        xrtBufferUnit(&der);
+        return NULL;
     }
-    sResult = xpkcs_result_hex(&Content);
-    xrtBufferUnit(&Content);
-    xrtBufferDestroy(pDer);
-    return sResult;
+    result = xpkcs_result(&der);
+    xrtBufferUnit(&der);
+    if (result != NULL) xrtClearError();
+    return result;
 }
 
-
-
-cstr xpkcs_encode_int(long long iValue)
+int xpkcs_decode_int(const char* hex, int64_t* output)
 {
-    xbuffer Der;
-    cstr sResult;
-
-    if (!xrtBufferInit(&Der) || !xrtDerAppendInt64(&Der, (int64)iValue)) {
-        xrtBufferUnit(&Der);
-        return "";
-    }
-    sResult = xpkcs_result_hex(&Der);
-    xrtBufferUnit(&Der);
-    return sResult;
-}
-
-
-
-long long xpkcs_decode_int(cstr sHex)
-{
-    xbuffer* pDer;
-    xdervalue Value;
-    int64 iResult;
-
-    pDer = xpkcs_parse(sHex, &Value, true);
-    if ((pDer == NULL) || !xrtDerInt64(&Value, &iResult)) {
-        xrtBufferDestroy(pDer);
+    xdervalue value;
+    xbuffer* bytes;
+    int64_t number;
+    if (output == NULL) {
+        xpkcs_error(XERR_ARGUMENT, "integer output is null");
         return 0;
     }
-    xrtBufferDestroy(pDer);
+    bytes = xpkcs_one(hex, &value);
+    if (bytes == NULL) return 0;
+    if (!xrtDerInt64(&value, &number)) {
+        xrtBufferDestroy(bytes);
+        return 0;
+    }
+    *output = number;
+    xrtBufferDestroy(bytes);
     xrtClearError();
-    return (long long)iResult;
+    return 1;
 }
 
-
-
-cstr xpkcs_encode_oid(cstr sDotted)
+xvalue* xpkcs_decode_int_value(const char* hex)
 {
-    xbuffer Der;
-    cstr sResult;
+    int64_t number;
+    return xpkcs_decode_int(hex, &number) ? xrtValueInt(number) : NULL;
+}
 
-    if ((sDotted == NULL) || !xrtBufferInit(&Der) ||
-        !xrtDerAppendOid(&Der, xpkcs_view(sDotted))) {
-        xrtBufferUnit(&Der);
-        return "";
+void* xpkcs_encode_oid(const char* dotted)
+{
+    xbuffer der = {0};
+    char* result;
+    if (dotted == NULL) {
+        xpkcs_error(XERR_ARGUMENT, "OID text is null");
+        return NULL;
     }
-    sResult = xpkcs_result_hex(&Der);
-    xrtBufferUnit(&Der);
-    return sResult;
-}
-
-
-
-cstr xpkcs_decode_oid(cstr sHex)
-{
-    xbuffer* pDer;
-    xdervalue Value;
-    xbytesview Oid;
-    xbuffer Text;
-    cstr sResult;
-
-    pDer = xpkcs_parse(sHex, &Value, true);
-    if (pDer == NULL) { return ""; }
-    if (!xrtDerOid(&Value, &Oid) || !xrtBufferInit(&Text) ||
-        !xrtDerOidDecode(Oid, &Text) || !xrtBufferAppendByte(&Text, 0)) {
-        xrtBufferDestroy(pDer);
-        xrtBufferUnit(&Text);
-        return "";
+    if (!xrtBufferInit(&der) || !xrtDerAppendOid(&der, xpkcs_view(dotted))) {
+        xrtBufferUnit(&der);
+        return NULL;
     }
-    sResult = xpkcs_result_text((xbytesview){ Text.Data, Text.Size - 1u });
-    xrtBufferUnit(&Text);
-    xrtBufferDestroy(pDer);
-    return sResult;
+    result = xpkcs_result(&der);
+    xrtBufferUnit(&der);
+    if (result != NULL) xrtClearError();
+    return result;
 }
 
-
-
-static cstr xpkcs_wrap(cstr sHex, uint32 iTag)
+void* xpkcs_decode_oid(const char* hex)
 {
-    xbuffer* pContent;
-    xbuffer Der;
-    cstr sResult;
-
-    pContent = xpkcs_content(sHex);
-    if ((pContent == NULL) || !xrtBufferInit(&Der) ||
-        !xrtDerAppend(&Der, XASN1_UNIVERSAL, iTag, true, xrtBufferView(pContent))) {
-        xrtBufferDestroy(pContent);
-        xrtBufferUnit(&Der);
-        return "";
+    xdervalue value;
+    xbytesview oid;
+    xbuffer text = {0};
+    xbuffer* bytes = xpkcs_one(hex, &value);
+    char* result;
+    if (bytes == NULL) return NULL;
+    if (!xrtDerOid(&value, &oid) || !xrtBufferInit(&text) ||
+        !xrtDerOidDecode(oid, &text) || !xrtBufferAppendByte(&text, 0)) {
+        xrtBufferDestroy(bytes);
+        xrtBufferUnit(&text);
+        return NULL;
     }
-    sResult = xpkcs_result_hex(&Der);
-    xrtBufferUnit(&Der);
-    xrtBufferDestroy(pContent);
-    return sResult;
+    result = (char*)xrtBufferTake(&text, NULL, NULL);
+    xrtBufferUnit(&text);
+    xrtBufferDestroy(bytes);
+    if (result != NULL) xrtClearError();
+    return result;
 }
 
-
-
-cstr xpkcs_wrap_sequence(cstr sHex)
+static void* xpkcs_wrap(const char* hex, uint32 tag)
 {
-    return xpkcs_wrap(sHex, (uint32)XASN1_SEQUENCE);
-}
-
-
-
-cstr xpkcs_wrap_set(cstr sHex)
-{
-    return xpkcs_wrap(sHex, (uint32)XASN1_SET);
-}
-
-
-
-cstr xpkcs_encode_octet(cstr sHex)
-{
-    xbuffer* pContent;
-    xbuffer Der;
-    cstr sResult;
-
-    pContent = xpkcs_content(sHex);
-    if ((pContent == NULL) || !xrtBufferInit(&Der) ||
-        !xrtDerAppendOctets(&Der, xrtBufferView(pContent))) {
-        xrtBufferDestroy(pContent);
-        xrtBufferUnit(&Der);
-        return "";
+    xbuffer* content = xpkcs_hex(hex, true);
+    xbuffer der = {0};
+    char* result;
+    if (content == NULL) return NULL;
+    if (!xrtBufferInit(&der)) {
+        xrtBufferDestroy(content);
+        return NULL;
     }
-    sResult = xpkcs_result_hex(&Der);
-    xrtBufferUnit(&Der);
-    xrtBufferDestroy(pContent);
-    return sResult;
-}
-
-
-
-cstr xpkcs_encode_null(void)
-{
-    xbuffer Der;
-    cstr sResult;
-
-    if (!xrtBufferInit(&Der) || !xrtDerAppendNull(&Der)) {
-        xrtBufferUnit(&Der);
-        return "";
-    }
-    sResult = xpkcs_result_hex(&Der);
-    xrtBufferUnit(&Der);
-    return sResult;
-}
-
-
-
-cstr xpkcs_encode_bitstring(cstr sHex)
-{
-    xbuffer* pContent;
-    xbuffer Der;
-    cstr sResult;
-
-    pContent = xpkcs_content(sHex);
-    if ((pContent == NULL) || !xrtBufferInit(&Der) ||
-        !xrtDerAppendBitString(&Der, xrtBufferView(pContent), 0)) {
-        xrtBufferDestroy(pContent);
-        xrtBufferUnit(&Der);
-        return "";
-    }
-    sResult = xpkcs_result_hex(&Der);
-    xrtBufferUnit(&Der);
-    xrtBufferDestroy(pContent);
-    return sResult;
-}
-
-
-
-cstr xpkcs_concat(cstr sLeft, cstr sRight)
-{
-    xbuffer Text;
-    cstr sResult;
-
-    if ((sLeft == NULL) || (sRight == NULL)) {
-        xpkcs_error(XERR_ARGUMENT, "hexadecimal text is invalid");
-        return "";
-    }
-    if (!xrtBufferInit(&Text) ||
-        !xrtBufferAppend(&Text, (xbytesview){ (cbytes)sLeft, strlen(sLeft) }) ||
-        !xrtBufferAppend(&Text, (xbytesview){ (cbytes)sRight, strlen(sRight) })) {
-        xrtBufferUnit(&Text);
-        return "";
-    }
-    sResult = xpkcs_result_text(xrtBufferView(&Text));
-    xrtBufferUnit(&Text);
-    return sResult;
-}
-
-
-
-long long xpkcs_der_len(cstr sHex)
-{
-    xbuffer* pDer;
-    long long iResult;
-
-    if ((sHex == NULL) || !(pDer = xrtBufferFromHex(xpkcs_view(sHex), 0u))) {
-        return -1;
-    }
-    if (pDer->Size > (size_t)INT64_MAX) {
-        xrtBufferDestroy(pDer);
-        xpkcs_error(XERR_RANGE, "DER byte length exceeds xlang int range");
-        return -1;
-    }
-    iResult = (long long)pDer->Size;
-    xrtBufferDestroy(pDer);
-    xrtClearError();
-    return iResult;
-}
-
-
-
-long long xpkcs_next_offset(cstr sHex, long long iOffset)
-{
-    xbuffer* pDer;
-    xdercursor Cursor;
-    xdervalue Value;
-    size_t iResult;
-
-    pDer = xpkcs_content(sHex);
-    if ((iOffset < 0) || (pDer == NULL) || ((uint64)iOffset >= pDer->Size) ||
-        !xrtDerInit(&Cursor, pDer->Data + (size_t)iOffset,
-            pDer->Size - (size_t)iOffset) ||
-        (xrtDerRead(&Cursor, &Value) != XDER_VALUE)) {
-        xrtBufferDestroy(pDer);
-        xpkcs_error(XERR_PROTOCOL, "DER offset does not point to a complete value");
-        return -1;
-    }
-    iResult = (size_t)iOffset + Value.Raw.Size;
-    xrtBufferDestroy(pDer);
-    xrtClearError();
-    return (long long)iResult;
-}
-
-
-
-cstr xpkcs_tag_name(cstr sHex)
-{
-    xbuffer* pDer;
-    xdervalue Value;
-    cstr sResult;
-    char Text[48];
-
-    pDer = xpkcs_parse(sHex, &Value, true);
-    if (pDer == NULL) { return ""; }
-    if ((Value.Tag.Class == XASN1_UNIVERSAL) && !Value.Tag.Constructed) {
-        switch (Value.Tag.Number) {
-            case XASN1_INTEGER: sResult = "INTEGER"; break;
-            case XASN1_BIT_STRING: sResult = "BIT STRING"; break;
-            case XASN1_OCTET_STRING: sResult = "OCTET STRING"; break;
-            case XASN1_NULL: sResult = "NULL"; break;
-            case XASN1_OBJECT_IDENTIFIER: sResult = "OID"; break;
-            default: sResult = NULL; break;
+    if (!xrtDerAppend(&der, XASN1_UNIVERSAL, tag, true, xrtBufferView(content))) {
+        const xerror* error = xrtGetError();
+        bool preserve = error != NULL &&
+            (xrtErrorKind(error) == XERR_MEMORY || xrtErrorKind(error) == XERR_RANGE);
+        xrtBufferDestroy(content);
+        xrtBufferUnit(&der);
+        if (!preserve) {
+            xrtClearError();
+            xpkcs_error(XERR_VALUE, "constructed DER content is not canonical");
         }
-    } else if ((Value.Tag.Class == XASN1_UNIVERSAL) && Value.Tag.Constructed &&
-        (Value.Tag.Number == XASN1_SEQUENCE)) {
-        sResult = "SEQUENCE";
-    } else if ((Value.Tag.Class == XASN1_UNIVERSAL) && Value.Tag.Constructed &&
-        (Value.Tag.Number == XASN1_SET)) {
-        sResult = "SET";
-    } else {
-        sResult = NULL;
+        return NULL;
     }
-    if (sResult == NULL) {
-        (void)snprintf(Text, sizeof(Text), "TAG(%u)", (unsigned int)Value.Tag.Number);
-        sResult = Text;
+    if (!xrtDerValidate(der.Data, der.Size)) {
+        xrtBufferDestroy(content);
+        xrtBufferUnit(&der);
+        xrtClearError();
+        xpkcs_error(XERR_VALUE, "constructed DER content is not canonical");
+        return NULL;
     }
-    sResult = xpkcs_result_text((xbytesview){ (cbytes)sResult, strlen(sResult) });
-    xrtBufferDestroy(pDer);
-    return sResult;
+    result = xpkcs_result(&der);
+    xrtBufferUnit(&der);
+    xrtBufferDestroy(content);
+    if (result != NULL) xrtClearError();
+    return result;
+}
+
+void* xpkcs_wrap_sequence(const char* hex)
+{
+    return xpkcs_wrap(hex, XASN1_SEQUENCE);
+}
+
+void* xpkcs_wrap_set(const char* hex)
+{
+    return xpkcs_wrap(hex, XASN1_SET);
+}
+
+void* xpkcs_encode_octet(const char* hex)
+{
+    xbuffer* content = xpkcs_hex(hex, true);
+    xbuffer der = {0};
+    char* result;
+    if (content == NULL) return NULL;
+    if (!xrtBufferInit(&der) || !xrtDerAppendOctets(&der, xrtBufferView(content))) {
+        xrtBufferDestroy(content);
+        xrtBufferUnit(&der);
+        return NULL;
+    }
+    result = xpkcs_result(&der);
+    xrtBufferUnit(&der);
+    xrtBufferDestroy(content);
+    if (result != NULL) xrtClearError();
+    return result;
+}
+
+void* xpkcs_encode_null(void)
+{
+    xbuffer der = {0};
+    char* result;
+    if (!xrtBufferInit(&der) || !xrtDerAppendNull(&der)) {
+        xrtBufferUnit(&der);
+        return NULL;
+    }
+    result = xpkcs_result(&der);
+    xrtBufferUnit(&der);
+    if (result != NULL) xrtClearError();
+    return result;
+}
+
+void* xpkcs_encode_bitstring(const char* hex)
+{
+    xbuffer* content = xpkcs_hex(hex, true);
+    xbuffer der = {0};
+    char* result;
+    if (content == NULL) return NULL;
+    if (!xrtBufferInit(&der) ||
+        !xrtDerAppendBitString(&der, xrtBufferView(content), 0u)) {
+        xrtBufferDestroy(content);
+        xrtBufferUnit(&der);
+        return NULL;
+    }
+    result = xpkcs_result(&der);
+    xrtBufferUnit(&der);
+    xrtBufferDestroy(content);
+    if (result != NULL) xrtClearError();
+    return result;
+}
+
+void* xpkcs_concat(const char* left, const char* right)
+{
+    xbuffer* a = xpkcs_hex(left, true);
+    xbuffer* b;
+    xbuffer joined = {0};
+    char* result = NULL;
+    if (a == NULL) return NULL;
+    b = xpkcs_hex(right, true);
+    if (b != NULL && xrtBufferInit(&joined) &&
+        xrtBufferAppend(&joined, xrtBufferView(a)) &&
+        xrtBufferAppend(&joined, xrtBufferView(b)))
+        result = xpkcs_result(&joined);
+    xrtBufferUnit(&joined);
+    xrtBufferDestroy(b);
+    xrtBufferDestroy(a);
+    if (result != NULL) xrtClearError();
+    return result;
+}
+
+int64_t xpkcs_der_len(const char* hex)
+{
+    xdervalue value;
+    xbuffer* bytes = xpkcs_one(hex, &value);
+    int64_t length;
+    if (bytes == NULL) return -1;
+    if (bytes->Size > (size_t)INT64_MAX) {
+        xrtBufferDestroy(bytes);
+        xpkcs_error(XERR_RANGE, "DER byte length exceeds int range");
+        return -1;
+    }
+    length = (int64_t)bytes->Size;
+    xrtBufferDestroy(bytes);
+    xrtClearError();
+    return length;
+}
+
+int64_t xpkcs_next_offset(const char* hex, int64_t offset)
+{
+    xbuffer* bytes = xpkcs_hex(hex, false);
+    size_t position = 0;
+    int64_t result = -1;
+    if (bytes == NULL) return -1;
+    if (offset < 0 || (uint64_t)offset >= bytes->Size) goto fail;
+    while (position < bytes->Size) {
+        xdercursor cursor;
+        xdervalue value;
+        if (!xrtDerInit(&cursor, bytes->Data + position, bytes->Size - position) ||
+            xrtDerRead(&cursor, &value) != XDER_VALUE ||
+            !xrtDerValidate(value.Raw.Data, value.Raw.Size)) goto fail;
+        if (position == (size_t)offset) result = (int64_t)(position + value.Raw.Size);
+        position += value.Raw.Size;
+    }
+    if (result < 0) goto fail;
+    xrtBufferDestroy(bytes);
+    xrtClearError();
+    return result;
+fail:
+    xrtBufferDestroy(bytes);
+    xpkcs_error(XERR_VALUE, "offset is not a DER value boundary");
+    return -1;
+}
+
+void* xpkcs_tag_name(const char* hex)
+{
+    xdervalue value;
+    xbuffer* bytes = xpkcs_one(hex, &value);
+    const char* label = NULL;
+    char fallback[48];
+    char* result;
+    if (bytes == NULL) return NULL;
+    if (value.Tag.Class == XASN1_UNIVERSAL) {
+        if (value.Tag.Constructed) {
+            if (value.Tag.Number == XASN1_SEQUENCE) label = "SEQUENCE";
+            if (value.Tag.Number == XASN1_SET) label = "SET";
+        } else {
+            switch (value.Tag.Number) {
+            case XASN1_INTEGER: label = "INTEGER"; break;
+            case XASN1_BIT_STRING: label = "BIT STRING"; break;
+            case XASN1_OCTET_STRING: label = "OCTET STRING"; break;
+            case XASN1_NULL: label = "NULL"; break;
+            case XASN1_OBJECT_IDENTIFIER: label = "OID"; break;
+            default: break;
+            }
+        }
+    }
+    if (label == NULL) {
+        snprintf(fallback, sizeof(fallback), "TAG(%u)", (unsigned)value.Tag.Number);
+        label = fallback;
+    }
+    result = xrtStrDup(label);
+    xrtBufferDestroy(bytes);
+    if (result != NULL) xrtClearError();
+    return result;
 }

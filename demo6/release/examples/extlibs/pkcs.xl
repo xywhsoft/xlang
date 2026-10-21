@@ -16,6 +16,7 @@ func main(...) as int
     auto serial = pkcs.encodeInt(12345)
     println("serial INTEGER: ", serial)
     println("  value: ", pkcs.decodeInt(serial))
+    println("  tag byte: ", pkcs.getTag(serial))
 
     // OCTET STRING
     auto data = pkcs.encodeOctet("cafebabe")
@@ -28,6 +29,10 @@ func main(...) as int
     println("SEQUENCE: ", seq)
     println("  total bytes: ", pkcs.derLen(seq))
     println("  content len: ", pkcs.getLength(seq))
+    println("  next item offset: ", pkcs.nextOffset(inner, 0))
+    // SET 子项必须按完整 DER 字节顺序排列。
+    println("SET: ", pkcs.wrapSet(pkcs.concat(pkcs.encodeInt(1), serial)))
+    println("BIT STRING: ", pkcs.encodeBitString("a0"))
 
     println("pkcs example: PASS")
     return 0
