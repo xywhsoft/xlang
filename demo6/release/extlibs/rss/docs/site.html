@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / rss</p><h1>rss</h1>
     <p class="extlib-lead">RSS 2.0 与 Atom 订阅源。</p>
-    <p>解析、识别与生成常用 feed 字段。底层复用 Expat/XML DOM，不接受 DTD 或外部实体。</p>
+    <p>解析、识别与生成常用 feed 字段。底层复用 Expat/XML DOM，不接受 DTD 或外部实体；解析后归还临时 DOM 的保留引用，不让重复读取逐次积累文档。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>

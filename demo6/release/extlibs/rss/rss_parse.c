@@ -25,12 +25,14 @@ static int rss_name(const xrtxmldomnode *node, const char *name, int atom) {
                 (ns == NULL || *ns == 0));
 }
 
+/* DOM Child/DocumentElement 返回保留引用，命中者交调用方释放。 */
 static xrtxmldomnode *rss_child(const xrtxmldomnode *parent,
     const char *name, int atom) {
     uint32 i, count = xrtXmlDomNodeChildCount(parent);
     for (i = 0; i < count; ++i) {
         xrtxmldomnode *child = xrtXmlDomNodeChild(parent, i);
         if (rss_name(child, name, atom)) return child;
+        xrtXmlDomNodeRelease(child);
     }
     return NULL;
 }
@@ -60,22 +62,33 @@ static int rss_put_text(xvalue *object, const char *key,
 
 static int rss_put_child(xvalue *object, const char *key,
     const xrtxmldomnode *parent, const char *name, int atom) {
-    return rss_put_text(object, key, rss_child(parent, name, atom));
+    xrtxmldomnode *child = rss_child(parent, name, atom);
+    int result = rss_put_text(object, key, child);
+    xrtXmlDomNodeRelease(child);
+    return result;
 }
 
 static const char *rss_atom_link(const xrtxmldomnode *parent) {
+    /* 返回的属性文本借用整份仍存活的文档，而非临时 Child 引用。 */
     const char *first = NULL;
     uint32 i, count = xrtXmlDomNodeChildCount(parent);
     for (i = 0; i < count; ++i) {
         xrtxmldomnode *node = xrtXmlDomNodeChild(parent, i);
         const char *href, *rel;
-        if (!rss_name(node, "link", 1)) continue;
+        if (!rss_name(node, "link", 1)) {
+            xrtXmlDomNodeRelease(node);
+            continue;
+        }
         href = (const char *)xrtXmlDomGetAttribute(node, (str)"href");
         rel = (const char *)xrtXmlDomGetAttribute(node, (str)"rel");
-        if (href == NULL) continue;
+        if (href == NULL) { xrtXmlDomNodeRelease(node); continue; }
         if (first == NULL) first = href;
         /* Atom 未指定 rel 时等同 alternate。 */
-        if (rel == NULL || strcmp(rel, "alternate") == 0) return href;
+        if (rel == NULL || strcmp(rel, "alternate") == 0) {
+            xrtXmlDomNodeRelease(node);
+            return href;
+        }
+        xrtXmlDomNodeRelease(node);
     }
     return first != NULL ? first : "";
 }
@@ -97,8 +110,12 @@ static xvalue *rss_item(const xrtxmldomnode *node) {
         xrtxmldomnode *child = xrtXmlDomNodeChild(node, i);
         str text;
         xvalue *value;
-        if (!rss_name(child, "category", 0)) continue;
+        if (!rss_name(child, "category", 0)) {
+            xrtXmlDomNodeRelease(child);
+            continue;
+        }
         text = xrtXmlDomTextContent(child);
+        xrtXmlDomNodeRelease(child);
         if (text == NULL) { xrtValueRelease(categories); goto fail; }
         value = xrtValueStringTake(&text, strlen((const char *)text));
         xrtFree(text);
@@ -120,7 +137,7 @@ static xvalue *rss_map_rss(const xrtxmldomnode *root) {
     uint32 i, count;
     if (channel == NULL) { rss_error("rss feed has no channel element"); return NULL; }
     result = xrtValueObject();
-    if (result == NULL) return NULL;
+    if (result == NULL) { xrtXmlDomNodeRelease(channel); return NULL; }
     if (!rss_put_string(result, "type", "rss") ||
         !rss_put_child(result, "title", channel, "title", 0) ||
         !rss_put_child(result, "link", channel, "link", 0) ||
@@ -132,16 +149,22 @@ static xvalue *rss_map_rss(const xrtxmldomnode *root) {
     for (i = 0; i < count; ++i) {
         xrtxmldomnode *child = xrtXmlDomNodeChild(channel, i);
         xvalue *item;
-        if (!rss_name(child, "item", 0)) continue;
+        if (!rss_name(child, "item", 0)) {
+            xrtXmlDomNodeRelease(child);
+            continue;
+        }
         item = rss_item(child);
+        xrtXmlDomNodeRelease(child);
         if (item == NULL || !xrtValueArrayAppendNew(items, item)) {
             xrtValueRelease(items);
             goto fail;
         }
     }
     if (!rss_put(result, "items", items)) goto fail;
+    xrtXmlDomNodeRelease(channel);
     return result;
 fail:
+    xrtXmlDomNodeRelease(channel);
     xrtValueRelease(result);
     return NULL;
 }
@@ -149,15 +172,17 @@ fail:
 static xvalue *rss_entry(const xrtxmldomnode *node,
     const xrtxmldomnode *feedAuthor) {
     xvalue *item = xrtValueObject();
+    xrtxmldomnode *ownedAuthor;
     const xrtxmldomnode *author;
     if (item == NULL) return NULL;
-    author = rss_child(node, "author", 1);
+    ownedAuthor = rss_child(node, "author", 1);
     /* Atom 有效作者按 entry、source、feed 的次序继承。 */
-    if (author == NULL) {
+    if (ownedAuthor == NULL) {
         xrtxmldomnode *source = rss_child(node, "source", 1);
-        if (source != NULL) author = rss_child(source, "author", 1);
+        if (source != NULL) ownedAuthor = rss_child(source, "author", 1);
+        xrtXmlDomNodeRelease(source);
     }
-    if (author == NULL) author = feedAuthor;
+    author = ownedAuthor != NULL ? ownedAuthor : feedAuthor;
     if (!rss_put_child(item, "title", node, "title", 1) ||
         !rss_put_child(item, "id", node, "id", 1) ||
         !rss_put_child(item, "updated", node, "updated", 1) ||
@@ -165,9 +190,11 @@ static xvalue *rss_entry(const xrtxmldomnode *node,
         !rss_put_child(item, "content", node, "content", 1) ||
         !rss_put_child(item, "author", author, "name", 1) ||
         !rss_put_string(item, "link", rss_atom_link(node))) {
+        xrtXmlDomNodeRelease(ownedAuthor);
         xrtValueRelease(item);
         return NULL;
     }
+    xrtXmlDomNodeRelease(ownedAuthor);
     return item;
 }
 
@@ -176,7 +203,7 @@ static xvalue *rss_map_atom(const xrtxmldomnode *root) {
     xvalue *items;
     xrtxmldomnode *author = rss_child(root, "author", 1);
     uint32 i, count;
-    if (result == NULL) return NULL;
+    if (result == NULL) { xrtXmlDomNodeRelease(author); return NULL; }
     if (!rss_put_string(result, "type", "atom") ||
         !rss_put_child(result, "title", root, "title", 1) ||
         !rss_put_child(result, "subtitle", root, "subtitle", 1) ||
@@ -190,16 +217,22 @@ static xvalue *rss_map_atom(const xrtxmldomnode *root) {
     for (i = 0; i < count; ++i) {
         xrtxmldomnode *child = xrtXmlDomNodeChild(root, i);
         xvalue *item;
-        if (!rss_name(child, "entry", 1)) continue;
+        if (!rss_name(child, "entry", 1)) {
+            xrtXmlDomNodeRelease(child);
+            continue;
+        }
         item = rss_entry(child, author);
+        xrtXmlDomNodeRelease(child);
         if (item == NULL || !xrtValueArrayAppendNew(items, item)) {
             xrtValueRelease(items);
             goto fail;
         }
     }
     if (!rss_put(result, "items", items)) goto fail;
+    xrtXmlDomNodeRelease(author);
     return result;
 fail:
+    xrtXmlDomNodeRelease(author);
     xrtValueRelease(result);
     return NULL;
 }
@@ -244,13 +277,16 @@ static int rss_kind(const xrtxmldomnode *root) {
 
 const char *xrss_detect(const char *xml, int64 length) {
     xrtxmldomnode *document = rss_document(xml, length);
+    xrtxmldomnode *root;
     int kind;
     if (document == NULL) {
         if (xrtGetError() == NULL || xrtErrorKind(xrtGetError()) != XERR_MEMORY)
             xrtClearError();
         return "";
     }
-    kind = rss_kind(xrtXmlDomDocumentElement(document));
+    root = xrtXmlDomDocumentElement(document);
+    kind = rss_kind(root);
+    xrtXmlDomNodeRelease(root);
     xrtXmlDomNodeRelease(document);
     return kind == 1 ? "rss" : kind == 2 ? "atom" : "";
 }
@@ -270,6 +306,7 @@ static xvalue *rss_parse(const char *xml, int64 length, int required) {
     } else {
         result = kind == 1 ? rss_map_rss(root) : rss_map_atom(root);
     }
+    xrtXmlDomNodeRelease(root);
     xrtXmlDomNodeRelease(document);
     return result != NULL ? result : xrtValueNull();
 }

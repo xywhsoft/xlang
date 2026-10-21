@@ -21,6 +21,44 @@ static int set_text(xvalue *object, const char *name, const char *text) {
         xrtValueString((xstrview){text, strlen(text)}));
 }
 
+static int test_document_ownership(void) {
+    static const char *documents[] = {
+        "<rss version='2.0'><channel><title>A</title><item><title>B</title>"
+        "<category>C</category><skip/><category>D</category></item><skip/></channel></rss>",
+        "<feed xmlns='http://www.w3.org/2005/Atom'><author><name>Feed</name></author>"
+        "<link rel='self' href='self'/><link href='alt'/>"
+        "<entry><title>B</title><source><author><name>Source</name></author></source></entry>"
+        "<entry><title>C</title></entry></feed>",
+        "<feed xmlns='http://www.w3.org/2005/Atom'><entry>"
+        "<author><name>Own</name></author><title>D</title></entry></feed>"
+    };
+    static const char invalid[] = "<unknown><child/></unknown>";
+    xmemdebugsnapshot before, after;
+    size_t i;
+    CHECK(xrtMemDebugEnabled() || xrtMemDebugEnable(true));
+    /* 预热一次，排除 XRT 首次使用的进程级缓存。 */
+    for (i = 0; i < 3; ++i) {
+        xvalue *value = xrss_parse(documents[i], (int64)strlen(documents[i]));
+        CHECK(value != NULL && xrtValueType(value) == XVALUE_OBJECT);
+        xrtValueRelease(value);
+    }
+    xrtMemDebugSnapshot(&before);
+    for (i = 0; i < 12; ++i) {
+        const char *text = documents[i % 3];
+        xvalue *value = xrss_parse(text, (int64)strlen(text));
+        CHECK(value != NULL && xrtValueType(value) == XVALUE_OBJECT);
+        xrtValueRelease(value);
+        CHECK(xrss_detect(text, (int64)strlen(text))[0] != '\0');
+        value = xrss_parse(invalid, (int64)(sizeof(invalid) - 1u));
+        CHECK(value != NULL && xrtValueType(value) == XVALUE_NULL);
+        xrtValueRelease(value);
+        CHECK(xrss_detect(invalid, (int64)(sizeof(invalid) - 1u))[0] == '\0');
+    }
+    xrtMemDebugSnapshot(&after);
+    CHECK(after.LiveCount == before.LiveCount);
+    return 0;
+}
+
 static int rejected(const char *xml, size_t size) {
     xvalue *value = xrss_parse(xml, (int64)size);
     int result = value != NULL && xrtValueType(value) == XVALUE_NULL;
@@ -423,6 +461,7 @@ static int test_allocation_errors(void) {
     };
     xvalue *channel = xrtValueObject();
     xvalue *items = xrtValueArray();
+    xmemdebugsnapshot before, after;
     unsigned mode, failure;
     CHECK(channel != NULL && items != NULL);
     CHECK(xrtValueObjectSetNew(channel, (xstrview){"title", 5},
@@ -431,6 +470,7 @@ static int test_allocation_errors(void) {
     CHECK(set_text(channel, "description", "Updates"));
     CHECK(set_text(channel, "id", "urn:news"));
     CHECK(set_text(channel, "updated", "2026-10-16T00:00:00Z"));
+    xrtMemDebugSnapshot(&before);
 
     for (mode = 0; mode < 2; ++mode) {
         unsigned buildFailures = 0, parseFailures = 0, detectFailures = 0;
@@ -484,12 +524,15 @@ static int test_allocation_errors(void) {
         CHECK(buildFailures >= 2 && parseFailures >= 2 && detectFailures >= 2);
     }
     xrtClearError();
+    xrtMemDebugSnapshot(&after);
+    CHECK(after.LiveCount == before.LiveCount);
     xrtValueRelease(items);
     xrtValueRelease(channel);
     return 0;
 }
 
 int main(void) {
+    CHECK(test_document_ownership() == 0);
     CHECK(test_allocation_errors() == 0);
     CHECK(test_parse() == 0);
     CHECK(test_mutated_feeds() == 0);

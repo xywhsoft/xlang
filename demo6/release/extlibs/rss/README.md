@@ -2,6 +2,11 @@
 
 RSS 2.0 与 Atom 文本订阅格式的解析和生成。XML 语法由 `xml.dom` / Expat 处理；DTD 和外部实体禁用。范围是常用 feed 字段，不承诺 RSS 1.0、扩展命名空间、Atom XHTML 内容或日期规范化。
 
+解析器在读取 DOM 子节点、属性和根元素后归还 XML DOM 的保留引用；
+输出值独立于临时 DOM 文档。C 回归对 RSS 分类、Atom 链接与三层作者
+来源、无效根、重复 `parse/detect` 及分配失败出口检查 XRT 活动分配数，
+避免长驻 feed 服务逐次积累临时文档。
+
 RSS 根节点必须有 `version="2.0"`。缺少版本号或使用更早的版本时，`detect` 返回空字符串，`parse` / `parseRSS` 报错；不保留旧版本兼容入口。这按 [RSS Advisory Board 的 RSS 2.0 规范](https://www.rssboard.org/rss-specification)收紧格式身份判断，并不意味着本包验证规范中的全部频道字段。
 
 ## XLang
@@ -95,6 +100,13 @@ XLang 同条件抛 `RangeError`，`detect` 对超限输入仍返回空字符串�
 Windows `-SkipAot` 与 Linux C ASan/UBSan、XLang、双语门禁通过；
 默认 Windows 门禁的核心 AOT 通过，Atom 范例 AOT 仍缺共享符号
 `xl6ValueDataSnapshotV1`，整包不签收发布级。
+
+2026-10-22：C 内存计数红例确认 RSS/Atom 解析与识别反复运行后 DOM
+文档引用逐次累积；`NodeChild` 和 `DocumentElement` 的返回值实际为拥有型。
+现统一归还命中/未命中节点、根节点及失败出口的保留引用。Windows
+严格 C、XLang 边界与两组成对范例，Linux C ASan/UBSan、XLang 对照均通过；
+默认门禁核心 AOT 通过，带输出 Atom 范例 AOT 仍缺共享
+`xl6ValueDataSnapshotV1`，不签收整包发布级。
 
 同日修正 Atom 缺省链接关系：原解析器在 `rel="hub"` 或 `rel="self"`
 出现在前时，未把随后省略 `rel` 的链接当作 alternate，可能返回错误的
