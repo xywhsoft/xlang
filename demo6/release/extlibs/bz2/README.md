@@ -197,3 +197,11 @@ Windows/Linux GCC 门禁以 `-DNDEBUG` 编译运行；预处理确认
 联合门禁随后仍在 `extlib_bz2.xl:68` 的已登记 XLIR 错误处停止。
 Linux C ASan/UBSan、269 项互通、文件事务与 XLang 文件门禁通过。
 库实现/API 未改，不签收整包发布级。
+
+2026-10-21：`test/file_ops.xl` 新增压缩和解压进度回调抛错的
+原始 `ValueError` 消息断言；失败的新目标不得落盘，已有解压目标
+必须保持原内容。Windows 联合门禁现于 AOT 和中央语言用例之前运行
+该文件测试：严格 C、文件边界、269 项 Python bz2 互通及新增用例
+均通过，随后仍在 `extlib_bz2.xl:68` 的共享 typed XLIR 错误处停止。
+Linux C ASan/UBSan、互通和 XLang 文件门禁通过。没有修改包实现，
+不据此签收整包发布级。

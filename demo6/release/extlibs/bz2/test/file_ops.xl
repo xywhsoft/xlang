@@ -11,6 +11,7 @@ func main(...) as int
     string packed = path.join(workDir, "source.bz2")
     string restored = path.join(workDir, "restored.txt")
     string cancelledPath = path.join(workDir, "cancelled.bz2")
+    string failedPath = path.join(workDir, "failed.bz2")
     string content = "你好 bz2\n" + string.repeat("bzip2-file-boundary\n", 2048)
     try
         assert file.writeText(source, content)
@@ -43,6 +44,28 @@ func main(...) as int
         end
         assert cancelled and not file.exists(cancelledPath)
 
+        bool callbackError = false
+        try
+            bz2.compressFile(source, failedPath, onProgress = func(int inputBytes,
+                int totalBytes, int outputBytes) as bool
+                throw ValueError "bz2 progress failed"
+            end)
+        catch ValueError e
+            callbackError = e.message == "bz2 progress failed"
+        end
+        assert callbackError and not file.exists(failedPath)
+
+        callbackError = false
+        try
+            bz2.decompressFile(packed, restored, onProgress = func(int inputBytes,
+                int totalBytes, int outputBytes) as bool
+                throw ValueError "bz2 decompression progress failed"
+            end)
+        catch ValueError e
+            callbackError = e.message == "bz2 decompression progress failed"
+        end
+        assert callbackError and file.readText(restored) == content
+
         bool limited = false
         try
             bz2.decompressFile(packed, restored, maxOutput = 8)
@@ -55,6 +78,7 @@ func main(...) as int
         if file.exists(packed) then assert file.delete(packed) end
         if file.exists(restored) then assert file.delete(restored) end
         if file.exists(cancelledPath) then assert file.delete(cancelledPath) end
+        if file.exists(failedPath) then assert file.delete(failedPath) end
         assert dir.delete(workDir), "temporary bz2 directory must be removed"
     end
     println("bz2 file operations: PASS")
