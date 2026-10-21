@@ -1,0 +1,4 @@
+import dotenv
+
+auto config = dotenv.create()
+config.parseNative("x", c_size(4096), c_size(8192))

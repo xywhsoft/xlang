@@ -1,0 +1,34 @@
+import dotenv
+
+func main(...) as int
+    bool limited = false
+    try
+        dotenv.parse("A\0B", maxBytes=1)
+    catch RangeError e
+        limited = true
+    end
+    assert limited, "byte limit must reject before inspecting content"
+    bool nonpositive = false
+    try
+        dotenv.parse("", maxBytes=0)
+    catch ValueError e
+        nonpositive = true
+    end
+    assert nonpositive, "xlang parse requires a positive byte limit"
+    nonpositive = false
+    try
+        dotenv.load("test/data/dotenv_test.env", maxBytes=0)
+    catch ValueError e
+        nonpositive = true
+    end
+    assert nonpositive, "xlang load requires a positive byte limit"
+    bool bareCrRejected = false
+    try
+        dotenv.parse("A=1\rB=2\n")
+    catch ConfigError e
+        bareCrRejected = true
+    end
+    assert bareCrRejected, "bare CR must not join two assignments"
+    println("dotenv limit priority: PASS")
+    return 0
+end

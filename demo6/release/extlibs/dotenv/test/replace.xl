@@ -1,0 +1,53 @@
+import dotenv
+
+func main(...) as int
+    dotenv.Config config = dotenv.create()
+    config.parse("A=1\n")
+    assert config.count == 1 and config.get("A") == "1"
+
+    bool rejected = false
+    try
+        config.parse("B=2\nbad-key=3\n")
+    catch ConfigError error
+        rejected = true
+    end
+    assert rejected and config.get("A") == "1" and not config.has("B")
+
+    config.parse("C=3\n")
+    assert config.count == 1 and config.get("C") == "3" and not config.has("A")
+
+    rejected = false
+    try
+        config.parse("D=4\n", maxBytes=0)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected and config.get("C") == "3"
+
+    rejected = false
+    try
+        config.load("test/data/missing-dotenv-file.env")
+    catch FileError error
+        rejected = true
+    end
+    assert rejected and config.get("C") == "3"
+
+    rejected = false
+    try
+        config.load("test/data/dotenv_test.env\0hidden")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected and config.get("C") == "3"
+
+    config.load("test/data/dotenv_test.env")
+    assert config.get("DB_HOST") == "localhost" and not config.has("C")
+
+    config.parse("")
+    assert config.count == 0 and not config.has("DB_HOST")
+    config.set("AFTER", "ok")
+    config.parse("\uFEFF")
+    assert config.count == 0 and not config.has("AFTER")
+    println("dotenv replace: PASS")
+    return 0
+end

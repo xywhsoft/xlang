@@ -1,43 +1,129 @@
-extern "xdotenv_load" func __dotenv_load(string path) as int
-extern "xdotenv_get" func __dotenv_get(string key) as string
-extern "xdotenv_set" func __dotenv_set(string key, string value)
-extern "xdotenv_count" func __dotenv_count() as int
-extern "xdotenv_clear" func __dotenv_clear()
-extern "xdotenv_has" func __dotenv_has(string key) as bool
+extern "xl6_xrt_last_error_text" func __dotenv_last_error() as string
 
+func __dotenv_has_nul(string value) as bool
+    return string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0
+end
 
+export class Config
+    native point handle
+    extern "xdotenv_create" create()
+    extern "xdotenv_destroy" destroy()
 
-export func load(string path) as int
-    int result = __dotenv_load(path)
-    if result < 0 then
-        throw FileError "cannot load dotenv file: " + path
+    get valid() as bool
+        return self.handle != null
     end
-    return result
-end
 
-export func get(string key, string default = "") as string
-    string v = __dotenv_get(key)
-    if v == "" and not __dotenv_has(key) then
-        return default
+    private extern "xdotenv_parse" func parseNative(string source, c_size size, c_size maxBytes) as bool
+    private extern "xdotenv_load" func loadNative(string path, c_size maxBytes) as bool
+    private extern "xdotenv_set" func setNative(string key, string value) as bool
+    private extern "xdotenv_get" func getNative(string key) as string?
+    private extern "xdotenv_has" func hasNative(string key) as bool
+    private extern "xdotenv_count" func countNative() as int
+    extern "xdotenv_clear" func clear()
+    private extern "xdotenv_apply" func applyNative(c_bool overwrite) as bool
+    private extern "xdotenv_error_code" func errorCodeNative() as int
+    private extern "xdotenv_error_line" func errorLineNative() as int
+    private extern "xdotenv_error_text" func errorTextNative() as string
+
+    get count() as int
+        return self.countNative()
     end
-    return v
-end
 
-export func set(string key, string value)
-    if key == "" then
-        throw ValueError "dotenv key must not be empty"
+    get errorCode() as int
+        return self.errorCodeNative()
     end
-    __dotenv_set(key, value)
+
+    get errorLine() as int
+        return self.errorLineNative()
+    end
+
+    func errorText() as string
+        return self.errorTextNative()
+    end
+
+    // 成功时整体替换配置；解析或读取失败时保留原有条目。
+    func parse(string source, int maxBytes = 4194304)
+        if self.handle == null then throw RuntimeError "dotenv: instance is destroyed" end
+        if maxBytes <= 0 then throw ValueError "dotenv maxBytes must be positive" end
+        if not self.parseNative(source, c_size(string.byteLen(source)), c_size(maxBytes)) then
+            if self.errorCode == 4 then throw MemoryError self.errorText() end
+            if self.errorCode == 3 then throw RangeError self.errorText() end
+            throw ConfigError self.errorText()
+        end
+    end
+
+    func load(string path, int maxBytes = 4194304)
+        if self.handle == null then throw RuntimeError "dotenv: instance is destroyed" end
+        if maxBytes <= 0 then throw ValueError "dotenv maxBytes must be positive" end
+        if __dotenv_has_nul(path) then
+            throw ValueError "dotenv path contains an embedded NUL byte"
+        end
+        if not self.loadNative(path, c_size(maxBytes)) then
+            if self.errorCode == 4 then throw MemoryError self.errorText() end
+            if self.errorCode == 5 then throw FileError self.errorText() end
+            if self.errorCode == 3 then throw RangeError self.errorText() end
+            throw ConfigError self.errorText()
+        end
+    end
+
+    func get(string key, string defaultValue = "") as string
+        if __dotenv_has_nul(key) then
+            throw ValueError "dotenv key contains an embedded NUL byte"
+        end
+        string? value = self.getNative(key)
+        if value == null then return defaultValue end
+        return value
+    end
+
+    func set(string key, string value)
+        if __dotenv_has_nul(key) or __dotenv_has_nul(value) then
+            throw ConfigError "dotenv assignment contains an embedded NUL byte"
+        end
+        if not self.setNative(key, value) then
+            if self.errorCode == 4 then throw MemoryError self.errorText() end
+            throw ConfigError self.errorText()
+        end
+    end
+
+    func has(string key) as bool
+        if __dotenv_has_nul(key) then
+            throw ValueError "dotenv key contains an embedded NUL byte"
+        end
+        return self.hasNative(key)
+    end
+
+    // 修改进程环境必须显式调用；默认不覆盖已有值。
+    func apply(bool overwrite = false)
+        if not self.applyNative(c_bool(overwrite)) then
+            if self.errorCode == 4 then throw MemoryError self.errorText() end
+            throw RuntimeError self.errorText()
+        end
+    end
 end
 
-export func has(string key) as bool
-    return __dotenv_has(key)
+func __dotenv_new() as Config
+    Config config = Config()
+    if not config.valid then throw RuntimeError __dotenv_last_error() end
+    return config
 end
 
-export func count() as int
-    return __dotenv_count()
+export func create() as Config
+    return __dotenv_new()
 end
 
-export func clear()
-    __dotenv_clear()
+export func parse(string source, int maxBytes = 4194304) as Config
+    if maxBytes <= 0 then throw ValueError "dotenv maxBytes must be positive" end
+    Config config = __dotenv_new()
+    config.parse(source, maxBytes)
+    return config
+end
+
+export func load(string path, int maxBytes = 4194304) as Config
+    if maxBytes <= 0 then throw ValueError "dotenv maxBytes must be positive" end
+    if __dotenv_has_nul(path) then
+        throw ValueError "dotenv path contains an embedded NUL byte"
+    end
+    Config config = __dotenv_new()
+    config.load(path, maxBytes)
+    return config
 end

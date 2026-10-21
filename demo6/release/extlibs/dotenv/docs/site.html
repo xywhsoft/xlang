@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>dotenv - 扩展库 - xlang</title>
+  <meta name="description" content="UTF-8 .env 配置解析，独立 Config 对象与显式进程环境导入。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-fmt" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / dotenv</p>
+    <h1>dotenv</h1>
+    <p class="extlib-lead">解析 UTF-8 .env 文件，独立管理配置，并在需要时显式导入进程环境。</p>
+    <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import dotenv
+
+auto config = dotenv.create()
+config.parse("HOST=localhost\nPORT=8080\n")
+println(config.get("HOST"))
+config.set("PORT", "9090")
+println(config.get("PORT"))</code></pre>
+    <p>输出 <code>localhost</code> 与 <code>9090</code>。解析和设置不会自动修改进程环境；需要时调用 <code>config.apply(overwrite = false)</code>。</p>
+  </section>
+  <section id="api">
+    <h2>接口</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>create()</code></td><td>创建空的独立 Config；分配失败时抛错。</td></tr>
+      <tr><td><code>parse(text, maxBytes = 4194304)</code></td><td>按真实字节长度解析 UTF-8 文本。</td></tr>
+      <tr><td><code>load(path, maxBytes = 4194304)</code></td><td>从 UTF-8 路径加载文件。</td></tr>
+      <tr><td><code>config.parse(text, maxBytes = 4194304)</code></td><td>在现有对象上整体替换配置；失败保留旧条目。</td></tr>
+      <tr><td><code>config.load(path, maxBytes = 4194304)</code></td><td>从文件替换现有对象配置；失败保留旧条目。</td></tr>
+      <tr><td><code>get(key, defaultValue = "") / has(key)</code></td><td>读取键或检查存在性；空值与不存在有区别。</td></tr>
+      <tr><td><code>set(key, value) / clear() / count</code></td><td>修改或查看当前对象，不影响其他 Config。</td></tr>
+      <tr><td><code>apply(overwrite = false)</code></td><td>显式写入进程环境；默认保留已有变量。</td></tr>
+      <tr><td><code>errorCode / errorLine / errorText()</code></td><td>查询对象最近一次底层失败。</td></tr>
+    </tbody></table>
+    <p>支持 BOM、LF/CRLF、行首 <code>export</code>、注释和单/双引号值；孤立 CR 报格式错误，双引号解析常见转义，不做变量插值。键名遵循 <code>[A-Za-z_][A-Za-z0-9_]*</code>，重复键采用最后一次赋值。键值由 XRT 有序映射保存，查询和解析无需逐项扫描；<code>clear</code> 释放条目及桶容量。<code>create</code>、<code>parse</code>、<code>load</code> 都会拒绝底层创建失败；解析失败不替换已有配置；<code>apply</code> 的多键进程环境修改不提供事务回滚。</p>
+    <p>配置文本中的 NUL 按真实长度拒绝；键、值和路径含内嵌 NUL 也会在进入 C 字符串接口前被拒绝。XLang 的 <code>maxBytes</code> 必须为正；C 的零限额只允许空输入，非空输入报 <code>LIMIT</code> 且不替换原配置。原生 <code>*Native</code> 成员仅供类内部调用，包外不能自行传入文本长度。文件操作使用 XRT 的 UTF-8 路径接口。C 操作成功后不会遗留上次失败的线程错误；<code>apply</code> 中的内存分配失败保留内存错误并在 xlang 抛 <code>MemoryError</code>。</p>
+  </section>
+  <section id="c-api">
+    <h2>C 对照</h2>
+    <pre><code>#include "xrt_dotenv.h"
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+int main(void)
+{
+    const char* source = "HOST=localhost\nPORT=8080\n";
+    xrtdotenv* config = xrtDotenvCreate();
+    if (config == NULL || !xrtDotenvParse(config, source, strlen(source), 4194304u)) {
+        xrtDotenvDestroy(config);
+        return 1;
+    }
+    puts(xrtDotenvGet(config, "HOST"));
+    if (!xrtDotenvSet(config, "PORT", "9090")) {
+        xrtDotenvDestroy(config);
+        return 2;
+    }
+    puts(xrtDotenvGet(config, "PORT"));
+    /* 读取的字符串借用自 config，修改或销毁后失效。 */
+    xrtDotenvDestroy(config);
+    return 0;
+}
+</code></pre>
+    <p>公共头为 <code>extlibs/dotenv/include/xrt_dotenv.h</code>。C 返回的字符串借用自 Config；xlang 返回的字符串独立持有。失败时使用 <code>xrtDotenvErrorCode</code>、<code>xrtDotenvErrorLine</code> 和 <code>xrtDotenvErrorText</code>。</p>
+  </section>
+  <section id="verify">
+    <h2>验证状态</h2>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/dotenv/test/check.ps1 -SkipAot
+bash release/extlibs/dotenv/test/check.sh</code></pre>
+    <p>Windows 定向 C 测试、C/xlang 范例和 xlang 边界测试通过；解析输入先检查字节限额，再扫描内容。XRT 有序映射、分配失败矩阵与 <code>apply</code> 内存错误回归验证旧配置保留、进程环境不变和同对象恢复。2026-10-18 增补合法多行配置的截断与逐字节变异矩阵；这是定向边界测试，不是完整 fuzz。双语文件范例使用独占临时目录并清理，不覆盖工作目录中的现有文件；C 范例可直接 <code>xl run release/extlibs/dotenv/examples/basic.c</code>。Linux 包级门禁同时运行 C ASan/UBSan、XLang 中央与包内边界，并逐字核对 C/xlang 范例及黄金输出。带输出范例的完整 AOT 当前停在共享运行时头文件 <code>xl6_channel_language_abi.h:7</code> 的声明顺序错误，不能视为最终发布签收。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

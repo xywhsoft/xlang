@@ -6,11 +6,19 @@
     "kind": "demo6-extlib",
     "artifact": {
         "kind": "source",
-        "cSources": ["dotenv_native.c"],
-        "xlSources": ["src/dotenv.xl"]
+        "cSources": ["xrt_dotenv.c", "dotenv_native.c"],
+        "xlSources": ["src/dotenv.xl"],
+        "xrtModules": [
+            "XRT_MODULE_ENVIRONMENT",
+            "XRT_MODULE_FILE_WHOLE",
+            "XRT_MODULE_MAP",
+            "XRT_MODULE_STRING",
+            "XRT_MODULE_UNICODE"
+        ]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/limits.xl", "test/apply_oom.xl", "test/create_oom.xl", "test/replace.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

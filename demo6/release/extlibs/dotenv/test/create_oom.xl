@@ -1,0 +1,45 @@
+import dotenv
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    // 三个工厂都先创建 Config，故障不能被误报为配置或文件错误。
+    assert failAfter(uint64(0))
+    bool createFailed = false
+    try
+        dotenv.create()
+    catch MemoryError
+        createFailed = true
+    finally
+        failClear()
+    end
+    assert createFailed
+
+    assert failAfter(uint64(0))
+    bool parseFailed = false
+    try
+        dotenv.parse("A=1\n")
+    catch MemoryError
+        parseFailed = true
+    finally
+        failClear()
+    end
+    assert parseFailed
+
+    assert failAfter(uint64(0))
+    bool loadFailed = false
+    try
+        dotenv.load("test/data/dotenv_test.env")
+    catch MemoryError
+        loadFailed = true
+    finally
+        failClear()
+    end
+    assert loadFailed
+
+    auto config = dotenv.parse("A=1\n")
+    assert config.get("A") == "1"
+    assert dotenv.load("test/data/dotenv_test.env").count > 0
+    return 0
+end

@@ -1,27 +1,24 @@
 import dotenv
 
-
-
 func main(...) as int
-    // 范例自带输入，发布目录下可以独立运行。
-    string envPath = "examples_out/extlibs/dotenv_sample.env"
-    dir.createAll("examples_out/extlibs")
-    file.writeText(envPath, "DB_HOST=localhost\nDB_PORT=5432\nDB_NAME=mydb\nAPI_KEY=secret123\n")
+    string directory = dir.temp("", "xlang-dotenv-", "")
+    string configPath = ""
+    try
+        configPath = path.join(directory, "配置.env")
+        file.writeText(configPath, "# application\nDB_HOST=localhost\nDB_PORT=5432\nGREETING=\"你好, world\"\n")
 
-    int n = dotenv.load(envPath)
-    assert n == 4, "dotenv example input should load"
-    println("loaded", n, "variables")
-
-    println("DB_HOST:", dotenv.get("DB_HOST"))
-    println("DB_PORT:", dotenv.get("DB_PORT"))
-    println("DB_NAME:", dotenv.get("DB_NAME"))
-    println("API_KEY:", dotenv.get("API_KEY"))
-    println("MISSING:", dotenv.get("MISSING", "default_val"))
-
-    // Programmatic set
-    dotenv.set("APP_ENV", "production")
-    println("APP_ENV:", dotenv.get("APP_ENV"))
-    println("total vars:", dotenv.count())
+        auto config = dotenv.create()
+        config.load(configPath)
+        assert config.count == 3
+        assert config.get("GREETING") == "你好, world"
+        assert config.get("MISSING", "fallback") == "fallback"
+        config.set("DB_PORT", "6432")
+        println(config.get("DB_HOST") + ":" + config.get("DB_PORT"))
+        println(config.get("GREETING"))
+    finally
+        if configPath != "" and file.exists(configPath) then file.delete(configPath) end
+        dir.remove(directory)
+    end
 
     println("dotenv example: PASS")
     return 0

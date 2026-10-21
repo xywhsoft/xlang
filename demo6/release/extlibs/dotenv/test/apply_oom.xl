@@ -1,0 +1,30 @@
+import dotenv
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+string key = "XLANG_DOTENV_APPLY_OOM_XL_TEST"
+string? previous = env.get(key)
+try
+    env.set(key, "existing")
+    dotenv.Config config = dotenv.parse("XLANG_DOTENV_APPLY_OOM_XL_TEST=replacement\n")
+    assert failAfter(0)
+    bool caught = false
+    try
+        config.apply()
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert triggered and caught and config.errorCode == 4
+    assert (env.get(key) ?? "") == "existing"
+    config.apply(true)
+    assert (env.get(key) ?? "") == "replacement"
+finally
+    failClear()
+    if previous == null then env.remove(key) else env.set(key, previous) end
+end
+
+println("dotenv apply OOM: PASS")
