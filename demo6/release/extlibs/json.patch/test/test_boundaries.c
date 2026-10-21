@@ -21,6 +21,18 @@ static int same(const xvalue* actual, const char* expected) {
     return equal;
 }
 
+static int merge_case(const char* source, const char* patch_text,
+    const char* expected) {
+    xvalue *doc = parse(source), *patch = parse(patch_text);
+    xvalue *result = doc && patch ? xjsonpatch_merge(doc, patch) : NULL;
+    int okay = result && !xjsonpatch_has_error() &&
+        same(result, expected) && same(doc, source);
+    xrtValueRelease(result);
+    xrtValueRelease(patch);
+    xrtValueRelease(doc);
+    return okay;
+}
+
 /* 深层合并只应复制目标一次；故障阈值防止每层重新克隆整个子树。 */
 static int merge_allocation_shape(void) {
     xstrview branch = {"a", 1u}, valueKey = {"value", 5u};
@@ -187,6 +199,14 @@ int main(void) {
     char *encoded, *encoded_again;
 
     CHECK(original && patch);
+    /* 合并补丁的对象递归、数组替换及根类型切换互不混淆。 */
+    CHECK(merge_case("{\"a\":{\"b\":1,\"c\":2},\"d\":4}",
+        "{\"a\":{\"b\":null,\"e\":[1,2]},\"d\":null}",
+        "{\"a\":{\"c\":2,\"e\":[1,2]}}"));
+    CHECK(merge_case("{\"a\":[1]}", "{\"a\":[2,3]}",
+        "{\"a\":[2,3]}"));
+    CHECK(merge_case("[1,2]", "{\"a\":1}", "{\"a\":1}"));
+    CHECK(merge_case("{\"a\":1}", "[3]", "[3]"));
     {
         static const char *invalid[] = {"[null]", "[1]", "[[]]", "[\"text\"]"};
         size_t i;

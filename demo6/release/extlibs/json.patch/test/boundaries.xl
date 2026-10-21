@@ -5,6 +5,20 @@ func main(...) as int
     assert json.patch.get(source, "/a") == null
     assert json.patch.merge(source, null) == null
 
+    // 对象递归合并；数组和非对象根值按整体替换处理。
+    var mergeSource = {"a": {"b": 1, "c": 2}, "d": 4}
+    var merged = json.patch.merge(mergeSource,
+        {"a": {"b": null, "e": [1, 2]}, "d": null})
+    assert merged["a"]["c"] == 2 and merged["a"]["e"][1] == 2
+    assert not json.patch.has(merged, "/a/b") and not json.patch.has(merged, "/d")
+    assert mergeSource["a"]["b"] == 1 and mergeSource["d"] == 4
+    var arrayReplaced = json.patch.merge({"a": [1]}, {"a": [2, 3]})
+    assert arrayReplaced["a"].length == 2 and arrayReplaced["a"][0] == 2
+    var objectRoot = json.patch.merge([1, 2], {"a": 1})
+    assert objectRoot["a"] == 1
+    var arrayRoot = json.patch.merge({"a": 1}, [3])
+    assert arrayRoot.length == 1 and arrayRoot[0] == 3
+
     var result = json.patch.apply(source,
         [{"op": "add", "path": "/arr/0", "value": 0}])
     assert result["arr"][0] == 0
