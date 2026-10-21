@@ -1,0 +1,5 @@
+import blake3
+
+// 仅编译：导入方不能接管任意原生句柄；绝不执行此文件。
+auto state = blake3.Blake3Hasher(null)
+auto keyed = blake3.Blake3KeyedHasher(null)

@@ -1,268 +1,281 @@
 #include "include/xrt_blake3.h"
 #include "third_party/blake3.h"
-
-#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
-#define XRT_BLAKE3_CHUNK 262144u
+#define XRT_BLAKE3_CHUNK 65536u
 
 struct xrtblake3hasher {
-	blake3_hasher Hasher;
-	xrtblake3options Options;
-	xrtblake3error Error;
-	uint64 InputBytes;
-	uint8 Mode; /* 0=normal, 1=keyed, 2=derive */
-	uint8 Key[XRT_BLAKE3_KEY_LEN];
-	char Context[256];
-	bool Initialized;
-	bool Failed;
+    blake3_hasher Hasher;
+    xrtblake3options Options;
+    xrtblake3error Error;
+    uint64 InputBytes;
+    bool Failed;
 };
 
-static void __xrtBlake3SetError(xrtblake3error* pError, int iCode, int iBackend,
-	uint64 iInput, uint64 iOutput, const char* sFormat, ...)
+/* 独立 C 和语言薄绑定使用同一错误分类。 */
+static bool blake3_publish(const xrtblake3error* error)
 {
-	va_list pArgs;
-	if (pError == NULL) { return; }
-	pError->iCode = iCode;
-	pError->iBackendCode = iBackend;
-	pError->iInputOffset = iInput;
-	pError->iOutputOffset = iOutput;
-	va_start(pArgs, sFormat);
-	vsnprintf(pError->sMessage, sizeof(pError->sMessage), sFormat, pArgs);
-	va_end(pArgs);
-	pError->sMessage[sizeof(pError->sMessage) - 1] = '\0';
+    xerrkind kind = XERR_ARGUMENT;
+    switch (error->iCode) {
+    case XRT_BLAKE3_ERROR_MEMORY: kind = XERR_MEMORY; break;
+    case XRT_BLAKE3_ERROR_IO: kind = XERR_IO; break;
+    case XRT_BLAKE3_ERROR_LIMIT: kind = XERR_RANGE; break;
+    case XRT_BLAKE3_ERROR_STATE: kind = XERR_STATE; break;
+    case XRT_BLAKE3_ERROR_CANCELLED: kind = XERR_CANCELLED; break;
+    default: break;
+    }
+    xrtSetErrorInfo(kind, "xlang.extlib.blake3", error->iCode, error->sMessage);
+    return false;
 }
 
-XRT_API void xrtBlake3ErrorInit(xrtblake3error* pError)
+static bool blake3_fail(xrtblake3error* error, int code, uint64 input, const char* message)
 {
-	if (pError == NULL) { return; }
-	memset(pError, 0, sizeof(*pError));
-	pError->iCode = XRT_BLAKE3_OK;
+    xrtblake3error local;
+    if (error == NULL) error = &local;
+    memset(error, 0, sizeof(*error));
+    error->iCode = code;
+    error->iInputOffset = input;
+    snprintf(error->sMessage, sizeof(error->sMessage), "%s", message);
+    return blake3_publish(error);
 }
 
-XRT_API void xrtBlake3OptionsInit(xrtblake3options* pOptions)
+static bool blake3_limits(const xrtresourcelimits* limits)
 {
-	if (pOptions == NULL) { return; }
-	memset(pOptions, 0, sizeof(*pOptions));
-	pOptions->iSize = sizeof(*pOptions);
-	pOptions->iVersion = XRT_BLAKE3_OPTIONS_VERSION;
-	xrtResourceLimitsInit(&pOptions->tLimits);
+    return limits->iSize == sizeof(*limits) &&
+        limits->iVersion == XRT_RESOURCE_LIMITS_VERSION &&
+        limits->iMaxItemBytes == 0 && limits->iMaxEntries == 0 &&
+        limits->iMaxNodes == 0 && limits->iMaxDepth == 0 &&
+        limits->iMaxCompressionRatio == 0 && limits->iFlags == 0 &&
+        limits->iReserved == 0;
 }
 
-static xrtblake3hasher* __xrtBlake3Alloc(const xrtblake3options* pOptions)
+static bool blake3_input(uint64 current, uint64 add, uint64 maximum, xrtblake3error* error)
 {
-	xrtblake3hasher* pHasher = (xrtblake3hasher*)xrtMalloc(sizeof(xrtblake3hasher));
-	if (pHasher == NULL) { return NULL; }
-	memset(pHasher, 0, sizeof(*pHasher));
-	xrtBlake3ErrorInit(&pHasher->Error);
-	if (pOptions != NULL) {
-		pHasher->Options = *pOptions;
-	} else {
-		xrtBlake3OptionsInit(&pHasher->Options);
-	}
-	pHasher->Initialized = true;
-	return pHasher;
+    if (add > UINT64_MAX - current ||
+        (maximum != 0 && (current > maximum || add > maximum - current)))
+        return blake3_fail(error, XRT_BLAKE3_ERROR_LIMIT, current, "blake3 input exceeds maxInput limit");
+    return true;
 }
 
-XRT_API xrtblake3hasher* xrtBlake3HasherCreate(const xrtblake3options* pOptions)
+XRT_API void xrtBlake3ErrorInit(xrtblake3error* error)
 {
-	xrtblake3hasher* pHasher = __xrtBlake3Alloc(pOptions);
-	if (pHasher == NULL) { return NULL; }
-	blake3_hasher_init(&pHasher->Hasher);
-	pHasher->Mode = 0;
-	return pHasher;
+    if (error != NULL) memset(error, 0, sizeof(*error));
 }
 
-XRT_API xrtblake3hasher* xrtBlake3HasherCreateKeyed(const xrtblake3options* pOptions,
-	const uint8 pKey[XRT_BLAKE3_KEY_LEN])
+XRT_API void xrtBlake3LimitsInit(xrtresourcelimits* limits)
 {
-	xrtblake3hasher* pHasher = __xrtBlake3Alloc(pOptions);
-	if (pHasher == NULL) { return NULL; }
-	blake3_hasher_init_keyed(&pHasher->Hasher, pKey);
-	memcpy(pHasher->Key, pKey, XRT_BLAKE3_KEY_LEN);
-	pHasher->Mode = 1;
-	return pHasher;
+    if (limits == NULL) return;
+    xrtResourceLimitsInit(limits);
+    limits->iMaxItemBytes = 0;
+    limits->iMaxEntries = 0;
+    limits->iMaxNodes = 0;
+    limits->iMaxDepth = 0;
+    limits->iMaxCompressionRatio = 0;
 }
 
-XRT_API xrtblake3hasher* xrtBlake3HasherCreateDeriveKey(const xrtblake3options* pOptions,
-	const char* sContext)
+XRT_API void xrtBlake3OptionsInit(xrtblake3options* options)
 {
-	xrtblake3hasher* pHasher = __xrtBlake3Alloc(pOptions);
-	if (pHasher == NULL) { return NULL; }
-	blake3_hasher_init_derive_key(&pHasher->Hasher, sContext);
-	strncpy(pHasher->Context, sContext, sizeof(pHasher->Context) - 1);
-	pHasher->Mode = 2;
-	return pHasher;
+    if (options == NULL) return;
+    memset(options, 0, sizeof(*options));
+    options->iSize = sizeof(*options);
+    options->iVersion = XRT_BLAKE3_OPTIONS_VERSION;
+    xrtBlake3LimitsInit(&options->tLimits);
 }
 
-XRT_API bool xrtBlake3HasherUpdate(xrtblake3hasher* pHasher, const void* pData, size_t iSize)
+static xrtblake3hasher* blake3_create(const xrtblake3options* options,
+    const uint8* key, const void* context, size_t context_len, int mode)
 {
-	if (pHasher == NULL || pHasher->Failed) { return false; }
-	if (iSize != 0u && pData == NULL) {
-		__xrtBlake3SetError(&pHasher->Error, XRT_BLAKE3_ERROR_ARGUMENT, 0,
-			pHasher->InputBytes, 0, "invalid blake3 input");
-		pHasher->Failed = true;
-		return false;
-	}
-	if (pHasher->Options.tLimits.iMaxInputBytes != 0u &&
-		pHasher->InputBytes + iSize > pHasher->Options.tLimits.iMaxInputBytes) {
-		__xrtBlake3SetError(&pHasher->Error, XRT_BLAKE3_ERROR_LIMIT, 0,
-			pHasher->InputBytes, 0, "blake3 input exceeds maxInput limit");
-		pHasher->Failed = true;
-		return false;
-	}
-	if (iSize != 0u) {
-		blake3_hasher_update(&pHasher->Hasher, pData, iSize);
-	}
-	pHasher->InputBytes += (uint64)iSize;
-	return true;
+    xrtblake3hasher* h;
+    xrtClearError();
+    if ((options != NULL && (options->iSize != sizeof(*options) ||
+        options->iVersion != XRT_BLAKE3_OPTIONS_VERSION || !blake3_limits(&options->tLimits))) ||
+        (mode == 1 && key == NULL) || (mode == 2 && context == NULL)) {
+        blake3_fail(NULL, XRT_BLAKE3_ERROR_ARGUMENT, 0, "invalid blake3 options, key or context");
+        return NULL;
+    }
+    h = xrtMalloc(sizeof(*h));
+    if (h == NULL) return NULL;
+    memset(h, 0, sizeof(*h));
+    if (options != NULL) h->Options = *options;
+    else xrtBlake3OptionsInit(&h->Options);
+    if (mode == 1) blake3_hasher_init_keyed(&h->Hasher, key);
+    else if (mode == 2) blake3_hasher_init_derive_key_raw(&h->Hasher, context, context_len);
+    else blake3_hasher_init(&h->Hasher);
+    return h;
 }
 
-XRT_API bool xrtBlake3HasherDigest(const xrtblake3hasher* pHasher, uint8* pOut, size_t iOutLen)
+XRT_API xrtblake3hasher* xrtBlake3HasherCreate(const xrtblake3options* options)
+{ return blake3_create(options, NULL, NULL, 0, 0); }
+XRT_API xrtblake3hasher* xrtBlake3HasherCreateKeyed(const xrtblake3options* options,
+    const uint8 key[XRT_BLAKE3_KEY_LEN])
+{ return blake3_create(options, key, NULL, 0, 1); }
+XRT_API xrtblake3hasher* xrtBlake3HasherCreateDeriveKey(const xrtblake3options* options,
+    const void* context, size_t context_len)
+{ return blake3_create(options, NULL, context, context_len, 2); }
+
+static bool blake3_ready(xrtblake3hasher* h)
 {
-	if (pHasher == NULL || pHasher->Failed || pOut == NULL || iOutLen == 0u) { return false; }
-	blake3_hasher_finalize(&pHasher->Hasher, pOut, iOutLen);
-	return true;
+    if (h == NULL) return blake3_fail(NULL, XRT_BLAKE3_ERROR_STATE, 0, "invalid blake3 handle");
+    if (h->Failed) return blake3_publish(&h->Error);
+    xrtBlake3ErrorInit(&h->Error);
+    return true;
 }
 
-XRT_API bool xrtBlake3HasherReset(xrtblake3hasher* pHasher)
+XRT_API bool xrtBlake3HasherUpdate(xrtblake3hasher* h, const void* data, size_t size)
 {
-	if (pHasher == NULL || pHasher->Failed) { return false; }
-	if (pHasher->Mode == 0) {
-		blake3_hasher_init(&pHasher->Hasher);
-	} else if (pHasher->Mode == 1) {
-		blake3_hasher_init_keyed(&pHasher->Hasher, pHasher->Key);
-	} else {
-		blake3_hasher_init_derive_key(&pHasher->Hasher, pHasher->Context);
-	}
-	pHasher->InputBytes = 0u;
-	return true;
+    xrtClearError();
+    if (!blake3_ready(h)) return false;
+    if (size != 0 && data == NULL) {
+        h->Failed = true;
+        return blake3_fail(&h->Error, XRT_BLAKE3_ERROR_ARGUMENT, h->InputBytes, "invalid blake3 input");
+    }
+    if (!blake3_input(h->InputBytes, size, h->Options.tLimits.iMaxInputBytes, &h->Error)) {
+        h->Failed = true;
+        return false;
+    }
+    if (size != 0) blake3_hasher_update(&h->Hasher, data, size);
+    h->InputBytes += size;
+    return true;
 }
 
-XRT_API uint64 xrtBlake3HasherInputBytes(const xrtblake3hasher* pHasher)
+XRT_API bool xrtBlake3HasherDigest(xrtblake3hasher* h, uint8* output, size_t size)
 {
-	return pHasher != NULL ? pHasher->InputBytes : 0u;
+    xrtClearError();
+    if (!blake3_ready(h)) return false;
+    if (output == NULL || size == 0)
+        return blake3_fail(&h->Error, XRT_BLAKE3_ERROR_ARGUMENT, h->InputBytes, "invalid blake3 output");
+    if (h->Options.tLimits.iMaxOutputBytes != 0 && size > h->Options.tLimits.iMaxOutputBytes)
+        return blake3_fail(&h->Error, XRT_BLAKE3_ERROR_LIMIT, h->InputBytes, "blake3 output exceeds maxOutput limit");
+    blake3_hasher_finalize(&h->Hasher, output, size);
+    return true;
 }
 
-XRT_API xrtblake3hasher* xrtBlake3HasherClone(const xrtblake3hasher* pSrc)
+/* 上游 reset 保留模式和派生后的 key，不保存或截断原始上下文。 */
+XRT_API bool xrtBlake3HasherReset(xrtblake3hasher* h)
 {
-	xrtblake3hasher* pNew;
-	if (pSrc == NULL) { return NULL; }
-	pNew = (xrtblake3hasher*)xrtMalloc(sizeof(xrtblake3hasher));
-	if (pNew == NULL) { return NULL; }
-	memcpy(pNew, pSrc, sizeof(*pNew));
-	return pNew;
+    xrtClearError();
+    if (h == NULL) return blake3_fail(NULL, XRT_BLAKE3_ERROR_STATE, 0, "invalid blake3 handle");
+    blake3_hasher_reset(&h->Hasher);
+    xrtSecureZero(h->Hasher.cv_stack, sizeof(h->Hasher.cv_stack));
+    h->InputBytes = 0;
+    h->Failed = false;
+    xrtBlake3ErrorInit(&h->Error);
+    return true;
 }
 
-XRT_API const xrtblake3error* xrtBlake3HasherError(const xrtblake3hasher* pHasher)
+XRT_API uint64 xrtBlake3HasherInputBytes(const xrtblake3hasher* h)
+{ return h != NULL ? h->InputBytes : 0; }
+XRT_API const xrtblake3error* xrtBlake3HasherError(const xrtblake3hasher* h)
+{ return h != NULL ? &h->Error : NULL; }
+
+XRT_API xrtblake3hasher* xrtBlake3HasherClone(const xrtblake3hasher* h)
 {
-	return pHasher != NULL ? &pHasher->Error : NULL;
+    xrtblake3hasher* copy;
+    xrtClearError();
+    if (h == NULL) {
+        blake3_fail(NULL, XRT_BLAKE3_ERROR_STATE, 0, "invalid blake3 handle");
+        return NULL;
+    }
+    copy = xrtMalloc(sizeof(*copy));
+    if (copy != NULL) memcpy(copy, h, sizeof(*copy));
+    return copy;
 }
 
-XRT_API void xrtBlake3HasherDestroy(xrtblake3hasher* pHasher)
+XRT_API void xrtBlake3HasherDestroy(xrtblake3hasher* h)
 {
-	if (pHasher == NULL) { return; }
-	xrtFree(pHasher);
+    if (h == NULL) return;
+    xrtSecureZero(h, sizeof(*h));
+    xrtFree(h);
 }
 
-
-/* ---- 一次性哈希 ---- */
-
-XRT_API bool xrtBlake3Hash(const void* pData, size_t iSize, uint8* pOut, size_t iOutLen,
-	xrtblake3error* pError)
+/* 三种算法模式仅在初始化时分叉，输出长度由调用方明确指定。 */
+static bool blake3_hash(int mode, const void* data, size_t size, const uint8* key,
+    const void* context, size_t context_len, uint8* output, size_t outlen,
+    xrtblake3error* error)
 {
-	blake3_hasher hasher;
-	xrtBlake3ErrorInit(pError);
-	if (pOut == NULL || iOutLen == 0u || (pData == NULL && iSize != 0u)) {
-		__xrtBlake3SetError(pError, XRT_BLAKE3_ERROR_ARGUMENT, 0, 0, 0, "invalid blake3 input");
-		return false;
-	}
-	blake3_hasher_init(&hasher);
-	if (iSize != 0u) blake3_hasher_update(&hasher, pData, iSize);
-	blake3_hasher_finalize(&hasher, pOut, iOutLen);
-	return true;
+    blake3_hasher h;
+    xrtClearError();
+    xrtBlake3ErrorInit(error);
+    if (output == NULL || outlen == 0 || (size != 0 && data == NULL) ||
+        (mode == 1 && key == NULL) || (mode == 2 && context == NULL))
+        return blake3_fail(error, XRT_BLAKE3_ERROR_ARGUMENT, 0, "invalid blake3 input, key, context or output");
+    if (mode == 1) blake3_hasher_init_keyed(&h, key);
+    else if (mode == 2) blake3_hasher_init_derive_key_raw(&h, context, context_len);
+    else blake3_hasher_init(&h);
+    if (size != 0) blake3_hasher_update(&h, data, size);
+    blake3_hasher_finalize(&h, output, outlen);
+    xrtSecureZero(&h, sizeof(h));
+    return true;
 }
 
-XRT_API bool xrtBlake3HashKeyed(const void* pData, size_t iSize,
-	const uint8 pKey[XRT_BLAKE3_KEY_LEN], uint8* pOut, size_t iOutLen,
-	xrtblake3error* pError)
+XRT_API bool xrtBlake3Hash(const void* data, size_t size, uint8* output,
+    size_t outlen, xrtblake3error* error)
+{ return blake3_hash(0, data, size, NULL, NULL, 0, output, outlen, error); }
+XRT_API bool xrtBlake3HashKeyed(const void* data, size_t size,
+    const uint8 key[XRT_BLAKE3_KEY_LEN], uint8* output, size_t outlen, xrtblake3error* error)
+{ return blake3_hash(1, data, size, key, NULL, 0, output, outlen, error); }
+XRT_API bool xrtBlake3HashKdf(const void* data, size_t size, const void* context,
+    size_t context_len, uint8* output, size_t outlen, xrtblake3error* error)
+{ return blake3_hash(2, data, size, NULL, context, context_len, output, outlen, error); }
+
+/* reader 从当前游标借用；取消和失败不修改输出，回调原错误优先。 */
+XRT_API bool xrtBlake3File(xreader* reader, const xrtresourcelimits* limits,
+    uint8* output, size_t outlen, xrtprogressproc progress, ptr user, xrtblake3error* error)
 {
-	blake3_hasher hasher;
-	xrtBlake3ErrorInit(pError);
-	if (pOut == NULL || iOutLen == 0u || pKey == NULL) {
-		__xrtBlake3SetError(pError, XRT_BLAKE3_ERROR_ARGUMENT, 0, 0, 0, "invalid blake3 key");
-		return false;
-	}
-	blake3_hasher_init_keyed(&hasher, pKey);
-	if (iSize != 0u) blake3_hasher_update(&hasher, pData, iSize);
-	blake3_hasher_finalize(&hasher, pOut, iOutLen);
-	return true;
-}
-
-XRT_API bool xrtBlake3HashKdf(const void* pKeyMaterial, size_t iKeyMatLen,
-	const char* sContext, uint8* pOut, size_t iOutLen, xrtblake3error* pError)
-{
-	blake3_hasher hasher;
-	xrtBlake3ErrorInit(pError);
-	if (pOut == NULL || iOutLen == 0u || sContext == NULL) {
-		__xrtBlake3SetError(pError, XRT_BLAKE3_ERROR_ARGUMENT, 0, 0, 0, "invalid blake3 kdf");
-		return false;
-	}
-	blake3_hasher_init_derive_key(&hasher, sContext);
-	if (iKeyMatLen != 0u) blake3_hasher_update(&hasher, pKeyMaterial, iKeyMatLen);
-	blake3_hasher_finalize(&hasher, pOut, iOutLen);
-	return true;
-}
-
-
-/* ---- 文件流式哈希 ---- */
-
-XRT_API bool xrtBlake3File(xreader* pReader, const xrtresourcelimits* pLimits,
-	uint8* pOut, size_t iOutLen, xrtprogressproc pProgress, ptr pUserData,
-	xrtblake3error* pError)
-{
-	uint8 sInput[XRT_BLAKE3_CHUNK];
-	blake3_hasher hasher;
-	uint64 iTotal = 0u;
-	uint64 iExpected = 0u;
-	bool bTotalKnown;
-	xrtBlake3ErrorInit(pError);
-	if (pReader == NULL || pOut == NULL || iOutLen == 0u) {
-		__xrtBlake3SetError(pError, XRT_BLAKE3_ERROR_ARGUMENT, 0, 0, 0, "invalid blake3 stream");
-		return false;
-	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iExpected);
-	if (!bTotalKnown) { xrtClearError(); }
-	blake3_hasher_init(&hasher);
-	for (;;) {
-		uint64 iRead = 0u;
-		if (!xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead)) {
-			__xrtBlake3SetError(pError, XRT_BLAKE3_ERROR_IO, 0, iTotal, 0,
-				"cannot read blake3 input stream");
-			return false;
-		}
-		if (iRead == 0u) { break; }
-		iTotal += iRead;
-		if (pLimits->iMaxInputBytes != 0u && iTotal > pLimits->iMaxInputBytes) {
-			__xrtBlake3SetError(pError, XRT_BLAKE3_ERROR_LIMIT, 0, iTotal, 0,
-				"blake3 input exceeds maxInput limit");
-			return false;
-		}
-		blake3_hasher_update(&hasher, sInput, (size_t)iRead);
-		if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
-			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) {
-			__xrtBlake3SetError(pError, XRT_BLAKE3_ERROR_CANCELLED, 0, iTotal, 0,
-				"blake3 operation cancelled");
-			return false;
-		}
-	}
-	blake3_hasher_finalize(&hasher, pOut, iOutLen);
-	if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
-		XRT_PROGRESS_FINAL | (bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u))) {
-		__xrtBlake3SetError(pError, XRT_BLAKE3_ERROR_CANCELLED, 0, iTotal, 0,
-			"blake3 operation cancelled");
-		return false;
-	}
-	return true;
+    blake3_hasher h;
+    xrtresourcelimits defaults;
+    uint8 input[XRT_BLAKE3_CHUNK];
+    uint64 total = 0, expected = 0, position = 0, end = 0;
+    bool known = false, ok = false;
+    xrtClearError();
+    xrtBlake3ErrorInit(error);
+    if (limits == NULL) { xrtBlake3LimitsInit(&defaults); limits = &defaults; }
+    if (!blake3_limits(limits) || reader == NULL || output == NULL || outlen == 0)
+        return blake3_fail(error, XRT_BLAKE3_ERROR_ARGUMENT, 0, "invalid blake3 reader, output or limits");
+    if (limits->iMaxOutputBytes != 0 && outlen > limits->iMaxOutputBytes)
+        return blake3_fail(error, XRT_BLAKE3_ERROR_LIMIT, 0, "blake3 output exceeds maxOutput limit");
+    if (xrtReaderCanSeek(reader)) {
+        known = xrtReaderTell(reader, &position) && xrtReaderSize(reader, &end) && end >= position;
+        if (known) expected = end - position;
+        else xrtClearError();
+    }
+    blake3_hasher_init(&h);
+    for (;;) {
+        size_t count = 0;
+        uint32 flags;
+        if (!xrtReaderRead(reader, input, sizeof(input), &count) || count > sizeof(input)) {
+            /* Reader 的 MemoryError/IOError 等原始诊断不能被通用读取错误覆盖。 */
+            if (xrtGetError() == NULL) {
+                blake3_fail(error, XRT_BLAKE3_ERROR_IO, total, "cannot read blake3 input stream");
+            } else if (error != NULL) {
+                error->iCode = xrtErrorKind(xrtGetError()) == XERR_MEMORY ? XRT_BLAKE3_ERROR_MEMORY : XRT_BLAKE3_ERROR_IO;
+                error->iInputOffset = total;
+                snprintf(error->sMessage, sizeof(error->sMessage), "%s", xrtErrorMessage(xrtGetError()));
+            }
+            goto done;
+        }
+        if (!blake3_input(total, count, limits->iMaxInputBytes, error)) goto done;
+        if (count != 0) blake3_hasher_update(&h, input, count);
+        total += count;
+        flags = (known ? XRT_PROGRESS_TOTAL_KNOWN : 0) | (count == 0 ? XRT_PROGRESS_FINAL : 0);
+        if (!xrtProgressReport(progress, user, total, expected, 0, flags)) {
+            /* 用户异常保留类别及内容；没有用户错误时才生成取消错误。 */
+            if (xrtGetError() == NULL)
+                blake3_fail(error, XRT_BLAKE3_ERROR_CANCELLED, total, "blake3 operation cancelled");
+            else if (error != NULL) {
+                error->iCode = XRT_BLAKE3_ERROR_CANCELLED;
+                error->iInputOffset = total;
+                snprintf(error->sMessage, sizeof(error->sMessage), "%s", xrtErrorMessage(xrtGetError()));
+            }
+            goto done;
+        }
+        if (count == 0) break;
+    }
+    blake3_hasher_finalize(&h, output, outlen);
+    ok = true;
+done:
+    xrtSecureZero(input, sizeof(input));
+    xrtSecureZero(&h, sizeof(h));
+    return ok;
 }

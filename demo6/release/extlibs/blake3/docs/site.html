@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>blake3 - 扩展库 - xlang</title>
+  <meta name="description" content="BLAKE3 哈希、keyed hash、密钥派生、可扩展摘要、增量对象与文件进度；C 和 xlang 共用实现。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout c-hash" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / blake3</p>
+    <div class="extlib-title-row"><h1>blake3</h1><span class="extlib-cat-badge">哈希校验</span></div>
+    <p class="extlib-lead">普通哈希、原生 keyed hash、密钥派生与可扩展长度摘要。内嵌 portable C 后端，复用宿主 XRT/xruntime，无需额外 BLAKE3 DLL。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api">
+    <h2 id="api">一次性与文件 API</h2>
+    <p>outLen 单位是字节，默认 32。hex 结果为小写，字符数量是摘要字节数的两倍。
+    文本使用 UTF-8 字节，任意二进制使用 Buffer。</p>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>参数与返回</th></tr></thead><tbody>
+      <tr><td><code>version()</code></td><td>返回固定后端版本 1.5.0。</td></tr>
+      <tr><td><code>hashHex(data, outLen=32)</code></td><td>data 为 Buffer 或 string，返回 string。</td></tr>
+      <tr><td><code>hashBytes(data, outLen=32)</code></td><td>相同输入，返回独立拥有型 Buffer。</td></tr>
+      <tr><td><code>hashMacHex(data, key, outLen=32)</code></td><td>两个 Buffer 或两个 string；密钥必须恰好 32 字节。</td></tr>
+      <tr><td><code>hashKdfHex(keyMaterial, context, outLen=32)</code></td><td>材料为 Buffer 或 string，上下文为完整 UTF-8 字节序列（含 NUL 也不会截断），返回 string。</td></tr>
+      <tr><td><code>hashFileHex(path, maxInput, outLen, onProgress)</code></td><td>普通模式文件哈希，默认 maxInput=268435456、outLen=32、onProgress=null。</td></tr>
+    </tbody></table>
+    <p><code>BLAKE3_OUT_LEN</code> 和 <code>BLAKE3_KEY_LEN</code> 均为 32。
+    密钥按字节计数，空密钥及 31/33 字节密钥都报错，不填充或截断。
+    keyed hash 是原生模式，不是 HMAC；密钥派生不代替 Argon2 等口令慢哈希。</p>
+    <p><code>deriveHasher</code> 与一次性 KDF 使用相同的带长度上下文语义；
+    C API 也显式接收上下文字节长度，普通 C 字符串调用者传入 <code>strlen(context)</code>。</p>
+    <p>outLen 必须为正；同一输入的短摘要是长摘要的前缀，可以输出超过 32 字节。
+    分配型薄绑定统一使用当前 XRT 默认 512 MiB 输出预算，hex 的临时空间约为三倍摘要长度，
+    此预算不代表峰值内存或 CPU 限制。没有一次性 keyed/KDF Bytes 函数，原始字节输出使用增量对象。</p>
+
+    <h2 id="stream">增量对象</h2>
+    <table class="ext-kv"><thead><tr><th>工厂</th><th>类型与模式</th></tr></thead><tbody>
+      <tr><td><code>hasher(maxInput=268435456)</code></td><td>Blake3Hasher，普通模式。</td></tr>
+      <tr><td><code>keyedHasher(Buffer key, maxInput=268435456)</code></td><td>Blake3KeyedHasher，复制密钥到独立状态。</td></tr>
+      <tr><td><code>deriveHasher(string context, maxInput=268435456)</code></td><td>Blake3Hasher，保留派生后的模式与密钥。</td></tr>
+    </tbody></table>
+    <table class="ext-kv"><thead><tr><th>成员</th><th>合同</th></tr></thead><tbody>
+      <tr><td><code>update(Buffer|string)</code></td><td>追加数据，空输入有效。</td></tr>
+      <tr><td><code>digestHex(outLen=32)</code> / <code>digestBytes(outLen=32)</code></td><td>读取快照，不结束状态；可重复使用不同输出长度。</td></tr>
+      <tr><td><code>inputBytes</code> / <code>valid</code></td><td>成功累计输入字节数；valid 仅表示句柄非空。</td></tr>
+      <tr><td><code>clone()</code></td><td>独立状态，复制模式、密钥、限额、计数和失败状态。</td></tr>
+      <tr><td><code>reset() as bool</code></td><td>清除输入与失败状态，保留模式和限额，成功返回 true。</td></tr>
+    </tbody></table>
+    <p>原生 <code>*Native</code> 成员仅供类内部包装使用；导入方通过上述成员读写数据，不直接传入裸指针和字节长度。</p>
+    <pre><code class="language-xlang">import blake3
+
+auto hash = blake3.hasher()
+hash.update("ab")
+auto branch = hash.clone()
+hash.update("c")
+branch.update("d")
+assert hash.digestHex() == blake3.hashHex("abc")
+assert branch.digestHex() == blake3.hashHex("abd")
+println(hash.digestHex(16))</code></pre>
+    <p>失败的 update 不增加计数，并使对象进入失败状态；必须 reset 后继续。
+    克隆失败对象也保留失败状态，两者各自 reset。非法摘要参数不会毒化原有数据。
+    同一可变 hasher 须串行访问，不同对象可独立运行。析构清零自己的状态，
+    不承诺擦除调用方副本、寄存器、交换页或已导出的摘要。</p>
+    <p>推荐使用工厂。公开 keyed 构造只接收自带长度的 <code>bytes</code>，
+    原生层要求密钥恰好 32 字节；C 指针/长度入口由 C 调用方负责配对。
+    <code>*Native</code> 成员为私有。point 接管构造仍有编译器访问控制阻断，
+    不能向它传入任意指针或重复接管句柄；当前不签收完整发布级。</p>
+
+    <h2 id="progress">进度与错误</h2>
+    <p>可选回调类型为 <code>(func(int, int, int) as bool)?</code>，依次接收 inputBytes、
+    totalBytes、outputBytes；未知总长为 0，outputBytes 恒为 0。每块读取后同步通知，EOF
+    再通知一次，空文件也有结束通知。语言回调不带 FINAL 标志，末次计数可能与前次相同。</p>
+    <pre><code class="language-xlang">string digest = blake3.hashFileHex("data.bin",
+    onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+        return true
+    end)</code></pre>
+    <p>回调返回 false 抛 CancelledError；用户异常保留类别和消息。可嵌套另一独立文件哈希。
+    取消或失败不返回部分摘要、不修改源文件，也不回退已消费的 reader 游标。
+    文件路径使用 XRT UTF-8 API，含 NUL 的路径会报 ValueError；不提供针对并发写入的文件快照。</p>
+    <ul>
+      <li>非法参数或密钥长度为 ValueError；超过输入/输出预算为 RangeError。</li>
+      <li>分配失败为 MemoryError，打开失败沿用 XRT FileError，无诊断的读取失败为 IOError。</li>
+      <li>Reader 已有的错误及回调异常保持原类别和消息，不统一覆盖为通用 I/O 错误。</li>
+      <li>xlang 工厂和文件 maxInput 必须为正，默认 256 MiB。</li>
+    </ul>
+
+    <h2 id="c-api">C API 与范例</h2>
+    <p>核心头 <code>include/xrt_blake3.h</code> 提供 OptionsInit、LimitsInit、ErrorInit、
+    Hash/HashKeyed/HashKdf、HasherCreate/CreateKeyed/CreateDeriveKey、
+    HasherUpdate/Digest/Reset/Clone/InputBytes/Error/Destroy 和 File，统一前缀为 xrtBlake3。</p>
+    <p>核心一次性函数写入调用方缓冲，不强加分配型包装的默认限额。Hasher/File 的 NULL 配置
+    使用默认限额；流对象用 <code>xrtBlake3OptionsInit</code>，文件显式限额用 <code>xrtBlake3LimitsInit</code>。显式配置须匹配长度/版本，除输入/输出预算外的限额、标志和保留字段为零，错误配置在读取前拒绝。零输入/输出预算表示关闭对应业务限制，但仍检查计数溢出。
+    薄绑定的 maxInput=0 则表示默认值，不等于核心 C 配置的无限制。</p>
+    <p>File 借用 reader 从当前游标读到 EOF，保留 C 进度帧的 TOTAL_KNOWN/FINAL 标志。
+    C 调用方须检查 Reader 的关闭结果；XLang 文件哈希自行关闭文件，关闭失败不返回摘要。
+    薄绑定头为 <code>include/blake3_native.h</code>；hex 返回值借用 XRT 临时区，
+    清理或回退后失效，长期保留须复制。原始摘要是拥有型 xbuffer，由 C 调用方销毁。</p>
+    <p>教学：<code>examples/extlibs/blake3.xl</code>。双语对照：
+    <code>examples/extlibs/blake3_basic.xl</code> 与 <code>extlibs/blake3/examples/basic.c</code>，
+    共同黄金输出为 <code>examples/extlibs/blake3_basic.expected.txt</code>。
+    从 <code>demo6</code> 目录可直接运行 <code>release/xl.exe run release/extlibs/blake3/examples/basic.c</code>，无需额外源文件参数。</p>
+
+    <h2 id="verification">验证范围与来源</h2>
+    <p>2026-09-27 Windows 门禁覆盖 35 条上游向量的三模式六长度、23 个实际生成原型、
+    C/xlang JIT/AOT/GCC、Reader 与回调、Unicode、分配故障、独立四线程和双语黄金输出。
+    Linux 联合门禁同次运行 C ASan/UBSan 与泄漏检查、三组 XLang JIT 用例及 C/XLang 范例逐字节黄金输出对照。实际运行的输入内容及文件集合在门禁前后比对。</p>
+    <p>入口：<code>tools/check_extlib_blake3.ps1</code>、<code>tools/check_extlib_blake3.sh</code> 和 <code>tools/check_extlib_linux_xl.sh blake3</code>。
+    不代表 Linux AOT、32 位/ARM、共享可变对象并发、SIMD 吞吐或密码学审计认证。
+    来源锁定为上游 1.5.0，commit <code>5aa53f07f7188a569cadfc5daf1522972d9a9630</code>；
+    文件哈希、本地零初始化补丁和 CC0/Apache-2.0 许可证见包内 VENDOR.md 与 third_party。</p>
+    <p>2026-10-18：文件哈希的 Reader 关闭失败红绿负例、Windows 严格 C/JIT 与 Linux ASan/UBSan/XLang 双语联合门禁通过。当前完整 AOT 构建缺主线 <code>xl6NativeHandleTraceLeaf</code>，不签收发布级。</p>
+    <p>2026-10-20：C 单文件范例直接运行及生成可执行文件均通过官方向量对照；Windows 门禁可加 <code>-SkipAot</code> 独立复验 C/JIT，Linux ASan/UBSan 和 XLang 双语门禁通过。完整 XLang AOT 与私有接管构造器访问边界仍待主线修复。</p>
+    <p>2026-10-21：完整教学范例的文件哈希改用独占临时目录并在 finally 清理；完整 XLang JIT 范例通过。Windows 门禁隔离本次工作目录，Linux 使用 mktemp；Windows -SkipAot 与 Linux C ASan/UBSan、XLang、双语对照通过。默认 Windows AOT 仍缺 xl6NativeHandleTraceLeaf，包外私有句柄构造器仍被 xl check 错误放行，不签收发布级。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

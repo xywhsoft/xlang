@@ -1,0 +1,4 @@
+import blake3
+
+blake3.Blake3KeyedHasher hasher = blake3.keyedHasher(Buffer())
+hasher.updateNative(null, c_size(1))

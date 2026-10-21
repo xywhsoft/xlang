@@ -1,0 +1,23 @@
+import blake3
+
+// 与 C 范例及公开向量使用相同的二进制输入，不把 NUL 当作字符串终点。
+Buffer data = Buffer()
+data.appendByte(0)
+auto hash = blake3.hasher()
+hash.update(data)
+auto branch = hash.clone()
+Buffer suffix = Buffer()
+suffix.appendByte(1)
+hash.update(suffix)
+println("hash: " + hash.digestHex(16))
+println("clone: " + branch.digestHex(16))
+println("bytes: " + string(hash.inputBytes))
+hash.reset()
+println("reset: " + hash.digestHex(16))
+
+// 演示密钥来自测试向量；真实业务应使用安全随机密钥。
+Buffer key = Buffer()
+key.append("whats the Elvish word for friend")
+println("keyed: " + blake3.hashMacHex(data, key, 16))
+println("kdf: " + blake3.hashKdfHex(data, "BLAKE3 2019-12-27 16:29:52 test vectors context", 16))
+println("xof/65: " + branch.digestHex(65))

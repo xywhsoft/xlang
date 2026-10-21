@@ -1,0 +1,44 @@
+{
+  "source": "https://github.com/BLAKE3-team/BLAKE3",
+  "tag": "1.5.0",
+  "commit": "5aa53f07f7188a569cadfc5daf1522972d9a9630",
+  "localPatch": "Initialize chunks_array to zero in blake3.c; deterministic portable build with GCC -Werror.",
+  "files": [
+    {
+      "path": "test/test_vectors.json",
+      "upstream": "test_vectors/test_vectors.json",
+      "upstreamSha256": "DCB91EA8ACCC77E6D6E632AF7CDC1A99A9F3AE78CF648DA595C7D064DB32F624",
+      "sha256": "DCB91EA8ACCC77E6D6E632AF7CDC1A99A9F3AE78CF648DA595C7D064DB32F624"
+    },
+    {
+      "path": "third_party/blake3_impl.h",
+      "upstream": "c/blake3_impl.h",
+      "upstreamSha256": "8F2DE31B1498A6A572DB2328D8D7E7A8DD904459C74A1C68B7FAE34405C518EC",
+      "sha256": "8F2DE31B1498A6A572DB2328D8D7E7A8DD904459C74A1C68B7FAE34405C518EC"
+    },
+    {
+      "path": "third_party/blake3_portable.c",
+      "upstream": "c/blake3_portable.c",
+      "upstreamSha256": "2BC25B0DAD67B4329D0B49CFA075AB2B0D04E424ADDBDDC4E9C389C52A192524",
+      "sha256": "2BC25B0DAD67B4329D0B49CFA075AB2B0D04E424ADDBDDC4E9C389C52A192524"
+    },
+    {
+      "path": "third_party/blake3.c",
+      "upstream": "c/blake3.c",
+      "upstreamSha256": "3EBA7449DC6737E2BC8C6EE467390619515D6B8FDB2C772C78051852C3B24BC1",
+      "sha256": "F0AA61E2E25608AF8D89CF35A2EFC0B9329CC3A7ADD9372D6F034C2BC63554D7"
+    },
+    {
+      "path": "third_party/blake3.h",
+      "upstream": "c/blake3.h",
+      "upstreamSha256": "14DB1DD1A80A9856B241CCD1E96715EFAF4FC0BCFCA4BC1EC660747F9EDAAA23",
+      "sha256": "14DB1DD1A80A9856B241CCD1E96715EFAF4FC0BCFCA4BC1EC660747F9EDAAA23"
+    },
+    {
+      "path": "third_party/LICENSE",
+      "upstream": "LICENSE",
+      "upstreamSha256": "6A94BEDB8B707ED97F6E310D0D015AB14E0683FFA0A612B02958581B9CC9FC0E",
+      "sha256": "6A94BEDB8B707ED97F6E310D0D015AB14E0683FFA0A612B02958581B9CC9FC0E"
+    }
+  ]
+}

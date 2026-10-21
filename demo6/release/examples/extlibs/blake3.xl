@@ -1,6 +1,6 @@
 import blake3
 
-// BLAKE3 高性能哈希（哈希/MAC/KDF 三模式），极速且安全。
+// BLAKE3 的哈希、keyed hash 和 KDF；流式读取摘要不终结对象。
 
 string sample = "hello xlang"
 
@@ -16,6 +16,9 @@ println("BLAKE3 MAC: " + blake3.hashMacHex(sample, keyStr))
 
 // KDF 模式（密钥派生）
 println("BLAKE3 KDF: " + blake3.hashKdfHex(key, "my app context"))
+auto derived = blake3.deriveHasher("my app context")
+derived.update(key)
+assert derived.digestHex() == blake3.hashKdfHex(key, "my app context")
 
 // 流式哈希器
 auto hasher = blake3.hasher()
@@ -44,8 +47,13 @@ println("clone h1: " + h1.digestHex())
 println("clone h2: " + h2.digestHex())
 
 // 文件哈希
-dir.createAll("examples_out/extlibs")
-file.writeText("examples_out/extlibs/blake3_sample.txt", sample)
-assert blake3.hashFileHex("examples_out/extlibs/blake3_sample.txt") == blake3.hashHex(sample), "blake3 file mismatch"
+string work = dir.temp("", "xlang-blake3-example-", "")
+try
+    string input = path.join(work, "blake3_sample.txt")
+    assert file.writeText(input, sample)
+    assert blake3.hashFileHex(input) == blake3.hashHex(sample), "blake3 file mismatch"
+finally
+    assert dir.delete(work), "BLAKE3 example temporary directory must be removed"
+end
 
 println("blake3 extlib ok")

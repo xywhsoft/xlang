@@ -7,10 +7,12 @@
     "artifact":  {
                      "kind":  "source",
                      "cSources":  [
-                                      "third_party/blake3.c",
+                                      "blake3_portable.c",
                                       "xrt_blake3.c",
                                       "blake3_native.c"
                                   ],
+                     "includeDirs": ["include"],
+                     "xrtModules": ["XRT_MODULE_IO_BUFFER", "XRT_MODULE_IO_FILE", "XRT_MODULE_CODEC_HEX", "XRT_MODULE_TEMP_MEMORY", "XRT_MODULE_VALUE"],
                      "xlSources":  [
                                        "src/blake3.xl"
                                    ]
@@ -24,6 +26,7 @@
     "dependencies":  [
 
                      ],
+    "coverage": { "mode": "suite", "tests": ["test/vectors.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

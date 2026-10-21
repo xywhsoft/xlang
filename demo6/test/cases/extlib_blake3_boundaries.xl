@@ -1,0 +1,164 @@
+import blake3
+
+func assertBytes(Buffer data, string hex)
+    Buffer expected = codec.hexDecodeBytes(hex)
+    assert data.len() == expected.len()
+    for i in range(expected.len())
+        assert data[i] == expected[i]
+    end
+end
+
+func rejectSize(int size)
+    bool caught = false
+    try
+        blake3.hashHex("abc", size)
+    catch ValueError e
+        caught = true
+    end
+    assert caught
+    caught = false
+    try
+        blake3.hashBytes("abc", size)
+    catch ValueError e
+        caught = true
+    end
+    assert caught
+end
+
+func main(...) as int
+    string text = "你好 xlang"
+    string keyText = "一二三四五六七八九十ab"
+    Buffer data = Buffer()
+    Buffer key = Buffer()
+    data.append(text)
+    key.append(keyText)
+    assert key.len() == 32 and string.len(keyText) == 12
+
+    // 普通文本和 Buffer 都按原始字节计算，摘要长度不是字符数量。
+    string expected = blake3.hashHex(data, 131)
+    assert blake3.hashHex(text, 131) == expected
+    assertBytes(blake3.hashBytes(text, 131), expected)
+    assertBytes(blake3.hashBytes(data, 131), expected)
+    assert blake3.hashHex(text, 1) == string.slice(expected, 0, 2)
+    assert blake3.hashHex(text, 65) == string.slice(expected, 0, 130)
+    string mac = blake3.hashMacHex(text, keyText, 131)
+    assert blake3.hashMacHex(data, key, 131) == mac
+
+    auto h = blake3.hasher()
+    h.update("你好")
+    assert h.inputBytes == 6
+    auto branch = h.clone()
+    Buffer suffix = Buffer()
+    suffix.append(" xlang")
+    h.update(suffix)
+    assert h.digestHex(131) == expected
+    assertBytes(h.digestBytes(131), expected)
+    branch.update(" other")
+    assert branch.digestHex(131) != expected and h.digestHex(131) == expected
+    // digest 是快照，可重复读取，也可继续追加。
+    h.update("!")
+    assert h.digestHex(65) == blake3.hashHex(text + "!", 65)
+    assert h.reset() and h.inputBytes == 0
+    h.update(data)
+    assert h.digestHex(131) == expected
+
+    auto keyed = blake3.keyedHasher(key)
+    keyed.update("你好")
+    auto keyedBranch = keyed.clone()
+    keyed.update(suffix)
+    keyedBranch.update(" other")
+    assert keyed.digestHex(131) == mac
+    assertBytes(keyed.digestBytes(131), mac)
+    assert keyedBranch.digestHex(131) != mac and keyed.inputBytes == data.len()
+    // 创建后不借用用户的 key 缓冲区；清空它不影响 reset 和后续计算。
+    key.clear()
+    assert keyed.reset()
+    keyed.update(data)
+    assert keyed.digestHex(131) == mac
+
+    string context = ""
+    for i in range(2048)
+        context += "c"
+    end
+    string derived = blake3.hashKdfHex(text, context, 131)
+    assert blake3.hashKdfHex(data, context, 131) == derived
+    auto kdf = blake3.deriveHasher(context)
+    kdf.update("你好")
+    auto kdfBranch = kdf.clone()
+    kdf.update(suffix)
+    kdfBranch.update(suffix)
+    assert kdf.digestHex(131) == derived and kdfBranch.digestHex(131) == derived
+    assert kdf.reset()
+    kdf.update(data)
+    assertBytes(kdf.digestBytes(131), derived)
+
+    // 派生上下文按全部 UTF-8 字节参与计算，不能在 NUL 处截断。
+    string binaryContext = "purpose\0second"
+    string binaryDerived = blake3.hashKdfHex("secret", binaryContext)
+    assert binaryDerived != blake3.hashKdfHex("secret", "purpose")
+    auto binaryKdf = blake3.deriveHasher(binaryContext)
+    binaryKdf.update("secret")
+    assert binaryKdf.digestHex() == binaryDerived
+
+    Buffer binary = Buffer()
+    for i in range(256)
+        binary.appendByte(i)
+    end
+    assert h.reset()
+    h.update(binary)
+    assert h.digestHex(131) == blake3.hashHex(binary, 131)
+    assertBytes(h.digestBytes(131), blake3.hashHex(binary, 131))
+
+    rejectSize(0)
+    rejectSize(-1)
+    bool caught = false
+    try
+        blake3.hashMacHex("abc", "short")
+    catch ValueError e
+        caught = true
+    end
+    assert caught
+    caught = false
+    try
+        blake3.keyedHasher(key)
+    catch ValueError e
+        caught = true
+    end
+    assert caught
+    caught = false
+    try
+        blake3.hashHex("x", 536870913)
+    catch RangeError e
+        caught = true
+    end
+    assert caught
+
+    auto limited = blake3.hasher(3)
+    limited.update("abc")
+    caught = false
+    try
+        limited.update("d")
+    catch RangeError e
+        caught = true
+    end
+    assert caught and limited.inputBytes == 3
+    // 克隆包含失败状态；两者只能经各自的 reset 恢复，不能绕过输入预算。
+    auto failedCopy = limited.clone()
+    caught = false
+    try
+        failedCopy.digestHex()
+    catch RangeError e
+        caught = true
+    end
+    assert caught and failedCopy.reset() and limited.reset()
+    limited.update("abc")
+    assert limited.digestHex() == blake3.hashHex("abc")
+    caught = false
+    try
+        limited.digestBytes(0)
+    catch ValueError e
+        caught = true
+    end
+    assert caught and limited.digestHex() == blake3.hashHex("abc")
+    return 0
+end

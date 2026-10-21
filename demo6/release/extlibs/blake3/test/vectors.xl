@@ -1,0 +1,26 @@
+import blake3
+
+func main(...) as int
+    string key = "whats the Elvish word for friend"
+    string context = "BLAKE3 2019-12-27 16:29:52 test vectors context"
+
+    // 上游官方向量：空输入与单个零字节，覆盖普通、keyed 和 KDF 三种模式。
+    assert blake3.hashHex("") == "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262"
+    assert blake3.hashMacHex("", key) == "92b2b75604ed3c761f9d6f62392c8a9227ad0ea3f09573e783f1498a4ed60d26"
+    assert blake3.hashKdfHex("", context) == "2cc39783c223154fea8dfb7c1b1660f2ac2dcbd1c1de8277b0b0dd39b7e50d7d"
+
+    Buffer one = Buffer()
+    one.appendByte(0)
+    Buffer keyBytes = Buffer()
+    keyBytes.append(key)
+    assert blake3.hashHex(one) == "2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213"
+    assert blake3.hashMacHex(one, keyBytes) == "6d7878dfff2f485635d39013278ae14f1454b8c0a3a2d34bc1ab38228a80c95b"
+    blake3.Blake3KeyedHasher direct = blake3.Blake3KeyedHasher(keyBytes.toBytes(), c_ulonglong(268435456))
+    direct.update(one)
+    assert direct.digestHex() == "6d7878dfff2f485635d39013278ae14f1454b8c0a3a2d34bc1ab38228a80c95b"
+    assert blake3.hashKdfHex(one, context) == "b3e2e340a117a499c6cf2398a19ee0d29cca2bb7404c73063382693bf66cb06c"
+
+    // XOF 越过 64 字节块边界时仍须与同一官方向量相符。
+    assert blake3.hashHex(one, 65) == "2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213c3a6cb8bf623e20cdb535f8d1a5ffb86342d9c0b64aca3bce1d31f60adfa137b35"
+    return 0
+end

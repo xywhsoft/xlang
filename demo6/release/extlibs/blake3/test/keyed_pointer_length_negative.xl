@@ -1,0 +1,6 @@
+import blake3
+
+// 仅编译：密钥只有 1 字节，绝不能运行这个伪造 32 字节长度的调用。
+Buffer shortKey = Buffer()
+shortKey.append("x")
+auto hasher = blake3.Blake3KeyedHasher(shortKey.data(), c_size(32), c_ulonglong(16))
