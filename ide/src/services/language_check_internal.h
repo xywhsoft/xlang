@@ -16,6 +16,11 @@ struct xide_language_check {
  HANDLE stopEvent; enum xide_guard_state guardState; char guardError[512];
  xvalue *guardFiles,*guardResolution; xide_toolchain_stamp guardToolchain;
  xide_semantic_definitions* definitions;
+#ifdef XLS_COMPILER_XRT
+ xls_text* snapshotTexts[64]; char* snapshotKeys[64]; uint64_t snapshotIdentities[64];
+ int retainedSnapshots; char* semanticTarget; xls_worker* semanticActor;
+ xls_check_stats semanticStats; uint64_t semanticThread,captureThread;
+#endif
 };
 int xideLanguageCheckRunCompiler(xide_language_check* check,const char* const* args,size_t count,size_t limit,char** output,int* exitCode,xide_model_error* error);
 int xideLanguageSnapshotGuard(xide_language_check* check,xide_model_error* error);

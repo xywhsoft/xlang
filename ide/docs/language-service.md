@@ -1,18 +1,20 @@
 # xlang 语言服务与文档快照诊断
 
-2026-10-22 开发服务 0.8：宿主与共享前端使用独立编译器 XRT。折叠范围保留后台解析快照；补全及默认未保存文档检查在进程内复用共享前端，检查包含 typed IR 验证，同次索引支持定义／悬停／大纲。默认快照检查不再启动编译器或写临时覆盖文件，保留输入来源、文件身份、导入候选和包环境守卫。保存后兼容模式及 C 桥接仍走 CLI，函数／依赖级语义增量继续开发。已发布目录保持旧候选，长期计划、阶段证据及边界见 [LSP 实施计划](lsp-development.md) 和 [分析核心](lsp-analysis-core.md)。
+2026-10-22 开发服务 0.9：宿主与共享前端使用独立编译器 XRT。默认未保存文档检查在常驻 XRT 执行器中保留完整语义／typed IR／类型化索引，相同输入与正文可跨新版本复用，命中前重新验证磁盘、导入候选和包环境。协议线程以引用捕获正文，物理别名检查在工作线程执行；光标位置使用正文行索引。补全保持独立前台执行路径，折叠使用独立分析执行器。源码编辑目前仍整份重建，函数／依赖级增量继续开发。保存后兼容模式及 C 桥接仍走 CLI。已发布目录保持旧候选，长期计划、阶段证据及边界见 [LSP 实施计划](lsp-development.md) 和 [分析核心](lsp-analysis-core.md)。
 
 UTF-16 `didChange` 范围变化及同一通知内的顺序多次编辑继续兼容全文同步。IDE 的补全、诊断／导航客户端均保留文档镜像，协商增量或全文变化；重复查询不重开、重传未变正文，连接重启发送当前全文。文本快照复用 XRT，失败时不提交正文或版本；这属于文本同步能力，尚不是语义增量分析。以下部分包含此前阶段的全文同步与能力记录。
 
 `initialize.initializationOptions.diagnosticsBackend` 可选 `native`（默认）或 `cli`，其他值返回无效参数。`capabilities.experimental.nativeSnapshotDiagnostics`、`diagnosticsBackend` 报告当前快照后端；`savedDiagnosticsBackend=cli` 明确保留的保存后模式。原生分析使用服务构建绑定的前端，不依赖执行编译器文件存在；IDE 启动配置仍保留编译器路径供执行和兼容模式使用。受控编译器响应测试显式选择 CLI，不能将这些测试算作原生静态分析本身的证明。
 
+`experimental.retainedSemanticChecks` 表示默认原生检查使用常驻检查会话，`retainedNativeInputs` 表示原生请求以不可变正文引用捕获输入。原生快照响应的 `analysis` 字段提供实际完整检查调用次数 `builds`、验证后复用次数 `cacheHits`、输入守卫拒绝次数 `invalidations`、当前输入文档数／字节数及捕获／适配／分析线程身份。计数来自核心会话，不是按请求推测的命中率；语法折叠的既有 `xlang/analysisStats` 计数仍单独报告。
+
 本轮接通独立 C 程序 `xlang-ls.exe`、后台 stdio 客户端、真实编译器检查、CodeEdit 错误标注及中央问题窗格。首版仍是传统 IDE，C/xlang 的词法高亮、折叠和目录补全保持可用。
 
-GUI 提供当前 `.xl` 文档全文快照检查，使用所有已打开命名 `.xl` 的正文及版本覆盖入口、递归源码和源码包；逐文件 CodeEdit 标注和中央问题定位已接入，修改后可自动复查。独立 C 后台及 stdio 使用 `xlang/check`；旧 `xlang/checkSaved` 和保存后菜单保持兼容。成功检查后已接入真实符号定义与 F12；已实现当前文档大纲和原生悬停；项目多输入和 C 语义继续实施，原生候选已接入独立客户端；标准 LSP 光标补全已接入独立当前快照，详见 [补全服务](semantic-completion-service.md)。详见 [定义跳转](definition-navigation.md) 与 [大纲及悬停](outline-hover.md)。
+GUI 提供当前 `.xl` 文档快照检查，使用所有已打开命名 `.xl` 的正文及版本覆盖入口、递归源码和源码包；逐文件 CodeEdit 标注和中央问题定位已接入，修改后可自动复查。独立 C 后台及 stdio 使用 `xlang/check`；旧 `xlang/checkSaved` 和保存后菜单保持兼容。成功检查后已接入真实符号定义与 F12；已实现当前文档大纲和原生悬停；项目多输入和 C 语义继续实施，原生候选已接入独立客户端；标准 LSP 光标补全已接入独立当前快照，详见 [补全服务](semantic-completion-service.md)。详见 [定义跳转](definition-navigation.md) 与 [大纲及悬停](outline-hover.md)。
 
 ## 原生使用
 
-1. 从文件菜单选择具有源码覆盖和来源报告能力的 xlang 编译器，打开命名的 `.xl` 入口并保持该入口的 xlang 语法。
+1. 配置 xlang 工具链路径，打开命名的 `.xl` 入口并保持该入口的 xlang 语法。原生分析使用服务构建绑定的前端；CLI 兼容检查需要所选编译器具有源码覆盖和来源报告能力。
 2. 执行“检查当前 xlang 文档（含未保存依赖）”。入口和已打开 `.xl` 依赖无需保存，编辑器保留正文、选区、脏状态和撤销历史。命名的恢复文档可以提供尚未落盘的依赖；未命名文档须先确定路径。
 3. 错误标注显示在对应文件，中央底栏“问题”页列出路径与位置。双击或选中后按 Enter 定位；未打开的磁盘依赖会先核对检查时的正文摘要与文件身份，再打开并跳转。BOM/CRLF 文件按规范化的 UTF-8 编辑正文定位。
 4. 显式检查开启本次入口的自动复查。任何已打开 `.xl` 的全文/版本、路径、语法、外部冲突或打开集合变化都会撤销旧结果；等待最后一次修改 500 ms 后，以原入口而非当前活动标签复查。切换到 C 标签不会改换检查入口，C 修改不会使 xlang 批次失效。
@@ -33,23 +35,24 @@ GUI 提供当前 `.xl` 文档全文快照检查，使用所有已打开命名 `.
 | `platform/process` | 默认合并日志，协议模式独立 stdout/stderr，后台读写、取消与进程树清理 |
 | `services/language_client` | 后台发送及接收队列，子进程协议读取，异常退出和坏帧检测 |
 | `services/language_check` | 保存检查与不可变快照任务、生命周期及取消 |
-| `services/language_snapshot` | 临时全文覆盖、逐文件摘要/身份/导入观察验证、UTF-16 诊断与独立光标查询 |
+| `services/language_snapshot` | 原生引用捕获／类型化分析适配、CLI 临时全文覆盖、输入守卫、UTF-16 诊断与独立光标查询 |
+| `analysis/check_session`、`analysis/worker` | 常驻 XRT 检查会话、完整语义／IR 复用、后台队列及结果所有权 |
 | `services/semantic_completion` | 有界候选解码、原字节/标量范围核对与 UTF-16 整段 textEdit |
 | `server/xlang_ls` | 独立 stdio 服务、请求关联、文档版本和检查任务生命周期 |
 | `ui/language_view` | 公共检查/取消动作、初始化和重连、编辑器范围映射与结果有效性 |
 | `ui/task_view` | 已有中央问题窗格的来源切换、节点选择及跳转 |
 
-GUI 不载入 `xlc.dll` 或 `xl.dll`。服务也通过单独的编译器 CLI 进程执行检查，不把编译器 DLL 导入服务地址空间。所有应用侧模块仍使用固定 `xge.dll` 提供的 XRT 实例；服务不初始化图形窗口。
+GUI 不载入 `xlc.dll` 或 `xl.dll`。默认服务直接链接共享前端与编译器 XRT；保存后／显式 CLI 兼容检查和 C 桥接执行独立编译器进程，不把编译器 DLL 导入服务地址空间。所有 GUI 模块使用固定 `xge.dll` 提供的 XRT 实例；服务不初始化图形窗口，也不混用 GUI 的分配器或容器。
 
-服务每次执行真实 `--help`；旧模式运行 `check <absolute-file.xl> --json`，快照模式另加 `--source-report` 与逐文档 `--source-overlay`。即使存在工具链观察缓存，每次检查仍核对本次 CLI 声明和前后文件指纹。输入只读，不保存或重写源码。编译器 stdout 必须是完整、有效且有界的 UTF-8 JSON；stderr 通过独立通道消费，不能污染协议或检查响应。检查发生错误时保留用户的编辑状态。
+CLI 兼容后端每次执行真实 `--help`；旧模式运行 `check <absolute-file.xl> --json`，快照模式另加 `--source-report` 与逐文档 `--source-overlay`。即使存在工具链观察缓存，CLI 检查仍核对本次能力声明和前后文件指纹。原生检查无需这些进程和临时文件。输入只读，不保存或重写源码；兼容编译器 stdout 必须是完整、有界的 UTF-8 JSON，stderr 独立消费。检查发生错误时保留用户的编辑状态。
 
 ## 协议与能力
 
 规范参考 [Microsoft LSP 3.17](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/)；帧采用 ASCII `Content-Length`、CRLF 头和 UTF-8 JSON-RPC 2.0 正文。长度按字节，支持分片和连续帧，拒绝缺失/重复/非法长度、非 UTF-8 编码、坏 JSON 和截断 EOF。
 
-实现了 `initialize`、`initialized`、`shutdown`、`exit`、`$/cancelRequest`、全文 `didOpen/didChange/didSave/didClose` 和 `publishDiagnostics`。请求 ID 按整数或字符串关联；未初始化请求、重复初始化、未知方法、坏参数、取消及变化后的请求返回明确错误。通知没有请求响应。关闭文档或正文版本变化时清空该版本的诊断。
+实现了 `initialize`、`initialized`、`shutdown`、`exit`、`$/cancelRequest`、`didOpen/didChange/didSave/didClose` 和 `publishDiagnostics`，变化通知支持有序增量及全文内容。请求 ID 按整数或字符串关联；未初始化请求、重复初始化、未知方法、坏参数、取消及变化后的请求返回明确错误。通知没有请求响应。关闭文档或正文版本变化时清空该版本的诊断。
 
-初始化响应声明 UTF-16、全文同步、打开/关闭与保存通知。`experimental.savedEntryDiagnostics`、`snapshotDiagnostics` 和 `unsavedDependencies` 为 true，表示自定义保存检查及全文快照检查；实际编译器还必须在 check 帮助行声明 `--json/--source-overlay/--source-report` 并返回可验证报告。`snapshotDocumentFingerprint` 为 true，表示快照文件组携带规范化正文摘要及磁盘输入身份。`snapshotInputGuard` 为 `background-poll`：成功快照在保留期间由后台持续复核，每轮复核完成后等待一秒。结果的 `guardScope` 使用相同值；旧保存模式仍没有此持续守护。`cSemantics` 为 false；声明 definitionProvider 与实验性 snapshotDefinition，具体可用性取决于该次成功索引；声明 hover/documentSymbol 与相应 snapshot 实验能力，已声明 completionProvider，补全使用独立当前快照查询；GUI 使用独立客户端查询原生语义候选，并组合现有目录提供者；详细交互与边界见 [原生补全](native-completion.md)。详见 [补全服务](semantic-completion-service.md)。
+初始化响应声明 UTF-16、增量同步及全文变化兼容、打开/关闭与保存通知。`experimental.savedEntryDiagnostics`、`snapshotDiagnostics` 和 `unsavedDependencies` 为 true，表示自定义保存检查及文档快照检查；CLI 快照后端要求编译器在 check 帮助行声明 `--json/--source-overlay/--source-report` 并返回可验证报告，默认原生后端无需该进程。`snapshotDocumentFingerprint` 为 true，表示快照文件组携带规范化正文摘要及磁盘输入身份。`snapshotInputGuard` 为 `background-poll`：成功快照在保留期间由后台持续复核，每轮复核完成后等待一秒。结果的 `guardScope` 使用相同值；旧保存模式仍没有此持续守护。`cSemantics` 为 false；声明 definitionProvider 与实验性 snapshotDefinition，具体可用性取决于该次成功索引；声明 hover/documentSymbol 与相应 snapshot 实验能力，已声明 completionProvider，补全使用独立当前快照查询；GUI 使用独立客户端查询原生语义候选，并组合现有目录提供者；详细交互与边界见 [原生补全](native-completion.md)。详见 [补全服务](semantic-completion-service.md)。
 
 显式自定义请求 `xlang/checkSaved` 参数为：
 

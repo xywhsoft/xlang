@@ -29,8 +29,37 @@ static int fail(xide_model_error* e,const char* message) { e->code=XIDE_MODEL_IN
 static int cancelled(xide_language_check* q) { return InterlockedCompareExchange(&q->cancel,0,0)!=0 || (q->externalCancel && q->externalCancel(q->externalUser)); }
 #ifdef XLS_COMPILER_XRT
 static int nativeCancelled(void* user) { return cancelled(user); }
+static void nativeQueryWake(void* user) { SetEvent((HANDLE)user); }
+static xls_semantic_check* retainedCheck(xide_language_check* q,xide_model_error* e)
+{
+ xls_analysis_document documents[64];
+ for(size_t i=0;i<q->snapshotCount;++i) documents[i]=(xls_analysis_document){q->snapshotKeys[i],q->snapshots[i].path,
+  q->snapshotTexts[i],q->snapshotIdentities[i],(uint64_t)((int64_t)q->snapshots[i].version-INT_MIN)};
+ HANDLE event=CreateEventW(NULL,FALSE,FALSE,NULL);
+ xls_query* query=event ? xlsWorkerCheck(q->semanticActor,documents,q->snapshotCount,q->semanticTarget) : NULL;
+ xls_semantic_check* result=NULL;
+ if(!query || !xlsQuerySetWake(query,nativeQueryWake,event)) { fail(e,"Cannot submit retained semantic analysis."); goto done; }
+ for(;;) {
+  if(cancelled(q)) break;
+  enum xls_query_state state=xlsQueryCheckResult(query,&result,&q->semanticStats,&q->semanticThread,e->message,sizeof(e->message));
+  if(state==XLS_QUERY_READY) break;
+  if(state!=XLS_QUERY_PENDING) { e->code=XIDE_MODEL_INVALID; break; }
+  HANDLE waits[2]={q->stopEvent,event};
+  DWORD wait=WaitForMultipleObjects(2,waits,FALSE,INFINITE);
+  if(wait==WAIT_FAILED) { fail(e,"Cannot wait for retained semantic analysis."); break; }
+ }
+done:
+ if(cancelled(q) || !result) { xlsQueryCancel(query); xlsSemanticCheckDestroy(result); result=NULL; }
+ /* Removing a Future watch joins callbacks, not the running analysis. The
+    actor owns its captured inputs and cooperates with cancellation itself. */
+ xlsQueryDestroy(query); if(event) CloseHandle(event); return result;
+}
 static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_semantic_check** checked,xide_model_error* e)
 {
+ if(q->retainedSnapshots) for(size_t i=0;i<q->snapshotCount;++i) {
+  if(cancelled(q)) return 0;
+  for(size_t j=0;j<i;++j) if(xidePathEqual(q->snapshots[i].path,q->snapshots[j].path)) return fail(e,"Retained source paths resolve to the same physical file.");
+ }
  xls_semantic_input inputs[64];
  for(size_t i=0;i<q->snapshotCount;++i) inputs[i]=(xls_semantic_input){q->snapshots[i].path,q->snapshots[i].text,strlen(q->snapshots[i].text)};
  size_t size=0; char* report=NULL;
@@ -42,7 +71,8 @@ static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_seman
   *code=xlsSemanticCompletionInfo(result).available ? 0 : 1;
   xlsSemanticCompletionDestroy(result);
  } else {
-  xls_semantic_check* result=xlsSemanticCheckCreate(q->path,inputs,q->snapshotCount,1,nativeCancelled,q,e->message,sizeof(e->message));
+  xls_semantic_check* result=q->semanticActor ? retainedCheck(q,e) :
+   xlsSemanticCheckCreate(q->path,inputs,q->snapshotCount,1,nativeCancelled,q,e->message,sizeof(e->message));
   if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
   *checked=result;
   report=xlsSemanticCheckReportJson(result,&size);
@@ -369,6 +399,15 @@ analysed:
  }
  if(!q->queryPath && !q->nativeBridge && !put(result,"semanticDefinitions",xrtValueBool(q->definitions!=NULL))) goto done;
 #ifdef XLS_COMPILER_XRT
+ if(q->semanticActor && !q->queryPath) {
+  xvalue* stats=xrtValueObject();
+  int okayStats=stats && put(stats,"builds",xrtValueInt((int64)q->semanticStats.builds)) && put(stats,"cacheHits",xrtValueInt((int64)q->semanticStats.hits)) &&
+   put(stats,"invalidations",xrtValueInt((int64)q->semanticStats.invalidations)) && put(stats,"documents",xrtValueInt((int64)q->semanticStats.documents)) &&
+   put(stats,"textBytes",xrtValueInt((int64)q->semanticStats.textBytes)) && put(stats,"workerThreadId",xrtValueInt((int64)q->semanticThread)) &&
+   put(stats,"captureThreadId",xrtValueInt((int64)q->captureThread)) && put(stats,"adapterThreadId",xrtValueInt((int64)xrtThreadCurrentId()));
+  if(!okayStats) { xrtValueRelease(stats); goto done; }
+  if(!put(result,"analysis",stats)) goto done;
+ }
  if(nativeCheck && !xlsSemanticCheckValidate(nativeCheck)) { fail(e,"原生分析的输入在发布前已改变。"); goto done; }
 #endif
  if(!validateGraph(q,&graph,e) || (!q->nativeSemantic && !xideToolchainValidate(q->compiler,&stamp,e)) || cancelled(q)) goto done;

@@ -21,6 +21,18 @@ xide_language_check* xideLanguageCheckStartCompletionSnapshots(xide_toolchains* 
    only wakes an owner, may run on the worker, and must not reenter/destroy the
    check. Its user data outlives Destroy. CLI remains an explicit oracle. */
 xide_language_check* xideLanguageCheckStartCompletionSnapshotsEx(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,const xide_language_completion_options* options,xide_model_error* error);
+#ifdef XLS_COMPILER_XRT
+#include "analysis/worker.h"
+/* Standalone native host only. Captures immutable text references, labels and
+   wire versions without copying/revalidating entire bodies or doing physical
+   alias I/O on the caller. target is the entry's document key. A static check
+   needs actor; cursor mode uses queryPath/UTF-16 position and its own worker.
+   actor and callback data must outlive Destroy. Disk/alias checks run off-owner. */
+xide_language_check* xideLanguageCheckStartRetained(xide_toolchains* cache,const char* compiler,
+ const char* directory,xls_worker* actor,const xls_analysis_document* documents,size_t count,
+ const char* target,const char* queryPath,int line,int character,
+ const xide_language_analysis_options* options,xide_model_error* error);
+#endif
 
 /* Worker-only C ABI query: disk entry is allowed, open .xl overlays remain
    copied and guarded. Options are real compiler include/C-source inputs. */
