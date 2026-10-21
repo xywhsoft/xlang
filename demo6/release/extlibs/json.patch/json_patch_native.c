@@ -473,53 +473,48 @@ static int xjp_apply_op(xvalue **rootRef, xvalue *op) {
     return 0;
 }
 
-/* RFC 7396 merge into a fresh value; returns an owned reference. */
-static xvalue *xjp_merge_value(xvalue *target, xvalue *patch,
-    size_t depth) {
-    if (!xjp_is_object(patch)) {
-        return xrtValueDeepClone(patch);
-    }
+/* 只克隆一次目标；递归修改这份副本，失败时由外层整体释放。 */
+static int xjp_merge_into(xvalue *result, xvalue *patch, size_t depth) {
+    int64 i, n;
     if (depth >= XJP_MAX_MERGE_DEPTH) {
         xjp_error("merge patch exceeds object nesting limit");
+        return 0;
+    }
+    n = xrtValueCount(patch);
+    for (i = 0; i < n; ++i) {
+        xstrview key;
+        xvalue *item = xrtValueObjectAt(patch, i, &key);
+        if (item == NULL) continue;
+        if (xrtValueType(item) == XVALUE_NULL) {
+            xrtValueObjectRemove(result, key);
+        } else if (xjp_is_object(item)) {
+            xvalue *child = xjp_object_get(result, key);
+            if (!xjp_is_object(child)) {
+                child = xrtValueObject();
+                if (child == NULL || !xrtValueObjectSetNew(result, key, child))
+                    return 0;
+            }
+            if (!xjp_merge_into(child, item, depth + 1u)) return 0;
+        } else {
+            xvalue *copy = xrtValueDeepClone(item);
+            if (copy == NULL || !xrtValueObjectSetNew(result, key, copy))
+                return 0;
+        }
+    }
+    return 1;
+}
+
+/* RFC 7396 Merge Patch 返回独立拥有的结果。 */
+static xvalue *xjp_merge_value(xvalue *target, xvalue *patch) {
+    xvalue *result;
+    if (!xjp_is_object(patch)) return xrtValueDeepClone(patch);
+    result = xjp_is_object(target) ? xrtValueDeepClone(target) : xrtValueObject();
+    if (result == NULL) return NULL;
+    if (!xjp_merge_into(result, patch, 0u)) {
+        xrtValueRelease(result);
         return NULL;
     }
-    {
-        xvalue *result;
-        int64 i;
-        int64 n;
-        if (xjp_is_object(target)) {
-            result = xrtValueDeepClone(target);
-        } else {
-            result = xrtValueObject();
-        }
-        if (result == NULL) {
-            return NULL;
-        }
-        n = xrtValueCount(patch);
-        for (i = 0; i < n; ++i) {
-            xstrview key;
-            xvalue *item = xrtValueObjectAt(patch, i, &key);
-            if (item == NULL) {
-                continue;
-            }
-            if (item != NULL && xrtValueType(item) == XVALUE_NULL) {
-                xrtValueObjectRemove(result, key);
-            } else {
-                xvalue *child = NULL;
-                xvalue *merged;
-                if (xjp_is_object(item)) {
-                    child = xjp_object_get(result, key);
-                }
-                merged = xjp_merge_value(child, item, depth + 1u);
-                if (merged == NULL ||
-                    !xrtValueObjectSetNew(result, key, merged)) {
-                    xrtValueRelease(result);
-                    return NULL;
-                }
-            }
-        }
-        return result;
-    }
+    return result;
 }
 
 xvalue *xjsonpatch_apply(xvalue *doc, xvalue *patch) {
@@ -551,7 +546,7 @@ xvalue *xjsonpatch_merge(xvalue *doc, xvalue *patch) {
     if (doc == NULL || patch == NULL) {
         return xjp_null_fail("merge requires a document and a patch object");
     }
-    result = xjp_merge_value(doc, patch, 0u);
+    result = xjp_merge_value(doc, patch);
     if (result != NULL) return result;
     if (xrtGetError() == NULL) xjp_error("merge patch failed");
     return xrtValueNull();

@@ -21,6 +21,43 @@ static int same(const xvalue* actual, const char* expected) {
     return equal;
 }
 
+/* 深层合并只应复制目标一次；故障阈值防止每层重新克隆整个子树。 */
+static int merge_allocation_shape(void) {
+    xstrview branch = {"a", 1u}, valueKey = {"value", 5u};
+    xvalue *doc = xrtValueObject(), *patch = xrtValueObject();
+    xvalue *result, *node;
+    int64 number;
+    int triggered, i;
+    CHECK(doc && patch &&
+        xrtValueObjectSetNew(doc, valueKey, xrtValueInt(1)) &&
+        xrtValueObjectSetNew(patch, valueKey, xrtValueInt(2)));
+    for (i = 0; i < 32; ++i) {
+        xvalue *nextDoc = xrtValueObject(), *nextPatch = xrtValueObject();
+        CHECK(nextDoc && nextPatch &&
+            xrtValueObjectSetNew(nextDoc, branch, doc) &&
+            xrtValueObjectSetNew(nextPatch, branch, patch));
+        doc = nextDoc;
+        patch = nextPatch;
+    }
+    CHECK(xrtMemDebugFailAfter(300));
+    result = xjsonpatch_merge(doc, patch);
+    triggered = xrtMemDebugFailTriggered();
+    xrtMemDebugFailClear();
+    CHECK(result && !triggered && !xjsonpatch_has_error());
+    node = result;
+    for (i = 0; i < 32; ++i) node = xrtValueObjectGet(node, branch);
+    CHECK(node && xrtValueGetInt(xrtValueObjectGet(node, valueKey), &number) &&
+        number == 2);
+    node = doc;
+    for (i = 0; i < 32; ++i) node = xrtValueObjectGet(node, branch);
+    CHECK(node && xrtValueGetInt(xrtValueObjectGet(node, valueKey), &number) &&
+        number == 1);
+    xrtValueRelease(result);
+    xrtValueRelease(patch);
+    xrtValueRelease(doc);
+    return 0;
+}
+
 static int applies(const char* source, const char* operations,
     const char* expected) {
     xvalue* doc = parse(source);
@@ -497,6 +534,7 @@ int main(void) {
         xrtClearError();
     }
     xrtValueRelease(original);
+    CHECK(merge_allocation_shape() == 0);
     puts("json.patch boundaries: ok");
     return 0;
 }

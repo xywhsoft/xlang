@@ -146,3 +146,5 @@ Windows `-SkipAot` 和 Linux ASan/UBSan、双语门禁通过。完整 AOT 阻断
 `-SkipAot` 严格 C/XLang 与双语范例、Linux C ASan/UBSan 和 XLang
 对照门禁通过，包实现与公开 API 无需修改。默认 Windows 门禁在边界
 AOT 构建处仍缺共享 `xl6ValueDataSnapshotV1`，暂不签收整包发布级。
+
+2026-10-21：Merge Patch 的对象递归改为先深拷贝目标一次，再在独立副本中合并；失败时释放整份副本，调用方文档不变。32 层对象的 C 回归在修改前触发 300 次分配故障阈值，修改后可在阈值内完成并核对新旧叶值。Windows `test/check.ps1 -SkipAot` 的严格 C、XLang 与双语范例及 Linux `test/check.sh` 的 C ASan/UBSan、语言对照通过。公开 API 未变；完整 AOT 的共享缺符号阻断仍在。
