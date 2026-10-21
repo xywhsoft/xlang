@@ -91,3 +91,4 @@ Windows C/XLang 和 Linux ASan/UBSan、`plistlib` 互操作门禁通过；完整
 AOT 的共享主线阻断不变。
 2026-10-19：C 配置的 `tLimits.iReserved` 必须为 0。读/写两条负例先红后绿，共用选项解析器拒绝非零保留字段；Windows 包级 C/XLang 与 Linux C ASan/UBSan、XLang、Python `plistlib` 四格式互通门禁通过。完整 AOT 共享阻断不变。
 同日：`tLimits.iFlags` 对 plist 没有定义的行为，原来非零值被静默忽略；解析与写出负例先红后绿，现统一返回 `ARGUMENT`。Windows 包级与 Linux C ASan/UBSan、XLang、`plistlib` 互通门禁复跑通过；完整 AOT 共享阻断不变。
+2026-10-22：复查 XML DOM 拥有型节点引用后，新增活动分配数回归，覆盖嵌套容器成功解析、容器内非法文本、多根值、缺少字典键，以及嵌套解析的 256 个分配故障点。所有路径在销毁结果后均回到解析前的活动分配数，未发现 RSS 同类引用泄漏；无需修改 plist 解析器。Windows 包级 C/XLang 门禁和 Linux C ASan/UBSan、XLang、双语范例及 `plistlib` 互通门禁通过。本轮未重跑完整 AOT，不据此签收整包发布级。

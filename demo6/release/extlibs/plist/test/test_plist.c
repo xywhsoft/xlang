@@ -205,6 +205,62 @@ static int testXmlScalarFailures(void)
 	return 1;
 }
 
+/* XML DOM 返回的子节点持有文档引用，解析结束后必须全部释放。 */
+static int testXmlDocumentOwnership(void)
+{
+	static const struct {
+		const char* sXml;
+		int bValid;
+	} sCases[] = {
+		{ "<plist><dict><key>items</key><array><string>a</string>"
+			"<dict><key>n</key><integer>2</integer></dict></array></dict></plist>", 1 },
+		{ "<plist><array><string>a</string>bad</array></plist>", 0 },
+		{ "<plist><string>a</string><string>b</string></plist>", 0 },
+		{ "<plist><dict><string>not a key</string><integer>1</integer></dict></plist>", 0 }
+	};
+	xmemdebugsnapshot tBefore;
+	xmemdebugsnapshot tAfter;
+	size_t i;
+	uint64 iPoint;
+	for ( i = 0u; i < sizeof(sCases) / sizeof(sCases[0]); i++ ) {
+		xrtplisterror tError;
+		xrtplistdocument* pDocument;
+		xrtMemDebugSnapshot(&tBefore);
+		pDocument = xrtPlistParseMemory(sCases[i].sXml,
+			strlen(sCases[i].sXml), NULL, &tError);
+		if ( (pDocument != NULL) != sCases[i].bValid ) {
+			xrtPlistDestroy(pDocument); return 0;
+		}
+		xrtPlistDestroy(pDocument);
+		xrtMemDebugSnapshot(&tAfter);
+		if ( tAfter.LiveCount != tBefore.LiveCount ) {
+			fprintf(stderr, "plist XML ownership case %u: %llu -> %llu\n",
+				(unsigned)i, (unsigned long long)tBefore.LiveCount,
+				(unsigned long long)tAfter.LiveCount);
+			return 0;
+		}
+	}
+	for ( iPoint = 0u; iPoint < 256u; iPoint++ ) {
+		xrtplisterror tError;
+		xrtplistdocument* pDocument;
+		xrtMemDebugSnapshot(&tBefore);
+		if ( !xrtMemDebugFailAfter(iPoint) ) { return 0; }
+		pDocument = xrtPlistParseMemory(sCases[0].sXml,
+			strlen(sCases[0].sXml), NULL, &tError);
+		xrtMemDebugFailClear();
+		xrtPlistDestroy(pDocument);
+		xrtMemDebugSnapshot(&tAfter);
+		if ( tAfter.LiveCount != tBefore.LiveCount ) {
+			fprintf(stderr, "plist XML ownership allocation %llu: %llu -> %llu\n",
+				(unsigned long long)iPoint,
+				(unsigned long long)tBefore.LiveCount,
+				(unsigned long long)tAfter.LiveCount);
+			return 0;
+		}
+	}
+	return 1;
+}
+
 /* XML plist 的小数点是格式的一部分，不随 LC_NUMERIC 改变。 */
 static int testXmlRealLocale(void)
 {
@@ -936,6 +992,7 @@ int main(void)
 	if ( !testIndentedXmlData() ) { fputs("plist XML data failed\n", stderr); return 2; }
 	if ( !testXmlIntegerFailures() ) { fputs("plist XML integer failed\n", stderr); return 2; }
 	if ( !testXmlScalarFailures() ) { fputs("plist XML scalar failed\n", stderr); return 2; }
+	if ( !testXmlDocumentOwnership() ) { fputs("plist XML ownership failed\n", stderr); return 2; }
 	if ( !testXmlRealLocale() ) { fputs("plist XML locale failed\n", stderr); return 2; }
 	if ( !testBinaryDateUnit() ) { fputs("plist binary date unit failed\n", stderr); return 2; }
 	if ( !testXmlDatePrecision() ) { fputs("plist XML date precision failed\n", stderr); return 2; }
