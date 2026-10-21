@@ -30,6 +30,54 @@ static bool append_text(xvalue* Array, const char* Data, size_t Size)
     return Ok;
 }
 
+static uint32_t next_random(uint32_t* State)
+{
+    *State ^= *State << 13;
+    *State ^= *State >> 17;
+    *State ^= *State << 5;
+    return *State;
+}
+
+static int test_mutated_frames(void)
+{
+    static const unsigned char Source[] =
+        "*3\r\n+OK\r\n$3\r\nA\0\xff\r\n*2\r\n:17\r\n$-1\r\n";
+    static const unsigned char Changes[] =
+        { '\r', '\n', '+', '-', ':', '$', '*', '0', '1', '9', 0, 0xff };
+    uint32_t State = UINT32_C(0x6a3d2f17);
+    unsigned caseIndex;
+
+    /* 固定畸变与分包位置，交叉验证无状态解析器和有状态扫描器。 */
+    for (caseIndex = 0u; caseIndex < 1024u; ++caseIndex) {
+        unsigned char Mutated[sizeof(Source) - 1u];
+        unsigned char First[sizeof(Mutated)], Second[sizeof(Mutated)];
+        size_t length;
+        void* Scanner = xr_frame_create();
+        CHECK(Scanner != NULL);
+        memcpy(Mutated, Source, sizeof(Mutated));
+        Mutated[next_random(&State) % sizeof(Mutated)] =
+            Changes[next_random(&State) % sizeof(Changes)];
+        if ((caseIndex & 1u) != 0u)
+            Mutated[next_random(&State) % sizeof(Mutated)] =
+                Changes[next_random(&State) % sizeof(Changes)];
+        for (length = 0u; length <= sizeof(Mutated); ++length) {
+            unsigned char* Buffer = (length & 1u) ? First : Second;
+            bool Expected = xr_is_complete_raw(Mutated, length);
+            const xerror* Error = xrtGetError();
+            bool Failed = Error != NULL;
+            xerrkind Kind = Failed ? xrtErrorKind(Error) : 0;
+            bool Actual;
+            memcpy(Buffer, Mutated, length);
+            Actual = xr_frame_check(Scanner, Buffer, length);
+            Error = xrtGetError();
+            CHECK(Actual == Expected && (Error != NULL) == Failed);
+            if (Failed) CHECK(xrtErrorKind(Error) == Kind);
+        }
+        xr_frame_destroy(Scanner);
+    }
+    return 0;
+}
+
 int main(void)
 {
     xvalue* Args = xrtValueArray();
@@ -344,6 +392,7 @@ int main(void)
         xrtValueRelease(Reply);
     }
     xrtValueRelease(Input);
+    CHECK(test_mutated_frames() == 0);
     puts("redis C boundaries: PASS");
     return 0;
 }
