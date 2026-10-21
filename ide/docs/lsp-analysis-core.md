@@ -17,6 +17,8 @@ python -X utf8 -B .\tools\build_lsp_core.py `
 
 所有翻译单元预先包含同一份编译器 `lib/xrt/xrt.h`。`analysis/runtime.c` 是唯一 XRT 实现拥有者；前端的 xruntime 声明继续来自匹配的共享资产。本目标不链接 XGE，也不加载 xlc。产物为 `xlang-analysis-core.a` 及独立验证程序，不能直接链接到由 XGE 拥有 XRT 的 IDE 进程。该归档只包含分析与共享前端；协议、平台与兼容 CLI 服务单独链接到宿主。
 
+原生 Release 目标在全部翻译单元一致设置 `XRT_EXCLUDE_MEMORY_DEBUG`，保留 `XRT_MODULE_ALL` 及分析、容器、任务池、所有权等功能；Debug 目标保留内存调试构建。`XRT_MODULE_ALL` 默认选择的内存调试指针检查曾让大 JSON 树释放达到秒级，不能把 `-O2` 当作已选中发行分配器。构建会实际预处理运行时、共享 AST 和宿主三个入口，验证功能宏一致，并将 `runtimeProfiles` 写入凭据。SDK／XGE 拥有的 GUI 运行时保持其已核对配置。
+
 增加 `--server` 构建外部宿主，`--skip-tests` 只构建不运行核心检查，`--configuration Debug` 保留调试信息。当前宿主传输／进程适配仍为 Windows；核心构建与宿主平台边界分别记录。IDE 构建脚本已接入该目标：`build_current` 明确传递原工作区的前端材料目录，将原生服务的源码／头文件闭包、输出摘要和构建凭据绑定到整体构建记录。优先选用当前随包编译器的固定源码材料，缺少时选仓库 `demo6`；也可通过 `-FrontendRoot` 显式指定。
 
 IDE 进程仍使用匹配的 XGE/XRT，外部服务通过 `XLS_COMPILER_XRT` 使用编译器 XRT，两个运行时之间只传输 JSON 字节。文本文件层的换行元数据独立于 XUI，编辑器边界用编译期断言核对数值，避免服务链接 GUI 头文件。构建工具核对宿主没有导入 `xge.dll` 或 `xlc.dll`，不允许用 GUI 对象文件与原生分析对象混合链接。
