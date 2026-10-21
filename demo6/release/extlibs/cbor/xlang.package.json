@@ -17,6 +17,15 @@
                      "xlSources":  [
                                        "src/cbor.xl"
                                    ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_BUFFER",
+                                        "XRT_MODULE_BUFFER_HEX",
+                                        "XRT_MODULE_CODEC_HEX",
+                                        "XRT_MODULE_STRING",
+                                        "XRT_MODULE_TIME_TEXT",
+                                        "XRT_MODULE_UNICODE",
+                                        "XRT_MODULE_VALUE_CONTAINER"
+                                    ],
                      "kind":  "source"
                  },
     "name":  "cbor",
@@ -26,5 +35,6 @@
     "loadlibs":  [
 
                  ],
-    "abiVersion":  "1"
+    "abiVersion":  "1",
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] }
 }

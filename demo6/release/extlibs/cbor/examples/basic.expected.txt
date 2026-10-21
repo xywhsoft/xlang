@@ -1,0 +1,4 @@
+hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff
+name: xlang
+maximum: 18446744073709551615
+binary: 00ff41

@@ -1,14 +1,10 @@
 /* CBOR C API smoke: xvalue containers and byte buffers share one codec. */
 #define XRT_MODULE_ALL
 #include "xrt.h"
+#include "../cbor_native.h"
 
 #include <stdio.h>
 #include <string.h>
-
-xbuffer* xcbor_encode(xvalue* pValue);
-xvalue* xcbor_decode(const void* pData, size_t iSize);
-xbuffer* xcbor_encode_bytes(const void* pData, size_t iSize);
-xbuffer* xcbor_decode_bytes(const void* pData, size_t iSize);
 
 static int fail(const char* sMessage)
 {
@@ -62,5 +58,3 @@ int main(void)
     iResult = 0;
     return iResult;
 }
-
-#include "../cbor_native.c"

@@ -1,0 +1,8 @@
+import cbor
+
+func main(...) as int
+    Buffer wire = cbor.encode(123)
+    assert cbor.toHex(wire) == "187b", "integer CBOR wire"
+    assert cbor.decode(wire) == 123, "integer CBOR roundtrip"
+    return 0
+end

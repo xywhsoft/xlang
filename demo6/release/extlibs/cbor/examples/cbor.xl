@@ -1,0 +1,22 @@
+import cbor
+
+func main(...) as int
+    assert arg.length == 1 or arg.length == 2
+    var source = {"name": "xlang", "maximum": uint64(18446744073709551615)}
+    Buffer wire = cbor.encode(source)
+    println("hex:", cbor.toHex(wire))
+    var restored = cbor.decode(wire)
+    println("name:", restored["name"])
+    assert restored["maximum"] == uint64(18446744073709551615)
+    println("maximum:", restored["maximum"])
+    Buffer raw = cbor.fromHex("00ff41")
+    Buffer binaryWire = cbor.encodeBytes(raw)
+    assert cbor.toHex(binaryWire) == "4300ff41"
+    Buffer binaryRestored = cbor.decodeBytes(binaryWire)
+    assert cbor.toHex(binaryRestored) == "00ff41"
+    println("binary:", cbor.toHex(binaryRestored))
+    if arg.length == 2 then
+        assert file.writeBytes(string(arg[1]), wire.toBytes())
+    end
+    return 0
+end

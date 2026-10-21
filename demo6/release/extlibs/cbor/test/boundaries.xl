@@ -1,0 +1,81 @@
+import cbor
+
+func main(...) as int
+    // CBOR null 是合法值，必须与失败哨兵区分。
+    assert cbor.decode(cbor.fromHex("f6")) == null
+    assert cbor.decode(cbor.encode(null)) == null
+    bool rejected = false
+    try
+        cbor.fromHex("f6\0suffix")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "hex input must not be silently truncated"
+
+    var half = cbor.decode(cbor.fromHex("f93e00"))
+    assert half == 1.5, "half precision"
+    assert cbor.decode(cbor.fromHex("fa3fc00000")) == 1.5, "single precision"
+    assert cbor.decode(cbor.fromHex("9f0102ff"))[1] == 2, "indefinite array"
+    assert cbor.decode(cbor.fromHex("bf616101ff"))["a"] == 1, "indefinite map"
+    assert cbor.decode(cbor.fromHex("7f62686963e4bda0ff")) == "hi你", "indefinite text"
+    assert cbor.toHex(cbor.decodeBytes(cbor.fromHex("5f42dead42beefff"))) == "deadbeef", "indefinite bytes"
+    assert cbor.decodeBytes(cbor.fromHex("5fff")).len() == 0, "empty indefinite bytes"
+    uint64 maximum = uint64(18446744073709551615)
+    assert cbor.toHex(cbor.encode(maximum)) == "1bffffffffffffffff", "uint64 wire"
+    assert cbor.decode(cbor.fromHex("1bffffffffffffffff")) == maximum, "uint64 decode"
+    uint64 aboveSigned = uint64(9223372036854775807) + uint64(1)
+    assert cbor.decode(cbor.fromHex("1b8000000000000000")) == aboveSigned, "uint64 boundary"
+    rejected = false
+    try
+        cbor.decode(cbor.fromHex("3b8000000000000000"))
+    catch RangeError e
+        rejected = true
+    end
+    assert rejected, "negative integer beyond int64 remains unsupported"
+
+    var nulMap = cbor.decode(cbor.encode({"a\0b": "x\0y"}))
+    assert string.byteLen(string(nulMap["a\0b"])) == 3, "text key and value NUL length"
+    assert nulMap["a\0b"] == "x\0y", "text key and value NUL roundtrip"
+
+    for size in [23, 24, 255, 256]
+        string sample = string.repeat("a", size)
+        assert cbor.decode(cbor.encode(sample)) == sample, "text length boundary"
+    end
+
+    rejected = false
+    try
+        cbor.decode(cbor.fromHex("a2616101616102"))
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "duplicate map key"
+    rejected = false
+    try
+        cbor.decode(cbor.fromHex("61ff"))
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "invalid UTF-8"
+    rejected = false
+    try
+        cbor.decode(cbor.fromHex("5f4101"))
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "truncated indefinite data"
+    assert cbor.decode(cbor.fromHex("f6")) == null, "valid null after an error"
+    var nestedTime = time(123456)
+    for level in range(63)
+        nestedTime = [nestedTime]
+    end
+    assert type(cbor.decode(cbor.encode(nestedTime))) == array, "63 array levels with tagged time"
+    nestedTime = [nestedTime]
+    rejected = false
+    try
+        cbor.encode(nestedTime)
+    catch RangeError e
+        rejected = true
+    end
+    assert rejected, "64 array levels leave no depth for a time tag"
+    return 0
+end

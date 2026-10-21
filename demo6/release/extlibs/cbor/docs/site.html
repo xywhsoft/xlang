@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cbor - 扩展库 - xlang</title>
+  <meta name="description" content="基于 XRT xvalue 的 CBOR 编解码，支持字节串、容器、时间和 C/xlang 双语接口。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-fmt" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / cbor</p>
+    <h1>cbor</h1>
+    <p class="extlib-lead">以 XRT 值模型读写紧凑二进制数据，同时提供字节串和十六进制辅助入口。</p>
+    <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import cbor
+
+var source = {"name": "甲", "count": 2}
+Buffer wire = cbor.encode(source)
+var value = cbor.decode(wire)
+assert value["name"] == "甲"
+assert cbor.decode(cbor.fromHex("f6")) == null</code></pre>
+    <p>合法 CBOR <code>null</code> 会返回 xlang 的 <code>null</code>，畸形数据抛 <code>ValueError</code>，两者不会混淆。</p>
+  </section>
+  <section id="api">
+    <h2>接口与边界</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>encode(value) / decode(Buffer)</code></td><td>在 var 值和 CBOR 二进制之间转换。</td></tr>
+      <tr><td><code>encodeBytes(Buffer) / decodeBytes(Buffer)</code></td><td>直接处理 CBOR 字节串，不经文本转换。</td></tr>
+      <tr><td><code>toHex(Buffer) / fromHex(text)</code></td><td>用于查看或输入 CBOR 十六进制字节；含 NUL 文本拒绝，C 文本入口按 128 MiB 限界扫描。</td></tr>
+    </tbody></table>
+    <p>支持 null、布尔、有符号 int64 与无符号 uint64 整数、float64、UTF-8 文本、字节串、数组、文本键字典及时间标签 0/1。正整数支持到 2^64-1；解码不超过 INT64_MAX 的值沿用 int，超过时用 uint64，线格式不保留较小正整数原本的有符号类型。文本键和字符串值均按真实字节长度处理，可完整往返内嵌 NUL；这不同于上表中拒绝 NUL 的十六进制文本入口。解码还接受半精度/单精度浮点和不定长容器。超出 int64 的负整数、非文本映射键、未知标签和未建模简单值不受支持；重复键、坏 UTF-8、截断及尾随数据报错。二进制数据上限 64 MiB，调试用 HEX 文本上限 128 MiB；C 入口将缺失输入报为参数错误、资源超限报为范围错误，XLang 中畸形数据抛 ValueError，深度超限可捕获 RangeError，分配故障抛 MemoryError。整份文档累计 100 万数组元素/字典条目和 64 层嵌套，时间 tag 0 的载荷额外占一层；解码不定长字符串分块也计入总预算。编解码使用同一累计上限，定长头部的极大长度报范围错误，不会误当作不定长。编码不承诺确定性形式，不应直接用输出字节做跨实现签名。</p>
+  </section>
+  <section id="c-api">
+    <h2>C 对照</h2>
+    <pre><code>#define XRT_MODULE_ALL
+#include "xrt.h"
+#include "cbor_native.h"
+
+int main(void)
+{
+    const unsigned char wire[] = {0xf6};
+    xvalue* value = xcbor_decode(wire, sizeof(wire));
+    if (value == NULL) return 1;
+    int ok = xrtValueType(value) == XVALUE_NULL;
+    xrtValueRelease(value);
+    return ok ? 0 : 2;
+}</code></pre>
+    <p>C 解码失败返回 <code>NULL</code>，合法 CBOR null 返回拥有型 <code>XVALUE_NULL</code>。其他拥有型结果按类型使用 <code>xrtValueRelease</code>、<code>xrtBufferDestroy</code> 或 <code>xrtFree</code>。完整双语范例见 <code>extlibs/cbor/examples/cbor.xl</code> 与 <code>cbor_c.c</code>；从发布目录运行 <code>./xl run extlibs/cbor/examples/cbor_c.c</code> 即可执行 C 范例。单文件范例包含原生实现，正式包仍独立编译。</p>
+  </section>
+  <section id="verify">
+    <h2>验证状态</h2>
+    <p>C/XLang 成对范例覆盖六个公开入口；含 NUL 与 <code>0xFF</code> 的字节样本固定编码为 <code>4300ff41</code>。两平台门禁同时核对独立预期输出和双语结果，完整 AOT 仍未签收。</p>
+    <p>2026-10-21 XLang 六个公开入口的分配故障用例改为逐入口扫描到首次成功，并在每次失败后立即清除故障、重试。Windows/Linux 正式运行器均通过；包实现未改，完整 AOT 的共享阻断未变。</p>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/cbor/test/check.ps1 -SkipAot
+wsl bash release/extlibs/cbor/test/check.sh</code></pre>
+    <p>2026-10-16：Windows 严格 GCC、C/XLang 边界、随机输入与双语输出对照通过；Linux 包级 C smoke、边界与范例通过 ASan/UBSan，同次脚本还验证 XLang 边界及 C/XLang 范例逐字节同输出。六个公开入口新增逐点分配故障扫描，C 保留 <code>XERR_MEMORY</code>、XLang 捕获 <code>MemoryError</code>，失败清除后可重试；解码故障覆盖嵌套数组、字典和字节串。整份文档累计项数的恰好达限/超限红绿回归通过。当前完整 AOT 在首个核心构建缺少 <code>xl6NativeHandleTraceLeaf</code>，不能据此宣称全部发布形态已验收。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+import cbor
+
+func main(...) as int
+    assert arg.length == 2
+    var doc = cbor.decode(Buffer(file.readBytes(string(arg[1]))))
+    assert doc["name"] == "Python 你好"
+    assert doc["count"] == 1099511627776
+    assert doc["maximum"] == uint64(18446744073709551615)
+    assert doc["nested"]["ok"] == true
+    assert doc["items"][0] == 1
+    assert doc["items"][2] == 3
+    assert type(doc["raw"]) == bytes
+    bytes raw = bytes(doc["raw"])
+    assert raw.length == 2
+    assert raw[0] == 0
+    assert raw[1] == 255
+    assert type(doc["when"]) == time
+    assert type(doc["epoch"]) == time
+    assert time.toUnixMs(time(doc["when"])) == 1786930200123
+    assert time.toUnixMs(time(doc["epoch"])) == 1786930200250
+    println("Python to XLang CBOR: PASS")
+    return 0
+end
