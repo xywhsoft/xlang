@@ -1,0 +1,35 @@
+--- original/src/xge_text_run.c
++++ experiment/src/xge_text_run.c
+@@ -93,7 +93,19 @@
+ 		? XGE_EMOJI_LINE_EXPAND : XGE_EMOJI_LINE_STABLE;
+ 	pEmojiPack = pDesc->pEmojiPack;
+ 	if ( iTextSize == 0 ) return XGE_OK;
+-	pRun->pGlyphs = (xge_glyph_position_t*)xrtCalloc((size_t)iTextSize, sizeof(*pRun->pGlyphs));
++    {
++        const char* sCount = pDesc->sText;
++        const char* sCountEnd = sCount + iTextSize;
++        int iCapacity = 0;
++        uint32_t iCountCodepoint;
++        while ( sCount < sCountEnd ) {
++            iRet = __xgeTextUTF8DecodeBounded(&sCount, sCountEnd, &iCountCodepoint);
++            if ( iRet != XGE_OK ) { xgeGlyphRunFree(pRun); return iRet; }
++            ++iCapacity;
++        }
++        /* UTF-8 bytes are an upper bound, but waste most capacity for CJK/emoji. */
++        pRun->pGlyphs = (xge_glyph_position_t*)xrtCalloc((size_t)iCapacity, sizeof(*pRun->pGlyphs));
++    }
+ 	pBackend = (xge_glyph_run_backend_t*)xrtCalloc(1, sizeof(*pBackend));
+ 	if ( (pRun->pGlyphs == NULL) || (pBackend == NULL) ) {
+ 		xrtFree(pRun->pGlyphs);
+@@ -415,7 +427,10 @@
+ 			tDraw.tDst.fH = (float)tGlyph.iHeight;
+ 			tDraw.iColor = __xgeGlyphRunSpanColor(pPosition, iColor, pSpans, iSpanCount);
+ 			tDraw.iFlags = iFlags;
+-			xgeDrawEx(&tDraw);
++            if ( (iFlags & XGE_DRAW_SCREEN_SPACE) == 0 ||
++                 !__xgeTextOutsidePixelClip(tDraw.tDst, xgeClipGetPixels()) ) {
++                xgeDrawEx(&tDraw);
++            }
+ 		}
+ 		fPenX += pPosition->fAdvanceX;
+ 	}

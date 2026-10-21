@@ -1,0 +1,17 @@
+--- a/src/ui/font_view.c
++++ b/src/ui/font_view.c
+@@ -1,4 +1,5 @@
+ #include "ui/toolchain_view.h"
++#include "platform/dpi_proxy.h"
+ #include "ui/resource_view.h"
+ #include "ui/import_view.h"
+ #include "ui/template_view.h"
+@@ -73,7 +74,7 @@
+     TRY(label(app,"当前字体效果；应用后同步编辑器、帮助范例、输出和终端。",(xui_rect_t){0,152,576,28},&view->hint));
+     xui_code_edit_desc_t code={0}; code.iSize=sizeof(code); code.pFont=app->codeFont; code.bReadonly=1; code.bShowLineNumbers=1;
+     code.sText="// 中文 / C / xlang / 0123456789\nfunc main(...) as int\n    return 0\nend\n";
+-    TRY(xuiCodeEditCreate(app->context,&view->controls[XIDE_FONT_PREVIEW],&code)); TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(view->controls[XIDE_FONT_PREVIEW])));
++    TRY(xideDpiCodeEditCreate(app->context,&view->controls[XIDE_FONT_PREVIEW],&code)); TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(view->controls[XIDE_FONT_PREVIEW])));
+     TRY(xideConfigureEditorLanguage(view->controls[XIDE_FONT_PREVIEW],"xlang")); TRY(xuiWidgetSetRect(view->controls[XIDE_FONT_PREVIEW],(xui_rect_t){0,184,576,114})); TRY(xuiWidgetAddChild(view->content,view->controls[XIDE_FONT_PREVIEW]));
+     TRY(label(app,"",(xui_rect_t){0,308,576,44},&view->message));
+     TRY(button(app,XIDE_FONT_APPLY,"应用并保存",(xui_rect_t){332,360,128,32})); TRY(button(app,XIDE_FONT_CANCEL,"取消",(xui_rect_t){476,360,100,32})); return xideUiLayoutCapture(&view->layout,view->content);

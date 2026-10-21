@@ -1,0 +1,108 @@
+/* Optional cached geometry provider. Wrapper fonts own their embedded XGE fonts;
+   invalidate cursor references before a wrapper font is destroyed. */
+#ifndef XGE_NO_TEXT
+typedef struct xui_proxy_xge_cursor_t {
+    xge_internal_text_cursor* pCursor;
+    xui_font pFont;
+    struct xui_proxy_xge_cursor_t* pNext;
+} xui_proxy_xge_cursor_t;
+static xui_proxy_xge_cursor_t* g_xuiProxyXgeCursors;
+
+static void __xuiProxyXgeCursorFontDestroy(xui_font pFont)
+{
+    xui_proxy_xge_cursor_t* p;
+    for (p=g_xuiProxyXgeCursors;p;p=p->pNext) {
+        if (p->pFont==pFont) {
+            xgeInternalTextCursorFree(p->pCursor);
+            p->pCursor=NULL;
+            p->pFont=NULL;
+        }
+    }
+}
+
+XUI_API void xuiProxyXgeTextShapeCursorFree(xui_text_shape_cursor pValue,void* pUser)
+{
+    xui_proxy_xge_cursor_t* p=(xui_proxy_xge_cursor_t*)pValue;
+    xui_proxy_xge_cursor_t** pp=&g_xuiProxyXgeCursors;
+    (void)pUser;
+    if (!p) return;
+    while (*pp && *pp!=p) pp=&(*pp)->pNext;
+    if (*pp==p) *pp=p->pNext;
+    xgeInternalTextCursorFree(p->pCursor);
+    xrtFree(p);
+}
+
+typedef struct xui_proxy_xge_cursor_visit_t {
+    xui_proxy_xge_cluster_visit_t tVisit;
+    xge_internal_text_resume_t* pRawResume;
+    xui_text_shape_resume_t* pResume;
+    int bStarted,bDuplicate;
+} xui_proxy_xge_cursor_visit_t;
+
+static int __xuiProxyXgeVisitCursorPosition(const xge_glyph_position_t* pGlyph,void* pUser)
+{
+    xui_proxy_xge_cursor_visit_t* p=(xui_proxy_xge_cursor_visit_t*)pUser;
+    if (!p->bStarted) {
+        p->bStarted=1;
+        p->tVisit.iCount=p->pRawResume->iReplayGlyphIndex;
+        p->pResume->iTextOffset=p->pRawResume->iTextOffset;
+        p->pResume->iReplayTextOffset=p->pRawResume->iReplayTextOffset;
+        p->pResume->iReusedClusterCount=p->pRawResume->iReplayGlyphIndex;
+    } else if (p->tVisit.bCluster && p->tVisit.tCluster.iTextStart==(int)pGlyph->iCluster) {
+        /* The current engine emits one position per cluster. A future multi-
+           position cluster is correct for this call, but cannot retain a cursor
+           that would replay only its final position. */
+        p->bDuplicate=1;
+    }
+    return __xuiProxyXgeVisitPosition(pGlyph,&p->tVisit);
+}
+
+XUI_API int xuiProxyXgeVisitTextShapeCached(xui_proxy pProxy,xui_font pFont,
+    const char* sText,int iTextSize,uint32_t iFlags,xui_text_cluster_visit_proc onVisit,
+    void* pUser,xui_text_shape_t* pShape,xui_text_shape_cursor pOld,int iCommonPrefix,
+    xui_text_shape_cursor* ppNew,xui_text_shape_resume_t* pResume,void* pProviderUser)
+{
+    xui_proxy_xge_cursor_t* pPrevious=(xui_proxy_xge_cursor_t*)pOld;
+    xui_proxy_xge_cursor_t* pNew;
+    xge_text_shape_desc_t tDesc={0};
+    xge_glyph_run_t tRun={0};
+    xge_internal_text_resume_t tRaw={0};
+    xui_proxy_xge_cursor_visit_t tState={0};
+    xge_internal_text_cursor* pCursor=NULL;
+    int iRet;
+    (void)pProviderUser;
+    if (pProxy==NULL || pProxy->textShape!=__xuiProxyXgeTextShape) return XUI_ERROR_UNSUPPORTED;
+    if (!__xuiProxyXgeFontValid(pFont) || !sText || iTextSize < -1 ||
+        !onVisit || !pShape || !ppNew || !pResume || pResume->iSize<sizeof(*pResume)) return XUI_ERROR_INVALID_ARGUMENT;
+    *ppNew=NULL;
+    memset(pResume,0,sizeof(*pResume));pResume->iSize=sizeof(*pResume);
+    if (iTextSize<0) iTextSize=(int)strlen(sText);
+#if (defined(_WIN32) || defined(_WIN64)) && defined(XGE_XRT_PROFILE_IDE)
+    if (iTextSize>=XUI_PROXY_XGE_DRAW_CACHE_MIN) __xuiProxyXgeDrawCacheClear(NULL);
+#endif
+    memset(pShape,0,sizeof(*pShape));pShape->iSize=sizeof(*pShape);pShape->iFlags=iFlags;pShape->iTextSize=iTextSize;
+    tDesc.iSize=sizeof(tDesc);tDesc.pFont=&pFont->tFont;tDesc.sText=sText;tDesc.iTextSize=iTextSize;
+    if (iFlags&XUI_TEXT_SHAPE_KERNING) tDesc.iFlags|=XGE_TEXT_SHAPE_KERNING;
+    if (iFlags&XUI_TEXT_SHAPE_EMOJI) tDesc.iFlags|=XGE_TEXT_SHAPE_EMOJI;
+    tDesc.iEmojiPresentation=XGE_EMOJI_PRESENTATION_AUTO;tDesc.iEmojiLinePolicy=XGE_EMOJI_LINE_STABLE;tDesc.fEmojiScale=1.0f;
+    tState.tVisit.onVisit=onVisit;tState.tVisit.pUser=pUser;tState.pRawResume=&tRaw;tState.pResume=pResume;
+    iRet=xgeInternalTextShapeVisitCached(&tDesc,&tRun,__xuiProxyXgeVisitCursorPosition,&tState,
+        pPrevious && pPrevious->pFont==pFont ? pPrevious->pCursor : NULL,iCommonPrefix,&pCursor,&tRaw);
+    if (iRet==XGE_OK && tState.tVisit.bCluster) tState.tVisit.iError=onVisit(&tState.tVisit.tCluster,pUser);
+    if (iRet==XGE_OK && tState.tVisit.iError==XUI_OK) {
+        pShape->fWidth=tRun.fWidth;pShape->fHeight=tRun.fHeight;pShape->fAscent=tRun.fAscent;
+        pShape->fDescent=tRun.fDescent;pShape->fLineHeight=tRun.fLineHeight;pShape->iClusterCount=tState.tVisit.iCount;
+        if (pCursor && !tState.bDuplicate) {
+            pNew=xrtCalloc(1,sizeof(*pNew));
+            if (pNew) {pNew->pCursor=pCursor;pNew->pFont=pFont;pNew->pNext=g_xuiProxyXgeCursors;g_xuiProxyXgeCursors=pNew;*ppNew=pNew;pCursor=NULL;}
+        }
+    }
+    xgeInternalTextCursorFree(pCursor);xgeGlyphRunFree(&tRun);
+    return tState.tVisit.iError!=XUI_OK ? tState.tVisit.iError : iRet;
+}
+#else
+XUI_API void xuiProxyXgeTextShapeCursorFree(xui_text_shape_cursor pValue,void* pUser) {(void)pValue;(void)pUser;}
+XUI_API int xuiProxyXgeVisitTextShapeCached(xui_proxy pProxy,xui_font pFont,const char* sText,int iTextSize,uint32_t iFlags,
+    xui_text_cluster_visit_proc onVisit,void* pUser,xui_text_shape_t* pShape,xui_text_shape_cursor pOld,int iCommonPrefix,
+    xui_text_shape_cursor* ppNew,xui_text_shape_resume_t* pResume,void* pProviderUser) {return XUI_ERROR_UNSUPPORTED;}
+#endif

@@ -1,0 +1,22 @@
+{
+  "format": "xlang-ide-xge-source-patches-1",
+  "baseCommit": "f248fd17192b3eb81c2a29dc34549b696e6e4c43",
+  "reason": "Preserve the existing SDK67 Unicode zero-width regex iteration and validated escape contracts on XGE 3; preserve invalid-pattern status and clear stale scope results",
+  "publicHeadersChanged": false,
+  "files": [
+    {
+      "path": "src/xui/controls/xui_find.c",
+      "upstreamSha256": "fb13dc156f947b4df1ee9c404cfdc7f71137dde2d808daf2ab70213c20532fea",
+      "sha256": "2dd3bde220654d7fa5c34f007f8d5064f34e9fa689cb41c8a8f5c634a6852d81",
+      "payload": "xui_find.c",
+      "diff": "xui_find.patch"
+    },
+    {
+      "path": "src/xui/code/xui_code_edit.c",
+      "upstreamSha256": "45101a68261a89c8e99143157bebb266e9f65978d41a565779e29a16bb278c7e",
+      "sha256": "c6452f4c087bf6fb03963da99bc237e3c3743f2a7c2d89019fefa41e5330f02c",
+      "payload": "xui_code_edit.c",
+      "diff": "xui_code_edit.patch"
+    }
+  ]
+}

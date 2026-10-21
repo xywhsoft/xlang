@@ -1,0 +1,16 @@
+--- a/src/xui_code_edit.c
++++ b/src/xui_code_edit.c
+@@ -1227,6 +1227,13 @@
+ 	if ( pData == NULL || pData->pDocument == NULL || pProxy == NULL || pFont == NULL || sText == NULL ) return NULL;
+ 	if ( iTextSize < 0 ) iTextSize = (int)strlen(sText);
+ 	iVersion = xuiCodeDocumentGetVersion(pData->pDocument);
++    /* Layouts from a previous document revision can never pass the cache key.
++       Release them before shaping the new revision, rather than retaining them
++       until all 128 slots fill (and repeatedly falling back on allocation failure). */
++    if ( pData->iLineLayoutCount > 0 &&
++         pData->pLineLayouts[0].iDocumentVersion != iVersion ) {
++        __xuiCodeEditLineLayoutsClear(pData);
++    }
+ 	for ( i = 0; i < pData->iLineLayoutCount; i++ ) {
+ 		pLayout = &pData->pLineLayouts[i];
+ 		if ( pLayout->iDocumentVersion == iVersion && pLayout->pFont == pFont &&

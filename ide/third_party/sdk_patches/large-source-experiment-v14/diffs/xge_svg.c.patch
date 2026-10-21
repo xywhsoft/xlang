@@ -1,0 +1,28 @@
+--- a/src/xge_svg.c
++++ b/src/xge_svg.c
+@@ -20735,6 +20735,25 @@
+ 	return XGE_OK;
+ }
+ 
++/* Conservative bounds of the root clip used by __xgeSvgDrawWithParentEx.
++   Keep this independent of child geometry and do not cache mutable paint state. */
++static int __xgeSvgDrawOuterClipBounds(xge_svg pSvg, xge_rect_t tDst, xge_rect_t* pBounds)
++{
++    xge_shape_ex_matrix_t tParent;
++    xge_rect_t tViewport;
++    int iRet;
++
++    if ( !__xgeSvgValid(pSvg) || pBounds == NULL ||
++         pSvg->tViewBox.fW <= 0.0f || pSvg->tViewBox.fH <= 0.0f ||
++         tDst.fW <= 0.0f || tDst.fH <= 0.0f ) return XGE_ERROR_INVALID_ARGUMENT;
++    iRet = xgeSvgGetDrawViewport(pSvg, tDst, &tViewport);
++    if ( iRet != XGE_OK ) return iRet;
++    iRet = __xgeSvgPaintHierarchyRuntimeParent(pSvg, __xgeSvgMatrixIdentity(), &tParent);
++    if ( iRet != XGE_OK ) return iRet;
++    *pBounds = __xgeSvgMatrixRectBounds(tParent, tDst);
++    return XGE_OK;
++}
++
+ static int __xgeSvgGetDrawBoundsInternal(xge_svg pSvg, xge_rect_t tDst, float fTolerance, xge_rect_t* pBounds, int iDepth)
+ {
+ 	return __xgeSvgGetDrawBoundsWithParentInternal(

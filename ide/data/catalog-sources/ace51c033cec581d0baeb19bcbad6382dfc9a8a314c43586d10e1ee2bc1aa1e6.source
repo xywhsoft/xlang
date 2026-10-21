@@ -1,0 +1,29 @@
+{
+    "format": "xlang-package-1",
+    "name": "xhttp.body",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "src/http/http_body.c",
+            "src/http/http_body_compose.c",
+            "src/xlang/xhttp_body_native_common.c",
+            "src/xlang/xhttp_body_native.c"
+        ],
+        "xlSources": ["src/xlang/xhttp_body.xl"],
+        "xrtModules": [
+            "XRT_MODULE_ATOMIC",
+            "XRT_MODULE_IO_BUFFER"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": {
+        "mode": "suite",
+        "tests": ["test/xhttp_body_test.xl"]
+    },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

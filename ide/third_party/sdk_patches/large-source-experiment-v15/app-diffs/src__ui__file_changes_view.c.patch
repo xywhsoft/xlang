@@ -1,0 +1,17 @@
+--- original/src/ui/file_changes_view.c
++++ candidate/src/ui/file_changes_view.c
+@@ -1,4 +1,5 @@
+ #include "ui/toolchain_view.h"
++#include "platform/dpi_proxy.h"
+ #include "ui/resource_view.h"
+ #include "ui/import_view.h"
+ #include "ui/template_view.h"
+@@ -124,7 +125,7 @@
+     xui_list_view_desc_t list={0}; list.iSize=sizeof(list); list.pFont=app->uiFont; list.fItemHeight=28; list.iSelected=-1; TRY(xuiListViewCreate(app->context,&v->controls[XIDE_CHANGES_LIST],&list)); TRY(xuiWidgetSetRect(v->controls[XIDE_CHANGES_LIST],(xui_rect_t){0,104,760,112})); TRY(xuiListViewSetSelect(v->controls[XIDE_CHANGES_LIST],selectItem,app)); TRY(xuiWidgetAddChild(v->content,v->controls[XIDE_CHANGES_LIST]));
+     xui_input_desc_t path={0}; path.iSize=sizeof(path); path.pFont=app->uiFont; TRY(xuiInputCreate(app->context,&v->path,&path)); TRY(xuiInputSetReadonly(v->path,1)); TRY(xuiWidgetSetRect(v->path,(xui_rect_t){0,228,760,30})); TRY(xuiWidgetAddChild(v->content,v->path));
+     TRY(label(app,"当前内容（内存）",(xui_rect_t){0,274,370,28},NULL)); TRY(label(app,"磁盘快照（只读）",(xui_rect_t){390,274,370,28},NULL));
+-    for(int i=XIDE_CHANGES_LOCAL;i<=XIDE_CHANGES_DISK;++i) { xui_code_edit_desc_t code={0}; code.iSize=sizeof(code); code.pFont=app->codeFont; code.bReadonly=1; code.bShowLineNumbers=1; code.sText=""; TRY(xuiCodeEditCreate(app->context,&v->controls[i],&code)); TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(v->controls[i]))); TRY(xideConfigureEditorLanguage(v->controls[i],"text")); TRY(xuiWidgetSetRect(v->controls[i],(xui_rect_t){i==XIDE_CHANGES_LOCAL ? 0 : 390,310,370,230})); TRY(xuiWidgetAddChild(v->content,v->controls[i])); }
++    for(int i=XIDE_CHANGES_LOCAL;i<=XIDE_CHANGES_DISK;++i) { xui_code_edit_desc_t code={0}; code.iSize=sizeof(code); code.pFont=app->codeFont; code.bReadonly=1; code.bShowLineNumbers=1; code.sText=""; TRY(xideDpiCodeEditCreate(app->context,&v->controls[i],&code)); TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(v->controls[i]))); TRY(xideConfigureEditorLanguage(v->controls[i],"text")); TRY(xuiWidgetSetRect(v->controls[i],(xui_rect_t){i==XIDE_CHANGES_LOCAL ? 0 : 390,310,370,230})); TRY(xuiWidgetAddChild(v->content,v->controls[i])); }
+     TRY(button(app,XIDE_CHANGES_REFRESH,"刷新",(xui_rect_t){0,558,100,32})); TRY(button(app,XIDE_CHANGES_KEEP,"保留当前内容",(xui_rect_t){114,558,170,32})); TRY(button(app,XIDE_CHANGES_RELOAD,"重载磁盘内容…",(xui_rect_t){298,558,200,32})); TRY(button(app,XIDE_CHANGES_CLOSE,"关闭",(xui_rect_t){650,558,110,32}));
+     TRY(label(app,"确认重载会放弃所选文件及对应工程清单/属性的未保存修改。删除或改绑的项目引用也会更新；已打开源文档继续保留。",(xui_rect_t){0,612,760,80},&v->warning));
+     TRY(button(app,XIDE_CHANGES_CONFIRM,"确认重载",(xui_rect_t){478,704,168,32})); TRY(button(app,XIDE_CHANGES_CANCEL,"取消",(xui_rect_t){660,704,100,32}));

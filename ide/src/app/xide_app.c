@@ -1,842 +1,239 @@
+#include "ui/import_view.h"
+#include "ui/template_view.h"
+#include "ui/rename_view.h"
+#include "ui/file_changes_view.h"
 #include "app/xide_app.h"
-#include "app/xide_platform.h"
-#include "i18n/xide_i18n.h"
-#include "lib/xrt/xrt.h"
-#include "ui/xide_main_window.h"
-#include "views/xide_views.h"
-
+#include "services/file_sync.h"
+#include "services/file_rebind.h"
+#include "theme/theme.h"
+#include "ui/workspace_view.h"
+#include "ui/editor_view.h"
+#include "ui/task_view.h"
+#include "ui/configuration_view.h"
+#include "ui/references_view.h"
+#include "ui/resource_view.h"
+#include "ui/toolchain_view.h"
+#include "ui/language_view.h"
+#include "ui/c_language_view.h"
+#include "ui/catalog_view.h"
+#include "ui/completion_view.h"
+#include "ui/c_completion_view.h"
+#include "services/session.h"
+#include "services/editor_font.h"
+#include "services/ui_font.h"
+#include "ui/font_view.h"
+#include "ui/goto_view.h"
+#include "ui/recovery_view.h"
+#include "platform/path.h"
+#include "platform/window_state.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
-
-#define XIDE_BUNDLED_FONT_NAME "Consolas-with-Yahei_Nerd_Font.ttf"
-#define XIDE_UI_FONT_SIZE 18.0f
-#define XIDE_CODE_FONT_SIZE 18.0f
-#define XIDE_FONT_CONFIG_NAME "ide.json"
-
-typedef struct xide_font_config_t {
-	char sUiFont[MAX_PATH];
-	char sCodeFont[MAX_PATH];
-	float fUiSize;
-	float fCodeSize;
-} xide_font_config_t;
-
-static int xideFileExists(const char* sPath)
+#include <math.h>
+#define TRY_DOMAIN(call,domain_) do { int result_ = (call); if (result_ != 0) { xideFailureSet(&app->failure,app->frames ? XIDE_FAILURE_RENDER : XIDE_FAILURE_STARTUP,domain_,result_,"The interface could not create or render a required resource.",#call); fprintf(stderr, "workbench call failed at %s:%d: %s -> %d\n", __FILE__, __LINE__, #call, result_); return result_; } } while (0)
+#define TRY(call) TRY_DOMAIN(call,"XUI")
+#define TRY_XGE(call) TRY_DOMAIN(call,"XGE")
+static void reportError(xui_context context, const xui_error_info_t* error, void* user)
 {
-	FILE* file;
-	if ( sPath == NULL || sPath[0] == '\0' ) return 0;
-	file = fopen(sPath, "rb");
-	if ( file == NULL ) return 0;
-	fclose(file);
-	return 1;
+    (void)context; xide_app* app=user;
+    if(app->maxFrames) { app->frameError=error->iCode; xideFailureSet(&app->failure,XIDE_FAILURE_RENDER,"XUI",error->iCode,error->sMessage,error->sOperation); }
+    int panel=-1; for(xui_widget widget=error->pWidget;widget && panel<0;widget=xuiWidgetGetParent(widget)) for(int i=0;i<XIDE_WINDOW_COUNT;++i) if(app->panels[i]==widget) { panel=i; break; }
+    xui_rect_t rect=error->pWidget ? xuiWidgetGetWorldRect(error->pWidget) : (xui_rect_t){0};
+    const char* type=error->pWidget ? xuiWidgetTypeGetName(xuiWidgetGetType(error->pWidget)) : "context";
+    fprintf(stderr, "XUI %d: %s: %s (panel=%d, widget=%s, rect=%d,%d,%d,%d, cache=%d)\n", error->iCode, error->sOperation, error->sMessage,panel,type,rect.fX,rect.fY,rect.fW,rect.fH,error->pWidget ? xuiWidgetGetCachePolicy(error->pWidget).iPolicy : -1);
 }
-
-static const char* xideFindExisting(const char** paths, int count)
+static int createTarget(xide_app* app, int width, int height)
 {
-	int i;
-	for ( i = 0; i < count; i++ ) {
-		if ( xideFileExists(paths[i]) ) return paths[i];
-	}
-	return NULL;
+    xui_surface_desc_t desc = {0};
+    desc.iKind = XUI_SURFACE_KIND_TEXTURE; desc.iWidth = width; desc.iHeight = height;
+    desc.iFormat = XUI_SURFACE_FORMAT_RGBA8;
+    desc.iFlags = XUI_SURFACE_USAGE_TARGET | XUI_SURFACE_ALPHA_PREMULTIPLIED;
+    xui_surface target = NULL;
+    TRY(app->proxy.surfaceCreate(&app->proxy, &target, &desc));
+    if (app->target) app->proxy.surfaceDestroy(&app->proxy, app->target);
+    app->target = target; return XUI_OK;
 }
-
-static int xideGetExeDir(char* sBuffer, int iCapacity)
+static int quitRequest(void* user)
 {
-	DWORD n;
-	char* p;
-	if ( sBuffer == NULL || iCapacity <= 0 ) return 0;
-	n = GetModuleFileNameA(NULL, sBuffer, (DWORD)iCapacity);
-	if ( n == 0 || n >= (DWORD)iCapacity ) return 0;
-	p = strrchr(sBuffer, '\\');
-	if ( p == NULL ) p = strrchr(sBuffer, '/');
-	if ( p == NULL ) return 0;
-	*p = '\0';
-	return 1;
+    xide_app* app=user; if(xideActionsHasModal(app)) return 0;
+    xideMessageBeginQuit(app);
+    if(!xideWorkspaceQuitRequest(app)) { xideMessageEndOperation(app);return 0; }
+    xideMessageEndOperation(app);
+    xide_model_error error={0};
+    if(!xideSessionSave(app,1,&error)) fprintf(stderr,"session on exit: %s\n",error.message);
+    return 1;
 }
-
-static int xidePathJoin(char* sBuffer, int iCapacity, const char* sBase, const char* sName)
+void xideAppLoadSettings(xide_app* app)
 {
-	int baseLen;
-	int nameLen;
-	if ( sBuffer == NULL || sBase == NULL || sName == NULL || iCapacity <= 0 ) return 0;
-	baseLen = (int)strlen(sBase);
-	nameLen = (int)strlen(sName);
-	if ( baseLen + 1 + nameLen >= iCapacity ) return 0;
-	memcpy(sBuffer, sBase, (size_t)baseLen + 1);
-	if ( baseLen > 0 && sBuffer[baseLen - 1] != '\\' && sBuffer[baseLen - 1] != '/' ) {
-		sBuffer[baseLen++] = '\\';
-		sBuffer[baseLen] = '\0';
-	}
-	memcpy(sBuffer + baseLen, sName, (size_t)nameLen + 1);
-	return 1;
+    if(app->preferencesInitialized) return;
+    app->preferencesInitialized=1;
+    char* path=app->settingsPath ? xidePathResolve(NULL,app->settingsPath) : app->hidden ? NULL : xideSettingsDefaultPath();
+    if(path) { xide_model_error error={0}; if(!xideSettingsLoad(&app->preferences,path,&error)) fprintf(stderr,"preferences: %s\n",error.message); free(path); }
 }
-
-static int xidePathIsAbsolute(const char* sPath)
+static float effectiveScale(xide_app* app)
 {
-	if ( sPath == NULL || sPath[0] == '\0' ) return 0;
-	if ( sPath[0] == '\\' || sPath[0] == '/' ) return 1;
-	return ((sPath[0] >= 'A' && sPath[0] <= 'Z') || (sPath[0] >= 'a' && sPath[0] <= 'z')) && sPath[1] == ':';
+    if(app->dpiOverride>0) return app->dpiOverride;
+    /* The SDK resize ratio uses rounded integer window dimensions. Native DPI
+       stays constant across those resizes; low-DPI test hosts keep the SDK ratio. */
+    if(app->highDpi && xgePlatformNativeHandle()) return xideWindowDpi(xgePlatformNativeHandle())/96.0f;
+    xge_platform_runtime_t runtime={0};
+    return xgePlatformRuntimeGet(&runtime)==XGE_OK && isfinite(runtime.fDpiScale) && runtime.fDpiScale>=0.5f && runtime.fDpiScale<=8 ? runtime.fDpiScale : 1;
 }
-
-static int xideResolveExePath(char* sBuffer, int iCapacity, const char* sPath)
+int xideAppCreate(xide_app* app)
 {
-	char exeDir[MAX_PATH];
-	if ( sBuffer == NULL || sPath == NULL || sPath[0] == '\0' || iCapacity <= 0 ) return 0;
-	if ( xidePathIsAbsolute(sPath) ) {
-		if ( (int)strlen(sPath) >= iCapacity ) return 0;
-		strcpy(sBuffer, sPath);
-		return 1;
-	}
-	if ( !xideGetExeDir(exeDir, (int)sizeof(exeDir)) ) return 0;
-	return xidePathJoin(sBuffer, iCapacity, exeDir, sPath);
+    xideAppLoadSettings(app);
+    if (app->hidden) ShowWindow((HWND)xgePlatformNativeHandle(), SW_HIDE);
+    app->dpiScale=effectiveScale(app);
+    app->viewportWidth=(int)lroundf(xgeGetWidth()/app->dpiScale); app->viewportHeight=(int)lroundf(xgeGetHeight()/app->dpiScale);
+    TRY(xideDpiProxyCreate(&app->dpiProxy,&app->proxy,app->dpiScale));
+    TRY(xuiSetDefaultLanguage(XUI_LANGUAGE_ZH));
+    TRY(xuiCreate(&app->context)); TRY(xuiSetProxy(app->context, &app->proxy));
+    TRY(xuiSetLanguage(app->context, XUI_LANGUAGE_ZH)); TRY(xuiSetErrorCallback(app->context, reportError, app));
+    TRY(xuiInputViewport(app->context,app->viewportWidth,app->viewportHeight));
+    TRY(xuiInputDpi(app->context,app->dpiScale));
+    TRY(ideThemeInit(app->context, app->theme));
+    TRY(createTarget(app, app->viewportWidth, app->viewportHeight));
+    TRY(xideUiFontStart(app));
+    TRY(xideEditorFontStart(app));
+    TRY(xuiSetDefaultFont(app->context, app->uiFont));
+    TRY(xideWorkbenchCreate(app)); TRY(xideUiFontInitialize(app));
+    /* Draw composition inline; the operating system retains candidate UI. */
+    int result=xgeImeSetMode(XGE_IME_MODE_COMPOSITION);
+    if(result==XGE_ERROR_UNSUPPORTED) result=xgeImeSetMode(XGE_IME_MODE_NATIVE);
+    if(result!=XGE_OK) { xideFailureSet(&app->failure,XIDE_FAILURE_STARTUP,"XGE",result,"Unable to initialize the text input interface.","xgeImeSetMode"); return result; }
+    xgeSetQuitRequestCallback(quitRequest,app);
+    if((app->workspacePath || app->projectPath) && (app->noSession || (app->hidden && !app->sessionRoot))) {
+        xide_model_error error={0};
+        if(!xideWorkspaceOpen(app,app->workspacePath ? app->workspacePath : app->projectPath,app->projectPath!=NULL,&error)) {
+            xideFailureSet(&app->failure,XIDE_FAILURE_WORKSPACE,"model",error.code,error.message,"xideWorkspaceOpen");
+            fprintf(stderr,"workspace startup failed: %s\n",error.message); return XUI_ERROR;
+        }
+    }
+    if(!xideSessionStart(app)) { xideFailureSet(&app->failure,XIDE_FAILURE_STARTUP,"XUI",XUI_ERROR_OUT_OF_MEMORY,"Unable to initialize the session and recovery interface.","xideSessionStart"); return XUI_ERROR_OUT_OF_MEMORY; }
+    if(app->initialSelectedProject) {
+        if(!xideWorkspaceViewSelectProject(app,app->initialSelectedProject)) {
+            xideFailureSet(&app->failure,XIDE_FAILURE_WORKSPACE,"XUI",XUI_ERROR,"Selected project ID not found.","xideWorkspaceViewSelectProject");
+            fputs("Selected project ID not found.\n",stderr); return XUI_ERROR;
+        }
+    }
+    if (app->initialEditor) xideDispatchAction(app, XIDE_ACTION_C);
+    if(app->initialFile && !xideWorkspaceOpenFile(app,app->initialFile)) { xideFailureSet(&app->failure,XIDE_FAILURE_DOCUMENT,"XUI",XUI_ERROR,app->initialFile,"xideWorkspaceOpenFile"); return XUI_ERROR; }
+    if(app->initialCommandSearch && xideCatalogViewSearch(app,app->initialCommandSearch)!=XUI_OK) { xideFailureSet(&app->failure,XIDE_FAILURE_COMMAND,"XUI",XUI_ERROR,"Unable to filter the command catalog.","xideCatalogViewSearch"); return XUI_ERROR; }
+    if(app->initialCommand) { const xide_command* command=xideCatalogFind(&app->catalog,app->initialCommand); if(!command) { xideFailureSet(&app->failure,XIDE_FAILURE_COMMAND,"XUI",XUI_ERROR,app->initialCommand,"xideCatalogFind"); return XUI_ERROR; } xideWorkbenchShowHelp(app,(int)(command-app->catalog.entries)); }
+    if(app->initialTask) { app->taskStartMs=GetTickCount64(); xideDispatchAction(app,app->initialTask); }
+    if(app->initialConfigurations && !xideConfigurationViewOpen(app)) return XUI_ERROR;
+    if(app->initialFontSettings && !xideFontViewOpen(app)) return XUI_ERROR;
+    if(app->initialRecovery && !xideRecoveryViewOpen(app)) return XUI_ERROR;
+    if(app->initialUiFontSettings && !xideFontViewOpenUi(app)) return XUI_ERROR;
+    xide_model_error syncError={0}; if(!xideFileSyncStart(app,&syncError)) { xideFailureSet(&app->failure,XIDE_FAILURE_STARTUP,"model",syncError.code,syncError.message,"xideFileSyncStart"); fprintf(stderr,"file monitor startup: %s\n",syncError.message); return XUI_ERROR; }
+    return xideWorkbenchApplyTheme(app, app->theme);
 }
-
-static const char* xideJsonSkipWs(const char* p, const char* end)
+void xideAppDestroy(xide_app* app)
 {
-	while ( p < end && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') ) p++;
-	return p;
+    xideCLanguageViewStop(app); xideCCompletionViewStop(app); xideCompletionViewStop(app); xideLanguageViewStop(app);
+    xideToolchainViewStop(app);
+    if(app->context) xideFileDialogDestroy(app);
+    xideFileSyncStop(app);
+    xideFileRebindDestroy(app->fileRebind); app->fileRebind=NULL; xrtValueRelease(app->fileRebindReading); app->fileRebindReading=NULL;
+    xideRecoveryViewStop(app);
+    xideSettingsClear(&app->preferences); free(app->codeFontPath); app->codeFontPath=NULL; free(app->uiFontPath); app->uiFontPath=NULL;
+    xideSessionDestroy(app); free(app->projectSessionPath); app->projectSessionPath=NULL;
+    xideTasksDestroy(app->tasks); app->tasks=NULL;
+    xideImportViewDestroy(app);
+    xuiCodeFindScopeDestroy(app->editorFindScope); app->editorFindScope=NULL;
+    if (app->context) { xideMessageDestroy(app); xideDialogDestroyAll(app); xideDocumentsClear(&app->documents); xuiDestroy(app->context); }
+    xideActionsDestroy(app);
+    xideCatalogViewDestroy(app); xideCatalogClear(&app->catalog);
+    xideCLanguageViewDestroy(app); xideCCompletionViewDestroy(app); xideCompletionViewDestroy(app); xideLanguageViewDestroy(app); xideToolchainViewDestroy(app); xideFileChangesViewDestroy(app); xideRecoveryViewDestroy(app); xideFontViewDestroy(app); xideGotoViewDestroy(app); xideTemplateViewDestroy(app); xideRenameViewDestroy(app); xideResourceViewDestroy(app); xideReferencesViewDestroy(app); xideConfigurationViewDestroy(app); xideTaskViewDestroy(app); xideWorkspaceViewDestroy(app); xideWorkspaceClear(&app->workspaceModel); free(app->selectedProject); app->selectedProject=NULL;
+    if (app->codeFont && app->codeFont != app->uiFont) app->proxy.fontDestroy(&app->proxy, app->codeFont);
+    if (app->uiFont) app->proxy.fontDestroy(&app->proxy, app->uiFont);
+    if (app->target) app->proxy.surfaceDestroy(&app->proxy, app->target);
+    xideDpiProxyDestroy(app->dpiProxy); app->dpiProxy=NULL;
+    app->context = NULL; app->target = NULL; app->codeFont = app->uiFont = NULL;
 }
-
-static const char* xideJsonSkipString(const char* p, const char* end)
+int xideAppCapture(xide_app* app,const char* path)
 {
-	if ( p >= end || *p != '"' ) return NULL;
-	p++;
-	while ( p < end ) {
-		if ( *p == '\\' ) {
-			p += (p + 1 < end) ? 2 : 1;
-			continue;
-		}
-		if ( *p == '"' ) return p + 1;
-		p++;
-	}
-	return NULL;
+    int width=0,height=0; int result=xideDpiSurfaceReadPixels(app->dpiProxy,app->target,NULL,0,&width,&height); if(result!=XUI_OK) return result;
+    size_t size=(size_t)width*(size_t)height*4; unsigned char* pixels=malloc(size); if(!pixels) return XUI_ERROR_OUT_OF_MEMORY;
+    result=xideDpiSurfaceReadPixels(app->dpiProxy,app->target,pixels,width*4,&width,&height);
+    if(result==XUI_OK) {
+        result=xgeImageSavePNG(path,width,height,pixels,width*4);
+        if(result!=XGE_OK)xideFailureSet(&app->failure,XIDE_FAILURE_RENDER,"XGE",result,"Unable to save the requested rendered image.","xgeImageSavePNG");
+    }
+    free(pixels); return result;
 }
-
-static const char* xideJsonSkipValue(const char* p, const char* end);
-
-static const char* xideJsonSkipObject(const char* p, const char* end)
+static int frame(void* user)
 {
-	if ( p >= end || *p != '{' ) return NULL;
-	p++;
-	while ( p < end ) {
-		p = xideJsonSkipWs(p, end);
-		if ( p >= end ) return NULL;
-		if ( *p == '}' ) return p + 1;
-		p = xideJsonSkipString(p, end);
-		if ( p == NULL ) return NULL;
-		p = xideJsonSkipWs(p, end);
-		if ( p >= end || *p != ':' ) return NULL;
-		p = xideJsonSkipValue(xideJsonSkipWs(p + 1, end), end);
-		if ( p == NULL ) return NULL;
-		p = xideJsonSkipWs(p, end);
-		if ( p < end && *p == ',' ) {
-			p++;
-			continue;
-		}
-		if ( p < end && *p == '}' ) return p + 1;
-		return NULL;
-	}
-	return NULL;
+    xide_app* app = user;
+    if (!app->context) TRY(xideAppCreate(app));
+    TRY_XGE(xgeBegin());
+    float scale=effectiveScale(app);
+    if(scale!=app->dpiScale) {
+        /* Scale and viewport/font changes invalidate these bitmaps. Release them
+           before recreating resources so old layouts do not amplify the peak. */
+        TRY(xuiPurgeCaches(app->context,0));
+        TRY(xideDpiProxySetScale(app->dpiProxy,scale)); app->dpiScale=scale;
+        TRY(xuiInputDpi(app->context,scale));
+    }
+    int width=(int)lroundf(xgeGetWidth()/scale),height=(int)lroundf(xgeGetHeight()/scale);
+    if (width != app->viewportWidth || height != app->viewportHeight) {
+        /* Release old-layout caches before allocating the new viewport target. */
+        TRY(xuiPurgeCaches(app->context,0));
+        TRY(createTarget(app, width, height));
+        app->viewportWidth = width; app->viewportHeight = height;
+        TRY(xuiInputViewport(app->context, (float)width, (float)height));
+    }
+    TRY(xidePlatformHandleInput(app)); TRY(xuiDispatchPendingEvents(app->context)); xideFileDialogPoll(app); xideMessagePoll(app); xideEditorPoll(app); xideFileSyncPoll(app); xideFileChangesViewPoll(app); xideTaskViewPoll(app); xideLanguageViewPoll(app); xideCLanguageViewPoll(app); xideToolchainViewPoll(app); xideRecoveryViewPoll(app);
+    xideWorkbenchLayout(app); TRY(xuiLayout(app->context)); xideCatalogViewLayout(app); TRY(xuiLayout(app->context)); TRY(xuiTerminalFit(app->panels[XIDE_TERMINAL]));
+    if(app->initialChapterRequested && app->frames==0) {
+        if(!xideHelpJump(xideCatalogHelpDocument(app),(size_t)app->initialChapter)) return XUI_ERROR_INVALID_ARGUMENT;
+        app->initialChapterRequested=0;
+    }
+    xideCatalogViewAfterLayout(app); TRY(xuiLayout(app->context));
+    xideSessionAfterLayout(app); xideSessionPoll(app);
+    TRY(xuiUpdate(app->context, xgeGetDelta()));
+    TRY(xideCatalogViewPrepareRender(app));
+    TRY(app->proxy.surfaceClear(&app->proxy, app->target, ideThemeColor(app->theme, IDE_BG)));
+    xui_rect_i_t full = {0, 0, width, height};
+    TRY(xuiRender(app->context, app->target, &full, 1));
+    xgeClear(ideThemeColor(app->theme, IDE_BG));
+    TRY(xideDpiSurfacePresent(app->dpiProxy,app->target,xgeGetWidth(),xgeGetHeight()));
+    ++app->frames;
+    int taskDone=(!app->waitTask || xideTaskViewSettled(app)) && !xideRecoveryViewBusy(app) && xideFileSyncSettled(app);
+    if(app->waitTask && app->taskStartMs && GetTickCount64()-app->taskStartMs>30000) { app->taskExit=1; taskDone=1; }
+    if (app->maxFrames > 0 && app->frames >= app->maxFrames && taskDone && app->screenshot) TRY(xideAppCapture(app,app->screenshot));
+    TRY_XGE(xgeEnd());
+    if (app->maxFrames > 0 && app->frames >= app->maxFrames && taskDone) {
+    if(app->initialTask) { xide_task_info info={0}; xideTaskInfo(xideTaskViewSelected(app),&info); if(info.state!=XIDE_TASK_SUCCEEDED) app->taskExit=1; printf("Task #%llu: state=%d built=%d ran=%d code=%d tested=%d kind=%d %s\n",(unsigned long long)info.id,info.state,info.built,info.ran,info.exit.Code,info.tested,info.kind,info.error); }
+        printf("xlang IDE: rendered %d frames; windows=%d panes=%d; C and xlang registered\n", app->frames,
+               xuiDockPanelGetWindowCount(app->dock), xuiDockPanelGetPaneCount(app->dock));
+        if(app->sessionRoot && !app->noSession) { xide_model_error error={0}; if(!xideSessionSave(app,0,&error)) { fprintf(stderr,"session snapshot failed: %s\n",error.message); app->frameError=XUI_ERROR; } }
+        xgeQuit();
+    }
+    return XGE_OK;
 }
-
-static const char* xideJsonSkipArray(const char* p, const char* end)
+int xideAppFrame(void* user)
 {
-	if ( p >= end || *p != '[' ) return NULL;
-	p++;
-	while ( p < end ) {
-		p = xideJsonSkipWs(p, end);
-		if ( p >= end ) return NULL;
-		if ( *p == ']' ) return p + 1;
-		p = xideJsonSkipValue(p, end);
-		if ( p == NULL ) return NULL;
-		p = xideJsonSkipWs(p, end);
-		if ( p < end && *p == ',' ) {
-			p++;
-			continue;
-		}
-		if ( p < end && *p == ']' ) return p + 1;
-		return NULL;
-	}
-	return NULL;
+    xide_app* app = user;
+    int result = frame(user);
+    if (result != XGE_OK) {
+        app->frameError = result;
+        /* A handled frame failure bypasses the normal quit callback. Preserve
+           edits still inside the periodic checkpoint debounce before teardown. */
+        xideFailureSet(&app->failure,app->frames ? XIDE_FAILURE_RENDER : XIDE_FAILURE_STARTUP,"XGE",result,"Unable to continue the IDE interface.","xideAppFrame");
+        xideAppFailureRecovery(app);
+        xgeQuit();
+    }
+    return result;
 }
-
-static const char* xideJsonSkipAtom(const char* p, const char* end)
+void xideAppFailureRecovery(xide_app* app)
 {
-	while ( p < end && strchr(" \t\r\n,]}", *p) == NULL ) p++;
-	return p;
-}
-
-static const char* xideJsonSkipValue(const char* p, const char* end)
-{
-	p = xideJsonSkipWs(p, end);
-	if ( p >= end ) return NULL;
-	if ( *p == '"' ) return xideJsonSkipString(p, end);
-	if ( *p == '{' ) return xideJsonSkipObject(p, end);
-	if ( *p == '[' ) return xideJsonSkipArray(p, end);
-	return xideJsonSkipAtom(p, end);
-}
-
-static int xideJsonReadString(const char* p, const char* end, char* sBuffer, int iCapacity)
-{
-	int n = 0;
-	if ( p >= end || *p != '"' || sBuffer == NULL || iCapacity <= 0 ) return 0;
-	p++;
-	while ( p < end ) {
-		unsigned char c = (unsigned char)*p++;
-		if ( c == '"' ) {
-			sBuffer[n] = '\0';
-			return 1;
-		}
-		if ( c == '\\' ) {
-			if ( p >= end ) return 0;
-			c = (unsigned char)*p++;
-			switch ( c ) {
-			case '"': break;
-			case '\\': break;
-			case '/': break;
-			case 'b': c = '\b'; break;
-			case 'f': c = '\f'; break;
-			case 'n': c = '\n'; break;
-			case 'r': c = '\r'; break;
-			case 't': c = '\t'; break;
-			case 'u':
-				if ( end - p < 4 ) return 0;
-				p += 4;
-				c = '?';
-				break;
-			default:
-				return 0;
-			}
-		}
-		if ( n + 1 >= iCapacity ) return 0;
-		sBuffer[n++] = (char)c;
-	}
-	return 0;
-}
-
-static void xideCopyConfigString(char* sDst, int iCapacity, const char* sSrc)
-{
-	int len;
-	if ( sDst == NULL || iCapacity <= 0 || sSrc == NULL ) return;
-	len = (int)strlen(sSrc);
-	if ( len >= iCapacity ) len = iCapacity - 1;
-	memcpy(sDst, sSrc, (size_t)len);
-	sDst[len] = '\0';
-}
-
-static float xideParseFontSize(const char* sValue, float fDefault)
-{
-	float value;
-	if ( sValue == NULL || sValue[0] == '\0' ) return fDefault;
-	value = (float)atof(sValue);
-	if ( value < 8.0f || value > 72.0f ) return fDefault;
-	return value;
-}
-
-static char* xideReadTextFile(const char* sPath, int* pSize)
-{
-	FILE* file;
-	char* data;
-	long size;
-	int readSize;
-	if ( pSize != NULL ) *pSize = 0;
-	file = fopen(sPath, "rb");
-	if ( file == NULL ) return NULL;
-	if ( fseek(file, 0, SEEK_END) != 0 ) {
-		fclose(file);
-		return NULL;
-	}
-	size = ftell(file);
-	if ( size < 0 || size > 1024 * 1024 ) {
-		fclose(file);
-		return NULL;
-	}
-	if ( fseek(file, 0, SEEK_SET) != 0 ) {
-		fclose(file);
-		return NULL;
-	}
-	data = (char*)malloc((size_t)size + 1u);
-	if ( data == NULL ) {
-		fclose(file);
-		return NULL;
-	}
-	readSize = (int)fread(data, 1, (size_t)size, file);
-	fclose(file);
-	if ( readSize != (int)size ) {
-		free(data);
-		return NULL;
-	}
-	data[size] = '\0';
-	if ( pSize != NULL ) *pSize = (int)size;
-	return data;
-}
-
-static int xideJsonFindMember(const char* objectStart, const char* end, const char* sKey, const char** ppValue, const char** ppValueEnd)
-{
-	char key[128];
-	const char* p;
-	const char* keyEnd;
-	const char* value;
-	const char* valueEnd;
-	if ( ppValue != NULL ) *ppValue = NULL;
-	if ( ppValueEnd != NULL ) *ppValueEnd = NULL;
-	if ( objectStart == NULL || end == NULL || sKey == NULL ) return 0;
-	p = xideJsonSkipWs(objectStart, end);
-	if ( p >= end || *p != '{' ) return 0;
-	p++;
-	while ( p < end ) {
-		p = xideJsonSkipWs(p, end);
-		if ( p >= end || *p == '}' ) return 0;
-		keyEnd = xideJsonSkipString(p, end);
-		if ( keyEnd == NULL || !xideJsonReadString(p, keyEnd, key, (int)sizeof(key)) ) return 0;
-		p = xideJsonSkipWs(keyEnd, end);
-		if ( p >= end || *p != ':' ) return 0;
-		value = xideJsonSkipWs(p + 1, end);
-		valueEnd = xideJsonSkipValue(value, end);
-		if ( valueEnd == NULL ) return 0;
-		if ( strcmp(key, sKey) == 0 ) {
-			if ( ppValue != NULL ) *ppValue = value;
-			if ( ppValueEnd != NULL ) *ppValueEnd = valueEnd;
-			return 1;
-		}
-		p = xideJsonSkipWs(valueEnd, end);
-		if ( p < end && *p == ',' ) {
-			p++;
-			continue;
-		}
-		if ( p < end && *p == '}' ) return 0;
-		return 0;
-	}
-	return 0;
-}
-
-static int xideJsonGetObjectString(const char* objectStart, const char* end, const char* sKey, char* sBuffer, int iCapacity)
-{
-	const char* value;
-	const char* valueEnd;
-	if ( !xideJsonFindMember(objectStart, end, sKey, &value, &valueEnd) ) return 0;
-	value = xideJsonSkipWs(value, valueEnd);
-	return xideJsonReadString(value, valueEnd, sBuffer, iCapacity);
-}
-
-static int xideJsonGetObjectFloat(const char* objectStart, const char* end, const char* sKey, float* pValue)
-{
-	const char* value;
-	const char* valueEnd;
-	char temp[64];
-	int len;
-	if ( pValue == NULL ) return 0;
-	if ( !xideJsonFindMember(objectStart, end, sKey, &value, &valueEnd) ) return 0;
-	value = xideJsonSkipWs(value, valueEnd);
-	if ( value < valueEnd && *value == '"' ) {
-		if ( !xideJsonReadString(value, valueEnd, temp, (int)sizeof(temp)) ) return 0;
-		*pValue = xideParseFontSize(temp, *pValue);
-		return 1;
-	}
-	len = (int)(valueEnd - value);
-	if ( len <= 0 || len >= (int)sizeof(temp) ) return 0;
-	memcpy(temp, value, (size_t)len);
-	temp[len] = '\0';
-	*pValue = xideParseFontSize(temp, *pValue);
-	return 1;
-}
-
-static void xideFontConfigDefault(xide_font_config_t* pConfig)
-{
-	if ( pConfig == NULL ) return;
-	memset(pConfig, 0, sizeof(*pConfig));
-	xideCopyConfigString(pConfig->sUiFont, (int)sizeof(pConfig->sUiFont), "res\\" XIDE_BUNDLED_FONT_NAME);
-	xideCopyConfigString(pConfig->sCodeFont, (int)sizeof(pConfig->sCodeFont), "res\\" XIDE_BUNDLED_FONT_NAME);
-	pConfig->fUiSize = XIDE_UI_FONT_SIZE;
-	pConfig->fCodeSize = XIDE_CODE_FONT_SIZE;
-}
-
-static int xideGetOptionDir(char* sBuffer, int iCapacity)
-{
-	char exeDir[MAX_PATH];
-	if ( !xideGetExeDir(exeDir, (int)sizeof(exeDir)) ) return 0;
-	return xidePathJoin(sBuffer, iCapacity, exeDir, "option");
-}
-
-static int xideGetFontConfigPath(char* sBuffer, int iCapacity)
-{
-	char optionDir[MAX_PATH];
-	if ( !xideGetOptionDir(optionDir, (int)sizeof(optionDir)) ) return 0;
-	return xidePathJoin(sBuffer, iCapacity, optionDir, XIDE_FONT_CONFIG_NAME);
-}
-
-static void xideFontConfigWriteDefault(const xide_font_config_t* pConfig)
-{
-	char optionDir[MAX_PATH];
-	char configPath[MAX_PATH];
-	FILE* file;
-	if ( pConfig == NULL ) return;
-	if ( !xideGetOptionDir(optionDir, (int)sizeof(optionDir)) ) return;
-	(void)CreateDirectoryA(optionDir, NULL);
-	if ( !xideGetFontConfigPath(configPath, (int)sizeof(configPath)) ) return;
-	file = fopen(configPath, "wb");
-	if ( file == NULL ) return;
-	fprintf(file,
-		"{\n"
-		"  \"font\": {\n"
-		"    \"ui\": {\n"
-		"      \"path\": \"");
-	for ( const char* p = pConfig->sUiFont; *p != '\0'; p++ ) {
-		if ( *p == '\\' || *p == '"' ) fputc('\\', file);
-		fputc(*p, file);
-	}
-	fprintf(file,
-		"\",\n"
-		"      \"size\": %.0f\n"
-		"    },\n"
-		"    \"code\": {\n"
-		"      \"path\": \"",
-		pConfig->fUiSize);
-	for ( const char* p = pConfig->sCodeFont; *p != '\0'; p++ ) {
-		if ( *p == '\\' || *p == '"' ) fputc('\\', file);
-		fputc(*p, file);
-	}
-	fprintf(file,
-		"\",\n"
-		"      \"size\": %.0f\n"
-		"    }\n"
-		"  }\n"
-		"}\n",
-		pConfig->fCodeSize);
-	fclose(file);
-}
-
-static void xideFontConfigLoad(xide_font_config_t* pConfig)
-{
-	char configPath[MAX_PATH];
-	char* json;
-	const char* end;
-	const char* fontObj;
-	const char* fontEnd;
-	const char* uiObj;
-	const char* uiEnd;
-	const char* codeObj;
-	const char* codeEnd;
-	int size;
-	xideFontConfigDefault(pConfig);
-	if ( pConfig == NULL ) return;
-	if ( !xideGetFontConfigPath(configPath, (int)sizeof(configPath)) ) return;
-	json = xideReadTextFile(configPath, &size);
-	if ( json == NULL ) {
-		xideFontConfigWriteDefault(pConfig);
-		return;
-	}
-	end = json + size;
-	if ( xideJsonFindMember(json, end, "font", &fontObj, &fontEnd) ) {
-		if ( xideJsonFindMember(fontObj, fontEnd, "ui", &uiObj, &uiEnd) ) {
-			(void)xideJsonGetObjectString(uiObj, uiEnd, "path", pConfig->sUiFont, (int)sizeof(pConfig->sUiFont));
-			(void)xideJsonGetObjectFloat(uiObj, uiEnd, "size", &pConfig->fUiSize);
-		}
-		if ( xideJsonFindMember(fontObj, fontEnd, "code", &codeObj, &codeEnd) ) {
-			(void)xideJsonGetObjectString(codeObj, codeEnd, "path", pConfig->sCodeFont, (int)sizeof(pConfig->sCodeFont));
-			(void)xideJsonGetObjectFloat(codeObj, codeEnd, "size", &pConfig->fCodeSize);
-		}
-	}
-	free(json);
-}
-
-static const char* xideFindBundledFont(void)
-{
-	static char sPath[MAX_PATH];
-	if ( !xideGetExeDir(sPath, (int)sizeof(sPath)) ) return NULL;
-	if ( (int)strlen(sPath) + (int)strlen("\\res\\" XIDE_BUNDLED_FONT_NAME) >= (int)sizeof(sPath) ) return NULL;
-	strcat(sPath, "\\res\\" XIDE_BUNDLED_FONT_NAME);
-	return xideFileExists(sPath) ? sPath : NULL;
-}
-
-static const char* xideFindUiFont(const xide_font_config_t* pConfig)
-{
-	static char configured[MAX_PATH];
-	const char* bundled = xideFindBundledFont();
-	static const char* paths[] = {
-		"C:\\Windows\\Fonts\\segoeui.ttf",
-		"C:\\Windows\\Fonts\\msyh.ttc",
-		"C:\\Windows\\Fonts\\simhei.ttf",
-		"C:\\Windows\\Fonts\\arial.ttf"
-	};
-	if ( pConfig != NULL && xideResolveExePath(configured, (int)sizeof(configured), pConfig->sUiFont) && xideFileExists(configured) ) return configured;
-	if ( bundled != NULL ) return bundled;
-	return xideFindExisting(paths, (int)(sizeof(paths) / sizeof(paths[0])));
-}
-
-static const char* xideFindCodeFont(const xide_font_config_t* pConfig)
-{
-	static char configured[MAX_PATH];
-	const char* bundled = xideFindBundledFont();
-	static const char* paths[] = {
-		"C:\\Windows\\Fonts\\CascadiaMono.ttf",
-		"C:\\Windows\\Fonts\\CascadiaCode.ttf",
-		"C:\\Windows\\Fonts\\consola.ttf",
-		"C:\\Windows\\Fonts\\msyh.ttc"
-	};
-	if ( pConfig != NULL && xideResolveExePath(configured, (int)sizeof(configured), pConfig->sCodeFont) && xideFileExists(configured) ) return configured;
-	if ( bundled != NULL ) return bundled;
-	return xideFindExisting(paths, (int)(sizeof(paths) / sizeof(paths[0])));
-}
-
-static const char* xideFindFallbackFont(void)
-{
-	const char* bundled = xideFindBundledFont();
-	static const char* paths[] = {
-		"C:\\Windows\\Fonts\\NotoSansSC-VF.ttf",
-		"C:\\Windows\\Fonts\\msyh.ttc",
-		"C:\\Windows\\Fonts\\simhei.ttf",
-		"C:\\Windows\\Fonts\\simsun.ttc"
-	};
-	if ( bundled != NULL ) return bundled;
-	return xideFindExisting(paths, (int)(sizeof(paths) / sizeof(paths[0])));
-}
-
-static void xideUsage(void)
-{
-	printf("usage: xlang_ide [--frames N] [--seconds N] [--lang en|zh|ru|ja|fr|es] [--check-language-rules] [--check-workspace] [--check-workspace-file PATH]\n");
-}
-
-int xideAppParseArgs(xide_app_t* pApp, int argc, char** argv)
-{
-	int i;
-	int lang;
-	if ( pApp == NULL ) return XGE_ERROR_INVALID_ARGUMENT;
-	pApp->iLanguageId = XUI_LANGUAGE_ZH;
-	for ( i = 1; i < argc; i++ ) {
-		if ( strcmp(argv[i], "--frames") == 0 ) {
-			if ( i + 1 >= argc ) return XGE_ERROR_INVALID_ARGUMENT;
-			pApp->iMaxFrames = atoi(argv[++i]);
-			if ( pApp->iMaxFrames <= 0 ) return XGE_ERROR_INVALID_ARGUMENT;
-		} else if ( strncmp(argv[i], "--frames=", 9) == 0 ) {
-			pApp->iMaxFrames = atoi(argv[i] + 9);
-			if ( pApp->iMaxFrames <= 0 ) return XGE_ERROR_INVALID_ARGUMENT;
-		} else if ( strcmp(argv[i], "--seconds") == 0 ) {
-			if ( i + 1 >= argc ) return XGE_ERROR_INVALID_ARGUMENT;
-			pApp->fMaxSeconds = atof(argv[++i]);
-			if ( pApp->fMaxSeconds <= 0.0 ) return XGE_ERROR_INVALID_ARGUMENT;
-		} else if ( strncmp(argv[i], "--seconds=", 10) == 0 ) {
-			pApp->fMaxSeconds = atof(argv[i] + 10);
-			if ( pApp->fMaxSeconds <= 0.0 ) return XGE_ERROR_INVALID_ARGUMENT;
-		} else if ( strcmp(argv[i], "--lang") == 0 ) {
-			if ( i + 1 >= argc ) return XGE_ERROR_INVALID_ARGUMENT;
-			lang = xideI18nLanguageFromCode(argv[++i]);
-			if ( lang < 0 ) return XGE_ERROR_INVALID_ARGUMENT;
-			pApp->iLanguageId = lang;
-		} else if ( strncmp(argv[i], "--lang=", 7) == 0 ) {
-			lang = xideI18nLanguageFromCode(argv[i] + 7);
-			if ( lang < 0 ) return XGE_ERROR_INVALID_ARGUMENT;
-			pApp->iLanguageId = lang;
-		} else if ( strcmp(argv[i], "--check-language-rules") == 0 ) {
-			pApp->bCheckLanguageRules = 1;
-		} else if ( strcmp(argv[i], "--check-workspace") == 0 ) {
-			pApp->bCheckWorkspace = 1;
-		} else if ( strcmp(argv[i], "--check-workspace-file") == 0 ) {
-			if ( i + 1 >= argc ) return XGE_ERROR_INVALID_ARGUMENT;
-			pApp->bCheckWorkspace = 1;
-			strncpy(pApp->sCheckWorkspaceFile, argv[++i], sizeof(pApp->sCheckWorkspaceFile) - 1u);
-			pApp->sCheckWorkspaceFile[sizeof(pApp->sCheckWorkspaceFile) - 1u] = '\0';
-		} else if ( strncmp(argv[i], "--check-workspace-file=", 23) == 0 ) {
-			pApp->bCheckWorkspace = 1;
-			strncpy(pApp->sCheckWorkspaceFile, argv[i] + 23, sizeof(pApp->sCheckWorkspaceFile) - 1u);
-			pApp->sCheckWorkspaceFile[sizeof(pApp->sCheckWorkspaceFile) - 1u] = '\0';
-		} else if ( strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0 ) {
-			xideUsage();
-			return 1;
-		} else {
-			return XGE_ERROR_INVALID_ARGUMENT;
-		}
-	}
-	return XGE_OK;
-}
-
-static int xideCreateTargetSurface(xide_app_t* pApp, int w, int h)
-{
-	xui_surface_desc_t desc;
-	xui_surface surface = NULL;
-	int ret;
-	if ( pApp == NULL || w <= 0 || h <= 0 ) return XUI_ERROR_INVALID_ARGUMENT;
-	memset(&desc, 0, sizeof(desc));
-	desc.iKind = XUI_SURFACE_KIND_TEXTURE;
-	desc.iWidth = w;
-	desc.iHeight = h;
-	desc.iFormat = XUI_SURFACE_FORMAT_RGBA8;
-	desc.iFlags = XUI_SURFACE_ALPHA_PREMULTIPLIED | XUI_SURFACE_USAGE_TARGET;
-	ret = pApp->tProxy.surfaceCreate(&pApp->tProxy, &surface, &desc);
-	if ( ret != XUI_OK ) return ret;
-	if ( pApp->pTarget != NULL ) (void)pApp->tProxy.surfaceDestroy(&pApp->tProxy, pApp->pTarget);
-	pApp->pTarget = surface;
-	return XUI_OK;
-}
-
-static int xideSyncViewport(xide_app_t* pApp)
-{
-	int w;
-	int h;
-	int ret;
-	w = xgeGetWidth();
-	h = xgeGetHeight();
-	if ( w <= 0 ) w = XIDE_WINDOW_W;
-	if ( h <= 0 ) h = XIDE_WINDOW_H;
-	if ( pApp->pTarget != NULL && pApp->iViewportW == w && pApp->iViewportH == h ) return XUI_OK;
-	ret = xuiInputViewport(pApp->pContext, (float)w, (float)h);
-	if ( ret != XUI_OK ) return ret;
-	ret = xideCreateTargetSurface(pApp, w, h);
-	if ( ret != XUI_OK ) return ret;
-	pApp->iViewportW = w;
-	pApp->iViewportH = h;
-	xideMainWindowLayout(pApp);
-	xgeRenderRequest();
-	return XUI_OK;
-}
-
-int xideAppCreate(xide_app_t* pApp)
-{
-	xide_font_config_t fontConfig;
-	const char* uiFont;
-	const char* codeFont;
-	const char* fallbackFont;
-	int ret;
-	pApp->iDockDocumentPane = -1;
-	xideWorkspaceInit(&pApp->tWorkspace);
-	if ( !xideWorkspaceCreateDefault(&pApp->tWorkspace) ) return XUI_ERROR;
-	xideFontConfigLoad(&fontConfig);
-	pApp->tProxy = xuiProxyXge();
-	ret = xuiSetDefaultLanguage(pApp->iLanguageId);
-	if ( ret != XUI_OK ) return ret;
-	ret = xuiCreate(&pApp->pContext);
-	if ( ret != XUI_OK ) return ret;
-	ret = xuiSetLanguage(pApp->pContext, pApp->iLanguageId);
-	if ( ret != XUI_OK ) return ret;
-	xgeSetTitle(xideTr(pApp->pContext, XIDE_TR_APP_TITLE));
-	ret = xuiSetProxy(pApp->pContext, &pApp->tProxy);
-	if ( ret != XUI_OK ) return ret;
-	ret = xuiCodeFindScopeCreate(&pApp->pFindScope);
-	if ( ret != XUI_OK ) return ret;
-	pApp->iViewportW = xgeGetWidth() > 0 ? xgeGetWidth() : XIDE_WINDOW_W;
-	pApp->iViewportH = xgeGetHeight() > 0 ? xgeGetHeight() : XIDE_WINDOW_H;
-	ret = xuiInputViewport(pApp->pContext, (float)pApp->iViewportW, (float)pApp->iViewportH);
-	if ( ret != XUI_OK ) return ret;
-	ret = xideCreateTargetSurface(pApp, pApp->iViewportW, pApp->iViewportH);
-	if ( ret != XUI_OK ) return ret;
-	uiFont = xideFindUiFont(&fontConfig);
-	if ( uiFont == NULL ) return XUI_ERROR_FILE_NOT_FOUND;
-	ret = pApp->tProxy.fontLoadFile(&pApp->tProxy, &pApp->pUiFont, uiFont, fontConfig.fUiSize, XUI_FONT_FORMAT_TTF);
-	if ( ret != XUI_OK ) return ret;
-	fallbackFont = xideFindFallbackFont();
-	if ( fallbackFont != NULL ) (void)xgeFontFallbackSet(fallbackFont, fontConfig.fCodeSize);
-	codeFont = xideFindCodeFont(&fontConfig);
-	if ( codeFont != NULL ) (void)pApp->tProxy.fontLoadFile(&pApp->tProxy, &pApp->pCodeFont, codeFont, fontConfig.fCodeSize, XUI_FONT_FORMAT_TTF);
-	xgeFontFallbackClear();
-	if ( pApp->pCodeFont == NULL ) pApp->pCodeFont = pApp->pUiFont;
-	(void)xuiSetDefaultFont(pApp->pContext, pApp->pUiFont);
-	return xideMainWindowCreate(pApp);
-}
-
-void xideAppDestroy(xide_app_t* pApp)
-{
-	if ( pApp == NULL ) return;
-	if ( pApp->pFindScope != NULL ) xuiCodeFindScopeDestroy(pApp->pFindScope);
-	if ( pApp->pContext != NULL ) xuiDestroy(pApp->pContext);
-	if ( pApp->pCodeFont != NULL && pApp->pCodeFont != pApp->pUiFont ) pApp->tProxy.fontDestroy(&pApp->tProxy, pApp->pCodeFont);
-	if ( pApp->pUiFont != NULL ) pApp->tProxy.fontDestroy(&pApp->tProxy, pApp->pUiFont);
-	if ( pApp->pTarget != NULL ) pApp->tProxy.surfaceDestroy(&pApp->tProxy, pApp->pTarget);
-	xideWorkspaceClear(&pApp->tWorkspace);
-	memset(pApp, 0, sizeof(*pApp));
-}
-
-static int xideAppCountTokenKind(const xui_code_token_t* pTokens, int iCount, int iKind)
-{
-	int i;
-	int count = 0;
-	for ( i = 0; i < iCount; i++ ) {
-		if ( pTokens[i].iKind == iKind ) count++;
-	}
-	return count;
-}
-
-int xideAppCheckLanguageRules(xide_app_t* pApp)
-{
-	static const char* sample =
-		"#doc\n"
-		"desc: language rule smoke\n"
-		"#end\n"
-		"class Player\n"
-		"    private int hp = 0\n"
-		"    get value() as int\n"
-		"        return self.hp\n"
-		"    end\n"
-		"\n"
-		"    func add(int n) as int\n"
-		"        if n > 0 then\n"
-		"            return self.hp + n\n"
-		"        end\n"
-		"        return self.hp\n"
-		"    end\n"
-		"end\n"
-		"\n"
-		"/*\n"
-		"    block comment\n"
-		"*/\n"
-		"func main(...) as int\n"
-		"    print(\"hello\")\n"
-		"    return 0\n"
-		"end\n";
-	xui_code_language_t lang;
-	xui_code_token_t tokens[512];
-	xui_code_fold_range_t folds[64];
-	int tokenCount = 0;
-	int foldCount = 0;
-	int ret;
-	char error[256];
-	if ( pApp == NULL || pApp->pEditor == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
-	ret = xuiCodeEditSetText(pApp->pEditor, sample);
-	if ( ret != XUI_OK ) return ret;
-	memset(&lang, 0, sizeof(lang));
-	ret = xuiCodeLanguageRegistryFind(xuiCodeEditGetLanguageRegistry(pApp->pEditor), "xlang", &lang);
-	if ( ret != XUI_OK ) return ret;
-	memset(error, 0, sizeof(error));
-	ret = xuiCodeLanguageLex(&lang, xuiCodeEditGetDocument(pApp->pEditor), 0, -1, tokens, (int)(sizeof(tokens) / sizeof(tokens[0])), &tokenCount, error, (int)sizeof(error));
-	if ( ret != XUI_OK ) return ret;
-	ret = xuiCodeLanguageFold(&lang, xuiCodeEditGetDocument(pApp->pEditor), folds, (int)(sizeof(folds) / sizeof(folds[0])), &foldCount);
-	if ( ret != XUI_OK ) return ret;
-	ret = xuiCodeFoldStateBuildFromProvider(xuiCodeEditGetFoldState(pApp->pEditor), xuiCodeEditGetDocument(pApp->pEditor), lang.onFold, lang.pUser);
-	if ( ret != XUI_OK ) return ret;
-	if ( xideAppCountTokenKind(tokens, tokenCount, XUI_CODE_TOKEN_KEYWORD) < 10 ) return XUI_ERROR;
-	if ( xideAppCountTokenKind(tokens, tokenCount, XUI_CODE_TOKEN_TYPE) < 4 ) return XUI_ERROR;
-	if ( xideAppCountTokenKind(tokens, tokenCount, XUI_CODE_TOKEN_PREPROCESSOR) < 2 ) return XUI_ERROR;
-	if ( xideAppCountTokenKind(tokens, tokenCount, XUI_CODE_TOKEN_COMMENT) < 1 ) return XUI_ERROR;
-	if ( foldCount < 6 ) return XUI_ERROR;
-	printf("xlang_ide language-rules tokens=%d folds=%d\n", tokenCount, foldCount);
-	return XUI_OK;
-}
-
-int xideAppCheckWorkspace(xide_app_t* pApp)
-{
-	int modelCount;
-	int treeCount;
-	int visibleCount;
-	const xui_tree_view_node_t* node;
-	str sTmpName = NULL;
-	str sTmpDir = (str)".";
-	str sTmpPath = NULL;
-	xvalue pJson = NULL;
-	if ( pApp == NULL || pApp->pProjectTree == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
-	if ( pApp->sCheckWorkspaceFile[0] != '\0' ) {
-		if ( !xideWorkspaceLoadXlw(&pApp->tWorkspace, pApp->sCheckWorkspaceFile) ) return XUI_ERROR;
-		if ( xideWorkspaceViewRefresh(pApp) != XUI_OK ) return XUI_ERROR;
-		if ( pApp->tWorkspace.iProjectCount > 0 && pApp->tWorkspace.arrProjects[0].iFileCount > 0 ) {
-			if ( xideWorkspaceViewOpenNode(pApp, pApp->tWorkspace.arrProjects[0].arrFiles[0].iNodeId) != XUI_OK ) return XUI_ERROR;
-		}
-	}
-	modelCount = xideWorkspaceGetNodeCount(&pApp->tWorkspace);
-	treeCount = xuiTreeViewGetNodeCount(pApp->pProjectTree);
-	visibleCount = xuiTreeViewGetVisibleCount(pApp->pProjectTree);
-	node = xuiTreeViewGetNodeById(pApp->pProjectTree, pApp->tWorkspace.iNodeId);
-	if ( modelCount <= 0 || treeCount != modelCount || visibleCount <= 0 || node == NULL ) return XUI_ERROR;
-	sTmpName = xrtPathRandom((str)"xide_workspace_", 0, (str)".xlw", 0, 8);
-	sTmpPath = xrtPathJoin(2, sTmpDir, sTmpName);
-	if ( sTmpPath == NULL || sTmpPath[0] == '\0' || !xideWorkspaceSaveXlwAs(&pApp->tWorkspace, (const char*)sTmpPath) ) {
-		if ( sTmpName != NULL ) xrtFree(sTmpName);
-		if ( sTmpPath != NULL ) xrtFree(sTmpPath);
-		return XUI_ERROR;
-	}
-	pJson = xrtParseJSON_File(sTmpPath);
-	(void)xrtFileDelete(sTmpPath);
-	if ( sTmpName != NULL ) xrtFree(sTmpName);
-	if ( sTmpPath != NULL ) xrtFree(sTmpPath);
-	if ( pJson == NULL || !xvoIsTable(pJson) ) {
-		if ( pJson != NULL ) xvoUnref(pJson);
-		return XUI_ERROR;
-	}
-	xvoUnref(pJson);
-	if ( pApp->tWorkspace.iProjectCount > 0 ) {
-		xide_workspace_t* pTmpWorkspace;
-		xide_workspace_project_t* pLoadedProject = NULL;
-		sTmpName = xrtPathRandom((str)"xide_project_", 0, (str)".xlp", 0, 8);
-		sTmpPath = xrtPathJoin(2, sTmpDir, sTmpName);
-		if ( sTmpPath == NULL || sTmpPath[0] == '\0' ||
-		     !xideWorkspaceSaveXlpAs(&pApp->tWorkspace.arrProjects[0], (const char*)sTmpPath) ) {
-			if ( sTmpName != NULL ) xrtFree(sTmpName);
-			if ( sTmpPath != NULL ) xrtFree(sTmpPath);
-			return XUI_ERROR;
-		}
-		pTmpWorkspace = (xide_workspace_t*)xrtCalloc(1, sizeof(xide_workspace_t));
-		if ( pTmpWorkspace == NULL ) {
-			(void)xrtFileDelete(sTmpPath);
-			if ( sTmpName != NULL ) xrtFree(sTmpName);
-			if ( sTmpPath != NULL ) xrtFree(sTmpPath);
-			return XUI_ERROR;
-		}
-		xideWorkspaceInit(pTmpWorkspace);
-		if ( !xideWorkspaceLoadXlp(pTmpWorkspace, (const char*)sTmpPath, &pLoadedProject) ||
-		     pLoadedProject == NULL ||
-		     pLoadedProject->iFileCount != pApp->tWorkspace.arrProjects[0].iFileCount ||
-		     pLoadedProject->iLibraryCount != pApp->tWorkspace.arrProjects[0].iLibraryCount ||
-		     pLoadedProject->iResourceCount != pApp->tWorkspace.arrProjects[0].iResourceCount ) {
-			xideWorkspaceClear(pTmpWorkspace);
-			xrtFree(pTmpWorkspace);
-			(void)xrtFileDelete(sTmpPath);
-			if ( sTmpName != NULL ) xrtFree(sTmpName);
-			if ( sTmpPath != NULL ) xrtFree(sTmpPath);
-			return XUI_ERROR;
-		}
-		xideWorkspaceClear(pTmpWorkspace);
-		xrtFree(pTmpWorkspace);
-		(void)xrtFileDelete(sTmpPath);
-		if ( sTmpName != NULL ) xrtFree(sTmpName);
-		if ( sTmpPath != NULL ) xrtFree(sTmpPath);
-	}
-	printf("xlang_ide workspace nodes=%d visible=%d projects=%d files=%d libs=%d resources=%d\n",
-		treeCount,
-		visibleCount,
-		pApp->tWorkspace.iProjectCount,
-		pApp->tWorkspace.iProjectCount > 0 ? pApp->tWorkspace.arrProjects[0].iFileCount : 0,
-		pApp->tWorkspace.iProjectCount > 0 ? pApp->tWorkspace.arrProjects[0].iLibraryCount : 0,
-		pApp->tWorkspace.iProjectCount > 0 ? pApp->tWorkspace.arrProjects[0].iResourceCount : 0);
-	return XUI_OK;
-}
-
-int xideAppFrame(void* pUser)
-{
-	xide_app_t* pApp = (xide_app_t*)pUser;
-	xui_rect_i_t fullRect;
-	xui_rect_t rect;
-	int ret;
-	if ( pApp == NULL ) return XGE_ERROR_INVALID_ARGUMENT;
-	ret = xgeBegin();
-	if ( ret != XGE_OK ) return ret;
-	ret = xideSyncViewport(pApp);
-	if ( ret != XUI_OK ) return ret;
-	ret = xidePlatformHandleInput(pApp);
-	if ( ret != XUI_OK ) return ret;
-	ret = xuiDispatchPendingEvents(pApp->pContext);
-	if ( ret != XUI_OK ) return ret;
-	xideMainWindowLayout(pApp);
-	ret = xuiLayout(pApp->pContext);
-	if ( ret != XUI_OK ) return ret;
-	ret = xuiUpdate(pApp->pContext, xgeGetDelta());
-	if ( ret != XUI_OK ) return ret;
-	if ( pApp->pOutputTerminal != NULL ) (void)xuiTerminalFlush(pApp->pOutputTerminal);
-	ret = pApp->tProxy.surfaceClear(&pApp->tProxy, pApp->pTarget, XUI_COLOR_RGBA(238, 242, 247, 255));
-	if ( ret != XUI_OK ) return ret;
-	fullRect = (xui_rect_i_t){0, 0, pApp->iViewportW, pApp->iViewportH};
-	ret = xuiRender(pApp->pContext, pApp->pTarget, &fullRect, 1);
-	if ( ret != XUI_OK ) return ret;
-	xgeClear(XUI_COLOR_RGBA(18, 23, 32, 255));
-	rect = (xui_rect_t){0.0f, 0.0f, (float)pApp->iViewportW, (float)pApp->iViewportH};
-	ret = pApp->tProxy.surfaceDraw(&pApp->tProxy, pApp->pTarget, rect, rect, XUI_COLOR_WHITE, XUI_SURFACE_DRAW_SCREEN_SPACE);
-	if ( ret == XGE_OK ) ret = xgeEnd();
-	if ( ret != XGE_OK ) return ret;
-	pApp->iFrame++;
-	if ( (pApp->iMaxFrames > 0 && pApp->iFrame >= pApp->iMaxFrames) ||
-	     (pApp->fMaxSeconds > 0.0 && xgeTimer() >= pApp->fMaxSeconds) ) {
-		printf("xlang_ide skeleton-summary frames=%d dockWindows=%d panes=%d\n",
-			pApp->iFrame,
-			pApp->pDockPanel != NULL ? xuiDockPanelGetWindowCount(pApp->pDockPanel) : 0,
-			pApp->pDockPanel != NULL ? xuiDockPanelGetPaneCount(pApp->pDockPanel) : 0);
-		xgeQuit();
-	}
-	return XGE_OK;
+    if(app->failure.recovery!=XIDE_FAILURE_RECOVERY_UNAVAILABLE)return;
+    if(app->noSession) { xideFailureRecovery(&app->failure,XIDE_FAILURE_RECOVERY_DISABLED,NULL);return; }
+    if(xideSessionCanAttemptCheckpoint(app)) {
+        xide_model_error error={0};
+        if(xideSessionSave(app,0,&error))xideFailureRecovery(&app->failure,XIDE_FAILURE_RECOVERY_SAVED,NULL);
+        else { xideFailureRecovery(&app->failure,XIDE_FAILURE_RECOVERY_FAILED,error.message);fprintf(stderr,"recovery checkpoint after frame failure: %s\n",error.message); }
+    }
 }

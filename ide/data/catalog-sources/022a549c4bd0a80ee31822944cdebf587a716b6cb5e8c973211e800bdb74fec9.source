@@ -1,0 +1,29 @@
+{
+    "format": "xlang-package-1",
+    "name": "_bzip2",
+    "version": "1.0.8",
+    "abiVersion": "1",
+    "kind": "demo6-private-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "third_party/bzip2/blocksort.c",
+            "third_party/bzip2/huffman.c",
+            "third_party/bzip2/crctable.c",
+            "third_party/bzip2/randtable.c",
+            "third_party/bzip2/compress.c",
+            "third_party/bzip2/decompress.c",
+            "third_party/bzip2/bzlib.c"
+        ],
+        "xlSources": [],
+        "xrtModules": []
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": {
+        "singleton": false,
+        "loadName": "",
+        "version": ""
+    }
+}

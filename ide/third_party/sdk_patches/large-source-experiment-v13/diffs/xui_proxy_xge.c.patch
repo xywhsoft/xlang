@@ -1,0 +1,284 @@
+--- a/src/xui_proxy_xge.c
++++ b/src/xui_proxy_xge.c
+@@ -1,5 +1,6 @@
+ #include "xui_internal.h"
+ #include "../xge.h"
++#include "xge_text_shape_internal.h"
+ 
+ #if defined(_WIN32) || defined(_WIN64)
+ 	#ifndef WIN32_LEAN_AND_MEAN
+@@ -200,6 +201,124 @@
+ 	int bDirty;
+ };
+ 
++#if (defined(_WIN32) || defined(_WIN64)) && defined(XGE_XRT_PROFILE_IDE) && !defined(XGE_NO_TEXT)
++#define XUI_PROXY_XGE_DRAW_CACHE_MIN 4096
++#define XUI_PROXY_XGE_DRAW_CACHE_MAX (16 * 1024 * 1024)
++extern xge_emoji_pack __xgeEmojiDrawCacheBuiltinAcquire(uint64_t* pRevision);
++extern void __xgeGlyphRunPaintCacheFree(void* pCache);
++extern void* __xgeGlyphRunPaintCacheCaptureDraw(xge_glyph_run_t* pRun, float fX, float fY,
++    uint32_t iColor, const xge_text_paint_span_t* pSpans, int iSpanCount);
++extern void __xgeGlyphRunPaintCacheDraw(void* pCache, uint32_t iColor,
++    const xge_text_paint_span_t* pSpans, int iSpanCount);
++typedef struct xui_proxy_xge_draw_cache_t {
++    xui_font pFont;
++    char* sText;
++    int iTextSize;
++    xge_emoji_pack pEmojiPack;
++    uint64_t iEmojiRevision;
++    xge_rect_i_t tClip;
++    float fX;
++    float fY;
++    void* pPaint;
++} xui_proxy_xge_draw_cache_t;
++static xui_proxy_xge_draw_cache_t g_xuiProxyXgeDrawCache;
++static SRWLOCK g_xuiProxyXgeDrawCacheLock = SRWLOCK_INIT;
++
++static void __xuiProxyXgeDrawCacheClearLocked(void)
++{
++    __xgeGlyphRunPaintCacheFree(g_xuiProxyXgeDrawCache.pPaint);
++    xrtFree(g_xuiProxyXgeDrawCache.sText);
++    xgeEmojiPackFree(g_xuiProxyXgeDrawCache.pEmojiPack);
++    memset(&g_xuiProxyXgeDrawCache, 0, sizeof(g_xuiProxyXgeDrawCache));
++}
++
++static void __xuiProxyXgeDrawCacheClear(xui_font pFont)
++{
++    AcquireSRWLockExclusive(&g_xuiProxyXgeDrawCacheLock);
++    if ( pFont == NULL || g_xuiProxyXgeDrawCache.pFont == pFont )
++        __xuiProxyXgeDrawCacheClearLocked();
++    ReleaseSRWLockExclusive(&g_xuiProxyXgeDrawCacheLock);
++}
++
++static int __xuiProxyXgeDrawCacheTextIsLarge(const char* sText)
++{
++    int i;
++    for ( i = 0; i < XUI_PROXY_XGE_DRAW_CACHE_MIN; i++ )
++        if ( sText[i] == 0 ) return 0;
++    return 1;
++}
++
++static int __xuiProxyXgeDrawCachePaint(xui_font pFont, const xge_text_shape_desc_t* pDesc,
++    xui_rect_t tRect, uint32_t iColor, const xge_text_paint_span_t* pSpans, int iSpanCount)
++{
++    xge_emoji_pack pBefore;
++    xge_emoji_pack pAfter;
++    uint64_t iBefore;
++    uint64_t iAfter;
++    xge_rect_i_t tClip;
++    xge_glyph_run_t tRun;
++    void* pPaint;
++    char* sCopy;
++    int iRet;
++    int bDrawn;
++    AcquireSRWLockExclusive(&g_xuiProxyXgeDrawCacheLock);
++    tClip = xgeClipGetPixels();
++    pBefore = __xgeEmojiDrawCacheBuiltinAcquire(&iBefore);
++    if ( pBefore != NULL && g_xuiProxyXgeDrawCache.pEmojiPack == pBefore &&
++         g_xuiProxyXgeDrawCache.iEmojiRevision == iBefore &&
++         g_xuiProxyXgeDrawCache.pFont == pFont && g_xuiProxyXgeDrawCache.pPaint != NULL &&
++         g_xuiProxyXgeDrawCache.iTextSize == pDesc->iTextSize &&
++         g_xuiProxyXgeDrawCache.fX == tRect.fX && g_xuiProxyXgeDrawCache.fY == tRect.fY &&
++         g_xuiProxyXgeDrawCache.tClip.iX == tClip.iX && g_xuiProxyXgeDrawCache.tClip.iY == tClip.iY &&
++         g_xuiProxyXgeDrawCache.tClip.iW == tClip.iW && g_xuiProxyXgeDrawCache.tClip.iH == tClip.iH &&
++         g_xuiProxyXgeDrawCache.sText != NULL &&
++         memcmp(g_xuiProxyXgeDrawCache.sText, pDesc->sText, (size_t)pDesc->iTextSize) == 0 ) {
++        __xgeGlyphRunPaintCacheDraw(g_xuiProxyXgeDrawCache.pPaint, iColor, pSpans, iSpanCount);
++        iRet = XGE_OK;
++    } else {
++        __xuiProxyXgeDrawCacheClearLocked();
++        memset(&tRun, 0, sizeof(tRun));
++        iRet = xgeTextShape(pDesc, &tRun);
++        bDrawn = 0;
++        if ( iRet == XGE_OK && pBefore != NULL && pDesc->iTextSize <= XUI_PROXY_XGE_DRAW_CACHE_MAX &&
++             tClip.iW > 0 && tClip.iH > 0 ) {
++            sCopy = (char*)xrtMalloc((size_t)pDesc->iTextSize);
++            if ( sCopy != NULL ) {
++                memcpy(sCopy, pDesc->sText, (size_t)pDesc->iTextSize);
++                pPaint = __xgeGlyphRunPaintCacheCaptureDraw(&tRun, tRect.fX, tRect.fY, iColor, pSpans, iSpanCount);
++                bDrawn = 1;
++                pAfter = __xgeEmojiDrawCacheBuiltinAcquire(&iAfter);
++                if ( pPaint != NULL && pAfter == pBefore && iAfter == iBefore ) {
++                    g_xuiProxyXgeDrawCache.pFont = pFont;
++                    g_xuiProxyXgeDrawCache.sText = sCopy;
++                    sCopy = NULL;
++                    g_xuiProxyXgeDrawCache.iTextSize = pDesc->iTextSize;
++                    g_xuiProxyXgeDrawCache.pEmojiPack = pBefore;
++                    pBefore = NULL;
++                    g_xuiProxyXgeDrawCache.iEmojiRevision = iBefore;
++                    g_xuiProxyXgeDrawCache.tClip = tClip;
++                    g_xuiProxyXgeDrawCache.fX = tRect.fX;
++                    g_xuiProxyXgeDrawCache.fY = tRect.fY;
++                    g_xuiProxyXgeDrawCache.pPaint = pPaint;
++                    pPaint = NULL;
++                }
++                __xgeGlyphRunPaintCacheFree(pPaint);
++                xgeEmojiPackFree(pAfter);
++                xrtFree(sCopy);
++            }
++        }
++        if ( iRet == XGE_OK && !bDrawn )
++            xgeGlyphRunDrawSpans(&tRun, tRect.fX, tRect.fY, iColor,
++                XGE_DRAW_SCREEN_SPACE, pSpans, iSpanCount);
++        xgeGlyphRunFree(&tRun);
++    }
++    xgeEmojiPackFree(pBefore);
++    ReleaseSRWLockExclusive(&g_xuiProxyXgeDrawCacheLock);
++    return iRet;
++}
++#endif
++
++
+ static uint32_t __xuiProxyXgeImageFlags(uint32_t iFlags)
+ {
+ 	(void)iFlags;
+@@ -1563,6 +1682,10 @@
+ 	if ( !__xuiProxyXgeFontValid(pFont) ) {
+ 		return;
+ 	}
++#if (defined(_WIN32) || defined(_WIN64)) && defined(XGE_XRT_PROFILE_IDE) && !defined(XGE_NO_TEXT)
++    /* Run backend font pointers refer to this wrapper's embedded fonts. */
++    __xuiProxyXgeDrawCacheClear(pFont);
++#endif
+ 	xgeFontFree(&pFont->tFont);
+ 	if ( pFont->bHasFallback ) {
+ 		xgeFontFree(&pFont->tFallbackFont);
+@@ -1606,6 +1729,9 @@
+ 		return XGE_ERROR_INVALID_ARGUMENT;
+ 	}
+ 	(void)pProxy;
++#if (defined(_WIN32) || defined(_WIN64)) && defined(XGE_XRT_PROFILE_IDE) && !defined(XGE_NO_TEXT)
++    if ( __xuiProxyXgeDrawCacheTextIsLarge(sText) ) __xuiProxyXgeDrawCacheClear(NULL);
++#endif
+ 	tSize = xgeTextMeasure(&pFont->tFont, sText);
+ 	pSize->fX = (float)xuiInternalPixelCeil(tSize.fX);
+ 	pSize->fY = (float)xuiInternalPixelCeil(tSize.fY);
+@@ -2052,12 +2178,20 @@
+ 	tDesc.iEmojiPresentation = XGE_EMOJI_PRESENTATION_AUTO;
+ 	tDesc.iEmojiLinePolicy = XGE_EMOJI_LINE_STABLE;
+ 	tDesc.fEmojiScale = 1.0f;
++#if (defined(_WIN32) || defined(_WIN64)) && defined(XGE_XRT_PROFILE_IDE) && !defined(XGE_NO_TEXT)
++    if ( iTextSize >= XUI_PROXY_XGE_DRAW_CACHE_MIN ) {
++        iRet = __xuiProxyXgeDrawCachePaint(pFont, &tDesc, tRect, iColor, pXgeSpans, iSpanCount);
++        if ( iRet == XGE_OK ) __xuiProxyXgeDrawMarkDirty(pDraw);
++    } else
++#endif
++    {
+ 	iRet = xgeTextShape(&tDesc, &tRun);
+ 	if ( iRet == XGE_OK ) {
+ 		xgeGlyphRunDrawSpans(&tRun, tRect.fX, tRect.fY, iColor,
+ 			XGE_DRAW_SCREEN_SPACE, pXgeSpans, iSpanCount);
+ 		xgeGlyphRunFree(&tRun);
+ 		__xuiProxyXgeDrawMarkDirty(pDraw);
++	}
+ 	}
+ 	if ( pXgeSpans != sSmall ) xrtFree(pXgeSpans);
+ 	(void)iFlags;
+@@ -2686,6 +2820,10 @@
+ 	     (iTextSize < -1) || (pShape == NULL) ) return XGE_ERROR_INVALID_ARGUMENT;
+ 	(void)pProxy;
+ 	if ( iTextSize < 0 ) iTextSize = (int)strlen(sText);
++#if (defined(_WIN32) || defined(_WIN64)) && defined(XGE_XRT_PROFILE_IDE) && !defined(XGE_NO_TEXT)
++    /* Logical layout rebuilds must not overlap the retained physical draw run. */
++    if ( iTextSize >= XUI_PROXY_XGE_DRAW_CACHE_MIN ) __xuiProxyXgeDrawCacheClear(NULL);
++#endif
+ 	memset(pShape, 0, sizeof(*pShape));
+ 	pShape->iSize = sizeof(*pShape);
+ 	pShape->iFlags = iFlags;
+@@ -2742,6 +2880,96 @@
+ 	}
+ 	xgeGlyphRunFree(&tRun);
+ 	return XUI_OK;
++}
++
++typedef struct xui_proxy_xge_cluster_visit_t {
++    xui_internal_text_cluster_visit_proc onVisit;
++    void* pUser;
++    xui_text_cluster_t tCluster;
++    int bCluster;
++    int iCount;
++    int iError;
++} xui_proxy_xge_cluster_visit_t;
++
++static int __xuiProxyXgeVisitPosition(const xge_glyph_position_t* pGlyph, void* pUser)
++{
++    xui_proxy_xge_cluster_visit_t* pState = (xui_proxy_xge_cluster_visit_t*)pUser;
++    xui_text_cluster_t* pCluster = &pState->tCluster;
++    if ( !pState->bCluster || pCluster->iTextStart != (int)pGlyph->iCluster ) {
++        if ( pState->bCluster ) {
++            pState->iError = pState->onVisit(pCluster, pState->pUser);
++            if ( pState->iError != XUI_OK ) return XGE_ERROR;
++        }
++        memset(pCluster, 0, sizeof(*pCluster));
++        pCluster->iSize = sizeof(*pCluster);
++        pCluster->iTextStart = (int)pGlyph->iCluster;
++        pCluster->iTextEnd = (int)pGlyph->iClusterEnd;
++        pCluster->fOffsetX = pGlyph->fOffsetX;
++        pCluster->fOffsetY = pGlyph->fOffsetY;
++        pState->bCluster = 1;
++        pState->iCount++;
++    } else if ( (int)pGlyph->iClusterEnd > pCluster->iTextEnd ) {
++        pCluster->iTextEnd = (int)pGlyph->iClusterEnd;
++    }
++    pCluster->fAdvance += pGlyph->fAdvanceX;
++    if ( (pGlyph->iFlags & XGE_GLYPH_POSITION_LINE_BREAK) != 0 ) pCluster->iFlags |= XUI_TEXT_CLUSTER_LINE_BREAK;
++    if ( pGlyph->iItemKind == XGE_TEXT_ITEM_EMOJI ) pCluster->iFlags |= XUI_TEXT_CLUSTER_EMOJI;
++    return XGE_OK;
++}
++
++int xuiInternalProxyXgeVisitTextShape(xui_proxy pProxy, xui_font pFont, const char* sText,
++    int iTextSize, uint32_t iFlags, xui_internal_text_cluster_visit_proc onVisit,
++    void* pUser, xui_text_shape_t* pShape)
++{
++    xge_text_shape_desc_t tDesc;
++    xge_glyph_run_t tRun;
++    xui_proxy_xge_cluster_visit_t tState;
++    int iRet;
++    if ( pProxy == NULL || pProxy->textShape != __xuiProxyXgeTextShape ) return XUI_ERROR_UNSUPPORTED;
++    if ( !__xuiProxyXgeFontValid(pFont) || sText == NULL || iTextSize < -1 ||
++         onVisit == NULL || pShape == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
++    if ( iTextSize < 0 ) iTextSize = (int)strlen(sText);
++#if (defined(_WIN32) || defined(_WIN64)) && defined(XGE_XRT_PROFILE_IDE) && !defined(XGE_NO_TEXT)
++    if ( iTextSize >= XUI_PROXY_XGE_DRAW_CACHE_MIN ) __xuiProxyXgeDrawCacheClear(NULL);
++#endif
++    memset(pShape, 0, sizeof(*pShape));
++    pShape->iSize = sizeof(*pShape);
++    pShape->iFlags = iFlags;
++    pShape->iTextSize = iTextSize;
++    memset(&tDesc, 0, sizeof(tDesc));
++    tDesc.iSize = sizeof(tDesc);
++    tDesc.pFont = &pFont->tFont;
++    tDesc.sText = sText;
++    tDesc.iTextSize = iTextSize;
++    if ( (iFlags & XUI_TEXT_SHAPE_KERNING) != 0 ) tDesc.iFlags |= XGE_TEXT_SHAPE_KERNING;
++    if ( (iFlags & XUI_TEXT_SHAPE_EMOJI) != 0 ) tDesc.iFlags |= XGE_TEXT_SHAPE_EMOJI;
++    tDesc.iEmojiPresentation = XGE_EMOJI_PRESENTATION_AUTO;
++    tDesc.iEmojiLinePolicy = XGE_EMOJI_LINE_STABLE;
++    tDesc.fEmojiScale = 1.0f;
++    memset(&tRun, 0, sizeof(tRun));
++    memset(&tState, 0, sizeof(tState));
++    tState.onVisit = onVisit;
++    tState.pUser = pUser;
++    iRet = xgeInternalTextShapeVisit(&tDesc, &tRun, __xuiProxyXgeVisitPosition, &tState);
++    if ( iRet == XGE_OK && tState.bCluster ) tState.iError = onVisit(&tState.tCluster, pUser);
++    if ( iRet == XGE_OK && tState.iError == XUI_OK ) {
++        pShape->fWidth = tRun.fWidth;
++        pShape->fHeight = tRun.fHeight;
++        pShape->fAscent = tRun.fAscent;
++        pShape->fDescent = tRun.fDescent;
++        pShape->fLineHeight = tRun.fLineHeight;
++        pShape->iClusterCount = tState.iCount;
++    }
++    xgeGlyphRunFree(&tRun);
++    return tState.iError != XUI_OK ? tState.iError : iRet;
++}
++
++XUI_API int xuiProxyXgeVisitTextShape(xui_proxy pProxy, xui_font pFont, const char* sText,
++    int iTextSize, uint32_t iFlags, xui_text_cluster_visit_proc onVisit,
++    void* pUser, xui_text_shape_t* pShape)
++{
++    return xuiInternalProxyXgeVisitTextShape(pProxy, pFont, sText, iTextSize,
++        iFlags, onVisit, pUser, pShape);
+ }
+ 
+ static int __xuiProxyXgeBindImeTextClient(xui_context pContext)

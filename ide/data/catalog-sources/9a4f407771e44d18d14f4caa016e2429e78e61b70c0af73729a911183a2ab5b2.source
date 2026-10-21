@@ -1,0 +1,18 @@
+{
+    "format": "xlang-package-1",
+    "name": "serial",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["serial_native.c"],
+        "xlSources": ["src/serial.xl"],
+        "includeDirs": ["include"],
+        "xrtModules": ["XRT_MODULE_BUFFER", "XRT_MODULE_FILE", "XRT_MODULE_MUTEX", "XRT_MODULE_STRING"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

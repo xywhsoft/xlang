@@ -1,0 +1,23 @@
+#ifndef XGE_TEXT_SHAPE_INTERNAL_H
+#define XGE_TEXT_SHAPE_INTERNAL_H
+#include "../xge.h"
+/* Private synchronous visitor. A position is final only after the next glyph
+   applies kerning. The borrowed position is valid during the visitor call. */
+typedef int (*xge_internal_text_shape_visit_proc)(const xge_glyph_position_t*, void*);
+int xgeInternalTextShapeVisit(const xge_text_shape_desc_t*, xge_glyph_run_t*,
+    xge_internal_text_shape_visit_proc, void*);
+typedef struct xge_internal_text_cursor_t xge_internal_text_cursor;
+typedef struct xge_internal_text_resume_t {
+    int iTextOffset;
+    int iReplayGlyphIndex;
+    int iReplayTextOffset;
+    int iCheckpointCount;
+} xge_internal_text_resume_t;
+/* Private stable-font visitor contract. Old cache ownership remains with caller.
+   Resume info is available before the first callback; replay starts one emitted
+   glyph before the saved pending glyph to reconstruct cluster aggregation. */
+int xgeInternalTextShapeVisitCached(const xge_text_shape_desc_t*,xge_glyph_run_t*,
+    xge_internal_text_shape_visit_proc,void*,const xge_internal_text_cursor*,int,
+    xge_internal_text_cursor**,xge_internal_text_resume_t*);
+void xgeInternalTextCursorFree(xge_internal_text_cursor*);
+#endif

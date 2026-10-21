@@ -1,0 +1,1592 @@
+{
+  "format": "xlang-ide-sdk-materials-1",
+  "sourceManifestSha256": "3f240e10bddf61f7908ded55ab57314997fd7eb5a4720723b824b6955d5ce4ab",
+  "sdkDllSha256": "a48e028acfb96db59277d820a4dbebc482d8635fd79c63ef3da6b00c69382784",
+  "sourceScope": "Exact fixed DLL preprocessing closure plus build/resource entrypoints and pinned lib sources/named notices; development tools, test binaries and unrelated font assets excluded",
+  "translationUnits": [
+    "xge.c",
+    "lib/xlayout/xlayout.c",
+    "src/xui_core.c",
+    "src/xui_widget.c",
+    "src/xui_layout.c",
+    "src/xui_input.c",
+    "src/xui_icon.c",
+    "src/xui_assets.c",
+    "src/xui_builtin_atlas.c",
+    "src/xui_unicode.c",
+    "src/xui_text.c",
+    "src/xui_label.c",
+    "src/xui_rich_document.c",
+    "src/xui_rich_edit.c",
+    "src/xui_hyperlink.c",
+    "src/xui_breadcrumb.c",
+    "src/xui_image.c",
+    "src/xui_qrcode.c",
+    "src/xui_panel.c",
+    "src/xui_button.c",
+    "src/xui_checkbox.c",
+    "src/xui_check_card.c",
+    "src/xui_radio.c",
+    "src/xui_toggle.c",
+    "src/xui_progress.c",
+    "src/xui_step_bar.c",
+    "src/xui_slider.c",
+    "src/xui_range_slider.c",
+    "src/xui_page.c",
+    "src/xui_carousel.c",
+    "src/xui_virtual_joystick.c",
+    "src/xui_inventory_grid.c",
+    "src/xui_terminal.c",
+    "src/xui_separator.c",
+    "src/xui_split_layout.c",
+    "src/xui_scroll_model.c",
+    "src/xui_scrollbar.c",
+    "src/xui_scroll_frame.c",
+    "src/xui_scroll_view.c",
+    "src/xui_canvas.c",
+    "src/xui_popup.c",
+    "src/xui_menu.c",
+    "src/xui_menubar.c",
+    "src/xui_toolbar.c",
+    "src/xui_statusbar.c",
+    "src/xui_accordion.c",
+    "src/xui_list_view.c",
+    "src/xui_table_view.c",
+    "src/xui_table_grid.c",
+    "src/xui_tree_view.c",
+    "src/xui_tabs.c",
+    "src/xui_window_frame.c",
+    "src/xui_window.c",
+    "src/xui_msgbox.c",
+    "src/xui_file_dialog.c",
+    "src/xui_msgtip.c",
+    "src/xui_toast.c",
+    "src/xui_input_widget.c",
+    "src/xui_tag_input.c",
+    "src/xui_numeric_input.c",
+    "src/xui_find.c",
+    "src/xui_text_edit.c",
+    "src/xui_combobox.c",
+    "src/xui_cascader.c",
+    "src/xui_color_picker.c",
+    "src/xui_icon_picker.c",
+    "src/xui_date_picker.c",
+    "src/xui_property_grid.c",
+    "src/xui_dock_panel.c",
+    "src/xui_chart.c",
+    "src/xui_flow_graph.c",
+    "src/xui_flow_graph_widget.c",
+    "src/xui_workflow.c",
+    "src/xui_workflow_widget.c",
+    "src/xui_message_list.c",
+    "src/xui_timeline_view.c",
+    "src/xui_code_document.c",
+    "src/xui_code_selection.c",
+    "src/xui_code_theme.c",
+    "src/xui_code_fold_state.c",
+    "src/xui_code_annotation.c",
+    "src/xui_code_token_buffer.c",
+    "src/xui_code_provider.c",
+    "src/xui_code_margin.c",
+    "src/xui_code_command.c",
+    "src/xui_code_fold.c",
+    "src/xui_code_editing.c",
+    "src/xui_code_lexer_c.c",
+    "src/xui_code_lexer.c",
+    "src/xui_code_language.c",
+    "src/xui_code_search.c",
+    "src/xui_code_layout.c",
+    "src/xui_code_edit.c",
+    "src/xui_proxy_xge.c",
+    "src/xui_edit.c",
+    "src/xui_drag_drop.c",
+    "src/xui_accessibility.c",
+    "src/xui_document_layout.c",
+    "src/xui_document_renderer.c",
+    "src/xui_document_view.c",
+    "src/xui_document_editor.c",
+    "src/xui_document_edit_adapter.c",
+    "src/xui_document_store.c",
+    "src/xui_document.c",
+    "src/xui_document_schema.c",
+    "src/xui_document_position.c",
+    "src/xui_document_range.c",
+    "src/xui_document_commands.c",
+    "src/xui_document_markdown.c",
+    "src/xui_document_reconcile.c",
+    "src/xui_document_md4c.c",
+    "src/xui_document_io.c",
+    "src/xui_document_html.c",
+    "src/xui_document_equivalent.c",
+    "lib/md4c/entity.c",
+    "src/xui_document_table.c",
+    "src/xui_document_markdown_edit.c",
+    "src/xui_document_search.c",
+    "src/xui_document_file.c"
+  ],
+  "preprocessorDependencies": [
+    "lib/libunibreak/src/eastasianwidthdata.c",
+    "lib/libunibreak/src/eastasianwidthdef.c",
+    "lib/libunibreak/src/eastasianwidthdef.h",
+    "lib/libunibreak/src/emojidata.c",
+    "lib/libunibreak/src/emojidef.c",
+    "lib/libunibreak/src/emojidef.h",
+    "lib/libunibreak/src/graphemebreak.c",
+    "lib/libunibreak/src/graphemebreak.h",
+    "lib/libunibreak/src/graphemebreakdata.c",
+    "lib/libunibreak/src/graphemebreakdef.h",
+    "lib/libunibreak/src/indicconjunctbreakdata.c",
+    "lib/libunibreak/src/indicconjunctbreakdef.h",
+    "lib/libunibreak/src/linebreak.c",
+    "lib/libunibreak/src/linebreak.h",
+    "lib/libunibreak/src/linebreakdata.c",
+    "lib/libunibreak/src/linebreakdef.c",
+    "lib/libunibreak/src/linebreakdef.h",
+    "lib/libunibreak/src/unibreakbase.c",
+    "lib/libunibreak/src/unibreakbase.h",
+    "lib/libunibreak/src/unibreakdef.c",
+    "lib/libunibreak/src/unibreakdef.h",
+    "lib/md4c/entity.c",
+    "lib/md4c/entity.h",
+    "lib/md4c/md4c.c",
+    "lib/md4c/md4c.h",
+    "lib/miniaudio/miniaudio.h",
+    "lib/sokol/sokol_app.h",
+    "lib/stb/stb_image.h",
+    "lib/stb/stb_image_write.h",
+    "lib/stb/stb_truetype.h",
+    "lib/xlayout/xlayout.c",
+    "lib/xlayout/xlayout.h",
+    "lib/xrt/xrt.h",
+    "lib/xrt/xrt_config.h",
+    "lib/zstd/zstddeclib.c",
+    "src/xge_async.c",
+    "src/xge_audio.c",
+    "src/xge_buffer.c",
+    "src/xge_builtin_emoji.inc",
+    "src/xge_command.c",
+    "src/xge_core.c",
+    "src/xge_drag_drop.c",
+    "src/xge_egl.c",
+    "src/xge_emoji.c",
+    "src/xge_font.c",
+    "src/xge_gl.h",
+    "src/xge_ime_win32_compat.h",
+    "src/xge_ime_win32_tsf.c",
+    "src/xge_impl.c",
+    "src/xge_input.c",
+    "src/xge_material.c",
+    "src/xge_math2d.h",
+    "src/xge_mesh.c",
+    "src/xge_miniprogram.c",
+    "src/xge_particle.c",
+    "src/xge_particle_internal.h",
+    "src/xge_particle_io.c",
+    "src/xge_particle_render.c",
+    "src/xge_particle_resource.c",
+    "src/xge_render.c",
+    "src/xge_render_target.c",
+    "src/xge_resource.c",
+    "src/xge_shape.c",
+    "src/xge_shape_ex.c",
+    "src/xge_shape_ex_coverage.c",
+    "src/xge_shape_ex_stroke.c",
+    "src/xge_sprite.c",
+    "src/xge_svg.c",
+    "src/xge_text_run.c",
+    "src/xge_text_vector.c",
+    "src/xge_texture.c",
+    "src/xge_texture_storage.h",
+    "src/xui_accessibility.c",
+    "src/xui_accordion.c",
+    "src/xui_assets.c",
+    "src/xui_breadcrumb.c",
+    "src/xui_builtin_assets.inc",
+    "src/xui_builtin_atlas.c",
+    "src/xui_builtin_atlas.h",
+    "src/xui_button.c",
+    "src/xui_canvas.c",
+    "src/xui_carousel.c",
+    "src/xui_cascader.c",
+    "src/xui_chart.c",
+    "src/xui_check_card.c",
+    "src/xui_checkbox.c",
+    "src/xui_code_annotation.c",
+    "src/xui_code_command.c",
+    "src/xui_code_document.c",
+    "src/xui_code_edit.c",
+    "src/xui_code_editing.c",
+    "src/xui_code_fold.c",
+    "src/xui_code_fold_state.c",
+    "src/xui_code_language.c",
+    "src/xui_code_layout.c",
+    "src/xui_code_lexer.c",
+    "src/xui_code_lexer_c.c",
+    "src/xui_code_margin.c",
+    "src/xui_code_provider.c",
+    "src/xui_code_search.c",
+    "src/xui_code_selection.c",
+    "src/xui_code_theme.c",
+    "src/xui_code_token_buffer.c",
+    "src/xui_color_picker.c",
+    "src/xui_combobox.c",
+    "src/xui_core.c",
+    "src/xui_date_picker.c",
+    "src/xui_dock_panel.c",
+    "src/xui_document.c",
+    "src/xui_document_commands.c",
+    "src/xui_document_edit_adapter.c",
+    "src/xui_document_editor.c",
+    "src/xui_document_equivalent.c",
+    "src/xui_document_file.c",
+    "src/xui_document_html.c",
+    "src/xui_document_internal.h",
+    "src/xui_document_io.c",
+    "src/xui_document_layout.c",
+    "src/xui_document_layout_internal.h",
+    "src/xui_document_markdown.c",
+    "src/xui_document_markdown_edit.c",
+    "src/xui_document_md4c.c",
+    "src/xui_document_md4c.h",
+    "src/xui_document_position.c",
+    "src/xui_document_range.c",
+    "src/xui_document_reconcile.c",
+    "src/xui_document_renderer.c",
+    "src/xui_document_schema.c",
+    "src/xui_document_search.c",
+    "src/xui_document_store.c",
+    "src/xui_document_table.c",
+    "src/xui_document_view.c",
+    "src/xui_document_view_internal.h",
+    "src/xui_drag_drop.c",
+    "src/xui_edit.c",
+    "src/xui_file_dialog.c",
+    "src/xui_find.c",
+    "src/xui_flow_graph.c",
+    "src/xui_flow_graph_widget.c",
+    "src/xui_hyperlink.c",
+    "src/xui_icon.c",
+    "src/xui_icon_picker.c",
+    "src/xui_image.c",
+    "src/xui_input.c",
+    "src/xui_input_widget.c",
+    "src/xui_internal.h",
+    "src/xui_inventory_grid.c",
+    "src/xui_label.c",
+    "src/xui_layout.c",
+    "src/xui_list_view.c",
+    "src/xui_menu.c",
+    "src/xui_menubar.c",
+    "src/xui_message_list.c",
+    "src/xui_msgbox.c",
+    "src/xui_msgtip.c",
+    "src/xui_numeric_input.c",
+    "src/xui_page.c",
+    "src/xui_panel.c",
+    "src/xui_popup.c",
+    "src/xui_progress.c",
+    "src/xui_property_grid.c",
+    "src/xui_proxy_xge.c",
+    "src/xui_qrcode.c",
+    "src/xui_radio.c",
+    "src/xui_range_slider.c",
+    "src/xui_rich_document.c",
+    "src/xui_rich_edit.c",
+    "src/xui_scroll_frame.c",
+    "src/xui_scroll_model.c",
+    "src/xui_scroll_view.c",
+    "src/xui_scrollbar.c",
+    "src/xui_separator.c",
+    "src/xui_slider.c",
+    "src/xui_split_layout.c",
+    "src/xui_statusbar.c",
+    "src/xui_step_bar.c",
+    "src/xui_table_grid.c",
+    "src/xui_table_view.c",
+    "src/xui_table_view_paint.h",
+    "src/xui_tabs.c",
+    "src/xui_tag_input.c",
+    "src/xui_terminal.c",
+    "src/xui_text.c",
+    "src/xui_text_break.inl",
+    "src/xui_text_edit.c",
+    "src/xui_text_internal.h",
+    "src/xui_text_projection.inl",
+    "src/xui_timeline_view.c",
+    "src/xui_toast.c",
+    "src/xui_toggle.c",
+    "src/xui_toolbar.c",
+    "src/xui_tree_view.c",
+    "src/xui_unicode.c",
+    "src/xui_unicode_word_data.inc",
+    "src/xui_virtual_joystick.c",
+    "src/xui_widget.c",
+    "src/xui_window.c",
+    "src/xui_window_frame.c",
+    "src/xui_workflow.c",
+    "src/xui_workflow_widget.c",
+    "src/xui_xrt_port.h",
+    "xge.c",
+    "xge.h",
+    "xui.h",
+    "xui_document.h",
+    "xui_document_ui.h"
+  ],
+  "buildEntrypoints": [
+    "build_dll.bat",
+    "xui_sources.bat",
+    "xui_document_sources.bat",
+    "xge.rc",
+    "res/xx_dll.ico"
+  ],
+  "materials": [
+    {
+      "component": "libunibreak",
+      "source": "lib/libunibreak/LICENCE",
+      "kind": "named-notice"
+    },
+    {
+      "component": "libunibreak",
+      "source": "lib/libunibreak/UNICODE-LICENSE.txt",
+      "kind": "named-notice"
+    },
+    {
+      "component": "md4c",
+      "source": "lib/md4c/LICENSE.md",
+      "kind": "named-notice"
+    },
+    {
+      "component": "zstd",
+      "source": "lib/zstd/LICENSE",
+      "kind": "named-notice"
+    },
+    {
+      "component": "emoji",
+      "source": "res/emoji/twemoji_core/17.0/LICENSE-GRAPHICS",
+      "kind": "named-notice"
+    },
+    {
+      "component": "emoji",
+      "source": "res/emoji/twemoji_core/17.0/NOTICE.md",
+      "kind": "named-notice"
+    },
+    {
+      "component": "xui_dockpanel_suite",
+      "source": "res/xui_dockpanel_suite/LICENSE.dockpanelsuite.txt",
+      "kind": "named-notice"
+    },
+    {
+      "component": "stb",
+      "source": "lib/stb/stb_image.h",
+      "kind": "embedded-notice-header"
+    },
+    {
+      "component": "stb",
+      "source": "lib/stb/stb_image_write.h",
+      "kind": "embedded-notice-header"
+    },
+    {
+      "component": "stb",
+      "source": "lib/stb/stb_truetype.h",
+      "kind": "embedded-notice-header"
+    },
+    {
+      "component": "sokol",
+      "source": "lib/sokol/sokol_app.h",
+      "kind": "embedded-notice-header"
+    },
+    {
+      "component": "miniaudio",
+      "source": "lib/miniaudio/miniaudio.h",
+      "kind": "embedded-notice-header"
+    },
+    {
+      "component": "xrt",
+      "source": "lib/xrt/xrt.h",
+      "kind": "embedded-notice-header"
+    }
+  ],
+  "files": [
+    {
+      "path": "build_dll.bat",
+      "sha256": "26cbe58cc269b454c225b2eace9f44af76baef85cf788c7b0b7e2bb88e008702",
+      "size": 1534
+    },
+    {
+      "path": "lib/libunibreak/LICENCE",
+      "sha256": "8c7b1018f608e05a21af078ca4303d545d6b8719b95306eda83df64845283564",
+      "size": 1066
+    },
+    {
+      "path": "lib/libunibreak/README.xui.md",
+      "sha256": "58940125f755b2f078a76e943ecc488c9cf43c0325f3c0e138960bfc7f8a7628",
+      "size": 2636
+    },
+    {
+      "path": "lib/libunibreak/UNICODE-LICENSE.txt",
+      "sha256": "85d2c71ce603e6facf0029043f82992556f099eebe55417b456ec27332665fed",
+      "size": 2026
+    },
+    {
+      "path": "lib/libunibreak/src/eastasianwidthdata.c",
+      "sha256": "378e8b1771ab838c60e3ffc44882c057b61818f162c1462bd47f73af0f39b508",
+      "size": 10074
+    },
+    {
+      "path": "lib/libunibreak/src/eastasianwidthdef.c",
+      "sha256": "70825ab26509f340debd9b0eed0aa8035569dae4f131809e14dd2aed54cf3072",
+      "size": 1599
+    },
+    {
+      "path": "lib/libunibreak/src/eastasianwidthdef.h",
+      "sha256": "9b3425b44806266e93961ccaaa9cc4a01d97ace5947306868f290831de76c245",
+      "size": 2210
+    },
+    {
+      "path": "lib/libunibreak/src/emojidata.c",
+      "sha256": "0c16869ccf857b7ecc32ad186a8285f135974e78b30001412948fbfc53d8e937",
+      "size": 1806
+    },
+    {
+      "path": "lib/libunibreak/src/emojidef.c",
+      "sha256": "7e1d5150207e295fb1ff0f0d0f9cce17386c13226d29553cea0639a121b8ac2f",
+      "size": 1610
+    },
+    {
+      "path": "lib/libunibreak/src/emojidef.h",
+      "sha256": "a398a53eeafe31d7849520116e9b41ea460d446736b2df17299adfb675a1f829",
+      "size": 1683
+    },
+    {
+      "path": "lib/libunibreak/src/graphemebreak.c",
+      "sha256": "8c135633ffd5520e9204da0b4ef924b620a4aa88d9de47de3181e6799e6bbffb",
+      "size": 12667
+    },
+    {
+      "path": "lib/libunibreak/src/graphemebreak.h",
+      "sha256": "f92a0a8caf7743328f05fe51f2c997f9a2eb175a989d500e5942b1e24efed20a",
+      "size": 2555
+    },
+    {
+      "path": "lib/libunibreak/src/graphemebreakdata.c",
+      "sha256": "313f28d9c5c68509d36c32fb614413b988a6750071bee19b140a4c585bfd5f24",
+      "size": 42595
+    },
+    {
+      "path": "lib/libunibreak/src/graphemebreakdef.h",
+      "sha256": "d6bbf306b13935bb9cf5dcd3ac1e15d0899ee7df7dd32cb02e3af2e03b45f9a1",
+      "size": 2727
+    },
+    {
+      "path": "lib/libunibreak/src/indicconjunctbreakdata.c",
+      "sha256": "0f92dc77390faca48e53d14976ce4158029989cae434504d36636ebf949836a5",
+      "size": 7708
+    },
+    {
+      "path": "lib/libunibreak/src/indicconjunctbreakdef.h",
+      "sha256": "f9a1f7fe67c4b983e03ebb10b7376a1addbdbc1247dd3892c0d4cfda8d649c33",
+      "size": 1751
+    },
+    {
+      "path": "lib/libunibreak/src/linebreak.c",
+      "sha256": "005b42bd543bb677565658115a0e03ac00da1e9efa2c7359cb062f677328d512",
+      "size": 43929
+    },
+    {
+      "path": "lib/libunibreak/src/linebreak.h",
+      "sha256": "1f57fdc2e2e52ae62f2fb708e226da709e655e1fa7b1203fb5197c3f9c692da6",
+      "size": 2950
+    },
+    {
+      "path": "lib/libunibreak/src/linebreakdata.c",
+      "sha256": "18c37879356e57c002863e9ecf69103a87b59604c592cb675902a21bbbf7d564",
+      "size": 563527
+    },
+    {
+      "path": "lib/libunibreak/src/linebreakdef.c",
+      "sha256": "1cfefd4ef2e3788b6ba64d39e7429ae0fe4eaf0a9978db0b720fa3b55f27fbb3",
+      "size": 5525
+    },
+    {
+      "path": "lib/libunibreak/src/linebreakdef.h",
+      "sha256": "4d23230173458fd32a8cc4f4f58d1d15b870590c9b5de68d764bd993eadead43",
+      "size": 7821
+    },
+    {
+      "path": "lib/libunibreak/src/unibreakbase.c",
+      "sha256": "18f1c0a1a479068e94ba6c36639de773746086c4f25f07df5555f2f5bca0a167",
+      "size": 1378
+    },
+    {
+      "path": "lib/libunibreak/src/unibreakbase.h",
+      "sha256": "6cbde54a9a7ccb4908a7b2e120615820bab1fd047960798e9c4a71de454bad6c",
+      "size": 1840
+    },
+    {
+      "path": "lib/libunibreak/src/unibreakdef.c",
+      "sha256": "1aad0585aade952f175122c5b93b9d7d00c63d817c807243fc87966795f55dc1",
+      "size": 5233
+    },
+    {
+      "path": "lib/libunibreak/src/unibreakdef.h",
+      "sha256": "f0e9baeb1afb4e44fdcf202f9ad6ab15ca10ef928dcdbefc9a82fcccf77bc49b",
+      "size": 2990
+    },
+    {
+      "path": "lib/md4c/LICENSE.md",
+      "sha256": "e547c9a66c120b19f9838a1f7c2f51137f5c71ba27b70c3611b673f2cdb4e02e",
+      "size": 1096
+    },
+    {
+      "path": "lib/md4c/README.xui.md",
+      "sha256": "5ee8f7e9829c349b96423cbded349e614e424916d4f34385aee45ff58ec29943",
+      "size": 776
+    },
+    {
+      "path": "lib/md4c/UPSTREAM.txt",
+      "sha256": "eb16fc1c95685faa39fa7faad0ef7935fe2235806f064a3ad32976423f590356",
+      "size": 79
+    },
+    {
+      "path": "lib/md4c/entity.c",
+      "sha256": "7ea50d695d9210958e01b12b3e4d1db78d783d03d95b040fd7d2d9cfe1f1d39c",
+      "size": 73887
+    },
+    {
+      "path": "lib/md4c/entity.h",
+      "sha256": "99a8952be6629e4114947cb61a901bf4f73b10d84d1ac5e17ad8299dfbad708e",
+      "size": 1607
+    },
+    {
+      "path": "lib/md4c/md4c-html.c",
+      "sha256": "bf6f4f856e7352526c08b22916d1a840054b027a28f2b2a89482f50bf23e55b0",
+      "size": 24347
+    },
+    {
+      "path": "lib/md4c/md4c-html.h",
+      "sha256": "6a045ecec5d8cf17a771654a31af06641df195d7ea8486a140a121b6c6e0191f",
+      "size": 2512
+    },
+    {
+      "path": "lib/md4c/md4c.c",
+      "sha256": "b9102e0ddfdfd494fdda903f79c554ffaab7e87b4eeb85b4c113057dee3e0728",
+      "size": 260783
+    },
+    {
+      "path": "lib/md4c/md4c.h",
+      "sha256": "c434777deef7e59d611b40319c391dfa436cfa592bd28c053ba688e90e140c72",
+      "size": 19366
+    },
+    {
+      "path": "lib/miniaudio/miniaudio.h",
+      "sha256": "e9e742f8c4d7cdd0fc81ba7f1c47b719d98d45e0138849aa0ec1e574d554a1ee",
+      "size": 4204032
+    },
+    {
+      "path": "lib/sokol/XGE_FORK.md",
+      "sha256": "fce9686119c4d6b9b539c2f0b9f18e789692fa84a38f4f57e0c8db75994ad6d4",
+      "size": 323
+    },
+    {
+      "path": "lib/sokol/sokol_app.h",
+      "sha256": "7684bc1060c11e85f86a42663837659654a2740181d0125cf01a0a5fe67cda4e",
+      "size": 594931
+    },
+    {
+      "path": "lib/stb/stb_image.h",
+      "sha256": "a3e062df467a0cd75186d90761919f099fef0e58fe2e393d5355064574cd2132",
+      "size": 267936
+    },
+    {
+      "path": "lib/stb/stb_image_write.h",
+      "sha256": "17f339e7582ff4d4d56e40b0e87d77eda8d8f8e62806278ddf8fcf0b8b3d9a84",
+      "size": 72945
+    },
+    {
+      "path": "lib/stb/stb_truetype.h",
+      "sha256": "8a6bafa0ef13b90c2365301cf75ade2e310545aea8e935d43124878f797c00c5",
+      "size": 196558
+    },
+    {
+      "path": "lib/xlayout/README.md",
+      "sha256": "b2e5696114fefc337489d7f9f4516a0752ee95733af34547b5df095e5c666051",
+      "size": 13135
+    },
+    {
+      "path": "lib/xlayout/test/benchmark_xlayout.c",
+      "sha256": "0130f086bfc419ded6d9913e9b2c22dc5829ebd2ed54182ef3bee7970e3c6400",
+      "size": 2242
+    },
+    {
+      "path": "lib/xlayout/test/build_benchmark.bat",
+      "sha256": "f4bb123c73e4443ff88dbafec93dc8a3aa265d987265d00c5095510285ea2224",
+      "size": 450
+    },
+    {
+      "path": "lib/xlayout/test/build_test.bat",
+      "sha256": "da90c560f3ece253ba811ed8798c16416ffb646563d36d37ef2910edda5430f8",
+      "size": 579
+    },
+    {
+      "path": "lib/xlayout/test/test_xlayout.c",
+      "sha256": "8154f9ca6dbd6da56dee607d7f2e53e96209504a9d059ff68e1031785cd3ff97",
+      "size": 44402
+    },
+    {
+      "path": "lib/xlayout/test/xlayout_benchmark.exe",
+      "sha256": "ad8e7ec6ed6671987f27f30b78e22a6fb6a06e275a783d6441c65af3c95548fd",
+      "size": 1839134
+    },
+    {
+      "path": "lib/xlayout/test/xlayout_test.exe",
+      "sha256": "a5b7b0d997b283af61c6bb90f3a5fef16b4dcae6b5e3bbb7584713ae4ba5b29f",
+      "size": 706048
+    },
+    {
+      "path": "lib/xlayout/test/xlayout_test_gcc.exe",
+      "sha256": "3aebd1b92bec945fa375499a2aebd85f319813b54093f94c567a622fb52e6fda",
+      "size": 1834864
+    },
+    {
+      "path": "lib/xlayout/test/xlayout_test_xrt.c",
+      "sha256": "4cabc94f708c47faa0d9f4f7bfc4ce5c4b3bd1ed15ce675c94e6fb9fa584eb3f",
+      "size": 91
+    },
+    {
+      "path": "lib/xlayout/xlayout.c",
+      "sha256": "1098c177bf2546ea055c884b2350ec115b9a9dd6c57628e4068cbfd90ff73d3c",
+      "size": 85591
+    },
+    {
+      "path": "lib/xlayout/xlayout.h",
+      "sha256": "f099e775aea3f066f71a1fda1cd115a4db53becebdbb44b6e1bce29c1b86e23e",
+      "size": 9611
+    },
+    {
+      "path": "lib/xrt/README.md",
+      "sha256": "65de3a6b1415f18a8b929b8a4b7a6d5d224322ec0765aede4fb768c4abae17ea",
+      "size": 2483
+    },
+    {
+      "path": "lib/xrt/upstream.json",
+      "sha256": "b36794e7993805680ca0f0e9b112422184988a4099cc7fd9e448835746e0f736",
+      "size": 526
+    },
+    {
+      "path": "lib/xrt/xrt.h",
+      "sha256": "f5b07d36959d1b84dbe88bf6a6b9fec77abe37f5a9052532f9074111a87a70ec",
+      "size": 7921054
+    },
+    {
+      "path": "lib/xrt/xrt_config.h",
+      "sha256": "da274bdf3e6602561866322276e8d122bbbf98fbb7b9a8cd0e557a27d559254a",
+      "size": 2174
+    },
+    {
+      "path": "lib/xrt/xrt_decl.h",
+      "sha256": "1f84991a5279710e0506ed5d774236fedcc887cd88130a8bf9404eb1cdb162c5",
+      "size": 1213561
+    },
+    {
+      "path": "lib/zstd/LICENSE",
+      "sha256": "ee7ae2541c9aefcd31eb850508515b4a7a28beca2c7aedb3cc5949c0021ff071",
+      "size": 1549
+    },
+    {
+      "path": "lib/zstd/zstddeclib.c",
+      "sha256": "eeccfbb033404356a5e336c10fa61bbaa4c9927c1db1cd793c1cb21159bfaf37",
+      "size": 948702
+    },
+    {
+      "path": "res/emoji/twemoji_core/17.0/LICENSE-GRAPHICS",
+      "sha256": "8ae9438818c26e4873b91d8c6ad620526c011e27e125677f13031eda903f007c",
+      "size": 18524
+    },
+    {
+      "path": "res/emoji/twemoji_core/17.0/NOTICE.md",
+      "sha256": "c04f7f01cc63e26ae82d1287440018c55317633061da5190c074b619999b8c37",
+      "size": 658
+    },
+    {
+      "path": "res/xui_dockpanel_suite/LICENSE.dockpanelsuite.txt",
+      "sha256": "bda3b93fd24606d3a413c35930380c1850658f59876ab6bc5c32d036f9a94967",
+      "size": 1109
+    },
+    {
+      "path": "res/xx_dll.ico",
+      "sha256": "4d5d6d07045d087c80ae45ff7c8d4bba7261e5d7c20347f3c51306ae75f0ad4a",
+      "size": 5430
+    },
+    {
+      "path": "src/xge_async.c",
+      "sha256": "39c775147d54cb9ae33fe450921ac510c7187fb4498c4d014da568b591da96da",
+      "size": 9055
+    },
+    {
+      "path": "src/xge_audio.c",
+      "sha256": "6d785271c6e26e15f17c399c3b8d064197bf856e300100ddef38be823cbeaada",
+      "size": 17972
+    },
+    {
+      "path": "src/xge_buffer.c",
+      "sha256": "42735dd258ba265d97f5a22de92e47ba4faaf30753e1e922be379271bf1f5084",
+      "size": 3635
+    },
+    {
+      "path": "src/xge_builtin_emoji.inc",
+      "sha256": "39cb0dbf53e40a6453aaaf0107a1d496a6d00d9ee017eafc6d851c7b0935456e",
+      "size": 7846135
+    },
+    {
+      "path": "src/xge_command.c",
+      "sha256": "e8a97af7fd6c8790dc16d3e16cdd039b157505105847994191b37babccca8634",
+      "size": 9884
+    },
+    {
+      "path": "src/xge_core.c",
+      "sha256": "aff8add357fd4786d20732c5ad001c67c37779624b58724b0309e97baec39458",
+      "size": 40524
+    },
+    {
+      "path": "src/xge_drag_drop.c",
+      "sha256": "e8e623b4cde95e1fd07b3c9339d66dbe4bb162a25fefb5e543ca24cf6ce0f674",
+      "size": 40950
+    },
+    {
+      "path": "src/xge_egl.c",
+      "sha256": "21c41f26ab69874ae496493e43185b1c280808e81dc26a73775890006064a786",
+      "size": 11897
+    },
+    {
+      "path": "src/xge_emoji.c",
+      "sha256": "f2e6816f188ad04990013c303ed9a5dcb3e10a169b602653d83e83b1ed8ab7dd",
+      "size": 28344
+    },
+    {
+      "path": "src/xge_font.c",
+      "sha256": "771654f355fc19e57eeed5f6e1aec7f0cb7222dfeffb9da69858ca9c968942e2",
+      "size": 78070
+    },
+    {
+      "path": "src/xge_gl.h",
+      "sha256": "ddc31caaa8ae9e2dec03cd2b0722de70b2b87cbbd35df07152fca5536167651d",
+      "size": 25048
+    },
+    {
+      "path": "src/xge_ime_win32_compat.h",
+      "sha256": "63788a46c3b6ca7120c807af09fb85ff2f964be978375b3fee2b59f83013dd19",
+      "size": 4839
+    },
+    {
+      "path": "src/xge_ime_win32_tsf.c",
+      "sha256": "6b333bb016cfe1aeb0305f7a4836581fb7d971506c18eecaeee70e5b12e2ffbf",
+      "size": 75969
+    },
+    {
+      "path": "src/xge_impl.c",
+      "sha256": "dec5345edd0161aceef61f3fcda8010ee0dc97c2ee358be1a870025eccf280ae",
+      "size": 69433
+    },
+    {
+      "path": "src/xge_input.c",
+      "sha256": "7d00743ca18ac223e4d02ff281710e7aef74ce2f31de982c56fe05af0e474ae3",
+      "size": 20261
+    },
+    {
+      "path": "src/xge_material.c",
+      "sha256": "b907ffe7f1d0f793a97200142b236e6f9c5239beef0a40236fdd24facb696f05",
+      "size": 19360
+    },
+    {
+      "path": "src/xge_math2d.h",
+      "sha256": "b304b893d43e5ce4e528d89a82844420367be582badae85c5dfb20c02707c2f0",
+      "size": 877
+    },
+    {
+      "path": "src/xge_mesh.c",
+      "sha256": "63f65fe4bd8bfb3a43136f5ec90c4362bb88a2d8bcff311ba85e441428c65b12",
+      "size": 8668
+    },
+    {
+      "path": "src/xge_miniprogram.c",
+      "sha256": "7421c047c3cd76a1193c9ea1426d245c1c63736239228b1955eb93bf1224227f",
+      "size": 13909
+    },
+    {
+      "path": "src/xge_particle.c",
+      "sha256": "feb60d1d5825f28430609fc503e277e2fca991124dd84e5c01fb0bc2bc8b86fa",
+      "size": 43834
+    },
+    {
+      "path": "src/xge_particle_internal.h",
+      "sha256": "625cdbf8bb6d30afa235e085fb8d0e3c5e404786be13d4923a324d610a1b61f5",
+      "size": 1179
+    },
+    {
+      "path": "src/xge_particle_io.c",
+      "sha256": "2c442bdf2820e1038335662d3ccec0ca80a9d04c417bfe4b432b7ae6749de9df",
+      "size": 18971
+    },
+    {
+      "path": "src/xge_particle_render.c",
+      "sha256": "8319e382b231d81eae0634c3d24f42bf28afcc939feb087399f84b386ec0494e",
+      "size": 11129
+    },
+    {
+      "path": "src/xge_particle_resource.c",
+      "sha256": "c31d979588d5d3885518d2f857f5bf192c08b1b2642bfd7f040dcccafaada4dd",
+      "size": 715
+    },
+    {
+      "path": "src/xge_render.c",
+      "sha256": "d1a348cda73363bedf813f5da264861c5d10f74b0a9a60be20586a5e5df7bfd3",
+      "size": 36863
+    },
+    {
+      "path": "src/xge_render_target.c",
+      "sha256": "83fecd666c864fcba2199316e42deb19989d9bb41d676392c2a29360a24641fc",
+      "size": 11480
+    },
+    {
+      "path": "src/xge_resource.c",
+      "sha256": "bcea3adf19978bfce2b50fd3fa443666c6abda6e3ff9fdc0f11d937681f913f2",
+      "size": 9091
+    },
+    {
+      "path": "src/xge_shape.c",
+      "sha256": "69a913aae4b043d66086649cda0827ca7ef71133d8027208a9dd7f02f7cef778",
+      "size": 67256
+    },
+    {
+      "path": "src/xge_shape_ex.c",
+      "sha256": "9770b2bd73af4a2496ea55491291b49488d239f591e5422d252d04dc0ff182b7",
+      "size": 613261
+    },
+    {
+      "path": "src/xge_shape_ex_coverage.c",
+      "sha256": "3aa6173e3b5966fc356a84246b03fdfcba06676e6861fca2d07356dbb9f9f382",
+      "size": 29122
+    },
+    {
+      "path": "src/xge_shape_ex_stroke.c",
+      "sha256": "aae899f0024392c1fd2f1be53d047e8f6e795c88f7cc63800566f5dd255119d0",
+      "size": 76848
+    },
+    {
+      "path": "src/xge_sprite.c",
+      "sha256": "23503a90b3a122f04e4dfdea49ab9b50dd1678a026c7967fc4c09f5d86dc9e79",
+      "size": 6808
+    },
+    {
+      "path": "src/xge_svg.c",
+      "sha256": "4b56530b5b2a4260feb3399827bd04461a052036c682a01525416fd45f8c9f7a",
+      "size": 730767
+    },
+    {
+      "path": "src/xge_text_run.c",
+      "sha256": "bd7814823f24c71f004dd99bde5257e2ab1d53971f489685b70d6fdb2641db83",
+      "size": 21663
+    },
+    {
+      "path": "src/xge_text_vector.c",
+      "sha256": "b07ec6037daa0e33d362c9c80585177df4d8c01a5b95e97208739a4093e0e8e7",
+      "size": 3664
+    },
+    {
+      "path": "src/xge_texture.c",
+      "sha256": "ee763e7afa2caa18f0b28613fcc2bf98dbd7735fe38069d95f8e565b326ffd09",
+      "size": 35944
+    },
+    {
+      "path": "src/xge_texture_storage.h",
+      "sha256": "49c3533f8b3032fb8e57b42f6b78351fbf64a9da1614fb071c12e3dcea12291d",
+      "size": 11302
+    },
+    {
+      "path": "src/xui_accessibility.c",
+      "sha256": "e3d8ef30ffd688c59afe4e41b34282d98ead66f6329acf3402e254443f1c839c",
+      "size": 18401
+    },
+    {
+      "path": "src/xui_accordion.c",
+      "sha256": "0ba468752d13605b9465d2d51fc46079ab0f7c3a169b19801314767f1306c167",
+      "size": 61779
+    },
+    {
+      "path": "src/xui_assets.c",
+      "sha256": "7e52bc8c055cb709b5c3ed11283727c6472bde7d86fd1b0eac22ed00a35a4086",
+      "size": 4483
+    },
+    {
+      "path": "src/xui_breadcrumb.c",
+      "sha256": "c3c242fda5c5319f0f035add3d4ae1a9116912070e101df49028496d36b517b2",
+      "size": 44234
+    },
+    {
+      "path": "src/xui_builtin_assets.inc",
+      "sha256": "8ca47410d3fe9f88958f037191fa5a608d8e84f026995bf74eb49b13fed8c955",
+      "size": 15120
+    },
+    {
+      "path": "src/xui_builtin_atlas.c",
+      "sha256": "76c9809947bce90581d0fafd19f200580ec25f2c9ae232f1c34041965cb4651a",
+      "size": 1137173
+    },
+    {
+      "path": "src/xui_builtin_atlas.h",
+      "sha256": "6e1af2f1dbf3bb1c6a769ca9bf70f68c7add0916f7b8ba04ed4d923ede900548",
+      "size": 346
+    },
+    {
+      "path": "src/xui_button.c",
+      "sha256": "0ecf396c60ab377aef2060dddb4580175111e3924b46cf40fc0eb8fec20fc387",
+      "size": 68338
+    },
+    {
+      "path": "src/xui_canvas.c",
+      "sha256": "a40905c14b3cb5c6ac9fefacbc1b2befb3db1808ed9cd5c1593ac8f10b8bd2ba",
+      "size": 39963
+    },
+    {
+      "path": "src/xui_carousel.c",
+      "sha256": "1717b81ba1bf20b6494039c19c21393349571d37d2c7dbff426f63da51d34b59",
+      "size": 50900
+    },
+    {
+      "path": "src/xui_cascader.c",
+      "sha256": "41f2c2cc033b306cc7e3fa81e760abdc797e1aeb13fce995d2fcc921e6093f26",
+      "size": 89964
+    },
+    {
+      "path": "src/xui_chart.c",
+      "sha256": "59e2dae2fd58173c59b054a37509061eccd6bc17cd2473e1457051157800563a",
+      "size": 127372
+    },
+    {
+      "path": "src/xui_check_card.c",
+      "sha256": "b196872b251b5f04c81ff8f0e876627b8b1a3a9482b0648484bafed055b4dbc8",
+      "size": 31904
+    },
+    {
+      "path": "src/xui_checkbox.c",
+      "sha256": "cf9800c1f332be04a35c10756d0d7a1e7d3fcc7c1d887e6ab86e9954f8d19632",
+      "size": 44131
+    },
+    {
+      "path": "src/xui_code_annotation.c",
+      "sha256": "3937493dd7cf33bcecc7e7c2ec3b47d4f30e527e88119e0a29b7b92222027e90",
+      "size": 19352
+    },
+    {
+      "path": "src/xui_code_command.c",
+      "sha256": "97189cb2e6d0e10792d80f75f21a1f92e296ef35078f23ae7a1822d71a827fea",
+      "size": 22494
+    },
+    {
+      "path": "src/xui_code_document.c",
+      "sha256": "31c3703160e3cd4eca84b5e44cfbb15fe006410f9f29b3039d4f551895f43654",
+      "size": 43515
+    },
+    {
+      "path": "src/xui_code_edit.c",
+      "sha256": "973710dd1001960efe171f683a348b41bd237a6dad3a6f0443793bcf8e16341b",
+      "size": 354787
+    },
+    {
+      "path": "src/xui_code_editing.c",
+      "sha256": "beff6aa648ef2d3047feb816505662cb460148671921351a5d7e1311d7897f46",
+      "size": 13921
+    },
+    {
+      "path": "src/xui_code_fold.c",
+      "sha256": "4d45b37d358c84f0ab2e65b26c21ddaf81d88b9170b91e6cb17b2f14b7aa7174",
+      "size": 7404
+    },
+    {
+      "path": "src/xui_code_fold_state.c",
+      "sha256": "2a30dec945181545e9747de9eb9df33b20a94d14d2f94c87b8e0a83c326064ac",
+      "size": 13782
+    },
+    {
+      "path": "src/xui_code_language.c",
+      "sha256": "6182a8c4b5cbe649c57a6324564f5b442d54a5cf0bf1c7cf8bda804125f2224e",
+      "size": 15406
+    },
+    {
+      "path": "src/xui_code_layout.c",
+      "sha256": "43056a20ae42a06194f4dfd2d6e55c9660df669d1b2491149193e434b714f867",
+      "size": 15829
+    },
+    {
+      "path": "src/xui_code_lexer.c",
+      "sha256": "1ac531d1dd0ccbfe34c66fc38f072566d446d8deb9965dedb46ee549c42e09dc",
+      "size": 3432
+    },
+    {
+      "path": "src/xui_code_lexer_c.c",
+      "sha256": "1df69acc30f396a1d071692bbbf41f81b326436300d29a946bfe2ec2c841c278",
+      "size": 7894
+    },
+    {
+      "path": "src/xui_code_margin.c",
+      "sha256": "e94e9f1ef3bf17feb38a906c2fc1694c298f64e60e407f1c9969aca06025d5c4",
+      "size": 9771
+    },
+    {
+      "path": "src/xui_code_provider.c",
+      "sha256": "fa41501e5ad5ece35b0cf6fc17ce7dbd80c214e0d94031e7e01153d0c3945655",
+      "size": 5021
+    },
+    {
+      "path": "src/xui_code_search.c",
+      "sha256": "e14108060cccd3f944905a833d787f13f132bbf9018238d0ee3c293f911deac6",
+      "size": 23154
+    },
+    {
+      "path": "src/xui_code_selection.c",
+      "sha256": "1a70d5d3ac2afcc8776facb2d2756073f39c5966346a55ad81ebfe64af4f8ad8",
+      "size": 15671
+    },
+    {
+      "path": "src/xui_code_theme.c",
+      "sha256": "968a85dccd6b740a2d010a6672a7ef5b17ef2135be26c05d815e8b0db6ec50c6",
+      "size": 6397
+    },
+    {
+      "path": "src/xui_code_token_buffer.c",
+      "sha256": "9735f650db3a2f8276f9ada5ee78f4fd64c5d30088114838dcd45725bf106fb5",
+      "size": 5177
+    },
+    {
+      "path": "src/xui_color_picker.c",
+      "sha256": "461a26e2385f45f275f69aa57c0ee784332d49c7528eb6e1b55a17e50a6a9bfb",
+      "size": 106456
+    },
+    {
+      "path": "src/xui_combobox.c",
+      "sha256": "01c2879bc130b6a2c1ae5c3944d29e025991f8bd42f0517ebbc15c639883d479",
+      "size": 82248
+    },
+    {
+      "path": "src/xui_core.c",
+      "sha256": "0adae273b2338e8b70fb8c2c6c67b96087aa167bf948b06d240f834faa16e678",
+      "size": 120824
+    },
+    {
+      "path": "src/xui_date_picker.c",
+      "sha256": "9a5dcba586b8f2ea2f1af18ca5843029555ce3f4e8ecb391fa00bc64c196b704",
+      "size": 143718
+    },
+    {
+      "path": "src/xui_dock_panel.c",
+      "sha256": "278631ae75aa6e240593642fe6bc8d9e00569e93bf42acf3e1bd97a30cf3ad16",
+      "size": 300627
+    },
+    {
+      "path": "src/xui_document.c",
+      "sha256": "49f76a201d4502b098e57d66875e1559fe2033622a1c49a4741bd009d30b3e6e",
+      "size": 35730
+    },
+    {
+      "path": "src/xui_document_commands.c",
+      "sha256": "6a7bf7ec9432689ea66b1cf55920ffe1f1f24ec7294b7f249d01e0299af817b4",
+      "size": 14924
+    },
+    {
+      "path": "src/xui_document_edit_adapter.c",
+      "sha256": "097180f4237303dddadaae05315539316a9d29bc47b2f02a6677decbdd9eeba9",
+      "size": 9236
+    },
+    {
+      "path": "src/xui_document_editor.c",
+      "sha256": "c6df4633e1fe300c4d679c3cf29e56b4df70160b95ed041e60a3d949e9599c7e",
+      "size": 38112
+    },
+    {
+      "path": "src/xui_document_equivalent.c",
+      "sha256": "fee9f47fef6fded75fe49c1c21bcf6dae78c8da22350384ae0073bdc0ff03f0c",
+      "size": 3320
+    },
+    {
+      "path": "src/xui_document_file.c",
+      "sha256": "d4b3f3c1910e64cb9d0372cd62bda25490f24df443213fe08a06286daf26bfac",
+      "size": 3344
+    },
+    {
+      "path": "src/xui_document_html.c",
+      "sha256": "8b2e4ff8be2ab965a80dfeacd9e8338c802c23fd78e9d2a85eb7689a37f889bd",
+      "size": 7644
+    },
+    {
+      "path": "src/xui_document_internal.h",
+      "sha256": "f0a12dc83f1fed7fdc55caed09487cfc2cd729983575f01a27b8fab271f9806c",
+      "size": 7633
+    },
+    {
+      "path": "src/xui_document_io.c",
+      "sha256": "e2c51eb6c6993332bbba7638e9e8904766d715aaa678f156fb8585de8bc33de1",
+      "size": 13227
+    },
+    {
+      "path": "src/xui_document_layout.c",
+      "sha256": "0e70b98360932959304d9eb680e196ae67d7ad4276b2b3dc5e4a0ac6520698e9",
+      "size": 19557
+    },
+    {
+      "path": "src/xui_document_layout_internal.h",
+      "sha256": "cd6a0c650a711b1ef370d3e268dce6c4f48a61bda2474855dbda11b53682c97a",
+      "size": 2049
+    },
+    {
+      "path": "src/xui_document_markdown.c",
+      "sha256": "e6de521e2575485ebeb80895df2d5fb03fc865ed589a9805cc9086a45c9a3b92",
+      "size": 29998
+    },
+    {
+      "path": "src/xui_document_markdown_edit.c",
+      "sha256": "d1d7cb4030d78f4cb743d4462e3e5a909d8ecceeadb696d0b821bff62e2becc0",
+      "size": 11805
+    },
+    {
+      "path": "src/xui_document_md4c.c",
+      "sha256": "9215cb2e202abfa2a7070c48ada7c3278885c43625f2320a0838358793a95a36",
+      "size": 1319
+    },
+    {
+      "path": "src/xui_document_md4c.h",
+      "sha256": "ee0e76a9bbff758dc1d5c01c6a2d4ae3978be6374d278975b35f3aa80f70c760",
+      "size": 211
+    },
+    {
+      "path": "src/xui_document_position.c",
+      "sha256": "10567662e669d2b4337695fbb196d6a451b1c789f3a696fa48a874c7007338a3",
+      "size": 14474
+    },
+    {
+      "path": "src/xui_document_range.c",
+      "sha256": "47ddc52ce03d2cb3e60f446443a20ab184e75eec70800b2ff7b758cb2185299c",
+      "size": 6577
+    },
+    {
+      "path": "src/xui_document_reconcile.c",
+      "sha256": "08b02ab55f1241e2ecba04cd40fbe440ceb3fd619deca60dafb85fdcf475f9d3",
+      "size": 5210
+    },
+    {
+      "path": "src/xui_document_renderer.c",
+      "sha256": "d4b0ba43fe4b4ff6ecb747c87dd3edc35b40dbb6122c4c49dbdf048a3f65b832",
+      "size": 30277
+    },
+    {
+      "path": "src/xui_document_schema.c",
+      "sha256": "1cf997662e37874bc359e725dba9b9b9b9ea0c21fb1e7cdc19d0d363c066610c",
+      "size": 5992
+    },
+    {
+      "path": "src/xui_document_search.c",
+      "sha256": "1e57e056f85f67d775882deb94d0b02788c9889da188cf586d960e9d96fbb0d0",
+      "size": 11380
+    },
+    {
+      "path": "src/xui_document_store.c",
+      "sha256": "46986de659a1cfbfd4916e1c286a03cae7a2681e04bd82fac2515d2d707ab7d1",
+      "size": 20307
+    },
+    {
+      "path": "src/xui_document_table.c",
+      "sha256": "e162686af6af80cf44db911ba99ee8ca3abac7b56fc96bea43b59f6019a460ef",
+      "size": 12248
+    },
+    {
+      "path": "src/xui_document_view.c",
+      "sha256": "caad7bff06450619cca8655c24a65d11d95e1b31e80a0258e42420ffd4db9160",
+      "size": 21003
+    },
+    {
+      "path": "src/xui_document_view_internal.h",
+      "sha256": "f5523038c212576fcd1f4bbec0273fee01b84c932c03d52c87c99e389b5e62f5",
+      "size": 1253
+    },
+    {
+      "path": "src/xui_drag_drop.c",
+      "sha256": "f504b6867c74639668dffafe69e72e4c013382984f870fc320bfa81b5bb946d4",
+      "size": 20901
+    },
+    {
+      "path": "src/xui_edit.c",
+      "sha256": "cca5f9626b5f040fb5da7c15d4d769228115f14e6e55413c00f99738fa4c0879",
+      "size": 10087
+    },
+    {
+      "path": "src/xui_file_dialog.c",
+      "sha256": "0f269b64667d53a62d34b6dd52c801564ae4d1f7f2a90637a5699749e0b661ea",
+      "size": 86968
+    },
+    {
+      "path": "src/xui_find.c",
+      "sha256": "887bbec030d3edaac34f88ff5d60ffb15dc3179053cf4dfbd0535ad98e5c648e",
+      "size": 26718
+    },
+    {
+      "path": "src/xui_flow_graph.c",
+      "sha256": "b3cd9e13a9912f156463f90e946bbb4542dfa3931054e92d493453120e62b09b",
+      "size": 69541
+    },
+    {
+      "path": "src/xui_flow_graph_widget.c",
+      "sha256": "b59d069f15a482907c53ebc5a5142f38c80cb8f8eb144ae37279838979134e18",
+      "size": 92922
+    },
+    {
+      "path": "src/xui_hyperlink.c",
+      "sha256": "47bcd9940a9155c532e0126862fd65d890395433fea173d97d1d4b45fc06b710",
+      "size": 36053
+    },
+    {
+      "path": "src/xui_icon.c",
+      "sha256": "499e03b161bb0c546fa6c7af2cc5b89d4e56962207f1b70a79100026f530f3b8",
+      "size": 55017
+    },
+    {
+      "path": "src/xui_icon_picker.c",
+      "sha256": "45f04ee9683afe730b4965f4de91a08b0115e4618c03f5f0d7e454bafa09ab20",
+      "size": 82094
+    },
+    {
+      "path": "src/xui_image.c",
+      "sha256": "6b2703dc622916723aa2a0b327c133ef47c1fba6ff88197336a77dbc4c8f06a1",
+      "size": 19964
+    },
+    {
+      "path": "src/xui_input.c",
+      "sha256": "2b6303590825643033765dcc0c44117208019dd8ff142b86ca5dc09406ef2124",
+      "size": 100616
+    },
+    {
+      "path": "src/xui_input_widget.c",
+      "sha256": "48b3ac9089f5a03357c9c06a411b76c88cd0fd93087ce1f4f52bc0bb28cbff73",
+      "size": 125001
+    },
+    {
+      "path": "src/xui_internal.h",
+      "sha256": "69cbaad89c0c96d1d51bf95821334dc000629e9854797f27b0192c35024f4773",
+      "size": 28171
+    },
+    {
+      "path": "src/xui_inventory_grid.c",
+      "sha256": "c060e661e00f2c370b7fbb373f2d032131172d7349e79eb67e822e1bc26c548e",
+      "size": 156720
+    },
+    {
+      "path": "src/xui_label.c",
+      "sha256": "7fe11f382e29dd13f673fe3163b48cd28611022dc39bcc35b253ef7243cac12c",
+      "size": 23131
+    },
+    {
+      "path": "src/xui_layout.c",
+      "sha256": "4b189186b22a571024772b07f4b55156b2f06e7eb8cfc422bbaa1db9023eca67",
+      "size": 25493
+    },
+    {
+      "path": "src/xui_list_view.c",
+      "sha256": "52a72e19954247004e3e90e28bca20ae026d21ffe7a448ac4a1a12d46b6323e2",
+      "size": 74672
+    },
+    {
+      "path": "src/xui_menu.c",
+      "sha256": "6a307010a4669ae37e6aea8921d82486cd000cf9b8d365eed070f95e12802569",
+      "size": 56517
+    },
+    {
+      "path": "src/xui_menubar.c",
+      "sha256": "7eb0bf166521795f7865e8cabee8106ed6cdc0376429870de1af1454a814e436",
+      "size": 45938
+    },
+    {
+      "path": "src/xui_message_list.c",
+      "sha256": "429ed2f965100362cf821b2c6bc493f600fda9218dc41b72a48ae1ae47a5fc63",
+      "size": 101051
+    },
+    {
+      "path": "src/xui_msgbox.c",
+      "sha256": "84e1cf62c00eb27bf646b245d3af0b9665d91486a36d9aeea9019448d6eec724",
+      "size": 57829
+    },
+    {
+      "path": "src/xui_msgtip.c",
+      "sha256": "95185c69aee130e1338142c98d0135af5154a33af73509ad71d0323262fad97f",
+      "size": 31320
+    },
+    {
+      "path": "src/xui_numeric_input.c",
+      "sha256": "9dd1ece40c44ee68fb74b481b7bfde12123e13cf0217dbd14bb7c904c0c27482",
+      "size": 68821
+    },
+    {
+      "path": "src/xui_page.c",
+      "sha256": "5a77ab0798dfa1f9c2a42df543f550c01260bfdb8e13bb188644133650dfe501",
+      "size": 44706
+    },
+    {
+      "path": "src/xui_panel.c",
+      "sha256": "bcb6622b5ce45dca79607238059db501554ffc6ef283bf4a7fb4f3fb2176e495",
+      "size": 35675
+    },
+    {
+      "path": "src/xui_popup.c",
+      "sha256": "9a7592ba283779cb80dec6b09966d90219ae4149b4f00dc496532c7577a884a5",
+      "size": 70840
+    },
+    {
+      "path": "src/xui_progress.c",
+      "sha256": "c0fc7ab3d49c5b5cd8cce6aa2798c40c5ac5c219e2bc9280e501ab865b93ec7e",
+      "size": 43426
+    },
+    {
+      "path": "src/xui_property_grid.c",
+      "sha256": "295437e36f14057ef2f74366c76b361a34c08c90af923dd64869fced533a4fc6",
+      "size": 87439
+    },
+    {
+      "path": "src/xui_proxy_xge.c",
+      "sha256": "382979ad8038f3b54992c3135478aa6be397d139596e4ae6f3596b564b959275",
+      "size": 101976
+    },
+    {
+      "path": "src/xui_qrcode.c",
+      "sha256": "6d76be59ef823c37d1dbd4b0fcb9ec3420832e3b6fa084f8cf9f2c439ac4be9f",
+      "size": 39061
+    },
+    {
+      "path": "src/xui_radio.c",
+      "sha256": "325fc7e76aa68534d0f477c2b86eb3efa37e7d21f2eded874bf5e23a908302f6",
+      "size": 58553
+    },
+    {
+      "path": "src/xui_range_slider.c",
+      "sha256": "36dd140ce450ecb64a22536ec76591058b31b55abe4421cf184895e1e430265d",
+      "size": 52798
+    },
+    {
+      "path": "src/xui_rich_document.c",
+      "sha256": "016858bd79486caef11f3912555ccf15e468e9c6af0ca6a27837a346c4f5e6e9",
+      "size": 187945
+    },
+    {
+      "path": "src/xui_rich_edit.c",
+      "sha256": "b617a40f9b3e92fde8a759cc6f7cf996454f6eddf52c8e7fb1018b16d2519880",
+      "size": 238204
+    },
+    {
+      "path": "src/xui_scroll_frame.c",
+      "sha256": "cd364c4625c0667debb6f05307e1b1c76e3f125e2fd226e7c7e606b773c14597",
+      "size": 47706
+    },
+    {
+      "path": "src/xui_scroll_model.c",
+      "sha256": "73e1a85f888a15f32dcccc3ffc2e12e15770161e377c76a73dde8281638ae052",
+      "size": 7444
+    },
+    {
+      "path": "src/xui_scroll_view.c",
+      "sha256": "4d3a2d7130269f2272280b358715ca0038d242c8d83577b171eda8522567e450",
+      "size": 26437
+    },
+    {
+      "path": "src/xui_scrollbar.c",
+      "sha256": "d91dec5ca18519c88ab4fa0d3008b87acbe039e42bfc3ef56afd488cba2e58da",
+      "size": 64111
+    },
+    {
+      "path": "src/xui_separator.c",
+      "sha256": "47d9d0eb2b27fbe859287b3dbfb6b0693935e5018e6866947caaf3c869c171b9",
+      "size": 18814
+    },
+    {
+      "path": "src/xui_slider.c",
+      "sha256": "30d8672d78e4595d5acc0fc8610a2848c6ddef7907192cfe0683f73196741f8b",
+      "size": 47049
+    },
+    {
+      "path": "src/xui_split_layout.c",
+      "sha256": "6c46793e00d45cb8ef781a2ea3683d3c6d90be512e6b4e20924a72eda485eeef",
+      "size": 63329
+    },
+    {
+      "path": "src/xui_statusbar.c",
+      "sha256": "b48eb3881f0eb85aecbcb913182f6a236c6d8c3914c5362b77d9f3d82a64c0b4",
+      "size": 52400
+    },
+    {
+      "path": "src/xui_step_bar.c",
+      "sha256": "385de39430fbc762b796bdb4cda0a76f16c855e392debd17ba95bc619cef754d",
+      "size": 38597
+    },
+    {
+      "path": "src/xui_table_grid.c",
+      "sha256": "53345b7529018379f3ae1529e06a2b6aa59d0aac6c1e0e8e1d0bdaad0538dcab",
+      "size": 70511
+    },
+    {
+      "path": "src/xui_table_view.c",
+      "sha256": "ddbaa0aa6397af4a4328138ebb641bfb321dff1589cf942c3d536ec83ed195a4",
+      "size": 146626
+    },
+    {
+      "path": "src/xui_table_view_paint.h",
+      "sha256": "632e3aa4900c4522bd980ff02168e8bf59bc70223cbb036f2181c4f12186e5a2",
+      "size": 781
+    },
+    {
+      "path": "src/xui_tabs.c",
+      "sha256": "45738f103945cdda28423c1cb7224a6f015b6f1b323f0dd6c3971bf867f3c723",
+      "size": 90913
+    },
+    {
+      "path": "src/xui_tag_input.c",
+      "sha256": "54a1768bb907c9be7e6b1fd07702b91913b097943b6d020a8dabc883a451cfd7",
+      "size": 63954
+    },
+    {
+      "path": "src/xui_terminal.c",
+      "sha256": "76837a8f478266dbe730b9dd9fa0f302d45e569651090cb6e354190a89acc60d",
+      "size": 274791
+    },
+    {
+      "path": "src/xui_text.c",
+      "sha256": "905aed18d9a4c0128069e0526c1a2d761d392ebaea24aff88c34fe07e532c066",
+      "size": 35822
+    },
+    {
+      "path": "src/xui_text_break.inl",
+      "sha256": "4395650e44b9b3623f215115394662ab484555620d21d7490ccdf1b28fece6be",
+      "size": 5471
+    },
+    {
+      "path": "src/xui_text_edit.c",
+      "sha256": "b6ee8673430656ac041be970017ea02069fd6594d913ece482ce62d76c529384",
+      "size": 169925
+    },
+    {
+      "path": "src/xui_text_internal.h",
+      "sha256": "c6b5e2cb5f25d2e0ef01f11917fcc834af5151b34afe7099d264154e52349dc8",
+      "size": 1466
+    },
+    {
+      "path": "src/xui_text_projection.inl",
+      "sha256": "0076ce015bf230d72d173cfa2dc642aa739fa4927154db6fd46b2832c9ac6105",
+      "size": 5345
+    },
+    {
+      "path": "src/xui_timeline_view.c",
+      "sha256": "4fab843b2daa3f6d222bb9d70fc1a6d0aae9efb8a8302f12696e3c73a9393177",
+      "size": 141438
+    },
+    {
+      "path": "src/xui_toast.c",
+      "sha256": "ad4274cee5d4eb2c4523023085973de8f1910c37ac41d65fa632c0a22bdcfc12",
+      "size": 48140
+    },
+    {
+      "path": "src/xui_toggle.c",
+      "sha256": "2776fb0fb7e282b7729aded3a694cfd7920045ac823ac19760eaf234b1236b77",
+      "size": 54558
+    },
+    {
+      "path": "src/xui_toolbar.c",
+      "sha256": "59b97eef2c427a220b1c913417a2e7012bcf682fd05abddbce3f414de687ce1d",
+      "size": 60562
+    },
+    {
+      "path": "src/xui_tree_view.c",
+      "sha256": "735e29183486579e9f096351130c7097f18254548e7c42deaf59f2fff1f18f2f",
+      "size": 103822
+    },
+    {
+      "path": "src/xui_unicode.c",
+      "sha256": "bae125df15ea1265d92b4af5933ecc62ed76d098f48828b8ad3d4d3d93c77dd8",
+      "size": 51178
+    },
+    {
+      "path": "src/xui_unicode_word_data.inc",
+      "sha256": "fd035689f0c93c83a5ea6a5eb22c45cf1b96152b8cac3e3b9ad7980eab36b3ff",
+      "size": 64110
+    },
+    {
+      "path": "src/xui_virtual_joystick.c",
+      "sha256": "5e360c8ecc62ab5bd28e7e4e08f6360dbd780fc73f123ee2ead489270d2480ff",
+      "size": 48043
+    },
+    {
+      "path": "src/xui_widget.c",
+      "sha256": "39ec0eb567c90d8bea660e64fbcb8cef13b90ecba372f8b643252a4e48c973e3",
+      "size": 236345
+    },
+    {
+      "path": "src/xui_window.c",
+      "sha256": "a600517b5caa07f908d1c4cc50f445284412bf09935eb654a6dd48ed22a1cf58",
+      "size": 87996
+    },
+    {
+      "path": "src/xui_window_frame.c",
+      "sha256": "7f64883509f028e127535131658206e7ed040798b8765563a473272e3b946a8a",
+      "size": 6399
+    },
+    {
+      "path": "src/xui_workflow.c",
+      "sha256": "90979b4179409f1b187d292cd0dc3ad4413d6cbc1861221c89882f39f4e5bc42",
+      "size": 82928
+    },
+    {
+      "path": "src/xui_workflow_widget.c",
+      "sha256": "dd3cc5464bdfb301ae890458fe621007cf0cb3838810c5b8b0ca04dd6166931b",
+      "size": 7333
+    },
+    {
+      "path": "src/xui_xrt_port.h",
+      "sha256": "1a83601553a680b50c9bbb39c3c57fccc6ce7edfaca61c4016109576e04a03b6",
+      "size": 11077
+    },
+    {
+      "path": "xge.c",
+      "sha256": "cb86942b06cb36c89a16ee947871568ce9e5dea5e6b029ec56d33a06edbc4664",
+      "size": 95
+    },
+    {
+      "path": "xge.h",
+      "sha256": "d6af7a4698adb760d71cf068b8197bf85c6345de9efce878742de73bfe7f50fd",
+      "size": 148323
+    },
+    {
+      "path": "xge.rc",
+      "sha256": "4418ebf3d95bf8b83139a8820f6823487a99854526ea83bf4832cec704f85d68",
+      "size": 27
+    },
+    {
+      "path": "xui.h",
+      "sha256": "f53514bbc0bdfded1b0a346a23c9358fa599e4a8f5df3ca761751e4fed532724",
+      "size": 617859
+    },
+    {
+      "path": "xui_document.h",
+      "sha256": "44e92ccecf79ffde3bd82f285afbfa3bf85af1373b0e59caa5e855c2b0a20381",
+      "size": 16518
+    },
+    {
+      "path": "xui_document_sources.bat",
+      "sha256": "b82945fc35f836432ad99d82e53d1dee5d9f89b7ed559efc3c3ead42b6650de6",
+      "size": 750
+    },
+    {
+      "path": "xui_document_ui.h",
+      "sha256": "935ade324b91e903df36c71fb98b680b3fca690b540f4ec036f4f39657e26f67",
+      "size": 7272
+    },
+    {
+      "path": "xui_sources.bat",
+      "sha256": "e812094df3eb2eefef95aa0439116505602a3c8add3acd301ae90d2cf7fa69d6",
+      "size": 2277
+    }
+  ],
+  "legalDistributionReviewComplete": false
+}

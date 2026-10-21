@@ -1,0 +1,54 @@
+--- a/src/xui/code/xui_code_edit.c
++++ b/src/xui/code/xui_code_edit.c
+@@ -7117,6 +7117,11 @@
+ 	}
+ 
+ cleanup:
++	if ( iRet != XUI_OK ) {
++		__xuiCodeEditClearFindResults(pData);
++		(void)__xuiCodeEditSyncFindResultList(pWidget, pData);
++		(void)xuiWidgetInvalidate(pWidget, XUI_WIDGET_DIRTY_CACHE | XUI_WIDGET_DIRTY_RENDER);
++	}
+ 	xrtFree(sText);
+ 	return iRet;
+ }
+@@ -8317,9 +8322,9 @@
+ 		if ( pData == NULL ) continue;
+ 		iCount = 0;
+ 		iRet = xuiCodeEditFindAll(pEditor, pOptions, &iCount);
+-		if ( iRet != XUI_OK && iRet != XUI_ERROR_UNSUPPORTED ) return iRet;
++		if ( iRet != XUI_OK && iRet != XUI_ERROR_UNSUPPORTED ) goto fail;
+ 		iRet = __xuiCodeFindScopeReserveResults(pScope, pScope->iResultCount + iCount);
+-		if ( iRet != XUI_OK ) return iRet;
++		if ( iRet != XUI_OK ) goto fail;
+ 		for ( j = 0; j < pData->iFindResultCount; j++ ) {
+ 			__xuiCodeEditFillFindResult(pEditor, pData, &pData->pFindResults[j], &tResult);
+ 			pScope->pResults[pScope->iResultCount++] = tResult;
+@@ -8327,6 +8332,17 @@
+ 	}
+ 	if ( pResultCount != NULL ) *pResultCount = pScope->iResultCount;
+ 	return XUI_OK;
++fail:
++	pScope->iResultCount = 0;
++	pScope->iActiveIndex = -1;
++	for ( i = 0; i < pScope->iEditorCount; i++ ) {
++		pEditor = pScope->pEditors[i].pEditor;
++		pData = __xuiCodeEditGetData(pEditor);
++		if ( pData == NULL ) continue;
++		__xuiCodeEditClearFindResults(pData);
++		(void)xuiWidgetInvalidate(pEditor, XUI_WIDGET_DIRTY_CACHE | XUI_WIDGET_DIRTY_RENDER);
++	}
++	return iRet;
+ }
+ 
+ XUI_API int xuiCodeFindScopeGetResultCount(xui_code_find_scope pScope)
+@@ -8617,7 +8633,8 @@
+ 		snprintf(sStatus, sizeof(sStatus), xuiTranslate(xuiWidgetGetContext(pCodeEdit), XUI_TR_FIND_MATCHES_FMT), iCount);
+ 		__xuiCodeEditFindWindowSetStatus(pData, sStatus);
+ 	} else if ( iRet != XUI_OK ) {
+-		__xuiCodeEditFindWindowSetStatus(pData, xuiTranslate(xuiWidgetGetContext(pCodeEdit), XUI_TR_FIND_NOT_FOUND));
++		__xuiCodeEditFindWindowSetStatus(pData, xuiTranslate(xuiWidgetGetContext(pCodeEdit),
++			iRet == XUI_ERROR_INVALID_ARGUMENT ? XUI_TR_FIND_INVALID_PATTERN : XUI_TR_FIND_NOT_FOUND));
+ 	}
+ }
+ 

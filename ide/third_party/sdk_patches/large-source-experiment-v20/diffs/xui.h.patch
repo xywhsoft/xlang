@@ -1,0 +1,68 @@
+--- original/xui.h
++++ candidate/xui.h
+@@ -1848,6 +1848,8 @@
+ 	float fDescent;
+ 	float fLineHeight;
+ } xui_text_shape_t;
++
++
+ 
+ typedef struct xui_text_paint_span_t {
+ 	uint32_t iSize;
+@@ -5934,6 +5936,32 @@
+ typedef int (*xui_draw_clip_get_proc)(xui_proxy pProxy, xui_draw_context pDraw, xui_rect_t* pRect, int* pHasClip);
+ typedef int (*xui_draw_clip_set_proc)(xui_proxy pProxy, xui_draw_context pDraw, xui_rect_t tRect);
+ typedef int (*xui_draw_clip_clear_proc)(xui_proxy pProxy, xui_draw_context pDraw);
++/* Synchronous layout-only shaping. Each borrowed cluster is final, including
++   kerning applied by the following glyph. No cluster array is retained.
++   A provider returning UNSUPPORTED must not call the visitor or publish output. */
++typedef int (*xui_text_cluster_visit_proc)(const xui_text_cluster_t*, void*);
++typedef int (*xui_text_shape_visit_proc)(xui_proxy, xui_font, const char*, int, uint32_t,
++    xui_text_cluster_visit_proc, void*, xui_text_shape_t*, void*);
++
++/* Optional cached synchronous geometry. The provider borrows the old cursor,
++   publishes resume fields before its first callback, and transfers a distinct
++   new cursor on success. Unchanged prefix clusters precede iReplayTextOffset.
++   UNSUPPORTED must not call the visitor or publish output. The caller frees both
++   cursors with the matching provider destructor. Fonts must remain stable during
++   the call. Whole shape metadata includes the reused prefix; pClusters is NULL. */
++typedef void* xui_text_shape_cursor;
++typedef struct xui_text_shape_resume_t {
++    uint32_t iSize;
++    int iTextOffset;
++    int iReplayTextOffset;
++    int iReusedClusterCount;
++} xui_text_shape_resume_t;
++typedef int (*xui_text_shape_cursor_visit_proc)(xui_proxy,xui_font,const char*,int,uint32_t,
++    xui_text_cluster_visit_proc,void*,xui_text_shape_t*,xui_text_shape_cursor,int,
++    xui_text_shape_cursor*,xui_text_shape_resume_t*,void*);
++typedef void (*xui_text_shape_cursor_free_proc)(xui_text_shape_cursor,void*);
++
++
+ typedef int (*xui_text_shape_proc)(xui_proxy pProxy, xui_font pFont, const char* sText,
+ 	int iTextSize, uint32_t iFlags, xui_text_shape_t* pShape);
+ typedef int (*xui_zstd_decompress_proc)(xui_proxy pProxy, void* pOutput, int iOutputCapacity,
+@@ -7595,6 +7623,8 @@
+ XUI_API const char* xuiCodeEditGetMenuTitle(xui_widget pWidget, int iCommand);
+ /* 设置编辑字体。 */
+ XUI_API int xuiCodeEditSetFont(xui_widget pWidget, xui_font pFont);
++XUI_API int xuiCodeEditSetTextShapeVisitor(xui_widget pWidget, xui_text_shape_visit_proc onVisit, void* pUser);
++XUI_API int xuiCodeEditSetTextShapeCursorVisitor(xui_widget pWidget, xui_text_shape_cursor_visit_proc onVisit, xui_text_shape_cursor_free_proc onFree, void* pUser);
+ /* 读取字体。 */
+ XUI_API xui_font xuiCodeEditGetFont(xui_widget pWidget);
+ /* 整体替换文本。 */
+@@ -12859,6 +12889,14 @@
+ 
+ /* 取 XGE 引擎适配的渲染代理函数表（默认后端）。 */
+ XUI_API xui_proxy_t xuiProxyXge(void);
++XUI_API int xuiProxyXgeVisitTextShape(xui_proxy pProxy, xui_font pFont, const char* sText,
++    int iTextSize, uint32_t iFlags, xui_text_cluster_visit_proc onVisit,
++    void* pUser, xui_text_shape_t* pShape);
++XUI_API void xuiProxyXgeTextShapeCursorFree(xui_text_shape_cursor pCursor,void* pUser);
++XUI_API int xuiProxyXgeVisitTextShapeCached(xui_proxy pProxy,xui_font pFont,const char* sText,
++    int iTextSize,uint32_t iFlags,xui_text_cluster_visit_proc onVisit,void* pUser,xui_text_shape_t* pShape,
++    xui_text_shape_cursor pOld,int iCommonPrefix,xui_text_shape_cursor* ppNew,xui_text_shape_resume_t* pResume,void* pProviderUser);
++
+ /* Pumps keyboard, text and IME events without changing pointer state. */
+ XUI_API int xuiProxyXgePumpKeyboard(xui_context pContext);
+ /* 从引擎泵全部输入进框架（每帧调用）。 */

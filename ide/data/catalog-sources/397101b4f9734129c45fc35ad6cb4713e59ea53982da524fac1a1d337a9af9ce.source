@@ -1,0 +1,19 @@
+{
+    "format": "xlang-package-1",
+    "name": "chardet",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["chardet_native.c"],
+        "xlSources": ["src/chardet.xl"],
+        "includeDirs": ["include"],
+        "xrtModules": ["XRT_MODULE_CHARSET_DETECT"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": { "singleton": false, "loadName": "", "version": "" },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] }
+}

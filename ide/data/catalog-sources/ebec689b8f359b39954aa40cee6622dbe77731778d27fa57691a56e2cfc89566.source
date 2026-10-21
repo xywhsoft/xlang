@@ -1,0 +1,48 @@
+# xmail
+
+`xmail` 是新版 XRT xmail 产品的正式 xlang 源码包。C 实现、公共头和内部依赖均同步自
+`extlibs/xmail`，语言层只负责对象映射、生命周期和错误转换，不重新实现 MIME、SMTP、
+POP3 或 IMAP 协议。
+
+语言表面提供以下三层能力：
+
+- `address`、`attachment`、`compose`、`parseLimits` 和 `Message` 负责 RFC/MIME 数据。
+- `SmtpClient` 保留 command、DATA、BDAT、AUTH 和流式 `submit`，不会强制创建整封临时报文。
+- `Pop3Client` 保留原始线路、command、`Begin/Next`、STAT/LIST/UIDL 和 RETR/TOP。
+- `ImapClient` 保留显式 tag、自动 tag、事件、literal 分块读取、认证和邮箱选择摘要。
+
+三个协议客户端都显式接收已经启动的 `NetEngine`。原生桥只在同步 Open 期间创建 resolver，
+会话建立后立即释放；客户端在终态前 pin Engine，并在 `quit`、`logout`、`close` 或 `abort`
+成功时释放。TLS/STARTTLS 必须显式传入 `TlsConfig`，配置通过稳定扩展 ABI 快照为不可变 lease，
+线路只持有共享 Context/Verifier。
+
+响应视图在越过 C 边界前都会复制。POP3 多行项目和 IMAP 事件只保存当前项，邮件正文和 IMAP
+literal 均可逐块读取，因此内存随调用方选择的块大小增长，而不是随邮箱或报文大小增长。
+
+## SMTP
+
+```xlang
+NetEngine engine = NetEngine(2)
+assert engine.start()
+xmail.SmtpConfig config = xmail.SmtpConfig(
+    "127.0.0.1", 2525, xmail.SECURITY_PLAIN, "client.example")
+xmail.SmtpClient client = xmail.SmtpClient.open(engine, config)
+assert client.mailFrom("sender@example.com")
+assert client.recipient("receiver@example.com")
+assert client.data("Subject: hello\r\n\r\nbody")
+assert client.quit()
+engine.stop()
+```
+
+## POP3
+
+`retrieve` 和 `top` 只开始多行响应。随后反复调用 `next`，直到 `nextState` 为
+`POP3_NEXT_END`；合法空行仍返回 `POP3_NEXT_ITEM`。
+
+## IMAP
+
+`begin` 启动自动 tag 顺序命令，`next` 返回响应事件。事件声明 literal 后必须先用
+`readLiteral` 消费全部字节，再继续调用 `next`。需要流水化或扩展命令时，可用 `send` 自行
+提供 tag，并通过 `receive` 关联响应。
+
+全部协议测试只使用 `127.0.0.1` 回环服务器，不访问外部邮件服务。

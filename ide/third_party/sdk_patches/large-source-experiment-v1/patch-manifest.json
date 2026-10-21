@@ -1,0 +1,67 @@
+{
+  "format": "xlang-ide-experimental-sdk-patch-1",
+  "privateOnly": true,
+  "sdkInstalled": false,
+  "productionAccepted": false,
+  "originalSourceManifestSha256": "3f240e10bddf61f7908ded55ab57314997fd7eb5a4720723b824b6955d5ce4ab",
+  "originalSdkDllSha256": "a48e028acfb96db59277d820a4dbebc482d8635fd79c63ef3da6b00c69382784",
+  "beforeDescriptorSha256": "8bd1b85975b80f0f641ae97a547538a39cb62df4ca581a58529d03e0ec820ff3",
+  "changes": [
+    {
+      "path": "src/xge_emoji.c",
+      "beforeSha256": "f2e6816f188ad04990013c303ed9a5dcb3e10a169b602653d83e83b1ed8ab7dd",
+      "afterSha256": "a97e7805ca41469a2dcd143f9ad40872f13810b6efa810d1c42cbc824a145ca1",
+      "size": 32543,
+      "material": "files/src/xge_emoji.c",
+      "reviewDiff": "diffs/xge_emoji.c.patch",
+      "reviewDiffSha256": "3d9fec917b520b455cad7072375fc377396aeb7171f164cef32f98192b02d938"
+    },
+    {
+      "path": "src/xge_text_run.c",
+      "beforeSha256": "bd7814823f24c71f004dd99bde5257e2ab1d53971f489685b70d6fdb2641db83",
+      "afterSha256": "54ae9410d90ce6ce3e23a88765ee2f7bc0a5d4902b0d6ab47c30895d250ee654",
+      "size": 22910,
+      "material": "files/src/xge_text_run.c",
+      "reviewDiff": "diffs/xge_text_run.c.patch",
+      "reviewDiffSha256": "546656f5f7c8feec83136f803eb6066c45ee64cc08d65cfa5f674b0f778a6820"
+    },
+    {
+      "path": "src/xui_code_edit.c",
+      "beforeSha256": "973710dd1001960efe171f683a348b41bd237a6dad3a6f0443793bcf8e16341b",
+      "afterSha256": "a3ef745282944b4199f24364a01f8684614257cbbc3a451c3cd35704ad2b3d46",
+      "size": 357959,
+      "material": "files/src/xui_code_edit.c",
+      "reviewDiff": "diffs/xui_code_edit.c.patch",
+      "reviewDiffSha256": "09e622c81769fd52b42d13f76e2342d6798eec327ec92dc238931afa42350c39"
+    },
+    {
+      "path": "src/xui_unicode.c",
+      "beforeSha256": "bae125df15ea1265d92b4af5933ecc62ed76d098f48828b8ad3d4d3d93c77dd8",
+      "afterSha256": "00a4a2cb0398a1b6a94eda77d70317fc69bbfbe31a0825db801d3f3ee1ee65a5",
+      "size": 27818,
+      "material": "files/src/xui_unicode.c",
+      "reviewDiff": "diffs/xui_unicode.c.patch",
+      "reviewDiffSha256": "1d16772b8244d10a416b0bc4b6f1160276c7eb289277c826ebf50ecf0c8b8e82"
+    },
+    {
+      "path": "src/xui_unicode_grapheme_data.inc",
+      "beforeSha256": null,
+      "afterSha256": "992c948a64567a60fb35ebda1e3233dd5d287de03f84a72ed2694d2d7ab7b33f",
+      "size": 84888,
+      "material": "files/src/xui_unicode_grapheme_data.inc",
+      "reviewDiff": "diffs/xui_unicode_grapheme_data.inc.patch",
+      "reviewDiffSha256": "9dd015d0de133b60707a3367f75ff3678c18b3ff1f96aff519f65dcf4b08abbd"
+    }
+  ],
+  "sourceFileCount": 237,
+  "publicHeadersChanged": false,
+  "apiExportsChangeIntended": false,
+  "runtimeOwner": "xge.dll",
+  "experimentBuild": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-layout-v9-build.json",
+  "experimentBuildSha256": "7e9026d2459a5219e2bec5bc73d5b25f0ebde46258353d0482248050b9229cb1",
+  "unicodeClassEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-class-v3.json",
+  "unicodeClassEquivalenceSha256": "34d1e188329f2f3be35713ec737a61bdefed2a4327acd388f500672051a32e01",
+  "emojiRootEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-lookup-v5.json",
+  "emojiRootEquivalenceSha256": "12c2ff4f94f155ae79dfd7eef292f520fb9372f2684889b5845d41b276f551ff",
+  "note": "C sources keep normalized LF in this private adaptation. Table values reproduce the old classifier, not a newer Unicode standard. Whole matched SDK replacement and IDE regression remain required."
+}

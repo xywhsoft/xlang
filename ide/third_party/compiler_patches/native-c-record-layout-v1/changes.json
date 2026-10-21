@@ -1,0 +1,94 @@
+{
+  "format": "xlang-ide-private-compiler-patch-1",
+  "seed": "D:\\GIT\\x-lang\\ide\\build\\compiler-c-native-target-v2-984db9a8777949519fa48b8c9fe2f95f",
+  "seedSourceManifest": "D:\\GIT\\x-lang\\ide\\build\\compiler-c-native-target-v2-984db9a8777949519fa48b8c9fe2f95f\\source-inputs-c-native-scalars-v2.json",
+  "seedSourceManifestSha256": "6d8908d31cf755c67d9a399e9a2fe3dd8e7eda77e5f5fd882695aa906ec80795",
+  "seedSourceFiles": 1512,
+  "rootBuildScripts": [
+    {
+      "path": "build.bat",
+      "sha256": "f4b0fda4147af0c3f28f04b21d3c0d77f8683095280867a52a02a3220e6e0773"
+    },
+    {
+      "path": "build_dll.bat",
+      "sha256": "5cb354486cafdfefcd317cdbf9ad8ee214eca9c3de6899351671336f5dd36478"
+    },
+    {
+      "path": "rc0_guard.bat",
+      "sha256": "b8ba792279740a37fb042420164ed56b8bc6434180116cf34016ae64709a08e1"
+    },
+    {
+      "path": "test.bat",
+      "sha256": "56463ac666e69d4b996e6b9f6e6e708aa468120b71412fe4e696d6905083c4a0"
+    },
+    {
+      "path": "test_all.bat",
+      "sha256": "75e8d1d7f62dc79c6eb68b6c9a38316171db764ede0cd63db71b4320b6692114"
+    },
+    {
+      "path": "test_apps.bat",
+      "sha256": "112a587f67ad0d6971e3ffb683817844db13df9149421164ea0aef7d74bc0f38"
+    },
+    {
+      "path": "test_dll.bat",
+      "sha256": "6d7ee01cf4be5269609020fcff0e482beb178b6f9315abfc1af3e432b74319bc"
+    },
+    {
+      "path": "test_feature_suite.bat",
+      "sha256": "e94436e03ffcf95736a35bb9c1357fab8d6f70f1c5be626fc48598ae3e7aa4d3"
+    },
+    {
+      "path": "test_smoke.bat",
+      "sha256": "b441d30e7cb55b9b3e5d6d27375e226fdd5f7172b670163c48c8457482b18957"
+    },
+    {
+      "path": "test_tutorial.bat",
+      "sha256": "1e17b0281a87dbf3c59779b4dd7d6373d8aeb762b1e20ec248ca1c130559b6c6"
+    },
+    {
+      "path": "test_xlc_shell.bat",
+      "sha256": "6b6b89a28dfa7474f769964d1bfe8978fa78c0333d6152a5003688d80ad016b3"
+    }
+  ],
+  "changedFiles": [
+    {
+      "path": "lib/tcc/libtcc.h",
+      "beforeSha256": "b7ec81906114c5dcdfd88156eaf36b8699697e463dee7bc12e0c4b466013ad58",
+      "afterSha256": "ea11b52cbfd669a0d76d88a456540cec394f351caf64a902a345a8aa220c8d64",
+      "edits": [
+        {
+          "offset": 768,
+          "removeBase64": "TElCVENDQVBJIGludCB0Y2NfeGxhbmdfc2NhbGFyX3RhcmdldChUQ0NYbGFuZ1NjYWxhclRhcmdldCAqdGFyZ2V0KTs=",
+          "insertBase64": "TElCVENDQVBJIGludCB0Y2NfeGxhbmdfc2NhbGFyX3RhcmdldChUQ0NYbGFuZ1NjYWxhclRhcmdldCAqdGFyZ2V0KTsKLyogUHJpdmF0ZSBxdWVyeTogdGhlIGNvbmZpZ3VyZWQgc3RhdGUncyBkZWZhdWx0IGJpdGZpZWxkIGxheW91dCBvbmx5LiAqLwp0eXBlZGVmIHN0cnVjdCBUQ0NYbGFuZ1JlY29yZExheW91dCB7IGludCBtc19iaXRmaWVsZHM7IH0gVENDWGxhbmdSZWNvcmRMYXlvdXQ7CkxJQlRDQ0FQSSBpbnQgdGNjX3hsYW5nX3JlY29yZF9sYXlvdXQoVENDU3RhdGUgKnN0YXRlLCBUQ0NYbGFuZ1JlY29yZExheW91dCAqdGFyZ2V0KTsK"
+        }
+      ]
+    },
+    {
+      "path": "lib/tcc/libtcc.c",
+      "beforeSha256": "b6bffc82b55520ae86a97bfbfc6ce4a435e687f48b143eff060587e7e1d3078b",
+      "afterSha256": "438b3a01e36350516f851d81722902dd3be7d692684367d8c7881448f6ab64f7",
+      "edits": [
+        {
+          "offset": 71113,
+          "removeBase64": "",
+          "insertBase64": "CkxJQlRDQ0FQSSBpbnQgdGNjX3hsYW5nX3JlY29yZF9sYXlvdXQoVENDU3RhdGUgKnN0YXRlLCBUQ0NYbGFuZ1JlY29yZExheW91dCAqdGFyZ2V0KQp7CiNpZiBkZWZpbmVkKFRDQ19UQVJHRVRfWDg2XzY0KSAmJiBkZWZpbmVkKFRDQ19UQVJHRVRfUEUpCiAgICBpZiAoIXN0YXRlIHx8ICF0YXJnZXQpIHJldHVybiAwOwogICAgdGFyZ2V0LT5tc19iaXRmaWVsZHMgPSBzdGF0ZS0+bXNfYml0ZmllbGRzICE9IDA7CiAgICByZXR1cm4gMTsKI2Vsc2UKICAgICh2b2lkKXN0YXRlOyAodm9pZCl0YXJnZXQ7CiAgICByZXR1cm4gMDsKI2VuZGlmCn0K"
+        }
+      ]
+    },
+    {
+      "path": "src/api/xl_api.c",
+      "beforeSha256": "ac2b258e0d3038b76b4d25368dbaf2b5b1df65028612bea8603e8b1b230ce900",
+      "afterSha256": "4f90e0f43ced968a96187121f582fd4e2c779d68ecb379435241b4f1b70d737a",
+      "edits": [
+        {
+          "offset": 178273,
+          "removeBase64": "ICAgIGlmIChvaykgb2sgPSB4bENFbnZQdXQocm9vdCwgInNjaGVtYSIsIHhydFZhbHVlSW50KDEpKSAmJg==",
+          "insertBase64": "I2lmZGVmIFhMX1NUQVRJQ19UQ0NfVkZTCiAgICBpZiAob2spIHsKICAgICAgICBUQ0NTdGF0ZSogc2VsZWN0ZWQgPSB4bENyZWF0ZVRjY1N0YXRlKGN0eCwgc2hhcmVkID8gVENDX09VVFBVVF9ETEwgOiBUQ0NfT1VUUFVUX0VYRSk7CiAgICAgICAgVENDWGxhbmdSZWNvcmRMYXlvdXQgbGF5b3V0OwogICAgICAgIG9rID0gc2VsZWN0ZWQgIT0gTlVMTCAmJiB4bFZpc2l0TmF0aXZlU291cmNlcyhjdHgsIHhsVGNjQ0VudlZpc2l0LCBzZWxlY3RlZCwgdW5pdCwgY1NvdXJjZXMpOwogICAgICAgIGlmIChvayAmJiB0Y2NfeGxhbmdfcmVjb3JkX2xheW91dChzZWxlY3RlZCwgJmxheW91dCkpIHsKICAgICAgICAgICAgeHZhbHVlKiBwcm9maWxlID0geHJ0VmFsdWVPYmplY3QoKTsKICAgICAgICAgICAgb2sgPSBwcm9maWxlICE9IE5VTEwgJiYKICAgICAgICAgICAgICAgIHhsQ0VudlB1dChwcm9maWxlLCAic2NoZW1hIiwgeHJ0VmFsdWVJbnQoMSkpICYmCiAgICAgICAgICAgICAgICB4bENFbnZQdXQocHJvZmlsZSwgInNjb3BlIiwgeGxDRW52U3RyaW5nKCJ0Y2Mtd2luNjQtYml0ZmllbGQtZGVmYXVsdCIpKSAmJgogICAgICAgICAgICAgICAgeGxDRW52UHV0KHByb2ZpbGUsICJtc0JpdGZpZWxkcyIsIHhydFZhbHVlQm9vbChsYXlvdXQubXNfYml0ZmllbGRzICE9IDApKSAmJgogICAgICAgICAgICAgICAgeHJ0VmFsdWVPYmplY3RTZXQocm9vdCwgeHJ0U3RyVmlldygicmVjb3JkTGF5b3V0IiksIHByb2ZpbGUpOwogICAgICAgICAgICB4cnRWYWx1ZVJlbGVhc2UocHJvZmlsZSk7CiAgICAgICAgfQogICAgICAgIGlmIChzZWxlY3RlZCAhPSBOVUxMKSB4bF9fdGNjLnRjY19kZWxldGUoc2VsZWN0ZWQpOwogICAgfQojZW5kaWYKICAgIGlmIChvaykgb2sgPSB4bENFbnZQdXQocm9vdCwgInNjaGVtYSIsIHhydFZhbHVlSW50KDEpKSAmJg=="
+        }
+      ]
+    }
+  ],
+  "built": false,
+  "formalRelease": false,
+  "scope": "Optional recordLayout schema1 reads configured TCCState.ms_bitfields after actual environment and native-source visitors; not full ABI equality"
+}

@@ -1,0 +1,14 @@
+--- a/src/xui_internal.h
++++ b/src/xui_internal.h
+@@ -575,6 +575,11 @@
+ 	int iSelectionStart, int iSelectionEnd, int iCompositionStart, int iCompositionEnd, int bValid);
+ int xuiInternalEditEmitSized(xui_widget pWidget, int iType, const char* sText, int iTextSize,
+ 	int iSelectionStart, int iSelectionEnd, int iCompositionStart, int iCompositionEnd, int bValid);
++/* Built-in XGE-only streaming path. Custom proxies retain textShape. */
++typedef int (*xui_internal_text_cluster_visit_proc)(const xui_text_cluster_t*, void*);
++int xuiInternalProxyXgeVisitTextShape(xui_proxy, xui_font, const char*, int, uint32_t,
++    xui_internal_text_cluster_visit_proc, void*, xui_text_shape_t*);
++
+ int xuiInternalTextGraphemeNextRead(xui_internal_text_read_proc onRead, void* pUser, int iLength, int iOffset);
+ int xuiInternalTextGraphemePrevRead(xui_internal_text_read_proc onRead, void* pUser, int iLength, int iOffset);
+ int xuiInternalTextGraphemeClampRead(xui_internal_text_read_proc onRead, void* pUser, int iLength, int iOffset);

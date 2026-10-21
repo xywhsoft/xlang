@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 2,
+  "profile": "xlang-ide-private-experimental-matched-set",
+  "policy": {
+    "runtimeOwner": "xge.dll",
+    "xrtLinkage": "shared",
+    "replaceAsMatchedSetOnly": true
+  },
+  "buildDefines": [
+    "XGE_XRT_PROFILE_IDE"
+  ],
+  "provenance": {
+    "builtAtUtc": "2026-10-11T09:30:41.603836+00:00",
+    "compiler": "gcc.exe (GCC) 16.2.0",
+    "command": [
+      "C:\\WINDOWS\\system32\\cmd.exe",
+      "/d",
+      "/c",
+      "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-find-boundaries-051be50ae701\\build_strict_sdk.bat",
+      "ide"
+    ],
+    "parentSdkManifest": "provenance/parent-sdk-manifest.json",
+    "parentSdkManifestSha256": "6a14d7d687e5fd73f3bc4f549bd9d4d69bae23774a75a553932b83535479710e",
+    "sourceBuildReport": "provenance/source-build-report.json",
+    "sourceBuildReportSha256": "665514821d98c18aa423ce6a645fd34b02ed9229081853ca95341377c6f6a84b",
+    "sourceBuildManifest": "provenance/source-build-manifest.json",
+    "sourceBuildManifestSha256": "8d09185fa0979a765dba4488cb398685aec0bdd5047695e8add60048580664aa",
+    "xrt": {
+      "source_repository": "D:\\GIT\\xrt",
+      "source_branch": "master",
+      "source_commit": "5f995fe6572c1cdd096214dddc420a251330be02",
+      "source_worktree_dirty": true,
+      "source_snapshot_sha256": "e7a50daa28a6fc97847e35210d6bb5ef0096b87498274213e67e07f2734c1135",
+      "header_sha256": "f5b07d36959d1b84dbe88bf6a6b9fec77abe37f5a9052532f9074111a87a70ec",
+      "declaration_header_sha256": "1f84991a5279710e0506ed5d774236fedcc887cd88130a8bf9404eb1cdb162c5",
+      "generation": "tools/amalgamate.py in isolated source snapshot"
+    },
+    "generatedDeclarationsReusedFromIdenticalImplementationSource": true
+  },
+  "files": [
+    {
+      "path": "lib/xrt/upstream.json",
+      "sha256": "b36794e7993805680ca0f0e9b112422184988a4099cc7fd9e448835746e0f736"
+    },
+    {
+      "path": "lib/xrt/xrt.h",
+      "sha256": "1f84991a5279710e0506ed5d774236fedcc887cd88130a8bf9404eb1cdb162c5"
+    },
+    {
+      "path": "lib/xrt/xrt_config.h",
+      "sha256": "da274bdf3e6602561866322276e8d122bbbf98fbb7b9a8cd0e557a27d559254a"
+    },
+    {
+      "path": "provenance/parent-sdk-manifest.json",
+      "sha256": "6a14d7d687e5fd73f3bc4f549bd9d4d69bae23774a75a553932b83535479710e"
+    },
+    {
+      "path": "provenance/source-build-manifest.json",
+      "sha256": "8d09185fa0979a765dba4488cb398685aec0bdd5047695e8add60048580664aa"
+    },
+    {
+      "path": "provenance/source-build-report.json",
+      "sha256": "665514821d98c18aa423ce6a645fd34b02ed9229081853ca95341377c6f6a84b"
+    },
+    {
+      "path": "README.md",
+      "sha256": "5ab8b2227dbaff3bd17da66e0b46a5652cad58613d5bb17c4d2de5bab30fcd27"
+    },
+    {
+      "path": "xge-source-files.json",
+      "sha256": "39e27802d65433f38f4180da844ac2ec5de484410a8345cbdaf8ca421f6a1e5c"
+    },
+    {
+      "path": "xge.dll",
+      "sha256": "e8bcb1774fb425bbc6a28ee3e8afd3b95db0107267619634e03ab726acb8711f"
+    },
+    {
+      "path": "xge.h",
+      "sha256": "d6af7a4698adb760d71cf068b8197bf85c6345de9efce878742de73bfe7f50fd"
+    },
+    {
+      "path": "xge.lib",
+      "sha256": "b00c653d025735c07693570706f73566027b90042759240bfb8bc4eaaa94d54e"
+    },
+    {
+      "path": "xge_res.o",
+      "sha256": "c3b3998806852fbfb4c10f70dbeee47ce9fcaa1d6a54049fbaa83c816a2d7623"
+    },
+    {
+      "path": "xui.h",
+      "sha256": "0784ec2180128a51761e7f2a2693258f13a28b6151cd6d065a9484529ec4e826"
+    },
+    {
+      "path": "xui_document.h",
+      "sha256": "44e92ccecf79ffde3bd82f285afbfa3bf85af1373b0e59caa5e855c2b0a20381"
+    },
+    {
+      "path": "xui_document_ui.h",
+      "sha256": "935ade324b91e903df36c71fb98b680b3fca690b540f4ec036f4f39657e26f67"
+    }
+  ],
+  "requiredXrtModules": [
+    "XRT_MODULE_CODEC_BASE64",
+    "XRT_MODULE_CODEC_HEX",
+    "XRT_MODULE_CODEC_PERCENT",
+    "XRT_MODULE_FILE_TEMP",
+    "XRT_MODULE_PROCESS_RUN",
+    "XRT_MODULE_SEM",
+    "XRT_MODULE_XID",
+    "XRT_MODULE_NET_TCP_DIAL_SYNC",
+    "XRT_MODULE_TLS_STREAM_DIAL_FUTURE",
+    "XRT_MODULE_TLS_STREAM_FUTURE",
+    "XRT_MODULE_TLS_VERIFY",
+    "XRT_MODULE_X509_STORE_SYSTEM",
+    "XRT_MODULE_HTTP1_BODY",
+    "XRT_MODULE_CRYPTO_SHA256"
+  ],
+  "requiredExports": [
+    "xgeRenderRequestAfter",
+    "xuiCodeEditSetCompletionOptions",
+    "xuiCodeProviderSetCompletion",
+    "xuiEditSetBehavior",
+    "xuiEditSetEvent",
+    "xuiOverlayAttach",
+    "xuiGetPointerCapture",
+    "xuiReleasePointerCapture",
+    "xuiSetPointerCapture",
+    "xuiSetPointerCaptureEx",
+    "xuiWidgetSetCacheRenderCallback",
+    "xuiWidgetSetDock",
+    "xuiWidgetSetLayoutType",
+    "xuiWidgetSetSizeMode",
+    "xuiStyleBeginUpdate",
+    "xuiStyleEndUpdate",
+    "xuiStyleSetDefault",
+    "xuiStyleSetToken",
+    "xuiStyleFindProperty",
+    "xuiWidgetAddStyleClass",
+    "xrtBase64Encode",
+    "xrtHexEncode",
+    "xrtPercentEncodeNew",
+    "xrtFileTemp",
+    "xrtProcessRun",
+    "xrtSemCreate",
+    "xrtXidMake",
+    "xrtNetConnect",
+    "xrtTlsDialAsync",
+    "xrtTlsStreamSendAsync",
+    "xrtTlsVerifierCreate",
+    "xrtX509StoreSystem",
+    "xrtHttp1BodyRead",
+    "xrtSha256Init",
+    "xuiCodeEditSetTextShapeVisitor",
+    "xuiCodeEditSetTextShapeCursorVisitor",
+    "xuiProxyXgeVisitTextShape",
+    "xuiProxyXgeTextShapeCursorFree",
+    "xuiProxyXgeVisitTextShapeCached"
+  ],
+  "privateCandidate": true,
+  "formalRelease": false,
+  "sdkInstalled": false,
+  "completeAbiAcceptance": false,
+  "fullSdkLicenseAcceptance": false
+}

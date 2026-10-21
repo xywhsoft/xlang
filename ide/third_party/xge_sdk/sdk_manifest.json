@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 2,
+  "profile": "xlang-ide-xge3-matched-set",
+  "version": "3.0.0",
+  "policy": {
+    "runtimeOwner": "xge.dll",
+    "xrtLinkage": "shared",
+    "replaceAsMatchedSetOnly": true
+  },
+  "buildDefines": [
+    "XGE_XRT_PROFILE_IDE"
+  ],
+  "xrtDirectory": "extlibs/xrt",
+  "configurationHeader": "xge_build_config.h",
+  "requiredXrtModules": [
+    "XRT_MODULE_CODEC_BASE64",
+    "XRT_MODULE_CODEC_HEX",
+    "XRT_MODULE_CODEC_PERCENT",
+    "XRT_MODULE_FILE_TEMP",
+    "XRT_MODULE_PROCESS_RUN",
+    "XRT_MODULE_SEM",
+    "XRT_MODULE_XID",
+    "XRT_MODULE_NET_TCP_DIAL_SYNC",
+    "XRT_MODULE_TLS_STREAM_DIAL_FUTURE",
+    "XRT_MODULE_TLS_STREAM_FUTURE",
+    "XRT_MODULE_TLS_VERIFY",
+    "XRT_MODULE_X509_STORE_SYSTEM",
+    "XRT_MODULE_HTTP1_BODY",
+    "XRT_MODULE_CRYPTO_SHA256"
+  ],
+  "requiredExports": [
+    "xgeRenderRequestAfter",
+    "xuiCodeEditSetCompletionOptions",
+    "xuiCodeProviderSetCompletion",
+    "xuiEditSetBehavior",
+    "xuiEditSetEvent",
+    "xuiOverlayAttach",
+    "xuiGetPointerCapture",
+    "xuiReleasePointerCapture",
+    "xuiSetPointerCapture",
+    "xuiSetPointerCaptureEx",
+    "xuiWidgetSetCacheRenderCallback",
+    "xuiWidgetSetDock",
+    "xuiWidgetSetLayoutType",
+    "xuiWidgetSetSizeMode",
+    "xuiStyleBeginUpdate",
+    "xuiStyleEndUpdate",
+    "xuiStyleSetDefault",
+    "xuiStyleSetToken",
+    "xuiStyleFindProperty",
+    "xuiWidgetAddStyleClass",
+    "xrtBase64Encode",
+    "xrtHexEncode",
+    "xrtPercentEncodeNew",
+    "xrtFileTemp",
+    "xrtProcessRun",
+    "xrtSemCreate",
+    "xrtXidMake",
+    "xrtNetConnect",
+    "xrtTlsDialAsync",
+    "xrtTlsStreamSendAsync",
+    "xrtTlsVerifierCreate",
+    "xrtX509StoreSystem",
+    "xrtHttp1BodyRead",
+    "xrtSha256Init"
+  ],
+  "privateCandidate": true,
+  "formalRelease": false,
+  "provenance": {
+    "builtAtUtc": "2026-10-21T10:21:16.569324+00:00",
+    "sourceRepository": "https://gitee.com/xywhsoft/xge",
+    "sourceCommit": "f248fd17192b3eb81c2a29dc34549b696e6e4c43",
+    "sourceWorktreeDirty": true,
+    "upstreamArchiveClean": true,
+    "version": "3.0.0",
+    "proxyVersion": 16,
+    "compatibilityPatchFiles": [
+      "provenance/compatibility-patches/patch-manifest.json",
+      "provenance/compatibility-patches/xui_find.c",
+      "provenance/compatibility-patches/xui_find.patch",
+      "provenance/compatibility-patches/xui_code_edit.c",
+      "provenance/compatibility-patches/xui_code_edit.patch"
+    ],
+    "compiler": "gcc.EXE (GCC) 16.2.0",
+    "xrt": {
+      "source_repository": "D:\\GIT\\xrt",
+      "source_branch": "master",
+      "source_commit": "ca0856824f649147419f3dc1342d5e8ce5a893ff",
+      "source_worktree_dirty": true,
+      "source_snapshot_sha256": "b4965f695b0e43ca8e0102cb469163b197fa486645fac93d0de854d372bb8bd6",
+      "header_sha256": "a222542a4abe652ee92cd28f6de21d6fa7a76398d04c03c6b24b45329c57d1a3",
+      "declaration_header_sha256": "f3d9fff774815759265b008f452561f732c5f0d5afb4a19cfdaf60d2e5327845",
+      "generation": "tools/amalgamate.py in isolated source snapshot",
+      "extensions": [
+        "xllm",
+        "xllm-session",
+        "xwork"
+      ]
+    },
+    "sourceBuildReportSha256": "c6180a2ab3bff90b8d547fc18469b75251f02a940d2b9a1ad5b72dae450ce4f0",
+    "sourceBuildManifestSha256": "c70bd5c4901f63aa4ba01563e560dc79c9fef0565f40edbd48b6d08c76cd4223"
+  },
+  "files": [
+    {
+      "path": "extlibs/xrt/extlibs/xllm/include/xllm/api.h",
+      "sha256": "0182c8e567ea936444666e58be148ef20b6fe693f85db193e3895af5ab436c6d"
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/include/xllm/executor.h",
+      "sha256": "07c29f7190a909c6266f807cf1a675a4b764bfb133db4dd47c0a1a58e9b812cf"
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/include/xllm/features.h",
+      "sha256": "1865a3cca266bb8035d6c313e1dbd18cb6a1f93be72059ef0e4b1619a6c874e8"
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/include/xllm.h",
+      "sha256": "53921f2b7888eaea36a91cb014c482de2260b2f21c98c299138783b21fcd4ab1"
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm/src/internal/xllm_internal.h",
+      "sha256": "36c04e2f6bcb6588fb5f82bf7f1e5c907f2ea4446fe340421babdedb3319a14e"
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/include/xllm-session/api.h",
+      "sha256": "737969514039b3d072b231dfdfe9925e0478b403ebe95489761e0b08503aeb2b"
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/include/xllm-session/features.h",
+      "sha256": "a0fefc50260d09e1e8d00a1487169d8e9402f6edc61e775f20695d33e3ec2624"
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/include/xllm-session.h",
+      "sha256": "df6bc5bdee305d163e38874252f6d58d4542c67bcb24384c89a56a59a88cda97"
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xllm-session/src/internal/xllm_session_internal.h",
+      "sha256": "1df1879ff315d72f370058c19526076732404b9b1070c9eaad4dbf2821ef22f5"
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/include/xwork/api.h",
+      "sha256": "e3e05ee6f950d879ed03c63c66d6c7a7108c5aa20bcfabcf69505e6667b41ece"
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/include/xwork/features.h",
+      "sha256": "91996f1fc399ed139543929d919af4a48b2e044979866650f0414ff822fd2be3"
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/include/xwork.h",
+      "sha256": "b5683a0fac630c60f51d95bf728b9031aa99a4d05fcc81ba642e2110bcc82c02"
+    },
+    {
+      "path": "extlibs/xrt/extlibs/xwork/src/internal/xwork_internal.h",
+      "sha256": "a899e654a4aa31ff7f0c250be83a42c604beb4b7869903dc881b13f743ac7920"
+    },
+    {
+      "path": "extlibs/xrt/include/xrt/detail/wait.h",
+      "sha256": "f43ec448234fe5155744a832b0bea13c691ab7e369fc23977444eb3d72e56924"
+    },
+    {
+      "path": "extlibs/xrt/upstream.json",
+      "sha256": "024b84f195ac98a5bbb71fbdfb60492bf20cc239e38fbcd96065e46268cd36df"
+    },
+    {
+      "path": "extlibs/xrt/xrt.h",
+      "sha256": "f3d9fff774815759265b008f452561f732c5f0d5afb4a19cfdaf60d2e5327845"
+    },
+    {
+      "path": "extlibs/xrt/xrt_config.h",
+      "sha256": "b756334bb810255d4a2fde3b5df6029a497326c88f9e50c8a91c6821d6cec0ac"
+    },
+    {
+      "path": "provenance/compatibility-patches/patch-manifest.json",
+      "sha256": "03ef7d940cbb7696e9dafb4f2da53e090a4927c657d52dd7e9e29c3d64e94390"
+    },
+    {
+      "path": "provenance/compatibility-patches/xui_code_edit.c",
+      "sha256": "c6452f4c087bf6fb03963da99bc237e3c3743f2a7c2d89019fefa41e5330f02c"
+    },
+    {
+      "path": "provenance/compatibility-patches/xui_code_edit.patch",
+      "sha256": "43d5ef9b8a20e9a8050cdb6766319d07e48328a728e0af9bbb73570055ce036d"
+    },
+    {
+      "path": "provenance/compatibility-patches/xui_find.c",
+      "sha256": "2dd3bde220654d7fa5c34f007f8d5064f34e9fa689cb41c8a8f5c634a6852d81"
+    },
+    {
+      "path": "provenance/compatibility-patches/xui_find.patch",
+      "sha256": "04ddcf2e4874d5538c69514a43ade6a0a505f658fdcc54be44edaacec111106f"
+    },
+    {
+      "path": "provenance/parent-sdk-manifest.json",
+      "sha256": "a6afef64d1c1466ad9afa9d043111b462928fad77bb4ab17f15598455fc9502c"
+    },
+    {
+      "path": "provenance/source-build-manifest.json",
+      "sha256": "c70bd5c4901f63aa4ba01563e560dc79c9fef0565f40edbd48b6d08c76cd4223"
+    },
+    {
+      "path": "provenance/source-build-report.json",
+      "sha256": "c6180a2ab3bff90b8d547fc18469b75251f02a940d2b9a1ad5b72dae450ce4f0"
+    },
+    {
+      "path": "xge-source-files.json",
+      "sha256": "c70bd5c4901f63aa4ba01563e560dc79c9fef0565f40edbd48b6d08c76cd4223"
+    },
+    {
+      "path": "xge.dll",
+      "sha256": "8e9a36b2127a8c70ed52a4cacaf096ec6852d41c6fde5975f3076dbbb0c379d9"
+    },
+    {
+      "path": "xge.h",
+      "sha256": "5ea8b0cd04f0a0b702b20a91f563393fd4efcc6ac7e23440618f23ec6802d0f2"
+    },
+    {
+      "path": "xge.lib",
+      "sha256": "d9fda05110f9aae01a8c03959e106d777d3a1782cb65396757ca94ec3b2fcebc"
+    },
+    {
+      "path": "xge_build_config.h",
+      "sha256": "b159558f23bbba0ce48538a843b4948cf0fd8f9cfda752ee3e953a415f187b9e"
+    },
+    {
+      "path": "xge_config.h",
+      "sha256": "e0b1fbf55f6fb50bb14970dc9ff8f356cee38fc42a2353cf82e0559eb8dd33f9"
+    },
+    {
+      "path": "xui.h",
+      "sha256": "da0b244785ebb75f1941742b331f6717112ccebcc6f376ba3f647cc2663d5642"
+    },
+    {
+      "path": "xui_config.h",
+      "sha256": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193"
+    },
+    {
+      "path": "xui_document.h",
+      "sha256": "fc7afc9ff1437df91c7413e37a11ae61081223d022da7409d1c6c16eb8188984"
+    },
+    {
+      "path": "xui_document_ui.h",
+      "sha256": "a1144fea60f2240f3a27727d5db08835a9b3475ee93726d1e94ad6cbde3b8419"
+    }
+  ]
+}

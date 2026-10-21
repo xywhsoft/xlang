@@ -1,0 +1,156 @@
+--- original/src/xui_proxy_xge.c
++++ experiment/src/xui_proxy_xge.c
+@@ -200,6 +200,100 @@
+ 	int bDirty;
+ };
+ 
++#if (defined(_WIN32) || defined(_WIN64)) && defined(XGE_XRT_PROFILE_IDE)
++/* One retained physical-font run for long drawTextSpans inputs. Moving the run
++   avoids a second glyph array. Exact owned bytes distinguish in-place edits.
++   Other fonts, custom/default-less emoji state and oversized inputs bypass it. */
++#define XUI_PROXY_XGE_DRAW_CACHE_MIN 4096
++#define XUI_PROXY_XGE_DRAW_CACHE_MAX (16 * 1024 * 1024)
++extern xge_emoji_pack __xgeEmojiDrawCacheBuiltinAcquire(void);
++typedef struct xui_proxy_xge_draw_cache_t {
++    xui_font pFont;
++    char* sText;
++    int iTextSize;
++    xge_emoji_pack pEmojiPack;
++    xge_glyph_run_t tRun;
++} xui_proxy_xge_draw_cache_t;
++static xui_proxy_xge_draw_cache_t g_xuiProxyXgeDrawCache;
++static SRWLOCK g_xuiProxyXgeDrawCacheLock = SRWLOCK_INIT;
++
++static void __xuiProxyXgeDrawCacheClearLocked(void)
++{
++    xgeGlyphRunFree(&g_xuiProxyXgeDrawCache.tRun);
++    xrtFree(g_xuiProxyXgeDrawCache.sText);
++    xgeEmojiPackFree(g_xuiProxyXgeDrawCache.pEmojiPack);
++    memset(&g_xuiProxyXgeDrawCache, 0, sizeof(g_xuiProxyXgeDrawCache));
++}
++
++static void __xuiProxyXgeDrawCacheClear(xui_font pFont)
++{
++    AcquireSRWLockExclusive(&g_xuiProxyXgeDrawCacheLock);
++    if ( pFont == NULL || g_xuiProxyXgeDrawCache.pFont == pFont )
++        __xuiProxyXgeDrawCacheClearLocked();
++    ReleaseSRWLockExclusive(&g_xuiProxyXgeDrawCacheLock);
++}
++
++static int __xuiProxyXgeDrawCacheTextIsLarge(const char* sText)
++{
++    int i;
++    for ( i = 0; i < XUI_PROXY_XGE_DRAW_CACHE_MIN; i++ )
++        if ( sText[i] == 0 ) return 0;
++    return 1;
++}
++
++static int __xuiProxyXgeDrawCachePaint(xui_font pFont, const xge_text_shape_desc_t* pDesc,
++    xui_rect_t tRect, uint32_t iColor, const xge_text_paint_span_t* pSpans, int iSpanCount)
++{
++    xge_emoji_pack pBefore;
++    xge_emoji_pack pAfter;
++    xge_glyph_run_t tRun;
++    xge_glyph_run_t* pRun;
++    char* sCopy;
++    int iRet;
++    AcquireSRWLockExclusive(&g_xuiProxyXgeDrawCacheLock);
++    pBefore = __xgeEmojiDrawCacheBuiltinAcquire();
++    pRun = &g_xuiProxyXgeDrawCache.tRun;
++    if ( pBefore != NULL && g_xuiProxyXgeDrawCache.pEmojiPack == pBefore &&
++         g_xuiProxyXgeDrawCache.pFont == pFont &&
++         g_xuiProxyXgeDrawCache.iTextSize == pDesc->iTextSize &&
++         g_xuiProxyXgeDrawCache.sText != NULL &&
++         memcmp(g_xuiProxyXgeDrawCache.sText, pDesc->sText, (size_t)pDesc->iTextSize) == 0 ) {
++        iRet = XGE_OK;
++    } else {
++        /* Drop a stale long run before allocating another full glyph array. */
++        __xuiProxyXgeDrawCacheClearLocked();
++        memset(&tRun, 0, sizeof(tRun));
++        iRet = xgeTextShape(pDesc, &tRun);
++        pRun = &tRun;
++        if ( iRet == XGE_OK && pBefore != NULL && pDesc->iTextSize <= XUI_PROXY_XGE_DRAW_CACHE_MAX ) {
++            pAfter = __xgeEmojiDrawCacheBuiltinAcquire();
++            if ( pAfter == pBefore ) {
++                sCopy = (char*)xrtMalloc((size_t)pDesc->iTextSize);
++                if ( sCopy != NULL ) {
++                    memcpy(sCopy, pDesc->sText, (size_t)pDesc->iTextSize);
++                    g_xuiProxyXgeDrawCache.pFont = pFont;
++                    g_xuiProxyXgeDrawCache.sText = sCopy;
++                    g_xuiProxyXgeDrawCache.iTextSize = pDesc->iTextSize;
++                    g_xuiProxyXgeDrawCache.pEmojiPack = pBefore;
++                    pBefore = NULL;
++                    g_xuiProxyXgeDrawCache.tRun = tRun;
++                    memset(&tRun, 0, sizeof(tRun));
++                    pRun = &g_xuiProxyXgeDrawCache.tRun;
++                }
++            }
++            xgeEmojiPackFree(pAfter);
++        }
++    }
++    if ( iRet == XGE_OK )
++        xgeGlyphRunDrawSpans(pRun, tRect.fX, tRect.fY, iColor,
++            XGE_DRAW_SCREEN_SPACE, pSpans, iSpanCount);
++    if ( pRun == &tRun ) xgeGlyphRunFree(&tRun);
++    xgeEmojiPackFree(pBefore);
++    ReleaseSRWLockExclusive(&g_xuiProxyXgeDrawCacheLock);
++    return iRet;
++}
++#endif
++
+ static uint32_t __xuiProxyXgeImageFlags(uint32_t iFlags)
+ {
+ 	(void)iFlags;
+@@ -1563,6 +1657,10 @@
+ 	if ( !__xuiProxyXgeFontValid(pFont) ) {
+ 		return;
+ 	}
++#if (defined(_WIN32) || defined(_WIN64)) && defined(XGE_XRT_PROFILE_IDE)
++    /* Run backend font pointers refer to this wrapper's embedded fonts. */
++    __xuiProxyXgeDrawCacheClear(pFont);
++#endif
+ 	xgeFontFree(&pFont->tFont);
+ 	if ( pFont->bHasFallback ) {
+ 		xgeFontFree(&pFont->tFallbackFont);
+@@ -1606,6 +1704,9 @@
+ 		return XGE_ERROR_INVALID_ARGUMENT;
+ 	}
+ 	(void)pProxy;
++#if (defined(_WIN32) || defined(_WIN64)) && defined(XGE_XRT_PROFILE_IDE)
++    if ( __xuiProxyXgeDrawCacheTextIsLarge(sText) ) __xuiProxyXgeDrawCacheClear(NULL);
++#endif
+ 	tSize = xgeTextMeasure(&pFont->tFont, sText);
+ 	pSize->fX = (float)xuiInternalPixelCeil(tSize.fX);
+ 	pSize->fY = (float)xuiInternalPixelCeil(tSize.fY);
+@@ -2052,12 +2153,20 @@
+ 	tDesc.iEmojiPresentation = XGE_EMOJI_PRESENTATION_AUTO;
+ 	tDesc.iEmojiLinePolicy = XGE_EMOJI_LINE_STABLE;
+ 	tDesc.fEmojiScale = 1.0f;
++#if (defined(_WIN32) || defined(_WIN64)) && defined(XGE_XRT_PROFILE_IDE)
++    if ( iTextSize >= XUI_PROXY_XGE_DRAW_CACHE_MIN ) {
++        iRet = __xuiProxyXgeDrawCachePaint(pFont, &tDesc, tRect, iColor, pXgeSpans, iSpanCount);
++        if ( iRet == XGE_OK ) __xuiProxyXgeDrawMarkDirty(pDraw);
++    } else
++#endif
++    {
+ 	iRet = xgeTextShape(&tDesc, &tRun);
+ 	if ( iRet == XGE_OK ) {
+ 		xgeGlyphRunDrawSpans(&tRun, tRect.fX, tRect.fY, iColor,
+ 			XGE_DRAW_SCREEN_SPACE, pXgeSpans, iSpanCount);
+ 		xgeGlyphRunFree(&tRun);
+ 		__xuiProxyXgeDrawMarkDirty(pDraw);
++	}
+ 	}
+ 	if ( pXgeSpans != sSmall ) xrtFree(pXgeSpans);
+ 	(void)iFlags;
+@@ -2686,6 +2795,10 @@
+ 	     (iTextSize < -1) || (pShape == NULL) ) return XGE_ERROR_INVALID_ARGUMENT;
+ 	(void)pProxy;
+ 	if ( iTextSize < 0 ) iTextSize = (int)strlen(sText);
++#if (defined(_WIN32) || defined(_WIN64)) && defined(XGE_XRT_PROFILE_IDE)
++    /* Logical layout rebuilds must not overlap the retained physical draw run. */
++    if ( iTextSize >= XUI_PROXY_XGE_DRAW_CACHE_MIN ) __xuiProxyXgeDrawCacheClear(NULL);
++#endif
+ 	memset(pShape, 0, sizeof(*pShape));
+ 	pShape->iSize = sizeof(*pShape);
+ 	pShape->iFlags = iFlags;

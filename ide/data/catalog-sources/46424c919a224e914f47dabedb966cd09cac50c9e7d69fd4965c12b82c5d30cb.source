@@ -1,0 +1,128 @@
+# graph
+
+有向图的遍历、拓扑排序、连通分量和距离计算。使用 XRT map/array 存储实际节点和边，
+不预留最大容量的全局数组；九项语言函数与九个 C 入口共享同一套算法。
+
+## 输入
+
+输入是数组，每行是以下一种形状：
+
+| 行 | 含义 |
+| --- | --- |
+| `[name]` | 声明节点，允许没有边的孤立点 |
+| `[from, to]` | 声明有向边，默认权重 1 |
+| `[from, to, weight]` | 声明带权有向边 |
+
+节点名必须为字符串，大小写敏感，空串和 UTF-8 名称合法。权重必须为有限 int/float，
+内部转换成 float64；bool、字符串、null、NaN、Infinity 不作为权重。
+超出 float64 整数精确范围的大整数会损失精度，不能用于精确整数成本计算。
+
+重复节点声明不增加节点数；重复边保留并计入边数，自环合法。所有输入先完整校验，
+即使部分边不在所查询的可达子图中，也不能包含非法行。
+最大 4096 个不同节点、32768 条边；超限报 RangeError。这不是名称总字节数或执行时间预算。
+
+```xlang
+import graph
+
+var jobs = [["parse", "check", 2], ["check", "emit", 3], ["parse", "emit", 9], ["docs"]]
+println(graph.isDag(jobs))                 // true
+println(graph.shortestPath(jobs, "parse", "emit").length)  // 2，最少边数
+println(int(graph.dijkstra(jobs, "parse")["emit"]))        // 5，最小权重
+```
+
+## 九项 API
+
+| 函数 | 返回类型 | 行为 |
+| --- | --- | --- |
+| `isDag(edges)` | `bool` | 是否为有向无环图；有环正常返回 false，空图为 true |
+| `topoSort(edges)` | `array` | 拓扑序；有环抛 ValueError，空图返回 [] |
+| `bfs(edges, start)` | `array` | 沿出边广度优先遍历，包含起点，每个节点最多一次 |
+| `shortestPath(edges, start, target)` | `array` | 最少边数路径，包含两端；**不使用权重**；不可达抛 ValueError |
+| `dijkstra(edges, start)` | `dict` | 起点到所有可达节点的最小 float64 权重和；起点距离为 0，不可达节点没有键 |
+| `components(edges)` | `array` | 弱连通分量，忽略边方向，每项是节点数组 |
+| `scc(edges)` | `array` | 强连通分量，每项是节点数组，按有向可达性区分 |
+| `nodes(edges)` | `array` | 去重后按原始 UTF-8 字节字典序排列的节点；不是区域化排序 |
+| `neighbors(edges, node)` | `array` | 出邻居，按边出现顺序去重；自环可包含节点自己 |
+
+查询的起点、终点或节点必须已声明；不存在时抛 ValueError。
+起终点相同的 shortestPath 返回 `[start]`。
+Dijkstra 要求**所有边**权重非负；零权重和重复边允许。
+参与松弛的距离加法溢出 float64 抛 RangeError，不把溢出悄悄当成不可达。
+其他算法不使用权重，但仍检查其类型和有限性，允许有限负权。
+
+拓扑队列按节点首次出现顺序初始化，随后按出边顺序入队，不承诺字母序。
+BFS 和最少边路径同长度时依据出边顺序选择。连通分量及其内部节点按输入节点首次出现
+顺序排列，而不是底层 DFS 的发现顺序。输入顺序相同则这些输出顺序稳定。
+
+```xlang
+import graph
+
+var edges = [["a", "b"], ["b", "a"], ["b", "c"], ["alone"]]
+println(graph.components(edges).length)    // 2
+println(graph.scc(edges).length)           // 3
+try
+    graph.topoSort(edges)
+catch ValueError error
+    println("cycle")
+end
+```
+
+## 性能与生命周期
+
+各调用独立解析输入并建立邻接表，不保留输入，也没有隐式全局缓存。多次查询同一大图
+会重复建模。名称查找使用 XRT 字节键 map；建模成本还包括读取、散列和复制名称字节。
+
+不计建模和结果输出：BFS、拓扑、弱连通分量和 SCC 为 O(V+E)；Dijkstra 使用索引最小堆，
+每个节点最多占一个堆槽，O((V+E) log V)；节点排序 O(V log V) 次字符串比较。
+SCC 使用显式栈 Kosaraju，不依赖深递归；算法工作空间按实际图规模分配。
+
+结果独立拥有节点名和容器，更新输入、下一次调用或释放输入不影响已返回结果。
+无共享可变图状态，独立调用可并发；调用期间不得并发修改输入 xvalue。
+分配失败抛 MemoryError；不将其改写为普通 ValueError，也不返回截断结果。
+
+## C API
+
+公共头 `include/graph.h`。manifest 声明四个 C 编译单元，必须一起编译：
+`graph_native.c`、`graph_traversal.c`、`graph_components.c`、`graph_distance.c`。
+使用 XRT_MODULE_VALUE_CONTAINER、XRT_MODULE_ARRAY、XRT_MODULE_MAP。
+
+语言到 C 的一一对应为：
+
+| xlang | C |
+| --- | --- |
+| isDag / topoSort | xg_is_dag / xg_topo_sort |
+| bfs / shortestPath / dijkstra | xg_bfs / xg_shortest_path / xg_dijkstra |
+| components / scc | xg_components / xg_scc |
+| nodes / neighbors | xg_nodes / xg_neighbors |
+
+C 输入为借用的 `xvalue*`，字符串查询参数为 `const char*` 加 `size_t`；禁止用 strlen
+替代已有视图长度。返回的 `xvalue*` 由调用方 `xrtValueRelease`。
+失败返回 NULL 并设置 XRT error；isDag 的 false 也可能表示正常有环，必须检查
+`xrtGetError()` 区分。每次调用清除旧错误。
+
+C 名称按完整字节比较，支持内嵌 NUL。当前语言 string.byteLen 桥接存在 NUL 截短问题，
+会影响语言查询；独立失败用例 `test/fixtures/extlib_boundary_pending/graph_nul_name.xl`
+仍在跟踪，不能据 C 测试通过宣称语言二进制名称已经可用。当前 XL 使用不含 NUL 的文本名称。
+
+## 范例与门禁
+
+发布目录内：`xl run examples/extlibs/graph_basic.xl`。
+完整九项 API 的 C 对照为 `extlibs/graph/examples/basic.c`，共同预期为
+`examples/extlibs/graph_basic.expected.txt`。
+
+开发仓库从 demo6 运行：
+
+```powershell
+./release/xl.exe run release/examples/extlibs/graph_basic.xl
+./tools/run_extlib_c.ps1 -Package graph -Source release/extlibs/graph/examples/basic.c
+./tools/check_extlib_graph.ps1
+```
+
+C 范例不是独立单文件实现；runner 读取 manifest 自动加入原生编译单元。
+Windows 门禁覆盖独立 C、128 组参照图、容量/Unicode/NUL/非法输入、218 个分配失败点、
+独立线程、九个实际生成原型、JIT/AOT、DLL 上下文复用和双语黄金输出。
+Linux 独立 C 门禁为 `bash tools/check_extlib_graph.sh`，包含 ASan/UBSan 和泄漏检查；
+设置 GRAPH_DECLARATIONS 可核对生成原型的 LP64 合同。
+
+共享语言失败单独记录，不作为通过用例；以上范围不代表 Linux xlang、32 位/ARM、TSan、
+全部性能场景或同一可变输入并发已经验收。具体构建与结果见 demo6/docs 下的交付记录。

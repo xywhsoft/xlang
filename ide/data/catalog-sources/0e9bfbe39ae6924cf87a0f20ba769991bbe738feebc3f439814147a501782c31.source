@@ -1,0 +1,16 @@
+# xhttp.body_codec
+
+`xhttp.body_codec` 把 XRT 的流式 Deflate/Inflate 正文映射为 xlang `Body`
+变换。默认路径支持 gzip 压缩和兼容 HTTP deflate 的解压，并完整保留
+`AGAIN`/Future、可重放能力、输出上限和原生句柄。
+
+```xlang
+import xhttp.body
+import xhttp.body_codec
+
+auto packed = xhttp.body_codec.deflate(
+    xhttp.body.Body.fromText("hello"))
+auto plain = xhttp.body_codec.inflate(packed,
+    xhttp.body_codec.InflateConfig(xhttp.body_codec.INFLATE_GZIP))
+assert plain.text() == "hello"
+```

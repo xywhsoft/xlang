@@ -1,0 +1,209 @@
+<div id="xlang-ide-plan">
+  <div class="xide-window" aria-label="xlang IDE 默认工作台布局" style="--ide-code-size: 14px; --ide-command-width: 190px; --ide-right-width: 242px; --ide-help-height: 180px;">
+    <div class="xide-title"><span class="xide-mark">xl</span><span>xlang IDE · Demo.xlw</span><span class="xide-preview">方案预览</span></div>
+    <div class="xide-menu">文件　编辑　视图　项目　构建　运行　工具　帮助</div>
+    <div class="xide-toolbar">
+      <span>启动项目</span><select aria-label="启动项目"><option>HelloApp</option><option>CoreTests</option></select>
+      <select aria-label="构建配置"><option>开发配置</option><option>发布配置</option></select>
+      <button type="button" class="xide-action xide-run" disabled="">▷ 运行</button><button type="button" class="xide-action" disabled="">构建</button>
+      <button type="button" class="xide-action cursor-interaction" data-focus="" aria-pressed="false">专注编辑</button><span class="xide-tool-end">DEMO6 / Windows x64</span>
+    </div>
+    <div class="xide-workbench">
+      <aside class="xide-commands" aria-label="左侧命令列表">
+        <div class="xide-panel-title">命令列表</div>
+        <div class="xide-command-body">
+          <details open=""><summary>基础命令</summary>
+            <button type="button" class="xide-command cursor-interaction is-active" data-command="print" aria-pressed="true"><span>print</span><span class="xide-command-desc">输出</span></button>
+            <button type="button" class="xide-command cursor-interaction" data-command="auto" aria-pressed="false"><span>auto</span><span class="xide-command-desc">变量声明</span></button>
+          </details>
+          <details open=""><summary>流程控制</summary>
+            <button type="button" class="xide-command cursor-interaction" data-command="if" aria-pressed="false"><span>if</span><span class="xide-command-desc">条件分支</span></button>
+            <button type="button" class="xide-command cursor-interaction" data-command="return" aria-pressed="false"><span>return</span><span class="xide-command-desc">返回</span></button>
+            <button type="button" class="xide-command cursor-interaction" data-command="try" aria-pressed="false"><span>try / catch</span><span class="xide-command-desc">异常处理</span></button>
+          </details>
+          <details open=""><summary>模块与函数</summary>
+            <button type="button" class="xide-command cursor-interaction" data-command="func" aria-pressed="false"><span>func</span><span class="xide-command-desc">函数定义</span></button>
+            <button type="button" class="xide-command cursor-interaction" data-command="import" aria-pressed="false"><span>import</span><span class="xide-command-desc">模块导入</span></button>
+          </details>
+          <details><summary>扩展库</summary><span class="xide-tree-item">sqlite</span></details>
+        </div>
+        <div class="xide-dock-footer">xlang 命令与语言结构</div>
+      </aside>
+      <div class="xide-document-area" aria-label="中央编辑器与底栏"><main class="xide-editor" aria-label="中央代码编辑器">
+        <div class="xide-tabs" aria-label="打开的文件"><button type="button" class="xide-tab cursor-interaction is-active" data-file="main" aria-pressed="true">main.xl</button><button type="button" class="xide-tab cursor-interaction" data-file="utils" aria-pressed="false">utils.xl</button></div>
+        <div class="xide-breadcrumb" data-breadcrumb="">HelloApp / src/main.xl</div>
+        <div class="xide-code-wrap"><pre class="xide-gutter" aria-hidden="true" data-gutter="">1
+2
+3
+4
+5
+6
+7
+8</pre><pre class="xide-code" aria-label="代码预览" data-code=""><span class="xide-comment">#doc
+desc: 示例应用入口
+#end</span>
+<span class="xide-keyword">func</span> main(...) <span class="xide-keyword">as</span> int
+    <span class="xide-keyword">auto</span> message = <span class="xide-string">"hello xlang"</span>
+    print(message)
+    <span class="xide-keyword">return</span> 0
+<span class="xide-keyword">end</span></pre></div>
+      </main><section class="xide-bottom" aria-label="下方集成窗格">
+      <div class="xide-tabs" aria-label="底部窗格">
+        <button type="button" class="xide-tab cursor-interaction is-active" data-bottom="help" aria-pressed="true">命令集成帮助</button>
+        <button type="button" class="xide-tab cursor-interaction" data-bottom="problems" aria-pressed="false">问题</button>
+        <button type="button" class="xide-tab cursor-interaction" data-bottom="build" aria-pressed="false">构建输出</button>
+        <button type="button" class="xide-tab cursor-interaction" data-bottom="terminal" aria-pressed="false">终端</button>
+        <button type="button" class="xide-tab cursor-interaction" data-bottom="tasks" aria-pressed="false">任务</button>
+      </div>
+      <div class="xide-help" data-help="" aria-live="polite">
+        <div class="xide-help-description"><div class="xide-help-heading"><span data-command-title="">print</span><span class="xide-hint" data-command-category="">基础命令</span></div><code class="xide-signature" data-signature="">print(...)</code><p data-description="">输出表达式的值。常用于查看程序运行结果。</p></div>
+        <div class="xide-help-example"><div class="xide-example-title">使用示例</div><pre data-example="">auto message = "hello xlang"
+print(message)</pre></div>
+      </div>
+      <pre class="xide-bottom-content" data-bottom-content="" aria-live="polite" hidden=""></pre>
+    </section></div>
+      <aside class="xide-right" aria-label="右侧工作空间与项目属性">
+        <section class="xide-workspace" aria-label="右侧上方工作空间">
+          <div class="xide-panel-title">工作空间</div>
+          <div class="xide-tree-body"><details open=""><summary>Demo.xlw</summary>
+            <details open=""><summary><button type="button" class="xide-project cursor-interaction" data-project="HelloApp" aria-pressed="true">HelloApp</button><span class="xide-hint">启动</span></summary>
+              <details open=""><summary>源代码</summary><button type="button" class="xide-file cursor-interaction is-active" data-file="main" aria-pressed="true">main.xl</button><button type="button" class="xide-file cursor-interaction" data-file="utils" aria-pressed="false">utils.xl</button><button type="button" class="xide-file cursor-interaction" data-file="native" aria-pressed="false">native.c</button></details>
+              <details><summary>扩展库</summary><span class="xide-tree-item">sqlite</span></details>
+              <details><summary>资源</summary><span class="xide-tree-item">app.res.json</span></details>
+              <button type="button" class="xide-file cursor-interaction" data-file="project" aria-pressed="false">HelloApp.xlp</button>
+            </details>
+            <details><summary><button type="button" class="xide-project cursor-interaction" data-project="CoreTests" aria-pressed="false">CoreTests</button></summary><button type="button" class="xide-file cursor-interaction" data-file="tests" aria-pressed="false">tests.xl</button></details>
+            <details><summary>工作空间文件</summary><span class="xide-tree-item">README.md</span></details>
+          </details></div>
+        </section>
+        <section class="xide-properties" aria-label="右侧下方项目属性">
+          <div class="xide-panel-title">项目属性 <span class="xide-hint" data-property-project="">HelloApp</span></div>
+          <dl class="xide-property-grid">
+            <dt>项目名称</dt><dd data-property="name">HelloApp</dd><dt>输出类型</dt><dd data-property="kind">可执行程序</dd>
+            <dt>入口文件</dt><dd data-property="entry">src/main.xl</dd><dt>构建配置</dt><dd data-property="config">开发配置</dd>
+            <dt>输出文件</dt><dd data-property="output">build/HelloApp.exe</dd><dt>C 源文件</dt><dd data-property="native">src/native.c</dd>
+            <dt>资源配置</dt><dd data-property="resources">app.res.json</dd>
+          </dl>
+        </section>
+      </aside>
+    </div>
+    
+    <div class="xide-status"><span>就绪</span><span data-status-project="">HelloApp</span><span>UTF-8　LF　xlang</span><span>行 4，列 1</span></div>
+  </div>
+</div>
+<style>
+  #xlang-ide-plan .xide-window{--ide-bg:light-dark(#ffffff,#1d2127);--ide-panel:light-dark(#f4f5f7,#252a32);--ide-chrome:light-dark(#eceef2,#191d23);--ide-line:light-dark(#d4d9e0,#3d4552);--ide-ink:light-dark(#263240,#dce1e8);--ide-muted:light-dark(#5e6979,#a9b2c0);--ide-accent:light-dark(#185ea7,#82b8f0);--ide-select:light-dark(#e2edf8,#303e51);--ide-comment:light-dark(#697a5e,#94ac83);--ide-keyword:light-dark(#7850a5,#bba2de);--ide-string:light-dark(#996114,#d2af7b);--ide-code-size:14px;--ide-command-width:190px;--ide-right-width:242px;--ide-help-height:180px;color:var(--ide-ink);background:var(--ide-bg);font:13px/1.55 "Segoe UI","Microsoft YaHei",sans-serif;border:1px solid var(--ide-line);border-radius:7px;overflow:hidden}
+  #xlang-ide-plan .xide-title{min-height:36px;display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--ide-chrome);font-weight:500}
+  #xlang-ide-plan .xide-mark{font:500 16px Consolas,monospace;color:var(--ide-accent)}
+  #xlang-ide-plan .xide-preview{margin-left:auto;font-size:11px;color:var(--ide-muted)}
+  #xlang-ide-plan .xide-menu{padding:5px 14px;background:var(--ide-chrome);border-bottom:1px solid var(--ide-line);white-space:normal}
+  #xlang-ide-plan .xide-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:7px 12px;background:var(--ide-panel);border-bottom:1px solid var(--ide-line)}
+  #xlang-ide-plan select,#xlang-ide-plan .xide-action{font:inherit;color:var(--ide-ink);background:var(--ide-bg);border:1px solid var(--ide-line);border-radius:3px;min-height:28px;padding:2px 8px;max-width:100%}
+  #xlang-ide-plan .xide-action[aria-pressed="true"],#xlang-ide-plan .xide-run{background:var(--ide-select);color:var(--ide-accent)}
+  #xlang-ide-plan .xide-tool-end{margin-left:auto;color:var(--ide-muted);font-size:11px}
+  #xlang-ide-plan .xide-workbench{display:grid;grid-template-columns:var(--ide-command-width) minmax(0,1fr) var(--ide-right-width);min-height:832px}
+  #xlang-ide-plan .xide-commands{background:var(--ide-panel);border-right:1px solid var(--ide-line);display:flex;flex-direction:column;min-width:0}
+  #xlang-ide-plan .xide-panel-title{padding:6px 10px;border-bottom:1px solid var(--ide-line);font-weight:500;overflow-wrap:anywhere}
+  #xlang-ide-plan .xide-command-body{padding:7px;flex:1}
+  #xlang-ide-plan .xide-command-body>details{margin-bottom:8px}
+  #xlang-ide-plan summary{padding:3px 0;overflow-wrap:anywhere}
+  #xlang-ide-plan .xide-command{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:6px 8px;text-align:left;font:inherit;color:var(--ide-ink);background:transparent;border:0;border-radius:3px}
+  #xlang-ide-plan .xide-command>span:first-child{font-family:Consolas,monospace}
+  #xlang-ide-plan .xide-command-desc,#xlang-ide-plan .xide-hint{font-size:11px;color:var(--ide-muted)}
+  #xlang-ide-plan .xide-hint{margin-left:5px}
+  #xlang-ide-plan .xide-command.is-active,#xlang-ide-plan .xide-file.is-active{background:var(--ide-select);color:var(--ide-accent)}
+  #xlang-ide-plan .xide-command:hover,#xlang-ide-plan .xide-file:hover{background:var(--ide-select)}
+  #xlang-ide-plan .xide-dock-footer{padding:7px 10px;color:var(--ide-muted);font-size:11px;border-top:1px solid var(--ide-line)}
+  #xlang-ide-plan .xide-document-area{display:flex;flex-direction:column;min-width:0}
+  #xlang-ide-plan .xide-editor{flex:1;min-width:0;min-height:320px;background:var(--ide-bg)}
+  #xlang-ide-plan .xide-tabs{display:flex;flex-wrap:wrap;background:var(--ide-panel);border-bottom:1px solid var(--ide-line)}
+  #xlang-ide-plan .xide-tab{font:inherit;padding:7px 12px;color:var(--ide-muted);border:0;border-right:1px solid var(--ide-line);background:transparent;min-width:0}
+  #xlang-ide-plan .xide-tab.is-active{color:var(--ide-ink);background:var(--ide-bg);box-shadow:inset 0 2px var(--ide-accent)}
+  #xlang-ide-plan .xide-breadcrumb{padding:7px 12px;color:var(--ide-muted);font-size:11px;overflow-wrap:anywhere}
+  #xlang-ide-plan .xide-code-wrap{display:grid;grid-template-columns:34px minmax(0,1fr);padding-top:8px}
+  #xlang-ide-plan .xide-code,#xlang-ide-plan .xide-gutter{font:var(--ide-code-size)/1.7 Consolas,"Microsoft YaHei",monospace;margin:0;padding:0 12px 10px 7px;background:transparent;border:0;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ide-ink)}
+  #xlang-ide-plan .xide-gutter{padding-left:0;padding-right:6px;text-align:right;color:var(--ide-muted);border-right:1px solid var(--ide-line)}
+  #xlang-ide-plan .xide-comment{color:var(--ide-comment)}
+  #xlang-ide-plan .xide-keyword{color:var(--ide-keyword)}
+  #xlang-ide-plan .xide-string{color:var(--ide-string)}
+  #xlang-ide-plan .xide-right{display:grid;grid-template-rows:minmax(280px,3fr) minmax(215px,2fr);border-left:1px solid var(--ide-line);background:var(--ide-panel);min-width:0}
+  #xlang-ide-plan .xide-tree-body{padding:7px 9px}
+  #xlang-ide-plan .xide-tree-body details details{margin-left:12px}
+  #xlang-ide-plan .xide-file{display:block;width:100%;padding:3px 7px;text-align:left;font:inherit;background:transparent;color:var(--ide-ink);border:0;border-radius:3px;overflow-wrap:anywhere}
+  #xlang-ide-plan .xide-tree-item{display:block;padding:3px 7px;overflow-wrap:anywhere}
+  #xlang-ide-plan .xide-project{font:inherit;color:var(--ide-ink);border:0;background:transparent;padding:0 2px;text-align:left}
+  #xlang-ide-plan .xide-project[aria-pressed="true"]{color:var(--ide-accent)}
+  #xlang-ide-plan .xide-properties{border-top:3px solid var(--ide-line);min-width:0}
+  #xlang-ide-plan .xide-property-grid{margin:0;display:grid;grid-template-columns:76px minmax(0,1fr);font-size:12px}
+  #xlang-ide-plan .xide-property-grid dt,#xlang-ide-plan .xide-property-grid dd{margin:0;padding:5px 8px;border-bottom:1px solid var(--ide-line);overflow-wrap:anywhere}
+  #xlang-ide-plan .xide-property-grid dt{color:var(--ide-muted);border-right:1px solid var(--ide-line)}
+  #xlang-ide-plan .xide-bottom{border-top:3px solid var(--ide-line);min-height:var(--ide-help-height);background:var(--ide-bg)}
+  #xlang-ide-plan .xide-help{display:block;min-height:145px;padding:14px 18px 18px}
+  #xlang-ide-plan .xide-help-description{display:flex;flex-direction:column;min-width:0}
+  #xlang-ide-plan .xide-help-example{margin-top:14px;min-width:0}
+  #xlang-ide-plan .xide-help-heading{font:500 15px/1.5 Consolas,"Microsoft YaHei",monospace;margin-bottom:7px}
+  #xlang-ide-plan .xide-signature{font:13px/1.65 Consolas,monospace;color:var(--ide-accent);background:transparent;white-space:pre-wrap;overflow-wrap:anywhere}
+  #xlang-ide-plan .xide-help-description p{order:1;margin:0;color:var(--ide-muted);overflow-wrap:anywhere}#xlang-ide-plan .xide-help-description .xide-signature{order:2;margin-top:8px}
+  #xlang-ide-plan .xide-example-title{font-size:13px;font-weight:500;color:var(--ide-ink);margin-bottom:6px}
+  #xlang-ide-plan .xide-help-example pre,#xlang-ide-plan .xide-bottom-content{font:13px/1.7 Consolas,"Microsoft YaHei",monospace;margin:0;border:0;background:transparent;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ide-ink)}
+  #xlang-ide-plan .xide-bottom-content{padding:14px 16px;color:var(--ide-muted);min-height:145px}
+  #xlang-ide-plan .xide-status{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between;background:var(--ide-chrome);border-top:1px solid var(--ide-line);padding:5px 12px;font-size:11px;color:var(--ide-muted)}
+  #xlang-ide-plan [hidden]{display:none!important}
+  #xlang-ide-plan .is-focus .xide-commands,#xlang-ide-plan .is-focus .xide-right,#xlang-ide-plan .is-focus .xide-bottom{display:none}
+  #xlang-ide-plan .is-focus .xide-workbench{grid-template-columns:minmax(0,1fr)}
+  @media(max-width:840px){#xlang-ide-plan .xide-workbench{grid-template-columns:160px minmax(0,1fr) 220px}#xlang-ide-plan .xide-tool-end{display:none}}
+  @media(max-width:700px){#xlang-ide-plan .xide-workbench{grid-template-columns:minmax(0,1fr)}#xlang-ide-plan .xide-commands{border-right:0;border-bottom:3px solid var(--ide-line)}#xlang-ide-plan .xide-right{border-left:0;border-top:3px solid var(--ide-line);grid-template-rows:auto auto}#xlang-ide-plan .xide-title{flex-wrap:wrap;padding-top:5px;padding-bottom:5px}}
+  @media(pointer:coarse){#xlang-ide-plan select,#xlang-ide-plan .xide-action,#xlang-ide-plan .xide-command,#xlang-ide-plan .xide-file,#xlang-ide-plan .xide-project,#xlang-ide-plan .xide-tab,#xlang-ide-plan summary{min-height:44px}#xlang-ide-plan .xide-toolbar select{font-size:16px}}
+</style>
+<script>
+(() => {
+  const root=document.getElementById('xlang-ide-plan'),app=root.querySelector('.xide-window'),code=root.querySelector('[data-code]'),initialCode=code.innerHTML;
+  const samples={
+    main:{name:'main.xl',project:'HelloApp',path:'src/main.xl',code:'#doc\ndesc: 示例应用入口\n#end\nfunc main(...) as int\n    auto message = "hello xlang"\n    print(message)\n    return 0\nend'},
+    utils:{name:'utils.xl',project:'HelloApp',path:'src/utils.xl',code:'export func add(int a, int b) as int\n    return a + b\nend'},
+    native:{name:'native.c',project:'HelloApp',path:'src/native.c',code:'#include <stdint.h>\n\nint64_t native_double(int64_t value)\n{\n    return value * 2;\n}'},
+    project:{name:'HelloApp.xlp',project:'HelloApp',path:'HelloApp.xlp',code:'{\n  "format": "xlang-project-1",\n  "kind": "exe",\n  "entry": "src/main.xl",\n  "cSources": ["src/native.c"],\n  "resources": ["app.res.json"]\n}'},
+    tests:{name:'tests.xl',project:'CoreTests',path:'tests.xl',code:'func main(...) as int\n    print("tests ready")\n    return 0\nend'}
+  };
+  const commands={
+    print:{title:'print',category:'基础命令',syntax:'print(...)',description:'输出表达式的值。常用于查看程序运行结果。',example:'auto message = "hello xlang"\nprint(message)'},
+    auto:{title:'auto',category:'基础命令',syntax:'auto name = expression',description:'声明变量，由初始化表达式推断变量类型。',example:'auto count = 3\nauto message = "hello xlang"'},
+    if:{title:'if',category:'流程控制',syntax:'if condition\n    ...\nend',description:'根据条件执行对应的代码块。',example:'auto count = 3\nif count > 0\n    print(count)\nend'},
+    return:{title:'return',category:'流程控制',syntax:'return expression',description:'结束当前函数，并返回结果。',example:'func add(int a, int b) as int\n    return a + b\nend'},
+    try:{title:'try / catch',category:'流程控制',syntax:'try\n    ...\ncatch e\n    ...\nend',description:'捕获并处理代码块执行过程中抛出的异常。',example:'try\n    throw "operation failed"\ncatch e\n    print(e.message)\nend'},
+    func:{title:'func',category:'模块与函数',syntax:'func name(parameters) as type\n    ...\nend',description:'定义函数，声明参数与返回类型。',example:'func add(int a, int b) as int\n    return a + b\nend'},
+    import:{title:'import',category:'模块与函数',syntax:'import module',description:'导入模块，通过模块名称访问其导出的成员。示例中的 geometry 为项目模块。',example:'import geometry'}
+  };
+  const projects={HelloApp:{name:'HelloApp',kind:'可执行程序',entry:'src/main.xl',output:'build/HelloApp.exe',native:'src/native.c',resources:'app.res.json'},CoreTests:{name:'CoreTests',kind:'可执行程序',entry:'tests.xl',output:'build/CoreTests.exe',native:'—',resources:'—'}};
+  const bottomText={problems:'当前文件无诊断',build:'构建输出\n等待构建任务…',terminal:'HelloApp · 终端\n等待运行任务…',tasks:'当前无运行中的任务'};
+  const state={file:'main',command:'print',project:'HelloApp',bottom:'help',focus:false,codeSize:14,commandWidth:190,rightWidth:242,helpHeight:180};
+  function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{preview:'xlang IDE 默认布局',layout:'左侧命令列表；右侧上方工作空间、下方项目属性；中央编辑器下方命令集成帮助，仅占中央宽度',selectedCommand:state.command,selectedProject:state.project},privateContent:{schema:2,state:{...state}}}).catch(()=>{});}
+  function applySaved(snapshot){
+    const saved=snapshot?.privateContent;if(saved?.schema!==2||!saved.state)return;const s=saved.state;
+    if(samples[s.file])state.file=s.file;if(commands[s.command])state.command=s.command;if(projects[s.project])state.project=s.project;
+    if(s.bottom==='help'||Object.hasOwn(bottomText,s.bottom))state.bottom=s.bottom;if(typeof s.focus==='boolean')state.focus=s.focus;
+    for(const [key,min,max] of [['codeSize',12,18],['commandWidth',160,240],['rightWidth',220,300],['helpHeight',180,280]])if(Number.isFinite(s[key]))state[key]=Math.max(min,Math.min(max,s[key]));
+  }
+  function render(){
+    app.classList.toggle('is-focus',state.focus);
+    for(const [key,css] of [['codeSize','--ide-code-size'],['commandWidth','--ide-command-width'],['rightWidth','--ide-right-width'],['helpHeight','--ide-help-height']])app.style.setProperty(css,state[key]+'px');
+    root.querySelector('[data-focus]').textContent=state.focus?'恢复工作台':'专注编辑';root.querySelector('[data-focus]').setAttribute('aria-pressed',String(state.focus));
+    for(const [attr,value] of [['file',state.file],['command',state.command],['bottom',state.bottom]])root.querySelectorAll('[data-'+attr+']').forEach(b=>{const active=b.dataset[attr]===value;b.classList.toggle('is-active',active);b.setAttribute('aria-pressed',String(active));});
+    root.querySelectorAll('[data-project]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.project===state.project)));
+    const sample=samples[state.file];if(state.file==='main')code.innerHTML=initialCode;else code.textContent=sample.code;
+    root.querySelector('[data-gutter]').textContent=sample.code.split('\n').map((_,i)=>i+1).join('\n');root.querySelector('[data-breadcrumb]').textContent=sample.project+' / '+sample.path;
+    const command=commands[state.command];root.querySelector('[data-command-title]').textContent=command.title;root.querySelector('[data-command-category]').textContent=command.category;root.querySelector('[data-signature]').textContent=command.syntax;root.querySelector('[data-description]').textContent=command.description;root.querySelector('[data-example]').textContent=command.example;
+    root.querySelector('[data-help]').hidden=state.bottom!=='help';const output=root.querySelector('[data-bottom-content]');output.hidden=state.bottom==='help';output.textContent=bottomText[state.bottom]||'';
+    root.querySelector('[data-property-project]').textContent=state.project;root.querySelector('[data-status-project]').textContent=sample.project;
+    root.querySelectorAll('[data-property]').forEach(el=>el.textContent=el.dataset.property==='config'?root.querySelector('select[aria-label="构建配置"]').value:projects[state.project][el.dataset.property]);
+  }
+  applySaved(window.openai?.widgetState);render();
+  root.querySelectorAll('[data-file]').forEach(b=>b.addEventListener('click',()=>{state.file=b.dataset.file;state.project=samples[state.file].project;render();save();}));
+  root.querySelectorAll('[data-command]').forEach(b=>b.addEventListener('click',()=>{state.command=b.dataset.command;state.bottom='help';state.focus=false;render();save();}));
+  root.querySelectorAll('[data-project]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();state.project=b.dataset.project;render();save();}));
+  root.querySelectorAll('[data-bottom]').forEach(b=>b.addEventListener('click',()=>{state.bottom=b.dataset.bottom;render();save();}));
+  root.querySelector('[data-focus]').addEventListener('click',()=>{state.focus=!state.focus;render();save();});root.querySelector('select[aria-label="构建配置"]').addEventListener('change',render);
+  window.addEventListener('openai:set_globals',e=>{applySaved(e.detail?.globals?.widgetState);render();});
+  if(globalThis.Tweak){const tweak=new Tweak({container:app,onChange:render});tweak.addSlider(state,'commandWidth',{label:'命令列表宽度',min:160,max:240,unit:'px'});tweak.addSlider(state,'rightWidth',{label:'工作空间与属性宽度',min:220,max:300,unit:'px'});tweak.addSlider(state,'helpHeight',{label:'底部帮助窗格高度',min:180,max:280,unit:'px'});tweak.addSlider(state,'codeSize',{label:'代码字号',min:12,max:18,unit:'px'});}
+})();
+</script>

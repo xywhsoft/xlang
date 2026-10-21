@@ -1,0 +1,269 @@
+{
+  "format": "xlang-ide-experimental-sdk-patch-1",
+  "privateOnly": true,
+  "sdkInstalled": false,
+  "productionAccepted": false,
+  "originalSourceManifestSha256": "3f240e10bddf61f7908ded55ab57314997fd7eb5a4720723b824b6955d5ce4ab",
+  "originalSdkDllSha256": "a48e028acfb96db59277d820a4dbebc482d8635fd79c63ef3da6b00c69382784",
+  "beforeDescriptorSha256": "8bd1b85975b80f0f641ae97a547538a39cb62df4ca581a58529d03e0ec820ff3",
+  "changes": [
+    {
+      "path": "src/xge_emoji.c",
+      "beforeSha256": "f2e6816f188ad04990013c303ed9a5dcb3e10a169b602653d83e83b1ed8ab7dd",
+      "afterSha256": "61fd81d7f45ff77cf85e2f0ceebfd0af88faea9ff3dd20ab2f9f22583835698e",
+      "size": 33553,
+      "material": "files/src/xge_emoji.c",
+      "reviewDiff": "diffs/xge_emoji.c.patch",
+      "reviewDiffSha256": "e9e049cc5cac157bf85b88a6f716a41a7c5f009ac007e46c97eda3c7012b0e41"
+    },
+    {
+      "path": "src/xge_text_run.c",
+      "beforeSha256": "bd7814823f24c71f004dd99bde5257e2ab1d53971f489685b70d6fdb2641db83",
+      "afterSha256": "626b70845c4f5cc19dc9a6142d87213cdf8ee1f7fcdb0c4daa41b76e03a39e91",
+      "size": 29152,
+      "material": "files/src/xge_text_run.c",
+      "reviewDiff": "diffs/xge_text_run.c.patch",
+      "reviewDiffSha256": "5180ab083b5a9649e8fc0fff1814394bb174a75c0158f5c3cd8c04a6890dca38"
+    },
+    {
+      "path": "src/xui_code_edit.c",
+      "beforeSha256": "973710dd1001960efe171f683a348b41bd237a6dad3a6f0443793bcf8e16341b",
+      "afterSha256": "18588755c5776d23e6337acb34066365d545bdc5f44f40c07d2bd4307cde1c93",
+      "size": 352598,
+      "material": "files/src/xui_code_edit.c",
+      "reviewDiff": "diffs/xui_code_edit.c.patch",
+      "reviewDiffSha256": "3346d30ef1ea194f2638fb9f9184cc96bf6e0b4864189e60e45785a27881368d"
+    },
+    {
+      "path": "src/xui_unicode.c",
+      "beforeSha256": "bae125df15ea1265d92b4af5933ecc62ed76d098f48828b8ad3d4d3d93c77dd8",
+      "afterSha256": "00a4a2cb0398a1b6a94eda77d70317fc69bbfbe31a0825db801d3f3ee1ee65a5",
+      "size": 27818,
+      "material": "files/src/xui_unicode.c",
+      "reviewDiff": "diffs/xui_unicode.c.patch",
+      "reviewDiffSha256": "2742cdd2bb993e341e5394304d18eeae785ccc7bae3d73ec730306f868b3d9ad"
+    },
+    {
+      "path": "src/xui_unicode_grapheme_data.inc",
+      "beforeSha256": null,
+      "afterSha256": "992c948a64567a60fb35ebda1e3233dd5d287de03f84a72ed2694d2d7ab7b33f",
+      "size": 84888,
+      "material": "files/src/xui_unicode_grapheme_data.inc",
+      "reviewDiff": "diffs/xui_unicode_grapheme_data.inc.patch",
+      "reviewDiffSha256": "d09f0ab76b6448a918a5b341b9a32f539a454669d25839857c49fa0d4c94f7a7"
+    },
+    {
+      "path": "src/xui_code_document.c",
+      "beforeSha256": "31c3703160e3cd4eca84b5e44cfbb15fe006410f9f29b3039d4f551895f43654",
+      "afterSha256": "497021d90188e616d8b2cb9b8fc0cc134981db1becd3e69bc93cf0e90a848353",
+      "size": 46107,
+      "material": "files/src/xui_code_document.c",
+      "reviewDiff": "diffs/xui_code_document.c.patch",
+      "reviewDiffSha256": "ec4336abdfd47582e5b64da43b1f622e6d22892bb8002e9bffe429924a8f4005"
+    },
+    {
+      "path": "src/xge_svg.c",
+      "beforeSha256": "4b56530b5b2a4260feb3399827bd04461a052036c682a01525416fd45f8c9f7a",
+      "afterSha256": "05a554994a29d6117ca7c2ea4c0f26f1ffa0c9a3d4b519dc30210ce8e2db8a43",
+      "size": 716962,
+      "material": "files/src/xge_svg.c",
+      "reviewDiff": "diffs/xge_svg.c.patch",
+      "reviewDiffSha256": "21df6bfa2c1526565f9bf696c8a05bf86c21467ea943e7a795edf055f038ecdb"
+    },
+    {
+      "path": "src/xui_proxy_xge.c",
+      "material": "files/src/xui_proxy_xge.c",
+      "reviewDiff": "diffs/xui_proxy_xge.c.patch",
+      "beforeSha256": "382979ad8038f3b54992c3135478aa6be397d139596e4ae6f3596b564b959275",
+      "afterSha256": "b5627bdece447656fb6a7b560be7790b1c9d4bbf7ef72ad8790770c0557101c6",
+      "size": 106011,
+      "reviewDiffSha256": "24bec1149d829394dd84bbfc12cf56d901ea16a77ab03ba2e3672579a853d02c"
+    }
+  ],
+  "sourceFileCount": 237,
+  "publicHeadersChanged": false,
+  "apiExportsChangeIntended": false,
+  "runtimeOwner": "xge.dll",
+  "experimentBuild": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-paint-v27-build.json",
+  "experimentBuildSha256": "fd6a8177208a522c046d9c130754189e2b9ce633ad8ef5503a0f5dac0c5e6536",
+  "unicodeClassEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-class-v3.json",
+  "unicodeClassEquivalenceSha256": "34d1e188329f2f3be35713ec737a61bdefed2a4327acd388f500672051a32e01",
+  "emojiRootEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-lookup-v5.json",
+  "emojiRootEquivalenceSha256": "12c2ff4f94f155ae79dfd7eef292f520fb9372f2684889b5845d41b276f551ff",
+  "note": "Ninth private adaptation, SDK27. Whole SDK strict cold build, paint equivalence, 3 SDK and 6 application checks, 16 native comparisons passed. All eight capture pairs are pixel identical. Bounded retained paint records avoid the SDK23 full-run retention; large edit stalls remain. Not selected for promotion. Durable replay is recorded separately to avoid a self-referential manifest hash.",
+  "visibleRangeEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-visible-v12-equivalence.json",
+  "visibleRangeEquivalenceSha256": "b72476c5526c7f5dceb4f79a3ed0acdb651b158a20a2baba05ae8b5acab44eee",
+  "previousBundleManifest": "D:\\GIT\\x-lang\\ide\\third_party\\sdk_patches\\large-source-experiment-v8\\patch-manifest.json",
+  "previousBundleManifestSha256": "ddd34454268597bc335bfcc6f9411fe1ffd864a66e0e6efc1978f3b980bc9391",
+  "newChange": "Retain at most 4096 visible paint records with exact captured float pens; clip/origin/physical-font/exact text key; saturating default-emoji revision; optional allocation and capacity fallback.",
+  "positionEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-v1-run.json",
+  "positionEquivalenceSha256": "35119bdecc3cbe9cefc62eaf770c069f07b592db88f254d9043bb408722d11ca",
+  "positionComparison": "D:\\GIT\\x-lang\\ide\\build\\editor-position-comparison-v1.json",
+  "positionComparisonSha256": "6b1b2ec56e48d5250e8f253112843915cacdd02deb612b0020cd8690481dc840",
+  "equivalenceTestMaterials": [
+    {
+      "path": "tests/old_model.c",
+      "sha256": "fa70c1569bf22a6217e324064dd9d0ce17ed768994790b13db72a2762fcecd9e",
+      "size": 47116,
+      "original": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-a2af835bdf96\\old_model.c"
+    },
+    {
+      "path": "tests/new_model.c",
+      "sha256": "7e37ceb428382400af4a8219c4608877e43485039fc55fb0a04c52b85c5d0591",
+      "size": 48682,
+      "original": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-a2af835bdf96\\new_model.c"
+    },
+    {
+      "path": "tests/models.h",
+      "sha256": "59a63e0b917bfcb3f2e344aeb4e2822fd005af8af8e22715b770383920802475",
+      "size": 5363,
+      "original": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-a2af835bdf96\\models.h"
+    },
+    {
+      "path": "tests/position_test.c",
+      "sha256": "c2c01f4c38411ff0999e86247d13458124a3b035467fbdaad41755c32c90c38b",
+      "size": 8854,
+      "original": "D:\\GIT\\x-lang\\ide\\build\\editor-position-equivalence-a2af835bdf96\\position_test.c"
+    }
+  ],
+  "wholeSdkWerror": true,
+  "outerClipEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-outer-clip-fixture-v2-run.json",
+  "outerClipEquivalenceSha256": "b2b54a55f1670f04c12e8eca29cd7c7db89cedb5897313c34ecc76340e6eeaef",
+  "outerClipTestMaterials": [
+    {
+      "path": "tests/old_emoji_draw.c",
+      "sha256": "e3c07d0024874bb762171c1e5210b3f54fcf6862bf27f2cd198e6ba0c1d4d7aa",
+      "size": 1240
+    },
+    {
+      "path": "tests/outer_clip_test.c",
+      "sha256": "607272ab154a8a6332e5e3f79673e0d2d4e908cb2418dc46b050d6beb42e2e93",
+      "size": 7943
+    }
+  ],
+  "renderComparison": "D:\\GIT\\x-lang\\ide\\build\\editor-render-comparison-v1.json",
+  "renderComparisonSha256": "7589ae2426d4318c0be58073b1fff51cf215ea899f260a08791bce179006d500",
+  "profileObservation": "D:\\GIT\\x-lang\\ide\\build\\editor-performance-render-profile-sdk13-c16-v1-run.json",
+  "profileObservationSha256": "b8640c70acc6810559ce5e9835ab2c5638a26f78965b8e7e0158a81a89d011eb",
+  "shapeLookupEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-shape-fixture-v2-run.json",
+  "shapeLookupEquivalenceSha256": "ed1b48cf4cef68557c2b4a79c2d5f527798c30b9b874f64108ede1dbc23ff807",
+  "shapeLookupTestMaterials": [
+    {
+      "path": "tests/old_text_shape.c",
+      "sha256": "0ca1e1879b4891eb928457139a6c7991e10836545b8d9d228fe34b5df0453cab",
+      "size": 8041
+    },
+    {
+      "path": "tests/shape_lookup_test.c",
+      "sha256": "4a1e2d6ec399489dd0e4d42abb988e6daf4d331c199a005a97994b6d46c00883",
+      "size": 7187
+    }
+  ],
+  "expectedShapeFixtureCounters": {
+    "completeShapeCases": 2822,
+    "scalarLookupChecks": 3365718,
+    "pixelCases": 108,
+    "callLocalTableBytes": 2048
+  },
+  "shapeComparison": "D:\\GIT\\x-lang\\ide\\build\\editor-shape-comparison-v1.json",
+  "shapeComparisonSha256": "40d47bbb72c8ef8905a966a83a1769916ddad79c353f4f7170570b248bc723a0",
+  "previousEvidenceCohort": "D:\\GIT\\x-lang\\ide\\build\\editor-draw-evidence-cohort-v1.json",
+  "previousEvidenceCohortSha256": "7aa7d00626da3bb1d3533992b12d7e380657fe6387175e98597c150a54fa31a8",
+  "rejectedMetricExperimentIncluded": false,
+  "rangeEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-range-fixture-v3-verified.json",
+  "rangeEquivalenceSha256": "9ada6a6aee92901778dd26a572f252052f029c97b7c9ce14aa21d000d20f7610",
+  "rangeTestMaterials": [
+    {
+      "path": "tests/new_range_model.c",
+      "sha256": "9c3a41d77dfd688e15faa0e5c2eb0786c9246b4fecb1a19dd8ec94616e29fd6c",
+      "size": 12656
+    },
+    {
+      "path": "tests/old_range_model.c",
+      "sha256": "b6ca7c175c6620d95a9f598cbb2157c284b86e994ed2ab899b627238b51902af",
+      "size": 11659
+    },
+    {
+      "path": "tests/range_models.h",
+      "sha256": "26d2aa581e83a541ae1b4f41c0b70e8dfe7ba5440dcd481b3774e791e2f62027",
+      "size": 1042
+    },
+    {
+      "path": "tests/range_pair_test.c",
+      "sha256": "0096fdc3af458275658f325169255c1a5efe1d13404a89cc0e830187e99a9355",
+      "size": 8976
+    },
+    {
+      "path": "tests/range_patterns.inc",
+      "sha256": "9b0bf20a9d8c77bb3b867c2a7c169e1f0f2c177c223491db05650b1a7627523b",
+      "size": 1530
+    }
+  ],
+  "expectedRangeFixtureCounters": {
+    "assertions": 521973,
+    "oldRepeatGraphemeCalls": 3849696,
+    "newRepeatGraphemeCalls": 0,
+    "additionalPrivateWidgetBytesThisCompiler": 16,
+    "normalizedOwnedPatterns": 1
+  },
+  "performanceAccepted": false,
+  "selectedForPromotion": false,
+  "drawEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-draw-fixture-v2-run.json",
+  "drawEquivalenceSha256": "f99569deab4050b8ae6f9cb6472e55b428e07b083d1f11e38dadace58c440ed9",
+  "drawTestMaterials": [
+    {
+      "path": "tests/draw_cache_proxy.inc",
+      "sha256": "16778a1eb7a3d6a8490de4cff9869fb78f7b147593ee3cfbae89a24e72a3328c",
+      "size": 12996
+    },
+    {
+      "path": "tests/old_draw_text_spans.c",
+      "sha256": "79cf2a297b345470d89d4463511d50854068bc5be1e02027a8c96c9bd91f0fb7",
+      "size": 1853
+    },
+    {
+      "path": "tests/draw_cache_test.c",
+      "sha256": "1c9824efe43273b7505bc4a8ef32f7bae92f785100b04ec6685354423df76462",
+      "size": 11434
+    }
+  ],
+  "drawCacheEntries": 1,
+  "drawTextLimitBytes": 16777216,
+  "drawMinimumTextBytes": 4096,
+  "drawGlyphRunMoved": false,
+  "drawExactTextCopy": true,
+  "drawImmutableBuiltinOnly": true,
+  "retainedFullRunMemoryTradeoffAccepted": false,
+  "paintTestMaterials": [
+    {
+      "path": "tests/paint_cache_proxy.inc",
+      "sha256": "9a727a34b59ee0f97d5b0c4f075287dbd367436947cad92dc5ab51cc36d0c560",
+      "size": 16945
+    },
+    {
+      "path": "tests/old_paint_renderer.c",
+      "sha256": "574ed67c127b2389e219b85eac52b2c8b87bec1cdc330bb745e94075abe40473",
+      "size": 4684
+    },
+    {
+      "path": "tests/paint_cache_test.c",
+      "sha256": "7e62f1f8a2a33bda1616e2f07ef35759db36afe37a2b86b31cf0ac57c649996c",
+      "size": 16964
+    }
+  ],
+  "paintCacheRecordLimit": 4096,
+  "paintTestEngineAllocationHooks": 3,
+  "paintEquivalence": "D:\\GIT\\x-lang\\ide\\build\\editor-paint-fixture-v3-run.json",
+  "paintEquivalenceSha256": "202bc33f55e2b8e638dd3c6fa28fd3a356f015b25863bae6f84e52cf650e7299",
+  "drawVisibleBackendMoved": true,
+  "paintComparison": "D:\\GIT\\x-lang\\ide\\build\\editor-paint-comparison-v1.json",
+  "paintComparisonSha256": "2c55081d41b0225a6b980fa25008fc5931c99b22d018806d1efcd19f8c0ae822",
+  "idleObservation": "D:\\GIT\\x-lang\\ide\\build\\editor-paint-idle-v1.json",
+  "idleObservationSha256": "7fd3ea5f40271bbdcf13321d8a9298d7c53c1d0f9768ac4789b920a04a6b793f",
+  "functionalChecks": "D:\\GIT\\x-lang\\ide\\build\\editor-sdk-paint-v27-v1-checks.json",
+  "functionalChecksSha256": "1aaeabe28ea8f439232f7e4fca22990fbb36914bd895051e92ae7bacd10d14b5",
+  "applicationChecks": "D:\\GIT\\x-lang\\ide\\build\\editor-paint-application-v1-checks.json",
+  "applicationChecksSha256": "7bf913b4ed5581a8ae4b8eaf2d03f2deecaf695a71b3ba72cdddfe2de5c86c1a",
+  "exports": "D:\\GIT\\x-lang\\ide\\build\\editor-paint-exports-v1.json",
+  "exportsSha256": "3383671dcee469a70e357228b5bf39de6e61c1e3fb5c6d00df95fd508400df23"
+}

@@ -1,0 +1,17 @@
+--- original/src/ui/catalog_view.c
++++ candidate/src/ui/catalog_view.c
+@@ -1,4 +1,5 @@
+ #include "ui/catalog_view.h"
++#include "platform/dpi_proxy.h"
+ #include "ui/completion_view.h"
+ #include "ui/c_completion_view.h"
+ #include "ui/references_view.h"
+@@ -227,7 +228,7 @@
+     xui_table_view_desc_t table={0}; table.iSize=sizeof(table); table.pFont=app->uiFont; table.fDefaultRowHeight=28; table.fHeaderHeight=28; table.onCount=parameterCount; table.onCell=parameterCell; table.pAdapterUser=view;
+     TRY(xuiTableViewCreate(app->context,&view->parameters,&table));
+     xui_code_edit_desc_t code={0}; code.iSize=sizeof(code); code.pFont=app->codeFont; code.sText=""; code.bReadonly=1; code.bShowLineNumbers=1; code.bShowFoldMargin=1; code.iTabColumns=4; code.iIndentColumns=4;
+-    TRY(xuiCodeEditCreate(app->context,&app->helpExample,&code)); TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(app->helpExample))); TRY(xideConfigureEditorLanguage(app->helpExample,"xlang"));
++    TRY(xideDpiCodeEditCreate(app->context,&app->helpExample,&code)); TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(app->helpExample))); TRY(xideConfigureEditorLanguage(app->helpExample,"xlang"));
+     xui_button_desc_t button={0}; button.iSize=sizeof(button); button.pFont=app->uiFont; button.sText="插入范例到当前文件";
+     TRY(xuiButtonCreate(app->context,&view->insert,&button)); TRY(xuiButtonSetClick(view->insert,insertClicked,app));
+     button.sText="返回引用编辑（草稿已保留）"; TRY(xuiButtonCreate(app->context,&view->returnReferences,&button)); TRY(xuiButtonSetClick(view->returnReferences,returnReferencesClicked,app));

@@ -1,0 +1,664 @@
+extern "xregex_last_error" func __xregex_error() as string
+extern "xregex_error_offset_native" func __xregex_error_offset(error value) as int64
+extern "xregex_error_pattern_index_native" func __xregex_error_pattern_index(error value) as int64
+extern "xregex_escape_native" func __xregex_escape_native(string text, c_size size) as point
+extern "xregex_text_range_native" func __xregex_text_range_native(
+    string text, c_size textSize, uint64 start, uint64 count) as point
+extern "xregex_valid_native" func __xregex_valid_native(string pattern, c_size size) as bool
+extern "xregex_set_compile_native" func __xregex_set_compile_native(
+    array<string> patterns, c_uint flags, uint64 maxPatternBytes,
+    uint64 maxCaptures) as point
+
+
+
+// 编译标志与 XRT xregexflag 保持一一对应。
+export const int IGNORE_CASE = 1
+export const int MULTILINE = 2
+export const int DOT_ALL = 4
+export const int UNGREEDY = 8
+
+// 拆分标志与 XRT xregexsplitflag 保持一一对应。
+export const int SPLIT_CAPTURES = 1
+export const int SPLIT_SKIP_EMPTY = 2
+
+// 默认资源预算与 XRT 公共契约保持一致。
+export const int DEFAULT_MAX_PATTERN_BYTES = 1048576
+export const int DEFAULT_MAX_CAPTURES = 4096
+
+
+
+// 把 native 返回的独立 Buffer 转换为稳定字符串。
+func __xregex_text_result(point result) as string
+    if result == null then
+        throw RuntimeError __xregex_error()
+    end
+    return Buffer(result).text()
+end
+
+
+
+// 统一解释 XRT 的 error/none/match 三态结果。
+func __xregex_match_status(int status) as bool
+    if status < 0 then
+        throw RuntimeError __xregex_error()
+    end
+    return status > 0
+end
+
+
+
+// 检查零基字节位置。
+func __xregex_check_start(string text, int start)
+    if start < 0 or start > string.byteLen(text) then
+        throw IndexError "xregex byte position is out of range"
+    end
+end
+
+
+
+// 检查编译标志和资源预算，错误在进入原生层前即可定位。
+func __xregex_check_config(int flags, int maxPatternBytes, int maxCaptures)
+    if flags < 0 or flags > 15 then
+        throw ValueError "xregex flags contain unsupported bits"
+    end
+    if maxPatternBytes <= 0 then
+        throw ValueError "xregex maxPatternBytes must be greater than zero"
+    end
+    if maxCaptures <= 0 then
+        throw ValueError "xregex maxCaptures must be greater than zero"
+    end
+end
+
+
+
+// 一次捕获使用 UTF-8 原始字节半开区间 [begin, endPos)。
+export class RegexMatch
+    int group
+    bool matched
+    int begin
+    int endPos
+    string text
+
+    create(int group, bool matched, int begin, int endPos, string text)
+        self.group = group
+        self.matched = matched
+        self.begin = begin
+        self.endPos = endPos
+        self.text = text
+    end
+
+    get length() as int
+        return self.endPos - self.begin
+    end
+end
+
+
+
+// 流式拆分项保留普通字段、捕获组和未参与捕获三种状态。
+export class RegexSplitPart
+    string text
+    int capture
+    bool matched
+
+    create(string text, int capture, bool matched)
+        self.text = text
+        self.capture = capture
+        self.matched = matched
+    end
+
+    get isCapture() as bool
+        return self.capture >= 0
+    end
+end
+
+
+
+// Matcher 独占执行缓存并持有输入字符串，适合在热路径中重复使用。
+export class RegexMatcher
+    native point handle
+    extern "xregex_matcher_create_native" create(point regex)
+    extern "xregex_matcher_destroy_native" destroy()
+    extern "xregex_matcher_native_handle" func nativeHandle() as point
+    extern "xregex_matcher_find_native" func findNative(
+        string text, c_size size, uint64 start) as c_int
+    extern "xregex_matcher_at_native" func atNative(
+        string text, c_size size, uint64 start) as c_int
+    extern "xregex_matcher_full_native" func fullNative(
+        string text, c_size size) as c_int
+    extern "xregex_matcher_next_native" func nextNative() as c_int
+    extern "xregex_matcher_matched_native" func matchedNative() as bool
+    extern "xregex_matcher_capture_count_native" func captureCountNative() as uint64
+    extern "xregex_matcher_capture_matched_native" func captureMatchedNative(
+        int64 index) as c_int
+    extern "xregex_matcher_capture_begin_native" func captureBeginNative(
+        int64 index) as int64
+    extern "xregex_matcher_capture_end_native" func captureEndNative(
+        int64 index) as int64
+    extern "xregex_matcher_capture_text_native" func captureTextNative(
+        int64 index) as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get matched() as bool
+        return self.valid and self.matchedNative()
+    end
+
+    // 从 UTF-8 原始字节位置开始搜索。
+    func find(string text, int start = 0) as bool
+        if not self.valid then
+            throw RuntimeError "xregex matcher is destroyed"
+        end
+        __xregex_check_start(text, start)
+        return __xregex_match_status(int(self.findNative(
+            text, c_size(string.byteLen(text)), uint64(start))))
+    end
+
+    // 要求匹配从指定字节位置开始。
+    func at(string text, int start = 0) as bool
+        if not self.valid then
+            throw RuntimeError "xregex matcher is destroyed"
+        end
+        __xregex_check_start(text, start)
+        return __xregex_match_status(int(self.atNative(
+            text, c_size(string.byteLen(text)), uint64(start))))
+    end
+
+    // 要求表达式覆盖完整输入。
+    func full(string text) as bool
+        if not self.valid then
+            throw RuntimeError "xregex matcher is destroyed"
+        end
+        return __xregex_match_status(int(self.fullNative(
+            text, c_size(string.byteLen(text)))))
+    end
+
+    // 继续查找下一项；空匹配由 XRT 按 UTF-8 标量推进。
+    func next() as bool
+        if not self.valid then
+            throw RuntimeError "xregex matcher is destroyed"
+        end
+        return __xregex_match_status(int(self.nextNative()))
+    end
+
+    // 复制当前捕获，使结果不依赖下一次 matcher 调用。
+    func capture(int index = 0) as RegexMatch
+        if not self.valid then
+            throw RuntimeError "xregex matcher is destroyed"
+        end
+        if index < 0 or uint64(index) >= self.captureCountNative() then
+            throw IndexError "xregex capture index is out of range"
+        end
+        int64 nativeIndex = int64(index)
+        c_int state = self.captureMatchedNative(nativeIndex)
+        if state < 0 then
+            throw IndexError __xregex_error()
+        end
+        int64 nativeBegin = self.captureBeginNative(nativeIndex)
+        int64 nativeEnd = self.captureEndNative(nativeIndex)
+        if nativeBegin < 0 or nativeEnd < 0 then
+            throw RuntimeError __xregex_error()
+        end
+        string value = __xregex_text_result(self.captureTextNative(nativeIndex))
+        return RegexMatch(index, state > 0, int(nativeBegin), int(nativeEnd), value)
+    end
+end
+
+
+
+// Splitter 在原生对象中持有输入副本并逐项返回，避免一次性结果分配。
+export class RegexSplitter
+    native point handle
+    extern "xregex_splitter_create_native" create(point regex, string text,
+        c_size textSize, int64 limit, c_uint flags)
+    extern "xregex_splitter_destroy_native" destroy()
+    extern "xregex_splitter_native_handle" func nativeHandle() as point
+    extern "xregex_splitter_next_native" func nextNative() as c_int
+    extern "xregex_splitter_text_native" func textNative() as point
+    extern "xregex_splitter_capture_native" func captureNative() as int64
+    extern "xregex_splitter_matched_native" func matchedNative() as bool
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    // 返回下一项；遍历结束返回 null。
+    func next() as RegexSplitPart?
+        if not self.valid then
+            throw RuntimeError "xregex splitter is destroyed"
+        end
+        int status = int(self.nextNative())
+        if status < 0 then
+            throw RuntimeError __xregex_error()
+        elseif status == 0 then
+            return null
+        end
+        int64 nativeCapture = self.captureNative()
+        if nativeCapture < -1 then
+            throw RuntimeError __xregex_error()
+        end
+        return RegexSplitPart(
+            __xregex_text_result(self.textNative()),
+            int(nativeCapture),
+            self.matchedNative())
+    end
+end
+
+
+
+// Regex 是不可变、引用计数且可跨线程共享的编译结果。
+export class Regex
+    native point handle
+    extern "xregex_compile_native" create(string pattern, c_size patternSize,
+        c_uint flags, uint64 maxPatternBytes, uint64 maxCaptures)
+    extern "xregex_adopt" create(point handle)
+    extern "xregex_release_native" destroy()
+    extern "xregex_pattern_native" func patternNative() as point
+    extern "xregex_flags_native" func flagsNative() as c_uint
+    extern "xregex_capture_count_native" func captureCountNative() as int64
+    extern "xregex_capture_name_native" func captureNameNative(int64 index) as point
+    extern "xregex_capture_index_native" func captureIndexNative(
+        string name, c_size size) as int64
+    extern "xregex_native_handle" func nativeHandle() as point
+    extern "xregex_replace_native" func replaceNative(string text, c_size textSize,
+        string replacement, c_size replacementSize, int64 limit) as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get pattern() as string
+        if not self.valid then
+            throw RuntimeError "xregex object is destroyed"
+        end
+        return __xregex_text_result(self.patternNative())
+    end
+
+    get flags() as int
+        if not self.valid then
+            throw RuntimeError "xregex object is destroyed"
+        end
+        return int(self.flagsNative())
+    end
+
+    get captureCount() as int
+        if not self.valid then
+            throw RuntimeError "xregex object is destroyed"
+        end
+        int64 result = self.captureCountNative()
+        if result < 0 then
+            throw RuntimeError __xregex_error()
+        end
+        return int(result)
+    end
+
+    // 未命名捕获返回空字符串。
+    func captureName(int index) as string
+        if index < 0 or index >= self.captureCount then
+            throw IndexError "xregex capture index is out of range"
+        end
+        return __xregex_text_result(self.captureNameNative(int64(index)))
+    end
+
+    // 未找到名称时返回 -1。
+    func captureIndex(string name) as int
+        int64 result = self.captureIndexNative(
+            name, c_size(string.byteLen(name)))
+        if result < -1 then
+            throw RuntimeError __xregex_error()
+        end
+        return int(result)
+    end
+
+    // 创建复用当前不可变表达式的独占 matcher。
+    func matcher() as RegexMatcher
+        if not self.valid then
+            throw RuntimeError "xregex object is destroyed"
+        end
+        RegexMatcher result = RegexMatcher(self.handle)
+        if not result.valid then
+            throw RuntimeError __xregex_error()
+        end
+        return result
+    end
+
+    func test(string text, int start = 0) as bool
+        return self.matcher().find(text, start)
+    end
+
+    func fullTest(string text) as bool
+        return self.matcher().full(text)
+    end
+
+    func matchAt(string text, int start = 0) as RegexMatch?
+        RegexMatcher value = self.matcher()
+        if not value.at(text, start) then
+            return null
+        end
+        return value.capture()
+    end
+
+    func find(string text, int start = 0) as RegexMatch?
+        RegexMatcher value = self.matcher()
+        if not value.find(text, start) then
+            return null
+        end
+        return value.capture()
+    end
+
+    func findAll(string text, int start = 0) as array<RegexMatch>
+        RegexMatcher value = self.matcher()
+        array<RegexMatch> result = []
+        if value.find(text, start) then
+            result.push(value.capture())
+            while value.next()
+                result.push(value.capture())
+            end
+        end
+        return result
+    end
+
+    // limit=-1 替换全部，0 仅复制输入。
+    func replace(string text, string replacement, int limit = -1) as string
+        if limit < -1 then
+            throw ValueError "xregex replace limit must be -1 or greater"
+        end
+        return __xregex_text_result(self.replaceNative(
+            text, c_size(string.byteLen(text)),
+            replacement, c_size(string.byteLen(replacement)),
+            int64(limit)))
+    end
+
+    func replaceFirst(string text, string replacement) as string
+        return self.replace(text, replacement, 1)
+    end
+
+    // 回调可读取 matcher 的全部捕获；结果按字节范围直接写入 Buffer。
+    func replaceWith(string text, func(RegexMatcher) as string fn,
+        int limit = -1) as string
+        if limit < -1 then
+            throw ValueError "xregex replace limit must be -1 or greater"
+        end
+        RegexMatcher value = self.matcher()
+        Buffer output = Buffer()
+        int position = 0
+        int count = 0
+        bool found = limit != 0 and value.find(text)
+        while found and (limit < 0 or count < limit)
+            RegexMatch item = value.capture()
+            point prefix = __xregex_text_range_native(text,
+                c_size(string.byteLen(text)), uint64(position),
+                uint64(item.begin - position))
+            if prefix == null or not output.append(Buffer(prefix)) then
+                throw RuntimeError __xregex_error()
+            end
+            if not output.append(fn(value)) then
+                throw RuntimeError "xregex callback replacement append failed"
+            end
+            position = item.endPos
+            count += 1
+            found = (limit < 0 or count < limit) and value.next()
+        end
+        point suffix = __xregex_text_range_native(text,
+            c_size(string.byteLen(text)), uint64(position),
+            uint64(string.byteLen(text) - position))
+        if suffix == null or not output.append(Buffer(suffix)) then
+            throw RuntimeError __xregex_error()
+        end
+        return output.text()
+    end
+
+    // 创建保留输入生命周期的流式拆分器。
+    func splitter(string text, int limit = -1, bool includeCaptures = false,
+        bool skipEmpty = false) as RegexSplitter
+        if limit < -1 then
+            throw ValueError "xregex split limit must be -1 or greater"
+        end
+        int splitFlags = 0
+        if includeCaptures then
+            splitFlags |= SPLIT_CAPTURES
+        end
+        if skipEmpty then
+            splitFlags |= SPLIT_SKIP_EMPTY
+        end
+        RegexSplitter result = RegexSplitter(self.handle, text,
+            c_size(string.byteLen(text)), int64(limit), c_uint(splitFlags))
+        if not result.valid then
+            throw RuntimeError __xregex_error()
+        end
+        return result
+    end
+
+    func splitParts(string text, int limit = -1, bool includeCaptures = false,
+        bool skipEmpty = false) as array<RegexSplitPart>
+        RegexSplitter value = self.splitter(text, limit, includeCaptures, skipEmpty)
+        array<RegexSplitPart> result = []
+        RegexSplitPart? item = value.next()
+        while item != null
+            result.push(item as RegexSplitPart)
+            item = value.next()
+        end
+        return result
+    end
+
+    func split(string text, int limit = -1, bool skipEmpty = false) as array<string>
+        array<RegexSplitPart> parts = self.splitParts(text, limit, false, skipEmpty)
+        array<string> result = []
+        int i = 0
+        while i < parts.length
+            result.push(parts[i].text)
+            i += 1
+        end
+        return result
+    end
+end
+
+
+
+// RegexSetMatcher 一次执行多个模式，只维护命中索引而不复制捕获。
+export class RegexSetMatcher
+    native point handle
+    extern "xregex_set_matcher_create_native" create(point setHandle)
+    extern "xregex_set_matcher_destroy_native" destroy()
+    extern "xregex_set_matcher_match_native" func matchNative(
+        string text, c_size size, uint64 start) as c_int
+    extern "xregex_set_matcher_count_native" func countNative() as int64
+    extern "xregex_set_matcher_index_native" func indexNative(int64 index) as int64
+    extern "xregex_set_matcher_matched_native" func matchedNative(int64 pattern) as bool
+    extern "xregex_set_matcher_first_native" func firstNative() as int64
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        int64 result = self.countNative()
+        if result < 0 then
+            throw RuntimeError __xregex_error()
+        end
+        return int(result)
+    end
+
+    get first() as int
+        return int(self.firstNative())
+    end
+
+    func nativeHandle() as point
+        return self.handle
+    end
+
+    func search(string text, int start = 0) as bool
+        if not self.valid then
+            throw RuntimeError "xregex set matcher is destroyed"
+        end
+        __xregex_check_start(text, start)
+        return __xregex_match_status(int(self.matchNative(
+            text, c_size(string.byteLen(text)), uint64(start))))
+    end
+
+    func index(int index) as int
+        if index < 0 or index >= self.count then
+            throw IndexError "xregex set match index is out of range"
+        end
+        int64 result = self.indexNative(int64(index))
+        if result < 0 then
+            throw RuntimeError __xregex_error()
+        end
+        return int(result)
+    end
+
+    func matched(int pattern) as bool
+        if pattern < 0 then
+            return false
+        end
+        return self.matchedNative(int64(pattern))
+    end
+
+    func indices() as array<int>
+        array<int> result = []
+        int i = 0
+        while i < self.count
+            result.push(self.index(i))
+            i += 1
+        end
+        return result
+    end
+end
+
+
+
+// RegexSet 把多个模式合并为一次执行程序，适合分类、路由和预筛选。
+export class RegexSet
+    native point handle
+    extern "xregex_set_adopt" create(point handle)
+    extern "xregex_set_release_native" destroy()
+    extern "xregex_set_count_native" func countNative() as int64
+    extern "xregex_set_regex_native" func regexNative(int64 index) as point
+    extern "xregex_set_native_handle" func nativeHandle() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        int64 result = self.countNative()
+        if result < 0 then
+            throw RuntimeError __xregex_error()
+        end
+        return int(result)
+    end
+
+    func regex(int index) as Regex
+        if index < 0 or index >= self.count then
+            throw IndexError "xregex set pattern index is out of range"
+        end
+        point result = self.regexNative(int64(index))
+        if result == null then
+            throw RuntimeError __xregex_error()
+        end
+        return Regex(result)
+    end
+
+    func matcher() as RegexSetMatcher
+        RegexSetMatcher result = RegexSetMatcher(self.handle)
+        if not result.valid then
+            throw RuntimeError __xregex_error()
+        end
+        return result
+    end
+
+    func test(string text, int start = 0) as bool
+        return self.matcher().search(text, start)
+    end
+
+    func matches(string text, int start = 0) as array<int>
+        RegexSetMatcher value = self.matcher()
+        if not value.search(text, start) then
+            return []
+        end
+        return value.indices()
+    end
+
+    func first(string text, int start = 0) as int
+        RegexSetMatcher value = self.matcher()
+        if not value.search(text, start) then
+            return -1
+        end
+        return value.first
+    end
+end
+
+
+
+// 转义动态字面量，避免把用户文本解释为正则语法。
+export func escape(string text) as string
+    return __xregex_text_result(__xregex_escape_native(
+        text, c_size(string.byteLen(text))))
+end
+
+
+
+// 验证表达式，不抛出语法错误。
+export func valid(string pattern) as bool
+    return __xregex_valid_native(pattern, c_size(string.byteLen(pattern)))
+end
+
+
+
+// 编译不可变表达式；语法错误通过 ValueError 暴露。
+export func compile(string pattern, int flags = 0,
+    int maxPatternBytes = DEFAULT_MAX_PATTERN_BYTES,
+    int maxCaptures = DEFAULT_MAX_CAPTURES) as Regex
+    __xregex_check_config(flags, maxPatternBytes, maxCaptures)
+    Regex result = Regex(pattern, c_size(string.byteLen(pattern)), c_uint(flags),
+        uint64(maxPatternBytes), uint64(maxCaptures))
+    if not result.valid then
+        throw ValueError __xregex_error()
+    end
+    return result
+end
+
+
+
+// 一行式搜索入口，频繁执行时应复用 compile() 的结果。
+export func test(string pattern, string text, int flags = 0) as bool
+    return compile(pattern, flags).test(text)
+end
+
+
+
+// 一行式完整匹配入口。
+export func fullMatch(string pattern, string text, int flags = 0) as bool
+    return compile(pattern, flags).fullTest(text)
+end
+
+
+
+// 批量编译不可变模式集合。
+export func compileSet(array<string> patterns, int flags = 0,
+    int maxPatternBytes = DEFAULT_MAX_PATTERN_BYTES,
+    int maxCaptures = DEFAULT_MAX_CAPTURES) as RegexSet
+    __xregex_check_config(flags, maxPatternBytes, maxCaptures)
+    point nativeResult = __xregex_set_compile_native(patterns, c_uint(flags),
+        uint64(maxPatternBytes), uint64(maxCaptures))
+    RegexSet result = RegexSet(nativeResult)
+    if not result.valid then
+        throw ValueError __xregex_error()
+    end
+    return result
+end
+
+
+
+// 查询捕获或保存的错误；没有字节位置时返回 -1。
+export func errorOffset(error value) as int
+    return int(__xregex_error_offset(value))
+end
+
+
+
+// 查询批量编译失败的模式索引；没有索引时返回 -1。
+export func errorPatternIndex(error value) as int
+    return int(__xregex_error_pattern_index(value))
+end

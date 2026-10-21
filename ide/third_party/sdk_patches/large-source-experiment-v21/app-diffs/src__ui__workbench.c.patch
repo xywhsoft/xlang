@@ -1,0 +1,17 @@
+--- original/src/ui/workbench.c
++++ candidate/src/ui/workbench.c
+@@ -1,4 +1,5 @@
+ #include "ui/import_view.h"
++#include "platform/dpi_proxy.h"
+ #include "ui/template_view.h"
+ #include "ui/rename_view.h"
+ #include "app/xide_app.h"
+@@ -41,7 +42,7 @@
+     xui_code_edit_desc_t desc = {0}; desc.iSize = sizeof(desc);
+     desc.pFont = app->codeFont; desc.sText = text; desc.bReadonly = 1;
+     desc.bShowLineNumbers = 1; desc.bShowFoldMargin = 1; desc.iTabColumns = 4; desc.iIndentColumns = 4;
+-    TRY(xuiCodeEditCreate(app->context, widget, &desc));
++    TRY(xideDpiCodeEditCreate(app->context, widget, &desc));
+     TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(*widget)));
+     return xideConfigureEditorLanguage(*widget, language);
+ }

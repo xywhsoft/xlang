@@ -1,0 +1,22 @@
+{
+    "format": "xlang-package-1",
+    "name": "xbot",
+    "version": "0.1.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [],
+        "xlSources": [
+            "src/xbot_core_types.xl"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": {
+        "mode": "suite",
+        "tests": ["test/xbot_test.xl"]
+    },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

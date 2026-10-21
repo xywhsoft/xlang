@@ -1,0 +1,17 @@
+--- original/src/editor/documents.c
++++ candidate/src/editor/documents.c
+@@ -1,4 +1,5 @@
+ #include "editor/documents.h"
++#include "platform/dpi_proxy.h"
+ #include "platform/file_rename.h"
+ #include "editor/coordinates.h"
+ #include "platform/path.h"
+@@ -85,7 +86,7 @@
+     document->store=store; document->window=-1;
+     xui_code_edit_desc_t desc={0}; desc.iSize=sizeof(desc); desc.pFont=store->font;
+     desc.bShowLineNumbers=1; desc.bShowFoldMargin=1; desc.iTabColumns=4; desc.iIndentColumns=4;
+-    int result=xuiCodeEditCreate(store->context,&document->editor,&desc);
++    int result=xideDpiCodeEditCreate(store->context,&document->editor,&desc);
+     if(result==XUI_OK) result=xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(document->editor));
+     if(result!=XUI_OK) {
+         if(document->editor) xuiWidgetDestroy(document->editor);

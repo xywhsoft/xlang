@@ -1,0 +1,18 @@
+--- original/src/ui/template_view.c
++++ candidate/src/ui/template_view.c
+@@ -1,5 +1,6 @@
+ #define _WIN32_WINNT 0x0601
+ #include "ui/toolchain_view.h"
++#include "platform/dpi_proxy.h"
+ #include "ui/resource_view.h"
+ #include "ui/import_view.h"
+ #include "ui/template_view.h"
+@@ -145,7 +146,7 @@
+  TRY(xuiCheckBoxCreate(a->context,&v->controls[XIDE_TEMPLATE_STARTUP],&check)); TRY(xuiWidgetSetRect(v->controls[XIDE_TEMPLATE_STARTUP],(xui_rect_t){0,258,736,32})); TRY(xuiWidgetAddChild(v->content,v->controls[XIDE_TEMPLATE_STARTUP]));
+  TRY(label(a,NULL,"生成文件",(xui_rect_t){0,304,120,28})); combo.arrItems=NULL; combo.iItemCount=0; TRY(xuiComboBoxCreate(a->context,&v->controls[XIDE_TEMPLATE_FILES],&combo)); TRY(xuiWidgetSetRect(v->controls[XIDE_TEMPLATE_FILES],(xui_rect_t){128,296,608,32})); TRY(xuiWidgetAddChild(v->content,v->controls[XIDE_TEMPLATE_FILES])); TRY(xuiComboBoxSetSelect(v->controls[XIDE_TEMPLATE_FILES],chosen,a));
+  xui_code_edit_desc_t code={0}; code.iSize=sizeof(code); code.pFont=a->codeFont; code.bReadonly=1; code.bShowLineNumbers=1; code.sText="";
+- TRY(xuiCodeEditCreate(a->context,&v->controls[XIDE_TEMPLATE_PREVIEW],&code)); TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(v->controls[XIDE_TEMPLATE_PREVIEW]))); TRY(xideConfigureEditorLanguage(v->controls[XIDE_TEMPLATE_PREVIEW],"text")); TRY(xuiWidgetSetRect(v->controls[XIDE_TEMPLATE_PREVIEW],(xui_rect_t){0,338,736,230})); TRY(xuiWidgetAddChild(v->content,v->controls[XIDE_TEMPLATE_PREVIEW]));
++ TRY(xideDpiCodeEditCreate(a->context,&v->controls[XIDE_TEMPLATE_PREVIEW],&code)); TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(v->controls[XIDE_TEMPLATE_PREVIEW]))); TRY(xideConfigureEditorLanguage(v->controls[XIDE_TEMPLATE_PREVIEW],"text")); TRY(xuiWidgetSetRect(v->controls[XIDE_TEMPLATE_PREVIEW],(xui_rect_t){0,338,736,230})); TRY(xuiWidgetAddChild(v->content,v->controls[XIDE_TEMPLATE_PREVIEW]));
+  TRY(label(a,&v->message,"",(xui_rect_t){0,580,736,48})); TRY(button(a,XIDE_TEMPLATE_CREATE,"创建项目",(xui_rect_t){510,636,110,32})); TRY(button(a,XIDE_TEMPLATE_CANCEL,"取消",(xui_rect_t){636,636,100,32}));
+  return xideUiLayoutCapture(&v->layout,v->content);
+ }

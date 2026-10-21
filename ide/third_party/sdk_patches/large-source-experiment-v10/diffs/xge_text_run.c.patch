@@ -1,0 +1,336 @@
+--- a/src/xge_text_run.c
++++ b/src/xge_text_run.c
+@@ -38,9 +38,44 @@
+ 	return XGE_OK;
+ }
+ 
++/* Bounded, call-local lookup reuse. No font state survives the shape call,
++   and collisions use the original resolver before replacing this slot. */
++#define XGE_TEXT_SHAPE_LOOKUP_SLOTS 128u
++typedef struct xge_text_shape_lookup_t {
++    uint32_t iCodepointKey;
++    int iGlyph;
++    xge_font pFont;
++} xge_text_shape_lookup_t;
++
++static xge_font __xgeTextShapeResolveCodepoint(xge_font pFont, uint32_t iCodepoint,
++    int* pGlyph, xge_text_shape_lookup_t* pLookup)
++{
++    xge_text_shape_lookup_t* pEntry;
++    xge_font pResolved;
++    uint32_t iKey = iCodepoint + 1u;
++    if ( pLookup == NULL || iKey == 0u ) {
++        return __xgeFontResolveCodepoint(pFont, iCodepoint, pGlyph);
++    }
++    pEntry = &pLookup[(iCodepoint * 0x9e3779b9u) >> 25];
++    if ( pEntry->iCodepointKey == iKey ) {
++        *pGlyph = pEntry->iGlyph;
++        return pEntry->pFont;
++    }
++    pResolved = __xgeFontResolveCodepoint(pFont, iCodepoint, pGlyph);
++    /* A failed lookup leaves the caller's glyph output untouched. */
++    if ( pResolved != NULL ) {
++        pEntry->iCodepointKey = iKey;
++        pEntry->iGlyph = *pGlyph;
++        pEntry->pFont = pResolved;
++    }
++    return pResolved;
++}
++
+ int xgeTextShape(const xge_text_shape_desc_t* pDesc, xge_glyph_run_t* pRun)
+ {
+ 	xge_glyph_run_backend_t* pBackend;
++    xge_text_shape_lookup_t tLookup[XGE_TEXT_SHAPE_LOOKUP_SLOTS];
++    xge_text_shape_lookup_t* pLookup;
+ 	xge_glyph_position_t* pPosition;
+ 	xge_glyph_metrics_t tMetrics;
+ 	xge_emoji_match_t tEmojiMatch;
+@@ -93,7 +128,24 @@
+ 		? XGE_EMOJI_LINE_EXPAND : XGE_EMOJI_LINE_STABLE;
+ 	pEmojiPack = pDesc->pEmojiPack;
+ 	if ( iTextSize == 0 ) return XGE_OK;
+-	pRun->pGlyphs = (xge_glyph_position_t*)xrtCalloc((size_t)iTextSize, sizeof(*pRun->pGlyphs));
++    pLookup = NULL;
++    if ( iTextSize >= 256 ) {
++        memset(tLookup, 0, sizeof(tLookup));
++        pLookup = tLookup;
++    }
++    {
++        const char* sCount = pDesc->sText;
++        const char* sCountEnd = sCount + iTextSize;
++        int iCapacity = 0;
++        uint32_t iCountCodepoint;
++        while ( sCount < sCountEnd ) {
++            iRet = __xgeTextUTF8DecodeBounded(&sCount, sCountEnd, &iCountCodepoint);
++            if ( iRet != XGE_OK ) { xgeGlyphRunFree(pRun); return iRet; }
++            ++iCapacity;
++        }
++        /* UTF-8 bytes are an upper bound, but waste most capacity for CJK/emoji. */
++        pRun->pGlyphs = (xge_glyph_position_t*)xrtCalloc((size_t)iCapacity, sizeof(*pRun->pGlyphs));
++    }
+ 	pBackend = (xge_glyph_run_backend_t*)xrtCalloc(1, sizeof(*pBackend));
+ 	if ( (pRun->pGlyphs == NULL) || (pBackend == NULL) ) {
+ 		xrtFree(pRun->pGlyphs);
+@@ -163,7 +215,7 @@
+ 				xgeGlyphRunFree(pRun);
+ 				return XGE_ERROR_OUT_OF_MEMORY;
+ 			}
+-			pGlyphFont = __xgeFontResolveCodepoint(pDesc->pFont, iCodepoint, &iGlyph);
++			pGlyphFont = __xgeTextShapeResolveCodepoint(pDesc->pFont, iCodepoint, &iGlyph, pLookup);
+ 			if ( (pGlyphFont != NULL) && (__xgeGlyphRunKeepFont(pBackend, pGlyphFont) != XGE_OK) ) {
+ 				xgeGlyphRunFree(pRun);
+ 				return XGE_ERROR_OUT_OF_MEMORY;
+@@ -197,7 +249,7 @@
+ 			pPreviousFont = NULL;
+ 			continue;
+ 		}
+-		pGlyphFont = __xgeFontResolveCodepoint(pDesc->pFont, iCodepoint, &iGlyph);
++		pGlyphFont = __xgeTextShapeResolveCodepoint(pDesc->pFont, iCodepoint, &iGlyph, pLookup);
+ 		if ( pGlyphFont == NULL ) continue;
+ 		iRet = xgeFontGlyphGetByIndex(pGlyphFont, iGlyph, &tMetrics);
+ 		if ( iRet != XGE_OK ) continue;
+@@ -348,37 +400,89 @@
+ 	return iColor;
+ }
+ 
+-static void __xgeGlyphRunDrawSpans(const xge_glyph_run_t* pRun, float fX, float fY,
+-	uint32_t iColor, uint32_t iFlags, const xge_text_paint_span_t* pSpans, int iSpanCount)
+-{
+-	const xge_glyph_position_t* pPosition;
+-	xge_glyph_atlas_page_t* pPages;
+-	xge_glyph_t tGlyph;
+-	xge_draw_t tDraw;
+-	float fPenX;
+-	float fPenY;
+-	xge_glyph_run_backend_t* pBackend;
+-	int i;
+-
+-	if ( (pRun == NULL) || (pRun->pGlyphs == NULL) ) return;
+-	pBackend = (xge_glyph_run_backend_t*)pRun->pBackend;
+-	__xgeGlyphRunPrepareAtlas(pRun);
+-	fPenX = fX;
+-	fPenY = fY + pRun->fAscent;
+-	if ( (iFlags & XGE_DRAW_SCREEN_SPACE) != 0 ) {
+-		fPenX = __xgeTextSnapPixel(fPenX);
+-		fPenY = __xgeTextSnapPixel(fPenY);
+-	}
+-	for ( i = 0; i < pRun->iGlyphCount; i++ ) {
+-		pPosition = &pRun->pGlyphs[i];
+-		if ( (pPosition->iFlags & XGE_GLYPH_POSITION_LINE_BREAK) != 0 ) {
+-			fPenX = fX;
+-			fPenY += pRun->fLineHeight;
+-			continue;
+-		}
++/* Bounded visible paint records. Pens are captured after the original ordered
++   float additions, rather than reconstructed by adding skipped advances. */
++#define XGE_GLYPH_PAINT_CACHE_MAX 4096
++typedef struct xge_glyph_paint_cache_t {
++    xge_glyph_run_t tRun;
++    xge_vec2_t* pPens;
++    int iCapacity;
++    int bValid;
++    xge_rect_i_t tClip;
++} xge_glyph_paint_cache_t;
++
++static void __xgeGlyphPaintCacheAdd(xge_glyph_paint_cache_t* pCache,
++    const xge_glyph_position_t* pPosition, float fPenX, float fPenY)
++{
++    xge_glyph_position_t* pGlyphs;
++    xge_vec2_t* pPens;
++    int iCapacity;
++    int i;
++    if ( pCache == NULL || !pCache->bValid ) return;
++    i = pCache->tRun.iGlyphCount;
++    if ( i >= XGE_GLYPH_PAINT_CACHE_MAX ) { pCache->bValid = 0; return; }
++    if ( i >= pCache->iCapacity ) {
++        iCapacity = pCache->iCapacity > 0 ? pCache->iCapacity * 2 : 128;
++        pGlyphs = (xge_glyph_position_t*)xrtRealloc(pCache->tRun.pGlyphs,
++            (size_t)iCapacity * sizeof(*pGlyphs));
++        if ( pGlyphs == NULL ) { pCache->bValid = 0; return; }
++        pCache->tRun.pGlyphs = pGlyphs;
++        pPens = (xge_vec2_t*)xrtRealloc(pCache->pPens, (size_t)iCapacity * sizeof(*pPens));
++        if ( pPens == NULL ) { pCache->bValid = 0; return; }
++        pCache->pPens = pPens;
++        pCache->iCapacity = iCapacity;
++    }
++    pCache->tRun.pGlyphs[i] = *pPosition;
++    pCache->pPens[i].fX = fPenX;
++    pCache->pPens[i].fY = fPenY;
++    pCache->tRun.iGlyphCount = i + 1;
++}
++
++static void __xgeGlyphPaintCacheEmoji(xge_glyph_paint_cache_t* pCache,
++    const xge_glyph_position_t* pPosition, float fPenX, float fPenY, int bSvgMayPaint)
++{
++    xge_glyph_metrics_t tMetrics;
++    xge_rect_t tFallbackBounds;
++    if ( pCache == NULL || !pCache->bValid ) return;
++    if ( !bSvgMayPaint && pPosition->pFont != NULL && pPosition->iGlyph >= 0 ) {
++        /* Keep potential fallback ink as well, so a later SVG load failure can
++           still draw the same fallback glyph without losing an omitted item. */
++        if ( xgeFontGlyphGetByIndex(pPosition->pFont, pPosition->iGlyph, &tMetrics) != XGE_OK ) {
++            pCache->bValid = 0;
++            return;
++        }
++        tFallbackBounds.fX = fPenX + tMetrics.fX0;
++        tFallbackBounds.fY = fPenY + tMetrics.fY0;
++        tFallbackBounds.fW = tMetrics.fX1 - tMetrics.fX0;
++        tFallbackBounds.fH = tMetrics.fY1 - tMetrics.fY0;
++        bSvgMayPaint = !__xgeTextOutsidePixelClip(tFallbackBounds, pCache->tClip);
++    }
++    if ( bSvgMayPaint ) __xgeGlyphPaintCacheAdd(pCache, pPosition, fPenX, fPenY);
++}
++
++/* Private cross-TU entry points; no public declarations or exports. */
++void __xgeGlyphRunPaintCacheFree(void* pOpaque)
++{
++    xge_glyph_paint_cache_t* pCache = (xge_glyph_paint_cache_t*)pOpaque;
++    if ( pCache == NULL ) return;
++    xgeGlyphRunFree(&pCache->tRun);
++    xrtFree(pCache->pPens);
++    xrtFree(pCache);
++}
++
++static void __xgeGlyphRunDrawPosition(const xge_glyph_position_t* pPosition,
++    xge_glyph_run_backend_t* pBackend, float fPenX, float fPenY, uint32_t iColor,
++    uint32_t iFlags, const xge_text_paint_span_t* pSpans, int iSpanCount,
++    xge_glyph_paint_cache_t* pCache)
++{
++    xge_glyph_atlas_page_t* pPages;
++    xge_glyph_t tGlyph;
++    xge_draw_t tDraw;
++    int iGlyphRet;
+ 		if ( pPosition->iItemKind == XGE_TEXT_ITEM_EMOJI ) {
+ 			xge_rect_t tEmojiRect;
+ 			int iEmojiRet = XGE_ERROR_RESOURCE_FAILED;
++			int bMayPaint = 1;
+ 			tEmojiRect.fX = fPenX + pPosition->fOffsetX;
+ 			tEmojiRect.fY = fPenY + pPosition->fOffsetY;
+ 			tEmojiRect.fW = pPosition->fEmojiWidth;
+@@ -386,15 +490,17 @@
+ 			if ( (pBackend != NULL) && (pBackend->pEmojiPack != NULL) ) {
+ 				iEmojiRet = __xgeEmojiDraw(
+ 					pBackend->pEmojiPack, pPosition->iEmojiId, tEmojiRect,
+-					((iFlags & XGE_DRAW_SCREEN_SPACE) != 0)
++					((iFlags & XGE_DRAW_SCREEN_SPACE) != 0), &bMayPaint
+ 				);
+ 			}
+ 			if ( iEmojiRet == XGE_OK ) {
+-				fPenX += pPosition->fAdvanceX;
+-				continue;
+-			}
+-		}
+-		if ( xgeFontGlyphAtlasGetByIndex(pPosition->pFont, pPosition->iGlyph, &tGlyph) == XGE_OK &&
++				__xgeGlyphPaintCacheEmoji(pCache, pPosition, fPenX, fPenY, bMayPaint);
++				return;
++			}
++			if ( pCache != NULL ) pCache->bValid = 0;
++		}
++		iGlyphRet = xgeFontGlyphAtlasGetByIndex(pPosition->pFont, pPosition->iGlyph, &tGlyph);
++		if ( iGlyphRet == XGE_OK &&
+ 		     (tGlyph.iPage >= 0) && (tGlyph.iWidth > 0) && (tGlyph.iHeight > 0) ) {
+ 			pPages = (xge_glyph_atlas_page_t*)pPosition->pFont->tAtlas.pPages;
+ 			if ( (pPosition->iItemKind == XGE_TEXT_ITEM_EMOJI) &&
+@@ -415,21 +521,96 @@
+ 			tDraw.tDst.fH = (float)tGlyph.iHeight;
+ 			tDraw.iColor = __xgeGlyphRunSpanColor(pPosition, iColor, pSpans, iSpanCount);
+ 			tDraw.iFlags = iFlags;
+-			xgeDrawEx(&tDraw);
+-		}
+-		fPenX += pPosition->fAdvanceX;
+-	}
++            if ( (iFlags & XGE_DRAW_SCREEN_SPACE) == 0 ||
++                 !__xgeTextOutsidePixelClip(tDraw.tDst, xgeClipGetPixels()) ) {
++                __xgeGlyphPaintCacheAdd(pCache, pPosition, fPenX, fPenY);
++                xgeDrawEx(&tDraw);
++            }
++		}
++        if ( iGlyphRet != XGE_OK && pCache != NULL ) pCache->bValid = 0;
++}
++static void __xgeGlyphRunDrawSpans(const xge_glyph_run_t* pRun, float fX, float fY,
++    uint32_t iColor, uint32_t iFlags, const xge_text_paint_span_t* pSpans, int iSpanCount,
++    xge_glyph_paint_cache_t* pCache)
++{
++    const xge_glyph_position_t* pPosition;
++    xge_glyph_run_backend_t* pBackend;
++    float fPenX;
++    float fPenY;
++    int i;
++    if ( pRun == NULL || pRun->pGlyphs == NULL ) return;
++    pBackend = (xge_glyph_run_backend_t*)pRun->pBackend;
++    __xgeGlyphRunPrepareAtlas(pRun);
++    fPenX = fX;
++    fPenY = fY + pRun->fAscent;
++    if ( (iFlags & XGE_DRAW_SCREEN_SPACE) != 0 ) {
++        fPenX = __xgeTextSnapPixel(fPenX);
++        fPenY = __xgeTextSnapPixel(fPenY);
++    }
++    for ( i = 0; i < pRun->iGlyphCount; i++ ) {
++        pPosition = &pRun->pGlyphs[i];
++        if ( (pPosition->iFlags & XGE_GLYPH_POSITION_LINE_BREAK) != 0 ) {
++            fPenX = fX;
++            fPenY += pRun->fLineHeight;
++            continue;
++        }
++        __xgeGlyphRunDrawPosition(pPosition, pBackend, fPenX, fPenY, iColor,
++            iFlags, pSpans, iSpanCount, pCache);
++        fPenX += pPosition->fAdvanceX;
++    }
++}
++
++void* __xgeGlyphRunPaintCacheCaptureDraw(xge_glyph_run_t* pRun, float fX, float fY,
++    uint32_t iColor, const xge_text_paint_span_t* pSpans, int iSpanCount)
++{
++    xge_glyph_paint_cache_t* pCache = NULL;
++    xge_rect_i_t tClip = xgeClipGetPixels();
++    if ( pRun != NULL && pRun->pBackend != NULL && tClip.iW > 0 && tClip.iH > 0 &&
++         isfinite(fX) && isfinite(fY) ) {
++        pCache = (xge_glyph_paint_cache_t*)xrtCalloc(1, sizeof(*pCache));
++        if ( pCache != NULL ) {
++            pCache->tRun = *pRun;
++            pCache->tRun.pGlyphs = NULL;
++            pCache->tRun.pBackend = NULL;
++            pCache->tRun.iGlyphCount = 0;
++            pCache->tClip = tClip;
++            pCache->bValid = 1;
++        }
++    }
++    __xgeGlyphRunDrawSpans(pRun, fX, fY, iColor, XGE_DRAW_SCREEN_SPACE, pSpans, iSpanCount, pCache);
++    if ( pCache != NULL && pCache->bValid ) {
++        pCache->tRun.pBackend = pRun->pBackend;
++        pRun->pBackend = NULL;
++        return pCache;
++    }
++    __xgeGlyphRunPaintCacheFree(pCache);
++    return NULL;
++}
++
++void __xgeGlyphRunPaintCacheDraw(void* pOpaque, uint32_t iColor,
++    const xge_text_paint_span_t* pSpans, int iSpanCount)
++{
++    xge_glyph_paint_cache_t* pCache = (xge_glyph_paint_cache_t*)pOpaque;
++    xge_glyph_run_backend_t* pBackend;
++    int i;
++    if ( pCache == NULL ) return;
++    __xgeGlyphRunPrepareAtlas(&pCache->tRun);
++    pBackend = (xge_glyph_run_backend_t*)pCache->tRun.pBackend;
++    for ( i = 0; i < pCache->tRun.iGlyphCount; i++ )
++        __xgeGlyphRunDrawPosition(&pCache->tRun.pGlyphs[i], pBackend,
++            pCache->pPens[i].fX, pCache->pPens[i].fY, iColor,
++            XGE_DRAW_SCREEN_SPACE, pSpans, iSpanCount, NULL);
+ }
+ 
+ void xgeGlyphRunDraw(const xge_glyph_run_t* pRun, float fX, float fY, uint32_t iColor, uint32_t iFlags)
+ {
+-	__xgeGlyphRunDrawSpans(pRun, fX, fY, iColor, iFlags, NULL, 0);
++	__xgeGlyphRunDrawSpans(pRun, fX, fY, iColor, iFlags, NULL, 0, NULL);
+ }
+ 
+ void xgeGlyphRunDrawSpans(const xge_glyph_run_t* pRun, float fX, float fY, uint32_t iColor,
+ 	uint32_t iFlags, const xge_text_paint_span_t* pSpans, int iSpanCount)
+ {
+-	__xgeGlyphRunDrawSpans(pRun, fX, fY, iColor, iFlags, pSpans, iSpanCount);
++	__xgeGlyphRunDrawSpans(pRun, fX, fY, iColor, iFlags, pSpans, iSpanCount, NULL);
+ }
+ 
+ static void __xgeGlyphRunDecorationLine(float fX0, float fX1, float fY, const xge_text_decoration_t* pDecoration, float fDefaultThickness)

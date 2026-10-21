@@ -1,0 +1,118 @@
+# xxhash
+
+XXH32/XXH64 非密码哈希，支持 UTF-8 文本、Buffer、增量对象和带进度/取消的文件读取。
+使用随包 C 后端，复用 XRT 的资源、文件和错误设施，无额外 xxHash DLL。
+不用于口令、签名或防恶意篡改；来源和许可证见 [VENDOR.md](VENDOR.md)。
+
+## 使用
+
+```xlang
+import xxhash
+
+println(xxhash.hash64Hex("abc")) // 44bc2cf5ad770999
+auto h = xxhash.hasher()
+h.update("a")
+h.update("bc")
+assert h.digest() == xxhash.hash64("abc")
+assert h.inputBytes == uint64(3)
+```
+
+所有文本按 UTF-8 **字节数**处理，不按字符数截断，不先创建 Buffer。
+任意二进制数据用 Buffer，包括零字节。一次性输入为空是合法情况。
+整数摘要和种子是无符号数，不经过有符号 int；hex 是固定宽度小写文本。
+
+## 公开函数
+
+| 函数 | 参数与结果 |
+| --- | --- |
+| `version()` | 返回固定后端版本 `0.8.3` |
+| `hash64(Buffer|string data, uint64 seed = 0) as uint64` | 完整 64 位摘要 |
+| `hash64Hex(Buffer|string data, uint64 seed = 0) as string` | 16 个小写 hex 字符 |
+| `hash32(Buffer|string data, uint32 seed = 0) as uint32` | 完整 32 位摘要 |
+| `hash32Hex(Buffer|string data, uint32 seed = 0) as string` | 8 个小写 hex 字符 |
+| `hashFile64(string path, uint64 seed = 0, int maxInput = 268435456, (func(int, int, int) as bool)? onProgress = null) as uint64` | 文件摘要 |
+| `hashFile64Hex(...) as string` | 与 hashFile64 相同参数，返回 hex |
+| `hasher(uint64 seed = 0, int maxInput = 268435456) as Xxhash64Hasher` | 增量 XXH64 对象 |
+
+`Buffer|string` 在表中表示两个重载，不是新的类型语法。`XXHASH_DEFAULT_SEED` 为零。
+种子必须在对应无符号类型的范围内，不隐式截断高位或把负数当作无符号种子。
+语言层的 `maxInput` 必须为正，默认为 256 MiB；不是 CPU 时限、峰值内存或文件快照保证。
+一次性函数不另设输入预算，因为输入已由调用方持有。
+
+## 增量对象
+
+| 成员 | 含义 |
+| --- | --- |
+| `update(Buffer)` / `update(string)` | 追加字节，空输入有效 |
+| `digest() as uint64` | 读取当前摘要，可重复读取并继续追加 |
+| `digestHex() as string` | 同样的快照，以 16 个小写 hex 字符表示 |
+| `reset() as bool` | 清除输入和失败状态，保留种子和预算 |
+| `inputBytes as uint64` | 已成功消费的字节数 |
+| `valid as bool` | 原生句柄是否非空，不表示对象没有发生过 update 错误 |
+
+超过输入预算或传入非法 C 数据后，对象进入失败状态，后续 update/digest 继续报错，
+直到 reset。失败的 update 不增加计数、不吞掉半个输入。计数溢出始终拒绝。
+推荐使用 `hasher()` 工厂；底层构造和 `*Native` 方法是 C 互操作入口，不接受任意指针。
+状态由 XRT 分配一次，上游流式状态直接内嵌；语言对象自动析构，不隐藏复制资源。
+不同对象可以独立并发；同一可变对象必须串行访问。
+
+## 文件、回调与错误
+
+```xlang
+uint64 sum = xxhash.hashFile64("data.bin",
+    onProgress = func(int current, int total, int output) as bool
+        return true
+    end)
+```
+
+三项回调参数依次为已读字节、总字节、输出字节。输出恒为零，未知总长为零。
+每块最多读取 64 KiB，EOF 再通知一次，空文件也通知；语言回调没有 FINAL 标记，
+所以末尾计数可能重复。XRT 的 uint64 进度经范围检查后才转换为语言回调的 int。
+
+- 返回 false：抛出 CancelledError；包括末尾取消，不返回已完成的摘要。
+- 回调主动抛异常：保留原始类别和消息，可捕获后正常调用下一次操作。
+- 可嵌套另一独立文件哈希；没有全局 file-status 或循环复用的 hex 槽。
+- 非法参数为 ValueError，超过预算为 RangeError，分配失败为 MemoryError。
+- 打开失败沿用 XRT FileError；Reader 原始错误不改写为统一的 I/O 错误。
+- 文件始终通过 XRT UTF-8 API 打开，成功/失败都关闭自己打开的 reader；不修改输入文件。
+
+## C API
+
+核心头：[include/xrt_xxhash.h](include/xrt_xxhash.h)。
+提供 OptionsInit、ErrorInit、32/64、HasherCreate/Update/Digest/Reset/InputBytes/Error/Destroy、
+File64，统一前缀为 `xrtXxhash`。所有失败进入 XRT 错误系统，可选详细 error 记录辅助定位。
+一次性和 Reader 接口失败时不写调用方摘要输出。错误后不能仅依赖零摘要判断失败。
+
+`xrtXxhashFile64` **借用** reader，从当前游标读到 EOF，不关闭、不回退；
+总长度是剩余字节，不是整个文件长度。可寻址且超预算时，在读之前拒绝。
+非寻址 Reader 按已读块检查预算，失败可能已经消费该块，不承诺游标回滚。
+C 的 xrtprogress 帧保留 TOTAL_KNOWN/FINAL 标志。
+
+NULL 配置使用 XRT 默认预算；明确初始化后的核心 C 配置中 `iMaxInputBytes=0`
+表示不设业务上限，但仍检查整数溢出。Options/Limits 的 size/version 必须匹配。
+薄绑定构造和文件函数的 maximum=0 表示默认预算，语义与核心显式零限额不同。
+
+薄绑定头：[include/xxhash_native.h](include/xxhash_native.h)。point 对应 `void*`，
+string 对应 `const char*`，C 整数使用精确的 C 类型；进入核心时才作为 const 借用。
+hex 返回值借用当前 XRT 临时区，临时区清理/回退后失效；长期保留请复制。
+成功的下一次调用不会覆盖此前文本；不同线程使用各自的临时区。
+
+## 范例与验证
+
+- [xlang 教学范例](../../examples/extlibs/xxhash.xl)：文件、回调、二进制、错误、增量。
+- [xlang 对照范例](../../examples/extlibs/xxhash_basic.xl) 与 [C 对照范例](examples/basic.c)。
+- [共同固定输出](../../examples/extlibs/xxhash_basic.expected.txt)。
+- [核心 C 边界](test/test_xxhash.c)、[原生层/分配故障/线程](test/test_xxhash_native.c)。
+- [负数种子拒绝](test/invalid_seed_negative.xl)、[32 位种子溢出拒绝](test/invalid_seed32_overflow.xl)：
+  预期语义错误的负例，不能当作成功运行的范例。
+- `tools/check_extlib_xxhash.ps1`：严格 GCC、124 条独立向量、实际生成声明、JIT/AOT、双语输出。
+- `tools/check_extlib_xxhash.sh`：Linux 独立 C ASan/UBSan/泄漏检查与范例对照。
+
+上述门禁的每次结果都有输入清单和哈希。门禁包含编译步骤，不把检查项数当作 API 数。
+2026-09-27 的专项覆盖 37 项 Windows 检查、全部 19 个实际生成的原生声明，
+以及 Linux 独立 C ASan/UBSan/泄漏检查。种子负数/超宽负例在语义阶段拒绝；
+非法输入预算在文件打开前拒绝。C 和 xlang 对照范例的六行输出完全一致。
+TCC 适配也检查系统头包含顺序，不依赖目标宏提前定义，不要求额外的 xxHash DLL。
+当前语言公开面是 XXH32 一次性、XXH64 一次性/流式/文件；没有宣称 XXH3/128 语言 API、
+XXH32 流式对象、Linux xlang、32 位/ARM、共享可变 hasher 并发或性能认证。
+原生后端保留上游函数；不能把上游 API 存在当作对应语言包装已实现。

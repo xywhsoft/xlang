@@ -1,0 +1,33 @@
+{
+    "format": "xlang-package-1",
+    "name": "zip",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "xrt_zip_source.c",
+            "xrt_zip_archive.c",
+            "xrt_zip_extract.c",
+            "zip_native.c"
+        ],
+        "xlSources": [
+            "src/zip.xl"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [
+        {
+            "name": "_libzip",
+            "version": "1.11.4",
+            "abiVersion": "1"
+        }
+    ],
+    "native": {
+        "singleton": false,
+        "loadName": "",
+        "version": ""
+    }
+}

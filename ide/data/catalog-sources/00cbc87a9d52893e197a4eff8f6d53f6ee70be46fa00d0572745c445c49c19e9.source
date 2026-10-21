@@ -1,0 +1,55 @@
+// xbot 默认包只公开离线 Agent 所需的稳定基础模型。
+
+export const string XBOT_VERSION = "0.1.2-dev"
+
+export class OpResult
+    bool success
+    string reply
+    string error
+    var data
+
+    create(bool ok, string message, string failure)
+        self.success = ok
+        self.reply = message
+        self.error = failure
+        self.data = null
+    end
+
+    func ok() as bool
+        return self.success
+    end
+
+    func fail() as bool
+        return self.success == false
+    end
+end
+
+export class Size
+    int width
+    int height
+
+    create(int valueWidth, int valueHeight)
+        self.width = valueWidth
+        self.height = valueHeight
+    end
+end
+
+export class Pixel
+    float x
+    float y
+
+    create(float valueX, float valueY)
+        self.x = valueX
+        self.y = valueY
+    end
+end
+
+export class Ratio
+    float x
+    float y
+
+    create(float valueX, float valueY)
+        self.x = valueX
+        self.y = valueY
+    end
+end

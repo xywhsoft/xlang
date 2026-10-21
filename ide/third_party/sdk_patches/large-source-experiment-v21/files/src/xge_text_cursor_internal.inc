@@ -1,0 +1,173 @@
+/* Private checkpointed shaping. Visitors must keep font/emoji state stable.
+   The caller owns both caches; an old cache stays valid until explicitly freed. */
+typedef struct xge_cursor_font_key_t {
+    xge_font pFont;
+    xge_font pFallback;
+    void* pBackend;
+    void* pData;
+    int iDataSize;
+    uint32_t iFlags;
+    float fSize,fScale,fAscent,fDescent,fLineGap,fLineHeight;
+} xge_cursor_font_key_t;
+typedef struct xge_cursor_checkpoint_t {
+    int iOffset,iVisited,iFontCount,bEmoji,bPending;
+    int iPreviousGlyph,iLineCount;
+    int64_t iRequiredPrefixEnd;
+    xge_font pPreviousFont;
+    xge_emoji_pack pEmojiPack;
+    xge_glyph_run_t tRun;
+    xge_glyph_position_t tPending,tLastVisited;
+    float fLineWidth,fLineRight,fMaxWidth,fMaxLineGap;
+} xge_cursor_checkpoint_t;
+struct xge_internal_text_cursor_t {
+    xge_text_shape_desc_t tDesc;
+    char* sText;
+    int iTextSize,iStride,iCount,iCapacity,bFailed;
+    int64_t iNextOffset;
+    uint64_t iDefaultRevision,iExplicitRevision,iEffectiveRevision;
+    xge_emoji_pack pExplicitPack,pEffectivePack;
+    xge_glyph_run_backend_t* pKeyFonts;
+    xge_glyph_run_backend_t* pRunFonts;
+    xge_cursor_font_key_t* pFontKeys;
+    int iFontKeyCount;
+    xge_cursor_checkpoint_t* pCheckpoints;
+};
+typedef struct xge_cursor_record_t {
+    xge_internal_text_shape_visit_proc onVisit;
+    void* pUser;
+    const xge_glyph_run_backend_t* pPrefixFonts;
+    int iVisited,iInvocations;
+    int64_t iRequiredPrefixEnd;
+    xge_glyph_position_t tLastVisited;
+} xge_cursor_record_t;
+static uint64_t __xgeCursorDefaultRevision(void) {
+    uint64_t value;__xgeEmojiGlobalLock();value=g_xgeEmojiDefaultRevision;__xgeEmojiGlobalUnlock();return value;
+}
+static void __xgeCursorBackendFree(xge_glyph_run_backend_t* backend) {
+    xge_glyph_run_t run={0};run.pBackend=backend;xgeGlyphRunFree(&run);
+}
+void xgeInternalTextCursorFree(xge_internal_text_cursor* cursor) {
+    if(!cursor)return;
+    __xgeCursorBackendFree(cursor->pKeyFonts);__xgeCursorBackendFree(cursor->pRunFonts);
+    xgeEmojiPackFree(cursor->pExplicitPack);xgeEmojiPackFree(cursor->pEffectivePack);
+    xrtFree(cursor->sText);xrtFree(cursor->pFontKeys);xrtFree(cursor->pCheckpoints);xrtFree(cursor);
+}
+static xge_cursor_font_key_t __xgeCursorFontKey(xge_font font) {
+    xge_cursor_font_key_t k={0};k.pFont=font;k.pFallback=font->pFallback;k.pBackend=font->pBackend;k.pData=font->pData;
+    k.iDataSize=font->iDataSize;k.iFlags=font->iFlags;k.fSize=font->fSize;k.fScale=font->fScale;
+    k.fAscent=font->fAscent;k.fDescent=font->fDescent;k.fLineGap=font->fLineGap;k.fLineHeight=font->fLineHeight;return k;
+}
+static int __xgeCursorFontsEqual(const xge_internal_text_cursor* cursor) {
+    for(int i=0;i<cursor->iFontKeyCount;++i){xge_cursor_font_key_t k=__xgeCursorFontKey(cursor->pFontKeys[i].pFont);if(memcmp(&k,&cursor->pFontKeys[i],sizeof(k)))return 0;}return 1;
+}
+static xge_internal_text_cursor* __xgeCursorCreate(const xge_text_shape_desc_t* desc,int size) {
+    xge_internal_text_cursor* c=xrtCalloc(1,sizeof(*c));xge_font font;
+    if(!c)return NULL;
+    c->tDesc=*desc;c->iTextSize=size;c->iStride=size/8192+1;if(c->iStride<4096)c->iStride=4096;c->iNextOffset=c->iStride;
+    c->sText=xrtMalloc((size_t)size+1u);c->pKeyFonts=xrtCalloc(1,sizeof(*c->pKeyFonts));c->pFontKeys=xrtCalloc(64,sizeof(*c->pFontKeys));
+    if(!c->sText || !c->pKeyFonts || !c->pFontKeys)goto fail;
+    memcpy(c->sText,desc->sText,(size_t)size);c->sText[size]=0;c->tDesc.sText=c->sText;
+    for(font=desc->pFont;font;font=font->pFallback) {
+        int found=0;for(int i=0;i<c->iFontKeyCount;++i)if(c->pFontKeys[i].pFont==font){found=1;break;}if(found)break;
+        if(c->iFontKeyCount>=64 || __xgeGlyphRunKeepFont(c->pKeyFonts,font)!=XGE_OK)goto fail;
+        c->pFontKeys[c->iFontKeyCount++]=__xgeCursorFontKey(font);
+    }
+    c->iDefaultRevision=__xgeCursorDefaultRevision();
+    if(desc->pEmojiPack){if(xgeEmojiPackAddRef(desc->pEmojiPack)<=0)goto fail;c->pExplicitPack=desc->pEmojiPack;c->iExplicitRevision=desc->pEmojiPack->iShapeRevision;}
+    return c;
+fail:xgeInternalTextCursorFree(c);return NULL;
+}
+static int __xgeCursorKeyEqual(const xge_internal_text_cursor* c,const xge_text_shape_desc_t* d) {
+    const xge_text_shape_desc_t* a=&c->tDesc;
+    if(a->pFont!=d->pFont || a->pEmojiPack!=d->pEmojiPack || a->iFlags!=d->iFlags ||
+       a->iEmojiPresentation!=d->iEmojiPresentation || a->iEmojiLinePolicy!=d->iEmojiLinePolicy || a->fEmojiScale!=d->fEmojiScale || !__xgeCursorFontsEqual(c))return 0;
+    if(c->iDefaultRevision==UINT64_MAX || c->iDefaultRevision!=__xgeCursorDefaultRevision())return 0;
+    if(c->pExplicitPack && (c->iExplicitRevision==UINT64_MAX || c->iExplicitRevision!=c->pExplicitPack->iShapeRevision))return 0;
+    if(c->pEffectivePack && (c->iEffectiveRevision==UINT64_MAX || c->iEffectiveRevision!=c->pEffectivePack->iShapeRevision))return 0;
+    return 1;
+}
+static int __xgeCursorVisit(const xge_glyph_position_t* glyph,void* user) {
+    xge_cursor_record_t* r=user;int code;xge_glyph_position_t saved=*glyph;
+    ++r->iInvocations;code=r->onVisit(glyph,r->pUser);if(code==XGE_OK){r->tLastVisited=saved;++r->iVisited;}return code;
+}
+/* A call-local memo for the validated UTF-8 shape input. The matcher may read
+   beyond its matched sequence, so retain both the actual read extent and EOF
+   dependency. Unbounded lookahead and saturated revisions use the old path. */
+#define XGE_TEXT_EMOJI_MATCH_SLOTS 64u
+#define XGE_TEXT_EMOJI_MATCH_PREFIX 16u
+#ifndef XGE_TEXT_EMOJI_MATCH_TRACE
+#define XGE_TEXT_EMOJI_MATCH_TRACE(event,count) ((void)(event),(void)(count))
+#endif
+typedef struct xge_text_emoji_match_cache_t {
+    xge_emoji_pack pPack;
+    uint64_t iRevision;
+    unsigned char sPrefix[XGE_TEXT_EMOJI_MATCH_PREFIX];
+    int iPrefixSize,iEndSize,iCode;
+    xge_emoji_match_t tMatch;
+    xge_emoji_read_extent_t tRead;
+} xge_text_emoji_match_cache_t;
+static int __xgeTextMatchEmojiMemo(xge_emoji_pack pack,const char* text,const char* end,
+    int presentation,xge_emoji_match_t* match,xge_emoji_read_extent_t* read,
+    xge_text_emoji_match_cache_t* table)
+{
+    xge_text_emoji_match_cache_t* entry;
+    uint64_t hash=0,revision;
+    int remaining=(int)(end-text),keySize,hashSize,code;
+    if(!table || !pack || remaining<=0 || pack->iShapeRevision==UINT64_MAX ||
+       presentation==XGE_EMOJI_PRESENTATION_TEXT || presentation==XGE_EMOJI_PRESENTATION_DISABLED) {
+        code=__xgeEmojiMatchForTextCursor(pack,text,end,presentation,match,read);
+        XGE_TEXT_EMOJI_MATCH_TRACE(3,(int)read->iRead);return code;
+    }
+    keySize=remaining<(int)XGE_TEXT_EMOJI_MATCH_PREFIX?remaining:(int)XGE_TEXT_EMOJI_MATCH_PREFIX;
+    hashSize=keySize<8?keySize:8;memcpy(&hash,text,(size_t)hashSize);
+    hash^=hash>>32;hash*=UINT64_C(0x9e3779b9);hash^=hash>>32;
+    entry=&table[hash&(XGE_TEXT_EMOJI_MATCH_SLOTS-1u)];revision=pack->iShapeRevision;
+    if(entry->pPack==pack && entry->iRevision==revision && entry->iPrefixSize==keySize &&
+       (entry->iEndSize<0 || entry->iEndSize==remaining) && !memcmp(entry->sPrefix,text,(size_t)keySize)) {
+        *match=entry->tMatch;*read=entry->tRead;
+        XGE_TEXT_EMOJI_MATCH_TRACE(1,(int)read->iRead);return entry->iCode;
+    }
+    code=__xgeEmojiMatchForTextCursor(pack,text,end,presentation,match,read);
+    XGE_TEXT_EMOJI_MATCH_TRACE(2,(int)read->iRead);
+    if((code==XGE_OK || code==XGE_ERROR_NOT_FOUND) && pack->iShapeRevision==revision &&
+       read->iRead>0 && read->iRead<=keySize && (!read->bEnd || remaining==keySize)) {
+        entry->pPack=pack;entry->iRevision=revision;entry->iPrefixSize=keySize;
+        entry->iEndSize=read->bEnd?remaining:-1;entry->iCode=code;
+        memcpy(entry->sPrefix,text,(size_t)keySize);entry->tMatch=*match;entry->tRead=*read;
+    }
+    return code;
+}
+static int __xgeCursorMatchEmoji(xge_emoji_pack pack,const char* text,const char* end,int presentation,
+    xge_emoji_match_t* match,xge_cursor_record_t* record,const char* origin,
+    xge_text_emoji_match_cache_t* table)
+{
+    xge_emoji_read_extent_t read={0};int code;
+    if(!record && !table)return __xgeEmojiMatchForText(pack,text,end,presentation,match);
+    code=__xgeTextMatchEmojiMemo(pack,text,end,presentation,match,&read,table);
+    if(record) {
+        int64_t required=(int64_t)(text-origin)+read.iRead+(read.bEnd?1:0);
+        if(required>record->iRequiredPrefixEnd)record->iRequiredPrefixEnd=required;
+    }
+    return code;
+}
+static void __xgeCursorCapture(xge_internal_text_cursor* c,int offset,const xge_glyph_run_t* run,
+    int previousGlyph,xge_font previousFont,xge_emoji_pack pack,float width,float right,float maximum,float gap,
+    int lines,int pending,const xge_glyph_position_t* glyph,const xge_cursor_record_t* r) {
+    xge_cursor_checkpoint_t* p;xge_glyph_run_backend_t* backend=run->pBackend;
+    if(!c || c->bFailed || offset<c->iNextOffset)return;
+    if(c->iCount==c->iCapacity){int capacity=c->iCapacity?c->iCapacity*2:16;
+        p=xrtRealloc(c->pCheckpoints,(size_t)capacity*sizeof(*p));if(!p){c->bFailed=1;return;}c->pCheckpoints=p;c->iCapacity=capacity;}
+    p=&c->pCheckpoints[c->iCount++];memset(p,0,sizeof(*p));p->iOffset=offset;p->iVisited=r->iVisited;p->iRequiredPrefixEnd=r->iRequiredPrefixEnd;
+    p->iFontCount=backend->iFontCount;p->bEmoji=backend->pEmojiPack!=NULL;p->bPending=pending;
+    p->iPreviousGlyph=previousGlyph;p->pPreviousFont=previousFont;p->pEmojiPack=pack;p->iLineCount=lines;
+    p->fLineWidth=width;p->fLineRight=right;p->fMaxWidth=maximum;p->fMaxLineGap=gap;
+    p->tRun=*run;p->tRun.pBackend=NULL;p->tRun.pGlyphs=NULL;if(pending)p->tPending=*glyph;if(r->iVisited)p->tLastVisited=r->tLastVisited;
+    c->iNextOffset=(int64_t)offset+c->iStride;
+}
+static xge_glyph_run_backend_t* __xgeCursorCloneBackend(const xge_glyph_run_backend_t* source,int fonts,int emoji) {
+    xge_glyph_run_backend_t* result=xrtCalloc(1,sizeof(*result));if(!result)return NULL;
+    for(int i=0;i<fonts;++i)if(__xgeGlyphRunKeepFont(result,source->ppFonts[i])!=XGE_OK)goto fail;
+    if(emoji && source->pEmojiPack && __xgeGlyphRunKeepEmojiPack(result,source->pEmojiPack)!=XGE_OK)goto fail;
+    return result;
+fail:__xgeCursorBackendFree(result);return NULL;
+}
