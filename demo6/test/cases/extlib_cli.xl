@@ -59,6 +59,14 @@ func main(...) as int
     r = cli.parse(["-z"], spec)
     assert r["ok"] == false, "unknown short fails"
 
+    r = cli.parse(["-中"], spec)
+    assert r["ok"] == false, "non-ASCII short fails"
+    assert r["error"] == "short option must be printable ASCII", "short error text"
+
+    r = cli.parse(["-o中文.txt"], spec)
+    assert r["ok"] == true, "UTF-8 short value succeeds"
+    assert r["options"]["output"] == "中文.txt", "UTF-8 short value"
+
     // 错误路径：缺选项值
     r = cli.parse(["--output"], spec)
     assert r["ok"] == false, "missing value fails"
