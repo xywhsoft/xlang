@@ -2,6 +2,9 @@
 
 #include <limits.h>
 
+/* 普通 TOML 表可以拥有同名字段；只有构造器产生的对象才是日期。 */
+#define XRT_TOML_DATETIME_TYPE_ID UINT64_C(0x544f4d4c44415445)
+
 static const char* __xrtTomlKindName(int iKind)
 {
 	switch ( iKind ) {
@@ -25,6 +28,31 @@ static bool __xrtTomlValidTimeParts(int iHour, int iMinute, int iSecond,
 	return iHour >= 0 && iHour <= 23 && iMinute >= 0 && iMinute <= 59 &&
 		iSecond >= 0 && iSecond <= 59 && iMicrosecond >= 0 &&
 		iMicrosecond <= 999999;
+}
+
+static bool __xrtTomlValidDateTime(const xrttomldatetime* pValue)
+{
+	if ( pValue == NULL || __xrtTomlKindName(pValue->iKind) == NULL ||
+		pValue->iReserved != 0 ) { return false; }
+	if ( pValue->iKind == XRT_TOML_DATE ) {
+		return __xrtTomlValidDateParts(pValue->iYear, pValue->iMonth,
+			pValue->iDay) && pValue->iHour == 0 && pValue->iMinute == 0 &&
+			pValue->iSecond == 0 && pValue->iMicrosecond == 0 &&
+			pValue->iTimezoneMinutes == 0;
+	}
+	if ( pValue->iKind == XRT_TOML_TIME ) {
+		return pValue->iYear == 0 && pValue->iMonth == 0 &&
+			pValue->iDay == 0 && pValue->iTimezoneMinutes == 0 &&
+			__xrtTomlValidTimeParts(pValue->iHour, pValue->iMinute,
+				pValue->iSecond, pValue->iMicrosecond);
+	}
+	return __xrtTomlValidDateParts(pValue->iYear, pValue->iMonth,
+		pValue->iDay) && __xrtTomlValidTimeParts(pValue->iHour,
+		pValue->iMinute, pValue->iSecond, pValue->iMicrosecond) &&
+		(pValue->iKind == XRT_TOML_DATETIME ?
+			pValue->iTimezoneMinutes == 0 :
+			(pValue->iTimezoneMinutes >= -1439 &&
+			 pValue->iTimezoneMinutes <= 1439));
 }
 
 static bool __xrtTomlSetInt(xvalue* pObject, const char* sKey, int iValue)
@@ -72,14 +100,7 @@ static xvalue* __xrtTomlCreateDateTimeValue(const xrttomldatetime* pValue)
 	xvalue* pResult;
 	const char* sKind = pValue != NULL ? __xrtTomlKindName(pValue->iKind) : NULL;
 
-	if ( sKind == NULL ||
-		(pValue->iKind != XRT_TOML_TIME &&
-		 !__xrtTomlValidDateParts(pValue->iYear, pValue->iMonth, pValue->iDay)) ||
-		(pValue->iKind != XRT_TOML_DATE &&
-		 !__xrtTomlValidTimeParts(pValue->iHour, pValue->iMinute,
-			pValue->iSecond, pValue->iMicrosecond)) ||
-		(pValue->iKind == XRT_TOML_OFFSET_DATETIME &&
-		 (pValue->iTimezoneMinutes < -1439 || pValue->iTimezoneMinutes > 1439)) ) {
+	if ( sKind == NULL || !__xrtTomlValidDateTime(pValue) ) {
 		return NULL;
 	}
 	pResult = xrtValueObject();
@@ -91,7 +112,8 @@ static xvalue* __xrtTomlCreateDateTimeValue(const xrttomldatetime* pValue)
 		!__xrtTomlSetInt(pResult, "minute", pValue->iMinute) ||
 		!__xrtTomlSetInt(pResult, "second", pValue->iSecond) ||
 		!__xrtTomlSetInt(pResult, "microsecond", pValue->iMicrosecond) ||
-		!__xrtTomlSetInt(pResult, "offsetMinutes", pValue->iTimezoneMinutes) ) {
+		!__xrtTomlSetInt(pResult, "offsetMinutes", pValue->iTimezoneMinutes) ||
+		!xrtValueTypeIdBind(pResult, XRT_TOML_DATETIME_TYPE_ID) ) {
 		xrtValueRelease(pResult);
 		return NULL;
 	}
@@ -149,14 +171,17 @@ XRT_API bool xrtTomlGetDateTime(const xvalue* pValue,
 	xrttomldatetime* pResult)
 {
 	xstrview Kind;
+	xvalue* pKind;
 	int iKind;
 
 	if ( pValue == NULL || pResult == NULL ||
 		xrtValueType(pValue) != XVALUE_OBJECT ||
-		!xrtValueGetString(xrtValueObjectGet(pValue,
-			xrtStrView("__toml_type")), &Kind) ) {
+		xrtValueTypeId(pValue) != XRT_TOML_DATETIME_TYPE_ID ) {
 		return false;
 	}
+	pKind = xrtValueObjectGet(pValue, xrtStrView("__toml_type"));
+	if ( pKind == NULL || xrtValueType(pKind) != XVALUE_STRING ||
+		!xrtValueGetString(pKind, &Kind) ) { return false; }
 	if ( Kind.Size == 4u && memcmp(Kind.Data, "date", 4u) == 0 ) {
 		iKind = XRT_TOML_DATE;
 	} else if ( Kind.Size == 4u && memcmp(Kind.Data, "time", 4u) == 0 ) {
@@ -179,15 +204,7 @@ XRT_API bool xrtTomlGetDateTime(const xvalue* pValue,
 		__xrtTomlGetShort(pValue, "second", &pResult->iSecond) &&
 		__xrtTomlGetInt(pValue, "microsecond", &pResult->iMicrosecond) &&
 		__xrtTomlGetShort(pValue, "offsetMinutes", &pResult->iTimezoneMinutes) &&
-		((pResult->iKind == XRT_TOML_TIME ||
-			__xrtTomlValidDateParts(pResult->iYear, pResult->iMonth,
-				pResult->iDay)) &&
-		 (pResult->iKind == XRT_TOML_DATE ||
-			__xrtTomlValidTimeParts(pResult->iHour, pResult->iMinute,
-				pResult->iSecond, pResult->iMicrosecond)) &&
-		 (pResult->iKind != XRT_TOML_OFFSET_DATETIME ||
-			(pResult->iTimezoneMinutes >= -1439 &&
-			 pResult->iTimezoneMinutes <= 1439)));
+		__xrtTomlValidDateTime(pResult);
 }
 
 XRT_API bool xrtTomlIsDateTimeValue(const xvalue* pValue, int* pKind)
@@ -205,7 +222,7 @@ XRT_API str xrtTomlDateTimeToString(const xrttomldatetime* pValue)
 	char sZone[16] = "";
 	int iSize;
 
-	if ( pValue == NULL || __xrtTomlKindName(pValue->iKind) == NULL ) {
+	if ( !__xrtTomlValidDateTime(pValue) ) {
 		return NULL;
 	}
 	if ( pValue->iMicrosecond != 0 ) {

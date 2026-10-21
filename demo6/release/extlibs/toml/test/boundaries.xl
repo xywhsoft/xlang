@@ -1,0 +1,254 @@
+import toml
+
+func main(...) as int
+    var source = toml.parse("title = \"demo\"\n")
+    var date = toml.localDate(2026, 7, 16)
+    assert toml.dateTimeKind(date) == 1
+    source["released"] = date
+    assert toml.dateTimeKind(source["released"]) == 1
+
+    string encoded = toml.stringify(source)
+    var again = toml.parse(encoded)
+    assert again["title"] == "demo"
+    assert toml.dateTimeKind(again["released"]) == 1
+    assert toml.dateTimePart(again["released"], 0) == 2026
+    string nested = toml.stringify({"outer": {"enabled": true}})
+    assert toml.parse(nested)["outer"]["enabled"] == true
+
+    var finite = toml.parse("value = 1.7976931348623157e308\n")
+    assert math.isFinite(float(finite["value"])), "largest finite TOML float"
+    bool overflowRejected = false
+    try
+        toml.parse("value = 1e999\n")
+    catch ValueError error
+        overflowRejected = true
+    end
+    assert overflowRejected, "finite TOML literal must not become infinity"
+
+    bool rejected = false
+    try
+        toml.parse("x = [")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    assert toml.errorLine() > 0
+
+    array<string> duplicates = [
+        "a = 1\na = 2\n",
+        "a = 1\n[a]\nx = 2\n",
+        "[a]\nx = 1\n[a]\ny = 2\n",
+        "a = { b = 1 }\na.c = 2\n",
+        "a.b = 1\na = { c = 2 }\n",
+        "a = { b = 1 }\n[a.c]\nd = 2\n",
+        "a.b = 1\n[a]\nc = 2\n",
+        "[a]\nb.c = 1\n[a.b]\nd = 2\n",
+        "fruits = []\n[[fruits]]\n",
+        "[[fruits]]\n[fruits]\n",
+        "[fruit.physical]\n[[fruit]]\n"
+    ]
+    for candidate in duplicates
+        rejected = false
+        try
+            toml.parse(candidate)
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected and toml.errorLine() > 0
+    end
+
+    var outOfOrder = toml.parse("[x.y.z]\n[x]\nname = 1\n")
+    assert outOfOrder["x"]["name"] == 1
+    assert outOfOrder["x"]["y"]["z"] == {}
+
+    array<string> outsideVersion10 = [
+        "a = { b = 1, }\n",
+        "a = { b = 1,\n c = 2 }\n",
+        "a = 07:32\n",
+        "a = 1979-05-27T07:32\n",
+        "中文 = 1\n",
+        "a = \"\\x33\"\n",
+        "a = \"\\e\"\n"
+    ]
+    for candidate in outsideVersion10
+        rejected = false
+        try
+            toml.parse(candidate)
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected and toml.errorLine() > 0
+    end
+    assert toml.parse("\"中文\" = 1\n")["中文"] == 1
+    assert toml.parse(toml.stringify({"中文": 1}))["中文"] == 1
+
+    rejected = false
+    try
+        toml.parse("value = 1\n", maxInput = 4)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected and toml.errorCode() == 5
+
+    for badText in ["value = 1\n\0hidden = 2\n", "value = 1\n# note\0hidden = 2\n"]
+        rejected = false
+        try
+            toml.parse(badText)
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected, "embedded NUL must not truncate TOML input"
+    end
+
+    var tables = toml.parse("[[x]]\n")
+    rejected = false
+    try
+        toml.stringify(tables, maxNodes = 2)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected and toml.errorCode() == 5
+    assert toml.stringify(tables, maxNodes = 3) != ""
+    rejected = false
+    try
+        toml.stringify(tables, maxDepth = 2)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected and toml.errorCode() == 5
+    assert toml.stringify(tables, maxDepth = 3) != ""
+
+    rejected = false
+    try
+        toml.stringify({"x": "abcd"}, maxItem = 3)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected and toml.errorCode() == 5
+
+    rejected = false
+    try
+        toml.stringify({"x": [1, 2, 3]}, maxEntries = 2)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected and toml.errorCode() == 5
+
+    rejected = false
+    try
+        toml.stringify({"value": "hello"}, maxOutput = 1)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected and toml.errorCode() == 5
+
+    rejected = false
+    try
+        toml.load("toml-missing-parent-019ff64d/config.toml")
+    catch IOError error
+        rejected = true
+    end
+    assert rejected and toml.errorCode() == 4
+
+    rejected = false
+    try
+        toml.save("toml-missing-parent-019ff64d/config.toml", {"value": 1})
+    catch IOError error
+        rejected = true
+    end
+    assert rejected and toml.errorCode() == 4
+    assert toml.parse("value = 1\n")["value"] == 1
+    assert toml.errorCode() == 0
+
+    // TOML 允许比微秒更多的小数位；超出本包精度时按规范截断。
+    var fine = toml.parse("local = 12:34:56.123456999\n" +
+        "datetime = 2026-07-16T12:34:56.9999999\n" +
+        "offset = 2026-07-16T12:34:56.123456789+08:00\n")
+    assert toml.dateTimePart(fine["local"], 6) == 123456
+    assert toml.dateTimePart(fine["datetime"], 6) == 999999
+    assert toml.dateTimePart(fine["offset"], 6) == 123456
+    var fineAgain = toml.parse(toml.stringify(fine))
+    assert toml.dateTimePart(fineAgain["local"], 6) == 123456
+    assert toml.dateTimePart(fineAgain["datetime"], 6) == 999999
+
+    // 参数到 C ABI 的窄化不能把负限额变为无限大，或将日期回绕为合法值。
+    for mode in range(8)
+        rejected = false
+        try
+            if mode == 0 then toml.parse("x = 1\n", maxInput = -1) end
+            if mode == 1 then toml.parse("x = 1\n", maxOutput = -1) end
+            if mode == 2 then toml.parse("x = 1\n", maxItem = -1) end
+            if mode == 3 then toml.parse("x = 1\n", maxEntries = -1) end
+            if mode == 4 then toml.parse("x = 1\n", maxNodes = -1) end
+            if mode == 5 then toml.parse("x = 1\n", maxDepth = -1) end
+            if mode == 6 then toml.load("missing.toml", maxInput = -1) end
+            if mode == 7 then toml.save("missing.toml", {"x": 1}, maxOutput = -1) end
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected
+    end
+    rejected = false
+    try
+        toml.stringify({"x": 1}, maxDepth = 4294967296)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        toml.localDate(4294969322, 7, 16)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        toml.dateTimePart(date, 4294967296)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+
+    // 已存在的文件不能通过 NUL 后缀被另一个路径别名读取。
+    string directory = dir.temp("", "xlang-toml-boundary-", "")
+    string inputPath = path.join(directory, "input.toml")
+    try
+        assert file.writeText(inputPath, "x = 1\n")
+        rejected = false
+        try
+            toml.save(inputPath, {"x": "abcd"}, maxItem = 3)
+        catch RangeError error
+            rejected = true
+        end
+        assert rejected and toml.errorCode() == 5
+        assert file.readText(inputPath) == "x = 1\n"
+        rejected = false
+        try
+            toml.load(inputPath + "\0suffix")
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected
+        rejected = false
+        try
+            toml.save(inputPath + "\0suffix", {"x": 2})
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected and file.readText(inputPath) == "x = 1\n"
+    finally
+        assert dir.delete(directory), "TOML boundary temporary directory must be removed"
+    end
+
+    // 普通表即使与日期对象字段完全同形，也必须按表往返。
+    string collisionSource = "[record]\n__toml_type = \"date\"\nyear = 2026\nmonth = 10\nday = 14\nhour = 0\nminute = 0\nsecond = 0\nmicrosecond = 0\noffsetMinutes = 0\n"
+    var ordinary = toml.parse(collisionSource)
+    assert toml.dateTimeKind(ordinary["record"]) == 0
+    var restored = toml.parse(toml.stringify(ordinary))
+    assert toml.dateTimeKind(restored["record"]) == 0
+    assert restored["record"]["__toml_type"] == "date"
+    assert restored["record"]["year"] == 2026
+    println("toml boundaries: ok")
+    return 0
+end

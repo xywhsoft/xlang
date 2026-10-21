@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>toml - 扩展库 - xlang</title>
+  <meta name="description" content="TOML 文本与文件读写，保留日期时间类型，提供 C 和 xlang 双语接口。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-fmt" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / toml</p>
+    <h1>toml</h1>
+    <p class="extlib-lead">解析和生成 TOML，支持 UTF-8 文件、资源配额和四种日期时间值。</p>
+    <p>版本 1.0.0 · C / xlang · 依赖 _tomlc17</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import toml
+
+var config = toml.parse("title = \"demo\"\n")
+config["released"] = toml.localDate(2026, 7, 16)
+string text = toml.stringify(config)
+assert toml.dateTimeKind(toml.parse(text)["released"]) == 1</code></pre>
+    <p>解析结果是可在 C 和 xlang 两侧访问的 XRT 值。根文档写出时必须是字典；文件入口为 <code>load(path)</code> 与 <code>save(path, value)</code>。</p>
+    <p>解析语法以 TOML 1.0 为目标：内联表不可跨行或带尾逗号，时间须写秒，Unicode 键须加引号；不接受 <code>\xNN</code> 或 <code>\e</code> 转义。</p>
+  </section>
+  <section id="api">
+    <h2>接口</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>parse / load</code></td><td>从文本或 UTF-8 路径读入 TOML，返回 var 字典。</td></tr>
+      <tr><td><code>stringify / save</code></td><td>写出文本或原子保存文件；拒绝无效 UTF-8 键和值。</td></tr>
+      <tr><td><code>localDate / localTime</code></td><td>创建无时区的日期或时间值。</td></tr>
+      <tr><td><code>localDateTime / offsetDateTime</code></td><td>创建本地或带偏移的日期时间。</td></tr>
+      <tr><td><code>dateTimeKind / isLocalDate / isLocalTime / isLocalDateTime / isOffsetDateTime</code></td><td>判断时间类型。</td></tr>
+      <tr><td><code>dateTimePart(value, part) / dateTimeText(value)</code></td><td>读取时间分量或 TOML 文本表示；part 为 0..7。</td></tr>
+      <tr><td><code>errorCode / errorLine / errorColumn / errorOffset</code></td><td>查询当前线程最近的 TOML 错误位置。</td></tr>
+    </tbody></table>
+    <p>解析与写出可限制输入、输出、单项、条目、节点和深度；参数 <code>0</code> 使用 XRT 默认值，负数不合法。C 端传入选项结构时须先调用 <code>xrtTomlOptionsInit</code>；结构本身或内嵌资源限额的版本、长度无效会报 <code>ARGUMENT</code>，不会回退到默认限额。深度限额与日期参数进入 C ABI 前进行范围检查，路径不接受内嵌 NUL。日期记录、可变日期对象与格式化共用校验，无效日历值或与类型无关的隐藏字段不会被当成合法日期输出。语法/参数错误为 <code>ValueError</code>，限额为 <code>RangeError</code>，真正的文件或流 IO 失败为 <code>IOError</code>；解析、写出和原子保存过程中的分配失败均报告 <code>MemoryError</code>。</p>
+    <p>C 选项中内嵌资源限额的保留字段必须为零；非零配置在解析与写出前报告 ARGUMENT。TOML 不使用压缩倍率或资源标志：OptionsInit 将倍率置零，显式设置 <code>iMaxCompressionRatio</code> 或 <code>iFlags</code> 同样报 ARGUMENT，不会静默忽略。</p>
+    <p><code>parse(string)</code> 直接传递 UTF-8 数据及字节长度，不另建 XLang Buffer 副本。Reader 同时支持总长度与当前位置查询时，按剩余字节数在读取前拒绝超限；其他 Reader 仍受限额读取约束。正文或注释中的内嵌 NUL 均作为格式错误拒绝。</p>
+    <p><code>maxItem</code> 按键和字符串原始 UTF-8 字节数计算，<code>maxEntries</code> 限制每个数组和表，<code>maxNodes</code>/<code>maxDepth</code> 也计入数组表的数组节点。解析和写出使用同一限额口径；刚好到上限可用，超限时 <code>save</code> 不覆盖旧文件。</p>
+    <p>日期时间支持 6 位秒小数（微秒）。按 TOML 规范，更多小数位会截断而非四舍五入；再次写出只保留微秒，不能用来无损保存纳秒。</p>
+    <p>日期时间值由本包构造函数创建，以 XRT <code>TypeId</code> 区分于普通表；字段碰巧与日期记录同形的 TOML 表仍按表写回，不会变成日期。深拷贝保留日期身份。</p>
+    <p>普通有限浮点字面量若溢出 <code>float64</code>，本包报格式错误，不静默转为无穷大；显式 <code>inf</code>/<code>nan</code> 仍可解析。这是本包的数值边界，并非要求所有 TOML 实现采用同一溢出策略。</p>
+  </section>
+  <section id="c-api">
+    <h2>C 对照</h2>
+    <pre><code>#include "xrt_toml.h"
+
+int main(void)
+{
+    xrttomlerror error;
+    const char source[] = "title = \"demo\"\n";
+    xvalue* value = xrtTomlParseMemory(source, sizeof(source) - 1u, NULL, &amp;error);
+    if (value == NULL) return 1;
+    /* 使用 xrtValueObjectGet 等 XRT 接口读取，完成后释放。 */
+    xrtValueRelease(value);
+    return 0;
+}</code></pre>
+    <p>公共头为 <code>extlibs/toml/include/xrt_toml.h</code>。<code>xrtTomlParseMemory</code> 返回拥有型 xvalue；<code>xrtTomlStringify</code> 返回拥有型 xbuffer。完整可运行的双语范例为 <code>examples/extlibs/toml.xl</code> 与 <code>examples/extlibs/toml_c.c</code>；两者构造四种日期时间值并检查微秒与偏移。传入目标路径时，使用 TOML 的 <code>save/load</code> 完成文件往返，并由 Python <code>tomllib</code> 独立解析结果。</p>
+  </section>
+  <section id="verify">
+    <h2>验证状态</h2>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/toml/test/check.ps1 -SkipAot
+bash release/extlibs/toml/test/check.sh</code></pre>
+    <p>Windows 包级门禁覆盖严格 GCC 语法/ABI、C/XLang 边界与双语范例逐字对照，并用 Python 3.11+ 标准库 <code>tomllib</code> 独立解析两侧同字节写出的文件；默认模式还依次检查核心 AOT 与带输出范例 AOT，并对照 C 输出。Linux 包级脚本同次运行 C ASan/UBSan、中央与包内 XLang 边界、双语输出及 <code>tomllib</code> 格式检查。C 测试覆盖解析器分配器和逐点内存故障。历史构建的无输出核心 AOT 曾通过，但当前 Windows/Linux 发布物均在 <code>xl6NativeHandleTraceLeaf</code> 缺符号处停止；新增的带输出 AOT 阶段尚不能运行，不能签收 AOT。<code>-SkipAot</code> 仅供聚焦开发；32 位与长期负载尚未验收。</p>
+    <p>NUL 路径边界用例使用独占系统临时目录并在失败或成功时清理，不覆盖固定 <code>build/test</code> 文件。2026-10-20 Windows 聚焦门禁和 Linux C ASan/UBSan、XLang、<code>tomllib</code> 对照复跑通过；完整 AOT 的共享阻断不变。</p>
+    <p>2026-10-21：C 原子保存和流写入的分配失败回归先复现错误被标为 IO，修复后均保持内存错误分类；XLang 对 <code>parse/stringify/load/save</code> 逐点注入并验证恢复。Windows 聚焦门禁、Linux C ASan/UBSan、XLang 与 <code>tomllib</code> 对照通过；完整 AOT 仍未签收。</p>
+    <p>可选的 TOML 1.0 上游语料审计同时比较官方预期 JSON、Python <code>tomllib</code> 解析原文，以及本包写回后的解析值；固定语料 208 个合法与 501 个非法文件的接受结果、合法文件的可观察类型和值均一致。这不是内部 <code>xvalue</code> 每个节点的直接检查，也不替代 C/XLang 包级门禁。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

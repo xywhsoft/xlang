@@ -40,6 +40,7 @@ typedef enum {
 typedef struct {
 	uint32 iSize;
 	uint32 iVersion;
+	/* 压缩倍率与标志不适用于 TOML，必须为零。 */
 	xrtresourcelimits tLimits;
 } xrttomloptions;
 
@@ -71,20 +72,21 @@ XRT_API xvalue* xrtTomlParse(xreader* pReader, bool bTakeOwnership,
 	const xrttomloptions* pOptions, xrttomlerror* pError);
 XRT_API xvalue* xrtTomlParseMemory(const void* pData, uint64 iSize,
 	const xrttomloptions* pOptions, xrttomlerror* pError);
-XRT_API xvalue* xrtTomlLoad(str sPath, const xrttomloptions* pOptions,
+XRT_API xvalue* xrtTomlLoad(cstr sPath, const xrttomloptions* pOptions,
 	xrttomlerror* pError);
 
 XRT_API xbuffer* xrtTomlStringify(xvalue* pValue, const xrttomloptions* pOptions,
 	xrttomlerror* pError);
 XRT_API bool xrtTomlWrite(xvalue* pValue, xwriter* pWriter, bool bTakeOwnership,
 	const xrttomloptions* pOptions, xrttomlerror* pError);
-XRT_API bool xrtTomlSave(str sPath, xvalue* pValue, const xrttomloptions* pOptions,
+XRT_API bool xrtTomlSave(cstr sPath, xvalue* pValue, const xrttomloptions* pOptions,
 	xrttomlerror* pError);
 
 /*
  * TOML 的 local date/time 不能无损落入统一 UTC time 值。
- * 因此以普通 xvalue object 保存：__toml_type、year、month、day、hour、
- * minute、second、microsecond、offsetMinutes。该表示对 C/xlang 都透明。
+ * 因此以带本包 TypeId 的 xvalue object 保存：__toml_type、year、month、day、
+ * hour、minute、second、microsecond、offsetMinutes。字段对 C/xlang 透明；
+ * 普通表即使拥有全部同名字段，也不能冒充日期时间值。
  */
 XRT_API xvalue* xrtTomlCreateDate(int iYear, int iMonth, int iDay);
 XRT_API xvalue* xrtTomlCreateTime(int iHour, int iMinute, int iSecond,

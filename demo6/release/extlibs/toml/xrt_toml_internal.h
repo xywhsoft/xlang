@@ -1,7 +1,9 @@
 #ifndef XRT_TOML_INTERNAL_H
 #define XRT_TOML_INTERNAL_H
 
+#ifndef XRT_MODULE_ALL
 #define XRT_MODULE_ALL
+#endif
 #include "xrt.h"
 #include "include/xrt_toml.h"
 #include "../_tomlc17/src/tomlc17.h"
@@ -18,6 +20,8 @@ typedef struct {
 
 void __xrtTomlSetError(xrttomlerror* pError, int iCode, uint64 iLine,
 	uint64 iColumn, uint64 iOffset, const char* sFormat, ...);
+bool __xrtTomlResolveOptions(const xrttomloptions* pOptions,
+	xrttomloptions* pResolved, xrttomlerror* pError);
 bool __xrtTomlLimitNode(xrt_toml_context* pContext, uint32 iDepth,
 	uint64 iLine, uint64 iColumn);
 xvalue* __xrtTomlConvertDatum(xrt_toml_context* pContext,

@@ -1,0 +1,10 @@
+import toml
+
+func main(...) as int
+    var config = toml.parse("ratio = 1.5\n")
+    string encoded = toml.stringify(config)
+    if encoded == ""
+        return 1
+    end
+    return 0
+end

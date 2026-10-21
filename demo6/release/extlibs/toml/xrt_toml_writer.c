@@ -1,7 +1,5 @@
 #include "xrt_toml_internal.h"
 
-#include <math.h>
-
 bool __xrtTomlAppend(xbuffer* pOutput, const void* pData, size_t iSize,
 	xrt_toml_context* pContext)
 {
@@ -9,11 +7,15 @@ bool __xrtTomlAppend(xbuffer* pOutput, const void* pData, size_t iSize,
 	if ( iSize == 0u ) { return true; }
 	if ( pOutput == NULL || pData == NULL || pContext == NULL ) { return false; }
 	iLimit = pContext->Options.tLimits.iMaxOutputBytes;
-	if ( (iLimit != 0u && ((uint64)pOutput->Size > iLimit ||
-		(uint64)iSize > iLimit - (uint64)pOutput->Size)) ||
-		!xrtBufferAppend(pOutput, (xbytesview){ (cbytes)pData, iSize }) ) {
+	if ( iLimit != 0u && ((uint64)pOutput->Size > iLimit ||
+		(uint64)iSize > iLimit - (uint64)pOutput->Size) ) {
 		__xrtTomlSetError(pContext->Error, XRT_TOML_ERROR_LIMIT, 0u, 0u, 0u,
 			"TOML output exceeds the configured limit");
+		return false;
+	}
+	if ( !xrtBufferAppend(pOutput, (xbytesview){ (cbytes)pData, iSize }) ) {
+		__xrtTomlSetError(pContext->Error, XRT_TOML_ERROR_MEMORY, 0u, 0u, 0u,
+			"cannot grow TOML output");
 		return false;
 	}
 	return true;
@@ -26,11 +28,32 @@ bool __xrtTomlAppendText(xbuffer* pOutput, const char* sText,
 		pContext);
 }
 
+static bool __xrtTomlLimitEntries(const xvalue* pValue,
+	xrt_toml_context* pContext, const char* sKind)
+{
+	uint64 iLimit = pContext->Options.tLimits.iMaxEntries;
+	if ( iLimit == 0u || (uint64)xrtValueCount(pValue) <= iLimit ) { return true; }
+	__xrtTomlSetError(pContext->Error, XRT_TOML_ERROR_LIMIT, 0u, 0u, 0u,
+		"TOML %s exceeds the configured entry limit", sKind);
+	return false;
+}
+
 static bool __xrtTomlAppendKey(xbuffer* pOutput, xstrview Key,
 	xrt_toml_context* pContext)
 {
 	size_t i;
 	bool bBare = Key.Size != 0u;
+	if ( pContext->Options.tLimits.iMaxItemBytes != 0u &&
+		(uint64)Key.Size > pContext->Options.tLimits.iMaxItemBytes ) {
+		__xrtTomlSetError(pContext->Error, XRT_TOML_ERROR_LIMIT, 0u, 0u, 0u,
+			"TOML key exceeds the configured item limit");
+		return false;
+	}
+	if ( !xrtUtf8Valid(Key, NULL) ) {
+		__xrtTomlSetError(pContext->Error, XRT_TOML_ERROR_FORMAT, 0u, 0u, 0u,
+			"TOML key is not valid UTF-8");
+		return false;
+	}
 	for ( i = 0u; i < Key.Size; ++i ) {
 		unsigned char c = (unsigned char)Key.Data[i];
 		if ( !(c == '-' || c == '_' || (c >= '0' && c <= '9') ||
@@ -62,6 +85,17 @@ static bool __xrtTomlAppendString(xbuffer* pOutput, xstrview Text,
 	xrt_toml_context* pContext)
 {
 	size_t i;
+	if ( pContext->Options.tLimits.iMaxItemBytes != 0u &&
+		(uint64)Text.Size > pContext->Options.tLimits.iMaxItemBytes ) {
+		__xrtTomlSetError(pContext->Error, XRT_TOML_ERROR_LIMIT, 0u, 0u, 0u,
+			"TOML string exceeds the configured item limit");
+		return false;
+	}
+	if ( !xrtUtf8Valid(Text, NULL) ) {
+		__xrtTomlSetError(pContext->Error, XRT_TOML_ERROR_FORMAT, 0u, 0u, 0u,
+			"TOML string is not valid UTF-8");
+		return false;
+	}
 	if ( !__xrtTomlAppendText(pOutput, "\"", pContext) ) { return false; }
 	for ( i = 0u; i < Text.Size; ++i ) {
 		unsigned char c = (unsigned char)Text.Data[i];
@@ -132,6 +166,7 @@ static bool __xrtTomlEncodeObjectInline(xbuffer* pOutput, const xvalue* pObject,
 	bool bFirst = true;
 	bool bResult = true;
 
+	if ( !__xrtTomlLimitEntries(pObject, pContext, "table") ) { return false; }
 	memset(&Iterator, 0, sizeof(Iterator));
 	if ( !xrtValueIterBegin(pObject, &Iterator) ||
 		!__xrtTomlAppendText(pOutput, "{", pContext) ) {
@@ -191,18 +226,14 @@ bool __xrtTomlEncodeValue(xbuffer* pOutput, const xvalue* pValue,
 	case XVALUE_FLOAT:
 	{
 		double fValue;
+		size_t iSize;
 		if ( !xrtValueGetFloat(pValue, &fValue) ) { return false; }
-		if ( isnan(fValue) ) { return __xrtTomlAppendText(pOutput, "nan", pContext); }
-		if ( isinf(fValue) ) {
-			return __xrtTomlAppendText(pOutput, signbit(fValue) ? "-inf" : "inf",
-				pContext);
+		if ( !xrtNumWrite(fValue, sNumber, sizeof(sNumber), &iSize, 0u) ) {
+			__xrtTomlSetError(pContext->Error, XRT_TOML_ERROR_TYPE, 0u, 0u, 0u,
+				"cannot format TOML float");
+			return false;
 		}
-		snprintf(sNumber, sizeof(sNumber), "%.17g", fValue);
-		if ( strchr(sNumber, '.') == NULL && strchr(sNumber, 'e') == NULL &&
-			strchr(sNumber, 'E') == NULL ) {
-			strcat(sNumber, ".0");
-		}
-		return __xrtTomlAppendText(pOutput, sNumber, pContext);
+		return __xrtTomlAppend(pOutput, sNumber, iSize, pContext);
 	}
 	case XVALUE_STRING:
 	{
@@ -219,6 +250,9 @@ bool __xrtTomlEncodeValue(xbuffer* pOutput, const xvalue* pValue,
 	case XVALUE_ARRAY:
 	{
 		size_t i;
+		if ( !__xrtTomlLimitEntries(pValue, pContext, "array") ) {
+			return false;
+		}
 		if ( !__xrtTomlAppendText(pOutput, "[", pContext) ) { return false; }
 		for ( i = 0u; i < xrtValueCount(pValue); ++i ) {
 			if ( (i != 0u && !__xrtTomlAppendText(pOutput, ", ", pContext)) ||
@@ -291,6 +325,12 @@ static bool __xrtTomlEncodeTablePass(xbuffer* pOutput, const xvalue* pTable,
 		if ( (iPass == 1 && !bTable) || (iPass == 2 && !bArrayTable) ) {
 			continue;
 		}
+		if ( iPass == 2 &&
+			(!__xrtTomlLimitNode(pContext, iDepth + 1u, 0u, 0u) ||
+			 !__xrtTomlLimitEntries(pValue, pContext, "array")) ) {
+			bResult = false;
+			break;
+		}
 		pChildPath = __xrtTomlChildPath(pPath, Key.String, pContext);
 		if ( pChildPath == NULL ) { bResult = false; break; }
 		if ( iPass == 1 ) {
@@ -305,7 +345,7 @@ static bool __xrtTomlEncodeTablePass(xbuffer* pOutput, const xvalue* pTable,
 					__xrtTomlAppend(pOutput, pChildPath->Data, pChildPath->Size,
 						pContext) && __xrtTomlAppendText(pOutput, "]]\n", pContext) &&
 					__xrtTomlEncodeTableBody(pOutput, xrtValueArrayGet(pValue, i),
-						pChildPath, pContext, iDepth + 1u);
+						pChildPath, pContext, iDepth + 2u);
 			}
 		}
 		xrtBufferDestroy(pChildPath);
@@ -320,7 +360,8 @@ static bool __xrtTomlEncodeTableBody(xbuffer* pOutput, const xvalue* pTable,
 {
 	int iPass;
 	if ( xrtValueType(pTable) != XVALUE_OBJECT || __xrtTomlIsDateTime(pTable) ||
-		!__xrtTomlLimitNode(pContext, iDepth, 0u, 0u) ) {
+		!__xrtTomlLimitNode(pContext, iDepth, 0u, 0u) ||
+		!__xrtTomlLimitEntries(pTable, pContext, "table") ) {
 		return false;
 	}
 	for ( iPass = 0; iPass < 3; ++iPass ) {
@@ -342,12 +383,10 @@ XRT_API xbuffer* xrtTomlStringify(xvalue* pValue,
 	if ( pError == NULL ) { pError = &tLocalError; }
 	xrtTomlErrorInit(pError);
 	memset(&tContext, 0, sizeof(tContext));
-	xrtTomlOptionsInit(&tContext.Options);
-	if ( pOptions != NULL && pOptions->iSize >= sizeof(*pOptions) &&
-		pOptions->iVersion == XRT_TOML_OPTIONS_VERSION ) {
-		tContext.Options = *pOptions;
-	}
 	tContext.Error = pError;
+	if ( !__xrtTomlResolveOptions(pOptions, &tContext.Options, pError) ) {
+		return NULL;
+	}
 	if ( xrtValueType(pValue) != XVALUE_OBJECT || __xrtTomlIsDateTime(pValue) ) {
 		__xrtTomlSetError(pError, XRT_TOML_ERROR_TYPE, 0u, 0u, 0u,
 			"TOML document root must be a dict");
@@ -369,34 +408,52 @@ XRT_API xbuffer* xrtTomlStringify(xvalue* pValue,
 	return pOutput;
 }
 
+/* 写入器可能因分配失败而报错，不能把底层内存错误统一改成 IO。 */
+static int __xrtTomlWriteFailureCode(void)
+{
+	const xerror* pCause = xrtGetError();
+	return pCause != NULL && xrtErrorKind(pCause) == XERR_MEMORY ?
+		XRT_TOML_ERROR_MEMORY : XRT_TOML_ERROR_IO;
+}
+
 XRT_API bool xrtTomlWrite(xvalue* pValue, xwriter* pWriter,
 	bool bTakeOwnership, const xrttomloptions* pOptions, xrttomlerror* pError)
 {
 	xrttomlerror tLocalError;
 	xrttomlerror* pResolvedError = pError != NULL ? pError : &tLocalError;
 	xbuffer* pOutput = xrtTomlStringify(pValue, pOptions, pResolvedError);
+	if ( pOutput != NULL ) { xrtClearError(); }
 	bool bResult = pOutput != NULL && pWriter != NULL &&
 		xrtWriterWriteFull(pWriter, pOutput->Data, pOutput->Size, NULL) &&
 		xrtWriterFlush(pWriter);
 	if ( !bResult && pResolvedError->iCode == XRT_TOML_OK ) {
-		__xrtTomlSetError(pResolvedError, XRT_TOML_ERROR_IO, 0u, 0u, 0u,
+		__xrtTomlSetError(pResolvedError, __xrtTomlWriteFailureCode(), 0u, 0u, 0u,
 			"cannot write TOML stream");
 	}
 	xrtBufferDestroy(pOutput);
-	if ( bTakeOwnership ) { xrtWriterDestroy(pWriter); }
+	if ( bTakeOwnership && !xrtWriterDestroy(pWriter) ) {
+		if ( bResult ) {
+			__xrtTomlSetError(pResolvedError,
+				__xrtTomlWriteFailureCode(),
+				0u, 0u, 0u,
+				"cannot close TOML stream");
+		}
+		bResult = false;
+	}
 	return bResult;
 }
 
-XRT_API bool xrtTomlSave(str sPath, xvalue* pValue,
+XRT_API bool xrtTomlSave(cstr sPath, xvalue* pValue,
 	const xrttomloptions* pOptions, xrttomlerror* pError)
 {
 	xrttomlerror tLocalError;
 	xrttomlerror* pResolvedError = pError != NULL ? pError : &tLocalError;
 	xbuffer* pOutput = xrtTomlStringify(pValue, pOptions, pResolvedError);
+	if ( pOutput != NULL ) { xrtClearError(); }
 	bool bResult = pOutput != NULL && sPath != NULL &&
-		xrtFileWriteAll(sPath, (xbytesview){ pOutput->Data, pOutput->Size });
+		xrtFileWriteAtomic(sPath, (xbytesview){ pOutput->Data, pOutput->Size });
 	if ( !bResult && pResolvedError->iCode == XRT_TOML_OK ) {
-		__xrtTomlSetError(pResolvedError, XRT_TOML_ERROR_IO, 0u, 0u, 0u,
+		__xrtTomlSetError(pResolvedError, __xrtTomlWriteFailureCode(), 0u, 0u, 0u,
 			"cannot save TOML file");
 	}
 	xrtBufferDestroy(pOutput);

@@ -36,7 +36,17 @@ static xrttomlerror* __xtomlErrorGet(void)
 
 static void __xtomlPublishError(const xrttomlerror* pError)
 {
-	xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.toml",
+	int iType = XERR_VALUE;
+	if ( pError != NULL ) {
+		switch ( pError->iCode ) {
+		case XRT_TOML_ERROR_MEMORY: iType = XERR_MEMORY; break;
+		case XRT_TOML_ERROR_IO: iType = XERR_IO; break;
+		case XRT_TOML_ERROR_LIMIT: iType = XERR_RANGE; break;
+		case XRT_TOML_ERROR_TYPE: iType = XERR_TYPE; break;
+		default: break;
+		}
+	}
+	xrtSetErrorInfo(iType, "xlang.extlib.toml",
 		pError != NULL ? pError->iCode : XRT_TOML_ERROR_MEMORY,
 		pError != NULL && pError->sMessage[0] != 0 ? pError->sMessage :
 			"TOML operation failed");
@@ -57,7 +67,7 @@ static void __xtomlOptions(xrttomloptions* pOptions, uint64 iMaxInput,
 	xrtClearError();
 }
 
-XTOML_EXPORT int xtoml_error_code(void)
+XTOML_EXPORT int64 xtoml_error_code(void)
 {
 	xrttomlerror* pError = __xtomlErrorGet();
 	return pError != NULL ? pError->iCode : XRT_TOML_ERROR_MEMORY;
@@ -85,9 +95,10 @@ XTOML_EXPORT void* xtoml_error_message(void)
 	return xrtStrDup(sMessage);
 }
 
-XTOML_EXPORT xvalue* xtoml_parse(const void* pData, uint64 iSize,
-	uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem,
-	uint64 iMaxEntries, uint64 iMaxNodes, uint32 iMaxDepth)
+XTOML_EXPORT xvalue* xtoml_parse(const char* pData, unsigned long long iSize,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput,
+	unsigned long long iMaxItem, unsigned long long iMaxEntries,
+	unsigned long long iMaxNodes, uint32 iMaxDepth)
 {
 	xrttomloptions tOptions;
 	xrttomlerror* pError = __xtomlErrorGet();
@@ -100,9 +111,10 @@ XTOML_EXPORT xvalue* xtoml_parse(const void* pData, uint64 iSize,
 	return pResult != NULL ? pResult : xrtValueNull();
 }
 
-XTOML_EXPORT xvalue* xtoml_load(str sPath, uint64 iMaxInput,
-	uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxEntries,
-	uint64 iMaxNodes, uint32 iMaxDepth)
+XTOML_EXPORT xvalue* xtoml_load(const char* sPath,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput,
+	unsigned long long iMaxItem, unsigned long long iMaxEntries,
+	unsigned long long iMaxNodes, uint32 iMaxDepth)
 {
 	xrttomloptions tOptions;
 	xrttomlerror* pError = __xtomlErrorGet();
@@ -115,8 +127,10 @@ XTOML_EXPORT xvalue* xtoml_load(str sPath, uint64 iMaxInput,
 	return pResult != NULL ? pResult : xrtValueNull();
 }
 
-XTOML_EXPORT void* xtoml_stringify(xvalue* pValue, uint64 iMaxOutput,
-	uint64 iMaxItem, uint64 iMaxEntries, uint64 iMaxNodes, uint32 iMaxDepth)
+XTOML_EXPORT void* xtoml_stringify(xvalue* pValue,
+	unsigned long long iMaxOutput, unsigned long long iMaxItem,
+	unsigned long long iMaxEntries, unsigned long long iMaxNodes,
+	uint32 iMaxDepth)
 {
 	xrttomloptions tOptions;
 	xrttomlerror* pError = __xtomlErrorGet();
@@ -129,9 +143,10 @@ XTOML_EXPORT void* xtoml_stringify(xvalue* pValue, uint64 iMaxOutput,
 	return pResult;
 }
 
-XTOML_EXPORT bool xtoml_save(str sPath, xvalue* pValue,
-	uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxEntries,
-	uint64 iMaxNodes, uint32 iMaxDepth)
+XTOML_EXPORT bool xtoml_save(const char* sPath, xvalue* pValue,
+	unsigned long long iMaxOutput, unsigned long long iMaxItem,
+	unsigned long long iMaxEntries, unsigned long long iMaxNodes,
+	uint32 iMaxDepth)
 {
 	xrttomloptions tOptions;
 	xrttomlerror* pError = __xtomlErrorGet();
@@ -173,14 +188,14 @@ XTOML_EXPORT xvalue* xtoml_offset_datetime(int iYear, int iMonth, int iDay,
 	return pResult != NULL ? pResult : xrtValueNull();
 }
 
-XTOML_EXPORT int xtoml_datetime_kind(xvalue* pValue)
+XTOML_EXPORT int64 xtoml_datetime_kind(xvalue* pValue)
 {
 	int iKind = 0;
 	xrtTomlIsDateTimeValue(pValue, &iKind);
 	return iKind;
 }
 
-XTOML_EXPORT int xtoml_datetime_part(xvalue* pValue, int iPart)
+XTOML_EXPORT int64 xtoml_datetime_part(xvalue* pValue, int iPart)
 {
 	xrttomldatetime Time;
 	if ( !xrtTomlGetDateTime(pValue, &Time) ) { return 0; }

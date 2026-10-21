@@ -12,6 +12,7 @@ XRT_API void xrtTomlOptionsInit(xrttomloptions* pOptions)
 	pOptions->iSize = sizeof(*pOptions);
 	pOptions->iVersion = XRT_TOML_OPTIONS_VERSION;
 	xrtResourceLimitsInit(&pOptions->tLimits);
+	pOptions->tLimits.iMaxCompressionRatio = 0u;
 }
 
 XRT_API void xrtTomlErrorInit(xrttomlerror* pError)
@@ -33,15 +34,23 @@ void __xrtTomlSetError(xrttomlerror* pError, int iCode, uint64 iLine,
 	va_end(tArgs);
 }
 
-static xrttomloptions __xrtTomlOptions(const xrttomloptions* pOptions)
+bool __xrtTomlResolveOptions(const xrttomloptions* pOptions,
+	xrttomloptions* pResolved, xrttomlerror* pError)
 {
-	xrttomloptions tResult;
-	xrtTomlOptionsInit(&tResult);
-	if ( pOptions != NULL && pOptions->iSize >= sizeof(xrttomloptions) &&
-		pOptions->iVersion == XRT_TOML_OPTIONS_VERSION ) {
-		tResult = *pOptions;
+	xrtTomlOptionsInit(pResolved);
+	if ( pOptions == NULL ) { return true; }
+	if ( pOptions->iSize < sizeof(*pOptions) ||
+		pOptions->iVersion != XRT_TOML_OPTIONS_VERSION ||
+		pOptions->tLimits.iSize < sizeof(pOptions->tLimits) ||
+		pOptions->tLimits.iVersion != XRT_RESOURCE_LIMITS_VERSION ||
+		pOptions->tLimits.iReserved != 0u || pOptions->tLimits.iFlags != 0u ||
+		pOptions->tLimits.iMaxCompressionRatio != 0u ) {
+		__xrtTomlSetError(pError, XRT_TOML_ERROR_ARGUMENT, 0u, 0u, 0u,
+			"invalid TOML options or unsupported resource limits");
+		return false;
 	}
-	return tResult;
+	*pResolved = *pOptions;
+	return true;
 }
 
 bool __xrtTomlLimitNode(xrt_toml_context* pContext, uint32 iDepth,
@@ -77,7 +86,7 @@ static xvalue* __xrtTomlConvertDateTime(const toml_datum_t* pDatum)
 			pDatum->u.ts.day, pDatum->u.ts.hour, pDatum->u.ts.minute,
 			pDatum->u.ts.second, pDatum->u.ts.usec);
 	case TOML_DATETIMETZ:
-		/* XRT time 为秒精度；有小数秒时使用专用值，禁止静默丢失精度。 */
+		/* 专用值保留本地时间、微秒和时区偏移，不压成单一时间戳。 */
 		return xrtTomlCreateOffsetDateTime(pDatum->u.ts.year,
 			pDatum->u.ts.month, pDatum->u.ts.day, pDatum->u.ts.hour,
 			pDatum->u.ts.minute, pDatum->u.ts.second,
@@ -192,30 +201,42 @@ XRT_API xvalue* xrtTomlParse(xreader* pReader, bool bTakeOwnership,
 	xbuffer* pInput = NULL;
 	xvalue* pResult = NULL;
 	toml_result_t tParsed;
-	uint64 iSize = 0u;
 	uint64 iLimit;
+	uint64 iKnownSize = 0u;
+	uint64 iPosition = 0u;
 	uint32 iParseSize;
 	if ( pError == NULL ) { pError = &tLocalError; }
 	xrtTomlErrorInit(pError);
 	memset(&tContext, 0, sizeof(tContext));
-	tContext.Options = __xrtTomlOptions(pOptions);
 	tContext.Error = pError;
+	if ( !__xrtTomlResolveOptions(pOptions, &tContext.Options, pError) ) {
+		goto cleanup;
+	}
 	if ( pReader == NULL ) {
 		__xrtTomlSetError(pError, XRT_TOML_ERROR_ARGUMENT, 0u, 0u, 0u,
 			"invalid TOML reader");
 		goto cleanup;
 	}
+	/* 总大小须减去当前游标；缺少任一查询能力时由 ReadAll 限额。 */
 	iLimit = tContext.Options.tLimits.iMaxInputBytes;
-	if ( xrtReaderSize(pReader, &iSize) &&
-		((iLimit != 0u && iSize > iLimit) || iSize > INT_MAX) ) {
+	if ( iLimit == 0u || iLimit > INT_MAX ) { iLimit = INT_MAX; }
+	xrtClearError();
+	if ( xrtReaderSize(pReader, &iKnownSize) &&
+		xrtReaderTell(pReader, &iPosition) &&
+		iKnownSize > iPosition && iKnownSize - iPosition > iLimit ) {
 		__xrtTomlSetError(pError, XRT_TOML_ERROR_LIMIT, 0u, 0u, 0u,
-			"TOML input exceeds the configured or parser limit");
+			"TOML input exceeds the configured limit");
 		goto cleanup;
 	}
-	pInput = xrtReaderReadAll(pReader, iLimit);
+	xrtClearError();
+	pInput = xrtReaderReadAll(pReader, (size_t)iLimit);
 	if ( pInput == NULL ) {
-		__xrtTomlSetError(pError, XRT_TOML_ERROR_IO, 0u, 0u, 0u,
-			"cannot read TOML stream or input limit was exceeded");
+		const xerror* pCause = xrtGetError();
+		xerrkind iKind = pCause != NULL ? xrtErrorKind(pCause) : XERR_IO;
+		__xrtTomlSetError(pError,
+			iKind == XERR_MEMORY ? XRT_TOML_ERROR_MEMORY :
+			(iKind == XERR_RANGE ? XRT_TOML_ERROR_LIMIT : XRT_TOML_ERROR_IO),
+			0u, 0u, 0u, "cannot read TOML stream");
 		goto cleanup;
 	}
 	if ( pInput->Size > INT_MAX ) {
@@ -236,9 +257,14 @@ XRT_API xvalue* xrtTomlParse(xreader* pReader, bool bTakeOwnership,
 			"cannot terminate TOML parser input");
 		goto cleanup;
 	}
+	/* 仅观察本次解析器产生的错误，避免调用方旧错误污染分类。 */
+	xrtClearError();
 	tParsed = toml_parse((const char*)pInput->Data, (int)iParseSize);
 	if ( !tParsed.ok ) {
-		__xrtTomlSetError(pError, XRT_TOML_ERROR_FORMAT,
+		const xerror* pCause = xrtGetError();
+		int iCode = pCause != NULL && xrtErrorKind(pCause) == XERR_MEMORY ?
+			XRT_TOML_ERROR_MEMORY : XRT_TOML_ERROR_FORMAT;
+		__xrtTomlSetError(pError, iCode,
 			__xrtTomlErrorLine(tParsed.errmsg), 0u, 0u, "%s",
 			tParsed.errmsg[0] != 0 ? tParsed.errmsg : "invalid TOML input");
 		toml_free(tParsed);
@@ -249,21 +275,52 @@ XRT_API xvalue* xrtTomlParse(xreader* pReader, bool bTakeOwnership,
 
 cleanup:
 	xrtBufferDestroy(pInput);
-	if ( bTakeOwnership ) { xrtReaderDestroy(pReader); }
+	if ( bTakeOwnership && !xrtReaderDestroy(pReader) &&
+		pError->iCode == XRT_TOML_OK ) {
+		const xerror* pCause = xrtGetError();
+		__xrtTomlSetError(pError,
+			xrtErrorKind(pCause) == XERR_MEMORY ?
+				XRT_TOML_ERROR_MEMORY : XRT_TOML_ERROR_IO,
+			0u, 0u, 0u, "cannot close TOML stream");
+		xrtValueRelease(pResult);
+		pResult = NULL;
+	}
 	return pResult;
 }
 
 XRT_API xvalue* xrtTomlParseMemory(const void* pData, uint64 iSize,
 	const xrttomloptions* pOptions, xrttomlerror* pError)
 {
-	xreader* pReader = pData != NULL || iSize == 0u ?
+	xreader* pReader;
+	if ( iSize > SIZE_MAX ) {
+		xrtTomlErrorInit(pError);
+		__xrtTomlSetError(pError, XRT_TOML_ERROR_LIMIT, 0u, 0u, 0u,
+			"TOML input size exceeds the platform limit");
+		return NULL;
+	}
+	pReader = pData != NULL || iSize == 0u ?
 		xrtReaderFromMemory((xbytesview){ (cbytes)pData, (size_t)iSize }) : NULL;
+	if ( pReader == NULL && (pData != NULL || iSize == 0u) ) {
+		xrtTomlErrorInit(pError);
+		__xrtTomlSetError(pError, XRT_TOML_ERROR_MEMORY, 0u, 0u, 0u,
+			"cannot allocate TOML reader");
+		return NULL;
+	}
 	return xrtTomlParse(pReader, true, pOptions, pError);
 }
 
-XRT_API xvalue* xrtTomlLoad(str sPath, const xrttomloptions* pOptions,
+XRT_API xvalue* xrtTomlLoad(cstr sPath, const xrttomloptions* pOptions,
 	xrttomlerror* pError)
 {
 	xreader* pReader = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
+	if ( pReader == NULL && sPath != NULL ) {
+		const xerror* pCause = xrtGetError();
+		int iCode = pCause != NULL && xrtErrorKind(pCause) == XERR_MEMORY ?
+			XRT_TOML_ERROR_MEMORY : XRT_TOML_ERROR_IO;
+		xrtTomlErrorInit(pError);
+		__xrtTomlSetError(pError, iCode, 0u, 0u, 0u,
+			"cannot open TOML file");
+		return NULL;
+	}
 	return xrtTomlParse(pReader, true, pOptions, pError);
 }

@@ -30,7 +30,7 @@ func main(...) as int
     bool malformed = false
     try
         toml.parse("a = [1,")
-    catch TomlError e
+    catch ValueError e
         malformed = true
     end
     assert malformed and toml.errorCode() != 0 and toml.errorLine() == 1, "TOML typed parse error"

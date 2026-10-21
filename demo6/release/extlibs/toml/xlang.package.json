@@ -12,10 +12,23 @@
             "xrt_toml_writer.c",
             "toml_native.c"
         ],
-        "xlSources": ["src/toml.xl"]
+        "xlSources": ["src/toml.xl"],
+        "xrtModules": [
+            "XRT_MODULE_BUFFER",
+            "XRT_MODULE_FILE_WHOLE",
+            "XRT_MODULE_IO_BUFFER",
+            "XRT_MODULE_IO_FILE",
+            "XRT_MODULE_NUMBER_FLOAT",
+            "XRT_MODULE_STRING",
+            "XRT_MODULE_THREAD",
+            "XRT_MODULE_TIME",
+            "XRT_MODULE_UNICODE",
+            "XRT_MODULE_VALUE_CONTAINER"
+        ]
     },
     "links": [],
     "loadlibs": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
     "dependencies": [
         {
             "name": "_tomlc17",

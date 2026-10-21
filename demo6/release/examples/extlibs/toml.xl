@@ -3,12 +3,32 @@ import toml
 
 
 func main(...) as int
+    assert arg.length == 1 or arg.length == 2
     var config = toml.parse("title = \"xlang service\"\nstarted = 2026-07-16T08:30:00Z\n\n[server]\nhost = \"127.0.0.1\"\nport = 8080\n")
     println(config["title"])
     println(config["server"]["host"])
 
     config["released"] = toml.localDate(2026, 7, 16)
-    println(toml.stringify(config))
+    config["window"] = toml.localTime(9, 15, 30, 123456)
+    config["updated"] = toml.localDateTime(2026, 7, 16, 9, 45, 30, 250000)
+    config["review"] = toml.offsetDateTime(2026, 7, 16, 8, 30, 0, 0, 330)
+    string output = toml.stringify(config)
+    var again = toml.parse(output)
+    assert toml.isLocalDate(again["released"])
+    assert toml.isLocalTime(again["window"])
+    assert toml.dateTimePart(again["window"], 6) == 123456
+    assert toml.isLocalDateTime(again["updated"])
+    assert toml.dateTimePart(again["updated"], 6) == 250000
+    assert toml.isOffsetDateTime(again["review"])
+    assert toml.dateTimePart(again["review"], 7) == 330
+    println(output)
+    if arg.length == 2 then
+        string target = string(arg[1])
+        toml.save(target, config)
+        var restored = toml.load(target)
+        assert restored["title"] == config["title"]
+        assert toml.dateTimePart(restored["review"], 7) == 330
+    end
     println("toml example: PASS")
     return 0
 end
