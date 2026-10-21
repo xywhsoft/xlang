@@ -1,0 +1,25 @@
+import cuckoo
+
+func main(...) as int
+    cuckoo.CuckooFilter filter = cuckoo.create(1)
+    assert filter.valid and filter.count == 0
+    filter.add("a\u0000b")
+    assert filter.contains("a\u0000b")
+    assert not filter.contains("a")
+    int caught = 0
+    try
+        filter.add("other")
+    catch e
+        caught += 1
+    end
+    assert caught == 1 and filter.count == 1
+    assert filter.contains("a\u0000b")
+    assert filter.remove("a\u0000b")
+    assert filter.count == 0
+    filter.add("")
+    assert filter.contains("")
+    filter.clear()
+    assert filter.count == 0 and not filter.contains("")
+    println("cuckoo boundaries: PASS")
+    return 0
+end
