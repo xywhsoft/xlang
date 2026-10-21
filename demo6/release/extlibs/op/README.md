@@ -30,6 +30,8 @@ C 还用真实 BMP 验证 `findPic` / `findPicEx` / `findPicN` 的命中结果�
 `readString`、`findMemory` 也返回独立结果：读取须指定 1 至 16 MiB 的完整
 可读字节范围，遇到非 UTF-8 文本拒绝；内存模式支持十六进制字节与 `??` 通配字节，
 搜索范围为 `[start, end)`，跨连续可读页匹配，不跨不可读区域拼接。
+XLang 内存夹具还验证 `writeString` 写入后可读回；带内嵌 NUL 的写入在调用
+C 接口前抛 `ValueError`，原目标内容保持不变。
 读操作只申请读取/查询权限，写操作单独申请写入权限；部分读取/写入报告错误。
 `writeInt` 的目标内存为 C 32 位 `int`，超范围整数会报错；`writeFloat`
 的目标为 C 32 位 `float`，NaN、无穷大、溢出及非零值下溢为零时会报错，

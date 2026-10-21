@@ -12,6 +12,16 @@ func main(...) as int
     assert text == "hello", "readString should return the full UTF-8 text"
     assert op.findMemory(pid, addr, addr + 6, "68 65 6C 6C 6F") == string(addr)
     assert op.findMemory(pid, addr, addr + 6, "DE AD") == ""
+    assert op.writeString(pid, addr, "world") == 1
+    assert op.readString(pid, addr, 6) == "world"
+    bool textCaught = false
+    try
+        op.writeString(pid, addr, "bad\0tail")
+    catch ValueError error
+        textCaught = true
+    end
+    assert textCaught
+    assert op.readString(pid, addr, 6) == "world"
     int numberAddr = test_number_addr()
     int fractionAddr = test_fraction_addr()
     bool intCaught = false
