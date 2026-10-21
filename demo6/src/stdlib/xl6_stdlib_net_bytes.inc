@@ -16,6 +16,7 @@ const char* xl6StdlibNetBytesClassSource=
 const char* xl6StdlibNetBytesAdoptSource=
     "extern \"xl6NetBytesAdoptV1\" @nonblocking func __xl_std_runtime_take_net_bytes(point owned) as NetBytes\n";
 const char* xl6StdlibTcpSendRefMembersSource=
-    "    extern \"xl6TcpStreamSendRefV1\" @nonblocking func sendRef(NetBytes data, int size = -1, int offset = 0) as NetStatus\n";
+    "    extern \"xl6TcpStreamSendRefV1\" @nonblocking func sendRef(NetBytes data, int size = -1, int offset = 0) as NetStatus\n"
+    "    extern \"xl6TcpStreamSendRefsV1\" @nonblocking func sendRefs(array<NetBytes> data, int size = -1) as NetStatus\n";
 const char* xl6StdlibTcpSendMoveMembersSource=
     "    extern \"xl6TcpStreamSendMoveV1\" @nonblocking func sendMove(Buffer data) as NetStatus\n";

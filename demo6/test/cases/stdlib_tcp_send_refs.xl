@@ -1,0 +1,51 @@
+func receiveExact(TcpStream stream, int size) as bytes
+    bytes result = b""
+    while result.length < size
+        bytes part = stream.recv(size - result.length, 5000)
+        assert part.length > 0
+        result = result + part
+    end
+    return result
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto sender = TcpStream(engine, listener.localAddress(), TcpStreamOptions().withWriteWatermarks(uint64(4), uint64(2), uint64(8)))
+auto receiver = listener.accept(5000)
+assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+auto shared = NetBytes(b"a\0b")
+array<NetBytes> parts = [shared, NetBytes(), shared]
+array<NetBytes> excessiveBytes = [shared, shared, shared]
+assert sender.sendRefs(excessiveBytes) == NetStatus.again
+assert shared.toBytes() == b"a\0b"
+assert sender.sendRefs(parts, 5) == NetStatus.ok
+parts[0] = NetBytes(b"changed")
+parts[2] = NetBytes(b"changed")
+excessiveBytes.clear()
+shared = NetBytes(b"changed")
+assert receiveExact(receiver, 5) == b"a\0ba\0"
+array<NetBytes> utf8 = [NetBytes("你"), NetBytes(b"z")]
+assert sender.sendRefs(utf8, 99) == NetStatus.ok
+assert receiveExact(receiver, 4) == b"\xe4\xbd\xa0z"
+array<NetBytes> empty = []
+assert sender.sendRefs(empty) == NetStatus.ok
+assert sender.sendRefs(utf8, 0) == NetStatus.ok
+try
+    auto invalid = sender.sendRefs(utf8, -2)
+    assert false
+catch RangeError
+end
+array<NetBytes> excessive = []
+int i = 0
+while i < 65
+    excessive.push(shared)
+    i += 1
+end
+assert sender.sendRefs(excessive, 1) == NetStatus.ok
+assert receiveExact(receiver, 1) == b"c"
+sender.close()
+receiver.close()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("TCP sendRefs: atomic retained batch, duplicates/NUL/UTF8, clamped prefix, 65-item workspace, empty, range and backpressure")

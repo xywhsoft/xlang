@@ -1,5 +1,5 @@
 /* 由 tools/gen_xrt_symbol_table.py 或 .ps1 生成；不要手工修改。 */
-/* 当前登记 3783 个 XRT/xruntime 公共函数。 */
+/* 当前登记 3784 个 XRT/xruntime 公共函数。 */
 XL_XRT_SYMBOL(xrtAVLClear)
 XL_XRT_SYMBOL(xrtAVLFind)
 XL_XRT_SYMBOL(xrtAVLFirst)
@@ -1609,6 +1609,7 @@ XL_XRT_SYMBOL(xrtNetStreamRuntimeOwnershipV1Get)
 XL_XRT_SYMBOL(xrtNetStreamSend)
 XL_XRT_SYMBOL(xrtNetStreamSendBuffer)
 XL_XRT_SYMBOL(xrtNetStreamSendBytes)
+XL_XRT_SYMBOL(xrtNetStreamSendBytesVec)
 XL_XRT_SYMBOL(xrtNetStreamSendFile)
 XL_XRT_SYMBOL(xrtNetStreamSendRef)
 XL_XRT_SYMBOL(xrtNetStreamSendRefs)

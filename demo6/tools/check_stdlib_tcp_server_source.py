@@ -12,7 +12,7 @@ def main():
     parser.add_argument('--source-build', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--native-root', type=Path)
-    parser.add_argument('--profile',choices=('server','owned-sends','owned-receives'),default='server')
+    parser.add_argument('--profile',choices=('server','owned-sends','owned-receives','owned-ref-batches'),default='server')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     out = args.out.resolve()
@@ -40,11 +40,15 @@ def main():
         cases=tuple('stdlib_tcp_recv_owned_'+name for name in ('sync','async','stops'))+(
             'stdlib_tcp_managed_async','stdlib_tcp_server_async','stdlib_tcp_data_receive_async')
         negatives=('bad_stdlib_tcp_recv_owned_future',)
+    if args.profile=='owned-ref-batches':
+        cases=('stdlib_tcp_send_refs','stdlib_tcp_data_vector','stdlib_tcp_send_ref_move','stdlib_tcp_recv_owned_async')
+        negatives=('bad_stdlib_tcp_send_refs_buffer',)
     contract = root / 'test/cases/xlir_tcp_server_contract.c'
     poll_contract = root/'test/cases/xlir_tcp_server_poll_contract.c'
     owned_contract = root/'test/cases/xlir_tcp_send_owned_contract.c'
     receive_contract = root/'test/cases/xlir_tcp_recv_owned_contract.c'
-    inputs = {str(path): sha(path) for path in (Path(__file__).resolve(), manifest, driver, cc, contract, poll_contract, owned_contract, receive_contract,
+    refs_contract = root/'test/cases/xlir_tcp_send_refs_contract.c'
+    inputs = {str(path): sha(path) for path in (Path(__file__).resolve(), manifest, driver, cc, contract, poll_contract, owned_contract, receive_contract, refs_contract,
         root/'test/cases/xlir_tcp_managed_contract.c',root/'test/cases/stdlib_tcp_data_receive_async.xl',
         *[root / ('test/cases/' + name + '.xl') for name in cases + negatives])}
     env = dict(os.environ)
@@ -115,6 +119,8 @@ def main():
                 assert 'xl6OwnershipDomainExecutionNetEngineV1Get(),' not in text
             if case=='stdlib_tcp_send_ref_move':
                 assert 'xl6TcpStreamSendRefV1(' in text and 'xl6TcpStreamSendMoveV1(' in text
+            if case=='stdlib_tcp_send_refs':
+                assert 'xl6TcpStreamSendRefsV1(' in text
             if case.startswith('stdlib_tcp_recv_owned_'):
                 assert 'xl6TcpStreamRecvOwned' in text and 'xl6NetBytesHandlePolicyV1Get()' in text
             if case=='stdlib_tcp_server_poll':
@@ -143,14 +149,17 @@ def main():
             # final module, not the original Cgen-only source or XRT TU.
             assembled=native.parent/'module.c';product(assembled)
             assembled_text=assembled.read_text()
-            if case.startswith(('stdlib_net_bytes_','stdlib_tcp_recv_owned_')) or case=='stdlib_tcp_send_ref_move':
+            if case.startswith(('stdlib_net_bytes_','stdlib_tcp_recv_owned_')) or case in ('stdlib_tcp_send_ref_move','stdlib_tcp_send_refs'):
                 assert 'xl6OwnershipDomainNetBytesV1Get(),' in assembled_text
                 assert 'xl6OwnershipDomainNetBufferNativeV1Get(),' in assembled_text
             if case.startswith('stdlib_net_bytes_'):
                 assert 'xl6OwnershipDomainExecutionNetEngineV1Get(),' not in assembled_text
             if case=='stdlib_tcp_recv_owned_sync':
                 assert 'xl6TcpStreamRecvOwnedStartV1(' not in assembled_text
-                assert 'xl6FutureCallbackQueuePushV1(' not in assembled_text
+                assert 'xl6OwnershipDomainFutureCallbackQueueV1Get(),' not in assembled_text
+            if case=='stdlib_tcp_send_refs':
+                assert 'xl6OwnershipDomainFutureCallbackQueueV1Get(),' not in assembled_text
+                assert 'xl6OwnershipDomainDeadlineServiceV1Get(),' not in assembled_text
             if case in ('stdlib_tcp_server_options','stdlib_tcp_server_core','stdlib_tcp_server_poll'):
                 assert 'xl6OwnershipDomainNetServerFutureNativeV1Get(),' not in assembled_text
             native_text = native.read_text()
@@ -185,6 +194,9 @@ def main():
         if args.profile=='owned-receives':
             contracts=(('receive-contract',receive_contract,[root/'test/cases/stdlib_tcp_recv_owned_sync.xl',
                 root/'test/cases/stdlib_tcp_recv_owned_async.xl'],'TCP owned receives:'),)
+        if args.profile=='owned-ref-batches':
+            contracts=(('refs-contract',refs_contract,[root/'test/cases/stdlib_tcp_send_refs.xl',
+                root/'test/cases/stdlib_tcp_recv_owned_async.xl'],'TCP immutable batch:'),)
         for (label,source,arguments,marker),opt in ((item,opt) for item in contracts for opt in ('O0','O2')):
             name=label+'.'+opt
             obj = out / (name + '.o')

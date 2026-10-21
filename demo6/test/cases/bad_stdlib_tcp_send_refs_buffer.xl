@@ -1,0 +1,4 @@
+func wrong(TcpStream stream)
+    array<Buffer> chunks = [Buffer(b"x")]
+    auto unused = stream.sendRefs(chunks)
+end

@@ -26,6 +26,9 @@ sendMove 没有部分消费参数：它转移整个容器的有效内容，失�
 内容。空源成功时归还其预留容量并归零。普通 send(Buffer／NetBuffer) 的复制语义
 不变。Buffer 是可变引用容器，并发访问仍由调用者同步，不新增语言借用或参数修饰。
 
+后续加入的 `sendRefs(array<NetBytes>, size=-1)` 采用真正原子受理及原生拥有边，见
+[批量引用发送](tcp-ref-batches.md)；不是对单项 sendRef 的逐项循环。
+
 ## 拥有权和分层
 
 - NetBytes 私有 handle 真正拥有一个 `xnetbytes` 引用；类字段／句柄／原生数据是

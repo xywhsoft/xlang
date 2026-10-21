@@ -13,7 +13,7 @@ def main():
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--compiler',action='append',required=True)
     parser.add_argument('--sanitize',action='store_true')
-    parser.add_argument('--profile',choices=('server','owned-sends','owned-receives'),default='server')
+    parser.add_argument('--profile',choices=('server','owned-sends','owned-receives','owned-ref-batches'),default='server')
     args=parser.parse_args();root=Path(__file__).resolve().parents[1];out=args.out.resolve()
     assert not out.exists() and (not args.sanitize or os.name!='nt')
     compilers=[Path(shutil.which(cc) or cc).resolve() for cc in args.compiler]
@@ -21,7 +21,7 @@ def main():
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     files={Path(__file__).resolve(),*compilers,*[root/('test/support/'+name+'.c')
         for name in ('net_engine_plan','executor_catalog_plan','tcp_server_execution_resource','tcp_server_poll_runtime',
-            'net_bytes_runtime','tcp_send_owned_runtime','tcp_recv_owned_runtime')]}
+            'net_bytes_runtime','tcp_send_owned_runtime','tcp_recv_owned_runtime','tcp_send_refs_runtime')]}
     for area in ('src','lib/xrt','lib/xruntime','release/include'):
         files.update(path for path in (root/area).rglob('*') if path.is_file() and path.suffix in ('.c','.h','.inc'))
     inputs={str(path):sha(path) for path in sorted(files)};out.mkdir(parents=True)
@@ -67,12 +67,13 @@ def main():
             if opt=='O0':
                 choices=('server-resource','server-language','server-options') if args.profile=='server' else ('net-bytes','net-bytes-buffer','tcp-owned')
                 if args.profile=='owned-receives':choices=('tcp-recv-owned',)
+                if args.profile=='owned-ref-batches':choices=('tcp-ref-batches',)
                 for choice in choices:
                     sources=run(choice+'.sources',[plan,'--sources',choice]).splitlines()
                     modules=run(choice+'.modules',[plan,'--modules',choice])
                     domains=run(choice+'.domains',[plan,'--domains',choice])
                     assert len(sources)==len(set(sources)) and not any('resolver' in source or 'task_pool' in source for source in sources)
-                    if choice in ('server-resource','tcp-owned','tcp-recv-owned'):
+                    if choice in ('server-resource','tcp-owned','tcp-recv-owned','tcp-ref-batches'):
                         assert 'xl6OwnershipDomainExecutionTcpServerV1Get(),\n' in domains and 'xl6OwnershipDomainExecutionTcpV1Get(),\n' in domains
                         assert 'xl6OwnershipDomainNetTcpNativeV1Get(),\n' in domains
                         assert 'XRT_MODULE_NET_TCP_FUTURE\n' in modules
@@ -88,6 +89,7 @@ def main():
                     if choice=='server-options':assert 'xl6OwnershipDomainExecutionTcpServerV1Get(),\n' not in domains
                     report['Plans'][choice]=dict(Sources=sources,Modules=modules,Domains=domains);save()
         selected='server-resource' if args.profile=='server' else 'tcp-owned' if args.profile=='owned-sends' else 'tcp-recv-owned'
+        if args.profile=='owned-ref-batches':selected='tcp-ref-batches'
         sources=report['Plans'][selected]['Sources']
         for index,cc in enumerate(compilers):
             modes=[('O0',['-O0']),('O2',['-O2'])]
@@ -96,12 +98,14 @@ def main():
             for opt,mode in modes:
                 name=f'{index}.{opt}.resource';binary=out/(name+ext)
                 try:
-                    if args.profile=='owned-receives':
-                        run(name+'.build',flags(cc,mode)+[root/'test/support/tcp_recv_owned_runtime.c',
+                    if args.profile in ('owned-receives','owned-ref-batches'):
+                        fixture='tcp_recv_owned_runtime' if args.profile=='owned-receives' else 'tcp_send_refs_runtime'
+                        run(name+'.build',flags(cc,mode)+[root/('test/support/'+fixture+'.c'),
                             *[root/source for source in sources],*libs,'-o',binary]);product(binary)
                         for backend,extra in (('select',[]),('native',['native'])):
                             text=run(name+'.'+backend,[binary,*extra],opt=='instrumented')
-                            assert 'TCP owned receives: budgets=24' in text and 'complete graph' in text and 'balanced' in text
+                            if args.profile=='owned-receives':assert 'TCP owned receives: budgets=24' in text and 'complete graph' in text and 'balanced' in text
+                            else:assert 'TCP owned ref batches: budgets=16 large-budgets=4' in text and 'exact class-array graph' in text and 'balanced' in text
                         continue
                     if args.profile=='owned-sends':
                         pure=out/(f'{index}.{opt}.net-bytes'+ext)
@@ -164,6 +168,7 @@ def main():
                 selected=[mutant if root/source==original else root/source for source in selected_sources]
                 fixture='net_bytes_runtime' if pure_control else 'tcp_send_owned_runtime' if args.profile=='owned-sends' else 'tcp_server_execution_resource'
                 if args.profile=='owned-receives':fixture='tcp_recv_owned_runtime'
+                if args.profile=='owned-ref-batches':fixture='tcp_send_refs_runtime'
                 binary=out/(name+ext)
                 run(name+'.build',flags(gcc,['-O0'])+['-Wno-unused-function','-I'+str(root/'src/runtime'),
                     root/('test/support/'+fixture+'.c'),*selected,*libs,'-o',binary]);product(binary)

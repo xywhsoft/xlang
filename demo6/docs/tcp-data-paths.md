@@ -62,7 +62,8 @@ XRT 修复提交为 `452b18f`。只把文件发送函数的能力前检同步到
 聚合 Server 和廉价拥有型轮询已分别验收，见 [Server](tcp-server-language.md)。
 不可变 NetBytes 引用发送、连续 Buffer 接管见 [拥有型发送](tcp-owned-sends.md)。
 拥有型接收复用见 [拥有型接收](tcp-owned-receives.md)。
-原子批量引用、链式跨线程接管、完整 UDP、网络文件／任务组合、
+[原子批量引用](tcp-ref-batches.md) 已接续实现。
+链式跨线程接管、完整 UDP、网络文件／任务组合、
 受管理非对称密钥、X.509、TLS 和发布联合验收仍须完成；没有缩减批准范围。
 
 未决策仍为 CRT 0、XRT 11 组：core／error／ownership；内存；动态值与图；其余平台信息；HTTP；WebSocket；运行时类型／转换；对象／字段图；调用／value 桥接；typed 容器；内部支撑。
