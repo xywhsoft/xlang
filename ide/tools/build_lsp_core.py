@@ -32,7 +32,7 @@ SERVER_SOURCES = (
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
     "src/server/xlang_ls.c",
 )
-CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_text_test", "document_sync_test")
+CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_text_test", "document_sync_test")
 HOST_TESTS = ("analysis_index_view_test",)
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 
@@ -58,6 +58,34 @@ def prepare_native_index(frontend: Path, output: Path) -> tuple[Path, Path, dict
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
         change="configure existing index budget and include typed collector views", indexBytes=NATIVE_INDEX_BYTES)
+
+
+def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
+    """Index iteration candidates without changing shared cleanup/verify rules."""
+    original = frontend / 'src/ir/xl6_ir.c'
+    body = original.read_bytes()
+    source = body.decode('utf-8').replace('\r\n', '\n')
+    changes = {
+        '#include <wchar.h>': '#include <wchar.h>\n#include "analysis/frontend_ir.inc"',
+        'int xl6IrRefreshExitPlans(XL6_IrModule* module)\n{': 'static int xlsIrRefreshExitPlansOriginal(XL6_IrModule* module)\n{',
+        'int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)\n{': 'static int xlsIrVerifyModuleOriginal(const XL6_IrModule* module, XL6_DiagList* diags)\n{',
+        'for ( i = afterScope ? scope->childCount + 1 : (size_t)plan->origin - 1; i > 0; --i ) {':
+            'for ( i = afterScope ? scope->childCount + 1 : xlsIrPreviousCandidate(module, owner, plan->origin, routed); i > 0;\n'
+            '          i = afterScope ? i - 1 : xlsIrPreviousCandidate(module, owner, (XL6_IrNodeId)i, routed) ) {',
+        'for (child = afterScope ? block->childCount + 1 : (size_t)plan->origin - 1; child > 0; --child) {':
+            'for (child = afterScope ? block->childCount + 1 : xlsIrPreviousCandidate(module, owner, plan->origin, routed); child > 0;\n'
+            '         child = afterScope ? child - 1 : xlsIrPreviousCandidate(module, owner, (XL6_IrNodeId)child, routed)) {',
+    }
+    for old, new in changes.items():
+        if source.count(old) != 1:
+            raise ValueError('shared IR scan seam changed; audit its native overlay: ' + old)
+        source = source.replace(old, new)
+    compiled = output / 'frontend/xl6_ir.c'
+    compiled.write_text(source, encoding='utf-8', newline='\n')
+    return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
+        compiledSource=str(compiled), compiledSha256=sha(compiled),
+        change='optional XRT candidate iteration index; original cleanup generation and independent verification preserved',
+        auditedSeams=len(changes), indexBytes=16 * 1024 * 1024)
 
 
 def dependencies(body: str) -> list[Path]:
@@ -116,14 +144,17 @@ def main() -> None:
     # fact collection or index algorithm is duplicated in the IDE.
     try:
         original_index, generated_index, index_overlay = prepare_native_index(frontend, output)
+        original_ir, generated_ir, ir_overlay = prepare_native_ir(frontend, output)
     except ValueError as error:
         parser.error(str(error))
     sources = [(generated_index if path == original_index else path, owned) for path, owned in sources]
+    sources = [(generated_ir if path == original_ir else path, owned) for path, owned in sources]
     env = dict(os.environ)
     env["PATH"] = str(cc.parent) + os.pathsep + env.get("PATH", "")
     common = ["-std=c11", "-ffunction-sections", "-fdata-sections", "-DXRT_MODULE_ALL=", "-DXLS_COMPILER_XRT=1",
               "-finput-charset=UTF-8", "-fexec-charset=UTF-8",
               "-I" + str(ide / "src"), "-I" + str(frontend),
+              "-I" + str(frontend / "src/ir"),
               "-I" + str(frontend / "release"), "-I" + str(frontend / "release/include"),
               "-I" + str(frontend / "lib/xrt"), "-include", str(frontend / "lib/xrt/xrt.h")]
     # MODULE_ALL also selects memory-debug pointer validation. Its release
@@ -145,8 +176,8 @@ def main() -> None:
         common += ["-D_GNU_SOURCE=1"]
         libraries += ["-pthread", "-ldl"]
     commands, inputs, outputs, runs, imports = [], {str(Path(__file__).resolve()): sha(Path(__file__)),
-        str(original_index): index_overlay["sourceSha256"]}, {}, [], {}
-    source_overlays = [index_overlay]
+        str(original_index): index_overlay["sourceSha256"], str(original_ir): ir_overlay["sourceSha256"]}, {}, [], {}
+    source_overlays = [index_overlay, ir_overlay]
     runtime_profiles = []
     started = time.monotonic()
     status = "failed"
