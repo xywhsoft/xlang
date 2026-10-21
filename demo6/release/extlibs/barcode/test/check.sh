@@ -35,6 +35,8 @@ timeout 90s "$xl" run release/extlibs/barcode/test/allocations.xl
 timeout 90s "$work/barcode_example" > "$work/c.out"
 timeout 90s "$xl" run release/extlibs/barcode/examples/barcode.c > "$work/direct_c.out"
 timeout 90s "$xl" run release/examples/extlibs/barcode.xl > "$work/xlang.out"
-diff -u "$work/c.out" "$work/direct_c.out"
-diff -u "$work/c.out" "$work/xlang.out"
+expected=release/extlibs/barcode/examples/barcode.expected.txt
+diff -u "$expected" "$work/c.out"
+diff -u "$expected" "$work/direct_c.out"
+diff -u "$expected" "$work/xlang.out"
 printf 'barcode Linux C ASan/UBSan, XLang JIT and bilingual gate: PASS\n'

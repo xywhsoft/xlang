@@ -41,11 +41,13 @@ def main(skip_aot):
     c_output = c_source("C example", "release/extlibs/barcode/examples/barcode.c")
     direct_output = run("direct C example", str(XL), "run",
                         "release/extlibs/barcode/examples/barcode.c")
-    if direct_output != c_output:
-        raise AssertionError("direct C example output differs from package build")
-    if xl_output != c_output:
-        raise AssertionError(f"C/XLang example mismatch:\nXL:\n{xl_output}\nC:\n{c_output}")
-    print("[barcode] C/XLang parity: PASS")
+    expected = (ROOT / "release/extlibs/barcode/examples/barcode.expected.txt").read_text(
+        encoding="utf-8")
+    for name, output in (("C", c_output), ("direct C", direct_output),
+                         ("XLang", xl_output)):
+        if output != expected:
+            raise AssertionError(f"{name} example differs from fixed output:\n{output}")
+    print("[barcode] C/XLang fixed output: PASS")
 
     if not skip_aot:
         build_root = ROOT / "build" / "test"
@@ -59,8 +61,8 @@ def main(skip_aot):
             example = Path(work) / "aot_example.exe"
             run("AOT example build", str(XL), "build",
                 "release/examples/extlibs/barcode.xl", "-o", str(example))
-            if run("AOT example", str(example)) != c_output:
-                raise AssertionError("barcode AOT example output differs from C")
+            if run("AOT example", str(example)) != expected:
+                raise AssertionError("barcode AOT example output differs from fixed output")
 
 
 if __name__ == "__main__":

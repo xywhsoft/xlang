@@ -1,0 +1,7 @@
+code: 690123456789 check digit: 2
+modules: 95
+# #   # ## #  ### ##  ##  ## ## #### # #   ## # # #  ### # #    #   #  #  #   ### #  ## ##  # #
+isbn valid: true
+# #  ##  #  #  ## #### # #   ## ##   # # #### # # #   #  #  #   ### #  ###  # ##  ## ## ##  # #
+upc svg bytes: true
+barcode example: PASS

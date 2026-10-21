@@ -73,3 +73,8 @@ XRT value 容器模块声明；补齐后 C ASan/UBSan、四组 XLang 用例和�
 快测通过，默认门禁核心 AOT 通过，完整范例构建在共享
 `xl6ValueDataSnapshotV1` 缺符号处正确失败；独占临时目录已清理。
 此前仅核心 AOT 成功的默认全绿不能作为发布签收。
+
+2026-10-22：双语范例增加固定预期输出 `examples/barcode.expected.txt`；Windows
+`test/check.py --skip-aot` 和 Linux `test/check.sh` 均分别核对 C 分离构建、
+C 单文件运行及 XLang 范例，不再只靠双语输出互相比对。两平台聚焦门禁已
+通过；带输出 AOT 的共享主线缺符号阻断仍未解除。
