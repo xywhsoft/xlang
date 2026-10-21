@@ -7,10 +7,12 @@
     "artifact": {
         "kind": "source",
         "cSources": ["singleinstance_native.c"],
+        "xrtModules": ["XRT_MODULE_FILE_LOCK", "XRT_MODULE_DIR", "XRT_MODULE_PATH", "XRT_MODULE_CODEC_BASE64", "XRT_MODULE_UNICODE", "XRT_MODULE_ONCE", "XRT_MODULE_MUTEX"],
         "xlSources": ["src/singleinstance.xl"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

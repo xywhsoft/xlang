@@ -1,0 +1,9 @@
+#define XRT_MODULE_FILE_LOCK
+#define XRT_MODULE_DIR
+#define XRT_MODULE_PATH
+#define XRT_MODULE_CODEC_BASE64
+#define XRT_MODULE_UNICODE
+#define XRT_MODULE_ONCE
+#define XRT_MODULE_MUTEX
+#define XRT_IMPLEMENTATION
+#include "xrt.h"

@@ -1,17 +1,22 @@
-extern "xsi_acquire" func __si_acquire(string name) as bool
-extern "xsi_release" func __si_release()
-extern "xsi_is_acquired" func __si_is_acquired() as bool
-
-
+// 同一进程只持有一个实例锁；跨进程冲突是正常的 false，其他失败抛异常。
+extern "xl6_xrt_last_error_text" func __si_error() as string
+extern "xsi_acquire" func __si_acquire(string name) as c_int
+extern "xsi_release" func __si_release() as c_int
+extern "xsi_is_acquired" func __si_is_acquired() as c_int
 
 export func acquire(string name) as bool
-    return __si_acquire(name)
+    if string.indexOf(name, "\0", false, string.byteLen(name), 1) >= 0 then
+        throw ValueError "singleinstance: name contains NUL"
+    end
+    c_int status = __si_acquire(name)
+    if status < 0 then throw RuntimeError __si_error() end
+    return status == 1
 end
 
 export func release()
-    __si_release()
+    if __si_release() == 0 then throw RuntimeError __si_error() end
 end
 
 export func isAcquired() as bool
-    return __si_is_acquired()
+    return __si_is_acquired() != 0
 end

@@ -8,13 +8,13 @@ func main(...) as int
         return 1
     end
 
-    println("Acquired single instance lock")
-    println("isAcquired:", singleinstance.isAcquired())
-
-    // ... do work ...
-
-    singleinstance.release()
-    println("Released lock")
+    try
+        println("Acquired single instance lock")
+        println("isAcquired:", singleinstance.isAcquired())
+    finally
+        singleinstance.release()
+        println("Released lock")
+    end
 
     println("singleinstance example: PASS")
     return 0

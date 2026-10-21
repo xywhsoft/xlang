@@ -1,0 +1,13 @@
+import singleinstance
+
+func main(...) as int
+    string name = env.get("XLANG_SI_TEST_NAME") ?? ""
+    string donePath = env.get("XLANG_SI_TEST_DONE_PATH") ?? ""
+    assert singleinstance.acquire(name)
+    env.set("XLANG_SI_TEST_READY", "1")
+    while not file.exists(donePath)
+        time.sleep(10)
+    end
+    singleinstance.release()
+    return 0
+end

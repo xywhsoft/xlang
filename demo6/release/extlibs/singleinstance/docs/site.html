@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>singleinstance - 扩展库 - xlang</title>
+  <meta name="description" content="singleinstance 提供跨平台、UTF-8 名称的进程级单实例锁。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / singleinstance</p><h1>singleinstance</h1>
+    <p class="extlib-lead">按名称互斥的实例锁；同名进程与同进程的独立包实例不能同时持有。</p>
+    <p>支持 UTF-8 名称与进程退出自动解锁。Windows 使用 XRT 文件锁，POSIX 使用按打开句柄隔离的文件锁。Windows/Linux 的 ASCII 与中文名称子进程互斥、Linux 独立包实例、XLang JIT 及双语范例输出对照已通过；门禁使用隔离主目录。Windows 深主目录的长路径、XL AOT 与两个 XL_Context 同时执行仍待主线收口。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>acquire(name) as bool</code></td><td>成功为 true；同名进程占用为 false；XLang 名称含 NUL 或其他输入错误抛异常</td></tr>
+      <tr><td><code>release()</code></td><td>解锁，允许重复调用</td></tr>
+      <tr><td><code>isAcquired() as bool</code></td><td>查询当前包实例是否持锁</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import singleinstance
+if not singleinstance.acquire("my_app") then
+    return 1
+end
+// 应用工作
+singleinstance.release()</code></pre>
+    <h2 id="c-api">C 与生命周期</h2>
+    <p>C 头文件 <code>include/singleinstance_native.h</code>；<code>xsi_acquire</code> 用 1/0/-1 区分取得/占用/错误。每个包实例只能持有一个锁；释放脚本上下文前应显式 <code>release()</code>。锁文件保留在用户主目录，不能以文件存在判断是否持锁。已有锁目录若为符号链接或 POSIX 权限过宽，获取锁会报错；Windows 继承 ACL 不做完整审计。完整路径规则与验证范围见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

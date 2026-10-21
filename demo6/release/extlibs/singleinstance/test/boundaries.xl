@@ -1,0 +1,35 @@
+import singleinstance
+
+string testName = "xlang_si_xl_test_" + crypto.randomString(20)
+string unicodeName = "中文_singleinstance_xl_" + crypto.randomString(20)
+assert not singleinstance.isAcquired()
+assert singleinstance.acquire(testName)
+assert singleinstance.isAcquired()
+int failures = 0
+try
+    singleinstance.acquire(testName)
+catch e
+    failures += 1
+end
+assert failures == 1
+singleinstance.release()
+assert not singleinstance.isAcquired()
+bool nulRejected = false
+try
+    singleinstance.acquire(testName + "\0hidden")
+catch ValueError
+    nulRejected = true
+end
+if singleinstance.isAcquired() then singleinstance.release() end
+assert nulRejected, "instance name must not be truncated at NUL"
+assert singleinstance.acquire(testName)
+singleinstance.release()
+assert singleinstance.acquire(unicodeName)
+singleinstance.release()
+try
+    singleinstance.acquire("")
+catch e
+    failures += 1
+end
+assert failures == 2
+println("singleinstance boundaries: PASS")

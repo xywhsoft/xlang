@@ -1,0 +1,8 @@
+import singleinstance
+
+func main(...) as int
+    string name = env.get("XLANG_SI_TEST_NAME") ?? ""
+    assert singleinstance.acquire(name)
+    singleinstance.release()
+    return 0
+end
