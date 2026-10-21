@@ -1,0 +1,17 @@
+import consistent_hash
+
+auto ring = consistent_hash.create(64)
+ring.addNode("node-A")
+ring.addNode("node-B")
+ring.addNode("node-C")
+
+auto keys = ["", "a", "b", "c", "request-0", "request-1", "request-2",
+    "request-10", "request-99", "stable-key", "你好", "key:with/slash"]
+auto expected = ["node-B", "node-B", "node-B", "node-A", "node-A",
+    "node-B", "node-C", "node-B", "node-B", "node-A", "node-C", "node-C"]
+
+for i in range(keys.length)
+    assert ring.getNode(keys[i]) == expected[i]
+end
+
+println("consistent_hash layout: PASS")

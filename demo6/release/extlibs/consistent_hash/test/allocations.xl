@@ -1,0 +1,96 @@
+import consistent_hash
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+int createFailures = 0
+int createSuccesses = 0
+for allocation in range(16)
+    bool caught = false
+    assert failAfter(uint64(allocation))
+    try
+        consistent_hash.ConsistentHash ring = consistent_hash.create(8)
+        assert ring.valid
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert caught == triggered
+    if caught then createFailures += 1 else createSuccesses += 1 end
+end
+assert createFailures > 0 and createSuccesses > 0
+
+int addFailures = 0
+int addSuccesses = 0
+for allocation in range(24)
+    consistent_hash.ConsistentHash ring = consistent_hash.create(8)
+    ring.addNode("node-A")
+    bool caught = false
+    assert failAfter(uint64(allocation))
+    try
+        ring.addNode("node-B")
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert caught == triggered
+    if caught then
+        assert ring.nodeCount == 1 and ring.vnodeCount == 8
+        assert ring.getNode("stable-key") == "node-A"
+        addFailures += 1
+    else
+        assert ring.nodeCount == 2 and ring.vnodeCount == 16
+        addSuccesses += 1
+    end
+end
+assert addFailures > 0 and addSuccesses > 0
+
+int growthFailures = 0
+int growthSuccesses = 0
+for allocation in range(16)
+    consistent_hash.ConsistentHash growing = consistent_hash.create(8)
+    growing.addNode("node-A")
+    growing.addNode("node-B")
+    growing.addNode("node-C")
+    growing.addNode("node-D")
+    string selected = growing.getNode("stable-key")
+    bool caught = false
+    assert failAfter(uint64(allocation))
+    try
+        growing.addNode("node-E")
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert caught == triggered
+    if caught then
+        assert growing.nodeCount == 4 and growing.vnodeCount == 32
+        assert growing.getNode("stable-key") == selected
+        growing.addNode("node-E")
+        growthFailures += 1
+    else
+        growthSuccesses += 1
+    end
+    assert growing.nodeCount == 5 and growing.vnodeCount == 40
+end
+assert growthFailures >= 3 and growthSuccesses > 0
+
+consistent_hash.ConsistentHash ring = consistent_hash.create(8)
+ring.addNode("node-A")
+bool readCaught = false
+assert failAfter(0)
+try
+    ring.getNode("stable-key")
+catch MemoryError
+    readCaught = true
+end
+bool readTriggered = failTriggered()
+failClear()
+assert readCaught and readTriggered
+assert ring.getNode("stable-key") == "node-A"
+
+println("consistent_hash allocation: PASS")

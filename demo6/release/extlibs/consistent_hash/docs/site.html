@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>consistent_hash - 扩展库 - xlang</title>
+  <meta name="description" content="consistent_hash 提供确定性的虚拟节点哈希环。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / consistent_hash</p><h1>consistent_hash</h1>
+    <p class="extlib-lead">确定性虚拟节点环，适合键到节点的稳定分派。</p>
+    <p>复用 XRT 64 位哈希和互斥锁；C/XL 边界、并发及 Linux sanitizer 已通过。XL AOT 当前受共享缺符号阻断。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>create(replicas = 150)</code></td><td>创建哈希环，每节点 1..10000 个虚拟节点</td></tr>
+      <tr><td><code>addNode / removeNode</code></td><td>幂等变更物理节点</td></tr>
+      <tr><td><code>getNode</code></td><td>读取独立的目标节点名；空环返回空字符串</td></tr>
+      <tr><td><code>nodeCount / vnodeCount</code></td><td>节点数快照</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import consistent_hash
+auto ring = consistent_hash.create()
+ring.addNode("node-A")
+ring.addNode("node-B")
+println(ring.getNode("user:42"))</code></pre>
+    <p>映射布局与 XRT 哈希算法和副本数相关；XLang 节点名和键拒绝内嵌 NUL，不提供节点健康检测或数据迁移。C 接口、所有权、容量和验证命令见包内 README。</p>
+    <p>C 调用失败后可直接重试；后续成功调用清除本线程旧的 XRT 错误。创建、添加和查询的内存故障经 C/XLang 回归验证；节点表与虚拟节点表同时扩容失败时，原环映射不变且可重试。C 教学范例可在 Windows/Linux 单文件 <code>xl run</code>，正式包仍分别编译原生源。Windows 联合门禁覆盖严格 GCC、C 故障/线程、XLang、私有入口和双语输出；Linux 严格 GCC + ASan/UBSan 覆盖对应边界。完整 AOT 仍被共享符号 <code>xl6ValueDataSnapshotV1</code> 阻断。</p>
+  </section>
+</main>
+</body>
+</html>

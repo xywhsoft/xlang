@@ -1,0 +1,59 @@
+import consistent_hash
+
+auto a = consistent_hash.create(64)
+auto b = consistent_hash.create(64)
+a.addNode("node-A")
+a.addNode("node-B")
+a.addNode("node-C")
+b.addNode("node-C")
+b.addNode("node-B")
+b.addNode("node-A")
+a.addNode("node-A")
+assert a.nodeCount == 3 and a.vnodeCount == 192
+
+for i in range(1000)
+    string key = "request-" + string(i)
+    assert a.getNode(key) == b.getNode(key)
+end
+
+string saved = a.getNode("persistent-key")
+for i in range(128)
+    a.getNode("another-key")
+end
+assert saved == a.getNode("persistent-key")
+
+int failures = 0
+try
+    consistent_hash.create(0)
+catch ValueError error
+    failures += 1
+end
+try
+    a.addNode("")
+catch ValueError error
+    failures += 1
+end
+try
+    a.addNode("node-A\0ghost")
+catch ValueError error
+    failures += 1
+end
+try
+    a.removeNode("node-A\0ghost")
+catch ValueError error
+    failures += 1
+end
+try
+    a.getNode("persistent-key\0different")
+catch ValueError error
+    failures += 1
+end
+assert failures == 5
+assert a.nodeCount == 3 and a.vnodeCount == 192
+
+a.removeNode("node-A")
+a.removeNode("node-B")
+a.removeNode("node-C")
+assert a.nodeCount == 0 and a.vnodeCount == 0
+assert a.getNode("any") == ""
+println("consistent_hash boundaries: PASS")

@@ -1,0 +1,4 @@
+import consistent_hash
+
+auto ring = consistent_hash.create(4)
+ring.addNative("node\0hidden")

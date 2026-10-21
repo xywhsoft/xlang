@@ -7,10 +7,12 @@
     "artifact": {
         "kind": "source",
         "cSources": ["consistent_hash_native.c"],
-        "xlSources": ["src/consistent_hash.xl"]
+        "xlSources": ["src/consistent_hash.xl"],
+        "xrtModules": ["XRT_MODULE_HASH64", "XRT_MODULE_MUTEX", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "test/layout.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }
