@@ -1,0 +1,8 @@
+import imagehash
+
+func main(...) as int
+    string a = imagehash.ahash("release/examples/extlibs/assets/tiny.png")
+    assert imagehash.valid(a)
+    assert imagehash.hamming(a, a) == 0
+    return 0
+end

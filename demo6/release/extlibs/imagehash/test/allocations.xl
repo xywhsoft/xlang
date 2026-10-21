@@ -1,0 +1,23 @@
+import imagehash
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    string path = "release/examples/extlibs/assets/tiny.png"
+    assert imagehash.ahash(path) == "ffffffffffffffff"
+
+    bool caught = false
+    assert failAfter(0)
+    try
+        imagehash.ahash(path)
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert triggered and caught, "imagehash allocation failure must remain MemoryError"
+    assert imagehash.ahash(path) == "ffffffffffffffff"
+    return 0
+end

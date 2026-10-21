@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>imagehash - 扩展库 - xlang</title>
+  <meta name="description" content="图片相似性指纹 aHash、dHash 与 pHash。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / imagehash</p><h1>imagehash</h1>
+    <p class="extlib-lead">图片相似性指纹。</p>
+    <p>依赖 <code>stb_image</code> 与 <code>stb_image_resize2</code>，不重复捆绑 stb；UTF-8 路径由 XRT 处理。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>ahash / dhash / phash</code></td><td>生成 64 位图像指纹</td></tr>
+      <tr><td><code>hamming</code></td><td>计算同类指纹间的位差</td></tr>
+      <tr><td><code>valid</code></td><td>检验 16 位十六进制格式</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import imagehash
+string a = imagehash.phash("photo.png")
+string b = imagehash.phash("thumbnail.png")
+println(imagehash.hamming(a, b))</code></pre>
+    <p>不是密码学哈希；不同算法的结果不可互比。图片缺失或损坏抛 <code>RuntimeError</code>，内存不足抛 <code>MemoryError</code>；C 接口失败返回 <code>NULL</code>，可查询线程局部诊断与 XRT 内存错误。C 接口、资源归属、算法范围与发布验收状态见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

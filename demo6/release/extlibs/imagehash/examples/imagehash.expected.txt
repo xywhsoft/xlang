@@ -1,0 +1,5 @@
+aHash: ffffffffffffffff
+dHash: 0000000000000000
+pHash: 0000000000000000
+pHash(other): 542a2a5555d555d5
+distance(p,pOther): 31

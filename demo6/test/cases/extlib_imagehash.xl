@@ -1,21 +1,58 @@
 import imagehash
 
-string imagePath = "release/examples/extlibs/assets/tiny.png"
-string a = imagehash.ahash(imagePath)
-string d = imagehash.dhash(imagePath)
-string p = imagehash.phash(imagePath)
+func main(...) as int
+    string path = "release/examples/extlibs/assets/tiny.png"
+    string a = imagehash.ahash(path)
+    string d = imagehash.dhash(path)
+    string p = imagehash.phash(path)
+    assert imagehash.available()
+    assert imagehash.valid(a) and imagehash.valid(d) and imagehash.valid(p)
+    assert a == "ffffffffffffffff"
+    assert d == "0000000000000000"
+    assert p == "0000000000000000"
+    assert imagehash.hamming(a, a) == 0
+    assert imagehash.hamming("0000000000000000", "FFFFFFFFFFFFFFFF") == 64
+    assert imagehash.hamming("0000000000000001", "0000000000000000") == 1
+    assert imagehash.hamming("0123456789abcdef", "0123456789ABCDEF") == 0
+    assert imagehash.hamming(a, d) >= 0 and imagehash.hamming(a, p) >= 0
+    assert not imagehash.valid("0123456789abcde")
+    assert not imagehash.valid("0123456789abcdefx")
+    assert not imagehash.valid("01234567\u0000abcdefg")
+    assert imagehash.hamming(a, "invalid") == -1
+    assert imagehash.hamming(a, "01234567\u0000abcdefg") == -1
+    assert imagehash.last_error() == "invalid hash string"
+    assert imagehash.valid(a)
+    assert imagehash.last_error() == ""
+    assert imagehash.hamming(a, "invalid") == -1
+    assert not imagehash.valid("invalid")
+    assert imagehash.last_error() == ""
 
-assert imagehash.available(), "imagehash should be available"
-assert imagehash.valid(a) != 0, "ahash should contain 16 hexadecimal digits"
-assert imagehash.valid(d) != 0, "dhash should contain 16 hexadecimal digits"
-assert imagehash.valid(p) != 0, "phash should contain 16 hexadecimal digits"
-assert imagehash.hamming(a, a) == 0, "a hash must equal itself"
-assert imagehash.hamming(a, d) >= 0, "two valid hashes must be comparable"
-
-assert imagehash.ahash("release/examples/extlibs/assets/missing.png") == "", "missing image should not create a hash"
-assert imagehash.last_error() != "", "missing image should report a diagnostic"
-assert imagehash.valid("not-a-hash") == 0, "invalid hash text should be rejected"
-assert imagehash.hamming("not-a-hash", a) == -1, "invalid comparison should fail"
-assert imagehash.last_error() == "invalid hash string", "invalid comparison diagnostic mismatch"
-
-println("imagehash case ok")
+    int caught = 0
+    try
+        imagehash.ahash(path + "\u0000missing.png")
+    catch e
+        caught += 1
+    end
+    assert caught == 1
+    try
+        imagehash.dhash(path + "\u0000missing.png")
+    catch e
+        caught += 1
+    end
+    assert caught == 2
+    try
+        imagehash.phash(path + "\u0000missing.png")
+    catch e
+        caught += 1
+    end
+    assert caught == 3
+    try
+        imagehash.ahash("release/examples/extlibs/assets/missing.png")
+    catch RuntimeError
+        caught += 1
+    end
+    assert caught == 4
+    assert imagehash.hamming(a, a) == 0
+    println("imagehash case: PASS")
+    return 0
+end

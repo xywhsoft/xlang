@@ -1,42 +1,63 @@
-// Source package exports. The compiler imports this source file directly.
-
-extern "xihash_available" func __xl6_native_imagehash_available() as bool
+extern "xihash_available" func __imagehash_available() as bool
+extern "xihash_version" func __imagehash_version() as string
+extern "xihash_last_error" func __imagehash_error() as string
+extern "xihash_ahash" func __imagehash_ahash(string path) as point
+extern "xihash_dhash" func __imagehash_dhash(string path) as point
+extern "xihash_phash" func __imagehash_phash(string path) as point
+extern "xihash_hamming" func __imagehash_hamming(string left, c_size leftLen,
+    string right, c_size rightLen) as c_int
+extern "xihash_valid" func __imagehash_valid(string hash, c_size length) as bool
 
 export func available() as bool
-    return __xl6_native_imagehash_available()
+    return __imagehash_available()
 end
-extern "xihash_version" func __xl6_native_imagehash_version() as string
 
 export func version() as string
-    return __xl6_native_imagehash_version()
+    return __imagehash_version()
 end
-extern "xihash_last_error" func __xl6_native_imagehash_last_error() as string
 
 export func last_error() as string
-    return __xl6_native_imagehash_last_error()
+    return __imagehash_error()
 end
-extern "xihash_ahash" func __xl6_native_imagehash_ahash(string path) as string
+
+func __imagehash_path(string path)
+    if string.indexOf(path, "\0", false, string.byteLen(path), 1) >= 0 then
+        throw ValueError "imagehash path contains NUL"
+    end
+end
 
 export func ahash(string path) as string
-    return __xl6_native_imagehash_ahash(path)
+    __imagehash_path(path)
+    point result = __imagehash_ahash(path)
+    if result == null then
+        throw RuntimeError __imagehash_error()
+    end
+    return __xl_runtime.takeCstr(result)
 end
-extern "xihash_dhash" func __xl6_native_imagehash_dhash(string path) as string
 
 export func dhash(string path) as string
-    return __xl6_native_imagehash_dhash(path)
+    __imagehash_path(path)
+    point result = __imagehash_dhash(path)
+    if result == null then
+        throw RuntimeError __imagehash_error()
+    end
+    return __xl_runtime.takeCstr(result)
 end
-extern "xihash_phash" func __xl6_native_imagehash_phash(string path) as string
 
 export func phash(string path) as string
-    return __xl6_native_imagehash_phash(path)
+    __imagehash_path(path)
+    point result = __imagehash_phash(path)
+    if result == null then
+        throw RuntimeError __imagehash_error()
+    end
+    return __xl_runtime.takeCstr(result)
 end
-extern "xihash_hamming" func __xl6_native_imagehash_hamming(string left, string right) as c_int
 
-export func hamming(string left, string right) as c_int
-    return __xl6_native_imagehash_hamming(left, right)
+export func hamming(string left, string right) as int
+    return __imagehash_hamming(left, c_size(string.byteLen(left)),
+        right, c_size(string.byteLen(right)))
 end
-extern "xihash_valid" func __xl6_native_imagehash_valid(string hash) as c_int
 
-export func valid(string hash) as c_int
-    return __xl6_native_imagehash_valid(hash)
+export func valid(string hash) as bool
+    return __imagehash_valid(hash, c_size(string.byteLen(hash)))
 end
