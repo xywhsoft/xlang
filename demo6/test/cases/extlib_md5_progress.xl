@@ -1,0 +1,93 @@
+import md5
+
+func hex(Buffer data) as string
+    return codec.hexEncodeBytes(data.data(), c_size(data.len()))
+end
+
+class Md5Progress
+    int calls = 0
+    int last = 0
+end
+
+func main(...) as int
+    string root = "build/test/md5-progress"
+    dir.createAll(root)
+    string source = root + "/中文源.txt"
+    string empty = root + "/empty.txt"
+    string text = ""
+    for i in range(12000)
+        text += "你好 "
+    end
+    file.writeText(source, text)
+    file.writeText(empty, "")
+    try
+        Md5Progress state = Md5Progress()
+        string result = md5.hashFileHex(source,
+            onProgress = func(int current, int total, int output) as bool
+                assert current >= state.last and total == string.byteLen(text) and output == 0
+                state.calls += 1
+                state.last = current
+                assert md5.hashFileHex(empty) == md5.hashHex("")
+                bool handled = false
+                try
+                    md5.hashFileHex(root + "/missing.txt")
+                catch FileError e
+                    handled = true
+                end
+                assert handled
+                return true
+            end)
+        assert state.calls == 3 and state.last == string.byteLen(text)
+        assert result == md5.hashHex(text)
+        assert md5.hashFileHex(source) == md5.hashHex(text)
+        assert hex(md5.hashFile(source, onProgress = func(int a, int b, int c) as bool
+            return a <= b and c == 0
+        end)) == "E461A4B69706029A30D00BF2C1117F85"
+
+        for mode in range(3)
+            state = Md5Progress()
+            bool caught = false
+            try
+                md5.hashFileHex(source, onProgress = func(int a, int b, int c) as bool
+                    state.calls += 1
+                    if mode == 2 then
+                        throw ValueError "md5 callback marker"
+                    end
+                    return mode == 1 and state.calls < 3
+                end)
+            catch CancelledError e
+                assert mode < 2
+                caught = true
+            catch ValueError e
+                assert mode == 2 and e.message == "md5 callback marker"
+                caught = true
+            end
+            assert caught
+            if mode == 1 then
+                assert state.calls == 3
+            end
+        end
+        bool caught = false
+        try
+            md5.hashFileHex(empty, onProgress = func(int a, int b, int c) as bool
+                assert a == 0 and b == 0 and c == 0
+                return false
+            end)
+        catch CancelledError e
+            caught = true
+        end
+        assert caught
+        caught = false
+        try
+            md5.hashFileHex(source, maxInput = 1)
+        catch RangeError e
+            caught = true
+        end
+        assert caught
+        assert md5.hashFileHex(source) == result and file.readText(source) == text
+    finally
+        file.delete(source)
+        file.delete(empty)
+    end
+    return 0
+end

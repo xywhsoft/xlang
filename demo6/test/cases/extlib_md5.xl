@@ -1,0 +1,84 @@
+import md5
+
+func hex(Buffer data) as string
+    return codec.hexEncodeBytes(data.data(), c_size(data.len()))
+end
+
+func main(...) as int
+    assert md5.version() == "1.0.0" and md5.MD5_DIGEST_SIZE == 16, "md5 assertion 8"
+    assert md5.hashHex("") == "d41d8cd98f00b204e9800998ecf8427e", "md5 assertion 9"
+    assert md5.hashHex("abc") == "900150983cd24fb0d6963f7d28e17f72", "md5 assertion 10"
+    assert hex(md5.hash("abc")) == "900150983CD24FB0D6963F7D28E17F72", "raw abc digest"
+    string text = "你好🌍尾"
+    Buffer bytes = Buffer()
+    bytes.append(text)
+    assert bytes.len() == 13, "md5 assertion 15"
+    assert md5.hashHex(bytes) == md5.hashHex(text), "md5 assertion 16"
+    assert md5.hashHex(text) == "15ee50d75c55fd849b9caea317ce7a00", "independent UTF-8 digest"
+    assert hex(md5.hash(bytes)) == "15EE50D75C55FD849B9CAEA317CE7A00", "raw UTF-8 digest"
+    bytes.appendByte(0)
+    bytes.appendByte(255)
+    auto h = md5.hasher()
+    h.update("你好🌍")
+    Buffer tail = Buffer()
+    tail.append("尾")
+    tail.appendByte(0)
+    tail.appendByte(255)
+    h.update(tail)
+    assert h.valid and h.inputBytes == uint64(15), "md5 assertion 27"
+    assert hex(h.digest()) == "1726CB8D7FF43306647CF15C377DBCE3", "raw NUL and high-byte digest"
+    assert h.digestHex() == md5.hashHex(bytes) and h.digestHex() == md5.hashHex(bytes), "md5 assertion 29"
+    assert h.reset() and h.inputBytes == uint64(0) and h.digestHex() == md5.hashHex(""), "md5 assertion 30"
+    h.update("a")
+    string prefix = h.digestHex()
+    h.update("bc")
+    assert prefix == md5.hashHex("a") and h.digestHex() == md5.hashHex("abc"), "md5 assertion 34"
+    auto limited = md5.hasher(maxInput = 3)
+    limited.update("abc")
+    bool caught = false
+    try
+        limited.update("d")
+    catch RangeError
+        caught = true
+    end
+    assert caught and limited.inputBytes == uint64(3), "md5 assertion 43"
+    caught = false
+    try
+        limited.digest()
+    catch RangeError
+        caught = true
+    end
+    assert caught and limited.reset(), "md5 assertion 50"
+    limited.update("ok")
+    assert limited.digestHex() == md5.hashHex("ok"), "md5 assertion 52"
+    string saved = md5.hashHex("abc")
+    for i in range(32)
+        assert md5.hashHex("other") != saved, "md5 assertion 55"
+    end
+    assert saved == "900150983cd24fb0d6963f7d28e17f72", "md5 assertion 57"
+    for mode in range(2)
+        int maximum = -mode
+        caught = false
+        try
+            md5.hasher(maxInput = maximum)
+        catch ValueError
+            caught = true
+        end
+        assert caught, "md5 assertion 66"
+        caught = false
+        try
+            md5.hashFile("", maxInput = maximum)
+        catch ValueError
+            caught = true
+        end
+        assert caught, "md5 assertion 73"
+        caught = false
+        try
+            md5.hashFileHex("", maxInput = maximum)
+        catch ValueError
+            caught = true
+        end
+        assert caught, "md5 assertion 80"
+    end
+    return 0
+end
