@@ -1,0 +1,20 @@
+import stb_image_write
+
+func main(...) as int
+    Buffer pixels = Buffer()
+    string chunk = string.repeat("\0", 1048576)
+    int index = 0
+    while index < 64
+        assert pixels.append(chunk)
+        index += 1
+    end
+
+    bool limited = false
+    try
+        stb_image_write.encodeBmp(pixels, 8192, 8192, 1)
+    catch RangeError error
+        limited = true
+    end
+    assert limited, "gray BMP output limit"
+    return 0
+end

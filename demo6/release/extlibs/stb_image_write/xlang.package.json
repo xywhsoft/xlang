@@ -9,6 +9,11 @@
                      "cSources":  [
                                       "stb_image_write_native.c"
                                   ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_BUFFER",
+                                        "XRT_MODULE_DEFLATE",
+                                        "XRT_MODULE_FILE_WHOLE"
+                                    ],
                      "xlSources":  [
                                        "src/stb_image_write.xl"
                                    ]
@@ -22,6 +27,7 @@
     "dependencies":  [
 
                      ],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

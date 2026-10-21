@@ -1,112 +1,204 @@
-#include <stdlib.h>
-#include <string.h>
+/* 图片编码只使用内存回调；UTF-8 文件路径由 XRT 统一处理。 */
+#include <limits.h>
+#include <stdio.h>
 
+#ifndef XRT_MODULE_FILE_WHOLE
+#define XRT_MODULE_FILE_WHOLE
+#endif
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+#ifndef XRT_MODULE_DEFLATE
+#define XRT_MODULE_DEFLATE
+#endif
+#include "xrt.h"
+#include "include/stb_image_write_native.h"
+
+#define XSTBIW_DOMAIN "xlang.extlib.stb_image_write"
+#define XSTBIW_PIXELS_LIMIT (64u * 1024u * 1024u)
+#define XSTBIW_OUTPUT_LIMIT (128u * 1024u * 1024u)
+
+/* stb 内置压缩缓冲在扩容失败时仍会写入，PNG 改用 XRT 的有界 zlib 编码。 */
+static unsigned char* xstbiw_deflate(unsigned char* Data, int Length,
+    int* OutputLength, int Quality)
+{
+    xdeflateconfig Config;
+    size_t Size = 0u;
+    bytes Output;
+    xrtDeflateConfigInit(&Config);
+    Config.Format = XDEFLATE_ZLIB;
+    Config.Level = Quality < 0 ? 0 : (Quality > 10 ? 10 : Quality);
+    Config.OutputLimit = XSTBIW_OUTPUT_LIMIT;
+    Output = xrtDeflateAll((xbytesview){Data, (size_t)Length}, &Config, &Size);
+    if (Output == NULL) return NULL;
+    if (Size > INT_MAX) {
+        xrtFree(Output);
+        xrtSetErrorInfo(XERR_RANGE, XSTBIW_DOMAIN, 0, "compressed PNG exceeds limit");
+        return NULL;
+    }
+    *OutputLength = (int)Size;
+    return Output;
+}
+
+#define STBIW_MALLOC(size) xrtMalloc(size)
+#define STBIW_REALLOC(ptr, size) xrtRealloc(ptr, size)
+#define STBIW_FREE(ptr) xrtFree(ptr)
+#define STBIW_ZLIB_COMPRESS xstbiw_deflate
+#define STBI_WRITE_NO_STDIO
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "third_party/stb_image_write.h"
 
-#if defined(_WIN32) || defined(_WIN64)
-#define XSTBIW_EXPORT __declspec(dllexport)
-#else
-#define XSTBIW_EXPORT
-#endif
+typedef struct xstbiw_sink {
+    xbuffer* Buffer;
+    bool Failed;
+    bool Limited;
+} xstbiw_sink;
 
-#if defined(__GNUC__)
-#define XSTBIW_THREAD __thread
-#elif defined(_MSC_VER)
-#define XSTBIW_THREAD __declspec(thread)
-#else
-#define XSTBIW_THREAD
-#endif
-
-static XSTBIW_THREAD char g_xstbiw_error[512];
-
-static void xstbiw_set_error(const char* text)
+static void xstbiw_error(xerrkind Kind, const char* Message)
 {
-    size_t i = 0u;
+    xrtSetErrorInfo(Kind, XSTBIW_DOMAIN, 0, Message);
+}
 
-    if ( text == NULL ) {
-        text = "";
+static void xstbiw_append(void* Context, void* Data, int Size)
+{
+    xstbiw_sink* Sink = (xstbiw_sink*)Context;
+    if (Sink->Failed || Size <= 0) return;
+    if (Sink->Buffer->Size > XSTBIW_OUTPUT_LIMIT ||
+        (size_t)Size > XSTBIW_OUTPUT_LIMIT - Sink->Buffer->Size) {
+        Sink->Limited = true;
+        Sink->Failed = true;
+        return;
     }
+    if (!xrtBufferAppend(Sink->Buffer, (xbytesview){ Data, (size_t)Size }))
+        Sink->Failed = true;
+}
 
-    while ( i + 1u < sizeof(g_xstbiw_error) && text[i] != '\0' ) {
-        g_xstbiw_error[i] = text[i];
-        ++i;
+static bool xstbiw_validate(int Format, void* Pixels, size_t Length,
+    int Width, int Height, int Channels, int Option)
+{
+    size_t Row;
+    size_t Required;
+
+    if (Format < XSTBIW_PNG || Format > XSTBIW_HDR || Pixels == NULL ||
+        Width <= 0 || Height <= 0 || Channels < 1 || Channels > 4) {
+        xstbiw_error(XERR_ARGUMENT, "invalid image format, dimensions or pixels");
+        return false;
     }
-    g_xstbiw_error[i] = '\0';
+    /* 限定 stb 内部的 int 乘法及临时分配规模。 */
+    if (Width > 16384 || Height > 16384 ||
+        (size_t)Width > XSTBIW_PIXELS_LIMIT / (size_t)Height /
+            ((size_t)Channels * (Format == XSTBIW_HDR ? sizeof(float) : 1u))) {
+        xstbiw_error(XERR_RANGE, "image exceeds 64 MiB pixel limit");
+        return false;
+    }
+    Row = (size_t)Width * (size_t)Channels;
+    if (Format == XSTBIW_HDR) Row *= sizeof(float);
+    if (Format == XSTBIW_PNG) {
+        size_t Step;
+        if (Option < 0 || (Option != 0 && (size_t)Option < Row)) {
+            xstbiw_error(XERR_RANGE, "PNG stride is smaller than one pixel row");
+            return false;
+        }
+        Step = Option == 0 ? Row : (size_t)Option;
+        if (Height > 1 && Step > (XSTBIW_PIXELS_LIMIT - Row) /
+                (size_t)(Height - 1)) {
+            xstbiw_error(XERR_RANGE, "PNG stride exceeds 64 MiB pixel limit");
+            return false;
+        }
+        Required = (size_t)(Height - 1) * Step + Row;
+    } else {
+        if (Format == XSTBIW_JPEG && (Option < 1 || Option > 100)) {
+            xstbiw_error(XERR_RANGE, "JPEG quality must be between 1 and 100");
+            return false;
+        }
+        Required = (size_t)Height * Row;
+    }
+    if (Required > XSTBIW_PIXELS_LIMIT || Length < Required) {
+        xstbiw_error(XERR_RANGE, "pixel buffer is too short or exceeds 64 MiB");
+        return false;
+    }
+    return true;
 }
 
-static int xstbiw_valid(const char* path, const void* data, int width, int height, int channels)
+int xstbiw_available(void)
 {
-	if ( path == NULL || path[0] == '\0' ) {
-		xstbiw_set_error("empty output path");
-		return 0;
-	}
-	if ( data == NULL || width <= 0 || height <= 0 || channels <= 0 || channels > 4 ) {
-		xstbiw_set_error("invalid image data");
-		return 0;
-	}
-	return 1;
+    return 1;
 }
 
-XSTBIW_EXPORT int xstbiw_available(void)
+const char* xstbiw_version(void)
 {
-	return 1;
+    return "stb_image_write 1.16";
 }
 
-XSTBIW_EXPORT const char* xstbiw_version(void)
+void* xstbiw_encode(int Format, void* Pixels, size_t Length,
+    int Width, int Height, int Channels, int Option)
 {
-	return "stb_image_write 1.16";
+    xbuffer* Output;
+    xstbiw_sink Sink;
+    int Ok = 0;
+
+    xrtClearError();
+    if (!xstbiw_validate(Format, Pixels, Length, Width, Height, Channels, Option))
+        return NULL;
+    Output = xrtBufferCreate();
+    if (Output == NULL) {
+        xstbiw_error(XERR_MEMORY, "could not allocate encoded image buffer");
+        return NULL;
+    }
+    Sink.Buffer = Output;
+    Sink.Failed = false;
+    Sink.Limited = false;
+    switch (Format) {
+    case XSTBIW_PNG:
+        Ok = stbi_write_png_to_func(xstbiw_append, &Sink,
+            Width, Height, Channels, Pixels, Option);
+        break;
+    case XSTBIW_JPEG:
+        Ok = stbi_write_jpg_to_func(xstbiw_append, &Sink,
+            Width, Height, Channels, Pixels, Option);
+        break;
+    case XSTBIW_BMP:
+        Ok = stbi_write_bmp_to_func(xstbiw_append, &Sink,
+            Width, Height, Channels, Pixels);
+        break;
+    case XSTBIW_TGA:
+        Ok = stbi_write_tga_to_func(xstbiw_append, &Sink,
+            Width, Height, Channels, Pixels);
+        break;
+    case XSTBIW_HDR:
+        Ok = stbi_write_hdr_to_func(xstbiw_append, &Sink,
+            Width, Height, Channels, (const float*)Pixels);
+        break;
+    }
+    if (Sink.Failed || !Ok || Output->Size == 0u) {
+        xrtBufferDestroy(Output);
+        if (Sink.Limited)
+            xstbiw_error(XERR_RANGE, "encoded image exceeds 128 MiB");
+        else if (xrtGetError() == NULL)
+            xstbiw_error(Sink.Failed ? XERR_MEMORY : XERR_VALUE,
+                Sink.Failed ? "could not allocate encoded image" :
+                              "image encoder failed");
+        return NULL;
+    }
+    return Output;
 }
 
-XSTBIW_EXPORT const char* xstbiw_last_error(void)
+int xstbiw_write(const char* Path, int Format, void* Pixels,
+    size_t Length, int Width, int Height, int Channels, int Option)
 {
-	return g_xstbiw_error;
-}
-
-XSTBIW_EXPORT int xstbiw_write_png(const char* path, const void* data, int width, int height, int channels, int stride)
-{
-	int ok;
-	if ( !xstbiw_valid(path, data, width, height, channels) ) return 0;
-	if ( stride <= 0 ) stride = width * channels;
-	ok = stbi_write_png(path, width, height, channels, data, stride);
-	xstbiw_set_error(ok ? "" : "png write failed");
-	return ok ? 1 : 0;
-}
-
-XSTBIW_EXPORT int xstbiw_write_jpg(const char* path, const void* data, int width, int height, int channels, int quality)
-{
-	int ok;
-	if ( !xstbiw_valid(path, data, width, height, channels) ) return 0;
-	if ( quality <= 0 ) quality = 90;
-	if ( quality > 100 ) quality = 100;
-	ok = stbi_write_jpg(path, width, height, channels, data, quality);
-	xstbiw_set_error(ok ? "" : "jpg write failed");
-	return ok ? 1 : 0;
-}
-
-XSTBIW_EXPORT int xstbiw_write_bmp(const char* path, const void* data, int width, int height, int channels)
-{
-	int ok;
-	if ( !xstbiw_valid(path, data, width, height, channels) ) return 0;
-	ok = stbi_write_bmp(path, width, height, channels, data);
-	xstbiw_set_error(ok ? "" : "bmp write failed");
-	return ok ? 1 : 0;
-}
-
-XSTBIW_EXPORT int xstbiw_write_tga(const char* path, const void* data, int width, int height, int channels)
-{
-	int ok;
-	if ( !xstbiw_valid(path, data, width, height, channels) ) return 0;
-	ok = stbi_write_tga(path, width, height, channels, data);
-	xstbiw_set_error(ok ? "" : "tga write failed");
-	return ok ? 1 : 0;
-}
-
-XSTBIW_EXPORT int xstbiw_write_hdr(const char* path, const void* data, int width, int height, int channels)
-{
-	int ok;
-	if ( !xstbiw_valid(path, data, width, height, channels) ) return 0;
-	ok = stbi_write_hdr(path, width, height, channels, (const float*)data);
-	xstbiw_set_error(ok ? "" : "hdr write failed");
-	return ok ? 1 : 0;
+    xbuffer* Encoded;
+    bool Ok;
+    xrtClearError();
+    if (Path == NULL || Path[0] == '\0') {
+        xstbiw_error(XERR_ARGUMENT, "empty output path");
+        return 0;
+    }
+    Encoded = (xbuffer*)xstbiw_encode(Format, Pixels, Length,
+        Width, Height, Channels, Option);
+    if (Encoded == NULL) return 0;
+    Ok = xrtFileWriteAtomic(Path, xrtBufferView(Encoded));
+    xrtBufferDestroy(Encoded);
+    if (!Ok && xrtGetError() == NULL)
+        xstbiw_error(XERR_IO, "could not write encoded image");
+    return Ok ? 1 : 0;
 }

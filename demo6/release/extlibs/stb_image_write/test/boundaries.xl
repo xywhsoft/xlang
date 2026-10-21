@@ -1,0 +1,76 @@
+import stb_image
+import stb_image_write
+
+func checkBoundaries(string path)
+    stb_image.StbImage image = stb_image.load("release/examples/extlibs/assets/tiny.png", 4)
+    Buffer pixels = image.pixels()
+    Buffer png = stb_image_write.encodePng(pixels, 16, 16, 4)
+    assert stb_image.loadBytes(png, 4).pixels() == pixels
+    assert stb_image_write.encodeJpeg(pixels, 16, 16, 4, 80).len() > 0
+    assert stb_image_write.encodeBmp(pixels, 16, 16, 4).len() > 0
+    assert stb_image_write.encodeTga(pixels, 16, 16, 4).len() > 0
+    Buffer floats = stb_image.loadf("release/examples/extlibs/assets/tiny.png", 4).pixels()
+    assert stb_image_write.encodeHdr(floats, 16, 16, 4).len() > 0
+
+    assert stb_image_write.writePng(path, pixels, 16, 16, 4)
+    assert Buffer(file.readBytes(path)) == png
+    assert file.delete(path)
+
+    bool rejected = false
+    try
+        stb_image_write.encodePng(Buffer(), 16, 16, 4)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "empty pixel buffer"
+
+    rejected = false
+    try
+        stb_image_write.encodePng(pixels, 16, 16, 4, 1)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "invalid PNG stride"
+
+    rejected = false
+    try
+        stb_image_write.encodeJpeg(pixels, 16, 16, 4, 101)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "invalid JPEG quality"
+
+    rejected = false
+    try
+        stb_image_write.encodePng(pixels, 4294967312, 16, 4)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "width must not wrap to C int"
+
+    rejected = false
+    try
+        stb_image_write.encodeJpeg(pixels, 16, 16, 4, 4294967386)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "quality must not wrap to C int"
+
+    file.writeText(path, "keep")
+    assert !stb_image_write.writePng(path, pixels, 4294967312, 16, 4)
+    assert !stb_image_write.writePng(path + "\0ignored", pixels, 16, 16, 4)
+    assert file.readText(path) == "keep", "truncated path must not overwrite an existing file"
+    assert file.delete(path)
+    println("stb_image_write XL boundaries: PASS")
+end
+
+func main(...) as int
+    string workDir = path.join(path.temp(), "xlang_stbiw_xl_test_" + crypto.randomString(20))
+    dir.createAll(workDir)
+    try
+        checkBoundaries(path.join(workDir, "编码_临时.png"))
+    finally
+        assert dir.delete(workDir), "temporary image test directory must be removed"
+    end
+    return 0
+end
