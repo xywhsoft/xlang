@@ -2,10 +2,10 @@ import epub
 
 
 
-func main(...) as int
-    dir.createAll("examples_out/extlibs")
-    string path = "examples_out/extlibs/demo.epub"
-    var meta = {"title": "xlang 扩展库手册", "author": "xLeaves", "language": "zh"}
+func checkEpub(string path)
+    var meta = {"title": "xlang 扩展库手册", "author": "xLeaves",
+        "language": "zh", "identifier": "urn:xlang:test:extlib-epub",
+        "modified": "2026-08-01T00:00:00Z"}
     var chapters = [
         {"title": "第一章 概述", "text": "# 概述\n\nxlang 是一门静态类型的系统语言。\n支持 C 混编与 <QR> 码生成。\n\n## 特性列表\n\n语义清晰，产物轻量。"},
         {"title": "第二章 安装", "text": "# 安装\n\n从官网下载发布包。\n\n解压后即可运行 xl.exe。"}
@@ -42,6 +42,15 @@ func main(...) as int
 
     // 缺失条目返回空串
     assert epub.readEntry(path, "no/such.entry") == "", "missing entry empty"
+end
 
+func main(...) as int
+    string workDir = path.join(path.temp(), "xlang_epub_case_" + crypto.randomString(20))
+    dir.createAll(workDir)
+    try
+        checkEpub(path.join(workDir, "book.epub"))
+    finally
+        assert dir.delete(workDir), "temporary EPUB test directory must be removed"
+    end
     return 0
 end
