@@ -1,3 +1,5 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
@@ -5,6 +7,9 @@ $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 $work = Join-Path ([IO.Path]::GetTempPath()) ('xlang-vcard-' + [guid]::NewGuid().ToString('N'))
 $cFile = Join-Path $work 'c.vcf'
 $xlangFile = Join-Path $work 'xlang.vcf'
+$aotFile = Join-Path $work 'aot.vcf'
+$coreExe = Join-Path $work 'vcard_core.exe'
+$aotExe = Join-Path $work 'vcard_example.exe'
 New-Item -ItemType Directory -Path $work | Out-Null
 
 Push-Location $root
@@ -72,10 +77,34 @@ try {
         throw "vcard failed-write example boundary failed: $failureOutput"
     }
 
-    Write-Output 'vcard Windows C/XLang gate: PASS'
+    if (-not $SkipAot) {
+        & $xl build release/extlibs/vcard/test/aot_core.xl -o $coreExe
+        if ($LASTEXITCODE -ne 0) { throw 'vcard core AOT build failed' }
+        & $coreExe
+        if ($LASTEXITCODE -ne 0) { throw 'vcard core AOT failed' }
+
+        & $xl build release/examples/extlibs/vcard.xl -o $aotExe
+        if ($LASTEXITCODE -ne 0) { throw 'vcard example AOT build failed' }
+        $aotOutput = & $aotExe $aotFile
+        if ($LASTEXITCODE -ne 0 -or
+            ($aotOutput -join "`n") -cne ($runnerOutput -join "`n")) {
+            throw 'vcard example AOT output differs'
+        }
+        if (-not (Test-Path -LiteralPath $aotFile -PathType Leaf) -or
+            -not [Linq.Enumerable]::SequenceEqual([byte[]]$cBytes,
+                [byte[]][IO.File]::ReadAllBytes($aotFile))) {
+            throw 'vcard example AOT file bytes differ'
+        }
+    }
+
+    if ($SkipAot) {
+        Write-Output 'vcard Windows C/XLang focused gate: PASS'
+    } else {
+        Write-Output 'vcard Windows C/XLang and AOT release gate: PASS'
+    }
 } finally {
     Pop-Location
-    foreach ($file in @($cFile, $xlangFile)) {
+    foreach ($file in @($cFile, $xlangFile, $aotFile, $coreExe, $aotExe)) {
         if (Test-Path -LiteralPath $file) { Remove-Item -LiteralPath $file -Force }
     }
     if (Test-Path -LiteralPath $work) { Remove-Item -LiteralPath $work -Force }

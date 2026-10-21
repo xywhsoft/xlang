@@ -31,10 +31,14 @@ Windows 从 `demo6` 目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/vcard/test/check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/vcard/test/check.ps1 -SkipAot
 ```
 
 联合验证严格 GCC、C/XLang 边界与范例控制台输出，逐字节比较两份
 生成的 `.vcf` 文件，并检查写入目录路径时失败且不输出成功标记。
+默认门禁另构建运行无输出核心与带输出完整范例 AOT，将后者的控制台
+输出和 `.vcf` 字节与 C 范例比较；`-SkipAot` 仅用于包侧聚焦验证，
+不能视为发布签收。AOT 产物只写入本次独占临时目录并在结束时清理。
 C/XLang 范例还各自断言完整的 3.0 文本、CRLF 行尾，以及读回后的姓名与两条邮箱；双语一致不能代替这些固定预期。
 
 在 `demo6/release` 可直接运行 `xl run extlibs/vcard/examples/vcard.c`；
