@@ -3,6 +3,7 @@
 #include "xrt.h"
 #include "../include/geohash_native.h"
 #include <locale.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -196,6 +197,17 @@ int main(void)
     CHECK(xgeohash_encode(0.0, 181.0, 6) == NULL);
     CHECK(xgeohash_encode(0.0, 0.0, 0) == NULL);
     CHECK(xgeohash_encode(0.0, 0.0, 13) == NULL);
+    CHECK(xgeohash_encode(NAN, 0.0, 6) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    CHECK(xgeohash_encode(0.0, INFINITY, 6) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    CHECK(xgeohash_encode(-INFINITY, 0.0, 6) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    CHECK(xgeohash_decode_bounds("s", NULL) == 0);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xgeohash_decode_bounds(NULL, &bounds) == 0);
+    CHECK(memcmp(&bounds, &old_bounds, sizeof(bounds)) == 0);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
     CHECK(xgeohash_neighbor("s", 4) == NULL);
 
     /* 成功调用不能继承上一次失败留下的线程错误。 */

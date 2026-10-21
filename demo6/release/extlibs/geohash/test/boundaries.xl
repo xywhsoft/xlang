@@ -29,6 +29,23 @@ catch ValueError error
 end
 assert failures == 4
 
+try
+    geohash.encode(math.nan, 0.0, 6)
+catch ValueError error
+    failures += 1
+end
+try
+    geohash.encode(0.0, math.inf, 6)
+catch ValueError error
+    failures += 1
+end
+try
+    geohash.encode(-math.inf, 0.0, 6)
+catch ValueError error
+    failures += 1
+end
+assert failures == 7
+
 string held = geohash.encode(42.6, -5.6, 5)
 for i in range(64)
     geohash.encode(39.9, 116.4, 8)
@@ -45,7 +62,7 @@ try
 catch ValueError error
     failures += 1
 end
-assert failures == 5
+assert failures == 8
 string edge = geohash.encode(90.0, 180.0, 12)
 assert geohash.west(geohash.east(edge)) == edge
 try
@@ -53,7 +70,7 @@ try
 catch ValueError error
     failures += 1
 end
-assert failures == 6
+assert failures == 9
 string truncated = "s\0invalid"
 try
     geohash.precision(truncated)
@@ -75,5 +92,5 @@ try
 catch ValueError error
     failures += 1
 end
-assert failures == 10, "embedded NUL must not resolve a prefix geohash"
+assert failures == 13, "embedded NUL must not resolve a prefix geohash"
 println("geohash boundaries: PASS")

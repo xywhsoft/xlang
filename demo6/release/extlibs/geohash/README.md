@@ -41,3 +41,5 @@ Linux 可在 `demo6` 目录运行 `bash release/extlibs/geohash/test/check.sh`�
 2026-10-19：`encode`、`bbox`、邻格三条文本结果路径增加 C/XLang 逐点分配故障测试；C 侧验证 `XERR_MEMORY` 与下一次调用恢复，语言侧验证 `MemoryError` 不会被误判为输入错误。Windows 包级及 Linux C ASan/UBSan、XLang、双语门禁通过；原生实现无需修改。完整带输出 AOT 的共享缺符号阻断不变。
 
 2026-10-20：Windows 包门禁增加显式 `-SkipAot` 与独占 AOT 构建目录，快速模式输出明确注明跳过 AOT；默认模式验证中央核心 AOT，再验证包内边界 AOT。当前严格 C/JIT、双语同输出和核心 AOT 均通过，边界 AOT 链接仍缺共享 `xl6ValueDataSnapshotV1`，默认门禁正确以非零状态退出，成功或失败均清理本次构建目录。原生算法未改，整包仍未签收发布级。
+
+2026-10-21：C/XLang 边界新增 NaN、正负无穷坐标拒绝断言；C 还覆盖空输出指针和空 hash 的错误类别、失败后原输出不变。Windows `test/check.ps1 -SkipAot` 与 Linux `test/check.sh` 的 C ASan/UBSan、语言边界及双语对照通过。实现未改；完整 AOT 共享缺符号阻断仍在，不签收整包发布级。
