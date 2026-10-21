@@ -12,6 +12,7 @@ typedef struct {
 typedef struct {
 	str sText;
 	size_t iSize;
+	bool bQuoted;
 	uint64 iLine;
 	uint64 iColumn;
 	uint64 iOffset;
@@ -22,15 +23,6 @@ typedef struct {
 	xrt_netrc_token Push;
 	bool bHasPush;
 } xrt_netrc_parser;
-
-static xrtnetrcoptions __xrtNetrcOptions(const xrtnetrcoptions* pOptions)
-{
-	xrtnetrcoptions tResult;
-	xrtNetrcOptionsInit(&tResult);
-	if ( pOptions != NULL && pOptions->iSize >= sizeof(*pOptions) &&
-		pOptions->iVersion == XRT_NETRC_OPTIONS_VERSION ) { tResult = *pOptions; }
-	return tResult;
-}
 
 static void __xrtNetrcTokenUnit(xrt_netrc_token* pToken)
 {
@@ -62,10 +54,16 @@ static bool __xrtNetrcAppendChar(xbuffer* pBuffer, char c,
 			"netrc token exceeds the configured item limit");
 		return false;
 	}
-	return xrtBufferAppendByte(pBuffer, (uint8)c);
+	if ( !xrtBufferAppendByte(pBuffer, (uint8)c) ) {
+		__xrtNetrcSetError(pScanner->Context->Error, XRT_NETRC_ERROR_MEMORY,
+			pScanner->iLine, pScanner->iColumn, pScanner->iPos,
+			"cannot grow netrc token");
+		return false;
+	}
+	return true;
 }
 
-static void __xrtNetrcSkipSpace(xrt_netrc_scanner* pScanner)
+static bool __xrtNetrcSkipSpace(xrt_netrc_scanner* pScanner)
 {
 	for ( ;; ) {
 		while ( pScanner->iPos < pScanner->iSize ) {
@@ -74,9 +72,16 @@ static void __xrtNetrcSkipSpace(xrt_netrc_scanner* pScanner)
 			__xrtNetrcAdvance(pScanner);
 		}
 		if ( pScanner->iPos >= pScanner->iSize ||
-			pScanner->pData[pScanner->iPos] != '#' ) { return; }
+			pScanner->pData[pScanner->iPos] != '#' ) { return true; }
 		while ( pScanner->iPos < pScanner->iSize &&
 			pScanner->pData[pScanner->iPos] != '\n' ) {
+			if ( pScanner->pData[pScanner->iPos] == '\0' ) {
+				__xrtNetrcSetError(pScanner->Context->Error,
+					XRT_NETRC_ERROR_SYNTAX, pScanner->iLine,
+					pScanner->iColumn, pScanner->iPos,
+					"NUL in netrc comment");
+				return false;
+			}
 			__xrtNetrcAdvance(pScanner);
 		}
 	}
@@ -91,7 +96,7 @@ static bool __xrtNetrcScanToken(xrt_netrc_scanner* pScanner,
 	if ( pEof ) { *pEof = false; }
 	if ( pScanner == NULL || pToken == NULL ) { return false; }
 	memset(pToken, 0, sizeof(*pToken));
-	__xrtNetrcSkipSpace(pScanner);
+	if ( !__xrtNetrcSkipSpace(pScanner) ) { return false; }
 	if ( pScanner->iPos >= pScanner->iSize ) {
 		if ( pEof ) { *pEof = true; }
 		return true;
@@ -104,6 +109,7 @@ static bool __xrtNetrcScanToken(xrt_netrc_scanner* pScanner,
 	if ( pScanner->pData[pScanner->iPos] == '\'' ||
 		pScanner->pData[pScanner->iPos] == '"' ) {
 		cQuote = pScanner->pData[pScanner->iPos];
+		pToken->bQuoted = true;
 		__xrtNetrcAdvance(pScanner);
 	}
 	while ( pScanner->iPos < pScanner->iSize ) {
@@ -115,6 +121,12 @@ static bool __xrtNetrcScanToken(xrt_netrc_scanner* pScanner,
 		}
 		if ( cQuote == 0 && (c == ' ' || c == '\t' || c == '\r' ||
 			c == '\n' || c == '#') ) { break; }
+		if ( c == '\0' || (cQuote != 0 && (c == '\r' || c == '\n')) ) {
+			__xrtNetrcSetError(pScanner->Context->Error, XRT_NETRC_ERROR_SYNTAX,
+				pScanner->iLine, pScanner->iColumn, pScanner->iPos,
+				"NUL or newline in netrc token");
+			goto fail;
+		}
 		if ( c == '\\' ) {
 			__xrtNetrcAdvance(pScanner);
 			if ( pScanner->iPos >= pScanner->iSize ) {
@@ -124,6 +136,12 @@ static bool __xrtNetrcScanToken(xrt_netrc_scanner* pScanner,
 				goto fail;
 			}
 			c = pScanner->pData[pScanner->iPos];
+			if ( c == '\0' || c == '\r' || c == '\n' ) {
+				__xrtNetrcSetError(pScanner->Context->Error, XRT_NETRC_ERROR_SYNTAX,
+					pScanner->iLine, pScanner->iColumn, pScanner->iPos,
+					"NUL or newline in netrc escape");
+				goto fail;
+			}
 		}
 		if ( !__xrtNetrcAppendChar(pBuffer, c, pScanner) ) { goto fail; }
 		__xrtNetrcAdvance(pScanner);
@@ -134,6 +152,15 @@ static bool __xrtNetrcScanToken(xrt_netrc_scanner* pScanner,
 			"unterminated quoted netrc token");
 		goto fail;
 	}
+	if ( cQuote != 0 && pScanner->iPos < pScanner->iSize ) {
+		char c = pScanner->pData[pScanner->iPos];
+		if ( c != ' ' && c != '\t' && c != '\r' && c != '\n' && c != '#' ) {
+			__xrtNetrcSetError(pScanner->Context->Error, XRT_NETRC_ERROR_SYNTAX,
+				pScanner->iLine, pScanner->iColumn, pScanner->iPos,
+				"netrc quoted token requires a separator");
+			goto fail;
+		}
+	}
 	if ( pBuffer->Size > 0u ) {
 		pToken->sText = xrtStrDupN((cstr)pBuffer->Data, pBuffer->Size);
 	} else {
@@ -141,7 +168,13 @@ static bool __xrtNetrcScanToken(xrt_netrc_scanner* pScanner,
 	}
 	pToken->iSize = pBuffer->Size;
 	xrtBufferDestroy(pBuffer);
-	return pToken->sText != NULL;
+	if ( pToken->sText == NULL ) {
+		__xrtNetrcSetError(pScanner->Context->Error, XRT_NETRC_ERROR_MEMORY,
+			pToken->iLine, pToken->iColumn, pToken->iOffset,
+			"cannot allocate netrc token");
+		return false;
+	}
+	return true;
 
 memory_error:
 	__xrtNetrcSetError(pScanner->Context->Error, XRT_NETRC_ERROR_MEMORY,
@@ -178,14 +211,16 @@ static bool __xrtNetrcTokenEquals(const xrt_netrc_token* pToken,
 	const char* sText)
 {
 	return pToken != NULL && pToken->sText != NULL &&
-		strcmp((const char*)pToken->sText, sText) == 0;
+		pToken->iSize == strlen(sText) &&
+		memcmp(pToken->sText, sText, pToken->iSize) == 0;
 }
 
 static bool __xrtNetrcIsTopLevel(const xrt_netrc_token* pToken)
 {
-	return __xrtNetrcTokenEquals(pToken, "machine") ||
+	return pToken != NULL && !pToken->bQuoted &&
+		(__xrtNetrcTokenEquals(pToken, "machine") ||
 		__xrtNetrcTokenEquals(pToken, "default") ||
-		__xrtNetrcTokenEquals(pToken, "macdef");
+		__xrtNetrcTokenEquals(pToken, "macdef"));
 }
 
 static bool __xrtNetrcSetAuthField(xvalue* pAuth, const char* sField,
@@ -289,7 +324,30 @@ static xvalue* __xrtNetrcParseMacro(xrt_netrc_parser* pParser,
 	xvalue* pLines = xrtValueArray();
 	if ( pLines == NULL ) { return NULL; }
 	while ( pScanner->iPos < pScanner->iSize &&
-		pScanner->pData[pScanner->iPos] != '\n' ) { __xrtNetrcAdvance(pScanner); }
+		pScanner->pData[pScanner->iPos] != '\n' ) {
+		char c = pScanner->pData[pScanner->iPos];
+		if ( c == '#' ) {
+			while ( pScanner->iPos < pScanner->iSize &&
+				pScanner->pData[pScanner->iPos] != '\n' ) {
+				if ( pScanner->pData[pScanner->iPos] == '\0' ) {
+					__xrtNetrcSetError(pScanner->Context->Error,
+						XRT_NETRC_ERROR_SYNTAX, pScanner->iLine,
+						pScanner->iColumn, pScanner->iPos,
+						"NUL in netrc macro comment");
+					goto fail;
+				}
+				__xrtNetrcAdvance(pScanner);
+			}
+			break;
+		}
+		if ( c != ' ' && c != '\t' && c != '\r' ) {
+			__xrtNetrcSetError(pScanner->Context->Error, XRT_NETRC_ERROR_SYNTAX,
+				pScanner->iLine, pScanner->iColumn, pScanner->iPos,
+				"unexpected content after macdef name");
+			goto fail;
+		}
+		__xrtNetrcAdvance(pScanner);
+	}
 	if ( pScanner->iPos < pScanner->iSize ) { __xrtNetrcAdvance(pScanner); }
 	while ( pScanner->iPos < pScanner->iSize ) {
 		size_t iStart = pScanner->iPos;
@@ -298,7 +356,23 @@ static xvalue* __xrtNetrcParseMacro(xrt_netrc_parser* pParser,
 			pScanner->pData[pScanner->iPos] != '\n' ) { __xrtNetrcAdvance(pScanner); }
 		{
 			size_t iEnd = pScanner->iPos;
+			const char* pCR;
 			if ( iEnd > iStart && pScanner->pData[iEnd - 1u] == '\r' ) { iEnd--; }
+			pCR = memchr(pScanner->pData + iStart, '\r', iEnd - iStart);
+			if ( pCR != NULL ) {
+				size_t iOffset = (size_t)(pCR - pScanner->pData);
+				__xrtNetrcSetError(pScanner->Context->Error,
+					XRT_NETRC_ERROR_SYNTAX, iLine,
+					(uint64)(iOffset - iStart + 1u), (uint64)iOffset,
+					"CR inside netrc macro line");
+				goto fail;
+			}
+			if ( memchr(pScanner->pData + iStart, '\0', iEnd - iStart) != NULL ) {
+				__xrtNetrcSetError(pScanner->Context->Error,
+					XRT_NETRC_ERROR_SYNTAX, iLine, 1u, iStart,
+					"NUL in netrc macro");
+				goto fail;
+			}
 			if ( __xrtNetrcLineBlank(pScanner->pData + iStart, iEnd - iStart) ) {
 				if ( pScanner->iPos < pScanner->iSize ) { __xrtNetrcAdvance(pScanner); }
 				return pLines;
@@ -343,11 +417,14 @@ static xvalue* __xrtNetrcParseDocument(const char* pData, size_t iSize,
 	tParser.Scanner.iColumn = 1u;
 	tParser.Scanner.Context = pContext;
 	pRoot = xrtValueObject();
+	if ( pRoot == NULL ) { goto fail; }
 	pHosts = xrtValueObject();
+	if ( pHosts == NULL ) { goto fail; }
+	/* 成功后字典归根对象持有；失败时 SetValue 已释放待移交值。 */
+	if ( !__xrtNetrcSetValue(pRoot, "hosts", pHosts) ) { goto fail; }
 	pMacros = xrtValueObject();
-	if ( pRoot == NULL || pHosts == NULL || pMacros == NULL ||
-		!__xrtNetrcSetValue(pRoot, "hosts", pHosts) ||
-		!__xrtNetrcSetValue(pRoot, "macros", pMacros) ) { goto fail; }
+	if ( pMacros == NULL ) { goto fail; }
+	if ( !__xrtNetrcSetValue(pRoot, "macros", pMacros) ) { goto fail; }
 	for ( ;; ) {
 		xrt_netrc_token tKeyword, tName;
 		bool bEof = false;
@@ -355,8 +432,9 @@ static xvalue* __xrtNetrcParseDocument(const char* pData, size_t iSize,
 		memset(&tName, 0, sizeof(tName));
 		if ( !__xrtNetrcNext(&tParser, &tKeyword, &bEof) ) { goto fail; }
 		if ( bEof ) { break; }
-		if ( __xrtNetrcTokenEquals(&tKeyword, "machine") ||
-			__xrtNetrcTokenEquals(&tKeyword, "default") ) {
+		if ( !tKeyword.bQuoted &&
+			(__xrtNetrcTokenEquals(&tKeyword, "machine") ||
+			__xrtNetrcTokenEquals(&tKeyword, "default")) ) {
 			const char* sName = "default";
 			size_t iNameSize = 7u;
 			xvalue* pAuth;
@@ -372,6 +450,14 @@ static xvalue* __xrtNetrcParseDocument(const char* pData, size_t iSize,
 				}
 				sName = (const char*)tName.sText;
 				iNameSize = tName.iSize;
+				if ( iNameSize == 7u && memcmp(sName, "default", 7u) == 0 ) {
+					__xrtNetrcSetError(pContext->Error, XRT_NETRC_ERROR_SYNTAX,
+						tName.iLine, tName.iColumn, tName.iOffset,
+						"machine name 'default' is reserved");
+					__xrtNetrcTokenUnit(&tKeyword);
+					__xrtNetrcTokenUnit(&tName);
+					goto fail;
+				}
 			}
 			if ( xrtValueObjectHas(pHosts, (xstrview){ sName, iNameSize }) &&
 				pContext->Options.bStrictDuplicates ) {
@@ -399,7 +485,8 @@ static xvalue* __xrtNetrcParseDocument(const char* pData, size_t iSize,
 				goto fail;
 			}
 			__xrtNetrcTokenUnit(&tName);
-		} else if ( __xrtNetrcTokenEquals(&tKeyword, "macdef") ) {
+		} else if ( !tKeyword.bQuoted &&
+			__xrtNetrcTokenEquals(&tKeyword, "macdef") ) {
 			xvalue* pLines;
 			if ( !__xrtNetrcNext(&tParser, &tName, &bEof) || bEof ||
 				tName.iSize == 0u || __xrtNetrcIsTopLevel(&tName) ) {
@@ -466,29 +553,45 @@ xvalue* xrtNetrcParse(xreader* pReader, bool bTakeOwnership,
 	xbuffer* pInput = NULL;
 	xvalue* pResult = NULL;
 	uint64 iSize = 0u;
+	uint64 iPosition = 0u;
 	uint64 iLimit;
+	size_t iReadLimit;
 	const char* pData;
 	size_t iDataSize;
 	if ( pError == NULL ) { pError = &tLocalError; }
 	xrtNetrcErrorInit(pError);
 	memset(&tContext, 0, sizeof(tContext));
-	tContext.Options = __xrtNetrcOptions(pOptions);
 	tContext.Error = pError;
+	if ( !__xrtNetrcResolveOptions(pOptions, &tContext.Options, pError) ) {
+		goto cleanup;
+	}
 	if ( pReader == NULL ) {
 		__xrtNetrcSetError(pError, XRT_NETRC_ERROR_ARGUMENT, 0u, 0u, 0u,
 			"invalid netrc reader");
 		goto cleanup;
 	}
 	iLimit = tContext.Options.tLimits.iMaxInputBytes;
-	if ( xrtReaderSize(pReader, &iSize) && iLimit != 0u && iSize > iLimit ) {
+	iReadLimit = iLimit == 0u || iLimit > SIZE_MAX - 1u ?
+		SIZE_MAX - 1u : (size_t)iLimit;
+	xrtClearError();
+	if ( iLimit != 0u && xrtReaderSize(pReader, &iSize) &&
+		xrtReaderTell(pReader, &iPosition) && iPosition <= iSize &&
+		iSize - iPosition > iLimit ) {
 		__xrtNetrcSetError(pError, XRT_NETRC_ERROR_LIMIT, 0u, 0u, 0u,
 			"netrc input exceeds the configured limit");
 		goto cleanup;
 	}
-	pInput = xrtReaderReadAll(pReader, iLimit);
+	xrtClearError();
+	pInput = xrtReaderReadAll(pReader, iReadLimit);
 	if ( pInput == NULL ) {
-		__xrtNetrcSetError(pError, XRT_NETRC_ERROR_IO, 0u, 0u, 0u,
-			"cannot read netrc stream or input limit was exceeded");
+		const xerror* pReadError = xrtGetError();
+		xerrkind eKind = pReadError != NULL ? xrtErrorKind(pReadError) : XERR_IO;
+		int iCode = eKind == XERR_RANGE ? XRT_NETRC_ERROR_LIMIT :
+			(eKind == XERR_MEMORY ? XRT_NETRC_ERROR_MEMORY : XRT_NETRC_ERROR_IO);
+		__xrtNetrcSetError(pError, iCode, 0u, 0u, 0u,
+			iCode == XRT_NETRC_ERROR_LIMIT ? "netrc input exceeds the configured limit" :
+			(iCode == XRT_NETRC_ERROR_MEMORY ? "cannot allocate netrc input buffer" :
+			"cannot read netrc stream"));
 		goto cleanup;
 	}
 	pData = (const char*)pInput->Data;
@@ -507,21 +610,66 @@ xvalue* xrtNetrcParse(xreader* pReader, bool bTakeOwnership,
 
 cleanup:
 	xrtBufferDestroy(pInput);
-	if ( bTakeOwnership ) { xrtReaderDestroy(pReader); }
+	if ( bTakeOwnership && !xrtReaderDestroy(pReader) && pResult != NULL ) {
+		/* 读取成功不代表拥有型流已经成功关闭。 */
+		xrtValueRelease(pResult);
+		pResult = NULL;
+		__xrtNetrcSetError(pError, XRT_NETRC_ERROR_IO, 0u, 0u, 0u,
+			"cannot close netrc stream");
+	}
 	return pResult;
 }
 
 xvalue* xrtNetrcParseMemory(const void* pData, uint64 iSize,
 	const xrtnetrcoptions* pOptions, xrtnetrcerror* pError)
 {
+	if ( iSize > SIZE_MAX ) {
+		if ( pError != NULL ) {
+			xrtNetrcErrorInit(pError);
+			__xrtNetrcSetError(pError, XRT_NETRC_ERROR_ARGUMENT,
+				0u, 0u, 0u, "netrc input size is not representable");
+		}
+		return NULL;
+	}
+	if ( pData == NULL && iSize != 0u ) {
+		if ( pError != NULL ) {
+			xrtNetrcErrorInit(pError);
+			__xrtNetrcSetError(pError, XRT_NETRC_ERROR_ARGUMENT,
+				0u, 0u, 0u, "invalid netrc input");
+		}
+		return NULL;
+	}
 	xreader* pReader = pData != NULL || iSize == 0u ?
 		xrtReaderFromMemory((xbytesview){ (cbytes)pData, (size_t)iSize }) : NULL;
+	if ( pReader == NULL ) {
+		if ( pError != NULL ) {
+			xrtNetrcErrorInit(pError);
+			__xrtNetrcSetError(pError, XRT_NETRC_ERROR_MEMORY,
+				0u, 0u, 0u, "cannot allocate netrc memory reader");
+		}
+		return NULL;
+	}
 	return xrtNetrcParse(pReader, true, pOptions, pError);
 }
 
 xvalue* xrtNetrcLoad(str sPath, const xrtnetrcoptions* pOptions,
 	xrtnetrcerror* pError)
 {
-	xreader* pReader = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
+	xreader* pReader;
+	if ( sPath == NULL ) { return xrtNetrcParse(NULL, false, pOptions, pError); }
+	xrtClearError();
+	pReader = xrtReaderOpen(sPath);
+	if ( pReader == NULL ) {
+		const xerror* pOpenError = xrtGetError();
+		int iCode = pOpenError != NULL && xrtErrorKind(pOpenError) == XERR_MEMORY ?
+			XRT_NETRC_ERROR_MEMORY : XRT_NETRC_ERROR_IO;
+		if ( pError != NULL ) {
+			xrtNetrcErrorInit(pError);
+			__xrtNetrcSetError(pError, iCode, 0u, 0u, 0u,
+				iCode == XRT_NETRC_ERROR_MEMORY ?
+				"cannot allocate netrc file reader" : "cannot open netrc file");
+		}
+		return NULL;
+	}
 	return xrtNetrcParse(pReader, true, pOptions, pError);
 }

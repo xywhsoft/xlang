@@ -48,8 +48,10 @@ typedef struct {
 	char sMessage[256];
 } xrtnetrcerror;
 
+/* 深度、压缩比、资源标志及保留字段不适用于 netrc，须保持初始化值。 */
 XRT_API void xrtNetrcOptionsInit(xrtnetrcoptions* pOptions);
 XRT_API void xrtNetrcErrorInit(xrtnetrcerror* pError);
+/* 拥有型流在所有退出路径关闭；正文成功但关闭失败时返回 IO 错误。 */
 XRT_API xvalue* xrtNetrcParse(xreader* pReader, bool bTakeOwnership,
 	const xrtnetrcoptions* pOptions, xrtnetrcerror* pError);
 XRT_API xvalue* xrtNetrcParseMemory(const void* pData, uint64 iSize,
@@ -58,6 +60,7 @@ XRT_API xvalue* xrtNetrcLoad(str sPath, const xrtnetrcoptions* pOptions,
 	xrtnetrcerror* pError);
 XRT_API xbuffer* xrtNetrcStringify(xvalue* pDocument,
 	const xrtnetrcoptions* pOptions, xrtnetrcerror* pError);
+/* 拥有型 Writer 的关闭失败计为 IO；已有写入错误保持首因。 */
 XRT_API bool xrtNetrcWrite(xvalue* pDocument, xwriter* pWriter,
 	bool bTakeOwnership, const xrtnetrcoptions* pOptions,
 	xrtnetrcerror* pError);

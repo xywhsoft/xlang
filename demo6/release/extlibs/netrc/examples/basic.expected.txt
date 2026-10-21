@@ -1,0 +1,3 @@
+netrc: alice@api.example.com
+netrc fallback: guest
+netrc entries: 2 hosts, 1 macro

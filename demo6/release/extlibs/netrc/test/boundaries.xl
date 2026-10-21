@@ -1,0 +1,156 @@
+import netrc
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    auto config = netrc.parse("machine api.example.com login alice password \"default\"\n" +
+        "default login guest password fallback\n")
+    var auth = config.authenticators("api.example.com")
+    assert auth["login"] == "alice"
+    assert auth["password"] == "default"
+    var fallback = config.authenticators("unknown.example")
+    assert fallback["login"] == "guest"
+    array<string> hostNames = config.hostNames()
+    assert hostNames.length == 2
+
+    // 关键字作为凭据值须在序列化之后仍保持原值。
+    auto restored = netrc.parse(config.stringify())
+    assert restored.authenticators("api.example.com")["password"] == "default"
+    auto defaultFirst = netrc.parse("default login guest\nmachine api.example.com login alice\n")
+    assert defaultFirst.stringify() == "machine api.example.com\n  login alice\n\ndefault\n  login guest\n\n", "default must be written after every machine"
+
+    bool badMacro = false
+    try
+        netrc.parse("macdef deploy extra\n echo deploy\n\n")
+    catch ConfigError e
+        badMacro = true
+    end
+    assert badMacro
+    assert netrc.errorLine() == 1
+
+    badMacro = false
+    try
+        netrc.parse("macdef deploy # note\0hidden\n echo deploy\n\n")
+    catch ConfigError e
+        badMacro = true
+    end
+    assert badMacro, "NUL in macdef header comment must be rejected"
+    assert netrc.errorLine() == 1
+
+    badMacro = false
+    try
+        netrc.parse("macdef run\n\recho deploy\n\n")
+    catch ConfigError e
+        badMacro = true
+    end
+    assert badMacro and netrc.errorLine() == 2 and netrc.errorColumn() == 1, "CR inside macro data must be rejected"
+    auto crlfMacro = netrc.parse("macdef run\r\n echo ok\r\n\r\n")
+    assert crlfMacro.macros["run"][0] == " echo ok", "CRLF macro data remains valid"
+
+    bool badToken = false
+    try
+        netrc.parse("machine h password \"one\ntwo\"\n")
+    catch ConfigError e
+        badToken = true
+    end
+    assert badToken
+    badToken = false
+    try
+        netrc.parse("machine h login \"unfinished")
+    catch ConfigError e
+        badToken = true
+    end
+    bool locationKept = badToken and netrc.errorLine() == 1 and netrc.errorColumn() == 17
+    assert locationKept, "scanner error must keep the quoted value location"
+
+    bool badLimit = false
+    try
+        netrc.parse("machine h login a\n", maxInput = -1)
+    catch ConfigError e
+        badLimit = true
+    end
+    assert badLimit, "negative input limit must be rejected"
+    string oversized = "machine host login 中文\n"
+    bool limitCaught = false
+    bool memoryCaught = false
+    // 输入限额在原生层复制文本前检查，同时保留 errorCode 的诊断。
+    assert failAfter(3)
+    try
+        netrc.parse(oversized, maxInput = string.byteLen(oversized) - 1)
+    catch ConfigError e
+        limitCaught = true
+    catch MemoryError e
+        memoryCaught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert limitCaught and not memoryCaught and not triggered and netrc.errorCode() == 4
+    bool nulCaught = false
+    try
+        netrc.parse("machine host login a\0hidden\n")
+    catch ConfigError e
+        nulCaught = true
+    end
+    assert nulCaught, "string input must retain embedded NUL for validation"
+    badLimit = false
+    try
+        config.stringify(maxOutput = -1)
+    catch ConfigError e
+        badLimit = true
+    end
+    assert badLimit, "negative output limit must be rejected"
+
+    bool badPath = false
+    try
+        netrc.load("\0hidden")
+    catch ConfigError e
+        badPath = e.message.contains("NUL")
+    end
+    assert badPath, "NUL input path must be rejected before C-string truncation"
+    badPath = false
+    try
+        config.save("\0hidden")
+    catch ConfigError e
+        badPath = e.message.contains("NUL")
+    end
+    assert badPath, "NUL output path must be rejected before C-string truncation"
+
+    var document = config.document
+    document["secret"] = "must not be dropped"
+    config.document = document
+    bool badField = false
+    try
+        config.stringify()
+    catch ConfigError e
+        badField = true
+    end
+    assert badField, "unknown document field must not be silently discarded"
+
+    // 手工修改的文档也不能写出解析器无法读回的空主机名。
+    auto invalid = netrc.parse("machine host login user\n")
+    var invalidDocument = invalid.document
+    var invalidHosts = invalidDocument["hosts"]
+    invalidHosts[""] = {"login": "user"}
+    invalidDocument["hosts"] = invalidHosts
+    invalid.document = invalidDocument
+    bool badName = false
+    try
+        invalid.stringify()
+    catch ConfigError e
+        badName = true
+    end
+    assert badName, "empty host name must not serialize"
+
+    // 关闭条目限额时，重复定义不应被默认的 100000 项上限截断。
+    Buffer repeated = Buffer()
+    int count = 0
+    while count <= 100000
+        repeated.append("default login a\n")
+        count += 1
+    end
+    auto unlimited = netrc.parse(repeated.text(), false, maxEntries = 0)
+    assert unlimited.authenticators("unused")["login"] == "a"
+    return 0
+end

@@ -3,18 +3,33 @@ extern "xnetrc_error_line" func __netrc_error_line() as int
 extern "xnetrc_error_column" func __netrc_error_column() as int
 extern "xnetrc_error_offset" func __netrc_error_offset() as int
 extern "xnetrc_error_message" func __netrc_error_message() as point
-extern "xnetrc_parse" func __netrc_parse(point data, c_ulonglong size,
-    c_bool strict, c_ulonglong maxInput, c_ulonglong maxOutput,
-    c_ulonglong maxItem, c_ulonglong maxEntries, c_ulonglong maxNodes) as var
+extern "xnetrc_parse" func __netrc_parse(string data, uint64 size,
+    c_bool strict, uint64 maxInput, uint64 maxOutput,
+    uint64 maxItem, uint64 maxEntries, uint64 maxNodes) as var
 extern "xnetrc_load" func __netrc_load(string path, c_bool strict,
-    c_ulonglong maxInput, c_ulonglong maxOutput, c_ulonglong maxItem,
-    c_ulonglong maxEntries, c_ulonglong maxNodes) as var
+    uint64 maxInput, uint64 maxOutput, uint64 maxItem,
+    uint64 maxEntries, uint64 maxNodes) as var
 extern "xnetrc_stringify" func __netrc_stringify(var value,
-    c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
-    c_ulonglong maxNodes) as point
+    uint64 maxOutput, uint64 maxItem, uint64 maxEntries,
+    uint64 maxNodes) as point
 extern "xnetrc_save" func __netrc_save(string path, var value,
-    c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
-    c_ulonglong maxNodes) as bool
+    uint64 maxOutput, uint64 maxItem, uint64 maxEntries,
+    uint64 maxNodes) as bool
+
+
+func __netrc_check_limits(int maxInput, int maxOutput, int maxItem,
+    int maxEntries, int maxNodes)
+    if (maxInput < 0 or maxOutput < 0 or maxItem < 0 or
+        maxEntries < 0 or maxNodes < 0) then
+        throw ConfigError "netrc resource limits must be nonnegative"
+    end
+end
+
+func __netrc_require_path(string path)
+    if string.indexOf(path, "\0", false, string.byteLen(path), 1) >= 0 then
+        throw ConfigError "netrc path contains an embedded NUL byte"
+    end
+end
 
 
 
@@ -24,10 +39,19 @@ end
 
 
 
-class Netrc
+export class Netrc
     var document = null
 
     create(var value)
+        if type(value) != dict then
+            throw ConfigError "netrc document must be a dict"
+        end
+        if not ("hosts" in value) or not ("macros" in value) then
+            throw ConfigError "netrc document requires hosts and macros dicts"
+        end
+        if type(value["hosts"]) != dict or type(value["macros"]) != dict then
+            throw ConfigError "netrc document requires hosts and macros dicts"
+        end
         self.document = value
     end
 
@@ -64,9 +88,10 @@ class Netrc
 
     func stringify(int maxOutput = 536870912, int maxItem = 268435456,
         int maxEntries = 100000, int maxNodes = 1000000) as string
+        __netrc_check_limits(0, maxOutput, maxItem, maxEntries, maxNodes)
         point result = __netrc_stringify(self.document,
-            c_ulonglong(maxOutput), c_ulonglong(maxItem),
-            c_ulonglong(maxEntries), c_ulonglong(maxNodes))
+            uint64(maxOutput), uint64(maxItem),
+            uint64(maxEntries), uint64(maxNodes))
         if result == null then throw ConfigError __netrc_error() end
         Buffer data = Buffer(result)
         return data.text()
@@ -75,9 +100,11 @@ class Netrc
     func save(string path, int maxOutput = 536870912,
         int maxItem = 268435456, int maxEntries = 100000,
         int maxNodes = 1000000)
-        if not __netrc_save(path, self.document, c_ulonglong(maxOutput),
-            c_ulonglong(maxItem), c_ulonglong(maxEntries),
-            c_ulonglong(maxNodes)) then
+        __netrc_require_path(path)
+        __netrc_check_limits(0, maxOutput, maxItem, maxEntries, maxNodes)
+        if not __netrc_save(path, self.document, uint64(maxOutput),
+            uint64(maxItem), uint64(maxEntries),
+            uint64(maxNodes)) then
             throw ConfigError __netrc_error()
         end
     end
@@ -105,11 +132,10 @@ export func parse(string text, bool strict = true,
     int maxInput = 268435456, int maxOutput = 536870912,
     int maxItem = 268435456, int maxEntries = 100000,
     int maxNodes = 1000000) as Netrc
-    Buffer data = Buffer()
-    data.append(text)
-    var result = __netrc_parse(data.data(), c_ulonglong(data.len()),
-        c_bool(strict), c_ulonglong(maxInput), c_ulonglong(maxOutput),
-        c_ulonglong(maxItem), c_ulonglong(maxEntries), c_ulonglong(maxNodes))
+    __netrc_check_limits(maxInput, maxOutput, maxItem, maxEntries, maxNodes)
+    var result = __netrc_parse(text, uint64(string.byteLen(text)),
+        c_bool(strict), uint64(maxInput), uint64(maxOutput),
+        uint64(maxItem), uint64(maxEntries), uint64(maxNodes))
     if result == null then throw ConfigError __netrc_error() end
     return Netrc(result)
 end
@@ -118,9 +144,11 @@ export func load(string path, bool strict = true,
     int maxInput = 268435456, int maxOutput = 536870912,
     int maxItem = 268435456, int maxEntries = 100000,
     int maxNodes = 1000000) as Netrc
-    var result = __netrc_load(path, c_bool(strict), c_ulonglong(maxInput),
-        c_ulonglong(maxOutput), c_ulonglong(maxItem),
-        c_ulonglong(maxEntries), c_ulonglong(maxNodes))
+    __netrc_require_path(path)
+    __netrc_check_limits(maxInput, maxOutput, maxItem, maxEntries, maxNodes)
+    var result = __netrc_load(path, c_bool(strict), uint64(maxInput),
+        uint64(maxOutput), uint64(maxItem),
+        uint64(maxEntries), uint64(maxNodes))
     if result == null then throw ConfigError __netrc_error() end
     return Netrc(result)
 end

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>netrc - 扩展库 - xlang</title>
+  <meta name="description" content="读取、修改和私有保存 UTF-8 netrc 凭据文件。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-fmt" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / netrc</p>
+    <h1>netrc</h1>
+    <p class="extlib-lead">解析、修改和保存 UTF-8 <code>netrc</code> 凭据文件，支持 <code>machine</code>、<code>default</code> 和 <code>macdef</code>。</p>
+    <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import netrc
+
+netrc.Netrc config = netrc.parse("machine api.example login alice password sample\n")
+var auth = config.authenticators("api.example")
+println(auth["login"])</code></pre>
+    <p>C/XLang 对照范例还展示具名主机与 <code>default</code> 回退，只输出用户名。可显式传入目标路径，通过 <code>save/load</code> 保存并读回两组凭据；密码只参与往返核对，不写入输出。实际凭据不应写入日志，也不要把 <code>stringify()</code> 的结果直接打印到控制台。</p>
+  </section>
+  <section id="api">
+    <h2>接口</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>parse / load</code></td><td>解析文本或从 UTF-8 路径读取。</td></tr>
+      <tr><td><code>netrc.Netrc</code></td><td>导出的文档类型，可用于变量和参数声明；直接构造要求 <code>hosts</code>、<code>macros</code> 字典。</td></tr>
+      <tr><td><code>Netrc.authenticators(host)</code></td><td>优先查找指定主机，缺失时返回 <code>default</code>。</td></tr>
+      <tr><td><code>Netrc.hosts / macros</code></td><td>访问与修改凭据和宏字典。</td></tr>
+      <tr><td><code>Netrc.hostNames / macroNames</code></td><td>枚举主机与宏名称。</td></tr>
+      <tr><td><code>Netrc.stringify / save</code></td><td>生成文本或以同目录临时文件替换目标。</td></tr>
+      <tr><td><code>errorCode / errorLine / errorColumn / errorOffset</code></td><td>读取最近一次原生操作的错误位置。</td></tr>
+    </tbody></table>
+    <p>C 端包含 <code>extlibs/netrc/include/xrt_netrc.h</code>；文档由调用方用 <code>xrtValueRelease</code> 释放。拥有型 Reader/Writer 在退出时关闭；正文成功但关闭失败时报告 <code>IO</code>，借用型流仍由调用方关闭。Reader 输入限额按当前游标之后的字节计算；无法同时查询总大小和当前位置时由实际限额读取裁决。传入选项结构时须先调用 <code>xrtNetrcOptionsInit</code>；结构或内嵌资源限额的版本、长度无效会报 <code>ARGUMENT</code>，不会回退到默认限额。netrc 不使用深度、压缩比或资源标志；这些字段及保留字段必须保持初始化值，否则报 <code>ARGUMENT</code>。传入 <code>NULL</code> 才使用默认选项。解析结果只存储在当前对象中，本库不会自动读取用户主目录的凭据，也不会自行向网络请求附加认证信息。</p>
+    <p>文档顶层只接受 <code>hosts</code> 和 <code>macros</code>；主机条目只接受 <code>login</code>、<code>account</code>、<code>password</code>。未知字段或空主机名、空宏名会使 <code>stringify/save</code> 报错，不会写出无法读回的凭据。写出时具名 <code>machine</code> 总在 <code>default</code> 前面，与外部 netrc 读取器的匹配顺序一致。保存失败时原文件保持不变。</p>
+    <p>宏正文支持 CRLF 行尾，但行内独立 CR 会报语法错误；解析成功的宏能够写出并再次读回。</p>
+  </section>
+  <section id="verify">
+    <h2>验证与边界</h2>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/netrc/test/check.ps1 -SkipAot
+bash release/extlibs/netrc/test/check.sh</code></pre>
+    <p>Windows C/XLang 边界与双语同输出、Linux C ASan/UBSan 和原生文件系统 <code>0600</code> 权限用例通过；Linux 脚本也运行中央与包内 XLang 边界，并将双语范例与黄金输出逐字对照。原生入口的 64 位无符号参数与 XRT 的 <code>uint64</code> ABI 一致。C/XLang 资源限额中，显式 <code>0</code> 表示不限；省略 XLang 参数使用签名默认上限。<code>parse(string)</code> 直接传入 UTF-8 数据及字节长度，不额外建立 XLang Buffer 副本；原生层先检查输入限额，并完整拒绝内嵌 NUL。负限额会被拒绝；路径或注释（包括 <code>macdef</code> 标题注释）中的 NUL 也会被拒绝。非空 Reader 正常解析。C 的空 writer、空/缺失路径在序列化前报参数错误。流式写入或刷新发生内存错误时报告 <code>MEMORY</code>，普通 I/O 错误报告 <code>IO</code>；保存阶段分配失败也报告 <code>MEMORY</code> 且保持旧文件。POSIX 保存采用同目录私有临时文件并替换；Windows 仍依赖目标目录 ACL。完整 AOT 因主线 <code>xl6ValueDataSnapshotV1</code> 缺符号尚未签收。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

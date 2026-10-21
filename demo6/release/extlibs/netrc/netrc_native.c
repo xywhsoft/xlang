@@ -41,12 +41,11 @@ static void __xnetrcClearError(xrtnetrcerror* pError)
 	if ( pError != NULL ) { xrtNetrcErrorInit(pError); }
 }
 
-static void __xnetrcPublishError(const xrtnetrcerror* pError)
+/* 可预期的输入错误由 XL 包装层抛类型化异常，不抢占 XRT 运行时错误。 */
+static void __xnetrcDeferError(const xrtnetrcerror* pError)
 {
-	xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.netrc",
-		pError != NULL ? pError->iCode : XRT_NETRC_ERROR_MEMORY,
-		pError != NULL && pError->sMessage[0] != 0 ? pError->sMessage :
-			"netrc operation failed");
+	if ( pError != NULL && pError->iCode != XRT_NETRC_OK &&
+		pError->iCode != XRT_NETRC_ERROR_MEMORY ) { xrtClearError(); }
 }
 
 static void __xnetrcOptions(xrtnetrcoptions* pOptions, bool bStrict,
@@ -55,14 +54,14 @@ static void __xnetrcOptions(xrtnetrcoptions* pOptions, bool bStrict,
 {
 	xrtNetrcOptionsInit(pOptions);
 	pOptions->bStrictDuplicates = bStrict;
-	if ( iMaxInput != 0u ) { pOptions->tLimits.iMaxInputBytes = iMaxInput; }
-	if ( iMaxOutput != 0u ) { pOptions->tLimits.iMaxOutputBytes = iMaxOutput; }
-	if ( iMaxItem != 0u ) { pOptions->tLimits.iMaxItemBytes = iMaxItem; }
-	if ( iMaxEntries != 0u ) { pOptions->tLimits.iMaxEntries = iMaxEntries; }
-	if ( iMaxNodes != 0u ) { pOptions->tLimits.iMaxNodes = iMaxNodes; }
+	pOptions->tLimits.iMaxInputBytes = iMaxInput;
+	pOptions->tLimits.iMaxOutputBytes = iMaxOutput;
+	pOptions->tLimits.iMaxItemBytes = iMaxItem;
+	pOptions->tLimits.iMaxEntries = iMaxEntries;
+	pOptions->tLimits.iMaxNodes = iMaxNodes;
 }
 
-XNETRC_EXPORT int xnetrc_error_code(void)
+XNETRC_EXPORT int64 xnetrc_error_code(void)
 {
 	xrtnetrcerror* pError = __xnetrcError();
 	return pError != NULL ? pError->iCode : XRT_NETRC_ERROR_MEMORY;
@@ -94,7 +93,7 @@ XNETRC_EXPORT void* xnetrc_error_message(void)
 	return xrtStrDup(sMessage);
 }
 
-XNETRC_EXPORT xvalue* xnetrc_parse(const void* pData, uint64 iSize,
+XNETRC_EXPORT xvalue* xnetrc_parse(const char* pData, uint64 iSize,
 	bool bStrict, uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem,
 	uint64 iMaxEntries, uint64 iMaxNodes)
 {
@@ -106,11 +105,11 @@ XNETRC_EXPORT xvalue* xnetrc_parse(const void* pData, uint64 iSize,
 		iMaxEntries, iMaxNodes);
 	__xnetrcClearError(pError);
 	pResult = xrtNetrcParseMemory(pData, iSize, &tOptions, pError);
-	if ( pResult == NULL ) { __xnetrcPublishError(pError); }
+	if ( pResult == NULL ) { __xnetrcDeferError(pError); }
 	return pResult != NULL ? pResult : xrtValueNull();
 }
 
-XNETRC_EXPORT xvalue* xnetrc_load(str sPath, bool bStrict,
+XNETRC_EXPORT xvalue* xnetrc_load(cstr sPath, bool bStrict,
 	uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem,
 	uint64 iMaxEntries, uint64 iMaxNodes)
 {
@@ -121,8 +120,8 @@ XNETRC_EXPORT xvalue* xnetrc_load(str sPath, bool bStrict,
 	__xnetrcOptions(&tOptions, bStrict, iMaxInput, iMaxOutput, iMaxItem,
 		iMaxEntries, iMaxNodes);
 	__xnetrcClearError(pError);
-	pResult = xrtNetrcLoad(sPath, &tOptions, pError);
-	if ( pResult == NULL ) { __xnetrcPublishError(pError); }
+	pResult = xrtNetrcLoad((str)sPath, &tOptions, pError);
+	if ( pResult == NULL ) { __xnetrcDeferError(pError); }
 	return pResult != NULL ? pResult : xrtValueNull();
 }
 
@@ -137,12 +136,12 @@ XNETRC_EXPORT void* xnetrc_stringify(xvalue* pValue, uint64 iMaxOutput,
 	__xnetrcClearError(pError);
 	{
 		xbuffer* pResult = xrtNetrcStringify(pValue, &tOptions, pError);
-		if ( pResult == NULL ) { __xnetrcPublishError(pError); }
+		if ( pResult == NULL ) { __xnetrcDeferError(pError); }
 		return pResult;
 	}
 }
 
-XNETRC_EXPORT bool xnetrc_save(str sPath, xvalue* pValue,
+XNETRC_EXPORT bool xnetrc_save(cstr sPath, xvalue* pValue,
 	uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxEntries, uint64 iMaxNodes)
 {
 	xrtnetrcoptions tOptions;
@@ -151,8 +150,8 @@ XNETRC_EXPORT bool xnetrc_save(str sPath, xvalue* pValue,
 	__xnetrcOptions(&tOptions, true, 0u, iMaxOutput, iMaxItem,
 		iMaxEntries, iMaxNodes);
 	__xnetrcClearError(pError);
-	if ( !xrtNetrcSave(sPath, pValue, &tOptions, pError) ) {
-		__xnetrcPublishError(pError);
+	if ( !xrtNetrcSave((str)sPath, pValue, &tOptions, pError) ) {
+		__xnetrcDeferError(pError);
 		return false;
 	}
 	return true;

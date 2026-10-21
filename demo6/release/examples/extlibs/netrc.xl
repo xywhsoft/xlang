@@ -1,13 +1,34 @@
 import netrc
 
-
-
 func main(...) as int
-    string source = "machine api.example.com login agent password token-123\ndefault login guest password guest\n"
-    auto credentials = netrc.parse(source)
-    var auth = credentials.authenticators("api.example.com")
-    println(auth["login"] + "@api.example.com")
-    println(credentials.stringify())
-    println("netrc example: PASS")
+    assert arg.length == 1 or arg.length == 2
+    netrc.Netrc config = netrc.parse("default login guest password fallback\n" +
+        "machine api.example.com login alice password secret\n" +
+        "macdef deploy\n echo deploy\n\n")
+    var auth = config.authenticators("api.example.com")
+    assert auth["password"] == "secret"
+    var fallback = config.authenticators("unknown.example")
+    assert fallback["login"] == "guest" and fallback["password"] == "fallback"
+    assert config.hostNames().length == 2
+    assert config.macroNames().length == 1
+    assert config.macros["deploy"][0] == " echo deploy"
+    auto textCopy = netrc.parse(config.stringify())
+    assert textCopy.authenticators("api.example.com")["password"] == "secret"
+    assert textCopy.macros["deploy"][0] == " echo deploy"
+    if arg.length == 2 then
+        string target = string(arg[1])
+        config.save(target)
+        auto restored = netrc.load(target)
+        var restoredAuth = restored.authenticators("api.example.com")
+        assert restoredAuth["login"] == auth["login"]
+        assert restoredAuth["password"] == auth["password"]
+        var restoredFallback = restored.authenticators("unknown.example")
+        assert restoredFallback["login"] == fallback["login"]
+        assert restoredFallback["password"] == fallback["password"]
+        assert restored.macros["deploy"][0] == " echo deploy"
+    end
+    println("netrc: " + string(auth["login"]) + "@api.example.com")
+    println("netrc fallback: " + string(fallback["login"]))
+    println("netrc entries: 2 hosts, 1 macro")
     return 0
 end

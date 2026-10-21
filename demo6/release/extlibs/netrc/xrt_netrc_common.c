@@ -7,6 +7,8 @@ void xrtNetrcOptionsInit(xrtnetrcoptions* pOptions)
 	pOptions->iSize = sizeof(*pOptions);
 	pOptions->iVersion = XRT_NETRC_OPTIONS_VERSION;
 	xrtResourceLimitsInit(&pOptions->tLimits);
+	pOptions->tLimits.iMaxDepth = 0u;
+	pOptions->tLimits.iMaxCompressionRatio = 0u;
 	pOptions->bStrictDuplicates = true;
 }
 
@@ -26,6 +28,40 @@ void __xrtNetrcSetError(xrtnetrcerror* pError, int iCode,
 	if ( sMessage != NULL ) {
 		snprintf(pError->sMessage, sizeof(pError->sMessage), "%s", sMessage);
 	}
+}
+
+bool __xrtNetrcResolveOptions(const xrtnetrcoptions* pOptions,
+	xrtnetrcoptions* pResolved, xrtnetrcerror* pError)
+{
+	size_t i;
+	xrtNetrcOptionsInit(pResolved);
+	if ( pOptions == NULL ) { return true; }
+	if ( pOptions->iSize < sizeof(*pOptions) ||
+		pOptions->iVersion != XRT_NETRC_OPTIONS_VERSION ||
+		pOptions->tLimits.iSize < sizeof(pOptions->tLimits) ||
+		pOptions->tLimits.iVersion != XRT_RESOURCE_LIMITS_VERSION ) {
+		__xrtNetrcSetError(pError, XRT_NETRC_ERROR_ARGUMENT,
+			0u, 0u, 0u, "invalid netrc options version or size");
+		return false;
+	}
+	/* 不接受暂未实现的资源标志或扩展字段，避免配置被静默忽略。 */
+	if ( pOptions->tLimits.iFlags != 0u ||
+		pOptions->tLimits.iReserved != 0u ||
+		pOptions->tLimits.iMaxDepth != 0u ||
+		pOptions->tLimits.iMaxCompressionRatio != 0u ) {
+		__xrtNetrcSetError(pError, XRT_NETRC_ERROR_ARGUMENT,
+			0u, 0u, 0u, "unsupported netrc resource option");
+		return false;
+	}
+	for ( i = 0u; i < sizeof(pOptions->iReserved); ++i ) {
+		if ( pOptions->iReserved[i] != 0u ) {
+			__xrtNetrcSetError(pError, XRT_NETRC_ERROR_ARGUMENT,
+				0u, 0u, 0u, "unsupported netrc option");
+			return false;
+		}
+	}
+	*pResolved = *pOptions;
+	return true;
 }
 
 bool __xrtNetrcLimitNode(xrt_netrc_context* pContext, uint64 iLine,

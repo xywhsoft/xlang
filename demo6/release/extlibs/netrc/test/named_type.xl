@@ -1,0 +1,35 @@
+import netrc
+
+func loginFor(netrc.Netrc document, string host) as string
+    return string(document.authenticators(host)["login"])
+end
+
+func main(...) as int
+    netrc.Netrc document = netrc.parse("machine api.example login alice\n")
+    assert loginFor(document, "api.example") == "alice"
+    bool rejected = false
+    try
+        netrc.Netrc(null)
+    catch ConfigError error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        netrc.Netrc({"hosts": {}})
+    catch ConfigError error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        netrc.Netrc({"hosts": [], "macros": {}})
+    catch ConfigError error
+        rejected = true
+    end
+    assert rejected
+    netrc.Netrc empty = netrc.Netrc({"hosts": {}, "macros": {}})
+    assert empty.hostNames().length == 0
+    assert empty.stringify() == ""
+    return 0
+end
