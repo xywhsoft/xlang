@@ -27,6 +27,11 @@ void xlsSessionDestroy(xls_session* session);
 int xlsSessionUpdate(xls_session* session,const char* key,const char* path,
                      uint64_t identity,uint64_t revision,xls_text* source);
 int xlsSessionClose(xls_session* session,const char* key);
+/* Drop cached documents outside an immutable input set. Predicate borrows the
+ * exact key bytes (not NUL-terminated); it must not mutate/reenter the session.
+ * Removal keys are staged before mutation, so allocation failure preserves it. */
+typedef int (*xls_session_live)(const char* key,size_t length,void* user);
+int xlsSessionPrune(xls_session* session,xls_session_live live,void* user);
 /* Parses only on demand; every successful call transfers one syntax reference.
  * Invalid source syntax is a result with Accepted == 0, not a failed query.
  * A failed query clears the output. This stage does not run semantic analysis. */
