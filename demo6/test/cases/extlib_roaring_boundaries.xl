@@ -1,0 +1,37 @@
+import roaring
+
+func main(...) as int
+    roaring.RoaringBitmap set = roaring.create()
+    assert set.min == -1 and set.max == -1
+    set.add(0)
+    set.add(65535)
+    set.add(65536)
+    set.add(4294967295)
+    set.add(65536)
+    assert set.count == 4 and set.max == 4294967295
+    assert set.remove(0) and not set.remove(0)
+    assert set.min == 65535 and set.count == 3
+
+    int rejected = 0
+    try
+        set.add(-1)
+    catch e
+        rejected += 1
+    end
+    try
+        set.contains(4294967296)
+    catch e
+        rejected += 1
+    end
+    assert rejected == 2 and set.count == 3
+
+    set.clear()
+    for i in range(0, 4097)
+        set.add(i)
+    end
+    assert set.count == 4097 and set.contains(4096)
+    assert set.remove(4096) and not set.contains(4096)
+    assert set.count == 4096 and set.max == 4095
+    println("roaring boundaries: PASS")
+    return 0
+end
