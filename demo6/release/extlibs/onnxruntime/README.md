@@ -23,12 +23,16 @@ XLang 包装层传入 C 零结尾接口的模型路径、配置文本、张量�
 在 `demo6` 目录运行：
 
 ```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/onnxruntime/test/check.ps1 -SkipAot
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/onnxruntime/test/check.ps1
 ```
 
-门禁覆盖严格 GCC、59 个 C 入口的公开声明、56 个桥接符号的装载检查、UTF-8 中文路径的环境变量与
-程序目录装载、C 和 XLang 的真实模型加载及零张量推理、XLang `int`
-收窄拒绝、残缺桥接 DLL 拒绝、显式缺失路径与旧错误隔离、C/XLang 模型元数据范例对照，以及无输出推理测试的 JIT/AOT。测试模型借用
+门禁覆盖严格 GCC、59 个 C 入口的公开声明、56 个桥接符号的装载检查、
+UTF-8 中文路径的环境变量与程序目录装载、C 和 XLang 的真实模型加载及
+零张量推理、XLang `int` 收窄拒绝、残缺桥接 DLL 拒绝、显式缺失路径与
+旧错误隔离、C/XLang 模型元数据范例对照。默认门禁还验证 C 直接构建、
+无输出推理 AOT 及带输出模型信息范例的 AOT；`-SkipAot` 只用于 C/JIT
+聚焦检查。测试模型借用
 `release/extlibs/rapidocr/models/ch_ppocr_mobile_v2.0_cls_infer.onnx`；这只是
 测试资产，不是运行时包依赖。范例位于 `examples/model_info.xl` 和
 `examples/model_info_c.c`。两个文件故意使用不同主名，避免 `xl build`
@@ -58,3 +62,5 @@ XLang 范例的真实模型元数据逐字对照，构建产物仅存于本次�
 本包目前是可运行的包内开发进度，不是发布级签收。
 
 `test/catalog_call.xl` 已登记为 `coverage.tests`，从 `demo6` 根目录运行真实模型的零张量推理并释放所有结果。通用目录门禁只覆盖公开调用链；桥接内部与带输出 AOT 的限制保持上文口径。
+
+2026-10-22：包级脚本原默认在无输出推理 AOT 通过后报告全绿，未构建公开模型信息范例。现默认继续构建/运行该范例 AOT 并与同次 C 输出对照，新增 `-SkipAot` 聚焦路径。当前聚焦门禁通过；默认门禁完成 C 直接构建、真实模型 JIT 与无输出推理 AOT 后，在完整范例构建处准确报主线缺少 `xl6ValueDataSnapshotV1`。独占构建目录在失败后已清理；不签收完整 AOT 或桥接 DLL 内部实现。

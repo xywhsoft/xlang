@@ -1,3 +1,5 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 $release = Join-Path $root 'release'
@@ -82,20 +84,30 @@ try {
         'extlibs/onnxruntime/examples/model_info_c.c', $runtime, '-o', $cExample)
     $cOutput = Run 'C example' $cExample @()
     $directOutput = Run 'C example direct JIT' $xl @('run', 'extlibs/onnxruntime/examples/model_info_c.c')
-    $directExe = Join-Path $work 'model_info_direct.exe'
-    $null = Run 'C example direct build' $xl @('build', 'extlibs/onnxruntime/examples/model_info_c.c', '-o', $directExe)
-    $directAot = Run 'C example direct executable' $directExe @()
+    if (!$SkipAot) {
+        $directExe = Join-Path $work 'model_info_direct.exe'
+        $null = Run 'C example direct build' $xl @('build', 'extlibs/onnxruntime/examples/model_info_c.c', '-o', $directExe)
+        $directAot = Run 'C example direct executable' $directExe @()
+        if ($cOutput -cne $directAot) { throw 'C direct executable metadata differs' }
+    }
 
     $null = Run 'XLang existing API example' $xl @('run', 'examples/extlibs/onnxruntime.xl')
     $null = Run 'XLang model inference JIT' $xl @('run', 'extlibs/onnxruntime/test/model_probe.xl')
     $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/onnxruntime/examples/model_info.xl')
-    if ($cOutput -cne $xlOutput -or $cOutput -cne $directOutput -or $cOutput -cne $directAot) {
+    if ($cOutput -cne $xlOutput -or $cOutput -cne $directOutput) {
         throw 'C/XLang model metadata differs'
     }
 
-    $binary = Join-Path $work 'model_probe.exe'
-    $null = Run 'XLang model inference AOT build' $xl @('build', 'extlibs/onnxruntime/test/model_probe.xl', '-o', $binary)
-    $null = Run 'XLang model inference AOT' $binary @()
+    if (!$SkipAot) {
+        $binary = Join-Path $work 'model_probe.exe'
+        $null = Run 'XLang model inference AOT build' $xl @('build', 'extlibs/onnxruntime/test/model_probe.xl', '-o', $binary)
+        $null = Run 'XLang model inference AOT' $binary @()
+
+        $exampleExe = Join-Path $work 'model_info_xl.exe'
+        $null = Run 'XLang example AOT build' $xl @('build', 'extlibs/onnxruntime/examples/model_info.xl', '-o', $exampleExe)
+        $exampleOutput = Run 'XLang example AOT' $exampleExe @()
+        if ($exampleOutput -cne $cOutput) { throw 'XLang AOT model metadata differs' }
+    }
 } finally {
     Pop-Location
     $safeRoot = [IO.Path]::GetFullPath($workRoot).TrimEnd('\', '/')
