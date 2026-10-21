@@ -52,4 +52,7 @@
 /demo6/examples_out
 /demo6/build
 /www_build
-/ide
+# xlang IDE generated output and local session state
+/ide/build/
+/ide/release/
+/ide/.xlang-ide/
