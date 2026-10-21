@@ -11,11 +11,16 @@
         ],
         "xlSources": [
             "src/bloom.xl"
+        ],
+        "xrtModules": [
+            "XRT_MODULE_HASH64",
+            "XRT_MODULE_TEMP_MEMORY"
         ]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/nul_keys.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",

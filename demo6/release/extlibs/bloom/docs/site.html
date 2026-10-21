@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09090a">
+  <title>bloom - 扩展库 - xlang</title>
+  <meta name="description" content="bloom 扩展库：布隆过滤器与计数布隆过滤器，以极小内存做集合存在性判定。支持基数估计、序列化、合并、克隆、批量操作，适用于缓存穿透防护、URL 去重、黑名单过滤等场景。">
+  <link rel="icon" href="../favicon.png">
+  <meta property="og:title" content="bloom - xlang 扩展库">
+  <meta property="og:description" content="布隆过滤器：以极小内存做集合存在性判定，标准版未清空时不漏掉已添加项；计数版删除有额外约束。">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+
+<nav class="nav" aria-label="主导航">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+    <ul class="nav-links" id="site-navigation">
+      <li><a href="../index.html#highlights">亮点</a></li>
+      <li><a href="../index.html#features">特性</a></li>
+      <li><a href="../index.html#start">快速开始</a></li>
+      <li><a href="../tour.html">语法导览</a></li>
+      <li><a href="../book/index.html">教程</a></li>
+      <li><a href="../stdlib.html">标准库</a></li>
+      <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+      <li><a href="../guide.html">文档</a></li>
+      <li><a href="../download.html">下载</a></li>
+      <li><a href="https://gitee.com/xywhsoft/x-lang" target="_blank" rel="noopener">Gitee</a></li>
+    </ul>
+    <div class="nav-actions" aria-label="页面工具"></div>
+  </div>
+</nav>
+
+<div class="extlib-layout c-ds" id="main-content">
+
+  <!-- 面包屑 -->
+  <div class="extlib-head">
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">
+      <a href="../extlibs.html" style="color:var(--brand);text-decoration:none;">扩展库</a>
+      <span style="margin:0 6px;">/</span>
+      <span style="color:var(--text-soft);">bloom</span>
+    </p>
+    <div class="extlib-title-row">
+      <h1>bloom</h1>
+      <span class="extlib-cat-badge">数据结构</span>
+    </div>
+    <div class="extlib-badges">
+      <span class="extlib-badge">v1.0.0</span>
+      <span class="extlib-badge hot">C 混编</span>
+      <span class="extlib-badge">0 依赖</span>
+      <span class="extlib-badge">ABI 1</span>
+    </div>
+    <p class="extlib-lead">布隆过滤器（Bloom Filter）— 以较小的内存占用判断一个元素「可能存在」或「一定不存在」，标准版未清空时不漏掉已添加项；计数版删除有额外约束。C 层实现全局位数组与计数器，xlang 层提供面向对象 API。</p>
+  </div>
+
+  <!-- Tab 栏 -->
+  <div class="ext-tabs" id="extTabs">
+    <button class="ext-tab active" data-panel="overview">概览</button>
+    <button class="ext-tab" data-panel="api">API 参考</button>
+    <button class="ext-tab" data-panel="examples">范例</button>
+    <button class="ext-tab" data-panel="tests">测试</button>
+  </div>
+
+  <!-- ═══════════ 面板 1：概览 ═══════════ -->
+  <div class="ext-panel active" id="panel-overview">
+    <h2>当前合同与验证</h2>
+    <p>2026-09-26 原生 ABI、结构化错误与尺寸检查更新。公开 C 声明为 <code>include/bloom.h</code>，
+    专项门禁为 <code>tools/check_extlib_argon2_bloom.ps1</code>，具体结果以保存的构建哈希为准。</p>
+    <ul>
+      <li>fpRate 必须严格处于 (0,1)，NaN、无穷及非法边界抛 ValueError，不再隐式替换成默认值。</li>
+      <li>不可表示的容量抛 RangeError；真实分配失败保留 MemoryError，不伪装成损坏数据。</li>
+      <li>反序列化检查版本、保留字段、元数据范围、真实长度和乘法溢出。
+      持久化状态不是承诺永久跨算法版本兼容的数据库格式。</li>
+      <li>XLang 键操作按 UTF-8 实际字节长度传递，内嵌 NUL 不会截成前缀；
+      十六进制状态文本含 NUL 时明确拒绝。<code>test/nul_keys.xl</code> 已覆盖两种筛选器。</li>
+      <li>计数槽最大 15。删除未添加项、计数饱和后的删除、merge 后独立删除均可能影响其他项，
+      不承诺计数版无条件“不漏判”。merge 逐槽取最大值，不是多重集合计数相加。</li>
+      <li>对象由调用方串行访问；C 拥有型句柄各释放一次，serialize 返回值借用 XRT 临时区。
+      容量是预计元素数，不是硬性插入上限。</li>
+      <li><code>bloom_basic.xl</code> 与 <code>bloom_c.c</code> 展示同结果的恢复、克隆和计数删除。
+      固定键集误判回归和独立的 Windows/Linux C 性能基准已覆盖；基准仅提供当前环境参考，
+      不保证任意键分布的误判率，也不设置跨机器吞吐率门槛。</li>
+    </ul>
+
+    <h2>典型场景</h2>
+    <div class="ext-scenes">
+      <span class="ext-scene">缓存穿透防护</span>
+      <span class="ext-scene">URL 去重</span>
+      <span class="ext-scene">黑名单过滤</span>
+      <span class="ext-scene">爬虫去重</span>
+      <span class="ext-scene">垃圾邮件拦截</span>
+      <span class="ext-scene">推荐已读过滤</span>
+    </div>
+
+    <h2>快速开始</h2>
+    <div class="code-block"><div class="code-header"><span>quick_start.xl</span></div><div class="code-body"><pre>import bloom
+
+func main(...) as int
+    // 一行创建：声明容量与期望误判率
+    auto f = bloom.create(10000, 0.001)
+
+    f.add("user:1001")
+    f.add("user:1002")
+
+    // 存在性判定：false 一定不存在，true 可能存在
+    println(f.contains("user:1001"))  // true
+    println(f.contains("user:9999"))  // false
+    println(f.count)                  // 2
+    return 0
+end</pre></div></div>
+
+    <h2>核心特性</h2>
+    <ul>
+      <li><strong>全局位数组</strong> — 按目标误判率配置容量，避免分块负载不均抬高低目标误判率</li>
+      <li><strong>双种子探测</strong> — 两个 XRT 64 位哈希确定全部探针，热路径不分配内存</li>
+      <li><strong>标准版筛选</strong> — 未清空时不漏掉已添加项；计数版仅能在满足删除约束时使用这一推断</li>
+      <li><strong>基数估计</strong> — <code>estimatedCount</code> 由填充率反推去重基数，<code>estimatedFpp</code> 给出基于填充率的误判率估计</li>
+      <li><strong>可持久化</strong> — <code>serialize</code>/<code>deserialize</code> 导出/还原为可移植 hex 字符串</li>
+      <li><strong>可合并</strong> — <code>merge</code> 就地并集，<code>clone</code> 深拷贝支持非破坏性合并</li>
+      <li><strong>计数版可删除</strong> — <code>CountingBloomFilter</code> 用 4-bit 计数器支持 <code>remove</code></li>
+    </ul>
+
+    <h2>包信息</h2>
+    <table class="ext-kv">
+      <tr><th>包名</th><td>bloom</td></tr>
+      <tr><th>版本</th><td>1.0.0</td></tr>
+      <tr><th>实现方式</th><td>C 混编（核心引擎 C，API 层 xlang）</td></tr>
+      <tr><th>依赖</th><td>无</td></tr>
+      <tr><th>ABI 版本</th><td>1</td></tr>
+      <tr><th>导出符号</th><td>BloomFilter, CountingBloomFilter, create(), createCounting(), deserialize(), deserializeCounting()</td></tr>
+      <tr><th>源文件</th><td>extlibs/bloom/src/bloom.xl</td></tr>
+    </table>
+  </div>
+
+  <!-- ═══════════ 面板 2：API 参考 ═══════════ -->
+  <div class="ext-panel" id="panel-api">
+
+    <div class="api-group-title">工厂函数</div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export func</span> <span class="fn">create</span>(<span class="type">int</span> capacity, <span class="type">float</span> fpRate = <span class="kw">0.01</span>) <span class="kw">as</span> <span class="type">BloomFilter</span></div>
+      <p>创建标准布隆过滤器。<code>capacity</code> 为预期元素上限，<code>fpRate</code> 为期望误判率（可省略，默认 1%）。</p>
+      <div class="api-note"><code>capacity &lt;= 0</code> 抛出 <code>ValueError</code>。位数组大小与哈希数由容量与误判率自动推导。</div>
+    </div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export func</span> <span class="fn">createCounting</span>(<span class="type">int</span> capacity, <span class="type">float</span> fpRate = <span class="kw">0.01</span>) <span class="kw">as</span> <span class="type">CountingBloomFilter</span></div>
+      <p>创建计数布隆过滤器，支持 <code>remove</code> 删除元素。内存占用高于标准版（每槽 4-bit 计数器）。</p>
+    </div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export func</span> <span class="fn">deserialize</span>(<span class="type">string</span> data) <span class="kw">as</span> <span class="type">BloomFilter</span>
+<span class="kw">export func</span> <span class="fn">deserializeCounting</span>(<span class="type">string</span> data) <span class="kw">as</span> <span class="type">CountingBloomFilter</span></div>
+      <p>从 <code>serialize</code> 产出的 hex 字符串还原过滤器。</p>
+      <div class="api-note">非法或损坏的数据抛出 <code>ValueError</code>。</div>
+    </div>
+
+    <div class="api-group-title">BloomFilter 类</div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">func</span> <span class="fn">add</span>(<span class="type">string</span> item)
+<span class="kw">func</span> <span class="fn">addAll</span>(<span class="type">array</span>&lt;<span class="type">string</span>&gt; items)</div>
+      <p>添加单个 / 批量元素。<code>count</code> 统计 <code>add</code> 调用次数（含重复）。</p>
+    </div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">func</span> <span class="fn">contains</span>(<span class="type">string</span> item) <span class="kw">as</span> <span class="type">bool</span>
+<span class="kw">func</span> <span class="fn">containsAll</span>(<span class="type">array</span>&lt;<span class="type">string</span>&gt; items) <span class="kw">as</span> <span class="type">bool</span>
+<span class="kw">func</span> <span class="fn">containsAny</span>(<span class="type">array</span>&lt;<span class="type">string</span>&gt; items) <span class="kw">as</span> <span class="type">bool</span></div>
+      <p>存在性判定。<code>contains</code>：返回 <code>false</code> 一定不存在，<code>true</code> 可能存在。<code>containsAll</code>：全部命中。<code>containsAny</code>：任一命中。</p>
+    </div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">func</span> <span class="fn">estimatedCount</span>() <span class="kw">as</span> <span class="type">int</span>
+<span class="kw">func</span> <span class="fn">estimatedFpp</span>() <span class="kw">as</span> <span class="type">float</span></div>
+      <p><code>estimatedCount</code>：由填充率反推的去重基数估计。<code>estimatedFpp</code>：基于填充率的误判概率估计。</p>
+      <div class="api-note">空过滤器两者均为 0。注意 <code>count</code>（add 次数）与 <code>estimatedCount</code>（去重估计）语义不同。</div>
+    </div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">func</span> <span class="fn">serialize</span>() <span class="kw">as</span> <span class="type">string</span></div>
+      <p>将过滤器（头 + 位数组）导出为可移植 hex 字符串，用于持久化或跨进程共享。</p>
+    </div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">func</span> <span class="fn">merge</span>(<span class="type">BloomFilter</span> other) <span class="kw">as</span> <span class="type">bool</span>
+<span class="kw">func</span> <span class="fn">clone</span>() <span class="kw">as</span> <span class="type">BloomFilter</span></div>
+      <p><code>merge</code>：就地并集，本过滤器之后也包含 <code>other</code> 的全部元素；维度不一致返回 <code>false</code>。<code>clone</code>：独立深拷贝，配合 <code>merge</code> 实现非破坏性并集 <code>a.clone().merge(b)</code>。</p>
+    </div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">func</span> <span class="fn">clear</span>()</div>
+      <p>清空全部元素，位数组归零，可复用。</p>
+    </div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">get</span> <span class="fn">valid</span> <span class="kw">as</span> <span class="type">bool</span>     <span class="cm">// handle 非空</span>
+<span class="kw">get</span> <span class="fn">count</span> <span class="kw">as</span> <span class="type">int</span>     <span class="cm">// add 调用次数</span>
+<span class="kw">get</span> <span class="fn">bits</span> <span class="kw">as</span> <span class="type">int</span>      <span class="cm">// 位数组总位数</span>
+<span class="kw">get</span> <span class="fn">hashes</span> <span class="kw">as</span> <span class="type">int</span>    <span class="cm">// 独立哈希函数个数 k</span>
+<span class="kw">get</span> <span class="fn">capacity</span> <span class="kw">as</span> <span class="type">int</span>  <span class="cm">// 创建时声明的容量</span></div>
+      <p>只读属性，查询过滤器状态。</p>
+    </div>
+
+    <div class="api-group-title">CountingBloomFilter 类</div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">func</span> <span class="fn">add</span>(<span class="type">string</span> item)
+<span class="kw">func</span> <span class="fn">contains</span>(<span class="type">string</span> item) <span class="kw">as</span> <span class="type">bool</span>
+<span class="kw">func</span> <span class="fn">remove</span>(<span class="type">string</span> item)
+<span class="kw">func</span> <span class="fn">clear</span>()</div>
+      <p>计数版核心操作。与标准版的关键差异：<code>remove</code> 可删除元素（标准版不可删除）。只能删除确定添加过且未删除的项目；误报会使不存在的项目通过筛选，不能仅凭 contains 决定删除。</p>
+      <div class="api-note">计数版使用 4-bit 计数器：单个槽位重复添加超过 15 次会饱和，此时 <code>remove</code> 不完全可逆。</div>
+    </div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">func</span> <span class="fn">addAll</span>(<span class="type">array</span>&lt;<span class="type">string</span>&gt; items)
+<span class="kw">func</span> <span class="fn">containsAll</span>(<span class="type">array</span>&lt;<span class="type">string</span>&gt; items) <span class="kw">as</span> <span class="type">bool</span>
+<span class="kw">func</span> <span class="fn">containsAny</span>(<span class="type">array</span>&lt;<span class="type">string</span>&gt; items) <span class="kw">as</span> <span class="type">bool</span>
+<span class="kw">func</span> <span class="fn">estimatedCount</span>() <span class="kw">as</span> <span class="type">int</span>
+<span class="kw">func</span> <span class="fn">estimatedFpp</span>() <span class="kw">as</span> <span class="type">float</span>
+<span class="kw">func</span> <span class="fn">serialize</span>() <span class="kw">as</span> <span class="type">string</span>
+<span class="kw">func</span> <span class="fn">merge</span>(<span class="type">CountingBloomFilter</span> other) <span class="kw">as</span> <span class="type">bool</span>
+<span class="kw">func</span> <span class="fn">clone</span>() <span class="kw">as</span> <span class="type">CountingBloomFilter</span></div>
+      <p>计数版与标准版对称的完整能力：批量、基数估计、序列化、合并（逐槽取计数器最大值）、克隆。</p>
+    </div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">get</span> <span class="fn">valid</span> <span class="kw">as</span> <span class="type">bool</span>     <span class="cm">// handle 非空</span>
+<span class="kw">get</span> <span class="fn">count</span> <span class="kw">as</span> <span class="type">int</span>     <span class="cm">// add 调用次数</span>
+<span class="kw">get</span> <span class="fn">slots</span> <span class="kw">as</span> <span class="type">int</span>     <span class="cm">// 计数器槽数</span>
+<span class="kw">get</span> <span class="fn">hashes</span> <span class="kw">as</span> <span class="type">int</span>    <span class="cm">// 独立哈希函数个数 k</span>
+<span class="kw">get</span> <span class="fn">capacity</span> <span class="kw">as</span> <span class="type">int</span>  <span class="cm">// 创建时声明的容量</span></div>
+      <p>只读属性。计数版以 <code>slots</code>（槽数）替代标准版的 <code>bits</code>（位数）。</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ 面板 3：范例 ═══════════ -->
+  <div class="ext-panel" id="panel-examples">
+    <h2>教学范例</h2>
+    <p>以下范例逐步展示全部 API，从基础创建到计数版删除。完整源文件：<code>examples/extlibs/bloom.xl</code></p>
+
+    <h3>1. 创建过滤器 &amp; 基础查询</h3>
+    <div class="code-block"><div class="code-header"><span>创建与查询</span></div><div class="code-body"><pre>import bloom
+
+// create(容量, 期望误判率)，误判率可省略（默认 0.01 = 1%）
+auto f = bloom.create(10000, 0.001)
+
+println("有效: ", f.valid)        // true
+println("容量: ", f.capacity)     // 10000（创建时声明的元素上限）
+println("位数: ", f.bits)         // 位数组总位数（由容量+误判率推导）
+println("哈希数: ", f.hashes)     // 独立哈希函数个数 k
+println("元素数: ", f.count)      // 0（add 调用次数）</pre></div></div>
+
+    <h3>2. 添加与存在性判定</h3>
+    <div class="code-block"><div class="code-header"><span>增与查</span></div><div class="code-body"><pre>f.add("user:1001")
+f.add("user:1002")
+f.add("user:1003")
+
+// contains：可能存在 / 一定不存在。
+// 返回 true 不代表一定存在（有误判），返回 false 则一定不存在。
+println("含 user:1001 = ", f.contains("user:1001"))  // true
+println("含 user:9999 = ", f.contains("user:9999"))  // false（一定不在）
+println("元素数: ", f.count)                          // 3</pre></div></div>
+
+    <h3>3. 批量操作</h3>
+    <div class="code-block"><div class="code-header"><span>批量增查</span></div><div class="code-body"><pre>f.addAll(["user:2001", "user:2002", "user:2003"])
+println("批量后元素数: ", f.count)                                  // 6
+println("全部命中: ", f.containsAll(["user:1001", "user:2001"]))   // true
+println("含缺失项: ", f.containsAll(["user:1001", "user:0"]))      // false
+println("任一命中: ", f.containsAny(["user:0", "user:2002"]))      // true</pre></div></div>
+
+    <h3>4. 基数估计与运行时误判率</h3>
+    <div class="code-block"><div class="code-header"><span>基数估计</span></div><div class="code-body"><pre>// count 是 add 调用次数（含重复）；estimatedCount 由填充率反推的去重基数估计。
+println("估计基数: ", f.estimatedCount())
+
+// estimatedFpp：基于填充率的误判概率估计，随元素增多而上升。
+println("当前误判率: ", f.estimatedFpp())</pre></div></div>
+
+    <h3>5. 序列化与反序列化</h3>
+    <div class="code-block"><div class="code-header"><span>持久化</span></div><div class="code-body"><pre>// 同格式与字节序下往返，不承诺永久跨版本存储
+string blob = f.serialize()
+println("序列化长度: ", string.len(blob))
+
+auto restored = bloom.deserialize(blob)
+println("还原有效: ", restored.valid)               // true
+println("还原元素数: ", restored.count)             // 6
+println("还原含 user:1001 = ", restored.contains("user:1001"))  // true</pre></div></div>
+
+    <h3>6. 合并（并集）与克隆</h3>
+    <div class="code-block"><div class="code-header"><span>合并与克隆</span></div><div class="code-body"><pre>auto a = bloom.create(10000, 0.001)
+auto b = bloom.create(10000, 0.001)
+a.add("left")
+b.add("right")
+
+// merge：就地并集，a 之后也包含 b 的全部元素。维度不一致时返回 false。
+println("合并成功: ", a.merge(b))            // true
+println("a 含 right = ", a.contains("right"))  // true
+
+// clone：独立深拷贝。配合 merge 实现「非破坏性并集」——不改动原过滤器。
+auto u1 = bloom.create(10000, 0.001)
+auto u2 = bloom.create(10000, 0.001)
+u1.add("p")
+u2.add("q")
+auto combined = u1.clone()
+combined.merge(u2)
+println("combined 含 p = ", combined.contains("p"))  // true
+println("combined 含 q = ", combined.contains("q"))  // true
+println("u1 仍不含 q = ", not u1.contains("q"))      // true（原过滤器未受影响）</pre></div></div>
+
+    <h3>7. 计数布隆过滤器（支持删除）</h3>
+    <div class="code-block"><div class="code-header"><span>计数版</span></div><div class="code-body"><pre>// 标准布隆过滤器不可删除；计数版用 4-bit 计数器记录每个槽位，从而支持 remove。
+auto cf = bloom.createCounting(5000)
+println("计数版槽数: ", cf.slots, " 哈希数: ", cf.hashes)
+
+cf.add("session:abc")
+cf.add("session:def")
+println("cf 含 session:abc = ", cf.contains("session:abc"))  // true
+
+cf.remove("session:abc")
+println("删除后含 session:abc = ", cf.contains("session:abc"))  // false
+println("cf 仍含 session:def = ", cf.contains("session:def"))  // true
+println("cf 元素数: ", cf.count)                                 // 1
+
+// 计数版同样支持批量 / 估计 / 序列化 / 合并 / 克隆
+cf.addAll(["s1", "s2"])
+string cblob = cf.serialize()
+auto crf = bloom.deserializeCounting(cblob)
+println("计数版还原含 s1 = ", crf.contains("s1"))  // true</pre></div></div>
+
+    <h3>运行范例</h3>
+    <div class="code-block"><div class="code-header"><span>终端</span></div><div class="code-body"><pre>cd release
+xl.exe run examples\extlibs\bloom.xl</pre></div></div>
+  </div>
+
+  <!-- ═══════════ 面板 4：测试 ═══════════ -->
+  <div class="ext-panel" id="panel-tests">
+    <h2>测试覆盖</h2>
+    <p>测试文件：<code>test/cases/extlib_bloom.xl</code>，覆盖全部公开 API：</p>
+    <ul>
+      <li>基础创建与只读属性（valid / count / bits / hashes / capacity）</li>
+      <li>add / contains / clear 标准流程</li>
+      <li>计数版 add / contains / remove / clear；仅对确定添加过的项目调用 remove</li>
+      <li>错误处理：create(0) / create(-5) 抛 ValueError</li>
+      <li>estimatedCount / estimatedFpp（空过滤器为 0，添加后为正）</li>
+      <li>批量操作 addAll / containsAll / containsAny</li>
+      <li>serialize / deserialize 往返一致性（count / contains / bits / hashes）</li>
+      <li>deserialize 非法输入抛 ValueError</li>
+      <li>merge 兼容合并与维度不兼容返回 false</li>
+      <li>clone 独立性（标准版与计数版，原过滤器不受影响）</li>
+      <li>非破坏性并集（clone + merge）</li>
+    </ul>
+
+    <h2>测试片段（完整边界以仓库套件为准）</h2>
+    <div class="code-block"><div class="code-header"><span>extlib_bloom.xl</span></div><div class="code-body"><pre>import bloom
+
+func main(...) as int
+    auto f = bloom.create(1000)
+    assert f.valid, "bloom filter should be valid"
+    assert f.count == 0, "bloom initial count"
+    assert f.bits &gt; 0, "bloom bit array size"
+    assert f.hashes &gt; 0, "bloom hash count"
+
+    f.add("hello")
+    f.add("world")
+    f.add("xlang")
+    assert f.count == 3, "bloom count after adds"
+    assert f.contains("hello"), "bloom contains hello"
+    assert f.contains("world"), "bloom contains world"
+    assert f.contains("xlang"), "bloom contains xlang"
+    assert not f.contains("missing"), "bloom not contains missing"
+    assert not f.contains(""), "bloom not contains empty (never added)"
+
+    f.clear()
+    assert f.count == 0, "bloom count after clear"
+    assert not f.contains("hello"), "bloom cleared hello"
+
+    auto cf = bloom.createCounting(500)
+    assert cf.valid, "counting bloom should be valid"
+    assert cf.count == 0, "counting bloom initial count"
+    assert cf.slots &gt; 0, "counting bloom slots"
+    assert cf.hashes &gt; 0, "counting bloom hashes"
+
+    cf.add("alpha")
+    cf.add("beta")
+    cf.add("gamma")
+    assert cf.count == 3, "counting bloom count after adds"
+    assert cf.contains("alpha"), "counting bloom contains alpha"
+    assert cf.contains("beta"), "counting bloom contains beta"
+    assert not cf.contains("delta"), "counting bloom not contains delta"
+
+    cf.remove("beta")
+    assert cf.count == 2, "counting bloom count after remove"
+    assert not cf.contains("beta"), "counting bloom removed beta"
+    assert cf.contains("alpha"), "counting bloom still has alpha"
+    assert cf.contains("gamma"), "counting bloom still has gamma"
+
+    cf.remove("nonexistent")
+    assert cf.count == 2, "counting bloom remove nonexistent no-op"
+
+    cf.clear()
+    assert cf.count == 0, "counting bloom count after clear"
+    assert not cf.contains("alpha"), "counting bloom cleared alpha"
+
+    bool caught = false
+    try
+        bloom.create(0)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "bloom create(0) must throw ValueError"
+
+    caught = false
+    try
+        bloom.create(-5)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "bloom create(-5) must throw ValueError"
+
+    // ─── estimatedFpp / estimatedCount ───
+    auto ef = bloom.create(1000)
+    assert ef.estimatedCount() == 0, "empty estimatedCount"
+    assert ef.estimatedFpp() == 0.0, "empty estimatedFpp"
+    ef.add("a")
+    ef.add("b")
+    ef.add("c")
+    assert ef.estimatedCount() &gt;= 1, "estimatedCount positive after adds"
+    assert ef.estimatedFpp() &gt; 0.0, "estimatedFpp positive after adds"
+    assert ef.estimatedFpp() &lt; 0.5, "estimatedFpp low for sparse filter"
+
+    // ─── batch operations ───
+    auto bf = bloom.create(1000)
+    bf.addAll(["x1", "x2", "x3"])
+    assert bf.count == 3, "addAll count"
+    assert bf.containsAll(["x1", "x2", "x3"]), "containsAll present"
+    assert not bf.containsAll(["x1", "nope"]), "containsAll with missing"
+    assert bf.containsAny(["nope", "x2"]), "containsAny hit"
+    assert not bf.containsAny(["nope1", "nope2"]), "containsAny miss"
+
+    // ─── serialize / deserialize round-trip ───
+    auto sf = bloom.create(1000)
+    sf.add("persist1")
+    sf.add("persist2")
+    string blob = sf.serialize()
+    assert string.len(blob) &gt; 0, "serialize non-empty"
+    auto rf = bloom.deserialize(blob)
+    assert rf.valid, "deserialized valid"
+    assert rf.count == 2, "deserialized count"
+    assert rf.contains("persist1"), "deserialized contains persist1"
+    assert rf.contains("persist2"), "deserialized contains persist2"
+    assert not rf.contains("absent"), "deserialized not contains absent"
+    assert rf.bits == sf.bits, "deserialized bits match"
+    assert rf.hashes == sf.hashes, "deserialized hashes match"
+
+    // ─── deserialize invalid input throws ───
+    caught = false
+    try
+        bloom.deserialize("zzzz")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "deserialize invalid must throw"
+
+    // ─── merge (union) ───
+    auto m1 = bloom.create(1000)
+    auto m2 = bloom.create(1000)
+    m1.add("left")
+    m2.add("right")
+    assert m1.merge(m2), "merge compatible"
+    assert m1.contains("left"), "merge keeps left"
+    assert m1.contains("right"), "merge gains right"
+    auto big = bloom.create(100000)
+    assert not m1.merge(big), "merge incompatible dimensions"
+
+    // ─── counting bloom: estimated / batch / serialize / merge ───
+    auto ccf = bloom.createCounting(500)
+    ccf.addAll(["k1", "k2", "k3"])
+    assert ccf.count == 3, "counting addAll count"
+    assert ccf.containsAll(["k1", "k2", "k3"]), "counting containsAll"
+    assert ccf.containsAny(["zz", "k2"]), "counting containsAny"
+    assert ccf.estimatedCount() &gt;= 1, "counting estimatedCount"
+    assert ccf.estimatedFpp() &gt; 0.0, "counting estimatedFpp"
+
+    string cblob = ccf.serialize()
+    auto crf = bloom.deserializeCounting(cblob)
+    assert crf.valid, "counting deserialized valid"
+    assert crf.contains("k1"), "counting deserialized contains k1"
+    assert crf.contains("k2"), "counting deserialized contains k2"
+    assert not crf.contains("absent"), "counting deserialized not contains absent"
+    crf.remove("k1")
+    assert not crf.contains("k1"), "counting deserialized remove works"
+
+    auto cm1 = bloom.createCounting(500)
+    auto cm2 = bloom.createCounting(500)
+    cm1.add("aa")
+    cm2.add("bb")
+    assert cm1.merge(cm2), "counting merge compatible"
+    assert cm1.contains("aa"), "counting merge keeps aa"
+    assert cm1.contains("bb"), "counting merge gains bb"
+
+    // ─── capacity getter ───
+    auto capf = bloom.create(2000)
+    assert capf.capacity == 2000, "capacity getter"
+    auto capcf = bloom.createCounting(300)
+    assert capcf.capacity == 300, "counting capacity getter"
+
+    // ─── clone (standard) ───
+    auto orig = bloom.create(1000)
+    orig.add("c1")
+    orig.add("c2")
+    auto cp = orig.clone()
+    assert cp.valid, "clone valid"
+    assert cp.count == 2, "clone count"
+    assert cp.contains("c1"), "clone contains c1"
+    assert cp.contains("c2"), "clone contains c2"
+    cp.add("c3")
+    assert cp.contains("c3"), "clone has c3"
+    assert not orig.contains("c3"), "original unaffected by clone add"
+    assert orig.count == 2, "original count unchanged"
+
+    // non-destructive union via clone
+    auto u1 = bloom.create(1000)
+    auto u2 = bloom.create(1000)
+    u1.add("p")
+    u2.add("q")
+    auto combined = u1.clone()
+    assert combined.merge(u2), "clone merge ok"
+    assert combined.contains("p"), "combined has p"
+    assert combined.contains("q"), "combined has q"
+    assert not u1.contains("q"), "u1 unchanged after clone-merge"
+
+    // ─── clone (counting) ───
+    auto ccorig = bloom.createCounting(500)
+    ccorig.add("z1")
+    auto ccp = ccorig.clone()
+    assert ccp.contains("z1"), "counting clone contains"
+    ccp.remove("z1")
+    assert not ccp.contains("z1"), "counting clone removed"
+    assert ccorig.contains("z1"), "counting original unaffected"
+
+    return 0
+end</pre></div></div>
+
+    <h3>运行测试</h3>
+    <div class="code-block"><div class="code-header"><span>终端</span></div><div class="code-body"><pre>cd release
+xl.exe run ..\test\cases\extlib_bloom.xl</pre></div></div>
+  </div>
+
+  <!-- 返回 -->
+  <a href="../extlibs.html" class="ext-back">← 返回扩展库列表</a>
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a class="brand-wordmark" href="../index.html" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+      <p>以 C 为后端的现代编程语言。生成本地二进制，也可作为运行时嵌入现有 C/C++ 工程。</p>
+    </div>
+    <div class="footer-col">
+      <h4>文档</h4>
+      <ul>
+        <li><a href="../tour.html">语法导览</a></li>
+        <li><a href="../book/index.html">系统教程</a></li>
+        <li><a href="../stdlib.html">标准库</a></li>
+        <li><a href="../extlibs.html">扩展库</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>项目</h4>
+      <ul>
+        <li><a href="../download.html">下载</a></li>
+        <li><a href="https://gitee.com/xywhsoft/x-lang" target="_blank" rel="noopener">Gitee 仓库</a></li>
+        <li><a href="https://gitee.com/xywhsoft/x-lang/issues" target="_blank" rel="noopener">问题反馈</a></li>
+        <li><a href="https://xrt.xywhsoft.com" target="_blank" rel="noopener">XRT 文档</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">xlang &copy; 2026 xLeaves (xywhsoft) · MIT License</div>
+</footer>
+
+<script src="../main.js"></script>
+<script>
+// Tab 切换
+(function(){
+  var tabs = document.querySelectorAll('#extTabs .ext-tab');
+  var panels = document.querySelectorAll('.ext-panel');
+  tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabs.forEach(function(t){ t.classList.remove('active'); });
+      panels.forEach(function(p){ p.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
+    });
+  });
+})();
+</script>
+</body>
+</html>

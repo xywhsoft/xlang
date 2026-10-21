@@ -1,5 +1,5 @@
 // bloom 扩展库教学范例
-// 布隆过滤器（Bloom Filter）：以极小内存做集合存在性判定，允许极低误判率，绝不漏判。
+// 标准版以位数组做概率性存在判断，已加入的元素在清空前不会漏判；计数版删除有额外约束。
 // 本范例逐步覆盖全部 API：创建 / 增删查 / 批量 / 基数估计 / 序列化 / 合并 / 克隆 / 计数版。
 import bloom
 
@@ -11,9 +11,9 @@ func main(...) as int
     auto f = bloom.create(10000, 0.001)
 
     println("有效: ", f.valid)        // true
-    println("容量: ", f.capacity)     // 10000（创建时声明的元素上限）
+    println("容量: ", f.capacity)     // 10000（预计元素数，不是硬上限）
     println("位数: ", f.bits)         // 位数组总位数（由容量+误判率推导）
-    println("哈希数: ", f.hashes)     // 独立哈希函数个数 k
+    println("探针数: ", f.hashes)     // 每个元素访问的位数 k
     println("元素数: ", f.count)      // 0（add 调用次数）
 
     // ─── 2. 添加与存在性判定 ───
@@ -36,11 +36,11 @@ func main(...) as int
     // ─── 4. 基数估计与运行时误判率 ───
     // count 是 add 调用次数（含重复）；estimatedCount 由填充率反推的去重基数估计。
     println("估计基数: ", f.estimatedCount())
-    // estimatedFpp：当前填充率下的实际误判概率，随元素增多而上升。
+    // estimatedFpp：根据当前填充率估计误判概率，并非实测保证。
     println("当前误判率: ", f.estimatedFpp())
 
     // ─── 5. 序列化与反序列化（持久化 / 跨进程共享）───
-    string blob = f.serialize()           // 导出为可移植 hex 字符串
+    string blob = f.serialize()           // 同格式与字节序下往返，不承诺永久跨版本存储
     println("序列化长度: ", string.len(blob))
 
     auto restored = bloom.deserialize(blob)

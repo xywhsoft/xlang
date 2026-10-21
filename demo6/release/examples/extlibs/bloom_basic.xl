@@ -1,0 +1,19 @@
+// contains 表示“可能存在”；clone 的数据独立，持久化保留筛选状态。
+import bloom
+
+func main(...) as int
+    auto seen = bloom.create(100)
+    seen.addAll(["alpha", "beta"])
+    auto restored = bloom.deserialize(seen.serialize())
+    auto independent = seen.clone()
+    independent.clear()
+    println("restored:", restored.contains("alpha"))
+    println("independent count:", independent.count)
+    println("original count:", seen.count)
+    auto repeated = bloom.createCounting(100)
+    repeated.add("entry")
+    repeated.add("entry")
+    repeated.remove("entry")
+    println("remaining:", repeated.contains("entry"))
+    return 0
+end

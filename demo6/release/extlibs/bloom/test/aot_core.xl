@@ -1,0 +1,11 @@
+import bloom
+
+func main(...) as int
+    auto filter = bloom.create(100)
+    filter.add("alpha")
+    assert filter.contains("alpha")
+    assert filter.count == 1
+    auto restored = bloom.deserialize(filter.serialize())
+    assert restored.contains("alpha")
+    return 0
+end

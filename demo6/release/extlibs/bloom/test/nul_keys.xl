@@ -1,0 +1,54 @@
+import bloom
+
+func main(...) as int
+    string full = "a\0b"
+    assert string.byteLen(full) == 3
+
+    // 同一份字节不能被 C 字符串规则截成前缀。
+    auto regular = bloom.create(1000)
+    auto prefix = bloom.create(1000)
+    regular.add(full)
+    prefix.add("a")
+    assert regular.serialize() != prefix.serialize(), "standard Bloom key was truncated"
+    assert regular.contains(full)
+    assert regular.containsAll([full])
+    assert regular.containsAny(["missing", full])
+
+    auto batch = bloom.create(1000)
+    batch.addAll([full])
+    assert batch.serialize() == regular.serialize(), "standard batch key was truncated"
+
+    auto counting = bloom.createCounting(1000)
+    auto countingPrefix = bloom.createCounting(1000)
+    counting.add(full)
+    countingPrefix.add("a")
+    assert counting.serialize() != countingPrefix.serialize(), "counting Bloom key was truncated"
+    assert counting.contains(full)
+    assert counting.containsAll([full])
+    assert counting.containsAny(["missing", full])
+
+    auto countingBatch = bloom.createCounting(1000)
+    countingBatch.addAll([full])
+    assert countingBatch.serialize() == counting.serialize(), "counting batch key was truncated"
+    counting.remove(full)
+    assert counting.count == 0
+    assert not counting.contains(full)
+
+    // 十六进制状态是文本；不能把 NUL 后的内容当作不存在。
+    bool caught = false
+    try
+        bloom.deserialize(regular.serialize() + "\0tail")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "standard Bloom serialized NUL was accepted"
+
+    caught = false
+    try
+        bloom.deserializeCounting(countingPrefix.serialize() + "\0tail")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "counting Bloom serialized NUL was accepted"
+    return 0
+end

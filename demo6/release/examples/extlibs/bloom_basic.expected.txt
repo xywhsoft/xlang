@@ -1,0 +1,4 @@
+restored: true
+independent count: 0
+original count: 2
+remaining: true
