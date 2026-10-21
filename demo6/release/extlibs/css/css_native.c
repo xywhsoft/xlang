@@ -1,26 +1,20 @@
 /*
-    CSS restricted parser.
-
-    This extension intentionally provides syntax-aware rule/declaration lookup,
-    not a browser cascade or selector engine.  It handles comments, quoted
-    strings, escapes, parentheses, brackets and nested at-rules so source text
-    is never searched with a blind strstr().
+    CSS 受限语法查询器。只解析规则和声明的边界，不实现浏览器层叠或选择器引擎；
+    注释、引号、转义、括号和嵌套 at-rule 均按语法跳过。
 */
 #include <string.h>
 
+#ifndef XRT_MODULE_BUFFER
 #define XRT_MODULE_BUFFER
-#include "xrt.h"
-
-#if defined(_WIN32) || defined(_WIN64)
-#define XCSS_THREAD __declspec(thread)
-#elif defined(__GNUC__) || defined(__clang__)
-#define XCSS_THREAD __thread
-#else
-#define XCSS_THREAD
 #endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
+#include "xrt.h"
+#include "include/css_native.h"
 
 #define XCSS_DOMAIN "xlang.extlib.css"
-#define XCSS_RESULT_SLOTS 8u
+#define XCSS_MAX_NESTING 64u
 
 typedef struct xcssinput {
     cstr Data;
@@ -35,10 +29,8 @@ typedef struct xcssspan {
 typedef bool (*xcssrulevisit)(xcssinput Input, xcssspan Selector,
     xcssspan Body, void* pData);
 
-static XCSS_THREAD xbuffer g_xcss_results[XCSS_RESULT_SLOTS];
-static XCSS_THREAD size_t g_xcss_result_index;
-
-
+static bool xcss_declaration_count(xcssinput Input, xcssspan Body, size_t* pCount);
+static bool xcss_skip_comment(xcssinput Input, size_t* pPos);
 
 static void xcss_error(xerrkind Kind, cstr sMessage)
 {
@@ -54,6 +46,13 @@ static xcssinput xcss_input(cstr sText)
     Input.Data = sText != NULL ? sText : "";
     Input.Size = strlen(Input.Data);
     return Input;
+}
+
+static bool xcss_utf8(xcssinput Input)
+{
+    if (xrtUtf8Valid((xstrview){Input.Data, Input.Size}, NULL)) return true;
+    xcss_error(XERR_VALUE, "CSS text must be valid UTF-8");
+    return false;
 }
 
 
@@ -75,13 +74,33 @@ static xcssspan xcss_trim(xcssinput Input, xcssspan Span)
 
 
 
+/* 注释只能位于名称 token 两侧；夹在名称中间不能拼成另一个标识符。 */
+static bool xcss_skip_name_trivia(xcssinput Input, xcssspan Span, size_t* pPos)
+{
+    while (*pPos < Span.End) {
+        if (xcss_space(Input.Data[*pPos])) {
+            ++*pPos;
+        } else if (Input.Data[*pPos] == '/' && *pPos + 1u < Span.End &&
+                   Input.Data[*pPos + 1u] == '*') {
+            if (!xcss_skip_comment(Input, pPos) || *pPos > Span.End) return false;
+        } else {
+            break;
+        }
+    }
+    return true;
+}
+
+
+
 static bool xcss_span_cstr_equal(xcssinput Input, xcssspan Left, cstr sRight)
 {
     size_t iSize = sRight != NULL ? strlen(sRight) : 0u;
+    size_t i = Left.Begin;
 
-    Left = xcss_trim(Input, Left);
-    return (Left.End - Left.Begin) == iSize &&
-        (iSize == 0u || memcmp(Input.Data + Left.Begin, sRight, iSize) == 0);
+    if (!xcss_skip_name_trivia(Input, Left, &i) || iSize > Left.End - i ||
+        (iSize != 0u && memcmp(Input.Data + i, sRight, iSize) != 0)) return false;
+    i += iSize;
+    return xcss_skip_name_trivia(Input, Left, &i) && i == Left.End;
 }
 
 
@@ -99,7 +118,7 @@ static bool xcss_skip_comment(xcssinput Input, size_t* pPos)
         ++i;
     }
     if (i + 1u >= Input.Size) {
-        xcss_error(XERR_PROTOCOL, "CSS comment is not terminated");
+        xcss_error(XERR_VALUE, "CSS comment is not terminated");
         return false;
     }
     *pPos = i + 2u;
@@ -135,7 +154,16 @@ static bool xcss_skip_string(xcssinput Input, size_t* pPos)
 
         if (cValue == '\\') {
             ++*pPos;
-            if (*pPos < Input.Size) ++*pPos;
+            /* CSS 将反斜杠后的 CRLF 视为一次续行。 */
+            if (*pPos < Input.Size && Input.Data[*pPos] == '\r' &&
+                *pPos + 1u < Input.Size && Input.Data[*pPos + 1u] == '\n') {
+                *pPos += 2u;
+            } else if (*pPos < Input.Size) {
+                ++*pPos;
+            }
+        } else if (cValue == '\r' || cValue == '\n' || cValue == '\f') {
+            xcss_error(XERR_VALUE, "CSS string contains an unescaped newline");
+            return false;
         } else if (cValue == Quote) {
             ++*pPos;
             return true;
@@ -143,7 +171,7 @@ static bool xcss_skip_string(xcssinput Input, size_t* pPos)
             ++*pPos;
         }
     }
-    xcss_error(XERR_PROTOCOL, "CSS string is not terminated");
+    xcss_error(XERR_VALUE, "CSS string is not terminated");
     return false;
 }
 
@@ -175,14 +203,14 @@ static bool xcss_next_delimiter(xcssinput Input, size_t Begin, size_t End,
         if (cValue == '(') ++iParen;
         else if (cValue == ')') {
             if (iParen == 0u) {
-                xcss_error(XERR_PROTOCOL, "CSS has an unmatched ')' character");
+                xcss_error(XERR_VALUE, "CSS has an unmatched ')' character");
                 return false;
             }
             --iParen;
         } else if (cValue == '[') ++iBracket;
         else if (cValue == ']') {
             if (iBracket == 0u) {
-                xcss_error(XERR_PROTOCOL, "CSS has an unmatched ']' character");
+                xcss_error(XERR_VALUE, "CSS has an unmatched ']' character");
                 return false;
             }
             --iBracket;
@@ -194,7 +222,7 @@ static bool xcss_next_delimiter(xcssinput Input, size_t Begin, size_t End,
         ++i;
     }
     if (iParen != 0u || iBracket != 0u) {
-        xcss_error(XERR_PROTOCOL, "CSS has an unclosed () or [] expression");
+        xcss_error(XERR_VALUE, "CSS has an unclosed () or [] expression");
         return false;
     }
     *pPos = End;
@@ -234,7 +262,7 @@ static bool xcss_block_end(xcssinput Input, size_t Begin, size_t End, size_t* pE
         }
         ++i;
     }
-    xcss_error(XERR_PROTOCOL, "CSS block is not terminated");
+    xcss_error(XERR_VALUE, "CSS block is not terminated");
     return false;
 }
 
@@ -255,9 +283,15 @@ static bool xcss_block_has_rule(xcssinput Input, xcssspan Body, bool* pResult)
 
 
 static bool xcss_walk_rules(xcssinput Input, size_t Begin, size_t End,
-    xcssrulevisit pVisit, void* pData)
+    xcssrulevisit pVisit, void* pData, bool bValidateDeclarations,
+    size_t iNesting)
 {
     size_t i = Begin;
+
+    if (iNesting > XCSS_MAX_NESTING) {
+        xcss_error(XERR_RANGE, "CSS at-rule nesting exceeds 64 levels");
+        return false;
+    }
 
     while (i < End) {
         xcssspan Selector;
@@ -269,7 +303,7 @@ static bool xcss_walk_rules(xcssinput Input, size_t Begin, size_t End,
         if (!xcss_skip_space(Input, &i)) return false;
         if (i >= End) break;
         if (Input.Data[i] == '}') {
-            xcss_error(XERR_PROTOCOL, "CSS has an unmatched '}' character");
+            xcss_error(XERR_VALUE, "CSS has an unmatched '}' character");
             return false;
         }
         Selector.Begin = i;
@@ -277,20 +311,20 @@ static bool xcss_walk_rules(xcssinput Input, size_t Begin, size_t End,
         Selector.End = iDelimiter;
         Selector = xcss_trim(Input, Selector);
         if (Delimiter == 0 || Delimiter == '}') {
-            xcss_error(XERR_PROTOCOL, "CSS rule is missing an opening '{'");
+            xcss_error(XERR_VALUE, "CSS rule is missing an opening '{'");
             return false;
         }
         if (Delimiter == ';') {
             /* At-rules such as @charset and @import do not have a body. */
             if (Selector.Begin == Selector.End || Input.Data[Selector.Begin] != '@') {
-                xcss_error(XERR_PROTOCOL, "CSS statement outside a rule must start with '@'");
+                xcss_error(XERR_VALUE, "CSS statement outside a rule must start with '@'");
                 return false;
             }
             i = iDelimiter + 1u;
             continue;
         }
         if (Selector.Begin == Selector.End) {
-            xcss_error(XERR_PROTOCOL, "CSS rule selector is empty");
+            xcss_error(XERR_VALUE, "CSS rule selector is empty");
             return false;
         }
         if (!xcss_block_end(Input, iDelimiter + 1u, End, &iBlockEnd)) return false;
@@ -298,12 +332,21 @@ static bool xcss_walk_rules(xcssinput Input, size_t Begin, size_t End,
         Body.End = iBlockEnd;
         if (Input.Data[Selector.Begin] == '@') {
             bool bNestedRules;
+            size_t iCount;
 
             /* @media/@supports/@layer contain rules; @font-face contains declarations. */
             if (!xcss_block_has_rule(Input, Body, &bNestedRules)) return false;
-            if (bNestedRules && !xcss_walk_rules(Input, Body.Begin, Body.End, pVisit, pData)) return false;
-        } else if (pVisit != NULL && !pVisit(Input, Selector, Body, pData)) {
-            return false;
+            if (bNestedRules) {
+                if (!xcss_walk_rules(Input, Body.Begin, Body.End, pVisit, pData,
+                        bValidateDeclarations, iNesting + 1u)) return false;
+            } else if (bValidateDeclarations &&
+                       !xcss_declaration_count(Input, Body, &iCount)) return false;
+        } else {
+            size_t iCount;
+
+            if (bValidateDeclarations &&
+                !xcss_declaration_count(Input, Body, &iCount)) return false;
+            if (pVisit != NULL && !pVisit(Input, Selector, Body, pData)) return false;
         }
         i = iBlockEnd + 1u;
     }
@@ -367,13 +410,13 @@ static bool xcss_declaration_value(xcssinput Input, xcssspan Body,
         if (!xcss_next_delimiter(Input, i, Body.End, ";", &iDelimiter, &Delimiter)) return false;
         if (!xcss_next_delimiter(Input, i, iDelimiter, ":", &iColon, &Delimiter)) return false;
         if (Delimiter == 0) {
-            xcss_error(XERR_PROTOCOL, "CSS declaration is missing ':'");
+            xcss_error(XERR_VALUE, "CSS declaration is missing ':'");
             return false;
         }
         Name = xcss_trim(Input, (xcssspan){ i, iColon });
         Value = xcss_trim(Input, (xcssspan){ iColon + 1u, iDelimiter });
         if (Name.Begin == Name.End) {
-            xcss_error(XERR_PROTOCOL, "CSS declaration property is empty");
+            xcss_error(XERR_VALUE, "CSS declaration property is empty");
             return false;
         }
         if (xcss_span_cstr_equal(Input, Name, sProperty)) {
@@ -399,12 +442,13 @@ static bool xcss_get_visit(xcssinput Input, xcssspan Selector, xcssspan Body, vo
 {
     xcssgetcontext* pContext = (xcssgetcontext*)pData;
 
+    if (pContext->Found) return true;
     if (!xcss_selector_matches(Input, Selector, pContext->Selector)) return xrtGetError() == NULL;
     if (!xcss_declaration_value(Input, Body, pContext->Property,
             &pContext->Value, &pContext->Found)) {
         return false;
     }
-    return !pContext->Found;
+    return true;
 }
 
 
@@ -425,7 +469,6 @@ static bool xcss_selector_visit(xcssinput Input, xcssspan Selector, xcssspan Bod
     if (pContext->Current++ == pContext->Index) {
         pContext->Result = Selector;
         pContext->Found = true;
-        return false;
     }
     return true;
 }
@@ -448,12 +491,12 @@ static bool xcss_declaration_count(xcssinput Input, xcssspan Body, size_t* pCoun
         if (!xcss_next_delimiter(Input, i, Body.End, ";", &iDelimiter, &Delimiter) ||
             !xcss_next_delimiter(Input, i, iDelimiter, ":", &iColon, &Delimiter)) return false;
         if (Delimiter == 0) {
-            xcss_error(XERR_PROTOCOL, "CSS declaration is missing ':'");
+            xcss_error(XERR_VALUE, "CSS declaration is missing ':'");
             return false;
         }
         Name = xcss_trim(Input, (xcssspan){ i, iColon });
         if (Name.Begin == Name.End) {
-            xcss_error(XERR_PROTOCOL, "CSS declaration property is empty");
+            xcss_error(XERR_VALUE, "CSS declaration property is empty");
             return false;
         }
         ++*pCount;
@@ -474,49 +517,65 @@ static bool xcss_prop_count_visit(xcssinput Input, xcssspan Selector, xcssspan B
 {
     xcsspropcountcontext* pContext = (xcsspropcountcontext*)pData;
 
+    if (pContext->Found) return true;
     if (!xcss_selector_matches(Input, Selector, pContext->Selector)) return xrtGetError() == NULL;
     if (!xcss_declaration_count(Input, Body, &pContext->Count)) return false;
     pContext->Found = true;
-    return false;
+    return true;
 }
 
 
 
-static cstr xcss_store(xcssinput Input, xcssspan Span)
+static void* xcss_empty(void)
 {
-    xbuffer* pOutput = &g_xcss_results[g_xcss_result_index++ % XCSS_RESULT_SLOTS];
-
-    Span = xcss_trim(Input, Span);
-    xrtBufferClear(pOutput);
-    if (!xrtBufferAppend(pOutput, (xbytesview){
-            (cbytes)(Input.Data + Span.Begin), Span.End - Span.Begin }) ||
-        !xrtBufferAppendByte(pOutput, 0u)) {
-        xrtBufferClear(pOutput);
-        xcss_error(XERR_MEMORY, "could not allocate CSS result text");
-        return "";
-    }
-    return (cstr)pOutput->Data;
+    char* pResult = (char*)xrtMalloc(1u);
+    if (pResult == NULL) xcss_error(XERR_MEMORY, "could not allocate CSS result text");
+    else pResult[0] = 0;
+    return pResult;
 }
 
 
 
-cstr xcss_get(cstr sCss, cstr sSelector, cstr sProperty)
+static void* xcss_store(xcssinput Input, xcssspan Span)
+{
+    xbuffer Output;
+    void* pResult;
+
+    (void)xrtBufferInit(&Output);
+    Span = xcss_trim(Input, Span);
+    if (!xrtBufferAppend(&Output, (xbytesview){
+            (cbytes)(Input.Data + Span.Begin), Span.End - Span.Begin }) ||
+        !xrtBufferAppendByte(&Output, 0u)) goto Memory;
+    pResult = xrtBufferTake(&Output, NULL, NULL);
+    if (pResult != NULL) return pResult;
+
+Memory:
+    xrtBufferUnit(&Output);
+    xcss_error(XERR_MEMORY, "could not allocate CSS result text");
+    return NULL;
+}
+
+
+
+void* xcss_get(cstr sCss, cstr sSelector, cstr sProperty)
 {
     xcssinput Input = xcss_input(sCss);
     xcssgetcontext Context;
 
+    xrtClearError();
     Context.Selector = sSelector;
     Context.Property = sProperty;
     Context.Found = false;
     if (sSelector == NULL || sProperty == NULL || sSelector[0] == 0 || sProperty[0] == 0) {
         xcss_error(XERR_ARGUMENT, "CSS selector and property are required");
-        return "";
+        return NULL;
     }
-    if (!xcss_walk_rules(Input, 0u, Input.Size, xcss_get_visit, &Context) &&
-        xrtGetError() != NULL) return "";
+    if (!xcss_utf8(Input) || !xcss_utf8(xcss_input(sSelector)) ||
+        !xcss_utf8(xcss_input(sProperty))) return NULL;
+    if (!xcss_walk_rules(Input, 0u, Input.Size, xcss_get_visit, &Context, true, 0u)) return NULL;
     if (!Context.Found) {
         xrtClearError();
-        return "";
+        return xcss_empty();
     }
     xrtClearError();
     return xcss_store(Input, Context.Value);
@@ -524,53 +583,57 @@ cstr xcss_get(cstr sCss, cstr sSelector, cstr sProperty)
 
 
 
-long long xcss_count_rules(cstr sCss)
+int64_t xcss_count_rules(cstr sCss)
 {
     xcsscountcontext Context = { 0u };
     xcssinput Input = xcss_input(sCss);
 
-    if (!xcss_walk_rules(Input, 0u, Input.Size, xcss_count_visit, &Context)) return -1;
+    xrtClearError();
+    if (!xcss_utf8(Input)) return -1;
+    if (!xcss_walk_rules(Input, 0u, Input.Size, xcss_count_visit, &Context, true, 0u)) return -1;
     xrtClearError();
     return (long long)Context.Count;
 }
 
 
 
-long long xcss_count_props(cstr sCss, cstr sSelector)
+int64_t xcss_count_props(cstr sCss, cstr sSelector)
 {
     xcssinput Input = xcss_input(sCss);
     xcsspropcountcontext Context;
 
+    xrtClearError();
     if (sSelector == NULL || sSelector[0] == 0) {
         xcss_error(XERR_ARGUMENT, "CSS selector is required");
         return -1;
     }
+    if (!xcss_utf8(Input) || !xcss_utf8(xcss_input(sSelector))) return -1;
     memset(&Context, 0, sizeof(Context));
     Context.Selector = sSelector;
-    if (!xcss_walk_rules(Input, 0u, Input.Size, xcss_prop_count_visit, &Context) &&
-        xrtGetError() != NULL) return -1;
+    if (!xcss_walk_rules(Input, 0u, Input.Size, xcss_prop_count_visit, &Context, true, 0u)) return -1;
     xrtClearError();
     return Context.Found ? (long long)Context.Count : 0;
 }
 
 
 
-cstr xcss_selector_at(cstr sCss, long long iIndex)
+void* xcss_selector_at(cstr sCss, int64_t iIndex)
 {
     xcssselectorcontext Context;
     xcssinput Input = xcss_input(sCss);
 
+    xrtClearError();
     if (iIndex < 0) {
         xcss_error(XERR_RANGE, "CSS selector index must not be negative");
-        return "";
+        return NULL;
     }
+    if (!xcss_utf8(Input)) return NULL;
     memset(&Context, 0, sizeof(Context));
     Context.Index = (size_t)iIndex;
-    if (!xcss_walk_rules(Input, 0u, Input.Size, xcss_selector_visit, &Context) &&
-        xrtGetError() != NULL) return "";
+    if (!xcss_walk_rules(Input, 0u, Input.Size, xcss_selector_visit, &Context, true, 0u)) return NULL;
     if (!Context.Found) {
         xrtClearError();
-        return "";
+        return xcss_empty();
     }
     xrtClearError();
     return xcss_store(Input, Context.Result);
@@ -582,58 +645,50 @@ bool xcss_validate(cstr sCss)
 {
     xcssinput Input = xcss_input(sCss);
 
-    if (!xcss_walk_rules(Input, 0u, Input.Size, NULL, NULL)) return false;
+    xrtClearError();
+    if (!xcss_utf8(Input)) return false;
+    if (!xcss_walk_rules(Input, 0u, Input.Size, NULL, NULL, true, 0u)) return false;
     xrtClearError();
     return true;
 }
 
 
 
-cstr xcss_strip_comments(cstr sCss)
+void* xcss_strip_comments(cstr sCss)
 {
     xcssinput Input = xcss_input(sCss);
-    xbuffer* pOutput = &g_xcss_results[g_xcss_result_index++ % XCSS_RESULT_SLOTS];
+    xbuffer Output;
+    void* pResult;
     size_t i = 0u;
 
-    xrtBufferClear(pOutput);
+    xrtClearError();
+    if (!xcss_utf8(Input)) return NULL;
+    (void)xrtBufferInit(&Output);
     while (i < Input.Size) {
         size_t iStart = i;
 
         if (Input.Data[i] == '/' && i + 1u < Input.Size && Input.Data[i + 1u] == '*') {
             if (!xcss_skip_comment(Input, &i) ||
-                !xrtBufferAppendByte(pOutput, ' ')) {
-                if (xrtGetError() == NULL) xcss_error(XERR_MEMORY, "could not allocate CSS result text");
-                xrtBufferClear(pOutput);
-                return "";
-            }
+                !xrtBufferAppendByte(&Output, ' ')) goto Failed;
             continue;
         }
         if (Input.Data[i] == '\'' || Input.Data[i] == '"') {
             if (!xcss_skip_string(Input, &i)) {
-                xrtBufferClear(pOutput);
-                return "";
+                goto Failed;
             }
         } else {
             ++i;
         }
-        if (!xrtBufferAppend(pOutput, (xbytesview){ (cbytes)(Input.Data + iStart), i - iStart })) {
-            xcss_error(XERR_MEMORY, "could not allocate CSS result text");
-            xrtBufferClear(pOutput);
-            return "";
-        }
+        if (!xrtBufferAppend(&Output, (xbytesview){
+                (cbytes)(Input.Data + iStart), i - iStart })) goto Failed;
     }
-    if (!xrtBufferAppendByte(pOutput, 0u)) {
-        xcss_error(XERR_MEMORY, "could not allocate CSS result text");
-        xrtBufferClear(pOutput);
-        return "";
-    }
+    if (!xrtBufferAppendByte(&Output, 0u)) goto Failed;
     xrtClearError();
-    return (cstr)pOutput->Data;
-}
+    pResult = xrtBufferTake(&Output, NULL, NULL);
+    if (pResult != NULL) return pResult;
 
-
-
-cstr xcss_last_error(void)
-{
-    return xrtErrorMessage(xrtGetError());
+Failed:
+    xrtBufferUnit(&Output);
+    if (xrtGetError() == NULL) xcss_error(XERR_MEMORY, "could not allocate CSS result text");
+    return NULL;
 }

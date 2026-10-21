@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>css - 扩展库 - xlang</title>
+  <meta name="description" content="受限 CSS 语法查询器，读取规则、选择器与声明。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / css</p><h1>css</h1>
+    <p class="extlib-lead">读取 CSS 规则、选择器与声明的轻量语法查询器。</p>
+    <p>不计算级联、继承、特异性或选择器匹配；不是浏览器样式引擎。XL AOT 当前受共享运行时链接缺符号阻断，尚未完成发布验收。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>get(css, selector, property)</code></td><td>读取声明文本；缺失时返回空字符串</td></tr>
+      <tr><td><code>countRules / countProps</code></td><td>统计规则或指定选择器的属性数量</td></tr>
+      <tr><td><code>selectorAt</code></td><td>按索引读取规则选择器</td></tr>
+      <tr><td><code>validate</code></td><td>检查受支持的语法；畸形内容抛 ValueError，嵌套超限抛 RangeError</td></tr>
+      <tr><td><code>stripComments</code></td><td>去掉注释，保留字符串中的相同文本</td></tr>
+    </tbody></table>
+    <p><code>get</code>、<code>countRules</code>、<code>countProps</code>、<code>selectorAt</code> 均检查整份样式表的受支持语法；首个匹配之后出现坏规则也会报错。嵌套 at-rule 最多 64 层，第 65 层报告范围错误。引号内未转义 CR/LF/FF 拒绝，反斜杠续行有效。C/XLang 均要求整份样式表及查询名为有效 UTF-8，注释中的非法字节也拒绝；XLang 文本入口另拒绝内嵌 NUL。<code>stripComments</code> 仅处理注释与引号，不替代 <code>validate</code>。</p>
+    <p>查询名称两侧的注释与空白不参与匹配：<code>a/*x*/ { color/*y*/: red; }</code> 可按 <code>a</code> 和 <code>color</code> 查询；名称中间的注释不合并两个 token。<code>selectorAt</code> 保留原始选择器文本。本包仍是受限查询器，不承诺完整 CSS 语义。</p>
+    <h2 id="example">xlang</h2>
+    <pre><code>import css
+string sheet = "h1 { color: navy; }"
+assert css.get(sheet, "h1", "color") == "navy"
+assert css.countRules(sheet) == 1</code></pre>
+    <h2 id="c-api">C</h2>
+    <p>包含 <code>include/css_native.h</code>。计数结果与索引参数使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。文本结果由调用方持有，必须使用 <code>xrtFree</code>；失败时返回 NULL 并保留 XRT 错误。C 范例可直接运行 <code>xl run examples/extlibs/css_c.c</code>。</p>
+    <p>Windows 严格 GCC 语法检查、C/XLang 边界与双语范例通过；Linux 包级门禁同次覆盖 C ASan/UBSan、线程测试、中央和包内 XLang 边界，以及 C/XLang 范例逐字节对照。六个公开 XLang 入口的分配故障测试分别扫描至首个成功，检查内存错误类别和每次故障后的恢复。64/65 层嵌套边界已有双语回归；合法嵌套样本的逐字符替换矩阵还检查 validate、countRules 和 get 的判断与错误状态一致。该固定矩阵不代表完整 fuzz。Linux 门禁为 <code>bash release/extlibs/css/test/check.sh</code>；完整 AOT 仍待共享运行时缺符号修复。</p>
+    <p>2026-10-19：名称后缀注释的 C/XLang 红绿用例与双语公开范例通过 Windows 和 Linux 包级门禁；注释仅构成属性名的旧拒绝行为也已固定。完整带输出 AOT 未签收。</p>
+  </section>
+</main>
+</body>
+</html>

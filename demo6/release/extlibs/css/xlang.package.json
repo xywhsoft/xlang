@@ -17,6 +17,10 @@
                      "xlSources":  [
                                        "src/css.xl"
                                    ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_BUFFER",
+                                        "XRT_MODULE_UNICODE"
+                                    ],
                      "kind":  "source"
                  },
     "name":  "css",
@@ -26,5 +30,6 @@
     "loadlibs":  [
 
                  ],
-    "abiVersion":  "1"
+    "abiVersion":  "1",
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] }
 }

@@ -1,0 +1,159 @@
+import css
+
+func main(...) as int
+    string sheet = ("/* header */ @media screen { .card, .panel { " +
+        "content: \"{;}\"; color: rgb(1, 2, 3); } }")
+    assert css.validate(sheet)
+    assert css.countRules(sheet) == 1
+    assert css.countProps(sheet, ".panel") == 2
+    assert css.selectorAt(sheet, 0) == ".card, .panel"
+    assert css.get(sheet, ".card", "content") == "\"{;}\""
+    assert css.get(sheet, ".panel", "color") == "rgb(1, 2, 3)"
+    assert css.get(sheet, ".panel", "missing") == ""
+    string commentedName = "a/* selector */ { /* before */ color/* name */: red; }"
+    assert css.validate(commentedName)
+    assert css.countProps(commentedName, "a") == 1
+    assert css.get(commentedName, "a", "color") == "red"
+    assert css.get("a { co/**/lor: blue; }", "a", "color") == ""
+    bool emptyNameRejected = false
+    try
+        css.validate("a { /* no property */: red; }")
+    catch ValueError error
+        emptyNameRejected = true
+    end
+    assert emptyNameRejected
+    assert css.validate("段落 { 内容: '你好'; }")
+    assert css.get("段落 { 内容: '你好'; }", "段落", "内容") == "'你好'"
+
+    string nested = string.repeat("@media all {", 64) + ".leaf { color: red; }" + string.repeat("}", 64)
+    assert css.validate(nested) and css.countRules(nested) == 1
+    assert css.get(nested, ".leaf", "color") == "red"
+    string tooDeep = "@media all {" + nested + "}"
+    bool depthRejected = false
+    try
+        css.validate(tooDeep)
+    catch RangeError error
+        depthRejected = true
+    end
+    assert depthRejected, "65 nested at-rules must be rejected"
+    depthRejected = false
+    try
+        css.get(tooDeep, ".leaf", "color")
+    catch RangeError error
+        depthRejected = true
+    end
+    assert depthRejected, "query must preserve the nesting error"
+
+    string stripped = css.stripComments("p { content: \"/*keep*/\"; }/*gone*/")
+    assert string.contains(stripped, "\"/*keep*/\"")
+    assert not string.contains(stripped, "gone")
+
+    string held = css.get(sheet, ".card", "content")
+    int i = 0
+    while i < 12
+        assert css.get(sheet, ".panel", "color") == "rgb(1, 2, 3)"
+        i += 1
+    end
+    assert held == "\"{;}\""
+
+    bool rejected = false
+    try
+        css.validate("a { color: red; /* missing")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        css.validate("a { color red; }")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        css.validate("@font-face { font-family demo; }")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        css.validate("a { content: 'line\nnext'; }")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "raw newline inside CSS string must fail"
+    assert css.validate("a { content: 'line\\\nnext'; }")
+
+    string malformedTail = "a { color: red; } b { color blue; }"
+    rejected = false
+    try
+        css.get(malformedTail, "a", "color")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "get must inspect later declarations"
+
+    rejected = false
+    try
+        css.countRules(malformedTail)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "countRules must inspect declarations"
+
+    rejected = false
+    try
+        css.selectorAt(sheet, -1)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+
+    string hiddenTail = "a { color: red; }\0b { color blue; }"
+    rejected = false
+    try
+        css.validate(hiddenTail)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "validate must not accept a hidden tail"
+
+    rejected = false
+    try
+        css.get(hiddenTail, "a", "color")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "get must not ignore a hidden tail"
+
+    rejected = false
+    try
+        css.get(sheet, ".card\0hidden", "color")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "selector must not be truncated"
+
+    rejected = false
+    try
+        css.get(sheet, ".panel", "color\0hidden")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "property must not be truncated"
+
+    rejected = false
+    try
+        css.stripComments("a{}\0/*hidden*/")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "stripComments must not ignore a hidden tail"
+    println("css boundaries: ok")
+    return 0
+end

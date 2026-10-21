@@ -1,0 +1,15 @@
+import css
+
+func main(...) as int
+    string sheet = "h1 { color: navy; font-size: 24px; }"
+    if not css.validate(sheet)
+        return 1
+    end
+    if css.countRules(sheet) != 1
+        return 2
+    end
+    if css.countProps(sheet, "h1") != 2
+        return 3
+    end
+    return 0
+end

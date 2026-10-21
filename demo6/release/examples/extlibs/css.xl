@@ -10,7 +10,9 @@ func main(...) as int
     println("rules:    ", css.countRules(sheet))
     println("sel[0]:   ", css.selectorAt(sheet, 0))
     println("valid:    ", css.validate(sheet))
+    println("comment: ", css.get("a/* selector */ { color/* name */: red; }",
+        "a", "color"))
 
-    println("css example: PASS")
+    println("css C/XL example: PASS")
     return 0
 end

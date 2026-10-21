@@ -26,7 +26,13 @@ func main(...) as int
 
     // Validate
     assert css.validate(sheet), "valid css"
-    assert not css.validate("body { color: red; "), "invalid css"
+    bool invalidRejected = false
+    try
+        css.validate("body { color: red; ")
+    catch ValueError error
+        invalidRejected = true
+    end
+    assert invalidRejected, "invalid css"
 
     // Strip comments
     auto with_comment = "/* hello */ body { color: blue; }"
@@ -39,7 +45,13 @@ func main(...) as int
     assert css.countRules(nested) == 1, "nested style rule"
     assert css.get(nested, ".panel", "content") == "\"{; }\"", "selector list and string"
     assert css.get(nested, ".card", "color") == "rgb(1, 2, 3)", "function value"
-    assert not css.validate("a { color: red; /* missing"), "unterminated comment"
+    invalidRejected = false
+    try
+        css.validate("a { color: red; /* missing")
+    catch ValueError error
+        invalidRejected = true
+    end
+    assert invalidRejected, "unterminated comment"
 
     return 0
 end

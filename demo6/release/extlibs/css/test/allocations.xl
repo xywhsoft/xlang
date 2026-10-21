@@ -1,0 +1,68 @@
+import css
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func exercise(int operation, string sheet)
+    if operation == 0 then
+        css.get(sheet, "h1", "color")
+    elseif operation == 1 then
+        css.countRules(sheet)
+    elseif operation == 2 then
+        css.countProps(sheet, "h1")
+    elseif operation == 3 then
+        css.selectorAt(sheet, 0)
+    elseif operation == 4 then
+        css.validate(sheet)
+    else
+        css.stripComments(sheet)
+    end
+end
+
+string sheet = "/* title */ h1 { color: navy; font-size: 24px; }"
+
+for operation in range(6)
+    int failures = 0
+    bool completed = false
+    for allocation in range(128)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        assert failAfter(uint64(allocation))
+        try
+            exercise(operation, sheet)
+        catch MemoryError error
+            memoryCaught = true
+        catch ValueError error
+            wrongCaught = true
+        catch RangeError error
+            wrongCaught = true
+        catch RuntimeError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        if wrongCaught or memoryCaught != triggered then
+            println("operation=", operation, " allocation=", allocation,
+                " triggered=", triggered, " memory=", memoryCaught,
+                " wrong=", wrongCaught)
+        end
+        assert not wrongCaught and memoryCaught == triggered
+        if triggered then
+            failures += 1
+            exercise(operation, sheet)
+        else
+            completed = true
+            break
+        end
+    end
+    assert failures > 0 and completed
+end
+
+assert css.get(sheet, "h1", "color") == "navy"
+assert css.countRules(sheet) == 1
+assert css.countProps(sheet, "h1") == 2
+assert css.selectorAt(sheet, 0) == "h1"
+assert css.validate(sheet)
+assert css.stripComments(sheet) == "  h1 { color: navy; font-size: 24px; }"
+println("css allocation: PASS")
