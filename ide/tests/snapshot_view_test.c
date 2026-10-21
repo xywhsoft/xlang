@@ -85,6 +85,7 @@ static int verify(void* user)
  CHECK(replace(xl,mainText) && replace(dependency,unicode) && xideEditorShow(&app,xl)==XUI_OK && settle(&app) && xl->dirty && dependency->dirty && xideActionQuery(&app,XIDE_ACTION_CHECK_CURRENT).enabled && !xideActionQuery(&app,XIDE_ACTION_CHECK_SAVED).enabled);
  uint32_t xv=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xl->editor)),dv=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(dependency->editor)),cv=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(c->editor));
  CHECK(menuCheck(&app) && ready(&app,1) && centerBottom(&app,xl));
+ int nativeBackend=app.languageView->nativeBackend;
  for(int invalid=0;invalid<4;++invalid) CHECK(rejectMalformedSnapshot(&app,invalid));
  xui_code_diagnostic_t diagnostic={.iSize=sizeof(diagnostic)};
  CHECK(!xuiCodeAnnotationGetDiagnosticCount(xuiCodeEditGetAnnotations(xl->editor)) && xuiCodeAnnotationGetDiagnosticCount(xuiCodeEditGetAnnotations(dependency->editor))==1 && xuiCodeAnnotationGetDiagnostic(xuiCodeEditGetAnnotations(dependency->editor),0,&diagnostic)==XUI_OK && strstr(diagnostic.sMessage,"missingName"));
@@ -168,7 +169,7 @@ static int verify(void* user)
  for(int i=0;i<63;++i) CHECK(xideDocumentClose(extras[i],1,&error));
  CHECK(settle(&app) && ready(&app,1));
  CHECK(xideEditorClose(&app,xl,1,&error) && settle(&app) && !xideLanguageViewDiagnosticCount(&app)); reused=xideDocumentNew(&app.documents,"xlang",&error); CHECK(reused==xl && !xuiCodeAnnotationGetDiagnosticCount(xuiCodeEditGetAnnotations(reused->editor)) && xideEditorShow(&app,reused)==XUI_OK && !xideActionQuery(&app,XIDE_ACTION_CHECK_CURRENT).enabled && idle(&app,700));
- printf("snapshot_view_test passed: actual current menu, dirty recursive and virtual inputs, per-file Unicode annotations/problem Enter, malformed count/group/hash rejection before UI mutation, C/xlang syntax and layout, checked-root debounce, published automatic cancel, 64-document resync/65-document bound, rename/close/reuse, real server crash/full resync, post-publication disk/identity automatic recheck, stale notification rejection, package-environment restart, unreadable-input backoff/recovery, cancellation teardown, fingerprint guarded BOM/CRLF disk jump and unchanged source bytes/post-writer baselines; renders in %s.\n",root);
+ printf("snapshot_view_test passed: actual current menu, dirty recursive and virtual inputs, per-file Unicode annotations/problem Enter, malformed count/group/hash rejection before UI mutation, C/xlang syntax and layout, checked-root debounce, published automatic cancel, 64-document resync/65-document bound, rename/close/reuse, real server crash/full resync, post-publication disk/identity automatic recheck, stale notification rejection, package-environment restart, unreadable-input backoff/recovery, cancellation teardown, fingerprint guarded BOM/CRLF disk jump and unchanged source bytes/post-writer baselines; native-backend=%d; renders in %s.\n",nativeBackend,root);
 cleanup:
  xideTextFileClear(&baseline); if(began) xgeEnd(); xideAppDestroy(&app); for(size_t i=0;i<ownedCount;++i) free(owned[i]); xgeQuit(); return XGE_OK;
 }

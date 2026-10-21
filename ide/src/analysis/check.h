@@ -3,6 +3,7 @@
 #include "analysis/semantic.h"
 
 typedef struct xls_semantic_check xls_semantic_check;
+#define XLS_CHECK_REPORT_BYTES (36u * 1024u * 1024u)
 typedef struct xls_check_info {
     const char *path,*phase,*error;
     size_t diagnostics,irTypes,irNodes;

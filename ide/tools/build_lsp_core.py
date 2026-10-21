@@ -32,11 +32,30 @@ SERVER_SOURCES = (
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
     "src/server/xlang_ls.c",
 )
-CORE_TESTS = ("analysis_check_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_text_test", "document_sync_test")
+CORE_TESTS = ("analysis_check_test", "analysis_index_limit_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_text_test", "document_sync_test")
+NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 
 
 def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def prepare_native_index(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
+    """Parameterize one existing resource limit, keeping upstream immutable."""
+    original = frontend / "src/sem/xl6_sem_index.c"
+    body = original.read_bytes()
+    source = body.decode("utf-8").replace("\r\n", "\n")
+    definition = "#define XL6_INDEX_BYTES (8u * 1024u * 1024u)"
+    if source.count(definition) != 1:
+        raise ValueError("shared index budget declaration changed; audit its native build overlay")
+    generated_root = output / "frontend"
+    generated_root.mkdir()
+    compiled = generated_root / "xl6_sem_index.c"
+    compiled.write_bytes(source.replace(definition,
+        "#ifndef XL6_INDEX_BYTES\n" + definition + "\n#endif").encode("utf-8"))
+    return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
+        compiledSource=str(compiled), compiledSha256=sha(compiled),
+        change="allow the existing index byte budget to be configured", indexBytes=NATIVE_INDEX_BYTES)
 
 
 def dependencies(body: str) -> list[Path]:
@@ -89,6 +108,14 @@ def main() -> None:
     if any(not path.is_file() for path, _ in sources):
         parser.error("frontend root must contain the shared xlang lexer, parser, AST and XRT assets")
     output.mkdir(parents=True, exist_ok=False)
+    # Keep the pinned compiler assets immutable. This checked build overlay
+    # makes the existing private serializer budget configurable; no grammar,
+    # fact collection or index algorithm is duplicated in the IDE.
+    try:
+        original_index, generated_index, index_overlay = prepare_native_index(frontend, output)
+    except ValueError as error:
+        parser.error(str(error))
+    sources = [(generated_index if path == original_index else path, owned) for path, owned in sources]
     env = dict(os.environ)
     env["PATH"] = str(cc.parent) + os.pathsep + env.get("PATH", "")
     common = ["-std=c11", "-ffunction-sections", "-fdata-sections", "-DXRT_MODULE_ALL=", "-DXLS_COMPILER_XRT=1",
@@ -97,6 +124,8 @@ def main() -> None:
               "-I" + str(frontend / "release"), "-I" + str(frontend / "release/include"),
               "-I" + str(frontend / "lib/xrt"), "-include", str(frontend / "lib/xrt/xrt.h")]
     common += ["-O2"] if args.configuration == "Release" else ["-O0", "-g"]
+    index_budget_flag = "-DXL6_INDEX_BYTES=" + str(NATIVE_INDEX_BYTES) + "u"
+    common += [index_budget_flag]
     strict = ["-Wall", "-Wextra", "-Werror", "-Wno-unused-parameter"]
     shared = ["-Wall", "-Wno-pointer-sign", "-Wno-unused-function", "-Wno-unused-variable",
               "-Wno-unused-but-set-variable", "-Wno-format-truncation", "-Wno-dangling-pointer"]
@@ -107,7 +136,9 @@ def main() -> None:
     else:
         common += ["-D_GNU_SOURCE=1"]
         libraries += ["-pthread", "-ldl"]
-    commands, inputs, outputs, runs, imports = [], {str(Path(__file__).resolve()): sha(Path(__file__))}, {}, [], {}
+    commands, inputs, outputs, runs, imports = [], {str(Path(__file__).resolve()): sha(Path(__file__)),
+        str(original_index): index_overlay["sourceSha256"]}, {}, [], {}
+    source_overlays = [index_overlay]
     started = time.monotonic()
     status = "failed"
 
@@ -139,10 +170,17 @@ def main() -> None:
         core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "session", "worker", "folding", "semantic", "check"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
+        limited_index = output / "xl6_sem_index_limit.o"
+        if not args.skip_tests:
+            limited_flags = [flag for flag in common if flag != index_budget_flag]
+            run([str(cc), *limited_flags, "-DXL6_INDEX_BYTES=1024u", *shared, "-c", str(generated_index),
+                 "-o", str(limited_index)], "index-limit-fixture")
         suffix = ".exe" if os.name == "nt" else ""
         for name in (() if args.skip_tests else CORE_TESTS):
             program = output / (name + suffix)
             extra = [str(objects["document_sync"])] if name == "document_sync_test" else []
+            if name == "analysis_index_limit_test":
+                extra.append(str(limited_index))
             run([str(cc), str(objects[name]), *extra, str(core), "-Wl,--gc-sections", *libraries, "-o", str(program)], name + "-link")
             result = run([str(program)], name + "-run", 30)
             if b"passed:" not in result.stdout:
@@ -170,6 +208,7 @@ def main() -> None:
                       frontendRoot=str(frontend),compiler=str(cc),compilerSha256=sha(cc),inputs=inputs,outputs=outputs,
                       configuration=args.configuration,serverBuilt=args.server,testsBuilt=not args.skip_tests,
                       commands=commands,runs=runs,imports=imports,elapsedSeconds=time.monotonic()-started)
+        report["sourceOverlays"] = source_overlays
         (output / "build-result.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps(dict(status=status,report=str(output / "build-result.json")),ensure_ascii=False))
 

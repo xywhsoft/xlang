@@ -13,6 +13,7 @@
 #include <limits.h>
 #ifdef XLS_COMPILER_XRT
 #include "analysis/semantic.h"
+#include "analysis/check.h"
 static int nativeCancelled(void* user);
 #endif
 #define FILE_LIMIT (8u*1024u*1024u)
@@ -28,21 +29,31 @@ static int fail(xide_model_error* e,const char* message) { e->code=XIDE_MODEL_IN
 static int cancelled(xide_language_check* q) { return InterlockedCompareExchange(&q->cancel,0,0)!=0 || (q->externalCancel && q->externalCancel(q->externalUser)); }
 #ifdef XLS_COMPILER_XRT
 static int nativeCancelled(void* user) { return cancelled(user); }
-static int nativeCompletion(xide_language_check* q,char** json,int* code,xide_model_error* e)
+static int nativeAnalysis(xide_language_check* q,char** json,int* code,xide_model_error* e)
 {
  xls_semantic_input inputs[64];
  for(size_t i=0;i<q->snapshotCount;++i) inputs[i]=(xls_semantic_input){q->snapshots[i].path,q->snapshots[i].text,strlen(q->snapshots[i].text)};
- xls_semantic_completion* result=xlsSemanticCompletionCreate(q->path,q->queryPath,(size_t)q->queryOffset,
-  inputs,q->snapshotCount,nativeCancelled,q,e->message,sizeof(e->message));
- if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
- size_t size=0; char* report=xlsSemanticCompletionJson(result,&size);
- *code=xlsSemanticCompletionInfo(result).available ? 0 : 1;
+ size_t size=0; char* report=NULL;
+ if(q->queryPath) {
+  xls_semantic_completion* result=xlsSemanticCompletionCreate(q->path,q->queryPath,(size_t)q->queryOffset,
+   inputs,q->snapshotCount,nativeCancelled,q,e->message,sizeof(e->message));
+  if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
+  report=xlsSemanticCompletionJson(result,&size);
+  *code=xlsSemanticCompletionInfo(result).available ? 0 : 1;
+  xlsSemanticCompletionDestroy(result);
+ } else {
+  xls_semantic_check* result=xlsSemanticCheckCreate(q->path,inputs,q->snapshotCount,1,nativeCancelled,q,e->message,sizeof(e->message));
+  if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
+  report=xlsSemanticCheckJson(result,&size);
+  *code=xlsSemanticCheckInfo(result).accepted ? 0 : 1;
+  xlsSemanticCheckDestroy(result);
+ }
  /* Keep the legacy adapter's malloc ownership at this one compatibility
     boundary; the analysis API itself has typed facts and explicit ownership. */
- if(report && size<=12u*1024u*1024u && !cancelled(q)) {
+ if(report && size<=(q->queryPath ? 12u*1024u*1024u : XLS_CHECK_REPORT_BYTES) && !cancelled(q)) {
   *json=malloc(size+1); if(*json) memcpy(*json,report,size+1);
  }
- xlsSemanticStringFree(report); xlsSemanticCompletionDestroy(result);
+ xlsSemanticStringFree(report);
  return *json!=NULL;
 }
 #endif
@@ -258,7 +269,8 @@ int xideLanguageSnapshotRun(xide_language_check* q,xvalue** output,xide_model_er
  q->packagePathCaptured=1;
 #ifdef XLS_COMPILER_XRT
  if(q->nativeSemantic) {
-  if(!q->queryPath || q->nativeBridge || !nativeCompletion(q,&json,&code,e)) goto done;
+  if(q->nativeBridge || !nativeAnalysis(q,&json,&code,e)) goto done;
+  indexed=q->queryPath==NULL;
   goto analysed;
  }
 #endif
@@ -289,7 +301,15 @@ analysed:
 #endif
  if(q->nativeBridge) {
   xjsonreadconfig config; xrtJsonReadConfigInit(&config); config.MaxInputBytes=80u*1024u*1024u; config.MaxStringBytes=24u*1024u*1024u; config.MaxValues=2097152; config.MaxContainerItems=32768; config.MaxDepth=32; raw=xrtJsonRead(sv(json),&config);
- } else raw=xrtJsonParse(sv(json));
+ }
+#ifdef XLS_COMPILER_XRT
+ else if(q->nativeSemantic && !q->queryPath) {
+  xjsonreadconfig config; xrtJsonReadConfigInit(&config); config.MaxInputBytes=XLS_CHECK_REPORT_BYTES;
+  config.MaxStringBytes=1024u*1024u; config.MaxValues=4u*1024u*1024u; config.MaxContainerItems=65536; config.MaxDepth=64;
+  raw=xrtJsonRead(sv(json),&config);
+ }
+#endif
+ else raw=xrtJsonParse(sv(json));
  const char* phase=string(get(raw,"phase"));
  if(!raw || xrtValueType(raw)!=XVALUE_OBJECT || !xrtValueGetBool(get(raw,"ok"),&okay) || okay!=(code==0) || !phase || !*phase || strlen(phase)>64) { fail(e,"快照检查响应或退出状态无效。"); goto done; }
  if(q->nativeBridge && !okay) {
