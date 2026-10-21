@@ -8,7 +8,8 @@ const versions = [];
 const ranges = new Set(['', '*', '>=1.0.0 <3.0.0', '^0.2.0 || ^2.0.0',
     '>=*', '<=*', '=*', '>x', '<x', '^x', '~x', '1.x.3', '1..2',
     '1.0.0 -', '1.0.0 - 2.0.0',
-    '1.2.3+meta', '>1.2.3-alpha']);
+    '1.2.3+meta', '>1.2.3-alpha',
+    '>= 1.2.3 < 2.0.0', '~ 1.2', '^ 1.0.0 || ^ 2.0.0']);
 for (let major = 0; major <= 3; major++) {
     for (let minor = 0; minor <= 3; minor++) {
         for (let patch = 0; patch <= 3; patch++) {

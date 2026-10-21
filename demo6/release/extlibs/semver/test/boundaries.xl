@@ -12,6 +12,10 @@ func main(...) as int
     assert not semver.satisfies("1.2.3-alpha", " \t "), "whitespace-only prerelease"
     assert semver.satisfies("1.2.2", "<=1.2.3"), "inclusive upper bound"
     assert not semver.satisfies("1.2.4", "<=1.2.3"), "upper bound exclusion"
+    assert semver.satisfies("1.2.3", ">= 1.2.3 < 2.0.0"), "spaced comparators"
+    assert not semver.satisfies("2.0.0", ">= 1.2.3 < 2.0.0"), "spaced upper bound"
+    assert semver.satisfies("1.2.3", "~\t1.2"), "spaced tilde"
+    assert semver.satisfies("2.5.0", "^ 1.0.0 || ^ 2.0.0"), "spaced caret alternatives"
 
     // 数值溢出或格式错误不能被转换成某个有效范围。
     assert not semver.valid("9223372036854775808.0.0"), "major overflow"
@@ -33,6 +37,7 @@ func main(...) as int
     assert not semver.satisfies("1.2.3", "="), "missing equality operand"
     assert not semver.satisfies("1.2.3", "^"), "missing caret operand"
     assert not semver.satisfies("1.2.3", "~"), "missing tilde operand"
+    assert not semver.satisfies("1.2.3", ">= "), "spaced missing operand"
     assert not semver.satisfies("1.2.3", "1.2.3 || >="), "invalid alternative operand"
     assert semver.satisfies("1.2.3", "*"), "explicit wildcard"
     assert not semver.satisfies("1.2.3", "<1.0.0 ||"), "trailing empty branch"
@@ -47,6 +52,13 @@ func main(...) as int
     assert semver.satisfies("1.2.3", comparatorRange), "32 comparators"
     comparatorRange += "^1.0.0 "
     assert not semver.satisfies("1.2.3", comparatorRange), "34 comparators"
+    string spacedRange = ""
+    for i in range(32)
+        spacedRange += ">= 1.0.0 "
+    end
+    assert semver.satisfies("1.2.3", spacedRange), "32 spaced comparators"
+    spacedRange += ">= 1.0.0 "
+    assert not semver.satisfies("1.2.3", spacedRange), "33 spaced comparators"
 
     // C 字符串入口不能把 NUL 后的内容当作不存在。
     assert not semver.valid("1.2.3\0invalid"), "NUL valid"

@@ -41,7 +41,7 @@ assert semver.satisfies("1.2.2", "&lt;=1.2.3")</code></pre>
       <tr><td><code>compare(a, b)</code></td><td>返回 <code>-1/0/1</code>；非法版本返回 <code>-2</code>。</td></tr>
       <tr><td><code>satisfies(version, range)</code></td><td>匹配常用依赖范围；非法范围返回 <code>false</code>。</td></tr>
     </tbody></table>
-    <p>范围支持完整/部分版本、<code>x</code>/<code>*</code> 通配、比较运算符、<code>~</code>、<code>^</code>、空格交集、<code>||</code> 并集及 <code>A - B</code> 区间。空范围或只含空格/tab 的范围匹配正式版本；空的 <code>||</code> 分支及只有运算符而无版本号的范围均属非法。需要显式通配时使用 <code>*</code>。prerelease 需要同一主次修订元组的显式 prerelease 比较器才会参与匹配。这是所列语法的实现，不宣称与 node-semver 的全部 API 或宽松解析模式等价。</p>
+    <p>范围支持完整/部分版本、<code>x</code>/<code>*</code> 通配、比较运算符、<code>~</code>、<code>^</code>、空格交集、<code>||</code> 并集及 <code>A - B</code> 区间。比较符与版本号间可有空格/tab，例如 <code>&gt;= 1.2.3 &lt; 2.0.0</code>。空范围或只含空格/tab 的范围匹配正式版本；空的 <code>||</code> 分支及只有运算符而无版本号的范围均属非法。需要显式通配时使用 <code>*</code>。prerelease 需要同一主次修订元组的显式 prerelease 比较器才会参与匹配。这是所列语法的实现，不宣称与 node-semver 的全部 API 或宽松解析模式等价。</p>
     <p>C 端包含 <code>extlibs/semver/semver_native.h</code>；四个整数结果使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。字符串结果由调用方用 <code>xrtFree</code> 释放。九个 C 入口不会带出陈旧 XRT 错误；三个字符串入口分配失败返回 <code>NULL</code> 并保留 <code>XERR_MEMORY</code>，XLang 对应入口抛出 <code>MemoryError</code>。版本分量受非负 64 位整数限制，单个 prerelease/build 字段最长 255 字节，范围文本最长 511 字节；每个 <code>||</code> 分支展开后最多容纳 32 个基础比较器，<code>^</code>、<code>~</code> 等简写可能占用两个。XLang 输入含内嵌 NUL 时按各接口的失败值返回，不会只检查前缀。</p>
   </section>
   <section id="verify">

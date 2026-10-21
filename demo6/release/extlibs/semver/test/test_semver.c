@@ -57,6 +57,10 @@ int main(void)
         { "1.2.2", "<=1.2.3", true },
         { "1.2.3", "<=1.2.3", true },
         { "1.2.4", "<=1.2.3", false },
+        { "1.2.3", ">= 1.2.3 < 2.0.0", true },
+        { "2.0.0", ">= 1.2.3 < 2.0.0", false },
+        { "1.2.3", "~\t1.2", true },
+        { "2.5.0", "^ 1.0.0 || ^ 2.0.0", true },
         { "1.2.9", "<=1.2", true },
         { "1.3.0", "<=1.2", false },
         { "1.3.0", ">1.2", true },
@@ -76,6 +80,7 @@ int main(void)
     char long_range[600];
     char limit_range[513];
     char comparator_range[160] = "";
+    char spaced_comparator_range[400] = "";
     char long_version[520];
     char oversized_version[8192];
     char unterminated_version[1024];
@@ -139,6 +144,7 @@ int main(void)
     CHECK(!xsemver_satisfies("1.2.3", "="));
     CHECK(!xsemver_satisfies("1.2.3", "^"));
     CHECK(!xsemver_satisfies("1.2.3", "~"));
+    CHECK(!xsemver_satisfies("1.2.3", ">= "));
     CHECK(!xsemver_satisfies("1.2.3", "1.2.3 || >="));
     CHECK(xsemver_satisfies("1.2.3", "*"));
     CHECK(!xsemver_satisfies("1.2.3", ">=9223372036854775808.0.0"));
@@ -156,6 +162,10 @@ int main(void)
     CHECK(xsemver_satisfies("1.2.3", comparator_range));
     strcat(comparator_range, "^1.0.0 ");
     CHECK(!xsemver_satisfies("1.2.3", comparator_range));
+    for (i = 0; i < 32; ++i) strcat(spaced_comparator_range, ">= 1.0.0 ");
+    CHECK(xsemver_satisfies("1.2.3", spaced_comparator_range));
+    strcat(spaced_comparator_range, ">= 1.0.0 ");
+    CHECK(!xsemver_satisfies("1.2.3", spaced_comparator_range));
     for (i = 0; i < sizeof(range_cases) / sizeof(range_cases[0]); ++i) {
         if (xsemver_satisfies(range_cases[i].version, range_cases[i].range) !=
             range_cases[i].expected) {

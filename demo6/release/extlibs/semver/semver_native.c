@@ -659,6 +659,13 @@ static int semver_desugar(ComparatorSet *set, const char *token) {
     return semver_add(set, XSEMVER_OP_LT, M + 1, 0, 0, NULL);
 }
 
+static int semver_is_range_operator(const char *token) {
+    return strcmp(token, "<") == 0 || strcmp(token, "<=") == 0 ||
+        strcmp(token, ">") == 0 || strcmp(token, ">=") == 0 ||
+        strcmp(token, "=") == 0 || strcmp(token, "~") == 0 ||
+        strcmp(token, "^") == 0;
+}
+
 static int semver_parse_set(const char *text, ComparatorSet *set) {
     char buf[XSEMVER_MAX_TEXT];
     char *hyphen;
@@ -712,7 +719,7 @@ static int semver_parse_set(const char *text, ComparatorSet *set) {
 
     /* Tokenize this buffer only; no shared state between concurrent calls. */
     {
-        char *tokens[32];
+        char *tokens[2 * XSEMVER_MAX_SET_COMPARATORS];
         int ntokens = 0;
         char *cursor = buf;
         while (*cursor) {
@@ -722,7 +729,7 @@ static int semver_parse_set(const char *text, ComparatorSet *set) {
             if (!*cursor) {
                 break;
             }
-            if (ntokens >= 32) {
+            if (ntokens >= (int)(sizeof(tokens) / sizeof(tokens[0]))) {
                 return 0;
             }
             tokens[ntokens++] = cursor;
@@ -734,7 +741,23 @@ static int semver_parse_set(const char *text, ComparatorSet *set) {
             }
         }
         for (i = 0; i < ntokens; i++) {
-            if (!semver_desugar(set, tokens[i])) {
+            const char *token = tokens[i];
+            char joined[XSEMVER_MAX_TEXT];
+            if (semver_is_range_operator(token)) {
+                size_t op_len = strlen(token);
+                size_t version_len;
+                if (++i >= ntokens) {
+                    return 0;
+                }
+                version_len = strlen(tokens[i]);
+                if (op_len + version_len >= sizeof(joined)) {
+                    return 0;
+                }
+                memcpy(joined, token, op_len);
+                memcpy(joined + op_len, tokens[i], version_len + 1);
+                token = joined;
+            }
+            if (!semver_desugar(set, token)) {
                 return 0;
             }
         }
