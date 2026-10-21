@@ -1,0 +1,46 @@
+import json.patch
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+var document = {"values": [1, 2], "settings": {"mode": "old"}}
+var operations = [{"op": "add", "path": "/values/1", "value": 9}]
+var changes = {"settings": {"mode": "new"}}
+
+for operation in range(2)
+    int failures = 0
+    int successes = 0
+    for allocation in range(256)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        bool complete = false
+        assert failAfter(uint64(allocation))
+        try
+            if operation == 0 then
+                var result = json.patch.apply(document, operations)
+                complete = result["values"][1] == 9
+            else
+                var result = json.patch.merge(document, changes)
+                complete = result["settings"]["mode"] == "new"
+            end
+        catch MemoryError error
+            memoryCaught = true
+        catch ValueError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        if wrongCaught or (memoryCaught and not triggered) or (not memoryCaught and not complete) then
+            println("json.patch allocation mismatch at ", operation, ", ", allocation)
+        end
+        assert not wrongCaught and (memoryCaught or complete)
+        if triggered then failures += 1 else successes += 1 end
+        if successes > 0 then break end
+    end
+    assert failures > 0 and successes > 0
+    assert document["values"][1] == 2
+    assert document["settings"]["mode"] == "old"
+end
+
+println("json.patch allocation: PASS")

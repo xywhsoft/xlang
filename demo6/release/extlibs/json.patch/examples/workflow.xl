@@ -1,0 +1,30 @@
+import json.patch
+
+func main(...) as int
+    var source = {"name": "demo", "tags": ["one", "two"], "settings": {"old": true}}
+    var operations = [
+        {"op": "test", "path": "/name", "value": "demo"},
+        {"op": "copy", "from": "/name", "path": "/label"},
+        {"op": "move", "from": "/tags/0", "path": "/tags/1"},
+        {"op": "replace", "path": "/name", "value": "ready"},
+        {"op": "add", "path": "/tags/-", "value": "three"},
+        {"op": "remove", "path": "/settings/old"}
+    ]
+    var updated = json.patch.apply(source, operations)
+    assert json.patch.get(updated, "/name") == "ready"
+    assert json.patch.get(updated, "/label") == "demo"
+    assert json.patch.get(updated, "/tags/0") == "two"
+    assert json.patch.get(updated, "/tags/1") == "one"
+    assert json.patch.get(updated, "/tags/2") == "three"
+    assert not json.patch.has(updated, "/settings/old")
+
+    var merged = json.patch.merge(updated, {"settings": {"enabled": true}})
+    var configured = json.patch.set(merged, "/settings/mode", "fast")
+    var cleaned = json.patch.remove(configured, "/label")
+    assert json.patch.get(cleaned, "/settings/enabled") == true
+    assert json.patch.get(cleaned, "/settings/mode") == "fast"
+    assert not json.patch.has(cleaned, "/label")
+    assert json.patch.get(source, "/name") == "demo"
+    println("json.patch workflow: ok")
+    return 0
+end

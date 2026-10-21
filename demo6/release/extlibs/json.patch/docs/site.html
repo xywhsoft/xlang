@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>json.patch - 扩展库 - xlang</title>
+  <meta name="description" content="json.patch 提供 JSON Pointer、JSON Patch 和 JSON Merge Patch。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / json.patch</p><h1>json.patch</h1>
+    <p class="extlib-lead">对 JSON 值应用指针、操作补丁与合并补丁。</p>
+    <p>操作返回新文档，不修改原输入；支持 JSON Pointer、JSON Patch 与 JSON Merge Patch 的常用路径。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>json.patch.apply(document, operations)</code></td><td>执行 add/remove/replace/move/copy/test</td></tr>
+      <tr><td><code>json.patch.merge(document, patch)</code></td><td>递归应用 JSON Merge Patch</td></tr>
+      <tr><td><code>get / has / set / remove</code></td><td>通过 JSON Pointer 读取或更新</td></tr>
+      <tr><td><code>encodePointer(key)</code></td><td>编码单个键段并加前导斜杠</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import json.patch
+var old = {"values": [1, 2]}
+var changed = json.patch.apply(old,
+    [{"op": "add", "path": "/values/1", "value": 9}])
+assert json.patch.get(changed, "/values/1") == 9</code></pre>
+    <p><code>examples/workflow.xl</code> 与 <code>examples/workflow_c.c</code> 对照展示 test、copy、move、replace、add、remove，以及 merge、set、has、get；入门范例另展示 encodePointer。两份工作流都检查原文档不变。</p>
+    <p><code>examples/basic_c.c</code> 和 <code>examples/workflow_c.c</code> 可直接使用 <code>xl run release/extlibs/json.patch/examples/basic_c.c</code> 等命令单文件运行，无需手动配置头文件和链接；Windows/Linux 包门禁会与严格 C 编译结果逐字比较。</p>
+    <p>输入应是 JSON 可表示的值；指针最多 32 段、解码后每段最多 255 字节。<code>encodePointer</code> 对超过该长度的键报错，转义后变长但原键未超限的路径仍可使用。复制失败保留 XRT 内存错误，不误报为无效补丁。C/XLang 测试另核对 RFC 6902 的 <code>/~01</code> 转义顺序及向 <code>/-</code> 插入整个数组。Linux 门禁运行 C ASan/UBSan、中央与包内 XLang 边界，并逐字比较入门和完整工作流两组双语范例。Windows 默认门禁在边界后还要执行两组范例 AOT 并与 C 对照；当前边界构建先被共享 <code>xl6ValueDataSnapshotV1</code> 缺符号阻断，新增阶段尚未执行到。C 结果所有权、根 remove 约定与验证命令见包内 README；完整 AOT 不签收。</p>
+    <p>C 的零终止 JSON Pointer 便利入口最多扫描 16,353 字节以判定 16,352 字节上限；超限输入直接报错，不先执行无界 <code>strlen</code>。恰好达到上限的合法路径及超限无终止字节缓冲均有 Windows/Linux 边界测试；C 调用方仍须提供在该范围内可读取的缓冲区。</p>
+    <p>补丁数组中的每一项必须是对象；非对象项统一报告无效补丁，输入文档保持不变。C/XLang 负例覆盖 <code>null</code>、数字、数组和字符串项。完整 AOT 仍受共享运行时缺符号阻断。</p>
+  </section>
+</main>
+</body>
+</html>

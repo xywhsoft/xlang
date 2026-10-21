@@ -1,0 +1,145 @@
+import json.patch
+
+func main(...) as int
+    var source = {"a": null, "arr": [1, 2]}
+    assert json.patch.get(source, "/a") == null
+    assert json.patch.merge(source, null) == null
+
+    var result = json.patch.apply(source,
+        [{"op": "add", "path": "/arr/0", "value": 0}])
+    assert result["arr"][0] == 0
+    assert result["arr"][1] == 1
+    assert source["arr"][0] == 1
+    bool invalidEntryRejected = false
+    try
+        json.patch.apply(source, [null])
+    catch ValueError error
+        invalidEntryRejected = true
+    end
+    assert invalidEntryRejected and source["arr"][0] == 1
+    assert json.patch.encodePointer("a/b~c") == "/a~1b~0c"
+    string maxKey = string.repeat("x", 255)
+    string maxPointer = json.patch.encodePointer(maxKey)
+    assert string.byteLen(maxPointer) == 256
+    var maxDoc = json.patch.set({}, maxPointer, 7)
+    assert json.patch.get(maxDoc, maxPointer) == 7
+    string escapedKey = string.repeat("x", 254) + "/"
+    string escapedPointer = json.patch.encodePointer(escapedKey)
+    assert string.byteLen(escapedPointer) == 257
+    var escapedDoc = json.patch.set({}, escapedPointer, 8)
+    assert json.patch.get(escapedDoc, escapedPointer) == 8
+    bool longKeyRejected = false
+    try
+        json.patch.encodePointer(string.repeat("x", 256))
+    catch ValueError error
+        longKeyRejected = true
+    end
+    assert longKeyRejected
+    var rootChanged = json.patch.apply(source,
+        [{"op": "replace", "path": "", "value": [3]}])
+    assert rootChanged[0] == 3
+    assert json.patch.remove(source, "") == null
+    assert json.patch.set(source, "", 7) == 7
+    var nulDoc = {"a\0b": 1}
+    assert json.patch.encodePointer("a\0b") == "/a\0b"
+    assert json.patch.has(nulDoc, "/a\0b")
+    assert json.patch.get(nulDoc, "/a\0b") == 1
+    var nulChanged = json.patch.set(nulDoc, "/a\0b", 2)
+    assert json.patch.get(nulChanged, "/a\0b") == 2
+    assert json.patch.get(nulDoc, "/a\0b") == 1
+    var nulPatch = json.patch.apply(nulDoc,
+        [{"op": "replace", "path": "/a\0b", "value": 3}])
+    assert json.patch.get(nulPatch, "/a\0b") == 3
+
+    // RFC 6902 附录 A：先解 ~0，不能再把解出的 ~1 解释为斜杠。
+    var escaped = {"/": 9, "~1": 10}
+    var tested = json.patch.apply(escaped,
+        [{"op": "test", "path": "/~01", "value": 10}])
+    assert tested["~1"] == 10 and tested["/"] == 9
+    var appended = json.patch.apply({"foo": ["bar"]},
+        [{"op": "add", "path": "/foo/-", "value": ["abc", "def"]}])
+    assert appended["foo"].length == 2
+    assert appended["foo"][1][0] == "abc" and appended["foo"][1][1] == "def"
+
+    // RFC 6902: 未定义成员忽略；失败操作不能改变调用方文档。
+    var ignored = json.patch.apply({"foo": "bar"},
+        [{"op": "add", "path": "/baz", "value": "qux", "xyz": 123}])
+    assert ignored["foo"] == "bar" and ignored["baz"] == "qux"
+    var atomicSource = {"foo": "bar"}
+    bool missingParentRejected = false
+    try
+        json.patch.apply(atomicSource,
+            [{"op": "add", "path": "/baz/bat", "value": "qux"}])
+    catch ValueError error
+        missingParentRejected = true
+    end
+    assert missingParentRejected and atomicSource["foo"] == "bar"
+    bool testRejected = false
+    try
+        json.patch.apply(atomicSource,
+            [{"op": "replace", "path": "/foo", "value": "qux"},
+             {"op": "test", "path": "/foo", "value": "bar"}])
+    catch ValueError error
+        testRejected = true
+    end
+    assert testRejected and atomicSource["foo"] == "bar"
+    bool typeRejected = false
+    try
+        json.patch.apply({"~1": 10},
+            [{"op": "test", "path": "/~01", "value": "10"}])
+    catch ValueError error
+        typeRejected = true
+    end
+    assert typeRejected
+
+    var sameMove = json.patch.apply({"a": 1, "b": 2},
+        [{"op": "move", "from": "/a", "path": "/a"}])
+    assert sameMove["a"] == 1 and sameMove["b"] == 2
+    var sameArrayMove = json.patch.apply(["a", "b"],
+        [{"op": "move", "from": "/0", "path": "/0"}])
+    assert sameArrayMove[0] == "a" and sameArrayMove[1] == "b"
+    var sameArrayCopy = json.patch.apply(["a", "b"],
+        [{"op": "copy", "from": "/0", "path": "/0"}])
+    assert sameArrayCopy.length == 3
+    assert sameArrayCopy[0] == "a" and sameArrayCopy[1] == "a"
+    assert sameArrayCopy[2] == "b"
+    bool missingMoveRejected = false
+    try
+        json.patch.apply({"a": 1},
+            [{"op": "move", "from": "/missing", "path": "/missing"}])
+    catch ValueError error
+        missingMoveRejected = true
+    end
+    assert missingMoveRejected
+
+    var ancestor = {"~1": {"child": 1}}
+    bool ancestorRejected = false
+    try
+        json.patch.apply(ancestor,
+            [{"op": "move", "from": "/~01", "path": "/~01/child"}])
+    catch ValueError error
+        ancestorRejected = true
+    end
+    assert ancestorRejected and ancestor["~1"]["child"] == 1
+
+    int rejected = 0
+    try
+        json.patch.get(source, "/arr/01")
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        json.patch.get(source, "/arr/9999999999999999999999999999")
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        json.patch.has(source, "arr/0")
+    catch ValueError error
+        rejected += 1
+    end
+    assert not json.patch.has(source, "/missing")
+    assert rejected == 3
+    println("json.patch boundaries: ok")
+    return 0
+end

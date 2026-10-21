@@ -1,0 +1,11 @@
+import json.patch
+
+func main(...) as int
+    var original = {"name": "demo", "values": [1, 2]}
+    var operations = [{"op": "add", "path": "/values/1", "value": 9}]
+    var updated = json.patch.apply(original, operations)
+    println(json.patch.get(updated, "/values/1"))
+    println(json.patch.get(original, "/values/1"))
+    println(json.patch.encodePointer("a/b~c"))
+    return 0
+end

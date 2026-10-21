@@ -10,7 +10,13 @@ func main(...) as int
     assert json.patch.has(doc, "/meta/os"), "has nested"
     assert not json.patch.has(doc, "/missing"), "missing key"
     assert not json.patch.has(doc, "/tags/9"), "missing index"
-    assert not json.patch.has(doc, "bad-pointer"), "invalid pointer"
+    bool invalidPointerRejected = false
+    try
+        json.patch.has(doc, "bad-pointer")
+    catch ValueError error
+        invalidPointerRejected = true
+    end
+    assert invalidPointerRejected, "invalid pointer"
 
     assert json.patch.get(doc, "/name") == "xlang", "get string"
     assert json.patch.get(doc, "/tags/0") == "fast", "get array element"
@@ -94,7 +100,7 @@ func main(...) as int
     r = json.patch.remove(r, "/meta/level")
     assert not json.patch.has(r, "/meta/level"), "remove via helper"
 
-    // RFC 7386 合并补丁
+    // RFC 7396 合并补丁
     var cfg = {"host": "localhost", "port": 8080, "debug": true, "tls": {"cert": "a.pem", "verify": true}}
     r = json.patch.merge(cfg, {"port": 9090, "debug": null, "tls": {"verify": false}})
     assert json.patch.get(r, "/port") == 9090, "merge replaces scalar"

@@ -1,0 +1,12 @@
+import json.patch
+
+func main(...) as int
+    var source = {"a": 1}
+    if not json.patch.has(source, "/a")
+        return 1
+    end
+    if json.patch.get(source, "/a") != 1
+        return 2
+    end
+    return 0
+end

@@ -1,10 +1,11 @@
 extern "xjsonpatch_apply" func __jsonpatch_apply(var doc, var patch) as var
 extern "xjsonpatch_merge" func __jsonpatch_merge(var doc, var patch) as var
-extern "xjsonpatch_get" func __jsonpatch_get(var doc, string pointer) as var
-extern "xjsonpatch_has" func __jsonpatch_has(var doc, string pointer) as bool
-extern "xjsonpatch_set" func __jsonpatch_set(var doc, string pointer, var value) as var
-extern "xjsonpatch_remove" func __jsonpatch_remove(var doc, string pointer) as var
-extern "xjsonpatch_encode_pointer" func __jsonpatch_encode_pointer(string key) as string
+extern "xjsonpatch_get_value" func __jsonpatch_get(var doc, var pointer) as var
+extern "xjsonpatch_has_value" func __jsonpatch_has(var doc, var pointer) as bool
+extern "xjsonpatch_set_value" func __jsonpatch_set(var doc, var pointer, var value) as var
+extern "xjsonpatch_remove_value" func __jsonpatch_remove(var doc, var pointer) as var
+extern "xjsonpatch_encode_pointer_value" func __jsonpatch_encode_pointer(var key) as var
+extern "xjsonpatch_has_error" func __jsonpatch_has_error() as bool
 
 
 
@@ -12,16 +13,16 @@ extern "xjsonpatch_encode_pointer" func __jsonpatch_encode_pointer(string key) a
 // 返回打补丁后的新文档，原文档保持不变；任一操作失败抛 ValueError
 export func apply(var doc, var patch) as var
     var r = __jsonpatch_apply(doc, patch)
-    if r == null then
+    if __jsonpatch_has_error() then
         throw ValueError "json.patch: apply failed or patch is invalid"
     end
     return r
 end
 
-// merge 按 RFC 7386 应用合并补丁：null 值删除键，对象递归合并，其余整体替换
+// merge 按 RFC 7396 应用合并补丁：null 值删除键，对象递归合并，其余整体替换
 export func merge(var doc, var patch) as var
     var r = __jsonpatch_merge(doc, patch)
-    if r == null then
+    if __jsonpatch_has_error() then
         throw ValueError "json.patch: merge failed"
     end
     return r
@@ -30,7 +31,7 @@ end
 // get 按 RFC 6901 指针读取值；路径不存在抛 ValueError
 export func get(var doc, string pointer) as var
     var r = __jsonpatch_get(doc, pointer)
-    if r == null then
+    if __jsonpatch_has_error() then
         throw ValueError "json.patch: path does not exist: " + pointer
     end
     return r
@@ -44,7 +45,7 @@ end
 // set 在副本上写入路径（对象插入或替换，数组按下标或 - 追加），返回新文档
 export func set(var doc, string pointer, var value) as var
     var r = __jsonpatch_set(doc, pointer, value)
-    if r == null then
+    if __jsonpatch_has_error() then
         throw ValueError "json.patch: set failed at: " + pointer
     end
     return r
@@ -53,7 +54,7 @@ end
 // remove 在副本上删除路径，返回新文档
 export func remove(var doc, string pointer) as var
     var r = __jsonpatch_remove(doc, pointer)
-    if r == null then
+    if __jsonpatch_has_error() then
         throw ValueError "json.patch: remove failed at: " + pointer
     end
     return r
@@ -61,5 +62,9 @@ end
 
 // encodePointer 把键名转义为合法的单段指针（~ → ~0，/ → ~1，并加前导 /）
 export func encodePointer(string key) as string
-    return __jsonpatch_encode_pointer(key)
+    var result = __jsonpatch_encode_pointer(key)
+    if __jsonpatch_has_error() then
+        throw ValueError "json.patch: pointer key is invalid"
+    end
+    return string(result)
 end
