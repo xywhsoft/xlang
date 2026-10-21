@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>bson - 扩展库 - xlang</title>
+  <meta name="description" content="BSON 文档编解码：XLang var 字典与 C xvalue 双语接口。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-fmt" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / bson</p>
+    <h1>bson</h1>
+    <p class="extlib-lead">在 BSON 文档与 XLang 字典之间转换；C 端可直接操作 XRT xvalue。</p>
+    <p>版本 3.0.0 · C / xlang · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import bson
+
+var wire = bson.encode({"name": "xlang", "count": 7})
+var document = bson.decode(wire)
+println(document["name"])
+println(bson.docLength(wire))</code></pre>
+    <p>根值必须是字典。原始 BSON 使用 <code>bytes</code>，不使用字符串承载二进制；解码入口只接受 <code>bytes</code>。</p>
+  </section>
+  <section id="api">
+    <h2>接口与边界</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>encode(doc) / decode(data)</code></td><td>字典与单个 BSON 文档互转。</td></tr>
+      <tr><td><code>concat(a, b) / decodeAll(data)</code></td><td>拼接及读取连续文档流；concat 只校验外层 framing，不完整解析，不可信输入需先 decode。</td></tr>
+      <tr><td><code>load(path) / save(path, doc)</code></td><td>通过 XRT 文件接口读取和原子保存 BSON；读取时执行 64 MiB 限额，写入失败不截断旧文件。</td></tr>
+      <tr><td><code>objectId() / oidTime(hex24)</code></td><td>生成 24 位十六进制 ID；提取时间并返回 XLang <code>time</code>。</td></tr>
+      <tr><td><code>toHex(data) / docLength(data)</code></td><td>诊断十六进制和读取文档长度。</td></tr>
+    </tbody></table>
+    <p>支持嵌套字典、连续数组/列表、UTF-8 字符串、<code>bytes</code>（Binary subtype 0）、int32/int64、double、bool、null 和 BSON Date。二进制字段可原样往返。ObjectId 解码为十六进制字符串，再编码不会保留 ObjectId 类型。其余 BSON 特殊类型不在公开模型内。重复键、非连续数组索引、无效 UTF-8、截断及尾随数据报错。单次数据上限 64 MiB，文档层数上限 64（根文档计一层）；整份文档的字段/数组项合计最多 100 万，连续流 decodeAll 对全部文档累计计数。编解码、concat 和 toHex 的资源超限对应 C <code>XERR_RANGE</code> / XLang <code>RangeError</code>，畸形格式仍报值错误；docLength 对非法输入返回 0。</p>
+    <p>BSON Date 仅有毫秒精度；微秒时间不能整除 1000 时拒绝编码，不会静默丢精度。超出 XRT 时间范围的 BSON Date 也拒绝解码。</p>
+    <p>路径和 ObjectId 文本不允许内嵌 NUL；错误不会按截断后的名称读写文件。生成的 ObjectId 使用时间戳及安全随机字节，不承诺顺序递增。</p>
+  </section>
+  <section id="c-api">
+    <h2>C 对照</h2>
+    <pre><code>#define XRT_MODULE_ALL
+#include "xrt.h"
+#include "bson_native.h"
+
+int main(void)
+{
+    xvalue* document = xrtValueObject();
+    xvalue* wire = xbson_encode(document);
+    xvalue* restored = xbson_decode(wire);
+    int ok = restored &amp;&amp; xrtValueType(restored) == XVALUE_OBJECT;
+    xrtValueRelease(restored);
+    xrtValueRelease(wire);
+    xrtValueRelease(document);
+    return ok ? 0 : 1;
+}</code></pre>
+    <p>C 动态值结果由调用方 <code>xrtValueRelease</code>；失败返回 null 值并设置 XRT 错误。<code>xbson_to_hex</code> 与 <code>xbson_gen_oid</code> 的结果用 <code>xrtFree</code> 释放。双语对照范例在 <code>release/extlibs/bson/examples/</code>，覆盖单文档、连续文档流、HEX、ObjectId 与显式路径的保存/载入；输出有独立预期，保存文件逐字节对照。从发布目录运行 <code>./xl run extlibs/bson/examples/bson_c.c</code> 即可执行 C 范例。此单文件范例包含原生实现，正式包构建仍独立编译。</p>
+  </section>
+  <section id="verify">
+    <h2>验证状态</h2>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/bson/test/check.ps1 -SkipAot</code></pre>
+    <p>2026-10-21 保存链路新增 C/XLang 逐点分配故障回归：编码或原子写入失败保留内存错误及已有文件，清除故障后可保存并读回。Windows 严格 GCC、C/XLang 和核心 AOT 快测与 Linux C ASan/UBSan、XLang 联合门禁通过；完整 AOT 共享阻断未变。</p>
+    <p>当前 Windows/Linux C 与 XLang 边界、双语输出对照和核心 AOT 通过；两平台包级门禁还运行编解码、连续文档流和中文临时路径集成测试，Linux 同时运行 C ASan/UBSan 并逐字节核对 GCC、TCC 和 XLang 范例。2026-10-18 新增由合法嵌套文档出发的截断和逐字节替换矩阵，检查深层解析成功与拒绝路径的结果和错误状态；这是固定边界测试，不是完整 fuzz 认证。公开 C 头直接使用 XRT <code>xvalue</code>，整数结果为 <code>int64_t</code>，可从项目根目录和发布目录导入。嵌套解码、连续文档 decodeAll、编码与拼接的逐点分配故障和恢复回归已通过；decodeAll 创建结果数组失败时立即返回，不再以空句柄错误覆盖内存错误。完整 AOT 在共享运行时符号 <code>xl6ValueIndexReadCopyV1</code> 处阻断，未签收发布级完整门禁。</p>
+    <p>NUL 路径负例使用独占系统临时目录，不再覆盖或删除固定 <code>build/test</code> 文件。2026-10-20 Windows 聚焦门禁及 Linux C ASan/UBSan、XLang 门禁复跑通过；完整带输出 AOT 的共享阻断不变。</p>
+    <p>2026-10-21：C 边界测试的原子保存失败与超大文件限额用例改用门禁传入的独占工作目录，不再写删固定 <code>build/test/bson_guard</code> 文件。Windows -SkipAot 的严格 C、XLang、双语范例和核心 AOT，以及 Linux C ASan/UBSan、XLang 联合门禁通过；旧固定目录保留。完整带输出 AOT 仍受共享主线缺符号阻断，不签收整包发布级。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

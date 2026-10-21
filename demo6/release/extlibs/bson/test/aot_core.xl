@@ -1,0 +1,19 @@
+import bson
+
+func main(...) as int
+    var document = {"name": "xlang", "count": 7}
+    var encoded = bson.encode(document)
+    if bson.docLength(encoded) < 5
+        return 1
+    end
+    var restored = bson.decode(encoded)
+    var stream = bson.concat(encoded, encoded)
+    var all = bson.decodeAll(stream)
+    if all.length != 2
+        return 2
+    end
+    if string.len(bson.objectId()) != 24
+        return 3
+    end
+    return 0
+end

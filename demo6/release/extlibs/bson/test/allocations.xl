@@ -1,0 +1,76 @@
+import bson
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+var document = {"name": "xlang", "count": 7}
+var wire = bson.encode(document)
+for operation in range(2)
+    int failures = 0
+    int successes = 0
+    for allocation in range(32)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        assert failAfter(uint64(allocation))
+        try
+            if operation == 0 then
+                bson.encode(document)
+            else
+                bson.decode(wire)
+            end
+        catch MemoryError error
+            memoryCaught = true
+        catch ValueError error
+            wrongCaught = true
+        catch RuntimeError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert not wrongCaught and memoryCaught == triggered
+        if triggered then failures += 1 else successes += 1 end
+    end
+    assert failures > 0 and successes > 0
+end
+
+assert bson.decode(wire)["name"] == "xlang"
+
+string directory = dir.temp("", "xlang-bson-allocation-", "")
+string outputPath = path.join(directory, "output.bson")
+int saveFailures = 0
+int saveSuccesses = 0
+try
+    for allocation in range(64)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        assert failAfter(uint64(allocation))
+        try
+            bson.save(outputPath, document)
+        catch MemoryError error
+            memoryCaught = true
+        catch FileError error
+            wrongCaught = true
+            println("bson save unexpected FileError: ", error.message)
+        catch ValueError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        if wrongCaught or memoryCaught != triggered then
+            println("bson save allocation mismatch at ", allocation,
+                ": triggered=", triggered, ", memory=", memoryCaught,
+                ", other=", wrongCaught)
+        end
+        assert not wrongCaught and memoryCaught == triggered
+        if triggered then saveFailures += 1 else saveSuccesses += 1 end
+        if saveSuccesses > 0 then break end
+    end
+    assert saveFailures > 0 and saveSuccesses > 0
+    bson.save(outputPath, document)
+    assert bson.load(outputPath)["name"] == "xlang"
+finally
+    failClear()
+    assert dir.delete(directory)
+end
+println("bson allocation: PASS")

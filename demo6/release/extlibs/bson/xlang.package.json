@@ -12,10 +12,18 @@
         ],
         "xlSources": [
             "src/bson.xl"
+        ],
+        "xrtModules": [
+            "XRT_MODULE_VALUE_CONTAINER",
+            "XRT_MODULE_FILE_WHOLE",
+            "XRT_MODULE_TIME",
+            "XRT_MODULE_UNICODE",
+            "XRT_MODULE_RANDOM_SECURE"
         ]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/bson_test.xl", "test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

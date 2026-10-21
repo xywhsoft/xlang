@@ -1,0 +1,19 @@
+import bson
+
+func main(...) as int
+    assert arg.length == 2
+    var doc = bson.load(string(arg[1]))
+    assert doc["name"] == "Python 你好"
+    assert doc["count"] == 1099511627776
+    assert doc["nested"]["ok"] == true
+    assert doc["items"][0] == 1
+    assert doc["items"][2] == 3
+    assert type(doc["raw"]) == bytes
+    bytes raw = bytes(doc["raw"])
+    assert raw.length == 2
+    assert raw[0] == 0
+    assert raw[1] == 255
+    assert doc["when"] == time(-1000)
+    println("PyMongo to XLang BSON: PASS")
+    return 0
+end

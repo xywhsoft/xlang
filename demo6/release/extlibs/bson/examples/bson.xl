@@ -1,0 +1,31 @@
+import bson
+
+func main(...) as int
+    assert arg.length == 1 or arg.length == 2
+    var document = {"name": "xlang", "count": 7}
+    var encoded = bson.encode(document)
+    var restored = bson.decode(encoded)
+    println("name=" + string(restored["name"]))
+    println("count=" + string(restored["count"]))
+    println("bytes=" + string(bson.docLength(encoded)))
+    string hex = bson.toHex(encoded)
+    assert string.slice(hex, 0, 8) == "20000000"
+    println("hexPrefix=" + string.slice(hex, 0, 8))
+    var stream = bson.concat(encoded, encoded)
+    var documents = bson.decodeAll(stream)
+    assert documents.length == 2
+    assert documents[0]["name"] == "xlang" and documents[1]["count"] == 7
+    println("stream=" + string(documents.length))
+    assert bson.oidTime("000000000000000000000000") == time.fromUnix(0)
+    println("oidEpoch=0")
+    string id = bson.objectId()
+    assert string.byteLen(id) == 24 and bson.oidTime(id) > time.fromUnix(0)
+    println("objectId=ok")
+    if arg.length == 2 then
+        assert bson.save(string(arg[1]), document) > 0
+        var loaded = bson.load(string(arg[1]))
+        assert loaded["name"] == "xlang" and loaded["count"] == 7
+        println("file=ok")
+    end
+    return 0
+end

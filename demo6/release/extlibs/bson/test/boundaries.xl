@@ -1,0 +1,125 @@
+import bson
+
+func main(...) as int
+    var document = {"name": "你好", "count": 7, "nested": {"ok": true},
+        "items": [1, 2, 3], "nothing": null}
+    var wire = bson.encode(document)
+    assert type(wire) == bytes, "encoded BSON is bytes"
+    assert bson.docLength(wire) > 5, "document length"
+    var restored = bson.decode(wire)
+    assert restored["name"] == "你好", "UTF-8 field"
+    assert restored["count"] == 7, "integer field"
+    assert restored["nested"]["ok"] == true, "nested object"
+    assert restored["items"][2] == 3, "array field"
+    assert restored["nothing"] == null, "null field"
+
+    var binaryDoc = bson.decode(bson.encode({"raw": Buffer.fromHex("00ff").toBytes()}))
+    assert type(binaryDoc["raw"]) == bytes, "binary field is bytes"
+    bytes raw = bytes(binaryDoc["raw"])
+    assert raw.length == 2 and raw[0] == 0 and raw[1] == 255, "binary roundtrip"
+
+    var nulTextDoc = bson.decode(bson.encode({"text": "a\0b"}))
+    assert string.byteLen(string(nulTextDoc["text"])) == 3, "string NUL length"
+    assert nulTextDoc["text"] == "a\0b", "string NUL roundtrip"
+    bool rejectedKeyNul = false
+    try
+        bson.encode({"a\0b": 1})
+    catch ValueError e
+        rejectedKeyNul = true
+    end
+    assert rejectedKeyNul, "document key NUL must be rejected"
+
+    var stream = bson.concat(wire, wire)
+    var documents = bson.decodeAll(stream)
+    assert documents.length == 2, "concatenated stream"
+    assert documents[1]["name"] == "你好", "second document"
+    assert string.len(bson.toHex(wire)) == bson.docLength(wire) * 2, "hex length"
+
+    string first = bson.objectId()
+    string second = bson.objectId()
+    assert string.len(first) == 24, "ObjectId length"
+    assert first != second, "ObjectId uniqueness"
+    assert time.year(bson.oidTime(first)) >= 2020, "ObjectId time"
+
+    bool rejectedNul = false
+    try
+        bson.oidTime(first + "\0suffix")
+    catch ValueError e
+        rejectedNul = true
+    end
+    assert rejectedNul, "ObjectId text must not be truncated"
+
+    string directory = dir.temp("", "xlang-bson-boundary-", "")
+    string inputPath = path.join(directory, "input.bson")
+    try
+        assert bson.save(inputPath, document) > 0
+        rejectedNul = false
+        try
+            bson.load(inputPath + "\0suffix")
+        catch ValueError e
+            rejectedNul = true
+        end
+        assert rejectedNul, "load path must not be truncated"
+        rejectedNul = false
+        try
+            bson.save(inputPath + "\0suffix", {"name": "wrong"})
+        catch ValueError e
+            rejectedNul = true
+        end
+        assert rejectedNul and bson.load(inputPath)["name"] == "你好"
+    finally
+        assert dir.delete(directory), "BSON boundary temporary directory must be removed"
+    end
+
+    bool rejected = false
+    try
+        bson.decode("invalid")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "malformed wire must fail"
+    rejected = false
+    try
+        bson.encode(123)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "document root is required"
+    rejected = false
+    try
+        bson.encode({"when": time(1)})
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "submillisecond date must be rejected"
+    rejected = false
+    try
+        bson.encode({"when": time(-1)})
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "negative submillisecond date must be rejected"
+    assert bson.decode(bson.encode({"when": time(1000)}))["when"] == time(1000), "millisecond date"
+    assert bson.decode(bson.encode({"when": time(-1000)}))["when"] == time(-1000), "negative millisecond date"
+    var deep = {}
+    for level in range(63)
+        deep = {"a": deep}
+    end
+    assert type(bson.decode(bson.encode(deep))) == dict, "63 nested BSON documents"
+    deep = {"a": deep}
+    bool rejectedDepth = false
+    try
+        bson.encode(deep)
+    catch RangeError e
+        rejectedDepth = true
+    end
+    assert rejectedDepth, "64 nested BSON documents exceed the depth limit"
+    rejected = false
+    try
+        bson.oidTime("invalid")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "invalid ObjectId must fail"
+    return 0
+end
