@@ -262,7 +262,7 @@ bool __xrtXmlSetEventText(xrtxmlsax* pParser, const XML_Char* sText,
 	uint64 iLength = iSize > 0 ? (uint64)iSize : 0u;
 	if ( iLength > pParser->tOptions.tLimits.iMaxItemBytes ||
 		iLength > pParser->tOptions.tLimits.iMaxOutputBytes ||
-		pParser->iTextBytes > pParser->tOptions.tLimits.iMaxOutputBytes - iLength ) {
+		pParser->iOutputBytes > pParser->tOptions.tLimits.iMaxOutputBytes - iLength ) {
 		__xrtXmlSetError(pParser, XRT_XML_ERROR_LIMIT,
 			"XML text exceeds the configured resource limit");
 		return false;
@@ -273,7 +273,7 @@ bool __xrtXmlSetEventText(xrtxmlsax* pParser, const XML_Char* sText,
 			"out of memory while copying XML text");
 		return false;
 	}
-	pParser->iTextBytes += iLength;
+	pParser->iOutputBytes += iLength;
 	return true;
 }
 
@@ -302,18 +302,27 @@ bool __xrtXmlSetAttributes(xrtxmlsax* pParser, const XML_Char** pAttributes)
 	for ( i = 0u; i < iCount; i++ ) {
 		xrtxmlattribute* pItem = &pParser->tEvent.pAttributes[i];
 		const char* sValue = pAttributes[i * 2u + 1u];
+		uint64 iValueLength = (uint64)strlen(sValue);
+		if ( iValueLength > pParser->tOptions.tLimits.iMaxItemBytes ||
+			iValueLength > pParser->tOptions.tLimits.iMaxOutputBytes -
+			pParser->iOutputBytes ) {
+			__xrtXmlSetError(pParser, XRT_XML_ERROR_LIMIT,
+				"XML attribute value exceeds the configured resource limit");
+			return false;
+		}
 		if ( !__xrtXmlSplitName(pAttributes[i * 2u], &pItem->sName,
 			&pItem->sLocalName, &pItem->sNamespaceUri, &pItem->sPrefix) ) {
 			__xrtXmlSetError(pParser, XRT_XML_ERROR_MEMORY,
 				"out of memory while copying XML attribute name");
 			return false;
 		}
-		pItem->sValue = __xrtXmlDup(sValue, strlen(sValue));
+		pItem->sValue = __xrtXmlDup(sValue, (size_t)iValueLength);
 		if ( pItem->sValue == NULL ) {
 			__xrtXmlSetError(pParser, XRT_XML_ERROR_MEMORY,
 				"out of memory while copying XML attribute value");
 			return false;
 		}
+		pParser->iOutputBytes += iValueLength;
 	}
 	pParser->iAttributes += iCount;
 	return true;

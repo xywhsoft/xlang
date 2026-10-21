@@ -44,6 +44,8 @@ static bool testSmallLimits(void)
 	test_state tState = { 0 };
 	const char* sText = "<r>hi</r>";
 	const char* sAttributes = "<r a=\"1\" b=\"2\"/>";
+	const char* sLongValue = "<r a=\"abc\"/>";
+	const char* sMixedOutput = "<r a=\"ab\">cd</r>";
 	xrtxmlsax* pPull;
 	bool bAllocated;
 	xrtXmlOptionsInit(&tOptions);
@@ -73,9 +75,24 @@ static bool testSmallLimits(void)
 	}
 	xrtXmlOptionsInit(&tOptions);
 	tOptions.tLimits.iMaxEntries = 1u;
-	return !xrtXmlSaxParseMemory(sAttributes, strlen(sAttributes),
-		&tOptions, onEvent, &tState, &tError) &&
-		tError.iCode == XRT_XML_ERROR_LIMIT;
+	if ( xrtXmlSaxParseMemory(sAttributes, strlen(sAttributes),
+		&tOptions, onEvent, &tState, &tError) ||
+		tError.iCode != XRT_XML_ERROR_LIMIT ) { return false; }
+	xrtXmlOptionsInit(&tOptions);
+	tOptions.tLimits.iMaxItemBytes = 2u;
+	if ( xrtXmlSaxParseMemory(sLongValue, strlen(sLongValue), &tOptions,
+		onEvent, &tState, &tError) || tError.iCode != XRT_XML_ERROR_LIMIT ) {
+		return false;
+	}
+	xrtXmlOptionsInit(&tOptions);
+	tOptions.tLimits.iMaxOutputBytes = 3u;
+	if ( xrtXmlSaxParseMemory(sMixedOutput, strlen(sMixedOutput), &tOptions,
+		onEvent, &tState, &tError) || tError.iCode != XRT_XML_ERROR_LIMIT ) {
+		return false;
+	}
+	tOptions.tLimits.iMaxOutputBytes = 4u;
+	return xrtXmlSaxParseMemory(sMixedOutput, strlen(sMixedOutput),
+		&tOptions, onEvent, &tState, &tError) && tError.iCode == XRT_XML_OK;
 }
 
 static bool testZeroLimits(void)

@@ -125,6 +125,32 @@ func main(...) as int
     end
     assert rejected, "single element can exceed attribute limit"
 
+    rejected = false
+    try
+        auto limitedValue = xml.sax.reader("<r a='abc'/>", maxItem=2)
+        for event in limitedValue
+        end
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "attribute value must respect the item limit"
+
+    rejected = false
+    try
+        auto limitedPayload = xml.sax.reader("<r a='ab'>cd</r>", maxOutput=3)
+        for event in limitedPayload
+        end
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "attribute values and text share the output limit"
+
+    int withinLimit = 0
+    for event in xml.sax.reader("<r a='ab'>cd</r>", maxOutput=4)
+        withinLimit += 1
+    end
+    assert withinLimit == 3
+
     string workDir = dir.temp(path.temp(), "xlang_xml_sax_", "")
     try
         string fixture = path.join(workDir, "ffi.xml")

@@ -5,8 +5,9 @@
 位置信息的 `var` 对象。`Reader` 可在 `for` 中迭代，也可调用 `next()`。
 
 默认拒绝 DTD 和外部实体，且有输入、输出、项目、节点与嵌套深度限制。
-文本长度单次超过 `maxOutput`、或单个元素属性数超过 `maxEntries` 时也会
-报资源限额错误，不会因无符号减法回绕而绕过限制。
+单次文本或单个属性值超过 `maxItem`、文本与属性值累计超过 `maxOutput`、
+或单个元素属性数超过 `maxEntries` 时会报资源限额错误，不会因无符号
+减法回绕而绕过限制。
 遇到格式错误可读取 `errorCode/errorLine/errorColumn/errorOffset`。
 这些错误位置按调用线程保存；原生错误通常映射为 `ValueError`。
 C 接口和事件所有权见 `include/xrt_xml.h`。

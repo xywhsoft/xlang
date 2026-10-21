@@ -34,7 +34,7 @@
 for event in xml.sax.reader("&lt;root&gt;&lt;item&gt;你好&lt;/item&gt;&lt;/root&gt;")
     println(event["type"])
 end</code></pre>
-    <p>XLang 显式解析限额必须为正；C 的 XRT 限额配置以 0 表示不限制，保留字段及未支持的资源策略标志必须为 0。DTD 与外部实体使用独立选项。设置有限上限时，单段文本大于输出上限或单个元素属性多于条目上限都会拒绝。文件路径含 NUL 时会拒绝；Reader 可以迭代或调用 next()。C push 解析接管 Reader 时，关闭失败按底层错误报告 MEMORY 或 IO；C pull 在拥有型 Reader 正常读到 EOF 时也先关闭，失败返回 ERROR，不伪装成 END。提前停止可调用 Reader.close() 或 C 的 xrtXmlSaxClose 检查关闭结果；借用 Reader 保持开放，void Destroy 仅作兜底释放。共享 Linux 门禁覆盖 SAX/DOM/ElementTree 的 C ASan/UBSan、XLang 边界和双语范例逐字对照。事件所有权、错误位置和验证命令见包内 README；完整 AOT 仍受共享运行时缺符号阻断。</p>
+    <p>XLang 显式解析限额必须为正；C 的 XRT 限额配置以 0 表示不限制，保留字段及未支持的资源策略标志必须为 0。DTD 与外部实体使用独立选项。设置有限上限时，单段文本或单个属性值超过单项上限、文本与属性值累计超过输出上限、或单个元素属性多于条目上限都会拒绝。文件路径含 NUL 时会拒绝；Reader 可以迭代或调用 next()。C push 解析接管 Reader 时，关闭失败按底层错误报告 MEMORY 或 IO；C pull 在拥有型 Reader 正常读到 EOF 时也先关闭，失败返回 ERROR，不伪装成 END。提前停止可调用 Reader.close() 或 C 的 xrtXmlSaxClose 检查关闭结果；借用 Reader 保持开放，void Destroy 仅作兜底释放。共享 Linux 门禁覆盖 SAX/DOM/ElementTree 的 C ASan/UBSan、XLang 边界和双语范例逐字对照。事件所有权、错误位置和验证命令见包内 README；完整 AOT 仍受共享运行时缺符号阻断。</p>
     <p>2026-10-20 三包共用门禁增加固定 UTF-8 黄金输出；Windows 快速模式与 Linux ASan/UBSan 联合门禁通过。Windows 默认门禁还要逐包执行完整范例 AOT，当前在 SAX 构建处因共享 <code>xl6ValueDataSnapshotV1</code> 缺符号停止。构建目录每次独占并清理，完整 AOT 尚未签收。</p>
     <p>自定义 Reader 的读取或关闭回调报告内存故障时，SAX 现在保留 MEMORY 分类；普通流故障仍为 IO。push、pull、提前关闭的 C 回归先红后绿；Windows/Linux 三包聚焦门禁通过，完整 AOT 未在本轮验收。</p>
   </section>

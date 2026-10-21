@@ -54,7 +54,7 @@ struct xrtxmlsax_struct {
 	xrtxml_event_proc pHandler;
 	ptr pHandlerContext;
 	uint64 iInputBytes;
-	uint64 iTextBytes;
+	uint64 iOutputBytes;
 	uint64 iNodes;
 	uint64 iAttributes;
 	uint32 iDepth;
