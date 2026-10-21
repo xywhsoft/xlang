@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ini - 扩展库 - xlang</title>
+  <meta name="description" content="保留节、键顺序和注释的 UTF-8 INI 配置解析、修改与写入。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-fmt" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / ini</p>
+    <h1>ini</h1>
+    <p class="extlib-lead">读取、修改和写入 UTF-8 INI 配置，保留节与键的顺序、注释和多行值。</p>
+    <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import ini
+
+auto config = ini.parse("[server]\nport = 8080\n")
+config.set("server", "port", "9090")
+assert config.getInt("server", "port") == 9090
+println(config.stringify())</code></pre>
+  </section>
+  <section id="api">
+    <h2>接口</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>create / parse / load</code></td><td>创建空配置、解析文本或加载 UTF-8 路径。</td></tr>
+      <tr><td><code>Config.get / getOr / getInt / getFloat / getBool</code></td><td>读取值并按需转换类型；<code>getInt</code> 严格解析完整十进制值，<code>getFloat</code> 固定点号十进制、不受区域设置影响；失败抛出 <code>ConfigError</code>。</td></tr>
+      <tr><td><code>Config.set / remove / removeSection</code></td><td>修改键或节。</td></tr>
+      <tr><td><code>Config.sectionNames / keys / has / hasSection</code></td><td>枚举和查询节、键。</td></tr>
+      <tr><td><code>Config.stringify / save</code></td><td>生成 INI 文本或原子保存到文件；无法无损表示的节名、键名或值会明确报错，不会静默改变数据；写入失败不截断旧文件。</td></tr>
+      <tr><td><code>Config.errorCode / errorLine / errorColumn / errorOffset</code></td><td>读取最近一次原生操作的错误信息。</td></tr>
+    </tbody></table>
+    <p>可设置大小写敏感、重复键检查、插值和资源限额。<code>${key}</code>、<code>${section.key}</code> 在启用插值时生效。<code>parse(string)</code> 直接传入 UTF-8 数据及字节长度，不另建 XLang Buffer 副本；原生读取器在复制正文前检查输入限额并拒绝内嵌 NUL。<code>set()</code> 可以保留内存值；写出时若值有首尾空白、尾随换行或注释形态的续行等无法无损表示的内容，C 端报 <code>FORMAT</code>，XLang 抛 <code>ConfigError</code>。全局节先于具名节写出。C 端包含 <code>extlibs/ini/include/xrt_ini.h</code>，解析结果由 <code>xrtIniDestroy</code> 释放；<code>xrtIniGet</code> 的结果由调用方用 <code>xrtFree</code> 释放。C 选项须先初始化，顶层与内嵌资源限额的版本和结构长度均会校验，失配报 <code>ARGUMENT</code>。拥有型 Reader/Writer 在退出时关闭；正文成功但关闭失败时报告 <code>IO</code>，借用型流由调用方关闭。</p>
+    <p>C 配置的顶层及资源限额保留字段必须为零；非零配置在 create/parse 入口报告 ARGUMENT。<code>iMaxEntries</code> 限制所有节的键总数，删除键后恢复额度；不适用的压缩倍率与 iFlags 必须为零，显式设置会报 ARGUMENT。</p>
+  </section>
+  <section id="verify">
+    <h2>验证与边界</h2>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ini/test/check.ps1 -SkipAot
+bash release/extlibs/ini/test/check.sh</code></pre>
+    <p>C Reader 的输入限额从当前读取位置计算，不包含已跳过的前缀；只有 <code>Size</code> 而没有 <code>Tell</code> 的 Reader 由实际读取阶段执行限额。</p>
+    <p>Windows 严格 GCC、C/XLang 边界与双语同输出范例通过；Linux 包级门禁同时运行 C ASan/UBSan、内嵌 TCC C 用例、中央与包内 XLang 边界及双语范例逐字节对照。XRT <code>uint64</code> 限额与 XLang <code>uint64</code> 对齐，C 32 位深度参数使用 <code>c_uint</code>，避免 LP64 原型冲突。语言边界还验证中文路径的保存/加载往返及临时文件清理；文本和路径遇内嵌 NUL 会明确报错，负数资源限额也会拒绝。2026-10-21 补保存和流写入的分配故障回归：内存失败保留为 <code>MemoryError</code>，真实文件或流失败仍为 IO，旧线程错误不污染本次分类；两平台门禁通过。当前无输出 AOT 核心和独立 <code>Buffer</code> 最小复现均缺主线符号 <code>xl6NativeHandleTraceLeaf</code>；带输出范例还可能缺 <code>xl6ValueDataSnapshotV1</code>，尚未签收完整发布验收。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

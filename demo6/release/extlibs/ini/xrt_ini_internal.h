@@ -1,7 +1,27 @@
 #ifndef XRT_INI_INTERNAL_H
 #define XRT_INI_INTERNAL_H
 
-#define XRT_MODULE_ALL
+#ifndef XRT_MODULE_CHARSET
+#define XRT_MODULE_CHARSET
+#endif
+#ifndef XRT_MODULE_FILE_WHOLE
+#define XRT_MODULE_FILE_WHOLE
+#endif
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
+#ifndef XRT_MODULE_IO_FILE
+#define XRT_MODULE_IO_FILE
+#endif
+#ifndef XRT_MODULE_STRING
+#define XRT_MODULE_STRING
+#endif
+#ifndef XRT_MODULE_NUMBER_FLOAT
+#define XRT_MODULE_NUMBER_FLOAT
+#endif
+#ifndef XRT_MODULE_NUMBER_INTEGER
+#define XRT_MODULE_NUMBER_INTEGER
+#endif
 #include "xrt.h"
 #include "include/xrt_ini.h"
 

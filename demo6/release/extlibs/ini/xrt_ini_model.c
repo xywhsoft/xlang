@@ -1,9 +1,7 @@
 #include "xrt_ini_internal.h"
 
-#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 
@@ -17,6 +15,7 @@ XRT_API void xrtIniOptionsInit(xrtinioptions* pOptions)
 	pOptions->bCaseSensitive = true;
 	pOptions->bStrictDuplicates = true;
 	xrtResourceLimitsInit(&pOptions->tLimits);
+	pOptions->tLimits.iMaxCompressionRatio = 0u;
 }
 
 XRT_API void xrtIniErrorInit(xrtinierror* pError)
@@ -29,7 +28,12 @@ bool __xrtIniCopyOptions(xrtinioptions* pOutput, const xrtinioptions* pInput)
 	xrtIniOptionsInit(pOutput);
 	if ( pInput == NULL ) { return true; }
 	if ( pInput->iVersion != XRT_INI_OPTIONS_VERSION ||
-		pInput->iSize < offsetof(xrtinioptions, tLimits) + sizeof(xrtresourcelimits) ) {
+		pInput->iSize < offsetof(xrtinioptions, tLimits) + sizeof(xrtresourcelimits) ||
+		pInput->bReserved ||
+		pInput->tLimits.iVersion != XRT_RESOURCE_LIMITS_VERSION ||
+		pInput->tLimits.iSize < sizeof(xrtresourcelimits) ||
+		pInput->tLimits.iReserved != 0u || pInput->tLimits.iFlags != 0u ||
+		pInput->tLimits.iMaxCompressionRatio != 0u ) {
 		return false;
 	}
 	memcpy(pOutput, pInput, pInput->iSize < sizeof(*pOutput) ?
@@ -54,7 +58,8 @@ void __xrtIniSetError(xrtiniconfig* pConfig, int iCode, uint64 iLine,
 	pConfig->Error.sMessage[sizeof(pConfig->Error.sMessage) - 1u] = 0;
 	pConfig->Failed = true;
 	/* 配置对象保存精确位置，XRT 错误槽保存可传播的失败原因。 */
-	xrtSetErrorInfo(XERR_STATE, "xlang.extlib.ini", iCode,
+	xrtSetErrorInfo(iCode == XRT_INI_ERROR_MEMORY ? XERR_MEMORY : XERR_STATE,
+		"xlang.extlib.ini", iCode,
 		pConfig->Error.sMessage);
 }
 
@@ -63,6 +68,7 @@ static void __xrtIniClearError(xrtiniconfig* pConfig)
 	if ( pConfig == NULL ) { return; }
 	xrtIniErrorInit(&pConfig->Error);
 	pConfig->Failed = false;
+	xrtClearError();
 }
 
 bool __xrtIniNameEqual(const xrtiniconfig* pConfig, const char* sLeft, const char* sRight)
@@ -203,6 +209,12 @@ bool __xrtIniAddEntry(xrtiniconfig* pConfig, xrt_ini_section* pSection,
 		return true;
 	}
 	if ( !__xrtIniCanAddNode(pConfig) ) { return false; }
+	if ( pConfig->Options.tLimits.iMaxEntries != 0u &&
+		pConfig->Nodes - pConfig->Count >= pConfig->Options.tLimits.iMaxEntries ) {
+		__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, iLine, 1u, 0u,
+			"INI key count exceeds the configured limit");
+		return false;
+	}
 	if ( pSection->Count == pSection->Capacity ) {
 		iCapacity = pSection->Capacity != 0u ? pSection->Capacity * 2u : 8u;
 		if ( iCapacity < pSection->Capacity ) {
@@ -371,7 +383,11 @@ static bool __xrtIniAppendResolved(xrtiniconfig* pConfig, xbuffer* pOutput,
 				return false;
 			}
 			if ( p != pStart && !xrtBufferAppend(pOutput,
-				(xbytesview){ (cbytes)pStart, (size_t)(p - pStart) }) ) { return false; }
+				(xbytesview){ (cbytes)pStart, (size_t)(p - pStart) }) ) {
+				__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
+					"cannot grow INI interpolation output");
+				return false;
+			}
 			pDot = memchr(p + 2, '.', (size_t)(pClose - (p + 2)));
 			if ( pDot != NULL ) {
 				sRefSection = xrtStrDupN(p + 2, (size_t)(pDot - (p + 2)));
@@ -400,7 +416,11 @@ static bool __xrtIniAppendResolved(xrtiniconfig* pConfig, xbuffer* pOutput,
 		++p;
 	}
 	if ( p != pStart && !xrtBufferAppend(pOutput,
-		(xbytesview){ (cbytes)pStart, (size_t)(p - pStart) }) ) { return false; }
+		(xbytesview){ (cbytes)pStart, (size_t)(p - pStart) }) ) {
+		__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
+			"cannot grow INI interpolation output");
+		return false;
+	}
 	return true;
 }
 
@@ -423,7 +443,14 @@ XRT_API str xrtIniGet(const xrtiniconfig* pConst, str sSection, str sKey)
 			"INI key does not exist: %s.%s", sSection, sKey);
 		return NULL;
 	}
-	if ( !pConfig->Options.bInterpolation ) { return xrtStrDup(sRaw); }
+	if ( !pConfig->Options.bInterpolation ) {
+		sResult = xrtStrDup(sRaw);
+		if ( sResult == NULL ) {
+			__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
+				"cannot copy INI value");
+		}
+		return sResult;
+	}
 	iMaxDepth = pConfig->Options.tLimits.iMaxDepth != 0u ?
 		pConfig->Options.tLimits.iMaxDepth : 64u;
 	pStack = (const char**)xrtMalloc((size_t)iMaxDepth * sizeof(char*) * 2u);
@@ -453,6 +480,10 @@ XRT_API str xrtIniGet(const xrtiniconfig* pConst, str sSection, str sKey)
 		xrtStrDupN((cstr)pOutput->Data, pOutput->Size) : xrtStrDup("");
 	xrtFree(pStack);
 	xrtBufferDestroy(pOutput);
+	if ( sResult == NULL ) {
+		__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
+			"cannot copy resolved INI value");
+	}
 	return sResult;
 }
 
@@ -467,20 +498,18 @@ XRT_API bool xrtIniGetInt(const xrtiniconfig* pConst, str sSection, str sKey, in
 {
 	xrtiniconfig* pConfig = (xrtiniconfig*)pConst;
 	str sValue;
-	char* pEnd;
-	long long iValue;
+	int64 iValue;
 	if ( pConfig == NULL || pValue == NULL ) { return false; }
 	sValue = __xrtIniValueForConversion(pConfig, sSection, sKey);
 	if ( sValue == NULL ) { return false; }
-	errno = 0;
-	iValue = strtoll((const char*)sValue, &pEnd, 10);
-	if ( errno == ERANGE || pEnd == (char*)sValue || *pEnd != 0 ) {
+	if ( !xrtIntParse((xstrview){ sValue, strlen(sValue) },
+		10u, 0u, &iValue) ) {
 		__xrtIniSetError(pConfig, XRT_INI_ERROR_CONVERSION, 0u, 0u, 0u,
 			"INI value is not a valid int: %s", sValue);
 		xrtFree(sValue);
 		return false;
 	}
-	*pValue = (int64)iValue;
+	*pValue = iValue;
 	xrtFree(sValue);
 	return true;
 }
@@ -489,14 +518,11 @@ XRT_API bool xrtIniGetFloat(const xrtiniconfig* pConst, str sSection, str sKey, 
 {
 	xrtiniconfig* pConfig = (xrtiniconfig*)pConst;
 	str sValue;
-	char* pEnd;
 	double fValue;
 	if ( pConfig == NULL || pValue == NULL ) { return false; }
 	sValue = __xrtIniValueForConversion(pConfig, sSection, sKey);
 	if ( sValue == NULL ) { return false; }
-	errno = 0;
-	fValue = strtod((const char*)sValue, &pEnd);
-	if ( errno == ERANGE || pEnd == (char*)sValue || *pEnd != 0 ) {
+	if ( !xrtNumParse((xstrview){ sValue, strlen(sValue) }, 0u, &fValue) ) {
 		__xrtIniSetError(pConfig, XRT_INI_ERROR_CONVERSION, 0u, 0u, 0u,
 			"INI value is not a valid float: %s", sValue);
 		xrtFree(sValue);
@@ -537,15 +563,28 @@ XRT_API bool xrtIniGetBool(const xrtiniconfig* pConst, str sSection, str sKey, b
 XRT_API bool xrtIniSet(xrtiniconfig* pConfig, str sSection, str sKey, str sValue)
 {
 	xrt_ini_section* pSection;
+	bool bNewSection;
 	if ( pConfig == NULL || sKey == NULL || sValue == NULL ) { return false; }
 	__xrtIniClearError(pConfig);
 	sSection = sSection != NULL ? sSection : (str)"";
 	pSection = __xrtIniFindSection(pConfig, (const char*)sSection);
+	bNewSection = pSection == NULL;
 	if ( pSection == NULL ) {
 		pSection = __xrtIniAddSection(pConfig, (const char*)sSection, "", 0u, false);
 	}
-	return pSection != NULL && __xrtIniAddEntry(pConfig, pSection,
-		(const char*)sKey, (const char*)sValue, "", 0u, false);
+	if ( pSection == NULL ) { return false; }
+	if ( __xrtIniAddEntry(pConfig, pSection,
+		(const char*)sKey, (const char*)sValue, "", 0u, false) ) { return true; }
+	/* 新节尚未对调用方可见，写键失败时只撤销本次新增的节。 */
+	if ( bNewSection ) {
+		xrtFree(pSection->Entries);
+		xrtFree(pSection->Name);
+		xrtFree(pSection->Leading);
+		memset(pSection, 0, sizeof(*pSection));
+		pConfig->Count -= 1u;
+		pConfig->Nodes -= 1u;
+	}
+	return false;
 }
 
 XRT_API bool xrtIniRemove(xrtiniconfig* pConfig, str sSection, str sKey)

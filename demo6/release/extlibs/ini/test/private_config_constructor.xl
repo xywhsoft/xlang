@@ -1,0 +1,6 @@
+import ini
+
+// 原生解析构造器接受独立长度，导入方不能绕过公开工厂伪造长度。
+ini.Config config = ini.Config("x", uint64(100), c_bool(false),
+    c_bool(false), c_bool(false), uint64(0), uint64(0), uint64(0),
+    uint64(0), c_uint(0))

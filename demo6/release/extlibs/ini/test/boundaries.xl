@@ -1,0 +1,209 @@
+import ini
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    bool rejected = false
+    try
+        ini.parse("[server]\nname=visible\0hidden\n")
+    catch ConfigError e
+        rejected = true
+    end
+    assert rejected, "embedded NUL INI input must be rejected"
+
+    auto config = ini.parse("[server]\nname=visible\n")
+    rejected = false
+    try
+        config.set("server", "name", "visible\0hidden")
+    catch ConfigError e
+        rejected = true
+    end
+    assert rejected, "embedded NUL value must be rejected"
+    assert config.get("server", "name") == "visible"
+
+    auto numbers = ini.parse("[server]\nratio=1.25\ncomma=1,25\n")
+    assert numbers.getFloat("server", "ratio") == 1.25
+    rejected = false
+    try
+        numbers.getFloat("server", "comma")
+    catch ConfigError e
+        rejected = true
+    end
+    assert rejected, "INI float must use a dot independent of process locale"
+    assert numbers.getFloat("server", "ratio") == 1.25
+
+    numbers.set("server", "count", " 42")
+    rejected = false
+    try
+        numbers.getInt("server", "count")
+    catch ConfigError e
+        rejected = true
+    end
+    assert rejected, "INI int must reject leading whitespace"
+    numbers.set("server", "count", "-42")
+    assert numbers.getInt("server", "count") == -42
+
+    rejected = false
+    try
+        config.get("server", "name\0hidden")
+    catch ConfigError e
+        rejected = true
+    end
+    assert rejected, "embedded NUL key must not resolve an existing value"
+    rejected = false
+    try
+        config.keys("server\0hidden")
+    catch ConfigError e
+        rejected = true
+    end
+    assert rejected, "embedded NUL section must not resolve an existing section"
+    rejected = false
+    try
+        config.save("ini\0hidden.ini")
+    catch ConfigError e
+        rejected = true
+    end
+    assert rejected, "embedded NUL output path must be rejected"
+    rejected = false
+    try
+        ini.load("ini\0hidden.ini")
+    catch ConfigError e
+        rejected = true
+    end
+    assert rejected, "embedded NUL input path must be rejected"
+
+    rejected = false
+    try
+        ini.create(maxNodes = -1)
+    catch ConfigError e
+        rejected = true
+    end
+    assert rejected, "negative resource limit must be rejected"
+    string oversized = "[server]\nname=中文\n"
+    bool limitCaught = false
+    bool memoryCaught = false
+    // 输入长度应在复制正文前进入原生限额检查。
+    assert failAfter(14)
+    try
+        ini.parse(oversized, maxInput = string.byteLen(oversized) - 1)
+    catch ConfigError e
+        limitCaught = true
+    catch MemoryError e
+        memoryCaught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert limitCaught and not memoryCaught and not triggered
+    rejected = false
+    try
+        ini.create(maxDepth = 4294967296)
+    catch ConfigError e
+        rejected = true
+    end
+    assert rejected, "maxDepth overflow must be rejected"
+
+    auto empty = ini.create()
+    rejected = false
+    try
+        empty.set("orphan", "", "value")
+    catch ConfigError e
+        rejected = true
+    end
+    assert rejected, "empty key must be rejected"
+    assert not empty.hasSection("orphan"), "failed set must not leave a section"
+
+    // 内存中允许保留原值，但不能把无法无损表示的值写成另一份配置。
+    auto writable = ini.create()
+    writable.set("server", "message", "first\n")
+    rejected = false
+    try
+        writable.stringify()
+    catch ConfigError e
+        rejected = true
+    end
+    assert rejected, "trailing newline must not be silently changed"
+    writable.set("server", "message", "first\nsecond")
+    writable.set("", "global", "root")
+    auto restored = ini.parse(writable.stringify())
+    assert restored.get("server", "message") == "first\nsecond"
+    assert restored.get("", "global") == "root", "global keys must precede named sections"
+
+    // 配置内存错误必须保持为 MemoryError，不能被包装成普通状态错误。
+    int allocationIndex = 0
+    bool allocationScanComplete = false
+    while allocationIndex < 64
+        bool memoryFailure = false
+        bool parseComplete = false
+        bool allocationTriggered = false
+        assert failAfter(uint64(allocationIndex))
+        try
+            ini.parse("# leading\nname=value\n")
+            parseComplete = true
+        catch MemoryError
+            memoryFailure = true
+        finally
+            allocationTriggered = failTriggered()
+            failClear()
+        end
+        if not allocationTriggered then
+            assert parseComplete and not memoryFailure
+            allocationScanComplete = true
+            break
+        end
+        assert memoryFailure and not parseComplete, "INI allocation failure must propagate as MemoryError"
+        allocationIndex += 1
+    end
+    assert allocationScanComplete, "INI allocation scan did not reach success"
+
+    string workDir = path.join(path.temp(), "xlang_ini_" + crypto.randomString(20))
+    dir.createAll(workDir)
+    string filename = path.join(workDir, "配置.ini")
+    try
+        bool missingFileCaught = false
+        try
+            ini.load(path.join(workDir, "missing.ini"))
+        catch ConfigError
+            missingFileCaught = true
+        end
+        assert missingFileCaught, "missing INI file must be reported to the caller"
+        config.save(filename)
+        assert file.exists(filename)
+        allocationIndex = 0
+        allocationScanComplete = false
+        while allocationIndex < 64
+            bool memoryFailure = false
+            bool wrongFailure = false
+            bool saved = false
+            bool allocationTriggered = false
+            assert failAfter(uint64(allocationIndex))
+            try
+                config.save(filename)
+                saved = true
+            catch MemoryError error
+                memoryFailure = true
+            catch ConfigError error
+                wrongFailure = true
+            finally
+                allocationTriggered = failTriggered()
+                failClear()
+            end
+            assert not wrongFailure, "INI save must not turn allocation failure into ConfigError"
+            if not allocationTriggered then
+                assert saved and not memoryFailure
+                allocationScanComplete = true
+                break
+            end
+            assert memoryFailure and not saved, "INI save allocation failure must be MemoryError"
+            allocationIndex += 1
+        end
+        assert allocationScanComplete, "INI save allocation scan did not reach success"
+        auto loaded = ini.load(filename)
+        assert loaded.get("server", "name") == "visible", "UTF-8 path round trip"
+    finally
+        if file.exists(filename) then assert file.delete(filename) end
+        assert dir.delete(workDir), "temporary INI directory must be removed"
+    end
+    return 0
+end

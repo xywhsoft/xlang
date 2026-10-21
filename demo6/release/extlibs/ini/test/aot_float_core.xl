@@ -1,0 +1,9 @@
+import ini
+
+func main(...) as int
+    auto config = ini.parse("[server]\nratio=1.25\n")
+    if config.getFloat("server", "ratio") != 1.25
+        return 1
+    end
+    return 0
+end

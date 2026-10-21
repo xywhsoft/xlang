@@ -1,12 +1,13 @@
 import ini
 
-
-
 func main(...) as int
-    auto config = ini.parse("[server]\nhost = localhost\nport = 8080\nurl = http://${host}:${port}/api\n", true, true, true)
-    println(config.get("server", "url"))
+    auto config = ini.parse("[server]\nhost = localhost\nport = 8080\nurl = http://${host}:${port}/api\n", interpolation=true)
+    assert config.get("server", "url") == "http://localhost:8080/api"
     config.set("server", "port", "9090")
-    println(config.stringify())
+    assert config.getInt("server", "port") == 9090
+    assert config.get("server", "url") == "http://localhost:9090/api"
+    println(config.get("server", "host") + ":" + config.get("server", "port"))
+    println(config.get("server", "url"))
     println("ini example: PASS")
     return 0
 end

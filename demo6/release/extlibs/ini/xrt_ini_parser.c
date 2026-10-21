@@ -31,9 +31,14 @@ static bool __xrtIniAppendPending(xrtiniconfig* pConfig, xbuffer* pPending,
 			"INI preserved comment data exceeds the configured limit");
 		return false;
 	}
-	if ( iEnd > iStart && !xrtBufferAppend(pPending,
-		(xbytesview){ pData + iStart, iEnd - iStart }) ) { return false; }
-	return xrtBufferAppendByte(pPending, '\n');
+	if ( (iEnd > iStart && !xrtBufferAppend(pPending,
+		(xbytesview){ pData + iStart, iEnd - iStart })) ||
+		!xrtBufferAppendByte(pPending, '\n') ) {
+		__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, iStart,
+			"cannot preserve INI comment data");
+		return false;
+	}
+	return true;
 }
 
 static str __xrtIniTakePending(xbuffer* pPending)
@@ -82,6 +87,7 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 	if ( pPending == NULL || !xrtBufferReserve(pPending, 256u) ) {
 		__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
 			"cannot allocate INI parser state");
+		xrtBufferDestroy(pPending);
 		return false;
 	}
 	if ( iSize >= 3u && pData[0] == 0xefu && pData[1] == 0xbbu && pData[2] == 0xbfu ) {
@@ -90,6 +96,7 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 	while ( iOffset < iSize ) {
 		size_t iLineStart = iOffset;
 		size_t iLineEnd;
+		const unsigned char* pNul;
 		size_t iStart;
 		size_t iEnd;
 		bool bIndented;
@@ -97,6 +104,14 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 			iOffset += 1u;
 		}
 		iLineEnd = iOffset;
+		pNul = (const unsigned char*)memchr(pData + iLineStart, 0, iLineEnd - iLineStart);
+		if ( pNul != NULL ) {
+			__xrtIniSetError(pConfig, XRT_INI_ERROR_FORMAT, iLine,
+				(uint64)(pNul - pData - iLineStart + 1u), (uint64)(pNul - pData),
+				"INI input contains an embedded NUL byte");
+			xrtBufferDestroy(pPending);
+			return false;
+		}
 		if ( iOffset < iSize && pData[iOffset] == '\r' ) { iOffset += 1u; }
 		if ( iOffset < iSize && pData[iOffset] == '\n' ) { iOffset += 1u; }
 		iStart = iLineStart;
@@ -198,6 +213,12 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 			}
 			if ( pSection == NULL ) {
 				sLeading = __xrtIniTakePending(pPending);
+				if ( sLeading == NULL ) {
+					__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, iLine, 1u, iLineStart,
+						"cannot copy INI leading comments");
+					xrtBufferDestroy(pPending);
+					return false;
+				}
 				pSection = __xrtIniAddSection(pConfig, "", (const char*)sLeading,
 					iLine, false);
 				xrtFree(sLeading);
@@ -247,7 +268,10 @@ XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 	xrtiniconfig* pConfig = xrtIniCreate(pOptions);
 	xbuffer* pData = NULL;
 	uint64 iSize = 0u;
+	uint64 iPosition = 0u;
 	uint64 iLimit;
+	size_t iReadLimit;
+	bool bSizeKnown;
 	if ( pConfig == NULL ) {
 		if ( bTakeOwnership ) { xrtReaderDestroy(pReader); }
 		return NULL;
@@ -261,14 +285,26 @@ XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 		return pConfig;
 	}
 	iLimit = pConfig->Options.tLimits.iMaxInputBytes;
-	if ( xrtReaderSize(pReader, &iSize) && iLimit != 0u && iSize > iLimit ) {
+	iReadLimit = iLimit == 0u || iLimit > SIZE_MAX - 1u ?
+		SIZE_MAX - 1u : (size_t)iLimit;
+	xrtClearError();
+	bSizeKnown = iLimit != 0u && xrtReaderSize(pReader, &iSize) &&
+		xrtReaderTell(pReader, &iPosition) && iPosition <= iSize;
+	xrtClearError();
+	if ( bSizeKnown && iSize - iPosition > iLimit ) {
 		__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, 0u, 0u, 0u,
 			"INI input exceeds the configured limit");
 	} else {
-		pData = xrtReaderReadAll(pReader, iLimit);
+		pData = xrtReaderReadAll(pReader, iReadLimit);
 		if ( pData == NULL ) {
-			__xrtIniSetError(pConfig, XRT_INI_ERROR_IO, 0u, 0u, 0u,
-				"cannot read INI stream or input limit was exceeded");
+			const xerror* pReadError = xrtGetError();
+			xerrkind eKind = pReadError != NULL ? xrtErrorKind(pReadError) : XERR_IO;
+			int iCode = eKind == XERR_RANGE ? XRT_INI_ERROR_LIMIT :
+				(eKind == XERR_MEMORY ? XRT_INI_ERROR_MEMORY : XRT_INI_ERROR_IO);
+			__xrtIniSetError(pConfig, iCode, 0u, 0u, 0u,
+				iCode == XRT_INI_ERROR_LIMIT ? "INI input exceeds the configured limit" :
+				(iCode == XRT_INI_ERROR_MEMORY ? "cannot allocate INI input buffer" :
+				"cannot read INI stream"));
 		} else {
 			pConfig->InputBytes = pData->Size;
 			if ( !xrtUtf8Valid((xstrview){ (cstr)pData->Data,
@@ -282,20 +318,57 @@ XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 		}
 	}
 	xrtBufferDestroy(pData);
-	if ( bTakeOwnership ) { xrtReaderDestroy(pReader); }
+	if ( bTakeOwnership && !xrtReaderDestroy(pReader) && !pConfig->Failed ) {
+		/* 正文解析成功后，拥有型 Reader 的关闭仍可能失败。 */
+		__xrtIniSetError(pConfig, XRT_INI_ERROR_IO, 0u, 0u, 0u,
+			"cannot close INI stream");
+	}
 	return pConfig;
 }
 
 XRT_API xrtiniconfig* xrtIniParseMemory(const void* pData, uint64 iSize,
 	const xrtinioptions* pOptions)
 {
+	if ( iSize > (uint64)SIZE_MAX ) {
+		xrtiniconfig* pConfig = xrtIniCreate(pOptions);
+		if ( pConfig != NULL ) {
+			__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, 0u, 0u, 0u,
+				"INI input size exceeds the addressable range");
+		}
+		return pConfig;
+	}
 	xreader* pReader = pData != NULL || iSize == 0u ?
 		xrtReaderFromMemory((xbytesview){ (cbytes)pData, (size_t)iSize }) : NULL;
+	if ( pReader == NULL && (pData != NULL || iSize == 0u) ) {
+		xrtiniconfig* pConfig = xrtIniCreate(pOptions);
+		if ( pConfig != NULL && !pConfig->Failed ) {
+			__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
+				"cannot create INI memory reader");
+		}
+		return pConfig;
+	}
 	return xrtIniParse(pReader, true, pOptions);
 }
 
 XRT_API xrtiniconfig* xrtIniLoad(str sPath, const xrtinioptions* pOptions)
 {
-	xreader* pReader = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
+	xreader* pReader;
+	if ( sPath == NULL || sPath[0] == 0 ) {
+		return xrtIniParse(NULL, false, pOptions);
+	}
+	pReader = xrtReaderOpen(sPath);
+	if ( pReader == NULL ) {
+		const xerror* pError = xrtGetError();
+		int iCode = pError != NULL && xrtErrorKind(pError) == XERR_MEMORY ?
+			XRT_INI_ERROR_MEMORY : XRT_INI_ERROR_IO;
+		const char* sMessage = pError != NULL ? xrtErrorMessage(pError) : NULL;
+		xrtiniconfig* pConfig = xrtIniCreate(pOptions);
+		if ( pConfig != NULL && !pConfig->Failed ) {
+			__xrtIniSetError(pConfig, iCode, 0u, 0u, 0u,
+				"cannot open INI file: %s",
+				sMessage != NULL ? sMessage : "unknown error");
+		}
+		return pConfig;
+	}
 	return xrtIniParse(pReader, true, pOptions);
 }

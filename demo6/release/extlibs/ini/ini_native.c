@@ -6,10 +6,18 @@
 #define XINI_EXPORT
 #endif
 
-static void xini_error(xerrkind Kind, const char* sMessage)
+/* XRT INI 的 str 入参只读；此处对齐 xlang string 的 const char* ABI。 */
+static str xini_borrowed(cstr sValue)
 {
-	xrtSetErrorInfo(Kind, "xlang.extlib.ini", 0,
-		sMessage != NULL ? sMessage : "INI operation failed");
+	return (str)sValue;
+}
+
+/* 格式错误交给 ConfigError；内存错误仍由 XRT 运行时直接传播。 */
+static void xini_defer_error(const xrtiniconfig* pConfig)
+{
+	const xrtinierror* pError = xrtIniError(pConfig);
+	if ( pError != NULL && pError->iCode != XRT_INI_OK &&
+		pError->iCode != XRT_INI_ERROR_MEMORY ) { xrtClearError(); }
 }
 
 
@@ -29,57 +37,47 @@ static void xini_options(xrtinioptions* pOptions, bool bCaseSensitive,
 	if ( iMaxDepth != 0u ) { pOptions->tLimits.iMaxDepth = iMaxDepth; }
 }
 
-static void xini_publish_error(const xrtiniconfig* pConfig)
-{
-	const xrtinierror* pError = xrtIniError(pConfig);
-	xini_error(XERR_STATE, pError != NULL && pError->sMessage[0] != 0 ?
-		pError->sMessage : "INI operation failed");
-}
-
-static void* xini_validate(xrtiniconfig* pConfig)
-{
-	if ( pConfig == NULL || xrtIniError(pConfig)->iCode != XRT_INI_OK ) {
-		xini_publish_error(pConfig);
-		xrtIniDestroy(pConfig);
-		return NULL;
-	}
-	return pConfig;
-}
-
-
-
 XINI_EXPORT void* xini_create(bool bCaseSensitive, bool bStrictDuplicates,
 	bool bInterpolation, uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem,
 	uint64 iMaxNodes, uint32 iMaxDepth)
 {
 	xrtinioptions tOptions;
+	xrtiniconfig* pConfig;
 	xrtClearError();
 	xini_options(&tOptions, bCaseSensitive, bStrictDuplicates, bInterpolation,
 		iMaxInput, iMaxOutput, iMaxItem, iMaxNodes, iMaxDepth);
-	return xini_validate(xrtIniCreate(&tOptions));
+	pConfig = xrtIniCreate(&tOptions);
+	xini_defer_error(pConfig);
+	return pConfig;
 }
 
-XINI_EXPORT void* xini_parse(const void* pData, uint64 iSize,
+XINI_EXPORT void* xini_parse(const char* pData, uint64 iSize,
 	bool bCaseSensitive, bool bStrictDuplicates, bool bInterpolation,
 	uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem,
 	uint64 iMaxNodes, uint32 iMaxDepth)
 {
 	xrtinioptions tOptions;
+	xrtiniconfig* pConfig;
 	xrtClearError();
 	xini_options(&tOptions, bCaseSensitive, bStrictDuplicates, bInterpolation,
 		iMaxInput, iMaxOutput, iMaxItem, iMaxNodes, iMaxDepth);
-	return xini_validate(xrtIniParseMemory(pData, iSize, &tOptions));
+	pConfig = xrtIniParseMemory(pData, iSize, &tOptions);
+	xini_defer_error(pConfig);
+	return pConfig;
 }
 
-XINI_EXPORT void* xini_load(str sPath, bool bCaseSensitive,
+XINI_EXPORT void* xini_load(cstr sPath, bool bCaseSensitive,
 	bool bStrictDuplicates, bool bInterpolation, uint64 iMaxInput,
 	uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxNodes, uint32 iMaxDepth)
 {
 	xrtinioptions tOptions;
+	xrtiniconfig* pConfig;
 	xrtClearError();
 	xini_options(&tOptions, bCaseSensitive, bStrictDuplicates, bInterpolation,
 		iMaxInput, iMaxOutput, iMaxItem, iMaxNodes, iMaxDepth);
-	return xini_validate(xrtIniLoad(sPath, &tOptions));
+	pConfig = xrtIniLoad(xini_borrowed(sPath), &tOptions);
+	xini_defer_error(pConfig);
+	return pConfig;
 }
 
 XINI_EXPORT void xini_destroy(void* pValue)
@@ -87,10 +85,17 @@ XINI_EXPORT void xini_destroy(void* pValue)
 	xrtIniDestroy((xrtiniconfig*)pValue);
 }
 
-XINI_EXPORT int xini_error_code(void* pValue)
+XINI_EXPORT int64 xini_error_code(void* pValue)
 {
 	const xrtinierror* pError = xrtIniError((xrtiniconfig*)pValue);
 	return pError != NULL ? pError->iCode : XRT_INI_ERROR_ARGUMENT;
+}
+
+XINI_EXPORT void* xini_error_text(void* pValue)
+{
+	const xrtinierror* pError = xrtIniError((xrtiniconfig*)pValue);
+	return xrtStrDup(pError != NULL && pError->sMessage[0] != 0 ?
+		pError->sMessage : "INI operation failed");
 }
 
 XINI_EXPORT int64 xini_error_line(void* pValue)
@@ -111,113 +116,99 @@ XINI_EXPORT int64 xini_error_offset(void* pValue)
 	return pError != NULL ? (int64)pError->iOffset : 0;
 }
 
-XINI_EXPORT int xini_section_count(void* pValue)
+XINI_EXPORT int64 xini_section_count(void* pValue)
 {
-	return (int)xrtIniSectionCount((xrtiniconfig*)pValue);
+	return (int64)xrtIniSectionCount((xrtiniconfig*)pValue);
 }
 
 XINI_EXPORT void* xini_section_name(void* pValue, int iIndex)
 {
 	const char* sName = iIndex >= 0 ?
 		xrtIniSectionName((xrtiniconfig*)pValue, (uint32)iIndex) : NULL;
-	if ( sName == NULL ) {
-		xini_error(XERR_ARGUMENT, "INI section index is out of range");
-		return NULL;
-	}
-	return xrtStrDup(sName);
+	return sName != NULL ? xrtStrDup(sName) : NULL;
 }
 
-XINI_EXPORT bool xini_has_section(void* pValue, str sSection)
+XINI_EXPORT bool xini_has_section(void* pValue, cstr sSection)
 {
-	return xrtIniHasSection((xrtiniconfig*)pValue, sSection);
+	return xrtIniHasSection((xrtiniconfig*)pValue, xini_borrowed(sSection));
 }
 
-XINI_EXPORT int xini_key_count(void* pValue, str sSection)
+XINI_EXPORT int64 xini_key_count(void* pValue, cstr sSection)
 {
-	return (int)xrtIniKeyCount((xrtiniconfig*)pValue, sSection);
+	return (int64)xrtIniKeyCount((xrtiniconfig*)pValue, xini_borrowed(sSection));
 }
 
-XINI_EXPORT void* xini_key_name(void* pValue, str sSection, int iIndex)
+XINI_EXPORT void* xini_key_name(void* pValue, cstr sSection, int iIndex)
 {
 	const char* sName = iIndex >= 0 ?
-		xrtIniKeyName((xrtiniconfig*)pValue, sSection, (uint32)iIndex) : NULL;
-	if ( sName == NULL ) {
-		xini_error(XERR_ARGUMENT, "INI key index is out of range");
-		return NULL;
-	}
-	return xrtStrDup(sName);
+		xrtIniKeyName((xrtiniconfig*)pValue, xini_borrowed(sSection), (uint32)iIndex) : NULL;
+	return sName != NULL ? xrtStrDup(sName) : NULL;
 }
 
-XINI_EXPORT bool xini_has(void* pValue, str sSection, str sKey)
+XINI_EXPORT bool xini_has(void* pValue, cstr sSection, cstr sKey)
 {
-	return xrtIniHas((xrtiniconfig*)pValue, sSection, sKey);
+	return xrtIniHas((xrtiniconfig*)pValue, xini_borrowed(sSection), xini_borrowed(sKey));
 }
 
-XINI_EXPORT void* xini_get(void* pValue, str sSection, str sKey)
+XINI_EXPORT void* xini_get(void* pValue, cstr sSection, cstr sKey)
 {
-	str sValue = xrtIniGet((xrtiniconfig*)pValue, sSection, sKey);
-	if ( sValue == NULL ) { xini_publish_error((xrtiniconfig*)pValue); }
+	str sValue = xrtIniGet((xrtiniconfig*)pValue, xini_borrowed(sSection), xini_borrowed(sKey));
+	xini_defer_error((xrtiniconfig*)pValue);
 	return sValue;
 }
 
-XINI_EXPORT int64 xini_get_int(void* pValue, str sSection, str sKey)
+XINI_EXPORT int64 xini_get_int(void* pValue, cstr sSection, cstr sKey)
 {
 	int64 iValue = 0;
-	if ( !xrtIniGetInt((xrtiniconfig*)pValue, sSection, sKey, &iValue) ) {
-		xini_publish_error((xrtiniconfig*)pValue);
-	}
+	xrtIniGetInt((xrtiniconfig*)pValue, xini_borrowed(sSection), xini_borrowed(sKey), &iValue);
+	xini_defer_error((xrtiniconfig*)pValue);
 	return iValue;
 }
 
-XINI_EXPORT double xini_get_float(void* pValue, str sSection, str sKey)
+XINI_EXPORT double xini_get_float(void* pValue, cstr sSection, cstr sKey)
 {
 	double fValue = 0.0;
-	if ( !xrtIniGetFloat((xrtiniconfig*)pValue, sSection, sKey, &fValue) ) {
-		xini_publish_error((xrtiniconfig*)pValue);
-	}
+	xrtIniGetFloat((xrtiniconfig*)pValue, xini_borrowed(sSection), xini_borrowed(sKey), &fValue);
+	xini_defer_error((xrtiniconfig*)pValue);
 	return fValue;
 }
 
-XINI_EXPORT bool xini_get_bool(void* pValue, str sSection, str sKey)
+XINI_EXPORT bool xini_get_bool(void* pValue, cstr sSection, cstr sKey)
 {
 	bool bValue = false;
-	if ( !xrtIniGetBool((xrtiniconfig*)pValue, sSection, sKey, &bValue) ) {
-		xini_publish_error((xrtiniconfig*)pValue);
-	}
+	xrtIniGetBool((xrtiniconfig*)pValue, xini_borrowed(sSection), xini_borrowed(sKey), &bValue);
+	xini_defer_error((xrtiniconfig*)pValue);
 	return bValue;
 }
 
-XINI_EXPORT bool xini_set(void* pValue, str sSection, str sKey, str sValue)
+XINI_EXPORT bool xini_set(void* pValue, cstr sSection, cstr sKey, cstr sValue)
 {
-	if ( !xrtIniSet((xrtiniconfig*)pValue, sSection, sKey, sValue) ) {
-		xini_publish_error((xrtiniconfig*)pValue);
-		return false;
-	}
-	return true;
+	bool bResult = xrtIniSet((xrtiniconfig*)pValue, xini_borrowed(sSection),
+		xini_borrowed(sKey), xini_borrowed(sValue));
+	xini_defer_error((xrtiniconfig*)pValue);
+	return bResult;
 }
 
-XINI_EXPORT bool xini_remove(void* pValue, str sSection, str sKey)
+XINI_EXPORT bool xini_remove(void* pValue, cstr sSection, cstr sKey)
 {
-	return xrtIniRemove((xrtiniconfig*)pValue, sSection, sKey);
+	return xrtIniRemove((xrtiniconfig*)pValue, xini_borrowed(sSection), xini_borrowed(sKey));
 }
 
-XINI_EXPORT bool xini_remove_section(void* pValue, str sSection)
+XINI_EXPORT bool xini_remove_section(void* pValue, cstr sSection)
 {
-	return xrtIniRemoveSection((xrtiniconfig*)pValue, sSection);
+	return xrtIniRemoveSection((xrtiniconfig*)pValue, xini_borrowed(sSection));
 }
 
 XINI_EXPORT void* xini_stringify(void* pValue)
 {
 	xbuffer* pOutput = xrtIniStringify((xrtiniconfig*)pValue);
-	if ( pOutput == NULL ) { xini_publish_error((xrtiniconfig*)pValue); }
+	xini_defer_error((xrtiniconfig*)pValue);
 	return pOutput;
 }
 
-XINI_EXPORT bool xini_save(void* pValue, str sPath)
+XINI_EXPORT bool xini_save(void* pValue, cstr sPath)
 {
-	if ( !xrtIniSave((xrtiniconfig*)pValue, sPath) ) {
-		xini_publish_error((xrtiniconfig*)pValue);
-		return false;
-	}
-	return true;
+	bool bResult = xrtIniSave((xrtiniconfig*)pValue, xini_borrowed(sPath));
+	xini_defer_error((xrtiniconfig*)pValue);
+	return bResult;
 }

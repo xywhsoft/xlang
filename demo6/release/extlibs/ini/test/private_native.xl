@@ -1,0 +1,4 @@
+import ini
+
+auto config = ini.parse("name=value")
+config.getNative("", "name\0hidden")

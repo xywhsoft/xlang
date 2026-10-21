@@ -12,11 +12,21 @@
             "xrt_ini_writer.c",
             "ini_native.c"
         ],
-        "xlSources": ["src/ini.xl"]
+        "xlSources": ["src/ini.xl"],
+        "xrtModules": [
+            "XRT_MODULE_CHARSET",
+            "XRT_MODULE_FILE_WHOLE",
+            "XRT_MODULE_IO_BUFFER",
+            "XRT_MODULE_IO_FILE",
+            "XRT_MODULE_STRING",
+            "XRT_MODULE_NUMBER_FLOAT",
+            "XRT_MODULE_NUMBER_INTEGER"
+        ]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",
