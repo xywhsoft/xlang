@@ -1,3 +1,7 @@
+/* 测试调用包含副作用，发布配置下也必须实际执行。 */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #define XRT_MODULE_ALL
 #include "xrt.h"
 

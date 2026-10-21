@@ -30,4 +30,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/volc.core/te
 
 2026-10-20：`available` 与 `last_status` 的 C 原型均返回 32 位 `int`，XLang 原声明分别误用 `bool` 和 64 位 `int`。现统一按 `c_int` 接入，再在公开函数边界转换为原有的 `bool`/`int`；C 定向门禁通过。上述 `xhttp.multipart` 导入阻断仍在，故尚不能宣称 XLang ABI 实跑通过。
 
+2026-10-22：C 测试的分配故障与线程同步操作位于 `assert` 内；原测试在
+`-DNDEBUG` 下会删掉实际调用。现于测试入口保持断言启用，Windows
+门禁额外用发布宏严格编译该测试；预处理复核确认关键调用仍保留，
+C 边界与离线范例均通过。XLang 导入链仍在 `xhttp.multipart` 的
+`Buffer.appendBytes` 处失败，不据此签收双语或在线路径。
+
 同轮横查发现四个在线/STS 入口的 `timeout_ms`、`duration_seconds` 在 C 侧也是 `int`，XLang extern 原来直接接收 64 位 `int`。现在公开函数保持原签名，传入 C 前检查 `[-2147483648, 2147483647]` 并转换为 `c_int`；超出范围抛 `RangeError`，不会静默截断。`xl parse` 通过，但完整 `xl check` 仍先被上述导入链阻断，恢复后须补 XLang 正常值、上下界和越界调用回归，并验收真实请求路径。
