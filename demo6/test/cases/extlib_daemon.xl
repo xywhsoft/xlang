@@ -1,33 +1,33 @@
 import daemon
 
-
+func holdInScope(string pidPath)
+    auto local = daemon.create("scoped")
+    assert local.writePidFile(pidPath)
+    assert file.exists(pidPath)
+end
 
 func main(...) as int
-    auto d = daemon.create("test_service")
-    assert d.valid, "valid"
-    assert d.name == "test_service", "name"
-    assert d.pid > 0, "pid positive"
-    assert d.isRunning, "initially running"
-    assert not d.isDaemonized, "not daemonized yet"
+    auto d = daemon.create("测试服务")
+    assert d.valid
+    assert d.name == "测试服务"
+    assert d.pid > 0
+    assert daemon.isAlive(d.pid)
+    assert not d.stopRequested
+    assert not d.holdsPidFile
 
-    // Write and read PID file
-    assert d.writePidFile("test_daemon.pid"), "write pidfile"
-    auto readpid = daemon.readPidFile("test_daemon.pid")
-    assert readpid == d.pid, "read pid matches"
+    string pidPath = path.join(path.temp(), "xl-daemon-测试-" + string(d.pid) + ".pid")
+    assert d.writePidFile(pidPath)
+    assert d.holdsPidFile
+    assert daemon.readPidFile(pidPath) == d.pid
+    assert d.writePidFile(pidPath)
 
-    // Check if our own process is alive
-    assert daemon.isAlive(d.pid), "self is alive"
-
-    // Non-existent process
-    assert not daemon.isAlive(999999), "fake pid not alive"
-
-    // Status string
-    auto st = d.status
-    assert string.len(st) > 0, "status non-empty"
-
-    // Stop
-    d.stop()
-    assert not d.isRunning, "stopped"
-
+    d.requestStop()
+    assert d.stopRequested
+    assert d.releasePidFile()
+    assert not d.holdsPidFile
+    assert not file.exists(pidPath)
+    assert daemon.readPidFile(pidPath) == -1
+    holdInScope(pidPath)
+    assert not file.exists(pidPath)
     return 0
 end
