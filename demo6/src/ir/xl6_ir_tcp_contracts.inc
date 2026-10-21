@@ -31,6 +31,19 @@
 {"xl6TcpStreamRemoteV1",T,V,1,{V},.parameterOwners={TC_STREAM},.resultOwner=TC_ADDRESS,.nonblocking=1,TC_ERROR},
 {"xl6TcpListenerLocalV1",T,V,1,{V},.parameterOwners={TC_LISTENER},.resultOwner=TC_ADDRESS,.nonblocking=1,TC_ERROR},
 {"xl6TcpPrepareAcceptV1",T,V,1,{V},.parameterOwners={TC_LISTENER},.resultOwner=TC_STREAM,.nonblocking=1,TC_SOURCE,TC_ERROR},
+{"xl6TcpPrepareDialV1",T,V,2,{V,V},.parameterOwners={TC_ENGINE,"xl6NetResolverDestroyV1"},.resultOwner=TC_STREAM,.nonblocking=1,TC_SOURCE,TC_ERROR},
+{"xl6TcpPrepareDialAddressesV1",T,V,1,{V},.parameterOwners={TC_ENGINE},.resultOwner=TC_STREAM,.nonblocking=1,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialV1",T,V,5,{V,V,S,I,V},.parameterOwners={TC_ENGINE,"xl6NetResolverDestroyV1",NULL,NULL,"xl6TcpDialOptionsDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialDefaultV1",T,V,4,{V,V,S,I},.parameterOwners={TC_ENGINE,"xl6NetResolverDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialAddressesV1",T,V,3,{V,V,V},.parameterOwners={TC_ENGINE,"xl6NetAddressListDestroyV1","xl6TcpDialOptionsDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+{"xl6TcpDialAddressesDefaultV1",T,V,2,{V,V},.parameterOwners={TC_ENGINE,"xl6NetAddressListDestroyV1"},.resultOwner=TC_STREAM,TC_SOURCE,TC_ERROR},
+#define TC_DIAL_CONTEXT .nonblocking=1,TC_QUEUE,TC_ERROR, \
+    .nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeClassParameter=2,.nativeClassOwner=TC_STREAM,.genericFutureResult=1
+{"xl6TcpDialStartV1",T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,5,{V,V,S,I,V},.parameterOwners={TC_STREAM,NULL,NULL,NULL,"xl6TcpDialOptionsDestroyV1"},TC_DIAL_CONTEXT},
+{"xl6TcpDialStartDefaultV1",T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,4,{V,V,S,I},.parameterOwners={TC_STREAM},TC_DIAL_CONTEXT},
+{"xl6TcpDialAddressesStartV1",T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,4,{V,V,V,V},.parameterOwners={TC_STREAM,NULL,"xl6NetAddressListDestroyV1","xl6TcpDialOptionsDestroyV1"},TC_DIAL_CONTEXT},
+{"xl6TcpDialAddressesStartDefaultV1",T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,3,{V,V,V},.parameterOwners={TC_STREAM,NULL,"xl6NetAddressListDestroyV1"},TC_DIAL_CONTEXT},
+#undef TC_DIAL_CONTEXT
 #define TC_CLASS_FUTURE(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,V},.parameterOwners={Owner},.nonblocking=1,TC_QUEUE,TC_ERROR, \
     .nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeClassParameter=2,.nativeClassOwner=TC_STREAM,.genericFutureResult=1}
 TC_CLASS_FUTURE("xl6TcpAcceptStartV1",TC_LISTENER),

@@ -1,0 +1,39 @@
+func dialReadExactSync(TcpStream stream, int count) as bytes
+    bytes result = b""
+    while result.length < count
+        bytes part = stream.recv(count - result.length, 5000)
+        assert part.length > 0
+        result = result + part
+    end
+    return result
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto addresses = NetAddressList([listener.localAddress()])
+auto options = TcpDialOptions().withTimeoutMillis(5000)
+auto client = tcp.dial(engine, addresses)
+auto server = listener.accept(5000)
+assert client.state == TcpStreamState.open
+assert client.send(b"a\x00b") == NetStatus.ok
+assert dialReadExactSync(server, 3) == b"a\x00b"
+client.abort()
+server.abort()
+client = TcpStream.dial(engine, addresses, options)
+server = listener.accept(5000)
+assert server.send("x\0y") == NetStatus.ok
+assert dialReadExactSync(client, 3) == b"x\x00y"
+client.abort()
+server.abort()
+client = tcp.dial(engine, addresses, options)
+server = listener.accept(5000)
+client.abort()
+server.abort()
+client = TcpStream.dial(engine, addresses)
+server = listener.accept(5000)
+client.abort()
+server.abort()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("managed synchronous Dial; same native race, exact bytes, explicit options")

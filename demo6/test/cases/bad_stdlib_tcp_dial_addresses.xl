@@ -1,0 +1,2 @@
+auto engine = NetEngine()
+auto client = tcp.dial(engine, NetAddress.loopback(4, 1234))

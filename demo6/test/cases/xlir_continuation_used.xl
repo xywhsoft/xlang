@@ -1,0 +1,15 @@
+import concurrent
+class LiveContinuation
+    private async func work(future<int> source) as int
+        return await source
+    end
+    func start(future<int> source) as future<int>
+        return self.work(source)
+    end
+end
+auto worker = LiveContinuation()
+auto input = Promise::<int>()
+auto output = worker.start(input.future)
+assert input.tryResolve(7)
+assert await output == 7
+println("reachable async machine retains its fixed ready queue")

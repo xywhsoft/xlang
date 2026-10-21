@@ -1002,7 +1002,9 @@ static int xl6StdlibNeedsTcpStreamClass(const XL6_AstNode* root, const int* used
 {
     return xl6StdlibNodeUsesTypeName(root, "TcpStream") ||
            xl6StdlibFuncUsed(used, "tcp", "connect") ||
-           xl6StdlibFuncUsed(used, "tcp", "connectAsync");
+           xl6StdlibFuncUsed(used, "tcp", "connectAsync") ||
+           xl6StdlibFuncUsed(used, "tcp", "dial") ||
+           xl6StdlibFuncUsed(used, "tcp", "dialAsync");
 }
 
 
@@ -1817,6 +1819,14 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetEngineClass=needsNetEngineClass||needsTcpStreamClass;
     needsNetAddressClass=needsNetAddressClass||needsTcpStreamClass;
     needsTcpStreamOptions=needsTcpStreamOptions||needsTcpStreamClass;
+    /* Declared static Dial overloads depend on these TYPES, not on a default
+     * Resolver instance. Native providers are still selected only by retained
+     * IR calls; a plain TcpStream must not acquire Dial or a ready queue. */
+    needsTcpDialOptions=needsTcpDialOptions||needsTcpStreamClass;
+    needsNetResolverClass=needsNetResolverClass||needsTcpStreamClass;
+    needsNetResolverOptionsClass=needsNetResolverOptionsClass||needsNetResolverClass;
+    needsNetResolverStatsClass=needsNetResolverStatsClass||needsNetResolverClass;
+    needsNetAddressListClass=needsNetAddressListClass||needsNetResolverClass;
     needsTcpListenOptions=needsTcpListenOptions||needsTcpListenerClass;
     needsNetBytesClass = needsNetBytesClass || needsTlsStreamClass;
     needsNetEngineStatsClass = needsNetEngineStatsClass || needsNetEngineClass;

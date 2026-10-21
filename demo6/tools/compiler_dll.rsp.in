@@ -29,6 +29,9 @@
     src\runtime\xl6_ownership_domain_net_tcp_native.c
     src\runtime\xl6_ownership_domain_net_dial_native.c
     src\runtime\xl6_execution_tcp_dial.c
+    src\runtime\xl6_tcp_dial.c
+    src\runtime\xl6_tcp_dial_future.c
+    src\runtime\xl6_tcp_dial_sync.c
     src\runtime\xl6_execution_tcp.c
     src\runtime\xl6_ownership_domain_execution_tcp.c
     src\runtime\xl6_tcp_language.c

@@ -20668,22 +20668,31 @@ XL6_IrModuleContinuationAbi xl6IrModuleContinuationRequirement(const XL6_IrModul
     if (module == NULL) return XL6_IR_MODULE_CONTINUATION_NONE;
     if(xl6IrModuleNativeServices(module)&XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1)
         return XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1;
-    for(i=0;i<module->instructionCount;++i)
+    /* Before reachability closes, conservatively preserve the construction
+     * contract. Lowered deployment requirements use only retained functions,
+     * consistently with native services and the artifact dependency graph. */
+    if(module->stage!=XL6_IR_STAGE_LOWERED)for(i=0;i<module->instructionCount;++i)
         if(module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
             module->instructions[i].runtimeOp==XL6_IR_RUNTIME_FUTURE_CONTINUE_CLOSURE)
             return XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1;
     for (i = 0; i < module->functionCount; ++i) {
         const XL6_IrFunction* function = &module->functions[i];
-        if (function->kind != XL6_IR_FUNCTION_ASYNC_WORKER) continue;
+        if(module->stage==XL6_IR_STAGE_LOWERED &&
+            function->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
         const XL6_IrCallTarget* target=xl6IrCallTargetGet(module,function->symbol);
-        if(!target)return (XL6_IrModuleContinuationAbi)-1;
-        if(target->asyncDispatch==XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE)
+        if(function->kind==XL6_IR_FUNCTION_ASYNC_WORKER && !target)
+            return (XL6_IrModuleContinuationAbi)-1;
+        if(function->kind==XL6_IR_FUNCTION_ASYNC_WORKER &&
+            target->asyncDispatch==XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE)
             return XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1;
         if (function->firstInstruction > module->instructionCount ||
             function->instructionCount > module->instructionCount - function->firstInstruction)
             return (XL6_IrModuleContinuationAbi)-1;
         for (j = function->firstInstruction; j < function->firstInstruction + function->instructionCount; ++j)
-            if (module->instructions[j].kind == XL6_IR_INSTR_AWAIT)
+            if ((module->instructions[j].kind==XL6_IR_INSTR_RUNTIME_CALL &&
+                 module->instructions[j].runtimeOp==XL6_IR_RUNTIME_FUTURE_CONTINUE_CLOSURE) ||
+                (function->kind==XL6_IR_FUNCTION_ASYNC_WORKER &&
+                 module->instructions[j].kind==XL6_IR_INSTR_AWAIT))
                 return XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1;
     }
     return XL6_IR_MODULE_CONTINUATION_NONE;
@@ -29906,7 +29915,8 @@ static int xl6IrVerifyAsyncMachines(const XL6_IrModule* module, XL6_DiagList* di
         if (machine->ownershipAbi != XL6_IR_ASYNC_OWNERSHIP_STABLE_PRODUCER_WATCH_V1)
             return xl6IrDiag(diags, NULL, "XLIR async producer/Watch ownership ABI is unresolved");
         if (machine->executionAbi != XL6_IR_ASYNC_EXECUTION_READY_QUEUE_ROOT_V2 ||
-            module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1)
+            (function->reachability != XL6_IR_REACHABILITY_UNREACHABLE &&
+             module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1))
             return xl6IrDiag(diags, NULL, "XLIR async execution domain/root admission ABI is unresolved");
         if ( target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE )
             return xl6IrDiag(diags, NULL, "XLIR async machine does not match its dispatch role");

@@ -1,7 +1,7 @@
-# Dial 受管资源底座（尚未发布语言入口）
+# Dial 受管资源底座
 
 本批导入 XRT `dbd5f71c22d706faddb284e9507bd13c5ead4baa` 的原生 Dial 拥有图和地址列表连接能力，
-增加 xlang 驻留资源载体。它不是公开 `tcp.dialAsync`、代理或整个网络分类的完成声明。
+增加 xlang 驻留资源载体。本篇记录底座批次；后续公开同步／异步入口见 [受管 Dial API](tcp-dial-public-api.md)，不代表代理或整个网络分类已完成。
 
 ## 原生快照
 
@@ -43,7 +43,7 @@ GCC／TCC、O0／O2，select 及 Windows IOCP／Linux epoll；Linux GCC 额外�
 测试只使用离线数据和自有字面量 loopback，不做 DNS、公网、扫描、畸形协议或网络安全专项测试。
 证据保存在 `F:/xlang-validation/five-groups-20261021/p3-dial-import`；失败／中断轮次保留，只有冻结输入的终态通过报告计为通过。
 
-仍需完成公开语言类的预建结果投影、固定就绪队列 Future 合同、同步及期限／取消组合、代理控制器。
+公开语言类的预建结果投影、固定就绪队列 Future 合同和基本同步入口由后续 API 批次接续；绝对期限／显式 token 组合与代理控制器仍待完成。
 受管主机 Source 本批未进行系统 DNS 测试；主机原生路径由自定义固定地址 Resolver 夹具覆盖。
 完整源码构建与基础 TCP JIT／模块／AOT 回归不等同于 Dial 语言入口验收，更不等同于 shipping DLL／SO／VFS 发布验收。
 后续聚合 Server、向量／文件／帧、UDP、非对称密钥、X.509、TLS 和联合验收仍在原长期任务范围内。

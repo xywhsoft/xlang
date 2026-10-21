@@ -764,7 +764,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_tcp_language.c",D(R(OWNERSHIP_CATALOG),R(TCP_LANGUAGE)),{NULL}},
     {"src/runtime/xl6_ownership_domain_tcp_stats.c",D(R(OWNERSHIP_CATALOG),R(TCP_STATS)),{NULL}},
     {"src/runtime/xl6_ownership_domain_net_dial_native.c",D(R(OWNERSHIP_CATALOG),R(OWNERSHIP_DOMAIN_NET_TCP_NATIVE),R(OWNERSHIP_DOMAIN_NET_RESOLVER_NATIVE)),{"XRT_MODULE_NET_TCP_DIAL_FUTURE"}},
-    {"src/runtime/xl6_execution_tcp_dial.c",D(R(EXECUTION_TCP),R(EXECUTION_NET_RESOLVER),R(OWNERSHIP_DOMAIN_NET_DIAL_NATIVE)),{"XRT_MODULE_NET_TCP_DIAL_FUTURE"}}
+    {"src/runtime/xl6_execution_tcp_dial.c",D(R(EXECUTION_TCP),R(EXECUTION_NET_RESOLVER),R(OWNERSHIP_DOMAIN_NET_DIAL_NATIVE)),{"XRT_MODULE_NET_TCP_DIAL_FUTURE"}},
+    {"src/runtime/xl6_tcp_dial.c",D(R(EXECUTION_TCP_DIAL),R(TCP_LANGUAGE)),{NULL}},
+    {"src/runtime/xl6_tcp_dial_future.c",D(R(TCP_DIAL),R(TCP_FUTURE)),{"XRT_MODULE_STRING","XRT_MODULE_UNICODE_TEXT"}},
+    {"src/runtime/xl6_tcp_dial_sync.c",D(R(TCP_DIAL),R(FUTURE_PAYLOAD)),{"XRT_MODULE_STRING","XRT_MODULE_UNICODE_TEXT"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
