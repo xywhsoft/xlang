@@ -24,9 +24,13 @@ string preview = volc.core.sign_preview_acep(
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/volc.core/test/check.ps1
+bash release/extlibs/volc.core/test/check.sh
 ```
 
-门禁包含严格 GCC 语法检查、C 边界及离线范例。C 测试覆盖哈希/HMAC 固定向量、查询编码、签名预览、无效/不存在的日期、日期解析错误不泄漏到 XRT 线程状态、成功调用清理旧错误、查询参数第二次分配失败时的清理，以及双线程返回缓存、错误和状态隔离。XLang 范例当前在导入依赖 `xhttp.multipart` 时失败，最小复现和主线修复建议见 `demo6/dev/extlib_blockers/volc_core_import_chain.md`；本任务不修改 XRT 专门维护的包。真实云请求和 XLang 调用链未通过，所以本包**尚未达到发布验收**。
+Windows 门禁包含严格 GCC 语法检查、C 边界及离线范例。Linux 门禁
+以 `-DNDEBUG`、ASan/UBSan 分离编译 C 边界与离线范例，并核对固定输出；
+链接器仅移除未调用的在线 HTTP 路径，不把该路径算作已验证。
+C 测试覆盖哈希/HMAC 固定向量、查询编码、签名预览、无效/不存在的日期、日期解析错误不泄漏到 XRT 线程状态、成功调用清理旧错误、查询参数第二次分配失败时的清理，以及双线程返回缓存、错误和状态隔离。XLang 范例当前在导入依赖 `xhttp.multipart` 时失败，最小复现和主线修复建议见 `demo6/dev/extlib_blockers/volc_core_import_chain.md`；本任务不修改 XRT 专门维护的包。真实云请求和 XLang 调用链未通过，所以本包**尚未达到发布验收**。
 
 2026-10-20：`available` 与 `last_status` 的 C 原型均返回 32 位 `int`，XLang 原声明分别误用 `bool` 和 64 位 `int`。现统一按 `c_int` 接入，再在公开函数边界转换为原有的 `bool`/`int`；C 定向门禁通过。上述 `xhttp.multipart` 导入阻断仍在，故尚不能宣称 XLang ABI 实跑通过。
 
