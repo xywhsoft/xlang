@@ -215,5 +215,22 @@ func main(...) as int
     assert not ccp.contains("z1"), "counting clone removed"
     assert ccorig.contains("z1"), "counting original unaffected"
 
+    // 非法概率不能悄悄回退到默认值，巨大容量必须在分配前拒绝。
+    caught = false
+    try
+        bloom.create(100, 0.0)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "invalid probability must throw"
+    caught = false
+    try
+        bloom.createCounting(9223372036854775807, 0.01)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "unrepresentable size must throw"
+
+    println("bloom: all tests passed")
     return 0
 end
