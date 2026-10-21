@@ -24,7 +24,13 @@ func main(...) as int
     assert json5.get(doc, "nested.b") == "two", "get nested.b"
     assert json5.get(doc, "arr.0") == "10", "get arr[0]"
     assert json5.get(doc, "arr.2") == "30", "get arr[2]"
-    assert json5.get(doc, "missing") == "", "get missing"
+    bool missing = false
+    try
+        json5.get(doc, "missing")
+    catch ValueError error
+        missing = true
+    end
+    assert missing, "missing path should raise ValueError"
 
     // hex numbers
     assert json5.valid("{x: 0xFF}"), "hex number valid"
