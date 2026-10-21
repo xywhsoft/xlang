@@ -101,6 +101,7 @@ try {
     $fixture = (Join-Path $Root 'test/cases/extlib_codec_file_allocation.c').Replace('\','/')
     [IO.File]::WriteAllText($probe,"#define TEST_CODEC_GZIP`n#include `"$fixture`"`n",$utf8)
     $null = Check 'file-allocation-jit' $xl (@('run',$probe) + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','--',(Join-Path $work ('jit-files-'+[Guid]::NewGuid().ToString('N')))))
+    $null = Check 'file-ops-jit' $xl @('run','release/extlibs/gzip/test/file_ops.xl')
     $fileAot = Join-Path $work 'file-allocation-aot.exe'
     $null = Check 'file-allocation-aot-build' $xl (@('build',$probe) + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','-o',$fileAot))
     $null = Check 'file-allocation-aot' $fileAot @((Join-Path $work ('aot-files-'+[Guid]::NewGuid().ToString('N'))))
