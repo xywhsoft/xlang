@@ -1,0 +1,27 @@
+import cuckoo
+
+func main(...) as int
+    cuckoo.CuckooFilter filter = cuckoo.create(3000)
+    int inserted = 0
+
+    for i in range(3001)
+        string key = "stress:" + string.format(i, "")
+        bool added = true
+        try
+            filter.add(key)
+        catch e
+            added = false
+        end
+        if not added then break end
+        inserted += 1
+    end
+
+    assert inserted > 2500 and inserted <= 3000
+    assert filter.count == inserted
+    for i in range(inserted)
+        string key = "stress:" + string.format(i, "")
+        assert filter.contains(key), "successful insertion must remain visible"
+    end
+    assert filter.count == inserted
+    return 0
+end

@@ -1,255 +1,233 @@
-/*
- * cuckoo_native.c - Cuckoo Filter implementation
- *
- * Supports insert, lookup, and delete with space efficiency.
- * Uses 16-bit fingerprints, 4 entries per bucket, partial-key cuckoo hashing.
- */
+/* 固定容量的 Cuckoo Filter：16 位指纹，每桶 4 项，失败插入可回滚。 */
+#include "include/cuckoo_native.h"
 
-#include "../xlang_extlib_error.h"
-/* ------------------------------------------------------------------ */
-/* Hashing                                                             */
-/* ------------------------------------------------------------------ */
+#include <limits.h>
+#include <stdio.h>
+#include <string.h>
 
-static unsigned long long cuckoo_hash(const unsigned char *data, unsigned long long len) {
-    unsigned long long h = 14695981039346656037ULL;
-    unsigned long long i;
-    for (i = 0; i < len; i++) {
-        h ^= (unsigned long long)data[i];
-        h *= 1099511628211ULL;
-    }
-    h ^= h >> 33;
-    h *= 0xFF51AFD7ED558CCDULL;
-    h ^= h >> 33;
-    return h;
-}
+#ifndef XRT_MODULE_HASH64
+#define XRT_MODULE_HASH64
+#endif
+#include "xrt.h"
 
-/* ------------------------------------------------------------------ */
-/* Cuckoo Filter                                                       */
-/* ------------------------------------------------------------------ */
-
-#define CUCKOO_ENTRIES_PER_BUCKET 4
-#define CUCKOO_MAX_KICKS 500
+#define XCUCKOO_SLOTS 4
+#define XCUCKOO_KICKS 500
+#define XCUCKOO_DOMAIN "xlang.extlib.cuckoo"
 
 typedef struct {
-    unsigned short *buckets;    /* nbuckets * 4 entries, 16-bit fingerprints */
-    unsigned int nbuckets;      /* power of 2 */
-    unsigned int bucket_mask;   /* nbuckets - 1 */
-    unsigned long long count;
-    unsigned long long capacity;
+    uint16_t *data;
+    size_t buckets;
+    size_t mask;
+    int64_t count;
+    int64_t capacity;
 } XCuckoo;
 
-static unsigned short cuckoo_fingerprint(unsigned long long hash) {
-    unsigned short fp = (unsigned short)((hash >> 32) & 0xFFFF);
-    if (fp == 0) fp = 1;  /* Reserve 0 as empty marker */
-    return fp;
+typedef struct {
+    size_t slot;
+    uint16_t previous;
+} XCuckooUndo;
+
+static int xcuckoo_fail(int code, const char *message) {
+    xrtSetErrorInfo(code, XCUCKOO_DOMAIN, 0, message);
+    return 0;
 }
 
-static unsigned int cuckoo_index1(XCuckoo *cf, unsigned long long hash) {
-    return (unsigned int)(hash & (unsigned long long)cf->bucket_mask);
+static uint16_t xcuckoo_fingerprint(uint64_t hash) {
+    uint16_t value = (uint16_t)(hash >> 32);
+    return value != 0 ? value : 1;
 }
 
-static unsigned int cuckoo_index2(XCuckoo *cf, unsigned int i1, unsigned short fp) {
-    /* Partial-key cuckoo hashing: i2 = i1 XOR hash(fp) */
-    unsigned int fp_hash = (unsigned int)fp * 2654435761u;
-    return (i1 ^ fp_hash) & cf->bucket_mask;
+static size_t xcuckoo_alternate(const XCuckoo *filter, size_t index, uint16_t fingerprint) {
+    return (index ^ (size_t)((uint32_t)fingerprint * UINT32_C(2654435761))) & filter->mask;
 }
 
-void *xcuckoo_create(long long capacity) {
-    XCuckoo *cf;
-    unsigned int nbuckets;
-    unsigned long long total_entries;
+static uint16_t *xcuckoo_bucket(const XCuckoo *filter, size_t index) {
+    return filter->data + index * XCUCKOO_SLOTS;
+}
 
+static int xcuckoo_insert_empty(const XCuckoo *filter, size_t index, uint16_t fingerprint) {
+    uint16_t *bucket = xcuckoo_bucket(filter, index);
+    int i;
+    for (i = 0; i < XCUCKOO_SLOTS; ++i) {
+        if (bucket[i] == 0) {
+            bucket[i] = fingerprint;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int xcuckoo_find(const XCuckoo *filter, size_t index, uint16_t fingerprint) {
+    uint16_t *bucket = xcuckoo_bucket(filter, index);
+    int i;
+    for (i = 0; i < XCUCKOO_SLOTS; ++i) {
+        if (bucket[i] == fingerprint) return i;
+    }
+    return -1;
+}
+
+static int xcuckoo_key(const XCuckoo *filter, const char *data, size_t size) {
+    xrtClearError();
+    if (filter == NULL || data == NULL) return xcuckoo_fail(XERR_ARGUMENT, "filter or key pointer is null");
+    (void)size;
+    return 1;
+}
+
+/* ------------ 生命周期 ------------ */
+
+void *xcuckoo_create(int64_t capacity) {
+    XCuckoo *filter;
+    size_t buckets = 4, wanted;
+    xrtClearError();
     if (capacity <= 0) {
-        xl6ExtlibError(XL6_EXTERR_ARGUMENT, "xlang.extlib.cuckoo", "cuckoo capacity must be positive");
+        xcuckoo_fail(XERR_VALUE, "capacity must be positive");
         return NULL;
     }
-
-    /* Each bucket holds 4 entries; target ~95% load factor */
-    nbuckets = (unsigned int)((capacity * 2) / CUCKOO_ENTRIES_PER_BUCKET);
-    /* Round up to power of 2 */
-    {
-        unsigned int p = 1;
-        while (p < nbuckets) p <<= 1;
-        nbuckets = p;
-    }
-    if (nbuckets < 4) nbuckets = 4;
-
-    total_entries = (unsigned long long)nbuckets * CUCKOO_ENTRIES_PER_BUCKET;
-
-    cf = (XCuckoo *)calloc(1, sizeof(XCuckoo));
-    if (!cf) {
-        xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.cuckoo", "cannot allocate cuckoo filter");
+    wanted = (size_t)((uint64_t)capacity / 3 + ((uint64_t)capacity % 3 != 0));
+    if ((uint64_t)capacity > (uint64_t)SIZE_MAX ||
+        wanted > SIZE_MAX / (XCUCKOO_SLOTS * sizeof(uint16_t))) {
+        xcuckoo_fail(XERR_RANGE, "capacity is too large");
         return NULL;
     }
-    cf->buckets = (unsigned short *)calloc(total_entries, sizeof(unsigned short));
-    if (!cf->buckets) {
-        free(cf);
-        xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.cuckoo", "cannot allocate cuckoo buckets");
+    while (buckets < wanted) {
+        if (buckets > SIZE_MAX / (2 * XCUCKOO_SLOTS * sizeof(uint16_t))) {
+            xcuckoo_fail(XERR_RANGE, "capacity is too large");
+            return NULL;
+        }
+        buckets *= 2;
+    }
+    filter = xrtCalloc(1, sizeof(*filter));
+    if (filter == NULL) return NULL;
+    filter->data = xrtCalloc(buckets * XCUCKOO_SLOTS, sizeof(uint16_t));
+    if (filter->data == NULL) {
+        xrtFree(filter);
         return NULL;
     }
-    cf->nbuckets = nbuckets;
-    cf->bucket_mask = nbuckets - 1;
-    cf->count = 0;
-    cf->capacity = (unsigned long long)capacity;
-    return cf;
+    filter->buckets = buckets;
+    filter->mask = buckets - 1;
+    filter->capacity = capacity;
+    return filter;
 }
 
-void xcuckoo_destroy(void *ptr) {
-    XCuckoo *cf = (XCuckoo *)ptr;
-    if (cf) {
-        free(cf->buckets);
-        free(cf);
+void xcuckoo_destroy(void *handle) {
+    XCuckoo *filter = handle;
+    if (filter == NULL) return;
+    xrtFree(filter->data);
+    xrtFree(filter);
+}
+
+/* ------------ 增删查及统计 ------------ */
+
+bool xcuckoo_add(void *handle, const char *data, size_t size) {
+    XCuckoo *filter = handle;
+    XCuckooUndo undo[XCUCKOO_KICKS];
+    uint64_t hash, random;
+    uint16_t fingerprint, displaced;
+    size_t first, alternate, index;
+    int kick;
+    if (!xcuckoo_key(filter, data, size)) return false;
+    if (filter->count >= filter->capacity) {
+        xcuckoo_fail(XERR_RANGE, "filter is full");
+        return false;
     }
-}
+    hash = xrtHash64(data, size);
+    fingerprint = xcuckoo_fingerprint(hash);
+    first = (size_t)hash & filter->mask;
+    alternate = xcuckoo_alternate(filter, first, fingerprint);
+    if (xcuckoo_insert_empty(filter, first, fingerprint) ||
+        xcuckoo_insert_empty(filter, alternate, fingerprint)) {
+        ++filter->count;
+        return true;
+    }
 
-static int cuckoo_bucket_insert(XCuckoo *cf, unsigned int bucket, unsigned short fp) {
-    int i;
-    unsigned short *base = cf->buckets + (unsigned long long)bucket * CUCKOO_ENTRIES_PER_BUCKET;
-    for (i = 0; i < CUCKOO_ENTRIES_PER_BUCKET; i++) {
-        if (base[i] == 0) {
-            base[i] = fp;
-            return 1;
+    /* 每次改写先记旧槽；500 次未找到空位时逆序还原，不能丢掉旧指纹。 */
+    index = first;
+    displaced = fingerprint;
+    random = hash ^ UINT64_C(0x123456789abcdef);
+    for (kick = 0; kick < XCUCKOO_KICKS; ++kick) {
+        size_t slot;
+        random = random * UINT64_C(6364136223846793005) + UINT64_C(1442695040888963407);
+        slot = index * XCUCKOO_SLOTS + (size_t)((random >> 33) % XCUCKOO_SLOTS);
+        undo[kick].slot = slot;
+        undo[kick].previous = filter->data[slot];
+        filter->data[slot] = displaced;
+        displaced = undo[kick].previous;
+        index = xcuckoo_alternate(filter, index, displaced);
+        if (xcuckoo_insert_empty(filter, index, displaced)) {
+            ++filter->count;
+            return true;
         }
     }
-    return 0;
-}
-
-static int cuckoo_bucket_contains(XCuckoo *cf, unsigned int bucket, unsigned short fp) {
-    int i;
-    unsigned short *base = cf->buckets + (unsigned long long)bucket * CUCKOO_ENTRIES_PER_BUCKET;
-    for (i = 0; i < CUCKOO_ENTRIES_PER_BUCKET; i++) {
-        if (base[i] == fp) return 1;
+    while (kick != 0) {
+        --kick;
+        filter->data[undo[kick].slot] = undo[kick].previous;
     }
-    return 0;
+    xcuckoo_fail(XERR_RANGE, "filter cannot place another fingerprint");
+    return false;
 }
 
-static int cuckoo_bucket_remove(XCuckoo *cf, unsigned int bucket, unsigned short fp) {
-    int i;
-    unsigned short *base = cf->buckets + (unsigned long long)bucket * CUCKOO_ENTRIES_PER_BUCKET;
-    for (i = 0; i < CUCKOO_ENTRIES_PER_BUCKET; i++) {
-        if (base[i] == fp) {
-            base[i] = 0;
-            return 1;
-        }
+bool xcuckoo_contains(void *handle, const char *data, size_t size) {
+    XCuckoo *filter = handle;
+    uint64_t hash;
+    uint16_t fingerprint;
+    size_t first;
+    if (!xcuckoo_key(filter, data, size)) return false;
+    hash = xrtHash64(data, size);
+    fingerprint = xcuckoo_fingerprint(hash);
+    first = (size_t)hash & filter->mask;
+    return xcuckoo_find(filter, first, fingerprint) >= 0 ||
+        xcuckoo_find(filter, xcuckoo_alternate(filter, first, fingerprint), fingerprint) >= 0;
+}
+
+bool xcuckoo_remove(void *handle, const char *data, size_t size) {
+    XCuckoo *filter = handle;
+    uint64_t hash;
+    uint16_t fingerprint;
+    size_t first, alternate;
+    int slot;
+    if (!xcuckoo_key(filter, data, size)) return false;
+    hash = xrtHash64(data, size);
+    fingerprint = xcuckoo_fingerprint(hash);
+    first = (size_t)hash & filter->mask;
+    alternate = xcuckoo_alternate(filter, first, fingerprint);
+    slot = xcuckoo_find(filter, first, fingerprint);
+    if (slot >= 0) xcuckoo_bucket(filter, first)[slot] = 0;
+    else {
+        slot = xcuckoo_find(filter, alternate, fingerprint);
+        if (slot < 0) return false;
+        xcuckoo_bucket(filter, alternate)[slot] = 0;
     }
-    return 0;
+    --filter->count;
+    return true;
 }
 
-int xcuckoo_add(void *ptr, const char *data, long long len) {
-    XCuckoo *cf = (XCuckoo *)ptr;
-    unsigned long long hash;
-    unsigned short fp;
-    unsigned int i1, i2, kick;
-    const unsigned char *bytes = (const unsigned char *)data;
-
-    if (!cf || !data) return 0;
-    if (len < 0) len = (long long)strlen(data);
-
-    hash = cuckoo_hash(bytes, (unsigned long long)len);
-    fp = cuckoo_fingerprint(hash);
-    i1 = cuckoo_index1(cf, hash);
-
-    if (cuckoo_bucket_insert(cf, i1, fp)) {
-        cf->count++;
-        return 1;
+void xcuckoo_clear(void *handle) {
+    XCuckoo *filter = handle;
+    xrtClearError();
+    if (filter == NULL) {
+        xcuckoo_fail(XERR_ARGUMENT, "filter is null");
+        return;
     }
+    memset(filter->data, 0, filter->buckets * XCUCKOO_SLOTS * sizeof(uint16_t));
+    filter->count = 0;
+}
 
-    i2 = cuckoo_index2(cf, i1, fp);
-    if (cuckoo_bucket_insert(cf, i2, fp)) {
-        cf->count++;
-        return 1;
+int64_t xcuckoo_count(void *handle) {
+    XCuckoo *filter = handle;
+    xrtClearError();
+    if (filter == NULL) {
+        xcuckoo_fail(XERR_ARGUMENT, "filter is null");
+        return -1;
     }
+    return filter->count;
+}
 
-    /* Cuckoo displacement */
-    {
-        unsigned int idx = i1;
-        unsigned short cur_fp = fp;
-        /* Simple PRNG for victim selection */
-        unsigned long long rng = hash ^ 0x123456789ABCDEFULL;
-
-        for (kick = 0; kick < CUCKOO_MAX_KICKS; kick++) {
-            int victim;
-            unsigned short *base;
-            unsigned short old_fp;
-
-            rng = rng * 6364136223846793005ULL + 1442695040888963407ULL;
-            victim = (int)((rng >> 33) % CUCKOO_ENTRIES_PER_BUCKET);
-
-            base = cf->buckets + (unsigned long long)idx * CUCKOO_ENTRIES_PER_BUCKET;
-            old_fp = base[victim];
-            base[victim] = cur_fp;
-            cur_fp = old_fp;
-
-            idx = cuckoo_index2(cf, idx, cur_fp);
-            if (cuckoo_bucket_insert(cf, idx, cur_fp)) {
-                cf->count++;
-                return 1;
-            }
-        }
+int64_t xcuckoo_buckets(void *handle) {
+    XCuckoo *filter = handle;
+    xrtClearError();
+    if (filter == NULL) {
+        xcuckoo_fail(XERR_ARGUMENT, "filter is null");
+        return -1;
     }
-
-    xl6ExtlibError(XL6_EXTERR_VALUE, "xlang.extlib.cuckoo", "cuckoo filter is full");
-    return 0;
-}
-
-int xcuckoo_contains(void *ptr, const char *data, long long len) {
-    XCuckoo *cf = (XCuckoo *)ptr;
-    unsigned long long hash;
-    unsigned short fp;
-    unsigned int i1, i2;
-    const unsigned char *bytes = (const unsigned char *)data;
-
-    if (!cf || !data) return 0;
-    if (len < 0) len = (long long)strlen(data);
-
-    hash = cuckoo_hash(bytes, (unsigned long long)len);
-    fp = cuckoo_fingerprint(hash);
-    i1 = cuckoo_index1(cf, hash);
-    i2 = cuckoo_index2(cf, i1, fp);
-
-    return cuckoo_bucket_contains(cf, i1, fp) || cuckoo_bucket_contains(cf, i2, fp);
-}
-
-int xcuckoo_remove(void *ptr, const char *data, long long len) {
-    XCuckoo *cf = (XCuckoo *)ptr;
-    unsigned long long hash;
-    unsigned short fp;
-    unsigned int i1, i2;
-    const unsigned char *bytes = (const unsigned char *)data;
-
-    if (!cf || !data) return 0;
-    if (len < 0) len = (long long)strlen(data);
-
-    hash = cuckoo_hash(bytes, (unsigned long long)len);
-    fp = cuckoo_fingerprint(hash);
-    i1 = cuckoo_index1(cf, hash);
-    i2 = cuckoo_index2(cf, i1, fp);
-
-    if (cuckoo_bucket_remove(cf, i1, fp)) {
-        cf->count--;
-        return 1;
-    }
-    if (cuckoo_bucket_remove(cf, i2, fp)) {
-        cf->count--;
-        return 1;
-    }
-    return 0;
-}
-
-void xcuckoo_clear(void *ptr) {
-    XCuckoo *cf = (XCuckoo *)ptr;
-    if (!cf) return;
-    memset(cf->buckets, 0,
-        (unsigned long long)cf->nbuckets * CUCKOO_ENTRIES_PER_BUCKET * sizeof(unsigned short));
-    cf->count = 0;
-}
-
-long long xcuckoo_count(void *ptr) {
-    XCuckoo *cf = (XCuckoo *)ptr;
-    return cf ? (long long)cf->count : 0;
-}
-
-long long xcuckoo_buckets(void *ptr) {
-    XCuckoo *cf = (XCuckoo *)ptr;
-    return cf ? (long long)cf->nbuckets : 0;
+    return (int64_t)filter->buckets;
 }

@@ -11,11 +11,14 @@
         ],
         "xlSources": [
             "src/cuckoo.xl"
-        ]
+        ],
+        "includeDirs": ["include"],
+        "xrtModules": ["XRT_MODULE_HASH64"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/high_load.xl", "test/allocations.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",

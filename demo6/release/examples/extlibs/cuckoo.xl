@@ -3,7 +3,7 @@ import cuckoo
 
 
 func main(...) as int
-    auto cf = cuckoo.create(10000)
+    cuckoo.CuckooFilter cf = cuckoo.create(10000)
     println("buckets:", cf.buckets)
 
     cf.add("session:abc123")

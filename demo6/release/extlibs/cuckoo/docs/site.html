@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cuckoo - 扩展库 - xlang</title>
+  <meta name="description" content="支持插入、查询和删除的近似成员过滤器。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / cuckoo</p><h1>cuckoo</h1>
+    <p class="extlib-lead">近似成员查询。</p>
+    <p>16 位指纹、固定容量、可删除且失败插入不会损坏原有数据。查询可能假阳性；仅删除已知插入的键，避免指纹碰撞误删其他项。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>cuckoo.create(capacity)</code></td><td>创建容量受控的过滤器</td></tr>
+      <tr><td><code>add / contains / remove</code></td><td>插入、近似查询与删除</td></tr>
+      <tr><td><code>count / buckets / clear</code></td><td>状态与复用</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import cuckoo
+cuckoo.CuckooFilter seen = cuckoo.create(10000)
+seen.add("session:abc123")
+println(seen.contains("session:abc123"))</code></pre>
+    <p>过滤器可能误报存在，不应作为精确集合或权限检查；边界与 C 接口见包内 README。</p>
+    <p>C 构造容量使用 <code>int64_t</code>，对应 XLang <code>int</code>。C 侧有效键未命中返回 <code>false</code> 且无 XRT 错误；空句柄的计数和清空则显式报告参数错误。Windows C/XLang、核心 AOT 与 Linux ASan/UBSan 边界已通过；带输出 AOT 仍缺共享符号 <code>xl6ValueDataSnapshotV1</code>。</p>
+    <p>C 范例可直接运行 <code>xl run release/extlibs/cuckoo/examples/cuckoo.c</code>，也可独立用 GCC 构建；两种入口与 XLang 范例的输出已在 Windows/Linux 包级测试中对照。</p>
+  </section>
+</main>
+</body>
+</html>

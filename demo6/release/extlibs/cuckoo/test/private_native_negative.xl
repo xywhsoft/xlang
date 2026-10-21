@@ -1,0 +1,5 @@
+import cuckoo
+
+// 不执行：导入方不能为原生哈希入口伪造字符串字节长度。
+auto filter = cuckoo.create(16)
+filter.addNative("x", c_size(4096))
