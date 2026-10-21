@@ -2,14 +2,52 @@
 
 #include <stdio.h>
 #include <string.h>
+typedef struct {
+	xrtxmlerror tError;
+	int iStatus;
+} xsaxerrorstate;
 
+static xonce __xsaxErrorOnce = XRT_ONCE_INIT;
+static xthreadkey* __xsaxErrorKey = NULL;
 
+static bool __xsaxInitErrorKey(ptr pContext)
+{
+	(void)pContext;
+	__xsaxErrorKey = xrtThreadKeyCreate(xrtFree);
+	return __xsaxErrorKey != NULL;
+}
+
+/* 错误位置属于本次解析，不能只保存在跨调用变化的通用错误对象里。 */
+static xsaxerrorstate* __xsaxErrorState(void)
+{
+	xsaxerrorstate* pState;
+	if ( !xrtOnce(&__xsaxErrorOnce, __xsaxInitErrorKey, NULL) ||
+		__xsaxErrorKey == NULL ) { return NULL; }
+	pState = (xsaxerrorstate*)xrtThreadKeyGet(__xsaxErrorKey);
+	if ( pState != NULL ) { return pState; }
+	pState = (xsaxerrorstate*)xrtMalloc(sizeof(*pState));
+	if ( pState == NULL || !xrtThreadKeySet(__xsaxErrorKey, pState) ) {
+		xrtFree(pState);
+		return NULL;
+	}
+	xrtXmlErrorInit(&pState->tError);
+	pState->iStatus = XRT_XML_NEXT_END;
+	return pState;
+}
 
 static void __xlangSaxStoreError(const xrtxmlerror* pError, int iStatus)
 {
+	xsaxerrorstate* pState = __xsaxErrorState();
+	if ( pState != NULL ) {
+		pState->iStatus = iStatus;
+		if ( pError != NULL ) { pState->tError = *pError; }
+		else { xrtXmlErrorInit(&pState->tError); }
+	}
 	if ( iStatus != XRT_XML_NEXT_ERROR ) { return; }
-	xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.xml.sax",
-		pError != NULL ? pError->iCode : XRT_XML_ERROR_FORMAT,
+	xrtSetErrorInfo(pState == NULL || pError == NULL ||
+		pError->iCode == XRT_XML_ERROR_MEMORY ? XERR_MEMORY : XERR_VALUE,
+		"xlang.extlib.xml.sax",
+		pError != NULL ? pError->iCode : XRT_XML_ERROR_MEMORY,
 		pError != NULL && pError->sMessage[0] != 0 ?
 			pError->sMessage : "XML SAX operation failed");
 }
@@ -51,15 +89,23 @@ static bool __xlangSaxSetText(xvalue* pTable, const char* sKey,
 {
 	xvalue* pText = xrtValueString(xrtStrView(
 		sValue != NULL ? sValue : ""));
-	return pText != NULL && xrtValueObjectSetTake(pTable,
-		xrtStrView(sKey), &pText);
+	if ( pText == NULL ) { return false; }
+	if ( xrtValueObjectSetTake(pTable, xrtStrView(sKey), &pText) ) {
+		return true;
+	}
+	xrtValueRelease(pText);
+	return false;
 }
 
 static bool __xlangSaxSetInt(xvalue* pTable, const char* sKey, int64 iValue)
 {
 	xvalue* pNumber = xrtValueInt(iValue);
-	return pNumber != NULL && xrtValueObjectSetTake(pTable,
-		xrtStrView(sKey), &pNumber);
+	if ( pNumber == NULL ) { return false; }
+	if ( xrtValueObjectSetTake(pTable, xrtStrView(sKey), &pNumber) ) {
+		return true;
+	}
+	xrtValueRelease(pNumber);
+	return false;
 }
 
 static xvalue* __xlangSaxEventValue(const xrtxmlevent* pEvent)
@@ -118,10 +164,11 @@ failed:
 	return NULL;
 }
 
-XRT_API ptr xsax_open_memory(ptr pData, uint64 iSize, bool bNamespaceAware,
+XRT_API void* xsax_open_memory(void* pData, unsigned long long iSize, bool bNamespaceAware,
 	bool bPreserveComments, bool bAllowDtd, bool bAllowExternalEntities,
-	uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem,
-	uint64 iMaxEntries, uint64 iMaxNodes, uint32 iMaxDepth)
+	unsigned long long iMaxInput, unsigned long long iMaxOutput,
+	unsigned long long iMaxItem, unsigned long long iMaxEntries,
+	unsigned long long iMaxNodes, unsigned int iMaxDepth)
 {
 	xrtxmloptions tOptions;
 	xrtxmlerror tError;
@@ -136,10 +183,11 @@ XRT_API ptr xsax_open_memory(ptr pData, uint64 iSize, bool bNamespaceAware,
 	return pParser;
 }
 
-XRT_API ptr xsax_open_file(str sPath, bool bNamespaceAware,
+XRT_API void* xsax_open_file(const char* sPath, bool bNamespaceAware,
 	bool bPreserveComments, bool bAllowDtd, bool bAllowExternalEntities,
-	uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem,
-	uint64 iMaxEntries, uint64 iMaxNodes, uint32 iMaxDepth)
+	unsigned long long iMaxInput, unsigned long long iMaxOutput,
+	unsigned long long iMaxItem, unsigned long long iMaxEntries,
+	unsigned long long iMaxNodes, unsigned int iMaxDepth)
 {
 	xrtxmloptions tOptions;
 	xrtxmlerror tError;
@@ -148,7 +196,7 @@ XRT_API ptr xsax_open_file(str sPath, bool bNamespaceAware,
 		bAllowExternalEntities, iMaxInput, iMaxOutput, iMaxItem, iMaxEntries,
 		iMaxNodes, iMaxDepth);
 	xrtClearError();
-	pParser = xrtXmlSaxOpenFile(sPath, &tOptions, &tError);
+	pParser = xrtXmlSaxOpenFile((str)sPath, &tOptions, &tError);
 	__xlangSaxStoreError(pParser != NULL ? NULL : &tError,
 		pParser != NULL ? XRT_XML_NEXT_EVENT : XRT_XML_NEXT_ERROR);
 	return pParser;
@@ -181,6 +229,17 @@ XRT_API xvalue* xsax_next(ptr pHandle)
 	return pResult != NULL ? pResult : xrtValueNull();
 }
 
+XRT_API bool xsax_close(ptr pHandle)
+{
+	xrtxmlerror tError;
+	bool bClosed;
+	xrtClearError();
+	bClosed = xrtXmlSaxClose((xrtxmlsax*)pHandle, &tError);
+	__xlangSaxStoreError(bClosed ? NULL : &tError,
+		bClosed ? XRT_XML_NEXT_END : XRT_XML_NEXT_ERROR);
+	return bClosed;
+}
+
 XRT_API void xsax_destroy(ptr pHandle)
 {
 	xrtXmlSaxDestroy((xrtxmlsax*)pHandle);
@@ -193,34 +252,38 @@ XRT_API ptr xsax_retain(ptr pHandle)
 
 XRT_API int64 xsax_status(void)
 {
-	return xrtGetError() != NULL ? XRT_XML_NEXT_ERROR : XRT_XML_NEXT_EVENT;
+	xsaxerrorstate* pState = __xsaxErrorState();
+	return pState != NULL ? pState->iStatus : XRT_XML_NEXT_ERROR;
 }
 
 XRT_API int64 xsax_error_code(void)
 {
-	const xerror* pError = xrtGetError();
-	return pError != NULL ? (int64)xrtErrorCode(pError) : 0;
+	xsaxerrorstate* pState = __xsaxErrorState();
+	return pState != NULL ? pState->tError.iCode : XRT_XML_ERROR_MEMORY;
 }
 
 XRT_API int64 xsax_error_line(void)
 {
-	return 0;
+	xsaxerrorstate* pState = __xsaxErrorState();
+	return pState != NULL ? (int64)pState->tError.iLine : 0;
 }
 
 XRT_API int64 xsax_error_column(void)
 {
-	return 0;
+	xsaxerrorstate* pState = __xsaxErrorState();
+	return pState != NULL ? (int64)pState->tError.iColumn : 0;
 }
 
 XRT_API int64 xsax_error_offset(void)
 {
-	return 0;
+	xsaxerrorstate* pState = __xsaxErrorState();
+	return pState != NULL ? (int64)pState->tError.iOffset : 0;
 }
 
-XRT_API str xsax_error_message(void)
+XRT_API void* xsax_error_message(void)
 {
-	const xerror* pError = xrtGetError();
-	const char* sMessage = pError != NULL ? xrtErrorMessage(pError) :
-		"XML SAX operation failed";
+	xsaxerrorstate* pState = __xsaxErrorState();
+	const char* sMessage = pState != NULL && pState->tError.sMessage[0] != 0 ?
+		pState->tError.sMessage : "XML SAX operation failed";
 	return xrtStrDup(sMessage);
 }

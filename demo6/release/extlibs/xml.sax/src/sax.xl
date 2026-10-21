@@ -9,6 +9,7 @@ extern "xsax_open_file" func __sax_open_file(string path,
     c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
     c_ulonglong maxNodes, c_uint maxDepth) as point
 extern "xsax_next" func __sax_next(point handle) as var
+extern "xsax_close" func __sax_close(point handle) as c_bool
 extern "xsax_status" func __sax_status() as int
 extern "xsax_error_code" func __sax_error_code() as int
 extern "xsax_error_line" func __sax_error_line() as int
@@ -20,6 +21,27 @@ extern "xsax_error_message" func __sax_error_message() as point
 
 func __sax_error() as string
     return __xl_std_runtime_take_cstr(__sax_error_message())
+end
+
+// 在转换为无符号 C 参数前校验，避免负数或过宽深度回绕。
+func __sax_limits(int maxInput, int maxOutput, int maxItem,
+    int maxEntries, int maxNodes, int maxDepth)
+    if maxInput <= 0 or maxOutput <= 0 or maxItem <= 0 then
+        throw ValueError "xml.sax: byte limits must be positive"
+    end
+    if maxEntries <= 0 or maxNodes <= 0 then
+        throw ValueError "xml.sax: count limits must be positive"
+    end
+    if maxDepth <= 0 or maxDepth > 4294967295 then
+        throw ValueError "xml.sax: depth limit is outside C uint range"
+    end
+end
+
+// 文件路径由 C 字符串传递，不能静默截断。
+func __sax_c_string(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "xml.sax: path contains an embedded NUL byte"
+    end
 end
 
 class ReaderIter
@@ -39,6 +61,12 @@ end
 class Reader
     native point handle
     extern "xsax_destroy" destroy()
+
+    func close()
+        if not __sax_close(self.handle) then
+            throw XmlError __sax_error()
+        end
+    end
 
     func next() as var
         var result = __sax_next(self.handle)
@@ -80,6 +108,10 @@ export func reader(string text, bool namespaceAware = true,
     int maxOutput = 536870912, int maxItem = 268435456,
     int maxEntries = 100000, int maxNodes = 1000000,
     int maxDepth = 128) as Reader
+    __sax_limits(maxInput, maxOutput, maxItem, maxEntries, maxNodes, maxDepth)
+    if string.byteLen(text) > maxInput then
+        throw ValueError "xml.sax: input exceeds maxInput"
+    end
     Buffer data = Buffer()
     data.append(text)
     point handle = __sax_open_memory(data.data(), c_ulonglong(data.len()),
@@ -97,6 +129,8 @@ export func open(string path, bool namespaceAware = true,
     int maxOutput = 536870912, int maxItem = 268435456,
     int maxEntries = 100000, int maxNodes = 1000000,
     int maxDepth = 128) as Reader
+    __sax_limits(maxInput, maxOutput, maxItem, maxEntries, maxNodes, maxDepth)
+    __sax_c_string(path)
     point handle = __sax_open_file(path, c_bool(namespaceAware),
         c_bool(preserveComments), c_bool(allowDtd),
         c_bool(allowExternalEntities), c_ulonglong(maxInput),

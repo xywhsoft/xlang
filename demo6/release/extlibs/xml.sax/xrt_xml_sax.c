@@ -140,13 +140,49 @@ static bool __xrtXmlValidateOptions(const xrtxmloptions* pOptions,
 		pOptions->iVersion != XRT_XML_OPTIONS_VERSION ||
 		pOptions->tLimits.iSize != sizeof(xrtresourcelimits) ||
 		pOptions->tLimits.iVersion != XRT_RESOURCE_LIMITS_VERSION ||
-		pOptions->tLimits.iMaxInputBytes == 0u ||
-		pOptions->tLimits.iMaxOutputBytes == 0u ||
-		pOptions->tLimits.iMaxItemBytes == 0u ||
-		pOptions->tLimits.iMaxEntries == 0u ||
-		pOptions->tLimits.iMaxNodes == 0u ||
-		pOptions->tLimits.iMaxDepth == 0u ) { return false; }
+		pOptions->tLimits.iReserved != 0u ||
+		pOptions->tLimits.iFlags != 0u ) { return false; }
 	*pResult = *pOptions;
+	/* XRT 限额中的零表示不限制；内部统一成最大值以简化计数检查。 */
+	if ( pResult->tLimits.iMaxInputBytes == 0u )
+		pResult->tLimits.iMaxInputBytes = UINT64_MAX;
+	if ( pResult->tLimits.iMaxOutputBytes == 0u )
+		pResult->tLimits.iMaxOutputBytes = UINT64_MAX;
+	if ( pResult->tLimits.iMaxItemBytes == 0u )
+		pResult->tLimits.iMaxItemBytes = UINT64_MAX;
+	if ( pResult->tLimits.iMaxEntries == 0u )
+		pResult->tLimits.iMaxEntries = UINT64_MAX;
+	if ( pResult->tLimits.iMaxNodes == 0u )
+		pResult->tLimits.iMaxNodes = UINT64_MAX;
+	if ( pResult->tLimits.iMaxDepth == 0u )
+		pResult->tLimits.iMaxDepth = UINT32_MAX;
+	return true;
+}
+
+/* 已知长度的内存输入在复制或创建 Reader 前执行同一限额。 */
+bool __xrtXmlMemoryPreflight(const void* pData, uint64 iSize,
+	const xrtxmloptions* pOptions, bool bSnapshot, xrtxmlerror* pError)
+{
+	xrtxmloptions tOptions;
+	xrtXmlErrorInit(pError);
+	if ( (pData == NULL && iSize != 0u) ||
+		!__xrtXmlValidateOptions(pOptions, &tOptions) ) {
+		if ( pError != NULL ) {
+			pError->iCode = XRT_XML_ERROR_ARGUMENT;
+			snprintf(pError->sMessage, sizeof(pError->sMessage),
+				"invalid XML memory input or options");
+		}
+		return false;
+	}
+	if ( iSize > SIZE_MAX || (bSnapshot && iSize > UINT32_MAX) ||
+		iSize > tOptions.tLimits.iMaxInputBytes ) {
+		if ( pError != NULL ) {
+			pError->iCode = XRT_XML_ERROR_LIMIT;
+			snprintf(pError->sMessage, sizeof(pError->sMessage),
+				"XML input exceeds the configured limit");
+		}
+		return false;
+	}
 	return true;
 }
 
@@ -212,6 +248,30 @@ static xrtxmlsax* __xrtXmlCreate(xreader* pReader, bool bTakeOwnership,
 	return pParser;
 }
 
+/* 保留 Reader 回调报告的内存故障，其他流失败归为 I/O。 */
+static int __xrtXmlReaderFailureCode(void)
+{
+	const xerror* pCause = xrtGetError();
+	return pCause != NULL && xrtErrorKind(pCause) == XERR_MEMORY ?
+		XRT_XML_ERROR_MEMORY : XRT_XML_ERROR_IO;
+}
+
+static int __xrtXmlFinish(xrtxmlsax* pParser)
+{
+	pParser->bDone = true;
+	if ( pParser->bPull && pParser->bTakeReader && pParser->pReader != NULL ) {
+		xreader* pOwned = pParser->pReader;
+		pParser->pReader = NULL;
+		pParser->bTakeReader = false;
+		if ( !xrtReaderDestroy(pOwned) ) {
+			__xrtXmlSetError(pParser, __xrtXmlReaderFailureCode(),
+				"could not close XML input");
+			return XRT_XML_NEXT_ERROR;
+		}
+	}
+	return XRT_XML_NEXT_END;
+}
+
 int __xrtXmlPump(xrtxmlsax* pParser)
 {
 	enum XML_Status iStatus;
@@ -228,13 +288,12 @@ int __xrtXmlPump(xrtxmlsax* pParser)
 				return XRT_XML_NEXT_ERROR;
 			}
 			if ( pParser->bFinalSent ) {
-				pParser->bDone = true;
-				return XRT_XML_NEXT_END;
+				return __xrtXmlFinish(pParser);
 			}
 		}
 		if ( !xrtReaderRead(pParser->pReader, pParser->aReadBuffer,
 			XRT_XML_READ_CHUNK, &iRead) ) {
-			__xrtXmlSetError(pParser, XRT_XML_ERROR_IO,
+			__xrtXmlSetError(pParser, __xrtXmlReaderFailureCode(),
 				"could not read XML input");
 			return XRT_XML_NEXT_ERROR;
 		}
@@ -259,8 +318,7 @@ int __xrtXmlPump(xrtxmlsax* pParser)
 			return XRT_XML_NEXT_ERROR;
 		}
 		if ( pParser->bFinalSent ) {
-			pParser->bDone = true;
-			return XRT_XML_NEXT_END;
+			return __xrtXmlFinish(pParser);
 		}
 	}
 }
@@ -277,15 +335,7 @@ XRT_API xrtxmlsax* xrtXmlSaxOpenMemory(const void* pData, uint64 iSize,
 {
 	xbuffer* pBuffer;
 	xreader* pReader;
-	if ( (pData == NULL && iSize != 0u) || iSize > UINT32_MAX ) {
-		xrtXmlErrorInit(pError);
-		if ( pError != NULL ) {
-			pError->iCode = XRT_XML_ERROR_ARGUMENT;
-			snprintf(pError->sMessage, sizeof(pError->sMessage),
-				"invalid XML memory input");
-		}
-		return NULL;
-	}
+	if ( !__xrtXmlMemoryPreflight(pData, iSize, pOptions, true, pError) ) { return NULL; }
 	pBuffer = xrtBufferCreate();
 	if ( pBuffer == NULL || !xrtBufferReserve(pBuffer,
 		(size_t)(iSize < XRT_XML_READ_CHUNK ? iSize : XRT_XML_READ_CHUNK)) ||
@@ -301,7 +351,15 @@ XRT_API xrtxmlsax* xrtXmlSaxOpenMemory(const void* pData, uint64 iSize,
 		return NULL;
 	}
 	pReader = xrtReaderTakeBuffer(&pBuffer);
-	if ( pReader == NULL ) { xrtBufferDestroy(pBuffer); }
+	if ( pReader == NULL ) {
+		xrtBufferDestroy(pBuffer);
+		if ( pError != NULL ) {
+			pError->iCode = XRT_XML_ERROR_MEMORY;
+			snprintf(pError->sMessage, sizeof(pError->sMessage),
+				"could not create XML memory reader");
+		}
+		return NULL;
+	}
 	return xrtXmlSaxOpen(pReader, true, pOptions, pError);
 }
 
@@ -310,9 +368,10 @@ XRT_API xrtxmlsax* xrtXmlSaxOpenFile(str sPath,
 {
 	xreader* pReader = xrtReaderOpen(sPath);
 	if ( pReader == NULL ) {
+		int iCode = __xrtXmlReaderFailureCode();
 		xrtXmlErrorInit(pError);
 		if ( pError != NULL ) {
-			pError->iCode = XRT_XML_ERROR_IO;
+			pError->iCode = iCode;
 			snprintf(pError->sMessage, sizeof(pError->sMessage),
 				"could not open XML file");
 		}
@@ -348,6 +407,34 @@ XRT_API int xrtXmlSaxNext(xrtxmlsax* pParser, const xrtxmlevent** ppEvent,
 	return iResult;
 }
 
+XRT_API bool xrtXmlSaxClose(xrtxmlsax* pParser, xrtxmlerror* pError)
+{
+	uint32 i;
+	if ( pParser == NULL || !pParser->bPull ) {
+		xrtXmlErrorInit(pError);
+		if ( pError != NULL ) {
+			pError->iCode = XRT_XML_ERROR_ARGUMENT;
+			snprintf(pError->sMessage, sizeof(pError->sMessage),
+				"invalid XML pull reader");
+		}
+		return false;
+	}
+	/* close 之后不能再交付已经缓冲、但尚未被调用方读取的事件。 */
+	xrtXmlEventClear(&pParser->tEvent);
+	for ( i = 0u; i < pParser->iPendingCount; ++i ) {
+		xrtXmlEventClear(&pParser->pPendingEvents[i]);
+	}
+	pParser->iPendingCount = 0u;
+	pParser->iPendingIndex = 0u;
+	if ( !pParser->bDone ) { (void)__xrtXmlFinish(pParser); }
+	if ( pParser->bFailed ) {
+		__xrtXmlCopyParserError(pParser, pError);
+		return false;
+	}
+	xrtXmlErrorInit(pError);
+	return true;
+}
+
 XRT_API void xrtXmlSaxDestroy(xrtxmlsax* pParser)
 {
 	uint32 i;
@@ -380,6 +467,7 @@ XRT_API bool xrtXmlSaxParse(xreader* pReader, bool bTakeOwnership,
 	xrtxmlerror* pError)
 {
 	xrtxmlsax* pParser;
+	bool bClosed = true;
 	int iResult;
 	if ( pHandler == NULL ) {
 		if ( pReader != NULL && bTakeOwnership ) { xrtReaderDestroy(pReader); }
@@ -392,16 +480,39 @@ XRT_API bool xrtXmlSaxParse(xreader* pReader, bool bTakeOwnership,
 	if ( iResult == XRT_XML_NEXT_ERROR ) {
 		__xrtXmlCopyParserError(pParser, pError);
 	}
+	if ( pParser->bTakeReader && pParser->pReader != NULL ) {
+		xreader* pOwned = pParser->pReader;
+		pParser->pReader = NULL;
+		pParser->bTakeReader = false;
+		bClosed = xrtReaderDestroy(pOwned);
+	}
+	if ( !bClosed && iResult == XRT_XML_NEXT_END ) {
+		/* 一次性解析成功后，拥有型流的关闭仍可能失败。 */
+		__xrtXmlSetError(pParser, __xrtXmlReaderFailureCode(),
+			"could not close XML input");
+		__xrtXmlCopyParserError(pParser, pError);
+	}
 	xrtXmlSaxDestroy(pParser);
-	return iResult == XRT_XML_NEXT_END;
+	return iResult == XRT_XML_NEXT_END && bClosed;
 }
 
 XRT_API bool xrtXmlSaxParseMemory(const void* pData, uint64 iSize,
 	const xrtxmloptions* pOptions, xrtxml_event_proc pHandler, ptr pContext,
 	xrtxmlerror* pError)
 {
-	xreader* pReader = xrtReaderFromMemory(
-		(xbytesview){ (cbytes)pData, (size_t)iSize });
+	xreader* pReader;
+	if ( !__xrtXmlMemoryPreflight(pData, iSize, pOptions, false, pError) ) {
+		return false;
+	}
+	pReader = xrtReaderFromMemory((xbytesview){ (cbytes)pData, (size_t)iSize });
+	if ( pReader == NULL ) {
+		if ( pError != NULL ) {
+			pError->iCode = XRT_XML_ERROR_MEMORY;
+			snprintf(pError->sMessage, sizeof(pError->sMessage),
+				"could not create XML memory reader");
+		}
+		return false;
+	}
 	return xrtXmlSaxParse(pReader, true, pOptions, pHandler, pContext, pError);
 }
 
@@ -410,9 +521,10 @@ XRT_API bool xrtXmlSaxParseFile(str sPath, const xrtxmloptions* pOptions,
 {
 	xreader* pReader = xrtReaderOpen(sPath);
 	if ( pReader == NULL ) {
+		int iCode = __xrtXmlReaderFailureCode();
 		xrtXmlErrorInit(pError);
 		if ( pError != NULL ) {
-			pError->iCode = XRT_XML_ERROR_IO;
+			pError->iCode = iCode;
 			snprintf(pError->sMessage, sizeof(pError->sMessage),
 				"could not open XML file");
 		}

@@ -8,7 +8,7 @@
 
 #include "xrt.h"
 
-/* 调用方先选择 XRT_MODULE_*；实现文件通过内部头引入完整运行时。 */
+/* 调用方先选择 XRT_MODULE_*；实现文件仅启用所需模块。 */
 
 #ifdef __cplusplus
 extern "C" {
@@ -88,9 +88,11 @@ typedef bool (*xrtxml_event_proc)(ptr pContext, const xrtxmlevent* pEvent);
 
 XRT_API void xrtXmlOptionsInit(xrtxmloptions* pOptions);
 XRT_API void xrtXmlErrorInit(xrtxmlerror* pError);
+XRT_API bool xrtXmlNameValid(str sName);
 XRT_API void xrtXmlEventClear(xrtxmlevent* pEvent);
 
-/* pull SAX：事件中的字符串在下一次 Next 或 Destroy 前有效。 */
+/* pull SAX：事件中的字符串在下一次 Next、Close 或 Destroy 前有效。
+ * 拥有型 Reader 在 EOF 关闭，失败时 Next 返回 ERROR/IO；提前停止应显式 Close。 */
 XRT_API xrtxmlsax* xrtXmlSaxOpen(xreader* pReader, bool bTakeOwnership,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError);
 XRT_API xrtxmlsax* xrtXmlSaxOpenMemory(const void* pData, uint64 iSize,
@@ -99,10 +101,13 @@ XRT_API xrtxmlsax* xrtXmlSaxOpenFile(str sPath,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError);
 XRT_API int xrtXmlSaxNext(xrtxmlsax* pParser, const xrtxmlevent** ppEvent,
 	xrtxmlerror* pError);
+/* 提前结束 pull 读取，可重复调用；借用 Reader 保持开放。
+ * 拥有型 Reader 的关闭失败返回 false，原解析错误优先于关闭错误。 */
+XRT_API bool xrtXmlSaxClose(xrtxmlsax* pParser, xrtxmlerror* pError);
 XRT_API xrtxmlsax* xrtXmlSaxRetain(xrtxmlsax* pParser);
 XRT_API void xrtXmlSaxDestroy(xrtxmlsax* pParser);
 
-/* push SAX：回调返回 false 会立即终止解析。 */
+/* push SAX：回调返回 false 会立即终止解析；拥有型 Reader 关闭失败报告 IO。 */
 XRT_API bool xrtXmlSaxParse(xreader* pReader, bool bTakeOwnership,
 	const xrtxmloptions* pOptions, xrtxml_event_proc pHandler, ptr pContext,
 	xrtxmlerror* pError);

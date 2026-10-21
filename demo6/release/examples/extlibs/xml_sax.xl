@@ -12,6 +12,10 @@ func main(...) as int
             println("text: " + event["text"])
         end
     end
-    println("xml.sax example: PASS")
+    auto stopped = xml.sax.reader("<root><child/></root>")
+    assert stopped.next() != null
+    stopped.close()
+    assert stopped.next() == null
+    println("xml.sax C/XL example: PASS")
     return 0
 end

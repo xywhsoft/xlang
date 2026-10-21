@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog>
+  <book id="xlang">XLang 编译器</book>
+  <book id="xrt">XRT 运行库</book>
+</catalog>
+xml.etree C/XL example: PASS

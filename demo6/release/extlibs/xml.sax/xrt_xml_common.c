@@ -35,6 +35,53 @@ XRT_API void xrtXmlErrorInit(xrtxmlerror* pError)
 	if ( pError != NULL ) { memset(pError, 0, sizeof(*pError)); }
 }
 
+static bool __xrtXmlNameStart(uint32 iScalar)
+{
+	return iScalar == ':' || iScalar == '_' ||
+		(iScalar >= 'A' && iScalar <= 'Z') ||
+		(iScalar >= 'a' && iScalar <= 'z') ||
+		(iScalar >= 0xc0u && iScalar <= 0xd6u) ||
+		(iScalar >= 0xd8u && iScalar <= 0xf6u) ||
+		(iScalar >= 0xf8u && iScalar <= 0x2ffu) ||
+		(iScalar >= 0x370u && iScalar <= 0x37du) ||
+		(iScalar >= 0x37fu && iScalar <= 0x1fffu) ||
+		(iScalar >= 0x200cu && iScalar <= 0x200du) ||
+		(iScalar >= 0x2070u && iScalar <= 0x218fu) ||
+		(iScalar >= 0x2c00u && iScalar <= 0x2fefu) ||
+		(iScalar >= 0x3001u && iScalar <= 0xd7ffu) ||
+		(iScalar >= 0xf900u && iScalar <= 0xfdcfu) ||
+		(iScalar >= 0xfdf0u && iScalar <= 0xfffdu) ||
+		(iScalar >= 0x10000u && iScalar <= 0xeffffu);
+}
+
+/* XML 1.0 Fifth Edition 的 NameStartChar / NameChar。 */
+XRT_API bool xrtXmlNameValid(str sName)
+{
+	const char* sText = (const char*)sName;
+	size_t iPosition = 0u;
+	size_t iSize;
+	if ( sText == NULL || sText[0] == 0 ) { return false; }
+	iSize = strlen(sText);
+	while ( iPosition < iSize ) {
+		uint32 iScalar;
+		size_t iRead = 0u;
+		bool bStart;
+		if ( xrtUtf8Decode((xstrview){ sText + iPosition,
+			iSize - iPosition }, &iScalar, &iRead) != XUTF_OK ||
+			iRead == 0u ) { return false; }
+		bStart = __xrtXmlNameStart(iScalar);
+		if ( !bStart && (iPosition == 0u ||
+			(iScalar != '-' && iScalar != '.' &&
+			 !(iScalar >= '0' && iScalar <= '9') && iScalar != 0xb7u &&
+			 !(iScalar >= 0x300u && iScalar <= 0x36fu) &&
+			 !(iScalar >= 0x203fu && iScalar <= 0x2040u))) ) {
+			return false;
+		}
+		iPosition += iRead;
+	}
+	return true;
+}
+
 XRT_API void xrtXmlEventClear(xrtxmlevent* pEvent)
 {
 	uint32 i;
@@ -214,6 +261,7 @@ bool __xrtXmlSetEventText(xrtxmlsax* pParser, const XML_Char* sText,
 {
 	uint64 iLength = iSize > 0 ? (uint64)iSize : 0u;
 	if ( iLength > pParser->tOptions.tLimits.iMaxItemBytes ||
+		iLength > pParser->tOptions.tLimits.iMaxOutputBytes ||
 		pParser->iTextBytes > pParser->tOptions.tLimits.iMaxOutputBytes - iLength ) {
 		__xrtXmlSetError(pParser, XRT_XML_ERROR_LIMIT,
 			"XML text exceeds the configured resource limit");
@@ -235,7 +283,8 @@ bool __xrtXmlSetAttributes(xrtxmlsax* pParser, const XML_Char** pAttributes)
 	uint32 i;
 	if ( pAttributes == NULL ) { return true; }
 	while ( pAttributes[iCount * 2u] != NULL ) { iCount++; }
-	if ( pParser->iAttributes > pParser->tOptions.tLimits.iMaxEntries - iCount ) {
+	if ( iCount > pParser->tOptions.tLimits.iMaxEntries ||
+		pParser->iAttributes > pParser->tOptions.tLimits.iMaxEntries - iCount ) {
 		__xrtXmlSetError(pParser, XRT_XML_ERROR_LIMIT,
 			"XML attributes exceed the configured resource limit");
 		return false;

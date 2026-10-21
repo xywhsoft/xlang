@@ -1,0 +1,38 @@
+import xml.sax
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    int failures = 0
+    int successes = 0
+    for allocation in range(256)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        bool parsed = false
+        assert failAfter(uint64(allocation))
+        try
+            auto reader = xml.sax.reader("<root id='7'><item>text</item></root>")
+            var event = reader.next()
+            parsed = event != null and event["type"] == "start" and event["name"] == "root"
+        catch MemoryError error
+            memoryCaught = true
+        catch XmlError error
+            wrongCaught = true
+        catch ValueError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        if wrongCaught or (memoryCaught and not triggered) or (not memoryCaught and not parsed) then
+            println("xml.sax allocation mismatch at ", allocation)
+        end
+        assert not wrongCaught and (memoryCaught or parsed)
+        if triggered then failures += 1 else successes += 1 end
+        if successes > 0 then break end
+    end
+    assert failures > 0 and successes > 0
+    println("xml.sax allocation: PASS")
+    return 0
+end

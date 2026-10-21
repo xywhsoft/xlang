@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)
+cd "$root"
+work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-xml-trees-XXXXXX")
+trap 'rm -rf -- "$work"' EXIT
+cc=${CC:-gcc}
+flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror
+       -Ilib/xrt -Irelease/extlibs/xml.sax/include
+       -Irelease/extlibs/xml.dom/include
+       -Irelease/extlibs/xml.etree/include
+       -fsanitize=address,undefined -fno-omit-frame-pointer
+       -fno-pie -no-pie -pthread)
+export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
+export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+
+"$cc" "${flags[@]}" -c release/extlibs/xml.sax/test/xrt_runtime.c \
+    -o "$work/xrt_runtime.o"
+for package in xml.sax xml.dom xml.etree; do
+    source="release/extlibs/$package/test/test_${package/xml./xml_}.c"
+    binary="$work/test_${package/xml./xml_}"
+    "$cc" "${flags[@]}" "$source" "$work/xrt_runtime.o" \
+        -lm -ldl -o "$binary"
+    timeout 90s "$binary"
+done
+
+xl=release/xl
+if [[ ! -x "$xl" ]]; then
+    printf 'XML trees: Linux xl runner is missing: %s\n' "$xl" >&2
+    exit 1
+fi
+for kind in sax dom etree; do
+    timeout 90s "$xl" run "release/extlibs/xml.$kind/test/boundaries.xl"
+    timeout 90s "$xl" run "release/extlibs/xml.$kind/test/allocations.xl"
+    if [[ $kind == dom ]]; then
+        for case in private_native_negative private_pointer_negative; do
+            if timeout 90s "$xl" check "release/extlibs/xml.dom/test/$case.xl" > "$work/$case.txt" 2>&1; then
+                printf 'xml.dom: %s must be rejected\n' "$case" >&2
+                exit 1
+            fi
+        done
+        if ! grep -Fq 'createElementNative' "$work/private_native_negative.txt" ||
+           ! grep -Fq 'access' "$work/private_native_negative.txt" ||
+           ! grep -Fq 'appendChildNative' "$work/private_pointer_negative.txt" ||
+           ! grep -Fq 'access' "$work/private_pointer_negative.txt"; then
+            cat "$work/private_native_negative.txt" "$work/private_pointer_negative.txt" >&2
+            printf 'xml.dom: expected private-access diagnostics\n' >&2
+            exit 1
+        fi
+    fi
+    if [[ $kind == etree ]]; then
+        for case in constructor_access_negative private_native_negative private_pointer_negative; do
+            if timeout 90s "$xl" check "release/extlibs/xml.etree/test/$case.xl" > "$work/etree_$case.txt" 2>&1; then
+                printf 'xml.etree: %s must be rejected\n' "$case" >&2
+                exit 1
+            fi
+        done
+        if ! grep -Fq 'nameNative' "$work/etree_private_pointer_negative.txt" ||
+           ! grep -Fq 'access' "$work/etree_private_pointer_negative.txt"; then
+            cat "$work/etree_private_pointer_negative.txt" >&2
+            printf 'xml.etree: expected private pointer diagnostic\n' >&2
+            exit 1
+        fi
+    fi
+    timeout 90s "$xl" run "release/examples/extlibs/xml_${kind}_c.c" \
+        > "$work/${kind}_c.txt"
+    timeout 90s "$xl" run "release/examples/extlibs/xml_${kind}.xl" \
+        > "$work/${kind}_xl.txt"
+    diff -u "release/extlibs/xml.sax/test/xml_${kind}.expected.txt" \
+        "$work/${kind}_c.txt"
+    diff -u "$work/${kind}_c.txt" "$work/${kind}_xl.txt"
+done
+printf 'XML SAX/trees Linux C ASan/UBSan and XLang golden gate: PASS\n'

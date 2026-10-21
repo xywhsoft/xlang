@@ -1,0 +1,144 @@
+import xml.sax
+
+func main(...) as int
+    auto source = xml.sax.reader("<root id='7'><item>你好</item></root>")
+    int starts = 0
+    int texts = 0
+    for event in source
+        if event["type"] == "start" then
+            starts += 1
+            if event["name"] == "root" then
+                assert event["attributes"]["id"] == "7"
+            end
+        elseif event["type"] == "text" then
+            assert event["text"] == "你好"
+            texts += 1
+        end
+    end
+    assert starts == 2
+    assert texts == 1
+    assert source.next() == null
+    source.close()
+
+    auto stopped = xml.sax.reader("<root><child/></root>")
+    assert stopped.next()["type"] == "start"
+    stopped.close()
+    stopped.close()
+    assert stopped.next() == null
+
+    int callbackCount = 0
+    xml.sax.parse("<root/>", func(var event)
+        callbackCount += 1
+    end)
+    assert callbackCount == 2
+
+    bool rejected = false
+    try
+        auto malformed = xml.sax.reader("<root>\n<item></root>")
+        for event in malformed
+        end
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    assert xml.sax.errorLine() == 2
+    assert xml.sax.errorOffset() > 0
+
+    rejected = false
+    try
+        auto dtd = xml.sax.reader("<!DOCTYPE root [<!ENTITY x 'secret'>]><root>&x;</root>")
+        for event in dtd
+        end
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        auto external = xml.sax.reader("<!DOCTYPE root SYSTEM 'file:///xlang-extlib-no-such-entity'><root/>")
+        for event in external
+        end
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "external DTD rejected"
+    rejected = false
+    try
+        auto entity = xml.sax.reader("<!DOCTYPE root [<!ENTITY x SYSTEM 'file:///xlang-extlib-no-such-entity'>]><root>&x;</root>")
+        for event in entity
+        end
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "external entity rejected"
+    rejected = false
+    try
+        xml.sax.reader("<root/>", maxInput=-1)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "negative input limit must not become unlimited"
+
+    rejected = false
+    try
+        xml.sax.reader("<r>hi</r>", maxInput=4)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "known-size input limit must reject before allocating a Buffer"
+
+    rejected = false
+    try
+        auto embeddedNul = xml.sax.reader("<root/>\0<extra/>")
+        for event in embeddedNul
+        end
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "XML text must not truncate at an embedded NUL"
+
+    rejected = false
+    try
+        xml.sax.reader("<root/>", maxDepth=4294967424)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "depth must not wrap to 128"
+
+    rejected = false
+    try
+        auto limitedText = xml.sax.reader("<r>hi</r>", maxOutput=1)
+        for event in limitedText
+        end
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "text longer than output limit must be rejected"
+
+    rejected = false
+    try
+        auto limitedAttributes = xml.sax.reader("<r a='1' b='2'/>", maxEntries=1)
+        for event in limitedAttributes
+        end
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "single element can exceed attribute limit"
+
+    string workDir = dir.temp(path.temp(), "xlang_xml_sax_", "")
+    try
+        string fixture = path.join(workDir, "ffi.xml")
+        assert file.writeText(fixture, "<root/>")
+        rejected = false
+        try
+            xml.sax.open(fixture + "\0ignored")
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected, "open must not use a truncated path"
+    finally
+        dir.delete(workDir)
+    end
+    println("xml.sax boundaries: ok")
+    return 0
+end

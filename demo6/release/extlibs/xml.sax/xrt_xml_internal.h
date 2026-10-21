@@ -1,7 +1,27 @@
 #ifndef XRT_XML_INTERNAL_H
 #define XRT_XML_INTERNAL_H
 
-#define XRT_MODULE_ALL
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
+#ifndef XRT_MODULE_IO_FILE
+#define XRT_MODULE_IO_FILE
+#endif
+#ifndef XRT_MODULE_STRING
+#define XRT_MODULE_STRING
+#endif
+#ifndef XRT_MODULE_ONCE
+#define XRT_MODULE_ONCE
+#endif
+#ifndef XRT_MODULE_THREAD_KEY
+#define XRT_MODULE_THREAD_KEY
+#endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
+#ifndef XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_VALUE_CONTAINER
+#endif
 #include "xrt.h"
 #include "include/xrt_xml.h"
 #include "../_expat/vendor/expat/lib/expat_config.h"
@@ -51,5 +71,7 @@ bool __xrtXmlSetEventText(xrtxmlsax* pParser, const XML_Char* sText,
 	int iSize);
 bool __xrtXmlSetAttributes(xrtxmlsax* pParser, const XML_Char** pAttributes);
 int __xrtXmlPump(xrtxmlsax* pParser);
+bool __xrtXmlMemoryPreflight(const void* pData, uint64 iSize,
+	const xrtxmloptions* pOptions, bool bSnapshot, xrtxmlerror* pError);
 
 #endif
