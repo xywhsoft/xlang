@@ -1,0 +1,35 @@
+extern "xduckdb_type" func __type(int id) as string
+extern "xduckdb_result_state" func __result_state(int id) as string
+extern "xduckdb_function_category" func __function_category(int id) as string
+extern "xduckdb_aggregate_func" func __aggregate_func(int id) as string
+extern "xduckdb_storage_format" func __storage_format(int id) as string
+extern "xduckdb_estimate_cost" func __estimate_cost(int rows, int cols, int join) as int
+extern "xduckdb_extension" func __extension(int id) as string
+
+export func dataType(int id) as string
+    return __type(id)
+end
+
+export func resultState(int id) as string
+    return __result_state(id)
+end
+
+export func functionCategory(int id) as string
+    return __function_category(id)
+end
+
+export func aggregateFunc(int id) as string
+    return __aggregate_func(id)
+end
+
+export func storageFormat(int id) as string
+    return __storage_format(id)
+end
+
+export func estimateCost(int rows, int cols, int join) as int
+    return __estimate_cost(rows, cols, join)
+end
+
+export func extension(int id) as string
+    return __extension(id)
+end
