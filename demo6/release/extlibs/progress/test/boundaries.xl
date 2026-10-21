@@ -1,0 +1,82 @@
+import progress
+
+func main(...) as int
+    progress.ProgressBar bar = progress.create(100)
+    bar.setPrefix("下载")
+    bar.setWidth(20)
+    bar.advance(50)
+    string first = bar.render()
+    string second = bar.render()
+    assert first == second, "repeat render"
+    assert first.contains("下载 ["), "UTF-8 prefix"
+    assert first.contains("50% (50/100)"), "halfway"
+
+    int raised = 0
+    try
+        bar.advance(-1)
+    catch e
+        raised = 1
+    end
+    assert raised == 1 and bar.current == 50, "negative advance rejected without mutation"
+    raised = 0
+    try
+        bar.setWidth(101)
+    catch e
+        raised = 1
+    end
+    assert raised == 1 and bar.render() == first, "invalid width preserved"
+    raised = 0
+    try
+        bar.setPrefix("bad\nline")
+    catch e
+        raised = 1
+    end
+    assert raised == 1 and bar.render() == first, "newline prefix rejected"
+    raised = 0
+    try
+        bar.setPrefix("bad\tprefix")
+    catch e
+        raised = 1
+    end
+    assert raised == 1 and bar.render() == first, "tab prefix rejected"
+    raised = 0
+    try
+        bar.setPrefix("a\xe2\x80\xaeb")
+    catch e
+        raised = 1
+    end
+    assert raised == 1 and bar.render() == first, "bidi prefix rejected"
+    raised = 0
+    try
+        bar.setPrefix("a\xe2\x80\x8bb")
+    catch ValueError
+        raised = 1
+    end
+    assert raised == 1 and bar.render() == first, "zero-width prefix rejected"
+    raised = 0
+    try
+        bar.setPrefix("a\0b")
+    catch e
+        raised = 1
+    end
+    assert raised == 1 and bar.render() == first, "embedded NUL rejected"
+
+    raised = 0
+    try
+        progress.create(0)
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "non-positive total rejected"
+
+    auto large = progress.create(9223372036854775807)
+    large.set(4611686018427387903)
+    assert large.percent == 49, "below exact halfway threshold"
+    large.set(4611686018427387904)
+    assert large.percent == 50, "at exact halfway threshold"
+    large.set(9223372036854775806)
+    assert large.percent == 99, "not complete at max minus one"
+    large.advance(9223372036854775807)
+    assert large.done and large.percent == 100, "max int64 advance"
+    return 0
+end

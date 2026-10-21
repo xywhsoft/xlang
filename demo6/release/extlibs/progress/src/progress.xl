@@ -2,38 +2,42 @@ extern "xl6_xrt_last_error_text" func __progress_error() as string
 
 
 
-class ProgressBar
+export class ProgressBar
     native point handle
     extern "xprog_create" create(int total)
     extern "xprog_destroy" destroy()
 
-    extern "xprog_advance" func advanceNative(int n)
-    extern "xprog_set" func setNative(int current)
-    extern "xprog_set_prefix" func setPrefixNative(string prefix)
-    extern "xprog_set_width" func setWidthNative(int width)
-    extern "xprog_percent" func percentNative() as int
-    extern "xprog_is_done" func isDoneNative() as bool
-    extern "xprog_current" func currentNative() as int
-    extern "xprog_total" func totalNative() as int
-    extern "xprog_render" func renderNative() as string
+    private extern "xprog_advance" func advanceNative(int n) as c_int
+    private extern "xprog_set" func setNative(int current) as c_int
+    private extern "xprog_set_prefix_n" func setPrefixNative(string prefix, c_size size) as c_int
+    private extern "xprog_set_width" func setWidthNative(c_int width) as c_int
+    private extern "xprog_percent" func percentNative() as c_int
+    private extern "xprog_is_done" func isDoneNative() as c_int
+    private extern "xprog_current" func currentNative() as int
+    private extern "xprog_total" func totalNative() as int
+    private extern "xprog_render" func renderNative() as point
 
     get valid() as bool
         return self.handle != null
     end
 
     get percent() as int
-        return self.percentNative()
+        if self.handle == null then throw RuntimeError "progress: instance is destroyed" end
+        return int(self.percentNative())
     end
 
     get done() as bool
-        return self.isDoneNative()
+        if self.handle == null then throw RuntimeError "progress: instance is destroyed" end
+        return self.isDoneNative() != 0
     end
 
     get current() as int
+        if self.handle == null then throw RuntimeError "progress: instance is destroyed" end
         return self.currentNative()
     end
 
     get total() as int
+        if self.handle == null then throw RuntimeError "progress: instance is destroyed" end
         return self.totalNative()
     end
 
@@ -41,40 +45,47 @@ class ProgressBar
         if self.handle == null then
             throw RuntimeError "progress: instance is destroyed"
         end
-        self.advanceNative(n)
+        if self.advanceNative(n) == 0 then throw ValueError __progress_error() end
     end
 
     func set(int current)
         if self.handle == null then
             throw RuntimeError "progress: instance is destroyed"
         end
-        self.setNative(current)
+        if self.setNative(current) == 0 then throw ValueError __progress_error() end
     end
 
     func setPrefix(string prefix)
         if self.handle == null then
             throw RuntimeError "progress: instance is destroyed"
         end
-        self.setPrefixNative(prefix)
+        if self.setPrefixNative(prefix, c_size(string.byteLen(prefix))) == 0 then
+            throw ValueError __progress_error()
+        end
     end
 
     func setWidth(int width)
         if self.handle == null then
             throw RuntimeError "progress: instance is destroyed"
         end
-        self.setWidthNative(width)
+        if width < 10 or width > 100 then throw ValueError "progress: width must be 10..100" end
+        if self.setWidthNative(c_int(width)) == 0 then throw ValueError __progress_error() end
     end
 
     func render() as string
         if self.handle == null then
             throw RuntimeError "progress: instance is destroyed"
         end
-        return self.renderNative()
+        point result = self.renderNative()
+        if result == null then throw RuntimeError __progress_error() end
+        return __xl_runtime.takeCstr(result)
     end
 end
 
 
 
 export func create(int total) as ProgressBar
-    return ProgressBar(total)
+    ProgressBar bar = ProgressBar(total)
+    if not bar.valid then throw ValueError "progress: total must be positive" end
+    return bar
 end

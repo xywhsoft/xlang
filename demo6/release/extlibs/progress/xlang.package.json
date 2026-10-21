@@ -7,10 +7,13 @@
     "artifact": {
         "kind": "source",
         "cSources": ["progress_native.c"],
-        "xlSources": ["src/progress.xl"]
+        "includeDirs": ["include"],
+        "xlSources": ["src/progress.xl"],
+        "xrtModules": ["XRT_MODULE_UNICODE"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocation_oom.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

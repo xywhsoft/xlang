@@ -1,0 +1,5 @@
+import progress
+
+// 不执行：导入方不能绕过字符串真实长度，调用原生前缀入口。
+auto bar = progress.create(10)
+bar.setPrefixNative("a", c_size(1024))

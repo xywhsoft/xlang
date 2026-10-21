@@ -1,7 +1,5 @@
 import progress
 
-
-
 func main(...) as int
     auto bar = progress.create(10)
     bar.setPrefix("Processing")

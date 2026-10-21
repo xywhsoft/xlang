@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>progress - 扩展库 - xlang</title>
+  <meta name="description" content="无终端副作用的进度模型与单行文本渲染。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / progress</p><h1>progress</h1>
+    <p class="extlib-lead">进度状态与文本渲染。</p>
+    <p>无自动输出、光标控制或全局结果缓冲；可用于终端、日志、Web 与服务端任务。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>create(total)</code></td><td>创建进度对象</td></tr>
+      <tr><td><code>advance / set</code></td><td>按步进或绝对量更新</td></tr>
+      <tr><td><code>setPrefix / setWidth</code></td><td>控制单行文本外观；前缀拒绝控制字符、行分隔符、不可见格式符和双向控制符</td></tr>
+      <tr><td><code>current / total / percent / done / render</code></td><td>查询和渲染</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import progress
+progress.ProgressBar bar = progress.create(10)
+bar.advance(5)
+println(bar.render())</code></pre>
+    <p>不自动写终端；百分比和进度格数按精确整数阈值向下取整，即使总量接近 int64 上限也不提前进位。C 总量、步进和当前值使用与 XLang <code>int</code> 一致的 <code>int64_t</code> ABI。C 操作成功后清除前一次错误，析构不擦除调用方诊断。边界、C 所有权与测试证据见包内 README。</p>
+    <p>Linux 包级门禁覆盖 C ASan/UBSan、XLang 边界；两平台的 C/XLang 范例各自对照十档进度的固定预期输出。Windows 默认门禁先运行边界 AOT，再要求完整范例 AOT 匹配同一预期；当前完整范例构建因共享 <code>xl6ValueDataSnapshotV1</code> 缺符号失败，未执行到输出对照，不签收发布级。运行命令见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>
