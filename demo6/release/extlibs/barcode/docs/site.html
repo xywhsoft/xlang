@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>barcode - 扩展库 - xlang</title>
+  <meta name="description" content="EAN-13 与 UPC-A 校验、95 模块编码及 SVG 渲染。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / barcode</p><h1>barcode</h1>
+    <p class="extlib-lead">EAN-13 与 UPC-A 条码。</p>
+    <p>校验位自动补全、95 模块编码、ASCII 和 SVG 渲染。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>ean13 / upcA</code></td><td>生成 95 个条码模块</td></tr>
+      <tr><td><code>checksumEan / validateEan</code></td><td>计算或校验 EAN-13 校验位</td></tr>
+      <tr><td><code>ean13Ascii / upcAAscii</code></td><td>文本条码</td></tr>
+      <tr><td><code>ean13Svg / upcASvg</code></td><td>带标准静区的独立 SVG 文本</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import barcode
+var modules = barcode.upcA("12345678901")
+println(modules.length)  // 95
+println(barcode.upcAAscii("12345678901"))</code></pre>
+    <p>仅支持 EAN-13 与 UPC-A。95 位编码模块不含静区；SVG 另留 EAN-13 左 11X/右 7X、UPC-A 左右各 9X 的白色静区，画布宽 113X。合法输入下的分配失败报内存错误，失败后可重试；C 公开入口成功或正常查询后不残留上次错误。C/XLang 同功能范例的输出由包内门禁逐行对照；裁剪后的无输出 AOT 核心已运行通过。默认门禁还要构建运行带输出范例并与 C 对照，当前在共享 <code>xl6ValueDataSnapshotV1</code> 缺符号处失败；<code>--skip-aot</code> 仅用于包侧快测，不能作为发布签收。输入、C 所有权、印刷范围和验证命令见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

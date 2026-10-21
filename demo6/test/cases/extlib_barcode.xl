@@ -44,7 +44,7 @@ func main(...) as int
     // 渲染
     string svg = barcode.ean13Svg("4006381333931", 60, 3)
     assert svg.contains("<svg"), "svg root"
-    assert svg.contains("viewBox=\"0 0 285 60\""), "svg viewBox 95*3"
+    assert svg.contains("viewBox=\"0 0 339 60\""), "svg viewBox includes quiet zones"
     string asci = barcode.ean13Ascii("4006381333931")
     assert asci.length == 95, "ascii width"
 

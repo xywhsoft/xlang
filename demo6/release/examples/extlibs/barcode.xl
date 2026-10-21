@@ -16,15 +16,11 @@ func main(...) as int
     string isbn = "9780306406157"
     println("isbn valid:", barcode.validateEan(isbn))
 
-    // UPC-A
-    println(barcode.ean13Ascii(barcodeChecklessUpc()))
+    // UPC-A 11 位数据自动补上校验位
+    println(barcode.upcAAscii("12345678901"))
     string upcSvg = barcode.upcASvg("12345678901", 50, 2)
     println("upc svg bytes:", upcSvg.length > 0)
 
     println("barcode example: PASS")
     return 0
-end
-
-func barcodeChecklessUpc() as string
-    return "012345678905"
 end

@@ -1,0 +1,10 @@
+import barcode
+
+func main(...) as int
+    assert barcode.checksumEan("400638133393") == 1
+    assert barcode.validateEan("4006381333931")
+    var modules = barcode.upcA("12345678901")
+    assert modules.length == 95
+    assert barcode.upcAAscii("12345678901") == barcode.ean13Ascii("0123456789012")
+    return 0
+end

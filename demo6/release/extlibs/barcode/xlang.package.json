@@ -7,10 +7,17 @@
     "artifact": {
         "kind": "source",
         "cSources": ["barcode_native.c"],
-        "xlSources": ["src/barcode.xl"]
+        "xlSources": ["src/barcode.xl"],
+        "includeDirs": ["include"],
+        "xrtModules": [
+            "XRT_MODULE_VALUE_CONTAINER",
+            "XRT_MODULE_BUFFER",
+            "XRT_MODULE_STRING"
+        ]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/recovery.xl", "test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

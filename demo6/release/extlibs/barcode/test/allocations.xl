@@ -1,0 +1,32 @@
+import barcode
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    for api in range(0, 4)
+        bool memoryError = false
+        bool valueError = false
+        assert failAfter(0)
+        try
+            if api == 0 then barcode.ean13("4006381333931") end
+            if api == 1 then barcode.upcA("12345678901") end
+            if api == 2 then barcode.ean13Svg("4006381333931", 60, 3) end
+            if api == 3 then barcode.ean13Ascii("4006381333931") end
+        catch MemoryError e
+            memoryError = true
+        catch ValueError e
+            valueError = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert triggered and memoryError and not valueError
+    end
+    assert barcode.ean13("4006381333931").length == 95
+    assert barcode.upcA("12345678901").length == 95
+    assert barcode.ean13Svg("4006381333931", 60, 3).contains("</svg>")
+    assert barcode.ean13Ascii("4006381333931").length == 95
+    println("barcode allocation: PASS")
+    return 0
+end
