@@ -1,0 +1,4 @@
+import trie
+
+auto words = trie.create()
+words.insertNative("a", c_size(4096))

@@ -1,208 +1,274 @@
-/*
- * trie_native.c - Trie (prefix tree) for string set operations
- * Supports insert, search, prefix search, delete, and prefix counting.
- * Uses compact child arrays (sorted by byte value).
- */
-#include "../xlang_extlib_error.h"
-typedef struct TrieNode {
-    struct TrieNode **children;
-    unsigned char *keys;
-    int child_count;
-    int child_cap;
-    int is_end;
-} TrieNode;
+/* 按字节建立前缀树：适用于 UTF-8 文本，也保留 C 侧二进制键能力。 */
+#include <limits.h>
+#include <string.h>
+
+#include "include/trie_native.h"
+
+#define TRIE_DOMAIN "xlang.extlib.trie"
+
+typedef struct TrieNode TrieNode;
+typedef struct {
+    TrieNode *child;
+    unsigned char key;
+} TrieEdge;
+
+struct TrieNode {
+    TrieNode *parent;
+    TrieEdge *edges;
+    unsigned short length;
+    unsigned short capacity;
+    long long words;
+    bool terminal;
+};
 
 typedef struct {
     TrieNode *root;
     long long count;
 } XTrie;
 
-static TrieNode *trie_new_node(void) {
-    TrieNode *n = (TrieNode *)calloc(1, sizeof(TrieNode));
-    return n;
+static void trie_error(int kind, const char *message) {
+    xrtSetErrorInfo(kind, TRIE_DOMAIN, 0, message);
 }
 
-static void trie_free_node(TrieNode *n) {
-    int i;
-    if (!n) return;
-    for (i = 0; i < n->child_count; i++) {
-        trie_free_node(n->children[i]);
-    }
-    free(n->children);
-    free(n->keys);
-    free(n);
+static TrieNode *trie_node(TrieNode *parent) {
+    TrieNode *node = (TrieNode *)xrtCalloc(1u, sizeof(*node));
+    if (node != NULL) node->parent = parent;
+    return node;
 }
 
-static TrieNode *trie_find_child(TrieNode *n, unsigned char c) {
-    int i;
-    for (i = 0; i < n->child_count; i++) {
-        if (n->keys[i] == c) return n->children[i];
+/* 按父指针回溯，极长单词的销毁也不消耗 C 调用栈。 */
+static void trie_free_tree(TrieNode *root) {
+    TrieNode *node = root;
+    while (node != NULL) {
+        TrieNode *parent;
+        if (node->length != 0u) {
+            node = node->edges[--node->length].child;
+            continue;
+        }
+        parent = node->parent;
+        xrtFree(node->edges);
+        xrtFree(node);
+        node = parent;
     }
-    return NULL;
 }
 
-static TrieNode *trie_add_child(TrieNode *n, unsigned char c) {
-    TrieNode *child;
-    int pos = 0, i;
-
-    /* Find insertion position (sorted) */
-    while (pos < n->child_count && n->keys[pos] < c) pos++;
-    if (pos < n->child_count && n->keys[pos] == c) return n->children[pos];
-
-    child = trie_new_node();
-    if (!child) return NULL;
-
-    if (n->child_count >= n->child_cap) {
-        int newcap = n->child_cap == 0 ? 4 : n->child_cap * 2;
-        TrieNode **nc = (TrieNode **)realloc(n->children, newcap * sizeof(TrieNode *));
-        unsigned char *nk = (unsigned char *)realloc(n->keys, newcap);
-        if (!nc || !nk) { free(child); return NULL; }
-        n->children = nc;
-        n->keys = nk;
-        n->child_cap = newcap;
+static unsigned trie_slot(const TrieNode *node, unsigned char key, bool *found) {
+    unsigned low = 0u, high = node->length;
+    while (low < high) {
+        unsigned middle = low + (high - low) / 2u;
+        if (node->edges[middle].key < key) low = middle + 1u;
+        else high = middle;
     }
+    *found = low < node->length && node->edges[low].key == key;
+    return low;
+}
 
-    /* Shift elements */
-    for (i = n->child_count; i > pos; i--) {
-        n->children[i] = n->children[i-1];
-        n->keys[i] = n->keys[i-1];
+static TrieNode *trie_child(const TrieNode *node, unsigned char key) {
+    bool found;
+    unsigned pos = trie_slot(node, key, &found);
+    return found ? node->edges[pos].child : NULL;
+}
+
+/* 一个 edge 数组只做一次 realloc；失败时原节点保持原样。 */
+static bool trie_attach(TrieNode *parent, unsigned char key, TrieNode *child) {
+    bool found;
+    unsigned pos = trie_slot(parent, key, &found);
+    if (found || parent->length == 256u) return false;
+    if (parent->length == parent->capacity) {
+        unsigned capacity = parent->capacity == 0u ? 4u : parent->capacity * 2u;
+        TrieEdge *edges;
+        if (capacity > 256u) capacity = 256u;
+        edges = (TrieEdge *)xrtRealloc(parent->edges, capacity * sizeof(*edges));
+        if (edges == NULL) return false;
+        parent->edges = edges;
+        parent->capacity = (unsigned short)capacity;
     }
-    n->children[pos] = child;
-    n->keys[pos] = c;
-    n->child_count++;
-    return child;
+    memmove(parent->edges + pos + 1u, parent->edges + pos,
+        (parent->length - pos) * sizeof(*parent->edges));
+    parent->edges[pos].key = key;
+    parent->edges[pos].child = child;
+    parent->length++;
+    child->parent = parent;
+    return true;
+}
+
+static bool trie_input(const XTrie *trie, const char *data, size_t size) {
+    xrtClearError();
+    if (trie != NULL && (data != NULL || size == 0u)) return true;
+    trie_error(XERR_ARGUMENT, "invalid trie or key buffer");
+    return false;
 }
 
 void *xtrie_create(void) {
-    XTrie *t = (XTrie *)calloc(1, sizeof(XTrie));
-    if (!t) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.trie", "cannot allocate trie"); return NULL; }
-    t->root = trie_new_node();
-    if (!t->root) { free(t); xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.trie", "cannot allocate trie root"); return NULL; }
-    t->count = 0;
-    return t;
+    xrtClearError();
+    XTrie *trie = (XTrie *)xrtCalloc(1u, sizeof(*trie));
+    if (trie == NULL) {
+        trie_error(XERR_MEMORY, "cannot allocate trie");
+        return NULL;
+    }
+    trie->root = trie_node(NULL);
+    if (trie->root == NULL) {
+        xrtFree(trie);
+        trie_error(XERR_MEMORY, "cannot allocate trie root");
+        return NULL;
+    }
+    return trie;
 }
 
-void xtrie_destroy(void *ptr) {
-    XTrie *t = (XTrie *)ptr;
-    if (!t) return;
-    trie_free_node(t->root);
-    free(t);
+void xtrie_destroy(void *handle) {
+    XTrie *trie = (XTrie *)handle;
+    if (trie == NULL) return;
+    trie_free_tree(trie->root);
+    xrtFree(trie);
 }
 
-void xtrie_insert(void *ptr, const char *word) {
-    XTrie *t = (XTrie *)ptr;
-    TrieNode *cur;
-    const unsigned char *s;
-    if (!t || !word) return;
-    cur = t->root;
-    for (s = (const unsigned char *)word; *s; s++) {
-        cur = trie_add_child(cur, *s);
-        if (!cur) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.trie", "cannot allocate trie node"); return; }
+bool xtrie_insert(void *handle, const char *data, size_t size) {
+    XTrie *trie = (XTrie *)handle;
+    TrieNode *node, *branch = NULL, *tail;
+    size_t i = 0u, j;
+    if (!trie_input(trie, data, size)) return false;
+    node = trie->root;
+    while (i < size) {
+        TrieNode *next = trie_child(node, (unsigned char)data[i]);
+        if (next == NULL) break;
+        node = next;
+        i++;
     }
-    if (!cur->is_end) {
-        cur->is_end = 1;
-        t->count++;
+    if (i == size && node->terminal) return true;
+    if (trie->count == LLONG_MAX) {
+        trie_error(XERR_VALUE, "trie word count overflow");
+        return false;
     }
-}
-
-int xtrie_contains(void *ptr, const char *word) {
-    XTrie *t = (XTrie *)ptr;
-    TrieNode *cur;
-    const unsigned char *s;
-    if (!t || !word) return 0;
-    cur = t->root;
-    for (s = (const unsigned char *)word; *s; s++) {
-        cur = trie_find_child(cur, *s);
-        if (!cur) return 0;
-    }
-    return cur->is_end;
-}
-
-int xtrie_starts_with(void *ptr, const char *prefix) {
-    XTrie *t = (XTrie *)ptr;
-    TrieNode *cur;
-    const unsigned char *s;
-    if (!t || !prefix) return 0;
-    cur = t->root;
-    for (s = (const unsigned char *)prefix; *s; s++) {
-        cur = trie_find_child(cur, *s);
-        if (!cur) return 0;
-    }
-    return 1;
-}
-
-static long long trie_count_under(TrieNode *n) {
-    long long total = 0;
-    int i;
-    if (!n) return 0;
-    if (n->is_end) total++;
-    for (i = 0; i < n->child_count; i++) {
-        total += trie_count_under(n->children[i]);
-    }
-    return total;
-}
-
-long long xtrie_count_prefix(void *ptr, const char *prefix) {
-    XTrie *t = (XTrie *)ptr;
-    TrieNode *cur;
-    const unsigned char *s;
-    if (!t || !prefix) return 0;
-    cur = t->root;
-    for (s = (const unsigned char *)prefix; *s; s++) {
-        cur = trie_find_child(cur, *s);
-        if (!cur) return 0;
-    }
-    return trie_count_under(cur);
-}
-
-static int trie_remove_helper(TrieNode *n, const unsigned char *s) {
-    if (*s == '\0') {
-        if (!n->is_end) return 0;
-        n->is_end = 0;
-        return 1;
-    }
-    {
-        TrieNode *child = trie_find_child(n, *s);
-        if (!child) return 0;
-        if (!trie_remove_helper(child, s + 1)) return 0;
-        /* Prune empty leaf */
-        if (child->child_count == 0 && !child->is_end) {
-            int i, pos = -1;
-            for (i = 0; i < n->child_count; i++) {
-                if (n->keys[i] == *s) { pos = i; break; }
+    if (i < size) {
+        branch = trie_node(NULL);
+        if (branch == NULL) goto memory_failure;
+        tail = branch;
+        for (j = i + 1u; j < size; ++j) {
+            TrieNode *next = trie_node(NULL);
+            if (next == NULL) goto memory_failure;
+            if (!trie_attach(tail, (unsigned char)data[j], next)) {
+                xrtFree(next);
+                goto memory_failure;
             }
-            if (pos >= 0) {
-                trie_free_node(child);
-                for (i = pos; i < n->child_count - 1; i++) {
-                    n->children[i] = n->children[i+1];
-                    n->keys[i] = n->keys[i+1];
-                }
-                n->child_count--;
-            }
+            tail = next;
         }
-        return 1;
+        tail->terminal = true;
+        while (tail != NULL) {
+            tail->words = 1;
+            tail = tail->parent;
+        }
+        if (!trie_attach(node, (unsigned char)data[i], branch)) goto memory_failure;
+    } else {
+        node->terminal = true;
     }
-}
-
-int xtrie_remove(void *ptr, const char *word) {
-    XTrie *t = (XTrie *)ptr;
-    if (!t || !word) return 0;
-    if (trie_remove_helper(t->root, (const unsigned char *)word)) {
-        t->count--;
-        return 1;
+    /* 接入新分支后才更改计数；失败不会改变已发布的树。 */
+    node = trie->root;
+    node->words++;
+    for (j = 0u; j < i; ++j) {
+        node = trie_child(node, (unsigned char)data[j]);
+        node->words++;
     }
-    return 0;
+    trie->count++;
+    return true;
+memory_failure:
+    trie_free_tree(branch);
+    trie_error(XERR_MEMORY, "cannot allocate trie node");
+    return false;
 }
 
-void xtrie_clear(void *ptr) {
-    XTrie *t = (XTrie *)ptr;
-    if (!t) return;
-    trie_free_node(t->root);
-    t->root = trie_new_node();
-    t->count = 0;
+bool xtrie_contains(void *handle, const char *data, size_t size) {
+    XTrie *trie = (XTrie *)handle;
+    TrieNode *node;
+    size_t i;
+    if (!trie_input(trie, data, size)) return false;
+    node = trie->root;
+    for (i = 0u; i < size; ++i) {
+        node = trie_child(node, (unsigned char)data[i]);
+        if (node == NULL) return false;
+    }
+    return node->terminal;
 }
 
-long long xtrie_count(void *ptr) {
-    XTrie *t = (XTrie *)ptr;
-    return t ? t->count : 0;
+bool xtrie_starts_with(void *handle, const char *data, size_t size) {
+    XTrie *trie = (XTrie *)handle;
+    TrieNode *node;
+    size_t i;
+    if (!trie_input(trie, data, size)) return false;
+    node = trie->root;
+    for (i = 0u; i < size; ++i) {
+        node = trie_child(node, (unsigned char)data[i]);
+        if (node == NULL) return false;
+    }
+    return true;
+}
+
+int64_t xtrie_count_prefix(void *handle, const char *data, size_t size) {
+    XTrie *trie = (XTrie *)handle;
+    TrieNode *node;
+    size_t i;
+    if (!trie_input(trie, data, size)) return -1;
+    node = trie->root;
+    for (i = 0u; i < size; ++i) {
+        node = trie_child(node, (unsigned char)data[i]);
+        if (node == NULL) return 0;
+    }
+    return node->words;
+}
+
+bool xtrie_remove(void *handle, const char *data, size_t size) {
+    XTrie *trie = (XTrie *)handle;
+    TrieNode *node;
+    size_t i;
+    if (!trie_input(trie, data, size) ||
+        !xtrie_contains(handle, data, size)) return false;
+    node = trie->root;
+    node->words--;
+    for (i = 0u; i < size; ++i) {
+        bool found;
+        unsigned pos = trie_slot(node, (unsigned char)data[i], &found);
+        TrieNode *child = node->edges[pos].child;
+        if (child->words == 1) {
+            memmove(node->edges + pos, node->edges + pos + 1u,
+                (node->length - pos - 1u) * sizeof(*node->edges));
+            node->length--;
+            child->parent = NULL;
+            trie_free_tree(child);
+            trie->count--;
+            return true;
+        }
+        child->words--;
+        node = child;
+    }
+    node->terminal = false;
+    trie->count--;
+    return true;
+}
+
+void xtrie_clear(void *handle) {
+    XTrie *trie = (XTrie *)handle;
+    TrieNode *root;
+    xrtClearError();
+    if (trie == NULL) {
+        trie_error(XERR_ARGUMENT, "invalid trie handle");
+        return;
+    }
+    root = trie->root;
+    while (root->length != 0u) {
+        TrieNode *child = root->edges[--root->length].child;
+        child->parent = NULL;
+        trie_free_tree(child);
+    }
+    xrtFree(root->edges);
+    root->edges = NULL;
+    root->capacity = 0u;
+    root->words = 0;
+    root->terminal = false;
+    trie->count = 0;
+}
+
+int64_t xtrie_count(void *handle) {
+    XTrie *trie = (XTrie *)handle;
+    xrtClearError();
+    if (trie == NULL) trie_error(XERR_ARGUMENT, "invalid trie handle");
+    return trie != NULL ? trie->count : 0;
 }

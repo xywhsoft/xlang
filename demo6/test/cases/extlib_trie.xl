@@ -48,5 +48,16 @@ func main(...) as int
     t.clear()
     assert t.count == 0, "trie count after clear"
     assert not t.contains("apple"), "trie cleared"
+
+    // 明确长度使 UTF-8 与内嵌 NUL 不会按 C 字符串截断。
+    t.insert("你好")
+    t.insert("你们")
+    t.insert("a\0b")
+    assert t.count == 3, "unicode and nul count"
+    assert t.countPrefix("你") == 2, "utf8 prefix"
+    assert t.contains("a\0b"), "nul key round trip"
+    assert not t.contains("a"), "nul key is not truncated"
+    assert t.remove("a\0b"), "nul key remove"
+    assert t.count == 2, "count after nul remove"
     return 0
 end

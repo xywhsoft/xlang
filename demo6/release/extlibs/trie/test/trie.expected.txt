@@ -1,0 +1,9 @@
+count: 4
+contains hello: true
+contains hel: false
+startsWith hel: true
+countPrefix he: 3
+countPrefix wor: 1
+after remove help, count: 3
+contains help: false
+trie example: PASS

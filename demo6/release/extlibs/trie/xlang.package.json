@@ -7,10 +7,13 @@
     "artifact": {
         "kind": "source",
         "cSources": ["trie_native.c"],
+        "xrtModules": [],
+        "includeDirs": ["include"],
         "xlSources": ["src/trie.xl"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

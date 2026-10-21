@@ -1,0 +1,52 @@
+import trie
+
+func main(...) as int
+    trie.Trie words = trie.create()
+    assert words.startsWith("")
+    assert words.countPrefix("") == 0
+
+    // 空键与共享前缀同时存在，删除一个键不能丢掉其余分支。
+    words.insert("")
+    words.insert("a")
+    words.insert("ab")
+    words.insert("abc")
+    words.insert("a\0b")
+    words.insert("你好")
+    words.insert("你们")
+    words.insert("ab")
+    assert words.count == 7
+    assert words.contains("")
+    assert words.countPrefix("") == 7
+    assert words.countPrefix("a") == 4
+    assert words.countPrefix("你") == 2
+
+    assert words.remove("a")
+    assert not words.contains("a")
+    assert words.startsWith("a")
+    assert words.countPrefix("a") == 3
+    assert words.remove("ab")
+    assert words.contains("abc")
+    assert words.countPrefix("a") == 2
+    assert words.remove("a\0b")
+    assert not words.contains("a\0b")
+    assert words.countPrefix("a") == 1
+    assert words.remove("abc")
+    assert not words.startsWith("a")
+    assert words.countPrefix("a") == 0
+
+    assert not words.remove("你")
+    assert words.remove("")
+    assert words.startsWith("")
+    assert words.countPrefix("") == 2
+    assert words.remove("你好")
+    assert words.contains("你们")
+    assert words.countPrefix("你") == 1
+
+    words.clear()
+    assert words.count == 0
+    assert not words.contains("你们")
+    words.insert("again")
+    assert words.count == 1 and words.contains("again")
+    println("trie XL boundaries: PASS")
+    return 0
+end

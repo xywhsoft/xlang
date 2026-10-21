@@ -1,0 +1,50 @@
+import trie
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+int createFailures = 0
+int createSuccesses = 0
+for allocation in range(12)
+    bool caught = false
+    assert failAfter(uint64(allocation))
+    try
+        trie.Trie candidate = trie.create()
+        assert candidate.valid
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert caught == triggered
+    if caught then createFailures += 1 else createSuccesses += 1 end
+end
+assert createFailures > 0 and createSuccesses > 0
+
+int insertFailures = 0
+int insertSuccesses = 0
+for allocation in range(16)
+    trie.Trie words = trie.create()
+    words.insert("old")
+    bool caught = false
+    assert failAfter(uint64(allocation))
+    try
+        words.insert("new")
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert caught == triggered
+    assert words.contains("old")
+    assert words.contains("new") == not caught
+    if caught then
+        assert words.count == 1
+    else
+        assert words.count == 2
+    end
+    if caught then insertFailures += 1 else insertSuccesses += 1 end
+end
+assert insertFailures > 0 and insertSuccesses > 0
+println("trie allocations: PASS")

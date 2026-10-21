@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>trie - 扩展库 - xlang</title>
+  <meta name="description" content="支持完整字节长度和高效前缀计数的 Trie 字符串集合。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / trie</p><h1>trie</h1>
+    <p class="extlib-lead">前缀字符串集合。</p>
+    <p>查找、插入、删除和前缀词数；UTF-8 按字节保存，不做隐式归一化。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>trie.create()</code></td><td>创建 Trie 对象；分配失败时抛错</td></tr>
+      <tr><td><code>insert / contains / remove</code></td><td>管理精确键</td></tr>
+      <tr><td><code>startsWith / countPrefix</code></td><td>查询前缀</td></tr>
+      <tr><td><code>count / clear</code></td><td>总词数与清空</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import trie
+trie.Trie words = trie.create()
+words.insert("你好")
+words.insert("你们")
+println(words.countPrefix("你"))  // 2</code></pre>
+    <p>C 接口支持明确长度的二进制键；两个计数结果使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。创建或插入遇到分配失败时，XLang 抛 <code>MemoryError</code>，已有键和计数保持。Windows <code>test/check.ps1</code> 与 Linux <code>test/check.sh</code> 验证 C 独立模型、XLang 故障边界和三路范例固定输出；Linux 另含 ASan/UBSan。完整带输出 AOT 仍受主线阻断。资源所有权和性能范围见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

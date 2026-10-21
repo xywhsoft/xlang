@@ -2,24 +2,27 @@ extern "xl6_xrt_last_error_text" func __trie_error() as string
 
 
 
-class Trie
+export class Trie
     native point handle
     extern "xtrie_create" create()
     extern "xtrie_destroy" destroy()
 
-    extern "xtrie_insert" func insertNative(string word)
-    extern "xtrie_contains" func containsNative(string word) as bool
-    extern "xtrie_starts_with" func startsWithNative(string prefix) as bool
-    extern "xtrie_count_prefix" func countPrefixNative(string prefix) as int
-    extern "xtrie_remove" func removeNative(string word) as bool
-    extern "xtrie_clear" func clearNative()
-    extern "xtrie_count" func countNative() as int
+    private extern "xtrie_insert" func insertNative(string word, c_size bytes) as bool
+    private extern "xtrie_contains" func containsNative(string word, c_size bytes) as bool
+    private extern "xtrie_starts_with" func startsWithNative(string prefix, c_size bytes) as bool
+    private extern "xtrie_count_prefix" func countPrefixNative(string prefix, c_size bytes) as int
+    private extern "xtrie_remove" func removeNative(string word, c_size bytes) as bool
+    private extern "xtrie_clear" func clearNative()
+    private extern "xtrie_count" func countNative() as int
 
     get valid() as bool
         return self.handle != null
     end
 
     get count() as int
+        if self.handle == null then
+            throw RuntimeError "trie: instance is destroyed"
+        end
         return self.countNative()
     end
 
@@ -27,35 +30,37 @@ class Trie
         if self.handle == null then
             throw RuntimeError "trie: instance is destroyed"
         end
-        self.insertNative(word)
+        if not self.insertNative(word, c_size(string.byteLen(word))) then
+            throw RuntimeError __trie_error()
+        end
     end
 
     func contains(string word) as bool
         if self.handle == null then
             throw RuntimeError "trie: instance is destroyed"
         end
-        return self.containsNative(word)
+        return self.containsNative(word, c_size(string.byteLen(word)))
     end
 
     func startsWith(string prefix) as bool
         if self.handle == null then
             throw RuntimeError "trie: instance is destroyed"
         end
-        return self.startsWithNative(prefix)
+        return self.startsWithNative(prefix, c_size(string.byteLen(prefix)))
     end
 
     func countPrefix(string prefix) as int
         if self.handle == null then
             throw RuntimeError "trie: instance is destroyed"
         end
-        return self.countPrefixNative(prefix)
+        return self.countPrefixNative(prefix, c_size(string.byteLen(prefix)))
     end
 
     func remove(string word) as bool
         if self.handle == null then
             throw RuntimeError "trie: instance is destroyed"
         end
-        return self.removeNative(word)
+        return self.removeNative(word, c_size(string.byteLen(word)))
     end
 
     func clear()
@@ -69,5 +74,7 @@ end
 
 
 export func create() as Trie
-    return Trie()
+    Trie tree = Trie()
+    if not tree.valid then throw RuntimeError __trie_error() end
+    return tree
 end
