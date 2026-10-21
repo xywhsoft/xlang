@@ -11,6 +11,7 @@ func main(...) as int
     string packed = path.join(workDir, "source.gz")
     string restored = path.join(workDir, "restored.txt")
     string cancelledPath = path.join(workDir, "cancelled.gz")
+    string failedPath = path.join(workDir, "failed.gz")
     string content = "你好 gzip\n" + string.repeat("gzip-file-boundary\n", 4096)
     try
         assert file.writeText(source, content)
@@ -43,6 +44,28 @@ func main(...) as int
         end
         assert cancelled and not file.exists(cancelledPath)
 
+        bool callbackError = false
+        try
+            gzip.compressFile(source, failedPath, onProgress = func(int inputBytes,
+                int totalBytes, int outputBytes) as bool
+                throw ValueError "progress callback failed"
+            end)
+        catch ValueError e
+            callbackError = e.message == "progress callback failed"
+        end
+        assert callbackError and not file.exists(failedPath)
+
+        callbackError = false
+        try
+            gzip.decompressFile(packed, restored, onProgress = func(int inputBytes,
+                int totalBytes, int outputBytes) as bool
+                throw ValueError "decompress progress failed"
+            end)
+        catch ValueError e
+            callbackError = e.message == "decompress progress failed"
+        end
+        assert callbackError and file.readText(restored) == content
+
         bool limited = false
         try
             gzip.decompressFile(packed, restored, maxOutput = 8)
@@ -55,6 +78,7 @@ func main(...) as int
         if file.exists(packed) then assert file.delete(packed) end
         if file.exists(restored) then assert file.delete(restored) end
         if file.exists(cancelledPath) then assert file.delete(cancelledPath) end
+        if file.exists(failedPath) then assert file.delete(failedPath) end
         assert dir.delete(workDir), "temporary gzip directory must be removed"
     end
     println("gzip file operations: PASS")

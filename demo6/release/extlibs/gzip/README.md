@@ -175,3 +175,13 @@ zlib 互通、文件事务 JIT/AOT 和中央 C AOT 通过，联合门禁随后�
 `extlib_gzip.xl:49` 的既有 typed XLIR 错误处停止。Linux C
 ASan/UBSan、139 项互通、文件事务及 XLang 文件门禁通过。
 库实现/API 未改，不签收整包发布级。
+
+2026-10-21：文件事务回归增加压缩与解压进度回调抛异常的路径：
+原始 `ValueError` 消息透传；新目标不落盘，已有解压目标保留原内容。
+Windows `xl run test/file_ops.xl` 与 Linux C ASan/UBSan、Python/zlib
+互通及 XLang 文件门禁通过。Windows 联合门禁现于 AOT 前执行该用例；
+严格 C、互通和文件事务 JIT 均通过，随后在文件分配夹具的 AOT
+构建遇到共享符号 `xrtNetWorkerPortCapabilitiesV1` 未解析。独立
+`xl build release/extlibs/gzip/examples/basic.c` 可复现，详见
+`dev/extlib_blockers/gzip_worker_capabilities_link.md`。没有修改
+gzip 实现或 XRT，不据此签收整包发布级。
