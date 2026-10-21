@@ -74,6 +74,36 @@ static int short_input_scan(void) {
     return 0;
 }
 
+/* 从有效的嵌套容器出发，逐位损坏及截断都须保持解码诊断一致。 */
+static int nested_mutation_scan(void) {
+    unsigned char wire[] = {
+        0xa2, 0x61, 'a', 0x9f, 0x01, 0x5f, 0x42, 0xde, 0xad,
+        0x41, 0xbe, 0xff, 0xff, 0x61, 'b', 0xf6
+    };
+    xvalue *original = xcbor_decode(wire, sizeof(wire));
+    size_t length, offset;
+    unsigned bit;
+    CHECK(original != NULL && xrtValueType(original) == XVALUE_OBJECT &&
+        !xcbor_failed());
+    xrtValueRelease(original);
+    for (length = 0u; length <= sizeof(wire); ++length) {
+        xvalue *value = xcbor_decode(wire, length);
+        CHECK((value == NULL) == xcbor_failed());
+        xrtValueRelease(value);
+    }
+    for (offset = 0u; offset < sizeof(wire); ++offset) {
+        for (bit = 0u; bit < 8u; ++bit) {
+            xvalue *value;
+            wire[offset] ^= (unsigned char)(1u << bit);
+            value = xcbor_decode(wire, sizeof(wire));
+            CHECK((value == NULL) == xcbor_failed());
+            xrtValueRelease(value);
+            wire[offset] ^= (unsigned char)(1u << bit);
+        }
+    }
+    return 0;
+}
+
 static int oversized_array_error(void) {
     xvalue* array = xrtValueArray();
     xbuffer* encoded;
@@ -285,6 +315,7 @@ int main(void) {
     CHECK(tagged_time_depth() == 0);
     CHECK(aggregate_items_error() == 0);
     CHECK(short_input_scan() == 0);
+    CHECK(nested_mutation_scan() == 0);
     CHECK(length_headers() == 0);
 
     value = xcbor_decode(null_wire, sizeof(null_wire));

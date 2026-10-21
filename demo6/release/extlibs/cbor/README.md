@@ -98,3 +98,9 @@ XLang 边界同步覆盖 23/24、255/256 文本往返。Windows `-SkipAot`
 本轮未修改编解码实现；完整 AOT 的共享主线阻断不变。
 
 2026-10-21：XRT 已有 `XVALUE_UINT`，本包却仍拒绝 CBOR 主类型 0 中超过 `INT64_MAX` 的合法值。C/XLang 红测后补全无符号编解码，固定 `0x1b` 最大值字节、返回类型与分配失败恢复。成对 C/XLang 范例及 `cbor2` 6.1.5 双向互通均覆盖 `UINT64_MAX`；Windows `-SkipAot`、Linux C ASan/UBSan 与 XLang 双语门禁通过。完整 AOT 的共享主线缺符号未变，不签收整包发布级。
+
+2026-10-22：C 边界新增一份有效的嵌套 map/不定长 array/分块 bytes
+向量，逐个截断并逐位翻转 16 字节线缆，检查解码结果与失败诊断一致。
+Windows `-SkipAot` 严格 C、XLang 与双语门禁，Linux C ASan/UBSan、
+XLang 门禁通过。这只覆盖确定的短复合输入，不替代持续 fuzz；完整 AOT
+仍受共享主线缺符号阻断。
