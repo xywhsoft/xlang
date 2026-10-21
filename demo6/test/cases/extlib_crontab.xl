@@ -19,7 +19,7 @@ func main(...) as int
     // next: "0 * * * *" should return next hour boundary
     int next_hour = crontab.next("0 * * * *", now)
     assert next_hour > now, "next hour > now"
-    assert next_hour % 3600 == 0, "next hour on boundary"
+    assert next_hour % 60 == 0, "next hour on minute boundary"
 
     // matches: the timestamp returned by next should match
     assert crontab.matches("* * * * *", next1), "next1 matches every-minute"

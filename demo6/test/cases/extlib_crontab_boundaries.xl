@@ -1,0 +1,27 @@
+import crontab
+
+func main(...) as int
+    assert crontab.isValid("*/15 0-23/2 1,15 * 0,7")
+    assert not crontab.isValid("* * * * * extra")
+    assert not crontab.isValid("60 * * * *")
+    assert not crontab.isValid("* * * * 9")
+    assert not crontab.isValid("*/0 * * * *")
+    assert not crontab.isValid("1,,2 * * * *")
+    assert not crontab.isValid("* * * *\u0000*")
+    assert not crontab.matches("invalid", 1700000000)
+    assert crontab.next("invalid", 1700000000) == -1
+    assert crontab.isValid("0 0 31 2 *")
+    assert crontab.next("0 0 31 2 *", 1700000000) == -1
+    int monday = crontab.next("0 0 31 2 1", 1700000000)
+    assert monday > 1700000000
+    assert crontab.matches("0 0 31 2 1", monday)
+
+    int now = 1700000000
+    int nextMinute = crontab.next("* * * * *", now)
+    assert nextMinute == now - now % 60 + 60
+    assert crontab.matches("* * * * *", nextMinute)
+    assert crontab.describe("* * * * *") == "every minute"
+    assert crontab.describe("bad") == "invalid"
+    println("crontab boundaries: PASS")
+    return 0
+end
