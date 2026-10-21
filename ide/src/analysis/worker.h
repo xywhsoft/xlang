@@ -2,6 +2,7 @@
 #define XLANG_ANALYSIS_WORKER_H
 #include "analysis/session.h"
 #include "analysis/folding.h"
+#include "analysis/check_session.h"
 
 typedef struct xls_worker xls_worker;
 typedef struct xls_query xls_query;
@@ -21,6 +22,11 @@ xls_query* xlsWorkerSyntax(xls_worker* worker,const xls_analysis_document* docum
                          size_t count,const char* target);
 xls_query* xlsWorkerFolding(xls_worker* worker,const xls_analysis_document* documents,
                           size_t count,const char* target,size_t rangeLimit);
+/* Full semantic/typed-IR check on this actor, retaining the same input batch
+ * and guarded checked result across queries. Use a separate actor for slow
+ * background checks when foreground latency must remain independent. */
+xls_query* xlsWorkerCheck(xls_worker* worker,const xls_analysis_document* documents,
+                        size_t count,const char* target);
 void xlsQueryCancel(xls_query* query);
 /* Register once from the submitting owner. Wake can run on the completing
  * worker or synchronously if already ready; it must be short/thread-safe and
@@ -33,4 +39,9 @@ enum xls_query_state xlsQueryResult(xls_query* query,xls_analysis_snapshot* resu
                                    xls_session_stats* stats,uint64_t* threadId);
 /* Borrowed from a READY folding query, until that query is destroyed. */
 const xls_folding* xlsQueryFolding(const xls_query* query);
+/* READY transfers one checked-result reference, independent of query/actor
+ * destruction. Counters describe actual full builds and validated reuse.
+ * Every other state clears outputs; a failed analysis copies its error. */
+enum xls_query_state xlsQueryCheckResult(xls_query* query,xls_semantic_check** result,
+    xls_check_stats* stats,uint64_t* threadId,char* error,size_t capacity);
 #endif
