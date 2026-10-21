@@ -2108,6 +2108,11 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsTcpStreamClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTcpStreamClassBodySource);
         if(needsTcpProxyDial)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpProxyDialMembersSource);
+        if(xl6StdlibNodeUsesMemberName(root,"sendVector"))xl6StdlibBuilderAppend(&builder,xl6StdlibTcpVectorMembersSource);
+        if(needsNetBuffer)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpNetBufferMembersSource);
+        if(needsNetLineFramer)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpLineMembersSource);
+        if(needsNetLengthFramer)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpLengthMembersSource);
+        if(needsFileClass)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpFileMembersSource);
         xl6StdlibBuilderAppend(&builder,"end\n");
     }
     if ( needsTcpListenerClass ) {

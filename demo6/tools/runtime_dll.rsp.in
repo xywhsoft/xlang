@@ -71,6 +71,19 @@
     src\runtime\xl6_net_socket_datagram_error_io.c
     src\runtime\xl6_ownership_domain_net_datagram_error_info.c
     src\runtime\xl6_net_socket_vector.c
+    src\runtime\xl6_net_vector_input.c
+    src\runtime\xl6_net_vector_buffer_input.c
+    src\runtime\xl6_tcp_receive_into_net_buffer_future.c
+    src\runtime\xl6_tcp_receive_into_line_future.c
+    src\runtime\xl6_tcp_receive_into_length_future.c
+    src\runtime\xl6_tcp_vector.c
+    src\runtime\xl6_tcp_vector_text.c
+    src\runtime\xl6_tcp_vector_bytes.c
+    src\runtime\xl6_tcp_vector_buffer.c
+    src\runtime\xl6_tcp_net_buffer.c
+    src\runtime\xl6_tcp_file.c
+    src\runtime\xl6_tcp_receive_into.c
+    src\runtime\xl6_tcp_receive_into_future.c
     src\runtime\xl6_net_socket_vector_text.c
     src\runtime\xl6_net_socket_vector_bytes.c
     src\runtime\xl6_net_socket_vector_buffer.c

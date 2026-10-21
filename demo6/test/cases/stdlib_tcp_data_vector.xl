@@ -1,0 +1,60 @@
+func readDataExact(TcpStream stream, int size) as bytes
+    bytes result = b""
+    while result.length < size
+        bytes part = stream.recv(size - result.length, 5000)
+        assert part.length > 0
+        result = result + part
+    end
+    return result
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto sender = TcpStream(engine, listener.localAddress())
+auto receiver = listener.accept(5000)
+assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+array<string> texts = ["a\0", "你", "z"]
+array<bytes> chunks = [b"a\0", b"\xe4\xbd\xa0", b"z"]
+auto left = Buffer(b"a\0")
+auto right = Buffer(b"\xe4\xbd\xa0z")
+array<Buffer> buffers = [left, right]
+assert sender.sendVector(texts, 99) == NetStatus.ok
+assert readDataExact(receiver, 6) == b"a\0\xe4\xbd\xa0z"
+assert sender.sendVector(chunks, 3) == NetStatus.ok
+assert readDataExact(receiver, 3) == b"a\0\xe4"
+assert sender.sendVector(buffers) == NetStatus.ok
+left.clear()
+right.clear()
+assert readDataExact(receiver, 6) == b"a\0\xe4\xbd\xa0z"
+auto chain = NetBuffer()
+chain.append(b"a\0")
+chain.append("你z")
+assert sender.send(chain, 5) == NetStatus.ok
+assert chain.length == 6
+chain.clear()
+assert readDataExact(receiver, 5) == b"a\0\xe4\xbd\xa0"
+array<bytes> empty = []
+assert sender.sendVector(empty) == NetStatus.ok
+assert sender.sendVector(chunks, 0) == NetStatus.ok
+try
+    auto invalid = sender.sendVector(chunks, -2)
+    assert false
+catch RangeError
+end
+array<bytes> excessive = []
+int i = 0
+while i < 65
+    excessive.push(b"x")
+    i += 1
+end
+try
+    auto invalid = sender.sendVector(excessive)
+    assert false
+catch RangeError
+end
+sender.abort()
+receiver.abort()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("TCP gathered sends: typed arrays, single-copy chains and bounded prefixes: ok")

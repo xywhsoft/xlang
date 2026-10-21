@@ -1,0 +1,4 @@
+func invalid(TcpStream stream)
+    array<int> data = [1, 2]
+    auto result = stream.sendVector(data)
+end

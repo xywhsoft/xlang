@@ -139764,6 +139764,17 @@ XRT_API xnetresult xrtNetStreamSendFile(
 	if ( iSize == 0 ) {
 		return XNET_RESULT_OK;
 	}
+	#if defined(_WIN32) || defined(_WIN64)
+		/* Readiness sockets have no Windows nonblocking kernel-file path.
+		 * Reject before reserving/duplicating/enqueuing anything; discovering
+		 * this in the Worker would turn a capability error into stream abort. */
+		if ( (xrtNetPortCapabilities(pStream->Worker->Port) &
+			  XNET_PORT_CAP_SEND_FILE) == 0 ) {
+			__xrtNetStreamSetError(XERR_UNSUPPORTED, XNET_ERROR_STREAM_WRITE,
+				"send-stream-file", "selected backend has no kernel file send path");
+			return XNET_RESULT_ERROR;
+		}
+	#endif
 	if ( (iOffset > UINT64_MAX - (uint64)iSize) ||
 		!xrtFileSize(File, &iFileSize) ||
 		(iOffset > iFileSize) || ((uint64)iSize > (iFileSize - iOffset)) ) {

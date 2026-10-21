@@ -1,0 +1,19 @@
+func detachedRead(TcpStream stream) as future<int>
+    auto output = NetBuffer(16)
+    return stream.recvIntoAsync(output, 1)
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto sender = TcpStream(engine, listener.localAddress())
+auto receiver = listener.accept(5000)
+assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+auto waiting = detachedRead(receiver)
+assert sender.send(b"\x00") == NetStatus.ok
+assert await waiting == 1
+sender.abort()
+receiver.abort()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("TCP receive-into: target outlives its language wrapper, without a framer dependency: ok")

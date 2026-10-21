@@ -1,0 +1,3 @@
+func invalid(TcpStream stream, File unused)
+    auto result = stream.sendFile(Buffer(b"x"))
+end
