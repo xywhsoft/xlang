@@ -19,6 +19,10 @@ FRONTEND_SOURCES = (
     "src/parser/xl6_parser.c", "src/parser/xl6_parser_api.c", "src/ast/xl6_ast.c",
     "src/diag/xl6_diag.c", "src/common/xl6_output.c", "src/common/xl6_console.c",
     "src/sem/xl6_completion.c", "src/compile/xl6_source_report.c",
+    "src/compile/xl6_imports.c", "src/compile/xl6_source_overlay.c", "src/compile/xl6_build_inputs.c",
+    "src/package/xl6_package.c", "src/stdlib/xl6_stdlib.c", "src/stdlib/xl6_stdlib_data.c",
+    "src/type/xl6_type_model.c", "src/sem/xl6_protocol.c", "src/sem/xl6_type_registry.c",
+    "src/sem/xl6_sem_docs.c", "src/sem/xl6_sem_field_attrs.c", "src/sem/xl6_sem.c", "src/abi/xl6_callable.c",
 )
 SERVER_SOURCES = (
     "src/protocol/lsp_wire.c", "src/services/language_check.c", "src/services/language_snapshot.c",
@@ -27,7 +31,7 @@ SERVER_SOURCES = (
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
     "src/server/xlang_ls.c",
 )
-CORE_TESTS = ("analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_text_test", "document_sync_test")
+CORE_TESTS = ("analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_text_test", "document_sync_test")
 
 
 def sha(path: Path) -> str:
@@ -72,7 +76,7 @@ def main() -> None:
     sources = [(frontend / source, False) for source in FRONTEND_SOURCES]
     sources += [(ide / "src/analysis/runtime.c", False)]
     sources += [(ide / path, True) for path in (
-        "src/analysis/text.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c",
+        "src/analysis/text.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c",
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
@@ -131,7 +135,7 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "session", "worker", "folding"}
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "session", "worker", "folding", "semantic"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         suffix = ".exe" if os.name == "nt" else ""
@@ -161,7 +165,7 @@ def main() -> None:
         outputs[core.name] = sha(core)
         status = "passed"
     finally:
-        report = dict(schema=1,status=status,scope="standalone retained syntax core; not shipped LSP or semantic incrementality",
+        report = dict(schema=1,status=status,scope="standalone syntax and native semantic core; not shipped LSP or semantic incrementality",
                       frontendRoot=str(frontend),compiler=str(cc),compilerSha256=sha(cc),inputs=inputs,outputs=outputs,
                       configuration=args.configuration,serverBuilt=args.server,testsBuilt=not args.skip_tests,
                       commands=commands,runs=runs,imports=imports,elapsedSeconds=time.monotonic()-started)
