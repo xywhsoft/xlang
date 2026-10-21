@@ -1,5 +1,12 @@
+#if !defined(_WIN32) && !defined(_WIN64)
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
+#ifndef WC_ERR_INVALID_CHARS
+#define WC_ERR_INVALID_CHARS 0x00000080
+#endif
 #else
 #include <dlfcn.h>
 #include <unistd.h>
@@ -7,6 +14,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "xrt.h"
+#include "../include/onnxruntime.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define XL_EXPORT __declspec(dllexport)
@@ -41,7 +50,6 @@ typedef int (*OrtIoBindingBindOutputFn)(void*, const char*);
 typedef void* (*OrtRunIoBindingFn)(void*, void*, void*);
 
 typedef struct OrtApi {
-	int attempted;
 	int loaded;
 #if defined(_WIN32) || defined(_WIN64)
 	HMODULE module;
@@ -104,14 +112,15 @@ typedef struct OrtApi {
 	OrtResultIntFn result_float_count;
 	OrtResultFloatAtFn result_float_at;
 	OrtReleasePtrFn release_result;
-	char path[512];
+	char path[4096];
 } OrtApi;
 
 static OrtApi g_ort;
-static char g_error[512];
+static xonce g_ort_once = XRT_ONCE_INIT;
+static xonce g_error_once = XRT_ONCE_INIT;
+static xthreadkey* g_error_key;
 
 typedef struct CvBridgeApi {
-	int attempted;
 	int loaded;
 #if defined(_WIN32) || defined(_WIN64)
 	HMODULE module;
@@ -124,6 +133,7 @@ typedef struct CvBridgeApi {
 } CvBridgeApi;
 
 static CvBridgeApi g_cv_bridge;
+static xonce g_cv_bridge_once = XRT_ONCE_INIT;
 
 static void ort_copy(char* out, size_t out_size, const char* text)
 {
@@ -136,9 +146,33 @@ static void ort_copy(char* out, size_t out_size, const char* text)
 	out[len] = '\0';
 }
 
+static bool ort_error_key_init(ptr unused)
+{
+	(void)unused;
+	g_error_key = xrtThreadKeyCreate(xrtFree);
+	return g_error_key != NULL;
+}
+
+static char* ort_error_buffer(int create)
+{
+	char* buffer;
+	if ( !xrtOnce(&g_error_once, ort_error_key_init, NULL) ) return NULL;
+	buffer = (char*)xrtThreadKeyGet(g_error_key);
+	if ( buffer != NULL || !create ) return buffer;
+	buffer = (char*)xrtMalloc(512u);
+	if ( buffer == NULL ) return NULL;
+	buffer[0] = '\0';
+	if ( !xrtThreadKeySet(g_error_key, buffer) ) {
+		xrtFree(buffer);
+		return NULL;
+	}
+	return buffer;
+}
+
 static void ort_set_error(const char* text)
 {
-	ort_copy(g_error, sizeof(g_error), text);
+	char* buffer = ort_error_buffer(text != NULL && text[0] != '\0');
+	if ( buffer != NULL ) ort_copy(buffer, 512u, text);
 }
 
 static int ort_join_path(char* out, size_t out_size, const char* a, const char* b)
@@ -174,14 +208,19 @@ static void ort_dir_name(char* out, size_t out_size, const char* path)
 
 static int ort_exe_dir(char* out, size_t out_size)
 {
-	char path[512];
+	char path[4096];
 	if ( out == NULL || out_size == 0u ) return 0;
 	out[0] = '\0';
 #if defined(_WIN32) || defined(_WIN64)
 	{
-		DWORD len = GetModuleFileNameA(NULL, path, (DWORD)sizeof(path));
-		if ( len == 0 || len >= sizeof(path) ) return 0;
-		path[len] = '\0';
+		wchar_t wide[1024];
+		DWORD len = GetModuleFileNameW(NULL, wide, (DWORD)(sizeof(wide) / sizeof(wide[0])));
+		int bytes;
+		if ( len == 0 || len >= sizeof(wide) / sizeof(wide[0]) ) return 0;
+		bytes = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wide, (int)len,
+			path, (int)sizeof(path) - 1, NULL, NULL);
+		if ( bytes <= 0 ) return 0;
+		path[bytes] = '\0';
 	}
 #else
 	{
@@ -203,11 +242,57 @@ static void* ort_sym(const char* name)
 #endif
 }
 
+#if defined(_WIN32) || defined(_WIN64)
+/* 仅在 Windows 装载边界做 UTF-8/UTF-16 转换；无效 UTF-8 直接拒绝。 */
+static HMODULE ort_win_load_library(const char* path)
+{
+	wchar_t* wide;
+	HMODULE module;
+	int count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path, -1, NULL, 0);
+	if ( count <= 0 ) return NULL;
+	wide = (wchar_t*)malloc((size_t)count * sizeof(wchar_t));
+	if ( wide == NULL ) return NULL;
+	if ( MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path, -1, wide, count) != count ) {
+		free(wide);
+		return NULL;
+	}
+	module = LoadLibraryExW(wide, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+	free(wide);
+	return module;
+}
+
+static char* ort_win_env_path(const wchar_t* name)
+{
+	wchar_t* wide;
+	char* utf8;
+	DWORD count = GetEnvironmentVariableW(name, NULL, 0);
+	int bytes;
+	if ( count == 0 || count > 32768 ) return NULL;
+	wide = (wchar_t*)malloc((size_t)count * sizeof(wchar_t));
+	if ( wide == NULL ) return NULL;
+	if ( GetEnvironmentVariableW(name, wide, count) != count - 1 ) {
+		free(wide);
+		return NULL;
+	}
+	bytes = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wide, -1, NULL, 0, NULL, NULL);
+	if ( bytes <= 0 ) { free(wide); return NULL; }
+	utf8 = (char*)malloc((size_t)bytes);
+	if ( utf8 == NULL || WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
+		wide, -1, utf8, bytes, NULL, NULL) != bytes ) {
+		free(wide);
+		free(utf8);
+		return NULL;
+	}
+	free(wide);
+	return utf8;
+}
+#endif
+
 static int ort_try_load(const char* path)
 {
 	if ( path == NULL || path[0] == '\0' ) return 0;
 #if defined(_WIN32) || defined(_WIN64)
-	g_ort.module = LoadLibraryExA(path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+	g_ort.module = ort_win_load_library(path);
 #else
 	g_ort.module = dlopen(path, RTLD_NOW | RTLD_LOCAL);
 #endif
@@ -269,26 +354,90 @@ static int ort_try_load(const char* path)
 	g_ort.result_float_count = (OrtResultIntFn)ort_sym("onnxruntime_xl_result_float_count");
 	g_ort.result_float_at = (OrtResultFloatAtFn)ort_sym("onnxruntime_xl_result_float_at");
 	g_ort.release_result = (OrtReleasePtrFn)ort_sym("onnxruntime_xl_release_result");
-	if ( g_ort.create_session == NULL || g_ort.run_json == NULL ) {
-		ort_set_error("onnxruntime shim loaded but required symbols are missing");
-		return 0;
-	}
+	#define ORT_REQUIRE(field) do { \
+		if ( g_ort.field == NULL ) { \
+			ort_set_error("onnxruntime shim missing required symbols: " #field); \
+			goto missing_symbol; \
+		} \
+	} while (0)
+	ORT_REQUIRE(version);
+	ORT_REQUIRE(providers);
+	ORT_REQUIRE(last_error);
+	ORT_REQUIRE(create_options);
+	ORT_REQUIRE(release_options);
+	ORT_REQUIRE(set_intra_threads);
+	ORT_REQUIRE(set_inter_threads);
+	ORT_REQUIRE(set_graph_optimization_level);
+	ORT_REQUIRE(set_execution_mode);
+	ORT_REQUIRE(enable_profiling);
+	ORT_REQUIRE(disable_profiling);
+	ORT_REQUIRE(enable_cpu_mem_arena);
+	ORT_REQUIRE(disable_cpu_mem_arena);
+	ORT_REQUIRE(enable_mem_pattern);
+	ORT_REQUIRE(disable_mem_pattern);
+	ORT_REQUIRE(set_session_log_id);
+	ORT_REQUIRE(set_session_log_verbosity_level);
+	ORT_REQUIRE(set_session_log_severity_level);
+	ORT_REQUIRE(append_execution_provider);
+	ORT_REQUIRE(append_execution_provider_with_options);
+	ORT_REQUIRE(create_run_options);
+	ORT_REQUIRE(release_run_options);
+	ORT_REQUIRE(set_run_log_verbosity_level);
+	ORT_REQUIRE(set_run_log_severity_level);
+	ORT_REQUIRE(set_run_tag);
+	ORT_REQUIRE(set_run_terminate);
+	ORT_REQUIRE(unset_run_terminate);
+	ORT_REQUIRE(create_session);
+	ORT_REQUIRE(release_session);
+	ORT_REQUIRE(inputs);
+	ORT_REQUIRE(outputs);
+	ORT_REQUIRE(modelmeta);
+	ORT_REQUIRE(end_profiling);
+	ORT_REQUIRE(create_iobinding);
+	ORT_REQUIRE(iobinding_bind_input);
+	ORT_REQUIRE(iobinding_bind_output);
+	ORT_REQUIRE(iobinding_clear_inputs);
+	ORT_REQUIRE(iobinding_clear_outputs);
+	ORT_REQUIRE(iobinding_synchronize_inputs);
+	ORT_REQUIRE(iobinding_synchronize_outputs);
+	ORT_REQUIRE(run_with_iobinding);
+	ORT_REQUIRE(iobinding_outputs);
+	ORT_REQUIRE(release_iobinding);
+	ORT_REQUIRE(run_json);
+	ORT_REQUIRE(run_json_with_options);
+	ORT_REQUIRE(tensor_from_f32);
+	ORT_REQUIRE(tensor_adopt_f32);
+	ORT_REQUIRE(tensor_zeros_f32);
+	ORT_REQUIRE(release_tensor);
+	ORT_REQUIRE(run_tensor);
+	ORT_REQUIRE(run_tensor_fast);
+	ORT_REQUIRE(result_json);
+	ORT_REQUIRE(result_float_shape_json);
+	ORT_REQUIRE(result_float_count);
+	ORT_REQUIRE(result_float_at);
+	ORT_REQUIRE(release_result);
+	#undef ORT_REQUIRE
 	g_ort.loaded = 1;
 	ort_copy(g_ort.path, sizeof(g_ort.path), path);
 	ort_set_error("");
 	return 1;
+
+missing_symbol:
+	#if defined(_WIN32) || defined(_WIN64)
+	FreeLibrary(g_ort.module);
+	#else
+	dlclose(g_ort.module);
+	#endif
+	g_ort.module = NULL;
+	return 0;
 }
 
 static int ort_try_load_from_exe(const char* relative)
 {
-	char exe_dir[512];
-	char parent_dir[512];
-	char path[1024];
+	char exe_dir[4096];
+	char path[4096];
 	if ( !ort_exe_dir(exe_dir, sizeof(exe_dir)) ) return 0;
 	if ( !ort_join_path(path, sizeof(path), exe_dir, relative) ) return 0;
-	if ( ort_try_load(path) ) return 1;
-	ort_dir_name(parent_dir, sizeof(parent_dir), exe_dir);
-	if ( parent_dir[0] == '\0' || !ort_join_path(path, sizeof(path), parent_dir, relative) ) return 0;
 	return ort_try_load(path);
 }
 
@@ -305,7 +454,7 @@ static int cv_bridge_try_load(const char* path)
 {
 	if ( path == NULL || path[0] == '\0' ) return 0;
 #if defined(_WIN32) || defined(_WIN64)
-	g_cv_bridge.module = LoadLibraryExA(path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+	g_cv_bridge.module = ort_win_load_library(path);
 #else
 	g_cv_bridge.module = dlopen(path, RTLD_NOW | RTLD_LOCAL);
 #endif
@@ -313,77 +462,104 @@ static int cv_bridge_try_load(const char* path)
 	g_cv_bridge.to_chw_tensor_f32 = (CvToChwTensorF32Fn)cv_bridge_sym("opencv_xl_to_chw_tensor_f32");
 	g_cv_bridge.to_chw_tensor_f32_resized = (CvToChwTensorF32ResizedFn)cv_bridge_sym("opencv_xl_to_chw_tensor_f32_resized");
 	g_cv_bridge.release_tensor_f32 = (CvReleaseTensorF32Fn)cv_bridge_sym("opencv_xl_release_tensor_f32");
-	if ( g_cv_bridge.to_chw_tensor_f32 == NULL || g_cv_bridge.release_tensor_f32 == NULL ) return 0;
+	if ( g_cv_bridge.to_chw_tensor_f32 == NULL || g_cv_bridge.release_tensor_f32 == NULL ) {
+		#if defined(_WIN32) || defined(_WIN64)
+		FreeLibrary(g_cv_bridge.module);
+		#else
+		dlclose(g_cv_bridge.module);
+		#endif
+		g_cv_bridge.module = NULL;
+		return 0;
+	}
 	g_cv_bridge.loaded = 1;
 	return 1;
 }
 
 static int cv_bridge_try_load_from_exe(const char* relative)
 {
-	char exe_dir[512];
-	char parent_dir[512];
-	char path[1024];
+	char exe_dir[4096];
+	char path[4096];
 	if ( !ort_exe_dir(exe_dir, sizeof(exe_dir)) ) return 0;
 	if ( !ort_join_path(path, sizeof(path), exe_dir, relative) ) return 0;
-	if ( cv_bridge_try_load(path) ) return 1;
-	ort_dir_name(parent_dir, sizeof(parent_dir), exe_dir);
-	if ( parent_dir[0] == '\0' || !ort_join_path(path, sizeof(path), parent_dir, relative) ) return 0;
 	return cv_bridge_try_load(path);
+}
+
+/* OpenCV 辅助桥接与主 ONNX 桥接各自完成一次原子装载。 */
+static bool cv_bridge_load_once(ptr unused)
+{
+	int env_loaded;
+	(void)unused;
+	{
+#if defined(_WIN32) || defined(_WIN64)
+		char* env_path = ort_win_env_path(L"OPENCV_XLANG_DLL");
+#else
+		const char* env_path = getenv("OPENCV_XLANG_DLL");
+#endif
+		env_loaded = env_path != NULL && env_path[0] != '\0' && cv_bridge_try_load(env_path);
+#if defined(_WIN32) || defined(_WIN64)
+		free(env_path);
+#endif
+	}
+	if ( env_loaded ) return true;
+	if ( cv_bridge_try_load_from_exe("extlibs\\opencv\\bin\\opencv_xlang.dll") ) return true;
+	if ( cv_bridge_try_load("extlibs\\opencv\\bin\\opencv_xlang.dll") ) return true;
+	ort_set_error("opencv_xlang.dll with tensor bridge symbols was not found");
+	return true;
 }
 
 static int cv_bridge_load(void)
 {
-	const char* env_path;
-	const char* candidates[] = {
-		"opencv_xlang.dll",
-		"bin\\opencv_xlang.dll",
-		"extlibs\\opencv\\bin\\opencv_xlang.dll",
-		"release\\extlibs\\opencv\\bin\\opencv_xlang.dll",
-		"release\extlibs\\opencv\\bin\\opencv_xlang.dll",
-		"libs\\opencv\\bin\\opencv_xlang.dll",
-		"release\\libs\\opencv\\bin\\opencv_xlang.dll",
-		"release\examples\\libs\\opencv\\bin\\opencv_xlang.dll",
-		NULL
-	};
-	int i;
-	if ( g_cv_bridge.loaded ) return 1;
-	if ( g_cv_bridge.attempted ) return 0;
-	g_cv_bridge.attempted = 1;
-	env_path = getenv("OPENCV_XLANG_DLL");
-	if ( env_path != NULL && env_path[0] != '\0' && cv_bridge_try_load(env_path) ) return 1;
-	if ( cv_bridge_try_load_from_exe("extlibs\\opencv\\bin\\opencv_xlang.dll") ) return 1;
-	for ( i = 0; candidates[i] != NULL; ++i ) {
-		if ( cv_bridge_try_load(candidates[i]) ) return 1;
-	}
+	if ( xrtOnce(&g_cv_bridge_once, cv_bridge_load_once, NULL) && g_cv_bridge.loaded ) return 1;
 	ort_set_error("opencv_xlang.dll with tensor bridge symbols was not found");
 	return 0;
 }
 
+static bool ort_load_once(ptr unused)
+{
+	(void)unused;
+	ort_set_error("");
+	{
+#if defined(_WIN32) || defined(_WIN64)
+		char* env_path = ort_win_env_path(L"ONNXRUNTIME_XLANG_DLL");
+#else
+		const char* env_path = getenv("ONNXRUNTIME_XLANG_DLL");
+#endif
+		if ( env_path != NULL && env_path[0] != '\0' ) {
+			if ( !ort_try_load(env_path) ) {
+				char* error = ort_error_buffer(0);
+				if ( error == NULL || error[0] == '\0' ) {
+					ort_set_error("onnxruntime shim not found at ONNXRUNTIME_XLANG_DLL");
+				}
+			}
+#if defined(_WIN32) || defined(_WIN64)
+			free(env_path);
+#endif
+			return true;
+		}
+#if defined(_WIN32) || defined(_WIN64)
+		free(env_path);
+#endif
+	}
+	if ( ort_try_load_from_exe("extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll") ) return true;
+	if ( ort_try_load("extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll") ) return true;
+	{
+		char* error = ort_error_buffer(0);
+		if ( error == NULL || error[0] == '\0' ) {
+			ort_set_error("onnxruntime shim not found; set ONNXRUNTIME_XLANG_DLL or place onnxruntime_xlang.dll under extlibs\\onnxruntime\\bin");
+		}
+	}
+	return true;
+}
+
 static int ort_load(void)
 {
-	const char* env_path;
-	const char* candidates[] = {
-		"onnxruntime_xlang.dll",
-		"bin\\onnxruntime_xlang.dll",
-		"extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"release\\extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"release\extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"release\\libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"release\examples\\libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		NULL
-	};
-	int i;
-	if ( g_ort.loaded ) return 1;
-	if ( g_ort.attempted ) return 0;
-	g_ort.attempted = 1;
-	env_path = getenv("ONNXRUNTIME_XLANG_DLL");
-	if ( env_path != NULL && env_path[0] != '\0' && ort_try_load(env_path) ) return 1;
-	if ( ort_try_load_from_exe("extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll") ) return 1;
-	for ( i = 0; candidates[i] != NULL; ++i ) {
-		if ( ort_try_load(candidates[i]) ) return 1;
+	if ( xrtOnce(&g_ort_once, ort_load_once, NULL) && g_ort.loaded ) return 1;
+	{
+		char* error = ort_error_buffer(0);
+		if ( error == NULL || error[0] == '\0' ) {
+			ort_set_error("onnxruntime shim not found; set ONNXRUNTIME_XLANG_DLL or place onnxruntime_xlang.dll under extlibs\\onnxruntime\\bin");
+		}
 	}
-	ort_set_error("onnxruntime shim not found; set ONNXRUNTIME_XLANG_DLL or place onnxruntime_xlang.dll under extlibs\\onnxruntime\\bin");
 	return 0;
 }
 
@@ -391,7 +567,13 @@ XL_EXPORT int ort_available_native(void) { return ort_load(); }
 XL_EXPORT const char* ort_backend_native(void) { return ort_load() ? g_ort.path : ""; }
 XL_EXPORT const char* ort_get_version_string_native(void) { return (ort_load() && g_ort.version != NULL) ? g_ort.version() : ""; }
 XL_EXPORT const char* ort_get_available_providers_json_native(void) { return (ort_load() && g_ort.providers != NULL) ? g_ort.providers() : "[]"; }
-XL_EXPORT const char* ort_last_error_native(void) { return (ort_load() && g_ort.last_error != NULL) ? g_ort.last_error() : g_error; }
+XL_EXPORT const char* ort_last_error_native(void)
+{
+	const char* backend = (ort_load() && g_ort.last_error != NULL) ? g_ort.last_error() : NULL;
+	char* local = ort_error_buffer(0);
+	if ( backend != NULL && backend[0] != '\0' ) return backend;
+	return local != NULL ? local : "";
+}
 XL_EXPORT void* ort_session_options_create_native(void) { return (ort_load() && g_ort.create_options != NULL) ? g_ort.create_options() : NULL; }
 XL_EXPORT int ort_session_options_set_intra_op_num_threads_native(void* handle, int value) { return (handle != NULL && ort_load() && g_ort.set_intra_threads != NULL) ? g_ort.set_intra_threads(handle, value) : 0; }
 XL_EXPORT int ort_session_options_set_inter_op_num_threads_native(void* handle, int value) { return (handle != NULL && ort_load() && g_ort.set_inter_threads != NULL) ? g_ort.set_inter_threads(handle, value) : 0; }

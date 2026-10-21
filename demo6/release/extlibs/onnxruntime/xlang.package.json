@@ -11,6 +11,10 @@
                                   ],
                      "xlSources":  [
                                        "src/onnxruntime.xl"
+                                   ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_ONCE",
+                                        "XRT_MODULE_THREAD_KEY"
                                    ]
                  },
     "links":  [
@@ -22,6 +26,7 @@
     "dependencies":  [
 
                      ],
+    "coverage": { "mode": "suite", "tests": ["test/catalog_call.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

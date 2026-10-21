@@ -1,63 +1,63 @@
 
-extern "ort_available_native" func ort_available_native() as int
+extern "ort_available_native" func ort_available_native() as c_int
 extern "ort_backend_native" func ort_backend_native() as string
 extern "ort_get_version_string_native" func ort_get_version_string_native() as string
 extern "ort_get_available_providers_json_native" func ort_get_available_providers_json_native() as string
 extern "ort_last_error_native" func ort_last_error_native() as string
 extern "ort_session_options_create_native" func ort_session_options_create_native() as point
-extern "ort_session_options_set_intra_op_num_threads_native" func ort_session_options_set_intra_op_num_threads_native(point handle, int value) as int
-extern "ort_session_options_set_inter_op_num_threads_native" func ort_session_options_set_inter_op_num_threads_native(point handle, int value) as int
-extern "ort_session_options_set_graph_optimization_level_native" func ort_session_options_set_graph_optimization_level_native(point handle, int value) as int
-extern "ort_session_options_set_execution_mode_native" func ort_session_options_set_execution_mode_native(point handle, int value) as int
-extern "ort_session_options_enable_profiling_native" func ort_session_options_enable_profiling_native(point handle, string value) as int
-extern "ort_session_options_disable_profiling_native" func ort_session_options_disable_profiling_native(point handle) as int
-extern "ort_session_options_enable_cpu_mem_arena_native" func ort_session_options_enable_cpu_mem_arena_native(point handle) as int
-extern "ort_session_options_disable_cpu_mem_arena_native" func ort_session_options_disable_cpu_mem_arena_native(point handle) as int
-extern "ort_session_options_enable_mem_pattern_native" func ort_session_options_enable_mem_pattern_native(point handle) as int
-extern "ort_session_options_disable_mem_pattern_native" func ort_session_options_disable_mem_pattern_native(point handle) as int
-extern "ort_session_options_set_log_id_native" func ort_session_options_set_log_id_native(point handle, string value) as int
-extern "ort_session_options_set_log_verbosity_level_native" func ort_session_options_set_log_verbosity_level_native(point handle, int value) as int
-extern "ort_session_options_set_log_severity_level_native" func ort_session_options_set_log_severity_level_native(point handle, int value) as int
-extern "ort_session_options_append_execution_provider_native" func ort_session_options_append_execution_provider_native(point handle, string value) as int
-extern "ort_session_options_append_execution_provider_with_options_native" func ort_session_options_append_execution_provider_with_options_native(point handle, string value, string options_json) as int
-extern "ort_session_options_release_native" func ort_session_options_release_native(point handle) as int
+extern "ort_session_options_set_intra_op_num_threads_native" func ort_session_options_set_intra_op_num_threads_native(point handle, c_int value) as c_int
+extern "ort_session_options_set_inter_op_num_threads_native" func ort_session_options_set_inter_op_num_threads_native(point handle, c_int value) as c_int
+extern "ort_session_options_set_graph_optimization_level_native" func ort_session_options_set_graph_optimization_level_native(point handle, c_int value) as c_int
+extern "ort_session_options_set_execution_mode_native" func ort_session_options_set_execution_mode_native(point handle, c_int value) as c_int
+extern "ort_session_options_enable_profiling_native" func ort_session_options_enable_profiling_native(point handle, string value) as c_int
+extern "ort_session_options_disable_profiling_native" func ort_session_options_disable_profiling_native(point handle) as c_int
+extern "ort_session_options_enable_cpu_mem_arena_native" func ort_session_options_enable_cpu_mem_arena_native(point handle) as c_int
+extern "ort_session_options_disable_cpu_mem_arena_native" func ort_session_options_disable_cpu_mem_arena_native(point handle) as c_int
+extern "ort_session_options_enable_mem_pattern_native" func ort_session_options_enable_mem_pattern_native(point handle) as c_int
+extern "ort_session_options_disable_mem_pattern_native" func ort_session_options_disable_mem_pattern_native(point handle) as c_int
+extern "ort_session_options_set_log_id_native" func ort_session_options_set_log_id_native(point handle, string value) as c_int
+extern "ort_session_options_set_log_verbosity_level_native" func ort_session_options_set_log_verbosity_level_native(point handle, c_int value) as c_int
+extern "ort_session_options_set_log_severity_level_native" func ort_session_options_set_log_severity_level_native(point handle, c_int value) as c_int
+extern "ort_session_options_append_execution_provider_native" func ort_session_options_append_execution_provider_native(point handle, string value) as c_int
+extern "ort_session_options_append_execution_provider_with_options_native" func ort_session_options_append_execution_provider_with_options_native(point handle, string value, string options_json) as c_int
+extern "ort_session_options_release_native" func ort_session_options_release_native(point handle) as c_int
 extern "ort_run_options_create_native" func ort_run_options_create_native() as point
-extern "ort_run_options_set_log_verbosity_level_native" func ort_run_options_set_log_verbosity_level_native(point handle, int value) as int
-extern "ort_run_options_set_log_severity_level_native" func ort_run_options_set_log_severity_level_native(point handle, int value) as int
-extern "ort_run_options_set_run_tag_native" func ort_run_options_set_run_tag_native(point handle, string value) as int
-extern "ort_run_options_set_terminate_native" func ort_run_options_set_terminate_native(point handle) as int
-extern "ort_run_options_unset_terminate_native" func ort_run_options_unset_terminate_native(point handle) as int
-extern "ort_run_options_release_native" func ort_run_options_release_native(point handle) as int
+extern "ort_run_options_set_log_verbosity_level_native" func ort_run_options_set_log_verbosity_level_native(point handle, c_int value) as c_int
+extern "ort_run_options_set_log_severity_level_native" func ort_run_options_set_log_severity_level_native(point handle, c_int value) as c_int
+extern "ort_run_options_set_run_tag_native" func ort_run_options_set_run_tag_native(point handle, string value) as c_int
+extern "ort_run_options_set_terminate_native" func ort_run_options_set_terminate_native(point handle) as c_int
+extern "ort_run_options_unset_terminate_native" func ort_run_options_unset_terminate_native(point handle) as c_int
+extern "ort_run_options_release_native" func ort_run_options_release_native(point handle) as c_int
 extern "ort_session_create_native" func ort_session_create_native(string model_path, point options) as point
-extern "ort_session_release_native" func ort_session_release_native(point handle) as int
+extern "ort_session_release_native" func ort_session_release_native(point handle) as c_int
 extern "ort_session_inputs_native" func ort_session_inputs_native(point handle) as string
 extern "ort_session_outputs_native" func ort_session_outputs_native(point handle) as string
 extern "ort_session_modelmeta_native" func ort_session_modelmeta_native(point handle) as string
 extern "ort_session_end_profiling_native" func ort_session_end_profiling_native(point handle) as string
 extern "ort_iobinding_create_native" func ort_iobinding_create_native(point session) as point
-extern "ort_iobinding_bind_cpu_input_native" func ort_iobinding_bind_cpu_input_native(point binding, string name, string tensor_json) as int
-extern "ort_iobinding_bind_output_native" func ort_iobinding_bind_output_native(point binding, string name) as int
-extern "ort_iobinding_clear_inputs_native" func ort_iobinding_clear_inputs_native(point binding) as int
-extern "ort_iobinding_clear_outputs_native" func ort_iobinding_clear_outputs_native(point binding) as int
-extern "ort_iobinding_synchronize_inputs_native" func ort_iobinding_synchronize_inputs_native(point binding) as int
-extern "ort_iobinding_synchronize_outputs_native" func ort_iobinding_synchronize_outputs_native(point binding) as int
+extern "ort_iobinding_bind_cpu_input_native" func ort_iobinding_bind_cpu_input_native(point binding, string name, string tensor_json) as c_int
+extern "ort_iobinding_bind_output_native" func ort_iobinding_bind_output_native(point binding, string name) as c_int
+extern "ort_iobinding_clear_inputs_native" func ort_iobinding_clear_inputs_native(point binding) as c_int
+extern "ort_iobinding_clear_outputs_native" func ort_iobinding_clear_outputs_native(point binding) as c_int
+extern "ort_iobinding_synchronize_inputs_native" func ort_iobinding_synchronize_inputs_native(point binding) as c_int
+extern "ort_iobinding_synchronize_outputs_native" func ort_iobinding_synchronize_outputs_native(point binding) as c_int
 extern "ort_session_run_with_iobinding_native" func ort_session_run_with_iobinding_native(point session, point binding, point options) as point
 extern "ort_iobinding_outputs_native" func ort_iobinding_outputs_native(point binding) as string
-extern "ort_iobinding_release_native" func ort_iobinding_release_native(point binding) as int
+extern "ort_iobinding_release_native" func ort_iobinding_release_native(point binding) as c_int
 extern "ort_session_run_json_native" func ort_session_run_json_native(point handle, string output_names_json, string input_feed_json) as point
 extern "ort_session_run_json_with_options_native" func ort_session_run_json_with_options_native(point handle, string output_names_json, string input_feed_json, point options) as point
 extern "ort_tensor_zeros_f32_native" func ort_tensor_zeros_f32_native(string shape_json) as point
 extern "ort_tensor_from_opencv_native" func ort_tensor_from_opencv_native(point image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as point
-extern "ort_tensor_from_opencv_resized_native" func ort_tensor_from_opencv_resized_native(point image, int width, int height, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as point
-extern "ort_tensor_from_opencv_batch_native" func ort_tensor_from_opencv_batch_native(int batch_count, point image0, point image1, point image2, point image3, point image4, point image5, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as point
-extern "ort_tensor_release_native" func ort_tensor_release_native(point handle) as int
+extern "ort_tensor_from_opencv_resized_native" func ort_tensor_from_opencv_resized_native(point image, c_int width, c_int height, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as point
+extern "ort_tensor_from_opencv_batch_native" func ort_tensor_from_opencv_batch_native(c_int batch_count, point image0, point image1, point image2, point image3, point image4, point image5, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as point
+extern "ort_tensor_release_native" func ort_tensor_release_native(point handle) as c_int
 extern "ort_session_run_tensor_native" func ort_session_run_tensor_native(point handle, string input_name, point tensor, string output_names_json) as point
 extern "ort_session_run_tensor_fast_native" func ort_session_run_tensor_fast_native(point handle, string input_name, point tensor, string output_names_json) as point
 extern "ort_result_json_native" func ort_result_json_native(point handle) as string
 extern "ort_result_float_shape_json_native" func ort_result_float_shape_json_native(point handle) as string
-extern "ort_result_float_count_native" func ort_result_float_count_native(point handle) as int
-extern "ort_result_float_at_native" func ort_result_float_at_native(point handle, int index) as float
-extern "ort_result_release_native" func ort_result_release_native(point handle) as int
+extern "ort_result_float_count_native" func ort_result_float_count_native(point handle) as c_int
+extern "ort_result_float_at_native" func ort_result_float_at_native(point handle, c_int index) as float
+extern "ort_result_release_native" func ort_result_release_native(point handle) as c_int
 
 const int ORT_DISABLE_ALL = 0
 const int ORT_ENABLE_BASIC = 1
@@ -75,6 +75,17 @@ const int ORT_LOGGING_LEVEL_FATAL = 4
 
 const string CPUExecutionProvider = "CPUExecutionProvider"
 
+func __fits_c_int(int value) as bool
+	return value >= -2147483648 and value <= 2147483647
+end
+
+// 桥接 API 接收零结尾文本；不能把 NUL 后缀悄悄丢给后端。
+func __ort_c_text(string value)
+	if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+		throw ValueError "onnxruntime text contains NUL"
+	end
+end
+
 class SessionOptionsObject
     point handle
 
@@ -91,6 +102,13 @@ class SessionOptionsObject
 		return false
 	end
 
+	destroy()
+		if self.handle != null then
+			ort_session_options_release_native(self.handle)
+			self.handle = null
+		end
+	end
+
 	func valid() as bool
 		return self.handle != null
 	end
@@ -104,22 +122,35 @@ class SessionOptionsObject
 	end
 
 	func set_intra_op_num_threads(int value) as bool
-		return ort_session_options_set_intra_op_num_threads_native(self.handle, value) != 0
+		if not __fits_c_int(value) then
+			return false
+		end
+		return ort_session_options_set_intra_op_num_threads_native(self.handle, c_int(value)) != 0
 	end
 
 	func set_inter_op_num_threads(int value) as bool
-		return ort_session_options_set_inter_op_num_threads_native(self.handle, value) != 0
+		if not __fits_c_int(value) then
+			return false
+		end
+		return ort_session_options_set_inter_op_num_threads_native(self.handle, c_int(value)) != 0
 	end
 
 	func set_graph_optimization_level(int value) as bool
-		return ort_session_options_set_graph_optimization_level_native(self.handle, value) != 0
+		if not __fits_c_int(value) then
+			return false
+		end
+		return ort_session_options_set_graph_optimization_level_native(self.handle, c_int(value)) != 0
 	end
 
 	func set_execution_mode(int value) as bool
-		return ort_session_options_set_execution_mode_native(self.handle, value) != 0
+		if not __fits_c_int(value) then
+			return false
+		end
+		return ort_session_options_set_execution_mode_native(self.handle, c_int(value)) != 0
 	end
 
 	func enable_profiling(string prefix) as bool
+		__ort_c_text(prefix)
 		return ort_session_options_enable_profiling_native(self.handle, prefix) != 0
 	end
 
@@ -144,22 +175,32 @@ class SessionOptionsObject
 	end
 
 	func set_log_id(string value) as bool
+		__ort_c_text(value)
 		return ort_session_options_set_log_id_native(self.handle, value) != 0
 	end
 
 	func set_log_verbosity_level(int value) as bool
-		return ort_session_options_set_log_verbosity_level_native(self.handle, value) != 0
+		if not __fits_c_int(value) then
+			return false
+		end
+		return ort_session_options_set_log_verbosity_level_native(self.handle, c_int(value)) != 0
 	end
 
 	func set_log_severity_level(int value) as bool
-		return ort_session_options_set_log_severity_level_native(self.handle, value) != 0
+		if not __fits_c_int(value) then
+			return false
+		end
+		return ort_session_options_set_log_severity_level_native(self.handle, c_int(value)) != 0
 	end
 
 	func append_execution_provider(string provider_name) as bool
+		__ort_c_text(provider_name)
 		return ort_session_options_append_execution_provider_native(self.handle, provider_name) != 0
 	end
 
 	func append_execution_provider(string provider_name, string options_json) as bool
+		__ort_c_text(provider_name)
+		__ort_c_text(options_json)
 		return ort_session_options_append_execution_provider_with_options_native(self.handle, provider_name, options_json) != 0
 	end
 
@@ -194,6 +235,13 @@ class RunOptionsObject
 		return false
 	end
 
+	destroy()
+		if self.handle != null then
+			ort_run_options_release_native(self.handle)
+			self.handle = null
+		end
+	end
+
 	func valid() as bool
 		return self.handle != null
 	end
@@ -207,14 +255,21 @@ class RunOptionsObject
 	end
 
 	func set_log_verbosity_level(int value) as bool
-		return ort_run_options_set_log_verbosity_level_native(self.handle, value) != 0
+		if not __fits_c_int(value) then
+			return false
+		end
+		return ort_run_options_set_log_verbosity_level_native(self.handle, c_int(value)) != 0
 	end
 
 	func set_log_severity_level(int value) as bool
-		return ort_run_options_set_log_severity_level_native(self.handle, value) != 0
+		if not __fits_c_int(value) then
+			return false
+		end
+		return ort_run_options_set_log_severity_level_native(self.handle, c_int(value)) != 0
 	end
 
 	func set_run_tag(string value) as bool
+		__ort_c_text(value)
 		return ort_run_options_set_run_tag_native(self.handle, value) != 0
 	end
 
@@ -243,6 +298,13 @@ class RunResult
 		return false
 	end
 
+	destroy()
+		if self.handle != null then
+			ort_result_release_native(self.handle)
+			self.handle = null
+		end
+	end
+
 	func ok() as bool
 		return self.handle != null
 	end
@@ -268,7 +330,10 @@ class RunResult
 	end
 
 	func float_at(int index) as float
-		return ort_result_float_at_native(self.handle, index)
+		if not __fits_c_int(index) then
+			return 0.0
+		end
+		return ort_result_float_at_native(self.handle, c_int(index))
 	end
 end
 
@@ -286,6 +351,13 @@ class TensorObject
 			return true
 		end
 		return false
+	end
+
+	destroy()
+		if self.handle != null then
+			ort_tensor_release_native(self.handle)
+			self.handle = null
+		end
 	end
 
 	func valid() as bool
@@ -317,6 +389,13 @@ class IoBindingObject
 		return false
 	end
 
+	destroy()
+		if self.handle != null then
+			ort_iobinding_release_native(self.handle)
+			self.handle = null
+		end
+	end
+
 	func valid() as bool
 		return self.handle != null
 	end
@@ -330,10 +409,13 @@ class IoBindingObject
 	end
 
 	func bind_cpu_input(string name, string tensor_json) as bool
+		__ort_c_text(name)
+		__ort_c_text(tensor_json)
 		return ort_iobinding_bind_cpu_input_native(self.handle, name, tensor_json) != 0
 	end
 
 	func bind_output(string name) as bool
+		__ort_c_text(name)
 		return ort_iobinding_bind_output_native(self.handle, name) != 0
 	end
 
@@ -366,10 +448,12 @@ class InferenceSessionObject
 	end
 
 	create(string model_path)
+		__ort_c_text(model_path)
 		self.handle = ort_session_create_native(model_path, null)
 	end
 
 	create(string model_path, SessionOptionsObject options)
+		__ort_c_text(model_path)
 		self.handle = ort_session_create_native(model_path, options.handle)
 	end
 
@@ -380,6 +464,13 @@ class InferenceSessionObject
 			return true
 		end
 		return false
+	end
+
+	destroy()
+		if self.handle != null then
+			ort_session_release_native(self.handle)
+			self.handle = null
+		end
 	end
 
 	func valid() as bool
@@ -419,18 +510,26 @@ class InferenceSessionObject
 	end
 
 	func run(string output_names_json, string input_feed_json) as RunResult
+		__ort_c_text(output_names_json)
+		__ort_c_text(input_feed_json)
 		return RunResult(ort_session_run_json_native(self.handle, output_names_json, input_feed_json))
 	end
 
 	func run(string output_names_json, string input_feed_json, RunOptionsObject run_options) as RunResult
+		__ort_c_text(output_names_json)
+		__ort_c_text(input_feed_json)
 		return RunResult(ort_session_run_json_with_options_native(self.handle, output_names_json, input_feed_json, run_options.handle))
 	end
 
 	func run_tensor(string input_name, TensorObject tensor, string output_names_json) as RunResult
+		__ort_c_text(input_name)
+		__ort_c_text(output_names_json)
 		return RunResult(ort_session_run_tensor_native(self.handle, input_name, tensor.handle, output_names_json))
 	end
 
 	func run_tensor_fast(string input_name, TensorObject tensor, string output_names_json) as RunResult
+		__ort_c_text(input_name)
+		__ort_c_text(output_names_json)
 		return RunResult(ort_session_run_tensor_fast_native(self.handle, input_name, tensor.handle, output_names_json))
 	end
 
@@ -464,6 +563,7 @@ export func RunResultFromHandle(point handle) as RunResult
 end
 
 export func TensorZerosF32(string shape_json) as TensorObject
+	__ort_c_text(shape_json)
 	return TensorObject(ort_tensor_zeros_f32_native(shape_json))
 end
 
@@ -472,11 +572,17 @@ export func TensorFromOpenCV(point image, float scale, float mean0, float mean1,
 end
 
 export func TensorFromOpenCVResized(point image, int width, int height, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as TensorObject
-	return TensorObject(ort_tensor_from_opencv_resized_native(image, width, height, scale, mean0, mean1, mean2, std0, std1, std2))
+	if not __fits_c_int(width) or not __fits_c_int(height) then
+		return TensorObject(null)
+	end
+	return TensorObject(ort_tensor_from_opencv_resized_native(image, c_int(width), c_int(height), scale, mean0, mean1, mean2, std0, std1, std2))
 end
 
 export func TensorFromOpenCVBatch(int batch_count, point image0, point image1, point image2, point image3, point image4, point image5, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as TensorObject
-	return TensorObject(ort_tensor_from_opencv_batch_native(batch_count, image0, image1, image2, image3, image4, image5, scale, mean0, mean1, mean2, std0, std1, std2))
+	if not __fits_c_int(batch_count) then
+		return TensorObject(null)
+	end
+	return TensorObject(ort_tensor_from_opencv_batch_native(c_int(batch_count), image0, image1, image2, image3, image4, image5, scale, mean0, mean1, mean2, std0, std1, std2))
 end
 
 export func InferenceSession(string model_path) as InferenceSessionObject

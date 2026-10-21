@@ -1,0 +1,10 @@
+import onnxruntime
+
+func main(...) as int
+    auto session = onnxruntime.InferenceSession("extlibs/rapidocr/models/ch_ppocr_mobile_v2.0_cls_infer.onnx")
+    assert session.valid(), session.error()
+    println(session.get_inputs())
+    println(session.get_outputs())
+    assert session.release()
+    return 0
+end

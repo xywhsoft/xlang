@@ -1,0 +1,46 @@
+import onnxruntime
+
+func main(...) as int
+    assert onnxruntime.available()
+    auto options = onnxruntime.SessionOptions()
+    assert options.valid()
+    bool rejected = false
+    try
+        options.set_log_id("probe\0hidden")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+    assert not options.set_graph_optimization_level(4294967297)
+    assert not options.set_log_verbosity_level(-4294967296)
+    assert options.release()
+    auto session = onnxruntime.InferenceSession("extlibs/rapidocr/models/ch_ppocr_mobile_v2.0_cls_infer.onnx")
+    assert session.valid(), session.error()
+    rejected = false
+    try
+        onnxruntime.InferenceSession("extlibs/rapidocr/models/ch_ppocr_mobile_v2.0_cls_infer.onnx\0hidden")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+    assert string.contains(session.get_inputs(), "name")
+    assert string.contains(session.get_outputs(), "name")
+    auto tensor = onnxruntime.TensorZerosF32("[1,3,48,192]")
+    assert tensor.valid(), tensor.error()
+    rejected = false
+    try
+        onnxruntime.TensorZerosF32("[1,3,48,192]\0hidden")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+    auto result = session.run_tensor("x", tensor, "[\"save_infer_model/scale_0.tmp_1\"]")
+    assert result.valid(), result.error()
+    assert result.float_count() == 2
+    assert result.float_at(4294967296) == 0.0
+    assert string.contains(result.float_shape_json(), "1")
+    assert result.release()
+    assert tensor.release()
+    assert session.release()
+    return 0
+end
