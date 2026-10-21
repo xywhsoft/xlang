@@ -23,12 +23,14 @@ XLang 的 `field`、`build`、`parse` 在交给 C 字符串接口前拒绝内嵌
 会清理前一次操作遗留的 XRT 错误状态。
 单帧限制 16 MiB、最多 4096 个**应用字段**；8、9、10 是额外的帧字段，
 所以最大合法报文的解析结果含 4099 项。`parse` 返回 `{valid, fields}`，
-其中 `fields` 包含 8、9、10；输入无效时抛 `ValueError`。
+其中 `fields` 包含 8、9、10；格式无效时抛 `ValueError`，超过 16 MiB
+或字段数上限时抛 `RangeError`。
 `validate` 对无效报文返回 `false`，不留下预期解析错误；内存分配失败
 不是无效报文，C 侧保留 `XERR_MEMORY`，XLang 侧抛 `MemoryError`。
 `field`、`build`、`parse` 的原生分配失败在 XLang 侧同样抛 `MemoryError`，
-格式或参数错误仍抛 `ValueError`。C 可通过 `xfix_has_error` 和
-`xfix_memory_error` 在失败后检查本线程的 XRT 错误状态。
+格式或参数错误仍抛 `ValueError`，容量超限抛 `RangeError`。C 可通过
+`xfix_has_error`、`xfix_memory_error`、`xfix_range_error` 在失败后检查
+本线程的 XRT 错误状态。
 构建和解析都要求 `8=BeginString` 非空；校验和即使正确，空 `8=` 也不是有效帧。
 原生 C 的 `build` BeginString 与 `field` 文本入口在读取 NUL 终止符时也按
 16 MiB 限界扫描；超过上限返回 `XERR_RANGE`，不会先无界扫描或分配字段对象。
@@ -77,7 +79,8 @@ XLang 用例均登记到 `coverage.tests`。整套门禁通过。
 
 2026-10-17：原生 C `xfix_parse` 原在检查 16 MiB 单帧上限前无界
 `strlen`。16 MiB 加 1 字节的未终止输入由 ASan 复现越界读取，现最多
-探测上限再加一个字节，超限仍返回 null 值和 `XERR_ARGUMENT`。
+探测上限再加一个字节；当时超限返回 null 值和 `XERR_ARGUMENT`，
+现已统一改为 `XERR_RANGE`。
 Linux C ASan/UBSan、XLang/双语联合门禁及 Windows `-SkipAot` 包级门禁
 通过。C 接口仍要求有效 NUL 结尾字符串，完整 AOT 阻断未变。
 

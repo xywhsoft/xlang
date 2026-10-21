@@ -53,7 +53,11 @@ static bool xfix_field_text(xbuffer* pOutput, int64 iTag, xstrview Value)
     char aTag[32];
     int iLength;
     const char iSoh = '\x01';
-    if (iTag <= 0 || Value.Size > XFIX_MAX_BYTES ||
+    if (Value.Size > XFIX_MAX_BYTES) {
+        xfix_error(XERR_RANGE, "FIX field value exceeds the 16 MiB safety limit");
+        return false;
+    }
+    if (iTag <= 0 ||
         (Value.Size > 0 && (!Value.Data || memchr(Value.Data, '\x01', Value.Size) != NULL ||
             memchr(Value.Data, '\0', Value.Size) != NULL))) {
         xfix_error(XERR_VALUE, "FIX fields need a positive tag and a value without SOH or NUL");
@@ -217,8 +221,11 @@ xvalue* xfix_parse(cstr sMessage)
     xrtClearError();
     if (sMessage != NULL)
         while (iSize <= XFIX_MAX_BYTES && sMessage[iSize] != '\0') ++iSize;
-    if (iSize == 0u || iSize > XFIX_MAX_BYTES) {
-        xfix_error(XERR_ARGUMENT, "FIX input must contain at most 16 MiB of text"); return xrtValueNull();
+    if (iSize == 0u) {
+        xfix_error(XERR_ARGUMENT, "FIX input must not be empty"); return xrtValueNull();
+    }
+    if (iSize > XFIX_MAX_BYTES) {
+        xfix_error(XERR_RANGE, "FIX input exceeds the 16 MiB safety limit"); return xrtValueNull();
     }
     pResult = xrtValueObject();
     pFields = xrtValueArray();
@@ -297,6 +304,12 @@ bool xfix_memory_error(void)
 {
     const xerror* pError = xrtGetError();
     return pError != NULL && xrtErrorKind(pError) == XERR_MEMORY;
+}
+
+bool xfix_range_error(void)
+{
+    const xerror* pError = xrtGetError();
+    return pError != NULL && xrtErrorKind(pError) == XERR_RANGE;
 }
 
 xvalue* xfix_field(int64 iTag, cstr sValue)

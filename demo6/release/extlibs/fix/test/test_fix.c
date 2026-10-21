@@ -176,7 +176,7 @@ int main(void)
         memset(oversized, 'x', size);
         parsed = xfix_parse(oversized);
         CHECK(parsed != NULL && xrtValueType(parsed) == XVALUE_NULL);
-        CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+        CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
         xrtValueRelease(parsed);
         free(oversized);
     }
@@ -192,6 +192,19 @@ int main(void)
         CHECK(parsed != NULL && xrtValueType(parsed) == XVALUE_NULL);
         CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
         xrtValueRelease(parsed);
+        {
+            xvalue *large_fields = xrtValueArray();
+            xvalue *large_field = xrtValueObject();
+            CHECK(large_fields != NULL && large_field != NULL);
+            CHECK(xrtValueObjectSetNew(large_field, XRT_STR_LITERAL("tag"),
+                xrtValueInt(58)));
+            CHECK(xrtValueObjectSetNew(large_field, XRT_STR_LITERAL("value"),
+                xrtValueString((xstrview){oversized, size - 1u})));
+            CHECK(xrtValueArrayAppendTake(large_fields, &large_field));
+            CHECK(xfix_build("FIX.4.4", large_fields) == NULL);
+            CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
+            xrtValueRelease(large_fields);
+        }
         /* 字段文本可恰好达到上限；完整报文还需为帧字段留空间。 */
         oversized[size - 2u] = '\0';
         parsed = xfix_field(58, oversized);

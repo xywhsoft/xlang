@@ -5,6 +5,7 @@ extern "xfix_parse" func __parse(string message) as var
 extern "xfix_validate" func __validate(string message) as bool
 extern "xfix_has_error" func __has_error() as bool
 extern "xfix_memory_error" func __memory_error() as bool
+extern "xfix_range_error" func __range_error() as bool
 extern "xfix_error_message" func __error() as string
 extern "xrtClearError" func __fix_clear_error()
 
@@ -15,6 +16,9 @@ end
 func __fix_raise()
     if __memory_error() then
         throw MemoryError __error()
+    end
+    if __range_error() then
+        throw RangeError __error()
     end
     throw ValueError __error()
 end

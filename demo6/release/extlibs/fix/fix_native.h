@@ -17,6 +17,7 @@ bool xfix_validate(const char *message);
 /* validate 的格式错误不留错误；分配失败保留 XRT 内存错误。 */
 bool xfix_has_error(void);
 bool xfix_memory_error(void);
+bool xfix_range_error(void);
 const char *xfix_error_message(void);
 
 #ifdef __cplusplus

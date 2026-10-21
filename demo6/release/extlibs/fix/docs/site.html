@@ -40,10 +40,10 @@ println(decoded["fields"][2]["value"])</code></pre>
     <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
       <tr><td><code>field(tag, value)</code></td><td>创建包含 tag/value 的字段对象；8、9、10 为保留标签。</td></tr>
       <tr><td><code>build(beginString, fields)</code></td><td>从有序字段数组生成完整报文；保留重复标签。</td></tr>
-      <tr><td><code>parse(message)</code></td><td>校验并返回包含完整字段数组的对象，坏帧抛 ValueError。</td></tr>
+      <tr><td><code>parse(message)</code></td><td>校验并返回包含完整字段数组的对象；格式错误抛 ValueError，超限抛 RangeError。</td></tr>
       <tr><td><code>validate(message)</code></td><td>坏帧返回 false；分配失败不是坏帧，在 XLang 中抛 MemoryError。</td></tr>
     </tbody></table>
-    <p>单帧最多 16 MiB、4096 个应用字段；加上自动生成的 8、9、10，最大合法解析结果有 4099 项。8=BeginString 必须非空；文本值不能含 SOH 或 NUL，XL 传入 C 字符串接口的文本也拒绝内嵌 NUL，避免静默截断。C 的 BeginString 和字段文本入口按 16 MiB 限界扫描，超限报告 RANGE；独立字段文本可恰好达到 16 MiB，但完整帧仍须留出头尾字段空间。字段对象的值支持字符串、有符号/无符号整数、浮点和布尔值；无符号整数按十进制完整写出。浮点字段使用点号小数，不受进程区域设置影响。它是帧编解码器，不提供交易会话、序号/重发、场所字典验证或网络连接。</p>
+    <p>单帧最多 16 MiB、4096 个应用字段；加上自动生成的 8、9、10，最大合法解析结果有 4099 项。8=BeginString 必须非空；文本值不能含 SOH 或 NUL，XL 传入 C 字符串接口的文本也拒绝内嵌 NUL，避免静默截断。C 的 BeginString、字段文本及 parse 输入均按 16 MiB 限界扫描，超限报告 RANGE；XLang 的 field/build/parse 相应抛 RangeError，validate 对超限输入返回 false。独立字段文本可恰好达到 16 MiB，但完整帧仍须留出头尾字段空间。字段对象的值支持字符串、有符号/无符号整数、浮点和布尔值；无符号整数按十进制完整写出。浮点字段使用点号小数，不受进程区域设置影响。它是帧编解码器，不提供交易会话、序号/重发、场所字典验证或网络连接。</p>
   </section>
   <section id="c-api">
     <h2>C 对照</h2>

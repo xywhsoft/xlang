@@ -33,6 +33,7 @@ fi
     cd release
     timeout 90s ./xl run ../test/cases/extlib_fix.xl
     timeout 90s ./xl run extlibs/fix/test/boundaries.xl
+    timeout 90s ./xl run extlibs/fix/test/limits.xl
     timeout 90s ./xl run extlibs/fix/test/allocations.xl
     timeout 90s ./xl run extlibs/fix/examples/fix_c.c > "$work/example_xl_c.txt"
     timeout 90s ./xl run examples/extlibs/fix.xl > "$work/example_xl.txt"

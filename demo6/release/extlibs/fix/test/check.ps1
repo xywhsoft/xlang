@@ -53,6 +53,7 @@ try {
     try {
         $null = Run 'XLang existing test' $xl @('run', '../test/cases/extlib_fix.xl')
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/fix/test/boundaries.xl')
+        $null = Run 'XLang limits' $xl @('run', 'extlibs/fix/test/limits.xl')
         $null = Run 'XLang allocation failures' $xl @('run', 'extlibs/fix/test/allocations.xl')
         $xlOutput = Run 'XLang example' $xl @('run', 'examples/extlibs/fix.xl')
         if ($cOutput -cne $xlOutput) {

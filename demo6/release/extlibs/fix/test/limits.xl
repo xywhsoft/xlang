@@ -1,0 +1,42 @@
+import fix
+
+func main(...) as int
+    string oversized = string.repeat("X", 16 * 1024 * 1024 + 1)
+    bool rejected = false
+    try
+        fix.field(58, oversized)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        fix.build(oversized, [])
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        fix.build("FIX.4.4", [{"tag": 58, "value": oversized}])
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        fix.parse(oversized)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+    assert not fix.validate(oversized)
+
+    string message = fix.build("FIX.4.4", [fix.field(35, "D")])
+    assert fix.validate(message)
+    println("fix limits: PASS")
+    return 0
+end
