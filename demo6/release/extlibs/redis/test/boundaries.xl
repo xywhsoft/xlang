@@ -1,0 +1,93 @@
+import redis
+
+func main(...) as int
+    bool rejected = false
+    try
+        redis.encode([])
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        redis.encodeBytes([])
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+    assert redis.encode(["PING"]) == "*1\r\n$4\r\nPING\r\n"
+
+    string encoded = redis.encode(["SET", "a\0b", "hello"])
+    assert string.byteLen(encoded) == 33
+    assert encoded == "*3\r\n$3\r\nSET\r\n$3\r\na\0b\r\n$5\r\nhello\r\n"
+
+    bytes binaryArg = Buffer.fromHex("00ff41").toBytes()
+    Buffer binaryCommand = redis.encodeBytes(["SET", "binary", binaryArg])
+    assert binaryCommand.hex() == "2a330d0a24330d0a5345540d0a24360d0a62696e6172790d0a24330d0a00ff410d0a"
+    assert redis.encodeBytes(["SET", Buffer().toBytes()]).hex() == "2a320d0a24330d0a5345540d0a24300d0a0d0a"
+
+    string reply = "$3\r\na\0b\r\n+OK\r\n"
+    assert redis.isComplete(reply)
+    var decoded = redis.decode(reply)
+    assert decoded["value"]["type"] == "bulk"
+    assert string.byteLen(string(decoded["value"]["value"])) == 3
+    assert decoded["rest"] == "+OK\r\n"
+
+    Buffer raw = Buffer.fromHex("24330d0a61ff620d0a")
+    assert redis.isCompleteBytes(raw)
+    var binary = redis.decodeBytes(raw)
+    assert type(binary["value"]["value"]) == bytes
+    var binaryRest = redis.decodeBytes(Buffer.fromHex("2b4f4b0d0a24310d0aff0d0a"))
+    assert type(binaryRest["rest"]) == bytes
+    assert binaryRest["rest"] == Buffer.fromHex("24310d0aff0d0a").toBytes()
+    var binaryError = redis.decodeBytes(Buffer.fromHex("2d45525220ff0d0a"))
+    assert binaryError["value"]["type"] == "error"
+    assert binaryError["value"]["value"] == Buffer.fromHex("45525220ff").toBytes()
+
+    assert not redis.isComplete("$5\r\nabc")
+    rejected = false
+    try
+        redis.isComplete("$9223372036854775808\r\n")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        redis.encode(["SET", binaryArg])
+    catch TypeError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        redis.encodeBytes(["SET", 123])
+    catch TypeError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        redis.encode(["SET", 123])
+    catch TypeError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        redis.decode("+bad\n")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+
+    var nested = redis.decode("*2\r\n:1\r\n*1\r\n$-1\r\n")
+    assert nested["value"]["value"].length == 2
+    println("redis boundaries: ok")
+    return 0
+end

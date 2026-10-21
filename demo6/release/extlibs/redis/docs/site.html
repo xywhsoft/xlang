@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>redis - 扩展库 - xlang</title>
+  <meta name="description" content="RESP2 长度感知编解码与基于 TcpStream 的 Redis 单命令客户端。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / redis</p><h1>redis</h1>
+    <p class="extlib-lead">RESP2 编解码与简洁的单命令客户端。</p>
+    <p>按字节长度处理回复，网络命令使用 recvBytes；有效 UTF-8 bulk 为 string，其他 bulk 为 bytes。单次命令默认限时 5 秒、最多 64 MiB，两项均可按调用收紧或调整；回复节点最多十万个。不包含连接池、自动重连、Pub/Sub 或流水线调度。XL AOT 当前受共享运行时链接缺符号阻断，尚未完成发布验收。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>encode(args)</code></td><td>将非空字符串数组编码为 RESP2 命令</td></tr>
+      <tr><td><code>encodeBytes(args)</code></td><td>将 string/bytes 参数编码为原始 RESP Buffer</td></tr>
+      <tr><td><code>decode(reply)</code></td><td>解析首条回复并返回 <code>value</code> 与剩余 <code>rest</code></td></tr>
+      <tr><td><code>isComplete(reply)</code></td><td>判断首条回复是否完整；畸形输入抛 ValueError</td></tr>
+      <tr><td><code>decodeBytes / isCompleteBytes</code></td><td>从 Buffer 解析原始 RESP 字节</td></tr>
+      <tr><td><code>command(stream, args, timeoutMs=5000, maxReplyBytes=67108864)</code></td><td>在已有 TcpStream 上执行单条命令；调用方持有连接，协议失同步时连接会被中止</td></tr>
+      <tr><td><code>get / set / del / incr / exists</code></td><td>常用命令；get 不存在时返回 null</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import redis
+var reply = redis.decode("$5\r\nhello\r\n")
+assert reply["value"]["value"] == "hello"</code></pre>
+    <p>超时为 1..2147483647 毫秒，回复上限为 1..67108864 字节；无效参数或编码失败时连接未发送数据，空命令失败后可在同一连接继续发送有效命令。完整 Redis error 回复可继续复用连接。发送失败、超时、超限、畸形或多余回复会中止连接，后续命令需显式重连。<code>decodeBytes</code> 遇非 UTF-8 的剩余回复时，<code>rest</code> 保留为原始 bytes。</p>
+    <h2 id="c-api">C</h2>
+    <p>包含 <code>include/redis_native.h</code>。输入值仅借用；返回的 <code>xvalue*</code> 由调用方使用 <code>xrtValueRelease</code> 释放，<code>xr_encode_bytes</code> 返回的 Buffer 由调用方使用 <code>xrtBufferDestroy</code> 释放。查看包内 README 获取字节长度、错误与容量边界。</p>
+    <p>真实服务双语示例为 <code>release/examples/extlibs/redis_live.xl</code> 与 <code>redis_live_c.c</code>，都执行 PING、SET、GET 并清理演示键；单独运行默认连接 6379，也可设置 <code>REDIS_LIVE_PORT</code>。包内 <code>test/check_live.sh</code> 使用本次临时端口和进程 ID 校验启动自管理 Redis，不会接管已有服务。</p>
+    <h2 id="verification">验证范围</h2>
+    <p>2026-10-16：默认 Linux 门禁同时运行 C ASan/UBSan、XLang 边界、500 次本地 TCP 回环与 C/XLang 范例逐字节对照，无需外部服务。回环验证可配置超时、回复上限及失败后连接状态，Windows 与 Linux XLang 均通过；四连接真服务各 10000 轮另有显式门禁。此前同连接顺序复用十万次、C 编解码逐点分配故障、二进制往返及断线后显式重连也已验证。2026-10-20：Windows 默认门禁加入核心与完整范例 AOT，快测模式仍验证 C/JIT；当前核心构建因共享的 xl6ValueDataSnapshotV1 缺符号失败，完整范例 AOT 尚未执行。真服务数小时持续运行和完整 AOT 尚未验收。</p>
+  </section>
+</main>
+</body>
+</html>

@@ -1,17 +1,29 @@
-extern "xr_encode" func __r_encode(var args) as string
-extern "xr_decode" func __r_decode(string reply) as var
-extern "xr_is_complete" func __r_is_complete(string reply) as bool
+extern "xr_encode" func __r_encode(var args) as var
+extern "xr_encode_bytes" func __r_encode_bytes(var args) as point
+extern "xr_decode" func __r_decode(var reply) as var
+extern "xr_is_complete" func __r_is_complete(var reply) as bool
+extern "xr_decode_raw" func __r_decode_raw(point data, c_size size) as var
+extern "xr_is_complete_raw" func __r_is_complete_raw(point data, c_size size) as bool
 
 
 
 // encode 把命令参数数组编码为 RESP 数组请求
 // redis.encode(["SET", "key", "value"]) → "*3\r\n$3\r\nSET\r\n..."
 export func encode(var args) as string
-    string payload = __r_encode(args)
-    if payload == "" and args.length > 0 then
-        throw ValueError "redis: encode failed (arguments must be strings)"
+    var payload = __r_encode(args)
+    if payload == null then
+        throw ValueError "redis: invalid command arguments"
     end
-    return payload
+    return string(payload)
+end
+
+// 二进制命令参数使用 bytes；结果为调用方持有的原始 RESP 字节。
+export func encodeBytes(var args) as Buffer
+    point handle = __r_encode_bytes(args)
+    if handle == null then
+        throw ValueError "redis: invalid command arguments"
+    end
+    return Buffer(handle)
 end
 
 // decode 解析一条完整 RESP 回复，返回 {type, value, rest}
@@ -29,22 +41,84 @@ export func isComplete(string reply) as bool
     return __r_is_complete(reply)
 end
 
+export func decodeBytes(Buffer reply) as var
+    var result = __r_decode_raw(reply.data(), c_size(reply.len()))
+    if result == null then
+        throw ValueError "redis: reply is incomplete or malformed"
+    end
+    return result
+end
+
+export func isCompleteBytes(Buffer reply) as bool
+    return __r_is_complete_raw(reply.data(), c_size(reply.len()))
+end
+
 // command 在一个 TcpStream 上执行一条命令并等待回复
-// 返回解析后的值（error 回复抛 ValueError）；args 为字符串数组
-export func command(TcpStream stream, var args) as var
-    string payload = encode(args)
-    if not stream.send(payload) then
-        throw ValueError "redis: send failed"
+// 返回解析后的值（error 回复抛 ValueError）；args 为 string/bytes 数组
+export func command(TcpStream stream, var args, int timeoutMs = 5000,
+    int maxReplyBytes = 67_108_864) as var
+    if timeoutMs <= 0 or timeoutMs > 2_147_483_647 then
+        throw ValueError "redis: timeout must be 1..2147483647 ms"
     end
-    string buffer = ""
-    while not isComplete(buffer)
-        string chunk = stream.recv(5000)
-        if chunk == "" then
-            throw ValueError "redis: connection closed or timed out"
+    if maxReplyBytes <= 0 or maxReplyBytes > 67_108_864 then
+        throw ValueError "redis: reply limit must be 1..67108864 bytes"
+    end
+    uint64 started = time.monotonic()
+    uint64 limitUs = uint64(timeoutMs) * 1000
+    Buffer payload = encodeBytes(args)
+    bool synchronized = false
+    var reply = null
+    try
+        if not stream.sendBytes(payload.data(), c_size(payload.len())) then
+            throw ValueError "redis: send failed"
         end
-        buffer = buffer + chunk
+        uint64 elapsed = time.monotonic() - started
+        if elapsed >= limitUs then
+            throw ValueError "redis: command timed out"
+        end
+        int remainingMs = int((limitUs - elapsed + 999) / 1000)
+        if not stream.drain(remainingMs) then
+            throw ValueError "redis: send timed out"
+        end
+        Buffer buffer = Buffer()
+        while not isCompleteBytes(buffer)
+            elapsed = time.monotonic() - started
+            if elapsed >= limitUs then
+                throw ValueError "redis: command timed out"
+            end
+            remainingMs = int((limitUs - elapsed + 999) / 1000)
+            Buffer chunk = Buffer()
+            try
+                chunk = stream.recvBytes(remainingMs)
+            catch ValueError error
+                if time.monotonic() - started >= limitUs then
+                    throw ValueError "redis: command timed out"
+                end
+                throw ValueError "redis: receive failed: " + error.message
+            end
+            if chunk.len() == 0 then
+                if time.monotonic() - started >= limitUs then
+                    throw ValueError "redis: command timed out"
+                end
+                throw ValueError "redis: connection closed"
+            end
+            if buffer.len() + chunk.len() > maxReplyBytes then
+                throw ValueError "redis: reply exceeds configured limit"
+            end
+            if not buffer.append(chunk) then
+                throw MemoryError "redis: could not buffer reply"
+            end
+        end
+        reply = decodeBytes(buffer)
+        if reply["rest"] != "" then
+            throw ValueError "redis: unexpected extra reply"
+        end
+        synchronized = true
+    finally
+        if not synchronized then
+            stream.abort()
+        end
     end
-    var reply = decode(buffer)
     var value = reply["value"]
     if value["type"] == "error" then
         throw ValueError "redis: " + string(value["value"])
@@ -53,8 +127,8 @@ export func command(TcpStream stream, var args) as var
 end
 
 // 便捷命令：连接由调用方通过 TcpStream(tcp.connect(host, port)) 创建并持有
-export func get(TcpStream stream, string key) as string
-    return string(command(stream, ["GET", key]))
+export func get(TcpStream stream, string key) as var
+    return command(stream, ["GET", key])
 end
 
 export func set(TcpStream stream, string key, string value) as string

@@ -1,0 +1,56 @@
+import redis
+
+// 测试服务器只负责 RESP 往返，不模拟 Redis 的存储语义。
+func serveMany(TcpStream peer, int count) as int
+    string pending = ""
+    for index in range(count)
+        while not redis.isComplete(pending)
+            string chunk = peer.recv(5000)
+            assert chunk != ""
+            pending += chunk
+        end
+        var request = redis.decode(pending)
+        pending = string(request["rest"])
+        assert request["value"]["type"] == "array"
+        assert request["value"]["value"].length == 1
+        assert request["value"]["value"][0]["value"] == "PING"
+        if index % 17 == 0 then
+            assert peer.send("-ERR test\r\n")
+        else
+            assert peer.send(":" + string(index) + "\r\n")
+        end
+        assert peer.drain(5000)
+    end
+    peer.close()
+    return count
+end
+
+func main(...) as int
+    int count = 500
+    if arg.length > 1 then
+        count = int(arg[1])
+    end
+    assert count > 0 and count <= 100_000
+    TcpServer server = tcp.listen(0)
+    TcpStream client = tcp.connect("127.0.0.1", int(server.port()), 5000)
+    TcpStream peer = server.accept(5000)
+    future<int> job = task.spawn(serveMany, peer, count)
+    for index in range(count)
+        if index % 17 == 0 then
+            bool rejected = false
+            try
+                redis.command(client, ["PING"])
+            catch ValueError error
+                rejected = error.message == "redis: ERR test"
+            end
+            assert rejected
+        else
+            assert redis.command(client, ["PING"]) == index
+        end
+    end
+    assert job.wait()
+    client.close()
+    server.close()
+    println("redis reuse loopback: " + string(count))
+    return 0
+end

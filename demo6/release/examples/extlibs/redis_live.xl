@@ -1,0 +1,13 @@
+import redis
+
+// 单独运行默认连接 6379；自管理门禁通过环境变量选择临时端口。
+func main(...) as int
+    int port = int(env.get("REDIS_LIVE_PORT") ?? "6379")
+    TcpStream stream = tcp.connect("127.0.0.1", port, 3000)
+    println("PING:", redis.command(stream, ["PING"]))
+    redis.set(stream, "xlang:example:live", "hello")
+    println("GET:", redis.get(stream, "xlang:example:live"))
+    redis.del(stream, "xlang:example:live")
+    stream.close()
+    return 0
+end

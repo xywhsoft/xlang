@@ -1,30 +1,15 @@
 import redis
 
-
-
 func main(...) as int
-    // 协议编解码演示（离线可用）
-    println(redis.encode(["SET", "greeting", "hello"]))
-    var reply = redis.decode("$5\r\nworld\r\n")
-    println("bulk value:", reply["value"]["value"])
-    var multi = redis.decode("*2\r\n$3\r\none\r\n$3\r\ntwo\r\n")
-    var items = multi["value"]["value"]
-    println("array reply:", items.length, "items")
+    string request = redis.encode(["SET", "a\0b", "hello"])
+    var bulk = redis.decode("$3\r\na\0b\r\n")
+    var arrayReply = redis.decode("*2\r\n$3\r\none\r\n$3\r\ntwo\r\n")
+    Buffer binaryRequest = redis.encodeBytes(["SET", "k", Buffer.fromHex("00ff41").toBytes()])
 
-    // 连接真实服务器（本地无 redis 时优雅跳过）
-    try
-        TcpStream stream = tcp.connect("127.0.0.1", 6379, 500)
-        var pong = redis.command(stream, ["PING"])
-        println("PING ->", pong)
-        redis.set(stream, "demo:key", "你好，redis")
-        println("GET ->", redis.get(stream, "demo:key"))
-        println("INCR ->", redis.incr(stream, "demo:counter"))
-        println("INCR ->", redis.incr(stream, "demo:counter"))
-        stream.close()
-    catch e
-        println("live server skipped:", e.message)
-    end
-
-    println("redis example: PASS")
+    println("encoded bytes:", string.byteLen(request))
+    println("bulk value bytes:", string.byteLen(string(bulk["value"]["value"])))
+    println("array reply:", arrayReply["value"]["value"].length, "items")
+    println("binary request bytes:", binaryRequest.len())
+    println("redis C/XL example: PASS")
     return 0
 end

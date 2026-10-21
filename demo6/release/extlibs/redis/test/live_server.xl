@@ -1,0 +1,58 @@
+import redis
+
+// 单独运行默认连接 6379；自管理门禁通过环境变量选择临时端口。
+func main(...) as int
+    int port = int(env.get("REDIS_LIVE_PORT") ?? "6379")
+    string key = "xlang:test:redis:live:value"
+    string listKey = "xlang:test:redis:live:list"
+    TcpStream stream = tcp.connect("127.0.0.1", port, 3000)
+    redis.del(stream, key)
+    redis.del(stream, listKey)
+
+    assert redis.command(stream, ["PING"]) == "PONG"
+    assert redis.get(stream, key) == null
+    assert redis.set(stream, key, "a\0b") == "OK"
+    assert redis.get(stream, key) == "a\0b"
+    assert redis.exists(stream, key) == 1
+
+    bytes binaryKey = Buffer.fromHex("6b00ff").toBytes()
+    bytes binaryValue = Buffer.fromHex("00ff41").toBytes()
+    assert redis.command(stream, ["SET", binaryKey, binaryValue]) == "OK"
+    var binaryReply = redis.command(stream, ["GET", binaryKey])
+    assert type(binaryReply) == bytes
+    assert binaryReply == binaryValue
+    assert redis.command(stream, ["DEL", binaryKey]) == 1
+
+    assert redis.command(stream, ["RPUSH", listKey, "one", "two"]) == 2
+    var rows = redis.command(stream, ["LRANGE", listKey, "0", "-1"])
+    assert rows.length == 2
+    assert rows[0]["value"] == "one"
+    assert rows[1]["value"] == "two"
+
+    bool rejected = false
+    try
+        redis.command(stream, ["__XL_UNSUPPORTED_COMMAND__"])
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    assert redis.command(stream, ["PING"]) == "PONG"
+
+    assert redis.del(stream, key) == 1
+    assert redis.del(stream, listKey) == 1
+    assert redis.command(stream, ["QUIT"]) == "OK"
+    rejected = false
+    try
+        redis.command(stream, ["PING"])
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    stream.close()
+
+    TcpStream again = tcp.connect("127.0.0.1", port, 3000)
+    assert redis.command(again, ["PING"]) == "PONG"
+    again.close()
+    println("redis real server: ok")
+    return 0
+end

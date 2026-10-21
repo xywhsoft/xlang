@@ -1,0 +1,265 @@
+#define XRT_MODULE_ALL
+#include "xrt.h"
+#include "../include/redis_native.h"
+
+#include <stdio.h>
+#include <string.h>
+
+#define CHECK(expr) do { if (!(expr)) { \
+    fprintf(stderr, "redis C test failed at line %d: %s\n", __LINE__, #expr); \
+    return 1; \
+} } while (0)
+
+static bool text_equals(xvalue* Value, const char* Data, size_t Size)
+{
+    xstrview Text;
+    return Value != NULL && xrtValueGetString(Value, &Text) &&
+        Text.Size == Size && memcmp(Text.Data, Data, Size) == 0;
+}
+
+static xvalue* field(xvalue* Value, const char* Name)
+{
+    return xrtValueObjectGet(Value, (xstrview){ Name, strlen(Name) });
+}
+
+static bool append_text(xvalue* Array, const char* Data, size_t Size)
+{
+    xvalue* Text = xrtValueString((xstrview){ Data, Size });
+    bool Ok = Text != NULL && xrtValueArrayAppendTake(Array, &Text);
+    xrtValueRelease(Text);
+    return Ok;
+}
+
+int main(void)
+{
+    xvalue* Args = xrtValueArray();
+    xvalue* Encoded;
+    xvalue* Input;
+    xvalue* Reply;
+    xvalue* Item;
+    xvalue* Elements;
+    xbuffer* Binary;
+    xstrview Text;
+    int64 Number;
+    char LongText[12000];
+    char Deep[512];
+    int i;
+
+    /* 空 RESP 数组不是可执行命令；失败不能污染下一次编码。 */
+    CHECK(Args != NULL);
+    Encoded = xr_encode(Args);
+    CHECK(Encoded != NULL && xrtValueType(Encoded) == XVALUE_NULL &&
+        xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    xrtValueRelease(Encoded);
+    CHECK(xr_encode_bytes(Args) == NULL && xrtGetError() != NULL &&
+        xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    CHECK(append_text(Args, "PING", 4u));
+    Encoded = xr_encode(Args);
+    CHECK(text_equals(Encoded, "*1\r\n$4\r\nPING\r\n", 14u) && xrtGetError() == NULL);
+    xrtValueRelease(Encoded);
+    xrtValueRelease(Args);
+
+    Args = xrtValueArray();
+    CHECK(Args != NULL);
+    CHECK(append_text(Args, "SET", 3u));
+    CHECK(append_text(Args, "a\0b", 3u));
+    CHECK(append_text(Args, "hello", 5u));
+    Encoded = xr_encode(Args);
+    CHECK(text_equals(Encoded, "*3\r\n$3\r\nSET\r\n$3\r\na\0b\r\n$5\r\nhello\r\n", 33u));
+    xrtValueRelease(Encoded);
+    xrtValueRelease(Args);
+
+    {
+        const unsigned char Octets[] = { 0x00u, 0xffu, 0x41u };
+        const unsigned char Expected[] = "*3\r\n$3\r\nSET\r\n$6\r\nbinary\r\n$3\r\n\x00\xff" "A\r\n";
+        xbytesview View;
+        Args = xrtValueArray();
+        CHECK(Args != NULL && append_text(Args, "SET", 3u) &&
+            append_text(Args, "binary", 6u));
+        Item = xrtValueBytes((xbytesview){ Octets, sizeof(Octets) });
+        CHECK(Item != NULL && xrtValueArrayAppendTake(Args, &Item));
+        Binary = (xbuffer*)xr_encode_bytes(Args);
+        CHECK(Binary != NULL);
+        View = xrtBufferView(Binary);
+        CHECK(View.Size == sizeof(Expected) - 1u &&
+            memcmp(View.Data, Expected, View.Size) == 0);
+        xrtBufferDestroy(Binary);
+        Encoded = xr_encode(Args);
+        CHECK(Encoded != NULL && xrtValueType(Encoded) == XVALUE_NULL &&
+            xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_TYPE);
+        xrtValueRelease(Encoded);
+        xrtValueRelease(Args);
+    }
+    {
+        const char Expected[] = "*2\r\n$3\r\nSET\r\n$0\r\n\r\n";
+        xbytesview View;
+        Args = xrtValueArray();
+        CHECK(Args != NULL && append_text(Args, "SET", 3u));
+        Item = xrtValueBytes((xbytesview){ NULL, 0u });
+        CHECK(Item != NULL && xrtValueArrayAppendTake(Args, &Item));
+        Binary = (xbuffer*)xr_encode_bytes(Args);
+        CHECK(Binary != NULL);
+        View = xrtBufferView(Binary);
+        CHECK(View.Size == sizeof(Expected) - 1u &&
+            memcmp(View.Data, Expected, View.Size) == 0);
+        xrtBufferDestroy(Binary);
+        xrtValueRelease(Args);
+    }
+
+    Args = xrtValueArray();
+    Item = xrtValueInt(1);
+    CHECK(Args != NULL && Item != NULL && xrtValueArrayAppendTake(Args, &Item));
+    Encoded = xr_encode(Args);
+    CHECK(xrtValueType(Encoded) == XVALUE_NULL && xrtGetError() != NULL &&
+        xrtErrorKind(xrtGetError()) == XERR_TYPE);
+    xrtValueRelease(Encoded);
+    xrtValueRelease(Args);
+
+    Input = xrtValueString(XRT_STR_LITERAL("$3\r\na\0b\r\n+OK\r\n"));
+    CHECK(Input != NULL && !xr_is_complete(NULL));
+    xrtClearError();
+    CHECK(xr_is_complete(Input));
+    Reply = xr_decode(Input);
+    CHECK(Reply != NULL && xrtValueType(Reply) == XVALUE_OBJECT);
+    Item = field(Reply, "value");
+    CHECK(text_equals(field(Item, "type"), "bulk", 4u));
+    CHECK(text_equals(field(Item, "value"), "a\0b", 3u));
+    CHECK(text_equals(field(Reply, "rest"), "+OK\r\n", 5u));
+    xrtValueRelease(Reply);
+    xrtValueRelease(Input);
+
+    {
+        const unsigned char Raw[] = { '$', '3', '\r', '\n', 'a', 0xffu, 'b', '\r', '\n' };
+        xbytesview Bytes;
+        CHECK(xr_is_complete_raw((void*)Raw, sizeof(Raw)));
+        Reply = xr_decode_raw((void*)Raw, sizeof(Raw));
+        Item = field(field(Reply, "value"), "value");
+        CHECK(Item != NULL && xrtValueGetBytes(Item, &Bytes) &&
+            Bytes.Size == 3u && Bytes.Data[0] == 'a' &&
+            Bytes.Data[1] == 0xffu && Bytes.Data[2] == 'b');
+        xrtValueRelease(Reply);
+    }
+    {
+        const unsigned char Raw[] = { '+', 'O', 'K', '\r', '\n', '$', '1', '\r', '\n',
+            0xffu, '\r', '\n' };
+        xbytesview Bytes;
+        Reply = xr_decode_raw((void*)Raw, sizeof(Raw));
+        Item = field(Reply, "rest");
+        CHECK(Item != NULL && xrtValueGetBytes(Item, &Bytes) &&
+            Bytes.Size == 7u && Bytes.Data[4] == 0xffu);
+        xrtValueRelease(Reply);
+    }
+    {
+        const unsigned char Raw[] = { '-', 'E', 'R', 'R', ' ', 0xffu, '\r', '\n' };
+        xbytesview Bytes;
+        CHECK(xr_is_complete_raw((void*)Raw, sizeof(Raw)) && xrtGetError() == NULL);
+        Reply = xr_decode_raw((void*)Raw, sizeof(Raw));
+        Item = field(Reply, "value");
+        CHECK(Reply != NULL && text_equals(field(Item, "type"), "error", 5u));
+        Item = field(Item, "value");
+        CHECK(Item != NULL && xrtValueGetBytes(Item, &Bytes) &&
+            Bytes.Size == 5u && memcmp(Bytes.Data, "ERR \xff", 5u) == 0 &&
+            xrtGetError() == NULL);
+        xrtValueRelease(Reply);
+    }
+
+    Input = xrtValueString(XRT_STR_LITERAL("*3\r\n:9223372036854775807\r\n:-9223372036854775808\r\n*1\r\n$-1\r\n"));
+    CHECK(Input != NULL && xr_is_complete(Input));
+    Reply = xr_decode(Input);
+    Item = field(Reply, "value");
+    Elements = field(Item, "value");
+    CHECK(Elements != NULL && xrtValueCount(Elements) == 3u);
+    CHECK(xrtValueGetInt(field(xrtValueArrayAt(Elements, 0), "value"), &Number) && Number == INT64_MAX);
+    CHECK(xrtValueGetInt(field(xrtValueArrayAt(Elements, 1), "value"), &Number) && Number == INT64_MIN);
+    CHECK(xrtValueType(field(xrtValueArrayAt(field(xrtValueArrayAt(Elements, 2), "value"), 0), "value")) == XVALUE_NULL);
+    xrtValueRelease(Reply);
+    xrtValueRelease(Input);
+
+    /* 每个严格前缀都只能是未完成帧，不能误判成坏帧或提前交出结果。 */
+    {
+        const unsigned char Frame[] =
+            "*3\r\n+OK\r\n$3\r\nA\0\xff\r\n*2\r\n:17\r\n$-1\r\n";
+        size_t length;
+        for (length = 0; length < sizeof(Frame) - 1u; ++length) {
+            CHECK(!xr_is_complete_raw((void*)Frame, length) &&
+                xrtGetError() == NULL);
+            Reply = xr_decode_raw((void*)Frame, length);
+            CHECK(Reply != NULL && xrtValueType(Reply) == XVALUE_NULL &&
+                xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+            xrtValueRelease(Reply);
+        }
+        CHECK(xr_is_complete_raw((void*)Frame, length) && xrtGetError() == NULL);
+        Reply = xr_decode_raw((void*)Frame, length);
+        CHECK(Reply != NULL && xrtValueType(Reply) == XVALUE_OBJECT &&
+            text_equals(field(Reply, "rest"), "", 0u) && xrtGetError() == NULL);
+        Elements = field(field(Reply, "value"), "value");
+        CHECK(Elements != NULL && xrtValueCount(Elements) == 3u &&
+            text_equals(field(xrtValueArrayAt(Elements, 0), "value"), "OK", 2u));
+        Item = field(xrtValueArrayAt(Elements, 1), "value");
+        {
+            xbytesview bytes;
+            CHECK(Item != NULL && xrtValueGetBytes(Item, &bytes) &&
+                bytes.Size == 3u && bytes.Data[0] == 'A' &&
+                bytes.Data[1] == 0u && bytes.Data[2] == 0xffu);
+        }
+        Item = field(xrtValueArrayAt(Elements, 2), "value");
+        CHECK(Item != NULL && xrtValueCount(Item) == 2u &&
+            xrtValueGetInt(field(xrtValueArrayAt(Item, 0), "value"), &Number) &&
+            Number == 17 &&
+            xrtValueType(field(xrtValueArrayAt(Item, 1), "value")) == XVALUE_NULL);
+        xrtValueRelease(Reply);
+    }
+
+    /* 不完整回复不报错；非法长度和非法换行则保留结构化错误。 */
+    Input = xrtValueString(XRT_STR_LITERAL("$5\r\nabc"));
+    CHECK(Input != NULL && !xr_is_complete(Input) && xrtGetError() == NULL);
+    xrtValueRelease(Input);
+    Input = xrtValueString(XRT_STR_LITERAL("$9223372036854775808\r\n"));
+    CHECK(Input != NULL && !xr_is_complete(Input) &&
+        xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    xrtValueRelease(Input);
+    Input = xrtValueString(XRT_STR_LITERAL("+bad\n"));
+    CHECK(Input != NULL && !xr_is_complete(Input) &&
+        xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    xrtValueRelease(Input);
+    Input = xrtValueString(XRT_STR_LITERAL("*2\r\n+OK\r\n"));
+    CHECK(Input != NULL && !xr_is_complete(Input) && xrtGetError() == NULL);
+    xrtValueRelease(Input);
+    Input = xrtValueString(XRT_STR_LITERAL("$-2\r\n"));
+    CHECK(Input != NULL && !xr_is_complete(Input) &&
+        xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    xrtValueRelease(Input);
+    Input = xrtValueString(XRT_STR_LITERAL("*100001\r\n"));
+    CHECK(Input != NULL && !xr_is_complete(Input) &&
+        xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    xrtValueRelease(Input);
+    for (i = 0; i < 65; ++i) memcpy(Deep + i * 4, "*1\r\n", 4u);
+    memcpy(Deep + 65 * 4, "+X\r\n", 4u);
+    Input = xrtValueString((xstrview){ Deep, 65u * 4u + 4u });
+    CHECK(Input != NULL && !xr_is_complete(Input) &&
+        xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    xrtValueRelease(Input);
+
+    memset(LongText, 'x', sizeof(LongText));
+    Args = xrtValueArray();
+    CHECK(Args != NULL && append_text(Args, "SET", 3u) &&
+        append_text(Args, LongText, sizeof(LongText)));
+    Encoded = xr_encode(Args);
+    CHECK(Encoded != NULL && xrtValueGetString(Encoded, &Text) &&
+        Text.Size > sizeof(LongText) &&
+        memcmp(Text.Data + Text.Size - sizeof(LongText) - 2u,
+            LongText, sizeof(LongText)) == 0);
+    xrtValueRelease(Encoded);
+    xrtValueRelease(Args);
+
+    Input = xrtValueString(XRT_STR_LITERAL("+PONG\r\n"));
+    CHECK(Input != NULL);
+    for (i = 0; i < 1000; ++i) {
+        Reply = xr_decode(Input);
+        CHECK(Reply != NULL && text_equals(field(field(Reply, "value"), "value"), "PONG", 4u));
+        xrtValueRelease(Reply);
+    }
+    xrtValueRelease(Input);
+    puts("redis C boundaries: PASS");
+    return 0;
+}

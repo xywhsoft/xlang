@@ -1,0 +1,44 @@
+import redis
+
+// 真实服务门禁：每个任务独占连接，避免把单连接并发复用误当成客户端承诺。
+func exercise(int worker, int rounds, int port) as int
+    TcpStream stream = tcp.connect("127.0.0.1", port, 3000)
+    string key = "xlang:test:redis:parallel:" + string(time.monotonic()) + ":" + string(worker)
+    for i in range(rounds)
+        string value = "value:" + string(worker) + ":" + string(i) + "\0end"
+        assert redis.command(stream, ["SET", key, value, "EX", "10"]) == "OK"
+        assert redis.get(stream, key) == value
+        assert redis.del(stream, key) == 1
+        if i % 10 == 0 then
+            bool rejected = false
+            try
+                redis.command(stream, ["__XL_UNSUPPORTED_COMMAND__"])
+            catch ValueError error
+                rejected = true
+            end
+            assert rejected
+            assert redis.command(stream, ["PING"]) == "PONG"
+        end
+    end
+    stream.close()
+    return 1
+end
+
+func main(...) as int
+    int rounds = 50
+    int port = int(env.get("REDIS_LIVE_PORT") ?? "6379")
+    if arg.length > 1 then
+        rounds = int(arg[1])
+    end
+    assert rounds > 0 and rounds <= 10000
+    future<int> first = task.spawn(exercise, 1, rounds, port)
+    future<int> second = task.spawn(exercise, 2, rounds, port)
+    future<int> third = task.spawn(exercise, 3, rounds, port)
+    future<int> fourth = task.spawn(exercise, 4, rounds, port)
+    assert first.wait()
+    assert second.wait()
+    assert third.wait()
+    assert fourth.wait()
+    println("redis concurrent server: " + string(rounds) + " rounds ok")
+    return 0
+end
