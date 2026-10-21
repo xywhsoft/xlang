@@ -7,10 +7,16 @@
     "artifact": {
         "kind": "source",
         "cSources": ["langdetect_native.c"],
-        "xlSources": ["src/langdetect.xl"]
+        "xlSources": ["src/langdetect.xl"],
+        "includeDirs": ["include"],
+        "xrtModules": ["XRT_MODULE_UNICODE"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": {
+        "mode": "suite",
+        "tests": ["test/analysis_boundaries.xl"]
+    },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

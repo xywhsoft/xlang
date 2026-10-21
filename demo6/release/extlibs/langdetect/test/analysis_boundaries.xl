@@ -1,0 +1,56 @@
+import langdetect
+
+func main(...) as int
+    // NUL 后的文本也必须参与分析，不能按 C 字符串前缀截断。
+    string text = "\0the quick brown fox is nice and the sky is blue"
+    assert langdetect.detect(text) == "english"
+    assert langdetect.code(text) == "en"
+    assert langdetect.script(text) == "Latin"
+    assert langdetect.confidence(text) >= 60
+    assert langdetect.isValidUtf8(text)
+
+    // 非 ASCII 字母不能把相邻 ASCII 片段伪装成独立常见词。
+    assert langdetect.detect("theé") == "unknown"
+    assert langdetect.detect("éthe") == "unknown"
+    assert langdetect.detect("the😀") == "english"
+
+    // 汉字与韩文平分时不能猜成韩语；增加一个韩文字后才有明确多数。
+    assert langdetect.detect("你好한글") == "unknown"
+    assert langdetect.script("你好한글") == "Unknown"
+    assert langdetect.detect("你好한글어") == "korean"
+    assert langdetect.detect("かな한글") == "unknown"
+    assert langdetect.detect("你好Пр") == "unknown"
+    assert langdetect.detect("Прمر") == "unknown"
+    assert langdetect.detect("你好is") == "unknown"
+    assert langdetect.script("你好is") == "Unknown"
+
+    string oversized = string.repeat("a", 1048577)
+    bool rejected = false
+    try
+        langdetect.code(oversized)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected, "code must enforce the analysis limit"
+
+    rejected = false
+    try
+        langdetect.script(oversized)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected, "script must enforce the analysis limit"
+
+    rejected = false
+    try
+        langdetect.confidence(oversized)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected, "confidence must enforce the analysis limit"
+
+    assert langdetect.code(text) == "en"
+    assert langdetect.lastError() == ""
+    println("langdetect analysis boundaries: PASS")
+    return 0
+end

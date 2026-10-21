@@ -1,0 +1,28 @@
+import langdetect
+
+func main(...) as int
+    string mixed = "The garden is nice and the sky is blue. 中"
+    assert langdetect.detect(mixed) == "english"
+    assert langdetect.script(mixed) == "Latin"
+
+    string binary = "the\u0000and"
+    assert langdetect.isValidUtf8(binary)
+    assert langdetect.detect(binary) == "english"
+    assert langdetect.detect("Привет") == "unknown"
+    assert langdetect.script("Привет") == "Cyrillic"
+    assert langdetect.confidence("Привет") < 50
+
+    bool rejected = false
+    try
+        langdetect.detect(string.repeat("a", 1048577))
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+    assert langdetect.isValidUtf8("ok")
+    assert langdetect.lastError() == ""
+
+    // XLang 字符串字面量必须是有效 UTF-8；畸形字节输入由 C 测试覆盖。
+    println("langdetect boundaries: PASS")
+    return 0
+end

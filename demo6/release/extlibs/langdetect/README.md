@@ -1,0 +1,72 @@
+# langdetect
+
+轻量 UTF-8 文本语言**启发式**判断，不是训练过的统计语言模型。日文依靠假名、韩文依靠谚文、中文依靠占主导的汉字；英语、法语、德语、西班牙语、葡萄牙语、意大利语、荷兰语使用有限常见词评分。西里尔/阿拉伯文字可识别脚本，但仅凭脚本无法确认具体语言，此时 `detect` 返回 `unknown` / `code` 返回 `und`。无足够证据或评分并列也返回 `unknown`。
+
+```xlang
+import langdetect
+
+assert langdetect.detect("the garden is nice and the sky is blue") == "english"
+assert langdetect.detect("こんにちは") == "japanese"
+assert langdetect.script("Привет") == "Cyrillic"
+```
+
+`confidence` 为内部启发式分数 `0..95`，**不是概率或统计校准值**。在本包已识别的文字范围内，混合文字须由某个脚本严格占半数以上；两种脚本平分时返回 `unknown`，拉丁常见词也不能打破脚本平票。未收录的文字不参与多数统计，因此这不是完整的 Unicode 脚本检测。不做分句检测、地域变体、繁简中文区分。分析输入上限 1 MiB；超限或畸形 UTF-8 的 C 输入返回 `unknown`，详细错误可从 `lastError` 获取。XLang 字符串字面量本身必须是有效 UTF-8，坏字节路径由 C 测试覆盖。内嵌 NUL 按真实字节长度处理，不会被截断。`isValidUtf8` 只验证编码，不进行语言判断。
+
+`isValidUtf8` 对非法 UTF-8 返回 `false`，这是普通布尔结果，不设置错误；每次调用都会清除前一次检测留下的错误。C 接口收到空指针时返回 `false` 并设置参数错误。`lastError` 只报告最近一次原生调用的错误，不应将旧诊断当作当前结果。
+
+## C 接口
+
+`include/langdetect_native.h` 的每个文本入口都接收指针与真实字节长度。`confidence` 返回 `int64_t`，与 XLang `int` 的 C ABI 一致，包括 LP64 平台。`detect` / `code` / `script` / `last_error` 返回借用的静态或 XRT 错误文字，不释放；没有共享可写结果环。文本最长 1 MiB，调用方可先用 `xlangdetect_valid_utf8` 检查原始输入。脚本识别仅覆盖本包列出的 Unicode 范围，不宣称完整 Unicode Script 数据库。
+
+## 验证
+
+从 `demo6` 目录运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File release\extlibs\langdetect\test\check.ps1
+.\release\xl.exe run test\cases\extlib_langdetect.xl
+.\release\xl.exe run test\cases\extlib_langdetect_boundaries.xl
+.\release\xl.exe run release\extlibs\langdetect\test\analysis_boundaries.xl
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Package langdetect -Source release\extlibs\langdetect\test\test_langdetect.c
+.\release\xl.exe build release\extlibs\langdetect\test\aot_core.xl -o build\test\langdetect_aot_core.exe
+.\build\test\langdetect_aot_core.exe
+.\release\xl.exe run release\examples\extlibs\langdetect.xl
+.\release\xl.exe run release\extlibs\langdetect\examples\langdetect.c
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Package langdetect -Source release\extlibs\langdetect\examples\langdetect.c
+```
+
+Linux/WSL 从 `demo6` 目录运行 `bash release/extlibs/langdetect/test/check.sh`，
+用严格 GCC 与 ASan/UBSan 复验 C 边界和范例，并通过 `release/xl` 运行
+XLang 包内边界、双语范例逐字对照。
+
+边界测试覆盖 UTF-8、内嵌 NUL、混合脚本、无证据返回值和 1 MiB 限额；Windows 严格 GCC、Linux ASan/UBSan、C/XL 范例与无输出 AOT 核心通过。完整带输出范例 AOT 仍被共享 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`，发布级验收暂不签收。
+
+2026-10-15：补 `isValidUtf8` 成功/失败后清除旧错误的 C 红绿回归、空指针诊断和 XLang 捕获后恢复用例；C/XLang 范例调整为同输入同输出并逐行核对。显式声明 Unicode 模块后，同一核心 AOT 从 3,556,352 降至 565,248 字节，构建运行通过；Windows C/XLang 与包内 Linux sanitizer 门禁通过。完整 AOT 阻断不变。
+
+2026-10-16：修正 `confidence` 在 Linux LP64 下的 C/XLang ABI 类型不一致；新增严格头文件契约编译检查，并将 NUL/上限/恢复的 XLang 测试登记为包内套件。
+
+同日修复 C 范例用 `%lld` 打印 `int64_t` 置信度而无法通过 LP64 严格
+GCC 的问题，改用 `PRId64`；Linux 门禁纳入 C/XLang 范例逐字对照。
+Windows 严格 GCC 语法、Linux C ASan/UBSan + XLang 门禁通过，完整 AOT
+共享阻断不变。
+
+2026-10-18：常见词原仅检查 ASCII 相邻字节，`theé` / `éthe` 被误计为
+独立英语词。现只在词文本匹配后，用 XRT UTF-8 解码相邻标量，并复用本包
+已有脚本字母分类；上述两例返回 `unknown`，`the😀` 仍按非字母边界
+识别英语。C 负例先红后绿，XLang 边界、Windows 严格 GCC 语法和
+Linux C ASan/UBSan、XLang、双语对照门禁通过。词表及非概率分数合同
+未扩张，完整 AOT 的共享缺符号阻断不变。
+
+2026-10-19：C 范例可直接用 `xl run` 单文件运行，并在打印成功标记前
+核对固定的英、法、德、中、日文及无证据样本。Windows 新增包级
+`test/check.ps1`；Linux `test/check.sh` 增加两份中央 XLang 用例和
+单文件 C 输出对照。两平台严格 GCC/C、语言边界、双语范例及 Linux
+ASan/UBSan 门禁均通过。有限词表/非概率分数合同不变，完整带输出 AOT
+的共享主线阻断也未解除。
+
+2026-10-20：C/XLang 负例先复现汉字与韩文平票被误判为韩语，以及汉字与
+拉丁常见词平票仍判成英语。脚本与拉丁词表入口现统一要求严格多数；
+日文/韩文、汉文/西里尔文、西里尔文/阿拉伯文平票也返回 `unknown`，
+三比二的韩文多数保持识别。Windows 严格 GCC、C/XLang 边界和双语范例、
+Linux C ASan/UBSan 与 XLang 对照、无输出 AOT 核心均通过。完整带输出
+AOT 的共享缺符号阻断不变，不据此签收整包发布级。

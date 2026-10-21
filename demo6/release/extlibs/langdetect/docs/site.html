@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>langdetect - 扩展库 - xlang</title>
+  <meta name="description" content="有限语种的轻量 UTF-8 文本识别启发式。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / langdetect</p><h1>langdetect</h1>
+    <p class="extlib-lead">轻量语言判断。</p>
+    <p>严格 UTF-8、主导脚本识别与有限拉丁语种词表评分；已识别脚本须严格过半，平票返回 unknown。未收录的文字不参与统计。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>detect / code / script</code></td><td>语言名、代码及脚本</td></tr>
+      <tr><td><code>confidence</code></td><td>未校准的启发式分数</td></tr>
+      <tr><td><code>isValidUtf8 / lastError</code></td><td>编码检查返回布尔值并清除旧错误；lastError 仅报告最近一次原生错误</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import langdetect
+println(langdetect.detect("the garden is nice and the sky is blue"))
+println(langdetect.script("Привет"))  // Cyrillic</code></pre>
+    <p>不是通用统计语言模型；语种范围、1 MiB 上限和 C 接口见包内 README。C 与 XLang 对照范例的输出一致。</p>
+    <p>C 接口的 <code>confidence</code> 返回 <code>int64_t</code>，与 XLang <code>int</code> 保持跨平台 ABI 一致；C 范例用 <code>PRId64</code> 可移植打印。Linux 包门禁覆盖 C ASan/UBSan、XLang 内嵌 NUL、输入上限和报错后恢复，并逐字对照双语范例。完整 AOT 仍受主线缺符号阻断。</p>
+    <p>从 demo6 目录可直接运行 <code>xl run release/extlibs/langdetect/examples/langdetect.c</code>。Windows <code>test/check.ps1</code> 与 Linux <code>test/check.sh</code> 均验证固定样本、C/XLang 边界和三种范例入口的输出一致；这不扩大启发式模型的语种能力。</p>
+  </section>
+</main>
+</body>
+</html>

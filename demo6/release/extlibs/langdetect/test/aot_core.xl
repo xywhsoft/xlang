@@ -1,0 +1,10 @@
+import langdetect
+
+func main(...) as int
+    string english = "the cat is on the table and it is not bad"
+    assert langdetect.detect(english) == "english"
+    assert langdetect.code(english) == "en"
+    assert langdetect.detect("今天的天气很好") == "chinese"
+    assert langdetect.detect("12345 !!!") == "unknown"
+    return 0
+end

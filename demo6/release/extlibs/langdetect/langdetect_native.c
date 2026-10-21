@@ -4,11 +4,15 @@
 	它不是统计语言模型；无证据时返回 unknown，不把 Latin 文本猜成英语。
 */
 #include <string.h>
+#include "include/langdetect_native.h"
 
+#ifndef XRT_MODULE_UNICODE
 #define XRT_MODULE_UNICODE
+#endif
 #include "xrt.h"
 
 #define XLANGDETECT_DOMAIN "xlang.extlib.langdetect"
+#define XLANGDETECT_MAX_TEXT (1024u * 1024u)
 
 typedef enum xlangdetect_script_kind {
     XLANGDETECT_SCRIPT_UNKNOWN = 0,
@@ -38,13 +42,6 @@ typedef struct xlangdetect_result {
     cstr Script;
     int Confidence;
 } xlangdetect_result;
-
-
-
-static xstrview xlangdetect_view(cstr sText)
-{
-    return (xstrview){ sText, sText != NULL ? strlen(sText) : 0u };
-}
 
 
 
@@ -98,7 +95,7 @@ static void xlangdetect_count_scalar(xlangdetect_stats* pStats, uint32 iScalar)
 
 
 /* 严格统计 Unicode 脚本，拒绝截断和非法 UTF-8。 */
-static bool xlangdetect_collect_stats(cstr sText, xlangdetect_stats* pStats)
+static bool xlangdetect_collect_stats(cstr sText, size_t iSize, xlangdetect_stats* pStats)
 {
     xstrview Text;
     size_t iOffset = 0;
@@ -108,8 +105,13 @@ static bool xlangdetect_collect_stats(cstr sText, xlangdetect_stats* pStats)
             "text and output statistics are required");
         return false;
     }
+    if (iSize > XLANGDETECT_MAX_TEXT) {
+        xrtSetErrorInfo(XERR_RANGE, XLANGDETECT_DOMAIN, 0,
+            "text exceeds 1 MiB analysis limit");
+        return false;
+    }
     memset(pStats, 0, sizeof(*pStats));
-    Text = xlangdetect_view(sText);
+    Text = (xstrview){ sText, iSize };
     while (iOffset < Text.Size) {
         uint32 iScalar;
         size_t iRead = 0;
@@ -128,10 +130,39 @@ static bool xlangdetect_collect_stats(cstr sText, xlangdetect_stats* pStats)
 
 
 
-/* 统计 ASCII 词单串的独立出现次数，忽略 ASCII 大小写。 */
-static int xlangdetect_word_count(cstr sText, cstr sWord)
+static bool xlangdetect_letter_at(cstr sText, size_t iSize, size_t iOffset)
 {
-    size_t iText = strlen(sText);
+    xlangdetect_stats Stats = {0};
+    uint32 iScalar;
+    size_t iRead = 0u;
+
+    if (iOffset >= iSize) { return false; }
+    if ((uint8)sText[iOffset] < 0x80u) {
+        return xlangdetect_ascii_letter((uint8)sText[iOffset]);
+    }
+    if (xrtUtf8Decode((xstrview){sText + iOffset, iSize - iOffset},
+        &iScalar, &iRead) != XUTF_OK) { return false; }
+    xlangdetect_count_scalar(&Stats, iScalar);
+    return Stats.Letters != 0u;
+}
+
+
+
+static bool xlangdetect_letter_before(cstr sText, size_t iSize, size_t iOffset)
+{
+    if (iOffset == 0u) { return false; }
+    --iOffset;
+    while (iOffset > 0u && ((uint8)sText[iOffset] & 0xC0u) == 0x80u) {
+        --iOffset;
+    }
+    return xlangdetect_letter_at(sText, iSize, iOffset);
+}
+
+
+
+/* 统计 ASCII 词单串的独立出现次数，忽略 ASCII 大小写。 */
+static int xlangdetect_word_count(cstr sText, size_t iText, cstr sWord)
+{
     size_t iWord = strlen(sWord);
     int iCount = 0;
 
@@ -139,24 +170,25 @@ static int xlangdetect_word_count(cstr sText, cstr sWord)
     for (size_t i = 0; i + iWord <= iText; i++) {
         size_t j;
 
-        if ((i != 0u) && xlangdetect_ascii_letter((uint8)sText[i - 1u])) { continue; }
-        if ((i + iWord < iText) && xlangdetect_ascii_letter((uint8)sText[i + iWord])) { continue; }
         for (j = 0u; j < iWord; j++) {
             if (xlangdetect_ascii_lower((uint8)sText[i + j]) != (uint8)sWord[j]) { break; }
         }
-        if (j == iWord) { iCount++; }
+        if (j != iWord) { continue; }
+        if (xlangdetect_letter_before(sText, iText, i) ||
+            xlangdetect_letter_at(sText, iText, i + iWord)) { continue; }
+        ++iCount;
     }
     return iCount;
 }
 
 
 
-static int xlangdetect_score(cstr sText, const cstr* arrWords, size_t iCount)
+static int xlangdetect_score(cstr sText, size_t iSize, const cstr* arrWords, size_t iCount)
 {
     int iScore = 0;
 
     for (size_t i = 0u; i < iCount; i++) {
-        iScore += xlangdetect_word_count(sText, arrWords[i]);
+        iScore += xlangdetect_word_count(sText, iSize, arrWords[i]);
     }
     return iScore;
 }
@@ -167,27 +199,31 @@ static xlangdetect_result xlangdetect_script_result(
     const xlangdetect_stats* pStats
 )
 {
-    if (pStats->Hiragana + pStats->Katakana != 0u) {
-        return (xlangdetect_result){ "japanese", "ja", "Japanese", 99 };
+    size_t iKana = pStats->Hiragana + pStats->Katakana;
+
+    /* 少量外文片段不能决定整段文本的语言；日文须有假名证据。 */
+    if (iKana >= 2u && (iKana + pStats->Han) * 2u > pStats->Letters) {
+        return (xlangdetect_result){ "japanese", "ja", "Japanese", 85 };
     }
-    if (pStats->Hangul != 0u) {
-        return (xlangdetect_result){ "korean", "ko", "Korean", 99 };
+    if (pStats->Hangul >= 2u && pStats->Hangul * 2u > pStats->Letters) {
+        return (xlangdetect_result){ "korean", "ko", "Korean", 85 };
     }
-    if (pStats->Han != 0u) {
-        return (xlangdetect_result){ "chinese", "zh", "Han", 98 };
+    if (pStats->Han >= 2u && pStats->Han * 2u > pStats->Letters) {
+        return (xlangdetect_result){ "chinese", "zh", "Han", 65 };
     }
-    if (pStats->Cyrillic != 0u) {
-        return (xlangdetect_result){ "russian", "ru", "Cyrillic", 96 };
+    if (pStats->Cyrillic >= 2u && pStats->Cyrillic * 2u > pStats->Letters) {
+        return (xlangdetect_result){ "unknown", "und", "Cyrillic", 25 };
     }
-    if (pStats->Arabic != 0u) {
-        return (xlangdetect_result){ "arabic", "ar", "Arabic", 96 };
+    if (pStats->Arabic >= 2u && pStats->Arabic * 2u > pStats->Letters) {
+        return (xlangdetect_result){ "unknown", "und", "Arabic", 25 };
     }
     return (xlangdetect_result){ NULL, NULL, NULL, 0 };
 }
 
 
 
-static xlangdetect_result xlangdetect_latin_result(cstr sText, const xlangdetect_stats* pStats)
+static xlangdetect_result xlangdetect_latin_result(cstr sText, size_t iSize,
+    const xlangdetect_stats* pStats)
 {
     static const cstr English[] = { "the", "and", "is", "of", "to", "in", "that", "with", "this", "for" };
     static const cstr French[] = { "le", "la", "les", "des", "est", "et", "une", "dans", "pour", "avec" };
@@ -214,11 +250,12 @@ static xlangdetect_result xlangdetect_latin_result(cstr sText, const xlangdetect
     int iSecond = 0;
     size_t iIndex = 0u;
 
-    if (pStats->Latin == 0u) {
+    /* 词表命中不能让恰好平分的拉丁片段抢走整段文本的语言。 */
+    if (pStats->Latin * 2u <= pStats->Letters) {
         return (xlangdetect_result){ "unknown", "und", "Unknown", 0 };
     }
     for (size_t i = 0u; i < sizeof(Models) / sizeof(Models[0]); i++) {
-        int iScore = xlangdetect_score(sText, Models[i].Words, Models[i].WordCount);
+        int iScore = xlangdetect_score(sText, iSize, Models[i].Words, Models[i].WordCount);
 
         if (iScore > iBest) {
             iSecond = iBest;
@@ -240,12 +277,12 @@ static xlangdetect_result xlangdetect_latin_result(cstr sText, const xlangdetect
 
 
 
-static xlangdetect_result xlangdetect_analyze(cstr sText)
+static xlangdetect_result xlangdetect_analyze(cstr sText, size_t iSize)
 {
     xlangdetect_stats Stats;
     xlangdetect_result Result;
 
-    if (!xlangdetect_collect_stats(sText, &Stats)) {
+    if (!xlangdetect_collect_stats(sText, iSize, &Stats)) {
         return (xlangdetect_result){ "unknown", "und", "Unknown", 0 };
     }
     if (Stats.Letters == 0u) {
@@ -257,45 +294,50 @@ static xlangdetect_result xlangdetect_analyze(cstr sText)
         xrtClearError();
         return Result;
     }
-    Result = xlangdetect_latin_result(sText, &Stats);
+    Result = xlangdetect_latin_result(sText, iSize, &Stats);
     xrtClearError();
     return Result;
 }
 
 
 
-cstr xlangdetect_detect(cstr sText)
+cstr xlangdetect_detect(cstr sText, size_t iSize)
 {
-    return xlangdetect_analyze(sText).Name;
+    return xlangdetect_analyze(sText, iSize).Name;
 }
 
 
 
-cstr xlangdetect_code(cstr sText)
+cstr xlangdetect_code(cstr sText, size_t iSize)
 {
-    return xlangdetect_analyze(sText).Code;
+    return xlangdetect_analyze(sText, iSize).Code;
 }
 
 
 
-cstr xlangdetect_script(cstr sText)
+cstr xlangdetect_script(cstr sText, size_t iSize)
 {
-    return xlangdetect_analyze(sText).Script;
+    return xlangdetect_analyze(sText, iSize).Script;
 }
 
 
 
-long long xlangdetect_confidence(cstr sText)
+int64_t xlangdetect_confidence(cstr sText, size_t iSize)
 {
-    return (long long)xlangdetect_analyze(sText).Confidence;
+    return (int64_t)xlangdetect_analyze(sText, iSize).Confidence;
 }
 
 
 
-bool xlangdetect_valid_utf8(cstr sText)
+bool xlangdetect_valid_utf8(cstr sText, size_t iSize)
 {
-    if (sText == NULL) { return false; }
-    return xrtUtf8Valid(xlangdetect_view(sText), NULL);
+    xrtClearError();
+    if (sText == NULL) {
+        xrtSetErrorInfo(XERR_ARGUMENT, XLANGDETECT_DOMAIN, 0,
+            "text is required");
+        return false;
+    }
+    return xrtUtf8Valid((xstrview){ sText, iSize }, NULL);
 }
 
 
