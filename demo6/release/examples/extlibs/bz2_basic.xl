@@ -1,0 +1,39 @@
+import bz2
+
+func main(...) as int
+    // 与 C 范例使用相同 UTF-8 字节和输出，压缩后数据总是 Buffer。
+    string text = "hello 世界"
+    assert bz2.decompressText(bz2.compress(text, level = 4)) == text
+    println("utf8: ok")
+
+    Buffer binary = Buffer()
+    for value in [0, 255, 128, 65]
+        binary.appendByte(int(value))
+    end
+    assert bz2.decompress(bz2.compress(binary, level = 4)) == binary
+    println("binary: ok")
+
+    bz2.Bz2Compressor encoder = bz2.compressor(level = 4)
+    encoder.update("left")
+    Buffer packed = encoder.drain()
+    encoder.update("right")
+    encoder.finish()
+    packed.append(encoder.drain())
+    bz2.Bz2Decompressor decoder = bz2.decompressor()
+    decoder.update(packed)
+    decoder.finish()
+    assert decoder.drain().text() == "leftright"
+    assert encoder.inputBytes == 9 and decoder.outputBytes == 9
+    println("stream: ok")
+
+    // 空内容的合法 bz2 与零字节的非法压缩输入不同。
+    bool rejected = false
+    try
+        bz2.decompress(Buffer())
+    catch IOError e
+        rejected = true
+    end
+    assert rejected
+    println("truncated: rejected")
+    return 0
+end

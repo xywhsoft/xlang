@@ -1,0 +1,5 @@
+import bz2
+
+// 不执行：解压输入不能接受导入方伪造的指针和长度。
+auto stream = bz2.decompressor()
+stream.updateNative(null, c_size(1))

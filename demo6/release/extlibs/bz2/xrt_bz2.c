@@ -1,699 +1,447 @@
 #include "include/xrt_bz2.h"
 #include "../_bzip2/third_party/bzip2/bzlib.h"
-
 #include <limits.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
+#define BZ2_CHUNK 65536u
+
+/* 算法交给 bzip2；两种流共享限额、错误和输出所有权，不保存用户回调。 */
+typedef struct bz2_state {
+    bz_stream Codec;
+    xrtbz2options Options;
+    xrtbz2error Error;
+    xbuffer* Output;
+    uint64 InputBytes, OutputBytes, Members;
+    bool Decode, Initialized, MemberEnded, Finished, Failed, Busy;
+} bz2_state;
+
+struct xrtbz2compressor { bz2_state State; };
+struct xrtbz2decompressor { bz2_state State; };
 
 
-#define XRT_BZ2_CHUNK 65536u
+// ----------------------------- 错误与初始化 -----------------------------
 
-struct xrtbz2compressor {
-	bz_stream Stream;
-	xbuffer* Output;
-	xrtbz2options Options;
-	xrtbz2error Error;
-	uint64 InputBytes;
-	uint64 OutputBytes;
-	bool Initialized;
-	bool Finished;
-	bool Failed;
-};
-
-struct xrtbz2decompressor {
-	bz_stream Stream;
-	xbuffer* Output;
-	xrtbz2options Options;
-	xrtbz2error Error;
-	uint64 InputBytes;
-	uint64 OutputBytes;
-	uint64 MemberCount;
-	bool Initialized;
-	bool MemberEnded;
-	bool Finished;
-	bool Failed;
-};
-
-
-
-static void* __xrtBz2Alloc(void* pOpaque, int iItems, int iSize)
+static xerrkind bz2_kind(int code)
 {
-	size_t iBytes;
-	ptr pData;
-	(void)pOpaque;
-	if ( iItems < 0 || iSize < 0 || (iSize != 0 && (size_t)iItems > (size_t)-1 / (size_t)iSize) ) {
-		return NULL;
-	}
-	iBytes = (size_t)iItems * (size_t)iSize;
-	pData = xrtMalloc(iBytes == 0u ? 1u : iBytes);
-	if ( pData != NULL && iBytes != 0u ) { memset(pData, 0, iBytes); }
-	return pData;
+    switch (code) {
+    case XRT_BZ2_ERROR_ARGUMENT: return XERR_ARGUMENT;
+    case XRT_BZ2_ERROR_MEMORY: return XERR_MEMORY;
+    case XRT_BZ2_ERROR_LIMIT: return XERR_RANGE;
+    case XRT_BZ2_ERROR_STATE: return XERR_STATE;
+    case XRT_BZ2_ERROR_CANCELLED: return XERR_CANCELLED;
+    case XRT_BZ2_ERROR_DATA: case XRT_BZ2_ERROR_TRUNCATED: return XERR_PROTOCOL;
+    default: return XERR_IO;
+    }
 }
 
-static void __xrtBz2Free(void* pOpaque, void* pAddress)
+static bool bz2_error(bz2_state* s, int code, int backend, const char* message)
 {
-	(void)pOpaque;
-	xrtFree(pAddress);
+    if (s != NULL) {
+        s->Error.iCode = code;
+        s->Error.iBackendCode = backend;
+        s->Error.iInputOffset = s->InputBytes;
+        s->Error.iOutputOffset = s->OutputBytes;
+        snprintf(s->Error.sMessage, sizeof(s->Error.sMessage), "%s", message);
+    }
+    xrtSetErrorInfo(bz2_kind(code), "xlang.extlib.bz2", code, message);
+    return false;
 }
 
-static void __xrtBz2SetError(xrtbz2error* pError, int iCode, int iBackend,
-	uint64 iInput, uint64 iOutput, const char* sFormat, ...)
+/* IO、分配器和回调已有错误时只记录快照，不替换原错误对象。 */
+static bool bz2_external_error(bz2_state* s, int fallback, const char* message)
 {
-	va_list pArgs;
-	if ( pError == NULL ) { return; }
-	pError->iCode = iCode;
-	pError->iBackendCode = iBackend;
-	pError->iInputOffset = iInput;
-	pError->iOutputOffset = iOutput;
-	va_start(pArgs, sFormat);
-	vsnprintf(pError->sMessage, sizeof(pError->sMessage), sFormat, pArgs);
-	va_end(pArgs);
-	pError->sMessage[sizeof(pError->sMessage) - 1u] = 0;
+    const xerror* error = xrtGetError();
+    int code = fallback;
+    if (s->Error.iCode != XRT_BZ2_OK) {
+        if (error == NULL)
+            xrtSetErrorInfo(bz2_kind(s->Error.iCode), "xlang.extlib.bz2",
+                s->Error.iCode, s->Error.sMessage);
+        return false;
+    }
+    if (error == NULL) return bz2_error(s, fallback, 0, message);
+    switch (xrtErrorKind(error)) {
+    case XERR_ARGUMENT: code = XRT_BZ2_ERROR_ARGUMENT; break;
+    case XERR_MEMORY: code = XRT_BZ2_ERROR_MEMORY; break;
+    case XERR_RANGE: code = XRT_BZ2_ERROR_LIMIT; break;
+    case XERR_STATE: code = XRT_BZ2_ERROR_STATE; break;
+    case XERR_CANCELLED: code = XRT_BZ2_ERROR_CANCELLED; break;
+    default: break;
+    }
+    s->Error.iCode = code;
+    s->Error.iBackendCode = xrtErrorCode(error);
+    s->Error.iInputOffset = s->InputBytes;
+    s->Error.iOutputOffset = s->OutputBytes;
+    snprintf(s->Error.sMessage, sizeof(s->Error.sMessage), "%s", xrtErrorMessage(error));
+    return false;
 }
 
-static void __xrtBz2CopyError(xrtbz2error* pTarget, const xrtbz2error* pSource)
+XRT_API void xrtBz2ErrorInit(xrtbz2error* error)
+{ if (error != NULL) memset(error, 0, sizeof(*error)); }
+
+XRT_API void xrtBz2OptionsInit(xrtbz2options* options)
 {
-	if ( pTarget == NULL ) { return; }
-	if ( pSource != NULL ) { *pTarget = *pSource; }
-	else { xrtBz2ErrorInit(pTarget); }
+    if (options == NULL) return;
+    memset(options, 0, sizeof(*options));
+    options->iSize = sizeof(*options);
+    options->iVersion = XRT_BZ2_OPTIONS_VERSION;
+    options->iLevel = 9;
+    options->iWorkFactor = 30;
+    xrtResourceLimitsInit(&options->tLimits);
+    options->tLimits.iMaxItemBytes = 0;
+    options->tLimits.iMaxEntries = 0;
+    options->tLimits.iMaxNodes = 0;
+    options->tLimits.iMaxDepth = 0;
 }
 
-static bool __xrtBz2OptionsCopy(xrtbz2options* pTarget, const xrtbz2options* pSource,
-	xrtbz2error* pError)
+static void* bz2_alloc(void* opaque, int items, int size)
 {
-	xrtBz2OptionsInit(pTarget);
-	if ( pSource == NULL ) { return true; }
-	if ( pSource->iSize < sizeof(xrtbz2options) || pSource->iVersion != XRT_BZ2_OPTIONS_VERSION ) {
-		__xrtBz2SetError(pError, XRT_BZ2_ERROR_ARGUMENT, BZ_PARAM_ERROR, 0, 0,
-			"invalid bz2 options version");
-		return false;
-	}
-	*pTarget = *pSource;
-	if ( pTarget->iLevel < 1 || pTarget->iLevel > 9 ) {
-		__xrtBz2SetError(pError, XRT_BZ2_ERROR_ARGUMENT, BZ_PARAM_ERROR, 0, 0,
-			"bz2 compression level must be 1..9");
-		return false;
-	}
-	if ( pTarget->iWorkFactor < 0 || pTarget->iWorkFactor > 250 ) {
-		__xrtBz2SetError(pError, XRT_BZ2_ERROR_ARGUMENT, BZ_PARAM_ERROR, 0, 0,
-			"bz2 work factor must be 0..250");
-		return false;
-	}
-	return true;
+    (void)opaque;
+    if (items < 0 || size < 0 || (size != 0 && (size_t)items > SIZE_MAX / (size_t)size)) return NULL;
+    return xrtCalloc((size_t)items, (size_t)size);
+}
+static void bz2_free(void* opaque, void* memory) { (void)opaque; xrtFree(memory); }
+
+static bool bz2_codec_init(bz2_state* s)
+{
+    int result;
+    memset(&s->Codec, 0, sizeof(s->Codec));
+    s->Codec.bzalloc = bz2_alloc;
+    s->Codec.bzfree = bz2_free;
+    result = s->Decode ? BZ2_bzDecompressInit(&s->Codec, 0, s->Options.bSmallMemory ? 1 : 0) :
+        BZ2_bzCompressInit(&s->Codec, s->Options.iLevel, 0, s->Options.iWorkFactor);
+    if (result != BZ_OK) {
+        if (result == BZ_MEM_ERROR) return bz2_external_error(s, XRT_BZ2_ERROR_MEMORY, "cannot allocate bz2 codec");
+        return bz2_error(s, XRT_BZ2_ERROR_STATE, result, "cannot initialize bz2 codec");
+    }
+    s->Initialized = true;
+    s->MemberEnded = false;
+    return true;
 }
 
-static bool __xrtBz2InputAllowed(const xrtresourcelimits* pLimits, uint64 iOld,
-	uint64 iAdded, xrtbz2error* pError, uint64 iOutput)
+static void bz2_codec_end(bz2_state* s)
 {
-	if ( iAdded > UINT64_MAX - iOld ||
-		(pLimits->iMaxInputBytes != 0u && iOld + iAdded > pLimits->iMaxInputBytes) ) {
-		__xrtBz2SetError(pError, XRT_BZ2_ERROR_LIMIT, BZ_PARAM_ERROR, iOld, iOutput,
-			"bz2 input exceeds the configured limit");
-		return false;
-	}
-	return true;
+    if (!s->Initialized) return;
+    if (s->Decode) BZ2_bzDecompressEnd(&s->Codec);
+    else BZ2_bzCompressEnd(&s->Codec);
+    s->Initialized = false;
 }
 
-static bool __xrtBz2OutputAllowed(const xrtresourcelimits* pLimits, uint64 iInput,
-	uint64 iOld, uint64 iAdded, bool bCheckRatio, xrtbz2error* pError)
+static bool bz2_init(bz2_state* s, const xrtbz2options* options, bool decode)
 {
-	uint64 iNew;
-	uint64 iAllowed;
-	if ( iAdded > UINT64_MAX - iOld ) {
-		__xrtBz2SetError(pError, XRT_BZ2_ERROR_LIMIT, BZ_MEM_ERROR, iInput, iOld,
-			"bz2 output size overflow");
-		return false;
-	}
-	iNew = iOld + iAdded;
-	if ( pLimits->iMaxOutputBytes != 0u && iNew > pLimits->iMaxOutputBytes ) {
-		__xrtBz2SetError(pError, XRT_BZ2_ERROR_LIMIT, BZ_MEM_ERROR, iInput, iOld,
-			"bz2 output exceeds the configured limit");
-		return false;
-	}
-	if ( bCheckRatio && pLimits->iMaxCompressionRatio != 0u && iInput != 0u ) {
-		iAllowed = iInput > UINT64_MAX / pLimits->iMaxCompressionRatio ?
-			UINT64_MAX : iInput * pLimits->iMaxCompressionRatio;
-		if ( iNew > iAllowed ) {
-			__xrtBz2SetError(pError, XRT_BZ2_ERROR_LIMIT, BZ_MEM_ERROR, iInput, iOld,
-				"bz2 expansion ratio exceeds the configured limit");
-			return false;
-		}
-	}
-	return true;
+    static const uint8 reserved[7] = {0};
+    memset(s, 0, sizeof(*s));
+    s->Decode = decode;
+    xrtBz2OptionsInit(&s->Options);
+    if (options != NULL) {
+        if (options->iSize != sizeof(*options) || options->iVersion != XRT_BZ2_OPTIONS_VERSION ||
+            memcmp(options->sReserved, reserved, sizeof(reserved)) != 0 ||
+            options->tLimits.iSize != sizeof(options->tLimits) ||
+            options->tLimits.iVersion != XRT_RESOURCE_LIMITS_VERSION || options->tLimits.iReserved != 0)
+            return bz2_error(s, XRT_BZ2_ERROR_ARGUMENT, BZ_PARAM_ERROR, "invalid bz2 options or limits version");
+        if (options->tLimits.iFlags != 0 || options->tLimits.iMaxItemBytes != 0 ||
+            options->tLimits.iMaxEntries != 0 || options->tLimits.iMaxNodes != 0 ||
+            options->tLimits.iMaxDepth != 0)
+            return bz2_error(s, XRT_BZ2_ERROR_ARGUMENT, BZ_PARAM_ERROR, "unsupported bz2 resource limits");
+        s->Options = *options;
+    }
+    if (s->Options.iLevel < 1 || s->Options.iLevel > 9 ||
+        s->Options.iWorkFactor < 0 || s->Options.iWorkFactor > 250)
+        return bz2_error(s, XRT_BZ2_ERROR_ARGUMENT, BZ_PARAM_ERROR, "bz2 level must be 1..9 and workFactor 0..250");
+    s->Output = xrtBufferCreate();
+    if (s->Output == NULL) return bz2_external_error(s, XRT_BZ2_ERROR_MEMORY, "cannot allocate bz2 output");
+    return bz2_codec_init(s);
 }
 
-static bool __xrtBz2Append(xbuffer* pOutput, const uint8* pData, size_t iSize,
-	uint64 iInput, uint64* pOutputBytes, const xrtresourcelimits* pLimits,
-	bool bCheckRatio, xrtbz2error* pError)
+/* 参数/状态误用可纠正；编解码、限额、写入和回调重入失败是终态。 */
+static bool bz2_ready(bz2_state* s, bool writing)
 {
-	if ( iSize == 0u ) { return true; }
-	if ( !__xrtBz2OutputAllowed(pLimits, iInput, *pOutputBytes, iSize, bCheckRatio, pError) ) {
-		return false;
-	}
-	if ( !xrtBufferAppend(pOutput, (xbytesview){ pData, iSize }) ) {
-		__xrtBz2SetError(pError, XRT_BZ2_ERROR_MEMORY, BZ_MEM_ERROR, iInput, *pOutputBytes,
-			"cannot grow bz2 output buffer");
-		return false;
-	}
-	*pOutputBytes += iSize;
-	return true;
+    if (s == NULL) return bz2_error(NULL, XRT_BZ2_ERROR_ARGUMENT, 0, "bz2 object is null");
+    if (s->Busy) {
+        s->Failed = true;
+        return bz2_error(s, XRT_BZ2_ERROR_STATE, 0, "bz2 object cannot be reentered from its writer");
+    }
+    if (s->Failed) {
+        xrtSetErrorInfo(bz2_kind(s->Error.iCode), "xlang.extlib.bz2", s->Error.iCode, s->Error.sMessage);
+        return false;
+    }
+    if (s->Output == NULL || (writing && s->Finished))
+        return bz2_error(s, XRT_BZ2_ERROR_STATE, 0, "bz2 stream is finished or its buffer was taken");
+    xrtClearError();
+    xrtBz2ErrorInit(&s->Error);
+    return true;
 }
 
-
-
-/* 创建带初始容量的 Buffer，失败时不泄漏半初始化对象。 */
-static xbuffer* __xrtBz2BufferCreate(size_t iCapacity)
+static bool bz2_append(bz2_state* s, const uint8* bytes, size_t size)
 {
-	xbuffer* pBuffer = xrtBufferCreate();
-
-	if ( (pBuffer != NULL) && !xrtBufferReserve(pBuffer, iCapacity) ) {
-		xrtBufferDestroy(pBuffer);
-		pBuffer = NULL;
-	}
-	return pBuffer;
-}
-
-
-
-XRT_API void xrtBz2OptionsInit(xrtbz2options* pOptions)
-{
-	if ( pOptions == NULL ) { return; }
-	memset(pOptions, 0, sizeof(*pOptions));
-	pOptions->iSize = sizeof(*pOptions);
-	pOptions->iVersion = XRT_BZ2_OPTIONS_VERSION;
-	pOptions->iLevel = 9;
-	pOptions->iWorkFactor = 0;
-	xrtResourceLimitsInit(&pOptions->tLimits);
-}
-
-XRT_API void xrtBz2ErrorInit(xrtbz2error* pError)
-{
-	if ( pError != NULL ) { memset(pError, 0, sizeof(*pError)); }
+    const xrtresourcelimits* limits = &s->Options.tLimits;
+    uint64 count, ratio = limits->iMaxCompressionRatio;
+    if ((uint64)size > UINT64_MAX - s->OutputBytes)
+        return bz2_error(s, XRT_BZ2_ERROR_LIMIT, 0, "bz2 output size overflow");
+    count = s->OutputBytes + size;
+    if ((limits->iMaxOutputBytes != 0 && count > limits->iMaxOutputBytes) ||
+        (s->Decode && ratio != 0 && s->InputBytes <= UINT64_MAX / ratio && count > s->InputBytes * ratio))
+        return bz2_error(s, XRT_BZ2_ERROR_LIMIT, 0, "bz2 output exceeds size or expansion ratio limit");
+    if (!xrtBufferAppend(s->Output, (xbytesview){bytes, size}))
+        return bz2_external_error(s, XRT_BZ2_ERROR_MEMORY, "cannot grow bz2 output");
+    s->OutputBytes = count;
+    return true;
 }
 
 
+// ----------------------------- bzip2 状态机 -----------------------------
 
-// ------------------------------------ 压缩器 ------------------------------------
-
-XRT_API xrtbz2compressor* xrtBz2CompressorCreate(const xrtbz2options* pOptions)
+static bool bz2_run(bz2_state* s, const void* data, size_t size, bool finish)
 {
-	xrtbz2compressor* pCompressor = (xrtbz2compressor*)xrtMalloc(sizeof(xrtbz2compressor));
-	int iRet;
-	if ( pCompressor == NULL ) { return NULL; }
-	memset(pCompressor, 0, sizeof(*pCompressor));
-	if ( !__xrtBz2OptionsCopy(&pCompressor->Options, pOptions, &pCompressor->Error) ) {
-		pCompressor->Failed = true;
-		return pCompressor;
-	}
-	pCompressor->Output = __xrtBz2BufferCreate(XRT_BZ2_CHUNK);
-	if ( pCompressor->Output == NULL ) {
-		__xrtBz2SetError(&pCompressor->Error, XRT_BZ2_ERROR_MEMORY, BZ_MEM_ERROR, 0, 0,
-			"cannot create bz2 output buffer");
-		pCompressor->Failed = true;
-		return pCompressor;
-	}
-	pCompressor->Stream.bzalloc = __xrtBz2Alloc;
-	pCompressor->Stream.bzfree = __xrtBz2Free;
-	iRet = BZ2_bzCompressInit(&pCompressor->Stream, pCompressor->Options.iLevel, 0,
-		pCompressor->Options.iWorkFactor);
-	if ( iRet != BZ_OK ) {
-		__xrtBz2SetError(&pCompressor->Error,
-			iRet == BZ_MEM_ERROR ? XRT_BZ2_ERROR_MEMORY : XRT_BZ2_ERROR_STATE,
-			iRet, 0, 0, "cannot initialize bz2 compressor");
-		pCompressor->Failed = true;
-		return pCompressor;
-	}
-	pCompressor->Initialized = true;
-	return pCompressor;
+    uint8 output[BZ2_CHUNK];
+    size_t offset = 0;
+    bool drain = false;
+    while (offset < size || drain || finish) {
+        unsigned int input;
+        size_t consumed, produced;
+        int result;
+        if (s->Decode && s->MemberEnded) {
+            if (offset == size) break;
+            bz2_codec_end(s);
+            if (!bz2_codec_init(s)) goto failed;
+        }
+        input = (unsigned int)((size - offset) > UINT_MAX ? UINT_MAX : size - offset);
+        s->Codec.next_in = input != 0 ? (char*)data + offset : NULL;
+        s->Codec.avail_in = input;
+        s->Codec.next_out = (char*)output;
+        s->Codec.avail_out = sizeof(output);
+        result = s->Decode ? BZ2_bzDecompress(&s->Codec) : BZ2_bzCompress(&s->Codec, finish ? BZ_FINISH : BZ_RUN);
+        consumed = input - s->Codec.avail_in;
+        produced = sizeof(output) - s->Codec.avail_out;
+        offset += consumed;
+        if (!bz2_append(s, output, produced)) goto failed;
+        if (result == BZ_STREAM_END) {
+            s->MemberEnded = true;
+            ++s->Members;
+            if (!s->Decode) { s->Finished = true; return true; }
+            drain = false;
+            continue;
+        }
+        if ((s->Decode && result != BZ_OK) ||
+            (!s->Decode && result != (finish ? BZ_FINISH_OK : BZ_RUN_OK))) {
+            if (result == BZ_MEM_ERROR) bz2_external_error(s, XRT_BZ2_ERROR_MEMORY, "cannot allocate bz2 block");
+            else bz2_error(s, XRT_BZ2_ERROR_DATA, result, "bz2 data is invalid");
+            goto failed;
+        }
+        /* 解压可能耗尽输入后仍有整个块待输出，不能只按 avail_in 退出。 */
+        drain = s->Decode && s->Codec.avail_out == 0;
+        if (consumed == 0 && produced == 0) {
+            if (s->Decode && offset == size) break;
+            bz2_error(s, XRT_BZ2_ERROR_STATE, result, "bz2 codec made no progress");
+            goto failed;
+        }
+    }
+    return true;
+failed:
+    s->Failed = true;
+    return false;
 }
 
-static bool __xrtBz2CompressRun(xrtbz2compressor* pCompressor, const uint8* pData,
-	size_t iSize, int iAction)
+static bool bz2_update(bz2_state* s, const void* data, size_t size)
 {
-	uint8 sOutput[XRT_BZ2_CHUNK];
-	size_t iOffset = 0u;
-	if ( pCompressor == NULL || pCompressor->Failed || pCompressor->Finished ) { return false; }
-	while ( iOffset < iSize || iAction == BZ_FINISH ) {
-		unsigned int iInput = (unsigned int)((iSize - iOffset) > UINT_MAX ? UINT_MAX : iSize - iOffset);
-		int iRet;
-		size_t iConsumed;
-		size_t iProduced;
-		pCompressor->Stream.next_in = (char*)(pData + iOffset);
-		pCompressor->Stream.avail_in = iInput;
-		pCompressor->Stream.next_out = (char*)sOutput;
-		pCompressor->Stream.avail_out = sizeof(sOutput);
-		iRet = BZ2_bzCompress(&pCompressor->Stream, iAction);
-		iConsumed = iInput - pCompressor->Stream.avail_in;
-		iProduced = sizeof(sOutput) - pCompressor->Stream.avail_out;
-		iOffset += iConsumed;
-		if ( !__xrtBz2Append(pCompressor->Output, sOutput, iProduced, pCompressor->InputBytes,
-			&pCompressor->OutputBytes, &pCompressor->Options.tLimits, false,
-			&pCompressor->Error) ) {
-			pCompressor->Failed = true;
-			return false;
-		}
-		if ( iRet == BZ_STREAM_END ) {
-			pCompressor->Finished = true;
-			return true;
-		}
-		if ( (iAction == BZ_RUN && iRet != BZ_RUN_OK) ||
-			(iAction == BZ_FINISH && iRet != BZ_FINISH_OK) ) {
-			__xrtBz2SetError(&pCompressor->Error, XRT_BZ2_ERROR_DATA, iRet,
-				pCompressor->InputBytes, pCompressor->OutputBytes, "bz2 compression failed");
-			pCompressor->Failed = true;
-			return false;
-		}
-		if ( iConsumed == 0u && iProduced == 0u ) {
-			__xrtBz2SetError(&pCompressor->Error, XRT_BZ2_ERROR_STATE, iRet,
-				pCompressor->InputBytes, pCompressor->OutputBytes, "bz2 compressor made no progress");
-			pCompressor->Failed = true;
-			return false;
-		}
-		if ( iAction == BZ_RUN && iOffset == iSize && pCompressor->Stream.avail_out != 0u ) { break; }
-	}
-	return true;
+    uint64 maximum;
+    if (!bz2_ready(s, true)) return false;
+    if (data == NULL && size != 0) return bz2_error(s, XRT_BZ2_ERROR_ARGUMENT, 0, "bz2 input is null");
+    maximum = s->Options.tLimits.iMaxInputBytes;
+    if ((uint64)size > UINT64_MAX - s->InputBytes ||
+        (maximum != 0 && (s->InputBytes > maximum || (uint64)size > maximum - s->InputBytes))) {
+        s->Failed = true;
+        return bz2_error(s, XRT_BZ2_ERROR_LIMIT, 0, "bz2 input exceeds maxInput limit");
+    }
+    s->InputBytes += size;
+    return size == 0 || bz2_run(s, data, size, false);
 }
 
-XRT_API bool xrtBz2CompressorUpdate(xrtbz2compressor* pCompressor, const void* pData, size_t iSize)
+static bool bz2_finish(bz2_state* s)
 {
-	if ( pCompressor == NULL || pCompressor->Failed || pCompressor->Finished ||
-		(pData == NULL && iSize != 0u) ) { return false; }
-	if ( !__xrtBz2InputAllowed(&pCompressor->Options.tLimits, pCompressor->InputBytes, iSize,
-		&pCompressor->Error, pCompressor->OutputBytes) ) {
-		pCompressor->Failed = true;
-		return false;
-	}
-	pCompressor->InputBytes += iSize;
-	return iSize == 0u || __xrtBz2CompressRun(pCompressor, (const uint8*)pData, iSize, BZ_RUN);
-}
-
-XRT_API bool xrtBz2CompressorFinish(xrtbz2compressor* pCompressor)
-{
-	static const uint8 iEmpty = 0u;
-	if ( pCompressor == NULL || pCompressor->Failed ) { return false; }
-	if ( pCompressor->Finished ) { return true; }
-	return __xrtBz2CompressRun(pCompressor, &iEmpty, 0u, BZ_FINISH);
-}
-
-XRT_API bool xrtBz2CompressorDrain(xrtbz2compressor* pCompressor, xwriter* pWriter)
-{
-	xbytesview Output;
-
-	if ( pCompressor == NULL || pCompressor->Failed || pWriter == NULL ) { return false; }
-	Output = xrtBufferView(pCompressor->Output);
-	if ( Output.Size != 0u &&
-		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
-		__xrtBz2SetError(&pCompressor->Error, XRT_BZ2_ERROR_IO, BZ_IO_ERROR,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot write bz2 output stream");
-		pCompressor->Failed = true;
-		return false;
-	}
-	xrtBufferClear(pCompressor->Output);
-	return true;
-}
-
-XRT_API xbuffer* xrtBz2CompressorTakeBuffer(xrtbz2compressor* pCompressor)
-{
-	xbuffer* pOutput;
-	if ( pCompressor == NULL || pCompressor->Failed || !pCompressor->Finished ) { return NULL; }
-	pOutput = pCompressor->Output;
-	pCompressor->Output = NULL;
-	return pOutput;
-}
-
-XRT_API xbuffer* xrtBz2CompressorDrainBuffer(xrtbz2compressor* pCompressor)
-{
-	xbuffer* pOutput;
-	if ( pCompressor == NULL || pCompressor->Failed || pCompressor->Output == NULL ) { return NULL; }
-	pOutput = xrtBufferFrom(xrtBufferView(pCompressor->Output));
-	if ( pOutput != NULL ) { xrtBufferClear(pCompressor->Output); }
-	return pOutput;
-}
-
-XRT_API uint64 xrtBz2CompressorInputBytes(const xrtbz2compressor* pCompressor)
-{
-	return pCompressor != NULL ? pCompressor->InputBytes : 0u;
-}
-
-XRT_API uint64 xrtBz2CompressorOutputBytes(const xrtbz2compressor* pCompressor)
-{
-	return pCompressor != NULL ? pCompressor->OutputBytes : 0u;
-}
-
-XRT_API const xrtbz2error* xrtBz2CompressorError(const xrtbz2compressor* pCompressor)
-{
-	return pCompressor != NULL ? &pCompressor->Error : NULL;
-}
-
-XRT_API void xrtBz2CompressorDestroy(xrtbz2compressor* pCompressor)
-{
-	if ( pCompressor == NULL ) { return; }
-	if ( pCompressor->Initialized ) { BZ2_bzCompressEnd(&pCompressor->Stream); }
-	xrtBufferDestroy(pCompressor->Output);
-	xrtFree(pCompressor);
+    if (!bz2_ready(s, false)) return false;
+    if (s->Finished) return true;
+    if (!s->Decode) return bz2_run(s, NULL, 0, true);
+    if (!s->MemberEnded || s->Members == 0) {
+        s->Failed = true;
+        return bz2_error(s, XRT_BZ2_ERROR_TRUNCATED, BZ_UNEXPECTED_EOF, "input is not a complete bz2 stream");
+    }
+    s->Finished = true;
+    return true;
 }
 
 
+// ----------------------------- 输出与生命周期 -----------------------------
 
-// ------------------------------------ 解压器 ------------------------------------
-
-static bool __xrtBz2DecompressorInitStream(xrtbz2decompressor* pDecompressor)
+static bool bz2_drain(bz2_state* s, xwriter* writer)
 {
-	int iRet;
-	memset(&pDecompressor->Stream, 0, sizeof(pDecompressor->Stream));
-	pDecompressor->Stream.bzalloc = __xrtBz2Alloc;
-	pDecompressor->Stream.bzfree = __xrtBz2Free;
-	iRet = BZ2_bzDecompressInit(&pDecompressor->Stream, 0,
-		pDecompressor->Options.bSmallMemory ? 1 : 0);
-	if ( iRet != BZ_OK ) {
-		__xrtBz2SetError(&pDecompressor->Error,
-			iRet == BZ_MEM_ERROR ? XRT_BZ2_ERROR_MEMORY : XRT_BZ2_ERROR_STATE,
-			iRet, pDecompressor->InputBytes, pDecompressor->OutputBytes,
-			"cannot initialize bz2 decompressor");
-		return false;
-	}
-	pDecompressor->Initialized = true;
-	pDecompressor->MemberEnded = false;
-	return true;
+    xbytesview bytes;
+    bool ok;
+    if (!bz2_ready(s, false)) return false;
+    if (writer == NULL) return bz2_error(s, XRT_BZ2_ERROR_ARGUMENT, 0, "bz2 writer is null");
+    bytes = xrtBufferView(s->Output);
+    s->Busy = true;
+    ok = bytes.Size == 0 || xrtWriterWriteFull(writer, bytes.Data, bytes.Size, NULL);
+    s->Busy = false;
+    if (!ok || s->Failed) {
+        s->Failed = true;
+        return bz2_external_error(s, XRT_BZ2_ERROR_IO, "cannot write bz2 output");
+    }
+    xrtBufferClear(s->Output);
+    return true;
 }
 
-XRT_API xrtbz2decompressor* xrtBz2DecompressorCreate(const xrtbz2options* pOptions)
+static xbuffer* bz2_take(bz2_state* s, bool final)
 {
-	xrtbz2decompressor* pDecompressor = (xrtbz2decompressor*)xrtMalloc(sizeof(xrtbz2decompressor));
-	if ( pDecompressor == NULL ) { return NULL; }
-	memset(pDecompressor, 0, sizeof(*pDecompressor));
-	if ( !__xrtBz2OptionsCopy(&pDecompressor->Options, pOptions, &pDecompressor->Error) ) {
-		pDecompressor->Failed = true;
-		return pDecompressor;
-	}
-	pDecompressor->Output = __xrtBz2BufferCreate(XRT_BZ2_CHUNK);
-	if ( pDecompressor->Output == NULL ) {
-		__xrtBz2SetError(&pDecompressor->Error, XRT_BZ2_ERROR_MEMORY, BZ_MEM_ERROR, 0, 0,
-			"cannot create bz2 output buffer");
-		pDecompressor->Failed = true;
-		return pDecompressor;
-	}
-	if ( !__xrtBz2DecompressorInitStream(pDecompressor) ) { pDecompressor->Failed = true; }
-	return pDecompressor;
+    xbuffer* output;
+    xbuffer* replacement = NULL;
+    if (!bz2_ready(s, false)) return NULL;
+    if (final && !s->Finished) {
+        bz2_error(s, XRT_BZ2_ERROR_STATE, 0, "finish bz2 before taking its buffer");
+        return NULL;
+    }
+    if (!final) {
+        replacement = xrtBufferCreate();
+        if (replacement == NULL) {
+            bz2_external_error(s, XRT_BZ2_ERROR_MEMORY, "cannot replace bz2 output buffer");
+            return NULL;
+        }
+    }
+    output = s->Output;
+    s->Output = replacement;
+    return output;
 }
 
-XRT_API bool xrtBz2DecompressorUpdate(xrtbz2decompressor* pDecompressor, const void* pData, size_t iSize)
+static bool bz2_destroy(bz2_state* s)
 {
-	uint8 sOutput[XRT_BZ2_CHUNK];
-	const uint8* pInput = (const uint8*)pData;
-	size_t iOffset = 0u;
-	if ( pDecompressor == NULL || pDecompressor->Failed || pDecompressor->Finished ||
-		(pData == NULL && iSize != 0u) ) { return false; }
-	if ( !__xrtBz2InputAllowed(&pDecompressor->Options.tLimits, pDecompressor->InputBytes, iSize,
-		&pDecompressor->Error, pDecompressor->OutputBytes) ) {
-		pDecompressor->Failed = true;
-		return false;
-	}
-	pDecompressor->InputBytes += iSize;
-	while ( iOffset < iSize ) {
-		if ( pDecompressor->MemberEnded ) {
-			BZ2_bzDecompressEnd(&pDecompressor->Stream);
-			pDecompressor->Initialized = false;
-			if ( !__xrtBz2DecompressorInitStream(pDecompressor) ) {
-				pDecompressor->Failed = true;
-				return false;
-			}
-		}
-		{
-			unsigned int iInput = (unsigned int)((iSize - iOffset) > UINT_MAX ? UINT_MAX : iSize - iOffset);
-			int iRet;
-			size_t iConsumed;
-			size_t iProduced;
-			pDecompressor->Stream.next_in = (char*)(pInput + iOffset);
-			pDecompressor->Stream.avail_in = iInput;
-			pDecompressor->Stream.next_out = (char*)sOutput;
-			pDecompressor->Stream.avail_out = sizeof(sOutput);
-			iRet = BZ2_bzDecompress(&pDecompressor->Stream);
-			iConsumed = iInput - pDecompressor->Stream.avail_in;
-			iProduced = sizeof(sOutput) - pDecompressor->Stream.avail_out;
-			iOffset += iConsumed;
-			if ( !__xrtBz2Append(pDecompressor->Output, sOutput, iProduced,
-				pDecompressor->InputBytes, &pDecompressor->OutputBytes,
-				&pDecompressor->Options.tLimits, true, &pDecompressor->Error) ) {
-				pDecompressor->Failed = true;
-				return false;
-			}
-			if ( iRet == BZ_STREAM_END ) {
-				pDecompressor->MemberEnded = true;
-				pDecompressor->MemberCount++;
-				continue;
-			}
-			if ( iRet != BZ_OK ) {
-				__xrtBz2SetError(&pDecompressor->Error, XRT_BZ2_ERROR_DATA, iRet,
-					pDecompressor->InputBytes - (iSize - iOffset), pDecompressor->OutputBytes,
-					"bz2 data is invalid");
-				pDecompressor->Failed = true;
-				return false;
-			}
-			if ( iConsumed == 0u && iProduced == 0u ) {
-				__xrtBz2SetError(&pDecompressor->Error, XRT_BZ2_ERROR_DATA, iRet,
-					pDecompressor->InputBytes - (iSize - iOffset), pDecompressor->OutputBytes,
-					"bz2 decompressor made no progress");
-				pDecompressor->Failed = true;
-				return false;
-			}
-		}
-	}
-	return true;
+    if (s == NULL) return true;
+    if (s->Busy) {
+        s->Failed = true;
+        return bz2_error(s, XRT_BZ2_ERROR_STATE, 0, "cannot destroy bz2 from its writer");
+    }
+    bz2_codec_end(s);
+    xrtBufferDestroy(s->Output);
+    return true;
 }
 
-XRT_API bool xrtBz2DecompressorFinish(xrtbz2decompressor* pDecompressor)
+XRT_API xrtbz2compressor* xrtBz2CompressorCreate(const xrtbz2options* options)
 {
-	if ( pDecompressor == NULL || pDecompressor->Failed ) { return false; }
-	if ( pDecompressor->Finished ) { return true; }
-	if ( !pDecompressor->MemberEnded || pDecompressor->MemberCount == 0u ) {
-		__xrtBz2SetError(&pDecompressor->Error, XRT_BZ2_ERROR_TRUNCATED, BZ_UNEXPECTED_EOF,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes,
-			pDecompressor->MemberCount == 0u ? "input is not a complete bz2 stream" : "bz2 stream is truncated");
-		pDecompressor->Failed = true;
-		return false;
-	}
-	pDecompressor->Finished = true;
-	return true;
+    xrtbz2compressor* c;
+    xrtClearError();
+    c = xrtMalloc(sizeof(*c));
+    if (c == NULL) return NULL;
+    if (bz2_init(&c->State, options, false)) return c;
+    xrtBz2CompressorDestroy(c);
+    return NULL;
+}
+XRT_API xrtbz2decompressor* xrtBz2DecompressorCreate(const xrtbz2options* options)
+{
+    xrtbz2decompressor* d;
+    xrtClearError();
+    d = xrtMalloc(sizeof(*d));
+    if (d == NULL) return NULL;
+    if (bz2_init(&d->State, options, true)) return d;
+    xrtBz2DecompressorDestroy(d);
+    return NULL;
+}
+XRT_API bool xrtBz2CompressorUpdate(xrtbz2compressor* c, const void* p, size_t n)
+{ return bz2_update(c ? &c->State : NULL, p, n); }
+XRT_API bool xrtBz2DecompressorUpdate(xrtbz2decompressor* d, const void* p, size_t n)
+{ return bz2_update(d ? &d->State : NULL, p, n); }
+XRT_API bool xrtBz2CompressorFinish(xrtbz2compressor* c) { return bz2_finish(c ? &c->State : NULL); }
+XRT_API bool xrtBz2DecompressorFinish(xrtbz2decompressor* d) { return bz2_finish(d ? &d->State : NULL); }
+XRT_API bool xrtBz2CompressorDrain(xrtbz2compressor* c, xwriter* w) { return bz2_drain(c ? &c->State : NULL, w); }
+XRT_API bool xrtBz2DecompressorDrain(xrtbz2decompressor* d, xwriter* w) { return bz2_drain(d ? &d->State : NULL, w); }
+XRT_API xbuffer* xrtBz2CompressorTakeBuffer(xrtbz2compressor* c) { return bz2_take(c ? &c->State : NULL, true); }
+XRT_API xbuffer* xrtBz2DecompressorTakeBuffer(xrtbz2decompressor* d) { return bz2_take(d ? &d->State : NULL, true); }
+XRT_API xbuffer* xrtBz2CompressorDrainBuffer(xrtbz2compressor* c) { return bz2_take(c ? &c->State : NULL, false); }
+XRT_API xbuffer* xrtBz2DecompressorDrainBuffer(xrtbz2decompressor* d) { return bz2_take(d ? &d->State : NULL, false); }
+XRT_API uint64 xrtBz2CompressorInputBytes(const xrtbz2compressor* c) { return c ? c->State.InputBytes : 0; }
+XRT_API uint64 xrtBz2CompressorOutputBytes(const xrtbz2compressor* c) { return c ? c->State.OutputBytes : 0; }
+XRT_API uint64 xrtBz2DecompressorInputBytes(const xrtbz2decompressor* d) { return d ? d->State.InputBytes : 0; }
+XRT_API uint64 xrtBz2DecompressorOutputBytes(const xrtbz2decompressor* d) { return d ? d->State.OutputBytes : 0; }
+XRT_API uint64 xrtBz2DecompressorMembers(const xrtbz2decompressor* d) { return d ? d->State.Members : 0; }
+XRT_API bool xrtBz2CompressorFinished(const xrtbz2compressor* c) { return c && !c->State.Failed && c->State.Finished; }
+XRT_API bool xrtBz2DecompressorFinished(const xrtbz2decompressor* d) { return d && !d->State.Failed && d->State.MemberEnded; }
+XRT_API const xrtbz2error* xrtBz2CompressorError(const xrtbz2compressor* c) { return c ? &c->State.Error : NULL; }
+XRT_API const xrtbz2error* xrtBz2DecompressorError(const xrtbz2decompressor* d) { return d ? &d->State.Error : NULL; }
+XRT_API void xrtBz2CompressorDestroy(xrtbz2compressor* c) { if (bz2_destroy(c ? &c->State : NULL)) xrtFree(c); }
+XRT_API void xrtBz2DecompressorDestroy(xrtbz2decompressor* d) { if (bz2_destroy(d ? &d->State : NULL)) xrtFree(d); }
+
+
+// ----------------------------- 一次性与 Reader/Writer -----------------------------
+
+static bool bz2_all(const void* data, size_t size, const xrtbz2options* options,
+    xbuffer** output, xrtbz2error* error, bool decode)
+{
+    bz2_state state;
+    bool ok;
+    xrtClearError();
+    xrtBz2ErrorInit(error);
+    if (output != NULL) *output = NULL;
+    if (output == NULL || (data == NULL && size != 0)) {
+        memset(&state, 0, sizeof(state));
+        bz2_error(&state, XRT_BZ2_ERROR_ARGUMENT, 0, "invalid bz2 input or output pointer");
+        if (error != NULL) *error = state.Error;
+        return false;
+    }
+    ok = bz2_init(&state, options, decode) && bz2_update(&state, data, size) && bz2_finish(&state);
+    if (ok) { *output = bz2_take(&state, true); ok = *output != NULL; }
+    if (!ok && error != NULL) *error = state.Error;
+    bz2_destroy(&state);
+    return ok;
 }
 
-XRT_API bool xrtBz2DecompressorDrain(xrtbz2decompressor* pDecompressor, xwriter* pWriter)
-{
-	xbytesview Output;
+XRT_API bool xrtBz2Compress(const void* p, size_t n, const xrtbz2options* o, xbuffer** b, xrtbz2error* e)
+{ return bz2_all(p, n, o, b, e, false); }
+XRT_API bool xrtBz2Decompress(const void* p, size_t n, const xrtbz2options* o, xbuffer** b, xrtbz2error* e)
+{ return bz2_all(p, n, o, b, e, true); }
 
-	if ( pDecompressor == NULL || pDecompressor->Failed || pWriter == NULL ) { return false; }
-	Output = xrtBufferView(pDecompressor->Output);
-	if ( Output.Size != 0u &&
-		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
-		__xrtBz2SetError(&pDecompressor->Error, XRT_BZ2_ERROR_IO, BZ_IO_ERROR,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot write decompressed stream");
-		pDecompressor->Failed = true;
-		return false;
-	}
-	xrtBufferClear(pDecompressor->Output);
-	return true;
+/* Reader/Writer 都由调用方持有；总量从当前游标计算，真正失败不能降级为未知大小。 */
+static bool bz2_stream(xreader* reader, xwriter* writer, const xrtbz2options* options,
+    xrtprogressproc progress, ptr user, xrtbz2error* error, bool decode)
+{
+    bz2_state s;
+    uint8 input[BZ2_CHUNK];
+    uint64 total = 0, position = 0;
+    bool known = false, ok;
+    xrtClearError();
+    xrtBz2ErrorInit(error);
+    memset(&s, 0, sizeof(s));
+    if (reader == NULL || writer == NULL) {
+        bz2_error(&s, XRT_BZ2_ERROR_ARGUMENT, 0, "bz2 reader and writer are required");
+        if (error != NULL) *error = s.Error;
+        return false;
+    }
+    ok = bz2_init(&s, options, decode);
+    if (ok && xrtReaderCanSize(reader) && xrtReaderCanSeek(reader)) {
+        ok = xrtReaderSize(reader, &total) && xrtReaderTell(reader, &position);
+        if (!ok) bz2_external_error(&s, XRT_BZ2_ERROR_IO, "cannot query bz2 input size");
+        else if (position <= total) { total -= position; known = true; }
+        else total = 0;
+    }
+    while (ok) {
+        size_t size = 0;
+        if (!xrtReaderRead(reader, input, sizeof(input), &size)) {
+            ok = bz2_external_error(&s, XRT_BZ2_ERROR_IO, "cannot read bz2 input");
+            break;
+        }
+        if (size == 0) break;
+        ok = bz2_update(&s, input, size) && bz2_drain(&s, writer);
+        if (ok && !xrtProgressReport(progress, user, s.InputBytes, total, s.OutputBytes,
+            known ? XRT_PROGRESS_TOTAL_KNOWN : 0))
+            ok = bz2_external_error(&s, XRT_BZ2_ERROR_CANCELLED, "bz2 operation cancelled");
+    }
+    if (ok) ok = bz2_finish(&s) && bz2_drain(&s, writer);
+    if (ok && !xrtProgressReport(progress, user, s.InputBytes, total, s.OutputBytes,
+        XRT_PROGRESS_FINAL | (known ? XRT_PROGRESS_TOTAL_KNOWN : 0)))
+        ok = bz2_external_error(&s, XRT_BZ2_ERROR_CANCELLED, "bz2 operation cancelled");
+    if (!ok && error != NULL) *error = s.Error;
+    bz2_destroy(&s);
+    return ok;
 }
 
-XRT_API xbuffer* xrtBz2DecompressorTakeBuffer(xrtbz2decompressor* pDecompressor)
-{
-	xbuffer* pOutput;
-	if ( pDecompressor == NULL || pDecompressor->Failed || !pDecompressor->Finished ) { return NULL; }
-	pOutput = pDecompressor->Output;
-	pDecompressor->Output = NULL;
-	return pOutput;
-}
-
-XRT_API xbuffer* xrtBz2DecompressorDrainBuffer(xrtbz2decompressor* pDecompressor)
-{
-	xbuffer* pOutput;
-	if ( pDecompressor == NULL || pDecompressor->Failed || pDecompressor->Output == NULL ) { return NULL; }
-	pOutput = xrtBufferFrom(xrtBufferView(pDecompressor->Output));
-	if ( pOutput != NULL ) { xrtBufferClear(pDecompressor->Output); }
-	return pOutput;
-}
-
-XRT_API uint64 xrtBz2DecompressorInputBytes(const xrtbz2decompressor* pDecompressor)
-{
-	return pDecompressor != NULL ? pDecompressor->InputBytes : 0u;
-}
-
-XRT_API uint64 xrtBz2DecompressorOutputBytes(const xrtbz2decompressor* pDecompressor)
-{
-	return pDecompressor != NULL ? pDecompressor->OutputBytes : 0u;
-}
-
-XRT_API bool xrtBz2DecompressorFinished(const xrtbz2decompressor* pDecompressor)
-{
-	return pDecompressor != NULL && pDecompressor->MemberEnded;
-}
-
-XRT_API uint64 xrtBz2DecompressorMembers(const xrtbz2decompressor* pDecompressor)
-{
-	return pDecompressor != NULL ? pDecompressor->MemberCount : 0u;
-}
-
-XRT_API const xrtbz2error* xrtBz2DecompressorError(const xrtbz2decompressor* pDecompressor)
-{
-	return pDecompressor != NULL ? &pDecompressor->Error : NULL;
-}
-
-XRT_API void xrtBz2DecompressorDestroy(xrtbz2decompressor* pDecompressor)
-{
-	if ( pDecompressor == NULL ) { return; }
-	if ( pDecompressor->Initialized ) { BZ2_bzDecompressEnd(&pDecompressor->Stream); }
-	xrtBufferDestroy(pDecompressor->Output);
-	xrtFree(pDecompressor);
-}
-
-
-
-// ------------------------------------ 便捷与流式接口 ------------------------------------
-
-XRT_API bool xrtBz2Compress(const void* pData, size_t iSize, const xrtbz2options* pOptions,
-	xbuffer** ppOutput, xrtbz2error* pError)
-{
-	xrtbz2compressor* pCompressor;
-	bool bRet;
-	if ( ppOutput != NULL ) { *ppOutput = NULL; }
-	xrtBz2ErrorInit(pError);
-	if ( ppOutput == NULL || (pData == NULL && iSize != 0u) ) {
-		__xrtBz2SetError(pError, XRT_BZ2_ERROR_ARGUMENT, BZ_PARAM_ERROR, 0, 0, "invalid bz2 input");
-		return false;
-	}
-	pCompressor = xrtBz2CompressorCreate(pOptions);
-	if ( pCompressor == NULL ) {
-		__xrtBz2SetError(pError, XRT_BZ2_ERROR_MEMORY, BZ_MEM_ERROR, 0, 0,
-			"cannot allocate bz2 compressor");
-		return false;
-	}
-	bRet = xrtBz2CompressorUpdate(pCompressor, pData, iSize) && xrtBz2CompressorFinish(pCompressor);
-	if ( bRet ) { *ppOutput = xrtBz2CompressorTakeBuffer(pCompressor); bRet = *ppOutput != NULL; }
-	if ( !bRet ) { __xrtBz2CopyError(pError, &pCompressor->Error); }
-	xrtBz2CompressorDestroy(pCompressor);
-	return bRet;
-}
-
-XRT_API bool xrtBz2Decompress(const void* pData, size_t iSize, const xrtbz2options* pOptions,
-	xbuffer** ppOutput, xrtbz2error* pError)
-{
-	xrtbz2decompressor* pDecompressor;
-	bool bRet;
-	if ( ppOutput != NULL ) { *ppOutput = NULL; }
-	xrtBz2ErrorInit(pError);
-	if ( ppOutput == NULL || (pData == NULL && iSize != 0u) ) {
-		__xrtBz2SetError(pError, XRT_BZ2_ERROR_ARGUMENT, BZ_PARAM_ERROR, 0, 0, "invalid bz2 input");
-		return false;
-	}
-	pDecompressor = xrtBz2DecompressorCreate(pOptions);
-	if ( pDecompressor == NULL ) {
-		__xrtBz2SetError(pError, XRT_BZ2_ERROR_MEMORY, BZ_MEM_ERROR, 0, 0,
-			"cannot allocate bz2 decompressor");
-		return false;
-	}
-	bRet = xrtBz2DecompressorUpdate(pDecompressor, pData, iSize) &&
-		xrtBz2DecompressorFinish(pDecompressor);
-	if ( bRet ) { *ppOutput = xrtBz2DecompressorTakeBuffer(pDecompressor); bRet = *ppOutput != NULL; }
-	if ( !bRet ) { __xrtBz2CopyError(pError, &pDecompressor->Error); }
-	xrtBz2DecompressorDestroy(pDecompressor);
-	return bRet;
-}
-
-XRT_API bool xrtBz2CompressStream(xreader* pReader, xwriter* pWriter, const xrtbz2options* pOptions,
-	xrtprogressproc pProgress, ptr pUserData, xrtbz2error* pError)
-{
-	uint8 sInput[XRT_BZ2_CHUNK];
-	xrtbz2compressor* pCompressor;
-	uint64 iTotal = 0u;
-	bool bTotalKnown;
-	bool bRet = true;
-	xrtBz2ErrorInit(pError);
-	if ( pReader == NULL || pWriter == NULL ) {
-		__xrtBz2SetError(pError, XRT_BZ2_ERROR_ARGUMENT, BZ_PARAM_ERROR, 0, 0, "invalid bz2 stream");
-		return false;
-	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iTotal);
-	if ( !bTotalKnown ) { xrtClearError(); }
-	pCompressor = xrtBz2CompressorCreate(pOptions);
-	if ( pCompressor == NULL ) { return false; }
-	while ( bRet ) {
-		size_t iRead = 0u;
-		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
-			__xrtBz2SetError(&pCompressor->Error, XRT_BZ2_ERROR_IO, BZ_IO_ERROR,
-				pCompressor->InputBytes, pCompressor->OutputBytes, "cannot read bz2 input stream");
-			bRet = false;
-			break;
-		}
-		if ( iRead == 0u ) { break; }
-		bRet = xrtBz2CompressorUpdate(pCompressor, sInput, (size_t)iRead) &&
-			xrtBz2CompressorDrain(pCompressor, pWriter);
-		if ( bRet && !xrtProgressReport(pProgress, pUserData, pCompressor->InputBytes,
-			iTotal, pCompressor->OutputBytes,
-			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u) ) {
-			__xrtBz2SetError(&pCompressor->Error, XRT_BZ2_ERROR_CANCELLED, 0,
-				pCompressor->InputBytes, pCompressor->OutputBytes, "bz2 operation cancelled");
-			bRet = false;
-		}
-	}
-	if ( bRet ) { bRet = xrtBz2CompressorFinish(pCompressor) && xrtBz2CompressorDrain(pCompressor, pWriter); }
-	if ( bRet && !xrtProgressReport(pProgress, pUserData, pCompressor->InputBytes,
-		iTotal, pCompressor->OutputBytes, XRT_PROGRESS_FINAL |
-		(bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) ) {
-		__xrtBz2SetError(&pCompressor->Error, XRT_BZ2_ERROR_CANCELLED, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "bz2 operation cancelled");
-		bRet = false;
-	}
-	if ( !bRet ) { __xrtBz2CopyError(pError, &pCompressor->Error); }
-	xrtBz2CompressorDestroy(pCompressor);
-	return bRet;
-}
-
-XRT_API bool xrtBz2DecompressStream(xreader* pReader, xwriter* pWriter, const xrtbz2options* pOptions,
-	xrtprogressproc pProgress, ptr pUserData, xrtbz2error* pError)
-{
-	uint8 sInput[XRT_BZ2_CHUNK];
-	xrtbz2decompressor* pDecompressor;
-	uint64 iTotal = 0u;
-	bool bTotalKnown;
-	bool bRet = true;
-	xrtBz2ErrorInit(pError);
-	if ( pReader == NULL || pWriter == NULL ) {
-		__xrtBz2SetError(pError, XRT_BZ2_ERROR_ARGUMENT, BZ_PARAM_ERROR, 0, 0, "invalid bz2 stream");
-		return false;
-	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iTotal);
-	if ( !bTotalKnown ) { xrtClearError(); }
-	pDecompressor = xrtBz2DecompressorCreate(pOptions);
-	if ( pDecompressor == NULL ) { return false; }
-	while ( bRet ) {
-		size_t iRead = 0u;
-		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
-			__xrtBz2SetError(&pDecompressor->Error, XRT_BZ2_ERROR_IO, BZ_IO_ERROR,
-				pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot read bz2 input stream");
-			bRet = false;
-			break;
-		}
-		if ( iRead == 0u ) { break; }
-		bRet = xrtBz2DecompressorUpdate(pDecompressor, sInput, (size_t)iRead) &&
-			xrtBz2DecompressorDrain(pDecompressor, pWriter);
-		if ( bRet && !xrtProgressReport(pProgress, pUserData, pDecompressor->InputBytes,
-			iTotal, pDecompressor->OutputBytes,
-			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u) ) {
-			__xrtBz2SetError(&pDecompressor->Error, XRT_BZ2_ERROR_CANCELLED, 0,
-				pDecompressor->InputBytes, pDecompressor->OutputBytes, "bz2 operation cancelled");
-			bRet = false;
-		}
-	}
-	if ( bRet ) { bRet = xrtBz2DecompressorFinish(pDecompressor) && xrtBz2DecompressorDrain(pDecompressor, pWriter); }
-	if ( bRet && !xrtProgressReport(pProgress, pUserData, pDecompressor->InputBytes,
-		iTotal, pDecompressor->OutputBytes, XRT_PROGRESS_FINAL |
-		(bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) ) {
-		__xrtBz2SetError(&pDecompressor->Error, XRT_BZ2_ERROR_CANCELLED, 0,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes, "bz2 operation cancelled");
-		bRet = false;
-	}
-	if ( !bRet ) { __xrtBz2CopyError(pError, &pDecompressor->Error); }
-	xrtBz2DecompressorDestroy(pDecompressor);
-	return bRet;
-}
+XRT_API bool xrtBz2CompressStream(xreader* r, xwriter* w, const xrtbz2options* o,
+    xrtprogressproc p, ptr u, xrtbz2error* e) { return bz2_stream(r, w, o, p, u, e, false); }
+XRT_API bool xrtBz2DecompressStream(xreader* r, xwriter* w, const xrtbz2options* o,
+    xrtprogressproc p, ptr u, xrtbz2error* e) { return bz2_stream(r, w, o, p, u, e, true); }

@@ -1,5 +1,4 @@
 // bz2 的压缩结果和输入统一使用 Buffer，避免二进制数据经过字符串转换。
-extern "xbz2_last_error" func __bz2_error() as string
 extern "xbz2_compress" func __bz2_compress(point data, c_size size, c_int level,
     c_ulonglong maxInput, c_ulonglong maxOutput) as point
 extern "xbz2_compress_str" func __bz2_compress_str(string data, c_size size, c_int level,
@@ -37,17 +36,40 @@ func __bz2_check_limit(int value, string name)
     end
 end
 
+func __bz2_file_path(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "bz2 file path contains NUL"
+    end
+end
+
+func __bz2_check_ratio(int value)
+    if value <= 0 or value > 4294967295 then
+        throw ValueError "maxRatio must be 1..4294967295"
+    end
+end
+
 func __bz2_check_work_factor(int value)
     if value < BZ2_MIN_WORK_FACTOR or value > BZ2_MAX_WORK_FACTOR then
         throw ValueError "bz2 workFactor must be 0..250"
     end
 end
 
+// XRT 进度帧使用 uint64；公开回调使用 int，先检查范围再转换。
+func __bz2_progress(func(int, int, int) as bool callback) as var
+    return xcall(func(uint64 inputBytes, uint64 totalBytes, uint64 outputBytes) as bool
+        uint64 maximum = uint64(9223372036854775807)
+        if inputBytes > maximum or totalBytes > maximum or outputBytes > maximum then
+            throw RangeError "bz2 progress exceeds int range"
+        end
+        return callback(int(inputBytes), int(totalBytes), int(outputBytes))
+    end)
+end
+
 func __bz2_check_file_result(int status)
     if status == -1 then
         throw CancelledError "bz2 operation cancelled"
     elseif status != 1 then
-        throw CompressionError __bz2_error()
+        throw CompressionError "bz2 operation failed"
     end
 end
 
@@ -61,7 +83,7 @@ export func compress(Buffer data, int level = 9,
     point result = __bz2_compress(data.data(), c_size(data.len()), c_int(level),
         c_ulonglong(maxInput), c_ulonglong(maxOutput))
     if result == null then
-        throw CompressionError __bz2_error()
+        throw CompressionError "bz2 operation failed"
     end
     return Buffer(result)
 end
@@ -71,10 +93,10 @@ export func compress(string text, int level = 9,
     __bz2_check_level(level)
     __bz2_check_limit(maxInput, "maxInput")
     __bz2_check_limit(maxOutput, "maxOutput")
-    point result = __bz2_compress_str(text, c_size(string.len(text)), c_int(level),
+    point result = __bz2_compress_str(text, c_size(string.byteLen(text)), c_int(level),
         c_ulonglong(maxInput), c_ulonglong(maxOutput))
     if result == null then
-        throw CompressionError __bz2_error()
+        throw CompressionError "bz2 operation failed"
     end
     return Buffer(result)
 end
@@ -83,11 +105,11 @@ export func decompress(Buffer data, bool smallMemory = false,
     int maxInput = 268435456, int maxOutput = 536870912, int maxRatio = 1000) as Buffer
     __bz2_check_limit(maxInput, "maxInput")
     __bz2_check_limit(maxOutput, "maxOutput")
-    __bz2_check_limit(maxRatio, "maxRatio")
+    __bz2_check_ratio(maxRatio)
     point result = __bz2_decompress(data.data(), c_size(data.len()), c_bool(smallMemory),
         c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
     if result == null then
-        throw CompressionError __bz2_error()
+        throw CompressionError "bz2 operation failed"
     end
     return Buffer(result)
 end
@@ -100,12 +122,14 @@ end
 export func compressFile(string source, string destination, int level = 9,
     bool overwrite = true, int maxInput = 268435456, int maxOutput = 536870912,
     (func(int, int, int) as bool)? onProgress = null)
+    __bz2_file_path(source)
+    __bz2_file_path(destination)
     __bz2_check_level(level)
     __bz2_check_limit(maxInput, "maxInput")
     __bz2_check_limit(maxOutput, "maxOutput")
     var progress = null
     if onProgress != null then
-        progress = xcall(onProgress)
+        progress = __bz2_progress(onProgress)
     end
     int status = __bz2_compress_file(source, destination, c_int(level), c_bool(overwrite),
         c_ulonglong(maxInput), c_ulonglong(maxOutput), progress)
@@ -115,12 +139,14 @@ end
 export func decompressFile(string source, string destination, bool smallMemory = false,
     bool overwrite = true, int maxInput = 268435456, int maxOutput = 536870912,
     int maxRatio = 1000, (func(int, int, int) as bool)? onProgress = null)
+    __bz2_file_path(source)
+    __bz2_file_path(destination)
     __bz2_check_limit(maxInput, "maxInput")
     __bz2_check_limit(maxOutput, "maxOutput")
-    __bz2_check_limit(maxRatio, "maxRatio")
+    __bz2_check_ratio(maxRatio)
     var progress = null
     if onProgress != null then
-        progress = xcall(onProgress)
+        progress = __bz2_progress(onProgress)
     end
     int status = __bz2_decompress_file(source, destination, c_bool(smallMemory),
         c_bool(overwrite), c_ulonglong(maxInput), c_ulonglong(maxOutput),
@@ -137,36 +163,41 @@ export class Bz2Compressor
     extern "xbz2_compressor_create" create(c_int level, c_int workFactor,
         c_ulonglong maxInput, c_ulonglong maxOutput)
     extern "xbz2_compressor_destroy" destroy()
-    extern "xbz2_compressor_update" func updateNative(point data, c_size size) as bool
-    extern "xbz2_compressor_update_str" func updateStrNative(string data, c_size size) as bool
-    extern "xbz2_compressor_finish" func finishNative() as bool
-    extern "xbz2_compressor_drain" func drainNative() as point
-    extern "xbz2_compressor_input_bytes" func inputBytesNative() as int
-    extern "xbz2_compressor_output_bytes" func outputBytesNative() as int
+    private extern "xbz2_compressor_update" func updateNative(point data, c_size size) as bool
+    private extern "xbz2_compressor_update_str" func updateStrNative(string data, c_size size) as bool
+    private extern "xbz2_compressor_finish" func finishNative() as bool
+    private extern "xbz2_compressor_drain" func drainNative() as point
+    private extern "xbz2_compressor_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xbz2_compressor_output_bytes" func outputBytesNative() as c_ulonglong
+    private extern "xbz2_compressor_finished" func finishedNative() as bool
 
     get valid() as bool
         return self.handle != null
     end
 
+    get finished() as bool
+        return self.finishedNative()
+    end
+
     // 已喂入的原始字节数（进度回显用）。
     get inputBytes() as int
-        return self.inputBytesNative()
+        return int(self.inputBytesNative())
     end
 
     // 已产出的压缩字节数（进度回显用）。
     get outputBytes() as int
-        return self.outputBytesNative()
+        return int(self.outputBytesNative())
     end
 
     func update(Buffer data)
         if not self.updateNative(data.data(), c_size(data.len())) then
-            throw CompressionError __bz2_error()
+            throw CompressionError "bz2 operation failed"
         end
     end
 
     func update(string text)
-        if not self.updateStrNative(text, c_size(string.len(text))) then
-            throw CompressionError __bz2_error()
+        if not self.updateStrNative(text, c_size(string.byteLen(text))) then
+            throw CompressionError "bz2 operation failed"
         end
     end
 
@@ -174,7 +205,7 @@ export class Bz2Compressor
     func drain() as Buffer
         point result = self.drainNative()
         if result == null then
-            throw CompressionError __bz2_error()
+            throw CompressionError "bz2 operation failed"
         end
         return Buffer(result)
     end
@@ -182,7 +213,7 @@ export class Bz2Compressor
     // 封存压缩流（写入尾部校验）。返回后 drain() 可取走最后的压缩字节。
     func finish() as bool
         if not self.finishNative() then
-            throw CompressionError __bz2_error()
+            throw CompressionError "bz2 operation failed"
         end
         return true
     end
@@ -197,13 +228,13 @@ export class Bz2Decompressor
     extern "xbz2_decompressor_create" create(c_bool smallMemory,
         c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio)
     extern "xbz2_decompressor_destroy" destroy()
-    extern "xbz2_decompressor_update" func updateNative(point data, c_size size) as bool
-    extern "xbz2_decompressor_finish" func finishNative() as bool
-    extern "xbz2_decompressor_drain" func drainNative() as point
-    extern "xbz2_decompressor_input_bytes" func inputBytesNative() as int
-    extern "xbz2_decompressor_output_bytes" func outputBytesNative() as int
-    extern "xbz2_decompressor_finished" func finishedNative() as bool
-    extern "xbz2_decompressor_members" func membersNative() as int
+    private extern "xbz2_decompressor_update" func updateNative(point data, c_size size) as bool
+    private extern "xbz2_decompressor_finish" func finishNative() as bool
+    private extern "xbz2_decompressor_drain" func drainNative() as point
+    private extern "xbz2_decompressor_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xbz2_decompressor_output_bytes" func outputBytesNative() as c_ulonglong
+    private extern "xbz2_decompressor_finished" func finishedNative() as bool
+    private extern "xbz2_decompressor_members" func membersNative() as c_ulonglong
 
     get valid() as bool
         return self.handle != null
@@ -211,12 +242,12 @@ export class Bz2Decompressor
 
     // 已喂入的压缩字节数（进度回显用）。
     get inputBytes() as int
-        return self.inputBytesNative()
+        return int(self.inputBytesNative())
     end
 
     // 已产出的解压字节数（进度回显用）。
     get outputBytes() as int
-        return self.outputBytesNative()
+        return int(self.outputBytesNative())
     end
 
     // 当前成员是否已完整解出（流结束时为 true）。
@@ -226,12 +257,12 @@ export class Bz2Decompressor
 
     // 已完整解出的成员数；大于 1 表示输入是串联的多成员 bz2 流。
     get members() as int
-        return self.membersNative()
+        return int(self.membersNative())
     end
 
     func update(Buffer data)
         if not self.updateNative(data.data(), c_size(data.len())) then
-            throw CompressionError __bz2_error()
+            throw CompressionError "bz2 operation failed"
         end
     end
 
@@ -239,15 +270,15 @@ export class Bz2Decompressor
     func drain() as Buffer
         point result = self.drainNative()
         if result == null then
-            throw CompressionError __bz2_error()
+            throw CompressionError "bz2 operation failed"
         end
         return Buffer(result)
     end
 
-    // 校验流已完整结束；流被截断时抛出 CompressionError。
+    // 校验流已完整结束；截断沿 XRT 的结构化错误传播。
     func finish() as bool
         if not self.finishNative() then
-            throw CompressionError __bz2_error()
+            throw CompressionError "bz2 operation failed"
         end
         return true
     end
@@ -264,7 +295,7 @@ export func compressor(int level = BZ2_DEFAULT_LEVEL, int workFactor = BZ2_DEFAU
     Bz2Compressor result = Bz2Compressor(c_int(level), c_int(workFactor),
         c_ulonglong(maxInput), c_ulonglong(maxOutput))
     if not result.valid then
-        throw CompressionError __bz2_error()
+        throw CompressionError "bz2 operation failed"
     end
     return result
 end
@@ -274,11 +305,11 @@ export func decompressor(bool smallMemory = false,
     int maxRatio = 1000) as Bz2Decompressor
     __bz2_check_limit(maxInput, "maxInput")
     __bz2_check_limit(maxOutput, "maxOutput")
-    __bz2_check_limit(maxRatio, "maxRatio")
+    __bz2_check_ratio(maxRatio)
     Bz2Decompressor result = Bz2Decompressor(c_bool(smallMemory),
         c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
     if not result.valid then
-        throw CompressionError __bz2_error()
+        throw CompressionError "bz2 operation failed"
     end
     return result
 end

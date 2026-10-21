@@ -1,0 +1,5 @@
+import bz2
+
+// 不执行：压缩输入必须由 Buffer/string 包装层传入真实长度。
+auto stream = bz2.compressor()
+stream.updateNative(null, c_size(1))

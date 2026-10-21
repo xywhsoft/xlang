@@ -44,6 +44,7 @@ typedef struct {
 	int iWorkFactor;
 	bool bSmallMemory;
 	uint8 sReserved[7];
+	/* 仅使用输入、输出及解压倍率限制；其他字段必须为零。 */
 	xrtresourcelimits tLimits;
 } xrtbz2options;
 
@@ -61,6 +62,7 @@ XRT_API xbuffer* xrtBz2CompressorTakeBuffer(xrtbz2compressor* pCompressor);
 XRT_API xbuffer* xrtBz2CompressorDrainBuffer(xrtbz2compressor* pCompressor);
 XRT_API uint64 xrtBz2CompressorInputBytes(const xrtbz2compressor* pCompressor);
 XRT_API uint64 xrtBz2CompressorOutputBytes(const xrtbz2compressor* pCompressor);
+XRT_API bool xrtBz2CompressorFinished(const xrtbz2compressor* pCompressor);
 XRT_API const xrtbz2error* xrtBz2CompressorError(const xrtbz2compressor* pCompressor);
 XRT_API void xrtBz2CompressorDestroy(xrtbz2compressor* pCompressor);
 
@@ -85,6 +87,15 @@ XRT_API bool xrtBz2CompressStream(xreader* pReader, xwriter* pWriter, const xrtb
 	xrtprogressproc pProgress, ptr pUserData, xrtbz2error* pError);
 XRT_API bool xrtBz2DecompressStream(xreader* pReader, xwriter* pWriter, const xrtbz2options* pOptions,
 	xrtprogressproc pProgress, ptr pUserData, xrtbz2error* pError);
+
+/* 文件操作在成功时才替换目标；支持源/目标同路径，错误通过 xrtGetError 获取。
+ * Reader/Writer 接口不提供回滚；需要事务语义时使用下面两个入口。
+ * 进度是同步借用回调，返回 false 取消；最终通知也允许取消。
+ */
+XRT_API bool xrtBz2CompressFile(const char* sSource, const char* sDestination,
+    const xrtbz2options* pOptions, bool bOverwrite, xrtprogressproc pProgress, ptr pUserData);
+XRT_API bool xrtBz2DecompressFile(const char* sSource, const char* sDestination,
+    const xrtbz2options* pOptions, bool bOverwrite, xrtprogressproc pProgress, ptr pUserData);
 
 #ifdef __cplusplus
 }
