@@ -202,6 +202,36 @@ int main(void) {
     CHECK(invalid_vtt("WEBVTT\n\n00:00.000 --> 00:01.000\nHi --> there\n"));
     CHECK(invalid_vtt("WEBVTT\n\n00:00.000 --> 00:01.000\nHi\n\n"
         "STYLE\n::cue { color: white }\n"));
+    CHECK(invalid_vtt("WEBVTT\n\n00:02.000 --> 00:03.000\nLater\n\n"
+        "00:01.000 --> 00:02.000\nEarlier\n"));
+    CHECK(invalid_vtt("WEBVTT\n\nrepeat\n00:00.000 --> 00:01.000\nA\n\n"
+        "repeat\n00:01.000 --> 00:02.000\nB\n"));
+    {
+        xvalue *ordered = xsrt_parse_vtt("WEBVTT\n\nfirst\n"
+            "00:01.000 --> 00:02.000\nA\n\nsecond\n"
+            "00:02.000 --> 00:03.000\nB\n");
+        xvalue *secondCue;
+        char *output;
+        CHECK(ordered != NULL && xrtValueType(ordered) == XVALUE_ARRAY &&
+            xrtValueCount(ordered) == 2);
+        secondCue = xrtValueArrayAt(ordered, 1);
+        CHECK(xrtValueObjectSetNew(secondCue, XRT_STR_LITERAL("startMs"),
+            xrtValueInt(0)));
+        CHECK(xsrt_build_vtt(ordered) == NULL && xrtGetError() != NULL &&
+            xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        xrtClearError();
+        CHECK(xrtValueObjectSetNew(secondCue, XRT_STR_LITERAL("startMs"),
+            xrtValueInt(1000)));
+        output = (char *)xsrt_build_vtt(ordered);
+        CHECK(output != NULL && xrtGetError() == NULL);
+        xrtFree(output);
+        CHECK(xrtValueObjectSetNew(secondCue, XRT_STR_LITERAL("id"),
+            xrtValueString(XRT_STR_LITERAL("first"))));
+        CHECK(xsrt_build_vtt(ordered) == NULL && xrtGetError() != NULL &&
+            xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        xrtClearError();
+        xrtValueRelease(ordered);
+    }
     {
         xvalue *plain = xsrt_parse("1\n00:00:00,000 --> 00:00:01,000\nHi --> there\n");
         char *again = plain != NULL && xrtValueType(plain) == XVALUE_ARRAY

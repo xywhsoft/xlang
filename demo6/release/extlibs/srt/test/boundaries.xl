@@ -41,6 +41,35 @@ func main(...) as int
         badPayload = 1
     end
     assert badPayload == 1, "VTT builder rejects payload arrow"
+    badPayload = 0
+    try
+        srt.parseVtt("WEBVTT\n\n00:02.000 --> 00:03.000\nLater\n\n00:01.000 --> 00:02.000\nEarlier\n")
+    catch e
+        badPayload = 1
+    end
+    assert badPayload == 1, "VTT cue start must not move backward"
+    badPayload = 0
+    try
+        srt.parseVtt("WEBVTT\n\nrepeat\n00:00.000 --> 00:01.000\nA\n\nrepeat\n00:01.000 --> 00:02.000\nB\n")
+    catch e
+        badPayload = 1
+    end
+    assert badPayload == 1, "VTT cue identifiers must be unique"
+    badPayload = 0
+    try
+        srt.buildVtt([{"id": "first", "startMs": 1000, "endMs": 2000, "lines": ["A"]}, {"id": "second", "startMs": 0, "endMs": 3000, "lines": ["B"]}])
+    catch e
+        badPayload = 1
+    end
+    assert badPayload == 1, "VTT builder rejects decreasing start"
+    badPayload = 0
+    try
+        srt.buildVtt([{"id": "repeat", "startMs": 0, "endMs": 1000, "lines": ["A"]}, {"id": "repeat", "startMs": 1000, "endMs": 2000, "lines": ["B"]}])
+    catch e
+        badPayload = 1
+    end
+    assert badPayload == 1, "VTT builder rejects duplicate identifiers"
+    assert srt.parseVtt("WEBVTT\n\n00:01.000 --> 00:02.000\nA\n\n00:01.000 --> 00:03.000\nB\n").length == 2, "equal start times remain valid"
     var srtArrow = srt.parse("1\n00:00:00,000 --> 00:00:01,000\nHi --> there\n")
     assert srt.build(srtArrow).contains("Hi --> there"), "SRT payload arrow preserved"
 

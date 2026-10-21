@@ -11,6 +11,7 @@
 解析接受 LF/CRLF 和 UTF-8 BOM，拒绝孤立 `\r`；正文按原样保留 UTF-8 字节和行内空白，拒绝内嵌 NUL 以免静默截断。WebVTT `NOTE`（含空格或 tab 注释标题）、`STYLE`、`REGION` 块跳过，**不保留**样式内容，也不解释 cue 文本标记/定位设置的语义。这是字幕文本与时间轴库，不是完整 WebVTT 浏览器排版引擎。生成时 cue 必须具有非负、顺序正确的整数时间和字符串行；行内换行、NUL、空行不被接受，以免输出不可往返的文档。WebVTT 的 `id` 不得与控制块标题冲突，解析与生成均拒绝 `settings` 中的第二个 `-->`；生成时 `id` 也不得包含 `-->`。时间戳和 SRT 序号按 `int64` 范围检查，不提前收窄有效上界。无固定行长或 64 KiB 输出上限。
 
 WebVTT 正文中的 `-->` 在解析和生成时均拒绝；`STYLE` 只能位于首个 cue 之前，`NOTE` 仍可位于 cue 后。这两条遵循 [W3C WebVTT 格式](https://www.w3.org/TR/webvtt1/)；普通 SRT 正文不受这两条 WebVTT 限制。
+WebVTT cue 的开始时间按文件顺序不得倒退（允许相等），非空 cue ID 在同一文档中必须唯一。解析和生成都验证这两点；普通 SRT 不套用 WebVTT 的时间顺序与 ID 规则。
 
 SRT/WebVTT 输入整体必须是有效 UTF-8；C 值模型构建时，cue 正文、WebVTT `id` 和 `settings` 也必须是有效 UTF-8。XRT 字符串本身可保存任意字节，因此这些检查在字幕包边界执行。
 
@@ -77,3 +78,8 @@ XLang/双语联合门禁通过。独立 C 测试宿主现只编入包所需的 X
 当前共享 XRT 全模块编译的未定义常量问题另见
 `dev/extlib_blockers/xrt_proxy_dial_wait_forever_linux.md`，本包不修改 XRT。
 完整带输出 AOT 仍待共享主线符号修复。
+
+同日继续补 WebVTT 时间轴合同：C/XLang 负例先复现倒退的 cue 起点与重复 ID
+在解析、生成时均被接受；现两条路径共同拒绝，等起点正例仍通过。
+Windows `-SkipAot` 严格 C、XLang 边界/分配故障与双语同输出，
+Linux C ASan/UBSan、XLang 与双语门禁通过；完整 AOT 仍待主线修复。

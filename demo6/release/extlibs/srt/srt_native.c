@@ -158,7 +158,9 @@ static xvalue *xsrt_parse_cues(const char *text, size_t size, int vtt) {
     const char *limit;
     XsrtLine line = {0};
     xvalue *result;
+    xvalue *seenIds = NULL;
     int64_t nextIndex = 1;
+    int64_t previousStart = -1;
     size_t i;
     xrtClearError();
     if (text == NULL) { xsrt_error("subtitle text is null"); return xrtValueNull(); }
@@ -209,6 +211,7 @@ static xvalue *xsrt_parse_cues(const char *text, size_t size, int vtt) {
             if (!xsrt_next(&cursor, limit, &line)) goto invalid;
         }
         if (!xsrt_range(line, vtt, &start, &end, &settings)) goto invalid;
+        if (vtt && start < previousStart) goto invalid;
         index = nextIndex++;
         if (!vtt) {
             if (!id.size) goto invalid;
@@ -228,6 +231,15 @@ static xvalue *xsrt_parse_cues(const char *text, size_t size, int vtt) {
             !xsrt_put(cue, "endMs", xrtValueInt(end))) goto oom;
         if (vtt && id.size && !xsrt_put(cue, "id", xsrt_string(id))) goto oom;
         if (vtt && settings.size && !xsrt_put(cue, "settings", xsrt_string(settings))) goto oom;
+        if (vtt && id.size) {
+            xstrview key = {id.data, id.size};
+            if (seenIds == NULL) {
+                seenIds = xrtValueObject();
+                if (seenIds == NULL) goto oom;
+            }
+            if (xrtValueObjectGet(seenIds, key) != NULL) goto invalid_cue;
+            if (!xrtValueObjectSetNew(seenIds, key, xrtValueBool(true))) goto oom;
+        }
         while (xsrt_next(&cursor, limit, &line) && line.size) {
             if (vtt && xsrt_arrow(line) != SIZE_MAX) goto invalid_cue;
             if (!xrtValueArrayAppendNew(lines, xsrt_string(line))) goto oom;
@@ -235,6 +247,7 @@ static xvalue *xsrt_parse_cues(const char *text, size_t size, int vtt) {
         if (!xsrt_put(cue, "lines", lines)) { lines = NULL; goto oom; }
         lines = NULL;
         if (!xrtValueArrayAppendNew(result, cue)) { cue = NULL; goto oom; }
+        if (vtt) previousStart = start;
         continue;
 invalid_cue:
         xrtValueRelease(lines);
@@ -243,11 +256,14 @@ invalid_cue:
 oom:
         xrtValueRelease(lines);
         xrtValueRelease(cue);
+        xrtValueRelease(seenIds);
         xrtValueRelease(result);
         return NULL;
     }
+    xrtValueRelease(seenIds);
     return result;
 invalid:
+    xrtValueRelease(seenIds);
     xrtValueRelease(result);
     xsrt_error("invalid subtitle cue or timestamp");
     return xrtValueNull();
@@ -322,6 +338,8 @@ static int xsrt_optional(xbuffer *buffer, xvalue *cue, const char *name, const c
 /* 返回独立 XRT 缓冲；C 侧 xrtFree，XL 包装调用 takeCstr。 */
 static char *xsrt_build_cues(xvalue *cues, int vtt) {
     xbuffer buffer;
+    xvalue *seenIds = NULL;
+    int64_t previousStart = -1;
     int64 count, i;
     xrtClearError();
     if (cues == NULL || xrtValueType(cues) != XVALUE_ARRAY) goto invalid;
@@ -338,8 +356,21 @@ static char *xsrt_build_cues(xvalue *cues, int vtt) {
         if (lines == NULL || xrtValueType(lines) != XVALUE_ARRAY ||
             !xsrt_integer(cue, "startMs", &start) ||
             !xsrt_integer(cue, "endMs", &end) || end < start) goto bad_buffer;
+        if (vtt && start < previousStart) goto bad_buffer;
         if (vtt) {
+            xvalue *idValue;
             if (!xsrt_optional(&buffer, cue, "id", "\n")) goto bad_buffer;
+            idValue = xsrt_field(cue, "id");
+            if (idValue != NULL) {
+                xstrview key;
+                if (!xrtValueGetString(idValue, &key)) goto bad_buffer;
+                if (seenIds == NULL) {
+                    seenIds = xrtValueObject();
+                    if (seenIds == NULL) goto fail;
+                }
+                if (xrtValueObjectGet(seenIds, key) != NULL) goto bad_buffer;
+                if (!xrtValueObjectSetNew(seenIds, key, xrtValueBool(true))) goto fail;
+            }
         } else {
             n = snprintf(index, sizeof(index), "%lld\n", (long long)(i + 1));
             if (n <= 0 || !xsrt_append(&buffer, index, (size_t)n)) goto fail;
@@ -368,14 +399,17 @@ static char *xsrt_build_cues(xvalue *cues, int vtt) {
                 !xsrt_literal(&buffer, "\n")) goto fail;
         }
         if (!xsrt_literal(&buffer, "\n")) goto fail;
+        if (vtt) previousStart = start;
     }
     if (!xrtBufferAppendByte(&buffer, 0)) goto fail;
+    xrtValueRelease(seenIds);
     return (char *)xrtBufferTake(&buffer, NULL, NULL);
 bad_buffer:
     /* 可选字段写入失败也会到达这里，不得覆盖分配错误。 */
     if (xrtGetError() == NULL || xrtErrorKind(xrtGetError()) != XERR_MEMORY)
         xsrt_error("invalid cue: expected ordered milliseconds and string lines");
 fail:
+    xrtValueRelease(seenIds);
     xrtBufferUnit(&buffer);
     return NULL;
 invalid:
