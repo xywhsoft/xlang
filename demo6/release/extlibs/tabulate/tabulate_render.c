@@ -15,7 +15,8 @@ static size_t xtab_scalar_width(uint32 scalar)
         (scalar >= 0x1dc0u && scalar <= 0x1dffu) ||
         (scalar >= 0x20d0u && scalar <= 0x20ffu) ||
         (scalar >= 0xfe00u && scalar <= 0xfe0fu) ||
-        (scalar >= 0xfe20u && scalar <= 0xfe2fu)) return 0u;
+        (scalar >= 0xfe20u && scalar <= 0xfe2fu) ||
+        (scalar >= 0xe0100u && scalar <= 0xe01efu)) return 0u;
     if ((scalar >= 0x1100u && scalar <= 0x115fu) ||
         scalar == 0x2329u || scalar == 0x232au ||
         (scalar >= 0x2e80u && scalar <= 0xa4cfu) ||

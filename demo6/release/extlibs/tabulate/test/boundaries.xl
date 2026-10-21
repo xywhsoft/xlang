@@ -25,6 +25,10 @@ assert badHeader and t.render() == beforeBadHeader, "bad headers preserve table"
 t.setHeaders([])
 assert t.colCount == 2
 
+tabulate.Table glyphs = tabulate.create()
+glyphs.addRow(["文\U000E0100", "x"])
+assert glyphs.render() == "+----+---+\n| 文\U000E0100 | x |\n+----+---+\n", "supplementary variation selector must not add a column"
+
 int rejected = 0
 try
     t.addRow(["bad\nline"])

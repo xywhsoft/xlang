@@ -112,6 +112,20 @@ static int test_format_controls(void)
     return 0;
 }
 
+static int test_supplementary_variation(void)
+{
+    const char* cells[] = {"文\xF3\xA0\x84\x80", "x"}; /* U+E0100 不占列。 */
+    void* table = xtab_create();
+    char* rendered;
+    CHECK(table != NULL && xtab_add_row(table, cells, 2));
+    rendered = (char*)xtab_render(table);
+    CHECK(rendered != NULL && strcmp(rendered,
+        "+----+---+\n| 文\xF3\xA0\x84\x80 | x |\n+----+---+\n") == 0);
+    xrtFree(rendered);
+    xtab_destroy(table);
+    return 0;
+}
+
 int main(void)
 {
     const char* headers[] = {"名", "Age"};
@@ -135,6 +149,7 @@ int main(void)
     CHECK(test_error_state() == 0);
     CHECK(test_transaction_faults() == 0);
     CHECK(test_format_controls() == 0);
+    CHECK(test_supplementary_variation() == 0);
     CHECK(xrtMemDebugFailAfter(0));
     CHECK(xtab_create() == NULL);
     CHECK(xrtMemDebugFailTriggered());
