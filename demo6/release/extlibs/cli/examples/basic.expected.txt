@@ -1,0 +1,1 @@
+verbose=true output=out.txt src=in.txt

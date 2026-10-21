@@ -1,0 +1,14 @@
+import cli
+
+func main(...) as int
+    var spec = {
+        "flags": ["verbose"],
+        "options": {"output": "o"},
+        "positional": ["src"]
+    }
+    var result = cli.parse(["--verbose", "--output=out.txt", "in.txt"], spec)
+    assert result["ok"] == true
+    println("verbose=", result["flags"]["verbose"], " output=",
+        result["options"]["output"], " src=", result["positional"]["src"])
+    return 0
+end
