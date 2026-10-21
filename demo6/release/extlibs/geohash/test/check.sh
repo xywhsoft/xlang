@@ -28,11 +28,12 @@ timeout 90s "$work/test_geohash"
     release/extlibs/geohash/examples/geohash_c.c \
     "$work/xrt_runtime.o" -lm -ldl -o "$work/geohash_example"
 timeout 30s "$work/geohash_example" > "$work/c.txt"
+diff -u release/extlibs/geohash/examples/geohash.expected.txt "$work/c.txt"
 timeout 30s ./release/xl run release/extlibs/geohash/examples/geohash_c.c > "$work/c_direct.txt"
 diff -u "$work/c.txt" "$work/c_direct.txt"
 timeout 90s ./release/xl run test/cases/extlib_geohash.xl
 timeout 90s ./release/xl run release/extlibs/geohash/test/boundaries.xl
 timeout 90s ./release/xl run release/extlibs/geohash/test/allocations.xl
 timeout 90s ./release/xl run release/examples/extlibs/geohash.xl > "$work/xl.txt"
-diff -u "$work/c.txt" "$work/xl.txt"
+diff -u release/extlibs/geohash/examples/geohash.expected.txt "$work/xl.txt"
 printf 'geohash Linux C ASan/UBSan and XLang parity gate: PASS\n'

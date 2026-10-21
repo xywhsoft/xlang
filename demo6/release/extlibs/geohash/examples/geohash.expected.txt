@@ -1,0 +1,9 @@
+Beijing geohash: wx4g0bm
+precision: 7
+center near Beijing: true
+bbox: 39.903717041015625,116.40701293945312,39.90509033203125,116.40838623046875
+north: wx4g0bt
+south: wx4g0bj
+east: wx4g0bq
+west: wx4g0bk
+geohash example: PASS

@@ -12,17 +12,22 @@ $work = Join-Path $workRoot ('geohash_guard_' + [guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($work)
 
 function Run([string]$name, [string]$program, [string[]]$arguments) {
-    $output = & $program @arguments
-    if ($LASTEXITCODE -ne 0) { throw "${name}: exit $LASTEXITCODE`n$($output -join "`n")" }
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = @(& $program @arguments 2>&1 | ForEach-Object { $_.ToString() })
+        $code = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previous
+    }
+    if ($code -ne 0) { throw "${name}: exit $code`n$($output -join "`n")" }
     Write-Host "[geohash] ${name}: PASS"
     return ($output -join "`n").Replace("`r`n", "`n").TrimEnd("`n")
 }
 
 function RunC([string]$name, [string]$source) {
-    $output = & $runner -Package geohash -Source $source 2>&1
-    if ($LASTEXITCODE -ne 0) { throw "${name}: exit $LASTEXITCODE`n$($output -join "`n")" }
-    Write-Host "[geohash] ${name}: PASS"
-    return ($output -join "`n").Replace("`r`n", "`n").TrimEnd("`n")
+    Run $name 'powershell' @('-NoProfile', '-ExecutionPolicy', 'Bypass',
+        '-File', $runner, '-Package', 'geohash', '-Source', $source)
 }
 
 Push-Location $root
@@ -41,19 +46,32 @@ try {
         'release/extlibs/geohash/examples/geohash_c.c')
     if ($directOutput -cne $cOutput) { throw 'direct C example output differs from GCC example' }
     $xlOutput = Run 'XLang example' $xl @('run', 'release/examples/extlibs/geohash.xl')
-    if ($cOutput -cne $xlOutput) { throw "C/XLang geohash output differs:`nC:`n$cOutput`nXL:`n$xlOutput" }
-    Write-Host '[geohash] C/XLang parity: PASS'
+    $goldenPath = Join-Path $root 'release/extlibs/geohash/examples/geohash.expected.txt'
+    $golden = [IO.File]::ReadAllText($goldenPath).Replace("`r`n", "`n").TrimEnd("`n")
+    if ($cOutput -cne $golden -or $xlOutput -cne $golden) {
+        throw "C/XLang geohash output differs from fixed golden output:`nC:`n$cOutput`nXL:`n$xlOutput"
+    }
+    Write-Host '[geohash] C/XLang golden output: PASS'
 
     if (-not $SkipAot) {
         $core = Join-Path $work 'core.exe'
         $null = Run 'core AOT build' $xl @('build',
             'test/cases/extlib_geohash.xl', '-o', $core)
-        $null = Run 'core AOT run' $core @()
+        if ((Run 'core AOT run' $core @()) -cne '') { throw 'core AOT produced output' }
+
+        $example = Join-Path $work 'example.exe'
+        $null = Run 'example AOT build' $xl @('build',
+            'release/examples/extlibs/geohash.xl', '-o', $example)
+        if ((Run 'example AOT run' $example @()) -cne $golden) {
+            throw 'example AOT output differs from fixed golden output'
+        }
 
         $boundaries = Join-Path $work 'boundaries.exe'
         $null = Run 'boundaries AOT build' $xl @('build',
             'release/extlibs/geohash/test/boundaries.xl', '-o', $boundaries)
-        $null = Run 'boundaries AOT run' $boundaries @()
+        if ((Run 'boundaries AOT run' $boundaries @()) -cne '') {
+            throw 'boundaries AOT produced output'
+        }
     }
     if ($SkipAot) {
         Write-Host '[geohash] Windows C/XLang quick gate: PASS (AOT skipped)'
