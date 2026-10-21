@@ -72,5 +72,27 @@ func main(...) as int
         caught = true
     end
     assert caught, "invalid resource mode"
+
+    string duplicateStateText = """
+    {"version":4,"serial":0,"lineage":"duplicate","outputs":{},
+     "resources":[{"type":"aws_instance","name":"web"},
+                  {"type":"aws_instance","name":"web"}]}
+    """
+    state = terraform_state.parse(duplicateStateText)
+    assert terraform_state.valid(duplicateStateText), "top-level validation remains lazy"
+    caught = false
+    try
+        terraform_state.addresses(state)
+    catch ValueError
+        caught = true
+    end
+    assert caught, "duplicate address list must fail"
+    caught = false
+    try
+        terraform_state.find(state, "aws_instance.web")
+    catch ValueError
+        caught = true
+    end
+    assert caught, "ambiguous find must fail"
     return 0
 end

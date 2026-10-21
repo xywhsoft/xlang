@@ -154,6 +154,42 @@ static int check_query_memory(cstr sState)
     return 0;
 }
 
+/* 重复资源与不同字段拼出的同一地址都不能让查询静默命中第一项。 */
+static int check_duplicate_addresses(void)
+{
+    cstr cases[] = {
+        "{\"version\":4,\"serial\":0,\"lineage\":\"x\",\"outputs\":{},\"resources\":["
+        "{\"type\":\"aws_instance\",\"name\":\"web\"},"
+        "{\"type\":\"aws_instance\",\"name\":\"web\"}]}",
+        "{\"version\":4,\"serial\":0,\"lineage\":\"x\",\"outputs\":{},\"resources\":["
+        "{\"type\":\"a.b\",\"name\":\"c\"},"
+        "{\"type\":\"a\",\"name\":\"b.c\"}]}"
+    };
+    cstr addresses[] = { "aws_instance.web", "a.b.c" };
+    size_t i;
+    for (i = 0u; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+        xvalue* state = xtf_parse(cases[i]);
+        xvalue* result;
+        if (state == NULL) return fail("duplicate fixture parse");
+        result = xtf_addresses(state);
+        if (result != NULL || xrtGetError() == NULL ||
+            xrtErrorKind(xrtGetError()) != XERR_VALUE) {
+            xrtValueRelease(result);
+            xrtValueRelease(state);
+            return fail("addresses accepted duplicate resource address");
+        }
+        result = xtf_find(state, addresses[i]);
+        if (result != NULL || xrtGetError() == NULL ||
+            xrtErrorKind(xrtGetError()) != XERR_VALUE) {
+            xrtValueRelease(result);
+            xrtValueRelease(state);
+            return fail("find returned an ambiguous resource");
+        }
+        xrtValueRelease(state);
+    }
+    return 0;
+}
+
 int main(void)
 {
     cstr sState = "{\"version\":4,\"serial\":9,\"lineage\":\"c-smoke\","
@@ -170,6 +206,7 @@ int main(void)
     if (check_validation_memory(sState) != 0) return 1;
     if (check_query_ownership(sState) != 0) return 1;
     if (check_query_memory(sState) != 0) return 1;
+    if (check_duplicate_addresses() != 0) return 1;
     pState = xtf_parse(sState);
 
     if (pState == NULL || !xtf_valid(sState) || xtf_valid("[]") ||

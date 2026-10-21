@@ -58,6 +58,10 @@ NUL 结尾字符串约定。
 位置，不会把 `index_key` 拼进资源地址。多实例时调用者应读取实例原始字段，
 而不是把顺序索引当作 Terraform 的持久地址。查询返回的 `var` 保留 XRT 引用，
 可以独立于源 state 变量存活；调用期间不得并发修改源值。
+`addresses` 拒绝重复的合成资源地址；`find`、`instances`、`attributes` 在
+目标地址匹配多项时也抛 `ValueError`，不会静默选中第一项。包括不同字段
+拼出同一文本地址的情况。`parse` / `valid` 仍只校验顶层形状，不提前遍历
+资源；因此顶层有效不保证随后每个地址查询都成功。
 
 ## C 接口和所有权
 
@@ -102,6 +106,12 @@ Linux/WSL 从 `demo6` 目录运行 `bash release/extlibs/terraform_state/test/ch
 2026-10-17：Linux 包级脚本加入正式 XLang 的中央/包内/故障用例及
 C/XLang 范例逐字节同输出；与 C ASan/UBSan 同次通过。完整 AOT 和
 `var as string` 的共享主线阻断仍未关闭。
+
+2026-10-22：资源数组中出现重复或拼接冲突的地址时，原 `find` 静默返回
+第一项、`addresses` 返回重复文本。C/XLang 红例先复现，现两个入口
+明确拒绝歧义；`instances`、`attributes` 继承 `find` 的约束。Windows
+严格 GCC、分配故障、双语范例及无输出 AOT，Linux C ASan/UBSan 与
+XLang JIT 均通过。完整带输出 AOT 的共享阻断不变。
 
 同日补查询名称的 NUL 前缀红绿回归：四个公开 XLang 查询入口原会命中
 NUL 前缀对应的资源或输出；现在统一在包装层拒绝。Windows 包级

@@ -155,6 +155,7 @@ static bool xtf_resource_address(xbuffer* pOutput, const xvalue* pResource)
 static xvalue* xtf_find_resource(const xvalue* pState, cstr sAddress)
 {
     xvalue* pResources;
+    xvalue* pFound = NULL;
     xbuffer Address = { 0 };
     xstrview Target;
     size_t i;
@@ -175,13 +176,17 @@ static xvalue* xtf_find_resource(const xvalue* pState, cstr sAddress)
             return NULL;
         }
         if (xtf_view_equal((xstrview){ (cstr)Address.Data, Address.Size }, Target)) {
-            xrtBufferUnit(&Address);
-            return xrtValueRetain(pResource);
+            if (pFound != NULL) {
+                xrtBufferUnit(&Address);
+                xtf_error(XERR_VALUE, "duplicate Terraform resource address");
+                return NULL;
+            }
+            pFound = pResource;
         }
     }
     xrtBufferUnit(&Address);
     xrtClearError();
-    return xrtValueRetain(xrtValueNull());
+    return xrtValueRetain(pFound != NULL ? pFound : xrtValueNull());
 }
 
 
@@ -365,6 +370,7 @@ xvalue* xtf_addresses(xvalue* pState)
 {
     xvalue* pResources;
     xvalue* pResult;
+    xvalue* pSeen;
     xbuffer Address = { 0 };
     size_t i;
 
@@ -373,24 +379,43 @@ xvalue* xtf_addresses(xvalue* pState)
     if (pResources == NULL) return NULL;
     pResult = xrtValueArray();
     if (pResult == NULL) return NULL;
+    pSeen = xrtValueObject();
+    if (pSeen == NULL) {
+        xrtValueRelease(pResult);
+        xtf_error(XERR_MEMORY, "could not track Terraform resource addresses");
+        return NULL;
+    }
     for (i = 0u; i < xrtValueCount(pResources); ++i) {
         xvalue* pAddress;
+        xstrview Key;
 
         if (!xtf_resource_address(&Address, xrtValueArrayGet(pResources, i))) {
-            xrtBufferUnit(&Address);
-            xrtValueRelease(pResult);
-            return NULL;
+            goto fail;
         }
-        pAddress = xrtValueString((xstrview){ (cstr)Address.Data, Address.Size });
+        Key = (xstrview){ (cstr)Address.Data, Address.Size };
+        if (xrtValueObjectGet(pSeen, Key) != NULL) {
+            xtf_error(XERR_VALUE, "duplicate Terraform resource address");
+            goto fail;
+        }
+        if (!xrtValueObjectSetNew(pSeen, Key, xrtValueBool(true))) {
+            xtf_error(XERR_MEMORY, "could not track Terraform resource addresses");
+            goto fail;
+        }
+        pAddress = xrtValueString(Key);
         if (pAddress == NULL || !xrtValueArrayAppendNew(pResult, pAddress)) {
-            xrtBufferUnit(&Address);
-            xrtValueRelease(pResult);
-            return NULL;
+            xtf_error(XERR_MEMORY, "could not build Terraform address list");
+            goto fail;
         }
     }
     xrtBufferUnit(&Address);
+    xrtValueRelease(pSeen);
     xrtClearError();
     return pResult;
+fail:
+    xrtBufferUnit(&Address);
+    xrtValueRelease(pSeen);
+    xrtValueRelease(pResult);
+    return NULL;
 }
 
 

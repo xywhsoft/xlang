@@ -32,7 +32,7 @@
 string source = '{"version":4,"serial":0,"lineage":"demo","resources":[],"outputs":{}}'
 var state = terraform_state.parse(source)
 assert terraform_state.version(state) == 4</code></pre>
-    <p>成对范例用虚构数据展示 <code>module.site.data.aws_ami.ubuntu</code> 的地址和属性查询。真实 state 可能包含明文凭据，请保护文件权限，勿把属性或输出直接写入日志。顶层 <code>lineage</code> 解码后不能含 NUL；资源详情按查询懒校验，输入上限 64 MiB。XLang 查询地址和输出名称含 NUL 时抛 <code>ValueError</code>，不会截断后误查。C 整数元数据及实例索引使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。C 结果所有权与多实例地址规则见包内 README。完整带输出 AOT 仍受共享运行时缺符号阻断。</p>
+    <p>成对范例用虚构数据展示 <code>module.site.data.aws_ami.ubuntu</code> 的地址和属性查询。真实 state 可能包含明文凭据，请保护文件权限，勿把属性或输出直接写入日志。顶层 <code>lineage</code> 解码后不能含 NUL；资源详情按查询懒校验，输入上限 64 MiB。资源地址重复时，地址列表和对应查找会报错，不会静默选中第一项；<code>valid</code> 仍仅校验顶层形状。XLang 查询地址和输出名称含 NUL 时抛 <code>ValueError</code>，不会截断后误查。C 整数元数据及实例索引使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。C 结果所有权与多实例地址规则见包内 README。完整带输出 AOT 仍受共享运行时缺符号阻断。</p>
   </section>
 </main>
 </body>
