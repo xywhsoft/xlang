@@ -71,6 +71,33 @@ static int xml_line_endings(void) {
     return 0;
 }
 
+static int xml_escaping(void) {
+    static const char original[] = "&<>\"'\r";
+    static const char escaped[] = "<lastmod>&amp;&lt;&gt;&quot;&apos;&#xD;</lastmod>";
+    xvalue *urls = xrtValueArray();
+    xvalue *entry = url("https://example.test/a");
+    xvalue *parsed, *field;
+    xstrview text;
+    char *xml;
+    CHECK(urls != NULL && entry != NULL);
+    CHECK(xrtValueObjectSetNew(entry, (xstrview){"lastmod", 7},
+        xrtValueString((xstrview){original, sizeof(original) - 1u})));
+    CHECK(xrtValueArrayAppendNew(urls, entry));
+    xml = (char *)xsm_build(urls);
+    CHECK(xml != NULL && strstr(xml, escaped) != NULL);
+    parsed = xsm_parse(xml);
+    CHECK(parsed != NULL && xrtValueType(parsed) == XVALUE_ARRAY);
+    field = xrtValueObjectGet(xrtValueArrayAt(parsed, 0),
+        (xstrview){"lastmod", 7});
+    CHECK(field != NULL && xrtValueGetString(field, &text) &&
+        text.Size == sizeof(original) - 1u &&
+        memcmp(text.Data, original, text.Size) == 0);
+    xrtValueRelease(parsed);
+    xrtFree(xml);
+    xrtValueRelease(urls);
+    return 0;
+}
+
 static int invalid_xml(const char *text) {
     xvalue *result = xsm_parse(text);
     int invalid = result != NULL && xrtValueType(result) == XVALUE_NULL;
@@ -395,6 +422,7 @@ static int robots_limit(void) {
 int main(void) {
     CHECK(unknown_fields() == 0);
     CHECK(xml_line_endings() == 0);
+    CHECK(xml_escaping() == 0);
     CHECK(allocation_errors() == 0);
     CHECK(loc_limit() == 0);
     CHECK(protocol_limits() == 0);

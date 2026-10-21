@@ -67,3 +67,5 @@ Python XML/robots 检查与 C 输出对照。当前 `-SkipAot` 的 C/XLang、
 协议规模与独立解析全部通过；默认门禁核心 AOT 通过，完整范例构建因
 共享 `xl6ValueDataSnapshotV1` 缺符号失败。新增构建目录在失败后清理，
 不能将核心通过视为整包 AOT 签收。
+
+2026-10-21：C/XLang 边界固定 `&`、`<`、`>`、引号、撇号和回车的 XML 写出字节及解析往返，避免仅由同一生成器和解析器互相证明正确。Windows `test/check.ps1 -SkipAot` 与 Linux `test/check.sh` 的 C ASan/UBSan、语言边界及独立 XML 检查通过。实现/API 未改；完整 AOT 共享缺符号阻断仍在，不签收整包发布级。

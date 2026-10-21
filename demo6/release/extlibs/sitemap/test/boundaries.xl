@@ -10,6 +10,11 @@ func main(...) as int
     string lineXml = sitemap.build([{"loc": "https://example.test/a", "lastmod": "2026-10-12\rZ"}])
     assert sitemap.parse(lineXml)[0]["lastmod"] == "2026-10-12\rZ", "XML CR round trip"
 
+    string special = "&<>\"'\r"
+    string specialXml = sitemap.build([{"loc": "https://example.test/a", "lastmod": special}])
+    assert string.indexOf(specialXml, "<lastmod>&amp;&lt;&gt;&quot;&apos;&#xD;</lastmod>") >= 0, "XML special characters escaped"
+    assert sitemap.parse(specialXml)[0]["lastmod"] == special, "XML special characters round trip"
+
     string index = sitemap.buildIndex([{"loc": "https://example.test/a.xml"}])
     assert sitemap.parseIndex(index)[0]["loc"] == "https://example.test/a.xml", "index round trip"
     int raised = 0
