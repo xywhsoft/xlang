@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>volc.sts - 扩展库 - xlang</title>
+  <meta name="description" content="火山引擎 STS AssumeRole 调用与离线签名预览。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / volc.sts</p><h1>volc.sts</h1>
+    <p class="extlib-lead">AssumeRole 请求与离线签名预览。</p>
+    <p>C 离线签名调用已验证。XLang 导入链、在线请求和响应解析尚未完成发布验收。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>preview_assume_role / preview_assume_role_spec</code></td><td>固定输入下离线预览签名，不联网</td></tr>
+      <tr><td><code>assume_role / assume_role_trn / assume_role_spec</code></td><td>在线请求，未验收</td></tr>
+      <tr><td><code>credentials_json / projection_credentials_json</code></td><td>当前以文本切分响应，不适合不可信 JSON</td></tr>
+    </tbody></table>
+    <h2>示例</h2>
+    <pre><code>import volc.sts
+string preview = volc.sts.preview_assume_role("AKID", "SECRET", "123456789", "demo", "demo-session", 900, "20240102T030405Z")</code></pre>
+    <p>直参入口直接传递字段，角色 TRN 与会话名中的换行会在发送前拒绝；自行编写的 <code>*_spec</code> 声明文本没有值转义。C 对照见 <code>examples/assume_role.c</code>；Windows 严格 GCC/C 门禁见 <code>test/check.ps1</code>，Linux ASan/UBSan 见 <code>test/check.sh</code>。使用固定测试凭据，不发送请求。XLang 导入仍被独立维护的 <code>xhttp.multipart</code> 阻断；响应助手不是结构化 JSON 解析器。详细限制和待验收项见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>
