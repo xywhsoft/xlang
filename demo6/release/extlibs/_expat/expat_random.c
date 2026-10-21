@@ -3,10 +3,16 @@
 	不适用于目标平台的系统调用源码交给编译器。
 */
 #if defined(_WIN32)
-#if defined(__TINYC__)
-int rand_s(unsigned int* pValue);
+#ifndef XRT_MODULE_RANDOM_SECURE
+#define XRT_MODULE_RANDOM_SECURE
 #endif
-#include "vendor/expat/lib/random_rand_s.c"
+#include "xrt.h"
+
+/* Expat 需要密码安全熵；复用 XRT 的跨 CRT 实现，不依赖 rand_s。 */
+bool writeRandomBytes_rand_s(void* target, size_t count)
+{
+	return xrtSecureRandom(target, count);
+}
 #elif defined(__linux__)
 #include "vendor/expat/lib/random_getrandom.c"
 #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || \

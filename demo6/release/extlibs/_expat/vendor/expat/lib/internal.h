@@ -130,6 +130,9 @@
 #  elif ULONG_MAX == 18446744073709551615u // 2^64-1
 #    define EXPAT_FMT_PTRDIFF_T(midpart) "%" midpart "ld"
 #    define EXPAT_FMT_SIZE_T(midpart) "%" midpart "lu"
+#  elif defined(_WIN64) && defined(__MINGW32__)
+#    define EXPAT_FMT_PTRDIFF_T(midpart) "%" midpart "lld"
+#    define EXPAT_FMT_SIZE_T(midpart) "%" midpart "llu"
 #  elif defined(__wasm32__) // 32bit mode Emscripten or WASI SDK
 #    define EXPAT_FMT_PTRDIFF_T(midpart) "%" midpart "ld"
 #    define EXPAT_FMT_SIZE_T(midpart) "%" midpart "zu"

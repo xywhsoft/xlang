@@ -12,7 +12,8 @@
             "vendor/expat/lib/xmltok.c",
             "expat_random.c"
         ],
-        "xlSources": []
+        "xlSources": [],
+        "xrtModules": ["XRT_MODULE_RANDOM_SECURE"]
     },
     "links": [],
     "loadlibs": [],
