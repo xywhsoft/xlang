@@ -6,6 +6,9 @@
 #ifndef XRT_MODULE_VALUE_CONTAINER
 #define XRT_MODULE_VALUE_CONTAINER
 #endif
+#ifndef XRT_MODULE_STRING
+#define XRT_MODULE_STRING
+#endif
 #ifndef XRT_MODULE_UNICODE
 #define XRT_MODULE_UNICODE
 #endif
@@ -178,24 +181,78 @@ static int64 xsm_agent_score(xvalue *group, XsmSpan agent) {
     return best;
 }
 
+/* 长片段用 KMP 保证单次扫描；短片段直接复用 XRT 的查找。 */
+static int xsm_find_literal(XsmSpan path, XsmSpan literal, size_t start,
+                            size_t *found) {
+    size_t local[64], *prefix = local, i, j;
+    if (start > path.size || literal.size > path.size - start) return 0;
+    if (literal.size < 8u) {
+        *found = xrtStrFind((xstrview){path.data, path.size},
+                            (xstrview){literal.data, literal.size}, start);
+        return *found != XRT_NPOS;
+    }
+    if (literal.size > sizeof(local) / sizeof(local[0])) {
+        if (literal.size > SIZE_MAX / sizeof(size_t)) {
+            xrtSetErrorInfo(XERR_RANGE, XSM_DOMAIN, 0, "robots rule is too long");
+            return -1;
+        }
+        prefix = (size_t *)xrtMalloc(literal.size * sizeof(size_t));
+        if (prefix == NULL) {
+            xrtSetErrorInfo(XERR_MEMORY, XSM_DOMAIN, 0, "robots match allocation failed");
+            return -1;
+        }
+    }
+    prefix[0] = 0;
+    for (i = 1, j = 0; i < literal.size; ++i) {
+        while (j && literal.data[i] != literal.data[j]) j = prefix[j - 1u];
+        if (literal.data[i] == literal.data[j]) ++j;
+        prefix[i] = j;
+    }
+    for (i = start, j = 0; i < path.size; ++i) {
+        while (j && path.data[i] != literal.data[j]) j = prefix[j - 1u];
+        if (path.data[i] == literal.data[j]) ++j;
+        if (j == literal.size) {
+            *found = i + 1u - literal.size;
+            if (prefix != local) xrtFree(prefix);
+            return 1;
+        }
+    }
+    if (prefix != local) xrtFree(prefix);
+    return 0;
+}
+
 /* * 可跨任意字节，末尾 $ 要求路径结束；无 $ 的规则按前缀匹配。 */
 static int xsm_match(XsmSpan rule, XsmSpan path) {
-    size_t r = 0, p = 0, star = SIZE_MAX, retry = 0;
-    int anchored = rule.size && rule.data[rule.size - 1] == '$';
+    size_t offset = 0, cursor = 0;
+    int wildcard = 0, anchored = rule.size && rule.data[rule.size - 1] == '$';
     if (anchored) rule.size--;
-    while (p < path.size) {
-        if (r == rule.size) {
-            if (!anchored) return 1;
-            if (star == SIZE_MAX) return 0;
-            r = star; p = ++retry; continue;
+    while (offset < rule.size) {
+        const char *star = (const char *)memchr(rule.data + offset, '*', rule.size - offset);
+        size_t end = star ? (size_t)(star - rule.data) : rule.size;
+        XsmSpan literal = {rule.data + offset, end - offset};
+        if (literal.size) {
+            if (!wildcard) {
+                if (literal.size > path.size - cursor ||
+                    memcmp(path.data + cursor, literal.data, literal.size) != 0) return 0;
+                cursor += literal.size;
+            } else if (anchored && end == rule.size) {
+                size_t suffix;
+                if (literal.size > path.size) return 0;
+                suffix = path.size - literal.size;
+                return suffix >= cursor &&
+                       memcmp(path.data + suffix, literal.data, literal.size) == 0;
+            } else {
+                size_t found;
+                int match = xsm_find_literal(path, literal, cursor, &found);
+                if (match <= 0) return match;
+                cursor = found + literal.size;
+            }
         }
-        if (rule.data[r] == '*') { star = ++r; retry = p; continue; }
-        if (rule.data[r] == path.data[p]) { r++; p++; continue; }
-        if (star != SIZE_MAX) { r = star; p = ++retry; continue; }
-        return 0;
+        if (!star) return !anchored || cursor == path.size;
+        wildcard = 1;
+        offset = end + 1u;
     }
-    while (r < rule.size && rule.data[r] == '*') r++;
-    return r == rule.size;
+    return !anchored || wildcard || cursor == path.size;
 }
 
 static size_t xsm_specificity(XsmSpan rule) {
@@ -207,11 +264,11 @@ static size_t xsm_specificity(XsmSpan rule) {
     return score;
 }
 
-static void xsm_score_rules(xvalue *group, const char *name, XsmSpan path,
-                            size_t *best) {
+static int xsm_score_rules(xvalue *group, const char *name, XsmSpan path,
+                           size_t *best) {
     xvalue *list = xsm_get(group, name);
     int64 i, count;
-    if (list == NULL || xrtValueType(list) != XVALUE_ARRAY) return;
+    if (list == NULL || xrtValueType(list) != XVALUE_ARRAY) return 0;
     count = xrtValueCount(list);
     for (i = 0; i < count; ++i) {
         xvalue *item = xrtValueArrayAt(list, i);
@@ -220,10 +277,14 @@ static void xsm_score_rules(xvalue *group, const char *name, XsmSpan path,
             xrtValueGetString(item, &view)) {
             XsmSpan rule = {view.Data, view.Size};
             size_t score = xsm_specificity(rule);
-            if (xsm_match(rule, path) && (*best == SIZE_MAX || score > *best))
-                *best = score;
+            if (*best == SIZE_MAX || score > *best) {
+                int match = xsm_match(rule, path);
+                if (match < 0) return -1;
+                if (match) *best = score;
+            }
         }
     }
+    return 0;
 }
 
 long long xsm_robots_allows_n(xvalue *robots, const char *userAgent,
@@ -252,8 +313,9 @@ long long xsm_robots_allows_n(xvalue *robots, const char *userAgent,
     for (i = 0; i < count; ++i) {
         xvalue *group = xrtValueArrayAt(groups, i);
         if (xsm_agent_score(group, agent) != bestAgent) continue;
-        xsm_score_rules(group, "allow", request, &bestAllow);
-        xsm_score_rules(group, "disallow", request, &bestDisallow);
+        if (xsm_score_rules(group, "allow", request, &bestAllow) < 0 ||
+            xsm_score_rules(group, "disallow", request, &bestDisallow) < 0)
+            return -1;
     }
     return bestDisallow != SIZE_MAX &&
            (bestAllow == SIZE_MAX || bestDisallow > bestAllow) ? 0 : 1;

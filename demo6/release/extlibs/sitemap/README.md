@@ -11,6 +11,7 @@
 - `sitemap.robotsAllows(robots, productToken, path)`：传入爬虫的 product token（如 `ExampleBot`，不是完整 HTTP User-Agent）；代理组按整个 token 不区分大小写匹配，不把 `Bot` 当作 `NotBot`。相同 token 的规则组合并；没有专属组时回退到 `*`。最长字面路径规则生效，平局由 `Allow` 胜出。支持路径规则中的 `*` 和末尾 `$`；其他位置的 `$` 是普通字符。没有匹配规则则允许。
 
 robots 匹配以传入路径的 UTF-8 字节为准，不做 URL 解析、百分号编码规范化或爬虫厂商专有扩展解释。适用于站点常规规则决策，**不承诺与所有搜索引擎的完整 robots 实现逐项一致**。XML 只公开上述字段；生成时 URL 条目仅允许 `loc`、`lastmod`、`changefreq`、`priority`，索引条目仅允许 `loc`、`lastmod`，未知键会报错而不会被静默丢弃。图片/视频扩展元素等额外命名空间目前不进入这个包的结构模型，也不校验日期/优先级字段的业务格式或自动拆分超大站点地图。生成与解析均按 [Sitemaps 协议](https://www.sitemaps.org/protocol.html)限制 `loc` 少于 2,048 个字符，但不作完整 URI/IRI 校验。构建时要求字段为有效 UTF-8 且符合 XML 1.0 字符范围，U+FFFE/U+FFFF 会被拒绝。输入格式错误抛 `ValueError`，不再返回空字符串掩盖生成失败。
+robots 长规则按 `*` 分段向前匹配；长字面片段用 KMP，单条规则的匹配耗时随规则和路径字节数线性增长。匹配所需内存分配失败时，C 入口返回 `-1` 并保留 `XERR_MEMORY`，不会误报为“允许访问”。
 生成 XML 时对字段中的 CR 使用字符引用，避免 XML 解析器将其规范化为 LF；这保证已接受的字段可原值往返，不表示 `loc` 或日期文本经过协议语义校验。
 按 [Sitemaps 协议](https://www.sitemaps.org/en_GB/protocol.html)，URL 集合和索引文件均限 50,000 条、未压缩 XML 限 52,428,800 字节（50 MiB）。生成与解析都在包边界检查；转义后才超限的生成结果也拒绝，C 侧报告 `XERR_RANGE`，XLang 抛 `RangeError`，不会返回截断内容。本包不自动拆分超限站点地图。
 C 的零结尾 `xsm_parse` / `xsm_parse_index` 最多探测到 50 MiB 上限外一个字节；超限时先返回 `XERR_RANGE`，不对整个未知长度输入执行无界 `strlen`。非零结尾缓冲区应调用 `_n` 入口并提供真实长度。
@@ -69,3 +70,5 @@ Python XML/robots 检查与 C 输出对照。当前 `-SkipAot` 的 C/XLang、
 不能将核心通过视为整包 AOT 签收。
 
 2026-10-21：C/XLang 边界固定 `&`、`<`、`>`、引号、撇号和回车的 XML 写出字节及解析往返，避免仅由同一生成器和解析器互相证明正确。Windows `test/check.ps1 -SkipAot` 与 Linux `test/check.sh` 的 C ASan/UBSan、语言边界及独立 XML 检查通过。实现/API 未改；完整 AOT 共享缺符号阻断仍在，不签收整包发布级。
+
+2026-10-22：robots 通配符匹配由反复回退改为字面片段顺序查找，长片段使用 KMP，避免长重复路径上的平方级扫描；末尾 `$`、前缀规则、连续 `*` 的公开语义不变。新增 8 KiB 规则/16 KiB 路径的 C 边界及匹配时分配故障、恢复测试；旧实现先红，修复后 Windows `test/check.ps1 -SkipAot` 和 Linux `test/check.sh` 的 C ASan/UBSan、XLang、独立 XML、双语对照均通过。完整 AOT 的共享缺符号阻断未变，不签收整包发布级。

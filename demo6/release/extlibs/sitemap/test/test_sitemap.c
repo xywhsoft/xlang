@@ -175,6 +175,44 @@ static int robots_match_matrix(void) {
     return 0;
 }
 
+static int robots_long_wildcard(void) {
+    static const char prefix[] = "User-agent: *\nDisallow: /*";
+    const size_t repeat = 8192u;
+    const size_t prefixSize = sizeof(prefix) - 1u;
+    char *document = (char *)xrtMalloc(prefixSize + repeat + 4u);
+    char *path = (char *)xrtMalloc(repeat * 2u + 2u);
+    xvalue *robots;
+    int failed, triggered;
+    CHECK(document != NULL && path != NULL);
+    memcpy(document, prefix, prefixSize);
+    memset(document + prefixSize, 'a', repeat);
+    memcpy(document + prefixSize + repeat, "b*\n", 4u);
+    path[0] = '/';
+    memset(path + 1, 'a', repeat * 2u);
+    path[repeat * 2u + 1u] = 0;
+
+    robots = xsm_robots_parse(document);
+    CHECK(robots != NULL && xrtValueType(robots) == XVALUE_OBJECT);
+    CHECK(xsm_robots_allows(robots, "Bot", path) == 1);
+    path[repeat + 1u] = 'b';
+    CHECK(xsm_robots_allows(robots, "Bot", path) == 0);
+
+    /* 长字面片段的查找失败必须传递内存错误，且可立即恢复。 */
+    path[repeat + 1u] = 'a';
+    CHECK(xrtMemDebugFailAfter(0));
+    failed = xsm_robots_allows(robots, "Bot", path);
+    triggered = xrtMemDebugFailTriggered();
+    xrtMemDebugFailClear();
+    CHECK(triggered && failed == -1 && xrtGetError() != NULL &&
+          xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+    CHECK(xsm_robots_allows(robots, "Bot", path) == 1 && xrtGetError() == NULL);
+
+    xrtValueRelease(robots);
+    xrtFree(path);
+    xrtFree(document);
+    return 0;
+}
+
 static int allocation_errors(void) {
     static const char xml[] = "<urlset><url><loc>https://example.test/a</loc></url></urlset>";
     xvalue *urls = xrtValueArray();
@@ -427,6 +465,7 @@ int main(void) {
     CHECK(loc_limit() == 0);
     CHECK(protocol_limits() == 0);
     CHECK(robots_limit() == 0);
+    CHECK(robots_long_wildcard() == 0);
     xvalue *urls = xrtValueArray();
     xvalue *entry = url("https://example.test/?a=1&b=2");
     xvalue *parsed, *robots;
