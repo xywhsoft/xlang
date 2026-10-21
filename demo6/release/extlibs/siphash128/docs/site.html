@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>siphash128 - 扩展库 - xlang</title>
+  <meta name="description" content="SipHash-2-4 的域分离 128 位扩展库；64 位能力已进入 xlang 默认标准库。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout c-hash" id="main-content">
+<header class="extlib-head">
+  <p><a href="../extlibs.html">扩展库</a> / siphash128</p>
+  <div class="extlib-title-row"><h1>siphash128</h1><span class="extlib-cat-badge">带密钥哈希</span></div>
+  <p class="extlib-lead">域分离的 SipHash-2-4-128。64 位 SipHash-2-4 已在默认标准库的 <code>siphash</code> 命名空间提供，本扩展不重复打包。</p>
+</header>
+<section class="ext-panel active" aria-labelledby="api">
+  <h2 id="api">API</h2>
+  <table class="ext-kv"><thead><tr><th>入口</th><th>语义</th></tr></thead><tbody>
+    <tr><td><code>hash(string|bytes data, bytes key, int size=-1)</code></td><td>一次性 128 位摘要，返回 16 字节 Buffer。</td></tr>
+    <tr><td><code>hashBuffer(Buffer data, bytes key, int size=-1)</code></td><td>借用 Buffer 内容计算，返回 16 字节 Buffer。</td></tr>
+    <tr><td><code>hasher(bytes key)</code></td><td>创建独立的 SipHasher128 流式对象。</td></tr>
+  </tbody></table>
+  <p>密钥必须恰好 16 字节，不提供默认值、填零、截断或伪随机回退。<code>size=-1</code> 处理完整实际字节长度；非负值截断到输入长度；更小的负值报 RangeError。内嵌 NUL 完整计入。摘要按小端字节序输出。</p>
+  <h2 id="stream">流式处理</h2>
+  <pre><code class="language-xlang">import siphash128
+bytes key = b"0123456789abcdef" // 固定密钥仅用于演示
+auto h = siphash128.hasher(key)
+h.update(b"A\x00")
+h.update("B")
+Buffer result = h.digest()
+assert result.compare(siphash128.hash(b"A\x00B", key)) == 0</code></pre>
+  <p><code>SipHasher128</code> 支持 <code>update(string|bytes, size=-1)</code>、<code>updateBuffer(Buffer, size=-1)</code>、<code>digest()</code>、<code>reset()</code>、<code>clone()</code> 和 <code>inputBytes()</code>。摘要是非终结快照，clone 不共享可变状态；同一对象的并发使用应由调用方串行化。</p>
+  <h2 id="scope">边界与验证</h2>
+  <p>SipHash 用于带密钥短消息散列和哈希表抗碰撞；不是密码哈希、加密或完整的消息认证协议。128 位变体有独立域分离，不能拼接两个 64 位结果。生产密钥必须保密；销毁对象擦除其拥有的密钥和状态，但不承诺清除调用方密钥或所有临时副本。</p>
+  <p>实现只编译 128 位核心与薄适配层。测试覆盖上游 64 个 128 位已知答案、短输入所有二分切点、参考实现差分、精确字节长度、错误边界和严格 C 语法。当前发布版在 Windows 的 xlang check/JIT 通过；AOT 构建缺少主线符号 <code>xl6NativeHandleTraceLeaf</code>，尚未通过发布验收。这也不等于独立密码学审计或未运行平台的认证。</p>
+</section></main>
+<script src="../main.js"></script>
+</body></html>

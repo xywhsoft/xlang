@@ -1,0 +1,258 @@
+// SipHash-2-4：文本按 UTF-8 字节处理，密钥恰好 16 字节，摘要为小端字节序。
+extern "xsiphash_hash64" func __hash640(point data, c_size size, point key, c_size keySize) as c_ulonglong
+extern "xsiphash_hash64_str" func __hash641(string data, c_size size, point key, c_size keySize) as c_ulonglong
+extern "xsiphash_hash64_key_str" func __hash642(point data, c_size size, string key, c_size keySize) as c_ulonglong
+extern "xsiphash_hash64_str_key_str" func __hash643(string data, c_size size, string key, c_size keySize) as c_ulonglong
+extern "xsiphash_hash64_hex" func __hash64Hex0(point data, c_size size, point key, c_size keySize) as string
+extern "xsiphash_hash64_hex_str" func __hash64Hex1(string data, c_size size, point key, c_size keySize) as string
+extern "xsiphash_hash64_hex_key_str" func __hash64Hex2(point data, c_size size, string key, c_size keySize) as string
+extern "xsiphash_hash64_hex_str_key_str" func __hash64Hex3(string data, c_size size, string key, c_size keySize) as string
+extern "xsiphash_hash64_bytes" func __hash64Bytes0(point data, c_size size, point key, c_size keySize) as point
+extern "xsiphash_hash64_bytes_str" func __hash64Bytes1(string data, c_size size, point key, c_size keySize) as point
+extern "xsiphash_hash64_bytes_key_str" func __hash64Bytes2(point data, c_size size, string key, c_size keySize) as point
+extern "xsiphash_hash64_bytes_str_key_str" func __hash64Bytes3(string data, c_size size, string key, c_size keySize) as point
+extern "xsiphash_hash128_hex" func __hash128Hex0(point data, c_size size, point key, c_size keySize) as string
+extern "xsiphash_hash128_hex_str" func __hash128Hex1(string data, c_size size, point key, c_size keySize) as string
+extern "xsiphash_hash128_hex_key_str" func __hash128Hex2(point data, c_size size, string key, c_size keySize) as string
+extern "xsiphash_hash128_hex_str_key_str" func __hash128Hex3(string data, c_size size, string key, c_size keySize) as string
+extern "xsiphash_hash128_bytes" func __hash128Bytes0(point data, c_size size, point key, c_size keySize) as point
+extern "xsiphash_hash128_bytes_str" func __hash128Bytes1(string data, c_size size, point key, c_size keySize) as point
+extern "xsiphash_hash128_bytes_key_str" func __hash128Bytes2(point data, c_size size, string key, c_size keySize) as point
+extern "xsiphash_hash128_bytes_str_key_str" func __hash128Bytes3(string data, c_size size, string key, c_size keySize) as point
+extern "xsiphash_file64" func __file64(string path, c_ulonglong maximum, point key, c_size keySize, var callback) as c_ulonglong
+extern "xsiphash_file_hex" func __fileHex(string path, c_ulonglong maximum, point key, c_size keySize, c_int bits, var callback) as string
+extern "xsiphash_file_bytes" func __fileBytes(string path, c_ulonglong maximum, point key, c_size keySize, c_int bits, var callback) as point
+extern "xsiphash_file64_key_str" func __file64Str(string path, c_ulonglong maximum, string key, c_size keySize, var callback) as c_ulonglong
+extern "xsiphash_file_hex_key_str" func __fileHexStr(string path, c_ulonglong maximum, string key, c_size keySize, c_int bits, var callback) as string
+extern "xsiphash_file_bytes_key_str" func __fileBytesStr(string path, c_ulonglong maximum, string key, c_size keySize, c_int bits, var callback) as point
+extern "xsiphash_version" func __version() as string
+
+export const int SIPHASH_KEY_LEN = 16
+export func version() as string
+    return __version()
+end
+
+func __limit(int value)
+    if value <= 0 then
+        throw ValueError "maxInput must be greater than zero"
+    end
+end
+
+// ----------------------------- 一次性：所有 string / Buffer 组合 -----------------------------
+
+export func hash64(Buffer data, Buffer key) as uint64
+    return uint64(__hash640(data.data(), c_size(data.len()), key.data(), c_size(key.len())))
+end
+export func hash64(string data, Buffer key) as uint64
+    return uint64(__hash641(data, c_size(string.byteLen(data)), key.data(), c_size(key.len())))
+end
+export func hash64(Buffer data, string key) as uint64
+    return uint64(__hash642(data.data(), c_size(data.len()), key, c_size(string.byteLen(key))))
+end
+export func hash64(string data, string key) as uint64
+    return uint64(__hash643(data, c_size(string.byteLen(data)), key, c_size(string.byteLen(key))))
+end
+export func hash64Hex(Buffer data, Buffer key) as string
+    return __hash64Hex0(data.data(), c_size(data.len()), key.data(), c_size(key.len()))
+end
+export func hash64Hex(string data, Buffer key) as string
+    return __hash64Hex1(data, c_size(string.byteLen(data)), key.data(), c_size(key.len()))
+end
+export func hash64Hex(Buffer data, string key) as string
+    return __hash64Hex2(data.data(), c_size(data.len()), key, c_size(string.byteLen(key)))
+end
+export func hash64Hex(string data, string key) as string
+    return __hash64Hex3(data, c_size(string.byteLen(data)), key, c_size(string.byteLen(key)))
+end
+export func hash64Bytes(Buffer data, Buffer key) as Buffer
+    return Buffer(__hash64Bytes0(data.data(), c_size(data.len()), key.data(), c_size(key.len())))
+end
+export func hash64Bytes(string data, Buffer key) as Buffer
+    return Buffer(__hash64Bytes1(data, c_size(string.byteLen(data)), key.data(), c_size(key.len())))
+end
+export func hash64Bytes(Buffer data, string key) as Buffer
+    return Buffer(__hash64Bytes2(data.data(), c_size(data.len()), key, c_size(string.byteLen(key))))
+end
+export func hash64Bytes(string data, string key) as Buffer
+    return Buffer(__hash64Bytes3(data, c_size(string.byteLen(data)), key, c_size(string.byteLen(key))))
+end
+export func hash128Hex(Buffer data, Buffer key) as string
+    return __hash128Hex0(data.data(), c_size(data.len()), key.data(), c_size(key.len()))
+end
+export func hash128Hex(string data, Buffer key) as string
+    return __hash128Hex1(data, c_size(string.byteLen(data)), key.data(), c_size(key.len()))
+end
+export func hash128Hex(Buffer data, string key) as string
+    return __hash128Hex2(data.data(), c_size(data.len()), key, c_size(string.byteLen(key)))
+end
+export func hash128Hex(string data, string key) as string
+    return __hash128Hex3(data, c_size(string.byteLen(data)), key, c_size(string.byteLen(key)))
+end
+export func hash128Bytes(Buffer data, Buffer key) as Buffer
+    return Buffer(__hash128Bytes0(data.data(), c_size(data.len()), key.data(), c_size(key.len())))
+end
+export func hash128Bytes(string data, Buffer key) as Buffer
+    return Buffer(__hash128Bytes1(data, c_size(string.byteLen(data)), key.data(), c_size(key.len())))
+end
+export func hash128Bytes(Buffer data, string key) as Buffer
+    return Buffer(__hash128Bytes2(data.data(), c_size(data.len()), key, c_size(string.byteLen(key))))
+end
+export func hash128Bytes(string data, string key) as Buffer
+    return Buffer(__hash128Bytes3(data, c_size(string.byteLen(data)), key, c_size(string.byteLen(key))))
+end
+
+// ----------------------------- 文件与同步回调 -----------------------------
+
+func __progress(func(int, int, int) as bool callback) as var
+    return xcall(func(uint64 current, uint64 total, uint64 output) as bool
+        uint64 maximum = uint64(9223372036854775807)
+        if current > maximum or total > maximum or output > maximum then
+            throw RangeError "siphash progress exceeds int range"
+        end
+        return callback(int(current), int(total), int(output))
+    end)
+end
+export func hashFile64(string path, Buffer key, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as uint64
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return uint64(__file64(path, c_ulonglong(maxInput), key.data(), c_size(key.len()), callback))
+end
+export func hashFile64(string path, string key, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as uint64
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return uint64(__file64Str(path, c_ulonglong(maxInput), key, c_size(string.byteLen(key)), callback))
+end
+export func hashFile64Hex(string path, Buffer key, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as string
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return __fileHex(path, c_ulonglong(maxInput), key.data(), c_size(key.len()), c_int(64), callback)
+end
+export func hashFile64Hex(string path, string key, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as string
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return __fileHexStr(path, c_ulonglong(maxInput), key, c_size(string.byteLen(key)), c_int(64), callback)
+end
+export func hashFile64Bytes(string path, Buffer key, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as Buffer
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return Buffer(__fileBytes(path, c_ulonglong(maxInput), key.data(), c_size(key.len()), c_int(64), callback))
+end
+export func hashFile64Bytes(string path, string key, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as Buffer
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return Buffer(__fileBytesStr(path, c_ulonglong(maxInput), key, c_size(string.byteLen(key)), c_int(64), callback))
+end
+export func hashFile128Hex(string path, Buffer key, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as string
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return __fileHex(path, c_ulonglong(maxInput), key.data(), c_size(key.len()), c_int(128), callback)
+end
+export func hashFile128Hex(string path, string key, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as string
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return __fileHexStr(path, c_ulonglong(maxInput), key, c_size(string.byteLen(key)), c_int(128), callback)
+end
+export func hashFile128Bytes(string path, Buffer key, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as Buffer
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return Buffer(__fileBytes(path, c_ulonglong(maxInput), key.data(), c_size(key.len()), c_int(128), callback))
+end
+export func hashFile128Bytes(string path, string key, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as Buffer
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return Buffer(__fileBytesStr(path, c_ulonglong(maxInput), key, c_size(string.byteLen(key)), c_int(128), callback))
+end
+
+// ----------------------------- 流式：快照、分支与失败复位 -----------------------------
+
+export class SipHasher
+    native point handle
+    extern "xsiphash_hasher_create" create(point key, c_size keySize, c_ulonglong maxInput)
+    extern "xsiphash_hasher_create_key_str" create(string key, c_size keySize, c_ulonglong maxInput)
+    extern "xsiphash_hasher_adopt" create(point handle)
+    extern "xsiphash_hasher_destroy" destroy()
+    extern "xsiphash_hasher_update" func updateNative(point data, c_size size) as bool
+    extern "xsiphash_hasher_update_str" func updateStrNative(string data, c_size size) as bool
+    extern "xsiphash_hasher_digest64" func digest64Native() as c_ulonglong
+    extern "xsiphash_hasher_digest64_hex" func digest64Hex() as string
+    extern "xsiphash_hasher_digest64_bytes" func digest64BytesNative() as point
+    extern "xsiphash_hasher_digest128_hex" func digest128Hex() as string
+    extern "xsiphash_hasher_digest128_bytes" func digest128BytesNative() as point
+    extern "xsiphash_hasher_reset" func reset() as bool
+    extern "xsiphash_hasher_input_bytes" func inputBytesNative() as c_ulonglong
+    extern "xsiphash_hasher_clone" func cloneNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+    get inputBytes() as uint64
+        return uint64(self.inputBytesNative())
+    end
+    func update(Buffer data)
+        self.updateNative(data.data(), c_size(data.len()))
+    end
+    func update(string text)
+        self.updateStrNative(text, c_size(string.byteLen(text)))
+    end
+    func digest64() as uint64
+        return uint64(self.digest64Native())
+    end
+    func digest64Bytes() as Buffer
+        return Buffer(self.digest64BytesNative())
+    end
+    func digest128Bytes() as Buffer
+        return Buffer(self.digest128BytesNative())
+    end
+    func clone() as SipHasher
+        return SipHasher(self.cloneNative())
+    end
+end
+
+export func hasher(Buffer key, int maxInput = 268435456) as SipHasher
+    __limit(maxInput)
+    return SipHasher(key.data(), c_size(key.len()), c_ulonglong(maxInput))
+end
+export func hasher(string key, int maxInput = 268435456) as SipHasher
+    __limit(maxInput)
+    return SipHasher(key, c_size(string.byteLen(key)), c_ulonglong(maxInput))
+end

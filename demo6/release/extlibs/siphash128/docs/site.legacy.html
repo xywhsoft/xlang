@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>siphash - 历史组合扩展库（仅供迁移参考）</title>
+  <meta name="description" content="SipHash-2-4 的 64/128 位带密钥哈希，严格密钥、UTF-8/Buffer、流式快照与文件回调，C/xlang 双语支持。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout c-hash" id="main-content">
+<header class="extlib-head">
+  <p><a href="../extlibs.html">扩展库</a> / siphash</p>
+  <div class="extlib-title-row"><h1>siphash</h1><span class="extlib-cat-badge">带密钥哈希</span></div>
+  <p class="extlib-lead">SipHash-2-4，64 位与独立域分离的 128 位摘要。用于短消息带密钥哈希和哈希表抗碰撞，不是加密、密码存储或签名接口。</p>
+</header>
+<section class="ext-panel active" aria-labelledby="api">
+<h2 id="api">函数与输入</h2>
+<table class="ext-kv"><thead><tr><th>API</th><th>返回值与合同</th></tr></thead><tbody>
+<tr><td><code>version()</code> / <code>SIPHASH_KEY_LEN</code></td><td>包版本 1.0.0 / 密钥长度 16 字节。</td></tr>
+<tr><td><code>hash64(data, key)</code></td><td>uint64，保留最高位，不用 int 接收。</td></tr>
+<tr><td><code>hash64Hex(data, key)</code> / <code>hash64Bytes(data, key)</code></td><td>16 字符小写 hex / 8 字节 Buffer。</td></tr>
+<tr><td><code>hash128Hex(data, key)</code> / <code>hash128Bytes(data, key)</code></td><td>32 字符小写 hex / 16 字节 Buffer。</td></tr>
+<tr><td><code>hashFile64(path, key, maxInput=268435456, onProgress=null)</code></td><td>uint64，UTF-8 路径。</td></tr>
+<tr><td><code>hashFile64Hex(...)</code> / <code>hashFile64Bytes(...)</code></td><td>相同参数，64 位文件摘要。</td></tr>
+<tr><td><code>hashFile128Hex(...)</code> / <code>hashFile128Bytes(...)</code></td><td>相同参数，128 位文件摘要。</td></tr>
+<tr><td><code>hasher(key, maxInput=268435456)</code></td><td>SipHasher 流式对象。</td></tr>
+</tbody></table>
+<p>data/key 各自支持 string 或 Buffer，一次性函数的四种组合全部可用。
+文本按 UTF-8 字节计数，二进制及 NUL 用 Buffer。密钥必须恰好 16 字节，
+不填零、不截断、不提供默认密钥。真实用途需要保密的随机密钥，范例的固定密钥仅用于复现。</p>
+<p>hex 和 Buffer 是小端摘要字节序列，不是直接格式化 uint64 数值。
+128 位结果不能由两个 64 位结果拼接得到。</p>
+
+<h2 id="stream">流式快照</h2>
+<pre><code class="language-xlang">import siphash
+string key = "0123456789abcdef" // 仅用于范例
+auto h = siphash.hasher(key)
+h.update("你")
+h.update("好")
+assert h.inputBytes == uint64(6)
+string tag = h.digest128Hex()
+auto branch = h.clone()
+branch.update("!")
+h.reset()</code></pre>
+<p><code>update(string|Buffer)</code>、<code>digest64()</code>、
+<code>digest64Hex()</code>、<code>digest64Bytes()</code>、
+<code>digest128Hex()</code>、<code>digest128Bytes()</code>、
+<code>clone()</code>、<code>reset()</code>、<code>inputBytes</code> 和 <code>valid</code>。</p>
+<p>create 复制密钥；digest 为非终结快照，可重复读后继续 update；
+clone 为独立状态；reset 保留密钥和预算，清空输入与失败状态。
+update 失败后需要 reset，不能把不完整输入当作成功摘要。
+valid 只表示句柄非空。独立对象可并发，同一个可变对象需要调用方串行访问。</p>
+
+<h2 id="progress">文件、回调与预算</h2>
+<pre><code class="language-xlang">string tag = siphash.hashFile128Hex("data.bin", key,
+    onProgress = func(int current, int total, int output) as bool
+        return true
+    end)</code></pre>
+<p>同步回调在每块（最多 64 KiB）和 EOF 时触发；空文件也通知。
+current/total 按字节，未知 total 为零，output 恒为零；最终 current 可能重复。
+公开 int 计数有溢出检查。返回 false 抛 CancelledError，最终回调也可以取消；
+抛错保留原始类型和消息，回调可重入独立操作。失败不提交部分摘要。</p>
+<p>maxInput 必须大于零，默认 256 MiB。参数错误为 ValueError，
+预算/计数范围为 RangeError，分配失败为 MemoryError，句柄错误为 StateError；
+文件与回调错误保留原始类型。预算不是超时控制，不打断阻塞读取，
+也不承诺文件被并发修改时的快照一致性。</p>
+
+<h2 id="c-api">C API 与所有权</h2>
+<p><code>include/xrt_siphash.h</code> 提供 OptionsInit、ErrorInit、Hash64、Hash128、
+HasherCreate/Update/Digest64/Digest128/Clone/Reset/InputBytes/Error/Destroy、
+File64/File128。64 位算法直接复用 XRT；核心独立于 xlang/xruntime，
+宿主只编译一份 XRT，首次包含前配置模块。</p>
+<p>C key 指针要求至少 16 字节可读，输出空间由调用方保证。
+0 可以是合法数值摘要，必须用 XRT 错误状态区分失败。
+Options/Limits 严格检查大小和版本，NULL 使用默认预算，
+C 显式零限额表示不设业务上限，累计溢出仍会报错。</p>
+<p>File 借用 Reader，从当前游标读，不回退、不销毁。
+能获知剩余长度时预检，否则逐块检查；最终回调成功后才交付摘要。</p>
+<p><code>include/siphash_native.h</code> 为 43 个薄绑定入口给出精确声明。
+hex 借用 XRT 临时区，清理/回退前有效，后续正常调用不会覆盖；
+Buffer 为独立所有权，C 用 xrtBufferDestroy，xlang 自动接管。
+adopt 只接受真实句柄并转移所有权，不允许重复接管。</p>
+
+<h2 id="examples">双语范例与验证范围</h2>
+<p><code>examples/extlibs/siphash_basic.xl</code> 对照
+<code>extlibs/siphash/examples/basic.c</code>，展示单次哈希、UTF-8、
+二进制、流式分支；<code>examples/extlibs/siphash.xl</code> 对照
+<code>extlibs/siphash/examples/files.c</code>，展示中文路径、回调、取消、异常与预算。</p>
+<p><code>tools/check_extlib_siphash.ps1</code> 检查 128 个上游已知答案、
+4 种密钥 x 8 种地址偏移 x 81 种长度、短输入全切点、百万字节输入、
+全部 43 个 native API 和 41 个生成声明、4 线程独立对象、
+192 个分配故障位置、C/xlang JIT/AOT/GCC 及双语范例。
+<code>tools/check_extlib_siphash.sh</code> 检查 Linux C ASan/UBSan/泄漏及范例输出。</p>
+<p>范例摘要由固定版本
+<a href="https://github.com/veorq/SipHash/tree/32d067603b93b47828700880649198e0bfbbcffa">上游参考实现</a>
+独立产生并由门禁复核，参考代码只用于测试，不进入运行库。
+128 位核心为本地维护实现，不伪称未改动的上游发行版。</p>
+<p>门禁冻结输入集合与哈希，实际结果见仓库带日期记录。
+这些测试不是密码学认证、独立安全审计、吞吐性能测试、Linux xlang、
+大端、32 位/ARM 或同一对象并发认证；销毁对象擦除堆状态，
+不承诺擦除调用方密钥及所有临时副本。</p>
+</section></main>
+<script src="../main.js"></script>
+</body></html>
