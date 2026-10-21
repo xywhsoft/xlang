@@ -1,0 +1,86 @@
+import xxhash
+
+class XxhashProgress
+    int calls = 0
+    int last = 0
+end
+
+func main(...) as int
+    string root = dir.temp(path.temp(), "xlang_xxhash_progress_", "")
+    string source = root + "/中文源.txt"
+    string empty = root + "/empty.txt"
+    string text = ""
+    for i in range(12000)
+        text += "你好 "
+    end
+    file.writeText(source, text)
+    file.writeText(empty, "")
+    try
+        XxhashProgress state = XxhashProgress()
+        uint64 result = xxhash.hashFile64(source,
+            onProgress = func(int current, int total, int output) as bool
+                assert current >= state.last and total == string.byteLen(text) and output == 0
+                state.calls += 1
+                state.last = current
+                assert xxhash.hashFile64Hex(empty) == xxhash.hash64Hex("")
+                bool handled = false
+                try
+                    xxhash.hashFile64(root + "/missing.txt")
+                catch FileError e
+                    handled = true
+                end
+                assert handled
+                return true
+            end)
+        assert state.calls == 3 and state.last == string.byteLen(text)
+        assert result == xxhash.hash64(text)
+        assert xxhash.hashFile64Hex(source) == xxhash.hash64Hex(text)
+
+        for mode in range(3)
+            state = XxhashProgress()
+            bool caught = false
+            try
+                xxhash.hashFile64Hex(source, onProgress = func(int a, int b, int c) as bool
+                    state.calls += 1
+                    if mode == 2 then
+                        throw ValueError "xxhash callback marker"
+                    end
+                    return mode == 1 and state.calls < 3
+                end)
+            catch CancelledError e
+                assert mode < 2
+                caught = true
+            catch ValueError e
+                assert mode == 2 and e.message == "xxhash callback marker"
+                caught = true
+            end
+            assert caught
+            if mode == 1 then
+                assert state.calls == 3
+            end
+        end
+        bool caught = false
+        try
+            xxhash.hashFile64(empty, onProgress = func(int a, int b, int c) as bool
+                assert a == 0 and b == 0 and c == 0
+                return false
+            end)
+        catch CancelledError e
+            caught = true
+        end
+        assert caught
+        caught = false
+        try
+            xxhash.hashFile64(source, maxInput = 1)
+        catch RangeError e
+            caught = true
+        end
+        assert caught
+        assert xxhash.hashFile64(source) == result and file.readText(source) == text
+    finally
+        file.delete(source)
+        file.delete(empty)
+        dir.remove(root)
+    end
+    return 0
+end

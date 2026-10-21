@@ -1,0 +1,16 @@
+import xxhash
+
+func main(...) as int
+    println("empty64=" + xxhash.hash64Hex(""))
+    println("abc32=" + xxhash.hash32Hex("abc"))
+    println("seeded64=" + xxhash.hash64Hex("abc", 1))
+    // 分块方式不影响结果；读取摘要不会终止对象。
+    auto h = xxhash.hasher()
+    h.update("a")
+    h.update("bc")
+    println("stream64=" + h.digestHex())
+    println(f"bytes={h.inputBytes}")
+    h.reset()
+    println("reset64=" + h.digestHex())
+    return 0
+end

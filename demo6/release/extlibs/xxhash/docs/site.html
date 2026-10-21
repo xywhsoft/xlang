@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>xxhash - 扩展库 - xlang</title>
+  <meta name="description" content="XXH32/XXH64 非密码哈希：UTF-8、二进制、增量状态、文件、进度与取消，C 和 xlang 共用实现。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout c-hash" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / xxhash</p>
+    <div class="extlib-title-row"><h1>xxhash</h1><span class="extlib-cat-badge">非密码哈希</span></div>
+    <p class="extlib-lead">XXH32 与 XXH64，面向数据分布、去重与快速指纹。内嵌 C 后端，不需要额外 xxHash DLL；不用于口令、签名或防恶意篡改。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api">
+    <h2 id="api">函数</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>参数与返回</th></tr></thead><tbody>
+      <tr><td><code>version()</code></td><td>返回固定后端版本 0.8.3。</td></tr>
+      <tr><td><code>hash32(data, seed=0)</code></td><td>Buffer 或 string，种子 uint32，返回 uint32。</td></tr>
+      <tr><td><code>hash64(data, seed=0)</code></td><td>Buffer 或 string，种子 uint64，返回 uint64。</td></tr>
+      <tr><td><code>hash32Hex / hash64Hex</code></td><td>相同输入，分别返回 8/16 个小写 hex 字符。</td></tr>
+      <tr><td><code>hashFile64(path, seed, maxInput, onProgress)</code></td><td>返回 uint64；默认 seed=0、maxInput=268435456、onProgress=null。</td></tr>
+      <tr><td><code>hashFile64Hex(...)</code></td><td>相同参数，返回 16 个小写 hex 字符。</td></tr>
+      <tr><td><code>hasher(seed=0, maxInput=268435456)</code></td><td>返回 Xxhash64Hasher。</td></tr>
+    </tbody></table>
+    <p>文本按 UTF-8 字节计算，不先复制为 Buffer。二进制 Buffer 可含零字节；空输入合法。
+      整数摘要保留所有无符号位，负数种子和越界值不会隐式截断。</p>
+    <h2 id="stream">增量对象</h2>
+    <pre><code class="language-xlang">import xxhash
+
+auto h = xxhash.hasher()
+h.update("a")
+h.update("bc")
+assert h.digestHex() == "44bc2cf5ad770999"
+assert h.digest() == xxhash.hash64("abc")
+h.reset()</code></pre>
+    <p><code>update(Buffer|string)</code> 追加输入；<code>digest()</code> 和 <code>digestHex()</code>
+      是可重复读取的快照，之后仍可追加。<code>inputBytes</code> 是 uint64 字节计数，
+      <code>valid</code> 只检查句柄非空。超限或非法 update 使状态失败，reset 清除输入和失败状态、保留种子与预算。
+      不同对象可独立并发，同一可变对象须串行操作。</p>
+    <h2 id="progress">文件与回调</h2>
+    <pre><code class="language-xlang">auto sum = xxhash.hashFile64("data.bin",
+    onProgress = func(int current, int total, int output) as bool
+        return true
+    end)</code></pre>
+    <p>每块最多 64 KiB，EOF 再通知一次，空文件也通知。参数为已读、总长、输出字节；
+      未知总长为 0，输出恒为 0。末次计数可能重复。回调返回 false 抛 CancelledError，
+      用户异常保留类别和消息，允许嵌套另一次文件哈希。</p>
+    <p>maxInput 必须为正；非法参数为 ValueError、超限为 RangeError、分配失败为 MemoryError。
+      文件路径通过 XRT UTF-8 API 处理，内嵌 NUL 报 ValueError，打开失败沿用 FileError；不修改输入、不返回部分摘要。
+      预算不代表 CPU 限制或并发写入下的文件快照。</p>
+    <h2 id="c-api">C 与验证</h2>
+    <p><code>include/xrt_xxhash.h</code> 提供核心 xrtXxhash32/64、OptionsInit/LimitsInit/ErrorInit、
+      HasherCreate/Update/Digest/Reset/InputBytes/Error/Destroy 和 File64。
+      File64 借用 Reader，从当前游标读取，成功才写输出，保留 C 进度帧的 FINAL/TOTAL_KNOWN 标志。</p>
+    <p>流对象用 <code>xrtXxhashOptionsInit</code>，文件接口的显式限额用 <code>xrtXxhashLimitsInit</code>；通用资源初始化会设置与哈希无关的非零限额。
+      初始化后的零输入预算表示不设业务上限，仍检查溢出；配置的长度/版本必须匹配，除输入预算外的限额、标志和保留字段必须为零，错误配置在读取前拒绝。薄绑定的 maximum=0 表示默认预算。
+      原生 ABI 头为 <code>include/xxhash_native.h</code>，hex 借用 XRT 临时区，清理或回退后失效。</p>
+    <p>双语范例：<code>examples/extlibs/xxhash_basic.xl</code> 和 <code>extlibs/xxhash/examples/basic.c</code>，
+      对照同一固定输出；从 <code>demo6</code> 目录可直接运行
+      <code>release/xl.exe run release/extlibs/xxhash/examples/basic.c</code>，
+      无需额外源文件参数。完整教学见 <code>examples/extlibs/xxhash.xl</code>；其文件回调段使用独占系统临时目录并在异常路径清理，不写入固定的构建目录。</p>
+    <p>2026-09-27 的限定专项：37 项 Windows 检查、19 个生成原型、124 条独立向量，
+      以及 Unicode、Reader/回调、分配故障、四线程、JIT/AOT 与双语固定输出对照。
+      负数或超宽种子在语义阶段拒绝；TCC 的系统头包含顺序也有回归检查。
+      入口为 <code>tools/check_extlib_xxhash.ps1</code>、<code>tools/check_extlib_xxhash.sh</code> 与 <code>tools/check_extlib_linux_xl.sh xxhash</code>。
+      Windows 当前可加 <code>-SkipAot</code> 验证 C/JIT，Linux 包门禁另验证 C 单文件直跑；
+      当前完整 AOT 仍受共享运行时缺符号阻断，不能据此签收发布级。
+      Linux C sanitizer 和 XLang JIT 已分别通过，不等同于 Linux XLang AOT 或全平台认证。当前不公开 XXH3/128 语言 API、
+      XXH32 流式对象，不宣称共享可变对象并发或性能已认证。</p>
+    <p>后端固定为 v0.8.3 commit <code>e626a72bc2321cd320e953a0ccf1584cad60f363</code>，
+      BSD-2-Clause；来源、适配层和独立向量见包内 VENDOR.md。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

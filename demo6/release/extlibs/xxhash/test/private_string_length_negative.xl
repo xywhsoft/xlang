@@ -1,0 +1,5 @@
+import xxhash
+
+// 仅编译：导入方不能提供与字符串不符的字节长度。
+auto state = xxhash.hasher()
+state.updateStrNative("x", c_size(100))

@@ -1,0 +1,750 @@
+{
+  "source": "https://raw.githubusercontent.com/Cyan4973/xxHash/e626a72bc2321cd320e953a0ccf1584cad60f363/tests/sanity_test_vectors.h",
+  "input": "byte[i] = high8(state); state *= 11400714785074694797 modulo 2^64; initial state = 2654435761",
+  "vectors": [
+    {
+      "bits": 32,
+      "length": 0,
+      "seed": "0x00000000",
+      "hash": "0x02CC5D05"
+    },
+    {
+      "bits": 32,
+      "length": 0,
+      "seed": "0x9E3779B1",
+      "hash": "0x36B78AE7"
+    },
+    {
+      "bits": 32,
+      "length": 1,
+      "seed": "0x00000000",
+      "hash": "0xCF65B03E"
+    },
+    {
+      "bits": 32,
+      "length": 1,
+      "seed": "0x9E3779B1",
+      "hash": "0xB4545AA4"
+    },
+    {
+      "bits": 32,
+      "length": 2,
+      "seed": "0x00000000",
+      "hash": "0x1151BEE4"
+    },
+    {
+      "bits": 32,
+      "length": 2,
+      "seed": "0x9E3779B1",
+      "hash": "0x1EDB879A"
+    },
+    {
+      "bits": 32,
+      "length": 3,
+      "seed": "0x00000000",
+      "hash": "0xC23884F5"
+    },
+    {
+      "bits": 32,
+      "length": 3,
+      "seed": "0x9E3779B1",
+      "hash": "0x1A269947"
+    },
+    {
+      "bits": 32,
+      "length": 4,
+      "seed": "0x00000000",
+      "hash": "0xA9DE7CE9"
+    },
+    {
+      "bits": 32,
+      "length": 4,
+      "seed": "0x9E3779B1",
+      "hash": "0x2BAAFE83"
+    },
+    {
+      "bits": 32,
+      "length": 7,
+      "seed": "0x00000000",
+      "hash": "0x5E1056CD"
+    },
+    {
+      "bits": 32,
+      "length": 7,
+      "seed": "0x9E3779B1",
+      "hash": "0x3ED9D3FC"
+    },
+    {
+      "bits": 32,
+      "length": 8,
+      "seed": "0x00000000",
+      "hash": "0xA3F6F44B"
+    },
+    {
+      "bits": 32,
+      "length": 8,
+      "seed": "0x9E3779B1",
+      "hash": "0xC2A8E239"
+    },
+    {
+      "bits": 32,
+      "length": 15,
+      "seed": "0x00000000",
+      "hash": "0x6B859E14"
+    },
+    {
+      "bits": 32,
+      "length": 15,
+      "seed": "0x9E3779B1",
+      "hash": "0xAD53090D"
+    },
+    {
+      "bits": 32,
+      "length": 16,
+      "seed": "0x00000000",
+      "hash": "0x93BA3759"
+    },
+    {
+      "bits": 32,
+      "length": 16,
+      "seed": "0x9E3779B1",
+      "hash": "0xA94FC1E1"
+    },
+    {
+      "bits": 32,
+      "length": 17,
+      "seed": "0x00000000",
+      "hash": "0x89FDC23E"
+    },
+    {
+      "bits": 32,
+      "length": 17,
+      "seed": "0x9E3779B1",
+      "hash": "0xC9910739"
+    },
+    {
+      "bits": 32,
+      "length": 31,
+      "seed": "0x00000000",
+      "hash": "0x5F40E562"
+    },
+    {
+      "bits": 32,
+      "length": 31,
+      "seed": "0x9E3779B1",
+      "hash": "0x5C0C3350"
+    },
+    {
+      "bits": 32,
+      "length": 32,
+      "seed": "0x00000000",
+      "hash": "0xD89829EC"
+    },
+    {
+      "bits": 32,
+      "length": 32,
+      "seed": "0x9E3779B1",
+      "hash": "0xA5C44467"
+    },
+    {
+      "bits": 32,
+      "length": 33,
+      "seed": "0x00000000",
+      "hash": "0x31A427E5"
+    },
+    {
+      "bits": 32,
+      "length": 33,
+      "seed": "0x9E3779B1",
+      "hash": "0x0DE5B1F9"
+    },
+    {
+      "bits": 32,
+      "length": 63,
+      "seed": "0x00000000",
+      "hash": "0xF1D48FDB"
+    },
+    {
+      "bits": 32,
+      "length": 63,
+      "seed": "0x9E3779B1",
+      "hash": "0x956B3D77"
+    },
+    {
+      "bits": 32,
+      "length": 64,
+      "seed": "0x00000000",
+      "hash": "0x02E95DBB"
+    },
+    {
+      "bits": 32,
+      "length": 64,
+      "seed": "0x9E3779B1",
+      "hash": "0xCF82F830"
+    },
+    {
+      "bits": 32,
+      "length": 65,
+      "seed": "0x00000000",
+      "hash": "0x16992B3D"
+    },
+    {
+      "bits": 32,
+      "length": 65,
+      "seed": "0x9E3779B1",
+      "hash": "0x428EEC5F"
+    },
+    {
+      "bits": 32,
+      "length": 127,
+      "seed": "0x00000000",
+      "hash": "0x1E49F7FC"
+    },
+    {
+      "bits": 32,
+      "length": 127,
+      "seed": "0x9E3779B1",
+      "hash": "0xC926CE8F"
+    },
+    {
+      "bits": 32,
+      "length": 128,
+      "seed": "0x00000000",
+      "hash": "0x0FD07B71"
+    },
+    {
+      "bits": 32,
+      "length": 128,
+      "seed": "0x9E3779B1",
+      "hash": "0x3BD1140E"
+    },
+    {
+      "bits": 32,
+      "length": 129,
+      "seed": "0x00000000",
+      "hash": "0x68C9EC37"
+    },
+    {
+      "bits": 32,
+      "length": 129,
+      "seed": "0x9E3779B1",
+      "hash": "0x2A9476A5"
+    },
+    {
+      "bits": 32,
+      "length": 255,
+      "seed": "0x00000000",
+      "hash": "0xE048E445"
+    },
+    {
+      "bits": 32,
+      "length": 255,
+      "seed": "0x9E3779B1",
+      "hash": "0x9A92B749"
+    },
+    {
+      "bits": 32,
+      "length": 256,
+      "seed": "0x00000000",
+      "hash": "0x520CB910"
+    },
+    {
+      "bits": 32,
+      "length": 256,
+      "seed": "0x9E3779B1",
+      "hash": "0x734E8A8D"
+    },
+    {
+      "bits": 32,
+      "length": 257,
+      "seed": "0x00000000",
+      "hash": "0x9566588E"
+    },
+    {
+      "bits": 32,
+      "length": 257,
+      "seed": "0x9E3779B1",
+      "hash": "0x4A06AC3F"
+    },
+    {
+      "bits": 32,
+      "length": 511,
+      "seed": "0x00000000",
+      "hash": "0xC79D6F2E"
+    },
+    {
+      "bits": 32,
+      "length": 511,
+      "seed": "0x9E3779B1",
+      "hash": "0x4486B549"
+    },
+    {
+      "bits": 32,
+      "length": 512,
+      "seed": "0x00000000",
+      "hash": "0xD485C30A"
+    },
+    {
+      "bits": 32,
+      "length": 512,
+      "seed": "0x9E3779B1",
+      "hash": "0x6CCF94A9"
+    },
+    {
+      "bits": 32,
+      "length": 513,
+      "seed": "0x00000000",
+      "hash": "0x6C63C50E"
+    },
+    {
+      "bits": 32,
+      "length": 513,
+      "seed": "0x9E3779B1",
+      "hash": "0xAB0CEFD4"
+    },
+    {
+      "bits": 32,
+      "length": 1023,
+      "seed": "0x00000000",
+      "hash": "0x57AA590F"
+    },
+    {
+      "bits": 32,
+      "length": 1023,
+      "seed": "0x9E3779B1",
+      "hash": "0x40CF6B0A"
+    },
+    {
+      "bits": 32,
+      "length": 1024,
+      "seed": "0x00000000",
+      "hash": "0xC08E0A35"
+    },
+    {
+      "bits": 32,
+      "length": 1024,
+      "seed": "0x9E3779B1",
+      "hash": "0x1D62EA25"
+    },
+    {
+      "bits": 32,
+      "length": 2047,
+      "seed": "0x00000000",
+      "hash": "0x05CF4C53"
+    },
+    {
+      "bits": 32,
+      "length": 2047,
+      "seed": "0x9E3779B1",
+      "hash": "0xDAC740B5"
+    },
+    {
+      "bits": 32,
+      "length": 2048,
+      "seed": "0x00000000",
+      "hash": "0x7C535464"
+    },
+    {
+      "bits": 32,
+      "length": 2048,
+      "seed": "0x9E3779B1",
+      "hash": "0x89688D5E"
+    },
+    {
+      "bits": 32,
+      "length": 4095,
+      "seed": "0x00000000",
+      "hash": "0x26E3D566"
+    },
+    {
+      "bits": 32,
+      "length": 4095,
+      "seed": "0x9E3779B1",
+      "hash": "0xEC26C02C"
+    },
+    {
+      "bits": 32,
+      "length": 4096,
+      "seed": "0x00000000",
+      "hash": "0x20FC444F"
+    },
+    {
+      "bits": 32,
+      "length": 4096,
+      "seed": "0x9E3779B1",
+      "hash": "0x102AD417"
+    },
+    {
+      "bits": 64,
+      "length": 0,
+      "seed": "0x0000000000000000",
+      "hash": "0xEF46DB3751D8E999"
+    },
+    {
+      "bits": 64,
+      "length": 0,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xAC75FDA2929B17EF"
+    },
+    {
+      "bits": 64,
+      "length": 1,
+      "seed": "0x0000000000000000",
+      "hash": "0xE934A84ADB052768"
+    },
+    {
+      "bits": 64,
+      "length": 1,
+      "seed": "0x000000009E3779B1",
+      "hash": "0x5014607643A9B4C3"
+    },
+    {
+      "bits": 64,
+      "length": 2,
+      "seed": "0x0000000000000000",
+      "hash": "0x5D48CD60A77E23FF"
+    },
+    {
+      "bits": 64,
+      "length": 2,
+      "seed": "0x000000009E3779B1",
+      "hash": "0x9E93152232D54A39"
+    },
+    {
+      "bits": 64,
+      "length": 3,
+      "seed": "0x0000000000000000",
+      "hash": "0xFF7E1959CB50794A"
+    },
+    {
+      "bits": 64,
+      "length": 3,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xAA8584E83660F7D1"
+    },
+    {
+      "bits": 64,
+      "length": 4,
+      "seed": "0x0000000000000000",
+      "hash": "0x9136A0DCA57457EE"
+    },
+    {
+      "bits": 64,
+      "length": 4,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xCAAB286BD8E9FDB5"
+    },
+    {
+      "bits": 64,
+      "length": 7,
+      "seed": "0x0000000000000000",
+      "hash": "0x6C83909A9F01ED25"
+    },
+    {
+      "bits": 64,
+      "length": 7,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xF98D03B1AD6F9293"
+    },
+    {
+      "bits": 64,
+      "length": 8,
+      "seed": "0x0000000000000000",
+      "hash": "0xCDBCF538E71D1348"
+    },
+    {
+      "bits": 64,
+      "length": 8,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xFE0C047A5353CDAC"
+    },
+    {
+      "bits": 64,
+      "length": 15,
+      "seed": "0x0000000000000000",
+      "hash": "0x180719316D622D84"
+    },
+    {
+      "bits": 64,
+      "length": 15,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xD61105C20E91F99F"
+    },
+    {
+      "bits": 64,
+      "length": 16,
+      "seed": "0x0000000000000000",
+      "hash": "0x98C90B57FDFCB55C"
+    },
+    {
+      "bits": 64,
+      "length": 16,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xC900AD2D536B607E"
+    },
+    {
+      "bits": 64,
+      "length": 17,
+      "seed": "0x0000000000000000",
+      "hash": "0x0D39A2D051A30C2C"
+    },
+    {
+      "bits": 64,
+      "length": 17,
+      "seed": "0x000000009E3779B1",
+      "hash": "0x495CD68A647C7A22"
+    },
+    {
+      "bits": 64,
+      "length": 31,
+      "seed": "0x0000000000000000",
+      "hash": "0x299B39A290E6D783"
+    },
+    {
+      "bits": 64,
+      "length": 31,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xDA673D5FEB5C1D79"
+    },
+    {
+      "bits": 64,
+      "length": 32,
+      "seed": "0x0000000000000000",
+      "hash": "0x18B216492BB44B70"
+    },
+    {
+      "bits": 64,
+      "length": 32,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xB3F33BDF93ADE409"
+    },
+    {
+      "bits": 64,
+      "length": 33,
+      "seed": "0x0000000000000000",
+      "hash": "0x55C8DC3E578F5B59"
+    },
+    {
+      "bits": 64,
+      "length": 33,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xE92C292F64BC3071"
+    },
+    {
+      "bits": 64,
+      "length": 63,
+      "seed": "0x0000000000000000",
+      "hash": "0xA9EFBE0FA0F3F4E7"
+    },
+    {
+      "bits": 64,
+      "length": 63,
+      "seed": "0x000000009E3779B1",
+      "hash": "0x6C911FADB05B6FC2"
+    },
+    {
+      "bits": 64,
+      "length": 64,
+      "seed": "0x0000000000000000",
+      "hash": "0xEF558F8ACAC2B5CD"
+    },
+    {
+      "bits": 64,
+      "length": 64,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xB5EEBA99264CC44F"
+    },
+    {
+      "bits": 64,
+      "length": 65,
+      "seed": "0x0000000000000000",
+      "hash": "0xDE0F20DC2631AF7A"
+    },
+    {
+      "bits": 64,
+      "length": 65,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xD3F6FF3941E310CA"
+    },
+    {
+      "bits": 64,
+      "length": 127,
+      "seed": "0x0000000000000000",
+      "hash": "0x3C7A21119AA662B0"
+    },
+    {
+      "bits": 64,
+      "length": 127,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xB0D6DC189C06CEED"
+    },
+    {
+      "bits": 64,
+      "length": 128,
+      "seed": "0x0000000000000000",
+      "hash": "0x90CA021457D96DC5"
+    },
+    {
+      "bits": 64,
+      "length": 128,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xED9340A202BCD1CF"
+    },
+    {
+      "bits": 64,
+      "length": 129,
+      "seed": "0x0000000000000000",
+      "hash": "0x41C280132D697ABA"
+    },
+    {
+      "bits": 64,
+      "length": 129,
+      "seed": "0x000000009E3779B1",
+      "hash": "0x1668B87489935FF5"
+    },
+    {
+      "bits": 64,
+      "length": 255,
+      "seed": "0x0000000000000000",
+      "hash": "0xA80F35BB0DC8E3A7"
+    },
+    {
+      "bits": 64,
+      "length": 255,
+      "seed": "0x000000009E3779B1",
+      "hash": "0x8E7A59762640754F"
+    },
+    {
+      "bits": 64,
+      "length": 256,
+      "seed": "0x0000000000000000",
+      "hash": "0x5E3F5BF94D574981"
+    },
+    {
+      "bits": 64,
+      "length": 256,
+      "seed": "0x000000009E3779B1",
+      "hash": "0x34733CBD9CC1B0D5"
+    },
+    {
+      "bits": 64,
+      "length": 257,
+      "seed": "0x0000000000000000",
+      "hash": "0xD36CF327DCF12221"
+    },
+    {
+      "bits": 64,
+      "length": 257,
+      "seed": "0x000000009E3779B1",
+      "hash": "0x0E59955420F8807B"
+    },
+    {
+      "bits": 64,
+      "length": 511,
+      "seed": "0x0000000000000000",
+      "hash": "0xC049A218675DC378"
+    },
+    {
+      "bits": 64,
+      "length": 511,
+      "seed": "0x000000009E3779B1",
+      "hash": "0x127FF202F0810F95"
+    },
+    {
+      "bits": 64,
+      "length": 512,
+      "seed": "0x0000000000000000",
+      "hash": "0x4358D2FDD62B58A7"
+    },
+    {
+      "bits": 64,
+      "length": 512,
+      "seed": "0x000000009E3779B1",
+      "hash": "0x0DED69C4804C47BA"
+    },
+    {
+      "bits": 64,
+      "length": 513,
+      "seed": "0x0000000000000000",
+      "hash": "0xC2240D6F6A431697"
+    },
+    {
+      "bits": 64,
+      "length": 513,
+      "seed": "0x000000009E3779B1",
+      "hash": "0x88BFA9216A4D96C9"
+    },
+    {
+      "bits": 64,
+      "length": 1023,
+      "seed": "0x0000000000000000",
+      "hash": "0xAAC72718B7620924"
+    },
+    {
+      "bits": 64,
+      "length": 1023,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xE0935AF8C59B7E98"
+    },
+    {
+      "bits": 64,
+      "length": 1024,
+      "seed": "0x0000000000000000",
+      "hash": "0x4775BF7CACE4D177"
+    },
+    {
+      "bits": 64,
+      "length": 1024,
+      "seed": "0x000000009E3779B1",
+      "hash": "0x238CF9296898B465"
+    },
+    {
+      "bits": 64,
+      "length": 2047,
+      "seed": "0x0000000000000000",
+      "hash": "0xF3A36F0A22C9E50A"
+    },
+    {
+      "bits": 64,
+      "length": 2047,
+      "seed": "0x000000009E3779B1",
+      "hash": "0x2B5F2FBEA26C36DD"
+    },
+    {
+      "bits": 64,
+      "length": 2048,
+      "seed": "0x0000000000000000",
+      "hash": "0x5940F2752BC04387"
+    },
+    {
+      "bits": 64,
+      "length": 2048,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xAA26F33C2898013B"
+    },
+    {
+      "bits": 64,
+      "length": 4095,
+      "seed": "0x0000000000000000",
+      "hash": "0xF7CFAAA03BE2ABF0"
+    },
+    {
+      "bits": 64,
+      "length": 4095,
+      "seed": "0x000000009E3779B1",
+      "hash": "0x6A128F7F02591E57"
+    },
+    {
+      "bits": 64,
+      "length": 4096,
+      "seed": "0x0000000000000000",
+      "hash": "0xAB77F4AF85F4E70B"
+    },
+    {
+      "bits": 64,
+      "length": 4096,
+      "seed": "0x000000009E3779B1",
+      "hash": "0xCB8B60CBA513125D"
+    }
+  ]
+}

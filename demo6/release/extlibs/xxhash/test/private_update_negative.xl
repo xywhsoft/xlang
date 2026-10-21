@@ -1,0 +1,5 @@
+import xxhash
+
+// 仅编译：导入方不能自造原生输入指针和长度。
+auto state = xxhash.hasher()
+state.updateNative(null, c_size(1))

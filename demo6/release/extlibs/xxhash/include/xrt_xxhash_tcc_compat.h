@@ -7,15 +7,14 @@
  *
  * 这里提供一个可移植的纯 C 实现（Grade-school 乘法），在包含
  * xxhash.h 之前定义 `_umul128`，使 xxHash 的该分支可以正常链接。
- * 仅在缺失时定义，避免与真实 intrinsic 冲突。
+ * 只在 TCC 下启用，不改动 GCC/MSVC 的真实 intrinsic。
  */
 #ifndef XRT_XXHASH_TCC_COMPAT_H
 #define XRT_XXHASH_TCC_COMPAT_H
 
 typedef unsigned long long xrt_xxhash_u64;
 
-#ifndef _umul128
-static inline xrt_xxhash_u64 _umul128(xrt_xxhash_u64 lhs, xrt_xxhash_u64 rhs,
+static inline xrt_xxhash_u64 xrt_xxhash_umul128(xrt_xxhash_u64 lhs, xrt_xxhash_u64 rhs,
     xrt_xxhash_u64* high)
 {
     xrt_xxhash_u64 const lo_lo = (lhs & 0xFFFFFFFFULL) * (rhs & 0xFFFFFFFFULL);
@@ -24,12 +23,16 @@ static inline xrt_xxhash_u64 _umul128(xrt_xxhash_u64 lhs, xrt_xxhash_u64 rhs,
     xrt_xxhash_u64 const hi_hi = (lhs >> 32) * (rhs >> 32);
     xrt_xxhash_u64 const cross = (lo_lo >> 32) + (hi_lo & 0xFFFFFFFFULL) + lo_hi;
     xrt_xxhash_u64 const upper = (hi_lo >> 32) + (cross >> 32) + hi_hi;
-    xrt_xxhash_u64 const low = lo_lo + (cross << 32);
+    xrt_xxhash_u64 const low = (lo_lo & 0xFFFFFFFFULL) | (cross << 32);
     if ( high != 0 ) {
         *high = upper;
     }
     return low;
 }
+
+/* TCC 的 stdlib.h 才可能定义 _M_X64，不能依赖它在本头之前已出现。 */
+#if defined(__TINYC__)
+#define _umul128 xrt_xxhash_umul128
 #endif
 
 #endif /* XRT_XXHASH_TCC_COMPAT_H */

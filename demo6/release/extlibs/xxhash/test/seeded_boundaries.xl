@@ -1,0 +1,21 @@
+import xxhash
+
+func main(...) as int
+    Buffer empty = Buffer()
+    uint32 seed32 = uint32(0x9E3779B1)
+    assert xxhash.hash32("", seed32) == uint32(0x36B78AE7)
+    assert xxhash.hash32(empty, seed32) == uint32(0x36B78AE7)
+    assert xxhash.hash32Hex(empty, seed32) == "36b78ae7"
+
+    uint64 seed64 = uint64(9223372036854775807) + uint64(1)
+    assert xxhash.hash64(empty, seed64) == xxhash.hash64("", seed64)
+    auto state = xxhash.hasher(seed64)
+    state.update(empty)
+    state.update("")
+    assert state.inputBytes == uint64(0)
+    assert state.digest() == xxhash.hash64("", seed64)
+    state.update("abc")
+    assert state.inputBytes == uint64(3)
+    assert state.digestHex() == xxhash.hash64Hex("abc", seed64)
+    return 0
+end

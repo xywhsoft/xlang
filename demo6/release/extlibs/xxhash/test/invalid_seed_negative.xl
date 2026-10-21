@@ -1,0 +1,4 @@
+import xxhash
+
+// 负数不能隐式转换成无符号种子。
+println(xxhash.hash64Hex("abc", -1))

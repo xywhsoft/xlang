@@ -1,0 +1,33 @@
+{
+  "upstream": "https://github.com/Cyan4973/xxHash",
+  "tag": "v0.8.3",
+  "commit": "e626a72bc2321cd320e953a0ccf1584cad60f363",
+  "headerUnmodified": true,
+  "localAdapter": "third_party/xxhash.c forces scalar XXH3 and includes the TCC multiply adapter; XXH32/XXH64 are unchanged upstream algorithms",
+  "files": [
+    {
+      "path": "third_party/xxhash.h",
+      "sha256": "17973C0DC49D9854CA26CAA191F0E12F7A424B68858D9A78DE3860D959D85E4B"
+    },
+    {
+      "path": "third_party/xxhash.c",
+      "sha256": "F2FC3A84C1DDD862AA43D5B9271A1FE0C46E43D41827255BAE4FEA5F5350C4C0"
+    },
+    {
+      "path": "include/xrt_xxhash_tcc_compat.h",
+      "sha256": "23099213B6716A4E97AB7409DFB8A78ABEA4684AC7F2B4225F0F1873FDCF0030"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "0D52A034B04AF2721F553283FDB0BA90F69C3C04006D288ADEA634CD5A0E3A8E"
+    },
+    {
+      "path": "test/vectors.json",
+      "sha256": "D7C78A9A5B31404484133CE279F46CAC16D7049DC6A37433E931F48256D4252F"
+    },
+    {
+      "path": "test/vectors.h",
+      "sha256": "02AC9DCDCA95644E32FE09933C54710942A700F9A91F89920A50374F92A86087"
+    }
+  ]
+}

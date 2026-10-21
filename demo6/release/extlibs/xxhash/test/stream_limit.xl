@@ -1,0 +1,28 @@
+import xxhash
+
+func main(...) as int
+    auto state = xxhash.hasher(maxInput = 3)
+    state.update("abc")
+
+    bool rejected = false
+    try
+        state.update("d")
+    catch RangeError e
+        rejected = true
+    end
+    assert rejected
+    assert state.inputBytes == uint64(3)
+
+    rejected = false
+    try
+        state.digest()
+    catch RangeError e
+        rejected = true
+    end
+    assert rejected
+
+    assert state.reset()
+    state.update("abc")
+    assert state.digest() == xxhash.hash64("abc")
+    return 0
+end

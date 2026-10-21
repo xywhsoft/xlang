@@ -1,263 +1,241 @@
 #include "include/xrt_xxhash.h"
-
 #define XXH_STATIC_LINKING_ONLY
-#define XXH_VECTOR 0 /* XXH_SCALAR: TCC 无 SSE/AVX 内部函数，强制标量实现 */
-#include "include/xrt_xxhash_tcc_compat.h" /* TCC 缺失 _umul128 的可移植实现 */
 #include "third_party/xxhash.h"
-
-#include <stdarg.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
-
-
 #define XRT_XXHASH_CHUNK 65536u
 
+/* 状态直接内嵌，只经 XRT 分配一次，不另走上游 CRT 分配器。 */
 struct xrtxxhashhasher {
-	XXH64_state_t* State;
-	xrtxxhashoptions Options;
-	xrtxxhasherror Error;
-	uint64 InputBytes;
-	bool Failed;
+    XXH64_state_t State;
+    xrtxxhashoptions Options;
+    xrtxxhasherror Error;
+    uint64 InputBytes;
+    bool Failed;
 };
 
-
-
-static void __xrtXxhashSetError(xrtxxhasherror* pError, int iCode, int iBackend,
-	uint64 iInput, uint64 iOutput, const char* sFormat, ...)
+static bool xxhash_publish(const xrtxxhasherror* error)
 {
-	va_list pArgs;
-	if ( pError == NULL ) { return; }
-	pError->iCode = iCode;
-	pError->iBackendCode = iBackend;
-	pError->iInputOffset = iInput;
-	pError->iOutputOffset = iOutput;
-	va_start(pArgs, sFormat);
-	vsnprintf(pError->sMessage, sizeof(pError->sMessage), sFormat, pArgs);
-	va_end(pArgs);
-	pError->sMessage[sizeof(pError->sMessage) - 1] = '\0';
+    xerrkind kind = XERR_ARGUMENT;
+    switch (error->iCode) {
+    case XRT_XXHASH_ERROR_MEMORY: kind = XERR_MEMORY; break;
+    case XRT_XXHASH_ERROR_IO: kind = XERR_IO; break;
+    case XRT_XXHASH_ERROR_LIMIT: kind = XERR_RANGE; break;
+    case XRT_XXHASH_ERROR_STATE: kind = XERR_STATE; break;
+    case XRT_XXHASH_ERROR_CANCELLED: kind = XERR_CANCELLED; break;
+    default: break;
+    }
+    xrtSetErrorInfo(kind, "xlang.extlib.xxhash", error->iCode, error->sMessage);
+    return false;
 }
 
-/* 检查输入计数累加是否溢出或越过非零硬上限。 */
-static bool __xrtXxhashAddOverLimit(uint64 iCurrent, size_t iAdded, uint64 iLimit)
+static bool xxhash_fail(xrtxxhasherror* error, int code, uint64 offset, const char* message)
 {
-	uint64 iIncrement = (uint64)iAdded;
-
-	if ( iIncrement > (UINT64_MAX - iCurrent) ) { return true; }
-	return (iLimit != 0u) && ((iCurrent + iIncrement) > iLimit);
+    xrtxxhasherror local;
+    if (error == NULL) error = &local;
+    memset(error, 0, sizeof(*error));
+    error->iCode = code;
+    error->iInputOffset = offset;
+    snprintf(error->sMessage, sizeof(error->sMessage), "%s", message);
+    return xxhash_publish(error);
 }
 
-
-
-XRT_API void xrtXxhashErrorInit(xrtxxhasherror* pError)
+static bool xxhash_limits(const xrtresourcelimits* limits)
 {
-	if ( pError == NULL ) { return; }
-	memset(pError, 0, sizeof(*pError));
-	pError->iCode = XRT_XXHASH_OK;
+    return limits->iSize == sizeof(*limits) &&
+        limits->iVersion == XRT_RESOURCE_LIMITS_VERSION &&
+        limits->iMaxOutputBytes == 0 && limits->iMaxItemBytes == 0 &&
+        limits->iMaxEntries == 0 && limits->iMaxNodes == 0 &&
+        limits->iMaxDepth == 0 && limits->iMaxCompressionRatio == 0 &&
+        limits->iFlags == 0 && limits->iReserved == 0;
 }
 
-XRT_API void xrtXxhashOptionsInit(xrtxxhashoptions* pOptions)
+XRT_API void xrtXxhashLimitsInit(xrtresourcelimits* limits)
 {
-	if ( pOptions == NULL ) { return; }
-	memset(pOptions, 0, sizeof(*pOptions));
-	pOptions->iSize = sizeof(*pOptions);
-	pOptions->iVersion = XRT_XXHASH_OPTIONS_VERSION;
-	pOptions->iSeed = 0u;
-	xrtResourceLimitsInit(&pOptions->tLimits);
+    if (limits == NULL) return;
+    xrtResourceLimitsInit(limits);
+    limits->iMaxOutputBytes = 0;
+    limits->iMaxItemBytes = 0;
+    limits->iMaxEntries = 0;
+    limits->iMaxNodes = 0;
+    limits->iMaxDepth = 0;
+    limits->iMaxCompressionRatio = 0;
 }
 
-
-
-// ------------------------------------ 流式哈希器 ------------------------------------
-
-XRT_API xrtxxhashhasher* xrtXxhashHasherCreate(const xrtxxhashoptions* pOptions)
+static bool xxhash_input(uint64 current, uint64 add, uint64 maximum, xrtxxhasherror* error)
 {
-	xrtxxhashhasher* pHasher;
-	pHasher = (xrtxxhashhasher*)xrtMalloc(sizeof(xrtxxhashhasher));
-	if ( pHasher == NULL ) { return NULL; }
-	memset(pHasher, 0, sizeof(*pHasher));
-	xrtXxhashErrorInit(&pHasher->Error);
-	if ( pOptions != NULL ) {
-		pHasher->Options = *pOptions;
-	} else {
-		xrtXxhashOptionsInit(&pHasher->Options);
-	}
-	pHasher->State = XXH64_createState();
-	if ( pHasher->State == NULL ) {
-		__xrtXxhashSetError(&pHasher->Error, XRT_XXHASH_ERROR_MEMORY, 0, 0, 0,
-			"cannot allocate xxhash state");
-		pHasher->Failed = true;
-		return pHasher;
-	}
-	if ( XXH64_reset(pHasher->State, (XXH64_hash_t)pHasher->Options.iSeed) != XXH_OK ) {
-		__xrtXxhashSetError(&pHasher->Error, XRT_XXHASH_ERROR_STATE, 0, 0, 0,
-			"cannot reset xxhash state");
-		pHasher->Failed = true;
-		return pHasher;
-	}
-	return pHasher;
+    if (add > UINT64_MAX - current ||
+        (maximum != 0 && (current > maximum || add > maximum - current)))
+        return xxhash_fail(error, XRT_XXHASH_ERROR_LIMIT, current, "xxhash input exceeds maxInput limit");
+    return true;
 }
 
-XRT_API bool xrtXxhashHasherUpdate(xrtxxhashhasher* pHasher, const void* pData, size_t iSize)
+XRT_API void xrtXxhashErrorInit(xrtxxhasherror* error)
+{ if (error != NULL) memset(error, 0, sizeof(*error)); }
+
+XRT_API void xrtXxhashOptionsInit(xrtxxhashoptions* options)
 {
-	if ( pHasher == NULL || pHasher->Failed ) { return false; }
-	if ( iSize != 0u && pData == NULL ) {
-		__xrtXxhashSetError(&pHasher->Error, XRT_XXHASH_ERROR_ARGUMENT, 0,
-			pHasher->InputBytes, 0, "invalid xxhash input");
-		pHasher->Failed = true;
-		return false;
-	}
-	if ( __xrtXxhashAddOverLimit(pHasher->InputBytes, iSize,
-		pHasher->Options.tLimits.iMaxInputBytes) ) {
-		__xrtXxhashSetError(&pHasher->Error, XRT_XXHASH_ERROR_LIMIT, 0,
-			pHasher->InputBytes, 0, "xxhash input exceeds maxInput limit");
-		pHasher->Failed = true;
-		return false;
-	}
-	if ( iSize != 0u &&
-		XXH64_update(pHasher->State, pData, iSize) != XXH_OK ) {
-		__xrtXxhashSetError(&pHasher->Error, XRT_XXHASH_ERROR_STATE, 0,
-			pHasher->InputBytes, 0, "xxhash update failed");
-		pHasher->Failed = true;
-		return false;
-	}
-	pHasher->InputBytes += (uint64)iSize;
-	return true;
+    if (options == NULL) return;
+    memset(options, 0, sizeof(*options));
+    options->iSize = sizeof(*options);
+    options->iVersion = XRT_XXHASH_OPTIONS_VERSION;
+    xrtXxhashLimitsInit(&options->tLimits);
 }
 
-XRT_API bool xrtXxhashHasherDigest(const xrtxxhashhasher* pHasher, uint64* pHash)
+// -------------------------------- 流式状态 --------------------------------
+
+XRT_API xrtxxhashhasher* xrtXxhashHasherCreate(const xrtxxhashoptions* options)
 {
-	if ( pHasher == NULL || pHasher->Failed || pHash == NULL ) { return false; }
-	*pHash = (uint64)XXH64_digest(pHasher->State);
-	return true;
+    xrtxxhashhasher* h;
+    xrtClearError();
+    if (options != NULL && (options->iSize != sizeof(*options) ||
+        options->iVersion != XRT_XXHASH_OPTIONS_VERSION || !xxhash_limits(&options->tLimits))) {
+        xxhash_fail(NULL, XRT_XXHASH_ERROR_ARGUMENT, 0, "invalid xxhash options");
+        return NULL;
+    }
+    h = xrtMalloc(sizeof(*h));
+    if (h == NULL) return NULL;
+    memset(h, 0, sizeof(*h));
+    if (options != NULL) h->Options = *options;
+    else xrtXxhashOptionsInit(&h->Options);
+    XXH64_reset(&h->State, h->Options.iSeed);
+    return h;
 }
 
-XRT_API bool xrtXxhashHasherReset(xrtxxhashhasher* pHasher)
+static bool xxhash_ready(const xrtxxhashhasher* h)
 {
-	if ( pHasher == NULL || pHasher->Failed ) { return false; }
-	if ( XXH64_reset(pHasher->State, (XXH64_hash_t)pHasher->Options.iSeed) != XXH_OK ) {
-		__xrtXxhashSetError(&pHasher->Error, XRT_XXHASH_ERROR_STATE, 0,
-			pHasher->InputBytes, 0, "cannot reset xxhash state");
-		pHasher->Failed = true;
-		return false;
-	}
-	pHasher->InputBytes = 0u;
-	return true;
+    if (h == NULL) return xxhash_fail(NULL, XRT_XXHASH_ERROR_STATE, 0, "invalid xxhash handle");
+    return !h->Failed || xxhash_publish(&h->Error);
 }
 
-XRT_API uint64 xrtXxhashHasherInputBytes(const xrtxxhashhasher* pHasher)
+XRT_API bool xrtXxhashHasherUpdate(xrtxxhashhasher* h, const void* data, size_t size)
 {
-	return pHasher != NULL ? pHasher->InputBytes : 0u;
+    xrtClearError();
+    if (!xxhash_ready(h)) return false;
+    if (data == NULL && size != 0) {
+        h->Failed = true;
+        return xxhash_fail(&h->Error, XRT_XXHASH_ERROR_ARGUMENT, h->InputBytes, "invalid xxhash input");
+    }
+    if (!xxhash_input(h->InputBytes, size, h->Options.tLimits.iMaxInputBytes, &h->Error)) {
+        h->Failed = true;
+        return false;
+    }
+    if (size != 0) XXH64_update(&h->State, data, size);
+    h->InputBytes += size;
+    return true;
 }
 
-XRT_API const xrtxxhasherror* xrtXxhashHasherError(const xrtxxhashhasher* pHasher)
+XRT_API bool xrtXxhashHasherDigest(const xrtxxhashhasher* h, uint64* hash)
 {
-	return pHasher != NULL ? &pHasher->Error : NULL;
+    xrtClearError();
+    if (!xxhash_ready(h)) return false;
+    if (hash == NULL) return xxhash_fail(NULL, XRT_XXHASH_ERROR_ARGUMENT, h->InputBytes, "invalid xxhash output");
+    *hash = XXH64_digest(&h->State);
+    return true;
 }
 
-XRT_API void xrtXxhashHasherDestroy(xrtxxhashhasher* pHasher)
+XRT_API bool xrtXxhashHasherReset(xrtxxhashhasher* h)
 {
-	if ( pHasher == NULL ) { return; }
-	if ( pHasher->State != NULL ) { XXH64_freeState(pHasher->State); }
-	xrtFree(pHasher);
+    xrtClearError();
+    if (h == NULL) return xxhash_fail(NULL, XRT_XXHASH_ERROR_STATE, 0, "invalid xxhash handle");
+    XXH64_reset(&h->State, h->Options.iSeed);
+    h->InputBytes = 0;
+    h->Failed = false;
+    xrtXxhashErrorInit(&h->Error);
+    return true;
 }
 
-
-
-// ------------------------------------ 一次性接口 ------------------------------------
-
-XRT_API bool xrtXxhash64(const void* pData, size_t iSize, uint64 iSeed, uint64* pHash,
-	xrtxxhasherror* pError)
+XRT_API uint64 xrtXxhashHasherInputBytes(const xrtxxhashhasher* h)
 {
-	xrtXxhashErrorInit(pError);
-	if ( pHash == NULL || (pData == NULL && iSize != 0u) ) {
-		__xrtXxhashSetError(pError, XRT_XXHASH_ERROR_ARGUMENT, 0, 0, 0, "invalid xxhash input");
-		return false;
-	}
-	*pHash = (uint64)XXH64(pData, iSize, (XXH64_hash_t)iSeed);
-	return true;
+    xrtClearError();
+    if (h == NULL) {
+        xxhash_fail(NULL, XRT_XXHASH_ERROR_STATE, 0, "invalid xxhash handle");
+        return 0;
+    }
+    return h->InputBytes;
+}
+XRT_API const xrtxxhasherror* xrtXxhashHasherError(const xrtxxhashhasher* h)
+{ return h != NULL ? &h->Error : NULL; }
+XRT_API void xrtXxhashHasherDestroy(xrtxxhashhasher* h)
+{ xrtFree(h); }
+
+// -------------------------------- 一次性接口 --------------------------------
+
+XRT_API bool xrtXxhash64(const void* data, size_t size, uint64 seed, uint64* hash, xrtxxhasherror* error)
+{
+    xrtClearError();
+    xrtXxhashErrorInit(error);
+    if (hash == NULL || (data == NULL && size != 0))
+        return xxhash_fail(error, XRT_XXHASH_ERROR_ARGUMENT, 0, "invalid xxhash input or output");
+    *hash = XXH64(data, size, seed);
+    return true;
 }
 
-XRT_API bool xrtXxhash32(const void* pData, size_t iSize, uint32 iSeed, uint32* pHash,
-	xrtxxhasherror* pError)
+XRT_API bool xrtXxhash32(const void* data, size_t size, uint32 seed, uint32* hash, xrtxxhasherror* error)
 {
-	xrtXxhashErrorInit(pError);
-	if ( pHash == NULL || (pData == NULL && iSize != 0u) ) {
-		__xrtXxhashSetError(pError, XRT_XXHASH_ERROR_ARGUMENT, 0, 0, 0, "invalid xxhash input");
-		return false;
-	}
-	*pHash = (uint32)XXH32(pData, iSize, (XXH32_hash_t)iSeed);
-	return true;
+    xrtClearError();
+    xrtXxhashErrorInit(error);
+    if (hash == NULL || (data == NULL && size != 0))
+        return xxhash_fail(error, XRT_XXHASH_ERROR_ARGUMENT, 0, "invalid xxhash input or output");
+    *hash = XXH32(data, size, seed);
+    return true;
 }
 
+// -------------------------------- 借用 Reader --------------------------------
 
-
-// ------------------------------------ 文件流接口 ------------------------------------
-
-XRT_API bool xrtXxhashFile64(xreader* pReader, uint64 iSeed, const xrtresourcelimits* pLimits,
-	uint64* pHash, xrtprogressproc pProgress, ptr pUserData, xrtxxhasherror* pError)
+/* 复制可选详细诊断，不覆盖 Reader/用户回调产生的原始 XRT 异常。 */
+static void xxhash_observe(xrtxxhasherror* error, int code, uint64 offset)
 {
-	uint8 sInput[XRT_XXHASH_CHUNK];
-	XXH64_state_t* pState;
-	xrtresourcelimits Limits;
-	uint64 iTotal = 0u;
-	uint64 iExpected = 0u;
-	bool bTotalKnown;
-	xrtXxhashErrorInit(pError);
-	if ( pReader == NULL || pHash == NULL ) {
-		__xrtXxhashSetError(pError, XRT_XXHASH_ERROR_ARGUMENT, 0, 0, 0, "invalid xxhash stream");
-		return false;
-	}
-	*pHash = 0u;
-	if ( pLimits != NULL ) { Limits = *pLimits; }
-	else { xrtResourceLimitsInit(&Limits); }
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iExpected);
-	if (!bTotalKnown) { xrtClearError(); }
-	pState = XXH64_createState();
-	if ( pState == NULL ) {
-		__xrtXxhashSetError(pError, XRT_XXHASH_ERROR_MEMORY, 0, 0, 0, "cannot allocate xxhash state");
-		return false;
-	}
-	XXH64_reset(pState, (XXH64_hash_t)iSeed);
-	for ( ;; ) {
-		size_t iRead = 0u;
-		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
-			__xrtXxhashSetError(pError, XRT_XXHASH_ERROR_IO, 0, iTotal, 0,
-				"cannot read xxhash input stream");
-			XXH64_freeState(pState);
-			return false;
-		}
-		if ( iRead == 0u ) { break; }
-		if ( __xrtXxhashAddOverLimit(iTotal, iRead, Limits.iMaxInputBytes) ) {
-			__xrtXxhashSetError(pError, XRT_XXHASH_ERROR_LIMIT, 0, iTotal, 0,
-				"xxhash input exceeds maxInput limit");
-			XXH64_freeState(pState);
-			return false;
-		}
-		iTotal += (uint64)iRead;
-		if ( XXH64_update(pState, sInput, (size_t)iRead) != XXH_OK ) {
-			__xrtXxhashSetError(pError, XRT_XXHASH_ERROR_STATE, 0, iTotal, 0,
-				"xxhash update failed");
-			XXH64_freeState(pState);
-			return false;
-		}
-		if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
-			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) {
-			__xrtXxhashSetError(pError, XRT_XXHASH_ERROR_CANCELLED, 0, iTotal, 0,
-				"xxhash operation cancelled");
-			XXH64_freeState(pState);
-			return false;
-		}
-	}
-	*pHash = (uint64)XXH64_digest(pState);
-	if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
-		XRT_PROGRESS_FINAL | (bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u))) {
-		__xrtXxhashSetError(pError, XRT_XXHASH_ERROR_CANCELLED, 0, iTotal, 0,
-			"xxhash operation cancelled");
-		XXH64_freeState(pState);
-		return false;
-	}
-	XXH64_freeState(pState);
-	return true;
+    if (error == NULL) return;
+    error->iCode = code;
+    error->iInputOffset = offset;
+    snprintf(error->sMessage, sizeof(error->sMessage), "%s", xrtErrorMessage(xrtGetError()));
+}
+
+XRT_API bool xrtXxhashFile64(xreader* reader, uint64 seed, const xrtresourcelimits* limits,
+    uint64* hash, xrtprogressproc progress, ptr user, xrtxxhasherror* error)
+{
+    XXH64_state_t state;
+    xrtresourcelimits defaults;
+    uint8 input[XRT_XXHASH_CHUNK];
+    uint64 total = 0, expected = 0, position = 0, end = 0;
+    bool known = false;
+    xrtClearError();
+    xrtXxhashErrorInit(error);
+    if (limits == NULL) { xrtXxhashLimitsInit(&defaults); limits = &defaults; }
+    if (!xxhash_limits(limits) || reader == NULL || hash == NULL)
+        return xxhash_fail(error, XRT_XXHASH_ERROR_ARGUMENT, 0, "invalid xxhash reader, output or limits");
+    if (xrtReaderCanSeek(reader)) {
+        known = xrtReaderTell(reader, &position) && xrtReaderSize(reader, &end) && end >= position;
+        if (known) expected = end - position;
+        else xrtClearError();
+    }
+    if (known && !xxhash_input(0, expected, limits->iMaxInputBytes, error)) return false;
+    XXH64_reset(&state, seed);
+    for (;;) {
+        size_t count = 0;
+        uint32 flags;
+        if (!xrtReaderRead(reader, input, sizeof(input), &count) || count > sizeof(input)) {
+            if (xrtGetError() == NULL)
+                return xxhash_fail(error, XRT_XXHASH_ERROR_IO, total, "cannot read xxhash input stream");
+            xxhash_observe(error, xrtErrorKind(xrtGetError()) == XERR_MEMORY ?
+                XRT_XXHASH_ERROR_MEMORY : XRT_XXHASH_ERROR_IO, total);
+            return false;
+        }
+        if (!xxhash_input(total, count, limits->iMaxInputBytes, error)) return false;
+        if (count != 0) XXH64_update(&state, input, count);
+        total += count;
+        flags = (known ? XRT_PROGRESS_TOTAL_KNOWN : 0) | (count == 0 ? XRT_PROGRESS_FINAL : 0);
+        if (!xrtProgressReport(progress, user, total, expected, 0, flags)) {
+            if (xrtGetError() == NULL)
+                return xxhash_fail(error, XRT_XXHASH_ERROR_CANCELLED, total, "xxhash operation cancelled");
+            xxhash_observe(error, XRT_XXHASH_ERROR_CANCELLED, total);
+            return false;
+        }
+        if (count == 0) break;
+    }
+    /* 包含末尾回调在内的所有步骤成功后才写输出。 */
+    *hash = XXH64_digest(&state);
+    return true;
 }

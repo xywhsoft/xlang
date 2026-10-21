@@ -1,0 +1,4 @@
+import xxhash
+
+// 不得把超过 uint32 的种子静默截断成零。
+println(xxhash.hash32Hex("abc", 4294967296))

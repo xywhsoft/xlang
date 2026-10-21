@@ -15,13 +15,13 @@ func main(...) as int
     data.appendByte(0)
     data.appendByte(255)
 
-    int h64 = xxhash.hash64(data)
+    uint64 h64 = xxhash.hash64(data)
     string hex64 = xxhash.hash64Hex(data)
     assert xxhash.hash64(data) == h64, "xxhash determinism failed"
     assert string.len(hex64) == 16, "xxhash hex64 length failed"
     println("XXH64: ", hex64, "  (引擎版本 ", xxhash.version(), ")")
 
-    // 字符串重载（内部自动转 Buffer）。
+    // 字符串直接借用 UTF-8 字节，不需要创建中间 Buffer。
     println("XXH64(\"hello\") = ", xxhash.hash64Hex("hello"))
     println("XXH32(\"hello\") = ", xxhash.hash32Hex("hello"))
 
@@ -49,26 +49,30 @@ func main(...) as int
     println("reset 重算 XXH64(\"abc\") = ", hasher.digestHex())
 
     // ─── 5. 文件哈希（XRT reader 分块读取，受 maxInput 限制）───
-    dir.createAll("tmp")
-    file.writeBytes("tmp/xxhash_example_source.bin", data)
+    string directory = dir.temp("", "xlang-xxhash-example-", "")
+    string source = path.join(directory, "source.bin")
     FileProgress progress = FileProgress()
-    assert xxhash.hashFile64("tmp/xxhash_example_source.bin",
-        onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
-            progress.calls += 1
-            progress.inputBytes = inputBytes
-            progress.totalBytes = totalBytes
-            return true
-        end) == h64, "xxhash file digest mismatch"
-    assert progress.calls > 0
-    assert progress.inputBytes == data.len()
-    assert progress.totalBytes == data.len()
-    println("文件 XXH64 = ", xxhash.hashFile64Hex("tmp/xxhash_example_source.bin"))
-    file.delete("tmp/xxhash_example_source.bin")
+    try
+        file.writeBytes(source, data.toBytes())
+        assert xxhash.hashFile64(source,
+            onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+                progress.calls += 1
+                progress.inputBytes = inputBytes
+                progress.totalBytes = totalBytes
+                return true
+            end) == h64, "xxhash file digest mismatch"
+        assert progress.calls > 0
+        assert progress.inputBytes == data.len()
+        assert progress.totalBytes == data.len()
+        println("文件 XXH64 = ", xxhash.hashFile64Hex(source))
+    finally
+        assert dir.delete(directory), "xxhash example temporary directory must be removed"
+    end
 
     // ─── 6. 错误处理：缺失文件抛 FileError，非法限额抛 ValueError ───
     bool missing = false
     try
-        xxhash.hashFile64("tmp/xxhash_example_missing.bin")
+        xxhash.hashFile64(source)
     catch FileError e
         missing = true
     end
