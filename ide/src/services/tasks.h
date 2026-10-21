@@ -36,6 +36,9 @@ xide_task* xideTasksBuild(xide_tasks* tasks,const xide_project* project,const ch
 /* Copy named dirty-document paths before starting any worker. Those matching
    discovered inputs invalidate this request; unrelated documents are untouched. */
 xide_task* xideTasksBuildGuarded(xide_tasks* tasks,const xide_project* project,const char* configurationId,const char* compiler,int run,const xide_strings* pendingInputs,xide_model_error* error);
+/* A real .c/.xl entry, without a project/workspace manifest. Outputs and logs
+   live under the source directory's private .xlang-ide cache. */
+xide_task* xideTasksBuildFileGuarded(xide_tasks* tasks,const char* path,const char* compiler,int run,const xide_strings* pendingInputs,xide_model_error* error);
 xide_task* xideTasksTest(xide_tasks* tasks,const xide_project* project,const char* configurationId,xide_model_error* error);
 void xideTasksPoll(xide_tasks* tasks);
 int xideTasksBusy(const xide_tasks* tasks);

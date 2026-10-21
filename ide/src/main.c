@@ -1,6 +1,7 @@
 #include "app/xide_app.h"
 #include "theme/theme.h"
 #include "platform/startup_alias.h"
+#include "platform/path.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,9 +10,10 @@
 #include <math.h>
 static int parseArguments(xide_app* app, int argc, char** argv)
 {
+    int positional=0;
     for (int i = 1; i < argc; ++i) {
         if (!strcmp(argv[i], "--help")) {
-            puts("xlang IDE development workbench\n  --size WIDTH HEIGHT  initial window size\n  --dpi-scale N  diagnostic render scale (0.5-8)\n  --frames N  bounded render smoke test\n  --hidden    hide this program's smoke-test window\n  --screenshot PATH.png  capture the final bounded frame\n  --workspace PATH.xlw  open a workspace\n  --project PATH.xlp    open a standalone project\n  --open-file PATH  open an editable UTF-8 file\n  --select-project ID   initially selected project\n  --demo xlang|c  initially selected syntax example\n  --catalog PATH.json  use an explicit command catalog\n  --command ID         initially selected command help\n  --help-chapter N      initially scroll to a help chapter (0-based)\n  --command-search TEXT filter command catalog\n  --compiler PATH.exe  select xlang toolchain\n  --c-server PATH.exe  select clangd for C completion\n  --settings PATH.json  use an explicit preferences file\n  --session-root PATH  isolate session and recovery storage\n  --diagnostic-root PATH  isolate fatal error reports\n  --no-session         disable session restore and persistence\n  --configuration ID   select project build configuration\n  --font-settings open code font preferences\n  --ui-font-settings open interface font preferences\n  --recovery-manager open session and recovery manager\n  --edit-configurations open selected project configuration editor\n  --task build|run|test     explicitly start a project task\n  --wait-task          wait up to 30s before bounded render exits\n  --theme classic-light|graphite-dark|warm-white|ocean"); return 1;
+            puts("xlang IDE development workbench\n  [file.c|file.xl|project.xlp|workspace.xlw]  open a build target\n  --size WIDTH HEIGHT  initial window size\n  --dpi-scale N  diagnostic render scale (0.5-8)\n  --frames N  bounded render smoke test\n  --hidden    hide this program's smoke-test window\n  --screenshot PATH.png  capture the final bounded frame\n  --workspace PATH.xlw  open a workspace\n  --project PATH.xlp    open a standalone project\n  --open-file PATH  open an editable UTF-8 file\n  --select-project ID   initially selected project\n  --demo xlang|c  initially selected syntax example\n  --catalog PATH.json  use an explicit command catalog\n  --command ID         initially selected command help\n  --help-chapter N      initially scroll to a help chapter (0-based)\n  --command-search TEXT filter command catalog\n  --compiler PATH.exe  select xlang toolchain\n  --c-server PATH.exe  select clangd for C completion\n  --settings PATH.json  use an explicit preferences file\n  --session-root PATH  isolate session and recovery storage\n  --diagnostic-root PATH  isolate fatal error reports\n  --no-session         disable session restore and persistence\n  --configuration ID   select project build configuration\n  --font-settings open code font preferences\n  --ui-font-settings open interface font preferences\n  --recovery-manager open session and recovery manager\n  --edit-configurations open selected project configuration editor\n  --task build|run|build-file|run-file|test  start a task\n  --wait-task          wait up to 30s before bounded render exits\n  --theme classic-light|graphite-dark|warm-white|ocean"); return 1;
         }
         if (!strcmp(argv[i], "--hidden")) app->hidden = 1;
         else if(!strcmp(argv[i],"--dpi-scale") && i+1<argc) { char* end; float scale=strtof(argv[++i],&end); if(*end || !isfinite(scale) || scale<0.5f || scale>8) return -1; app->dpiOverride=scale; }
@@ -45,9 +47,15 @@ static int parseArguments(xide_app* app, int argc, char** argv)
         else if (!strcmp(argv[i], "--font-settings")) app->initialFontSettings=1;
         else if (!strcmp(argv[i], "--edit-configurations")) app->initialConfigurations=1;
         else if (!strcmp(argv[i], "--wait-task")) app->waitTask=1;
-        else if (!strcmp(argv[i], "--task") && i + 1 < argc) { const char* task=argv[++i]; if(!strcmp(task,"build")) app->initialTask=XIDE_ACTION_BUILD; else if(!strcmp(task,"run")) app->initialTask=XIDE_ACTION_RUN; else if(!strcmp(task,"test")) app->initialTask=XIDE_ACTION_TEST; else return -1; }
+        else if (!strcmp(argv[i], "--task") && i + 1 < argc) { const char* task=argv[++i]; if(!strcmp(task,"build")) app->initialTask=XIDE_ACTION_BUILD; else if(!strcmp(task,"run")) app->initialTask=XIDE_ACTION_RUN; else if(!strcmp(task,"build-file")) app->initialTask=XIDE_ACTION_BUILD_FILE; else if(!strcmp(task,"run-file")) app->initialTask=XIDE_ACTION_RUN_FILE; else if(!strcmp(task,"test")) app->initialTask=XIDE_ACTION_TEST; else return -1; }
         else if (!strcmp(argv[i], "--theme") && i + 1 < argc) {
             int theme = ideThemeFind(argv[++i]); if (theme < 0) return -1; app->theme = theme; app->themeExplicit=1;
+        } else if(argv[i][0]!='-' && !positional) {
+            const char* path=argv[i]; positional=1;
+            if(xidePathHasExtension(path,".xlw") && !app->workspacePath && !app->projectPath) app->workspacePath=path;
+            else if(xidePathHasExtension(path,".xlp") && !app->workspacePath && !app->projectPath) app->projectPath=path;
+            else if((xidePathHasExtension(path,".c") || xidePathHasExtension(path,".xl")) && !app->initialFile) app->initialFile=path;
+            else return -1;
         } else return -1;
     }
     if ((app->hidden || app->screenshot) && app->maxFrames == 0) return -1;

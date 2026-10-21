@@ -42,6 +42,8 @@ static int saveDocument(xide_app* app,xide_document* document,int saveAs)
     free(path); if(!result) report(app,error.message);
     return result;
 }
+int xideEditorSaveForTask(xide_app* app,xide_document* document)
+{ return document && document->open && ((!document->dirty && document->path) || saveDocument(app,document,0)); }
 int xideEditorSaveForProject(xide_app* app,const xide_project* project)
 {
     /* A manifest save can replace the workspace project array. Collect identities first. */

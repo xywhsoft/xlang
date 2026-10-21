@@ -35,7 +35,7 @@ struct xide_task {
     xide_task_stage* stage;
     xide_task_stage** stageReferences; size_t stageReferenceCount,stageReferenceCapacity;
     int maintainCache;
-    int run,test,cancel,invalidated,requestReleased;
+    int run,test,singleFile,cancel,invalidated,requestReleased;
     uint64_t inputRevision,checkedInputRevision; size_t checkedChanges;
     ULONGLONG began;
 };
@@ -440,12 +440,14 @@ static DWORD WINAPI taskWorker(void* data)
     xide_model_error stageError={0}; task->stage=xideTaskStageBegin(task->stageDirectory,&stageError);
     if(!task->stage) { setFailure(task,"%s",stageError.message); goto finished; }
     if(!captureInputs(task,0)) goto finished;
+    if(!task->singleFile) {
     input_file* manifest=&task->inputs[0]; size_t start=manifest->size>=3 && !memcmp(manifest->baseline,"\xef\xbb\xbf",3) ? 3 : 0;
     xvalue* current=xrtJsonParse((xstrview){(char*)manifest->baseline+start,manifest->size-start});
     int same=current && xrtValueEqual(current,task->source); xrtValueRelease(current);
     if(!same) { setFailure(task,"Project manifest changed outside the loaded model; reopen it before building"); goto finished; }
     if(!captureResourceInputs(task)) goto finished;
     if(!snapshotManifest(task)) goto finished;
+    }
     xide_toolchain_stamp stamp={0}; xide_model_error toolError={0};
     if(!xideToolchainCapture(task->compiler,&stamp,&toolError)) { setFailure(task,"%s",toolError.message); goto finished; }
     const char* helpArguments[]={"--help"};
@@ -572,7 +574,7 @@ static int claimMaintenance(xide_tasks* tasks,const char* directory)
     else ++tasks->maintenanceCount;
     tasks->maintenanceRoots[index]=path; tasks->maintenanceTimes[index]=now; return 1;
 }
-static xide_task* startTask(xide_tasks* tasks,const xide_project* project,const char* configurationId,const char* compiler,int run,int test,const xide_strings* pendingInputs,xide_model_error* error)
+static xide_task* startTask(xide_tasks* tasks,const xide_project* project,const char* configurationId,const char* compiler,int run,int test,int singleFile,const xide_strings* pendingInputs,xide_model_error* error)
 {
     if(error) memset(error,0,sizeof(*error));
     if(!tasks || !project || !project->available || project->dirty || (!test && (!compiler || !*compiler))) { fail(error,"A saved available project and an explicit task configuration are required"); return NULL; }
@@ -590,7 +592,7 @@ static xide_task* startTask(xide_tasks* tasks,const xide_project* project,const 
     for(size_t i=0;i<tasks->count;++i) {
         xide_task* existing=tasks->items[i]; xide_task_info info={0}; xideTaskInfo(existing,&info);
         if(info.state<=XIDE_TASK_CANCELLING) ++pending;
-        if(info.state<=XIDE_TASK_CANCELLING && info.state!=XIDE_TASK_CANCELLING && !info.invalidated && existing->run==!!run && existing->test==!!test && xidePathEqual(existing->manifest,project->manifest) && !strcmp(existing->configurationId,config->id) &&
+        if(info.state<=XIDE_TASK_CANCELLING && info.state!=XIDE_TASK_CANCELLING && !info.invalidated && existing->run==!!run && existing->test==!!test && existing->singleFile==!!singleFile && xidePathEqual(existing->manifest,project->manifest) && !strcmp(existing->configurationId,config->id) &&
             xrtValueEqual(existing->source,project->source) && stringsEqual(&existing->pendingInputs,pendingInputs) &&
             (test || xidePathEqual(existing->compiler,compiler)) &&
             (existing->packagePath && packagePath ? !strcmp(existing->packagePath,packagePath) : existing->packagePath==packagePath)) { free(packagePath); return existing; }
@@ -599,7 +601,7 @@ static xide_task* startTask(xide_tasks* tasks,const xide_project* project,const 
     xide_task* task=calloc(1,sizeof(*task)); if(!task) { free(packagePath); fail(error,"Unable to allocate task"); return NULL; }
     task->packagePath=packagePath;
     InitializeCriticalSection(&task->lock); task->toolchains=tasks->toolchains; task->info.id=tasks->nextId++; task->info.state=XIDE_TASK_QUEUED; task->info.phase=XIDE_TASK_PREPARE; task->info.revision=1; task->run=!!run;
-    task->test=!!test; task->info.kind=test ? XIDE_TASK_KIND_TEST : run ? XIDE_TASK_KIND_RUN : XIDE_TASK_KIND_BUILD;
+    task->test=!!test; task->singleFile=!!singleFile; task->info.kind=test ? XIDE_TASK_KIND_TEST : run ? XIDE_TASK_KIND_RUN : XIDE_TASK_KIND_BUILD;
     task->projectId=copy(project->id ? project->id : ""); task->configurationId=copy(config->id); task->name=copy(project->name); task->manifest=copy(project->manifest); task->kind=copy(project->kind);
     task->entry=copy(project->entry); task->compiler=test ? copy("") : xidePathResolve(NULL,compiler); task->directory=xidePathDirectory(project->manifest); task->workingDirectory=copy(test ? config->test.workingDirectory : config->workingDirectory); task->output=copy(test ? "" : config->output);
     task->testProgram=copy(test ? config->test.program : "");
@@ -612,7 +614,7 @@ static xide_task* startTask(xide_tasks* tasks,const xide_project* project,const 
     task->stageDirectory=xidePathResolve(outputDirectory,relative); free(outputDirectory);
     if(!task->stageDirectory) goto allocationFailure;
     char* cacheRoot=xidePathDirectory(task->stageDirectory); if(cacheRoot) task->maintainCache=claimMaintenance(tasks,cacheRoot); free(cacheRoot);
-    task->artifact=xidePathResolve(task->stageDirectory,!strcmp(task->kind,"exe") ? "program.exe" : "module.dll"); task->snapshot=xidePathResolve(task->stageDirectory,"request.xlp");
+    task->artifact=xidePathResolve(task->stageDirectory,!strcmp(task->kind,"exe") ? "program.exe" : "module.dll"); task->snapshot=singleFile ? copy(task->entry) : xidePathResolve(task->stageDirectory,"request.xlp");
     task->probeLog=xidePathResolve(task->stageDirectory,"compiler-help.log"); task->buildLog=xidePathResolve(task->stageDirectory,"build.log"); task->runLog=xidePathResolve(task->stageDirectory,"run.log"); task->promotion=xidePathResolve(task->stageDirectory,"publish.tmp");
     task->testLog=xidePathResolve(task->stageDirectory,"test.log");
     task->receipt=xidePathResolve(task->stageDirectory,"inputs.json"); task->invocation=xidePathResolve(task->stageDirectory,"build-invocation.json");
@@ -644,11 +646,28 @@ allocationFailure:
     fail(error,"Unable to allocate the immutable task request"); destroyTask(task); return NULL;
 }
 xide_task* xideTasksBuild(xide_tasks* tasks,const xide_project* project,const char* configurationId,const char* compiler,int run,xide_model_error* error)
-{ return startTask(tasks,project,configurationId,compiler,run,0,NULL,error); }
+{ return startTask(tasks,project,configurationId,compiler,run,0,0,NULL,error); }
 xide_task* xideTasksBuildGuarded(xide_tasks* tasks,const xide_project* project,const char* configurationId,const char* compiler,int run,const xide_strings* pendingInputs,xide_model_error* error)
-{ return startTask(tasks,project,configurationId,compiler,run,0,pendingInputs,error); }
+{ return startTask(tasks,project,configurationId,compiler,run,0,0,pendingInputs,error); }
 xide_task* xideTasksTest(xide_tasks* tasks,const xide_project* project,const char* configurationId,xide_model_error* error)
-{ return startTask(tasks,project,configurationId,NULL,0,1,NULL,error); }
+{ return startTask(tasks,project,configurationId,NULL,0,1,0,NULL,error); }
+xide_task* xideTasksBuildFileGuarded(xide_tasks* tasks,const char* path,const char* compiler,int run,const xide_strings* pendingInputs,xide_model_error* error)
+{
+    if(error) memset(error,0,sizeof(*error));
+    if(!path || (!xidePathHasExtension(path,".c") && !xidePathHasExtension(path,".xl"))) { fail(error,"Single-file builds require a saved .c or .xl source file"); return NULL; }
+    char* entry=xidePathResolve(NULL,path); char* directory=entry ? xidePathDirectory(entry) : NULL;
+    char* cache=directory ? xidePathResolve(directory,".xlang-ide/single-file") : NULL;
+    char* target=cache ? xidePathResolve(cache,xidePathFilename(entry)) : NULL;
+    char* output=target ? xidePathResolve(target,"program.exe") : NULL;
+    xvalue *source=xrtValueObject(),*environment=xrtValueObject(); xide_task* task=NULL;
+    if(!entry || !directory || !cache || !target || !output || !source || !environment) fail(error,"Unable to prepare the single-file build request");
+    else {
+        xide_configuration config={.id="single-file",.name="单文件",.output=output,.workingDirectory=directory,.environment=environment};
+        xide_project project={.id=entry,.manifest=entry,.name=(char*)xidePathFilename(entry),.kind="exe",.entry=entry,.available=1,.source=source,.configurations=&config,.configurationCount=1};
+        task=startTask(tasks,&project,NULL,compiler,run,0,1,pendingInputs,error);
+    }
+    xrtValueRelease(source); xrtValueRelease(environment); free(entry); free(directory); free(cache); free(target); free(output); return task;
+}
 void xideTasksPoll(xide_tasks* tasks)
 {
     if(!tasks) return;

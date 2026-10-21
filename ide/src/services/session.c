@@ -718,11 +718,11 @@ int xideSessionStart(xide_app* app)
     if(app->workspacePath || app->projectPath) {
         if(!xideWorkspaceOpen(app,app->workspacePath ? app->workspacePath : app->projectPath,app->projectPath!=NULL,&error)) { xideFailureSet(&app->failure,XIDE_FAILURE_WORKSPACE,"model",error.code,error.message,"xideWorkspaceOpen"); report(app,error.message); return 0; }
     }
-    if(!owner(app) && !app->workspacePath && !app->projectPath && s->indexReady && s->index.existed) {
+    if(!owner(app) && !app->workspacePath && !app->projectPath && !app->initialFile && s->indexReady && s->index.existed) {
         const char* kind=string(s->index.source,"kind","none"),*last=string(s->index.source,"path","");
         if(*last && (!strcmp(kind,"workspace") || !strcmp(kind,"project")) && !xideWorkspaceOpen(app,last,!strcmp(kind,"project"),&error)) report(app,error.message);
     }
-    if(!owner(app) && !app->workspacePath && !app->projectPath && !s->incomingMigration) {
+    if(!owner(app) && !app->workspacePath && !app->projectPath && !app->initialFile && !s->incomingMigration) {
         xide_workspace model={0}; char* projectPath=NULL; int found=0;
         if(!xideSessionLoadMigration(app,"",0,&model,&projectPath,&found,&error)) report(app,error.message);
         else if(found) { xideWorkspaceClear(&app->workspaceModel); app->workspaceModel=model; memset(&model,0,sizeof(model)); xideWorkspaceViewRefresh(app); }

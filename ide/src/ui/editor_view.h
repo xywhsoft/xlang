@@ -9,6 +9,7 @@ int xideEditorShow(xide_app* app,xide_document* document);
 int xideEditorClose(xide_app* app,xide_document* document,int discardChanges,xide_model_error* error);
 int xideEditorConfirmAll(xide_app* app);
 int xideEditorSaveForProject(xide_app* app,const xide_project* project);
+int xideEditorSaveForTask(xide_app* app,xide_document* document);
 int xideEditorAction(xide_app* app,int action);
 int xideEditorReset(xide_app* app);
 int xideEditorApplyTheme(xide_app* app);

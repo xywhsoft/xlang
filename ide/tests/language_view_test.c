@@ -42,7 +42,7 @@ static int verify(void* user)
  const char* saved="int 中文 = missingName\n"; const char* nativeText="int helper(void) { return 42; }\n";
  CHECK(root && tools && compiler && entry && mode && xrtDirCreateAll(tools) && xrtFileCopy(binary,compiler,true) && writeText(mode,"bad") && writeText(entry,saved) && writeText(native,nativeText));
  app.hidden=1; app.noSession=1; app.highDpi=1; app.dpiOverride=1.25f; app.compilerPath=compiler; app.settingsPath=settings; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
- CHECK(xideActionCount()==71 && xideActionNamed("language.checkSaved")->id==66 && xideActionNamed("language.cancelCheck")->id==67 && !xideActionQuery(&app,XIDE_ACTION_CHECK_SAVED).enabled);
+ CHECK(xideActionCount()==73 && xideActionNamed("language.checkSaved")->id==66 && xideActionNamed("language.cancelCheck")->id==67 && !xideActionQuery(&app,XIDE_ACTION_CHECK_SAVED).enabled);
  CHECK(xideEditorOpen(&app,entry,&error) && xideEditorOpen(&app,native,&error) && settle(&app)); xide_document *xl=xideDocumentsFind(&app.documents,entry),*c=app.activeDocument; CHECK(xl && c && token(xl->editor,"int",XUI_CODE_TOKEN_TYPE) && token(c->editor,"return",XUI_CODE_TOKEN_KEYWORD) && !xideActionQuery(&app,XIDE_ACTION_CHECK_SAVED).enabled);
  xui_code_document core=xuiCodeEditGetDocument(xl->editor); uint32_t cv=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(c->editor)),xv=xuiCodeDocumentGetVersion(core); int windows=xuiDockPanelGetWindowCount(app.dock);
  CHECK(xideEditorShow(&app,xl)==XUI_OK && settle(&app) && menuCheck(&app) && waitCheck(&app) && xideLanguageViewDiagnosticCount(&app)==1 && centerBottom(&app,xl));

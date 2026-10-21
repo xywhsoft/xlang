@@ -205,7 +205,7 @@ static int frame(void* user)
     if (app->maxFrames > 0 && app->frames >= app->maxFrames && taskDone && app->screenshot) TRY(xideAppCapture(app,app->screenshot));
     TRY_XGE(xgeEnd());
     if (app->maxFrames > 0 && app->frames >= app->maxFrames && taskDone) {
-    if(app->initialTask) { xide_task_info info={0}; xideTaskInfo(xideTaskViewSelected(app),&info); if(info.state!=XIDE_TASK_SUCCEEDED) app->taskExit=1; printf("Task #%llu: state=%d built=%d ran=%d code=%d tested=%d kind=%d %s\n",(unsigned long long)info.id,info.state,info.built,info.ran,info.exit.Code,info.tested,info.kind,info.error); }
+    if(app->initialTask) { xide_task_info info={0}; xideTaskInfo(xideTaskViewSelected(app),&info); if(info.state!=XIDE_TASK_SUCCEEDED) app->taskExit=1; printf("Task #%llu: state=%d built=%d ran=%d code=%d tested=%d kind=%d %s\n",(unsigned long long)info.id,info.state,info.built,info.ran,info.exit.Code,info.tested,info.kind,info.error); printf("Task target: %s\n",xideTaskProjectName(xideTaskViewSelected(app))); }
         printf("xlang IDE: rendered %d frames; windows=%d panes=%d; C and xlang registered\n", app->frames,
                xuiDockPanelGetWindowCount(app->dock), xuiDockPanelGetPaneCount(app->dock));
         if(app->sessionRoot && !app->noSession) { xide_model_error error={0}; if(!xideSessionSave(app,0,&error)) { fprintf(stderr,"session snapshot failed: %s\n",error.message); app->frameError=XUI_ERROR; } }
