@@ -155,3 +155,22 @@ family 接入、TaskGroup 拥有型组合、NetFile、完整服务图及 shippin
 旧借用路径不因新接口存在而获得认证；本批没有修改 Cgen 实现、发布库或 VFS，
 没有应用 Socket、DNS、应用网络流量、协议攻击样本或网络安全专项。
 
+## 共同语言任务记录与目录 family（2026-10-23）
+
+`xl6_task_frame.c` 抽取既有计算池的代码租约、捕获、checked body／清理、输出
+转发和真实拥有适配；原 `xl6_task.c` 只负责池受理／活动／提交。新 TaskNet
+适配共用该记录及唯一 Ops 身份，pool／binding 为空；真实 artifact 闭包明确
+排除计算池及 Executor。封闭目录增加 typed TaskNet family，并登记原生
+Post／Timer／Job／CancelWatch／quiescence，不以旧借用路径充当新拥有路径。
+
+Windows 254／Linux 262，共 516 阶段通过，包括两端各 124 阶段的原有 TaskPool
+语言回归。真实网络任务图每种配置 80 轮，立即记录 11 节点／20 边，Timer 为
+12 节点／23 边；检查实际根、语义终结器复活、精确内存及同形未知 policy 拒绝。
+详见 [共同任务记录](shared-task-frame.md)。证据根
+`F:/xlang-validation/five-groups-20261023/p3-task-frame`，回执为
+`verified-commit.json`；原始 Linux 证据及 F 盘镜像保留。
+
+本批不修改 Cgen、原生 XRT、固定快照或时间 ABI，不更新发布库／VFS，不进行
+应用网络通信或安全专项。语言泛型公开方法、TaskGroup 拥有型组合、NetFile
+及完整服务／shipping 验收继续开放，不能将本批当作这些项目已完成。
+

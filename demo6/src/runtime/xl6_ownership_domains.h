@@ -63,6 +63,7 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainFutureCallback
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainFutureCallbackQueueV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainFutureCallbackInterruptV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTaskV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTaskNetV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTaskPoolV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainFuturePayloadV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNativeFutureV1Get(void);

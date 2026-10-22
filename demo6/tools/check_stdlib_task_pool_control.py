@@ -129,7 +129,7 @@ def main():
                 # The old white-box provider includes task.c. Do not link the
                 # normal task.c again; its actual split pool provider and all
                 # other plan-selected dependencies are still required.
-                outcome_sources=[path for path in legacy if path.name!='xl6_task.c']
+                outcome_sources=[path for path in legacy if path.name not in ('xl6_task.c','xl6_task_frame.c')]
                 run(name+'.outcome.build',flags+['-'+opt,*strict,root/'test/support/task_pool_control_legacy_outcome.c',
                     root/'test/cases/xlir_task_outcome_whitebox.c',*outcome_sources,kernel,*crt,*libs,'-o',outcome])
                 run(name+'.outcome.run',[outcome],'Legacy task outcome: 400 isolated ready/registration callbacks, exact memory balance');product(outcome)

@@ -5,7 +5,7 @@ Push-Location $Root
 try {
     $headers = @('xl6_ownership_scope.h','xl6_ownership_plan.h','xl6_code_owner.h','xl6_code_lease.h','xl6_closure.h','xl6_cell.h','xl6_slot.h','xl6_frame_storage.h','xl6_task.h','xl6_capture.h','xl6_value_iterator.h','xl6_future_callback.h','xl6_future_aggregate.h','xl6_generator.h','xl6_continuation_queue.h',
         'xl6_continuation_executor.h','xl6_continuation_future.h','xl6_future_payload.h','xl6_network_service.h')
-    $sources = @('xl6_ownership_plan.c','xl6_code_lease.c','xl6_closure.c','xl6_cell.c','xl6_slot.c','xl6_frame_storage.c','xl6_continuation_frame.c','xl6_future_wait.c','xl6_task.c','xl6_capture.c','xl6_value_iterator.c','xl6_future_callback.c','xl6_generator.c','xl6_code_finalizer.c','xl6_continuation_queue.c','xl6_continuation_executor.c',
+    $sources = @('xl6_ownership_plan.c','xl6_code_lease.c','xl6_closure.c','xl6_cell.c','xl6_slot.c','xl6_frame_storage.c','xl6_continuation_frame.c','xl6_future_wait.c','xl6_task.c','xl6_task_frame.c','xl6_capture.c','xl6_value_iterator.c','xl6_future_callback.c','xl6_generator.c','xl6_code_finalizer.c','xl6_continuation_queue.c','xl6_continuation_executor.c',
         'xl6_continuation_future.c','xl6_future_payload.c','xl6_network_service.c')
     $failed = @()
     foreach ($platform in @('win64','linux')) { foreach ($product in @('runtime','xlc')) {

@@ -37,7 +37,7 @@ $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-un
 $includes=@("-I$includePath","-I$outputPath",'-I.','-Irelease','-DXL_STATIC_EMBED')
 $sources=@('test/cases/xlir_future_aggregate_ownership_host.c','src/api/xl_future_bridge.c','src/runtime/xl6_future_aggregate.c','src/runtime/xl6_future_aggregate_array.c','src/runtime/xl6_array_input.c','src/runtime/xl6_sequence.c','src/runtime/xl6_future_payload.c',
     'src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_code_lease.c','src/runtime/xl6_slot.c',
-    'src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c',
+    'src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c',
     'src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c','src/runtime/xl6_continuation_future.c',
     'src/runtime/xl6_value_admission.c','src/runtime/xl6_future_metadata.c')
 $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'); $lanes=@()

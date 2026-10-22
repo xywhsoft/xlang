@@ -58,7 +58,7 @@ try {
                 & gcc @flags "test/cases/xlir_async_$($name)_runtime.c" "test/cases/xlir_async_$($name)_host.c" `
                     src/runtime/xl6_code_lease.c src/runtime/xl6_continuation_queue.c src/runtime/xl6_continuation_executor.c `
                     build/test/xlir_async_source_batch.transport.o test/cases/xlir_async_source_sync.c `
-                    src/runtime/xl6_closure.c src/runtime/xl6_cell.c src/runtime/xl6_slot.c src/runtime/xl6_frame_storage.c src/runtime/xl6_continuation_frame.c src/runtime/xl6_future_wait.c src/runtime/xl6_task.c src/runtime/xl6_task_pool.c src/runtime/xl6_capture.c src/runtime/xl6_value_iterator.c src/runtime/xl6_future_callback.c src/runtime/xl6_generator.c src/runtime/xl6_future_payload.c release/xl.dll -o "$prefix.source.exe" *> $entry.BuildLog
+                    src/runtime/xl6_closure.c src/runtime/xl6_cell.c src/runtime/xl6_slot.c src/runtime/xl6_frame_storage.c src/runtime/xl6_continuation_frame.c src/runtime/xl6_future_wait.c src/runtime/xl6_task.c src/runtime/xl6_task_frame.c src/runtime/xl6_task_pool.c src/runtime/xl6_capture.c src/runtime/xl6_value_iterator.c src/runtime/xl6_future_callback.c src/runtime/xl6_generator.c src/runtime/xl6_future_payload.c release/xl.dll -o "$prefix.source.exe" *> $entry.BuildLog
                 $entry.Build = $LASTEXITCODE
                 if ($entry.Build -eq 0) {
                     $process = Start-Process -FilePath (Join-Path (Get-Location) "$prefix.source.exe") -WindowStyle Hidden -PassThru `

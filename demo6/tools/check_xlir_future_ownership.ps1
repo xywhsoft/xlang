@@ -9,7 +9,7 @@ if (!$manifest.SourceXrt) { throw 'Future graphs require current source XRT' }
 $runtimeObject=@($manifest.Objects|Where-Object {[IO.Path]::GetFileName($_.Path) -eq 'xrt_single_header_impl.o'})
 if ($runtimeObject.Count -ne 1) { throw 'Ambiguous current XRT object' }
 $runtimeSources=@('src/runtime/xl6_code_lease.c','src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c',
-    'src/runtime/xl6_continuation_future.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c','src/runtime/xl6_future_payload.c')
+    'src/runtime/xl6_continuation_future.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c','src/runtime/xl6_future_payload.c')
 $files=@(Get-Item $PSCommandPath,$manifest.Driver,test/cases/xlir_future_ownership.xl,
     test/cases/xlir_future_ownership_host.c,test/cases/xlir_future_payload_contract.c)
 $records=@($manifest.Inputs)+@($manifest.Headers)+@($runtimeObject)+

@@ -18,6 +18,9 @@
     src\runtime\xl6_slot.c
     src\runtime\xl6_frame_storage.c
     src\runtime\xl6_task.c
+    src\runtime\xl6_task_frame.c
+    src\runtime\xl6_task_net.c
+    src\runtime\xl6_ownership_domain_task_net.c
     src\runtime\xl6_task_pool.c
     src\runtime\xl6_executor_jobs.c
     src\runtime\xl6_detached_work.c
