@@ -12,7 +12,7 @@ for allocation in range(12)
     try
         roaring.RoaringBitmap candidate = roaring.create()
         assert candidate.valid
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
@@ -30,7 +30,7 @@ for allocation in range(12)
     assert failAfter(uint64(allocation))
     try
         bitmap.add(123)
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
@@ -54,7 +54,7 @@ assert failAfter(0)
 bool caught = false
 try
     upgraded.add(4096)
-catch MemoryError
+catch MemoryError error
     caught = true
 end
 assert caught and failTriggered()
@@ -67,7 +67,7 @@ assert failAfter(0)
 caught = false
 try
     upgraded.remove(4096)
-catch MemoryError
+catch MemoryError error
     caught = true
 end
 assert caught and failTriggered()
@@ -83,7 +83,7 @@ assert failAfter(0)
 caught = false
 try
     upgraded.remove(1024)
-catch MemoryError
+catch MemoryError error
     caught = true
 end
 assert caught and failTriggered()
