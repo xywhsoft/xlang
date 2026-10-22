@@ -1,0 +1,46 @@
+import netrc
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+string source = "machine example.test login user password secret\n"
+int failures = 0
+int successes = 0
+for allocation in range(80)
+    bool caught = false
+    assert failAfter(uint64(allocation))
+    try
+        netrc.Netrc config = netrc.parse(source)
+        assert config.authenticators("example.test")["login"] == "user"
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert caught == triggered
+    if caught then failures += 1 else successes += 1 end
+end
+assert failures > 0 and successes > 0
+
+netrc.Netrc recovered = netrc.parse(source)
+assert recovered.authenticators("example.test")["password"] == "secret"
+string expected = recovered.stringify()
+failures = 0
+successes = 0
+for allocation in range(80)
+    bool caught = false
+    assert failAfter(uint64(allocation))
+    try
+        assert recovered.stringify() == expected
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert caught == triggered
+    if caught then failures += 1 else successes += 1 end
+end
+assert failures > 0 and successes > 0
+assert recovered.stringify() == expected
+println("netrc allocations: PASS")

@@ -107,6 +107,7 @@ try {
         $null = Run 'XLang existing test' $xl @('run', '../test/cases/extlib_netrc.xl')
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/netrc/test/boundaries.xl')
         $null = Run 'XLang named type' $xl @('run', 'extlibs/netrc/test/named_type.xl')
+        $null = Run 'XLang allocations' $xl @('run', 'extlibs/netrc/test/allocations.xl')
         if (-not $SkipAot) {
             $testAot = Join-Path $work 'netrc_xl_test.exe'
             $null = Run 'XLang boundaries build' $xl @('build',

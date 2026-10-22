@@ -36,6 +36,7 @@ fi
 timeout 90s "$xl" run test/cases/extlib_netrc.xl
 timeout 90s "$xl" run release/extlibs/netrc/test/boundaries.xl
 timeout 90s "$xl" run release/extlibs/netrc/test/named_type.xl
+timeout 90s "$xl" run release/extlibs/netrc/test/allocations.xl
 timeout 90s "$xl" run release/examples/extlibs/netrc.xl > "$work/example_xl.txt"
 diff -u release/extlibs/netrc/examples/basic.expected.txt "$work/example_xl.txt"
 diff -u "$work/example.txt" "$work/example_xl.txt"

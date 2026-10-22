@@ -201,3 +201,9 @@ ASan/UBSan、XLang 对照门禁通过；本次跳过完整 AOT，整包仍未发
 主线程也没有继承两者的错误。Windows `-SkipAot` 与 Linux C ASan/UBSan、
 XLang/Python 文件互通门禁通过。仅补测试，未改公开 API 或解析器；
 完整带输出 AOT 的共享阻断仍未签收。
+
+同日补充 XLang 公开 `parse` / `stringify` 的前 80 个分配位置故障扫描：
+触发失败时必须抛 `MemoryError`，成功时凭据内容不变；清除故障后可
+继续解析和序列化。固定假凭据只在内存中处理，不写入测试文件或输出。
+用例已登记包清单并进入 Windows/Linux 门禁；Linux C ASan/UBSan、
+双语范例与 Python 文件互通同次通过。原生实现未改，完整 AOT 仍未签收。
