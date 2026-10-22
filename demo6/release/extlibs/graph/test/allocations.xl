@@ -1,0 +1,73 @@
+import graph
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func check(int operation, var edges)
+    if operation == 0 then
+        assert graph.isDag(edges)
+    elseif operation == 1 then
+        assert graph.topoSort(edges).length == 4
+    elseif operation == 2 then
+        assert graph.bfs(edges, "a").length == 3
+    elseif operation == 3 then
+        assert graph.shortestPath(edges, "a", "c").length == 3
+    elseif operation == 4 then
+        assert graph.dijkstra(edges, "a")["c"] == 3
+    elseif operation == 5 then
+        assert graph.components(edges).length == 2
+    elseif operation == 6 then
+        assert graph.scc(edges).length == 4
+    elseif operation == 7 then
+        assert graph.nodes(edges).length == 4
+    else
+        assert graph.neighbors(edges, "a").length == 1
+    end
+end
+
+func main(...) as int
+    var good = [["a", "b", 1], ["b", "c", 2], ["z"]]
+    var bad = [["a", "b", 1], ["b", "c", 2], ["z"], 7]
+
+    // 有效图与非法行分别扫描；每次故障解除后检查原图仍可使用。
+    for invalid in range(2)
+        for operation in range(9)
+            int memoryFailures = 0
+            int completions = 0
+            for allocation in range(128)
+                bool memoryError = false
+                bool valueError = false
+                assert failAfter(uint64(allocation))
+                try
+                    if invalid == 0 then
+                        check(operation, good)
+                    else
+                        check(operation, bad)
+                    end
+                catch MemoryError error
+                    memoryError = true
+                catch ValueError error
+                    valueError = true
+                end
+                bool triggered = failTriggered()
+                failClear()
+                assert not memoryError or triggered, "graph allocation error must remain MemoryError"
+                if invalid == 0 then
+                    assert not valueError
+                else
+                    assert memoryError or valueError
+                end
+                if memoryError then
+                    memoryFailures += 1
+                else
+                    completions += 1
+                end
+                check(operation, good)
+            end
+            assert memoryFailures > 0 and completions > 0
+        end
+    end
+    println("graph allocations: PASS")
+    return 0
+end

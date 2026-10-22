@@ -179,3 +179,10 @@ BFS 结果数量；Windows `test/check_c.ps1` 与 Linux C ASan/UBSan、语言和
 `-DNDEBUG` 编译 C 测试；预处理确认图查询仍执行。Windows 专项 C 测试、
 Linux 128 组独立参照图、218 个分配故障点、四线程及 XLang 对照通过。
 Windows 综合门禁仍在已登记的 `xl.dll` VFS 缺头处停止，未签收整包。
+
+2026-10-23：新增九个语言入口的逐点分配故障测试，分别使用有效图与含
+非法行的图，核对 `MemoryError`/`ValueError` 分类、正常结果和故障清除后
+原图仍可查询。测试已登记到包清单并接入 Windows/Linux 联合门禁。
+Linux C ASan/UBSan、XLang 与双语门禁全部通过；Windows 严格 C、
+XLang JIT/代码生成、ABI 原型及 C 范例通过，综合门禁仍在既有的
+`xl.dll` 运行时 VFS 缺头问题处停止，完整 AOT 亦未签收。
