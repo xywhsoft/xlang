@@ -1,4 +1,5 @@
 count: 8
+sum: 40.0
 mean: 5.0
 median: 4.5
 min: 2.0

@@ -31,7 +31,8 @@ int main(void)
     }
 
     printf("count: %" PRId64 "\n", xstat_count(data));
-    ok = print_number("mean", xstat_mean(data)) &&
+    ok = print_number("sum", xstat_sum(data)) &&
+        print_number("mean", xstat_mean(data)) &&
         print_number("median", xstat_median(data)) &&
         print_number("min", xstat_min(data)) &&
         print_number("max", xstat_max(data)) &&

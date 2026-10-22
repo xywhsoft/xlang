@@ -24,7 +24,8 @@ assert statistics.median(values) == 4.5
 
 `examples/basic.xl` 展示常用汇总，`examples/trend.xl` 展示分位数、拟合与分箱，
 `examples/distribution.xl` 展示众数、总体/样本离散度、几何/调和平均数及协方差；
-每份均有同输出的 C 范例和固定预期输出，Windows/Linux 包级门禁会逐份对照。
+三组范例合计覆盖全部 23 个公开入口。每份均有同输出的 C 范例和固定预期输出，
+Windows/Linux 包级门禁会逐份对照。
 
 `histogram` 在复制和遍历输入前检查 `bins`；非法箱数立即报参数错误，
 不因输入规模或输入复制时的分配失败改变错误类别。

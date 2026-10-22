@@ -4,6 +4,7 @@ func main(...) as int
     // 描述性统计：同一组整数由 C 范例计算并对照输出。
     var values = [2, 4, 4, 4, 5, 5, 7, 9]
     println("count:", statistics.count(values))
+    println("sum:", statistics.sum(values))
     println("mean:", statistics.mean(values))
     println("median:", statistics.median(values))
     println("min:", statistics.min(values))
