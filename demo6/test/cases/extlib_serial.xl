@@ -47,6 +47,21 @@ func main(...) as int
     assert sp.available == 6
     assert sp.read(6) == "你好"
 
+    // 文本读取不能把半个 UTF-8 字符作为 string 返回；二进制入口保留原始字节。
+    assert sp.write("你") == 3
+    bool splitText = false
+    try
+        sp.read(1)
+    catch error
+        splitText = error.kind == "ValueError"
+    end
+    assert splitText, "partial UTF-8 text is rejected"
+    Buffer tail = sp.readBytes(2)
+    assert tail.len() == 2 and tail.byteAt(0) == 189 and tail.byteAt(1) == 160
+    assert sp.write("你") == 3
+    Buffer whole = sp.readBytes(3)
+    assert whole.text() == "你"
+
     // 二进制读写保留嵌入零字节；结果不借用串口的暂存区。
     Buffer bytes = Buffer()
     assert bytes.appendByte(0) and bytes.appendByte(255) and bytes.appendByte(65)
