@@ -12,7 +12,7 @@ for allocation in range(12)
     try
         trie.Trie candidate = trie.create()
         assert candidate.valid
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
@@ -31,7 +31,7 @@ for allocation in range(16)
     assert failAfter(uint64(allocation))
     try
         words.insert("new")
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
