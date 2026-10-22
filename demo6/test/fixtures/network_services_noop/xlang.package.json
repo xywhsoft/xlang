@@ -1,0 +1,12 @@
+{
+  "format": "xlang-package-1",
+  "name": "network_services_noop",
+  "version": "1.0.0",
+  "abiVersion": "1",
+  "artifact": {
+    "kind": "source",
+    "cSources": ["observer.c"],
+    "xlSources": ["anchor.xl"],
+    "xrtModules": []
+  }
+}

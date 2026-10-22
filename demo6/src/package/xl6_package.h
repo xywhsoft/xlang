@@ -72,6 +72,9 @@ int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest);
 void xl6PackageResolveResultInit(XL6_PackageResolveResult* result);
 void xl6PackageResolveResultFree(XL6_PackageResolveResult* result);
 const char* xl6PackageResolveKindName(XL6_PackageResolveKind kind);
+/* Speculative resolution reports hit/miss through the return value/result,
+ * never through the caller's runtime error slot. Both hit and miss preserve
+ * its exact prior error. Explicit LoadManifest still publishes parse errors. */
 int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_PackageResolveResult* result);
 int xl6PackageLoadManifestObserved(const char* path, XL6_PackageManifest* manifest,
                                    struct XL6_SourceReport* report);
