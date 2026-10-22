@@ -11222,6 +11222,14 @@ typedef struct xnetportevent {
 typedef struct xnetbufpoolconfig xnetbufpoolconfig;
 typedef struct xnetbufpool xnetbufpool;
 typedef struct xnetbytes xnetbytes;
+
+/* Borrowed immutable slice metadata, shared by TCP and UDP. Acceptance may
+ * retain the owner; neither the descriptor nor its caller reference moves. */
+typedef struct xnetbytesref {
+	xnetbytes* Bytes;
+	size_t Offset;
+	size_t Size;
+} xnetbytesref;
 #endif
 
 
@@ -21339,17 +21347,10 @@ XRT_API xnetresult xrtNetStreamSendRefs(
 XRT_API xnetresult xrtNetStreamSendBytes(xnetstream* pStream, xnetbytes* pBytes,
 	size_t iOffset, size_t iSize);
 
-/* A borrowed immutable byte slice. A successful batch retains each nonempty
- * slice independently; input metadata and caller references remain caller-owned. */
-typedef struct xnetbytesref {
-	xnetbytes* Bytes;
-	size_t Offset;
-	size_t Size;
-} xnetbytesref;
-
 /* All-or-none bounded acceptance, no payload copy and no user releaser.
  * Failure/AGAIN/CLOSED leaves every caller reference unchanged. Thread-safe
- * like SendBytes; the owning graph includes each actual retained NetBytes. */
+ * like SendBytes; the owning graph includes each actual retained NetBytes.
+ * Uses shared xnetbytesref from net.h; only nonempty slices retain owners. */
 XRT_API xnetresult xrtNetStreamSendBytesVec(xnetstream* pStream,
 	const xnetbytesref* pRefs, size_t iCount);
 
@@ -38995,12 +38996,37 @@ XRT_EXTERN_C_END
 
 /* 普通 IPv4 和 IPv6 UDP 的保守最大载荷，避免依赖 IP 分片外的扩展语义。 */
 #define XNET_UDP_PAYLOAD_MAX 65507u
+#define XNET_UDP_VECTOR_MAX 64u
 
 
 
 typedef struct xnetudp xnetudp;
 typedef struct xnetudppacket xnetudppacket;
 typedef struct xnetudperrorpacket xnetudperrorpacket;
+
+typedef struct xnetudppacketref {
+	xnetudppacket* Packet;
+	size_t Offset;
+	size_t Size;
+} xnetudppacketref;
+
+/* The selected union member is the entire payload contract. Descriptors,
+ * addresses and controls are borrowed only for the duration of the call. */
+typedef enum xnetudpownedkind {
+	XNET_UDP_OWNED_BYTES = 1,
+	XNET_UDP_OWNED_PACKET,
+	XNET_UDP_OWNED_VECTOR
+} xnetudpownedkind;
+typedef struct xnetudpownedmessage {
+	const xnetaddr* Remote;
+	const xnetdgramcontrol* Control;
+	xnetudpownedkind Kind;
+	union {
+		xnetbytesref Bytes;
+		xnetudppacketref Packet;
+		struct { const xnetbytesref* Items; size_t Count; } Vector;
+	} Payload;
+} xnetudpownedmessage;
 
 #if defined(XRT_FEATURE_NET_UDP_FUTURE)
 typedef struct xnetudpbatch xnetudpbatch;
@@ -39220,6 +39246,15 @@ XRT_API xnetudp* xrtNetUdpConnect(
 /* 增加 UDP 引用并返回原指针。 */
 XRT_API xnetudp* xrtNetUdpRef(xnetudp* pUdp);
 
+/* Read under ownership Freeze after this UDP/Engine quiescence is admitted.
+ * V1 certifies native copied/taken sends and pull queues, not arbitrary user
+ * callbacks/Data, escaped sockets or as-yet unregistered Future waiters. */
+XRT_API xrtownershipref xrtNetUdpOwnership(const xnetudp* pUdp);
+XRT_API const xrtownershipquiescencev1* xrtNetUdpOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtNetUdpOwnershipAdapterV1(
+    xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+XRT_API const xnetruntimeownershipv1* xrtNetUdpRuntimeOwnershipV1Get(void);
+
 
 
 /* 释放 UDP 引用；关闭操作必须另行请求。 */
@@ -39303,6 +39338,28 @@ XRT_API xnetresult xrtNetUdpSendMsgTake(xnetudp* pUdp,
 XRT_API xnetresult xrtNetUdpSendBatch(xnetudp* pUdp,
 	const xnetdgramsend* pItems, size_t iCount, size_t* pAccepted);
 
+/* Typed zero-copy datagrams. Slices are strict (offset+size must fit). Empty
+ * slices/vectors still send ONE empty datagram but retain no payload owner.
+ * Remote=NULL uses the connected peer; Control=NULL/Flags=0 is ordinary UDP.
+ * No user callback or raw pointer is used to infer an owning graph edge. */
+XRT_API xnetresult xrtNetUdpSendMsgBytes(xnetudp* pUdp,
+	const xnetaddr* pRemote, const xnetdgramcontrol* pControl,
+	xnetbytes* pBytes, size_t iOffset, size_t iSize);
+XRT_API xnetresult xrtNetUdpSendMsgPacket(xnetudp* pUdp,
+	const xnetaddr* pRemote, const xnetdgramcontrol* pControl,
+	xnetudppacket* pPacket, size_t iOffset, size_t iSize);
+XRT_API xnetresult xrtNetUdpSendMsgBytesVec(xnetudp* pUdp,
+	const xnetaddr* pRemote, const xnetdgramcontrol* pControl,
+	const xnetbytesref* pRefs, size_t iCount);
+
+/* Prefix acceptance, one native submission for the constructed prefix. Each
+ * accepted nonempty slice retains a real owner; all caller references stay
+ * unchanged. Descriptors/control/span metadata are copied, payloads are not.
+ * ERROR/AGAIN may accompany a nonzero accepted prefix; inspect BOTH outputs.
+ * If the native submission fails, accepted=0 and all temporary holds unwind. */
+XRT_API xnetresult xrtNetUdpSendOwnedBatch(xnetudp* pUdp,
+	const xnetudpownedmessage* pItems, size_t iCount, size_t* pAccepted);
+
 
 
 /* 未设置 Receive 回调时，非阻塞取出一个拥有型数据包。 */
@@ -39334,6 +39391,12 @@ XRT_API void xrtNetUdpPacketDestroy(xnetudppacket* pPacket);
 
 /* 增加数据包引用并返回原指针，便于跨 Future 和线程保留零复制结果。 */
 XRT_API xnetudppacket* xrtNetUdpPacketRef(xnetudppacket* pPacket);
+
+/* Immutable payload/metadata owner, independent of its producing UDP/Engine.
+ * Next is queue structure, not an owning edge. Ref/Destroy participate in
+ * ownership mutation, including the holder's controlled nested operations. */
+XRT_API xrtownershipref xrtNetUdpPacketOwnership(const xnetudppacket* pPacket);
+XRT_API const xrtownershipadapterv1* xrtNetUdpPacketOwnershipAdapterV1(xrtownershipref Reference);
 
 
 
@@ -39373,6 +39436,10 @@ XRT_API void xrtNetUdpErrorPacketDestroy(xnetudperrorpacket* pPacket);
 XRT_API xnetudperrorpacket* xrtNetUdpErrorPacketRef(
 	xnetudperrorpacket* pPacket
 );
+
+/* Owned immutable error metadata and captured prefix; no socket/Engine edge. */
+XRT_API xrtownershipref xrtNetUdpErrorPacketOwnership(const xnetudperrorpacket* pPacket);
+XRT_API const xrtownershipadapterv1* xrtNetUdpErrorPacketOwnershipAdapterV1(xrtownershipref Reference);
 
 
 
@@ -39521,6 +39588,18 @@ XRT_API bool xrtNetUdpStats(const xnetudp* pUdp, xnetudpstats* pStats);
 
 
 #if defined(XRT_FEATURE_NET_UDP_FUTURE)
+/* Exact native policies for the Future producer, owned cancel Watch and three
+ * result variants. Admit their actual identity, not a copy of these records.
+ * Pending producer preparation is completed by normal UDP source shutdown. */
+XRT_API const xfutureproducerownershipv1* xrtNetUdpFutureProducerPolicyV1Get(void);
+XRT_API const xcancelwatchownershipv1* xrtNetUdpFutureCancelPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtNetUdpFuturePacketPayloadPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtNetUdpFutureErrorPayloadPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtNetUdpFutureBatchPayloadPolicyV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtNetUdpFutureOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtNetUdpFutureOwnershipAdapterV1(
+	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+
 /* 异步等待 UDP 条件；成功、失败、取消和关闭映射到统一 Future 终态。 */
 XRT_API xfuture* xrtNetUdpWaitAsync(
 	xnetudp* pUdp,
@@ -39558,6 +39637,11 @@ XRT_API xfuture* xrtNetUdpReceiveBatchAsync(
 /* 增加批量结果引用并返回原指针。 */
 XRT_API xnetudpbatch* xrtNetUdpBatchRef(xnetudpbatch* pBatch);
 
+/* Enumerates one real packet owner per nonempty slot. Taken slots have no
+ * edge. The batch does not own its producer, a Future or a language wrapper. */
+XRT_API xrtownershipref xrtNetUdpBatchOwnership(const xnetudpbatch* pBatch);
+XRT_API const xrtownershipadapterv1* xrtNetUdpBatchOwnershipAdapterV1(xrtownershipref Reference);
+
 
 
 /* 返回 Future 批量结果中的数据包数量。 */
@@ -39565,7 +39649,8 @@ XRT_API size_t xrtNetUdpBatchCount(const xnetudpbatch* pBatch);
 
 
 
-/* 返回批量结果中一个借用的数据包。 */
+/* 返回批量结果中一个借用的数据包。调用者须保持批次存活，并排除该槽 Take；
+ * 若要跨线程持有，应在排除 Take 时使用 PacketRef，或直接 Take 获取拥有权。 */
 XRT_API xnetudppacket* xrtNetUdpBatchPacket(
 	const xnetudpbatch* pBatch,
 	size_t iIndex
@@ -39573,7 +39658,10 @@ XRT_API xnetudppacket* xrtNetUdpBatchPacket(
 
 
 
-/* 从批量结果转移一个数据包所有权；对应位置随后为空。 */
+/* 从批量结果原子转移一个数据包所有权；对应位置随后为空。
+ * 并发 Take 同一槽最多一次取得数据包，调用期间须各自保证批次存活。
+ * Count 保留原索引范围；已取走的位置返回 NULL。Take 参与拥有图 mutation，
+ * Freeze 排除其他线程的 Take；持有 Freeze 的线程仍可执行受控的嵌套操作。 */
 XRT_API xnetudppacket* xrtNetUdpBatchTake(
 	xnetudpbatch* pBatch,
 	size_t iIndex

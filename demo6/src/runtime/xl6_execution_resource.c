@@ -189,7 +189,7 @@ Resource* xl6ExecutionCreateInternalV1(Source* source,const XL6_ExecutionFamilyV
     if(!family||family->size!=sizeof(*family)||family->abiTag!=XL6_EXECUTION_FAMILY_TAG_V1||
         !family->Create||!family->Rollback||!family->Retire||!family->Finish||!family->Drop||!family->Trace||!family->Close||!family->Cancel||!family->Present||
         family->instanceBytes<sizeof(Resource)||!options||options->kind!=family->kind||
-        (family->kind<XL6_EXECUTION_EXECUTOR_V1||family->kind>XL6_EXECUTION_TCP_SERVER_V1)){
+        (family->kind<XL6_EXECUTION_EXECUTOR_V1||family->kind>XL6_EXECUTION_UDP_SOCKET_V1)){
         xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
     xrtownershipscope mutation={0};begin(&mutation);bool entered=sourceEnterLocked(source,false);
     bool admitted=entered&&!source->closed&&!source->claim;end(&mutation);

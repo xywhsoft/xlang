@@ -16,6 +16,7 @@ typedef struct XL6_ExecutionCreateOptionsV1 {
         const struct xnetresolverconfig* resolver; /* call-only, copied by the native ctor */
         const struct XL6_TcpCreateOptionsV1* tcp; /* call-only typed transport factory */
         const struct XL6_TcpServerCreateOptionsV1* server;
+        const struct XL6_UdpCreateOptionsV1* udp;
     } value;
 } XL6_ExecutionCreateOptionsV1;
 typedef struct XL6_ExecutionFamilyV1 {

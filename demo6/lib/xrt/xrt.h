@@ -8890,6 +8890,14 @@ typedef struct xnetportevent {
 typedef struct xnetbufpoolconfig xnetbufpoolconfig;
 typedef struct xnetbufpool xnetbufpool;
 typedef struct xnetbytes xnetbytes;
+
+/* Borrowed immutable slice metadata, shared by TCP and UDP. Acceptance may
+ * retain the owner; neither the descriptor nor its caller reference moves. */
+typedef struct xnetbytesref {
+	xnetbytes* Bytes;
+	size_t Offset;
+	size_t Size;
+} xnetbytesref;
 #endif
 
 
@@ -18979,17 +18987,10 @@ XRT_API xnetresult xrtNetStreamSendRefs(
 XRT_API xnetresult xrtNetStreamSendBytes(xnetstream* pStream, xnetbytes* pBytes,
 	size_t iOffset, size_t iSize);
 
-/* A borrowed immutable byte slice. A successful batch retains each nonempty
- * slice independently; input metadata and caller references remain caller-owned. */
-typedef struct xnetbytesref {
-	xnetbytes* Bytes;
-	size_t Offset;
-	size_t Size;
-} xnetbytesref;
-
 /* All-or-none bounded acceptance, no payload copy and no user releaser.
  * Failure/AGAIN/CLOSED leaves every caller reference unchanged. Thread-safe
- * like SendBytes; the owning graph includes each actual retained NetBytes. */
+ * like SendBytes; the owning graph includes each actual retained NetBytes.
+ * Uses shared xnetbytesref from net.h; only nonempty slices retain owners. */
 XRT_API xnetresult xrtNetStreamSendBytesVec(xnetstream* pStream,
 	const xnetbytesref* pRefs, size_t iCount);
 
@@ -36635,12 +36636,37 @@ XRT_EXTERN_C_END
 
 /* 普通 IPv4 和 IPv6 UDP 的保守最大载荷，避免依赖 IP 分片外的扩展语义。 */
 #define XNET_UDP_PAYLOAD_MAX 65507u
+#define XNET_UDP_VECTOR_MAX 64u
 
 
 
 typedef struct xnetudp xnetudp;
 typedef struct xnetudppacket xnetudppacket;
 typedef struct xnetudperrorpacket xnetudperrorpacket;
+
+typedef struct xnetudppacketref {
+	xnetudppacket* Packet;
+	size_t Offset;
+	size_t Size;
+} xnetudppacketref;
+
+/* The selected union member is the entire payload contract. Descriptors,
+ * addresses and controls are borrowed only for the duration of the call. */
+typedef enum xnetudpownedkind {
+	XNET_UDP_OWNED_BYTES = 1,
+	XNET_UDP_OWNED_PACKET,
+	XNET_UDP_OWNED_VECTOR
+} xnetudpownedkind;
+typedef struct xnetudpownedmessage {
+	const xnetaddr* Remote;
+	const xnetdgramcontrol* Control;
+	xnetudpownedkind Kind;
+	union {
+		xnetbytesref Bytes;
+		xnetudppacketref Packet;
+		struct { const xnetbytesref* Items; size_t Count; } Vector;
+	} Payload;
+} xnetudpownedmessage;
 
 #if defined(XRT_FEATURE_NET_UDP_FUTURE)
 typedef struct xnetudpbatch xnetudpbatch;
@@ -36860,6 +36886,15 @@ XRT_API xnetudp* xrtNetUdpConnect(
 /* 增加 UDP 引用并返回原指针。 */
 XRT_API xnetudp* xrtNetUdpRef(xnetudp* pUdp);
 
+/* Read under ownership Freeze after this UDP/Engine quiescence is admitted.
+ * V1 certifies native copied/taken sends and pull queues, not arbitrary user
+ * callbacks/Data, escaped sockets or as-yet unregistered Future waiters. */
+XRT_API xrtownershipref xrtNetUdpOwnership(const xnetudp* pUdp);
+XRT_API const xrtownershipquiescencev1* xrtNetUdpOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtNetUdpOwnershipAdapterV1(
+    xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+XRT_API const xnetruntimeownershipv1* xrtNetUdpRuntimeOwnershipV1Get(void);
+
 
 
 /* 释放 UDP 引用；关闭操作必须另行请求。 */
@@ -36943,6 +36978,28 @@ XRT_API xnetresult xrtNetUdpSendMsgTake(xnetudp* pUdp,
 XRT_API xnetresult xrtNetUdpSendBatch(xnetudp* pUdp,
 	const xnetdgramsend* pItems, size_t iCount, size_t* pAccepted);
 
+/* Typed zero-copy datagrams. Slices are strict (offset+size must fit). Empty
+ * slices/vectors still send ONE empty datagram but retain no payload owner.
+ * Remote=NULL uses the connected peer; Control=NULL/Flags=0 is ordinary UDP.
+ * No user callback or raw pointer is used to infer an owning graph edge. */
+XRT_API xnetresult xrtNetUdpSendMsgBytes(xnetudp* pUdp,
+	const xnetaddr* pRemote, const xnetdgramcontrol* pControl,
+	xnetbytes* pBytes, size_t iOffset, size_t iSize);
+XRT_API xnetresult xrtNetUdpSendMsgPacket(xnetudp* pUdp,
+	const xnetaddr* pRemote, const xnetdgramcontrol* pControl,
+	xnetudppacket* pPacket, size_t iOffset, size_t iSize);
+XRT_API xnetresult xrtNetUdpSendMsgBytesVec(xnetudp* pUdp,
+	const xnetaddr* pRemote, const xnetdgramcontrol* pControl,
+	const xnetbytesref* pRefs, size_t iCount);
+
+/* Prefix acceptance, one native submission for the constructed prefix. Each
+ * accepted nonempty slice retains a real owner; all caller references stay
+ * unchanged. Descriptors/control/span metadata are copied, payloads are not.
+ * ERROR/AGAIN may accompany a nonzero accepted prefix; inspect BOTH outputs.
+ * If the native submission fails, accepted=0 and all temporary holds unwind. */
+XRT_API xnetresult xrtNetUdpSendOwnedBatch(xnetudp* pUdp,
+	const xnetudpownedmessage* pItems, size_t iCount, size_t* pAccepted);
+
 
 
 /* 未设置 Receive 回调时，非阻塞取出一个拥有型数据包。 */
@@ -36974,6 +37031,12 @@ XRT_API void xrtNetUdpPacketDestroy(xnetudppacket* pPacket);
 
 /* 增加数据包引用并返回原指针，便于跨 Future 和线程保留零复制结果。 */
 XRT_API xnetudppacket* xrtNetUdpPacketRef(xnetudppacket* pPacket);
+
+/* Immutable payload/metadata owner, independent of its producing UDP/Engine.
+ * Next is queue structure, not an owning edge. Ref/Destroy participate in
+ * ownership mutation, including the holder's controlled nested operations. */
+XRT_API xrtownershipref xrtNetUdpPacketOwnership(const xnetudppacket* pPacket);
+XRT_API const xrtownershipadapterv1* xrtNetUdpPacketOwnershipAdapterV1(xrtownershipref Reference);
 
 
 
@@ -37013,6 +37076,10 @@ XRT_API void xrtNetUdpErrorPacketDestroy(xnetudperrorpacket* pPacket);
 XRT_API xnetudperrorpacket* xrtNetUdpErrorPacketRef(
 	xnetudperrorpacket* pPacket
 );
+
+/* Owned immutable error metadata and captured prefix; no socket/Engine edge. */
+XRT_API xrtownershipref xrtNetUdpErrorPacketOwnership(const xnetudperrorpacket* pPacket);
+XRT_API const xrtownershipadapterv1* xrtNetUdpErrorPacketOwnershipAdapterV1(xrtownershipref Reference);
 
 
 
@@ -37161,6 +37228,18 @@ XRT_API bool xrtNetUdpStats(const xnetudp* pUdp, xnetudpstats* pStats);
 
 
 #if defined(XRT_FEATURE_NET_UDP_FUTURE)
+/* Exact native policies for the Future producer, owned cancel Watch and three
+ * result variants. Admit their actual identity, not a copy of these records.
+ * Pending producer preparation is completed by normal UDP source shutdown. */
+XRT_API const xfutureproducerownershipv1* xrtNetUdpFutureProducerPolicyV1Get(void);
+XRT_API const xcancelwatchownershipv1* xrtNetUdpFutureCancelPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtNetUdpFuturePacketPayloadPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtNetUdpFutureErrorPayloadPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtNetUdpFutureBatchPayloadPolicyV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtNetUdpFutureOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtNetUdpFutureOwnershipAdapterV1(
+	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+
 /* 异步等待 UDP 条件；成功、失败、取消和关闭映射到统一 Future 终态。 */
 XRT_API xfuture* xrtNetUdpWaitAsync(
 	xnetudp* pUdp,
@@ -37198,6 +37277,11 @@ XRT_API xfuture* xrtNetUdpReceiveBatchAsync(
 /* 增加批量结果引用并返回原指针。 */
 XRT_API xnetudpbatch* xrtNetUdpBatchRef(xnetudpbatch* pBatch);
 
+/* Enumerates one real packet owner per nonempty slot. Taken slots have no
+ * edge. The batch does not own its producer, a Future or a language wrapper. */
+XRT_API xrtownershipref xrtNetUdpBatchOwnership(const xnetudpbatch* pBatch);
+XRT_API const xrtownershipadapterv1* xrtNetUdpBatchOwnershipAdapterV1(xrtownershipref Reference);
+
 
 
 /* 返回 Future 批量结果中的数据包数量。 */
@@ -37205,7 +37289,8 @@ XRT_API size_t xrtNetUdpBatchCount(const xnetudpbatch* pBatch);
 
 
 
-/* 返回批量结果中一个借用的数据包。 */
+/* 返回批量结果中一个借用的数据包。调用者须保持批次存活，并排除该槽 Take；
+ * 若要跨线程持有，应在排除 Take 时使用 PacketRef，或直接 Take 获取拥有权。 */
 XRT_API xnetudppacket* xrtNetUdpBatchPacket(
 	const xnetudpbatch* pBatch,
 	size_t iIndex
@@ -37213,7 +37298,10 @@ XRT_API xnetudppacket* xrtNetUdpBatchPacket(
 
 
 
-/* 从批量结果转移一个数据包所有权；对应位置随后为空。 */
+/* 从批量结果原子转移一个数据包所有权；对应位置随后为空。
+ * 并发 Take 同一槽最多一次取得数据包，调用期间须各自保证批次存活。
+ * Count 保留原索引范围；已取走的位置返回 NULL。Take 参与拥有图 mutation，
+ * Freeze 排除其他线程的 Take；持有 Freeze 的线程仍可执行受控的嵌套操作。 */
 XRT_API xnetudppacket* xrtNetUdpBatchTake(
 	xnetudpbatch* pBatch,
 	size_t iIndex
@@ -46916,6 +47004,10 @@ bool __xrtNetEngineRuntimeTimer(xnetworker*, uint64, const xnetruntimeownershipv
 
 /* 高层对象实际持有 Engine 强引用，同时阻止带活动对象的停止和销毁。 */
 bool __xrtNetEngineObjectHold(xnetengine* pEngine);
+/* Physical shell/Worker-array ownership only; does not keep operational
+ * resources alive or prevent a checked Stop/Destroy from joining workers. */
+bool __xrtNetEngineStorageRetain(xnetengine* pEngine);
+void __xrtNetEngineStorageRelease(xnetengine* pEngine);
 
 
 
@@ -59766,6 +59858,14 @@ const xrtownershipadapterv1* __xrtNetStreamDialFutureOwnershipAdapterV1(
 #define XRT_NET_UDP_CONTROL_LIFECYCLE \
 	(XRT_NET_UDP_CONTROL_CLOSE | XRT_NET_UDP_CONTROL_ABORT)
 #define XRT_NET_UDP_CONTROL_POSTED 0x80000000u
+#define XRT_NET_UDP_OWNERSHIP_READY 0x00000001u
+#define XRT_NET_UDP_OWNERSHIP_CLEARED 0x00000002u
+#define XRT_NET_UDP_SEND_COPY 1u
+#define XRT_NET_UDP_SEND_TAKE 2u
+#define XRT_NET_UDP_SEND_OPAQUE 3u
+#define XRT_NET_UDP_SEND_BYTES 4u
+#define XRT_NET_UDP_SEND_PACKET 5u
+#define XRT_NET_UDP_SEND_VECTOR 6u
 
 typedef struct __xrt_net_udp_send __xrt_net_udp_send;
 typedef struct __xrt_net_udp_send_slot __xrt_net_udp_send_slot;
@@ -59824,7 +59924,7 @@ struct __xrt_net_udp_send {
 	xnetudp* Udp;
 	__xrt_net_udp_send_slot* Slot;
 	xnetaddr Remote;
-	cbytes Data;
+	union { cbytes Data; const xnetspan* Spans; };
 	size_t Size;
 	xnetreleaseproc Release;
 	ptr ReleaseContext;
@@ -59832,11 +59932,20 @@ struct __xrt_net_udp_send {
 	bool OwnsExternal;
 	bool Copied;
 	bool Controlled;
+	uint32 PayloadOwnership;
 	union {
 		uint64 Align;
 		uint8 Data[1];
 	} Tail;
 };
+
+/* Extra storage exists ONLY on vector records, after any copied control.
+ * Capacity determines the physical allocation; Count is the actual number
+ * of retained owners (also valid during a partially constructed unwind). */
+typedef struct __xrt_net_udp_vector {
+	size_t Count, Capacity;
+	xnetspan Spans[];
+} __xrt_net_udp_vector;
 
 
 
@@ -59857,6 +59966,16 @@ static inline bytes __xrtNetUdpSendCopy(__xrt_net_udp_send* pSend)
 	return pSend->Tail.Data + (pSend->Controlled ?
 		sizeof(xnetdgramcontrol) : 0);
 }
+
+static inline size_t __xrtNetUdpVectorPrefix(bool bControlled)
+{ return bControlled ? (sizeof(xnetdgramcontrol) + _Alignof(__xrt_net_udp_vector) - 1u) &
+	~(size_t)(_Alignof(__xrt_net_udp_vector) - 1u) : 0; }
+static inline __xrt_net_udp_vector* __xrtNetUdpSendVector(const __xrt_net_udp_send* pSend)
+{ return (__xrt_net_udp_vector*)(pSend->Tail.Data + __xrtNetUdpVectorPrefix(pSend->Controlled)); }
+static inline xnetbytes** __xrtNetUdpVectorOwners(__xrt_net_udp_vector* pVector)
+{ return (xnetbytes**)(pVector->Spans + pVector->Capacity); }
+static inline bool __xrtNetUdpSendRetained(const __xrt_net_udp_send* pSend)
+{ return pSend->PayloadOwnership >= XRT_NET_UDP_SEND_BYTES && pSend->PayloadOwnership <= XRT_NET_UDP_SEND_VECTOR; }
 
 
 
@@ -59951,6 +60070,13 @@ struct xnetudperrorpacket {
 struct xnetudp {
 	volatile int32 References;
 	xatomic32 State;
+	__xrt_net_engine_runtime RuntimeOwner;
+	xrt_spinlock OwnershipGate;
+	xatomicptr OwnershipClaim;
+	xatomic32 OwnershipActive, OwnershipState, OwnershipStop;
+	__xrt_net_engine_internal OwnershipCommand;
+	size_t ActiveDepth; /* Worker call frames, never a fabricated owner */
+	bool EngineStorageHeld, SocketExposed;
 	xatomic32 ControlRequests;
 	xatomic32 SendGate;
 	xatomic32 CloseGate;
@@ -60032,6 +60158,16 @@ struct xnetudp {
 	__xrt_net_engine_internal ControlCommand;
 };
 
+extern const xrtownershipops __xrtNetUdpOwnershipOps;
+bool __xrtNetUdpOwnershipEnter(xnetudp*, bool);
+void __xrtNetUdpOwnershipLeave(xnetudp*);
+bool __xrtNetUdpOwnershipStop(xnetudp*);
+void __xrtNetUdpActiveEnter(xnetudp*); /* Worker-only, balanced at frame tail */
+void __xrtNetUdpActiveLeave(xnetudp*);
+void __xrtNetUdpRollbackCreated(xnetudp*);
+bool __xrtNetUdpSendsOwnership(const xnetudp*, xrtownershipvisitor, ptr);
+bool __xrtNetUdpReceivesOwnership(const xnetudp*, xrtownershipvisitor, ptr);
+
 
 
 /* Worker 回调读取当前用户数据，不取得指针目标所有权。 */
@@ -60110,6 +60246,7 @@ void __xrtNetUdpControl(xnetworker* pWorker, ptr pData);
 
 
 #if defined(XRT_FEATURE_NET_UDP_FUTURE)
+bool __xrtNetUdpWaitOwnershipWalk(const xnetudp*, xrtownershipvisitor, ptr);
 /* 调用方持有 ReceiveLock 时，把排队数据包配对给拉取 Future。 */
 __xrt_net_udp_wait* __xrtNetUdpFuturePairReceiveLocked(xnetudp* pUdp);
 
@@ -85480,9 +85617,10 @@ static void __xrtNetEngineRelease(xnetengine* pEngine)
 	}
 	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
 }
-/* A pool's first outstanding block lease retains this actual shell owner;
- * its last completed release returns it. This is not a LiveObjects estimate. */
-bool __xrtNetEnginePoolRetain(xnetengine* pEngine)
+/* Physical storage ownership, separate from operational LiveObjects. Used
+ * by outstanding pool leases and closed transport call tails; releasing the
+ * creator may retire resources while these real shell references remain. */
+bool __xrtNetEngineStorageRetain(xnetengine* pEngine)
 {
 	xrtownershipscope Mutation = {0};
 	if (!xrtOwnershipMutationBegin(&Mutation)) return false;
@@ -85490,7 +85628,9 @@ bool __xrtNetEnginePoolRetain(xnetengine* pEngine)
 	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
 	return bHeld;
 }
-void __xrtNetEnginePoolRelease(xnetengine* pEngine) { __xrtNetEngineRelease(pEngine); }
+void __xrtNetEngineStorageRelease(xnetengine* pEngine) { __xrtNetEngineRelease(pEngine); }
+bool __xrtNetEnginePoolRetain(xnetengine* pEngine) { return __xrtNetEngineStorageRetain(pEngine); }
+void __xrtNetEnginePoolRelease(xnetengine* pEngine) { __xrtNetEngineStorageRelease(pEngine); }
 static void __xrtNetEnginePark(xnetworker* pWorker, bool bParked)
 {
 	xrtownershipscope Mutation = {0};
@@ -264956,6 +265096,9 @@ XRT_API xnetstream* xrtNetServerAcceptWait(xnetserver* pServer, xdeadline iDeadl
 static void __xrtNetUdpDriveRead(xnetudp* pUdp);
 static bool __xrtNetUdpDriveErrors(xnetudp* pUdp);
 static void __xrtNetUdpFail(xnetudp* pUdp, bool bReceive);
+static void __xrtNetUdpReceiveCompletion(xnetworker*, const xnetportevent*, ptr);
+static void __xrtNetUdpErrorCompletion(xnetworker*, const xnetportevent*, ptr);
+static void __xrtNetUdpReleaseRuntime(xnetudp*);
 static void __xrtNetUdpControlRequest(
 	xnetudp* pUdp,
 	uint32 iRequest
@@ -265090,8 +265233,12 @@ static bool __xrtNetUdpQueuedSystemError(
 /* 增加 UDP 引用。 */
 XRT_API xnetudp* xrtNetUdpRef(xnetudp* pUdp)
 {
-	if ( (pUdp == NULL) ||
-		 (xrtRefRetain(&pUdp->References) < 0) ) {
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) return NULL;
+	bool bHeld = pUdp && !(xrtAtomic32Load(&pUdp->OwnershipState, XMEMORY_ACQUIRE) & XRT_NET_UDP_OWNERSHIP_CLEARED) &&
+		xrtRefRetain(&pUdp->References) >= 0;
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (!bHeld) {
 		__xrtErrorSetInvalidArgument();
 		return NULL;
 	}
@@ -265139,9 +265286,14 @@ XRT_API void xrtNetUdpDestroy(xnetudp* pUdp)
 	if ( pUdp == NULL ) {
 		return;
 	}
-	if ( xrtRefRelease(&pUdp->References) != 0 ) {
-		return;
-	}
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	int32 iReferences = xrtRefRelease(&pUdp->References);
+	if (iReferences < 0) abort();
+	if (iReferences) { if (!xrtOwnershipScopeEnd(&Mutation)) abort(); return; }
+	if (pUdp->RuntimeHeld || pUdp->EngineStorageHeld || pUdp->RuntimeOwner.Data || pUdp->RuntimeOwner.Previous || pUdp->ActiveDepth ||
+		xrtAtomic32Load(&pUdp->OwnershipActive, XMEMORY_ACQUIRE) ||
+		xrtAtomic32Load(&pUdp->OwnershipStop, XMEMORY_ACQUIRE)) abort();
 	pEngine = pUdp->Engine;
 	bEngineHeld = pUdp->EngineHeld;
 	__xrtNetUdpPacketListDestroy(pUdp->ReceiveHead);
@@ -265151,11 +265303,13 @@ XRT_API void xrtNetUdpDestroy(xnetudp* pUdp)
 	if ( pUdp->ReceiveLockReady ) {
 		__xrtSpinUnit(&pUdp->ReceiveLock);
 	}
+	__xrtSpinUnit(&pUdp->OwnershipGate);
 	xrtErrorFree(pUdp->Error);
 	xrtFree(pUdp);
 	if ( bEngineHeld ) {
 		__xrtNetEngineObjectRelease(pEngine);
 	}
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
 }
 
 
@@ -265200,10 +265354,13 @@ static xnetudppacket* __xrtNetUdpPacketCreate(
 /* 销毁拥有型 UDP 数据包。 */
 XRT_API void xrtNetUdpPacketDestroy(xnetudppacket* pPacket)
 {
-	if ( (pPacket != NULL) &&
-		 (xrtRefRelease(&pPacket->References) == 0) ) {
-		xrtFree(pPacket);
-	}
+	if (!pPacket) return;
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	int32 iReferences = xrtRefRelease(&pPacket->References);
+	if (iReferences < 0) abort();
+	if (!iReferences) xrtFree(pPacket);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
 }
 
 
@@ -265211,12 +265368,44 @@ XRT_API void xrtNetUdpPacketDestroy(xnetudppacket* pPacket)
 /* 增加拥有型 UDP 数据包引用。 */
 XRT_API xnetudppacket* xrtNetUdpPacketRef(xnetudppacket* pPacket)
 {
-	if ( (pPacket == NULL) ||
-		 (xrtRefRetain(&pPacket->References) < 0) ) {
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) return NULL;
+	bool bHeld = pPacket && xrtRefRetain(&pPacket->References) >= 0;
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (!bHeld) {
 		__xrtErrorSetInvalidArgument();
 		return NULL;
 	}
 	return pPacket;
+}
+
+static bool __xrtNetUdpPacketCount(const void* pData, size_t* pCount)
+{
+	const xnetudppacket* pPacket = pData;
+	if (!pPacket || !pCount) return false;
+	int32 iReferences = __xrtAtomicRefLoad(&pPacket->References);
+	if (iReferences <= 0) return false;
+	*pCount = (size_t)iReferences; return true;
+}
+static bool __xrtNetUdpPacketTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{ size_t iCount; (void)pContext; return pVisit && __xrtNetUdpPacketCount(pData, &iCount); }
+static const xrtownershipops __xrtNetUdpPacketOps = {__xrtNetUdpPacketCount, __xrtNetUdpPacketTrace};
+XRT_API xrtownershipref xrtNetUdpPacketOwnership(const xnetudppacket* pPacket)
+{ return (xrtownershipref){pPacket, pPacket ? &__xrtNetUdpPacketOps : NULL}; }
+static bool __xrtNetUdpPacketHold(const void* pData)
+{ return xrtNetUdpPacketRef((xnetudppacket*)pData) != NULL; }
+static void __xrtNetUdpPacketDrop(const void* pData)
+{ xrtNetUdpPacketDestroy((xnetudppacket*)pData); }
+static bool __xrtNetUdpPacketClaim(const void* pData, const void* pToken)
+{ return pData && pToken; }
+static void __xrtNetUdpPacketKeep(const void* pData, const void* pToken)
+{ (void)pData; (void)pToken; }
+XRT_API const xrtownershipadapterv1* xrtNetUdpPacketOwnershipAdapterV1(xrtownershipref Reference)
+{
+	static const xrtownershipadapterv1 Adapter = {sizeof(Adapter), __xrtNetUdpPacketHold, __xrtNetUdpPacketDrop,
+		__xrtNetUdpPacketClaim, __xrtNetUdpPacketKeep, NULL, __xrtNetUdpPacketKeep, NULL};
+	size_t iCount;
+	return Reference.Ops == &__xrtNetUdpPacketOps && __xrtNetUdpPacketCount(Reference.Data, &iCount) ? &Adapter : NULL;
 }
 
 
@@ -265300,10 +265489,13 @@ static xnetudperrorpacket* __xrtNetUdpErrorPacketCreate(
 /* 销毁拥有型数据报错误包。 */
 XRT_API void xrtNetUdpErrorPacketDestroy(xnetudperrorpacket* pPacket)
 {
-	if ( (pPacket != NULL) &&
-		 (xrtRefRelease(&pPacket->References) == 0) ) {
-		xrtFree(pPacket);
-	}
+	if (!pPacket) return;
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	int32 iReferences = xrtRefRelease(&pPacket->References);
+	if (iReferences < 0) abort();
+	if (!iReferences) xrtFree(pPacket);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
 }
 
 
@@ -265313,12 +265505,40 @@ XRT_API xnetudperrorpacket* xrtNetUdpErrorPacketRef(
 	xnetudperrorpacket* pPacket
 )
 {
-	if ( (pPacket == NULL) ||
-		 (xrtRefRetain(&pPacket->References) < 0) ) {
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) return NULL;
+	bool bHeld = pPacket && xrtRefRetain(&pPacket->References) >= 0;
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (!bHeld) {
 		__xrtErrorSetInvalidArgument();
 		return NULL;
 	}
 	return pPacket;
+}
+
+static bool __xrtNetUdpErrorPacketCount(const void* pData, size_t* pCount)
+{
+	const xnetudperrorpacket* pPacket = pData;
+	if (!pPacket || !pCount) return false;
+	int32 iReferences = __xrtAtomicRefLoad(&pPacket->References);
+	if (iReferences <= 0) return false;
+	*pCount = (size_t)iReferences; return true;
+}
+static bool __xrtNetUdpErrorPacketTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{ size_t iCount; (void)pContext; return pVisit && __xrtNetUdpErrorPacketCount(pData, &iCount); }
+static const xrtownershipops __xrtNetUdpErrorPacketOps = {__xrtNetUdpErrorPacketCount, __xrtNetUdpErrorPacketTrace};
+XRT_API xrtownershipref xrtNetUdpErrorPacketOwnership(const xnetudperrorpacket* pPacket)
+{ return (xrtownershipref){pPacket, pPacket ? &__xrtNetUdpErrorPacketOps : NULL}; }
+static bool __xrtNetUdpErrorPacketHold(const void* pData)
+{ return xrtNetUdpErrorPacketRef((xnetudperrorpacket*)pData) != NULL; }
+static void __xrtNetUdpErrorPacketDrop(const void* pData)
+{ xrtNetUdpErrorPacketDestroy((xnetudperrorpacket*)pData); }
+XRT_API const xrtownershipadapterv1* xrtNetUdpErrorPacketOwnershipAdapterV1(xrtownershipref Reference)
+{
+	static const xrtownershipadapterv1 Adapter = {sizeof(Adapter), __xrtNetUdpErrorPacketHold, __xrtNetUdpErrorPacketDrop,
+		__xrtNetUdpPacketClaim, __xrtNetUdpPacketKeep, NULL, __xrtNetUdpPacketKeep, NULL};
+	size_t iCount;
+	return Reference.Ops == &__xrtNetUdpErrorPacketOps && __xrtNetUdpErrorPacketCount(Reference.Data, &iCount) ? &Adapter : NULL;
 }
 
 
@@ -265792,7 +266012,7 @@ static bool __xrtNetUdpReceiveCommit(
 
 
 /* 非阻塞取出一个拉取数据包。 */
-XRT_API xnetudppacket* xrtNetUdpReceive(xnetudp* pUdp)
+static xnetudppacket* __xrtNetUdpReceiveImpl(xnetudp* pUdp)
 {
 	xnetudppacket* pPacket;
 	bool bAsyncReceive = false;
@@ -265852,7 +266072,7 @@ XRT_API xnetudppacket* xrtNetUdpReceive(xnetudp* pUdp)
 
 
 /* 在一次锁内取出多个拉取数据包。 */
-XRT_API size_t xrtNetUdpReceiveBatch(
+static size_t __xrtNetUdpReceiveBatchImpl(
 	xnetudp* pUdp,
 	xnetudppacket** pPackets,
 	size_t iCapacity
@@ -265952,7 +266172,7 @@ xnetudperrorpacket* __xrtNetUdpTakeErrorLocked(xnetudp* pUdp)
 
 
 /* 非阻塞取出一个拥有型数据报错误包。 */
-XRT_API xnetudperrorpacket* xrtNetUdpReceiveError(xnetudp* pUdp)
+static xnetudperrorpacket* __xrtNetUdpReceiveErrorImpl(xnetudp* pUdp)
 {
 	xnetudperrorpacket* pPacket;
 	bool bAsyncReceive = false;
@@ -265997,7 +266217,7 @@ XRT_API xnetudperrorpacket* xrtNetUdpReceiveError(xnetudp* pUdp)
 
 
 /* 在一次锁内取出多个拥有型数据报错误包。 */
-XRT_API size_t xrtNetUdpReceiveErrorBatch(
+static size_t __xrtNetUdpReceiveErrorBatchImpl(
 	xnetudp* pUdp,
 	xnetudperrorpacket** pPackets,
 	size_t iCapacity
@@ -266252,11 +266472,19 @@ void __xrtNetUdpTryFinish(xnetudp* pUdp)
 			__xrtSpinUnlock(&pUdp->ReceiveLock);
 		}
 	#endif
-	/* CLOSED 发布后必须允许外部立即销毁 Engine。 */
-	if ( pUdp->EngineHeld ) {
+	/* The runtime/Engine lease is released only after this native frame and
+	 * every admitted foreign call have returned, not during a user callback. */
+	xrtownershipscope Closing = {0};
+	if (!xrtOwnershipMutationBegin(&Closing)) abort();
+	__xrtSpinLock(&pUdp->OwnershipGate);
+	if (pUdp->EngineHeld) {
+		if (!__xrtNetEngineStorageRetain(pUdp->Engine)) abort();
+		pUdp->EngineStorageHeld = true;
 		pUdp->EngineHeld = false;
 		__xrtNetEngineObjectRelease(pUdp->Engine);
 	}
+	__xrtSpinUnlock(&pUdp->OwnershipGate);
+	if (!xrtOwnershipScopeEnd(&Closing)) abort();
 	xrtAtomic32Store(
 		&pUdp->State,
 		XNET_UDP_CLOSED,
@@ -266271,10 +266499,7 @@ void __xrtNetUdpTryFinish(xnetudp* pUdp)
 		);
 	}
 	__xrtNetUdpNotifyFutures(pUdp);
-	if ( pUdp->RuntimeHeld ) {
-		pUdp->RuntimeHeld = false;
-		xrtNetUdpDestroy(pUdp);
-	}
+	__xrtNetUdpReleaseRuntime(pUdp); /* final receiver access */
 }
 
 
@@ -266405,7 +266630,7 @@ static bool __xrtNetUdpArmError(
 
 
 /* 处理一个 completion 接收终态。 */
-static void __xrtNetUdpReceiveCompletion(
+static void __xrtNetUdpReceiveCompletionImpl(
 	xnetworker* pWorker,
 	const xnetportevent* pEvent,
 	ptr pData
@@ -266481,7 +266706,7 @@ static void __xrtNetUdpReceiveCompletion(
 
 
 /* 处理一个 completion 数据报错误终态。 */
-static void __xrtNetUdpErrorCompletion(
+static void __xrtNetUdpErrorCompletionImpl(
 	xnetworker* pWorker,
 	const xnetportevent* pEvent,
 	ptr pData
@@ -266762,6 +266987,11 @@ static bool __xrtNetUdpPortSend(
 {
 	xnetport* pPort = __xrtNetWorkerPortBorrow(pUdp->Worker);
 
+	if (pSend->PayloadOwnership == XRT_NET_UDP_SEND_VECTOR) {
+		return xrtNetPortSendMsgVec(pPort, pUdp->Socket, pSend->Spans,
+			__xrtNetUdpSendVector(pSend)->Count, pUdp->Connected ? NULL : &pSend->Remote,
+			__xrtNetUdpSendControl(pSend), Id, pUser);
+	}
 	if ( pSend->Controlled ) {
 		return xrtNetPortSendMsg(
 			pPort,
@@ -266801,6 +267031,10 @@ static xnetresult __xrtNetUdpSocketSend(
 	size_t* pSent
 )
 {
+	if (pSend->PayloadOwnership == XRT_NET_UDP_SEND_VECTOR) {
+		return xrtNetSocketSendMsgVec(pUdp->Socket, pSend->Spans, __xrtNetUdpSendVector(pSend)->Count,
+			pSent, pUdp->Connected ? NULL : &pSend->Remote, __xrtNetUdpSendControl(pSend));
+	}
 	if ( pSend->Controlled ) {
 		return xrtNetSocketSendMsg(
 			pUdp->Socket,
@@ -266919,7 +267153,7 @@ static void __xrtNetUdpDriveWriteRun(xnetudp* pUdp)
 			) ) {
 				return;
 			}
-			if ( (pSend != NULL) && pSend->Controlled ) {
+			if (pSend && (pSend->Controlled || pSend->PayloadOwnership == XRT_NET_UDP_SEND_VECTOR)) {
 				xnetresult SendResult = __xrtNetUdpSocketSend(
 					pUdp,
 					pSend,
@@ -266953,7 +267187,7 @@ static void __xrtNetUdpDriveWriteRun(xnetudp* pUdp)
 			if ( iLimit > (size_t)iBudget ) {
 				iLimit = (size_t)iBudget;
 			}
-			while ( (pSend != NULL) && !pSend->Controlled &&
+			while ( (pSend != NULL) && !pSend->Controlled && pSend->PayloadOwnership != XRT_NET_UDP_SEND_VECTOR &&
 				 (iCount < iLimit) ) {
 				Sends[iCount] = pSend;
 				Items[iCount].Remote = pUdp->Connected ?
@@ -267083,7 +267317,7 @@ void __xrtNetUdpDriveWrite(xnetudp* pUdp)
 	if ( pUdp->WriteDriving ) {
 		return;
 	}
-	if ( xrtRefRetain(&pUdp->References) < 0 ) {
+	if ( xrtNetUdpRef(pUdp) == NULL ) {
 		return;
 	}
 	pUdp->WriteDriving = true;
@@ -267095,7 +267329,7 @@ void __xrtNetUdpDriveWrite(xnetudp* pUdp)
 
 
 /* 处理一个 completion 发送槽的终态。 */
-void __xrtNetUdpSendCompletion(
+static void __xrtNetUdpSendCompletionImpl(
 	xnetworker* pWorker,
 	const xnetportevent* pEvent,
 	ptr pData
@@ -267158,7 +267392,7 @@ void __xrtNetUdpSendCompletion(
 
 
 /* 处理 readiness 事件。 */
-void __xrtNetUdpCompletion(
+static void __xrtNetUdpCompletionImpl(
 	xnetworker* pWorker,
 	const xnetportevent* pEvent,
 	ptr pData
@@ -267167,9 +267401,6 @@ void __xrtNetUdpCompletion(
 	xnetudp* pUdp = (xnetudp*)pData;
 
 	(void)pWorker;
-	if ( xrtRefRetain(&pUdp->References) < 0 ) {
-		return;
-	}
 	if ( pEvent->Type == XNET_PORT_EVENT_READY ) {
 		pUdp->WatchPending = false;
 		pUdp->WatchEvents = 0;
@@ -267225,7 +267456,6 @@ void __xrtNetUdpCompletion(
 			__xrtNetUdpFail(pUdp, true);
 		}
 	}
-	xrtNetUdpDestroy(pUdp);
 }
 
 
@@ -267290,7 +267520,7 @@ static void __xrtNetUdpControlRequest(
 
 
 /* 请求排空已受理发送后正常关闭。 */
-XRT_API bool xrtNetUdpClose(xnetudp* pUdp)
+static bool __xrtNetUdpCloseImpl(xnetudp* pUdp)
 {
 	uint32 iExpected = 0;
 
@@ -267324,7 +267554,7 @@ XRT_API bool xrtNetUdpClose(xnetudp* pUdp)
 
 
 /* 请求取消 IO 并异常关闭。 */
-XRT_API bool xrtNetUdpAbort(xnetudp* pUdp)
+static bool __xrtNetUdpAbortImpl(xnetudp* pUdp)
 {
 	uint32 iExpected = 0;
 
@@ -267455,7 +267685,7 @@ static void __xrtNetUdpApplyStart(
 
 
 /* 启动、关闭和 Abort 共用一个无分配命令节点，并按终态优先级批量收敛。 */
-void __xrtNetUdpControl(
+static void __xrtNetUdpControlImpl(
 	xnetworker* pWorker,
 	ptr pData
 )
@@ -267506,7 +267736,6 @@ void __xrtNetUdpControl(
 				) ) {
 					__xrtNetUdpWakeLifecycle(pUdp);
 				}
-				xrtNetUdpDestroy(pUdp);
 				return;
 			}
 			continue;
@@ -267533,11 +267762,181 @@ void __xrtNetUdpControl(
 			}
 		}
 	}
-	xrtNetUdpDestroy(pUdp);
 }
 
 
 
+
+bool __xrtNetUdpReceivesOwnership(const xnetudp* pUdp, xrtownershipvisitor pVisit, ptr pContext)
+{
+	uint32 iPending = 0;
+	for (uint32 i = 0; i < pUdp->ReceiveSlots; ++i) {
+		const __xrt_net_udp_receive* r = &pUdp->Receives[i];
+		if (r->Pending) { if (!r->Id || !r->Ready) return false; ++iPending; }
+		if (r->Ready) {
+			if (r->Udp != pUdp || r->Completion.Data != r || r->Completion.Proc != __xrtNetUdpReceiveCompletion ||
+				!__xrtNetBufOwnershipWalk(&r->Buffer, NULL, NULL, pVisit, pContext)) return false;
+		} else if (r->Pending || r->Buffer.Head || r->Buffer.Tail || r->Buffer.Size || r->Buffer.Blocks ||
+			r->Buffer.Reserved || r->Buffer.ReservedNew) return false;
+	}
+	if (pUdp->Errors) {
+		const __xrt_net_udp_error_receive* r = &pUdp->Errors->Receive;
+		if (r->Pending) { if (!r->Id || !r->Ready) return false; ++iPending; }
+		if (r->Ready) {
+			if (r->Udp != pUdp || r->Completion.Data != r || r->Completion.Proc != __xrtNetUdpErrorCompletion ||
+				!__xrtNetBufOwnershipWalk(&r->Buffer, NULL, NULL, pVisit, pContext)) return false;
+		} else if (r->Pending || r->Buffer.Head || r->Buffer.Tail || r->Buffer.Size || r->Buffer.Blocks ||
+			r->Buffer.Reserved || r->Buffer.ReservedNew) return false;
+	}
+	return iPending == xrtAtomic32Load(&pUdp->ActiveReceives, XMEMORY_ACQUIRE);
+}
+
+/* Complete the final count transition AND detach under one gate. No caller
+ * touches the receiver after unlocking unless it already owns a separate RC.
+ * A closed tail keeps physical Engine storage, not a LiveObjects estimate;
+ * it may detach even after workers joined, without posting to a dead Worker. */
+static void __xrtNetUdpLeaveOrRelease(xnetudp* pUdp, bool bCall, bool bFrame)
+{
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	__xrtSpinLock(&pUdp->OwnershipGate);
+	if (bCall && !xrtAtomic32FetchSub(&pUdp->OwnershipActive, 1, XMEMORY_ACQ_REL)) abort();
+	if (bFrame) { if (!pUdp->ActiveDepth) abort(); --pUdp->ActiveDepth; }
+	const xnetruntimeownershipv1* pPolicy = NULL; ptr pOwned = NULL;
+	xnetengine* pStorage = NULL;
+	if (pUdp->RuntimeHeld && xrtNetUdpState(pUdp) == XNET_UDP_CLOSED && !pUdp->ActiveDepth &&
+		!xrtAtomic32Load(&pUdp->OwnershipActive, XMEMORY_ACQUIRE) &&
+		!xrtAtomic32Load(&pUdp->OwnershipStop, XMEMORY_ACQUIRE)) {
+		pOwned = __xrtNetEngineRuntimeTake(pUdp->Engine, &pUdp->RuntimeOwner, &pPolicy);
+		if (pOwned != pUdp || !pPolicy) abort();
+		pUdp->RuntimeHeld = false;
+		if (pUdp->EngineHeld) { pUdp->EngineHeld = false; __xrtNetEngineObjectRelease(pUdp->Engine); }
+		if (pUdp->EngineStorageHeld) { pStorage = pUdp->Engine; pUdp->EngineStorageHeld = false; }
+		xrtAtomic32Store(&pUdp->OwnershipState, XRT_NET_UDP_OWNERSHIP_READY, XMEMORY_RELEASE);
+	}
+	__xrtSpinUnlock(&pUdp->OwnershipGate);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (pStorage) __xrtNetEngineStorageRelease(pStorage);
+	if (pPolicy) pPolicy->Release(pOwned);
+}
+void __xrtNetUdpOwnershipLeave(xnetudp* pUdp) { __xrtNetUdpLeaveOrRelease(pUdp, true, false); }
+void __xrtNetUdpActiveEnter(xnetudp* pUdp)
+{
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	__xrtSpinLock(&pUdp->OwnershipGate);
+	if (pUdp->ActiveDepth == SIZE_MAX) abort();
+	++pUdp->ActiveDepth;
+	__xrtSpinUnlock(&pUdp->OwnershipGate);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+}
+void __xrtNetUdpActiveLeave(xnetudp* pUdp) { __xrtNetUdpLeaveOrRelease(pUdp, false, true); }
+static void __xrtNetUdpReleaseRuntime(xnetudp* pUdp) { __xrtNetUdpLeaveOrRelease(pUdp, false, false); }
+/* Failed startup was never published to a Worker. Consume its actual runtime
+ * slot, leaving the caller's creator and failed command references to Drop. */
+void __xrtNetUdpRollbackCreated(xnetudp* pUdp)
+{
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	__xrtSpinLock(&pUdp->OwnershipGate);
+	if (xrtAtomic32Load(&pUdp->OwnershipActive, XMEMORY_ACQUIRE) != 1 || !pUdp->RuntimeHeld) abort();
+	xrtAtomic32Store(&pUdp->OwnershipActive, 0, XMEMORY_RELEASE);
+	xrtAtomic32Store(&pUdp->State, XNET_UDP_CLOSED, XMEMORY_RELEASE);
+	__xrtSpinUnlock(&pUdp->OwnershipGate);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	__xrtNetUdpReleaseRuntime(pUdp);
+}
+static void __xrtNetUdpStopTask(xnetworker* pWorker, ptr pData)
+{
+	(void)pWorker; xnetudp* pUdp = pData;
+	if (!pUdp->RuntimeHeld) abort();
+	__xrtNetUdpActiveEnter(pUdp);
+	xrtAtomic32Store(&pUdp->OwnershipStop, 0, XMEMORY_RELEASE);
+	if (xrtNetUdpState(pUdp) != XNET_UDP_CLOSED) {
+		xrtAtomic32Store(&pUdp->AbortGate, 1, XMEMORY_RELEASE);
+		xrtAtomic32Store(&pUdp->CloseGate, 1, XMEMORY_RELEASE);
+		xrtAtomic32Store(&pUdp->SendGate, 1, XMEMORY_RELEASE);
+		__xrtNetUdpBeginClose(pUdp, true);
+	}
+	__xrtNetUdpActiveLeave(pUdp);
+}
+bool __xrtNetUdpOwnershipStop(xnetudp* pUdp)
+{
+	if (xrtAtomic32Load(&pUdp->OwnershipStop, XMEMORY_ACQUIRE)) return true;
+	if (!pUdp->RuntimeHeld || (!pUdp->EngineHeld && !pUdp->EngineStorageHeld)) return false;
+	xrtAtomic32Store(&pUdp->OwnershipStop, 1, XMEMORY_RELEASE);
+	if (__xrtNetEnginePostInternal(pUdp->Worker, &pUdp->OwnershipCommand, __xrtNetUdpStopTask, pUdp)) return true;
+	xrtAtomic32Store(&pUdp->OwnershipStop, 0, XMEMORY_RELEASE); return false;
+}
+static void __xrtNetUdpRuntimeRelease(ptr pData) { xrtNetUdpDestroy(pData); }
+XRT_API const xnetruntimeownershipv1* xrtNetUdpRuntimeOwnershipV1Get(void)
+{
+	static const xnetruntimeownershipv1 Policy = {sizeof(Policy), &__xrtNetUdpOwnershipOps,
+		__xrtNetUdpRuntimeRelease, NULL, 0};
+	return &Policy;
+}
+
+XRT_API xnetudppacket* xrtNetUdpReceive(xnetudp* pUdp)
+{
+	if (!__xrtNetUdpOwnershipEnter(pUdp, true)) return NULL;
+	xnetudppacket* p = __xrtNetUdpReceiveImpl(pUdp); __xrtNetUdpOwnershipLeave(pUdp); return p;
+}
+XRT_API size_t xrtNetUdpReceiveBatch(xnetudp* pUdp, xnetudppacket** pPackets, size_t iCapacity)
+{
+	if (!__xrtNetUdpOwnershipEnter(pUdp, true)) return 0;
+	size_t n = __xrtNetUdpReceiveBatchImpl(pUdp, pPackets, iCapacity); __xrtNetUdpOwnershipLeave(pUdp); return n;
+}
+XRT_API xnetudperrorpacket* xrtNetUdpReceiveError(xnetudp* pUdp)
+{
+	if (!__xrtNetUdpOwnershipEnter(pUdp, true)) return NULL;
+	xnetudperrorpacket* p = __xrtNetUdpReceiveErrorImpl(pUdp); __xrtNetUdpOwnershipLeave(pUdp); return p;
+}
+XRT_API size_t xrtNetUdpReceiveErrorBatch(xnetudp* pUdp, xnetudperrorpacket** pPackets, size_t iCapacity)
+{
+	if (!__xrtNetUdpOwnershipEnter(pUdp, true)) return 0;
+	size_t n = __xrtNetUdpReceiveErrorBatchImpl(pUdp, pPackets, iCapacity); __xrtNetUdpOwnershipLeave(pUdp); return n;
+}
+XRT_API bool xrtNetUdpClose(xnetudp* pUdp)
+{
+	if (!__xrtNetUdpOwnershipEnter(pUdp, false)) return false;
+	bool b = __xrtNetUdpCloseImpl(pUdp); __xrtNetUdpOwnershipLeave(pUdp); return b;
+}
+XRT_API bool xrtNetUdpAbort(xnetudp* pUdp)
+{
+	if (!__xrtNetUdpOwnershipEnter(pUdp, false)) return false;
+	bool b = __xrtNetUdpAbortImpl(pUdp); __xrtNetUdpOwnershipLeave(pUdp); return b;
+}
+static void __xrtNetUdpReceiveCompletion(xnetworker* w, const xnetportevent* e, ptr data)
+{
+	xnetudp* u = ((__xrt_net_udp_receive*)data)->Udp; __xrtNetUdpActiveEnter(u);
+	__xrtNetUdpReceiveCompletionImpl(w, e, data); __xrtNetUdpActiveLeave(u);
+}
+static void __xrtNetUdpErrorCompletion(xnetworker* w, const xnetportevent* e, ptr data)
+{
+	xnetudp* u = ((__xrt_net_udp_error_receive*)data)->Udp; __xrtNetUdpActiveEnter(u);
+	__xrtNetUdpErrorCompletionImpl(w, e, data); __xrtNetUdpActiveLeave(u);
+}
+void __xrtNetUdpSendCompletion(xnetworker* w, const xnetportevent* e, ptr data)
+{
+	xnetudp* u = ((__xrt_net_udp_send_slot*)data)->Udp; __xrtNetUdpActiveEnter(u);
+	__xrtNetUdpSendCompletionImpl(w, e, data); __xrtNetUdpActiveLeave(u);
+}
+void __xrtNetUdpCompletion(xnetworker* w, const xnetportevent* e, ptr data)
+{
+	xnetudp* u = data;
+	if (!xrtNetUdpRef(u)) return;
+	__xrtNetUdpActiveEnter(u);
+	__xrtNetUdpCompletionImpl(w, e, data); __xrtNetUdpActiveLeave(u);
+	xrtNetUdpDestroy(u);
+}
+void __xrtNetUdpControl(xnetworker* w, ptr data)
+{
+	xnetudp* u = data; __xrtNetUdpActiveEnter(u);
+	__xrtNetUdpControlImpl(w, data); __xrtNetUdpActiveLeave(u);
+	/* The posted command owns this exact reference through the frame tail,
+	 * even when an earlier completion already detached the runtime slot. */
+	xrtNetUdpDestroy(u);
+}
 
 #endif
 #endif
@@ -267877,6 +268276,11 @@ static xnetudp* __xrtNetUdpCreate(
 		return NULL;
 	}
 	pUdp->References = 2;
+	__xrtSpinInit(&pUdp->OwnershipGate);
+	xrtAtomicPtrInit(&pUdp->OwnershipClaim, NULL);
+	xrtAtomic32Init(&pUdp->OwnershipActive, 1);
+	xrtAtomic32Init(&pUdp->OwnershipState, 0);
+	xrtAtomic32Init(&pUdp->OwnershipStop, 0);
 	xrtAtomic32Init(&pUdp->State, XNET_UDP_OPENING);
 	xrtAtomic32Init(
 		&pUdp->ControlRequests,
@@ -267991,6 +268395,11 @@ static xnetudp* __xrtNetUdpCreate(
 	if ( bNeedReceiveLock ) {
 		__xrtSpinInit(&pUdp->ReceiveLock);
 		pUdp->ReceiveLockReady = true;
+	}
+	if (!__xrtNetEngineRuntimeAdopt(pEngine, &pUdp->RuntimeOwner, pUdp, xrtNetUdpRuntimeOwnershipV1Get())) {
+		pUdp->RuntimeHeld = false; pUdp->Socket = NULL;
+		xrtAtomic32Store(&pUdp->OwnershipActive, 0, XMEMORY_RELEASE);
+		xrtNetUdpDestroy(pUdp); xrtNetUdpDestroy(pUdp); return NULL;
 	}
 	return pUdp;
 }
@@ -268144,11 +268553,12 @@ XRT_API xnetudp* xrtNetUdpOpen(
 		);
 		__xrtNetUdpClosePreserveError(Socket);
 		pUdp->Socket = NULL;
-		xrtNetUdpDestroy(pUdp);
+		__xrtNetUdpRollbackCreated(pUdp);
 		xrtNetUdpDestroy(pUdp);
 		xrtNetUdpDestroy(pUdp);
 		return NULL;
 	}
+	__xrtNetUdpOwnershipLeave(pUdp);
 	return pUdp;
 }
 
@@ -268206,7 +268616,7 @@ static bool __xrtNetUdpWorkerSocket(
 	cstr sOperation
 )
 {
-	if ( (pUdp == NULL) || !xrtNetWorkerIsCurrent(pUdp->Worker) ||
+	if ( (pUdp == NULL) || xrtNetUdpState(pUdp) == XNET_UDP_CLOSED || !xrtNetWorkerIsCurrent(pUdp->Worker) ||
 		 (pUdp->Socket == NULL) ||
 		 (xrtNetUdpState(pUdp) == XNET_UDP_CLOSED) ) {
 		__xrtNetUdpSetError(
@@ -268223,7 +268633,7 @@ static bool __xrtNetUdpWorkerSocket(
 
 
 /* 加入一个多播组。 */
-XRT_API bool xrtNetUdpJoin(
+static bool __xrtNetUdpJoinImpl(
 	xnetudp* pUdp,
 	const xnetaddr* pGroup,
 	const xnetaddr* pInterface
@@ -268240,7 +268650,7 @@ XRT_API bool xrtNetUdpJoin(
 
 
 /* 离开一个多播组。 */
-XRT_API bool xrtNetUdpLeave(
+static bool __xrtNetUdpLeaveImpl(
 	xnetudp* pUdp,
 	const xnetaddr* pGroup,
 	const xnetaddr* pInterface
@@ -268257,7 +268667,7 @@ XRT_API bool xrtNetUdpLeave(
 
 
 /* 设置多播回环。 */
-XRT_API bool xrtNetUdpMulticastLoop(xnetudp* pUdp, bool bEnabled)
+static bool __xrtNetUdpMulticastLoopImpl(xnetudp* pUdp, bool bEnabled)
 {
 	return __xrtNetUdpWorkerSocket(pUdp, "set-udp-multicast-loop") &&
 		xrtNetSocketMulticastLoop(pUdp->Socket, bEnabled);
@@ -268266,7 +268676,7 @@ XRT_API bool xrtNetUdpMulticastLoop(xnetudp* pUdp, bool bEnabled)
 
 
 /* 设置多播跳数。 */
-XRT_API bool xrtNetUdpMulticastHopLimit(
+static bool __xrtNetUdpMulticastHopLimitImpl(
 	xnetudp* pUdp,
 	int iHopLimit
 )
@@ -268280,7 +268690,7 @@ XRT_API bool xrtNetUdpMulticastHopLimit(
 
 
 /* 选择多播发送接口。 */
-XRT_API bool xrtNetUdpMulticastInterface(
+static bool __xrtNetUdpMulticastInterfaceImpl(
 	xnetudp* pUdp,
 	const xnetaddr* pInterface
 )
@@ -268370,20 +268780,21 @@ XRT_API xnetworker* xrtNetUdpWorker(const xnetudp* pUdp)
 
 
 /* 只在 UDP Worker 上返回借用 Socket。 */
-XRT_API xnetsocket xrtNetUdpSocket(xnetudp* pUdp)
+static xnetsocket __xrtNetUdpSocketImpl(xnetudp* pUdp)
 {
 	if ( !__xrtNetUdpWorkerSocket(pUdp, "get-udp-socket") ) {
 		return NULL;
 	}
+	pUdp->SocketExposed = true;
 	return pUdp->Socket;
 }
 
 
 
 /* 只允许在 UDP Worker 上替换用户数据。 */
-XRT_API bool xrtNetUdpSetData(xnetudp* pUdp, ptr pData)
+static bool __xrtNetUdpSetDataImpl(xnetudp* pUdp, ptr pData)
 {
-	if ( (pUdp == NULL) || !xrtNetWorkerIsCurrent(pUdp->Worker) ) {
+	if ( (pUdp == NULL) || xrtNetUdpState(pUdp) == XNET_UDP_CLOSED || !xrtNetWorkerIsCurrent(pUdp->Worker) ) {
 		__xrtNetUdpSetError(
 			XERR_STATE,
 			XNET_ERROR_UDP_CONFIG,
@@ -268624,6 +269035,41 @@ XRT_API bool xrtNetUdpStats(
 	return true;
 }
 
+XRT_API bool xrtNetUdpJoin(xnetudp* u, const xnetaddr* group, const xnetaddr* iface)
+{
+	if (!__xrtNetUdpOwnershipEnter(u, true)) return false;
+	bool b = __xrtNetUdpJoinImpl(u, group, iface); __xrtNetUdpOwnershipLeave(u); return b;
+}
+XRT_API bool xrtNetUdpLeave(xnetudp* u, const xnetaddr* group, const xnetaddr* iface)
+{
+	if (!__xrtNetUdpOwnershipEnter(u, true)) return false;
+	bool b = __xrtNetUdpLeaveImpl(u, group, iface); __xrtNetUdpOwnershipLeave(u); return b;
+}
+XRT_API bool xrtNetUdpMulticastLoop(xnetudp* u, bool enabled)
+{
+	if (!__xrtNetUdpOwnershipEnter(u, true)) return false;
+	bool b = __xrtNetUdpMulticastLoopImpl(u, enabled); __xrtNetUdpOwnershipLeave(u); return b;
+}
+XRT_API bool xrtNetUdpMulticastHopLimit(xnetudp* u, int hops)
+{
+	if (!__xrtNetUdpOwnershipEnter(u, true)) return false;
+	bool b = __xrtNetUdpMulticastHopLimitImpl(u, hops); __xrtNetUdpOwnershipLeave(u); return b;
+}
+XRT_API bool xrtNetUdpMulticastInterface(xnetudp* u, const xnetaddr* address)
+{
+	if (!__xrtNetUdpOwnershipEnter(u, true)) return false;
+	bool b = __xrtNetUdpMulticastInterfaceImpl(u, address); __xrtNetUdpOwnershipLeave(u); return b;
+}
+XRT_API xnetsocket xrtNetUdpSocket(xnetudp* u)
+{
+	if (!__xrtNetUdpOwnershipEnter(u, true)) return NULL;
+	xnetsocket s = __xrtNetUdpSocketImpl(u); __xrtNetUdpOwnershipLeave(u); return s;
+}
+XRT_API bool xrtNetUdpSetData(xnetudp* u, ptr data)
+{
+	if (!__xrtNetUdpOwnershipEnter(u, true)) return false;
+	bool b = __xrtNetUdpSetDataImpl(u, data); __xrtNetUdpOwnershipLeave(u); return b;
+}
 
 #endif
 #endif
@@ -268638,6 +269084,9 @@ XRT_API bool xrtNetUdpStats(
 
 
 #if defined(XRT_FEATURE_NET_UDP)
+
+_Static_assert(XNET_UDP_VECTOR_MAX == XRT_NET_SOCKET_VECTOR_LIMIT, "UDP vector bound differs from native socket bound");
+_Static_assert(offsetof(__xrt_net_udp_send, Tail) % _Alignof(__xrt_net_udp_vector) == 0, "UDP vector tail alignment");
 
 /* 可裁剪地推进 UDP 发送侧 Future 条件。 */
 static void __xrtNetUdpSendNotifyFutures(xnetudp* pUdp)
@@ -268732,6 +269181,8 @@ static void __xrtNetUdpUnreserveSend(xnetudp* pUdp, size_t iSize)
 /* 进入跨线程发送提交区，阻止关闭越过已经开始的提交。 */
 static bool __xrtNetUdpBeginSend(xnetudp* pUdp)
 {
+	if (!__xrtNetUdpOwnershipEnter(pUdp, true)) return false;
+	if (xrtNetUdpState(pUdp) == XNET_UDP_CLOSED) { __xrtNetUdpOwnershipLeave(pUdp); return false; }
 	bool bWorker = xrtNetWorkerIsCurrent(pUdp->Worker);
 	xnetudpstate State;
 
@@ -268754,6 +269205,7 @@ static bool __xrtNetUdpBeginSend(xnetudp* pUdp)
 				XMEMORY_RELEASE
 			);
 		}
+		__xrtNetUdpOwnershipLeave(pUdp);
 		return false;
 	}
 	return true;
@@ -268775,6 +269227,7 @@ static void __xrtNetUdpEndSend(xnetudp* pUdp)
 			__xrtNetUdpWakeLifecycle(pUdp);
 		}
 	}
+	__xrtNetUdpOwnershipLeave(pUdp);
 }
 
 
@@ -268844,6 +269297,12 @@ static size_t __xrtNetUdpSendAllocation(
 	if ( pSend->Copied ) {
 		iAllocation += pSend->Size;
 	}
+	if (pSend->PayloadOwnership == XRT_NET_UDP_SEND_VECTOR) {
+		const __xrt_net_udp_vector* pVector = __xrtNetUdpSendVector(pSend);
+		iAllocation += __xrtNetUdpVectorPrefix(pSend->Controlled) - (pSend->Controlled ? sizeof(xnetdgramcontrol) : 0) +
+			offsetof(__xrt_net_udp_vector, Spans) +
+			pVector->Capacity * (sizeof(xnetspan) + sizeof(xnetbytes*));
+	}
 	return iAllocation;
 }
 
@@ -268856,6 +269315,7 @@ static __xrt_net_udp_send* __xrtNetUdpCreateSend(
 	const xnetdgramcontrol* pControl,
 	size_t iSize,
 	bool bCopy,
+	size_t iExtra,
 	xnetresult* pResult
 )
 {
@@ -268885,6 +269345,11 @@ static __xrt_net_udp_send* __xrtNetUdpCreateSend(
 		}
 		iAllocation += iSize;
 	}
+	if (iExtra > SIZE_MAX - iAllocation) {
+		__xrtNetUdpUnreserveSend(pUdp, iSize); __xrtErrorSetSizeOverflow();
+		*pResult = XNET_RESULT_ERROR; return NULL;
+	}
+	iAllocation += iExtra;
 	if ( pControl != NULL ) {
 		if ( sizeof(*pControl) > (SIZE_MAX - iAllocation) ) {
 			__xrtNetUdpUnreserveSend(pUdp, iSize);
@@ -268904,6 +269369,10 @@ static __xrt_net_udp_send* __xrtNetUdpCreateSend(
 		return NULL;
 	}
 	pSend->Udp = xrtNetUdpRef(pUdp);
+	if (!pSend->Udp) {
+		__xrtNetWorkerNodeRecycle(pUdp->Worker, pSend, iAllocation);
+		__xrtNetUdpUnreserveSend(pUdp, iSize); *pResult = XNET_RESULT_ERROR; return NULL;
+	}
 	pSend->Next = NULL;
 	pSend->Previous = NULL;
 	pSend->Slot = NULL;
@@ -268912,6 +269381,8 @@ static __xrt_net_udp_send* __xrtNetUdpCreateSend(
 	pSend->Size = iSize;
 	pSend->Copied = bCopy;
 	pSend->Controlled = pControl != NULL;
+	pSend->PayloadOwnership = bCopy ? XRT_NET_UDP_SEND_COPY : XRT_NET_UDP_SEND_OPAQUE;
+	pSend->Data = NULL; pSend->Release = NULL; pSend->ReleaseContext = NULL; pSend->OwnsExternal = false;
 	if ( pControl != NULL ) {
 		*__xrtNetUdpSendControl(pSend) = *pControl;
 	}
@@ -268931,7 +269402,9 @@ void __xrtNetUdpDiscardSend(
 	xnetworker* pWorker = pUdp->Worker;
 	size_t iAllocation = __xrtNetUdpSendAllocation(pSend);
 
-	if ( bReleaseExternal && pSend->OwnsExternal &&
+	/* Typed factories already own their retained references, even before
+	 * submission succeeds. Raw Take/Ref still transfer only on acceptance. */
+	if ( (bReleaseExternal || __xrtNetUdpSendRetained(pSend)) && pSend->OwnsExternal &&
 		 (pSend->Release != NULL) ) {
 		pSend->Release(
 			pSend->ReleaseContext,
@@ -269057,19 +269530,9 @@ static bool __xrtNetUdpAttachSend(__xrt_net_udp_send* pSend)
 
 
 /* 在 Worker 上挂入一个发送节点链，并收敛被关闭入口拒绝的节点。 */
-static void __xrtNetUdpAttachSends(__xrt_net_udp_send* pSend)
+static void __xrtNetUdpAttachSendsImpl(__xrt_net_udp_send* pSend)
 {
 	xnetudp* pUdp = pSend->Udp;
-
-	if ( xrtRefRetain(&pUdp->References) < 0 ) {
-		while ( pSend != NULL ) {
-			__xrt_net_udp_send* pNext = pSend->Next;
-
-			__xrtNetUdpDiscardSend(pSend, true);
-			pSend = pNext;
-		}
-		return;
-	}
 
 	while ( pSend != NULL ) {
 		__xrt_net_udp_send* pNext = pSend->Next;
@@ -269081,6 +269544,18 @@ static void __xrtNetUdpAttachSends(__xrt_net_udp_send* pSend)
 	}
 	__xrtNetUdpDriveWrite(pUdp);
 	__xrtNetUdpTryFinish(pUdp);
+}
+
+static void __xrtNetUdpAttachSends(__xrt_net_udp_send* pSend)
+{
+	xnetudp* pUdp = pSend->Udp;
+	if (!xrtNetUdpRef(pUdp)) {
+		while (pSend) { __xrt_net_udp_send* pNext = pSend->Next;
+			__xrtNetUdpDiscardSend(pSend, true); pSend = pNext; }
+		return;
+	}
+	__xrtNetUdpActiveEnter(pUdp);
+	__xrtNetUdpAttachSendsImpl(pSend); __xrtNetUdpActiveLeave(pUdp);
 	xrtNetUdpDestroy(pUdp);
 }
 
@@ -269125,7 +269600,7 @@ static xnetresult __xrtNetUdpSubmitSend(
 		1,
 		XMEMORY_ACQ_REL
 	);
-	if ( !xrtNetEnginePost(
+	if ( !__xrtNetEnginePostRuntime(
 		pUdp->Engine,
 		xrtNetWorkerIndex(pUdp->Worker),
 		__xrtNetUdpQueueSend,
@@ -269159,13 +269634,14 @@ static xnetresult __xrtNetUdpSend(
 	size_t iSize,
 	xnetreleaseproc pRelease,
 	ptr pContext,
-	bool bCopy,
-	bool bOwnsExternal
+	uint32 iOwnership
 )
 {
 	__xrt_net_udp_send* pSend;
 	xnetaddr Remote;
 	xnetresult Result;
+	bool bCopy = iOwnership == XRT_NET_UDP_SEND_COPY;
+	bool bOwnsExternal = !bCopy;
 
 	if ( (pUdp == NULL) || ((pData == NULL) && (iSize != 0)) ) {
 		__xrtErrorSetInvalidArgument();
@@ -269205,6 +269681,7 @@ static xnetresult __xrtNetUdpSend(
 		pControl,
 		iSize,
 		bCopy,
+		0,
 		&Result
 	);
 	if ( pSend == NULL ) {
@@ -269214,6 +269691,7 @@ static xnetresult __xrtNetUdpSend(
 	pSend->Release = pRelease;
 	pSend->ReleaseContext = pContext;
 	pSend->OwnsExternal = bOwnsExternal;
+	pSend->PayloadOwnership = iOwnership;
 	if ( bCopy ) {
 		if ( iSize != 0 ) {
 			memcpy(__xrtNetUdpSendCopy(pSend), pData, iSize);
@@ -269245,8 +269723,7 @@ XRT_API xnetresult xrtNetUdpSendTo(
 		iSize,
 		NULL,
 		NULL,
-		true,
-		false
+		XRT_NET_UDP_SEND_COPY
 	);
 }
 
@@ -269305,6 +269782,7 @@ XRT_API xnetresult xrtNetUdpSendVecTo(
 		NULL,
 		iTotal,
 		true,
+		0,
 		&Result
 	);
 	if ( pSend == NULL ) {
@@ -269363,8 +269841,7 @@ XRT_API xnetresult xrtNetUdpSendRefTo(
 		iSize,
 		pRelease,
 		pContext,
-		false,
-		true
+		XRT_NET_UDP_SEND_OPAQUE
 	);
 }
 
@@ -269407,8 +269884,7 @@ XRT_API xnetresult xrtNetUdpSendTakeTo(
 		iSize,
 		__xrtNetUdpFreeTaken,
 		NULL,
-		false,
-		true
+		XRT_NET_UDP_SEND_TAKE
 	);
 }
 
@@ -269446,8 +269922,7 @@ XRT_API xnetresult xrtNetUdpSendMsg(
 		iSize,
 		NULL,
 		NULL,
-		true,
-		false
+		XRT_NET_UDP_SEND_COPY
 	);
 }
 
@@ -269481,8 +269956,7 @@ XRT_API xnetresult xrtNetUdpSendMsgRef(
 		iSize,
 		pRelease,
 		pContext,
-		false,
-		true
+		XRT_NET_UDP_SEND_OPAQUE
 	);
 }
 
@@ -269508,8 +269982,7 @@ XRT_API xnetresult xrtNetUdpSendMsgTake(
 		iSize,
 		__xrtNetUdpFreeTaken,
 		NULL,
-		false,
-		true
+		XRT_NET_UDP_SEND_TAKE
 	);
 }
 
@@ -269565,6 +270038,7 @@ XRT_API xnetresult xrtNetUdpSendBatch(
 			NULL,
 			pItems[i].Size,
 			true,
+			0,
 			&Result
 		);
 		if ( pSend == NULL ) {
@@ -269597,6 +270071,389 @@ XRT_API xnetresult xrtNetUdpSendBatch(
 	__xrtNetUdpEndSend(pUdp);
 	*pAccepted = iAccepted;
 	return Result;
+}
+
+static void __xrtNetUdpReleaseBytes(ptr pContext, cbytes pData, size_t iSize)
+{ (void)pData; (void)iSize; xrtNetBytesDestroy(pContext); }
+static void __xrtNetUdpReleasePacket(ptr pContext, cbytes pData, size_t iSize)
+{ (void)pData; (void)iSize; xrtNetUdpPacketDestroy(pContext); }
+static void __xrtNetUdpReleaseVector(ptr pContext, cbytes pData, size_t iSize)
+{
+	(void)pData; (void)iSize;
+	__xrt_net_udp_vector* pVector = __xrtNetUdpSendVector(pContext);
+	xnetbytes** ppOwners = __xrtNetUdpVectorOwners(pVector);
+	for (size_t i = 0; i < pVector->Count; ++i) xrtNetBytesDestroy(ppOwners[i]);
+	pVector->Count = 0;
+}
+static bool __xrtNetUdpSlice(xbytesview View, size_t iOffset, size_t iSize)
+{
+	if (iOffset > View.Size || iSize > View.Size - iOffset) { __xrtErrorSetRange(); return false; }
+	return true;
+}
+
+/* A factory owns every reference it retains, independent of submission.
+ * The original descriptor/reference stays caller-owned on ALL outcomes. */
+static __xrt_net_udp_send* __xrtNetUdpCreateOwnedSend(xnetudp* pUdp,
+	const xnetudpownedmessage* pItem, xnetresult* pResult)
+{
+	xnetaddr Remote; xbytesview View = {0}; size_t iOffset = 0, iSize = 0, iUsed = 0, iExtra = 0;
+	const xnetdgramcontrol* pControl = pItem->Control && pItem->Control->Flags ? pItem->Control : NULL;
+	if (!__xrtNetUdpRemote(pUdp, pItem->Remote, &Remote)) goto Failed;
+	switch (pItem->Kind) {
+	case XNET_UDP_OWNED_BYTES:
+		if (!pItem->Payload.Bytes.Bytes) { __xrtErrorSetInvalidArgument(); goto Failed; }
+		View = xrtNetBytesView(pItem->Payload.Bytes.Bytes); iOffset = pItem->Payload.Bytes.Offset; iSize = pItem->Payload.Bytes.Size;
+		if (!__xrtNetUdpSlice(View, iOffset, iSize)) goto Failed;
+		break;
+	case XNET_UDP_OWNED_PACKET:
+		if (!pItem->Payload.Packet.Packet) { __xrtErrorSetInvalidArgument(); goto Failed; }
+		View.Data = xrtNetUdpPacketData(pItem->Payload.Packet.Packet); View.Size = xrtNetUdpPacketSize(pItem->Payload.Packet.Packet);
+		iOffset = pItem->Payload.Packet.Offset; iSize = pItem->Payload.Packet.Size;
+		if (!__xrtNetUdpSlice(View, iOffset, iSize)) goto Failed;
+		break;
+	case XNET_UDP_OWNED_VECTOR: {
+		const xnetbytesref* pRefs = pItem->Payload.Vector.Items; size_t iCount = pItem->Payload.Vector.Count;
+		if ((!pRefs && iCount) || iCount > XNET_UDP_VECTOR_MAX) { __xrtErrorSetInvalidArgument(); goto Failed; }
+		for (size_t i = 0; i < iCount; ++i) {
+			if (!pRefs[i].Bytes) { __xrtErrorSetInvalidArgument(); goto Failed; }
+			xbytesview Part = xrtNetBytesView(pRefs[i].Bytes);
+			if (!__xrtNetUdpSlice(Part, pRefs[i].Offset, pRefs[i].Size)) goto Failed;
+			if (pRefs[i].Size > XNET_UDP_PAYLOAD_MAX - iSize) { __xrtErrorSetRange(); goto Failed; }
+			iSize += pRefs[i].Size; if (pRefs[i].Size) ++iUsed;
+		}
+		if (iUsed) iExtra = __xrtNetUdpVectorPrefix(pControl != NULL) - (pControl ? sizeof(*pControl) : 0) +
+			offsetof(__xrt_net_udp_vector, Spans) + iUsed * (sizeof(xnetspan) + sizeof(xnetbytes*));
+		break;
+	}
+	default: __xrtErrorSetInvalidArgument(); goto Failed;
+	}
+	if (pControl) {
+		union {uint64 Align; unsigned char Data[XRT_NET_SOCKET_DGRAM_CONTROL_SIZE];} ControlBuffer;
+		size_t iControlSize;
+		if (!__xrtNetSocketDgramControlBuild(pUdp->Socket, pControl, iSize, ControlBuffer.Data,
+			sizeof(ControlBuffer.Data), &iControlSize, XNET_ERROR_UDP_SEND, "send-udp-owned")) goto Failed;
+	}
+	__xrt_net_udp_send* pSend = __xrtNetUdpCreateSend(pUdp, &Remote, pControl, iSize, !iSize, iExtra, pResult);
+	if (!pSend) return NULL;
+	if (!iSize) { pSend->Data = __xrtNetUdpSendCopy(pSend); return pSend; }
+	if (pItem->Kind == XNET_UDP_OWNED_BYTES) {
+		xnetbytes* pOwner = xrtNetBytesRef(pItem->Payload.Bytes.Bytes);
+		if (!pOwner) { __xrtNetUdpDiscardSend(pSend, false); goto Failed; }
+		pSend->PayloadOwnership = XRT_NET_UDP_SEND_BYTES;
+		pSend->Release = __xrtNetUdpReleaseBytes; pSend->ReleaseContext = pOwner;
+		pSend->Data = View.Data + iOffset; pSend->OwnsExternal = true;
+	} else if (pItem->Kind == XNET_UDP_OWNED_PACKET) {
+		xnetudppacket* pOwner = xrtNetUdpPacketRef(pItem->Payload.Packet.Packet);
+		if (!pOwner) { __xrtNetUdpDiscardSend(pSend, false); goto Failed; }
+		pSend->PayloadOwnership = XRT_NET_UDP_SEND_PACKET;
+		pSend->Release = __xrtNetUdpReleasePacket; pSend->ReleaseContext = pOwner;
+		pSend->Data = View.Data + iOffset; pSend->OwnsExternal = true;
+	} else {
+		__xrt_net_udp_vector* pVector = __xrtNetUdpSendVector(pSend);
+		pVector->Capacity = iUsed; pVector->Count = 0;
+		pSend->PayloadOwnership = XRT_NET_UDP_SEND_VECTOR;
+		pSend->Release = __xrtNetUdpReleaseVector; pSend->ReleaseContext = pSend;
+		pSend->Spans = pVector->Spans; pSend->OwnsExternal = true;
+		xnetbytes** ppOwners = __xrtNetUdpVectorOwners(pVector);
+		for (size_t i = 0; i < pItem->Payload.Vector.Count; ++i) {
+			const xnetbytesref* pRef = &pItem->Payload.Vector.Items[i];
+			if (!pRef->Size) continue;
+			xnetbytes* pOwner = xrtNetBytesRef(pRef->Bytes);
+			if (!pOwner) { __xrtNetUdpDiscardSend(pSend, false); goto Failed; }
+			xbytesview Part = xrtNetBytesView(pOwner); size_t iSlot = pVector->Count;
+			ppOwners[iSlot] = pOwner;
+			pVector->Spans[iSlot].Data = Part.Data + pRef->Offset; pVector->Spans[iSlot].Size = pRef->Size;
+			++pVector->Count;
+		}
+	}
+	return pSend;
+Failed:
+	*pResult = XNET_RESULT_ERROR; return NULL;
+}
+
+XRT_API xnetresult xrtNetUdpSendOwnedBatch(xnetudp* pUdp,
+	const xnetudpownedmessage* pItems, size_t iCount, size_t* pAccepted)
+{
+	if (pAccepted) *pAccepted = 0;
+	if (!pUdp || !pAccepted || (!pItems && iCount)) { __xrtErrorSetInvalidArgument(); return XNET_RESULT_ERROR; }
+	if (!iCount) return XNET_RESULT_OK;
+	if (!__xrtNetUdpBeginSend(pUdp)) return XNET_RESULT_CLOSED;
+	__xrt_net_udp_send *pHead = NULL, *pTail = NULL; size_t iAccepted = 0; xnetresult Result = XNET_RESULT_OK;
+	for (size_t i = 0; i < iCount; ++i) {
+		__xrt_net_udp_send* pSend = __xrtNetUdpCreateOwnedSend(pUdp, &pItems[i], &Result);
+		if (!pSend) break;
+		if (pTail) pTail->Next = pSend; else pHead = pSend;
+		pTail = pSend; ++iAccepted;
+	}
+	if (pHead) {
+		xnetresult Submitted = __xrtNetUdpSubmitSend(pUdp, pHead);
+		if (Submitted != XNET_RESULT_OK) { Result = Submitted; iAccepted = 0; }
+	}
+	__xrtNetUdpEndSend(pUdp); *pAccepted = iAccepted; return Result;
+}
+XRT_API xnetresult xrtNetUdpSendMsgBytes(xnetudp* pUdp, const xnetaddr* pRemote,
+	const xnetdgramcontrol* pControl, xnetbytes* pBytes, size_t iOffset, size_t iSize)
+{
+	xnetudpownedmessage Item = {0}; Item.Remote = pRemote; Item.Control = pControl; Item.Kind = XNET_UDP_OWNED_BYTES;
+	Item.Payload.Bytes = (xnetbytesref){pBytes, iOffset, iSize}; size_t iAccepted;
+	return xrtNetUdpSendOwnedBatch(pUdp, &Item, 1, &iAccepted);
+}
+XRT_API xnetresult xrtNetUdpSendMsgPacket(xnetudp* pUdp, const xnetaddr* pRemote,
+	const xnetdgramcontrol* pControl, xnetudppacket* pPacket, size_t iOffset, size_t iSize)
+{
+	xnetudpownedmessage Item = {0}; Item.Remote = pRemote; Item.Control = pControl; Item.Kind = XNET_UDP_OWNED_PACKET;
+	Item.Payload.Packet = (xnetudppacketref){pPacket, iOffset, iSize}; size_t iAccepted;
+	return xrtNetUdpSendOwnedBatch(pUdp, &Item, 1, &iAccepted);
+}
+XRT_API xnetresult xrtNetUdpSendMsgBytesVec(xnetudp* pUdp, const xnetaddr* pRemote,
+	const xnetdgramcontrol* pControl, const xnetbytesref* pRefs, size_t iCount)
+{
+	xnetudpownedmessage Item = {0}; Item.Remote = pRemote; Item.Control = pControl; Item.Kind = XNET_UDP_OWNED_VECTOR;
+	Item.Payload.Vector.Items = pRefs; Item.Payload.Vector.Count = iCount; size_t iAccepted;
+	return xrtNetUdpSendOwnedBatch(pUdp, &Item, 1, &iAccepted);
+}
+
+static bool __xrtNetUdpRetainedSpan(xbytesview View, const void* pData, size_t iSize)
+{
+	uintptr_t iFirst = (uintptr_t)View.Data, iData = (uintptr_t)pData;
+	return iSize && iData >= iFirst && iData - iFirst <= View.Size && iSize <= View.Size - (iData - iFirst);
+}
+
+/* Contained send records own one actual UDP reference each. Slots only borrow
+ * their send record; they do not create a second graph node/reference. */
+bool __xrtNetUdpSendsOwnership(const xnetudp* pUdp, xrtownershipvisitor pVisit, ptr pContext)
+{
+	uint64 iCount = 0, iBytes = 0; size_t iSubmitted = 0;
+	const __xrt_net_udp_send* pPrevious = NULL; bool bReadySeen = pUdp->SendReady == NULL;
+	uint64 iExpected = xrtAtomic64Load(&pUdp->QueuedPackets, XMEMORY_ACQUIRE);
+	const __xrt_net_udp_send *pSlow = pUdp->SendHead, *pFast = pSlow;
+	while (pFast && pFast->Next) {
+		pSlow = pSlow->Next; pFast = pFast->Next->Next; if (pSlow == pFast) return false;
+	}
+	for (const __xrt_net_udp_send* p = pUdp->SendHead; p; p = p->Next) {
+		if (++iCount > iExpected || p->Udp != pUdp || p->Previous != pPrevious || p->Size > UINT64_MAX - iBytes) return false;
+		iBytes += p->Size; pPrevious = p;
+		if (p == pUdp->SendReady) bReadySeen = true;
+		if (p->PayloadOwnership == XRT_NET_UDP_SEND_COPY) {
+			if (!p->Copied || p->OwnsExternal || p->Release || p->ReleaseContext ||
+				p->Data != __xrtNetUdpSendCopy((__xrt_net_udp_send*)p)) return false;
+		} else if (p->PayloadOwnership == XRT_NET_UDP_SEND_TAKE) {
+			if (p->Copied || !p->OwnsExternal || p->Release != __xrtNetUdpFreeTaken || p->ReleaseContext || (!p->Data && p->Size)) return false;
+		} else if (p->PayloadOwnership == XRT_NET_UDP_SEND_BYTES) {
+			if (p->Copied || !p->OwnsExternal || p->Release != __xrtNetUdpReleaseBytes || !p->ReleaseContext ||
+				!__xrtNetUdpRetainedSpan(xrtNetBytesView(p->ReleaseContext), p->Data, p->Size)) return false;
+			if (pVisit && !pVisit(xrtNetBytesOwnership(p->ReleaseContext), pContext)) return false;
+		} else if (p->PayloadOwnership == XRT_NET_UDP_SEND_PACKET) {
+			xnetudppacket* pPacket = p->ReleaseContext;
+			if (p->Copied || !p->OwnsExternal || p->Release != __xrtNetUdpReleasePacket || !pPacket ||
+				!__xrtNetUdpRetainedSpan((xbytesview){xrtNetUdpPacketData(pPacket), xrtNetUdpPacketSize(pPacket)}, p->Data, p->Size)) return false;
+			if (pVisit && !pVisit(xrtNetUdpPacketOwnership(pPacket), pContext)) return false;
+		} else if (p->PayloadOwnership == XRT_NET_UDP_SEND_VECTOR) {
+			const __xrt_net_udp_vector* pVector = __xrtNetUdpSendVector(p);
+			if (p->Copied || !p->OwnsExternal || p->Release != __xrtNetUdpReleaseVector || p->ReleaseContext != p ||
+				!pVector->Count || pVector->Count != pVector->Capacity || pVector->Count > XNET_UDP_VECTOR_MAX || p->Spans != pVector->Spans) return false;
+			xnetbytes** ppOwners = __xrtNetUdpVectorOwners((__xrt_net_udp_vector*)pVector); size_t iTotal = 0;
+			for (size_t j = 0; j < pVector->Count; ++j) {
+				if (!ppOwners[j] || !__xrtNetUdpRetainedSpan(xrtNetBytesView(ppOwners[j]), p->Spans[j].Data, p->Spans[j].Size) ||
+					p->Spans[j].Size > XNET_UDP_PAYLOAD_MAX - iTotal) return false;
+				iTotal += p->Spans[j].Size;
+				if (pVisit && !pVisit(xrtNetBytesOwnership(ppOwners[j]), pContext)) return false;
+			}
+			if (iTotal != p->Size) return false;
+		} else return false;
+		if (p->Submitted) {
+			uintptr_t slot = (uintptr_t)p->Slot, first = (uintptr_t)pUdp->SendSlots;
+			if (!p->Slot || slot < first || (slot - first) % sizeof(*p->Slot) ||
+				(slot - first) / sizeof(*p->Slot) >= pUdp->SendSlotCount || p->Slot->Send != p || !p->Slot->Id) return false;
+			++iSubmitted;
+		} else if (p->Slot) return false;
+		if (pVisit && !pVisit(xrtNetUdpOwnership(pUdp), pContext)) return false;
+	}
+	if (iCount != iExpected || iBytes != xrtAtomic64Load(&pUdp->QueuedBytes, XMEMORY_ACQUIRE) ||
+		pPrevious != pUdp->SendTail || !bReadySeen || iSubmitted != xrtAtomic64Load(&pUdp->ActiveSends, XMEMORY_ACQUIRE)) return false;
+	size_t iSlots = 0;
+	for (uint32 i = 0; i < pUdp->SendSlotCount; ++i) {
+		const __xrt_net_udp_send_slot* s = &pUdp->SendSlots[i];
+		if (s->Udp != pUdp || s->Completion.Data != s || s->Completion.Proc != __xrtNetUdpSendCompletion ||
+			(!s->Send && s->Id)) return false;
+		if (s->Send) { if (s->Send->Slot != s || !s->Send->Submitted || !s->Id) return false; ++iSlots; }
+	}
+	return iSlots == iSubmitted;
+}
+
+#endif
+#endif
+
+
+/* ========================================================================== */
+/* source: src/network/udp_ownership.c */
+/* ========================================================================== */
+
+#if defined(XRT_FEATURE_NET_UDP)
+
+#if defined(XRT_FEATURE_NET_UDP)
+
+/* This short metadata gate orders call borrows against final runtime/Engine
+ * detachment. It never spans user callbacks, I/O, allocation or a native wait.
+ * Mutation is entered BEFORE the gate, including nested collector cursors. */
+bool __xrtNetUdpOwnershipEnter(xnetudp* pUdp, bool bSubmit)
+{
+	if (!pUdp) { __xrtErrorSetInvalidArgument(); return false; }
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) return false;
+	__xrtSpinLock(&pUdp->OwnershipGate);
+	uint32 iActive = xrtAtomic32Load(&pUdp->OwnershipActive, XMEMORY_RELAXED);
+	bool bAllowed = !(xrtAtomic32Load(&pUdp->OwnershipState, XMEMORY_ACQUIRE) & XRT_NET_UDP_OWNERSHIP_CLEARED) &&
+		(!bSubmit || !xrtAtomicPtrLoad(&pUdp->OwnershipClaim, XMEMORY_ACQUIRE)) && iActive < UINT32_MAX;
+	if (bAllowed) xrtAtomic32Store(&pUdp->OwnershipActive, iActive + 1, XMEMORY_RELEASE);
+	__xrtSpinUnlock(&pUdp->OwnershipGate);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (!bAllowed) __xrtErrorSetInvalidState();
+	return bAllowed;
+}
+
+static bool __xrtNetUdpPrepared(const void* pData)
+{
+	const xnetudp* pUdp = pData;
+	return pUdp && !xrtAtomic32Load(&pUdp->OwnershipActive, XMEMORY_ACQUIRE) &&
+		(xrtAtomic32Load(&pUdp->OwnershipState, XMEMORY_ACQUIRE) & XRT_NET_UDP_OWNERSHIP_READY);
+}
+static bool __xrtNetUdpBusy(const void* pData)
+{
+	const xnetudp* pUdp = pData;
+	if (!pUdp) return false;
+	if (xrtAtomic32Load(&pUdp->OwnershipActive, XMEMORY_ACQUIRE) ||
+		xrtAtomic32Load(&pUdp->OwnershipStop, XMEMORY_ACQUIRE)) return true;
+	if (xrtAtomic32Load(&pUdp->OwnershipState, XMEMORY_ACQUIRE) & XRT_NET_UDP_OWNERSHIP_READY) return false;
+	return xrtNetEngineOwnershipQuiescenceV1Get()->Busy(pUdp->Engine) ||
+		xrtAtomic32Load(&pUdp->SendSubmitters, XMEMORY_ACQUIRE) ||
+		xrtAtomic32Load(&pUdp->SendCommands, XMEMORY_ACQUIRE);
+}
+static bool __xrtNetUdpEventsEmpty(const xnetudp* pUdp)
+{
+	const __xrt_net_udp_events* e = &pUdp->Events;
+	return !e->Open && !e->Receive && !e->Error && !e->HighWater && !e->LowWater && !e->Drain && !e->Close &&
+		!xrtAtomicPtrLoad(&pUdp->Data, XMEMORY_ACQUIRE) && (!pUdp->Errors || !pUdp->Errors->Callback);
+}
+static bool __xrtNetUdpQueues(const xnetudp* pUdp, xrtownershipvisitor pVisit, ptr pContext)
+{
+	size_t iCount = 0, iBytes = 0; const xnetudppacket* pTail = NULL;
+	uint64 iExpected = xrtAtomic64Load(&pUdp->ReceiveQueued, XMEMORY_ACQUIRE);
+	const xnetudppacket *pSlow = pUdp->ReceiveHead, *pFast = pSlow;
+	while (pFast && pFast->Next) {
+		pSlow = pSlow->Next; pFast = pFast->Next->Next; if (pSlow == pFast) return false;
+	}
+	for (const xnetudppacket* p = pUdp->ReceiveHead; p; p = p->Next) {
+		if (++iCount > iExpected || p->Size > SIZE_MAX - iBytes) return false;
+		iBytes += p->Size; pTail = p;
+		if (pVisit && !pVisit(xrtNetUdpPacketOwnership(p), pContext)) return false;
+	}
+	if (iCount != iExpected || iBytes != xrtAtomic64Load(&pUdp->ReceiveQueuedBytes, XMEMORY_ACQUIRE) ||
+		pTail != pUdp->ReceiveTail) return false;
+	if (pUdp->Errors) {
+		const __xrt_net_udp_error_state* e = pUdp->Errors;
+		const xnetudperrorpacket* pLast = NULL; iCount = iBytes = 0;
+		iExpected = xrtAtomic64Load(&e->Queued, XMEMORY_ACQUIRE);
+		const xnetudperrorpacket *pErrorSlow = e->Head, *pErrorFast = pErrorSlow;
+		while (pErrorFast && pErrorFast->Next) {
+			pErrorSlow = pErrorSlow->Next; pErrorFast = pErrorFast->Next->Next; if (pErrorSlow == pErrorFast) return false;
+		}
+		for (const xnetudperrorpacket* p = e->Head; p; p = p->Next) {
+			if (++iCount > iExpected || p->Size > SIZE_MAX - iBytes) return false;
+			iBytes += p->Size; pLast = p;
+			if (pVisit && !pVisit(xrtNetUdpErrorPacketOwnership(p), pContext)) return false;
+		}
+		if (iCount != iExpected || iBytes != xrtAtomic64Load(&e->QueuedBytes, XMEMORY_ACQUIRE) || pLast != e->Tail) return false;
+	}
+	return true;
+}
+static bool __xrtNetUdpContents(const xnetudp* pUdp, xrtownershipvisitor pVisit, ptr pContext)
+{
+	#if defined(XRT_FEATURE_NET_UDP_FUTURE)
+		if (!__xrtNetUdpWaitOwnershipWalk(pUdp, pVisit, pContext)) return false;
+	#endif
+	return __xrtNetUdpQueues(pUdp, pVisit, pContext) && __xrtNetUdpReceivesOwnership(pUdp, pVisit, pContext) &&
+		__xrtNetUdpSendsOwnership(pUdp, pVisit, pContext);
+}
+static bool __xrtNetUdpCount(const void* pData, size_t* pCount)
+{
+	const xnetudp* pUdp = pData;
+	if (!pUdp || !pCount || __xrtNetUdpBusy(pData) || pUdp->ActiveDepth || pUdp->SocketExposed ||
+		xrtAtomic32Load(&pUdp->OwnershipStop, XMEMORY_ACQUIRE) ||
+		xrtAtomic32Load(&pUdp->ControlRequests, XMEMORY_ACQUIRE) ||
+		(xrtAtomic32Load(&pUdp->OwnershipState, XMEMORY_ACQUIRE) & XRT_NET_UDP_OWNERSHIP_CLEARED) ||
+		!__xrtNetUdpEventsEmpty(pUdp) || !__xrtNetUdpContents(pUdp, NULL, NULL)) return false;
+	if (__xrtNetUdpPrepared(pData)) {
+		if (pUdp->RuntimeHeld || pUdp->EngineHeld || pUdp->EngineStorageHeld || pUdp->RuntimeOwner.Data || pUdp->RuntimeOwner.Previous ||
+			pUdp->Socket || pUdp->WatchPending || pUdp->SendHead || xrtNetUdpState(pUdp) != XNET_UDP_CLOSED) return false;
+	} else if (!pUdp->RuntimeHeld || (pUdp->EngineHeld == pUdp->EngineStorageHeld) || pUdp->RuntimeOwner.Data != pUdp ||
+		pUdp->RuntimeOwner.Engine != pUdp->Engine || !pUdp->RuntimeOwner.Previous ||
+		pUdp->RuntimeOwner.Policy != xrtNetUdpRuntimeOwnershipV1Get()) return false;
+	int32 iReferences = __xrtAtomicRefLoad(&pUdp->References);
+	if (iReferences <= 0) return false;
+	*pCount = (size_t)iReferences; return true;
+}
+static bool __xrtNetUdpTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{
+	const xnetudp* pUdp = pData; size_t iCount;
+	if (!pVisit || !__xrtNetUdpCount(pData, &iCount) ||
+		((pUdp->EngineHeld || pUdp->EngineStorageHeld) && !pVisit(xrtNetEngineOwnership(pUdp->Engine), pContext)) ||
+		!__xrtNetUdpContents(pUdp, pVisit, pContext)) return false;
+	xrtownershipref Error = xrtErrorOwnership(pUdp->Error);
+	return !Error.Data || pVisit(Error, pContext);
+}
+const xrtownershipops __xrtNetUdpOwnershipOps = {__xrtNetUdpCount, __xrtNetUdpTrace};
+XRT_API xrtownershipref xrtNetUdpOwnership(const xnetudp* pUdp)
+{ return (xrtownershipref){pUdp, pUdp ? &__xrtNetUdpOwnershipOps : NULL}; }
+XRT_API const xrtownershipquiescencev1* xrtNetUdpOwnershipQuiescenceV1Get(void)
+{
+	static const xrtownershipquiescencev1 Policy = {sizeof(Policy), &__xrtNetUdpOwnershipOps, __xrtNetUdpBusy};
+	return &Policy;
+}
+static bool __xrtNetUdpHold(const void* pData) { return xrtNetUdpRef((xnetudp*)pData) != NULL; }
+static void __xrtNetUdpDrop(const void* pData) { xrtNetUdpDestroy((xnetudp*)pData); }
+static bool __xrtNetUdpClaim(const void* pData, const void* pToken)
+{
+	xnetudp* pUdp = (xnetudp*)pData; size_t iCount;
+	ptr pOld = xrtAtomicPtrLoad(&pUdp->OwnershipClaim, XMEMORY_ACQUIRE);
+	if (!pToken || (pOld && pOld != pToken) || !__xrtNetUdpCount(pData, &iCount)) return false;
+	xrtAtomicPtrStore(&pUdp->OwnershipClaim, (ptr)pToken, XMEMORY_RELEASE); return true;
+}
+static void __xrtNetUdpRestore(const void* pData, const void* pToken)
+{
+	xnetudp* pUdp = (xnetudp*)pData;
+	if (!pToken || xrtAtomicPtrLoad(&pUdp->OwnershipClaim, XMEMORY_ACQUIRE) != pToken ||
+		(xrtAtomic32Load(&pUdp->OwnershipState, XMEMORY_ACQUIRE) & XRT_NET_UDP_OWNERSHIP_CLEARED)) abort();
+	xrtAtomicPtrStore(&pUdp->OwnershipClaim, NULL, XMEMORY_RELEASE);
+}
+static xrtownershipprepareresult __xrtNetUdpPrepare(const void* pData, const void* pToken)
+{
+	xnetudp* pUdp = (xnetudp*)pData; xrtownershipscope Freeze = {0};
+	if (!xrtOwnershipFreezeTryBegin(&Freeze)) return XRT_OWNERSHIP_PREPARE_BUSY;
+	if (!pToken || xrtAtomicPtrLoad(&pUdp->OwnershipClaim, XMEMORY_ACQUIRE) != pToken ||
+		(xrtAtomic32Load(&pUdp->OwnershipState, XMEMORY_ACQUIRE) & XRT_NET_UDP_OWNERSHIP_CLEARED)) abort();
+	xrtownershipprepareresult Result = XRT_OWNERSHIP_PREPARE_BUSY;
+	if (__xrtNetUdpPrepared(pData)) Result = XRT_OWNERSHIP_PREPARE_READY;
+	else if (!__xrtNetUdpBusy(pData) && !__xrtNetUdpOwnershipStop(pUdp)) Result = XRT_OWNERSHIP_PREPARE_FAILED;
+	if (!xrtOwnershipScopeEnd(&Freeze)) abort();
+	return Result;
+}
+static void __xrtNetUdpClear(const void* pData, const void* pToken)
+{
+	xnetudp* pUdp = (xnetudp*)pData;
+	if (!pToken || xrtAtomicPtrLoad(&pUdp->OwnershipClaim, XMEMORY_ACQUIRE) != pToken || !__xrtNetUdpPrepared(pData) ||
+		(xrtAtomic32Load(&pUdp->OwnershipState, XMEMORY_ACQUIRE) & XRT_NET_UDP_OWNERSHIP_CLEARED)) abort();
+	xrtAtomic32Store(&pUdp->OwnershipState, XRT_NET_UDP_OWNERSHIP_READY | XRT_NET_UDP_OWNERSHIP_CLEARED, XMEMORY_RELEASE);
+}
+XRT_API const xrtownershipadapterv1* xrtNetUdpOwnershipAdapterV1(
+	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation)
+{
+	static const xrtownershipadapterv1 Adapter = {sizeof(Adapter), __xrtNetUdpHold, __xrtNetUdpDrop,
+		__xrtNetUdpClaim, __xrtNetUdpRestore, NULL, __xrtNetUdpClear, NULL};
+	static const xrtownershippreparationv1 Preparation = {sizeof(Preparation), &Adapter, __xrtNetUdpPrepared, __xrtNetUdpPrepare};
+	size_t iCount;
+	if (!ppPreparation || Reference.Ops != &__xrtNetUdpOwnershipOps || !__xrtNetUdpCount(Reference.Data, &iCount)) return NULL;
+	*ppPreparation = &Preparation; return &Adapter;
 }
 
 #endif
@@ -269635,17 +270492,19 @@ struct xnetudpbatch {
 	volatile int32 References;
 	size_t Count;
 	size_t Capacity;
-	xnetudppacket* Packets[1];
+	xatomicptr Packets[1];
 };
 
 
 
 /* 一个等待节点持有 UDP 和 Promise，直到唯一终态完成。 */
 struct __xrt_net_udp_wait {
+	volatile int32 References, Active;
+	const void* Claim;
 	__xrt_net_udp_wait* Next;
 	__xrt_net_udp_wait* FinishNext;
 	xnetudp* Udp;
-	xnetworker* CacheWorker;
+	xatomicptr CacheWorker;
 	xpromise* Promise;
 	xcancelwatch* Watch;
 	xnetudpbatch* Batch;
@@ -269654,9 +270513,11 @@ struct __xrt_net_udp_wait {
 	xnetudpwait Wait;
 	__xrt_net_udp_wait_result Result;
 	size_t RequiredBytes;
+	xatomic32 Done;
 	bool Receive;
 	bool Writable;
 	bool Linked;
+	bool Publishing, Cleared;
 };
 
 _Static_assert(
@@ -269681,7 +270542,11 @@ static __xrt_net_udp_wait* __xrtNetUdpWaitAlloc(
 		);
 
 	if ( pWaiter != NULL ) {
-		pWaiter->CacheWorker = pWorker;
+		xrtAtomicPtrInit(&pWaiter->CacheWorker, pWorker);
+		xrtAtomic32Init(&pWaiter->Done, 0);
+		pWaiter->References = 1;
+		pWaiter->Active = 1;
+		pWaiter->Publishing = true;
 	} else if ( pWorker != NULL ) {
 		__xrtNetEngineObjectRelease(pWorker->Engine);
 	}
@@ -269690,33 +270555,14 @@ static __xrt_net_udp_wait* __xrtNetUdpWaitAlloc(
 
 
 
-/* 在 UDP 引用释放前归还等待节点。 */
-static void __xrtNetUdpWaitRecycle(
-	xnetudp* pUdp,
-	__xrt_net_udp_wait* pWaiter
-)
-{
-	xnetworker* pWorker = pWaiter->CacheWorker;
-
-	(void)pUdp;
-	if ( pWorker != NULL ) {
-		__xrtNetWorkerNodeRecycleHeld(
-			pWorker,
-			pWaiter,
-			sizeof(*pWaiter)
-		);
-	} else {
-		xrtFree(pWaiter);
-	}
-}
-
-
-
 /* 增加批量结果引用。 */
 XRT_API xnetudpbatch* xrtNetUdpBatchRef(xnetudpbatch* pBatch)
 {
-	if ( (pBatch == NULL) ||
-		 (xrtRefRetain(&pBatch->References) < 0) ) {
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) return NULL;
+	bool bHeld = pBatch && xrtRefRetain(&pBatch->References) >= 0;
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (!bHeld) {
 		__xrtErrorSetInvalidArgument();
 		return NULL;
 	}
@@ -269728,14 +270574,17 @@ XRT_API xnetudpbatch* xrtNetUdpBatchRef(xnetudpbatch* pBatch)
 /* 销毁批量结果及其中仍由结果拥有的数据包。 */
 XRT_API void xrtNetUdpBatchDestroy(xnetudpbatch* pBatch)
 {
-	if ( (pBatch == NULL) ||
-		 (xrtRefRelease(&pBatch->References) != 0) ) {
-		return;
+	if (!pBatch) return;
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	int32 iReferences = xrtRefRelease(&pBatch->References);
+	if (iReferences < 0) abort();
+	if (!iReferences) {
+		for (size_t i = 0; i < pBatch->Count; i++)
+			xrtNetUdpPacketDestroy(xrtAtomicPtrLoad(&pBatch->Packets[i], XMEMORY_RELAXED));
+		xrtFree(pBatch);
 	}
-	for ( size_t i = 0; i < pBatch->Count; i++ ) {
-		xrtNetUdpPacketDestroy(pBatch->Packets[i]);
-	}
-	xrtFree(pBatch);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
 }
 
 
@@ -269758,7 +270607,7 @@ XRT_API xnetudppacket* xrtNetUdpBatchPacket(
 		__xrtErrorSetInvalidArgument();
 		return NULL;
 	}
-	return pBatch->Packets[iIndex];
+	return xrtAtomicPtrLoad(&pBatch->Packets[iIndex], XMEMORY_ACQUIRE);
 }
 
 
@@ -269770,14 +270619,54 @@ XRT_API xnetudppacket* xrtNetUdpBatchTake(
 )
 {
 	xnetudppacket* pPacket;
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) return NULL;
 
 	if ( (pBatch == NULL) || (iIndex >= pBatch->Count) ) {
+		if (!xrtOwnershipScopeEnd(&Mutation)) abort();
 		__xrtErrorSetInvalidArgument();
 		return NULL;
 	}
-	pPacket = pBatch->Packets[iIndex];
-	pBatch->Packets[iIndex] = NULL;
+	pPacket = xrtAtomicPtrExchange(&pBatch->Packets[iIndex], NULL, XMEMORY_ACQ_REL);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
 	return pPacket;
+}
+
+static bool __xrtNetUdpBatchCount(const void* pData, size_t* pCount)
+{
+	const xnetudpbatch* pBatch = pData;
+	if (!pBatch || !pCount || pBatch->Count > pBatch->Capacity) return false;
+	int32 iReferences = __xrtAtomicRefLoad(&pBatch->References);
+	if (iReferences <= 0) return false;
+	*pCount = (size_t)iReferences; return true;
+}
+static bool __xrtNetUdpBatchTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{
+	const xnetudpbatch* pBatch = pData; size_t iCount;
+	if (!pVisit || !__xrtNetUdpBatchCount(pData, &iCount)) return false;
+	for (size_t i = 0; i < pBatch->Count; ++i) {
+		xnetudppacket* pPacket = xrtAtomicPtrLoad(&pBatch->Packets[i], XMEMORY_ACQUIRE);
+		if (pPacket && !pVisit(xrtNetUdpPacketOwnership(pPacket), pContext)) return false;
+	}
+	return true;
+}
+static const xrtownershipops __xrtNetUdpBatchOps = {__xrtNetUdpBatchCount, __xrtNetUdpBatchTrace};
+XRT_API xrtownershipref xrtNetUdpBatchOwnership(const xnetudpbatch* pBatch)
+{ return (xrtownershipref){pBatch, pBatch ? &__xrtNetUdpBatchOps : NULL}; }
+static bool __xrtNetUdpBatchHold(const void* pData)
+{ return xrtNetUdpBatchRef((xnetudpbatch*)pData) != NULL; }
+static void __xrtNetUdpBatchDrop(const void* pData)
+{ xrtNetUdpBatchDestroy((xnetudpbatch*)pData); }
+static bool __xrtNetUdpBatchClaim(const void* pData, const void* pToken)
+{ return pData && pToken; }
+static void __xrtNetUdpBatchKeep(const void* pData, const void* pToken)
+{ (void)pData; (void)pToken; }
+XRT_API const xrtownershipadapterv1* xrtNetUdpBatchOwnershipAdapterV1(xrtownershipref Reference)
+{
+	static const xrtownershipadapterv1 Adapter = {sizeof(Adapter), __xrtNetUdpBatchHold, __xrtNetUdpBatchDrop,
+		__xrtNetUdpBatchClaim, __xrtNetUdpBatchKeep, NULL, __xrtNetUdpBatchKeep, NULL};
+	size_t iCount;
+	return Reference.Ops == &__xrtNetUdpBatchOps && __xrtNetUdpBatchCount(Reference.Data, &iCount) ? &Adapter : NULL;
 }
 
 
@@ -269789,15 +270678,16 @@ static xnetudpbatch* __xrtNetUdpBatchCreate(size_t iCapacity)
 	size_t iBase = offsetof(xnetudpbatch, Packets);
 	size_t iAllocation;
 
-	if ( iCapacity > ((SIZE_MAX - iBase) / sizeof(xnetudppacket*)) ) {
+	if ( iCapacity > ((SIZE_MAX - iBase) / sizeof(xatomicptr)) ) {
 		__xrtErrorSetSizeOverflow();
 		return NULL;
 	}
-	iAllocation = iBase + (iCapacity * sizeof(xnetudppacket*));
+	iAllocation = iBase + (iCapacity * sizeof(xatomicptr));
 	pBatch = (xnetudpbatch*)xrtCalloc(1, iAllocation);
 	if ( pBatch != NULL ) {
 		pBatch->References = 1;
 		pBatch->Capacity = iCapacity;
+		for (size_t i = 0; i < iCapacity; ++i) xrtAtomicPtrInit(&pBatch->Packets[i], NULL);
 	}
 	return pBatch;
 }
@@ -269827,6 +270717,209 @@ static void __xrtNetUdpBatchFree(ptr pValue, ptr pData)
 {
 	(void)pData;
 	xrtNetUdpBatchDestroy((xnetudpbatch*)pValue);
+}
+
+/* One allocation, three real owners: source list/constructor, the Future
+ * producer slot, and cancellation Watch.Data. Active is only a call borrow.
+ * Result slots are enumerated once; Next/FinishNext never invent RC edges. */
+static void __xrtNetUdpWaitCancel(ptr pData);
+static void __xrtNetUdpWaitEnter(__xrt_net_udp_wait* pWait)
+{
+	xrtownershipscope Scope = {0};
+	if (!xrtOwnershipMutationBegin(&Scope)) abort();
+	int32 iActive = __xrtAtomicRefLoad(&pWait->Active);
+	for (;;) {
+		if (iActive < 0 || iActive == INT32_MAX || pWait->Cleared) abort();
+		int32 iPrevious = __xrtAtomicRefCompareExchange(&pWait->Active, iActive + 1, iActive);
+		if (iPrevious == iActive) break;
+		iActive = iPrevious;
+	}
+	if (!xrtOwnershipScopeEnd(&Scope)) abort();
+}
+static void __xrtNetUdpWaitLeave(__xrt_net_udp_wait* pWait)
+{
+	xrtownershipscope Scope = {0};
+	if (!xrtOwnershipMutationBegin(&Scope)) abort();
+	if (xrtRefRelease(&pWait->Active) < 0) abort();
+	if (!xrtOwnershipScopeEnd(&Scope)) abort();
+}
+static bool __xrtNetUdpWaitHold(const void* pData)
+{
+	__xrt_net_udp_wait* pWait = (__xrt_net_udp_wait*)pData;
+	xrtownershipscope Scope = {0};
+	if (!xrtOwnershipMutationBegin(&Scope)) return false;
+	bool bHeld = !pWait->Cleared && xrtRefRetain(&pWait->References) >= 0;
+	if (!xrtOwnershipScopeEnd(&Scope)) abort();
+	return bHeld;
+}
+static void __xrtNetUdpWaitDrop(const void* pData)
+{
+	__xrt_net_udp_wait* pWait = (__xrt_net_udp_wait*)pData;
+	xrtownershipscope Scope = {0};
+	if (!xrtOwnershipMutationBegin(&Scope)) abort();
+	xnetworker* pWorker = NULL;
+	if (xrtAtomic32Load(&pWait->Done, XMEMORY_ACQUIRE) && !__xrtAtomicRefLoad(&pWait->Active)) {
+		/* Keep normal small-node recycling; retained collector pins must not
+		 * keep an operational Engine alive after the waiter is inert. */
+		if (__xrtAtomicRefCompareExchange(&pWait->References, 0, 1) == 1) {
+			pWorker = xrtAtomicPtrExchange(&pWait->CacheWorker, NULL, XMEMORY_ACQ_REL);
+			if (!xrtOwnershipScopeEnd(&Scope)) abort();
+			if (pWorker) __xrtNetWorkerNodeRecycleHeld(pWorker, pWait, sizeof(*pWait));
+			else xrtFree(pWait);
+			return;
+		}
+		pWorker = xrtAtomicPtrExchange(&pWait->CacheWorker, NULL, XMEMORY_ACQ_REL);
+	}
+	int32 iLeft = xrtRefRelease(&pWait->References);
+	if (iLeft < 0) abort();
+	/* A non-final owner must not read the allocation after its release. */
+	if (!iLeft && (!xrtAtomic32Load(&pWait->Done, XMEMORY_ACQUIRE) || pWait->Publishing || pWait->Linked ||
+		pWait->Next || pWait->FinishNext || pWait->Promise || pWait->Watch || pWait->Udp ||
+		pWait->Packet || pWait->ErrorPacket || pWait->Batch || __xrtAtomicRefLoad(&pWait->Active) ||
+		xrtAtomicPtrLoad(&pWait->CacheWorker, XMEMORY_ACQUIRE))) abort();
+	if (!xrtOwnershipScopeEnd(&Scope)) abort();
+	if (!iLeft) xrtFree(pWait);
+	if (pWorker) __xrtNetEngineObjectRelease(pWorker->Engine); /* final Worker access */
+}
+static bool __xrtNetUdpWaitBusy(const void* pData)
+{
+	const __xrt_net_udp_wait* pWait = pData;
+	if (!pWait || pWait->Cleared) return false;
+	if (pWait->Publishing || __xrtAtomicRefLoad(&pWait->Active)) return true;
+	if (xrtAtomic32Load(&pWait->Done, XMEMORY_ACQUIRE)) return false;
+	return xrtNetUdpOwnershipQuiescenceV1Get()->Busy(pWait->Udp);
+}
+static bool __xrtNetUdpWaitCount(const void* pData, size_t* pCount)
+{
+	const __xrt_net_udp_wait* pWait = pData;
+	if (!pWait || !pCount || pWait->Cleared || __xrtNetUdpWaitBusy(pData)) return false;
+	bool bDone = xrtAtomic32Load(&pWait->Done, XMEMORY_ACQUIRE) != 0;
+	if (bDone && (pWait->Promise || pWait->Watch || pWait->Udp || pWait->Linked || pWait->Next || pWait->FinishNext ||
+		pWait->Packet || pWait->ErrorPacket || pWait->Batch || xrtAtomicPtrLoad(&pWait->CacheWorker, XMEMORY_ACQUIRE))) return false;
+	if (!bDone && (!pWait->Linked || !pWait->Promise || !pWait->Watch || !pWait->Udp || pWait->FinishNext ||
+		pWait->Packet || pWait->ErrorPacket || pWait->Result != __XRT_NET_UDP_WAIT_PENDING ||
+		(pWait->Batch && (!pWait->Receive || pWait->Wait != XNET_UDP_WAIT_RECEIVE || pWait->Batch->Count ||
+			!pWait->Batch->Capacity || pWait->Batch->Capacity > XRT_NET_UDP_FUTURE_BATCH_MAX)))) return false;
+	int32 iReferences = __xrtAtomicRefLoad(&pWait->References);
+	if (iReferences <= 0) return false;
+	*pCount = (size_t)iReferences; return true;
+}
+static bool __xrtNetUdpWaitTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{
+	const __xrt_net_udp_wait* pWait = pData; size_t iCount;
+	if (!pVisit || !__xrtNetUdpWaitCount(pData, &iCount)) return false;
+	if (pWait->Udp && !pVisit(xrtNetUdpOwnership(pWait->Udp), pContext)) return false;
+	xnetworker* pWorker = xrtAtomicPtrLoad(&pWait->CacheWorker, XMEMORY_ACQUIRE);
+	if (pWorker && !pVisit(xrtNetEngineOwnership(pWorker->Engine), pContext)) return false;
+	if (pWait->Promise && !pVisit(xrtPromiseOwnership(pWait->Promise), pContext)) return false;
+	if (pWait->Watch && !pVisit(xrtCancelWatchOwnership(pWait->Watch), pContext)) return false;
+	if (pWait->Packet && !pVisit(xrtNetUdpPacketOwnership(pWait->Packet), pContext)) return false;
+	if (pWait->ErrorPacket && !pVisit(xrtNetUdpErrorPacketOwnership(pWait->ErrorPacket), pContext)) return false;
+	return !pWait->Batch || pVisit(xrtNetUdpBatchOwnership(pWait->Batch), pContext);
+}
+static const xrtownershipops __xrtNetUdpWaitOps = {__xrtNetUdpWaitCount, __xrtNetUdpWaitTrace};
+static xrtownershipref __xrtNetUdpWaitOwnership(const __xrt_net_udp_wait* pWait)
+{ return (xrtownershipref){pWait, pWait ? &__xrtNetUdpWaitOps : NULL}; }
+static void __xrtNetUdpWaitCancelOwned(ptr pData)
+{
+	__xrt_net_udp_wait* pWait = pData;
+	__xrtNetUdpWaitEnter(pWait); __xrtNetUdpWaitCancel(pWait); __xrtNetUdpWaitLeave(pWait);
+}
+static const xfutureproducerownershipv1 __xrtNetUdpWaitProducer = {sizeof(xfutureproducerownershipv1), __xrtNetUdpWaitDrop};
+static const xcancelwatchownershipv1 __xrtNetUdpWaitCancelPolicy = {
+	sizeof(xcancelwatchownershipv1), __xrtNetUdpWaitCancelOwned, __xrtNetUdpWaitDrop, &__xrtNetUdpWaitOps};
+static bool __xrtNetUdpPacketPayloadTrace(const void* pValue, const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{ return pValue && !pData && pVisit && pVisit(xrtNetUdpPacketOwnership(pValue), pContext); }
+static bool __xrtNetUdpErrorPayloadTrace(const void* pValue, const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{ return pValue && !pData && pVisit && pVisit(xrtNetUdpErrorPacketOwnership(pValue), pContext); }
+static bool __xrtNetUdpBatchPayloadTrace(const void* pValue, const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{ return pValue && !pData && pVisit && pVisit(xrtNetUdpBatchOwnership(pValue), pContext); }
+static const xfuturepayloadownershipv1 __xrtNetUdpPacketPayload = {
+	sizeof(xfuturepayloadownershipv1), __xrtNetUdpPacketFree, __xrtNetUdpPacketPayloadTrace};
+static const xfuturepayloadownershipv1 __xrtNetUdpErrorPayload = {
+	sizeof(xfuturepayloadownershipv1), __xrtNetUdpErrorPacketFree, __xrtNetUdpErrorPayloadTrace};
+static const xfuturepayloadownershipv1 __xrtNetUdpBatchPayload = {
+	sizeof(xfuturepayloadownershipv1), __xrtNetUdpBatchFree, __xrtNetUdpBatchPayloadTrace};
+XRT_API const xfutureproducerownershipv1* xrtNetUdpFutureProducerPolicyV1Get(void) { return &__xrtNetUdpWaitProducer; }
+XRT_API const xcancelwatchownershipv1* xrtNetUdpFutureCancelPolicyV1Get(void) { return &__xrtNetUdpWaitCancelPolicy; }
+XRT_API const xfuturepayloadownershipv1* xrtNetUdpFuturePacketPayloadPolicyV1Get(void) { return &__xrtNetUdpPacketPayload; }
+XRT_API const xfuturepayloadownershipv1* xrtNetUdpFutureErrorPayloadPolicyV1Get(void) { return &__xrtNetUdpErrorPayload; }
+XRT_API const xfuturepayloadownershipv1* xrtNetUdpFutureBatchPayloadPolicyV1Get(void) { return &__xrtNetUdpBatchPayload; }
+XRT_API const xrtownershipquiescencev1* xrtNetUdpFutureOwnershipQuiescenceV1Get(void)
+{
+	static const xrtownershipquiescencev1 Policy = {sizeof(Policy), &__xrtNetUdpWaitOps, __xrtNetUdpWaitBusy};
+	return &Policy;
+}
+static bool __xrtNetUdpWaitClaim(const void* pData, const void* pToken)
+{
+	__xrt_net_udp_wait* pWait = (__xrt_net_udp_wait*)pData; size_t iCount;
+	if (!pToken || (pWait->Claim && pWait->Claim != pToken) || !__xrtNetUdpWaitCount(pData, &iCount)) return false;
+	pWait->Claim = pToken; return true;
+}
+static void __xrtNetUdpWaitRestore(const void* pData, const void* pToken)
+{
+	__xrt_net_udp_wait* pWait = (__xrt_net_udp_wait*)pData;
+	if (!pToken || pWait->Claim != pToken || pWait->Cleared) abort();
+	pWait->Claim = NULL;
+}
+static bool __xrtNetUdpWaitReady(const void* pData)
+{
+	const __xrt_net_udp_wait* pWait = pData; size_t iCount;
+	return __xrtNetUdpWaitCount(pData, &iCount) && xrtAtomic32Load(&pWait->Done, XMEMORY_ACQUIRE);
+}
+static xrtownershipprepareresult __xrtNetUdpWaitPrepare(const void* pData, const void* pToken)
+{
+	const __xrt_net_udp_wait* pWait = pData; xrtownershipscope Freeze = {0};
+	if (!xrtOwnershipFreezeTryBegin(&Freeze)) return XRT_OWNERSHIP_PREPARE_BUSY;
+	if (!pToken || pWait->Claim != pToken || pWait->Cleared) abort();
+	bool bReady = __xrtNetUdpWaitReady(pData);
+	if (!xrtOwnershipScopeEnd(&Freeze)) abort();
+	/* The actual UDP source closes and publishes terminal results. A producer
+	 * adapter never fabricates completion or cancels accepted work on Drop. */
+	return bReady ? XRT_OWNERSHIP_PREPARE_READY : XRT_OWNERSHIP_PREPARE_BUSY;
+}
+static void __xrtNetUdpWaitClear(const void* pData, const void* pToken)
+{
+	__xrt_net_udp_wait* pWait = (__xrt_net_udp_wait*)pData;
+	if (!pToken || pWait->Claim != pToken || pWait->Cleared || !__xrtNetUdpWaitReady(pData)) abort();
+	pWait->Cleared = true;
+}
+XRT_API const xrtownershipadapterv1* xrtNetUdpFutureOwnershipAdapterV1(xrtownershipref Reference,
+	const xrtownershippreparationv1** ppPreparation)
+{
+	static const xrtownershipadapterv1 Adapter = {sizeof(Adapter), __xrtNetUdpWaitHold, __xrtNetUdpWaitDrop,
+		__xrtNetUdpWaitClaim, __xrtNetUdpWaitRestore, NULL, __xrtNetUdpWaitClear, NULL};
+	static const xrtownershippreparationv1 Preparation = {sizeof(Preparation), &Adapter, __xrtNetUdpWaitReady, __xrtNetUdpWaitPrepare};
+	size_t iCount;
+	if (!ppPreparation || Reference.Ops != &__xrtNetUdpWaitOps || !__xrtNetUdpWaitCount(Reference.Data, &iCount)) return NULL;
+	*ppPreparation = &Preparation; return &Adapter;
+}
+static bool __xrtNetUdpWaitSetup(__xrt_net_udp_wait* pWait, xfuture** ppFuture)
+{
+	pWait->Promise = xrtPromiseCreate(ppFuture, NULL);
+	if (!pWait->Promise || !__xrtNetUdpWaitHold(pWait)) return false;
+	if (!xrtPromiseProducerBindTakeV1(pWait->Promise, __xrtNetUdpWaitOwnership(pWait), &__xrtNetUdpWaitProducer)) {
+		__xrtNetUdpWaitDrop(pWait); return false;
+	}
+	xcancel* pCancel = xrtPromiseCancelToken(pWait->Promise);
+	if (!pCancel) return false;
+	if (!__xrtNetUdpWaitHold(pWait)) { xrtCancelDestroy(pCancel); return false; }
+	pWait->Watch = xrtCancelWatchOwnedV1(pCancel, pWait, &__xrtNetUdpWaitCancelPolicy);
+	xrtCancelDestroy(pCancel);
+	if (!pWait->Watch) { __xrtNetUdpWaitDrop(pWait); return false; }
+	return true;
+}
+static void __xrtNetUdpWaitRetire(__xrt_net_udp_wait* pWait)
+{
+	xrtownershipscope Scope = {0};
+	if (!xrtOwnershipMutationBegin(&Scope)) abort();
+	if (pWait->Promise || pWait->Watch || pWait->Linked || pWait->Next || pWait->FinishNext ||
+		pWait->Packet || pWait->ErrorPacket || pWait->Batch || xrtAtomic32Load(&pWait->Done, XMEMORY_ACQUIRE)) abort();
+	xnetudp* pUdp = pWait->Udp; pWait->Udp = NULL;
+	pWait->Publishing = false;
+	xrtAtomic32Store(&pWait->Done, 1, XMEMORY_RELEASE);
+	if (!xrtOwnershipScopeEnd(&Scope)) abort();
+	xrtNetUdpDestroy(pUdp); __xrtNetUdpWaitLeave(pWait); __xrtNetUdpWaitDrop(pWait);
 }
 
 
@@ -270003,8 +271096,8 @@ __xrt_net_udp_wait* __xrtNetUdpFuturePairReceiveLocked(xnetudp* pUdp)
 		if ( pWaiter->Batch != NULL ) {
 			while ( (pWaiter->Batch->Count < pWaiter->Batch->Capacity) &&
 				 (pUdp->ReceiveHead != NULL) ) {
-				pWaiter->Batch->Packets[pWaiter->Batch->Count++] =
-					__xrtNetUdpTakeReceiveLocked(pUdp);
+				xrtAtomicPtrStore(&pWaiter->Batch->Packets[pWaiter->Batch->Count++],
+					__xrtNetUdpTakeReceiveLocked(pUdp), XMEMORY_RELEASE);
 			}
 		} else {
 			pWaiter->Packet = __xrtNetUdpTakeReceiveLocked(pUdp);
@@ -270211,6 +271304,8 @@ static void __xrtNetUdpWaitFinish(__xrt_net_udp_wait* pWaiter)
 	__xrt_net_udp_wait_result Result = pWaiter->Result;
 	xerror* pError = NULL;
 
+	__xrtNetUdpWaitEnter(pWaiter);
+	if (!__xrtNetUdpOwnershipEnter(pUdp, false)) abort();
 	if ( Result == __XRT_NET_UDP_WAIT_FAILED ) {
 		pError = __xrtNetUdpWaitError(pWaiter);
 	}
@@ -270220,36 +271315,43 @@ static void __xrtNetUdpWaitFinish(__xrt_net_udp_wait* pWaiter)
 	xrtCancelUnwatch(pWaiter->Watch);
 	pWaiter->Watch = NULL;
 	pWaiter->Promise = NULL;
-	__xrtNetUdpWaitRecycle(pUdp, pWaiter);
-	xrtNetUdpDestroy(pUdp);
+	/* A terminal result must not leave an operational cache lease behind
+	 * after callers are allowed to retire a closed Engine. The hot Worker
+	 * receive path can still recycle normally: the same Worker cannot close
+	 * its source before this finish returns. Foreign cancellation/completion
+	 * and closing sources detach the cache lease BEFORE publishing a result.
+	 * Real producer/Watch/list references keep the allocation itself alive. */
+	xnetworker* pCacheWorker = xrtAtomicPtrLoad(&pWaiter->CacheWorker, XMEMORY_ACQUIRE);
+	if (pCacheWorker && (xrtNetUdpState(pUdp) >= XNET_UDP_CLOSING || !xrtNetWorkerIsCurrent(pCacheWorker))) {
+		pCacheWorker = xrtAtomicPtrExchange(&pWaiter->CacheWorker, NULL, XMEMORY_ACQ_REL);
+		if (pCacheWorker) __xrtNetEngineObjectRelease(pCacheWorker->Engine);
+	}
+	__xrtNetUdpOwnershipLeave(pUdp);
 	if ( Result == __XRT_NET_UDP_WAIT_READY ) {
 		(void)xrtPromiseResolve(pPromise, NULL);
 	} else if ( Result == __XRT_NET_UDP_WAIT_RECEIVE ) {
 		if ( pBatch != NULL ) {
-			if ( xrtPromiseResolveOwned(
+			if ( xrtPromiseResolveOwnedPolicyV1(
 				pPromise,
 				pBatch,
-				__xrtNetUdpBatchFree,
-				NULL
+				&__xrtNetUdpBatchPayload
 			) ) {
 				pBatch = NULL;
 			}
 		} else {
-			if ( xrtPromiseResolveOwned(
+			if ( xrtPromiseResolveOwnedPolicyV1(
 				pPromise,
 				pPacket,
-				__xrtNetUdpPacketFree,
-				NULL
+				&__xrtNetUdpPacketPayload
 			) ) {
 				pPacket = NULL;
 			}
 		}
 	} else if ( Result == __XRT_NET_UDP_WAIT_ERROR ) {
-		if ( xrtPromiseResolveOwned(
+		if ( xrtPromiseResolveOwnedPolicyV1(
 			pPromise,
 			pErrorPacket,
-			__xrtNetUdpErrorPacketFree,
-			NULL
+			&__xrtNetUdpErrorPayload
 		) ) {
 			pErrorPacket = NULL;
 		}
@@ -270269,6 +271371,7 @@ static void __xrtNetUdpWaitFinish(__xrt_net_udp_wait* pWaiter)
 	xrtNetUdpBatchDestroy(pBatch);
 	xrtErrorFree(pError);
 	xrtPromiseDestroy(pPromise);
+	__xrtNetUdpWaitRetire(pWaiter);
 }
 
 
@@ -270319,7 +271422,7 @@ static void __xrtNetUdpWaitScheduleLocked(xnetudp* pUdp)
 
 
 /* 推进所有当前可满足或已经终止的 UDP Future。 */
-void __xrtNetUdpFutureNotify(xnetudp* pUdp)
+static void __xrtNetUdpFutureNotifyImpl(xnetudp* pUdp)
 {
 	__xrt_net_udp_wait* pFinished = NULL;
 	__xrt_net_udp_wait* pErrorFinished = NULL;
@@ -270328,13 +271431,14 @@ void __xrtNetUdpFutureNotify(xnetudp* pUdp)
 	if ( !pUdp->ReceiveLockReady ) {
 		return;
 	}
-	if ( !xrtNetWorkerIsCurrent(pUdp->Worker) ) {
-		__xrtSpinLock(&pUdp->ReceiveLock);
+	__xrtSpinLock(&pUdp->ReceiveLock);
+	/* A terminal shell can outlive Engine workers. WaitClosed is published
+	 * under this lock before CLOSED, so do not dereference that old Worker. */
+	if ( !pUdp->WaitClosed && !xrtNetWorkerIsCurrent(pUdp->Worker) ) {
 		__xrtNetUdpWaitScheduleLocked(pUdp);
 		__xrtSpinUnlock(&pUdp->ReceiveLock);
 		return;
 	}
-	__xrtSpinLock(&pUdp->ReceiveLock);
 	pFinished = __xrtNetUdpFuturePairReceiveLocked(pUdp);
 	pErrorFinished = __xrtNetUdpFuturePairErrorLocked(pUdp);
 	pWaiter = pUdp->WaitHead;
@@ -270382,6 +271486,13 @@ void __xrtNetUdpFutureNotify(xnetudp* pUdp)
 	__xrtNetUdpFutureFinishList(pErrorFinished);
 }
 
+void __xrtNetUdpFutureNotify(xnetudp* pUdp)
+{
+	if (!__xrtNetUdpOwnershipEnter(pUdp, false)) abort();
+	__xrtNetUdpFutureNotifyImpl(pUdp);
+	__xrtNetUdpOwnershipLeave(pUdp);
+}
+
 
 
 /* 内嵌命令进入 Worker 后允许下一次条件变化再次投递。 */
@@ -270390,10 +271501,12 @@ static void __xrtNetUdpWaitTask(xnetworker* pWorker, ptr pData)
 	xnetudp* pUdp = (xnetudp*)pData;
 
 	(void)pWorker;
+	__xrtNetUdpActiveEnter(pUdp);
 	__xrtSpinLock(&pUdp->ReceiveLock);
 	pUdp->WaitPosted = false;
 	__xrtSpinUnlock(&pUdp->ReceiveLock);
 	__xrtNetUdpFutureNotify(pUdp);
+	__xrtNetUdpActiveLeave(pUdp);
 	xrtNetUdpDestroy(pUdp);
 }
 
@@ -270406,14 +271519,16 @@ static void __xrtNetUdpWaitCancel(ptr pData)
 	xnetudp* pUdp = pWaiter->Udp;
 	bool bRemoved;
 
+	if (!__xrtNetUdpOwnershipEnter(pUdp, false)) abort();
 	__xrtSpinLock(&pUdp->ReceiveLock);
 	bRemoved = pWaiter->Linked && __xrtNetUdpWaitRemove(pUdp, pWaiter);
 	__xrtSpinUnlock(&pUdp->ReceiveLock);
 	if ( bRemoved ) {
 		pWaiter->Result = __XRT_NET_UDP_WAIT_CANCELLED;
 		__xrtNetUdpFutureNotify(pUdp);
-		__xrtNetUdpFutureFinishList(pWaiter);
 	}
+	__xrtNetUdpOwnershipLeave(pUdp);
+	if (bRemoved) __xrtNetUdpFutureFinishList(pWaiter);
 }
 
 
@@ -270453,21 +271568,19 @@ static void __xrtNetUdpWaitDiscard(
 	xfuture* pFuture
 )
 {
-	xnetudp* pUdp = pWaiter->Udp;
-
-	xrtCancelUnwatch(pWaiter->Watch);
-	pWaiter->Watch = NULL;
-	xrtFutureDestroy(pFuture);
-	xrtPromiseDestroy(pWaiter->Promise);
-	xrtNetUdpBatchDestroy(pWaiter->Batch);
-	__xrtNetUdpWaitRecycle(pUdp, pWaiter);
-	xrtNetUdpDestroy(pUdp);
+	xerror* pError = xrtTakeError();
+	xcancelwatch* pWatch = pWaiter->Watch; pWaiter->Watch = NULL;
+	xpromise* pPromise = pWaiter->Promise; pWaiter->Promise = NULL;
+	xnetudpbatch* pBatch = pWaiter->Batch; pWaiter->Batch = NULL;
+	xrtCancelUnwatch(pWatch); xrtPromiseDestroy(pPromise); xrtFutureDestroy(pFuture);
+	xrtNetUdpBatchDestroy(pBatch); __xrtNetUdpWaitRetire(pWaiter);
+	xrtClearError(); xrtSetErrorTake(pError);
 }
 
 
 
 /* 建立 Promise、取消监听和 UDP 等待节点。 */
-static xfuture* __xrtNetUdpWaitCreate(
+static xfuture* __xrtNetUdpWaitCreateImpl(
 	xnetudp* pUdp,
 	xnetudpwait Wait,
 	bool bReceive,
@@ -270479,8 +271592,6 @@ static xfuture* __xrtNetUdpWaitCreate(
 	__xrt_net_udp_wait* pFinished = NULL;
 	xnetudp* pOwned;
 	xfuture* pFuture = NULL;
-	xcancel* pCancel;
-	xerror* pError;
 	xnetworker* pCacheWorker = NULL;
 	bool bConflict;
 
@@ -270543,8 +271654,7 @@ static xfuture* __xrtNetUdpWaitCreate(
 	if ( bReceive && (iValue != 0) ) {
 		pWaiter->Batch = __xrtNetUdpBatchCreate(iValue);
 		if ( pWaiter->Batch == NULL ) {
-			__xrtNetUdpWaitRecycle(pUdp, pWaiter);
-			xrtNetUdpDestroy(pOwned);
+			__xrtNetUdpWaitDiscard(pWaiter, NULL);
 			return NULL;
 		}
 	}
@@ -270552,35 +271662,10 @@ static xfuture* __xrtNetUdpWaitCreate(
 	pWaiter->Receive = bReceive;
 	pWaiter->Writable = bWritable;
 	pWaiter->RequiredBytes = bWritable ? iValue : 0;
-	pWaiter->Promise = xrtPromiseCreate(&pFuture, NULL);
-	if ( pWaiter->Promise == NULL ) {
-		xrtNetUdpBatchDestroy(pWaiter->Batch);
-		__xrtNetUdpWaitRecycle(pUdp, pWaiter);
-		xrtNetUdpDestroy(pOwned);
-		return NULL;
+	if (!__xrtNetUdpWaitSetup(pWaiter, &pFuture)) {
+		__xrtNetUdpWaitDiscard(pWaiter, pFuture); return NULL;
 	}
-	pCancel = xrtPromiseCancelToken(pWaiter->Promise);
-	if ( pCancel != NULL ) {
-		pWaiter->Watch = xrtCancelWatch(
-			pCancel,
-			__xrtNetUdpWaitCancel,
-			pWaiter
-		);
-		xrtCancelDestroy(pCancel);
-	}
-	if ( pWaiter->Watch == NULL ) {
-		pError = xrtTakeError();
-		xrtFutureDestroy(pFuture);
-		xrtPromiseDestroy(pWaiter->Promise);
-		xrtNetUdpBatchDestroy(pWaiter->Batch);
-		__xrtNetUdpWaitRecycle(pUdp, pWaiter);
-		xrtNetUdpDestroy(pOwned);
-		if ( pError != NULL ) {
-			xrtSetError(pError);
-			xrtErrorFree(pError);
-		}
-		return NULL;
-	}
+	xrtownershipscope Publish = {0}; if (!xrtOwnershipMutationBegin(&Publish)) abort();
 	__xrtSpinLock(&pUdp->ReceiveLock);
 	bConflict = __xrtNetUdpWaitModeConflictLocked(pUdp, pWaiter);
 	if ( !bConflict ) {
@@ -270606,7 +271691,12 @@ static xfuture* __xrtNetUdpWaitCreate(
 			}
 		}
 	}
+	if (!bConflict) {
+		pWaiter->Publishing = false;
+		if (xrtRefRelease(&pWaiter->Active) != 0) abort();
+	}
 	__xrtSpinUnlock(&pUdp->ReceiveLock);
+	if (!xrtOwnershipScopeEnd(&Publish)) abort();
 	if ( bConflict ) {
 		bool bErrorWait = Wait == XNET_UDP_WAIT_ERROR;
 
@@ -270626,6 +271716,14 @@ static xfuture* __xrtNetUdpWaitCreate(
 }
 
 
+
+static xfuture* __xrtNetUdpWaitCreate(xnetudp* pUdp, xnetudpwait Wait,
+    bool bReceive, bool bWritable, size_t iValue)
+{
+    if (!__xrtNetUdpOwnershipEnter(pUdp, true)) return NULL;
+    xfuture* pFuture = __xrtNetUdpWaitCreateImpl(pUdp, Wait, bReceive, bWritable, iValue);
+    __xrtNetUdpOwnershipLeave(pUdp); return pFuture;
+}
 
 /* 建立一个统一 UDP 条件 Future。 */
 XRT_API xfuture* xrtNetUdpWaitAsync(xnetudp* pUdp, xnetudpwait Wait)
@@ -270695,6 +271793,50 @@ XRT_API xfuture* xrtNetUdpReceiveBatchAsync(
 		false,
 		iCapacity
 	);
+}
+
+/* Frozen source chains own exactly the constructor/list reference of every
+ * waiter. Children are admitted independently using the published policies.
+ * The three lists are disjoint by mode; all observed counters must agree. */
+static bool __xrtNetUdpWaitChain(const xnetudp* pUdp, const __xrt_net_udp_wait* pHead,
+	const __xrt_net_udp_wait* pTail, unsigned iChain, size_t* pCount, size_t* pReady,
+	xrtownershipvisitor pVisit, ptr pContext)
+{
+	const __xrt_net_udp_wait *pSlow = pHead, *pFast = pHead, *pLast = NULL;
+	while (pFast && pFast->Next) {
+		pSlow = pSlow->Next; pFast = pFast->Next->Next; if (pSlow == pFast) return false;
+	}
+	for (const __xrt_net_udp_wait* pWait = pHead; pWait; pWait = pWait->Next) {
+		size_t iReferences;
+		if (!__xrtNetUdpWaitCount(pWait, &iReferences) || pWait->Udp != pUdp ||
+			xrtAtomic32Load(&pWait->Done, XMEMORY_ACQUIRE) || pWait->Wait < XNET_UDP_WAIT_OPEN ||
+			pWait->Wait > XNET_UDP_WAIT_CLOSE ||
+			(iChain == 0 ? pWait->Receive : (!pWait->Receive || pWait->Writable ||
+				pWait->Wait != (iChain == 1 ? XNET_UDP_WAIT_RECEIVE : XNET_UDP_WAIT_ERROR))) ||
+			(pWait->Writable && (pWait->Wait != XNET_UDP_WAIT_DRAIN ||
+				pWait->RequiredBytes > XNET_UDP_PAYLOAD_MAX || pWait->RequiredBytes > pUdp->Config.SendLimit))) return false;
+		if (++*pCount == 0) return false;
+		if (iChain == 0 && !pWait->Writable && pWait->Wait == XNET_UDP_WAIT_RECEIVE) ++pReady[0];
+		if (iChain == 0 && !pWait->Writable && pWait->Wait == XNET_UDP_WAIT_ERROR) ++pReady[1];
+		if (pVisit && !pVisit(__xrtNetUdpWaitOwnership(pWait), pContext)) return false;
+		pLast = pWait;
+	}
+	return pLast == pTail;
+}
+bool __xrtNetUdpWaitOwnershipWalk(const xnetudp* pUdp, xrtownershipvisitor pVisit, ptr pContext)
+{
+	if (pUdp->WaitPosted) return false;
+	size_t iConditions = 0, iReceive = 0, iErrors = 0, iReady[2] = {0, 0};
+	if (!__xrtNetUdpWaitChain(pUdp, pUdp->WaitHead, pUdp->WaitTail, 0, &iConditions, iReady, pVisit, pContext) ||
+		!__xrtNetUdpWaitChain(pUdp, pUdp->ReceiveFutureHead, pUdp->ReceiveFutureTail, 1, &iReceive, iReady, pVisit, pContext) ||
+		iReady[0] != pUdp->ReceiveReadyWaiters || iReceive != xrtAtomic64Load(&pUdp->ReceiveWaiters, XMEMORY_ACQUIRE) ||
+		(iReceive && iReady[0])) return false;
+	if (pUdp->Errors) {
+		if (!__xrtNetUdpWaitChain(pUdp, pUdp->Errors->WaitHead, pUdp->Errors->WaitTail, 2, &iErrors, iReady, pVisit, pContext) ||
+			iReady[1] != pUdp->Errors->ReadyWaiters || iErrors != xrtAtomic64Load(&pUdp->Errors->ErrorWaiters, XMEMORY_ACQUIRE) ||
+			(iErrors && iReady[1])) return false;
+	} else if (iReady[1]) return false;
+	return true;
 }
 
 #endif

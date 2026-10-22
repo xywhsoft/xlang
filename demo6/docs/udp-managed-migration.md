@@ -116,24 +116,53 @@ O0／O2、Linux ASan／UBSan、静止整图与外部 payload 根、重复拥有�
 `F:/xlang-validation/five-groups-20261022/p3-udp-refs`。没有同步语言固定头、迁移
 驻留 UDP 或旧 Cgen，没有重建发布库／VFS；完整 UDP 与五组目标仍未完成。
 
+## 已完成：固定快照与驻留 Execution UDP 基础
+
+只同步 `net.h`／`tcp.h`／`udp.h` 与 Engine、UDP 的必要内部／源码段，保持固定
+微秒时间 ABI、标量域合同及其他未选择差异。两套实现头、两套声明头、快照元数据
+和 TCC 符号面一致增加 21 个入口：XRT 3342、xruntime 3807（自有 465）。链接归属
+目录从冻结上游重新预处理，3807 个符号均有实际定义和模块归属，不按名称猜测。
+
+新增永久驻留 `ExecutionUdp` family；具体记录只持有实际 UDP 与 Engine 父引用，
+不在通用 Resource 中增加不透明载荷。Source 负责 last-owner 自动退役和 checked
+重试，显式 Close 不消耗语言 owner。每次原生调用保留物理 receiver scope；
+发布失败回滚不把 resident 指针交给原生 callback。图 Finish 只消耗已准备／清除
+子节点的真实 creator 和 parent，不再次调用已清除对象的 Abort／Close。
+
+BaseNative 精确登记 Socket／Packet／ErrorPacket 与 runtime／静止策略；Future
+域独立登记等待者、producer、owned Cancel Watch、三种 payload 和 Batch。复制、
+Take、不可变字节／Packet 引用、字节向量和两种批量发送均直接复用 XRT。批量在
+作用域准入失败时也保证 accepted=0；Take 失败不转移。原始 Future 的调用者必须
+独立持有 receiver，后续语言 continuation 仍须捕获它并进行 typed 结果投影，
+不得把原生 Packet／Batch 指针当成语言类指针。
+
+基础 closure 不选择 UDP Future，异步 closure 才加入相应策略；两者均不引入 TCP、
+Resolver、TaskPool 或语言 Future 回调队列。构建响应模板、公开源码驱动和精确
+symbol／domain 计划已同步，原有模板无关改动未纳入本批。
+
+最终 221 个阶段（Windows 106、Linux 115）通过，包括 GCC／TCC O0／O2，
+Select／IOCP／epoll，Linux ASan／UBSan、真实图的 8 种准备／完成／释放顺序、
+普通退役、待收单包／批次／Close Future、取消与完成结果、关闭后拒绝发送、
+调用中释放最后 owner、Packet 越过 Engine 的生命周期、24／48 个构造预算，
+以及 TCP 基础整图与双声明根标量域回归。两种漏 family／漏 parent 边对照成功
+编译并被拒绝，TCP 的三种原负对照也继续拒绝。这里的阶段包含编译／计划检查，
+不等于语言用例数量；最终报告保持输入、日志及已记录产物哈希。
+
+证据根 `F:/xlang-validation/five-groups-20261022/p3-udp-resident`，封条
+`verified-commit.json`。没有 OS 错误队列／ICMP、外网或网络安全专项，没有提升
+发布库／VFS。**本批只是驻留资源服务，不是公开 UDP 标准库迁移完成。**
+
 ## 仍必须依次完成
 
-1. 同步必要快照，保留语言固定 ABI 与所有不相关差异；不整头覆盖或扩大 XRT
-   产品导入范围，共享声明及其依赖需要同时保持一致。
-2. 将已完成的 UDP 基础、typed 载荷、Future／取消及结果策略接入语言运行时的
-   精确准入表和注册合同。不默认准入未知用户 Data／释放回调或裸 socket 逃逸；
-   不得把 opaque 区域、临时视图或镜像结构当图，也不复造一套原生节点。
-3. 接入驻留 Execution UDP family 和 Source／Engine 父边；显式
-   Close 与自动退役分离，保留 checked 错误及可重试的清理边界。
-4. 迁移 `udp`、配置、统计、Packet／Batch／ErrorPacket 与完整发送／接收／writable
+1. 迁移 `udp`、配置、统计、Packet／Batch／ErrorPacket 与完整发送／接收／writable
    公开面。使用精确类字段、状态枚举、效果、期限及取消合同；复用现有 NetAddress、
    数据报元数据／控制类型与 Engine 后端选择，不另造裸指针接口。
-5. 补齐受管向量／批量、引用／接管、元数据、能力协商、多播和普通错误通路；
+2. 补齐受管向量／批量、引用／接管、元数据、能力协商、多播和普通错误通路；
    同步和异步接口都复用 XRT。异步等待使用固定工作线程／就绪队列，不逐等待建立
    线程或协程栈，不因封装而遗漏已批准的底层能力。
-6. 清除旧 UDP Cgen 函数体、隐式全局 Engine 和裸 point 转接；Cgen 最终只保留
+3. 清除旧 UDP Cgen 函数体、隐式全局 Engine 和裸 point 转接；Cgen 最终只保留
    声明／调用／拥有清理。不可把当前旧入口有声明或普通案例可运行当成迁移完成。
-7. 双端源码 JIT／module／独立 AOT／IR／裁剪／生命周期验收，最终再做发布联合
+4. 双端源码 JIT／module／独立 AOT／IR／裁剪／生命周期验收，最终再做发布联合
    验收。检查仅使用离线合同／固定数据及自有字面量回环正常通信；网络安全性质
    专项由用户在 XRT 层完成，不在此处扩大测试范围。
 
