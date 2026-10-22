@@ -55,6 +55,9 @@ int main(void)
         for (failure = 0; failure < 128u; ++failure) {
             void* result;
             bool triggered;
+            xmemdebugsnapshot before, after;
+            xrtClearError();
+            xrtMemDebugSnapshot(&before);
             CHECK(xrtMemDebugFailAfter(failure));
             result = operate(operation, source);
             triggered = xrtMemDebugFailTriggered();
@@ -69,6 +72,14 @@ int main(void)
                 completed = true;
             }
             release_result(operation, result);
+            xrtClearError();
+            xrtMemDebugSnapshot(&after);
+            if (after.LiveCount != before.LiveCount ||
+                after.LiveBytes != before.LiveBytes) {
+                fprintf(stderr, "MessagePack operation %u allocation %u leaked: %zu -> %zu\n",
+                    operation, failure, before.LiveCount, after.LiveCount);
+                return 1;
+            }
             if (completed) break;
         }
         CHECK(triggered_count > 0u && completed);
@@ -81,6 +92,9 @@ int main(void)
     {
         xvalue* unsigned_value;
         uint64 number = 0u;
+        xmemdebugsnapshot before, after;
+        xrtClearError();
+        xrtMemDebugSnapshot(&before);
         CHECK(xrtMemDebugFailAfter(0));
         unsigned_value = xmsgpack_decode(maximum_unsigned_wire,
             sizeof(maximum_unsigned_wire));
@@ -92,6 +106,10 @@ int main(void)
         CHECK(unsigned_value && xrtValueGetUInt(unsigned_value, &number) &&
             number == UINT64_MAX && xrtGetError() == NULL);
         xrtValueRelease(unsigned_value);
+        xrtClearError();
+        xrtMemDebugSnapshot(&after);
+        CHECK(after.LiveCount == before.LiveCount &&
+            after.LiveBytes == before.LiveBytes);
     }
     xrtValueRelease(source);
     puts("msgpack allocation failures: PASS");

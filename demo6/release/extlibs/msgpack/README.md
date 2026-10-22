@@ -40,7 +40,7 @@ manifest 单独编译该实现。范例在参数错误、解码失败或文件�
 统一释放已持有的值和缓冲，不留下半成品。Windows/Linux 包门禁将
 直跑与严格 C 编译输出逐字比较；Linux ASan 还执行两条失败出口。
 
-Linux 包级门禁：`sh release/extlibs/msgpack/test/check.sh`，对 C 核心和边界用例
+Linux 包级门禁：`bash release/extlibs/msgpack/test/check.sh`，对 C 核心和边界用例
 启用 ASan/UBSan 与泄漏检查，并运行 XLang 边界、双语范例逐字节对照。
 2026-10-13 复现并修复 map 键分配失败被误报为
 类型错误，以及截断的 uint64 被误报为范围错误；故障注入、严格 GCC、
@@ -78,6 +78,12 @@ python -m venv build\test\msgpack\venv
 每入口扫描到首次无故障成功，要求故障与成功均出现，且每次触发故障
 后立即解除注入并重试。Windows/Linux 正式运行器上的用例通过；
 包实现与线格式未改，完整 AOT 的共享阻断未变。
+2026-10-22：现有六入口逐点分配故障扫描增加 XRT 活动分配数与字节数
+基线检查，另覆盖 `uint64` 极值解码的故障与恢复；Windows 严格 C、
+XLang 边界和双语范例，Linux C ASan/UBSan 与 XLang 门禁通过，
+未发现包内泄漏，线格式和公开 API 不变。验证命令改为 `bash`：
+`test/check.sh` 使用 Bash 数组，不能由 POSIX `sh` 执行。
+完整 AOT 本轮未复验，不签收整包发布级。
 2026-10-17 复合 map/array/bin 样本新增 13 个截断长度与 96 个单比特扰动的 C 边界扫描，验证解码结果与错误槽一致；Windows C 边界及 Linux ASan/UBSan、XLang 和双语范例门禁通过。该固定样本扫描不代表完整 fuzz，完整 AOT 阻断不变。
 
 同日追加全部 256 个线格式首字节各 18 种短输入长度的 C 解析矩阵，

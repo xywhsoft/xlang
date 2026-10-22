@@ -65,7 +65,7 @@ int main(void)
     <h2>验证状态</h2>
     <p>2026-10-21 XLang 六个公开入口的分配故障用例改为逐入口扫描到首次成功，并在每次失败后立即清除故障、重试。Windows/Linux 正式运行器均通过；包实现及线格式未改，完整 AOT 的共享阻断未变。</p>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/msgpack/test/check.ps1 -SkipAot
-sh release/extlibs/msgpack/test/check.sh</code></pre>
+bash release/extlibs/msgpack/test/check.sh</code></pre>
     <p>2026-10-19：Windows 严格 GCC、C/XLang 边界、固定种子畸形输入及双语范例通过；Linux 同一包级脚本完成 C ASan/UBSan、XLang 边界与 C/XLang 范例逐字节对照。六个公开入口的逐点分配故障扫描保留 <code>XERR_MEMORY</code> 并可恢复；新增文本键和值内嵌 NUL 的固定线格式和 XLang 往返验证。标准 timestamp 的 32/64/96 位固定向量及与 Python msgpack 1.2.3 的双向互通通过，非整微秒与超界时间明确拒绝。累计项数的编解码预算已统一并有红绿回归。此前核心/边界 AOT 在旧构建下通过；当前构建的完整门禁受共享缺符号阻断，尚未签收全部发布形态。</p>
   </section>
 </main>
