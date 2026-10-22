@@ -33,7 +33,7 @@ skiplist.SkipList table = skiplist.create()
 table.set("a", "first")
 table.set("b", "second")
 println(table.range("a", "b").length)  // 2</code></pre>
-    <p>区间两端均包含；创建、插入、覆盖、读取及结果遍历的分配故障已用 C/XLang 定向验证，失败的写入保持原值。Windows <code>test/check.ps1</code> 与 Linux <code>test/check.sh</code> 验证 C 独立模型、XLang 用例及双语范例固定输出；Linux 另含 ASan/UBSan。C 计数返回 <code>int64_t</code>，可在 LP64 平台直接与 XLang <code>int</code> 互通。C 所有权、复杂度和 AOT 主线阻断见包内 README。</p>
+    <p>区间两端均包含；创建、插入、覆盖、读取及结果遍历的分配故障已用 C/XLang 定向验证，失败的写入保持原值。Windows <code>test/check.ps1 -SkipAot</code> 与 Linux <code>test/check.sh</code> 验证 C 独立模型、包外原生方法访问拒绝、XLang 用例及双语范例固定输出；Linux 另含 ASan/UBSan。Windows 默认门禁还要求核心与公开范例 AOT，目前完整范例受主线共享符号阻断。C 计数返回 <code>int64_t</code>，可在 LP64 平台直接与 XLang <code>int</code> 互通。C 所有权及复杂度见包内 README。</p>
   </section>
 </main>
 </body>

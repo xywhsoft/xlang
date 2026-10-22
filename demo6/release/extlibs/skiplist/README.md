@@ -28,6 +28,8 @@ println(rows[0]["value"])
 
 ## 验证
 
+Windows 聚焦快测：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/skiplist/test/check.ps1 -SkipAot`。它同次检查 C 独立模型、包外 `setNative` 访问拒绝、XLang 边界与 C/XLang 固定范例输出。去掉 `-SkipAot` 后，默认还构建运行核心和公开范例 AOT，后者必须匹配同一黄金输出；每次使用并清理独占构建目录。当前快测和核心 AOT 通过，完整范例仍被共享 `xl6ValueDataSnapshotV1` 缺符号阻断，不签收整包发布级。
+
 从 `demo6` 目录运行：
 
 ```powershell

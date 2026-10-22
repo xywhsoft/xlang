@@ -1,8 +1,12 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
+$workRoot = Join-Path $root 'build/test'
+$work = Join-Path $workRoot ('skiplist_guard_' + [guid]::NewGuid().ToString('N'))
 $expected = [string]::Join("`n", (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'skiplist.expected.txt') -Encoding UTF8))
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
 $manifest = Get-Content -LiteralPath (Join-Path $root 'release/extlibs/skiplist/xlang.package.json') -Raw | ConvertFrom-Json
@@ -33,6 +37,21 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "skiplist XLang test failed: $source" }
     }
 
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $diagnostics = @(& $xl check release/extlibs/skiplist/test/private_native.xl 2>&1 |
+            ForEach-Object { $_.ToString() })
+        $negativeCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previous
+    }
+    $diagnosticText = $diagnostics -join "`n"
+    if ($negativeCode -eq 0 -or $diagnosticText -notmatch 'setNative' -or
+        $diagnosticText -notmatch 'access') {
+        throw "skiplist private native method was not rejected: $diagnosticText"
+    }
+
     $xlLines = @(& $xl run release/examples/extlibs/skiplist.xl)
     if ($LASTEXITCODE -ne 0) { throw 'skiplist XLang example failed' }
     Confirm-Output 'XLang example' $xlLines
@@ -43,7 +62,36 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'skiplist direct C example failed' }
     Confirm-Output 'direct C example' $direct
 
-    Write-Output 'skiplist Windows C/XLang gate: PASS'
+    if (-not $SkipAot) {
+        [void][IO.Directory]::CreateDirectory($work)
+        $coreExe = Join-Path $work 'core.exe'
+        & $xl build release/extlibs/skiplist/test/aot_core.xl -o $coreExe
+        if ($LASTEXITCODE -ne 0) { throw 'skiplist AOT core build failed' }
+        & $coreExe
+        if ($LASTEXITCODE -ne 0) { throw 'skiplist AOT core failed' }
+
+        $exampleExe = Join-Path $work 'example.exe'
+        & $xl build release/examples/extlibs/skiplist.xl -o $exampleExe
+        if ($LASTEXITCODE -ne 0) { throw 'skiplist AOT example build failed' }
+        $aotLines = @(& $exampleExe)
+        if ($LASTEXITCODE -ne 0) { throw 'skiplist AOT example failed' }
+        Confirm-Output 'AOT example' $aotLines
+    }
+
+    if ($SkipAot) {
+        Write-Output 'skiplist Windows C/XLang fast gate: PASS (AOT skipped)'
+    } else {
+        Write-Output 'skiplist Windows C/XLang/AOT gate: PASS'
+    }
 } finally {
     Pop-Location
+    $resolvedRoot = [IO.Path]::GetFullPath($workRoot).TrimEnd('\') + '\'
+    $resolvedWork = [IO.Path]::GetFullPath($work)
+    if (-not $resolvedWork.StartsWith($resolvedRoot, [StringComparison]::OrdinalIgnoreCase) -or
+        -not [IO.Path]::GetFileName($resolvedWork).StartsWith('skiplist_guard_')) {
+        throw "skiplist test directory escapes build/test: $resolvedWork"
+    }
+    if (Test-Path -LiteralPath $resolvedWork -PathType Container) {
+        Remove-Item -LiteralPath $resolvedWork -Recurse -Force
+    }
 }
