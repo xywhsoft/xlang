@@ -1,4 +1,5 @@
 #include "protocol/document_sync.h"
+#include "protocol/input_state.h"
 #include "analysis/text.h"
 #include <stdio.h>
 #include <string.h>
@@ -29,17 +30,39 @@ static received* message(sink* target,size_t at) { return xrtArrayGet(&target->m
 
 int main(void)
 {
+    char digest[65],before[65],after[65]; size_t online=99;
+    CHECK(!xlsSyncInputState(NULL,digest,&online) && !digest[0] && !online);
+    CHECK(xlsInputStateDigest(NULL,0,digest) && !strcmp(digest,"b921fd41e71c0d4301ca5fcff0631d82b415d5216ad0648d155596afd3142067"));
+    xls_input_state_item rows[2]={{.version=1},{.version=1}},reverse[2];
+    CHECK(xlsInputStateUri("file:///main.xl",rows[0].uri) && xlsInputStateUri("file:///dep.xl",rows[1].uri));
+    CHECK(xlsInputStateDigest(rows,2,digest) && !strcmp(digest,"495a61994539cece6c67ea32669461df6122d79f565af90d8e33ef8e7160984a"));
+    reverse[0]=rows[1]; reverse[1]=rows[0];
+    CHECK(xlsInputStateDigest(reverse,2,after) && !strcmp(digest,after));
+    rows[0].version=2;
+    CHECK(xlsInputStateDigest(rows,2,digest) && !strcmp(digest,"05450fd3dc719fa85bf6801f72bfa480b242770943f969155fa7627ba9aed31d"));
+    rows[1]=rows[0]; rows[1].version=3;
+    CHECK(!xlsInputStateDigest(rows,2,digest) && !digest[0]);
+    CHECK(!xlsInputStateDigest(rows,65,digest) && !digest[0]);
+    CHECK(!xlsInputStateDigest(NULL,1,digest) && !digest[0] && !xlsInputStateDigest(rows,1,NULL));
+    CHECK(xlsInputStateUri("file:///empty.xl",rows[0].uri)); rows[0].version=INT32_MIN;
+    CHECK(xlsInputStateDigest(rows,1,digest) && !strcmp(digest,"8522ee717975455d221e80beedc1ce8f7c05016cbaac7a09cc09e6cb67004186"));
+    CHECK(!xlsInputStateUri(NULL,rows[0].uri) && !xlsInputStateUri("",rows[0].uri) && !xlsInputStateUri("\xc0\x80",rows[0].uri) && !xlsInputStateUri("x",NULL));
     sink target={0}; CHECK(xrtArrayInit(&target.messages,sizeof(received)));
     xls_sync* sync=xlsSyncCreate(2); CHECK(sync && !xlsSyncCreate(0));
+    CHECK(xlsSyncInputState(sync,digest,&online) && !online && !strcmp(digest,"b921fd41e71c0d4301ca5fcff0631d82b415d5216ad0648d155596afd3142067"));
     const char *a="A😀Z\r\n",*b="dependency\n",*updated="A😁Z\r\n";
     xls_sync_document docs[]={{"file:///main.xl",a,strlen(a),1,1},{"file:///dep.xl",b,strlen(b),2,1}};
     CHECK(xlsSyncUpdate(sync,docs,2,emit,&target) && target.messages.Count==2);
     CHECK(!strcmp(message(&target,0)->method,"textDocument/didOpen") && xlsSyncVersion(sync,docs[0].uri)==1);
     CHECK(stringIs(get(get(message(&target,0)->params,"textDocument"),"text"),a));
+    CHECK(xlsSyncInputState(sync,before,&online) && online==2 && !strcmp(before,"495a61994539cece6c67ea32669461df6122d79f565af90d8e33ef8e7160984a"));
+    xls_sync_document reordered[2]={docs[1],docs[0]};
+    CHECK(xlsSyncUpdate(sync,reordered,2,emit,&target) && target.messages.Count==2 && xlsSyncInputState(sync,after,&online) && !strcmp(before,after));
     clear(&target);
     CHECK(xlsSyncUpdate(sync,docs,2,emit,&target) && !target.calls);
     docs[0].text=updated; docs[0].length=strlen(updated); ++docs[0].revision;
     CHECK(xlsSyncUpdate(sync,docs,2,emit,&target) && target.messages.Count==1 && xlsSyncVersion(sync,docs[0].uri)==2);
+    CHECK(xlsSyncInputState(sync,after,&online) && online==2 && !strcmp(after,"05450fd3dc719fa85bf6801f72bfa480b242770943f969155fa7627ba9aed31d"));
     received* delta=message(&target,0);
     CHECK(!strcmp(delta->method,"textDocument/didChange"));
     const xvalue* change=xrtValueArrayGet(get(delta->params,"contentChanges"),0);
@@ -50,8 +73,10 @@ int main(void)
     CHECK(stats.opens==2 && stats.changes==1 && !stats.closes && stats.textBytes==strlen(a)+strlen(b)+4);
     clear(&target); ++docs[0].revision;
     CHECK(xlsSyncUpdate(sync,docs,2,emit,&target) && !target.calls && xlsSyncVersion(sync,docs[0].uri)==2);
+    CHECK(xlsSyncInputState(sync,digest,&online) && !strcmp(digest,after));
     docs[0].identity=99;
     CHECK(xlsSyncUpdate(sync,docs,2,emit,&target) && target.messages.Count==2 && xlsSyncVersion(sync,docs[0].uri)==1);
+    CHECK(xlsSyncInputState(sync,digest,&online) && !strcmp(digest,before)); /* bindings alone deliberately exclude body/model identity */
     CHECK(!strcmp(message(&target,0)->method,"textDocument/didClose") && !strcmp(message(&target,1)->method,"textDocument/didOpen"));
     clear(&target);
     CHECK(xlsSyncUpdate(sync,docs,1,emit,&target) && target.messages.Count==1 && !xlsSyncVersion(sync,docs[1].uri));
@@ -78,6 +103,7 @@ int main(void)
     sync=xlsSyncCreate(2); docs[1]=(xls_sync_document){"file:///dep.xl",b,strlen(b),2,1};
     target.failAt=2;
     CHECK(!xlsSyncUpdate(sync,docs,2,emit,&target) && target.calls==2 && !xlsSyncVersion(sync,docs[0].uri));
+    CHECK(!xlsSyncInputState(sync,digest,&online) && !digest[0] && !online);
     clear(&target);
     CHECK(!xlsSyncUpdate(sync,docs,2,emit,&target) && !target.calls);
     xlsSyncDestroy(sync);
@@ -88,8 +114,10 @@ int main(void)
         many[i]=(xls_sync_document){uris[i],"x",1,(uint64_t)i+1,1};
     }
     CHECK(sync && xlsSyncUpdate(sync,many,64,emit,&target) && target.messages.Count==64);
+    CHECK(xlsSyncInputState(sync,before,&online) && online==64);
     clear(&target);
     CHECK(xlsSyncUpdate(sync,many,64,emit,&target) && !target.calls);
+    CHECK(xlsSyncInputState(sync,after,&online) && online==64 && !strcmp(before,after));
     CHECK(xlsSyncUpdate(sync,NULL,0,emit,&target) && target.messages.Count==64);
     clear(&target); xlsSyncDestroy(sync);
 
@@ -108,6 +136,6 @@ int main(void)
         xlsTextRelease(old); xlsTextRelease(next); xlsTextRelease(applied);
     }
     clear(&target); xrtArrayUnit(&target.messages);
-    printf("document_sync_test passed: %d checks; retained revisions, delta/full modes, Unicode/CRLF alignment, atomic validation, document identity and failed transport isolation.\n",checks);
+    printf("document_sync_test passed: %d checks; retained revisions, delta/full modes, Unicode/CRLF alignment, atomic validation, document identity, bounded URI/version receipts and failed transport isolation.\n",checks);
     return 0;
 }

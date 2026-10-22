@@ -1,5 +1,6 @@
 /* stdio server. Native analysis and compatibility processes run off-owner. */
 #include "protocol/lsp_wire.h"
+#include "protocol/input_state.h"
 #include "services/language_check.h"
 #include "services/diagnostic_store.h"
 #include "platform/path.h"
@@ -16,7 +17,7 @@
 #define QUEUE_LIMIT (64u*1024u*1024u)
 #define INVALIDATION_LIMIT 128u
 typedef struct message { struct message* next; xvalue* value; size_t size; int input; } message;
-typedef struct document { char *uri,*path; const char* text; xls_text* content; int version; unsigned long long generation,identity; } document;
+typedef struct document { char *uri,*path; const char* text; xls_text* content; int version; unsigned long long generation,identity; unsigned char uriHash[32]; } document;
 typedef struct native_request { xvalue* id; xls_query* query; int document,version; unsigned long long identity,generation; } native_request;
 typedef struct semantic_request {
  xvalue* id; int document,version,line,character,kind,started;
@@ -351,9 +352,10 @@ static void documents(server* s,const char* method,const xvalue* params)
   xide_model_error e={0}; char* path=xideLspUriToPath(uri,&e); if(!path || !xidePathHasExtension(path,".xl")) { free(path); goto invalid; }
   for(int j=0;j<DOC_LIMIT;++j) if(s->docs[j].uri && (xidePathLexicalEqual(path,s->docs[j].path) || xidePathEqual(path,s->docs[j].path))) { free(path); goto invalid; }
   xls_text* content=xlsTextCreate(text,strlen(text),TEXT_LIMIT,NULL); char* name=copy(uri);
-  if(!content || !name) { free(path); xlsTextRelease(content); free(name); goto invalid; }
+  unsigned char uriHash[32];
+  if(!content || !name || !xlsInputStateUri(uri,uriHash)) { free(path); xlsTextRelease(content); free(name); goto invalid; }
   unsigned long long generation=++s->generation;
-  s->docs[i]=(document){.uri=name,.path=path,.text=xlsTextData(content),.content=content,.version=version,.generation=generation,.identity=generation}; s->textBytes+=xlsTextSize(content); cancelCompletion(s,-32801,"Open-document cursor input set changed.",1); if(s->check && s->snapshotMode) cancel(s,-32801,"Open-document snapshot set changed."); clearPublished(s); diagnosticInput(s,i,path,1); return;
+  s->docs[i]=(document){.uri=name,.path=path,.text=xlsTextData(content),.content=content,.version=version,.generation=generation,.identity=generation}; memcpy(s->docs[i].uriHash,uriHash,32); s->textBytes+=xlsTextSize(content); cancelCompletion(s,-32801,"Open-document cursor input set changed.",1); if(s->check && s->snapshotMode) cancel(s,-32801,"Open-document snapshot set changed."); clearPublished(s); diagnosticInput(s,i,path,1); return;
  }
  if(i<0) goto invalid;
  document* d=&s->docs[i];
@@ -489,6 +491,18 @@ static void semanticQuery(server* s,const xvalue* id,const xvalue* params,int qu
  s->semantic[slot]=captured;
 }
 #include "server/automatic_diagnostics.inc"
+static void inputState(server* s,const xvalue* id,const xvalue* params)
+{
+ if(params && (xrtValueType(params)!=XVALUE_OBJECT || xrtValueCount(params))) { response(s,id,NULL,-32602,"Input state takes no parameters."); return; }
+ xls_input_state_item items[DOC_LIMIT]; size_t count=0;
+ for(size_t i=0;i<DOC_LIMIT;++i) if(s->docs[i].uri) { memcpy(items[count].uri,s->docs[i].uriHash,32); items[count++].version=s->docs[i].version; }
+ char digest[65],generation[32];
+ if(!xlsInputStateDigest(items,count,digest)) { response(s,id,NULL,-32603,"Unable to summarize online document bindings."); return; }
+ snprintf(generation,sizeof(generation),"%llu",s->generation);
+ xvalue* result=xrtValueObject();
+ int okay=result && put(result,"schema",xrtValueInt(1)) && put(result,"generation",xrtValueString(sv(generation))) && put(result,"documents",xrtValueInt((int64)count)) && put(result,"sha256",xrtValueString(sv(digest)));
+ if(okay) response(s,id,result,0,NULL); else { xrtValueRelease(result); response(s,id,NULL,-32603,"Unable to encode online document bindings."); }
+}
 static void dispatch(server* s,const xvalue* message)
 {
  const xvalue* id=get(message,"id"); const char *rpc=string(get(message,"jsonrpc")),*method=string(get(message,"method")); const xvalue* params=get(message,"params");
@@ -526,13 +540,14 @@ static void dispatch(server* s,const xvalue* message)
   put(scope,"automaticSemanticQueries",xrtValueBool(!s->cliDiagnostics));
   put(scope,"automaticDiagnostics",xrtValueBool(automatic)); put(scope,"diagnosticDelay",xrtValueInt(delay));
   put(scope,"diagnosticInputProof",xrtValueBool(true));
+  put(scope,"inputState",xrtValueBool(true));
   put(scope,"nativeSnapshotDiagnostics",xrtValueBool(!s->cliDiagnostics)); put(scope,"diagnosticsBackend",xrtValueString(sv(s->cliDiagnostics ? "cli" : "native")));
   put(scope,"retainedSemanticChecks",xrtValueBool(!s->cliDiagnostics)); put(scope,"retainedNativeInputs",xrtValueBool(!s->cliDiagnostics || !s->cliCompletion));
   put(scope,"incrementalEntrySyntax",xrtValueBool(!s->cliDiagnostics));
   put(scope,"incrementalFunctionSemantics",xrtValueBool(!s->cliDiagnostics));
   put(scope,"savedDiagnosticsBackend",xrtValueString(sv("cli")));
   put(scope,"savedEntryDiagnostics",xrtValueBool(true)); put(scope,"unsavedDependencies",xrtValueBool(true)); put(scope,"snapshotDiagnostics",xrtValueBool(true)); put(scope,"snapshotDocumentFingerprint",xrtValueBool(true)); put(scope,"snapshotInputGuard",xrtValueString(sv("background-poll"))); put(scope,"cSemantics",xrtValueBool(false)); put(scope,"snapshotDefinition",xrtValueBool(true)); put(cap,"definitionProvider",xrtValueBool(true)); put(cap,"hoverProvider",xrtValueBool(true)); put(cap,"documentSymbolProvider",xrtValueBool(true)); xvalue *completion=xrtValueObject(),*triggers=xrtValueArray(),*dot=xrtValueString(sv(".")); xrtValueArrayAppend(triggers,dot); xrtValueRelease(dot); put(completion,"resolveProvider",xrtValueBool(false)); put(completion,"triggerCharacters",triggers); put(cap,"completionProvider",completion); put(scope,"cursorCompletion",xrtValueBool(true)); put(scope,"completionInputGuard",xrtValueString(sv("background-poll"))); put(scope,"snapshotHover",xrtValueBool(true)); put(scope,"snapshotDocumentSymbols",xrtValueBool(true)); put(cap,"experimental",scope); put(result,"capabilities",cap);
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.22"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.23"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
@@ -554,6 +569,7 @@ static void dispatch(server* s,const xvalue* message)
  if(!strcmp(method,"textDocument/foldingRange")) { if(id) requestFolding(s,id,params); return; }
  if(!strcmp(method,"xlang/analysisStats")) { if(id) analysisStats(s,id); return; }
  if(!strcmp(method,"xlang/diagnosticStats")) { if(id) diagnosticStats(s,id); return; }
+ if(!strcmp(method,"xlang/inputState")) { if(id) inputState(s,id,params); return; }
  if(!strcmp(method,"workspace/didChangeWatchedFiles")) { if(id) response(s,id,NULL,-32600,"Watched file changes must be a notification."); else diagnosticWatched(s,params); return; }
  if(!strcmp(method,"textDocument/completion")) { if(id) requestCompletion(s,id,params); return; }
  if(!strcmp(method,"textDocument/definition")) { if(id) semanticQuery(s,id,params,0); return; }
