@@ -7,6 +7,7 @@ export class Locator
 	string automation_id
 	string class_name
 	string name
+	string class_path
 	int control_type
 	int process_id
 	point root_hwnd
@@ -16,6 +17,7 @@ export class Locator
 		self.automation_id = ""
 		self.class_name = ""
 		self.name = ""
+		self.class_path = ""
 		self.control_type = 0
 		self.process_id = 0
 		self.root_hwnd = null
@@ -91,20 +93,32 @@ end
 func x_ui_auto_locator_from_json(string text) as Locator
 	var obj = json.parse(text)
 	if type(obj) != dict then throw TypeError "locator JSON must be an object" end
-	if json_string(obj, "strategy") == "processClassPath" then
-		throw ValueError "processClassPath locators are not supported"
-	end
 	auto loc = Locator()
 	loc.automation_id = json_string(obj, "automationId")
 	loc.class_name = json_string(obj, "className")
 	loc.name = json_string(obj, "name")
+	loc.class_path = json_string(obj, "classPath")
 	loc.control_type = json_int(obj, "controlType")
 	loc.process_id = json_int(obj, "processId")
 	if loc.control_type < 0 or loc.process_id < 0 then
 		throw ValueError "locator IDs must not be negative"
 	end
+	if json_string(obj, "strategy") == "processClassPath" and loc.class_path == "" then
+		throw ValueError "processClassPath locator requires classPath"
+	end
+	var index_value = obj?["index"]
+	if index_value != null then
+		if type(index_value) != int then throw TypeError "locator index must be an integer" end
+		if int(index_value) < 0 then throw ValueError "locator index must not be negative" end
+		if loc.class_path == "" then throw ValueError "locator index requires classPath" end
+		if not string.endsWith(loc.class_path,
+			"[" + string(index_value) + "]") then
+			throw ValueError "locator index disagrees with classPath"
+		end
+	end
 	if (loc.automation_id == "" and loc.class_name == "" and
-		loc.name == "" and loc.control_type == 0 and loc.process_id == 0) then
+		loc.name == "" and loc.class_path == "" and
+		loc.control_type == 0 and loc.process_id == 0) then
 		throw ValueError "locator JSON has no search condition"
 	end
 	return loc
@@ -221,6 +235,23 @@ end
 func find_in_root(Element root, Locator loc) as Element
 	if loc.timeout_ms < 0 or loc.control_type < 0 or loc.process_id < 0 then
 		throw ValueError "locator timeout and numeric filters must not be negative"
+	end
+	if loc.class_path != "" then
+		auto found = root.find_class_path(loc.class_path, loc.process_id, loc.timeout_ms)
+		if not found.valid() then return found end
+		if loc.automation_id != "" and found.automation_id() != loc.automation_id then
+			return uia.element(null)
+		end
+		if loc.class_name != "" and found.class_name() != loc.class_name then
+			return uia.element(null)
+		end
+		if loc.name != "" and found.name() != loc.name then
+			return uia.element(null)
+		end
+		if loc.control_type > 0 and found.control_type() != loc.control_type then
+			return uia.element(null)
+		end
+		return found
 	end
 	Condition condition = Condition(null)
 	// 定位器中的所有非空字段共同约束同一个元素。

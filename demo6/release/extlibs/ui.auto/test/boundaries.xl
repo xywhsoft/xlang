@@ -46,6 +46,24 @@ func main(...) as int
 	auto from_json = ui.auto.within(
 		ui.auto.with_timeout(ui.auto.locator_from_json(generated), 0), window.hwnd())
 	assert ui.auto.wait_exists(from_json), "generated locator should match"
+	var generated_fields = json.parse(generated)
+	string class_path = string(generated_fields["classPath"])
+	int process_id = int(generated_fields["processId"])
+	int sibling_index = int(generated_fields["index"])
+	string path_json = json.stringify({"strategy": "processClassPath",
+		"classPath": class_path, "processId": process_id, "index": sibling_index})
+	auto by_path = ui.auto.within(
+		ui.auto.with_timeout(ui.auto.locator_from_json(path_json), 0), window.hwnd())
+	assert ui.auto.wait_exists(by_path), "generated class path should resolve"
+	assert ui.auto.read(by_path) == "hello", "class path resolved the wrong control"
+	by_path.name = "not-this-control"
+	assert not ui.auto.wait_exists(by_path), "class path ignored the name filter"
+	by_path.name = ""
+	by_path.process_id = 2147483647
+	assert not ui.auto.wait_exists(by_path), "class path ignored the process filter"
+	by_path.process_id = process_id
+	by_path.class_path = class_path + "/Edit[999]"
+	assert not ui.auto.wait_exists(by_path), "missing class path should not match"
 
 	rejected = false
 	try
@@ -67,7 +85,22 @@ func main(...) as int
 	catch ValueError e
 		rejected = true
 	end
-	assert rejected, "unsupported locator strategy must be rejected"
+	assert rejected, "class path strategy requires a path"
+	rejected = false
+	try
+		ui.auto.locator_from_json(json.stringify({"strategy": "processClassPath",
+			"classPath": class_path, "index": sibling_index + 1}))
+	catch ValueError e
+		rejected = true
+	end
+	assert rejected, "inconsistent class path index must be rejected"
+	rejected = false
+	try
+		ui.auto.locator_from_json("{\"index\":0,\"processId\":1}")
+	catch ValueError e
+		rejected = true
+	end
+	assert rejected, "index without class path must be rejected"
 	rejected = false
 	try
 		ui.auto.with_timeout(edit, -1)

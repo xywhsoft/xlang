@@ -2046,6 +2046,35 @@ static int x_uia_locator_sibling_index(
 	return -1;
 }
 
+static int x_uia_locator_segment(char* output, size_t capacity,
+	const char* class_name, int control_type, int index)
+{
+	static const char hex[] = "0123456789ABCDEF";
+	char suffix[32];
+	int suffix_length;
+	size_t used = 0u;
+	const unsigned char* cursor = (const unsigned char*)class_name;
+	while ( *cursor != 0u ) {
+		int escape = *cursor == '/' || *cursor == '[' || *cursor == ']' ||
+			*cursor == '%' || *cursor == '#';
+		size_t width = escape ? 3u : 1u;
+		if ( used + width >= capacity ) { return 0; }
+		if ( escape ) {
+			output[used++] = '%';
+			output[used++] = hex[*cursor >> 4];
+			output[used++] = hex[*cursor & 15u];
+		} else {
+			output[used++] = (char)*cursor;
+		}
+		++cursor;
+	}
+	suffix_length = snprintf(suffix, sizeof(suffix), "#%d[%d]", control_type, index);
+	if ( suffix_length < 0 || suffix_length >= (int)sizeof(suffix) ||
+		used + (size_t)suffix_length >= capacity ) { return 0; }
+	memcpy(output + used, suffix, (size_t)suffix_length + 1u);
+	return 1;
+}
+
 static int x_uia_locator_build_path(IUIAutomationElement* element, XUiaLocatorInfo* info)
 {
 	IUIAutomationTreeWalker* walker = NULL;
@@ -2106,8 +2135,8 @@ static int x_uia_locator_build_path(IUIAutomationElement* element, XUiaLocatorIn
 			info->sibling_index = sibling_index;
 		}
 		if ( class_name[0] != '\0' ) {
-			if ( snprintf(segments[segment_count], sizeof(segments[segment_count]), "%s[%d]",
-				class_name, sibling_index) >= (int)sizeof(segments[segment_count]) ) {
+			if ( !x_uia_locator_segment(segments[segment_count], sizeof(segments[segment_count]),
+				class_name, (int)control_type, sibling_index) ) {
 				x_uia_set_error("locator: class path segment exceeds limit");
 				if ( parent != NULL ) { parent->lpVtbl->Release(parent); }
 				current->lpVtbl->Release(current);
@@ -2262,6 +2291,124 @@ XL_EXPORT const char* x_uia_focused_locator(void)
 	json = x_uia_locator_json_for_element(focused);
 	focused->lpVtbl->Release(focused);
 	return json;
+}
+
+static int x_uia_locator_path_prefix(const char* target, const char* prefix)
+{
+	size_t length = strlen(prefix);
+	return strncmp(target, prefix, length) == 0 &&
+		(target[length] == '\0' || target[length] == '/');
+}
+
+static int x_uia_locator_process_matches(IUIAutomationElement* element, int process_id)
+{
+	int actual = 0;
+	HRESULT hr;
+	if ( process_id == 0 ) { return 1; }
+	hr = element->lpVtbl->get_CurrentProcessId(element, &actual);
+	if ( FAILED(hr) ) {
+		x_uia_set_hresult_error("class path process id", hr);
+		return -1;
+	}
+	return actual == process_id;
+}
+
+static IUIAutomationElement* x_uia_locator_follow_path(
+	IUIAutomationTreeWalker* walker,
+	IUIAutomationElement* parent,
+	const char* target,
+	int process_id,
+	int* failed
+)
+{
+	IUIAutomationElement* child = NULL;
+	HRESULT hr = walker->lpVtbl->GetFirstChildElement(walker, parent, &child);
+	if ( FAILED(hr) ) {
+		x_uia_set_hresult_error("class path first child", hr);
+		*failed = 1;
+		return NULL;
+	}
+	while ( child != NULL ) {
+		IUIAutomationElement* next = NULL;
+		IUIAutomationElement* match = NULL;
+		XUiaLocatorInfo info;
+		memset(&info, 0, sizeof(info));
+		if ( !x_uia_locator_build_path(child, &info) ) {
+			*failed = 1;
+		} else if ( x_uia_locator_path_prefix(target, info.class_path) ) {
+			if ( strcmp(target, info.class_path) == 0 ) {
+				int process_match = x_uia_locator_process_matches(child, process_id);
+				if ( process_match < 0 ) { *failed = 1; }
+				else if ( process_match ) { child->lpVtbl->AddRef(child); match = child; }
+			} else {
+				match = x_uia_locator_follow_path(walker, child, target, process_id, failed);
+			}
+		}
+		if ( match != NULL || *failed ) {
+			child->lpVtbl->Release(child);
+			return match;
+		}
+		hr = walker->lpVtbl->GetNextSiblingElement(walker, child, &next);
+		child->lpVtbl->Release(child);
+		if ( FAILED(hr) ) {
+			if ( next != NULL ) { next->lpVtbl->Release(next); }
+			x_uia_set_hresult_error("class path next sibling", hr);
+			*failed = 1;
+			return NULL;
+		}
+		child = next;
+	}
+	return NULL;
+}
+
+XL_EXPORT void* x_uia_element_find_class_path(void* root, const char* class_path, int process_id, int timeout_ms)
+{
+	XUiaElement* wrapped = x_uia_element_from_handle(root);
+	DWORD started = GetTickCount();
+	XUiaLocatorInfo root_info;
+	if ( wrapped == NULL || class_path == NULL || class_path[0] == '\0' ||
+		strlen(class_path) >= sizeof(root_info.class_path) || process_id < 0 || timeout_ms < 0 ) {
+		x_uia_set_error("find_class_path: invalid root, path or numeric filter");
+		return NULL;
+	}
+	memset(&root_info, 0, sizeof(root_info));
+	if ( !x_uia_locator_build_path(wrapped->element, &root_info) ) { return NULL; }
+	if ( !x_uia_locator_path_prefix(class_path, root_info.class_path) ) {
+		x_uia_set_error("");
+		return NULL;
+	}
+	for ( ;; ) {
+		IUIAutomationElement* match = NULL;
+		int failed = 0;
+		if ( strcmp(class_path, root_info.class_path) == 0 ) {
+			int process_match = x_uia_locator_process_matches(wrapped->element, process_id);
+			if ( process_match < 0 ) { return NULL; }
+			if ( process_match ) {
+				wrapped->element->lpVtbl->AddRef(wrapped->element);
+				match = wrapped->element;
+			}
+		} else {
+			IUIAutomationTreeWalker* walker = NULL;
+			HRESULT hr = g_x_uia->lpVtbl->get_ControlViewWalker(g_x_uia, &walker);
+			if ( FAILED(hr) || walker == NULL ) {
+				x_uia_set_hresult_error("find_class_path walker", hr);
+				return NULL;
+			}
+			match = x_uia_locator_follow_path(walker, wrapped->element, class_path,
+				process_id, &failed);
+			walker->lpVtbl->Release(walker);
+		}
+		if ( failed ) { return NULL; }
+		if ( match != NULL ) {
+			x_uia_set_error("");
+			return x_uia_wrap_element(match);
+		}
+		if ( timeout_ms == 0 || (DWORD)(GetTickCount() - started) >= (DWORD)timeout_ms ) {
+			x_uia_set_error("");
+			return NULL;
+		}
+		Sleep(50);
+	}
 }
 
 XL_EXPORT void* x_uia_by_name(const char* name)

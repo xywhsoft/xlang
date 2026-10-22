@@ -56,6 +56,7 @@ const char* x_uia_element_snapshot_json(void* handle, int depth, int max_nodes);
 const char* x_uia_element_cached_children_json(void* handle, int depth, int max_nodes);
 const char* x_uia_locator_for(void* handle);
 const char* x_uia_focused_locator(void);
+void* x_uia_element_find_class_path(void* root, const char* class_path, int process_id, int timeout_ms);
 void* x_uia_by_name(const char* name);
 void* x_uia_by_automation_id(const char* automation_id);
 void* x_uia_by_class_name(const char* class_name);

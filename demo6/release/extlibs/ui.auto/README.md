@@ -15,8 +15,11 @@ Windows 桌面自动化组合层，底层为 `uia`，截图依赖 `opencv`。通
 文本定位条件与 `type_text` 经 `uia` 进入 C 前拒绝内嵌 NUL，
 不会把前缀误当作完整条件或静默截断输入。
 `locator_from_json` 接受这些字段及 UIA 生成的定位信息，但
-`processClassPath` 涉及尚未实现的路径/序号匹配，会明确报错，
-不会退化为宽泛的进程匹配。JSON 字段类型必须正确，且至少有
+`processClassPath` 会沿 UIA Control View 的类名、控件类型及同签名兄弟序号
+逐段定位；可与进程、名称、类名、自动化 ID、控件类型一并取交集，
+不会退化为宽泛的进程匹配。路径不在 `within` 的根下、目标消失或
+进程不匹配时视为未找到。显式 `index` 必须与路径末段一致。
+JSON 字段类型必须正确，且至少有
 一个搜索条件；负等待时间报 `ValueError`。
 `within` 和 `with_timeout` 修改传入的 Locator 并返回同一实例。
 `Locator` 现作为具名类导出，参数与变量可写为 `uiauto.Locator`；
@@ -34,7 +37,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/ui.auto/test/check.p
 组合控件类、类型与进程条件，并与 XLang 范例一样完成输入、读取和按钮点击。
 包级门禁以严格 GCC 检查 C 范例，并逐行比较两份范例的输出。
 包级门禁覆盖自建窗口上的成功/缺失/错误进程定位、生成的定位器
-JSON 往返、输入读取与含固定文字像素的真实 PNG 截图。截图测试还把
+JSON 往返、类路径往返与相互矛盾的筛选条件、输入读取与含固定文字
+像素的真实 PNG 截图。截图测试还把
 目标 Edit 控件与父窗口的图像尺寸对照，防止目标截图退化为整窗截图。
 截图写入门禁的独占临时目录，像素验证后自动清理；不会读取上次运行留下的图片。
 

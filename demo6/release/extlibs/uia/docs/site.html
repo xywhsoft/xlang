@@ -41,6 +41,7 @@ uia.shutdown()</code></pre>
     <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
       <tr><td><code>by_name / by_automation_id / by_class_name</code></td><td>构造元素查询条件。</td></tr>
       <tr><td><code>Element.find_first / find_all / children</code></td><td>查找目标与枚举元素。</td></tr>
+      <tr><td><code>Element.find_class_path</code></td><td>按生成定位器的 Control View 类名、控件类型和兄弟序号精确查找；C 入口为 <code>x_uia_element_find_class_path</code>。</td></tr>
       <tr><td><code>Element.value / text / set_value / invoke / toggle</code></td><td>使用目标控件支持的 UIA 协议；不支持的协议会报告失败。</td></tr>
       <tr><td><code>Element.snapshot_json / locator_json</code></td><td>获取元素快照与可复用定位信息。</td></tr>
       <tr><td><code>events().poll_json(timeout_ms)</code></td><td>轮询焦点或属性事件；无事件返回 <code>{}</code>。</td></tr>

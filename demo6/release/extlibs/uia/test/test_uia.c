@@ -45,6 +45,7 @@ int main(void)
 	void* pType = NULL;
 	void* pBoth = NULL;
 	void* pFound = NULL;
+	void* pPath = NULL;
 	void* pEvents = NULL;
 	xvalue* pChildren = NULL;
 	ptr pChild = NULL;
@@ -167,6 +168,36 @@ int main(void)
 			goto cleanup;
 		}
 	}
+	{
+		char segment[64];
+		int ok = x_uia_locator_segment(segment, sizeof(segment), "A/B[0]%#", 50004, 2);
+		int correct = ok && strcmp(segment, "A%2FB%5B0%5D%25%23#50004[2]") == 0;
+		int small = x_uia_locator_segment(segment, 6u, "A/B", 50004, 2);
+		if ( !correct || small ) {
+			fprintf(stderr, "UIA class path escaping failed: correct=%d small=%d\n", correct, small);
+			goto cleanup;
+		}
+	}
+	{
+		XUiaLocatorInfo info;
+		if ( !x_uia_locator_read_info(((XUiaElement*)pFound)->element, &info) ) {
+			fprintf(stderr, "UIA class path generation failed\n");
+			goto cleanup;
+		}
+		pPath = x_uia_element_find_class_path(pRoot, info.class_path, info.process_id, 0);
+		if ( pPath == NULL ||
+			!x_uia_locator_same_element(((XUiaElement*)pPath)->element,
+				((XUiaElement*)pFound)->element) ) {
+			fprintf(stderr, "UIA class path round-trip failed: %s\n", x_uia_last_error());
+			goto cleanup;
+		}
+		x_uia_element_release(pPath); pPath = NULL;
+		pPath = x_uia_element_find_class_path(pRoot, info.class_path, 2147483647, 0);
+		if ( pPath != NULL || xrtGetError() != NULL || x_uia_last_error()[0] != '\0' ) {
+			fprintf(stderr, "UIA class path ignored process ID\n");
+			goto cleanup;
+		}
+	}
 	if ( x_uia_shutdown() != 0 ) { goto cleanup; }
 	memset(&threadCheck, 0, sizeof(threadCheck));
 	threadCheck.root = pRoot;
@@ -207,6 +238,7 @@ int main(void)
 	iResult = 0;
 
 cleanup:
+	if ( pPath != NULL ) { x_uia_element_release(pPath); }
 	if ( pEvents != NULL ) { x_uia_events_release(pEvents); }
 	if ( worker != NULL ) { CloseHandle(worker); }
 	if ( pFound != NULL ) { x_uia_element_release(pFound); }

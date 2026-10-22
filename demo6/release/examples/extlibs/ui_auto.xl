@@ -1,4 +1,5 @@
 import ui.auto as uiauto
+import uia
 
 auto window = uiauto.test_window()
 assert window.valid(), "cannot create the UI automation test window"
@@ -7,6 +8,16 @@ uiauto.Locator edit = uiauto.within(uiauto.by_class_name("Edit", "", 50004), win
 assert uiauto.wait_exists(edit)
 assert uiauto.type_text(edit, "xlang UI automation")
 println("edit text: ", uiauto.read(edit))
+
+// 生成器给出的类路径可直接用于再次定位同一个控件。
+var details = json.parse(uia.from_hwnd(window.edit_hwnd()).locator_json())
+auto by_path = uiauto.within(uiauto.locator_from_json(json.stringify({
+	"strategy": "processClassPath",
+	"classPath": details["classPath"],
+	"processId": details["processId"],
+	"index": details["index"]
+})), window.hwnd())
+assert uiauto.read(by_path) == "xlang UI automation"
 
 uiauto.Locator button = uiauto.within(uiauto.by_class_name("Button", "", 50000), window.hwnd())
 assert uiauto.click(button)

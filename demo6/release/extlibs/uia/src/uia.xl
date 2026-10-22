@@ -32,6 +32,7 @@ extern "x_uia_element_snapshot_json" func x_uia_element_snapshot_json(point elem
 extern "x_uia_element_cached_children_json" func x_uia_element_cached_children_json(point element, c_int depth, c_int max_nodes) as string
 extern "x_uia_locator_for" func x_uia_locator_for(point element) as string
 extern "x_uia_focused_locator" func x_uia_focused_locator() as string
+extern "x_uia_element_find_class_path" func x_uia_element_find_class_path(point root, string class_path, c_int process_id, c_int timeout_ms) as point
 extern "x_uia_element_find_first" func x_uia_element_find_first(point element, point condition, c_int scope, c_int timeout_ms) as point
 extern "x_uia_element_find_all" func x_uia_element_find_all(point element, point condition, c_int scope, c_int timeout_ms) as var
 extern "x_uia_element_parent" func x_uia_element_parent(point element) as point
@@ -309,6 +310,12 @@ class Element
 
 	func find_first_scope(Condition condition, int scope, int timeout_ms) as Element
 		return Element(x_uia_element_find_first(self.handle, condition.handle, __to_c_int(scope), __to_c_int(timeout_ms)))
+	end
+
+	func find_class_path(string class_path, int process_id, int timeout_ms) as Element
+		__uia_require_c_string(class_path)
+		return Element(x_uia_element_find_class_path(self.handle, class_path,
+			__to_c_int(process_id), __to_c_int(timeout_ms)))
 	end
 
 	func find_all(Condition condition, int scope, int timeout_ms) as array<Element>
