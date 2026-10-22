@@ -123,3 +123,10 @@ ASan/UBSan、XLang 双语门禁通过；未发现需修改的包内编解码逻�
 分配数与字节数是否回到调用前基线，覆盖成功和内存失败路径。Windows
 `test/check.ps1 -SkipAot` 与 Linux `test/check.sh` 的 C/XLang 双语门禁
 通过；完整 AOT 仍受共享缺符号阻断，本轮不签收整包发布级。
+
+2026-10-23：XLang 分配故障用例原只在每个入口的第一个分配点使用单名
+`catch MemoryError`，实际上是无类型捕获变量。现在 `field`、`build`、
+`parse`、`validate` 各扫描前 64 个注入点，并用 `catch MemoryError error`
+核对故障分类、未触发时成功及故障解除后的调用恢复。Windows `-SkipAot`
+包级门禁和 Linux C ASan/UBSan、XLang/双语联合门禁通过；实现与公开 API
+未变，完整 AOT 的共享阻断未解除。

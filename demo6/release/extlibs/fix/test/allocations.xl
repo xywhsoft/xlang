@@ -21,15 +21,21 @@ func probe(int which, string frame, var fields) as bool
 end
 
 for which in range(4)
-    bool caught = false
-    assert failAfter(0)
-    try
-        probe(which, frame, fields)
-    catch MemoryError
-        caught = true
+    int failures = 0
+    int successes = 0
+    for allocation in range(64)
+        bool caught = false
+        assert failAfter(uint64(allocation))
+        try
+            assert probe(which, frame, fields)
+        catch MemoryError error
+            caught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert caught == triggered, "FIX allocation error must be classified as MemoryError"
+        if caught then failures += 1 else successes += 1 end
+        assert fix.validate(frame), "FIX call must recover after allocation failure"
     end
-    bool triggered = failTriggered()
-    failClear()
-    assert triggered and caught, "FIX allocation error must be visible in XLang"
-    assert fix.validate(frame), "FIX call must recover after allocation failure"
+    assert failures > 0 and successes > 0
 end
