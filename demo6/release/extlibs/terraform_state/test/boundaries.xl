@@ -11,7 +11,7 @@ func main(...) as int
     bool badLineage = false
     try
         terraform_state.parse(nulLineage)
-    catch ValueError
+    catch ValueError error
         badLineage = true
     end
     assert badLineage, "parse must reject NUL lineage"
@@ -31,24 +31,24 @@ func main(...) as int
     int nulRejected = 0
     try
         terraform_state.find(state, "module.site.data.aws_ami.ubuntu\0other")
-    catch ValueError
+    catch ValueError error
         nulRejected += 1
     end
     try
         terraform_state.instances(state, "module.site.data.aws_ami.ubuntu\0other")
-    catch ValueError
+    catch ValueError error
         nulRejected += 1
     end
     try
         terraform_state.attributes(state, "module.site.data.aws_ami.ubuntu\0other")
-    catch ValueError
+    catch ValueError error
         nulRejected += 1
     end
     var outputState = terraform_state.parse("{\"version\":4,\"serial\":0,\"lineage\":\"probe\",\"resources\":[],\"outputs\":{\"safe\":{\"value\":1}}}")
     assert terraform_state.output(outputState, "safe")["value"] == 1
     try
         terraform_state.output(outputState, "safe\0other")
-    catch ValueError
+    catch ValueError error
         nulRejected += 1
     end
     assert nulRejected == 4, "query names must not be truncated at NUL"
@@ -83,14 +83,14 @@ func main(...) as int
     caught = false
     try
         terraform_state.addresses(state)
-    catch ValueError
+    catch ValueError error
         caught = true
     end
     assert caught, "duplicate address list must fail"
     caught = false
     try
         terraform_state.find(state, "aws_instance.web")
-    catch ValueError
+    catch ValueError error
         caught = true
     end
     assert caught, "ambiguous find must fail"

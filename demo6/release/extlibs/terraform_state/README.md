@@ -142,3 +142,9 @@ Linux C ASan/UBSan、XLang JIT 与双语门禁也已复验通过。
 仍可查询。Windows 严格 GCC、C/XLang 边界与双语对照、无输出 AOT，
 以及 Linux C ASan/UBSan 与 XLang 门禁通过。包实现与公开 API 未变；
 带输出完整 AOT 的共享缺符号阻断仍在。
+
+2026-10-23：XLang 边界测试中七处单名 `catch ValueError` 改为明确的
+类型捕获，固定 NUL 查询名、重复地址及非法 lineage 的异常分类，避免
+其他异常误报通过。Windows `test/check.ps1 -SkipAot` 严格 C/XLang、
+双语范例及边界 AOT，与 Linux `test/check.sh` C ASan/UBSan、XLang
+门禁通过。解析实现/API 未改，带输出完整 AOT 的共享阻断仍在。
