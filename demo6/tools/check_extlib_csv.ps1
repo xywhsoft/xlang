@@ -29,7 +29,12 @@ if($PublicSourceDirectory){
            (Get-FileHash -LiteralPath $file.Path).Hash -ne $file.Sha256){throw "Stale artifact source: $($file.Path)"}
     }
 }
-$work=if($WorkDirectory){[IO.Path]::GetFullPath((Join-Path $Root $WorkDirectory))}else{Join-Path $Root 'build/test/csv_guard'}
+$workRoot=Join-Path $Root 'build/test'
+$ownWork=!$WorkDirectory
+$work=if($WorkDirectory){[IO.Path]::GetFullPath((Join-Path $Root $WorkDirectory))}else{
+    Join-Path $workRoot ('csv_guard_'+[guid]::NewGuid().ToString('N'))
+}
+if($ownWork -and (Test-Path -LiteralPath $work)){throw "CSV work directory already exists: $work"}
 [void][IO.Directory]::CreateDirectory($work)
 $utf8=[Text.UTF8Encoding]::new($false)
 $checks=[Collections.Generic.List[object]]::new()
@@ -184,13 +189,24 @@ try {
     }
     $outcome='passed'
 } catch { $failure=$_.Exception.Message; throw } finally {
-    $changed=@($inputs.Keys|Where-Object{!(Test-Path -LiteralPath $_) -or (Get-FileHash -LiteralPath $_).Hash -ne $inputs[$_]})
-    $changed+=@(InputPaths|Where-Object{!$inputs.Contains($_)})
-    if($changed.Count){$outcome='changed-inputs'}
-    $record=[ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;failure=$failure;
-        scope=if($SkipAot){'Independent Windows C, allocation/IO/file contracts, XL JIT, bilingual output and generated native prototypes; AOT skipped'}else{'Independent Windows C, allocation/IO/file contracts, XL JIT/AOT and generated native prototypes; not complete package admission'};
-        releaseReady=$false;compiler=if($compiler){$compiler.Driver}else{$xl};
-        inputs=$inputs;changedInputs=$changed;checks=$checks.ToArray()}
-    [IO.File]::WriteAllText((Join-Path $work 'results.json'),($record|ConvertTo-Json -Depth 10),$utf8)
+    try {
+        $changed=@($inputs.Keys|Where-Object{!(Test-Path -LiteralPath $_) -or (Get-FileHash -LiteralPath $_).Hash -ne $inputs[$_]})
+        $changed+=@(InputPaths|Where-Object{!$inputs.Contains($_)})
+        if($changed.Count){$outcome='changed-inputs'}
+        $record=[ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;failure=$failure;
+            scope=if($SkipAot){'Independent Windows C, allocation/IO/file contracts, XL JIT, bilingual output and generated native prototypes; AOT skipped'}else{'Independent Windows C, allocation/IO/file contracts, XL JIT/AOT and generated native prototypes; not complete package admission'};
+            releaseReady=$false;compiler=if($compiler){$compiler.Driver}else{$xl};
+            inputs=$inputs;changedInputs=$changed;checks=$checks.ToArray()}
+        [IO.File]::WriteAllText((Join-Path $work 'results.json'),($record|ConvertTo-Json -Depth 10),$utf8)
+    } finally {
+        if($ownWork -and (Test-Path -LiteralPath $work -PathType Container)){
+            $resolved=[IO.Path]::GetFullPath((Resolve-Path -LiteralPath $work).Path)
+            $base=[IO.Path]::GetFullPath($workRoot).TrimEnd('\','/')
+            if(!$resolved.StartsWith($base+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){
+                throw "CSV work directory escaped build/test: $resolved"
+            }
+            Remove-Item -LiteralPath $resolved -Recurse -Force
+        }
+    }
 }
 if($outcome -ne 'passed'){throw "CSV gate outcome: $outcome"}
