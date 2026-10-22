@@ -9,6 +9,11 @@ assert slugify.slugify("你好：世界") == "你好-世界"
 assert slugify.slugify("Ｆｕｌｌ１２３") == "full123"
 assert slugify.slugify("a÷b") == "a-b"
 assert slugify.slugify("日本・語") == "日本-語"
+// Unicode 17 的扩展 G、H、J 汉字与常用汉字一样保留。
+assert slugify.slugify("𰀀") == "𰀀"
+assert slugify.slugify("𱍐") == "𱍐"
+assert slugify.slugify("𲎰") == "𲎰"
+assert slugify.slugify("𳑹") == "𳑹"
 assert slugify.slugify("hi😀there") == "hithere"
 string stable = slugify.slugify("Café & 你好：😀")
 assert slugify.slugify(stable) == stable

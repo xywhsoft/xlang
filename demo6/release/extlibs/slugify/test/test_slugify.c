@@ -76,6 +76,11 @@ int main(void)
     CHECK(same("\xef\xbc\xa6\xef\xbd\x95\xef\xbd\x8c\xef\xbd\x8c\xef\xbc\x91\xef\xbc\x92\xef\xbc\x93", "full123"));
     CHECK(same("a\xc3\xb7" "b", "a-b"));
     CHECK(same("日本・語", "日本-語"));
+    /* Unicode 17 的 CJK 扩展 G、H、J 必须与常用汉字一样保留。 */
+    CHECK(same("\xf0\xb0\x80\x80", "\xf0\xb0\x80\x80")); /* U+30000 */
+    CHECK(same("\xf0\xb1\x8d\x90", "\xf0\xb1\x8d\x90")); /* U+31350 */
+    CHECK(same("\xf0\xb2\x8e\xb0", "\xf0\xb2\x8e\xb0")); /* U+323B0 */
+    CHECK(same("\xf0\xb3\x91\xb9", "\xf0\xb3\x91\xb9")); /* U+33479 */
     CHECK(same("hi\xf0\x9f\x98\x80there", "hithere"));
     CHECK(same("", ""));
     CHECK(same("!!!", ""));

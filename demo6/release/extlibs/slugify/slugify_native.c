@@ -137,6 +137,10 @@ static bool xsl_cjk(uint32 scalar)
     return (scalar >= 0x3400u && scalar <= 0x9fffu) ||
         (scalar >= 0xf900u && scalar <= 0xfaffu) ||
         (scalar >= 0x20000u && scalar <= 0x2fa1fu) ||
+        /* Unicode 17: CJK 扩展 G、H、J。 */
+        (scalar >= 0x30000u && scalar <= 0x3134au) ||
+        (scalar >= 0x31350u && scalar <= 0x323afu) ||
+        (scalar >= 0x323b0u && scalar <= 0x33479u) ||
         (scalar >= 0x3040u && scalar <= 0x30ffu) ||
         (scalar >= 0xac00u && scalar <= 0xd7afu);
 }
