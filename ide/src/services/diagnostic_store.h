@@ -5,12 +5,14 @@
 
 typedef struct xide_diagnostic_store xide_diagnostic_store;
 typedef struct xide_diagnostic_query xide_diagnostic_query;
+typedef struct xide_diagnostic_publication xide_diagnostic_publication;
 typedef struct xide_diagnostic_limits {
  size_t records,retainedReportBytes,publishedReportBytes,queue;
 } xide_diagnostic_limits;
 typedef struct xide_diagnostic_snapshot {
  const xvalue *documents,*invalidated; /* borrowed until query destruction */
  size_t records,retainedReportBytes; uint64_t workerThreadId;
+ const char* conflictPath; /* borrowed, failed merge observed different inputs */
  char error[256];
 } xide_diagnostic_snapshot;
 enum xide_diagnostic_state { XIDE_DIAGNOSTIC_PENDING,XIDE_DIAGNOSTIC_READY,XIDE_DIAGNOSTIC_FAILED,XIDE_DIAGNOSTIC_CANCELLED };
@@ -37,7 +39,19 @@ xide_diagnostic_query* xideDiagnosticStoreInvalidate(xide_diagnostic_store* stor
 /* Reuses original proof validation. Host chooses bounded polling cadence. */
 xide_diagnostic_query* xideDiagnosticStoreSweep(xide_diagnostic_store* store);
 xide_diagnostic_query* xideDiagnosticStoreSnapshot(xide_diagnostic_store* store);
+xide_diagnostic_query* xideDiagnosticStoreClear(xide_diagnostic_store* store);
 enum xide_diagnostic_state xideDiagnosticQueryResult(xide_diagnostic_query* query,xide_diagnostic_snapshot* result);
+/* Single query owner, once after READY. Moves all output ownership without
+   cloning or waiting; later Result/Take calls fail. Publication and invalidated
+   keys outlive query/store. Outputs are cleared on failure. */
+int xideDiagnosticQueryTake(xide_diagnostic_query* query,xide_diagnostic_publication** publication,xvalue** invalidated);
+void xideDiagnosticPublicationDestroy(xide_diagnostic_publication* publication);
+size_t xideDiagnosticPublicationCount(const xide_diagnostic_publication* publication);
+const xvalue* xideDiagnosticPublicationGroup(const xide_diagnostic_publication* publication,size_t index);
+size_t xideDiagnosticPublicationFind(const xide_diagnostic_publication* publication,const char* path);
+/* Prepared sorted path comparison and exact group equality, no I/O or copies. */
+int xideDiagnosticPublicationCompare(const xide_diagnostic_publication* left,size_t leftIndex,const xide_diagnostic_publication* right,size_t rightIndex);
+int xideDiagnosticPublicationEqual(const xide_diagnostic_publication* left,size_t leftIndex,const xide_diagnostic_publication* right,size_t rightIndex);
 int xideDiagnosticQuerySetWake(xide_diagnostic_query* query,void (*wake)(void*),void* user);
 void xideDiagnosticQueryCancel(xide_diagnostic_query* query);
 void xideDiagnosticQueryDestroy(xide_diagnostic_query* query);

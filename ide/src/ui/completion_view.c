@@ -107,7 +107,7 @@ static int cvstartClient(xide_completion_view* v)
  if(ok) v->client=xideLanguageClientStart(program,v->compiler,v->directory,NULL);
  free(program); if(!v->client) { cvstopClient(v); return 0; }
  xideLanguageClientSetWake(v->client,cvwake,v->app); v->nextId=1;
- xvalue *p=xrtValueObject(),*options=xrtValueObject(); cvput(p,"capabilities",xrtValueObject()); cvput(options,"checkOnSave",xrtValueBool(false)); cvput(p,"initializationOptions",options);
+ xvalue *p=xrtValueObject(),*options=xrtValueObject(); cvput(p,"capabilities",xrtValueObject()); cvput(options,"checkOnSave",xrtValueBool(false)); cvput(options,"automaticDiagnostics",xrtValueBool(false)); cvput(p,"initializationOptions",options);
  if(!cvsend(v,"initialize",p,1)) { cvstopClient(v); return 0; } return 1;
 }
 static int cvcapture(xide_completion_view* v)

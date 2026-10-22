@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <wchar.h>
 
 #define RECORD_LIMIT 64u
 #define FILE_LIMIT 512u
@@ -13,9 +14,10 @@ typedef struct stored_group { wchar_t* key; xvalue* value; } stored_group;
 typedef struct record { char* key; xide_language_input_guard* guard; xarray groups; size_t bytes; } record;
 struct xide_diagnostic_store { xtaskpool* pool; record* records[RECORD_LIMIT]; xide_diagnostic_limits limits; };
 struct xide_diagnostic_query { xfuture* future; xfuturewatch watch; int watchInitialized,watchLinked; void (*wake)(void*); void* user; };
-enum operation { PUT,REMOVE,INVALIDATE,SWEEP,SNAPSHOT };
+enum operation { PUT,REMOVE,INVALIDATE,SWEEP,SNAPSHOT,CLEAR };
 typedef struct input { xide_diagnostic_store* store; enum operation kind; char* key; xvalue* checked; xide_language_input_guard* guard; } input;
-typedef struct output { xvalue *documents,*invalidated; size_t records,bytes; uint64_t thread; char error[256]; } output;
+struct xide_diagnostic_publication { xvalue* documents; xarray keys; };
+typedef struct output { xide_diagnostic_publication* publication; xvalue* invalidated; size_t records,bytes; uint64_t thread; int taken; char* conflictPath; char error[256]; } output;
 typedef struct source_key { wchar_t* key; int seen; } source_key;
 typedef struct group_ref { stored_group* group; size_t order; } group_ref;
 typedef struct seen_diagnostic { const xvalue* value; size_t next; } seen_diagnostic;
@@ -57,7 +59,37 @@ static void releaseRecord(record* value)
 static void freeInput(void* data,void* user)
 { (void)user; input* value=data; xrtFree(value->key); xrtValueRelease(value->checked); xideLanguageInputGuardRelease(value->guard); xrtFree(value); }
 static void freeOutput(void* data,void* user)
-{ (void)user; output* value=data; xrtValueRelease(value->documents); xrtValueRelease(value->invalidated); xrtFree(value); }
+{ (void)user; output* value=data; xideDiagnosticPublicationDestroy(value->publication); xrtValueRelease(value->invalidated); xrtFree(value->conflictPath); xrtFree(value); }
+void xideDiagnosticPublicationDestroy(xide_diagnostic_publication* publication)
+{
+ if(!publication) return;
+ wchar_t** keys=(wchar_t**)publication->keys.Data;
+ for(size_t i=0;i<publication->keys.Count;++i) free(keys[i]);
+ xrtArrayUnit(&publication->keys); xrtValueRelease(publication->documents); xrtFree(publication);
+}
+size_t xideDiagnosticPublicationCount(const xide_diagnostic_publication* publication)
+{ return publication ? publication->keys.Count : 0; }
+const xvalue* xideDiagnosticPublicationGroup(const xide_diagnostic_publication* publication,size_t index)
+{ return publication && index<publication->keys.Count ? xrtValueArrayGet(publication->documents,index) : NULL; }
+size_t xideDiagnosticPublicationFind(const xide_diagnostic_publication* publication,const char* path)
+{
+ if(!publication || !path) return SIZE_MAX;
+ wchar_t* key=xidePathNativeWide(path); if(!key) return SIZE_MAX;
+ size_t first=0,last=publication->keys.Count,result=SIZE_MAX; wchar_t** keys=(wchar_t**)publication->keys.Data;
+ while(first<last) { size_t at=first+(last-first)/2; int order=xidePathNativeKeyCompare(key,keys[at]); if(!order) { result=at; break; } if(order<0) last=at; else first=at+1; }
+ free(key); return result;
+}
+int xideDiagnosticPublicationCompare(const xide_diagnostic_publication* a,size_t i,const xide_diagnostic_publication* b,size_t j)
+{
+ const wchar_t* x=a && i<a->keys.Count ? ((wchar_t**)a->keys.Data)[i] : NULL;
+ const wchar_t* y=b && j<b->keys.Count ? ((wchar_t**)b->keys.Data)[j] : NULL;
+ return xidePathNativeKeyCompare(x,y);
+}
+int xideDiagnosticPublicationEqual(const xide_diagnostic_publication* a,size_t i,const xide_diagnostic_publication* b,size_t j)
+{
+ const xvalue *x=xideDiagnosticPublicationGroup(a,i),*y=xideDiagnosticPublicationGroup(b,j);
+ return x && y && xrtValueEqual(x,y);
+}
 static record* buildRecord(input* in,xcancel* cancel,output* out)
 {
  const xvalue *files=xideLanguageInputGuardFiles(in->guard),*groups=get(in->checked,"documents");
@@ -147,7 +179,8 @@ static int makeSnapshot(record* const* records,size_t count,size_t limit,xcancel
   for(size_t j=0;j<records[i]->groups.Count;++j) { group_ref ref={&groups[j],i*(FILE_LIMIT+RECORD_LIMIT)+j}; if(!xrtArrayPush(&references,&ref)) { fail(out,"Cannot index diagnostic contributions."); goto done; } }
  }
  if(references.Count) qsort(references.Data,references.Count,sizeof(group_ref),compareGroup);
- out->documents=xrtValueArray(); if(!out->documents) { fail(out,"Cannot allocate merged diagnostics."); goto done; }
+ out->publication=xrtCalloc(1,sizeof(*out->publication));
+ if(!out->publication || !xrtArrayInit(&out->publication->keys,sizeof(wchar_t*)) || !(out->publication->documents=xrtValueArray())) { fail(out,"Cannot allocate merged diagnostics."); goto done; }
  group_ref* refs=(group_ref*)references.Data; xvalue* merged=NULL; const stored_group* previous=NULL; uint64 groupId=0;
  for(size_t i=0;i<references.Count;++i) {
   if(xrtCancelRequested(cancel)) { fail(out,"Diagnostic merge cancelled."); goto done; }
@@ -157,10 +190,17 @@ static int makeSnapshot(record* const* records,size_t count,size_t limit,xcancel
    merged=emptyGroup(source->value); size_t bytes=merged ? encodedBytes(merged,limit-publishedBytes) : SIZE_MAX;
    if(bytes==SIZE_MAX || !addBytes(&bytes,groupId>1 ? 1 : 0) || bytes>limit-publishedBytes) { xrtValueRelease(merged); fail(out,"Merged diagnostic report byte limit exceeded."); goto done; }
    publishedBytes+=bytes;
-   int appended=xrtValueArrayAppend(out->documents,merged); xrtValueRelease(merged);
+   size_t keySize=(wcslen(source->key)+1)*sizeof(wchar_t); wchar_t* key=malloc(keySize);
+   if(key) memcpy(key,source->key,keySize);
+   int appended=key && xrtArrayPush(&out->publication->keys,&key);
+   if(!appended) free(key);
+   appended=appended && xrtValueArrayAppend(out->publication->documents,merged); xrtValueRelease(merged);
    if(!appended) { fail(out,"Cannot retain merged diagnostic group."); goto done; }
    previous=source;
-  } else if(!compatible(previous->value,source->value)) { fail(out,"Conflicting diagnostic input versions or fingerprints."); goto done; }
+  } else if(!compatible(previous->value,source->value)) {
+   out->conflictPath=xrtStrDup(string(get(source->value,"path")));
+   fail(out,out->conflictPath ? "Conflicting diagnostic input versions or fingerprints." : "Cannot retain changed diagnostic input path."); goto done;
+  }
   const xvalue* diagnostics=get(source->value,"diagnostics"); xvalue* target=get(merged,"diagnostics");
   for(size_t j=0;j<xrtValueCount(diagnostics);++j) {
    const xvalue* diagnostic=xrtValueArrayGet(diagnostics,j); uint64 key[2]={groupId,0};
@@ -195,7 +235,7 @@ static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* result)
   record* value=trial[i];
   if(in->kind==INVALIDATE && xideLanguageInputGuardTouches(value->guard,in->key)) xideLanguageInputGuardInvalidate(value->guard);
   if(in->kind==SWEEP) { xide_model_error error={0}; xideLanguageInputGuardValidate(value->guard,stopped,cancel,&error); }
-  if(!xideLanguageInputGuardCurrent(value->guard) || (in->kind==REMOVE && !strcmp(value->key,in->key))) {
+  if(!xideLanguageInputGuardCurrent(value->guard) || in->kind==CLEAR || (in->kind==REMOVE && !strcmp(value->key,in->key))) {
    xvalue* key=xrtValueString(sv(value->key)); int appended=key && xrtValueArrayAppend(out->invalidated,key); xrtValueRelease(key);
    if(!appended) { fail(out,"Cannot retain diagnostic invalidation key."); goto done; } trial[i]=NULL;
   }
@@ -216,7 +256,7 @@ static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* result)
 done:
  releaseRecord(fresh);
  if(xrtCancelRequested(cancel)) { freeOutput(out,NULL); return XTASK_CANCELLED; }
- if(*out->error) { xrtValueRelease(out->documents); out->documents=NULL; xrtValueRelease(out->invalidated); out->invalidated=NULL; }
+ if(*out->error) { xideDiagnosticPublicationDestroy(out->publication); out->publication=NULL; xrtValueRelease(out->invalidated); out->invalidated=NULL; }
  *result=(xtaskvalue){out,freeOutput,NULL}; return XTASK_SUCCESS;
 }
 xide_diagnostic_store* xideDiagnosticStoreCreate(const xide_diagnostic_limits* limits)
@@ -257,6 +297,7 @@ xide_diagnostic_query* xideDiagnosticStoreRemove(xide_diagnostic_store* store,co
 xide_diagnostic_query* xideDiagnosticStoreInvalidate(xide_diagnostic_store* store,const char* path) { return submit(store,INVALIDATE,path,NULL,NULL); }
 xide_diagnostic_query* xideDiagnosticStoreSweep(xide_diagnostic_store* store) { return submit(store,SWEEP,NULL,NULL,NULL); }
 xide_diagnostic_query* xideDiagnosticStoreSnapshot(xide_diagnostic_store* store) { return submit(store,SNAPSHOT,NULL,NULL,NULL); }
+xide_diagnostic_query* xideDiagnosticStoreClear(xide_diagnostic_store* store) { return submit(store,CLEAR,NULL,NULL,NULL); }
 enum xide_diagnostic_state xideDiagnosticQueryResult(xide_diagnostic_query* query,xide_diagnostic_snapshot* result)
 {
  if(result) memset(result,0,sizeof(*result));
@@ -264,9 +305,18 @@ enum xide_diagnostic_state xideDiagnosticQueryResult(xide_diagnostic_query* quer
  xfuturestate state=xrtFutureState(query->future); if(state==XFUTURE_PENDING) return XIDE_DIAGNOSTIC_PENDING;
  if(state==XFUTURE_CANCELLED) return XIDE_DIAGNOSTIC_CANCELLED;
  const output* out=state==XFUTURE_RESOLVED ? xrtFutureValue(query->future) : NULL;
- if(!out) { snprintf(result->error,sizeof(result->error),"Diagnostic actor failed."); return XIDE_DIAGNOSTIC_FAILED; }
- *result=(xide_diagnostic_snapshot){out->documents,out->invalidated,out->records,out->bytes,out->thread,{0}};
+ if(!out || out->taken) { snprintf(result->error,sizeof(result->error),"Diagnostic actor failed or result ownership was transferred."); return XIDE_DIAGNOSTIC_FAILED; }
+ *result=(xide_diagnostic_snapshot){out->publication ? out->publication->documents : NULL,out->invalidated,out->records,out->bytes,out->thread,out->conflictPath,{0}};
  snprintf(result->error,sizeof(result->error),"%s",out->error); return *out->error ? XIDE_DIAGNOSTIC_FAILED : XIDE_DIAGNOSTIC_READY;
+}
+int xideDiagnosticQueryTake(xide_diagnostic_query* query,xide_diagnostic_publication** publication,xvalue** invalidated)
+{
+ if(publication) *publication=NULL;
+ if(invalidated) *invalidated=NULL;
+ if(!query || !publication || !invalidated) return 0;
+ xide_diagnostic_snapshot result={0}; if(xideDiagnosticQueryResult(query,&result)!=XIDE_DIAGNOSTIC_READY) return 0;
+ output* value=xrtFutureValue(query->future); value->taken=1;
+ *publication=value->publication; value->publication=NULL; *invalidated=value->invalidated; value->invalidated=NULL; return 1;
 }
 static void wakeQuery(void* user) { xide_diagnostic_query* query=user; query->wake(query->user); }
 int xideDiagnosticQuerySetWake(xide_diagnostic_query* query,void (*wake)(void*),void* user)

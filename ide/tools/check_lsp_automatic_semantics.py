@@ -26,7 +26,7 @@ def main():
     def done(name,**data):cases.append(dict(name=name,passed=True,**data))
     def client(backend=None):
         c=Client(server,root/'absent-executor/xl.exe',root);clients.append(c)
-        options=dict(checkOnSave=False)
+        options=dict(checkOnSave=False,automaticDiagnostics=False)
         if backend:options['diagnosticsBackend']=backend
         c.send('initialize',dict(capabilities=dict(textDocument=dict(documentSymbol=dict(hierarchicalDocumentSymbolSupport=True))),initializationOptions=options),1)
         r,_=c.reply(1);assert r['result']['capabilities']['experimental']['automaticSemanticQueries']==(backend!='cli'),r
