@@ -38,7 +38,9 @@ static uint16_t xcuckoo_fingerprint(uint64_t hash) {
 }
 
 static size_t xcuckoo_alternate(const XCuckoo *filter, size_t index, uint16_t fingerprint) {
-    return (index ^ (size_t)((uint32_t)fingerprint * UINT32_C(2654435761))) & filter->mask;
+    size_t offset = (size_t)((uint32_t)fingerprint * UINT32_C(2654435761)) & filter->mask;
+    /* 零偏移会使两个候选桶重合；只在此情况下改用相邻桶。 */
+    return index ^ (offset != 0u ? offset : 1u);
 }
 
 static uint16_t *xcuckoo_bucket(const XCuckoo *filter, size_t index) {

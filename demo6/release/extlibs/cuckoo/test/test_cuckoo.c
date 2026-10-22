@@ -49,6 +49,35 @@ static int test_collision_rollback(void) {
     return 0;
 }
 
+static int test_distinct_alternate_bucket(void) {
+    char keys[5][32];
+    uint16_t fingerprints[5];
+    void *filter = xcuckoo_create(8);
+    int found = 0, candidate, i;
+    CHECK(filter != NULL && xcuckoo_buckets(filter) == 4);
+    for (candidate = 0; candidate < 100000 && found < 5; ++candidate) {
+        char key[32];
+        uint64_t hash;
+        uint16_t fp;
+        int n = snprintf(key, sizeof(key), "self-alt:%d", candidate);
+        CHECK(n > 0 && (size_t)n < sizeof(key));
+        hash = xrtHash64(key, (size_t)n);
+        fp = (uint16_t)(hash >> 32);
+        if (fp == 0) fp = 1;
+        if ((hash & 3u) != 0u || (fp & 3u) != 0u) continue;
+        for (i = 0; i < found && fingerprints[i] != fp; ++i) { }
+        if (i != found) continue;
+        strcpy(keys[found], key);
+        fingerprints[found++] = fp;
+    }
+    CHECK(found == 5);
+    for (i = 0; i < found; ++i) CHECK(xcuckoo_add(filter, keys[i], strlen(keys[i])));
+    CHECK(xcuckoo_count(filter) == 5);
+    for (i = 0; i < found; ++i) CHECK(xcuckoo_contains(filter, keys[i], strlen(keys[i])));
+    xcuckoo_destroy(filter);
+    return 0;
+}
+
 static int test_bounds(void) {
     const char binary[] = {'a', 0, 'b'};
     void *filter = xcuckoo_create(1);
@@ -140,7 +169,8 @@ static int test_create_allocation_failures(void) {
 }
 
 int main(void) {
-    if (test_collision_rollback() || test_bounds() || test_high_load() ||
+    if (test_collision_rollback() || test_distinct_alternate_bucket() ||
+        test_bounds() || test_high_load() ||
         test_error_recovery() || test_create_allocation_failures()) return 1;
     puts("cuckoo C: PASS");
     return 0;
