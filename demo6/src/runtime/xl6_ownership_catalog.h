@@ -26,7 +26,10 @@
     X(NetRuntime, xnetruntimeownershipv1) \
     X(ProxyDialDone, xnetproxydialownershipv1) \
     X(StreamEvents, xnetstreameventsownershipv1) \
-    X(ListenerEvents, xnetlistenereventsownershipv1)
+    X(ListenerEvents, xnetlistenereventsownershipv1) \
+    X(NetTask, xnettaskownershipv1) \
+    X(NetTimer, xnettimerownershipv1) \
+    X(NetWorkerExit, xnetengineworkerexitownershipv1)
 #define XL6_DECLARE_POLICY(Name, Type) struct Type;
 XL6_OWNERSHIP_POLICY_GROUPS(XL6_DECLARE_POLICY)
 #undef XL6_DECLARE_POLICY
