@@ -84,6 +84,9 @@ static void check_pty(void)
     assert(xserial_flush(port));
     assert(xserial_available(port) == 0);
     close(master);
+    assert(xserial_write(port, "x", 1) == -1);
+    assert(xrtErrorKind(xrtGetError()) == XERR_IO);
+    xrtClearError();
     assert(xserial_read(port, 1) == NULL);
     assert(xrtErrorKind(xrtGetError()) == XERR_IO);
     xrtClearError();
