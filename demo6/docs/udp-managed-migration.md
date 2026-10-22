@@ -250,17 +250,67 @@ GCC／TCC O0／O2、Linux ASan／UBSan、select／IOCP／epoll、真实图八种
 变异检查，每个入口另做一次完整模块及 C／声明头拒绝验证。阶段含构建和负例，
 不是 279 个独立语言程序；源码 TU 数也不计入该阶段数。AOT 不导入 xl／xlc 库。
 
+## 已接入：受管异步结果、取消与期限（2026-10-22）
+
+`recvAsync`／`recvErrorAsync`／`recvBatchAsync` 返回实际拥有的 Packet／ErrorPacket／
+Batch Future；`waitAsync`／`waitWritableAsync` 返回 `future<bool>`。五族均提供普通、
+Cancel、Until、UntilCancel、Timeout、TimeoutCancel 六种形式，共 30 个驻留入口。
+接收沿用 Future 的 resolved／failed／cancelled／closed 四态；bool 等待在 resolved
+时返回 true，正常 closed 返回 false，取消仍是 cancelled，超时仍是 checked 错误。
+Batch 容量为 1—256；长度、期限和枚举在提交前检查。预取消／已过期时不向原生
+接收队列提交操作，不因等待而新建系统线程或协程栈。
+
+类结果使用通用且封闭的 `CLASS_RESULT_V1` IR 合同：严格认证 Future<T>、唯一私有
+native 字段、名义 owner、reference identity、载荷 ABI、服务与效果。不允许自定义
+析构、继承或持久化逻辑夹入这条专用结果通路。Cgen 只输出不可变 schema 数据、
+精确 policy getter 声明、隐藏 context、调用与拥有清理，不生成 factory／mapper。
+导出函数可以仅引用异步接口，不能依赖存在同步构造指令才能声明 policy getter。
+
+等待期间只有真实 receiver、复制的字段名、受帧 CodeLease 保护的静态 schema；
+不预造假 native Packet，也不把未提交类构造器放入拥有图。仅在原生成功后同步
+建立类、接管实际结果引用、提交并发布。通用 `xl6ClassCreateFromLeaseV3` 从仍存活
+的帧租约派生结果租约，宿主已禁止新 root acquire 时也能完成已受理的操作；既有
+ClassRuntimeV3 表、对象 lifetime 布局和 XRT 构造器收集规则均不改变。
+
+源 Future 使用独占取消传递，receiver 的 private handle Trace 指向真实拥有图。
+回调先完成捕获清理再发布，失败保留首个错误；丢失最后语言引用和模块退出均走
+checked 收集／退役。原生同步停止不承诺等待语言拥有者的异步退役；最终退出用
+`engine.close()` 后 checked `engine.wait(timeout)`，不用 sleep 或无条件重试掩盖竞态。
+
+验收入口为 `check_stdlib_udp_async_runtime.py` 与 `check_stdlib_udp_async_source.py`，
+证据根 `F:/xlang-validation/five-groups-20261022/p3-udp-async`。六个新增语言程序覆盖
+实际结果、取消／期限、父对象失去变量、导出函数全表面、悬空等待的模块清理和
+128 个同时待接收结果；同时保留同步数据通路与 enum-only 裁剪回归。原生用实际
+离线 ErrorPacket，不提交 OS 错误接收操作；检查 7 类整图的 8 种清理顺序、完整
+构造分配前缀以及宿主 Close 后的已有租约派生。正式通过轮次与哈希以提交回执为准。
+完整源码驱动为 Windows 817／Linux 816 TU；这不是发布 DLL／SO／VFS 验收。
+
+最终验收发现并修复共享队列的通知中间态问题：Committed+Ready（尚未释放通知
+尾部）和 Committed+TransportReleased（等待 Ready）均有完整真实拥有引用，不能
+误报图损坏。队列、旧 ticket、语言 activation 与 resident callback frame 共用
+同一可检查状态谓词；运行中、发布中、前后继 handoff 及未知 flag 仍严格拒绝。
+原生夹具在实际 Watch Notify 内、释放 transport credit 前确定性读取队列／快照，
+反向事件顺序另验；不改计数或添加假根。pending 程序的独立 AOT 另做 32 次短进程
+退出回归，重复运行次数单列，不冒充新增语言程序或构建次数。
+
+最终选用 Windows runtime-win-r7／source-win-r4／source-accept-win-r4 与 Linux
+runtime-linux-r6／source-linux-r4／source-accept-linux-r4，以及两端 shared-regression-r1。
+输入、日志和已记录产物 SHA 全部重新核验。合计 462 阶段（Windows 224／Linux 238）：
+UDP 原生 31／36、语言源码各 149、共享 TCP／回调回归 44／53。阶段含构建、拒绝
+控制及每端 32 次重复退出，不是 462 个独立语言用例；817／816 TU 编译数另计。
+30 个异步入口、6 个枚举位置和 18 个拥有结果接受 368 种坏合同检查；每个入口
+还做完整模块及 C／头拒绝输出。旧队列反证成功编译后在实际 Notify 中被新夹具
+确定性拒绝，说明测试不依靠碰巧撞到时序。提交封条为证据根的 `verified-commit.json`。
+
 ## 仍必须依次完成
 
-1. 完成受管异步 Packet／Batch／ErrorPacket 的拥有结果投影、writable 和 wait。
-   必须提供通用且封闭的类结果合同，不复活旧 Cgen mapper，也不预造假 Packet。
-2. 补齐受管向量／批量、引用／接管、元数据、能力协商、多播和普通错误通路；
+1. 补齐受管向量／批量、引用／接管、元数据、能力协商、多播和普通错误通路；
    同步和异步接口都复用 XRT。异步等待使用固定工作线程／就绪队列，不逐等待建立
    线程或协程栈，不因封装而遗漏已批准的底层能力。
-3. 新增接口持续保持 Cgen 仅声明／调用／拥有清理；清理残余的旧静态依赖登记
-   （`xl6_stdlib_deps.inc` 的 `__xrt_udp.bind` 已无对应函数），迁移旧全局网络
+2. 新增接口持续保持 Cgen 仅声明／调用／拥有清理；失效的 `__xrt_udp.bind` 静态依赖
+   和旧 UDP mapper 注释已清理。继续迁移旧全局网络
    fixture、suite 与文档，不能把旧发布驱动的通过状态套用到新接口。
-4. 双端源码 JIT／module／独立 AOT／IR／裁剪／生命周期验收，最终再做发布联合
+3. 双端源码 JIT／module／独立 AOT／IR／裁剪／生命周期验收，最终再做发布联合
    验收。检查仅使用离线合同／固定数据及自有字面量回环正常通信；网络安全性质
    专项由用户在 XRT 层完成，不在此处扩大测试范围。
 

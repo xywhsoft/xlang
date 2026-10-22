@@ -45,5 +45,6 @@ end
 auto engine = NetEngine(NetEngineOptions().withBackend(NetBackend.select))
 engine.start()
 exercise(engine)
-engine.stop()
+engine.close()
+assert engine.wait(5000), "checked engine retirement"
 println("managed UDP: nullable batch take, checked range, cancellation, timeout: ok")

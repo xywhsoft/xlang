@@ -54,8 +54,7 @@ void xl6CgenEmitNetTcpStatsComponent(
     const XL6_CgenNetNeeds* needs
 );
 
-/* Exact int64/bool/void ABI component. XLIR supplies owned Future mappers and
- * a checked Buffer object projection before these bodies. */
+/* Unrelated legacy Engine snapshot selector. UDP implementations are resident. */
 typedef struct XL6_CgenNetDatagramNeeds {
     int engineStats;
 } XL6_CgenNetDatagramNeeds;

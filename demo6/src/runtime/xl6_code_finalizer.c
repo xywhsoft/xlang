@@ -273,12 +273,14 @@ static bool class_schema_valid_v3(const XL6_ClassIdentitySchemaV3* schema)
     return true;
 }
 static xvalue* xl6OwnershipBody_class_create_v3(const XL6_CodeOwner* owner,
-    bool (*checked)(xvalue*,void*),const XL6_ClassIdentitySchemaV3* schema)
+    bool (*checked)(xvalue*,void*),const XL6_ClassIdentitySchemaV3* schema,XL6_CodeLease* parent,bool derived)
 {
     XL6_CodeLease* lease=NULL; ClassLifetimeV3* lifetime=NULL; xvalue* value=NULL;
     xerror* prior=xrtTakeError(); xerror* failure;
     if (!class_schema_valid_v3(schema)) { xrtSetErrorKind(XERR_ARGUMENT); goto done; }
-    XL6_CodeLeaseAdmission admission=xl6CodeLeaseAcquireScoped(owner,&lease);
+    XL6_CodeLeaseAdmission admission;
+    if(derived){lease=xl6CodeLeaseRetain(parent);admission=(!parent||lease)?XL6_CODE_LEASE_ACQUIRED:XL6_CODE_LEASE_CLOSED;}
+    else admission=xl6CodeLeaseAcquireScoped(owner,&lease);
     if (admission!=XL6_CODE_LEASE_ACQUIRED) {
         if (!xrtGetError()) xrtSetErrorKind(admission==XL6_CODE_LEASE_CLOSED ? XERR_CLOSED :
             admission==XL6_CODE_LEASE_RESOURCE_FAILURE ? XERR_MEMORY : XERR_ARGUMENT);
@@ -305,7 +307,9 @@ done:
 }
 static xvalue* class_create_v3(const XL6_CodeOwner* owner,bool (*checked)(xvalue*,void*),
     const XL6_ClassIdentitySchemaV3* schema)
-{ XL6_OWNERSHIP_RETURN(xvalue*,xl6OwnershipBody_class_create_v3(owner,checked,schema)); }
+{ XL6_OWNERSHIP_RETURN(xvalue*,xl6OwnershipBody_class_create_v3(owner,checked,schema,NULL,false)); }
+xvalue* xl6ClassCreateFromLeaseV3(XL6_CodeLease* parent,const XL6_ClassIdentitySchemaV3* schema)
+{ XL6_OWNERSHIP_RETURN(xvalue*,xl6OwnershipBody_class_create_v3(NULL,NULL,schema,parent,true)); }
 
 /* No C TLS: TinyCC's PE writer cannot relocate it. Stack frames and short
  * native lanes bound class callback recursion, including recursive fields

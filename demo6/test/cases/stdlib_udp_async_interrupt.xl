@@ -1,0 +1,49 @@
+import concurrent
+async func exercise(NetEngine engine)
+    auto receiver = UdpSocket(engine, NetAddress.loopback())
+    assert await receiver.waitAsyncTimeout(UdpWait.open, 5000)
+    auto sender = udp.connect(engine, receiver.localAddress())
+    assert await sender.waitAsyncTimeout(UdpWait.open, 5000)
+    auto source = CancellationSource()
+    assert source.cancel()
+    int rejected = 0
+    try
+        auto packet = await receiver.recvAsyncCancel(source.token)
+    catch failure
+        rejected += 1
+    end
+    try
+        auto batch = await receiver.recvBatchAsyncTimeoutCancel(source.token, 4, 5000)
+    catch failure
+        rejected += 1
+    end
+    // A pre-stopped error receive never submits an OS error-queue operation.
+    try
+        auto errorPacket = await receiver.recvErrorAsyncCancel(source.token)
+    catch failure
+        rejected += 1
+    end
+    try
+        auto packet = await receiver.recvAsyncTimeout(0)
+    catch failure
+        rejected += 1
+    end
+    try
+        auto batch = await receiver.recvBatchAsyncUntil(uint64(0), 4)
+    catch failure
+        rejected += 1
+    end
+    assert rejected == 5
+    auto pending = receiver.recvAsyncTimeout(5000)
+    assert sender.send("alive\0") == NetStatus.ok
+    assert (await pending).bytes() == b"alive\0"
+    assert await sender.waitWritableAsyncTimeout(0, 5000)
+    receiver.abort()
+    sender.abort()
+end
+auto engine = NetEngine(NetEngineOptions().withBackend(NetBackend.select))
+engine.start()
+await exercise(engine)
+engine.close()
+assert engine.wait(5000), "checked engine retirement"
+println("UDP async: parent cancellation, finite deadline, no source submission after stop: ok")

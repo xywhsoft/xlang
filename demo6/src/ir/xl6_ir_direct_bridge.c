@@ -108,6 +108,9 @@ typedef struct XL6_IrDirectBridgeContract {
     unsigned char managedHandleResult;
     unsigned char nativeClassParameter;
     const char* nativeClassOwner;
+    /* Exact native class produced by Future<T>, without a source-language
+     * placeholder object parameter or an executable result mapper. */
+    const char* nativeClassResultOwner;
     /* Exact generic resource T, not just its common xvalue* representation. */
     unsigned char genericResourceResult;
     unsigned char genericResourceParameter;
@@ -148,6 +151,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_tcp_options_contracts.inc"
 #include "xl6_ir_udp_config_contracts.inc"
 #include "xl6_ir_udp_contracts.inc"
+#include "xl6_ir_udp_future_contracts.inc"
 #include "xl6_ir_tcp_contracts.inc"
 #include "xl6_ir_tcp_server_contracts.inc"
 #include "xl6_ir_tcp_proxy_contracts.inc"
@@ -1028,6 +1032,24 @@ unsigned xl6IrRuntimeDirectBridgeServices(const char* name)
     return c ? c->nativeServicesRequired : XL6_IR_CALL_NATIVE_SERVICE_NONE;
 }
 
+const XL6_IrClassField* xl6IrNativeClassResultContextField(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    const XL6_IrDirectBridgeContract* c=target?xl6IrDirectBridgeContract(target->cName):NULL;
+    const XL6_IrType* future=module&&target?xl6IrTypeGet(&module->types,target->returnType):NULL;
+    if(!c||c->nativeContext!=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1||!c->nativeClassResultOwner||
+        !c->genericFutureResult||!future||future->kind!=XL6_IR_TYPE_GENERIC_INSTANCE||
+        future->cAbi!=XL6_IR_C_ABI_RUNTIME_FUTURE_PTR||future->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED||
+        future->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL||future->collectionAbi!=XL6_IR_COLLECTION_NONE||
+        future->paramCount!=1||!future->params||future->returnCount)return NULL;
+    XL6_IrTypeId type=future->params[0];const XL6_IrClassField* field=xl6IrResidentNativeResourceField(module,type,c->nativeClassResultOwner);
+    const XL6_IrClassLayout* layout=field?xl6IrBuildClassLayoutByType(module,type):NULL;
+    if(!layout||layout->baseType||layout->baseDeclaration!=XL6_IR_NODE_INVALID||layout->fieldCount!=1||
+        layout->destroyFunction||layout->destroyStepCount||layout->persistenceFormatMask||
+        layout->hashAbi!=XL6_IR_CLASS_HASH_ABI_RUNTIME_REFERENCE||
+        layout->equalityAbi!=XL6_IR_CLASS_EQUALITY_ABI_RUNTIME_REFERENCE)return NULL;
+    return field;
+}
+
 static const XL6_IrType* xl6IrNativeVoidCallbackArrayType(const XL6_IrModule* module,
     const XL6_IrCallTarget* target,const XL6_IrDirectBridgeContract* contract)
 {
@@ -1110,6 +1132,12 @@ int xl6IrRuntimeDirectBridgeContext(const XL6_IrModule* module,const XL6_IrCallT
         if(!xl6IrNativeClassContextField(module,target))return 0;
         *context=c->nativeContext;*type=target->parameterTypes[c->nativeClassParameter-1];
         *payload=xl6IrBuildAsyncResultAbi(module,*type);
+        return *payload==XL6_IR_ASYNC_RESULT_RETAINED_XVALUE;
+    }
+    if(c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1) {
+        if(!xl6IrNativeClassResultContextField(module,target))return 0;
+        const XL6_IrType* future=xl6IrTypeGet(&module->types,target->returnType);
+        *context=c->nativeContext;*type=future->params[0];*payload=xl6IrBuildAsyncResultAbi(module,*type);
         return *payload==XL6_IR_ASYNC_RESULT_RETAINED_XVALUE;
     }
     if(c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1) {

@@ -1,0 +1,29 @@
+// 128 concurrent receives over owned loopback; not an external-load test.
+async func exercise(NetEngine engine)
+    auto socket = UdpSocket(engine, NetAddress.loopback())
+    assert await socket.waitAsync(UdpWait.open)
+    auto peer = udp.connect(engine, socket.localAddress())
+    assert await peer.waitAsync(UdpWait.open)
+    array<future<UdpPacket>> pending = array[]
+    for index in range(0, 128)
+        pending.push(socket.recvAsync())
+    end
+    for index in range(0, 128)
+        assert peer.send("q\0") == NetStatus.ok
+    end
+    int count = 0
+    for item in pending
+        auto packet = await item
+        assert packet.bytes() == b"q\0"
+        count += 1
+    end
+    assert count == 128
+    socket.close()
+    peer.close()
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+await exercise(engine)
+engine.close()
+assert engine.wait(5000), "checked engine retirement"
+println("UDP async: 128 simultaneous owned class results on fixed workers: ok")

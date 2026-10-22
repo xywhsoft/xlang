@@ -215,6 +215,12 @@ typedef struct XL6_ClassRuntimeV3 {
     bool (*Equal)(const struct xvalue*, const struct xvalue*, bool*);
 } XL6_ClassRuntimeV3;
 XL6_CODE_LEASE_API const XL6_ClassRuntimeV3* xl6ClassRuntimeV3Get(void);
+/* Accepted resident continuations derive an independent class owner from an
+ * already owned CodeLease. This does not reopen a closing host's root
+ * admission. Schema storage remains protected by the derived lease. NULL
+ * parent is the explicitly process-resident/static case. */
+XL6_CODE_LEASE_API struct xvalue* xl6ClassCreateFromLeaseV3(
+    XL6_CodeLease*,const XL6_ClassIdentitySchemaV3*);
 /* Private resident discovery. +1 authenticated open V3 layout, 0 ordinary
  * wire/closed layout, -1 rejected lifecycle or metadata. Output is unchanged
  * except on +1. The caller owns the source shell throughout use of the copied

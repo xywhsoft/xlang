@@ -311,7 +311,6 @@ static const XL6_StdlibDependency xl6StdlibDependencies[] = {
     {"crypto", "rsaPkcs1Verify", "__xrt_string", "byteLen"},
     {"crypto", "rsaPkcs1Verify", "__xl_runtime", "rsaPkcs1Verify"},
     {"id", "tryParse", "id", "parse"},
-    {"udp", "bind", "__xrt_udp", "bind"},
     {"log", "default", "__xl_runtime", "logDefault"},
     {"log", "setDefault", "__xl_runtime", "logSetDefault"},
     {"log", "setDefault", "__xl_runtime", "logReleaseDefault"},

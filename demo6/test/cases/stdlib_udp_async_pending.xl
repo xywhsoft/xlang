@@ -1,0 +1,10 @@
+// Intentionally leave actual pending class and bool Futures in module roots.
+// Checked module teardown must collect their real class/frame/native graph.
+auto engine = NetEngine(NetEngineOptions().withBackend(NetBackend.select))
+engine.start()
+auto socket = UdpSocket(engine, NetAddress.loopback())
+assert await socket.waitAsync(UdpWait.open)
+future<UdpPacket> packet = socket.recvAsync()
+future<UdpBatch> batch = socket.recvBatchAsync(4)
+future<bool> closed = socket.waitAsync(UdpWait.close)
+println("UDP async pending roots prepared for checked teardown")
