@@ -32,7 +32,7 @@
     <pre><code>import money
 int cents = money.scale(12345, 9, 10)
 println(money.format(cents, "USD"))  // $111.11</code></pre>
-    <p>金额不携带币种；正式财务比例计算优先使用 <code>scale</code>。比例允许负分母，按结果符号对绝对值四舍五入。XLang 算术越界抛 <code>RangeError</code>，无效参数抛 <code>ValueError</code>；合法参数的格式化或分摊若内存不足会报内存错误，C/XLang 均有故障及恢复测试。C 成功调用会清除前次失败的线程错误。C 范例可直接用 <code>xl run release/extlibs/money/examples/money.c</code> 运行；Windows 的 <code>test/check.ps1 -SkipAot</code> 验证 C/JIT，默认门禁还构建运行核心与完整范例 AOT。核心 AOT 已通过，带输出范例仍因共享缺符号使默认门禁失败，不能签收发布级。边界、所有权和验证命令见包内 README。</p>
+    <p>金额不携带币种；正式财务比例计算优先使用 <code>scale</code>。成对的 C/XLang 订单范例覆盖全部公开入口，<code>rate</code> 只作浮点估算展示。比例允许负分母，按结果符号对绝对值四舍五入。XLang 算术越界抛 <code>RangeError</code>，无效参数抛 <code>ValueError</code>；合法参数的格式化或分摊若内存不足会报内存错误，C/XLang 均有故障及恢复测试。C 成功调用会清除前次失败的线程错误。C 范例可直接用 <code>xl run release/extlibs/money/examples/money.c</code> 运行；Windows 的 <code>test/check.ps1 -SkipAot</code> 验证 C/JIT，默认门禁还构建运行核心与完整范例 AOT。核心 AOT 已通过，带输出范例仍因共享缺符号使默认门禁失败，不能签收发布级。边界、所有权和验证命令见包内 README。</p>
   </section>
 </main>
 </body>

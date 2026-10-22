@@ -29,6 +29,19 @@ int main(void) {
         !print_amount("after 10% off: ", discounted) ||
         !print_amount("after 7% tax: ", taxed)) return 1;
 
+    /* 退货和件数使用精确整数；浮点比例只展示估算入口。 */
+    {
+        int64_t refund, bulk, estimate;
+        if (!xm_sub_checked(subtotal, 1200, &refund) ||
+            !xm_mul_checked(125, 3, &bulk) ||
+            !xm_rate_checked(125, 0.5, &estimate) ||
+            !print_amount("after refund: ", refund) ||
+            !print_amount("three small items: ", bulk)) return 1;
+        printf("floating estimate (cents): %lld\n", (long long)estimate);
+        printf("JPY decimal places: %lld\n",
+            (long long)xm_exponent("JPY", 3));
+    }
+
     parts = xm_split(taxed, 3);
     if (parts == NULL || xrtValueType(parts) != XVALUE_ARRAY) {
         xrtValueRelease(parts);

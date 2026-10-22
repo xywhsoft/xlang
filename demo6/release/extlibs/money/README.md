@@ -36,6 +36,13 @@ XLang 外部调用会先将 XRT 的 `XERR_RANGE`、`XERR_VALUE` 和 `XERR_MEMORY
 
 ## 验证
 
+2026-10-22：C/XLang 订单范例补齐 `sub`、`mul`、`rate`、`exponent`，
+现与原有 `add`、`scale`、`split`、`format`、`symbol` 一起展示全部公开入口。
+浮点 `rate` 仅作为估算例子，正式财务比例仍用整数 `scale`。
+Windows `-SkipAot` 的 C/语言/固定输出门禁与 Linux C ASan/UBSan、XLang
+门禁通过；默认 Windows 核心 AOT 通过，完整范例 AOT 仍缺共享
+`xl6ValueDataSnapshotV1`，不签收整包发布级。
+
 在 `demo6` 目录运行：
 
 ```powershell

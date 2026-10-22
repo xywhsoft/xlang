@@ -1,6 +1,10 @@
 subtotal: $141.98
 after 10% off: $127.78
 after 7% tax: $136.72
+after refund: $129.98
+three small items: $3.75
+floating estimate (cents): 63
+JPY decimal places: 0
 friend 1 pays $45.58
 friend 2 pays $45.57
 friend 3 pays $45.57

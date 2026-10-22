@@ -22,6 +22,12 @@ func main(...) as int
     println("after 10% off:", money.format(discounted, "USD"))
     println("after 7% tax:", money.format(taxed, "USD"))
 
+    // 减去退货、计算多件商品；浮点比例只用于估算
+    println("after refund:", money.format(money.sub(subtotal, 1200), "USD"))
+    println("three small items:", money.format(money.mul(125, 3), "USD"))
+    println("floating estimate (cents):", money.rate(125, 0.5))
+    println("JPY decimal places:", money.exponent("JPY"))
+
     // 三人分摊
     var parts = money.split(taxed, 3)
     for i in range(0, parts.length)
