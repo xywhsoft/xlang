@@ -27,6 +27,10 @@ typedef struct xls_completion_item {
 xls_semantic_completion* xlsSemanticCompletionCreate(const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
+/* Immutable facts may outlive the producing session and be consumed on
+ * separate threads. Each consumer owns a reference; retain requires an
+ * existing live reference. Validation/serialization are internally locked. */
+xls_semantic_completion* xlsSemanticCompletionRetain(xls_semantic_completion* result);
 void xlsSemanticCompletionDestroy(xls_semantic_completion* result);
 xls_completion_info xlsSemanticCompletionInfo(const xls_semantic_completion* result);
 int xlsSemanticCompletionItem(const xls_semantic_completion* result,size_t index,xls_completion_item* item);

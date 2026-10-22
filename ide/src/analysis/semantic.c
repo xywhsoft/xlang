@@ -7,13 +7,15 @@
 #include <stdio.h>
 
 struct xls_semantic_completion {
+    xatomic32 references,invalid;
+    xmutex lock;
+    int lockInitialized,available;
     XL6_ParseResult parse;
     XL6_ImportDeps deps;
     XL6_SourceReport report;
     XL6_SourceOverlay overlay;
     XL6_CompletionQuery query;
     char* path;
-    int invalid;
 };
 static int absolute(const char* path)
 {
@@ -22,20 +24,25 @@ static int absolute(const char* path)
 static int stopped(int (*cancelled)(void*),void* user) { return cancelled && cancelled(user); }
 static void fail(char* error,size_t capacity,const char* message)
 { if(error && capacity) snprintf(error,capacity,"%s",message); }
+static int invalid(const xls_semantic_completion* r)
+{ return xrtAtomic32Load(&r->invalid,XMEMORY_ACQUIRE)!=0; }
 static int ready(const xls_semantic_completion* r)
 {
-    return r && !r->invalid && r->query.available && !r->query.error &&
-        r->query.parsed==1 && r->query.reached==1 && r->report.complete;
+    /* report.complete can change under validation's lock. Published query
+     * facts and this initial availability remain immutable for all readers. */
+    return r && !invalid(r) && r->available;
 }
+xls_semantic_completion* xlsSemanticCompletionRetain(xls_semantic_completion* r)
+{ if(r) xrtAtomic32FetchAdd(&r->references,1,XMEMORY_RELAXED); return r; }
 void xlsSemanticCompletionDestroy(xls_semantic_completion* r)
 {
-    if(!r) return;
+    if(!r || xrtAtomic32FetchSub(&r->references,1,XMEMORY_ACQ_REL)!=1) return;
     xl6CompletionFree(&r->query);
     xl6ParseResultFree(&r->parse);
     xl6ImportDepsFree(&r->deps);
     xl6SourceOverlayClear(&r->overlay);
     xl6SourceReportFree(&r->report);
-    xrtFree(r->path); xrtFree(r);
+    xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
 }
 xls_semantic_completion* xlsSemanticCompletionCreate(const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,
@@ -48,6 +55,9 @@ xls_semantic_completion* xlsSemanticCompletionCreate(const char* entry,const cha
     }
     if(stopped(cancelled,user)) { fail(error,capacity,"semantic completion cancelled"); return NULL; }
     r=xrtCalloc(1,sizeof(*r)); if(!r) { fail(error,capacity,"cannot allocate semantic completion"); return NULL; }
+    xrtAtomic32Init(&r->references,1); xrtAtomic32Init(&r->invalid,0);
+    if(!xrtMutexInit(&r->lock)) goto invalid;
+    r->lockInitialized=1;
     xl6ParseResultInit(&r->parse); xl6ImportDepsInit(&r->deps); xl6SourceReportInit(&r->report);
     r->path=xrtPathAbs(queryPath); r->query.path=r->path; r->query.offset=offset;
     if(!r->path) goto invalid;
@@ -80,6 +90,8 @@ xls_semantic_completion* xlsSemanticCompletionCreate(const char* entry,const cha
         xl6SemCheckModuleWithQuery(r->parse.root,&r->parse.diags,module,0,&r->query);
     }
     if(stopped(cancelled,user)) goto cancel;
+    r->available=r->query.available && !r->query.error &&
+        r->query.parsed==1 && r->query.reached==1 && r->report.complete;
     xlsSemanticCompletionValidate(r);
     return r;
 invalid:
@@ -92,9 +104,10 @@ cancel:
 xls_completion_info xlsSemanticCompletionInfo(const xls_semantic_completion* r)
 {
     if(!r) return (xls_completion_info){0};
-    return (xls_completion_info){r->path,r->query.prefix,r->invalid ? "semantic inputs changed" : r->query.error,
+    int stale=invalid(r),available=!stale && r->available;
+    return (xls_completion_info){r->path,r->query.prefix,stale ? "semantic inputs changed" : r->query.error,
         r->query.offset,r->query.replacement.startOffset,r->query.replacement.endOffset,
-        ready(r) ? r->query.count : 0,ready(r)};
+        available ? r->query.count : 0,available};
 }
 int xlsSemanticCompletionItem(const xls_semantic_completion* r,size_t index,xls_completion_item* out)
 {
@@ -105,16 +118,21 @@ int xlsSemanticCompletionItem(const xls_semantic_completion* r,size_t index,xls_
         node && node->tokenRange.known};
     return 1;
 }
-int xlsSemanticCompletionValidate(xls_semantic_completion* r)
+static int validateLocked(xls_semantic_completion* r)
 {
-    if(!r || r->invalid) return 0;
-    if(!xl6SourceReportValidate(&r->report)) { r->invalid=1; r->query.available=0; return 0; }
+    if(invalid(r)) return 0;
+    if(!xl6SourceReportValidate(&r->report)) { xrtAtomic32Store(&r->invalid,1,XMEMORY_RELEASE); return 0; }
     return 1;
 }
-char* xlsSemanticCompletionJson(xls_semantic_completion* r,size_t* size)
+int xlsSemanticCompletionValidate(xls_semantic_completion* r)
+{
+    if(!r || !xrtMutexLock(&r->lock)) return 0;
+    int okay=validateLocked(r); xrtMutexUnlock(&r->lock); return okay;
+}
+static char* jsonLocked(xls_semantic_completion* r,size_t* size)
 {
     if(size) *size=0;
-    if(!r || !xlsSemanticCompletionValidate(r)) return NULL;
+    if(!validateLocked(r)) return NULL;
     char* completion=xl6CompletionJson(&r->query,&r->report); if(!completion) return NULL;
     XL6_Output out; char* text=NULL;
     if(xl6OutputOpenMemory(&out)) {
@@ -124,7 +142,13 @@ char* xlsSemanticCompletionJson(xls_semantic_completion* r,size_t* size)
     }
     xrtFree(completion);
     if(text && size && *size>12u*1024u*1024u) { xrtFree(text); text=NULL; *size=0; }
-    if(!xlsSemanticCompletionValidate(r)) { xrtFree(text); text=NULL; if(size) *size=0; }
+    if(!validateLocked(r)) { xrtFree(text); text=NULL; if(size) *size=0; }
     return text;
+}
+char* xlsSemanticCompletionJson(xls_semantic_completion* r,size_t* size)
+{
+    if(size) *size=0;
+    if(!r || !xrtMutexLock(&r->lock)) return NULL;
+    char* text=jsonLocked(r,size); xrtMutexUnlock(&r->lock); return text;
 }
 void xlsSemanticStringFree(char* text) { xrtFree(text); }
