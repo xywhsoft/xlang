@@ -18,7 +18,7 @@ for mode in range(2)
         try
             lru.LruCache candidate = createCache(mode)
             assert candidate.valid
-        catch MemoryError
+        catch MemoryError error
             caught = true
         end
         bool triggered = failTriggered()
@@ -38,7 +38,7 @@ for mode in range(2)
         assert failAfter(uint64(allocation))
         try
             cache.put("c", "third")
-        catch MemoryError
+        catch MemoryError error
             caught = true
         end
         bool triggered = failTriggered()
@@ -64,7 +64,7 @@ for mode in range(2)
         assert failAfter(uint64(allocation))
         try
             cache.put("a", "new")
-        catch MemoryError
+        catch MemoryError error
             caught = true
         end
         bool triggered = failTriggered()
@@ -91,7 +91,7 @@ for mode in range(2)
         assert failAfter(uint64(allocation))
         try
             assert cache.get("a") == "first"
-        catch MemoryError
+        catch MemoryError error
             caught = true
         end
         bool triggered = failTriggered()

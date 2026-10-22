@@ -72,3 +72,9 @@ Windows TCC C、XLang JIT 及 Linux C ASan/UBSan/线程/语言联合门禁通过
 同日：C 教学范例原先只靠 GCC 额外链接原生源才能运行，单独 `xl run` 报 `xlru_destroy` 缺符号；现范例内含原生实现，Linux 门禁不再重复链接，并增加 C 直跑与 GCC 逐字对照。新增 Windows 联合门禁的严格 GCC、C 边界/线程、XLang、私有入口及双语输出通过；Linux ASan/UBSan 联合门禁通过。默认 Windows AOT 构建实测仍缺共享 `xl6ValueDataSnapshotV1`，不签收发布级。
 
 2026-10-20：包级 C 测试宿主只编译 `map`、`mutex`、`string`、`thread` 与分配故障注入所需的 XRT 模块，Windows 门禁不再链接无关的系统库。`check.ps1 -SkipAot` 的严格 C、线程、C 直跑、XLang 边界/故障注入、私有入口与双语同输出均通过；Linux `check.sh` 的 C ASan/UBSan、线程及 XLang 联合门禁通过。此项仅缩短测试构建时间，不改变缓存算法或解除完整 AOT 阻断。
+
+2026-10-23：四处故障注入捕获由单名 `catch MemoryError` 改成明确的
+`catch MemoryError error`。前者在当前语法中是无类型捕获变量，不能证明
+异常类别。严格分类后双模式创建、插入、覆盖与读取测试，以及 Windows
+聚焦门禁、Linux C ASan/UBSan/XLang 联合门禁仍通过。库实现和公开 API
+未改；完整 AOT 的共享缺符号阻断仍未解除。
