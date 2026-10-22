@@ -54,6 +54,11 @@ int main(void)
     xls_sync_document docs[]={{"file:///main.xl",a,strlen(a),1,1},{"file:///dep.xl",b,strlen(b),2,1}};
     CHECK(xlsSyncUpdate(sync,docs,2,emit,&target) && target.messages.Count==2);
     CHECK(!strcmp(message(&target,0)->method,"textDocument/didOpen") && xlsSyncVersion(sync,docs[0].uri)==1);
+    xls_text* lease=xlsSyncRetainText(sync,docs[0].uri,1);
+    xls_text* sameLease=xlsSyncRetainText(sync,docs[0].uri,1);
+    CHECK(lease && sameLease==lease && !strcmp(xlsTextData(lease),a));xlsTextRelease(sameLease);
+    CHECK(!xlsSyncRetainText(NULL,docs[0].uri,1) && !xlsSyncRetainText(sync,NULL,1) && !xlsSyncRetainText(sync,docs[0].uri,0));
+    CHECK(!xlsSyncRetainText(sync,"file:///absent.xl",1) && !xlsSyncRetainText(sync,docs[0].uri,2));
     CHECK(stringIs(get(get(message(&target,0)->params,"textDocument"),"text"),a));
     CHECK(xlsSyncInputState(sync,before,&online) && online==2 && !strcmp(before,"495a61994539cece6c67ea32669461df6122d79f565af90d8e33ef8e7160984a"));
     xls_sync_document reordered[2]={docs[1],docs[0]};
@@ -62,6 +67,8 @@ int main(void)
     CHECK(xlsSyncUpdate(sync,docs,2,emit,&target) && !target.calls);
     docs[0].text=updated; docs[0].length=strlen(updated); ++docs[0].revision;
     CHECK(xlsSyncUpdate(sync,docs,2,emit,&target) && target.messages.Count==1 && xlsSyncVersion(sync,docs[0].uri)==2);
+    CHECK(!xlsSyncRetainText(sync,docs[0].uri,1) && !strcmp(xlsTextData(lease),a));
+    sameLease=xlsSyncRetainText(sync,docs[0].uri,2);CHECK(sameLease && sameLease!=lease && !strcmp(xlsTextData(sameLease),updated));xlsTextRelease(sameLease);
     CHECK(xlsSyncInputState(sync,after,&online) && online==2 && !strcmp(after,"05450fd3dc719fa85bf6801f72bfa480b242770943f969155fa7627ba9aed31d"));
     received* delta=message(&target,0);
     CHECK(!strcmp(delta->method,"textDocument/didChange"));
@@ -90,6 +97,7 @@ int main(void)
     CHECK(!xlsSyncUpdate(sync,docs,2,emit,&target) && !target.calls);
     CHECK(!xlsSyncUpdate(sync,docs,65,emit,&target) && !target.calls);
     CHECK(xlsSyncUpdate(sync,NULL,0,emit,&target) && target.messages.Count==1 && !xlsSyncVersion(sync,docs[0].uri));
+    CHECK(!xlsSyncRetainText(sync,docs[0].uri,1) && !strcmp(xlsTextData(lease),a));
     clear(&target); xlsSyncDestroy(sync);
 
     sync=xlsSyncCreate(1); docs[0]=(xls_sync_document){"file:///main.xl",a,strlen(a),1,1};
@@ -104,9 +112,12 @@ int main(void)
     target.failAt=2;
     CHECK(!xlsSyncUpdate(sync,docs,2,emit,&target) && target.calls==2 && !xlsSyncVersion(sync,docs[0].uri));
     CHECK(!xlsSyncInputState(sync,digest,&online) && !digest[0] && !online);
+    CHECK(!xlsSyncRetainText(sync,docs[0].uri,1) && !xlsSyncRetainText(sync,docs[0].uri,2));
     clear(&target);
     CHECK(!xlsSyncUpdate(sync,docs,2,emit,&target) && !target.calls);
     xlsSyncDestroy(sync);
+
+    CHECK(!strcmp(xlsTextData(lease),a));xlsTextRelease(lease);
 
     sync=xlsSyncCreate(2); char uris[64][48]; xls_sync_document many[64];
     for(size_t i=0;i<64;++i) {

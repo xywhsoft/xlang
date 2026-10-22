@@ -130,20 +130,27 @@ int xideLspOffsetToPosition(const char* text,int offset,int* line,int* character
 typedef struct requested_position { int line,character,offset; size_t index; } requested_position;
 static int comparePosition(const void* a,const void* b)
 { const requested_position *x=a,*y=b; if(x->line!=y->line) return x->line<y->line ? -1 : 1; return x->character==y->character ? 0 : x->character<y->character ? -1 : 1; }
-int xideLspPositionsToOffsets(const char* text,xide_lsp_position* positions,size_t count)
+static int mapPositions(const char* text,xide_lsp_position* positions,size_t count,size_t limit,int (*cancelled)(void*),void* user)
 {
- if(!text || (count && !positions) || count>8192 || !utf8(text,strlen(text))) return 0;
+ if(!text || (count && !positions) || count>limit || (cancelled && cancelled(user)) || !utf8(text,strlen(text))) return 0;
  if(!count) return 1;
  requested_position* sorted=calloc(count,sizeof(*sorted)); if(!sorted) return 0;
  for(size_t i=0;i<count;++i) { if(positions[i].line<0 || positions[i].character<0) { free(sorted); return 0; } sorted[i]=(requested_position){.line=positions[i].line,.character=positions[i].character,.index=i}; }
  qsort(sorted,count,sizeof(*sorted),comparePosition); size_t at=0,n=strlen(text); int line=0,character=0,okay=1;
  for(size_t i=0;i<count && okay;++i) {
+  if(cancelled && cancelled(user)) { okay=0; break; }
   while(at<n && (line<sorted[i].line || (line==sorted[i].line && character<sorted[i].character))) {
+   if(cancelled && !(at&4095u) && cancelled(user)) { okay=0; break; }
    if(text[at]=='\r' || text[at]=='\n') { at+=text[at]=='\r' && text[at+1]=='\n' ? 2u : 1u; ++line; character=0; }
    else { unsigned cp=0; at+=scalar((const unsigned char*)text+at,&cp); character+=cp>0xffff ? 2 : 1; }
   }
   if(line!=sorted[i].line || character!=sorted[i].character) okay=0; else sorted[i].offset=(int)at;
  }
+ if(okay && cancelled && cancelled(user)) okay=0;
  if(okay) for(size_t i=0;i<count;++i) positions[sorted[i].index].offset=sorted[i].offset;
  free(sorted); return okay;
 }
+int xideLspPositionsToOffsets(const char* text,xide_lsp_position* positions,size_t count)
+{ return mapPositions(text,positions,count,8192,NULL,NULL); }
+int xideLspManyPositionsToOffsets(const char* text,xide_lsp_position* positions,size_t count,int (*cancelled)(void*),void* user)
+{ return mapPositions(text,positions,count,131072,cancelled,user); }
