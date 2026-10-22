@@ -20,6 +20,10 @@ func main(...) as int
         {"op": "add", "path": "/tls", "value": {"cert": "server.pem", "verify": true}}
     ]
     var updated = json.patch.apply(config, patch)
+    assert json.patch.get(updated, "/port") == 8443
+    assert json.patch.get(updated, "/features/2") == "brotli"
+    assert json.patch.get(updated, "/limits/timeout") == 15
+    assert json.patch.get(updated, "/tls/verify") == true
     println("after port:", json.patch.get(updated, "/port"))
     println("timeout:", json.patch.get(updated, "/limits/timeout"))
     println("tls verify:", json.patch.get(updated, "/tls/verify"))
@@ -27,11 +31,16 @@ func main(...) as int
     // RFC 7386：面向用户的局部合并（null 表示删除）
     var userPatch = {"port": 9000, "features": null}
     var merged = json.patch.merge(config, userPatch)
+    assert json.patch.get(merged, "/port") == 9000
+    assert not json.patch.has(merged, "/features")
+    assert json.patch.get(merged, "/limits/maxBody") == 1048576
     println("merged port:", json.patch.get(merged, "/port"))
     println("features removed:", not json.patch.has(merged, "/features"))
     println("limits kept:", json.patch.get(merged, "/limits/maxBody"))
 
     // 原文档不受影响
+    assert json.patch.get(config, "/port") == 80
+    assert json.patch.get(config, "/features/1") == "gzip"
     println("source port still:", json.patch.get(config, "/port"))
 
     println("json.patch example: PASS")
