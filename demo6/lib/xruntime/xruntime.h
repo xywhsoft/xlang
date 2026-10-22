@@ -36651,6 +36651,8 @@ XRT_API xfile xrtNetFileOpen(
 /*
 	从绝对偏移读取到调用方缓冲，返回非零操作标识。
 	只能在所属 Worker 执行；文件、缓冲和 Completion 保持到唯一终态。
+	文件结束是 OK、Bytes = 0，不是传输错误。
+	受理后该轮端口拥有图保持不透明，直到端口退休；本入口不认证调用方拥有权。
 */
 XRT_API uint64 xrtNetFileRead(
 	xnetworker* pWorker,
@@ -36666,6 +36668,7 @@ XRT_API uint64 xrtNetFileRead(
 /*
 	把调用方缓冲写入绝对偏移，返回非零操作标识。
 	热路径不复制载荷；文件、缓冲和 Completion 保持到唯一终态。
+	受理后与原生端口借用相同，拒绝 Engine 的闭合拥有图认证；失败不改变此状态。
 */
 XRT_API uint64 xrtNetFileWrite(
 	xnetworker* pWorker,
@@ -87618,6 +87621,15 @@ static bool __xrtNetIOCPFinishConnect(
 static void __xrtNetIOCPEvent(__xrt_net_iocp_operation* pOperation,
 	BOOL bSuccess, DWORD iBytes, int iSystemCode, xnetportevent* pEvent)
 {
+	/* Regular-file EOF is a successful zero-byte read, not a transport error.
+	 * Windows still dequeues the real OVERLAPPED completion with EOF status;
+	 * keep the operation alive until this packet and consume it exactly once. */
+	if ( !bSuccess && pOperation->Type == XNET_PORT_EVENT_FILE_READ &&
+		iSystemCode == ERROR_HANDLE_EOF ) {
+		bSuccess = TRUE;
+		iBytes = 0;
+		iSystemCode = 0;
+	}
 	memset(pEvent, 0, sizeof(*pEvent));
 	pEvent->Type = pOperation->Type;
 	pEvent->Result = XNET_RESULT_OK;
@@ -267725,6 +267737,18 @@ Cleanup:
 
 #if defined(XRT_FEATURE_NET_FILE)
 
+/* Public caller-owned completions are not a closed ownership family. The
+ * current Worker remains active (not OwnershipParked) across submission, so
+ * Engine quiescence rejects inspection until this publication has completed.
+ * Never hold global mutation admission over an OS/backend submission. */
+static void __xrtNetFileExposeCompletion(xnetworker* pWorker)
+{
+	xrtownershipscope Mutation = {0};
+	if ( !xrtOwnershipMutationBegin(&Mutation) ) abort();
+	pWorker->OwnershipPortExposed = true;
+	if ( !xrtOwnershipScopeEnd(&Mutation) ) abort();
+}
+
 /* 校验文件访问、异步打开方式和 Worker 线程归属。 */
 static bool __xrtNetFileCheck(
 	xnetworker* pWorker,
@@ -267843,7 +267867,8 @@ XRT_API uint64 xrtNetFileRead(
 		return 0;
 	}
 	Id = xrtNetWorkerOperationId(pWorker);
-	if ( (Id == 0) || !__xrtNetPortFileRead(
+	if ( Id == 0 ) return 0;
+	bool bSubmitted = __xrtNetPortFileRead(
 		pPort,
 		xrtFileNative(File),
 		iOffset,
@@ -267852,10 +267877,9 @@ XRT_API uint64 xrtNetFileRead(
 		Id,
 		pCompletion,
 		pAssociated
-	) ) {
-		return 0;
-	}
-	return Id;
+	);
+	if ( bSubmitted ) __xrtNetFileExposeCompletion(pWorker);
+	return bSubmitted ? Id : 0;
 }
 
 
@@ -267900,7 +267924,8 @@ XRT_API uint64 xrtNetFileWrite(
 		return 0;
 	}
 	Id = xrtNetWorkerOperationId(pWorker);
-	if ( (Id == 0) || !__xrtNetPortFileWrite(
+	if ( Id == 0 ) return 0;
+	bool bSubmitted = __xrtNetPortFileWrite(
 		pPort,
 		xrtFileNative(File),
 		iOffset,
@@ -267909,10 +267934,9 @@ XRT_API uint64 xrtNetFileWrite(
 		Id,
 		pCompletion,
 		pAssociated
-	) ) {
-		return 0;
-	}
-	return Id;
+	);
+	if ( bSubmitted ) __xrtNetFileExposeCompletion(pWorker);
+	return bSubmitted ? Id : 0;
 }
 
 

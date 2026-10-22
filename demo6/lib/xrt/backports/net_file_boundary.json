@@ -1,0 +1,50 @@
+{
+  "Complete": true,
+  "SelectiveSync": true,
+  "PublicAbiChanged": false,
+  "WholeTimeAbiUpgrade": false,
+  "NativeBase": "79f5da3c3c0859508329e42a2db79afd8f9e6fde",
+  "PinnedBase": "2ae572dab008754d2d8fdf34e5eb22df165edc65",
+  "PreservedPinnedMicrosecondsUntil": true,
+  "IndependentMillisecondsForUnchanged": true,
+  "Records": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "80F663BE98E630B3123E8B5B378B1F2ABBCE920A9F21642B77FB754F73AB6F86",
+      "AfterSha256": "A9CE6C11CEC0F07AE398146726F05D32EB97FC9D1761648755BB8381EBDCC7ED",
+      "ChangedBytes": 1379
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "05901732727052E9BB39AD17D16DE321D5DDB848B172C922AC27B6D2EFC3982A",
+      "AfterSha256": "F1603B89A5C17201CFF2D303B47AF601BC88FCC729C731238428563F5573DA17",
+      "ChangedBytes": 1379
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "310BFCE0AE51D284CF15180B59E9D014C8CF3A12DF2472E65913439C1AAAE102",
+      "AfterSha256": "69772B066C1F3639ED0BA11E5803BA58589318EC7AF811ACD0B2674FDDA1DA44",
+      "ChangedBytes": 275
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "5B55EA2005AB587FCFEC3B31E0097153F15EC77EA1E6687DBE567820B8FEF570",
+      "AfterSha256": "CC3246724BCADBF53728A366EE22D2710370AE629816F55725F5A0855E779A17",
+      "ChangedBytes": 275
+    }
+  ],
+  "Sources": [
+    {
+      "Path": "include/xrt/net_file.h",
+      "Sha256": "6AB5C137CAF4AAB6FDF2CBF0D621DC2F73C3E3A36E5634D481E2C3498BA59F00"
+    },
+    {
+      "Path": "src/network/file.c",
+      "Sha256": "4FC068D79CE656B9214EBDB150EEC6E64AA9669F474EA933D46B7EA6A6C02F4D"
+    },
+    {
+      "Path": "src/network/port_iocp.c",
+      "Sha256": "F6C05A9A2F029944E58EAB2C15C642C6B02E2B8C835B21CB8DCC7AFC914A6AB4"
+    }
+  ]
+}
