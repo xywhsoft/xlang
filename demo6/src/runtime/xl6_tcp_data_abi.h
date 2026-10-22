@@ -6,6 +6,7 @@ XL6_TEXT_API int64_t xl6TcpStreamSendVectorTextV1(void*,const xvalue*,int64_t);
 XL6_TEXT_API int64_t xl6TcpStreamSendVectorBytesV1(void*,const xvalue*,int64_t);
 XL6_TEXT_API int64_t xl6TcpStreamSendVectorBufferV1(XL6_NativeClassArrayContextV1,void*,const xvalue*,int64_t);
 XL6_TEXT_API int64_t xl6TcpStreamSendNetBufferV1(void*,void*,int64_t);
+XL6_TEXT_API int64_t xl6TcpStreamSendChainMoveV1(void*,void*);
 XL6_TEXT_API int64_t xl6TcpStreamSendFileV1(void*,void*,uint64_t,int64_t);
 #define XL6_TCP_RECEIVE_INTO_API(Name) \
 XL6_TEXT_API int64_t xl6TcpStreamRecvInto##Name##V1(void*,void*,int64_t,int64_t); \

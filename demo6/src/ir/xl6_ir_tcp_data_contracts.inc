@@ -1,6 +1,7 @@
 #define TD_STREAM "xl6TcpStreamDestroyV1"
 #define TD_ERROR .errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE
 {"xl6TcpStreamSendNetBufferV1",T,I,3,{V,V,I},.parameterOwners={TD_STREAM,"xl6NetBufferDestroyV1"},.resultEnum=&xl6IrNetStatusEnumContract,.nonblocking=1,TD_ERROR},
+{"xl6TcpStreamSendChainMoveV1",T,I,2,{V,V},.parameterOwners={TD_STREAM,"xl6NetBufferDestroyV1"},.resultEnum=&xl6IrNetStatusEnumContract,.nonblocking=1,TD_ERROR},
 {"xl6TcpStreamSendFileV1",T,I,4,{V,V,U,I},.parameterOwners={TD_STREAM,"xl6_xrt_fs_file_destroy"},.resultEnum=&xl6IrNetStatusEnumContract,TD_ERROR},
 #define TD_INTO(Name,Owner) \
 {"xl6TcpStreamRecvInto" #Name "V1",T,I,4,{V,V,I,I},.parameterOwners={TD_STREAM,Owner},TD_ERROR}, \

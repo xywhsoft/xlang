@@ -8,6 +8,7 @@ XL6_TEXT_API int64_t xl6NetBufferLimitV1(const void*);
 XL6_TEXT_API void xl6NetBufferClearV1(void*);
 XL6_TEXT_API void xl6NetBufferCompactV1(void*,int64_t);
 XL6_TEXT_API void xl6NetBufferAppendMoveV1(void*,void*);
+XL6_TEXT_API void xl6NetBufferAppendRefV1(void*,void*,int64_t,int64_t);
 XL6_TEXT_API int64_t xl6NetBufferConsumeV1(void*,int64_t);
 XL6_TEXT_API int64_t xl6NetBufferFindV1(void*,int64_t,int64_t);
 XL6_TEXT_API xvalue* xl6NetBufferPeekV1(void*,int64_t,int64_t);

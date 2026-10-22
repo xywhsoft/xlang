@@ -7,6 +7,7 @@ const char* xl6StdlibTcpVectorMembersSource=
     "    extern \"xl6TcpStreamRecvInto" #Name "AsyncV1\" @nonblocking func recvIntoAsync(" #Type " output, int maxBytes = 65536) as future<int>\n"
 const char* xl6StdlibTcpNetBufferMembersSource=
     "    extern \"xl6TcpStreamSendNetBufferV1\" @nonblocking func send(NetBuffer data, int size = -1) as NetStatus\n"
+    "    extern \"xl6TcpStreamSendChainMoveV1\" @nonblocking func sendMove(NetBuffer data) as NetStatus\n"
     TD_RECEIVE_MEMBERS(NetBuffer,NetBuffer);
 const char* xl6StdlibTcpLineMembersSource=TD_RECEIVE_MEMBERS(Line,NetLineFramer);
 const char* xl6StdlibTcpLengthMembersSource=TD_RECEIVE_MEMBERS(Length,NetLengthFramer);

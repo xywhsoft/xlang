@@ -82,4 +82,4 @@ void xl6NetBufferCompactV1(void* raw,int64_t size)
     bool ok=xl6NetBufferSelectRangeV1(b,0,size,&count)&&xrtNetBufPullup(&b->native,count,&span);
     xl6NetBufferLeaveV1(&g);if(!ok)xl6NetBufferFailedV1();
 }
-XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6NetBufferHandlePolicyV1Get,xl6NetBufferDestroyV1)
+XL6_DEFINE_NET_BUFFER_HANDLE_POLICY(xl6NetBufferHandlePolicyV1Get,xl6NetBufferDestroyV1,raw)

@@ -10275,6 +10275,14 @@ XRT_API bool xrtNetBufInit(xnetbuf* pBuffer, xnetbufpool* pPool);
 /* 释放全部块并取消尚未提交的写入预留。 */
 XRT_API void xrtNetBufClear(xnetbuf* pBuffer);
 
+/* Enumerate actual pool/immutable-payload owning edges of a standalone chain.
+ * Caller must exclude mutation and keep all visited owners stable (normally
+ * under ownership Freeze). No allocation, hold/release or release callback.
+ * Opaque borrowed/external refs and Stream-private views are not certified:
+ * return false instead of treating unknown ownership as a leaf. */
+XRT_API bool xrtNetBufOwnershipTrace(const xnetbuf* pBuffer,
+    xrtownershipvisitor pVisit, ptr pContext);
+
 
 
 /* 返回缓冲链总字节数。 */
@@ -18993,7 +19001,12 @@ XRT_API xnetresult xrtNetStreamSendTake(
 
 
 
-/* 在所属 Worker 上零复制接管缓冲链；失败时源缓冲保持不变。 */
+/* Any-thread bounded chain take, without copying payloads. Success empties
+ * the source; failure/AGAIN/CLOSED preserves its exact chain. The caller must
+ * serialize source-buffer access. Off-Worker sources may contain heap blocks
+ * or blocks from this Stream's Worker pool, not a foreign thread-affine pool.
+ * All fallible view preparation precedes
+ * acceptance; a pending write reservation is rejected. */
 XRT_API xnetresult xrtNetStreamSendBuffer(
 	xnetstream* pStream,
 	xnetbuf* pBuffer
@@ -27023,6 +27036,12 @@ XRT_API xnetproxyhandshake* xrtNetProxyHandshakeCreate(
 
 /* 销毁握手，并清零尚未发送的认证报文和内部目标信息。 */
 XRT_API void xrtNetProxyHandshakeDestroy(xnetproxyhandshake* pHandshake);
+
+/* Read-only owning edges of a standalone handshake: its retained immutable
+ * proxy and output-chain owners. Caller excludes all handshake mutations
+ * and stabilizes visited owners, normally under ownership Freeze. */
+XRT_API bool xrtNetProxyHandshakeOwnershipTrace(const xnetproxyhandshake* pHandshake,
+    xrtownershipvisitor pVisit, ptr pContext);
 
 
 
@@ -50046,6 +50065,7 @@ typedef struct __xrt_net_stream_buffer_item {
 struct __xrt_net_stream_buffer {
 	xnetstream* Stream;
 	xnetbuf Owned;
+	xnetbuf Views;
 	size_t Count;
 	size_t Remaining;
 	__xrt_net_stream_buffer_item Items[1];
@@ -78473,6 +78493,11 @@ bool __xrtNetBufOwnershipWalk(const xnetbuf* pBuffer, __xrt_net_block_trace pNat
 	return true;
 }
 
+XRT_API bool xrtNetBufOwnershipTrace(const xnetbuf* pBuffer,
+    xrtownershipvisitor pVisit, ptr pContext)
+{
+	return pVisit && __xrtNetBufOwnershipWalk(pBuffer, NULL, NULL, pVisit, pContext);
+}
 
 
 /* 追加文件描述符节点；节点参与缓冲顺序和消费，但不会暴露为内存 Span。 */
@@ -131206,6 +131231,7 @@ static void __xrtNetStreamControlRequest(
 );
 static void __xrtNetStreamEndSend(xnetstream* pStream);
 static void __xrtNetStreamFreeBytes(ptr pContext, cbytes pData, size_t iSize);
+static xnetstream* __xrtNetStreamDiscardBuffer(__xrt_net_stream_buffer* pBatch, size_t iSize);
 
 
 
@@ -133770,19 +133796,16 @@ static bool __xrtNetStreamAttachRefs(__xrt_net_stream_refs* pBatch)
 
 
 
-/* 为源缓冲建立只读发送视图，全部成功后一次转移原块链。 */
-static bool __xrtNetStreamAttachBuffer(
+/* Prepare all view headers while the caller still owns its exact chain.
+ * Off-Worker preparation MUST NOT touch the Worker-local block pool. */
+static bool __xrtNetStreamPrepareBuffer(
 	__xrt_net_stream_buffer* pBatch,
 	xnetbuf* pBuffer
 )
 {
-	xnetstream* pStream = pBatch->Stream;
-	xnetbuf Temporary;
 	xnetblock* pBlock;
-	xnetblock* pView;
-	size_t iItem = 0;
+	size_t iItem = 0, iTotal = 0;
 
-	(void)xrtNetBufInit(&Temporary, pStream->WriteBuffer.Pool);
 	pBlock = pBuffer->Head;
 	while ( pBlock != NULL ) {
 		cbytes pData = pBlock->Class == XRT_NET_BLOCK_REF ?
@@ -133790,8 +133813,10 @@ static bool __xrtNetStreamAttachBuffer(
 		size_t iSize;
 
 		if ( (pBlock->End <= pBlock->Begin) ||
+			(pBlock->Class >= XRT_NET_BLOCK_FILE) ||
+			(pBlock->Class == XRT_NET_BLOCK_REF ?
+				(!pBlock->External || pBlock->End > pBlock->ExternalSize) : pBlock->End > pBlock->Capacity) ||
 			(iItem >= pBatch->Remaining) ) {
-			xrtNetBufClear(&Temporary);
 			__xrtNetStreamSetError(
 				XERR_INTERNAL,
 				XNET_ERROR_BUFFER_STATE,
@@ -133800,21 +133825,31 @@ static bool __xrtNetStreamAttachBuffer(
 			);
 			return false;
 		}
+		if (pBlock->Pool && !xrtNetWorkerIsCurrent(pBatch->Stream->Worker) &&
+			pBlock->Pool != pBatch->Stream->WriteBuffer.Pool) {
+			__xrtNetStreamSetError(XERR_STATE, XNET_ERROR_BUFFER_STATE,
+				"send-stream-buffer", "off-worker take cannot transfer a foreign thread-affine pool");
+			return false;
+		}
 		iSize = pBlock->End - pBlock->Begin;
+		if (iSize > pBuffer->Size - iTotal) {
+			__xrtNetStreamSetError(XERR_INTERNAL, XNET_ERROR_BUFFER_STATE,
+				"send-stream-buffer", "network buffer byte count is inconsistent");
+			return false;
+		}
 		if ( !xrtNetBufAppendBorrow(
-				&Temporary,
+				&pBatch->Views,
 				pData + pBlock->Begin,
 				iSize
 			) ) {
-			xrtNetBufClear(&Temporary);
 			return false;
 		}
 		pBatch->Items[iItem].Batch = pBatch;
 		iItem++;
+		iTotal += iSize;
 		pBlock = pBlock->Next;
 	}
-	if ( iItem != pBatch->Remaining ) {
-		xrtNetBufClear(&Temporary);
+	if ( iItem != pBatch->Remaining || iTotal != pBuffer->Size ) {
 		__xrtNetStreamSetError(
 			XERR_INTERNAL,
 			XNET_ERROR_BUFFER_STATE,
@@ -133823,17 +133858,45 @@ static bool __xrtNetStreamAttachBuffer(
 		);
 		return false;
 	}
-	pView = Temporary.Head;
-	for ( size_t i = 0; i < iItem; i++ ) {
+	return true;
+}
+/* No allocation, user callback or publication until the actual source chain
+ * and every initialized view belong to the same private batch. */
+static void __xrtNetStreamTakeBuffer(__xrt_net_stream_buffer* pBatch, xnetbuf* pBuffer)
+{
+	xnetblock* pView = pBatch->Views.Head;
+	for ( size_t i = 0; i < pBatch->Count; i++ ) {
 		pView->Release = __xrtNetStreamBufferRelease;
 		pView->ReleaseContext = &pBatch->Items[i];
 		pView->Flags = XRT_NET_BLOCK_OWN_TCP_BUFFER;
 		pView = pView->Next;
 	}
 	__xrtNetBufMoveTrusted(&pBatch->Owned, pBuffer);
-	__xrtNetBufMoveTrusted(&pStream->WriteBuffer, &Temporary);
+}
+static bool __xrtNetStreamAttachBuffer(__xrt_net_stream_buffer* pBatch)
+{
+	xnetstream* pStream = pBatch->Stream;
+	if (pStream->AbortRequested || xrtNetStreamState(pStream) == XNET_STREAM_CLOSED) return false;
+	__xrtNetBufMoveTrusted(&pStream->WriteBuffer, &pBatch->Views);
 	__xrtNetStreamSendQueued(pStream);
 	return true;
+}
+
+/* The command owns a complete batch, never a borrowed source-buffer pointer. */
+static void __xrtNetStreamQueueBuffer(xnetworker* pWorker, ptr pData)
+{
+	__xrt_net_stream_buffer* pBatch = pData;
+	xnetstream* pStream = pBatch->Stream;
+	(void)pWorker;
+	__xrtNetStreamActiveEnter(pStream);
+	uint32 previous = xrtAtomic32FetchSub(&pStream->SendCommands, 1, XMEMORY_ACQ_REL);
+	if (previous == 1) __xrtNetStreamWakeLifecycle(pStream);
+	if (__xrtNetStreamAttachBuffer(pBatch)) { __xrtNetStreamActiveLeave(pStream); return; }
+	/* Attachment is allocation-free. Only terminal Abort/Close can reject it. */
+	pStream = __xrtNetStreamDiscardBuffer(pBatch, pBatch->Owned.Size);
+	if (xrtNetStreamState(pStream) == XNET_STREAM_CLOSING) __xrtNetStreamTryFinish(pStream);
+	__xrtNetStreamActiveLeave(pStream);
+	xrtNetStreamDestroy(pStream);
 }
 
 
@@ -133859,7 +133922,10 @@ static void __xrtNetStreamQueueSend(
 	if ( iCommands == 1 ) {
 		__xrtNetStreamWakeLifecycle(pStream);
 	}
+	if (xrtNetStreamState(pStream) == XNET_STREAM_CLOSED) { __xrtNetStreamDiscardSend(pSend, true); return; }
+	__xrtNetStreamActiveEnter(pStream);
 	if ( __xrtNetStreamAttachSend(pSend) ) {
+		__xrtNetStreamActiveLeave(pStream);
 		return;
 	}
 	bClosed = pStream->AbortRequested ||
@@ -133873,6 +133939,7 @@ static void __xrtNetStreamQueueSend(
 	} else if ( xrtNetStreamState(pStream) == XNET_STREAM_CLOSING ) {
 		__xrtNetStreamTryFinish(pStream);
 	}
+	__xrtNetStreamActiveLeave(pStream);
 }
 
 
@@ -133898,7 +133965,10 @@ static void __xrtNetStreamQueueRefs(
 	if ( iCommands == 1 ) {
 		__xrtNetStreamWakeLifecycle(pStream);
 	}
+	if (xrtNetStreamState(pStream) == XNET_STREAM_CLOSED) { __xrtNetStreamDiscardRefs(pBatch, true); return; }
+	__xrtNetStreamActiveEnter(pStream);
 	if ( __xrtNetStreamAttachRefs(pBatch) ) {
+		__xrtNetStreamActiveLeave(pStream);
 		return;
 	}
 	bClosed = pStream->AbortRequested ||
@@ -133912,6 +133982,7 @@ static void __xrtNetStreamQueueRefs(
 	} else if ( xrtNetStreamState(pStream) == XNET_STREAM_CLOSING ) {
 		__xrtNetStreamTryFinish(pStream);
 	}
+	__xrtNetStreamActiveLeave(pStream);
 }
 
 
@@ -133940,6 +134011,12 @@ static void __xrtNetStreamQueueFile(
 	if ( iCommands == 1 ) {
 		__xrtNetStreamWakeLifecycle(pStream);
 	}
+	if (xrtNetStreamState(pStream) == XNET_STREAM_CLOSED) {
+		__xrtNetStreamUnreserveSend(pStream, pFile->Size);
+		__xrtNetStreamFileRelease(pFile, NULL, 0);
+		return;
+	}
+	__xrtNetStreamActiveEnter(pStream);
 	if ( !pStream->AbortRequested &&
 		(xrtNetStreamState(pStream) != XNET_STREAM_CLOSED) ) {
 		bAttached = __xrtNetBufAppendFile(
@@ -133952,6 +134029,7 @@ static void __xrtNetStreamQueueFile(
 	}
 	if ( bAttached ) {
 		__xrtNetStreamSendQueued(pStream);
+		__xrtNetStreamActiveLeave(pStream);
 		return;
 	}
 	bClosed = pStream->AbortRequested ||
@@ -133966,6 +134044,7 @@ static void __xrtNetStreamQueueFile(
 	} else if ( xrtNetStreamState(pStream) == XNET_STREAM_CLOSING ) {
 		__xrtNetStreamTryFinish(pStream);
 	}
+	__xrtNetStreamActiveLeave(pStream);
 }
 
 
@@ -134194,20 +134273,29 @@ static __xrt_net_stream_buffer* __xrtNetStreamCreateBuffer(
 	pBatch->Count = iCount;
 	pBatch->Remaining = iCount;
 	(void)xrtNetBufInit(&pBatch->Owned, pBuffer->Pool);
+	(void)xrtNetBufInit(&pBatch->Views,
+		xrtNetWorkerIsCurrent(pStream->Worker) ? pStream->WriteBuffer.Pool : NULL);
 	*pResult = XNET_RESULT_OK;
 	return pBatch;
 }
 
 
 
-/* 回收尚未接管源缓冲的发送批次。 */
-static void __xrtNetStreamDiscardBuffer(
+/* Discard unpublished views without running their batch finalizers. May own
+ * payloads (accepted but aborted) or none (preparation/rolled-back failure).
+ * Transfers the batch's real Stream owner to the caller for final Drop. */
+static xnetstream* __xrtNetStreamDiscardBuffer(
 	__xrt_net_stream_buffer* pBatch,
 	size_t iSize
 )
 {
 	xnetstream* pStream = pBatch->Stream;
 
+	for (xnetblock* pView = pBatch->Views.Head; pView; pView = pView->Next) {
+		pView->Release = NULL; pView->ReleaseContext = NULL; pView->Flags = 0;
+	}
+	xrtNetBufClear(&pBatch->Views);
+	xrtNetBufClear(&pBatch->Owned);
 	__xrtNetStreamUnreserveSend(pStream, iSize);
 	__xrtNetWorkerNodeRecycle(
 		pStream->Worker,
@@ -134215,7 +134303,7 @@ static void __xrtNetStreamDiscardBuffer(
 		offsetof(__xrt_net_stream_buffer, Items) +
 			(pBatch->Count * sizeof(__xrt_net_stream_buffer_item))
 	);
-	xrtNetStreamDestroy(pStream);
+	return pStream;
 }
 
 
@@ -134653,7 +134741,7 @@ XRT_API xnetresult xrtNetStreamSendBytesVec(xnetstream* pStream,
 
 
 
-/* 在 Stream Worker 上零复制接管完整缓冲链。 */
+/* Prepare first, then atomically transfer and publish a complete chain. */
 XRT_API xnetresult xrtNetStreamSendBuffer(
 	xnetstream* pStream,
 	xnetbuf* pBuffer
@@ -134667,17 +134755,9 @@ XRT_API xnetresult xrtNetStreamSendBuffer(
 		__xrtErrorSetInvalidArgument();
 		return XNET_RESULT_ERROR;
 	}
-	if ( !xrtNetWorkerIsCurrent(pStream->Worker) ) {
-		__xrtNetStreamSetError(
-			XERR_STATE,
-			XNET_ERROR_STREAM_WRITE,
-			"send-stream-buffer",
-			"network buffer send requires the stream worker"
-		);
-		return XNET_RESULT_ERROR;
-	}
+	if (!__xrtNetStreamBeginSend(pStream)) return XNET_RESULT_CLOSED;
 	if ( (pBuffer == &pStream->WriteBuffer) ||
-		(pBuffer->Reserved != NULL) ) {
+		(pBuffer->Reserved != NULL) || pBuffer->ReservedNew ) {
 		__xrtNetStreamSetError(
 			XERR_STATE,
 			XNET_ERROR_BUFFER_STATE,
@@ -134686,10 +134766,8 @@ XRT_API xnetresult xrtNetStreamSendBuffer(
 				"stream write buffer cannot send itself" :
 				"network buffer has an active write reservation"
 		);
+		__xrtNetStreamEndSend(pStream);
 		return XNET_RESULT_ERROR;
-	}
-	if ( !__xrtNetStreamBeginSend(pStream) ) {
-		return XNET_RESULT_CLOSED;
 	}
 	iSize = pBuffer->Size;
 	if ( iSize == 0 ) {
@@ -134702,9 +134780,27 @@ XRT_API xnetresult xrtNetStreamSendBuffer(
 		return Result;
 	}
 	__xrtNetStreamActiveEnter(pStream);
-	if ( !__xrtNetStreamAttachBuffer(pBatch, pBuffer) ) {
-		__xrtNetStreamDiscardBuffer(pBatch, iSize);
+	if ( !__xrtNetStreamPrepareBuffer(pBatch, pBuffer) ) {
+		xrtNetStreamDestroy(__xrtNetStreamDiscardBuffer(pBatch, iSize));
 		Result = XNET_RESULT_ERROR;
+	} else {
+		__xrtNetStreamTakeBuffer(pBatch, pBuffer);
+		if (xrtNetWorkerIsCurrent(pStream->Worker)) {
+			if (!__xrtNetStreamAttachBuffer(pBatch)) {
+				__xrtNetBufMoveTrusted(pBuffer, &pBatch->Owned);
+				xrtNetStreamDestroy(__xrtNetStreamDiscardBuffer(pBatch, iSize));
+				Result = XNET_RESULT_CLOSED;
+			}
+		} else {
+			(void)xrtAtomic32FetchAdd(&pStream->SendCommands, 1, XMEMORY_ACQ_REL);
+			if (!__xrtNetEnginePostRuntime(pStream->Engine, xrtNetWorkerIndex(pStream->Worker),
+				__xrtNetStreamQueueBuffer, pBatch)) {
+				(void)xrtAtomic32FetchSub(&pStream->SendCommands, 1, XMEMORY_ACQ_REL);
+				__xrtNetBufMoveTrusted(pBuffer, &pBatch->Owned);
+				xrtNetStreamDestroy(__xrtNetStreamDiscardBuffer(pBatch, iSize));
+				Result = XNET_RESULT_ERROR;
+			}
+		}
 	}
 	__xrtNetStreamEndSend(pStream);
 	__xrtNetStreamActiveLeave(pStream);
@@ -136728,7 +136824,9 @@ static bool __xrtNetStreamBlockTrace(const xnetblock* pBlock, const void* pOwner
 		if (pBlock->Release != __xrtNetStreamBufferRelease || !pBlock->ReleaseContext) return false;
 		const __xrt_net_stream_buffer_item* pItem = pBlock->ReleaseContext;
 		const __xrt_net_stream_buffer* pBatch = pItem->Batch;
-		if (!pBatch || pBatch->Stream != pStream || !pBatch->Remaining || pBatch->Remaining > pBatch->Count) return false;
+		if (!pBatch || pBatch->Stream != pStream || !pBatch->Remaining || pBatch->Remaining > pBatch->Count ||
+			pBatch->Views.Head || pBatch->Views.Tail || pBatch->Views.Size || pBatch->Views.Blocks ||
+			pBatch->Views.Reserved || pBatch->Views.ReservedNew) return false;
 		uintptr_t item = (uintptr_t)pItem, first = (uintptr_t)pBatch->Items;
 		if (item < first || (item - first) % sizeof(*pItem) || (item - first) / sizeof(*pItem) >= pBatch->Count) return false;
 		size_t index = (item - first) / sizeof(*pItem), begin = pBatch->Count - pBatch->Remaining;
@@ -256420,6 +256518,14 @@ XRT_API void xrtNetProxyHandshakeDestroy(xnetproxyhandshake* pHandshake)
 }
 
 
+
+XRT_API bool xrtNetProxyHandshakeOwnershipTrace(const xnetproxyhandshake* pHandshake,
+    xrtownershipvisitor pVisit, ptr pContext)
+{
+	return pHandshake && pHandshake->Proxy && pVisit &&
+		__xrtNetBufOwnershipWalk(&pHandshake->Output, NULL, NULL, pVisit, pContext) &&
+		pVisit(xrtNetProxyOwnership(pHandshake->Proxy), pContext);
+}
 
 /* 返回无需锁定的当前传输状态。 */
 XRT_API xnetproxyhandshakestate xrtNetProxyHandshakeState(

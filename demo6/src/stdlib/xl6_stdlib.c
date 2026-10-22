@@ -1821,6 +1821,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetInterfaceClass = xl6StdlibNeedsNetInterfaceClass(root, used);
     needsNetBytesClass = xl6StdlibNodeUsesTypeName(root, "NetBytes") || xl6StdlibNodeUsesMemberName(root,"sendRef") ||
         xl6StdlibNodeUsesMemberName(root,"sendRefs");
+    needsNetBytesClass=needsNetBytesClass||xl6StdlibNodeUsesMemberName(root,"appendRef");
     needsNetBytesClass = needsNetBytesClass||xl6StdlibNodeUsesMemberName(root,"recvOwned")||
         xl6StdlibNodeUsesMemberName(root,"recvOwnedCancel")||xl6StdlibNodeUsesMemberName(root,"recvOwnedUntil")||
         xl6StdlibNodeUsesMemberName(root,"recvOwnedUntilCancel")||xl6StdlibNodeUsesMemberName(root,"recvOwnedAsync")||
@@ -2067,7 +2068,11 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder,xl6StdlibNetResolverSource);
     }
     if(needsNetDefaultResolver)xl6StdlibBuilderAppend(&builder,xl6StdlibNetDefaultResolverSource);
-    if(needsNetBuffer)xl6StdlibBuilderAppend(&builder,xl6StdlibNetBufferSource);
+    if(needsNetBuffer){
+        xl6StdlibBuilderAppend(&builder,xl6StdlibNetBufferSource);
+        if(needsNetBytesClass)xl6StdlibBuilderAppend(&builder,xl6StdlibNetBufferRefMembersSource);
+        xl6StdlibBuilderAppend(&builder,"end\n");
+    }
     if(needsNetFrameResult)xl6StdlibBuilderAppend(&builder,xl6StdlibNetFrameResultSource);
     if(needsNetLineFramer)xl6StdlibBuilderAppend(&builder,xl6StdlibNetLineFramerSource);
     if(needsNetLengthFramer)xl6StdlibBuilderAppend(&builder,xl6StdlibNetLengthFramerSource);

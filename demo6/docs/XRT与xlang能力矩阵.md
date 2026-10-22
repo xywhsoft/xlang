@@ -4,11 +4,11 @@
 
 ## 契约结论
 
-- XRT 核心公共函数：3319。
-- xruntime 产品公共函数：3784，其中扩展自有 465。
-- 低层能力：3784 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
+- XRT 核心公共函数：3321。
+- xruntime 产品公共函数：3786，其中扩展自有 465。
+- 低层能力：3786 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：2191 个函数。其余 1593 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：2195 个函数。其余 1591 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -64,7 +64,7 @@
 | xrt | `include/xrt/memory.h` | 13 | 5 | 8 |
 | xrt | `include/xrt/memory_debug.h` | 11 | 0 | 11 |
 | xrt | `include/xrt/memory_stats.h` | 4 | 0 | 4 |
-| xrt | `include/xrt/net.h` | 210 | 126 | 84 |
+| xrt | `include/xrt/net.h` | 211 | 128 | 83 |
 | xrt | `include/xrt/net_file.h` | 4 | 0 | 4 |
 | xrt | `include/xrt/net_frame.h` | 9 | 7 | 2 |
 | xrt | `include/xrt/net_interface.h` | 12 | 9 | 3 |
@@ -74,7 +74,7 @@
 | xrt | `include/xrt/pem.h` | 7 | 6 | 1 |
 | xrt | `include/xrt/pool.h` | 58 | 0 | 58 |
 | xrt | `include/xrt/process.h` | 40 | 29 | 11 |
-| xrt | `include/xrt/proxy.h` | 39 | 30 | 9 |
+| xrt | `include/xrt/proxy.h` | 40 | 31 | 9 |
 | xrt | `include/xrt/queue.h` | 46 | 0 | 46 |
 | xrt | `include/xrt/random.h` | 39 | 25 | 14 |
 | xrt | `include/xrt/regex.h` | 54 | 38 | 16 |
@@ -87,7 +87,7 @@
 | xrt | `include/xrt/sync.h` | 48 | 31 | 17 |
 | xrt | `include/xrt/task.h` | 56 | 41 | 15 |
 | xrt | `include/xrt/task_net.h` | 6 | 0 | 6 |
-| xrt | `include/xrt/tcp.h` | 100 | 72 | 28 |
+| xrt | `include/xrt/tcp.h` | 100 | 73 | 27 |
 | xrt | `include/xrt/tcp_server.h` | 26 | 23 | 3 |
 | xrt | `include/xrt/temp.h` | 17 | 1 | 16 |
 | xrt | `include/xrt/template.h` | 32 | 25 | 7 |

@@ -1,0 +1,39 @@
+func receiveChainExact(TcpStream stream, int count) as bytes
+    bytes result = b""
+    while result.length < count
+        bytes part = stream.recv(count - result.length, 5000)
+        assert part.length > 0
+        result = result + part
+    end
+    return result
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto sender = TcpStream(engine, listener.localAddress(), TcpStreamOptions().withWriteWatermarks(uint64(4), uint64(2), uint64(8)))
+auto receiver = listener.accept(5000)
+assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+auto oversized = NetBuffer()
+oversized.append(b"123456789")
+assert sender.sendMove(oversized) == NetStatus.again
+assert oversized.peek() == b"123456789"
+auto input = NetBytes(b"XbcY")
+auto source = NetBuffer()
+source.append(b"Xa\0")
+assert source.consume(1) == 1
+source.appendRef(input, 2, 1)
+assert source.length == 4 and source.spanCount == 2
+auto alias = source
+assert sender.sendMove(source) == NetStatus.ok
+assert source.length == 0 and alias.length == 0
+source.append(b"reuse")
+input = NetBytes(b"replacement")
+assert receiveChainExact(receiver, 4) == b"a\0bc"
+auto empty = NetBuffer()
+assert sender.sendMove(empty) == NetStatus.ok and empty.length == 0
+sender.close()
+receiver.close()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("TCP chain move: mixed owned/ref blocks, native prefixes, whole-chain take, backpressure preserves source, empty and reuse")

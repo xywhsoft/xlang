@@ -1,0 +1,23 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto sender = TcpStream(engine, listener.localAddress())
+auto receiver = listener.accept(5000)
+assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+auto source = NetBuffer()
+source.append(b"a\0b")
+auto alias = source
+assert sender.sendMove(source) == NetStatus.ok
+assert source.length == 0 and alias.length == 0
+source.append(b"reuse")
+bytes result = b""
+while result.length < 3
+    result = result + receiver.recv(3 - result.length, 5000)
+end
+assert result == b"a\0b"
+sender.close()
+receiver.close()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("TCP chain move: plain owned chain, aliases see empty and source reusable; no NetBytes or Future decoder")

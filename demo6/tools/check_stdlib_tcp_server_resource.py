@@ -13,7 +13,7 @@ def main():
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--compiler',action='append',required=True)
     parser.add_argument('--sanitize',action='store_true')
-    parser.add_argument('--profile',choices=('server','owned-sends','owned-receives','owned-ref-batches'),default='server')
+    parser.add_argument('--profile',choices=('server','owned-sends','owned-receives','owned-ref-batches','chain-move'),default='server')
     args=parser.parse_args();root=Path(__file__).resolve().parents[1];out=args.out.resolve()
     assert not out.exists() and (not args.sanitize or os.name!='nt')
     compilers=[Path(shutil.which(cc) or cc).resolve() for cc in args.compiler]
@@ -21,7 +21,7 @@ def main():
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     files={Path(__file__).resolve(),*compilers,*[root/('test/support/'+name+'.c')
         for name in ('net_engine_plan','executor_catalog_plan','tcp_server_execution_resource','tcp_server_poll_runtime',
-            'net_bytes_runtime','tcp_send_owned_runtime','tcp_recv_owned_runtime','tcp_send_refs_runtime')]}
+            'net_bytes_runtime','tcp_send_owned_runtime','tcp_recv_owned_runtime','tcp_send_refs_runtime','tcp_chain_move_runtime','net_buffer_ref_graph')]}
     for area in ('src','lib/xrt','lib/xruntime','release/include'):
         files.update(path for path in (root/area).rglob('*') if path.is_file() and path.suffix in ('.c','.h','.inc'))
     inputs={str(path):sha(path) for path in sorted(files)};out.mkdir(parents=True)
@@ -68,12 +68,13 @@ def main():
                 choices=('server-resource','server-language','server-options') if args.profile=='server' else ('net-bytes','net-bytes-buffer','tcp-owned')
                 if args.profile=='owned-receives':choices=('tcp-recv-owned',)
                 if args.profile=='owned-ref-batches':choices=('tcp-ref-batches',)
+                if args.profile=='chain-move':choices=('net-bytes-buffer','net-buffer-ref-graph','tcp-chain-move')
                 for choice in choices:
                     sources=run(choice+'.sources',[plan,'--sources',choice]).splitlines()
                     modules=run(choice+'.modules',[plan,'--modules',choice])
                     domains=run(choice+'.domains',[plan,'--domains',choice])
                     assert len(sources)==len(set(sources)) and not any('resolver' in source or 'task_pool' in source for source in sources)
-                    if choice in ('server-resource','tcp-owned','tcp-recv-owned','tcp-ref-batches'):
+                    if choice in ('server-resource','tcp-owned','tcp-recv-owned','tcp-ref-batches','tcp-chain-move'):
                         assert 'xl6OwnershipDomainExecutionTcpServerV1Get(),\n' in domains and 'xl6OwnershipDomainExecutionTcpV1Get(),\n' in domains
                         assert 'xl6OwnershipDomainNetTcpNativeV1Get(),\n' in domains
                         assert 'XRT_MODULE_NET_TCP_FUTURE\n' in modules
@@ -86,10 +87,15 @@ def main():
                         assert all(module not in modules for module in ('XRT_MODULE_NET_ENGINE\n','XRT_MODULE_NET_TCP\n','XRT_MODULE_FUTURE\n'))
                     if choice=='net-bytes-buffer':
                         header=out/'net-bytes-modules.h';header.write_text(modules,encoding='utf8');product(header)
+                    if choice=='net-buffer-ref-graph':
+                        assert not any(module in modules for module in ('XRT_MODULE_NET_ENGINE\n','XRT_MODULE_NET_TCP\n','XRT_MODULE_FUTURE\n'))
+                        for kind,text in (('modules',modules),('domains',domains)):
+                            header=out/('buffer-ref-'+kind+'.h');header.write_text(text,encoding='utf8');product(header)
                     if choice=='server-options':assert 'xl6OwnershipDomainExecutionTcpServerV1Get(),\n' not in domains
                     report['Plans'][choice]=dict(Sources=sources,Modules=modules,Domains=domains);save()
         selected='server-resource' if args.profile=='server' else 'tcp-owned' if args.profile=='owned-sends' else 'tcp-recv-owned'
         if args.profile=='owned-ref-batches':selected='tcp-ref-batches'
+        if args.profile=='chain-move':selected='tcp-chain-move'
         sources=report['Plans'][selected]['Sources']
         for index,cc in enumerate(compilers):
             modes=[('O0',['-O0']),('O2',['-O2'])]
@@ -98,14 +104,22 @@ def main():
             for opt,mode in modes:
                 name=f'{index}.{opt}.resource';binary=out/(name+ext)
                 try:
-                    if args.profile in ('owned-receives','owned-ref-batches'):
+                    if args.profile=='chain-move':
+                        graph_name=f'{index}.{opt}.buffer-graph';graph_binary=out/(graph_name+ext)
+                        run(graph_name+'.build',flags(cc,mode)+[root/'test/support/net_buffer_ref_graph.c',
+                            *[root/source for source in report['Plans']['net-buffer-ref-graph']['Sources']],*libs,'-o',graph_binary]);product(graph_binary)
+                        text=run(graph_name+'.run',[graph_binary],opt=='instrumented')
+                        assert '4 exact owners' in text and 'balanced' in text
+                    if args.profile in ('owned-receives','owned-ref-batches','chain-move'):
                         fixture='tcp_recv_owned_runtime' if args.profile=='owned-receives' else 'tcp_send_refs_runtime'
+                        if args.profile=='chain-move':fixture='tcp_chain_move_runtime'
                         run(name+'.build',flags(cc,mode)+[root/('test/support/'+fixture+'.c'),
                             *[root/source for source in sources],*libs,'-o',binary]);product(binary)
                         for backend,extra in (('select',[]),('native',['native'])):
                             text=run(name+'.'+backend,[binary,*extra],opt=='instrumented')
                             if args.profile=='owned-receives':assert 'TCP owned receives: budgets=24' in text and 'complete graph' in text and 'balanced' in text
-                            else:assert 'TCP owned ref batches: budgets=16 large-budgets=4' in text and 'exact class-array graph' in text and 'balanced' in text
+                            elif args.profile=='owned-ref-batches':assert 'TCP owned ref batches: budgets=16 large-budgets=4' in text and 'exact class-array graph' in text and 'balanced' in text
+                            else:assert 'TCP managed chain take: budgets=12' in text and 'real buffer/bytes graph' in text and 'balanced' in text
                         continue
                     if args.profile=='owned-sends':
                         pure=out/(f'{index}.{opt}.net-bytes'+ext)
@@ -160,15 +174,38 @@ def main():
             needle='XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6NetBytesHandlePolicyV1Get,xl6NetBytesDestroyV1,trace)';assert body.count(needle)==1
             controls.append(('bytes-false-leaf',payload,body.replace(needle,
                 'XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6NetBytesHandlePolicyV1Get,xl6NetBytesDestroyV1)')))
+        if args.profile=='chain-move':
+            domain=root/'src/runtime/xl6_ownership_domain_net_buffer.c';body=domain.read_text(encoding='utf8')
+            needle='XL6_OWNERSHIP_DOMAIN_POLICY(NetBuffer,Handle,xl6NetBufferHandlePolicyV1Get)';assert body.count(needle)==1
+            controls.append(('missing-net-buffer-policy',domain,body.replace(needle,
+                'static bool empty(XL6_OwnershipCatalog* c){(void)c;return true;}\nXL6_OWNERSHIP_DOMAIN(NetBuffer,empty,NULL)')))
+            for name,source,needle,replacement in (
+                ('buffer-false-leaf','xl6_net_buffer.c',
+                 'XL6_DEFINE_NET_BUFFER_HANDLE_POLICY(xl6NetBufferHandlePolicyV1Get,xl6NetBufferDestroyV1,raw)',
+                 'XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6NetBufferHandlePolicyV1Get,xl6NetBufferDestroyV1)'),
+                ('line-false-leaf','xl6_net_frame_line.c',
+                 'XL6_DEFINE_NET_BUFFER_HANDLE_POLICY(xl6NetLineFramerHandlePolicyV1Get,xl6NetLineFramerDestroyV1,&((Line*)raw)->input)',
+                 'XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6NetLineFramerHandlePolicyV1Get,xl6NetLineFramerDestroyV1)'),
+                ('length-false-leaf','xl6_net_frame_length.c',
+                 'XL6_DEFINE_NET_BUFFER_HANDLE_POLICY(xl6NetLengthFramerHandlePolicyV1Get,xl6NetLengthFramerDestroyV1,&((Length*)raw)->input)',
+                 'XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6NetLengthFramerHandlePolicyV1Get,xl6NetLengthFramerDestroyV1)'),
+                ('handshake-false-leaf','xl6_net_proxy_handshake.c',
+                 'XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6NetProxyHandshakeHandlePolicyV1Get,xl6NetProxyHandshakeDestroyV1,trace)',
+                 'XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6NetProxyHandshakeHandlePolicyV1Get,xl6NetProxyHandshakeDestroyV1)')):
+                source=root/'src/runtime'/source;body=source.read_text(encoding='utf8');assert body.count(needle)==1
+                controls.append((name,source,body.replace(needle,replacement)))
         for name,original,body in controls:
             try:
                 mutant=out/(name+'.c');mutant.write_text(body,encoding='utf8');product(mutant)
-                pure_control=args.profile=='owned-sends' and name in ('missing-bytes-policy','bytes-false-leaf')
-                selected_sources=report['Plans']['net-bytes-buffer']['Sources'] if pure_control else sources
+                pure_control=args.profile in ('owned-sends','chain-move') and name in ('missing-bytes-policy','bytes-false-leaf')
+                buffer_control=args.profile=='chain-move' and name in ('buffer-false-leaf','line-false-leaf','length-false-leaf','handshake-false-leaf')
+                selected_sources=report['Plans']['net-bytes-buffer']['Sources'] if pure_control else report['Plans']['net-buffer-ref-graph']['Sources'] if buffer_control else sources
                 selected=[mutant if root/source==original else root/source for source in selected_sources]
                 fixture='net_bytes_runtime' if pure_control else 'tcp_send_owned_runtime' if args.profile=='owned-sends' else 'tcp_server_execution_resource'
                 if args.profile=='owned-receives':fixture='tcp_recv_owned_runtime'
                 if args.profile=='owned-ref-batches':fixture='tcp_send_refs_runtime'
+                if args.profile=='chain-move' and not pure_control:fixture='tcp_chain_move_runtime'
+                if buffer_control:fixture='net_buffer_ref_graph'
                 binary=out/(name+ext)
                 run(name+'.build',flags(gcc,['-O0'])+['-Wno-unused-function','-I'+str(root/'src/runtime'),
                     root/('test/support/'+fixture+'.c'),*selected,*libs,'-o',binary]);product(binary)

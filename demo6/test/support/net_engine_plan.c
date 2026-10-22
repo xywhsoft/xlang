@@ -14,9 +14,11 @@ static XL6_ArtifactOwnershipPlan plan(const char* choice)
         !strcmp(choice,"server-options")?XL6_ARTIFACT_TCP_SERVER_OPTIONS:
         !strcmp(choice,"net-bytes")?XL6_ARTIFACT_NET_BYTES:
         !strcmp(choice,"net-bytes-buffer")?XL6_ARTIFACT_NET_BYTES_BUFFER:
+        !strcmp(choice,"net-buffer-ref-graph")?XL6_ARTIFACT_NET_BUFFER_REF:
         !strcmp(choice,"tcp-owned")?XL6_ARTIFACT_EXECUTION_TCP_SERVER_ACCEPT:
         !strcmp(choice,"tcp-recv-owned")?XL6_ARTIFACT_EXECUTION_TCP_SERVER_ACCEPT:
         !strcmp(choice,"tcp-ref-batches")?XL6_ARTIFACT_EXECUTION_TCP_SERVER_ACCEPT:
+        !strcmp(choice,"tcp-chain-move")?XL6_ARTIFACT_EXECUTION_TCP_SERVER_ACCEPT:
         !strcmp(choice,"buffer-native")?XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE:
         !strcmp(choice,"config")?XL6_ARTIFACT_NET_ENGINE_CONFIG:
         !strcmp(choice,"stats")?XL6_ARTIFACT_NET_ENGINE_STATS:XL6_ARTIFACT_NET_ENGINE_LANGUAGE);
@@ -38,6 +40,16 @@ static XL6_ArtifactOwnershipPlan plan(const char* choice)
     if(!strcmp(choice,"tcp-ref-batches")){
         assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_TCP_SEND_REFS));
         assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_ARRAY_NOMINAL_ADMISSION));
+    }
+    if(!strcmp(choice,"tcp-chain-move")){
+        assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_NET_BUFFER_REF));
+        assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_NET_BUFFER_VALUE));
+        assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_TCP_SEND_CHAIN_MOVE));
+    }
+    if(!strcmp(choice,"net-buffer-ref-graph")){
+        assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_NET_FRAME_LINE));
+        assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_NET_FRAME_LENGTH));
+        assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_NET_PROXY_HANDSHAKE));
     }
     XL6_ArtifactRuntimePlan base;XL6_ArtifactOwnershipPlan result;
     assert(xl6ArtifactRuntimeClosePlan(&roots,&base)&&xl6ArtifactOwnershipPlanBuild(&base,&result));return result;

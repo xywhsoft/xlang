@@ -1,0 +1,3 @@
+func wrong(TcpStream stream)
+    auto invalid = stream.sendMove(NetBuffer(), 1)
+end

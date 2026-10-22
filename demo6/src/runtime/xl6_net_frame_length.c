@@ -48,4 +48,4 @@ void xl6NetLengthFramerCommitV1(void* raw,const void* snapshot)
 #define FRAME_NAME xl6NetLengthFramer
 #define FRAME_INPUT(Raw) (&((Length*)(Raw))->input)
 #include "xl6_net_frame_feed.inc"
-XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6NetLengthFramerHandlePolicyV1Get,xl6NetLengthFramerDestroyV1)
+XL6_DEFINE_NET_BUFFER_HANDLE_POLICY(xl6NetLengthFramerHandlePolicyV1Get,xl6NetLengthFramerDestroyV1,&((Length*)raw)->input)

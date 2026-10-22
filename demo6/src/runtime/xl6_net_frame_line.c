@@ -58,4 +58,4 @@ void xl6NetLineFramerCommitV1(void* raw,const void* snapshot)
 #define FRAME_NAME xl6NetLineFramer
 #define FRAME_INPUT(Raw) (&((Line*)(Raw))->input)
 #include "xl6_net_frame_feed.inc"
-XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6NetLineFramerHandlePolicyV1Get,xl6NetLineFramerDestroyV1)
+XL6_DEFINE_NET_BUFFER_HANDLE_POLICY(xl6NetLineFramerHandlePolicyV1Get,xl6NetLineFramerDestroyV1,&((Line*)raw)->input)

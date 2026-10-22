@@ -84,7 +84,10 @@ def section(text: str, kind: str, name: str, allow_terminal: bool = False) -> tu
     return marker.end(), markers[i + 1].start()
 
 
-def replace(text: str, old: str, new: str, kind: str, name: str, allow_terminal: bool = False) -> str:
+def replace(text: str, old: str, new: str, kind: str, name: str, allow_terminal: bool = False,
+            context_lines: int = 4) -> str:
+    if context_lines < 1:
+        raise ValueError("exact delta context must be positive")
     old_markers = [m for m in SECTION.finditer(old) if m[1] == kind and m[2] == name]
     new_markers = [m for m in SECTION.finditer(new) if m[1] == kind and m[2] == name]
     current_markers = [m for m in SECTION.finditer(text) if m[1] == kind and m[2] == name]
@@ -133,7 +136,7 @@ def replace(text: str, old: str, new: str, kind: str, name: str, allow_terminal:
     # Nearby edits share guard lines. Applying them independently would change
     # the next edit's OLD guard and falsely refuse an exact source delta. Merge
     # overlapping contexts before validation, never weaken the context match.
-    changes = list(difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False).get_grouped_opcodes(4))
+    changes = list(difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False).get_grouped_opcodes(context_lines))
     for group in reversed(changes):
         a, b = group[0][1], group[-1][2]
         c, d = group[0][3], group[-1][4]
@@ -154,6 +157,8 @@ def main() -> int:
     parser.add_argument("--current", type=Path, required=True, help="frozen current single/ directory")
     parser.add_argument("--public", action="append", default=[])
     parser.add_argument("--source", action="append", default=[])
+    parser.add_argument("--context-lines", type=int, default=4,
+                        help="Exact context lines around source edits; increase for repeated native function tails")
     parser.add_argument("--internal", action="append", default=[])
     parser.add_argument("--declaration-delta", action="store_true",
                         help="Apply the exact whole declaration delta, including feature save/restore and repeated selectors")
@@ -161,6 +166,8 @@ def main() -> int:
     parser.add_argument("--runtime-internal", action="append", default=[])
     parser.add_argument("--runtime-source", action="append", default=[])
     args = parser.parse_args()
+    if args.context_lines < 1:
+        parser.error("--context-lines must be positive")
     if not any((args.public,args.internal,args.source,args.runtime_public,args.runtime_internal,args.runtime_source)):
         parser.error("name at least one explicit source or public section")
     root = args.root.resolve()
@@ -177,10 +184,10 @@ def main() -> int:
                 if declarations and args.declaration_delta:
                     text = guarded_delta(text, old, new, "declaration selection state")
                 else:
-                    for name in args.public: text = replace(text, old, new, "public", name)
+                    for name in args.public: text = replace(text, old, new, "public", name, context_lines=args.context_lines)
                 if not declarations:
-                    for name in args.internal: text = replace(text, old, new, "internal", name)
-                    for name in args.source: text = replace(text, old, new, "source", name)
+                    for name in args.internal: text = replace(text, old, new, "internal", name, context_lines=args.context_lines)
+                    for name in args.source: text = replace(text, old, new, "source", name, context_lines=args.context_lines)
                 replacements[path] = text.encode("utf-8")
         if args.runtime_public or args.runtime_internal or args.runtime_source:
             leaf = "xruntime_decl.h" if declarations else "xruntime.h"
@@ -188,10 +195,10 @@ def main() -> int:
             new = (args.current / "extlibs" / leaf).read_text(encoding="utf-8")
             path = root / ("release/include/xruntime_decl.h" if declarations else "lib/xruntime/xruntime.h")
             text = replacements.get(path, path.read_bytes()).decode("utf-8")
-            for name in args.runtime_public: text = replace(text, old, new, "public", name)
+            for name in args.runtime_public: text = replace(text, old, new, "public", name, context_lines=args.context_lines)
             if not declarations:
-                for name in args.runtime_internal: text = replace(text, old, new, "internal", name)
-                for name in args.runtime_source: text = replace(text, old, new, "source", name, True)
+                for name in args.runtime_internal: text = replace(text, old, new, "internal", name, context_lines=args.context_lines)
+                for name in args.runtime_source: text = replace(text, old, new, "source", name, True, args.context_lines)
             replacements[path] = text.encode("utf-8")
     # All four previous change spans are checked before any snapshot is written.
     for path, data in replacements.items():

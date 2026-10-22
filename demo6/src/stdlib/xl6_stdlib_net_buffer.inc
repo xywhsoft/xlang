@@ -21,7 +21,9 @@ const char* xl6StdlibNetBufferSource=
 XL6_NET_BUFFER_FEED(Append,append)
 XL6_NET_BUFFER_FEED(Prepend,prepend)
 #undef XL6_NET_BUFFER_FEED
-    "end\n";
+    "";
+const char* xl6StdlibNetBufferRefMembersSource=
+    "    extern \"xl6NetBufferAppendRefV1\" @nonblocking func appendRef(NetBytes data, int size = -1, int offset = 0)\n";
 const char* xl6StdlibNetFrameResultSource=
     "enum NetFrameStatus as int\n    more = 0\n    ready = 1\nend\n"
     "class NetFrameResult\n    private native point handle\n"

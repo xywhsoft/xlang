@@ -10,6 +10,7 @@
 {"xl6NetBufferClearV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={NB},.nonblocking=1,EF},
 {"xl6NetBufferCompactV1",T,XL6_IR_C_ABI_VOID,2,{V,I},.parameterOwners={NB},.nonblocking=1,EF},
 {"xl6NetBufferAppendMoveV1",T,XL6_IR_C_ABI_VOID,2,{V,V},.parameterOwners={NB,NB},.nonblocking=1,EF},
+{"xl6NetBufferAppendRefV1",T,XL6_IR_C_ABI_VOID,4,{V,V,I,I},.parameterOwners={NB,"xl6NetBytesDestroyV1"},.nonblocking=1,EF},
 {"xl6NetBufferConsumeV1",T,I,2,{V,I},.parameterOwners={NB},.nonblocking=1,EF},
 {"xl6NetBufferFindV1",T,I,3,{V,I,I},.parameterOwners={NB},.pure=1,.nonblocking=1,EF},
 {"xl6NetBufferPeekV1",T,Y,3,{V,I,I},.parameterOwners={NB},.nonblocking=1,EF},

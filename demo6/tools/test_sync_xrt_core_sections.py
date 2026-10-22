@@ -49,6 +49,20 @@ class SnapshotSectionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.apply(self.old.replace("old line 9", "conflicting local change"))
 
+    def test_larger_exact_context_resolves_repeated_function_bodies(self):
+        prefix=[f"prefix {i}\n" for i in range(40)]
+        def body(name):
+            return [f"function {name}\n"]+["guard\n"]*24+[f"separator {name} {i}\n" for i in range(40)]
+        old=block(prefix+body("first")+body("second"))
+        new=old.replace("guard\n"*24,"guard\n"*12+"release owner\n"+"guard\n"*12)
+        current=old.replace("prefix 0\n","unselected fixed ABI\n")
+        expected=new.replace("prefix 0\n","unselected fixed ABI\n")
+        with self.assertRaises(ValueError):replace(current,old,new,"public","include/xrt/value.h")
+        self.assertEqual(replace(current,old,new,"public","include/xrt/value.h",context_lines=16),expected)
+        self.assertEqual(replace(expected,old,new,"public","include/xrt/value.h",context_lines=16),expected)
+        with self.assertRaises(ValueError):
+            replace(current.replace("function first","conflicting function"),old,new,"public","include/xrt/value.h",context_lines=16)
+
     def test_missing_section_refuses(self):
         with self.assertRaises(ValueError):
             self.apply(self.old.replace("include/xrt/value.h", "include/xrt/unknown.h"))
