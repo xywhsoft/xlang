@@ -1,0 +1,2 @@
+auto source = NetBuffer()
+source.appendRef(Buffer(b"mutable"))

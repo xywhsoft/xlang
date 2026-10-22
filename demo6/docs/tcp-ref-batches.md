@@ -75,7 +75,8 @@ opaque 回归；直接在真正的 Worker 高水位回调、写驱动之前观�
 
 ## 后续及未决策
 
-旧 `SendBuffer` 仍是 Worker-only，链式跨线程接管单独补原生合同，不能由此冒称完成。
+后续 [链式接管](tcp-chain-move.md) 已补齐任意线程合同及 `sendMove(NetBuffer)`；
+这不是本页历史批量引用验收本身的覆盖范围。
 完整 UDP、文件／任务组合、P4—P7 非对称密钥、X.509、TLS 和发布联合验收仍开放。
 
 未决策仍为 CRT 0、XRT 11 组：core／error／ownership；内存；动态值与图；其余

@@ -1,9 +1,10 @@
 #ifndef XL6_NET_BUFFER_INTERNAL_H
 #define XL6_NET_BUFFER_INTERNAL_H
 #include "xl6_buffer_internal.h"
+#include "xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"
-/* No borrowed spans, external releasers, pool or language references. Every
- * block is owned by this chain. A framer embeds this record as its first
+/* No borrowed spans, external releasers, pool or language references. Blocks
+ * own storage or immutable native NetBytes references. A framer embeds this record as its first
  * member and never exposes mutations of the retained search prefix. */
 typedef struct XL6_NetBufferV1 {
     xatomic32 gate;
@@ -34,4 +35,15 @@ static inline bool xl6NetBufferCanAppendV1(const XL6_NetBufferV1* buffer,size_t 
     if(size>buffer->limit-buffer->native.Size){xrtSetErrorKind(XERR_RANGE);return false;}
     return true;
 }
+/* Every owner of an embedded buffer must expose its actual native edges.
+ * Freeze excludes mutation; tracing must never acquire a mutation guard. */
+#define XL6_DEFINE_NET_BUFFER_HANDLE_POLICY(Getter,Destroy,Buffer) \
+    static bool Getter##Trace(const xvalue* value,xrtownershipvisitor visit,void* context) { \
+        void* raw=NULL;void* user=NULL;const xvaluehandleops* ops=NULL; \
+        if(!visit||!xrtValueGetHandle(value,&raw,&ops,&user)||!raw||user||ops!=Getter()->Ops)return false; \
+        const XL6_NetBufferV1* buffer=(Buffer); \
+        return !xrtAtomic32Load(&buffer->gate,XMEMORY_ACQUIRE)&& \
+            xrtNetBufOwnershipTrace(&buffer->native,visit,context); \
+    } \
+    XL6_DEFINE_NATIVE_HANDLE_POLICY(Getter,Destroy,Getter##Trace)
 #endif

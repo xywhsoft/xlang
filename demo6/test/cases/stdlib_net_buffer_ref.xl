@@ -1,0 +1,28 @@
+auto output = NetBuffer(4)
+auto input = NetBytes(b"a\0bc")
+output.appendRef(input, 99, 1)
+assert output.length == 3 and output.spanCount == 1
+input = NetBytes(b"replacement")
+assert output.peek() == b"\0bc"
+try
+    output.appendRef(input, 2)
+    assert false
+catch RangeError
+end
+assert output.peek() == b"\0bc"
+try
+    output.appendRef(input, -2)
+    assert false
+catch RangeError
+end
+try
+    output.appendRef(input, 1, -1)
+    assert false
+catch RangeError
+end
+output.appendRef(NetBytes(), 0)
+assert output.spanCount == 1 and output.length == 3
+assert output.consume(1) == 1 and output.peek() == b"bc"
+output.clear()
+assert output.length == 0
+println("NetBuffer appendRef: retained immutable native slice, NUL, clamp, limit, range and empty; no transport")

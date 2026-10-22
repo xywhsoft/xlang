@@ -64,4 +64,13 @@ int64_t xl6NetProxyHandshakeBoundFamilyV1(void* raw)
 int64_t xl6NetProxyHandshakeBoundPortV1(void* raw)
 {Handshake* h=raw;XL6_NetBufferGuardV1 g={0};if(!xl6NetProxyHandshakeEnterV1(h,&g))return 0;xnetproxyendpoint e={0};
  bool ok=xrtNetProxyHandshakeBound(h->native,&e);xl6NetBufferLeaveV1(&g);if(!ok)xl6NetBufferFailedV1();return e.Address.Port;}
-XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6NetProxyHandshakeHandlePolicyV1Get,xl6NetProxyHandshakeDestroyV1)
+static bool trace(const xvalue* value,xrtownershipvisitor visit,void* context)
+{
+    void* raw=NULL;void* user=NULL;const xvaluehandleops* ops=NULL;
+    if(!visit||!xrtValueGetHandle(value,&raw,&ops,&user)||!raw||user||ops!=xl6NetProxyHandshakeHandlePolicyV1Get()->Ops)return false;
+    const Handshake* h=raw;
+    return !xrtAtomic32Load(&h->input.gate,XMEMORY_ACQUIRE)&&
+        xrtNetBufOwnershipTrace(&h->input.native,visit,context)&&
+        xrtNetProxyHandshakeOwnershipTrace(h->native,visit,context);
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6NetProxyHandshakeHandlePolicyV1Get,xl6NetProxyHandshakeDestroyV1,trace)

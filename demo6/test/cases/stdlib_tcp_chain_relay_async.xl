@@ -1,0 +1,26 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto accepted = listener.acceptAsync()
+auto connected = tcp.connectAsync(engine, listener.localAddress())
+auto sender = await connected
+auto receiver = await accepted
+assert sender.send(b"a\0bc") == NetStatus.ok
+auto chain = NetBuffer()
+while chain.length < 4
+    NetBytes input = await receiver.recvOwnedAsync(4 - chain.length)
+    assert input.length > 0
+    chain.appendRef(input)
+end
+assert receiver.sendMove(chain) == NetStatus.ok and chain.length == 0
+bytes echoed = b""
+while echoed.length < 4
+    echoed = echoed + await sender.recvAsync(4 - echoed.length)
+end
+assert echoed == b"a\0bc"
+sender.close()
+receiver.close()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("TCP relay: owned native receive -> NetBytes reference chain -> any-thread chain take, NUL and ready-queue integration")

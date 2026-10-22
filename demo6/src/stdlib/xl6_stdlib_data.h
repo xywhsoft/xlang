@@ -141,6 +141,7 @@ extern const char* xl6StdlibNetResolverSource;
 extern const char* xl6StdlibNetResolveOperationSource;
 extern const char* xl6StdlibNetDefaultResolverSource;
 extern const char* xl6StdlibNetBufferSource;
+extern const char* xl6StdlibNetBufferRefMembersSource;
 extern const char* xl6StdlibNetFrameResultSource;
 extern const char* xl6StdlibNetLineFramerSource;
 extern const char* xl6StdlibNetLengthFramerSource;
