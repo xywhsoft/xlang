@@ -6,6 +6,8 @@ func main(...) as int
         "maximum": uint64(18446744073709551615), "when": time(1)}
     Buffer packed = msgpack.encode(value)
     var restored = msgpack.decode(packed)
+    assert restored["name"] == "xlang"
+    assert restored["count"] == 7
     println("name=" + string(restored["name"]))
     println("count=" + string(restored["count"]))
     assert restored["maximum"] == uint64(18446744073709551615)

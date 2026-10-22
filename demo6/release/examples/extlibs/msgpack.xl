@@ -11,6 +11,10 @@ func main(...) as int
     println("MessagePack hex: ", msgpack.toHex(packed))
 
     var restored = msgpack.decode(packed)
+    assert restored["service"] == "xlang"
+    assert restored["version"] == 6
+    assert restored["tags"][1] == "compact"
+    assert restored["enabled"] == true
     println("service: ", restored["service"])
     println("second tag: ", restored["tags"][1])
 
@@ -18,6 +22,8 @@ func main(...) as int
     raw.appendByte(0xca)
     raw.appendByte(0xfe)
     Buffer binary = msgpack.encodeBytes(raw)
+    assert msgpack.toHex(binary) == "c402cafe"
+    assert msgpack.toHex(msgpack.decodeBytes(binary)) == "cafe"
     println("binary MessagePack: ", msgpack.toHex(binary))
     println("binary payload: ", msgpack.toHex(msgpack.decodeBytes(binary)))
     println("msgpack example: PASS")
