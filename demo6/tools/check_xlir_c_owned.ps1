@@ -41,9 +41,14 @@ if ($BuildOnly) { exit 0 }
 if ($LASTEXITCODE) { throw 'C owner runtime test build failed' }
 & "$outputPath/runtime.exe"
 if ($LASTEXITCODE) { throw 'C owner runtime tests failed' }
-foreach ($name in @('basic','lifetime','reads','capture','borrows','failure')) {
+$generatedSources=@(
+    'test/cases/xlir_c_owned_basic.xl','test/cases/xlir_c_owned_lifetime.xl',
+    'test/cases/xlir_c_owned_reads.xl','test/cases/xlir_c_owned_capture.xl',
+    'test/cases/xlir_c_owned_borrows.xl','test/cases/xlir_c_owned_failure.xl')
+foreach ($source in $generatedSources) {
+    $name=[IO.Path]::GetFileNameWithoutExtension($source).Substring('xlir_c_owned_'.Length)
     $generated = Join-Path $outputPath "$name.c"
-    & $compiler "test/cases/xlir_c_owned_$name.xl" $generated
+    & $compiler $source $generated
     if ($LASTEXITCODE) { throw "C owner $name compilation failed" }
     & $context.Compiler @flags "-I$outputPath/include" $generated test/cases/xlir_c_owned_native.c release/xl.dll -o "$outputPath/$name.exe"
     if ($LASTEXITCODE) { throw "C owner $name generated C build failed" }
@@ -82,8 +87,10 @@ foreach ($case in $negative) {
 Write-Output "C owner negative cases passed: $($negative.Count)"
 if ($PublicDriver) {
     $sourceDriver=(Resolve-Path -LiteralPath $PublicDriver).Path
-    foreach($name in @('basic','lifetime','reads','capture','borrows','storage','escapes')) {
-        $source="test/cases/xlir_c_owned_$name.xl"
+    $publicSources=@($generatedSources|Where-Object{$_ -notlike '*_failure.xl'})+
+        @('test/cases/xlir_c_owned_storage.xl','test/cases/xlir_c_owned_escapes.xl')
+    foreach($source in $publicSources) {
+        $name=[IO.Path]::GetFileNameWithoutExtension($source).Substring('xlir_c_owned_'.Length)
         & $sourceDriver $source run "$outputPath/jit-$name" test/cases/xlir_c_owned_native.c
         if($LASTEXITCODE){throw "C owner source JIT failed: $name"}
         & $sourceDriver $source exe "$outputPath/aot-$name" test/cases/xlir_c_owned_native.c
