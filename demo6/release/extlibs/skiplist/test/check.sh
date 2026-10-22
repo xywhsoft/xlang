@@ -21,6 +21,9 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
     release/extlibs/skiplist/test/test_skiplist.c "$work/xrt_runtime.o" \
     -lm -ldl -o "$work/test_skiplist"
 timeout 90s "$work/test_skiplist"
+"$cc" "${flags[@]}" release/extlibs/skiplist/test/entropy_failure.c \
+    "$work/xrt_runtime.o" -lm -ldl -o "$work/entropy_failure"
+timeout 30s "$work/entropy_failure"
 "$cc" "${flags[@]}" release/examples/extlibs/skiplist_c.c \
     "$work/xrt_runtime.o" \
     -lm -ldl -o "$work/skiplist_example"

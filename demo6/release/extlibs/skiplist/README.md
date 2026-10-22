@@ -12,9 +12,9 @@ var rows = table.range("a", "b")
 println(rows[0]["value"])
 ```
 
-键的排序使用完整 UTF-8 原始字节的字典序，不做 Unicode 归一化或大小写折叠；键和值都可包含 NUL。缺失键由 `get` 的 `default` 参数区分，已存储的空字符串不会被当作缺失。覆盖时先分配新值，成功后才释放旧值；新节点完全构造后才接入跳表。平均查找、插入、删除复杂度为 O(log n)，最坏情况可达 O(n)；有序全量结果需要 O(n) 额外内存。同一实例的并发读写需要调用方同步。
+键的排序使用完整 UTF-8 原始字节的字典序，不做 Unicode 归一化或大小写折叠；键和值都可包含 NUL。缺失键由 `get` 的 `default` 参数区分，已存储的空字符串不会被当作缺失。覆盖时先分配新值，成功后才释放旧值；新节点完全构造后才接入跳表。每个实例用 XRT 系统随机源独立播种 XRT RNG 层级序列，避免公开的固定序列被外部输入预先利用；随机源失败时创建失败并保留 XRT 错误，不回退到可预测种子。失败的插入不推进 RNG 状态。平均查找、插入、删除复杂度为 O(log n)，最坏情况仍可达 O(n)；有序全量结果需要 O(n) 额外内存。同一实例的并发读写需要调用方同步。
 
-`skiplist.create()` 在底层分配失败时由原生调用桥接抛出 `MemoryError`，不会返回带空原生句柄的实例。`set/get/keys/range` 的分配失败同样抛 `MemoryError`；失败的插入和覆盖不改变原有键值。
+`skiplist.create()` 在底层分配失败时由原生调用桥接抛出 `MemoryError`，系统随机源失败时保留 XRT 原错误；不会返回带空原生句柄的实例。`set/get/keys/range` 的分配失败同样抛 `MemoryError`；失败的插入和覆盖不改变原有键值。
 
 `setNative` 等原生入口仅供类内部使用。包外必须通过公开方法传入键和值，由包装层计算真实字节长度；`test/private_native.xl` 是预期编译失败的可见性负例，不执行其中的长度不匹配调用。
 
@@ -58,3 +58,5 @@ XLang 用例，以及 C/XLang 范例逐字输出对照，全部通过。C 范例
 不重复链接实现源。完整边界 AOT 的共享主线缺符号阻断未变。
 
 2026-10-19：新增 Windows 单入口 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/skiplist/test/check.ps1`，整合严格 GCC/ABI、800 步 C 独立模型及故障边界、中央与包内 XLang 用例，并将包运行器 C、单文件 C、XLang 范例各自对照固定输出。Linux `test/check.sh` 同步加入固定输出核对；Windows 与 Linux ASan/UBSan 包门禁通过。跳表实现未改，完整带输出 AOT 的共享缺符号阻断不变，不签收整包发布级。
+
+2026-10-23：固定种子会使每个实例公开同一层级序列，外部输入可预先安排插入顺序，将搜索路径推向线性。创建时改为直接使用 XRT 系统随机源播种 XRT RNG；随机源失败即释放半成品并保留其错误，不提供可预测回退。插入失败时不提交 RNG 状态。包内 `test/entropy_failure.c` 模拟系统随机源失败，检查原错误、创建时分配回收和解除故障后的重建。Windows `-SkipAot` 严格 C/XLang 与双语门禁、Linux C ASan/UBSan 和 XLang 门禁通过；默认 Windows 门禁的核心 AOT 构建运行通过，公开范例仍缺共享 `xl6ValueDataSnapshotV1`，因此整包尚未发布签收。

@@ -29,6 +29,8 @@ try {
 
     & $runner -Package skiplist -Source release/extlibs/skiplist/test/test_skiplist.c
     if ($LASTEXITCODE -ne 0) { throw 'skiplist C model and boundaries failed' }
+    & $runner -Package skiplist -Source release/extlibs/skiplist/test/entropy_failure.c
+    if ($LASTEXITCODE -ne 0) { throw 'skiplist entropy failure cleanup failed' }
     foreach ($source in @(
         'test/cases/extlib_skiplist.xl',
         'release/extlibs/skiplist/test/allocations.xl'

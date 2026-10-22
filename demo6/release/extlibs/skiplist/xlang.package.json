@@ -7,7 +7,7 @@
     "artifact": {
         "kind": "source",
         "cSources": ["skiplist_native.c"],
-        "xrtModules": ["XRT_MODULE_VALUE_CONTAINER"],
+        "xrtModules": ["XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_RANDOM_SECURE", "XRT_MODULE_RANDOM"],
         "includeDirs": ["include"],
         "xlSources": ["src/skiplist.xl"]
     },

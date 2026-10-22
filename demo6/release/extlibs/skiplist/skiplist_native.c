@@ -23,7 +23,7 @@ typedef struct {
     SLNode *head;
     int level;
     long long count;
-    unsigned long long rng;
+    xrng rng;
 } XSkipList;
 
 static void sl_error(int kind, const char *message) {
@@ -95,17 +95,18 @@ static SLNode *sl_find(XSkipList *list, const char *key, size_t keySize,
     return node->forward[0];
 }
 
-static int sl_random_level(unsigned long long *state) {
+static int sl_random_level(xrng *state) {
     int level = 1;
-    while (level < SL_MAX_LEVEL) {
-        *state = *state * 6364136223846793005ULL + 1442695040888963407ULL;
-        if (((*state >> 33u) & 1u) != 0u) break;
+    uint32 bits = xrtRng32(state);
+    while (level < SL_MAX_LEVEL && (bits & 1u) == 0u) {
         level++;
+        bits >>= 1u;
     }
     return level;
 }
 
 void *xskiplist_create(void) {
+    uint64 seeds[2];
     xrtClearError();
     XSkipList *list = (XSkipList *)xrtCalloc(1u, sizeof(*list));
     if (list == NULL) {
@@ -119,7 +120,13 @@ void *xskiplist_create(void) {
         return NULL;
     }
     list->level = 1;
-    list->rng = 12345678901234567ULL;
+    /* 每个实例独立播种，避免外部输入按固定层级序列构造退化索引。 */
+    if (!xrtSecureRandom(seeds, sizeof(seeds))) {
+        sl_free_node(list->head);
+        xrtFree(list);
+        return NULL;
+    }
+    xrtRngSeed(&list->rng, seeds[0], seeds[1]);
     return list;
 }
 
@@ -141,7 +148,7 @@ bool xskiplist_set(void *handle, const char *key, size_t keySize,
     const char *value, size_t valueSize) {
     XSkipList *list = (XSkipList *)handle;
     SLNode *update[SL_MAX_LEVEL], *node;
-    unsigned long long nextRng;
+    xrng nextRng;
     int level, i;
     if (!sl_input(list, key, keySize) || !sl_input(list, value, valueSize)) return false;
     if (key == NULL) key = "";
