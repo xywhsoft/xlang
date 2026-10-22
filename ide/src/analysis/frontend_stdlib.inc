@@ -8,7 +8,7 @@ typedef struct xls_stdlib_scan {
     const XL6_AstNode* root;
     xmap names;
     xls_stdlib_work work;
-    size_t limit;
+    size_t limit,scopeBytes;
     int enabled;
 } xls_stdlib_scan;
 static _Thread_local xls_stdlib_scan* xlsActiveStdlibScan;
@@ -73,6 +73,7 @@ int xlsFrontendStdlibExpand(XL6_AstNode* root,XL6_DiagList* diags,size_t bytes,x
     xlsActiveStdlibScan=&scan;
     int okay=xlsStdlibExpandOriginal(root,diags);
     xlsActiveStdlibScan=scan.previous;
+    scan.work.scopeLiveBytes=scan.scopeBytes;
     xrtMapUnit(&scan.names); if(work) *work=scan.work;
     return okay;
 }
