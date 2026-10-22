@@ -1,7 +1,7 @@
 {
   "format": "xlang-ide-sdk-materials-1",
-  "sourceManifestSha256": "c70bd5c4901f63aa4ba01563e560dc79c9fef0565f40edbd48b6d08c76cd4223",
-  "sdkDllSha256": "8e9a36b2127a8c70ed52a4cacaf096ec6852d41c6fde5975f3076dbbb0c379d9",
+  "sourceManifestSha256": "d79cf7eb1913f2fbc4772a959b92735b30953e53dd10b2c1f1836de9110ddc64",
+  "sdkDllSha256": "44e5e9d09e4f96768d77c329bd6b016065dada84f7f7162d81af79c39c83e8ea",
   "sourceScope": "XGE 3.0.0 IDE-profile compiler dependency closure, build inputs, public headers and notices; explicit compatibility patches recorded in provenance",
   "translationUnits": [
     "single/xge.c",
@@ -3880,8 +3880,8 @@
     },
     {
       "path": "src/xui/code/xui_code_annotation.c",
-      "sha256": "08eec21cf2b42a2582f5c3ec71ca966aa69c643480c2aaef86bce5495c3a9a42",
-      "size": 19075
+      "sha256": "e477a131fea6c1eb5b33cff656495154fd2e999420cd8b38cf1a4776dbfb1f7c",
+      "size": 24686
     },
     {
       "path": "src/xui/code/xui_code_command.c",
@@ -3895,8 +3895,8 @@
     },
     {
       "path": "src/xui/code/xui_code_edit.c",
-      "sha256": "c6452f4c087bf6fb03963da99bc237e3c3743f2a7c2d89019fefa41e5330f02c",
-      "size": 379820
+      "sha256": "0bd3593969654dd5e2e13a059a2789470c6226adb654d2c51ac0d340d8aacfc4",
+      "size": 385825
     },
     {
       "path": "src/xui/code/xui_code_editing.c",

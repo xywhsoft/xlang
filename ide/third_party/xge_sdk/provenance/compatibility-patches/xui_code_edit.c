@@ -8,6 +8,11 @@
 #include <stdlib.h>
 #include <math.h>
 
+/* Private annotation renderer bridge; no public SDK ABI additions. The
+ * callback sees the union of eligible ranges clipped to visible bytes. */
+int __xuiCodeAnnotationVisitBackgroundRanges(xui_code_annotation_store pStore,
+    int iStart, int iEnd, int (*pVisit)(void*, int, int), void* pUser);
+
 typedef struct xui_code_completion_owned_item_t {
 	xui_code_completion_item_t tItem;
 	char* sLabel;
@@ -201,6 +206,14 @@ typedef struct xui_code_edit_data_t {
 	unsigned char* pWrapMeasured;
 	int iWrapIndexCount;
 	uint32_t iWrapDocumentVersion;
+    /* Accepted scroll-layout inputs. Stable wrapped viewports must start
+     * from their last scrollbar state instead of alternating two widths and
+     * resetting the lazy wrap index on every paint/geometry query. */
+    uint32_t iScrollLayoutVersion, iScrollLayoutFold;
+    xui_font pScrollLayoutFont;
+    int iScrollLayoutTabs, bScrollLayoutValid;
+    float fScrollLayoutTextWidth, fScrollLayoutHeight;
+    float fScrollLayoutLineHeight, fScrollLayoutColumnWidth;
 	uint32_t iWrapFoldSignature;
 	float fWrapLayoutWidth;
 	xui_font pWrapLayoutFont;
@@ -2944,8 +2957,24 @@ static int __xuiCodeEditUpdateScrollModel(xui_widget pWidget, xui_code_edit_data
 	}
 	if ( fContentWidth < tRect.fW ) fContentWidth = tRect.fW;
 	if ( fContentHeight < tRect.fH ) fContentHeight = tRect.fH;
-	bShowH = 0;
-	bShowV = 0;
+    uint32_t iLayoutVersion = xuiCodeDocumentGetVersion(pData->pDocument);
+    uint32_t iLayoutFold = __xuiCodeEditWrapFoldSignature(pData);
+    xui_font pLayoutFont = __xuiCodeEditResolveFont(pWidget, pData);
+    int iLayoutTabs = __xuiCodeEditTabColumns(pData);
+    float fLayoutTextWidth = tRect.fW - fMinimapWidth - fMarginWidth - 8.0f;
+    bShowH = 0;
+    bShowV = 0;
+    if ( pData->bWordWrap && pData->bScrollLayoutValid && pData->pWrapRows != NULL &&
+         pData->iScrollLayoutVersion == iLayoutVersion &&
+         pData->iScrollLayoutFold == iLayoutFold &&
+         pData->pScrollLayoutFont == pLayoutFont &&
+         pData->iScrollLayoutTabs == iLayoutTabs &&
+         pData->fScrollLayoutTextWidth == fLayoutTextWidth &&
+         pData->fScrollLayoutHeight == tRect.fH &&
+         pData->fScrollLayoutLineHeight == fLineHeight &&
+         pData->fScrollLayoutColumnWidth == fColumnWidth ) {
+        bShowV = pData->bShowVScrollBar;
+    }
 	for ( i = 0; i < 4; i++ ) {
 		tViewport = (xui_rect_t){
 			0.0f,
@@ -3013,6 +3042,15 @@ static int __xuiCodeEditUpdateScrollModel(xui_widget pWidget, xui_code_edit_data
 		pData->bSyncingScrollBars = 0;
 		if ( iRet != XUI_OK ) return iRet;
 	}
+    pData->iScrollLayoutVersion = iLayoutVersion;
+    pData->iScrollLayoutFold = iLayoutFold;
+    pData->pScrollLayoutFont = pLayoutFont;
+    pData->iScrollLayoutTabs = iLayoutTabs;
+    pData->fScrollLayoutTextWidth = fLayoutTextWidth;
+    pData->fScrollLayoutHeight = tRect.fH;
+    pData->fScrollLayoutLineHeight = fLineHeight;
+    pData->fScrollLayoutColumnWidth = fColumnWidth;
+    pData->bScrollLayoutValid = pData->bWordWrap && iRet == XUI_OK;
 	return iRet;
 }
 
@@ -5671,6 +5709,61 @@ static int __xuiCodeEditRenderFindRange(xui_proxy pProxy, xui_draw_context pDraw
 	return __xuiCodeEditDrawRectFill(pProxy, pDraw, tRect, iColor);
 }
 
+/* Keep range reads anchored to the complete physical line. The styled
+ * text renderer borrows that same scratch buffer; wrapped fragments must
+ * not replace it. Native full-line positions minus the wrap origin also
+ * preserve tab stops and glyph-cluster geometry across visual segments. */
+typedef struct xui_code_background_draw_t {
+    xui_proxy pProxy;
+    xui_draw_context pDraw;
+    xui_font pFont;
+    xui_code_edit_data_t* pData;
+    xui_rect_t tContent;
+    int iLineStart, iLineEnd;
+    float fTextX, fY, fColumnWidth, fLineHeight;
+    uint32_t iColor;
+    xui_code_edit_line_layout_t* pLayout;
+} xui_code_background_draw_t;
+static int __xuiCodeEditRenderBackgroundRange(void* pUser, int iStart, int iEnd)
+{
+    xui_code_background_draw_t* p = (xui_code_background_draw_t*)pUser;
+    xui_rect_t tRect;
+    float fStartX, fEndX;
+    if ( p->pLayout == NULL ) {
+        const char* sText;
+        int iRet = __xuiCodeEditReadRange(p->pData, p->iLineStart, p->iLineEnd, &sText);
+        if ( iRet != XUI_OK ) return iRet;
+        /* Reuse the physical line's native glyph/tab layout once per visual
+         * row, rather than copying and validating a long line per range. */
+        p->pLayout = __xuiCodeEditLineLayoutEnsure(p->pProxy, p->pFont, p->pData,
+            sText, p->iLineEnd - p->iLineStart, p->fColumnWidth);
+        if ( p->pLayout == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
+    }
+    fStartX = __xuiCodeEditLineLayoutOffsetX(p->pLayout, iStart - p->iLineStart);
+    fEndX = __xuiCodeEditLineLayoutOffsetX(p->pLayout, iEnd - p->iLineStart);
+    tRect = (xui_rect_t){p->tContent.fX + p->fTextX + 4.0f + fStartX - p->pData->fScrollX,
+        p->fY, fEndX - fStartX, p->fLineHeight};
+    if ( tRect.fX < p->tContent.fX ) {
+        tRect.fW -= p->tContent.fX - tRect.fX;
+        tRect.fX = p->tContent.fX;
+    }
+    if ( tRect.fX + tRect.fW > p->tContent.fX + p->tContent.fW )
+        tRect.fW = p->tContent.fX + p->tContent.fW - tRect.fX;
+    if ( tRect.fW <= 0.0f ) return XUI_OK;
+    return __xuiCodeEditDrawRectFill(p->pProxy, p->pDraw, tRect, p->iColor);
+}
+static int __xuiCodeEditRenderBackgroundIndicators(xui_proxy pProxy, xui_draw_context pDraw,
+    xui_font pFont, xui_code_edit_data_t* pData, xui_rect_t tContent,
+    int iLineStart, int iLineEnd, int iVisibleStart, int iVisibleEnd,
+    float fTextX, float fY, float fColumnWidth, float fLineHeight, uint32_t iColor)
+{
+    xui_code_background_draw_t tDraw = {pProxy, pDraw, pFont, pData, tContent,
+        iLineStart, iLineEnd, fTextX, fY, fColumnWidth, fLineHeight, iColor, NULL};
+    if ( pData == NULL || iVisibleEnd <= iVisibleStart ) return XUI_OK;
+    return __xuiCodeAnnotationVisitBackgroundRanges(pData->pAnnotations,
+        iVisibleStart, iVisibleEnd, __xuiCodeEditRenderBackgroundRange, &tDraw);
+}
+
 static int __xuiCodeEditRenderFindResults(xui_proxy pProxy, xui_draw_context pDraw, xui_font pFont, xui_code_edit_data_t* pData, xui_rect_t tContent, int iLineStart, int iLineEnd, float fTextX, float fY, float fColumnWidth, float fLineHeight, uint32_t iResultColor, uint32_t iActiveColor)
 {
 	const xui_find_result_t* pResult;
@@ -6231,6 +6324,11 @@ static int __xuiCodeEditCacheRender(xui_widget pWidget, xui_draw_context pDraw, 
 			if ( iLine == iActiveLine ) {
 				iRet = __xuiCodeEditDrawRectFill(pProxy, pDraw, (xui_rect_t){tTextContent.fX, fY, tTextContent.fW, fLineHeight}, iCurrentLineColor);
 			}
+            if ( iRet == XUI_OK ) {
+                iRet = __xuiCodeEditRenderBackgroundIndicators(pProxy, pDraw, pFont, pData,
+                    tTextContent, iStart, iEnd, iRenderStart, iRenderEnd,
+                    -fWrapStartX, fY, fColumnWidth, fLineHeight, iFindResultColor);
+            }
 			if ( iRet == XUI_OK ) {
 				iRet = __xuiCodeEditRenderFindResults(pProxy, pDraw, pFont, pData,
 					tTextContent, iPaintStart, iPaintEnd, 0.0f, fY,
@@ -9135,6 +9233,16 @@ XUI_API int xuiCodeEditEnsureCaretVisible(xui_widget pWidget)
 			tSelection.iCaretOffset, &iCaretVisualRow, NULL, NULL,
 			&fWrapCaretX);
 		if ( iRet != XUI_OK ) return iRet;
+        /* Geometry may have measured a previously unknown wrapped line after
+         * a layout change. Publish its extent before clamping the new offset;
+         * scrollbar visibility can change the wrap width, so resolve geometry
+         * once more against that final viewport. */
+        iRet = __xuiCodeEditUpdateScrollModel(pWidget, pData);
+        if ( iRet != XUI_OK ) return iRet;
+        iRet = __xuiCodeEditWrapOffsetGeometry(pWidget, pData,
+            tSelection.iCaretOffset, &iCaretVisualRow, NULL, NULL,
+            &fWrapCaretX);
+        if ( iRet != XUI_OK ) return iRet;
 	}
 	/* Updating the scroll model observes visible lines through sReadBuffer.
 	 * Reacquire the caret line before measuring it; the earlier pointer may
@@ -9144,7 +9252,8 @@ XUI_API int xuiCodeEditEnsureCaretVisible(xui_widget pWidget)
 	fCaretX = (fWrapCaretX >= 0.0f) ? fWrapCaretX :
 		__xuiCodeEditLineOffsetX(pProxy, pFont, pData, sText, 0,
 			tSelection.iCaretOffset - iStart, fColumnWidth);
-	fCaretY = (float)iCaretVisualRow * fLineHeight;
+	/* Match the body renderer's four-pixel top inset. */
+	fCaretY = 4.0f + (float)iCaretVisualRow * fLineHeight;
 	fCaretWidth = 4.0f + fColumnWidth;
 	fScrollX = pData->fScrollX;
 	fScrollY = pData->fScrollY;

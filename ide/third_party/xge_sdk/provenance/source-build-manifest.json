@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "root": "D:\\GIT\\x-lang\\ide\\build\\xge3-upgrade-20261021\\source",
+  "root": "D:\\GIT\\x-lang\\ide\\build\\lsp-next-20261022\\m7a2b2-sdk-native-v1\\source",
   "sourceCommit": "f248fd17192b3eb81c2a29dc34549b696e6e4c43",
   "sourceFileCount": 752,
   "files": [
@@ -2891,8 +2891,8 @@
     },
     {
       "path": "src/xui/code/xui_code_annotation.c",
-      "sha256": "08eec21cf2b42a2582f5c3ec71ca966aa69c643480c2aaef86bce5495c3a9a42",
-      "size": 19075
+      "sha256": "e477a131fea6c1eb5b33cff656495154fd2e999420cd8b38cf1a4776dbfb1f7c",
+      "size": 24686
     },
     {
       "path": "src/xui/code/xui_code_command.c",
@@ -2906,8 +2906,8 @@
     },
     {
       "path": "src/xui/code/xui_code_edit.c",
-      "sha256": "c6452f4c087bf6fb03963da99bc237e3c3743f2a7c2d89019fefa41e5330f02c",
-      "size": 379820
+      "sha256": "0bd3593969654dd5e2e13a059a2789470c6226adb654d2c51ac0d340d8aacfc4",
+      "size": 385825
     },
     {
       "path": "src/xui/code/xui_code_editing.c",
@@ -3769,7 +3769,7 @@
   "compatibilityPatches": {
     "format": "xlang-ide-xge-source-patches-1",
     "baseCommit": "f248fd17192b3eb81c2a29dc34549b696e6e4c43",
-    "reason": "Preserve the existing SDK67 Unicode zero-width regex iteration and validated escape contracts on XGE 3; preserve invalid-pattern status and clear stale scope results",
+    "reason": "Preserve Unicode find compatibility; render generic BACKGROUND indicators through an indexed visible-range union and existing native glyph layouts; stabilize wrapped scrolling and caret visibility after layout changes",
     "publicHeadersChanged": false,
     "files": [
       {
@@ -3782,9 +3782,16 @@
       {
         "path": "src/xui/code/xui_code_edit.c",
         "upstreamSha256": "45101a68261a89c8e99143157bebb266e9f65978d41a565779e29a16bb278c7e",
-        "sha256": "c6452f4c087bf6fb03963da99bc237e3c3743f2a7c2d89019fefa41e5330f02c",
+        "sha256": "0bd3593969654dd5e2e13a059a2789470c6226adb654d2c51ac0d340d8aacfc4",
         "payload": "xui_code_edit.c",
         "diff": "xui_code_edit.patch"
+      },
+      {
+        "path": "src/xui/code/xui_code_annotation.c",
+        "upstreamSha256": "08eec21cf2b42a2582f5c3ec71ca966aa69c643480c2aaef86bce5495c3a9a42",
+        "sha256": "e477a131fea6c1eb5b33cff656495154fd2e999420cd8b38cf1a4776dbfb1f7c",
+        "payload": "xui_code_annotation.c",
+        "diff": "xui_code_annotation.patch"
       }
     ]
   }
