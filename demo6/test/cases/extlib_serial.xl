@@ -25,6 +25,22 @@ func main(...) as int
     assert sp.isOpen, "is open"
     assert sp.baudrate == 115200, "baudrate"
     assert sp.port == "LOOPBACK", "port name"
+    sp.setTimeouts(0, 60000)
+    bool invalidTimeout = false
+    try
+        sp.setTimeouts(-1, 1000)
+    catch ValueError error
+        invalidTimeout = true
+    end
+    assert invalidTimeout, "negative timeout"
+    invalidTimeout = false
+    try
+        sp.setTimeouts(50, 60001)
+    catch ValueError error
+        invalidTimeout = true
+    end
+    assert invalidTimeout, "timeout limit"
+    sp.setTimeouts(50, 1000)
 
     // 文本写入和读取。
     auto n = sp.write("Hello Serial")

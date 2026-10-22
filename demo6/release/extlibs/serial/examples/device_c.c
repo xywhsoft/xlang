@@ -15,6 +15,10 @@ int main(int argc, char** argv)
     if (argc != 2) return 2;
     port = xserial_open(argv[1], 115200, 8, 1, 0);
     if (port == NULL) return 1;
+    if (!xserial_set_timeouts(port, 1500, 1000)) {
+        xserial_close(port);
+        return 1;
+    }
     if (xserial_write_text(port, "PING") != 4) {
         xserial_close(port);
         return 1;

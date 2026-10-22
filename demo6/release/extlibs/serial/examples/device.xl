@@ -5,6 +5,7 @@ func main(...) as int
         return 2
     end
     auto port = serial.open(string(arg[1]), 115200)
+    port.setTimeouts(1500, 1000)
     assert port.write("PING") == 4
     assert port.read(4) == "PONG"
     println("serial device: PASS")

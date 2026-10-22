@@ -23,6 +23,8 @@ typedef struct xserial_port {
     xbuffer Queue;
     str Name;
     int64_t Baudrate;
+    int ReadTimeoutMs;
+    int WriteTimeoutMs;
     bool Loopback;
 #ifndef _WIN32
     int Fd;
@@ -110,8 +112,8 @@ static bool serial_open_device(xserial_port* port,
     if (!SetCommState(handle, &config)) return serial_windows_error("set-state");
     memset(&timeouts, 0, sizeof(timeouts));
     timeouts.ReadIntervalTimeout = MAXDWORD;
-    timeouts.ReadTotalTimeoutConstant = 50;
-    timeouts.WriteTotalTimeoutConstant = 1000;
+    timeouts.ReadTotalTimeoutConstant = (DWORD)port->ReadTimeoutMs;
+    timeouts.WriteTotalTimeoutConstant = (DWORD)port->WriteTimeoutMs;
     if (!SetCommTimeouts(handle, &timeouts)) return serial_windows_error("set-timeouts");
     return true;
 }
@@ -311,6 +313,8 @@ void* xserial_open(const char* name, int64_t baudrate,
     port->Fd = -1;
 #endif
     port->Baudrate = baudrate;
+    port->ReadTimeoutMs = 50;
+    port->WriteTimeoutMs = 1000;
     port->Loopback = strcmp(name, "LOOPBACK") == 0 || strcmp(name, "SIM") == 0;
     port->Name = xrtStrDup(name);
     port->Mutex = xrtMutexCreate();
@@ -353,6 +357,36 @@ bool xserial_is_open(void* handle)
 
 
 
+bool xserial_set_timeouts(void* handle, int64_t readMs, int64_t writeMs)
+{
+    xserial_port* port = (xserial_port*)handle;
+    bool ok = true;
+    xrtClearError();
+    if (readMs < 0 || readMs > 60000 || writeMs < 0 || writeMs > 60000) {
+        serial_error(XERR_RANGE, "serial: timeout must be between 0 and 60000 ms");
+        return false;
+    }
+    if (!serial_lock(port)) return false;
+#ifdef _WIN32
+    if (!port->Loopback) {
+        COMMTIMEOUTS timeouts = {0};
+        timeouts.ReadIntervalTimeout = MAXDWORD;
+        timeouts.ReadTotalTimeoutConstant = (DWORD)readMs;
+        timeouts.WriteTotalTimeoutConstant = (DWORD)writeMs;
+        if (!SetCommTimeouts((HANDLE)xrtFileNative(port->File), &timeouts))
+            ok = serial_windows_error("set-timeouts");
+    }
+#endif
+    if (ok) {
+        port->ReadTimeoutMs = (int)readMs;
+        port->WriteTimeoutMs = (int)writeMs;
+    }
+    (void)xrtMutexUnlock(port->Mutex);
+    return ok;
+}
+
+
+
 int64_t xserial_write(void* handle, const void* data, size_t size)
 {
     xserial_port* port = (xserial_port*)handle;
@@ -373,7 +407,8 @@ int64_t xserial_write(void* handle, const void* data, size_t size)
 #ifdef _WIN32
         ok = xrtWrite(port->File, data, request, &count);
 #else
-        int ready = request == 0 ? 0 : serial_posix_wait(port->Fd, POLLOUT, 1000);
+        int ready = request == 0 ? 0 : serial_posix_wait(port->Fd, POLLOUT,
+            port->WriteTimeoutMs);
         if (ready > 0) {
             ssize_t written;
             do { written = write(port->Fd, data, request); } while (written < 0 && errno == EINTR);
@@ -449,7 +484,7 @@ void* xserial_read(void* handle, int64_t maxBytes)
 #ifdef _WIN32
         ok = xrtRead(port->File, result->Data, count, &count);
 #else
-        int ready = serial_posix_wait(port->Fd, POLLIN, 50);
+        int ready = serial_posix_wait(port->Fd, POLLIN, port->ReadTimeoutMs);
         if (ready > 0) {
             ssize_t received;
             do { received = read(port->Fd, result->Data, count); } while (received < 0 && errno == EINTR);

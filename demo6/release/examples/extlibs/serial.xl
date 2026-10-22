@@ -6,6 +6,7 @@ from serial import Serial
 func main(...) as int
     // 演示使用内存回环；真实 Windows 设备可换成 serial.open("COM3", 115200)。
     Serial sp = serial.openLoopback(115200)
+    sp.setTimeouts(100, 2000)
     println(f"port: {sp.port}")
     println(f"baudrate: {sp.baudrate}")
     println(f"open: {sp.isOpen}")

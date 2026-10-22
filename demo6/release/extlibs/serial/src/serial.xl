@@ -32,6 +32,7 @@ export class Serial
     private extern "xserial_read" func readNative(int maxLen) as point
     private extern "xserial_available" func availableNative() as int
     private extern "xserial_flush" func flushNative() as bool
+    private extern "xserial_set_timeouts" func setTimeoutsNative(int readMs, int writeMs) as bool
     private extern "xserial_get_baudrate" func baudrateNative() as int
     private extern "xserial_get_port" func portNative() as string
 
@@ -107,6 +108,18 @@ export class Serial
             throw RuntimeError "serial: port is closed"
         end
         if not self.flushNative() then
+            throw IOError __serial_error()
+        end
+    end
+
+    func setTimeouts(int readMs, int writeMs)
+        if self.handle == null then
+            throw RuntimeError "serial: port is closed"
+        end
+        if readMs < 0 or readMs > 60000 or writeMs < 0 or writeMs > 60000 then
+            throw ValueError "serial: timeout must be between 0 and 60000 ms"
+        end
+        if not self.setTimeoutsNative(readMs, writeMs) then
             throw IOError __serial_error()
         end
     end

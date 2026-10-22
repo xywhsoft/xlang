@@ -54,6 +54,7 @@ from serial import Serial
 
 func main(...) as int
     Serial port = serial.openLoopback(115200)
+    port.setTimeouts(1500, 1000)
     assert port.write("你好") == 6
     println(port.read(6))
 
@@ -80,6 +81,7 @@ end</code></pre></div></div>
       <tr><td><code>writeBytes(Buffer data)</code></td><td>int；实际写入二进制字节数，不修改或接管输入。</td></tr>
       <tr><td><code>read(int maxLen = 1024)</code></td><td>string；将本次读取转成文本，maxLen 是字节数。</td></tr>
       <tr><td><code>readBytes(int maxLen = 1024)</code></td><td>独立拥有的 Buffer；负数抛 ValueError，0 不消费数据。</td></tr>
+      <tr><td><code>setTimeouts(int readMs, int writeMs)</code></td><td>设备读写等待上限为 0..60000 毫秒；0 表示立即返回。回环口接受配置但仍立即收发。</td></tr>
       <tr><td><code>flush()</code></td><td>丢弃收发队列；不等待数据发送完成。失败抛 IOError。</td></tr>
     </tbody></table></div>
     <p>构造和读写失败均会抛出异常。类中的 <code>*Native</code> 方法仅供包装层内部使用；XLang 应用使用上表的检查型方法，C 应用可直接使用公开 C API。</p>
@@ -95,8 +97,8 @@ end</code></pre></div></div>
       <li>读取结果不会被下一次读取、flush 或端口析构影响。C 调用方独立销毁结果缓冲。</li>
       <li>UTF-8 字符可以跨读取边界。处理协议帧、分块文本或二进制时，先用 Buffer 收齐数据。</li>
       <li>每次操作内部加锁，但多个操作组成的事务不会自动加锁。请求与响应的对应关系由调用方管理。</li>
-      <li>真实设备使用同步 I/O，当前固定首字节读取等待约 50ms、写入超时 1000ms；实际行为仍受驱动约束。</li>
-      <li>目前没有串口枚举、异步串口、可配置超时或硬件流控 API。</li>
+      <li>真实设备使用同步 I/O，默认首字节读取等待约 50ms、写入超时 1000ms；可调用 setTimeouts 修改。实际行为仍受驱动约束。</li>
+      <li>目前没有串口枚举、异步串口或硬件流控 API。</li>
     </ul>
     <p>C 关闭句柄前，必须结束所有使用该句柄的操作。<code>close(NULL)</code> 安全；重复关闭、关闭后使用和并发关闭不属于有效调用。xlang 赋值或传参保留对象引用，不复制串口资源。</p>
   </section>
@@ -108,6 +110,7 @@ end</code></pre></div></div>
       <tr><td><code>xserial_open(name, baudrate, databits, stopbits, parity)</code></td><td>拥有型 void*；失败 NULL。数值参数为 int64_t。</td></tr>
       <tr><td><code>xserial_close(handle)</code></td><td>消费句柄，恰好关闭一次。</td></tr>
       <tr><td><code>xserial_is_open(handle)</code></td><td>bool；NULL 为 false，不验证悬空指针。</td></tr>
+      <tr><td><code>xserial_set_timeouts(handle, readMs, writeMs)</code></td><td>bool；0..60000 毫秒。失败时保留原配置。</td></tr>
       <tr><td><code>xserial_write(handle, const void* data, size_t size)</code></td><td>int64_t 实际字节数，失败 -1；只读借用输入。</td></tr>
       <tr><td><code>xserial_write_text(handle, const char* text)</code></td><td>按 C 字符串的 UTF-8 字节长度写入，失败 -1。</td></tr>
       <tr><td><code>xserial_write_text_len(handle, const char* text, size_t size)</code></td><td>显式长度的文本字节写入；允许内嵌 NUL，行为与 write 相同。</td></tr>

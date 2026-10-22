@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <termios.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "../include/serial.h"
@@ -23,6 +24,8 @@ static void check_pty(void)
     struct termios config;
     struct pollfd readable;
     struct pollfd slave_readable;
+    struct timespec start;
+    struct timespec finish;
     xbuffer* result;
     unsigned char data[4];
 
@@ -62,6 +65,19 @@ static void check_pty(void)
     result = (xbuffer*)xserial_read(port, 1);
     assert(result != NULL && result->Size == 0);
     xrtBufferDestroy(result);
+    assert(xserial_set_timeouts(port, 150, 1000));
+    assert(clock_gettime(CLOCK_MONOTONIC, &start) == 0);
+    result = (xbuffer*)xserial_read(port, 1);
+    assert(clock_gettime(CLOCK_MONOTONIC, &finish) == 0);
+    assert(result != NULL && result->Size == 0);
+    assert((finish.tv_sec - start.tv_sec) * 1000 +
+        (finish.tv_nsec - start.tv_nsec) / 1000000 >= 100);
+    xrtBufferDestroy(result);
+    assert(xserial_set_timeouts(port, 0, 1000));
+    result = (xbuffer*)xserial_read(port, 1);
+    assert(result != NULL && result->Size == 0);
+    xrtBufferDestroy(result);
+    assert(xserial_set_timeouts(port, 50, 1000));
     assert(write(master, "old", 3) == 3);
     slave_readable.revents = 0;
     assert(poll(&slave_readable, 1, 1000) == 1);
@@ -82,9 +98,37 @@ static void check_pty(void)
     xrtClearError();
 }
 
+static void check_write_backpressure(void)
+{
+    int master;
+    int slave;
+    char path[128];
+    void* port;
+    unsigned char block[4096] = {0};
+    int i;
+    int stopped = 0;
+
+    assert(openpty(&master, &slave, path, NULL, NULL) == 0);
+    port = xserial_open(path, 115200, 8, 1, 0);
+    assert(port != NULL && xserial_set_timeouts(port, 50, 0));
+    for (i = 0; i < 1024; ++i) {
+        int64_t written = xserial_write(port, block, sizeof(block));
+        assert(written >= 0 && written <= (int64_t)sizeof(block));
+        if (written < (int64_t)sizeof(block)) {
+            stopped = 1;
+            break;
+        }
+    }
+    assert(stopped);
+    xserial_close(port);
+    close(master);
+    close(slave);
+}
+
 int main(void)
 {
     check_pty();
+    check_write_backpressure();
     puts("serial POSIX PTY: PASS");
     return 0;
 }

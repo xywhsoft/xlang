@@ -18,7 +18,7 @@
 | 尚未验收 | 实际串口硬件、热拔插、驱动差异、串口线与流控；macOS/BSD 未测试 |
 
 回环测试通过不代表真实设备达到生产级验收。
-目前没有异步串口、可配置超时、硬件流控或串口枚举 API。
+目前没有异步串口、硬件流控或串口枚举 API。
 
 ## xlang API
 
@@ -53,6 +53,7 @@ end
 | `writeBytes(Buffer data) as int` | 二进制写入，不修改或接管输入 |
 | `read(int maxLen = 1024) as string` | 将本次读取转为文本；maxLen 按字节计数 |
 | `readBytes(int maxLen = 1024) as Buffer` | 返回独立拥有的 Buffer；负长度抛 ValueError，0 返回空缓冲且不消费数据 |
+| `setTimeouts(int readMs, int writeMs)` | 设置设备读写等待上限，范围 0..60000 毫秒；0 表示立即返回 |
 | `flush()` | 丢弃接收/发送队列；不是等待数据发送完毕 |
 
 所有 I/O 失败均应按异常处理；成功的零字节结果不是异常。
@@ -67,7 +68,7 @@ end
 - `readBytes` 不返回借用缓冲；下一次读取、flush 或端口销毁不会影响已有结果。
 - 回环队列容量 4096 字节。写不下时返回实际写入量，满队列返回 0，不丢弃未计入返回值的输入。
 - 单次真实设备 I/O 最多 65536 字节；更大的请求允许短读/短写，不进行无界分配。
-- 真实设备采用同步 I/O：当前固定首字节读取等待约 50ms、写入等待约 1000ms；Windows 最终行为仍受驱动约束，POSIX 使用非阻塞描述符和有期限的 `poll`，超时返回成功的零字节结果。
+- 真实设备采用同步 I/O：默认首字节读取等待约 50ms、写入等待约 1000ms；可在打开后调用 `setTimeouts` 修改。Windows 使用串口驱动的 `COMMTIMEOUTS`，最终行为仍受驱动约束；POSIX 使用非阻塞描述符和有期限的 `poll`，超时返回成功的零字节结果。回环口接受该配置，但收发始终立即完成。
 - Linux 使用 `O_NOCTTY` 打开 TTY，以 `termios` 配置原始字节模式、数据位/停止位/奇偶校验和支持的标准波特率，关闭前由包持有原生 FD；支持时启用 `TIOCEXCL`，特权进程可能绕过独占限制。非 TTY 路径明确失败，不当作普通文件写入。
 - `read` 不是消息帧解析器。UTF-8 字符可能跨读取边界；有 framing、二进制或分块 UTF-8 要求时，先用 `readBytes` 收齐再解码。
 - `read(maxLen)` 读到半个 UTF-8 字符时，文本转换抛 `ValueError`，不会返回非法字符串；已经读取的字节不会放回队列。需要保留分块内容时始终用 `readBytes`，收齐后再调用 `Buffer.text()`。
@@ -89,6 +90,7 @@ C 侧负责恰好一次 `xserial_close`，并在关闭前结束所有使用该�
 | `xserial_write(handle, const void* data, size_t size)` | `int64_t` 实际字节数 | -1；输入只读借用到返回 |
 | `xserial_write_text_len(handle, const char* text, size_t size)` | 与 write 相同，允许内嵌 NUL | -1；输入只读借用到返回 |
 | `xserial_write_text(handle, const char* text)` | `int64_t` 实际 UTF-8 字节数 | -1；文本按 C 字符串读取 |
+| `xserial_set_timeouts(handle, readMs, writeMs)` | true，后续设备 I/O 使用新上限 | false；参数范围 0..60000 毫秒，失败时保留原配置 |
 | `xserial_write_bytes(handle, void* data, size_t size)` | 与 write 相同 | xlang `point` 的精确 ABI 入口，不接管或修改 data |
 | `xserial_read(handle, int64_t maxBytes)` | 拥有型 `void*`，实际为 `xbuffer*` | NULL 只表示失败；结果须 `xrtBufferDestroy` |
 | `xserial_available(handle)` | `int64_t` 当前字节数 | -1 |
@@ -152,3 +154,5 @@ sh release/extlibs/serial/test/check.sh
 ```
 
 该脚本对回环、故障注入和 PTY 设备路径在 `-DNDEBUG` 下运行严格 GCC 与 ASan/UBSan；三个 C 测试单元会保持断言生效，使断言中的读写操作不会被发布构建删除。可用 `release/xl` 和 Python 时，还将 C/XLang 回环范例对照，并把独立 GCC、直接 `xl build`、直接 `xl run` 和 XLang 的 `examples/device.*` 分别接到独立 PTY，核对 `PING`/`PONG` 与相同输出。PTY 是真实内核 TTY/FD 路径，但不等于 USB/物理串口、拔线和驱动兼容性验收。完整 AOT 仍由共享缺符号问题阻断。
+
+2026-10-22：新增 C/XLang 共用的 `setTimeouts(readMs, writeMs)`，保留原 50/1000 毫秒默认值；仅接受 0..60000 毫秒，失败不改变原配置。Windows 严格 GCC、生成 C 原型、C/XLang 回环及双语范例门禁通过；Linux C ASan/UBSan、PTY 实测 150 毫秒读取等待、零等待写入背压及双语 PTY 范例通过。物理串口驱动差异尚未测试；默认 Windows AOT 门禁仍缺共享 `xl6ValueDataSnapshotV1`，不签收整包发布级。

@@ -14,6 +14,7 @@ int main(void)
     int64_t available;
     size_t i;
     if (port == NULL) goto fail;
+    if (!xserial_set_timeouts(port, 100, 2000)) goto fail;
     printf("port: %s\n", xserial_get_port(port));
     printf("baudrate: %lld\n", (long long)xserial_get_baudrate(port));
     printf("open: %s\n", xserial_is_open(port) ? "true" : "false");

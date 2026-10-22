@@ -75,6 +75,12 @@ static void check_errors(void)
     void* port = xserial_open("LOOPBACK", 9600, 8, 1, 0);
     char long_name[8192];
     assert(port != NULL && xserial_write_text(port, "keep") == 4);
+    assert(xserial_set_timeouts(port, 0, 60000));
+    assert(!xserial_set_timeouts(port, -1, 1000));
+    assert(xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    assert(!xserial_set_timeouts(port, 50, 60001));
+    assert(xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    assert(xserial_set_timeouts(port, 50, 1000) && xrtGetError() == NULL);
     assert(xserial_read(port, -1) == NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     assert(xserial_read(port, LLONG_MIN) == NULL);
     assert(xserial_available(port) == 4);
@@ -85,6 +91,7 @@ static void check_errors(void)
     assert(xserial_read(NULL, 0) == NULL);
     assert(xserial_write(NULL, NULL, 0) == -1);
     assert(xserial_available(NULL) == -1 && !xserial_flush(NULL));
+    assert(!xserial_set_timeouts(NULL, 50, 1000));
     assert(!xserial_is_open(NULL));
     xserial_close(NULL);
 

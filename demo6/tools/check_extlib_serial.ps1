@@ -83,7 +83,7 @@ try {
     $generated = Join-Path $work "module.c"
     $null = Run-Check "cgen" $xl @("cgen", "test/cases/extlib_serial.xl", "--backend", "xlir", "--emit", $generated)
     $declarations = @(Get-Content -LiteralPath $generated -Encoding UTF8 | Where-Object { $_ -match '^extern .*\bxserial_[a-z_]+\(' })
-    if ($declarations.Count -ne 10) { throw "Serial generated API inventory changed; review the complete ABI" }
+    if ($declarations.Count -ne 11) { throw "Serial generated API inventory changed; review the complete ABI" }
     $abiCheck = Join-Path $work "api.c"
     [IO.File]::WriteAllText($abiCheck, "#include `"serial.h`"`n" + ($declarations -join "`n") + "`n", $utf8)
     $null = Run-Check "generated-c-prototypes" $gcc ($flags + @("-I$package/include", "-fsyntax-only", $abiCheck))
