@@ -2,16 +2,22 @@
 #include "xl6_ownership_domain_impl.h"
 #include "xl6_execution_net_engine.h"
 static bool load(XL6_OwnershipCatalog* catalog)
-{return xl6OwnershipCatalogAddQuiescenceV1(catalog,xrtNetEngineOwnershipQuiescenceV1Get());}
+{
+    if(!xl6OwnershipCatalogAddNetTaskV1(catalog,xl6NetEngineWorkPolicyV1Get()) ||
+       !xl6OwnershipCatalogAddNetTimerV1(catalog,xl6NetEngineTimerPolicyV1Get()) ||
+       !xl6OwnershipCatalogAddNetWorkerExitV1(catalog,xl6NetEngineExitPolicyV1Get()))return false;
+    return xl6OwnershipCatalogAddQuiescenceV1(catalog,xrtNetEngineOwnershipQuiescenceV1Get());
+}
 XL6_OWNERSHIP_QUERY(NetEngineNative)
 {
     (void)completion;
-    const xnettaskownershipv1* tasks[]={xl6NetEngineWorkPolicyV1Get()};
-    const xnettimerownershipv1* timers[]={xl6NetEngineTimerPolicyV1Get()};
-    const xnetengineworkerexitownershipv1* exits[]={xl6NetEngineExitPolicyV1Get()};
-    /* Only separately selected transport domains populate these exact
-     * capabilities. Engine alone neither imports TCP nor admits its slots. */
-    *adapter=xrtNetEngineOwnershipAdapterV3(ref,tasks,1,timers,1,exits,1,
+    /* A selected family registers exact permanent capabilities during Load.
+     * Engine neither imports every producer nor guesses a policy from shape.
+     * The sealed, typed lists include the built-in detached-work family. */
+    *adapter=xrtNetEngineOwnershipAdapterV3(ref,
+        policies->NetTask,policies->NetTaskCount,
+        policies->NetTimer,policies->NetTimerCount,
+        policies->NetWorkerExit,policies->NetWorkerExitCount,
         policies->NetRuntime,policies->NetRuntimeCount,preparation);
     return *adapter!=NULL;
 }

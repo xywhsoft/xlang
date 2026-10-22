@@ -69,3 +69,46 @@ TCC 编译 14.244 秒、运行 24.738 秒。8086 个输入记录和 8082 个当�
 仍待认证。原 18 个生成模块服务图门、混合对象、实际 DLL 卸载、全语言／FFI、
 同源发布／隔离部署、平台与旧路径退役继续开放。v211 ResolverFuture 规划器的
 TCC 隔离缺口不会因本项 TCC 通过而消失。本轮没有改变默认 Cgen。
+
+## 当前产品重新核查与共用前置（2026-10-22）
+
+上述 v213 是历史私有候选的证据，不能作为当前 xlang 固定运行时已接入网络任务
+的证明。当前 `lib/xrt/xrt.h` 的 `src/network/task_net.c` 仍用旧的任务 Data 包装、
+借用式 Post／Timer 和 FutureBridge Watch；原生 Job 未绑定封闭 Data policy，
+延迟操作受理之后仍有可失败的取消桥装配。`task_group_net` 仍组合该旧路径。
+当前标准库只有 Engine 的 detached post／after，没有受管理网络任务结果接口。
+`net_file` 也仍是 Worker-only、借用缓冲／Completion 的四个入口，不直接导出裸
+Completion 或把在途缓冲当成语言 leaf。TCP 的 sendFile 已有实际驻留实现，不能
+与 Engine 原生文件完成接口混为一项。
+
+另需保留版本边界：xlang 固定快照使用微秒／Until；独立 XRT 当前公开等待已经
+是 int64 毫秒／For，内部定时值为 xrtTimer 的 double 秒。不能整份覆盖新头后
+继续使用旧实现。原生增补应按两端各自时间合同定点维护同一拥有权算法，而不是
+顺带升级全部时间 ABI；这项同步方式已提交用户确认，本批未更改 XRT 或快照。
+
+共用目录前置已经实现：新增强类型 NetTask／NetTimer／NetWorkerExit capability
+组，由选中 domain 在 Load 时登记，创建结束后封闭；内建 detached-work 三种
+策略也走同一路径。Native Engine 查询不再写死单项数组，而把封闭目录的完整
+typed 切片传给 XRT 的身份检查器。相同指针去重，同形副本不是原策略的授权，
+不猜 Count／Trace，也不让 Engine 单独使用时拉入 TaskNet 或其他生产者。
+
+验收为 `tools/check_stdlib_net_engine_policy_registry.py`，只创建 Engine／定时器／
+工作记录，不创建应用 Socket 或应用网络流量。实际原生拥有对象、待完成 Timer、worker
+exit、策略反序加载、目录增长／去重／封闭、16 个构造分配前缀、SDK 强类型声明
+及 API 符号编译均验证；通用 ABI 参数探针先检查实际 typed 策略切片，再调用
+未改动的 XRT 检查器，不制造图节点或引用数。漏传三种列表、丢失去重、重新开放
+目录及吞掉加载失败的错误实现均必须被测试拒绝，并保留原 Engine 整图回归。
+
+最终选择 policy-win-r6 与 policy-linux-r6，共 130 个阶段（Windows 64／Linux 66），
+包含 GCC／TCC O0／O2、Linux ASan／UBSan、13 类成功编译后的错误实现反证和
+3 类 SDK 类型拒绝；构建、拒绝和优化重复不是独立语言程序。输入、日志和产物
+哈希全部复核，正式回执为证据根 `p3-net-task/policy-verified-commit.json`。
+
+受影响的 UDP 驻留回归另有 Windows 43／Linux 48 阶段，通过 select／IOCP／epoll、
+GCC／TCC、Linux ASan／UBSan 和未 await 控制的退役图；仅自有字面量回环，
+不实际入组或发送多播。合计 221 阶段（107／114），不将其冒充源码 JIT／AOT
+或发布产品验收。两端正式目录均在 `p3-net-task` 证据根，失败轮次保留但不计通过。
+
+这只关闭共用目录前置，不关闭 TaskNet／TaskGroupNet／NetFile 或完整网络目标。
+原生拥有记录、结果及取消／完成时序、语言 generic profile 接入和实际产品验收
+仍须继续。没有发布库、VFS、外网、DNS、协议或网络安全专项验收。
