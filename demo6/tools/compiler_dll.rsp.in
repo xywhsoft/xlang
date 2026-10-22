@@ -441,6 +441,14 @@
     src\runtime\xl6_crypto_rsa_public_spki_pem.c
     src\runtime\xl6_crypto_rsa_private_pkcs1_pem.c
     src\runtime\xl6_crypto_rsa_private_pkcs8_pem.c
+    src\runtime\xl6_x509_value.c
+    src\runtime\xl6_x509_certificate.c
+    src\runtime\xl6_x509_certificate_domain.c
+    src\runtime\xl6_x509_crl.c
+    src\runtime\xl6_x509_crl_domain.c
+    src\runtime\xl6_x509_pem.c
+    src\runtime\xl6_x509_certificate_pem.c
+    src\runtime\xl6_x509_crl_pem.c
     src\runtime\xl6_der_value.c
     src\runtime\xl6_der_value_domain.c
     src\runtime\xl6_der_reader.c
