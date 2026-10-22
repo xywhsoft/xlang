@@ -24,6 +24,12 @@ static inline void xl6COwnedDropV1(XL6_COwnedV1* value)
     if (owned.Data) owned.Release(owned.Data);
 }
 
+/* The generated slot transfer detaches and clears its source before this call. */
+static inline void xl6COwnedDropValueV1(XL6_COwnedV1 value)
+{
+    xl6COwnedDropV1(&value);
+}
+
 /* A successful take owns exactly the original allocation address. NULL is an
  * empty carrier; non-NULL zero-length allocations still require Release. The
  * compiler admits only an exact, named, no-raise C void(void*) releaser. */
@@ -46,6 +52,29 @@ static inline XL6_COwnedV1 xl6CBytesTakeV1(void* data, int64_t size, XL6_CReleas
 static inline xstrview xl6CStringViewV1(XL6_COwnedV1 value)
 {
     return (xstrview){value.Data ? (const char*)value.Data : "", value.Size};
+}
+
+static inline bool xl6CBytesTakeCheckedV1(void* data, int64_t size,
+    XL6_CReleaseV1 release, XL6_COwnedV1* output)
+{
+    bool ok=size>=0 && (uint64_t)size<=SIZE_MAX && (data || !size);
+    *output=xl6CBytesTakeV1(data,size,release);
+    return ok;
+}
+
+/* Consumes the already anchored owner after the length expression finishes.
+ * This preserves left-to-right evaluation without leaking on a thrown length. */
+static inline bool xl6CBytesSizeTakeV1(XL6_COwnedV1 value,int64_t size,XL6_COwnedV1* output)
+{
+    *output=(XL6_COwnedV1){0};
+    if(size<0 || (uint64_t)size>SIZE_MAX || (!value.Data && size)) {
+        xl6COwnedDropV1(&value);
+        xrtSetErrorKind(XERR_ARGUMENT);
+        return false;
+    }
+    value.Size=(size_t)size;
+    *output=value;
+    return true;
 }
 
 static inline xbytesview xl6CBytesViewV1(XL6_COwnedV1 value)

@@ -1,0 +1,54 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_released" @no_raise func released() as int
+
+func failingLength() as int
+    throw "length failed"
+end
+
+func failAfterTake()
+    cstring text = cstring.take(nativeText(), nativeFree)
+    throw "body failed"
+end
+
+func earlyReturn() as string
+    cstring text = cstring.take(nativeText(), nativeFree)
+    return text
+end
+
+func testOwned() as int
+    try
+        cbytes data = cbytes.take(nativeBytes(), failingLength(), nativeFree)
+        assert false
+    catch ignored
+        assert released() == 1
+    end
+    try
+        cbytes data = cbytes.take(nativeBytes(), -1, nativeFree)
+        assert false
+    catch ignored
+        assert released() == 2
+    end
+    try
+        failAfterTake()
+        assert false
+    catch ignored
+        assert released() == 3
+    end
+    string value = earlyReturn()
+    assert value == "hello" and released() == 4
+    for index in range(3)
+        cstring text = cstring.take(nativeText(), nativeFree)
+        if index == 1 then
+            continue
+        end
+    end
+    assert released() == 7
+    auto temporary = cstring.take(nativeText(), nativeFree)
+    assert temporary == "hello" and released() == 8
+    return 42
+end
+
+assert testOwned() == 42
+assert released() == 8

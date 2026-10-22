@@ -6,6 +6,7 @@
 #include "src/sem/xl6_type_registry.h"
 #include "src/stdlib/xl6_stdlib.h"
 #include "src/type/xl6_type_model.h"
+#include "src/type/xl6_c_owned_type.h"
 #include "src/abi/xl6_native_generic.h"
 
 #include <limits.h>
@@ -3777,6 +3778,8 @@ static int xl6SemExprParamMatchCostEx(
     }
 
     exprType = xl6SemExprStaticTypeName(ctx, (XL6_AstNode*)expr);
+    if (xl6COwnedBaseName(exprType) && xl6TextEquals(xl6COwnedBaseName(exprType),targetType))
+        return 5;
     if ( exprType == NULL ) {
         exprType = xl6SemLiteralExprTypeName(expr);
     }
@@ -10920,6 +10923,8 @@ static XL6_AstNode* xl6SemFindMultiReturnCallArg(
     return NULL;
 }
 
+#include "src/sem/xl6_sem_c_owned.c"
+
 static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     int ok;
@@ -10935,6 +10940,10 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
     XL6_AstNode* multiReturnArg;
     XL6_Symbol* sym;
 
+    {
+        int cOwned = xl6SemCheckCOwnedTake(ctx,node);
+        if (cOwned >= 0) return cOwned;
+    }
     {
         int xcallOk = xl6SemCheckXCallConversion(ctx, node);
         if ( xcallOk >= 0 ) {
@@ -16653,6 +16662,13 @@ static int xl6SemDeclareVarWithKind(
     symbolType = declaredType;
     initExpr = xl6SemVarDeclInitExpr(node);
 
+    if (declaredType && xl6COwnedBaseName(declaredType->text) &&
+        (valueKind != XL6_SYM_VALUE || !ctx->currentFunction || !initExpr ||
+         initExpr->kind!=XL6_AST_CALL)) {
+        xl6SemErrorNode(ctx,node,"C owners require explicit local initialization with take");
+        ok=0;
+    }
+
     if ( initExpr != NULL && initExpr->kind == XL6_AST_NAME &&
          declaredType != NULL && xl6TextEquals(declaredType->text, "auto") ) {
         XL6_Symbol* functionSymbol = xl6ScopeFind(ctx->scope, initExpr->text);
@@ -16693,12 +16709,25 @@ static int xl6SemDeclareVarWithKind(
     if ( initExpr != NULL && !xl6SemCheckExpr(ctx, initExpr) ) {
         ok = 0;
     }
+    if (declaredType && xl6COwnedBaseName(declaredType->text) && initExpr &&
+        initExpr->semanticCallKind!=XL6_SEM_CALL_C_OWNED_TAKE) {
+        xl6SemErrorNode(ctx,initExpr,"C owner initialization must take a fresh C allocation; assign to string/bytes to copy");
+        ok=0;
+    }
     /* Register the name as unassigned before checking its initializer, but
      * commit auto's storage type only from the checked expression. A Future
      * continuation (or overload) can refine its complete result while being
      * checked; an earlier bare-name guess must never become the symbol/IR type. */
     if(ok && declaredType && xl6TextEquals(declaredType->text,"auto") && initExpr) {
         inferredType=xl6SemInferAutoTypeNode(ctx,initExpr);
+        if(inferredType && xl6COwnedBaseName(inferredType->text)) {
+            const char* base=xl6COwnedBaseName(inferredType->text);
+            xrtFree(inferredType->text); inferredType->text=xrtStrDup(base);
+            xl6SemBindInferredTypeIdentity(ctx,inferredType);
+            xl6AstFree(node->inferredType);
+            node->inferredType=xl6SemCloneTypeNode(inferredType);
+            if(!node->inferredType) { xl6AstFree(inferredType); return 0; }
+        }
         if(inferredType) {
             if(xl6SemExprIntegerLiteralValue(initExpr,NULL,NULL) &&
                 !xl6SemExprIntegerLiteralFitsType(initExpr,inferredType->text)) {
@@ -16929,6 +16958,8 @@ static int xl6SemTypeCanAssignFromType(XL6_SemContext* ctx, const XL6_AstNode* v
     if ( targetType == NULL || valueType == NULL ) {
         return 1;
     }
+    if (xl6COwnedBaseName(valueType->text) &&
+        xl6TextEquals(xl6COwnedBaseName(valueType->text),targetType->text)) return 1;
     if ( xl6TextEquals(targetType->text, "auto") ) {
         return 1;
     }
@@ -17841,6 +17872,15 @@ static int xl6SemCheckAssign(XL6_SemContext* ctx, XL6_AstNode* node)
     left = node->childCount > 0 ? node->children[0] : NULL;
     right = node->childCount > 1 ? node->children[1] : NULL;
     op = node->text != NULL ? node->text : "=";
+    {
+        XL6_AstNode* root=left;
+        while(root && (root->kind==XL6_AST_INDEX || root->kind==XL6_AST_MEMBER) && root->childCount)
+            root=root->children[0];
+        if(root && root->kind==XL6_AST_NAME && xl6COwnedBaseName(xl6SemExprStaticTypeName(ctx,root))) {
+            xl6SemErrorNode(ctx,left,"C owner bindings and their contents are read-only");
+            return 0;
+        }
+    }
     unionInitSymbol = xl6SemUnionFieldInitSymbol(ctx, left, op);
     readOnlyLengthTarget = 0;
     dynamicMemberTarget = 0;
@@ -24689,7 +24729,7 @@ static int xl6SemPlanTypeIsManaged(const XL6_AstNode* type)
     if ( name == NULL ) {
         return 0;
     }
-    return xl6TextEquals(name, "__class_handle") ||
+    return xl6COwnedBaseName(name)!=NULL || xl6TextEquals(name, "__class_handle") ||
            (type->flags & XL6_AST_FLAG_PROTOCOL_HANDLE) != 0 ||
            (type->flags & XL6_AST_FLAG_TAGGED_ENUM) != 0 ||
            xl6TextEquals(name, "string") ||
@@ -25285,6 +25325,7 @@ int xl6SemCheckModuleWithQuery(
         }
     }
 
+    if (!xl6SemValidateCOwnedTypes(&ctx,root,NULL)) ok=0;
     xl6SemAnnotateTypeIdentities(&ctx, root);
     {
         XL6_SemPlanWalkState planState;
