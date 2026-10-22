@@ -1,4 +1,5 @@
 #include "ui/language_view.h"
+#include "editor/lsp_coordinates.h"
 #include "ui/c_language_view.h"
 #include "ui/editor_view.h"
 #include "ui/task_view.h"
@@ -270,7 +271,7 @@ static int sendDefinition(xide_app* app)
  if(!definitionIntentCurrent(app) || !v->initialized || (v->onDemandMode && (!v->receiptReady || !v->definitionProofSupported)) || v->nextId==INT_MAX) return 0;
  for(size_t i=0;i<v->inputCount;++i) if(v->inputs[i].document==d) b=&v->inputs[i];
  int line=0,character=0;
- if(!b || !xideLspOffsetToPosition(xuiCodeEditGetText(d->editor),v->definitionCaret,&line,&character)) return 0;
+ if(!b || !xideCodeDocumentOffsetToLsp(xuiCodeEditGetDocument(d->editor),v->definitionCaret,&line,&character)) return 0;
  xvalue *p=xrtValueObject(),*item=xrtValueObject(),*pos=xrtValueObject();
  int okay=p && item && pos && put(item,"uri",xrtValueString(sv(b->uri))) && put(pos,"line",xrtValueInt(line)) && put(pos,"character",xrtValueInt(character));
  if(okay) { okay=put(p,"textDocument",item); item=NULL; } if(okay) { okay=put(p,"position",pos); pos=NULL; }
@@ -697,7 +698,7 @@ static xvalue* queryParams(xide_language_view* v,xide_document* d,int offset)
  xvalue *p=xrtValueObject(),*item=xrtValueObject(),*position=NULL;
  int okay=p && item && put(item,"uri",xrtValueString(sv(b->uri)));
  if(okay) { okay=put(p,"textDocument",item); item=NULL; }
- if(okay && offset>=0) { int line=0,character=0; position=xrtValueObject(); okay=position && xideLspOffsetToPosition(xuiCodeEditGetText(d->editor),offset,&line,&character) && put(position,"line",xrtValueInt(line)) && put(position,"character",xrtValueInt(character)); if(okay) { okay=put(p,"position",position); position=NULL; } }
+ if(okay && offset>=0) { int line=0,character=0; position=xrtValueObject(); okay=position && xideCodeDocumentOffsetToLsp(xuiCodeEditGetDocument(d->editor),offset,&line,&character) && put(position,"line",xrtValueInt(line)) && put(position,"character",xrtValueInt(character)); if(okay) { okay=put(p,"position",position); position=NULL; } }
  if(okay) okay=put(p,"version",xrtValueInt(b->wireVersion)) && (v->onDemandMode || put(p,"checkId",xrtValueInt(v->lastSnapshotId)));
  xrtValueRelease(item); xrtValueRelease(position); if(!okay) { xrtValueRelease(p); return NULL; } return p;
 }
