@@ -1,5 +1,6 @@
 #include "xl6_crypto_xdh_internal.h"
 #include "xl6_crypto_abi.h"
+#include "xl6_crypto_key_spans.h"
 #include "xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"
 
@@ -8,10 +9,9 @@
 void xl6CryptoX25519DestroyV1(void* raw)
 {xl6CryptoFreeSecret(raw,sizeof(XL6_CryptoX25519KeyV1));}
 
-void* xl6CryptoX25519CreateV1(const xvalue* value)
+void* xl6CryptoX25519CreateSpanV1(xbytesview key)
 {
-    xbytesview key;
-    if (!xl6CryptoXdhMaterial(value,32,&key)) return NULL;
+    if (!key.Data || key.Size!=32) {xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
     XL6_CryptoX25519KeyV1* self=xrtCalloc(1,sizeof(*self));
     if (!self) return NULL;
     memcpy(self->privateKey,key.Data,32);
@@ -19,6 +19,11 @@ void* xl6CryptoX25519CreateV1(const xvalue* value)
         xl6CryptoX25519DestroyV1(self);return NULL;
     }
     return self;
+}
+void* xl6CryptoX25519CreateV1(const xvalue* value)
+{
+    xbytesview key;
+    return xl6CryptoXdhMaterial(value,32,&key)?xl6CryptoX25519CreateSpanV1(key):NULL;
 }
 xvalue* xl6CryptoX25519PublicV1(void* raw)
 {

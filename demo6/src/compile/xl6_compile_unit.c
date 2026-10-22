@@ -236,6 +236,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_crypto_rsa_pss_sign.c", D(R(CRYPTO_RSA_PRIVATE)), {"XRT_MODULE_CRYPTO_RSA_PSS_SIGN", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_crypto_rsa_pss_sign_salt.c", D(R(CRYPTO_RSA_PRIVATE)), {"XRT_MODULE_CRYPTO_RSA_PSS_SIGN", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_crypto_rsa_pkcs1_sign.c", D(R(CRYPTO_RSA_PRIVATE)), {"XRT_MODULE_CRYPTO_RSA_PKCS1_SIGN", "XRT_MODULE_VALUE"}},
+#include "xl6_key_components.inc"
     {"src/runtime/xl6_der_value.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_ASN1_DER", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_der_value_domain.c", D(R(OWNERSHIP_CATALOG),R(DER_VALUE)), {NULL}},
     {"src/runtime/xl6_der_reader.c", D(R(NATIVE_HANDLE),R(DER_VALUE)), {"XRT_MODULE_ASN1_DER", "XRT_MODULE_VALUE", "XRT_MODULE_THREAD"}},
