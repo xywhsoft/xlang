@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static xatomic32 checks;
+static xatomic32 checks,checkedBoundaries;
 #define CHECK(value) do { xrtAtomic32FetchAdd(&checks,1,XMEMORY_RELAXED); if(!(value)) { fprintf(stderr,"analysis_ir_scan_test:%d: %s\n",__LINE__,#value); return 0; } } while(0)
 static char* dump(const XL6_IrModule* ir)
 {
@@ -45,6 +45,33 @@ static int compareScopeProof(XL6_IrModule* ir,int large)
         (unsigned long long)a.checks,(unsigned long long)a.hits,(unsigned long long)b.checks,(unsigned long long)a.peakBytes);
     xl6DiagFree(&indexed); xl6DiagFree(&reference); return 1;
 }
+static int compareConversions(XL6_IrModule* ir,int large)
+{
+    xlsFrontendIrCallScanReset(); CHECK(xlsFrontendIrReferenceConversions(ir));
+    xls_ir_call_scan_work reference=xlsFrontendIrCallScanWork();
+    char* expected=dump(ir); CHECK(expected);
+    xlsFrontendIrCallScanReset(); CHECK(xlsFrontendIrConversionBudget(ir,8u*1024u*1024u));
+    xls_ir_call_scan_work indexed=xlsFrontendIrCallScanWork();
+    char* actual=dump(ir); CHECK(actual && !strcmp(actual,expected)); xrtFree(actual);
+    CHECK(!reference.indexes && !reference.indexedVisits && indexed.queries==reference.queries);
+    if(ir->callSiteCount) CHECK(indexed.indexes==1 && !indexed.linearVisits && indexed.peakBytes<=8u*1024u*1024u);
+    else CHECK(!indexed.indexes && !indexed.records && !indexed.indexedVisits);
+    xlsFrontendIrCallScanReset(); CHECK(xlsFrontendIrConversionBudget(ir,1));
+    xls_ir_call_scan_work bounded=xlsFrontendIrCallScanWork();
+    actual=dump(ir); CHECK(actual && !strcmp(actual,expected)); xrtFree(actual); xrtFree(expected);
+    CHECK(!bounded.indexes && !bounded.indexedVisits && bounded.linearVisits==reference.linearVisits);
+    for(size_t i=0;i<ir->callSiteCount;++i) {
+        const XL6_IrNode* node=xl6IrNodeGet(ir,ir->callSites[i].origin);
+        if(node && node->implicitConversionErrorAbi==XL6_IR_ERROR_ABI_MAY_RAISE)
+            xrtAtomic32FetchAdd(&checkedBoundaries,1,XMEMORY_RELAXED);
+    }
+    if(large) {
+        CHECK(reference.linearVisits>indexed.indexedVisits*50 && indexed.indexedVisits);
+        printf("IR conversion call candidates indexed=%llu reference=%llu, data=%llu bytes\n",
+            (unsigned long long)indexed.indexedVisits,(unsigned long long)reference.linearVisits,(unsigned long long)indexed.peakBytes);
+    }
+    return 1;
+}
 static int corpus(const char* source,int large)
 {
     XL6_ParseResult parsed; xl6ParseResultInit(&parsed); XL6_IrModule ir; xl6IrModuleInit(&ir);
@@ -68,12 +95,30 @@ static int corpus(const char* source,int large)
     CHECK(!planReference.indexes && !planReference.indexedVisits && planReference.linearVisits);
     char* expected=dump(&ir);
     CHECK(expected && !strcmp(actual,expected)); xrtFree(actual); xrtFree(expected);
-    CHECK(compareVerify(&ir,1) && compareScopeProof(&ir,large));
+    CHECK(compareVerify(&ir,1) && compareScopeProof(&ir,large) && compareConversions(&ir,0));
+    if(ir.callSiteCount) {
+        size_t count=ir.callSiteCount,capacity=ir.callSiteCapacity;
+        XL6_IrCallSite saved=ir.callSites[0];
+        ir.callSites[0].origin=0; CHECK(compareConversions(&ir,0) && compareVerify(&ir,-1)); ir.callSites[0]=saved;
+        ir.callSites[0].firstArgument=ir.callArgumentCount+1;
+        CHECK(compareConversions(&ir,0) && compareVerify(&ir,-1)); ir.callSites[0]=saved;
+        XL6_IrCallSite* original=ir.callSites;
+        XL6_IrCallSite* duplicate=xrtCalloc(count+1,sizeof(*duplicate)); CHECK(duplicate);
+        memcpy(duplicate,original,count*sizeof(*duplicate)); duplicate[count]=original[0];
+        ir.callSites=duplicate; ir.callSiteCount=count+1; ir.callSiteCapacity=count+1;
+        CHECK(compareConversions(&ir,0) && compareVerify(&ir,-1));
+        ir.callSites=original; ir.callSiteCount=count; ir.callSiteCapacity=capacity; xrtFree(duplicate);
+        if(count>1) {
+            XL6_IrCallSite last=ir.callSites[count-1]; ir.callSites[count-1]=saved; ir.callSites[0]=last;
+            CHECK(compareConversions(&ir,0) && compareVerify(&ir,-1)); ir.callSites[0]=saved; ir.callSites[count-1]=last;
+        }
+        CHECK(compareConversions(&ir,large==2) && compareVerify(&ir,1));
+    }
     XL6_DiagList bounded; xl6DiagInit(&bounded); xlsFrontendIrPlanScanReset();
     CHECK(xlsFrontendIrVerifyPlanBudget(&ir,&bounded,1) && !bounded.count);
     xls_ir_plan_scan_work fallback=xlsFrontendIrPlanScanWork();
     CHECK(!fallback.indexes && !fallback.indexedVisits && fallback.linearVisits); xl6DiagFree(&bounded);
-    if(large) {
+    if(large==1) {
         CHECK(reference.linearVisits>indexed.indexedVisits*50 && ir.cleanupActionCount>100);
         printf("IR scan visits indexed=%llu reference=%llu, peak index=%llu bytes\n",(unsigned long long)indexed.indexedVisits,
             (unsigned long long)reference.linearVisits,(unsigned long long)indexed.peakBytes);
@@ -129,17 +174,29 @@ static int run(void)
         "func guarded() as int\n string outer = \"outer\"\n try\n string inner = \"inner\"\n return 7\n catch e\n string message = e.message\n return 8\n finally\n string final = \"final\"\n end\nend\n",
         "func values(int count) as generator<string>\n string suffix = \"owned\"\n for i in range(count)\n string item = suffix + string(i)\n yield item\n end\nend\n",
         "class Box\n string item = \"owned\"\n func value() as string\n string local = self.item\n return local\n end\nend\n",
-        "enum Choice\n Some(string value)\n None\nend\nfunc chosen(Choice item) as string\n match item\n case Some(value)\n return value\n case None\n return \"empty\"\n end\nend\n"
+        "enum Choice\n Some(string value)\n None\nend\nfunc chosen(Choice item) as string\n match item\n case Some(value)\n return value\n case None\n return \"empty\"\n end\nend\n",
+        "func apply(func(int) as int action, int value) as int\n return action(value)\nend\nfunc run() as int\n return apply(func(int value) as int\n return value + 1\n end, 7)\nend\n",
+        "func accept(array items) as int\n return int(items[0])\nend\nfunc erased() as int\n return accept([1, 2, 3])\nend\n",
+        "func accept(func() as int callback) as int\n return callback()\nend\nfunc erased(var boxed) as int\n return accept(boxed)\nend\n"
     };
     for(size_t i=0;i<sizeof(sources)/sizeof(sources[0]);++i) { printf("IR corpus %zu\n",i); CHECK(corpus(sources[i],0)); }
     xstrbuf large; xrtStrBufInit(&large);
     for(unsigned i=0;i<250;++i) CHECK(xrtStrBufAppendFormat(&large,
         "func helper_%u() as int\n string item = \"owned\"\n int result = %u\n return result\nend\n",i,i));
     CHECK(corpus(large.Data,1));
+    xrtStrBufFree(&large); xrtStrBufInit(&large);
+    CHECK(xrtStrBufAppendFormat(&large,"func choose<T>(T value) as T\n return value\nend\n"));
+    for(unsigned i=0;i<30;++i) {
+        CHECK(xrtStrBufAppendFormat(&large,"func generic_%u(int value) as int\n int result = value\n",i));
+        for(unsigned j=0;j<50;++j) CHECK(xrtStrBufAppendFormat(&large," result = choose::<int>(result + 1)\n"));
+        CHECK(xrtStrBufAppendFormat(&large," return result\nend\n"));
+    }
+    CHECK(corpus(large.Data,2));
     reader readers[4]; xthread* threads[4];
     for(unsigned i=0;i<4;++i) { readers[i]=(reader){sources[2+i],0}; threads[i]=xrtThreadCreate(readThread,&readers[i],0); CHECK(threads[i]); }
     for(unsigned i=0;i<4;++i) { CHECK(xrtThreadWait(threads[i])==XWAIT_OK && readers[i].passed); xrtThreadDestroy(threads[i]); }
+    CHECK(xrtAtomic32Load(&checkedBoundaries,XMEMORY_RELAXED)>0);
     xrtStrBufFree(&large); return 1;
 }
 int main(void)
-{ xrtAtomic32Init(&checks,0); if(!run()) return 1; printf("analysis_ir_scan_test passed: %u checks; full IR dump/reference-scan parity, cleanup/plan order, successful per-verification proofs, missing/duplicate/corrupt plan rejection, tiny-budget fallback and concurrent TLS isolation.\n",(unsigned)xrtAtomic32Load(&checks,XMEMORY_RELAXED)); return 0; }
+{ xrtAtomic32Init(&checks,0); xrtAtomic32Init(&checkedBoundaries,0); if(!run()) return 1; printf("analysis_ir_scan_test passed: %u checks; full IR dump/reference-scan parity, cleanup/plan/call order, successful per-verification proofs, checked conversion boundaries, corrupt input rejection, tiny-budget fallback and concurrent TLS isolation.\n",(unsigned)xrtAtomic32Load(&checks,XMEMORY_RELAXED)); return 0; }

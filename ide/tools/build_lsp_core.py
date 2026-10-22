@@ -65,12 +65,23 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     original = frontend / 'src/ir/xl6_ir.c'
     body = original.read_bytes()
     if hashlib.sha256(body).hexdigest() != '6022b348ecb5ec0dc79eac881a4e51cb6dc227daa210f730bcdf27a191aad2d0':
-        raise ValueError('shared IR changed; audit cleanup candidates, plan-origin iteration, scope-proof purity and verifier mutation boundaries')
+        raise ValueError('shared IR changed; audit cleanup/plan/call candidates, scope-proof purity and phase mutation boundaries')
     source = body.decode('utf-8').replace('\r\n', '\n')
     changes = {
         '#include <wchar.h>': '#include <wchar.h>\n#include "analysis/frontend_ir.inc"',
         'int xl6IrRefreshExitPlans(XL6_IrModule* module)\n{': 'static int xlsIrRefreshExitPlansOriginal(XL6_IrModule* module)\n{',
         'int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)\n{': 'static int xlsIrVerifyModuleOriginal(const XL6_IrModule* module, XL6_DiagList* diags)\n{',
+        'static int xl6IrBuildImplicitConversionAbis(XL6_IrModule* module)\n{':
+            'static int xlsIrBuildImplicitConversionAbisOriginal(XL6_IrModule* module)\n{',
+        'XL6_IrNodeId origin = (XL6_IrNodeId)(node - module->nodes + 1);\n'
+        '    for (i = 0; i < module->callSiteCount; ++i) {\n'
+        '        const XL6_IrCallSite* site = &module->callSites[i];\n'
+        '        const XL6_IrNode *declaration, *parameters = NULL, *receiver;':
+            'XL6_IrNodeId origin = (XL6_IrNodeId)(node - module->nodes + 1);\n'
+            '    for (i = xlsIrFirstCallCandidate(module, origin); i < module->callSiteCount;\n'
+            '         i = xlsIrNextCallCandidate(module, origin, i)) {\n'
+            '        const XL6_IrCallSite* site = &module->callSites[i];\n'
+            '        const XL6_IrNode *declaration, *parameters = NULL, *receiver;',
         'static int xl6IrVerifyScopeExitActions(\n    const XL6_IrModule* module, const XL6_IrExitPlan* plan)\n{':
             'static int xlsIrVerifyScopeExitActionsOriginal(\n    const XL6_IrModule* module, const XL6_IrExitPlan* plan)\n{',
         'for ( i = afterScope ? scope->childCount + 1 : (size_t)plan->origin - 1; i > 0; --i ) {':
@@ -99,9 +110,9 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
-        change='optional cleanup/plan-origin indexes and successful per-verification scope proofs; shared rules retained',
+        change='optional cleanup/plan/call-origin indexes and per-verification scope proofs; shared rules retained',
         auditedSeams=len(changes), indexBytes=16 * 1024 * 1024, planIndexBytes=8 * 1024 * 1024,
-        scopeProofBytes=1024 * 1024)
+        scopeProofBytes=1024 * 1024, callIndexBytes=8 * 1024 * 1024)
 
 
 def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:

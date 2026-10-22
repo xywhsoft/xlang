@@ -1,11 +1,12 @@
-/* Included in the shared IR TU by an audited build overlay. Only iteration
- * candidates change; the original cleanup rules and independent verifier
- * still run. The immutable compiler materials are never modified. */
+/* Included in the shared IR TU by an audited build overlay. The original
+ * rules stay below; indexes omit unrelated candidates and proofs are local
+ * to one immutable verification. Compiler materials are never modified. */
 #include "analysis/frontend_ir.h"
 
 #define XLS_IR_SCAN_BYTES (16u*1024u*1024u)
 #define XLS_IR_PLAN_BYTES (8u*1024u*1024u)
 #define XLS_IR_SCOPE_BYTES (1u*1024u*1024u)
+#define XLS_IR_CALL_BYTES (8u*1024u*1024u)
 typedef struct xls_ir_candidate { XL6_IrNodeId owner,node; } xls_ir_candidate;
 typedef struct xls_ir_plan_candidate { XL6_IrNodeId origin; size_t index; } xls_ir_plan_candidate;
 typedef struct xls_ir_scan {
@@ -30,6 +31,108 @@ static int xl6IrVerifyNodeTopology(const XL6_IrModule*,XL6_DiagList*);
 static int xlsIrRefreshExitPlansOriginal(XL6_IrModule*);
 static int xlsIrVerifyModuleOriginal(const XL6_IrModule*,XL6_DiagList*);
 static int xlsIrVerifyScopeExitActionsOriginal(const XL6_IrModule*,const XL6_IrExitPlan*);
+static int xlsIrBuildImplicitConversionAbisOriginal(XL6_IrModule*);
+
+typedef struct xls_ir_call_scan {
+    const XL6_IrModule* module;
+    const XL6_IrCallSite* source;
+    size_t count,budget;
+    xarray calls,positions;
+    int attempted,ready;
+    struct xls_ir_call_scan* previous;
+} xls_ir_call_scan;
+static _Thread_local xls_ir_call_scan* xlsActiveCallScan;
+static _Thread_local xls_ir_call_scan_work xlsIrCallWork;
+
+static void xlsIrCallScanBegin(xls_ir_call_scan* scan,const XL6_IrModule* module,size_t bytes)
+{
+    memset(scan,0,sizeof(*scan)); scan->module=module;
+    scan->budget=bytes<XLS_IR_CALL_BYTES ? bytes : XLS_IR_CALL_BYTES;
+    scan->previous=xlsActiveCallScan; xlsActiveCallScan=scan;
+}
+static void xlsIrCallScanDone(xls_ir_call_scan* scan)
+{
+    xlsActiveCallScan=scan->previous; xrtArrayUnit(&scan->calls); xrtArrayUnit(&scan->positions);
+}
+static int xlsIrCallCompare(const void* a,const void* b)
+{
+    const xls_ir_plan_candidate *left=a,*right=b;
+    if(left->origin!=right->origin) return left->origin<right->origin ? -1 : 1;
+    return left->index<right->index ? -1 : left->index!=right->index;
+}
+static const xls_ir_call_scan* xlsIrCallScan(const XL6_IrModule* module)
+{
+    xls_ir_call_scan* scan=xlsActiveCallScan;
+    if(!scan || scan->module!=module || !module) return NULL;
+    if(!scan->attempted) {
+        scan->attempted=1;
+        /* Only origin and physical index are collected. Bounds precede the
+         * first read; malformed arguments/types are left to the original
+         * query. No negative result or conversion effect is cached. */
+        size_t count=module->callSiteCount;
+        if(!module->callSites || !count || count>module->callSiteCapacity ||
+           count>scan->budget/(2*(sizeof(xls_ir_plan_candidate)+sizeof(size_t))) ||
+           !xrtArrayInit(&scan->calls,sizeof(xls_ir_plan_candidate)) ||
+           !xrtArrayInit(&scan->positions,sizeof(size_t)) ||
+           !xrtArrayReserve(&scan->calls,count) || !xrtArrayResize(&scan->positions,count)) goto failed;
+        uint64_t bytes=(uint64_t)scan->calls.Capacity*sizeof(xls_ir_plan_candidate)+
+            (uint64_t)scan->positions.Capacity*sizeof(size_t);
+        if(bytes>scan->budget) goto failed;
+        for(size_t i=0;i<count;++i) {
+            xls_ir_plan_candidate item={module->callSites[i].origin,i};
+            if(!xrtArrayPush(&scan->calls,&item)) goto failed;
+        }
+        if(!xrtArraySort(&scan->calls,xlsIrCallCompare)) goto failed;
+        for(size_t i=0;i<count;++i) {
+            const xls_ir_plan_candidate* item=xrtArrayConstGet(&scan->calls,i);
+            *(size_t*)xrtArrayGet(&scan->positions,item->index)=i;
+        }
+        scan->source=module->callSites; scan->count=count; scan->ready=1;
+        ++xlsIrCallWork.indexes; xlsIrCallWork.records+=count;
+        if(bytes>xlsIrCallWork.peakBytes) xlsIrCallWork.peakBytes=bytes;
+    }
+    return scan->ready && scan->source==module->callSites && scan->count==module->callSiteCount ? scan : NULL;
+failed:
+    xrtArrayUnit(&scan->calls); xrtArrayUnit(&scan->positions); return NULL;
+}
+static size_t xlsIrFirstCallCandidate(const XL6_IrModule* module,XL6_IrNodeId origin)
+{
+    ++xlsIrCallWork.queries;
+    const xls_ir_call_scan* scan=xlsIrCallScan(module);
+    if(!scan) { if(module->callSiteCount) ++xlsIrCallWork.linearVisits; return 0; }
+    size_t low=0,high=scan->calls.Count;
+    while(low<high) {
+        size_t mid=low+(high-low)/2;
+        const xls_ir_plan_candidate* item=xrtArrayConstGet(&scan->calls,mid);
+        if(item->origin<origin) low=mid+1; else high=mid;
+    }
+    const xls_ir_plan_candidate* item=xrtArrayConstGet(&scan->calls,low);
+    if(!item || item->origin!=origin) return module->callSiteCount;
+    ++xlsIrCallWork.indexedVisits; return item->index;
+}
+static size_t xlsIrNextCallCandidate(const XL6_IrModule* module,XL6_IrNodeId origin,size_t current)
+{
+    const xls_ir_call_scan* scan=xlsIrCallScan(module);
+    if(!scan) { if(current+1<module->callSiteCount) ++xlsIrCallWork.linearVisits; return current+1; }
+    const size_t* position=xrtArrayConstGet(&scan->positions,current);
+    const xls_ir_plan_candidate* item=position ? xrtArrayConstGet(&scan->calls,*position+1) : NULL;
+    if(!item || item->origin!=origin) return module->callSiteCount;
+    ++xlsIrCallWork.indexedVisits; return item->index;
+}
+int xlsFrontendIrConversionBudget(XL6_IrModule* module,size_t bytes)
+{
+    xls_ir_call_scan scan; xlsIrCallScanBegin(&scan,module,bytes);
+    int okay=xlsIrBuildImplicitConversionAbisOriginal(module); xlsIrCallScanDone(&scan); return okay;
+}
+static int xl6IrBuildImplicitConversionAbis(XL6_IrModule* module)
+{ return xlsFrontendIrConversionBudget(module,XLS_IR_CALL_BYTES); }
+void xlsFrontendIrCallScanReset(void) { memset(&xlsIrCallWork,0,sizeof(xlsIrCallWork)); }
+xls_ir_call_scan_work xlsFrontendIrCallScanWork(void) { return xlsIrCallWork; }
+int xlsFrontendIrReferenceConversions(XL6_IrModule* module)
+{
+    xls_ir_call_scan* previous=xlsActiveCallScan; xlsActiveCallScan=NULL;
+    int okay=xlsIrBuildImplicitConversionAbisOriginal(module); xlsActiveCallScan=previous; return okay;
+}
 
 static int xlsIrCandidateCompare(const void* a,const void* b)
 {
@@ -219,13 +322,15 @@ static XL6_IrNodeId xlsIrPreviousCandidate(const XL6_IrModule* module,
 }
 int xl6IrRefreshExitPlans(XL6_IrModule* module)
 {
+    xls_ir_call_scan calls; xlsIrCallScanBegin(&calls,module,XLS_IR_CALL_BYTES);
     xls_ir_scan scan; xlsIrScanInit(&scan,module); xlsActiveIrScan=&scan;
-    int okay=xlsIrRefreshExitPlansOriginal(module); xlsIrScanDone(&scan); return okay;
+    int okay=xlsIrRefreshExitPlansOriginal(module); xlsIrScanDone(&scan); xlsIrCallScanDone(&calls); return okay;
 }
 int xlsFrontendIrVerifyPlanBudget(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes)
 {
+    xls_ir_call_scan calls; xlsIrCallScanBegin(&calls,module,bytes);
     xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.planBudget=bytes; scan.verifying=1; xlsActiveIrScan=&scan;
-    int okay=xlsIrVerifyModuleOriginal(module,diags); xlsIrScanDone(&scan); return okay;
+    int okay=xlsIrVerifyModuleOriginal(module,diags); xlsIrScanDone(&scan); xlsIrCallScanDone(&calls); return okay;
 }
 int xl6IrVerifyModule(const XL6_IrModule* module,XL6_DiagList* diags)
 { return xlsFrontendIrVerifyPlanBudget(module,diags,XLS_IR_PLAN_BYTES); }
@@ -237,11 +342,13 @@ void xlsFrontendIrScopeProofReset(void) { memset(&xlsIrScopeWork,0,sizeof(xlsIrS
 xls_ir_scope_proof_work xlsFrontendIrScopeProofWork(void) { return xlsIrScopeWork; }
 int xlsFrontendIrReferenceRefresh(XL6_IrModule* module)
 {
+    xls_ir_call_scan* previousCalls=xlsActiveCallScan; xlsActiveCallScan=NULL;
     xls_ir_scan* prior=xlsActiveIrScan; xlsActiveIrScan=NULL;
-    int okay=xlsIrRefreshExitPlansOriginal(module); xlsActiveIrScan=prior; return okay;
+    int okay=xlsIrRefreshExitPlansOriginal(module); xlsActiveIrScan=prior; xlsActiveCallScan=previousCalls; return okay;
 }
 int xlsFrontendIrReferenceVerify(const XL6_IrModule* module,XL6_DiagList* diags)
 {
+    xls_ir_call_scan* previousCalls=xlsActiveCallScan; xlsActiveCallScan=NULL;
     xls_ir_scan* prior=xlsActiveIrScan; xlsActiveIrScan=NULL;
-    int okay=xlsIrVerifyModuleOriginal(module,diags); xlsActiveIrScan=prior; return okay;
+    int okay=xlsIrVerifyModuleOriginal(module,diags); xlsActiveIrScan=prior; xlsActiveCallScan=previousCalls; return okay;
 }
