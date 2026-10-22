@@ -1,25 +1,31 @@
 import cuckoo
 
 extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
 extern "xrtMemDebugFailClear" func failClear()
 
 func main(...) as int
-    for allocation in range(2)
+    int failures = 0
+    int successes = 0
+    for allocation in range(32)
         assert failAfter(uint64(allocation))
-        bool rejected = false
+        bool caught = false
+        bool created = false
         try
-            cuckoo.create(64)
-        catch MemoryError
-            rejected = true
-        finally
-            failClear()
+            created = cuckoo.create(64).valid
+        catch MemoryError error
+            caught = true
         end
-        assert rejected, "constructor allocation failure must remain a memory error"
+        bool triggered = failTriggered()
+        failClear()
+        assert caught == triggered and (caught or created), "constructor failure must retain its memory error"
+        if caught then failures += 1 else successes += 1 end
 
         auto filter = cuckoo.create(64)
         filter.add("recovered")
         assert filter.contains("recovered") and filter.count == 1
     end
+    assert failures > 0 and successes > 0
     println("cuckoo allocation failures: PASS")
     return 0
 end
