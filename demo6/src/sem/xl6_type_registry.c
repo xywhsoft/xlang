@@ -32,6 +32,7 @@ static const XL6_BuiltinTypeSeed g_xl6BuiltinTypeSeeds[] = {
     {"c_double", NULL, 0, 0}, {"c_wchar", NULL, 0, 0},
     {"c_vararg", NULL, 0, 0},
     {"string", "xrt.string", 0, 0}, {"bytes", "xrt.bytes", 0, 0},
+    {"cstring", "xlang.cstring.v1", 0, 0}, {"cbytes", "xlang.cbytes.v1", 0, 0},
     {"time", "xrt.time", 0, 0},
 #define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,...) {Name,Abi,0,0},
 #include "src/type/xl6_native_value_profiles.inc"

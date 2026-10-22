@@ -55,6 +55,7 @@
 #include "src/cgen/xl6_ir_cgen_generator.c"
 #include "src/cgen/xl6_ir_cgen_static_entry.c"
 #include "src/cgen/xl6_ir_cgen_function_shell.c"
+#include "src/cgen/xl6_ir_cgen_c_owned.c"
 #include "src/cgen/xl6_ir_cgen_runtime_scalar_instruction.c"
 #include "src/cgen/xl6_ir_cgen_runtime_collection_instruction.c"
 #include "src/cgen/xl6_ir_cgen_runtime_async_instruction.c"

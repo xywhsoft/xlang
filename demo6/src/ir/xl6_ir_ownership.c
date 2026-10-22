@@ -4,6 +4,9 @@
 XL6_IrOperandOwnership xl6IrRuntimeOperandOwnership(
     XL6_IrRuntimeOp operation, size_t operand)
 {
+    if(xl6IrCOwnedRuntimeOpIs(operation))
+        return operation==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE && operand==0
+            ? XL6_IR_OPERAND_OWNERSHIP_CONSUME : XL6_IR_OPERAND_OWNERSHIP_OBSERVE;
     if(xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(operation)))
         return XL6_IR_OPERAND_OWNERSHIP_OBSERVE;
     if(xl6IrSlotMapIteratorOpIs(operation))
