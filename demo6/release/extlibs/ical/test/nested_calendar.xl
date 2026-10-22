@@ -7,6 +7,10 @@ func main(...) as int
     string badVersion = "BEGIN:VCALENDAR\nVERSION;=x:2.0\nPRODID:test\nEND:VCALENDAR\n"
     string badProdid = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID;X:test\nEND:VCALENDAR\n"
     string trailingParam = "BEGIN:VCALENDAR\nVERSION;X=1;:2.0\nPRODID:test\nEND:VCALENDAR\n"
+    string badParamName = "BEGIN:VCALENDAR\nVERSION;X_BAD=1:2.0\nPRODID:test\nEND:VCALENDAR\n"
+    string badParamTail = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID;X=\"ok\"tail:test\nEND:VCALENDAR\n"
+    string badParamQuote = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID;X=a\"b\"c:test\nEND:VCALENDAR\n"
+    string badEventParam = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN:VEVENT\nSUMMARY;X_BAD=1:hello\nEND:VEVENT\nEND:VCALENDAR\n"
     int rejected = 0
     try
         ical.parse(nested)
@@ -38,11 +42,33 @@ func main(...) as int
     catch e
         rejected += 1
     end
-    assert rejected == 6, "invalid iCalendar markers and parameters must be rejected"
+    try
+        ical.parse(badParamName)
+    catch e
+        rejected += 1
+    end
+    try
+        ical.parse(badParamTail)
+    catch e
+        rejected += 1
+    end
+    try
+        ical.parse(badParamQuote)
+    catch e
+        rejected += 1
+    end
+    try
+        ical.parse(badEventParam)
+    catch e
+        rejected += 1
+    end
+    assert rejected == 10, "invalid iCalendar markers and parameters must be rejected"
     var calendar = ical.parse("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nX-CUSTOM;X-KEY=1:opaque\nEND:VCALENDAR\n")
     assert calendar["events"].length == 0, "ordinary extension properties remain ignorable"
     var parameterized = ical.parse("BEGIN:VCALENDAR\nVERSION;X=\"a;b:c\":2.0\nPRODID;X=\"b:c;d\":test\nEND:VCALENDAR\n")
     assert parameterized["prodid"] == "test", "valid extension parameters remain accepted"
+    var listed = ical.parse("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID;X=\"a;b:c\",\"d,e\":test\nEND:VCALENDAR\n")
+    assert listed["prodid"] == "test", "quoted extension parameter lists remain accepted"
     println("ical nested calendar: PASS")
     return 0
 end

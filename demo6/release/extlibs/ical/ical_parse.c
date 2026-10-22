@@ -120,7 +120,7 @@ static int xi_params(xvalue *object, const XiProperty *property,
     if (semi + 1 == colon) return 0;
     pos = semi + 1;
     while (pos < colon) {
-        size_t start = pos, end, equal;
+        size_t start = pos, end, equal, i;
         int quoted = 0;
         while (pos < colon) {
             if (line.Data[pos] == '"') quoted = !quoted;
@@ -135,6 +135,33 @@ static int xi_params(xvalue *object, const XiProperty *property,
         }
         for (equal = start; equal < end && line.Data[equal] != '='; ++equal) {}
         if (equal == start || equal == end || equal + 1 == end) return 0;
+        for (i = start; i < equal; ++i) {
+            unsigned char ch = (unsigned char)line.Data[i];
+            if (!((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+                  (ch >= '0' && ch <= '9') || ch == '-')) return 0;
+        }
+        /* 引号只能包住完整的单个参数值；逗号可分隔多个值。 */
+        i = equal + 1;
+        while (i < end) {
+            size_t valueStart = i;
+            if (line.Data[i] == '"') {
+                ++i;
+                while (i < end && line.Data[i] != '"') {
+                    unsigned char ch = (unsigned char)line.Data[i++];
+                    if ((ch < 0x20 && ch != '\t') || ch == 0x7f) return 0;
+                }
+                if (i == end) return 0;
+                ++i;
+            } else {
+                while (i < end && line.Data[i] != ',') {
+                    unsigned char ch = (unsigned char)line.Data[i++];
+                    if (ch == '"' || ch == ';' || ch == ':' ||
+                        (ch < 0x20 && ch != '\t') || ch == 0x7f) return 0;
+                }
+                if (i == valueStart) return 0;
+            }
+            if (i < end && (line.Data[i++] != ',' || i == end)) return 0;
+        }
         {
             xstrview value = {line.Data + equal + 1, end - equal - 1};
             if (value.Size >= 2 && value.Data[0] == '"' &&
