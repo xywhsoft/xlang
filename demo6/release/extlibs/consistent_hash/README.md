@@ -64,3 +64,5 @@ C 与 XLang 均验证分配失败时四节点计数和既有键映射不变，�
 有意变更 XRT 哈希或虚拟节点排序时，须将此向量视为数据布局变更审查。
 
 2026-10-19：新增 Windows 包级联合门禁，并发现原 C 范例只靠 GCC 额外链接原生目标文件才可运行，单独 `xl run` 缺 `xchash_destroy`。教学范例现包含包内原生实现，正式包清单不变；Windows 严格 GCC、C 故障/线程、XLang、C 直跑和双语同输出通过，Linux 原联合门禁也通过。默认 Windows AOT 构建实际停在共享 `xl6ValueDataSnapshotV1` 缺符号，未签收发布级。
+
+2026-10-23：第五节点触发双表扩容时，原分配故障测试只核对一个键的映射；现 C/XLang 在每个失败位置保存并比较 32 个键的原有映射，同时核对节点数、虚拟节点数和解除故障后的添加能力。XLang 创建、添加、扩容、查询故障用例改为明确的 `MemoryError` 类型捕获。Windows `test/check.ps1 -SkipAot` 和 Linux C ASan/UBSan、线程、XLang/双语门禁通过；算法/API 未改，完整 AOT 主线阻断不变。

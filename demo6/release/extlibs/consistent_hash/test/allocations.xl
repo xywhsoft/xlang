@@ -12,7 +12,7 @@ for allocation in range(16)
     try
         consistent_hash.ConsistentHash ring = consistent_hash.create(8)
         assert ring.valid
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
@@ -31,7 +31,7 @@ for allocation in range(24)
     assert failAfter(uint64(allocation))
     try
         ring.addNode("node-B")
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
@@ -56,12 +56,15 @@ for allocation in range(16)
     growing.addNode("node-B")
     growing.addNode("node-C")
     growing.addNode("node-D")
-    string selected = growing.getNode("stable-key")
+    array<string> mappings = []
+    for keyIndex in range(32)
+        mappings.append(growing.getNode("stable-key-" + string(keyIndex)))
+    end
     bool caught = false
     assert failAfter(uint64(allocation))
     try
         growing.addNode("node-E")
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
@@ -69,7 +72,9 @@ for allocation in range(16)
     assert caught == triggered
     if caught then
         assert growing.nodeCount == 4 and growing.vnodeCount == 32
-        assert growing.getNode("stable-key") == selected
+        for keyIndex in range(32)
+            assert growing.getNode("stable-key-" + string(keyIndex)) == mappings[keyIndex]
+        end
         growing.addNode("node-E")
         growthFailures += 1
     else
@@ -85,7 +90,7 @@ bool readCaught = false
 assert failAfter(0)
 try
     ring.getNode("stable-key")
-catch MemoryError
+catch MemoryError error
     readCaught = true
 end
 bool readTriggered = failTriggered()

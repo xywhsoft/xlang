@@ -83,7 +83,8 @@ static int test_dual_growth_failure(void)
     unsigned failure, rejected = 0u, succeeded = 0u;
     for (failure = 0u; failure < 8u; ++failure) {
         void* ring = xchash_create(8);
-        char* selected;
+        char* mappings[32];
+        char key[32];
         int64_t added;
         int triggered;
         size_t i;
@@ -91,8 +92,11 @@ static int test_dual_growth_failure(void)
         for (i = 0u; i < sizeof(names) / sizeof(names[0]); ++i)
             CHECK(xchash_add_node(ring, names[i]) == 1);
         CHECK(xchash_node_count(ring) == 4 && xchash_vnode_count(ring) == 32);
-        selected = (char*)xchash_get_node(ring, "stable-key");
-        CHECK(selected != NULL);
+        for (i = 0u; i < 32u; ++i) {
+            CHECK(snprintf(key, sizeof(key), "stable-key-%u", (unsigned)i) > 0);
+            mappings[i] = (char*)xchash_get_node(ring, key);
+            CHECK(mappings[i] != NULL);
+        }
         CHECK(xrtMemDebugFailAfter(failure));
         added = xchash_add_node(ring, "node-E");
         triggered = xrtMemDebugFailTriggered();
@@ -100,11 +104,15 @@ static int test_dual_growth_failure(void)
             xrtErrorKind(xrtGetError()) == XERR_MEMORY : xrtGetError() == NULL);
         xrtMemDebugFailClear();
         if (triggered) {
-            char* current = (char*)xchash_get_node(ring, "stable-key");
             CHECK(added == 0 && xchash_node_count(ring) == 4 &&
-                xchash_vnode_count(ring) == 32 && current != NULL &&
-                strcmp(current, selected) == 0);
-            xrtFree(current);
+                xchash_vnode_count(ring) == 32);
+            for (i = 0u; i < 32u; ++i) {
+                char* current;
+                CHECK(snprintf(key, sizeof(key), "stable-key-%u", (unsigned)i) > 0);
+                current = (char*)xchash_get_node(ring, key);
+                CHECK(current != NULL && strcmp(current, mappings[i]) == 0);
+                xrtFree(current);
+            }
             CHECK(xchash_add_node(ring, "node-E") == 1);
             ++rejected;
         } else {
@@ -112,7 +120,7 @@ static int test_dual_growth_failure(void)
             ++succeeded;
         }
         CHECK(xchash_node_count(ring) == 5 && xchash_vnode_count(ring) == 40);
-        xrtFree(selected);
+        for (i = 0u; i < 32u; ++i) xrtFree(mappings[i]);
         xchash_destroy(ring);
     }
     CHECK(rejected >= 3u && succeeded > 0u);
