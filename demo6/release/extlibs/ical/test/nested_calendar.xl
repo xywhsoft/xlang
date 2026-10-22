@@ -11,6 +11,8 @@ func main(...) as int
     string badParamTail = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID;X=\"ok\"tail:test\nEND:VCALENDAR\n"
     string badParamQuote = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID;X=a\"b\"c:test\nEND:VCALENDAR\n"
     string badEventParam = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN:VEVENT\nSUMMARY;X_BAD=1:hello\nEND:VEVENT\nEND:VCALENDAR\n"
+    string badExtensionName = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nX_CUSTOM;X-KEY=1:opaque\nEND:VCALENDAR\n"
+    string badExtensionParam = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nX-CUSTOM;X_KEY=1:opaque\nEND:VCALENDAR\n"
     int rejected = 0
     try
         ical.parse(nested)
@@ -62,7 +64,17 @@ func main(...) as int
     catch e
         rejected += 1
     end
-    assert rejected == 10, "invalid iCalendar markers and parameters must be rejected"
+    try
+        ical.parse(badExtensionName)
+    catch e
+        rejected += 1
+    end
+    try
+        ical.parse(badExtensionParam)
+    catch e
+        rejected += 1
+    end
+    assert rejected == 12, "invalid iCalendar markers and parameters must be rejected"
     var calendar = ical.parse("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nX-CUSTOM;X-KEY=1:opaque\nEND:VCALENDAR\n")
     assert calendar["events"].length == 0, "ordinary extension properties remain ignorable"
     var parameterized = ical.parse("BEGIN:VCALENDAR\nVERSION;X=\"a;b:c\":2.0\nPRODID;X=\"b:c;d\":test\nEND:VCALENDAR\n")

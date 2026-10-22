@@ -209,6 +209,10 @@ static int test_invalid_and_failure(void) {
     const char valid[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nEND:VCALENDAR\n";
     const char extension[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
         "X-CUSTOM;X-KEY=1:opaque\nEND:VCALENDAR\n";
+    const char bad_extension_name[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
+        "X_CUSTOM;X-KEY=1:opaque\nEND:VCALENDAR\n";
+    const char bad_extension_parameter[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
+        "X-CUSTOM;X_KEY=1:opaque\nEND:VCALENDAR\n";
     const char later_version[] = "BEGIN:VCALENDAR\nPRODID:test\n"
         "BEGIN:VEVENT\nUID:one@demo\nDTSTAMP:20260801T000000Z\n"
         "DTSTART:20260810T090000Z\nEND:VEVENT\nVERSION:2.0\nEND:VCALENDAR\n";
@@ -236,6 +240,8 @@ static int test_invalid_and_failure(void) {
     CHECK(xi_parse(nul, sizeof(nul) - 1) == NULL);
     CHECK(xi_parse(invalid_utf8, sizeof(invalid_utf8) - 1) == NULL);
     CHECK(xi_parse(control, sizeof(control) - 1) == NULL);
+    CHECK(xi_parse(bad_extension_name, sizeof(bad_extension_name) - 1) == NULL);
+    CHECK(xi_parse(bad_extension_parameter, sizeof(bad_extension_parameter) - 1) == NULL);
     CHECK(xi_parse(valid, 8u * 1024u * 1024u + 1u) == NULL);
     for (prefix = 1; prefix < sizeof(truncation) - 1; ++prefix) {
         CHECK(xi_parse(truncation, prefix) == NULL && xrtGetError() != NULL);

@@ -189,6 +189,12 @@ static int xi_property_line(XiParser *parser, xstrview line) {
     }
     if (quoted || colon == line.Size || colon == 0) return 0;
     if (semi > colon) semi = colon;
+    if (semi == 0) return 0;
+    for (i = 0; i < semi; ++i) {
+        unsigned char ch = (unsigned char)line.Data[i];
+        if (!((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+              (ch >= '0' && ch <= '9') || ch == '-')) return 0;
+    }
     /* 结构标记只能是无参数的 BEGIN:/END: 行，不能降级为未知属性。 */
     if (xi_ascii_equal(line.Data, semi, "BEGIN") ||
         xi_ascii_equal(line.Data, semi, "END")) return 0;
@@ -207,11 +213,12 @@ static int xi_property_line(XiParser *parser, xstrview line) {
             return xi_set_unescaped_text(parser->calendar, "prodid",
                 (xstrview){line.Data + colon + 1, line.Size - colon - 1});
         }
-        return 1;
+        return xi_params(NULL, NULL, line, semi, colon);
     }
-    if (parser->depth != 2 || parser->current == NULL) return 1;
+    if (parser->depth != 2 || parser->current == NULL)
+        return xi_params(NULL, NULL, line, semi, colon);
     property = xi_property_wire(line.Data, semi);
-    if (property == NULL) return 1;
+    if (property == NULL) return xi_params(NULL, NULL, line, semi, colon);
     return xi_params(parser->current, property, line, semi, colon) &&
         xi_add_property(parser->current, property,
             (xstrview){line.Data + colon + 1, line.Size - colon - 1});
