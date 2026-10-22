@@ -41,7 +41,7 @@ wire.append(encoder.drain())</code></pre>
         println(inputBytes, "/", totalBytes)
         return true
     end)</code></pre>
-  <p>返回 false 抛 CancelledError；回调异常保留类型和消息，最终通知也可取消。常规失败不覆盖已有目标，支持源目标同路径；当前发布物的文件 OOM 专项证据与其他边界见页首。</p>
+  <p>返回 false 抛 CancelledError；回调异常保留类型和消息，最终通知也可取消。常规失败不覆盖已有目标；不覆盖模式在预检后出现目标时仍拒绝最终替换。支持源目标同路径；当前发布物的文件 OOM 专项证据与其他边界见页首。</p>
   <h2>格式、限额和错误</h2>
   <p>支持空内容、低内存解码、串联成员；拒绝 CRC 损坏、截断和尾部垃圾。非法压缩数据及文件错误为 IOError，参数错误为 ValueError，限额为 RangeError，状态错误为 RuntimeError，分配失败为 MemoryError。</p>
   <p>同一对象串行使用。已 drain 的数据无法撤回；倍率按已提交输入计算，需同时设置 maxOutput。限额不是 CPU 超时或编解码器工作内存限制。CRC 不是加密认证。</p>

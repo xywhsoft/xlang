@@ -12,6 +12,7 @@ func main(...) as int
     string restored = path.join(workDir, "restored.txt")
     string cancelledPath = path.join(workDir, "cancelled.bz2")
     string failedPath = path.join(workDir, "failed.bz2")
+    string racedPath = path.join(workDir, "raced.bz2")
     string content = "你好 bz2\n" + string.repeat("bzip2-file-boundary\n", 2048)
     try
         assert file.writeText(source, content)
@@ -32,6 +33,25 @@ func main(...) as int
             rejected = true
         end
         assert rejected and file.readText(restored) == content
+
+        // 预检后由别的写者创建目标，提交仍须拒绝覆盖。
+        bool createdDuringProgress = false
+        bool raceRejected = false
+        try
+            bz2.compressFile(source, racedPath, overwrite = false,
+                onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+                if not createdDuringProgress then
+                    assert file.writeText(racedPath, "other writer")
+                    createdDuringProgress = true
+                end
+                return true
+            end)
+        catch ValueError e
+            raceRejected = true
+        end
+        assert createdDuringProgress and raceRejected
+        assert file.readText(racedPath) == "other writer"
+        assert file.readText(source) == content
 
         bool cancelled = false
         try
@@ -79,6 +99,7 @@ func main(...) as int
         if file.exists(restored) then assert file.delete(restored) end
         if file.exists(cancelledPath) then assert file.delete(cancelledPath) end
         if file.exists(failedPath) then assert file.delete(failedPath) end
+        if file.exists(racedPath) then assert file.delete(racedPath) end
         assert dir.delete(workDir), "temporary bz2 directory must be removed"
     end
     println("bz2 file operations: PASS")
