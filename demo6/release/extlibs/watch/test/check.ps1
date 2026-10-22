@@ -69,6 +69,16 @@ try {
         'release/extlibs/watch/examples/watch_c.c', $runtime) +
         $links + @('-o', $example))
     $cOutput = Run 'C example' $example @()
+    $expected = @(
+        'count: 1',
+        'exists: true',
+        'path matches: true',
+        'after remove: 0',
+        'slot reused: true'
+    ) -join "`n"
+    if ($cOutput -cne $expected) {
+        throw "C watch example differs from expected output:`n$cOutput"
+    }
     $directC = Run 'C example xl run' $xl @('run',
         'release/extlibs/watch/examples/watch_c.c')
     if ($directC -cne $cOutput) {

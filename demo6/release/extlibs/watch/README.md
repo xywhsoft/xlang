@@ -89,3 +89,8 @@ Linux C ASan/UBSan、XLang、双语对照门禁均通过。带输出 AOT 的共�
 Windows `test/check.ps1 -SkipAot` 的 C/目录竞态/XLang/双语门禁和 Linux
 `test/check.sh` 的 C ASan/UBSan、XLang、双语门禁通过。实现/API 未改；
 完整带输出 AOT 的共享主线缺符号仍未签收。
+
+同日 C/XLang 入门范例补齐 `path(index)`、`remove(index)` 与删除后索引复用，
+两边均断言计数和索引状态；Windows/Linux 包门禁还核对固定五行输出。
+Windows `-SkipAot`、Linux C ASan/UBSan 与双语门禁通过；默认 Windows
+边界 AOT 通过，带输出范例仍缺共享 `xl6ValueDataSnapshotV1`，不签收整包。

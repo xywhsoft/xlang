@@ -3,9 +3,18 @@ import watch
 func main(...) as int
     string watched = "extlibs/watch/src/watch.xl"
     auto watcher = watch.create()
-    watcher.add(watched)
+    int index = watcher.add(watched)
     assert watcher.poll() == "", "no change before first poll"
+    assert watcher.count == 1 and watch.exists(watched)
     println("count:", watcher.count)
     println("exists:", watch.exists(watched))
+    assert watcher.path(index) == watched
+    println("path matches:", true)
+    assert watcher.remove(index)
+    assert watcher.count == 0
+    println("after remove:", watcher.count)
+    int reused = watcher.add(watched)
+    assert reused == index and watcher.count == 1
+    println("slot reused:", true)
     return 0
 end
