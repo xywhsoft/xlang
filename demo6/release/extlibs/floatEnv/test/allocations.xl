@@ -16,7 +16,7 @@ func main(...) as int
     bool captureTriggered = false
     try
         floatEnv.capture()
-    catch MemoryError
+    catch MemoryError error
         captureCaught = true
     finally
         captureTriggered = failTriggered()
@@ -31,7 +31,7 @@ func main(...) as int
     bool triggered = false
     try
         floatEnv.hold()
-    catch MemoryError
+    catch MemoryError error
         caught = true
     finally
         triggered = failTriggered()

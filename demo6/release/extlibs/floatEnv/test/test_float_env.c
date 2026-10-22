@@ -1,6 +1,7 @@
 #ifndef XRT_MODULE_THREAD
 #define XRT_MODULE_THREAD
 #endif
+#define XRT_MODULE_MEMORY_DEBUG
 #include "xrt.h"
 #include "../include/float_env_native.h"
 #include <stdio.h>
@@ -46,6 +47,19 @@ int main(void)
     CHECK((xfenv_get_flags() & 2) != 0);
     CHECK(xfenv_set_round(1) == 1);
     CHECK(xfenv_get_round() == 1);
+
+    CHECK(xrtMemDebugFailAfter(0));
+    CHECK(xfenv_capture() == NULL && xrtMemDebugFailTriggered());
+    xrtMemDebugFailClear();
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+    CHECK(xfenv_get_round() == 1 && xfenv_get_flags() == 2);
+    xrtClearError();
+    CHECK(xrtMemDebugFailAfter(0));
+    CHECK(xfenv_hold() == NULL && xrtMemDebugFailTriggered());
+    xrtMemDebugFailClear();
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+    CHECK(xfenv_get_round() == 1 && xfenv_get_flags() == 2);
+    xrtClearError();
 
     nested = xfenv_capture();
     CHECK(nested != NULL);

@@ -94,3 +94,9 @@ GCC、单文件 C 与 XLang 的输出；两平台已通过，Linux 含 ASan/UBSa
 `__holdSnapshot` 负例分别确认模块内部原生入口没有进入导入表。
 Windows 包门禁与 Linux C ASan/UBSan、XLang 对照门禁通过；
 `Snapshot(point)` 私有构造器的主线访问控制缺陷仍未解除。
+
+2026-10-23：C 侧新增 `capture()` 与 `hold()` 首次分配失败用例，要求
+`XERR_MEMORY` 且当前线程的舍入模式、异常标志均不改变；XLang 原有
+故障用例改为明确的 `MemoryError` 类型捕获。Windows 严格 C/XLang、
+双语范例及 Linux C ASan/UBSan、XLang 门禁通过。实现/API 未改，
+私有构造器和完整带输出 AOT 的主线阻断仍在。
