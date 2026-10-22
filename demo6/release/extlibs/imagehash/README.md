@@ -63,7 +63,7 @@ Windows `test/check.ps1` 是单入口门禁：按包清单模块执行严格 GCC
 
 C/XL 测试固定纯色图结果，C 测试额外生成非均匀 PGM，校验跨 TCC/GCC 的 pHash 一致性、中文路径、损坏图片、无效/含 NUL 的指纹和多结果所有权。XLang 还覆盖三个哈希入口对内嵌 NUL 路径的拒绝。线程交错回归先复现了旧静态 TLS 的错误串覆盖，再验证 XRT 线程键修复；Windows JIT 与 Linux ASan/UBSan 均通过。Windows 严格 GCC、双语同输出及无输出 AOT 核心已通过。三个依赖包均声明所需 XRT 模块后，核心 AOT 从 3,879,424 字节降至 959,488 字节，构建产物已运行验证。带输出范例 AOT 仍受主线 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`，故尚未签收正式发布级验收。
 
-分配故障回归覆盖图像解码到缩放链路：C 侧检查失败时仍为 `XERR_MEMORY`，成功后无旧错误；XLang 侧检查 `MemoryError` 与故障解除后的恢复。缺失/损坏图片保持 `RuntimeError`，不会留下底层 XRT 错误。Windows 包级 C 与 XLang 用例、Linux 全链路 ASan/UBSan 与双语输出门禁均通过。
+分配故障回归分别扫描 `ahash`、`dhash`、`phash` 的图像解码、缩放和结果分配路径：C 侧各检查前 64 点，XLang 侧各检查前 128 点。底层可恢复的分配故障允许公开调用成功，但成功结果必须正确且无旧错误；公开调用失败时必须保留 `XERR_MEMORY` / 抛 `MemoryError`，清除故障后仍可恢复。缺失/损坏图片保持 `RuntimeError`，不会留下底层 XRT 错误。Windows 包级 C 与 XLang 用例、Linux 全链路 ASan/UBSan 与双语输出门禁均通过。
 包内 `test/allocations.xl` 已登记为 `coverage.tests`，通用测试发现链会运行这条 XLang 故障恢复边界；它不替代 C sanitizer、线程隔离或 AOT 门禁。
 
 2026-10-16：C/XLang 回归先复现 `hamming` 失败后 `valid` 保留旧诊断，

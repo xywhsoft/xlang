@@ -68,27 +68,35 @@ int main(void) {
     CHECK(xihash_hamming(a, 16, a, 16) == 0);
     CHECK(strcmp(xihash_last_error(), "") == 0);
     {
-        unsigned point, failures = 0u, successes = 0u;
-        for (point = 0u; point < 64u; ++point) {
-            char *result;
-            int triggered;
-            CHECK(xrtMemDebugFailAfter(point));
-            result = xihash_ahash(path);
-            triggered = xrtMemDebugFailTriggered();
-            xrtMemDebugFailClear();
-            if (result == NULL) {
-                CHECK(triggered && xrtGetError() != NULL &&
-                    xrtErrorKind(xrtGetError()) == XERR_MEMORY);
-                CHECK(strcmp(xihash_last_error(), "out of memory") == 0);
-                ++failures;
-            } else {
-                CHECK(strcmp(result, a) == 0 && xrtGetError() == NULL);
-                CHECK(strcmp(xihash_last_error(), "") == 0);
-                xrtFree(result);
-                ++successes;
+        void *(*functions[])(const char *) = {
+            xihash_ahash, xihash_dhash, xihash_phash
+        };
+        const char *expected[] = {a, d, p};
+        size_t method;
+        for (method = 0u; method < 3u; ++method) {
+            unsigned point, failures = 0u, successes = 0u;
+            for (point = 0u; point < 64u; ++point) {
+                char *result;
+                int triggered;
+                CHECK(xrtMemDebugFailAfter(point));
+                result = functions[method](path);
+                triggered = xrtMemDebugFailTriggered();
+                xrtMemDebugFailClear();
+                if (result == NULL) {
+                    CHECK(triggered && xrtGetError() != NULL &&
+                        xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+                    CHECK(strcmp(xihash_last_error(), "out of memory") == 0);
+                    ++failures;
+                } else {
+                    CHECK(strcmp(result, expected[method]) == 0 &&
+                        xrtGetError() == NULL);
+                    CHECK(strcmp(xihash_last_error(), "") == 0);
+                    xrtFree(result);
+                    ++successes;
+                }
             }
+            CHECK(failures >= 2u && successes != 0u);
         }
-        CHECK(failures >= 2u && successes != 0u);
     }
     {
         char* workdir = xrtDirTemp(NULL, "xlang_imagehash_test_", NULL);

@@ -4,20 +4,37 @@ extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
 extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
 extern "xrtMemDebugFailClear" func failClear()
 
+func hash(int which, string path) as string
+    if which == 0 then return imagehash.ahash(path) end
+    if which == 1 then return imagehash.dhash(path) end
+    return imagehash.phash(path)
+end
+
 func main(...) as int
     string path = "release/examples/extlibs/assets/tiny.png"
-    assert imagehash.ahash(path) == "ffffffffffffffff"
-
-    bool caught = false
-    assert failAfter(0)
-    try
-        imagehash.ahash(path)
-    catch MemoryError
-        caught = true
+    array<string> expected = ["ffffffffffffffff", "0000000000000000", "0000000000000000"]
+    for which in range(3)
+        assert hash(which, path) == expected[which]
+        int failures = 0
+        int successes = 0
+        for allocation in range(128)
+            bool caught = false
+            string value = ""
+            assert failAfter(uint64(allocation))
+            try
+                value = hash(which, path)
+            catch MemoryError error
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            // 解码器可恢复内部故障；公开失败仍必须保留内存错误类型。
+            assert not caught or triggered, "imagehash allocation failure must remain MemoryError"
+            if caught then failures += 1 else successes += 1 end
+            if not caught then assert value == expected[which] end
+            assert hash(which, path) == expected[which]
+        end
+        assert failures > 0 and successes > 0
     end
-    bool triggered = failTriggered()
-    failClear()
-    assert triggered and caught, "imagehash allocation failure must remain MemoryError"
-    assert imagehash.ahash(path) == "ffffffffffffffff"
     return 0
 end
