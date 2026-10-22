@@ -28,4 +28,8 @@ void xideSemanticDefinitionsDestroy(xide_semantic_definitions* definitions);
 xvalue* xideSemanticDefinition(xide_semantic_definitions* definitions,const char* path,int line,int character);
 xvalue* xideSemanticHover(xide_semantic_definitions* definitions,const char* path,int line,int character);
 xvalue* xideSemanticDocumentSymbols(xide_semantic_definitions* definitions,const char* path);
+/* Owned standard DocumentHighlight[] for one verified source; deduplicated in
+ * source order, using checked declaration identity rather than spelling.
+ * Text kind is used until read/write facts are available. No disk reads. */
+xvalue* xideSemanticDocumentHighlights(xide_semantic_definitions* definitions,const char* path,int line,int character);
 #endif

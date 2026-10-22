@@ -11,7 +11,7 @@
 #define DEPTH_LIMIT 256u
 typedef struct point { int line,character; } point;
 typedef struct span { int source,startOffset,endOffset; point start,end; } span;
-typedef struct node { unsigned parent,depth,declared,target,typeId,declaredType,referencedType; uint64_t typeAbi; int call,kind,origin,typeSyntax,typeParams,typeConstraint,nameSyntax,genericType; char *name,*header,*type; span full,token,selection; } node;
+typedef struct node { unsigned parent,depth,declared,target,typeId,declaredType,referencedType; uint64_t typeAbi; int call,kind,origin,typeSyntax,typeParams,typeConstraint,nameSyntax,genericType,memberSyntax; char *name,*header,*type; span full,token,selection; } node;
 typedef struct declaration { unsigned symbol; size_t node; } declaration;
 typedef struct endpoint { int source,offset,line,column; point* output; } endpoint;
 struct xide_semantic_definitions { node* nodes; size_t count,declCount,typeCount,sourceCount; declaration *declarations,*typeDeclarations; char** paths; size_t textBytes; };
@@ -88,6 +88,7 @@ static void nodeShape(xide_semantic_definitions* d,node* n,unsigned parent,unsig
 {
  n->parent=parent; n->depth=parent ? d->nodes[parent-1].depth+1 : 1; n->declared=declared; n->target=target;
  n->call=!strcmp(kind,"call"); n->kind=symbolKind(kind); n->typeSyntax=!strcmp(kind,"type"); n->nameSyntax=!strcmp(kind,"name"); n->typeParams=!strcmp(kind,"type_params"); n->typeConstraint=!strcmp(kind,"generic_constraint");
+ n->memberSyntax=!strcmp(kind,"member") || !strcmp(kind,"safe_member");
 }
 #ifdef XLS_COMPILER_XRT
 static int typedRange(xls_index_range r,int source,const xide_semantic_source* sources,size_t count,span* out,endpoint* ends,size_t* used)
@@ -236,14 +237,8 @@ static int contains(const span* s,int source,point p) { return s->source==source
 static xvalue* position(point p) { xvalue* v=xrtValueObject(); if(v && put(v,"line",xrtValueInt(p.line)) && put(v,"character",xrtValueInt(p.character))) return v; xrtValueRelease(v); return NULL; }
 static int sourceFor(xide_semantic_definitions* d,const char* path)
 { if(d && path) for(size_t i=0;i<d->sourceCount;++i) if(xidePathLexicalEqual(path,d->paths[i])) return (int)i+1; return 0; }
-static size_t selectNode(xide_semantic_definitions* d,int source,int line,int character,size_t* decl)
+static size_t resolveDeclaration(xide_semantic_definitions* d,size_t chosen,int source,point p)
 {
- point p={line,character}; size_t chosen=SIZE_MAX; int width=INT_MAX;
- for(size_t i=0;i<d->count;++i) {
-  node* n=&d->nodes[i]; const span* s=contains(&n->selection,source,p) && (n->declared || n->declaredType) ? &n->selection : &n->token;
-  if(contains(s,source,p)) { int w=s->endOffset-s->startOffset; if(w<width || (w==width && (chosen==SIZE_MAX || n->depth>d->nodes[chosen].depth))) { chosen=i; width=w; } }
- }
- if(chosen==SIZE_MAX) return SIZE_MAX;
  node* n=&d->nodes[chosen]; unsigned target=n->target ? n->target : n->declared;
  /* A call's first child is its callee. Only the callee's terminal token uses
     the resolved overload; arguments and a member receiver keep their IDs. */
@@ -262,8 +257,16 @@ static size_t selectNode(xide_semantic_definitions* d,int source,int line,int ch
   declaration typeKey={typeId,0}; declaration* type=bsearch(&typeKey,d->typeDeclarations,d->typeCount,sizeof(*d->typeDeclarations),compareDeclaration);
   if(type && type->node!=SIZE_MAX) { node* declarationNode=&d->nodes[type->node]; if(declarationNode->typeAbi==n->typeAbi && (n->typeAbi || declarationNode->genericType)) found=type; }
  }
- *decl=found ? found->node : SIZE_MAX; return chosen;
-
+ return found ? found->node : SIZE_MAX;
+}
+static size_t selectNode(xide_semantic_definitions* d,int source,int line,int character,size_t* decl)
+{
+ point p={line,character}; size_t chosen=SIZE_MAX; int width=INT_MAX;
+ for(size_t i=0;i<d->count;++i) {
+  node* n=&d->nodes[i]; const span* s=contains(&n->selection,source,p) && (n->declared || n->declaredType) ? &n->selection : &n->token;
+  if(contains(s,source,p)) { int w=s->endOffset-s->startOffset; if(w<width || (w==width && (chosen==SIZE_MAX || n->depth>d->nodes[chosen].depth))) { chosen=i; width=w; } }
+ }
+ *decl=chosen==SIZE_MAX ? SIZE_MAX : resolveDeclaration(d,chosen,source,p); return chosen;
 }
 static xvalue* wireRange(const span* s)
 { xvalue* r=xrtValueObject(); if(r && put(r,"start",position(s->start)) && put(r,"end",position(s->end))) return r; xrtValueRelease(r); return NULL; }
@@ -275,6 +278,41 @@ xvalue* xideSemanticDefinition(xide_semantic_definitions* d,const char* path,int
  span* s=&d->nodes[decl].selection; char* uri=xideLspPathToUri(d->paths[s->source-1],NULL); xvalue* out=xrtValueObject();
  int okay=uri && out && put(out,"range",wireRange(s)) && put(out,"uri",xrtValueString(sv(uri)));
  free(uri); if(!okay) { xrtValueRelease(out); return NULL; } return out;
+}
+static int sameSelection(const span* a,const span* b)
+{ return a->source && a->source==b->source && a->startOffset==b->startOffset && a->endOffset==b->endOffset && a->endOffset>a->startOffset; }
+static const span* occurrence(const node* n,int source,point p,int atCursor)
+{
+ if((n->declared || n->declaredType) && n->selection.source==source && (!atCursor || contains(&n->selection,source,p))) return &n->selection;
+ if((n->nameSyntax || n->typeSyntax || n->memberSyntax) && n->token.source==source && (!atCursor || contains(&n->token,source,p))) return &n->token;
+ return NULL;
+}
+static int compareSpan(const void* a,const void* b)
+{
+ const span *x=a,*y=b;return x->startOffset!=y->startOffset ? (x->startOffset>y->startOffset)-(x->startOffset<y->startOffset) : (x->endOffset>y->endOffset)-(x->endOffset<y->endOffset);
+}
+xvalue* xideSemanticDocumentHighlights(xide_semantic_definitions* d,const char* path,int line,int character)
+{
+ int source=sourceFor(d,path);if(!source || line<0 || character<0) return NULL;
+ size_t decl=SIZE_MAX,chosen=selectNode(d,source,line,character,&decl);xvalue* out=xrtValueArray();if(!out) return NULL;
+ if(chosen==SIZE_MAX || decl==SIZE_MAX || !occurrence(&d->nodes[chosen],source,(point){line,character},1)) return out;
+ const span* target=&d->nodes[decl].selection;if(!target->source || target->endOffset<=target->startOffset) return out;
+ /* Resolve each token directly through the same overload/type/lexical IDs as
+  * navigation. Do not repeat the whole-tree cursor search per occurrence.
+  * Declaration locations join duplicate checked instances, never spellings. */
+ span* matches=malloc((d->count+1)*sizeof(*matches));if(!matches) { xrtValueRelease(out);return NULL; } size_t used=0;
+ for(size_t i=0;i<d->count;++i) {
+  const span* at=occurrence(&d->nodes[i],source,(point){0},0);if(!at || at->endOffset<=at->startOffset) continue;
+  size_t resolved=resolveDeclaration(d,i,source,at->start);
+  if(resolved!=SIZE_MAX && sameSelection(target,&d->nodes[resolved].selection)) matches[used++]=*at;
+ }
+ qsort(matches,used,sizeof(*matches),compareSpan);int okay=1;
+ for(size_t i=0;okay && i<used;++i) {
+  if(i && sameSelection(&matches[i-1],&matches[i])) continue;
+  xvalue* value=xrtValueObject();okay=value && put(value,"range",wireRange(&matches[i])) && put(value,"kind",xrtValueInt(1));
+  if(okay) { okay=xrtValueArrayAppendNew(out,value);value=NULL; } xrtValueRelease(value);
+ }
+ free(matches);if(!okay) { xrtValueRelease(out);return NULL; }return out;
 }
 xvalue* xideSemanticHover(xide_semantic_definitions* d,const char* path,int line,int character)
 {
