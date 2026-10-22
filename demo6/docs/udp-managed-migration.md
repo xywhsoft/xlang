@@ -36,11 +36,35 @@ GCC／TCC O0／O2、Linux ASan／UBSan，以及各自最小模块的严格独立
 本批仅修改独立 XRT 的 UDP 结果代码和相应生成段；未同步语言固定头，未修改
 Cgen、公开标准库或发布 DLL／SO／VFS，不冒称整个 UDP 接入通过。
 
+## 已完成：基础 UDP 对象图及关闭尾部
+
+XRT 提交 `a6980d1b2230de5a50b044272d2a6cb2c126a534` 增加 UDP 的 Ownership、
+Quiescence、Adapter 与 RuntimeOwnership 四个入口。Engine 的真实运行时槽与 UDP
+相互持有，UDP 继续枚举池租约、普通／错误包队列、复制／Take 发送、completion
+记录和不可变诊断；不把 Active、唯一分配记录或借用 completion 指针算成额外 RC。
+来源标签由构造入口决定，外部释放回调不用于推断拥有含义。
+
+短元数据门覆盖真实调用／Worker 帧尾部；operational LiveObjects 与关闭后的物理
+存储保活分离，保持 CLOSED 后可以销毁 Engine 的既有合同。关闭尾部可在 Worker
+已退役后解绑，无需向失效 Worker 补发命令。Claim 后隔离新工作，Prepare／Ready／
+Clear 分阶段推进，无分配的生命周期投递只借用原本存在的 runtime 引用。
+
+本次 86 个阶段（Windows 41、Linux 45）包括基础图完整退役、Creator／计划 pin
+精确计数、仍有原生调用时销毁 Engine、回调重入、普通与错误包漏边拒绝、来源
+标签、16 个构造预算、结果对象回归、两端最小模块及六个 TU 的严格独立编译。
+错误队列只做真实未发布构造器／队列的纯内存检查；IOCP 不支持 DGRAM_ERROR 时
+核对 checked Unsupported，不制造网络错误。证据根是
+`F:/xlang-validation/five-groups-20261022/p3-udp-owner`，封条 `native-verified-commit.json`。
+
+基础 V1 明确拒绝尚无已注册图策略的 Future 等待者、未知事件／Data 和裸 socket
+逃逸；这不是“已经完整接入所有 UDP 异步能力”的声明。语言固定头和 Cgen 尚未
+同步，新标准库还不能使用本批接口；没有重建发布库或 VFS。
+
 ## 仍必须依次完成
 
-1. 原生 UDP 对象的完整拥有图与静止／退役协议：真实 Engine、运行时持有、排队
-   命令、接收队列、发送节点、completion 槽、缓冲池与 Future 等待者。未知用户
-   Data、释放回调或裸 socket 逃逸不能直接认证。结果对象图不替代这一层。
+1. 以已完成的基础图继续接入 Future 等待者，以及受管理引用发送的 typed 载荷边。
+   现有 copied／Take 路径不替代引用发送，未知用户 Data、释放回调或裸 socket
+   逃逸不能直接认证；有声明或基础图通过也不能替代异步图的实际证明。
 2. 原生 UDP Future／取消节点及结果策略：跟踪实际 Promise、Watch、UDP、Batch／
    Packet 持有，保证竞争终态唯一消费；不把 opaque 区域、临时视图或镜像结构当图。
 3. 同步必要快照，接入驻留 Execution UDP family 和 Source／Engine 父边；显式
