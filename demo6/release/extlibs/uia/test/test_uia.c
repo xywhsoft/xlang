@@ -170,11 +170,16 @@ int main(void)
 	}
 	{
 		char segment[64];
+		char other_type[64];
 		int ok = x_uia_locator_segment(segment, sizeof(segment), "A/B[0]%#", 50004, 2);
 		int correct = ok && strcmp(segment, "A%2FB%5B0%5D%25%23#50004[2]") == 0;
 		int small = x_uia_locator_segment(segment, 6u, "A/B", 50004, 2);
-		if ( !correct || small ) {
-			fprintf(stderr, "UIA class path escaping failed: correct=%d small=%d\n", correct, small);
+		int distinct = x_uia_locator_segment(other_type, sizeof(other_type),
+			"A/B[0]%#", 50000, 2) && strcmp(other_type,
+			"A%2FB%5B0%5D%25%23#50000[2]") == 0;
+		if ( !correct || small || !distinct ) {
+			fprintf(stderr, "UIA class path segment failed: correct=%d small=%d distinct=%d\n",
+				correct, small, distinct);
 			goto cleanup;
 		}
 	}
@@ -192,6 +197,17 @@ int main(void)
 			goto cleanup;
 		}
 		x_uia_element_release(pPath); pPath = NULL;
+		{
+			char malformed[sizeof(info.class_path)];
+			int length = snprintf(malformed, sizeof(malformed), "%s/Edit#50004[",
+				info.class_path);
+			if ( length < 0 || length >= (int)sizeof(malformed) ) { goto cleanup; }
+			pPath = x_uia_element_find_class_path(pRoot, malformed, 0, 0);
+			if ( pPath != NULL || xrtGetError() == NULL ) {
+				fprintf(stderr, "UIA malformed class path was not rejected\n");
+				goto cleanup;
+			}
+		}
 		pPath = x_uia_element_find_class_path(pRoot, info.class_path, 2147483647, 0);
 		if ( pPath != NULL || xrtGetError() != NULL || x_uia_last_error()[0] != '\0' ) {
 			fprintf(stderr, "UIA class path ignored process ID\n");

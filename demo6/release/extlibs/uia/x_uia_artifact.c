@@ -2313,40 +2313,102 @@ static int x_uia_locator_process_matches(IUIAutomationElement* element, int proc
 	return actual == process_id;
 }
 
+static int x_uia_locator_segment_index(const char* begin, const char* end,
+	size_t* signature_length, int* index)
+{
+	const char* bracket = end;
+	int value = 0;
+	if ( end - begin < 3 || end[-1] != ']' ) { return 0; }
+	while ( bracket > begin && bracket[-1] != '[' ) { --bracket; }
+	if ( bracket <= begin || bracket == end - 1 ||
+		(bracket[0] == '0' && bracket + 1 != end - 1) ) { return 0; }
+	for ( const char* digit = bracket; digit < end - 1; ++digit ) {
+		int current = *digit - '0';
+		if ( current < 0 || current > 9 || value > (INT_MAX - current) / 10 ) { return 0; }
+		value = value * 10 + current;
+	}
+	*signature_length = (size_t)(bracket - begin - 1);
+	*index = value;
+	return *signature_length != 0u;
+}
+
 static IUIAutomationElement* x_uia_locator_follow_path(
 	IUIAutomationTreeWalker* walker,
 	IUIAutomationElement* parent,
 	const char* target,
 	int process_id,
+	DWORD started,
+	int timeout_ms,
 	int* failed
 )
 {
 	IUIAutomationElement* child = NULL;
-	HRESULT hr = walker->lpVtbl->GetFirstChildElement(walker, parent, &child);
+	const char* separator = strchr(target, '/');
+	const char* end = separator != NULL ? separator : target + strlen(target);
+	size_t signature_length = 0u;
+	int wanted_index = 0;
+	int seen = 0;
+	HRESULT hr;
+	if ( !x_uia_locator_segment_index(target, end, &signature_length, &wanted_index) ) {
+		x_uia_set_error("find_class_path: malformed path segment");
+		*failed = 1;
+		return NULL;
+	}
+	hr = walker->lpVtbl->GetFirstChildElement(walker, parent, &child);
 	if ( FAILED(hr) ) {
+		if ( child != NULL ) { child->lpVtbl->Release(child); }
 		x_uia_set_hresult_error("class path first child", hr);
 		*failed = 1;
 		return NULL;
 	}
 	while ( child != NULL ) {
 		IUIAutomationElement* next = NULL;
-		IUIAutomationElement* match = NULL;
-		XUiaLocatorInfo info;
-		memset(&info, 0, sizeof(info));
-		if ( !x_uia_locator_build_path(child, &info) ) {
-			*failed = 1;
-		} else if ( x_uia_locator_path_prefix(target, info.class_path) ) {
-			if ( strcmp(target, info.class_path) == 0 ) {
-				int process_match = x_uia_locator_process_matches(child, process_id);
-				if ( process_match < 0 ) { *failed = 1; }
-				else if ( process_match ) { child->lpVtbl->AddRef(child); match = child; }
-			} else {
-				match = x_uia_locator_follow_path(walker, child, target, process_id, failed);
-			}
-		}
-		if ( match != NULL || *failed ) {
+		char class_name[512];
+		char segment[160];
+		char* bracket;
+		CONTROLTYPEID control_type = 0;
+		if ( timeout_ms > 0 && (DWORD)(GetTickCount() - started) >= (DWORD)timeout_ms ) {
 			child->lpVtbl->Release(child);
-			return match;
+			return NULL;
+		}
+		hr = child->lpVtbl->get_CurrentControlType(child, &control_type);
+		if ( FAILED(hr) ) {
+			x_uia_set_hresult_error("class path control type", hr);
+			*failed = 1;
+		} else if ( !x_uia_current_bstr_to_buffer(child,
+			child->lpVtbl->get_CurrentClassName, class_name, sizeof(class_name)) ) {
+			*failed = 1;
+		} else if ( class_name[0] != '\0' ) {
+			if ( !x_uia_locator_segment(segment, sizeof(segment), class_name,
+				(int)control_type, 0) ) {
+				x_uia_set_error("find_class_path: class path segment exceeds limit");
+				*failed = 1;
+			}
+		} else if ( snprintf(segment, sizeof(segment), "controlType:%d[0]",
+			(int)control_type) < 0 ) {
+			*failed = 1;
+		}
+		if ( *failed ) {
+			child->lpVtbl->Release(child);
+			return NULL;
+		}
+		bracket = strrchr(segment, '[');
+		if ( bracket != NULL && (size_t)(bracket - segment) == signature_length &&
+			memcmp(segment, target, signature_length) == 0 ) {
+			if ( seen == wanted_index ) {
+				IUIAutomationElement* match = NULL;
+				if ( separator == NULL ) {
+					int process_match = x_uia_locator_process_matches(child, process_id);
+					if ( process_match < 0 ) { *failed = 1; }
+					else if ( process_match ) { child->lpVtbl->AddRef(child); match = child; }
+				} else {
+					match = x_uia_locator_follow_path(walker, child, separator + 1,
+						process_id, started, timeout_ms, failed);
+				}
+				child->lpVtbl->Release(child);
+				return match;
+			}
+			++seen;
 		}
 		hr = walker->lpVtbl->GetNextSiblingElement(walker, child, &next);
 		child->lpVtbl->Release(child);
@@ -2366,13 +2428,22 @@ XL_EXPORT void* x_uia_element_find_class_path(void* root, const char* class_path
 	XUiaElement* wrapped = x_uia_element_from_handle(root);
 	DWORD started = GetTickCount();
 	XUiaLocatorInfo root_info;
+	size_t root_length;
+	int segments = 1;
 	if ( wrapped == NULL || class_path == NULL || class_path[0] == '\0' ||
 		strlen(class_path) >= sizeof(root_info.class_path) || process_id < 0 || timeout_ms < 0 ) {
 		x_uia_set_error("find_class_path: invalid root, path or numeric filter");
 		return NULL;
 	}
+	for ( const char* cursor = class_path; *cursor != '\0'; ++cursor ) {
+		if ( *cursor == '/' && ++segments > 16 ) {
+			x_uia_set_error("find_class_path: path exceeds depth limit");
+			return NULL;
+		}
+	}
 	memset(&root_info, 0, sizeof(root_info));
 	if ( !x_uia_locator_build_path(wrapped->element, &root_info) ) { return NULL; }
+	root_length = strlen(root_info.class_path);
 	if ( !x_uia_locator_path_prefix(class_path, root_info.class_path) ) {
 		x_uia_set_error("");
 		return NULL;
@@ -2394,8 +2465,8 @@ XL_EXPORT void* x_uia_element_find_class_path(void* root, const char* class_path
 				x_uia_set_hresult_error("find_class_path walker", hr);
 				return NULL;
 			}
-			match = x_uia_locator_follow_path(walker, wrapped->element, class_path,
-				process_id, &failed);
+			match = x_uia_locator_follow_path(walker, wrapped->element,
+				class_path + root_length + 1u, process_id, started, timeout_ms, &failed);
 			walker->lpVtbl->Release(walker);
 		}
 		if ( failed ) { return NULL; }

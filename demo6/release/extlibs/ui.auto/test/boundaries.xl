@@ -62,7 +62,7 @@ func main(...) as int
 	by_path.process_id = 2147483647
 	assert not ui.auto.wait_exists(by_path), "class path ignored the process filter"
 	by_path.process_id = process_id
-	by_path.class_path = class_path + "/Edit[999]"
+	by_path.class_path = class_path + "/Edit#50004[999]"
 	assert not ui.auto.wait_exists(by_path), "missing class path should not match"
 
 	rejected = false
