@@ -70,6 +70,18 @@ static bool serial_windows_error(const char* operation)
 
 
 
+/* Windows 的写入超时两个字段同为 0 表示无限等待，1ms 才是最短等待。 */
+static COMMTIMEOUTS serial_windows_timeouts(int readMs, int writeMs)
+{
+    COMMTIMEOUTS timeouts = {0};
+    timeouts.ReadIntervalTimeout = MAXDWORD;
+    timeouts.ReadTotalTimeoutConstant = (DWORD)readMs;
+    timeouts.WriteTotalTimeoutConstant = (DWORD)(writeMs == 0 ? 1 : writeMs);
+    return timeouts;
+}
+
+
+
 /* UTF-8 路径转换和句柄关闭统一交给 XRT，只在这里配置串口设备。 */
 static bool serial_open_device(xserial_port* port,
     int64_t databits, int64_t stopbits, int64_t parity)
@@ -110,10 +122,7 @@ static bool serial_open_device(xserial_port* port,
     config.fDtrControl = DTR_CONTROL_ENABLE;
     config.fRtsControl = RTS_CONTROL_ENABLE;
     if (!SetCommState(handle, &config)) return serial_windows_error("set-state");
-    memset(&timeouts, 0, sizeof(timeouts));
-    timeouts.ReadIntervalTimeout = MAXDWORD;
-    timeouts.ReadTotalTimeoutConstant = (DWORD)port->ReadTimeoutMs;
-    timeouts.WriteTotalTimeoutConstant = (DWORD)port->WriteTimeoutMs;
+    timeouts = serial_windows_timeouts(port->ReadTimeoutMs, port->WriteTimeoutMs);
     if (!SetCommTimeouts(handle, &timeouts)) return serial_windows_error("set-timeouts");
     return true;
 }
@@ -369,10 +378,7 @@ bool xserial_set_timeouts(void* handle, int64_t readMs, int64_t writeMs)
     if (!serial_lock(port)) return false;
 #ifdef _WIN32
     if (!port->Loopback) {
-        COMMTIMEOUTS timeouts = {0};
-        timeouts.ReadIntervalTimeout = MAXDWORD;
-        timeouts.ReadTotalTimeoutConstant = (DWORD)readMs;
-        timeouts.WriteTotalTimeoutConstant = (DWORD)writeMs;
+        COMMTIMEOUTS timeouts = serial_windows_timeouts((int)readMs, (int)writeMs);
         if (!SetCommTimeouts((HANDLE)xrtFileNative(port->File), &timeouts))
             ok = serial_windows_error("set-timeouts");
     }

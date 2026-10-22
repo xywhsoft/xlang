@@ -81,7 +81,7 @@ end</code></pre></div></div>
       <tr><td><code>writeBytes(Buffer data)</code></td><td>int；实际写入二进制字节数，不修改或接管输入。</td></tr>
       <tr><td><code>read(int maxLen = 1024)</code></td><td>string；将本次读取转成文本，maxLen 是字节数。</td></tr>
       <tr><td><code>readBytes(int maxLen = 1024)</code></td><td>独立拥有的 Buffer；负数抛 ValueError，0 不消费数据。</td></tr>
-      <tr><td><code>setTimeouts(int readMs, int writeMs)</code></td><td>设备读写等待上限为 0..60000 毫秒；0 表示立即返回。回环口接受配置但仍立即收发。</td></tr>
+      <tr><td><code>setTimeouts(int readMs, int writeMs)</code></td><td>设备读写等待上限为 0..60000 毫秒；0 请求不等待，Windows 写入映射为最短 1ms 驱动超时。回环口始终立即收发。</td></tr>
       <tr><td><code>flush()</code></td><td>丢弃收发队列；不等待数据发送完成。失败抛 IOError。</td></tr>
     </tbody></table></div>
     <p>构造和读写失败均会抛出异常。类中的 <code>*Native</code> 方法仅供包装层内部使用；XLang 应用使用上表的检查型方法，C 应用可直接使用公开 C API。</p>
@@ -97,7 +97,7 @@ end</code></pre></div></div>
       <li>读取结果不会被下一次读取、flush 或端口析构影响。C 调用方独立销毁结果缓冲。</li>
       <li>UTF-8 字符可以跨读取边界。处理协议帧、分块文本或二进制时，先用 Buffer 收齐数据。</li>
       <li>每次操作内部加锁，但多个操作组成的事务不会自动加锁。请求与响应的对应关系由调用方管理。</li>
-      <li>真实设备使用同步 I/O，默认首字节读取等待约 50ms、写入超时 1000ms；可调用 setTimeouts 修改。实际行为仍受驱动约束。</li>
+      <li>真实设备使用同步 I/O，默认首字节读取等待约 50ms、写入超时 1000ms；可调用 setTimeouts 修改。Windows 写入零超时映射为 1ms，不能保证严格非阻塞；实际行为仍受驱动约束。</li>
       <li>目前没有串口枚举、异步串口或硬件流控 API。</li>
     </ul>
     <p>C 关闭句柄前，必须结束所有使用该句柄的操作。<code>close(NULL)</code> 安全；重复关闭、关闭后使用和并发关闭不属于有效调用。xlang 赋值或传参保留对象引用，不复制串口资源。</p>

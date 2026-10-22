@@ -78,6 +78,11 @@ try {
             throw "Allocation checks must exercise failure and success paths"
         }
     }
+    $timeoutExe = Join-Path $work "test_windows_timeouts.exe"
+    $null = Run-Check "gcc-windows-timeouts" $gcc ($flags + @("$package/test/test_windows_timeouts.c", $runtime,
+        "-o", $timeoutExe, "-lWs2_32", "-lIPHLPAPI", "-lShell32"))
+    $text = Run-Check "windows-timeouts" $timeoutExe @()
+    if ($text -ne "serial Windows timeouts: PASS") { throw "Windows timeout configuration changed" }
 
     # 比较由编译器生成的全部串口 extern 原型与公开 C 头，不靠两侧手写相同原型自证。
     $generated = Join-Path $work "module.c"

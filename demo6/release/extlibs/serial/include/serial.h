@@ -29,7 +29,7 @@ void* xserial_open(const char* name, int64_t baudrate,
 void xserial_close(void* handle);
 bool xserial_is_open(void* handle);
 
-/* 设备读写等待上限（毫秒）；0 为立即返回，最大 60000。回环口保留配置。 */
+/* 设备读写等待上限（毫秒）；0 请求不等待，Windows 写入取最短 1ms。 */
 bool xserial_set_timeouts(void* handle, int64_t readMs, int64_t writeMs);
 
 /* write 返回实际写入的字节数，允许短写；失败为 -1。 */
