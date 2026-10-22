@@ -74,6 +74,20 @@
     src\runtime\xl6_native_class_result.c
     src\runtime\xl6_udp_future.c
     src\runtime\xl6_udp_future_interrupt.c
+    src\runtime\xl6_udp_message.c
+    src\runtime\xl6_udp_message_buffer.c
+    src\runtime\xl6_udp_message_array.c
+    src\runtime\xl6_ownership_domain_udp_message.c
+    src\runtime\xl6_udp_vector.c
+    src\runtime\xl6_udp_vector_text.c
+    src\runtime\xl6_udp_vector_bytes.c
+    src\runtime\xl6_udp_vector_buffer.c
+    src\runtime\xl6_udp_refs.c
+    src\runtime\xl6_udp_transfer.c
+    src\runtime\xl6_udp_transfer_owned.c
+    src\runtime\xl6_udp_transfer_copy.c
+    src\runtime\xl6_udp_message_send.c
+    src\runtime\xl6_udp_multicast.c
     src\runtime\xl6_udp_send.c
     src\runtime\xl6_udp_send_buffer.c
     src\runtime\xl6_udp_send_ref.c

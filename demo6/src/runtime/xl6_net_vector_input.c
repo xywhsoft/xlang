@@ -35,7 +35,7 @@ bool xl6NetVectorSelectSizeV1(Inputs* input,int64_t size)
 {
     if(size< -1){xrtSetErrorKind(XERR_RANGE);return false;}
     size_t total=0;
-    for(size_t i=0;i<input->count;++i){if(input->spans[i].Size>(uint64_t)INT64_MAX-total){xrtSetErrorKind(XERR_RANGE);return false;}total+=input->spans[i].Size;}
+    for(size_t i=0;i<input->count;++i){if(input->spans[i].Size>(uint64_t)INT64_MAX-total||input->spans[i].Size>SIZE_MAX-total){xrtSetErrorKind(XERR_RANGE);return false;}total+=input->spans[i].Size;}
     size_t selected=size<0||((uint64_t)size>total)?total:(size_t)size;
     for(size_t i=0;i<input->count;++i){size_t bytes=input->spans[i].Size;if(bytes>selected)bytes=selected;
         input->spans[i].Size=bytes;selected-=bytes;}

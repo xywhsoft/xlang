@@ -1,0 +1,24 @@
+// Configure only self-owned UDP sockets; do not join groups or transmit multicast.
+async func exercise(NetEngine engine)
+    auto socket = UdpSocket(engine, NetAddress.loopback())
+    assert socket.wait(UdpWait.open, 5000) == NetStatus.ok
+    socket.setMulticastLoop(true)
+    socket.setMulticastHopLimit(1)
+    socket.setMulticastInterface(NetAddress.loopback())
+    assert await socket.setMulticastLoopAsync(false)
+    assert await socket.setMulticastHopLimitAsync(2)
+    assert await socket.setMulticastInterfaceAsync(NetAddress.loopback())
+    assert await socket.setMulticastInterfaceAsync()
+    try
+        socket.setMulticastHopLimitAsync(256)
+        assert false
+    catch RangeError
+    end
+    socket.close()
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(2).withBackend(NetBackend.select))
+engine.start()
+await exercise(engine)
+engine.close()
+assert engine.wait(5000)
+println("UDP Worker controls: owned resident dispatch, sync and async: ok")

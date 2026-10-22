@@ -188,6 +188,25 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             "}\n\n",
             out);
     }
+    /* Hidden native contexts can be the only use of a resource class (for
+     * example an exported function accepts array<NetBytes>). Declare their
+     * sealed resident policy without relying on a local constructor/take. */
+    for(size_t targetIndex=0;targetIndex<module->callTargetCount;++targetIndex){
+        const XL6_IrCallTarget* target=&module->callTargets[targetIndex];
+        if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        const XL6_IrClassField* field=
+            target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1?xl6IrNativeClassContextField(module,target):
+            target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1?xl6IrNativeClassArrayContextField(module,target):
+            target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1?xl6IrNativeClassResultContextField(module,target):NULL;
+        if(!field){
+            if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1||
+               target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1||
+               target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1)return 0;
+            continue;
+        }
+        if(!field->nativeHandlePolicyCName)return 0;
+        xl6OutputPrintf(out,"extern const struct XL6_NativeHandlePolicyV1* %s(void);\n",field->nativeHandlePolicyCName);
+    }
     if ( needs->needsClassValueIdentityRuntime ) {
         size_t instructionIndex;
         xl6OutputPuts(
@@ -208,10 +227,6 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             const XL6_IrClassIdentityPlan* identity=xl6IrClassIdentityPlanGet(module,target->nativeContextType);
             const XL6_IrClassField* field=xl6IrNativeClassResultContextField(module,target);
             if(!identity||!field||!field->nativeHandlePolicyCName)return 0;
-            /* A foreign Future result can be retained without any synchronous
-             * constructor/bind instruction for T. Its descriptor still calls
-             * this exact resident getter, so declare it independently. */
-            xl6OutputPrintf(out,"extern const struct XL6_NativeHandlePolicyV1* %s(void);\n",field->nativeHandlePolicyCName);
             xl6OutputPrintf(out,"static const XL6_ClassIdentitySchemaV3 xlir_native_result_schema_t%u = {\n"
                 "    sizeof(XL6_ClassIdentitySchemaV3), UINT64_C(0x%016llX), %u,\n"
                 "    XL6_CLASS_IDENTITY_REFERENCE_V3, XL6_CLASS_IDENTITY_REFERENCE_V3, NULL, 0, {0}\n};\n\n",
