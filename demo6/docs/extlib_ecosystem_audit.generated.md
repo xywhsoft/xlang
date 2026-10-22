@@ -11,9 +11,8 @@ Only declared manifest sources are counted. ABI text matches are review hints, n
 | environment-review | 34 |
 | existing-hardening | 2 |
 | internal | 7 |
-| needs-abi-review | 1 |
 | registered | 116 |
-| source-review | 13 |
+| source-review | 14 |
 
 ## Package Inventory
 
@@ -58,20 +57,20 @@ Only declared manifest sources are counted. ABI text matches are review hints, n
 | dinov3 | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | dns | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | docker | environment-review |  | 1 | 1 | True | True | historical environment-sensitive candidate; inspect current backend and controlled test requirements before deciding deferral |
-| dotenv | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
+| dotenv | registered | phase1 | 1 | 2 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | embeddings | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
 | enet | environment-review |  | 1 | 1 | True | True | historical environment-sensitive candidate; inspect current backend and controlled test requirements before deciding deferral |
-| epub | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
+| epub | registered | phase1 | 1 | 2 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | etcd | environment-review |  | 1 | 1 | True | True | historical environment-sensitive candidate; inspect current backend and controlled test requirements before deciding deferral |
 | faiss | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
 | fix | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | flatbuffers | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
-| floatEnv | needs-abi-review |  | 1 | 1 | False | False | text scan found local XRT API declarations; check their necessity and physical ABI against public headers |
+| floatEnv | source-review |  | 1 | 1 | False | True | declared sources exist; completeness cannot be inferred from file count, maintenance comments or defensive failure returns |
 | freetype | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
 | ftp | environment-review |  | 1 | 1 | True | True | historical environment-sensitive candidate; inspect current backend and controlled test requirements before deciding deferral |
 | fuzzy | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | geohash | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
-| gettext | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
+| gettext | registered | phase1 | 1 | 2 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | ggml | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
 | git | environment-review |  | 1 | 1 | True | True | historical environment-sensitive candidate; inspect current backend and controlled test requirements before deciding deferral |
 | glad | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
@@ -83,7 +82,7 @@ Only declared manifest sources are counted. ABI text matches are review hints, n
 | hnswlib | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
 | html5 | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
 | hyperloglog | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
-| ical | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
+| ical | registered | phase1 | 1 | 3 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | icu | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
 | imagehash | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | imgui | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
@@ -91,7 +90,7 @@ Only declared manifest sources are counted. ABI text matches are review hints, n
 | ini | registered | phase1 | 1 | 4 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | jieba | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
 | json.patch | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
-| json5 | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
+| json5 | registered | phase1 | 1 | 2 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | jwt | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | kubernetes | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
 | langdetect | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
@@ -105,7 +104,7 @@ Only declared manifest sources are counted. ABI text matches are review hints, n
 | lmdb | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
 | lru | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | lz4 | registered | featured | 1 | 7 | True | True | registered in featured suites; registration is not a test result or release admission |
-| lzma | registered | featured | 1 | 7 | True | True | registered in featured suites; registration is not a test result or release admission |
+| lzma | registered | featured | 1 | 24 | True | True | registered in featured suites; registration is not a test result or release admission |
 | md4c | registered | phase1 | 1 | 4 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | md5 | registered | featured | 1 | 2 | True | True | registered in featured suites; registration is not a test result or release admission |
 | mdns | environment-review |  | 1 | 1 | True | True | historical environment-sensitive candidate; inspect current backend and controlled test requirements before deciding deferral |
@@ -149,12 +148,12 @@ Only declared manifest sources are counted. ABI text matches are review hints, n
 | prometheus | environment-review |  | 1 | 1 | True | True | historical environment-sensitive candidate; inspect current backend and controlled test requirements before deciding deferral |
 | qr | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | rabbitmq | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
-| rapidocr | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
+| rapidocr | registered | phase1 | 1 | 2 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | ratatui | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
 | redis | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | roaring | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | rocksdb | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
-| rss | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
+| rss | registered | phase1 | 1 | 2 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | rtmp | environment-review |  | 1 | 1 | True | True | historical environment-sensitive candidate; inspect current backend and controlled test requirements before deciding deferral |
 | rtree | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | sciter | environment-review |  | 1 | 1 | True | True | historical environment-sensitive candidate; inspect current backend and controlled test requirements before deciding deferral |
@@ -166,7 +165,7 @@ Only declared manifest sources are counted. ABI text matches are review hints, n
 | shellwords | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | singleinstance | registered | platform | 1 | 1 | True | True | registered in platform suites; registration is not a test result or release admission |
 | siphash128 | registered | featured | 1 | 2 | False | True | registered in featured suites; registration is not a test result or release admission |
-| sitemap | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
+| sitemap | registered | phase1 | 1 | 2 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | skiplist | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | slugify | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | snappy | registered | featured | 1 | 3 | True | True | registered in featured suites; registration is not a test result or release admission |
@@ -181,7 +180,7 @@ Only declared manifest sources are counted. ABI text matches are review hints, n
 | stb_image_write | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | stb_truetype | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | sysinfo | registered | platform | 1 | 1 | True | True | registered in platform suites; registration is not a test result or release admission |
-| tabulate | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
+| tabulate | registered | phase1 | 1 | 2 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | taglib | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
 | tar | registered | phase1 | 1 | 5 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | tdengine | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
@@ -196,7 +195,7 @@ Only declared manifest sources are counted. ABI text matches are review hints, n
 | units | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | upnp | environment-review |  | 1 | 1 | True | True | historical environment-sensitive candidate; inspect current backend and controlled test requirements before deciding deferral |
 | vault | environment-review |  | 1 | 1 | True | True | historical environment-sensitive candidate; inspect current backend and controlled test requirements before deciding deferral |
-| vcard | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
+| vcard | registered | phase1 | 1 | 3 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | vectordb | budget-review |  | 1 | 1 | True | True | historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral |
 | volc.core | registered | phase1 | 1 | 1 | True | True | registered in phase1 suites; registration is not a test result or release admission |
 | volc.phone | environment-review |  | 1 | 1 | False | True | historical environment-sensitive candidate; inspect current backend and controlled test requirements before deciding deferral |
