@@ -104,3 +104,9 @@ XLang 边界同步覆盖 23/24、255/256 文本往返。Windows `-SkipAot`
 Windows `-SkipAot` 严格 C、XLang 与双语门禁，Linux C ASan/UBSan、
 XLang 门禁通过。这只覆盖确定的短复合输入，不替代持续 fuzz；完整 AOT
 仍受共享主线缺符号阻断。
+
+2026-10-22：六个公开编解码/HEX 入口的已有逐点分配故障扫描增加
+XRT 活动分配数和字节数基线检查；`UINT64_MAX` 解码的故障与恢复也
+核对释放后基线。Windows 严格 C/XLang 与双语范例、Linux C ASan/UBSan
+及 XLang 门禁通过；未发现包内泄漏，线格式和公开 API 未改。
+完整 AOT 本轮未复验，不据此签收整包发布级。
