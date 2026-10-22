@@ -56,6 +56,8 @@ try {
         'test/cases/extlib_stb_truetype.xl')
     $null = Run 'XLang boundaries' $xl @('run',
         'release/extlibs/stb_truetype/test/boundaries.xl')
+    $null = Run 'XLang allocations' $xl @('run',
+        'release/extlibs/stb_truetype/test/allocations.xl')
     $prior = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {

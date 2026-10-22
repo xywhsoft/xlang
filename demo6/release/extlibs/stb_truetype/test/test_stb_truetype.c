@@ -80,6 +80,28 @@ int main(void)
     CHECK(xstbtt_font_kern(MemoryFont, 'A', 'V') ==
         xstbtt_font_kern(FileFont, 'A', 'V'));
 
+    {
+        unsigned point;
+        unsigned failures = 0u;
+        for (point = 0u; point < 24u; ++point) {
+            int triggered;
+            void* Rendered;
+            CHECK(xrtMemDebugFailAfter(point));
+            Rendered = xstbtt_font_bitmap(MemoryFont, 'A', 24.0);
+            triggered = xrtMemDebugFailTriggered();
+            xrtMemDebugFailClear();
+            if (Rendered == NULL) {
+                CHECK(triggered && xstbtt_error_is_memory());
+                ++failures;
+            } else {
+                CHECK(xrtGetError() == NULL);
+                CHECK(xstbtt_bitmap_size(Rendered) > 0u);
+                xstbtt_bitmap_release(Rendered);
+            }
+        }
+        CHECK(failures >= 2u);
+    }
+
     Bitmap = xstbtt_font_bitmap(MemoryFont, 'A', 24.0);
     CHECK(Bitmap != NULL && xstbtt_bitmap_width(Bitmap) > 0 &&
         xstbtt_bitmap_height(Bitmap) > 0);

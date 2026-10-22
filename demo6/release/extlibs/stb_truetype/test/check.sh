@@ -27,6 +27,7 @@ if [[ ! -x "$xl" ]]; then
 fi
 timeout 90s "$xl" run test/cases/extlib_stb_truetype.xl
 timeout 90s "$xl" run release/extlibs/stb_truetype/test/boundaries.xl
+timeout 90s "$xl" run release/extlibs/stb_truetype/test/allocations.xl
 if timeout 90s "$xl" check \
     release/extlibs/stb_truetype/test/private_bitmap_negative.xl \
     > "$work/private_bitmap.txt" 2>&1; then

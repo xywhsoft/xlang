@@ -1,0 +1,56 @@
+import stb_truetype
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    string fontPath = "release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf"
+    Buffer source = Buffer(file.readBytes(fontPath))
+    stb_truetype.Font font = stb_truetype.loadBytes(source)
+    stb_truetype.Bitmap glyph = font.bitmap(65, 24.0)
+
+    // 原生加载、光栅化与像素复制的失败都必须报告内存错误。
+    for operation in range(4)
+        int failures = 0
+        int successes = 0
+        for point in range(24)
+            bool memoryError = false
+            bool valueError = false
+            assert failAfter(uint64(point))
+            try
+                if operation == 0 then
+                    stb_truetype.Font loaded = stb_truetype.load(fontPath)
+                    assert loaded.glyphIndex(65) > 0
+                elseif operation == 1 then
+                    stb_truetype.Font loaded = stb_truetype.loadBytes(source)
+                    assert loaded.glyphIndex(65) > 0
+                elseif operation == 2 then
+                    stb_truetype.Bitmap rendered = font.bitmap(65, 24.0)
+                    assert rendered.byteSize() > 0
+                else
+                    Buffer pixels = glyph.pixels()
+                    assert pixels.len() == glyph.byteSize()
+                end
+            catch MemoryError error
+                memoryError = true
+            catch ValueError error
+                valueError = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert not valueError, "allocation failure must remain MemoryError"
+            assert not memoryError or triggered
+            if memoryError then
+                failures += 1
+            else
+                successes += 1
+            end
+            assert font.glyphIndex(65) > 0
+            assert glyph.byteSize() > 0
+        end
+        assert failures > 0 and successes > 0
+    end
+    println("stb_truetype allocations: PASS")
+    return 0
+end

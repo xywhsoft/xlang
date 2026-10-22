@@ -109,6 +109,12 @@ const char* xstbtt_version(void)
     return "stb_truetype 1.26";
 }
 
+int xstbtt_error_is_memory(void)
+{
+    const xerror* Error = xrtGetError();
+    return Error != NULL && xrtErrorKind(Error) == XERR_MEMORY;
+}
+
 void* xstbtt_default_font_path(void)
 {
     static const char* Candidates[] = {
@@ -302,6 +308,12 @@ void* xstbtt_font_bitmap(void* Handle, int Codepoint, double Height)
     Bitmap->Pixels = stbtt_GetCodepointBitmap(&Font->Info, 0.0f, Scale,
         Codepoint, &Bitmap->Width, &Bitmap->Height,
         &Bitmap->Xoff, &Bitmap->Yoff);
+    /* stbtt 可能跳过分配失败的边缘并仍返回像素；禁止交付残缺位图。 */
+    if (xstbtt_error_is_memory()) {
+        stbtt_FreeBitmap(Bitmap->Pixels, NULL);
+        xrtFree(Bitmap);
+        return NULL;
+    }
     if (Bitmap->Width < 0 || Bitmap->Height < 0 ||
         (Bitmap->Height != 0 && (size_t)Bitmap->Width >
             XSTBTT_BITMAP_LIMIT / (size_t)Bitmap->Height)) {

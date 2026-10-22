@@ -1,6 +1,7 @@
 // Font 与 Bitmap 分别拥有 C 资源；data() 只在 Bitmap 存活期间有效。
 extern "xstbtt_available" func __available() as c_int
 extern "xstbtt_version" func __version() as string
+extern "xstbtt_error_is_memory" func __errorIsMemory() as c_int
 extern "xstbtt_default_font_path" func __defaultPath() as point
 extern "xstbtt_load" func __load(string path, c_int index) as point
 extern "xstbtt_load_memory" func __loadMemory(point data, c_size size,
@@ -65,6 +66,9 @@ export class Font
         end
         point image = self.bitmapNative(c_int(codepoint), c_double(pixelHeight))
         if image == null then
+            if __errorIsMemory() != 0 then
+                throw MemoryError "stb_truetype: could not rasterize glyph"
+            end
             throw ValueError "stb_truetype: glyph rasterization failed"
         end
         return Bitmap(image)
@@ -89,6 +93,9 @@ export func load(string path, int fontIndex = 0) as Font
     __stbtt_index(fontIndex)
     point font = __load(path, c_int(fontIndex))
     if font == null then
+        if __errorIsMemory() != 0 then
+            throw MemoryError "stb_truetype: could not load font"
+        end
         throw ValueError "stb_truetype: could not load font"
     end
     return Font(font)
@@ -98,6 +105,9 @@ export func loadBytes(Buffer data, int fontIndex = 0) as Font
     __stbtt_index(fontIndex)
     point font = __loadMemory(data.data(), c_size(data.len()), c_int(fontIndex))
     if font == null then
+        if __errorIsMemory() != 0 then
+            throw MemoryError "stb_truetype: could not load font data"
+        end
         throw ValueError "stb_truetype: could not load font data"
     end
     return Font(font)
