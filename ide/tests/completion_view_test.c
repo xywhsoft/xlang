@@ -23,6 +23,34 @@ static int replace(xide_document* d,const char* text) { return xuiCodeDocumentRe
 static int prepare(xide_app* a,xide_document* d,const char* text,const char* token,int prefix) { cvdismiss(a->completionView); const char* p=strstr(text,token); return p && replace(d,text) && position(a,d,(int)(p-text)+prefix) && settle(a); }
 static int invoke(xide_app* a) { return key(a,XUI_KEY_SPACE,XUI_MOD_CTRL) && waitReady(a); }
 static int has(xide_completion_view* v,const char* name) { for(int i=0;i<v->count;++i) if(!strcmp(v->items[i].sLabel,name)) return 1; return 0; }
+/* Complete a real plan without queue admission, so stale-context rejection is
+   deterministic rather than depending on whether the server wins a race. */
+static int holdSync(xide_completion_view* v)
+{
+ if(!v->pending || !v->wanted || !v->initialized || !cvretireSync(v)) return 0;
+ v->pending=0;if(!cvbegin(v)) return 0;
+ xide_sync_input inputs[64];for(size_t i=0;i<v->inputCount;++i) inputs[i]=(xide_sync_input){v->inputs[i].uri,v->inputs[i].textValue,v->inputs[i].id,v->inputs[i].version};
+ if(xideSyncPlannerSubmit(v->syncPlanner,v->syncToken,v->sync,inputs,v->inputCount)!=1) return 0;
+ v->syncSubmitted=1;v->syncDeadline=0;uint64_t until=GetTickCount64()+10000;
+ do {v->syncReady=xideSyncPlannerTake(v->syncPlanner);if(v->syncReady) return v->syncReady->valid && v->syncReady->token==v->syncToken;Sleep(1);}while(GetTickCount64()<until);return 0;
+}
+static int prefixCases(xui_code_document document)
+{
+ char text[270];memset(text,'a',sizeof(text));
+ for(int n=0;n<=260;++n) {
+  text[n]=0;if(xuiCodeDocumentReplace(document,0,xuiCodeDocumentGetLength(document),text)!=XUI_OK) return 0;
+  for(int at=0;at<=n;++at) if(cvprefixAllowed(document,at)!=(at<=255)) return 0;
+  if(cvprefixAllowed(document,-1) || cvprefixAllowed(document,n+1)) return 0;
+  text[n]='a';
+ }
+ for(int i=0;i<84;++i) memcpy(text+i*3,"中",3);
+ memcpy(text+252,"abc",4);
+ if(xuiCodeDocumentReplace(document,0,xuiCodeDocumentGetLength(document),text)!=XUI_OK || !cvprefixAllowed(document,255)) return 0;
+ text[255]='d';text[256]=0;
+ if(xuiCodeDocumentReplace(document,0,xuiCodeDocumentGetLength(document),text)!=XUI_OK || cvprefixAllowed(document,256)) return 0;
+ text[255]='.';
+ return xuiCodeDocumentReplace(document,0,xuiCodeDocumentGetLength(document),text)==XUI_OK && cvprefixAllowed(document,256);
+}
 static xui_widget candidateList(xide_app* a,xui_widget widget)
 {
  if(!widget) return NULL;
@@ -45,7 +73,7 @@ static int verify(void* user)
  CHECK(v->start==(int)(strstr(local,"zzROther")-local) && v->end==v->start+8 && capture(&app,light));
  /* Repeating a query keeps the connection, wire documents and captured body. */
  xls_sync_stats syncBefore={0},syncAfter={0}; xlsSyncStats(v->sync,&syncBefore);
- xide_language_client* retainedClient=v->client; char* retainedText=v->inputs[0].text;
+ xide_language_client* retainedClient=v->client; const char* retainedText=v->inputs[0].text;
  CHECK(v->sync && (v->syncKind==1 || v->syncKind==2) && invoke(&app) && has(v,"zzResult"));
  xlsSyncStats(v->sync,&syncAfter);
  CHECK(v->client==retainedClient && v->inputs[0].text==retainedText && !memcmp(&syncBefore,&syncAfter,sizeof(syncBefore)));
@@ -117,6 +145,22 @@ static int verify(void* user)
   if(mode==11) cvput(fake,"prefix",xrtValueString(cvsv("wrong")));
   CHECK(!cvapply(v,fake) && !v->result && !v->count); xrtValueRelease(fake); fake=NULL; CHECK(cvapply(v,valid) && has(v,"zzResult"));
  } xrtValueRelease(valid); valid=NULL;
+ /* A completed encoded batch must not update local wire state after an edit
+    to either input or after a connection reset. Recovery uses the latest body. */
+ const char* newer="func main(...) as int\n    int zzRecent = 7\n    return zzROther\nend\n";
+ const char* rootUri=NULL;for(size_t i=0;i<v->inputCount;++i) if(v->inputs[i].document==xl) rootUri=v->inputs[i].uri;
+ CHECK(rootUri);char* retainedUri=cvcopy(rootUri);CHECK(retainedUri);int priorWire=xlsSyncVersion(v->sync,retainedUri);
+ CHECK(prepare(&app,xl,newer,"zzROther",3));xideCompletionViewRequest(&app,xl->editor,(int)(strstr(newer,"zzROther")-newer)+3,1);
+ CHECK(holdSync(v) && !v->request && !v->ready && xlsSyncVersion(v->sync,retainedUri)==priorWire);
+ CHECK(replace(xl,local));cvpollSync(v);CHECK(!v->wanted && !v->syncToken && !v->ready && xlsSyncVersion(v->sync,retainedUri)==priorWire);
+ CHECK(prepare(&app,xl,newer,"zzROther",3));xideCompletionViewRequest(&app,xl->editor,(int)(strstr(newer,"zzROther")-newer)+3,1);
+ CHECK(holdSync(v) && replace(dependency,"export class Box\n string value\nend\n"));cvpollSync(v);
+ CHECK(!v->wanted && !v->syncToken && xlsSyncVersion(v->sync,retainedUri)==priorWire);
+ CHECK(replace(dependency,helper) && prepare(&app,xl,newer,"zzROther",3));xideCompletionViewRequest(&app,xl->editor,(int)(strstr(newer,"zzROther")-newer)+3,1);
+ CHECK(holdSync(v));uint64_t oldSession=v->session,oldToken=v->syncToken;cvstopClient(v);CHECK(v->session!=oldSession && !v->sync && !v->syncToken && !v->client);
+ CHECK(invoke(&app) && v->syncSerial>oldToken && has(v,"zzRecent") && !has(v,"zzResult") && xlsSyncVersion(v->sync,retainedUri)==1);
+ cvdismiss(v);CHECK(prefixCases(xuiCodeEditGetDocument(xl->editor)));free(retainedUri);
+ CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app));
  /* A valid-looking response cannot cross a caret, tab, version or identity. */
  fake=xrtValueDeepClone(v->result); CHECK(fake && position(&app,xl,0) && !cvapply(v,fake)); xrtValueRelease(fake); fake=NULL; CHECK(settle(&app) && !v->result);
  CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app) && xideEditorOpen(&app,native,&error) && settle(&app) && !v->result); xide_document* c=app.activeDocument;
