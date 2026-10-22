@@ -334,6 +334,27 @@
     src\runtime\xl6_crypto_ed25519_public.c
     src\runtime\xl6_crypto_ed25519_verify.c
     src\runtime\xl6_crypto_ed25519_verify_buffer.c
+    src\runtime\xl6_crypto_p256.c
+    src\runtime\xl6_crypto_p256_domain.c
+    src\runtime\xl6_crypto_p256_generate.c
+    src\runtime\xl6_crypto_p256_shared.c
+    src\runtime\xl6_crypto_p256_sign.c
+    src\runtime\xl6_crypto_p256_sign_der.c
+    src\runtime\xl6_crypto_p256_public.c
+    src\runtime\xl6_crypto_p256_verify.c
+    src\runtime\xl6_crypto_p256_verify_der.c
+    src\runtime\xl6_crypto_p256_raw.c
+    src\runtime\xl6_crypto_p384.c
+    src\runtime\xl6_crypto_p384_domain.c
+    src\runtime\xl6_crypto_p384_generate.c
+    src\runtime\xl6_crypto_p384_shared.c
+    src\runtime\xl6_crypto_p384_sign.c
+    src\runtime\xl6_crypto_p384_sign_der.c
+    src\runtime\xl6_crypto_p384_public.c
+    src\runtime\xl6_crypto_p384_verify.c
+    src\runtime\xl6_crypto_p384_verify_der.c
+    src\runtime\xl6_crypto_p384_raw.c
+    src\runtime\xl6_crypto_nist_der.c
     src\runtime\xl6_der_value.c
     src\runtime\xl6_der_value_domain.c
     src\runtime\xl6_der_reader.c

@@ -1,0 +1,4 @@
+export func selected() as SignatureHash
+    return SignatureHash.sha384
+end
+assert selected() == SignatureHash.sha384
