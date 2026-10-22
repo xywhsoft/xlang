@@ -94,9 +94,9 @@ WGL 原实现只改主模块 IAT 中的 `wglSwapBuffers`，对常见 `gdi32!Swap
 
 `opengl` 直接模式与注入式 `wgl` 不同：调用线程必须已有绑定到目标窗口的当前 GL 上下文；缺少上下文时显式报错，不再降级为 GDI。该路径只分配像素帧，不创建 GDI DC/位图，读回后翻转为顶端起始的 BGRA，并恢复 read-buffer、打包对齐、行长度及跳过行/像素状态。已在本机 GL 4.6 的 8×8 真实上下双色帧验证，同时验证 PBO/FBO 非默认绑定会被拒绝（`test/opengl_direct.c`，纳入 `-RealGpu` 门禁）。其他 GL 版本/驱动、GL 错误队列与长期资源占用仍未签收。
 
-Windows 默认门禁（在 `demo6` 目录执行）：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/op/test/check.ps1`。它验证 GCC 包装层 ABI、C/XLang 只读调用、范例同输出和无输出 AOT 调用，作为普通扩展库调用层验收。`-Stress` 保留帧尺寸/协议、SDK 槽位、hook 编译、窗口/进程/内存与 UTF-8 等插件专项测试；`-RealGpu` 还运行 D3D9、D3D11、WGL、OpenGL 和 DXGI 的真实图形测试，需要可用 Windows 图形设备。默认只读测试不移动鼠标、不改剪贴板；真实 GPU 测试会创建和移动自己的临时测试窗口。GCC 包源码检查仅屏蔽动态加载函数指针转换和遗留未使用参数告警。Linux 门禁 `sh release/extlibs/op/test/check.sh` 只跑平台无关帧尺寸测试和 ASan/UBSan，不声称支持 Linux 桌面自动化。
+Windows 默认门禁（在 `demo6` 目录执行）：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/op/test/check.ps1`。它验证 GCC 包装层 ABI、C/XLang 只读调用、范例同输出、无输出核心 AOT 以及带输出公开范例 AOT/C 对照。`-SkipAot` 只跑包侧 C/JIT 聚焦检查，不作为发布签收；当前默认路径在公开范例构建处因共享 `xl6ValueDataSnapshotV1` 缺符号准确失败。`-Stress` 保留帧尺寸/协议、SDK 槽位、hook 编译、窗口/进程/内存与 UTF-8 等插件专项测试；`-RealGpu` 还运行 D3D9、D3D11、WGL、OpenGL 和 DXGI 的真实图形测试，需要可用 Windows 图形设备。默认只读测试不移动鼠标、不改剪贴板；真实 GPU 测试会创建和移动自己的临时测试窗口。GCC 包源码检查仅屏蔽动态加载函数指针转换和遗留未使用参数告警。Linux 门禁 `sh release/extlibs/op/test/check.sh` 只跑平台无关帧尺寸测试和 ASan/UBSan，不声称支持 Linux 桌面自动化。
 
-默认门禁的核心 AOT 产物每次使用独占文件名，并在成功或失败后清理本次文件；并行运行不会复用旧的核心可执行文件。这只验证公开调用层，不扩大插件内部测试范围。
+默认门禁的核心与公开范例 AOT 产物每次使用独占文件名，并在成功或失败后清理本次文件；并行运行不会复用旧产物。这只验证公开调用层，不扩大插件内部测试范围。
 
 2026-10-18：XLang 包装层的零结尾 C 文本参数统一拒绝内嵌 NUL；
 `bindWindow("normal\0ignored")` 原会按 `normal` 成功绑定，负例先红后绿。

@@ -43,7 +43,7 @@ println("bound: " + string(context.isBind()))</code></pre>
     <h2 id="c-api">C</h2>
     <p>包含 <code>include/op.h</code>。用 <code>xop_create</code> / <code>xop_destroy</code> 管理上下文；返回的独立文本结果用 <code>xrtFree</code> 释放。包内 <code>release/examples/extlibs/op_c.c</code> 与上面的 XLang 范例输出一致。</p>
     <h2 id="verification">验证范围</h2>
-    <p>Windows 默认门禁验证 GCC ABI、C/XLang 只读调用、文本 NUL 拒绝、随机数和等待边界、双语范例同输出及无输出 AOT 查询/对象创建；加入 XRT 默认随机与时间模块后，当前裁剪 AOT 产物为 752,640 字节并运行通过。窗口、hook、UTF-8 和内存专项可显式使用 <code>-Stress</code>；<code>-RealGpu</code> 才运行真实图形测试。本机曾验证 D3D9/D3D11/WGL 的有限帧路径，这不构成跨驱动、权限或长期运行认证。交互范例需显式启动，会操作桌面。</p>
+    <p>Windows 默认门禁验证 GCC ABI、C/XLang 只读调用、文本 NUL 拒绝、随机数和等待边界、双语范例同输出，以及核心与带输出范例 AOT；后者须与 C 范例同输出。当前裁剪核心 AOT 产物为 752,640 字节并运行通过，公开范例 AOT 仍缺共享 <code>xl6ValueDataSnapshotV1</code>，因此默认门禁返回失败。<code>-SkipAot</code> 只用于 C/JIT 聚焦复验，不代表发布签收。窗口、hook、UTF-8 和内存专项可显式使用 <code>-Stress</code>；<code>-RealGpu</code> 才运行真实图形测试。本机曾验证 D3D9/D3D11/WGL 的有限帧路径，这不构成跨驱动、权限或长期运行认证。交互范例需显式启动，会操作桌面。</p>
   </section>
 </main>
 </body>

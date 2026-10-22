@@ -1,4 +1,4 @@
-param([switch]$RealGpu, [switch]$Stress)
+param([switch]$RealGpu, [switch]$Stress, [switch]$SkipAot)
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
@@ -71,22 +71,34 @@ try {
                 'extlibs/op/test/input_window_fixture.c')
             $xlExample = @(& $xl run examples/extlibs/op.xl)
             if ($LASTEXITCODE -ne 0) { throw "XLang example: exit $LASTEXITCODE" }
-            $aot = Join-Path $build ("op_aot_core_$([guid]::NewGuid().ToString('N')).exe")
-            try {
-                Run 'XLang core AOT build' $xl @('build', 'extlibs/op/test/aot_core.xl', '-o', $aot)
-                Run 'XLang core AOT call' $aot @()
-            } finally {
-                if (Test-Path -LiteralPath $aot -PathType Leaf) {
-                    Remove-Item -LiteralPath $aot -Force
+            if (($cExample -join "`n") -ne ($xlExample -join "`n")) {
+                throw "C and XLang examples differ: C=$cExample XL=$xlExample"
+            }
+            Write-Host '[op] C/XLang call smoke: PASS'
+            if (!$SkipAot) {
+                $core = Join-Path $build ("op_aot_core_$([guid]::NewGuid().ToString('N')).exe")
+                $example = Join-Path $build ("op_aot_example_$([guid]::NewGuid().ToString('N')).exe")
+                try {
+                    Run 'XLang core AOT build' $xl @('build', 'extlibs/op/test/aot_core.xl', '-o', $core)
+                    Run 'XLang core AOT call' $core @()
+                    Run 'XLang example AOT build' $xl @('build', 'examples/extlibs/op.xl', '-o', $example)
+                    $aotOutput = @(& $example)
+                    if ($LASTEXITCODE -ne 0) { throw "XLang example AOT call: exit $LASTEXITCODE" }
+                    if (($cExample -join "`n") -ne ($aotOutput -join "`n")) {
+                        throw "C and XLang AOT examples differ: C=$cExample AOT=$aotOutput"
+                    }
+                    Write-Host '[op] XLang example AOT parity: PASS'
+                } finally {
+                    foreach ($output in @($core, $example)) {
+                        if (Test-Path -LiteralPath $output -PathType Leaf) {
+                            Remove-Item -LiteralPath $output -Force
+                        }
+                    }
                 }
             }
         } finally {
             Pop-Location
         }
-        if (($cExample -join "`n") -ne ($xlExample -join "`n")) {
-            throw "C and XLang examples differ: C=$cExample XL=$xlExample"
-        }
-        Write-Host '[op] C/XLang call smoke: PASS'
         return
     }
     $bounds = Join-Path $build 'hook_bounds.exe'
