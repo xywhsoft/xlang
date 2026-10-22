@@ -2194,6 +2194,16 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_CSTRING_BOX,
     XL6_IR_RUNTIME_CBYTES_COPY,
     XL6_IR_RUNTIME_CBYTES_SIZE_TAKE,
+    XL6_IR_RUNTIME_CSTRING_LENGTH,
+    XL6_IR_RUNTIME_CBYTES_LENGTH,
+    XL6_IR_RUNTIME_CSTRING_AT,
+    XL6_IR_RUNTIME_CBYTES_AT,
+    XL6_IR_RUNTIME_C_COMPARE_EQ,
+    XL6_IR_RUNTIME_C_COMPARE_NE,
+    XL6_IR_RUNTIME_C_COMPARE_LT,
+    XL6_IR_RUNTIME_C_COMPARE_LE,
+    XL6_IR_RUNTIME_C_COMPARE_GT,
+    XL6_IR_RUNTIME_C_COMPARE_GE,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -3217,6 +3227,7 @@ typedef struct XL6_IrNode {
      * assignment uses targetSymbol for its setter. */
     XL6_SymbolId compoundOperatorSymbol;
     XL6_SemCallKind callKind;
+    XL6_IrRuntimeOp cOwnedCompareOp;
     XL6_IrImplicitNameAbi implicitNameAbi;
     /* Exact active instance parameter TypeId for an implicit NAME.  INVALID
      * for ordinary names.  A base view keeps its projected type in storageType;

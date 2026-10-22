@@ -19,6 +19,8 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
     for(size_t i=0;i<module->types.count;++i) if(xl6IrTypeIsCOwned(&module->types.items[i])) {
         needs->needsCOwnedRuntime=1;
         needs->needsStringRuntime=1;
+        needs->needsStringScalarRuntime=1;
+        needs->needsBytesRuntime=1;
     }
     /* The shared union boxer binds a nominal identity even in a read-only
      * consumer. Close its helper dependency once, not via incidental channel

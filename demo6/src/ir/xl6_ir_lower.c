@@ -4715,8 +4715,6 @@ static XL6_IrValueId xl6IrLowerNodeAsType(
     return result;
 }
 
-/* 默认参数节点属于被调用函数，但求值及失败回滚属于本次调用。
- * 嵌套默认值保留最外层使用处，不能退回声明所在的词法作用域。 */
 static XL6_IrValueId xl6IrLowerCOwnedTake(XL6_IrLowerContext* ctx,XL6_IrNodeId origin,const XL6_IrNode* call)
 {
     if(!xl6IrCOwnedTakeNodeCompatible(ctx->module,call)) {
@@ -4729,7 +4727,8 @@ static XL6_IrValueId xl6IrLowerCOwnedTake(XL6_IrLowerContext* ctx,XL6_IrNodeId o
     const XL6_IrNode* arg=xl6IrNodeGet(ctx->module,pointer);
     if(arg->sourceKind==XL6_AST_ARG && arg->childCount==1)
         pointer=ctx->module->children[arg->firstChild];
-    XL6_IrValueId raw=xl6IrLowerNode(ctx,pointer);
+    XL6_IrValueId raw=xl6IrLowerNodeAsType(ctx,origin,pointer,xl6IrNodeGet(ctx->module,pointer),
+        xl6IrLowerFindTypeByCAbi(ctx->module,XL6_IR_C_ABI_RAW_POINTER));
     if(!raw)return XL6_IR_VALUE_INVALID;
     XL6_IrValueId owned=xl6IrLowerEmitRuntimeCall(ctx,origin,call->storageType,
         binary ? XL6_IR_RUNTIME_CBYTES_TAKE : XL6_IR_RUNTIME_CSTRING_TAKE,&raw,1);
@@ -4755,6 +4754,51 @@ static XL6_IrValueId xl6IrLowerCOwnedTake(XL6_IrLowerContext* ctx,XL6_IrNodeId o
     return xl6IrLowerEmitRuntimeCall(ctx,origin,call->storageType,XL6_IR_RUNTIME_CBYTES_SIZE_TAKE,values,2);
 }
 
+static XL6_IrValueId xl6IrLowerCOwnedRead(XL6_IrLowerContext* ctx,XL6_IrNodeId origin,const XL6_IrNode* node)
+{
+    size_t first=ctx->evaluationOwnerCount;
+    XL6_IrValueId values[2]={xl6IrLowerNode(ctx,ctx->module->children[node->firstChild]),0};
+    const XL6_IrType* type=xl6IrTypeGet(&ctx->module->types,xl6IrLowerValueType(ctx,values[0]));
+    if(!xl6IrTypeIsCOwned(type))return XL6_IR_VALUE_INVALID;
+    int binary=type->cAbi==XL6_IR_C_ABI_C_BYTES;
+    int index=node->kind==XL6_IR_NODE_INDEX;
+    values[0]=xl6IrLowerProtectOwnedBorrow(ctx,origin,values[0]);
+    if(index) {
+        XL6_IrNodeId key=ctx->module->children[node->firstChild+1];
+        const XL6_IrNode* keyNode=xl6IrNodeGet(ctx->module,key);
+        values[1]=xl6IrLowerNodeAsType(ctx,origin,key,keyNode,xl6IrLowerFindTypeByCAbi(ctx->module,XL6_IR_C_ABI_I64));
+        if(!values[1])return XL6_IR_VALUE_INVALID;
+    }
+    XL6_IrValueId result=xl6IrLowerEmitRuntimeCall(ctx,origin,node->storageType,index ?
+        (binary ? XL6_IR_RUNTIME_CBYTES_AT : XL6_IR_RUNTIME_CSTRING_AT) :
+        (binary ? XL6_IR_RUNTIME_CBYTES_LENGTH : XL6_IR_RUNTIME_CSTRING_LENGTH),values,index ? 2u : 1u);
+    if(result && !xl6IrLowerCompleteEvaluationBorrows(ctx,origin,first,&result))return XL6_IR_VALUE_INVALID;
+    return result;
+}
+
+static XL6_IrValueId xl6IrLowerCOwnedCompare(XL6_IrLowerContext* ctx,XL6_IrNodeId id,const XL6_IrNode* node)
+{
+    size_t first=ctx->evaluationOwnerCount;
+    const XL6_IrNode* args=xl6IrNodeGet(ctx->module,ctx->module->children[node->firstChild+1]);
+    XL6_IrValueId values[2]={0};
+    if(!args || args->childCount!=2)return XL6_IR_VALUE_INVALID;
+    for(size_t i=0;i<2;++i) {
+        const XL6_IrNode* arg=xl6IrNodeGet(ctx->module,ctx->module->children[args->firstChild+i]);
+        if(!arg || arg->childCount!=1)return XL6_IR_VALUE_INVALID;
+        values[i]=xl6IrLowerNode(ctx,ctx->module->children[arg->firstChild]);
+        if(!xl6IrTypeIsCOwned(xl6IrTypeGet(&ctx->module->types,xl6IrLowerValueType(ctx,values[i]))))
+            values[i]=xl6IrLowerAcquireValueOwner(ctx,id,values[i]);
+        values[i]=xl6IrLowerProtectOwnedBorrow(ctx,id,values[i]);
+        if(!values[i])return XL6_IR_VALUE_INVALID;
+    }
+    XL6_IrRuntimeOp op=node->cOwnedCompareOp;
+    XL6_IrValueId result=xl6IrLowerEmitRuntimeCall(ctx,id,node->storageType,op,values,2);
+    if(result && !xl6IrLowerCompleteEvaluationBorrows(ctx,id,first,&result))return XL6_IR_VALUE_INVALID;
+    return result;
+}
+
+/* 默认参数节点属于被调用函数，但求值及失败回滚属于本次调用。
+ * 嵌套默认值保留最外层使用处，不能退回声明所在的词法作用域。 */
 static XL6_IrValueId xl6IrLowerCallArgumentAsType(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin,
     const XL6_IrCallArgument* binding, XL6_IrTypeId targetType)
@@ -13715,6 +13759,11 @@ static int xl6IrLowerClosureCaptureAdd(
     XL6_IrNodeId origin, XL6_SymbolId sourceSymbol, XL6_IrTypeId type, int mutable)
 {
     const XL6_IrType* captureType = xl6IrTypeGet(&ctx->module->types, type);
+    if(xl6IrTypeIsCOwned(captureType)) {
+        type=xl6IrLowerFindTypeByCAbi(ctx->module,captureType->cAbi==XL6_IR_C_ABI_C_STRING ?
+            XL6_IR_C_ABI_MANAGED_STRING : XL6_IR_C_ABI_MANAGED_BYTES);
+        captureType=xl6IrTypeGet(&ctx->module->types,type);
+    }
     XL6_IrClosureCapture* capture;
     size_t i;
     for ( i = closure->firstCapture; i < closure->firstCapture + closure->captureCount; ++i )
@@ -29696,6 +29745,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
         return 0;
     case XL6_IR_NODE_FUNC_DECL:
         {
+            size_t captureOwners=ctx->evaluationOwnerCount;
             const XL6_IrClosureTarget* closure = xl6IrLowerClosureTargetGet(ctx->module, node->symbol);
             XL6_IrValueId* captures = NULL;
             if ( node->sourceKind != XL6_AST_ANON_FUNC || closure == NULL ) {
@@ -29710,13 +29760,20 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                     XL6_SymbolId source = xl6IrLowerClosureCaptureStorage(ctx, item->sourceSymbol);
                     if ( source == 0 ) source = xl6IrLowerPromotedParameterStorage(ctx, item->sourceSymbol);
                     if ( source == 0 ) source = item->sourceSymbol;
+                    const XL6_IrStorage* actual=xl6IrStorageGet(ctx->module,source);
+                    XL6_IrTypeId actualType=actual && !actual->cellType ? actual->type : item->type;
                     if ( !xl6IrLowerEmit(ctx,
                                          item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_CELL
                                              ? XL6_IR_INSTR_CELL_RETAIN : XL6_IR_INSTR_LOAD,
                                          id,
                                          item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_CELL
-                                             ? item->cellType : item->type,
+                                             ? item->cellType : actualType,
                                          source, NULL, 0, &captures[i]) ) break;
+                    if(xl6IrTypeIsCOwned(xl6IrTypeGet(&ctx->module->types,actualType))) {
+                        captures[i]=xl6IrLowerCOwnedCopy(ctx,id,item->type,captures[i]);
+                        captures[i]=xl6IrLowerProtectOwnedBorrow(ctx,id,captures[i]);
+                        if(!captures[i])break;
+                    }
                 }
             }
             if ( ctx->failed || !xl6IrLowerEmit(ctx, XL6_IR_INSTR_CLOSURE_MAKE, id, node->storageType,
@@ -29727,6 +29784,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             }
             xrtFree(captures);
             if (!xl6IrLowerEmitRuntimeErrorEdge(ctx, id, node, result)) return XL6_IR_VALUE_INVALID;
+            if(!xl6IrLowerCompleteEvaluationBorrows(ctx,id,captureOwners,&result))return XL6_IR_VALUE_INVALID;
         }
         return result;
     case XL6_IR_NODE_INTERPOLATED_STRING:
@@ -30236,6 +30294,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             return XL6_IR_VALUE_INVALID;
         }
     case XL6_IR_NODE_INDEX:
+        if(node->callKind==XL6_SEM_CALL_C_OWNED_READ)return xl6IrLowerCOwnedRead(ctx,id,node);
         if (node->indexReceiverGate != XL6_IR_INDEX_RECEIVER_UNCONDITIONAL)
             return xl6IrLowerSafeIndexReceiverGate(ctx, id, node);
         if (node->sourceKind == XL6_AST_SAFE_INDEX && node->childCount == 2) {
@@ -30276,6 +30335,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
         }
         return xl6IrLowerRuntimeXValueIndexI64(ctx, id, node, XL6_IR_VALUE_INVALID);
     case XL6_IR_NODE_MEMBER:
+        if(node->callKind==XL6_SEM_CALL_C_OWNED_READ)return xl6IrLowerCOwnedRead(ctx,id,node);
         {
             const XL6_IrCallSite* memberSite = xl6IrCallSiteGet(ctx->module, id);
             if (memberSite != NULL && memberSite->receiverGate == XL6_IR_CALL_RECEIVER_NULLABLE_GETTER)
@@ -30370,6 +30430,14 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             intrinsic = xl6IrIntrinsicCallGet(ctx->module, id);
             if(node->callKind==XL6_SEM_CALL_C_OWNED_TAKE)
                 return xl6IrLowerCOwnedTake(ctx,id,node);
+            if(node->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)
+                return xl6IrLowerCOwnedCompare(ctx,id,node);
+            if(node->callKind==XL6_SEM_CALL_C_OWNED_COPY) {
+                const XL6_IrNode* args=xl6IrNodeGet(ctx->module,ctx->module->children[node->firstChild+1]);
+                const XL6_IrNode* arg=args && args->childCount==1 ? xl6IrNodeGet(ctx->module,ctx->module->children[args->firstChild]) : NULL;
+                XL6_IrNodeId source=arg && arg->childCount==1 ? ctx->module->children[arg->firstChild] : 0;
+                return source ? xl6IrLowerCOwnedCopy(ctx,id,node->storageType,xl6IrLowerNode(ctx,source)) : XL6_IR_VALUE_INVALID;
+            }
             if ( node->callKind == XL6_SEM_CALL_ENUM_VARIANT )
                 return xl6IrLowerTaggedEnumVariantCall(ctx, id, node);
             if ( node->callKind == XL6_SEM_CALL_BASE_CONSTRUCTOR )

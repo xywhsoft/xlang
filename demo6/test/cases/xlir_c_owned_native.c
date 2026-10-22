@@ -2,10 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <__xl_runtime/xruntime_decl.h>
 static int64_t count;
 void* c_owned_text(void)
 {
     char* data=malloc(6); assert(data); memcpy(data,"hello",6); return data;
+}
+void* c_owned_number(void)
+{
+    char* data=malloc(3); assert(data); memcpy(data,"42",3); return data;
 }
 void* c_owned_binary(void)
 {
@@ -14,3 +19,15 @@ void* c_owned_binary(void)
 }
 void c_owned_release(void* data) { assert(data); ++count; free(data); }
 int64_t c_owned_released(void) { return count; }
+void* c_owned_unicode(void)
+{
+    const char text[]="A\xe4\xbd\xa0\xe5\xa5\xbd" "B";
+    void* data=malloc(sizeof(text));assert(data);memcpy(data,text,sizeof(text));return data;
+}
+bool c_owned_debug(void) { return xrtMemDebugEnable(true); }
+void c_owned_fail_next(void) { assert(xrtMemDebugFailAfter(0)); }
+void c_owned_fail_clear(void) { xrtMemDebugFailClear();xrtClearError(); }
+int64_t c_owned_allocations(void)
+{
+    xmemdebugsnapshot snapshot={0};xrtMemDebugSnapshot(&snapshot);return (int64_t)snapshot.AllocCount;
+}

@@ -54,14 +54,6 @@ static inline xstrview xl6CStringViewV1(XL6_COwnedV1 value)
     return (xstrview){value.Data ? (const char*)value.Data : "", value.Size};
 }
 
-static inline bool xl6CBytesTakeCheckedV1(void* data, int64_t size,
-    XL6_CReleaseV1 release, XL6_COwnedV1* output)
-{
-    bool ok=size>=0 && (uint64_t)size<=SIZE_MAX && (data || !size);
-    *output=xl6CBytesTakeV1(data,size,release);
-    return ok;
-}
-
 /* Consumes the already anchored owner after the length expression finishes.
  * This preserves left-to-right evaluation without leaking on a thrown length. */
 static inline bool xl6CBytesSizeTakeV1(XL6_COwnedV1 value,int64_t size,XL6_COwnedV1* output)
