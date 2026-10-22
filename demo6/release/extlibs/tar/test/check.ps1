@@ -41,6 +41,11 @@ try {
         release/extlibs/tar/examples/basic_c.c release/extlibs/tar/test/runtime.c `
         -o $example -lws2_32 -lbcrypt -lshlwapi
     if ($LASTEXITCODE -ne 0) { throw 'strict GCC standalone TAR example build failed' }
+    $appendExample = Join-Path $build 'append_c.exe'
+    & $gcc -std=c11 -O2 -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/tar `
+        release/extlibs/tar/examples/append_c.c release/extlibs/tar/test/runtime.c `
+        -o $appendExample -lws2_32 -lbcrypt -lshlwapi
+    if ($LASTEXITCODE -ne 0) { throw 'strict GCC TAR append example build failed' }
     Push-Location $build
     try {
         & $exe
@@ -48,6 +53,10 @@ try {
         $cOutput = (& $example | Out-String).Trim()
         if ($LASTEXITCODE -ne 0 -or $cOutput -cne 'hello') {
             throw 'strict GCC standalone TAR example failed'
+        }
+        $appendCOutput = @(& $appendExample)
+        if ($LASTEXITCODE -ne 0 -or ($appendCOutput -join "`n") -cne "first`nsecond") {
+            throw 'strict GCC TAR append example failed'
         }
         & (Join-Path $root 'tools/run_extlib_c.ps1') -Package tar `
             -Source release/extlibs/tar/examples/basic_c.c
@@ -82,6 +91,16 @@ try {
         $xlOutput = (& $xl run extlibs/tar/examples/basic.xl | Out-String).Trim()
         if ($LASTEXITCODE -ne 0 -or $xlOutput -cne $cOutput) {
             throw 'XLang TAR example differs from C'
+        }
+        $appendTccOutput = @(& $xl run extlibs/tar/examples/append_c.c)
+        if ($LASTEXITCODE -ne 0 -or
+            ($appendTccOutput -join "`n") -cne ($appendCOutput -join "`n")) {
+            throw 'TCC TAR append example differs from GCC'
+        }
+        $appendXlOutput = @(& $xl run extlibs/tar/examples/append.xl)
+        if ($LASTEXITCODE -ne 0 -or
+            ($appendXlOutput -join "`n") -cne ($appendCOutput -join "`n")) {
+            throw 'XLang TAR append example differs from C'
         }
         $centralOutput = (& $xl run examples/extlibs/tar.xl | Out-String).Trim()
         if ($LASTEXITCODE -ne 0 -or $centralOutput -cne 'tar example: PASS') {
@@ -142,6 +161,14 @@ try {
         $aotOutput = (& $exampleAot | Out-String).Trim()
         if ($LASTEXITCODE -ne 0 -or $aotOutput -cne $cOutput) {
             throw 'XLang TAR example AOT differs from C'
+        }
+        $appendAot = Join-Path $build 'append_xl.exe'
+        & $xl build release/extlibs/tar/examples/append.xl -o $appendAot
+        if ($LASTEXITCODE -ne 0) { throw 'XLang TAR append AOT build failed' }
+        $appendAotOutput = @(& $appendAot)
+        if ($LASTEXITCODE -ne 0 -or
+            ($appendAotOutput -join "`n") -cne ($appendCOutput -join "`n")) {
+            throw 'XLang TAR append AOT differs from C'
         }
     }
 } finally {

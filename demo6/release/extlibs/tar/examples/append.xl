@@ -1,0 +1,30 @@
+import tar
+
+func main(...) as int
+    string root = dir.temp("", "xlang-tar-append-", "")
+    try
+        string archive = path.join(root, "entries.tar")
+
+        // 先提交原始归档，再以追加模式写入第二个条目。
+        auto writer = tar.create(archive)
+        writer.add("first.txt", "first")
+        writer.close()
+
+        writer = tar.openForAppend(archive)
+        writer.add("second.txt", "second")
+        writer.close()
+
+        // 分别读回旧条目和新条目，确认追加没有改写已有内容。
+        auto reader = tar.open(archive)
+        assert reader.next() and reader.info().name == "first.txt", "original TAR entry is missing"
+        assert reader.readText() == "first", "original TAR entry changed"
+        println("first")
+        assert reader.next() and reader.info().name == "second.txt", "appended TAR entry is missing"
+        assert reader.readText() == "second", "appended TAR entry changed"
+        println("second")
+        assert not reader.next(), "unexpected TAR entry"
+    finally
+        assert dir.delete(root), "TAR append example temporary directory must be removed"
+    end
+    return 0
+end

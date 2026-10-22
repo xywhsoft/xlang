@@ -26,6 +26,10 @@ $cc $flags -Ilib/xrt -Irelease/extlibs/tar \
     release/extlibs/tar/examples/basic_c.c release/extlibs/tar/test/runtime.c \
     -pthread -lm -o "$work/basic"
 (cd "$run" && timeout 30s "$work/basic" > "$run/c_example.txt")
+$cc $flags -Ilib/xrt -Irelease/extlibs/tar \
+    release/extlibs/tar/examples/append_c.c release/extlibs/tar/test/runtime.c \
+    -pthread -lm -o "$work/append"
+(cd "$run" && timeout 30s "$work/append" > "$run/append_c.txt")
 
 if [ ! -x "$root/release/xl" ]; then
     printf 'tar: Linux xl runner is missing: %s\n' "$root/release/xl" >&2
@@ -44,7 +48,9 @@ timeout 90s "$root/release/xl" run release/extlibs/tar/test/test_read_file_limit
     timeout 180s ./xl run extlibs/tar/test/boundaries.xl && \
     timeout 90s ./xl run extlibs/tar/test/named_type.xl && \
     timeout 30s ./xl run extlibs/tar/examples/basic_c.c > "$run/jit_c_example.txt" && \
-    timeout 90s ./xl run extlibs/tar/examples/basic.xl > "$run/xl_example.txt")
+    timeout 90s ./xl run extlibs/tar/examples/basic.xl > "$run/xl_example.txt" && \
+    timeout 30s ./xl run extlibs/tar/examples/append_c.c > "$run/append_jit_c.txt" && \
+    timeout 90s ./xl run extlibs/tar/examples/append.xl > "$run/append_xl.txt")
 if (cd "$root/release" && timeout 90s ./xl check extlibs/tar/test/private_native.xl) > "$run/private_native.txt" 2>&1; then
     printf 'tar: native methods must not be public\n' >&2
     exit 1
@@ -66,6 +72,10 @@ if ! grep -Fq 'no such exported type' "$run/private_reader_constructor.txt"; the
 fi
 diff -u "$run/c_example.txt" "$run/xl_example.txt"
 diff -u "$run/c_example.txt" "$run/jit_c_example.txt"
+printf 'first\nsecond\n' > "$run/append.expected.txt"
+diff -u "$run/append.expected.txt" "$run/append_c.txt"
+diff -u "$run/append_c.txt" "$run/append_jit_c.txt"
+diff -u "$run/append_c.txt" "$run/append_xl.txt"
 timeout 90s "$root/release/xl" run release/examples/extlibs/tar.xl > "$run/tar_xl.txt"
 printf 'tar example: PASS\n' > "$run/tar_xl.expected.txt"
 diff -u "$run/tar_xl.expected.txt" "$run/tar_xl.txt"
