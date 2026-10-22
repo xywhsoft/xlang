@@ -1,0 +1,42 @@
+import fuzzy
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+string left = "distance"
+string right = "instance"
+string candidates = "distance\ninstance"
+
+for operation in range(3)
+    int failures = 0
+    int successes = 0
+    for allocation in range(32)
+        bool caughtMemory = false
+        bool caughtValue = false
+        assert failAfter(uint64(allocation))
+        try
+            if operation == 0 then
+                assert fuzzy.levenshtein(left, right) == 2
+            elseif operation == 1 then
+                assert fuzzy.ratio(left, right) == 75
+            else
+                assert fuzzy.best("inst", candidates) == "instance"
+            end
+        catch MemoryError error
+            caughtMemory = true
+        catch ValueError error
+            caughtValue = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert not caughtValue and caughtMemory == triggered
+        if triggered then failures += 1 else successes += 1 end
+    end
+    assert failures > 0 and successes > 0
+end
+
+assert fuzzy.levenshtein(left, right) == 2
+assert fuzzy.ratio(left, right) == 75
+assert fuzzy.best("inst", candidates) == "instance"
+println("fuzzy allocations: PASS")

@@ -44,6 +44,8 @@ try {
         'release/extlibs/fuzzy/examples/fuzzy_c.c')
     $null = Run 'XLang boundaries' $xl @('run',
         'release/extlibs/fuzzy/test/boundaries.xl')
+    $null = Run 'XLang allocations' $xl @('run',
+        'release/extlibs/fuzzy/test/allocations.xl')
     $null = Run 'XLang central' $xl @('run', 'test/cases/extlib_fuzzy.xl')
     $xlOutput = Run 'XLang example' $xl @('run',
         'release/examples/extlibs/fuzzy.xl')

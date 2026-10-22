@@ -76,3 +76,9 @@ Linux C ASan/UBSan、线程和双语对照均通过；完整带输出 AOT 阻断
 并列首项为独立选择参照，交错覆盖 LF/CRLF、末尾换行、空候选和无匹配。
 Windows 包门禁及 Linux C ASan/UBSan、XLang 对照均通过；这验证选择器
 与当前评分规则一致，不证明评分本身是全局最优对齐。
+
+2026-10-23：增加 XLang 逐点内存故障回归，覆盖 `levenshtein`、`ratio`
+和 `best`。对每个入口核对故障触发时抛 `MemoryError` 而非 `ValueError`，
+未触发时正常返回，清除故障后仍可再次调用。用例登记到包覆盖清单及
+Windows/Linux 门禁；库实现与公开 API 未改。完整带输出 AOT 仍受共享
+`xl6ValueDataSnapshotV1` 缺符号阻断，不签收整包发布级。

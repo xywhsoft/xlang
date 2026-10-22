@@ -32,7 +32,7 @@
 println(fuzzy.levenshtein("你好", "你们"))  // 1
 println(fuzzy.best("pc", "src/main.c\nlib/parser.c"))
 println(fuzzy.best("abc", "a_b_c\nabc"))  // abc</code></pre>
-    <p>子序列评分只对 ASCII 字母忽略大小写；XLang 文本入口拒绝内嵌 NUL。C 入口在长度预算内有界扫描，超限不执行无界 <code>strlen</code>；失败后可直接重试，正常不匹配不保留旧线程错误。三个整数 C 返回值为 <code>int64_t</code>，与 XLang <code>int</code> 的跨平台 ABI 一致；C 范例用 <code>PRId64</code> 可移植打印。Windows <code>test/check.ps1</code> 单入口覆盖严格 C、三组 C 测试、XLang 边界、双语同输出、无输出核心 AOT 及带输出范例 AOT/C 对照；<code>-SkipAot</code> 仅为聚焦快测。Linux <code>test/check.sh</code> 覆盖 C ASan/UBSan、四线程、XLang 与双语对照。C 测试还以 512 组候选列表核对 <code>best</code> 按最高分选择、并列取首项；评分不承诺全局最优对齐。长度预算和 C 结果释放见包内 README；当前完整范例 AOT 构建仍受共享 <code>xl6ValueDataSnapshotV1</code> 缺符号阻断，尚未执行输出比较或签收发布级。</p>
+    <p>子序列评分只对 ASCII 字母忽略大小写；XLang 文本入口拒绝内嵌 NUL。C 入口在长度预算内有界扫描，超限不执行无界 <code>strlen</code>；失败后可直接重试，正常不匹配不保留旧线程错误。三个整数 C 返回值为 <code>int64_t</code>，与 XLang <code>int</code> 的跨平台 ABI 一致；C 范例用 <code>PRId64</code> 可移植打印。Windows <code>test/check.ps1</code> 单入口覆盖严格 C、三组 C 测试、XLang 边界及逐点内存故障、双语同输出、无输出核心 AOT 及带输出范例 AOT/C 对照；<code>-SkipAot</code> 仅为聚焦快测。Linux <code>test/check.sh</code> 覆盖 C ASan/UBSan、四线程、XLang 与双语对照。C 测试还以 512 组候选列表核对 <code>best</code> 按最高分选择、并列取首项；评分不承诺全局最优对齐。长度预算和 C 结果释放见包内 README；当前完整范例 AOT 构建仍受共享 <code>xl6ValueDataSnapshotV1</code> 缺符号阻断，尚未执行输出比较或签收发布级。</p>
   </section>
 </main>
 </body>

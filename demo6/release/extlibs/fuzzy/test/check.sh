@@ -41,6 +41,7 @@ if [[ ! -x "$xl" ]]; then
     exit 1
 fi
 timeout 90s "$xl" run release/extlibs/fuzzy/test/boundaries.xl
+timeout 90s "$xl" run release/extlibs/fuzzy/test/allocations.xl
 timeout 30s "$xl" run release/extlibs/fuzzy/examples/fuzzy_c.c > "$work/example_direct.txt"
 timeout 90s "$xl" run release/examples/extlibs/fuzzy.xl > "$work/example_xl.txt"
 diff -u "$work/example_c.txt" "$work/example_direct.txt"
