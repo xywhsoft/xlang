@@ -57,6 +57,7 @@ end
 | `flush()` | 丢弃接收/发送队列；不是等待数据发送完毕 |
 
 所有 I/O 失败均应按异常处理；成功的零字节结果不是异常。
+公开 C 的 `open`、`setTimeouts`、读写、`available` 和 `flush` 会在本次操作开始时清除当前线程的旧 XRT 错误；成功后不会留下前次失败的诊断。`isOpen`、`port`、`baudrate` 是纯查询，`close` 是清理，`xserial_error()` 用于读取错误；这些调用不清除待处理的错误。
 直接构造和工厂函数都会报告打开失败；工厂函数另外提供默认参数。
 类中的 `*Native` 方法仅供包装层内部使用。XLang 应用使用上表的检查型
 方法；C 应用仍可直接使用下方公开的 C API。
@@ -158,3 +159,5 @@ sh release/extlibs/serial/test/check.sh
 2026-10-22：新增 C/XLang 共用的 `setTimeouts(readMs, writeMs)`，保留原 50/1000 毫秒默认值；仅接受 0..60000 毫秒，失败不改变原配置。Windows 严格 GCC、生成 C 原型、C/XLang 回环及双语范例门禁通过；Linux C ASan/UBSan、PTY 实测 150 毫秒读取等待、零等待写入背压及双语 PTY 范例通过。物理串口驱动差异尚未测试；默认 Windows AOT 门禁仍缺共享 `xl6ValueDataSnapshotV1`，不签收整包发布级。
 
 同日补正 Windows 写入零超时：`COMMTIMEOUTS` 的两个写入字段为 0 会禁用超时，而非立即返回；现在映射为 1ms，并由不依赖设备的 Windows C 用例核对实际配置。Windows 聚焦门禁通过；Linux 仍使用零等待 `poll`。1ms 是驱动超时配置，不保证所有串口硬件严格在 1ms 内返回。
+
+同日修复 C 错误槽残留：`read` 失败后 `available` 成功、`write` 失败后 `read` 成功、文本写入失败后 `flush` 成功、无效 `open` 后正常 `open` 均应清掉前次错误。新增 C 回归先复现，再由两平台包门禁验证；保留 `close` 与纯查询对待处理诊断的非破坏性行为。

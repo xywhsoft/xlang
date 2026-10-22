@@ -73,6 +73,7 @@ static void check_bytes(void)
 static void check_errors(void)
 {
     void* port = xserial_open("LOOPBACK", 9600, 8, 1, 0);
+    xbuffer* first;
     char long_name[8192];
     assert(port != NULL && xserial_write_text(port, "keep") == 4);
     assert(xserial_set_timeouts(port, 0, 60000));
@@ -83,10 +84,14 @@ static void check_errors(void)
     assert(xserial_set_timeouts(port, 50, 1000) && xrtGetError() == NULL);
     assert(xserial_read(port, -1) == NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     assert(xserial_read(port, LLONG_MIN) == NULL);
-    assert(xserial_available(port) == 4);
+    assert(xserial_available(port) == 4 && xrtGetError() == NULL);
     assert(xserial_write(port, NULL, 1) == -1);
+    first = (xbuffer*)xserial_read(port, 0);
+    assert(first != NULL && first->Size == 0 && xrtGetError() == NULL);
+    xrtBufferDestroy(first);
     assert(xserial_write_text(port, NULL) == -1);
-    assert(xserial_available(port) == 4);
+    assert(xserial_flush(port) && xrtGetError() == NULL);
+    assert(xserial_available(port) == 0 && xrtGetError() == NULL);
     xserial_close(port);
     assert(xserial_read(NULL, 0) == NULL);
     assert(xserial_write(NULL, NULL, 0) == -1);
@@ -107,7 +112,9 @@ static void check_errors(void)
     long_name[sizeof(long_name) - 1] = '\0';
     assert(xserial_open(long_name, 9600, 8, 1, 0) == NULL);
     assert(xrtGetError() != NULL && xserial_error()[0] != '\0');
-    xrtClearError();
+    port = xserial_open("LOOPBACK", 9600, 8, 1, 0);
+    assert(port != NULL && xrtGetError() == NULL);
+    xserial_close(port);
 }
 
 

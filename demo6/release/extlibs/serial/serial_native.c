@@ -50,6 +50,8 @@ const char* xserial_error(void)
 
 static bool serial_lock(xserial_port* port)
 {
+    /* 每次 I/O 只留下本次诊断，成功不能携带前一次失败的错误。 */
+    xrtClearError();
     if (port == NULL) {
         serial_error(XERR_CLOSED, "serial: port is closed");
         return false;
@@ -310,6 +312,7 @@ void* xserial_open(const char* name, int64_t baudrate,
     int64_t databits, int64_t stopbits, int64_t parity)
 {
     xserial_port* port;
+    xrtClearError();
     if (name == NULL || name[0] == '\0' || baudrate <= 0 ||
         (uint64_t)baudrate > UINT32_MAX || databits < 5 || databits > 8 ||
         (stopbits != 1 && stopbits != 2) || parity < 0 || parity > 2) {

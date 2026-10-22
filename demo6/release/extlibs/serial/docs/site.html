@@ -84,7 +84,7 @@ end</code></pre></div></div>
       <tr><td><code>setTimeouts(int readMs, int writeMs)</code></td><td>设备读写等待上限为 0..60000 毫秒；0 请求不等待，Windows 写入映射为最短 1ms 驱动超时。回环口始终立即收发。</td></tr>
       <tr><td><code>flush()</code></td><td>丢弃收发队列；不等待数据发送完成。失败抛 IOError。</td></tr>
     </tbody></table></div>
-    <p>构造和读写失败均会抛出异常。类中的 <code>*Native</code> 方法仅供包装层内部使用；XLang 应用使用上表的检查型方法，C 应用可直接使用公开 C API。</p>
+    <p>构造和读写失败均会抛出异常。C 的 open、读写、available、flush 和 setTimeouts 以本次 XRT 错误为准；成功不保留上次失败的诊断。close、纯查询和错误读取不清掉待处理诊断。类中的 <code>*Native</code> 方法仅供包装层内部使用；XLang 应用使用上表的检查型方法，C 应用可直接使用公开 C API。</p>
   </section>
 
   <section id="contract">
