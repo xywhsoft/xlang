@@ -1,6 +1,10 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
+$testRoot = [IO.Path]::GetFullPath((Join-Path $root 'build/test'))
+$work = Join-Path $testRoot ('linalg_guard_' + [guid]::NewGuid().ToString('N'))
 $xl = Join-Path $root 'release/xl.exe'
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
@@ -40,7 +44,32 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'linalg XLang example failed' }
     Confirm-Output 'XLang example' $xlLines
 
-    Write-Output 'linalg Windows C/XLang gate: PASS'
+    if (-not $SkipAot) {
+        [IO.Directory]::CreateDirectory($work) | Out-Null
+        $core = Join-Path $work 'linalg_core.exe'
+        & $xl build release/extlibs/linalg/test/aot_core.xl -o $core
+        if ($LASTEXITCODE -ne 0) { throw 'linalg core AOT build failed' }
+        & $core
+        if ($LASTEXITCODE -ne 0) { throw 'linalg core AOT run failed' }
+
+        $example = Join-Path $work 'linalg_example.exe'
+        & $xl build release/examples/extlibs/linalg.xl -o $example
+        if ($LASTEXITCODE -ne 0) { throw 'linalg example AOT build failed' }
+        $aotLines = @(& $example)
+        if ($LASTEXITCODE -ne 0) { throw 'linalg example AOT run failed' }
+        Confirm-Output 'XLang example AOT' $aotLines
+    }
+
+    Write-Output $(if ($SkipAot) { 'linalg Windows C/XLang focused gate: PASS' }
+        else { 'linalg Windows C/XLang and AOT gate: PASS' })
 } finally {
     Pop-Location
+    $safeWork = [IO.Path]::GetFullPath($work)
+    if (-not $safeWork.StartsWith($testRoot + [IO.Path]::DirectorySeparatorChar,
+        [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Unsafe test cleanup path: $safeWork"
+    }
+    if (Test-Path -LiteralPath $safeWork) {
+        Remove-Item -LiteralPath $safeWork -Recurse -Force
+    }
 }

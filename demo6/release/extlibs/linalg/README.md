@@ -48,7 +48,9 @@ IEEE 浮点传播规则；成功的标量调用会清除当前线程的旧 XRT �
   输出一致；C 范例也可直接 `xl run release/examples/extlibs/linalg_c.c`，
   仅在 TCC 单文件路径包含包原生实现，正式包仍由清单分离编译。
 - `release/extlibs/linalg/test/check.ps1`：Windows 严格 GCC、C/XLang 边界及
-  包运行器 C、单文件 C、XLang 三条范例路径的固定数值输出。
+  包运行器 C、单文件 C、XLang 三条范例路径的固定数值输出；默认还需
+  构建运行核心与公开范例 AOT，后者须匹配同一固定输出。`-SkipAot`
+  仅运行 C/JIT 聚焦门禁，不是发布验收。
 - `xl run extlibs/linalg/test/boundaries.xl`
 - `tools/smoke_extlib_catalog.ps1 -Package linalg`：包清单登记的边界、
   分配故障用例和中央现行接口用例均纳入目录 smoke。迁移到 `math` 的
@@ -89,3 +91,9 @@ Windows 目录 smoke 3/3 和 Linux 包级 C ASan/UBSan、语言与双语门禁�
 后续写入覆盖。C 负例先红后绿，现先检查指针互异，再进行计算和写入；
 失败时调用方输出保持不变。Windows 严格 C、XLang 边界与双语范例，
 Linux C ASan/UBSan、XLang 与双语门禁通过。完整 AOT 仍受共享缺符号阻断。
+
+2026-10-22：Windows 默认门禁原只检查 C/JIT 就报告 PASS；现默认还要求
+核心与公开范例 AOT 构建运行，范例输出必须匹配固定预期。`-SkipAot`
+聚焦门禁通过；默认门禁在核心构建的共享
+`xl6ValueIndexReadCopyV1` 缺符号处正确失败，尚未执行到公开范例 AOT。
+成功和失败均不留下本次独占构建目录。未修改算法或 API，不签收整包发布级。
