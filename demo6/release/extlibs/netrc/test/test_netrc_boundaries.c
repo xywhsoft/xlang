@@ -844,6 +844,14 @@ static bool close_probe_fail(ptr pContext)
 	return false;
 }
 
+static bool close_probe_fail_memory(ptr pContext)
+{
+	closestream* pProbe = (closestream*)pContext;
+	++pProbe->Closed;
+	xrtSetErrorInfo(XERR_MEMORY, "test.netrc", 0, "injected close memory failure");
+	return false;
+}
+
 typedef struct {
 	xerrkind Kind;
 	int Calls;
@@ -933,7 +941,20 @@ static bool test_owned_stream_close_errors(void)
 	xrtValueRelease(pDocument);
 	if ( !bOk ) { fprintf(stderr, "owned reader close failure was lost\n"); return false; }
 	xrtClearError();
+	ReaderOps.Close = close_probe_fail_memory;
+	ReadProbe.Offset = 0u;
+	ReadProbe.Closed = 0;
+	pReader = xrtReaderCreate(&ReaderOps, &ReadProbe);
+	if ( pReader == NULL ) { return false; }
+	pDocument = xrtNetrcParse(pReader, true, NULL, &Error);
+	bOk = pDocument == NULL && Error.iCode == XRT_NETRC_ERROR_MEMORY &&
+		ReadProbe.Offset == ReadProbe.Size && ReadProbe.Closed == 1;
+	xrtValueRelease(pDocument);
+	if ( !bOk ) { fprintf(stderr, "owned reader close memory failure became %d\n",
+		Error.iCode); return false; }
+	xrtClearError();
 
+	ReaderOps.Close = close_probe_fail;
 	ReadProbe.Offset = 0u;
 	ReadProbe.Closed = 0;
 	pReader = xrtReaderCreate(&ReaderOps, &ReadProbe);
@@ -955,7 +976,19 @@ static bool test_owned_stream_close_errors(void)
 	if ( !bOk ) { fprintf(stderr, "owned writer close failure was lost\n");
 		xrtValueRelease(pDocument); return false; }
 	xrtClearError();
+	WriterOps.Close = close_probe_fail_memory;
+	WriteProbe.Written = 0u;
+	WriteProbe.Closed = 0;
+	pWriter = xrtWriterCreate(&WriterOps, &WriteProbe);
+	if ( pWriter == NULL ) { xrtValueRelease(pDocument); return false; }
+	bOk = !xrtNetrcWrite(pDocument, pWriter, true, NULL, &Error) &&
+		Error.iCode == XRT_NETRC_ERROR_MEMORY && WriteProbe.Written != 0u &&
+		WriteProbe.Closed == 1;
+	if ( !bOk ) { fprintf(stderr, "owned writer close memory failure became %d\n",
+		Error.iCode); xrtValueRelease(pDocument); return false; }
+	xrtClearError();
 
+	WriterOps.Close = close_probe_fail;
 	WriteProbe.Written = 0u;
 	WriteProbe.Closed = 0;
 	pWriter = xrtWriterCreate(&WriterOps, &WriteProbe);

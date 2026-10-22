@@ -27,7 +27,8 @@ C 使用 `include/xrt_netrc.h`。示例见 `release/examples/extlibs/netrc.xl`
 从文档字典读取的子值是借用的，文档释放后不可继续使用。
 C 流入口 `xrtNetrcParse` / `xrtNetrcWrite` 的 `bTakeOwnership=true` 表示
 无论正文成功或失败都关闭并释放流；若正文成功而关闭失败，返回
-`NULL` / `false` 并报告 `IO`。`bTakeOwnership=false` 时流仍由调用方持有，
+`NULL` / `false`，关闭时内存不足报 `MEMORY`，其他关闭失败报 `IO`。
+`bTakeOwnership=false` 时流仍由调用方持有，
 不会被库提前关闭。
 正文已失败且关闭也失败时，保留正文的首个错误。
 
@@ -136,6 +137,12 @@ XLang 空主机名负例、Windows C/XLang 与 Linux ASan/UBSan 门禁通过；�
 `IO`，正文失败时保留原错误，借用流不被提前关闭。Windows 严格 GCC、
 C/XLang 边界与双语范例，以及 Linux ASan/UBSan 和 XLang 对照门禁通过；
 当前 `check.ps1` 不跳过 AOT 时仍在 `xl6ValueDataSnapshotV1` 缺符号处停止。
+
+2026-10-22：拥有型 Reader/Writer 在正文成功、关闭回调报告 `XERR_MEMORY`
+时原误报 `IO`。自定义失败流的 C 用例先红后绿；现按关闭故障实际类别
+报告 `MEMORY` / `IO`，正文已有错误仍优先保留。Windows 聚焦门禁的
+C/XLang、双语范例与 Python 文件互通，以及 Linux C ASan/UBSan 和语言门禁
+通过；完整 AOT 本轮未复验，发布签收状态不变。
 同日补齐双语 `save/load` 教学范例：C 范例在读取前检查解析结果，失败
 统一释放对象；显式传路径时两侧核对用户名和密码但只输出用户名。
 Windows C/XLang 文件往返（XLang 中文路径）、Linux 双语同内容与 0600

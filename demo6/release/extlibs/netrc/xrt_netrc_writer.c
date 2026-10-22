@@ -325,10 +325,15 @@ bool xrtNetrcWrite(xvalue* pDocument, xwriter* pWriter,
 	}
 	xrtBufferDestroy(pOutput);
 	if ( bTakeOwnership && !xrtWriterDestroy(pWriter) && bResult ) {
+		const xerror* pCloseError = xrtGetError();
+		int iCode = pCloseError != NULL && xrtErrorKind(pCloseError) == XERR_MEMORY ?
+			XRT_NETRC_ERROR_MEMORY : XRT_NETRC_ERROR_IO;
 		/* 写入与刷新成功后，关闭失败仍表示持久化未完成。 */
 		bResult = false;
-		__xrtNetrcSetError(pResolvedError, XRT_NETRC_ERROR_IO,
-			0u, 0u, 0u, "cannot close netrc stream");
+		__xrtNetrcSetError(pResolvedError, iCode, 0u, 0u, 0u,
+			iCode == XRT_NETRC_ERROR_MEMORY ?
+			"cannot allocate netrc writer close resources" :
+			"cannot close netrc stream");
 	}
 	return bResult;
 }

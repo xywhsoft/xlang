@@ -615,10 +615,15 @@ xvalue* xrtNetrcParse(xreader* pReader, bool bTakeOwnership,
 cleanup:
 	xrtBufferDestroy(pInput);
 	if ( bTakeOwnership && !xrtReaderDestroy(pReader) && pResult != NULL ) {
+		const xerror* pCloseError = xrtGetError();
+		int iCode = pCloseError != NULL && xrtErrorKind(pCloseError) == XERR_MEMORY ?
+			XRT_NETRC_ERROR_MEMORY : XRT_NETRC_ERROR_IO;
 		/* 读取成功不代表拥有型流已经成功关闭。 */
 		xrtValueRelease(pResult);
 		pResult = NULL;
-		__xrtNetrcSetError(pError, XRT_NETRC_ERROR_IO, 0u, 0u, 0u,
+		__xrtNetrcSetError(pError, iCode, 0u, 0u, 0u,
+			iCode == XRT_NETRC_ERROR_MEMORY ?
+			"cannot allocate netrc reader close resources" :
 			"cannot close netrc stream");
 	}
 	return pResult;
