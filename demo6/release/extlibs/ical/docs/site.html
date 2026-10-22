@@ -31,7 +31,7 @@ var event = {"uid": "demo@example", "dtstamp": "20260801T000000Z",
              "dtstart": "20260817T013000Z", "summary": "团队例会"}
 string text = ical.build({"events": [event]})
 println(ical.parse(text)["events"][0]["summary"])</code></pre>
-    <p>这是常用字段值映射，不保留未知属性、提醒、时区定义或原始组件顺序；RRULE 不求值。PRODID、UID、SUMMARY 等按 TEXT 转义，URL 与 RRULE 保留原值。组件界定行只接受无参数的 <code>BEGIN:</code>/<code>END:</code>，带参数的同名行会被拒绝。生成时顶层只接受 version、prodid、events、todos，拼错字段会报错，不会静默生成空日历。解析和生成拒绝非法 UTF-8、内嵌 NUL 与非法 ASCII 控制字符，TEXT 内存换行会被转义；生成结果超过 8 MiB 时 C 接口报告 <code>XERR_RANGE</code>，不会截断。使用 TZID 时需自行负责时区定义，独立导出建议使用 UTC。C 接口、输入上限与发布验收状态见包内 README。</p>
+    <p>这是常用字段值映射，不保留未知属性、提醒、时区定义或原始组件顺序；RRULE 不求值。PRODID、UID、SUMMARY 等按 TEXT 转义，URL 与 RRULE 保留原值。组件界定行只接受无参数的 <code>BEGIN:</code>/<code>END:</code>，带参数的同名行会被拒绝；组件名只接受 ASCII 字母、数字和连字符，合法的未知组件仍可忽略。生成时顶层只接受 version、prodid、events、todos，拼错字段会报错，不会静默生成空日历。解析和生成拒绝非法 UTF-8、内嵌 NUL 与非法 ASCII 控制字符，TEXT 内存换行会被转义；生成结果超过 8 MiB 时 C 接口报告 <code>XERR_RANGE</code>，不会截断。使用 TZID 时需自行负责时区定义，独立导出建议使用 UTC。C 接口、输入上限与发布验收状态见包内 README。</p>
     <p>读取器可以提取缺少生成必需字段的事件或待办，供查看使用；这类结果直接传给 <code>build</code> 会失败，需补齐字段后再生成。解析输入超过 8 MiB 时也在读取内容前报告 <code>XERR_RANGE</code>；XLang 的 parse/build 对超限抛 <code>RangeError</code>，空输入和格式错误仍属值错误。</p>
     <p>C 教学范例可单文件 <code>xl run</code>；正式包仍分别编译实现单元。Windows 默认门禁覆盖严格 C、双语范例、线格式、无索引核心 AOT，并要求完整范例 AOT 生成的日历与 C 字节一致且通过独立线格式检查；当前完整范例构建仍缺共享 <code>xl6ValueDataSnapshotV1</code>，后续结果检查未执行。<code>-SkipAot</code> 仅供 C/JIT 聚焦验证。Linux 门禁包含 C ASan/UBSan、XLang 边界和线格式对照；外部 <code>icalendar</code> 解析仍是可选互通验收。</p>
     <p>日期伴随键必须精确拼写为 <code>dtstartTzid</code>、<code>dtstartValue</code> 等；误写成 <code>dtstartTZID</code> 或 <code>dtstartVALUE</code> 会报错，不会静默丢失参数。显式提供的参数值不能为空。</p>

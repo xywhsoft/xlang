@@ -2,6 +2,9 @@ import ical
 
 func main(...) as int
     string nested = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN:VCALENDAR\nEND:VCALENDAR\nEND:VCALENDAR\n"
+    string badComponentSpace = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN:BAD NAME\nEND:BAD NAME\nEND:VCALENDAR\n"
+    string badComponentUnderscore = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN:X_BAD\nEND:X_BAD\nEND:VCALENDAR\n"
+    string badComponentUnicode = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN:中文\nEND:中文\nEND:VCALENDAR\n"
     string markedBegin = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN;X=1:VALARM\nEND:VCALENDAR\n"
     string markedEnd = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nEND;X=1:VCALENDAR\nEND:VCALENDAR\n"
     string badVersion = "BEGIN:VCALENDAR\nVERSION;=x:2.0\nPRODID:test\nEND:VCALENDAR\n"
@@ -16,6 +19,21 @@ func main(...) as int
     int rejected = 0
     try
         ical.parse(nested)
+    catch e
+        rejected += 1
+    end
+    try
+        ical.parse(badComponentSpace)
+    catch e
+        rejected += 1
+    end
+    try
+        ical.parse(badComponentUnderscore)
+    catch e
+        rejected += 1
+    end
+    try
+        ical.parse(badComponentUnicode)
     catch e
         rejected += 1
     end
@@ -74,9 +92,11 @@ func main(...) as int
     catch e
         rejected += 1
     end
-    assert rejected == 12, "invalid iCalendar markers and parameters must be rejected"
+    assert rejected == 15, "invalid iCalendar markers, components and parameters must be rejected"
     var calendar = ical.parse("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nX-CUSTOM;X-KEY=1:opaque\nEND:VCALENDAR\n")
     assert calendar["events"].length == 0, "ordinary extension properties remain ignorable"
+    var extensionComponent = ical.parse("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN:X-CUSTOM\nX-KEY:opaque\nEND:X-CUSTOM\nEND:VCALENDAR\n")
+    assert extensionComponent["events"].length == 0, "valid extension components remain ignorable"
     var parameterized = ical.parse("BEGIN:VCALENDAR\nVERSION;X=\"a;b:c\":2.0\nPRODID;X=\"b:c;d\":test\nEND:VCALENDAR\n")
     assert parameterized["prodid"] == "test", "valid extension parameters remain accepted"
     var listed = ical.parse("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID;X=\"a;b:c\",\"d,e\":test\nEND:VCALENDAR\n")

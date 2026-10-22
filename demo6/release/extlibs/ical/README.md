@@ -23,7 +23,7 @@ assert back["events"][0]["summary"] == "团队例会"
 
 支持 `uid`、`dtstamp`、`dtstart`、`dtend`、`summary`、`description`、`location`、`organizer`、`status`、`rrule`、`due`、`priority`、`categories`、`url`、`created`、`lastModified`、`sequence`、`transp`。`prodid`、`uid`、`summary`、`description`、`location` 按 TEXT 转义；日期、URI、规则及 `categories` 保留属性值原文。重复字段读为字符串数组，生成时逐项输出。`DTSTART`、`DTEND`、`DUE` 的 `TZID` 和 `VALUE` 分别映射为 `dtstartTzid` / `dtstartValue` 等伴随键。
 
-读取时展开折行，要求单个 `VCALENDAR`、`VERSION:2.0`、非空 `PRODID` 和正确闭合；`BEGIN` / `END` 只能作为无参数的组件界定行，带参数的同名行会被拒绝，不能作为未知属性忽略。嵌套 `VALARM` / `VTIMEZONE` 的属性不会污染父事件。生成时顶层只接受 `version`、`prodid`、`events`、`todos`；每个事件/待办都必须有 `uid`、`dtstamp`，事件还必须有 `dtstart`。未知对象键直接报错，避免把拼错的 `event` 当作空日历成功写出。
+读取时展开折行，要求单个 `VCALENDAR`、`VERSION:2.0`、非空 `PRODID` 和正确闭合；`BEGIN` / `END` 只能作为无参数的组件界定行，带参数的同名行会被拒绝，不能作为未知属性忽略。组件名只接受 ASCII 字母、数字和 `-`；合法的未知组件仍可忽略，含空格、下划线或非 ASCII 字符的组件名会被拒绝。嵌套 `VALARM` / `VTIMEZONE` 的属性不会污染父事件。生成时顶层只接受 `version`、`prodid`、`events`、`todos`；每个事件/待办都必须有 `uid`、`dtstamp`，事件还必须有 `dtstart`。未知对象键直接报错，避免把拼错的 `event` 当作空日历成功写出。
 
 读取器允许提取缺少上述生成必需字段的事件/待办；这类结果可供查看，但直接传给 `build` 会失败。`parse` 不是 `build` 的格式预检，调用方需补齐字段后再生成。
 

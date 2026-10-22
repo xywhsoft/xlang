@@ -177,6 +177,14 @@ static int test_invalid_and_failure(void) {
         "END:VCALENDAR\nBEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nEND:VCALENDAR\n";
     const char nested_calendar[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
         "BEGIN:VCALENDAR\nEND:VCALENDAR\nEND:VCALENDAR\n";
+    const char bad_component_space[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
+        "BEGIN:BAD NAME\nEND:BAD NAME\nEND:VCALENDAR\n";
+    const char bad_component_underscore[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
+        "BEGIN:X_BAD\nEND:X_BAD\nEND:VCALENDAR\n";
+    const char bad_component_unicode[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
+        "BEGIN:中文\nEND:中文\nEND:VCALENDAR\n";
+    const char valid_component[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
+        "BEGIN:X-CUSTOM\nX-KEY:opaque\nEND:X-CUSTOM\nEND:VCALENDAR\n";
     const char parameterized_begin[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
         "BEGIN;X=1:VALARM\nEND:VCALENDAR\n";
     const char parameterized_end[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
@@ -226,6 +234,9 @@ static int test_invalid_and_failure(void) {
     CHECK(xi_parse(mismatched, sizeof(mismatched) - 1) == NULL);
     CHECK(xi_parse(extra, sizeof(extra) - 1) == NULL);
     CHECK(xi_parse(nested_calendar, sizeof(nested_calendar) - 1) == NULL);
+    CHECK(xi_parse(bad_component_space, sizeof(bad_component_space) - 1) == NULL);
+    CHECK(xi_parse(bad_component_underscore, sizeof(bad_component_underscore) - 1) == NULL);
+    CHECK(xi_parse(bad_component_unicode, sizeof(bad_component_unicode) - 1) == NULL);
     CHECK(xi_parse(parameterized_begin, sizeof(parameterized_begin) - 1) == NULL);
     CHECK(xi_parse(parameterized_end, sizeof(parameterized_end) - 1) == NULL);
     CHECK(xi_parse(bad_version_parameter, sizeof(bad_version_parameter) - 1) == NULL);
@@ -255,6 +266,9 @@ static int test_invalid_and_failure(void) {
     CHECK(calendar != NULL && xrtValueCount(field(calendar, "events")) == 1);
     xrtValueRelease(calendar);
     calendar = xi_parse(extension, sizeof(extension) - 1);
+    CHECK(calendar != NULL && xrtValueCount(field(calendar, "events")) == 0);
+    xrtValueRelease(calendar);
+    calendar = xi_parse(valid_component, sizeof(valid_component) - 1);
     CHECK(calendar != NULL && xrtValueCount(field(calendar, "events")) == 0);
     xrtValueRelease(calendar);
     calendar = xi_parse(valid_parameters, sizeof(valid_parameters) - 1);

@@ -224,6 +224,17 @@ static int xi_property_line(XiParser *parser, xstrview line) {
             (xstrview){line.Data + colon + 1, line.Size - colon - 1});
 }
 
+static int xi_component_name_valid(const char *name, size_t length) {
+    size_t i;
+    if (length == 0) return 0;
+    for (i = 0; i < length; ++i) {
+        unsigned char ch = (unsigned char)name[i];
+        if (!((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+              (ch >= '0' && ch <= '9') || ch == '-')) return 0;
+    }
+    return 1;
+}
+
 static int xi_line(XiParser *parser, xstrview line) {
     size_t length;
     char *name;
@@ -231,7 +242,8 @@ static int xi_line(XiParser *parser, xstrview line) {
     if (line.Size == 0) return 1;
     if (line.Size >= 6 && xi_ascii_equal(line.Data, 5, "BEGIN") && line.Data[5] == ':') {
         length = line.Size - 6;
-        if (length == 0 || length >= sizeof(parser->stack[0]) || parser->depth == 8) return 0;
+        if (length >= sizeof(parser->stack[0]) || parser->depth == 8 ||
+            !xi_component_name_valid(line.Data + 6, length)) return 0;
         /* VCALENDAR 只能占据唯一根层，不能伪装成可忽略的子组件。 */
         if (xi_ascii_equal(line.Data + 6, length, "VCALENDAR") !=
             (parser->depth == 0)) return 0;
