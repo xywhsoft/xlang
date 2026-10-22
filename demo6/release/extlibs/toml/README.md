@@ -27,6 +27,10 @@ assert toml.dateTimeKind(toml.parse(text)["released"]) == 1
 - C 侧原始 `xrttomldatetime`、可变日期对象和文本格式化共用合法性检查；日期不能暗含时间字段，时间不能暗含日期字段，本地日期时间不能暗含时区偏移，保留字段必须为零。无效记录不会被格式化为看似有效的 TOML 日期。
 - `errorCode/errorLine/errorColumn/errorOffset`：查询当前线程最近的 TOML 错误位置。语法/参数错误抛 `ValueError`，资源限额抛 `RangeError`，文件及流失败抛 `IOError`，内存失败抛 `MemoryError`；包装层未得到原生错误时抛 `TomlError`。
 
+非法 UTF-8 输入的诊断指向首个错误字节，列号和偏移均按字节计；CRLF
+只计一行。其他 TOML 语法错误的位置仍取决于底层解析器提供的信息，
+不承诺都有精确列号。
+
 私有 tomlc17 适配层使用 XRT 分配器；解析器自身的分配失败也报告为
 `MemoryError`，不会误判为 TOML 格式错误。包内 C 测试逐点注入解析分配失败，
 并核对释放路径；私有解析器对上游快照的语法收紧见 `_tomlc17/VENDOR.md`。

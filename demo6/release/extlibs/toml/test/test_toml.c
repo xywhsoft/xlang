@@ -502,6 +502,17 @@ static int testErrorsAndLimits(void)
 	bOk &= check(pValue == NULL && tError.iCode == XRT_TOML_ERROR_FORMAT &&
 		tError.iLine != 0u, "invalid input must report a typed location error");
 	xrtValueRelease(pValue);
+	{
+		static const char sInvalidUtf8[] = "a = 1\r\nb = \"\xff\"\n";
+		pValue = xrtTomlParseMemory(sInvalidUtf8,
+			sizeof(sInvalidUtf8) - 1u, NULL, &tError);
+		bOk &= check(pValue == NULL &&
+			tError.iCode == XRT_TOML_ERROR_FORMAT &&
+			tError.iLine == 2u && tError.iColumn == 6u &&
+			tError.iOffset == 12u,
+			"invalid UTF-8 must report its byte location");
+		xrtValueRelease(pValue);
+	}
 	xrtTomlOptionsInit(&tOptions);
 	tOptions.tLimits.iMaxInputBytes = 4u;
 	pValue = xrtTomlParseMemory("value = 1", 9u, &tOptions, &tError);

@@ -205,6 +205,7 @@ XRT_API xvalue* xrtTomlParse(xreader* pReader, bool bTakeOwnership,
 	uint64 iKnownSize = 0u;
 	uint64 iPosition = 0u;
 	uint32 iParseSize;
+	size_t iBadUtf8 = 0u;
 	if ( pError == NULL ) { pError = &tLocalError; }
 	xrtTomlErrorInit(pError);
 	memset(&tContext, 0, sizeof(tContext));
@@ -245,8 +246,16 @@ XRT_API xvalue* xrtTomlParse(xreader* pReader, bool bTakeOwnership,
 		goto cleanup;
 	}
 	if ( !xrtUtf8Valid((xstrview){ (const char*)pInput->Data, pInput->Size },
-		NULL) ) {
-		__xrtTomlSetError(pError, XRT_TOML_ERROR_FORMAT, 1u, 1u, 0u,
+		&iBadUtf8) ) {
+		uint64 iLine = 1u, iColumn = 1u;
+		size_t i;
+		/* 错误时才扫描前缀；列号按字节计，CRLF 由 LF 计行。 */
+		for ( i = 0u; i < iBadUtf8; ++i ) {
+			if ( pInput->Data[i] == '\n' ) { iLine++; iColumn = 1u; }
+			else { iColumn++; }
+		}
+		__xrtTomlSetError(pError, XRT_TOML_ERROR_FORMAT,
+			iLine, iColumn, iBadUtf8,
 			"TOML input is not valid UTF-8");
 		goto cleanup;
 	}

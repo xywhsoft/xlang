@@ -43,7 +43,7 @@ assert toml.dateTimeKind(toml.parse(text)["released"]) == 1</code></pre>
       <tr><td><code>localDateTime / offsetDateTime</code></td><td>创建本地或带偏移的日期时间。</td></tr>
       <tr><td><code>dateTimeKind / isLocalDate / isLocalTime / isLocalDateTime / isOffsetDateTime</code></td><td>判断时间类型。</td></tr>
       <tr><td><code>dateTimePart(value, part) / dateTimeText(value)</code></td><td>读取时间分量或 TOML 文本表示；part 为 0..7。</td></tr>
-      <tr><td><code>errorCode / errorLine / errorColumn / errorOffset</code></td><td>查询当前线程最近的 TOML 错误位置。</td></tr>
+      <tr><td><code>errorCode / errorLine / errorColumn / errorOffset</code></td><td>查询当前线程最近的 TOML 错误位置；非法 UTF-8 定位首个错误字节，其他语法错误的列号取决于底层解析器。</td></tr>
     </tbody></table>
     <p>解析与写出可限制输入、输出、单项、条目、节点和深度；参数 <code>0</code> 使用 XRT 默认值，负数不合法。C 端传入选项结构时须先调用 <code>xrtTomlOptionsInit</code>；结构本身或内嵌资源限额的版本、长度无效会报 <code>ARGUMENT</code>，不会回退到默认限额。深度限额与日期参数进入 C ABI 前进行范围检查，路径不接受内嵌 NUL。日期记录、可变日期对象与格式化共用校验，无效日历值或与类型无关的隐藏字段不会被当成合法日期输出。语法/参数错误为 <code>ValueError</code>，限额为 <code>RangeError</code>，真正的文件或流 IO 失败为 <code>IOError</code>；解析、写出和原子保存过程中的分配失败均报告 <code>MemoryError</code>。</p>
     <p>C 选项中内嵌资源限额的保留字段必须为零；非零配置在解析与写出前报告 ARGUMENT。TOML 不使用压缩倍率或资源标志：OptionsInit 将倍率置零，显式设置 <code>iMaxCompressionRatio</code> 或 <code>iFlags</code> 同样报 ARGUMENT，不会静默忽略。</p>
