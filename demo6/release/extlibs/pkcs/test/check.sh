@@ -32,6 +32,7 @@ timeout 30s ./release/xl run release/extlibs/pkcs/examples/pkcs_c.c \
 diff -u "$work/c_example.txt" "$work/direct_c_example.txt"
 timeout 90s ./release/xl run test/cases/extlib_pkcs.xl
 timeout 90s ./release/xl run release/extlibs/pkcs/test/boundaries.xl
+timeout 90s ./release/xl run release/extlibs/pkcs/test/allocations.xl
 timeout 90s ./release/xl run release/examples/extlibs/pkcs.xl \
     > "$work/xl_example.txt"
 diff -u "$work/c_example.txt" "$work/xl_example.txt"

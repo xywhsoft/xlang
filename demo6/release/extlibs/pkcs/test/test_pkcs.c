@@ -114,6 +114,8 @@ int main(void)
     CHECK(decoded && xpkcs_decode_int(decoded, &value) && value == INT64_MAX);
     xrtFree(decoded);
     CHECK(xpkcs_encode_oid("1.2.bad") == NULL);
+    CHECK(xpkcs_concat("abc", "00") == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
     CHECK(xpkcs_wrap_set("0500020101") == NULL);
     CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
     decoded = (char*)xpkcs_wrap_set("020100");
@@ -130,6 +132,7 @@ int main(void)
     xrtFree(decoded);
     CHECK(xpkcs_wrap_sequence("0201") == NULL);
     CHECK(xpkcs_get_tag("zz") == -1);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
     CHECK(xpkcs_der_len("0201000500") == -1);
     CHECK(xpkcs_next_offset("0201010500", 0) == 3);
     CHECK(xpkcs_next_offset("0201010500", 3) == 5);

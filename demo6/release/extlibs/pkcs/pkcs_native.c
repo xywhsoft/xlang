@@ -37,7 +37,13 @@ static xbuffer* xpkcs_hex(const char* hex, bool allow_empty)
         return NULL;
     }
     bytes = xrtBufferFromHex(xpkcs_view(hex), 0u);
-    if (bytes == NULL) return NULL;
+    if (bytes == NULL) {
+        const xerror* error = xrtGetError();
+        // 通用 HEX 解码的协议错误在 DER 构件接口中属于参数值错误。
+        if (error != NULL && xrtErrorKind(error) == XERR_PROTOCOL)
+            xpkcs_error(XERR_VALUE, "invalid DER hex text");
+        return NULL;
+    }
     if (!allow_empty && bytes->Size == 0u) {
         xrtBufferDestroy(bytes);
         xpkcs_error(XERR_VALUE, "DER value is empty");

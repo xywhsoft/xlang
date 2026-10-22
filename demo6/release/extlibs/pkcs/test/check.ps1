@@ -46,6 +46,8 @@ try {
     if ($cOutput -cne $xlOutput) { throw 'C/XLang example output differs' }
     $null = Run 'XLang boundaries' $xl @('run',
         'release/extlibs/pkcs/test/boundaries.xl')
+    $null = Run 'XLang allocations' $xl @('run',
+        'release/extlibs/pkcs/test/allocations.xl')
     $null = Run 'XLang existing test' $xl @('run', 'test/cases/extlib_pkcs.xl')
 
     if (-not $SkipAot) {

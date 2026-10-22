@@ -17,6 +17,7 @@
 | `concat(leftHex, rightHex)` | 拼接两段合法 HEX 文本；不要求每段本身是 DER |
 
 HEX 输入不区分大小写；输出为小写。除 `concat` 和 `nextOffset` 的多项输入外，读取接口要求输入恰好包含一个规范 DER 值，拒绝空输入、截断、尾随字节与非规范编码。所有 XLang 文本参数拒绝内嵌 NUL，避免 C 零结尾接口静默只处理有效前缀。`getContent` 返回内容的 HEX，而不是解码后的字符串。XLang 失败时抛出异常，不把合法整数零和失败混淆。
+非法 HEX 文本、非规范 DER 与无效参数抛 `ValueError`；合法 DER 的标签类型不匹配抛 `TypeError`；分配失败抛 `MemoryError`。C 侧对应保留 XRT 结构化错误，其中非法 HEX 在本包边界归为 `XERR_VALUE`，不会误报为文件 I/O 错误。
 `nextOffset` 校验整个多项 DER 输入；即使目标子项有效，后续子项截断或不规范也会拒绝，不返回部分可信的偏移。
 
 ## C 接口与所有权
@@ -30,7 +31,7 @@ XLang 封装通过 `__xl_runtime.takeCstr` 接管 C 字符串，无需用户手�
 
 - XLang 对照范例：`release/examples/extlibs/pkcs.xl`
 - C 对照范例：`release/extlibs/pkcs/examples/pkcs_c.c`
-- XLang 边界：`release/extlibs/pkcs/test/boundaries.xl` 与 `test/cases/extlib_pkcs.xl`
+- XLang 边界与内存故障：`release/extlibs/pkcs/test/boundaries.xl`、`release/extlibs/pkcs/test/allocations.xl` 与 `test/cases/extlib_pkcs.xl`
 - C 边界：`release/extlibs/pkcs/test/test_pkcs.c`
 
 C 范例可直接 `xl run` 单文件运行；仅该路径在 TCC 下编入包内原生实现，
@@ -65,3 +66,5 @@ AlgorithmIdentifier、INTEGER 与 OCTET STRING 的结构和值；完整门禁通
 2026-10-21：`nextOffset` 补 C/XLang 双侧负例：目标子项有效但尾项截断、或尾项 SET 不规范时均拒绝；随后有效输入仍返回正确偏移并清除旧错误。Windows `-SkipAot` 严格 C/XLang 与双语范例、Linux C ASan/UBSan、OpenSSL 互通及双语门禁通过。实现无需改动；完整 AOT 共享缺符号阻断仍在。
 
 2026-10-22：C 端 `encodeOid`、`decodeOid`、`getContent` 和 `concat` 新增逐点分配故障扫描，核对内存错误、成功重试及活动分配数/字节数回到基线。Windows 严格 C/XLang 与双语范例、Linux C ASan/UBSan、OpenSSL 互通门禁通过；未发现包内泄漏，完整 AOT 仍待共享缺符号修复。
+
+2026-10-23：XLang 的 15 条非法输入用例改为按 `ValueError`/`TypeError` 明确捕获，发现奇数位及非 HEX 文本曾继承 XRT 通用 HEX 解码的协议错误、误映射为 `IOError`；本包只把 HEX 格式错误归为参数值错误，不覆盖内存故障。新增四条 DER 文本路径的 XLang 分配故障扫描，要求 `MemoryError`、正确结果与重试恢复，并纳入双平台门禁及清单。Windows 严格 C/XLang 与 Linux C ASan/UBSan、OpenSSL 互通门禁通过；完整 AOT 阻断不变。

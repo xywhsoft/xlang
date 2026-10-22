@@ -24,42 +24,42 @@ assert saved == "02023039"
 int failures = 0
 try
     pkcs.decodeInt("0202007f")
-catch e
+catch ValueError e
     failures += 1
 end
 try
     pkcs.decodeInt("0500")
-catch e
+catch TypeError e
     failures += 1
 end
 try
     pkcs.encodeOid("1.2.bad")
-catch e
+catch ValueError e
     failures += 1
 end
 try
     pkcs.wrapSet("0500020101")
-catch e
+catch ValueError e
     failures += 1
 end
 try
     pkcs.wrapSet("020101020100")
-catch ValueError
+catch ValueError e
     failures += 1
 end
 try
     pkcs.wrapSequence("0201")
-catch e
+catch ValueError e
     failures += 1
 end
 try
     pkcs.derLen("0201000500")
-catch e
+catch ValueError e
     failures += 1
 end
 try
     pkcs.nextOffset("0201010500", 1)
-catch e
+catch ValueError e
     failures += 1
 end
 try
@@ -74,7 +74,12 @@ catch ValueError e
 end
 try
     pkcs.concat("abc", "00")
-catch e
+catch ValueError e
+    failures += 1
+end
+try
+    pkcs.getTag("zz")
+catch ValueError e
     failures += 1
 end
 try
@@ -92,5 +97,5 @@ try
 catch ValueError e
     failures += 1
 end
-assert failures == 14
+assert failures == 15
 println("pkcs boundaries: PASS")
