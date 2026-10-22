@@ -24,6 +24,7 @@ XL 的 `add` 拒绝内嵌 NUL 的路径，`exists` 对该路径返回 `false`，
 `watch.create()` 在底层分配失败时抛出 `MemoryError`，不会返回带空原生句柄的实例。C/XLang 测试注入首次分配失败并验证清除故障后可正常创建。
 
 双语范例位于 `release/extlibs/watch/examples`；更完整的 XLang 范例位于 `release/examples/extlibs/watch.xl`。在 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/watch/test/check.ps1 -SkipAot` 做 Windows 包级测试，运行 `bash release/extlibs/watch/test/check.sh` 做 Linux C 侧 ASan/UBSan 与 XLang 边界测试；Windows 脚本不带 `-SkipAot` 时加测 AOT。Windows 包门禁的 C/XL 边界测试与 Linux C 测试均在本次运行的独立工作目录内创建临时文件，正常结束后清理。Linux 包门禁也从隔离目录运行三份 XLang 边界用例，并比较 C/XLang 范例输出；C 范例从 `demo6` 根目录运行，XLang 范例从 `release` 目录运行，各自使用对应的相对路径。
+成对入门范例除索引生命周期外，还在独占临时目录内创建、修改、删除文件，逐条验证并展示 `CREATED`、`MODIFIED`、`DELETED` 事件；门禁核对固定八行输出。
 其中 C 范例已自包含包实现，可从 `demo6` 根目录直接运行
 `release/xl.exe run release/extlibs/watch/examples/watch_c.c`；包门禁也将这一路径的输出与 GCC、XLang 对照。C 范例添加监视目标失败时会销毁已创建的实例。
 三份 XLang 包内用例已登记到 `coverage.tests`；`tools/smoke_extlib_catalog.ps1 -Package watch` 会自动执行它们。Windows 包级脚本从隔离目录运行边界用例，并从 `release` 目录运行 XLang 范例。
@@ -91,6 +92,6 @@ Windows `test/check.ps1 -SkipAot` 的 C/目录竞态/XLang/双语门禁和 Linux
 完整带输出 AOT 的共享主线缺符号仍未签收。
 
 同日 C/XLang 入门范例补齐 `path(index)`、`remove(index)` 与删除后索引复用，
-两边均断言计数和索引状态；Windows/Linux 包门禁还核对固定五行输出。
+两边均断言计数和索引状态；当时 Windows/Linux 包门禁核对固定五行输出。
 Windows `-SkipAot`、Linux C ASan/UBSan 与双语门禁通过；默认 Windows
 边界 AOT 通过，带输出范例仍缺共享 `xl6ValueDataSnapshotV1`，不签收整包。

@@ -28,7 +28,7 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
     "$work/xrt_runtime.o" \
     -lm -ldl -o "$work/example"
 timeout 30s "$work/example" > "$work/example.txt"
-diff -u <(printf 'count: 1\nexists: true\npath matches: true\nafter remove: 0\nslot reused: true\n') "$work/example.txt"
+diff -u <(printf 'count: 1\nexists: true\npath matches: true\nafter remove: 0\nslot reused: true\ncreated: true\nmodified: true\ndeleted: true\n') "$work/example.txt"
 timeout 90s ./release/xl run release/extlibs/watch/examples/watch_c.c > "$work/example_direct.txt"
 diff -u "$work/example.txt" "$work/example_direct.txt"
 (cd "$work/case" && timeout 90s "$root/release/xl" run "$root/release/extlibs/watch/test/boundaries.xl")

@@ -74,7 +74,10 @@ try {
         'exists: true',
         'path matches: true',
         'after remove: 0',
-        'slot reused: true'
+        'slot reused: true',
+        'created: true',
+        'modified: true',
+        'deleted: true'
     ) -join "`n"
     if ($cOutput -cne $expected) {
         throw "C watch example differs from expected output:`n$cOutput"

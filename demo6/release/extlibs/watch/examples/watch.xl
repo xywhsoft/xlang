@@ -16,5 +16,23 @@ func main(...) as int
     int reused = watcher.add(watched)
     assert reused == index and watcher.count == 1
     println("slot reused:", true)
+
+    string root = dir.temp("", "xlang-watch-example-", "")
+    try
+        string target = path.join(root, "event.txt")
+        auto events = watch.create()
+        assert events.add(target) == 0 and events.poll() == ""
+        assert file.writeText(target, "a")
+        assert events.poll() == "CREATED:" + target
+        println("created:", true)
+        assert file.writeText(target, "longer")
+        assert events.poll() == "MODIFIED:" + target
+        println("modified:", true)
+        assert file.delete(target)
+        assert events.poll() == "DELETED:" + target
+        println("deleted:", true)
+    finally
+        assert dir.delete(root), "watch example temporary directory must be removed"
+    end
     return 0
 end
