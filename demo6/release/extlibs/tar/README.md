@@ -65,7 +65,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/tar/test/che
 ```
 
 当前只复验包内 C/XLang 路径时可加 `-SkipAot`；默认仍尝试 AOT，
-并会在共享链接符号缺失时失败，不将跳过 AOT 视为发布签收。
+依次构建、运行无输出核心和公开 XLang 范例，后者还要与 C 范例同输出；
+共享链接符号缺失时会失败，不将跳过 AOT 视为发布签收。
 
 Linux/WSL 的 C ASan/UBSan 与 XLang 联合门禁：
 
@@ -94,6 +95,11 @@ python release/extlibs/tar/test/interop.py release
 
 两个脚本只使用测试目录与临时运行目录；Windows 脚本也运行 C/XLang 最小范例。原生 ABI 中 `point` 对应 `void*`，C `int` getter 在 XLang 侧声明为 `c_int`，避免同一编译单元内的声明冲突与返回值宽度不一致。
 Windows 门禁每次使用独占构建目录，成功或失败后只清理本次产物；`-SkipAot` 只用于聚焦 C/JIT 验证，不代表完整 AOT 签收。
+2026-10-22：默认门禁原只构建无输出核心；现在还构建、运行公开的
+`examples/basic.xl` 并与 C 范例核对，避免核心通过时误签收带输出的语言路径。
+`-SkipAot` 聚焦门禁已通过；默认门禁仍先停在核心 AOT 缺
+`xl6NativeHandleTraceLeaf`，直接构建公开范例另确认缺
+`xl6ValueDataSnapshotV1`。新增门禁不是整包验收通过。
 原生桥门禁还使用 XRT 独占临时文件，将其扩展为 256 MiB + 1 字节稀疏文件，验证默认限额在分配前拒绝超限输入；Windows TCC 与 Linux `release/xl` 均运行此用例，成功或失败均清理本次文件。
 2026-10-15：该负例先复现了返回完整缓冲而不报错，修复后两平台通过；Windows 包级脚本的其余 C/XLang 用例通过，AOT 构建则停在主线缺符号 `xl6NativeHandleTraceLeaf`。完整回调和 AOT 仍未签收。
 Windows 包级门禁默认还会构建并运行 `test/aot_core.xl`，验证无输出、无回调的 TAR 内存往返及标准 XZ 压缩/解压。历史裁剪基线曾通过（产物 1,839,104 字节，补清单前为 4,518,912 字节）；当前构建再次实测在主线共享符号 `xl6NativeHandleTraceLeaf` 处失败，不能沿用旧结论。`tar` 和 `lzma` 的清单均声明各自原生源所需的 XRT 模块。

@@ -136,6 +136,13 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'XLang TAR AOT core build failed' }
         & $aot
         if ($LASTEXITCODE -ne 0) { throw 'XLang TAR AOT core failed' }
+        $exampleAot = Join-Path $build 'basic_xl.exe'
+        & $xl build release/extlibs/tar/examples/basic.xl -o $exampleAot
+        if ($LASTEXITCODE -ne 0) { throw 'XLang TAR example AOT build failed' }
+        $aotOutput = (& $exampleAot | Out-String).Trim()
+        if ($LASTEXITCODE -ne 0 -or $aotOutput -cne $cOutput) {
+            throw 'XLang TAR example AOT differs from C'
+        }
     }
 } finally {
     if ($rootPushed) { Pop-Location }
