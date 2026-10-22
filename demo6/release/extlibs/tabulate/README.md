@@ -33,6 +33,8 @@
 
 在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/tabulate/test/check.ps1`，联合验证严格 GCC 清单宏和 ABI、C/XL 边界与分配故障、私有原生入口编译负例，以及包运行器 C、单文件 C 和 XLang 三条范例路径的固定输出。也可单独运行 `.\release\xl.exe run release/extlibs/tabulate/test/boundaries.xl` 或 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package tabulate -Source release/extlibs/tabulate/test/test_tabulate.c`。测试覆盖空值/逗号、中文宽度、表头替换、异常回滚、最大行数/字段/总预算、独立结果与多线程独立实例。
 
+默认 Windows 包门禁还构建运行无输出核心与公开 XLang 范例 AOT，并将范例输出与固定预期比较；`-SkipAot` 仅运行 C/JIT 聚焦门禁，不代表发布签收。AOT 产物使用每次独占的构建目录，门禁结束时只清理本次目录。
+
 C 测试还注入创建时的首次分配失败，验证返回空句柄且清除故障后可再次创建。
 
 Linux 包级门禁：从 `demo6` 运行 `bash release/extlibs/tabulate/test/check.sh`，以严格 GCC、ASan/UBSan 和泄漏检查执行 C 边界及四线程独立实例测试，同时运行中央、包内 XLang 用例和双语范例逐字输出对照。
@@ -70,3 +72,5 @@ Linux 包级门禁：从 `demo6` 运行 `bash release/extlibs/tabulate/test/chec
 2026-10-19：新增 Windows `test/check.ps1` 和中英混排固定预期，合并 C 边界/线程、XLang 边界/故障、私有入口编译负例与三条范例路径；Linux `test/check.sh` 同步固定输出。Windows 与 Linux ASan/UBSan 联合门禁通过。渲染算法未改，完整 AOT 的共享缺符号阻断仍在，不签收发布级。
 
 2026-10-22：补充变体选择符 U+E0100–U+E01EF 原被算作一列，导致含该字符的汉字单元格多补空格。C/XLang 用完整两列表格固定文本先红后绿；Windows 包级严格 C/线程/XLang/范例门禁与 Linux C ASan/UBSan、XLang、双语门禁通过。其他 Unicode 宽度估算边界不变；完整带输出 AOT 仍受共享缺符号阻断，不签收整包发布级。
+
+2026-10-22：Windows 默认包门禁不再只凭 C/JIT 返回全绿，现另构建、运行无输出核心和公开 XLang 范例 AOT，并对照固定输出。`-SkipAot` 的严格 C、线程、语言及三条范例路径通过，Linux C ASan/UBSan、线程、语言与双语门禁通过；默认 Windows 门禁的核心 AOT 通过，范例构建因共享 `xl6ValueDataSnapshotV1` 未解析而准确返回失败。本次独占构建目录已清理，整包仍未签收发布级。

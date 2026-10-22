@@ -1,3 +1,5 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
@@ -7,6 +9,8 @@ $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Obje
 $manifest = Get-Content -LiteralPath (Join-Path $root 'release/extlibs/tabulate/xlang.package.json') -Raw | ConvertFrom-Json
 $moduleFlags = @($manifest.artifact.xrtModules | ForEach-Object { "-D$_" })
 $expected = [string]::Join("`n", (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'tabulate.expected.txt') -Encoding UTF8))
+$testRoot = [IO.Path]::GetFullPath((Join-Path $root 'build/test'))
+$work = [IO.Path]::GetFullPath((Join-Path $testRoot ('tabulate_guard_' + [guid]::NewGuid().ToString('N'))))
 
 function Confirm-Output([string] $name, [string[]] $lines) {
     $actual = [string]::Join("`n", @($lines | ForEach-Object { $_ -replace "`r$", '' }))
@@ -59,7 +63,34 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'tabulate XLang example failed' }
     Confirm-Output 'XLang example' $xlLines
 
-    Write-Output 'tabulate Windows C/XLang gate: PASS'
+    if (-not $SkipAot) {
+        [IO.Directory]::CreateDirectory($work) | Out-Null
+        $core = Join-Path $work 'tabulate_core.exe'
+        & $xl build test/cases/extlib_tabulate.xl -o $core
+        if ($LASTEXITCODE -ne 0) { throw 'tabulate XLang core AOT build failed' }
+        & $core
+        if ($LASTEXITCODE -ne 0) { throw 'tabulate XLang core AOT failed' }
+
+        $example = Join-Path $work 'tabulate_example.exe'
+        & $xl build release/examples/extlibs/tabulate.xl -o $example
+        if ($LASTEXITCODE -ne 0) { throw 'tabulate XLang example AOT build failed' }
+        $aotLines = @(& $example)
+        if ($LASTEXITCODE -ne 0) { throw 'tabulate XLang example AOT failed' }
+        Confirm-Output 'XLang example AOT' $aotLines
+    }
+
+    if ($SkipAot) {
+        Write-Output 'tabulate Windows C/XLang focused gate: PASS'
+    } else {
+        Write-Output 'tabulate Windows C/XLang AOT gate: PASS'
+    }
 } finally {
     Pop-Location
+    if (-not $work.StartsWith($testRoot + [IO.Path]::DirectorySeparatorChar,
+        [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Unsafe tabulate cleanup path: $work"
+    }
+    if (Test-Path -LiteralPath $work) {
+        Remove-Item -LiteralPath $work -Recurse -Force
+    }
 }
