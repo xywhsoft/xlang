@@ -45,6 +45,7 @@ fi
 timeout 90s "$xl" run test/cases/extlib_hyperloglog.xl
 timeout 90s "$xl" run release/extlibs/hyperloglog/test/boundaries.xl
 timeout 90s "$xl" run release/extlibs/hyperloglog/test/named_type.xl
+timeout 90s "$xl" run release/extlibs/hyperloglog/test/allocations.xl
 for method in add merge; do
     case="private_${method}_negative"
     if timeout 90s "$xl" check "release/extlibs/hyperloglog/test/$case.xl" \

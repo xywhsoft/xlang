@@ -29,7 +29,7 @@
 
 - XLang 范例：`release/examples/extlibs/hyperloglog.xl`
 - 同输出 C 范例：`release/extlibs/hyperloglog/examples/hyperloglog_c.c`
-- 边界：包内 `test/test_hyperloglog.c`、`test/test_threads.c`、`test/boundaries.xl`，以及 `demo6/test/cases/extlib_hyperloglog.xl`
+- 边界：包内 `test/test_hyperloglog.c`、`test/test_threads.c`、`test/boundaries.xl`、`test/allocations.xl`，以及 `demo6/test/cases/extlib_hyperloglog.xl`
 - `xl check extlibs/hyperloglog/test/private_add_negative.xl` 和 `private_merge_negative.xl` 应被访问控制拒绝；两条负例只编译，不执行。
 
 在 `demo6/release` 运行 `xl run extlibs/hyperloglog/test/boundaries.xl`；在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package hyperloglog -Source release/extlibs/hyperloglog/test/test_hyperloglog.c`。C 测试对固定的 100000 项、20000 项数据集做统计余量断言，而非要求近似值等于真实值。
@@ -66,3 +66,9 @@ Windows XLang 边界以及 Linux 严格 GCC、C ASan/UBSan、大样本、
 不将近似估计宣称为精确基数；完整 AOT 共享阻断不变。
 
 2026-10-19：修复 `xl run release/extlibs/hyperloglog/examples/hyperloglog_c.c` 缺少原生符号的问题；仅 TCC 单文件入口包含包实现，正式包/GCC 仍分离编译。新增 Windows `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/hyperloglog/test/check.ps1`，与 Linux `test/check.sh` 均比较包运行器 C、单文件 C、XLang 范例，并对当前固定哈希算法的样本估计值作黄金输出检查；该固定值是回归基线，不是 HLL 精确性保证。两平台门禁通过，Linux 含 ASan/UBSan；完整带输出 AOT 的共享缺符号阻断不变，不签收整包发布级。
+
+2026-10-22：XLang 创建入口增加前 16 个分配位置的故障扫描，要求故障触发与
+`MemoryError` 一致、成功返回有效空草图，并验证清除故障后可继续写入。
+此用例已登记包清单并进入 Windows/Linux 包门禁；Linux C ASan/UBSan、
+线程与双语对照同次通过。C 已有两次底层分配失败回归，原生实现未改；
+完整带输出 AOT 的共享缺符号阻断仍未解除。

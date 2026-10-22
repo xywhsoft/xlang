@@ -30,7 +30,8 @@ try {
     foreach ($source in @(
         'test/cases/extlib_hyperloglog.xl',
         'release/extlibs/hyperloglog/test/boundaries.xl',
-        'release/extlibs/hyperloglog/test/named_type.xl'
+        'release/extlibs/hyperloglog/test/named_type.xl',
+        'release/extlibs/hyperloglog/test/allocations.xl'
     )) {
         & $xl run $source
         if ($LASTEXITCODE -ne 0) { throw "hyperloglog XLang test failed: $source" }
