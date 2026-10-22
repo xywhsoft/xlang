@@ -5,11 +5,17 @@ func main(...) as int
     var bulk = redis.decode("$3\r\na\0b\r\n")
     var arrayReply = redis.decode("*2\r\n$3\r\none\r\n$3\r\ntwo\r\n")
     Buffer binaryRequest = redis.encodeBytes(["SET", "k", Buffer.fromHex("00ff41").toBytes()])
+    Buffer binaryReply = Buffer.fromHex("24330d0a61ff620d0a")
+    assert not redis.isCompleteBytes(Buffer.fromHex("24330d0a61ff62"))
+    assert redis.isCompleteBytes(binaryReply)
+    var decodedBinary = redis.decodeBytes(binaryReply)
+    assert decodedBinary["value"]["value"] == Buffer.fromHex("61ff62").toBytes()
 
     println("encoded bytes:", string.byteLen(request))
     println("bulk value bytes:", string.byteLen(string(bulk["value"]["value"])))
     println("array reply:", arrayReply["value"]["value"].length, "items")
     println("binary request bytes:", binaryRequest.len())
+    println("binary decode: true")
     println("redis C/XL example: PASS")
     return 0
 end

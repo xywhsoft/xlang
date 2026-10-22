@@ -3,6 +3,7 @@
 #include "../../extlibs/redis/include/redis_native.h"
 
 #include <stdio.h>
+#include <string.h>
 
 static bool append_text(xvalue* Array, const char* Data, size_t Size)
 {
@@ -23,9 +24,12 @@ int main(void)
     xvalue* ArrayValue;
     xvalue* BinaryArgs;
     xvalue* BinaryValue;
+    xvalue* BinaryReply = NULL;
     xbuffer* BinaryRequest;
     xstrview Bytes;
+    xbytesview BinaryBytes;
     xstrview Key = XRT_STR_LITERAL("value");
+    const unsigned char RawReply[] = { '$', '3', '\r', '\n', 'a', 0xffu, 'b', '\r', '\n' };
     int Ok;
     void* Frame;
 
@@ -68,8 +72,21 @@ int main(void)
     Ok = Ok && BinaryRequest != NULL;
     if (Ok) {
         printf("binary request bytes: %llu\n", (unsigned long long)xrtBufferView(BinaryRequest).Size);
+        /* 先确认分片尚未形成完整 RESP 帧，再解析含非 UTF-8 字节的正文。 */
+        Ok = !xr_is_complete_raw((void*)RawReply, sizeof(RawReply) - 2u) &&
+            xrtGetError() == NULL &&
+            xr_is_complete_raw((void*)RawReply, sizeof(RawReply));
+        BinaryReply = Ok ? xr_decode_raw((void*)RawReply, sizeof(RawReply)) : NULL;
+        BinaryValue = BinaryReply ? xrtValueObjectGet(BinaryReply, Key) : NULL;
+        BinaryValue = BinaryValue ? xrtValueObjectGet(BinaryValue, Key) : NULL;
+        Ok = Ok && BinaryValue != NULL && xrtValueGetBytes(BinaryValue, &BinaryBytes) &&
+            BinaryBytes.Size == 3u && memcmp(BinaryBytes.Data, "a\xff" "b", 3u) == 0;
+    }
+    if (Ok) {
+        puts("binary decode: true");
         puts("redis C/XL example: PASS");
     }
+    xrtValueRelease(BinaryReply);
     xrtBufferDestroy(BinaryRequest);
     xrtValueRelease(BinaryValue);
     xrtValueRelease(BinaryArgs);

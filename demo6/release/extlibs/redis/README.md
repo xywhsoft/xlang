@@ -24,6 +24,9 @@ assert reply["value"]["value"] == "hello"
 `string`，非 UTF-8 的 bulk 值为 `bytes`；`rest` 也按同一规则返回。
 可使用 `decodeBytes(Buffer)`
 和 `isCompleteBytes(Buffer)` 解析原始字节，避免文本路径的编码限制。
+`release/examples/extlibs/redis.xl` 与 `redis_c.c` 的成对范例先检查一条
+未收齐的二进制 bulk 回复，再解析含 `0xff` 的完整回复并逐字节核对，
+无需连接真实 Redis 服务。
 `isComplete` 对不完整回复返回
 `false`，对畸形回复抛 `ValueError`。编码和解析均按**字节长度**处理，
 字符串中的 `\0` 不会截断数据。单帧上限 64 MiB，数组最多十万项，

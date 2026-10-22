@@ -33,7 +33,12 @@
     <h2 id="example">xlang</h2>
     <pre><code>import redis
 var reply = redis.decode("$5\r\nhello\r\n")
-assert reply["value"]["value"] == "hello"</code></pre>
+assert reply["value"]["value"] == "hello"
+Buffer raw = Buffer.fromHex("24330d0a61ff620d0a")
+assert redis.isCompleteBytes(raw)
+var binary = redis.decodeBytes(raw)
+assert binary["value"]["value"] == Buffer.fromHex("61ff62").toBytes()</code></pre>
+    <p>C/XLang 成对范例还展示未收齐的原始回复不会被误判为完整帧，完整的非 UTF-8 bulk 值按原始 bytes 回读；两种语言逐行同输出，无需外部 Redis 服务。</p>
     <p>超时为 1..2147483647 毫秒，回复上限为 1..67108864 字节；无效参数或编码失败时连接未发送数据，空命令失败后可在同一连接继续发送有效命令。完整 Redis error 回复可继续复用连接。发送失败、超时、超限、畸形或多余回复会中止连接，后续命令需显式重连。<code>decodeBytes</code> 遇非 UTF-8 的剩余回复时，<code>rest</code> 保留为原始 bytes。</p>
     <h2 id="c-api">C</h2>
     <p>包含 <code>include/redis_native.h</code>。输入值仅借用；返回的 <code>xvalue*</code> 由调用方使用 <code>xrtValueRelease</code> 释放，<code>xr_encode_bytes</code> 返回的 Buffer 由调用方使用 <code>xrtBufferDestroy</code> 释放。查看包内 README 获取字节长度、错误与容量边界。</p>
