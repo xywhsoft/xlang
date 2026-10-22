@@ -3643,6 +3643,11 @@ static int xl6SemRememberInferredType(
     if ( typeCopy == NULL ) {
         return 0;
     }
+    if(xl6COwnedBaseName(typeCopy->text)) {
+        const char* base=xl6COwnedBaseName(typeCopy->text);
+        xrtFree(typeCopy->text);typeCopy->text=xrtStrDup(base);
+        xl6SemBindInferredTypeIdentity(ctx,typeCopy);
+    }
 
     if ( inferredTypes[index] == NULL ) {
         inferredTypes[index] = typeCopy;
@@ -10927,6 +10932,7 @@ static XL6_AstNode* xl6SemFindMultiReturnCallArg(
 
 static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
 {
+    if(node->semanticCallKind==XL6_SEM_CALL_C_OWNED_COMPARE)return xl6SemCOwnedResult(ctx,node,"bool");
     int ok;
     int implicitMethodRewrite;
     int channelOk;
@@ -10951,6 +10957,13 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
         }
     }
 
+    {
+        int copy=xl6SemCheckCOwnedCopy(ctx,node);
+        if(copy>=0)return copy;
+        XL6_AstNode* callee=node->childCount ? node->children[0] : NULL;
+        if(callee && callee->kind==XL6_AST_MEMBER && callee->childCount &&
+            !xl6SemNormalizeCOwnedExpr(ctx,&callee->children[0]))return 0;
+    }
     implicitMethodRewrite = xl6SemRewriteImplicitStdlibMethodCall(ctx, node);
     if ( implicitMethodRewrite < 0 ) {
         return 0;
@@ -11040,6 +11053,17 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
     {
         int containerMethodOk = xl6SemCheckContainerMethodCall(ctx, node);
         if ( containerMethodOk >= 0 ) {
+            XL6_AstNode* callee=node->children[0];
+            XL6_AstNode* receiver=callee && callee->childCount ? xl6SemInferAutoTypeNode(ctx,callee->children[0]) : NULL;
+            const XL6_AstNode* item=xl6SemContainerItemType(ctx,receiver);
+            if(item && !xl6TextEquals(item->text,"var")) {
+                XL6_AstNode* args=node->childCount>1 ? node->children[1] : NULL;
+                for(size_t i=0;args && i<args->childCount;++i) {
+                    XL6_AstNode* arg=args->children[i];
+                    if(arg->childCount==1 && !xl6SemNormalizeCOwnedExpr(ctx,&arg->children[0]))containerMethodOk=0;
+                }
+            }
+            xl6AstFree(receiver);
             xl6SemSetCallPlan(node, XL6_SEM_CALL_METHOD, NULL);
             return containerMethodOk && ok;
         }
@@ -11113,6 +11137,9 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
          node->children[0]->kind == XL6_AST_NAME &&
          xl6SemIsBuiltinConvertTypeName(node->children[0]->text) &&
          xl6SemNameIsRegisteredType(ctx, node->children[0]->text) ) {
+        XL6_AstNode* args=node->childCount>1 ? node->children[1] : NULL;
+        XL6_AstNode* arg=args && args->childCount==1 ? args->children[0] : NULL;
+        if(arg && arg->childCount==1 && !xl6SemNormalizeCOwnedExpr(ctx,&arg->children[0]))return 0;
         xl6SemSetCallPlan(node, XL6_SEM_CALL_BUILTIN, NULL);
         return xl6SemCheckTypeConvertCall(ctx, node) && ok;
     }
@@ -15179,6 +15206,9 @@ static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
     } else {
         ok = xl6SemCheckChildrenExpr(ctx, node);
     }
+    {int compare=xl6SemCOwnedCompare(ctx,node);if(compare>=0)return compare && ok;}
+    for(size_t i=0;node && i<node->childCount;++i)
+        if(!xl6SemNormalizeCOwnedExpr(ctx,&node->children[i]))ok=0;
     containerOp = xl6SemBinaryIsContainerOp(ctx, node);
     protocolName = node != NULL ? xl6SemBinaryProtocolName(node->text) : NULL;
     if ( node != NULL && node->childCount > 1 && xl6TextEquals(node->text, "in") ) {
@@ -15610,6 +15640,8 @@ static int xl6SemCheckChildrenExprFrom(XL6_SemContext* ctx, XL6_AstNode* node, s
 
 static int xl6SemCheckIndexExpr(XL6_SemContext* ctx, XL6_AstNode* node)
 {
+    int cRead=xl6SemCheckCOwnedRead(ctx,node);
+    if(cRead>=0)return cRead;
     XL6_AstNode* receiver;
     XL6_AstNode* index;
     XL6_AstNode* receiverTypeNode = NULL;
@@ -16162,6 +16194,8 @@ static int xl6SemBindFieldProtocol(
 
 static int xl6SemCheckMemberExpr(XL6_SemContext* ctx, XL6_AstNode* node)
 {
+    int cRead=xl6SemCheckCOwnedRead(ctx,node);
+    if(cRead>=0)return cRead;
     XL6_AstNode* receiver;
     XL6_AstNode* receiverType;
     XL6_AstNode* fieldType;
@@ -16377,6 +16411,9 @@ static int xl6SemCheckNameExpr(XL6_SemContext* ctx, XL6_AstNode* node)
         /* A read is a resolved use, not a declaration.  Keep the target
          * explicitly so XLIR lowering never has to look the name up again. */
         node->semanticTargetSymbolId = sym->id;
+        if(sym->type && xl6COwnedBaseName(sym->type->text) && ctx->captureBoundaryAllowsCapture &&
+            xl6ScopeNameIsOutsideBoundary(ctx->scope,ctx->captureBoundary,node->text) &&
+            !xl6SemCOwnedResult(ctx,node,xl6COwnedBaseName(sym->type->text)))return 0;
         if ( ctx->suppressDefiniteAssignment == 0 &&
              (sym->kind == XL6_SYM_VALUE || sym->kind == XL6_SYM_CONST) &&
              !sym->definitelyAssigned ) {
@@ -16668,6 +16705,11 @@ static int xl6SemDeclareVarWithKind(
         xl6SemErrorNode(ctx,node,"C owners require explicit local initialization with take");
         ok=0;
     }
+    if(declaredType && xl6COwnedBaseName(declaredType->text) && ctx->currentFunction &&
+        (ctx->currentFunction->kind==XL6_AST_ASYNC_FUNC || ctx->generatorDepth ||
+         (ctx->currentFunction->flags & XL6_AST_FLAG_ASYNC))) {
+        xl6SemErrorNode(ctx,node,"C owners cannot live in coroutine frames; materialize string/bytes in a synchronous scope");ok=0;
+    }
 
     if ( initExpr != NULL && initExpr->kind == XL6_AST_NAME &&
          declaredType != NULL && xl6TextEquals(declaredType->text, "auto") ) {
@@ -16817,6 +16859,10 @@ static int xl6SemDeclareVarWithKind(
 static int xl6SemCheckExpr(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     int ok = xl6SemCheckExprRaw(ctx, node);
+    if(ok && node && node->kind==XL6_AST_CONDITIONAL && node->childCount==3) {
+        for(size_t i=1;i<3;++i)if(!xl6SemNormalizeCOwnedExpr(ctx,&node->children[i]))ok=0;
+        xl6AstFree(node->inferredType);node->inferredType=NULL;
+    }
 
     if ( ok && node != NULL && node->kind == XL6_AST_NAME ) {
         XL6_Symbol* sym = xl6ScopeFind(ctx->scope, node->text);
@@ -16959,7 +17005,7 @@ static int xl6SemTypeCanAssignFromType(XL6_SemContext* ctx, const XL6_AstNode* v
         return 1;
     }
     if (xl6COwnedBaseName(valueType->text) &&
-        xl6TextEquals(xl6COwnedBaseName(valueType->text),targetType->text)) return 1;
+        xl6TextEquals(xl6COwnedBaseName(valueType->text),xl6SemResolveAliasName(ctx,targetType->text))) return 1;
     if ( xl6TextEquals(targetType->text, "auto") ) {
         return 1;
     }
@@ -17876,7 +17922,8 @@ static int xl6SemCheckAssign(XL6_SemContext* ctx, XL6_AstNode* node)
         XL6_AstNode* root=left;
         while(root && (root->kind==XL6_AST_INDEX || root->kind==XL6_AST_MEMBER) && root->childCount)
             root=root->children[0];
-        if(root && root->kind==XL6_AST_NAME && xl6COwnedBaseName(xl6SemExprStaticTypeName(ctx,root))) {
+        XL6_Symbol* binding=root && root->kind==XL6_AST_NAME ? xl6ScopeFind(ctx->scope,root->text) : NULL;
+        if(binding && binding->type && xl6COwnedBaseName(binding->type->text)) {
             xl6SemErrorNode(ctx,left,"C owner bindings and their contents are read-only");
             return 0;
         }
@@ -18215,6 +18262,13 @@ static int xl6SemCheckMultiAssign(XL6_SemContext* ctx, XL6_AstNode* node)
     ok = 1;
     targets = node->childCount > 0 ? node->children[0] : NULL;
     expr = node->childCount > 1 ? node->children[1] : NULL;
+    for(size_t target=0;targets && target<targets->childCount;++target) {
+        XL6_AstNode* name=targets->children[target];
+        XL6_Symbol* binding=name && name->kind==XL6_AST_NAME ? xl6ScopeFind(ctx->scope,name->text) : NULL;
+        if(binding && binding->type && xl6COwnedBaseName(binding->type->text)) {
+            xl6SemErrorNode(ctx,name,"C owner bindings are read-only");return 0;
+        }
+    }
 
     if ( expr == NULL || !xl6SemCheckExpr(ctx, expr) ) {
         ok = 0;
@@ -19364,6 +19418,10 @@ static int xl6SemCheckFor(XL6_SemContext* ctx, XL6_AstNode* node)
     iterable = node->childCount > 1 ? node->children[1] : NULL;
     if ( node->childCount > 1 && !xl6SemCheckExpr(ctx, iterable) ) {
         ok = 0;
+    }
+    if(ok && iterable) {
+        ok=xl6SemNormalizeCOwnedExpr(ctx,&node->children[1]);
+        iterable=node->children[1];
     }
 
     if ( (node->flags & XL6_AST_FLAG_ASYNC) != 0 ) {

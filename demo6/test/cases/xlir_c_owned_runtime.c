@@ -75,6 +75,21 @@ int main(void)
     empty = xl6CBytesTakeV1(NULL, 1, release);
     assert(!empty.Data && released == 4 && xrtGetError());
     xrtClearError();
+    assert(xrtMemDebugEnable(true));
+    c=xl6CStringTakeV1(allocation(text,sizeof(text)),release);
+    assert(xrtMemDebugFailAfter(0));
+    copied=xl6CStringCopyV1(c);
+    assert(!copied.Data && xrtMemDebugFailTriggered() && c.Data && released==4);
+    xrtMemDebugFailClear();xrtClearError();
+    copied=xl6CStringCopyV1(c);
+    assert(copied.Data && copied.Data!=c.Data);
+    xrtFree((void*)copied.Data);xl6COwnedDropV1(&c);
+    b=xl6CBytesTakeV1(allocation(binary,sizeof(binary)),sizeof(binary),release);
+    assert(xrtMemDebugFailAfter(0));
+    bytes=xl6CBytesCopyV1(b);
+    assert(!bytes && xrtMemDebugFailTriggered() && b.Data && released==5);
+    xrtMemDebugFailClear();xrtClearError();xl6COwnedDropV1(&b);
+    assert(released==6);
     puts("C owned runtime: independent copies, binary NUL, empty, release-once and failed adoption passed");
     return 0;
 }

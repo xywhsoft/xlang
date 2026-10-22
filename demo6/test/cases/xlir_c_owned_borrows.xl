@@ -1,0 +1,24 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_unicode" @no_raise func nativeUnicode() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_debug" @no_raise func debugMemory() as bool
+extern "c_owned_allocations" @no_raise func allocations() as int
+
+func borrowOnly(bool tracking)
+    cstring a = cstring.take(nativeText(), nativeFree)
+    cstring b = cstring.take(nativeText(), nativeFree)
+    cstring unicode = cstring.take(nativeUnicode(), nativeFree)
+    cbytes data = cbytes.take(nativeBytes(), 4, nativeFree)
+    int before = allocations()
+    assert a.length == 5 and a[0] == 'h' and a[-1] == 'o'
+    assert unicode.length == 4 and unicode[1] == '你' and unicode[-2] == '好'
+    assert data.length == 4 and data[1] == 255
+    assert a == b and a <= b and a >= b and not (a != b) and not (a < b) and not (a > b)
+    assert data == data and data <= data
+    if tracking then
+        assert allocations() == before
+    end
+end
+
+borrowOnly(debugMemory())

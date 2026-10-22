@@ -1,4 +1,5 @@
-param([string]$Directory = ('build/c-owned/check-' + (Get-Date -Format 'yyyyMMdd-HHmmss')), [switch]$BuildOnly)
+param([string]$Directory = ('build/c-owned/check-' + (Get-Date -Format 'yyyyMMdd-HHmmss')),
+    [switch]$BuildOnly, [string]$PublicDriver = '')
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'xlir_c_object_cache.ps1')
 $rootPath = (Get-Location).Path
@@ -40,7 +41,7 @@ if ($BuildOnly) { exit 0 }
 if ($LASTEXITCODE) { throw 'C owner runtime test build failed' }
 & "$outputPath/runtime.exe"
 if ($LASTEXITCODE) { throw 'C owner runtime tests failed' }
-foreach ($name in @('basic','lifetime')) {
+foreach ($name in @('basic','lifetime','reads','capture','borrows','failure')) {
     $generated = Join-Path $outputPath "$name.c"
     & $compiler "test/cases/xlir_c_owned_$name.xl" $generated
     if ($LASTEXITCODE) { throw "C owner $name compilation failed" }
@@ -59,7 +60,12 @@ $negative = @(
     @{Name='return';Body="func probe() as cstring`n return cstring.take(make(), drop)`nend";Message='C owners are local-only'},
     @{Name='container';Body="func probe()`n array<cbytes> a`nend";Message='C owners are local-only'},
     @{Name='global';Body="cstring a = cstring.take(make(), drop)";Message='explicit local initialization'},
-    @{Name='releaser';Body="extern `"wrong`" func wrong(point p)`nfunc probe()`n cstring a = cstring.take(make(), wrong)`nend";Message='releaser must be'}
+    @{Name='releaser';Body="extern `"wrong`" func wrong(point p)`nfunc probe()`n cstring a = cstring.take(make(), wrong)`nend";Message='releaser must be'},
+    @{Name='field';Body="class Box`n cstring value`nend";Message='C owners are local-only'},
+    @{Name='nullable';Body="func probe()`n cstring? value`nend";Message='C owners are local-only'},
+    @{Name='alias';Body="typedef Alias = cstring";Message='C owners are local-only'},
+    @{Name='coroutine';Body="async func probe()`n cstring value = cstring.take(make(), drop)`nend";Message='coroutine frames'},
+    @{Name='binary-text';Body="func probe()`n cbytes value = cbytes.take(make(), 1, drop)`n string wrong = string(value)`nend";Message='matching base type'}
 )
 foreach ($case in $negative) {
     $source = Join-Path $outputPath ('reject-' + $case.Name + '.xl')
@@ -74,3 +80,16 @@ foreach ($case in $negative) {
     }
 }
 Write-Output "C owner negative cases passed: $($negative.Count)"
+if ($PublicDriver) {
+    $sourceDriver=(Resolve-Path -LiteralPath $PublicDriver).Path
+    foreach($name in @('basic','lifetime','reads','capture','borrows','storage','escapes')) {
+        $source="test/cases/xlir_c_owned_$name.xl"
+        & $sourceDriver $source run "$outputPath/jit-$name" test/cases/xlir_c_owned_native.c
+        if($LASTEXITCODE){throw "C owner source JIT failed: $name"}
+        & $sourceDriver $source exe "$outputPath/aot-$name" test/cases/xlir_c_owned_native.c
+        if($LASTEXITCODE){throw "C owner source EXE build failed: $name"}
+        & "$outputPath/aot-$name.exe"
+        if($LASTEXITCODE){throw "C owner source EXE execution failed: $name"}
+    }
+    Write-Output 'C owner source acceptance: 7 JIT and 7 standalone EXE programs passed'
+}

@@ -39,6 +39,10 @@ static const char* xl6IrInstructionKindName(XL6_IrInstructionKind kind);
 static XL6_IrErrorAbi xl6IrNodeConstructionErrorAbi(const XL6_IrModule* module, XL6_IrNodeId id)
 {
     const XL6_IrNode* node = xl6IrNodeGet(module, id);
+    if(node && node->callKind==XL6_SEM_CALL_C_OWNED_COPY)return XL6_IR_ERROR_ABI_MAY_RAISE;
+    if(node && node->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)return XL6_IR_ERROR_ABI_MAY_RAISE;
+    if(node && node->callKind==XL6_SEM_CALL_C_OWNED_READ && node->kind==XL6_IR_NODE_INDEX)
+        return XL6_IR_ERROR_ABI_MAY_RAISE;
     if(node && node->callKind==XL6_SEM_CALL_C_OWNED_TAKE &&
         xl6IrTypeGet(&module->types,node->storageType)->cAbi==XL6_IR_C_ABI_C_BYTES)
         return XL6_IR_ERROR_ABI_MAY_RAISE;
@@ -4165,6 +4169,9 @@ static XL6_IrNodeId xl6IrBuildAstNode(
     node->unionField = SIZE_MAX;
     node->kind = xl6IrNodeKindFromAst(source->kind); node->sourceKind = source->kind; node->flags = source->flags;
     node->opcode = xl6IrOpcodeFromAst(source);
+    if(source->semanticCallKind==XL6_SEM_CALL_C_OWNED_COMPARE) {
+        node->cOwnedCompareOp=xl6IrCOwnedCompareOp(source->text);
+    }
     node->symbol = source->semanticSymbolId; node->targetSymbol = source->semanticTargetSymbolId;
     node->compoundOperatorSymbol = source->semanticCompoundOperatorSymbolId;
     node->callKind = source->semanticCallKind; node->lvalueKind = source->semanticLvalueKind; node->exitKind = source->semanticExitKind;
@@ -4232,7 +4239,14 @@ static XL6_IrNodeId xl6IrBuildAstNode(
     if ( source->kind == XL6_AST_NAME && source->semanticSymbolId != XL6_SYMBOL_ID_INVALID &&
          (size_t)source->semanticSymbolId < module->symbolNodeCapacity ) {
         const XL6_IrNode* declaration = xl6IrNodeGet(module, module->symbolNodes[source->semanticSymbolId]);
-        if ( declaration != NULL && declaration != node && declaration->storageType != XL6_IR_TYPE_INVALID ) node->storageType = declaration->storageType;
+        if ( declaration != NULL && declaration != node && declaration->storageType != XL6_IR_TYPE_INVALID ) {
+            node->storageType = declaration->storageType;
+            const XL6_IrType* declaredType=xl6IrTypeGet(&module->types,declaration->storageType);
+            const XL6_IrType* observed=xl6IrTypeGet(&module->types,node->type);
+            if(xl6IrTypeIsCOwned(declaredType) && observed &&
+                observed->cAbi==(declaredType->cAbi==XL6_IR_C_ABI_C_STRING ? XL6_IR_C_ABI_MANAGED_STRING : XL6_IR_C_ABI_MANAGED_BYTES))
+                node->storageType=node->type;
+        }
     }
     if ( source->kind == XL6_AST_NAME &&
          source->semanticSymbolId == XL6_SYMBOL_ID_INVALID &&
@@ -10036,7 +10050,7 @@ static int xl6IrBuildFunctionValueCallSite(
 static int xl6IrBuildCallSite(XL6_IrModule* module, XL6_IrNodeId origin)
 {
     const XL6_IrNode* call = xl6IrNodeGet(module, origin);
-    if (call && call->callKind==XL6_SEM_CALL_C_OWNED_TAKE) return 1;
+    if (call && (call->callKind==XL6_SEM_CALL_C_OWNED_TAKE || call->callKind==XL6_SEM_CALL_C_OWNED_COPY || call->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)) return 1;
     XL6_IrNodeId declaration;
     const XL6_IrNode* target;
     XL6_IrNodeId parameterListId;
@@ -14535,7 +14549,7 @@ static int xl6IrBuildCopyIntrinsicSignature(
 static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
 {
     const XL6_IrNode* call = xl6IrNodeGet(module, origin);
-    if (call && call->callKind==XL6_SEM_CALL_C_OWNED_TAKE) return 1;
+    if (call && (call->callKind==XL6_SEM_CALL_C_OWNED_TAKE || call->callKind==XL6_SEM_CALL_C_OWNED_COPY || call->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)) return 1;
     const XL6_IrNode* callee;
     const XL6_IrNode* persistenceGenericName = NULL;
     const XL6_IrType* result;
@@ -21785,6 +21799,9 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeStringAllocationErrorPhysicalAbi(XL6_IrRu
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeBoxingErrorPhysicalAbi(XL6_IrRuntimeOp operation)
 {
     switch (operation) {
+    case XL6_IR_RUNTIME_CSTRING_BOX:
+    case XL6_IR_RUNTIME_CBYTES_COPY:
+        return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
     case XL6_IR_RUNTIME_XVALUE_ENUM_BIND:
     case XL6_IR_RUNTIME_STACK_ERASE:
         return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
@@ -21877,6 +21894,8 @@ XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTy
         return XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR;
     switch (type->cAbi) {
     case XL6_IR_C_ABI_I64: return XL6_IR_RUNTIME_XVALUE_I64;
+    case XL6_IR_C_ABI_C_STRING: return XL6_IR_RUNTIME_CSTRING_BOX;
+    case XL6_IR_C_ABI_C_BYTES: return XL6_IR_RUNTIME_CBYTES_COPY;
     case XL6_IR_C_ABI_NATIVE_VALUE:
         return xl6IrNativeValuePlanForType(type) ? XL6_IR_RUNTIME_NATIVE_VALUE_BOX : XL6_IR_RUNTIME_NONE;
     case XL6_IR_C_ABI_U64: return XL6_IR_RUNTIME_XVALUE_U64;
@@ -22111,10 +22130,8 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     XL6_IrCallErrorPhysicalAbi stringAbi;
     if (instruction == NULL || instruction->kind != XL6_IR_INSTR_RUNTIME_CALL)
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
-    if (instruction->runtimeOp==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE)
-        return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
-    if (instruction->runtimeOp==XL6_IR_RUNTIME_CSTRING_BOX || instruction->runtimeOp==XL6_IR_RUNTIME_CBYTES_COPY)
-        return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
+    if(xl6IrCOwnedErrorPhysicalAbi(instruction->runtimeOp)!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID)
+        return xl6IrCOwnedErrorPhysicalAbi(instruction->runtimeOp);
     if((instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL || instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL) &&
        instruction->dynamicCallResultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT)
         return xl6IrDynamicProductType(module,instruction->type) ? XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT : XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
@@ -39884,12 +39901,22 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             xrtFree(incoming);
             return xl6IrDiag(diags, node, "typed XLIR value has no canonical type or storage type");
         }
+        if(node->cOwnedCompareOp!=(node->callKind==XL6_SEM_CALL_C_OWNED_COMPARE ? xl6IrCOwnedCompareOp(node->text) : XL6_IR_RUNTIME_NONE)) {
+            xrtFree(incoming);return xl6IrDiag(diags,node,"C owner comparison has no canonical relation");
+        }
         if ( node->kind == XL6_IR_NODE_NAME && node->targetSymbol != 0 ) {
             const XL6_IrNode* declaration = xl6IrSymbolNodeGet(module, node->targetSymbol);
             const XL6_IrType* storageType =
                 xl6IrTypeGet(&module->types, node->storageType);
+            const XL6_IrType* sourceType=declaration ? xl6IrTypeGet(&module->types,declaration->storageType) : NULL;
+            XL6_IrNodeId currentCallable=xl6IrCleanupEnclosingCallable(module,(XL6_IrNodeId)(i+1));
+            const XL6_IrNode* callable=xl6IrNodeGet(module,currentCallable);
+            int copiedCapture=xl6IrTypeIsCOwned(sourceType) && storageType && callable &&
+                callable->sourceKind==XL6_AST_ANON_FUNC &&
+                currentCallable!=xl6IrCleanupEnclosingCallable(module,(XL6_IrNodeId)(declaration-module->nodes+1)) &&
+                storageType->cAbi==(sourceType->cAbi==XL6_IR_C_ABI_C_STRING ? XL6_IR_C_ABI_MANAGED_STRING : XL6_IR_C_ABI_MANAGED_BYTES);
             if ( declaration != NULL && declaration->storageType != XL6_IR_TYPE_INVALID &&
-                  node->storageType != declaration->storageType ) {
+                  node->storageType != declaration->storageType && !copiedCapture ) {
                 xrtFree(incoming);
                 return xl6IrDiag(diags, node,
                                  "typed XLIR name reference does not match its canonical binding storage ABI");
@@ -46932,9 +46959,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          (storage->kind != XL6_IR_STORAGE_GLOBAL &&
                           storage->kind != XL6_IR_STORAGE_EXTERN_GLOBAL &&
                           storage->owner != function->declaration) )
-                        return xl6IrDiag(diags,
-                            xl6IrNodeGet(module, instruction->origin),
-                            "XLIR ownership instruction type does not match its cleanup storage ABI");
+                    { char diagnostic[256];
+                        snprintf(diagnostic,sizeof(diagnostic),"XLIR ownership instruction type does not match its cleanup storage ABI (s%u, type %u/%u, owner %u/%u)",
+                            (unsigned)instruction->targetSymbol,(unsigned)instruction->type,
+                            storage ? (unsigned)storage->type : 0,storage ? (unsigned)storage->owner : 0,(unsigned)function->declaration);
+                        return xl6IrDiag(diags,xl6IrNodeGet(module,instruction->origin),diagnostic);
+                    }
                     if ( instruction->kind == XL6_IR_INSTR_MOVE ) {
                         const XL6_IrInstruction* value = instruction->operandCount == 1
                             ? xl6IrValueDefinition(module, module->operands[instruction->firstOperand], NULL) : NULL;
@@ -49334,6 +49364,16 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_CSTRING_BOX: return "cstring-box";
     case XL6_IR_RUNTIME_CBYTES_COPY: return "cbytes-copy";
     case XL6_IR_RUNTIME_CBYTES_SIZE_TAKE: return "cbytes-size-take";
+    case XL6_IR_RUNTIME_CSTRING_LENGTH: return "cstring-length";
+    case XL6_IR_RUNTIME_CBYTES_LENGTH: return "cbytes-length";
+    case XL6_IR_RUNTIME_CSTRING_AT: return "cstring-at";
+    case XL6_IR_RUNTIME_CBYTES_AT: return "cbytes-at";
+    case XL6_IR_RUNTIME_C_COMPARE_EQ: return "c-compare-eq";
+    case XL6_IR_RUNTIME_C_COMPARE_NE: return "c-compare-ne";
+    case XL6_IR_RUNTIME_C_COMPARE_LT: return "c-compare-lt";
+    case XL6_IR_RUNTIME_C_COMPARE_LE: return "c-compare-le";
+    case XL6_IR_RUNTIME_C_COMPARE_GT: return "c-compare-gt";
+    case XL6_IR_RUNTIME_C_COMPARE_GE: return "c-compare-ge";
     case XL6_IR_RUNTIME_NATIVE_VALUE_COPY: return "native-value-copy";
     case XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL: return "native-value-equal";
     case XL6_IR_RUNTIME_NATIVE_VALUE_BOX: return "native-value-box";

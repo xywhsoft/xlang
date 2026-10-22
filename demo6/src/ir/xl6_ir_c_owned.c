@@ -1,4 +1,15 @@
 /* Included by xl6_ir.c. C owners never enter xvalue or native-value profiles. */
+static XL6_IrRuntimeOp xl6IrCOwnedCompareOp(const char* text)
+{
+    if(!text)return XL6_IR_RUNTIME_NONE;
+    if(!strcmp(text,"=="))return XL6_IR_RUNTIME_C_COMPARE_EQ;
+    if(!strcmp(text,"!="))return XL6_IR_RUNTIME_C_COMPARE_NE;
+    if(!strcmp(text,"<"))return XL6_IR_RUNTIME_C_COMPARE_LT;
+    if(!strcmp(text,"<="))return XL6_IR_RUNTIME_C_COMPARE_LE;
+    if(!strcmp(text,">"))return XL6_IR_RUNTIME_C_COMPARE_GT;
+    if(!strcmp(text,">="))return XL6_IR_RUNTIME_C_COMPARE_GE;
+    return XL6_IR_RUNTIME_NONE;
+}
 int xl6IrTypeIsCOwned(const XL6_IrType* type)
 {
     return type && type->kind==XL6_IR_TYPE_BUILTIN && !type->paramCount &&
@@ -8,11 +19,12 @@ int xl6IrTypeIsCOwned(const XL6_IrType* type)
 }
 int xl6IrCOwnedRuntimeOpIs(XL6_IrRuntimeOp op)
 {
-    return op>=XL6_IR_RUNTIME_CSTRING_TAKE && op<=XL6_IR_RUNTIME_CBYTES_SIZE_TAKE;
+    return op>=XL6_IR_RUNTIME_CSTRING_TAKE && op<=XL6_IR_RUNTIME_C_COMPARE_GE;
 }
 XL6_IrCallErrorPhysicalAbi xl6IrCOwnedErrorPhysicalAbi(XL6_IrRuntimeOp op)
 {
-    if(op==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE) return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
+    if(op==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE || op==XL6_IR_RUNTIME_CSTRING_AT || op==XL6_IR_RUNTIME_CBYTES_AT)
+        return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     if(op==XL6_IR_RUNTIME_CSTRING_BOX || op==XL6_IR_RUNTIME_CBYTES_COPY)
         return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
     return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
@@ -51,6 +63,28 @@ int xl6IrCOwnedInstructionCompatible(const XL6_IrModule* module,const XL6_IrInst
     const XL6_IrType* source=input ? xl6IrTypeGet(&module->types,input->type) : NULL;
     const XL6_IrType* result=xl6IrTypeGet(&module->types,ins->type);
     if(!source || !result) return 0;
+    if(ins->runtimeOp>=XL6_IR_RUNTIME_C_COMPARE_EQ) {
+        const XL6_IrInstruction* right=ins->operandCount==2 ?
+            xl6IrValueDefinition(module,module->operands[ins->firstOperand+1],NULL) : NULL;
+        const XL6_IrType* other=right ? xl6IrTypeGet(&module->types,right->type) : NULL;
+        int text=source->cAbi==XL6_IR_C_ABI_C_STRING || source->cAbi==XL6_IR_C_ABI_MANAGED_STRING;
+        int binary=source->cAbi==XL6_IR_C_ABI_C_BYTES || source->cAbi==XL6_IR_C_ABI_MANAGED_BYTES;
+        return !ins->targetSymbol && other && result->cAbi==XL6_IR_C_ABI_BOOL &&
+            (xl6IrTypeIsCOwned(source) || xl6IrTypeIsCOwned(other)) &&
+            ((text && (other->cAbi==XL6_IR_C_ABI_C_STRING || other->cAbi==XL6_IR_C_ABI_MANAGED_STRING)) ||
+             (binary && (other->cAbi==XL6_IR_C_ABI_C_BYTES || other->cAbi==XL6_IR_C_ABI_MANAGED_BYTES)));
+    }
+    if(ins->runtimeOp>=XL6_IR_RUNTIME_CSTRING_LENGTH) {
+        int binary=ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_LENGTH || ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_AT;
+        int index=ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_AT || ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_AT;
+        const XL6_IrInstruction* key=index && ins->operandCount==2 ?
+            xl6IrValueDefinition(module,module->operands[ins->firstOperand+1],NULL) : NULL;
+        return !ins->targetSymbol && xl6IrTypeIsCOwned(source) &&
+            source->cAbi==(binary ? XL6_IR_C_ABI_C_BYTES : XL6_IR_C_ABI_C_STRING) &&
+            ins->operandCount==(index ? 2u : 1u) &&
+            (!index || (key && xl6IrTypeGet(&module->types,key->type)->cAbi==XL6_IR_C_ABI_I64)) &&
+            result->cAbi==(index && !binary ? XL6_IR_C_ABI_CHAR_U32 : XL6_IR_C_ABI_I64);
+    }
     if(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE) {
         const XL6_IrInstruction* length=ins->operandCount==2 ?
             xl6IrValueDefinition(module,module->operands[ins->firstOperand+1],NULL) : NULL;
