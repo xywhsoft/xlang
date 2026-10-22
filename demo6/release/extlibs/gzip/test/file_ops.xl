@@ -25,6 +25,11 @@ func main(...) as int
         gzip.decompressFile(packed, restored)
         assert file.readText(restored) == content
 
+        // 同一路径先读后写；只有压缩或解压全部成功才替换原文件。
+        gzip.compressFile(source, source)
+        gzip.decompressFile(source, source)
+        assert file.readText(source) == content
+
         bool rejected = false
         try
             gzip.compressFile(source, packed, overwrite = false)
@@ -32,6 +37,23 @@ func main(...) as int
             rejected = true
         end
         assert rejected and file.readText(restored) == content
+
+        rejected = false
+        try
+            gzip.compressFile(source, source, overwrite = false)
+        catch ValueError e
+            rejected = true
+        end
+        assert rejected and file.readText(source) == content
+
+        // 目标父路径是普通文件时，拒绝错误路径且不改写源文件。
+        bool invalidParent = false
+        try
+            gzip.compressFile(source, path.join(source, "child.gz"), overwrite = false)
+        catch IOError e
+            invalidParent = true
+        end
+        assert invalidParent and file.readText(source) == content
 
         bool cancelled = false
         try
