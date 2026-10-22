@@ -1,0 +1,75 @@
+{
+  "Schema": 1,
+  "Purpose": "Owned TaskNet activations: accepted Data, typed result, cancellation setup before Engine acceptance",
+  "CanonicalCommit": "79f5da3c3c0859508329e42a2db79afd8f9e6fde",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/detail/wait.h",
+      "Sha256": "5bb75cbad71ec10ccbbc1278bf2458dfc58948c7a33cf4daf11404bf84ed59cd"
+    },
+    {
+      "Path": "include/xrt/task_net.h",
+      "Sha256": "a51225a9e5456295883b3695ba13d1210bcc70dde42772b21c1951754d32aa42"
+    },
+    {
+      "Path": "src/network/task_net.c",
+      "Sha256": "cacd45f078d7f52d156f12885e44b3c86b23d23ae6118e9c840423b1caf7f875"
+    }
+  ],
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "725A95D36939B2023C6FFE4C5D015139C596AD2417038FC00B459B072CFE8A60",
+      "AfterSha256": "80F663BE98E630B3123E8B5B378B1F2ABBCE920A9F21642B77FB754F73AB6F86",
+      "AddedBytes": 17331
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "1910D91668A7384AC2464AE542EC8DCBE05FE7FEBA6E3B445327D0D74C697E95",
+      "AfterSha256": "05901732727052E9BB39AD17D16DE321D5DDB848B172C922AC27B6D2EFC3982A",
+      "AddedBytes": 17331
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "409066911A5D36CCBA39E5DE0536224A52CD2AAA347B857CD650D85B71A1EBC5",
+      "AfterSha256": "310BFCE0AE51D284CF15180B59E9D014C8CF3A12DF2472E65913439C1AAAE102",
+      "AddedBytes": 2008
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "26A7E4CD0745A4ADDFBDB8A496A77BAB4306F693C65002202A8F91432DF49279",
+      "AfterSha256": "5B55EA2005AB587FCFEC3B31E0097153F15EC77EA1E6687DBE567820B8FEF570",
+      "AddedBytes": 2008
+    }
+  ],
+  "PublicApis": [
+    "xrtTaskNetAfterDataPolicyV1",
+    "xrtTaskNetCancelPolicyV1Get",
+    "xrtTaskNetDataPolicyV1",
+    "xrtTaskNetJobDataPolicyV1Get",
+    "xrtTaskNetOwnershipAdapterV1",
+    "xrtTaskNetOwnershipQuiescenceV1Get",
+    "xrtTaskNetPostPolicyV1Get",
+    "xrtTaskNetTimerPolicyV1Get",
+    "xrtTaskNetUntilDataPolicyV1"
+  ],
+  "ClockContracts": {
+    "Pinned": "uint64 microseconds / absolute Until / UINT64_MAX never",
+    "Independent": "int64 milliseconds / relative For; private double seconds Until",
+    "WholeTimeAbiUpgrade": false
+  },
+  "Scope": {
+    "ResidentFrame": true,
+    "UserDataRetiredBeforeFutureTerminal": true,
+    "RealEngineShellReference": true,
+    "EngineLiveObjectsPin": false,
+    "NoPostAcceptanceFallibleBridgeSetup": true,
+    "UnknownUserPolicyRefused": true,
+    "LegacyBorrowedPathsCertified": false,
+    "LanguageGenericProfileComplete": false,
+    "TaskGroupOwnedCompositionComplete": false,
+    "NetFileComplete": false,
+    "ShippingUpdated": false
+  },
+  "Proof": "F:/xlang-validation/five-groups-20261022/p3-net-task-owned/verified-commit.json"
+}

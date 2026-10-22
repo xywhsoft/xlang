@@ -112,3 +112,46 @@ GCC／TCC、Linux ASan／UBSan 和未 await 控制的退役图；仅自有字面
 这只关闭共用目录前置，不关闭 TaskNet／TaskGroupNet／NetFile 或完整网络目标。
 原生拥有记录、结果及取消／完成时序、语言 generic profile 接入和实际产品验收
 仍须继续。没有发布库、VFS、外网、DNS、协议或网络安全专项验收。
+
+## 拥有型 TaskNet 底座定点落地（2026-10-23）
+
+用户已明确批准保留两端各自时间合同的定点增补，本项不再等待同步方式决策。
+独立 XRT 提交 `79f5da3c3c0859508329e42a2db79afd8f9e6fde` 增加封闭 Data／
+结果 policy、立即／延迟任务、真实 Frame／Job／Engine 外壳／Watch 拥有关系，
+以及 exact-identity adapter 和 quiescence。xlang 对应增补四份嵌入／声明头：
+微秒／Until 保持不变，独立 XRT 仍为毫秒／For，没有整套时间 ABI 升级。
+定点同步器逆向移除新增片段后逐字节比较原头，证明未带入其他原生改动。
+快照公共 API 数现为 XRT 3352／xruntime 3817（xruntime 自有仍为 465）。
+
+所有可失败的取消桥装配在 Engine 受理前完成。成功后只发布 Ready；预先取消
+先记录请求，再对真实 Timer ID 重放。Job 在 Future 终态之前释放用户 Data，
+而 Frame 的物理释放可等待 graph pin；两者不混淆。取消尾部另持 Engine 外壳
+引用，外壳不增加 LiveObjects，不阻止任务自身的停止排空。未知用户 policy
+在 Count／Trace 前拒绝，用户 Proc／Drop 和等待不在内部锁／mutation 中执行。
+
+正式底座验收 Windows 48／Linux 64 阶段，共 112 阶段。四种构建形态为固定
+xrt、固定 xruntime、独立 XRT 单头与模块化；GCC O0／O2、TCC 及 Linux
+ASan／UBSan 都运行真实当前实现和原样 XLIR 规划器。每种配置运行 80 轮真实
+pending 图，覆盖成功、停止、取消、错误策略拒绝和实际外部复活／重建计划；
+不是推算引用数或伪造节点。生命周期夹具另检查 64 个分配预算、12 次实际失败、
+16 次受理前取消、16 次未启动 Engine 拒绝和 callback／Drop 中独立 freeze，
+逐场景核对实际内存账本。
+
+9 个新 API 的真实产物模块查找在双端 O0／O2 检查，共 8 阶段。准备轮发现
+native symbol 表必须保持二分查找排序，已排序并完整重跑该专项，不改变查找器。
+快照门禁 Windows 10／Linux 5 阶段（包括真实陈旧资产拒绝），合计本批 135 阶段。
+夹具准备轮还修正旧 BufPool adapter 参数以及重复取消已终态 Future 的错误断言；
+准备／失败轮保留，不计成功。没有放宽拥有权 verifier 或安全默认值。
+
+证据根 `F:/xlang-validation/five-groups-20261022/p3-net-task-owned`；
+正式底座 `native-win-r4`／`native-linux-r3`，映射 `map-*-r3`，
+快照 `snapshot-win-r2`／`snapshot-linux-r1`。原始 Linux 证据与 F 盘镜像均保留。
+入口为 `check_stdlib_task_net_owned_native.py`、`check_stdlib_task_net_owned_artifact.py`、
+`check_stdlib_snapshot_guard.py`；定点同步入口 `sync_task_net_owned_snapshot.py`。
+回执为 `verified-commit.json`，backport 身份在 `lib/xrt/backports/task_net_owned.json`。
+
+本项只关闭拥有型原生底座与定点同步。语言 generic profile／结果投影、封闭目录
+family 接入、TaskGroup 拥有型组合、NetFile、完整服务图及 shipping 仍开放。
+旧借用路径不因新接口存在而获得认证；本批没有修改 Cgen 实现、发布库或 VFS，
+没有应用 Socket、DNS、应用网络流量、协议攻击样本或网络安全专项。
+
