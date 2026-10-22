@@ -27,5 +27,10 @@ func main(...) as int
     else
         println("interval: no")
     end
+    if semver.satisfies("2.4.1", "2.4.0 - 2.4.9 >=2.4.1") then
+        println("intersection: yes")
+    else
+        println("intersection: no")
+    end
     return 0
 end

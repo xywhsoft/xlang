@@ -19,7 +19,11 @@ func main(...) as int
     assert semver.satisfies("2.1.0", "1.2.3  -  2.3.4"), "spaced hyphen range"
     assert not semver.satisfies("2.4.0", "1.2.3  -  2.3.4"), "spaced hyphen upper bound"
     assert semver.satisfies("2.1.0", "1.2.3\t-\t2.3.4"), "tab hyphen range"
-    assert not semver.satisfies("2.1.0", "1.2.3 - 2.3.4 >=2.0.0"), "combined hyphen range"
+    assert semver.satisfies("2.1.0", "1.2.3 - 2.3.4 >=2.0.0"), "combined hyphen range"
+    assert not semver.satisfies("1.9.0", "1.2.3 - 2.3.4 >=2.0.0"), "combined lower bound"
+    assert semver.satisfies("2.1.0", ">=2.0.0 1.2.3 - 2.3.4"), "hyphen after comparator"
+    assert not semver.satisfies("2.4.0", ">=2.0.0 1.2.3 - 2.3.4"), "combined upper bound"
+    assert not semver.satisfies("2.1.0", "1.2.3 -"), "incomplete hyphen range"
 
     // 数值溢出或格式错误不能被转换成某个有效范围。
     assert not semver.valid("9223372036854775808.0.0"), "major overflow"

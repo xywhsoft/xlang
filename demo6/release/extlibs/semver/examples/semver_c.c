@@ -28,6 +28,7 @@ int main(void)
     printf("compatible: %s\n", xsemver_satisfies("2.4.9", "~2.4.0") ? "yes" : "no");
     printf("upper-bound: %s\n", xsemver_satisfies("2.4.0", "<=2.4.1") ? "yes" : "no");
     printf("interval: %s\n", xsemver_satisfies("2.4.1", "2.4.0  -  2.4.9") ? "yes" : "no");
+    printf("intersection: %s\n", xsemver_satisfies("2.4.1", "2.4.0 - 2.4.9 >=2.4.1") ? "yes" : "no");
     xrtFree(pre);
     xrtFree(build);
     xrtFree(clean);

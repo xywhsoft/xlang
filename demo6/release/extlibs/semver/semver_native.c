@@ -666,14 +666,38 @@ static int semver_is_range_operator(const char *token) {
         strcmp(token, "^") == 0;
 }
 
-static int semver_is_range_space(char c) {
-    return c == ' ' || c == '\t';
+/* 连字符区间是比较器组的一部分，可以与前后的条件取交集。 */
+static int semver_add_hyphen_range(ComparatorSet *set, const char *left,
+    const char *right) {
+    Partial lo;
+    Partial hi;
+    if (!semver_parse_partial(left, &lo) ||
+        !semver_parse_partial(right, &hi) ||
+        !lo.present[0] || !hi.present[0]) {
+        return 0;
+    }
+    if ((!hi.present[1] && hi.num[0] == LLONG_MAX) ||
+        (!hi.present[2] && hi.present[1] && hi.num[1] == LLONG_MAX)) {
+        return 0;
+    }
+    if (!semver_add(set, XSEMVER_OP_GE, lo.num[0],
+            lo.present[1] ? lo.num[1] : 0,
+            lo.present[2] ? lo.num[2] : 0,
+            lo.pre[0] ? lo.pre : NULL)) {
+        return 0;
+    }
+    if (!hi.present[2]) {
+        if (hi.present[1]) {
+            return semver_add(set, XSEMVER_OP_LT, hi.num[0], hi.num[1] + 1, 0, NULL);
+        }
+        return semver_add(set, XSEMVER_OP_LT, hi.num[0] + 1, 0, 0, NULL);
+    }
+    return semver_add(set, XSEMVER_OP_LE, hi.num[0], hi.num[1], hi.num[2],
+        hi.pre[0] ? hi.pre : NULL);
 }
 
 static int semver_parse_set(const char *text, ComparatorSet *set) {
     char buf[XSEMVER_MAX_TEXT];
-    char *hyphen = NULL;
-    char *scan;
     int i;
 
     set->count = 0;
@@ -681,59 +705,6 @@ static int semver_parse_set(const char *text, ComparatorSet *set) {
         return 0;
     }
     strcpy(buf, text);
-
-    for (scan = buf; *scan; ++scan) {
-        if (scan > buf && *scan == '-' &&
-            semver_is_range_space(scan[-1]) &&
-            semver_is_range_space(scan[1])) {
-            hyphen = scan;
-            break;
-        }
-    }
-    if (hyphen) {
-        Partial lo;
-        Partial hi;
-        char left[XSEMVER_MAX_TEXT];
-        char right[XSEMVER_MAX_TEXT];
-        char *left_end = hyphen;
-        char *right_start = hyphen + 1;
-        size_t left_len;
-        size_t right_len;
-        while (left_end > buf && semver_is_range_space(left_end[-1])) left_end--;
-        while (semver_is_range_space(*right_start)) right_start++;
-        left_len = (size_t)(left_end - buf);
-        right_len = strlen(right_start);
-        if (left_len >= sizeof(left) || right_len >= sizeof(right)) {
-            return 0;
-        }
-        memcpy(left, buf, left_len);
-        left[left_len] = '\0';
-        memcpy(right, right_start, right_len);
-        right[right_len] = '\0';
-        if (!semver_parse_partial(left, &lo) || !semver_parse_partial(right, &hi)) {
-            return 0;
-        }
-        if (!lo.present[0] || !hi.present[0]) {
-            return 0;
-        }
-        if ((hi.num[0] == LLONG_MAX && !hi.present[1]) ||
-            (hi.num[1] == LLONG_MAX && !hi.present[2])) {
-            return 0;
-        }
-        if (!semver_add(set, XSEMVER_OP_GE,
-                lo.num[0], lo.present[1] ? lo.num[1] : 0,
-                lo.present[2] ? lo.num[2] : 0, lo.pre[0] ? lo.pre : NULL)) {
-            return 0;
-        }
-        if (!hi.present[2]) {
-            if (hi.present[1]) {
-                return semver_add(set, XSEMVER_OP_LT, hi.num[0], hi.num[1] + 1, 0, NULL);
-            }
-            return semver_add(set, XSEMVER_OP_LT, hi.num[0] + 1, 0, 0, NULL);
-        }
-        return semver_add(set, XSEMVER_OP_LE, hi.num[0], hi.num[1], hi.num[2],
-            hi.pre[0] ? hi.pre : NULL);
-    }
 
     /* Tokenize this buffer only; no shared state between concurrent calls. */
     {
@@ -761,6 +732,14 @@ static int semver_parse_set(const char *text, ComparatorSet *set) {
         for (i = 0; i < ntokens; i++) {
             const char *token = tokens[i];
             char joined[XSEMVER_MAX_TEXT];
+            if (i + 1 < ntokens && strcmp(tokens[i + 1], "-") == 0) {
+                if (i + 2 >= ntokens ||
+                    !semver_add_hyphen_range(set, token, tokens[i + 2])) {
+                    return 0;
+                }
+                i += 2;
+                continue;
+            }
             if (semver_is_range_operator(token)) {
                 size_t op_len = strlen(token);
                 size_t version_len;

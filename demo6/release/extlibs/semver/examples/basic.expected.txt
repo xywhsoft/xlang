@@ -10,3 +10,4 @@ compare: -1
 compatible: yes
 upper-bound: yes
 interval: yes
+intersection: yes
