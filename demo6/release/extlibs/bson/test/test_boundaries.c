@@ -17,6 +17,18 @@
     return 1; \
 } } while (0)
 
+static int live_unchanged(xmemdebugsnapshot before, const char* operation,
+    unsigned int point) {
+    xmemdebugsnapshot after;
+    xrtClearError();
+    xrtMemDebugSnapshot(&after);
+    if (after.LiveCount == before.LiveCount &&
+        after.LiveBytes == before.LiveBytes) return 1;
+    fprintf(stderr, "BSON %s point %u leaked: %zu -> %zu allocations\n",
+        operation, point, before.LiveCount, after.LiveCount);
+    return 0;
+}
+
 #if defined(__linux__)
 static int fail_clock_once;
 
@@ -244,6 +256,9 @@ static int decode_allocation_failures(void) {
     for (failure = 0; failure < 128u; ++failure) {
         xvalue* decoded;
         bool triggered;
+        xmemdebugsnapshot before;
+        xrtClearError();
+        xrtMemDebugSnapshot(&before);
         CHECK(xrtMemDebugFailAfter(failure));
         decoded = xbson_decode(source);
         triggered = xrtMemDebugFailTriggered();
@@ -257,6 +272,7 @@ static int decode_allocation_failures(void) {
                 xrtGetError() == NULL;
         }
         xrtValueRelease(decoded);
+        CHECK(live_unchanged(before, "decode", failure));
         if (!triggered) break;
     }
     xrtValueRelease(source);
@@ -278,6 +294,9 @@ static int decode_all_allocation_failures(void) {
     for (failure = 0; failure < 128u; ++failure) {
         xvalue* decoded;
         bool triggered;
+        xmemdebugsnapshot before;
+        xrtClearError();
+        xrtMemDebugSnapshot(&before);
         CHECK(xrtMemDebugFailAfter(failure));
         decoded = xbson_decode_all(source);
         triggered = xrtMemDebugFailTriggered();
@@ -295,6 +314,7 @@ static int decode_all_allocation_failures(void) {
                 xrtValueCount(decoded) == 2u && xrtGetError() == NULL;
         }
         xrtValueRelease(decoded);
+        CHECK(live_unchanged(before, "decodeAll", failure));
         if (!triggered) break;
     }
     xrtValueRelease(source);
@@ -367,6 +387,9 @@ static int encode_allocation_failures(void) {
     for (failure = 0; failure < 128u; ++failure) {
         xvalue* encoded;
         bool triggered;
+        xmemdebugsnapshot before;
+        xrtClearError();
+        xrtMemDebugSnapshot(&before);
         CHECK(xrtMemDebugFailAfter(failure));
         encoded = xbson_encode(document);
         triggered = xrtMemDebugFailTriggered();
@@ -380,6 +403,7 @@ static int encode_allocation_failures(void) {
                 xrtGetError() == NULL;
         }
         xrtValueRelease(encoded);
+        CHECK(live_unchanged(before, "encode", failure));
         if (!triggered) break;
     }
     xrtValueRelease(document);
@@ -399,6 +423,9 @@ static int concat_allocation_failures(void) {
     for (failure = 0; failure < 64u; ++failure) {
         xvalue* result;
         bool triggered;
+        xmemdebugsnapshot before;
+        xrtClearError();
+        xrtMemDebugSnapshot(&before);
         CHECK(xrtMemDebugFailAfter(failure));
         result = xbson_concat(source, source);
         triggered = xrtMemDebugFailTriggered();
@@ -413,6 +440,7 @@ static int concat_allocation_failures(void) {
                 data.Size == 2u * sizeof(wire) && xrtGetError() == NULL;
         }
         xrtValueRelease(result);
+        CHECK(live_unchanged(before, "concat", failure));
         if (!triggered) break;
     }
     xrtValueRelease(source);
@@ -731,15 +759,19 @@ int main(int argc, char** argv) {
     /* 固定种子畸形输入，兼顾回归可重现性与解析器边界。 */
     for (iteration = 0; iteration < 5000; ++iteration) {
         size_t size = iteration % sizeof(random_wire);
+        xmemdebugsnapshot before;
         for (i = 0; i < size; ++i) {
             seed = seed * 1664525u + 1013904223u;
             random_wire[i] = (unsigned char)(seed >> 24);
         }
+        xrtClearError();
+        xrtMemDebugSnapshot(&before);
         source = input(random_wire, size);
         decoded = xbson_decode(source);
         CHECK(decoded != NULL);
         xrtValueRelease(decoded);
         xrtValueRelease(source);
+        CHECK(live_unchanged(before, "malformed input", (unsigned int)iteration));
     }
     puts("bson boundaries: ok");
     return 0;
