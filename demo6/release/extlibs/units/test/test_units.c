@@ -1,6 +1,7 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #include "xrt.h"
 #include "../include/units_native.h"
+#include <ctype.h>
 #include <math.h>
 #include <fenv.h>
 #include <locale.h>
@@ -80,6 +81,31 @@ static int test_numeric_locale(void)
     return ok;
 }
 
+/* ASCII 单位不受土耳其语等区域设置中的 i/I 大小写规则影响。 */
+static int test_suffix_locale(void)
+{
+    static const char* locales[] = {
+        "Turkish_Turkey.1254", "tr-TR", "tr_TR.UTF-8", "tr_TR.utf8"
+    };
+    const char* current = setlocale(LC_CTYPE, NULL);
+    char saved[128];
+    size_t i;
+    int ok;
+    if (current == NULL || strlen(current) >= sizeof(saved)) return 0;
+    strcpy(saved, current);
+    for (i = 0; i < sizeof(locales) / sizeof(locales[0]); ++i)
+        if (setlocale(LC_CTYPE, locales[i]) != NULL &&
+            toupper((unsigned char)'i') != 'I') break;
+    if (i == sizeof(locales) / sizeof(locales[0])) {
+        setlocale(LC_CTYPE, saved);
+        return 1;
+    }
+    ok = parse_bytes("1 kib") == 1024.0 &&
+        parse_bytes("1 mib") == 1048576.0;
+    setlocale(LC_CTYPE, saved);
+    return ok;
+}
+
 /* 格式化分配失败必须保留内存错误，清除注入后五条入口都能继续使用。 */
 static int test_allocation_failure(void)
 {
@@ -124,6 +150,7 @@ int main(void)
     CHECK(parse_bytes("10 KB") == 10000.0);
     CHECK(parse_bytes("1.5MiB") == 1572864.0);
     CHECK(parse_bytes("1.5 mib") == 1572864.0);
+    CHECK(parse_bytes("1 kib") == 1024.0);
     CHECK(parse_bytes("-1 B") == -1.0);
     CHECK(parse_bytes("1.50 KiB") == 1536.0);
     CHECK(parse_bytes("1.50 kB") == 1500.0);
@@ -207,6 +234,7 @@ int main(void)
     xrtFree(first);
     xrtFree(second);
     CHECK(test_numeric_locale());
+    CHECK(test_suffix_locale());
     CHECK(test_allocation_failure() == 0);
     puts("units C boundaries: PASS");
     return 0;
