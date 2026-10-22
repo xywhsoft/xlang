@@ -58,7 +58,8 @@ try {
         $null=Check "$case-build" $gcc ($flags+@('-DNDEBUG',"$pkg/test/$case.c")+$links+@('-o',$exe))
         $null=Check $case $exe @()
     }
-    foreach($case in @('test/cases/extlib_graph.xl',"$pkg/test/boundaries.xl",'release/examples/extlibs/graph.xl','release/examples/extlibs/graph_basic.xl')) {
+    foreach($case in @('test/cases/extlib_graph.xl',"$pkg/test/boundaries.xl", "$pkg/test/allocations.xl",
+        'release/examples/extlibs/graph.xl','release/examples/extlibs/graph_basic.xl')) {
         $name=[IO.Path]::GetFileNameWithoutExtension($case)
         $jit=Check "$name-jit" $xl @('run',$case)
         if(-not $SkipAot) {
