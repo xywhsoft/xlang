@@ -27,9 +27,40 @@ static void clear(sink* target)
     xrtArrayClear(&target->messages); target->calls=0; target->failAt=0;
 }
 static received* message(sink* target,size_t at) { return xrtArrayGet(&target->messages,at); }
+static int ignore(void* user,const char* method,const xvalue* params) { (void)user;(void)method;(void)params;return 1; }
+typedef struct clone_job { xls_sync* sync;int failed; } clone_job;
+static int32 updateClone(ptr user)
+{
+    clone_job* job=user;
+    for(int i=0;i<128;++i) {
+        const char* text=i%2 ? "second😀" : "first中";
+        xls_sync_document document={"file:///clone.xl",text,strlen(text),1,(uint64_t)i+2};
+        if(!xlsSyncUpdate(job->sync,&document,1,ignore,NULL) || xlsSyncVersion(job->sync,document.uri)!=i+2) {job->failed=1;break;}
+    }
+    xlsSyncDestroy(job->sync);job->sync=NULL;return 0;
+}
+static int clones(void)
+{
+    CHECK(!xlsSyncClone(NULL));
+    xls_sync* base=xlsSyncCreate(2);xls_sync_document document={"file:///clone.xl","original",8,1,1};
+    CHECK(base && xlsSyncUpdate(base,&document,1,ignore,NULL));
+    xls_sync* copy=xlsSyncClone(base);xls_text* lease=xlsSyncRetainText(base,document.uri,1);
+    xls_text* shared=xlsSyncRetainText(copy,document.uri,1);CHECK(copy && lease && shared==lease);xlsTextRelease(shared);
+    document.text="changed";document.length=7;++document.revision;
+    CHECK(xlsSyncUpdate(copy,&document,1,ignore,NULL) && xlsSyncVersion(base,document.uri)==1 && xlsSyncVersion(copy,document.uri)==2);
+    xls_sync_stats a={0},b={0};xlsSyncStats(base,&a);xlsSyncStats(copy,&b);CHECK(a.opens==1 && !a.changes && b.opens==1 && b.changes==1);
+    xlsSyncDestroy(copy);
+    clone_job jobs[4]={0};xthread* threads[4]={0};
+    for(size_t i=0;i<4;++i) {jobs[i].sync=xlsSyncClone(base);CHECK(jobs[i].sync);}
+    for(size_t i=0;i<4;++i) {threads[i]=xrtThreadCreate(updateClone,jobs+i,0);CHECK(threads[i]);}
+    xlsSyncDestroy(base);
+    for(size_t i=0;i<4;++i) {xrtThreadWait(threads[i]);xrtThreadDestroy(threads[i]);CHECK(!jobs[i].failed && !jobs[i].sync);}
+    CHECK(!strcmp(xlsTextData(lease),"original"));xlsTextRelease(lease);return 0;
+}
 
 int main(void)
 {
+    CHECK(!clones());
     char digest[65],before[65],after[65]; size_t online=99;
     CHECK(!xlsSyncInputState(NULL,digest,&online) && !digest[0] && !online);
     CHECK(xlsInputStateDigest(NULL,0,digest) && !strcmp(digest,"b921fd41e71c0d4301ca5fcff0631d82b415d5216ad0648d155596afd3142067"));
@@ -112,6 +143,7 @@ int main(void)
     target.failAt=2;
     CHECK(!xlsSyncUpdate(sync,docs,2,emit,&target) && target.calls==2 && !xlsSyncVersion(sync,docs[0].uri));
     CHECK(!xlsSyncInputState(sync,digest,&online) && !digest[0] && !online);
+    CHECK(!xlsSyncClone(sync));
     CHECK(!xlsSyncRetainText(sync,docs[0].uri,1) && !xlsSyncRetainText(sync,docs[0].uri,2));
     clear(&target);
     CHECK(!xlsSyncUpdate(sync,docs,2,emit,&target) && !target.calls);

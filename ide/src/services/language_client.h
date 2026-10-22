@@ -7,6 +7,14 @@ typedef struct xide_language_client_spec {
  size_t argumentCount;
 } xide_language_client_spec;
 typedef struct xide_language_client xide_language_client;
+typedef struct xide_language_batch xide_language_batch;
+/* Thread-exclusive prepared notification batch. Encoding/allocation happens
+ * in Append; Send performs a bounded all-or-none queue splice with no encoding.
+ * Successful Send TAKES the batch; false leaves it owned by the caller. */
+xide_language_batch* xideLanguageBatchCreate(void);
+int xideLanguageBatchAppend(xide_language_batch* batch,const char* method,const xvalue* params);
+void xideLanguageBatchDestroy(xide_language_batch* batch);
+int xideLanguageBatchSend(xide_language_client* client,xide_language_batch* batch);
 enum xide_language_client_state { XIDE_LS_STARTING,XIDE_LS_RUNNING,XIDE_LS_STOPPED,XIDE_LS_FAILED };
 xide_language_client* xideLanguageClientStart(const char* program,const char* compiler,const char* directory,xide_model_error* error);
 /* Deep-copies up to 64 literal arguments before starting the stdio worker. */

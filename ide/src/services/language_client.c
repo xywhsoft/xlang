@@ -7,10 +7,39 @@
 #define QUEUE_BYTES (64u*1024u*1024u)
 #define QUEUE_COUNT 2048u
 typedef struct node { struct node* next; char* bytes; size_t length,offset; xvalue* value; } node;
+struct xide_language_batch { node *head,*tail;size_t bytes,count; };
 struct xide_language_client { CRITICAL_SECTION lock; HANDLE worker; volatile LONG stop; char *program,*directory; char** arguments; size_t argumentCount; enum xide_language_client_state state; char error[768]; node *sendHead,*sendTail,*receiveHead,*receiveTail; size_t sendBytes,receiveBytes,sendCount,receiveCount; void (*wake)(void*); void* wakeUser; };
 static char* copy(const char* s) { size_t n=strlen(s)+1; char* p=malloc(n); if(p) memcpy(p,s,n); return p; }
 static int fail(xide_model_error* e,const char* s) { if(e) { e->code=XIDE_MODEL_INVALID; snprintf(e->message,sizeof(e->message),"%s",s); } return 0; }
 static void clear(node* n) { while(n) { node* next=n->next; free(n->bytes); xrtValueRelease(n->value); free(n); n=next; } }
+xide_language_batch* xideLanguageBatchCreate(void)
+{ return calloc(1,sizeof(xide_language_batch)); }
+void xideLanguageBatchDestroy(xide_language_batch* batch)
+{ if(batch) {clear(batch->head);free(batch);} }
+int xideLanguageBatchAppend(xide_language_batch* batch,const char* method,const xvalue* params)
+{
+ if(!batch || !method || !*method || !params || batch->count>=QUEUE_COUNT) return 0;
+ xvalue* message=xrtValueObject();node* n=calloc(1,sizeof(*n));xide_model_error error={0};
+ int okay=message && n && xrtValueObjectSetNew(message,xrtStrView("jsonrpc"),xrtValueString(xrtStrView("2.0"))) &&
+  xrtValueObjectSetNew(message,xrtStrView("method"),xrtValueString(xrtStrView(method))) &&
+  xrtValueObjectSet(message,xrtStrView("params"),params);
+ if(okay) n->bytes=xideLspFrame(message,&n->length,&error);
+ okay=okay && n->bytes && n->length<=QUEUE_BYTES-batch->bytes;xrtValueRelease(message);
+ if(!okay) {clear(n);return 0;}
+ if(batch->tail) batch->tail->next=n;else batch->head=n;
+ batch->tail=n;batch->bytes+=n->length;++batch->count;return 1;
+}
+int xideLanguageBatchSend(xide_language_client* c,xide_language_batch* batch)
+{
+ if(!c || !batch) return 0;
+ EnterCriticalSection(&c->lock);
+ int okay=c->state<=XIDE_LS_RUNNING && batch->count<=QUEUE_COUNT-c->sendCount && batch->bytes<=QUEUE_BYTES-c->sendBytes;
+ if(okay && batch->head) {
+  if(c->sendTail) c->sendTail->next=batch->head;else c->sendHead=batch->head;
+  c->sendTail=batch->tail;c->sendCount+=batch->count;c->sendBytes+=batch->bytes;
+ }
+ LeaveCriticalSection(&c->lock);if(okay) free(batch);return okay;
+}
 static void wakeOwner(xide_language_client* c)
 { EnterCriticalSection(&c->lock); void (*wake)(void*)=c->wake; void* user=c->wakeUser; LeaveCriticalSection(&c->lock); if(wake) wake(user); }
 void xideLanguageClientSetWake(xide_language_client* c,void (*wake)(void*),void* user)
@@ -29,11 +58,12 @@ static DWORD WINAPI worker(void* user)
  xide_process_spec spec={.program=c->program,.directory=c->directory,.arguments=(const char* const*)c->arguments,.argumentCount=c->argumentCount,.interactive=1,.separateStderr=1,.stdoutCapacity=8u*1024u*1024u+16384u}; xide_process* p=xideProcessStart(&spec,e.message,sizeof(e.message)); int okay=p!=NULL;
  while(okay && !InterlockedCompareExchange(&c->stop,0,0)) {
   xideProcessGetInfo(p,&info); if(info.started) { EnterCriticalSection(&c->lock); c->state=XIDE_LS_RUNNING; LeaveCriticalSection(&c->lock); }
-  EnterCriticalSection(&c->lock); node* n=c->sendHead;
+  node* sent=NULL;EnterCriticalSection(&c->lock); node* n=c->sendHead;
   if(n) { size_t k=n->length-n->offset; if(k>16384) k=16384; if(xideProcessWrite(p,n->bytes+n->offset,k)) n->offset+=k;
-   if(n->offset==n->length) { c->sendHead=n->next; if(!c->sendHead) c->sendTail=NULL; c->sendBytes-=n->length; --c->sendCount; n->next=NULL; clear(n); }
+   if(n->offset==n->length) { c->sendHead=n->next; if(!c->sendHead) c->sendTail=NULL; c->sendBytes-=n->length; --c->sendCount; n->next=NULL; sent=n; }
   }
   LeaveCriticalSection(&c->lock);
+  clear(sent); /* Large encoded bodies are retired outside the owner lock. */
   char bytes[16384]; size_t k=xideProcessRead(p,bytes,sizeof(bytes)); if(k && !xideLspStreamFeed(&stream,bytes,k,receive,c,&e)) { okay=0; break; }
   size_t warning=xideProcessReadError(p,bytes,sizeof(bytes)); if(warning) { size_t keep=warning<sizeof(stderrTail)-1 ? warning : sizeof(stderrTail)-1; memcpy(stderrTail,bytes+warning-keep,keep); stderrTail[keep]=0; }
   xideProcessGetInfo(p,&info);
