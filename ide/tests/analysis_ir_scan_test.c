@@ -1,7 +1,9 @@
 #include "analysis/frontend_ir.h"
+#include "analysis/frontend_types.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/stdlib/xl6_stdlib.h"
 #include "src/sem/xl6_sem.h"
+#include "src/type/xl6_type_model.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -75,23 +77,56 @@ static int compareConversions(XL6_IrModule* ir,int large)
 static int compareTypeLookups(const XL6_AstNode* root,const char* expected)
 {
     XL6_IrModule other; XL6_DiagList diags; xl6IrModuleInit(&other); xl6DiagInit(&diags);
-    xlsFrontendIrTypeLookupReset();
+    xlsFrontendIrTypeLookupReset(); xlsFrontendTypeAliasReset();
     CHECK(xlsFrontendIrBuildTypeBudget(&other,root,&diags,0) && !diags.count);
     xls_ir_type_lookup_work reference=xlsFrontendIrTypeLookupWork();
+    xls_type_alias_work aliasReference=xlsFrontendTypeAliasWork();
     char* actual=dump(&other); CHECK(actual && !strcmp(actual,expected)); xrtFree(actual);
     CHECK(!reference.indexes && !reference.indexedQueries && reference.queries && reference.linearQueries==reference.queries);
-    xlsFrontendIrTypeLookupReset();
+    CHECK(!aliasReference.indexes && !aliasReference.indexedQueries && aliasReference.queries && aliasReference.linearQueries==aliasReference.queries);
+    xlsFrontendIrTypeLookupReset(); xlsFrontendTypeAliasReset();
     CHECK(xlsFrontendIrBuildTypeBudget(&other,root,&diags,8u*1024u*1024u) && !diags.count);
     xls_ir_type_lookup_work indexed=xlsFrontendIrTypeLookupWork();
+    xls_type_alias_work aliasIndexed=xlsFrontendTypeAliasWork();
     actual=dump(&other); CHECK(actual && !strcmp(actual,expected)); xrtFree(actual);
     CHECK(indexed.indexes==1 && indexed.rootVisits==root->childCount && indexed.queries==reference.queries && indexed.indexedQueries==indexed.queries && !indexed.linearQueries && indexed.peakBytes<=8u*1024u*1024u);
-    xlsFrontendIrTypeLookupReset();
+    CHECK(aliasIndexed.indexes==1 && aliasIndexed.queries==aliasReference.queries && aliasIndexed.indexedQueries && indexed.peakBytes+aliasIndexed.peakBytes<=8u*1024u*1024u);
+    xlsFrontendIrTypeLookupReset(); xlsFrontendTypeAliasReset();
     CHECK(xlsFrontendIrBuildTypeBudget(&other,root,&diags,1) && !diags.count);
     xls_ir_type_lookup_work bounded=xlsFrontendIrTypeLookupWork();
+    xls_type_alias_work aliasBounded=xlsFrontendTypeAliasWork();
     actual=dump(&other); CHECK(actual && !strcmp(actual,expected)); xrtFree(actual);
     if(indexed.declarations) CHECK(!bounded.indexes && !bounded.indexedQueries && bounded.linearQueries==reference.linearQueries);
     else CHECK(bounded.indexes==1 && bounded.indexedQueries==reference.queries && !bounded.peakBytes);
+    if(aliasIndexed.aliases) CHECK(!aliasBounded.indexes && !aliasBounded.indexedQueries && aliasBounded.linearQueries==aliasReference.linearQueries);
+    else CHECK(aliasBounded.indexes==1 && aliasBounded.indexedQueries && !aliasBounded.peakBytes);
     xl6IrModuleFree(&other); xl6DiagFree(&diags); return 1;
+}
+static int aliasScopes(void)
+{
+    XL6_ParseResult a,b,c; xl6ParseResultInit(&a); xl6ParseResultInit(&b); xl6ParseResultInit(&c);
+    CHECK(xl6ParseSource("typedef First = int\ntypedef Second = First\nfunc value() as int\n return 0\nend\n","alias-a.xl",&a));
+    CHECK(xl6ParseSource("typedef First = string\ntypedef Second = First\ntypedef First = float\n","alias-b.xl",&b));
+    CHECK(xl6ParseSource("typedef First = Second\ntypedef Second = First\n","alias-cycle.xl",&c));
+    XL6_AstNode type={0}; type.kind=XL6_AST_TYPE; type.text="Second";
+    const XL6_AstNode *first=xl6TypeResolveAlias(a.root,&type),*second=xl6TypeResolveAlias(b.root,&type);
+    CHECK(first && second && first!=second && !strcmp(first->text,"int") && !strcmp(second->text,"string"));
+    xls_type_alias_scope outer,inner,disabled;
+    xlsFrontendTypeAliasBegin(&outer,a.root,64);
+    CHECK(xl6TypeResolveAlias(a.root,&type)==first && xl6TypeResolveAlias(b.root,&type)==second);
+    xlsFrontendTypeAliasBegin(&inner,b.root,64);
+    CHECK(xl6TypeResolveAlias(b.root,&type)==second && xl6TypeResolveAlias(a.root,&type)==first);
+    xlsFrontendTypeAliasBegin(&disabled,b.root,0);
+    CHECK(xl6TypeResolveAlias(b.root,&type)==second); xlsFrontendTypeAliasEnd(&disabled);
+    CHECK(xl6TypeResolveAlias(b.root,&type)==second); xlsFrontendTypeAliasEnd(&inner);
+    CHECK(xl6TypeResolveAlias(a.root,&type)==first); xlsFrontendTypeAliasEnd(&outer);
+    CHECK(xl6TypeResolveAlias(a.root,&type)==first && xl6TypeResolveAlias(b.root,&type)==second);
+    xlsFrontendTypeAliasBegin(&outer,a.root,1);
+    CHECK(xl6TypeResolveAlias(a.root,&type)==first); xlsFrontendTypeAliasEnd(&outer);
+    const XL6_AstNode* cycle=xl6TypeResolveAlias(c.root,&type); CHECK(cycle);
+    xlsFrontendTypeAliasBegin(&outer,c.root,64);
+    CHECK(xl6TypeResolveAlias(c.root,&type)==cycle); xlsFrontendTypeAliasEnd(&outer);
+    xl6ParseResultFree(&a); xl6ParseResultFree(&b); xl6ParseResultFree(&c); return 1;
 }
 static int corpus(const char* source,int large)
 {
@@ -184,9 +219,10 @@ static int corpus(const char* source,int large)
 }
 typedef struct reader { const char* source; int passed; } reader;
 static int32 readThread(void* user)
-{ reader* item=user; item->passed=corpus(item->source,0); return 0; }
+{ reader* item=user; item->passed=aliasScopes() && corpus(item->source,0); return 0; }
 static int run(void)
 {
+    CHECK(aliasScopes());
     const char* sources[]={
         "func main(...) as int\n int value = 7\n return value\nend\n",
         "string global = \"global\"\nfunc choose(bool yes) as string\n string outer = \"outer\"\n if yes\n string branch = \"branch\"\n return branch\n else\n string other = \"other\"\n return other\n end\nend\n",
@@ -196,6 +232,7 @@ static int run(void)
         "func values(int count) as generator<string>\n string suffix = \"owned\"\n for i in range(count)\n string item = suffix + string(i)\n yield item\n end\nend\n",
         "class Box\n string item = \"owned\"\n func value() as string\n string local = self.item\n return local\n end\nend\n",
         "protocol Named\n func name() as string\nend\nfunc named(Named item) as int\n return 0\nend\n",
+        "typedef Count = int\ntypedef Other = Count\nfunc aliases(Other value) as Count\n return value\nend\n",
         "enum Choice\n Some(string value)\n None\nend\nfunc chosen(Choice item) as string\n match item\n case Some(value)\n return value\n case None\n return \"empty\"\n end\nend\n",
         "func apply(func(int) as int action, int value) as int\n return action(value)\nend\nfunc run() as int\n return apply(func(int value) as int\n return value + 1\n end, 7)\nend\n",
         "func accept(array items) as int\n return int(items[0])\nend\nfunc erased() as int\n return accept([1, 2, 3])\nend\n",
