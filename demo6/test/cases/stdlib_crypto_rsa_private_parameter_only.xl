@@ -1,0 +1,3 @@
+export func sign(RsaPrivateKey key, bytes digest) as bytes
+    return key.signPkcs1Hash(digest)
+end

@@ -199,5 +199,4 @@ assert p384A.exportPrivate().length == 48
 assert p384A.publicKey.length == 97
 assert p384A.sharedSecret(p384B.publicKey) == p384B.sharedSecret(p384A.publicKey)
 
-assert not crypto.rsaPssVerify("", "", "", ""), "rsaPssVerify should reject empty hex"
-assert not crypto.rsaPkcs1Verify("bad", "00", "00", "010001"), "rsaPkcs1Verify should reject invalid hex"
+// Managed RSA fixed vectors live in stdlib_crypto_rsa_values.xl.
