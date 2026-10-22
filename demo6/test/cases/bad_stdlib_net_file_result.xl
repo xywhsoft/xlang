@@ -1,0 +1,2 @@
+extern "xl6NetFileReadV1" func wrong(point file, uint64 offset, int size) as future<string>
+auto ignored = wrong(null, 0, 1)

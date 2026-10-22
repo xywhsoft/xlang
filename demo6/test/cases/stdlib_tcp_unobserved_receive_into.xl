@@ -1,0 +1,14 @@
+async func leavePendingReceive()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto accepting = listener.acceptAsync()
+    auto client = await tcp.connectAsync(engine, listener.localAddress())
+    auto server = await accepting
+    auto target = NetBuffer()
+    auto pending = server.recvIntoAsync(target, 16)
+    // Own literal loopback only; no data or protocol/security probes. The
+    // capture, not this scope, retains the receiving stream and output target.
+end
+await leavePendingReceive()
+println("TCP: unobserved receive-into and private receiver handle retire cleanly")

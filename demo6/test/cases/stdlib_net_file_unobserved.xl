@@ -1,0 +1,14 @@
+func leaveOwnedFile()
+    NetBackend backend = NetBackend.ioUring
+    if net.backendCompiled(NetBackend.iocp) then
+        backend = NetBackend.iocp
+    end
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(backend))
+    engine.start()
+    auto stream = NetFile(engine, env.get("XL6_NET_FILE_PATH") ?? "build/test/net-file-unobserved.bin", 15)
+    auto unobserved = stream.writeAt(0, b"unobserved\0owned")
+    // No explicit close/stop/await: real operation/capture/source ownership,
+    // including its return tails, must retire through the module's checked graph.
+end
+leaveOwnedFile()
+println("NetFile: unobserved operation and last-owner cleanup left to checked retirement")

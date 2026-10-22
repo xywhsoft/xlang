@@ -1,0 +1,42 @@
+NetBackend backend = NetBackend.ioUring
+if net.backendCompiled(NetBackend.iocp) then
+    backend = NetBackend.iocp
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(backend))
+engine.start()
+auto stream = NetFile(engine, env.get("XL6_NET_FILE_PATH") ?? "build/test/net-file.bin", 15)
+bytes input = b"A\0B"
+auto writing = stream.writeAt(0, input, 20)
+input[0] = 90
+assert (await writing) == 3
+assert (await stream.writeAt(3, "你\0z", 4)) == 4
+auto buffer = Buffer()
+buffer.append("x\0y")
+auto snapshot = stream.writeBufferAt(7, buffer, 20)
+buffer.clear()
+assert (await snapshot) == 3
+auto parent = CancellationSource()
+assert (await stream.writeAtCancel(0, b"A", parent.token)) == 1
+assert (await stream.writeAtCancel(1, "\0", parent.token)) == 1
+buffer.append("x\0y")
+assert (await stream.writeBufferAtCancel(7, buffer, parent.token, 3)) == 3
+auto reading = stream.readAt(0, 100)
+bytes first = await reading
+assert first == b"A\0B\xe4\xbd\xa0\0x\0y"
+first[0] = 33
+bytes again = await reading
+assert again == b"A\0B\xe4\xbd\xa0\0x\0y"
+assert (await stream.readAtCancel(0, 10, parent.token)) == again
+assert (await stream.readAt(10, 3)).length == 0
+assert (await stream.readAt(100, 3)).length == 0
+assert (await stream.readAt(0, 0)).length == 0
+assert (await stream.writeAt(0, b"", 0)) == 0
+auto closing = stream.close()
+auto sameClose = stream.close()
+await closing
+await sameClose
+await closing
+engine.stop()
+engine.close()
+assert engine.wait(10000)
+println("NetFile: real backend, exact NUL/UTF8/bytes, snapshots, repeated await and close")

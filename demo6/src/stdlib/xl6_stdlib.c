@@ -1646,6 +1646,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsTcpStreamOptions,needsTcpDialOptions,needsTcpListenOptions;
     int needsTcpProxyDial,needsTcpProxyDialOptions;
     int needsNetEngineClass;
+    int needsNetFileClass;
     int needsTcpStreamStatsClass;
     int needsTcpListenerStatsClass;
     int needsTcpStreamClass;
@@ -1839,7 +1840,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetResolverStatsClass = xl6StdlibNeedsNetResolverStatsClass(root, used);
     needsNetResolverStatsClass=needsNetResolverStatsClass||needsNetResolverClass;
     needsNetProxyClass = needsNetProxyHandshake || xl6StdlibNeedsNetProxyClass(root, used);
-    needsNetEngineClass = xl6StdlibNeedsNetEngineClass(root, used);
+    needsNetFileClass = xl6StdlibNodeUsesTypeName(root,"NetFile");
+    needsNetEngineClass = needsNetFileClass || xl6StdlibNeedsNetEngineClass(root, used);
     needsTcpStreamStatsClass = xl6StdlibNodeUsesTypeName(root, "TcpStreamStats");
     needsTcpListenerStatsClass = xl6StdlibNodeUsesTypeName(root, "TcpListenerStats");
     needsTcpStreamClass = xl6StdlibNeedsTcpStreamClass(root, used);
@@ -1938,7 +1940,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         只有公开面真正交换字节容器时才注入 Buffer。同步地址解析等纯网络
         能力不依赖 Buffer，不能因为同属网络体系就拉入文件和二进制运行时。
     */
-    needsBufferClass = needsTcpStreamClass || needsNetBuffer || needsNetFrameResult || needsNetSocketClass || needsTemplateBuffer || needsDeflater || needsInflater || xl6StdlibFuncUsed(used, "compress", "encodeBuffer") ||
+    needsBufferClass = needsNetFileClass || needsTcpStreamClass || needsNetBuffer || needsNetFrameResult || needsNetSocketClass || needsTemplateBuffer || needsDeflater || needsInflater || xl6StdlibFuncUsed(used, "compress", "encodeBuffer") ||
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer") || needsRegexBuffer || xl6StdlibFuncUsed(used, "io", "writeFile") || (needsIoBuffer && (needsIoReader || needsIoWriter)) || needsRandomBufferMethods || xl6StdlibNeedsBufferClass(root, used) ||
         needsNetBytesClass ||
         needsTcpStreamClass || needsUdpClass ||
@@ -2130,6 +2132,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     else if (xl6StdlibNodeUsesTypeName(root,"NetEngineOptions"))
         xl6StdlibBuilderAppend(&builder,xl6StdlibNetEngineOptionsSource);
+    if(needsNetFileClass)xl6StdlibBuilderAppend(&builder,xl6StdlibNetFileClassSource);
     if ( needsTcpStreamStatsClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTcpStreamStatsClassSource);
     }

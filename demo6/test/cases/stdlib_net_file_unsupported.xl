@@ -1,0 +1,13 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+bool rejected = false
+try
+    auto ignored = NetFile(engine, env.get("XL6_NET_FILE_PATH") ?? "build/test/net-file-unsupported.bin", 15)
+catch failure
+    rejected = true
+end
+assert rejected
+engine.stop()
+engine.close()
+assert engine.wait(10000)
+println("NetFile: unsupported backend refuses before create/truncate; no fallback")

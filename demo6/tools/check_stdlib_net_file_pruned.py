@@ -6,13 +6,16 @@ import argparse,hashlib,json,os,shutil,subprocess,time
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1])
     p.add_argument('--out',type=Path,required=True);p.add_argument('--compiler',action='append',required=True)
-    p.add_argument('--sanitize',action='store_true');a=p.parse_args();root=a.root.resolve();out=a.out.resolve();assert not out.exists()
+    p.add_argument('--sanitize',action='store_true');p.add_argument('--language',action='store_true',help='Validate resident language bridges, exact policies, OOM prefixes and shared close')
+    a=p.parse_args();root=a.root.resolve();out=a.out.resolve();assert not out.exists()
+    fixture='net_file_language_pruned' if a.language else 'net_file_execution_pruned'
+    manifestFixture='net_file_language_plan_manifest' if a.language else 'net_file_execution_plan_manifest'
     compilers=[Path(shutil.which(c) or c).resolve() for c in a.compiler];gcc=next(c for c in compilers if c.stem.lower()!='tcc')
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
     inputs={str(f):sha(f) for folder in ['src','lib/xrt','lib/xruntime','release/include'] for f in (root/folder).rglob('*') if f.is_file()}
-    inputs.update({str(f):sha(f) for f in [Path(__file__).resolve(),*compilers,*[root/f'test/support/{n}.c' for n in ['net_file_execution_pruned','net_file_execution_plan_manifest']]]})
+    inputs.update({str(f):sha(f) for f in [Path(__file__).resolve(),*compilers,*[root/f'test/support/{n}.c' for n in [fixture,manifestFixture]]]})
     rows=[];products=[];out.mkdir(parents=True)
-    report=dict(Complete=False,Inputs=inputs,Rows=rows,Products=products,Failures=[],ApplicationNetworkTraffic=False,NetworkSecurityTests=False)
+    report=dict(Complete=False,Inputs=inputs,Rows=rows,Products=products,Failures=[],ResidentLanguageBridge=a.language,ApplicationNetworkTraffic=False,NetworkSecurityTests=False)
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def product(p):products.append(dict(Path=str(p),Sha256=sha(p)));save()
     def run(name,args):
@@ -25,7 +28,7 @@ def main():
     save()
     try:
         manifest=out/('manifest.exe' if os.name=='nt' else 'manifest.out')
-        run('manifest.build',flags(gcc)+['-O0','-ffunction-sections','-fdata-sections','-Wno-missing-field-initializers','-fno-unwind-tables','-fno-asynchronous-unwind-tables',*(['-fno-jump-tables'] if os.name=='nt' else []),root/'test/support/net_file_execution_plan_manifest.c',root/'src/compile/xl6_compile_unit.c','-Wl,--gc-sections','-o',manifest]);product(manifest)
+        run('manifest.build',flags(gcc)+['-O0','-ffunction-sections','-fdata-sections','-Wno-missing-field-initializers','-fno-unwind-tables','-fno-asynchronous-unwind-tables',*(['-fno-jump-tables'] if os.name=='nt' else []),root/('test/support/'+manifestFixture+'.c'),root/'src/compile/xl6_compile_unit.c','-Wl,--gc-sections','-o',manifest]);product(manifest)
         run('manifest.run',[manifest]);sources=run('manifest.sources',[manifest,'--sources']).splitlines()
         modules=run('manifest.modules',[manifest,'--modules']);assert 'XRT_MODULE_NET_FILE_FUTURE' in modules and '_MODULE_ALL' not in modules
         header=out/'net-file-execution-modules.h';header.write_text(modules,encoding='utf-8');product(header)
@@ -37,7 +40,7 @@ def main():
             for mode in modes:
                 tag=str(i)+'.'+mode;binary=out/(tag+('.exe' if os.name=='nt' else '.out'))
                 opt=['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-no-pie'] if mode=='asan' else ['-'+mode]
-                run(tag+'.build',flags(cc)+opt+[root/'test/support/net_file_execution_pruned.c',*[root/s for s in sources],*links,'-o',binary]);product(binary)
+                run(tag+'.build',flags(cc)+opt+[root/('test/support/'+fixture+'.c'),*[root/s for s in sources],*links,'-o',binary]);product(binary)
                 run(tag+'.run',[binary])
                 nm=Path(shutil.which('nm') or gcc.parent/('nm.exe' if os.name=='nt' else 'nm'))
                 symbols=run(tag+'.symbols',[nm,'--defined-only',binary])

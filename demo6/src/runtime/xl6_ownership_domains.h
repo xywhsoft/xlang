@@ -159,6 +159,8 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetEngineNativ
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetBufferNativeV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetTcpNativeV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetFileNativeV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetFileLanguageV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetFileBytesV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainExecutionNetFileV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetTcpBaseNativeV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetServerNativeV1Get(void);

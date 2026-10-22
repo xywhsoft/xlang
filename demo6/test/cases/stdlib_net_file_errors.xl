@@ -1,0 +1,66 @@
+NetBackend backend = NetBackend.ioUring
+if net.backendCompiled(NetBackend.iocp) then
+    backend = NetBackend.iocp
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(backend))
+engine.start()
+string output = env.get("XL6_NET_FILE_PATH") ?? "build/test/net-file-errors.bin"
+auto stream = NetFile(engine, output, 15)
+assert (await stream.writeAt(0, b"keep")) == 4
+auto parent = CancellationSource()
+parent.cancel()
+int failures = 0
+try
+    bytes ignored = await stream.readAtCancel(0, 4, parent.token)
+catch failure
+    failures += 1
+end
+try
+    int ignored = await stream.writeAtCancel(0, b"lost", parent.token)
+catch failure
+    failures += 1
+end
+try
+    int ignored = await stream.writeAtCancel(0, "lost", parent.token)
+catch failure
+    failures += 1
+end
+auto buffer = Buffer()
+buffer.append("lost")
+try
+    int ignored = await stream.writeBufferAtCancel(0, buffer, parent.token)
+catch failure
+    failures += 1
+end
+assert (await stream.readAt(0, 4)) == b"keep"
+try
+    auto ignored = stream.readAt(0, -1)
+catch failure
+    failures += 1
+end
+try
+    auto ignored = stream.writeAt(0, b"bad", -2)
+catch failure
+    failures += 1
+end
+try
+    auto ignored = NetFile(engine, output + "\0bad", 15)
+catch failure
+    failures += 1
+end
+try
+    auto ignored = NetFile(engine, output + ".bad-worker", 15, 438, 7, 1)
+catch failure
+    failures += 1
+end
+await stream.close()
+try
+    bytes ignored = await stream.readAt(0, 1)
+catch failure
+    failures += 1
+end
+assert failures == 9
+engine.stop()
+engine.close()
+assert engine.wait(10000)
+println("NetFile: pre-cancel, checked arguments, path/worker boundaries and closed rejection")
