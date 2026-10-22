@@ -16,7 +16,7 @@ for which in range(3)
     assert failAfter(0)
     try
         result(which)
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
