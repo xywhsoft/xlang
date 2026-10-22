@@ -228,6 +228,14 @@ xvalue* xideLanguageCheckDocumentSymbols(xide_language_check* q,const char* path
  xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && q->definitions ? xideSemanticDocumentSymbols(q->definitions,path) : NULL;
  LeaveCriticalSection(&q->lock); return out;
 }
+xvalue* xideLanguageCheckDocumentHighlights(xide_language_check* q,const char* path,int version,int line,int character)
+{
+ if(!q || !path) return NULL;
+ EnterCriticalSection(&q->lock); int match=0;
+ for(size_t i=0;i<q->snapshotCount;++i) if(xidePathLexicalEqual(path,q->snapshots[i].path) && version==q->snapshots[i].version) match=1;
+ xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && q->definitions ? xideSemanticDocumentHighlights(q->definitions,path,line,character) : NULL;
+ LeaveCriticalSection(&q->lock); return out;
+}
 void xideLanguageCheckCancel(xide_language_check* q) { if(q) { InterlockedExchange(&q->cancel,1); if(q->stopEvent) SetEvent(q->stopEvent); } }
 void xideLanguageCheckDestroy(xide_language_check* q)
 {

@@ -67,6 +67,7 @@ xvalue* xideLanguageCheckDefinition(xide_language_check* check,const char* path,
 xvalue* xideLanguageCheckDefinitionWithProof(xide_language_check* check,const char* path,int version,int line,int character);
 xvalue* xideLanguageCheckHover(xide_language_check* check,const char* path,int version,int line,int character);
 xvalue* xideLanguageCheckDocumentSymbols(xide_language_check* check,const char* path,int version);
+xvalue* xideLanguageCheckDocumentHighlights(xide_language_check* check,const char* path,int version,int line,int character);
 /* Snapshot results remain guarded by the worker until cancellation/destruction.
    Polling interval is 1 s plus sweep duration; invalidation is permanent.
    No compiler process is rerun by the guard. Saved checks have no guard. */
