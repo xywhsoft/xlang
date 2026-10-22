@@ -32,7 +32,7 @@ rtree.RTree tree = rtree.create()
 tree.insert(10, 0.0, 0.0, 2.0, 2.0)
 var ids = tree.search(1.0, 1.0, 3.0, 3.0)
 println(ids.length)</code></pre>
-    <p>查询使用闭区间相交，结果顺序未定义；有限极值坐标也可插入和查询。C 整数 ID 与计数使用 <code>int64_t</code>，与 XLang <code>int</code> 的 LP64 ABI 一致。创建、插入和查询的分配失败抛 <code>MemoryError</code>，非法矩形抛 <code>ValueError</code>；仅按 ID 删除需扫描树。Windows <code>test/check.ps1</code> 与 Linux <code>test/check.sh</code> 覆盖 C 暴力参照、XLang 故障边界和三路范例固定输出；Linux 另以两档 long double 运行 ASan/UBSan。完整带输出 AOT 仍待主线共享符号修复。边界与 C 所有权见包内 README。</p>
+    <p>查询使用闭区间相交，结果顺序未定义；有限极值坐标也可插入和查询。C 整数 ID 与计数使用 <code>int64_t</code>，与 XLang <code>int</code> 的 LP64 ABI 一致。创建、插入和查询的分配失败抛 <code>MemoryError</code>，非法矩形抛 <code>ValueError</code>；仅按 ID 删除需扫描树。Windows <code>test/check.ps1 -SkipAot</code> 与 Linux <code>test/check.sh</code> 覆盖 C 暴力参照、包外原生方法访问拒绝、XLang 故障边界和三路范例固定输出；Linux 另以两档 long double 运行 ASan/UBSan。Windows 默认门禁还要求核心与公开范例 AOT，后者目前受主线共享符号阻断，不能据快测签收发布级。边界与 C 所有权见包内 README。</p>
   </section>
 </main>
 </body>
