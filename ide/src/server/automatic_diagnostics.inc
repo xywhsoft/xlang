@@ -23,6 +23,21 @@ static void diagnosticDropResult(server* s)
 { xrtValueRelease(s->diagnosticResult); s->diagnosticResult=NULL; xideLanguageInputGuardRelease(s->diagnosticProof); s->diagnosticProof=NULL; }
 static void diagnosticMap(server* s,const xide_diagnostic_publication* publication,size_t* indices)
 { for(size_t i=0;i<DOC_LIMIT;++i) indices[i]=s->docs[i].uri ? xideDiagnosticPublicationFind(publication,s->docs[i].path) : SIZE_MAX; }
+/* Fixed metadata projection from this publication, no source/report clone or
+   file I/O. Generation is ordering context, not a client synchronization ack. */
+static xvalue* diagnosticEnvelope(server* s,const xvalue* group,int clear)
+{
+ char generation[32]; snprintf(generation,sizeof(generation),"%llu",s->generation);
+ xvalue *out=xrtValueObject(),*document=NULL;
+ int okay=out && put(out,"schema",xrtValueInt(1)) && put(out,"generation",xrtValueString(sv(generation))) && put(out,"cleared",xrtValueBool(clear!=0));
+ if(okay && !clear) {
+  const char* fields[]={"path","origin","version","normalizedSize","normalizedSha256","input"};
+  document=xrtValueObject(); okay=document!=NULL;
+  for(size_t i=0;okay && i<sizeof(fields)/sizeof(*fields);++i) { const xvalue* value=get(group,fields[i]); if(value) okay=xrtValueObjectSet(document,sv(fields[i]),value); }
+  if(okay) { okay=put(out,"document",document); document=NULL; }
+ }
+ xrtValueRelease(document); if(!okay) { xrtValueRelease(out); out=NULL; } return out;
+}
 static void diagnosticEmit(server* s,const xide_diagnostic_publication* publication,size_t index,const size_t* indices,int clear)
 {
  const xvalue* group=xideDiagnosticPublicationGroup(publication,index); const char* path=string(get(group,"path"));
@@ -32,6 +47,7 @@ static void diagnosticEmit(server* s,const xide_diagnostic_publication* publicat
  xvalue *out=xrtValueObject(),*params=xrtValueObject(); int okay=uri && out && params;
  if(okay) okay=put(out,"jsonrpc",xrtValueString(sv("2.0"))) && put(out,"method",xrtValueString(sv("textDocument/publishDiagnostics"))) && put(params,"uri",xrtValueString(sv(uri)));
  if(okay && s->diagnosticVersions && version) okay=put(params,"version",xrtValueDeepClone(version));
+ if(okay && s->diagnosticInputProof) okay=put(params,"xlang",diagnosticEnvelope(s,group,clear));
  if(okay) okay=clear ? put(params,"diagnostics",xrtValueArray()) : xrtValueObjectSet(params,sv("diagnostics"),get(group,"diagnostics"));
  if(okay) { okay=put(out,"params",params); params=NULL; }
  xrtValueRelease(params); xrtValueRelease(ownedVersion); free(ownedUri);
