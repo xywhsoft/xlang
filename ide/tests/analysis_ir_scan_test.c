@@ -28,6 +28,23 @@ static int compareVerify(XL6_IrModule* ir,int accepted)
     CHECK(a==b && (accepted<0 || a==accepted) && sameDiagnostics(&indexed,&reference));
     xl6DiagFree(&indexed); xl6DiagFree(&reference); return 1;
 }
+static int compareScopeProof(XL6_IrModule* ir,int large)
+{
+    XL6_DiagList indexed,reference; xl6DiagInit(&indexed); xl6DiagInit(&reference);
+    xlsFrontendIrScopeProofReset(); CHECK(xl6IrVerifyModule(ir,&indexed));
+    xls_ir_scope_proof_work a=xlsFrontendIrScopeProofWork();
+    xlsFrontendIrScopeProofReset(); CHECK(xlsFrontendIrReferenceVerify(ir,&reference));
+    xls_ir_scope_proof_work b=xlsFrontendIrScopeProofWork();
+    CHECK(!indexed.count && !reference.count && a.requests==b.requests && a.requests==a.checks+a.hits);
+    CHECK(a.hits && a.checks<b.checks && a.indexes==1 && a.peakBytes<=1024u*1024u);
+    CHECK(!b.hits && !b.indexes && b.requests==b.checks);
+    xlsFrontendIrScopeProofReset(); CHECK(xlsFrontendIrVerifyPlanBudget(ir,&indexed,1));
+    xls_ir_scope_proof_work fallback=xlsFrontendIrScopeProofWork();
+    CHECK(!fallback.hits && !fallback.indexes && fallback.checks==b.checks);
+    if(large) printf("IR scope action proofs checked=%llu reused=%llu reference=%llu, data=%llu bytes\n",
+        (unsigned long long)a.checks,(unsigned long long)a.hits,(unsigned long long)b.checks,(unsigned long long)a.peakBytes);
+    xl6DiagFree(&indexed); xl6DiagFree(&reference); return 1;
+}
 static int corpus(const char* source,int large)
 {
     XL6_ParseResult parsed; xl6ParseResultInit(&parsed); XL6_IrModule ir; xl6IrModuleInit(&ir);
@@ -51,7 +68,7 @@ static int corpus(const char* source,int large)
     CHECK(!planReference.indexes && !planReference.indexedVisits && planReference.linearVisits);
     char* expected=dump(&ir);
     CHECK(expected && !strcmp(actual,expected)); xrtFree(actual); xrtFree(expected);
-    CHECK(compareVerify(&ir,1));
+    CHECK(compareVerify(&ir,1) && compareScopeProof(&ir,large));
     XL6_DiagList bounded; xl6DiagInit(&bounded); xlsFrontendIrPlanScanReset();
     CHECK(xlsFrontendIrVerifyPlanBudget(&ir,&bounded,1) && !bounded.count);
     xls_ir_plan_scan_work fallback=xlsFrontendIrPlanScanWork();
@@ -86,6 +103,12 @@ static int corpus(const char* source,int large)
             CHECK(compareVerify(&ir,-1)); ir.exitPlans[0]=saved; ir.exitPlans[count-1]=last;
         }
     }
+    for(size_t i=0;i<ir.exitPlanCount;++i) if(ir.exitPlans[i].cleanupCount) {
+        /* A shortened but in-bounds slice must fail the actual action proof,
+         * even after another plan for the same origin was already proven. */
+        size_t count=ir.exitPlans[i].cleanupCount; --ir.exitPlans[i].cleanupCount;
+        CHECK(compareVerify(&ir,0)); ir.exitPlans[i].cleanupCount=count; break;
+    }
     /* The optional preflight/index must never follow an adversarial parent
      * cycle before the shared verifier can issue its normal rejection. */
     XL6_IrNodeId saved=ir.nodes[ir.root-1].parent; ir.nodes[ir.root-1].parent=ir.root;
@@ -119,4 +142,4 @@ static int run(void)
     xrtStrBufFree(&large); return 1;
 }
 int main(void)
-{ xrtAtomic32Init(&checks,0); if(!run()) return 1; printf("analysis_ir_scan_test passed: %u checks; full IR dump/reference-scan parity, cleanup/plan order and missing/duplicate/corrupt plan rejection, tiny-budget fallback, actual candidate work and concurrent TLS isolation.\n",(unsigned)xrtAtomic32Load(&checks,XMEMORY_RELAXED)); return 0; }
+{ xrtAtomic32Init(&checks,0); if(!run()) return 1; printf("analysis_ir_scan_test passed: %u checks; full IR dump/reference-scan parity, cleanup/plan order, successful per-verification proofs, missing/duplicate/corrupt plan rejection, tiny-budget fallback and concurrent TLS isolation.\n",(unsigned)xrtAtomic32Load(&checks,XMEMORY_RELAXED)); return 0; }
