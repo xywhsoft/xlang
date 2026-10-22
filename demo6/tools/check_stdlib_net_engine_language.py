@@ -13,7 +13,7 @@ def main():
  a=p.parse_args();root=a.root.resolve();out=a.out.resolve();manifest=a.source_build.resolve()
  def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
  build=json.loads(manifest.read_text(encoding='utf-8-sig'))
- assert not out.exists() and build['SourceXrt'] and not build['RuntimeOnly'] and build['EnableExeCompiler']==1
+ assert not out.exists() and build.get('Complete',True) and build['SourceXrt'] and not build['RuntimeOnly'] and build['EnableExeCompiler']==1
  assert all(sha(row['Path'])==row['Sha256'].lower() for row in build['Inputs']+build['Objects']+build['Headers'])
  driver=Path(build['Driver']);assert sha(driver)==build['DriverSha256'].lower()
  cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve();sdk=driver.parent/'include'
@@ -24,7 +24,7 @@ def main():
   *[root/('test/cases/'+n+'.xl') for n in cases+negatives])}
  out.mkdir(parents=True);rows=[];products=[];failures=[];env=dict(os.environ)
  if os.name!='nt':assert a.native_root;env['XL6_SOURCE_NATIVE_ROOT']=str(a.native_root.resolve())
- report=dict(Complete=False,InputsUnchanged=False,LogsUnchanged=False,SourceBuild=str(manifest),Inputs=inputs,
+ report=dict(Complete=False,InputsUnchanged=False,LogsUnchanged=False,ProductsUnchanged=False,SourceBuild=str(manifest),Inputs=inputs,
   Rows=rows,Products=products,Failures=failures,SourceProductAcceptance=True,ShippingLibraryAcceptance=False,
   NetworkTraffic=False,NetworkSecurityTests=False,Scope=__doc__)
  def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
@@ -87,8 +87,9 @@ def main():
    if os.name=='nt' and not (out/'xl.dll').exists():shutil.copy2(root/'release/xl.dll',out/'xl.dll');product(out/'xl.dll')
    proof=run('contract.'+opt+'.run',[binary,root/'test/cases/stdlib_net_engine.xl',root/'test/cases/stdlib_net_engine_options.xl'])
    assert 'Engine XLIR:' in proof and 'direct targets' in proof
-  report['InputsUnchanged']=all(sha(path)==digest for path,digest in inputs.items()) and all(sha(row['Path'])==row['Sha256'].lower() for row in build['Inputs'])
+  report['InputsUnchanged']=all(sha(path)==digest for path,digest in inputs.items()) and all(sha(row['Path'])==row['Sha256'].lower() for row in build['Inputs']+build['Objects']+build['Headers'])
   report['LogsUnchanged']=all(sha(row['Log'])==row['Sha256'] for row in rows)
-  assert report['InputsUnchanged'] and report['LogsUnchanged'];report['Complete']=True;save()
+  report['ProductsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in products)
+  assert report['InputsUnchanged'] and report['LogsUnchanged'] and report['ProductsUnchanged'];report['Complete']=True;save()
  except BaseException as error:failures.append(repr(error));save();raise
 if __name__=='__main__':main()
