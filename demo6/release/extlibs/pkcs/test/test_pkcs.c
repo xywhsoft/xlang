@@ -10,6 +10,52 @@
     return 1; \
 } } while (0)
 
+/* 跨 HEX、DER 和文本缓冲的所有权在每个失败点都必须闭合。 */
+static int test_text_allocations(void)
+{
+    static const char* expected[] = {
+        "06092a864886f70d010101", "1.2.840.113549.1.1.1",
+        "2a864886f70d010101", "0201010500"
+    };
+    unsigned operation;
+    for (operation = 0; operation < 4u; ++operation) {
+        unsigned failure, triggered_count = 0u;
+        int completed = 0;
+        for (failure = 0; failure < 64u; ++failure) {
+            xmemdebugsnapshot before, after;
+            char* result = NULL;
+            bool triggered;
+            xrtClearError();
+            xrtMemDebugSnapshot(&before);
+            CHECK(xrtMemDebugFailAfter(failure));
+            switch (operation) {
+            case 0: result = xpkcs_encode_oid("1.2.840.113549.1.1.1"); break;
+            case 1: result = xpkcs_decode_oid("06092a864886f70d010101"); break;
+            case 2: result = xpkcs_get_content("06092a864886f70d010101"); break;
+            default: result = xpkcs_concat("020101", "0500"); break;
+            }
+            triggered = xrtMemDebugFailTriggered();
+            xrtMemDebugFailClear();
+            if (triggered) {
+                ++triggered_count;
+                CHECK(result == NULL && xrtGetError() != NULL &&
+                    xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+            } else {
+                completed = result != NULL && strcmp(result, expected[operation]) == 0 &&
+                    xrtGetError() == NULL;
+            }
+            xrtFree(result);
+            xrtClearError();
+            xrtMemDebugSnapshot(&after);
+            CHECK(after.LiveCount == before.LiveCount &&
+                after.LiveBytes == before.LiveBytes);
+            if (!triggered) break;
+        }
+        CHECK(triggered_count > 0u && completed);
+    }
+    return 0;
+}
+
 int main(void)
 {
     char* integer = (char*)xpkcs_encode_int(-128);
@@ -134,6 +180,7 @@ int main(void)
     xrtFree(oid);
     xrtFree(zero);
     xrtFree(integer);
+    CHECK(test_text_allocations() == 0);
     puts("pkcs C boundaries: PASS");
     return 0;
 }

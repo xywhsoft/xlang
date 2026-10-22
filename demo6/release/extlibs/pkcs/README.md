@@ -63,3 +63,5 @@ AlgorithmIdentifier、INTEGER 与 OCTET STRING 的结构和值；完整门禁通
 2026-10-19：C/XLang 同标签双 INTEGER 的 SET 排序正反例通过；SEQUENCE 同序列按原顺序保留。双语范例改为展示两元素规范 SET，Windows 严格 C/XL 门禁与 Linux C ASan/UBSan、OpenSSL 独立解析及双语对照通过；完整 AOT 共享阻断未变。
 
 2026-10-21：`nextOffset` 补 C/XLang 双侧负例：目标子项有效但尾项截断、或尾项 SET 不规范时均拒绝；随后有效输入仍返回正确偏移并清除旧错误。Windows `-SkipAot` 严格 C/XLang 与双语范例、Linux C ASan/UBSan、OpenSSL 互通及双语门禁通过。实现无需改动；完整 AOT 共享缺符号阻断仍在。
+
+2026-10-22：C 端 `encodeOid`、`decodeOid`、`getContent` 和 `concat` 新增逐点分配故障扫描，核对内存错误、成功重试及活动分配数/字节数回到基线。Windows 严格 C/XLang 与双语范例、Linux C ASan/UBSan、OpenSSL 互通门禁通过；未发现包内泄漏，完整 AOT 仍待共享缺符号修复。
