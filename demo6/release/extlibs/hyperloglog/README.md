@@ -33,6 +33,10 @@
 - 边界：包内 `test/test_hyperloglog.c`、`test/test_threads.c`、`test/boundaries.xl`、`test/allocations.xl`，以及 `demo6/test/cases/extlib_hyperloglog.xl`
 - `xl check extlibs/hyperloglog/test/private_add_negative.xl` 和 `private_merge_negative.xl` 应被访问控制拒绝；两条负例只编译，不执行。
 
+Windows 包级 `test/check.ps1` 同样检查这两条私有入口负例。默认还须构建运行
+中央无输出核心与公开 XLang 范例 AOT，并以固定输出对照 C；`-SkipAot`
+仅执行 C/JIT 聚焦门禁，不能视为发布签收。
+
 在 `demo6/release` 运行 `xl run extlibs/hyperloglog/test/boundaries.xl`；在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package hyperloglog -Source release/extlibs/hyperloglog/test/test_hyperloglog.c`。C 测试对固定的 100000 项、20000 项数据集做统计余量断言，而非要求近似值等于真实值。
 
 2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、C/XL 边界和线程测试、同输出范例及 `test/cases/extlib_hyperloglog.xl` 无输出核心 AOT。`xl build extlibs/hyperloglog/test/boundaries.xl -o ../build/test/hyperloglog_xl_test.exe` 当前因共享链接缺少 `xl6ValueDataSnapshotV1` 而失败，完整 AOT 尚未验收；见 `dev/extlib_blockers/text_snapshot_link.md`。
@@ -73,3 +77,9 @@ Windows XLang 边界以及 Linux 严格 GCC、C ASan/UBSan、大样本、
 此用例已登记包清单并进入 Windows/Linux 包门禁；Linux C ASan/UBSan、
 线程与双语对照同次通过。C 已有两次底层分配失败回归，原生实现未改；
 完整带输出 AOT 的共享缺符号阻断仍未解除。
+
+2026-10-22：Windows 门禁补与 Linux 对称的两条 `*Native` 私有访问负例；
+旧默认模式只测 C/JIT 就报告 PASS，现还要求核心与公开范例 AOT。
+`-SkipAot` 的严格 C、线程、XLang、负例和固定双语输出通过；默认模式
+核心 AOT 通过，公开范例构建因共享 `xl6ValueDataSnapshotV1` 缺符号
+正确失败。本次独占构建目录无残留，算法/API 未改，不签收整包发布级。

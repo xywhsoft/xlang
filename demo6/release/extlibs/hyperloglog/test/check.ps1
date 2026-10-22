@@ -1,6 +1,10 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
+$testRoot = [IO.Path]::GetFullPath((Join-Path $root 'build/test'))
+$work = Join-Path $testRoot ('hyperloglog_guard_' + [guid]::NewGuid().ToString('N'))
 $xl = Join-Path $root 'release/xl.exe'
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 $expected = [string]::Join("`n", (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'hyperloglog.expected.txt') -Encoding UTF8))
@@ -36,6 +40,23 @@ try {
         & $xl run $source
         if ($LASTEXITCODE -ne 0) { throw "hyperloglog XLang test failed: $source" }
     }
+    foreach ($method in @('add', 'merge')) {
+        $oldPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $diagnostic = ((& $xl check `
+                "release/extlibs/hyperloglog/test/private_${method}_negative.xl" 2>&1 |
+                ForEach-Object { $_.ToString() }) -join "`n")
+            $negativeExitCode = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $oldPreference
+        }
+        if ($negativeExitCode -eq 0 -or
+            -not $diagnostic.Contains("${method}Native") -or
+            -not $diagnostic.Contains('access')) {
+            throw "hyperloglog private $method check failed: $diagnostic"
+        }
+    }
 
     $xlLines = @(& $xl run release/examples/extlibs/hyperloglog.xl)
     if ($LASTEXITCODE -ne 0) { throw 'hyperloglog XLang example failed' }
@@ -48,7 +69,32 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'hyperloglog direct C example failed' }
     Confirm-Output 'direct C example' $direct
 
-    Write-Output 'hyperloglog Windows C/XLang gate: PASS'
+    if (-not $SkipAot) {
+        [IO.Directory]::CreateDirectory($work) | Out-Null
+        $core = Join-Path $work 'hyperloglog_core.exe'
+        & $xl build test/cases/extlib_hyperloglog.xl -o $core
+        if ($LASTEXITCODE -ne 0) { throw 'hyperloglog core AOT build failed' }
+        & $core
+        if ($LASTEXITCODE -ne 0) { throw 'hyperloglog core AOT run failed' }
+
+        $example = Join-Path $work 'hyperloglog_example.exe'
+        & $xl build release/examples/extlibs/hyperloglog.xl -o $example
+        if ($LASTEXITCODE -ne 0) { throw 'hyperloglog example AOT build failed' }
+        $aotLines = @(& $example)
+        if ($LASTEXITCODE -ne 0) { throw 'hyperloglog example AOT run failed' }
+        Confirm-Output 'XLang example AOT' $aotLines
+    }
+
+    Write-Output $(if ($SkipAot) { 'hyperloglog Windows C/XLang focused gate: PASS' }
+        else { 'hyperloglog Windows C/XLang and AOT gate: PASS' })
 } finally {
     Pop-Location
+    $safeWork = [IO.Path]::GetFullPath($work)
+    if (-not $safeWork.StartsWith($testRoot + [IO.Path]::DirectorySeparatorChar,
+        [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Unsafe test cleanup path: $safeWork"
+    }
+    if (Test-Path -LiteralPath $safeWork) {
+        Remove-Item -LiteralPath $safeWork -Recurse -Force
+    }
 }

@@ -35,7 +35,7 @@ hll.add("visitor:1")
 hll.add("visitor:2")
 println(hll.count())</code></pre>
     <p>单实例没有并发锁；误差性质、C 接口、测试范围与 AOT 状态见包内 README。</p>
-    <p>C API 失败后可直接重试，成功调用会清除本线程旧的 XRT 错误。<code>count/added</code> 使用跨平台 <code>int64_t</code> 结果，<code>add</code> 长度仍为 C <code>long long</code>。C 范例可直接 <code>xl run release/extlibs/hyperloglog/examples/hyperloglog_c.c</code>；Windows/Linux 门禁将它与分离编译 C、XLang 范例及固定输出对照，Linux 另含 ASan/UBSan。估计值不是精确基数；完整 AOT 仍受共享符号 <code>xl6ValueDataSnapshotV1</code> 阻断。</p>
+    <p>C API 失败后可直接重试，成功调用会清除本线程旧的 XRT 错误。<code>count/added</code> 使用跨平台 <code>int64_t</code> 结果，<code>add</code> 长度仍为 C <code>long long</code>。C 范例可直接 <code>xl run release/extlibs/hyperloglog/examples/hyperloglog_c.c</code>；Windows/Linux 门禁将它与分离编译 C、XLang 范例及固定输出对照，两平台都检查私有原生入口不可从包外调用，Linux 另含 ASan/UBSan。Windows 默认门禁还要求核心与公开范例 AOT，<code>-SkipAot</code> 仅作聚焦检查。估计值不是精确基数；公开范例 AOT 仍受共享符号 <code>xl6ValueDataSnapshotV1</code> 阻断。</p>
   </section>
 </main>
 </body>
