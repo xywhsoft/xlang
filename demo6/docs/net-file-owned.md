@@ -1,7 +1,40 @@
 # NetFile 拥有型接入
 
-状态：P0／P3 正在开发。原生借用边界和 EOF 前置修正已落地；受管理 NetFile
-及其语言 Future 尚未开放，不能将前置验收计作完整接入。
+状态：P0／P3 正在开发。原生借用边界、EOF 和拥有型 `net_file_future` 已落地；
+xlang 固定快照与语言 NetFile Future 尚未开放，不能将原生验收计作完整接入。
+
+## 原生拥有型实现（2026-10-23）
+
+独立 XRT 新增 `net_file_future`，17 个创建／引用／定位读写／关闭及精确拥有
+family 入口。原有 C 借用 API 保持合同，复用抽取后的内部提交 primitive；
+拥有型路径以真实 Engine runtime 注册槽持有文件、文件在途槽持有操作，
+Future producer 和 CancelWatch 各持有自己的真实操作引用，不猜测 RC。
+
+构造先核对实际 IOCP／io_uring FILE_IO 能力，再预备 Close Promise、目录和
+控制记录，最后打开文件；不支持的后端不会创建／截断。定位 read 返回拥有
+Buffer，write 返回实际计数；复制输入和保留不可变输入两个出口明确分开。
+读取分配可直接 BufferTake 转交给 bytes，后续语言桥必须只转换一次并缓存
+语言值，不能在多次 await 时反复取走同一原生 Buffer。零长、EOF、NUL、
+预取消、受理后取消、唯一终态、重复 Close 及最后观察引用都有明确原生合同。
+
+Close Future 在文件物理关闭和 Engine 运行占用释放后才发布终态，可立即 Stop；
+Destroy 仅释放引用、不阻塞。原生操作注册和预分配控制命令保持清理所需引用；
+语言 execution resource 仍需接入主动 Close，不能将原生目录保活当成语言自动
+清理。构造中的 OS 文件打开是同步准备，注册时不得误标 nonblocking。
+
+本批正式证据根 `F:/xlang-validation/five-groups-20261023/p3-net-file-owned`：
+Windows `native-win-r7` 12 阶段，Linux `/var/tmp/xlang-net-file-owned-linux-r4`
+16 阶段；两端已登记原生借用／拥有型无内存调试版本各 8 阶段，共 44 阶段。
+模块化和从当前源码生成的单头分别验证 GCC O0／O2、TCC；Linux 另用
+ASan／UBSan。每个调试产品执行 128 个准备分配预算、首次后端分配失败、
+8 轮双调用线程提交／关闭、已丢弃观察者的结算、重复 Close、实际 RC／注册
+槽及 Drop 中独立 freeze。正式结果含输入／产物／日志哈希，准备轮保留但不
+冒充最终通过。不修改仓库已有脏的 single 发布资产。
+
+本批未修改 xlang 嵌入头、发布声明／DLL／SO／VFS、Cgen、语言注册或时间
+ABI。下一步必须定点同步新 feature／原生 family，接入句柄目录与 execution
+resource，再实现 typed bytes／count／close Future 及 JIT／module／AOT 验收。
+上层完整服务图、P4 密钥格式、X.509、TLS 和 shipping 继续开放。
 
 ## 已确认并修正的前置问题
 
