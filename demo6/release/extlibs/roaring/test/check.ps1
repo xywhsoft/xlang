@@ -1,5 +1,9 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
+$testRoot = [IO.Path]::GetFullPath((Join-Path $root 'build/test'))
+$work = Join-Path $testRoot ('roaring_guard_' + [guid]::NewGuid().ToString('N'))
 $xl = Join-Path $root 'release/xl.exe'
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 
@@ -62,7 +66,34 @@ try {
         throw 'roaring C/XLang example output differs'
     }
 
-    Write-Output 'roaring Windows C/XLang gate: PASS'
+    if (-not $SkipAot) {
+        [IO.Directory]::CreateDirectory($work) | Out-Null
+        $core = Join-Path $work 'roaring_core.exe'
+        & $xl build release/extlibs/roaring/test/aot_core.xl -o $core
+        if ($LASTEXITCODE -ne 0) { throw 'roaring core AOT build failed' }
+        & $core
+        if ($LASTEXITCODE -ne 0) { throw 'roaring core AOT run failed' }
+
+        $example = Join-Path $work 'roaring_example.exe'
+        & $xl build release/examples/extlibs/roaring.xl -o $example
+        if ($LASTEXITCODE -ne 0) { throw 'roaring example AOT build failed' }
+        $aotOutput = & $example
+        if ($LASTEXITCODE -ne 0) { throw 'roaring example AOT run failed' }
+        if (($aotOutput -join "`n") -cne $expected) {
+            throw 'roaring example AOT output differs'
+        }
+    }
+
+    Write-Output $(if ($SkipAot) { 'roaring Windows C/XLang focused gate: PASS' }
+        else { 'roaring Windows C/XLang and AOT gate: PASS' })
 } finally {
     Pop-Location
+    $safeWork = [IO.Path]::GetFullPath($work)
+    if (-not $safeWork.StartsWith($testRoot + [IO.Path]::DirectorySeparatorChar,
+        [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Unsafe test cleanup path: $safeWork"
+    }
+    if (Test-Path -LiteralPath $safeWork) {
+        Remove-Item -LiteralPath $safeWork -Recurse -Force
+    }
 }

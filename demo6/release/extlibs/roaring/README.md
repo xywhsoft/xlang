@@ -28,6 +28,7 @@ assert ids.remove(65536)
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release\extlibs\roaring\test\check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File release\extlibs\roaring\test\check.ps1 -SkipAot
 .\release\xl.exe run test\cases\extlib_roaring.xl
 .\release\xl.exe run test\cases\extlib_roaring_boundaries.xl
 .\release\xl.exe run release\extlibs\roaring\test\allocations.xl
@@ -41,6 +42,8 @@ bash release/extlibs/roaring/test/check.sh
 ```
 
 专项测试覆盖跨桶、`UINT32_MAX`、重复值、数组转位图、删除、复用，以及新桶/数组扩容/位图升级和降级收缩时的分配失败回滚。C 用例另以固定种子对照朴素位图，交错验证三桶的插入、删除、查询、计数及最小/最大值。Windows 严格 GCC、Linux ASan/UBSan、xlang JIT、双语同输出和无输出 AOT 核心均通过。带输出范例 AOT 仍受主线 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`；因此发布级验收尚未签收。
+Windows 默认包门禁要求核心和公开 XLang 范例 AOT 均构建运行，范例输出
+须匹配固定预期；`-SkipAot` 只执行 C/JIT 聚焦测试。
 2026-10-15 新增满 65536 项单桶回归：逆序插入、重复插入、逐项删空、相邻桶保留及原位置重建均通过 Windows C 和 Linux ASan/UBSan；现有 XLang 边界用例复跑通过。完整 AOT 阻断未变。
 2026-10-14 新增失败→成功 C 错误状态及空句柄负例，包内 Linux 脚本可用
 严格 GCC + ASan/UBSan 复跑该测试；XLang 完整边界与核心 AOT 保持通过。
@@ -70,3 +73,9 @@ AOT 共享阻断未变。
 严格 GCC、C 差分/故障边界、XLang 用例、私有原生入口编译负例和三方
 固定黄金输出；Linux `test/check.sh` 同步验证直跑与分离编译的结果一致。
 两平台门禁已通过，完整带输出 AOT 的共享阻断未变。
+
+2026-10-22：Windows 默认门禁原在 C/JIT 通过后直接报告 PASS；现先构建
+运行无输出核心，再构建运行公开范例 AOT 并检查同一固定输出。
+`-SkipAot` 聚焦门禁通过；默认门禁的核心 AOT 通过后，公开范例构建
+因共享 `xl6ValueDataSnapshotV1` 缺符号返回失败。本次独占构建目录
+成功和失败后均清理；实现/API 未改，不签收整包发布级。
