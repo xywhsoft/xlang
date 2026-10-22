@@ -211,6 +211,8 @@ static int test_invalid_and_failure(void) {
     }
     calendar = xi_parse(truncation, sizeof(truncation) - 1);
     CHECK(calendar != NULL && xrtValueCount(field(calendar, "events")) == 1);
+    /* 读取可保留不完整事件，生成必须有 DTSTART。 */
+    CHECK(xi_build(calendar) == NULL && xrtGetError() != NULL);
     xrtValueRelease(calendar);
     calendar = xi_parse(later_version, sizeof(later_version) - 1);
     CHECK(calendar != NULL && xrtValueCount(field(calendar, "events")) == 1);
