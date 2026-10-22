@@ -1,0 +1,19 @@
+// Concrete arguments are validated/coerced by the ordinary call contract.
+// They do not bind a generic type variable or demand identical source types.
+func selectValue<T>(T value, uint64 affinity = 0) as T
+    assert affinity >= 0
+    return value
+end
+func produce<T>(func() as T work, uint64 affinity = 0) as T
+    assert affinity >= 0
+    return work()
+end
+assert selectValue(42) == 42
+assert selectValue("a\0你", 7) == "a\0你"
+assert produce(func() as string
+    return "owned result"
+end) == "owned result"
+assert produce(func() as int
+    return 31
+end, 3) == 31
+println("generic inference: independent concrete/default arguments do not bind T")

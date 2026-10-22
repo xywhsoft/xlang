@@ -1,0 +1,7 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto pending = engine.submitAfter(60000, func() as string
+    return "unreachable pending work"
+end)
+// The real module graph, not an explicit wait, owns retirement of this timer.
+println("NetEngine tasks: unobserved pending timer left to checked module retirement")

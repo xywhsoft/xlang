@@ -1,0 +1,79 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto failed = engine.submit(func() as string
+    throw ValueError("original network task body")
+end)
+bool caught = false
+try
+    auto value = await failed
+catch ValueError error
+    assert error.message == "original network task body"
+    caught = true
+end
+assert caught
+auto cancelled = CancellationSource()
+assert cancelled.cancel()
+auto early = engine.submitCancel(func() as int
+    assert false
+    return 1
+end, cancelled.token)
+auto timer = engine.submitAfterCancel(60000, func() as int
+    assert false
+    return 2
+end, cancelled.token)
+try
+    auto value = await early
+catch error
+end
+try
+    auto value = await timer
+catch error
+end
+assert early.isCancelled() and timer.isCancelled()
+auto later = CancellationSource()
+auto pending = engine.submitAfterCancel(60000, func() as int
+    assert false
+    return 3
+end, later.token)
+assert later.cancel()
+try
+    auto value = await pending
+catch error
+end
+assert pending.isCancelled()
+bool invalid = false
+try
+    auto value = engine.submitAfter(-1, func() as int
+        return 1
+    end)
+catch RangeError error
+    invalid = true
+end
+assert invalid
+invalid = false
+try
+    auto value = engine.submitAfter(9223372036854775807, func() as int
+        return 1
+    end)
+catch RangeError error
+    invalid = true
+end
+assert invalid
+auto recovered = engine.submit(func() as string
+    return "after failure\0你"
+end)
+assert (await recovered) == "after failure\0你"
+engine.close()
+assert engine.wait(10000)
+// Returned Future errors are observed there, not duplicated as detached errors.
+assert engine.failureCount == 0
+invalid = false
+try
+    auto value = engine.submit(func() as int
+        return 1
+    end)
+catch error
+    invalid = true
+end
+assert invalid
+println("NetEngine tasks: checked body, pre/late timer cancellation, finite delay overflow and closed admission ok")

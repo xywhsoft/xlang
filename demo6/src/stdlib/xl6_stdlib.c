@@ -2245,7 +2245,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root, "PemBlock") ||
         xl6StdlibNodeUsesTypeName(root, "PemReader") ||
         xl6StdlibFuncUsed(used, "asn1", "parse") || xl6StdlibFuncUsed(used, "pem", "parse") || xl6StdlibFuncUsed(used, "pem", "decode")) xl6StdlibBuilderAppend(&builder, xl6StdlibAsn1ClassSource);
-    if (needsUdpClass || needsNetResolverClass || needsTaskGroupClass || xl6StdlibHasConcurrentImport(root)) {
+    if (needsUdpClass || needsNetResolverClass || needsNetEngineClass || needsTaskGroupClass || xl6StdlibHasConcurrentImport(root)) {
         bool needsChannelCases=xl6StdlibNodeUsesTypeName(root,"ChannelCase") ||
             xl6StdlibNodeUsesTypeName(root,"ChannelSelection");
         bool needsChannelDirect=xl6StdlibNodeUsesTypeName(root,"ChannelReceiveResult") ||
@@ -2267,7 +2267,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         if (xl6StdlibNodeUsesTypeName(root, "CancellationSource") ||
             xl6StdlibNodeUsesTypeName(root, "CancellationToken") ||
             xl6StdlibNodeUsesTypeName(root, "CancellationRegistration") ||
-            xl6StdlibNodeUsesTypeName(root, "Promise") || needsUdpClass || needsNetResolverClass || needsTaskGroupClass || needsChannelCases || needsChannelDirect || needsTaskPoolClass)
+            xl6StdlibNodeUsesTypeName(root, "Promise") || needsUdpClass || needsNetResolverClass || needsNetEngineClass || needsTaskGroupClass || needsChannelCases || needsChannelDirect || needsTaskPoolClass)
             xl6StdlibBuilderAppend(&builder, xl6StdlibCancellationSource);
         if(xl6StdlibNodeUsesTypeName(root,"Promise"))xl6StdlibBuilderAppend(&builder,xl6StdlibPromiseSource);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicInt32")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicInt32Source);

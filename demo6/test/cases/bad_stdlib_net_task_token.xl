@@ -1,0 +1,4 @@
+auto engine = NetEngine()
+auto value = engine.submitCancel(func() as int
+    return 1
+end, engine)

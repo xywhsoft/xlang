@@ -274,6 +274,8 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_executor_language.c"
 	"$ROOT/src/runtime/xl6_executor_batch.c"
 	"$ROOT/src/runtime/xl6_task_submit_closure.c"
+	"$ROOT/src/runtime/xl6_task_result_closure.c"
+	"$ROOT/src/runtime/xl6_task_net_language.c"
 	"$ROOT/src/runtime/xl6_task_pool_language.c"
 	"$ROOT/src/runtime/xl6_task_pool_submit_language.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_task_pool_language.c"

@@ -1,0 +1,53 @@
+// Intentionally no concurrent import: NetEngine's declarations bring their
+// CancellationToken dependency, without creating a default execution service.
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto parent = CancellationSource()
+auto a = engine.submit(func() as int
+    return 11
+end, 7)
+auto b = engine.submitCancel(func() as int
+    return 12
+end, parent.token, 7)
+auto c = engine.submitAfter(2, func() as int
+    return 13
+end, 7)
+auto d = engine.submitAfterCancel(2, func() as int
+    return 14
+end, parent.token, 7)
+auto e = engine.submitUntil(0, func() as int
+    return 15
+end, 7)
+auto f = engine.submitUntilCancel(0, func() as int
+    return 16
+end, parent.token, 7)
+assert (await a) == 11 and (await b) == 12 and (await c) == 13
+assert (await d) == 14 and (await e) == 15 and (await f) == 16
+auto v1 = engine.submit(func()
+    assert true
+end)
+auto v2 = engine.submitCancel(func()
+    assert true
+end, parent.token)
+auto v3 = engine.submitAfter(0, func()
+    assert true
+end)
+auto v4 = engine.submitAfterCancel(0, func()
+    assert true
+end, parent.token)
+auto v5 = engine.submitUntil(0, func()
+    assert true
+end)
+auto v6 = engine.submitUntilCancel(0, func()
+    assert true
+end, parent.token)
+await v1
+await v2
+await v3
+await v4
+await v5
+await v6
+engine.close()
+assert engine.wait(10000)
+engine.throwIfFailed()
+println("NetEngine owned tasks: six generic/void entries and affinity ok")

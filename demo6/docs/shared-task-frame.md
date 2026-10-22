@@ -75,3 +75,8 @@ DNS、畸形协议或网络安全性质专项测试。
 共享 Closure 准备而不拖入计算池，并完成 TaskGroup 拥有型组合与语言 JIT／AOT
 验收。NetFile、完整服务退役图、P4 密钥容器格式、X.509、TLS 及 shipping
 联合验收继续开放；长期目标保持 active。未决策 CRT 0／XRT 11，对象池最后。
+
+2026-10-23 后续：上述 NetEngine 泛型方法、共享结果 Closure 准备及 TaskGroup
+原始拥有型 Future 组合已经接入，另完成 250 阶段双平台专项，见
+[网络结果任务](net-engine-tasks.md)。这更新本节的“下一批”状态，不追溯扩大
+此前 516 阶段的覆盖面。NetFile、完整服务图及 shipping 等仍未完成。
