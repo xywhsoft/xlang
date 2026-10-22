@@ -1,0 +1,1 @@
+auto stream = NetFile(Buffer(), "unused.bin", 15)

@@ -1,8 +1,71 @@
 # NetFile 拥有型接入
 
 状态：P0／P3 正在开发。原生借用边界、EOF、拥有型 `net_file_future`、定点
-快照和执行资源／拥有目录已落地；语言 NetFile Future 尚未开放，不能将原生
-或驻留 C 验收计作完整语言接入。
+快照和执行资源／拥有目录已落地；语言 NetFile 及其双平台当前源码专项验收
+已完成。完整服务／卸载联合矩阵与 shipping 仍开放，不据此宣称整个 P3 完成。
+
+## 语言公开面与驻留 Future（2026-10-23）
+
+公开 `NetFile(engine, path, flags=1, mode=438, share=7, worker=0)`，绑定指定 Engine
+的实际 Worker。flags／mode／share 沿用 `file.open` 的整数合同；15 表示读写、
+创建及截断，默认 1 只读。只支持实际 IOCP／io_uring FILE_IO 能力，不静默切换
+后端或投到阻塞池；不支持时先拒绝，再谈打开／创建／截断。路径拒绝内嵌 NUL，
+在扫描前检查长度，视图按实际长度补终止符。构造中的 OS 打开不能标 nonblocking。
+
+| 方法 | 结果 | 合同 |
+|---|---|---|
+| `readAt(offset, size)`／`readAtCancel(offset, size, token)` | `future<bytes>` | 定位读取；零长及 EOF 返回空 bytes；取消保持真实原生终态 |
+| `writeAt(offset, bytes或string, size=-1)` | `future<int>` | 返回实际字节数，不隐含写完循环；size 按字节有界截断 |
+| `writeAtCancel(offset, data, token, size=-1)` | `future<int>` | bytes／string 两种重载；预取消不执行 I/O |
+| `writeBufferAt`／`writeBufferAtCancel` | `future<int>` | 参数顺序同写入重载，明确处理可变 Buffer |
+| `close()` | `future<null>` | 等真实物理关闭及运行占用释放；多个观察者不互相取消 |
+
+bytes 写入只保留该不可变物理值，语言索引修改仍创建新的值；输入 policy 复用
+`xrtValueOwnership` 的 canonical Ops，不给同一物理 xvalue 建代理身份。string
+和可变 Buffer 由原生入口在受理前复制一次，没有临时 Buffer 包装或异步借用。
+读取的私有原生 Buffer 只经 BufferTake／ValueBytesTake 移交一次，随后缓存语言
+Future 的 bytes；多次 await 和修改某个取出值都不改变其他观察者的结果。
+
+Close 使用 shared-source 观察，读写使用 exclusive-source 取消；不能为了取消
+某个语言 Close Future 而取消共享原生关闭终态。析构只放弃拥有引用，由已接入
+的 execution source checked 清理，不在任意用户析构栈中等待内核完成。
+
+实现全部位于驻留 runtime、精确句柄／输入 policy、组件／拥有域登记和 XLIR
+直接调用合同。Cgen 没有新增算法、源码追溯、名字猜测或包装函数体。默认库
+不暴露 Native File／Worker 指针、裸缓冲借用或用户回调型输入 policy。
+
+准备轮在 Linux 独立 AOT 的未 await 文件写入中确认了真实缺陷：私有异步捕获
+只用原始 HandleTake，遗漏 phased trace 绑定，封闭图的 admission 因此拒绝。
+已改用现有统一 NativeHandleTake 工厂；TCP 公共 Future 与 receive-into 的两处
+相同写法同步修正。旧失败二进制和调试证据保留；未观察文件、TCP accept 与
+receive-into 的真实 JIT／module／AOT 退出用例用于回归，不放宽任何 verifier。
+
+正式证据根 `F:/xlang-validation/five-groups-20261023/p3-net-file-public`。当前
+最终源码为 `source-*-r3`，语言为 `language-*-r4`，驻留为 `resident-*-r6`，
+快照为 `snapshot-*-r2`。Windows 82／Linux 80，共 162 阶段通过：
+
+| 验证 | Windows | Linux |
+|---|---:|---:|
+| 语言／JIT／module／独立 AOT、旧任务及未观察 TCP 回归、IR 合同 | 59 | 59 |
+| 选中驻留闭包、真实后端、OOM／门控／裁剪 | 13 | 16 |
+| 快照与陈旧资产拒绝门禁 | 10 | 5 |
+
+源驱动器分别 895／894 TU，不混计阶段。四个 NetFile 用例验证 GCC 严格 C O0／
+O2、真实 JIT／module／独立 AOT；48 项坏效果／拥有权／服务／bytes 结果合同
+在 C 和头文件输出前均被拒绝。驻留三种编译器配置（Linux 另有 ASan／UBSan）
+逐配置检查 120 个构造／读写分配预算、49 次同步失败、精确内存账本、1 MiB
+输入在受阻 Worker 下没有完整载荷复制，以及取消一个 Close 观察者不取消另一个。
+不支持的后端在真正运行后仍保持预置文件不被创建／截断，不将 Unsupported
+当作实际 IOCP／io_uring 成功。Native policy 与四份生产源清单的选中闭包无
+默认 TaskPool／公开 Executor／TCP／UDP 替身（语言回调使用已有固定就绪队列）。
+
+最终输入／日志／产物哈希统一复核，Linux 原件和 F 盘逐字节镜像均保留，提交
+身份见 `verified-commit.json`。准备轮不计通过；路径前置检查更新后的旧输入轮
+也不冒充最终当前源码通过。只有自建普通文件和自身 literal loopback 的生命周期
+回归，没有公网、扫描、畸形协议或安全专项。
+
+没有更新发布 DLL／SO／VFS、独立 XRT 或时间 ABI。完整服务／模块卸载矩阵、
+P4 密钥格式、X.509、TLS、shipping 仍开放；未决策 CRT 0／XRT 11，对象池最后。
 
 ## 定点同步与受管理执行资源（2026-10-23）
 
@@ -51,9 +114,9 @@ Linux 对应 r1／r4／r2／r1／r2。最终源驱动器均 r4。输入／日志
 统一复核，Linux 原件及 F 盘逐字节镜像同时保留，提交身份见最终
 `verified-commit.json`；准备轮和过期输入轮不计通过。
 
-本批 SDK 的低层 C 入口不是默认标准库公开面。语言 NetFile 声明、受管理句柄
-policy、只转换一次的 typed bytes／count／close Future，以及 JIT／module／
-独立 AOT 仍待下一批实现。没有修改 Cgen 或用户的 xl6_ir.c 改动，没有更新发布
+本底座批次的低层 C 入口当时尚不是默认标准库公开面。后续语言 NetFile 声明、
+受管理句柄、typed bytes／count／close Future 和语言验收见上方新批次。
+没有修改 Cgen 或用户的 xl6_ir.c 改动，没有更新发布
 库／VFS。完整服务图、P4 格式、X.509、TLS、shipping 继续开放，长期目标 active。
 未决策 CRT 0／XRT 11，对象池最后。
 

@@ -62,8 +62,8 @@ xfuture* xl6TcpReceiveIntoStartInternalV1(XL6_RuntimeServicesV1 services,XL6_Nat
     if(!capture->target||!xl6TcpReceiveIntoPrepareInternalV1(buffer,&count))return failed(capture,NULL);
     void* owned=xl6ExecutionResourceRetainV1(receiver);
     if(!owned)return failed(capture,NULL);
-    capture->stream=xrtValueHandleTake(&owned,xl6TcpStreamHandlePolicyV1Get()->Ops,NULL);
-    if(!capture->stream){xl6ExecutionResourceReleaseV1(owned);return failed(capture,NULL);}
+    capture->stream=xl6NativeHandleTakeV1(&owned,xl6TcpStreamHandlePolicyV1Get());
+    if(!capture->stream)return failed(capture,NULL);
     XL6_TcpScopeV1 scope={0};if(!xl6ExecutionTcpEnterInternalV1(receiver,XL6_EXECUTION_TCP_STREAM_V1,true,&scope))return failed(capture,NULL);
     xfuture* source=xrtNetStreamRecvAsync(scope.stream,count);xl6ExecutionTcpLeaveInternalV1(&scope);
     if(!source)return failed(capture,NULL);

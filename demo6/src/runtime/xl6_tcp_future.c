@@ -23,9 +23,7 @@ static const XL6_CaptureLayoutV2 layout={sizeof(layout),sizeof(Capture),sizeof(s
 static xvalue* resourceHandle(void* resource,const XL6_NativeHandlePolicyV1* policy)
 {
     void* owned=xl6ExecutionResourceRetainV1(resource);if(!owned)return NULL;
-    xvalue* result=xrtValueHandleTake(&owned,policy->Ops,NULL);
-    if(!result)xl6ExecutionResourceReleaseV1(owned);
-    return result;
+    return xl6NativeHandleTakeV1(&owned,policy);
 }
 static bool rawHandle(const xvalue* value,const XL6_NativeHandlePolicyV1* policy,void** output)
 {

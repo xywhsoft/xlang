@@ -1,0 +1,3 @@
+func invalid(NetFile stream)
+    auto ignored = stream.writeAt(0, b"x", "not a byte count")
+end

@@ -1,0 +1,10 @@
+func leavePendingAccept()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto pending = listener.acceptAsync()
+    // An actual pending frame owns a private phased handle. Module retirement
+    // must admit that handle, cancel/drain native waiting, then release it.
+end
+leavePendingAccept()
+println("TCP: unobserved accept and private receiver handle retire cleanly")

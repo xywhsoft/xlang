@@ -1,0 +1,3 @@
+func invalid(NetFile stream, CancellationSource source)
+    auto ignored = stream.readAtCancel(0, 1, source)
+end

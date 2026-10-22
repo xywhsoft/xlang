@@ -495,6 +495,7 @@ const char* xl6StdlibLengthFramerClassSource =
 
 
 #include "src/stdlib/xl6_stdlib_tcp.inc"
+#include "src/stdlib/xl6_stdlib_net_file.inc"
 #include "src/stdlib/xl6_stdlib_tcp_server.inc"
 
 

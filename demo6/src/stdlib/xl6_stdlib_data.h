@@ -177,6 +177,7 @@ extern const char* xl6StdlibTcpLengthMembersSource;
 extern const char* xl6StdlibTcpFileMembersSource;
 extern const char* xl6StdlibTcpListenOptionsSource;
 extern const char* xl6StdlibNetEngineClassSource;
+extern const char* xl6StdlibNetFileClassSource;
 extern const char* xl6StdlibTcpStreamStatsClassSource;
 extern const char* xl6StdlibTcpListenerStatsClassSource;
 extern const char* xl6StdlibTcpStreamClassBodySource;
