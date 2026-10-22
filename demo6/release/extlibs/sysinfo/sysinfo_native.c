@@ -28,7 +28,7 @@ static char *xsys_copy(const char *text)
 {
     size_t size = strlen(text);
     /* Linux 内核与主机配置不保证返回 UTF-8；非法文本不进入语言字符串。 */
-    if (!xrtUtf8Valid((xstrview){text, size}, NULL)) {
+    if (size == 0u || !xrtUtf8Valid((xstrview){text, size}, NULL)) {
         text = "unknown";
         size = 7u;
     }
@@ -113,7 +113,7 @@ void *xsysinfo_hostname(void)
     WCHAR name[MAX_COMPUTERNAME_LENGTH + 1];
     DWORD size = MAX_COMPUTERNAME_LENGTH + 1;
     char *result;
-    if (!GetComputerNameW(name, &size)) return xsys_copy("unknown");
+    if (!GetComputerNameW(name, &size) || size == 0u) return xsys_copy("unknown");
     result = xsys_utf8(name);
     if (result == NULL && xrtGetError() != NULL) return NULL;
     return result ? result : xsys_copy("unknown");

@@ -40,7 +40,7 @@ println(sysinfo.memAvailable())</code></pre>
       <tr><td><code>memTotal / memAvailable / memUsagePct</code></td><td>物理内存总量、可用字节数及整数使用率百分比；Linux 可用量按 <code>/proc/meminfo</code> 的 <code>MemAvailable</code> 计算，不等同空闲页。探测失败返回 0，不伪报满载。</td></tr>
       <tr><td><code>pageSize / uptime</code></td><td>内存页字节数与系统运行秒数。</td></tr>
     </tbody></table>
-    <p>Windows 版本来自系统 API，主机名和 CPU 名经 Unicode API 转 UTF-8；Linux 的系统标识来自 <code>uname</code>，CPU 名和运行时间读取 <code>/proc</code>。Linux 内核的 CPU 信息字段因架构而异；没有 <code>model name</code> 时返回 <code>unknown</code>，不会以架构名冒充型号。系统返回非 UTF-8 文本也降级为 <code>unknown</code>。支持范围为 Windows/Linux，不承诺其他平台。</p>
+    <p>Windows 版本来自系统 API，主机名和 CPU 名经 Unicode API 转 UTF-8；Linux 的系统标识来自 <code>uname</code>，CPU 名和运行时间读取 <code>/proc</code>。Linux 内核的 CPU 信息字段因架构而异；没有 <code>model name</code> 时返回 <code>unknown</code>，不会以架构名冒充型号。系统返回空文本或非 UTF-8 文本也降级为 <code>unknown</code>。支持范围为 Windows/Linux，不承诺其他平台。</p>
   </section>
   <section id="c-api">
     <h2>C 对照</h2>

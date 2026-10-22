@@ -24,7 +24,8 @@ Windows 版本号读取实际系统的 major/minor/build，不返回硬编码版
 来自 `uname`，CPU 名和 uptime 从 `/proc` 读取；系统返回非 UTF-8 字节时，
 文本返回 `unknown`，不会把非法编码交给 XLang string。不可用时文本返回 `unknown`、
 数值返回 0。内存值是瞬时快照，相邻调用间可能变化。
-Linux CPU 名称读取完整字段，不会截断长型号，也不会把长行的后续片段误认成新字段。
+系统 API 返回空主机名或空 `uname` 字段时也按不可用文本返回 `unknown`，
+不把空字符串作为成功结果。Linux CPU 名称读取完整字段，不会截断长型号，也不会把长行的后续片段误认成新字段。
 若型号字段只有空白，返回 `unknown`；Linux 内核的 CPU 信息字段随架构而异，
 例如原生 ARM64 不一定提供 `model name`，这种情况下同样返回 `unknown`，
 不把架构名冒充具体 CPU 型号。
@@ -36,6 +37,12 @@ Linux 的 `memAvailable` 读取 `/proc/meminfo` 的 `MemAvailable`，计入内�
 `cpuCount` 返回全系统在线逻辑处理器数；Windows 使用跨所有处理器组的
 `GetActiveProcessorCount`，不使用仅统计当前组的 `SYSTEM_INFO.dwNumberOfProcessors`
 （参见 [Microsoft 的字段说明](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-system_info)）。
+
+2026-10-22：Linux 系统调用夹具先复现空主机名、空 `uname` 字段被交付为
+空字符串；共用文本出口现在和非法 UTF-8 一样降级为 `unknown`，Windows
+主机名入口也明确拒绝空返回。Linux C ASan/UBSan、XLang 边界和双语门禁，
+Windows `-SkipAot` 严格 C、注册表夹具、XLang 与双语门禁通过。
+未模拟真实 Windows API 返回空主机名，完整带输出 AOT 仍待共享符号修复。
 
 在 `demo6` 目录运行定向验证：
 
