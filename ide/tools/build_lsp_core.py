@@ -45,10 +45,23 @@ def prepare_native_index(frontend: Path, output: Path) -> tuple[Path, Path, dict
     """Expose the shared collector and parameterize its limit, keeping upstream immutable."""
     original = frontend / "src/sem/xl6_sem_index.c"
     body = original.read_bytes()
+    if hashlib.sha256(body).hexdigest() != '215ffbdfe8cf2a0d54b36c76a96f5c0ff603020b7aee6868b9e819bca70b1c54':
+        raise ValueError('shared index changed; audit typed arena/JSON budget separation and unchanged collector rules')
+    type_model = frontend / 'src/type/xl6_type_model.c'
+    type_sha = 'fdf35faa5dc2366a0625317d70cc82dbe8031762fcb7c81439e99a3a8de2a051'
+    if sha(type_model) != type_sha:
+        raise ValueError('shared canonical builder changed; audit minimum capacity and geometric allocation charge')
     source = body.decode("utf-8").replace("\r\n", "\n")
     definition = "#define XL6_INDEX_BYTES (8u * 1024u * 1024u)"
     if source.count(definition) != 1:
         raise ValueError("shared index budget declaration changed; audit its native build overlay")
+    for old, new in {
+        '} XL6_IndexBuild;': '} XL6_IndexBuild;\n#include "analysis/frontend_index_budget.inc"',
+        'if (!xl6IndexBudget(b, 1536)) return 0;': 'if (!xlsIndexRecordBudget(b)) return 0;',
+    }.items():
+        if source.count(old) != 1:
+            raise ValueError('shared typed-index allocation seam changed: ' + old)
+        source = source.replace(old, new)
     generated_root = output / "frontend"
     generated_root.mkdir()
     compiled = generated_root / "xl6_sem_index.c"
@@ -57,7 +70,9 @@ def prepare_native_index(frontend: Path, output: Path) -> tuple[Path, Path, dict
         '\n#include "analysis/frontend_index.inc"\n').encode("utf-8"))
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
-        change="configure existing index budget and include typed collector views", indexBytes=NATIVE_INDEX_BYTES)
+        change="preserve shared collector; separate precharged typed arenas from JSON record allowance", indexBytes=NATIVE_INDEX_BYTES,
+        auditedSeams=4, nativeRecordBytes=64, legacyJsonRecordBytes=1536,
+        auditedDependencies={str(type_model): type_sha})
 
 
 def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:

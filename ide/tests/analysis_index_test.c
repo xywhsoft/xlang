@@ -1,4 +1,5 @@
 #include "analysis/check.h"
+#include "analysis/frontend_index.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
@@ -59,6 +60,45 @@ static int verify(xls_semantic_check* check)
     CHECK(!xlsSemanticIndexFact(NULL,0,&untouched) && !xlsSemanticIndexFact(index,0,NULL) && !xlsSemanticIndexCount(NULL));
     xrtValueRelease(raw); return 1;
 }
+static int capacity(void)
+{
+    xstrbuf source; xrtStrBufInit(&source);
+    for(unsigned i=0;i<3000;++i) CHECK(xrtStrBufAppendFormat(&source,
+        "func helper_%u(int value) as int\n return value + 1\nend\n",i));
+    CHECK(xrtStrBufAppendFormat(&source,"func main(...) as int\n return helper_2999(7)\nend\n"));
+    char *path=xrtPathAbs("typed-capacity.xl"),error[256]; CHECK(path);
+    xls_semantic_input input={path,source.Data,source.Size};
+    xls_semantic_check* result=xlsSemanticCheckCreate(path,&input,1,1,NULL,NULL,error,sizeof(error));
+    if(!result) fprintf(stderr,"capacity check: %s\n",error);
+    CHECK(result && xlsSemanticCheckInfo(result).accepted && xlsSemanticCheckInfo(result).hasIndex);
+    const xls_semantic_index* index=xlsSemanticCheckTypedIndex(result); size_t count=xlsSemanticIndexCount(index);
+    size_t budget=xlsFrontendIndexBudgetUsed(index);
+    CHECK(count*1536>32u*1024u*1024u && count<65536 && budget<32u*1024u*1024u && !xlsFrontendIndexBudgetUsed(NULL));
+    uint64_t last=0; unsigned references=0,typed=0;
+    for(size_t i=0;i<count;++i) {
+        xls_index_fact f; CHECK(xlsSemanticIndexFact(index,i,&f));
+        CHECK(f.id==i+1 && f.parent<f.id && f.source<=1 && f.selectionSource<=1);
+        if(f.selectionRange.known) {
+            CHECK(f.selectionRange.startOffset<=f.selectionRange.endOffset && f.selectionRange.endOffset<=source.Size);
+            size_t length=f.selectionRange.endOffset-f.selectionRange.startOffset;
+            if(f.declaredSymbol && length==strlen("helper_2999") &&
+               !memcmp(source.Data+f.selectionRange.startOffset,"helper_2999",length)) last=f.declaredSymbol;
+        }
+        typed+=f.typeOrigin!=0;
+    }
+    CHECK(last && typed>3000);
+    size_t use=(size_t)(strstr(source.Data,"return helper_2999")-source.Data)+strlen("return ");
+    for(size_t i=0;i<count;++i) {
+        xls_index_fact f; CHECK(xlsSemanticIndexFact(index,i,&f));
+        references+=f.tokenRange.known && f.tokenRange.startOffset==use && (f.symbol==last || f.targetSymbol==last);
+    }
+    CHECK(references);
+    /* Native typed capture has a different allocation representation. The
+     * unchanged shared JSON serializer must still enforce its old policy. */
+    CHECK(!xlsSemanticCheckIndex(result) && xlsSemanticCheckInfo(result).accepted && xlsSemanticCheckTypedIndex(result)==index);
+    printf("typed capacity facts=%zu, charged data=%zu bytes; legacy JSON allowance still rejects\n",count,budget);
+    xlsSemanticCheckDestroy(result); xrtStrBufFree(&source); xrtFree(path); return 1;
+}
 static int run(void)
 {
     char* path=xrtPathAbs("typed-index-memory.xl"); char* dep=xrtPathAbs("typed_index_dep.xl"); CHECK(path && dep);
@@ -80,7 +120,7 @@ static int run(void)
     inputs[0]=(xls_semantic_input){path,bad,strlen(bad)};
     second=xlsSemanticCheckCreate(path,inputs,1,1,NULL,NULL,error,sizeof(error));
     CHECK(second && !xlsSemanticCheckInfo(second).accepted && !xlsSemanticCheckTypedIndex(second));
-    xlsSemanticCheckDestroy(second); xlsSemanticCheckDestroy(first); xrtFree(path); xrtFree(dep); return 1;
+    xlsSemanticCheckDestroy(second); xlsSemanticCheckDestroy(first); xrtFree(path); xrtFree(dep); CHECK(capacity()); return 1;
 }
 int main(void)
 {
