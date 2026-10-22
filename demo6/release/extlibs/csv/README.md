@@ -207,6 +207,11 @@ wsl bash tools/check_extlib_csv.sh
 bash release/extlibs/csv/test/check_xlang.sh
 ```
 
+Windows/Linux 综合门禁默认使用各自独占的临时构建目录，成功或失败后清理；
+并行运行不会覆盖同名测试产物。需要保留 `results.json`、日志或二进制时，
+Windows 显式传 `-WorkDirectory`，Linux 设置 `CSV_WORK_DIR`；显式目录由
+调用方管理，脚本不会自动删除。
+
 当前发布构建的 AOT 共享缺符号期间，可用
 `bash release/extlibs/csv/test/check_xlang.sh --skip-aot` 单独复跑 Linux
 语言侧 JIT；默认不带参数时仍要求 AOT，不会静默跳过发布门禁。

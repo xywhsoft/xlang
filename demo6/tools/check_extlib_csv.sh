@@ -2,8 +2,13 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
-work=${CSV_WORK_DIR:-"$root/build/test/csv_linux_guard"}
-mkdir -p "$work"
+if [[ -n "${CSV_WORK_DIR:-}" ]]; then
+    work=$CSV_WORK_DIR
+    mkdir -p -- "$work"
+else
+    work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-csv-XXXXXX")
+    trap 'rm -rf -- "$work"' EXIT
+fi
 pkg=release/extlibs/csv
 cc=${CC:-gcc}
 snapshot() {
