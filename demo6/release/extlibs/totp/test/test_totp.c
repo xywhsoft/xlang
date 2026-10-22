@@ -107,6 +107,13 @@ int main(void)
     CHECK(xtotp_hotp("MY  ", 4, 0, 6) == NULL);
     CHECK(xtotp_hotp("MY\0", 3, 0, 6) == NULL);
     CHECK(xtotp_hotp(NULL, 1, 0, 6) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xtotp_hotp(secret, 0, 0, 6) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    CHECK(xtotp_hotp(max_secret, 257, 0, 6) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    CHECK(xtotp_hotp("MZ", 2, 0, 6) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
     CHECK(xtotp_hotp(secret, 32, -1, 6) == NULL);
     CHECK(xtotp_hotp(secret, 32, 0, 5) == NULL);
     CHECK(xtotp_hotp(secret, 32, 0, 10) == NULL);

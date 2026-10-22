@@ -10,6 +10,7 @@
 - `verify(secret, code, timeStep = 30, digits = 6, window = 1)` / `verifyAt(secret, code, timestamp, timeStep = 30, digits = 6, window = 1)`：返回布尔值；窗口在当前时间步前后各扩展 `window` 步，范围 0..10。`timeStep` 范围 1..2147483647 秒。
 
 候选码必须恰好 `digits` 个 ASCII 数字；正常不匹配返回 `false`，非法密钥或参数抛 `ValueError`。C 验证接口相应返回 `1` / `0` / `-1`。文本结果为独立 XRT 分配：C 调用方 `xrtFree`；XLang 自动接管。C 接口和长度参数见 `include/totp_native.h`，均可显式拒绝嵌入 NUL 的密钥或验证码。
+在 C 入口中，空密钥指针报告 `XERR_ARGUMENT`；非空指针配零长度或超过 256 字节报告 `XERR_RANGE`，非法 Base32 内容报告 `XERR_VALUE`。
 
 公开 C 调用在入口清理本线程上次的 XRT 错误；成功生成或正常验证码不匹配时，`xrtGetError()` 为 `NULL`。失败后可直接再次调用，无需调用方先手动清错。
 

@@ -34,7 +34,11 @@ static bool xtotp_decode_secret(const char* text, long long length,
     size_t i, symbols = 0u, padding = 0u, bytes = 0u;
     unsigned int pending = 0u, bits = 0u;
     size_t expected_padding;
-    if (text == NULL || length <= 0 || length > XTOTP_MAX_SECRET_TEXT) {
+    if (text == NULL) {
+        xtotp_error(XERR_ARGUMENT, "base32 secret pointer is null");
+        return false;
+    }
+    if (length <= 0 || length > XTOTP_MAX_SECRET_TEXT) {
         xtotp_error(XERR_RANGE, "base32 secret length must be 1..256 bytes");
         return false;
     }
