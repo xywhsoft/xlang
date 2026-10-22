@@ -1,9 +1,8 @@
 import stb_image
 import stb_image_write
 
-func runExample(string outDir)
+func runExample(string outDir, string source)
     // 解码取得带长度的像素缓冲，再分别编码为各格式。
-    string source = path.join(path.appDir(), "examples/extlibs/assets/tiny.png")
     stb_image.StbImage image = stb_image.load(source, 4)
     Buffer pixels = image.pixels()
     int width = image.width()
@@ -38,15 +37,17 @@ func runExample(string outDir)
 end
 
 func main(...) as int
+    string source = path.join(path.appDir(), "examples/extlibs/assets/tiny.png")
+    if arg.length > 2 then source = string(arg[2]) end
     if arg.length > 1 then
-        runExample(string(arg[1]))
+        runExample(string(arg[1]), source)
         return 0
     end
 
     string workDir = path.join(path.temp(), "xlang_stbiw_example_" + crypto.randomString(20))
     dir.createAll(workDir)
     try
-        runExample(workDir)
+        runExample(workDir, source)
     finally
         assert dir.delete(workDir), "temporary image directory must be removed"
     end

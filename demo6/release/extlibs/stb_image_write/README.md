@@ -45,7 +45,8 @@ HDR 回调实现；JPEG 位缓冲使用无符号移位；最终 PNG 缓冲申请
 包级验证（从 `demo6` 目录执行）：
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_write/test/check.ps1`：
-  Windows 严格 GCC、C 边界、中央与包内 XLang、输出限额和双语范例联合门禁。
+  Windows 严格 GCC、C 边界、中央与包内 XLang、输出限额和双语范例联合门禁；
+  C/XLang 范例的五个实际输出文件分别做 SHA-256 逐一核对。
 - `.\release\xl.exe run release/examples/extlibs/stb_image_write.xl`
 - `.\release\xl.exe run release/extlibs/stb_image_write/test/boundaries.xl`
 - `.\release\xl.exe run release/extlibs/stb_image_write/test/allocations.xl`
@@ -56,7 +57,9 @@ HDR 回调实现；JPEG 位缓冲使用无符号移位；最终 PNG 缓冲申请
   输入图片，不依赖启动时的当前工作目录。
 - 同命令改用 `release/extlibs/stb_image_write/test/test_stb_image_write.c`
 - `wsl bash release/extlibs/stb_image_write/test/check.sh` 可复跑 Linux 严格 GCC/ASan/UBSan C 测试、中央 API 用例、XLang 边界与 64 MiB 输出限额专项测试，并逐字节核对 C/XLang 发布范例。限额专项仍不进入普通目录 smoke。
-- C/XL 范例输出一致。C 边界测试覆盖五种格式、往返解码、中文路径、
+- 公开范例默认在各自独立的临时目录写文件并清理；显式指定输出目录时保留
+  五种格式。XLang 范例还可传第二个参数指定源图片路径，供独立 AOT 运行。
+- C/XL 范例的成功文本和五种编码文件一致。C 边界测试覆盖五种格式、往返解码、中文路径、
   参数/尺寸/长度拒绝，并对每种格式扫描前 64 个分配故障点；XLang 对五种
   格式各扫描前 128 点，验证异常分类、成功输出及清除故障后的恢复，边界
   测试另覆盖 C 整数收窄及路径内嵌 NUL。Windows GCC `-Wall -Wextra -Werror`
@@ -103,3 +106,9 @@ GCC 严格语法检查通过；完整 AOT 阻断未变。
 中央与包内 XLang 边界、64 MiB 输出限额专项，以及 C 直跑、包运行器与
 XLang 范例的固定成功输出合并验证；当前门禁通过。编码器未改，Linux
 ASan/UBSan 的既有脚本本轮未重跑；完整带输出 AOT 仍未验收。
+
+2026-10-23：发现此前 C 范例只写 PNG，XLang 范例却写 PNG、JPEG、BMP、TGA、
+HDR，单靠成功文本一致不足以证明双语等价。现 C 范例同样写出五格式并核对
+PNG 文件内容，Windows 门禁按 SHA-256、Linux 门禁用 `cmp` 对五份实际文件
+逐一比较。Windows 包级门禁和 Linux C ASan/UBSan、XLang 联合门禁退出 0；
+未改编码器或 xlang 主线，AOT 共享阻断仍未解除，不签收整包发布级。

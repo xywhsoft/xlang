@@ -2,6 +2,7 @@ $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
+$work = $null
 
 Push-Location $root
 try {
@@ -30,12 +31,16 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "stb_image_write XLang test failed: $source" }
     }
 
-    $direct = & $xl run release/examples/extlibs/stb_image_write_c.c
+    $work = Join-Path ([IO.Path]::GetTempPath()) ('xlang-stbiw-parity-' + [guid]::NewGuid().ToString('N'))
+    $cDir = Join-Path $work 'c'
+    $xlDir = Join-Path $work 'xl'
+    New-Item -ItemType Directory -Path $cDir, $xlDir | Out-Null
+    $direct = & $xl run release/examples/extlibs/stb_image_write_c.c -- $cDir
     if ($LASTEXITCODE -ne 0) { throw 'stb_image_write direct C example failed' }
     $runnerOutput = & $runner -Package 'stb_image_write,stb_image' `
         -Source release/examples/extlibs/stb_image_write_c.c
     if ($LASTEXITCODE -ne 0) { throw 'stb_image_write C package example failed' }
-    $xlangOutput = & $xl run release/examples/extlibs/stb_image_write.xl
+    $xlangOutput = & $xl run release/examples/extlibs/stb_image_write.xl -- $xlDir
     if ($LASTEXITCODE -ne 0) { throw 'stb_image_write XLang example failed' }
     $expected = 'stb_image_write C/XL example: PASS'
     if (($xlangOutput -join "`n") -cne $expected -or
@@ -43,8 +48,30 @@ try {
         ($runnerOutput -join "`n") -cne $expected) {
         throw 'stb_image_write C/XLang example output differs'
     }
+    foreach ($name in @('tiny.png', 'tiny.jpg', 'tiny.bmp', 'tiny.tga', 'tiny.hdr')) {
+        $cFile = Join-Path $cDir $name
+        $xlFile = Join-Path $xlDir $name
+        if (-not (Test-Path -LiteralPath $cFile) -or -not (Test-Path -LiteralPath $xlFile)) {
+            throw "stb_image_write missing example output: $name"
+        }
+        if ((Get-FileHash -LiteralPath $cFile -Algorithm SHA256).Hash -cne
+            (Get-FileHash -LiteralPath $xlFile -Algorithm SHA256).Hash) {
+            throw "stb_image_write C/XLang image differs: $name"
+        }
+    }
 
     Write-Output 'stb_image_write Windows C/XLang gate: PASS'
 } finally {
     Pop-Location
+    if ($work -ne $null) {
+        foreach ($dirName in @('c', 'xl')) {
+            $dir = Join-Path $work $dirName
+            foreach ($name in @('tiny.png', 'tiny.jpg', 'tiny.bmp', 'tiny.tga', 'tiny.hdr')) {
+                $output = Join-Path $dir $name
+                if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Force }
+            }
+            if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Force }
+        }
+        if (Test-Path -LiteralPath $work) { Remove-Item -LiteralPath $work -Force }
+    }
 }

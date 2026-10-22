@@ -25,9 +25,13 @@ timeout 90s ./release/xl run test/cases/extlib_stb_image_write.xl
 timeout 90s ./release/xl run release/extlibs/stb_image_write/test/boundaries.xl
 timeout 90s ./release/xl run release/extlibs/stb_image_write/test/allocations.xl
 timeout 90s ./release/xl run release/extlibs/stb_image_write/test/output_limit.xl
-timeout 90s ./release/xl run release/examples/extlibs/stb_image_write_c.c \
+mkdir "$work/c" "$work/xl"
+timeout 90s ./release/xl run release/examples/extlibs/stb_image_write_c.c -- "$work/c" \
     > "$work/c_example.txt"
-timeout 90s ./release/xl run release/examples/extlibs/stb_image_write.xl \
+timeout 90s ./release/xl run release/examples/extlibs/stb_image_write.xl -- "$work/xl" \
     > "$work/xl_example.txt"
 diff -u "$work/c_example.txt" "$work/xl_example.txt"
+for name in tiny.png tiny.jpg tiny.bmp tiny.tga tiny.hdr; do
+    cmp "$work/c/$name" "$work/xl/$name"
+done
 printf 'stb_image_write Linux C ASan/UBSan and XLang parity gate: PASS\n'

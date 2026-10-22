@@ -15,10 +15,9 @@ int main(int argc, char** argv)
         "examples/extlibs/assets/tiny.png") : NULL;
     char* WorkDir = argc > 1 ? NULL : xrtDirTemp(NULL, "xlang_stbiw_example_", NULL);
     const char* OutDir = argc > 1 ? argv[1] : WorkDir;
-    char* Destination = OutDir != NULL ? xrtPathJoin(OutDir, "tiny.png") : NULL;
     void* Image = Source != NULL ? xstbi_load(Source, 4) : NULL;
     void* Floats = Source != NULL ? xstbi_loadf(Source, 4) : NULL;
-    int Ok = Destination != NULL && Image != NULL && Floats != NULL;
+    int Ok = OutDir != NULL && Image != NULL && Floats != NULL;
     int Width = Ok ? xstbi_image_width(Image) : 0;
     int Height = Ok ? xstbi_image_height(Image) : 0;
     int Channels = Ok ? xstbi_image_channels(Image) : 0;
@@ -28,6 +27,8 @@ int main(int argc, char** argv)
     xbuffer* Tga = NULL;
     xbuffer* Hdr = NULL;
     void* Roundtrip = NULL;
+    const char* Names[5] = {"tiny.png", "tiny.jpg", "tiny.bmp", "tiny.tga", "tiny.hdr"};
+    char* Destinations[5] = {0};
 
     if (Ok) {
         void* Pixels = xstbi_image_data(Image);
@@ -50,10 +51,22 @@ int main(int argc, char** argv)
             Ok = Roundtrip != NULL &&
                 memcmp(xstbi_image_data(Roundtrip), Pixels, Size) == 0;
         }
+        if (Ok) Ok = xrtDirCreateAll(OutDir);
+        /* C 与 XLang 范例写出同样的五种格式，不能只比较成功消息。 */
+        for (int i = 0; Ok && i < 5; ++i) {
+            void* Input = i == 4 ? xstbi_image_data(Floats) : Pixels;
+            size_t InputSize = i == 4 ? xstbi_image_byte_size(Floats) : Size;
+            Destinations[i] = xrtPathJoin(OutDir, Names[i]);
+            Ok = Destinations[i] != NULL &&
+                xstbiw_write(Destinations[i], i + 1, Input, InputSize,
+                    Width, Height, Channels, i == 1 ? 90 : 0);
+        }
         if (Ok) {
-            Ok = xrtDirCreateAll(OutDir) &&
-                xstbiw_write(Destination, XSTBIW_PNG, Pixels, Size,
-                    Width, Height, Channels, 0);
+            size_t FileSize = 0;
+            bytes FileData = xrtFileReadAllLimit(Destinations[0], Png->Size, &FileSize);
+            Ok = FileData != NULL && FileSize == Png->Size &&
+                memcmp(FileData, Png->Data, FileSize) == 0;
+            xrtFree(FileData);
         }
     }
     xstbi_image_release(Roundtrip);
@@ -65,10 +78,13 @@ int main(int argc, char** argv)
     xstbi_image_release(Floats);
     xstbi_image_release(Image);
     if (WorkDir != NULL) {
-        if (Destination != NULL && xrtFileExists(Destination) && !xrtFileDelete(Destination)) Ok = 0;
+        for (int i = 0; i < 5; ++i) {
+            if (Destinations[i] != NULL && xrtFileExists(Destinations[i]) &&
+                !xrtFileDelete(Destinations[i])) Ok = 0;
+        }
         if (!xrtDirRemove(WorkDir)) Ok = 0;
     }
-    xrtFree(Destination);
+    for (int i = 0; i < 5; ++i) xrtFree(Destinations[i]);
     xrtFree(WorkDir);
     xrtFree(Source);
     xrtFree(AppDir);
