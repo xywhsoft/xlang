@@ -1,3 +1,7 @@
 localhost:6432
 你好, world
+replace: 1
+apply default: original
+apply overwrite: new
+clear: 0
 dotenv example: PASS

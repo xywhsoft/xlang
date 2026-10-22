@@ -65,7 +65,10 @@ bash release/extlibs/dotenv/test/check.sh
 
 双语范例各自创建独占的系统临时目录，写入 UTF-8 配置文件，成功或失败均清理；
 不覆盖工作目录中现有的 `.env`。C 教学范例包含包内实现，可直接 `xl run`，
-正式扩展包仍按清单分别编译 C 源。
+正式扩展包仍按清单分别编译 C 源。范例还演示同对象 `parse` 整体替换、
+`has`/`count`、`apply` 默认保留与显式覆盖，以及 `clear`；进程环境变量
+`XL_DEMO6_DOTENV_EXAMPLE` 在退出前恢复原值或移除，C/XLang 输出对照同一
+黄金文件。只有显式 `apply` 才会写入进程环境。
 
 发布验收去掉 `-SkipAot`。当前完整范例 AOT 的共享链接阻断见
 `dev/extlib_blockers/text_snapshot_link.md`；Linux 脚本需要 `release/xl`，检查 C 侧 XRT

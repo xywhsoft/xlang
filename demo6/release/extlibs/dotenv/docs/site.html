@@ -81,7 +81,7 @@ int main(void)
     <h2>验证状态</h2>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/dotenv/test/check.ps1 -SkipAot
 bash release/extlibs/dotenv/test/check.sh</code></pre>
-    <p>Windows 定向 C 测试、C/xlang 范例和 xlang 边界测试通过；解析输入先检查字节限额，再扫描内容。XRT 有序映射、分配失败矩阵与 <code>apply</code> 内存错误回归验证旧配置保留、进程环境不变和同对象恢复。2026-10-18 增补合法多行配置的截断与逐字节变异矩阵；这是定向边界测试，不是完整 fuzz。双语文件范例使用独占临时目录并清理，不覆盖工作目录中的现有文件；C 范例可直接 <code>xl run release/extlibs/dotenv/examples/basic.c</code>。Linux 包级门禁同时运行 C ASan/UBSan、XLang 中央与包内边界，并逐字核对 C/xlang 范例及黄金输出。带输出范例的完整 AOT 当前停在共享运行时头文件 <code>xl6_channel_language_abi.h:7</code> 的声明顺序错误，不能视为最终发布签收。</p>
+    <p>Windows 定向 C 测试、C/xlang 范例和 xlang 边界测试通过；解析输入先检查字节限额，再扫描内容。XRT 有序映射、分配失败矩阵与 <code>apply</code> 内存错误回归验证旧配置保留、进程环境不变和同对象恢复。2026-10-18 增补合法多行配置的截断与逐字节变异矩阵；这是定向边界测试，不是完整 fuzz。双语文件范例使用独占临时目录并清理，不覆盖工作目录中的现有文件；C 范例可直接 <code>xl run release/extlibs/dotenv/examples/basic.c</code>。范例同时展示同对象替换、默认保留与显式覆盖进程环境、清空配置，并在退出前恢复原环境值。Linux 包级门禁同时运行 C ASan/UBSan、XLang 中央与包内边界，并逐字核对 C/xlang 范例及黄金输出。当前默认 Windows 门禁已构建运行核心 AOT，但带输出范例仍缺共享符号 <code>xl6ValueDataSnapshotV1</code>，不能视为最终发布签收。</p>
   </section>
 </main>
 <script src="../main.js"></script>

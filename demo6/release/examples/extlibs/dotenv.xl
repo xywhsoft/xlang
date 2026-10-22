@@ -3,7 +3,11 @@ import dotenv
 func main(...) as int
     string directory = dir.temp("", "xlang-dotenv-", "")
     string configPath = ""
+    string envKey = "XL_DEMO6_DOTENV_EXAMPLE"
+    string? previous = null
+    bool envChanged = false
     try
+        previous = env.get(envKey)
         configPath = path.join(directory, "配置.env")
         file.writeText(configPath, "# application\nDB_HOST=localhost\nDB_PORT=5432\nGREETING=\"你好, world\"\n")
 
@@ -15,7 +19,30 @@ func main(...) as int
         config.set("DB_PORT", "6432")
         println(config.get("DB_HOST") + ":" + config.get("DB_PORT"))
         println(config.get("GREETING"))
+
+        // 替换配置后再显式导入环境；范例结束时恢复宿主原值。
+        config.parse("XL_DEMO6_DOTENV_EXAMPLE=new\n")
+        assert config.count == 1 and config.has(envKey) and not config.has("DB_HOST")
+        println("replace: " + string(config.count))
+        env.set(envKey, "original")
+        envChanged = true
+        config.apply()
+        assert (env.get(envKey) ?? "") == "original"
+        println("apply default: " + (env.get(envKey) ?? ""))
+        config.apply(true)
+        assert (env.get(envKey) ?? "") == "new"
+        println("apply overwrite: " + (env.get(envKey) ?? ""))
+        config.clear()
+        assert config.count == 0
+        println("clear: " + string(config.count))
     finally
+        if envChanged then
+            if previous == null then
+                env.remove(envKey)
+            else
+                env.set(envKey, previous)
+            end
+        end
         if configPath != "" and file.exists(configPath) then file.delete(configPath) end
         dir.remove(directory)
     end
