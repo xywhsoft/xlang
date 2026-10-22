@@ -179,14 +179,39 @@ int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*stoppe
 }
 int xideLanguageCheckWorkerFinished(xide_language_check* q) { return !q || !q->worker || WaitForSingleObject(q->worker,0)==WAIT_OBJECT_0; }
 void* xideLanguageCheckWorkerSignal(xide_language_check* q) { return q ? q->worker : NULL; }
-xvalue* xideLanguageCheckDefinition(xide_language_check* q,const char* path,int version,int line,int character)
+static const xvalue* reportedPath(const xvalue* items,const char* path)
+{
+ /* Most compiler paths have identical spelling: avoid preparing platform keys
+    for every unrelated input. Alias fallback preserves existing path rules. */
+ for(size_t i=0;i<xrtValueCount(items);++i) { const xvalue* item=xrtValueArrayGet(items,i); const char* name=string(get(item,"path")); if(name && !strcmp(name,path)) return item; }
+ for(size_t i=0;i<xrtValueCount(items);++i) { const xvalue* item=xrtValueArrayGet(items,i); const char* name=string(get(item,"path")); if(name && xidePathLexicalEqual(name,path)) return item; }
+ return NULL;
+}
+static xvalue* definitionProof(xide_language_check* q,const xvalue* location)
+{
+ const char* uri=string(get(location,"uri")); char* path=uri ? xideLspUriToPath(uri,NULL) : NULL;
+ const xvalue* actual=path ? reportedPath(q->guardFiles,path) : NULL;
+ const xvalue* group=actual ? reportedPath(get(q->result,"documents"),path) : NULL; free(path);
+ if(!group) return NULL;
+ const char* fields[]={"path","origin","version","normalizedSize","normalizedSha256","input"};
+ xvalue *out=xrtValueObject(),*document=xrtValueObject(); int okay=out && document && put(out,"schema",xrtValueInt(1));
+ for(size_t i=0;okay && i<sizeof(fields)/sizeof(*fields);++i) { const xvalue* value=get(group,fields[i]); if(value) okay=put(document,fields[i],xrtValueDeepClone(value)); }
+ if(okay) { okay=put(out,"document",document); document=NULL; }
+ xrtValueRelease(document); if(!okay) { xrtValueRelease(out); out=NULL; } return out;
+}
+static xvalue* definition(xide_language_check* q,const char* path,int version,int line,int character,int proof)
 {
  if(!q || !path) return NULL;
  EnterCriticalSection(&q->lock); int match=0;
  for(size_t i=0;i<q->snapshotCount;++i) if(xidePathLexicalEqual(path,q->snapshots[i].path) && version==q->snapshots[i].version) match=1;
  xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && q->definitions ? xideSemanticDefinition(q->definitions,path,line,character) : NULL;
+ if(proof && out && xrtValueType(out)!=XVALUE_NULL && !put(out,"xlang",definitionProof(q,out))) { xrtValueRelease(out); out=NULL; }
  LeaveCriticalSection(&q->lock); return out;
 }
+xvalue* xideLanguageCheckDefinition(xide_language_check* q,const char* path,int version,int line,int character)
+{ return definition(q,path,version,line,character,0); }
+xvalue* xideLanguageCheckDefinitionWithProof(xide_language_check* q,const char* path,int version,int line,int character)
+{ return definition(q,path,version,line,character,1); }
 xvalue* xideLanguageCheckHover(xide_language_check* q,const char* path,int version,int line,int character)
 {
  if(!q || !path) return NULL;

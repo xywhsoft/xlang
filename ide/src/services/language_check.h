@@ -59,6 +59,12 @@ enum xide_check_state xideLanguageCheckState(xide_language_check* check,char* me
 xvalue* xideLanguageCheckResult(xide_language_check* check);
 /* Same guarded batch; Location or JSON null, NULL if unavailable/invalidated. */
 xvalue* xideLanguageCheckDefinition(xide_language_check* check,const char* path,int version,int line,int character);
+/* Same atomic guarded lookup, with Location.xlang={schema:1,document:...}.
+   Only the actual target file's verified metadata is copied; no diagnostic
+   arrays, source bodies, whole report clone or filesystem access. Owned result
+   outlives check/cache. Missing actual target proof fails rather than emitting
+   an unverified Location. JSON null remains a valid no-definition result. */
+xvalue* xideLanguageCheckDefinitionWithProof(xide_language_check* check,const char* path,int version,int line,int character);
 xvalue* xideLanguageCheckHover(xide_language_check* check,const char* path,int version,int line,int character);
 xvalue* xideLanguageCheckDocumentSymbols(xide_language_check* check,const char* path,int version);
 /* Snapshot results remain guarded by the worker until cancellation/destruction.

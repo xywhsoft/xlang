@@ -25,7 +25,7 @@ typedef struct semantic_request {
 } semantic_request;
 typedef struct server {
  CRITICAL_SECTION lock; HANDLE reader,event; volatile LONG stop; message *head,*tail; size_t queueBytes,queueCount,queueInputs; int eof,readFailed;
- int initialized,shutdown,exitRequested,exitCode,writeFailed,checkOnSave,cliCompletion,cliDiagnostics; char *compiler,*directory; xide_toolchains* cache;
+ int initialized,shutdown,exitRequested,exitCode,writeFailed,checkOnSave,cliCompletion,cliDiagnostics,definitionInputProof; char *compiler,*directory; xide_toolchains* cache;
  document docs[DOC_LIMIT]; size_t textBytes; unsigned long long generation; xide_language_check* check; xvalue* checkId;
  int checkDocument,checkVersion,cancelCode,pending; unsigned long long checkGeneration; const char* cancelReason;
  int snapshotMode; unsigned long long checkBatchGeneration; xvalue* publishedGroups;
@@ -411,6 +411,7 @@ static xvalue* semanticResult(server* s,const semantic_request* request)
  document* d=&s->docs[request->document];
  return request->kind==2 ? xideLanguageCheckDocumentSymbols(s->guard,d->path,request->version) :
   request->kind==1 ? xideLanguageCheckHover(s->guard,d->path,request->version,request->line,request->character) :
+  s->definitionInputProof ? xideLanguageCheckDefinitionWithProof(s->guard,d->path,request->version,request->line,request->character) :
   xideLanguageCheckDefinition(s->guard,d->path,request->version,request->line,request->character);
 }
 static void cancelUnusedSemanticCheck(server* s)
@@ -520,18 +521,20 @@ static void dispatch(server* s,const xvalue* message)
   const xvalue* diagnosticsOption=get(options,"diagnosticsBackend"); const char* diagnostics=string(diagnosticsOption);
   if(diagnosticsOption && (!diagnostics || (strcmp(diagnostics,"native") && strcmp(diagnostics,"cli")))) { response(s,id,NULL,-32602,"diagnosticsBackend must be native or cli."); return; }
   s->cliDiagnostics=diagnostics && !strcmp(diagnostics,"cli");
-  bool automatic=!s->cliDiagnostics,versions=false,inputProof=false; const xvalue* autoOption=get(options,"automaticDiagnostics");
+  bool automatic=!s->cliDiagnostics,versions=false,inputProof=false,definitionProof=false; const xvalue* autoOption=get(options,"automaticDiagnostics");
   int delay=75; const xvalue* delayOption=get(options,"diagnosticDelay");
   if((autoOption && !xrtValueGetBool(autoOption,&automatic)) || (automatic && s->cliDiagnostics) || (delayOption && (!integer(delayOption,&delay) || delay<0 || delay>2000))) { response(s,id,NULL,-32602,"automaticDiagnostics requires the native backend; diagnosticDelay must be 0..2000 milliseconds."); return; }
   const xvalue* versionSupport=get(get(get(get(params,"capabilities"),"textDocument"),"publishDiagnostics"),"versionSupport");
   if(versionSupport && !xrtValueGetBool(versionSupport,&versions)) { response(s,id,NULL,-32602,"Diagnostic versionSupport must be boolean."); return; }
   const xvalue* proofSupport=get(get(get(params,"capabilities"),"experimental"),"diagnosticInputProof");
   if(proofSupport && !xrtValueGetBool(proofSupport,&inputProof)) { response(s,id,NULL,-32602,"Diagnostic input proof capability must be boolean."); return; }
+  const xvalue* definitionProofSupport=get(get(get(params,"capabilities"),"experimental"),"definitionInputProof");
+  if(definitionProofSupport && !xrtValueGetBool(definitionProofSupport,&definitionProof)) { response(s,id,NULL,-32602,"Definition input proof capability must be boolean."); return; }
   const xvalue* rangeLimit=get(get(get(get(params,"capabilities"),"textDocument"),"foldingRange"),"rangeLimit"); int64 limit=65536;
   if(rangeLimit && (!xrtValueGetInt(rangeLimit,&limit) || limit<0 || limit>UINT32_MAX)) { response(s,id,NULL,-32602,"Folding rangeLimit must be a nonnegative 32-bit integer."); return; }
   s->foldingLimit=(size_t)(limit>65536 ? 65536 : limit);
   if(automatic && !s->diagnostics && !(s->diagnostics=xideDiagnosticStoreCreate(NULL))) { response(s,id,NULL,-32603,"Unable to create the automatic diagnostic actor."); return; }
-  s->automaticDiagnostics=automatic; s->diagnosticVersions=versions; s->diagnosticInputProof=inputProof; s->diagnosticDelay=delay; s->diagnosticSweepAt=GetTickCount64()+1000;
+  s->automaticDiagnostics=automatic; s->diagnosticVersions=versions; s->diagnosticInputProof=inputProof; s->definitionInputProof=definitionProof; s->diagnosticDelay=delay; s->diagnosticSweepAt=GetTickCount64()+1000;
   xvalue *result=xrtValueObject(),*cap=xrtValueObject(),*sync=xrtValueObject(),*save=xrtValueObject(),*info=xrtValueObject(),*scope=xrtValueObject();
   put(cap,"positionEncoding",xrtValueString(sv("utf-16"))); put(sync,"openClose",xrtValueBool(true)); put(sync,"change",xrtValueInt(2)); put(save,"includeText",xrtValueBool(true)); put(sync,"save",save); put(cap,"textDocumentSync",sync);
   put(cap,"foldingRangeProvider",xrtValueBool(true)); put(scope,"residentSyntax",xrtValueBool(true)); put(scope,"analysisRuntime",xrtValueString(sv("compiler-xrt")));
@@ -541,13 +544,14 @@ static void dispatch(server* s,const xvalue* message)
   put(scope,"automaticDiagnostics",xrtValueBool(automatic)); put(scope,"diagnosticDelay",xrtValueInt(delay));
   put(scope,"diagnosticInputProof",xrtValueBool(true));
   put(scope,"inputState",xrtValueBool(true));
+  put(scope,"definitionInputProof",xrtValueBool(true));
   put(scope,"nativeSnapshotDiagnostics",xrtValueBool(!s->cliDiagnostics)); put(scope,"diagnosticsBackend",xrtValueString(sv(s->cliDiagnostics ? "cli" : "native")));
   put(scope,"retainedSemanticChecks",xrtValueBool(!s->cliDiagnostics)); put(scope,"retainedNativeInputs",xrtValueBool(!s->cliDiagnostics || !s->cliCompletion));
   put(scope,"incrementalEntrySyntax",xrtValueBool(!s->cliDiagnostics));
   put(scope,"incrementalFunctionSemantics",xrtValueBool(!s->cliDiagnostics));
   put(scope,"savedDiagnosticsBackend",xrtValueString(sv("cli")));
   put(scope,"savedEntryDiagnostics",xrtValueBool(true)); put(scope,"unsavedDependencies",xrtValueBool(true)); put(scope,"snapshotDiagnostics",xrtValueBool(true)); put(scope,"snapshotDocumentFingerprint",xrtValueBool(true)); put(scope,"snapshotInputGuard",xrtValueString(sv("background-poll"))); put(scope,"cSemantics",xrtValueBool(false)); put(scope,"snapshotDefinition",xrtValueBool(true)); put(cap,"definitionProvider",xrtValueBool(true)); put(cap,"hoverProvider",xrtValueBool(true)); put(cap,"documentSymbolProvider",xrtValueBool(true)); xvalue *completion=xrtValueObject(),*triggers=xrtValueArray(),*dot=xrtValueString(sv(".")); xrtValueArrayAppend(triggers,dot); xrtValueRelease(dot); put(completion,"resolveProvider",xrtValueBool(false)); put(completion,"triggerCharacters",triggers); put(cap,"completionProvider",completion); put(scope,"cursorCompletion",xrtValueBool(true)); put(scope,"completionInputGuard",xrtValueString(sv("background-poll"))); put(scope,"snapshotHover",xrtValueBool(true)); put(scope,"snapshotDocumentSymbols",xrtValueBool(true)); put(cap,"experimental",scope); put(result,"capabilities",cap);
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.23"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.24"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
