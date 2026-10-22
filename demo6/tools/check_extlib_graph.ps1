@@ -4,7 +4,11 @@ if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path $Root).Path
 if (!$RuntimeDirectory) { $RuntimeDirectory = Join-Path $Root 'release' }
 $RuntimeDirectory = (Resolve-Path $RuntimeDirectory).Path
-$work = if ($WorkDirectory) {[IO.Path]::GetFullPath($WorkDirectory)} else {Join-Path $Root 'build/test/graph_guard'}
+$workRoot = Join-Path $Root 'build/test'
+$ownWork = !$WorkDirectory
+$work = if ($WorkDirectory) {[IO.Path]::GetFullPath((Join-Path $Root $WorkDirectory))} else {
+    Join-Path $workRoot ('graph_guard_' + [guid]::NewGuid().ToString('N'))
+}
 [void][IO.Directory]::CreateDirectory($work)
 . (Join-Path $Root 'tools/extlib_smoke_process.ps1')
 $xl = Join-Path $RuntimeDirectory 'xl.exe'
@@ -115,6 +119,18 @@ try {
         aotSkipped=[bool]$SkipAot;
         scope='Graph C boundary/oracle/OOM/threads, Windows C and xlang JIT/AOT, xl/xlc DLL context reuse, 9 generated prototypes and paired examples; shared string gaps recorded separately';
         inputs=$inputs;changedInputs=$changed;generatedPrototypes=$decls.Count;checks=$checks.ToArray();sharedBoundaries=$pending.ToArray()}
-    [IO.File]::WriteAllText((Join-Path $work 'results.json'),($report | ConvertTo-Json -Depth 8),$utf8)
+    try {
+        [IO.File]::WriteAllText((Join-Path $work 'results.json'),($report | ConvertTo-Json -Depth 8),$utf8)
+    } finally {
+        if ($ownWork -and (Test-Path -LiteralPath $work -PathType Container)) {
+            $resolved = [IO.Path]::GetFullPath((Resolve-Path -LiteralPath $work).Path)
+            $base = [IO.Path]::GetFullPath($workRoot).TrimEnd('\','/')
+            if (!$resolved.StartsWith($base + [IO.Path]::DirectorySeparatorChar,
+                [StringComparison]::OrdinalIgnoreCase)) {
+                throw "Graph work directory escaped build/test: $resolved"
+            }
+            Remove-Item -LiteralPath $resolved -Recurse -Force
+        }
+    }
 }
-if($outcome -ne 'passed-scoped') {throw "Graph gate failed; see $work/results.json"}
+if($outcome -ne 'passed-scoped') {throw "Graph gate failed; use -WorkDirectory to retain results.json"}
