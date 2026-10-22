@@ -26,6 +26,7 @@
 #include "src/runtime/xl6_execution_worker_exit.h"
 #include "src/runtime/xl6_executor_jobs.h"
 #include "src/runtime/xl6_execution_resource.h"
+#include "src/runtime/xl6_execution_net_file.h"
 #include "src/runtime/xl6_execution_tcp_dial.h"
 #include "src/runtime/xl6_execution_module_abi.h"
 #include "src/runtime/xl6_network_service.h"
@@ -379,6 +380,15 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6ExecutionExecutorFailuresV1", (const void*)xl6ExecutionExecutorFailuresV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutionExecutorStatsV1", (const void*)xl6ExecutionExecutorStatsV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutionResourceCancelV1", (const void*)xl6ExecutionResourceCancelV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogAddNetFileInputV1", (const void*)xl6OwnershipCatalogAddNetFileInputV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionNetFileCreateV1", (const void*)xl6ExecutionNetFileCreateV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionNetFileReadV1", (const void*)xl6ExecutionNetFileReadV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionNetFileWriteV1", (const void*)xl6ExecutionNetFileWriteV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionNetFileWriteRefV1", (const void*)xl6ExecutionNetFileWriteRefV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionNetFileCloseSourceV1", (const void*)xl6ExecutionNetFileCloseSourceV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionNetFileFamilyV1Get", (const void*)xl6ExecutionNetFileFamilyV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6OwnershipDomainNetFileNativeV1Get", (const void*)xl6OwnershipDomainNetFileNativeV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6OwnershipDomainExecutionNetFileV1Get", (const void*)xl6OwnershipDomainExecutionNetFileV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutionSourceOwnershipV1", (const void*)xl6ExecutionSourceOwnershipV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutionResourceOwnershipV1", (const void*)xl6ExecutionResourceOwnershipV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutionOwnershipAdapterV1", (const void*)xl6ExecutionOwnershipAdapterV1)) return 0;

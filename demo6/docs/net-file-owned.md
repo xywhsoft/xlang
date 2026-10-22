@@ -1,7 +1,61 @@
 # NetFile 拥有型接入
 
-状态：P0／P3 正在开发。原生借用边界、EOF 和拥有型 `net_file_future` 已落地；
-xlang 固定快照与语言 NetFile Future 尚未开放，不能将原生验收计作完整接入。
+状态：P0／P3 正在开发。原生借用边界、EOF、拥有型 `net_file_future`、定点
+快照和执行资源／拥有目录已落地；语言 NetFile Future 尚未开放，不能将原生
+或驻留 C 验收计作完整语言接入。
+
+## 定点同步与受管理执行资源（2026-10-23）
+
+定点同步 17 个拥有型原生入口及其 feature／精确 policy。XRT 公共数为 3369，
+xruntime 为 3834（自有 465）；双份实现头、双份声明头、符号登记及派生元数据
+同步更新。`backports/net_file_owned.json` 记录原生输入、前后哈希和可逆范围，
+不升级其他模块或时间 ABI：独立 XRT 保留毫秒／For，固定快照保留微秒／Until。
+
+新增独立 NetFile execution family、原生 File／操作拥有域和 SDK provider。文件
+保留实际父 Engine，最后语言拥有者消失后由 execution source 请求真实关闭、
+等待原生终态，再释放父资源；物理关闭失败作为 checked 失败保留，Retry 不重做
+已经发生的 OS 关闭。真正不可达图中的原生 File Prepare 复用已有 runtime 槽
+排队，不额外增根，不提前释放在途操作，也不伪造取消／完成。
+
+泛化构造失败收尾：Rollback 返回 false 不再 abort 或丢失资源。只有显式授权
+deferRollback 的工厂可把无诊断的 false 解释为异步待清理；其余 false 即使没有
+分配出错误对象也保留 checked 失败，等待宿主检查／Retry。构造引用转交真实
+source 登记槽，原始构造错误仍返回调用者。另修复关停线程在仍有构造 entry 时
+过早退出的竞态，避免拒绝发布后的异步清理失去执行线程。
+
+源码构建清单发现 Linux 脚本漏列 90 个既有网络 provider，本批按规范组件表
+补齐并新增 NetFile 三个源。四个 shipping 源清单静态门均为 845／845、无缺项
+或重复；这只是源清单验收，不等于已重建／验收发布 DLL／SO／VFS。
+
+正式证据根 `F:/xlang-validation/five-groups-20261023/p3-net-file-language`：
+
+| 验证 | Windows | Linux |
+|---|---:|---:|
+| 原生模块化／生成单头／固定 XRT／固定 xruntime | 24 | 32 |
+| 当前全源码 XLIR／execution 图 | 6 | 6 |
+| 选中 provider 闭包、真实文件与产物裁剪 | 13 | 16 |
+| 快照与陈旧资产拒绝门禁 | 10 | 5 |
+| 旧 execution resource 回归及实现反证 | 84 | 86 |
+| 合计 | 137 | 145 |
+
+共 282 阶段通过。当前源码驱动器分别重建 889／888 TU，另记、不混计阶段。
+原生及裁剪产品通过 GCC O0／O2、TCC、Linux ASan／UBSan；实际 IOCP／io_uring
+执行自建文件读写，不用 Unsupported 代替。每个全源码图配置检查 24 轮实际
+XLIR cycle、12 次恢复可达、8 次最后拥有者自动关闭、24 次拒绝发布、16 次
+checked 清理失败，以及精确分配／释放平衡。旧执行资源的 13 类错误实现均在
+成功编译后被断言拒绝。没有应用网络流量或网络安全性质测试。
+
+正式轮：Windows 原生 `native-win-r1`、图 `execution-win-r5`、裁剪
+`pruned-win-r2`、快照 `snapshot-win-r1`、回归 `execution-regression-win-r2`；
+Linux 对应 r1／r4／r2／r1／r2。最终源驱动器均 r4。输入／日志／产物哈希经
+统一复核，Linux 原件及 F 盘逐字节镜像同时保留，提交身份见最终
+`verified-commit.json`；准备轮和过期输入轮不计通过。
+
+本批 SDK 的低层 C 入口不是默认标准库公开面。语言 NetFile 声明、受管理句柄
+policy、只转换一次的 typed bytes／count／close Future，以及 JIT／module／
+独立 AOT 仍待下一批实现。没有修改 Cgen 或用户的 xl6_ir.c 改动，没有更新发布
+库／VFS。完整服务图、P4 格式、X.509、TLS、shipping 继续开放，长期目标 active。
+未决策 CRT 0／XRT 11，对象池最后。
 
 ## 原生拥有型实现（2026-10-23）
 
@@ -31,7 +85,7 @@ ASan／UBSan。每个调试产品执行 128 个准备分配预算、首次后端
 槽及 Drop 中独立 freeze。正式结果含输入／产物／日志哈希，准备轮保留但不
 冒充最终通过。不修改仓库已有脏的 single 发布资产。
 
-本批未修改 xlang 嵌入头、发布声明／DLL／SO／VFS、Cgen、语言注册或时间
+上述原生实现批次未修改 xlang 嵌入头、发布声明／DLL／SO／VFS、Cgen、语言注册或时间
 ABI。下一步必须定点同步新 feature／原生 family，接入句柄目录与 execution
 resource，再实现 typed bytes／count／close Future 及 JIT／module／AOT 验收。
 上层完整服务图、P4 密钥格式、X.509、TLS 和 shipping 继续开放。

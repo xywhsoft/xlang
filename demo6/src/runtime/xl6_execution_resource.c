@@ -88,7 +88,7 @@ static int32_t worker(void* raw)
     Source* source=raw;bool busy=false;uint64_t cycle=0;
     for(;;){
         xrtownershipscope mutation={0};begin(&mutation);source->workerId=xrtThreadCurrentId();
-        if(!source->starting&&(source->stop||(!source->graphStop&&source->closed&&!source->resources))){
+        if(!source->starting&&(source->stop||(!source->graphStop&&source->closed&&!source->resources&&!source->entries))){
             source->exited=true;source->workerId=0;end(&mutation);return 0;
         }
         if(source->graphStop){
@@ -139,6 +139,10 @@ static int32_t worker(void* raw)
             if(!outcome.ok)sourceFailureLocked(source,&error);
             source->active=false;end(&mutation);xrtErrorFree(error);continue;
         }
+        /* A factory may still publish a deferred rollback record after Close.
+         * Do not exit (or sleep indefinitely) before its source entry ends.
+         * Finite polling is confined to this closing, empty, active tail. */
+        if(source->closed&&!source->resources&&source->entries)busy=true;
         source->parked=true;end(&mutation);cycle=0;
         if(!waitChanged(source,busy))return 1;
     }
@@ -189,7 +193,7 @@ Resource* xl6ExecutionCreateInternalV1(Source* source,const XL6_ExecutionFamilyV
     if(!family||family->size!=sizeof(*family)||family->abiTag!=XL6_EXECUTION_FAMILY_TAG_V1||
         !family->Create||!family->Rollback||!family->Retire||!family->Finish||!family->Drop||!family->Trace||!family->Close||!family->Cancel||!family->Present||
         family->instanceBytes<sizeof(Resource)||!options||options->kind!=family->kind||
-        (family->kind<XL6_EXECUTION_EXECUTOR_V1||family->kind>XL6_EXECUTION_UDP_SOCKET_V1)){
+        (family->kind<XL6_EXECUTION_EXECUTOR_V1||family->kind>XL6_EXECUTION_NET_FILE_V1)){
         xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
     xrtownershipscope mutation={0};begin(&mutation);bool entered=sourceEnterLocked(source,false);
     bool admitted=entered&&!source->closed&&!source->claim;end(&mutation);
@@ -218,8 +222,30 @@ Resource* xl6ExecutionCreateInternalV1(Source* source,const XL6_ExecutionFamilyV
         if(ready)xrtSetErrorKind(XERR_STATE);
         xerror* error=xrtTakeError();
         if(resource){
-            if(!family->Rollback(resource))abort();
-            family->Drop(resource);xrtFree(resource);
+            if(family->Rollback(resource)){
+                family->Drop(resource);xrtFree(resource);
+            }else{
+                xerror* rollbackError=xrtTakeError();
+                /* No returned observer owns this rejected constructor. Transfer
+                 * its REAL constructor reference to the source registry. A
+                 * checked control worker settles asynchronous native cleanup,
+                 * latches failure and retains the record for explicit retry.
+                 * The still-live source entry protects wakeup/return tails. */
+                begin(&mutation);
+                if(source->count==SIZE_MAX||source->references==SIZE_MAX)abort();
+                resource->owners=0;resource->requested=true;resource->source=source;
+                resource->stalled=!options->deferRollback||rollbackError!=NULL;
+                resource->next=source->resources;
+                if(resource->next)resource->next->previous=resource;
+                source->resources=resource;++source->count;++source->references;
+                if(resource->stalled)sourceFailureLocked(source,&rollbackError);
+                end(&mutation);
+                xrtErrorFree(rollbackError);
+                if(!xrtEventSet(source->changed)){
+                    xerror* cleanup=xrtTakeError();begin(&mutation);
+                    sourceFailureLocked(source,&cleanup);end(&mutation);xrtErrorFree(cleanup);
+                }
+            }
         }
         sourceLeave(source);xrtClearError();xrtSetErrorTake(error);return NULL;
     }
@@ -422,7 +448,7 @@ XL6_ExecutionRetireResultV1 xl6ExecutionSourceDestroyV1(Source** input)
     if(!entered){xrtSetErrorKind(XERR_STATE);return result;}
     if(!ready){
         begin(&mutation);bool wake=s->closed&&!s->resources&&!s->retired&&!s->cleared;
-        if(wake)s->stop=true;
+        if(wake&&s->entries==1)s->stop=true;
         end(&mutation);
         if(wake&&!xrtEventSet(s->changed))abort();
     }
