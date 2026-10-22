@@ -2,6 +2,7 @@
 
 `units` 将字节数、秒数和普通计数格式化为可读文本，并解析带单位的字节数与时长。为消除旧实现的二进制/十进制歧义，`bytes` 使用 IEC `KiB/MiB/GiB/TiB/PiB/EiB`（1024 进制），`bytesDecimal` 使用 SI `kB/MB/GB/TB/PB/EB`（1000 进制）。`parseBytes` 按同样的单位解析，大小写不敏感；裸数或 `B` 表示字节，**不再接受含义不明的单字母 `K/M/...`**。这是包在首版发布前的口径收紧。
 字节与计数的格式化结果固定使用点号小数，不受进程 `LC_NUMERIC` 影响；`parseBytes` 也只接受点号小数。
+单位后缀只使用 ASCII 字母，大小写折叠不受进程 `LC_CTYPE` 影响。
 
 ## XLang API
 
@@ -76,3 +77,11 @@ XLang 范例，并与 C 范例逐字比较。`-SkipAot` 的严格 C、线程、
 分配故障、XLang 边界及双语对照通过；默认门禁核心 AOT 通过，
 完整范例构建因共享 `xl6ValueDataSnapshotV1` 缺符号失败。本次独占
 目录已清理，不能以过去仅核心 AOT 通过的结果签收发布级。
+
+2026-10-23：单位后缀由区域设置相关的 CRT `toupper` 改为 ASCII 折叠，
+保留小写 IEC 单位的 C/XLang 回归；C 测试在可用的土耳其语 `LC_CTYPE`
+下额外核对 `i/I` 边界。Windows `-SkipAot` 严格 C、线程、XLang 与
+双语门禁，以及 Linux C ASan/UBSan、线程与 XLang 门禁通过。
+当前机器没有复现旧行为：Windows CRT 的土耳其语 locale 仍将 ASCII
+`i` 转为 `I`，WSL 未安装该 locale。完整带输出 AOT 复验仍缺
+`xl6ValueDataSnapshotV1`，不签收发布级。

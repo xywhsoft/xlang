@@ -4,7 +4,6 @@
 #endif
 #include "xrt.h"
 #include "include/units_native.h"
-#include <ctype.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -173,8 +172,10 @@ double xu_parse_bytes(const char* text, long long length)
     if (!xu_number(&p, &number)) goto bad;
     p = xu_spaces(p);
     while (*p != '\0' && *p != ' ' && *p != '\t') {
+        unsigned char letter = (unsigned char)*p++;
         if (suffix_length >= sizeof(suffix) - 1u) goto bad;
-        suffix[suffix_length++] = (char)toupper((unsigned char)*p++);
+        if (letter >= 'a' && letter <= 'z') letter -= 'a' - 'A';
+        suffix[suffix_length++] = (char)letter;
     }
     if (*xu_spaces(p) != '\0') goto bad;
     if (suffix_length != 0u && strcmp(suffix, "B") != 0) {
