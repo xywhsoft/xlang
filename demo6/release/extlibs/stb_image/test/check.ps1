@@ -1,3 +1,5 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
@@ -27,6 +29,7 @@ function RunNativeAccessNegative {
     Write-Host '[stb_image] Native status access: PASS'
 }
 
+$work = $null
 Push-Location $root
 try {
     Run 'strict C syntax' 'gcc' @('-std=c11', '-Wall', '-Wextra', '-Werror',
@@ -50,10 +53,38 @@ try {
     } finally {
         Pop-Location
     }
+    $expected = @('image:  16 x 16', 'channels:  4',
+        'pixel bytes:  1024', 'stb_image C/XL example: PASS') -join "`n"
+    if (($c -join "`n") -cne $expected) {
+        throw 'C image example differs from fixed output'
+    }
     if (($c -join "`n") -cne ($xlang -join "`n")) {
         throw 'C/XLang example output differs'
     }
     Write-Host '[stb_image] C/XLang output parity: PASS'
+
+    if (-not $SkipAot) {
+        $work = Join-Path ([IO.Path]::GetTempPath()) ('xlang-stb-image-aot-' + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $work | Out-Null
+        $core = Join-Path $work 'stb_image_core.exe'
+        $example = Join-Path $work 'stb_image_example.exe'
+        Run 'core AOT build' $xl @('build', 'test/cases/extlib_stb_image.xl', '-o', $core) | Out-Null
+        Run 'core AOT' $core @() | Out-Null
+        Run 'example AOT build' $xl @('build', 'release/examples/extlibs/stb_image.xl', '-o', $example) | Out-Null
+        $asset = Join-Path $root 'release/examples/extlibs/assets/tiny.png'
+        $aot = Run 'example AOT' $example @($asset)
+        if (($c -join "`n") -cne ($aot -join "`n")) {
+            throw 'C/XLang AOT example output differs'
+        }
+        Write-Host '[stb_image] C/XLang AOT output parity: PASS'
+    }
 } finally {
     Pop-Location
+    if ($work -ne $null) {
+        foreach ($name in @('stb_image_core.exe', 'stb_image_example.exe')) {
+            $output = Join-Path $work $name
+            if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Force }
+        }
+        if (Test-Path -LiteralPath $work) { Remove-Item -LiteralPath $work -Force }
+    }
 }

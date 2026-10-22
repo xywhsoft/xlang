@@ -41,14 +41,18 @@ C 接口见 `include/stb_image_native.h`。C 调用者对返回的图像句柄�
 包级验证：
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/stb_image/test/check.ps1`
-  一次运行严格 GCC、C/XL 边界、多线程和双语范例一致性检查。
+  默认运行严格 GCC、C/XL 边界、多线程、固定输出与双语范例检查，
+  然后构建运行核心和公开范例 AOT；`-SkipAot` 仅做 C/JIT 聚焦快测。
+  AOT 产物放在独占系统临时目录，失败时同样清理，不把快测通过当作
+  发布级签收。
 - Linux 上运行 `bash release/extlibs/stb_image/test/check.sh`，执行 C 边界与
   多线程的 ASan/UBSan 检查、XLang 中央与包内边界，并逐字节比较
   C/XLang 范例输出。该门禁不覆盖完整 AOT。
 - 在 `release` 目录运行 `xl run examples/extlibs/stb_image.xl` 或
   `xl run examples/extlibs/stb_image_c.c`，两者输出一致。C 范例直接包含
   包实现，无需额外列出源文件；两个范例都从 `xl.exe` 所在目录定位素材，
-  从 `demo6` 根目录调用发布版 `xl.exe` 也可运行。
+  从 `demo6` 根目录调用发布版 `xl.exe` 也可运行。XLang 范例可在 `--`
+  后指定图片绝对路径，供独立 AOT 可执行文件使用。
 - 从 `demo6` 目录运行 `xl run release/extlibs/stb_image/test/boundaries.xl`，
   包括通道数回绕及路径内嵌 NUL 负例；该用例已登记到包级测试套件。
 - 用 `tools/run_extlib_c.ps1 -Package stb_image -Source ...` 运行
@@ -62,8 +66,10 @@ C 接口见 `include/stb_image_native.h`。C 调用者对返回的图像句柄�
 内部申请失败后成功恢复、却保留 `XERR_MEMORY` 的情况；成功返回路径
 已清理旧诊断。Windows 包级门禁、Linux ASan/UBSan 与双语范例通过。
 
-XL AOT 当前因主线缺少 `xl6ValueDataSnapshotV1` 而失败，见
-`demo6/dev/extlib_blockers/text_snapshot_link.md`；尚未完成发布验收。
+当前 Windows 默认门禁在中央核心 AOT 构建处因主线缺少
+`xl6NativeHandleTraceLeaf` 而非零退出，见
+`demo6/dev/extlib_blockers/native_handle_trace_aot.md`；带输出范例还可能
+遇到共享 `xl6ValueDataSnapshotV1` 缺符号。尚未完成完整 AOT 发布验收。
 
 2026-10-17：Linux 包级门禁补正式 `release/xl` 的中央和包内 XLang 用例，
 以及 C/XLang 范例逐字节同输出检查；与 C ASan/UBSan 边界和线程测试

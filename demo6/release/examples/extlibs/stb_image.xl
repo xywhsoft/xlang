@@ -2,6 +2,7 @@ import stb_image
 
 func main(...) as int
     string imagePath = path.join(path.appDir(), "examples/extlibs/assets/tiny.png")
+    if arg.length > 1 then imagePath = string(arg[1]) end
     assert stb_image.available()
     assert stb_image.version() == "stb_image 2.30"
     assert not stb_image.isHdr(imagePath)
