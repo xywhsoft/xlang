@@ -64,7 +64,7 @@ def main():
                 if 'hit=0' in text:break
             else:raise AssertionError('incomplete native allocation prefix')
             prefixes.append(dict(Optimization=opt,Lane='native-allocation',Runs=at+1,Complete=True))
-        mutations=[('task-native-cleanup','xl6_task.c','xl6_error_result outcome=xl6CaptureRuntimeV2Get()->Cleanup(frame->layoutV2,data,frame->dataSize,(xl6_error_result){true,NULL});','xl6_error_result outcome={true,NULL};'),
+        mutations=[('task-native-cleanup','xl6_task_frame.c','xl6_error_result outcome=xl6CaptureRuntimeV2Get()->Cleanup(frame->layoutV2,data,frame->dataSize,(xl6_error_result){true,NULL});','xl6_error_result outcome={true,NULL};'),
             ('callback-native-cleanup','xl6_future_callback.c','xl6_error_result outcome=xl6CaptureRuntimeV2Get()->Cleanup(frame->layoutV2,data,frame->dataSize,(xl6_error_result){true,NULL});','xl6_error_result outcome={true,NULL};'),
             ('callback-wrong-span','xl6_future_callback.c','->Cleanup(frame->layoutV2,data,frame->dataSize,','->Cleanup(frame->layoutV2,data,frame->dataSize-1,')]
         for name,provider,old,new in mutations:

@@ -202,10 +202,10 @@ if (!$poolPrelude.Contains('xl6PayloadObserveOutcome') -or
     !(Read-Utf8 'tools\check_xlir_async_terminal_outcome.ps1').Contains('test/cases/xlir_async_terminal_outcome_runtime.c')) {
     throw 'Future callbacks and blocking awaits need shared terminal observation and a current-source runtime gate'
 }
-$taskResident=Read-Utf8 'src/runtime/xl6_task.c'
+$taskResident=(Read-Utf8 'src/runtime/xl6_task_frame.c')+(Read-Utf8 'src/runtime/xl6_task.c')
 $taskPoolResident=Read-Utf8 'src/runtime/xl6_task_pool.c'
 foreach ($required in @('xrtFutureWatchInitPhased', 'xrtFutureWatchAdd', 'xrtPromiseForward', 'xrtPromiseCancelToken',
-    'xrtTaskSubmitTraced','xl6CodeScopeEnter','xl6CodeScopeLeave','frame_ops')) {
+    'xrtTaskSubmitTraced','xl6CodeScopeEnter','xl6CodeScopeLeave','xl6TaskFrameOwnershipOpsInternalV1')) {
     if (!$taskResident.Contains($required)) { throw "Resident task completion requires the preallocated scoped ownership/cancellation bridge: $required" }
 }
 foreach ($required in @('xrtTaskPoolCreate','xrtTaskPoolDestroy','submitting','xl6TaskPoolControlV1Get')) {
@@ -241,7 +241,7 @@ if (!$poolPrelude.Contains('xl6TaskSubmitPayloadV1') -or $poolPrelude.Contains('
 }
 $payloadRuntime=Read-Utf8 'src/runtime/xl6_future_payload.c'
 $payloadEmitter=Read-Utf8 'src/cgen/xl6_ir_cgen_task_helpers.c'
-if (!$taskResident.Contains('xrtTaskSubmitOwnedJobV1(native,frame,args.Cancel,&native_data_policy,policy)') -or !$payloadRuntime.Contains('xrtPromiseResolveOwnedPolicyV1') -or
+if (!$taskResident.Contains('xrtTaskSubmitOwnedJobV1(target->native,frame,cancel,policy,result)') -or !$payloadRuntime.Contains('xrtPromiseResolveOwnedPolicyV1') -or
     !$payloadRuntime.Contains('xrtFutureOwnershipAdapterV1') -or !$payloadEmitter.Contains('XL6_FUTURE_PAYLOAD_CLOSURE') -or
     !$payloadRuntime.Contains('xl6PayloadTraceGenerator') -or !$payloadEmitter.Contains('XL6_FUTURE_PAYLOAD_GENERATOR') -or
     $payloadEmitter.Contains('xrtPromiseResolveOwnedTraced') -or $poolPrelude.Contains('xlir_async_closure_trace')) {

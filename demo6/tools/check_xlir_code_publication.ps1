@@ -12,7 +12,7 @@ try {
     $runtime=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -eq 'xrt_single_header_impl.o'})
     if (!$build.SourceXrt -or $runtime.Count -ne 1) { throw 'A current source runtime is required' }
     $files=@(Get-Item $PSCommandPath,src/runtime/xl6_code_lease.c,src/runtime/xl6_code_lease.h,
-        src/runtime/xl6_slot.c,src/runtime/xl6_frame_storage.c,src/runtime/xl6_continuation_frame.c,src/runtime/xl6_future_wait.c,src/runtime/xl6_task.c,src/runtime/xl6_task_pool.c,src/runtime/xl6_capture.c,src/runtime/xl6_value_iterator.c,src/runtime/xl6_future_callback.c,src/runtime/xl6_generator.c,src/runtime/xl6_slot.h,
+        src/runtime/xl6_slot.c,src/runtime/xl6_frame_storage.c,src/runtime/xl6_continuation_frame.c,src/runtime/xl6_future_wait.c,src/runtime/xl6_task.c,src/runtime/xl6_task_frame.c,src/runtime/xl6_task_pool.c,src/runtime/xl6_capture.c,src/runtime/xl6_value_iterator.c,src/runtime/xl6_future_callback.c,src/runtime/xl6_generator.c,src/runtime/xl6_slot.h,
         test/cases/xlir_code_scope_contract.c,test/cases/xlir_code_scope_drop.c,test/cases/xlir_code_scope_drop.h,
         test/cases/xlir_class_publication_outcome_contract.c,test/cases/xlir_class_publication_outcome.xl,
         test/cases/xlir_class_publication_outcome_native.c,test/cases/xlir_class_publication_outcome_host.c)
@@ -38,7 +38,7 @@ try {
             $lane="$outputPath/$name-O$level"
             $sources=if ($name -eq 'scope') { @('test/cases/xlir_code_scope_contract.c','src/runtime/xl6_code_lease.c') }
                 else { @("$prefix.c",'test/cases/xlir_class_publication_outcome_native.c','test/cases/xlir_class_publication_outcome_host.c',
-                    'src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c',
+                    'src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c',
                     'src/runtime/xl6_future_payload.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_continuation_queue.c') }
             & gcc @strict "-O$level" @sources $runtime[0].Path @libs -o "$lane.exe" *> "$lane.build.log"
             $buildExit=$LASTEXITCODE; $runExit=$null; $complete=$false

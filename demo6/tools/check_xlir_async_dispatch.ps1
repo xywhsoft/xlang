@@ -26,7 +26,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Generated dispatch strict C compile failed' }
     & gcc @flags -DxrtFutureWatchAdd=dispatch_watch_add -c src/runtime/xl6_continuation_future.c -o "$prefix.transport.o"
     if ($LASTEXITCODE -ne 0) { throw 'Dispatch Watch boundary build failed' }
-    & gcc @flags "$prefix.host.o" "$prefix.transport.o" test/cases/xlir_async_dispatch_runtime.c src/runtime/xl6_code_lease.c src/runtime/xl6_continuation_queue.c src/runtime/xl6_continuation_executor.c src/runtime/xl6_closure.c src/runtime/xl6_cell.c src/runtime/xl6_slot.c src/runtime/xl6_frame_storage.c src/runtime/xl6_continuation_frame.c src/runtime/xl6_future_wait.c src/runtime/xl6_task.c src/runtime/xl6_task_pool.c src/runtime/xl6_capture.c src/runtime/xl6_value_iterator.c src/runtime/xl6_future_callback.c src/runtime/xl6_generator.c src/runtime/xl6_future_payload.c release/xl.dll -o "$prefix.exe"
+    & gcc @flags "$prefix.host.o" "$prefix.transport.o" test/cases/xlir_async_dispatch_runtime.c src/runtime/xl6_code_lease.c src/runtime/xl6_continuation_queue.c src/runtime/xl6_continuation_executor.c src/runtime/xl6_closure.c src/runtime/xl6_cell.c src/runtime/xl6_slot.c src/runtime/xl6_frame_storage.c src/runtime/xl6_continuation_frame.c src/runtime/xl6_future_wait.c src/runtime/xl6_task.c src/runtime/xl6_task_frame.c src/runtime/xl6_task_pool.c src/runtime/xl6_capture.c src/runtime/xl6_value_iterator.c src/runtime/xl6_future_callback.c src/runtime/xl6_generator.c src/runtime/xl6_future_payload.c release/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Dispatch source runtime link failed' }
     $failed = @()
     foreach ($mode in 0..6) {
@@ -35,7 +35,7 @@ try {
     }
     & gcc @flags -DxrtTakeError=dispatch_take_error -DXLIR_CONTINUATION_CAPACITY=1 -include "$prefix.c" -include "$prefix.binding.h" -c test/cases/xlir_async_dispatch_host.c -o "$prefix.single.o"
     if ($LASTEXITCODE -ne 0) { throw 'Single-credit dispatch strict C compile failed' }
-    & gcc @flags "$prefix.single.o" "$prefix.transport.o" test/cases/xlir_async_dispatch_runtime.c src/runtime/xl6_code_lease.c src/runtime/xl6_continuation_queue.c src/runtime/xl6_continuation_executor.c src/runtime/xl6_closure.c src/runtime/xl6_cell.c src/runtime/xl6_slot.c src/runtime/xl6_frame_storage.c src/runtime/xl6_continuation_frame.c src/runtime/xl6_future_wait.c src/runtime/xl6_task.c src/runtime/xl6_task_pool.c src/runtime/xl6_capture.c src/runtime/xl6_value_iterator.c src/runtime/xl6_future_callback.c src/runtime/xl6_generator.c src/runtime/xl6_future_payload.c release/xl.dll -o "$prefix.single.exe"
+    & gcc @flags "$prefix.single.o" "$prefix.transport.o" test/cases/xlir_async_dispatch_runtime.c src/runtime/xl6_code_lease.c src/runtime/xl6_continuation_queue.c src/runtime/xl6_continuation_executor.c src/runtime/xl6_closure.c src/runtime/xl6_cell.c src/runtime/xl6_slot.c src/runtime/xl6_frame_storage.c src/runtime/xl6_continuation_frame.c src/runtime/xl6_future_wait.c src/runtime/xl6_task.c src/runtime/xl6_task_frame.c src/runtime/xl6_task_pool.c src/runtime/xl6_capture.c src/runtime/xl6_value_iterator.c src/runtime/xl6_future_callback.c src/runtime/xl6_generator.c src/runtime/xl6_future_payload.c release/xl.dll -o "$prefix.single.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Single-credit dispatch link failed' }
     foreach ($mode in @(0,1,2,3,4)) {
         & "$prefix.single.exe" $mode

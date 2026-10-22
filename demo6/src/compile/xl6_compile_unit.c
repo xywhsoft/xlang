@@ -18,7 +18,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         {"XRT_MODULE_FUTURE", "XRUNTIME_MODULE_RUNTIME_CALL", "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"}},
     {"src/runtime/xl6_cell.c", NULL, 0, {"XRT_MODULE_MEMORY", "XRT_MODULE_ATOMIC", "XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_frame_storage.c", NULL, 0, {"XRT_MODULE_MEMORY"}},
-    {"src/runtime/xl6_task.c", D(R(TASK_POOL),R(CAPTURE_V2),R(CODE_LEASE),R(FUTURE_PAYLOAD)), {"XRT_MODULE_TASK_POOL"}},
+    {"src/runtime/xl6_task.c", D(R(TASK_POOL),R(TASK_FRAME)), {"XRT_MODULE_TASK_POOL"}},
     {"src/runtime/xl6_continuation_queue.c", D(R(CODE_LEASE)),
         {"XRT_MODULE_MUTEX", "XRT_MODULE_COND", "XRT_MODULE_ERROR"}},
     {"src/runtime/xl6_continuation_executor.c", D(R(QUEUE)), {"XRT_MODULE_THREAD", "XRT_MODULE_ERROR"}},
@@ -565,7 +565,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_queue.c",D(R(OWNERSHIP_CATALOG),R(QUEUE)),{NULL}},
     {"src/runtime/xl6_ownership_domain_frame.c",D(R(OWNERSHIP_CATALOG),R(CONTINUATION_FRAME)),{NULL}},
     {"src/runtime/xl6_ownership_domain_future_callback.c",D(R(OWNERSHIP_CATALOG),R(FUTURE_CALLBACK)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_task.c",D(R(OWNERSHIP_CATALOG),R(TASK)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_task.c",D(R(OWNERSHIP_CATALOG),R(TASK_FRAME)),{NULL}},
     {"src/runtime/xl6_ownership_domain_future_payload.c",D(R(OWNERSHIP_CATALOG),R(FUTURE_PAYLOAD)),{NULL}},
     {"src/runtime/xl6_ownership_domain_native_future.c",D(R(OWNERSHIP_CATALOG)),{"XRT_MODULE_FUTURE"}},
     {"src/runtime/xl6_ownership_domain_future_aggregate.c",D(R(OWNERSHIP_CATALOG),R(FUTURE_AGGREGATE)),{"XRT_MODULE_FUTURE_COMBINE"}},
@@ -913,7 +913,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_udp_transfer_owned.c",D(R(UDP_TRANSFER),R(UDP_MESSAGE)),{NULL}},
     {"src/runtime/xl6_udp_transfer_copy.c",D(R(UDP_TRANSFER),R(NET_DATAGRAM_PACKET)),{NULL}},
     {"src/runtime/xl6_udp_message_send.c",D(R(UDP_LANGUAGE),R(UDP_MESSAGE),R(EXECUTION_UDP_DATA)),{NULL}},
-    {"src/runtime/xl6_udp_multicast.c",D(R(UDP_LANGUAGE),R(FUTURE_PAYLOAD),R(FUTURE_CALLBACK),R(CLOSURE),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE)),{NULL}}
+    {"src/runtime/xl6_udp_multicast.c",D(R(UDP_LANGUAGE),R(FUTURE_PAYLOAD),R(FUTURE_CALLBACK),R(CLOSURE),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE)),{NULL}},
+    {"src/runtime/xl6_task_frame.c",D(R(CAPTURE_V2),R(CODE_LEASE),R(FUTURE_PAYLOAD)),{"XRT_MODULE_TASK","XRT_MODULE_THREAD"}},
+    {"src/runtime/xl6_task_net.c",D(R(TASK_FRAME),R(OWNERSHIP_DOMAIN_NET_ENGINE_NATIVE)),{"XRT_MODULE_TASK_NET"}},
+    {"src/runtime/xl6_ownership_domain_task_net.c",D(R(OWNERSHIP_CATALOG),R(TASK_NET),R(OWNERSHIP_DOMAIN_TASK),R(OWNERSHIP_DOMAIN_NET_ENGINE_NATIVE)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

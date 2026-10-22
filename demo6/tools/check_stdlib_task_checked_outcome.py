@@ -55,7 +55,7 @@ def main():
      name=str(index)+'.'+opt+('.minimal' if minimal else '.checked');binary=out/(name+ext)
      run(name+'.build',flags(cc)+['-'+opt,*(['-DXL6_TASK_CHECKED_MINIMAL'] if minimal else []),fixture,*providers,kernel,*libs,'-o',binary]);product(binary)
      run(name+'.run',[binary],'Task checked minimal: 193' if minimal else 'Task checked outcome: 193')
-  original=(root/'src/runtime/xl6_task.c').read_text(encoding='utf-8-sig')
+  original=(root/'src/runtime/xl6_task_frame.c').read_text(encoding='utf-8-sig')
   controls=(
    ('cleanup-outcome-lost','frame_checked_cleanup(frame,outcome);','xrtErrorFree(outcome.error);'),
    ('cleanup-null-is-success','}else if(cleanupFailed&&input.State==XFUTURE_RESOLVED)',
@@ -74,7 +74,7 @@ def main():
     # Keep the unused helper warning from substituting for a runtime rejection.
     text=text.replace('static void frame_checked_cleanup(', 'void frame_checked_cleanup(')
    mutant=out/(name+'.c');mutant.write_text(text,encoding='utf8');product(mutant)
-   selected=[mutant if path==root/'src/runtime/xl6_task.c' else path for path in providers];binary=out/(name+ext)
+   selected=[mutant if path==root/'src/runtime/xl6_task_frame.c' else path for path in providers];binary=out/(name+ext)
    run(name+'.build',flags(gcc)+['-O0','-I'+str(root/'src/runtime'),fixture,*selected,kernel,*libs,'-o',binary]);product(binary)
    run(name+'.refused',[binary],reject=True)
   if a.sanitize:

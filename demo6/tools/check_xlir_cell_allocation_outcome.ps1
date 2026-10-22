@@ -58,7 +58,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Cell suspension C-host JIT failed' }
     $suspensionRuntimeSources = @($syncRuntimeSources) + @(
         'src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c',
-        'src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_pool.c',
+        'src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c',
         'src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c',
         'src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c',
         'src/runtime/xl6_code_finalizer.c','src/runtime/xl6_continuation_queue.c',

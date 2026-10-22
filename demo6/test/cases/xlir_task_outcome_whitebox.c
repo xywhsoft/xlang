@@ -1,6 +1,8 @@
 /* White-box transport coverage migrated intact from the former generated
  * adapter: 24 ready outcomes and one registration failure. This does not stand
  * in for admitted-job, code-owner or graph coverage in xlir_task_storage_runtime. */
+#define XRT_MODULE_TASK_POOL
+#include "src/runtime/xl6_task_frame.c"
 #include "src/runtime/xl6_task.c"
 #include <assert.h>
 static TaskFrame* probe_watch(void)
@@ -8,7 +10,7 @@ static TaskFrame* probe_watch(void)
     TaskFrame* frame=xrtCalloc(1,sizeof(*frame)); assert(frame);
     frame->references=1; /* one real direct notification/release caller */
     XL6_TaskPool* pool=xl6TaskPoolCreateInternalV1(NULL);assert(pool&&xl6TaskPoolHoldInternalV1(pool));
-    frame->pool=pool; /* actual frame owner, including after physical release */
+    frame->pool=pool;frame->poolBinding=&pool_frame_binding; /* actual frame owner, including after physical release */
     assert(xl6TaskPoolDestroyInternalV1(pool)); /* consume Create's owner of this idle shell */
     return frame;
 }

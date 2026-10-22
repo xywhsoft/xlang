@@ -49,7 +49,7 @@ try {
         'src/runtime/xl6_future_payload.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c',
         'src/runtime/xl6_array_value_iterator.c','src/runtime/xl6_array_iterator.c','src/runtime/xl6_sequence.c',
         'src/runtime/xl6_future_callback.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c',
-        'src/runtime/xl6_task.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_ownership_plan.c')
+        'src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_ownership_plan.c')
     & release/xl.exe build $runtimeSource $hostSource src/api/xl_foreign_error.c @residentSources --inc-path . --inc-path build/test --inc-path release -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic iteration C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
