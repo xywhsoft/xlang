@@ -36,6 +36,12 @@ Windows 在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File 
 测试解码失败，不将绕开该表达式视为主线问题已解决。完整 AOT 仍缺
 `xl6ValueDataSnapshotV1`，发布级签收待主线修复后复验。
 
+2026-10-22 复验：中央 `extlib_miniz.xl` 已改用直接写入损坏帧头，
+`xl run` 成功；Windows `check.ps1 -SkipAot` 的 C 边界、语言用例与
+双语范例对照全部通过。共享的字节/整数运算问题仍有其他最小复现，
+不能因本包测试绕开表达式就视作修复。默认门禁在完整 XLang AOT
+构建时报缺少 `xl6ValueDataSnapshotV1`，整包暂不签收发布级。
+
 2026-10-18：六类畸形选项负例先红后绿，覆盖流对象、一次性及文件流入口。Windows 严格 GCC/C/XLang、Linux ASan/UBSan/Python zlib 互通通过。随后包外 `updateNative(point,size)` 两条只编译负例确认可达，再将 12 个原生流方法私有化；Linux 包门禁补中央 XLang 主/进度用例与 C/XLang 最小范例逐字节对照，联合通过。完整 AOT 与共享 XLIR 阻断未变。
 
 2026-10-19：C 流式压缩/解压的进度总量原取 Reader 物理总长，
