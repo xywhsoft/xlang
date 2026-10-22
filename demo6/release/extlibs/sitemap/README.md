@@ -25,7 +25,7 @@ robots 文本、代理名和待匹配路径必须是有效 UTF-8；文件开头�
 ## 范例与验证
 
 - XLang 综合范例：`release/examples/extlibs/sitemap.xl`（运行时不写文件）
-- C/XLang 同输出范例：`release/extlibs/sitemap/examples/sitemap_c.c`、`release/examples/extlibs/sitemap_pair.xl`
+- C/XLang 同输出范例：`release/extlibs/sitemap/examples/sitemap_c.c`、`release/examples/extlibs/sitemap_pair.xl`；成对展示 URL 集合与索引的生成/解析往返，以及 robots 决策，覆盖六个公开入口。独立 XML 解析器同时核对两份生成结果。
 - C 边界：`release/extlibs/sitemap/test/test_sitemap.c`
 - XLang 边界：`release/extlibs/sitemap/test/boundaries.xl`、`demo6/test/cases/extlib_sitemap.xl`
 - 协议规模边界：`release/extlibs/sitemap/test/protocol_limits.xl` 与 C 边界用例

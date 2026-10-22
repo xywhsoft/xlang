@@ -4,6 +4,16 @@ func main(...) as int
     var entries = [{"loc": "https://example.test/?a=1&b=2"}]
     string xml = sitemap.build(entries)
     print(xml)
+    var parsed = sitemap.parse(xml)
+    assert parsed.length == 1 and parsed[0]["loc"] == "https://example.test/?a=1&b=2"
+    println("parsed=", parsed[0]["loc"])
+
+    string indexXml = sitemap.buildIndex([{"loc": "https://example.test/site.xml"}])
+    print(indexXml)
+    var parsedIndex = sitemap.parseIndex(indexXml)
+    assert parsedIndex.length == 1 and parsedIndex[0]["loc"] == "https://example.test/site.xml"
+    println("index=", parsedIndex[0]["loc"])
+
     var robots = sitemap.robotsParse("User-agent: *\n# site policy\n\nDisallow: /admin\n")
     println(sitemap.robotsAllows(robots, "Crawler", "/admin/panel"))
     return 0
