@@ -32,7 +32,7 @@ timeout 90s "$work/test_threads"
 timeout 30s "$work/totp_c" > "$work/c_example.txt"
 timeout 30s ./release/xl run release/extlibs/totp/examples/totp_c.c > "$work/c_direct.txt"
 diff -u "$work/c_example.txt" "$work/c_direct.txt"
-diff -u <(printf 'HOTP(0): 755224\nTOTP(59): 94287082\nvalid: true\n') \
+diff -u <(printf 'HOTP(0): 755224\nTOTP(59): 94287082\nvalid: true\nlive valid: true\n') \
     "$work/c_example.txt"
 
 timeout 45s ./release/xl run test/cases/extlib_totp.xl

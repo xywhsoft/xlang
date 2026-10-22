@@ -33,6 +33,10 @@ Windows `test/check.ps1 -SkipAot` 与 Linux C ASan/UBSan、线程、XLang
 - XLang：`release/examples/extlibs/totp.xl`
 - 同输出 C：`release/extlibs/totp/examples/totp_c.c`
 
+两份范例除固定 RFC 时间戳向量外，还调用实时 `generate/verify`；只输出
+验证是否成功，不打印随时间变化的验证码。默认窗口允许相邻时间步，避免
+范例恰在步长边界运行时出现假失败。
+
 在 `demo6/release` 可直接运行 `xl run extlibs/totp/examples/totp_c.c`；
 普通 C 编译仍按包清单单独链接 `totp_native.c`。
 - 边界：包内 `test/test_totp.c`、`test/test_threads.c`、`test/boundaries.xl`，以及 `demo6/test/cases/extlib_totp.xl`

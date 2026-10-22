@@ -9,5 +9,8 @@ func main(...) as int
     println("HOTP(0):", hotp)
     println("TOTP(59):", code)
     println("valid:", totp.verifyAt(secret, code, 59, 30, 8, 0))
+    string liveCode = totp.generate(secret)
+    assert totp.verify(secret, liveCode), "current TOTP must verify"
+    println("live valid: true")
     return 0
 end

@@ -31,7 +31,10 @@
 string secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
 string code = totp.generateAt(secret, 59, 30, 8)
 assert code == "94287082"
-assert totp.verifyAt(secret, code, 59, 30, 8, 0)</code></pre>
+assert totp.verifyAt(secret, code, 59, 30, 8, 0)
+string liveCode = totp.generate(secret)
+assert totp.verify(secret, liveCode)</code></pre>
+<p>C/XLang 对照范例也展示实时生成与验证，只打印布尔结果，不输出动态验证码；固定 RFC 向量继续用于确定性对照。</p>
 <p>限流、重放防护和密钥存储由应用负责。合法输入的输出分配失败报内存错误，失败后可重试。实时 C 入口先验证步长、位数和窗口，再读系统时钟；非法参数不会被时钟故障遮蔽。系统时钟故障不会被解释成有效的零时间戳。Windows 默认 <code>test/check.ps1</code> 验证 C/XL 边界、线程、固定 RFC 输出及核心/完整范例 AOT；<code>-SkipAot</code> 只运行 C/JIT 快测。当前核心 AOT 通过，完整范例构建受共享 <code>xl6ValueDataSnapshotV1</code> 缺符号阻断；Linux <code>test/check.sh</code> 另覆盖时钟故障注入与 C ASan/UBSan。完整参数约束与 C 接口见包内 README。</p>
   </section>
 </main>
