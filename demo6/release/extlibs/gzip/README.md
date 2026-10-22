@@ -68,7 +68,8 @@ gzip.compressFile("input.txt", "output.gz",
 文件接口在目标目录使用独占临时文件，所有处理、最终回调、flush 和 close 成功后
 才替换目标。失败或取消保留原目标，清理本次临时文件。支持 source=destination；
 overwrite=false 不覆盖已存在文件。这是正常进程运行中的失败原子性，不保证断电
-后目录项持久性，也不提供多个写者的事务隔离。
+后目录项持久性。目标在预检后、最终改名前由其他写者创建时，最终提交仍会
+拒绝替换该文件；这不提供多个写者的完整事务隔离。
 两个文件接口在进入零终止 C 路径前检查 source 和 destination；内嵌 NUL 抛
 `ValueError`，不会静默操作 NUL 前的文件名。
 

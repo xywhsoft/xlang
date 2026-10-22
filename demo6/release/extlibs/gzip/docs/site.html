@@ -71,7 +71,8 @@ assert gzip.decompressText(output) == "leftright"</code></pre>
     <p>目标目录中建立独占临时文件，处理、最终通知、flush 和 close 全部成功后才替换目标。
     常规失败或取消保留原目标并清理临时文件；当前发布物的文件 OOM 专项证据与其他边界见页首。
     支持源和目标为同一路径；不覆盖模式区分目标缺失与查询失败。
-    overwrite=false 禁止覆盖。源或目标路径含 NUL 时抛 ValueError，不会静默操作前缀文件。
+    overwrite=false 禁止覆盖；即使目标在预检后出现，最终提交仍拒绝替换。
+    源或目标路径含 NUL 时抛 ValueError，不会静默操作前缀文件。
     这不承诺断电持久性或多写者事务隔离。</p>
     <h2 id="contract">格式、错误与资源边界</h2>
     <ul>

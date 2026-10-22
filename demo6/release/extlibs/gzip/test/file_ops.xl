@@ -12,6 +12,7 @@ func main(...) as int
     string restored = path.join(workDir, "restored.txt")
     string cancelledPath = path.join(workDir, "cancelled.gz")
     string failedPath = path.join(workDir, "failed.gz")
+    string racedPath = path.join(workDir, "raced.gz")
     string content = "你好 gzip\n" + string.repeat("gzip-file-boundary\n", 4096)
     try
         assert file.writeText(source, content)
@@ -54,6 +55,25 @@ func main(...) as int
             invalidParent = true
         end
         assert invalidParent and file.readText(source) == content
+
+        // 预检后才出现目标文件时，最终提交仍不能覆盖另一个写者的数据。
+        bool createdDuringProgress = false
+        bool raceRejected = false
+        try
+            gzip.compressFile(source, racedPath, overwrite = false,
+                onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+                if not createdDuringProgress then
+                    assert file.writeText(racedPath, "other writer")
+                    createdDuringProgress = true
+                end
+                return true
+            end)
+        catch ValueError e
+            raceRejected = true
+        end
+        assert createdDuringProgress and raceRejected
+        assert file.readText(racedPath) == "other writer"
+        assert file.readText(source) == content
 
         bool cancelled = false
         try
@@ -101,6 +121,7 @@ func main(...) as int
         if file.exists(restored) then assert file.delete(restored) end
         if file.exists(cancelledPath) then assert file.delete(cancelledPath) end
         if file.exists(failedPath) then assert file.delete(failedPath) end
+        if file.exists(racedPath) then assert file.delete(racedPath) end
         assert dir.delete(workDir), "temporary gzip directory must be removed"
     end
     println("gzip file operations: PASS")
