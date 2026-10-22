@@ -7,6 +7,11 @@ func main(...) as int
     println("PING:", redis.command(stream, ["PING"]))
     redis.set(stream, "xlang:example:live", "hello")
     println("GET:", redis.get(stream, "xlang:example:live"))
+    redis.set(stream, "xlang:example:counter", "0")
+    println("EXISTS:", redis.exists(stream, "xlang:example:counter"))
+    println("INCR:", redis.incr(stream, "xlang:example:counter"))
+    redis.del(stream, "xlang:example:counter")
+    println("EXISTS after DEL:", redis.exists(stream, "xlang:example:counter"))
     redis.del(stream, "xlang:example:live")
     stream.close()
     return 0

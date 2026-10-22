@@ -27,6 +27,7 @@ static xvalue* command(xnetsocket socket, const char* const* words, size_t count
     xvalue* reply = NULL;
     xbuffer* request = NULL;
     xbuffer received;
+    void* frame = NULL;
     xbytesview bytes;
     size_t sent = 0u;
     size_t i;
@@ -41,6 +42,8 @@ static xvalue* command(xnetsocket socket, const char* const* words, size_t count
     }
     request = (xbuffer*)xr_encode_bytes(args);
     if (request == NULL || !xrtBufferInit(&received)) goto done;
+    frame = xr_frame_create();
+    if (frame == NULL) goto done_received;
     bytes = xrtBufferView(request);
     while (sent < bytes.Size) {
         size_t n = 0u;
@@ -57,7 +60,7 @@ static xvalue* command(xnetsocket socket, const char* const* words, size_t count
             !xrtBufferAppend(&received, (xbytesview){(cbytes)chunk, n})) {
             goto done_received;
         }
-        complete = xr_is_complete_raw(received.Data, received.Size);
+        complete = xr_frame_check(frame, received.Data, received.Size);
         if (complete) break;
         if (xrtGetError() != NULL) goto done_received;
     }
@@ -71,6 +74,7 @@ static xvalue* command(xnetsocket socket, const char* const* words, size_t count
         }
     }
 done_received:
+    if (frame != NULL) xr_frame_destroy(frame);
     xrtBufferUnit(&received);
 done:
     xrtBufferDestroy(request);
@@ -95,12 +99,32 @@ static bool response_text(xvalue* reply, const char* type, const char* expected)
         memcmp(actual_text.Data, expected, actual_text.Size) == 0;
 }
 
+static bool response_integer(xvalue* reply, int64 expected)
+{
+    xvalue* tagged = reply != NULL ?
+        xrtValueObjectGet(reply, XRT_STR_LITERAL("value")) : NULL;
+    xvalue* value = tagged != NULL ?
+        xrtValueObjectGet(tagged, XRT_STR_LITERAL("value")) : NULL;
+    xstrview actual_type;
+    int64 actual;
+    return tagged != NULL &&
+        xrtValueGetString(xrtValueObjectGet(tagged, XRT_STR_LITERAL("type")),
+            &actual_type) &&
+        actual_type.Size == 7u &&
+        memcmp(actual_type.Data, "integer", 7u) == 0 &&
+        xrtValueGetInt(value, &actual) && actual == expected;
+}
+
 int main(void)
 {
     const char* ping[] = {"PING"};
     const char* set[] = {"SET", "xlang:example:live", "hello"};
     const char* get[] = {"GET", "xlang:example:live"};
     const char* del[] = {"DEL", "xlang:example:live"};
+    const char* set_counter[] = {"SET", "xlang:example:counter", "0"};
+    const char* exists_counter[] = {"EXISTS", "xlang:example:counter"};
+    const char* incr_counter[] = {"INCR", "xlang:example:counter"};
+    const char* del_counter[] = {"DEL", "xlang:example:counter"};
     xnetaddr address;
     xnetsocket socket = NULL;
     xvalue* reply = NULL;
@@ -121,12 +145,30 @@ int main(void)
     reply = command(socket, get, 2u);
     if (!response_text(reply, "bulk", "hello")) goto done;
     xrtValueRelease(reply);
+    reply = command(socket, set_counter, 3u);
+    if (!response_text(reply, "simple", "OK")) goto done;
+    xrtValueRelease(reply);
+    reply = command(socket, exists_counter, 2u);
+    if (!response_integer(reply, 1)) goto done;
+    xrtValueRelease(reply);
+    reply = command(socket, incr_counter, 2u);
+    if (!response_integer(reply, 1)) goto done;
+    xrtValueRelease(reply);
+    reply = command(socket, del_counter, 2u);
+    if (!response_integer(reply, 1)) goto done;
+    xrtValueRelease(reply);
+    reply = command(socket, exists_counter, 2u);
+    if (!response_integer(reply, 0)) goto done;
+    xrtValueRelease(reply);
     reply = command(socket, del, 2u);
     if (reply == NULL || !xrtValueGetInt(
         xrtValueObjectGet(xrtValueObjectGet(reply, XRT_STR_LITERAL("value")),
             XRT_STR_LITERAL("value")), &removed) || removed != 1) goto done;
     puts("PING: PONG");
     puts("GET: hello");
+    puts("EXISTS: 1");
+    puts("INCR: 1");
+    puts("EXISTS after DEL: 0");
     result = 0;
 done:
     xrtValueRelease(reply);

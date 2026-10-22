@@ -37,7 +37,7 @@ assert reply["value"]["value"] == "hello"</code></pre>
     <p>超时为 1..2147483647 毫秒，回复上限为 1..67108864 字节；无效参数或编码失败时连接未发送数据，空命令失败后可在同一连接继续发送有效命令。完整 Redis error 回复可继续复用连接。发送失败、超时、超限、畸形或多余回复会中止连接，后续命令需显式重连。<code>decodeBytes</code> 遇非 UTF-8 的剩余回复时，<code>rest</code> 保留为原始 bytes。</p>
     <h2 id="c-api">C</h2>
     <p>包含 <code>include/redis_native.h</code>。输入值仅借用；返回的 <code>xvalue*</code> 由调用方使用 <code>xrtValueRelease</code> 释放，<code>xr_encode_bytes</code> 返回的 Buffer 由调用方使用 <code>xrtBufferDestroy</code> 释放。查看包内 README 获取字节长度、错误与容量边界。</p>
-    <p>真实服务双语示例为 <code>release/examples/extlibs/redis_live.xl</code> 与 <code>redis_live_c.c</code>，都执行 PING、SET、GET 并清理演示键；单独运行默认连接 6379，也可设置 <code>REDIS_LIVE_PORT</code>。包内 <code>test/check_live.sh</code> 使用本次临时端口和进程 ID 校验启动自管理 Redis，不会接管已有服务。</p>
+    <p>真实服务双语示例为 <code>release/examples/extlibs/redis_live.xl</code> 与 <code>redis_live_c.c</code>，都执行 PING、SET、GET、EXISTS、INCR、DEL，并验证键删除后的不存在；C 示例使用增量帧检查器接收分片回复。单独运行默认连接 6379，也可设置 <code>REDIS_LIVE_PORT</code>。包内 <code>test/check_live.sh</code> 使用本次临时端口和进程 ID 校验启动自管理 Redis，不会接管已有服务。</p>
     <h2 id="verification">验证范围</h2>
     <p>2026-10-16：默认 Linux 门禁同时运行 C ASan/UBSan、XLang 边界、500 次本地 TCP 回环与 C/XLang 范例逐字节对照，无需外部服务。回环验证可配置超时、回复上限及失败后连接状态，Windows 与 Linux XLang 均通过；四连接真服务各 10000 轮另有显式门禁。此前同连接顺序复用十万次、C 编解码逐点分配故障、二进制往返及断线后显式重连也已验证。2026-10-20：Windows 默认门禁加入核心与完整范例 AOT，快测模式仍验证 C/JIT；当前核心构建因共享的 xl6ValueDataSnapshotV1 缺符号失败，完整范例 AOT 尚未执行。真服务数小时持续运行和完整 AOT 尚未验收。</p>
   </section>

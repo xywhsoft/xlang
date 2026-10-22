@@ -121,8 +121,10 @@ C 接口见 `include/redis_native.h`，输入 `xvalue*` 仅借用；
 - `examples/extlibs/redis_live.xl` 是可选的真实 Redis 示例，要求
   默认 `127.0.0.1:6379` 运行 Redis；设 `REDIS_LIVE_PORT` 可指定其他端口。
   `examples/extlibs/redis_live_c.c` 用 XRT socket
-  与原生 RESP API 完成相同的 PING/SET/GET/DEL，两份示例均在结束前删除
-  演示键。缺服务时明确失败，不计入离线门禁。`check_live.sh` 在自管理临时
+  与原生 RESP API 完成相同的 PING/SET/GET/EXISTS/INCR/DEL；
+  同时验证键存在与删除后的不存在。C 接收路径使用增量帧检查器，分片回复
+  不会重复扫描已接收内容。两份示例均在结束前删除演示键。缺服务时明确
+  失败，不计入离线门禁。`check_live.sh` 在自管理临时
   Redis 上分别运行 GCC+ASan C、`xl run` C 与 XLang 示例并逐字节对照输出。
 - `xl run extlibs/redis/test/live_server.xl` 是显式真实服务门禁：检查
   PING、包含 `00 FF` 的二进制键和值、缺失键、数组回复、错误后连接复用、
