@@ -15,6 +15,42 @@ static int compare(xvalue* a,xvalue* b,unsigned* found)
     if(a && xrtValueType(a)!=XVALUE_NULL) ++*found;
     xrtValueRelease(a); xrtValueRelease(b); return okay;
 }
+typedef struct expected_token { const char* marker;size_t skip,bytes; } expected_token;
+static int highlights(xide_semantic_definitions* d,const char* path,const char* text,
+    expected_token cursor,const expected_token* expected,size_t count)
+{
+    const char* at=strstr(text,cursor.marker);int line,character;CHECK(at&&xideLspOffsetToPosition(text,(int)(at-text+cursor.skip),&line,&character));
+    xvalue* out=xideSemanticDocumentHighlights(d,path,line,character);CHECK(out&&xrtValueType(out)==XVALUE_ARRAY&&xrtValueCount(out)==count);
+    for(size_t i=0;i<count;++i) {
+        const char* token=strstr(text,expected[i].marker);int sl,sc,el,ec;CHECK(token);
+        CHECK(xideLspOffsetToPosition(text,(int)(token-text+expected[i].skip),&sl,&sc)&&xideLspOffsetToPosition(text,(int)(token-text+expected[i].skip+expected[i].bytes),&el,&ec));
+        const xvalue *row=xrtValueArrayGet(out,i),*range=get(row,"range"),*start=get(range,"start"),*end=get(range,"end");int64 a,b,c,e,kind;
+        CHECK(xrtValueGetInt(get(start,"line"),&a)&&xrtValueGetInt(get(start,"character"),&b)&&xrtValueGetInt(get(end,"line"),&c)&&xrtValueGetInt(get(end,"character"),&e)&&xrtValueGetInt(get(row,"kind"),&kind));
+        CHECK(a==sl&&b==sc&&c==el&&e==ec&&kind==1);
+    }
+    xrtValueRelease(out);return 1;
+}
+static int highlightIdentities(void)
+{
+    char* path=xrtPathAbs("highlight-入口.xl");CHECK(path);
+    const char* text="\xef\xbb\xbf" "// 值 choose other\r\ntypedef Count = int\r\nfunc choose(int value) as int\r\n return value\r\nend\r\nfunc choose(string value) as int\r\n return 2\r\nend\r\nfunc main(...) as int\r\n Count 值 = 1; string 文本 = \"😀\"\r\n int other = choose(值)\r\n if true\r\n  int 值 = 2\r\n  other = other + 值\r\n end\r\n return choose(值) + choose(文本) + other\r\nend\r\n";
+    xls_semantic_input input={path,text,strlen(text)};char error[256];xls_semantic_check* checked=xlsSemanticCheckCreate(path,&input,1,1,NULL,NULL,error,sizeof(error));
+    CHECK(checked&&xlsSemanticCheckInfo(checked).accepted);
+    xide_semantic_source source={path,text+3,1,1};xide_model_error e={0};xide_semantic_definitions* d=xideSemanticDefinitionsCreateTyped(xlsSemanticCheckTypedIndex(checked),&source,1,&e);CHECK(d);xlsSemanticCheckDestroy(checked);
+    expected_token outer[]={{"Count 值",6,3},{"other = choose(值)",15,3},{"return choose(值)",14,3}};
+    expected_token inner[]={{"int 值 = 2",4,3},{"other + 值",8,3}};
+    expected_token other[]={{"int other",4,5},{"other = other",0,5},{"other = other",8,5},{"+ other",2,5}};
+    expected_token intCalls[]={{"func choose(int",5,6},{"other = choose(值)",8,6},{"return choose(值)",7,6}};
+    expected_token stringCalls[]={{"func choose(string",5,6},{"+ choose(文本)",2,6}};
+    expected_token aliases[]={{"typedef Count",8,5},{"Count 值",0,5}};
+    CHECK(highlights(d,path,text,outer[1],outer,3)&&highlights(d,path,text,outer[0],outer,3));
+    CHECK(highlights(d,path,text,inner[1],inner,2)&&highlights(d,path,text,other[2],other,4));
+    CHECK(highlights(d,path,text,intCalls[1],intCalls,3)&&highlights(d,path,text,stringCalls[1],stringCalls,2));
+    CHECK(highlights(d,path,text,aliases[1],aliases,2));
+    CHECK(highlights(d,path,text,(expected_token){"// 值",3,3},NULL,0)&&highlights(d,path,text,(expected_token){"😀",0,4},NULL,0));
+    CHECK(!xideSemanticDocumentHighlights(d,"unknown.xl",0,0)&&!xideSemanticDocumentHighlights(d,path,-1,0));
+    xideSemanticDefinitionsDestroy(d);xrtFree(path);return 1;
+}
 static int run(void)
 {
     char *path=xrtPathAbs("typed-view-memory.xl"),*dep=xrtPathAbs("typed_view_dep.xl"); CHECK(path && dep);
@@ -49,13 +85,14 @@ static int run(void)
     /* Both navigation tables must outlive the check, AST, collector and DOM.
      * Compare all positions, including whitespace, end boundaries and the
      * second UTF-16 unit of a non-BMP scalar; not just a few chosen tokens. */
-    unsigned definitions=0,hovers=0,symbols=0;
+    unsigned definitions=0,hovers=0,symbols=0,highlightArrays=0;
     for(size_t i=0;i<count;++i) {
         CHECK(compare(xideSemanticDocumentSymbols(legacy,sources[i].path),xideSemanticDocumentSymbols(native,sources[i].path),&symbols));
         int line=0,character=sources[i].utf16Prefix; size_t size=strlen(sources[i].text),at=0;
         while(at<=size) {
             CHECK(compare(xideSemanticDefinition(legacy,sources[i].path,line,character),xideSemanticDefinition(native,sources[i].path,line,character),&definitions));
             CHECK(compare(xideSemanticHover(legacy,sources[i].path,line,character),xideSemanticHover(native,sources[i].path,line,character),&hovers));
+            CHECK(compare(xideSemanticDocumentHighlights(legacy,sources[i].path,line,character),xideSemanticDocumentHighlights(native,sources[i].path,line,character),&highlightArrays));
             if(at==size) break;
             unsigned char c=(unsigned char)sources[i].text[at]; size_t n=c<128 ? 1 : c<0xe0 ? 2 : c<0xf0 ? 3 : 4;
             if(c=='\r' && at+1<size && sources[i].text[at+1]=='\n') n=2;
@@ -72,7 +109,7 @@ static int run(void)
 }
 int main(void)
 {
-    if(!run()) return 1;
+    if(!run() || !highlightIdentities()) return 1;
     printf("analysis_index_view_test passed: %u checks; typed/JSON navigation equivalence, exact source rejection and independent ownership.\n",checks);
     return 0;
 }
