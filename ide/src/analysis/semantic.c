@@ -1,4 +1,5 @@
 #include "analysis/semantic.h"
+#include "analysis/frontend_internal.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
 #include "src/stdlib/xl6_stdlib.h"
@@ -15,7 +16,7 @@ struct xls_semantic_completion {
     XL6_SourceReport report;
     XL6_SourceOverlay overlay;
     XL6_CompletionQuery query;
-    char* path;
+    char *path,*queryError;
 };
 static int absolute(const char* path)
 {
@@ -42,10 +43,10 @@ void xlsSemanticCompletionDestroy(xls_semantic_completion* r)
     xl6ImportDepsFree(&r->deps);
     xl6SourceOverlayClear(&r->overlay);
     xl6SourceReportFree(&r->report);
-    xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
+    xrtFree(r->queryError); xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
 }
-xls_semantic_completion* xlsSemanticCompletionCreate(const char* entry,const char* queryPath,
-    size_t offset,const xls_semantic_input* inputs,size_t count,
+static xls_semantic_completion* create(const char* entry,const char* queryPath,
+    size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
     xls_semantic_completion* r=NULL;
@@ -70,10 +71,27 @@ xls_semantic_completion* xlsSemanticCompletionCreate(const char* entry,const cha
         if(!xl6SourceOverlaySet(&r->overlay,in->path,in->text+bom,in->size-bom)) goto invalid;
     }
     const XL6_SourceOverlayItem* target=xl6SourceOverlayFind(&r->overlay,r->path);
-    if(!target || !xl6SourceOverlayFind(&r->overlay,entry) || offset>target->size ||
+    const XL6_SourceOverlayItem* entryInput=xl6SourceOverlayFind(&r->overlay,entry);
+    if(!target || !entryInput || offset>target->size ||
        (offset<target->size && ((unsigned char)target->text[offset]&0xc0)==0x80)) goto invalid;
     r->overlay.report=&r->report; r->overlay.completionQuery=&r->query; r->deps.sourceOverlay=&r->overlay;
-    int okay=xl6SourceOverlayParse(&r->overlay,entry,&r->parse);
+    int okay;
+    if(syntax) {
+        const xls_text* text=xlsSyntaxText(syntax); size_t skip=0;
+        if(text && xlsTextSize(text)>=3 && !memcmp(xlsTextData(text),"\xef\xbb\xbf",3)) skip=3;
+        /* Snapshot and source report describe the same entry bytes. A parse
+         * for another cursor/mode/path is never substituted for this query. */
+        if(entryInput!=target || !text || !xlsSyntaxIsCursor(syntax) ||
+           strcmp(target->path,xlsSyntaxPath(syntax)) || target->size!=xlsTextSize(text)-skip ||
+           memcmp(target->text,xlsTextData(text)+skip,target->size)) goto invalid;
+        if(!xl6SourceReportText(&r->report,target->path,target->text,target->size,"overlay") ||
+           !xlsSyntaxCopyCursorParse(syntax,&r->query,&r->parse)) goto invalid;
+        if(r->query.error) {
+            r->queryError=xrtStrDup(r->query.error); if(!r->queryError) goto invalid;
+            r->query.error=r->queryError;
+        }
+        okay=xlsSyntaxAccepted(syntax);
+    } else okay=xl6SourceOverlayParse(&r->overlay,entry,&r->parse);
     if(stopped(cancelled,user)) goto cancel;
     if(okay) okay=xl6ImportsExpandModule(r->parse.root,entry,&r->parse.diags,&r->deps);
     if(stopped(cancelled,user)) goto cancel;
@@ -100,6 +118,17 @@ invalid:
 cancel:
     fail(error,capacity,"semantic completion cancelled");
     xlsSemanticCompletionDestroy(r); return NULL;
+}
+xls_semantic_completion* xlsSemanticCompletionCreate(const char* entry,const char* queryPath,
+    size_t offset,const xls_semantic_input* inputs,size_t count,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{ return create(entry,queryPath,offset,inputs,count,NULL,cancelled,user,error,capacity); }
+xls_semantic_completion* xlsSemanticCompletionCreateParsed(const char* entry,const char* queryPath,
+    size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{
+    if(!syntax) { fail(error,capacity,"parsed completion requires cursor syntax"); return NULL; }
+    return create(entry,queryPath,offset,inputs,count,syntax,cancelled,user,error,capacity);
 }
 xls_completion_info xlsSemanticCompletionInfo(const xls_semantic_completion* r)
 {

@@ -47,6 +47,7 @@ xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
 {
     xls_semantic_check* r=NULL;
     if(error && capacity) *error=0;
+    if(xlsSyntaxIsCursor(syntax)) { fail(error,capacity,"ordinary check cannot consume cursor syntax"); return NULL; }
     if(!entry || !xrtPathIsAbs(entry) || count>XL6_SOURCE_OVERLAY_FILES ||
        (count && !inputs) || (captureIndex!=0 && captureIndex!=1)) {
         fail(error,capacity,"check requires an absolute entry and 0..64 overlays"); return NULL;

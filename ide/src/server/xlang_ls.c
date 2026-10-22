@@ -540,6 +540,7 @@ static void dispatch(server* s,const xvalue* message)
   put(cap,"foldingRangeProvider",xrtValueBool(true)); put(scope,"residentSyntax",xrtValueBool(true)); put(scope,"analysisRuntime",xrtValueString(sv("compiler-xrt")));
   put(scope,"nativeCursorCompletion",xrtValueBool(!s->cliCompletion)); put(scope,"completionBackend",xrtValueString(sv(s->cliCompletion ? "cli" : "native")));
   put(scope,"retainedCursorCompletion",xrtValueBool(!s->cliCompletion));
+  put(scope,"retainedCursorSyntax",xrtValueBool(!s->cliCompletion));
   put(scope,"automaticSemanticQueries",xrtValueBool(!s->cliDiagnostics));
   put(scope,"automaticDiagnostics",xrtValueBool(automatic)); put(scope,"diagnosticDelay",xrtValueInt(delay));
   put(scope,"diagnosticInputProof",xrtValueBool(true));

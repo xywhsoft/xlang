@@ -44,6 +44,14 @@ static int verify(xls_syntax* syntax,const XL6_CompletionQuery* query,size_t off
     CHECK(query->parsed==reference.parsed&&query->reached==reference.reached&&query->available==reference.available);
     CHECK(query->offset==offset&&sameText(query->prefix,reference.prefix)&&sameText(query->error,reference.error)&&sameRange(query->replacement,reference.replacement));
     CHECK(sameAst(xlsSyntaxAst(syntax),fresh.root));
+    CHECK(xlsSyntaxIsCursor(syntax));
+    XL6_CompletionQuery projection={.path=path,.offset=offset};
+    XL6_ParseResult projected;xl6ParseResultInit(&projected);
+    CHECK(xlsSyntaxCopyCursorParse(syntax,&projection,&projected));
+    CHECK(projection.parsed==reference.parsed&&sameText(projection.prefix,reference.prefix)&&sameText(projection.error,reference.error)&&sameRange(projection.replacement,reference.replacement));
+    CHECK(sameAst(projected.root,fresh.root));
+    if(projection.prefix&&query->prefix) CHECK(projection.prefix!=query->prefix);
+    xl6CompletionFree(&projection);xl6ParseResultFree(&projected);
     CHECK(xlsSyntaxCopyParse(syntax,&copy)&&sameAst(copy.root,fresh.root));
     if(copy.root && copy.root->source) {
         CHECK(copy.root->source!=xlsSyntaxAst(syntax)->source);
@@ -153,9 +161,14 @@ static int run(void)
      * reuse a marker-bearing chunk. Invalid source then valid source recovers. */
     xls_text* text=xlsTextCreate(source.Data,source.Size,8u*1024u*1024u,NULL);CHECK(text);xls_parse_work work={0};
     xls_syntax* plain=xlsSyntaxBuild(path,text,previous,&work);CHECK(plain&&work.full==1&&!work.reused);
+    CHECK(!xlsSyntaxIsCursor(plain));
+    XL6_CompletionQuery wrongMode={.path=path,.offset=firstOffset};XL6_ParseResult untouched;xl6ParseResultInit(&untouched);
+    CHECK(!xlsSyntaxCopyCursorParse(plain,&wrongMode,&untouched)&&!untouched.root&&!wrongMode.prefix&&!wrongMode.parsed);
     XL6_ParseResult reference;xl6ParseResultInit(&reference);CHECK(xl6ParseSource(source.Data,path,&reference)&&sameAst(xlsSyntaxAst(plain),reference.root));xl6ParseResultFree(&reference);
     XL6_CompletionQuery q={.path=path,.offset=firstOffset};work=(xls_parse_work){0};
     xls_syntax* cursor=xlsSyntaxBuildCursor(path,text,plain,&q,&work);CHECK(cursor&&work.full==1&&!work.reused&&verify(cursor,&q,firstOffset));xl6CompletionFree(&q);xlsTextRelease(text);
+    XL6_CompletionQuery wrongOffset={.path=path,.offset=firstOffset-1};
+    CHECK(!xlsSyntaxCopyCursorParse(cursor,&wrongOffset,&untouched)&&!untouched.root&&!wrongOffset.prefix&&!wrongOffset.parsed);
     const char* invalid="func edited() as int\n return \"unterminated\nend\n";work=(xls_parse_work){0};
     xls_syntax* broken=build(path,invalid,cursorAt(invalid,"unterminated"),cursor,&work);CHECK(broken&&!xlsSyntaxAccepted(broken));
     work=(xls_parse_work){0};xls_syntax* restored=build(path,source.Data,firstOffset,broken,&work);CHECK(restored&&work.full==1&&!work.reused);

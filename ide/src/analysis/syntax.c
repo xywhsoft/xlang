@@ -23,7 +23,8 @@ struct xls_syntax {
     XL6_ParseResult parse;
     xarray units;
     syntax_view* view;
-    int accepted,incremental,cursor;
+    int accepted,incremental,cursor,cursorParsed,cursorPrefix;
+    char* cursorError;
     size_t cursorOffset;
     XL6_AstRange cursorRange;
 };
@@ -39,7 +40,7 @@ void xlsSyntaxRelease(xls_syntax* syntax)
     for(size_t i=0;i<syntax->units.Count;++i) releaseUnit(((placement*)xrtArrayGet(&syntax->units,i))->unit);
     xrtArrayUnit(&syntax->units); xl6ParseResultFree(&syntax->parse);
     if(syntax->view) { xl6AstFree(syntax->view->root); xrtMutexUnit(&syntax->view->lock); xrtFree(syntax->view); }
-    xlsTextRelease(syntax->text); xrtFree(syntax->path); xrtFree(syntax);
+    xlsTextRelease(syntax->text); xrtFree(syntax->cursorError); xrtFree(syntax->path); xrtFree(syntax);
 }
 static size_t bom(const xls_text* text)
 { return xlsTextSize(text)>=3 && !memcmp(xlsTextData(text),"\xef\xbb\xbf",3) ? 3 : 0; }
@@ -217,6 +218,7 @@ static xls_syntax* incremental(const char* path,xls_text* text,const xls_syntax*
             if(local.parsed!=1 || !local.prefix || !location(text,p->offset,&current.line,&current.column) ||
                !mapRange(local.replacement,&current,&s->cursorRange)) goto failed;
             s->cursor=1; s->cursorOffset=query->offset;
+            s->cursorParsed=local.parsed; s->cursorPrefix=1;
             if(!attachSource(s,s->parse.root)) goto failed;
             query->prefix=local.prefix; local.prefix=NULL;
             query->replacement=s->cursorRange; query->parsed=local.parsed;
@@ -236,21 +238,33 @@ static xls_syntax* build(const char* path,xls_text* text,const xls_syntax* previ
     ++work->full; work->bytes+=xlsTextSize(text);
     s->accepted=query ? xl6ParseSourceWithCompletion(xlsTextData(text),s->path,&s->parse,query) :
         xl6ParseSource(xlsTextData(text),s->path,&s->parse);
-    if(query) { s->cursor=1; s->cursorOffset=query->offset; s->cursorRange=query->replacement; }
+    if(query) {
+        s->cursor=1; s->cursorOffset=query->offset; s->cursorRange=query->replacement;
+        s->cursorParsed=query->parsed; s->cursorPrefix=query->prefix!=NULL;
+        s->cursorError=query->error ? xrtStrDup(query->error) : NULL;
+        if(query->error && !s->cursorError) { xlsSyntaxRelease(s); return NULL; }
+    }
     if(s->accepted && !decompose(s)) { xlsSyntaxRelease(s); return NULL; }
     return s;
 }
 xls_syntax* xlsSyntaxBuild(const char* path,xls_text* text,const xls_syntax* previous,xls_parse_work* work)
 { return build(path,text,previous,NULL,work); }
+static int emptyQuery(const XL6_CompletionQuery* query)
+{
+    return query && !query->prefix && !query->parsed && !query->reached && !query->available &&
+        !query->items && !query->count && !query->capacity && !query->bytes && !query->error &&
+        !query->replacement.known && !query->replacement.startOffset && !query->replacement.endOffset &&
+        !query->replacement.startLine && !query->replacement.startColumn &&
+        !query->replacement.endLine && !query->replacement.endColumn;
+}
 xls_syntax* xlsSyntaxBuildCursor(const char* path,xls_text* text,const xls_syntax* previous,
     XL6_CompletionQuery* query,xls_parse_work* work)
 {
-    if(!query || query->prefix || query->parsed || query->reached || query->available ||
-       query->items || query->count || query->capacity || query->bytes || query->error ||
-       !xl6CompletionTarget(query,path)) return NULL;
+    if(!emptyQuery(query) || !xl6CompletionTarget(query,path)) return NULL;
     return build(path,text,previous,query,work);
 }
 int xlsSyntaxAccepted(const xls_syntax* syntax) { return syntax && syntax->accepted; }
+int xlsSyntaxIsCursor(const xls_syntax* syntax) { return syntax && syntax->cursor; }
 const char* xlsSyntaxPath(const xls_syntax* syntax) { return syntax ? syntax->path : NULL; }
 const xls_text* xlsSyntaxText(const xls_syntax* syntax) { return syntax ? syntax->text : NULL; }
 static XL6_AstNode* materialize(const xls_syntax* s)
@@ -279,6 +293,26 @@ int xlsSyntaxCopyParse(const xls_syntax* s,XL6_ParseResult* result)
     }
     xl6ParseResultFree(result); *result=copy; return 1;
 failed: xl6ParseResultFree(&copy); return 0;
+}
+int xlsSyntaxCopyCursorParse(const xls_syntax* s,XL6_CompletionQuery* query,XL6_ParseResult* result)
+{
+    if(!s || !s->cursor || s->cursorParsed!=1 || !emptyQuery(query) ||
+       query->offset!=s->cursorOffset || !xl6CompletionTarget(query,s->path) ||
+       !result || result->root || result->diags.count) return 0;
+    char* prefix=NULL;
+    if(s->cursorPrefix) {
+        size_t size=xlsTextSize(s->text)-bom(s->text),start=s->cursorRange.startOffset;
+        if(!s->cursorRange.known || start>query->offset || query->offset>s->cursorRange.endOffset ||
+           s->cursorRange.endOffset>size) return 0;
+        prefix=xrtStrDupN(xlsTextData(s->text)+bom(s->text)+start,query->offset-start);
+        if(!prefix) return 0;
+    }
+    XL6_ParseResult copy; xl6ParseResultInit(&copy);
+    if(!xlsSyntaxCopyParse(s,&copy)) { xrtFree(prefix); return 0; }
+    xl6ParseResultFree(result); *result=copy;
+    query->prefix=prefix; query->error=s->cursorError;
+    query->parsed=s->cursorParsed; query->replacement=s->cursorRange;
+    return 1;
 }
 const XL6_AstNode* xlsSyntaxAst(const xls_syntax* s)
 {

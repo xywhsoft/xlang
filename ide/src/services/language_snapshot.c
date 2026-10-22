@@ -430,7 +430,13 @@ analysed:
    put(stats,"cacheHits",xrtValueInt((int64)q->completionStats.hits)) && put(stats,"invalidations",xrtValueInt((int64)q->completionStats.invalidations)) &&
    put(stats,"documents",xrtValueInt((int64)q->completionStats.documents)) && put(stats,"textBytes",xrtValueInt((int64)q->completionStats.textBytes)) &&
    put(stats,"workerThreadId",xrtValueInt((int64)q->semanticThread)) && put(stats,"captureThreadId",xrtValueInt((int64)q->captureThread)) &&
-   put(stats,"adapterThreadId",xrtValueInt((int64)xrtThreadCurrentId()));
+   put(stats,"adapterThreadId",xrtValueInt((int64)xrtThreadCurrentId())) &&
+   put(stats,"cursorFullParses",xrtValueInt((int64)q->completionStats.cursorFullParses)) &&
+   put(stats,"cursorFragmentParses",xrtValueInt((int64)q->completionStats.cursorFragmentParses)) &&
+   put(stats,"cursorReusedDeclarations",xrtValueInt((int64)q->completionStats.cursorReusedDeclarations)) &&
+   put(stats,"cursorParsedBytes",xrtValueInt((int64)q->completionStats.cursorParsedBytes)) &&
+   put(stats,"cursorSyntaxHits",xrtValueInt((int64)q->completionStats.cursorSyntaxHits)) &&
+   put(stats,"cursorFreshBuilds",xrtValueInt((int64)q->completionStats.cursorFreshBuilds));
   if(!okayStats) { xrtValueRelease(stats); goto done; }
   if(!put(result,"analysis",stats)) goto done;
  }
