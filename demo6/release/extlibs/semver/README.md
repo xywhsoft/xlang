@@ -86,6 +86,10 @@ oracle 跳过此扩展写法，而 C/XLang 边界用例仍独立验证其正反�
 202,860 组共同语法全部一致，276 组上述扩展语法跳过；Windows 包级
 `-SkipAot` 与 Linux C ASan/UBSan、XLang 门禁通过。完整带输出 AOT
 仍受共享运行时缺符号阻断，不据此签收整包。
+同日将独立对照扩到严格版本有效性与两两优先级：共同语义共
+279,319 组，0 差异，仍仅跳过上述 276 组扩展范围；测试 C 查询程序
+同时通过 Linux GCC `-Wall -Wextra -Werror` 语法检查。无效版本的
+`compare` 在 node-semver 中会抛错，仍由本包 C/XLang 负例验证。
 包内 C 测试还对五种合法版本种子逐位置截断和单字节替换，检查有效性、
 自比较、精确范围匹配及 `clean` 的一致性；Linux 门禁以 ASan/UBSan 执行
 同一矩阵。这是有界的确定性回归，不代替可选的独立 node-semver 对照。

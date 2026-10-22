@@ -6,6 +6,9 @@ const cli = process.argv[3];
 const extendedHyphenRange = '1.2.3 - 2.3.4 >=2.0.0';
 
 const versions = [];
+const invalidVersions = ['', '1.2', '1.2.3-', '1.2.3+', '01.2.3',
+    '1.02.3', '1.2.03', '1.2.3-alpha..1', '1.2.3+meta..part',
+    '1.2.3!', '1.2.3-01'];
 const ranges = new Set(['', '*', '>=1.0.0 <3.0.0', '^0.2.0 || ^2.0.0',
     '>=*', '<=*', '=*', '>x', '<x', '^x', '~x', '1.x.3', '1..2',
     '1.0.0 -', '1.0.0 - 2.0.0', '1.2.3  -  2.3.4',
@@ -54,22 +57,32 @@ for (const version of versions) {
             skipped++;
             continue;
         }
-        cases.push({ version, range });
+        cases.push({ kind: 'S', left: version, right: range });
     }
 }
-const input = cases.map(({ version, range }) => `${version}\t${range}\n`).join('');
+for (const version of new Set([...versions, ...invalidVersions])) {
+    cases.push({ kind: 'V', left: version, right: '' });
+}
+for (const left of versions) {
+    for (const right of versions) {
+        cases.push({ kind: 'C', left, right });
+    }
+}
+const input = cases.map(({ kind, left, right }) => `${kind}\t${left}\t${right}\n`).join('');
 const result = spawnSync(cli, [], { input, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
 if (result.status !== 0) throw new Error(`C oracle CLI failed: ${result.status} ${result.stderr}`);
 const actual = result.stdout.trimEnd().split(/\r?\n/);
 if (actual.length !== cases.length) throw new Error(`result count ${actual.length} != ${cases.length}`);
 let mismatches = 0;
 for (let i = 0; i < cases.length; i++) {
-    const { version, range } = cases[i];
-    const expected = semver.satisfies(version, range) ? '1' : '0';
+    const { kind, left, right } = cases[i];
+    const expected = kind === 'S' ? (semver.satisfies(left, right) ? '1' : '0') :
+        kind === 'V' ? (semver.valid(left) !== null ? '1' : '0') :
+        String(semver.compare(left, right));
     if (actual[i] !== expected) {
-        if (mismatches < 20) console.error(`${version} ${JSON.stringify(range)}: C=${actual[i]} node=${expected}`);
+        if (mismatches < 20) console.error(`${kind} ${left} ${JSON.stringify(right)}: C=${actual[i]} node=${expected}`);
         mismatches++;
     }
 }
-console.log(`semver oracle: ${cases.length} compared, ${skipped} xlang-only cases skipped, ${mismatches} mismatches`);
+console.log(`semver oracle: ${cases.length} compared, ${skipped} xlang-only range cases skipped, ${mismatches} mismatches`);
 process.exitCode = mismatches === 0 ? 0 : 1;
