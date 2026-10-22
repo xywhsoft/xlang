@@ -24,7 +24,7 @@ extern "xstat_histogram" func __stat_histogram(var values, int bins) as var
 
 
 
-// count 返回数组中数值元素个数；非数组输入返回 0
+// count 只统计有限数值；非数值、非有限值和非数组输入不计入
 export func count(var values) as int
     return __stat_count(values)
 end

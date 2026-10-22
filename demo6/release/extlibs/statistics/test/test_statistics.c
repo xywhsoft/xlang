@@ -173,6 +173,17 @@ int main(void)
 
     CHECK(values && empty && append_numbers(values, numbers, 8));
     CHECK(xstat_count(values) == 8);
+    {
+        xvalue *mixed = xrtValueArray();
+        CHECK(mixed && xrtValueArrayAppendNew(mixed, xrtValueInt(3)) &&
+            xrtValueArrayAppendNew(mixed, xrtValueFloat(NAN)) &&
+            xrtValueArrayAppendNew(mixed, xrtValueFloat(INFINITY)) &&
+            xrtValueArrayAppendNew(mixed, xrtValueFloat(-INFINITY)) &&
+            xrtValueArrayAppendNew(mixed,
+                xrtValueString((xstrview){ "text", 4u })));
+        CHECK(xstat_count(mixed) == 1 && xrtGetError() == NULL);
+        xrtValueRelease(mixed);
+    }
     CHECK(equal_result(xstat_sum(values), 40));
     CHECK(equal_result(xstat_mean(values), 5));
     CHECK(equal_result(xstat_median(values), 4.5));

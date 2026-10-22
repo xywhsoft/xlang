@@ -2,6 +2,7 @@ import statistics
 
 func main(...) as int
     var numbers = [2, 4, 4, 4, 5, 5, 7, 9]
+    assert statistics.count([1, "text", 2.5, null]) == 2, "count finite numeric entries"
     assert statistics.mean(numbers) == 5, "integer inputs"
     assert statistics.stdev(numbers) == 2, "standard deviation"
     assert statistics.percentile(numbers, 50) == 4.5, "percentile"

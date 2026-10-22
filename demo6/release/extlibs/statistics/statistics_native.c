@@ -223,7 +223,9 @@ int64_t xstat_count(xvalue *values) {
     n = xrtValueCount(values);
     for (i = 0; i < n; ++i) {
         xvalue *item = xrtValueArrayAt(values, i);
-        if (item != NULL && xrtValueIsNumber(item)) {
+        double value;
+        if (item != NULL && xrtValueIsNumber(item) &&
+            xstat_as_double(item, &value) && isfinite(value)) {
             numeric++;
         }
     }

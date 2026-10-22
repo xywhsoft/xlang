@@ -31,7 +31,7 @@ var values = [2, 4, 4, 4, 5, 5, 7, 9]
 println(statistics.mean(values))
 println(statistics.median(values))
 println(statistics.stdev(values))</code></pre>
-    <p>上述结果分别为 5、4.5、2。除 <code>count</code> 外，输入必须是非空的有限数值数组。</p>
+    <p>上述结果分别为 5、4.5、2。除 <code>count</code> 外，输入必须是非空的有限数值数组；<code>count</code> 只统计有限数值，忽略非数值与 NaN/无穷大。</p>
   </section>
   <section id="api">
     <h2>接口与边界</h2>

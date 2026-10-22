@@ -1,7 +1,7 @@
 # statistics
 
 `statistics` 对 XRT 数组中的整数、浮点数计算描述性统计。XLang 的 `var`
-数组可直接传入，C 侧使用 `xvalue` 数组。非数值或非有限元素会拒绝。
+数组可直接传入，C 侧使用 `xvalue` 数组。除 `count` 外，非数值或非有限元素会拒绝。
 
 ```xlang
 import statistics
@@ -31,8 +31,8 @@ Windows/Linux 包级门禁会逐份对照。
 不因输入规模或输入复制时的分配失败改变错误类别。
 
 `variance`/`stdev` 使用总体定义（除以 `n`）；`Sample` 版本除以 `n-1`。
-空数组、无效类型或不满足运算要求时抛出 XLang 异常。`count` 则返回数值元素个数，
-非数组输入返回 0。XLang 侧除 `count` 外返回 `float`，`quartiles` 和 `linearFit`
+空数组、无效类型或不满足运算要求时抛出 XLang 异常。`count` 只统计有限数值元素，
+忽略非数值与 NaN/无穷大；非数组输入返回 0。XLang 侧除 `count` 外返回 `float`，`quartiles` 和 `linearFit`
 返回多个 `float`，`histogram` 返回计数数组。
 
 有限输入若产生无法用有限 `float64` 表示的统计结果（如两个最大浮点数的和），
@@ -71,6 +71,13 @@ XRT 错误，调用方可用 `xrtTakeError` 取走；参数/定义域错误为 `
 以及双数组统计函数，失败后可直接重试，无须调用方先手动清错。
 
 ## 验证
+
+2026-10-22：`count` 原把 NaN 和正负无穷大也计为数值，和其余聚合只接受
+有限数值的口径不一致。C 混合数组负例先红后绿；现在只统计有限整数/浮点值，
+非数值与非有限值均跳过，非数组仍返回 0。XLang 混合数组边界、Windows
+严格 C/ABI/三组双语范例门禁和 Linux C ASan/UBSan、XLang 门禁通过。
+默认 Windows 门禁的完整边界 AOT 仍缺共享 `xl6ValueIndexReadCopyV1`，
+不据聚焦门禁通过签收整包发布级。
 
 在 `demo6` 目录运行：
 
