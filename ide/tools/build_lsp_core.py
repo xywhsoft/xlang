@@ -223,6 +223,26 @@ def dependencies(body: str) -> list[Path]:
     return [Path(word).resolve() for word in words]
 
 
+def prepare_native_types(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
+    """Filter immutable-scope alias candidates without changing alias rules."""
+    original = frontend / 'src/type/xl6_type_model.c'
+    body = original.read_bytes()
+    if hashlib.sha256(body).hexdigest() != 'fdf35faa5dc2366a0625317d70cc82dbe8031762fcb7c81439e99a3a8de2a051':
+        raise ValueError('shared type model changed; audit alias predicate, lookup and immutable scope contract')
+    source = body.decode('utf-8').replace('\r\n', '\n')
+    old = 'static const XL6_AstNode* xl6TypeFindAlias(const XL6_AstNode* root, const char* name)\n{'
+    if source.count(old) != 1:
+        raise ValueError('shared alias lookup seam changed')
+    source = source.replace(old, '#include "analysis/frontend_types.inc"\n'
+        'static const XL6_AstNode* xlsTypeFindAliasOriginal(const XL6_AstNode* root, const char* name)\n{')
+    compiled = output / 'frontend/xl6_type_model.c'
+    compiled.write_text(source, encoding='utf-8', newline='\n')
+    return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
+        compiledSource=str(compiled), compiledSha256=sha(compiled), auditedSeams=1,
+        change='ordered alias candidates in explicit immutable IR scope; original alias rules retained',
+        pointerBudgetBytes=8 * 1024 * 1024)
+
+
 def main() -> None:
     ide = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
@@ -262,12 +282,14 @@ def main() -> None:
         original_ir, generated_ir, ir_overlay = prepare_native_ir(frontend, output)
         original_sem, generated_sem, sem_overlay = prepare_native_sem(frontend, output)
         original_stdlib, generated_stdlib, stdlib_overlay = prepare_native_stdlib(frontend, output)
+        original_types, generated_types, types_overlay = prepare_native_types(frontend, output)
     except ValueError as error:
         parser.error(str(error))
     sources = [(generated_index if path == original_index else path, owned) for path, owned in sources]
     sources = [(generated_ir if path == original_ir else path, owned) for path, owned in sources]
     sources = [(generated_sem if path == original_sem else path, owned) for path, owned in sources]
     sources = [(generated_stdlib if path == original_stdlib else path, owned) for path, owned in sources]
+    sources = [(generated_types if path == original_types else path, owned) for path, owned in sources]
     env = dict(os.environ)
     env["PATH"] = str(cc.parent) + os.pathsep + env.get("PATH", "")
     common = ["-std=c11", "-ffunction-sections", "-fdata-sections", "-DXRT_MODULE_ALL=", "-DXLS_COMPILER_XRT=1",
@@ -296,8 +318,9 @@ def main() -> None:
         libraries += ["-pthread", "-ldl"]
     commands, inputs, outputs, runs, imports = [], {str(Path(__file__).resolve()): sha(Path(__file__)),
         str(original_index): index_overlay["sourceSha256"], str(original_ir): ir_overlay["sourceSha256"],
-        str(original_sem): sem_overlay["sourceSha256"], str(original_stdlib): stdlib_overlay["sourceSha256"]}, {}, [], {}
-    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay]
+        str(original_sem): sem_overlay["sourceSha256"], str(original_stdlib): stdlib_overlay["sourceSha256"],
+        str(original_types): types_overlay["sourceSha256"]}, {}, [], {}
+    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay]
     runtime_profiles = []
     started = time.monotonic()
     status = "failed"

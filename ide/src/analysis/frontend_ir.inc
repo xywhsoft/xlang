@@ -2,6 +2,7 @@
  * rules stay below; indexes omit unrelated candidates and proofs are local
  * to one immutable verification. Compiler materials are never modified. */
 #include "analysis/frontend_ir.h"
+#include "analysis/frontend_types.h"
 
 #define XLS_IR_SCAN_BYTES (16u*1024u*1024u)
 #define XLS_IR_PLAN_BYTES (8u*1024u*1024u)
@@ -84,8 +85,13 @@ static const XL6_AstNode* xl6IrFindTypeDecl(const XL6_AstNode* root,const XL6_As
 }
 int xlsFrontendIrBuildTypeBudget(XL6_IrModule* module,const XL6_AstNode* root,XL6_DiagList* diags,size_t bytes)
 {
+    if(bytes>XLS_IR_TYPE_LOOKUP_BYTES) bytes=XLS_IR_TYPE_LOOKUP_BYTES;
     xls_ir_type_lookup scan; xlsIrTypeLookupBegin(&scan,module ? root : NULL,bytes);
+    size_t charged=scan.ready ? scan.filtered.childCount*sizeof(*scan.items) : 0;
+    xls_type_alias_scope aliases;
+    xlsFrontendTypeAliasBegin(&aliases,module ? root : NULL,bytes-charged);
     int okay=xlsIrBuildModuleOriginal(module,root,diags);
+    xlsFrontendTypeAliasEnd(&aliases);
     xlsActiveTypeLookup=scan.previous; xrtFree(scan.items); return okay;
 }
 int xl6IrBuildModuleFromAst(XL6_IrModule* module,const XL6_AstNode* root,XL6_DiagList* diags)
