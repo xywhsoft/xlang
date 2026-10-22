@@ -58,6 +58,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 
 Linux 可在 `demo6` 目录运行 `bash release/extlibs/crontab/test/check.sh`。脚本以严格 GCC、ASan/UBSan 复验 C 边界和跨 2100 年的远期闰日搜索；在安装了 IANA `America/New_York` 时区数据的环境下验证 2024 年春季不存在的 `02:30` 被跳过、秋季重复的 `01:30` 各触发一次。它还运行中央及包内 XLang 用例，并逐字节比较 C/XLang 范例输出。DST 测试仅证明该时区和这两次转换，不代表所有历史时区规则已验收。
 
+同一 Linux 门禁还使用 IANA `Australia/Lord_Howe` 验证 2024 年半小时 DST：回拨日的 `01:45` 分别命中两次，前跳日的 `02:15` 不存在、`02:30` 正常命中。C sanitizer 与 XLang 用例使用同一组独立确定的 Unix 时间点；这仍不是对所有时区的完整认证。
+
 2026-10-15 补四个公开 C 入口的失败后成功错误槽回归；首个 `is_valid` 用例先复现旧错误残留，修复后 Windows C、Linux ASan/UBSan + DST 和 XLang 边界均通过。完整 AOT 的共享链接阻断未变。
 
 2026-10-16 补 `describe` 对有效和无效表达式的 C/XLang 分配失败、错误分类

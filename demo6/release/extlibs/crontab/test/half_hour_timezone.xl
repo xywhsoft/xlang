@@ -1,0 +1,15 @@
+import crontab
+
+// 此用例须在 TZ=Australia/Lord_Howe 且具有 IANA 时区数据的 Linux 上运行。
+int first = crontab.next("45 1 * * *", 1712414640)
+int second = crontab.next("45 1 * * *", first)
+assert first == 1712414700 and second == 1712416500
+assert crontab.matches("45 1 * * *", first)
+assert crontab.matches("45 1 * * *", second)
+
+// 春季前跳半小时，02:15 不存在；02:30 是跳转后的第一个整分钟。
+assert crontab.next("30 2 * * *", 1728142140) == 1728142200
+assert not crontab.matches("15 2 * * *", 1728142200)
+assert crontab.next("15 2 * * *", 1728142140) == 1728227700
+
+println("crontab half-hour timezone: PASS")
