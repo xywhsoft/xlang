@@ -26,7 +26,9 @@ xide_language_check* xideLanguageCheckStartCompletionSnapshotsEx(xide_toolchains
 /* Standalone native host only. Captures immutable text references, labels and
    wire versions without copying/revalidating entire bodies or doing physical
    alias I/O on the caller. target is the entry's document key. A static check
-   needs actor; cursor mode uses queryPath/UTF-16 position and its own worker.
+   needs actor; cursor mode uses a dedicated foreground actor when supplied,
+   retaining exact projections across queries. NULL keeps one-shot cursor
+   compatibility. queryPath/position identify its query overlay.
    actor and callback data must outlive Destroy. Disk/alias checks run off-owner. */
 xide_language_check* xideLanguageCheckStartRetained(xide_toolchains* cache,const char* compiler,
  const char* directory,xls_worker* actor,const xls_analysis_document* documents,size_t count,

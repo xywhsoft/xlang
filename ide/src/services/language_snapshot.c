@@ -54,6 +54,31 @@ done:
     actor owns its captured inputs and cooperates with cancellation itself. */
  xlsQueryDestroy(query); if(event) CloseHandle(event); return result;
 }
+static xls_semantic_completion* retainedCompletion(xide_language_check* q,xide_model_error* e)
+{
+ xls_analysis_document documents[64]; const char* target=NULL;
+ for(size_t i=0;i<q->snapshotCount;++i) {
+  documents[i]=(xls_analysis_document){q->snapshotKeys[i],q->snapshots[i].path,q->snapshotTexts[i],
+   q->snapshotIdentities[i],(uint64_t)((int64_t)q->snapshots[i].version-INT_MIN)};
+  if(xidePathLexicalEqual(q->queryPath,q->snapshots[i].path)) target=q->snapshotKeys[i];
+ }
+ HANDLE event=CreateEventW(NULL,FALSE,FALSE,NULL);
+ xls_query* query=event && target ? xlsWorkerCompletion(q->semanticActor,documents,q->snapshotCount,
+  q->semanticTarget,target,(size_t)q->queryOffset) : NULL;
+ xls_semantic_completion* result=NULL;
+ if(!query || !xlsQuerySetWake(query,nativeQueryWake,event)) { fail(e,"Cannot submit retained cursor analysis."); goto done; }
+ for(;;) {
+  if(cancelled(q)) break;
+  enum xls_query_state state=xlsQueryCompletionResult(query,&result,&q->completionStats,&q->semanticThread,e->message,sizeof(e->message));
+  if(state==XLS_QUERY_READY) break;
+  if(state!=XLS_QUERY_PENDING) { e->code=XIDE_MODEL_INVALID; break; }
+  HANDLE waits[2]={q->stopEvent,event};
+  if(WaitForMultipleObjects(2,waits,FALSE,INFINITE)==WAIT_FAILED) { fail(e,"Cannot wait for retained cursor analysis."); break; }
+ }
+done:
+ if(cancelled(q) || !result) { xlsQueryCancel(query); xlsSemanticCompletionDestroy(result); result=NULL; }
+ xlsQueryDestroy(query); if(event) CloseHandle(event); return result;
+}
 static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_semantic_check** checked,xide_model_error* e)
 {
  if(q->retainedSnapshots) for(size_t i=0;i<q->snapshotCount;++i) {
@@ -64,7 +89,7 @@ static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_seman
  for(size_t i=0;i<q->snapshotCount;++i) inputs[i]=(xls_semantic_input){q->snapshots[i].path,q->snapshots[i].text,strlen(q->snapshots[i].text)};
  size_t size=0; char* report=NULL;
  if(q->queryPath) {
-  xls_semantic_completion* result=xlsSemanticCompletionCreate(q->path,q->queryPath,(size_t)q->queryOffset,
+  xls_semantic_completion* result=q->semanticActor ? retainedCompletion(q,e) : xlsSemanticCompletionCreate(q->path,q->queryPath,(size_t)q->queryOffset,
    inputs,q->snapshotCount,nativeCancelled,q,e->message,sizeof(e->message));
   if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
   report=xlsSemanticCompletionJson(result,&size);
@@ -399,6 +424,16 @@ analysed:
  }
  if(!q->queryPath && !q->nativeBridge && !put(result,"semanticDefinitions",xrtValueBool(q->definitions!=NULL))) goto done;
 #ifdef XLS_COMPILER_XRT
+ if(q->semanticActor && q->queryPath) {
+  xvalue* stats=xrtValueObject();
+  int okayStats=stats && put(stats,"builds",xrtValueInt((int64)q->completionStats.builds)) &&
+   put(stats,"cacheHits",xrtValueInt((int64)q->completionStats.hits)) && put(stats,"invalidations",xrtValueInt((int64)q->completionStats.invalidations)) &&
+   put(stats,"documents",xrtValueInt((int64)q->completionStats.documents)) && put(stats,"textBytes",xrtValueInt((int64)q->completionStats.textBytes)) &&
+   put(stats,"workerThreadId",xrtValueInt((int64)q->semanticThread)) && put(stats,"captureThreadId",xrtValueInt((int64)q->captureThread)) &&
+   put(stats,"adapterThreadId",xrtValueInt((int64)xrtThreadCurrentId()));
+  if(!okayStats) { xrtValueRelease(stats); goto done; }
+  if(!put(result,"analysis",stats)) goto done;
+ }
  if(q->semanticActor && !q->queryPath) {
   xvalue* stats=xrtValueObject();
   int okayStats=stats && put(stats,"builds",xrtValueInt((int64)q->semanticStats.builds)) && put(stats,"cacheHits",xrtValueInt((int64)q->semanticStats.hits)) &&

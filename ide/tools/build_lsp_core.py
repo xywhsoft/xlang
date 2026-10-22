@@ -319,7 +319,7 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "ast_clone", "syntax", "session", "worker", "folding", "semantic", "check", "check_session"}
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "ast_clone", "syntax", "session", "worker", "folding", "semantic", "check", "input_batch", "check_session", "completion_session"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         limited_index = output / "xl6_sem_index_limit.o"

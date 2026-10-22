@@ -27,7 +27,7 @@ typedef struct server {
  int completionDocument,completionVersion,completionResponded,completionPublished,completionCancelled;
  unsigned long long completionGeneration,completionPendingGeneration;
  int completionPendingDocument,completionPendingEntry,completionPendingVersion,completionPendingLine,completionPendingCharacter;
- xls_worker *analysis,*semanticAnalysis; native_request native[DOC_LIMIT]; size_t foldingLimit;
+ xls_worker *analysis,*semanticAnalysis,*cursorAnalysis; native_request native[DOC_LIMIT]; size_t foldingLimit;
  xls_session_stats analysisStats; uint64_t analysisThread;
 } server;
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
@@ -240,7 +240,7 @@ static void startCompletion(server* s)
  if(!s->cliCompletion) {
   xls_analysis_document inputs[DOC_LIMIT]; size_t count=0;
   for(int j=0;j<DOC_LIMIT;++j) if(s->docs[j].uri) { document* in=&s->docs[j]; inputs[count++]=(xls_analysis_document){in->uri,in->path,in->content,in->identity,(uint64_t)((int64_t)in->version-INT_MIN)}; }
-  s->completion=xideLanguageCheckStartRetained(s->cache,s->compiler,s->directory,NULL,inputs,count,s->docs[entry].uri,d->path,s->completionPendingLine,s->completionPendingCharacter,&options,&e);
+  s->completion=xideLanguageCheckStartRetained(s->cache,s->compiler,s->directory,s->cursorAnalysis,inputs,count,s->docs[entry].uri,d->path,s->completionPendingLine,s->completionPendingCharacter,&options,&e);
  } else {
   xide_language_snapshot inputs[DOC_LIMIT]; size_t count=0;
   for(int j=0;j<DOC_LIMIT;++j) if(s->docs[j].uri) inputs[count++]=(xide_language_snapshot){s->docs[j].path,s->docs[j].text,s->docs[j].version};
@@ -385,13 +385,14 @@ static void dispatch(server* s,const xvalue* message)
   put(cap,"positionEncoding",xrtValueString(sv("utf-16"))); put(sync,"openClose",xrtValueBool(true)); put(sync,"change",xrtValueInt(2)); put(save,"includeText",xrtValueBool(true)); put(sync,"save",save); put(cap,"textDocumentSync",sync);
   put(cap,"foldingRangeProvider",xrtValueBool(true)); put(scope,"residentSyntax",xrtValueBool(true)); put(scope,"analysisRuntime",xrtValueString(sv("compiler-xrt")));
   put(scope,"nativeCursorCompletion",xrtValueBool(!s->cliCompletion)); put(scope,"completionBackend",xrtValueString(sv(s->cliCompletion ? "cli" : "native")));
+  put(scope,"retainedCursorCompletion",xrtValueBool(!s->cliCompletion));
   put(scope,"nativeSnapshotDiagnostics",xrtValueBool(!s->cliDiagnostics)); put(scope,"diagnosticsBackend",xrtValueString(sv(s->cliDiagnostics ? "cli" : "native")));
   put(scope,"retainedSemanticChecks",xrtValueBool(!s->cliDiagnostics)); put(scope,"retainedNativeInputs",xrtValueBool(!s->cliDiagnostics || !s->cliCompletion));
   put(scope,"incrementalEntrySyntax",xrtValueBool(!s->cliDiagnostics));
   put(scope,"incrementalFunctionSemantics",xrtValueBool(!s->cliDiagnostics));
   put(scope,"savedDiagnosticsBackend",xrtValueString(sv("cli")));
   put(scope,"savedEntryDiagnostics",xrtValueBool(true)); put(scope,"unsavedDependencies",xrtValueBool(true)); put(scope,"snapshotDiagnostics",xrtValueBool(true)); put(scope,"snapshotDocumentFingerprint",xrtValueBool(true)); put(scope,"snapshotInputGuard",xrtValueString(sv("background-poll"))); put(scope,"cSemantics",xrtValueBool(false)); put(scope,"snapshotDefinition",xrtValueBool(true)); put(cap,"definitionProvider",xrtValueBool(true)); put(cap,"hoverProvider",xrtValueBool(true)); put(cap,"documentSymbolProvider",xrtValueBool(true)); xvalue *completion=xrtValueObject(),*triggers=xrtValueArray(),*dot=xrtValueString(sv(".")); xrtValueArrayAppend(triggers,dot); xrtValueRelease(dot); put(completion,"resolveProvider",xrtValueBool(false)); put(completion,"triggerCharacters",triggers); put(cap,"completionProvider",completion); put(scope,"cursorCompletion",xrtValueBool(true)); put(scope,"completionInputGuard",xrtValueString(sv("background-poll"))); put(scope,"snapshotHover",xrtValueBool(true)); put(scope,"snapshotDocumentSymbols",xrtValueBool(true)); put(cap,"experimental",scope); put(result,"capabilities",cap);
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.17"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.18"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
@@ -430,8 +431,8 @@ int main(void)
  if(argc!=3 || !argv || wcscmp(argv[1],L"--compiler")) { fputs("Usage: xlang-ls --compiler absolute-xl.exe\n",stderr); if(argv) LocalFree(argv); return 2; }
  char* compiler=utf8(argv[2]); LocalFree(argv); s.compiler=compiler ? xidePathResolveLexical(NULL,compiler) : NULL; free(compiler);
  wchar_t cwd[32768]; if(GetCurrentDirectoryW(32768,cwd)) s.directory=utf8(cwd);
- s.cache=xideToolchainsCreate(); s.analysis=xlsWorkerCreate(NULL,DOC_LIMIT); s.semanticAnalysis=xlsWorkerCreate(NULL,8); InitializeCriticalSection(&s.lock); s.event=CreateEventW(NULL,FALSE,FALSE,NULL);
- if(s.compiler && s.directory && s.cache && s.analysis && s.semanticAnalysis && s.event) s.reader=CreateThread(NULL,0,reader,&s,0,NULL);
+ s.cache=xideToolchainsCreate(); s.analysis=xlsWorkerCreate(NULL,DOC_LIMIT); s.semanticAnalysis=xlsWorkerCreate(NULL,8); s.cursorAnalysis=xlsWorkerCreate(NULL,8); InitializeCriticalSection(&s.lock); s.event=CreateEventW(NULL,FALSE,FALSE,NULL);
+ if(s.compiler && s.directory && s.cache && s.analysis && s.semanticAnalysis && s.cursorAnalysis && s.event) s.reader=CreateThread(NULL,0,reader,&s,0,NULL);
  if(s.reader) while(!s.exitRequested && !s.writeFailed) {
   EnterCriticalSection(&s.lock); message* m=s.head; if(m) { s.head=m->next; if(!s.head) s.tail=NULL; s.queueBytes-=m->size; --s.queueCount; } int eof=s.eof,failed=s.readFailed; LeaveCriticalSection(&s.lock);
   if(m) { dispatch(&s,m->value); xrtValueRelease(m->value); free(m); } else if(eof) { s.exitCode=failed ? 2 : 1; break; }
@@ -455,7 +456,7 @@ int main(void)
  }
  for(size_t i=0;i<DOC_LIMIT;++i) if(s.native[i].query) { xlsQueryCancel(s.native[i].query); releaseNative(&s.native[i]); }
  xlsWorkerDestroy(s.analysis);
- xideLanguageCheckDestroy(s.completion); xrtValueRelease(s.completionId); xrtValueRelease(s.completionPendingId); free(s.completionUri); xideLanguageCheckDestroy(s.check); xideLanguageCheckDestroy(s.guard); xlsWorkerDestroy(s.semanticAnalysis); xrtValueRelease(s.guardId); free(s.guardUri); xrtValueRelease(s.checkId); xrtValueRelease(s.publishedGroups); xideToolchainsDestroy(s.cache);
+ xideLanguageCheckDestroy(s.completion); xrtValueRelease(s.completionId); xrtValueRelease(s.completionPendingId); free(s.completionUri); xideLanguageCheckDestroy(s.check); xideLanguageCheckDestroy(s.guard); xlsWorkerDestroy(s.semanticAnalysis); xlsWorkerDestroy(s.cursorAnalysis); xrtValueRelease(s.guardId); free(s.guardUri); xrtValueRelease(s.checkId); xrtValueRelease(s.publishedGroups); xideToolchainsDestroy(s.cache);
  while(s.head) { message* m=s.head; s.head=m->next; xrtValueRelease(m->value); free(m); }
  for(int i=0;i<DOC_LIMIT;++i) clearDocument(&s,i);
  if(s.event) { CloseHandle(s.event); } DeleteCriticalSection(&s.lock); free(s.compiler); free(s.directory); return s.writeFailed ? 2 : s.exitCode;
