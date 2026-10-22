@@ -51,6 +51,11 @@ C 接口见 `include/hcl_native.h`。文本结果是**独立拥有型**内存，
 
 包级验证：
 
+- 2026-10-22：C/XLang 成对范例补齐 `getRaw`、`getFloat`、
+  `blockLabelCount`、`blockLabelAt`、`countAttrs`，至此覆盖 12 个公开查询入口。
+  两侧各自断言注释保留的原文、浮点值、第二个块标签及嵌套属性总数；
+  Windows `test/check.ps1 -SkipAot` 与 Linux `test/check.sh`（含 C ASan/UBSan）
+  均通过。只补范例，不改变解析器；完整 AOT 仍受下述共享符号阻断。
 - Windows 从 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass
   -File release/extlibs/hcl/test/check.ps1`，同次检查严格 GCC 语法、
   C 边界/线程、中央与包内 XLang、分配故障、双语范例同输出、无输出核心

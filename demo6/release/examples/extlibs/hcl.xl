@@ -3,15 +3,20 @@ import hcl
 
 
 func main(...) as int
-    auto conf = "variable \"name\" {\n  default = \"myapp\"\n  title = \"\\u4F60\\U0001F642\"\n}\n\nresource \"server\" \"main\" {\n  port/* service port */ = 8080/* default */\n  tls = true\n}\n"
+    auto conf = "variable \"name\" {\n  default = \"myapp\"\n  title = \"\\u4F60\\U0001F642\"\n}\n\nresource \"server\" \"main\" {\n  port/* service port */ = 8080/* default */\n  tls = true\n  ratio = 1.5\n}\n"
 
     assert hcl.get(conf, "default") == "myapp"
     assert hcl.get(conf, "title") == "你🙂"
+    assert hcl.getRaw(conf, "port") == "8080/* default */"
     assert hcl.getInt(conf, "port") == 8080
+    assert hcl.getFloat(conf, "ratio") == 1.5
     assert hcl.getBool(conf, "tls")
     assert hcl.has(conf, "tls") and not hcl.has(conf, "missing")
     assert hcl.countBlocks(conf, "resource") == 1
     assert hcl.blockLabel(conf, "resource", 0) == "server"
+    assert hcl.blockLabelCount(conf, "resource", 0) == 2
+    assert hcl.blockLabelAt(conf, "resource", 0, 1) == "main"
+    assert hcl.countAttrs(conf) == 5
     assert hcl.validate(conf)
 
     println("name:   ", hcl.get(conf, "default"))

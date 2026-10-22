@@ -9,17 +9,25 @@
 int main(void)
 {
     const char* config = "variable \"name\" {\n  default = \"myapp\"\n  title = \"\\u4F60\\U0001F642\"\n}\n\n"
-        "resource \"server\" \"main\" {\n  port/* service port */ = 8080/* default */\n  tls = true\n}\n";
+        "resource \"server\" \"main\" {\n  port/* service port */ = 8080/* default */\n  tls = true\n  ratio = 1.5\n}\n";
     void* name = xhcl_get(config, "default");
     void* title = xhcl_get(config, "title");
+    void* raw = xhcl_get_raw(config, "port");
     void* label = xhcl_block_label(config, "resource", 0);
-    int ok = name != NULL && title != NULL && label != NULL &&
+    void* second_label = xhcl_block_label_at(config, "resource", 0, 1);
+    int ok = name != NULL && title != NULL && raw != NULL &&
+        label != NULL && second_label != NULL &&
         strcmp((const char*)name, "myapp") == 0 &&
         strcmp((const char*)title, "\xe4\xbd\xa0\xf0\x9f\x99\x82") == 0 &&
+        strcmp((const char*)raw, "8080/* default */") == 0 &&
         strcmp((const char*)label, "server") == 0 &&
-        xhcl_get_int(config, "port") == 8080 && xhcl_get_bool(config, "tls") &&
+        strcmp((const char*)second_label, "main") == 0 &&
+        xhcl_get_int(config, "port") == 8080 &&
+        xhcl_get_float(config, "ratio") == 1.5 && xhcl_get_bool(config, "tls") &&
         xhcl_has(config, "tls") && !xhcl_has(config, "missing") &&
-        xhcl_count_blocks(config, "resource") == 1 && xhcl_validate(config);
+        xhcl_count_blocks(config, "resource") == 1 &&
+        xhcl_block_label_count(config, "resource", 0) == 2 &&
+        xhcl_count_attrs(config) == 5 && xhcl_validate(config);
 
     if (ok) {
         printf("name:    %s\n", (const char*)name);
@@ -33,7 +41,9 @@ int main(void)
         puts("valid:   true");
         puts("hcl C/XL example: PASS");
     }
+    xrtFree(second_label);
     xrtFree(label);
+    xrtFree(raw);
     xrtFree(title);
     xrtFree(name);
     return ok ? 0 : 2;
