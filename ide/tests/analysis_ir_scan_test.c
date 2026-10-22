@@ -72,6 +72,27 @@ static int compareConversions(XL6_IrModule* ir,int large)
     }
     return 1;
 }
+static int compareTypeLookups(const XL6_AstNode* root,const char* expected)
+{
+    XL6_IrModule other; XL6_DiagList diags; xl6IrModuleInit(&other); xl6DiagInit(&diags);
+    xlsFrontendIrTypeLookupReset();
+    CHECK(xlsFrontendIrBuildTypeBudget(&other,root,&diags,0) && !diags.count);
+    xls_ir_type_lookup_work reference=xlsFrontendIrTypeLookupWork();
+    char* actual=dump(&other); CHECK(actual && !strcmp(actual,expected)); xrtFree(actual);
+    CHECK(!reference.indexes && !reference.indexedQueries && reference.queries && reference.linearQueries==reference.queries);
+    xlsFrontendIrTypeLookupReset();
+    CHECK(xlsFrontendIrBuildTypeBudget(&other,root,&diags,8u*1024u*1024u) && !diags.count);
+    xls_ir_type_lookup_work indexed=xlsFrontendIrTypeLookupWork();
+    actual=dump(&other); CHECK(actual && !strcmp(actual,expected)); xrtFree(actual);
+    CHECK(indexed.indexes==1 && indexed.rootVisits==root->childCount && indexed.queries==reference.queries && indexed.indexedQueries==indexed.queries && !indexed.linearQueries && indexed.peakBytes<=8u*1024u*1024u);
+    xlsFrontendIrTypeLookupReset();
+    CHECK(xlsFrontendIrBuildTypeBudget(&other,root,&diags,1) && !diags.count);
+    xls_ir_type_lookup_work bounded=xlsFrontendIrTypeLookupWork();
+    actual=dump(&other); CHECK(actual && !strcmp(actual,expected)); xrtFree(actual);
+    if(indexed.declarations) CHECK(!bounded.indexes && !bounded.indexedQueries && bounded.linearQueries==reference.linearQueries);
+    else CHECK(bounded.indexes==1 && bounded.indexedQueries==reference.queries && !bounded.peakBytes);
+    xl6IrModuleFree(&other); xl6DiagFree(&diags); return 1;
+}
 static int corpus(const char* source,int large)
 {
     XL6_ParseResult parsed; xl6ParseResultInit(&parsed); XL6_IrModule ir; xl6IrModuleInit(&ir);
@@ -87,7 +108,7 @@ static int corpus(const char* source,int large)
     CHECK(indexed.indexes>=2 && indexed.queries && !indexed.linearVisits && indexed.peakBytes<=16u*1024u*1024u);
     xls_ir_plan_scan_work planIndexed=xlsFrontendIrPlanScanWork();
     CHECK(planIndexed.indexes==1 && planIndexed.queries && !planIndexed.linearVisits && planIndexed.peakBytes<=8u*1024u*1024u);
-    char* actual=dump(&ir); CHECK(actual);
+    char* actual=dump(&ir); CHECK(actual && compareTypeLookups(parsed.root,actual));
     xlsFrontendIrScanReset(); xlsFrontendIrPlanScanReset();
     CHECK(xlsFrontendIrReferenceRefresh(&ir) && xlsFrontendIrReferenceVerify(&ir,&parsed.diags));
     xls_ir_scan_work reference=xlsFrontendIrScanWork(); CHECK(!reference.indexes && reference.linearVisits && !reference.indexedVisits);
@@ -174,6 +195,7 @@ static int run(void)
         "func guarded() as int\n string outer = \"outer\"\n try\n string inner = \"inner\"\n return 7\n catch e\n string message = e.message\n return 8\n finally\n string final = \"final\"\n end\nend\n",
         "func values(int count) as generator<string>\n string suffix = \"owned\"\n for i in range(count)\n string item = suffix + string(i)\n yield item\n end\nend\n",
         "class Box\n string item = \"owned\"\n func value() as string\n string local = self.item\n return local\n end\nend\n",
+        "protocol Named\n func name() as string\nend\nfunc named(Named item) as int\n return 0\nend\n",
         "enum Choice\n Some(string value)\n None\nend\nfunc chosen(Choice item) as string\n match item\n case Some(value)\n return value\n case None\n return \"empty\"\n end\nend\n",
         "func apply(func(int) as int action, int value) as int\n return action(value)\nend\nfunc run() as int\n return apply(func(int value) as int\n return value + 1\n end, 7)\nend\n",
         "func accept(array items) as int\n return int(items[0])\nend\nfunc erased() as int\n return accept([1, 2, 3])\nend\n",
