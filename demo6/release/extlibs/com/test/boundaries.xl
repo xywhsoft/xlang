@@ -33,7 +33,7 @@ func main(...) as int
     try
         com.invoke(handle, "Sub", array[array[1], 4])
         assert false, "unsupported COM argument should fail"
-    catch ValueError
+    catch ValueError error
     end
 
     var values = com.invoke(handle, "Values", array[])
@@ -47,13 +47,13 @@ func main(...) as int
     try
         com.get_text(handle, "Grid")
         assert false, "multidimensional SAFEARRAY text should fail"
-    catch ValueError
+    catch ValueError error
     end
 
     try
         com.invoke(handle, "Fail", array[])
         assert false, "COM exception should fail"
-    catch ValueError
+    catch ValueError error
     end
 
     assert com.release(handle) != 0, "release"

@@ -79,3 +79,8 @@ Windows `Scripting.Dictionary` server. The strict C/header checks, C and XLang
 real-server calls, object wrapper, and bilingual output comparison all passed.
 This verifies the published IDispatch call path on this host, not event sinks,
 cross-apartment use, other COM servers, or the still-blocked full AOT path.
+
+2026-10-23: Three XLang negative cases now catch `ValueError` by type instead
+of using the single-name catch-all form. Both the deterministic fixture gate
+and the optional real `Scripting.Dictionary` C/XLang gate pass with `-SkipAot`.
+This tightens test evidence only; the package API and full-AOT blocker are unchanged.
