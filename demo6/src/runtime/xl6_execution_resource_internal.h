@@ -10,6 +10,10 @@
  * versa); this declaration header has no native algorithm implementation. */
 typedef struct XL6_ExecutionCreateOptionsV1 {
     XL6_ExecutionKindV1 kind;
+    /* Explicit factory capability: false Rollback may mean asynchronous
+     * pending only for this call. Otherwise false (even without a diagnostic)
+     * is a checked failure and the retained record stalls until Retry. */
+    bool deferRollback;
     union {
         struct { uint32_t threads; size_t limit,stack; } workers;
         const struct xnetengineconfig* engine; /* call-only, copied by the native ctor */
@@ -17,6 +21,7 @@ typedef struct XL6_ExecutionCreateOptionsV1 {
         const struct XL6_TcpCreateOptionsV1* tcp; /* call-only typed transport factory */
         const struct XL6_TcpServerCreateOptionsV1* server;
         const struct XL6_UdpCreateOptionsV1* udp;
+        const struct XL6_NetFileCreateOptionsV1* file;
     } value;
 } XL6_ExecutionCreateOptionsV1;
 typedef struct XL6_ExecutionFamilyV1 {
@@ -24,6 +29,9 @@ typedef struct XL6_ExecutionFamilyV1 {
     uint64_t abiTag;
     XL6_ExecutionKindV1 kind;
     bool (*Create)(XL6_ExecutionResourceV1*,const XL6_ExecutionCreateOptionsV1*);
+    /* true: fields disposed synchronously. false: retain this exact record as
+     * an ownerless checked registration; the call must explicitly authorize
+     * deferred rollback or its false outcome is latched as failure. */
     bool (*Rollback)(XL6_ExecutionResourceV1*);
     XL6_ModulePrepareResult (*Retire)(XL6_ExecutionResourceV1*);
     bool (*Finish)(XL6_ExecutionResourceV1*);

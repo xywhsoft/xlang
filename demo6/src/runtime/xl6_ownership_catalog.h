@@ -15,6 +15,7 @@
     X(Combine, xfuturecombineownershipv1) \
     X(Task, xtaskdataownershipv1) \
     X(TaskNet, xtasknetdataownershipv1) \
+    X(NetFileInput, xnetfiledataownershipv1) \
     X(QueuedStorage, XL6_ContinuationStorageV2) \
     X(ChannelSubscription, xchannelsubscribeownershipv1) \
     X(ResolverRequest, xnetresolveownershipv1) \
