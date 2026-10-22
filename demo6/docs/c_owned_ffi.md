@@ -87,7 +87,7 @@ failure. Normal `string` and `bytes` layouts and cleanup remain unchanged.
 Run from `demo6` with a compatible `release/xl.dll` available:
 
 ```powershell
-pwsh -NoProfile -File tools/check_c_owned.ps1
+pwsh -NoProfile -File tools/check_xlir_c_owned.ps1
 ```
 
 The check builds compiler sources independently, executes generated C, checks
@@ -97,10 +97,12 @@ against the current source runtime.
 
 For full source API/JIT and standalone EXE acceptance, first build the existing
 public source driver with `tools/build_xlir_public_source_driver.ps1`, then pass
-its `public_source.exe` path through `check_c_owned.ps1 -PublicDriver <path>`.
+its `public_source.exe` path through `check_xlir_c_owned.ps1 -PublicDriver <path>`.
 Memory-debug allocation/failure checks run against a debug-capable runtime;
 source shipping profiles without memory debug still execute the value/lifetime
 programs, while allocation counters are checked separately by the debug run.
+The standalone check is also discovered by the existing XLIR full-regression
+and RC0 supplemental runners; its source fixtures use explicit inventory paths.
 
 Two pre-existing regression fixtures fail identically with the pre-change
 compiler at `1b4aef459`: `cgen_string_embedded_nul.xl` expects codec byte results
