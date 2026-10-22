@@ -1,3 +1,5 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
@@ -60,17 +62,49 @@ try {
         }
     }
 
+    if (-not $SkipAot) {
+        $core = Join-Path $work 'stbiw_core.exe'
+        $example = Join-Path $work 'stbiw_example.exe'
+        & $xl build test/cases/extlib_stb_image_write.xl -o $core
+        if ($LASTEXITCODE -ne 0) { throw 'stb_image_write core AOT build failed' }
+        & $core
+        if ($LASTEXITCODE -ne 0) { throw 'stb_image_write core AOT failed' }
+        & $xl build release/examples/extlibs/stb_image_write.xl -o $example
+        if ($LASTEXITCODE -ne 0) { throw 'stb_image_write example AOT build failed' }
+        $aotDir = Join-Path $work 'aot'
+        New-Item -ItemType Directory -Path $aotDir | Out-Null
+        $asset = Join-Path $root 'release/examples/extlibs/assets/tiny.png'
+        $aotOutput = & $example $aotDir $asset
+        if ($LASTEXITCODE -ne 0) { throw 'stb_image_write example AOT failed' }
+        if (($aotOutput -join "`n") -cne $expected) {
+            throw 'stb_image_write example AOT output differs'
+        }
+        foreach ($name in @('tiny.png', 'tiny.jpg', 'tiny.bmp', 'tiny.tga', 'tiny.hdr')) {
+            $aotFile = Join-Path $aotDir $name
+            $xlFile = Join-Path $xlDir $name
+            if (-not (Test-Path -LiteralPath $aotFile) -or
+                (Get-FileHash -LiteralPath $aotFile -Algorithm SHA256).Hash -cne
+                (Get-FileHash -LiteralPath $xlFile -Algorithm SHA256).Hash) {
+                throw "stb_image_write AOT image differs: $name"
+            }
+        }
+    }
+
     Write-Output 'stb_image_write Windows C/XLang gate: PASS'
 } finally {
     Pop-Location
     if ($work -ne $null) {
-        foreach ($dirName in @('c', 'xl')) {
+        foreach ($dirName in @('c', 'xl', 'aot')) {
             $dir = Join-Path $work $dirName
             foreach ($name in @('tiny.png', 'tiny.jpg', 'tiny.bmp', 'tiny.tga', 'tiny.hdr')) {
                 $output = Join-Path $dir $name
                 if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Force }
             }
             if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Force }
+        }
+        foreach ($name in @('stbiw_core.exe', 'stbiw_example.exe')) {
+            $output = Join-Path $work $name
+            if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Force }
         }
         if (Test-Path -LiteralPath $work) { Remove-Item -LiteralPath $work -Force }
     }

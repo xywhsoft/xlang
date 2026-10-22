@@ -46,7 +46,8 @@ HDR 回调实现；JPEG 位缓冲使用无符号移位；最终 PNG 缓冲申请
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_write/test/check.ps1`：
   Windows 严格 GCC、C 边界、中央与包内 XLang、输出限额和双语范例联合门禁；
-  C/XLang 范例的五个实际输出文件分别做 SHA-256 逐一核对。
+  C/XLang 范例的五个实际输出文件分别做 SHA-256 逐一核对。默认还构建运行
+  核心与公开范例 AOT 并对照五个文件；`-SkipAot` 只执行 C/JIT 聚焦快测。
 - `.\release\xl.exe run release/examples/extlibs/stb_image_write.xl`
 - `.\release\xl.exe run release/extlibs/stb_image_write/test/boundaries.xl`
 - `.\release\xl.exe run release/extlibs/stb_image_write/test/allocations.xl`
@@ -112,3 +113,8 @@ HDR，单靠成功文本一致不足以证明双语等价。现 C 范例同样�
 PNG 文件内容，Windows 门禁按 SHA-256、Linux 门禁用 `cmp` 对五份实际文件
 逐一比较。Windows 包级门禁和 Linux C ASan/UBSan、XLang 联合门禁退出 0；
 未改编码器或 xlang 主线，AOT 共享阻断仍未解除，不签收整包发布级。
+
+同日补默认 AOT 门禁：Windows `-SkipAot` 聚焦检查退出 0；默认路径在中央
+核心 AOT 构建处因共享 `xl6NativeHandleTraceLeaf` 未解析非零退出，后续公开
+范例 AOT 尚未执行，独占临时目录无残留。门禁失败不代表编码算法失败，
+但在主线阻断解除前不能签收完整发布级。
