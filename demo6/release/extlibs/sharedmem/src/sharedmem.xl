@@ -45,7 +45,7 @@ export class SharedMemory
 
     func writeText(int offset, string text)
         Buffer bytes = Buffer()
-        if not bytes.append(text) then throw RuntimeError "shared memory text allocation failed" end
+        if not bytes.append(text) then throw MemoryError "shared memory text allocation failed" end
         self.write(offset, bytes)
     end
 

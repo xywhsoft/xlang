@@ -1,0 +1,92 @@
+import sharedmem
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    string name = "xlang_shm_xl_alloc_" + crypto.randomString(20)
+    sharedmem.SharedMemory owner = sharedmem.create(name, 64)
+    owner.writeText(0, "hello")
+    int failures = 0
+    int successes = 0
+
+    // 分配失败不能留下半份正文，也不能退化为一般运行时错误。
+    for point in range(32)
+        bool memoryError = false
+        bool runtimeError = false
+        assert failAfter(uint64(point))
+        try
+            owner.writeText(0, "world")
+        catch MemoryError error
+            memoryError = true
+        catch RuntimeError error
+            runtimeError = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert not runtimeError, "allocation failure must remain MemoryError"
+        assert not memoryError or triggered
+        if memoryError then
+            failures += 1
+            assert owner.readText(0, 5) == "hello"
+        else
+            successes += 1
+            assert owner.readText(0, 5) == "world"
+        end
+        owner.writeText(0, "hello")
+    end
+    assert failures > 0 and successes > 0
+
+    // 创建、打开、读取及文本接管都要保持内存错误类别与句柄所有权。
+    for operation in range(4)
+        failures = 0
+        successes = 0
+        for point in range(32)
+            string candidate = name + "_" + string(operation) + "_" + string(point)
+            bool memoryError = false
+            bool runtimeError = false
+            assert failAfter(uint64(point))
+            try
+                if operation == 0 then
+                    sharedmem.SharedMemory created = sharedmem.create(candidate, 64)
+                    assert created.size == 64
+                elseif operation == 1 then
+                    sharedmem.SharedMemory opened = sharedmem.open(name)
+                    assert opened.size == 64
+                elseif operation == 2 then
+                    Buffer bytes = owner.read(0, 5)
+                    assert bytes.text() == "hello"
+                else
+                    assert owner.readText(0, 5) == "hello"
+                end
+            catch MemoryError error
+                memoryError = true
+            catch RuntimeError error
+                runtimeError = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert not runtimeError
+            assert not memoryError or triggered
+            if memoryError then
+                failures += 1
+                if operation == 0 then
+                    bool absent = false
+                    try
+                        sharedmem.open(candidate)
+                    catch LookupError error
+                        absent = true
+                    end
+                    assert absent, "failed creation must not publish a name"
+                end
+            else
+                successes += 1
+            end
+            assert owner.readText(0, 5) == "hello"
+        end
+        assert failures > 0 and successes > 0
+    end
+    println("sharedmem allocations: PASS")
+    return 0
+end

@@ -61,6 +61,8 @@ try {
         'test/cases/extlib_sharedmem.xl')
     $null = Run 'XLang package boundaries' $xl @('run',
         'release/extlibs/sharedmem/test/boundaries.xl')
+    $null = Run 'XLang allocations' $xl @('run',
+        'release/extlibs/sharedmem/test/allocations.xl')
     $previous = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {

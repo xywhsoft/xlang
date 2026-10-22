@@ -114,3 +114,11 @@ ASan/UBSan 门禁复跑通过。完整范例 AOT 阻断不变。
 `-SkipAot` 门禁通过。Linux C ASan/UBSan、XLang 与三路径对照也通过。
 默认 AOT 核心用例在当前发布物首先缺 `xl6NativeHandleTraceLeaf`，
 且私有原生构造器的主线缺陷仍在；不签收整包发布级。
+
+2026-10-23：XLang 对 `writeText/create/open/read/readText` 各扫描前 32 个
+分配点，核对 `MemoryError` 分类、失败写入不改原字节、创建失败后名称
+不可重新打开，以及解除故障后的恢复。`writeText` 在本地 Buffer 追加
+直接返回失败的备用分支也统一抛 `MemoryError`，不再误报普通运行时错误。
+Windows `-SkipAot` 的跨进程 C、分配故障、语言边界与双语门禁，以及
+Linux C ASan/UBSan、XLang 和双语门禁均通过。私有构造器访问控制及
+完整 AOT 的既有主线阻断仍未解除，整包不据此签收发布级。

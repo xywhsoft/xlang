@@ -34,6 +34,7 @@ timeout 45s ./release/xl run release/extlibs/sharedmem/examples/sharedmem_c.c \
 diff -u "$work/c_example.txt" "$work/c_direct.txt"
 timeout 90s ./release/xl run test/cases/extlib_sharedmem.xl
 timeout 90s ./release/xl run release/extlibs/sharedmem/test/boundaries.xl
+timeout 90s ./release/xl run release/extlibs/sharedmem/test/allocations.xl
 if timeout 90s ./release/xl check \
     release/extlibs/sharedmem/test/private_native_negative.xl \
     > "$work/private_native.txt" 2>&1; then
