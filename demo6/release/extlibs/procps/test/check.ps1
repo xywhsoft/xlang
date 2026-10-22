@@ -1,3 +1,5 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
@@ -13,6 +15,21 @@ function Confirm-Output([string] $name, [string[]] $lines) {
     if ($actual -cne $expected) { throw "$name differs from fixed procps example" }
 }
 
+function Build-Aot([string] $source, [string] $output) {
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $buildOutput = @(& $xl build $source -o $output 2>&1)
+        $code = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousPreference
+    }
+    if ($code -ne 0) {
+        throw "procps AOT build failed: $source`n$($buildOutput -join "`n")"
+    }
+}
+
+$work = $null
 Push-Location $root
 try {
     & $gcc -std=c11 -Wall -Wextra -Werror -x c -fsyntax-only '-Ilib/xrt' `
@@ -39,7 +56,32 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'procps XLang example failed' }
     Confirm-Output 'XLang example' $xlLines
 
-    Write-Output 'procps Windows C/XLang gate: PASS'
+    if (-not $SkipAot) {
+        $work = Join-Path ([IO.Path]::GetTempPath()) ('xlang-procps-aot-' + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $work | Out-Null
+        $core = Join-Path $work 'procps_core.exe'
+        $example = Join-Path $work 'procps_example.exe'
+        Build-Aot 'test/cases/extlib_procps.xl' $core
+        & $core
+        if ($LASTEXITCODE -ne 0) { throw 'procps core AOT failed' }
+        Build-Aot 'release/examples/extlibs/procps.xl' $example
+        $aotLines = @(& $example)
+        if ($LASTEXITCODE -ne 0) { throw 'procps example AOT failed' }
+        Confirm-Output 'XLang AOT example' $aotLines
+    }
+
+    if ($SkipAot) {
+        Write-Output 'procps Windows C/XLang focused gate: PASS'
+    } else {
+        Write-Output 'procps Windows C/XLang and AOT release gate: PASS'
+    }
 } finally {
     Pop-Location
+    if ($work -ne $null) {
+        foreach ($output in @('procps_core.exe', 'procps_example.exe')) {
+            $file = Join-Path $work $output
+            if (Test-Path -LiteralPath $file) { Remove-Item -LiteralPath $file -Force }
+        }
+        if (Test-Path -LiteralPath $work) { Remove-Item -LiteralPath $work -Force }
+    }
 }

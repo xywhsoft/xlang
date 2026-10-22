@@ -53,6 +53,11 @@ release/xl.exe run release/examples/extlibs/procps.xl
 wsl bash release/extlibs/procps/test/check.sh
 ```
 
+Windows 默认包门禁在 C/JIT 之后构建并运行中央无输出用例与公开 XLang
+范例的 AOT 产物，后者逐行对照固定事实输出；`-SkipAot` 仅运行聚焦
+C/JIT 检查。AOT 文件放在独占系统临时目录，退出时只清理本次产物。
+共享主线符号缺失时默认门禁必须非零退出，聚焦模式通过不代表发布签收。
+
 Windows 独立 GCC、Linux GCC + ASan/UBSan、XL JIT 和 C/XL 范例已通过。
 Windows 包级脚本还逐一核对包运行器 C、单文件 C 与 XLang 范例的固定事实输出；单文件 C 范例只在 TCC 路径包含原生实现，正式包仍按清单分离编译。
 Linux 包级脚本运行包内及中央 XLang 用例，并逐字比较 C/XL 范例输出；
