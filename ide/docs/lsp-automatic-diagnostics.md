@@ -25,6 +25,8 @@
 
 自动模式仅在客户端声明 `publishDiagnostics.versionSupport:true` 时发送可用的版本字段。打开文档使用客户端同步的 URI 拼写及当前线上版本；磁盘文件没有编辑器版本。关闭文档会清除旧 URI 对应结果，后续其他入口实际引用该磁盘文件时可重新贡献诊断。关闭／重开复用槽位以独立文档身份隔离，不以版本号是否相等推断同一份文档。
 
+服务 0.22 另提供可协商的 [文件输入证明](lsp-diagnostic-proofs.md)，在每个文件的通知中附带该次正文摘要和磁盘身份，供 IDE 验证位置与磁盘跳转；通用客户端保持标准通知格式。文件级证明不代替客户端的依赖同步和完整过期保护。
+
 诊断按文件发送完整列表，空列表撤销该文件的先前结果。同一入口的贡献替换与多个入口之间的合并由服务负责。参见官方 [publishDiagnostics 规范](https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/lsp/3.17/language/publishDiagnostics.md)。
 
 `didSave` 在自动模式下重新安排原生检查，覆盖内容仍取当前同步正文；它不会因为保存事件改走 CLI。显式 `xlang/checkSaved` 继续是保存后 CLI 兼容请求，其响应不覆盖自动原生诊断存储。显式 `xlang/check` 继续返回经验证的完整响应；原生结果同时可作为该入口的自动诊断贡献。关闭自动模式后，原有手动检查、保存策略和批次保护继续生效。

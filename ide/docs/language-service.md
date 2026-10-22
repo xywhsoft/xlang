@@ -48,7 +48,7 @@ CLI 兼容后端每次执行真实 `--help`；旧模式运行 `check <absolute-f
 
 ## 协议与能力
 
-开发版 0.21 默认原生后端新增打开／编辑后的标准自动诊断，按入口贡献保留、依赖失效和后台观察，详见 [自动诊断](lsp-automatic-diagnostics.md)。当前 IDE 两个客户端显式关闭该新默认行为，诊断／导航仍使用上述批次控制，待后续输入证明和界面策略接入；补全客户端关闭它以避免重复检查。标准定义、悬停与文档符号的按需分析继续支持，无需事先手工检查；范围、错误与调度契约见 [按需语义分析](lsp-on-demand.md)。开发构建与发布候选分别记录。
+开发版 0.22 默认原生后端支持打开／编辑后的标准自动诊断，按入口贡献保留、依赖失效和后台观察，详见 [自动诊断](lsp-automatic-diagnostics.md)。另外提供可协商的 [文件输入证明](lsp-diagnostic-proofs.md)，复用已验证正文摘要与磁盘身份。当前 IDE 两个客户端显式关闭新默认自动行为，诊断／导航仍使用上述批次控制，待后续同步与界面策略接入；补全客户端关闭它以避免重复检查。标准定义、悬停与文档符号的按需分析继续支持，无需事先手工检查；范围、错误与调度契约见 [按需语义分析](lsp-on-demand.md)。开发构建与发布候选分别记录。
 
 规范参考 [Microsoft LSP 3.17](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/)；帧采用 ASCII `Content-Length`、CRLF 头和 UTF-8 JSON-RPC 2.0 正文。长度按字节，支持分片和连续帧，拒绝缺失/重复/非法长度、非 UTF-8 编码、坏 JSON 和截断 EOF。
 
