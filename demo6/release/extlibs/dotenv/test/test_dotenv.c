@@ -13,13 +13,33 @@ static int check(int condition, const char* message)
 
 static int test_create_failure(void)
 {
-	int ok = check(xrtMemDebugFailAfter(0), "cannot inject create failure");
-	if (!ok) return 0;
-	ok &= check(xrtDotenvCreate() == NULL, "create must reject allocation failure");
-	ok &= check(xrtMemDebugFailTriggered(), "allocation failure did not trigger");
-	xrtMemDebugFailClear();
-	xrtClearError();
-	return ok;
+	unsigned failure;
+	int saw_failure = 0, saw_success = 0;
+	for (failure = 0; failure < 16; ++failure) {
+		xrtdotenv* config;
+		int triggered, ok;
+		if (!check(xrtMemDebugFailAfter(failure), "cannot inject create failure"))
+			return 0;
+		config = xrtDotenvCreate();
+		triggered = xrtMemDebugFailTriggered();
+		xrtMemDebugFailClear();
+		if (triggered) {
+			const xerror* error = xrtGetError();
+			saw_failure = 1;
+			ok = check(config == NULL && error != NULL &&
+				xrtErrorKind(error) == XERR_MEMORY,
+				"create allocation failure lost its memory error");
+		} else {
+			saw_success = 1;
+			ok = check(config != NULL && xrtGetError() == NULL,
+				"create failed without an allocation fault");
+		}
+		xrtDotenvDestroy(config);
+		xrtClearError();
+		if (!ok) return 0;
+	}
+	return check(saw_failure && saw_success,
+		"create allocation scan missed failure or success");
 }
 
 static int test_allocation_transactions(void)

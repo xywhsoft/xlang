@@ -13,7 +13,7 @@ try
     bool caught = false
     try
         config.apply()
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()

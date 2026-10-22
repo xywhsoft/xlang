@@ -1,45 +1,43 @@
 import dotenv
 
 extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
 extern "xrtMemDebugFailClear" func failClear()
 
+func exercise(int which) as bool
+    if which == 0 then
+        return dotenv.create().valid
+    elseif which == 1 then
+        return dotenv.parse("A=1\n").get("A") == "1"
+    else
+        return dotenv.load("test/data/dotenv_test.env").count > 0
+    end
+end
+
 func main(...) as int
-    // 三个工厂都先创建 Config，故障不能被误报为配置或文件错误。
-    assert failAfter(uint64(0))
-    bool createFailed = false
-    try
-        dotenv.create()
-    catch MemoryError
-        createFailed = true
-    finally
-        failClear()
+    // 分别扫描创建、解析与文件读取中的分配点，失败必须保留类型。
+    for which in range(3)
+        int failures = 0
+        int successes = 0
+        for allocation in range(128)
+            bool caught = false
+            bool succeeded = false
+            assert failAfter(uint64(allocation))
+            try
+                succeeded = exercise(which)
+            catch MemoryError error
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            if caught != triggered or (not caught and not succeeded) then
+                println("factory=", which, " allocation=", allocation, " caught=", caught, " triggered=", triggered, " succeeded=", succeeded)
+            end
+            assert caught == triggered and (caught or succeeded)
+            if caught then failures += 1 else successes += 1 end
+        end
+        assert failures > 0 and successes > 0
+        assert exercise(which)
     end
-    assert createFailed
-
-    assert failAfter(uint64(0))
-    bool parseFailed = false
-    try
-        dotenv.parse("A=1\n")
-    catch MemoryError
-        parseFailed = true
-    finally
-        failClear()
-    end
-    assert parseFailed
-
-    assert failAfter(uint64(0))
-    bool loadFailed = false
-    try
-        dotenv.load("test/data/dotenv_test.env")
-    catch MemoryError
-        loadFailed = true
-    finally
-        failClear()
-    end
-    assert loadFailed
-
-    auto config = dotenv.parse("A=1\n")
-    assert config.get("A") == "1"
-    assert dotenv.load("test/data/dotenv_test.env").count > 0
     return 0
 end

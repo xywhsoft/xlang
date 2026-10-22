@@ -44,7 +44,7 @@ XLang 的 `maxBytes` 必须为正数；C 的 `xrtDotenvParse/Load` 接受 0 作�
 `xrtDotenvCreate` / `xrtDotenvDestroy` 管理对象；`xrtDotenvParse`、
 `xrtDotenvLoad`、`xrtDotenvSet` 返回成功状态。`xrtDotenvGet` 返回借用的
 字符串，修改或销毁对象后失效；XLang 的 `string` 返回值独立持有内容。
-`xrtDotenvErrorCode`、`xrtDotenvErrorLine`、`xrtDotenvErrorText` 可检查失败。C 故障注入测试覆盖首次分配失败及清除故障后重新创建。
+`xrtDotenvErrorCode`、`xrtDotenvErrorLine`、`xrtDotenvErrorText` 可检查失败。C 故障注入逐点检查创建失败的 `XERR_MEMORY` 分类及清除故障后的恢复。
 公开 C 操作开始时清理本线程旧 XRT 错误，成功调用不残留之前的失败；对象错误查询与析构不会擦除诊断。
 同一对象的并发修改需由调用方同步；不同对象互不共享存储。
 
