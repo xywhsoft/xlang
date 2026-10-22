@@ -24,7 +24,7 @@ for i in range(8)
         assert failAfter(uint64(allocation))
         try
             value = result(i)
-        catch MemoryError
+        catch MemoryError error
             caught = true
         end
         bool triggered = failTriggered()

@@ -133,3 +133,9 @@ RGBA 组合的穷举。Windows `-SkipAot` 门禁及 Linux C ASan/UBSan/float-cas
 测试。预处理核对关键调用仍在；Windows 的 21 个 API、独立 oracle、
 线程与双语门禁，以及 Linux C ASan/UBSan/float-cast、8000 轮线程和
 XLang 对照均通过。库本体/API 未改，完整 AOT 的共享阻断仍未解除。
+
+2026-10-23：语言分配故障测试的单名 `catch MemoryError` 原是无类型
+捕获变量，无法证明异常类别；现改为 `catch MemoryError error`。
+八个公开颜色入口的故障扫描与恢复、Windows `-SkipAot` 专项和 Linux
+ASan/UBSan/float-cast、独立 oracle、线程及语言联合门禁通过。实现和
+公开 API 不变；完整 AOT 仍受共享缺符号阻断。
