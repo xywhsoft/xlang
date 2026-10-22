@@ -75,6 +75,7 @@
     专项门禁为 <code>tools/check_extlib_argon2_bloom.ps1</code>，执行记录绑定源码和宿主哈希。</p>
     <ul>
       <li>无效参数使用 ValueError，分配失败使用 MemoryError，安全随机源失败使用 IOError。</li>
+      <li>六个 C 操作入口先清除旧的 XRT 错误；成功、密码不匹配和无效 PHC 的普通查询结果不会继承上次失败。调用后立即读取错误槽。</li>
       <li>输出 4..256 字节、盐 8..64 字节、内存最多 2097152 KiB；verify 同样检查资源上限。
       该上限不是并发配额或时间预算，不承诺取消与中途终止。</li>
       <li>RFC 9106 参数组：64 MiB / t=3 / p=4，或 2 GiB / t=1 / p=4；

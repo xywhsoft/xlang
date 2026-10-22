@@ -56,6 +56,47 @@ int main(void)
         fputs("test_argon2: hash or verify failed\n", stderr);
         return 1;
     }
+    /* 每次公开操作只留下本次错误；正常不匹配不能继承旧故障。 */
+    {
+        const char *value;
+        xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
+        value = xargon2_hash(LIT("pw"), LIT("0123456789abcdef"), LIT(""), LIT(""),
+            1, 64, 1, 32, 16, 2);
+        assert(value[0] != '\0' && xrtGetError() == NULL);
+
+        xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
+        value = xargon2_hash_raw(LIT("pw"), LIT("0123456789abcdef"), LIT(""), LIT(""),
+            1, 64, 1, 32, 16, 2);
+        assert(value[0] != '\0' && xrtGetError() == NULL);
+
+        xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
+        assert(!xargon2_verify(LIT("wrong"), encoded, strlen(encoded), LIT(""), LIT("")));
+        assert(xrtGetError() == NULL);
+
+        xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
+        assert(xargon2_needs_rehash(encoded, strlen(encoded), 1, 64, 1));
+        assert(xrtGetError() == NULL);
+
+        xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
+        value = xargon2_extract(encoded, strlen(encoded));
+        assert(value[0] != '\0' && xrtGetError() == NULL);
+
+        xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
+        value = xargon2_generate_salt(16);
+        assert(strlen(value) == 32u && xrtGetError() == NULL);
+
+        xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
+        assert(!xargon2_verify(LIT("pw"), LIT("invalid"), LIT(""), LIT("")));
+        assert(xrtGetError() == NULL);
+
+        xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
+        assert(xargon2_needs_rehash(LIT("invalid"), 3, 65536, 4));
+        assert(xrtGetError() == NULL);
+
+        xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
+        assert(xargon2_extract(LIT("invalid"))[0] == '\0');
+        assert(xrtGetError() == NULL);
+    }
     {
         const char *withNul = xargon2_hash(LIT("pw\0tail"), LIT("0123456789abcdef"),
             LIT(""), LIT(""), 1, 64, 1, 32, 16, 2);

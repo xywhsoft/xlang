@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-/* 返回的字符串借用 XRT 临时区，长期保存应复制；失败详情见 xrtGetError。 */
+/* 操作入口清除旧错误；返回字符串借用 XRT 临时区，失败详情见 xrtGetError。 */
 const char *xargon2_hash(const char *password, size_t passwordSize,
     const char *salt, size_t saltSize, const char *secret, size_t secretSize,
     const char *ad, size_t adSize, long long timeCost, long long memoryCost,

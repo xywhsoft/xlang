@@ -41,7 +41,8 @@ assert not argon2.verify("wrong", stored)
 - PHC 不存储 `secret` 与 `ad`；验证时必须传入与创建时相同的值。
   不推荐普通字符串比较代替认证比较。
 - 失败使用 XRT 结构化错误。无效参数为 ValueError，分配失败为 MemoryError，
-  随机源失败为 IOError；成功不会清除调用前已有的错误槽。
+  随机源失败为 IOError。上述六个操作入口会清除调用前的旧错误；成功、密码
+  不匹配、无效 PHC 的普通查询结果不留下旧错误。调用方应在本次调用后立即读取错误槽。
 
 `PROFILE_LOW_MEMORY_*` 使用 t=3/m=65536/p=4；`PROFILE_HIGH_MEMORY_*` 使用
 t=1/m=2097152/p=4。两组对应 [RFC 9106 第 4 节](https://www.rfc-editor.org/rfc/rfc9106.html#section-4)，

@@ -198,6 +198,7 @@ const char *xargon2_hash(const char *password, size_t passwordSize,
     int result;
     int automatic = saltSize == 0;
 
+    xrtClearError();
     if ( !xargon2_validate_bytes(password, passwordSize) ||
          !xargon2_validate_bytes(salt, saltSize) ||
          !xargon2_validate_bytes(secret, secretSize) ||
@@ -293,6 +294,7 @@ const char *xargon2_hash_raw(const char *password, size_t passwordSize,
     int result;
     int automatic = saltSize == 0;
 
+    xrtClearError();
     if ( !xargon2_validate_bytes(password, passwordSize) ||
          !xargon2_validate_bytes(salt, saltSize) ||
          !xargon2_validate_bytes(secret, secretSize) ||
@@ -429,6 +431,7 @@ long long xargon2_verify(const char *password, size_t passwordSize,
     uint32_t i;
     int result;
 
+    xrtClearError();
     if ( !xargon2_validate_bytes(password, passwordSize) ||
          !xargon2_validate_bytes(secret, secretSize) ||
          !xargon2_validate_bytes(ad, adSize) ) {
@@ -495,6 +498,7 @@ long long xargon2_needs_rehash(const char *encoded, size_t encodedSize,
     int result;
     int needs;
 
+    xrtClearError();
     if ( !xargon2_validate_costs(recommendedTime, recommendedMemory,
                                 recommendedParallelism, 32, 16) ) {
         return 1;
@@ -522,10 +526,11 @@ const char *xargon2_extract(const char *encoded, size_t encodedSize)
     uint8_t *salt = NULL;
     uint8_t *output = NULL;
     char *resultText;
-    int result = xargon2_decode(encoded, encodedSize, "", 0u,
-                                &context, &type,
-                                &salt, &output);
+    int result;
 
+    xrtClearError();
+    result = xargon2_decode(encoded, encodedSize, "", 0u,
+                            &context, &type, &salt, &output);
     if ( result != ARGON2_OK ) {
         return "";
     }
@@ -533,6 +538,7 @@ const char *xargon2_extract(const char *encoded, size_t encodedSize)
     if ( resultText == NULL ) {
         xargon2_free(salt, encodedSize);
         xargon2_free(output, encodedSize);
+        xargon2_set_error(XERR_MEMORY, "argon2 extraction allocation failed");
         return "";
     }
     snprintf(resultText, 96, "%d,%u,%u,%u,%u,%u", (int)type,
@@ -552,6 +558,7 @@ const char *xargon2_generate_salt(long long length)
     char *hex;
     size_t i;
 
+    xrtClearError();
     if ( length < ARGON2_MIN_SALT_LENGTH ||
          length > XARGON2_MAX_SALT_LENGTH ) {
         xargon2_set_error(XERR_VALUE, "argon2 salt length must be between 8 and 64 bytes");
