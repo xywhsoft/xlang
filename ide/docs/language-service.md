@@ -48,6 +48,8 @@ CLI 兼容后端每次执行真实 `--help`；旧模式运行 `check <absolute-f
 
 ## 协议与能力
 
+开发版 0.20 的默认原生后端已支持标准定义、悬停与文档符号请求的按需分析，无需事先手工检查；显式批次保护与 CLI 兼容保留。范围、错误与调度契约见 [按需语义分析](lsp-on-demand.md)。开发构建与发布候选分别记录。
+
 规范参考 [Microsoft LSP 3.17](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/)；帧采用 ASCII `Content-Length`、CRLF 头和 UTF-8 JSON-RPC 2.0 正文。长度按字节，支持分片和连续帧，拒绝缺失/重复/非法长度、非 UTF-8 编码、坏 JSON 和截断 EOF。
 
 实现了 `initialize`、`initialized`、`shutdown`、`exit`、`$/cancelRequest`、`didOpen/didChange/didSave/didClose` 和 `publishDiagnostics`，变化通知支持有序增量及全文内容。请求 ID 按整数或字符串关联；未初始化请求、重复初始化、未知方法、坏参数、取消及变化后的请求返回明确错误。通知没有请求响应。关闭文档或正文版本变化时清空该版本的诊断。

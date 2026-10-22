@@ -16,6 +16,10 @@
 typedef struct message { struct message* next; xvalue* value; size_t size; } message;
 typedef struct document { char *uri,*path; const char* text; xls_text* content; int version; unsigned long long generation,identity; } document;
 typedef struct native_request { xvalue* id; xls_query* query; int document,version; unsigned long long identity,generation; } native_request;
+typedef struct semantic_request {
+ xvalue* id; int document,version,line,character,kind,started;
+ unsigned long long identity,generation,order;
+} semantic_request;
 typedef struct server {
  CRITICAL_SECTION lock; HANDLE reader,event; volatile LONG stop; message *head,*tail; size_t queueBytes,queueCount; int eof,readFailed;
  int initialized,shutdown,exitRequested,exitCode,writeFailed,checkOnSave,cliCompletion,cliDiagnostics; char *compiler,*directory; xide_toolchains* cache;
@@ -29,7 +33,11 @@ typedef struct server {
  int completionPendingDocument,completionPendingEntry,completionPendingVersion,completionPendingLine,completionPendingCharacter;
  xls_worker *analysis,*semanticAnalysis,*cursorAnalysis; native_request native[DOC_LIMIT]; size_t foldingLimit;
  xls_session_stats analysisStats; uint64_t analysisThread;
+ semantic_request semantic[DOC_LIMIT]; unsigned long long semanticOrder; int checkForSemantic;
 } server;
+static void cancelSemantic(server*,int,int,const char*);
+static void semanticCheckFinished(server*,int,unsigned long long,int,int,const char*,int);
+static void drainSemantic(server*);
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* get(const xvalue* o,const char* key) { return o && xrtValueType(o)==XVALUE_OBJECT ? xrtValueObjectGet(o,sv(key)) : NULL; }
 static const char* string(const xvalue* v) { xstrview s={0}; return v && xrtValueGetString(v,&s) && !memchr(s.Data,0,s.Size) && s.Size<=INT_MAX && (!s.Size || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s.Data,(int)s.Size,NULL,0)) ? s.Data : NULL; }
@@ -170,7 +178,7 @@ static void startCheck(server* s,int index,const xvalue* id,int snapshots)
   }
  } else s->check=xideLanguageCheckStart(s->cache,s->compiler,s->directory,d->path,d->text,d->version,&e);
  if(!s->check) { if(id) response(s,id,NULL,-32602,*e.message ? e.message : "Unable to start source check."); else fprintf(stderr,"xlang-ls: %s\n",e.message); return; }
- s->snapshotMode=snapshots; s->checkBatchGeneration=s->generation; clearPublished(s);
+ s->snapshotMode=snapshots; s->checkBatchGeneration=s->generation; s->checkForSemantic=0; clearPublished(s);
  s->checkDocument=index; s->checkVersion=d->version; s->checkGeneration=d->generation; s->checkId=id ? xrtValueDeepClone(id) : NULL; s->cancelCode=0; s->cancelReason=NULL;
 }
 /* A cancelled guard is retired only once its worker has exited. At most one
@@ -196,7 +204,13 @@ static void pollCheck(server* s)
  document* d=&s->docs[s->checkDocument]; int current=d->uri && d->generation==s->checkGeneration && d->version==s->checkVersion && (!s->snapshotMode || s->checkBatchGeneration==s->generation);
  if((s->cancelCode || !current) && !xideLanguageCheckWorkerFinished(s->check)) return;
  xvalue* result=xideLanguageCheckResult(s->check);
- if(s->cancelCode || !current || state==XIDE_CHECK_CANCELLED) { if(s->checkId) response(s,s->checkId,NULL,s->cancelCode ? s->cancelCode : -32801,s->cancelReason ? s->cancelReason : "Document content changed."); }
+ int automatic=s->checkForSemantic,semanticCode=0,indexed=0;
+ int semanticDocument=s->checkDocument; unsigned long long semanticGeneration=s->checkBatchGeneration;
+ const char* semanticReason=NULL;
+ if(s->cancelCode || !current || state==XIDE_CHECK_CANCELLED) {
+  semanticCode=s->cancelCode ? s->cancelCode : -32801; semanticReason=s->cancelReason ? s->cancelReason : "Document content changed.";
+  if(s->checkId) response(s,s->checkId,NULL,semanticCode,semanticReason);
+ }
  else if(state==XIDE_CHECK_READY && result) {
   xvalue* list=get(result,"diagnostics"); int published=0;
   if(s->snapshotMode) {
@@ -205,12 +219,16 @@ static void pollCheck(server* s)
    if(published) { s->guard=s->check; s->check=NULL; s->guardCancelled=0; }
    else { xrtValueRelease(s->guardId); s->guardId=NULL; free(s->guardUri); s->guardUri=NULL; }
   } else { publish(s,d,xrtValueDeepClone(list)); published=1; }
-  if(!published) { if(s->checkId) response(s,s->checkId,NULL,-32603,"Unable to publish verified snapshot groups."); xrtValueRelease(result); result=NULL; }
+  bool definitions=false; xrtValueGetBool(get(result,"semanticDefinitions"),&definitions); indexed=definitions;
+  if(!published) { semanticCode=-32603; semanticReason="Unable to publish verified snapshot groups."; if(s->checkId) response(s,s->checkId,NULL,semanticCode,semanticReason); xrtValueRelease(result); result=NULL; }
   if(s->checkId && result) { put(result,"count",xrtValueInt((int64)xrtValueCount(list))); response(s,s->checkId,result,0,NULL); result=NULL; }
- } else { if(s->checkId) response(s,s->checkId,NULL,-32603,*error ? error : "Unable to obtain verified diagnostics."); else fprintf(stderr,"xlang-ls: %s\n",error); }
+ } else { semanticCode=-32603; semanticReason=*error ? error : "Unable to obtain verified diagnostics."; if(s->checkId) response(s,s->checkId,NULL,semanticCode,semanticReason); else fprintf(stderr,"xlang-ls: %s\n",error); }
  xrtValueRelease(result);
  if(s->check && !xideLanguageCheckWorkerFinished(s->check)) { xideLanguageCheckCancel(s->check); s->guard=s->check; s->check=NULL; s->guardCancelled=1; }
  xideLanguageCheckDestroy(s->check); s->check=NULL; xrtValueRelease(s->checkId); s->checkId=NULL;
+ s->checkForSemantic=0;
+ if(automatic) semanticCheckFinished(s,semanticDocument,semanticGeneration,current,semanticCode,semanticReason,indexed);
+ else drainSemantic(s);
  if(s->pending>=0 && !s->shutdown && s->docs[s->pending].uri) { int i=s->pending; s->pending=-1; startCheck(s,i,NULL,0); } else s->pending=-1;
 }
 /* One cursor worker and one latest waiting request. Retire asynchronously. */
@@ -316,7 +334,7 @@ static void documents(server* s,const char* method,const xvalue* params)
  }
  if(i<0) goto invalid;
  document* d=&s->docs[i];
- if(!strcmp(method,"textDocument/didClose")) { cancelNative(s,i,-32800,"Document closed."); cancelCompletion(s,-32800,"Document closed.",1); if(s->check && (s->snapshotMode || s->checkDocument==i)) cancel(s,-32800,"Document closed."); if(s->pending==i) s->pending=-1; clearPublished(s); publish(s,d,NULL); ++s->generation; clearDocument(s,i); return; }
+ if(!strcmp(method,"textDocument/didClose")) { cancelNative(s,i,-32800,"Document closed."); cancelSemantic(s,i,-32800,"Document closed."); cancelCompletion(s,-32800,"Document closed.",1); if(s->check && (s->snapshotMode || s->checkDocument==i)) cancel(s,-32800,"Document closed."); if(s->pending==i) s->pending=-1; clearPublished(s); publish(s,d,NULL); ++s->generation; clearDocument(s,i); return; }
  if(!strcmp(method,"textDocument/didChange")) {
   const xvalue* changes=get(params,"contentChanges"); int version=0;
   if(!integer(get(item,"version"),&version) || version<=d->version || !changes || xrtValueType(changes)!=XVALUE_ARRAY || xrtValueCount(changes)>1024) goto invalid;
@@ -342,6 +360,7 @@ static void documents(server* s,const char* method,const xvalue* params)
   if(s->check && (s->snapshotMode || s->checkDocument==i)) cancel(s,-32801,"Document content changed.");
   cancelCompletion(s,-32801,"Open-document cursor content changed.",1);
   cancelNative(s,i,-32801,"Native analysis document changed.");
+  cancelSemantic(s,i,-32801,"Semantic analysis document changed.");
   s->textBytes=s->textBytes-xlsTextSize(d->content)+xlsTextSize(content); xlsTextRelease(d->content); d->content=content; d->text=xlsTextData(content); d->version=version; d->generation=++s->generation; clearPublished(s); publish(s,d,NULL); return;
  }
  if(!strcmp(method,"textDocument/didSave")) {
@@ -351,15 +370,96 @@ static void documents(server* s,const char* method,const xvalue* params)
  }
 invalid: fprintf(stderr,"xlang-ls: rejected %s notification.\n",method);
 }
+static void releaseSemantic(semantic_request* request)
+{ xrtValueRelease(request->id); memset(request,0,sizeof(*request)); }
+static int semanticCurrent(server* s,const semantic_request* request)
+{
+ document* d=&s->docs[request->document];
+ return d->uri && d->identity==request->identity && d->version==request->version && s->generation==request->generation;
+}
+static xvalue* semanticResult(server* s,const semantic_request* request)
+{
+ if(!s->guard || s->guardCancelled) return NULL;
+ document* d=&s->docs[request->document];
+ return request->kind==2 ? xideLanguageCheckDocumentSymbols(s->guard,d->path,request->version) :
+  request->kind==1 ? xideLanguageCheckHover(s->guard,d->path,request->version,request->line,request->character) :
+  xideLanguageCheckDefinition(s->guard,d->path,request->version,request->line,request->character);
+}
+static void cancelUnusedSemanticCheck(server* s)
+{
+ if(!s->check || !s->checkForSemantic || s->cancelCode) return;
+ for(size_t i=0;i<DOC_LIMIT;++i) if(s->semantic[i].id && s->semantic[i].started) return;
+ cancel(s,-32800,"No pending semantic request needs this analysis.");
+}
+static void cancelSemantic(server* s,int index,int code,const char* reason)
+{
+ for(size_t i=0;i<DOC_LIMIT;++i) if(s->semantic[i].id && (index<0 || s->semantic[i].document==index)) {
+  response(s,s->semantic[i].id,NULL,code,reason); releaseSemantic(&s->semantic[i]);
+ }
+ cancelUnusedSemanticCheck(s);
+}
+static void drainSemantic(server* s)
+{
+ for(size_t i=0;i<DOC_LIMIT;++i) {
+  semantic_request* request=&s->semantic[i]; if(!request->id) continue;
+  if(!semanticCurrent(s,request)) { response(s,request->id,NULL,-32801,"Semantic request inputs changed."); releaseSemantic(request); continue; }
+  xvalue* result=semanticResult(s,request);
+  if(result) { response(s,request->id,result,0,NULL); releaseSemantic(request); }
+ }
+}
+static void semanticCheckFinished(server* s,int index,unsigned long long generation,int current,int code,const char* reason,int indexed)
+{
+ for(size_t i=0;i<DOC_LIMIT;++i) {
+  semantic_request* request=&s->semantic[i];
+  if(!request->id || !request->started || request->document!=index || request->generation!=generation) continue;
+  if(code || !current || !semanticCurrent(s,request)) response(s,request->id,NULL,code ? code : -32801,reason ? reason : "Semantic request inputs changed.");
+  else if(!s->guard || s->guardCancelled || xideLanguageCheckGuardState(s->guard,NULL,0)==XIDE_GUARD_INVALID)
+   response(s,request->id,NULL,-32801,"Analyzed semantic inputs are no longer current.");
+  else {
+   /* Source errors have diagnostics, but no complete semantic facts. Empty
+      standard results do not conceal infrastructure or resource failures. */
+   xvalue* result=indexed ? semanticResult(s,request) : request->kind==2 ? xrtValueArray() : xrtValueNull();
+   response(s,request->id,result,result ? 0 : indexed ? -32801 : -32603,result ? NULL : "Semantic result is unavailable.");
+  }
+  releaseSemantic(request);
+ }
+ drainSemantic(s);
+}
+static void pollSemantic(server* s)
+{
+ drainSemantic(s); cancelUnusedSemanticCheck(s);
+ if(s->check || s->shutdown) return;
+ semantic_request* next=NULL;
+ for(size_t i=0;i<DOC_LIMIT;++i) if(s->semantic[i].id && (!next || s->semantic[i].order<next->order)) next=&s->semantic[i];
+ if(!next) return;
+ int index=next->document; startCheck(s,index,NULL,1);
+ if(!s->check) { cancelSemantic(s,index,-32603,"Unable to start current semantic analysis."); return; }
+ s->checkForSemantic=1;
+ for(size_t i=0;i<DOC_LIMIT;++i) if(s->semantic[i].id && s->semantic[i].document==index && semanticCurrent(s,&s->semantic[i])) s->semantic[i].started=1;
+}
 static void semanticQuery(server* s,const xvalue* id,const xvalue* params,int query)
 {
  int i=find(s,string(get(get(params,"textDocument"),"uri"))),version=i>=0 ? s->docs[i].version : 0,line=0,character=0; const xvalue* batch=get(params,"checkId"),*suppliedVersion=get(params,"version");
+ const char* namedId=string(id);
+ if(namedId && strlen(namedId)>65535) { response(s,id,NULL,-32602,"Semantic request ID exceeds 64 KiB."); return; }
  if(i<0 || (suppliedVersion && !integer(suppliedVersion,&version)) || version!=s->docs[i].version || (query!=2 && (!integer(get(get(params,"position"),"line"),&line) || line<0 || !integer(get(get(params,"position"),"character"),&character) || character<0)) || (batch && !validId(batch))) { response(s,id,NULL,-32602,"Open document and valid UTF-16 position are required; supplied version/checkId must be current."); return; }
  if(query!=2 && !validPosition(&s->docs[i],line,character)) { response(s,id,NULL,-32602,"Position is not a UTF-16 scalar boundary."); return; }
- if(!s->guard || s->guardCancelled || (batch && !sameId(batch,s->guardId))) { response(s,id,NULL,-32801,"Checked compilation is no longer current."); return; }
- xvalue* result=query==2 ? xideLanguageCheckDocumentSymbols(s->guard,s->docs[i].path,version) : query==1 ? xideLanguageCheckHover(s->guard,s->docs[i].path,version,line,character) : xideLanguageCheckDefinition(s->guard,s->docs[i].path,version,line,character);
- if(!result) response(s,id,NULL,-32801,"No current semantic index; run a successful source check first.");
- else response(s,id,result,0,NULL);
+ if(batch && (!s->guard || s->guardCancelled || !sameId(batch,s->guardId))) { response(s,id,NULL,-32801,"Checked compilation is no longer current."); return; }
+ size_t slot=DOC_LIMIT;
+ for(size_t j=0;j<DOC_LIMIT;++j) {
+  if(s->semantic[j].id && sameId(s->semantic[j].id,id)) { releaseSemantic(&s->semantic[j]); response(s,id,NULL,-32600,"Request ID is already active."); cancelUnusedSemanticCheck(s); return; }
+  if(!s->semantic[j].id && slot==DOC_LIMIT) slot=j;
+ }
+ semantic_request captured={.document=i,.version=version,.line=line,.character=character,.kind=query,
+  .identity=s->docs[i].identity,.generation=s->generation,.order=++s->semanticOrder};
+ xvalue* result=semanticResult(s,&captured);
+ if(result) { response(s,id,result,0,NULL); return; }
+ if(batch || s->cliDiagnostics) { response(s,id,NULL,-32801,"No current semantic index; run a successful source check first."); return; }
+ if(slot==DOC_LIMIT) { response(s,id,NULL,-32001,"The semantic request queue is full."); return; }
+ captured.id=xrtValueDeepClone(id);
+ if(!captured.id) { response(s,id,NULL,-32603,"Unable to retain semantic request."); return; }
+ captured.started=s->check && s->checkForSemantic && !s->cancelCode && s->checkDocument==i && s->checkBatchGeneration==s->generation;
+ s->semantic[slot]=captured;
 }
 static void dispatch(server* s,const xvalue* message)
 {
@@ -386,23 +486,26 @@ static void dispatch(server* s,const xvalue* message)
   put(cap,"foldingRangeProvider",xrtValueBool(true)); put(scope,"residentSyntax",xrtValueBool(true)); put(scope,"analysisRuntime",xrtValueString(sv("compiler-xrt")));
   put(scope,"nativeCursorCompletion",xrtValueBool(!s->cliCompletion)); put(scope,"completionBackend",xrtValueString(sv(s->cliCompletion ? "cli" : "native")));
   put(scope,"retainedCursorCompletion",xrtValueBool(!s->cliCompletion));
+  put(scope,"automaticSemanticQueries",xrtValueBool(!s->cliDiagnostics));
   put(scope,"nativeSnapshotDiagnostics",xrtValueBool(!s->cliDiagnostics)); put(scope,"diagnosticsBackend",xrtValueString(sv(s->cliDiagnostics ? "cli" : "native")));
   put(scope,"retainedSemanticChecks",xrtValueBool(!s->cliDiagnostics)); put(scope,"retainedNativeInputs",xrtValueBool(!s->cliDiagnostics || !s->cliCompletion));
   put(scope,"incrementalEntrySyntax",xrtValueBool(!s->cliDiagnostics));
   put(scope,"incrementalFunctionSemantics",xrtValueBool(!s->cliDiagnostics));
   put(scope,"savedDiagnosticsBackend",xrtValueString(sv("cli")));
   put(scope,"savedEntryDiagnostics",xrtValueBool(true)); put(scope,"unsavedDependencies",xrtValueBool(true)); put(scope,"snapshotDiagnostics",xrtValueBool(true)); put(scope,"snapshotDocumentFingerprint",xrtValueBool(true)); put(scope,"snapshotInputGuard",xrtValueString(sv("background-poll"))); put(scope,"cSemantics",xrtValueBool(false)); put(scope,"snapshotDefinition",xrtValueBool(true)); put(cap,"definitionProvider",xrtValueBool(true)); put(cap,"hoverProvider",xrtValueBool(true)); put(cap,"documentSymbolProvider",xrtValueBool(true)); xvalue *completion=xrtValueObject(),*triggers=xrtValueArray(),*dot=xrtValueString(sv(".")); xrtValueArrayAppend(triggers,dot); xrtValueRelease(dot); put(completion,"resolveProvider",xrtValueBool(false)); put(completion,"triggerCharacters",triggers); put(cap,"completionProvider",completion); put(scope,"cursorCompletion",xrtValueBool(true)); put(scope,"completionInputGuard",xrtValueString(sv("background-poll"))); put(scope,"snapshotHover",xrtValueBool(true)); put(scope,"snapshotDocumentSymbols",xrtValueBool(true)); put(cap,"experimental",scope); put(result,"capabilities",cap);
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.19"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.20"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
- if(!strcmp(method,"shutdown")) { if(id) { s->shutdown=1; s->pending=-1; cancelNative(s,-1,-32800,"Server shutting down."); clearPublished(s); cancel(s,-32800,"Server shutting down."); cancelCompletion(s,-32800,"Server shutting down.",1); response(s,id,NULL,0,NULL); } return; }
+ if(!strcmp(method,"shutdown")) { if(id) { s->shutdown=1; s->pending=-1; cancelNative(s,-1,-32800,"Server shutting down."); clearPublished(s); cancel(s,-32800,"Server shutting down."); cancelSemantic(s,-1,-32800,"Server shutting down."); cancelCompletion(s,-32800,"Server shutting down.",1); response(s,id,NULL,0,NULL); } return; }
  if(!strcmp(method,"initialized")) { if(id) response(s,id,NULL,-32600,"initialized must be a notification."); return; }
  if(!strcmp(method,"$/cancelRequest")) {
   if(id) response(s,id,NULL,-32600,"Cancellation must be a notification.");
   else {
    const xvalue* cancelledId=get(params,"id");
    for(size_t i=0;i<DOC_LIMIT;++i) if(s->native[i].query && sameId(s->native[i].id,cancelledId)) { xlsQueryCancel(s->native[i].query); response(s,s->native[i].id,NULL,-32800,"Request cancelled."); releaseNative(&s->native[i]); }
+   for(size_t i=0;i<DOC_LIMIT;++i) if(s->semantic[i].id && sameId(s->semantic[i].id,cancelledId)) { response(s,s->semantic[i].id,NULL,-32800,"Request cancelled."); releaseSemantic(&s->semantic[i]); }
+   cancelUnusedSemanticCheck(s);
    if(s->checkId && sameId(s->checkId,cancelledId)) cancel(s,-32800,"Request cancelled.");
    if(s->completionId && sameId(s->completionId,cancelledId)) cancelCompletion(s,-32800,"Request cancelled.",0);
    if(s->completionPendingId && sameId(s->completionPendingId,cancelledId)) { response(s,s->completionPendingId,NULL,-32800,"Request cancelled."); xrtValueRelease(s->completionPendingId); s->completionPendingId=NULL; }
@@ -436,7 +539,7 @@ int main(void)
  if(s.reader) while(!s.exitRequested && !s.writeFailed) {
   EnterCriticalSection(&s.lock); message* m=s.head; if(m) { s.head=m->next; if(!s.head) s.tail=NULL; s.queueBytes-=m->size; --s.queueCount; } int eof=s.eof,failed=s.readFailed; LeaveCriticalSection(&s.lock);
   if(m) { dispatch(&s,m->value); xrtValueRelease(m->value); free(m); } else if(eof) { s.exitCode=failed ? 2 : 1; break; }
-  pollGuard(&s); pollCheck(&s); pollCompletion(&s); pollNative(&s);
+  pollGuard(&s); pollCheck(&s); pollCompletion(&s); pollNative(&s); pollSemantic(&s);
   if(!m) {
    HANDLE waits[4]={s.event}; DWORD count=1;
    if(s.completionCancelled) { HANDLE h=xideLanguageCheckWorkerSignal(s.completion); if(h) waits[count++]=h; }
@@ -455,6 +558,7 @@ int main(void)
   CloseHandle(s.reader);
  }
  for(size_t i=0;i<DOC_LIMIT;++i) if(s.native[i].query) { xlsQueryCancel(s.native[i].query); releaseNative(&s.native[i]); }
+ for(size_t i=0;i<DOC_LIMIT;++i) if(s.semantic[i].id) releaseSemantic(&s.semantic[i]);
  xlsWorkerDestroy(s.analysis);
  xideLanguageCheckDestroy(s.completion); xrtValueRelease(s.completionId); xrtValueRelease(s.completionPendingId); free(s.completionUri); xideLanguageCheckDestroy(s.check); xideLanguageCheckDestroy(s.guard); xlsWorkerDestroy(s.semanticAnalysis); xlsWorkerDestroy(s.cursorAnalysis); xrtValueRelease(s.guardId); free(s.guardUri); xrtValueRelease(s.checkId); xrtValueRelease(s.publishedGroups); xideToolchainsDestroy(s.cache);
  while(s.head) { message* m=s.head; s.head=m->next; xrtValueRelease(m->value); free(m); }
