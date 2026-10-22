@@ -136,6 +136,14 @@ int main(void)
     CHECK(same(xdiff_stats("a\nb\nc", "a\nB\nc"), "1,1,2"));
     CHECK(same(xdiff_lines("", ""), ""));
     CHECK(same(xdiff_stats("", ""), "0,0,0"));
+    CHECK(xdiff_lines(NULL, "") == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xdiff_lines("", NULL) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xdiff_stats(NULL, "") == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xdiff_stats("", NULL) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     CHECK(same(xdiff_lines("a\r\nb\r\n", "a\nb"), " a\n b\n"));
     CHECK(same(xdiff_lines("你好\n旧", "你好\n新"),
         " 你好\n-旧\n+新\n"));

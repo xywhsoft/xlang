@@ -105,10 +105,12 @@ static bool xdiff_prepare(const char* old_text, const char* new_text, xdiff_plan
     size_t i, j, stride;
     xrtClearError();
     memset(plan, 0, sizeof(*plan));
-    if (!xdiff_split(old_text != NULL ? old_text : "",
-        &plan->old_lines, &plan->old_count) ||
-        !xdiff_split(new_text != NULL ? new_text : "",
-        &plan->new_lines, &plan->new_count)) goto fail;
+    if (old_text == NULL || new_text == NULL) {
+        xrtSetErrorInfo(XERR_ARGUMENT, XDIFF_DOMAIN, 0, "text pointer is null");
+        return false;
+    }
+    if (!xdiff_split(old_text, &plan->old_lines, &plan->old_count) ||
+        !xdiff_split(new_text, &plan->new_lines, &plan->new_count)) goto fail;
 
     stride = plan->new_count + 1u;
     plan->table = (uint16_t*)xrtCalloc((plan->old_count + 1u) * stride,

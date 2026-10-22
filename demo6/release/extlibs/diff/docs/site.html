@@ -29,7 +29,7 @@
     <pre><code>import diff
 println(diff.lines("a\nb", "a\nB"))
 println(diff.stats("a\nb", "a\nB"))</code></pre>
-    <p>输出不是可直接应用的 unified patch。每侧最多 8 MiB/2048 行，输入须为有效 UTF-8，XLang 文本入口另拒绝内嵌 NUL；C 接口要求 NUL 结尾字符串，超限检测使用有界扫描。采用 O(m×n) 的完整 LCS 表。C 入口失败后可直接重试，成功不会保留旧线程错误。C 教学范例可直接运行 <code>xl run release/extlibs/diff/examples/diff_c.c</code>，Windows/Linux 门禁均与 GCC 分离编译及 XLang 范例对照固定输出。C 所有权和验证命令见包内 README。</p>
+    <p>输出不是可直接应用的 unified patch。每侧最多 8 MiB/2048 行，输入须为有效 UTF-8，XLang 文本入口另拒绝内嵌 NUL；C 接口要求 NUL 结尾字符串，空指针报参数错误，超限检测使用有界扫描。采用 O(m×n) 的完整 LCS 表。C 入口失败后可直接重试，成功不会保留旧线程错误。C 教学范例可直接运行 <code>xl run release/extlibs/diff/examples/diff_c.c</code>，Windows/Linux 门禁均与 GCC 分离编译及 XLang 范例对照固定输出。C 所有权和验证命令见包内 README。</p>
   </section>
 </main>
 </body>
