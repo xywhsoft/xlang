@@ -1,0 +1,16 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto pending = engine.submitAfter(60000, func() as string
+    return "must not run"
+end)
+engine.close()
+assert engine.wait(10000)
+assert pending.isDone()
+bool closed = false
+try
+    auto value = await pending
+catch error
+    closed = true
+end
+assert closed and not pending.isFailed() and not pending.isCancelled()
+println("NetEngine tasks: close settles pending timer without waiting for its deadline")

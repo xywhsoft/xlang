@@ -1,0 +1,4 @@
+auto engine = NetEngine()
+auto value = engine.submit(func(int input) as int
+    return input
+end)

@@ -15597,6 +15597,12 @@ static int xl6IrLowerInferGenericCallTypeArgs(
         const XL6_IrNode* actual = xl6IrNodeGet(module, binding->expression);
         XL6_IrTypeId actualType;
         if ( formal == NULL || actual == NULL || binding->parameter != i ) goto done;
+        /* Inference binds declaration type variables, not concrete arguments.
+         * Overload selection already validates independent parameters; their
+         * ordinary call lowering materializes the permitted conversion (e.g.
+         * an integer literal/default to uint64). Requiring identical raw ABIs
+         * here would reject valid calls without contributing a T binding. */
+        if ( !xl6IrLowerTypeContainsTypeParam(module, formal->storageType, 0) ) continue;
         /* Infer from the exact value at the call boundary, not a NAME's wider
          * nullable storage. Lowering already materializes that flow projection. */
         actualType = xl6IrNodeMaterializedValueType(module, actual);

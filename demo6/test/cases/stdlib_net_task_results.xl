@@ -1,0 +1,92 @@
+import concurrent
+
+class NetTaskResult
+    int value = 73
+end
+func nextValue() as int
+    return 91
+end
+func originalError() as error
+    try
+        throw ValueError("owned error result")
+    catch ValueError value
+        return value
+    end
+end
+
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto logical = engine.submit(func() as bool
+    return true
+end)
+auto narrow = engine.submit(func() as uint8
+    return 255
+end)
+auto nativeInt = engine.submit(func() as c_int
+    return c_int(37)
+end)
+auto real32 = engine.submit(func() as float32
+    return float32(1.5)
+end)
+auto real64 = engine.submit(func() as float
+    return 2.5
+end)
+auto scalar = engine.submit(func() as char
+    return '你'
+end)
+auto clock = engine.submit(func() as time
+    return #12:34:56#
+end)
+auto binary = engine.submit(func() as bytes
+    return b"a\x00\xffb"
+end)
+auto object = engine.submit(func() as NetTaskResult
+    return NetTaskResult()
+end)
+auto arrayResult = engine.submit(func() as array<int>
+    return [31, 32]
+end)
+auto errorResult = engine.submit(func() as error
+    return originalError()
+end)
+auto closureResult = engine.submit(func() as func() as int
+    return nextValue
+end)
+auto ready = Promise::<int>()
+assert ready.tryResolve(87)
+auto nested = engine.submit(func() as future<int>
+    return ready.future
+end)
+auto nullable = engine.submit(func() as int?
+    return null
+end)
+auto map = SlotMap::<int>()
+auto key = map.insert(44)
+auto nativeKey = engine.submit(func() as SlotMapKey
+    return key
+end)
+assert await logical
+assert (await narrow) == 255
+assert (await nativeInt) == c_int(37)
+assert (await real32) == float32(1.5)
+assert (await real64) == 2.5
+assert (await scalar) == '你'
+assert (await clock) == #12:34:56#
+assert (await binary) == b"a\x00\xffb"
+auto observedObject = await object
+assert observedObject.value == 73
+auto observedArray = await arrayResult
+assert observedArray.length == 2 and observedArray[1] == 32
+auto observedError = await errorResult
+assert observedError.message == "owned error result"
+auto observedClosure = await closureResult
+assert observedClosure() == 91
+auto nestedFuture = await nested
+assert (await nestedFuture) == 87
+assert (await nullable) == null
+auto observedKey = await nativeKey
+assert observedKey == key
+engine.close()
+assert engine.wait(10000)
+assert engine.failureCount == 0
+println("NetEngine owned result profiles: scalar/C/nullable/bytes/class/array/error/closure/Future/native key ok")

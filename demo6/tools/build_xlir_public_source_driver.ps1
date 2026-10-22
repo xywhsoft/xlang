@@ -270,6 +270,8 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_executor_language.c',
     'src/runtime/xl6_executor_batch.c',
     'src/runtime/xl6_task_submit_closure.c',
+    'src/runtime/xl6_task_result_closure.c',
+    'src/runtime/xl6_task_net_language.c',
     'src/runtime/xl6_task_pool_language.c',
     'src/runtime/xl6_task_pool_submit_language.c',
     'src/runtime/xl6_ownership_domain_task_pool_language.c',

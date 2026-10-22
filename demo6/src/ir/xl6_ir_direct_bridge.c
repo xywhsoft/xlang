@@ -185,6 +185,12 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define XL6_GENERIC_TASK_GROUP_START(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,XL6_IR_C_ABI_CLOSURE_PTR},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureStarterParameter=2}
 #define XL6_GENERIC_TASK_POOL_SUBMIT(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,XL6_IR_C_ABI_CLOSURE_PTR},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=2}
 #define XL6_GENERIC_TASK_POOL_SUBMIT_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,3,{V,XL6_IR_C_ABI_CLOSURE_PTR,V},.parameterOwners={Owner,NULL,"xl6CancellationTokenDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=2}
+#define XL6_GENERIC_NET_TASK_SUBMIT(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,3,{V,XL6_IR_C_ABI_CLOSURE_PTR,U},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=2}
+#define XL6_GENERIC_NET_TASK_SUBMIT_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,4,{V,XL6_IR_C_ABI_CLOSURE_PTR,V,U},.parameterOwners={Owner,NULL,"xl6CancellationTokenDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=2}
+#define XL6_GENERIC_NET_TASK_AFTER(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,4,{V,I,XL6_IR_C_ABI_CLOSURE_PTR,U},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=3}
+#define XL6_GENERIC_NET_TASK_AFTER_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,5,{V,I,XL6_IR_C_ABI_CLOSURE_PTR,V,U},.parameterOwners={Owner,NULL,NULL,"xl6CancellationTokenDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=3}
+#define XL6_GENERIC_NET_TASK_UNTIL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,4,{V,U,XL6_IR_C_ABI_CLOSURE_PTR,U},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=3}
+#define XL6_GENERIC_NET_TASK_UNTIL_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,5,{V,U,XL6_IR_C_ABI_CLOSURE_PTR,V,U},.parameterOwners={Owner,NULL,NULL,"xl6CancellationTokenDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=3}
 #define XL6_GENERIC_CHANNEL_CASE_RECEIVE(Name,Owner) {Name,T,V,1,{V},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1}
 #define XL6_GENERIC_CHANNEL_CASE_SEND(Name,Owner) {Name,T,V,2,{V,0},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1,.genericValueParameter=2}
 #define XL6_GENERIC_CHANNEL_SELECTION_VALUE(Name,Owner) {Name,T,0,3,{V,V,V},.parameterOwners={Owner,"xl6ChannelCaseDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=3,.nativeResultAbi=XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1}
@@ -218,6 +224,12 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #undef XL6_GENERIC_TASK_GROUP_START
 #undef XL6_GENERIC_TASK_POOL_SUBMIT
 #undef XL6_GENERIC_TASK_POOL_SUBMIT_CANCEL
+#undef XL6_GENERIC_NET_TASK_SUBMIT
+#undef XL6_GENERIC_NET_TASK_SUBMIT_CANCEL
+#undef XL6_GENERIC_NET_TASK_AFTER
+#undef XL6_GENERIC_NET_TASK_AFTER_CANCEL
+#undef XL6_GENERIC_NET_TASK_UNTIL
+#undef XL6_GENERIC_NET_TASK_UNTIL_CANCEL
 #undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_FOR
 #undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_UNTIL
 #undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_FOR

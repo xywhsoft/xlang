@@ -1,0 +1,70 @@
+import concurrent
+
+// Network tasks use the same atomic reservation and owned Future composition.
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto group = TaskGroup(4)
+auto calls = AtomicInt64()
+future<int> number = group.start(func() as future<int>
+    return engine.submit(func() as int
+        calls.fetchAdd(1)
+        return 42
+    end)
+end)
+future<string> text = group.start(func() as future<string>
+    return engine.submit(func() as string
+        calls.fetchAdd(1)
+        return "a\0你"
+    end)
+end)
+future<null> empty = group.start(func() as future<null>
+    return engine.submit(func()
+        calls.fetchAdd(1)
+    end)
+end)
+assert group.joinTimeout(10000)
+group.throwIfFailed()
+assert group.snapshot().added == 3 and group.snapshot().succeeded == 3
+assert (await number) == 42 and (await text) == "a\0你"
+await empty
+assert calls.load() == 3
+
+// A producer rejected after group reservation must restore capacity and keep
+// the original checked failure, without inventing an accepted group member.
+auto closed = NetEngine()
+closed.close()
+auto retry = TaskGroup(1)
+bool rejected = false
+try
+    auto invalid = retry.start(func() as future<int>
+        return closed.submit(func() as int
+            return 1
+        end)
+    end)
+catch failure
+    rejected = true
+end
+assert rejected and retry.count == 0 and retry.snapshot().accepting
+future<int> recovered = retry.start(func() as future<int>
+    return engine.submit(func() as int
+        return 19
+    end)
+end)
+assert retry.joinTimeout(10000) and (await recovered) == 19
+retry.throwIfFailed()
+assert closed.wait(10000)
+// Group cancellation reaches the original owned timer Future and its actual
+// native job, rather than cancelling a fabricated ready wrapper.
+auto stopping = TaskGroup(1)
+auto pending = stopping.start(func() as future<int>
+    return engine.submitAfter(60000, func() as int
+        assert false
+        return 99
+    end)
+end)
+stopping.cancel()
+assert stopping.joinTimeout(10000)
+assert pending.isCancelled() and stopping.snapshot().cancelled == 1
+engine.close()
+assert engine.wait(10000)
+println("TaskGroup/NetEngine composition: owned integer/string/void, atomic reservation rollback and retry, no implicit ready executor")

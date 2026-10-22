@@ -174,3 +174,20 @@ Windows 254／Linux 262，共 516 阶段通过，包括两端各 124 阶段的�
 应用网络通信或安全专项。语言泛型公开方法、TaskGroup 拥有型组合、NetFile
 及完整服务／shipping 验收继续开放，不能将本批当作这些项目已完成。
 
+## 泛型结果任务与 TaskGroup 公开组合（2026-10-23）
+
+NetEngine 增加立即／After／Until 的泛型及 void 结果任务，每种支持显式父取消
+令牌和 affinity。`xl6_task_result_closure.c` 与 TaskPool 共用类型化结果槽、
+独立 Closure／Invoke 租约和 checked 执行；网络适配保护实际 Engine 入口至
+受理或失败回滚完成。TaskGroup.start 返回原始拥有 Future，原子容量回滚、
+组取消至 Timer 与未 await 的模块退役均完成语言验证。
+
+Windows 123／Linux 127，共 250 阶段通过，含双端各 83 阶段的 JIT／module／
+独立 AOT 与合同验收、GCC／TCC／Linux ASan／UBSan 的驻留生命周期和旧计算池
+生产者回归。173 项输出前坏合同拒绝、72 个网络 outcome 场景与 72 个分配预算
+逐配置检查。普通 Engine／计算池／网络结果任务的原生选择器互不意外拖入。
+详见 [网络结果任务](net-engine-tasks.md)，证据根
+`F:/xlang-validation/five-groups-20261023/p3-net-task-language`，回执为
+`verified-commit.json`。没有 Cgen 特例、原生或时间 ABI 迁移、发布资产更新及
+应用网络／安全专项。NetFile、完整服务与 shipping 继续开放。
+

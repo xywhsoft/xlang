@@ -1,0 +1,7 @@
+func numbers() as generator<int>
+    yield 1
+end
+auto engine = NetEngine()
+auto value = engine.submit(func() as generator<int>
+    return numbers()
+end)

@@ -19,6 +19,7 @@ struct xlir_closure;
 #include "xl6_net_engine_abi.h"
 #include "xl6_net_socket_abi.h"
 #include "xl6_task_pool_language.h"
+#include "xl6_task_net_language.h"
 #include "xl6_channel_wait_abi.h"
 #include "xl6_channel_case_abi.h"
 #include "xl6_channel_language_abi.h"

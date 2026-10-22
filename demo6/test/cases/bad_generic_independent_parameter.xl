@@ -1,0 +1,4 @@
+func selectValue<T>(T value, uint64 affinity = 0) as T
+    return value
+end
+auto invalid = selectValue(42, "not an integer")
