@@ -82,3 +82,10 @@ Linux C ASan/UBSan、XLang、双语对照门禁均通过。带输出 AOT 的共�
 和 Linux C ASan/UBSan、XLang/双语联合门禁通过。仓库中已有的历史
 `build/test/watch_guard` 产物未动；本轮未从该目录直跑，也未改监视器实现。
 完整带输出 AOT 的共享主线阻断仍在。
+
+2026-10-22：XLang `create/add/poll` 分配故障由只测首点扩为各前 16 点；
+每点使用独立监视器，核对故障是否确实触发、异常类别、失败时计数不变、
+清除故障后的添加/轮询恢复，并要求三条路径都覆盖失败与正常完成。
+Windows `test/check.ps1 -SkipAot` 的 C/目录竞态/XLang/双语门禁和 Linux
+`test/check.sh` 的 C ASan/UBSan、XLang、双语门禁通过。实现/API 未改；
+完整带输出 AOT 的共享主线缺符号仍未签收。

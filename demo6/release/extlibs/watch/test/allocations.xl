@@ -1,44 +1,67 @@
 import watch
 
 extern "xrtMemDebugFailAfter" func __watch_fail_after(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func __watch_fail_triggered() as c_bool
 extern "xrtMemDebugFailClear" func __watch_fail_clear()
 
-func main(...) as int
-    assert __watch_fail_after(uint64(0))
-    bool createError = false
+int createFailures = 0
+int addFailures = 0
+int pollFailures = 0
+bool createCompleted = false
+bool addCompleted = false
+bool pollCompleted = false
+
+// 每次故障都使用新实例，避免上一次成功添加的路径改变后续扫描。
+for allocation in range(16)
+    assert __watch_fail_after(uint64(allocation))
+    bool createCaught = false
     try
         watch.create()
     catch MemoryError error
-        createError = true
-    finally
-        __watch_fail_clear()
+        createCaught = true
     end
-    assert createError, "create allocation failure must be MemoryError"
+    bool createTriggered = __watch_fail_triggered()
+    __watch_fail_clear()
+    assert createCaught == createTriggered
+    if createTriggered then createFailures += 1 else createCompleted = true end
 
-    auto watcher = watch.create()
-    assert __watch_fail_after(uint64(0))
-    bool addError = false
+    auto adding = watch.create()
+    assert __watch_fail_after(uint64(allocation))
+    bool addCaught = false
     try
-        watcher.add("missing-watch-allocation")
+        adding.add("missing-watch-allocation")
     catch MemoryError error
-        addError = true
-    finally
-        __watch_fail_clear()
+        addCaught = true
     end
-    assert addError and watcher.count == 0, "add failure must preserve watcher"
-    int index = watcher.add("missing-watch-allocation")
-    assert index == 0 and watcher.remove(index), "add recovers after allocation failure"
+    bool addTriggered = __watch_fail_triggered()
+    __watch_fail_clear()
+    assert addCaught == addTriggered
+    if addTriggered then
+        addFailures += 1
+        assert adding.count == 0
+        assert adding.add("missing-watch-allocation") == 0
+    else
+        addCompleted = true
+        assert adding.count == 1
+    end
+    assert adding.remove(0)
 
-    assert __watch_fail_after(uint64(0))
-    bool memoryError = false
+    auto polling = watch.create()
+    assert polling.add("missing-watch-allocation") == 0
+    assert __watch_fail_after(uint64(allocation))
+    bool pollCaught = false
     try
-        watcher.poll()
+        assert polling.poll() == ""
     catch MemoryError error
-        memoryError = true
-    finally
-        __watch_fail_clear()
+        pollCaught = true
     end
-    assert memoryError, "poll allocation failure must be MemoryError"
-    assert watcher.poll() == "", "poll recovers after allocation failure"
-    return 0
+    bool pollTriggered = __watch_fail_triggered()
+    __watch_fail_clear()
+    assert pollCaught == pollTriggered
+    if pollTriggered then pollFailures += 1 else pollCompleted = true end
+    assert polling.count == 1 and polling.poll() == ""
 end
+
+assert createFailures > 0 and createCompleted
+assert addFailures > 0 and addCompleted
+assert pollFailures > 0 and pollCompleted
