@@ -1,0 +1,49 @@
+auto config = UdpConfig()
+int errors = 0
+try
+    auto bad = config.withReceive(0, 1, 1)
+catch Error
+    errors += 1
+end
+try
+    auto bad = config.withReceive(65536, 1, 1)
+catch Error
+    errors += 1
+end
+try
+    auto bad = config.withSendConcurrency(65)
+catch Error
+    errors += 1
+end
+try
+    auto bad = config.withSendQueue(8, 9, 32, 4)
+catch Error
+    errors += 1
+end
+try
+    auto bad = config.withBinding(true, false, true, false)
+catch Error
+    errors += 1
+end
+try
+    auto bad = config.withTraffic(256, 0)
+catch Error
+    errors += 1
+end
+try
+    auto bad = config.withSocketBuffers(9223372036854775807, 0)
+catch Error
+    errors += 1
+end
+try
+    auto bad = config.withReceiveMetadata(NetDatagramMetadata.truncated)
+catch Error
+    errors += 1
+end
+try
+    auto bad = config.withErrorQueue(true, 65536, 1, 1, UdpOverflow.error)
+catch Error
+    errors += 1
+end
+assert errors == 9 and config.receiveSize == 2048 and config.sendConcurrency == 1
+println("UDP config range and relational errors remain checked")

@@ -39897,6 +39897,12 @@ XRT_EXTERN_C_BEGIN
 /* 初始化低内存默认配置：一个 2 KiB 接收槽和有界收发队列。 */
 XRT_API void xrtNetUdpConfigInit(xnetudpconfig* pConfig);
 
+/* Configuration boundary check; no Engine, socket or I/O.
+ * NULL/invalid config sets the ordinary UDP configuration argument error.
+ * A valid configuration needs no allocation; an error diagnostic may allocate.
+ * Does not certify OS/backend option support; Open may still be unsupported. */
+XRT_API bool xrtNetUdpConfigValid(const xnetudpconfig* pConfig);
+
 
 
 /* 打开、绑定并可选连接 UDP；至少一个地址必须确定地址族。 */

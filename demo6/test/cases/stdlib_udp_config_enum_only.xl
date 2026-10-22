@@ -1,0 +1,3 @@
+auto policy = UdpOverflow.error
+auto truncation = UdpTruncation.deliver
+assert policy != UdpOverflow.dropNewest and truncation != UdpTruncation.drop

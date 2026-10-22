@@ -1,0 +1,32 @@
+/* Intentionally repeatable field vocabulary, also staged with SDK headers. */
+#ifdef XL6_UDP_CONFIG_SIZE
+XL6_UDP_CONFIG_SIZE(ReceiveSize,receiveSize)
+XL6_UDP_CONFIG_SIZE(ReceiveQueueLimit,receiveQueueLimit)
+XL6_UDP_CONFIG_SIZE(ReceiveQueueByteLimit,receiveQueueByteLimit)
+XL6_UDP_CONFIG_SIZE(ErrorSize,errorSize)
+XL6_UDP_CONFIG_SIZE(ErrorQueueLimit,errorQueueLimit)
+XL6_UDP_CONFIG_SIZE(ErrorQueueByteLimit,errorQueueByteLimit)
+XL6_UDP_CONFIG_SIZE(SendHighWater,sendHighWater)
+XL6_UDP_CONFIG_SIZE(SendLowWater,sendLowWater)
+XL6_UDP_CONFIG_SIZE(SendLimit,sendLimit)
+XL6_UDP_CONFIG_SIZE(SendPacketLimit,sendPacketLimit)
+#endif
+#ifdef XL6_UDP_CONFIG_UINT
+XL6_UDP_CONFIG_UINT(ReceiveConcurrency,receiveConcurrency)
+XL6_UDP_CONFIG_UINT(ReceiveBatch,receiveBatch)
+XL6_UDP_CONFIG_UINT(SendConcurrency,sendConcurrency)
+#endif
+#ifdef XL6_UDP_CONFIG_INT
+XL6_UDP_CONFIG_INT(ReceiveBuffer,receiveBuffer)
+XL6_UDP_CONFIG_INT(SendBuffer,sendBuffer)
+XL6_UDP_CONFIG_INT(HopLimit,hopLimit)
+XL6_UDP_CONFIG_INT(TrafficClass,trafficClass)
+#endif
+#ifdef XL6_UDP_CONFIG_BOOL
+XL6_UDP_CONFIG_BOOL(ReuseAddress,reuseAddress)
+XL6_UDP_CONFIG_BOOL(ReusePort,reusePort)
+XL6_UDP_CONFIG_BOOL(ExclusiveAddress,exclusiveAddress)
+XL6_UDP_CONFIG_BOOL(Broadcast,broadcast)
+XL6_UDP_CONFIG_BOOL(IPv6Only,ipv6Only)
+XL6_UDP_CONFIG_BOOL(ReceiveErrors,receiveErrors)
+#endif

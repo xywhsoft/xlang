@@ -204,6 +204,7 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetDatagramPacketHandlePol
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetBatchProgressHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetBufferHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetBytesHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6UdpConfigHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetFrameResultHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetLineFramerHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetLengthFramerHandlePolicyV1Get(void);

@@ -1,0 +1,10 @@
+func configured() as UdpConfig
+    auto original = UdpConfig()
+    return original.withReceive(4096, 2, 32).withSendConcurrency(2).withBroadcast(true)
+end
+auto a = configured()
+auto b = a.withReceiveQueue(64, 32768, UdpOverflow.dropOldest)
+assert a.receiveSize == 4096 and a.receiveConcurrency == 2 and a.receiveBatch == 32
+assert a.receiveQueueLimit == 256 and b.receiveQueueLimit == 64
+assert b.receiveSize == a.receiveSize and b.sendConcurrency == 2 and b.broadcast
+println("UDP immutable owners survive source destruction")

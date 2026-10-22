@@ -109,6 +109,8 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_tcp_dial_interrupt_sync.c',
     'src/runtime/xl6_execution_tcp.c',
     'src/runtime/xl6_execution_udp.c',
+    'src/runtime/xl6_udp_config.c',
+    'src/runtime/xl6_ownership_domain_udp_config.c',
     'src/runtime/xl6_execution_udp_data.c',
     'src/runtime/xl6_execution_udp_future.c',
     'src/runtime/xl6_ownership_domain_net_udp_base_native.c',

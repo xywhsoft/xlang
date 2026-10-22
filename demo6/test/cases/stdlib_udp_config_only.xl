@@ -1,0 +1,2 @@
+auto config = UdpConfig().withReceive(4096, 1, 16)
+assert config.receiveSize == 4096
