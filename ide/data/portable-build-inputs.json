@@ -8,7 +8,7 @@
   "compiler_manifest_sha256": "0ead73fe0acd30c1d45786aa5c8519179ff39ee1cd37bcfc2d9219ea475df097",
   "c_server_manifest": "build/c-trace-provider-manifest-v1.json",
   "c_server_manifest_sha256": "0a5b65ab174a2a14a16899dbdd0ca781dec8e63b418adf2e70338a3246de2fce",
-  "sdk_source_root": "build/xge3-upgrade-20261021/source",
+  "sdk_source_root": "build/lsp-next-20261022/m7a2b2-sdk-native-v1/source",
   "compiler_source_manifest": "build/compiler-c-extension-source-materials-manifest-v1.json",
   "compiler_source_manifest_sha256": "5d28f6054e752bdb81accbc518f1aa73e6348f468d5eed808b932426cc499621",
   "compiler_source_build_report": "build/compiler-c-extension-source-materials-build-report-v1.json",

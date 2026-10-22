@@ -3,7 +3,7 @@
   "exitCode": 0,
   "profile": "ide",
   "version": "3.0.0",
-  "source": "D:\\GIT\\x-lang\\ide\\build\\xge3-upgrade-20261021\\source",
+  "source": "D:\\GIT\\x-lang\\ide\\build\\lsp-next-20261022\\m7a2b2-sdk-native-v1\\source",
   "sourceCommit": "f248fd17192b3eb81c2a29dc34549b696e6e4c43",
   "sourceUnchanged": true,
   "sourceArchiveSha256": "b8bb921ed085fbe313b0d2572d817f52d2c8c5a3405efc5a8c68a867d8d3e60e",
@@ -14,7 +14,7 @@
     "profile": "ide",
     "defines": [],
     "compiler": [
-      "E:\\software\\w64devkit\\bin\\gcc.EXE",
+      "E:/software/w64devkit/bin\\gcc.EXE",
       [
         1790597177093716600,
         2378896
@@ -479,14 +479,14 @@
     ],
     "linked": true,
     "runtime_dependencies": [],
-    "seconds": 3.90099249999912,
-    "runtime_bytes": 10049970,
-    "unstripped_bytes": 12145558
+    "seconds": 4.193037599994568,
+    "runtime_bytes": 10052530,
+    "unstripped_bytes": 12148403
   },
   "compatibilityPatches": {
     "format": "xlang-ide-xge-source-patches-1",
     "baseCommit": "f248fd17192b3eb81c2a29dc34549b696e6e4c43",
-    "reason": "Preserve the existing SDK67 Unicode zero-width regex iteration and validated escape contracts on XGE 3; preserve invalid-pattern status and clear stale scope results",
+    "reason": "Preserve Unicode find compatibility; render generic BACKGROUND indicators through an indexed visible-range union and existing native glyph layouts; stabilize wrapped scrolling and caret visibility after layout changes",
     "publicHeadersChanged": false,
     "files": [
       {
@@ -499,9 +499,16 @@
       {
         "path": "src/xui/code/xui_code_edit.c",
         "upstreamSha256": "45101a68261a89c8e99143157bebb266e9f65978d41a565779e29a16bb278c7e",
-        "sha256": "c6452f4c087bf6fb03963da99bc237e3c3743f2a7c2d89019fefa41e5330f02c",
+        "sha256": "0bd3593969654dd5e2e13a059a2789470c6226adb654d2c51ac0d340d8aacfc4",
         "payload": "xui_code_edit.c",
         "diff": "xui_code_edit.patch"
+      },
+      {
+        "path": "src/xui/code/xui_code_annotation.c",
+        "upstreamSha256": "08eec21cf2b42a2582f5c3ec71ca966aa69c643480c2aaef86bce5495c3a9a42",
+        "sha256": "e477a131fea6c1eb5b33cff656495154fd2e999420cd8b38cf1a4776dbfb1f7c",
+        "payload": "xui_code_annotation.c",
+        "diff": "xui_code_annotation.patch"
       }
     ]
   },
@@ -510,7 +517,7 @@
     "profile": "ide",
     "defines": [],
     "compiler": [
-      "E:\\software\\w64devkit\\bin\\gcc.EXE",
+      "E:/software/w64devkit/bin\\gcc.EXE",
       [
         1790597177093716600,
         2378896
@@ -974,21 +981,21 @@
     "reused": [],
     "linked": true,
     "runtime_dependencies": [],
-    "seconds": 230.73879029999807,
+    "seconds": 259.4446272000205,
     "runtime_bytes": 10048434,
     "unstripped_bytes": 12143962
   },
   "outputs": [
     {
-      "path": "D:\\GIT\\x-lang\\ide\\build\\xge3-upgrade-20261021\\source\\build\\ide\\xge.dll",
-      "sha256": "8e9a36b2127a8c70ed52a4cacaf096ec6852d41c6fde5975f3076dbbb0c379d9"
+      "path": "D:\\GIT\\x-lang\\ide\\build\\lsp-next-20261022\\m7a2b2-sdk-native-v1\\source\\build\\ide\\xge.dll",
+      "sha256": "44e5e9d09e4f96768d77c329bd6b016065dada84f7f7162d81af79c39c83e8ea"
     },
     {
-      "path": "D:\\GIT\\x-lang\\ide\\build\\xge3-upgrade-20261021\\source\\build\\ide\\xge.lib",
-      "sha256": "d9fda05110f9aae01a8c03959e106d777d3a1782cb65396757ca94ec3b2fcebc"
+      "path": "D:\\GIT\\x-lang\\ide\\build\\lsp-next-20261022\\m7a2b2-sdk-native-v1\\source\\build\\ide\\xge.lib",
+      "sha256": "587529fede485bd6f9a4fc8c2cf1f10cc1a3e517248248e293d8773786991838"
     },
     {
-      "path": "D:\\GIT\\x-lang\\ide\\build\\xge3-upgrade-20261021\\source\\build\\ide\\xge_build_config.h",
+      "path": "D:\\GIT\\x-lang\\ide\\build\\lsp-next-20261022\\m7a2b2-sdk-native-v1\\source\\build\\ide\\xge_build_config.h",
       "sha256": "b159558f23bbba0ce48538a843b4948cf0fd8f9cfda752ee3e953a415f187b9e"
     }
   ]
