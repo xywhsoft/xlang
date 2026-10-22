@@ -15,6 +15,15 @@ void xlsFrontendSemMemoDestroy(xls_sem_memo* memo);
 typedef struct xls_sem_overload_work {
     uint64_t rootVisits,indexes,pairVisits,bytes;
 } xls_sem_overload_work;
+typedef struct xls_sem_candidate_scope {
+    struct xls_sem_candidate_scope* previous;
+    size_t budget;
+    xls_sem_overload_work work;
+} xls_sem_candidate_scope;
+/* Private same-thread verification scope. End restores the previous override;
+ * candidate data remains owned by each individual compiler enumeration. */
+void xlsFrontendSemCandidatesBegin(xls_sem_candidate_scope* scope,size_t bytes);
+void xlsFrontendSemCandidatesEnd(xls_sem_candidate_scope* scope,xls_sem_overload_work* work);
 /* Private verification entry point: zero budget runs the unchanged pair scan.
  * The optional override/work record is scoped to this thread and call. */
 int xlsFrontendSemCheckOverloads(XL6_AstNode* root,XL6_DiagList* diags,

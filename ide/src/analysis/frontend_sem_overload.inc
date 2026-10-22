@@ -1,22 +1,20 @@
 /* Included immediately before the shared overload-conflict scan. Only its
  * iteration candidates change; original name/signature tests and diagnostic
  * order remain in the compiler body. No names, declarations or root membership
- * are mutated by that scan or its signature/type/alias predicates. */
+ * are mutated by that scan or its signature/type/alias predicates. Completion
+ * name enumeration borrows the same declaration membership only while its
+ * original visibility, type generation and add/filter bodies run; it never
+ * spans checking another function body. No prefix or type error is skipped. */
 #define XLS_SEM_OVERLOAD_BYTES (8u*1024u*1024u)
-typedef struct xls_sem_overload_control {
-    struct xls_sem_overload_control* previous;
-    size_t budget;
-    xls_sem_overload_work work;
-} xls_sem_overload_control;
 typedef struct xls_sem_overload_scan {
     size_t* next;
     xls_sem_overload_work* work;
 } xls_sem_overload_scan;
-static _Thread_local xls_sem_overload_control* xlsActiveOverloadControl;
+static _Thread_local xls_sem_candidate_scope* xlsActiveOverloadControl;
 
-static xls_sem_overload_scan xlsSemOverloadBegin(const XL6_AstNode* root)
+static xls_sem_overload_scan xlsSemOverloadBegin(const XL6_AstNode* root,xmap* heads)
 {
-    xls_sem_overload_control* control=xlsActiveOverloadControl;
+    xls_sem_candidate_scope* control=xlsActiveOverloadControl;
     xls_sem_overload_scan scan={NULL,control ? &control->work : NULL};
     size_t budget=control ? control->budget : XLS_SEM_OVERLOAD_BYTES;
     if(budget>XLS_SEM_OVERLOAD_BYTES) budget=XLS_SEM_OVERLOAD_BYTES;
@@ -48,11 +46,24 @@ static xls_sem_overload_scan xlsSemOverloadBegin(const XL6_AstNode* root)
         }
         if(!xrtMapSet(&names,key,&i)) okay=0;
     }
+    /* Completion enumerates several original symbol names. Transfer the same
+     * bounded map to that caller; conflict checking needs only next links. */
+    if(okay && heads) { *heads=names; memset(&names,0,sizeof(names)); }
     xrtMapUnit(&names);
     if(!okay) { xrtFree(next); return scan; }
     scan.next=next;
-    if(scan.work) { ++scan.work->indexes; scan.work->bytes=charged; }
+    if(scan.work) { ++scan.work->indexes; if(charged>scan.work->bytes) scan.work->bytes=charged; }
     return scan;
+}
+static size_t xlsSemOverloadFirst(xls_sem_overload_scan* scan,xmap* heads,const char* name,size_t count)
+{
+    size_t first=0;
+    if(scan->next) {
+        size_t* head=name ? xrtMapGet(heads,(xbytesview){(const unsigned char*)name,strlen(name)}) : NULL;
+        first=head ? *head : count;
+    }
+    if(scan->work && first<count) ++scan->work->pairVisits;
+    return first;
 }
 static size_t xlsSemOverloadNext(xls_sem_overload_scan* scan,size_t previous,size_t count)
 {
@@ -62,14 +73,25 @@ static size_t xlsSemOverloadNext(xls_sem_overload_scan* scan,size_t previous,siz
 }
 static void xlsSemOverloadEnd(xls_sem_overload_scan* scan)
 { xrtFree(scan->next); scan->next=NULL; }
+void xlsFrontendSemCandidatesBegin(xls_sem_candidate_scope* scope,size_t bytes)
+{
+    memset(scope,0,sizeof(*scope)); scope->previous=xlsActiveOverloadControl;
+    scope->budget=bytes; xlsActiveOverloadControl=scope;
+}
+void xlsFrontendSemCandidatesEnd(xls_sem_candidate_scope* scope,xls_sem_overload_work* work)
+{
+    if(!scope || xlsActiveOverloadControl!=scope) return;
+    xlsActiveOverloadControl=scope->previous;
+    if(work) *work=scope->work;
+    memset(scope,0,sizeof(*scope));
+}
 
 int xlsFrontendSemCheckOverloads(XL6_AstNode* root,XL6_DiagList* diags,
     const char* module,int captureIndex,size_t bytes,xls_sem_overload_work* work)
 {
-    xls_sem_overload_control control={xlsActiveOverloadControl,bytes,{0}};
-    xlsActiveOverloadControl=&control;
+    xls_sem_candidate_scope control;
+    xlsFrontendSemCandidatesBegin(&control,bytes);
     int okay=xl6SemCheckModuleWithIndex(root,diags,module,captureIndex);
-    xlsActiveOverloadControl=control.previous;
-    if(work) *work=control.work;
+    xlsFrontendSemCandidatesEnd(&control,work);
     return okay;
 }
