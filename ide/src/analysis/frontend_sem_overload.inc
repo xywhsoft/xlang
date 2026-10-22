@@ -5,12 +5,23 @@
  * name enumeration borrows the same declaration membership only while its
  * original visibility, type generation and add/filter bodies run; it never
  * spans checking another function body. No prefix or type error is skipped. */
+#include "analysis/frontend_types.h"
 #define XLS_SEM_OVERLOAD_BYTES (8u*1024u*1024u)
 typedef struct xls_sem_overload_scan {
     size_t* next;
     xls_sem_overload_work* work;
 } xls_sem_overload_scan;
 static _Thread_local xls_sem_candidate_scope* xlsActiveOverloadControl;
+
+static void xlsSemCompletionTypesBegin(xls_type_alias_scope* scope,const XL6_AstNode* root)
+{
+    /* Name enumeration only reads module declarations. Callable signatures
+     * and value-name inference own their temporary nodes; no alias or root
+     * membership changes here. End before returning to the mutable checker.
+     * Reuse the existing alias selector, including its bounded fallback. */
+    size_t budget=xlsActiveOverloadControl ? xlsActiveOverloadControl->budget : XLS_SEM_OVERLOAD_BYTES;
+    xlsFrontendTypeAliasBegin(scope,root,budget);
+}
 
 static xls_sem_overload_scan xlsSemOverloadBegin(const XL6_AstNode* root,xmap* heads)
 {
