@@ -83,6 +83,19 @@ try {
                 Remove-Item -LiteralPath $aot -Force
             }
         }
+        $exampleExe = Join-Path $work ("imagehash_example_{0}.exe" -f [guid]::NewGuid().ToString('N'))
+        try {
+            $null = Run 'XLang example AOT build' $xl @('build',
+                'release/examples/extlibs/imagehash.xl', '-o', $exampleExe)
+            $aotOutput = Run 'XLang example AOT run' $exampleExe @()
+            if ($aotOutput -cne $expected) {
+                throw "XLang AOT example differs from fixed result:`n$aotOutput"
+            }
+        } finally {
+            if (Test-Path -LiteralPath $exampleExe -PathType Leaf) {
+                Remove-Item -LiteralPath $exampleExe -Force
+            }
+        }
     }
 } finally {
     Pop-Location

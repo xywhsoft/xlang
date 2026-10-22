@@ -25,6 +25,12 @@ int distance = imagehash.hamming(a, b)
 
 ## 验证
 
+2026-10-22：Windows 默认门禁原只构建无输出核心 AOT，即使公开的
+XLang 范例 AOT 缺符号也会返回成功。现在默认模式还构建、运行完整
+范例并核对固定输出；当前在 `xl6ValueDataSnapshotV1` 未解析处正确
+失败，核心 AOT 和 C 直接 AOT 仍通过。`-SkipAot` 的严格 C、线程、
+XLang JIT 与双语对照通过；两种模式都不留下本次独占范例产物。
+
 2026-10-22：C 回归先复现 `hamming` 成功仍携带旧 `XERR_MEMORY`；
 五个操作入口已隔离旧 XRT 错误，空路径仍通过 `last_error` 报告，
 正常查询不再假报内存故障。Windows 严格 GCC、C/线程、XLang 与
@@ -51,7 +57,8 @@ wsl bash release/extlibs/imagehash/test/check.sh
 Windows `test/check.ps1` 是单入口门禁：按包清单模块执行严格 GCC 检查，
 运行两组 C 边界、XLang 主用例与分配故障、C/XLang 范例同输出、C 范例
 单文件直接运行/构建，以及独立核心 AOT；`-SkipAot` 跳过 XLang 核心
-AOT。单文件 C 范例只在 TCC 路径包含三个包内实现，正式包仍按清单分离
+和完整范例 AOT。默认模式还构建、执行带输出的 XLang 范例并与固定结果比较；
+单文件 C 范例只在 TCC 路径包含三个包内实现，正式包仍按清单分离
 编译。脚本仅在 `build/test` 中建立本次独有的产物，结束时删除。
 
 C/XL 测试固定纯色图结果，C 测试额外生成非均匀 PGM，校验跨 TCC/GCC 的 pHash 一致性、中文路径、损坏图片、无效/含 NUL 的指纹和多结果所有权。XLang 还覆盖三个哈希入口对内嵌 NUL 路径的拒绝。线程交错回归先复现了旧静态 TLS 的错误串覆盖，再验证 XRT 线程键修复；Windows JIT 与 Linux ASan/UBSan 均通过。Windows 严格 GCC、双语同输出及无输出 AOT 核心已通过。三个依赖包均声明所需 XRT 模块后，核心 AOT 从 3,879,424 字节降至 959,488 字节，构建产物已运行验证。带输出范例 AOT 仍受主线 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`，故尚未签收正式发布级验收。
