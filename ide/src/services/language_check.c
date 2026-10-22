@@ -106,6 +106,54 @@ enum xide_check_state xideLanguageCheckState(xide_language_check* q,char* messag
 xvalue* xideLanguageCheckResult(xide_language_check* q) { if(!q) return NULL; EnterCriticalSection(&q->lock); xvalue* out=q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState!=XIDE_GUARD_INVALID ? xrtValueDeepClone(q->result) : NULL; LeaveCriticalSection(&q->lock); return out; }
 enum xide_guard_state xideLanguageCheckGuardState(xide_language_check* q,char* message,size_t capacity)
 { if(!q) return XIDE_GUARD_NONE; EnterCriticalSection(&q->lock); enum xide_guard_state state=q->guardState; if(message && capacity) snprintf(message,capacity,"%s",q->guardError); LeaveCriticalSection(&q->lock); return state; }
+struct xide_language_input_guard {
+ xatomic32 references,invalid; char *compiler,*directory,*packagePath;
+ int nativeBackend; xvalue *files,*resolution; xide_toolchain_stamp toolchain;
+};
+xide_language_input_guard* xideLanguageInputGuardRetain(xide_language_input_guard* guard)
+{ if(guard) xrtAtomic32FetchAdd(&guard->references,1,XMEMORY_RELAXED); return guard; }
+void xideLanguageInputGuardRelease(xide_language_input_guard* guard)
+{
+ if(!guard || xrtAtomic32FetchSub(&guard->references,1,XMEMORY_ACQ_REL)!=1) return;
+ xrtFree(guard->compiler); xrtFree(guard->directory); xrtFree(guard->packagePath);
+ xrtValueRelease(guard->files); xrtValueRelease(guard->resolution); xrtFree(guard);
+}
+xide_language_input_guard* xideLanguageCheckCaptureInputGuard(xide_language_check* q,xide_model_error* error)
+{
+ if(!q) { fail(error,"No checked input proof is available."); return NULL; }
+ xide_language_input_guard* guard=xrtCalloc(1,sizeof(*guard));
+ if(!guard) { fail(error,"Unable to retain checked input proof."); return NULL; }
+ xrtAtomic32Init(&guard->references,1); xrtAtomic32Init(&guard->invalid,0);
+ EnterCriticalSection(&q->lock);
+ int okay=q->state==XIDE_CHECK_READY && q->guardState==XIDE_GUARD_RUNNING && !cancelled(q) && q->guardFiles && q->guardResolution;
+ if(okay) {
+  guard->compiler=xrtStrDup(q->compiler); guard->directory=xrtStrDup(q->directory);
+  if(q->packagePath) guard->packagePath=xrtStrDup(q->packagePath);
+  guard->files=xrtValueDeepClone(q->guardFiles); guard->resolution=xrtValueDeepClone(q->guardResolution);
+  guard->nativeBackend=q->nativeSemantic; guard->toolchain=q->guardToolchain;
+  okay=guard->compiler && guard->directory && (!q->packagePath || guard->packagePath) && guard->files && guard->resolution;
+ }
+ LeaveCriticalSection(&q->lock);
+ if(!okay) { xideLanguageInputGuardRelease(guard); fail(error,"Unable to retain a current checked input proof."); return NULL; }
+ return guard;
+}
+const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard)
+{ return guard ? guard->files : NULL; }
+int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*stopped)(void*),void* user,xide_model_error* error)
+{
+ if(!guard || xrtAtomic32Load(&guard->invalid,XMEMORY_ACQUIRE)) return fail(error,"Checked diagnostic inputs are no longer current.");
+ if(stopped && stopped(user)) return fail(error,"Input validation was cancelled.");
+ /* Each validation owns its cancellation view. Reports remain read-only;
+    consumers never mutate a producer check or share its worker lifetime. */
+ xide_language_check view={0}; view.compiler=guard->compiler; view.directory=guard->directory;
+ view.packagePath=guard->packagePath; view.nativeSemantic=guard->nativeBackend;
+ view.guardFiles=guard->files; view.guardResolution=guard->resolution; view.guardToolchain=guard->toolchain;
+ view.externalCancel=stopped; view.externalUser=user;
+ int okay=xideLanguageSnapshotGuard(&view,error);
+ if(stopped && stopped(user)) return fail(error,"Input validation was cancelled.");
+ if(!okay) xrtAtomic32Store(&guard->invalid,1,XMEMORY_RELEASE);
+ return okay && !xrtAtomic32Load(&guard->invalid,XMEMORY_ACQUIRE);
+}
 int xideLanguageCheckWorkerFinished(xide_language_check* q) { return !q || !q->worker || WaitForSingleObject(q->worker,0)==WAIT_OBJECT_0; }
 void* xideLanguageCheckWorkerSignal(xide_language_check* q) { return q ? q->worker : NULL; }
 xvalue* xideLanguageCheckDefinition(xide_language_check* q,const char* path,int version,int line,int character)

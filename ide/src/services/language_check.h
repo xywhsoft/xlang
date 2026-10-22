@@ -66,6 +66,20 @@ xvalue* xideLanguageCheckDocumentSymbols(xide_language_check* check,const char* 
    No compiler process is rerun by the guard. Saved checks have no guard. */
 enum xide_guard_state { XIDE_GUARD_NONE,XIDE_GUARD_RUNNING,XIDE_GUARD_INVALID };
 enum xide_guard_state xideLanguageCheckGuardState(xide_language_check* check,char* message,size_t capacity);
+/* Detached immutable input proof for diagnostics retained across later checks.
+   Captures only verified reports/configuration, without AST, IR, navigation,
+   document text, a check worker or a compiler-cache dependency. Capture does
+   no filesystem I/O; caller owns a reference. Validation is worker-only and
+   reuses the exact snapshot guard rules. A cancelled validation does not
+   poison the proof; an observed input failure permanently invalidates it. */
+typedef struct xide_language_input_guard xide_language_input_guard;
+xide_language_input_guard* xideLanguageCheckCaptureInputGuard(xide_language_check* check,xide_model_error* error);
+xide_language_input_guard* xideLanguageInputGuardRetain(xide_language_input_guard* guard);
+void xideLanguageInputGuardRelease(xide_language_input_guard* guard);
+int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*cancelled)(void*),void* user,xide_model_error* error);
+/* Borrowed immutable actual-input file reports, not all captured overlays.
+   Valid until the caller releases its reference; safe across validations. */
+const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard);
 /* Nonblocking retirement: Destroy can be called after WorkerFinished without
    waiting for disk work on the owner thread. Cache must outlive the worker. */
 int xideLanguageCheckWorkerFinished(xide_language_check* check);
