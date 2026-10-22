@@ -175,10 +175,18 @@ def prepare_native_stdlib(frontend: Path, output: Path) -> tuple[Path, Path, dic
     original = frontend / 'src/stdlib/xl6_stdlib.c'
     body = original.read_bytes()
     if hashlib.sha256(body).hexdigest() != 'bf863afd1bdef637388e6e4198813484f90e4eb8f1399580d75304e70a110919':
-        raise ValueError('shared stdlib changed; audit exact-text predicate positives and the mutation-free discovery interval')
+        raise ValueError('shared stdlib changed; audit scope producers/name lifetimes/free paths and exact-text discovery predicates')
     source = body.decode('utf-8').replace('\r\n', '\n')
     changes = {
         '#include <stdio.h>': '#include <stdio.h>\n#include "analysis/frontend_stdlib.inc"',
+        '    size_t capacity;\n} XL6_StdlibNameScope;':
+            '    size_t capacity;\n    struct xls_stdlib_scope_index* xlsIndex;\n    int xlsIndexDisabled;\n} XL6_StdlibNameScope;\n#include "analysis/frontend_stdlib_scope.inc"',
+        'static void xl6StdlibScopeFree(XL6_StdlibNameScope* scope)\n{':
+            'static void xlsStdlibScopeFreeOriginal(XL6_StdlibNameScope* scope)\n{',
+        'static int xl6StdlibScopeContains(const XL6_StdlibNameScope* scope, const char* name)\n{':
+            'static int xlsStdlibScopeContainsOriginal(const XL6_StdlibNameScope* scope, const char* name)\n{',
+        'static int xl6StdlibScopeAdd(XL6_StdlibNameScope* scope, const char* name)\n{':
+            'static int xlsStdlibScopeAddOriginal(XL6_StdlibNameScope* scope, const char* name)\n{',
         'static int xl6StdlibNodeUsesTypeName(const XL6_AstNode* node, const char* typeName)\n{':
             'static int xlsStdlibTypeOriginal(const XL6_AstNode* node, const char* typeName)\n{',
         'static int xl6StdlibNodeUsesMemberName(const XL6_AstNode* node, const char* memberName)\n{':
@@ -198,7 +206,7 @@ def prepare_native_stdlib(frontend: Path, output: Path) -> tuple[Path, Path, dic
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled), auditedSeams=len(changes),
-        change='optional exact spelling absence filter; original positive rules and dependency injection retained',
+        change='bounded private scope-name candidates and exact spelling absence filter; original matching/parent rules retained',
         indexBytes=8 * 1024 * 1024)
 
 
