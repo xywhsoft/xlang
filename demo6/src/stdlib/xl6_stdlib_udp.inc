@@ -27,6 +27,7 @@ const char* xl6StdlibUdpClassSource=
     "    extern \"xl6UdpBatchDestroyV1\" @no_raise destroy()\n"
     "    extern \"xl6UdpBatchCountV1\" @no_raise @nonblocking get count() as uint64\n"
     "    extern \"xl6UdpBatchTakeV1\" @nonblocking func take(int index) as UdpPacket?\nend\n"
+#include "xl6_stdlib_udp_message.inc"
     "class UdpSocket\n    private native point handle\n"
     "    extern \"xl6UdpBindDefaultV1\" create(NetEngine engine, NetAddress local)\n"
     "    extern \"xl6UdpBindV1\" create(NetEngine engine, NetAddress local, UdpConfig config, uint64 affinity = 0)\n"
@@ -86,4 +87,5 @@ RECEIVE(ReceiveError,"recvError","UdpErrorPacket")
     "    extern \"xl6UdpReceiveBatchUntilV1\" func recvBatchUntil(uint64 deadline, int capacity = 16) as UdpBatch\n"
     "    extern \"xl6UdpReceiveBatchUntilCancelV1\" func recvBatchUntilCancel(uint64 deadline, CancellationToken cancel, int capacity = 16) as UdpBatch\n"
 #include "xl6_stdlib_udp_future.inc"
+#include "xl6_stdlib_udp_transfer.inc"
     "end\n";

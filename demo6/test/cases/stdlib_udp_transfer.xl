@@ -1,0 +1,76 @@
+// Self-owned literal loopback only. No resolver or multicast membership.
+func exercise(NetEngine engine)
+    auto receiver = UdpSocket(engine, NetAddress.loopback())
+    assert receiver.wait(UdpWait.open, 5000) == NetStatus.ok
+    auto address = receiver.localAddress()
+    auto sender = udp.connect(engine, address)
+    assert sender.wait(UdpWait.open, 5000) == NetStatus.ok
+    array<string> texts = ["a\0", "你", "z"]
+    array<bytes> chunks = [b"a\0", b"\xe4\xbd\xa0z"]
+    auto left = Buffer(b"a\0")
+    auto right = Buffer(b"\xe4\xbd\xa0z")
+    array<Buffer> buffers = [left, right]
+    assert sender.sendVector(texts, 99) == NetStatus.ok
+    assert receiver.recv(5000).bytes() == b"a\0\xe4\xbd\xa0z"
+    assert sender.sendVector(chunks, 3) == NetStatus.ok
+    assert receiver.recv(5000).bytes() == b"a\0\xe4"
+    assert sender.sendVector(buffers, 5) == NetStatus.ok
+    assert receiver.recv(5000).bytes() == b"a\0\xe4\xbd\xa0"
+    auto copy = UdpMessage(left)
+    left.clear()
+    assert sender.sendMessage(copy) == NetStatus.ok
+    assert receiver.recv(5000).bytes() == b"a\0"
+    auto ref = NetBytes(b"r\0")
+    array<NetBytes> refs = [ref, ref]
+    assert sender.sendRefs(refs, 3) == NetStatus.ok
+    assert receiver.recv(5000).bytes() == b"r\0r"
+    auto vector = UdpMessage(refs, 3)
+    auto nativePacket = receiver.tryRecv()
+    assert nativePacket == null
+    assert sender.send("_p\0q_") == NetStatus.ok
+    auto packet = receiver.recv(5000)
+    auto part = UdpMessage(packet, 3, 1)
+    auto text = UdpMessage("m\0")
+    auto control = NetDatagramControl()
+    auto configured = text.withTarget(address).withControl(control)
+    assert configured.hasTarget and configured.length == 2
+    auto restored = configured.withoutTarget().withoutControl()
+    assert not restored.hasTarget and restored.length == 2
+    array<UdpMessage> messages = [restored, part, vector]
+    auto progress = NetBatchProgress()
+    auto status, count = sender.sendBatch(messages, progress)
+    assert status == NetStatus.ok and count == 3 and progress.attempted and progress.completedCount == 3
+    assert receiver.recv(5000).bytes() == b"m\0"
+    assert receiver.recv(5000).bytes() == b"p\0q"
+    assert receiver.recv(5000).bytes() == b"r\0r"
+    array<NetDatagramPacket> packets = [NetDatagramPacket(b"copy\0")]
+    status, count = sender.sendBatch(packets, progress)
+    assert status == NetStatus.ok and count == 1
+    assert receiver.recv(5000).bytes() == b"copy\0"
+    assert sender.sendVectorMessage(control, chunks, 3) == NetStatus.ok
+    assert receiver.recv(5000).bytes() == b"a\0\xe4"
+    assert sender.sendRefsMessage(control, refs, 3) == NetStatus.ok
+    assert receiver.recv(5000).bytes() == b"r\0r"
+    array<bytes> empty = []
+    assert sender.sendVector(empty) == NetStatus.ok
+    assert receiver.recv(5000).length == 0
+    try
+        sender.sendVector(chunks, -2)
+        assert false
+    catch RangeError
+    end
+    try
+        sender.sendBatch(messages, progress, -1)
+        assert false
+    catch RangeError
+        assert not progress.attempted
+    end
+    sender.close()
+    receiver.close()
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(2).withBackend(NetBackend.select))
+engine.start()
+exercise(engine)
+engine.close()
+assert engine.wait(5000)
+println("UDP transfers: typed vectors, immutable snapshots, native refs, mixed/copy batch and precise lengths: ok")

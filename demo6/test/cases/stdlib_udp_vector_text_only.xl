@@ -1,0 +1,4 @@
+export "udp_text_vector_only" func surface(UdpSocket socket, array<string> data)
+    socket.sendVector(data)
+end
+println("UDP text vector selected closure: ok")

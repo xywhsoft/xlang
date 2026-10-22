@@ -1,0 +1,15 @@
+// No Engine, ExecutionSource, Buffer or network traffic.
+auto original = UdpMessage("a\0你", 99)
+assert original.length == 5 and not original.hasTarget
+auto address = NetAddress.loopback(4, 9)
+auto targeted = original.withTarget(address)
+assert targeted.hasTarget and not original.hasTarget
+assert targeted.withoutTarget().length == 5
+auto copy = UdpMessage(b"\x00\xff")
+assert copy.length == 2
+try
+    auto invalid = UdpMessage("x", -2)
+    assert false
+catch RangeError
+end
+println("UDP message independent owned closure: ok")

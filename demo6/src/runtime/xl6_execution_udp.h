@@ -13,6 +13,10 @@ struct xnetbytes;
 struct xnetudppacket;
 struct xnetudperrorpacket;
 struct xfuture;
+struct xlir_closure;
+/* Retains the existing typed UDP/Engine parent only through acceptance; the
+ * shared owned-work producer captures the supplied resident closure. */
+XL6_CODE_LEASE_API bool xl6ExecutionUdpPostWorkV1(XL6_ExecutionResourceV1*,struct xlir_closure*);
 
 /* Explicit Source/Engine owners; no module-local callbacks or user Data.
  * This is a resident C service, not a raw-pointer language constructor. */

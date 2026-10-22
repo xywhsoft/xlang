@@ -72,6 +72,14 @@ Resource* xl6ExecutionUdpOpenV1(XL6_ExecutionSourceV1* source,Resource* engine,c
 }
 Resource* xl6ExecutionUdpBindV1(XL6_ExecutionSourceV1* source,Resource* engine,const xnetaddr* address,
     uint64_t affinity,const xnetudpconfig* config){return xl6ExecutionUdpOpenV1(source,engine,address,NULL,affinity,config);}
+bool xl6ExecutionUdpPostWorkV1(Resource* resource,XL6_Closure* callback)
+{
+    XL6_UdpScopeV1 scope={0};if(!xl6ExecutionUdpEnterInternalV1(resource,true,&scope))return false;
+    Udp* r=(Udp*)resource;xnetworker* worker=xrtNetUdpWorker(scope.udp);
+    bool ok=worker&&r->parent&&xl6ExecutionNetEnginePostV1(r->parent,xrtNetWorkerIndex(worker),callback);
+    if(!worker||!r->parent)xrtSetErrorKind(XERR_STATE);
+    xl6ExecutionUdpLeaveInternalV1(&scope);return ok;
+}
 Resource* xl6ExecutionUdpConnectV1(XL6_ExecutionSourceV1* source,Resource* engine,const xnetaddr* address,
     uint64_t affinity,const xnetudpconfig* config){return xl6ExecutionUdpOpenV1(source,engine,NULL,address,affinity,config);}
 bool xl6ExecutionUdpEnterInternalV1(Resource* r,bool submit,XL6_UdpScopeV1* scope)

@@ -1,0 +1,56 @@
+// Retain every new overload, but never invoke this exported surface.
+// In particular no group is joined and no multicast traffic is transmitted.
+export "udp_transfer_surface" func surface(UdpSocket socket, NetAddress address, NetDatagramControl control, Buffer buffer, NetBytes nativeBytes, UdpPacket packet, NetBatchProgress progress)
+    array<string> texts = ["a\0b"]
+    array<bytes> chunks = [b"a\0b"]
+    array<Buffer> buffers = [buffer]
+    array<NetBytes> refs = [nativeBytes]
+    auto a = UdpMessage("a\0b")
+    auto b = UdpMessage(b"a\0b")
+    auto c = UdpMessage(buffer)
+    auto d = UdpMessage(nativeBytes, 2, 1)
+    auto e = UdpMessage(packet, 2, 1)
+    auto f = UdpMessage(refs)
+    auto g = a.withTarget(address).withControl(control).withoutTarget().withoutControl()
+    auto length = g.length
+    auto target = g.hasTarget
+    auto flags = g.controlFlags
+    socket.sendVector(texts)
+    socket.sendVectorTo(address, texts)
+    socket.sendVectorMessage(address, control, texts)
+    socket.sendVectorMessage(control, texts)
+    socket.sendVector(chunks)
+    socket.sendVectorTo(address, chunks)
+    socket.sendVectorMessage(address, control, chunks)
+    socket.sendVectorMessage(control, chunks)
+    socket.sendVector(buffers)
+    socket.sendVectorTo(address, buffers)
+    socket.sendVectorMessage(address, control, buffers)
+    socket.sendVectorMessage(control, buffers)
+    socket.sendRefs(refs)
+    socket.sendRefsTo(address, refs)
+    socket.sendRefsMessage(address, control, refs)
+    socket.sendRefsMessage(control, refs)
+    socket.sendMessage(a)
+    array<UdpMessage> messages = [a, b, c, d, e, f, g]
+    socket.sendBatch(messages, progress)
+    array<NetDatagramPacket> copied = [NetDatagramPacket("copy")]
+    socket.sendBatch(copied, progress)
+    socket.joinMulticast(address)
+    socket.joinMulticast(address, address)
+    socket.leaveMulticast(address)
+    socket.leaveMulticast(address, address)
+    socket.joinMulticastAsync(address)
+    socket.joinMulticastAsync(address, address)
+    socket.leaveMulticastAsync(address)
+    socket.leaveMulticastAsync(address, address)
+    socket.setMulticastLoop(true)
+    socket.setMulticastLoopAsync(false)
+    socket.setMulticastHopLimit(1)
+    socket.setMulticastHopLimitAsync(1)
+    socket.setMulticastInterface(address)
+    socket.setMulticastInterface()
+    socket.setMulticastInterfaceAsync(address)
+    socket.setMulticastInterfaceAsync()
+end
+println("UDP transfer surface: ok")

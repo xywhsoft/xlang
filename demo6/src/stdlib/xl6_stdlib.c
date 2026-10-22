@@ -1045,6 +1045,7 @@ static int xl6StdlibNeedsUdpClass(const XL6_AstNode* root, const int* used)
     return xl6StdlibNodeUsesTypeName(root, "UdpSocket") ||
            xl6StdlibNodeUsesTypeName(root, "UdpPacket") ||
            xl6StdlibNodeUsesTypeName(root, "UdpBatch") ||
+           xl6StdlibNodeUsesTypeName(root, "UdpMessage") ||
            xl6StdlibNodeUsesTypeName(root, "UdpErrorPacket") ||
            xl6StdlibFuncUsed(used, "udp", "bind") ||
            xl6StdlibFuncUsed(used, "udp", "connect") ||

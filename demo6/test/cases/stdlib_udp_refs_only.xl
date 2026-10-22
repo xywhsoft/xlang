@@ -1,0 +1,4 @@
+export "udp_native_refs_only" func surface(UdpSocket socket, array<NetBytes> data)
+    socket.sendRefs(data)
+end
+println("UDP native refs selected closure: ok")

@@ -302,11 +302,66 @@ UDP 原生 31／36、语言源码各 149、共享 TCP／回调回归 44／53。�
 还做完整模块及 C／头拒绝输出。旧队列反证成功编译后在实际 Notify 中被新夹具
 确定性拒绝，说明测试不依靠碰巧撞到时序。提交封条为证据根的 `verified-commit.json`。
 
+## 已接入：消息描述符、向量／混合批量与 Worker 控制（2026-10-22）
+
+新增 49 个驻留入口，不新增 XRT 算法或第二套执行器：
+
+- `UdpMessage` 为不可变、受管理的消息描述符。string／bytes／Buffer 输入建立
+  快照；NetBytes／UdpPacket／array<NetBytes> 保留真实原生载荷引用。目标地址与
+  control 是独立 POD 副本，with／without 返回新描述符，不借用来源对象的字段。
+- `sendVector`／`sendVectorTo`／`sendVectorMessage` 接受 string、bytes、Buffer
+  三种 typed 数组；`sendRefs` 系列接受 array<NetBytes>。size=-1 表示完整组合
+  字节串，非负值选取组合前缀并截断到实际长度，其他负值 checked 拒绝。最多
+  64 段、最终载荷最多 65507 字节；允许空数据报和 UTF-8 码点中间的字节截断。
+- `sendMessage` 与 `sendBatch(array<UdpMessage>, progress, start, count)` 复用
+  native owned batch，混合 copied bytes、原生 bytes、Packet 和原生引用向量；
+  `sendBatch(array<NetDatagramPacket>, ...)` 复用原生 copy batch。批量不受 64
+  段限制；64 条以内用栈元数据，更大批量使用一次有界工作区分配。提交前先验证
+  全部选中描述符，不用逐项发送循环冒充批量。AGAIN／ERROR 的非零已受理前缀
+  仍保留在 NetBatchProgress，未提交的参数／分配错误令 attempted=false。
+- 多播 join／leave、loop、hop limit、interface 提供同步和 Async 入口。它们
+  的原生操作要求在所属 UDP Worker 执行：异步入口通过已有 Engine owned-work
+  队列派发，不为单次操作创建线程／协程栈；同步入口在本 Worker 直接执行，主调
+  线程投递后等待，同一 Engine 的其他 Worker 调用同步入口则 checked 拒绝。
+  实际工作记录追踪 receiver handle、Promise、取消令牌；不使用不透明旧闭包。
+  Async 返回 future<bool>，成功为 true；取消发生在执行前则跳过操作，执行后的
+  取消不能撤回已生效的 OS 设置。同步入口不是 nonblocking。
+
+14 个输入族／功能组件独立登记。普通向量、原生引用、混合 owned batch、copy
+batch、单消息及 Worker 控制各自有明确依赖；仅构造消息不要求 ExecutionSource
+或 Engine，也不为 string／bytes 输入引入 Buffer。普通语言程序的 print／异常
+支持仍可能使用自己的 Sequence，这不构成消息描述符的容器依赖。
+
+XLIR 严格登记物理 ABI、名义 owner、数组元素和上下文、Future<bool>、product
+结果、枚举及效果。Cgen 仍只做声明／上下文／调用／拥有清理；通用隐藏 native
+context 的 policy getter 声明不再依赖程序恰好存在本地构造器。该规则同样适用于
+仅接收 array<NetBytes> 参数的导出函数，不加入 UDP 专用生成函数体。
+
+验收入口为 `check_stdlib_udp_transfer_runtime.py`、
+`check_stdlib_udp_transfer_source.py`。证据根为
+`F:/xlang-validation/five-groups-20261022/p3-udp-transfer`，最终选用轮次、当前输入、
+日志与产物 SHA 以 `verified-commit.json` 为准。完整源码驱动为 Windows 831／
+Linux 830 TU；这仍不是发布 DLL／SO／VFS 验收。
+
+最终选用 Windows runtime-win-r7／source-win-r3／source-accept-win-r2 与 Linux
+runtime-linux-r6／source-linux-r3／source-accept-linux-r2，当前输入、日志和全部
+已记录产物 SHA 均重新核验。合计 357 阶段（Windows 176／Linux 181）：原生
+43／48、语言源码两端各 133，包含每端 8 次独立 AOT pending 退出重复，而非
+357 个独立程序；831／830 TU 数另计。10 个语言程序含全表面保留、独立消息、
+精确长度／混合批量、Worker 控制、两种参数-only 裁剪及 UDP async／TCP 共享
+回归。49 个入口、11 个 class-array context、8 个 bool Future、18 个枚举位置和
+10 个拥有结果接受 682 种坏合同检查，每个入口另检查完整模块及 C／头拒绝。
+原生还检查未 await 的控制 Future 退出图，不能要求调用者先等待所有操作。
+
+仅测试离线固定载荷与自有字面量回环。多播配置在实际 UDP Socket 上验收，但
+join／leave 的全表面仅编译／合同／链接验证，不实际加入组或发送多播流量；
+不能将该边界描述成已完成组通信实测。没有外网、DNS、OS 错误队列或安全专项。
+
 ## 仍必须依次完成
 
-1. 补齐受管向量／批量、引用／接管、元数据、能力协商、多播和普通错误通路；
-   同步和异步接口都复用 XRT。异步等待使用固定工作线程／就绪队列，不逐等待建立
-   线程或协程栈，不因封装而遗漏已批准的底层能力。
+1. 对照原生 UDP 剩余能力继续封板和迁移旧公开面；完成剩余已批准的网络文件／
+   任务组合。新增接口继续复用 XRT，异步等待使用固定工作线程／就绪队列，不逐
+   等待建立线程或协程栈，不因封装而遗漏已批准的底层能力。
 2. 新增接口持续保持 Cgen 仅声明／调用／拥有清理；失效的 `__xrt_udp.bind` 静态依赖
    和旧 UDP mapper 注释已清理。继续迁移旧全局网络
    fixture、suite 与文档，不能把旧发布驱动的通过状态套用到新接口。

@@ -849,7 +849,21 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_udp_stats.c",D(R(OWNERSHIP_CATALOG),R(UDP_STATS)),{NULL}},
     {"src/runtime/xl6_native_class_result.c",D(R(NATIVE_HANDLE),R(CODE_FINALIZER),R(OWNERSHIP_DOMAIN_CLASS)),{NULL}},
     {"src/runtime/xl6_udp_future.c",D(R(UDP_LANGUAGE),R(EXECUTION_UDP_FUTURE),R(UDP_BATCH),R(NATIVE_CLASS_RESULT),R(FUTURE_CALLBACK_QUEUE),R(FUTURE_PAYLOAD)),{NULL}},
-    {"src/runtime/xl6_udp_future_interrupt.c",D(R(UDP_FUTURE),R(FUTURE_CALLBACK_INTERRUPT)),{NULL}}
+    {"src/runtime/xl6_udp_future_interrupt.c",D(R(UDP_FUTURE),R(FUTURE_CALLBACK_INTERRUPT)),{NULL}},
+    {"src/runtime/xl6_udp_message.c",D(R(NET_BYTES),R(UDP_VALUES),R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_udp_message_buffer.c",D(R(UDP_MESSAGE),R(BUFFER_CORE)),{NULL}},
+    {"src/runtime/xl6_udp_message_array.c",D(R(UDP_MESSAGE),R(SEQUENCE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_udp_message.c",D(R(OWNERSHIP_CATALOG),R(UDP_MESSAGE)),{NULL}},
+    {"src/runtime/xl6_udp_vector.c",D(R(UDP_LANGUAGE),R(NET_VECTOR_INPUT)),{NULL}},
+    {"src/runtime/xl6_udp_vector_text.c",D(R(UDP_VECTOR),R(ARRAY_PRIMITIVE_ADMISSION)),{NULL}},
+    {"src/runtime/xl6_udp_vector_bytes.c",D(R(UDP_VECTOR),R(ARRAY_REFERENCE_ADMISSION)),{NULL}},
+    {"src/runtime/xl6_udp_vector_buffer.c",D(R(UDP_VECTOR),R(NET_VECTOR_BUFFER_INPUT)),{NULL}},
+    {"src/runtime/xl6_udp_refs.c",D(R(UDP_LANGUAGE),R(NET_BYTES),R(SEQUENCE)),{NULL}},
+    {"src/runtime/xl6_udp_transfer.c",D(R(UDP_LANGUAGE),R(NET_BATCH_PROGRESS),R(SEQUENCE)),{NULL}},
+    {"src/runtime/xl6_udp_transfer_owned.c",D(R(UDP_TRANSFER),R(UDP_MESSAGE)),{NULL}},
+    {"src/runtime/xl6_udp_transfer_copy.c",D(R(UDP_TRANSFER),R(NET_DATAGRAM_PACKET)),{NULL}},
+    {"src/runtime/xl6_udp_message_send.c",D(R(UDP_LANGUAGE),R(UDP_MESSAGE),R(EXECUTION_UDP_DATA)),{NULL}},
+    {"src/runtime/xl6_udp_multicast.c",D(R(UDP_LANGUAGE),R(FUTURE_PAYLOAD),R(FUTURE_CALLBACK),R(CLOSURE),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
