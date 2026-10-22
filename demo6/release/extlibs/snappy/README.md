@@ -31,6 +31,12 @@ Windows 严格 GCC 构建及运行通过。裁剪运行时对象为 292,981 字�
 `dev/extlib_blockers/argon2_byteat_sub.md`；本包用非法 chunk 测损坏路径，
 不把它视为主线修复。完整 AOT 仍缺 `xl6ValueDataSnapshotV1`，未签收。
 
+2026-10-22 复验：中央 `extlib_snappy.xl` 已改用直接写入损坏字节，
+`xl run` 成功；Windows `check.ps1 -SkipAot` 的 C 边界、语言用例与
+双语范例对照全部通过。共享的字节/整数运算问题仍有其他最小复现，
+不能因本包测试绕开表达式就视作修复。默认门禁在完整 XLang AOT
+构建时报缺少 `xl6ValueDataSnapshotV1`，整包暂不签收发布级。
+
 2026-10-17：中央进度用例原写入不存在的 `demo6/tmp` 而在回调前失败，
 现使用独立临时目录并在 `finally` 清理；Windows/Linux JIT 均通过。Linux
 联合门禁还通过中央主用例、教学范例、文件用例及双语基础输出。单字节
