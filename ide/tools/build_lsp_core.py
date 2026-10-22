@@ -236,6 +236,7 @@ def main() -> None:
         parser.error(f"C compiler does not exist: {cc}")
     sources = [(frontend / source, False) for source in FRONTEND_SOURCES]
     sources += [(ide / "src/analysis/runtime.c", False)]
+    sources += [(ide / "src/protocol/input_state.c", True)]
     sources += [(ide / path, True) for path in (
         "src/analysis/text.c", "src/analysis/ast_clone.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
     )]
@@ -334,7 +335,7 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "ast_clone", "syntax", "session", "worker", "folding", "semantic", "check", "input_batch", "check_session", "completion_session"}
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "ast_clone", "syntax", "session", "worker", "folding", "semantic", "check", "input_batch", "check_session", "completion_session", "input_state"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         limited_index = output / "xl6_sem_index_limit.o"

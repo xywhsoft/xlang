@@ -1,4 +1,5 @@
 #include "protocol/document_sync.h"
+#include "protocol/input_state.h"
 #include "analysis/text.h"
 #include <string.h>
 #include <limits.h>
@@ -11,6 +12,7 @@ typedef struct sync_entry {
     char* uri;
     uint64_t identity,revision;
     int version;
+    unsigned char uriHash[32];
     xls_text* text;
 } sync_entry;
 typedef struct sync_message { const char* method; xvalue* params; size_t textBytes; } sync_message;
@@ -50,6 +52,8 @@ static sync_entry* createEntry(const xls_sync_document* document,sync_entry* pre
     entry->uri=xrtMalloc(size);
     if(!entry->uri) { release(entry); return NULL; }
     memcpy(entry->uri,document->uri,size);
+    if(previous) memcpy(entry->uriHash,previous->uriHash,32);
+    else if(!xlsInputStateUri(entry->uri,entry->uriHash)) { release(entry); return NULL; }
     entry->identity=document->identity; entry->revision=document->revision;
     int same=previous && previous->identity==document->identity;
     if(same && xlsTextSize(previous->text)==document->length &&
@@ -82,6 +86,19 @@ int xlsSyncVersion(const xls_sync* sync,const char* uri)
 }
 void xlsSyncStats(const xls_sync* sync,xls_sync_stats* stats)
 { if(stats) *stats=sync ? sync->stats : (xls_sync_stats){0}; }
+int xlsSyncInputState(const xls_sync* sync,char digest[65],size_t* documents)
+{
+    if(digest) digest[0]=0;
+    if(documents) *documents=0;
+    if(!sync || sync->failed || !digest || !documents || sync->entries.Count>DOC_LIMIT) return 0;
+    xls_input_state_item items[DOC_LIMIT];
+    for(size_t i=0;i<sync->entries.Count;++i) {
+        const sync_entry* entry=*(sync_entry*const*)xrtArrayConstGet(&sync->entries,i);
+        memcpy(items[i].uri,entry->uriHash,32); items[i].version=entry->version;
+    }
+    if(!xlsInputStateDigest(items,sync->entries.Count,digest)) return 0;
+    *documents=sync->entries.Count; return 1;
+}
 
 static xvalue* position(xls_position at)
 {

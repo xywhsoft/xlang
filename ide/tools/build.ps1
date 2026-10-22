@@ -37,6 +37,7 @@ $sources += 'src\ui\file_dialog.c'
 $sources += 'src\platform\failure_window.c'
 $sources += 'src\analysis\text.c'
 $sources += 'src\protocol\document_sync.c'
+$sources += 'src\protocol\input_state.c'
 foreach ($source in $sources) {
     $object = Join-Path $objectRoot (($source.Replace('\','_')) + '.o')
     & $compiler @flags -c (Join-Path $ideRoot $source) -o $object

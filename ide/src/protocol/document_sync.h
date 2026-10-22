@@ -23,5 +23,9 @@ void xlsSyncDestroy(xls_sync* sync);
 int xlsSyncUpdate(xls_sync* sync,const xls_sync_document* documents,size_t count,
                   xls_sync_emit emit,void* user);
 int xlsSyncVersion(const xls_sync* sync,const char* uri);
+/* Receipt of successfully emitted online URI/version bindings. No body scan.
+ * Not a transport acknowledgement: compare with server inputState response,
+ * then separately verify local model identities/revisions and file proofs. */
+int xlsSyncInputState(const xls_sync* sync,char digest[65],size_t* documents);
 void xlsSyncStats(const xls_sync* sync,xls_sync_stats* stats);
 #endif
