@@ -71,6 +71,35 @@ static int xv_name_valid(const char *name, size_t length) {
     return 1;
 }
 
+/* 参数只校验语法外壳，不把未映射的参数带入结果对象。 */
+static int xv_params_valid(xstrview line, size_t semi, size_t colon) {
+    size_t pos = semi;
+    while (pos < colon) {
+        size_t start = ++pos;
+        while (pos < colon && line.Data[pos] != '=' && line.Data[pos] != ';') ++pos;
+        if (pos == colon || line.Data[pos] != '=' ||
+            !xv_name_valid(line.Data + start, pos - start)) return 0;
+        ++pos;
+        for (;;) {
+            if (pos < colon && line.Data[pos] == '"') {
+                ++pos;
+                while (pos < colon && line.Data[pos] != '"') ++pos;
+                if (pos == colon) return 0;
+                ++pos;
+            } else {
+                while (pos < colon && line.Data[pos] != ',' && line.Data[pos] != ';') {
+                    if (line.Data[pos] == '"') return 0;
+                    ++pos;
+                }
+            }
+            if (pos >= colon || line.Data[pos] != ',') break;
+            ++pos;
+        }
+        if (pos < colon && line.Data[pos] != ';') return 0;
+    }
+    return 1;
+}
+
 static int xv_parse_line(xvalue *object, xstrview line,
     int *phase, int *version, int *name, int *seenProperty) {
     size_t i, colon = line.Size, semi = line.Size, start = 0;
@@ -102,6 +131,7 @@ static int xv_parse_line(xvalue *object, xstrview line,
         start = i + 1;
     }
     if (!xv_name_valid(line.Data + start, semi - start)) return 0;
+    if (!xv_params_valid(line, semi, colon)) return 0;
     /* 卡片内部的结构标记不能作为未知属性忽略。 */
     if (xv_ascii_equal(line.Data + start, semi - start, "BEGIN") ||
         xv_ascii_equal(line.Data + start, semi - start, "END")) return 0;

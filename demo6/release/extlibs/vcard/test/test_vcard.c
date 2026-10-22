@@ -106,6 +106,11 @@ static int test_invalid(void) {
     const char bad_group_space[] = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nitem one.EMAIL:a@example.com\nEND:VCARD\n";
     const char bad_unknown_name[] = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nX_BAD:opaque\nEND:VCARD\n";
     const char good_unknown_name[] = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nX-OTHER:opaque\nEND:VCARD\n";
+    const char bad_parameter_name[] = "BEGIN:VCARD\nVERSION:4.0\nFN;X_BAD=1:A\nEND:VCARD\n";
+    const char missing_parameter_equal[] = "BEGIN:VCARD\nVERSION:4.0\nFN;TYPE:A\nEND:VCARD\n";
+    const char bad_parameter_tail[] = "BEGIN:VCARD\nVERSION:4.0\nFN;TYPE=\"home\"tail:A\nEND:VCARD\n";
+    const char good_parameters[] = "BEGIN:VCARD\nVERSION:4.0\n"
+        "FN;TYPE=\"home,work;primary:ok\";X-ALT=a,b:A\nEND:VCARD\n";
     const char nul[] = "BEGIN:VCARD\nVERSION:3.0\nFN:A\0B\nEND:VCARD\n";
     const char invalid_utf8[] = "BEGIN:VCARD\nVERSION:3.0\nFN:\xff\nEND:VCARD\n";
     xvalue *card;
@@ -147,7 +152,13 @@ static int test_invalid(void) {
     CHECK(xv_parse(bad_group_empty, sizeof(bad_group_empty) - 1) == NULL);
     CHECK(xv_parse(bad_group_space, sizeof(bad_group_space) - 1) == NULL);
     CHECK(xv_parse(bad_unknown_name, sizeof(bad_unknown_name) - 1) == NULL);
+    CHECK(xv_parse(bad_parameter_name, sizeof(bad_parameter_name) - 1) == NULL);
+    CHECK(xv_parse(missing_parameter_equal, sizeof(missing_parameter_equal) - 1) == NULL);
+    CHECK(xv_parse(bad_parameter_tail, sizeof(bad_parameter_tail) - 1) == NULL);
     card = xv_parse(good_unknown_name, sizeof(good_unknown_name) - 1);
+    CHECK(card != NULL && equals(field(card, "fn"), "A"));
+    xrtValueRelease(card);
+    card = xv_parse(good_parameters, sizeof(good_parameters) - 1);
     CHECK(card != NULL && equals(field(card, "fn"), "A"));
     xrtValueRelease(card);
     CHECK(xv_parse(nul, sizeof(nul) - 1) == NULL);
