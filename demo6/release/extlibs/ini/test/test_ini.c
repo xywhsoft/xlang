@@ -914,6 +914,25 @@ static int testErrorsAndLimits(void)
 		"embedded NUL error location is incorrect");
 	xrtIniDestroy(pConfig);
 	{
+		const char sInvalidUtf8[] = "\xef\xbb\xbf[one]\r\nname=\xff\n";
+		pConfig = xrtIniParseMemory(sInvalidUtf8, sizeof(sInvalidUtf8) - 1u, NULL);
+	}
+	bOk &= check(pConfig != NULL && xrtIniError(pConfig)->iCode == XRT_INI_ERROR_FORMAT &&
+		xrtIniError(pConfig)->iLine == 2u &&
+		xrtIniError(pConfig)->iColumn == 6u && xrtIniError(pConfig)->iOffset == 15u,
+		"invalid UTF-8 error location must include the BOM offset");
+	xrtIniDestroy(pConfig);
+	{
+		const char sInvalidFirstLine[] = "\xef\xbb\xbfname=\xff\n";
+		pConfig = xrtIniParseMemory(sInvalidFirstLine,
+			sizeof(sInvalidFirstLine) - 1u, NULL);
+	}
+	bOk &= check(pConfig != NULL && xrtIniError(pConfig)->iCode == XRT_INI_ERROR_FORMAT &&
+		xrtIniError(pConfig)->iLine == 1u &&
+		xrtIniError(pConfig)->iColumn == 6u && xrtIniError(pConfig)->iOffset == 8u,
+		"BOM must not count toward the first line's column");
+	xrtIniDestroy(pConfig);
+	{
 		const char sNulSection[] = "[hidden\0alias]\nkey=value\n";
 		pConfig = xrtIniParseMemory(sNulSection, sizeof(sNulSection) - 1u, NULL);
 	}

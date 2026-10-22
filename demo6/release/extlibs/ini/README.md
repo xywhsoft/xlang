@@ -33,6 +33,8 @@ string text = config.stringify()
 底层分配失败抛出 `MemoryError`，不混作普通配置错误；
 缺失键可用 `getOr` 提供默认值。`errorCode`、`errorLine`、`errorColumn`、
 `errorOffset` 保存最近一次错误信息。对象销毁时释放原生句柄。
+非法 UTF-8 的位置指向首个错误字节：`errorOffset` 是含可选 BOM 的原始
+字节偏移，`errorColumn` 从 BOM 后的正文起算；单独 CR 和 CRLF 都只计一行。
 `getFloat` 固定按点号十进制解析，不受进程 `LC_NUMERIC` 影响；逗号小数
 不是合法浮点文本。一次转换失败后，下一次成功操作会清除旧错误状态。
 `getInt` 使用 XRT 的严格十进制整数解析，必须消耗整个值；前导空白

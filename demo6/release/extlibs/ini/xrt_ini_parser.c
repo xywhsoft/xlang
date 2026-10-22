@@ -306,10 +306,26 @@ XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 				(iCode == XRT_INI_ERROR_MEMORY ? "cannot allocate INI input buffer" :
 				"cannot read INI stream"));
 		} else {
+			size_t iBadUtf8 = 0u;
 			pConfig->InputBytes = pData->Size;
 			if ( !xrtUtf8Valid((xstrview){ (cstr)pData->Data,
-				pData->Size }, NULL) ) {
-				__xrtIniSetError(pConfig, XRT_INI_ERROR_FORMAT, 1u, 1u, 0u,
+				pData->Size }, &iBadUtf8) ) {
+				const unsigned char* pText = pData->Data;
+				size_t i = pData->Size >= 3u && pText[0] == 0xefu &&
+					pText[1] == 0xbbu && pText[2] == 0xbfu ? 3u : 0u;
+				uint64 iLine = 1u, iColumn = 1u;
+				/* 偏移保留原始 BOM 字节，列号与正文解析一样跳过 BOM。 */
+				while ( i < iBadUtf8 ) {
+					if ( pText[i] == '\r' || pText[i] == '\n' ) {
+						if ( pText[i] == '\r' && i + 1u < iBadUtf8 &&
+							pText[i + 1u] == '\n' ) { ++i; }
+						++iLine;
+						iColumn = 1u;
+					} else { ++iColumn; }
+					++i;
+				}
+				__xrtIniSetError(pConfig, XRT_INI_ERROR_FORMAT,
+					iLine, iColumn, iBadUtf8,
 					"INI input is not valid UTF-8");
 			} else {
 				__xrtIniParseBuffer(pConfig, (const unsigned char*)pData->Data,
