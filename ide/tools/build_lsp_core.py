@@ -26,14 +26,14 @@ FRONTEND_SOURCES = (
     "src/sem/xl6_sem_index.c", "src/ir/xl6_ir.c", "src/ir/xl6_ir_class_identity.c",
 )
 SERVER_SOURCES = (
-    "src/protocol/lsp_wire.c", "src/services/language_check.c", "src/services/language_snapshot.c",
+    "src/protocol/lsp_wire.c", "src/services/language_check.c", "src/services/language_snapshot.c", "src/services/diagnostic_store.c",
     "src/services/semantic_definition.c", "src/services/semantic_completion.c", "src/services/c_bridge_map.c",
     "src/services/toolchain.c", "src/platform/file_rename.c", "src/platform/file_io.c",
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
     "src/server/xlang_ls.c",
 )
 CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_text_test", "document_sync_test")
-HOST_TESTS = ("analysis_index_view_test", "language_input_guard_test")
+HOST_TESTS = ("analysis_index_view_test", "language_input_guard_test", "diagnostic_store_test")
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 
 

@@ -12,6 +12,9 @@ char* xidePathResolveLexical(const char* baseDirectory,const char* path);
 /* Absolute extended Win32 paths for I/O, with backslashes. malloc/free;
    lexical conversion only: callers still validate/pin ordinary files. */
 wchar_t* xidePathNativeWide(const char* path);
+/* Ordered, case-insensitive comparison of prepared NativeWide keys. No path
+   normalization, filesystem access or allocation during sort/search. */
+int xidePathNativeKeyCompare(const wchar_t* left,const wchar_t* right);
 char* xidePathNativeUtf8(const char* path);
 char* xidePathDirectory(const char* absolutePath);
 char* xidePathRelative(const char* baseDirectory, const char* absolutePath);

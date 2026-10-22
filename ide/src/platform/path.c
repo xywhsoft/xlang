@@ -55,6 +55,11 @@ static wchar_t* nativeWide(const wchar_t* path)
 }
 wchar_t* xidePathNativeWide(const char* path)
 { wchar_t* input=wide(path); wchar_t* result=input ? nativeWide(input) : NULL; free(input); return result; }
+int xidePathNativeKeyCompare(const wchar_t* left,const wchar_t* right)
+{
+    if(!left || !right) return (left!=NULL)-(right!=NULL);
+    return CompareStringOrdinal(left,-1,right,-1,TRUE)-CSTR_EQUAL;
+}
 char* xidePathNativeUtf8(const char* path)
 {
     wchar_t* input=xidePathNativeWide(path);

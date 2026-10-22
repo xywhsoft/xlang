@@ -80,6 +80,13 @@ int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*cancel
 /* Borrowed immutable actual-input file reports, not all captured overlays.
    Valid until the caller releases its reference; safe across validations. */
 const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard);
+int xideLanguageInputGuardCurrent(const xide_language_input_guard* guard);
+void xideLanguageInputGuardInvalidate(xide_language_input_guard* guard);
+/* Lexical inputs/candidate lookup only, without disk access. */
+int xideLanguageInputGuardTouches(const xide_language_input_guard* guard,const char* path);
+/* Worker-only serialized metadata size for bounded diagnostic retention;
+   SIZE_MAX on serialization failure. This is not a heap/RSS measurement. */
+size_t xideLanguageInputGuardReportBytes(const xide_language_input_guard* guard);
 /* Nonblocking retirement: Destroy can be called after WorkerFinished without
    waiting for disk work on the owner thread. Cache must outlive the worker. */
 int xideLanguageCheckWorkerFinished(xide_language_check* check);

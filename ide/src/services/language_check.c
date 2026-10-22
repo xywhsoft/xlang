@@ -139,6 +139,29 @@ xide_language_input_guard* xideLanguageCheckCaptureInputGuard(xide_language_chec
 }
 const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard)
 { return guard ? guard->files : NULL; }
+int xideLanguageInputGuardCurrent(const xide_language_input_guard* guard)
+{ return guard && !xrtAtomic32Load(&guard->invalid,XMEMORY_ACQUIRE); }
+void xideLanguageInputGuardInvalidate(xide_language_input_guard* guard)
+{ if(guard) xrtAtomic32Store(&guard->invalid,1,XMEMORY_RELEASE); }
+int xideLanguageInputGuardTouches(const xide_language_input_guard* guard,const char* path)
+{
+ if(!guard || !path) return 0;
+ const xvalue* lists[]={guard->files,get(guard->resolution,"probes")};
+ for(size_t i=0;i<2;++i) for(size_t j=0;j<xrtValueCount(lists[i]);++j) {
+  const char* input=string(get(xrtValueArrayGet(lists[i],j),"path"));
+  if(input && (!strcmp(input,path) || xidePathLexicalEqual(input,path))) return 1;
+ }
+ return 0;
+}
+static bool countGuardBytes(xbytesview data,void* user)
+{ size_t* bytes=user; if(data.Size>SIZE_MAX-*bytes) return false; *bytes+=data.Size; return true; }
+size_t xideLanguageInputGuardReportBytes(const xide_language_input_guard* guard)
+{
+ if(!guard) return SIZE_MAX;
+ xjsonwriteconfig config; xrtJsonWriteConfigInit(&config); config.MaxOutputBytes=SIZE_MAX;
+ size_t bytes=0;
+ return xrtJsonWrite(guard->files,&config,countGuardBytes,&bytes) && xrtJsonWrite(guard->resolution,&config,countGuardBytes,&bytes) ? bytes : SIZE_MAX;
+}
 int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*stopped)(void*),void* user,xide_model_error* error)
 {
  if(!guard || xrtAtomic32Load(&guard->invalid,XMEMORY_ACQUIRE)) return fail(error,"Checked diagnostic inputs are no longer current.");
