@@ -1,6 +1,7 @@
 /* Included only after the immutable shared sem_index.c by the checked build
  * adapter. Reuses its collector, limits, selection and type-domain rules. */
 #include "analysis/frontend_index.h"
+#include "analysis/frontend_types.h"
 struct xls_semantic_index { XL6_IndexBuild build; };
 
 void xlsFrontendIndexDestroy(xls_semantic_index* index)
@@ -26,8 +27,11 @@ xls_semantic_index* xlsFrontendIndexCreate(const XL6_AstNode* root,
                 b->facts=xrtCalloc(XL6_INDEX_NODES,sizeof(*b->facts));
                 b->sources=xrtCalloc(XL6_INDEX_NODES,sizeof(*b->sources));
                 if(b->facts && b->sources) {
+                    xls_type_alias_scope aliases;
+                    xlsFrontendTypeAliasBegin(&aliases,root,8u*1024u*1024u);
                     XL6_IndexBuild* previous=xlsTypedIndexBuild; xlsTypedIndexBuild=b;
                     int okay=xl6IndexVisit(b,root,0,1); xlsTypedIndexBuild=previous;
+                    xlsFrontendTypeAliasEnd(&aliases);
                     if(okay) return index;
                 }
             }

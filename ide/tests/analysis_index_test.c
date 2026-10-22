@@ -1,5 +1,7 @@
 #include "analysis/check.h"
 #include "analysis/frontend_index.h"
+#include "analysis/frontend_types.h"
+#include "src/type/xl6_type_model.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
@@ -31,7 +33,9 @@ static int verify(xls_semantic_check* check)
     xlsSemanticStringFree(report);
     /* Compare every typed field and nullable range with the unchanged shared
      * JSON serializer; neither side is a synthetic semantic response. */
+    xlsFrontendTypeAliasReset();
     const char* json=xlsSemanticCheckIndex(check);
+    CHECK(!xlsFrontendTypeAliasWork().indexes && !xlsFrontendTypeAliasWork().queries);
     xjsonreadconfig config; xrtJsonReadConfigInit(&config);
     config.MaxInputBytes=XLS_CHECK_REPORT_BYTES; config.MaxValues=4u*1024u*1024u;
     config.MaxContainerItems=65536; config.MaxDepth=64;
@@ -68,9 +72,12 @@ static int capacity(void)
     CHECK(xrtStrBufAppendFormat(&source,"func main(...) as int\n return helper_2999(7)\nend\n"));
     char *path=xrtPathAbs("typed-capacity.xl"),error[256]; CHECK(path);
     xls_semantic_input input={path,source.Data,source.Size};
+    xlsFrontendTypeAliasReset();
     xls_semantic_check* result=xlsSemanticCheckCreate(path,&input,1,1,NULL,NULL,error,sizeof(error));
     if(!result) fprintf(stderr,"capacity check: %s\n",error);
     CHECK(result && xlsSemanticCheckInfo(result).accepted && xlsSemanticCheckInfo(result).hasIndex);
+    xls_type_alias_work lookup=xlsFrontendTypeAliasWork();
+    CHECK(lookup.indexes>=2 && lookup.indexedQueries && lookup.queries>=lookup.indexedQueries && lookup.peakBytes<=8u*1024u*1024u);
     const xls_semantic_index* index=xlsSemanticCheckTypedIndex(result); size_t count=xlsSemanticIndexCount(index);
     size_t budget=xlsFrontendIndexBudgetUsed(index);
     CHECK(count*1536>32u*1024u*1024u && count<65536 && budget<32u*1024u*1024u && !xlsFrontendIndexBudgetUsed(NULL));
@@ -97,7 +104,18 @@ static int capacity(void)
      * unchanged shared JSON serializer must still enforce its old policy. */
     CHECK(!xlsSemanticCheckIndex(result) && xlsSemanticCheckInfo(result).accepted && xlsSemanticCheckTypedIndex(result)==index);
     printf("typed capacity facts=%zu, charged data=%zu bytes; legacy JSON allowance still rejects\n",count,budget);
-    xlsSemanticCheckDestroy(result); xrtStrBufFree(&source); xrtFree(path); return 1;
+    xlsSemanticCheckDestroy(result);
+    /* Fail during collection after a nonempty alias scope was entered, then
+     * prove that an unrelated canonical query is outside that failed scope. */
+    for(unsigned i=3000;i<6000;++i) CHECK(xrtStrBufAppendFormat(&source,
+        "func helper_%u(int value) as int\n return value + 1\nend\n",i));
+    CHECK(xrtStrBufAppendFormat(&source,"typedef Count = int\ntypedef Other = Count\n"));
+    input=(xls_semantic_input){path,source.Data,source.Size};
+    result=xlsSemanticCheckCreate(path,&input,1,1,NULL,NULL,error,sizeof(error));
+    CHECK(!result && strstr(error,"tree limit"));
+    XL6_AstNode probe={0}; probe.kind=XL6_AST_TYPE; probe.text="int"; xlsFrontendTypeAliasReset();
+    CHECK(xl6TypeResolveAlias(NULL,&probe)==&probe && !xlsFrontendTypeAliasWork().queries);
+    xrtStrBufFree(&source); xrtFree(path); return 1;
 }
 static int run(void)
 {
@@ -112,6 +130,9 @@ static int run(void)
     xls_semantic_check* second=xlsSemanticCheckCreate(path,inputs,1,1,NULL,NULL,error,sizeof(error));
     CHECK(verify(second)); CHECK(verify(first)); /* Later AST/type context cannot alter first facts. */
     xlsSemanticCheckDestroy(second);
+    const char* aliases="typedef Count = int\ntypedef Other = Count\nfunc keep(Other value) as Count\n return value\nend\nfunc main(...) as int\n return keep(7)\nend\n";
+    inputs[0]=(xls_semantic_input){path,aliases,strlen(aliases)};
+    second=xlsSemanticCheckCreate(path,inputs,1,1,NULL,NULL,error,sizeof(error)); CHECK(verify(second)); xlsSemanticCheckDestroy(second);
     const char* entry="import typed_index_dep\nfunc main(...) as int\n return typed_index_dep.value()\nend\n";
     const char* dependency="export func value() as int\n return 7\nend\n";
     inputs[0]=(xls_semantic_input){path,entry,strlen(entry)}; inputs[1]=(xls_semantic_input){dep,dependency,strlen(dependency)};
