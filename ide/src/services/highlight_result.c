@@ -79,20 +79,21 @@ static int32 run(ptr user)
     xide_highlight_decoder* decoder=user;
     for(;;) {
         xrtMutexLock(&decoder->lock);
-        while(!decoder->stop && !decoder->pending.token) xrtCondWait(&decoder->changed,&decoder->lock);
+        while(!decoder->stop && !decoder->pending.message) xrtCondWait(&decoder->changed,&decoder->lock);
         if(decoder->stop) { xrtMutexUnlock(&decoder->lock);break; }
         decode_job job=decoder->pending;memset(&decoder->pending,0,sizeof(decoder->pending));
         xrtMutexUnlock(&decoder->lock);
         cancel_state state={decoder,job.token};
         xide_highlight_result* result=job.result;job.result=NULL;
-        if(!cancelled(&state) && !field(job.message,"error")) decodeInto(result,job.text,field(job.message,"result"),cancelled,&state);
+        if(result && !cancelled(&state) && !field(job.message,"error")) decodeInto(result,job.text,field(job.message,"result"),cancelled,&state);
         releaseJob(&job);
         xrtMutexLock(&decoder->lock);
         int publish=result && !decoder->stop && decoder->current==state.token;
         if(publish) { result->token=state.token;xideHighlightResultRelease(decoder->completed);decoder->completed=result;result=NULL; }
         xrtMutexUnlock(&decoder->lock);
         xideHighlightResultRelease(result);
-        if(publish && decoder->wake) decoder->wake(decoder->user);
+        /* Disposal/cancelled jobs also wake an owner waiting for queue space. */
+        if(decoder->wake) decoder->wake(decoder->user);
     }
     releaseJob(&decoder->pending);return 0;
 }
@@ -109,9 +110,17 @@ int xideHighlightDecoderSubmit(xide_highlight_decoder* decoder,uint64_t token,xv
     if(!decoder || !token || !message || !text) return 0;
     xide_highlight_result* result=xrtCalloc(1,sizeof(*result));if(!result) return 0;
     xrtMutexLock(&decoder->lock);
-    int okay=!decoder->stop && !decoder->pending.token;
+    int okay=!decoder->stop && !decoder->pending.message;
     if(okay) { decoder->current=token;decoder->pending=(decode_job){token,message,text,result};result=NULL;xideHighlightResultRelease(decoder->completed);decoder->completed=NULL;xrtCondSignal(&decoder->changed); }
     xrtMutexUnlock(&decoder->lock);xideHighlightResultRelease(result);return okay;
+}
+int xideHighlightDecoderDiscard(xide_highlight_decoder* decoder,xvalue* message)
+{
+    if(!decoder || !message) return 0;
+    xrtMutexLock(&decoder->lock);
+    int okay=!decoder->stop && !decoder->pending.message;
+    if(okay) { decoder->pending=(decode_job){.message=message};xrtCondSignal(&decoder->changed); }
+    xrtMutexUnlock(&decoder->lock);return okay;
 }
 void xideHighlightDecoderCancel(xide_highlight_decoder* decoder)
 {

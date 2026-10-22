@@ -28,6 +28,10 @@ xide_highlight_decoder* xideHighlightDecoderCreate(void (*wake)(void*),void* use
  * A full pending slot rejects submission instead of growing a queue. */
 int xideHighlightDecoderSubmit(xide_highlight_decoder* decoder,uint64_t token,
                                xvalue* message,xls_text* text);
+/* Retire an exclusively owned message on the same worker, without decoding or
+ * changing the active token/completed result. Shares the single pending slot;
+ * false leaves ownership with the caller for bounded backpressure/retry. */
+int xideHighlightDecoderDiscard(xide_highlight_decoder* decoder,xvalue* message);
 /* Cancel does not join or release pending JSON on the calling/UI thread. */
 void xideHighlightDecoderCancel(xide_highlight_decoder* decoder);
 xide_highlight_result* xideHighlightDecoderTake(xide_highlight_decoder* decoder);
