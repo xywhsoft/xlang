@@ -8,7 +8,7 @@ func main(...) as int
     bool createFailed = false
     try
         progress.create(10)
-    catch MemoryError
+    catch MemoryError error
         createFailed = true
     finally
         failClear()
@@ -22,7 +22,7 @@ func main(...) as int
     bool prefixFailed = false
     try
         bar.setPrefix("after")
-    catch MemoryError
+    catch MemoryError error
         prefixFailed = true
     finally
         failClear()
@@ -36,7 +36,7 @@ func main(...) as int
     bool renderFailed = false
     try
         bar.render()
-    catch MemoryError
+    catch MemoryError error
         renderFailed = true
     finally
         failClear()

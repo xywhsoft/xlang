@@ -14,49 +14,49 @@ func main(...) as int
     int raised = 0
     try
         bar.advance(-1)
-    catch e
+    catch ValueError error
         raised = 1
     end
     assert raised == 1 and bar.current == 50, "negative advance rejected without mutation"
     raised = 0
     try
         bar.setWidth(101)
-    catch e
+    catch ValueError error
         raised = 1
     end
     assert raised == 1 and bar.render() == first, "invalid width preserved"
     raised = 0
     try
         bar.setPrefix("bad\nline")
-    catch e
+    catch ValueError error
         raised = 1
     end
     assert raised == 1 and bar.render() == first, "newline prefix rejected"
     raised = 0
     try
         bar.setPrefix("bad\tprefix")
-    catch e
+    catch ValueError error
         raised = 1
     end
     assert raised == 1 and bar.render() == first, "tab prefix rejected"
     raised = 0
     try
         bar.setPrefix("a\xe2\x80\xaeb")
-    catch e
+    catch ValueError error
         raised = 1
     end
     assert raised == 1 and bar.render() == first, "bidi prefix rejected"
     raised = 0
     try
         bar.setPrefix("a\xe2\x80\x8bb")
-    catch ValueError
+    catch ValueError error
         raised = 1
     end
     assert raised == 1 and bar.render() == first, "zero-width prefix rejected"
     raised = 0
     try
         bar.setPrefix("a\0b")
-    catch e
+    catch ValueError error
         raised = 1
     end
     assert raised == 1 and bar.render() == first, "embedded NUL rejected"
@@ -64,7 +64,7 @@ func main(...) as int
     raised = 0
     try
         progress.create(0)
-    catch e
+    catch ValueError error
         raised = 1
     end
     assert raised == 1, "non-positive total rejected"
