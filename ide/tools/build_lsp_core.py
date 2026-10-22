@@ -32,7 +32,7 @@ SERVER_SOURCES = (
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
     "src/server/xlang_ls.c",
 )
-CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_text_test", "document_sync_test")
+CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_text_test", "document_sync_test")
 HOST_TESTS = ("analysis_index_view_test",)
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 
@@ -86,6 +86,42 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         compiledSource=str(compiled), compiledSha256=sha(compiled),
         change='optional XRT candidate iteration index; original cleanup generation and independent verification preserved',
         auditedSeams=len(changes), indexBytes=16 * 1024 * 1024)
+
+
+def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
+    """Keep function rules in their original TU, add opt-in immutable memos."""
+    original = frontend / 'src/sem/xl6_sem.c'
+    body = original.read_bytes()
+    # Reuse depends on the checker's side effects and cross-declaration reads,
+    # not just stable patch locations. Require an explicit audit on upgrades.
+    audited = 'd4f19af32f1732126913b99717a6b1b2d38d92f343b60828786b62d2a7d8183a'
+    if hashlib.sha256(body).hexdigest() != audited:
+        raise ValueError('shared semantic checker changed; audit memo context/identity/side-effect assumptions')
+    registry = frontend / 'src/sem/xl6_type_registry.c'
+    registry_sha = 'a0c37403f28d8a29ac4589e1dd78344a0d5fa2c8051ba2ead0209b9e0a228583'
+    if sha(registry) != registry_sha:
+        raise ValueError('shared type registry changed; audit generic identity reservation replay')
+    source = body.decode('utf-8').replace('\r\n', '\n')
+    begin = ('    for ( i = 0; i < root->childCount; ++i ) {\n'
+             '        XL6_AstNode* child = root->children[i];\n'
+             '        if ( child->kind == XL6_AST_FUNC || child->kind == XL6_AST_ASYNC_FUNC ) {')
+    changes = {
+        '} XL6_SemContext;': '} XL6_SemContext;\n#include "analysis/frontend_sem.inc"',
+        'static int xl6SemCheckFunc(XL6_SemContext* ctx, XL6_AstNode* node)\n{':
+            'static int xlsSemCheckFuncOriginal(XL6_SemContext* ctx, XL6_AstNode* node)\n{',
+        begin: '    xlsSemMemoBegin(&ctx);\n' + begin,
+    }
+    for old, new in changes.items():
+        if source.count(old) != 1:
+            raise ValueError('shared semantic memo seam changed; audit: ' + old)
+        source = source.replace(old, new)
+    compiled = output / 'frontend/xl6_sem.c'
+    compiled.write_text(source, encoding='utf-8', newline='\n')
+    return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
+        compiledSource=str(compiled), compiledSha256=sha(compiled),
+        change='opt-in exact-context top-level function semantic memos; original rules and final annotations retained',
+        auditedSeams=len(changes), memoBytes=64 * 1024 * 1024,
+        auditedDependencies={str(registry): registry_sha})
 
 
 def dependencies(body: str) -> list[Path]:
@@ -145,10 +181,12 @@ def main() -> None:
     try:
         original_index, generated_index, index_overlay = prepare_native_index(frontend, output)
         original_ir, generated_ir, ir_overlay = prepare_native_ir(frontend, output)
+        original_sem, generated_sem, sem_overlay = prepare_native_sem(frontend, output)
     except ValueError as error:
         parser.error(str(error))
     sources = [(generated_index if path == original_index else path, owned) for path, owned in sources]
     sources = [(generated_ir if path == original_ir else path, owned) for path, owned in sources]
+    sources = [(generated_sem if path == original_sem else path, owned) for path, owned in sources]
     env = dict(os.environ)
     env["PATH"] = str(cc.parent) + os.pathsep + env.get("PATH", "")
     common = ["-std=c11", "-ffunction-sections", "-fdata-sections", "-DXRT_MODULE_ALL=", "-DXLS_COMPILER_XRT=1",
@@ -176,8 +214,9 @@ def main() -> None:
         common += ["-D_GNU_SOURCE=1"]
         libraries += ["-pthread", "-ldl"]
     commands, inputs, outputs, runs, imports = [], {str(Path(__file__).resolve()): sha(Path(__file__)),
-        str(original_index): index_overlay["sourceSha256"], str(original_ir): ir_overlay["sourceSha256"]}, {}, [], {}
-    source_overlays = [index_overlay, ir_overlay]
+        str(original_index): index_overlay["sourceSha256"], str(original_ir): ir_overlay["sourceSha256"],
+        str(original_sem): sem_overlay["sourceSha256"]}, {}, [], {}
+    source_overlays = [index_overlay, ir_overlay, sem_overlay]
     runtime_profiles = []
     started = time.monotonic()
     status = "failed"

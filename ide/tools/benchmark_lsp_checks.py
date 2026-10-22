@@ -26,6 +26,8 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--samples', type=int, default=15)
     parser.add_argument('--functions', default='0,100,1000')
+    parser.add_argument('--function-shape', choices=('simple', 'generic-chain'), default='simple')
+    parser.add_argument('--require-function-reuse', action='store_true', help='assert actual native work and the deterministic simple-function bypass')
     args = parser.parse_args()
     functions = [int(n) for n in args.functions.split(',')]
     if not 3 <= args.samples <= 100 or not functions or len(set(functions)) != len(functions) or any(n < 0 or n > 3000 for n in functions):
@@ -49,6 +51,8 @@ def main():
             disk = b'func main(...) as int\n return 0\nend\n'
             entry.write_bytes(disk)
             prefix = ''.join('func helper_%d(int value) as int\n return value + 1\nend\n' % i for i in range(count))
+            if args.function_shape == 'generic-chain':
+                prefix = 'func choose<T>(T value) as T\n return value\nend\n' + ''.join('func helper_%d(int value) as int\n int result = value\n' % i + ' result = choose::<int>(result + 1)\n' * 50 + ' return result\nend\n' for i in range(count))
             def source(value):
                 return prefix + 'func main(...) as int\n int result = %d\n return result\nend\n' % value
             body = source(7)
@@ -81,6 +85,14 @@ def main():
                             expected_hits = 0 if kind == 'first' else i + 1 if kind == 'repeat' else args.samples + i + 1 if kind == 'sameBodyVersion' else 2 * args.samples
                             assert stats['builds'] == expected_builds and stats['cacheHits'] == expected_hits, (kind, i, stats)
                             assert stats['workerThreadId'] != stats['captureThreadId'] and stats['documents'] == 1 and stats['textBytes'] == len(body.encode()), stats
+                            if args.require_function_reuse:
+                                eligible = count + 1 if args.function_shape == 'generic-chain' else 0
+                                total = count + 2 if args.function_shape == 'generic-chain' else count + 1
+                                edits = i + 1 if kind == 'edit' else 0
+                                checks = total + (total - eligible) * edits
+                                reused = eligible * edits
+                                assert stats['semanticFunctionsChecked'] == checks and stats['semanticFunctionsReused'] == reused, (kind, i, stats)
+                                assert 0 <= stats['semanticMemoBytes'] <= 64 * 1024 * 1024 and bool(stats['semanticMemoBytes']) == bool(eligible), stats
                             last_stats = stats
                         rows[kind].append(elapsed)
                 assert entry.read_bytes() == disk
@@ -89,7 +101,7 @@ def main():
                 (directory / 'transcript.json').write_text(json.dumps(client.transcript, ensure_ascii=False, indent=2), encoding='utf-8')
                 (directory / 'stderr.log').write_text(client.stderr, encoding='utf-8')
             assert client.process.returncode == 0, client.stderr
-            report['cases'].append(dict(functions=count, lines=3 * count + 4,
+            report['cases'].append(dict(functions=count, functionShape=args.function_shape, lines=source(0).count('\n'),
                 measurements={name: summary(values) for name, values in rows.items()}, finalAnalysis=last_stats))
         assert protected == {p: sha(p) for p in protected}
         report['status'] = 'passed'

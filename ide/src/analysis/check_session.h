@@ -8,6 +8,7 @@ typedef struct xls_check_stats {
     uint64_t builds,hits,invalidations;
     size_t documents,textBytes;
     uint64_t entryFullParses,entryFragmentParses,entryReusedDeclarations,entryParsedBytes,entrySyntaxHits;
+    uint64_t semanticFunctionsChecked,semanticFunctionsReused,semanticContextHits,semanticMemoBytes;
 } xls_check_stats;
 /* One owner thread; retains one checked compilation and its immutable input
  * batch, bounded by the existing native check limits. No transport/GUI types.

@@ -29,6 +29,8 @@ static int equal(const XL6_AstNode* a,const XL6_AstNode* b,int sources)
 }
 static int reject(const XL6_AstNode* in,XL6_AstNode* out,void* user)
 { (void)in; (void)out; unsigned* count=user; return ++*count<5; }
+static XL6_AstSource* destination(const XL6_AstSource* in,void* user)
+{ XL6_AstNode* node=user; return in->path && !strcmp(in->path,xl6AstSourcePath(node)) ? node->source : NULL; }
 typedef struct reader { const XL6_AstNode* root; unsigned failures; } reader;
 static int32 readCopies(void* user)
 {
@@ -59,9 +61,14 @@ static int run(void)
     CHECK(again && equal(parsed.root,again,1)); xl6AstFree(again);
     CHECK(!xlsAstClone(parsed.root,&(xls_ast_clone_options){.bytes=bytes-1},NULL));
     CHECK(!xlsAstClone(parsed.root,&(xls_ast_clone_options){.bytes=1},NULL));
-    unsigned visited=0; CHECK(!xlsAstClone(parsed.root,&(xls_ast_clone_options){reject,&visited,0,0},NULL) && visited==5);
+    unsigned visited=0; CHECK(!xlsAstClone(parsed.root,&(xls_ast_clone_options){reject,&visited,0,0,NULL},NULL) && visited==5);
     again=xlsAstClone(parsed.root,&(xls_ast_clone_options){.dropSources=1},NULL);
     CHECK(again && equal(parsed.root,again,0)); xl6AstFree(again);
+    XL6_AstNode* owner=xl6AstNew(XL6_AST_MODULE,NULL);
+    CHECK(owner && xl6AstSetSourceTree(owner,xl6AstSourcePath(parsed.root)));
+    again=xlsAstClone(parsed.root,&(xls_ast_clone_options){.user=owner,.targetSource=destination},NULL);
+    CHECK(again && equal(parsed.root,again,1) && again->source==owner->source && owner->source->references>1);
+    xl6AstFree(again); CHECK(owner->source->references==1 && first->references==before && other->references==otherBefore); xl6AstFree(owner);
     reader readers[4]; xthread* threads[4];
     for(unsigned i=0;i<4;++i) { readers[i]=(reader){parsed.root,0}; threads[i]=xrtThreadCreate(readCopies,&readers[i],0); CHECK(threads[i]); }
     for(unsigned i=0;i<4;++i) { CHECK(xrtThreadWait(threads[i])==XWAIT_OK && !readers[i].failures); xrtThreadDestroy(threads[i]); }

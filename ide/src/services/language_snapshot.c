@@ -407,7 +407,11 @@ analysed:
    put(stats,"captureThreadId",xrtValueInt((int64)q->captureThread)) && put(stats,"adapterThreadId",xrtValueInt((int64)xrtThreadCurrentId())) &&
    put(stats,"entryFullParses",xrtValueInt((int64)q->semanticStats.entryFullParses)) && put(stats,"entryFragmentParses",xrtValueInt((int64)q->semanticStats.entryFragmentParses)) &&
    put(stats,"entryReusedDeclarations",xrtValueInt((int64)q->semanticStats.entryReusedDeclarations)) && put(stats,"entryParsedBytes",xrtValueInt((int64)q->semanticStats.entryParsedBytes)) &&
-   put(stats,"entrySyntaxHits",xrtValueInt((int64)q->semanticStats.entrySyntaxHits));
+   put(stats,"entrySyntaxHits",xrtValueInt((int64)q->semanticStats.entrySyntaxHits)) &&
+   put(stats,"semanticFunctionsChecked",xrtValueInt((int64)q->semanticStats.semanticFunctionsChecked)) &&
+   put(stats,"semanticFunctionsReused",xrtValueInt((int64)q->semanticStats.semanticFunctionsReused)) &&
+   put(stats,"semanticContextHits",xrtValueInt((int64)q->semanticStats.semanticContextHits)) &&
+   put(stats,"semanticMemoBytes",xrtValueInt((int64)q->semanticStats.semanticMemoBytes));
   if(!okayStats) { xrtValueRelease(stats); goto done; }
   if(!put(result,"analysis",stats)) goto done;
  }

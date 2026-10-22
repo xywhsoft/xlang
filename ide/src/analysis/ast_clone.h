@@ -5,11 +5,16 @@
  * Sources are copied into the new tree, without touching non-atomic source
  * references in an immutable snapshot owned by another thread. */
 typedef int (*xls_ast_transform)(const XL6_AstNode* input,XL6_AstNode* output,void* user);
+typedef XL6_AstSource* (*xls_ast_source_target)(const XL6_AstSource* input,void* user);
 typedef struct xls_ast_clone_options {
     xls_ast_transform transform;
     void* user;
     size_t bytes; /* zero: no extra byte budget; allocation failure still fails */
     int dropSources;
+    /* Optional destination owned by a PRIVATE construction tree on this
+     * thread. Never return an immutable/published snapshot's source. NULL
+     * selects the normal independent source copy. */
+    xls_ast_source_target targetSource;
 } xls_ast_clone_options;
 XL6_AstNode* xlsAstClone(const XL6_AstNode* input,const xls_ast_clone_options* options,size_t* bytes);
 #endif

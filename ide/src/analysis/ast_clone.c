@@ -15,6 +15,17 @@ static int source(clone_context* c,const XL6_AstSource* in,XL6_AstNode* out)
     if(!in || c->options.dropSources) return 1;
     xbytesview key={(const unsigned char*)&in,sizeof(in)};
     XL6_AstSource** found=xrtMapGet(&c->sources,key); XL6_AstSource* value=found ? *found : NULL;
+    if(value) { out->source=value; ++value->references; return 1; }
+    if(c->options.targetSource) {
+        XL6_AstSource* target=c->options.targetSource(in,c->options.user);
+        if(target) {
+            if(target==in || !target->references || !!target->path!=!!in->path ||
+               (in->path && strcmp(target->path,in->path)) || target->completionQuery!=in->completionQuery ||
+               target->completionStart!=in->completionStart || target->completionEnd!=in->completionEnd) return 0;
+            if(!xrtMapSet(&c->sources,key,&target)) return 0;
+            out->source=target; ++target->references; return 1;
+        }
+    }
     if(!value) {
         if(!charge(c,sizeof(*value))) return 0;
         value=xrtCalloc(1,sizeof(*value)); if(!value) return 0;

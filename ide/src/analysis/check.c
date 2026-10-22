@@ -1,6 +1,7 @@
 #include "analysis/check.h"
 #include "analysis/frontend_index.h"
 #include "analysis/frontend_internal.h"
+#include "analysis/frontend_sem.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
 #include "src/stdlib/xl6_stdlib.h"
@@ -20,6 +21,8 @@ struct xls_semantic_check {
     XL6_IrModule ir;
     char *path,*index;
     xls_semantic_index* typedIndex;
+    xls_sem_memo* memo;
+    xls_sem_work semanticWork;
     const char* phase;
     int accepted,captureIndex;
 };
@@ -33,14 +36,14 @@ xls_semantic_check* xlsSemanticCheckRetain(xls_semantic_check* r)
 void xlsSemanticCheckDestroy(xls_semantic_check* r)
 {
     if(!r || xrtAtomic32FetchSub(&r->references,1,XMEMORY_ACQ_REL)!=1) return;
-    xrtFree(r->index); xlsFrontendIndexDestroy(r->typedIndex);
+    xrtFree(r->index); xlsFrontendIndexDestroy(r->typedIndex); xlsFrontendSemMemoDestroy(r->memo);
     xl6IrModuleFree(&r->ir); xl6ParseResultFree(&r->parse);
     xl6ImportDepsFree(&r->deps); xl6SourceOverlayClear(&r->overlay); xl6SourceReportFree(&r->report);
     xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
 }
-xls_semantic_check* xlsSemanticCheckCreateParsed(const char* entry,
+xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
-    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+    xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
     xls_semantic_check* r=NULL;
     if(error && capacity) *error=0;
@@ -88,7 +91,24 @@ xls_semantic_check* xlsSemanticCheckCreateParsed(const char* entry,
     if(okay) {
         char module[256]; char* stem=xrtPathStem(r->path); if(!stem) goto invalid;
         snprintf(module,sizeof(module),"%s",*stem ? stem : "module"); xrtFree(stem);
-        r->phase="sem"; okay=xl6SemCheckModuleWithIndex(r->parse.root,&r->parse.diags,module,captureIndex);
+        r->phase="sem";
+        if(syntax) {
+            const xls_sem_memo* baseline=NULL;
+            int compatible=previous && previous->memo && previous->captureIndex==captureIndex && !strcmp(previous->path,r->path) &&
+                previous->overlay.count==r->overlay.count && xlsSemanticCheckValidate(previous);
+            /* Changed imported overlays are not interchangeable merely
+             * because they have the same public spelling. This first slice
+             * retains entry-edit facts only; dependencies still recheck. */
+            for(size_t i=0;compatible && i<r->overlay.count;++i) {
+                const XL6_SourceOverlayItem* current=&r->overlay.items[i];
+                const XL6_SourceOverlayItem* old=xl6SourceOverlayFind(&previous->overlay,current->path);
+                compatible=old && !strcmp(old->path,current->path);
+                if(compatible && strcmp(current->path,r->path)) compatible=old->size==current->size && !memcmp(old->text,current->text,current->size);
+            }
+            if(compatible) baseline=previous->memo;
+            okay=xlsFrontendSemCheckMemo(r->parse.root,&r->parse.diags,module,captureIndex,r->path,
+                (xls_text*)xlsSyntaxText(syntax),baseline,&r->memo,&r->semanticWork);
+        } else okay=xl6SemCheckModuleWithIndex(r->parse.root,&r->parse.diags,module,captureIndex);
     }
     if(stopped(cancelled,user)) goto cancel;
     if(okay) { r->phase="ir"; okay=xl6IrBuildModuleFromAst(&r->ir,r->parse.root,&r->parse.diags); }
@@ -122,6 +142,16 @@ xls_semantic_check* xlsSemanticCheckCreate(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
 { return xlsSemanticCheckCreateParsed(entry,inputs,count,captureIndex,NULL,cancelled,user,error,capacity); }
+xls_semantic_check* xlsSemanticCheckCreateParsed(const char* entry,
+    const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{ return xlsSemanticCheckCreateIncremental(entry,inputs,count,captureIndex,syntax,NULL,cancelled,user,error,capacity); }
+xls_check_semantic_work xlsSemanticCheckWork(const xls_semantic_check* r)
+{ return r ? (xls_check_semantic_work){r->semanticWork.checked,r->semanticWork.reused,r->semanticWork.contextHits,r->semanticWork.bytes} : (xls_check_semantic_work){0}; }
+const XL6_IrModule* xlsSemanticCheckIr(const xls_semantic_check* r)
+{ return r && !invalid(r) && r->accepted ? &r->ir : NULL; }
+const XL6_AstNode* xlsSemanticCheckAst(const xls_semantic_check* r)
+{ return r && !invalid(r) ? r->parse.root : NULL; }
 xls_check_info xlsSemanticCheckInfo(const xls_semantic_check* r)
 {
     if(!r) return (xls_check_info){0};
