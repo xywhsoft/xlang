@@ -108,3 +108,12 @@ Two pre-existing regression fixtures fail identically with the pre-change
 compiler at `1b4aef459`: `cgen_string_embedded_nul.xl` expects codec byte results
 to be strings, and `cgen_var_string_concat.xl` fails its checked-conversion
 assertion. They are not acceptance gates for the C owner feature.
+
+Mainline integration acceptance rebuilt 884 C translation units from source.
+The runtime unit, six generated-C programs, 13 negative cases, seven JIT and
+seven standalone EXE programs passed. Seven existing ordinary-value programs
+also passed both JIT and standalone EXE. O0/O2 contract fixtures checked all
+484 RuntimeOps (3,872 operand effects), closure capture mutations, managed
+storage mutations and nullable joins. Ordinary generated C does not include
+the C carrier runtime header. This targeted acceptance does not claim that the
+repository-wide RC0, source wiring and documentation inventories are green.

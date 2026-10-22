@@ -35,9 +35,13 @@ static XL6_IrOperandOwnership expected(XL6_IrRuntimeOp op,size_t operand)
     case XL6_IR_RUNTIME_SET_IMPORT_CHAIN:
     case XL6_IR_RUNTIME_DICT_IMPORT_CHAIN:
     case XL6_IR_RUNTIME_XVALUE_TYPE_BIND:
+    case XL6_IR_RUNTIME_XVALUE_ENUM_BIND:
     case XL6_IR_RUNTIME_XVALUE_TYPE_REBIND_OWNED:
     case XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND:
     case XL6_IR_RUNTIME_XVALUE_CLASS_CONSTRUCTION_COMMIT:
+    /* A checked C byte length consumes the already anchored allocation,
+     * releasing it on rejection; copying and reading C carriers only borrow. */
+    case XL6_IR_RUNTIME_CBYTES_SIZE_TAKE:
         return operand==0 ? XL6_IR_OPERAND_OWNERSHIP_CONSUME : XL6_IR_OPERAND_OWNERSHIP_OBSERVE;
     case XL6_IR_RUNTIME_XVALUE_ARRAY_SET_I64_NEW:
     case XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE:
