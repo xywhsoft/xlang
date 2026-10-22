@@ -126,6 +126,42 @@ static int test_supplementary_variation(void)
     return 0;
 }
 
+static int test_render_allocations(void)
+{
+    const char* row[] = {"alpha", "\xE4\xBD\xA0\xE5\xA5\xBD", "forty-two"};
+    void* table = xtab_create();
+    char* expected;
+    unsigned point, failures = 0u, successes = 0u;
+    int index;
+    CHECK(table != NULL);
+    for (index = 0; index < 64; ++index)
+        CHECK(xtab_add_row(table, row, 3));
+    expected = (char*)xtab_render(table);
+    CHECK(expected != NULL);
+    for (point = 0u; point < 64u; ++point) {
+        char* rendered;
+        int triggered;
+        CHECK(xrtMemDebugFailAfter((uint64)point));
+        rendered = (char*)xtab_render(table);
+        triggered = xrtMemDebugFailTriggered();
+        xrtMemDebugFailClear();
+        if (rendered == NULL) {
+            CHECK(triggered && xrtGetError() != NULL &&
+                xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+            ++failures;
+        } else {
+            CHECK(strcmp(rendered, expected) == 0 && xrtGetError() == NULL);
+            ++successes;
+        }
+        xrtFree(rendered);
+        CHECK(xtab_row_count(table) == 64);
+    }
+    CHECK(failures != 0u && successes != 0u);
+    xrtFree(expected);
+    xtab_destroy(table);
+    return 0;
+}
+
 int main(void)
 {
     const char* headers[] = {"名", "Age"};
@@ -150,6 +186,7 @@ int main(void)
     CHECK(test_transaction_faults() == 0);
     CHECK(test_format_controls() == 0);
     CHECK(test_supplementary_variation() == 0);
+    CHECK(test_render_allocations() == 0);
     CHECK(xrtMemDebugFailAfter(0));
     CHECK(xtab_create() == NULL);
     CHECK(xrtMemDebugFailTriggered());

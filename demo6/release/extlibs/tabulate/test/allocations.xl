@@ -12,7 +12,7 @@ for allocation in range(64)
     try
         auto table = tabulate.create()
         assert table.valid
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
@@ -31,7 +31,7 @@ for allocation in range(64)
     assert failAfter(uint64(allocation))
     try
         table.addRow(["new"])
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
@@ -48,4 +48,34 @@ for allocation in range(64)
     end
 end
 assert rowFailures > 0 and rowSuccesses > 0, "row scan coverage"
+
+auto rendered = tabulate.create()
+for i in range(32)
+    rendered.addRow(["alpha", "你好", "forty-two"])
+end
+string expected = rendered.render()
+int renderFailures = 0
+int renderSuccesses = 0
+for allocation in range(64)
+    bool caught = false
+    string output = ""
+    assert failAfter(uint64(allocation))
+    try
+        output = rendered.render()
+    catch MemoryError error
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert not caught or triggered
+    if caught then
+        renderFailures += 1
+    else
+        assert output == expected
+        renderSuccesses += 1
+    end
+    assert rendered.rowCount == 32
+    assert rendered.render() == expected
+end
+assert renderFailures > 0 and renderSuccesses > 0, "render scan coverage"
 println("tabulate allocations: PASS")

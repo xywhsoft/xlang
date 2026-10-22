@@ -74,3 +74,5 @@ Linux 包级门禁：从 `demo6` 运行 `bash release/extlibs/tabulate/test/chec
 2026-10-22：补充变体选择符 U+E0100–U+E01EF 原被算作一列，导致含该字符的汉字单元格多补空格。C/XLang 用完整两列表格固定文本先红后绿；Windows 包级严格 C/线程/XLang/范例门禁与 Linux C ASan/UBSan、XLang、双语门禁通过。其他 Unicode 宽度估算边界不变；完整带输出 AOT 仍受共享缺符号阻断，不签收整包发布级。
 
 2026-10-22：Windows 默认包门禁不再只凭 C/JIT 返回全绿，现另构建、运行无输出核心和公开 XLang 范例 AOT，并对照固定输出。`-SkipAot` 的严格 C、线程、语言及三条范例路径通过，Linux C ASan/UBSan、线程、语言与双语门禁通过；默认 Windows 门禁的核心 AOT 通过，范例构建因共享 `xl6ValueDataSnapshotV1` 未解析而准确返回失败。本次独占构建目录已清理，整包仍未签收发布级。
+
+2026-10-23：渲染分配故障从首点扩到多行表格的 C/XLang 各前 64 点，核对 `XERR_MEMORY`/明确的 `MemoryError`、成功输出与基线一致、失败后表格行数不变及解除故障后的恢复。现有创建与追加行用例也改为明确的类型捕获。Windows `test/check.ps1 -SkipAot` 的严格 C/线程/XLang 与 Linux C ASan/UBSan、线程、XLang/双语门禁通过；渲染实现/API 未改，完整 AOT 的共享阻断仍在。
