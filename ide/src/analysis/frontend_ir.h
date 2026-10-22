@@ -15,6 +15,9 @@ typedef struct xls_ir_plan_scan_work {
 void xlsFrontendIrPlanScanReset(void);
 xls_ir_plan_scan_work xlsFrontendIrPlanScanWork(void);
 int xlsFrontendIrVerifyPlanBudget(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes);
+typedef struct xls_ir_scope_proof_work { uint64_t requests,checks,hits,indexes,peakBytes; } xls_ir_scope_proof_work;
+void xlsFrontendIrScopeProofReset(void);
+xls_ir_scope_proof_work xlsFrontendIrScopeProofWork(void);
 int xlsFrontendIrReferenceRefresh(XL6_IrModule* module);
 int xlsFrontendIrReferenceVerify(const XL6_IrModule* module,XL6_DiagList* diags);
 #endif

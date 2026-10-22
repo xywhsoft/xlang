@@ -5,6 +5,7 @@
 
 #define XLS_IR_SCAN_BYTES (16u*1024u*1024u)
 #define XLS_IR_PLAN_BYTES (8u*1024u*1024u)
+#define XLS_IR_SCOPE_BYTES (1u*1024u*1024u)
 typedef struct xls_ir_candidate { XL6_IrNodeId owner,node; } xls_ir_candidate;
 typedef struct xls_ir_plan_candidate { XL6_IrNodeId origin; size_t index; } xls_ir_plan_candidate;
 typedef struct xls_ir_scan {
@@ -12,19 +13,23 @@ typedef struct xls_ir_scan {
     const XL6_IrNode* nodes;
     size_t count;
     xarray all,routed;
-    xarray plans,positions;
+    xarray plans,positions,scopeProof;
     const XL6_IrExitPlan* planSource;
+    const XL6_IrExitPlan* scopeSource;
     size_t planCount,planBudget;
-    int ready,topology,plansReady,plansAttempted;
+    size_t scopeCount;
+    int ready,topology,plansReady,plansAttempted,verifying,scopeAttempted,scopeReady;
     struct xls_ir_scan* previous;
 } xls_ir_scan;
 static _Thread_local xls_ir_scan* xlsActiveIrScan;
 static _Thread_local xls_ir_scan_work xlsIrScanWork;
 static _Thread_local xls_ir_plan_scan_work xlsIrPlanWork;
+static _Thread_local xls_ir_scope_proof_work xlsIrScopeWork;
 static XL6_IrNodeId xl6IrCleanupEnclosingCallable(const XL6_IrModule*,XL6_IrNodeId);
 static int xl6IrVerifyNodeTopology(const XL6_IrModule*,XL6_DiagList*);
 static int xlsIrRefreshExitPlansOriginal(XL6_IrModule*);
 static int xlsIrVerifyModuleOriginal(const XL6_IrModule*,XL6_DiagList*);
+static int xlsIrVerifyScopeExitActionsOriginal(const XL6_IrModule*,const XL6_IrExitPlan*);
 
 static int xlsIrCandidateCompare(const void* a,const void* b)
 {
@@ -67,6 +72,45 @@ static void xlsIrScanDone(xls_ir_scan* scan)
 {
     xlsActiveIrScan=scan->previous; xrtArrayUnit(&scan->all); xrtArrayUnit(&scan->routed);
     xrtArrayUnit(&scan->plans); xrtArrayUnit(&scan->positions);
+    xrtArrayUnit(&scan->scopeProof);
+}
+static size_t xlsIrScopeProofSlot(xls_ir_scan* scan,const XL6_IrModule* module,const XL6_IrExitPlan* plan)
+{
+    if(!scan || !scan->verifying || !scan->topology || scan->module!=module || !plan ||
+       scan->nodes!=module->nodes || scan->count!=module->nodeCount || !module->exitPlans ||
+       !module->exitPlanCount || module->exitPlanCount>module->exitPlanCapacity) return SIZE_MAX;
+    /* Only physical arena entries qualify. Local/temporary plans still run
+     * the original rule. Integer offsets avoid unrelated-pointer arithmetic. */
+    uintptr_t base=(uintptr_t)module->exitPlans,at=(uintptr_t)plan;
+    if(at<base || (at-base)%sizeof(*plan)) return SIZE_MAX;
+    uintptr_t offset=(at-base)/sizeof(*plan);
+    if(offset>=module->exitPlanCount) return SIZE_MAX;
+    if(!scan->scopeAttempted) {
+        scan->scopeAttempted=1;
+        size_t limit=scan->planBudget<XLS_IR_SCOPE_BYTES ? scan->planBudget : XLS_IR_SCOPE_BYTES;
+        if(module->exitPlanCount>limit/2 || !xrtArrayInit(&scan->scopeProof,sizeof(unsigned char)) ||
+           !xrtArrayResize(&scan->scopeProof,module->exitPlanCount) || scan->scopeProof.Capacity>limit) {
+            xrtArrayUnit(&scan->scopeProof); return SIZE_MAX;
+        }
+        scan->scopeSource=module->exitPlans; scan->scopeCount=module->exitPlanCount; scan->scopeReady=1;
+        ++xlsIrScopeWork.indexes;
+        if(scan->scopeProof.Capacity>xlsIrScopeWork.peakBytes) xlsIrScopeWork.peakBytes=scan->scopeProof.Capacity;
+    }
+    return scan->scopeReady && scan->scopeSource==module->exitPlans && scan->scopeCount==module->exitPlanCount ? (size_t)offset : SIZE_MAX;
+}
+static int xl6IrVerifyScopeExitActions(const XL6_IrModule* module,const XL6_IrExitPlan* plan)
+{
+    ++xlsIrScopeWork.requests;
+    xls_ir_scan* scan=xlsActiveIrScan;
+    size_t slot=xlsIrScopeProofSlot(scan,module,plan);
+    if(slot!=SIZE_MAX && scan->scopeProof.Data[slot]) { ++xlsIrScopeWork.hits; return 1; }
+    ++xlsIrScopeWork.checks;
+    int okay=xlsIrVerifyScopeExitActionsOriginal(module,plan);
+    /* The shared pure check has run on the same immutable module/plan. Only
+     * success is remembered, within this Verify call; route walking and all
+     * other verification remain independent and unchanged. */
+    if(okay && slot!=SIZE_MAX) scan->scopeProof.Data[slot]=1;
+    return okay;
 }
 static int xlsIrPlanCompare(const void* a,const void* b)
 {
@@ -180,7 +224,7 @@ int xl6IrRefreshExitPlans(XL6_IrModule* module)
 }
 int xlsFrontendIrVerifyPlanBudget(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes)
 {
-    xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.planBudget=bytes; xlsActiveIrScan=&scan;
+    xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.planBudget=bytes; scan.verifying=1; xlsActiveIrScan=&scan;
     int okay=xlsIrVerifyModuleOriginal(module,diags); xlsIrScanDone(&scan); return okay;
 }
 int xl6IrVerifyModule(const XL6_IrModule* module,XL6_DiagList* diags)
@@ -189,6 +233,8 @@ void xlsFrontendIrScanReset(void) { memset(&xlsIrScanWork,0,sizeof(xlsIrScanWork
 xls_ir_scan_work xlsFrontendIrScanWork(void) { return xlsIrScanWork; }
 void xlsFrontendIrPlanScanReset(void) { memset(&xlsIrPlanWork,0,sizeof(xlsIrPlanWork)); }
 xls_ir_plan_scan_work xlsFrontendIrPlanScanWork(void) { return xlsIrPlanWork; }
+void xlsFrontendIrScopeProofReset(void) { memset(&xlsIrScopeWork,0,sizeof(xlsIrScopeWork)); }
+xls_ir_scope_proof_work xlsFrontendIrScopeProofWork(void) { return xlsIrScopeWork; }
 int xlsFrontendIrReferenceRefresh(XL6_IrModule* module)
 {
     xls_ir_scan* prior=xlsActiveIrScan; xlsActiveIrScan=NULL;
