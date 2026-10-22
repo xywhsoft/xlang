@@ -270,6 +270,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #undef XL6_GENERIC_CHANNEL_RECEIVE_START_CANCEL
 #include "xl6_ir_asn1_contracts.inc"
 #include "xl6_ir_crypto_contracts.inc"
+#include "xl6_ir_key_contracts.inc"
 #include "xl6_ir_compress_contracts.inc"
 #include "xl6_ir_template_contracts.inc"
     {"xl6Crc32StringV1",T,I,3,{U,S,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},

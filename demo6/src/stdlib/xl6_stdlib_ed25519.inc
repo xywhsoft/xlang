@@ -26,6 +26,12 @@ static const char xl6StdResidentxl6CryptoEd25519VerifyContextBufferV1[] =
 const char* xl6StdlibEd25519ClassSource =
     "class Ed25519Key\n"
     "    private native point handle\n"
+    "    static extern \"xl6CryptoEd25519FromPkcs8V1\" @nonblocking func fromPkcs8(bytes encoded) as Ed25519Key\n"
+    "    extern \"xl6CryptoEd25519ToPkcs8V1\" @pure @nonblocking func toPkcs8(bool includePublic = false) as bytes\n"
+    "    static extern \"xl6CryptoEd25519FromPkcs8PemV1\" @nonblocking func fromPkcs8Pem(string encoded) as Ed25519Key\n"
+    "    extern \"xl6CryptoEd25519ToPkcs8PemV1\" @pure @nonblocking func toPkcs8Pem(bool includePublic = false) as string\n"
+    "    extern \"xl6CryptoEd25519PublicSpkiV1\" @pure @nonblocking func publicSpki() as bytes\n"
+    "    extern \"xl6CryptoEd25519PublicSpkiPemV1\" @pure @nonblocking func publicSpkiPem() as string\n"
     "    extern \"xl6CryptoEd25519CreateV1\" @nonblocking create(bytes seed)\n"
     "    extern \"xl6CryptoEd25519DestroyV1\" @no_raise @nonblocking destroy()\n"
     "    extern \"xl6CryptoEd25519PublicV1\" @pure @nonblocking get publicKey() as bytes\n"

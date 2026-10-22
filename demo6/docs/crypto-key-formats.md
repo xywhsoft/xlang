@@ -1,7 +1,8 @@
 # 显式密钥格式接入
 
-状态：P4 进行中。共享驻留格式底座已实现并独立验收；下表语言方法和完整
-声明／XLIR／产物依赖接线尚未发布，不能凭底座通过便宣称 xlang 已具备这些方法。
+状态：P4 的共享格式底座及下表语言方法、声明／XLIR／拥有权／产物依赖接线
+已在源码中实现并通过固定输入的双平台联合复验。发布 DLL／SO／VFS
+尚未重建验收，不能将源码接入等同于 shipping 或整个长期任务完成。
 
 ## 接入目标与依赖
 
@@ -10,7 +11,7 @@
 先有共享 wire 合同，再接 typed 工厂／方法及实际模块／AOT／裁剪验收，最后
 将同一格式底座交给 X.509／TLS 使用，避免三处分别猜测或解析私钥。
 
-计划公开面（不是已发布清单）：
+源码公开面：
 
 | 现有类型 | 静态导入／输出方法 |
 |---|---|
@@ -24,6 +25,18 @@
 RSA PRIVATE KEY／EC PRIVATE KEY 标签，不提供一个靠长度或内容猜算法的入口。
 私钥输出默认 PKCS#8 version 0；显式 includePublic 才输出 RFC5958 version 1。
 格式函数不接受消息式 size 截断：密钥和编码输入必须完整。
+
+```xlang
+auto key = X25519Key.fromPkcs8(encodedPrivateKey)
+bytes publicDer = key.publicSpki()
+bytes rawPublic = crypto.x25519PublicFromSpki(publicDer)
+string privatePem = key.toPkcs8Pem()
+```
+
+五种曲线均有 `crypto.<算法>PublicFromSpki`／`PublicToSpki` 和相应 Pem
+入口。默认 PKCS#8 不附带外层公钥，`toPkcs8(true)`／`toPkcs8Pem(true)`
+明确要求 RFC5958 version 1。`toSec1()` 默认保留内部公钥，可显式传 false；
+这与 PKCS#8 的外层公钥开关不是同一项配置。
 
 ## 已实现的共享合同
 
@@ -39,8 +52,9 @@ RSA PRIVATE KEY／EC PRIVATE KEY 标签，不提供一个靠长度或内容猜�
   独立 SEC1 输入必须带曲线参数；嵌入 PKCS#8 时可使用已验证的外层曲线。
   写出时总是包含曲线参数。只支持已有 XRT 使用的非压缩点表示。
 - RFC8410 私钥保留规范的双层 OCTET STRING，不将裸标量误当完整 PKCS#8。
-- 辅助公钥的视图与私钥分别返回。后续受管理工厂必须与实际派生公钥逐一
-  比对，才能发布对象；wire shape 校验不能冒称数学有效性验证。
+- 辅助公钥的视图与私钥分别返回。受管理工厂与实际派生公钥逐一比对后
+  才能发布对象，嵌套 SEC1 和外层 RFC5958 公钥分别验证；wire shape 校验
+  不能冒称数学有效性验证。
 - PEM 要求恰好一块目标标签，块外只允许空白；多块选择仍交给已有 PemReader。
   只用显式字节长度，不将用户输入交给 strlen。DER／文本预算分别 16／32 MiB。
 
@@ -54,7 +68,7 @@ RSA PRIVATE KEY／EC PRIVATE KEY 标签，不提供一个靠长度或内容猜�
 读取／导出可标 pure＋nonblocking，但不能标 no-raise；RSA 私钥导入沿用
 已有原生自检／随机盲化，不能误标 pure／nonblocking。
 
-## 验收边界与后续接线
+## 验收边界
 
 `tools/check_key_format_wire.py` 从既有测试中只提取公开固定常量，不执行旧
 原生测试。独立 cryptography／OpenSSL 后端生成六种有效密钥及正常标准格式；
@@ -67,10 +81,34 @@ OpenSSL 导入器都支持；未进行畸形密钥／点／签名攻击样本或
 实际 Windows GCC O0／O2／TCC，Linux 另加 ASan／UBSan；正式回执及哈希见
 `F:/xlang-validation/five-groups-20261023/p4-key-formats`。
 
-后续必须完成：所有六类 typed 工厂／方法、完整效果／结果拥有者和 IR 坏合同
-拒绝、按格式／算法的驻留组件接线、JIT／module／独立 AOT／裁剪／错误清理，
-以及现有密钥对象回归。底座尚未接入任何默认产物，不增加其体积，也不代表
-P4／X.509／TLS 或 shipping 已完成。
+`tools/check_stdlib_key_formats.py` 验收完整语言接线：74 个精确原生入口、
+22 个拥有型工厂，沿用原来的七种密钥叶策略，没有新增生命周期模型。
+五种原始构造只增加私有同步 span 入口，避免导入时先构造临时语言 bytes。
+原生输出直接转移 Buffer payload，不经过临时语言 Buffer 或 Cgen 格式包装。
+
+每配置包含 1008 个分配预算、934 次实际失败，七种真实叶的 Hold／Claim／
+Restore，14 个发布预算及 10 处有效但不匹配的辅助公钥拒绝；所有路径核对
+精确内存账本。n/e/d-only 的合法 RSA 私钥仍可使用既有能力，但完整格式输出
+以 checked 错误拒绝，不补造 CRT 参数。受管理对象输出另由独立库读取。
+
+完整 source-driver 使用当前全部编译单元，而非替换个别旧对象：实际语言
+静态工厂、方法、原有构造和 typed 容器拥有值通过 JIT／module／独立 AOT，
+生成 C 通过 GCC O0／O2。812 处签名／效果／拥有者坏合同及 74 个完整模块／
+C／头文件输出门验证拒绝行为。12 个单独产物验证按算法、DER／PEM 和
+SEC1／PKCS#8 裁剪：裸公钥格式不包含私钥核心，DER 不包含 PEM，独立 SEC1
+不包含外层 PKCS#8，且不启用 MODULE_ALL。
+
+标准库函数表增加 20 个命名空间函数，索引使用既有生成器更新到 1023 项，
+静态方法不混入该表。74 个声明、登记和 IR 合同做集合相等校验。Cgen 未增加
+任何密钥解析／格式写入实现，适配位于按需选取的驻留组件。
+
+本批正式验收 Windows 154／Linux 156，共 310 阶段，其中各有 145 个语言／
+IR／裁剪阶段，原生专项分别 9／11 阶段。全源码构建分别为 956／955 个 TU，
+不混计为验收阶段。输入／日志／产物哈希另行独立复核；原始与镜像证据、
+独立提交身份见上述证据根的 `verified-api-commit.json`。
+
+本轮不修改独立 XRT、固定快照或两边时间 ABI，不重建发布资产。X.509／TLS
+及最终 shipping 联合验收仍是长期任务的后续工作。
 
 依据：[RFC8410](https://www.rfc-editor.org/rfc/rfc8410.html)、
 [RFC5958](https://www.rfc-editor.org/rfc/rfc5958.html)、

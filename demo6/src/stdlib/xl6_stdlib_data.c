@@ -317,6 +317,7 @@ const char* xl6StdlibXidClassSource =
 #include "xl6_stdlib_ed25519.inc"
 #include "xl6_stdlib_nist.inc"
 #include "xl6_stdlib_rsa.inc"
+#include "xl6_stdlib_key_formats.inc"
 
 #include "xl6_stdlib_net_address.inc"
 #include "xl6_stdlib_net_resolver.inc"
@@ -5394,6 +5395,26 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"template", "renderFileIn", "__xl_std_template_render_file_in", NULL, NULL, 0, "string", xl6StdTemplateRenderVfsBody},
     {"template", "errorLocation", "__xl_std_template_error_location", NULL, NULL, 0, "TemplateLocation?", xl6StdTemplateErrorLocationBody},
     {"tcp", "server", "__xl_std_tcp_server", NULL, NULL, 0, "TcpServer", xl6StdTcpServerBody},
+    {"crypto", "x25519PublicFromSpki", "__xl_std_crypto_x25519PublicFromSpki", NULL, NULL, 0, "bytes", xl6StdKeyX25519PublicFromSpki},
+    {"crypto", "x25519PublicFromSpkiPem", "__xl_std_crypto_x25519PublicFromSpkiPem", NULL, NULL, 0, "bytes", xl6StdKeyX25519PublicFromSpkiPem},
+    {"crypto", "x25519PublicToSpki", "__xl_std_crypto_x25519PublicToSpki", NULL, NULL, 0, "bytes", xl6StdKeyX25519PublicToSpki},
+    {"crypto", "x25519PublicToSpkiPem", "__xl_std_crypto_x25519PublicToSpkiPem", NULL, NULL, 0, "string", xl6StdKeyX25519PublicToSpkiPem},
+    {"crypto", "x448PublicFromSpki", "__xl_std_crypto_x448PublicFromSpki", NULL, NULL, 0, "bytes", xl6StdKeyX448PublicFromSpki},
+    {"crypto", "x448PublicFromSpkiPem", "__xl_std_crypto_x448PublicFromSpkiPem", NULL, NULL, 0, "bytes", xl6StdKeyX448PublicFromSpkiPem},
+    {"crypto", "x448PublicToSpki", "__xl_std_crypto_x448PublicToSpki", NULL, NULL, 0, "bytes", xl6StdKeyX448PublicToSpki},
+    {"crypto", "x448PublicToSpkiPem", "__xl_std_crypto_x448PublicToSpkiPem", NULL, NULL, 0, "string", xl6StdKeyX448PublicToSpkiPem},
+    {"crypto", "ed25519PublicFromSpki", "__xl_std_crypto_ed25519PublicFromSpki", NULL, NULL, 0, "bytes", xl6StdKeyEd25519PublicFromSpki},
+    {"crypto", "ed25519PublicFromSpkiPem", "__xl_std_crypto_ed25519PublicFromSpkiPem", NULL, NULL, 0, "bytes", xl6StdKeyEd25519PublicFromSpkiPem},
+    {"crypto", "ed25519PublicToSpki", "__xl_std_crypto_ed25519PublicToSpki", NULL, NULL, 0, "bytes", xl6StdKeyEd25519PublicToSpki},
+    {"crypto", "ed25519PublicToSpkiPem", "__xl_std_crypto_ed25519PublicToSpkiPem", NULL, NULL, 0, "string", xl6StdKeyEd25519PublicToSpkiPem},
+    {"crypto", "p256PublicFromSpki", "__xl_std_crypto_p256PublicFromSpki", NULL, NULL, 0, "bytes", xl6StdKeyP256PublicFromSpki},
+    {"crypto", "p256PublicFromSpkiPem", "__xl_std_crypto_p256PublicFromSpkiPem", NULL, NULL, 0, "bytes", xl6StdKeyP256PublicFromSpkiPem},
+    {"crypto", "p256PublicToSpki", "__xl_std_crypto_p256PublicToSpki", NULL, NULL, 0, "bytes", xl6StdKeyP256PublicToSpki},
+    {"crypto", "p256PublicToSpkiPem", "__xl_std_crypto_p256PublicToSpkiPem", NULL, NULL, 0, "string", xl6StdKeyP256PublicToSpkiPem},
+    {"crypto", "p384PublicFromSpki", "__xl_std_crypto_p384PublicFromSpki", NULL, NULL, 0, "bytes", xl6StdKeyP384PublicFromSpki},
+    {"crypto", "p384PublicFromSpkiPem", "__xl_std_crypto_p384PublicFromSpkiPem", NULL, NULL, 0, "bytes", xl6StdKeyP384PublicFromSpkiPem},
+    {"crypto", "p384PublicToSpki", "__xl_std_crypto_p384PublicToSpki", NULL, NULL, 0, "bytes", xl6StdKeyP384PublicToSpki},
+    {"crypto", "p384PublicToSpkiPem", "__xl_std_crypto_p384PublicToSpkiPem", NULL, NULL, 0, "string", xl6StdKeyP384PublicToSpkiPem},
 };
 
 const XL6_StdlibForeignContract xl6StdlibForeignContracts[] = {
