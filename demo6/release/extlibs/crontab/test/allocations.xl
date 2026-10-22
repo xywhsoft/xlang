@@ -10,7 +10,7 @@ for expr in expressions
     assert failAfter(0)
     try
         crontab.describe(expr)
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
