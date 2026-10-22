@@ -35,7 +35,10 @@ def main():
     parser.add_argument('--functions', default='0,100')
     parser.add_argument('--require-cursor-reuse', action='store_true',
                         help='Verify real retained cursor build/hit counters on every sample.')
+    parser.add_argument('--require-cursor-syntax-reuse', action='store_true',
+                        help='Also verify actual entry cursor fragment parsing and declaration reuse.')
     args = parser.parse_args()
+    args.require_cursor_reuse = args.require_cursor_reuse or args.require_cursor_syntax_reuse
     functions = [int(n) for n in args.functions.split(',')]
     if not 3 <= args.samples <= 100 or not functions or len(set(functions)) != len(functions) or any(n < 0 or n > 10000 for n in functions):
         parser.error('Use 3..100 samples and 0..10000 functions per fixture.')
@@ -74,6 +77,8 @@ def main():
                 if args.require_cursor_reuse:
                     capabilities=client.transcript[1]['receive']['result']['capabilities']['experimental']
                     assert capabilities['retainedCursorCompletion'],capabilities
+                    if args.require_cursor_syntax_reuse:
+                        assert capabilities['retainedCursorSyntax'],capabilities
                 initialized = time.perf_counter_ns()
                 client.open(entry, text, 1)
                 rows = dict(first=[], repeat=[], sameBodyVersion=[], edit=[])
@@ -105,6 +110,11 @@ def main():
                         assert stats['adapterThreadId'] not in (stats['workerThreadId'],stats['captureThreadId']),stats
                         if expected_worker is None:expected_worker=stats['workerThreadId']
                         assert expected_worker==stats['workerThreadId'],stats
+                        if args.require_cursor_syntax_reuse:
+                            assert stats['cursorFullParses']==1 and stats['cursorFragmentParses']==expected_builds-1,stats
+                            assert stats['cursorReusedDeclarations']==count*(expected_builds-1),stats
+                            assert stats['cursorFreshBuilds']==0 and stats['cursorSyntaxHits']==0,stats
+                            assert stats['cursorParsedBytes']<=len(text.encode('utf8'))+(expected_builds-1)*256,stats
                         last_analysis=stats
                     rows[kind].append(round(elapsed, 6))
                     # Keep only the current sample's transcript out of the measured interval.
@@ -132,7 +142,7 @@ def main():
                 report['cases'].append(dict(functions=count, lines=text.count('\n'),
                     utf8Bytes=len(text.encode('utf8')), startupInitializeMs=round((initialized-started)/1e6, 3),
                     measurements={key:summary(value) for key,value in rows.items()},
-                    retainedCursorCountersVerified=args.require_cursor_reuse,finalAnalysis=last_analysis,
+                    retainedCursorCountersVerified=args.require_cursor_reuse,cursorSyntaxCountersVerified=args.require_cursor_syntax_reuse,finalAnalysis=last_analysis,
                     verifiedCandidates=True))
             finally:
                 client.stop()

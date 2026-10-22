@@ -6,10 +6,15 @@ typedef struct xls_completion_session xls_completion_session;
 typedef struct xls_completion_stats {
     uint64_t builds,hits,invalidations;
     size_t documents,textBytes;
+    uint64_t cursorFullParses,cursorFragmentParses,cursorReusedDeclarations,cursorParsedBytes;
+    uint64_t cursorSyntaxHits,cursorFreshBuilds;
 } xls_completion_stats;
 /* One owner, one retained exact cursor projection. Hits revalidate disk,
  * import candidates and observed environment; different inputs/cursors still
- * run the shared semantic query. Returned reference outlives the session. */
+ * run the shared semantic query. Entry cursor queries can reuse immutable
+ * syntax; imports and semantic checking still run afresh. Other query files
+ * and failed cache construction use the original native query path, counted
+ * explicitly by cursorFreshBuilds. Returned reference outlives the session. */
 xls_completion_session* xlsCompletionSessionCreate(const xls_session_limits* limits);
 void xlsCompletionSessionDestroy(xls_completion_session* session);
 /* UTF-8 offset after BOM. Increasing same-body revisions can reuse facts;

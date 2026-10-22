@@ -1,4 +1,6 @@
 #include "analysis/completion_session.h"
+#include "analysis/frontend_internal.h"
+#include "src/sem/xl6_completion.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
@@ -86,6 +88,105 @@ static int externalInputs(void)
     xrtFree(relative); xrtFree(disk); xrtFree(extra); xrtFree(missing); xrtFree(path); xrtFree(extraPath); xrtFree(cwd); xrtFree(directory); xrtFree(environment);
     return 1;
 }
+
+static int parsedEntry(void)
+{
+    char *path=xrtPathAbs("parsed-cursor-entry.xl"),*other=xrtPathAbs("parsed-cursor-other.xl");
+    char* source=xrtStrDup("func main(...) as int\n int result = 7\n return res\nend\n");CHECK(path&&other&&source);
+    xls_text* text=body(source);CHECK(text);size_t at=offset(source,"return res");
+    XL6_CompletionQuery q={.path=path,.offset=at};xls_parse_work work={0};
+    xls_syntax* syntax=xlsSyntaxBuildCursor(path,text,NULL,&q,&work);CHECK(syntax);xl6CompletionFree(&q);
+    xls_semantic_input input={path,source,strlen(source)};char error[256];
+    xls_semantic_completion* result=xlsSemanticCompletionCreateParsed(path,path,at,&input,1,syntax,NULL,NULL,error,sizeof(error));
+    CHECK(result&&has(result,"result"));xls_analysis_document doc={"entry",path,text,1,1};CHECK(parity(result,&doc,1,"entry","entry",at));
+    /* URI paths can use forward separators while XRT's absolute paths use
+     * native separators. Selection uses the compiler overlay's own identity. */
+    char* slash=xrtStrDup(path);CHECK(slash);for(char* c=slash;*c;++c)if(*c=='\\')*c='/';
+    xls_semantic_completion* normalized=xlsSemanticCompletionCreateParsed(slash,slash,at,&input,1,syntax,NULL,NULL,error,sizeof(error));
+    CHECK(normalized&&has(normalized,"result")&&parity(normalized,&doc,1,"entry","entry",at));xlsSemanticCompletionDestroy(normalized);xrtFree(slash);
+    CHECK(!xlsSemanticCompletionCreateParsed(path,path,at-1,&input,1,syntax,NULL,NULL,error,sizeof(error))&&*error);
+    char* changed=xrtStrDup(source);CHECK(changed);char* value=strstr(changed,"= 7");CHECK(value);value[2]='8';input.text=changed;
+    CHECK(!xlsSemanticCompletionCreateParsed(path,path,at,&input,1,syntax,NULL,NULL,error,sizeof(error))&&*error);input.text=source;xrtFree(changed);
+    input.path=other;CHECK(!xlsSemanticCompletionCreateParsed(other,other,at,&input,1,syntax,NULL,NULL,error,sizeof(error))&&*error);input.path=path;
+    work=(xls_parse_work){0};xls_syntax* ordinary=xlsSyntaxBuild(path,text,NULL,&work);CHECK(ordinary);
+    CHECK(!xlsSemanticCompletionCreateParsed(path,path,at,&input,1,ordinary,NULL,NULL,error,sizeof(error)));
+    CHECK(!xlsSemanticCheckCreateParsed(path,&input,1,0,syntax,NULL,NULL,error,sizeof(error))&&strstr(error,"cursor syntax"));
+    CHECK(!xlsSemanticCompletionCreateParsed(path,path,at,&input,1,syntax,stop,NULL,error,sizeof(error))&&strstr(error,"cancelled"));
+    char* expected=xlsSemanticCompletionJson(result,NULL);CHECK(expected);
+    xlsSyntaxRelease(ordinary);xlsSyntaxRelease(syntax);xlsTextRelease(text);memset(source,'?',strlen(source));xrtFree(source);xrtFree(path);
+    char* actual=xlsSemanticCompletionJson(result,NULL);CHECK(actual&&!strcmp(actual,expected)&&has(result,"result"));
+    xlsSemanticStringFree(actual);xlsSemanticStringFree(expected);xlsSemanticCompletionDestroy(result);
+    /* Query errors belong to the result after the source snapshot is gone. */
+    path=xrtPathAbs("parsed-cursor-rejected.xl");source=xrtStrDup("func main(...) as int\n int result = 7\n return res\nend\n");CHECK(path&&source);text=body(source);CHECK(text);at=offset(source,"result = ");
+    q=(XL6_CompletionQuery){.path=path,.offset=at};work=(xls_parse_work){0};syntax=xlsSyntaxBuildCursor(path,text,NULL,&q,&work);CHECK(syntax&&!xlsSyntaxAccepted(syntax)&&q.error);xl6CompletionFree(&q);
+    input=(xls_semantic_input){path,source,strlen(source)};result=xlsSemanticCompletionCreateParsed(path,path,at,&input,1,syntax,NULL,NULL,error,sizeof(error));
+    CHECK(result&&!xlsSemanticCompletionInfo(result).available);doc=(xls_analysis_document){"entry",path,text,1,1};CHECK(parity(result,&doc,1,"entry","entry",at));
+    xlsSyntaxRelease(syntax);xlsTextRelease(text);xrtFree(source);xrtFree(path);
+    CHECK(xlsSemanticCompletionInfo(result).error&&strstr(xlsSemanticCompletionInfo(result).error,"identifier"));
+    actual=xlsSemanticCompletionJson(result,NULL);CHECK(actual);xlsSemanticStringFree(actual);xlsSemanticCompletionDestroy(result);xrtFree(other);return 1;
+}
+static int incrementalEntry(void)
+{
+    xstrbuf source;xrtStrBufInit(&source);
+    for(unsigned i=0;i<80;++i)CHECK(xrtStrBufAppendFormat(&source,"func helper_%u(int value) as int\n return value + 1\nend\n",i));
+    size_t tail=source.Size;CHECK(xrtStrBufAppend(&source,xrtStrView("func main(...) as int\n int result = 7\n return res\nend\n")));
+    char* path=xrtPathAbs("cursor-incremental-session.xl");CHECK(path);xls_completion_session* s=xlsCompletionSessionCreate(NULL);CHECK(s);
+    xls_analysis_document doc={"entry",path,body(source.Data),40,1};CHECK(doc.text);size_t at=offset(source.Data,"return res");
+    xls_semantic_completion* first=query(s,&doc,1,"entry","entry",at);CHECK(first&&has(first,"result")&&parity(first,&doc,1,"entry","entry",at));
+    xls_completion_stats stats;xlsCompletionSessionStats(s,&stats);CHECK(stats.cursorFullParses==1&&!stats.cursorFreshBuilds);
+    size_t fullBytes=source.Size;
+    for(unsigned i=0;i<30;++i) {
+        xstrbuf changed;xrtStrBufInit(&changed);CHECK(xrtStrBufAppend(&changed,(xstrview){source.Data,tail})&&xrtStrBufAppendFormat(&changed,"func main(...) as int\n string 中文 = \"😀-%u\"\n%s int result = %u\n return res\nend\n",i,i&1 ? "\n" : "",i+8));
+        xlsTextRelease(doc.text);doc.text=body(changed.Data);++doc.revision;CHECK(doc.text);at=offset(changed.Data,"return res");
+        xls_semantic_completion* result=query(s,&doc,1,"entry","entry",at);CHECK(result&&has(result,"result")&&parity(result,&doc,1,"entry","entry",at));
+        xlsCompletionSessionStats(s,&stats);CHECK(stats.cursorFullParses==1&&stats.cursorFragmentParses==i+1&&stats.cursorReusedDeclarations==(i+1)*80u&&!stats.cursorFreshBuilds);
+        CHECK(stats.cursorParsedBytes<fullBytes+(i+1)*256u);xlsSemanticCompletionDestroy(result);xrtStrBufFree(&changed);
+    }
+    CHECK(has(first,"result"));
+    xls_semantic_completion* same=query(s,&doc,1,"entry","entry",at);CHECK(same);xlsSemanticCompletionDestroy(same);
+    xlsCompletionSessionStats(s,&stats);CHECK(stats.hits==1&&stats.cursorFragmentParses==30);
+    same=query(s,&doc,1,"entry","entry",at-1);CHECK(same&&parity(same,&doc,1,"entry","entry",at-1));xlsSemanticCompletionDestroy(same);
+    xlsCompletionSessionStats(s,&stats);CHECK(stats.cursorFullParses==2&&!stats.cursorFreshBuilds);
+    doc.identity=41;doc.revision=1;same=query(s,&doc,1,"entry","entry",at);CHECK(same);xlsSemanticCompletionDestroy(same);
+    xlsCompletionSessionStats(s,&stats);CHECK(stats.cursorFullParses==3);
+    xlsCompletionSessionDestroy(s);CHECK(has(first,"result"));xlsSemanticCompletionDestroy(first);xlsTextRelease(doc.text);xrtStrBufFree(&source);xrtFree(path);return 1;
+}
+typedef struct stop_at {unsigned calls,at;} stop_at;
+static int stopAt(void* user) {stop_at* s=user;return ++s->calls>=s->at;}
+static int cancellationSyntax(void)
+{
+    const char *a="func main(...) as int\n int result = 7\n return res\nend\n",*b="func main(...) as int\n int result = 8\n return res\nend\n";
+    char* path=xrtPathAbs("cursor-cancel-syntax.xl");CHECK(path);xls_text *old=body(a),*next=body(b);CHECK(old&&next);size_t at=offset(a,"return res");
+    xls_completion_session* probe=xlsCompletionSessionCreate(NULL);CHECK(probe);xls_analysis_document observed={"entry",path,old,10,1};
+    xls_semantic_completion* base=query(probe,&observed,1,"entry","entry",at);CHECK(base);observed.text=next;observed.revision=2;
+    stop_at checkpoints={0,~0u};xls_semantic_completion* completed=xlsCompletionSessionQuery(probe,&observed,1,"entry","entry",at,stopAt,&checkpoints,NULL,0);
+    CHECK(completed&&checkpoints.calls);unsigned points=checkpoints.calls;
+    xlsSemanticCompletionDestroy(base);xlsSemanticCompletionDestroy(completed);xlsCompletionSessionDestroy(probe);
+    for(unsigned stopCount=1;stopCount<=points;++stopCount) {
+        xls_completion_session* s=xlsCompletionSessionCreate(NULL);CHECK(s);xls_analysis_document doc={"entry",path,old,10,1};
+        xls_semantic_completion* first=query(s,&doc,1,"entry","entry",at);CHECK(first&&has(first,"result"));
+        doc.text=next;doc.revision=2;stop_at cancel={0,stopCount};
+        xls_semantic_completion* stopped=xlsCompletionSessionQuery(s,&doc,1,"entry","entry",at,stopAt,&cancel,NULL,0);
+        CHECK(!stopped&&cancel.calls>=stopCount);doc.text=old;doc.revision=1;
+        xls_semantic_completion* restored=query(s,&doc,1,"entry","entry",at);CHECK(restored==first&&has(restored,"result"));
+        xlsSemanticCompletionDestroy(restored);xlsSemanticCompletionDestroy(first);xlsCompletionSessionDestroy(s);
+    }
+    printf("cursor syntax cancellation checkpoints=%u, each preserves previous batch/result\n",points);
+    xlsTextRelease(old);xlsTextRelease(next);xrtFree(path);return 1;
+}
+static int cloneFallback(void)
+{
+    xstrbuf source;xrtStrBufInit(&source);CHECK(xrtStrBufAppend(&source,xrtStrView("func main(...) as int\n int result = 7\n int deepValue = 1")));
+    for(unsigned i=0;i<550;++i)CHECK(xrtStrBufAppend(&source,xrtStrView(" + 1")));
+    CHECK(xrtStrBufAppend(&source,xrtStrView("\n return res\nend\n")));char* path=xrtPathAbs("cursor-clone-fallback.xl");CHECK(path);
+    xls_completion_session* s=xlsCompletionSessionCreate(NULL);xls_analysis_document doc={"entry",path,body(source.Data),1,1};CHECK(s&&doc.text);
+    size_t at=offset(source.Data,"return res");xls_semantic_completion* result=query(s,&doc,1,"entry","entry",at);
+    CHECK(result&&has(result,"result")&&parity(result,&doc,1,"entry","entry",at));
+    xls_completion_stats stats;xlsCompletionSessionStats(s,&stats);CHECK(stats.cursorFullParses==1&&stats.cursorFreshBuilds==1);
+    xls_semantic_completion* again=query(s,&doc,1,"entry","entry",at);CHECK(again==result);xlsSemanticCompletionDestroy(again);
+    xlsCompletionSessionDestroy(s);CHECK(has(result,"result"));xlsSemanticCompletionDestroy(result);xlsTextRelease(doc.text);xrtFree(path);xrtStrBufFree(&source);return 1;
+}
+
 static int run(void)
 {
     const char *good="func main(...) as int\n int firstValue = 7\n return firstV\nend\n",
@@ -139,7 +240,7 @@ static int run(void)
     CHECK(!xlsCompletionSessionQuery(s,docs,1,"entry","entry",scalar,NULL,NULL,NULL,0));
     xlsCompletionSessionDestroy(s); CHECK(!xlsCompletionSessionCreate(&(xls_session_limits){65,32,64}));
     xlsTextRelease(a); xlsTextRelease(same); xlsTextRelease(b); xlsTextRelease(imported); xlsTextRelease(dependencyBody); xlsTextRelease(u); xrtFree(path); xrtFree(dep);
-    CHECK(externalInputs()); return 1;
+    CHECK(externalInputs()&&parsedEntry()&&incrementalEntry()&&cancellationSyntax()&&cloneFallback()); return 1;
 }
 int main(void)
 { if(!run()) return 1; printf("analysis_completion_session_test passed: %u checks; actual exact-query reuse, fresh JSON parity, atomic cancellation, revisions/identity/input-set/cursor and independent result lifetime.\n",checks); return 0; }
