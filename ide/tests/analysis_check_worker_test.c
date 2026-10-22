@@ -17,6 +17,49 @@ static enum xls_query_state waitResult(xls_query* q,xls_semantic_check** result,
     } while(xrtClock()<until);
     return XLS_QUERY_PENDING;
 }
+static enum xls_query_state waitCompletion(xls_query* q,xls_semantic_completion** result,xls_completion_stats* stats,uint64_t* thread,char* error)
+{
+    uint64_t until=xrtClock()+15000000;
+    do {
+        enum xls_query_state state=xlsQueryCompletionResult(q,result,stats,thread,error,256);
+        if(state!=XLS_QUERY_PENDING) return state;
+        xrtSleepUs(500);
+    } while(xrtClock()<until);
+    return XLS_QUERY_PENDING;
+}
+static int cursorActor(void)
+{
+    xls_worker* actor=xlsWorkerCreate(NULL,1); CHECK(actor);
+    const char* source="func main(...) as int\n int result = 7\n return res\nend\n";
+    size_t at=(size_t)(strstr(source,"return res")-source)+strlen("return res");
+    char key[]="entry"; char *path=xrtPathAbs("cursor-actor.xl"),*expected=path ? xrtStrDup(path) : NULL;
+    xls_text* body=text(source); CHECK(path && expected && body);
+    xls_analysis_document input={key,path,body,10,1};
+    xls_query* query=xlsWorkerCompletion(actor,&input,1,key,key,at); CHECK(query);
+    key[0]='z'; path[0]='?'; xlsTextRelease(body);
+    xatomic32 wakes; xrtAtomic32Init(&wakes,0); CHECK(xlsQuerySetWake(query,wake,&wakes));
+    xls_semantic_completion* first=NULL; xls_completion_stats stats; uint64_t thread; char error[256];
+    CHECK(waitCompletion(query,&first,&stats,&thread,error)==XLS_QUERY_READY && xlsSemanticCompletionInfo(first).available);
+    uint64_t owner=thread;
+    CHECK(owner && owner!=xrtThreadCurrentId() && stats.builds==1 && !stats.hits && !strcmp(xlsSemanticCompletionInfo(first).path,expected));
+    xls_semantic_check* check=NULL; CHECK(xlsQueryCheckResult(query,&check,NULL,NULL,error,sizeof(error))==XLS_QUERY_FAILED && !check);
+    xlsQueryDestroy(query); CHECK(xrtAtomic32Load(&wakes,XMEMORY_RELAXED)==1);
+    key[0]='e'; path[0]=expected[0]; body=text(source); CHECK(body); input.text=body;
+    for(unsigned i=0;i<100;++i) {
+        input.revision=2+i; query=xlsWorkerCompletion(actor,&input,1,key,key,at); CHECK(query);
+        xls_semantic_completion* result=NULL;
+        CHECK(waitCompletion(query,&result,&stats,&thread,error)==XLS_QUERY_READY && result==first && thread==owner && stats.builds==1 && stats.hits==i+1);
+        xlsSemanticCompletionDestroy(result); xlsQueryDestroy(query);
+    }
+    input.revision=1; query=xlsWorkerCompletion(actor,&input,1,key,key,at); CHECK(query);
+    xls_semantic_completion* result=first;
+    CHECK(waitCompletion(query,&result,&stats,&thread,error)==XLS_QUERY_FAILED && !result && !thread && !stats.builds && strstr(error,"revision"));
+    xlsQueryDestroy(query); CHECK(!xlsWorkerCompletion(actor,&input,1,key,"missing",at));
+    xlsWorkerDestroy(actor);
+    CHECK(xlsSemanticCompletionValidate(first) && xlsSemanticCompletionInfo(first).available);
+    char* json=xlsSemanticCompletionJson(first,NULL); CHECK(json && strstr(json,"result")); xlsSemanticStringFree(json);
+    xlsSemanticCompletionDestroy(first); xlsTextRelease(body); xrtFree(path); xrtFree(expected); return 0;
+}
 int main(void)
 {
     xls_session_limits limits={4,2u*1024u*1024u,4u*1024u*1024u};
@@ -63,14 +106,15 @@ int main(void)
     xls_query* queued=xlsWorkerCheck(worker,&input,1,key); CHECK(queued);
     CHECK(!xlsWorkerCheck(worker,&input,1,key)); xlsQueryCancel(queued);
     xls_worker* foreground=xlsWorkerCreate(&limits,1); CHECK(foreground);
-    xls_analysis_document shortInput={"front",expected,body,20,1}; xls_query* front=xlsWorkerSyntax(foreground,&shortInput,1,"front"); CHECK(front);
-    until=xrtClock()+1000000;
-    enum xls_query_state state;
-    do { state=xlsQueryResult(front,&syntax,NULL,NULL); if(state!=XLS_QUERY_PENDING) break; xrtSleepUs(500); } while(xrtClock()<until);
-    CHECK(state==XLS_QUERY_READY && xlsSyntaxAccepted(syntax.syntax)); xlsSyntaxRelease(syntax.syntax);
+    xls_analysis_document shortInput={"front",expected,body,20,1};
+    size_t cursor=(size_t)(strstr(good,"return result")-good)+strlen("return result");
+    xls_query* front=xlsWorkerCompletion(foreground,&shortInput,1,"front","front",cursor); CHECK(front);
+    xls_semantic_completion* completion=NULL; xls_completion_stats completionStats;
+    CHECK(waitCompletion(front,&completion,&completionStats,NULL,error)==XLS_QUERY_READY && xlsSemanticCompletionInfo(completion).available && completionStats.builds==1);
     CHECK(xlsQueryCheckResult(q,&result,NULL,NULL,NULL,0)==XLS_QUERY_PENDING && !result);
     CHECK(xlsQueryCheckResult(front,&result,NULL,NULL,error,sizeof(error))==XLS_QUERY_FAILED && !result);
     xlsQueryDestroy(front); xlsWorkerDestroy(foreground);
+    CHECK(xlsSemanticCompletionValidate(completion)); xlsSemanticCompletionDestroy(completion);
     CHECK(waitResult(q,&result,&stats,&thread,error)==XLS_QUERY_READY && result && xlsSemanticCheckInfo(result).accepted && stats.builds==3);
     xlsQueryDestroy(q);
     xls_semantic_check* cancelledResult=NULL;
@@ -78,6 +122,7 @@ int main(void)
     xlsWorkerDestroy(worker);
     CHECK(xlsSemanticCheckInfo(first).accepted && xlsSemanticCheckTypedIndex(first) && xlsSemanticIndexCount(xlsSemanticCheckTypedIndex(result))>10000);
     xlsSemanticCheckDestroy(first); xlsSemanticCheckDestroy(result); xlsTextRelease(body); xlsTextRelease(heavy); xrtFree(path); xrtFree(expected);
-    printf("analysis_check_worker_test passed: %u checks; XRT semantic/IR actor, actual reuse, retained inputs/results, wake, source-vs-infrastructure errors, independent foreground work, queue bound and cancellation.\n",checks);
+    CHECK(!cursorActor());
+    printf("analysis_check_worker_test passed: %u checks; XRT semantic/IR and retained cursor actors, actual reuse, owned inputs/results, wake, source-vs-infrastructure errors, independent foreground work, queue bound and cancellation.\n",checks);
     return 0;
 }

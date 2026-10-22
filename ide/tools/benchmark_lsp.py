@@ -33,6 +33,8 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--samples', type=int, default=15)
     parser.add_argument('--functions', default='0,100')
+    parser.add_argument('--require-cursor-reuse', action='store_true',
+                        help='Verify real retained cursor build/hit counters on every sample.')
     args = parser.parse_args()
     functions = [int(n) for n in args.functions.split(',')]
     if not 3 <= args.samples <= 100 or not functions or len(set(functions)) != len(functions) or any(n < 0 or n > 10000 for n in functions):
@@ -48,7 +50,7 @@ def main():
         protected.append(server.with_name('xge.dll'))
     inputs = [dict(path=str(p), sha256=sha(p)) for p in protected]
     report = dict(format='xlang-lsp-roundtrip-benchmark-1', status='running',
-                  scope='stdio completion; not UI latency or semantic incrementality',
+                  scope='stdio completion, with exact-query counters when required; not UI latency or changed-function incrementality',
                   clock='time.perf_counter_ns', machine=dict(platform=platform.platform(),
                   processor=platform.processor(), logicalProcessors=os.cpu_count()), inputs=inputs, cases=[])
     report['gitRevision'] = subprocess.check_output(
@@ -69,13 +71,17 @@ def main():
             client = Client(server, compiler, root)
             try:
                 client.initialize()
+                if args.require_cursor_reuse:
+                    capabilities=client.transcript[1]['receive']['result']['capabilities']['experimental']
+                    assert capabilities['retainedCursorCompletion'],capabilities
                 initialized = time.perf_counter_ns()
                 client.open(entry, text, 1)
-                rows = dict(first=[], repeat=[], edit=[])
+                rows = dict(first=[], repeat=[], sameBodyVersion=[], edit=[])
                 next_id = 100
                 version = 1
+                expected_builds,expected_hits,expected_worker,last_analysis=1,0,None,None
                 def query(kind):
-                    nonlocal next_id
+                    nonlocal next_id,expected_worker,last_analysis
                     request_id = next_id
                     next_id += 1
                     began = time.perf_counter_ns()
@@ -92,15 +98,30 @@ def main():
                     assert len(items) == 1 and items[0]['label'] == 'result', items
                     assert items[0]['textEdit'] == dict(newText='result', range=dict(
                         start=dict(line=line, character=8), end=dict(line=line, character=11)))
+                    if args.require_cursor_reuse:
+                        stats=result['analysis']
+                        assert stats['builds']==expected_builds and stats['cacheHits']==expected_hits,stats
+                        assert stats['workerThreadId']>0 and stats['workerThreadId']!=stats['captureThreadId'],stats
+                        assert stats['adapterThreadId'] not in (stats['workerThreadId'],stats['captureThreadId']),stats
+                        if expected_worker is None:expected_worker=stats['workerThreadId']
+                        assert expected_worker==stats['workerThreadId'],stats
+                        last_analysis=stats
                     rows[kind].append(round(elapsed, 6))
                     # Keep only the current sample's transcript out of the measured interval.
                     client.transcript.clear()
                     return finished
                 query('first')
                 for _ in range(args.samples):
+                    expected_hits+=1
                     query('repeat')
+                for _ in range(args.samples):
+                    version+=1;expected_hits+=1
+                    began=time.perf_counter_ns();client.change(entry,text,version)
+                    finished=query('sameBodyVersion')
+                    rows['sameBodyVersion'][-1]=round((finished-began)/1e6,6)
                 for n in range(args.samples):
                     version += 1
+                    expected_builds+=1
                     updated = text.replace('result = 7', 'result = ' + str(n + 8))
                     began = time.perf_counter_ns()
                     client.change(entry, updated, version)
@@ -111,6 +132,7 @@ def main():
                 report['cases'].append(dict(functions=count, lines=text.count('\n'),
                     utf8Bytes=len(text.encode('utf8')), startupInitializeMs=round((initialized-started)/1e6, 3),
                     measurements={key:summary(value) for key,value in rows.items()},
+                    retainedCursorCountersVerified=args.require_cursor_reuse,finalAnalysis=last_analysis,
                     verifiedCandidates=True))
             finally:
                 client.stop()
