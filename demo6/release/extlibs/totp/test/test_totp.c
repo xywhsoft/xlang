@@ -142,6 +142,16 @@ int main(void)
     CHECK(same(xtotp_hotp(secret, 32, 0, 6), "755224"));
 
 #if defined(__linux__)
+    /* 非法参数应在读取墙钟前失败，时钟故障不能遮蔽参数错误。 */
+    fail_clock_once = 1;
+    CHECK(xtotp_generate(secret, 32, 0, 6) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    CHECK(fail_clock_once == 1);
+    fail_clock_once = 1;
+    CHECK(xtotp_verify(secret, 32, "000000", 6, 30, 6, 11) == -1);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    CHECK(fail_clock_once == 1);
+
     /* 墙钟失败不能被解释成 Unix 纪元时间，也不能丢失 XRT 的 IO 错误。 */
     fail_clock_once = 1;
     CHECK(xtotp_generate(secret, 32, 30, 6) == NULL);

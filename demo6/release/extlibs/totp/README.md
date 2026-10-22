@@ -14,6 +14,7 @@
 公开 C 调用在入口清理本线程上次的 XRT 错误；成功生成或正常验证码不匹配时，`xrtGetError()` 为 `NULL`。失败后可直接再次调用，无需调用方先手动清错。
 
 `generate` / `verify` 获取系统时间失败时分别返回 `NULL` / `-1`，保留 XRT 的 `XERR_IO`，不会把失败时的零时间戳当作有效 Unix 纪元。Linux 包级门禁通过一次性 `clock_gettime` 故障注入验证该路径，并检查随后的正常调用可以恢复；指定时间戳的 `generateAt` / `verifyAt` 不读取系统时钟。
+实时 C 入口会先检查步长、位数及验证窗口，再读取系统时间；参数非法与时钟同时故障时优先报告 `XERR_RANGE`，且不消耗时钟调用。
 
 合法输入生成验证码时若输出分配失败，XLang 抛 `MemoryError`，C 返回 `NULL` 并保留 `XERR_MEMORY`；失败后可再次调用。验收只覆盖生成入口的这一分配边界，不推断服务端限流或密钥管理能力。
 
@@ -22,6 +23,12 @@
 验证循环不因窗口内提前命中而缩短，逐位比较验证码；它并不代替服务端**限流、计数器/时间步重放防护、密钥保密和安全传输**。窗口越大，可接受的候选码越多；生产环境应按时钟同步能力选最小窗口。HOTP 计数器的持久化、消费与防重放由调用方负责。当前只承诺 SHA-1 互操作，不提供 SHA-256/512 或密钥供应/二维码系统。
 
 ## 范例和验证
+
+2026-10-22：Linux 时钟故障注入先复现实时 C 入口用 `XERR_IO` 遮蔽非法
+步长/窗口，现先校验参数再读时钟；正常时钟故障仍保留 `XERR_IO`。
+Windows `test/check.ps1 -SkipAot` 与 Linux C ASan/UBSan、线程、XLang
+双语门禁通过。完整 Windows AOT 仍缺共享 `xl6ValueDataSnapshotV1`，
+尚不签收整包发布级。
 
 - XLang：`release/examples/extlibs/totp.xl`
 - 同输出 C：`release/extlibs/totp/examples/totp_c.c`

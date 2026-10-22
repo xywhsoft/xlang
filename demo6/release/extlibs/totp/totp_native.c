@@ -189,6 +189,7 @@ void* xtotp_generate(const char* secret, long long secret_length,
 {
     long long timestamp;
     xrtClearError();
+    if (!xtotp_options(time_step, digits)) return NULL;
     timestamp = xrtTimeUnix(xrtNow());
     if (xrtGetError() != NULL) return NULL;
     return xtotp_generate_at(secret, secret_length, timestamp, time_step, digits);
@@ -251,6 +252,11 @@ int xtotp_verify(const char* secret, long long secret_length,
 {
     long long timestamp;
     xrtClearError();
+    if (!xtotp_options(time_step, digits)) return -1;
+    if (window < 0 || window > XTOTP_MAX_WINDOW) {
+        xtotp_error(XERR_RANGE, "verification window is invalid");
+        return -1;
+    }
     timestamp = xrtTimeUnix(xrtNow());
     if (xrtGetError() != NULL) return -1;
     return xtotp_verify_at(secret, secret_length, candidate, candidate_length,
