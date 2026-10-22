@@ -3,7 +3,9 @@
 #undef main
 static XL6_ArtifactOwnershipPlan plan(const char* choice)
 {
-    XL6_ArtifactRuntimeSet roots=xl6ArtifactRuntimeSetSingleton(!strcmp(choice,"tcp-resource")?XL6_ARTIFACT_EXECUTION_TCP:
+    XL6_ArtifactRuntimeSet roots=xl6ArtifactRuntimeSetSingleton(!strcmp(choice,"udp-resource")?XL6_ARTIFACT_EXECUTION_UDP_DATA:
+        !strcmp(choice,"udp-future")?XL6_ARTIFACT_EXECUTION_UDP_FUTURE:
+        !strcmp(choice,"tcp-resource")?XL6_ARTIFACT_EXECUTION_TCP:
         !strcmp(choice,"tcp-native")?XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_TCP_NATIVE:
         !strcmp(choice,"tcp-base-native")?XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_TCP_BASE_NATIVE:
         !strcmp(choice,"server-native")?XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_SERVER_NATIVE:
@@ -26,6 +28,8 @@ static XL6_ArtifactOwnershipPlan plan(const char* choice)
         assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_NET_ENGINE_CONFIG));
         assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_NET_ENGINE_STATS));
     }
+    if(!strcmp(choice,"udp-future"))
+        assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_EXECUTION_UDP_DATA));
     if(!strcmp(choice,"server-all-native"))
         assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_TCP_NATIVE));
     if(!strcmp(choice,"tcp-owned")){
@@ -64,6 +68,19 @@ int main(int argc,char** argv)
         return 2;
     }
     assert(argc==1);
+    XL6_ArtifactOwnershipPlan udp=plan("udp-resource"),udpFuture=plan("udp-future");
+    assert(has_module(&udp.runtime,"XRT_MODULE_NET_UDP")&&!has_module(&udp.runtime,"XRT_MODULE_NET_UDP_FUTURE"));
+    assert(xl6ArtifactRuntimeSetHas(&udp.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_EXECUTION_UDP));
+    assert(xl6ArtifactRuntimeSetHas(&udp.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_UDP_BASE_NATIVE));
+    assert(!xl6ArtifactRuntimeSetHas(&udp.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NATIVE_FUTURE));
+    assert(has_module(&udpFuture.runtime,"XRT_MODULE_NET_UDP_FUTURE"));
+    assert(xl6ArtifactRuntimeSetHas(&udpFuture.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_UDP_NATIVE));
+    assert(xl6ArtifactRuntimeSetHas(&udpFuture.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NATIVE_FUTURE));
+    assert(!has_module(&udpFuture.runtime,"XRT_MODULE_NET_TCP")&&!has_module(&udp.runtime,"XRT_MODULE_NET_TCP"));
+    assert(!has_module(&udpFuture.runtime,"XRT_MODULE_NET_RESOLVER")&&!has_module(&udp.runtime,"XRT_MODULE_TASK_POOL"));
+    assert(!xl6ArtifactRuntimeSetHas(&udpFuture.runtime.components,XL6_ARTIFACT_FUTURE_CALLBACK_QUEUE));
+    assert(xl6ArtifactRuntimeSymbolOwner("xl6ExecutionUdpSendBytesV1")==XL6_ARTIFACT_EXECUTION_UDP_DATA);
+    assert(xl6ArtifactRuntimeSymbolOwner("xl6ExecutionUdpReceiveBatchAsyncV1")==XL6_ARTIFACT_EXECUTION_UDP_FUTURE);
     XL6_ArtifactOwnershipPlan buffer=plan("buffer-native");
     assert(buffer.domainCount==1&&!strcmp(buffer.domains[0],"xl6OwnershipDomainNetBufferNativeV1Get"));
     assert(has_module(&buffer.runtime,"XRT_MODULE_NET_BUFFER")&&!has_module(&buffer.runtime,"XRT_MODULE_NET_ENGINE"));

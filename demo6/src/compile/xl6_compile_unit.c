@@ -823,7 +823,13 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_tcp_recv_owned_interrupt.c",D(R(TCP_RECV_OWNED_FUTURE),R(FUTURE_CALLBACK_INTERRUPT)),{NULL}},
     {"src/runtime/xl6_tcp_send_refs.c",D(R(TCP_LANGUAGE),R(NET_BYTES),R(SEQUENCE)),{NULL}},
     {"src/runtime/xl6_net_buffer_ref.c",D(R(NET_BUFFER_CORE),R(NET_BYTES)),{NULL}},
-    {"src/runtime/xl6_tcp_send_chain_move.c",D(R(TCP_LANGUAGE),R(NET_BUFFER_CORE)),{NULL}}
+    {"src/runtime/xl6_tcp_send_chain_move.c",D(R(TCP_LANGUAGE),R(NET_BUFFER_CORE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_udp_base_native.c",D(R(OWNERSHIP_CATALOG),R(OWNERSHIP_DOMAIN_NET_ENGINE_NATIVE)),{"XRT_MODULE_NET_UDP"}},
+    {"src/runtime/xl6_ownership_domain_net_udp_native.c",D(R(OWNERSHIP_CATALOG),R(OWNERSHIP_DOMAIN_NET_UDP_BASE_NATIVE),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE)),{"XRT_MODULE_NET_UDP_FUTURE"}},
+    {"src/runtime/xl6_execution_udp.c",D(R(EXECUTION_SOURCE),R(EXECUTION_NET_ENGINE),R(OWNERSHIP_DOMAIN_NET_UDP_BASE_NATIVE)),{"XRT_MODULE_NET_UDP"}},
+    {"src/runtime/xl6_ownership_domain_execution_udp.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_UDP)),{NULL}},
+    {"src/runtime/xl6_execution_udp_data.c",D(R(EXECUTION_UDP),R(OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE)),{NULL}},
+    {"src/runtime/xl6_execution_udp_future.c",D(R(EXECUTION_UDP),R(OWNERSHIP_DOMAIN_NET_UDP_NATIVE)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
