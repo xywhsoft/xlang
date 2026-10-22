@@ -105,3 +105,8 @@ XLang 双语门禁通过。有效型号与分配失败路径不变；完整 AOT 
 边界和双语门禁，Linux C ASan/UBSan、XLang 与动态指标格式门禁通过。
 默认 Windows 门禁复核无输出边界 AOT 通过，带输出范例构建仍缺共享
 `xl6ValueDataSnapshotV1`。实现/API 未改，未签收完整 AOT。
+
+2026-10-23：五个文本查询的 C/XLang 逐点分配故障测试已进入包级门禁，
+确认分配失败不返回 `unknown`，而保留内存错误；解除故障后可再次查询。
+Windows 严格 C、语言边界与双语范例，以及 Linux C ASan/UBSan、
+XLang 和双语对照均通过。完整带输出 AOT 的共享阻断不变。

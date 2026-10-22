@@ -71,6 +71,7 @@ try {
     try {
         $null = Run 'XLang existing test' $xl @('run', '../test/cases/extlib_sysinfo.xl')
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/sysinfo/test/boundaries.xl')
+        $null = Run 'XLang allocations' $xl @('run', 'extlibs/sysinfo/test/allocations.xl')
         $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/sysinfo/examples/basic.xl')
         if ($cOutput -cne $xlOutput) {
             throw 'C/XLang system information differs on the same machine'

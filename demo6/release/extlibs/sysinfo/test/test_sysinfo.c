@@ -1,6 +1,7 @@
 #if defined(_WIN32) && !defined(_WIN32_WINNT)
 #define _WIN32_WINNT 0x0601
 #endif
+#define XRT_MODULE_MEMORY_DEBUG
 #include "xrt.h"
 #include "../sysinfo_native.h"
 #ifdef _WIN32
@@ -101,6 +102,38 @@ int main(void)
     CHECK(check_number_error_reset(xsysinfo_mem_usage_pct));
     CHECK(check_number_error_reset(xsysinfo_page_size));
     CHECK(check_number_error_reset(xsysinfo_uptime));
+
+    /* 每个文本查询都要区分内存不足与探测不可用，且清除故障后可重试。 */
+    {
+        void* (*queries[])(void) = {
+            xsysinfo_os_name, xsysinfo_os_version, xsysinfo_arch,
+            xsysinfo_hostname, xsysinfo_cpu_name
+        };
+        for (size_t query = 0; query < sizeof(queries) / sizeof(queries[0]); ++query) {
+            unsigned failures = 0u, successes = 0u;
+            for (uint64 point = 0u; point < 64u; ++point) {
+                void* text;
+                bool triggered;
+                CHECK(xrtMemDebugFailAfter(point));
+                text = queries[query]();
+                triggered = xrtMemDebugFailTriggered();
+                xrtMemDebugFailClear();
+                if (text != NULL) {
+                    CHECK(((char*)text)[0] != '\0' && xrtGetError() == NULL);
+                    ++successes;
+                } else {
+                    CHECK(triggered && xrtGetError() != NULL &&
+                        xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+                    ++failures;
+                }
+                xrtFree(text);
+                text = queries[query]();
+                CHECK(text != NULL && ((char*)text)[0] != '\0' && xrtGetError() == NULL);
+                xrtFree(text);
+            }
+            CHECK(failures > 0u && successes > 0u);
+        }
+    }
 
     xrtFree(os);
     xrtFree(version);

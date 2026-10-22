@@ -1,0 +1,47 @@
+import sysinfo
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func query(int kind) as string
+    if kind == 0 then return sysinfo.osName() end
+    if kind == 1 then return sysinfo.osVersion() end
+    if kind == 2 then return sysinfo.arch() end
+    if kind == 3 then return sysinfo.hostname() end
+    return sysinfo.cpuName()
+end
+
+func main(...) as int
+    array<string> expected = [sysinfo.osName(), sysinfo.osVersion(),
+        sysinfo.arch(), sysinfo.hostname(), sysinfo.cpuName()]
+
+    // 五个文本入口都应把分配失败传成 MemoryError，而非 unknown。
+    for kind in range(5)
+        int failures = 0
+        int successes = 0
+        for point in range(64)
+            bool caught = false
+            string result = ""
+            assert failAfter(uint64(point))
+            try
+                result = query(kind)
+            catch MemoryError error
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert not caught or triggered
+            if caught then
+                failures += 1
+            else
+                successes += 1
+                assert result == expected[kind]
+            end
+            assert query(kind) == expected[kind]
+        end
+        assert failures > 0 and successes > 0
+    end
+    println("sysinfo allocations: PASS")
+    return 0
+end

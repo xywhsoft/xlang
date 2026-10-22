@@ -61,6 +61,7 @@ if [[ ! -x ./release/xl ]]; then
     exit 1
 fi
 timeout 45s ./release/xl run release/extlibs/sysinfo/test/boundaries.xl
+timeout 45s ./release/xl run release/extlibs/sysinfo/test/allocations.xl
 timeout 45s ./release/xl run release/extlibs/sysinfo/examples/basic.xl > "$work/xl.txt"
 diff -u "$work/c.txt" "$work/xl.txt"
 timeout 45s ./release/xl run release/extlibs/sysinfo/examples/sysinfo_c.c > "$work/c_direct.txt"
