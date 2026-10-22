@@ -102,6 +102,10 @@ static int test_invalid(void) {
     const char grouped_begin[] = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nitem1.BEGIN:VFOO\nEND:VCARD\n";
     const char grouped_end[] = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nitem1.END:VFOO\nEND:VCARD\n";
     const char grouped_email[] = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nitem1.EMAIL:a@example.com\nEND:VCARD\n";
+    const char bad_group_empty[] = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nitem1..EMAIL:a@example.com\nEND:VCARD\n";
+    const char bad_group_space[] = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nitem one.EMAIL:a@example.com\nEND:VCARD\n";
+    const char bad_unknown_name[] = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nX_BAD:opaque\nEND:VCARD\n";
+    const char good_unknown_name[] = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nX-OTHER:opaque\nEND:VCARD\n";
     const char nul[] = "BEGIN:VCARD\nVERSION:3.0\nFN:A\0B\nEND:VCARD\n";
     const char invalid_utf8[] = "BEGIN:VCARD\nVERSION:3.0\nFN:\xff\nEND:VCARD\n";
     xvalue *card;
@@ -139,6 +143,12 @@ static int test_invalid(void) {
     xrtClearError();
     card = xv_parse(grouped_email, sizeof(grouped_email) - 1);
     CHECK(card != NULL && equals(field(card, "email"), "a@example.com"));
+    xrtValueRelease(card);
+    CHECK(xv_parse(bad_group_empty, sizeof(bad_group_empty) - 1) == NULL);
+    CHECK(xv_parse(bad_group_space, sizeof(bad_group_space) - 1) == NULL);
+    CHECK(xv_parse(bad_unknown_name, sizeof(bad_unknown_name) - 1) == NULL);
+    card = xv_parse(good_unknown_name, sizeof(good_unknown_name) - 1);
+    CHECK(card != NULL && equals(field(card, "fn"), "A"));
     xrtValueRelease(card);
     CHECK(xv_parse(nul, sizeof(nul) - 1) == NULL);
     xrtClearError();

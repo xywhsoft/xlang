@@ -10,6 +10,9 @@ func main(...) as int
     string groupedVersionThree = "BEGIN:VCARD\nitem1.VERSION:3.0\nFN:A\nEND:VCARD\n"
     string groupedBegin = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nitem1.BEGIN:VFOO\nEND:VCARD\n"
     string groupedEnd = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nitem1.END:VFOO\nEND:VCARD\n"
+    string emptyGroup = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nitem1..EMAIL:a@example.com\nEND:VCARD\n"
+    string spacedGroup = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nitem one.EMAIL:a@example.com\nEND:VCARD\n"
+    string badUnknown = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nX_BAD:opaque\nEND:VCARD\n"
     int rejected = 0
     try
         vcard.parse(nested)
@@ -56,13 +59,30 @@ func main(...) as int
     catch e
         rejected += 1
     end
-    assert rejected == 9, "invalid vCard structure must be rejected"
+    try
+        vcard.parse(emptyGroup)
+    catch e
+        rejected += 1
+    end
+    try
+        vcard.parse(spacedGroup)
+    catch e
+        rejected += 1
+    end
+    try
+        vcard.parse(badUnknown)
+    catch e
+        rejected += 1
+    end
+    assert rejected == 12, "invalid vCard structure and names must be rejected"
     var oldCard = vcard.parse("BEGIN:VCARD\nFN:A\nVERSION:3.0\nEND:VCARD\n")
     assert oldCard["version"] == "3.0", "vCard 3.0 may place VERSION after FN"
     var newCard = vcard.parse("BEGIN:VCARD\nVERSION;VALUE=text:4.0\nFN:A\nEND:VCARD\n")
     assert newCard["version"] == "4.0", "vCard 4.0 permits VERSION parameters"
     var groupedCard = vcard.parse("BEGIN:VCARD\nVERSION:4.0\nFN:A\nitem1.EMAIL:a@example.com\nEND:VCARD\n")
     assert groupedCard["email"] == "a@example.com", "grouped values remain readable"
+    var extension = vcard.parse("BEGIN:VCARD\nVERSION:4.0\nFN:A\nX-OTHER:opaque\nEND:VCARD\n")
+    assert extension["fn"] == "A", "valid unknown fields remain ignorable"
     println("vcard structure: PASS")
     return 0
 end

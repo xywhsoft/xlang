@@ -19,7 +19,7 @@ assert back["email"].length == 2
 
 这是**值提取器，不是无损 vCard DOM**：解析时忽略未知属性与参数（例如 `TEL;TYPE=CELL` 的 `TYPE`）；构建时拒绝未知键，不把它们静默写丢。`N`、`ADR`、`ORG` 保留调用方提供的结构化线值；`URL`、`IMPP`、`PHOTO`、`LOGO`、`GEO` 保留 URI/原始线值，不施加 TEXT 的逗号、分号转义；`FN`、`NOTE`、`EMAIL` 等文本字段仍按 TEXT 转义。`TEL` 按默认 TEXT 值处理，`TEL;VALUE=uri` 的参数不往返。仅接受单张 3.0/4.0 名片，必须有 `BEGIN:VCARD`、`VERSION`、非空 `FN` 和 `END:VCARD`。为兼容实际数据，3.0 读取/生成允许缺少 `N`，这比 [RFC 2426](https://www.rfc-editor.org/rfc/rfc2426.html) 宽松；4.0 的 `VERSION` 与 `FN` 要求见 [RFC 6350](https://www.rfc-editor.org/rfc/rfc6350.html)。不宣称复杂参数/分组或原始文件无损往返。
 
-输入和输出均限制为 4 MiB，生成超限时 C 接口报告 `XERR_RANGE`；拒绝内嵌 NUL、非法 UTF-8、非法 ASCII 控制字符、畸形包络及不合法字段类型，不进行静默截断。4.0 的 `VERSION:4.0` 必须紧随 `BEGIN:VCARD`，中间不能有其他属性或空行；3.0 仍允许 `VERSION:3.0` 出现在 `FN` 后。解析时未知属性也要满足内容行的字符约束；TEXT 内存换行由生成器转义，HTAB 允许使用。生成器在不拆开 UTF-8 字符的前提下把物理行折至最多 75 字节；多值字段逐项输出。所有错误都可由 xlang 捕获，C 侧失败返回 `NULL`。
+输入和输出均限制为 4 MiB，生成超限时 C 接口报告 `XERR_RANGE`；拒绝内嵌 NUL、非法 UTF-8、非法 ASCII 控制字符、畸形包络及不合法字段类型，不进行静默截断。4.0 的 `VERSION:4.0` 必须紧随 `BEGIN:VCARD`，中间不能有其他属性或空行；3.0 仍允许 `VERSION:3.0` 出现在 `FN` 后。解析时未知属性也要满足内容行的字符约束；属性名和可选分组名只接受 ASCII 字母、数字、连字符，且最多有一个分组前缀。TEXT 内存换行由生成器转义，HTAB 允许使用。生成器在不拆开 UTF-8 字符的前提下把物理行折至最多 75 字节；多值字段逐项输出。所有错误都可由 xlang 捕获，C 侧失败返回 `NULL`。
 3.0 的 `VERSION` 不允许属性参数；4.0 允许如 `VERSION;VALUE=text:4.0` 的写法，但本值映射器不保留参数，重新生成时写作普通 `VERSION:4.0`。
 `VERSION` 是整张卡片的结构属性，不接受 `item1.VERSION` 这样的分组前缀；`item1.BEGIN` / `item1.END` 也不能伪装成未知字段绕过包络校验。普通分组字段如 `item1.EMAIL` 仍可读取其值，分组名不会保留。
 

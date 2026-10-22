@@ -60,6 +60,17 @@ fail:
     return 0;
 }
 
+static int xv_name_valid(const char *name, size_t length) {
+    size_t i;
+    if (length == 0) return 0;
+    for (i = 0; i < length; ++i) {
+        unsigned char ch = (unsigned char)name[i];
+        if (!((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+              (ch >= '0' && ch <= '9') || ch == '-')) return 0;
+    }
+    return 1;
+}
+
 static int xv_parse_line(xvalue *object, xstrview line,
     int *phase, int *version, int *name, int *seenProperty) {
     size_t i, colon = line.Size, semi = line.Size, start = 0;
@@ -85,8 +96,12 @@ static int xv_parse_line(xvalue *object, xstrview line,
     }
     if (quoted || colon == line.Size || colon == 0) return 0;
     if (semi > colon) semi = colon;
-    for (i = 0; i < semi; ++i) if (line.Data[i] == '.') start = i + 1;
-    if (start == semi) return 0;
+    for (i = 0; i < semi; ++i) {
+        if (line.Data[i] != '.') continue;
+        if (start != 0 || !xv_name_valid(line.Data, i)) return 0;
+        start = i + 1;
+    }
+    if (!xv_name_valid(line.Data + start, semi - start)) return 0;
     /* 卡片内部的结构标记不能作为未知属性忽略。 */
     if (xv_ascii_equal(line.Data + start, semi - start, "BEGIN") ||
         xv_ascii_equal(line.Data + start, semi - start, "END")) return 0;
