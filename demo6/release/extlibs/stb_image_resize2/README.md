@@ -42,7 +42,8 @@ stb 工作区使用 XRT 分配器，内存不足时返回 `XERR_MEMORY`，不误
   灰度+alpha 缩放结果。
 - 从 `demo6` 目录运行 `xl run release/extlibs/stb_image_resize2/test/boundaries.xl`
   和 `xl run release/extlibs/stb_image_resize2/test/allocations.xl`；两项已登记
-  到包级测试套件，后者确认原生内存故障在 XLang 中仍是 `MemoryError`。
+  到包级测试套件，后者对 sRGB/linear 各扫描前 128 个分配点，确认故障在
+  XLang 中仍是 `MemoryError`，正常调用和解除故障后的结果均可用。
 - `tools/run_extlib_c.ps1 -Package stb_image_resize2,stb_image -Source release/examples/extlibs/stb_image_resize2_c.c`
 - C 边界测试使用 `-Package stb_image_resize2` 和
   `release/extlibs/stb_image_resize2/test/test_stb_image_resize2.c`
