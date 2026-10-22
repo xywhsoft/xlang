@@ -12,4 +12,11 @@ int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mo
     int captureIndex,const char* path,xls_text* text,const xls_sem_memo* previous,
     xls_sem_memo** result,xls_sem_work* work);
 void xlsFrontendSemMemoDestroy(xls_sem_memo* memo);
+typedef struct xls_sem_overload_work {
+    uint64_t rootVisits,indexes,pairVisits,bytes;
+} xls_sem_overload_work;
+/* Private verification entry point: zero budget runs the unchanged pair scan.
+ * The optional override/work record is scoped to this thread and call. */
+int xlsFrontendSemCheckOverloads(XL6_AstNode* root,XL6_DiagList* diags,
+    const char* module,int captureIndex,size_t bytes,xls_sem_overload_work* work);
 #endif

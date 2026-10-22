@@ -32,7 +32,7 @@ SERVER_SOURCES = (
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
     "src/server/xlang_ls.c",
 )
-CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_text_test", "document_sync_test")
+CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_overload_scan_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_text_test", "document_sync_test")
 HOST_TESTS = ("analysis_index_view_test", "language_input_guard_test", "diagnostic_store_test", "language_definition_proof_test")
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 
@@ -161,12 +161,30 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         if source.count(old) != 1:
             raise ValueError('shared semantic memo seam changed; audit: ' + old)
         source = source.replace(old, new)
+    start = source.index('static int xl6SemCheckOverloadConflicts(XL6_SemContext* ctx)\n{')
+    end = source.index('\nstatic int xl6SemIsExternCDecl(', start)
+    conflict = source[start:end]
+    conflict_changes = {
+        '    for ( i = 0; i < ctx->root->childCount; ++i ) {':
+            '    xls_sem_overload_scan scan=xlsSemOverloadBegin(ctx->root);\n'
+            '    for ( i = 0; i < ctx->root->childCount; ++i ) {',
+        '        for ( j = i + 1; j < ctx->root->childCount; ++j ) {':
+            '        for ( j = xlsSemOverloadNext(&scan,i,ctx->root->childCount);\n'
+            '              j < ctx->root->childCount; j = xlsSemOverloadNext(&scan,j,ctx->root->childCount) ) {',
+        '    return ok;': '    xlsSemOverloadEnd(&scan);\n    return ok;',
+    }
+    for old, new in conflict_changes.items():
+        if conflict.count(old) != 1:
+            raise ValueError('shared overload candidate seam changed; audit: ' + old)
+        conflict = conflict.replace(old, new)
+    source = source[:start] + '#include "analysis/frontend_sem_overload.inc"\n' + conflict + source[end:]
     compiled = output / 'frontend/xl6_sem.c'
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
-        change='opt-in exact-context top-level function semantic memos; original rules and final annotations retained',
-        auditedSeams=len(changes), memoBytes=64 * 1024 * 1024,
+        change='bounded ordered overload-name candidates and opt-in exact-context function memos; original rules and final annotations retained',
+        auditedSeams=len(changes)+len(conflict_changes)+1, memoBytes=64 * 1024 * 1024,
+        overloadCandidateBytes=8 * 1024 * 1024,
         auditedDependencies={str(registry): registry_sha})
 
 
