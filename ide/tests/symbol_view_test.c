@@ -10,7 +10,7 @@
 #include <string.h>
 /* Real view included only to assert late-response acceptance decisions. */
 #include "../src/ui/language_view.c"
-typedef struct fixture { const char *directory,*compiler; HDESK desktop; int started,failed; } fixture;
+typedef struct fixture { const char *directory,*compiler; HDESK desktop; int started,failed,legacy; } fixture;
 #define CHECK(v) do { if(!(v)) { fprintf(stderr,"symbol_view_test:%d: %s; %s; %s\n",__LINE__,#v,error.message,xideLanguageViewMessage(&app)); f->failed=1; goto cleanup; } } while(0)
 static int writeText(const char* path,const char* text) { return xrtFileWriteAtomic(path,(xbytesview){(const unsigned char*)text,strlen(text)}); }
 static int settle(xide_app* app) { if(xuiDispatchPendingEvents(app->context)!=XUI_OK) return 0; xideEditorPoll(app); xideFileSyncPoll(app); xideTaskViewPoll(app); xideLanguageViewPoll(app); xideWorkbenchLayout(app); return xuiLayout(app->context)==XUI_OK && !app->frameError; }
@@ -25,6 +25,14 @@ static int waitOutline(xide_app* a)
 { uint64_t until=GetTickCount64()+6000; do { if(!settle(a)) return 0; if(!a->languageView->outlineRequest && a->languageView->outlineResult && a->languageView->outlineDocument==a->activeDocument) return 1; Sleep(5); } while(GetTickCount64()<until); return 0; }
 static int waitHover(xide_app* a)
 { uint64_t until=GetTickCount64()+6000; do { if(!settle(a)) return 0; if(a->languageView->hoverResult && xuiCodeEditIsHintOpen(a->activeDocument->editor)) return 1; Sleep(5); } while(GetTickCount64()<until); return 0; }
+static int waitOutlineRequest(xide_app* a)
+{ uint64_t until=GetTickCount64()+6000; do { if(!settle(a)) return 0; if(a->languageView->outlineRequest) return 1; Sleep(5); } while(GetTickCount64()<until); return 0; }
+static int waitColdInvalidated(xide_app* a)
+{ uint64_t until=GetTickCount64()+6000; do { if(!settle(a)) return 0; if(a->languageView->onDemandMode && a->languageView->invalidated && !a->languageView->hoverResult) return 1; Sleep(5); } while(GetTickCount64()<until); return 0; }
+static int waitHoverEmpty(xide_app* a)
+{ uint64_t until=GetTickCount64()+6000; do { if(!settle(a)) return 0; if(!a->languageView->hoverRequest && !a->languageView->hoverDocument) return 1; Sleep(5); } while(GetTickCount64()<until); return 0; }
+static int waitInitialized(xide_app* a)
+{ uint64_t until=GetTickCount64()+6000; do { if(!settle(a)) return 0; if(a->languageView->initialized) return 1; Sleep(5); } while(GetTickCount64()<until); return 0; }
 static int legacyRemove(xvalue* v)
 {
  if(xrtValueType(v)==XVALUE_OBJECT) {
@@ -37,10 +45,11 @@ static int legacyRemove(xvalue* v)
 static int verify(void* user)
 {
  fixture* f=user; if(f->started) return XGE_OK; f->started=1; xide_app app={0}; xide_model_error error={0}; int began=0;
- char *root=NULL,*entry=NULL,*dep=NULL,*native=NULL,*light=NULL,*dark=NULL; xvalue *state=NULL,*fake=NULL;
+ char *root=NULL,*entry=NULL,*dep=NULL,*native=NULL,*light=NULL,*dark=NULL,*large=NULL,*cold=NULL; xvalue *state=NULL,*fake=NULL;
  char unique[60]; snprintf(unique,sizeof(unique),"symbols-%lu-%llu",GetCurrentProcessId(),(unsigned long long)GetTickCount64()); root=xidePathResolve(f->directory,unique); entry=xidePathResolve(root,"入口😀.xl"); dep=xidePathResolve(root,"helper.xl"); native=xidePathResolve(root,"helper.c"); light=xidePathResolve(root,"outline-hover-light.png"); dark=xidePathResolve(root,"outline-hover-dark.png");
  const char *saved="func main(...) as int\n    return 0\nend\n",*overload="func pick(int value) as int\n    return value\nend\nfunc pick(string value) as int\n    return 2\nend\nfunc main(...) as int\n    string 中文 = \"😀\"; auto second = pick(\"x\")\n    return second - 2\nend\n",*helper="export func answer() as int\n    return 42\nend\n",*overlay="\n\nexport func answer() as int\n    return 42\nend\n",*imported="import helper\nfunc main(...) as int\n    return helper.answer() - 42\nend\n";
  CHECK(root && entry && dep && native && light && dark && xrtDirCreateAll(root) && writeText(entry,saved) && writeText(dep,helper) && writeText(native,"int helper(void) { return 1; }\n"));
+ cold=xidePathResolve(root,"on-demand-hover.png"); CHECK(cold);
  app.hidden=1; app.noSession=1; app.compilerPath=f->compiler; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
  CHECK(xideActionCount()==73 && xideActionNamed("language.outline")->id==74 && xideActionNamed("language.hover")->id==75 && !xideLanguageViewCanHover(&app));
  CHECK(xuiDockPanelGetPaneActiveWindow(app.dock,app.helpPane)==app.windows[XIDE_HELP]);
@@ -51,6 +60,65 @@ static int verify(void* user)
  xui_dock_window_info_t outline={.iSize=sizeof(outline)}; CHECK(xuiDockPanelGetWindowInfo(app.dock,app.windows[XIDE_OUTLINE],&outline)==XUI_OK && outline.iPane==help.iPane && outline.iRegion==XUI_DOCK_PANEL_REGION_DOCUMENT);
  CHECK(xideEditorOpen(&app,entry,&error) && xideEditorOpen(&app,dep,&error) && xideEditorOpen(&app,native,&error) && settle(&app)); xide_document *xl=xideDocumentsFind(&app.documents,entry),*dependency=xideDocumentsFind(&app.documents,dep),*c=app.activeDocument;
  CHECK(!strcmp(c->language,"c") && !xideLanguageViewCanHover(&app) && !app.languageView->outlineCount);
+ if(!f->legacy) {
+ /* Start with a real cold standard query: no explicit source check or snapshot
+    result. Online receipt and local input bindings guard the response. */
+ int coldCall=(int)(strstr(overload,"pick(\"x\")")-overload);
+ CHECK(replace(xl,overload) && gotoOffset(&app,xl,coldCall) && xideLanguageViewCanHover(&app) && xideActionExecute(&app,XIDE_ACTION_HOVER)==XIDE_ACTION_DISPATCHED && waitHover(&app) && waitOutline(&app));
+ CHECK(app.languageView->onDemandMode && app.languageView->receiptReady && !app.languageView->busy && !app.languageView->lastSnapshotId && !app.languageView->snapshotResult && app.languageView->outlineCount==3 && !xideLanguageViewDiagnosticCount(&app));
+ CHECK(strstr(string(get(get(app.languageView->hoverResult,"contents"),"value")),"pick(string value)"));
+ fake=queryParams(app.languageView,xl,coldCall); CHECK(fake && !get(fake,"checkId") && get(fake,"version")); xrtValueRelease(fake); fake=NULL;
+ CHECK(xideActionExecute(&app,XIDE_ACTION_OUTLINE)==XIDE_ACTION_DISPATCHED && xuiTreeViewSetSelected(app.languageView->outline,2)==XUI_OK && xuiSetFocusWidget(app.context,app.languageView->outline)==XUI_OK && xuiInputKeyDown(app.context,XUI_KEY_ENTER,0)==XUI_OK && xuiInputKeyUp(app.context,XUI_KEY_ENTER,0)==XUI_OK && settle(&app) && caret(xl)==(int)(strstr(overload,"pick(string")-overload));
+ CHECK(gotoOffset(&app,xl,coldCall) && requestCaretHover(&app) && gotoOffset(&app,xl,0) && settle(&app) && !app.languageView->hoverResult);
+ const char* coldImported="import helper\nfunc main(...) as int\n auto result = helper.answer()\n return 0\nend\n";
+ const char* coldString="export func answer() as string\n return \"new type\"\nend\n";
+ CHECK(replace(xl,coldImported) && settle(&app) && !app.languageView->outlineResult && waitOutline(&app));
+ coldCall=(int)(strstr(coldImported,"answer")-coldImported);
+ CHECK(gotoOffset(&app,xl,coldCall) && requestCaretHover(&app) && waitHover(&app) && strstr(string(get(get(app.languageView->hoverResult,"contents"),"value")),"answer() as int"));
+ CHECK(replace(dependency,coldString) && settle(&app) && !app.languageView->hoverResult && !app.languageView->outlineResult && app.languageView->semanticRefreshAt && xideLanguageViewCanCancel(&app));
+ CHECK(xideEditorShow(&app,c)==XUI_OK && settle(&app)); Sleep(100);
+ CHECK(settle(&app) && app.languageView->semanticRefreshAt && !app.languageView->receiptRequest && !app.languageView->outlineRequest && !xideLanguageViewCanHover(&app));
+ CHECK(xideEditorShow(&app,xl)==XUI_OK && waitOutline(&app));
+ CHECK(gotoOffset(&app,xl,coldCall) && requestCaretHover(&app) && waitHover(&app) && strstr(string(get(get(app.languageView->hoverResult,"contents"),"value")),"answer() as string") && !app.languageView->lastSnapshotId && !app.languageView->snapshotResult);
+ CHECK(xideEditorClose(&app,dependency,1,&error) && settle(&app) && waitOutline(&app) && gotoOffset(&app,xl,coldCall) && requestCaretHover(&app) && waitHover(&app) && strstr(string(get(get(app.languageView->hoverResult,"contents"),"value")),"answer() as int"));
+ CHECK(writeText(dep,coldString) && waitColdInvalidated(&app) && waitOutline(&app) && gotoOffset(&app,xl,coldCall) && requestCaretHover(&app) && waitHover(&app) && strstr(string(get(get(app.languageView->hoverResult,"contents"),"value")),"answer() as string") && capture(&app,cold));
+ CHECK(writeText(dep,helper) && xideEditorOpen(&app,dep,&error)); dependency=app.activeDocument;
+ CHECK(xideEditorShow(&app,xl)==XUI_OK && settle(&app) && waitOutline(&app));
+ const char* coldError="func main(...) as int\n return missingName\nend\n";
+ CHECK(replace(xl,coldError) && settle(&app) && waitOutline(&app) && app.languageView->onDemandMode && !app.languageView->outlineCount && !app.languageView->snapshotResult && !xideLanguageViewDiagnosticCount(&app));
+ CHECK(gotoOffset(&app,xl,(int)(strstr(coldError,"missingName")-coldError)) && requestCaretHover(&app) && waitHoverEmpty(&app) && !xuiCodeEditIsHintOpen(xl->editor));
+ CHECK(replace(xl,coldImported) && settle(&app) && waitOutline(&app) && gotoOffset(&app,xl,coldCall) && requestCaretHover(&app) && waitHover(&app));
+ fake=xrtValueObject(); CHECK(fake && put(fake,"schema",xrtValueInt(1)) && put(fake,"documents",xrtValueInt((int64)app.languageView->inputCount)) && put(fake,"sha256",xrtValueString(sv("bad"))) && put(fake,"generation",xrtValueString(sv("1"))));
+ applyInputState(&app,fake,NULL); xrtValueRelease(fake); fake=NULL;
+ CHECK(!app.languageView->client && !app.languageView->receiptReady && !app.languageView->outlineResult && !app.languageView->hoverResult);
+ CHECK(requestCaretHover(&app) && app.languageView->waitingInitialize && xideEditorClose(&app,xl,1,&error) && waitInitialized(&app) && !app.languageView->waitingInitialize && !app.languageView->receiptReady && !app.languageView->hoverResult && !app.languageView->outlineResult);
+ CHECK(xideEditorOpen(&app,entry,&error)); xl=app.activeDocument;
+ CHECK(replace(xl,coldImported) && gotoOffset(&app,xl,coldCall) && requestCaretHover(&app) && waitHover(&app) && waitOutline(&app) && app.languageView->receiptReady);
+ CHECK(replace(xl,overload) && replace(dependency,helper) && settle(&app) && xideActionExecute(&app,XIDE_ACTION_OUTLINE)==XIDE_ACTION_DISPATCHED && app.languageView->receiptRequest && xideActionExecute(&app,XIDE_ACTION_CANCEL_CHECK)==XIDE_ACTION_DISPATCHED && settle(&app) && !app.languageView->receiptReady && !app.languageView->hoverResult && !app.languageView->outlineResult);
+ large=malloc(512000); CHECK(large); size_t largeAt=0;
+ for(int i=0;i<3000;++i) { int written=snprintf(large+largeAt,512000-largeAt,"func source%d() as int\n return %d\nend\n",i,i); CHECK(written>0 && (size_t)written<512000-largeAt); largeAt+=(size_t)written; }
+ CHECK(largeAt+strlen(saved)<512000); strcpy(large+largeAt,saved);
+ CHECK(replace(xl,large) && xideActionExecute(&app,XIDE_ACTION_OUTLINE)==XIDE_ACTION_DISPATCHED && waitOutlineRequest(&app));
+ Sleep(20); /* Let the already initialized native actor enter the large check. */
+ CHECK(xideActionExecute(&app,XIDE_ACTION_CHECK_CURRENT)==XIDE_ACTION_DISPATCHED && waitChecked(&app));
+ CHECK(!app.languageView->onDemandMode && app.languageView->lastSnapshotId>0);
+ printf("actual cold symbol preemption retries: %d\n",app.languageView->checkRetries);
+ /* The real actor may stop before the next frame. Exercise the busy reply
+    deterministically as a controlled response, then verify real retry/recovery. */
+ clearDiagnostics(&app); fake=xrtValueObject(); CHECK(fake && put(fake,"code",xrtValueInt(-32001)));
+ app.languageView->preemptDeadline=GetTickCount64()+3000; app.languageView->checkRetries=0;
+ CHECK(deferPreemptedCheck(app.languageView,fake) && app.languageView->busy && app.languageView->checkRetryAt && waitChecked(&app) && app.languageView->checkRetries>=1);
+ clearDiagnostics(&app); app.languageView->preemptDeadline=GetTickCount64()-1;
+ CHECK(!deferPreemptedCheck(app.languageView,fake) && !app.languageView->busy && !app.languageView->checkRetryAt);
+ app.languageView->preemptDeadline=GetTickCount64()+3000;
+ CHECK(deferPreemptedCheck(app.languageView,fake) && xideActionExecute(&app,XIDE_ACTION_CANCEL_CHECK)==XIDE_ACTION_DISPATCHED && settle(&app) && !app.languageView->busy && !app.languageView->checkRetryAt && !app.languageView->snapshotResult);
+ xrtValueRelease(fake); fake=NULL;
+ free(large); large=NULL;
+ } else {
+  CHECK(replace(xl,overload) && gotoOffset(&app,xl,(int)(strstr(overload,"pick(\"x\")")-overload)) && xideActionExecute(&app,XIDE_ACTION_HOVER)==XIDE_ACTION_DISPATCHED && waitInitialized(&app));
+  CHECK(!app.languageView->onDemandSupported && !app.languageView->waitingInitialize && !app.languageView->receiptReady && !app.languageView->hoverResult && !app.languageView->snapshotResult && !xideLanguageViewCanHover(&app));
+ }
+ /* Explicit checking still selects the original batch-protected UI mode. */
  CHECK(replace(xl,overload) && xideEditorShow(&app,xl)==XUI_OK && xideActionExecute(&app,XIDE_ACTION_CHECK_CURRENT)==XIDE_ACTION_DISPATCHED && waitChecked(&app) && waitOutline(&app) && app.languageView->outlineCount==3 && xideLanguageViewCanHover(&app));
  CHECK(!strcmp(string(get(app.languageView->outlineItems[1].symbol,"name")),"pick"));
  CHECK(xideActionExecute(&app,XIDE_ACTION_OUTLINE)==XIDE_ACTION_DISPATCHED && settle(&app));
@@ -66,14 +134,27 @@ static int verify(void* user)
  /* Current caret, tab, document and batch guard every late hover/outline. */
  CHECK(requestCaretHover(&app) && gotoOffset(&app,xl,0) && settle(&app) && !app.languageView->hoverResult && !xuiCodeEditIsHintOpen(xl->editor));
  CHECK(gotoOffset(&app,xl,call) && requestCaretHover(&app) && xideEditorShow(&app,c)==XUI_OK && settle(&app) && !app.languageView->hoverResult && !app.languageView->outlineCount && !xideLanguageViewCanHover(&app));
- CHECK(xideEditorShow(&app,xl)==XUI_OK && waitOutline(&app) && replace(xl,imported) && replace(dependency,overlay) && settle(&app) && !app.languageView->outlineCount && !app.languageView->hoverResult && waitChecked(&app) && waitOutline(&app));
+ CHECK(xideEditorShow(&app,xl)==XUI_OK && waitOutline(&app) && replace(xl,imported) && replace(dependency,overlay) && settle(&app) && !app.languageView->outlineCount && !app.languageView->hoverResult && app.languageView->automatic && !app.languageView->onDemandMode && !xideLanguageViewCanHover(&app) && waitChecked(&app) && waitOutline(&app));
  call=(int)(strstr(imported,"answer")-imported); CHECK(gotoOffset(&app,xl,call) && requestCaretHover(&app) && waitHover(&app) && strstr(string(get(get(app.languageView->hoverResult,"contents"),"value")),"export func answer"));
  CHECK(xideEditorShow(&app,dependency)==XUI_OK && settle(&app) && waitOutline(&app) && app.languageView->outlineCount==1 && !strcmp(string(get(app.languageView->outlineItems[0].symbol,"name")),"answer"));
- CHECK(xideActionExecute(&app,XIDE_ACTION_CANCEL_CHECK)==XIDE_ACTION_DISPATCHED && settle(&app) && !app.languageView->outlineResult && !app.languageView->hoverResult && !xideLanguageViewCanHover(&app));
+ CHECK(xideActionExecute(&app,XIDE_ACTION_CANCEL_CHECK)==XIDE_ACTION_DISPATCHED && settle(&app) && !app.languageView->outlineResult && !app.languageView->hoverResult && xideLanguageViewCanHover(&app)==app.languageView->onDemandSupported);
  xide_text_file file={0}; CHECK(xideTextFileRead(entry,&file,&error) && !strcmp(file.text,saved)); xideTextFileClear(&file); CHECK(xideTextFileRead(dep,&file,&error) && !strcmp(file.text,helper)); xideTextFileClear(&file);
- printf("symbol_view_test passed: real mouse hover, Ctrl+I, resolved overload, central outline Enter jump, old ten-panel layout restore, unsaved dependency outline, malformed range and caret/tab/edit/cancel/C rejection and original files preserved; renders in %s.\n",root);
+ printf("symbol_view_test passed: cold-path=%d; standard hover/outline or explicit legacy fallback, receipt/current-input guards, mouse hover, Ctrl+I, overload, central outline jump, batch/range/caret/tab/edit/C guards and preserved source bytes; renders in %s.\n",!f->legacy,root);
 cleanup:
- xrtValueRelease(fake); xrtValueRelease(state); if(began) xgeEnd(); xideAppDestroy(&app); free(root); free(entry); free(dep); free(native); free(light); free(dark); xgeQuit(); return XGE_OK;
+ xrtValueRelease(fake); xrtValueRelease(state); if(began) xgeEnd(); xideAppDestroy(&app); free(root); free(entry); free(dep); free(native); free(light); free(dark); free(large); free(cold); xgeQuit(); return XGE_OK;
 }
 static DWORD WINAPI worker(void* data) { fixture* f=data; if(!SetThreadDesktop(f->desktop)) return 1; xge_desc_t d={0}; d.iWidth=1600; d.iHeight=1000; d.sTitle="xlang symbol verification"; d.iFlags=XGE_INIT_WINDOW|XGE_INIT_HIGHDPI; d.iRunMode=XGE_RUN_GAME_LOOP; int result=xgeInit(&d); if(result==XGE_OK) result=xgeRun(verify,f); xgeUnit(); return result==XGE_OK && f->started && !f->failed ? 0 : 1; }
-int main(int argc,char** argv) { if(argc!=3 || !xrtDirCreateAll(argv[1])) return 2; fixture f={.directory=argv[1],.compiler=argv[2]}; wchar_t name[100]; swprintf(name,100,L"XlangDefinitionVerification-%lu",GetCurrentProcessId()); f.desktop=CreateDesktopW(name,NULL,NULL,0,DESKTOP_CREATEWINDOW|DESKTOP_READOBJECTS|DESKTOP_WRITEOBJECTS|DESKTOP_ENUMERATE,NULL); if(!f.desktop) return 1; HANDLE t=CreateThread(NULL,0,worker,&f,0,NULL); DWORD code=1; if(t) { if(WaitForSingleObject(t,120000)!=WAIT_OBJECT_0) { fputs("symbol_view_test timed out\n",stderr); ExitProcess(1); } GetExitCodeThread(t,&code); CloseHandle(t); } CloseDesktop(f.desktop); return (int)code; }
+int main(int argc,char** argv)
+{
+ if(argc<3 || argc>4 || (argc==4 && strcmp(argv[3],"legacy")) || !xrtDirCreateAll(argv[1])) return 2;
+ fixture f={.directory=argv[1],.compiler=argv[2],.legacy=argc==4}; wchar_t name[100];
+ swprintf(name,100,L"XlangDefinitionVerification-%lu",GetCurrentProcessId());
+ f.desktop=CreateDesktopW(name,NULL,NULL,0,DESKTOP_CREATEWINDOW|DESKTOP_READOBJECTS|DESKTOP_WRITEOBJECTS|DESKTOP_ENUMERATE,NULL);
+ if(!f.desktop) return 1;
+ HANDLE t=CreateThread(NULL,0,worker,&f,0,NULL); DWORD code=1;
+ if(t) {
+  if(WaitForSingleObject(t,120000)!=WAIT_OBJECT_0) { fputs("symbol_view_test timed out\n",stderr); ExitProcess(1); }
+  GetExitCodeThread(t,&code); CloseHandle(t);
+ }
+ CloseDesktop(f.desktop); return (int)code;
+}
