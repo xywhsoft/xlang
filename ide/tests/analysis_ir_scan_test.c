@@ -25,7 +25,7 @@ static int compareVerify(XL6_IrModule* ir,int accepted)
 {
     XL6_DiagList indexed,reference; xl6DiagInit(&indexed); xl6DiagInit(&reference);
     int a=xl6IrVerifyModule(ir,&indexed),b=xlsFrontendIrReferenceVerify(ir,&reference);
-    CHECK(a==accepted && b==accepted && sameDiagnostics(&indexed,&reference));
+    CHECK(a==b && (accepted<0 || a==accepted) && sameDiagnostics(&indexed,&reference));
     xl6DiagFree(&indexed); xl6DiagFree(&reference); return 1;
 }
 static int corpus(const char* source,int large)
@@ -35,23 +35,36 @@ static int corpus(const char* source,int large)
         xl6SemCheckModuleWithIndex(parsed.root,&parsed.diags,"scan",1);
     if(!okay) xl6DiagPrintText(&parsed.diags,"ir-scan-memory.xl");
     CHECK(okay);
-    xlsFrontendIrScanReset();
+    xlsFrontendIrScanReset(); xlsFrontendIrPlanScanReset();
     okay=xl6IrBuildModuleFromAst(&ir,parsed.root,&parsed.diags);
     if(!okay) xl6DiagPrintText(&parsed.diags,"ir-scan-memory.xl");
     CHECK(okay && !parsed.diags.count);
     xls_ir_scan_work indexed=xlsFrontendIrScanWork();
     CHECK(indexed.indexes>=2 && indexed.queries && !indexed.linearVisits && indexed.peakBytes<=16u*1024u*1024u);
+    xls_ir_plan_scan_work planIndexed=xlsFrontendIrPlanScanWork();
+    CHECK(planIndexed.indexes==1 && planIndexed.queries && !planIndexed.linearVisits && planIndexed.peakBytes<=8u*1024u*1024u);
     char* actual=dump(&ir); CHECK(actual);
-    xlsFrontendIrScanReset();
+    xlsFrontendIrScanReset(); xlsFrontendIrPlanScanReset();
     CHECK(xlsFrontendIrReferenceRefresh(&ir) && xlsFrontendIrReferenceVerify(&ir,&parsed.diags));
     xls_ir_scan_work reference=xlsFrontendIrScanWork(); CHECK(!reference.indexes && reference.linearVisits && !reference.indexedVisits);
+    xls_ir_plan_scan_work planReference=xlsFrontendIrPlanScanWork();
+    CHECK(!planReference.indexes && !planReference.indexedVisits && planReference.linearVisits);
     char* expected=dump(&ir);
     CHECK(expected && !strcmp(actual,expected)); xrtFree(actual); xrtFree(expected);
     CHECK(compareVerify(&ir,1));
+    XL6_DiagList bounded; xl6DiagInit(&bounded); xlsFrontendIrPlanScanReset();
+    CHECK(xlsFrontendIrVerifyPlanBudget(&ir,&bounded,1) && !bounded.count);
+    xls_ir_plan_scan_work fallback=xlsFrontendIrPlanScanWork();
+    CHECK(!fallback.indexes && !fallback.indexedVisits && fallback.linearVisits); xl6DiagFree(&bounded);
     if(large) {
         CHECK(reference.linearVisits>indexed.indexedVisits*50 && ir.cleanupActionCount>100);
         printf("IR scan visits indexed=%llu reference=%llu, peak index=%llu bytes\n",(unsigned long long)indexed.indexedVisits,
             (unsigned long long)reference.linearVisits,(unsigned long long)indexed.peakBytes);
+    }
+    if(large) {
+        CHECK(planReference.linearVisits>planIndexed.indexedVisits*20);
+        printf("IR exit-plan candidate visits indexed=%llu reference=%llu, data=%llu bytes\n",
+            (unsigned long long)planIndexed.indexedVisits,(unsigned long long)planReference.linearVisits,(unsigned long long)planIndexed.peakBytes);
     }
     if(ir.cleanupActionCount) {
         XL6_IrCleanupAction saved=ir.cleanupActions[0]; ir.cleanupActions[0].origin=0;
@@ -61,6 +74,17 @@ static int corpus(const char* source,int large)
     if(ir.exitPlanCount) {
         XL6_IrExitPlan saved=ir.exitPlans[0]; ir.exitPlans[0].firstCleanup=ir.cleanupActionCount+1;
         CHECK(compareVerify(&ir,0)); ir.exitPlans[0]=saved;
+        ir.exitPlans[0].origin=0; CHECK(compareVerify(&ir,0)); ir.exitPlans[0]=saved;
+        --ir.exitPlanCount; CHECK(compareVerify(&ir,0)); ++ir.exitPlanCount;
+        XL6_IrExitPlan* original=ir.exitPlans; size_t capacity=ir.exitPlanCapacity,count=ir.exitPlanCount;
+        XL6_IrExitPlan* duplicated=xrtCalloc(count+1,sizeof(*duplicated)); CHECK(duplicated);
+        memcpy(duplicated,original,count*sizeof(*duplicated)); duplicated[count]=original[0];
+        ir.exitPlans=duplicated; ir.exitPlanCapacity=count+1; ir.exitPlanCount=count+1;
+        CHECK(compareVerify(&ir,0)); ir.exitPlans=original; ir.exitPlanCapacity=capacity; ir.exitPlanCount=count; xrtFree(duplicated);
+        if(count>1) {
+            XL6_IrExitPlan last=ir.exitPlans[count-1]; ir.exitPlans[count-1]=ir.exitPlans[0]; ir.exitPlans[0]=last;
+            CHECK(compareVerify(&ir,-1)); ir.exitPlans[0]=saved; ir.exitPlans[count-1]=last;
+        }
     }
     /* The optional preflight/index must never follow an adversarial parent
      * cycle before the shared verifier can issue its normal rejection. */
@@ -95,4 +119,4 @@ static int run(void)
     xrtStrBufFree(&large); return 1;
 }
 int main(void)
-{ xrtAtomic32Init(&checks,0); if(!run()) return 1; printf("analysis_ir_scan_test passed: %u checks; full IR dump/reference-scan parity, cleanup order, independent verifier corruption rejection, actual candidate work and concurrent TLS isolation.\n",(unsigned)xrtAtomic32Load(&checks,XMEMORY_RELAXED)); return 0; }
+{ xrtAtomic32Init(&checks,0); if(!run()) return 1; printf("analysis_ir_scan_test passed: %u checks; full IR dump/reference-scan parity, cleanup/plan order and missing/duplicate/corrupt plan rejection, tiny-budget fallback, actual candidate work and concurrent TLS isolation.\n",(unsigned)xrtAtomic32Load(&checks,XMEMORY_RELAXED)); return 0; }

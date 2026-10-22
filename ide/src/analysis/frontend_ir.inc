@@ -4,17 +4,23 @@
 #include "analysis/frontend_ir.h"
 
 #define XLS_IR_SCAN_BYTES (16u*1024u*1024u)
+#define XLS_IR_PLAN_BYTES (8u*1024u*1024u)
 typedef struct xls_ir_candidate { XL6_IrNodeId owner,node; } xls_ir_candidate;
+typedef struct xls_ir_plan_candidate { XL6_IrNodeId origin; size_t index; } xls_ir_plan_candidate;
 typedef struct xls_ir_scan {
     const XL6_IrModule* module;
     const XL6_IrNode* nodes;
     size_t count;
     xarray all,routed;
-    int ready;
+    xarray plans,positions;
+    const XL6_IrExitPlan* planSource;
+    size_t planCount,planBudget;
+    int ready,topology,plansReady,plansAttempted;
     struct xls_ir_scan* previous;
 } xls_ir_scan;
 static _Thread_local xls_ir_scan* xlsActiveIrScan;
 static _Thread_local xls_ir_scan_work xlsIrScanWork;
+static _Thread_local xls_ir_plan_scan_work xlsIrPlanWork;
 static XL6_IrNodeId xl6IrCleanupEnclosingCallable(const XL6_IrModule*,XL6_IrNodeId);
 static int xl6IrVerifyNodeTopology(const XL6_IrModule*,XL6_DiagList*);
 static int xlsIrRefreshExitPlansOriginal(XL6_IrModule*);
@@ -35,6 +41,7 @@ static void xlsIrScanInit(xls_ir_scan* scan,const XL6_IrModule* module)
      * parent-chain question, including for adversarial verification input.
      * On failure the unchanged original path supplies its normal diagnostic. */
     if(!xl6IrVerifyNodeTopology(module,NULL)) return;
+    scan->topology=1; scan->module=module; scan->nodes=module->nodes; scan->count=module->nodeCount;
     size_t count=0;
     for(size_t i=0;i<module->nodeCount;++i)
         count+=module->nodes[i].kind==XL6_IR_NODE_VALUE_DECL || module->nodes[i].kind==XL6_IR_NODE_PATTERN;
@@ -57,7 +64,89 @@ static void xlsIrScanInit(xls_ir_scan* scan,const XL6_IrModule* module)
     if(bytes>xlsIrScanWork.peakBytes) xlsIrScanWork.peakBytes=bytes;
 }
 static void xlsIrScanDone(xls_ir_scan* scan)
-{ xlsActiveIrScan=scan->previous; xrtArrayUnit(&scan->all); xrtArrayUnit(&scan->routed); }
+{
+    xlsActiveIrScan=scan->previous; xrtArrayUnit(&scan->all); xrtArrayUnit(&scan->routed);
+    xrtArrayUnit(&scan->plans); xrtArrayUnit(&scan->positions);
+}
+static int xlsIrPlanCompare(const void* a,const void* b)
+{
+    const xls_ir_plan_candidate *left=a,*right=b;
+    if(left->origin!=right->origin) return left->origin<right->origin ? -1 : 1;
+    return left->index<right->index ? -1 : left->index!=right->index;
+}
+static void xlsIrPlanScanInit(xls_ir_scan* scan,const XL6_IrModule* module,size_t bytes)
+{
+    /* Build only for the const verification phase, after the shared rooted
+     * topology check. Reject inconsistent arena bounds before reading it.
+     * Invalid origins remain present; the original verifier diagnoses them. */
+    if(bytes>XLS_IR_PLAN_BYTES) bytes=XLS_IR_PLAN_BYTES;
+    if(!bytes || !scan->topology || !module || module->exitPlanCount>module->exitPlanCapacity ||
+       (module->exitPlanCount && !module->exitPlans) ||
+       module->exitPlanCount>bytes/(2*(sizeof(xls_ir_plan_candidate)+sizeof(size_t)))) return;
+    if(!xrtArrayInit(&scan->plans,sizeof(xls_ir_plan_candidate)) ||
+       !xrtArrayInit(&scan->positions,sizeof(size_t)) ||
+       !xrtArrayReserve(&scan->plans,module->exitPlanCount) ||
+       !xrtArrayResize(&scan->positions,module->exitPlanCount)) goto failed;
+    uint64_t owned=(uint64_t)scan->plans.Capacity*sizeof(xls_ir_plan_candidate)+(uint64_t)scan->positions.Capacity*sizeof(size_t);
+    if(owned>bytes) goto failed;
+    for(size_t i=0;i<module->exitPlanCount;++i) {
+        xls_ir_plan_candidate candidate={module->exitPlans[i].origin,i};
+        if(!xrtArrayPush(&scan->plans,&candidate)) goto failed;
+    }
+    if(!xrtArraySort(&scan->plans,xlsIrPlanCompare)) goto failed;
+    for(size_t i=0;i<scan->plans.Count;++i) {
+        const xls_ir_plan_candidate* candidate=xrtArrayConstGet(&scan->plans,i);
+        *(size_t*)xrtArrayGet(&scan->positions,candidate->index)=i;
+    }
+    scan->planSource=module->exitPlans; scan->planCount=module->exitPlanCount; scan->plansReady=1;
+    ++xlsIrPlanWork.indexes; xlsIrPlanWork.records+=module->exitPlanCount;
+    if(owned>xlsIrPlanWork.peakBytes) xlsIrPlanWork.peakBytes=owned;
+    return;
+failed:
+    xrtArrayUnit(&scan->plans); xrtArrayUnit(&scan->positions);
+}
+static const xls_ir_scan* xlsIrPlanScan(const XL6_IrModule* module)
+{
+    const xls_ir_scan* scan=xlsActiveIrScan;
+    return scan && scan->plansReady && scan->module==module && scan->nodes==module->nodes &&
+        scan->count==module->nodeCount && scan->planSource==module->exitPlans && scan->planCount==module->exitPlanCount ? scan : NULL;
+}
+static void xlsIrEnsurePlanScan(const XL6_IrModule* module)
+{
+    xls_ir_scan* scan=xlsActiveIrScan;
+    if(!scan || scan->plansAttempted || !scan->topology || scan->module!=module ||
+       scan->nodes!=module->nodes || scan->count!=module->nodeCount) return;
+    /* Lazy construction starts only at the original plan enumeration, after
+     * all preceding validation. A rejected module must not make the index
+     * read arenas which the original verifier would never inspect. */
+    scan->plansAttempted=1; xlsIrPlanScanInit(scan,module,scan->planBudget);
+}
+static size_t xlsIrFirstPlanCandidate(const XL6_IrModule* module,XL6_IrNodeId origin,size_t limit)
+{
+    ++xlsIrPlanWork.queries;
+    xlsIrEnsurePlanScan(module);
+    const xls_ir_scan* scan=xlsIrPlanScan(module);
+    if(!scan) { if(limit) ++xlsIrPlanWork.linearVisits; return 0; }
+    size_t low=0,high=scan->plans.Count;
+    while(low<high) {
+        size_t mid=low+(high-low)/2;
+        const xls_ir_plan_candidate* candidate=xrtArrayConstGet(&scan->plans,mid);
+        if(candidate->origin<origin) low=mid+1; else high=mid;
+    }
+    const xls_ir_plan_candidate* candidate=xrtArrayConstGet(&scan->plans,low);
+    if(!candidate || candidate->origin!=origin || candidate->index>=limit) return limit;
+    ++xlsIrPlanWork.indexedVisits; return candidate->index;
+}
+static size_t xlsIrNextPlanCandidate(const XL6_IrModule* module,XL6_IrNodeId origin,size_t current,size_t limit)
+{
+    ++xlsIrPlanWork.queries;
+    const xls_ir_scan* scan=xlsIrPlanScan(module);
+    if(!scan) { if(current+1<limit) ++xlsIrPlanWork.linearVisits; return current+1; }
+    const size_t* position=xrtArrayConstGet(&scan->positions,current);
+    const xls_ir_plan_candidate* candidate=position ? xrtArrayConstGet(&scan->plans,*position+1) : NULL;
+    if(!candidate || candidate->origin!=origin || candidate->index>=limit) return limit;
+    ++xlsIrPlanWork.indexedVisits; return candidate->index;
+}
 static XL6_IrNodeId xlsIrPreviousCandidate(const XL6_IrModule* module,
     XL6_IrNodeId owner,XL6_IrNodeId before,int routed)
 {
@@ -89,13 +178,17 @@ int xl6IrRefreshExitPlans(XL6_IrModule* module)
     xls_ir_scan scan; xlsIrScanInit(&scan,module); xlsActiveIrScan=&scan;
     int okay=xlsIrRefreshExitPlansOriginal(module); xlsIrScanDone(&scan); return okay;
 }
-int xl6IrVerifyModule(const XL6_IrModule* module,XL6_DiagList* diags)
+int xlsFrontendIrVerifyPlanBudget(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes)
 {
-    xls_ir_scan scan; xlsIrScanInit(&scan,module); xlsActiveIrScan=&scan;
+    xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.planBudget=bytes; xlsActiveIrScan=&scan;
     int okay=xlsIrVerifyModuleOriginal(module,diags); xlsIrScanDone(&scan); return okay;
 }
+int xl6IrVerifyModule(const XL6_IrModule* module,XL6_DiagList* diags)
+{ return xlsFrontendIrVerifyPlanBudget(module,diags,XLS_IR_PLAN_BYTES); }
 void xlsFrontendIrScanReset(void) { memset(&xlsIrScanWork,0,sizeof(xlsIrScanWork)); }
 xls_ir_scan_work xlsFrontendIrScanWork(void) { return xlsIrScanWork; }
+void xlsFrontendIrPlanScanReset(void) { memset(&xlsIrPlanWork,0,sizeof(xlsIrPlanWork)); }
+xls_ir_plan_scan_work xlsFrontendIrPlanScanWork(void) { return xlsIrPlanWork; }
 int xlsFrontendIrReferenceRefresh(XL6_IrModule* module)
 {
     xls_ir_scan* prior=xlsActiveIrScan; xlsActiveIrScan=NULL;
