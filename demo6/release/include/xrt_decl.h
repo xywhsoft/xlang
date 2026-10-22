@@ -38623,6 +38623,42 @@ typedef xtaskoutcome (*xtasknetproc)(
 	xtaskvalue* pResult
 );
 
+/* Closed resident contract for one user Data reference consumed only after
+ * Engine acceptance. Proc borrows Worker/Cancel/Data; Drop(Data,NULL) retires
+ * Data before Future terminal publication. Descriptors/code outlive all graph
+ * pins. This does not certify legacy borrowed-data TaskNet calls. */
+typedef struct xtasknetdataownershipv1 {
+    size_t size;
+    xtasknetproc Proc;
+    xfuturefreeproc Drop;
+    const xrtownershipops* Ops;
+} xtasknetdataownershipv1;
+
+XRT_EXTERN_C_BEGIN
+XRT_API xfuture* xrtTaskNetDataPolicyV1(xnetengine* pEngine, uint64 iAffinity,
+    ptr pData, xcancel* pCancel, const xtasknetdataownershipv1* pDataPolicy,
+    const xfuturepayloadownershipv1* pResultPolicy);
+XRT_API xfuture* xrtTaskNetAfterDataPolicyV1(xnetengine* pEngine, uint64 iAffinity,
+    ptr pData, xcancel* pCancel, const xtasknetdataownershipv1* pDataPolicy,
+    const xfuturepayloadownershipv1* pResultPolicy, uint64 iTimeout);
+XRT_API xfuture* xrtTaskNetUntilDataPolicyV1(xnetengine* pEngine, uint64 iAffinity,
+    ptr pData, xcancel* pCancel, const xtasknetdataownershipv1* pDataPolicy,
+    const xfuturepayloadownershipv1* pResultPolicy, xdeadline iDeadline);
+
+/* Frozen exact-identity admission before any user Ops dispatch. Refusal does
+ * not write preparation or diagnostics. Prepare only observes executor cleanup;
+ * Engine retirement, not this adapter, drains or cancels accepted work. */
+XRT_API const xrtownershipadapterv1* xrtTaskNetOwnershipAdapterV1(
+    xrtownershipref Reference, const xtasknetdataownershipv1* const* pPolicies,
+    size_t iPolicyCount, const xrtownershippreparationv1** ppPreparation);
+XRT_API const xnettaskownershipv1* xrtTaskNetPostPolicyV1Get(void);
+XRT_API const xnettimerownershipv1* xrtTaskNetTimerPolicyV1Get(void);
+XRT_API const xtaskdataownershipv1* xrtTaskNetJobDataPolicyV1Get(void);
+XRT_API const xcancelwatchownershipv1* xrtTaskNetCancelPolicyV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtTaskNetOwnershipQuiescenceV1Get(void);
+XRT_EXTERN_C_END
+
+
 
 
 XRT_EXTERN_C_BEGIN

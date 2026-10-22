@@ -36263,6 +36263,42 @@ typedef xtaskoutcome (*xtasknetproc)(
 	xtaskvalue* pResult
 );
 
+/* Closed resident contract for one user Data reference consumed only after
+ * Engine acceptance. Proc borrows Worker/Cancel/Data; Drop(Data,NULL) retires
+ * Data before Future terminal publication. Descriptors/code outlive all graph
+ * pins. This does not certify legacy borrowed-data TaskNet calls. */
+typedef struct xtasknetdataownershipv1 {
+    size_t size;
+    xtasknetproc Proc;
+    xfuturefreeproc Drop;
+    const xrtownershipops* Ops;
+} xtasknetdataownershipv1;
+
+XRT_EXTERN_C_BEGIN
+XRT_API xfuture* xrtTaskNetDataPolicyV1(xnetengine* pEngine, uint64 iAffinity,
+    ptr pData, xcancel* pCancel, const xtasknetdataownershipv1* pDataPolicy,
+    const xfuturepayloadownershipv1* pResultPolicy);
+XRT_API xfuture* xrtTaskNetAfterDataPolicyV1(xnetengine* pEngine, uint64 iAffinity,
+    ptr pData, xcancel* pCancel, const xtasknetdataownershipv1* pDataPolicy,
+    const xfuturepayloadownershipv1* pResultPolicy, uint64 iTimeout);
+XRT_API xfuture* xrtTaskNetUntilDataPolicyV1(xnetengine* pEngine, uint64 iAffinity,
+    ptr pData, xcancel* pCancel, const xtasknetdataownershipv1* pDataPolicy,
+    const xfuturepayloadownershipv1* pResultPolicy, xdeadline iDeadline);
+
+/* Frozen exact-identity admission before any user Ops dispatch. Refusal does
+ * not write preparation or diagnostics. Prepare only observes executor cleanup;
+ * Engine retirement, not this adapter, drains or cancels accepted work. */
+XRT_API const xrtownershipadapterv1* xrtTaskNetOwnershipAdapterV1(
+    xrtownershipref Reference, const xtasknetdataownershipv1* const* pPolicies,
+    size_t iPolicyCount, const xrtownershippreparationv1** ppPreparation);
+XRT_API const xnettaskownershipv1* xrtTaskNetPostPolicyV1Get(void);
+XRT_API const xnettimerownershipv1* xrtTaskNetTimerPolicyV1Get(void);
+XRT_API const xtaskdataownershipv1* xrtTaskNetJobDataPolicyV1Get(void);
+XRT_API const xcancelwatchownershipv1* xrtTaskNetCancelPolicyV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtTaskNetOwnershipQuiescenceV1Get(void);
+XRT_EXTERN_C_END
+
+
 
 
 XRT_EXTERN_C_BEGIN
@@ -263067,6 +263103,311 @@ XRT_API xfuture* xrtTaskNetUntil(
 }
 
 #endif
+#if defined(XRT_FEATURE_TASK_NET)
+/* ONE physical activation shared by Job Data, accepted Post/Timer and Watch.
+ * Job owns a Frame reference and Frame owns Job's actual executor reference.
+ * Bridge only borrows Job's Promise. The Engine shell reference is NOT a
+ * LiveObjects pin, so accepted tasks cannot prevent their own shutdown drain. */
+typedef struct xrt_task_net_owned {
+    xfuturebridge Bridge;
+    volatile int32 References;
+    xmutex Lock;
+    size_t Active;
+    bool Publishing, Accepted, Completed, Cleared, CancelRequested;
+    const void* Claim;
+    xrt_task_job* Job;
+    xnetengine* Engine;
+    xnetworker* Worker;
+    uint64 Timer;
+    ptr Data;
+    const xtasknetdataownershipv1* Policy;
+} xrt_task_net_owned;
+
+static void __xrtTaskNetOwnedBegin(xrt_task_net_owned* frame, xrtownershipscope* scope)
+{
+    if (!xrtOwnershipMutationBegin(scope) || !xrtMutexLock(&frame->Lock)) abort();
+}
+static void __xrtTaskNetOwnedEnd(xrt_task_net_owned* frame, xrtownershipscope* scope)
+{
+    if (!xrtMutexUnlock(&frame->Lock) || !xrtOwnershipScopeEnd(scope)) abort();
+}
+static bool __xrtTaskNetOwnedCount(const void* data, size_t* count)
+{
+    const xrt_task_net_owned* frame=data; xrtownershipref watch; int32 refs;
+    if (!frame || !count || frame->Publishing || !frame->Accepted || frame->Active ||
+        frame->Cleared || !xrtFutureBridgeWatchOwnershipV1(&frame->Bridge,&watch)) return false;
+    refs=__xrtAtomicRefLoad(&frame->References); if (refs<=0) return false;
+    *count=(size_t)refs; return true;
+}
+static bool __xrtTaskNetOwnedTrace(const void* data, xrtownershipvisitor visit, ptr context)
+{
+    const xrt_task_net_owned* frame=data; xrtownershipref watch; size_t count;
+    if (!visit || !__xrtTaskNetOwnedCount(data,&count) ||
+        !xrtFutureBridgeWatchOwnershipV1(&frame->Bridge,&watch)) return false;
+    if (frame->Job && !visit(__xrtTaskOwnership(frame->Job),context)) return false;
+    if (frame->Engine && !visit(xrtNetEngineOwnership(frame->Engine),context)) return false;
+    if (frame->Data && !visit((xrtownershipref){frame->Data,frame->Policy->Ops},context)) return false;
+    return !watch.Data || visit(watch,context);
+}
+static const xrtownershipops __xrtTaskNetOwnedOps={
+    __xrtTaskNetOwnedCount,__xrtTaskNetOwnedTrace
+};
+static bool __xrtTaskNetOwnedHold(const void* data)
+{
+    xrt_task_net_owned* frame=(xrt_task_net_owned*)data; xrtownershipscope scope={0}; bool held;
+    __xrtTaskNetOwnedBegin(frame,&scope);
+    held=!frame->Cleared && xrtRefRetain(&frame->References)>0;
+    __xrtTaskNetOwnedEnd(frame,&scope); return held;
+}
+static void __xrtTaskNetOwnedDrop(const void* data)
+{
+    xrt_task_net_owned* frame=(xrt_task_net_owned*)data;
+    xrtownershipscope scope={0}; int32 refs; xrtownershipref watch;
+    __xrtTaskNetOwnedBegin(frame,&scope); refs=xrtRefRelease(&frame->References);
+    if (refs<0 || (!refs && (frame->Publishing || !frame->Completed || frame->Active ||
+        frame->Job || frame->Engine || frame->Data ||
+        !xrtFutureBridgeWatchOwnershipV1(&frame->Bridge,&watch) || watch.Data))) abort();
+    __xrtTaskNetOwnedEnd(frame,&scope);
+    if (!refs) {
+        if (!xrtOwnershipMutationBegin(&scope)) abort();
+        if (!xrtMutexUnit(&frame->Lock)) abort();
+        xrtFree(frame); if (!xrtOwnershipScopeEnd(&scope)) abort();
+    }
+}
+static bool __xrtTaskNetOwnedBusy(const void* data)
+{
+    const xrt_task_net_owned* frame=data; xrtownershipref watch;
+    return frame && !frame->Cleared && (frame->Publishing || frame->Active ||
+        !xrtFutureBridgeWatchOwnershipV1(&frame->Bridge,&watch));
+}
+XRT_API const xrtownershipquiescencev1* xrtTaskNetOwnershipQuiescenceV1Get(void)
+{
+    static const xrtownershipquiescencev1 policy={
+        sizeof(policy),&__xrtTaskNetOwnedOps,__xrtTaskNetOwnedBusy};
+    return &policy;
+}
+
+/* Job's semantic Data release, NOT Frame's physical final release. Collector
+ * pins must never postpone user/code retirement beyond Future publication. */
+static void __xrtTaskNetOwnedDataDrop(ptr data, ptr unused)
+{
+    xrt_task_net_owned* frame=data; xrtownershipscope scope={0}; ptr user;
+    (void)unused;
+    __xrtTaskNetOwnedBegin(frame,&scope); ++frame->Active;
+    user=frame->Data; frame->Data=NULL;
+    __xrtTaskNetOwnedEnd(frame,&scope);
+    if (user) frame->Policy->Drop(user,NULL);
+    __xrtTaskNetOwnedBegin(frame,&scope); --frame->Active;
+    __xrtTaskNetOwnedEnd(frame,&scope); __xrtTaskNetOwnedDrop(frame);
+}
+static xtaskoutcome __xrtTaskNetOwnedRun(xcancel* cancel, ptr data, xtaskvalue* result)
+{
+    xrt_task_net_owned* frame=data;
+    return frame->Policy->Proc(frame->Worker,cancel,frame->Data,result);
+}
+static const xtaskdataownershipv1 __xrtTaskNetOwnedJobPolicy={
+    sizeof(xtaskdataownershipv1),__xrtTaskNetOwnedRun,__xrtTaskNetOwnedDataDrop,&__xrtTaskNetOwnedOps
+};
+XRT_API const xtaskdataownershipv1* xrtTaskNetJobDataPolicyV1Get(void)
+{ return &__xrtTaskNetOwnedJobPolicy; }
+
+/* Watch can notify synchronously before acceptance. Remember cancellation
+ * until the real Timer ID is published. Take an independent shell reference
+ * under the Frame lock; submit cancellation outside the lock/mutation. */
+static void __xrtTaskNetOwnedCancel(ptr data)
+{
+    xrt_task_net_owned* frame=data; xrtownershipscope scope={0};
+    xnetengine* engine=NULL; uint64 timer=0; xerror* previous=xrtTakeError();
+    __xrtTaskNetOwnedBegin(frame,&scope); ++frame->Active; frame->CancelRequested=true;
+    if (frame->Engine && frame->Timer && !frame->Completed) {
+        if (!__xrtNetEngineStorageRetain(frame->Engine)) abort();
+        engine=frame->Engine; timer=frame->Timer;
+    }
+    __xrtTaskNetOwnedEnd(frame,&scope);
+    if (engine) { (void)xrtNetEngineTimerCancel(engine,timer); __xrtNetEngineStorageRelease(engine); }
+    __xrtTaskNetOwnedBegin(frame,&scope); --frame->Active;
+    __xrtTaskNetOwnedEnd(frame,&scope);
+    xrtClearError(); xrtSetErrorTake(previous);
+}
+static const xcancelwatchownershipv1 __xrtTaskNetOwnedCancelPolicy={
+    sizeof(xcancelwatchownershipv1),__xrtTaskNetOwnedCancel,__xrtTaskNetOwnedDrop,&__xrtTaskNetOwnedOps
+};
+XRT_API const xcancelwatchownershipv1* xrtTaskNetCancelPolicyV1Get(void)
+{ return &__xrtTaskNetOwnedCancelPolicy; }
+
+static void __xrtTaskNetOwnedComplete(xrt_task_net_owned* frame,
+    xnetworker* worker, xnetresult result)
+{
+    xrtownershipscope scope={0}; xrt_task_job* job; xnetengine* engine;
+    xerror* previous=xrtTakeError(); xerror* failure=NULL;
+    if (!xrtFutureBridgeWait(&frame->Bridge)) abort(); /* no accepted hidden failure */
+    __xrtTaskNetOwnedBegin(frame,&scope); ++frame->Active;
+    frame->Worker=worker; job=frame->Job;
+    __xrtTaskNetOwnedEnd(frame,&scope);
+    xrtFutureBridgeUnwatch(&frame->Bridge);
+    if (result==XNET_RESULT_OK) __xrtTaskRun(job);
+    else if (result==XNET_RESULT_CANCELLED || xrtCancelRequested(job->Cancel)) __xrtTaskCancel(job);
+    else {
+        failure=__xrtTaskNetError(result); __xrtTaskFail(job,failure);
+    }
+    __xrtTaskNetOwnedBegin(frame,&scope);
+    frame->Job=NULL; engine=frame->Engine; frame->Engine=NULL;
+    frame->Timer=0; frame->Worker=NULL; frame->Completed=true;
+    __xrtTaskNetOwnedEnd(frame,&scope);
+    __xrtTaskDestroy(job,true); __xrtNetEngineStorageRelease(engine); xrtErrorFree(failure);
+    __xrtTaskNetOwnedBegin(frame,&scope); --frame->Active;
+    __xrtTaskNetOwnedEnd(frame,&scope);
+    xrtClearError(); xrtSetErrorTake(previous);
+}
+static void __xrtTaskNetOwnedPost(xnetworker* worker, ptr data)
+{ __xrtTaskNetOwnedComplete(data,worker,XNET_RESULT_OK); }
+static void __xrtTaskNetOwnedTimer(xnetworker* worker, uint64 id, xnetresult result, ptr data)
+{ (void)id; __xrtTaskNetOwnedComplete(data,worker,result); }
+static void __xrtTaskNetOwnedEngineDrop(ptr data)
+{ __xrtTaskNetOwnedDrop(data); }
+static const xnettaskownershipv1 __xrtTaskNetOwnedPostPolicy={
+    sizeof(xnettaskownershipv1),__xrtTaskNetOwnedPost,__xrtTaskNetOwnedEngineDrop,&__xrtTaskNetOwnedOps
+};
+static const xnettimerownershipv1 __xrtTaskNetOwnedTimerPolicy={
+    sizeof(xnettimerownershipv1),__xrtTaskNetOwnedTimer,__xrtTaskNetOwnedEngineDrop,&__xrtTaskNetOwnedOps
+};
+XRT_API const xnettaskownershipv1* xrtTaskNetPostPolicyV1Get(void)
+{ return &__xrtTaskNetOwnedPostPolicy; }
+XRT_API const xnettimerownershipv1* xrtTaskNetTimerPolicyV1Get(void)
+{ return &__xrtTaskNetOwnedTimerPolicy; }
+
+static bool __xrtTaskNetOwnedClaim(const void* data, const void* token)
+{
+    xrt_task_net_owned* frame=(xrt_task_net_owned*)data; size_t count;
+    if (!token || !__xrtTaskNetOwnedCount(data,&count) ||
+        (frame->Claim && frame->Claim!=token)) return false;
+    frame->Claim=token; return true;
+}
+static void __xrtTaskNetOwnedRestore(const void* data, const void* token)
+{
+    xrt_task_net_owned* frame=(xrt_task_net_owned*)data;
+    if (!token || frame->Claim!=token || frame->Cleared) abort();
+    frame->Claim=NULL;
+}
+static bool __xrtTaskNetOwnedReady(const void* data)
+{
+    const xrt_task_net_owned* frame=data; size_t count; xrtownershipref watch;
+    return __xrtTaskNetOwnedCount(data,&count) && frame->Completed && !frame->Job &&
+        !frame->Engine && !frame->Data &&
+        xrtFutureBridgeWatchOwnershipV1(&frame->Bridge,&watch) && !watch.Data;
+}
+static xrtownershipprepareresult __xrtTaskNetOwnedPrepare(const void* data, const void* token)
+{
+    const xrt_task_net_owned* frame=data; xrtownershipscope scope={0}; bool ready;
+    if (!xrtOwnershipFreezeTryBegin(&scope)) return XRT_OWNERSHIP_PREPARE_BUSY;
+    if (!token || frame->Claim!=token || frame->Cleared) abort();
+    ready=__xrtTaskNetOwnedReady(data);
+    if (!xrtOwnershipScopeEnd(&scope)) abort();
+    return ready ? XRT_OWNERSHIP_PREPARE_READY : XRT_OWNERSHIP_PREPARE_BUSY;
+}
+static void __xrtTaskNetOwnedClear(const void* data, const void* token)
+{
+    xrt_task_net_owned* frame=(xrt_task_net_owned*)data;
+    if (!token || frame->Claim!=token || frame->Cleared || !__xrtTaskNetOwnedReady(data)) abort();
+    frame->Cleared=true;
+}
+XRT_API const xrtownershipadapterv1* xrtTaskNetOwnershipAdapterV1(
+    xrtownershipref ref, const xtasknetdataownershipv1* const* policies, size_t count,
+    const xrtownershippreparationv1** preparation)
+{
+    static const xrtownershipadapterv1 adapter={sizeof(adapter),__xrtTaskNetOwnedHold,
+        __xrtTaskNetOwnedDrop,__xrtTaskNetOwnedClaim,__xrtTaskNetOwnedRestore,NULL,
+        __xrtTaskNetOwnedClear,NULL};
+    static const xrtownershippreparationv1 prepare={sizeof(prepare),&adapter,
+        __xrtTaskNetOwnedReady,__xrtTaskNetOwnedPrepare};
+    const xrt_task_net_owned* frame; bool known=false; size_t refs;
+    if (!ref.Data || ref.Ops!=&__xrtTaskNetOwnedOps || !preparation || (count&&!policies)) return NULL;
+    frame=ref.Data;
+    for (size_t i=0;i<count;++i) if (policies[i] && policies[i]==frame->Policy) { known=true; break; }
+    if (!known || !__xrtTaskNetOwnedCount(frame,&refs)) return NULL;
+    *preparation=&prepare; return &adapter;
+}
+
+static xfuture* __xrtTaskNetOwnedStart(xnetengine* engine, uint64 affinity,
+    ptr data, xcancel* cancel, const xtasknetdataownershipv1* policy,
+    const xfuturepayloadownershipv1* resultPolicy, bool delayed, xdeadline deadline)
+{
+    xrt_task_net_owned* frame; xrt_task_job* job=NULL; xfuture* future=NULL;
+    xrtownershipscope scope={0}; xnetengine* held; xerror* error; uint64 timer=0; bool replay;
+    if (!engine || !data || !policy || policy->size!=sizeof(*policy) || !policy->Proc ||
+        !policy->Drop || !policy->Ops || !policy->Ops->Count || !policy->Ops->Trace ||
+        !resultPolicy || resultPolicy->size!=sizeof(*resultPolicy) ||
+        !resultPolicy->Drop || !resultPolicy->Trace) { __xrtErrorSetInvalidArgument(); return NULL; }
+    frame=xrtCalloc(1,sizeof(*frame)); if (!frame) return NULL;
+    frame->References=1; frame->Publishing=true; frame->Policy=policy; frame->Data=data;
+    if (!xrtMutexInit(&frame->Lock)) { xrtFree(frame); return NULL; }
+    if (!__xrtNetEngineStorageRetain(engine)) {
+        (void)xrtMutexUnit(&frame->Lock); xrtFree(frame); return NULL;
+    }
+    frame->Engine=engine;
+    xtaskargs args={cancel,__xrtTaskNetOwnedDataDrop,NULL};
+    if (!__xrtTaskNetOwnedHold(frame)) abort();
+    job=__xrtTaskCreateOwned(__xrtTaskNetOwnedRun,frame,&args,&__xrtTaskNetOwnedJobPolicy,&future);
+    if (!job) { __xrtTaskNetOwnedDrop(frame); goto failed; }
+    frame->Job=job; job->ResultPolicy=resultPolicy; job->ResultTrace=resultPolicy->Trace;
+    if (!xrtFutureBridgeInit(&frame->Bridge,job->Promise)) abort();
+    if (delayed) {
+        if (!__xrtTaskNetOwnedHold(frame)) abort();
+        if (!xrtFutureBridgeWatchOwnedV1(&frame->Bridge,frame,&__xrtTaskNetOwnedCancelPolicy)) {
+            __xrtTaskNetOwnedDrop(frame); goto failed;
+        }
+    }
+    if (!__xrtTaskNetOwnedHold(frame)) abort();
+    __xrtTaskAccept(job); /* before a worker can observe the Job */
+    if (delayed) {
+        timer=xrtNetEngineScheduleOwnedV1(engine,affinity,deadline,frame,&__xrtTaskNetOwnedTimerPolicy);
+        if (!timer) { __xrtTaskNetOwnedDrop(frame); goto failed; }
+    } else if (!xrtNetEnginePostOwnedV1(engine,affinity,frame,&__xrtTaskNetOwnedPostPolicy)) {
+        __xrtTaskNetOwnedDrop(frame); goto failed;
+    }
+    __xrtTaskNetOwnedBegin(frame,&scope);
+    frame->Timer=timer; frame->Accepted=true; frame->Publishing=false;
+    replay=delayed && frame->CancelRequested;
+    __xrtTaskNetOwnedEnd(frame,&scope);
+    if (!xrtFutureBridgeReady(&frame->Bridge)) abort();
+    if (replay) __xrtTaskNetOwnedCancel(frame);
+    __xrtTaskNetOwnedDrop(frame); return future;
+failed:
+    error=xrtTakeError();
+    if (job) {
+        if (!xrtFutureBridgeFail(&frame->Bridge)) abort();
+        xrtFutureBridgeUnwatch(&frame->Bridge);
+    }
+    __xrtTaskNetOwnedBegin(frame,&scope);
+    frame->Job=NULL; held=frame->Engine; frame->Engine=NULL;
+    frame->Data=NULL; frame->Publishing=false; frame->Completed=true;
+    __xrtTaskNetOwnedEnd(frame,&scope);
+    if (job) { __xrtTaskDestroy(job,false); __xrtTaskNetOwnedDrop(frame); }
+    __xrtNetEngineStorageRelease(held);
+    /* No successful bridge init exists if Job creation failed. Its last Drop
+     * must not inspect uninitialized bridge storage. */
+    if (!job) {
+        (void)xrtMutexUnit(&frame->Lock); xrtFree(frame);
+    } else __xrtTaskNetOwnedDrop(frame);
+    xrtClearError(); xrtSetErrorTake(error); return NULL;
+}
+XRT_API xfuture* xrtTaskNetDataPolicyV1(xnetengine* engine, uint64 affinity,
+    ptr data, xcancel* cancel, const xtasknetdataownershipv1* policy,
+    const xfuturepayloadownershipv1* resultPolicy)
+{ return __xrtTaskNetOwnedStart(engine,affinity,data,cancel,policy,resultPolicy,false,0); }
+XRT_API xfuture* xrtTaskNetUntilDataPolicyV1(xnetengine* engine, uint64 affinity,
+    ptr data, xcancel* cancel, const xtasknetdataownershipv1* policy,
+    const xfuturepayloadownershipv1* resultPolicy, xdeadline deadline)
+{
+    /* uint64 deadlines include UINT64_MAX as never. */
+    return __xrtTaskNetOwnedStart(engine,affinity,data,cancel,policy,resultPolicy,true,deadline);
+}
+XRT_API xfuture* xrtTaskNetAfterDataPolicyV1(xnetengine* engine, uint64 affinity,
+    ptr data, xcancel* cancel, const xtasknetdataownershipv1* policy,
+    const xfuturepayloadownershipv1* resultPolicy, uint64 timeout)
+{ return xrtTaskNetUntilDataPolicyV1(engine,affinity,data,cancel,policy,resultPolicy,xrtDeadlineAfter(timeout)); }
+#endif
+
 #endif
 
 
