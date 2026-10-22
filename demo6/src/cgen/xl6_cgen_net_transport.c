@@ -382,10 +382,4 @@ void xl6CgenEmitNetBufferComponent(
     );
     }
 
-    if ( needs->udp ) {
-        xl6OutputPuts(
-            "void* xl6_xrt_udp_packet_buffer(void* raw) { xnetudppacket* packet = (xnetudppacket*)raw; return packet != 0 ? xl6_xrt_buffer_from_view_bytes(xrtNetUdpPacketData(packet), xrtNetUdpPacketSize(packet)) : 0; }\n\n",
-            out
-        );
-    }
 }

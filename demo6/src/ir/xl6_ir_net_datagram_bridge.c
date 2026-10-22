@@ -14,38 +14,10 @@ typedef struct XL6_IrNetDatagramContract {
     XL6_IrRuntimeBridgeKind receiverRole;
 } XL6_IrNetDatagramContract;
 #define NET_ROW(name, role, args, result) { "xl6_xrt_" name, XL6_IR_RUNTIME_BRIDGE_NET_##role, args, result, XL6_IR_RUNTIME_BRIDGE_NET_##role }
-#define NET_SOCKET_ROW(name, role, args, result) { "xl6_xrt_" name, XL6_IR_RUNTIME_BRIDGE_NET_##role, args, result, XL6_IR_RUNTIME_BRIDGE_NET_UDP_SOCKET }
 static const XL6_IrNetDatagramContract xl6IrNetDatagramContracts[] = {
     NET_ROW("net_runtime_stats", ENGINE_STATS, "", 'P'),
-    NET_ROW("udp_bind", UDP_SOCKET, "SU", 'P'),
-    NET_ROW("udp_destroy", UDP_SOCKET, "H", 'V'),
-    NET_ROW("udp_local_port", UDP_SOCKET, "H", 'I'),
-    NET_ROW("udp_send_text", UDP_SOCKET, "HSUS", 'B'),
-    NET_ROW("udp_send_bytes", UDP_SOCKET, "HSUPZ", 'B'),
-    NET_ROW("udp_send_bytes_result", UDP_SOCKET, "HSUPZ", 'I'),
-    NET_ROW("udp_send_vec", UDP_SOCKET, "HSUA", 'B'),
-    NET_ROW("udp_send_move", UDP_SOCKET, "HSUP", 'B'),
-    NET_ROW("udp_send_batch", UDP_SOCKET, "HSUA", 'I'),
-    NET_ROW("udp_recv", UDP_SOCKET, "HI", 'P'),
-    NET_SOCKET_ROW("udp_recv_async", UDP_RECV_ASYNC, "H", 'F'),
-    NET_SOCKET_ROW("udp_recv_batch", UDP_BATCH, "HZI", 'P'),
-    NET_ROW("udp_pending", UDP_SOCKET, "H", 'I'),
-    NET_ROW("udp_queued", UDP_SOCKET, "H", 'I'),
-    NET_ROW("udp_queued_bytes", UDP_SOCKET, "H", 'I'),
-    NET_ROW("udp_writable", UDP_SOCKET, "HZI", 'B'),
-    NET_SOCKET_ROW("udp_stats", UDP_STATS, "H", 'P'),
-    NET_ROW("udp_packet_destroy", UDP_PACKET, "H", 'V'),
-    NET_ROW("udp_packet_text", UDP_PACKET, "H", 'P'),
-    NET_ROW("udp_packet_buffer", UDP_PACKET, "H", 'P'),
-    NET_ROW("udp_packet_addr", UDP_PACKET, "H", 'P'),
-    NET_ROW("udp_packet_port", UDP_PACKET, "H", 'I'),
-    NET_ROW("udp_packet_truncated", UDP_PACKET, "H", 'B'),
-    NET_ROW("udp_batch_destroy", UDP_BATCH, "H", 'V'),
-    NET_ROW("udp_batch_count", UDP_BATCH, "H", 'I'),
-    NET_ROW("udp_batch_take", UDP_BATCH, "HI", 'P')
 };
 #undef NET_ROW
-#undef NET_SOCKET_ROW
 static const XL6_IrNetDatagramContract* xl6IrNetDatagramContract(const char* name)
 {
     size_t i;

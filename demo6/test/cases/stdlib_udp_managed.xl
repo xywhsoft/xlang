@@ -1,0 +1,62 @@
+// Literal loopback only. No DNS or OS error-queue probes.
+func exercise(NetEngine engine)
+auto local = NetAddress.loopback()
+auto config = UdpConfig()
+auto receiver = udp.bind(engine, local, config, uint64(18446744073709551615))
+assert receiver.wait(UdpWait.open, 5000) == NetStatus.ok
+auto address = receiver.localAddress()
+assert address.port > 0 and address.isLoopback
+auto sender = udp.connect(engine, address)
+assert sender.wait(UdpWait.open, 5000) == NetStatus.ok
+assert sender.connected and sender.peerAddress().equals(address)
+assert receiver.tryRecv() == null
+assert sender.send("a\0b", 100) == NetStatus.ok
+auto packet = receiver.recv(5000)
+assert packet.length == 3 and not packet.truncated
+assert packet.bytes() == b"a\0b"
+assert packet.bytes(100, 1) == b"\0b"
+assert packet.remote.port == sender.localAddress().port
+assert packet.info().hasPacket
+assert sender.send(b"_bytes_", 3) == NetStatus.ok
+assert receiver.recv(5000).bytes() == b"_by"
+auto buffer = Buffer()
+buffer.append("copy\0buffer")
+assert sender.send(buffer, 4) == NetStatus.ok
+assert receiver.recv(5000).bytes() == b"copy"
+assert buffer.len() == 11
+auto data = NetBytes("_ref\0_")
+assert sender.sendRef(data, 4, 1) == NetStatus.ok
+assert receiver.recv(5000).bytes() == b"ref\0"
+assert sender.sendRef(packet, 100, 1) == NetStatus.ok
+assert receiver.recv(5000).bytes() == b"\0b"
+assert sender.sendMove(buffer) == NetStatus.ok
+assert buffer.len() == 0
+assert receiver.recv(5000).bytes() == b"copy\0buffer"
+assert sender.sendMove(buffer) == NetStatus.ok
+auto empty = receiver.recv(5000)
+assert empty.length == 0 and empty.bytes() == b""
+auto bound = UdpSocket(engine, local)
+assert bound.wait(UdpWait.open, 5000) == NetStatus.ok
+assert bound.sendTo(address, "reply") == NetStatus.ok
+assert receiver.recv(5000).bytes() == b"reply"
+auto connected = UdpSocket.open(engine, local, address, config)
+assert connected.wait(UdpWait.open, 5000) == NetStatus.ok
+assert connected.connected and connected.send("both") == NetStatus.ok
+assert receiver.recv(5000).bytes() == b"both"
+auto stats = receiver.snapshot()
+assert stats.state == UdpState.open and not stats.connected
+assert stats.receivedPackets >= 9
+assert receiver.wait(UdpWait.receive, 0) == NetStatus.timeout
+assert sender.waitWritable(0, 5000) == NetStatus.ok
+receiver.close()
+sender.close()
+bound.close()
+connected.close()
+assert receiver.wait(UdpWait.close, 5000) == NetStatus.ok
+assert packet.bytes() == b"a\0b" and stats.state == UdpState.open
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(2).withBackend(NetBackend.select))
+engine.start()
+exercise(engine)
+engine.stop()
+println("managed UDP: exact lengths, copy/ref/move, empty packet, owned snapshots: ok")

@@ -831,7 +831,22 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_execution_udp_data.c",D(R(EXECUTION_UDP),R(OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE)),{NULL}},
     {"src/runtime/xl6_execution_udp_future.c",D(R(EXECUTION_UDP),R(OWNERSHIP_DOMAIN_NET_UDP_NATIVE)),{NULL}},
     {"src/runtime/xl6_udp_config.c",D(R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{"XRT_MODULE_NET_UDP"}},
-    {"src/runtime/xl6_ownership_domain_udp_config.c",D(R(OWNERSHIP_CATALOG),R(UDP_CONFIG)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_udp_config.c",D(R(OWNERSHIP_CATALOG),R(UDP_CONFIG)),{NULL}},
+    {"src/runtime/xl6_udp_values.c",D(R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{"XRT_MODULE_NET_UDP","XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_udp_packet_info.c",D(R(UDP_VALUES),R(NET_ADDRESS),R(NET_DATAGRAM_VALUES),R(NET_DATAGRAM_ERROR_VALUES)),{NULL}},
+    {"src/runtime/xl6_udp_batch.c",D(R(UDP_VALUES)),{"XRT_MODULE_NET_UDP_FUTURE"}},
+    {"src/runtime/xl6_udp_language.c",D(R(EXECUTION_UDP),R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_udp_address.c",D(R(UDP_LANGUAGE),R(NET_ADDRESS)),{NULL}},
+    {"src/runtime/xl6_udp_stats.c",D(R(EXECUTION_UDP),R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_udp_send.c",D(R(UDP_LANGUAGE),R(EXECUTION_UDP_DATA)),{"XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_udp_send_buffer.c",D(R(UDP_SEND),R(BUFFER_CORE)),{NULL}},
+    {"src/runtime/xl6_udp_send_ref.c",D(R(UDP_LANGUAGE),R(EXECUTION_UDP_DATA),R(NET_BYTES),R(UDP_VALUES)),{NULL}},
+    {"src/runtime/xl6_udp_poll.c",D(R(UDP_LANGUAGE),R(EXECUTION_UDP_DATA),R(UDP_VALUES)),{NULL}},
+    {"src/runtime/xl6_udp_sync.c",D(R(UDP_LANGUAGE),R(UDP_BATCH),R(OWNERSHIP_DOMAIN_NET_UDP_NATIVE)),{"XRT_MODULE_NET_UDP_SYNC"}},
+    {"src/runtime/xl6_ownership_domain_udp_values.c",D(R(OWNERSHIP_CATALOG),R(UDP_VALUES)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_udp_batch.c",D(R(OWNERSHIP_CATALOG),R(UDP_BATCH)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_udp_language.c",D(R(OWNERSHIP_CATALOG),R(UDP_LANGUAGE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_udp_stats.c",D(R(OWNERSHIP_CATALOG),R(UDP_STATS)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

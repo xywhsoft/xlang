@@ -1045,8 +1045,10 @@ static int xl6StdlibNeedsUdpClass(const XL6_AstNode* root, const int* used)
     return xl6StdlibNodeUsesTypeName(root, "UdpSocket") ||
            xl6StdlibNodeUsesTypeName(root, "UdpPacket") ||
            xl6StdlibNodeUsesTypeName(root, "UdpBatch") ||
-           xl6StdlibNodeUsesTypeName(root, "UdpStats") ||
-           xl6StdlibFuncUsed(used, "udp", "bind");
+           xl6StdlibNodeUsesTypeName(root, "UdpErrorPacket") ||
+           xl6StdlibFuncUsed(used, "udp", "bind") ||
+           xl6StdlibFuncUsed(used, "udp", "connect") ||
+           xl6StdlibFuncUsed(used, "udp", "open");
 }
 
 
@@ -1839,10 +1841,13 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsTcpStreamClass = xl6StdlibNeedsTcpStreamClass(root, used);
     needsTcpStreamClass = needsTcpStreamClass || needsWebSocketClass;
     needsTcpListenerClass = xl6StdlibNeedsTcpListenerClass(root, used);
-    needsUdpStatsClass = xl6StdlibNodeUsesTypeName(root, "UdpStats");
+    needsUdpStatsClass = xl6StdlibNodeUsesTypeName(root, "UdpStats")||
+        xl6StdlibNodeUsesTypeName(root,"UdpState")||xl6StdlibNodeUsesTypeName(root,"UdpWait");
     needsUdpClass = xl6StdlibNeedsUdpClass(root, used);
     needsUdpConfigClass = xl6StdlibNeedsUdpConfigClass(root, used);
+    needsUdpConfigClass=needsUdpConfigClass||needsUdpClass;
     if(needsUdpConfigClass){needsNetSocketClass=1;needsNetAddressClass=1;}
+    if(needsUdpClass){needsNetEngineClass=1;needsNetBytesClass=1;}
 
     /* 依赖由高层类型向基础类型单向闭包。 */
     needsTcpStreamClass = needsTcpStreamClass || needsTcpListenerClass || needsTcpServerClass;
@@ -2145,6 +2150,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if(needsTcpServerClass)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpServerClassSource);
     if ( needsUdpStatsClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibUdpStateSource);
         xl6StdlibBuilderAppend(&builder, xl6StdlibUdpStatsClassSource);
     }
     if ( needsUdpClass ) {
@@ -2229,7 +2235,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root, "PemBlock") ||
         xl6StdlibNodeUsesTypeName(root, "PemReader") ||
         xl6StdlibFuncUsed(used, "asn1", "parse") || xl6StdlibFuncUsed(used, "pem", "parse") || xl6StdlibFuncUsed(used, "pem", "decode")) xl6StdlibBuilderAppend(&builder, xl6StdlibAsn1ClassSource);
-    if (needsNetResolverClass || needsTaskGroupClass || xl6StdlibHasConcurrentImport(root)) {
+    if (needsUdpClass || needsNetResolverClass || needsTaskGroupClass || xl6StdlibHasConcurrentImport(root)) {
         bool needsChannelCases=xl6StdlibNodeUsesTypeName(root,"ChannelCase") ||
             xl6StdlibNodeUsesTypeName(root,"ChannelSelection");
         bool needsChannelDirect=xl6StdlibNodeUsesTypeName(root,"ChannelReceiveResult") ||
@@ -2251,7 +2257,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         if (xl6StdlibNodeUsesTypeName(root, "CancellationSource") ||
             xl6StdlibNodeUsesTypeName(root, "CancellationToken") ||
             xl6StdlibNodeUsesTypeName(root, "CancellationRegistration") ||
-            xl6StdlibNodeUsesTypeName(root, "Promise") || needsNetResolverClass || needsTaskGroupClass || needsChannelCases || needsChannelDirect || needsTaskPoolClass)
+            xl6StdlibNodeUsesTypeName(root, "Promise") || needsUdpClass || needsNetResolverClass || needsTaskGroupClass || needsChannelCases || needsChannelDirect || needsTaskPoolClass)
             xl6StdlibBuilderAppend(&builder, xl6StdlibCancellationSource);
         if(xl6StdlibNodeUsesTypeName(root,"Promise"))xl6StdlibBuilderAppend(&builder,xl6StdlibPromiseSource);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicInt32")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicInt32Source);
