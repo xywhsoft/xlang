@@ -1,0 +1,33 @@
+import op
+extern "op_test_create_input_window" func test_window() as int
+extern "op_test_destroy_input_window" func destroy_window(int window) as int
+
+func main(...) as int
+    int window = test_window()
+    assert window != 0
+    auto instance = op.create()
+    assert instance.bindWindow(window, "normal", "windows", "windows", 0) == 1
+
+    bool caught = false
+    try
+        instance.dragPath("0,0,1,1,2", 0)
+    catch RuntimeError error
+        caught = true
+    end
+    assert caught, "odd coordinate count must fail"
+
+    caught = false
+    try
+        instance.keyCombo("ctrl+unknown")
+    catch RuntimeError error
+        caught = true
+    end
+    assert caught, "unknown key must fail"
+
+    assert instance.dragPath("0,0,1,1", 0) == 1
+    assert instance.keyCombo("ctrl+a") == 1
+    assert instance.unbind() == 1
+    assert destroy_window(window) == 1
+    println("op input parsing: ok")
+    return 0
+end

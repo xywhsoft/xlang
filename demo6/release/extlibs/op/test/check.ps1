@@ -55,6 +55,8 @@ try {
             'op', 'release/extlibs/op/test/random_int.c')
         Run 'C delay boundaries' (Join-Path $root 'tools/run_extlib_c.ps1') @(
             'op', 'release/extlibs/op/test/delay.c')
+        Run 'C input parsing' (Join-Path $root 'tools/run_extlib_c.ps1') @(
+            'op', 'release/extlibs/op/test/input_parsing_native.c')
         $cExample = @(& (Join-Path $root 'tools/run_extlib_c.ps1') -Package op -Source 'release/examples/extlibs/op_c.c')
         if ($LASTEXITCODE -ne 0) { throw "C example: exit $LASTEXITCODE" }
         Push-Location (Join-Path $root 'release')
@@ -65,6 +67,8 @@ try {
                 'extlibs/op/test/window_fixture.c')
             Run 'XLang random int boundaries' $xl @('run', 'extlibs/op/test/random_int.xl')
             Run 'XLang delay boundaries' $xl @('run', 'extlibs/op/test/delay.xl')
+            Run 'XLang input parsing' $xl @('run', 'extlibs/op/test/input_parsing.xl',
+                'extlibs/op/test/input_window_fixture.c')
             $xlExample = @(& $xl run examples/extlibs/op.xl)
             if ($LASTEXITCODE -ne 0) { throw "XLang example: exit $LASTEXITCODE" }
             $aot = Join-Path $build ("op_aot_core_$([guid]::NewGuid().ToString('N')).exe")
@@ -127,6 +131,8 @@ try {
     if (Test-Path -LiteralPath $xl) {
         Run 'C read-only smoke' (Join-Path $root 'tools/run_extlib_c.ps1') @(
             'op', 'release/extlibs/op/test/readonly_c_smoke.c')
+        Run 'C input parsing' (Join-Path $root 'tools/run_extlib_c.ps1') @(
+            'op', 'release/extlibs/op/test/input_parsing_native.c')
         Run 'C GDI pixels and frame bounds' (Join-Path $root 'tools/run_extlib_c.ps1') @(
             'op', 'release/extlibs/op/test/gdi_frame.c')
         Run 'C hook timeout and pending cleanup' (Join-Path $root 'tools/run_extlib_c.ps1') @(
@@ -151,6 +157,8 @@ try {
         try {
             Run 'XLang read-only smoke' $xl @('run', 'extlibs/op/test/readonly_smoke.xl',
                 'extlibs/op/test/window_fixture.c')
+            Run 'XLang input parsing' $xl @('run', 'extlibs/op/test/input_parsing.xl',
+                'extlibs/op/test/input_window_fixture.c')
             Run 'XLang GDI pixels' $xl @('run', 'extlibs/op/test/gdi_xlang_frame.xl',
                 'extlibs/op/test/gdi_window_fixture.c')
             Run 'XLang process memory smoke' $xl @('run', 'extlibs/op/test/memory_smoke.xl',

@@ -2582,33 +2582,38 @@ long long xop_move_to_smooth(void *ptr, long long x, long long y,
 
 long long xop_drag_path(void *ptr, const char *points, long long delay) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { opSetError("op: null context"); return 0; }
-    if (!points || !*points) { opSetError("op: empty points"); return 0; }
-
-    int ms = (delay > 0) ? (int)delay : 20;
-    char tmp[4096];
-    strncpy(tmp, points, sizeof(tmp) - 1);
-    tmp[sizeof(tmp) - 1] = '\0';
-
-    /* format: "x1,y1,x2,y2,x3,y3,..." */
+    const char *p, *end;
     int coords[512];
     int ncoords = 0;
-    char *p = tmp;
-    while (p && *p && ncoords < 512) {
-        char *sep = strchr(p, ',');
-        if (sep) *sep = '\0';
-        coords[ncoords++] = atoi(p);
-        p = sep ? sep + 1 : NULL;
+    int ms, i;
+    if (!ctx) { opSetError("op: null context"); return 0; }
+    if (!points || !*points) { opSetError("op: empty points"); return 0; }
+    if (delay < 0 || delay > INT_MAX) { opSetError("op: invalid drag delay"); return 0; }
+    ms = delay == 0 ? 20 : (int)delay;
+
+    /* 先校验全部坐标，避免畸形路径执行到一半才失败。 */
+    p = points;
+    for (;;) {
+        end = strchr(p, ',');
+        if (!end) end = p + strlen(p);
+        if (ncoords == 512 || !op_parse_offset_int(p, end, &coords[ncoords])) {
+            opSetError("op: invalid drag path");
+            return 0;
+        }
+        ncoords++;
+        if (*end == '\0') break;
+        p = end + 1;
     }
-    if (ncoords < 4) { opSetError("op: need at least 2 points"); return 0; }
-    ncoords &= ~1; /* make even */
+    if (ncoords < 4 || (ncoords & 1)) {
+        opSetError("op: drag path needs complete point pairs");
+        return 0;
+    }
 
     /* move to first point and press */
     op_mouse_send(ctx, MOUSEEVENTF_MOVE, coords[0], coords[1], 0);
     op_mouse_send(ctx, MOUSEEVENTF_LEFTDOWN, 0, 0, 0);
     Sleep(ms);
 
-    int i;
     for (i = 2; i < ncoords; i += 2) {
         op_mouse_send(ctx, MOUSEEVENTF_MOVE, coords[i], coords[i+1], 0);
         Sleep(ms);
@@ -2643,47 +2648,58 @@ static int op_parse_vk(const char *name) {
     if (_stricmp(name, "left") == 0) return VK_LEFT;
     if (_stricmp(name, "right") == 0) return VK_RIGHT;
     if (_stricmp(name, "printscreen") == 0 || _stricmp(name, "prtsc") == 0) return VK_SNAPSHOT;
-    /* F1-F12 */
-    if ((name[0] == 'f' || name[0] == 'F') && name[1] >= '0' && name[1] <= '9') {
-        int fn = atoi(name + 1);
+    /* F1-F24：数字后不允许额外字符。 */
+    size_t len = strlen(name);
+    if ((name[0] == 'f' || name[0] == 'F') && len >= 2 && len <= 3 &&
+        name[1] >= '0' && name[1] <= '9' &&
+        (len == 2 || (name[2] >= '0' && name[2] <= '9'))) {
+        int fn = name[1] - '0';
+        if (len == 3) fn = fn * 10 + name[2] - '0';
         if (fn >= 1 && fn <= 24) return VK_F1 + fn - 1;
     }
     /* single letter A-Z */
-    if (strlen(name) == 1 && ((name[0] >= 'a' && name[0] <= 'z') || (name[0] >= 'A' && name[0] <= 'Z')))
+    if (len == 1 && ((name[0] >= 'a' && name[0] <= 'z') || (name[0] >= 'A' && name[0] <= 'Z')))
         return (name[0] >= 'a') ? name[0] - 32 : name[0];
     /* single digit 0-9 */
-    if (strlen(name) == 1 && name[0] >= '0' && name[0] <= '9')
+    if (len == 1 && name[0] >= '0' && name[0] <= '9')
         return name[0];
     return 0;
 }
 
 long long xop_key_combo(void *ptr, const char *combo) {
     op_context *ctx = (op_context *)ptr;
+    const char *p, *end;
+    char key[32];
+    int vks[8];
+    int nvk = 0;
+    int bg, i;
     if (!ctx) { opSetError("op: null context"); return 0; }
     if (!combo || !*combo) { opSetError("op: empty combo"); return 0; }
 
-    char tmp[256];
-    strncpy(tmp, combo, sizeof(tmp) - 1);
-    tmp[sizeof(tmp) - 1] = '\0';
-
-    int vks[8];
-    int nvk = 0;
-    char *p = tmp;
-    while (p && *p && nvk < 8) {
-        char *sep = strchr(p, '+');
-        if (sep) *sep = '\0';
-        /* trim spaces */
-        while (*p == ' ') p++;
-        char *end = p + strlen(p) - 1;
-        while (end > p && *end == ' ') *end-- = '\0';
-        int vk = op_parse_vk(p);
-        if (vk) vks[nvk++] = vk;
-        p = sep ? sep + 1 : NULL;
+    /* 每个键都必须有效；解析完之前不投递键盘消息。 */
+    p = combo;
+    for (;;) {
+        size_t length;
+        int vk;
+        end = strchr(p, '+');
+        if (!end) end = p + strlen(p);
+        while (p < end && (*p == ' ' || *p == '\t')) p++;
+        while (end > p && (end[-1] == ' ' || end[-1] == '\t')) end--;
+        length = (size_t)(end - p);
+        if (nvk == 8 || length == 0 || length >= sizeof(key)) {
+            opSetError("op: invalid key combo");
+            return 0;
+        }
+        memcpy(key, p, length);
+        key[length] = '\0';
+        vk = op_parse_vk(key);
+        if (!vk) { opSetError("op: invalid key combo"); return 0; }
+        vks[nvk++] = vk;
+        end = strchr(p, '+');
+        if (!end) break;
+        p = end + 1;
     }
-    if (nvk == 0) { opSetError("op: no valid keys in combo"); return 0; }
-
-    int bg = (strcmp(ctx->keypad_mode, "windows") == 0 && ctx->bind_hwnd);
-    int i;
+    bg = (strcmp(ctx->keypad_mode, "windows") == 0 && ctx->bind_hwnd);
     /* press all keys in order */
     for (i = 0; i < nvk; i++) {
         if (bg) PostMessage(ctx->bind_hwnd, WM_KEYDOWN, (WPARAM)vks[i], 0);
