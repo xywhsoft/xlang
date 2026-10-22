@@ -259,6 +259,23 @@ static bool test_scanner_error_locations(void)
 		}
 	}
 	{
+		static const char sInvalid[] =
+			"machine h login a\r\nmachine \xff login b\n";
+		xrtnetrcerror Error;
+		xvalue* pDocument = xrtNetrcParseMemory(sInvalid,
+			sizeof(sInvalid) - 1u, NULL, &Error);
+		bool bOk = pDocument == NULL && Error.iCode == XRT_NETRC_ERROR_UTF8 &&
+			Error.iLine == 2u && Error.iColumn == 9u && Error.iOffset == 27u;
+		xrtValueRelease(pDocument);
+		if ( !bOk ) {
+			fprintf(stderr, "UTF-8 location: code=%d line=%llu column=%llu offset=%llu\n",
+				Error.iCode, (unsigned long long)Error.iLine,
+				(unsigned long long)Error.iColumn,
+				(unsigned long long)Error.iOffset);
+			return false;
+		}
+	}
+	{
 		static const char sComment[] = "# note\0hidden\nmachine h login a\n";
 		xrtnetrcerror Error;
 		xvalue* pDocument = xrtNetrcParseMemory(sComment,

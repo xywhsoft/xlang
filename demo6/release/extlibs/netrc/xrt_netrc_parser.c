@@ -562,6 +562,7 @@ xvalue* xrtNetrcParse(xreader* pReader, bool bTakeOwnership,
 	size_t iReadLimit;
 	const char* pData;
 	size_t iDataSize;
+	size_t iBadUtf8 = 0u;
 	if ( pError == NULL ) { pError = &tLocalError; }
 	xrtNetrcErrorInit(pError);
 	memset(&tContext, 0, sizeof(tContext));
@@ -605,8 +606,16 @@ xvalue* xrtNetrcParse(xreader* pReader, bool bTakeOwnership,
 		pData += 3;
 		iDataSize -= 3u;
 	}
-	if ( !xrtUtf8Valid((xstrview){ pData, iDataSize }, NULL) ) {
-		__xrtNetrcSetError(pError, XRT_NETRC_ERROR_UTF8, 1u, 1u, 0u,
+	if ( !xrtUtf8Valid((xstrview){ pData, iDataSize }, &iBadUtf8) ) {
+		xrt_netrc_scanner tLocation;
+		memset(&tLocation, 0, sizeof(tLocation));
+		tLocation.pData = pData;
+		tLocation.iSize = iDataSize;
+		tLocation.iLine = 1u;
+		tLocation.iColumn = 1u;
+		while ( tLocation.iPos < iBadUtf8 ) { __xrtNetrcAdvance(&tLocation); }
+		__xrtNetrcSetError(pError, XRT_NETRC_ERROR_UTF8,
+			tLocation.iLine, tLocation.iColumn, tLocation.iPos,
 			"netrc input is not valid UTF-8");
 		goto cleanup;
 	}
