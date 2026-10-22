@@ -2,6 +2,7 @@
  * owns data/range transformations, never a second grammar or lexer. */
 #include "analysis/frontend_internal.h"
 #include "analysis/ast_clone.h"
+#include "src/sem/xl6_completion.h"
 #include <limits.h>
 #include <string.h>
 
@@ -22,7 +23,9 @@ struct xls_syntax {
     XL6_ParseResult parse;
     xarray units;
     syntax_view* view;
-    int accepted,incremental;
+    int accepted,incremental,cursor;
+    size_t cursorOffset;
+    XL6_AstRange cursorRange;
 };
 static syntax_unit* retainUnit(syntax_unit* unit)
 { if(unit) xrtAtomic32FetchAdd(&unit->references,1,XMEMORY_RELAXED); return unit; }
@@ -140,9 +143,23 @@ static int shiftRange(XL6_AstRange* r,const xls_text* updated,size_t end,int64_t
     if(r->endOffset>=end) r->endOffset=(size_t)((int64_t)r->endOffset+delta);
     return location(updated,r->startOffset,&r->startLine,&r->startColumn) && location(updated,r->endOffset,&r->endLine,&r->endColumn);
 }
-static xls_syntax* incremental(const char* path,xls_text* text,const xls_syntax* old,xls_parse_work* work)
+static int attachSource(const xls_syntax* s,XL6_AstNode* root)
 {
-    if(!old || !old->accepted || !old->incremental || strcmp(path,old->path) || bom(text)!=bom(old->text)) return NULL;
+    /* copyNode deliberately drops sources. Each construction gets a fresh
+     * source owner, never writes a published chunk's non-atomic metadata. */
+    if(!xl6AstSetSourceTree(root,s->path)) return 0;
+    if(root && root->source && s->cursor && s->accepted) {
+        root->source->completionQuery=1;
+        root->source->completionStart=s->cursorRange.startOffset;
+        root->source->completionEnd=s->cursorRange.endOffset;
+    }
+    return 1;
+}
+static xls_syntax* incremental(const char* path,xls_text* text,const xls_syntax* old,
+    XL6_CompletionQuery* query,xls_parse_work* work)
+{
+    if(!old || !old->accepted || !old->incremental || old->cursor!=(query!=NULL) ||
+       strcmp(path,old->path) || bom(text)!=bom(old->text)) return NULL;
     xls_text_edit edit; if(xlsTextDiff(old->text,text,&edit)!=1) return NULL;
     size_t prefix=(size_t)(edit.text-xlsTextData(text)),newSize=xlsTextSize(text),oldSize=xlsTextSize(old->text),skip=bom(text);
     size_t oldEnd=oldSize-(newSize-prefix-edit.length);
@@ -157,15 +174,27 @@ static xls_syntax* incremental(const char* path,xls_text* text,const xls_syntax*
         if(prefix<header || oldEnd>end) continue;
         size_t length=(size_t)((int64_t)unit->size+delta);
         if(p->offset>newSize-skip || length>newSize-skip-p->offset) return NULL;
+        /* Only the edited cursor function may contain a marker in retained
+         * chunks. Moving to another function or editing elsewhere reparses
+         * the whole source, removing the old marker through the real parser. */
+        if(query && (!old->cursorRange.known || old->cursorRange.startOffset<header ||
+           old->cursorRange.endOffset>end || query->offset<header ||
+           query->offset>(size_t)((int64_t)end+delta))) continue;
         char* fragment=xrtStrDupN(xlsTextData(text)+skip+p->offset,length); if(!fragment) return NULL;
         XL6_ParseResult parsed; xl6ParseResultInit(&parsed);
+        XL6_CompletionQuery local={0}; local.path=path;
+        if(query) local.offset=query->offset-p->offset;
         ++work->fragments; work->bytes+=length;
-        int okay=xl6ParseSource(fragment,path,&parsed); xrtFree(fragment);
+        int okay=query ? xl6ParseSourceWithCompletion(fragment,path,&parsed,&local) : xl6ParseSource(fragment,path,&parsed);
+        xrtFree(fragment);
         XL6_AstNode* fresh=okay && parsed.root && parsed.root->childCount==1 ? parsed.root->children[0] : NULL;
         size_t freshHeader=0,freshEnd=0;
         if(!fresh || fresh->kind!=unit->node->kind || !fresh->range.known || fresh->range.startOffset || fresh->range.endOffset!=length ||
-           !functionHeader(fresh,&freshHeader,&freshEnd) || freshHeader!=header-p->offset) { xl6ParseResultFree(&parsed); return NULL; }
-        xls_syntax* s=allocate(path,text); if(!s) { xl6ParseResultFree(&parsed); return NULL; }
+           !functionHeader(fresh,&freshHeader,&freshEnd) || freshHeader!=header-p->offset) {
+            xl6CompletionFree(&local); xl6ParseResultFree(&parsed); return NULL;
+        }
+        xls_syntax* s=allocate(path,text);
+        if(!s) { xl6CompletionFree(&local); xl6ParseResultFree(&parsed); return NULL; }
         s->parse.root=copyNode(old->parse.root,NULL,0);
         if(!s->parse.root || !shiftRange(&s->parse.root->range,text,oldEnd,delta) || !shiftRange(&s->parse.root->tokenRange,text,oldEnd,delta)) goto failed;
         for(size_t j=0;j<old->units.Count;++j) {
@@ -181,20 +210,45 @@ static xls_syntax* incremental(const char* path,xls_text* text,const xls_syntax*
             if(j>i) next.offset=(size_t)((int64_t)next.offset+delta);
             if(!location(text,next.offset,&next.line,&next.column) || !xrtArrayPush(&s->units,&next)) { releaseUnit(next.unit); goto failed; }
         }
-        xl6ParseResultFree(&parsed); s->accepted=s->incremental=1; work->reused+=old->units.Count-1; return s;
-failed: xl6ParseResultFree(&parsed); xlsSyntaxRelease(s); return NULL;
+        s->accepted=s->incremental=1;
+        if(query) {
+            syntax_unit localUnit={.size=length,.line=1,.column=1};
+            placement current={&localUnit,p->offset,0,0};
+            if(local.parsed!=1 || !local.prefix || !location(text,p->offset,&current.line,&current.column) ||
+               !mapRange(local.replacement,&current,&s->cursorRange)) goto failed;
+            s->cursor=1; s->cursorOffset=query->offset;
+            if(!attachSource(s,s->parse.root)) goto failed;
+            query->prefix=local.prefix; local.prefix=NULL;
+            query->replacement=s->cursorRange; query->parsed=local.parsed;
+        }
+        xl6CompletionFree(&local); xl6ParseResultFree(&parsed);
+        work->reused+=old->units.Count-1; return s;
+failed: xl6CompletionFree(&local); xl6ParseResultFree(&parsed); xlsSyntaxRelease(s); return NULL;
     }
     return NULL;
 }
-xls_syntax* xlsSyntaxBuild(const char* path,xls_text* text,const xls_syntax* previous,xls_parse_work* work)
+static xls_syntax* build(const char* path,xls_text* text,const xls_syntax* previous,
+    XL6_CompletionQuery* query,xls_parse_work* work)
 {
     if(!path || !*path || !text || !work) return NULL;
-    xls_syntax* s=incremental(path,text,previous,work); if(s) return s;
+    xls_syntax* s=incremental(path,text,previous,query,work); if(s) return s;
     s=allocate(path,text); if(!s) return NULL;
     ++work->full; work->bytes+=xlsTextSize(text);
-    s->accepted=xl6ParseSource(xlsTextData(text),s->path,&s->parse);
+    s->accepted=query ? xl6ParseSourceWithCompletion(xlsTextData(text),s->path,&s->parse,query) :
+        xl6ParseSource(xlsTextData(text),s->path,&s->parse);
+    if(query) { s->cursor=1; s->cursorOffset=query->offset; s->cursorRange=query->replacement; }
     if(s->accepted && !decompose(s)) { xlsSyntaxRelease(s); return NULL; }
     return s;
+}
+xls_syntax* xlsSyntaxBuild(const char* path,xls_text* text,const xls_syntax* previous,xls_parse_work* work)
+{ return build(path,text,previous,NULL,work); }
+xls_syntax* xlsSyntaxBuildCursor(const char* path,xls_text* text,const xls_syntax* previous,
+    XL6_CompletionQuery* query,xls_parse_work* work)
+{
+    if(!query || query->prefix || query->parsed || query->reached || query->available ||
+       query->items || query->count || query->capacity || query->bytes || query->error ||
+       !xl6CompletionTarget(query,path)) return NULL;
+    return build(path,text,previous,query,work);
 }
 int xlsSyntaxAccepted(const xls_syntax* syntax) { return syntax && syntax->accepted; }
 const char* xlsSyntaxPath(const xls_syntax* syntax) { return syntax ? syntax->path : NULL; }
@@ -209,7 +263,7 @@ static XL6_AstNode* materialize(const xls_syntax* s)
         const placement* p=xrtArrayConstGet(&s->units,i); XL6_AstNode* node=copyNode(p->unit->node,p,0);
         if(!node) okay=0; else root->children[root->childCount++]=node;
     }
-    if(okay) okay=xl6AstSetSourceTree(root,s->path);
+    if(okay) okay=attachSource(s,root);
     if(okay) return root;
     xl6AstFree(root); return NULL;
 }
