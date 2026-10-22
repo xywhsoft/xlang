@@ -33,7 +33,7 @@ floatEnv.Snapshot saved = floatEnv.capture()
 floatEnv.setRounding(floatEnv.RoundingMode.downward)
 // 在当前线程使用新的舍入模式
 saved.restore()</code></pre>
-    <p>状态属于 OS 线程，不能把快照带到其他线程恢复。<code>hold()</code> 先持有快照再改变环境；分配失败时保持原舍入模式和异常标志。C 范例可直接使用 <code>xl run release/extlibs/floatEnv/examples/float_env_c.c</code>，与包运行器及 XLang 范例同输出。模块级裸句柄入口不可从导入方访问，已有只编译负例；但 <code>Snapshot(point)</code> 仍受主线私有构造器缺陷阻断。Windows 包级门禁通过 C/XLang 分配边界、双语对照和无输出 AOT 核心；Linux 严格 GCC、ASan/UBSan 与 XLang 门禁通过。完整边界 AOT 仍待共享运行时符号修复。C API 与异常路径注意事项见包内 README。</p>
+    <p>状态属于 OS 线程，不能把快照带到其他线程恢复。<code>hold()</code> 先持有快照再改变环境；分配失败时保持原舍入模式和异常标志。C 范例可直接使用 <code>xl run release/extlibs/floatEnv/examples/float_env_c.c</code>，与包运行器及 XLang 范例同输出。模块级裸句柄入口不可从导入方访问，已有只编译负例；但 <code>Snapshot(point)</code> 仍受主线私有构造器缺陷阻断。Windows 聚焦门禁通过 C/XLang 分配边界和双语对照；默认门禁的无输出 AOT 核心通过后，公开范例构建因共享 <code>xl6ValueDataSnapshotV1</code> 缺符号失败，不能签收完整边界和发布级。Linux 严格 GCC、ASan/UBSan 与 XLang 门禁已有通过记录。C API 与异常路径注意事项见包内 README。</p>
   </section>
 </main>
 </body>

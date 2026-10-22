@@ -1,7 +1,11 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
 $out = Join-Path $root ('build/test/floatEnv/aot_core_' + [guid]::NewGuid().ToString('N') + '.exe')
+$exampleOut = Join-Path $root ('build/test/floatEnv/aot_example_' + [guid]::NewGuid().ToString('N') + '.exe')
+$boundsOut = Join-Path $root ('build/test/floatEnv/aot_boundaries_' + [guid]::NewGuid().ToString('N') + '.exe')
 [void][IO.Directory]::CreateDirectory((Split-Path $out))
 
 function Run([string]$label, [string]$program, [string[]]$arguments) {
@@ -57,11 +61,28 @@ try {
         throw 'C/XLang example output differs'
     }
     Write-Host '[floatEnv] C/XLang output parity: PASS'
-    Run 'AOT core build' $xl @('build', 'test/cases/stdlib_crt_float_env.xl', '-o', $out) | Out-Null
-    Run 'AOT core' $out @() | Out-Null
+    if (-not $SkipAot) {
+        Run 'AOT core build' $xl @('build', 'test/cases/stdlib_crt_float_env.xl', '-o', $out) | Out-Null
+        Run 'AOT core' $out @() | Out-Null
+        Run 'AOT example build' $xl @('build',
+            'release/examples/extlibs/floatEnv.xl', '-o', $exampleOut) | Out-Null
+        $aotOutput = Run 'AOT example' $exampleOut @()
+        if (($aotOutput -join "`n") -cne ($c -join "`n")) {
+            throw 'AOT example differs from C output'
+        }
+        Run 'AOT boundaries build' $xl @('build',
+            'release/extlibs/floatEnv/test/boundaries.xl', '-o', $boundsOut) | Out-Null
+        Run 'AOT boundaries' $boundsOut @() | Out-Null
+    }
 } finally {
     Pop-Location
     if (Test-Path -LiteralPath $out -PathType Leaf) {
         Remove-Item -LiteralPath $out -Force
+    }
+    if (Test-Path -LiteralPath $exampleOut -PathType Leaf) {
+        Remove-Item -LiteralPath $exampleOut -Force
+    }
+    if (Test-Path -LiteralPath $boundsOut -PathType Leaf) {
+        Remove-Item -LiteralPath $boundsOut -Force
     }
 }

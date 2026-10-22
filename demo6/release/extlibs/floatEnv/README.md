@@ -43,9 +43,18 @@ Linux 严格 GCC、C ASan/UBSan 与 XLang 双语门禁：
 bash release/extlibs/floatEnv/test/check.sh
 ```
 
-Windows 门禁还逐行比较 C/XLang 范例输出并构建、运行无输出 AOT 核心。本包仅覆盖平台 CRT/TCC 可提供的浮点环境能力，不承诺改变不遵守动态舍入模式的优化表达式。
+Windows `test/check.ps1 -SkipAot` 聚焦验证严格 C、XLang 边界与双语范例；
+默认门禁还构建、运行无输出 AOT 核心、公开 XLang 范例和完整边界，
+并将范例 AOT 输出与 C 比较。本包仅覆盖平台 CRT/TCC 可提供的浮点环境能力，不承诺改变不遵守动态舍入模式的优化表达式。
 Linux 门禁复用同一份按需 XRT 运行时编译 C 边界与范例，运行包内
 XLang 边界，并逐字节比较 C/XLang 范例输出；它不执行完整 AOT。
+
+2026-10-22：旧 Windows 默认脚本只做无输出核心 AOT 并返回 PASS，公开
+范例单独构建却缺 `xl6ValueDataSnapshotV1`。现在默认将完整范例及边界
+AOT 纳入门禁；实测核心通过、范例构建按该共享缺符号正确失败，尚未
+执行到后续边界 AOT。`-SkipAot` 聚焦门禁通过。另有导入方可调用
+`Snapshot(point)` 的主线私有构造器缺陷，仍需单独修复与复验；本轮
+不绕过，也不签收整包发布级。
 
 2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、XL JIT、C/XL 双语对照及 `test/cases/stdlib_crt_float_env.xl` 无输出核心 AOT。`xl build extlibs/floatEnv/test/boundaries.xl -o ../build/test/float_env_xl_test.exe` 当前因共享链接缺少 `xl6ValueDataSnapshotV1` 而失败，完整 AOT 尚未验收；见 `dev/extlib_blockers/text_snapshot_link.md`。
 
