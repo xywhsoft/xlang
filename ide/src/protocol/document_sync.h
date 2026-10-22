@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <xrt.h>
+#include "analysis/text.h"
 
 typedef struct xls_sync xls_sync;
 typedef struct xls_sync_document {
@@ -23,6 +24,11 @@ void xlsSyncDestroy(xls_sync* sync);
 int xlsSyncUpdate(xls_sync* sync,const xls_sync_document* documents,size_t count,
                   xls_sync_emit emit,void* user);
 int xlsSyncVersion(const xls_sync* sync,const char* uri);
+/* Owner-thread lease of the exact successfully emitted URI/wire version.
+ * Constant-time body ownership: no scan/copy. Release with xlsTextRelease;
+ * the immutable text remains valid after edits, close or sync destruction.
+ * Lookup must run on sync's owner; the returned lease may cross threads. */
+xls_text* xlsSyncRetainText(const xls_sync* sync,const char* uri,int version);
 /* Receipt of successfully emitted online URI/version bindings. No body scan.
  * Not a transport acknowledgement: compare with server inputState response,
  * then separately verify local model identities/revisions and file proofs. */

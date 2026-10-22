@@ -15,6 +15,11 @@ typedef struct xide_lsp_position { int line,character,offset; } xide_lsp_positio
 /* Validate and map an unordered batch in one text traversal. All offsets are
    committed only if every position is valid. */
 int xideLspPositionsToOffsets(const char* text,xide_lsp_position* positions,size_t count);
+/* Background large-response variant: at most 131072 positions. The callback
+ * may reject during mapping; no offsets are published on failure/cancellation.
+ * The ordinary UI batch keeps its original 8192-position bound. */
+int xideLspManyPositionsToOffsets(const char* text,xide_lsp_position* positions,size_t count,
+                                int (*cancelled)(void*),void* user);
 int xideLspPositionToOffset(const char* text,int line,int character,int* offset);
 int xideLspOffsetToPosition(const char* text,int offset,int* line,int* character);
 #endif

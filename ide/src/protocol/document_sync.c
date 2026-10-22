@@ -84,6 +84,11 @@ int xlsSyncVersion(const xls_sync* sync,const char* uri)
     sync_entry* entry=sync && !sync->failed && uri ? find(&sync->entries,uri) : NULL;
     return entry ? entry->version : 0;
 }
+xls_text* xlsSyncRetainText(const xls_sync* sync,const char* uri,int version)
+{
+    sync_entry* entry=sync && !sync->failed && uri && version>0 ? find(&sync->entries,uri) : NULL;
+    return entry && entry->version==version ? xlsTextRetain(entry->text) : NULL;
+}
 void xlsSyncStats(const xls_sync* sync,xls_sync_stats* stats)
 { if(stats) *stats=sync ? sync->stats : (xls_sync_stats){0}; }
 int xlsSyncInputState(const xls_sync* sync,char digest[65],size_t* documents)
