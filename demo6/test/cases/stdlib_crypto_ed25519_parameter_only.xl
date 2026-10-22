@@ -1,0 +1,3 @@
+export func signMessage(Ed25519Key key, bytes message) as bytes
+    return key.sign(message)
+end

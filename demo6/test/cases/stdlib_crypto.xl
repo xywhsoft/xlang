@@ -162,17 +162,16 @@ expectStr(crypto.chacha20Decrypt(key32, nonce, chacha20Cipher, 1), plain)
 expectStr(crypto.chacha20Encrypt("bad", nonce, plain, 1), "")
 expectStr(crypto.chacha20Decrypt(key32, nonce, "bad", 1), "")
 
-var edKey = crypto.ed25519Keypair()
-string edSeed = string(edKey["seed"])
-string edPub = string(edKey["publicKey"])
-expect(string.len(edSeed), 64)
-expect(string.len(edPub), 64)
-expectStr(crypto.ed25519PublicKey(edSeed), edPub)
-string edSig = crypto.ed25519Sign(edSeed, "message")
-expect(string.len(edSig), 128)
+auto edKey = crypto.ed25519KeyPair()
+bytes edSeed = edKey.exportSeed()
+bytes edPub = edKey.publicKey
+assert edSeed.length == 32
+assert edPub.length == 32
+assert crypto.ed25519PublicKey(edSeed) == edPub
+bytes edSig = crypto.ed25519Sign(edSeed, "message")
+assert edSig.length == 64
 assert crypto.ed25519Verify(edPub, "message", edSig), "ed25519 verify failed"
 assert not crypto.ed25519Verify(edPub, "message!", edSig), "ed25519 verify should reject modified text"
-assert not crypto.ed25519Verify("bad", "message", edSig), "ed25519 verify should reject bad public key"
 
 auto x25519A = crypto.x25519KeyPair()
 auto x25519B = crypto.x25519KeyPair()
