@@ -6,7 +6,7 @@
 #include "src/ast/xl6_ast.h"
 
 #define XL6_STDLIB_CONST_COUNT 202
-#define XL6_STDLIB_FUNC_COUNT 993
+#define XL6_STDLIB_FUNC_COUNT 997
 extern const char* xl6StdlibNetBackendSource;
 extern const char* xl6StdlibNetEngineStateSource;
 extern const char* xl6StdlibNetEngineOptionsSource;
@@ -135,6 +135,7 @@ extern const char* xl6StdlibAtomicBoolSource;
 extern const char* xl6StdlibAsn1ClassSource;
 extern const char* xl6StdlibCryptoClassSource;
 extern const char* xl6StdlibXdhClassSource;
+extern const char* xl6StdlibEd25519ClassSource;
 extern const char* xl6StdlibNetAddressClassSource;
 extern const char* xl6StdlibNetAddressListClassSource;
 extern const char* xl6StdlibNetResolverOptionsSource;

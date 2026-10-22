@@ -1681,6 +1681,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsTemplateEngine, needsTemplateFile, needsTemplateVfs, needsTemplateBuffer, needsTemplateWriter;
     int needsCompress, needsDeflater, needsInflater;
     int needsCryptoClass;
+    int needsEd25519Class;
     int needsTccClass;
     int needsXlangClass;
     int needsCoreClass;
@@ -1925,6 +1926,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibFuncUsed(used, "compress", "encodeBuffer") || xl6StdlibFuncUsed(used, "compress", "decode") ||
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer");
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
+    needsEd25519Class = xl6StdlibNodeUsesTypeName(root,"Ed25519Key") ||
+        xl6StdlibFuncUsed(used,"crypto","ed25519KeyPair");
     /*
         只有公开面真正交换字节容器时才注入 Buffer。同步地址解析等纯网络
         能力不依赖 Buffer，不能因为同属网络体系就拉入文件和二进制运行时。
@@ -1935,7 +1938,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsTcpStreamClass || needsUdpClass ||
         needsTlsSessionClass || needsHttp1Class || needsHttpDecoderClass ||
         needsWsFrameClass || needsWebSocketClass || needsFileClass ||
-        needsAsyncFileClass || needsCryptoClass || needsLoggerClass;
+        needsAsyncFileClass || needsCryptoClass || needsEd25519Class || needsLoggerClass;
     needsTccClass = xl6StdlibNeedsTccClass(root, used);
     needsXlangClass = xl6StdlibNeedsXlangClass(root, used);
     if ( needsCryptoClass || needsFileClass ) {
@@ -2273,6 +2276,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||
         xl6StdlibFuncUsed(used,"crypto","x25519KeyPair") || xl6StdlibFuncUsed(used,"crypto","x448KeyPair"))
         xl6StdlibBuilderAppend(&builder,xl6StdlibXdhClassSource);
+    if (needsEd25519Class)
+        xl6StdlibBuilderAppend(&builder,xl6StdlibEd25519ClassSource);
     if (xl6StdlibFuncUsed(used, "path", "parse") || xl6StdlibFuncUsed(used, "path", "components") ||
         xl6StdlibNodeUsesTypeName(root, "PathParts") || xl6StdlibNodeUsesTypeName(root, "PathIterator") ||
         xl6StdlibNodeUsesTypeName(root, "PathComponent"))

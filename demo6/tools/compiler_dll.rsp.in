@@ -324,6 +324,16 @@
     src\runtime\xl6_crypto_x448_domain.c
     src\runtime\xl6_crypto_x448_generate.c
     src\runtime\xl6_crypto_x448_raw.c
+    src\runtime\xl6_crypto_ed25519.c
+    src\runtime\xl6_crypto_ed25519_domain.c
+    src\runtime\xl6_crypto_ed25519_generate.c
+    src\runtime\xl6_crypto_ed25519_sign.c
+    src\runtime\xl6_crypto_ed25519_sign_buffer.c
+    src\runtime\xl6_crypto_ed25519_seed_sign.c
+    src\runtime\xl6_crypto_ed25519_seed_sign_buffer.c
+    src\runtime\xl6_crypto_ed25519_public.c
+    src\runtime\xl6_crypto_ed25519_verify.c
+    src\runtime\xl6_crypto_ed25519_verify_buffer.c
     src\runtime\xl6_der_value.c
     src\runtime\xl6_der_value_domain.c
     src\runtime\xl6_der_reader.c
