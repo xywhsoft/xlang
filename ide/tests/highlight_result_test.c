@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include <windows.h>
 
 static unsigned checks;
 #define CHECK(v) do {++checks;if(!(v)){fprintf(stderr,"highlight_result_test:%d: %s\n",__LINE__,#v);return 0;}}while(0)
@@ -17,6 +18,18 @@ static int invalid(const xls_text* text,const char* json)
 }
 static int cancel(void* user) { int* count=user;return --*count<=0; }
 static void wake(void* user) { xrtAtomic32FetchAdd(user,1,XMEMORY_RELAXED); }
+typedef struct retired_message { xatomic32 calls,thread; } retired_message;
+static void retire(ptr handle,ptr user)
+{
+    retired_message* state=user;if(handle!=state) return;
+    xrtAtomic32Store(&state->thread,(int32)GetCurrentThreadId(),XMEMORY_RELAXED);
+    xrtAtomic32FetchAdd(&state->calls,1,XMEMORY_RELEASE);
+}
+static xvalue* disposable(retired_message* state)
+{
+    static const xvaluehandleops ops={.Drop=retire};ptr owned=state;
+    return xrtValueHandleTake(&owned,&ops,state);
+}
 typedef struct wake_gate { xatomic32 entered,hold; } wake_gate;
 static void gatedWake(void* user)
 {
@@ -112,6 +125,21 @@ static int verify(void)
     xrtAtomic32Store(&gate.hold,0,XMEMORY_RELEASE);
     CHECK(submit(decoder,4,response,text));result=waitResult(decoder);CHECK(result && result->valid && result->token==4);xideHighlightResultRelease(result);
     xideHighlightDecoderDestroy(decoder);xlsTextRelease(text);
+    /* A disposal job shares the bounded slot but must not change the current
+     * result token. Its owned handle proves actual final release off owner. */
+    text=xlsTextCreate(source,strlen(source),4096,NULL);CHECK(text);
+    xrtAtomic32Init(&gate.entered,0);xrtAtomic32Init(&gate.hold,1);
+    decoder=xideHighlightDecoderCreate(gatedWake,&gate);CHECK(decoder && submit(decoder,101,response,text));
+    entered=0;for(int i=0;i<3000;++i) { if(xrtAtomic32Load(&gate.entered,XMEMORY_ACQUIRE)) {entered=1;break;}xrtSleep(1); }CHECK(entered);
+    retired_message retired;xrtAtomic32Init(&retired.calls,0);xrtAtomic32Init(&retired.thread,0);
+    message=disposable(&retired);CHECK(message && xideHighlightDecoderDiscard(decoder,message));
+    result=xideHighlightDecoderTake(decoder);CHECK(result && result->valid && result->token==101);xideHighlightResultRelease(result);
+    xvalue* rejected=parse("{\"owned\":true}");CHECK(rejected && !xideHighlightDecoderDiscard(decoder,rejected) && xrtValueType(rejected)==XVALUE_OBJECT);xrtValueRelease(rejected);
+    CHECK(!xrtAtomic32Load(&retired.calls,XMEMORY_ACQUIRE));xrtAtomic32Store(&gate.hold,0,XMEMORY_RELEASE);
+    CHECK(submit(decoder,102,response,text));result=waitResult(decoder);CHECK(result && result->valid && result->token==102);xideHighlightResultRelease(result);
+    xideHighlightDecoderDestroy(decoder);xlsTextRelease(text);
+    CHECK(xrtAtomic32Load(&retired.calls,XMEMORY_ACQUIRE)==1 && (DWORD)xrtAtomic32Load(&retired.thread,XMEMORY_RELAXED)!=GetCurrentThreadId());
+    CHECK(!xideHighlightDecoderDiscard(NULL,NULL));
     return 1;
 }
 int main(void)
