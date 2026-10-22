@@ -15,6 +15,7 @@ static int run_tests(void) {
     void *watcher;
     int64_t index;
     char *event, *saved;
+    const char *borrowed;
     int i;
     CHECK(xrtMemDebugFailAfter(0));
     CHECK(xwatch_create() == NULL);
@@ -56,8 +57,12 @@ static int run_tests(void) {
     CHECK(xwatch_count(watcher) == 0);
     CHECK(strcmp(xwatch_path(watcher, index), "") == 0);
     CHECK(xwatch_add(watcher, path) == index);
+    borrowed = xwatch_path(watcher, index);
     for (i = 0; i < 40; i++) CHECK(xwatch_add(watcher, path) >= 0);
     CHECK(xwatch_count(watcher) == 41);
+    /* 条目表扩容不能使仍在使用的借用路径失效。 */
+    CHECK(xwatch_path(watcher, index) == borrowed);
+    CHECK(strcmp(borrowed, path) == 0);
     CHECK(xwatch_add(watcher, "") == -1);
     xrtClearError();
     xwatch_destroy(watcher);

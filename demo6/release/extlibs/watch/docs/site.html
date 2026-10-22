@@ -60,7 +60,7 @@ int main(void)
     xwatch_destroy(watcher);
     return ok ? 0 : 1;
 }</code></pre>
-    <p><code>xwatch_poll</code> 的事件由调用方用 <code>xrtFree</code> 释放；<code>xwatch_path</code> 是借用指针，删除或销毁实例后失效。公开操作成功时不残留先前失败的 XRT 线程错误；析构不清错。完整双语范例位于 <code>release/extlibs/watch/examples/</code>。</p>
+    <p><code>xwatch_poll</code> 的事件由调用方用 <code>xrtFree</code> 释放；<code>xwatch_path</code> 是借用指针，添加其他监视项或条目表扩容时仍有效，删除对应项或销毁实例后失效。公开操作成功时不残留先前失败的 XRT 线程错误；析构不清错。完整双语范例位于 <code>release/extlibs/watch/examples/</code>。</p>
   </section>
   <section id="verify">
     <h2>验证状态</h2>
