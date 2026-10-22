@@ -85,7 +85,7 @@ static int placeNode(const XL6_AstNode* in,XL6_AstNode* out,void* user)
 static XL6_AstNode* copyNode(const XL6_AstNode* in,const placement* p,size_t depth)
 {
     (void)depth;
-    xls_ast_clone_options options={p ? placeNode : NULL,(void*)p,0,1};
+    xls_ast_clone_options options={p ? placeNode : NULL,(void*)p,0,1,NULL};
     return xlsAstClone(in,&options,NULL);
 }
 static xls_syntax* allocate(const char* path,xls_text* text)

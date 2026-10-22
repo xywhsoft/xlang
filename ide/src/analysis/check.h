@@ -12,6 +12,10 @@ typedef struct xls_check_info {
 } xls_check_info;
 /* One-based compiler Unicode-scalar coordinates; the host converts to LSP. */
 typedef struct xls_check_diagnostic { const char *path,*message; int line,column; } xls_check_diagnostic;
+typedef struct xls_check_semantic_work { uint64_t functionsChecked,functionsReused,contextHits,memoBytes; } xls_check_semantic_work;
+/* Work captured by the opt-in retained-entry path. The independent fresh
+ * reference API does not instrument function calls and reports zero here. */
+xls_check_semantic_work xlsSemanticCheckWork(const xls_semantic_check* result);
 
 /* Private immutable result, independent of transport/GUI and session ASTs.
  * Shared parser/imports/stdlib/semantics AND typed IR checks run in-process.

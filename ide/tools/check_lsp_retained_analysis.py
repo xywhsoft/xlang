@@ -1,7 +1,7 @@
 """Verify actual retained semantic/IR analysis over stdio, without xl.exe.
 
 Counters come from the XRT-owned checked session. Entry parsing can reuse
-function chunks; semantics/IR still rebuild. This is not UI latency acceptance.
+function chunks and eligible semantic facts; typed IR still rebuilds. This is not UI latency acceptance.
 """
 import argparse
 import hashlib
@@ -44,7 +44,7 @@ def main():
         clients.append(c)
         c.initialize()
         caps = c.transcript[1]['receive']['result']['capabilities']['experimental']
-        assert caps['retainedSemanticChecks'] and caps['retainedNativeInputs'] and caps['incrementalEntrySyntax'], caps
+        assert caps['retainedSemanticChecks'] and caps['retainedNativeInputs'] and caps['incrementalEntrySyntax'] and caps['incrementalFunctionSemantics'], caps
         return c
 
     def call(c, method, params):
@@ -151,8 +151,8 @@ def main():
         c.stop()
 
         c = client()
-        prefix = ''.join('func helper_%d() as int\n return %d\nend\n' % (i, i) for i in range(100))
-        tail = 'func tail() as int\n int trailing = 9\n return trailing\nend\n'
+        prefix = ''.join('func helper_%d() as int\n int local = %d\n' % (i, i) + ' local = local + 1\n' * 12 + ' return local\nend\n' for i in range(100))
+        tail = 'func tail() as int\n int trailing = 9\n' + ' trailing = trailing + 1\n' * 12 + ' return trailing\nend\n'
         def edited(i):
             return '\ufeff' + prefix + ('func main(...) as int\n string 文本 = "😀%d"\n%s int result = %d\n return result + tail()\nend\n' %
                 (i, ' // extra shifted line\n' if i & 1 else '', i)) + tail
@@ -160,6 +160,7 @@ def main():
         c.open(entry, body, 1)
         r, _ = check(c, 1, 1)
         initial_bytes = len(body.encode())
+        assert r['analysis']['semanticFunctionsChecked'] == 102 and not r['analysis']['semanticFunctionsReused'], r
         for i in range(1, 16):
             body = edited(i)
             c.change(entry, body, i + 1)
@@ -167,6 +168,8 @@ def main():
             stats = r['analysis']
             assert stats['entryFullParses'] == 1 and stats['entryFragmentParses'] == i and stats['entryReusedDeclarations'] == 101 * i, stats
             assert stats['entryParsedBytes'] < initial_bytes + 256 * i, stats
+            assert stats['semanticFunctionsChecked'] == 102 + i and stats['semanticFunctionsReused'] == 101 * i, stats
+            assert stats['semanticContextHits'] == i and 0 < stats['semanticMemoBytes'] <= 64 * 1024 * 1024, stats
             definition, _ = call(c, 'textDocument/definition', dict(textDocument=dict(uri=entry.as_uri()), version=i + 1,
                 position=position(body, body.rindex('trailing'))))
             assert definition['range']['start'] == position(body, body.index('trailing')), (definition, i)
@@ -174,6 +177,7 @@ def main():
                 position=position(body, body.index('tail()'))))
             assert definition['range']['start'] == position(body, body.rindex('tail()')), (definition, i)
         done('fifteen-real-local-entry-parses-with-full-IR-checks-and-rebased-navigation', stats=stats)
+        done('actual-semantic-function-reuse-with-current-version-types-and-positions', checked=stats['semanticFunctionsChecked'], reused=stats['semanticFunctionsReused'])
         broken = body.replace('return result + tail()', 'return "unterminated')
         c.change(entry, broken, 17)
         r, _ = check(c, 17, 17, 1)

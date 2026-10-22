@@ -84,8 +84,12 @@ xls_semantic_check* xlsCheckSessionCheck(xls_check_session* s,
             if(!syntax) goto memory;
         }
         if(stopped(cancelled,user)) goto cancel;
-        result=xlsSemanticCheckCreateParsed(entry,inputs,count,captureIndex,syntax,cancelled,user,error,capacity);
+        xls_semantic_check* baseline=previous && s->captureIndex==captureIndex && !strcmp(s->directory,directory) ? s->result : NULL;
+        result=xlsSemanticCheckCreateIncremental(entry,inputs,count,captureIndex,syntax,baseline,cancelled,user,error,capacity);
         if(!result) goto done;
+        xls_check_semantic_work work=xlsSemanticCheckWork(result);
+        s->stats.semanticFunctionsChecked+=work.functionsChecked; s->stats.semanticFunctionsReused+=work.functionsReused;
+        s->stats.semanticContextHits+=work.contextHits;
     }
     if(stopped(cancelled,user)) { xlsSemanticCheckDestroy(result); result=NULL; goto cancel; }
     if(equal) ++s->stats.hits;
@@ -94,6 +98,7 @@ xls_semantic_check* xlsCheckSessionCheck(xls_check_session* s,
     xrtFree(s->directory); s->directory=directory; directory=NULL;
     xlsSemanticCheckDestroy(s->result); s->result=xlsSemanticCheckRetain(result);
     s->captureIndex=captureIndex; s->stats.documents=count; s->stats.textBytes=bytes;
+    s->stats.semanticMemoBytes=xlsSemanticCheckWork(result).memoBytes;
     if(syntax) { xlsSyntaxRelease(s->entrySyntax); s->entrySyntax=syntax; syntax=NULL; }
     goto done;
 invalid: fail(error,capacity,"invalid semantic batch identity, revision, path or capacity"); goto done;
