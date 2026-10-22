@@ -27,8 +27,24 @@ func main(...) as int
         assert restoredFallback["password"] == fallback["password"]
         assert restored.macros["deploy"][0] == " echo deploy"
     end
+    bool malformed = false
+    try
+        netrc.parse("machine h login \"unfinished")
+    catch ConfigError error
+        malformed = true
+    end
+    int code = netrc.errorCode()
+    int line = netrc.errorLine()
+    int column = netrc.errorColumn()
+    int offset = netrc.errorOffset()
+    assert malformed and code == 2 and line == 1 and column == 17 and offset == 16
     println("netrc: " + string(auth["login"]) + "@api.example.com")
     println("netrc fallback: " + string(fallback["login"]))
     println("netrc entries: 2 hosts, 1 macro")
+    println("netrc syntax: code=" + string(code) + " line=" + string(line) +
+        " column=" + string(column) + " offset=" + string(offset))
+    auto recovered = netrc.parse("machine retry login ok\n")
+    assert recovered.authenticators("retry")["login"] == "ok"
+    assert netrc.errorCode() == 0
     return 0
 end

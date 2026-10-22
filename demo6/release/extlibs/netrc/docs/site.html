@@ -30,7 +30,7 @@
 netrc.Netrc config = netrc.parse("machine api.example login alice password sample\n")
 var auth = config.authenticators("api.example")
 println(auth["login"])</code></pre>
-    <p>C/XLang 对照范例还展示具名主机、<code>default</code> 回退与 <code>macdef</code> 宏，用 <code>hostNames/macroNames</code> 检查条目，并以 <code>stringify/parse</code> 验证内存往返。可显式传入目标路径，通过 <code>save/load</code> 保存并读回凭据和宏；密码只参与核对，不写入输出。实际凭据不应写入日志，也不要把 <code>stringify()</code> 的结果直接打印到控制台。</p>
+    <p>C/XLang 对照范例还展示具名主机、<code>default</code> 回退与 <code>macdef</code> 宏，用 <code>hostNames/macroNames</code> 检查条目，并以 <code>stringify/parse</code> 验证内存往返。固定的未闭合引号示例演示错误码、行列、字节偏移及成功调用后清除诊断。可显式传入目标路径，通过 <code>save/load</code> 保存并读回凭据和宏；密码只参与核对，不写入输出。实际凭据不应写入日志，也不要把 <code>stringify()</code> 的结果直接打印到控制台。</p>
   </section>
   <section id="api">
     <h2>接口</h2>

@@ -1,3 +1,4 @@
 netrc: alice@api.example.com
 netrc fallback: guest
 netrc entries: 2 hosts, 1 macro
+netrc syntax: code=2 line=1 column=17 offset=16

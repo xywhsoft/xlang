@@ -4,7 +4,9 @@
 C 使用 `include/xrt_netrc.h`。示例见 `release/examples/extlibs/netrc.xl`
 与 `examples/basic.c`。范例同时展示具名主机、`default` 回退和 `macdef`
 宏，通过 `hostNames/macroNames` 核对条目，并以 `stringify/parse` 验证内存往返；
-只显示用户名和条目数量，不显示密码或序列化后的凭据文本。
+再以未闭合引号展示 `errorCode/errorLine/errorColumn/errorOffset` 的精确诊断及
+成功调用后的错误清除。只显示用户名、条目数量和语法错误位置，不显示密码或
+序列化后的凭据文本。
 两份范例可选传入一个目标文件路径，此时用包级 `save/load` 保存并读回
 用户名和密码，验证往返但仍不打印密码；不传路径时仅在内存中解析。
 不要将真实凭据写进命令行参数或日志。
@@ -187,6 +189,13 @@ PowerShell 5.1 在 GB2312 系统代码页下会误读成乱码，导致“中文
 Windows `-SkipAot`、Linux C ASan/UBSan 与 XLang/Python 联合门禁，
 以及仓库根目录直接 C 包运行器均通过；固定路径与系统临时目录无本次
 残留。netrc 实现未改，完整 AOT 的共享阻断不变。
+
+2026-10-22：C/XLang 成对范例增加固定语法错误，逐项核对错误码 2、
+第 1 行第 17 列、字节偏移 16；后续合法解析必须清除最近错误。
+共同黄金输出只记录位置，不包含密码。Windows `test/check.ps1 -SkipAot`
+的严格 C、双语、文件/中文路径、Python 互通与故障测试，以及 Linux
+`test/check.sh` 的 C ASan/UBSan、XLang 和文件互通门禁通过。
+解析实现/API 未改；完整 AOT 仍受共享主线缺符号阻断，不签收整包发布级。
 
 同日补流式 writer 错误分类：自定义 Writer 的 `Write` 或 `Flush`
 回调报告 `XERR_MEMORY` 时，`xrtNetrcWrite` 原统一返回 `IO`，使调用方

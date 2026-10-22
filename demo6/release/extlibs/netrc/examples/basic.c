@@ -49,6 +49,7 @@ int main(int argc, char** argv)
 	xvalue* pHosts;
 	xvalue* pLoaded = NULL;
 	xvalue* pRoundtrip = NULL;
+	xvalue* pRecovered = NULL;
 	xbuffer* pSerialized = NULL;
 	xstrview Login, Password, FallbackLogin, FallbackPassword;
 	xstrview LoadedLogin, LoadedPassword, LoadedFallbackLogin, LoadedFallbackPassword;
@@ -81,15 +82,34 @@ int main(int argc, char** argv)
 			!same_text(LoadedFallbackPassword, FallbackPassword) ||
 			!has_deploy_macro(pLoaded) ) goto done;
 	}
+	{
+		const char* sMalformed = "machine h login \"unfinished";
+		xvalue* pUnexpected = xrtNetrcParseMemory(sMalformed,
+			strlen(sMalformed), NULL, &Error);
+		if ( pUnexpected != NULL ) {
+			xrtValueRelease(pUnexpected);
+			goto done;
+		}
+		if ( Error.iCode != XRT_NETRC_ERROR_SYNTAX || Error.iLine != 1u ||
+			Error.iColumn != 17u || Error.iOffset != 16u ) goto done;
+	}
 	printf("netrc: %.*s@api.example.com\n", (int)Login.Size, Login.Data);
 	printf("netrc fallback: %.*s\n", (int)FallbackLogin.Size, FallbackLogin.Data);
 	puts("netrc entries: 2 hosts, 1 macro");
+	printf("netrc syntax: code=%d line=%llu column=%llu offset=%llu\n",
+		Error.iCode, (unsigned long long)Error.iLine,
+		(unsigned long long)Error.iColumn,
+		(unsigned long long)Error.iOffset);
+	pRecovered = xrtNetrcParseMemory("machine retry login ok\n",
+		strlen("machine retry login ok\n"), NULL, &Error);
+	if ( pRecovered == NULL || Error.iCode != XRT_NETRC_OK ) goto done;
 	iStatus = 0;
 done:
 	if ( iStatus != 0 ) fputs("netrc example: parse or round-trip failed\n", stderr);
 	xrtBufferDestroy(pSerialized);
 	xrtValueRelease(pRoundtrip);
 	xrtValueRelease(pLoaded);
+	xrtValueRelease(pRecovered);
 	xrtValueRelease(pDocument);
 	return iStatus;
 }
