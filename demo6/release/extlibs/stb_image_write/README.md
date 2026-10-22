@@ -48,6 +48,7 @@ HDR 回调实现；JPEG 位缓冲使用无符号移位；最终 PNG 缓冲申请
   Windows 严格 GCC、C 边界、中央与包内 XLang、输出限额和双语范例联合门禁。
 - `.\release\xl.exe run release/examples/extlibs/stb_image_write.xl`
 - `.\release\xl.exe run release/extlibs/stb_image_write/test/boundaries.xl`
+- `.\release\xl.exe run release/extlibs/stb_image_write/test/allocations.xl`
 - `.\release\xl.exe run release/extlibs/stb_image_write/test/output_limit.xl`
 - `tools/run_extlib_c.ps1 -Package 'stb_image_write,stb_image' -Source release/examples/extlibs/stb_image_write_c.c`
 - `release` 目录下可直接 `xl run examples/extlibs/stb_image_write_c.c`；
@@ -56,8 +57,10 @@ HDR 回调实现；JPEG 位缓冲使用无符号移位；最终 PNG 缓冲申请
 - 同命令改用 `release/extlibs/stb_image_write/test/test_stb_image_write.c`
 - `wsl bash release/extlibs/stb_image_write/test/check.sh` 可复跑 Linux 严格 GCC/ASan/UBSan C 测试、中央 API 用例、XLang 边界与 64 MiB 输出限额专项测试，并逐字节核对 C/XLang 发布范例。限额专项仍不进入普通目录 smoke。
 - C/XL 范例输出一致。C 边界测试覆盖五种格式、往返解码、中文路径、
-  参数/尺寸/长度拒绝、PNG 64 点与 HDR 工作区分配故障后的恢复；XL 边界测试另覆盖 C 整数收窄及路径内嵌 NUL；Windows GCC `-Wall -Wextra -Werror` 与 Linux
-  ASan/UBSan 已通过。
+  参数/尺寸/长度拒绝，并对每种格式扫描前 64 个分配故障点；XLang 对五种
+  格式各扫描前 128 点，验证异常分类、成功输出及清除故障后的恢复，边界
+  测试另覆盖 C 整数收窄及路径内嵌 NUL。Windows GCC `-Wall -Wextra -Werror`
+  与 Linux ASan/UBSan 已通过。
 
 当前正式构建对普通 `Buffer` 的最小 AOT 已缺 `xl6NativeHandleTraceLeaf`，
 见 `demo6/dev/extlib_blockers/native_handle_trace_aot.md`；带输出程序还可能遇到

@@ -23,6 +23,7 @@ try {
     foreach ($source in @(
         'test/cases/extlib_stb_image_write.xl',
         'release/extlibs/stb_image_write/test/boundaries.xl',
+        'release/extlibs/stb_image_write/test/allocations.xl',
         'release/extlibs/stb_image_write/test/output_limit.xl'
     )) {
         & $xl run $source

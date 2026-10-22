@@ -23,6 +23,7 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 timeout 90s "$work/test_stb_image_write"
 timeout 90s ./release/xl run test/cases/extlib_stb_image_write.xl
 timeout 90s ./release/xl run release/extlibs/stb_image_write/test/boundaries.xl
+timeout 90s ./release/xl run release/extlibs/stb_image_write/test/allocations.xl
 timeout 90s ./release/xl run release/extlibs/stb_image_write/test/output_limit.xl
 timeout 90s ./release/xl run release/examples/extlibs/stb_image_write_c.c \
     > "$work/c_example.txt"

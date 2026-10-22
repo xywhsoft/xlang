@@ -131,51 +131,35 @@ int main(void)
     CHECK(xstbiw_write(Path, XSTBIW_PNG, Pixels, sizeof(Pixels),
         2, 2, 4, 0) == 1 && xrtGetError() == NULL);
     CHECK(xrtFileDelete(Path));
-    {
-        unsigned point;
-        unsigned failures = 0u;
+    for (Format = XSTBIW_PNG; Format <= XSTBIW_HDR; ++Format) {
+        void* source = Format == XSTBIW_HDR ? (void*)FloatPixels : (void*)Pixels;
+        size_t length = Format == XSTBIW_HDR ? sizeof(FloatPixels) : sizeof(Pixels);
+        int option = Format == XSTBIW_JPEG ? 90 : 0;
+        xbuffer* expected = (xbuffer*)xstbiw_encode(Format, source,
+            length, 2, 2, 4, option);
+        unsigned point, failures = 0u, successes = 0u;
+        CHECK(expected != NULL);
         for (point = 0u; point < 64u; ++point) {
             int triggered;
             CHECK(xrtMemDebugFailAfter(point));
-            Encoded = (xbuffer*)xstbiw_encode(XSTBIW_PNG, Pixels,
-                sizeof(Pixels), 2, 2, 4, 0);
+            Encoded = (xbuffer*)xstbiw_encode(Format, source,
+                length, 2, 2, 4, option);
             triggered = xrtMemDebugFailTriggered();
             xrtMemDebugFailClear();
-            if (triggered) {
-                ++failures;
-                CHECK(Encoded == NULL && xrtGetError() != NULL &&
+            if (Encoded == NULL) {
+                CHECK(triggered && xrtGetError() != NULL &&
                     xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+                ++failures;
             } else {
-                CHECK(Encoded != NULL && xrtGetError() == NULL);
+                CHECK(Encoded->Size == expected->Size &&
+                    memcmp(Encoded->Data, expected->Data, expected->Size) == 0 &&
+                    xrtGetError() == NULL);
                 xrtBufferDestroy(Encoded);
+                ++successes;
             }
         }
-        CHECK(failures >= 3u);
-        Encoded = (xbuffer*)xstbiw_encode(XSTBIW_PNG, Pixels,
-            sizeof(Pixels), 2, 2, 4, 0);
-        CHECK(Encoded != NULL && xrtGetError() == NULL);
-        xrtBufferDestroy(Encoded);
-    }
-    {
-        unsigned point;
-        unsigned failures = 0u;
-        for (point = 0u; point < 16u; ++point) {
-            int triggered;
-            CHECK(xrtMemDebugFailAfter(point));
-            Encoded = (xbuffer*)xstbiw_encode(XSTBIW_HDR, FloatPixels,
-                sizeof(FloatPixels), 2, 2, 4, 0);
-            triggered = xrtMemDebugFailTriggered();
-            xrtMemDebugFailClear();
-            if (triggered) {
-                ++failures;
-                CHECK(Encoded == NULL && xrtGetError() != NULL &&
-                    xrtErrorKind(xrtGetError()) == XERR_MEMORY);
-            } else {
-                CHECK(Encoded != NULL && xrtGetError() == NULL);
-                xrtBufferDestroy(Encoded);
-            }
-        }
-        CHECK(failures >= 2u);
+        CHECK(failures != 0u && successes != 0u);
+        xrtBufferDestroy(expected);
     }
     CHECK(test_output_limit() == 0);
     CHECK(xrtDirRemove(WorkDir));

@@ -1,0 +1,46 @@
+import stb_image
+import stb_image_write
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func encode(int format, Buffer pixels, Buffer floats) as Buffer
+    if format == 0 then return stb_image_write.encodePng(pixels, 16, 16, 4) end
+    if format == 1 then return stb_image_write.encodeJpeg(pixels, 16, 16, 4) end
+    if format == 2 then return stb_image_write.encodeBmp(pixels, 16, 16, 4) end
+    if format == 3 then return stb_image_write.encodeTga(pixels, 16, 16, 4) end
+    return stb_image_write.encodeHdr(floats, 16, 16, 4)
+end
+
+func main(...) as int
+    string path = "release/examples/extlibs/assets/tiny.png"
+    Buffer pixels = stb_image.load(path, 4).pixels()
+    Buffer floats = stb_image.loadf(path, 4).pixels()
+
+    // 每种公开格式都要区分真实失败与编码器内部已恢复的分配故障。
+    for format in range(5)
+        Buffer expected = encode(format, pixels, floats)
+        int failures = 0
+        int successes = 0
+        for allocation in range(128)
+            bool caught = false
+            Buffer output = Buffer()
+            assert failAfter(uint64(allocation))
+            try
+                output = encode(format, pixels, floats)
+            catch MemoryError error
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert not caught or triggered, "encoding failure must remain MemoryError"
+            if caught then failures += 1 else successes += 1 end
+            if not caught then assert output == expected end
+            assert encode(format, pixels, floats) == expected
+        end
+        assert failures > 0 and successes > 0
+    end
+    println("stb_image_write allocations: PASS")
+    return 0
+end
