@@ -1,0 +1,7 @@
+extern "x_volc_phone_substr" func slice(string text, int start, int length) as string
+
+func main(...) as int
+    assert slice("ABC", 0, 1) == "A"
+    assert slice("ABC", 4294967296, 1) == ""
+    return 0
+end
