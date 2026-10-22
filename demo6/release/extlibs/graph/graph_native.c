@@ -79,6 +79,10 @@ bool xgLoad(xgmodel* g, xvalue* input)
                 int64 value;
                 if (!xrtValueGetInt(weight, &value)) goto fail;
                 edge.Weight = (double)value;
+            } else if (xrtValueType(weight) == XVALUE_UINT) {
+                uint64 value;
+                if (!xrtValueGetUInt(weight, &value)) goto fail;
+                edge.Weight = (double)value;
             } else if (xrtValueType(weight) == XVALUE_FLOAT) {
                 if (!xrtValueGetFloat(weight, &edge.Weight)) goto fail;
             } else {

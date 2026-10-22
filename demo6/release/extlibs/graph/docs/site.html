@@ -43,7 +43,7 @@ println(graph.shortestPath(jobs, "parse", "emit").length)  // 2
 println(int(graph.dijkstra(jobs, "parse")["emit"]))        // 5</code></pre>
     <p><code>[name]</code> 声明孤立点；<code>[from, to]</code> 声明权重 1 的有向边；
     <code>[from, to, weight]</code> 显式指定权重。名称为大小写敏感字符串，允许空串和中文。
-    int/float 权重必须有限，内部为 float64，超大整数可能失去精度。</p>
+    有符号/无符号整数或 float 权重必须有限，内部为 float64，超大整数可能失去精度。</p>
     <p>重复边和自环允许，重复节点声明不增加节点数。上限为 4096 个不同节点、32768 条边；
     不预留上限大小的全局数组。此限额不等于名称总字节数或执行时间预算。</p>
 

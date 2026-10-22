@@ -13,7 +13,7 @@
 | `[from, to]` | 声明有向边，默认权重 1 |
 | `[from, to, weight]` | 声明带权有向边 |
 
-节点名必须为字符串，大小写敏感，空串和 UTF-8 名称合法。权重必须为有限 int/float，
+节点名必须为字符串，大小写敏感，空串和 UTF-8 名称合法。权重接受有符号/无符号整数或有限 float，
 内部转换成 float64；bool、字符串、null、NaN、Infinity 不作为权重。
 超出 float64 整数精确范围的大整数会损失精度，不能用于精确整数成本计算。
 
@@ -106,6 +106,8 @@ C 名称按完整字节比较，支持内嵌 NUL。当前 `xl.exe` 的独立复�
 包内 XLang 边界测试均验证内嵌 NUL 名称可完整查询，且不会误匹配其前缀。
 
 ## 范例与门禁
+
+2026-10-22：`uint64` 权重原被原生模型误拒绝为 `ValueError`，C/XLang 最小红例均复现；现与有符号整数一样转为 float64 参与 Dijkstra，布尔和非有限浮点仍拒绝。成对范例以无符号权重演示同一条边，输出保持不变。Windows 严格 C、XLang JIT 与生成原型通过；Linux C ASan/UBSan、XLang 与双语范例通过。Windows 综合门禁仍在既有 `xl.dll` 缺 `__xl_runtime/xl6_collection_count.h` 处停止，完整 AOT 未签收。
 
 发布目录内：`xl run examples/extlibs/graph_basic.xl`。
 完整九项 API 的 C 对照为 `extlibs/graph/examples/basic.c`，共同预期为

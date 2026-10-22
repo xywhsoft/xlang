@@ -18,6 +18,19 @@ fail:
     return false;
 }
 
+static bool addUnsigned(xvalue* graph, const char* from, const char* to, uint64 weight)
+{
+    xvalue* row = xrtValueArray();
+    if (row == NULL) return false;
+    if (!xrtValueArrayAppendNew(row, xrtValueString((xstrview){from, strlen(from)})) ||
+        !xrtValueArrayAppendNew(row, xrtValueString((xstrview){to, strlen(to)})) ||
+        !xrtValueArrayAppendNew(row, xrtValueUInt(weight))) {
+        xrtValueRelease(row);
+        return false;
+    }
+    return xrtValueArrayAppendNew(graph, row);
+}
+
 static bool names(xvalue* values, const char* separator)
 {
     if (values == NULL) return false;
@@ -46,7 +59,7 @@ int main(void)
     double cost;
     int status = 1;
     if (flow == NULL || calls == NULL ||
-        !add(flow, "parse", "check", 2) ||
+        !addUnsigned(flow, "parse", "check", 2) ||
         !add(flow, "check", "emit", 3) ||
         !add(flow, "parse", "emit", 9) ||
         !add(flow, "docs", NULL, 0)) goto done;

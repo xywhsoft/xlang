@@ -22,6 +22,9 @@ func main(...) as int
     assert graph.shortestPath(weighted, "a", "b").length == 2, "fewest edges"
     assert graph.dijkstra(weighted, "a")["b"] == 2, "least duplicate edge weight"
 
+    uint64 unsignedWeight = uint64(7)
+    assert graph.dijkstra([["a", "b", unsignedWeight]], "a")["b"] == 7, "unsigned integer weight"
+
     string binaryName = "a\0b"
     var binaryEdges = [[binaryName, "end"]]
     assert graph.bfs(binaryEdges, binaryName)[0] == binaryName, "NUL name round trip"

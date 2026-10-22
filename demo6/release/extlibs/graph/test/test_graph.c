@@ -120,6 +120,23 @@ static void invalid(void)
     xrtValueRelease(g);
 }
 
+static void unsigned_weight(void)
+{
+    xvalue *g = xrtValueArray(), *row = xrtValueArray(), *r;
+    double distance;
+    assert(g && row);
+    assert(xrtValueArrayAppendNew(row, text("a", 1)));
+    assert(xrtValueArrayAppendNew(row, text("b", 1)));
+    assert(xrtValueArrayAppendNew(row, xrtValueUInt(7)));
+    assert(xrtValueArrayAppendNew(g, row));
+    r = xg_dijkstra(g, "a", 1);
+    assert(r && !xrtGetError());
+    assert(xrtValueGetFloat(xrtValueObjectGet(r, XRT_STR_LITERAL("b")), &distance));
+    assert(distance == 7.0);
+    xrtValueRelease(r);
+    xrtValueRelease(g);
+}
+
 static void limits(void)
 {
     const int sizes[] = {520, 521, XG_MAX_NODES};
@@ -257,7 +274,7 @@ int main(void)
     xmemdebugsnapshot before;
     assert(xrtMemDebugEnable(true));
     xrtMemDebugSnapshot(&before);
-    basic(); invalid(); limits(); oracle();
+    basic(); invalid(); unsigned_weight(); limits(); oracle();
     balanced(&before);
     puts("graph: boundaries, 128 independent oracle graphs, capacity and ownership PASS");
     return 0;

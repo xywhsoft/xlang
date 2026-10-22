@@ -13,7 +13,8 @@ end
 
 func main(...) as int
     // 有向边从前置步骤指向后续步骤；单元素行声明孤立步骤。
-    var flow = [["parse", "check", 2], ["check", "emit", 3], ["parse", "emit", 9], ["docs"]]
+    uint64 firstCost = uint64(2)
+    var flow = [["parse", "check", firstCost], ["check", "emit", 3], ["parse", "emit", 9], ["docs"]]
     println("dag=" + string(graph.isDag(flow)))
     show("topo=", graph.topoSort(flow), ">")
     show("bfs=", graph.bfs(flow, "parse"), ">")
