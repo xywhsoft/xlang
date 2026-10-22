@@ -58,5 +58,7 @@ end
 auto engine = NetEngine(NetEngineOptions().withWorkers(2).withBackend(NetBackend.select))
 engine.start()
 exercise(engine)
-engine.stop()
+// Last language references request retirement; wait for its real completion.
+engine.close()
+assert engine.wait(5000), "checked engine retirement"
 println("managed UDP: exact lengths, copy/ref/move, empty packet, owned snapshots: ok")

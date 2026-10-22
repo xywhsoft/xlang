@@ -97,6 +97,19 @@ typedef struct XL6_ContinuationTicket {
      * dequeue transfers the one base reference to the resident running local. */
     struct XL6_ContinuationTicket *ownedNext, *ownedPrevious;
 } XL6_ContinuationTicket;
+
+/* Freeze may observe either notification prerequisite before the other.
+ * Both are stable owning states: the transport credit is still represented
+ * until TRANSPORT_RELEASED. Neither READY nor its absence executes a callback.
+ * Running/publication/predecessor tails remain uninspectable; do not turn
+ * unknown flags into retryable BUSY or discount their physical references. */
+static inline bool xl6ContinuationTicketInspectableV1(const XL6_ContinuationTicket* ticket)
+{
+    const unsigned parked = XL6_CONTINUATION_COMMITTED | XL6_CONTINUATION_READY |
+        XL6_CONTINUATION_TRANSPORT_RELEASED;
+    return ticket && ticket->queue && !ticket->predecessor && !ticket->successor &&
+        (ticket->flags & XL6_CONTINUATION_COMMITTED) && !(ticket->flags & ~parked);
+}
 typedef enum XL6_ContinuationAdmission {
     XL6_CONTINUATION_ADMITTED = 0,
     XL6_CONTINUATION_FULL,

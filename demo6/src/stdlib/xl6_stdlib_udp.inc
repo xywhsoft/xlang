@@ -85,4 +85,5 @@ RECEIVE(ReceiveError,"recvError","UdpErrorPacket")
     "    extern \"xl6UdpReceiveBatchCancelV1\" func recvBatchCancel(CancellationToken cancel, int capacity = 16, int timeoutMillis = -1) as UdpBatch\n"
     "    extern \"xl6UdpReceiveBatchUntilV1\" func recvBatchUntil(uint64 deadline, int capacity = 16) as UdpBatch\n"
     "    extern \"xl6UdpReceiveBatchUntilCancelV1\" func recvBatchUntilCancel(uint64 deadline, CancellationToken cancel, int capacity = 16) as UdpBatch\n"
+#include "xl6_stdlib_udp_future.inc"
     "end\n";

@@ -1,0 +1,25 @@
+func receiver() as UdpSocket
+    auto engine = NetEngine(NetEngineOptions().withBackend(NetBackend.select))
+    engine.start()
+    return udp.bind(engine, NetAddress.loopback())
+end
+func sender(NetAddress address) as UdpSocket
+    auto engine = NetEngine(NetEngineOptions().withBackend(NetBackend.select))
+    engine.start()
+    return udp.connect(engine, address)
+end
+async func receiveAfterVariableLoss() as UdpPacket
+    auto socket = receiver()
+    assert await socket.waitAsync(UdpWait.open)
+    auto peer = sender(socket.localAddress())
+    assert await peer.waitAsync(UdpWait.open)
+    auto received = socket.recvAsync()
+    assert peer.send("owned\0") == NetStatus.ok
+    auto packet = await received
+    peer.close()
+    socket.close()
+    return packet
+end
+auto packet = await receiveAfterVariableLoss()
+assert packet.bytes() == b"owned\0"
+println("UDP async: actual engine parent and independent Packet survive variable loss: ok")

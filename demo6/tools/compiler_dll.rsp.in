@@ -71,6 +71,9 @@
     src\runtime\xl6_udp_language.c
     src\runtime\xl6_udp_address.c
     src\runtime\xl6_udp_stats.c
+    src\runtime\xl6_native_class_result.c
+    src\runtime\xl6_udp_future.c
+    src\runtime\xl6_udp_future_interrupt.c
     src\runtime\xl6_udp_send.c
     src\runtime\xl6_udp_send_buffer.c
     src\runtime\xl6_udp_send_ref.c

@@ -846,7 +846,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_udp_values.c",D(R(OWNERSHIP_CATALOG),R(UDP_VALUES)),{NULL}},
     {"src/runtime/xl6_ownership_domain_udp_batch.c",D(R(OWNERSHIP_CATALOG),R(UDP_BATCH)),{NULL}},
     {"src/runtime/xl6_ownership_domain_udp_language.c",D(R(OWNERSHIP_CATALOG),R(UDP_LANGUAGE)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_udp_stats.c",D(R(OWNERSHIP_CATALOG),R(UDP_STATS)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_udp_stats.c",D(R(OWNERSHIP_CATALOG),R(UDP_STATS)),{NULL}},
+    {"src/runtime/xl6_native_class_result.c",D(R(NATIVE_HANDLE),R(CODE_FINALIZER),R(OWNERSHIP_DOMAIN_CLASS)),{NULL}},
+    {"src/runtime/xl6_udp_future.c",D(R(UDP_LANGUAGE),R(EXECUTION_UDP_FUTURE),R(UDP_BATCH),R(NATIVE_CLASS_RESULT),R(FUTURE_CALLBACK_QUEUE),R(FUTURE_PAYLOAD)),{NULL}},
+    {"src/runtime/xl6_udp_future_interrupt.c",D(R(UDP_FUTURE),R(FUTURE_CALLBACK_INTERRUPT)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

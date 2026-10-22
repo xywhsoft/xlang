@@ -898,6 +898,11 @@ XL6_TEXT_EXPORT(xl6DateTimeSplitV1, TIME_DATETIME)
 #include "xl6_tcp_symbols.inc"
 #include "xl6_udp_config_symbols.inc"
 #include "xl6_udp_symbols.inc"
+#include "xl6_udp_future_symbols.inc"
+XL6_TEXT_EXPORT(xl6NativeClassResultPrepareV1,NATIVE_CLASS_RESULT)
+XL6_TEXT_EXPORT(xl6NativeClassResultContextValidV1,NATIVE_CLASS_RESULT)
+XL6_TEXT_EXPORT(xl6NativeClassResultPrepareFromLeaseV1,NATIVE_CLASS_RESULT)
+XL6_TEXT_EXPORT(xl6NativeClassResultCommitTakeV1,NATIVE_CLASS_RESULT)
 #include "xl6_tcp_server_symbols.inc"
 #include "xl6_tcp_proxy_symbols.inc"
 #include "xl6_tcp_data_symbols.inc"

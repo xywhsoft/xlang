@@ -196,6 +196,27 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
         if (module->abi.classIdentityAbi != XL6_IR_CLASS_IDENTITY_RESIDENT_SCHEMA_V3)
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                 "XLIR class identity resident schema ABI is unresolved");
+        for(size_t targetIndex=0;targetIndex<module->callTargetCount;++targetIndex){
+            const XL6_IrCallTarget* target=&module->callTargets[targetIndex];
+            if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE||
+                target->nativeContextAbi!=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1)continue;
+            size_t prior=0;for(;prior<targetIndex;++prior)
+                if(module->callTargets[prior].reachability!=XL6_IR_REACHABILITY_UNREACHABLE&&
+                    module->callTargets[prior].nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1&&
+                    module->callTargets[prior].nativeContextType==target->nativeContextType)break;
+            if(prior!=targetIndex)continue;
+            const XL6_IrClassIdentityPlan* identity=xl6IrClassIdentityPlanGet(module,target->nativeContextType);
+            const XL6_IrClassField* field=xl6IrNativeClassResultContextField(module,target);
+            if(!identity||!field||!field->nativeHandlePolicyCName)return 0;
+            /* A foreign Future result can be retained without any synchronous
+             * constructor/bind instruction for T. Its descriptor still calls
+             * this exact resident getter, so declare it independently. */
+            xl6OutputPrintf(out,"extern const struct XL6_NativeHandlePolicyV1* %s(void);\n",field->nativeHandlePolicyCName);
+            xl6OutputPrintf(out,"static const XL6_ClassIdentitySchemaV3 xlir_native_result_schema_t%u = {\n"
+                "    sizeof(XL6_ClassIdentitySchemaV3), UINT64_C(0x%016llX), %u,\n"
+                "    XL6_CLASS_IDENTITY_REFERENCE_V3, XL6_CLASS_IDENTITY_REFERENCE_V3, NULL, 0, {0}\n};\n\n",
+                (unsigned)target->nativeContextType,(unsigned long long)identity->identity,(unsigned)identity->runtimeTypeTag);
+        }
         for ( instructionIndex = 0;
               instructionIndex < module->instructionCount;
               ++instructionIndex ) {

@@ -504,6 +504,17 @@ static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module
             (unsigned long long)array->typeValueId,(unsigned long long)callback->typeValueId);
         return !xl6OutputHasFailed(out);
     }
+    if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1) {
+        const XL6_IrClassField* field=xl6IrNativeClassResultContextField(module,target);
+        if(!field||!field->nativeHandlePolicyCName)return 0;
+        xl6OutputPuts("(XL6_NativeClassResultContextV1){{",out);
+        xl6IrCgenEmitCStringLiteral(out,field->name);
+        xl6OutputPrintf(out,", %lu, %s()}, %s, &xlir_native_result_schema_t%u}",
+            (unsigned long)strlen(field->name),field->nativeHandlePolicyCName,
+            module->abi.codeOwnerAbi==XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT?
+                "(xlir_code_owner.size != 0 ? &xlir_code_owner : NULL)":"NULL",(unsigned)target->nativeContextType);
+        return !xl6OutputHasFailed(out);
+    }
     if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1) {
         const XL6_IrClassField* field=xl6IrNativeClassContextField(module,target);
         if(!field || !field->nativeHandlePolicyCName)return 0;

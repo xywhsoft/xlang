@@ -1,0 +1,42 @@
+// Normal traffic between self-owned literal loopback endpoints only.
+async func exchange(NetEngine engine)
+    auto receiver = udp.bind(engine, NetAddress.loopback())
+    assert await receiver.waitAsync(UdpWait.open)
+    auto sender = udp.connect(engine, receiver.localAddress())
+    assert await sender.waitAsync(UdpWait.open)
+    future<UdpPacket> pending = receiver.recvAsync()
+    assert sender.send("async\0packet") == NetStatus.ok
+    auto packet = await pending
+    assert packet.bytes() == b"async\0packet" and packet.length == 12
+    assert await sender.waitWritableAsync(0)
+    future<UdpBatch> batchFuture = receiver.recvBatchAsync(8)
+    assert sender.send(b"") == NetStatus.ok
+    auto batch = await batchFuture
+    assert batch.count == 1
+    auto empty = batch.take(0)
+    assert empty != null and (empty as UdpPacket).length == 0
+    assert batch.take(0) == null
+    auto cancel = receiver.recvAsync()
+    assert cancel.cancel()
+    bool cancelled = false
+    try
+        auto ignored = await cancel
+    catch failure
+        cancelled = true
+    end
+    assert cancelled and receiver.state == UdpState.open
+    auto again = receiver.recvAsync()
+    assert sender.send("again") == NetStatus.ok
+    assert (await again).bytes() == b"again"
+    sender.close()
+    receiver.close()
+    assert await sender.waitAsync(UdpWait.close)
+    assert await receiver.waitAsync(UdpWait.close)
+    assert packet.bytes() == b"async\0packet"
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(2).withBackend(NetBackend.select))
+engine.start()
+await exchange(engine)
+engine.close()
+assert engine.wait(5000), "checked engine retirement"
+println("UDP async: real Packet/Batch, empty datagram, owned lifetime and cancellation: ok")

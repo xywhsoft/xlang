@@ -54,10 +54,8 @@ static bool continuation_ownership_count(const void* data, size_t* count)
 {
     const XL6_ContinuationTicket* ticket = (const XL6_ContinuationTicket*)data;
     size_t expected;
-    if (ticket == NULL || count == NULL || ticket->queue == NULL ||
-        ticket->ownershipTrace == NULL ||
-        ticket->predecessor != NULL || ticket->successor != NULL ||
-        (ticket->flags != COMMITTED && ticket->flags != (COMMITTED | READY | TRANSPORT_RELEASED)))
+    if (count == NULL || !xl6ContinuationTicketInspectableV1(ticket) ||
+        ticket->ownershipTrace == NULL)
         return false;
     if (ticket->codeLease != NULL) {
         xrtownershipref lease = xl6CodeLeaseOwnership(ticket->codeLease);
@@ -489,8 +487,7 @@ static bool queue_count(const void* data,size_t* count)
     size_t owned=0;const XL6_ContinuationTicket* previous=NULL;
     for(const XL6_ContinuationTicket* ticket=queue->owned;ticket;ticket=ticket->ownedNext){
         if(owned++==queue->ownedCount||ticket->queue!=queue||ticket->ownedPrevious!=previous||
-            ticket->predecessor||ticket->successor||!ticket->storage||
-            (ticket->flags!=COMMITTED&&ticket->flags!=(COMMITTED|READY|TRANSPORT_RELEASED)))return false;
+            !ticket->storage||!xl6ContinuationTicketInspectableV1(ticket))return false;
         previous=ticket;
     }
     if(owned!=queue->ownedCount)return false;

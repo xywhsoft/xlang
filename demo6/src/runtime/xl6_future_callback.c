@@ -40,9 +40,7 @@ static bool frame_count(const void* data,size_t* count)
     if(!frame || !count || !frame->references || !frame->committed || frame->publishing || frame->active || frame->retiring || frame->cleared)return false;
     if(frame->queued && frame->payloadLive){
         const XL6_ContinuationTicket* ticket=frame->ticket;
-        if(!ticket || !ticket->queue || ticket->predecessor || ticket->successor ||
-            (ticket->flags!=XL6_CONTINUATION_COMMITTED && ticket->flags!=
-                (XL6_CONTINUATION_COMMITTED|XL6_CONTINUATION_READY|XL6_CONTINUATION_TRANSPORT_RELEASED)))return false;
+        if(!xl6ContinuationTicketInspectableV1(ticket))return false;
         size_t expected=1+(ticket->transportOwned&&!(ticket->flags&XL6_CONTINUATION_TRANSPORT_RELEASED)?1u:0u);
         if(ticket->ownershipRefs!=expected || frame->references<expected)return false;
     }
