@@ -1,0 +1,4 @@
+auto state = UdpState.open
+auto wait = UdpWait.receive
+assert int(state) == 1 and int(wait) == 1
+println("UDP enum-only: ok")

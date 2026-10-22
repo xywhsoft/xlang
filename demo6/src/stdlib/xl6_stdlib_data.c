@@ -476,104 +476,7 @@ const char* xl6StdlibLengthFramerClassSource =
 
 
 
-const char* xl6StdlibUdpStatsClassSource =
-    "class UdpStats\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_net_stats_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_net_stats_value\" func value(int index) as uint64\n"
-    "\n"
-    "    get state() as int\n"
-    "        return int(self.value(0))\n"
-    "    end\n"
-    "\n"
-    "    get receivedPackets() as uint64\n"
-    "        return self.value(1)\n"
-    "    end\n"
-    "\n"
-    "    get receivedBytes() as uint64\n"
-    "        return self.value(2)\n"
-    "    end\n"
-    "\n"
-    "    get sentPackets() as uint64\n"
-    "        return self.value(3)\n"
-    "    end\n"
-    "\n"
-    "    get sentBytes() as uint64\n"
-    "        return self.value(4)\n"
-    "    end\n"
-    "\n"
-    "    get truncated() as uint64\n"
-    "        return self.value(5)\n"
-    "    end\n"
-    "\n"
-    "    get truncatedDropped() as uint64\n"
-    "        return self.value(6)\n"
-    "    end\n"
-    "\n"
-    "    get droppedNewest() as uint64\n"
-    "        return self.value(7)\n"
-    "    end\n"
-    "\n"
-    "    get droppedOldest() as uint64\n"
-    "        return self.value(8)\n"
-    "    end\n"
-    "\n"
-    "    get receiveErrors() as uint64\n"
-    "        return self.value(9)\n"
-    "    end\n"
-    "\n"
-    "    get sendErrors() as uint64\n"
-    "        return self.value(10)\n"
-    "    end\n"
-    "\n"
-    "    get sendRejected() as uint64\n"
-    "        return self.value(11)\n"
-    "    end\n"
-    "\n"
-    "    get queuedBytes() as uint64\n"
-    "        return self.value(16)\n"
-    "    end\n"
-    "\n"
-    "    get peakQueuedBytes() as uint64\n"
-    "        return self.value(17)\n"
-    "    end\n"
-    "\n"
-    "    get queuedPackets() as uint64\n"
-    "        return self.value(18)\n"
-    "    end\n"
-    "\n"
-    "    get peakQueuedPackets() as uint64\n"
-    "        return self.value(19)\n"
-    "    end\n"
-    "\n"
-    "    get receiveQueued() as uint64\n"
-    "        return self.value(20)\n"
-    "    end\n"
-    "\n"
-    "    get peakReceiveQueued() as uint64\n"
-    "        return self.value(21)\n"
-    "    end\n"
-    "\n"
-    "    get receiveWaiters() as uint64\n"
-    "        return self.value(28)\n"
-    "    end\n"
-    "\n"
-    "    get activeReceives() as uint64\n"
-    "        return self.value(30)\n"
-    "    end\n"
-    "\n"
-    "    get activeSends() as uint64\n"
-    "        return self.value(31)\n"
-    "    end\n"
-    "\n"
-    "    get peakActiveSends() as uint64\n"
-    "        return self.value(32)\n"
-    "    end\n"
-    "\n"
-    "    get connected() as bool\n"
-    "        return self.value(33) != 0\n"
-    "    end\n"
-    "end\n";
+#include "src/stdlib/xl6_stdlib_udp.inc"
 
 
 
@@ -590,99 +493,6 @@ const char* xl6StdlibUdpStatsClassSource =
 #include "src/stdlib/xl6_stdlib_tcp.inc"
 #include "src/stdlib/xl6_stdlib_tcp_server.inc"
 
-const char* xl6StdlibUdpClassSource =
-    "class UdpPacket\n"
-    "    native point handle\n"
-	"    extern \"xl6_xrt_udp_packet_destroy\" destroy()\n"
-	"    extern \"xl6_xrt_udp_packet_text\" func textNative() as point\n"
-    "    extern \"xl6_xrt_udp_packet_buffer\" func bytesNative() as point\n"
-	"    extern \"xl6_xrt_udp_packet_addr\" func addrNative() as point\n"
-	"    extern \"xl6_xrt_udp_packet_port\" func port() as int\n"
-	"    extern \"xl6_xrt_udp_packet_truncated\" func truncated() as bool\n"
-    "\n"
-    "    func text() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.textNative())\n"
-    "    end\n"
-    "\n"
-    "    func bytes() as Buffer\n"
-    "        point handle = self.bytesNative()\n"
-    "        return Buffer(point(handle))\n"
-    "    end\n"
-    "\n"
-    "    func addr() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.addrNative())\n"
-    "    end\n"
-    "end\n"
-    "\n"
-    "class UdpBatch\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_udp_batch_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_udp_batch_count\" func count() as int\n"
-    "    extern \"xl6_xrt_udp_batch_take\" func takeNative(int index) as point\n"
-    "\n"
-    "    func take(int index) as UdpPacket\n"
-    "        return UdpPacket(point(self.takeNative(index)))\n"
-    "    end\n"
-    "end\n"
-    "\n"
-    "class UdpSocket\n"
-    "    native point handle\n"
-	"    extern \"xl6_xrt_udp_destroy\" destroy()\n"
-	"    extern \"xl6_xrt_udp_local_port\" func port() as int\n"
-	"    extern \"xl6_xrt_udp_local_addr\" func localAddrNative() as point\n"
-	"    extern \"xl6_xrt_udp_send_text\" func send(string host, uint16 port, string text) as bool\n"
-	"    extern \"xl6_xrt_udp_send_bytes\" func sendBytesRaw(string host, uint16 port, point data, c_size size) as bool\n"
-	"    extern \"xl6_xrt_udp_send_bytes_result\" func sendBytesResult(string host, uint16 port, point data, c_size size) as int\n"
-	"    extern \"xl6_xrt_udp_send_vec\" func sendVec(string host, uint16 port, array buffers) as bool\n"
-	"    extern \"xl6_xrt_udp_send_move\" func sendMoveNative(string host, uint16 port, point buffer) as bool\n"
-	"    extern \"xl6_xrt_udp_send_batch\" func sendBatch(string host, uint16 port, array buffers) as int\n"
-	"    extern \"xl6_xrt_udp_recv\" func recvNative(int timeoutMs) as point\n"
-	"    extern \"xl6_xrt_udp_recv_async\" func recvAsyncNative() as future<UdpPacket>\n"
-	"    extern \"xl6_xrt_udp_recv_batch\" func recvBatchNative(c_size capacity, int timeoutMs) as point\n"
-	"    extern \"xl6_xrt_udp_recv_batch_async\" func recvBatchAsyncNative(c_size capacity) as future<UdpBatch>\n"
-	"    extern \"xl6_xrt_udp_pending\" func pendingSend() as int\n"
-	"    extern \"xl6_xrt_udp_queued\" func queuedPackets() as int\n"
-	"    extern \"xl6_xrt_udp_queued_bytes\" func queuedBytes() as int\n"
-	"    extern \"xl6_xrt_udp_writable\" func waitWritableNative(c_size size, int timeoutMs) as bool\n"
-	"    extern \"xl6_xrt_udp_writable_async\" func writableAsync(c_size size) as future<bool>\n"
-    "    extern \"xl6_xrt_udp_stats\" func statsNative() as point\n"
-    "\n"
-    "    func localAddr() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.localAddrNative())\n"
-    "    end\n"
-    "\n"
-    "    func recv(int timeoutMs = -1) as UdpPacket\n"
-    "        return UdpPacket(point(self.recvNative(timeoutMs)))\n"
-    "    end\n"
-    "\n"
-    "    func sendBytes(string host, uint16 port, point data, c_size size) as bool\n"
-    "        return self.sendBytesRaw(host, port, data, size)\n"
-    "    end\n"
-    "\n"
-	"    func sendMove(string host, uint16 port, Buffer data) as bool\n"
-	"        return self.sendMoveNative(host, port, data.nativeHandle())\n"
-	"    end\n"
-	"\n"
-	"    func waitWritable(c_size size, int timeoutMs = -1) as bool\n"
-	"        return self.waitWritableNative(size, timeoutMs)\n"
-	"    end\n"
-	"\n"
-	"    func recvAsync() as future<UdpPacket>\n"
-	"        return self.recvAsyncNative()\n"
-	"    end\n"
-    "\n"
-    "    func recvBatch(int capacity, int timeoutMs = -1) as UdpBatch\n"
-    "        return UdpBatch(point(self.recvBatchNative(c_size(capacity), timeoutMs)))\n"
-    "    end\n"
-    "\n"
-    "    func recvBatchAsync(int capacity) as future<UdpBatch>\n"
-    "        return self.recvBatchAsyncNative(c_size(capacity))\n"
-    "    end\n"
-    "\n"
-    "    func stats() as UdpStats\n"
-    "        return UdpStats(point(self.statsNative()))\n"
-    "    end\n"
-    "end\n";
 
 const char* xl6StdlibTlsSessionClassSource =
     "class TlsResume\n"
@@ -2134,23 +1944,6 @@ static const XL6_StdlibParam xl6StdFileReplaceParams[] = {
 
 static const XL6_StdlibParam xl6StdNetHandleParams[] = {
     {"point", "handle"}
-};
-
-static const XL6_StdlibParam xl6StdUdpBindParams[] = {
-    {"string", "host"},
-    {"uint16", "port"}
-};
-
-static const XL6_StdlibParam xl6StdUdpSendParams[] = {
-    {"point", "socket"},
-    {"string", "host"},
-    {"uint16", "port"},
-    {"string", "text"}
-};
-
-static const XL6_StdlibParam xl6StdUdpRecvParams[] = {
-    {"point", "socket"},
-    {"int", "timeoutMs"}
 };
 
 static const XL6_StdlibParam xl6StdXrtJsonParseParams[] = {
@@ -4310,12 +4103,13 @@ static const char xl6StdTcpListenBody[] =
     "end\n";
 
 static const char xl6StdUdpBindBody[] =
-    "func __xl_std_udp_bind(int port, string host = \"127.0.0.1\") as UdpSocket\n"
-    "    if port < 0 or port > 65535 then\n"
-    "        return UdpSocket()\n"
-    "    end\n"
-    "    return UdpSocket(point(__xl_std_xrt_udp_bind(host, uint16(port))))\n"
-    "end\n";
+    "extern \"xl6UdpBindDefaultV1\" func __xl_std_udp_bind(NetEngine engine, NetAddress local) as UdpSocket\n"
+    "extern \"xl6UdpBindV1\" func __xl_std_udp_bind(NetEngine engine, NetAddress local, UdpConfig config, uint64 affinity = 0) as UdpSocket\n";
+static const char xl6StdUdpConnectBody[] =
+    "extern \"xl6UdpConnectDefaultV1\" func __xl_std_udp_connect(NetEngine engine, NetAddress peer) as UdpSocket\n"
+    "extern \"xl6UdpConnectV1\" func __xl_std_udp_connect(NetEngine engine, NetAddress peer, UdpConfig config, uint64 affinity = 0) as UdpSocket\n";
+static const char xl6StdUdpOpenBody[] =
+    "extern \"xl6UdpOpenV1\" func __xl_std_udp_open(NetEngine engine, NetAddress local, NetAddress peer, UdpConfig config, uint64 affinity = 0) as UdpSocket\n";
 
 static const char xl6StdPrintBody[] =
     "func __xl_std_print(...)\n"
@@ -4887,10 +4681,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_id", "compare", "__xl_std_xrt_xid_compare", "xl6_xrt_xid_compare", xl6StdXidPairParams, 2, "int", NULL},
     {"__xrt_id", "equal", "__xl_std_xrt_xid_equal", "xl6_xrt_xid_equal", xl6StdXidPairParams, 2, "bool", NULL},
     {"__xrt_id", "isZero", "__xl_std_xrt_xid_is_zero", "xl6_xrt_xid_is_zero", xl6StdXidValueParams, 1, "bool", NULL},
-    {"__xrt_udp", "bind", "__xl_std_xrt_udp_bind", "xl6_xrt_udp_bind", xl6StdUdpBindParams, 2, "point", NULL},
-    {"__xrt_udp", "sendText", "__xl_std_xrt_udp_send_text", "xl6_xrt_udp_send_text", xl6StdUdpSendParams, 4, "c_bool", NULL},
-    {"__xrt_udp", "recv", "__xl_std_xrt_udp_recv", "xl6_xrt_udp_recv", xl6StdUdpRecvParams, 2, "point", NULL},
-    {"__xrt_udp", "recvAsync", "__xl_std_xrt_udp_recv_async", "xl6_xrt_udp_recv_async", xl6StdNetHandleParams, 1, "future<UdpPacket>", NULL},
 
     {"", "print", "__xl_std_print", NULL, NULL, 0, "", xl6StdPrintBody},
     {"", "println", "__xl_std_println", NULL, NULL, 0, "", xl6StdPrintlnBody},
@@ -5632,6 +5422,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"tcp", "listen", "__xl_std_tcp_listen", NULL, NULL, 0, "TcpListener", xl6StdTcpListenBody},
 
     {"udp", "bind", "__xl_std_udp_bind", NULL, NULL, 0, "UdpSocket", xl6StdUdpBindBody},
+    {"udp", "connect", "__xl_std_udp_connect", NULL, NULL, 0, "UdpSocket", xl6StdUdpConnectBody},
+    {"udp", "open", "__xl_std_udp_open", NULL, NULL, 0, "UdpSocket", xl6StdUdpOpenBody},
     {"udp", "config", "__xl_std_udp_config", NULL, NULL, 0, "UdpConfig", xl6StdUdpConfigBody},
 
     {"tls", "connect", "__xl_std_tls_connect", NULL, NULL, 0, "TlsStream", xl6StdTlsConnectBody},

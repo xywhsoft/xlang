@@ -4,10 +4,10 @@
 #include "xl6_execution_udp.h"
 typedef struct XL6_UdpCreateOptionsV1 {
     XL6_ExecutionResourceV1* engine;
-    const xnetaddr* address;
+    const xnetaddr* local;
+    const xnetaddr* peer;
     const xnetudpconfig* config;
-    uint32_t worker;
-    bool connect;
+    uint64_t affinity;
 } XL6_UdpCreateOptionsV1;
 typedef struct XL6_UdpScopeV1 {
     XL6_ExecutionScopeV1 execution;

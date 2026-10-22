@@ -202,16 +202,64 @@ typed／lowered IR 与裁剪检查，AOT 不依赖 xl／xlc 共享库。42 个�
 `native-verified-commit.json`／`verified-commit.json`。只做离线配置／ABI／内存
 验收；没有错误队列、ICMP、外网或安全专项，没有更新发布库／VFS。
 
+## 已接入：受管工厂、拥有结果与同步数据通路（2026-10-22）
+
+`UdpSocket` 的唯一载荷是驻留 `ExecutionUdp`，持有真实 Source／Engine parent；
+不是裸 Socket 或借用地址。`udp.bind/connect/open` 与同名类构造／静态方法接入
+不可变配置、`NetAddress` 和完整 uint64 affinity。Open 同时支持指定 local 与 peer，
+不经过隐式全局 Engine／Resolver。没有 point 构造或公开 nativeHandle。
+
+| 公开面 | 已实现的语义 |
+| --- | --- |
+| `close/abort/state/connected/sendControlAvailable` | checked 物理 receiver scope；Close 不消耗语言引用 |
+| `localAddress/peerAddress/snapshot` | 独立地址／不可变 34 字段统计，不借用 Socket 内存 |
+| `send/sendTo/sendMessage` | string／bytes／Buffer 复制，`size=-1` 全长，超长截断，小于 -1 拒绝 |
+| `sendRef/sendRefTo/sendRefMessage` | NetBytes／UdpPacket 的原生拥有引用，size／offset 检查后发送，不复制载荷 |
+| `sendMove/sendMoveTo/sendMoveMessage` | Buffer 仅接受成功后清空；失败保留原对象；空 Buffer 仍发送一个真实空数据报 |
+| `tryRecv/tryRecvError` | 返回可空拥有对象；无数据与零字节数据报不同；禁用错误捕获仍为 checked 配置错误 |
+| `wait/waitWritable/recv/recvError/recvBatch` | 同步期限及 CancellationToken 变体；共享微秒 deadline，不逐调用建线程／协程栈 |
+
+同步 wait 返回精确 NetStatus；recv 的超时、取消及资源错误抛 checked 错误，不
+生成空 Packet 冒充成功。正常 Close 的 close wait 返回 ok；Abort 的取消终态保持
+cancelled。资源已经进入退役时的新发送拒绝为 checked StateError。
+
+Packet／ErrorPacket 的句柄拥有实际 XRT 结果，Trace 指向真实 native 节点；不能
+当 leaf 或从默认构造伪造。`bytes(size,offset)` 保留 NUL 和精确长度；地址及信息
+返回独立快照。Batch 只公开原生原子的 `take`，不暴露存在并发 Take 竞态的借用
+Get+Ref。count 保持原索引空间；重复提取合法槽返回 null，越界 checked 拒绝。
+独立结果的拥有权域不依赖 Source／Engine／Buffer；Socket、同步等待与 native
+Future 的闭包分别登记。所有 policy 均核对真实 Ops 与 Trace 身份。
+
+适配代码全部在 resident runtime；XLIR 登记物理 ABI、名义 owner、效果／错误、
+可空结果、状态枚举和 ExecutionSource 服务。旧 UDP Cgen 函数体及裸 point 辅助
+退出；剩余旧 Engine snapshot 生成器不属于本批 UDP API。新字段词表使用可随
+SDK 分发的 `.h`，不依赖驻留实现侧的 `.inc` 搜索路径。
+
+验收入口为 `check_stdlib_udp_language_runtime.py`、
+`check_stdlib_udp_language_source.py` 与原有 UDP resource 回归；新语言夹具位于
+`test/cases/stdlib_udp_managed.xl`、`stdlib_udp_batch_cancel.xl`、
+`stdlib_udp_surface.xl`、`stdlib_udp_enum_only.xl`。旧全局网络 fixture／suite 和
+发布库不能视为新版 UDP 已通过验收，后续联合门禁仍需迁移。证据根为
+`F:/xlang-validation/five-groups-20261022/p3-udp-language`。
+
+最终选择的验收轮次为 Windows runtime-r6／source-accept-r3、Linux runtime-r3／
+source-accept-r3，以及两端 resource-regression-r1。合计 279 个检查阶段，包含
+GCC／TCC O0／O2、Linux ASan／UBSan、select／IOCP／epoll、真实图八种清理顺序、
+离线分配失败预算、四个语言程序的 JIT／module／独立 AOT／IR／裁剪和 11 类
+错误声明拒绝。113 个入口的 39 个枚举位置、31 个拥有结果接受 1247 种严格合同
+变异检查，每个入口另做一次完整模块及 C／声明头拒绝验证。阶段含构建和负例，
+不是 279 个独立语言程序；源码 TU 数也不计入该阶段数。AOT 不导入 xl／xlc 库。
+
 ## 仍必须依次完成
 
-1. 接通受管 `udp` 工厂与新配置，迁移统计、Packet／Batch／ErrorPacket 与完整发送／接收／writable
-   公开面。使用精确类字段、状态枚举、效果、期限及取消合同；复用现有 NetAddress、
-   数据报元数据／控制类型与 Engine 后端选择，不另造裸指针接口。
+1. 完成受管异步 Packet／Batch／ErrorPacket 的拥有结果投影、writable 和 wait。
+   必须提供通用且封闭的类结果合同，不复活旧 Cgen mapper，也不预造假 Packet。
 2. 补齐受管向量／批量、引用／接管、元数据、能力协商、多播和普通错误通路；
    同步和异步接口都复用 XRT。异步等待使用固定工作线程／就绪队列，不逐等待建立
    线程或协程栈，不因封装而遗漏已批准的底层能力。
-3. 清除旧 UDP Cgen 函数体、隐式全局 Engine 和裸 point 转接；Cgen 最终只保留
-   声明／调用／拥有清理。不可把当前旧入口有声明或普通案例可运行当成迁移完成。
+3. 新增接口持续保持 Cgen 仅声明／调用／拥有清理；清理残余的旧静态依赖登记
+   （`xl6_stdlib_deps.inc` 的 `__xrt_udp.bind` 已无对应函数），迁移旧全局网络
+   fixture、suite 与文档，不能把旧发布驱动的通过状态套用到新接口。
 4. 双端源码 JIT／module／独立 AOT／IR／裁剪／生命周期验收，最终再做发布联合
    验收。检查仅使用离线合同／固定数据及自有字面量回环正常通信；网络安全性质
    专项由用户在 XRT 层完成，不在此处扩大测试范围。

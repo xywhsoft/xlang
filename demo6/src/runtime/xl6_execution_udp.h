@@ -17,9 +17,11 @@ struct xfuture;
 /* Explicit Source/Engine owners; no module-local callbacks or user Data.
  * This is a resident C service, not a raw-pointer language constructor. */
 XL6_CODE_LEASE_API XL6_ExecutionResourceV1* xl6ExecutionUdpBindV1(
-    XL6_ExecutionSourceV1*,XL6_ExecutionResourceV1*,const struct xnetaddr*,uint32_t,const struct xnetudpconfig*);
+    XL6_ExecutionSourceV1*,XL6_ExecutionResourceV1*,const struct xnetaddr*,uint64_t,const struct xnetudpconfig*);
 XL6_CODE_LEASE_API XL6_ExecutionResourceV1* xl6ExecutionUdpConnectV1(
-    XL6_ExecutionSourceV1*,XL6_ExecutionResourceV1*,const struct xnetaddr*,uint32_t,const struct xnetudpconfig*);
+    XL6_ExecutionSourceV1*,XL6_ExecutionResourceV1*,const struct xnetaddr*,uint64_t,const struct xnetudpconfig*);
+XL6_CODE_LEASE_API XL6_ExecutionResourceV1* xl6ExecutionUdpOpenV1(
+    XL6_ExecutionSourceV1*,XL6_ExecutionResourceV1*,const struct xnetaddr*,const struct xnetaddr*,uint64_t,const struct xnetudpconfig*);
 XL6_CODE_LEASE_API bool xl6ExecutionUdpStateV1(XL6_ExecutionResourceV1*,int*);
 XL6_CODE_LEASE_API bool xl6ExecutionUdpLocalV1(XL6_ExecutionResourceV1*,struct xnetaddr*);
 XL6_CODE_LEASE_API bool xl6ExecutionUdpPeerV1(XL6_ExecutionResourceV1*,struct xnetaddr*);

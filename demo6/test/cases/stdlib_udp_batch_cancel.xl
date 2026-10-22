@@ -1,0 +1,49 @@
+// Cancellation is checked without enabling error-queue capture.
+import concurrent
+func exercise(NetEngine engine)
+    auto receiver = UdpSocket(engine, NetAddress.loopback())
+    assert receiver.wait(UdpWait.open, 5000) == NetStatus.ok
+    auto sender = UdpSocket.connect(engine, receiver.localAddress(), UdpConfig(), uint64(18446744073709551615))
+    assert sender.wait(UdpWait.open, 5000) == NetStatus.ok
+    assert sender.send("batch\0") == NetStatus.ok
+    auto batch = receiver.recvBatch(8, 5000)
+    assert batch.count == 1, "batch count"
+    auto packet = batch.take(0)
+    assert packet != null, "taken packet"
+    assert (packet as UdpPacket).bytes() == b"batch\0", "batch payload"
+    assert batch.take(0) == null and batch.count == 1, "taken slot is null"
+    int errors = 0
+    try
+        auto invalid = batch.take(1)
+    catch Error
+        errors += 1
+    end
+    try
+        auto invalid = receiver.recvBatch(0, 0)
+    catch Error
+        errors += 1
+    end
+    auto source = CancellationSource()
+    assert source.cancel()
+    assert receiver.waitCancel(source.token, UdpWait.receive, 5000) == NetStatus.cancelled
+    try
+        auto invalid = receiver.recvCancel(source.token, 5000)
+    catch Error
+        errors += 1
+    end
+    try
+        auto missing = receiver.recv(0)
+    catch Error
+        errors += 1
+    end
+    assert errors == 4, "four checked errors"
+    receiver.abort()
+    sender.close()
+    auto closed = receiver.wait(UdpWait.close, 5000)
+    assert closed == NetStatus.cancelled, "abort retains cancellation status"
+end
+auto engine = NetEngine(NetEngineOptions().withBackend(NetBackend.select))
+engine.start()
+exercise(engine)
+engine.stop()
+println("managed UDP: nullable batch take, checked range, cancellation, timeout: ok")

@@ -16,15 +16,14 @@ static void parentDrop(Udp* r)
 static bool create(Resource* base,const XL6_ExecutionCreateOptionsV1* options)
 {
     Udp* r=(Udp*)base;const XL6_UdpCreateOptionsV1* c=options->value.udp;xrtAtomicPtrInit(&r->native,NULL);
-    if(!c||!c->address){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    if(!c||(!c->local&&!c->peer)){xrtSetErrorKind(XERR_ARGUMENT);return false;}
     XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionResourceEnterV1(c->engine,true,&scope))return false;
     if(c->engine->family!=xl6ExecutionNetEngineFamilyV1Get()||!scope.engine){
         xl6ExecutionResourceLeaveV1(&scope);xrtSetErrorKind(XERR_TYPE);return false;}
     r->parent=xl6ExecutionResourceRetainV1(c->engine);xnetudp* udp=NULL;
     if(r->parent){
         xnetudpconfig config;if(c->config)config=*c->config;else xrtNetUdpConfigInit(&config);
-        udp=c->connect?xrtNetUdpConnect(scope.engine,c->address,c->worker,&config,NULL,NULL):
-            xrtNetUdpBind(scope.engine,c->address,c->worker,&config,NULL,NULL);
+        udp=xrtNetUdpOpen(scope.engine,c->local,c->peer,c->affinity,&config,NULL,NULL);
     }
     xrtAtomicPtrStore(&r->native,udp,XMEMORY_RELEASE);xl6ExecutionResourceLeaveV1(&scope);return udp!=NULL;
 }
@@ -64,17 +63,17 @@ const XL6_ExecutionFamilyV1* xl6ExecutionUdpFamilyV1Get(void)
     static const XL6_ExecutionFamilyV1 family={sizeof(family),XL6_EXECUTION_FAMILY_TAG_V1,XL6_EXECUTION_UDP_SOCKET_V1,
         create,rollback,retire,finish,drop,trace,closeUdp,cancelUdp,sizeof(Udp),present};return &family;
 }
-static Resource* make(XL6_ExecutionSourceV1* source,Resource* engine,const xnetaddr* address,
-    uint32_t worker,const xnetudpconfig* config,bool connect)
+Resource* xl6ExecutionUdpOpenV1(XL6_ExecutionSourceV1* source,Resource* engine,const xnetaddr* local,
+    const xnetaddr* peer,uint64_t affinity,const xnetudpconfig* config)
 {
-    XL6_UdpCreateOptionsV1 udp={engine,address,config,worker,connect};
+    XL6_UdpCreateOptionsV1 udp={engine,local,peer,config,affinity};
     XL6_ExecutionCreateOptionsV1 options={.kind=XL6_EXECUTION_UDP_SOCKET_V1,.value.udp=&udp};
     return xl6ExecutionCreateInternalV1(source,xl6ExecutionUdpFamilyV1Get(),&options);
 }
 Resource* xl6ExecutionUdpBindV1(XL6_ExecutionSourceV1* source,Resource* engine,const xnetaddr* address,
-    uint32_t worker,const xnetudpconfig* config){return make(source,engine,address,worker,config,false);}
+    uint64_t affinity,const xnetudpconfig* config){return xl6ExecutionUdpOpenV1(source,engine,address,NULL,affinity,config);}
 Resource* xl6ExecutionUdpConnectV1(XL6_ExecutionSourceV1* source,Resource* engine,const xnetaddr* address,
-    uint32_t worker,const xnetudpconfig* config){return make(source,engine,address,worker,config,true);}
+    uint64_t affinity,const xnetudpconfig* config){return xl6ExecutionUdpOpenV1(source,engine,NULL,address,affinity,config);}
 bool xl6ExecutionUdpEnterInternalV1(Resource* r,bool submit,XL6_UdpScopeV1* scope)
 {
     if(!scope||scope->execution.resource||scope->udp){xrtSetErrorKind(XERR_ARGUMENT);return false;}

@@ -57,8 +57,7 @@ void xl6CgenEmitNetTcpStatsComponent(
 /* Exact int64/bool/void ABI component. XLIR supplies owned Future mappers and
  * a checked Buffer object projection before these bodies. */
 typedef struct XL6_CgenNetDatagramNeeds {
-    int socket, packet, batch, recvAsync, buffers;
-    int engineStats, udpStats;
+    int engineStats;
 } XL6_CgenNetDatagramNeeds;
 void xl6CgenEmitNetDatagramComponent(XL6_Output* out, const XL6_CgenNetDatagramNeeds* needs);
 
