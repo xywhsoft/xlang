@@ -69,6 +69,26 @@ try {
         $null = Check "$name-c" $exe @()
         $null = Check "$name-c-jit" $xl (@('run',$test) + $sources[$name])
 
+        $golden = [IO.File]::ReadAllText((Join-Path $Root "release/examples/extlibs/${name}_basic.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
+        $example = "release/examples/extlibs/${name}_c.c"
+        $text = Check "$name-example-c" $xl @('run',$example)
+        if ($text -cne $golden) { throw "$name C example differs from golden output" }
+        $binary = Join-Path $work "$name-example-c.exe"
+        $null = Check "$name-example-c-build" $xl @('build',$example,'-o',$binary)
+        $text = Check "$name-example-c-aot" $binary @()
+        if ($text -cne $golden) { throw "$name C AOT example differs from golden output" }
+        $exampleExe = Join-Path $work "$name-example-gcc.exe"
+        $null = Check "$name-example-gcc-build" $gcc ($flags + @($example) + $links + @('-o',$exampleExe))
+        $text = Check "$name-example-gcc" $exampleExe @()
+        if ($text -cne $golden) { throw "$name GCC example differs from golden output" }
+    }
+    $alloc = Join-Path $work 'allocation.exe'
+    $null = Check 'allocation-build' $gcc ($flags + @('test/cases/extlib_argon2_bloom_alloc.c') + $objects.argon2 + $objects.bloom + $links + @('-o',$alloc))
+    $text = Check 'allocation' $alloc @()
+    if ($text -notmatch '^argon2/bloom allocation: rejected=[1-9][0-9]* completed=[1-9][0-9]*$') { throw 'Allocation coverage marker missing' }
+
+    # 语言门禁仍严格失败，但不遮蔽与 XLIR 无关的两包 C 结果。
+    foreach ($name in @('argon2','bloom')) {
         $case = "test/cases/extlib_$name.xl"
         $module = Join-Path $work "$name.c"
         $null = Check "$name-cgen" $xl @('cgen',$case,'--emit',$module)
@@ -90,24 +110,14 @@ try {
         $null = Check "$name-xlang-aot" $aot @()
 
         $golden = [IO.File]::ReadAllText((Join-Path $Root "release/examples/extlibs/${name}_basic.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
-        foreach ($language in @('xl','c')) {
-            $example = if ($language -eq 'xl') { "release/examples/extlibs/${name}_basic.xl" } else { "release/examples/extlibs/${name}_c.c" }
-            $text = Check "$name-example-$language" $xl @('run',$example)
-            if ($text -cne $golden) { throw "$name $language example differs from golden output" }
-            $binary = Join-Path $work "$name-example-$language.exe"
-            $null = Check "$name-example-$language-build" $xl @('build',$example,'-o',$binary)
-            $text = Check "$name-example-$language-aot" $binary @()
-            if ($text -cne $golden) { throw "$name $language AOT example differs from golden output" }
-        }
-        $exampleExe = Join-Path $work "$name-example-gcc.exe"
-        $null = Check "$name-example-gcc-build" $gcc ($flags + @("release/examples/extlibs/${name}_c.c") + $links + @('-o',$exampleExe))
-        $text = Check "$name-example-gcc" $exampleExe @()
-        if ($text -cne $golden) { throw "$name GCC example differs from golden output" }
+        $example = "release/examples/extlibs/${name}_basic.xl"
+        $text = Check "$name-example-xl" $xl @('run',$example)
+        if ($text -cne $golden) { throw "$name XLang example differs from golden output" }
+        $binary = Join-Path $work "$name-example-xl.exe"
+        $null = Check "$name-example-xl-build" $xl @('build',$example,'-o',$binary)
+        $text = Check "$name-example-xl-aot" $binary @()
+        if ($text -cne $golden) { throw "$name XLang AOT example differs from golden output" }
     }
-    $alloc = Join-Path $work 'allocation.exe'
-    $null = Check 'allocation-build' $gcc ($flags + @('test/cases/extlib_argon2_bloom_alloc.c') + $objects.argon2 + $objects.bloom + $links + @('-o',$alloc))
-    $text = Check 'allocation' $alloc @()
-    if ($text -notmatch '^argon2/bloom allocation: rejected=[1-9][0-9]* completed=[1-9][0-9]*$') { throw 'Allocation coverage marker missing' }
     foreach ($name in @('argon2','bloom')) {
         $null = Check "$name-tutorial" $xl @('run',"release/examples/extlibs/$name.xl") 180
     }
