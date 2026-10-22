@@ -28,8 +28,8 @@ int main(void) {
         "msgid \"Blank\"\nmsgstr \"\"\n\n"
         "msgid \"escaped\"\nmsgstr \"\\x41\\x42\\?\"\n";
     xvalue *catalog = xgt_parse_po(po);
-    xvalue *mo_bytes = NULL, *mo = NULL;
-    char *menu, *plural, *toolbar, *mo_text = NULL;
+    xvalue *mo_bytes = NULL, *mo = NULL, *loaded = NULL;
+    char *menu, *plural, *toolbar, *mo_text = NULL, *loaded_text = NULL;
     bytes file_data;
     size_t file_size = 0;
     int ok;
@@ -68,6 +68,13 @@ int main(void) {
     if (ok) printf("mo: %s\n", mo_text);
     xrtFree(mo_text);
     xrtValueRelease(mo);
+    loaded = xgt_load_mo("test/fixtures/gettext_mini.mo");
+    if (loaded && xrtValueType(loaded) == XVALUE_OBJECT)
+        loaded_text = xgt_t(loaded, "hello");
+    if (!loaded_text || strcmp(loaded_text, "world!") != 0) ok = 0;
+    if (ok) printf("loaded: %s\n", loaded_text);
+    xrtFree(loaded_text);
+    xrtValueRelease(loaded);
     return ok ? 0 : 1;
 }
 

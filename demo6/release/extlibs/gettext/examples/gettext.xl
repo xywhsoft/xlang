@@ -45,5 +45,8 @@ msgstr "\\x41\\x42\\?"
     var mo = gettext.parseMo(file.readBytes("../test/fixtures/gettext_mini.mo"))
     assert gettext.t(mo, "hello") == "world!"
     println("mo:", gettext.t(mo, "hello"))
+    var loaded = gettext.loadMo("../test/fixtures/gettext_mini.mo")
+    assert gettext.t(loaded, "hello") == "world!"
+    println("loaded:", gettext.t(loaded, "hello"))
     return 0
 end
