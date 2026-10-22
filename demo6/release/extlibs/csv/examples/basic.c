@@ -7,6 +7,8 @@ int main(void)
     const str header[] = {"name", "city", "note"};
     const str alice[] = {"Alice", "上海", "a,b"};
     const str bob[] = {"Bob", "深圳", "say \"hi\""};
+    static const char expected[] =
+        "name,city,note\nAlice,上海,\"a,b\"\nBob,深圳,\"say \"\"hi\"\"\"\n";
     xrtcsvwriter* writer = xrtCsvWriterCreateMemory(NULL);
     xrtcsvreader* reader = NULL;
     xbuffer* data = NULL;
@@ -20,6 +22,8 @@ int main(void)
     if (!xrtCsvWriterClose(writer)) goto done;
     data = xrtCsvWriterTakeBuffer(writer);
     if (data == NULL) goto done;
+    if (data->Size != sizeof(expected) - 1u ||
+        memcmp(data->Data, expected, sizeof(expected) - 1u) != 0) goto done;
     xrtCsvWriterDestroy(writer);
     writer = NULL;
     reader = xrtCsvReaderOpenMemory(data->Data, data->Size, NULL);
@@ -35,6 +39,7 @@ int main(void)
     xrtBufferDestroy(data);
     data = NULL;
     printf("rows: %u\n", count);
+    puts("stringify: preserved");
 
     xrtcsvdialect dialect;
     xrtCsvDialectInit(&dialect);

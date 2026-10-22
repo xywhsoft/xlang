@@ -125,7 +125,7 @@ rows.close()</code></pre>
     C 对照位于 extlibs/csv/examples/basic.c 和 files.c，教学范例显式包含 CSV 核心源码，
     可直接运行 <code>xl run release/extlibs/csv/examples/basic.c</code> 或
     <code>xl run release/extlibs/csv/examples/files.c</code>；正式包仍分别编译四个 C 源。</p>
-    <p>两组固定输出覆盖表头、Unicode、TSV、严格错误、未提交保留旧文件和提交后读取汇总。
+    <p>两组固定输出覆盖表头、Unicode、TSV、严格错误、未提交保留旧文件和提交后读取汇总。基础范例还分别以 XLang stringify 和 C Writer 核对含逗号、引号与中文的完整 CSV 线格式。
     C 与 XLang 文件范例都通过 XRT 排他创建临时目录，只操作其中的报表.csv，并在结束时清理；XLang 范例不再写入固定的 build/test 路径，不会覆盖工作目录中的同名文件。</p>
     <p>2026-10-20：包内 XLang 文件事务测试也改用独占临时目录，单独运行及 Windows/Linux 包级门禁通过；完整 AOT 仍受主线缺符号阻断。</p>
 

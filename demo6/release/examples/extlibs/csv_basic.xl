@@ -14,6 +14,14 @@ end
 input.close()
 println("rows: " + string(count))
 
+array<array<string>> table = array[]
+table.append(array["name", "city", "note"])
+table.append(array["Alice", "上海", "a,b"])
+table.append(array["Bob", "深圳", "say \"hi\""])
+string expected = "name,city,note\nAlice,上海,\"a,b\"\nBob,深圳,\"say \"\"hi\"\"\"\n"
+assert csv.stringify(table) == expected
+println("stringify: preserved")
+
 // TAB 是普通分隔符，字段内部的 TAB 会自动加引号。
 auto tsv = csv.create(delimiter = "\t")
 tsv.write(["甲", "a\tb", ""])
