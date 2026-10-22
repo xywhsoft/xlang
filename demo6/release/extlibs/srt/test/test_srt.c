@@ -114,7 +114,8 @@ static int test_mutations(void) {
             state = state * 1664525u + 1013904223u;
             first = state % size;
             state = state * 1664525u + 1013904223u;
-            second = state % size;
+            second = state % (size - 1u);
+            if (second >= first) ++second;
             memcpy(input, seeds[seed], size);
             input[first] = (char)replacements[i % sizeof(replacements)];
             input[second] = (char)replacements[(i / sizeof(replacements)) %
