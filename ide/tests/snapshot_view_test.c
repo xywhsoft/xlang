@@ -97,7 +97,7 @@ static int verify(void* user)
  /* Rechecking preserves the wire mirror and unchanged captured bodies. */
  CHECK(xideEditorShow(&app,xl)==XUI_OK);
  xide_language_view* view=app.languageView; xide_language_client* retainedClient=view->client;
- char* retainedRoot=inputPath(view,entry)->text; xls_sync_stats syncBefore={0},syncAfter={0}; xlsSyncStats(view->sync,&syncBefore);
+ const char* retainedRoot=inputPath(view,entry)->text; xls_sync_stats syncBefore={0},syncAfter={0}; xlsSyncStats(view->sync,&syncBefore);
  CHECK(view->sync && (view->syncKind==1 || view->syncKind==2) && menuCheck(&app) && ready(&app,1));
  xlsSyncStats(view->sync,&syncAfter);
  CHECK(view->client==retainedClient && inputPath(view,entry)->text==retainedRoot && !memcmp(&syncBefore,&syncAfter,sizeof(syncBefore)));

@@ -8,7 +8,7 @@
 #define TEXT_LIMIT (8u*1024u*1024u)
 #define TOTAL_LIMIT (32u*1024u*1024u)
 typedef struct sync_entry {
-    unsigned references;
+    xatomic32 references;
     char* uri;
     uint64_t identity,revision;
     int version;
@@ -25,10 +25,10 @@ static int put(xvalue* object,const char* name,xvalue* value)
     int okay=xrtValueObjectSet(object,sv(name),value);
     xrtValueRelease(value); return okay;
 }
-static sync_entry* retain(sync_entry* entry) { if(entry) ++entry->references; return entry; }
+static sync_entry* retain(sync_entry* entry) { if(entry) xrtAtomic32FetchAdd(&entry->references,1,XMEMORY_RELAXED); return entry; }
 static void release(sync_entry* entry)
 {
-    if(entry && !--entry->references) { xlsTextRelease(entry->text); xrtFree(entry->uri); xrtFree(entry); }
+    if(entry && xrtAtomic32FetchSub(&entry->references,1,XMEMORY_ACQ_REL)==1) { xlsTextRelease(entry->text); xrtFree(entry->uri); xrtFree(entry); }
 }
 static void freeEntries(xarray* entries)
 {
@@ -47,7 +47,7 @@ static sync_entry* createEntry(const xls_sync_document* document,sync_entry* pre
 {
     sync_entry* entry=xrtMalloc(sizeof(*entry));
     if(!entry) return NULL;
-    memset(entry,0,sizeof(*entry)); entry->references=1;
+    memset(entry,0,sizeof(*entry)); xrtAtomic32Init(&entry->references,1);
     size_t size=strlen(document->uri)+1;
     entry->uri=xrtMalloc(size);
     if(!entry->uri) { release(entry); return NULL; }
@@ -79,6 +79,16 @@ xls_sync* xlsSyncCreate(int changeKind)
 }
 void xlsSyncDestroy(xls_sync* sync)
 { if(sync) { freeEntries(&sync->entries); xrtFree(sync); } }
+xls_sync* xlsSyncClone(const xls_sync* sync)
+{
+    if(!sync || sync->failed) return NULL;
+    xls_sync* result=xlsSyncCreate(sync->kind);if(!result) return NULL;
+    for(size_t i=0;i<sync->entries.Count;++i) {
+        sync_entry* entry=retain(*(sync_entry*const*)xrtArrayConstGet(&sync->entries,i));
+        if(!xrtArrayPush(&result->entries,&entry)) { release(entry);xlsSyncDestroy(result);return NULL; }
+    }
+    result->stats=sync->stats;return result;
+}
 int xlsSyncVersion(const xls_sync* sync,const char* uri)
 {
     sync_entry* entry=sync && !sync->failed && uri ? find(&sync->entries,uri) : NULL;

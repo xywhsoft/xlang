@@ -17,6 +17,10 @@ typedef struct xls_sync_stats { uint64_t opens,changes,closes,textBytes; } xls_s
 typedef int (*xls_sync_emit)(void* user,const char* method,const xvalue* params);
 /* changeKind is 1 (full) or 2 (incremental). One owner thread per instance. */
 xls_sync* xlsSyncCreate(int changeKind);
+/* Owner-thread snapshot. The returned instance has its own mutable state and
+ * may move to another thread; published immutable entries/text are retained.
+ * A poisoned source cannot be cloned. No document body is scanned or copied. */
+xls_sync* xlsSyncClone(const xls_sync* sync);
 void xlsSyncDestroy(xls_sync* sync);
 /* identity/revision must identify exact text: unchanged revisions reuse cached
  * snapshots without scanning or copying bodies. All inputs are validated and

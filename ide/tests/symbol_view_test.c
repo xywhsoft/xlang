@@ -94,7 +94,7 @@ static int verify(void* user)
  CHECK(requestCaretHover(&app) && app.languageView->waitingInitialize && xideEditorClose(&app,xl,1,&error) && waitInitialized(&app) && !app.languageView->waitingInitialize && !app.languageView->receiptReady && !app.languageView->hoverResult && !app.languageView->outlineResult);
  CHECK(xideEditorOpen(&app,entry,&error)); xl=app.activeDocument;
  CHECK(replace(xl,coldImported) && gotoOffset(&app,xl,coldCall) && requestCaretHover(&app) && waitHover(&app) && waitOutline(&app) && app.languageView->receiptReady);
- CHECK(replace(xl,overload) && replace(dependency,helper) && settle(&app) && xideActionExecute(&app,XIDE_ACTION_OUTLINE)==XIDE_ACTION_DISPATCHED && app.languageView->receiptRequest && xideActionExecute(&app,XIDE_ACTION_CANCEL_CHECK)==XIDE_ACTION_DISPATCHED && settle(&app) && !app.languageView->receiptReady && !app.languageView->hoverResult && !app.languageView->outlineResult);
+ CHECK(replace(xl,overload) && replace(dependency,helper) && settle(&app) && xideActionExecute(&app,XIDE_ACTION_OUTLINE)==XIDE_ACTION_DISPATCHED && app.languageView->syncMode && !app.languageView->receiptReady && xideActionExecute(&app,XIDE_ACTION_CANCEL_CHECK)==XIDE_ACTION_DISPATCHED && settle(&app) && !app.languageView->syncMode && !app.languageView->receiptReady && !app.languageView->hoverResult && !app.languageView->outlineResult);
  large=malloc(512000); CHECK(large); size_t largeAt=0;
  for(int i=0;i<3000;++i) { int written=snprintf(large+largeAt,512000-largeAt,"func source%d() as int\n return %d\nend\n",i,i); CHECK(written>0 && (size_t)written<512000-largeAt); largeAt+=(size_t)written; }
  CHECK(largeAt+strlen(saved)<512000); strcpy(large+largeAt,saved);
