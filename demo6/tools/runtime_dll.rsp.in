@@ -316,6 +316,14 @@
     src\runtime\xl6_crypto_aes_gcm_domain.c
     src\runtime\xl6_crypto_chacha_aead.c
     src\runtime\xl6_crypto_chacha_aead_domain.c
+    src\runtime\xl6_crypto_x25519.c
+    src\runtime\xl6_crypto_x25519_domain.c
+    src\runtime\xl6_crypto_x25519_generate.c
+    src\runtime\xl6_crypto_x25519_raw.c
+    src\runtime\xl6_crypto_x448.c
+    src\runtime\xl6_crypto_x448_domain.c
+    src\runtime\xl6_crypto_x448_generate.c
+    src\runtime\xl6_crypto_x448_raw.c
     src\runtime\xl6_der_value.c
     src\runtime\xl6_der_value_domain.c
     src\runtime\xl6_der_reader.c

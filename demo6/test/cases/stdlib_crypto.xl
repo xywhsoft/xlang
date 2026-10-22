@@ -174,21 +174,19 @@ assert crypto.ed25519Verify(edPub, "message", edSig), "ed25519 verify failed"
 assert not crypto.ed25519Verify(edPub, "message!", edSig), "ed25519 verify should reject modified text"
 assert not crypto.ed25519Verify("bad", "message", edSig), "ed25519 verify should reject bad public key"
 
-var x25519A = crypto.x25519Keypair()
-var x25519B = crypto.x25519Keypair()
-string x25519SecretA = crypto.x25519SharedSecret(string(x25519A["privateKey"]), string(x25519B["publicKey"]))
-string x25519SecretB = crypto.x25519SharedSecret(string(x25519B["privateKey"]), string(x25519A["publicKey"]))
-expect(string.len(x25519SecretA), 64)
-expectStr(x25519SecretA, x25519SecretB)
-expectStr(crypto.x25519SharedSecret("bad", string(x25519B["publicKey"])), "")
+auto x25519A = crypto.x25519KeyPair()
+auto x25519B = crypto.x25519KeyPair()
+bytes x25519SecretA = x25519A.sharedSecret(x25519B.publicKey)
+bytes x25519SecretB = x25519B.sharedSecret(x25519A.publicKey)
+assert x25519SecretA == x25519SecretB
+assert x25519A.exportPrivate().length == 32
 
-var x448A = crypto.x448Keypair()
-var x448B = crypto.x448Keypair()
-string x448SecretA = crypto.x448SharedSecret(string(x448A["privateKey"]), string(x448B["publicKey"]))
-string x448SecretB = crypto.x448SharedSecret(string(x448B["privateKey"]), string(x448A["publicKey"]))
-expect(string.len(x448SecretA), 112)
-expectStr(x448SecretA, x448SecretB)
-expectStr(crypto.x448SharedSecret("bad", string(x448B["publicKey"])), "")
+auto x448A = crypto.x448KeyPair()
+auto x448B = crypto.x448KeyPair()
+bytes x448SecretA = x448A.sharedSecret(x448B.publicKey)
+bytes x448SecretB = x448B.sharedSecret(x448A.publicKey)
+assert x448SecretA == x448SecretB
+assert x448A.exportPrivate().length == 56
 
 var p256A = crypto.p256Keypair()
 var p256B = crypto.p256Keypair()

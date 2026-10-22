@@ -313,6 +313,7 @@ const char* xl6StdlibXidClassSource =
 #include "src/stdlib/xl6_stdlib_task_group.inc"
 
 #include "xl6_stdlib_crypto.inc"
+#include "xl6_stdlib_xdh.inc"
 
 #include "xl6_stdlib_net_address.inc"
 #include "xl6_stdlib_net_resolver.inc"
@@ -3908,29 +3909,7 @@ static const char xl6StdCryptoEd25519VerifyBody[] =
     "    return __xl_std_runtime_ed25519_verify(publicKeyHex, __xl_size_publicKeyHex, text, __xl_size_text, signatureHex, __xl_size_signatureHex)\n"
     "end\n";
 
-static const char xl6StdCryptoX25519KeypairBody[] =
-    "func __xl_std_crypto_x25519_keypair() as var\n"
-    "    return __xl_std_runtime_x25519_keypair()\n"
-    "end\n";
 
-static const char xl6StdCryptoX25519SharedSecretBody[] =
-    "func __xl_std_crypto_x25519_shared_secret(string privateKeyHex, string publicKeyHex) as string\n"
-    "    c_size __xl_size_privateKeyHex = __xl_std_xrt_string_byte_len(privateKeyHex)\n"
-    "    c_size __xl_size_publicKeyHex = __xl_std_xrt_string_byte_len(publicKeyHex)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_x25519_shared_secret_hex(privateKeyHex, __xl_size_privateKeyHex, publicKeyHex, __xl_size_publicKeyHex))\n"
-    "end\n";
-
-static const char xl6StdCryptoX448KeypairBody[] =
-    "func __xl_std_crypto_x448_keypair() as var\n"
-    "    return __xl_std_runtime_x448_keypair()\n"
-    "end\n";
-
-static const char xl6StdCryptoX448SharedSecretBody[] =
-    "func __xl_std_crypto_x448_shared_secret(string privateKeyHex, string publicKeyHex) as string\n"
-    "    c_size __xl_size_privateKeyHex = __xl_std_xrt_string_byte_len(privateKeyHex)\n"
-    "    c_size __xl_size_publicKeyHex = __xl_std_xrt_string_byte_len(publicKeyHex)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_x448_shared_secret_hex(privateKeyHex, __xl_size_privateKeyHex, publicKeyHex, __xl_size_publicKeyHex))\n"
-    "end\n";
 
 static const char xl6StdCryptoP256KeypairBody[] =
     "func __xl_std_crypto_p256_keypair() as var\n"
@@ -4527,10 +4506,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "ed25519PublicKeyHex", "__xl_std_runtime_ed25519_public_key_hex", "xl6_xrt_ed25519_public_key_hex", xl6StdRuntimeCryptoTextHexParams, 2, "point", NULL},
     {"__xl_runtime", "ed25519SignHex", "__xl_std_runtime_ed25519_sign_hex", "xl6_xrt_ed25519_sign_hex", xl6StdRuntimeCryptoSignParams, 4, "point", NULL},
     {"__xl_runtime", "ed25519Verify", "__xl_std_runtime_ed25519_verify", "xl6_xrt_ed25519_verify", xl6StdRuntimeCryptoVerifyParams, 6, "c_bool", NULL},
-    {"__xl_runtime", "x25519Keypair", "__xl_std_runtime_x25519_keypair", "xl6_xrt_x25519_keypair", NULL, 0, "var", NULL},
-    {"__xl_runtime", "x25519SharedSecretHex", "__xl_std_runtime_x25519_shared_secret_hex", "xl6_xrt_x25519_shared_secret_hex", xl6StdRuntimeCryptoSharedSecretParams, 4, "point", NULL},
-    {"__xl_runtime", "x448Keypair", "__xl_std_runtime_x448_keypair", "xl6_xrt_x448_keypair", NULL, 0, "var", NULL},
-    {"__xl_runtime", "x448SharedSecretHex", "__xl_std_runtime_x448_shared_secret_hex", "xl6_xrt_x448_shared_secret_hex", xl6StdRuntimeCryptoSharedSecretParams, 4, "point", NULL},
     {"__xl_runtime", "p256Keypair", "__xl_std_runtime_p256_keypair", "xl6_xrt_p256_keypair", NULL, 0, "var", NULL},
     {"__xl_runtime", "p256SharedSecretHex", "__xl_std_runtime_p256_shared_secret_hex", "xl6_xrt_p256_shared_secret_hex", xl6StdRuntimeCryptoSharedSecretParams, 4, "point", NULL},
     {"__xl_runtime", "p384Keypair", "__xl_std_runtime_p384_keypair", "xl6_xrt_p384_keypair", NULL, 0, "var", NULL},
@@ -5373,10 +5348,10 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"crypto", "ed25519PublicKey", "__xl_std_crypto_ed25519_public_key", NULL, NULL, 0, "string", xl6StdCryptoEd25519PublicKeyBody},
     {"crypto", "ed25519Sign", "__xl_std_crypto_ed25519_sign", NULL, NULL, 0, "string", xl6StdCryptoEd25519SignBody},
     {"crypto", "ed25519Verify", "__xl_std_crypto_ed25519_verify", NULL, NULL, 0, "bool", xl6StdCryptoEd25519VerifyBody},
-    {"crypto", "x25519Keypair", "__xl_std_crypto_x25519_keypair", NULL, NULL, 0, "var", xl6StdCryptoX25519KeypairBody},
-    {"crypto", "x25519SharedSecret", "__xl_std_crypto_x25519_shared_secret", NULL, NULL, 0, "string", xl6StdCryptoX25519SharedSecretBody},
-    {"crypto", "x448Keypair", "__xl_std_crypto_x448_keypair", NULL, NULL, 0, "var", xl6StdCryptoX448KeypairBody},
-    {"crypto", "x448SharedSecret", "__xl_std_crypto_x448_shared_secret", NULL, NULL, 0, "string", xl6StdCryptoX448SharedSecretBody},
+    {"crypto", "x25519KeyPair", "__xl_std_crypto_x25519KeyPair", NULL, NULL, 0, "X25519Key", xl6StdResidentxl6CryptoX25519GenerateV1},
+    {"cryptoAdvanced", "x25519", "__xl_std_cryptoAdvanced_x25519", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoX25519RawV1},
+    {"crypto", "x448KeyPair", "__xl_std_crypto_x448KeyPair", NULL, NULL, 0, "X448Key", xl6StdResidentxl6CryptoX448GenerateV1},
+    {"cryptoAdvanced", "x448", "__xl_std_cryptoAdvanced_x448", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoX448RawV1},
     {"crypto", "p256Keypair", "__xl_std_crypto_p256_keypair", NULL, NULL, 0, "var", xl6StdCryptoP256KeypairBody},
     {"crypto", "p256SharedSecret", "__xl_std_crypto_p256_shared_secret", NULL, NULL, 0, "string", xl6StdCryptoP256SharedSecretBody},
     {"crypto", "p384Keypair", "__xl_std_crypto_p384_keypair", NULL, NULL, 0, "var", xl6StdCryptoP384KeypairBody},

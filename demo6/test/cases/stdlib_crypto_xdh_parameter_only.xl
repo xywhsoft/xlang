@@ -1,0 +1,7 @@
+// Exported typed receivers need their exact resident policy without a local constructor.
+export func derive25519(X25519Key key, bytes peer) as bytes
+    return key.sharedSecret(peer)
+end
+export func derive448(X448Key key, bytes peer) as bytes
+    return key.sharedSecret(peer)
+end
