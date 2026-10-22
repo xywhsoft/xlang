@@ -70,6 +70,75 @@ int main(void)
                                             "000000", "1|0|000000", 0.0, 0),
                       "0,0")) return 17;
     {
+        char overlong_color[1030];
+        char color_list[65u * 7u];
+        char offset_list[129u * 11u];
+        size_t color_used = 0u, offset_used = 0u;
+        void *invalid;
+        int i;
+        memset(overlong_color, '0', sizeof(overlong_color) - 1u);
+        overlong_color[sizeof(overlong_color) - 1u] = '\0';
+        xrtClearError();
+        invalid = xop_find_color(op, 0, 0, 0, 0, "00000G", 0.0, 0);
+        if (invalid != NULL || xrtGetError() == NULL) { xrtFree(invalid); return 30; }
+        xrtClearError();
+        invalid = xop_find_color(op, 0, 0, 0, 0, overlong_color, 0.0, 0);
+        if (invalid != NULL || xrtGetError() == NULL) { xrtFree(invalid); return 31; }
+        xrtClearError();
+        invalid = xop_find_multi_color(op, 0, 0, 1, 0,
+                                        "000000", "1x|0|000000", 0.0, 0);
+        if (invalid != NULL || xrtGetError() == NULL) { xrtFree(invalid); return 32; }
+        xrtClearError();
+        invalid = xop_find_multi_color(op, 0, 0, 1, 0,
+                                        "000000", "2147483648|0|000000", 0.0, 0);
+        if (invalid != NULL || xrtGetError() == NULL) { xrtFree(invalid); return 33; }
+        xrtClearError();
+        invalid = xop_find_color(op, 0, 0, 0, 0, "000000|", 0.0, 0);
+        if (invalid != NULL || xrtGetError() == NULL) { xrtFree(invalid); return 34; }
+        xrtClearError();
+        if (xop_get_color_num(op, 0, 0, 0, 0, "00000G", 0.0) != 0 ||
+            xrtGetError() == NULL) { fputs("op invalid count was accepted\n", stderr); return 39; }
+        if (!text_matches(xop_find_color(op, 0, 0, 0, 0,
+                "000000-000000", 0.0, 0), "0,0")) {
+            fputs("op valid tolerance was rejected\n", stderr); return 40;
+        }
+        if (!text_matches(xop_find_color(op, 0, 0, 0, 0,
+                "@000000", 0.0, 0), "")) {
+            fputs("op valid negation was rejected\n", stderr); return 41;
+        }
+        if (!text_matches(xop_find_multi_color(op, 0, 0, 1, 0,
+                "000000", "-1|0|000000", 0.0, 0), "1,0")) {
+            fputs("op valid negative offset was rejected\n", stderr); return 42;
+        }
+        if (!text_matches(xop_find_multi_color(op, 0, 0, 1, 0,
+                "000000", "2147483647|0|000000", 0.0, 0), "")) return 43;
+        if (!text_matches(xop_find_multi_color(op, 0, 0, 1, 0,
+                "000000", "-2147483648|0|000000", 0.0, 0), "")) return 44;
+        for (i = 0; i < 65; ++i) {
+            if (i != 0) color_list[color_used++] = '|';
+            memcpy(color_list + color_used, "000000", 6u);
+            color_used += 6u;
+            color_list[color_used] = '\0';
+            if (i == 63 && !text_matches(xop_find_color(op, 0, 0, 0, 0,
+                    color_list, 0.0, 0), "0,0")) return 35;
+        }
+        xrtClearError();
+        invalid = xop_find_color(op, 0, 0, 0, 0, color_list, 0.0, 0);
+        if (invalid != NULL || xrtGetError() == NULL) { xrtFree(invalid); return 36; }
+        for (i = 0; i < 129; ++i) {
+            if (i != 0) offset_list[offset_used++] = ',';
+            memcpy(offset_list + offset_used, "1|0|000000", 10u);
+            offset_used += 10u;
+            offset_list[offset_used] = '\0';
+            if (i == 127 && !text_matches(xop_find_multi_color(op, 0, 0, 1, 0,
+                    "000000", offset_list, 0.0, 0), "0,0")) return 37;
+        }
+        xrtClearError();
+        invalid = xop_find_multi_color(op, 0, 0, 1, 0,
+                                        "000000", offset_list, 0.0, 0);
+        if (invalid != NULL || xrtGetError() == NULL) { xrtFree(invalid); return 38; }
+    }
+    {
         char *colors = xop_get_colors(op, 0, 0, 99, 99);
         char *matches = xop_find_color_ex(op, 0, 0, 0, 0,
                                            "000000", 0.0, 0);

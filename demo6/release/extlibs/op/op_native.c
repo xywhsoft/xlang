@@ -8,7 +8,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <errno.h>
 #include <float.h>
+#include <limits.h>
 #include <wchar.h>
 #ifndef XRT_MODULE_PATH_SYSTEM
 #define XRT_MODULE_PATH_SYSTEM
@@ -1200,50 +1202,60 @@ typedef struct {
 
 #define OP_MAX_COLORS 64
 
-static int op_hex2(const char *s) {
-    int v = 0, i;
-    for (i = 0; i < 2 && s[i]; i++) {
-        char c = s[i];
-        v <<= 4;
-        if (c >= '0' && c <= '9') v += c - '0';
-        else if (c >= 'a' && c <= 'f') v += c - 'a' + 10;
-        else if (c >= 'A' && c <= 'F') v += c - 'A' + 10;
-    }
-    return v;
+static int op_hex_digit(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    return -1;
+}
+
+static int op_hex2(const char *s, int *out) {
+    int high = op_hex_digit(s[0]);
+    int low = op_hex_digit(s[1]);
+    if (high < 0 || low < 0) return 0;
+    *out = high * 16 + low;
+    return 1;
 }
 
 /* Parse "RRGGBB" or "RRGGBB-DRDGDB", optionally prefixed with @ */
-static int op_parse_one_color(const char *s, op_color_t *out) {
-    memset(out, 0, sizeof(*out));
-    if (*s == '@') { out->negate = 1; s++; }
-    if (strlen(s) < 6) return 0;
-    out->r = op_hex2(s);
-    out->g = op_hex2(s + 2);
-    out->b = op_hex2(s + 4);
-    const char *dash = strchr(s, '-');
-    if (dash && strlen(dash) >= 7) {
-        dash++;
-        out->dr = op_hex2(dash);
-        out->dg = op_hex2(dash + 2);
-        out->db = op_hex2(dash + 4);
+static int op_parse_one_color(const char *s, size_t length, op_color_t *out) {
+    op_color_t value = {0};
+    if (length != 0u && *s == '@') {
+        value.negate = 1;
+        ++s;
+        --length;
     }
+    if ((length != 6u && length != 13u) ||
+        !op_hex2(s, &value.r) || !op_hex2(s + 2, &value.g) ||
+        !op_hex2(s + 4, &value.b)) return 0;
+    if (length == 13u && (s[6] != '-' ||
+        !op_hex2(s + 7, &value.dr) || !op_hex2(s + 9, &value.dg) ||
+        !op_hex2(s + 11, &value.db))) return 0;
+    *out = value;
     return 1;
 }
 
 /* Parse multi-color "RRGGBB-DRDGDB|RRGGBB|..." */
 static int op_parse_colors(const char *color_str, op_color_t *colors, int max) {
-    char tmp[1024];
-    strncpy(tmp, color_str, sizeof(tmp) - 1);
-    tmp[sizeof(tmp) - 1] = '\0';
     int count = 0;
-    char *p = tmp;
-    while (p && *p && count < max) {
-        char *sep = strchr(p, '|');
-        if (sep) *sep = '\0';
-        if (op_parse_one_color(p, &colors[count])) count++;
-        p = sep ? sep + 1 : NULL;
+    const char *p = color_str;
+    while (*p != '\0') {
+        const char *sep = strchr(p, '|');
+        size_t length = sep != NULL ? (size_t)(sep - p) : strlen(p);
+        if (count == max || !op_parse_one_color(p, length, &colors[count])) return 0;
+        ++count;
+        if (sep == NULL) break;
+        p = sep + 1;
+        if (*p == '\0') return 0;
     }
     return count;
+}
+
+static int op_parse_delta_color(const char *text, int *r, int *g, int *b) {
+    *r = *g = *b = 0;
+    if (text == NULL || *text == '\0') return 1;
+    return strlen(text) == 6u && op_hex2(text, r) &&
+        op_hex2(text + 2, g) && op_hex2(text + 4, b);
 }
 
 static int op_pixel_match(BYTE pr, BYTE pg, BYTE pb, const op_color_t *c, double sim) {
@@ -1377,27 +1389,36 @@ typedef struct {
 
 #define OP_MAX_OFFSETS 128
 
+static int op_parse_offset_int(const char *begin, const char *end, int *out) {
+    char *tail;
+    long value;
+    if (begin == end || (*begin != '+' && *begin != '-' &&
+        (*begin < '0' || *begin > '9'))) return 0;
+    errno = 0;
+    value = strtol(begin, &tail, 10);
+    if (errno == ERANGE || tail != end || value < INT_MIN || value > INT_MAX) return 0;
+    *out = (int)value;
+    return 1;
+}
+
 static int op_parse_offsets(const char *s, op_offset_point_t *pts, int max) {
-    char tmp[4096];
-    strncpy(tmp, s, sizeof(tmp) - 1);
-    tmp[sizeof(tmp) - 1] = '\0';
     int count = 0;
-    char *p = tmp;
-    while (p && *p && count < max) {
-        char *comma = strchr(p, ',');
-        if (comma) *comma = '\0';
-        /* parse "x|y|RRGGBB-DRDGDB" */
-        char *pipe1 = strchr(p, '|');
-        if (!pipe1) { p = comma ? comma + 1 : NULL; continue; }
-        *pipe1 = '\0';
-        char *pipe2 = strchr(pipe1 + 1, '|');
-        if (!pipe2) { p = comma ? comma + 1 : NULL; continue; }
-        *pipe2 = '\0';
-        pts[count].ox = atoi(p);
-        pts[count].oy = atoi(pipe1 + 1);
-        op_parse_one_color(pipe2 + 1, &pts[count].color);
+    const char *p = s;
+    while (*p != '\0') {
+        const char *comma = strchr(p, ',');
+        const char *end = comma != NULL ? comma : p + strlen(p);
+        const char *pipe1 = memchr(p, '|', (size_t)(end - p));
+        const char *pipe2 = pipe1 != NULL ?
+            memchr(pipe1 + 1, '|', (size_t)(end - pipe1 - 1)) : NULL;
+        if (count == max || pipe2 == NULL ||
+            !op_parse_offset_int(p, pipe1, &pts[count].ox) ||
+            !op_parse_offset_int(pipe1 + 1, pipe2, &pts[count].oy) ||
+            !op_parse_one_color(pipe2 + 1, (size_t)(end - pipe2 - 1),
+                &pts[count].color)) return 0;
         count++;
-        p = comma ? comma + 1 : NULL;
+        if (comma == NULL) break;
+        p = comma + 1;
+        if (*p == '\0') return 0;
     }
     return count;
 }
@@ -1443,12 +1464,12 @@ void *xop_find_multi_color(void *ptr, long long x1, long long y1,
             {
                 int k, all_ok = 1;
                 for (k = 0; k < noffsets; k++) {
-                    int px = xx + offsets[k].ox;
-                    int py = yy + offsets[k].oy;
+                    int64_t px = (int64_t)xx + offsets[k].ox;
+                    int64_t py = (int64_t)yy + offsets[k].oy;
                     if (px < 0 || px >= ctx->frame_w || py < 0 || py >= ctx->frame_h) {
                         all_ok = 0; break;
                     }
-                    int pidx = (py * ctx->frame_w + px) * 4;
+                    int pidx = (int)((py * ctx->frame_w + px) * 4);
                     BYTE pb = ctx->frame_buf[pidx];
                     BYTE pg = ctx->frame_buf[pidx + 1];
                     BYTE pr = ctx->frame_buf[pidx + 2];
@@ -1578,10 +1599,10 @@ void *xop_find_pic(void *ptr, long long x1, long long y1,
 
     /* parse delta color "RRGGBB" as tolerance */
     int dr = 0, dg = 0, db = 0;
-    if (delta_color && strlen(delta_color) >= 6) {
-        dr = op_hex2(delta_color);
-        dg = op_hex2(delta_color + 2);
-        db = op_hex2(delta_color + 4);
+    if (!op_parse_delta_color(delta_color, &dr, &dg, &db)) {
+        free(tmpl.data);
+        opSetError("op: invalid delta_color");
+        return NULL;
     }
 
     int sx1, sy1, sx2, sy2;
@@ -1633,10 +1654,10 @@ void *xop_find_pic_ex(void *ptr, long long x1, long long y1,
     if (!op_load_bmp(pic_file, &tmpl)) { opSetError("op: failed to load bmp"); return NULL; }
 
     int dr = 0, dg = 0, db = 0;
-    if (delta_color && strlen(delta_color) >= 6) {
-        dr = op_hex2(delta_color);
-        dg = op_hex2(delta_color + 2);
-        db = op_hex2(delta_color + 4);
+    if (!op_parse_delta_color(delta_color, &dr, &dg, &db)) {
+        free(tmpl.data);
+        opSetError("op: invalid delta_color");
+        return NULL;
     }
 
     int sx1, sy1, sx2, sy2;
@@ -2311,7 +2332,7 @@ long long xop_get_color_num(void *ptr, long long x1, long long y1,
 
     op_color_t colors[OP_MAX_COLORS];
     int ncolors = op_parse_colors(color, colors, OP_MAX_COLORS);
-    if (ncolors == 0) return 0;
+    if (ncolors == 0) { opSetError("op: invalid color format"); return 0; }
 
     int sx1, sy1, sx2, sy2;
     if (!op_clip_search_rect(ctx, x1, y1, x2, y2,
@@ -2350,10 +2371,9 @@ void *xop_find_pic_n(void *ptr, long long x1, long long y1,
                              &sx1, &sy1, &sx2, &sy2)) return xrtStrDup("");
 
     int dr = 0, dg = 0, db = 0;
-    if (delta_color && strlen(delta_color) >= 6) {
-        dr = op_hex2(delta_color);
-        dg = op_hex2(delta_color + 2);
-        db = op_hex2(delta_color + 4);
+    if (!op_parse_delta_color(delta_color, &dr, &dg, &db)) {
+        opSetError("op: invalid delta_color");
+        return NULL;
     }
 
     char tmp[4096];

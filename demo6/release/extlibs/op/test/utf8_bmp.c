@@ -41,6 +41,29 @@ int main(void)
                       strcmp(many, "0,0") == 0 &&
                       strcmp(indexed, "0,0,0") == 0 &&
                       strcmp(one, "0,0") == 0;
+            if (matched) {
+                void *invalid_one, *invalid_many, *invalid_indexed, *recovered;
+                xrtClearError();
+                invalid_one = xop_find_pic(context, 0, 0, 1, 1,
+                    path, "00000G", 0.0, 0);
+                matched = invalid_one == NULL && xrtGetError() != NULL;
+                xrtFree(invalid_one);
+                xrtClearError();
+                invalid_many = xop_find_pic_ex(context, 0, 0, 1, 1,
+                    path, "00000G", 0.0, 0);
+                matched = matched && invalid_many == NULL && xrtGetError() != NULL;
+                xrtFree(invalid_many);
+                xrtClearError();
+                invalid_indexed = xop_find_pic_n(context, 0, 0, 1, 1,
+                    path, "00000G", 0.0, 0);
+                matched = matched && invalid_indexed == NULL && xrtGetError() != NULL;
+                xrtFree(invalid_indexed);
+                recovered = xop_find_pic(context, 0, 0, 1, 1,
+                    path, "000000", 0.0, 0);
+                matched = matched && recovered != NULL &&
+                    strcmp(recovered, "0,0") == 0;
+                xrtFree(recovered);
+            }
         }
         xrtFree(one);
         xrtFree(many);

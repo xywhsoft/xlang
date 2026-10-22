@@ -30,6 +30,20 @@ func main(...) as int
     assert instance.findColorEx(0, 0, 0, 0, "000000", 0.0, 0) == "0,0"
     assert instance.findColor(0, 0, 0, 0, "000000", 0.0, 0) == "0,0"
     assert instance.findMultiColor(0, 0, 1, 0, "000000", "1|0|000000", 0.0, 0) == "0,0"
+    invalidColorCaught = false
+    try
+        instance.findColor(0, 0, 0, 0, "00000G", 0.0, 0)
+    catch RuntimeError error
+        invalidColorCaught = true
+    end
+    assert invalidColorCaught, "invalid color hex must be rejected"
+    invalidColorCaught = false
+    try
+        instance.findMultiColor(0, 0, 1, 0, "000000", "1x|0|000000", 0.0, 0)
+    catch RuntimeError error
+        invalidColorCaught = true
+    end
+    assert invalidColorCaught, "invalid offset must be rejected"
     assert string.len(instance.captureToMem(0, 0, 100, 100)) == 80008
     assert string.len(instance.captureToMem(-1, -1, 2, 2)) == 36
     assert string.len(instance.imageHash(0, 0, 8, 8)) == 16
