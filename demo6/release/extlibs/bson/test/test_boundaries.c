@@ -491,6 +491,46 @@ done:
 }
 #endif
 
+/* 文件缓冲与解码结果各自释放；失败后同一文件仍可正常读取。 */
+static int load_allocation_failures(const char* work) {
+    static const unsigned char wire[] = {
+        12, 0, 0, 0, 16, 'a', 0, 42, 0, 0, 0, 0
+    };
+    str path = xrtPathJoin(work, "load_allocation.bson");
+    unsigned int failure;
+    int completed = 0, triggered_count = 0;
+    CHECK(path != NULL);
+    CHECK(xrtFileWriteAll(path, (xbytesview){ wire, sizeof(wire) }));
+    for (failure = 0u; failure < 128u; ++failure) {
+        xmemdebugsnapshot before;
+        xvalue* result;
+        bool triggered;
+        xrtClearError();
+        xrtMemDebugSnapshot(&before);
+        CHECK(xrtMemDebugFailAfter(failure));
+        result = xbson_load(path);
+        triggered = xrtMemDebugFailTriggered();
+        xrtMemDebugFailClear();
+        if (triggered) {
+            ++triggered_count;
+            CHECK(result == NULL || xrtValueType(result) == XVALUE_NULL);
+            CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+        } else {
+            int64 value = 0;
+            completed = result != NULL && xrtValueType(result) == XVALUE_OBJECT &&
+                xrtValueGetInt(xrtValueObjectGet(result, (xstrview){ "a", 1u }), &value) &&
+                value == 42 && xrtGetError() == NULL;
+        }
+        xrtValueRelease(result);
+        CHECK(live_unchanged(before, "load", failure));
+        if (!triggered) break;
+    }
+    CHECK(xrtFileDelete(path));
+    xrtFree(path);
+    CHECK(triggered_count > 0 && completed);
+    return 0;
+}
+
 /* 编码和原子落盘的任一分配失败都保留旧文件及内存错误。 */
 static int save_allocation_failures(const char* work) {
     static const unsigned char old[] = "old document";
@@ -507,6 +547,9 @@ static int save_allocation_failures(const char* work) {
         bytes saved;
         int64_t written;
         bool triggered, memory_error;
+        xmemdebugsnapshot before;
+        xrtClearError();
+        xrtMemDebugSnapshot(&before);
         if (!xrtMemDebugFailAfter(failure)) goto done;
         written = xbson_save(path, document);
         triggered = xrtMemDebugFailTriggered();
@@ -529,8 +572,9 @@ static int save_allocation_failures(const char* work) {
             xrtFree(saved);
         } else {
             completed = written > 0 && xrtGetError() == NULL;
-            break;
         }
+        if (!live_unchanged(before, "save", failure)) goto done;
+        if (!triggered) break;
     }
 done:
     xrtMemDebugFailClear();
@@ -749,6 +793,7 @@ int main(int argc, char** argv) {
 #ifndef _WIN32
     CHECK(save_failure_preserves_file(argv[1]));
 #endif
+    CHECK(load_allocation_failures(argv[1]) == 0);
     CHECK(save_allocation_failures(argv[1]));
     CHECK(decode_allocation_failures() == 0);
     CHECK(decode_all_allocation_failures() == 0);
