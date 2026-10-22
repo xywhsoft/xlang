@@ -1,6 +1,7 @@
 /* Immutable declaration chunks around the shared lexer/parser. This module
  * owns data/range transformations, never a second grammar or lexer. */
 #include "analysis/frontend_internal.h"
+#include "analysis/ast_clone.h"
 #include <limits.h>
 #include <string.h>
 
@@ -75,32 +76,17 @@ static int mapRange(XL6_AstRange r,const placement* p,XL6_AstRange* out)
     out->startOffset=p->offset+r.startOffset-u->offset;
     out->endOffset=p->offset+r.endOffset-u->offset; return 1;
 }
+static int placeNode(const XL6_AstNode* in,XL6_AstNode* out,void* user)
+{
+    const placement* p=user;
+    return mapRange(in->range,p,&out->range) && mapRange(in->tokenRange,p,&out->tokenRange) &&
+        (!in->line || mapPoint(in->line,in->column,p,&out->line,&out->column));
+}
 static XL6_AstNode* copyNode(const XL6_AstNode* in,const placement* p,size_t depth)
 {
-    if(!in || depth>TREE_DEPTH) return NULL;
-    XL6_AstNode* out=xrtCalloc(1,sizeof(*out)); if(!out) return NULL;
-    *out=*in; out->text=out->doc=NULL; out->literalData=NULL; out->source=NULL;
-    out->children=NULL; out->childCount=out->childCapacity=0; out->inferredType=out->semanticDeclaredType=NULL;
-    if(p && (!mapRange(in->range,p,&out->range) || !mapRange(in->tokenRange,p,&out->tokenRange) ||
-       (in->line && !mapPoint(in->line,in->column,p,&out->line,&out->column)))) goto failed;
-    if(in->text && !(out->text=xrtStrDup(in->text))) goto failed;
-    if(in->doc && !(out->doc=xrtStrDup(in->doc))) goto failed;
-    if(in->literalData) {
-        if(!xl6AstSetLiteralData(out,in->literalData,in->literalSize)) goto failed;
-        out->literalDecoded=in->literalDecoded;
-    }
-    if(in->childCount) {
-        out->children=xrtCalloc(in->childCount,sizeof(*out->children)); if(!out->children) goto failed;
-        out->childCapacity=in->childCount;
-        for(size_t i=0;i<in->childCount;++i) {
-            XL6_AstNode* child=copyNode(in->children[i],p,depth+1); if(!child) goto failed;
-            out->children[out->childCount++]=child;
-        }
-    }
-    if(in->inferredType && !(out->inferredType=copyNode(in->inferredType,p,depth+1))) goto failed;
-    if(in->semanticDeclaredType && !(out->semanticDeclaredType=copyNode(in->semanticDeclaredType,p,depth+1))) goto failed;
-    return out;
-failed: xl6AstFree(out); return NULL;
+    (void)depth;
+    xls_ast_clone_options options={p ? placeNode : NULL,(void*)p,0,1};
+    return xlsAstClone(in,&options,NULL);
 }
 static xls_syntax* allocate(const char* path,xls_text* text)
 {
