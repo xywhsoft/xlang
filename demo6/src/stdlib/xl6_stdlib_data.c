@@ -1454,19 +1454,7 @@ const char* xl6StdlibWebSocketTlsMethodSource =
 const char* xl6StdlibWebSocketClassEndSource =
     "end\n";
 
-const char* xl6StdlibUdpConfigClassSource =
-    "class UdpConfig\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_udp_config_create\" create(string host, int port)\n"
-    "    extern \"xl6_xrt_udp_config_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_udp_config_recv_batch\" func recvBatch(int value) as bool\n"
-    "    extern \"xl6_xrt_udp_config_queues\" func queueLimits(int sendLimit, int recvLimit) as bool\n"
-    "    extern \"xl6_xrt_udp_config_bind\" func bindNative() as point\n"
-    "\n"
-    "    func bind() as UdpSocket\n"
-    "        return UdpSocket(point(self.bindNative()))\n"
-    "    end\n"
-    "end\n";
+#include "xl6_stdlib_udp_config.inc"
 
 
 
@@ -4264,8 +4252,8 @@ static const char xl6StdNetEngineBody[] =
     "extern \"xl6NetEngineCreateWorkersV1\" func __xl_std_net_engine(int workerCount = 0) as NetEngine\n";
 
 static const char xl6StdUdpConfigBody[] =
-    "func __xl_std_udp_config(int port, string host = \"127.0.0.1\") as UdpConfig\n"
-    "    return UdpConfig(host, port)\n"
+    "func __xl_std_udp_config() as UdpConfig\n"
+    "    return UdpConfig()\n"
     "end\n";
 
 static const char xl6StdTlsConnectBody[] =

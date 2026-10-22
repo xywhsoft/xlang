@@ -152,9 +152,59 @@ Select／IOCP／epoll，Linux ASan／UBSan、真实图的 8 种准备／完成�
 `verified-commit.json`。没有 OS 错误队列／ICMP、外网或网络安全专项，没有提升
 发布库／VFS。**本批只是驻留资源服务，不是公开 UDP 标准库迁移完成。**
 
+## 已完成：公开不可变 UdpConfig
+
+原生 `4b82b0cfcc802fbef45b59d7c69ba56b0825fb1c` 将既有校验公开为
+`xrtNetUdpConfigValid`，`Open` 与语言 builder 共用唯一实现。有效输入不分配，
+错误诊断可分配；不创建 Engine／Socket、不触及 I/O。通过只代表结构合法，
+不代表平台支持已请求选项。固定快照同步新增 1 个入口，XRT 3343／xruntime 3808。
+
+`UdpConfig()`／`udp.config()` 现在创建独立不可变配置；私有 native 字段不能被
+用户读取、设置或用 point 构造。移除旧 host／port 构造、原地 mutator 和配置
+对象的旧 `bind()`，不保留兼容包装。地址／Engine 属于后续受管工厂，而非配置。
+因此本批不宣称旧 UDP Socket 已能使用这份新配置，工厂接通仍在下一阶段。
+
+全部 28 个原生字段有直接 getter，使用 `pure + no-raise + nonblocking`；12 类
+`with…` 返回新的独立值，创建／复制失败使用 checked 错误，不能误标 no-raise。
+
+| Builder | 覆盖配置 |
+| --- | --- |
+| `withReceive(size, concurrency, batch)` | 接收大小 1—65535、并发 1—64、readiness 每轮 1—1024 包 |
+| `withReceiveQueue(packets, bytes, overflow)` | 接收队列双上限与 UdpOverflow |
+| `withReceiveMetadata(flags)`／`withTruncation(mode)` | 请求 NetDatagramMetadata、UdpTruncation |
+| `withSendQueue(high, low, limit, packets)`／`withSendConcurrency(count)` | 发送水位、硬上限、包数及 1—64 并发 |
+| `withSocketBuffers(receive, send)`／`withTraffic(hopLimit, trafficClass)` | 原生整数宽度、-1 系统默认、跳数及业务类别 |
+| `withPathMtuMode(mode)` | 既有 NetPathMtuMode；不另造枚举 |
+| `withBinding(reuseAddress, reusePort, exclusiveAddress, ipv6Only)`／`withBroadcast(enabled)` | 绑定组合与广播；拒绝独占／复用冲突 |
+| `withErrorQueue(enabled, size, packets, bytes, overflow)` | 显式错误接收、捕获前缀、独立队列和策略 |
+
+`UdpOverflow` 为 dropNewest／dropOldest／error，`UdpTruncation` 为 deliver／drop／
+error；不同枚举不能混用。接收／错误队列的任一上限为零表示不允许排队，等待中的
+消费 Future 仍能直接接收；不擅自把零改成默认值。`receiveBatch` 是 readiness
+轮次上限，不是异步结果 Batch 的容量。所有 uint64→size_t／uint32、int64→int／
+enum 缩窄先检查，返回项覆盖 flags、策略及全部 bool，不把结构体当整数数组。
+
+驻留配置拥有唯一 leaf policy；不持有 Source／Engine／用户 Data。真实 artifact
+计划验证配置不选择 Execution UDP、TCP、Resolver 或 UDP Future，单独用枚举不
+选择 NET_UDP。字段词表作为 SDK `.h` 随两端源码与独立 AOT 分发，消除仅在宿主
+include 路径可用的依赖。Cgen 只调用登记函数并管理所有权，不生成配置实现体。
+
+最终 224 个检查阶段（原生 44、语言运行时 32、语言程序 148）通过；完整源码
+编译的 TU 数单独记录，不拿编译次数冒充语言测试数。验收涵盖两端 GCC／TCC
+O0／O2、Linux ASan／UBSan、28 个 getter、12 类 builder、
+18 组无效参数和 36 个构造分配预算；完整源码驱动分别编译 799／798 个 TU。
+真实 xlang 的普通／最小／枚举／拥有返回／错误程序接受 JIT、module、独立 AOT、
+typed／lowered IR 与裁剪检查，AOT 不依赖 xl／xlc 共享库。42 个入口的 10 个枚举
+位置、13 个拥有结果及 375 个被破坏的合同在 O0／O2 拒绝生成 C／声明头；拥有
+程序在每端／每优化级别各遍历 59 个实际分配前缀到首个未命中，检查每轮模块清理。
+
+证据根 `F:/xlang-validation/five-groups-20261022/p3-udp-values-language`，封条
+`native-verified-commit.json`／`verified-commit.json`。只做离线配置／ABI／内存
+验收；没有错误队列、ICMP、外网或安全专项，没有更新发布库／VFS。
+
 ## 仍必须依次完成
 
-1. 迁移 `udp`、配置、统计、Packet／Batch／ErrorPacket 与完整发送／接收／writable
+1. 接通受管 `udp` 工厂与新配置，迁移统计、Packet／Batch／ErrorPacket 与完整发送／接收／writable
    公开面。使用精确类字段、状态枚举、效果、期限及取消合同；复用现有 NetAddress、
    数据报元数据／控制类型与 Engine 后端选择，不另造裸指针接口。
 2. 补齐受管向量／批量、引用／接管、元数据、能力协商、多播和普通错误通路；

@@ -1054,6 +1054,8 @@ static int xl6StdlibNeedsUdpClass(const XL6_AstNode* root, const int* used)
 static int xl6StdlibNeedsUdpConfigClass(const XL6_AstNode* root, const int* used)
 {
     return xl6StdlibNodeUsesTypeName(root, "UdpConfig") ||
+           xl6StdlibNodeUsesTypeName(root, "UdpOverflow") ||
+           xl6StdlibNodeUsesTypeName(root, "UdpTruncation") ||
            xl6StdlibFuncUsed(used, "udp", "config");
 }
 
@@ -1840,6 +1842,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsUdpStatsClass = xl6StdlibNodeUsesTypeName(root, "UdpStats");
     needsUdpClass = xl6StdlibNeedsUdpClass(root, used);
     needsUdpConfigClass = xl6StdlibNeedsUdpConfigClass(root, used);
+    if(needsUdpConfigClass){needsNetSocketClass=1;needsNetAddressClass=1;}
 
     /* 依赖由高层类型向基础类型单向闭包。 */
     needsTcpStreamClass = needsTcpStreamClass || needsTcpListenerClass || needsTcpServerClass;
@@ -1861,7 +1864,6 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetEngineStatsClass = needsNetEngineStatsClass || needsNetEngineClass;
     needsTcpStreamStatsClass = needsTcpStreamStatsClass || needsTcpStreamClass;
     needsTcpListenerStatsClass = needsTcpListenerStatsClass || needsTcpListenerClass;
-    needsUdpClass = needsUdpClass || needsUdpConfigClass;
     needsUdpStatsClass = needsUdpStatsClass || needsUdpClass;
     needsNetRuntime = needsNetAddressClass || needsNetInterfaceClass ||
         needsNetBytesClass ||
