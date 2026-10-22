@@ -47,6 +47,59 @@ static int test_error_contract(void)
     return 0;
 }
 
+static int check_version_consistency(const char *version)
+{
+    bool valid = xsemver_valid(version);
+    void *cleaned;
+    int unchanged;
+    if (!valid) {
+        CHECK(xsemver_compare(version, version) == -2);
+        return 0;
+    }
+    CHECK(xsemver_compare(version, version) == 0);
+    CHECK(xsemver_major(version) >= 0);
+    CHECK(xsemver_minor(version) >= 0);
+    CHECK(xsemver_patch(version) >= 0);
+    CHECK(xsemver_satisfies(version, version));
+    cleaned = xsemver_clean(version);
+    CHECK(cleaned != NULL);
+    unchanged = strcmp((const char *)cleaned, version) == 0;
+    xrtFree(cleaned);
+    CHECK(unchanged);
+    return 0;
+}
+
+static int test_version_mutations(void)
+{
+    static const char *const seeds[] = {
+        "0.0.0", "1.2.3-alpha.1+meta", "1.2.3-rc", "1.2.3+build",
+        "9223372036854775807.0.0"
+    };
+    static const char replacements[] = "09az.-+_*";
+    char candidate[64];
+    size_t seed, position, replacement, length;
+
+    /* 截断和单字节扰动同时穿过版本解析与范围解析的不同入口。 */
+    for (seed = 0; seed < sizeof(seeds) / sizeof(seeds[0]); ++seed) {
+        length = strlen(seeds[seed]);
+        CHECK(length < sizeof(candidate));
+        for (position = 0; position <= length; ++position) {
+            memcpy(candidate, seeds[seed], position);
+            candidate[position] = '\0';
+            CHECK(check_version_consistency(candidate) == 0);
+        }
+        for (position = 0; position < length; ++position) {
+            for (replacement = 0; replacement < sizeof(replacements) - 1;
+                 ++replacement) {
+                memcpy(candidate, seeds[seed], length + 1);
+                candidate[position] = replacements[replacement];
+                CHECK(check_version_consistency(candidate) == 0);
+            }
+        }
+    }
+    return 0;
+}
+
 int main(void)
 {
     static const struct {
@@ -98,6 +151,7 @@ int main(void)
     size_t i;
 
     CHECK(test_error_contract() == 0);
+    CHECK(test_version_mutations() == 0);
 
     CHECK(xsemver_valid("1.2.3+build-5"));
     CHECK(xsemver_valid("1.2.3-alpha+build-5"));

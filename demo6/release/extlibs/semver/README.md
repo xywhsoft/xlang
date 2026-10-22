@@ -77,6 +77,9 @@ Windows 日常门禁和可选的独立对照门禁各自使用单次独占的
 C 范例包含包内原生实现，可由 `xl run` 单文件执行；正式包仍按清单
 编译原生源文件。Windows/Linux 包门禁将直跑与严格 C 编译输出逐字比较。
 Windows C/XLang 范围矩阵、无输出边界与分配故障 AOT、Linux ASan/UBSan 已通过；
+包内 C 测试还对五种合法版本种子逐位置截断和单字节替换，检查有效性、
+自比较、精确范围匹配及 `clean` 的一致性；Linux 门禁以 ASan/UBSan 执行
+同一矩阵。这是有界的确定性回归，不代替可选的独立 node-semver 对照。
 Linux 包级脚本也运行中央、包内边界及分配故障 XLang 用例，并逐字节核对
 C/XLang 范例与共同黄金输出；C 侧仍使用 ASan/UBSan。
 带输出范例的 AOT 仍受主线 `xl6ValueDataSnapshotV1` 缺符号阻断。
