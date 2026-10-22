@@ -1682,6 +1682,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsCompress, needsDeflater, needsInflater;
     int needsCryptoClass;
     int needsEd25519Class;
+    int needsNistClass;
     int needsTccClass;
     int needsXlangClass;
     int needsCoreClass;
@@ -1926,6 +1927,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibFuncUsed(used, "compress", "encodeBuffer") || xl6StdlibFuncUsed(used, "compress", "decode") ||
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer");
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
+    needsNistClass = xl6StdlibNodeUsesTypeName(root,"P256Key") || xl6StdlibNodeUsesTypeName(root,"P384Key") ||
+        xl6StdlibFuncUsed(used,"crypto","p256KeyPair") || xl6StdlibFuncUsed(used,"crypto","p384KeyPair");
     needsEd25519Class = xl6StdlibNodeUsesTypeName(root,"Ed25519Key") ||
         xl6StdlibFuncUsed(used,"crypto","ed25519KeyPair");
     /*
@@ -2278,6 +2281,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder,xl6StdlibXdhClassSource);
     if (needsEd25519Class)
         xl6StdlibBuilderAppend(&builder,xl6StdlibEd25519ClassSource);
+    if (needsNistClass || xl6StdlibNodeUsesTypeName(root,"SignatureHash"))
+        xl6StdlibBuilderAppend(&builder,xl6StdlibSignatureHashSource);
+    if (needsNistClass)
+        xl6StdlibBuilderAppend(&builder,xl6StdlibNistClassSource);
     if (xl6StdlibFuncUsed(used, "path", "parse") || xl6StdlibFuncUsed(used, "path", "components") ||
         xl6StdlibNodeUsesTypeName(root, "PathParts") || xl6StdlibNodeUsesTypeName(root, "PathIterator") ||
         xl6StdlibNodeUsesTypeName(root, "PathComponent"))

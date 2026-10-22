@@ -315,6 +315,7 @@ const char* xl6StdlibXidClassSource =
 #include "xl6_stdlib_crypto.inc"
 #include "xl6_stdlib_xdh.inc"
 #include "xl6_stdlib_ed25519.inc"
+#include "xl6_stdlib_nist.inc"
 
 #include "xl6_stdlib_net_address.inc"
 #include "xl6_stdlib_net_resolver.inc"
@@ -3887,37 +3888,10 @@ static const char xl6StdCryptoRandomBytesBody[] =
 
 
 
-static const char xl6StdCryptoP256KeypairBody[] =
-    "func __xl_std_crypto_p256_keypair() as var\n"
-    "    return __xl_std_runtime_p256_keypair()\n"
-    "end\n";
 
-static const char xl6StdCryptoP256SharedSecretBody[] =
-    "func __xl_std_crypto_p256_shared_secret(string privateKeyHex, string publicKeyHex) as string\n"
-    "    c_size __xl_size_privateKeyHex = __xl_std_xrt_string_byte_len(privateKeyHex)\n"
-    "    c_size __xl_size_publicKeyHex = __xl_std_xrt_string_byte_len(publicKeyHex)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_p256_shared_secret_hex(privateKeyHex, __xl_size_privateKeyHex, publicKeyHex, __xl_size_publicKeyHex))\n"
-    "end\n";
 
-static const char xl6StdCryptoP384KeypairBody[] =
-    "func __xl_std_crypto_p384_keypair() as var\n"
-    "    return __xl_std_runtime_p384_keypair()\n"
-    "end\n";
 
-static const char xl6StdCryptoP384SharedSecretBody[] =
-    "func __xl_std_crypto_p384_shared_secret(string privateKeyHex, string publicKeyHex) as string\n"
-    "    c_size __xl_size_privateKeyHex = __xl_std_xrt_string_byte_len(privateKeyHex)\n"
-    "    c_size __xl_size_publicKeyHex = __xl_std_xrt_string_byte_len(publicKeyHex)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_p384_shared_secret_hex(privateKeyHex, __xl_size_privateKeyHex, publicKeyHex, __xl_size_publicKeyHex))\n"
-    "end\n";
 
-static const char xl6StdCryptoEcdsaVerifyBody[] =
-    "func __xl_std_crypto_ecdsa_verify(string publicKeyHex, string hashHex, string signatureHex) as bool\n"
-    "    c_size __xl_size_publicKeyHex = __xl_std_xrt_string_byte_len(publicKeyHex)\n"
-    "    c_size __xl_size_hashHex = __xl_std_xrt_string_byte_len(hashHex)\n"
-    "    c_size __xl_size_signatureHex = __xl_std_xrt_string_byte_len(signatureHex)\n"
-    "    return __xl_std_runtime_ecdsa_verify(publicKeyHex, __xl_size_publicKeyHex, hashHex, __xl_size_hashHex, signatureHex, __xl_size_signatureHex)\n"
-    "end\n";
 
 static const char xl6StdCryptoRsaPssVerifyBody[] =
     "func __xl_std_crypto_rsa_pss_verify(string hashHex, string signatureHex, string modulusHex, string exponentHex) as bool\n"
@@ -4478,11 +4452,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "chacha20EncryptHex", "__xl_std_runtime_chacha20_encrypt_hex", "xl6_xrt_chacha20_encrypt_hex", xl6StdRuntimeCryptoChacha20Params, 7, "point", NULL},
     {"__xl_runtime", "chacha20DecryptText", "__xl_std_runtime_chacha20_decrypt_text", "xl6_xrt_chacha20_decrypt_text", xl6StdRuntimeCryptoChacha20Params, 7, "point", NULL},
     {"__xl_runtime", "chacha20Bytes", "__xl_std_runtime_chacha20_bytes", "xl6_xrt_chacha20_bytes", xl6StdRuntimeCryptoChacha20BytesParams, 7, "point", NULL},
-    {"__xl_runtime", "p256Keypair", "__xl_std_runtime_p256_keypair", "xl6_xrt_p256_keypair", NULL, 0, "var", NULL},
-    {"__xl_runtime", "p256SharedSecretHex", "__xl_std_runtime_p256_shared_secret_hex", "xl6_xrt_p256_shared_secret_hex", xl6StdRuntimeCryptoSharedSecretParams, 4, "point", NULL},
-    {"__xl_runtime", "p384Keypair", "__xl_std_runtime_p384_keypair", "xl6_xrt_p384_keypair", NULL, 0, "var", NULL},
-    {"__xl_runtime", "p384SharedSecretHex", "__xl_std_runtime_p384_shared_secret_hex", "xl6_xrt_p384_shared_secret_hex", xl6StdRuntimeCryptoSharedSecretParams, 4, "point", NULL},
-    {"__xl_runtime", "ecdsaVerify", "__xl_std_runtime_ecdsa_verify", "xl6_xrt_ecdsa_verify", xl6StdRuntimeCryptoVerifyParams, 6, "c_bool", NULL},
     {"__xl_runtime", "rsaPssVerify", "__xl_std_runtime_rsa_pss_verify", "xl6_xrt_rsa_pss_verify", xl6StdRuntimeCryptoRsaVerifyParams, 8, "c_bool", NULL},
     {"__xl_runtime", "rsaPkcs1Verify", "__xl_std_runtime_rsa_pkcs1_verify", "xl6_xrt_rsa_pkcs1_verify", xl6StdRuntimeCryptoRsaVerifyParams, 8, "c_bool", NULL},
     {"__xl_runtime", "logDefault", "__xl_std_runtime_log_default", "xl6LogDefaultV1", NULL, 0, "point", NULL},
@@ -5316,6 +5285,24 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"crypto", "fillRandomBytes", "__xl_std_crypto_fill_random_bytes", NULL, NULL, 0, "", xl6StdCryptoFillRandomBytesBody},
     {"crypto", "chacha20Bytes", "__xl_std_crypto_chacha20_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoChaCha20BytesBody},
     {"crypto", "randomBytes", "__xl_std_crypto_random_bytes", NULL, NULL, 0, "bytes", xl6StdCryptoRandomBytesBody},
+    {"crypto", "p256KeyPair", "__xl_std_crypto_p256KeyPair", NULL, NULL, 0, "P256Key", xl6StdResidentxl6CryptoP256GenerateV1},
+    {"crypto", "p256PublicKey", "__xl_std_crypto_p256PublicKey", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoP256PublicFromPrivateV1},
+    {"crypto", "ecdsaP256VerifyHash", "__xl_std_crypto_ecdsaP256VerifyHash", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoP256VerifyHashV1},
+    {"crypto", "ecdsaP256VerifyHashDer", "__xl_std_crypto_ecdsaP256VerifyHashDer", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoP256VerifyHashDerV1},
+    {"cryptoAdvanced", "p256Valid", "__xl_std_cryptoAdvanced_p256Valid", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoP256ValidV1},
+    {"cryptoAdvanced", "p256Multiply", "__xl_std_cryptoAdvanced_p256Multiply", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoP256MultiplyV1},
+    {"cryptoAdvanced", "p256Add", "__xl_std_cryptoAdvanced_p256Add", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoP256AddV1},
+    {"crypto", "p384KeyPair", "__xl_std_crypto_p384KeyPair", NULL, NULL, 0, "P384Key", xl6StdResidentxl6CryptoP384GenerateV1},
+    {"crypto", "p384PublicKey", "__xl_std_crypto_p384PublicKey", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoP384PublicFromPrivateV1},
+    {"crypto", "ecdsaP384VerifyHash", "__xl_std_crypto_ecdsaP384VerifyHash", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoP384VerifyHashV1},
+    {"crypto", "ecdsaP384VerifyHashDer", "__xl_std_crypto_ecdsaP384VerifyHashDer", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoP384VerifyHashDerV1},
+    {"cryptoAdvanced", "p384Valid", "__xl_std_cryptoAdvanced_p384Valid", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoP384ValidV1},
+    {"cryptoAdvanced", "p384Multiply", "__xl_std_cryptoAdvanced_p384Multiply", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoP384MultiplyV1},
+    {"cryptoAdvanced", "p384Add", "__xl_std_cryptoAdvanced_p384Add", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoP384AddV1},
+    {"crypto", "ecdsaP256ToDer", "__xl_std_crypto_ecdsaP256ToDer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEcdsaP256ToDerV1},
+    {"crypto", "ecdsaP256FromDer", "__xl_std_crypto_ecdsaP256FromDer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEcdsaP256FromDerV1},
+    {"crypto", "ecdsaP384ToDer", "__xl_std_crypto_ecdsaP384ToDer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEcdsaP384ToDerV1},
+    {"crypto", "ecdsaP384FromDer", "__xl_std_crypto_ecdsaP384FromDer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEcdsaP384FromDerV1},
     {"crypto", "ed25519KeyPair", "__xl_std_crypto_ed25519KeyPair", NULL, NULL, 0, "Ed25519Key", xl6StdResidentxl6CryptoEd25519GenerateV1},
     {"crypto", "ed25519Sign", "__xl_std_crypto_ed25519Sign", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEd25519SignTextV1},
     {"crypto", "ed25519Verify", "__xl_std_crypto_ed25519Verify", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoEd25519VerifyTextV1},
@@ -5332,11 +5319,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"cryptoAdvanced", "x25519", "__xl_std_cryptoAdvanced_x25519", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoX25519RawV1},
     {"crypto", "x448KeyPair", "__xl_std_crypto_x448KeyPair", NULL, NULL, 0, "X448Key", xl6StdResidentxl6CryptoX448GenerateV1},
     {"cryptoAdvanced", "x448", "__xl_std_cryptoAdvanced_x448", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoX448RawV1},
-    {"crypto", "p256Keypair", "__xl_std_crypto_p256_keypair", NULL, NULL, 0, "var", xl6StdCryptoP256KeypairBody},
-    {"crypto", "p256SharedSecret", "__xl_std_crypto_p256_shared_secret", NULL, NULL, 0, "string", xl6StdCryptoP256SharedSecretBody},
-    {"crypto", "p384Keypair", "__xl_std_crypto_p384_keypair", NULL, NULL, 0, "var", xl6StdCryptoP384KeypairBody},
-    {"crypto", "p384SharedSecret", "__xl_std_crypto_p384_shared_secret", NULL, NULL, 0, "string", xl6StdCryptoP384SharedSecretBody},
-    {"crypto", "ecdsaVerify", "__xl_std_crypto_ecdsa_verify", NULL, NULL, 0, "bool", xl6StdCryptoEcdsaVerifyBody},
     {"crypto", "rsaPssVerify", "__xl_std_crypto_rsa_pss_verify", NULL, NULL, 0, "bool", xl6StdCryptoRsaPssVerifyBody},
     {"crypto", "rsaPkcs1Verify", "__xl_std_crypto_rsa_pkcs1_verify", NULL, NULL, 0, "bool", xl6StdCryptoRsaPkcs1VerifyBody},
 

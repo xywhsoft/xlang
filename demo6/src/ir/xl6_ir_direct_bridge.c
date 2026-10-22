@@ -51,6 +51,7 @@ static int xl6IrDirectNumericEnumMatches(const XL6_IrModule* module,
     }
     return 1;
 }
+#include "xl6_ir_signature_hash_enum.inc"
 #include "xl6_ir_net_backend_enum.inc"
 #include "xl6_ir_net_engine_state_enum.inc"
 #include "xl6_ir_net_socket_enums.inc"

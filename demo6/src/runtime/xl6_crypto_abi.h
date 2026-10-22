@@ -1,5 +1,37 @@
 #ifndef XL6_CRYPTO_ABI_H
 #define XL6_CRYPTO_ABI_H
+XL6_TEXT_API void* xl6CryptoP256CreateV1(const xvalue*);
+XL6_TEXT_API void xl6CryptoP256DestroyV1(void*);
+XL6_TEXT_API xvalue* xl6CryptoP256PublicV1(void*);
+XL6_TEXT_API xvalue* xl6CryptoP256ExportPrivateV1(void*);
+XL6_TEXT_API void* xl6CryptoP256GenerateV1(void);
+XL6_TEXT_API xvalue* xl6CryptoP256SharedV1(void*,const xvalue*);
+XL6_TEXT_API xvalue* xl6CryptoP256SignHashV1(void*,const xvalue*,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoP256SignHashDerV1(void*,const xvalue*,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoP256PublicFromPrivateV1(const xvalue*);
+XL6_TEXT_API bool xl6CryptoP256VerifyHashV1(const xvalue*,const xvalue*,const xvalue*);
+XL6_TEXT_API bool xl6CryptoP256VerifyHashDerV1(const xvalue*,const xvalue*,const xvalue*);
+XL6_TEXT_API bool xl6CryptoP256ValidV1(const xvalue*);
+XL6_TEXT_API xvalue* xl6CryptoP256MultiplyV1(const xvalue*,const xvalue*);
+XL6_TEXT_API xvalue* xl6CryptoP256AddV1(const xvalue*,const xvalue*);
+XL6_TEXT_API void* xl6CryptoP384CreateV1(const xvalue*);
+XL6_TEXT_API void xl6CryptoP384DestroyV1(void*);
+XL6_TEXT_API xvalue* xl6CryptoP384PublicV1(void*);
+XL6_TEXT_API xvalue* xl6CryptoP384ExportPrivateV1(void*);
+XL6_TEXT_API void* xl6CryptoP384GenerateV1(void);
+XL6_TEXT_API xvalue* xl6CryptoP384SharedV1(void*,const xvalue*);
+XL6_TEXT_API xvalue* xl6CryptoP384SignHashV1(void*,const xvalue*,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoP384SignHashDerV1(void*,const xvalue*,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoP384PublicFromPrivateV1(const xvalue*);
+XL6_TEXT_API bool xl6CryptoP384VerifyHashV1(const xvalue*,const xvalue*,const xvalue*);
+XL6_TEXT_API bool xl6CryptoP384VerifyHashDerV1(const xvalue*,const xvalue*,const xvalue*);
+XL6_TEXT_API bool xl6CryptoP384ValidV1(const xvalue*);
+XL6_TEXT_API xvalue* xl6CryptoP384MultiplyV1(const xvalue*,const xvalue*);
+XL6_TEXT_API xvalue* xl6CryptoP384AddV1(const xvalue*,const xvalue*);
+XL6_TEXT_API xvalue* xl6CryptoEcdsaP256ToDerV1(const xvalue*);
+XL6_TEXT_API xvalue* xl6CryptoEcdsaP256FromDerV1(const xvalue*);
+XL6_TEXT_API xvalue* xl6CryptoEcdsaP384ToDerV1(const xvalue*);
+XL6_TEXT_API xvalue* xl6CryptoEcdsaP384FromDerV1(const xvalue*);
 XL6_TEXT_API xvalue* xl6CryptoMd5TextV1(xstrview,int64_t);
 XL6_TEXT_API xstrview xl6CryptoMd5TextHexV1(xstrview,int64_t);
 XL6_TEXT_API xvalue* xl6CryptoMd5BytesV1(const xvalue*,int64_t);

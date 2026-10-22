@@ -187,36 +187,17 @@ bytes x448SecretB = x448B.sharedSecret(x448A.publicKey)
 assert x448SecretA == x448SecretB
 assert x448A.exportPrivate().length == 56
 
-var p256A = crypto.p256Keypair()
-var p256B = crypto.p256Keypair()
-string p256PrivateA = string(p256A["privateKey"])
-string p256PublicA = string(p256A["publicKey"])
-string p256PrivateB = string(p256B["privateKey"])
-string p256PublicB = string(p256B["publicKey"])
-expect(string.len(p256PrivateA), 64)
-expect(string.len(p256PublicA), 130)
-string p256SecretA = crypto.p256SharedSecret(p256PrivateA, p256PublicB)
-string p256SecretB = crypto.p256SharedSecret(p256PrivateB, p256PublicA)
-expect(string.len(p256SecretA), 64)
-expectStr(p256SecretA, p256SecretB)
-expectStr(crypto.p256SharedSecret("bad", p256PublicB), "")
+auto p256A = crypto.p256KeyPair()
+auto p256B = crypto.p256KeyPair()
+assert p256A.exportPrivate().length == 32
+assert p256A.publicKey.length == 65
+assert p256A.sharedSecret(p256B.publicKey) == p256B.sharedSecret(p256A.publicKey)
 
-var p384A = crypto.p384Keypair()
-var p384B = crypto.p384Keypair()
-string p384PrivateA = string(p384A["privateKey"])
-string p384PublicA = string(p384A["publicKey"])
-string p384PrivateB = string(p384B["privateKey"])
-string p384PublicB = string(p384B["publicKey"])
-expect(string.len(p384PrivateA), 96)
-expect(string.len(p384PublicA), 194)
-string p384SecretA = crypto.p384SharedSecret(p384PrivateA, p384PublicB)
-string p384SecretB = crypto.p384SharedSecret(p384PrivateB, p384PublicA)
-expect(string.len(p384SecretA), 96)
-expectStr(p384SecretA, p384SecretB)
-expectStr(crypto.p384SharedSecret(p384PrivateA, "bad"), "")
-
-assert not crypto.ecdsaVerify("", "", ""), "ecdsaVerify should reject empty values"
-assert not crypto.ecdsaVerify(p256PublicA, "00", "00"), "ecdsaVerify should reject malformed signature"
+auto p384A = crypto.p384KeyPair()
+auto p384B = crypto.p384KeyPair()
+assert p384A.exportPrivate().length == 48
+assert p384A.publicKey.length == 97
+assert p384A.sharedSecret(p384B.publicKey) == p384B.sharedSecret(p384A.publicKey)
 
 assert not crypto.rsaPssVerify("", "", "", ""), "rsaPssVerify should reject empty hex"
 assert not crypto.rsaPkcs1Verify("bad", "00", "00", "010001"), "rsaPkcs1Verify should reject invalid hex"
