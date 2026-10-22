@@ -21,7 +21,8 @@ typedef struct xls_sem_candidate_scope {
     xls_sem_overload_work work;
 } xls_sem_candidate_scope;
 /* Private same-thread verification scope. End restores the previous override;
- * candidate data remains owned by each individual compiler enumeration. */
+ * candidate data remains owned by each individual compiler enumeration.
+ * The same test allowance independently bounds its read-only alias vector. */
 void xlsFrontendSemCandidatesBegin(xls_sem_candidate_scope* scope,size_t bytes);
 void xlsFrontendSemCandidatesEnd(xls_sem_candidate_scope* scope,xls_sem_overload_work* work);
 /* Private verification entry point: zero budget runs the unchanged pair scan.

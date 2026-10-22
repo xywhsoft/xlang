@@ -184,12 +184,14 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     completion_changes = {
         ' XL6_Scope* scope;XL6_CompletionQuery* q=ctx->completionQuery;size_t i,j;':
             ' XL6_Scope* scope;XL6_CompletionQuery* q=ctx->completionQuery;size_t i,j;\n'
-            ' xmap heads={0};xls_sem_overload_scan scan=xlsSemOverloadBegin(ctx->root,&heads);',
+            ' xmap heads={0};xls_sem_overload_scan scan=xlsSemOverloadBegin(ctx->root,&heads);\n'
+            ' xls_type_alias_scope aliasScope;xlsSemCompletionTypesBegin(&aliasScope,ctx->root);',
         '    for (j=0;j<ctx->root->childCount&&!q->error;++j) {':
             '    for (j=xlsSemOverloadFirst(&scan,&heads,sym->name,ctx->root->childCount);\n'
             '         j<ctx->root->childCount&&!q->error;j=xlsSemOverloadNext(&scan,j,ctx->root->childCount)) {',
         '  xl6CompletionAdd(q,info->name,"type",info->decl?info->decl->semanticSymbolId:0,info->decl,xl6SemCompletionType(ctx,type));xl6AstFree(type);\n }\n}':
             '  xl6CompletionAdd(q,info->name,"type",info->decl?info->decl->semanticSymbolId:0,info->decl,xl6SemCompletionType(ctx,type));xl6AstFree(type);\n }\n'
+            ' xlsFrontendTypeAliasEnd(&aliasScope);\n'
             ' xrtMapUnit(&heads);xlsSemOverloadEnd(&scan);\n}',
     }
     for old, new in completion_changes.items():
@@ -201,7 +203,7 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
-        change='bounded ordered conflict/completion callable candidates and opt-in exact-context function memos; original rules and final annotations retained',
+        change='bounded ordered conflict/completion candidates, read-only name-query alias scope and opt-in exact-context function memos; original rules and final annotations retained',
         auditedSeams=len(changes)+len(conflict_changes)+len(completion_changes)+1, memoBytes=64 * 1024 * 1024,
         overloadCandidateBytes=8 * 1024 * 1024,
         auditedDependencies={str(registry): registry_sha})
