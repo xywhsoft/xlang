@@ -37,7 +37,7 @@ class Client:
    m=self.next();seen.append(m)
    if m.get('id')==id:return m,seen
  def initialize(self,diagnostics_backend=None):
-  options={'checkOnSave':False}
+  options={'checkOnSave':False,'automaticDiagnostics':False}
   if diagnostics_backend is not None:options['diagnosticsBackend']=diagnostics_backend
   self.send('initialize',{'capabilities':{},'initializationOptions':options},1)
   m,_=self.reply(1);cap=m['result']['capabilities'];assert cap['positionEncoding']=='utf-16' and cap['experimental']['unsavedDependencies'] and cap['experimental']['snapshotInputGuard']=='background-poll';self.send('initialized',{})

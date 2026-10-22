@@ -14,7 +14,7 @@ def main():
  def client(tool=compiler):
   # Controlled malformed/slow compiler responses exercise only the explicit
   # CLI oracle. Real-source cases use the host's default native backend.
-  options={'checkOnSave':False}
+  options={'checkOnSave':False,'automaticDiagnostics':False}
   if tool!=compiler: options['completionBackend']='cli'
   c=Client(server,tool,root); clients.append(c); c.send('initialize',{'capabilities':{},'initializationOptions':options},1); m,_=c.reply(1); cap=m['result']['capabilities']; assert cap['completionProvider']=={'resolveProvider':False,'triggerCharacters':['.']} and cap['experimental']['cursorCompletion'] and not cap['experimental']['cSemantics']; c.send('initialized',{}); return c
  def params(text,at,path=entry,version=1,standard=False,**kwargs):

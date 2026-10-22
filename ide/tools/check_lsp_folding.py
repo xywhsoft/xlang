@@ -43,7 +43,7 @@ def main():
     def create(limit=None):
         client=Client(server,missing,output);clients.append(client)
         caps={} if limit is None else dict(textDocument=dict(foldingRange=dict(rangeLimit=limit,lineFoldingOnly=True)))
-        client.send('initialize',dict(capabilities=caps,initializationOptions=dict(checkOnSave=False)),1)
+        client.send('initialize',dict(capabilities=caps,initializationOptions=dict(checkOnSave=False,automaticDiagnostics=False)),1)
         message,_=client.reply(1);assert 'error' not in message,message
         cap=message['result']['capabilities'];assert cap['foldingRangeProvider'] is True and cap['experimental']['analysisRuntime']=='compiler-xrt' and cap['experimental']['residentSyntax'] is True
         client.send('initialized',{});return client

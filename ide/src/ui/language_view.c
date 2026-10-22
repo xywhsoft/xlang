@@ -187,7 +187,7 @@ static int checkMode(xide_app* app,int snapshots,xide_document* d)
   v->client=program && v->compiler && v->directory ? xideLanguageClientStart(program,compiler,directory,&e) : NULL; free(program);
   if(!v->client) { snprintf(v->message,sizeof(v->message),"%s",*e.message ? e.message : "无法启动 xlang-ls；请重新构建 IDE。"); free(directory); return 0; }
   xideLanguageClientSetWake(v->client,languageWake,app);
-  xvalue *p=xrtValueObject(),*options=xrtValueObject(); put(p,"capabilities",xrtValueObject()); put(options,"checkOnSave",xrtValueBool(false)); put(p,"initializationOptions",options);
+  xvalue *p=xrtValueObject(),*options=xrtValueObject(); put(p,"capabilities",xrtValueObject()); put(options,"checkOnSave",xrtValueBool(false)); put(options,"automaticDiagnostics",xrtValueBool(false)); put(p,"initializationOptions",options);
   if(!sendMessage(v,"initialize",p,1)) { free(directory); return 0; } v->waitingInitialize=1;
  }
  free(package); free(directory); clearDiagnostics(app); free(v->uri); v->uri=NULL; if(!snapshots) freeInputs(v); v->snapshotMode=snapshots; v->recheckAt=0; v->observedEdits=editStamp(app); free(v->path); v->path=copy(d->path); v->document=d; v->documentId=d->id; v->version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)); v->invalidated=0; v->busy=1; v->automatic=1;

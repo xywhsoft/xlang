@@ -24,7 +24,7 @@ def main():
 
     def client(backend='native'):
         c=Client(server,root/'absent-executor/xl.exe',root);clients.append(c)
-        c.send('initialize',dict(capabilities={},initializationOptions=dict(checkOnSave=False,completionBackend=backend)),1)
+        c.send('initialize',dict(capabilities={},initializationOptions=dict(checkOnSave=False,automaticDiagnostics=False,completionBackend=backend)),1)
         value,_=c.reply(1);cap=value['result']['capabilities']['experimental']
         assert cap['retainedCursorCompletion']==(backend=='native'),cap
         c.send('initialized',{});return c

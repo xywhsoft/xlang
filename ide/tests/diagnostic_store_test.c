@@ -118,7 +118,7 @@ static int run(void)
  query=xideDiagnosticStoreInvalidate(store,future); CHECK(query && waitFor(query,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==2 && invalidated(snapshot.invalidated,"missing") && !invalidated(snapshot.invalidated,"single")); xideDiagnosticQueryDestroy(query); inputs[4].text="func unused()\nend\n";
  /* A contradictory version is an error, and cannot replace existing facts. */
  inputs[2].version=10; value=capture(root,second,inputs,5,1); CHECK(value.guard); query=insert(store,"second",value);
- CHECK(query && waitFor(query,&snapshot)==XIDE_DIAGNOSTIC_FAILED && strstr(snapshot.error,"Conflicting") && !snapshot.documents); xideDiagnosticQueryDestroy(query);
+ CHECK(query && waitFor(query,&snapshot)==XIDE_DIAGNOSTIC_FAILED && strstr(snapshot.error,"Conflicting") && snapshot.conflictPath && xidePathLexicalEqual(snapshot.conflictPath,common) && !snapshot.documents); xideDiagnosticQueryDestroy(query);
  query=xideDiagnosticStoreSnapshot(store); CHECK(query && waitFor(query,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==2 && errors(snapshot.documents,single)==1); xideDiagnosticQueryDestroy(query); inputs[2].version=9;
  xideDiagnosticStoreDestroy(store); /* old completed snapshot still owns its DOM */
  CHECK(xideDiagnosticQueryResult(retained,&old)==XIDE_DIAGNOSTIC_READY); after=xrtJsonStringify(old.documents,false,NULL); CHECK(after && !strcmp(original,after)); xrtFree(after); xrtFree(original); xideDiagnosticQueryDestroy(retained);
@@ -172,7 +172,19 @@ static int run(void)
  store=xideDiagnosticStoreCreate(NULL); value=capture(root,first,&packageInput,1,0); CHECK(store && value.guard && xideLanguageInputGuardTouches(value.guard,manifest));
  query=insert(store,"package",value); CHECK(query && waitFor(query,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==1 && xrtValueCount(snapshot.documents)==3 && errors(snapshot.documents,manifest)==0 && errors(snapshot.documents,api)==1); xideDiagnosticQueryDestroy(query);
  CHECK(writeText(manifest,manifestText)); query=xideDiagnosticStoreSweep(store);
- CHECK(query && waitFor(query,&snapshot)==XIDE_DIAGNOSTIC_READY && !snapshot.records && invalidated(snapshot.invalidated,"package")); xideDiagnosticQueryDestroy(query); xideDiagnosticStoreDestroy(store); xrtFree(manifest); xrtFree(api);
+ CHECK(query && waitFor(query,&snapshot)==XIDE_DIAGNOSTIC_READY && !snapshot.records && invalidated(snapshot.invalidated,"package")); xideDiagnosticQueryDestroy(query);
+ value=capture(root,first,&packageInput,1,0); CHECK(value.guard); query=insert(store,"package-again",value);
+ CHECK(query && waitFor(query,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==1);
+ xide_diagnostic_publication* publication=NULL; xvalue* invalid=NULL;
+ CHECK(xideDiagnosticQueryTake(query,&publication,&invalid) && publication && invalid && xideDiagnosticPublicationCount(publication)==3);
+ size_t manifestIndex=xideDiagnosticPublicationFind(publication,manifest);
+ CHECK(manifestIndex!=SIZE_MAX && xideDiagnosticPublicationGroup(publication,manifestIndex) && xideDiagnosticPublicationCompare(publication,manifestIndex,publication,manifestIndex)==0 && xideDiagnosticPublicationEqual(publication,manifestIndex,publication,manifestIndex));
+ xide_diagnostic_publication* duplicate=publication; xvalue* duplicateKeys=invalid;
+ CHECK(!xideDiagnosticQueryTake(query,&duplicate,&duplicateKeys) && !duplicate && !duplicateKeys && xideDiagnosticQueryResult(query,&snapshot)==XIDE_DIAGNOSTIC_FAILED);
+ xideDiagnosticQueryDestroy(query); xrtValueRelease(invalid);
+ query=xideDiagnosticStoreClear(store); CHECK(query && waitFor(query,&snapshot)==XIDE_DIAGNOSTIC_READY && !snapshot.records && invalidated(snapshot.invalidated,"package-again") && !xrtValueCount(snapshot.documents)); xideDiagnosticQueryDestroy(query);
+ xideDiagnosticStoreDestroy(store); CHECK(xideDiagnosticPublicationCount(publication)==3 && xideDiagnosticPublicationFind(publication,manifest)==manifestIndex);
+ xideDiagnosticPublicationDestroy(publication); xrtFree(manifest); xrtFree(api);
  xrtFree(first); xrtFree(second); xrtFree(common); xrtFree(single); xrtFree(unused); xrtFree(future); xrtFree(root); return 1;
 }
 int main(void)

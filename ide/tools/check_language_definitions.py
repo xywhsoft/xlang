@@ -15,7 +15,7 @@ def main():
  results=[]; clients=[]; status='failed'; start=datetime.datetime.now(datetime.timezone.utc).isoformat(); rid=10
  def done(name,**data): results.append({'name':name,'passed':True,**data})
  def client(tool=compiler):
-  options={'checkOnSave':False}
+  options={'checkOnSave':False,'automaticDiagnostics':False}
   if tool!=compiler: options['diagnosticsBackend']='cli'
   c=Client(server,tool,root); clients.append(c); c.send('initialize',{'capabilities':{},'initializationOptions':options},1); m,_=c.reply(1); cap=m['result']['capabilities']; assert cap['definitionProvider'] and cap['experimental']['snapshotDefinition'] and not cap['experimental']['cSemantics']; c.send('initialized',{}); return c
  def check(c,text,version=1,extra=()):

@@ -51,7 +51,7 @@ def main():
     def client(backend=None):
         c = Client(server, compiler, root)
         clients.append(c)
-        options = dict(checkOnSave=False)
+        options = dict(checkOnSave=False,automaticDiagnostics=False)
         if backend is not None:
             options['completionBackend'] = backend
         c.send('initialize', dict(capabilities={}, initializationOptions=options), 1)
@@ -59,7 +59,7 @@ def main():
         if backend == 'invalid':
             assert reply['error']['code'] == -32602, reply
             # Retry a valid initialize before normal shutdown/exit.
-            c.send('initialize', dict(capabilities={}, initializationOptions=dict(checkOnSave=False)), 2)
+            c.send('initialize', dict(capabilities={}, initializationOptions=dict(checkOnSave=False,automaticDiagnostics=False)), 2)
             initialized, _ = c.reply(2)
             assert 'result' in initialized, initialized
             c.send('initialized', {})
