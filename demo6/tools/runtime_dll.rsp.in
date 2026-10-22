@@ -65,11 +65,11 @@
     src\runtime\xl6_execution_tcp.c
     src\runtime\xl6_execution_udp.c
     src\runtime\xl6_udp_config.c
-    src\runtime\xl6_udp_language.c
-    src\runtime\xl6_udp_address.c
     src\runtime\xl6_udp_values.c
     src\runtime\xl6_udp_packet_info.c
     src\runtime\xl6_udp_batch.c
+    src\runtime\xl6_udp_language.c
+    src\runtime\xl6_udp_address.c
     src\runtime\xl6_udp_stats.c
     src\runtime\xl6_udp_send.c
     src\runtime\xl6_udp_send_buffer.c
