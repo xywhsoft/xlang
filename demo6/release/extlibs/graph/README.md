@@ -137,6 +137,9 @@ C 范例黄金输出逐字节比较。包级脚本在本次运行专用的临时
 编译结果和测试日志，退出时清理；同时直接核对 C/XLang 范例输出。
 独立 C 门禁仍可用 `bash tools/check_extlib_graph.sh`；
 设置 GRAPH_DECLARATIONS 可核对生成原型的 LP64 合同。
+独立 C 门禁与 Windows 完整门禁默认使用独占目录并在退出时清理；
+需要保留 `results.json` 或编译产物时，分别显式设置 `GRAPH_WORK_DIR`
+或传入 `-WorkDirectory`。旧的固定门禁目录不会被自动删除。
 
 共享语言失败单独记录，不作为通过用例；以上范围不代表 32 位/ARM、TSan、
 全部性能场景或同一可变输入并发已经验收。具体构建与结果见 demo6/docs 下的交付记录。

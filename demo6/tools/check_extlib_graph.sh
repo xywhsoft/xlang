@@ -2,8 +2,13 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
-work=${GRAPH_WORK_DIR:-"$root/build/test/graph_linux_guard"}
-mkdir -p "$work"
+if [[ -n "${GRAPH_WORK_DIR:-}" ]]; then
+    work=$GRAPH_WORK_DIR
+    mkdir -p -- "$work"
+else
+    work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-graph-XXXXXX")
+    trap 'rm -rf -- "$work"' EXIT
+fi
 pkg=release/extlibs/graph
 cc=${CC:-gcc}
 snapshot() {
