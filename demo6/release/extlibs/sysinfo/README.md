@@ -53,6 +53,11 @@ release/xl.exe run release/extlibs/sysinfo/examples/sysinfo_c.c
 ```
 
 Windows/Linux 包门禁将这一路径与 GCC 编译运行、XLang 范例的输出对照。
+`examples/basic.xl` 与 `sysinfo_c.c` 展示系统标识、CPU 型号/数量、
+总内存和页大小，并在同一机器上逐字对照。`examples/metrics.xl` 与
+`metrics_c.c` 展示可用内存、使用率和 uptime 的实际采样；这三个值可能
+在相邻调用间变化，门禁分别检查两种语言的输出格式和合法范围，不要求
+瞬时数值相同。两组范例合计覆盖全部 11 个公开查询。
 当前 Windows 严格 GCC、C/XLang 双语对照及边界 AOT 通过；Linux 包级门禁
 同次运行严格 GCC、C ASan/UBSan、XLang 边界及双语范例逐字节对照。
 带文本输出的范例 AOT 仍缺共享运行时符号
@@ -87,3 +92,9 @@ XLang 边界、非 UTF-8 系统文本及不可读 `/proc/meminfo` 的 C sanitize
 原返回空字符串；双平台 C 夹具先红后绿，现按文本不可用合同返回
 `unknown`。Windows 严格 C/XLang 聚焦门禁、Linux C ASan/UBSan 与
 XLang 双语门禁通过。有效型号与分配失败路径不变；完整 AOT 仍待主线修复。
+
+2026-10-22：新增 CPU、总内存、页大小的成对基础范例，以及可用内存、
+使用率、uptime 的成对动态采样范例。Windows `-SkipAot` 的严格 C、
+边界和双语门禁，Linux C ASan/UBSan、XLang 与动态指标格式门禁通过。
+默认 Windows 门禁复核无输出边界 AOT 通过，带输出范例构建仍缺共享
+`xl6ValueDataSnapshotV1`。实现/API 未改，未签收完整 AOT。

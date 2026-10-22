@@ -13,12 +13,25 @@ $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', '-Ilib/xrt',
 $links = @('-lWs2_32', '-lAdvapi32', '-lIphlpapi', '-lm')
 
 function Run([string]$name, [string]$program, [string[]]$arguments) {
-    $output = & $program @arguments 2>&1
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = & $program @arguments 2>&1
+    } finally {
+        $ErrorActionPreference = $previousPreference
+    }
     if ($LASTEXITCODE -ne 0) {
         throw "${name}: exit $LASTEXITCODE`n$($output -join "`n")"
     }
     Write-Host "[sysinfo] ${name}: PASS"
     return ($output -join "`n").Replace("`r`n", "`n").TrimEnd("`n")
+}
+
+function CheckMetrics([string]$name, [string]$output) {
+    if ($output -cnotmatch '\Aavailable: [0-9]+\nusage: ([0-9]+)\nuptime: [0-9]+\z' -or
+        [int]$Matches[1] -gt 100) {
+        throw "${name}: invalid dynamic metrics`n$output"
+    }
 }
 
 Push-Location $root
@@ -47,6 +60,12 @@ try {
         'release/extlibs/sysinfo/examples/sysinfo_c.c', $runtime) +
         $links + @('-o', $example))
     $cOutput = Run 'C example' $example @()
+    $metrics = Join-Path $work 'sysinfo_metrics.exe'
+    $null = Run 'C metrics compile' $gcc ($flags + @(
+        'release/extlibs/sysinfo/examples/metrics_c.c', $runtime) +
+        $links + @('-o', $metrics))
+    $cMetrics = Run 'C metrics' $metrics @()
+    CheckMetrics 'C metrics' $cMetrics
 
     Push-Location (Join-Path $root 'release')
     try {
@@ -61,6 +80,10 @@ try {
             throw 'direct C system information differs from GCC output'
         }
         Write-Host '[sysinfo] C/XLang parity: PASS'
+        $xlMetrics = Run 'XLang metrics' $xl @('run', 'extlibs/sysinfo/examples/metrics.xl')
+        CheckMetrics 'XLang metrics' $xlMetrics
+        $directMetrics = Run 'C metrics xl run' $xl @('run', 'extlibs/sysinfo/examples/metrics_c.c')
+        CheckMetrics 'C metrics xl run' $directMetrics
 
         if (-not $SkipAot) {
             $target = Join-Path $work 'sysinfo_xl_test.exe'

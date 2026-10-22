@@ -6,5 +6,9 @@ func main(...) as int
     println("version:", sysinfo.osVersion())
     println("arch:", sysinfo.arch())
     println("host:", sysinfo.hostname())
+    println("cpu:", sysinfo.cpuName())
+    println("cpus:", sysinfo.cpuCount())
+    println("memory:", sysinfo.memTotal())
+    println("page:", sysinfo.pageSize())
     return 0
 end

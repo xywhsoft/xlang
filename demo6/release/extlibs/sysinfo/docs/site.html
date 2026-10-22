@@ -54,7 +54,7 @@ int main(void)
     xrtFree(name);
     return ok ? 0 : 1;
 }</code></pre>
-    <p>C 字符串结果由调用方用 <code>xrtFree</code> 释放；XLang 包装自动接管。每次公开调用清除之前的 XRT 错误；转换时若内存分配失败，则保留内存错误并返回空结果，不伪装为 <code>unknown</code>。完整双语范例位于 <code>release/extlibs/sysinfo/examples/</code>。</p>
+    <p>C 字符串结果由调用方用 <code>xrtFree</code> 释放；XLang 包装自动接管。每次公开调用清除之前的 XRT 错误；转换时若内存分配失败，则保留内存错误并返回空结果，不伪装为 <code>unknown</code>。<code>release/extlibs/sysinfo/examples/</code> 内的 basic 与 metrics 各有 C/XLang 对照：前者展示可稳定比较的主机信息，后者展示会随采样时刻变化的内存和运行时间。</p>
   </section>
   <section id="verify">
     <h2>验证状态</h2>

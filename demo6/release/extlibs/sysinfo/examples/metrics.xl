@@ -1,0 +1,13 @@
+import sysinfo
+
+func main(...) as int
+    // 这些值会在两次采样之间变化，不用于双语逐字比较。
+    int available = sysinfo.memAvailable()
+    int usage = sysinfo.memUsagePct()
+    int uptime = sysinfo.uptime()
+    assert available >= 0 and usage >= 0 and usage <= 100 and uptime >= 0
+    println("available:", available)
+    println("usage:", usage)
+    println("uptime:", uptime)
+    return 0
+end
