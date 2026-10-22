@@ -355,6 +355,17 @@
     src\runtime\xl6_crypto_p384_verify_der.c
     src\runtime\xl6_crypto_p384_raw.c
     src\runtime\xl6_crypto_nist_der.c
+    src\runtime\xl6_crypto_rsa_public.c
+    src\runtime\xl6_crypto_rsa_public_domain.c
+    src\runtime\xl6_crypto_rsa_private.c
+    src\runtime\xl6_crypto_rsa_private_domain.c
+    src\runtime\xl6_crypto_rsa_public_raw.c
+    src\runtime\xl6_crypto_rsa_private_raw.c
+    src\runtime\xl6_crypto_rsa_pss_verify.c
+    src\runtime\xl6_crypto_rsa_pkcs1_verify.c
+    src\runtime\xl6_crypto_rsa_pss_sign.c
+    src\runtime\xl6_crypto_rsa_pss_sign_salt.c
+    src\runtime\xl6_crypto_rsa_pkcs1_sign.c
     src\runtime\xl6_der_value.c
     src\runtime\xl6_der_value_domain.c
     src\runtime\xl6_der_reader.c

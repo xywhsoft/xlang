@@ -1683,6 +1683,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsCryptoClass;
     int needsEd25519Class;
     int needsNistClass;
+    int needsRsaPublicClass, needsRsaPrivateClass;
     int needsTccClass;
     int needsXlangClass;
     int needsCoreClass;
@@ -1927,6 +1928,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibFuncUsed(used, "compress", "encodeBuffer") || xl6StdlibFuncUsed(used, "compress", "decode") ||
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer");
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
+    needsRsaPrivateClass = xl6StdlibNodeUsesTypeName(root,"RsaPrivateKey") || xl6StdlibFuncUsed(used,"cryptoAdvanced","rsaPrivate");
+    needsRsaPublicClass = needsRsaPrivateClass || xl6StdlibNodeUsesTypeName(root,"RsaPublicKey") || xl6StdlibFuncUsed(used,"cryptoAdvanced","rsaPublic");
     needsNistClass = xl6StdlibNodeUsesTypeName(root,"P256Key") || xl6StdlibNodeUsesTypeName(root,"P384Key") ||
         xl6StdlibFuncUsed(used,"crypto","p256KeyPair") || xl6StdlibFuncUsed(used,"crypto","p384KeyPair");
     needsEd25519Class = xl6StdlibNodeUsesTypeName(root,"Ed25519Key") ||
@@ -2285,6 +2288,14 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder,xl6StdlibSignatureHashSource);
     if (needsNistClass)
         xl6StdlibBuilderAppend(&builder,xl6StdlibNistClassSource);
+    if (needsRsaPublicClass || xl6StdlibNodeUsesTypeName(root,"RsaHash"))
+        xl6StdlibBuilderAppend(&builder,xl6StdlibRsaHashSource);
+    if (needsRsaPrivateClass || xl6StdlibNodeUsesTypeName(root,"RsaPrivatePart"))
+        xl6StdlibBuilderAppend(&builder,xl6StdlibRsaPrivatePartSource);
+    if (needsRsaPublicClass)
+        xl6StdlibBuilderAppend(&builder,xl6StdlibRsaPublicClassSource);
+    if (needsRsaPrivateClass)
+        xl6StdlibBuilderAppend(&builder,xl6StdlibRsaPrivateClassSource);
     if (xl6StdlibFuncUsed(used, "path", "parse") || xl6StdlibFuncUsed(used, "path", "components") ||
         xl6StdlibNodeUsesTypeName(root, "PathParts") || xl6StdlibNodeUsesTypeName(root, "PathIterator") ||
         xl6StdlibNodeUsesTypeName(root, "PathComponent"))

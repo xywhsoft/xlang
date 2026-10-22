@@ -1,6 +1,8 @@
 /* Exact private C linkage ownership. This table maps already-resolved XLIR
  * call targets, never generated C text or source-name prefixes. The artifact
  * contract test checks exports against actual resident object files. */
+XL6_ARTIFACT_SYMBOL("xl6CryptoRsaPublicCopyV1", CRYPTO_RSA_PUBLIC)
+XL6_ARTIFACT_SYMBOL("xl6CryptoRsaPrivateFromPartsV1", CRYPTO_RSA_PRIVATE)
 XL6_ARTIFACT_SYMBOL("xl6CryptoEd25519KeySignSpanV1", CRYPTO_ED25519_SIGN)
 XL6_ARTIFACT_SYMBOL("xl6CryptoEd25519SeedSignSpanV1", CRYPTO_ED25519_SEED_SIGN)
 XL6_ARTIFACT_SYMBOL("xl6CryptoEd25519VerifySpanV1", CRYPTO_ED25519_VERIFY)

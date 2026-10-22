@@ -1,5 +1,29 @@
 #ifndef XL6_CRYPTO_ABI_H
 #define XL6_CRYPTO_ABI_H
+XL6_TEXT_API void* xl6CryptoRsaPublicCreateV1(const xvalue*,const xvalue*);
+XL6_TEXT_API void xl6CryptoRsaPublicDestroyV1(void*);
+XL6_TEXT_API xvalue* xl6CryptoRsaPublicModulusV1(void*);
+XL6_TEXT_API xvalue* xl6CryptoRsaPublicExponentV1(void*);
+XL6_TEXT_API int64_t xl6CryptoRsaPublicSizeV1(void*);
+XL6_TEXT_API int64_t xl6CryptoRsaPublicBitsV1(void*);
+XL6_TEXT_API void* xl6CryptoRsaPrivateCreateV1(const xvalue*,const xvalue*,const xvalue*);
+XL6_TEXT_API void* xl6CryptoRsaPrivateCreateCrtV1(const xvalue*,const xvalue*,const xvalue*,const xvalue*,const xvalue*,const xvalue*,const xvalue*,const xvalue*);
+XL6_TEXT_API void xl6CryptoRsaPrivateDestroyV1(void*);
+XL6_TEXT_API void* xl6CryptoRsaPrivatePublicV1(void*);
+XL6_TEXT_API xvalue* xl6CryptoRsaPrivateExportPartV1(void*,int64_t);
+XL6_TEXT_API bool xl6CryptoRsaPrivateHasCrtV1(void*);
+XL6_TEXT_API xvalue* xl6CryptoRsaPublicRawV1(void*,const xvalue*);
+XL6_TEXT_API xvalue* xl6CryptoRsaPrivateRawV1(void*,const xvalue*);
+XL6_TEXT_API bool xl6CryptoRsaVerifyPssHashV1(void*,const xvalue*,const xvalue*,int64_t,int64_t);
+XL6_TEXT_API bool xl6CryptoRsaVerifyPssHashWithMaskV1(void*,const xvalue*,const xvalue*,int64_t,int64_t,int64_t);
+XL6_TEXT_API bool xl6CryptoRsaVerifyPssHashAnySaltV1(void*,const xvalue*,const xvalue*,int64_t);
+XL6_TEXT_API bool xl6CryptoRsaVerifyPssHashAnySaltWithMaskV1(void*,const xvalue*,const xvalue*,int64_t,int64_t);
+XL6_TEXT_API bool xl6CryptoRsaVerifyPkcs1HashV1(void*,const xvalue*,const xvalue*,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoRsaSignPssHashV1(void*,const xvalue*,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoRsaSignPssHashWithMaskV1(void*,const xvalue*,int64_t,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoRsaSignPssHashSaltV1(void*,const xvalue*,const xvalue*,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoRsaSignPssHashSaltWithMaskV1(void*,const xvalue*,const xvalue*,int64_t,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoRsaSignPkcs1HashV1(void*,const xvalue*,int64_t);
 XL6_TEXT_API void* xl6CryptoP256CreateV1(const xvalue*);
 XL6_TEXT_API void xl6CryptoP256DestroyV1(void*);
 XL6_TEXT_API xvalue* xl6CryptoP256PublicV1(void*);

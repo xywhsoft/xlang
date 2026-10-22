@@ -316,6 +316,7 @@ const char* xl6StdlibXidClassSource =
 #include "xl6_stdlib_xdh.inc"
 #include "xl6_stdlib_ed25519.inc"
 #include "xl6_stdlib_nist.inc"
+#include "xl6_stdlib_rsa.inc"
 
 #include "xl6_stdlib_net_address.inc"
 #include "xl6_stdlib_net_resolver.inc"
@@ -1592,44 +1593,10 @@ static const XL6_StdlibParam xl6StdRuntimeCryptoChacha20BytesParams[] = {
     {"c_uint", "counter"}
 };
 
-static const XL6_StdlibParam xl6StdRuntimeCryptoTextHexParams[] = {
-    {"string", "hex"},
-    {"c_size", "hexSize"}
-};
 
-static const XL6_StdlibParam xl6StdRuntimeCryptoSignParams[] = {
-    {"string", "seedHex"},
-    {"c_size", "seedHexSize"},
-    {"string", "text"},
-    {"c_size", "textSize"}
-};
 
-static const XL6_StdlibParam xl6StdRuntimeCryptoVerifyParams[] = {
-    {"string", "publicKeyHex"},
-    {"c_size", "publicKeyHexSize"},
-    {"string", "text"},
-    {"c_size", "textSize"},
-    {"string", "signatureHex"},
-    {"c_size", "signatureHexSize"}
-};
 
-static const XL6_StdlibParam xl6StdRuntimeCryptoSharedSecretParams[] = {
-    {"string", "privateKeyHex"},
-    {"c_size", "privateKeyHexSize"},
-    {"string", "publicKeyHex"},
-    {"c_size", "publicKeyHexSize"}
-};
 
-static const XL6_StdlibParam xl6StdRuntimeCryptoRsaVerifyParams[] = {
-    {"string", "hashHex"},
-    {"c_size", "hashHexSize"},
-    {"string", "signatureHex"},
-    {"c_size", "signatureHexSize"},
-    {"string", "modulusHex"},
-    {"c_size", "modulusHexSize"},
-    {"string", "exponentHex"},
-    {"c_size", "exponentHexSize"}
-};
 
 static const XL6_StdlibParam xl6StdRuntimeLogLevelParams[] = {
     {"int", "level"}
@@ -3893,23 +3860,7 @@ static const char xl6StdCryptoRandomBytesBody[] =
 
 
 
-static const char xl6StdCryptoRsaPssVerifyBody[] =
-    "func __xl_std_crypto_rsa_pss_verify(string hashHex, string signatureHex, string modulusHex, string exponentHex) as bool\n"
-    "    c_size __xl_size_hashHex = __xl_std_xrt_string_byte_len(hashHex)\n"
-    "    c_size __xl_size_signatureHex = __xl_std_xrt_string_byte_len(signatureHex)\n"
-    "    c_size __xl_size_modulusHex = __xl_std_xrt_string_byte_len(modulusHex)\n"
-    "    c_size __xl_size_exponentHex = __xl_std_xrt_string_byte_len(exponentHex)\n"
-    "    return __xl_std_runtime_rsa_pss_verify(hashHex, __xl_size_hashHex, signatureHex, __xl_size_signatureHex, modulusHex, __xl_size_modulusHex, exponentHex, __xl_size_exponentHex)\n"
-    "end\n";
 
-static const char xl6StdCryptoRsaPkcs1VerifyBody[] =
-    "func __xl_std_crypto_rsa_pkcs1_verify(string hashHex, string signatureHex, string modulusHex, string exponentHex) as bool\n"
-    "    c_size __xl_size_hashHex = __xl_std_xrt_string_byte_len(hashHex)\n"
-    "    c_size __xl_size_signatureHex = __xl_std_xrt_string_byte_len(signatureHex)\n"
-    "    c_size __xl_size_modulusHex = __xl_std_xrt_string_byte_len(modulusHex)\n"
-    "    c_size __xl_size_exponentHex = __xl_std_xrt_string_byte_len(exponentHex)\n"
-    "    return __xl_std_runtime_rsa_pkcs1_verify(hashHex, __xl_size_hashHex, signatureHex, __xl_size_signatureHex, modulusHex, __xl_size_modulusHex, exponentHex, __xl_size_exponentHex)\n"
-    "end\n";
 
 static const char xl6StdIdTryParseBody[] =
     "func __xl_std_id_try_parse(string text) as Xid?\n"
@@ -4452,8 +4403,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "chacha20EncryptHex", "__xl_std_runtime_chacha20_encrypt_hex", "xl6_xrt_chacha20_encrypt_hex", xl6StdRuntimeCryptoChacha20Params, 7, "point", NULL},
     {"__xl_runtime", "chacha20DecryptText", "__xl_std_runtime_chacha20_decrypt_text", "xl6_xrt_chacha20_decrypt_text", xl6StdRuntimeCryptoChacha20Params, 7, "point", NULL},
     {"__xl_runtime", "chacha20Bytes", "__xl_std_runtime_chacha20_bytes", "xl6_xrt_chacha20_bytes", xl6StdRuntimeCryptoChacha20BytesParams, 7, "point", NULL},
-    {"__xl_runtime", "rsaPssVerify", "__xl_std_runtime_rsa_pss_verify", "xl6_xrt_rsa_pss_verify", xl6StdRuntimeCryptoRsaVerifyParams, 8, "c_bool", NULL},
-    {"__xl_runtime", "rsaPkcs1Verify", "__xl_std_runtime_rsa_pkcs1_verify", "xl6_xrt_rsa_pkcs1_verify", xl6StdRuntimeCryptoRsaVerifyParams, 8, "c_bool", NULL},
     {"__xl_runtime", "logDefault", "__xl_std_runtime_log_default", "xl6LogDefaultV1", NULL, 0, "point", NULL},
     {"__xl_runtime", "logReleaseDefault", "__xl_std_runtime_log_release_default", "xl6LogReleaseDefaultV1", xl6StdLogSetDefaultParams, 1, "bool", NULL},
     {"__xl_runtime", "logTextValidate", "__xl_std_runtime_log_text_validate", "xl6LogTextValidateV1", xl6StdLogTextValidateParams, 3, "bool", NULL},
@@ -5303,6 +5252,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"crypto", "ecdsaP256FromDer", "__xl_std_crypto_ecdsaP256FromDer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEcdsaP256FromDerV1},
     {"crypto", "ecdsaP384ToDer", "__xl_std_crypto_ecdsaP384ToDer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEcdsaP384ToDerV1},
     {"crypto", "ecdsaP384FromDer", "__xl_std_crypto_ecdsaP384FromDer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEcdsaP384FromDerV1},
+    {"cryptoAdvanced", "rsaPublic", "__xl_std_cryptoAdvanced_rsaPublic", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoRsaPublicRawV1},
+    {"cryptoAdvanced", "rsaPrivate", "__xl_std_cryptoAdvanced_rsaPrivate", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoRsaPrivateRawV1},
     {"crypto", "ed25519KeyPair", "__xl_std_crypto_ed25519KeyPair", NULL, NULL, 0, "Ed25519Key", xl6StdResidentxl6CryptoEd25519GenerateV1},
     {"crypto", "ed25519Sign", "__xl_std_crypto_ed25519Sign", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEd25519SignTextV1},
     {"crypto", "ed25519Verify", "__xl_std_crypto_ed25519Verify", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoEd25519VerifyTextV1},
@@ -5319,8 +5270,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"cryptoAdvanced", "x25519", "__xl_std_cryptoAdvanced_x25519", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoX25519RawV1},
     {"crypto", "x448KeyPair", "__xl_std_crypto_x448KeyPair", NULL, NULL, 0, "X448Key", xl6StdResidentxl6CryptoX448GenerateV1},
     {"cryptoAdvanced", "x448", "__xl_std_cryptoAdvanced_x448", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoX448RawV1},
-    {"crypto", "rsaPssVerify", "__xl_std_crypto_rsa_pss_verify", NULL, NULL, 0, "bool", xl6StdCryptoRsaPssVerifyBody},
-    {"crypto", "rsaPkcs1Verify", "__xl_std_crypto_rsa_pkcs1_verify", NULL, NULL, 0, "bool", xl6StdCryptoRsaPkcs1VerifyBody},
 
     {"id", "xid", "__xl_std_id_xid", "xl6_xrt_xid_make_string", NULL, 0, "string", NULL},
     {"id", "make", "__xl_std_id_make", "xl6_xrt_xid_make", NULL, 0, "Xid", NULL},

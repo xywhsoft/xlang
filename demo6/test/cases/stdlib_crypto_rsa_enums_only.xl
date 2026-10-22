@@ -1,0 +1,7 @@
+export func selected() as RsaHash
+    return RsaHash.sha384
+end
+export func selectedPart() as RsaPrivatePart
+    return RsaPrivatePart.prime1
+end
+assert selected() == RsaHash.sha384
