@@ -60,6 +60,21 @@ static uint8 xlangdetect_ascii_lower(uint8 iByte)
 
 
 
+/* 阿拉伯文区块还含数字、标点和组合附标；只把其中的字母计作证据。 */
+static bool xlangdetect_arabic_letter(uint32 iScalar)
+{
+    return ((iScalar >= UINT32_C(0x0620)) && (iScalar <= UINT32_C(0x064A))) ||
+        ((iScalar >= UINT32_C(0x066E)) && (iScalar <= UINT32_C(0x066F))) ||
+        ((iScalar >= UINT32_C(0x0671)) && (iScalar <= UINT32_C(0x06D3))) ||
+        (iScalar == UINT32_C(0x06D5)) ||
+        ((iScalar >= UINT32_C(0x06E5)) && (iScalar <= UINT32_C(0x06E6))) ||
+        ((iScalar >= UINT32_C(0x06EE)) && (iScalar <= UINT32_C(0x06EF))) ||
+        ((iScalar >= UINT32_C(0x06FA)) && (iScalar <= UINT32_C(0x06FC))) ||
+        (iScalar == UINT32_C(0x06FF));
+}
+
+
+
 static void xlangdetect_count_scalar(xlangdetect_stats* pStats, uint32 iScalar)
 {
     pStats->Scalars++;
@@ -71,7 +86,8 @@ static void xlangdetect_count_scalar(xlangdetect_stats* pStats, uint32 iScalar)
         pStats->Letters++;
     } else if (((iScalar >= UINT32_C(0x3400)) && (iScalar <= UINT32_C(0x4DBF))) ||
         ((iScalar >= UINT32_C(0x4E00)) && (iScalar <= UINT32_C(0x9FFF))) ||
-        ((iScalar >= UINT32_C(0xF900)) && (iScalar <= UINT32_C(0xFAFF)))) {
+        ((iScalar >= UINT32_C(0xF900)) && (iScalar <= UINT32_C(0xFA6D))) ||
+        ((iScalar >= UINT32_C(0xFA70)) && (iScalar <= UINT32_C(0xFAD9)))) {
         pStats->Han++;
         pStats->Letters++;
     } else if (((iScalar >= UINT32_C(0x3041)) && (iScalar <= UINT32_C(0x3096))) ||
@@ -83,13 +99,14 @@ static void xlangdetect_count_scalar(xlangdetect_stats* pStats, uint32 iScalar)
         pStats->Katakana++;
         pStats->Letters++;
     } else if (((iScalar >= UINT32_C(0x1100)) && (iScalar <= UINT32_C(0x11FF))) ||
-        ((iScalar >= UINT32_C(0xAC00)) && (iScalar <= UINT32_C(0xD7AF)))) {
+        ((iScalar >= UINT32_C(0xAC00)) && (iScalar <= UINT32_C(0xD7A3)))) {
         pStats->Hangul++;
         pStats->Letters++;
-    } else if ((iScalar >= UINT32_C(0x0400)) && (iScalar <= UINT32_C(0x052F))) {
+    } else if (((iScalar >= UINT32_C(0x0400)) && (iScalar <= UINT32_C(0x0481))) ||
+        ((iScalar >= UINT32_C(0x048A)) && (iScalar <= UINT32_C(0x052F)))) {
         pStats->Cyrillic++;
         pStats->Letters++;
-    } else if ((iScalar >= UINT32_C(0x0600)) && (iScalar <= UINT32_C(0x06FF))) {
+    } else if (xlangdetect_arabic_letter(iScalar)) {
         pStats->Arabic++;
         pStats->Letters++;
     }

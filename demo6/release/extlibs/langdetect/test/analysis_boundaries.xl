@@ -33,6 +33,12 @@ func main(...) as int
     assert langdetect.detect("あ゙") == "unknown"
     assert langdetect.detect("カ・ナ") == "japanese"
 
+    // 阿拉伯文标点和数字不是字母，真实字母仍应识别为 Arabic 脚本。
+    assert langdetect.script("،،") == "Unknown"
+    assert langdetect.script("٣٤") == "Unknown"
+    assert langdetect.script("مر") == "Arabic"
+    assert langdetect.script("مر٣٤") == "Arabic"
+
     string oversized = string.repeat("a", 1048577)
     bool rejected = false
     try

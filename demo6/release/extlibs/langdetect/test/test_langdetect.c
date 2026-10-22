@@ -25,6 +25,13 @@ int main(void)
     static const char TiedHanCyrillic[] = "\xE4\xBD\xA0\xE5\xA5\xBD" "\xD0\x9F\xD1\x80";
     static const char TiedCyrillicArabic[] = "\xD0\x9F\xD1\x80" "\xD9\x85\xD8\xB1";
     static const char TiedHanLatin[] = "\xE4\xBD\xA0\xE5\xA5\xBD" "is";
+    static const char ArabicPunctuation[] = "\xD8\x8C\xD8\x8C";
+    static const char ArabicDigits[] = "\xD9\xA3\xD9\xA4";
+    static const char ArabicMarks[] = "\xD9\x8B\xD9\x8B";
+    static const char ArabicLetters[] = "\xD9\x85\xD8\xB1";
+    static const char CyrillicSymbols[] = "\xD2\x82\xD2\x82";
+    static const char HangulUnassigned[] = "\xED\x9E\xA4\xED\x9E\xA4";
+    static const char HanCompatUnassigned[] = "\xEF\xA9\xAE\xEF\xA9\xAE";
     static const char KanaPunctuation[] = "\xE3\x83\xBB\xE3\x83\xBB";
     static const char KanaMarks[] = "\xE3\x82\x9B\xE3\x82\x9C";
     static const char OneKanaWithMark[] = "\xE3\x81\x82\xE3\x82\x99";
@@ -75,6 +82,16 @@ int main(void)
         strcmp(xlangdetect_detect(OneKanaWithMark, sizeof(OneKanaWithMark) - 1), "unknown") != 0 ||
         strcmp(xlangdetect_detect(KanaWithSeparator, sizeof(KanaWithSeparator) - 1), "japanese") != 0) {
         return fail("Kana punctuation and marks are not standalone letters");
+    }
+    /* 已编码的标点、数字和未分配码位都不能凭区块位置提供文字证据。 */
+    if (strcmp(xlangdetect_script(ArabicPunctuation, sizeof(ArabicPunctuation) - 1), "Unknown") != 0 ||
+        strcmp(xlangdetect_script(ArabicDigits, sizeof(ArabicDigits) - 1), "Unknown") != 0 ||
+        strcmp(xlangdetect_script(ArabicMarks, sizeof(ArabicMarks) - 1), "Unknown") != 0 ||
+        strcmp(xlangdetect_script(CyrillicSymbols, sizeof(CyrillicSymbols) - 1), "Unknown") != 0 ||
+        strcmp(xlangdetect_script(HangulUnassigned, sizeof(HangulUnassigned) - 1), "Unknown") != 0 ||
+        strcmp(xlangdetect_script(HanCompatUnassigned, sizeof(HanCompatUnassigned) - 1), "Unknown") != 0 ||
+        strcmp(xlangdetect_script(ArabicLetters, sizeof(ArabicLetters) - 1), "Arabic") != 0) {
+        return fail("nonletters must not count as script evidence");
     }
     if (strcmp(xlangdetect_detect("the\xC3\xA9", 5), "unknown") != 0 ||
         strcmp(xlangdetect_detect("\xC3\xA9the", 5), "unknown") != 0 ||
