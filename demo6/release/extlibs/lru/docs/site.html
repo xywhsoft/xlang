@@ -31,7 +31,7 @@
 auto cache = lru.create(2)
 cache.put("user:1", "Alice")
 println(cache.get("user:1", "missing"))</code></pre>
-    <p>LFU 淘汰时 O(capacity) 扫描，同频选择最久未访问条目。XLang 的键、值和默认值拒绝内嵌 NUL；无 TTL 或持久化。C/XLang 边界覆盖只在末字节不同的 8 KiB 键、淘汰后返回文本的独立所有权。C 原生读取分配失败不计命中；若读取成功后周边 XLang 表达式才分配失败，命中可能已计入。C 教学范例现可在 Windows/Linux 单文件 <code>xl run</code>；两平台包级门禁覆盖严格 C、线程、XLang 与双语输出。完整边界 AOT 仍缺共享 <code>xl6ValueDataSnapshotV1</code>，未签收发布级。所有权与并发限制见包内 README。</p>
+    <p>LFU 淘汰时 O(capacity) 扫描，同频选择最久未访问条目。XLang 的键、值和默认值拒绝内嵌 NUL；无 TTL 或持久化。C/XLang 边界覆盖只在末字节不同的 8 KiB 键、淘汰后返回文本的独立所有权。C 原生读取分配失败不计命中；若读取成功后周边 XLang 表达式才分配失败，命中可能已计入。C 教学范例现可在 Windows/Linux 单文件 <code>xl run</code>；两平台包级门禁覆盖严格 C、线程、XLang 与双语输出，并与固定输出逐字核对。Windows 默认门禁还要求公开 XLang 范例完成 AOT 构建和运行。完整边界 AOT 仍缺共享 <code>xl6ValueDataSnapshotV1</code>，未签收发布级。所有权与并发限制见包内 README。</p>
   </section>
 </main>
 </body>

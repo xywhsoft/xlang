@@ -26,6 +26,8 @@ done
     "$work/xrt_runtime.o" \
     -lm -ldl -o "$work/lru_example"
 timeout 90s "$work/lru_example" > "$work/lru_c.txt"
+sed 's/\r$//' release/extlibs/lru/examples/basic.expected.txt > "$work/golden.txt"
+diff -u "$work/golden.txt" "$work/lru_c.txt"
 
 xl=release/xl
 if [[ ! -x "$xl" ]]; then

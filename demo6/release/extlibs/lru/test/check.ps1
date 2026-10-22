@@ -46,6 +46,11 @@ try {
         'release/extlibs/lru/examples/lru_c.c', $runtime) +
         $links + @('-o', $example))
     $cOutput = Run 'C example' $example @()
+    $goldenPath = Join-Path $root 'release/extlibs/lru/examples/basic.expected.txt'
+    $golden = [IO.File]::ReadAllText($goldenPath).Replace("`r`n", "`n").TrimEnd("`n")
+    if ($cOutput -cne $golden) {
+        throw "C example differs from fixed output:`n$cOutput"
+    }
     $directOutput = Run 'C example xl run' $xl @('run',
         'release/extlibs/lru/examples/lru_c.c')
     if ($directOutput -cne $cOutput) {
@@ -84,6 +89,13 @@ try {
         $null = Run 'XLang boundaries build' $xl @('build',
             'release/extlibs/lru/test/boundaries.xl', '-o', $aot)
         $null = Run 'XLang boundaries AOT' $aot @()
+        $exampleAot = Join-Path $work 'lru_example_aot.exe'
+        $null = Run 'XLang example AOT build' $xl @('build',
+            'release/examples/extlibs/lru.xl', '-o', $exampleAot)
+        $aotOutput = Run 'XLang example AOT' $exampleAot @()
+        if ($aotOutput -cne $golden) {
+            throw 'XLang example AOT differs from fixed output'
+        }
     }
 } finally {
     Pop-Location

@@ -1,0 +1,9 @@
+get user:1 = Alice
+get user:2 = Bob
+count: 3  capacity: 3
+after adding user:4, count: 3
+contains user:3 (evicted): false
+hits: 2  misses: 0
+LFU keeps hot: true
+LFU evicts cold: false
+lru example: PASS

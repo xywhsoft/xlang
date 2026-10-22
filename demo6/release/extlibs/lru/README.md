@@ -33,12 +33,20 @@ C 原生 `get` 在结果副本分配失败时不更新命中统计或访问顺�
 
 - XLang：`release/examples/extlibs/lru.xl`
 - 同输出 C 对照：`release/extlibs/lru/examples/lru_c.c`
+- 固定输出：`release/extlibs/lru/examples/basic.expected.txt`
 - 边界：`release/extlibs/lru/test/test_lru.c`、`test_threads.c`、`boundaries.xl`、`allocations.xl` 与 `test/cases/extlib_lru.xl`
 
 `putNative` 等原生入口仅供类内部使用，包外不能绕过公开方法的参数与生命周期检查；`test/private_native.xl` 是预期编译失败的可见性负例。
 
 在 `demo6/release` 运行 `xl run extlibs/lru/test/boundaries.xl`。在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package lru -Source release/extlibs/lru/test/test_lru.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、同实例并发读写、XL JIT 与双语输出对照；2026-10-13 增加六种 NUL 红绿用例并复跑 C/XL 主路径及范例。同日补充分配故障注入，逐点验证满缓存插入失败不淘汰旧值、覆盖失败不改原值，以及读取失败不改变命中统计；C 定向测试与严格 GCC 语法检查通过。
 Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/lru/test/check.ps1 -SkipAot`，同次检查严格 GCC、C 边界/线程、中央及包内 XLang、原生入口私有性、C 直跑和双语输出。去掉 `-SkipAot` 会继续构建完整边界 AOT。C 教学范例内含包的原生实现，可直接 `xl run release/extlibs/lru/examples/lru_c.c`；正式包仍按清单分别编译原生源。
+
+2026-10-22：C/XLang 教学范例除互比外，还与固定输出逐字核对；
+Windows 默认门禁在边界 AOT 后继续构建、运行公开范例 AOT，并核对同一预期。
+Windows `-SkipAot` 与 Linux C ASan/UBSan、并发及语言联合门禁通过。
+默认 Windows 脚本仍先在边界 AOT 缺 `xl6ValueDataSnapshotV1` 处失败；
+公开范例单独构建也缺同一符号。新增的范例步骤须待主线修复后重跑，
+不据聚焦门禁通过签收整包。
 
 `xl build extlibs/lru/test/boundaries.xl -o ../build/test/lru_xl_test.exe` 当前被共享链接缺符号 `xl6ValueDataSnapshotV1` 阻断，AOT 尚未验收。主线修复后需重跑，见 `dev/extlib_blockers/text_snapshot_link.md`。
 
