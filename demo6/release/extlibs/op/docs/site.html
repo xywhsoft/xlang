@@ -32,6 +32,7 @@
       <tr><td><code>delay(ms)</code></td><td>XRT 分段等待；负数和微秒换算溢出报错</td></tr>
     </tbody></table>
     <p>XLang 的文本参数在进入零结尾 C 接口前拒绝内嵌 NUL，不会把窗口名称、模式、文件路径或颜色条件静默截成有效前缀。C 调用方仍需传入正常的零结尾字符串。</p>
+    <p><code>bindWindow(hwnd, display, mouse, keypad, mode)</code> 的显示模式仅接受 <code>normal</code>、<code>gdi</code>、<code>dxgi</code>、<code>opengl</code>、<code>d3d9</code>、<code>d3d11</code>、<code>wgl</code>；鼠标和键盘模式仅接受 <code>normal</code> 或 <code>windows</code>。空模式使用 <code>normal</code>，<code>mode</code> 仅允许 0。无效模式不会替换旧绑定；有效模式是否可捕获仍受设备和目标窗口限制。</p>
     <h2 id="example">xlang</h2>
     <pre><code>import op
 

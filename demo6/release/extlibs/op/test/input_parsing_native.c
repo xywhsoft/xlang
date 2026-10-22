@@ -18,15 +18,26 @@ static int rejects_combo(void *op, const char *combo)
     return xop_key_combo(op, combo) == 0 && xrtGetError() != NULL;
 }
 
+static int rejects_bind(void *op, long long original, long long other,
+                        const char *display, const char *mouse,
+                        const char *keypad, long long mode)
+{
+    xrtClearError();
+    return xop_bind_window(op, other, display, mouse, keypad, mode) == 0 &&
+           xrtGetError() != NULL && xop_is_bind(op) == 1 &&
+           xop_get_bind_window(op) == original;
+}
+
 int main(void)
 {
     long long window = op_test_create_input_window();
+    long long other = op_test_create_input_window();
     void *op = xop_create();
     char many_points[1100];
     char long_combo[300];
     int i, ok;
 
-    if (!window || !op) return 1;
+    if (!window || !other || !op) return 1;
     if (!xop_bind_window(op, window, "normal", "windows", "windows", 0)) return 2;
     for (i = 0; i < 513; i++) {
         many_points[i * 2] = '0';
@@ -37,7 +48,12 @@ int main(void)
     long_combo[sizeof(long_combo) - 1] = '\0';
 
     /* 仅向本进程隐藏窗口投递消息，绝不向真实桌面注入输入。 */
-    ok = rejects_path(op, "0,0,1,1,2", 0) &&
+    ok = rejects_bind(op, window, other, "missing", "windows", "windows", 0) &&
+         rejects_bind(op, window, other, "normal012345678901234567890123456789", "windows", "windows", 0) &&
+         rejects_bind(op, window, other, "normal", "missing", "windows", 0) &&
+         rejects_bind(op, window, other, "normal", "windows", "missing", 0) &&
+         rejects_bind(op, window, other, "normal", "windows", "windows", 1) &&
+         rejects_path(op, "0,0,1,1,2", 0) &&
          rejects_path(op, "0,0,1x,1", 0) &&
          rejects_path(op, "0,0,,1,1", 0) &&
          rejects_path(op, "0,0,1,1,", 0) &&
@@ -57,6 +73,7 @@ int main(void)
 
     xop_destroy(op);
     if (!op_test_destroy_input_window(window)) return 4;
+    if (!op_test_destroy_input_window(other)) return 5;
     if (!ok) return 3;
     puts("op input parsing: ok");
     return 0;

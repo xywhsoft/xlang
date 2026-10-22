@@ -12,6 +12,11 @@
 不把 hook 代码作为该可执行文件的运行依赖。
 
 Windows 桌面自动化与图像捕获扩展库，提供窗口绑定、屏幕/窗口采集、输入模拟、颜色搜索和进程工具。D3D9、D3D11、WGL hook 还依赖各自的 DLL；C 源码及预编译 DLL 都在 `hooks/`。该包具有较强平台和桌面会话约束，不能把无界面的导入测试当成真实图形捕获验收。
+`bindWindow(hwnd, display, mouse, keypad, mode)` 的显示模式只接受
+`normal`、`gdi`、`dxgi`、`opengl`、`d3d9`、`d3d11`、`wgl`；
+鼠标和键盘模式分别只接受 `normal`、`windows`。空字符串采用 `normal`，
+`mode` 当前只能为 0。未知或过长模式会报错，且不会解除已有窗口绑定；
+显示模式是否能成功捕获仍取决于对应的设备、驱动和目标窗口。
 公开 C 接口的 64 位整数目前写作 `long long`，XLang 侧写作 `int`；本包仅支持 Windows，当前 MinGW 下两者与 `int64_t` 为同一 C 类型，默认 C/XLang 调用门禁通过。Linux LP64 下 `int64_t` 是另一 C 类型，但本包不提供 Linux 桌面实现，不能据此宣称跨平台 ABI 已验收。
 
 公开 C 声明见 `include/op.h`，原生实现与 C 测试直接包含同一头文件。

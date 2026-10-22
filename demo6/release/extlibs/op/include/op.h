@@ -8,6 +8,8 @@ extern "C" {
 /* Windows-only C API. 句柄由 create 创建、destroy 释放。 */
 void *xop_create(void);
 void xop_destroy(void *context);
+/* 空模式采用 normal；display 支持 normal/gdi/dxgi/opengl/d3d9/d3d11/wgl，
+   mouse/keypad 支持 normal/windows，mode 当前仅允许 0。无效参数不改变旧绑定。 */
 long long xop_bind_window(void *context, long long hwnd, const char *display,
                          const char *mouse, const char *keypad, long long mode);
 long long xop_unbind(void *context);

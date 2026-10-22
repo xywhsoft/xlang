@@ -757,22 +757,31 @@ long long xop_unbind(void *ptr);
 long long xop_bind_window(void *ptr, long long hwnd, const char *display,
                           const char *mouse, const char *keypad, long long mode) {
     op_context *ctx = (op_context *)ptr;
+    const char *display_name = display && *display ? display : "normal";
+    const char *mouse_name = mouse && *mouse ? mouse : "normal";
+    const char *keypad_name = keypad && *keypad ? keypad : "normal";
     if (!ctx) { opSetError("op: null context"); return 0; }
     if (!IsWindow((HWND)(intptr_t)hwnd)) { opSetError("op: invalid hwnd"); return 0; }
+    if (mode != 0 ||
+        (strcmp(display_name, "normal") != 0 && strcmp(display_name, "gdi") != 0 &&
+         strcmp(display_name, "dxgi") != 0 && strcmp(display_name, "opengl") != 0 &&
+         strcmp(display_name, "d3d9") != 0 && strcmp(display_name, "d3d11") != 0 &&
+         strcmp(display_name, "wgl") != 0) ||
+        (strcmp(mouse_name, "normal") != 0 && strcmp(mouse_name, "windows") != 0) ||
+        (strcmp(keypad_name, "normal") != 0 && strcmp(keypad_name, "windows") != 0)) {
+        opSetError("op: unsupported binding mode");
+        return 0;
+    }
 
+    /* 仅在所有参数有效后替换旧绑定。 */
     if (ctx->bound) xop_unbind(ptr);
 
     ctx->bind_hwnd = (HWND)(intptr_t)hwnd;
     ctx->bound = 1;
 
-    if (display && *display) strncpy(ctx->display_mode, display, 31);
-    else strcpy(ctx->display_mode, "normal");
-
-    if (mouse && *mouse) strncpy(ctx->mouse_mode, mouse, 15);
-    else strcpy(ctx->mouse_mode, "normal");
-
-    if (keypad && *keypad) strncpy(ctx->keypad_mode, keypad, 15);
-    else strcpy(ctx->keypad_mode, "normal");
+    strcpy(ctx->display_mode, display_name);
+    strcpy(ctx->mouse_mode, mouse_name);
+    strcpy(ctx->keypad_mode, keypad_name);
 
     return 1;
 }

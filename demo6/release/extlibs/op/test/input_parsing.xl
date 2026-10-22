@@ -4,11 +4,29 @@ extern "op_test_destroy_input_window" func destroy_window(int window) as int
 
 func main(...) as int
     int window = test_window()
+    int other = test_window()
     assert window != 0
+    assert other != 0
     auto instance = op.create()
     assert instance.bindWindow(window, "normal", "windows", "windows", 0) == 1
 
     bool caught = false
+    try
+        instance.bindWindow(other, "missing", "windows", "windows", 0)
+    catch RuntimeError error
+        caught = true
+    end
+    assert caught and instance.getBindWindow() == window, "invalid mode must preserve binding"
+
+    caught = false
+    try
+        instance.bindWindow(other, "normal", "windows", "windows", 1)
+    catch RuntimeError error
+        caught = true
+    end
+    assert caught and instance.getBindWindow() == window, "unused mode must be rejected"
+
+    caught = false
     try
         instance.dragPath("0,0,1,1,2", 0)
     catch RuntimeError error
@@ -28,6 +46,7 @@ func main(...) as int
     assert instance.keyCombo("ctrl+a") == 1
     assert instance.unbind() == 1
     assert destroy_window(window) == 1
+    assert destroy_window(other) == 1
     println("op input parsing: ok")
     return 0
 end
