@@ -128,3 +128,10 @@ AOT 构建运行通过，完整范例构建因共享 `xl6ValueDataSnapshotV1` �
 后绿；Windows `-SkipAot` 严格 C、边界、双语范例与独立线格式检查，
 Linux C ASan/UBSan、XLang 与线格式门禁均通过。完整范例 AOT 的共享
 缺符号阻断不变，不据此签收发布级。
+
+2026-10-22：`build` 生成完整 iCalendar 文本后直接移交 XRT 缓冲，
+不再分配并复制第二份最多 8 MiB 的结果；C 调用方仍用 `xrtFree`
+释放，内容限额不变。Windows 严格 C、XLang、分配故障和独立线格式
+门禁，以及 Linux C ASan/UBSan、XLang 和双语门禁通过。默认 Windows
+核心 AOT 通过，公开范例 AOT 仍缺共享 `xl6ValueDataSnapshotV1`；
+整包未签收发布级。

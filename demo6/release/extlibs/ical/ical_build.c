@@ -168,7 +168,6 @@ void *xi_build(xvalue *calendar) {
     xvalue *events, *todos;
     xstrview prodid;
     size_t i;
-    char *result;
     xrtClearError();
     if (calendar == NULL || xrtValueType(calendar) != XVALUE_OBJECT) goto invalid;
     for (i = 0; i < (size_t)xrtValueCount(calendar); ++i) {
@@ -204,12 +203,8 @@ void *xi_build(xvalue *calendar) {
         if (!xi_component(&out, "VTODO", xrtValueArrayAt(todos, (int64_t)i))) goto failed;
     }
     if (!xi_literal(&out, "END:VCALENDAR\r\n")) goto failed;
-    result = xrtMalloc(out.Size + 1);
-    if (result == NULL) goto failed;
-    memcpy(result, out.Data, out.Size);
-    result[out.Size] = 0;
-    xrtBufferUnit(&out);
-    return result;
+    if (!xrtBufferAppendByte(&out, 0)) goto failed;
+    return xrtBufferTake(&out, NULL, NULL);
 failed:
     xrtBufferUnit(&out);
 invalid:
