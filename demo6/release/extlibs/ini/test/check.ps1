@@ -28,6 +28,12 @@ try {
     $null = Run 'strict C syntax' $gcc @('-std=c11', '-Wall', '-Wextra', '-Werror',
         '-fsyntax-only', '-Ilib/xrt', '-Irelease/extlibs/ini',
         'release/extlibs/ini/test/test_ini.c', 'release/extlibs/ini/ini_native.c')
+    $cExampleExe = Join-Path $work 'ini_c.exe'
+    $null = Run 'strict GCC C example build' $gcc @('-std=c11', '-O2',
+        '-Wall', '-Wextra', '-Werror', '-Ilib/xrt', '-Irelease/extlibs/ini',
+        'release/examples/extlibs/ini_c.c', 'release/extlibs/ini/test/xrt_runtime.c',
+        '-o', $cExampleExe, '-lws2_32', '-lbcrypt', '-lshlwapi', '-liphlpapi')
+    $gccOutput = Run 'strict GCC C example' $cExampleExe @()
     Push-Location $release
     try {
         $null = Run 'C boundaries' $xl @('run', 'extlibs/ini/test/test_ini.c',
@@ -62,7 +68,9 @@ try {
         $null = Run 'shared suite' $xl @('run', '../test/cases/extlib_ini.xl')
         $cOutput = Run 'C example' $xl @('run', 'examples/extlibs/ini_c.c')
         $xlOutput = Run 'XLang example' $xl @('run', 'examples/extlibs/ini.xl')
-        if ($cOutput -cne $xlOutput) { throw '[ini] C/XLang example output differs' }
+        if ($gccOutput -cne $cOutput -or $cOutput -cne $xlOutput) {
+            throw '[ini] GCC/TCC/XLang example output differs'
+        }
         if (-not $SkipAot) {
             $coreExe = Join-Path $work 'float_core.exe'
             $null = Run 'AOT float core build' $xl @('build',

@@ -31,6 +31,7 @@ auto config = ini.parse("[server]\nport = 8080\n")
 config.set("server", "port", "9090")
 assert config.getInt("server", "port") == 9090
 println(config.stringify())</code></pre>
+    <p>完整的 C/XLang 对照范例还演示 <code>create</code>、<code>save</code>、<code>load</code>：在独占临时目录中保存配置并读回核对，运行结束即清理。Windows 严格 GCC 与 TCC、Linux ASan/UBSan 的输出均和 XLang 对照。</p>
   </section>
   <section id="api">
     <h2>接口</h2>

@@ -15,6 +15,9 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 "$cc" "${flags[@]}" release/extlibs/ini/test/test_ini.c \
     release/extlibs/ini/test/xrt_runtime.c -lm -ldl -o "$work/test_ini"
 timeout 90s "$work/test_ini"
+"$cc" "${flags[@]}" release/examples/extlibs/ini_c.c \
+    release/extlibs/ini/test/xrt_runtime.c -lm -ldl -o "$work/ini_c"
+timeout 90s "$work/ini_c" > "$work/gcc_example.txt"
 timeout 90s ./release/xl run release/extlibs/ini/test/test_ini.c
 timeout 90s ./release/xl run test/cases/extlib_ini.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/boundaries.xl
@@ -42,4 +45,5 @@ timeout 90s ./release/xl run release/examples/extlibs/ini_c.c \
 timeout 90s ./release/xl run release/examples/extlibs/ini.xl \
     > "$work/xl_example.txt"
 diff -u "$work/c_example.txt" "$work/xl_example.txt"
+diff -u "$work/gcc_example.txt" "$work/c_example.txt"
 printf 'ini Linux C ASan/UBSan and XLang parity gate: PASS\n'

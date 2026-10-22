@@ -76,6 +76,9 @@ bash release/extlibs/ini/test/check.sh
 ```
 
 Windows `-SkipAot` 门禁覆盖严格 GCC、C/XLang 边界与双语同输出范例。
+`release/examples/extlibs/ini.xl` 和 `ini_c.c` 还在独占临时目录里成对展示
+`create`、`save`、`load` 的文件往返，并验证加载后的值；GCC、TCC 和
+XLang 输出一致，范例结束时删除该目录。
 门禁每次使用独占构建目录，失败和成功退出时只清理本次产物；不会复用
 旧 `build/test/ini_guard` 中的可执行文件。
 Linux 门禁使用 ASan/UBSan 验证 C 解析及文件路径边界，另以内嵌 TCC

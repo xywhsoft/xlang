@@ -8,6 +8,20 @@ func main(...) as int
     assert config.get("server", "url") == "http://localhost:9090/api"
     println(config.get("server", "host") + ":" + config.get("server", "port"))
     println(config.get("server", "url"))
+
+    // 新建配置并存入独占目录，读回后确认文件路径工作流。
+    string root = dir.temp("", "xlang-ini-example-", "")
+    try
+        string configPath = path.join(root, "config.ini")
+        auto created = ini.create()
+        created.set("server", "host", "from-file")
+        created.save(configPath)
+        auto loaded = ini.load(configPath)
+        assert loaded.get("server", "host") == "from-file"
+        println("loaded=", loaded.get("server", "host"))
+    finally
+        assert dir.delete(root), "INI example temporary directory must be removed"
+    end
     println("ini example: PASS")
     return 0
 end

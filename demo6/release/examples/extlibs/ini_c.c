@@ -14,9 +14,13 @@ int main(void)
 		"url = http://${host}:${port}/api\n";
 	xrtinioptions tOptions;
 	xrtiniconfig* pConfig;
+	xrtiniconfig* pCreated = NULL;
+	xrtiniconfig* pLoaded = NULL;
 	int64 iPort = 0;
 	int bOk;
 	str sUrl;
+	str sRoot = NULL;
+	str sConfigPath = NULL;
 	xrtIniOptionsInit(&tOptions);
 	tOptions.bInterpolation = true;
 	pConfig = xrtIniParseMemory(sSource, sizeof(sSource) - 1u, &tOptions);
@@ -34,6 +38,28 @@ int main(void)
 	}
 	xrtFree(sUrl);
 	xrtIniDestroy(pConfig);
+	if ( bOk ) {
+		/* 排他创建临时目录，不写调用方的固定配置路径。 */
+		sRoot = xrtDirTemp(NULL, "xlang-ini-c-example-", NULL);
+		sConfigPath = sRoot ? xrtPathJoin(sRoot, "config.ini") : NULL;
+		pCreated = xrtIniCreate(NULL);
+		bOk = sConfigPath != NULL && pCreated != NULL &&
+			xrtIniSet(pCreated, (str)"server", (str)"host", (str)"from-file") &&
+			xrtIniSave(pCreated, sConfigPath);
+		pLoaded = bOk ? xrtIniLoad(sConfigPath, NULL) : NULL;
+		bOk = bOk && pLoaded != NULL &&
+			xrtIniError(pLoaded)->iCode == XRT_INI_OK;
+		if ( bOk ) {
+			const char* sHost = xrtIniGetRaw(pLoaded, (str)"server", (str)"host");
+			bOk = sHost != NULL && strcmp(sHost, "from-file") == 0;
+			if ( bOk ) { printf("loaded= %s\n", sHost); }
+		}
+	}
+	xrtIniDestroy(pLoaded);
+	xrtIniDestroy(pCreated);
+	xrtFree(sConfigPath);
+	if ( sRoot != NULL && !xrtDirRemoveAll(sRoot) ) { bOk = 0; }
+	xrtFree(sRoot);
 	if ( bOk ) { puts("ini example: PASS"); }
 	return bOk ? 0 : 2;
 }
