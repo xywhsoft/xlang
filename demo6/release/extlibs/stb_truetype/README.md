@@ -112,3 +112,8 @@ Windows C/XL 边界、双语范例与 Linux C ASan/UBSan 复跑通过；
 渲染器边缘分配失败不再触发断言或交付残缺位图；XLang 以
 `MemoryError` 报告这类故障。Windows `-SkipAot` 门禁、Linux C
 ASan/UBSan 与双语门禁通过。私有句柄构造器及完整 AOT 阻断未变。
+
+同日追加大字号回归：1024 像素字形会使用 heap 扫描线，故障注入先复现
+C 访问冲突；两版 vendored 扫描器现均在分配失败时提前返回。原生包装层
+依据 XRT 内存错误拒绝残缺位图。大字形 C/XLang 逐点故障、Windows
+严格 GCC 与 Linux C ASan/UBSan 门禁通过；不扩大对恶意字体的承诺。

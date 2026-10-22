@@ -2933,6 +2933,8 @@ static void stbtt__rasterize_sorted_edges(stbtt__bitmap *result, stbtt__edge *e,
    else
       scanline = scanline_data;
 
+   if (scanline == NULL) return;
+
    y = off_y * vsubsample;
    e[n].y0 = (off_y + result->h) * (float) vsubsample + 1;
 
@@ -3305,6 +3307,8 @@ static void stbtt__rasterize_sorted_edges(stbtt__bitmap *result, stbtt__edge *e,
       scanline = (float *) STBTT_malloc((result->w*2+1) * sizeof(float), userdata);
    else
       scanline = scanline_data;
+
+   if (scanline == NULL) return;
 
    scanline2 = scanline + result->w;
 
