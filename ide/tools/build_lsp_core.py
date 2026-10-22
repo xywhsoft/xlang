@@ -32,7 +32,7 @@ SERVER_SOURCES = (
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
     "src/server/xlang_ls.c",
 )
-CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_text_test", "document_sync_test")
+CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_text_test", "document_sync_test")
 HOST_TESTS = ("analysis_index_view_test",)
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 
@@ -124,6 +124,38 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         auditedDependencies={str(registry): registry_sha})
 
 
+def prepare_native_stdlib(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
+    """Reject only absent spellings; positive decisions keep the shared rules."""
+    original = frontend / 'src/stdlib/xl6_stdlib.c'
+    body = original.read_bytes()
+    if hashlib.sha256(body).hexdigest() != 'bf863afd1bdef637388e6e4198813484f90e4eb8f1399580d75304e70a110919':
+        raise ValueError('shared stdlib changed; audit exact-text predicate positives and the mutation-free discovery interval')
+    source = body.decode('utf-8').replace('\r\n', '\n')
+    changes = {
+        '#include <stdio.h>': '#include <stdio.h>\n#include "analysis/frontend_stdlib.inc"',
+        'static int xl6StdlibNodeUsesTypeName(const XL6_AstNode* node, const char* typeName)\n{':
+            'static int xlsStdlibTypeOriginal(const XL6_AstNode* node, const char* typeName)\n{',
+        'static int xl6StdlibNodeUsesMemberName(const XL6_AstNode* node, const char* memberName)\n{':
+            'static int xlsStdlibMemberOriginal(const XL6_AstNode* node, const char* memberName)\n{',
+        'int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)\n{':
+            'static int xlsStdlibExpandOriginal(XL6_AstNode* root, XL6_DiagList* diags)\n{',
+        '    xl6StdlibApplyDeps(used);\n    needsCoreClass =':
+            '    xl6StdlibApplyDeps(used);\n    xlsStdlibScanBegin(root);\n    needsCoreClass =',
+        '    ok = builder.ok && xl6StdlibMergeGeneratedDecls(root, builder.data, diags);':
+            '    xlsStdlibScanEnd();\n    ok = builder.ok && xl6StdlibMergeGeneratedDecls(root, builder.data, diags);',
+    }
+    for old, new in changes.items():
+        if source.count(old) != 1:
+            raise ValueError('shared stdlib scan seam changed; audit: ' + old)
+        source = source.replace(old, new)
+    compiled = output / 'frontend/xl6_stdlib.c'
+    compiled.write_text(source, encoding='utf-8', newline='\n')
+    return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
+        compiledSource=str(compiled), compiledSha256=sha(compiled), auditedSeams=len(changes),
+        change='optional exact spelling absence filter; original positive rules and dependency injection retained',
+        indexBytes=8 * 1024 * 1024)
+
+
 def dependencies(body: str) -> list[Path]:
     """Read a GCC -MM rule with a fixed, drive-independent -MT target."""
     body = body.replace("\r\n", "\n").replace("\\\n", "").split(":", 1)[1]
@@ -182,11 +214,13 @@ def main() -> None:
         original_index, generated_index, index_overlay = prepare_native_index(frontend, output)
         original_ir, generated_ir, ir_overlay = prepare_native_ir(frontend, output)
         original_sem, generated_sem, sem_overlay = prepare_native_sem(frontend, output)
+        original_stdlib, generated_stdlib, stdlib_overlay = prepare_native_stdlib(frontend, output)
     except ValueError as error:
         parser.error(str(error))
     sources = [(generated_index if path == original_index else path, owned) for path, owned in sources]
     sources = [(generated_ir if path == original_ir else path, owned) for path, owned in sources]
     sources = [(generated_sem if path == original_sem else path, owned) for path, owned in sources]
+    sources = [(generated_stdlib if path == original_stdlib else path, owned) for path, owned in sources]
     env = dict(os.environ)
     env["PATH"] = str(cc.parent) + os.pathsep + env.get("PATH", "")
     common = ["-std=c11", "-ffunction-sections", "-fdata-sections", "-DXRT_MODULE_ALL=", "-DXLS_COMPILER_XRT=1",
@@ -215,8 +249,8 @@ def main() -> None:
         libraries += ["-pthread", "-ldl"]
     commands, inputs, outputs, runs, imports = [], {str(Path(__file__).resolve()): sha(Path(__file__)),
         str(original_index): index_overlay["sourceSha256"], str(original_ir): ir_overlay["sourceSha256"],
-        str(original_sem): sem_overlay["sourceSha256"]}, {}, [], {}
-    source_overlays = [index_overlay, ir_overlay, sem_overlay]
+        str(original_sem): sem_overlay["sourceSha256"], str(original_stdlib): stdlib_overlay["sourceSha256"]}, {}, [], {}
+    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay]
     runtime_profiles = []
     started = time.monotonic()
     status = "failed"
