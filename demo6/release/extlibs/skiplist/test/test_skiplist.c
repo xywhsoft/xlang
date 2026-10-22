@@ -63,6 +63,29 @@ static int test_order_and_range(void) {
         CHECK(b.Size == 5u && memcmp(b.Data, "k0199", 5u) == 0);
     }
     xrtValueRelease(range);
+    {
+        unsigned point, failures = 0u;
+        for (point = 0u; point < 64u; ++point) {
+            int triggered;
+            CHECK(xrtMemDebugFailAfter((uint64)point));
+            range = xskiplist_range(list, "k0000", 5u, "k0999", 5u);
+            triggered = xrtMemDebugFailTriggered();
+            xrtMemDebugFailClear();
+            if (range == NULL) {
+                CHECK(triggered && xrtGetError() != NULL &&
+                    xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+                ++failures;
+            } else {
+                CHECK(xrtValueCount(range) == 1000 && xrtGetError() == NULL);
+                xrtValueRelease(range);
+            }
+            CHECK(xskiplist_count(list) == 1000);
+        }
+        CHECK(failures != 0u);
+    }
+    range = xskiplist_range(list, "k0000", 5u, "k0999", 5u);
+    CHECK(range != NULL && xrtValueCount(range) == 1000);
+    xrtValueRelease(range);
     CHECK(xskiplist_remove(list, "k0100", 5u));
     CHECK(!xskiplist_contains(list, "k0100", 5u));
     CHECK(xskiplist_count(list) == 999);

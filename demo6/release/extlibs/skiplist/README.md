@@ -60,3 +60,5 @@ XLang 用例，以及 C/XLang 范例逐字输出对照，全部通过。C 范例
 2026-10-19：新增 Windows 单入口 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/skiplist/test/check.ps1`，整合严格 GCC/ABI、800 步 C 独立模型及故障边界、中央与包内 XLang 用例，并将包运行器 C、单文件 C、XLang 范例各自对照固定输出。Linux `test/check.sh` 同步加入固定输出核对；Windows 与 Linux ASan/UBSan 包门禁通过。跳表实现未改，完整带输出 AOT 的共享缺符号阻断不变，不签收整包发布级。
 
 2026-10-23：固定种子会使每个实例公开同一层级序列，外部输入可预先安排插入顺序，将搜索路径推向线性。创建时改为直接使用 XRT 系统随机源播种 XRT RNG；随机源失败即释放半成品并保留其错误，不提供可预测回退。插入失败时不提交 RNG 状态。包内 `test/entropy_failure.c` 模拟系统随机源失败，检查原错误、创建时分配回收和解除故障后的重建。Windows `-SkipAot` 严格 C/XLang 与双语门禁、Linux C ASan/UBSan 和 XLang 门禁通过；默认 Windows 门禁的核心 AOT 构建运行通过，公开范例仍缺共享 `xl6ValueDataSnapshotV1`，因此整包尚未发布签收。
+
+同日补大范围查询故障矩阵：C 在 1000 项闭区间上扫描前 64 个分配点，XLang 在 64 项区间上扫描前 64 点；失败必须是 `XERR_MEMORY`/明确的 `MemoryError`，成功结果必须完整，原列表保持可用，解除故障后仍能查询全部项。已有创建、插入、覆盖、读取与键查询用例同步收紧为类型捕获。Windows `test/check.ps1 -SkipAot` 和 Linux C ASan/UBSan、XLang/双语门禁通过；跳表实现/API 未改，完整 AOT 主线阻断不变。

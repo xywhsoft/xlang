@@ -12,7 +12,7 @@ for allocation in range(16)
     try
         skiplist.SkipList candidate = skiplist.create()
         assert candidate.valid
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
@@ -30,7 +30,7 @@ for allocation in range(16)
     assert failAfter(uint64(allocation))
     try
         list.set("key", "value")
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
@@ -55,7 +55,7 @@ for allocation in range(16)
     assert failAfter(uint64(allocation))
     try
         list.set("key", "new")
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
@@ -90,7 +90,7 @@ for operation in range(3)
             else
                 assert list.range("a", "b").length == 2
             end
-        catch MemoryError
+        catch MemoryError error
             caught = true
         end
         bool triggered = failTriggered()
@@ -101,3 +101,30 @@ for operation in range(3)
     end
     assert failures > 0 and successes > 0
 end
+
+skiplist.SkipList large = skiplist.create()
+for i in range(64)
+    large.set("k" + string(i), "v" + string(i))
+end
+int largeFailures = 0
+for allocation in range(64)
+    bool caught = false
+    var matches = null
+    assert failAfter(uint64(allocation))
+    try
+        matches = large.range("k0", "k99")
+    catch MemoryError error
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert not caught or triggered
+    if caught then
+        largeFailures += 1
+    else
+        assert matches.length == 64
+    end
+    assert large.count == 64 and large.get("k0") == "v0"
+end
+assert largeFailures > 0
+assert large.range("k0", "k99").length == 64
