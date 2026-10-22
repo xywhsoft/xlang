@@ -21,7 +21,7 @@ assert back["events"][0]["summary"] == "团队例会"
 
 日期伴随键的后缀严格区分大小写：只接受 `dtstartTzid`、`dtstartValue` 等精确拼写；例如 `dtstartTZID`、`dtstartVALUE` 会报错，不会静默丢失参数。显式提供的 `Tzid` / `Value` 不能为空；省略伴随键才表示不输出该参数。
 
-支持 `uid`、`dtstamp`、`dtstart`、`dtend`、`summary`、`description`、`location`、`organizer`、`status`、`rrule`、`due`、`priority`、`categories`、`url`、`created`、`lastModified`、`sequence`、`transp`。`prodid`、`uid`、`summary`、`description`、`location` 按 TEXT 转义；日期、URI、规则及 `categories` 保留属性值原文。重复字段读为字符串数组，生成时逐项输出。`DTSTART`、`DTEND`、`DUE` 的 `TZID` 和 `VALUE` 分别映射为 `dtstartTzid` / `dtstartValue` 等伴随键。
+支持 `uid`、`dtstamp`、`dtstart`、`dtend`、`summary`、`description`、`location`、`organizer`、`status`、`rrule`、`due`、`priority`、`categories`、`url`、`created`、`lastModified`、`sequence`、`transp`。`prodid`、`uid`、`summary`、`description`、`location` 按 TEXT 转义；日期、URI、规则及 `categories` 保留属性值原文。允许重复的字段读为字符串数组，生成时逐项输出；`UID`、`DTSTAMP`、`DTSTART`、`DTEND`、`DUE` 和 `RRULE` 只接受单值。`DTSTART`、`DTEND`、`DUE` 的 `TZID` 和 `VALUE` 分别映射为 `dtstartTzid` / `dtstartValue` 等伴随键。
 
 读取时展开折行，要求单个 `VCALENDAR`、`VERSION:2.0`、非空 `PRODID` 和正确闭合；`BEGIN` / `END` 只能作为无参数的组件界定行，带参数的同名行会被拒绝，不能作为未知属性忽略。组件名只接受 ASCII 字母、数字和 `-`；合法的未知组件仍可忽略，含空格、下划线或非 ASCII 字符的组件名会被拒绝。嵌套 `VALARM` / `VTIMEZONE` 的属性不会污染父事件。生成时顶层只接受 `version`、`prodid`、`events`、`todos`；每个事件/待办都必须有 `uid`、`dtstamp`，事件还必须有 `dtstart`。未知对象键直接报错，避免把拼错的 `event` 当作空日历成功写出。
 

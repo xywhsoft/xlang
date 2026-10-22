@@ -2,6 +2,7 @@ import ical
 
 func main(...) as int
     string nested = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN:VCALENDAR\nEND:VCALENDAR\nEND:VCALENDAR\n"
+    string duplicateRule = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN:VEVENT\nUID:one@demo\nDTSTAMP:20260801T000000Z\nDTSTART:20260810T090000Z\nRRULE:FREQ=DAILY\nRRULE:FREQ=WEEKLY\nEND:VEVENT\nEND:VCALENDAR\n"
     string badComponentSpace = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN:BAD NAME\nEND:BAD NAME\nEND:VCALENDAR\n"
     string badComponentUnderscore = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN:X_BAD\nEND:X_BAD\nEND:VCALENDAR\n"
     string badComponentUnicode = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN:中文\nEND:中文\nEND:VCALENDAR\n"
@@ -19,6 +20,11 @@ func main(...) as int
     int rejected = 0
     try
         ical.parse(nested)
+    catch e
+        rejected += 1
+    end
+    try
+        ical.parse(duplicateRule)
     catch e
         rejected += 1
     end
@@ -92,7 +98,16 @@ func main(...) as int
     catch e
         rejected += 1
     end
-    assert rejected == 15, "invalid iCalendar markers, components and parameters must be rejected"
+    var duplicateBuild = {"events": [{"uid": "one@demo", "dtstamp": "20260801T000000Z", "dtstart": "20260810T090000Z", "rrule": ["FREQ=DAILY", "FREQ=WEEKLY"]}]}
+    try
+        ical.build(duplicateBuild)
+    catch e
+        rejected += 1
+    end
+    assert rejected == 17, "invalid iCalendar markers, components, parameters and duplicate rules must be rejected"
+    duplicateBuild["events"][0]["rrule"] = "FREQ=DAILY"
+    var singleRule = ical.parse(ical.build(duplicateBuild))
+    assert singleRule["events"][0]["rrule"] == "FREQ=DAILY", "single recurrence rule must round trip"
     var calendar = ical.parse("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nX-CUSTOM;X-KEY=1:opaque\nEND:VCALENDAR\n")
     assert calendar["events"].length == 0, "ordinary extension properties remain ignorable"
     var extensionComponent = ical.parse("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN:X-CUSTOM\nX-KEY:opaque\nEND:X-CUSTOM\nEND:VCALENDAR\n")

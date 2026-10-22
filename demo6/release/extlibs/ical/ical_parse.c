@@ -58,8 +58,7 @@ static int xi_add_property(xvalue *object, const XiProperty *property, xstrview 
     xrtBufferUnit(&decoded);
     if (item == NULL) return 0;
     if (previous == NULL) return xrtValueObjectSetNew(object, key, item);
-    if (xi_is_time_property(property) || property == xi_properties ||
-        property == xi_properties + 1 || property == xi_properties + 9) {
+    if (xi_is_single_property(property)) {
         xrtValueRelease(item);
         return 0;
     }

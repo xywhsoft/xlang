@@ -146,8 +146,7 @@ static int xi_component(xbuffer *out, const char *kind, const xvalue *item) {
         }
         if (xrtValueType(value) == XVALUE_ARRAY) {
             int64_t j, count = xrtValueCount(value);
-            if (count == 0 || property == xi_properties ||
-                property == xi_properties + 1 || xi_is_time_property(property)) return 0;
+            if (count == 0 || xi_is_single_property(property)) return 0;
             for (j = 0; j < count; ++j) {
                 xstrview text;
                 if (!xrtValueGetString(xrtValueArrayAt(value, j), &text) ||

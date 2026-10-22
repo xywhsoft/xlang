@@ -53,6 +53,11 @@ int xi_is_time_property(const XiProperty *property) {
         property == xi_properties + 10;
 }
 
+int xi_is_single_property(const XiProperty *property) {
+    return property == xi_properties || property == xi_properties + 1 ||
+        property == xi_properties + 9 || xi_is_time_property(property);
+}
+
 /* RFC 5545 VALUE-CHAR：HTAB 可用；TEXT 的内存换行由写出器转义。 */
 int xi_wire_chars(xstrview value, int allow_newline) {
     size_t i;

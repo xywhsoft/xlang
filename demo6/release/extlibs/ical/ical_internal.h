@@ -28,6 +28,7 @@ int xi_ascii_equal(const char *left, size_t length, const char *right);
 const XiProperty *xi_property_key(const char *key, size_t length);
 const XiProperty *xi_property_wire(const char *name, size_t length);
 int xi_is_time_property(const XiProperty *property);
+int xi_is_single_property(const XiProperty *property);
 int xi_wire_chars(xstrview value, int allow_newline);
 int xi_append(xbuffer *buffer, const char *text, size_t length);
 int xi_literal(xbuffer *buffer, const char *text);

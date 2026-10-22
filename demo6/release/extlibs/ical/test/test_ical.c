@@ -177,6 +177,10 @@ static int test_invalid_and_failure(void) {
         "END:VCALENDAR\nBEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nEND:VCALENDAR\n";
     const char nested_calendar[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
         "BEGIN:VCALENDAR\nEND:VCALENDAR\nEND:VCALENDAR\n";
+    const char duplicate_rrule[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
+        "BEGIN:VEVENT\nUID:one@demo\nDTSTAMP:20260801T000000Z\n"
+        "DTSTART:20260810T090000Z\nRRULE:FREQ=DAILY\nRRULE:FREQ=WEEKLY\n"
+        "END:VEVENT\nEND:VCALENDAR\n";
     const char bad_component_space[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
         "BEGIN:BAD NAME\nEND:BAD NAME\nEND:VCALENDAR\n";
     const char bad_component_underscore[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
@@ -234,6 +238,7 @@ static int test_invalid_and_failure(void) {
     CHECK(xi_parse(mismatched, sizeof(mismatched) - 1) == NULL);
     CHECK(xi_parse(extra, sizeof(extra) - 1) == NULL);
     CHECK(xi_parse(nested_calendar, sizeof(nested_calendar) - 1) == NULL);
+    CHECK(xi_parse(duplicate_rrule, sizeof(duplicate_rrule) - 1) == NULL);
     CHECK(xi_parse(bad_component_space, sizeof(bad_component_space) - 1) == NULL);
     CHECK(xi_parse(bad_component_underscore, sizeof(bad_component_underscore) - 1) == NULL);
     CHECK(xi_parse(bad_component_unicode, sizeof(bad_component_unicode) - 1) == NULL);
@@ -287,6 +292,21 @@ static int test_invalid_and_failure(void) {
         xrtValueObjectSetNew(calendar, (xstrview){"events", 6}, events));
     CHECK(xi_build(calendar) == NULL); /* 缺 DTSTAMP */
     xrtClearError();
+    CHECK(put(event, "dtstamp", "20260801T000000Z"));
+    {
+        xvalue *rules = xrtValueArray();
+        CHECK(rules != NULL &&
+            xrtValueArrayAppendNew(rules, xrtValueString((xstrview){"FREQ=DAILY", 10})) &&
+            xrtValueArrayAppendNew(rules, xrtValueString((xstrview){"FREQ=WEEKLY", 11})) &&
+            xrtValueObjectSetNew(event, (xstrview){"rrule", 5}, rules));
+    }
+    CHECK(xi_build(calendar) == NULL && xrtGetError() != NULL);
+    CHECK(put(event, "rrule", "FREQ=DAILY"));
+    {
+        char *output = xi_build(calendar);
+        CHECK(output != NULL && strstr(output, "RRULE:FREQ=DAILY\r\n") != NULL);
+        xrtFree(output);
+    }
     xrtValueRelease(calendar);
     CHECK(xrtMemDebugFailAfter(0u));
     CHECK(xi_parse(valid, sizeof(valid) - 1) == NULL);
