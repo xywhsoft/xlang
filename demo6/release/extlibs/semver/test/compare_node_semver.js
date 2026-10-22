@@ -3,12 +3,13 @@ const { spawnSync } = require('node:child_process');
 if (process.argv.length < 4) throw new Error('usage: node compare_node_semver.js NODE_SEMVER_DIR C_CLI');
 const semver = require(process.argv[2]);
 const cli = process.argv[3];
+const extendedHyphenRange = '1.2.3 - 2.3.4 >=2.0.0';
 
 const versions = [];
 const ranges = new Set(['', '*', '>=1.0.0 <3.0.0', '^0.2.0 || ^2.0.0',
     '>=*', '<=*', '=*', '>x', '<x', '^x', '~x', '1.x.3', '1..2',
     '1.0.0 -', '1.0.0 - 2.0.0', '1.2.3  -  2.3.4',
-    '1.2.3\t-\t2.3.4', '1.2.3 - 2.3.4 >=2.0.0',
+    '1.2.3\t-\t2.3.4', extendedHyphenRange,
     '1.2.3+meta', '>1.2.3-alpha',
     '>= 1.2.3 < 2.0.0', '~ 1.2', '^ 1.0.0 || ^ 2.0.0']);
 for (let major = 0; major <= 3; major++) {
@@ -44,8 +45,15 @@ for (const range of [
     '1.2.3-alpha.1 - 1.2.3-rc.1'
 ]) ranges.add(range);
 const cases = [];
+let skipped = 0;
+// 本包允许区间与比较条件取交集；node-semver 7 若不识别，只跳过这项扩展语法。
+const skipExtendedHyphen = semver.validRange(extendedHyphenRange) === null;
 for (const version of versions) {
     for (const range of ranges) {
+        if (skipExtendedHyphen && range === extendedHyphenRange) {
+            skipped++;
+            continue;
+        }
         cases.push({ version, range });
     }
 }
@@ -63,5 +71,5 @@ for (let i = 0; i < cases.length; i++) {
         mismatches++;
     }
 }
-console.log(`semver oracle: ${cases.length} cases, ${mismatches} mismatches`);
+console.log(`semver oracle: ${cases.length} compared, ${skipped} xlang-only cases skipped, ${mismatches} mismatches`);
 process.exitCode = mismatches === 0 ? 0 : 1;
