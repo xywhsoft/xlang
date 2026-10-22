@@ -19,6 +19,11 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
     release/extlibs/sharedmem/test/test_sharedmem.c "$work/xrt_runtime.o" \
     -no-pie -lm -ldl -lrt -o "$work/test_sharedmem"
 timeout 120s "$work/test_sharedmem"
+"$cc" "${flags[@]}" -DNDEBUG \
+    release/extlibs/sharedmem/sharedmem_native.c \
+    release/extlibs/sharedmem/test/test_sharedmem_alloc.c "$work/xrt_runtime.o" \
+    -no-pie -lm -ldl -lrt -o "$work/test_sharedmem_alloc"
+timeout 120s "$work/test_sharedmem_alloc"
 "$cc" "${flags[@]}" \
     release/extlibs/sharedmem/sharedmem_native.c \
     release/extlibs/sharedmem/examples/sharedmem_c.c "$work/xrt_runtime.o" \

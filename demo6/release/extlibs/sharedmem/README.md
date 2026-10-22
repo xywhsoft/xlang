@@ -77,6 +77,7 @@ XLang/双语包级门禁通过；带输出 AOT 的共享阻断不变。
 Windows 严格 GCC 独立程序验证真实子进程访问；Linux GCC + ASan/UBSan
 验证 `fork` 子进程、边界、释放与同名重建。Linux 脚本还会执行中央及包内
 XLang 用例，并逐字比较 C/XLang 范例输出；可在 WSL 的仓库目录内运行。
+独立 C 分配故障用例扫描 `create/open/read` 的前 8 个分配位置，检查内存错误分类、创建失败后名称不可打开、读结果与原始字节不变、解除故障后的恢复及 XRT 活跃内存回归；两平台包级门禁均执行，Linux 同时启用 ASan/UBSan。
 Windows 门禁每次独立构建 XRT 与原生测试对象，只清理本次独占目录；
 不会复用 `build/test/sharedmem_guard` 中的历史文件。
 C 范例在 `examples/sharedmem_c.c`，两个范例均使用独立随机名称，避免

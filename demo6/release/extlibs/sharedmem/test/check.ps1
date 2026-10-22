@@ -40,6 +40,12 @@ try {
         $links + @('-o', $test))
     $null = Run 'C cross-process boundaries' $test @()
 
+    $allocation = Join-Path $work 'test_sharedmem_alloc.exe'
+    $null = Run 'C allocation compile' $gcc ($flags + @('-DNDEBUG',
+        'release/extlibs/sharedmem/test/test_sharedmem_alloc.c', $native, $runtime) +
+        $links + @('-o', $allocation))
+    $null = Run 'C allocation boundaries' $allocation @()
+
     $example = Join-Path $work 'sharedmem_example.exe'
     $null = Run 'C example compile' $gcc ($flags + @(
         'release/extlibs/sharedmem/examples/sharedmem_c.c', $native, $runtime) +

@@ -35,7 +35,7 @@ auto reader = sharedmem.open(owner.name)
 owner.writeText(0, "hello")
 println(reader.readText(0, 5))</code></pre>
     <h2 id="c-api">C 与边界</h2>
-    <p>头文件 <code>include/sharedmem_native.h</code>；C 调用方显式关闭句柄并释放读取缓冲。名称最长 128 UTF-8 字节，XLang 在进入 C 前拒绝内嵌 NUL；大小 1 至 64 MiB。没有内建进程间锁，应用须自行同步。POSIX 创建者关闭会 unlink；显式 unlink 后同名重建时，旧创建者不会误删新对象，但并发名称操作仍需同步。Windows 名称随最后句柄关闭而消失。Windows <code>test/check.ps1 -SkipAot</code> 与 Linux <code>test/check.sh</code> 覆盖独立 C 子进程、语言边界及三路径范例对照；默认 AOT 仍缺 <code>xl6NativeHandleTraceLeaf</code>，README 记录复现和另一项私有构造器阻断。</p>
+    <p>头文件 <code>include/sharedmem_native.h</code>；C 调用方显式关闭句柄并释放读取缓冲。名称最长 128 UTF-8 字节，XLang 在进入 C 前拒绝内嵌 NUL；大小 1 至 64 MiB。没有内建进程间锁，应用须自行同步。POSIX 创建者关闭会 unlink；显式 unlink 后同名重建时，旧创建者不会误删新对象，但并发名称操作仍需同步。Windows 名称随最后句柄关闭而消失。Windows <code>test/check.ps1 -SkipAot</code> 与 Linux <code>test/check.sh</code> 覆盖独立 C 子进程、分配故障、语言边界及三路径范例对照；默认 AOT 仍缺 <code>xl6NativeHandleTraceLeaf</code>，README 记录复现和另一项私有构造器阻断。</p>
   </section>
 </main>
 </body>
