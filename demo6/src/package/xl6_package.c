@@ -828,8 +828,8 @@ int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_Pa
     return xl6PackageResolveImportObserved(importerPath, target, result, NULL);
 }
 
-int xl6PackageResolveImportObserved(const char* importerPath, const char* target,
-                                   XL6_PackageResolveResult* result, XL6_SourceReport* report)
+static int xl6PackageResolveImportProbe(const char* importerPath, const char* target,
+                                      XL6_PackageResolveResult* result, XL6_SourceReport* report)
 {
     char* importerDir;
     char* path;
@@ -884,5 +884,21 @@ int xl6PackageResolveImportObserved(const char* importerPath, const char* target
 
     xrtFree(importerDir);
     return 0;
+}
+
+int xl6PackageResolveImportObserved(const char* importerPath, const char* target,
+                                   XL6_PackageResolveResult* result, XL6_SourceReport* report)
+{
+    /* Resolution probes several candidates, including a source file before
+     * ordinary source import gets its turn. A rejected candidate is NOT a
+     * runtime failure of the subsequently compiled program. Keep the whole
+     * probe diagnostic-local, on both hit and miss; explicit manifest loading
+     * remains the diagnostic-producing API. No allocation is needed here and
+     * the caller's exact prior error owner is transferred back unchanged. */
+    xerror* previous = xrtTakeError();
+    int resolved = xl6PackageResolveImportProbe(importerPath, target, result, report);
+    xrtClearError();
+    xrtSetErrorTake(previous);
+    return resolved;
 }
 

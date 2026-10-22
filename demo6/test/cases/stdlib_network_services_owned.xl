@@ -1,0 +1,114 @@
+import concurrent
+
+extern "network_services_mode" func servicesMode() as int
+extern "network_services_hold" func servicesHold(var value)
+extern "network_services_finalized" func servicesFinalized()
+
+class NetworkServices
+    NetEngine? network
+    NetEngine? storage
+    NetResolver? resolver
+    TcpListener? listener
+    TcpStream? client
+    TcpStream? server
+    UdpSocket? socket
+    NetFile? file
+    TaskGroup? group
+    future<TcpStream>? accepting
+    future<bytes>? receiving
+    future<UdpPacket>? packet
+    future<bytes>? reading
+    future<NetAddressList>? resolving
+    future<int>? delayed
+    DynamicFields graph = DynamicFields()
+    destroy()
+        servicesFinalized()
+        if servicesMode() == 3 then
+            throw RuntimeError "controlled service finalizer outcome"
+        end
+    end
+end
+
+async func readExact(TcpStream stream, int count) as bytes
+    bytes result = b""
+    while result.length < count
+        bytes chunk = await stream.recvAsync(count - result.length)
+        assert chunk.length > 0
+        result = result + chunk
+    end
+    return result
+end
+
+NetBackend backend = NetBackend.select
+string requested = env.get("XL6_NETWORK_BACKEND") ?? "select"
+if requested == "native" then
+    backend = NetBackend.epoll
+    if net.backendCompiled(NetBackend.iocp) then
+        backend = NetBackend.iocp
+    end
+end
+if requested == "ring" then
+    backend = NetBackend.ioUring
+end
+NetBackend fileBackend = NetBackend.ioUring
+if net.backendCompiled(NetBackend.iocp) then
+    fileBackend = NetBackend.iocp
+end
+auto network = NetEngine(NetEngineOptions().withWorkers(2).withBackend(backend))
+auto storage = NetEngine(NetEngineOptions().withWorkers(1).withBackend(fileBackend))
+network.start()
+storage.start()
+assert network.backend() == backend and storage.backend() == fileBackend
+println("Network services phase: engines")
+auto resolver = NetResolver(NetResolverOptions().withWorkers(1).withCacheEntries(0))
+auto addresses = await resolver.resolveAsync("127.0.0.1", 0, 4)
+assert addresses.count() > 0 and addresses.at(0).isLoopback
+println("Network services phase: resolver")
+auto listener = TcpListener(network, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto accepting = listener.acceptAsync()
+auto client = await tcp.connectAsync(network, listener.localAddress())
+auto server = await accepting
+assert client.send(b"a\0b") == NetStatus.ok
+assert (await readExact(server, 3)) == b"a\0b"
+println("Network services phase: TCP")
+auto socket = UdpSocket(network, NetAddress.loopback(4, 0))
+assert await socket.waitAsync(UdpWait.open)
+assert socket.sendTo(socket.localAddress(), b"d\0g") == NetStatus.ok
+assert (await socket.recvAsync()).bytes() == b"d\0g"
+println("Network services phase: UDP")
+auto file = NetFile(storage, env.get("XL6_NETWORK_FILE") ?? "build/test/network-services.bin", 15)
+assert (await file.writeAt(0, b"file\0owned")) == 10
+println("Network services phase: file")
+auto group = TaskGroup(4)
+auto root = NetworkServices()
+root.network = network
+root.storage = storage
+root.resolver = resolver
+root.listener = listener
+root.client = client
+root.server = server
+root.socket = socket
+root.file = file
+root.group = group
+println("Network services phase: resources")
+root.accepting = listener.acceptAsync()
+root.receiving = server.recvAsync()
+root.packet = socket.recvAsync()
+root.reading = file.readAt(0, 10)
+root.resolving = resolver.resolveAsync("127.0.0.1", 0, 4)
+println("Network services phase: pending I/O")
+root.delayed = group.start(func() as future<int>
+    return network.submitAfter(60000, func() as int
+        return 41
+    end)
+end)
+// Ordinary Value container stores deliberately reject direct container cycles.
+// DynamicFields is the existing traced graph carrier: keep a real owning edge,
+// including an exact NUL-bearing key, rather than weakening the retirement test.
+root.graph.set("self\0owner", root)
+assert root.graph.get("self\0owner").graph == root.graph
+servicesHold(root)
+// The host may retain the real object or a physical Engine entry. No explicit
+// close, timer cancellation, Future cancellation, or owner rescue substitutes
+// for checked module retirement of this one heterogeneous owning graph.
+println("Network services: real loopback/file work and mixed pending owners prepared")

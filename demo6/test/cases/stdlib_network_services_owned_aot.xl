@@ -1,0 +1,2 @@
+import "../fixtures/network_services_noop"
+import "./stdlib_network_services_owned.xl"
