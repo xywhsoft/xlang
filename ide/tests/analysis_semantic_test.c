@@ -25,6 +25,77 @@ static int has(xls_semantic_completion* result,const char* label,const char* det
     }
     return 0;
 }
+typedef struct reader {
+    xls_semantic_completion* result;
+    const char* expected;
+    int available;
+    unsigned failures;
+} reader;
+static int32 readCompletion(void* user)
+{
+    reader* r=user;
+    for(unsigned i=0;i<40;++i) {
+        xls_semantic_completion* lease=xlsSemanticCompletionRetain(r->result);
+        int valid=xlsSemanticCompletionValidate(lease);
+        xls_completion_info info=xlsSemanticCompletionInfo(lease); xls_completion_item item;
+        int selected=xlsSemanticCompletionItem(lease,0,&item);
+        size_t size=123; char* json=xlsSemanticCompletionJson(lease,&size);
+        if(r->available) {
+            if(!valid || !info.available || !info.count || !selected || !item.hasSelection ||
+               !json || strlen(json)!=size || strcmp(json,r->expected)) ++r->failures;
+        } else if(valid || info.available || info.count || selected || json || size ||
+                  !info.error || strcmp(info.error,"semantic inputs changed")) ++r->failures;
+        xlsSemanticStringFree(json); xlsSemanticCompletionDestroy(lease);
+    }
+    xlsSemanticCompletionDestroy(r->result); return 0;
+}
+static int readers(xls_semantic_completion* result,const char* expected,int available)
+{
+    reader values[4]; xthread* threads[4];
+    /* Capture all leases, then destroy the producing reference BEFORE any
+     * consumer starts. Each thread releases its own final reference. */
+    for(unsigned i=0;i<4;++i) values[i]=(reader){xlsSemanticCompletionRetain(result),expected,available,0};
+    xlsSemanticCompletionDestroy(result);
+    for(unsigned i=0;i<4;++i) { threads[i]=xrtThreadCreate(readCompletion,&values[i],0); CHECK(threads[i]); }
+    for(unsigned i=0;i<4;++i) { CHECK(xrtThreadWait(threads[i])==XWAIT_OK && !values[i].failures); xrtThreadDestroy(threads[i]); }
+    return 0;
+}
+static int retention(void)
+{
+    CHECK(!xlsSemanticCompletionRetain(NULL)); xlsSemanticCompletionDestroy(NULL);
+    char* path=xrtPathAbs("retained-completion-memory.xl");
+    char* source=xrtStrDup("func main(...) as int\n int retainedValue = 7\n return retainedV\nend\n");
+    CHECK(path && source); xls_semantic_input input={path,source,strlen(source)};
+    xls_semantic_completion* result=query(path,path,source,"return retainedV",&input,1);
+    CHECK(result && xlsSemanticCompletionInfo(result).available && has(result,"retainedValue","int"));
+    char* expected=xlsSemanticCompletionJson(result,NULL); CHECK(expected);
+    /* The parse/query/source report own all original path/text bytes. */
+    memset(source,'?',strlen(source)); xrtFree(source); xrtFree(path);
+    CHECK(!readers(result,expected,1)); xlsSemanticStringFree(expected);
+
+    char root[160]; snprintf(root,sizeof(root),"build/completion-retain-%llu-%llu",
+        (unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock()); CHECK(xrtDirCreateAll(root));
+    char *relative=xrtPathJoin(root,"entry.xl"),*disk=xrtPathJoin(root,"retained_dep.xl");
+    path=relative ? xrtPathAbs(relative) : NULL; CHECK(path && disk);
+    const char* dependency="export class Box\n int retainedValue\nend\n";
+    CHECK(xrtFileWriteAtomic(disk,(xbytesview){(const unsigned char*)dependency,strlen(dependency)}));
+    const char* entry="import retained_dep\nfunc main(...) as int\n auto box = retained_dep.Box()\n return box.\nend\n";
+    input=(xls_semantic_input){path,entry,strlen(entry)};
+    result=query(path,path,entry,"return box.",&input,1);
+    CHECK(result && xlsSemanticCompletionInfo(result).available && has(result,"retainedValue",NULL));
+    CHECK(xlsSemanticCompletionValidate(result));
+    xls_semantic_completion* old=xlsSemanticCompletionRetain(result);
+    /* Same bytes, new disk identity: all readers must observe permanent
+     * invalidation, with no concurrent mutation of published query facts. */
+    CHECK(xrtFileWriteAtomic(disk,(xbytesview){(const unsigned char*)dependency,strlen(dependency)}));
+    CHECK(!readers(result,NULL,0));
+    CHECK(xrtFileWriteAtomic(disk,(xbytesview){(const unsigned char*)dependency,strlen(dependency)}));
+    CHECK(!xlsSemanticCompletionValidate(old) && !xlsSemanticCompletionInfo(old).available);
+    result=query(path,path,entry,"return box.",&input,1);
+    CHECK(result && result!=old && xlsSemanticCompletionInfo(result).available && has(result,"retainedValue",NULL));
+    xlsSemanticCompletionDestroy(result); xlsSemanticCompletionDestroy(old);
+    xrtFree(path); xrtFree(relative); xrtFree(disk); return 0;
+}
 int main(void)
 {
     char *path=xrtPathAbs("native-completion-memory.xl"),*dep=xrtPathAbs("dep.xl");
@@ -80,5 +151,6 @@ int main(void)
     CHECK(!xlsSemanticCompletionCreate(path,path,1,inputs,2,NULL,NULL,error,sizeof(error)));
     CHECK(!xlsSemanticCompletionItem(first,info.count+100,&item));
     xlsSemanticCompletionDestroy(first); xrtFree(path); xrtFree(dep);
+    CHECK(!retention());
     printf("analysis_semantic_test passed: %u checks\n",checks); return 0;
 }
