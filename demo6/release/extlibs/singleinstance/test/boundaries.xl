@@ -8,7 +8,7 @@ assert singleinstance.isAcquired()
 int failures = 0
 try
     singleinstance.acquire(testName)
-catch e
+catch RuntimeError error
     failures += 1
 end
 assert failures == 1
@@ -17,7 +17,7 @@ assert not singleinstance.isAcquired()
 bool nulRejected = false
 try
     singleinstance.acquire(testName + "\0hidden")
-catch ValueError
+catch ValueError error
     nulRejected = true
 end
 if singleinstance.isAcquired() then singleinstance.release() end
@@ -28,7 +28,7 @@ assert singleinstance.acquire(unicodeName)
 singleinstance.release()
 try
     singleinstance.acquire("")
-catch e
+catch ValueError error
     failures += 1
 end
 assert failures == 2

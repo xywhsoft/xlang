@@ -5,6 +5,8 @@
 失败会抛异常，不会伪装为“另一实例正在运行”。一个包实例只能持有一个锁，
 再次 `acquire` 是状态错误；不同包实例可持有不同名称。
 `release()` 幂等；进程异常退出时操作系统会释放锁。
+XLang 中重复获取抛 `RuntimeError`，空名称或含 NUL 的名称抛
+`ValueError`；同名锁由其他实例持有仍返回 `false`。
 
 ```xlang
 import singleinstance
@@ -108,6 +110,8 @@ Windows TCC C 与 Linux 严格 GCC、ASan/UBSan 及双模块门禁通过。
 仍未重跑完整 AOT 或真实双 `XL_Context` 门禁。
 
 2026-10-15：失败后成功的 C 连续调用回归先红后绿，`release/isAcquired` 不再保留旧错误。包清单声明原生文件锁、目录、路径、Base64URL、Unicode、once 和 mutex 的 XRT 模块，核心无输出 AOT 从 3,527,680 降至 597,504 字节并运行通过。Windows C/XLang、双语范例和 Linux ASan/UBSan 的跨进程/双模块门禁复跑通过。完整带输出 AOT 仍缺 `xl6ValueDataSnapshotV1`；真实双 `XL_Context` 仍按上述独立阻断处理，未签收发布级。
+
+2026-10-23：XLang 边界用例的无类型捕获改为明确分类；该修正先揭示空名称实际为 `ValueError`，随后固定重复获取为 `RuntimeError`、非法名称为 `ValueError`。Windows 严格 GCC/跨进程/双模块/XLang/双语门禁与 Linux C ASan/UBSan、XLang 双语门禁通过。包实现/API 未改；深主目录、真实双上下文及完整 AOT 主线阻断未变。
 
 2026-10-15：已存在的宽权限锁目录原会被直接使用；隔离 HOME 负例先红后绿。创建锁文件前现在检查 `.xlang` 与 `singleinstance` 两级目录，拒绝符号链接及 POSIX 组/其他用户权限。Linux sanitizer 的正常互斥、宽权限两级目录与链接门禁通过；Windows 完整 ACL 审计仍不在此实现范围内。
 
