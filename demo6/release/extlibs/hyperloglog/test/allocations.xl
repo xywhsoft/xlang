@@ -13,7 +13,7 @@ for allocation in range(16)
         hyperloglog.HyperLogLog sketch = hyperloglog.create(8)
         assert sketch.valid
         assert sketch.count() == 0
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
