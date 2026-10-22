@@ -89,14 +89,41 @@ UDP Future／Sync 夹具，没有外网或网络安全性质专项。证据根�
 本批没有同步语言固定头，没有迁移 xlang 驻留 UDP 或旧 Cgen，也没有提升发布
 DLL／SO／VFS；不能把原生前置通过算作整个 UDP 或五组长期任务已经完成。
 
+## 已完成：原生 typed 引用、聚集与混合批量发送
+
+XRT `b893607f81cceadf52010610aa95781fbc4bf59f` 增加 `SendMsgBytes`、`SendMsgPacket`、
+`SendMsgBytesVec`、`SendOwnedBatch` 四个入口。前两项支持严格的不可变字节片段；
+向量经真实 Socket／Port 聚集为单个数据报，不拼接复制载荷；混合批次用明确
+Kind／联合体选择 Bytes／Packet／Vector，所有者及元数据在调用返回前落实。
+空片段不增加载荷持有，但完整空输入仍发送一个空数据报，不是空操作。
+
+每个非空片段拥有真实引用，重复 owner 保留重复边。前缀构造只投递一次；后项
+失败可以返回 ERROR／AGAIN 加非零 accepted，投递失败则 accepted=0 且内部持有
+全部回滚，调用方原引用始终不转移。来源使用明确标签并验证真实槽，不由用户
+释放回调反推所有权。Vector 的 Count／Capacity、Span 和 owner 数组仅占节点
+尾部，控制记录之后按真实对齐补齐；普通节点 x64 sizeof=104、Tail=96，与父版本相同。
+
+最终 212 个阶段（Windows 99、Linux 113）通过：Select／IOCP／epoll、GCC／TCC
+O0／O2、Linux ASan／UBSan、静止整图与外部 payload 根、重复拥有边、8 类图、
+9 类正常收发、17 轮前缀／15 个分配预算、24 轮 Close 竞态；均为每个测试产品的
+实际计数，不拿阶段数冒充语言端用例数。三种漏载荷边及漏投递失败回滚的独立
+对照都成功编译且被拒绝；基础／Future、TCP 字节向量、六个最小 TU 和两种独立
+声明根一并回归。共享 xnetbytesref 移到 net.h，TCP 类型与布局不变，不给 UDP
+引入 TCP 实现依赖。输入、日志及产物哈希在提交前再次核对。
+
+旧 Future 夹具的未发布构造器回滚先与真实内嵌等待命令汇合，不放宽生产静止
+断言。没有错误队列、ICMP、外网或网络安全专项；证据根为
+`F:/xlang-validation/five-groups-20261022/p3-udp-refs`。没有同步语言固定头、迁移
+驻留 UDP 或旧 Cgen，没有重建发布库／VFS；完整 UDP 与五组目标仍未完成。
+
 ## 仍必须依次完成
 
-1. 以已完成的基础／Future 图补齐受管理引用发送的 typed 载荷边。
-   现有 copied／Take 路径不替代引用发送，未知用户 Data、释放回调或裸 socket
-   逃逸不能直接认证；有声明或基础图通过也不能替代异步图的实际证明。
-2. 将已完成的原生 UDP Future／取消及结果策略接入语言运行时的精确准入表和
-   注册合同；不得把 opaque 区域、临时视图或镜像结构当图，也不复造一套原生节点。
-3. 同步必要快照，接入驻留 Execution UDP family 和 Source／Engine 父边；显式
+1. 同步必要快照，保留语言固定 ABI 与所有不相关差异；不整头覆盖或扩大 XRT
+   产品导入范围，共享声明及其依赖需要同时保持一致。
+2. 将已完成的 UDP 基础、typed 载荷、Future／取消及结果策略接入语言运行时的
+   精确准入表和注册合同。不默认准入未知用户 Data／释放回调或裸 socket 逃逸；
+   不得把 opaque 区域、临时视图或镜像结构当图，也不复造一套原生节点。
+3. 接入驻留 Execution UDP family 和 Source／Engine 父边；显式
    Close 与自动退役分离，保留 checked 错误及可重试的清理边界。
 4. 迁移 `udp`、配置、统计、Packet／Batch／ErrorPacket 与完整发送／接收／writable
    公开面。使用精确类字段、状态枚举、效果、期限及取消合同；复用现有 NetAddress、
