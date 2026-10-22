@@ -11,6 +11,12 @@ const XL6_IrModule* xlsSemanticCheckIr(const xls_semantic_check* result);
 const XL6_AstNode* xlsSemanticCheckAst(const xls_semantic_check* result);
 typedef struct xls_parse_work { uint64_t full,fragments,reused,bytes; } xls_parse_work;
 xls_syntax* xlsSyntaxBuild(const char* path,xls_text* text,const xls_syntax* previous,xls_parse_work* work);
+struct XL6_CompletionQuery;
+/* Private cursor parse. Query starts empty except absolute path/offset and
+ * owns the shared parser's prefix on return, including rejected source.
+ * Previous cursor chunks are immutable; ordinary/cursor modes never mix. */
+xls_syntax* xlsSyntaxBuildCursor(const char* path,xls_text* text,const xls_syntax* previous,
+    struct XL6_CompletionQuery* query,xls_parse_work* work);
 /* Private mutable copy for compiler semantic passes. Destination must be
  * empty/initialized. Diagnostics and sources are independently owned. */
 int xlsSyntaxCopyParse(const xls_syntax* syntax,XL6_ParseResult* result);
