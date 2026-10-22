@@ -16,6 +16,8 @@ func main(...) as int
 
     auto zh = "\xe4\xbb\x8a\xe5\xa4\xa9\xe5\xa4\xa9\xe6\xb0\x94\xe5\xbe\x88\xe5\xa5\xbd"
     println("detect(Chinese text) = ", langdetect.detect(zh))
+    auto supplementaryHan = "\xf0\xa0\x80\x80\xf0\xa0\x80\x80" // U+20000 x 2
+    println("detect(Supplementary Han text) = ", langdetect.detect(supplementaryHan))
 
     auto ja = "\xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf"
     println("detect(Japanese text) = ", langdetect.detect(ja))

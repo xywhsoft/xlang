@@ -30,7 +30,7 @@
     <pre><code>import langdetect
 println(langdetect.detect("the garden is nice and the sky is blue"))
 println(langdetect.script("Привет"))  // Cyrillic</code></pre>
-    <p>不是通用统计语言模型；阿拉伯文标点、数字、组合附标以及覆盖区间的未分配码位不当作字母证据。语种范围、1 MiB 上限和 C 接口见包内 README。C 与 XLang 对照范例的输出一致。</p>
+    <p>不是通用统计语言模型；阿拉伯文标点、数字、组合附标以及覆盖区间的未分配码位不当作字母证据。汉字统计覆盖 Unicode 17 已分配的扩展 A-J 和兼容汉字补充区，包含补充平面，但仍不能仅凭汉字断定真实语种。语种范围、1 MiB 上限和 C 接口见包内 README。C 与 XLang 对照范例的输出一致。</p>
     <p>C 接口的 <code>confidence</code> 返回 <code>int64_t</code>，与 XLang <code>int</code> 保持跨平台 ABI 一致；C 范例用 <code>PRId64</code> 可移植打印。Linux 包门禁覆盖 C ASan/UBSan、XLang 内嵌 NUL、输入上限和报错后恢复，并逐字对照双语范例。完整 AOT 仍受主线缺符号阻断。</p>
     <p>从 demo6 目录可直接运行 <code>xl run release/extlibs/langdetect/examples/langdetect.c</code>。Windows <code>test/check.ps1</code> 与 Linux <code>test/check.sh</code> 均验证固定样本、C/XLang 边界和三种范例入口的输出一致；这不扩大启发式模型的语种能力。</p>
   </section>

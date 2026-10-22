@@ -14,6 +14,54 @@ static int fail(cstr sMessage)
 
 
 
+static int check_supplementary_han(void)
+{
+    static const cstr Assigned[] = {
+        "\xF0\xA0\x80\x80", /* U+20000, extension B */
+        "\xF0\xAA\x9B\x9F", /* U+2A6DF, B end */
+        "\xF0\xAB\x9C\xBF", /* U+2B73F, C end */
+        "\xF0\xAC\xBA\xAD", /* U+2CEAD, E end */
+        "\xF0\xAE\xAF\xB0", /* U+2EBF0, I start */
+        "\xF0\xAE\xB9\x9D", /* U+2EE5D, I end */
+        "\xF0\xAF\xA0\x80", /* U+2F800, compatibility start */
+        "\xF0\xAF\xA8\x9D", /* U+2FA1D, compatibility end */
+        "\xF0\xB0\x80\x80", /* U+30000, G start */
+        "\xF0\xB1\x8D\x90", /* U+31350, H start */
+        "\xF0\xB2\x8E\xB0", /* U+323B0, J start */
+        "\xF0\xB3\x91\xB9"  /* U+33479, J end */
+    };
+    static const cstr Unassigned[] = {
+        "\xF0\xAA\x9B\xA0", /* U+2A6E0 */
+        "\xF0\xAC\xBA\xAE", /* U+2CEAE */
+        "\xF0\xAE\xB9\x9E", /* U+2EE5E */
+        "\xF0\xAF\xA8\x9E", /* U+2FA1E */
+        "\xF0\xB1\x8D\x8B", /* U+3134B */
+        "\xF0\xB3\x91\xBA"  /* U+3347A */
+    };
+    char Pair[9];
+    size_t i;
+
+    Pair[8] = '\0';
+    for (i = 0; i < sizeof(Assigned) / sizeof(Assigned[0]); i++) {
+        memcpy(Pair, Assigned[i], 4);
+        memcpy(Pair + 4, Assigned[i], 4);
+        if (strcmp(xlangdetect_detect(Pair, 8), "chinese") != 0 ||
+            strcmp(xlangdetect_script(Pair, 8), "Han") != 0) {
+            return fail("assigned supplementary Han must count as letters");
+        }
+    }
+    for (i = 0; i < sizeof(Unassigned) / sizeof(Unassigned[0]); i++) {
+        memcpy(Pair, Unassigned[i], 4);
+        memcpy(Pair + 4, Unassigned[i], 4);
+        if (strcmp(xlangdetect_script(Pair, 8), "Unknown") != 0) {
+            return fail("unassigned supplementary code points are not Han letters");
+        }
+    }
+    return 0;
+}
+
+
+
 int main(void)
 {
     static const char Chinese[] = "\xE4\xBB\x8A\xE5\xA4\xA9\xE5\xA4\xA9\xE6\xB0\x94\xE5\xBE\x88\xE5\xA5\xBD";
@@ -52,6 +100,7 @@ int main(void)
         strcmp(xlangdetect_script(Chinese, sizeof(Chinese) - 1), "Han") != 0) {
         return fail("Chinese script result");
     }
+    if (check_supplementary_han() != 0) return 1;
     if (!xlangdetect_valid_utf8(Chinese, sizeof(Chinese) - 1) ||
         xlangdetect_valid_utf8(BadUtf8, sizeof(BadUtf8) - 1) ||
         strcmp(xlangdetect_detect("123 !?", 6), "unknown") != 0) {

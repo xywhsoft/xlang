@@ -27,6 +27,12 @@ func main(...) as int
     assert langdetect.detect("Прمر") == "unknown"
     assert langdetect.detect("你好is") == "unknown"
     assert langdetect.script("你好is") == "Unknown"
+    // 补充平面的汉字与 BMP 汉字同等计数，未分配码位不提供文字证据。
+    assert langdetect.detect("𠀀𠀀") == "chinese" // U+20000
+    assert langdetect.script("𮯰𮯰") == "Han" // U+2EBF0
+    assert langdetect.script("𲎰𲎰") == "Han" // U+323B0
+    assert langdetect.script("𳑺𳑺") == "Unknown" // U+3347A
+    assert langdetect.detect("the𠀀") == "unknown"
     assert langdetect.detect("・・") == "unknown"
     assert langdetect.script("・・") == "Unknown"
     assert langdetect.detect("゛゜") == "unknown"

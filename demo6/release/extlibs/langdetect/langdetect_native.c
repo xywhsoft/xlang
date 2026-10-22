@@ -75,6 +75,27 @@ static bool xlangdetect_arabic_letter(uint32 iScalar)
 
 
 
+/* Unicode 17 已分配汉字；区间间的保留码位不能算作脚本证据。 */
+static bool xlangdetect_han_letter(uint32 iScalar)
+{
+    return ((iScalar >= UINT32_C(0x3400)) && (iScalar <= UINT32_C(0x4DBF))) ||
+        ((iScalar >= UINT32_C(0x4E00)) && (iScalar <= UINT32_C(0x9FFF))) ||
+        ((iScalar >= UINT32_C(0xF900)) && (iScalar <= UINT32_C(0xFA6D))) ||
+        ((iScalar >= UINT32_C(0xFA70)) && (iScalar <= UINT32_C(0xFAD9))) ||
+        ((iScalar >= UINT32_C(0x20000)) && (iScalar <= UINT32_C(0x2A6DF))) ||
+        ((iScalar >= UINT32_C(0x2A700)) && (iScalar <= UINT32_C(0x2B73F))) ||
+        ((iScalar >= UINT32_C(0x2B740)) && (iScalar <= UINT32_C(0x2B81D))) ||
+        ((iScalar >= UINT32_C(0x2B820)) && (iScalar <= UINT32_C(0x2CEAD))) ||
+        ((iScalar >= UINT32_C(0x2CEB0)) && (iScalar <= UINT32_C(0x2EBE0))) ||
+        ((iScalar >= UINT32_C(0x2EBF0)) && (iScalar <= UINT32_C(0x2EE5D))) ||
+        ((iScalar >= UINT32_C(0x2F800)) && (iScalar <= UINT32_C(0x2FA1D))) ||
+        ((iScalar >= UINT32_C(0x30000)) && (iScalar <= UINT32_C(0x3134A))) ||
+        ((iScalar >= UINT32_C(0x31350)) && (iScalar <= UINT32_C(0x323AF))) ||
+        ((iScalar >= UINT32_C(0x323B0)) && (iScalar <= UINT32_C(0x33479)));
+}
+
+
+
 static void xlangdetect_count_scalar(xlangdetect_stats* pStats, uint32 iScalar)
 {
     pStats->Scalars++;
@@ -84,10 +105,7 @@ static void xlangdetect_count_scalar(xlangdetect_stats* pStats, uint32 iScalar)
          iScalar != UINT32_C(0x00D7) && iScalar != UINT32_C(0x00F7))) {
         pStats->Latin++;
         pStats->Letters++;
-    } else if (((iScalar >= UINT32_C(0x3400)) && (iScalar <= UINT32_C(0x4DBF))) ||
-        ((iScalar >= UINT32_C(0x4E00)) && (iScalar <= UINT32_C(0x9FFF))) ||
-        ((iScalar >= UINT32_C(0xF900)) && (iScalar <= UINT32_C(0xFA6D))) ||
-        ((iScalar >= UINT32_C(0xFA70)) && (iScalar <= UINT32_C(0xFAD9)))) {
+    } else if (xlangdetect_han_letter(iScalar)) {
         pStats->Han++;
         pStats->Letters++;
     } else if (((iScalar >= UINT32_C(0x3041)) && (iScalar <= UINT32_C(0x3096))) ||
