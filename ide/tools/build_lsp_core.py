@@ -64,6 +64,8 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     """Index iteration candidates without changing shared cleanup/verify rules."""
     original = frontend / 'src/ir/xl6_ir.c'
     body = original.read_bytes()
+    if hashlib.sha256(body).hexdigest() != '6022b348ecb5ec0dc79eac881a4e51cb6dc227daa210f730bcdf27a191aad2d0':
+        raise ValueError('shared IR changed; audit cleanup candidates, plan-origin iteration and verifier mutation boundaries')
     source = body.decode('utf-8').replace('\r\n', '\n')
     changes = {
         '#include <wchar.h>': '#include <wchar.h>\n#include "analysis/frontend_ir.inc"',
@@ -75,6 +77,17 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         'for (child = afterScope ? block->childCount + 1 : (size_t)plan->origin - 1; child > 0; --child) {':
             'for (child = afterScope ? block->childCount + 1 : xlsIrPreviousCandidate(module, owner, plan->origin, routed); child > 0;\n'
             '         child = afterScope ? child - 1 : xlsIrPreviousCandidate(module, owner, (XL6_IrNodeId)child, routed)) {',
+        'for ( j = 0; j < module->exitPlanCount; ++j ) {\n'
+        '            if ( module->exitPlans[j].origin == (XL6_IrNodeId)(i + 1) ) {':
+            'for ( j = xlsIrFirstPlanCandidate(module, (XL6_IrNodeId)(i + 1), module->exitPlanCount);\n'
+            '              j < module->exitPlanCount;\n'
+            '              j = xlsIrNextPlanCandidate(module, (XL6_IrNodeId)(i + 1), j, module->exitPlanCount) ) {\n'
+            '            if ( module->exitPlans[j].origin == (XL6_IrNodeId)(i + 1) ) {',
+        'for (previous = 0; previous < j; ++previous)\n'
+        '                        if (module->exitPlans[previous].origin == module->exitPlans[j].origin &&':
+            'for (previous = xlsIrFirstPlanCandidate(module, (XL6_IrNodeId)(i + 1), j); previous < j;\n'
+            '                         previous = xlsIrNextPlanCandidate(module, (XL6_IrNodeId)(i + 1), previous, j))\n'
+            '                        if (module->exitPlans[previous].origin == module->exitPlans[j].origin &&',
     }
     for old, new in changes.items():
         if source.count(old) != 1:
@@ -84,8 +97,8 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
-        change='optional XRT candidate iteration index; original cleanup generation and independent verification preserved',
-        auditedSeams=len(changes), indexBytes=16 * 1024 * 1024)
+        change='optional XRT cleanup/plan-origin iteration indexes; original cleanup and verification rules preserved',
+        auditedSeams=len(changes), indexBytes=16 * 1024 * 1024, planIndexBytes=8 * 1024 * 1024)
 
 
 def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
