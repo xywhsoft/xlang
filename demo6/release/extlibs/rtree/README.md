@@ -21,7 +21,7 @@ C API 见 `include/rtree_native.h`。句柄由 `xrtree_destroy` 释放，`xrtree
 ## 范例与验证
 
 - `release/examples/extlibs/rtree.xl` 与 `rtree_c.c` 可直接 `xl run`，输出一致。
-- `release/extlibs/rtree/test/test_rtree.c` 使用暴力矩形扫描校验 2048 项、1000 次随机查询、删除/重插和故障注入；`test/boundaries.xl` 覆盖 600 项完整查询、公开类型和非法输入；`test/allocations.xl` 覆盖创建、分裂插入和查询的 `MemoryError` 与恢复。两份 XLang 测试已登记到包清单的 `coverage.tests`。
+- `release/extlibs/rtree/test/test_rtree.c` 使用暴力矩形扫描校验 2048 项、1000 次随机查询、删除/重插和故障注入；2048 项完整查询另扫描前 64 个分配故障点，确认失败诊断和树状态不变。`test/boundaries.xl` 覆盖 600 项完整查询、公开类型和非法输入；`test/allocations.xl` 覆盖创建、分裂插入及 64 项查询前 64 点的明确 `MemoryError` 类型与恢复。两份 XLang 测试已登记到包清单的 `coverage.tests`。
 
 在 `demo6` 目录可运行 `tools/smoke_extlib_catalog.ps1 -Package rtree`；Linux C/XL sanitizer 门禁为 `bash release/extlibs/rtree/test/check.sh`。它同时编译运行公开 C 范例、运行中央与包内 XLang 用例，并逐字节比较两种语言的范例输出；`xl run release/examples/extlibs/rtree_c.c` 也可直接运行。
 

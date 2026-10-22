@@ -161,6 +161,29 @@ int main(void) {
     }
     CHECK(xrtree_count(tree) == ITEMS);
     CHECK(check_query(tree, rects, -1, -1, 2000, 2000) == 0);
+    {
+        unsigned point, failures = 0u;
+        for (point = 0u; point < 64u; ++point) {
+            struct xvalue *matches;
+            int triggered;
+            CHECK(xrtMemDebugFailAfter((uint64)point));
+            matches = xrtree_search(tree, -1, -1, 2000, 2000);
+            triggered = xrtMemDebugFailTriggered();
+            xrtMemDebugFailClear();
+            CHECK(matches != NULL);
+            if (xrtValueType(matches) == XVALUE_NULL) {
+                CHECK(triggered && xrtGetError() != NULL &&
+                    xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+                ++failures;
+            } else {
+                CHECK(xrtValueType(matches) == XVALUE_ARRAY &&
+                    xrtValueCount(matches) == ITEMS && xrtGetError() == NULL);
+            }
+            xrtValueRelease(matches);
+            CHECK(xrtree_search_count(tree, -1, -1, 2000, 2000) == ITEMS);
+        }
+        CHECK(failures != 0u);
+    }
     for (index = 0; index < 500; ++index) {
         double x = (double)(next_random() % 1000u);
         double y = (double)(next_random() % 1000u);
