@@ -185,3 +185,10 @@ AOT 的共享主线阻断未变。
 时必须明确报 `FORMAT`。Windows 严格 C/XLang 与双语范例、Linux C
 ASan/UBSan 与 XLang 对照门禁通过；
 完整带输出 AOT 仍受共享主线缺符号阻断，不据此签收整包发布级。
+
+2026-10-23：包内边界用例的两处单名 `catch MemoryError` / `catch ConfigError`
+原是无类型捕获变量，不能证明解析分配失败与缺失文件分别按预期分类。
+现改为 `catch MemoryError error` / `catch ConfigError error`，与同文件其余
+分类捕获一致。Windows `test/check.ps1 -SkipAot` 与 Linux `test/check.sh`
+的 C ASan/UBSan、XLang 和双语门禁通过；包实现与公开 API 未改，完整
+AOT 的共享阻断仍待主线修复。

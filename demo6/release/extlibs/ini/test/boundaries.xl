@@ -141,7 +141,7 @@ func main(...) as int
         try
             ini.parse("# leading\nname=value\n")
             parseComplete = true
-        catch MemoryError
+        catch MemoryError error
             memoryFailure = true
         finally
             allocationTriggered = failTriggered()
@@ -164,7 +164,7 @@ func main(...) as int
         bool missingFileCaught = false
         try
             ini.load(path.join(workDir, "missing.ini"))
-        catch ConfigError
+        catch ConfigError error
             missingFileCaught = true
         end
         assert missingFileCaught, "missing INI file must be reported to the caller"
