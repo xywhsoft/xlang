@@ -61,18 +61,26 @@ static int test_allocation_paths(xvalue *fields, const char *message)
     for (failure = 0u; failure < 128u; ++failure) {
         char *built;
         int triggered;
+        xmemdebugsnapshot before, after;
+        xrtClearError();
+        xrtMemDebugSnapshot(&before);
         CHECK(xrtMemDebugFailAfter(failure));
         built = (char *)xfix_build("FIX.4.4", fields);
         triggered = xrtMemDebugFailTriggered();
         xrtMemDebugFailClear();
         if (!triggered) {
             CHECK(built != NULL && xfix_validate(built));
-            xrtFree(built);
             completed = 1;
-            break;
+        } else {
+            CHECK(built == NULL && xfix_memory_error());
+            ++injected;
         }
-        CHECK(built == NULL && xfix_memory_error());
-        ++injected;
+        xrtFree(built);
+        xrtClearError();
+        xrtMemDebugSnapshot(&after);
+        CHECK(after.LiveCount == before.LiveCount &&
+            after.LiveBytes == before.LiveBytes);
+        if (completed) break;
     }
     CHECK(completed && injected > 1u);
     injected = 0u;
@@ -80,20 +88,27 @@ static int test_allocation_paths(xvalue *fields, const char *message)
     for (failure = 0u; failure < 128u; ++failure) {
         xvalue *parsed;
         int triggered;
+        xmemdebugsnapshot before, after;
+        xrtClearError();
+        xrtMemDebugSnapshot(&before);
         CHECK(xrtMemDebugFailAfter(failure));
         parsed = xfix_parse(message);
         triggered = xrtMemDebugFailTriggered();
         xrtMemDebugFailClear();
         if (!triggered) {
             CHECK(parsed != NULL && xrtValueType(parsed) == XVALUE_OBJECT);
-            xrtValueRelease(parsed);
             completed = 1;
-            break;
+        } else {
+            CHECK(parsed != NULL && xrtValueType(parsed) == XVALUE_NULL &&
+                xfix_memory_error());
+            ++injected;
         }
-        CHECK(parsed != NULL && xrtValueType(parsed) == XVALUE_NULL &&
-            xfix_memory_error());
         xrtValueRelease(parsed);
-        ++injected;
+        xrtClearError();
+        xrtMemDebugSnapshot(&after);
+        CHECK(after.LiveCount == before.LiveCount &&
+            after.LiveBytes == before.LiveBytes);
+        if (completed) break;
     }
     CHECK(completed && injected > 1u);
     CHECK(xfix_validate(message) && !xfix_has_error());

@@ -118,3 +118,8 @@ Linux TCC/XLang 同输出门禁通过；正式包构建仍分离编译原生实�
 触发多个失败点；每次内存失败不得交出报文或半成品对象，且故障解除后
 原报文仍可解析。当前 Windows 严格 C/XLang 包门禁与 Linux C
 ASan/UBSan、XLang 双语门禁通过；未发现需修改的包内编解码逻辑。
+
+2026-10-22：上述逐点故障扫描进一步核对每次结果释放后的 XRT 活动
+分配数与字节数是否回到调用前基线，覆盖成功和内存失败路径。Windows
+`test/check.ps1 -SkipAot` 与 Linux `test/check.sh` 的 C/XLang 双语门禁
+通过；完整 AOT 仍受共享缺符号阻断，本轮不签收整包发布级。
