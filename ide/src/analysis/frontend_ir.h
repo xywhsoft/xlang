@@ -7,6 +7,15 @@
 typedef struct xls_ir_scan_work {
     uint64_t indexes,candidates,queries,indexedVisits,linearVisits,peakBytes;
 } xls_ir_scan_work;
+/* One immutable AST build scope. A bounded ordered candidate vector omits
+ * non-nominal declarations; the original lookup still matches identity/name.
+ * Bytes count the owned pointer vector, not borrowed AST or process RSS. */
+typedef struct xls_ir_type_lookup_work {
+    uint64_t indexes,rootVisits,declarations,queries,indexedQueries,linearQueries,peakBytes;
+} xls_ir_type_lookup_work;
+void xlsFrontendIrTypeLookupReset(void);
+xls_ir_type_lookup_work xlsFrontendIrTypeLookupWork(void);
+int xlsFrontendIrBuildTypeBudget(XL6_IrModule* module,const XL6_AstNode* root,XL6_DiagList* diags,size_t bytes);
 void xlsFrontendIrScanReset(void);
 xls_ir_scan_work xlsFrontendIrScanWork(void);
 typedef struct xls_ir_plan_scan_work {

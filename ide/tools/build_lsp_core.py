@@ -84,6 +84,10 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     source = body.decode('utf-8').replace('\r\n', '\n')
     changes = {
         '#include <wchar.h>': '#include <wchar.h>\n#include "analysis/frontend_ir.inc"',
+        'static const XL6_AstNode* xl6IrFindTypeDecl(const XL6_AstNode* root, const XL6_AstNode* type)\n{':
+            'static const XL6_AstNode* xlsIrFindTypeDeclOriginal(const XL6_AstNode* root, const XL6_AstNode* type)\n{',
+        'int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_DiagList* diags)\n{':
+            'static int xlsIrBuildModuleOriginal(XL6_IrModule* module, const XL6_AstNode* root, XL6_DiagList* diags)\n{',
         'int xl6IrRefreshExitPlans(XL6_IrModule* module)\n{': 'static int xlsIrRefreshExitPlansOriginal(XL6_IrModule* module)\n{',
         'int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)\n{': 'static int xlsIrVerifyModuleOriginal(const XL6_IrModule* module, XL6_DiagList* diags)\n{',
         'static int xl6IrBuildImplicitConversionAbis(XL6_IrModule* module)\n{':
@@ -125,9 +129,9 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
-        change='optional cleanup/plan/call-origin indexes and per-verification scope proofs; shared rules retained',
+        change='bounded nominal-declaration candidates, cleanup/plan/call-origin indexes and per-verification scope proofs; shared rules retained',
         auditedSeams=len(changes), indexBytes=16 * 1024 * 1024, planIndexBytes=8 * 1024 * 1024,
-        scopeProofBytes=1024 * 1024, callIndexBytes=8 * 1024 * 1024)
+        scopeProofBytes=1024 * 1024, callIndexBytes=8 * 1024 * 1024, typeLookupBytes=8 * 1024 * 1024)
 
 
 def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:

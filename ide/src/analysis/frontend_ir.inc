@@ -32,6 +32,66 @@ static int xlsIrRefreshExitPlansOriginal(XL6_IrModule*);
 static int xlsIrVerifyModuleOriginal(const XL6_IrModule*,XL6_DiagList*);
 static int xlsIrVerifyScopeExitActionsOriginal(const XL6_IrModule*,const XL6_IrExitPlan*);
 static int xlsIrBuildImplicitConversionAbisOriginal(XL6_IrModule*);
+static int xlsIrBuildModuleOriginal(XL6_IrModule*,const XL6_AstNode*,XL6_DiagList*);
+static const XL6_AstNode* xlsIrFindTypeDeclOriginal(const XL6_AstNode*,const XL6_AstNode*);
+
+#define XLS_IR_TYPE_LOOKUP_BYTES (8u*1024u*1024u)
+typedef struct xls_ir_type_lookup {
+    struct xls_ir_type_lookup* previous;
+    const XL6_AstNode* root;
+    XL6_AstNode** sourceChildren;
+    size_t sourceCount;
+    XL6_AstNode filtered;
+    XL6_AstNode** items;
+    int ready;
+} xls_ir_type_lookup;
+static _Thread_local xls_ir_type_lookup* xlsActiveTypeLookup;
+static _Thread_local xls_ir_type_lookup_work xlsIrTypeLookupWork;
+static int xlsIrNominalCandidate(const XL6_AstNode* node)
+{
+    return node && (node->kind==XL6_AST_CLASS || node->kind==XL6_AST_PROTOCOL ||
+        node->kind==XL6_AST_UNION || node->kind==XL6_AST_ENUM);
+}
+static void xlsIrTypeLookupBegin(xls_ir_type_lookup* scan,const XL6_AstNode* root,size_t bytes)
+{
+    memset(scan,0,sizeof(*scan)); scan->root=root; scan->previous=xlsActiveTypeLookup; xlsActiveTypeLookup=scan;
+    if(!root || !bytes) return;
+    if(bytes>XLS_IR_TYPE_LOOKUP_BYTES) bytes=XLS_IR_TYPE_LOOKUP_BYTES;
+    size_t count=0;
+    for(size_t i=0;i<root->childCount;++i) {
+        ++xlsIrTypeLookupWork.rootVisits;
+        if(xlsIrNominalCandidate(root->children[i]) && ++count>bytes/sizeof(*scan->items)) return;
+    }
+    size_t charged=count*sizeof(*scan->items);
+    scan->items=count ? xrtMalloc(charged) : NULL;
+    if(count && !scan->items) return;
+    size_t next=0;
+    for(size_t i=0;i<root->childCount;++i)
+        if(xlsIrNominalCandidate(root->children[i])) scan->items[next++]=root->children[i];
+    scan->sourceChildren=root->children; scan->sourceCount=root->childCount;
+    scan->filtered=*root; scan->filtered.children=scan->items;
+    scan->filtered.childCount=scan->filtered.childCapacity=count; scan->ready=1;
+    ++xlsIrTypeLookupWork.indexes; xlsIrTypeLookupWork.declarations+=count;
+    if(charged>xlsIrTypeLookupWork.peakBytes) xlsIrTypeLookupWork.peakBytes=charged;
+}
+static const XL6_AstNode* xl6IrFindTypeDecl(const XL6_AstNode* root,const XL6_AstNode* type)
+{
+    xls_ir_type_lookup* scan=xlsActiveTypeLookup; ++xlsIrTypeLookupWork.queries;
+    if(scan && scan->ready && scan->root==root && root->children==scan->sourceChildren && root->childCount==scan->sourceCount) {
+        ++xlsIrTypeLookupWork.indexedQueries; return xlsIrFindTypeDeclOriginal(&scan->filtered,type);
+    }
+    ++xlsIrTypeLookupWork.linearQueries; return xlsIrFindTypeDeclOriginal(root,type);
+}
+int xlsFrontendIrBuildTypeBudget(XL6_IrModule* module,const XL6_AstNode* root,XL6_DiagList* diags,size_t bytes)
+{
+    xls_ir_type_lookup scan; xlsIrTypeLookupBegin(&scan,module ? root : NULL,bytes);
+    int okay=xlsIrBuildModuleOriginal(module,root,diags);
+    xlsActiveTypeLookup=scan.previous; xrtFree(scan.items); return okay;
+}
+int xl6IrBuildModuleFromAst(XL6_IrModule* module,const XL6_AstNode* root,XL6_DiagList* diags)
+{ return xlsFrontendIrBuildTypeBudget(module,root,diags,XLS_IR_TYPE_LOOKUP_BYTES); }
+void xlsFrontendIrTypeLookupReset(void) { memset(&xlsIrTypeLookupWork,0,sizeof(xlsIrTypeLookupWork)); }
+xls_ir_type_lookup_work xlsFrontendIrTypeLookupWork(void) { return xlsIrTypeLookupWork; }
 
 typedef struct xls_ir_call_scan {
     const XL6_IrModule* module;
