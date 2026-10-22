@@ -9,6 +9,12 @@ Windows `-SkipAot` 与 Linux ASan/UBSan 包级门禁通过；默认 Windows
 门禁的核心 AOT 通过，公开范例仍缺共享 `xl6ValueDataSnapshotV1`，
 未签收发布级。这是短样本的确定性畸变回归，不是持续 fuzz。
 
+2026-10-23：畸变夹具扩至双 cue 的 SRT/WebVTT，覆盖分隔空行、第二段时间轴和
+不同 cue ID；每份夹具仍逐长度截断、逐字节替换，另以固定种子做 256 组双点
+修改。成功解析的结果须能重建并再次读回，错误结果须有诊断。Windows
+`test/check.ps1 -SkipAot` 与 Linux `test/check.sh` 的 C ASan/UBSan、XLang
+和双语对照门禁通过；这不是持续 fuzz 或完整格式认证，带输出 AOT 阻断未变。
+
 ## XLang API
 
 - `srt.parse(text)` / `srt.build(cues)`：SRT。需要正整数序号和 `HH:MM:SS,mmm` 时间戳。

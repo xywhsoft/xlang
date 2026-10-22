@@ -83,23 +83,43 @@ static int test_mutation_case(const char *text, size_t size, int vtt,
 static int test_mutations(void) {
     static const char *seeds[] = {
         "1\n00:00:00,000 --> 00:00:01,000\nHi\n\n",
-        "WEBVTT\n\ncue\n00:00.000 --> 00:01.000 align:start\nHi\n\n"
+        "WEBVTT\n\ncue\n00:00.000 --> 00:01.000 align:start\nHi\n\n",
+        "1\n00:00:00,000 --> 00:00:01,000\nHi\n\n"
+        "2\n00:00:01,000 --> 00:00:02,000\nBye\n\n",
+        "WEBVTT\n\nfirst\n00:00.000 --> 00:01.000\nHi\n\n"
+        "second\n00:01.000 --> 00:02.000\nBye\n\n"
     };
     static const unsigned char replacements[] = {
         '0', '9', ':', ',', '.', '-', '>', '\n', '\r', 0, 0xff
     };
-    char input[sizeof("WEBVTT\n\ncue\n00:00.000 --> 00:01.000 align:start\nHi\n\n")];
+    char input[sizeof("WEBVTT\n\nfirst\n00:00.000 --> 00:01.000\nHi\n\n"
+        "second\n00:01.000 --> 00:02.000\nBye\n\n")];
+    uint32_t state = 0x5a17c3e9u;
     size_t seed, i, j;
-    for (seed = 0; seed < 2; ++seed) {
+    for (seed = 0; seed < sizeof(seeds) / sizeof(seeds[0]); ++seed) {
         size_t size = strlen(seeds[seed]);
         for (i = 0; i <= size; ++i)
-            CHECK(test_mutation_case(seeds[seed], i, (int)seed, i, -1) == 0);
+            CHECK(test_mutation_case(seeds[seed], i, (int)(seed & 1u), i, -1) == 0);
         for (i = 0; i < size; ++i) {
             for (j = 0; j < sizeof(replacements); ++j) {
                 memcpy(input, seeds[seed], size);
                 input[i] = (char)replacements[j];
-                CHECK(test_mutation_case(input, size, (int)seed, i, replacements[j]) == 0);
+                CHECK(test_mutation_case(input, size, (int)(seed & 1u), i,
+                    replacements[j]) == 0);
             }
+        }
+        /* 两处同时损坏可触发跨 cue 的组合边界，序列固定以便复现。 */
+        for (i = 0; i < 256; ++i) {
+            size_t first, second;
+            state = state * 1664525u + 1013904223u;
+            first = state % size;
+            state = state * 1664525u + 1013904223u;
+            second = state % size;
+            memcpy(input, seeds[seed], size);
+            input[first] = (char)replacements[i % sizeof(replacements)];
+            input[second] = (char)replacements[(i / sizeof(replacements)) %
+                sizeof(replacements)];
+            CHECK(test_mutation_case(input, size, (int)(seed & 1u), i, -2) == 0);
         }
     }
     return 0;
