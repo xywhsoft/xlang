@@ -148,6 +148,8 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoAesGcmHandlePolicyV1
 
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoChaChaAeadHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoX25519HandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6X509CertificateHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6X509CrlHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoX448HandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoEd25519HandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoP256HandlePolicyV1Get(void);

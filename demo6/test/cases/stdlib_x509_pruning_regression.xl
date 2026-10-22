@@ -1,0 +1,6 @@
+// New X.509 policy entries must not pull their implementation into old APIs.
+auto der = DerReader(b"\x05\x00")
+assert der.read().tagNumber == 5
+auto key = X25519Key(b"01234567890123456789012345678901")
+assert key.publicKey.length == 32
+assert math.sin(0.0) == 0.0
