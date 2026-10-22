@@ -13,7 +13,7 @@ for allocation in range(80)
     try
         netrc.Netrc config = netrc.parse(source)
         assert config.authenticators("example.test")["login"] == "user"
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
@@ -33,7 +33,7 @@ for allocation in range(80)
     assert failAfter(uint64(allocation))
     try
         assert recovered.stringify() == expected
-    catch MemoryError
+    catch MemoryError error
         caught = true
     end
     bool triggered = failTriggered()
