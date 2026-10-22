@@ -478,7 +478,9 @@ typedef enum XL6_IrCAbi {
     XL6_IR_C_ABI_MANAGED_BYTES,
     /* An immutable native owning record, never a POD tuple or handle. Its
      * closed resident profile fixes copy/drop/equality and outcome contracts. */
-    XL6_IR_C_ABI_NATIVE_VALUE
+    XL6_IR_C_ABI_NATIVE_VALUE,
+    XL6_IR_C_ABI_C_STRING,
+    XL6_IR_C_ABI_C_BYTES
 } XL6_IrCAbi;
 
 typedef enum XL6_IrNativeValueAbi {
@@ -2186,6 +2188,22 @@ typedef enum XL6_IrRuntimeOp {
      * integerTarget explicitly fix nominal type and complete backing domain;
      * failure releases the scalar and returns NULL for the immediate error edge. */
     XL6_IR_RUNTIME_XVALUE_ENUM_BIND,
+    XL6_IR_RUNTIME_CSTRING_TAKE,
+    XL6_IR_RUNTIME_CBYTES_TAKE,
+    XL6_IR_RUNTIME_CSTRING_COPY,
+    XL6_IR_RUNTIME_CSTRING_BOX,
+    XL6_IR_RUNTIME_CBYTES_COPY,
+    XL6_IR_RUNTIME_CBYTES_SIZE_TAKE,
+    XL6_IR_RUNTIME_CSTRING_LENGTH,
+    XL6_IR_RUNTIME_CBYTES_LENGTH,
+    XL6_IR_RUNTIME_CSTRING_AT,
+    XL6_IR_RUNTIME_CBYTES_AT,
+    XL6_IR_RUNTIME_C_COMPARE_EQ,
+    XL6_IR_RUNTIME_C_COMPARE_NE,
+    XL6_IR_RUNTIME_C_COMPARE_LT,
+    XL6_IR_RUNTIME_C_COMPARE_LE,
+    XL6_IR_RUNTIME_C_COMPARE_GT,
+    XL6_IR_RUNTIME_C_COMPARE_GE,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -3209,6 +3227,7 @@ typedef struct XL6_IrNode {
      * assignment uses targetSymbol for its setter. */
     XL6_SymbolId compoundOperatorSymbol;
     XL6_SemCallKind callKind;
+    XL6_IrRuntimeOp cOwnedCompareOp;
     XL6_IrImplicitNameAbi implicitNameAbi;
     /* Exact active instance parameter TypeId for an implicit NAME.  INVALID
      * for ordinary names.  A base view keeps its projected type in storageType;
@@ -7715,6 +7734,11 @@ int xl6IrRuntimeCallableFieldSignatureSupported(
     const XL6_IrModule* module, XL6_IrTypeId type);
 XL6_IrTypeId xl6IrRuntimeCallableFieldSourceSignature(
     const XL6_IrModule* module, XL6_IrTypeId type);
+int xl6IrTypeIsCOwned(const XL6_IrType*);
+int xl6IrCOwnedRuntimeOpIs(XL6_IrRuntimeOp);
+XL6_IrCallErrorPhysicalAbi xl6IrCOwnedErrorPhysicalAbi(XL6_IrRuntimeOp);
+int xl6IrCOwnedTakeNodeCompatible(const XL6_IrModule*,const XL6_IrNode*);
+int xl6IrCOwnedInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrTypeHasStorageReleaseAbi(
     const XL6_IrModule* module, XL6_IrTypeId type);
 /* Ownership of a lowered SSA producer, independent of source value category:

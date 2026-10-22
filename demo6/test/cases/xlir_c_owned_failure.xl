@@ -1,0 +1,38 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_debug" @no_raise func debugMemory() as bool
+extern "c_owned_fail_next" @no_raise func failNext()
+extern "c_owned_fail_clear" @no_raise func clearFailure()
+
+func check()
+    cstring text = cstring.take(nativeText(), nativeFree)
+    cbytes data = cbytes.take(nativeBytes(), 4, nativeFree)
+    string target = "keep"
+    bool caught = false
+    failNext()
+    try
+        target = text
+    catch ignored
+        clearFailure()
+        caught = true
+    end
+    clearFailure()
+    assert caught and target == "keep" and text.length == 5
+    caught = false
+    failNext()
+    try
+        bytes result = data
+    catch ignored
+        clearFailure()
+        caught = true
+    end
+    clearFailure()
+    assert caught and data[1] == 255
+    target = text
+    assert target == "hello"
+end
+
+if debugMemory() then
+    check()
+end

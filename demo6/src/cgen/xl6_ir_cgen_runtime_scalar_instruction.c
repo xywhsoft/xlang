@@ -24,6 +24,8 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrInstruction* instruction, XL6_DiagList* diags)
 {
+                if(xl6IrCOwnedRuntimeOpIs(instruction->runtimeOp))
+                    return xl6IrCgenEmitCOwned(out,module,instruction,diags);
                 int sharedRuntime = xl6IrCgenEmitSharedRuntime(
                     out, module, instruction);
                 if ( sharedRuntime < 0 )

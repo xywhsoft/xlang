@@ -16,6 +16,12 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
     if (!xl6IrCgenVerifyEmittable(module,diags)) return 0;
     if (!xl6IrCgenAnalyzePrimaryNeeds(module,needs,diags) ||
         !xl6IrCgenAnalyzeRuntimeNeeds(module,needs,diags)) return 0;
+    for(size_t i=0;i<module->types.count;++i) if(xl6IrTypeIsCOwned(&module->types.items[i])) {
+        needs->needsCOwnedRuntime=1;
+        needs->needsStringRuntime=1;
+        needs->needsStringScalarRuntime=1;
+        needs->needsBytesRuntime=1;
+    }
     /* The shared union boxer binds a nominal identity even in a read-only
      * consumer. Close its helper dependency once, not via incidental channel
      * construction or a library-specific call-site exception. */

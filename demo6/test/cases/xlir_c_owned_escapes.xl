@@ -1,0 +1,42 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_released" @no_raise func released() as int
+
+class StoredData
+    string text = ""
+    bytes data = b""
+end
+
+func stored() as StoredData
+    cstring text = cstring.take(nativeText(), nativeFree)
+    cbytes data = cbytes.take(nativeBytes(), 4, nativeFree)
+    StoredData result = StoredData()
+    result.text = text
+    result.data = data
+    auto chosen = true ? text : text
+    assert chosen == "hello"
+    return result
+end
+
+func job() as func() as int
+    cstring text = cstring.take(nativeText(), nativeFree)
+    cbytes data = cbytes.take(nativeBytes(), 4, nativeFree)
+    return func() as int => text.length + data.length
+end
+
+func nested() as func() as func() as string
+    cstring text = cstring.take(nativeText(), nativeFree)
+    return func() as func() as string => func() as string => text
+end
+
+auto value = stored()
+assert released() == 2
+assert value.text == "hello" and value.data[1] == 255
+auto work = job()
+assert released() == 4
+assert await task.spawn(work) == 9
+auto outer = nested()
+assert released() == 5
+auto inner = outer()
+assert inner() == "hello"

@@ -294,6 +294,8 @@ static const char* xl6IrCgenStorageReleaseFunction(
              XL6_IR_OWNERSHIP_ABI_MANAGED ) return NULL;
     switch ( type->cAbi ) {
     case XL6_IR_C_ABI_MANAGED_STRING: return "xlir_string_drop";
+    case XL6_IR_C_ABI_C_STRING:
+    case XL6_IR_C_ABI_C_BYTES: return "xl6COwnedDropValueV1";
     case XL6_IR_C_ABI_MANAGED_BYTES: return "xrtValueRelease";
     case XL6_IR_C_ABI_NATIVE_VALUE: {
         const XL6_IrNativeValuePlan* plan=xl6IrNativeValuePlanForType(type);
