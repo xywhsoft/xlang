@@ -2,6 +2,13 @@
 
 `srt` 解析、生成 SRT 和常用 WebVTT 字幕。解析后返回 cue 数组，每项包含 `index`、`startMs`、`endMs` 和字符串数组 `lines`。WebVTT 中还可带 `id`、`settings`。时间单位都是毫秒；`build` 会把 SRT 序号按数组顺序重新编号。
 
+2026-10-22：C 边界测试用固定 SRT/WebVTT 样本逐长度截断，并逐字节替换
+时间分隔符、箭头、换行、NUL 和非法 UTF-8 等字节。失败结果必须有 XRT
+诊断；仍可解析的结果必须能重新生成并再次解析，cue 数量保持不变。
+Windows `-SkipAot` 与 Linux ASan/UBSan 包级门禁通过；默认 Windows
+门禁的核心 AOT 通过，公开范例仍缺共享 `xl6ValueDataSnapshotV1`，
+未签收发布级。这是短样本的确定性畸变回归，不是持续 fuzz。
+
 ## XLang API
 
 - `srt.parse(text)` / `srt.build(cues)`：SRT。需要正整数序号和 `HH:MM:SS,mmm` 时间戳。

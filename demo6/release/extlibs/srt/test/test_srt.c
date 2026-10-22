@@ -53,6 +53,58 @@ static int test_explicit_lengths(void) {
     return 0;
 }
 
+/* 字节畸变后若仍是合法字幕，解析结果必须能重新生成并读回。 */
+static int test_mutation_case(const char *text, size_t size, int vtt,
+                              size_t offset, int replacement) {
+    xvalue *parsed = vtt ? xsrt_parse_vtt_n(text, size) : xsrt_parse_n(text, size);
+    xvalue *again = NULL;
+    char *built = NULL;
+    int ok = 0;
+    if (parsed != NULL && xrtValueType(parsed) == XVALUE_ARRAY && xrtGetError() == NULL) {
+        built = (char *)(vtt ? xsrt_build_vtt(parsed) : xsrt_build(parsed));
+        if (built != NULL && xrtGetError() == NULL) {
+            again = vtt ? xsrt_parse_vtt(built) : xsrt_parse(built);
+            ok = again != NULL && xrtValueType(again) == XVALUE_ARRAY &&
+                 xrtValueCount(again) == xrtValueCount(parsed) && xrtGetError() == NULL;
+        }
+    } else {
+        ok = parsed != NULL && xrtValueType(parsed) == XVALUE_NULL &&
+             xrtGetError() != NULL;
+    }
+    if (!ok)
+        fprintf(stderr, "srt mutation failed: vtt=%d size=%zu offset=%zu byte=%d\n",
+            vtt, size, offset, replacement);
+    xrtValueRelease(again);
+    xrtFree(built);
+    xrtValueRelease(parsed);
+    return ok ? 0 : 1;
+}
+
+static int test_mutations(void) {
+    static const char *seeds[] = {
+        "1\n00:00:00,000 --> 00:00:01,000\nHi\n\n",
+        "WEBVTT\n\ncue\n00:00.000 --> 00:01.000 align:start\nHi\n\n"
+    };
+    static const unsigned char replacements[] = {
+        '0', '9', ':', ',', '.', '-', '>', '\n', '\r', 0, 0xff
+    };
+    char input[sizeof("WEBVTT\n\ncue\n00:00.000 --> 00:01.000 align:start\nHi\n\n")];
+    size_t seed, i, j;
+    for (seed = 0; seed < 2; ++seed) {
+        size_t size = strlen(seeds[seed]);
+        for (i = 0; i <= size; ++i)
+            CHECK(test_mutation_case(seeds[seed], i, (int)seed, i, -1) == 0);
+        for (i = 0; i < size; ++i) {
+            for (j = 0; j < sizeof(replacements); ++j) {
+                memcpy(input, seeds[seed], size);
+                input[i] = (char)replacements[j];
+                CHECK(test_mutation_case(input, size, (int)seed, i, replacements[j]) == 0);
+            }
+        }
+    }
+    return 0;
+}
+
 static int test_vtt_allocation_failure(xvalue *web) {
     xvalue *cue = xrtValueArrayAt(web, 0);
     const char *document = "WEBVTT\n\nfirst\n00:00.500 --> 00:01.500 align:start\nHi\n\n";
@@ -126,6 +178,7 @@ int main(void) {
     CHECK(cues != NULL && xrtValueType(cues) == XVALUE_ARRAY && xrtValueCount(cues) == 1);
     CHECK(web != NULL && xrtValueType(web) == XVALUE_ARRAY && xrtValueCount(web) == 1);
     CHECK(test_explicit_lengths() == 0);
+    CHECK(test_mutations() == 0);
 
     {
         const char *utf8Source = "\xef\xbb\xbf" "1\r\n"
