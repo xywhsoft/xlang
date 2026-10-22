@@ -35,11 +35,13 @@ stb 工作区使用 XRT 分配器，内存不足时返回 `XERR_MEMORY`，不误
 
 - 从 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File
   release/extlibs/stb_image_resize2/test/check.ps1`，执行 Windows 严格 GCC、
-  C 边界、中央与包内 XLang 用例、三种范例入口的同输出对照。
+  C 边界、中央与包内 XLang 用例、三种范例入口的固定输出对照，默认还
+  构建并运行中央及公开范例 AOT；`-SkipAot` 只做 C/JIT 聚焦快测。
 - 在 `release` 目录运行 `xl run examples/extlibs/stb_image_resize2.xl` 或
   `xl run examples/extlibs/stb_image_resize2_c.c`；C 范例直接包含解码与
   缩放实现，两个范例都从 `xl.exe` 所在目录定位素材，并对照 RGBA 与
-  灰度+alpha 缩放结果。
+  灰度+alpha 缩放结果。XLang 范例可在 `--` 后传入图片绝对路径，供
+  独立 AOT 可执行文件使用。
 - 从 `demo6` 目录运行 `xl run release/extlibs/stb_image_resize2/test/boundaries.xl`
   和 `xl run release/extlibs/stb_image_resize2/test/allocations.xl`；两项已登记
   到包级测试套件，后者对 sRGB/linear 各扫描前 128 个分配点，确认故障在
@@ -48,14 +50,22 @@ stb 工作区使用 XRT 分配器，内存不足时返回 `XERR_MEMORY`，不误
 - C 边界测试使用 `-Package stb_image_resize2` 和
   `release/extlibs/stb_image_resize2/test/test_stb_image_resize2.c`
 - `wsl bash release/extlibs/stb_image_resize2/test/check.sh` 可复跑 Linux 严格编译、
-  ASan/UBSan C 边界、中央与包内 XLang 用例及 C/XLang 图片范例同输出。
+  ASan/UBSan C 边界、中央与包内 XLang 用例及 C/XLang 图片范例固定输出。
 - 覆盖 sRGB/linear、同尺寸保持、带填充步长、短缓冲、逐点内存故障注入、
   C 整数收窄及参数/尺寸拒绝；
   C/XL 范例输出一致；Windows GCC `-Wall -Wextra -Werror` 与 Linux
   ASan/UBSan 已通过。
 
-带输出的完整 XL AOT 仍被主线 `xl6ValueDataSnapshotV1` 缺符号阻断，详见
-`demo6/dev/extlib_blockers/text_snapshot_link.md`，暂不标记发布验收完成。
+当前 Windows 默认门禁在中央核心 AOT 构建处因主线缺少
+`xl6NativeHandleTraceLeaf` 而非零退出，见
+`demo6/dev/extlib_blockers/native_handle_trace_aot.md`；带输出的完整 XL AOT
+还可能遇到共享 `xl6ValueDataSnapshotV1` 缺符号，见
+`demo6/dev/extlib_blockers/text_snapshot_link.md`。暂不标记发布验收完成。
+
+2026-10-23：Windows 聚焦门禁、Linux C ASan/UBSan 与 XLang 双语门禁均
+退出 0，Linux 范例已与固定黄金输出逐字节核对。Windows 默认门禁在中央
+核心 AOT 构建处按上述共享缺符号非零退出，公开范例 AOT 尚未执行；独占
+临时目录没有残留。此次只加强验收，不修改缩放算法或公开 API。
 
 2026-10-15：C 入口失败后成功的 XRT 错误状态测试先红后绿，缩放成功不再保留旧诊断；源码模块宏改为条件定义。中央无输出 AOT 用例构建运行通过，C/XLang 边界、双语逐字同输出及新增 Linux ASan/UBSan 门禁通过；带输出完整 AOT 仍受共享快照符号阻断。
 

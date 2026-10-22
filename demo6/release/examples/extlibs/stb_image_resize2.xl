@@ -2,7 +2,9 @@ import stb_image
 import stb_image_resize2
 
 func main(...) as int
-    stb_image.StbImage image = stb_image.load(path.join(path.appDir(), "examples/extlibs/assets/tiny.png"), 4)
+    string imagePath = path.join(path.appDir(), "examples/extlibs/assets/tiny.png")
+    if arg.length > 1 then imagePath = string(arg[1]) end
+    stb_image.StbImage image = stb_image.load(imagePath, 4)
     Buffer pixels = image.pixels()
     Buffer small = stb_image_resize2.resize(pixels,
         image.width(), image.height(), 4, 4, 4)

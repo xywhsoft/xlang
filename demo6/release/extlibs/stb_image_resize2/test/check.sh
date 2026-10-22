@@ -31,5 +31,8 @@ timeout 90s release/xl run release/examples/extlibs/stb_image_resize2_c.c \
     > "$work/example_c.txt"
 timeout 90s release/xl run release/examples/extlibs/stb_image_resize2.xl \
     > "$work/example_xl.txt"
+printf 'sRGB bytes:  64\nlinear bytes:  36\ngray-alpha bytes:  2\nstb_image_resize2 C/XL example: PASS\n' \
+    > "$work/expected.txt"
+diff -u "$work/expected.txt" "$work/example_c.txt"
 diff -u "$work/example_c.txt" "$work/example_xl.txt"
 printf 'stb_image_resize2 Linux C ASan/UBSan and XLang parity gate: PASS\n'

@@ -1,7 +1,10 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
+$work = $null
 
 Push-Location $root
 try {
@@ -47,7 +50,33 @@ try {
         throw 'stb_image_resize2 C/XLang example output differs'
     }
 
+    if (-not $SkipAot) {
+        $work = Join-Path ([IO.Path]::GetTempPath()) ('xlang-stb-resize2-aot-' + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $work | Out-Null
+        $core = Join-Path $work 'stb_resize2_core.exe'
+        $example = Join-Path $work 'stb_resize2_example.exe'
+        & $xl build test/cases/extlib_stb_image_resize2.xl -o $core
+        if ($LASTEXITCODE -ne 0) { throw 'stb_image_resize2 core AOT build failed' }
+        & $core
+        if ($LASTEXITCODE -ne 0) { throw 'stb_image_resize2 core AOT failed' }
+        & $xl build release/examples/extlibs/stb_image_resize2.xl -o $example
+        if ($LASTEXITCODE -ne 0) { throw 'stb_image_resize2 example AOT build failed' }
+        $asset = Join-Path $root 'release/examples/extlibs/assets/tiny.png'
+        $aotOutput = & $example $asset
+        if ($LASTEXITCODE -ne 0) { throw 'stb_image_resize2 example AOT failed' }
+        if (($aotOutput -join "`n") -cne $expected) {
+            throw 'stb_image_resize2 AOT example output differs'
+        }
+    }
+
     Write-Output 'stb_image_resize2 Windows C/XLang gate: PASS'
 } finally {
     Pop-Location
+    if ($work -ne $null) {
+        foreach ($name in @('stb_resize2_core.exe', 'stb_resize2_example.exe')) {
+            $output = Join-Path $work $name
+            if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Force }
+        }
+        if (Test-Path -LiteralPath $work) { Remove-Item -LiteralPath $work -Force }
+    }
 }
