@@ -116,6 +116,11 @@ static int xl6IrCgenVerifyInstructions(
             }
             break;
         case XL6_IR_INSTR_RUNTIME_CALL:
+            if(xl6IrCOwnedRuntimeOpIs(instruction->runtimeOp)) {
+                if(!xl6IrCOwnedInstructionCompatible(module,instruction))
+                    return xl6IrCgenDiag(diags,module,instruction->origin,"C owner operation has no exact lifetime ABI");
+                break;
+            }
             if(instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED ||
                 instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED) {
                 if(!xl6IrNativeScalarInstructionCompatible(module,instruction))

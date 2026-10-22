@@ -49,7 +49,9 @@ static const XL6_BuiltinTypeSeed g_xl6BuiltinTypeSeeds[] = {
     {"MpmcQueue", NULL, 1, 1}, {"Queue", "xlang.MpmcQueue", 1, 1}, {"WaitQueue", NULL, 1, 1},
     {"thread", NULL, 0, 0}, {"mutex", NULL, 0, 0},
     {"cond", NULL, 0, 0}, {"rwlock", NULL, 0, 0},
-    {"sem", NULL, 0, 0}
+    {"sem", NULL, 0, 0},
+    /* Append new builtins so existing semantic registry identities stay stable. */
+    {"cstring", "xlang.cstring.v1", 0, 0}, {"cbytes", "xlang.cbytes.v1", 0, 0}
 };
 
 int xl6TypeRegistryIsBuiltinName(const char* name)

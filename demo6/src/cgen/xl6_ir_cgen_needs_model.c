@@ -20,7 +20,7 @@ static int xl6IrCgenNeedsWebSocketRuntime(
 static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
 {
     return needs != NULL &&
-        (needs->needsTextAdapterDeclarations || needs->needsLogAdapterDeclarations || needs->needsModuleOwnershipViews ||
+        (needs->needsCOwnedRuntime || needs->needsTextAdapterDeclarations || needs->needsLogAdapterDeclarations || needs->needsModuleOwnershipViews ||
          /* Value consumers now share resident providers and their public
           * physical types. Select the canonical DECLARATIONS for the entire
           * family before emitting any fallback typedef, not by whichever

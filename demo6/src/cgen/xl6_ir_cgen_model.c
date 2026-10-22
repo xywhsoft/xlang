@@ -69,6 +69,8 @@ static const char* xl6IrCgenType(const XL6_IrModule* module, XL6_IrTypeId type)
     case XL6_IR_C_ABI_C_DOUBLE: return "double";
     case XL6_IR_C_ABI_C_WCHAR: return "wchar_t";
     case XL6_IR_C_ABI_MANAGED_STRING: return "xlir_string";
+    case XL6_IR_C_ABI_C_STRING:
+    case XL6_IR_C_ABI_C_BYTES: return "XL6_COwnedV1";
     case XL6_IR_C_ABI_MANAGED_BYTES: return "xvalue*";
     case XL6_IR_C_ABI_NATIVE_VALUE: {
         const XL6_IrNativeValuePlan* plan=xl6IrNativeValuePlanForType(item);
