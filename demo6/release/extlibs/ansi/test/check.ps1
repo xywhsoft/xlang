@@ -38,6 +38,12 @@ try {
         'release/extlibs/ansi/test/test_ansi.c', $runtime) +
         $links + @('-o', $test))
     $null = Run 'C test' $test @()
+    $threads = Join-Path $work 'ansi_threads.exe'
+    $null = Run 'C thread test compile' $gcc ($flags + @(
+        'release/extlibs/ansi/ansi_native.c',
+        'release/extlibs/ansi/test/test_threads.c', $runtime) +
+        $links + @('-o', $threads))
+    $null = Run 'C thread test' $threads @()
     $example = Join-Path $work 'ansi_example.exe'
     $null = Run 'C example compile' $gcc ($flags + @(
         'release/extlibs/ansi/ansi_native.c',

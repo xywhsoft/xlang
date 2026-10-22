@@ -21,6 +21,11 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 timeout 90s "$work/test_ansi"
 
 "$cc" "${flags[@]}" release/extlibs/ansi/ansi_native.c \
+    release/extlibs/ansi/test/test_threads.c "$work/xrt_runtime.o" \
+    -lm -ldl -o "$work/test_threads"
+timeout 90s "$work/test_threads"
+
+"$cc" "${flags[@]}" release/extlibs/ansi/ansi_native.c \
     release/extlibs/ansi/examples/ansi_c.c "$work/xrt_runtime.o" \
     -lm -ldl -o "$work/ansi_example"
 timeout 30s "$work/ansi_example" > "$work/c.txt"

@@ -20,13 +20,13 @@
 
 公开头文件为 `include/ansi_native.h`。文本函数返回独立分配的 `void*`，实际为 NUL 结尾 UTF-8/ANSI 文本；C 侧可转为 `char*`，使用后以 `xrtFree` 释放。失败返回 `NULL`，用 `xrtGetError` 读取原因。这里保留 `void*` 是为了匹配 XLang 的 `point` ABI；XLang 封装调用 `__xl_runtime.takeCstr` 自动接管所有权。`xansi_display_width` 失败返回 -1。库函数不共享可变结果槽，重复和多线程调用不会覆盖先前结果。
 
-公开 C 调用会清除本线程上一次的 XRT 错误；成功返回时 `xrtGetError()` 为 `NULL`。前一次调用失败后可直接调用其他 ANSI 入口，无需调用方先手动清错。
+公开 C 调用会清除本线程上一次的 XRT 错误；成功返回时 `xrtGetError()` 为 `NULL`。前一次调用失败后可直接调用其他 ANSI 入口，无需调用方先手动清错。包级 C 门禁以四个工作线程交错验证独立结果、UTF-8 列宽与错误槽隔离。
 
 ## 范例与验证
 
 - C/XLang 对照：`release/extlibs/ansi/examples/ansi_c.c`、`ansi.xl`。C 范例可直接 `xl run` 单文件执行；普通 C 构建仍独立链接 `ansi_native.c`。
 - 完整展示：`release/examples/extlibs/ansi.xl`
-- 边界：`release/extlibs/ansi/test/test_ansi.c`、`boundaries.xl` 与 `test/cases/extlib_ansi.xl`
+- 边界：`release/extlibs/ansi/test/test_ansi.c`、`test_threads.c`、`boundaries.xl` 与 `test/cases/extlib_ansi.xl`
 
 在 `demo6/release` 运行 `xl run extlibs/ansi/test/boundaries.xl`；在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package ansi -Source release/extlibs/ansi/test/test_ansi.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、XL JIT 和双语范例对照；2026-10-13 增加四种文本入口的 NUL 红绿用例，复跑 C/XL 主路径与范例。
 
