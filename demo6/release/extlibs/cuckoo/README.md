@@ -39,7 +39,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 bash release/extlibs/cuckoo/test/check.sh
 ```
 
-C 测试构造落在同一对桶的 9 个不同指纹，验证第 9 次失败后原 8 项仍可查询，移除一项后仍能插入。另覆盖容量、空键及内嵌 NUL。Windows 严格 GCC、Linux ASan/UBSan、XLang JIT 和无输出 AOT 核心已通过；完整带输出范例 AOT 仍受共享 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`。发布级验收暂不签收。
+C 测试构造落在同一对桶的 9 个不同指纹，验证第 9 次失败后原 8 项仍可查询，移除一项后仍能插入。另覆盖容量、空键及内嵌 NUL。Windows 严格 GCC、Linux ASan/UBSan、XLang JIT 和无输出 AOT 核心已通过；完整带输出范例 AOT 仍受共享 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`。默认 Windows 门禁现在也检查范例 AOT，不再只凭核心通过返回成功；`-SkipAot` 仅用于聚焦 C/XLang 验证。发布级验收暂不签收。
 包内 `test/high_load.xl` 已登记到 `coverage.tests`。C 与 XLang 都用
 容量 3000 的确定性多桶序列验证高装载插入：首次失败或容量耗尽后计数
 不变，全部先前成功插入的键仍可查询。这是无删除条件下的无假阴性回归，
@@ -64,8 +64,12 @@ C/XLang 范例逐字节对照；严格 GCC、C ASan/UBSan 及上述用例均通�
 `MemoryError`，恢复后可写入并查询。用例登记于包覆盖清单和 Linux 门禁。
 这项验证无需修改工厂实现；完整带输出 AOT 的主线阻断不变。
 Windows 包级入口同时执行严格 C 测试、中央与包内 XLang 边界、上述分配故障、
-私有原生入口编译负例、C/XLang 范例同输出和无输出核心 AOT。
-核心 AOT 每次使用独立测试文件，退出时只清理本次产物。
+私有原生入口编译负例、C/XLang 范例同输出、无输出核心 AOT 和带输出范例 AOT。
+AOT 每次使用独立测试文件，退出时只清理本次产物。
+
+2026-10-22：旧默认脚本返回 PASS，但公开 XLang 范例单独 AOT 构建缺
+`xl6ValueDataSnapshotV1`。现在把范例构建、运行及 C 输出对照加入默认门禁；
+`-SkipAot` 的 C/语言聚焦路径通过，默认门禁如实报告共享缺符号。
 
 2026-10-19：C 范例可直接用 `xl run` 单文件运行；TCC 路径在范例内引用包内
 原生实现，GCC 路径仍独立编译原生实现。Windows/Linux 包级门禁同时对照

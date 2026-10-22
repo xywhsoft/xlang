@@ -1,9 +1,12 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 $aotDirectory = Join-Path $root 'build/test'
 $aot = Join-Path $aotDirectory ("cuckoo_aot_core_$([guid]::NewGuid().ToString('N')).exe")
+$exampleAot = Join-Path $aotDirectory ("cuckoo_aot_example_$([guid]::NewGuid().ToString('N')).exe")
 
 Push-Location $root
 try {
@@ -57,16 +60,28 @@ try {
         throw 'cuckoo direct C/XLang example output differs'
     }
 
-    New-Item -ItemType Directory -Force -Path $aotDirectory | Out-Null
-    & $xl build release/extlibs/cuckoo/test/aot_core.xl -o $aot
-    if ($LASTEXITCODE -ne 0) { throw 'cuckoo core AOT build failed' }
-    & $aot
-    if ($LASTEXITCODE -ne 0) { throw 'cuckoo core AOT run failed' }
+    if (-not $SkipAot) {
+        New-Item -ItemType Directory -Force -Path $aotDirectory | Out-Null
+        & $xl build release/extlibs/cuckoo/test/aot_core.xl -o $aot
+        if ($LASTEXITCODE -ne 0) { throw 'cuckoo core AOT build failed' }
+        & $aot
+        if ($LASTEXITCODE -ne 0) { throw 'cuckoo core AOT run failed' }
+        & $xl build release/examples/extlibs/cuckoo.xl -o $exampleAot
+        if ($LASTEXITCODE -ne 0) { throw 'cuckoo example AOT build failed' }
+        $aotOutput = & $exampleAot
+        if ($LASTEXITCODE -ne 0 -or
+            ($aotOutput -join "`n") -cne ($cOutput -join "`n")) {
+            throw 'cuckoo example AOT differs from C'
+        }
+    }
 
     Write-Output 'cuckoo Windows C/XLang gate: PASS'
 } finally {
     Pop-Location
     if (Test-Path -LiteralPath $aot -PathType Leaf) {
         Remove-Item -LiteralPath $aot -Force
+    }
+    if (Test-Path -LiteralPath $exampleAot -PathType Leaf) {
+        Remove-Item -LiteralPath $exampleAot -Force
     }
 }

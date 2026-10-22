@@ -32,7 +32,7 @@ cuckoo.CuckooFilter seen = cuckoo.create(10000)
 seen.add("session:abc123")
 println(seen.contains("session:abc123"))</code></pre>
     <p>过滤器可能误报存在，不应作为精确集合或权限检查；边界与 C 接口见包内 README。</p>
-    <p>C 构造容量使用 <code>int64_t</code>，对应 XLang <code>int</code>。C 侧有效键未命中返回 <code>false</code> 且无 XRT 错误；空句柄的计数和清空则显式报告参数错误。Windows C/XLang、核心 AOT 与 Linux ASan/UBSan 边界已通过；带输出 AOT 仍缺共享符号 <code>xl6ValueDataSnapshotV1</code>。</p>
+    <p>C 构造容量使用 <code>int64_t</code>，对应 XLang <code>int</code>。C 侧有效键未命中返回 <code>false</code> 且无 XRT 错误；空句柄的计数和清空则显式报告参数错误。Windows C/XLang、核心 AOT 与 Linux ASan/UBSan 边界已通过；默认门禁现还须构建、运行公开 XLang 范例并与 C 同输出。带输出 AOT 仍缺共享符号 <code>xl6ValueDataSnapshotV1</code>，不签收发布级。</p>
     <p>C 范例可直接运行 <code>xl run release/extlibs/cuckoo/examples/cuckoo.c</code>，也可独立用 GCC 构建；两种入口与 XLang 范例的输出已在 Windows/Linux 包级测试中对照。</p>
   </section>
 </main>
