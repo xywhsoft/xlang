@@ -42,6 +42,7 @@ try {
         '-File', 'tools/run_extlib_c.ps1', '-Package', 'stb_image',
         '-Source', 'release/examples/extlibs/stb_image_c.c')
     Run 'XLang boundaries' $xl @('run', 'release/extlibs/stb_image/test/boundaries.xl') | Out-Null
+    Run 'XLang allocations' $xl @('run', 'release/extlibs/stb_image/test/allocations.xl') | Out-Null
     RunNativeAccessNegative
     Push-Location (Join-Path $root 'release')
     try {

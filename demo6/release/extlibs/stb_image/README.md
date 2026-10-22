@@ -73,3 +73,9 @@ XL AOT 当前因主线缺少 `xl6ValueDataSnapshotV1` 而失败，见
 它们设为私有，公开 `valid()` / `isFloat()` 保持不变。Windows 严格 C、
 线程、XL 与双语范例，以及 Linux ASan/UBSan/XL 门禁通过；私有指针接管
 构造器的主线访问控制缺陷和完整 AOT 阻断仍未解决。
+
+2026-10-23：XLang 新增文件/内存、整数/浮点四种加载入口的逐点分配故障扫描，
+验证真实失败以 `MemoryError` 传递、内部恢复后仍能返回有效图像，以及每次
+解除故障后可继续解码。测试已纳入 Windows/Linux 包级门禁和包清单；C 层
+已有的故障注入保持不变。Windows 严格 C、边界、线程与双语对照，以及
+Linux C ASan/UBSan、XLang 和双语对照均通过；既存主线阻断仍未解除。
