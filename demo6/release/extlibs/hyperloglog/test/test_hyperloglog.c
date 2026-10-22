@@ -2,6 +2,7 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #include "xrt.h"
 #include "../include/hyperloglog_native.h"
+#include <stdint.h>
 #include <stdio.h>
 
 #define CHECK(condition) do { if (!(condition)) { \
@@ -68,6 +69,28 @@ int main(void)
         xhll_destroy(overlap_direct);
         xhll_destroy(overlap_right);
         xhll_destroy(overlap_left);
+    }
+
+    /* 重复合并可迅速放大调用计数，但寄存器并集和估计值应保持不变。 */
+    {
+        void* first = xhll_create(4);
+        void* second = xhll_create(4);
+        int64_t estimate;
+        CHECK(first != NULL && second != NULL);
+        CHECK(xhll_add(first, "same", -1) == 1);
+        CHECK(xhll_add(second, "same", -1) == 1);
+        estimate = xhll_count(first);
+        for (i = 0; i < 100; ++i) {
+            CHECK(xhll_merge(first, second) == 1);
+            CHECK(xhll_merge(second, first) == 1);
+        }
+        CHECK(xhll_added(first) == INT64_MAX);
+        CHECK(xhll_added(second) == INT64_MAX);
+        CHECK(xhll_count(first) == estimate && xhll_count(second) == estimate);
+        CHECK(xhll_add(first, "same", -1) == 1 && xhll_added(first) == INT64_MAX);
+        CHECK(xhll_clear(first) == 1 && xhll_added(first) == 0);
+        xhll_destroy(second);
+        xhll_destroy(first);
     }
 
     CHECK(xhll_clear(large) == 1);

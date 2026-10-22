@@ -15,6 +15,7 @@
 `hyperloglog.HyperLogLog sketch = hyperloglog.create(8)`；`auto` 仍可使用。
 
 寄存器合并是幂等的，重复合并相同来源不会改变 `count()` 的估计；`added` 没有来源去重元数据，因此每次重复合并仍会再次累加源的计数。它既不是精确去重数，也不能用来判断某条数据是否已经出现。
+`added` 是有界的 `int64` 计数，到达 `9223372036854775807` 后饱和；之后的 `add`/`merge` 仍更新寄存器，但不会让计数回绕。`clear()` 将它复位为 0。
 
 估计使用 HLL 谐波平均和小样本线性计数修正。经典 HLL 的典型相对标准误差约为 `1.04/sqrt(m)`，`m=2^precision`；这是统计性质，不是单次结果的硬保证。公式来源为[Flajolet 等人的原始论文](https://algo.inria.fr/flajolet/Publications/FlFuGaMe07.pdf)。本包未实现 HLL++ 偏差表或持久化格式，勿把当前寄存器布局当作跨版本文件协议。
 

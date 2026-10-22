@@ -26,7 +26,7 @@
       <tr><td><code>hyperloglog.HyperLogLog</code></td><td>导出草图类型，可用于显式声明和函数签名</td></tr>
       <tr><td><code>add / count</code></td><td>加入数据并估计唯一值数量</td></tr>
       <tr><td><code>merge / clear</code></td><td>同精度合并与复位</td></tr>
-      <tr><td><code>added / precision</code></td><td>读取累计写入计数与寄存器精度；重复合并会再次累加源计数</td></tr>
+      <tr><td><code>added / precision</code></td><td>读取累计写入计数与寄存器精度；重复合并会再次累加源计数，计数在 int64 上限饱和</td></tr>
     </tbody></table>
     <h2 id="example">xlang</h2>
     <pre><code>import hyperloglog

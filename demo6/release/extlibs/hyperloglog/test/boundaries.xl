@@ -50,6 +50,23 @@ for precision in [4, 14]
     assert overlapLeft.count() == overlapDirect.count()
 end
 
+auto saturatedLeft = hyperloglog.create(4)
+auto saturatedRight = hyperloglog.create(4)
+saturatedLeft.add("same")
+saturatedRight.add("same")
+int estimate = saturatedLeft.count()
+for i in range(100)
+    saturatedLeft.merge(saturatedRight)
+    saturatedRight.merge(saturatedLeft)
+end
+assert saturatedLeft.added == 9223372036854775807
+assert saturatedRight.added == 9223372036854775807
+assert saturatedLeft.count() == estimate and saturatedRight.count() == estimate
+saturatedLeft.add("same")
+assert saturatedLeft.added == 9223372036854775807
+saturatedLeft.clear()
+assert saturatedLeft.added == 0
+
 int rejected = 0
 try
     sketch.merge(hyperloglog.create(10))
