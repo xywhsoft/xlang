@@ -39,6 +39,12 @@ C ABI 一致；C 输出计数可使用 `<inttypes.h>` 的 `PRId64`。
 
 包级验证：
 
+- 2026-10-22：C/XLang 成对范例补齐 `countProps`、`stripComments`，
+  六个公开入口均有调用示范；两侧分别断言固定选择器、属性数、
+  注释剥离文本和查询值，不再只比较双方打印结果。注释剥离会保留
+  token 分隔所需的空格。Windows `test/check.ps1 -SkipAot` 与 Linux
+  `test/check.sh`（含 C ASan/UBSan）均通过。解析器/API 未改，完整 AOT
+  仍受下述共享缺符号阻断。
 - 从 `release` 目录运行 `xl run examples/extlibs/css.xl`，以及
   `xl run examples/extlibs/css_c.c`；两者输出完全一致。
   C 范例显式包含包内实现，可作为单个源文件运行。
