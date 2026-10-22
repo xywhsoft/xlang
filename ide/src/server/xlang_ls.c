@@ -409,7 +409,8 @@ static xvalue* semanticResult(server* s,const semantic_request* request)
 {
  if(!s->guard || s->guardCancelled) return NULL;
  document* d=&s->docs[request->document];
- return request->kind==2 ? xideLanguageCheckDocumentSymbols(s->guard,d->path,request->version) :
+ return request->kind==3 ? xideLanguageCheckDocumentHighlights(s->guard,d->path,request->version,request->line,request->character) :
+  request->kind==2 ? xideLanguageCheckDocumentSymbols(s->guard,d->path,request->version) :
   request->kind==1 ? xideLanguageCheckHover(s->guard,d->path,request->version,request->line,request->character) :
   s->definitionInputProof ? xideLanguageCheckDefinitionWithProof(s->guard,d->path,request->version,request->line,request->character) :
   xideLanguageCheckDefinition(s->guard,d->path,request->version,request->line,request->character);
@@ -552,7 +553,8 @@ static void dispatch(server* s,const xvalue* message)
   put(scope,"incrementalFunctionSemantics",xrtValueBool(!s->cliDiagnostics));
   put(scope,"savedDiagnosticsBackend",xrtValueString(sv("cli")));
   put(scope,"savedEntryDiagnostics",xrtValueBool(true)); put(scope,"unsavedDependencies",xrtValueBool(true)); put(scope,"snapshotDiagnostics",xrtValueBool(true)); put(scope,"snapshotDocumentFingerprint",xrtValueBool(true)); put(scope,"snapshotInputGuard",xrtValueString(sv("background-poll"))); put(scope,"cSemantics",xrtValueBool(false)); put(scope,"snapshotDefinition",xrtValueBool(true)); put(cap,"definitionProvider",xrtValueBool(true)); put(cap,"hoverProvider",xrtValueBool(true)); put(cap,"documentSymbolProvider",xrtValueBool(true)); xvalue *completion=xrtValueObject(),*triggers=xrtValueArray(),*dot=xrtValueString(sv(".")); xrtValueArrayAppend(triggers,dot); xrtValueRelease(dot); put(completion,"resolveProvider",xrtValueBool(false)); put(completion,"triggerCharacters",triggers); put(cap,"completionProvider",completion); put(scope,"cursorCompletion",xrtValueBool(true)); put(scope,"completionInputGuard",xrtValueString(sv("background-poll"))); put(scope,"snapshotHover",xrtValueBool(true)); put(scope,"snapshotDocumentSymbols",xrtValueBool(true)); put(cap,"experimental",scope); put(result,"capabilities",cap);
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.24"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(cap,"documentHighlightProvider",xrtValueBool(true));
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.25"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
@@ -580,6 +582,7 @@ static void dispatch(server* s,const xvalue* message)
  if(!strcmp(method,"textDocument/definition")) { if(id) semanticQuery(s,id,params,0); return; }
  if(!strcmp(method,"textDocument/hover")) { if(id) semanticQuery(s,id,params,1); return; }
  if(!strcmp(method,"textDocument/documentSymbol")) { if(id) semanticQuery(s,id,params,2); return; }
+ if(!strcmp(method,"textDocument/documentHighlight")) { if(id) semanticQuery(s,id,params,3); return; }
  if(!strcmp(method,"xlang/checkSaved") || !strcmp(method,"xlang/check")) {
   int i=find(s,string(get(get(params,"textDocument"),"uri"))),version=0;
   if(!id) return;
