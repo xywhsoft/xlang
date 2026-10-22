@@ -6,6 +6,44 @@ func main(...) as int
     println("visible: ", ansi.strip(styled))
     println("width: ", ansi.displayWidth(styled))
     println("cursor: ", ansi.up(2) == "\x1b[2A")
+
+    // 比较原始字节，不依赖终端是否启用颜色或光标控制。
+    assert ansi.reset() == "\x1b[0m"
+    assert ansi.bold("x") == "\x1b[1mx\x1b[0m"
+    assert ansi.dim("x") == "\x1b[2mx\x1b[0m"
+    assert ansi.italic("x") == "\x1b[3mx\x1b[0m"
+    assert ansi.underline("x") == "\x1b[4mx\x1b[0m"
+    assert ansi.blink("x") == "\x1b[5mx\x1b[0m"
+    assert ansi.inverse("x") == "\x1b[7mx\x1b[0m"
+    assert ansi.hidden("x") == "\x1b[8mx\x1b[0m"
+    assert ansi.strike("x") == "\x1b[9mx\x1b[0m"
+    println("styles: PASS")
+
+    assert ansi.fg("x", 31) == "\x1b[31mx\x1b[0m"
+    assert ansi.bg("x", 41) == "\x1b[41mx\x1b[0m"
+    assert ansi.fg256("x", 17) == "\x1b[38;5;17mx\x1b[0m"
+    assert ansi.bg256("x", 17) == "\x1b[48;5;17mx\x1b[0m"
+    assert ansi.fgTrue("x", 1, 2, 3) == "\x1b[38;2;1;2;3mx\x1b[0m"
+    assert ansi.bgTrue("x", 1, 2, 3) == "\x1b[48;2;1;2;3mx\x1b[0m"
+    println("colors: PASS")
+
+    assert ansi.up(2) == "\x1b[2A"
+    assert ansi.down(2) == "\x1b[2B"
+    assert ansi.right(2) == "\x1b[2C"
+    assert ansi.left(2) == "\x1b[2D"
+    assert ansi.nextLine(2) == "\x1b[2E"
+    assert ansi.prevLine(2) == "\x1b[2F"
+    assert ansi.column(2) == "\x1b[2G"
+    println("cursor controls: PASS")
+
+    assert ansi.clearScreen() == "\x1b[2J"
+    assert ansi.clearLine() == "\x1b[2K"
+    assert ansi.clearToEnd() == "\x1b[K"
+    assert ansi.hideCursor() == "\x1b[?25l"
+    assert ansi.showCursor() == "\x1b[?25h"
+    assert ansi.title("中文") == "\x1b]0;中文\a"
+    println("screen controls: PASS")
+
     println("ansi example: PASS")
     return 0
 end

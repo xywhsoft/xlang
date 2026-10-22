@@ -25,6 +25,7 @@
 ## 范例与验证
 
 - C/XLang 对照：`release/extlibs/ansi/examples/ansi_c.c`、`ansi.xl`。C 范例可直接 `xl run` 单文件执行；普通 C 构建仍独立链接 `ansi_native.c`。
+- 对照范例按原始转义字节校验所有公开构件（样式、颜色、光标和屏幕控制），同时展示 UTF-8 宽度与去除转义；验证不依赖终端渲染或颜色配置。
 - 完整展示：`release/examples/extlibs/ansi.xl`
 - 边界：`release/extlibs/ansi/test/test_ansi.c`、`test_threads.c`、`boundaries.xl` 与 `test/cases/extlib_ansi.xl`
 
@@ -50,3 +51,8 @@ Windows 包级门禁在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy B
 2026-10-20：Windows 默认门禁把完整带输出范例 AOT 加入边界 AOT 之前，
 并复用同次 C 范例输出作对照；`-SkipAot` 仍只做 C/JIT 快测。完整范例
 若因共享符号无法链接，门禁明确失败，不把快测通过当成发布验收。
+
+2026-10-23：C/XLang 对照范例补齐所有公开 ANSI 构件的原始字节校验，
+覆盖先前只在 API 表中列出的样式、颜色、光标及屏幕控制入口。
+Windows `test/check.ps1 -SkipAot` 与 Linux `test/check.sh` 的 C ASan/UBSan、
+XLang 和双语同输出门禁通过；完整 AOT 的共享缺符号阻断未解除。
