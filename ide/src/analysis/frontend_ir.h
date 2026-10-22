@@ -18,6 +18,13 @@ int xlsFrontendIrVerifyPlanBudget(const XL6_IrModule* module,XL6_DiagList* diags
 typedef struct xls_ir_scope_proof_work { uint64_t requests,checks,hits,indexes,peakBytes; } xls_ir_scope_proof_work;
 void xlsFrontendIrScopeProofReset(void);
 xls_ir_scope_proof_work xlsFrontendIrScopeProofWork(void);
+typedef struct xls_ir_call_scan_work {
+    uint64_t indexes,records,queries,indexedVisits,linearVisits,peakBytes;
+} xls_ir_call_scan_work;
+void xlsFrontendIrCallScanReset(void);
+xls_ir_call_scan_work xlsFrontendIrCallScanWork(void);
+int xlsFrontendIrConversionBudget(XL6_IrModule* module,size_t bytes);
+int xlsFrontendIrReferenceConversions(XL6_IrModule* module);
 int xlsFrontendIrReferenceRefresh(XL6_IrModule* module);
 int xlsFrontendIrReferenceVerify(const XL6_IrModule* module,XL6_DiagList* diags);
 #endif
