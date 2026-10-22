@@ -1,7 +1,11 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
+$workRoot = Join-Path $root 'build/test'
+$work = Join-Path $workRoot ('langdetect_guard_' + [guid]::NewGuid().ToString('N'))
 
 Push-Location $root
 try {
@@ -41,7 +45,38 @@ try {
         throw 'langdetect C/XLang example output differs'
     }
 
-    Write-Output 'langdetect Windows C/XLang gate: PASS'
+    if (-not $SkipAot) {
+        [void][IO.Directory]::CreateDirectory($work)
+        $coreExe = Join-Path $work 'core.exe'
+        & $xl build release/extlibs/langdetect/test/aot_core.xl -o $coreExe
+        if ($LASTEXITCODE -ne 0) { throw 'langdetect AOT core build failed' }
+        & $coreExe
+        if ($LASTEXITCODE -ne 0) { throw 'langdetect AOT core failed' }
+
+        $exampleExe = Join-Path $work 'example.exe'
+        & $xl build release/examples/extlibs/langdetect.xl -o $exampleExe
+        if ($LASTEXITCODE -ne 0) { throw 'langdetect AOT example build failed' }
+        $aotOutput = & $exampleExe
+        if ($LASTEXITCODE -ne 0) { throw 'langdetect AOT example failed' }
+        if (($aotOutput -join "`n") -cne ($cOutput -join "`n")) {
+            throw 'langdetect AOT/C example output differs'
+        }
+    }
+
+    if ($SkipAot) {
+        Write-Output 'langdetect Windows C/XLang fast gate: PASS (AOT skipped)'
+    } else {
+        Write-Output 'langdetect Windows C/XLang/AOT gate: PASS'
+    }
 } finally {
     Pop-Location
+    $resolvedRoot = [IO.Path]::GetFullPath($workRoot).TrimEnd('\') + '\'
+    $resolvedWork = [IO.Path]::GetFullPath($work)
+    if (-not $resolvedWork.StartsWith($resolvedRoot, [StringComparison]::OrdinalIgnoreCase) -or
+        -not [IO.Path]::GetFileName($resolvedWork).StartsWith('langdetect_guard_')) {
+        throw "langdetect test directory escapes build/test: $resolvedWork"
+    }
+    if (Test-Path -LiteralPath $resolvedWork -PathType Container) {
+        Remove-Item -LiteralPath $resolvedWork -Recurse -Force
+    }
 }

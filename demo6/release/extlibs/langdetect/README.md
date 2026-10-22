@@ -25,6 +25,8 @@ assert langdetect.script("Привет") == "Cyrillic"
 
 ## 验证
 
+2026-10-22：Windows 包级脚本增加完整 AOT 发布门禁：默认构建运行无输出核心，再构建运行公开双语范例的 XLang AOT，并与 C 范例逐行比较；`-SkipAot` 仅做 C/JIT 聚焦快测。当前快测通过，默认门禁核心 AOT 通过、完整范例在共享 `xl6ValueDataSnapshotV1` 未解析处准确失败。每次构建使用独占目录，失败后也清理本次产物；不签收整包发布级。
+
 2026-10-22：C 红例复现补充平面的已分配汉字被漏计；按 Unicode 17 已分配区间补齐分类，保留区间间的未分配空洞。C 边界覆盖 B/C/E/I/G/H/J 与兼容区的端点及相邻空洞，XLang 边界覆盖补充汉字、未分配码位和 Latin 词边界；C/XLang 成对范例新增同一补充汉字样本。Windows 严格 C/XLang 双语门禁和 Linux C ASan/UBSan、XLang/双语门禁通过；完整 AOT 未复验，不签收整包发布级。
 
 2026-10-22：C 红例复现阿拉伯文标点/数字、西里尔符号、韩文与兼容汉字未分配码位被误计为字母；分类器改为只统计各覆盖区间的实际字母，组合附标单独出现也返回 `Unknown`，正常阿拉伯文字及带数字文本保持可识别。Windows 严格 C/XLang 双语门禁和 Linux C ASan/UBSan、XLang/双语门禁通过；完整带输出 AOT 未在本轮复验，不签收整包发布级。
@@ -36,7 +38,7 @@ assert langdetect.script("Привет") == "Cyrillic"
 从 `demo6` 目录运行：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File release\extlibs\langdetect\test\check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File release\extlibs\langdetect\test\check.ps1 -SkipAot
 .\release\xl.exe run test\cases\extlib_langdetect.xl
 .\release\xl.exe run test\cases\extlib_langdetect_boundaries.xl
 .\release\xl.exe run release\extlibs\langdetect\test\analysis_boundaries.xl
@@ -52,7 +54,7 @@ Linux/WSL 从 `demo6` 目录运行 `bash release/extlibs/langdetect/test/check.s
 用严格 GCC 与 ASan/UBSan 复验 C 边界和范例，并通过 `release/xl` 运行
 XLang 包内边界、双语范例逐字对照。
 
-边界测试覆盖 UTF-8、内嵌 NUL、混合脚本、无证据返回值和 1 MiB 限额；Windows 严格 GCC、Linux ASan/UBSan、C/XL 范例与无输出 AOT 核心通过。完整带输出范例 AOT 仍被共享 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`，发布级验收暂不签收。
+边界测试覆盖 UTF-8、内嵌 NUL、混合脚本、无证据返回值和 1 MiB 限额；Windows 严格 GCC、Linux ASan/UBSan、C/XL 范例与无输出 AOT 核心通过。不加 `-SkipAot` 会执行完整 Windows 发布门禁；当前带输出范例 AOT 被共享 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`，发布级验收暂不签收。
 
 2026-10-15：补 `isValidUtf8` 成功/失败后清除旧错误的 C 红绿回归、空指针诊断和 XLang 捕获后恢复用例；C/XLang 范例调整为同输入同输出并逐行核对。显式声明 Unicode 模块后，同一核心 AOT 从 3,556,352 降至 565,248 字节，构建运行通过；Windows C/XLang 与包内 Linux sanitizer 门禁通过。完整 AOT 阻断不变。
 
