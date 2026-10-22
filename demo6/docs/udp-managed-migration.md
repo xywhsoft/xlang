@@ -60,13 +60,42 @@ Clear 分阶段推进，无分配的生命周期投递只借用原本存在的 r
 逃逸；这不是“已经完整接入所有 UDP 异步能力”的声明。语言固定头和 Cgen 尚未
 同步，新标准库还不能使用本批接口；没有重建发布库或 VFS。
 
+## 已完成：原生 UDP Future 拥有图
+
+XRT 提交 `34d4721539a9b110017f2fb288c5b092cab2c2d4` 补齐等待者真实 RC、Future
+producer、owned Cancel Watch、Packet／ErrorPacket／Batch payload，以及静止检查和
+分阶段退役的七个策略入口。UDP 的三类真实等待链现在枚举原来源槽；等待者枚举
+实际 UDP、缓存 Engine 租约、Promise、Watch 和预分配空 Batch，不制造 Active 或
+结构链接的拥有边。固定策略身份需要独立准入，副本不能代替注册合同。
+
+唯一摘链胜者完成交付；Unwatch 同步之后才移除来源持有，结果拒收也正确释放。
+正常 Worker 接收仍复用原小节点缓存；关闭来源或外线程完成／取消在发布 Future
+终态之前先分离 operational 缓存租约，保留“完成后可销毁 Engine”的既有合同。
+迟到的关闭命令、readiness 和发送挂接的既有引用贯穿帧尾，不在活动帧内释放最后
+引用。节点保持 128 字节以内，未引入逐等待线程或协程栈。
+
+最终 161 个阶段（Windows 75、Linux 86）全部通过，覆盖 Select／IOCP／epoll、
+GCC／TCC O0／O2、Linux ASan／UBSan、精确整图及外部根、24 种拥有准备／完成／
+释放组合、真实竞争 pin、36 个构造预算、48 轮取消／交付／关闭、模式冲突、拒收、
+三种结果的离线拥有合同、晚建 Future 和唯一引用的迟到命令。基础图、包／批次和
+五个 TU 的最小模块独立编译一并回归。四个新漏边／提前释放对照均成功编译且被
+拒绝；提交前复核输入、日志和产物哈希。
+
+错误等待仅使用真实未发布构造器及纯内存队列；未发布 START 状态仍被整图认证
+拒绝，不伪造已启动对象，不进行 OS 错误队列操作。没有运行含 ICMP 测试的旧通用
+UDP Future／Sync 夹具，没有外网或网络安全性质专项。证据根为
+`F:/xlang-validation/five-groups-20261022/p3-udp-future`，封条 `native-verified-commit.json`。
+
+本批没有同步语言固定头，没有迁移 xlang 驻留 UDP 或旧 Cgen，也没有提升发布
+DLL／SO／VFS；不能把原生前置通过算作整个 UDP 或五组长期任务已经完成。
+
 ## 仍必须依次完成
 
-1. 以已完成的基础图继续接入 Future 等待者，以及受管理引用发送的 typed 载荷边。
+1. 以已完成的基础／Future 图补齐受管理引用发送的 typed 载荷边。
    现有 copied／Take 路径不替代引用发送，未知用户 Data、释放回调或裸 socket
    逃逸不能直接认证；有声明或基础图通过也不能替代异步图的实际证明。
-2. 原生 UDP Future／取消节点及结果策略：跟踪实际 Promise、Watch、UDP、Batch／
-   Packet 持有，保证竞争终态唯一消费；不把 opaque 区域、临时视图或镜像结构当图。
+2. 将已完成的原生 UDP Future／取消及结果策略接入语言运行时的精确准入表和
+   注册合同；不得把 opaque 区域、临时视图或镜像结构当图，也不复造一套原生节点。
 3. 同步必要快照，接入驻留 Execution UDP family 和 Source／Engine 父边；显式
    Close 与自动退役分离，保留 checked 错误及可重试的清理边界。
 4. 迁移 `udp`、配置、统计、Packet／Batch／ErrorPacket 与完整发送／接收／writable
