@@ -116,7 +116,8 @@ static int xi_param_value(xvalue *object, const XiProperty *property,
 static int xi_params(xvalue *object, const XiProperty *property,
     xstrview line, size_t semi, size_t colon) {
     size_t pos;
-    if (!xi_is_time_property(property) || semi >= colon) return 1;
+    if (semi >= colon) return 1;
+    if (semi + 1 == colon) return 0;
     pos = semi + 1;
     while (pos < colon) {
         size_t start = pos, end, equal;
@@ -128,7 +129,10 @@ static int xi_params(xvalue *object, const XiProperty *property,
         }
         end = pos;
         if (quoted) return 0;
-        if (pos < colon) ++pos;
+        if (pos < colon) {
+            ++pos;
+            if (pos == colon) return 0;
+        }
         for (equal = start; equal < end && line.Data[equal] != '='; ++equal) {}
         if (equal == start || equal == end || equal + 1 == end) return 0;
         {
@@ -138,7 +142,8 @@ static int xi_params(xvalue *object, const XiProperty *property,
                 ++value.Data;
                 value.Size -= 2;
             }
-            if (!xi_param_value(object, property,
+            if (property != NULL && xi_is_time_property(property) &&
+                !xi_param_value(object, property,
                 (xstrview){line.Data + start, equal - start}, value)) return 0;
         }
     }
@@ -162,13 +167,15 @@ static int xi_property_line(XiParser *parser, xstrview line) {
         xi_ascii_equal(line.Data, semi, "END")) return 0;
     if (parser->depth == 1) {
         if (xi_ascii_equal(line.Data, semi, "VERSION")) {
-            if (parser->version || line.Size - colon - 1 != 3 ||
+            if (!xi_params(NULL, NULL, line, semi, colon) ||
+                parser->version || line.Size - colon - 1 != 3 ||
                 memcmp(line.Data + colon + 1, "2.0", 3) != 0) return 0;
             parser->version = 1;
             return 1;
         }
         if (xi_ascii_equal(line.Data, semi, "PRODID")) {
-            if (parser->prodid || colon + 1 == line.Size) return 0;
+            if (!xi_params(NULL, NULL, line, semi, colon) ||
+                parser->prodid || colon + 1 == line.Size) return 0;
             parser->prodid = 1;
             return xi_set_unescaped_text(parser->calendar, "prodid",
                 (xstrview){line.Data + colon + 1, line.Size - colon - 1});

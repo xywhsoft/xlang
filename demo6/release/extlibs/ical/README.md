@@ -28,6 +28,7 @@ assert back["events"][0]["summary"] == "团队例会"
 读取器允许提取缺少上述生成必需字段的事件/待办；这类结果可供查看，但直接传给 `build` 会失败。`parse` 不是 `build` 的格式预检，调用方需补齐字段后再生成。
 
 **这不是无损 iCalendar DOM 或完整 RFC 5545 验证器。** 未映射属性、未知参数、组件顺序及嵌套组件不会往返；`RRULE` 只保留原值，不求值；`CATEGORIES` 保留原始逗号分隔与转义写法，不拆分为分类数组。生成的 `TZID` 参数不会自动附带 `VTIMEZONE` 定义，因此需要独立交换的日历建议使用 UTC 日期，或由调用方负责时区定义。日期字符串的合法性也由调用方负责。输入/输出限制 8 MiB；生成超限时 C 接口报告 `XERR_RANGE`，不返回截断结果。拒绝非法 UTF-8、内嵌 NUL、非法 ASCII 控制字符与畸形包络，包含未知属性的输入行也须满足字符约束。TEXT 字段中的内存换行在生成时转义，HTAB 允许使用；物理输出行按最多 75 字节折叠且不拆开 UTF-8 字符。
+已映射属性的参数至少须有非空名称和值；空参数、缺少 `=` 等畸形写法会被拒绝。`VERSION`、`PRODID` 上合法的扩展参数仍可读取，但与其他未知参数一样不保证写出往返。
 
 超过 8 MiB 的解析输入同样在读取内容前返回 `XERR_RANGE`，XLang
 的 `parse` 与 `build` 对容量超限均抛 `RangeError`；空输入、非法 UTF-8
@@ -90,6 +91,8 @@ python -m venv build\test\ical\venv
 可选输出路径只用于保留测试产物；不传路径时 C/xlang 范例原有输出不变。外部解析成功不代表本包是完整 RFC 5545 验证器，能力边界仍以上文为准。
 
 2026-10-14：生成器补顶层未知键拒绝，C 与 XLang 的 `event` 拼写错误先复现静默丢弃、修复后转为显式失败。正常双语范例、无索引 AOT 核心及 Linux ASan/UBSan 复验通过；完整 AOT 的共享符号阻断不变。
+
+2026-10-22：已映射字段原忽略畸形参数，例如 `VERSION;=x:2.0` 会被误认作合法包络。C 负例先红后绿，根字段与事件字段共用参数形状校验；合法的 `VERSION;X=1:2.0`、`PRODID;X=1:test` 保持可解析。Windows `-SkipAot` 严格 C、XLang 和线格式门禁，以及 Linux C ASan/UBSan、XLang 双语门禁通过；完整 AOT 共享阻断未复验，不签收整包发布级。
 
 2026-10-15：审计原生实现的 XRT 调用，清单声明 buffer、Unicode 和 value 容器模块。同一无索引核心 AOT 从 3,610,624 字节降至 655,360 字节，裁剪前后均构建运行通过；Windows C/XLang 边界与控制字符测试、C/XLang 同输出范例、Linux ASan/UBSan 已复跑通过。完整边界 AOT 当前仍缺共享符号 `xl6ValueDataSnapshotV1`，不据核心用例签收完整 AOT。
 

@@ -181,6 +181,16 @@ static int test_invalid_and_failure(void) {
         "BEGIN;X=1:VALARM\nEND:VCALENDAR\n";
     const char parameterized_end[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\n"
         "END;X=1:VCALENDAR\nEND:VCALENDAR\n";
+    const char bad_version_parameter[] = "BEGIN:VCALENDAR\nVERSION;=x:2.0\n"
+        "PRODID:test\nEND:VCALENDAR\n";
+    const char bad_prodid_parameter[] = "BEGIN:VCALENDAR\nVERSION:2.0\n"
+        "PRODID;X:test\nEND:VCALENDAR\n";
+    const char empty_version_parameter[] = "BEGIN:VCALENDAR\nVERSION;:2.0\n"
+        "PRODID:test\nEND:VCALENDAR\n";
+    const char bad_summary_parameter[] = "BEGIN:VCALENDAR\nVERSION:2.0\n"
+        "PRODID:test\nBEGIN:VEVENT\nSUMMARY;X:hello\nEND:VEVENT\nEND:VCALENDAR\n";
+    const char valid_parameters[] = "BEGIN:VCALENDAR\nVERSION;X=1:2.0\n"
+        "PRODID;X=1:test\nEND:VCALENDAR\n";
     const char nul[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\0junk\nEND:VCALENDAR\n";
     const char invalid_utf8[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:\xff\nEND:VCALENDAR\n";
     const char control[] = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:bad\x1b\nEND:VCALENDAR\n";
@@ -202,6 +212,10 @@ static int test_invalid_and_failure(void) {
     CHECK(xi_parse(nested_calendar, sizeof(nested_calendar) - 1) == NULL);
     CHECK(xi_parse(parameterized_begin, sizeof(parameterized_begin) - 1) == NULL);
     CHECK(xi_parse(parameterized_end, sizeof(parameterized_end) - 1) == NULL);
+    CHECK(xi_parse(bad_version_parameter, sizeof(bad_version_parameter) - 1) == NULL);
+    CHECK(xi_parse(bad_prodid_parameter, sizeof(bad_prodid_parameter) - 1) == NULL);
+    CHECK(xi_parse(empty_version_parameter, sizeof(empty_version_parameter) - 1) == NULL);
+    CHECK(xi_parse(bad_summary_parameter, sizeof(bad_summary_parameter) - 1) == NULL);
     CHECK(xi_parse(nul, sizeof(nul) - 1) == NULL);
     CHECK(xi_parse(invalid_utf8, sizeof(invalid_utf8) - 1) == NULL);
     CHECK(xi_parse(control, sizeof(control) - 1) == NULL);
@@ -219,6 +233,9 @@ static int test_invalid_and_failure(void) {
     xrtValueRelease(calendar);
     calendar = xi_parse(extension, sizeof(extension) - 1);
     CHECK(calendar != NULL && xrtValueCount(field(calendar, "events")) == 0);
+    xrtValueRelease(calendar);
+    calendar = xi_parse(valid_parameters, sizeof(valid_parameters) - 1);
+    CHECK(calendar != NULL && equals(field(calendar, "prodid"), "test"));
     xrtValueRelease(calendar);
     calendar = xrtValueObject();
     events = xrtValueArray();

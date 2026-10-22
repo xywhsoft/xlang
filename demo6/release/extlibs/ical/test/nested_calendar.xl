@@ -4,6 +4,8 @@ func main(...) as int
     string nested = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN:VCALENDAR\nEND:VCALENDAR\nEND:VCALENDAR\n"
     string markedBegin = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nBEGIN;X=1:VALARM\nEND:VCALENDAR\n"
     string markedEnd = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nEND;X=1:VCALENDAR\nEND:VCALENDAR\n"
+    string badVersion = "BEGIN:VCALENDAR\nVERSION;=x:2.0\nPRODID:test\nEND:VCALENDAR\n"
+    string badProdid = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID;X:test\nEND:VCALENDAR\n"
     int rejected = 0
     try
         ical.parse(nested)
@@ -20,9 +22,21 @@ func main(...) as int
     catch e
         rejected += 1
     end
-    assert rejected == 3, "invalid iCalendar component markers must be rejected"
+    try
+        ical.parse(badVersion)
+    catch e
+        rejected += 1
+    end
+    try
+        ical.parse(badProdid)
+    catch e
+        rejected += 1
+    end
+    assert rejected == 5, "invalid iCalendar markers and parameters must be rejected"
     var calendar = ical.parse("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:test\nX-CUSTOM;X-KEY=1:opaque\nEND:VCALENDAR\n")
     assert calendar["events"].length == 0, "ordinary extension properties remain ignorable"
+    var parameterized = ical.parse("BEGIN:VCALENDAR\nVERSION;X=1:2.0\nPRODID;X=1:test\nEND:VCALENDAR\n")
+    assert parameterized["prodid"] == "test", "valid extension parameters remain accepted"
     println("ical nested calendar: PASS")
     return 0
 end
