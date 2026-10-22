@@ -35,14 +35,28 @@ int main(void) {
         "0123456789ABCDEF", 16) == 0);
     CHECK(xihash_hamming(a, 16, d, 16) >= 0);
     CHECK(xihash_hamming(a, 16, p, 16) >= 0);
+    /* 本包的普通查询和图像错误不能继承别处留下的 XRT 故障。 */
+    xrtSetErrorInfo(XERR_MEMORY, "test", 0, "old error");
+    CHECK(xihash_hamming(a, 16, a, 16) == 0 && xrtGetError() == NULL);
+    xrtSetErrorInfo(XERR_MEMORY, "test", 0, "old error");
+    CHECK(!xihash_valid("invalid", 7) && xrtGetError() == NULL);
+    xrtSetErrorInfo(XERR_MEMORY, "test", 0, "old error");
+    CHECK(xihash_ahash("") == NULL && xrtGetError() == NULL);
+    CHECK(strcmp(xihash_last_error(), "image path is empty") == 0);
+    xrtSetErrorInfo(XERR_MEMORY, "test", 0, "old error");
+    CHECK(xihash_dhash("") == NULL && xrtGetError() == NULL);
+    xrtSetErrorInfo(XERR_MEMORY, "test", 0, "old error");
+    CHECK(xihash_phash("") == NULL && xrtGetError() == NULL);
     CHECK(!xihash_valid("0123456789abcdefx", 17));
     CHECK(!xihash_valid("0123456789abcde", 15));
     CHECK(!xihash_valid("01234567\0abcdefg", 16));
     CHECK(xihash_hamming(a, 16, "invalid", 7) == -1);
     CHECK(xihash_hamming(a, 16, "01234567\0abcdefg", 16) == -1);
     CHECK(strcmp(xihash_last_error(), "invalid hash string") == 0);
+    CHECK(xrtGetError() == NULL);
     CHECK(xihash_valid(a, 16));
     CHECK(strcmp(xihash_last_error(), "") == 0);
+    CHECK(xrtGetError() == NULL);
     CHECK(xihash_hamming(a, 16, "invalid", 7) == -1);
     CHECK(!xihash_valid("invalid", 7));
     CHECK(strcmp(xihash_last_error(), "") == 0);

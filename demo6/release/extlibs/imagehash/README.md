@@ -19,8 +19,17 @@ int distance = imagehash.hamming(a, b)
 `include/imagehash_native.h` 公开对应函数。三种哈希返回 XRT 分配的字符串，C 调用方使用 `xrtFree`，不可用 CRT `free`。`valid` 与 `hamming` 接收指针和真实字节长度，避免内嵌 NUL 截断；输出总是小写 16 位 HEX。`xihash_last_error` 是线程局部诊断，只供失败后立即查看；同一实例没有可变状态。诊断缓冲使用 XRT 线程键，线程结束时自动释放；不依赖 TCC JIT 下不可靠的静态 TLS。
 `valid` 的 `false` 是普通格式检查结果，不设置错误；真假两种结果均清除上一
 操作留下的 `last_error`，不可把旧诊断当成本次检查结果。
+`ahash`、`dhash`、`phash`、`hamming` 和 `valid` 在入口清除旧 XRT 错误；
+成功哈希、正常数值查询和空路径等普通图片错误不会继承别处的内存故障。
+本次真实分配失败仍保留 `XERR_MEMORY`。读取 `last_error` 本身不会清除诊断。
 
 ## 验证
+
+2026-10-22：C 回归先复现 `hamming` 成功仍携带旧 `XERR_MEMORY`；
+五个操作入口已隔离旧 XRT 错误，空路径仍通过 `last_error` 报告，
+正常查询不再假报内存故障。Windows 严格 GCC、C/线程、XLang 与
+双语对照及 C 直接 AOT，Linux C ASan/UBSan、线程和 XLang 联合门禁通过。
+完整 XLang AOT 尚待共享文本快照符号修复。
 
 从 `demo6` 目录运行：
 

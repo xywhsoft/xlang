@@ -105,6 +105,7 @@ static void *xihash_format(uint64_t value) {
     }
     snprintf(result, 17, "%016llx", (unsigned long long)value);
     xihash_set_error("");
+    xrtClearError();
     return result;
 }
 
@@ -193,8 +194,10 @@ const char *xihash_last_error(void) {
 }
 
 void *xihash_ahash(const char *path) {
-    xbuffer *pixels = xihash_pixels(path, 8, 8);
+    xbuffer *pixels;
     uint64_t value;
+    xrtClearError();
+    pixels = xihash_pixels(path, 8, 8);
     if (pixels == NULL) return NULL;
     value = xihash_average(pixels->Data);
     xrtBufferDestroy(pixels);
@@ -202,8 +205,10 @@ void *xihash_ahash(const char *path) {
 }
 
 void *xihash_dhash(const char *path) {
-    xbuffer *pixels = xihash_pixels(path, 9, 8);
+    xbuffer *pixels;
     uint64_t value;
+    xrtClearError();
+    pixels = xihash_pixels(path, 9, 8);
     if (pixels == NULL) return NULL;
     value = xihash_difference(pixels->Data);
     xrtBufferDestroy(pixels);
@@ -211,8 +216,10 @@ void *xihash_dhash(const char *path) {
 }
 
 void *xihash_phash(const char *path) {
-    xbuffer *pixels = xihash_pixels(path, 32, 32);
+    xbuffer *pixels;
     uint64_t value;
+    xrtClearError();
+    pixels = xihash_pixels(path, 32, 32);
     if (pixels == NULL) return NULL;
     if (!xrtOnce(&xihash_basis_once, xihash_basis_init, NULL)) {
         xrtBufferDestroy(pixels);
@@ -228,6 +235,7 @@ int xihash_hamming(const char *left, size_t left_length,
     const char *right, size_t right_length) {
     uint64_t a, b, difference;
     int count = 0;
+    xrtClearError();
     if (!xihash_parse(left, left_length, &a) ||
         !xihash_parse(right, right_length, &b)) {
         xihash_set_error("invalid hash string");
@@ -239,11 +247,16 @@ int xihash_hamming(const char *left, size_t left_length,
         ++count;
     }
     xihash_set_error("");
+    xrtClearError();
     return count;
 }
 
 bool xihash_valid(const char *hash, size_t length) {
     uint64_t value;
+    bool valid;
+    xrtClearError();
     xihash_set_error("");
-    return xihash_parse(hash, length, &value);
+    valid = xihash_parse(hash, length, &value);
+    xrtClearError();
+    return valid;
 }
