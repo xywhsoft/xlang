@@ -1,5 +1,11 @@
 # vcard
 
+2026-10-22：生成器现在将 XRT 缓冲直接移交给调用方，去掉写出完成后
+额外分配和复制整张名片的步骤；返回值仍由 C 调用方 `xrtFree`，4 MiB
+内容限额不变。Windows 聚焦 C/XLang、分配故障和双语门禁，以及 Linux
+C ASan/UBSan、XLang 和双语门禁通过。默认 Windows 门禁的完整范例 AOT
+仍缺共享 `xl6ValueDataSnapshotV1`，未签收整包发布级。
+
 轻量的 vCard 3.0/4.0 **常用字段值映射**，适合通讯录导入、展示和导出。`parse(text)` 返回对象：字段名为小写，单值为字符串，重复字段自动成为字符串数组；`build(card)` 反向生成同版本文本，未指定 `version` 时默认 3.0。支持 `fn`、`n`、`email`、`tel`、`org`、`title`、`adr`、`note` 等常用字段，以及 UTF-8、转义和折行。
 
 ```xlang

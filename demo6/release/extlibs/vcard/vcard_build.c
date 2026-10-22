@@ -50,7 +50,6 @@ void *xv_build(xvalue *card) {
     xstrview text;
     const char *version = "3.0";
     size_t i;
-    char *result;
     xrtClearError();
     if (card == NULL || xrtValueType(card) != XVALUE_OBJECT) goto invalid;
     value = xrtValueObjectGet(card, (xstrview){"version", 7});
@@ -85,12 +84,8 @@ void *xv_build(xvalue *card) {
         } else if (!xv_emit_value(&output, property, value)) goto failed;
     }
     if (!xv_literal(&output, "END:VCARD\r\n")) goto failed;
-    result = xrtMalloc(output.Size + 1);
-    if (result == NULL) goto failed;
-    memcpy(result, output.Data, output.Size);
-    result[output.Size] = 0;
-    xrtBufferUnit(&output);
-    return result;
+    if (!xrtBufferAppendByte(&output, 0)) goto failed;
+    return xrtBufferTake(&output, NULL, NULL);
 failed:
     xrtBufferUnit(&output);
 invalid:
