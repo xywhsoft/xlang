@@ -30,6 +30,7 @@ C 接口仍要求有效的 NUL 结尾字符串。
 最后一个句柄关闭时名称消失。POSIX 使用权限 `0600` 的 `/xlang.` 名称；
 创建者关闭时 unlink，已打开的句柄仍可使用，但不能再通过名称打开。
 C API 的 `xshm_unlink` 可用于 POSIX 显式移除名称；Windows 不支持该操作。
+语言侧重复 `create` 的原生 `XERR_EXISTS` 映射为 `ValueError`，打开不存在的名称时 `XERR_NOT_FOUND` 映射为 `LookupError`；无效大小也属于 `ValueError`。XLang 的 extern 调用会先传播原生错误，不能只根据包装函数中的备用 `throw` 分支推断异常类型。C 调用方则直接检查 `xrtErrorKind(xrtGetError())`。
 显式移除后可以同名重建；旧创建者关闭时会核对共享段身份，不会误删
 已经重建的名称。名称的并发移除与重建仍需由应用自行同步，身份核对
 不是跨进程的原子改名或锁。

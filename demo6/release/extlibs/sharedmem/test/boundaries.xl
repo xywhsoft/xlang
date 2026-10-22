@@ -40,12 +40,28 @@ catch e
 end
 try
     sharedmem.create(testName, 64)
-catch e
+catch ValueError e
     failures += 1
 end
 assert failures == 4
 owner.zero()
 assert peer.readInt(16) == 0
+
+bool missingRejected = false
+try
+    sharedmem.open(testName + "_absent")
+catch LookupError error
+    missingRejected = true
+end
+assert missingRejected, "missing mapping is a lookup error"
+
+bool invalidSizeRejected = false
+try
+    sharedmem.create(testName + "_invalid", 0)
+catch ValueError error
+    invalidSizeRejected = true
+end
+assert invalidSizeRejected, "invalid size is a value error"
 
 bool rejectedCreate = false
 try

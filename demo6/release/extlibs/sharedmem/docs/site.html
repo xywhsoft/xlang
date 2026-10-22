@@ -27,6 +27,7 @@
       <tr><td><code>writeText/readText</code></td><td>按明确的 UTF-8 字节长度读写文本</td></tr>
       <tr><td><code>writeInt/readInt / zero</code></td><td>小端有符号 64 位整数和清零</td></tr>
     </tbody></table>
+    <p>重复创建名称在 XLang 中抛 <code>ValueError</code>，打开不存在的名称抛 <code>LookupError</code>；C 侧分别保留 <code>XERR_EXISTS</code> 与 <code>XERR_NOT_FOUND</code>。</p>
     <h2 id="example">xlang</h2>
     <pre><code>import sharedmem
 auto owner = sharedmem.create("demo_exchange", 128)

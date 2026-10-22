@@ -120,6 +120,7 @@ int main(int argc, char** argv)
     CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     CHECK(strcmp(xshm_name_of(owner), name) == 0 && xrtGetError() == NULL);
     CHECK(xshm_create(name, 64) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_EXISTS);
     peer = xshm_open(name);
     CHECK(peer != NULL && strcmp(xshm_name_of(peer), name) == 0);
 
