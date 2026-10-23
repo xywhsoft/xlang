@@ -1,0 +1,17 @@
+import sha3
+
+func main(...) as int
+    string large = sha3.shake128Hex("abc", 65536)
+    assert string.byteLen(large) == 131072, "large SHAKE text length mismatch"
+    assert large == sha3.shake128Hex("abc", 65536), "owned SHAKE text was overwritten"
+    assert sha3.shake256Hex("abc", 0) == "", "empty SHAKE output failed"
+
+    auto stream = sha3.shakeHasher()
+    stream.update("abc")
+    string streamed = stream.digestHex(4096)
+    assert string.byteLen(streamed) == 8192, "streamed SHAKE text length mismatch"
+    assert streamed == sha3.shake128Hex("abc", 4096), "streamed SHAKE text changed"
+    assert sha3.hash256Hex("abc") == "3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532", "SHA3 fixed digest mismatch"
+    println("sha3 owned text ok")
+    return 0
+end

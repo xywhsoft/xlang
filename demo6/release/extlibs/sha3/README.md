@@ -58,7 +58,7 @@ XRT uint64 计数转 int 之前检查范围。回调可嵌套独立操作。
 预算不是读取超时；不承诺文件被并发修改时的快照一致性。
 
 xlang maxInput 必须大于零，默认 256 MiB。分配型 SHAKE 输出采用 XRT 默认预算 512 MiB；
-hex 临时工作区约为 `3*outLen+1` 字节，另有宿主结果复制，不表示推荐单次分配到上限。
+hex 拥有型工作区约为 `3*outLen+1` 字节，XLang 直接接管该分配，不再额外复制完整 XOF 文本；不表示推荐单次分配到上限。
 
 ## C API 与所有权
 
@@ -77,8 +77,8 @@ HasherCreate/ShakeHasherCreate/Update/CheckOutput/Digest/Reset/Clone/InputBytes/
 - C 进度帧有 TOTAL_KNOWN/FINAL 标志；最终回调确认成功之后才写出摘要。
 - 每次操作清理旧错误，失败查 XRT 错误。Reader/回调的原始错误优先；局部 error 记录类别、位置、说明。
 
-`include/sha3_native.h` 声明全部 25 个薄绑定入口，其准确 ABI 与生成代码对照检查。
-hex 文本借用 XRT 临时区，TempClear/回退/线程退出后失效，正常后续调用不会覆盖先前结果。
+`include/sha3_native.h` 声明全部 30 个薄绑定入口，其准确 ABI 与生成代码对照检查。
+原 C hex 文本借用 XRT 临时区，TempClear/回退/线程退出后失效，正常后续调用不会覆盖先前结果。新增 `_owned` C hex 入口返回独立 XRT 分配，调用方必须用 `xrtFree` 释放；XLang 的一次性和流式摘要直接接管这份分配。
 返回 xbuffer 归调用者所有，C 使用 xrtBufferDestroy，xlang 由 Buffer 接管。
 零长度 hex 同样为空串，所以 C 不以空串单独判断失败，必须查看 XRT 错误。
 adopt 仅转移有效句柄所有权，不验证任意地址，也不可将同一句柄交给两个析构所有者。
@@ -90,7 +90,7 @@ adopt 仅转移有效句柄所有权，不验证任意地址，也不可将同�
 | `examples/extlibs/sha3_basic.xl` | `extlibs/sha3/examples/basic.c` |
 | `examples/extlibs/sha3.xl` | `extlibs/sha3/examples/files.c` |
 
-在 demo6 下执行 `tools/check_extlib_sha3.ps1`：严格 GCC、独立 C 核心、25 个 native 入口、
+在 demo6 下执行 `tools/check_extlib_sha3.ps1`：严格 GCC、独立 C 核心、30 个 native 入口、
 23 个生成声明、C/xlang JIT/AOT、双语固定输出、UTF-8、失败恢复、Reader/回调边界、
 四线程独立对象、176 个普通/临时区分配故障位置。
 当前 AOT 主线缺符号期间，`-SkipAot` 可独立复验 C/JIT；默认门禁
@@ -110,6 +110,8 @@ adopt 仅转移有效句柄所有权，不验证任意地址，也不可将同�
 使用独占工作目录，保留此前固定目录中的文件。Windows `-SkipAot` 的
 严格 C、完整 XLang JIT、生成 ABI、C JIT/AOT 与双语对照，以及 Linux
 C ASan/UBSan、XLang JIT/双语联合门禁通过。
+
+2026-10-24：一次性 SHA3/SHAKE 和流式 digestHex 的 XLang 返回改用拥有型 XRT 缓冲，SHAKE 可变长 hex 不再从临时区整段复制到语言字符串。新增 64 KiB 输出、零长度、流式快照、超限及转移后保留测试；Windows `-SkipAot` 门禁通过。完整 AOT 门禁仍在既有 `xl6NativeHandleTraceLeaf` 未解析处失败，本次不计为 AOT 签收。
 
 两个导出哈希器的句柄接管构造器及原生指针/长度方法已标记私有。
 包外 `updateNative` 只编译负例被拒绝，并进入两平台门禁；

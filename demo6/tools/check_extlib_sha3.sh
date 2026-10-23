@@ -55,6 +55,8 @@ for name in sha3 sha3_basic; do
     timeout 90s ./release/xl run "release/examples/extlibs/$name.xl" > "$work/$name.log"
     diff -u "release/examples/extlibs/$name.expected.txt" "$work/$name.log"
 done
+timeout 90s ./release/xl run "$pkg/test/owned_text.xl" > "$work/owned_text.log"
+grep -Fxq 'sha3 owned text ok' "$work/owned_text.log"
 mapfile -d '' after < <(input_paths | sort -z)
 sha256sum "${after[@]}" > "$work/inputs.after.sha256"
 diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"

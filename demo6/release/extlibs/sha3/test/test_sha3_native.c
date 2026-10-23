@@ -93,6 +93,19 @@ static void boundaries(void)
     check_buffer(xshake_hash_str_bytes("abc", 3, 128, 257), shake, 257);
     assert(strlen(xshake_hash_hex("abc", 3, 128, 257)) == 514);
     assert(strlen(xshake_hash_str_hex("abc", 3, 128, 257)) == 514);
+    {
+        char* owned_fixed = (char*)xsha3_hash_str_hex_owned("abc", 3, 256);
+        char* owned_xof = (char*)xshake_hash_str_hex_owned("abc", 3, 128, 65536);
+        char* empty = (char*)xshake_hash_hex_owned(NULL, 0, 128, 0);
+        assert(owned_fixed && !strcmp(owned_fixed, abc));
+        assert(owned_xof && strlen(owned_xof) == 131072u);
+        assert(empty && empty[0] == '\0');
+        assert(xrtTempClear() && !strcmp(owned_fixed, abc) && strlen(owned_xof) == 131072u);
+        xrtFree(owned_fixed); xrtFree(owned_xof); xrtFree(empty);
+        assert(!xshake_hash_str_hex_owned("abc", 3, 128, SIZE_MAX) &&
+            xrtErrorKind(xrtGetError()) == XERR_RANGE);
+        xrtClearError();
+    }
     check_buffer(xshake_hash_bytes(NULL, 0, 128, 0), NULL, 0);
     assert(!xshake_hash_hex(NULL, 0, 128, 0)[0] && !xrtGetError());
     assert(!xshake_hash_bytes(NULL, 1, 128, 0) && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
@@ -118,6 +131,12 @@ static void boundaries(void)
     copy = xsha3_hasher_clone(h); assert(copy && xsha3_hasher_update(copy, "bc", 2));
     assert(xsha3_hasher_input_bytes(h) == 1 && xsha3_hasher_input_bytes(copy) == 3);
     check_buffer(xsha3_hasher_digest_bytes(copy, 32), fixed, 32);
+    {
+        char* owned = (char*)xsha3_hasher_digest_hex_owned(copy, 32);
+        assert(owned && !strcmp(owned, abc));
+        assert(xrtTempClear() && !strcmp(owned, abc));
+        xrtFree(owned);
+    }
     assert(!xsha3_hasher_digest_hex(copy, 64)[0] && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     assert(!strcmp(xsha3_hasher_digest_hex(copy, 32), abc));
     assert(!xsha3_hasher_update(copy, "d", 1) && !xsha3_hasher_clone(copy));
@@ -205,6 +224,6 @@ int main(void)
         xrtThreadDestroy(threads[i]);
     }
     boundaries(); allocations(); xrtClearError(); xrtTempUnit(xrtTempCurrent());
-    puts("sha3 native: all 25 bindings, 4 threads and temporary/Buffer lifetimes passed");
+    puts("sha3 native: 30 bindings, 4 threads and owned/temporary/Buffer lifetimes passed");
     return 0;
 }

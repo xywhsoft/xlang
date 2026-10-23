@@ -78,7 +78,7 @@ h.reset()</code></pre>
       文件错误保留 XRT 类别。路径使用 XRT UTF-8 API。预算不是超时控制，
       不承诺并发修改文件时的快照一致性。</p>
     <p>maxInput 必须大于零，默认 256 MiB。分配型输出使用 XRT 默认 512 MiB 预算；
-      hex 临时工作区约为 3*outLen+1 字节，还存在宿主结果复制，不建议盲目分配到上限。</p>
+      hex 拥有型工作区约为 3*outLen+1 字节，xlang 直接接管结果分配，不再整段复制可变长文本；不建议盲目分配到上限。</p>
 
     <h2 id="c-api">C 接口与所有权</h2>
     <p><code>include/xrt_sha3.h</code> 提供 Hash/ShakeHash、OptionsInit/ErrorInit、DigestSize、
@@ -89,8 +89,8 @@ h.reset()</code></pre>
       Options/ResourceLimits 严格验证大小与版本，C 显式零限额表示无业务上限，仍检查累计溢出。</p>
     <p>File 借用 Reader，从当前游标读，不回退、不销毁；已知剩余长度可预检，
       未知长度逐块检查。最终回调成功后才提交摘要，Reader/回调的原始错误优先。</p>
-    <p><code>include/sha3_native.h</code> 定义 25 个薄绑定入口。
-      hex 借用 XRT 临时区，清理/回退后失效，不会被正常后续调用覆盖；
+    <p><code>include/sha3_native.h</code> 定义 30 个薄绑定入口。
+      原 C hex 接口借用 XRT 临时区，清理/回退后失效，不会被正常后续调用覆盖；新增 _owned 入口由调用方使用 xrtFree 释放，xlang 直接接管。
       Buffer 归调用者所有，C 调用 xrtBufferDestroy，xlang 自动接管。
       零输出也是合法空串，C 必须查看 XRT 错误区分失败。
       adopt 只接受真实句柄并转移所有权，不允许重复接管或伪造指针。</p>
@@ -100,7 +100,7 @@ h.reset()</code></pre>
       <code>examples/extlibs/sha3.xl</code> 与 <code>extlibs/sha3/examples/files.c</code>
       分别展示算法、二进制、流状态，以及中文路径、进度、取消、异常和预算，逐行对照固定输出。</p>
     <p><code>tools/check_extlib_sha3.ps1</code> 检查 546 组独立 OpenSSL 边界向量、
-      8 种地址偏移、12 组已知答案、短输入全切点、23 个生成声明、25 个 native 入口、
+      8 种地址偏移、12 组已知答案、短输入全切点、23 个生成声明、30 个 native 入口、
       176 个分配故障位置、四线程独立对象、文件回调和 C/xlang JIT/AOT/GCC。
       <code>tools/check_extlib_sha3.sh</code> 联合检查 Linux C ASan/UBSan/泄漏、XLang JIT 及双语范例输出。
       门禁绑定输入文件集合和哈希，Node/OpenSSL 仅用于测试答案生成，不是运行依赖。</p>
