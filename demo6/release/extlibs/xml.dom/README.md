@@ -72,6 +72,10 @@ Linux 可从 `demo6` 运行
 共用的 XRT/Expat 实现运行严格 GCC 与 ASan/UBSan；脚本还需要
 `release/xl` 运行三包 XLang 边界与 C/XLang 范例逐字对照。
 Windows 对应入口为 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/xml.sax/test/check_trees.ps1`（从 `demo6` 目录运行）；同时检查三包的 C/XL 边界、分配故障、私有入口负例及双语范例。
+联合门禁还运行 `test/cases/extlib_xml_tree_interop.xl`：DOM 写出的 XML
+交给 ElementTree 解析，再反向写回 DOM，核对 UTF-8、实体、属性和混合内容。
+混合内容中的前导文本在 DOM 是独立子节点，在 ElementTree 是元素的 `text`；
+测试按各自模型检查，不要求两种节点结构逐项相同。
 
 两个示例的 XML 内容在归一化换行后相同；Windows C 标准输出使用 CRLF，XLang 使用 LF。Windows 严格 GCC、Linux ASan/UBSan、XL JIT 与
 上述包级测试通过。**AOT 发布验收仍被主线缺少

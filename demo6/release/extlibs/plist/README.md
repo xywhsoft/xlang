@@ -50,7 +50,7 @@ XLang 的 `dumps`/`dump` 在构造原生文档时即检查节点总数、每个�
 - XML 整数/实数直接使用 XRT 严格数值解析和空白标志，不复制数值文本；Base64 数据直接使用 XRT 忽略空白的严格解码，删除私有清洗与填充检查。整数正负边界、溢出/尾随垃圾、空/非法 Base64，以及整数、字符串、实数、日期和数据各前 128 个分配点的失败分类由 C 回归覆盖。分配失败返回内存错误，不会崩溃或伪装成格式错误。
 - `test/test_native.c`：桥接层 NUL 键值与错误码。
 - `test/boundaries.xl`：XLang 二进制/XML、UID、数据与路径 NUL、非法输入和限额。
-- Windows：`powershell -File release/extlibs/plist/test/check.ps1`，包含 C/XL 边界和双语范例同输出检查。
+- Windows：`powershell -File release/extlibs/plist/test/check.ps1`，包含 C/XL 边界、双语范例同输出、最小导入与公开范例 AOT；`-SkipAot` 仅用于 C/JIT 快测，不代表发布验收。
 - Linux：`sh release/extlibs/plist/test/check.sh`，以 ASan/UBSan 检查 C 本体与桥接层，另用内嵌 TCC 执行同一份 C 日期测试、运行包内 XLang 边界/分配测试，核对双语范例输出，并由 Python 标准库读取四份范例产物。
 
 桥接层的 C `uint64_t`（XRT `uint64`）在 XLang extern 中统一声明为 `uint64`，包括输入/输出限额、数据长度及 UID；不使用在 Linux LP64 下不同类型的 `c_ulonglong`。Linux 包级脚本同时运行 XLang 主用例，防止声明再次漂移。
@@ -97,3 +97,5 @@ AOT 的共享主线阻断不变。
 2026-10-19：C 配置的 `tLimits.iReserved` 必须为 0。读/写两条负例先红后绿，共用选项解析器拒绝非零保留字段；Windows 包级 C/XLang 与 Linux C ASan/UBSan、XLang、Python `plistlib` 四格式互通门禁通过。完整 AOT 共享阻断不变。
 同日：`tLimits.iFlags` 对 plist 没有定义的行为，原来非零值被静默忽略；解析与写出负例先红后绿，现统一返回 `ARGUMENT`。Windows 包级与 Linux C ASan/UBSan、XLang、`plistlib` 互通门禁复跑通过；完整 AOT 共享阻断不变。
 2026-10-22：复查 XML DOM 拥有型节点引用后，新增活动分配数回归，覆盖嵌套容器成功解析、容器内非法文本、多根值、缺少字典键，以及嵌套解析的 256 个分配故障点。所有路径在销毁结果后均回到解析前的活动分配数，未发现 RSS 同类引用泄漏；无需修改 plist 解析器。Windows 包级 C/XLang 门禁和 Linux C ASan/UBSan、XLang、双语范例及 `plistlib` 互通门禁通过。本轮未重跑完整 AOT，不据此签收整包发布级。
+
+2026-10-23：Windows 包级门禁默认增加最小导入及公开范例 AOT 构建/执行，范例结果必须与 C/JIT 逐行一致；只在显式 `-SkipAot` 时跳过。当前快测通过，默认门禁在最小导入构建处因共享 `xl6ValueDataSnapshotV1` 未解析而失败，独占目录已清理。此前只测 C/JIT 的 PASS 不再作为发布签收。

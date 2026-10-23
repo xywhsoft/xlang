@@ -24,6 +24,10 @@ xide_language_client* xideLanguageClientStartProcess(const xide_language_client_
 void xideLanguageClientSetWake(xide_language_client* client,void (*wake)(void*),void* user);
 int xideLanguageClientSend(xide_language_client* client,const xvalue* message,xide_model_error* error);
 xvalue* xideLanguageClientNext(xide_language_client* client);
+/* Moves the same parsed root plus its original UTF-8 Content-Length, excluding
+ * framing headers. No JSON encoding/clone; bytes is zero when no root exists.
+ * Allows bounded background batches to account for actual received bytes. */
+xvalue* xideLanguageClientNextSized(xide_language_client* client,size_t* bytes);
 int xideLanguageClientHasPending(xide_language_client* client);
 enum xide_language_client_state xideLanguageClientState(xide_language_client* client,char* error,size_t capacity);
 void xideLanguageClientStop(xide_language_client* client);

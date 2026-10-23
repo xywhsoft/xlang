@@ -63,6 +63,8 @@ try {
         $null = Run "$kind XLang allocations" $xl @('run',
             "release/extlibs/xml.$kind/test/allocations.xl")
     }
+    $null = Run 'DOM/ElementTree roundtrip' $xl @('run',
+        'test/cases/extlib_xml_tree_interop.xl')
 
     ExpectPrivate 'DOM native entry' `
         'release/extlibs/xml.dom/test/private_native_negative.xl' `

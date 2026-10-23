@@ -105,6 +105,10 @@ NUL 边界和无输出 AOT 均通过。插件内部算法与设备矩阵未扩�
 
 默认门禁的 GCC ABI 检查按 manifest 传入 XRT 模块宏，覆盖包装源码重复定义宏的构建错误。
 默认 `release/examples/extlibs/op.xl` 与 `op_c.c` 只读取屏幕尺寸并展示未绑定的上下文。
+XLang 范例可直接运行 `release/xl.exe run release/examples/extlibs/op.xl`；
+C 范例使用 `tools/run_extlib_c.ps1 -Package op -Source release/examples/extlibs/op_c.c`，
+由包清单提供 `op_native.c` 和 Win32 链接库。单独执行 `xl run op_c.c`
+不会自动读取扩展库清单，因而不是这个 C 范例的运行命令。
 `op.randomInt(min, max)` / `xop_random_int` 使用 XRT 线程独立的非密码学随机状态，
 无偏返回完整 int64 闭区间 `[min, max]`；两端相等时返回该值，反向区间报告
 `ValueError` / `XERR_VALUE`，不会再静默返回最小值。它不用于密钥、令牌等安全用途。

@@ -81,7 +81,8 @@ static int fragmentation(void)
   CHECK(c.receiveHead->value==s.seen && c.receiveHead->length==strlen(source) && !life.drops);
   /* Parsed strings must not alias an input frame or reusable stream buffer. */
   memset(stream.bytes,0xcc,stream.capacity);xideLspStreamClear(&stream);
-  xvalue* result=xideLanguageClientNext(&c);
+  size_t wire=12345;xvalue* result=(split&1) ? xideLanguageClientNext(&c) : xideLanguageClientNextSized(&c,&wire);
+  CHECK((split&1) || wire==strlen(source));
   CHECK(result==s.seen && !life.drops && !c.receiveCount && !c.receiveBytes && !xideLanguageClientHasPending(&c));
   CHECK(textIs(member(member(result,"result"),"name"),"中文😀") && xrtValueCount(member(member(result,"result"),"nested"))==3);
   xrtValueRelease(result);CHECK(life.drops==1);unitClient(&c);
@@ -142,7 +143,24 @@ static int bounds(void)
  for(size_t i=0;i<8;++i)CHECK(xideLspStreamFeedOwned(&stream,frame,n,queued,&s,&error));
  CHECK(c.receiveCount==8 && c.receiveBytes==QUEUE_BYTES);
  CHECK(!xideLspStreamFeedOwned(&stream,small,sizeof(small)-1,queued,&s,&error) && c.receiveCount==8 && c.receiveBytes==QUEUE_BYTES);
+ size_t wire=0;xvalue* root=xideLanguageClientNextSized(&c,&wire);
+ CHECK(root && wire==size && c.receiveCount==7 && c.receiveBytes==QUEUE_BYTES-size);xrtValueRelease(root);
+ xideLspStreamClear(&stream);CHECK(xideLspStreamFeedOwned(&stream,small,sizeof(small)-1,queued,&s,&error));
+ CHECK(c.receiveCount==8 && c.receiveBytes==QUEUE_BYTES-size+2);
  unitClient(&c);xideLspStreamClear(&stream);free(frame);return 1;
+}
+static int sizedQueue(void)
+{
+ size_t bytes=12345;CHECK(!xideLanguageClientNextSized(NULL,&bytes) && !bytes);
+ xide_language_client c;initClient(&c);CHECK(!xideLanguageClientNextSized(&c,&bytes) && !bytes);
+ xide_lsp_stream stream={0};xide_model_error error={0};sink s={.client=&c};size_t length=0;char* frame=rawFrame(source,strlen(source),&length);CHECK(frame);
+ for(int i=0;i<3;++i) CHECK(xideLspStreamFeedOwned(&stream,frame,length,queued,&s,&error));
+ xvalue* a=xideLanguageClientNextSized(&c,&bytes);CHECK(a && bytes==strlen(source) && c.receiveBytes==strlen(source)*2);
+ xvalue* b=xideLanguageClientNext(&c);CHECK(b && c.receiveBytes==strlen(source));
+ xvalue* last=xideLanguageClientNextSized(&c,NULL);CHECK(last && !c.receiveHead && !c.receiveTail && !c.receiveBytes && !c.receiveCount);
+ xrtValueRelease(a);xrtValueRelease(b);xrtValueRelease(last);bytes=12345;
+ CHECK(!xideLanguageClientNextSized(&c,&bytes) && !bytes);
+ free(frame);xideLspStreamClear(&stream);unitClient(&c);return 1;
 }
 static int invalid(void)
 {
@@ -160,6 +178,6 @@ static int invalid(void)
 }
 int main(void)
 {
- if(!transportSignals() || !fragmentation() || !frames() || !rejection() || !bounds() || !invalid()) return 1;
+ if(!transportSignals() || !fragmentation() || !frames() || !rejection() || !bounds() || !sizedQueue() || !invalid()) return 1;
  printf("lsp_receive_test passed: %d checks; exact parsed-root ownership and raw wire accounting, all split points, Unicode/nested values, borrowed compatibility, coalesced/partial/invalid frames, bounded count/bytes, allocation rollback and rejected-root cleanup outside the queue lock.\n",checks);return 0;
 }

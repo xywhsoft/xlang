@@ -30,6 +30,12 @@ func main(...) as int
     assert clipboard.get_file() == "C:\\测试\\one.txt"
     assert clipboard.set_text("after")
     assert clipboard.get_text() == "after"
+    assert clipboard.set_text("中文 hello")
+    string previousText = clipboard.get_text()
+    assert clipboard.set_text("new text")
+    assert clipboard.get_text() == "new text"
+    assert previousText == "中文 hello"
+    assert clipboard.set_text("after")
     assert string.indexOf("a\0b", "\0", false, 3, 1) == 1
     bool rejected = false
     try

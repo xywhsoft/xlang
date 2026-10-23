@@ -1,0 +1,28 @@
+import xml.dom
+import xml.etree
+
+func main(...) as int
+    // 两种树共享 XML 格式，但各自管理节点和结果内存。
+    auto document = xml.dom.parse(
+        "<root id='A&amp;B'>before<child flag='&quot;'>你好 &amp; 世界</child>after</root>")
+    string domXml = document.stringify()
+    auto tree = xml.etree.parse(domXml)
+    assert tree.name == "root", "ElementTree root name"
+    assert tree.get("id") == "A&B", "ElementTree entity attribute"
+    assert tree.text == "before", "ElementTree mixed root text"
+    assert tree.child(0).get("flag") == "\"", "ElementTree quote attribute"
+    assert tree.child(0).text == "你好 & 世界", "ElementTree UTF-8 child text"
+    assert tree.child(0).tail == "after", "ElementTree child tail"
+
+    tree.set("new", "甲<&乙")
+    string treeXml = tree.stringify()
+    auto reparsed = xml.dom.parse(treeXml)
+    auto root = reparsed.documentElement
+    assert root.getAttribute("id") == "A&B", "DOM entity attribute"
+    assert root.getAttribute("new") == "甲<&乙", "DOM UTF-8 attribute"
+    // DOM 的混合内容包含独立的前导文本节点，子元素位于索引 1。
+    assert root.child(0).textContent == "before", "DOM leading text node"
+    assert root.child(1).textContent == "你好 & 世界", "DOM child text"
+    assert root.textContent == "before你好 & 世界after", "DOM mixed text"
+    return 0
+end
