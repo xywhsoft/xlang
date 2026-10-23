@@ -114,14 +114,17 @@ def main():
                checkOnSave=False, analysisConfiguration=packet(1))), 1)
         reply, _ = c.reply(1)
         caps = reply['result']['capabilities']['experimental']
-        assert caps['analysisConfiguration'] == 1 and caps['analysisProfile'] == PROFILE, reply
+        assert caps['analysisConfiguration'] == 1 and caps['analysisProfile'] == PROFILE and caps['retainedDiskEntry'] == 1, reply
         c.send('initialized', {})
         process = c.process.pid
         c.open(helper, helper_text, 7)
         value = check(c, 1, 0, True)
         root_report = next(row for row in value['documents'] if Path(row['path']) == entry)
-        assert root_report['origin'] == 'disk' and 'version' not in root_report and not value['retainedEntry'] and 'analysis' not in value, value
+        assert root_report['origin'] == 'disk' and 'version' not in root_report and value['retainedEntry'] and not value['entryOpen'] and value['analysis']['builds'] == 1, value
         done('unopened-bom-crlf-root-uses-unsaved-member-and-actual-project-package', result=value)
+        again = check(c, 1, 0, True)
+        assert again['analysis']['builds'] == value['analysis']['builds'] and again['analysis']['cacheHits'] == value['analysis']['cacheHits']+1, again
+        done('unopened-project-check-reuses-real-validated-analysis')
         at = helper_text.index('value()', helper_text.index('return'))
         definition = call(c, 'textDocument/definition', dict(textDocument=dict(uri=helper.as_uri()), position=position(helper_text, at)))
         assert definition['uri'] == api_paths[0].as_uri(), definition
@@ -151,21 +154,25 @@ def main():
         cursor = helper_text.replace(' return cp.value()', ' cp.\n return 0')
         c.change(helper, cursor, 8)
         value = query(c, cursor, 8, 5, 0, {'value', 'alpha'})
-        assert not value['retainedEntry'] and 'analysis' not in value, value
-        done('disk-root-namespace-completion-has-real-signatures-and-no-cache-claim')
+        assert value['retainedEntry'] and not value['entryOpen'] and value['analysis']['builds'] == 1, value
+        done('disk-root-namespace-completion-has-real-signatures-and-retained-actor-counters')
+        again = query(c, cursor, 8, 5, 0, {'value', 'alpha'})
+        assert not again['entryOpen'] and again['analysis']['builds'] == value['analysis']['builds'] and again['analysis']['cacheHits'] == value['analysis']['cacheHits']+1, again
+        done('unopened-project-completion-reuses-real-validated-analysis')
         call(c, 'xlang/configureAnalysis', packet(6, 1))
-        query(c, cursor, 8, 6, 1, {'value', 'beta'})
+        value = query(c, cursor, 8, 6, 1, {'value', 'beta'})
+        disk_builds = value['analysis']['builds']
         done('unchanged-unsaved-cursor-switches-public-export-and-declaration')
         c.open(entry, entry_text, 11)
         value = query(c, cursor, 8, 6, 1, {'value', 'beta'})
-        assert value['retainedEntry'] and value['analysis']['builds'] == 1, value
+        assert value['retainedEntry'] and value['entryOpen'] and value['analysis']['builds'] == disk_builds+1, value
         again = query(c, cursor, 8, 6, 1, {'value', 'beta'})
         assert again['analysis']['cacheHits'] == value['analysis']['cacheHits']+1, again
         done('open-project-root-uses-retained-cursor-actor-and-real-hit-counters')
         c.send('textDocument/didClose', dict(textDocument=dict(uri=entry.as_uri())))
         value = query(c, cursor, 8, 6, 1, {'value', 'beta'})
-        assert not value['retainedEntry'], value
-        done('closing-root-restores-verified-disk-route')
+        assert value['retainedEntry'] and not value['entryOpen'] and value['analysis']['builds'] == disk_builds+2, value
+        done('closing-root-restores-verified-retained-disk-route')
         old_query = value['queryId']
         replacement = entry.with_suffix('.replacement')
         replacement.write_bytes(entry.read_bytes())
@@ -174,8 +181,19 @@ def main():
             message = c.next()
             if message.get('method') == 'xlang/completionInvalidated' and message['params']['queryId'] == old_query:
                 break
-        query(c, cursor, 8, 6, 1, {'value', 'beta'})
+        renewed = query(c, cursor, 8, 6, 1, {'value', 'beta'})
+        assert renewed['analysis']['builds'] == value['analysis']['builds']+1 and renewed['analysis']['invalidations'] == value['analysis']['invalidations']+1, renewed
         done('same-byte-disk-root-identity-change-invalidates-completion')
+        original_api = api_paths[1].read_bytes()
+        try:
+            api_paths[1].write_bytes(original_api.replace(b'beta', b'delta'))
+            changed = query(c, cursor, 8, 6, 1, {'value', 'delta'})
+            assert changed['analysis']['builds'] == renewed['analysis']['builds']+1 and changed['analysis']['invalidations'] == renewed['analysis']['invalidations']+1, changed
+        finally:
+            api_paths[1].write_bytes(original_api)
+        restored = query(c, cursor, 8, 6, 1, {'value', 'beta'})
+        assert restored['analysis']['builds'] == changed['analysis']['builds']+1 and restored['analysis']['invalidations'] == changed['analysis']['invalidations']+1, restored
+        done('retained-disk-completion-revalidates-real-package-change-and-restoration')
         standalone = root/'unowned/main.xl'
         standalone.parent.mkdir()
         standalone_text = 'func main(...) as int\n int answer = 1\n return ans\nend\n'

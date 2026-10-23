@@ -44,7 +44,7 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
     if(equal) result=xlsSemanticCompletionRetain(s->result);
     else {
         xls_semantic_input inputs[64]; xlsInputBatchInputs(batch,inputs,64); ++s->stats.builds;
-        if(entry==query) {
+        if(entry && entry==query) {
             const xls_analysis_document* old=xlsInputBatchTarget(s->batch);
             const xls_syntax* previous=xlsFrontendContextsEqual(context,xlsInputBatchContext(s->batch)) && old && s->entrySyntax && s->queryKey && !strcmp(s->queryKey,old->key) &&
                 !strcmp(old->key,entry->key) && old->identity==entry->identity && !strcmp(old->path,entry->path) ? s->entrySyntax : NULL;
@@ -69,7 +69,7 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
              * surface. This is the original native frontend, never CLI;
              * the explicit route counter distinguishes it from reuse. */
             ++s->stats.cursorFreshBuilds;
-            result=xlsSemanticCompletionCreateInContext(context,entry->path,query->path,offset,inputs,count,cancelled,user,error,capacity);
+            result=xlsSemanticCompletionCreateInContext(context,xlsInputBatchEntry(batch),query->path,offset,inputs,count,cancelled,user,error,capacity);
             xlsSyntaxRelease(syntax); syntax=NULL;
         }
         if(!result) goto done;

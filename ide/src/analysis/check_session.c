@@ -36,7 +36,7 @@ xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* s,xls_conte
     batch=xlsInputBatchCreateInContext(context,&s->limits,s->batch,documents,count,target,cancelled,user,error,capacity);
     if(!batch) goto done;
     const xls_analysis_document* entryDocument=xlsInputBatchTarget(batch);
-    const char* entry=entryDocument->path;
+    const char* entry=xlsInputBatchEntry(batch);
     int equal=s->result && s->captureIndex==captureIndex && xlsInputBatchEqual(s->batch,batch);
     xls_semantic_input inputs[64]; xlsInputBatchInputs(batch,inputs,64);
     if(equal && !xlsSemanticCheckValidate(s->result)) { equal=0; ++s->stats.invalidations; }
@@ -45,10 +45,10 @@ xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* s,xls_conte
     else {
         ++s->stats.builds;
         const xls_analysis_document* oldTarget=xlsInputBatchTarget(s->batch);
-        const xls_analysis_document* old=oldTarget && !strcmp(oldTarget->key,target) ? xlsInputBatchFind(s->batch,target) : NULL;
+        const xls_analysis_document* old=entryDocument && oldTarget && !strcmp(oldTarget->key,target) ? xlsInputBatchFind(s->batch,target) : NULL;
         const xls_syntax* previous=xlsFrontendContextsEqual(context,xlsInputBatchContext(s->batch)) && old && old->identity==entryDocument->identity && !strcmp(old->path,entry) ? s->entrySyntax : NULL;
         if(previous && xlsInputSameBody(old,entryDocument)) { syntax=xlsSyntaxRetain(s->entrySyntax); ++s->stats.entrySyntaxHits; }
-        else {
+        else if(entryDocument) {
             char* path=xrtPathAbs(entry); if(!path) goto memory;
             xls_parse_work work={0}; syntax=xlsSyntaxBuild(path,entryDocument->text,previous,&work); xrtFree(path);
             s->stats.entryFullParses+=work.full; s->stats.entryFragmentParses+=work.fragments;
@@ -70,7 +70,7 @@ xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* s,xls_conte
     xlsSemanticCheckDestroy(s->result); s->result=xlsSemanticCheckRetain(result);
     s->captureIndex=captureIndex; s->stats.documents=count; s->stats.textBytes=xlsInputBatchBytes(s->batch);
     s->stats.semanticMemoBytes=xlsSemanticCheckWork(result).memoBytes;
-    if(syntax) { xlsSyntaxRelease(s->entrySyntax); s->entrySyntax=syntax; syntax=NULL; }
+    if(!equal) { xlsSyntaxRelease(s->entrySyntax); s->entrySyntax=syntax; syntax=NULL; }
     goto done;
 invalid: fail(error,capacity,"invalid semantic batch identity, revision, path or capacity"); goto done;
 memory: fail(error,capacity,"cannot retain semantic input batch"); goto done;

@@ -39,7 +39,12 @@ const xls_analysis_document* xlsInputBatchFind(const xls_input_batch* b,const ch
     return at ? &b->documents[*at] : NULL;
 }
 const xls_analysis_document* xlsInputBatchTarget(const xls_input_batch* b)
-{ return b ? &b->documents[b->target] : NULL; }
+{ return b && b->target<b->count ? &b->documents[b->target] : NULL; }
+const char* xlsInputBatchEntry(const xls_input_batch* b)
+{
+    const xls_analysis_document* target=xlsInputBatchTarget(b);
+    return target ? target->path : b && b->context ? xlsContextSpec(b->context)->entry : NULL;
+}
 const char* xlsInputBatchDirectory(const xls_input_batch* b) { return b ? b->directory : NULL; }
 const xls_context* xlsInputBatchContext(const xls_input_batch* b) { return b ? b->context : NULL; }
 size_t xlsInputBatchBytes(const xls_input_batch* b) { return b ? b->bytes : 0; }
@@ -54,7 +59,8 @@ xls_input_batch* xlsInputBatchCreateInContext(xls_context* context,const xls_ses
 {
     xls_session_limits chosen; xls_input_batch* b=NULL;
     if(error && capacity) *error=0;
-    if(!xlsInputLimits(limits,&chosen) || !documents || !count || count>chosen.documents || !label(target)) goto invalid;
+    if(!xlsInputLimits(limits,&chosen) || !documents || !count || count>chosen.documents ||
+       (target ? !label(target) : !context)) goto invalid;
     if(cancelled && cancelled(user)) goto cancel;
     b=xrtCalloc(1,sizeof(*b)); if(!b) goto memory;
     b->context=xlsContextRetain(context); b->target=SIZE_MAX; b->directory=context ? xrtStrDup(xlsContextSpec(context)->directory) : xrtPathAbs(".");
@@ -74,10 +80,10 @@ xls_input_batch* xlsInputBatchCreateInContext(xls_context* context,const xls_ses
         b->documents[index]=(xls_analysis_document){name,path,xlsTextRetain(in->text),in->identity,in->revision};
         if(!xrtMapSet(&b->keys,key(name),&index)) goto memory;
         b->bytes+=xlsTextSize(in->text);
-        if(!strcmp(name,target)) b->target=index;
+        if(target && !strcmp(name,target)) b->target=index;
     }
-    if(b->target==SIZE_MAX) goto invalid;
-    if(!xlsFrontendContextValid(context,b->documents[b->target].path,error,capacity)) goto done;
+    if(target && b->target==SIZE_MAX) goto invalid;
+    if(!xlsFrontendContextValid(context,xlsInputBatchEntry(b),error,capacity)) goto done;
     return b;
 invalid: fail(error,capacity,"invalid semantic batch identity, revision, path or capacity"); goto done;
 memory: fail(error,capacity,"cannot retain semantic input batch"); goto done;
@@ -90,8 +96,9 @@ xls_input_batch* xlsInputBatchCreate(const xls_session_limits* limits,const xls_
 { return xlsInputBatchCreateInContext(NULL,limits,previous,documents,count,target,cancelled,user,error,capacity); }
 int xlsInputBatchEqual(const xls_input_batch* a,const xls_input_batch* b)
 {
-    if(!a || !b || !xlsFrontendContextsEqual(a->context,b->context) || a->count!=b->count || strcmp(a->directory,b->directory) ||
-       strcmp(xlsInputBatchTarget(a)->key,xlsInputBatchTarget(b)->key)) return 0;
+    if(!a || !b || !xlsFrontendContextsEqual(a->context,b->context) || a->count!=b->count || strcmp(a->directory,b->directory)) return 0;
+    const xls_analysis_document *at=xlsInputBatchTarget(a),*bt=xlsInputBatchTarget(b);
+    if((at!=NULL)!=(bt!=NULL) || (at && strcmp(at->key,bt->key))) return 0;
     for(size_t i=0;i<b->count;++i) {
         const xls_analysis_document *in=&b->documents[i],*old=xlsInputBatchFind(a,in->key);
         if(!old || old->identity!=in->identity || strcmp(old->path,in->path) || !xlsInputSameBody(old,in)) return 0;

@@ -29,7 +29,9 @@ xls_query* xlsWorkerFolding(xls_worker* worker,const xls_analysis_document* docu
 xls_query* xlsWorkerCheck(xls_worker* worker,const xls_analysis_document* documents,
                         size_t count,const char* target);
 /* Same core context contract as check.h. Captures one immutable reference
- * before queueing; caller can immediately release its context afterwards. */
+ * before queueing; caller can immediately release its context afterwards.
+ * With a non-NULL context, NULL target/entry selects context.entry without
+ * inventing an opened document. Disk inputs remain guarded on cache hits. */
 xls_query* xlsWorkerCheckInContext(xls_worker* worker,xls_context* context,
     const xls_analysis_document* documents,size_t count,const char* target);
 /* Exact cursor projections use their own retained session on this actor.
