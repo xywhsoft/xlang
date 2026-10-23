@@ -197,6 +197,21 @@ static int test_parse(void)
 		"UTF-8 value failed");
 	ok &= check(!xrtDotenvHas(config, "MISSING") &&
 		xrtDotenvGet(config, "MISSING") == NULL, "missing key contract failed");
+	{
+		const char escaped[] = "A=\"one\\tline\\nnext\\rreturn\\\"quote\\\\slash\"\nRAW='\\q'\n";
+		const char invalid[] = "A=\"bad\\q\"\n";
+		ok &= check(xrtDotenvParse(config, escaped, sizeof(escaped) - 1u, 4096u) &&
+			strcmp(xrtDotenvGet(config, "A"), "one\tline\nnext\rreturn\"quote\\slash") == 0 &&
+			strcmp(xrtDotenvGet(config, "RAW"), "\\q") == 0,
+			"quoted escape and raw single-quote semantics changed");
+		ok &= check(!xrtDotenvParse(config, invalid, sizeof(invalid) - 1u, 4096u) &&
+			xrtDotenvErrorCode(config) == XRT_DOTENV_FORMAT &&
+			xrtDotenvErrorLine(config) == 1u &&
+			strcmp(xrtDotenvGet(config, "A"), "one\tline\nnext\rreturn\"quote\\slash") == 0,
+			"invalid quoted escape must preserve previous config");
+		ok &= check(xrtDotenvParse(config, source, sizeof(source) - 1u, 4096u),
+			"source must remain usable after invalid escape");
+	}
 
 	/* 坏输入不能覆盖已有配置。 */
 	ok &= check(!xrtDotenvParse(config, "GOOD=1\nbad-key=2\n", 17u, 4096u) &&

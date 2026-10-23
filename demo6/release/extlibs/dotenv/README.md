@@ -81,6 +81,12 @@ Windows `-SkipAot` 严格 C/XLang 与双语门禁、Linux C ASan/UBSan 和
 XLang 门禁均通过。Windows 默认门禁的核心 AOT 通过，带输出范例构建
 仍缺共享 `xl6ValueDataSnapshotV1`，故整包尚未完成发布级验收。
 
+2026-10-23：C/XLang 回归补齐双引号内 `\\t`、`\\n`、`\\r`、转义引号与
+反斜杠，以及单引号内 `\\q` 原样保留；非法双引号转义拒绝后旧配置
+保持不变，下一次有效解析仍可恢复。Windows `-SkipAot` 严格 C、语言
+用例和双语范例，以及 Linux C ASan/UBSan、XLang 联合门禁通过。
+解析器无需修改；完整 AOT 的共享阻断仍未解除。
+
 2026-10-14：修复缺文件后成功解析仍残留旧 XRT 错误的连续调用问题，并验证 `set`、`get`、`has`、`count`、`clear`、`apply`、`load` 的相同边界。Windows 包级 C/XLang 门禁与 Linux ASan/UBSan 通过；AOT 阻断状态不变。
 
 2026-10-15：新增解析 17 项与更新已有键的逐点分配失败矩阵，覆盖扩容、

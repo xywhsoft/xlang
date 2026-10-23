@@ -48,6 +48,19 @@ func main(...) as int
     config.set("AFTER", "ok")
     config.parse("\uFEFF")
     assert config.count == 0 and not config.has("AFTER")
+
+    config.parse("A=\"one\\tline\\nnext\\rreturn\\\"quote\\\\slash\"\nRAW='\\q'\n")
+    assert config.get("A") == "one\tline\nnext\rreturn\"quote\\slash"
+    assert config.get("RAW") == r"\q"
+    rejected = false
+    try
+        config.parse("A=\"bad\\q\"\n")
+    catch ConfigError error
+        rejected = true
+    end
+    assert rejected and config.get("A") == "one\tline\nnext\rreturn\"quote\\slash"
+    config.parse("RECOVERED=ok\n")
+    assert config.get("RECOVERED") == "ok" and not config.has("A")
     println("dotenv replace: PASS")
     return 0
 end
