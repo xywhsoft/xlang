@@ -1,0 +1,50 @@
+import zstd
+import sharedmem
+import csv
+import xml.sax
+import zip
+
+extern "extlib_owned_text" @no_raise func ownedText(cstring text) as point
+extern "extlib_owned_free" @no_raise func drop(point data)
+extern "extlib_owned_released" @no_raise func released() as int
+
+func exercise()
+    cstring text = cstring.take(ownedText("你好,world"), drop)
+    assert zstd.decompressText(zstd.compress(text)) == "你好,world"
+    auto compressor = zstd.compressor()
+    compressor.update(text)
+    assert compressor.finish()
+    assert zstd.decompressText(compressor.drain()) == "你好,world"
+    string binaryText = "A\0你好"
+    assert zstd.decompressText(zstd.compress(binaryText)) == binaryText
+    auto memory = sharedmem.create("xlang_span_" + crypto.randomString(16), 64)
+    memory.writeText(0, text)
+    assert memory.readText(0, 12) == "你好,world"
+    memory.writeText(16, binaryText)
+    assert memory.readText(16, string.byteLen(binaryText)) == binaryText
+    auto rows = csv.parse(text + "\n")
+    assert rows[0][0] == "你好" and rows[0][1] == "world"
+    cstring csvText = cstring.take(ownedText("a,b\n你,好\n"), drop)
+    assert csv.parse(csvText).length == 2
+    auto parser = xml.sax.reader(cstring.take(ownedText("<root>你好</root>"), drop))
+    assert released() == 1
+    assert parser.next()["type"] == "start"
+    assert parser.next()["text"] == "你好"
+    assert parser.next()["type"] == "end"
+    assert parser.next() == null
+    parser.close()
+    auto archive = zip.create(method="store", level=0)
+    archive.add("text.txt", text)
+    archive.add("payload.bin", binaryText)
+    archive.add("temporary.txt", cstring.take(ownedText("owned"), drop))
+    assert released() == 2
+    auto reader = zip.open(archive.finish())
+    assert reader.readText("text.txt") == "你好,world"
+    assert reader.readText("payload.bin") == binaryText
+    assert reader.readText("temporary.txt") == "owned"
+    reader.close()
+end
+
+exercise()
+assert released() == 4
+println("extension direct text inputs ok")
