@@ -48,6 +48,11 @@ xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
 xls_semantic_check* xlsSemanticCheckCreateIncrementalInContext(xls_context* context,const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity);
+/* Optional ordinary-entry cache after shared source loading/reporting. Parsed
+ * overlay syntax takes priority and explicitly shadows this cache. */
+xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,struct xls_entry_cache* cache,const char* entry,
+    const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
+    xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity);
 /* Nodes are immutable chunk facts, with original chunk coordinates. Use the
  * supplied current range; it includes edits before reused declarations.
  * Visitor >0 continues, 0 stops normally, <0 fails. No AST is materialized. */

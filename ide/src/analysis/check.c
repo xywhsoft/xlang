@@ -27,6 +27,7 @@ struct xls_semantic_check {
     xls_semantic_index* typedIndex;
     xls_sem_memo* memo;
     xls_sem_work semanticWork;
+    xls_entry_parse_work entryWork;
     const char* phase;
     int accepted,captureIndex;
 };
@@ -143,20 +144,29 @@ cancel:
     fail(error,capacity,"semantic check cancelled");
     xlsSemanticCheckDestroy(r); return NULL;
 }
-xls_semantic_check* xlsSemanticCheckCreateIncrementalInContext(xls_context* context,const char* entry,
+xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,xls_entry_cache* cache,const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
     if(!xlsFrontendContextValid(context,entry,error,capacity)) return NULL;
     xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
-    xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,NULL,context,entry);
+    xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,syntax ? NULL : cache,context,entry);
     xls_semantic_check* result=createBody(context,entry,inputs,count,captureIndex,syntax,previous,cancelled,user,error,capacity);
-    xlsFrontendEntryEnd(&entryScope,0);
-    if(!xlsFrontendContextEnd(&scope)) {
+    if(result && stopped(cancelled,user)) {xlsSemanticCheckDestroy(result);result=NULL;fail(error,capacity,"semantic check cancelled");}
+    int scoped=xlsFrontendContextEnd(&scope);
+    xls_entry_parse_work work=xlsFrontendEntryEnd(&entryScope,result && scoped);
+    if(!scoped) {
         xlsSemanticCheckDestroy(result); fail(error,capacity,(scope.failed&2) ? "cannot retain bounded completion namespace" : "cannot resolve native context path or package environment"); return NULL;
     }
+    if(result) result->entryWork=work;
     return result;
 }
+xls_semantic_check* xlsSemanticCheckCreateIncrementalInContext(xls_context* context,const char* entry,
+    const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
+    xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{ return xlsSemanticCheckCreateCachedInContext(context,NULL,entry,inputs,count,captureIndex,syntax,previous,cancelled,user,error,capacity); }
+xls_entry_parse_work xlsSemanticCheckEntryWork(const xls_semantic_check* result)
+{ return result ? result->entryWork : (xls_entry_parse_work){0}; }
 xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)

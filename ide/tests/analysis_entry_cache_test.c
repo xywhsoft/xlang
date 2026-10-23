@@ -1,5 +1,6 @@
 #include "analysis/frontend_entry_cache.h"
 #include "analysis/frontend_internal.h"
+#include "analysis/check_session.h"
 #include "analysis/ast_clone.h"
 #include "src/sem/xl6_sem.h"
 #include "src/stdlib/xl6_stdlib.h"
@@ -151,4 +152,84 @@ static int integrated(void)
     xlsContextRelease(context);xlsEntryCacheDestroy(cache);CHECK(xlsSemanticCompletionValidate(result) && xlsSemanticCompletionContext(result));xlsSemanticCompletionDestroy(result);xlsSemanticCompletionDestroy(initial);
     xrtFree(directory);xrtFree(entry);xrtFree(helper);xrtFree(package);xrtFree(manifest);xrtFree(api);return 1;
 }
-int main(void) {if(!primitive() || !integrated()) return 1;printf("analysis_entry_cache_test passed: %u checks; pre-semantic immutable AST parity, exact budget/fault fallback, nested ownership, real disk/member edits and fresh semantic JSON equivalence\n",checks);return 0;}
+static int checkParity(xls_semantic_check* result,xls_context* context,const char* entry,const xls_semantic_input* input,size_t count)
+{
+    xls_semantic_check* fresh=xlsSemanticCheckCreateInContext(context,entry,input,count,1,NULL,NULL,NULL,0);
+    char *a=xlsSemanticCheckJson(result,NULL),*b=xlsSemanticCheckJson(fresh,NULL);
+    CHECK(result && fresh && a && b && !strcmp(a,b) && xlsSemanticCheckValidate(result));
+    CHECK(!xlsSemanticCheckEntryWork(fresh).parsed && !xlsSemanticCheckEntryWork(fresh).reused);
+    xlsSemanticStringFree(a);xlsSemanticStringFree(b);xlsSemanticCheckDestroy(fresh);return 1;
+}
+static int checkIntegrated(void)
+{
+    char relative[160],error[256];snprintf(relative,sizeof(relative),"build/check-entry-cache-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+    char *directory=xrtPathAbs(relative),*entry=xrtPathJoin(directory,"main.xl"),*helper=xrtPathJoin(directory,"helper.xl"),*package=xrtPathJoin(directory,"packages/check_package"),*manifest=xrtPathJoin(package,"xlang.package.json"),*api=xrtPathJoin(package,"api.xl");
+    const char* root="\xef\xbb\xbfimport helper\r\nfunc main(...) as int\r\n return helper.answer()\r\nend\r\n";
+    const char* body="import check_package as cp\nexport func answer() as int\n return cp.value()\nend\n";
+    const char* goodApi="export func value() as int\n return 7\nend\n";
+    CHECK(directory && entry && helper && package && manifest && api && xrtDirCreateAll(package) && writeText(entry,root));
+    CHECK(writeText(manifest,"{\"format\":\"xlang-package-1\",\"name\":\"check_package\",\"version\":\"1.0.0\",\"abiVersion\":\"1\",\"kind\":\"source\",\"artifact\":{\"kind\":\"source\",\"xlSources\":[\"api.xl\"]},\"dependencies\":[],\"links\":[],\"loadlibs\":[]}") && writeText(api,goodApi));
+    xls_context_spec spec={.kind=XLS_CONTEXT_PROJECT,.project=directory,.entry=entry,.directory=directory,.configuration="debug",.analysisProfile="fixture-linked-native",.targetKind="exe",.packagePath="packages"};
+    xls_context* context=xlsContextCreate(&spec,1024*1024,NULL);xls_check_session* session=xlsCheckSessionCreate(NULL);CHECK(context && session);
+    xls_text* text=xlsTextCreate(body,strlen(body),8u*1024u*1024u,NULL);CHECK(text);
+    xls_analysis_document document={.key="member",.path=helper,.text=text,.identity=1,.revision=1};xls_semantic_input input={helper,body,strlen(body)};
+    xls_semantic_check* initial=xlsCheckSessionCheckInContext(session,context,&document,1,NULL,1,NULL,NULL,error,sizeof(error));
+    CHECK(checkParity(initial,context,entry,&input,1) && xlsSemanticCheckInfo(initial).accepted && xlsSemanticCheckEntryWork(initial).parsed==1 && !xlsSemanticCheckEntryWork(initial).reused);
+    xlsSemanticCheckDestroy(initial);initial=NULL;xlsTextRelease(text);text=NULL;
+    for(unsigned i=0;i<20;++i) {
+        char edited[256];snprintf(edited,sizeof(edited),"%s// member edit %u 中文😀\n",body,i);text=xlsTextCreate(edited,strlen(edited),8u*1024u*1024u,NULL);CHECK(text);
+        document.text=text;document.revision=i+2;input=(xls_semantic_input){helper,edited,strlen(edited)};
+        xls_semantic_check* result=xlsCheckSessionCheckInContext(session,context,&document,1,NULL,1,NULL,NULL,error,sizeof(error));
+        CHECK(checkParity(result,context,entry,&input,1) && xlsSemanticCheckInfo(result).accepted && !xlsSemanticCheckEntryWork(result).parsed && xlsSemanticCheckEntryWork(result).reused==1);
+        xls_check_stats stats;xlsCheckSessionStats(session,&stats);CHECK(stats.builds==i+2 && !stats.hits && !stats.entryFullParses && !stats.entrySyntaxHits);
+        xlsSemanticCheckDestroy(result);xlsTextRelease(text);
+    }
+    text=xlsTextCreate(body,strlen(body),8u*1024u*1024u,NULL);CHECK(text);document.text=text;document.revision=22;input=(xls_semantic_input){helper,body,strlen(body)};
+    initial=xlsCheckSessionCheckInContext(session,context,&document,1,NULL,1,NULL,NULL,error,sizeof(error));CHECK(checkParity(initial,context,entry,&input,1));
+    xls_semantic_check* result=xlsCheckSessionCheckInContext(session,context,&document,1,NULL,1,NULL,NULL,error,sizeof(error));
+    CHECK(result==initial && xlsSemanticCheckEntryWork(result).reused==1);xlsSemanticCheckDestroy(result);
+    CHECK(writeText(entry,root) && !xlsSemanticCheckValidate(initial));
+    result=xlsCheckSessionCheckInContext(session,context,&document,1,NULL,1,NULL,NULL,error,sizeof(error));
+    CHECK(checkParity(result,context,entry,&input,1) && xlsSemanticCheckEntryWork(result).reused==1);xlsSemanticCheckDestroy(result);
+    CHECK(writeText(api,"export func value() as string\n return \"changed\"\nend\n"));
+    result=xlsCheckSessionCheckInContext(session,context,&document,1,NULL,1,NULL,NULL,error,sizeof(error));
+    CHECK(checkParity(result,context,entry,&input,1) && !xlsSemanticCheckInfo(result).accepted && xlsSemanticCheckInfo(result).diagnostics && xlsSemanticCheckEntryWork(result).reused==1);xlsSemanticCheckDestroy(result);
+    CHECK(writeText(api,goodApi) && writeText(entry,"import helper\nfunc main(\n"));
+    result=xlsCheckSessionCheckInContext(session,context,&document,1,NULL,1,NULL,NULL,error,sizeof(error));
+    CHECK(checkParity(result,context,entry,&input,1) && !xlsSemanticCheckInfo(result).accepted && xlsSemanticCheckEntryWork(result).parsed==1);xlsSemanticCheckDestroy(result);
+    CHECK(writeText(entry,root));result=xlsCheckSessionCheckInContext(session,context,&document,1,NULL,1,NULL,NULL,error,sizeof(error));
+    CHECK(checkParity(result,context,entry,&input,1) && xlsSemanticCheckInfo(result).accepted && xlsSemanticCheckEntryWork(result).reused==1);xlsSemanticCheckDestroy(result);
+    spec.configuration="release";xls_context* changed=xlsContextCreate(&spec,1024*1024,NULL);CHECK(changed);
+    result=xlsCheckSessionCheckInContext(session,changed,&document,1,NULL,1,NULL,NULL,error,sizeof(error));
+    CHECK(checkParity(result,changed,entry,&input,1) && xlsSemanticCheckEntryWork(result).parsed==1 && !xlsSemanticCheckEntryWork(result).reused);xlsSemanticCheckDestroy(result);
+    xls_text* opened=xlsTextCreate(root,strlen(root),8u*1024u*1024u,NULL);CHECK(opened);xls_analysis_document documents[]={document,{.key="entry",.path=entry,.text=opened,.identity=2,.revision=1}};
+    result=xlsCheckSessionCheckInContext(session,changed,documents,2,"entry",1,NULL,NULL,error,sizeof(error));
+    xls_semantic_input both[]={input,{entry,root,strlen(root)}};
+    CHECK(checkParity(result,changed,entry,both,2) && xlsSemanticCheckInfo(result).accepted && !xlsSemanticCheckEntryWork(result).parsed && !xlsSemanticCheckEntryWork(result).reused);xlsSemanticCheckDestroy(result);
+    result=xlsCheckSessionCheckInContext(session,changed,&document,1,NULL,1,NULL,NULL,error,sizeof(error));
+    CHECK(checkParity(result,changed,entry,&input,1) && xlsSemanticCheckEntryWork(result).reused==1);xlsSemanticCheckDestroy(result);xlsTextRelease(opened);
+    /* Budget fallback still runs the full fresh compiler, with a valid report. */
+    xls_entry_cache* limited=xlsEntryCacheCreate(1);CHECK(limited);
+    result=xlsSemanticCheckCreateCachedInContext(context,limited,entry,&input,1,1,NULL,NULL,NULL,NULL,error,sizeof(error));
+    CHECK(checkParity(result,context,entry,&input,1) && xlsSemanticCheckInfo(result).accepted && xlsSemanticCheckEntryWork(result).parsed==1 && xlsSemanticCheckEntryWork(result).declined==1 && !xlsSemanticCheckEntryWork(result).bytes);
+    xlsSemanticCheckDestroy(result);xlsEntryCacheDestroy(limited);
+    /* Every actual cancellation point drops pending new-entry captures. */
+    xls_entry_cache* cache=xlsEntryCacheCreate(1024*1024);CHECK(cache);
+    result=xlsSemanticCheckCreateCachedInContext(context,cache,entry,&input,1,1,NULL,NULL,NULL,NULL,error,sizeof(error));CHECK(result);xlsSemanticCheckDestroy(result);
+    size_t retained=xlsEntryCacheBytes(cache);const char* newRoot="import helper\nfunc main(...) as int\n return helper.answer()+12345\nend\n";
+    CHECK(writeText(entry,newRoot));cancel_data cancel={0,0};
+    result=xlsSemanticCheckCreateInContext(context,entry,&input,1,1,stopAt,&cancel,error,sizeof(error));CHECK(result && cancel.calls>=6);xlsSemanticCheckDestroy(result);
+    unsigned checkpoints=cancel.calls;
+    for(unsigned i=1;i<=checkpoints;++i) {
+        CHECK(writeText(entry,newRoot));cancel=(cancel_data){0,i};
+        CHECK(!xlsSemanticCheckCreateCachedInContext(context,cache,entry,&input,1,1,NULL,NULL,stopAt,&cancel,error,sizeof(error)) && cancel.calls==i && xlsEntryCacheBytes(cache)==retained);
+        CHECK(writeText(entry,root));result=xlsSemanticCheckCreateCachedInContext(context,cache,entry,&input,1,1,NULL,NULL,NULL,NULL,error,sizeof(error));
+        CHECK(checkParity(result,context,entry,&input,1) && xlsSemanticCheckEntryWork(result).reused==1);xlsSemanticCheckDestroy(result);
+    }
+    result=xlsCheckSessionCheckInContext(session,changed,&document,1,NULL,1,NULL,NULL,error,sizeof(error));CHECK(result && xlsSemanticCheckInfo(result).accepted);
+    xlsCheckSessionDestroy(session);xlsContextRelease(context);xlsContextRelease(changed);xlsEntryCacheDestroy(cache);xlsTextRelease(text);
+    CHECK(xlsSemanticCheckValidate(result) && xlsSemanticCheckTypedIndex(result) && xlsSemanticCheckEntryWork(result).reused==1);
+    xlsSemanticCheckDestroy(result);xlsSemanticCheckDestroy(initial);
+    xrtFree(directory);xrtFree(entry);xrtFree(helper);xrtFree(package);xrtFree(manifest);xrtFree(api);return 1;
+}
+int main(void) {if(!primitive() || !integrated() || !checkIntegrated()) return 1;printf("analysis_entry_cache_test passed: %u checks; pre-semantic AST parity,budget/fault/nested/cancel ownership,real disk/member check and completion edits,fresh semantic JSON/index/IR equivalence\n",checks);return 0;}

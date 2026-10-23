@@ -35,6 +35,10 @@ typedef struct xls_check_semantic_work { uint64_t functionsChecked,functionsReus
 /* Work captured by the opt-in retained-entry path. The independent fresh
  * reference API does not instrument function calls and reports zero here. */
 xls_check_semantic_work xlsSemanticCheckWork(const xls_semantic_check* result);
+/* Immutable ordinary entry parse work of the actual build. Exact-result hits
+ * retain it. Overlay chunk syntax uses the existing session counters instead;
+ * imports, semantic checking and IR still run after ordinary AST reuse. */
+xls_entry_parse_work xlsSemanticCheckEntryWork(const xls_semantic_check* result);
 
 /* Private immutable result, independent of transport/GUI and session ASTs.
  * Shared parser/imports/stdlib/semantics AND typed IR checks run in-process.
