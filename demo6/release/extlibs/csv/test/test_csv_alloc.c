@@ -101,6 +101,39 @@ static unsigned int writer_failures(bool malformed)
     return rejected;
 }
 
+/* 文本结果接管后，写入器和字符串分别只释放自己拥有的内存。 */
+static unsigned int writer_text_failures(void)
+{
+    xmemdebugsnapshot before;
+    unsigned int rejected = 0, complete = 0;
+    xrtMemDebugSnapshot(&before);
+    for (unsigned int i = 0; i < 512 && complete < 2; ++i) {
+        void* writer;
+        char* text = NULL;
+        bool ok, injected;
+        assert(xrtMemDebugFailAfter(i));
+        writer = xcsv_writer_create_memory(",", "\"", 0, false, false, 0, 0, 0, 0, 0);
+        ok = writer != NULL && xcsv_writer_begin(writer);
+        if (ok) ok = xcsv_writer_field(writer, "\xe4\xb8\x8a\xe6\xb5\xb7,CSV");
+        if (ok) ok = xcsv_writer_end(writer);
+        if (ok) { text = (char*)xcsv_writer_take_text(writer); ok = text != NULL; }
+        injected = xrtMemDebugFailTriggered();
+        xrtMemDebugFailClear();
+        if (injected) {
+            assert(!ok && text == NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+            ++rejected;
+        } else {
+            assert(ok && !strcmp(text, "\"\xe4\xb8\x8a\xe6\xb5\xb7,CSV\"\n") && !xrtGetError());
+            ++complete;
+        }
+        xcsv_writer_destroy(writer);
+        xrtFree(text);
+        unchanged(&before);
+    }
+    assert(rejected > 0 && complete == 2);
+    return rejected;
+}
+
 static bool empty_read(ptr context, ptr data, size_t request, size_t* count)
 {
     (void)context; (void)data; (void)request;
@@ -164,6 +197,7 @@ int main(void)
     xrtMemDebugSnapshot(&before);
     count = reader_failures(false) + reader_failures(true);
     count += writer_failures(false) + writer_failures(true);
+    count += writer_text_failures();
     count += construction_ownership(false, false) + construction_ownership(false, true);
     count += construction_ownership(true, false) + construction_ownership(true, true);
     unchanged(&before);
