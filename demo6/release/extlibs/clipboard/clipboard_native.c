@@ -1187,28 +1187,27 @@ XL_EXPORT int64_t x_clipboard_has_files(void)
 	return IsClipboardFormatAvailable(CF_HDROP) ? 1 : 0;
 }
 
-XL_EXPORT xvalue* x_clipboard_get_text(void)
+static char* xclip_get_text_owned(void)
 {
 	HGLOBAL hglobal;
 	void* data;
 	char* out;
-	xvalue* result;
 	SIZE_T size;
 	if ( !xclip_open() ) {
-		return xclip_value_text("");
+		return xrtStrDup("");
 	}
 	if ( IsClipboardFormatAvailable(CF_UNICODETEXT) ) {
 		hglobal = (HGLOBAL)GetClipboardData(CF_UNICODETEXT);
 		if ( hglobal == NULL ) {
 			CloseClipboard();
 			xclip_set_win_error("GetClipboardData");
-			return xclip_value_text("");
+			return xrtStrDup("");
 		}
 		data = GlobalLock(hglobal);
 		if ( data == NULL ) {
 			CloseClipboard();
 			xclip_set_win_error("GlobalLock");
-			return xclip_value_text("");
+			return xrtStrDup("");
 		}
 		size = GlobalSize(hglobal);
 		if ( size < sizeof(wchar_t) || size % sizeof(wchar_t) != 0u ||
@@ -1216,17 +1215,16 @@ XL_EXPORT xvalue* x_clipboard_get_text(void)
 			GlobalUnlock(hglobal);
 			CloseClipboard();
 			xclip_set_error("clipboard Unicode text is not terminated");
-			return xclip_value_text("");
+			return xrtStrDup("");
 		}
 		out = xclip_wide_to_utf8((const wchar_t*)data);
 		GlobalUnlock(hglobal);
 		CloseClipboard();
 		if ( out == NULL ) {
-			return xclip_value_text("");
+			return xrtStrDup("");
 		}
-		result = xclip_take_text(out);
-		if ( result != NULL ) xclip_set_error("");
-		return result;
+		xclip_set_error("");
+		return out;
 	}
 	if ( IsClipboardFormatAvailable(CF_TEXT) || IsClipboardFormatAvailable(CF_OEMTEXT) ) {
 		UINT fmt = IsClipboardFormatAvailable(CF_TEXT) ? CF_TEXT : CF_OEMTEXT;
@@ -1235,34 +1233,49 @@ XL_EXPORT xvalue* x_clipboard_get_text(void)
 		if ( hglobal == NULL ) {
 			CloseClipboard();
 			xclip_set_win_error("GetClipboardData");
-			return xclip_value_text("");
+			return xrtStrDup("");
 		}
 		data = GlobalLock(hglobal);
 		if ( data == NULL ) {
 			CloseClipboard();
 			xclip_set_win_error("GlobalLock");
-			return xclip_value_text("");
+			return xrtStrDup("");
 		}
 		size = GlobalSize(hglobal);
 		if ( size == 0u || memchr(data, '\0', size) == NULL ) {
 			GlobalUnlock(hglobal);
 			CloseClipboard();
 			xclip_set_error("clipboard text is not terminated");
-			return xclip_value_text("");
+			return xrtStrDup("");
 		}
 		out = xclip_multibyte_to_utf8((const char*)data, code_page);
 		GlobalUnlock(hglobal);
 		CloseClipboard();
 		if ( out == NULL ) {
-			return xclip_value_text("");
+			return xrtStrDup("");
 		}
-		result = xclip_take_text(out);
-		if ( result != NULL ) xclip_set_error("");
-		return result;
+		xclip_set_error("");
+		return out;
 	}
 	CloseClipboard();
 	xclip_set_error("clipboard text is not available");
-	return xclip_value_text("");
+	return xrtStrDup("");
+}
+
+/* XLang 直接接管 UTF-8 文本，避免经 xvalue 再复制一次。 */
+XL_EXPORT void* x_clipboard_get_text_owned(void)
+{
+	return xclip_get_text_owned();
+}
+
+XL_EXPORT xvalue* x_clipboard_get_text(void)
+{
+	char* text = xclip_get_text_owned();
+	xvalue* result;
+	if ( text == NULL ) return NULL;
+	result = xclip_take_text(text);
+	if ( result == NULL ) xclip_set_xrt_error();
+	return result;
 }
 
 XL_EXPORT int64_t x_clipboard_set_text(const char* text)

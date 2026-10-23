@@ -15,7 +15,7 @@ extern "x_clipboard_is_format_available" func x_clipboard_is_format_available(in
 extern "x_clipboard_has_text" func x_clipboard_has_text() as int
 extern "x_clipboard_has_image" func x_clipboard_has_image() as int
 extern "x_clipboard_has_files" func x_clipboard_has_files() as int
-extern "x_clipboard_get_text" func x_clipboard_get_text() as var
+extern "x_clipboard_get_text_owned" func x_clipboard_get_text_owned() as point
 extern "x_clipboard_set_text" func x_clipboard_set_text(string text) as int
 extern "x_clipboard_get_files" func x_clipboard_get_files() as var
 extern "x_clipboard_get_file" func x_clipboard_get_file() as var
@@ -134,7 +134,11 @@ export func has_files() as bool
 end
 
 export func get_text() as string
-    return string(x_clipboard_get_text())
+    point result = x_clipboard_get_text_owned()
+    if result == null then
+        return ""
+    end
+    return __xl_runtime.takeCstr(result)
 end
 
 export func read_text() as string
