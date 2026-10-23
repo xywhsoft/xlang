@@ -11,6 +11,7 @@ XL6_TEXT_EXPORT(xl6TextLowerV1, TEXT_VALUE)
 #include "xl6_x509_crl_profiles_symbols.inc"
 #include "xl6_x509_verify_symbols.inc"
 #include "xl6_x509_crl_policy_symbols.inc"
+#include "xl6_x509_path_symbols.inc"
 #include "xl6_compress_symbols.inc"
 #include "xl6_template_symbols.inc"
 XL6_TEXT_EXPORT(xl6CodecHexTextV1, CODEC_HEX)

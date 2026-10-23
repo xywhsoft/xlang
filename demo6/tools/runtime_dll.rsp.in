@@ -556,6 +556,22 @@
     src\runtime\xl6_x509_revocation_domain.c
     src\runtime\xl6_x509_revocation_check_domain.c
     src\runtime\xl6_x509_crl_critical_domain.c
+    src\runtime\xl6_x509_anchor.c
+    src\runtime\xl6_x509_path_config.c
+    src\runtime\xl6_x509_path_value.c
+    src\runtime\xl6_x509_path_result.c
+    src\runtime\xl6_x509_path_validate.c
+    src\runtime\xl6_x509_path_policy.c
+    src\runtime\xl6_x509_path_fields.c
+    src\runtime\xl6_x509_path_array.c
+    src\runtime\xl6_x509_path_check.c
+    src\runtime\xl6_x509_path_critical.c
+    src\runtime\xl6_x509_path_check_callback.c
+    src\runtime\xl6_x509_anchor_domain.c
+    src\runtime\xl6_x509_path_policy_domain.c
+    src\runtime\xl6_x509_path_domain.c
+    src\runtime\xl6_x509_path_outcome_domain.c
+    src\runtime\xl6_x509_path_critical_domain.c
     src\runtime\xl6_der_value.c
     src\runtime\xl6_der_value_domain.c
     src\runtime\xl6_der_reader.c

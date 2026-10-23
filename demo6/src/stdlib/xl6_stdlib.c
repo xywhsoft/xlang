@@ -837,7 +837,9 @@ static int xl6StdlibUsesX509Types(const XL6_AstNode* root)
         "X509ReasonFlags","X509DistributionNameKind",
         "X509CrlEntries","X509CrlEntry","X509IssuingDistributionPoint","X509CrlVersion","X509CrlReason",
         "X509SignatureStatus","X509CrlPolicyFlags","X509RevocationStatus","X509ValidatedCrl",
-        "X509CrlSet","X509RevocationResult","X509RevocationCheck","__X509CrlCriticalContext"};
+        "X509CrlSet","X509RevocationResult","X509RevocationCheck","__X509CrlCriticalContext",
+        "X509TrustAnchor","X509PathPolicy","X509PathOutcome","X509Path","__X509PathCriticalContext",
+        "X509PathFlags","X509ValidationStatus","X509PathReason"};
     for(size_t i=0;i<sizeof(types)/sizeof(*types);++i)if(xl6StdlibNodeUsesTypeName(root,types[i]))return 1;
     return 0;
 }
@@ -857,6 +859,13 @@ static int xl6StdlibUsesX509CrlPolicyClasses(const XL6_AstNode* root)
         "X509RevocationCheck","__X509CrlCriticalContext"};
     for(size_t i=0;i<sizeof(types)/sizeof(*types);++i)
         if(xl6StdlibNodeUsesTypeName(root,types[i]))return 1;
+    return 0;
+}
+
+static int xl6StdlibUsesX509PathClasses(const XL6_AstNode* root)
+{
+    static const char* const names[]={"X509TrustAnchor","X509PathPolicy","X509PathOutcome","X509Path","__X509PathCriticalContext"};
+    for(size_t i=0;i<sizeof(names)/sizeof(*names);++i)if(xl6StdlibNodeUsesTypeName(root,names[i]))return 1;
     return 0;
 }
 
@@ -2332,6 +2341,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
             xl6StdlibBuilderAppend(&builder,xl6StdlibX509CrlPolicyEnumsSource);
         if(xl6StdlibUsesX509CrlPolicyClasses(root))
             xl6StdlibBuilderAppend(&builder,xl6StdlibX509CrlPolicySource);
+        if(xl6StdlibUsesX509PathClasses(root) || xl6StdlibNodeUsesTypeName(root,"X509PathFlags") ||
+            xl6StdlibNodeUsesTypeName(root,"X509ValidationStatus") || xl6StdlibNodeUsesTypeName(root,"X509PathReason"))
+            xl6StdlibBuilderAppend(&builder,xl6StdlibX509PathEnumsSource);
+        if(xl6StdlibUsesX509PathClasses(root))xl6StdlibBuilderAppend(&builder,xl6StdlibX509PathSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509DataSource);
     }
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||
