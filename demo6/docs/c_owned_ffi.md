@@ -144,3 +144,13 @@ shipping builds without memory debug still run value and lifetime assertions;
 allocation-counter checks use the separate debug runtime lane. Acceptance
 records belong under `build/c-owned/`; this targeted check is not a claim that
 all repository-wide inventories and unrelated release gates are green.
+
+Current redesign acceptance (`build/c-owned/compiler-acceptance/acceptance.json`)
+built 1,071 source translation units and verified unchanged build inputs. Two
+runtime units, 12 generated-C programs and 10 negative declarations passed.
+O0/O2 contract harnesses each checked 495 RuntimeOps / 3,960 operand effects,
+22 capture mutations, 73 managed-storage mutations and four nullable-join
+mutations. Thirteen C interoperability programs and nine ordinary programs
+passed both source JIT and standalone EXE; ordinary generated C included no
+C owner runtime header. The full check now runs these ordinary contracts and
+programs to protect virtual, async and generator dispatch during loan cleanup.

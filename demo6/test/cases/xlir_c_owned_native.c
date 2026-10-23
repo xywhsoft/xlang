@@ -27,7 +27,13 @@ void* c_owned_unicode(void)
     const char text[]="A\xe4\xbd\xa0\xe5\xa5\xbd" "B";
     void* data=malloc(sizeof(text));assert(data);memcpy(data,text,sizeof(text));return data;
 }
-bool c_owned_debug(void) { return xrtMemDebugEnable(true); }
+bool c_owned_debug(void)
+{
+    if(xrtMemDebugEnabled())return true;
+    bool enabled=xrtMemDebugEnable(true);
+    if(!enabled)xrtClearError(); /* optional in source shipping profiles */
+    return enabled;
+}
 void c_owned_fail_next(void) { assert(xrtMemDebugFailAfter(0)); }
 void c_owned_fail_clear(void) { xrtMemDebugFailClear();xrtClearError(); }
 int64_t c_owned_allocations(void)
