@@ -147,6 +147,12 @@ if not caught then throw RuntimeError "empty" end
 auto anchor=X509TrustAnchor(certificate)
 auto copy=anchor.certificate
 auto policy=X509PathPolicy(at,X509PathFlags.requireKeyUsage,X509KeyUsageFlags.digitalSignature,"",5,8192)
+auto issuerMatch=certificate.matchesIssuer(certificate)
+auto trust=TrustStore()
+auto built=X509Path.build(certificate,chain,trust.snapshot(),policy)
+auto buildHandled=X509Path.build(certificate,chain,trust.snapshot(),policy,func(Certificate c,X509Extension e,int d) as bool
+ return true
+end)
 auto t=policy.at
 auto f=policy.flags
 auto u=policy.keyUsage
@@ -173,4 +179,6 @@ auto handled=X509Path.check(chain,anchor,policy,func(Certificate c,X509Extension
 end)
 end
 ''')
+    from x509_build_language_fixtures import add_build_cases
+    cases.extend(add_build_cases(root,out))
     return cases,contract

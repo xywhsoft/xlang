@@ -13,7 +13,7 @@ def main():
     sha=lambda f:hashlib.sha256(Path(f).read_bytes()).hexdigest()
     gcc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
     tcc=Path(shutil.which('tcc') or 'E:/software/tcc/tcc.exe').resolve()
-    sources=[root/'src/runtime'/('xl6_x509_'+s+'.c') for s in ('value','certificate','record_storage','record_oid','crl_policy_value','anchor','path_value','path_result','path_config','path_fields','path_validate')]
+    sources=[root/'src/runtime'/('xl6_x509_'+s+'.c') for s in ('value','certificate','record_storage','record_oid','crl_policy_value','anchor','path_value','path_result','path_config','path_fields','path_validate','path_snapshot','path_operation')]
     sources+=[root/'src/runtime/xl6_native_handle.c',root/'src/api/xl_foreign_error.c']
     files=[Path(__file__),root/'tools/x509_path_fixtures.py',root/'tools/check_key_format_wire.py',
         root/'test/support/x509_path_owned.c',*sources,*root.glob('src/runtime/*.h'),root/'src/api/xl_foreign_error.h',

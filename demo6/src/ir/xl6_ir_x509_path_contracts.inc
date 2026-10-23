@@ -28,3 +28,4 @@
 {"xl6X509PathCriticalCertificateV1",T,V,1,{V},.resultOwner="xl6X509CertificateDestroyV1",.parameterOwners={"xl6X509PathCriticalDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
 {"xl6X509PathCriticalExtensionV1",T,V,1,{V},.resultOwner="xl6X509ExtensionDestroyV1",.parameterOwners={"xl6X509PathCriticalDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
 {"xl6X509PathCriticalDepthV1",T,I,1,{V},.parameterOwners={"xl6X509PathCriticalDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+{"xl6X509IssuerMatchV1",T,XL6_IR_C_ABI_BOOL,2,{V,V},.parameterOwners={"xl6X509CertificateDestroyV1","xl6X509CertificateDestroyV1"},.pure=1,.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},

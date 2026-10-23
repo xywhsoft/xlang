@@ -1,4 +1,4 @@
-"""Offline resident CRL policy adapters; not language, trust or shipping acceptance."""
+"""Offline owned ordered/candidate paths and checked callbacks; not shipping acceptance."""
 from pathlib import Path
 import argparse,hashlib,json,os,shutil,subprocess,time
 import cryptography
@@ -13,7 +13,7 @@ def main():
     tcc=Path(shutil.which('tcc') or 'E:/software/tcc/tcc.exe').resolve()
     extra=[]
     files=[Path(__file__),root/'tools/x509_path_fixtures.py',root/'tools/check_key_format_wire.py',
-        root/'tools/check_x509_owned.py',gcc,tcc,root/'test/support/x509_path_public.c',root/'test/support/x509_path_owned.c',root/'src/api/xl_foreign_error.h',*[root/'test/support'/('crypto_'+name+'_runtime.c') for name in ('rsa','nist','ed25519','xdh')],
+        root/'tools/check_x509_owned.py',gcc,tcc,root/'test/support/x509_path_public.c',root/'test/support/x509_path_owned.c',root/'test/support/x509_path_build_tests.inc',root/'src/api/xl_foreign_error.h',*[root/'test/support'/('crypto_'+name+'_runtime.c') for name in ('rsa','nist','ed25519','xdh')],
         root/'test/support/x509_path_plan.c',root/'src/compile/xl6_compile_unit.c',
         *root.glob('src/runtime/*.h'),*root.glob('src/runtime/*.inc'),*root.glob('src/compile/*.h'),
         *root.glob('src/compile/*.inc'),root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',
@@ -41,7 +41,8 @@ def main():
     assert len(sources)==len(set(sources))
     modules=run('planner.modules',[planner,'--modules'])
     assert '#define XRT_MODULE_X509_PATH' in modules
-    assert not any(s in modules for s in ('_MODULE_ALL','MODULE_TLS','MODULE_X509_PATH_BUILD','MODULE_X509_STORE'))
+    assert not any(s in modules for s in ('_MODULE_ALL','MODULE_TLS'))
+    assert '#define XRT_MODULE_X509_PATH_BUILD' in modules and '#define XRT_MODULE_X509_STORE' in modules
     report['Closure']=dict(Sources=list(map(str,sources)),Modules=modules)
     for f in sources:report['Inputs'][str(f)]=sha(f)
     impl=out/'native.c';impl.write_text(modules+'\n#define XRT_MODULE_MEMORY_DEBUG\n'+

@@ -23,7 +23,7 @@ static xvalue* input(xbytesview target,xbytesview issuer)
 }
 static XL6_NativeClassArrayContextV1 arrayContext(void)
 {return (XL6_NativeClassArrayContextV1){{701,801,3,sizeof(xvalue*),xrtTypeValue()},"handle",6,xl6X509CertificateHandlePolicyV1Get()};}
-typedef struct Call {void* context;void* anchor;void* policy;xvalue* array;void* savedCertificate;void* savedExtension;bool fail,noDiagnostic,nested,clearInput;unsigned calls;} Call;
+typedef struct Call {void* context;void* anchor;void* policy;void* store;xvalue* array;void* savedCertificate;void* savedExtension;bool fail,noDiagnostic,nested,clearInput;unsigned calls;} Call;
 static void environmentDrop(void* raw){(void)raw;}
 static bool environmentTrace(const void* raw,XL6_ModuleOwnershipVisit visit,void* data)
 {(void)raw;(void)visit;(void)data;return true;}
@@ -34,6 +34,7 @@ static bool invoke(void* raw,bool* result)
     assert(pin && xrtTypedArrayCount(xl6SequenceStorageV1(pin))==2);
     if(call->clearInput)xrtTypedArrayClear(xl6SequenceStorageV1(pin));
     xl6SequenceEndV1(pin);assert(!xrtGetError());
+    if(call->store)xl6X509StoreClearV1(call->store);
     void* certificate=xl6X509PathCriticalCertificateV1(call->context);
     if(!certificate)return false;
     void* extension=xl6X509PathCriticalExtensionV1(call->context);
@@ -67,9 +68,10 @@ static void ownedCatalog(void* raw,const XL6_NativeHandlePolicyV1* policy,const 
     assert(xrtOwnershipScopeEnd(&frozen));adapter->Drop(ref.Data);xl6OwnershipCatalogDestroyV1(catalog);xrtValueRelease(value);
 }
 #define CATALOG(Call,Part) ownedCatalog(Call,xl6X509##Part##HandlePolicyV1Get(),xl6OwnershipDomainX509##Part##V1Get())
+#include "x509_path_build_tests.inc"
 int main(void)
 {
-    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);assert(!orderedFoundationMain());
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);assert(!orderedFoundationMain());buildTests();
     const PathVector* vector=&pathVectors[3];
     void* root=xl6X509CertificateCreateSpanV1(vector->root);assert(root);void* anchor=xl6X509AnchorCreateV1(root);xl6X509CertificateDestroyV1(root);assert(anchor);
     FAULTS(xl6X509PathPolicyCreateV1(pathTime,3,1,(xstrview){"1.3.6.1.5.5.7.3.1",17},64,16777216),xl6X509PathPolicyDestroyV1);

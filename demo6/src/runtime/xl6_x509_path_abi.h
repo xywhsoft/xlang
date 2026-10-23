@@ -33,4 +33,7 @@ XL6_TEXT_API void* xl6X509PathCriticalExtensionV1(void*);
 XL6_TEXT_API int64_t xl6X509PathCriticalDepthV1(void*);
 XL6_TEXT_API void* xl6X509PathCheckV1(XL6_NativeClassArrayContextV1,const xvalue*,void*,void*);
 XL6_TEXT_API void* xl6X509PathCheckCallbackV1(XL6_NativeClassArrayContextV1,const xvalue*,void*,void*,void*,struct xlir_closure*);
+XL6_TEXT_API bool xl6X509IssuerMatchV1(void*,void*);
+XL6_TEXT_API void* xl6X509PathBuildV1(XL6_NativeClassArrayContextV1,void*,const xvalue*,void*,void*,int64_t,int64_t);
+XL6_TEXT_API void* xl6X509PathBuildCallbackV1(XL6_NativeClassArrayContextV1,void*,const xvalue*,void*,void*,int64_t,int64_t,void*,struct xlir_closure*);
 #endif

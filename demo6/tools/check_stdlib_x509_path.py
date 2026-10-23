@@ -1,5 +1,5 @@
-"""Current-source ordered X.509 path APIs, ABI, ordinary lifetime and pruning.
-Not path building, system trust selection, revocation/identity policy or TLS/shipping.
+"""Current-source ordered/candidate X.509 path APIs, ABI, lifetime and pruning.
+Not system trust sources, revocation/identity policy or TLS/shipping acceptance.
 Only offline normal certificates and routine language/ownership checks.
 """
 from pathlib import Path
@@ -24,11 +24,11 @@ def main():
     fixture_dir=out/'fixtures';fixture_dir.mkdir();cases,contract=language_fixtures(root,fixture_dir)
     exported=set(re.findall(r'XL6_TEXT_EXPORT\((\w+),',(root/'src/runtime/xl6_x509_path_symbols.inc').read_text()))
     declared=set(re.findall(r'XL6_TEXT_API [^;\n]*?\b(\w+)\(',(root/'src/runtime/xl6_x509_path_abi.h').read_text()))
-    contracted=set(re.findall(r'^\{"(\w+)"',(root/'src/ir/xl6_ir_x509_path_contracts.inc').read_text(),re.M))|set(re.findall(r'XL6_NATIVE_COLLECTION_BRIDGE\("(\w+)"',(root/'src/abi/xl6_x509_path_collection_contracts.inc').read_text()));assert len(exported)==32 and exported==declared==contracted
-    report=dict(Complete=False,Rows=[],Failures=[],Products=[],Plans=[],ResidentEntries=32,SourceBuild=str(a.source_build),
+    contracted=set(re.findall(r'^\{"(\w+)"',(root/'src/ir/xl6_ir_x509_path_contracts.inc').read_text(),re.M))|set(re.findall(r'XL6_NATIVE_COLLECTION_BRIDGE\("(\w+)"',(root/'src/abi/xl6_x509_path_collection_contracts.inc').read_text()));assert len(exported)==35 and exported==declared==contracted
+    report=dict(Complete=False,Rows=[],Failures=[],Products=[],Plans=[],ResidentEntries=35,SourceBuild=str(a.source_build),
         Inputs={str(path):sha(path) for path in [Path(__file__),gcc,root/'tools/check_x509_path_owned.py',root/'tools/check_key_format_wire.py',
             *[root/'test/support'/('crypto_'+name+'_runtime.c') for name in ('rsa','nist','ed25519','xdh')],
-            root/'tools/x509_path_language_fixtures.py',root/'tools/x509_path_fixtures.py',root/'test/cases/xlir_x509_path_contract.c',root/'test/support/container_projection_artifact.c']},
+            root/'tools/x509_path_language_fixtures.py',root/'tools/x509_build_language_fixtures.py',root/'tools/x509_path_fixtures.py',root/'test/cases/xlir_x509_path_contract.c',root/'test/support/container_projection_artifact.c']},
         TrustValidationAcceptance=False,TlsAcceptance=False,ShippingAcceptance=False,NetworkTraffic=False,NetworkSecurityTests=False,Scope=__doc__)
     env=dict(os.environ);runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
@@ -74,8 +74,17 @@ def main():
         run('plan.compile',[gcc,*flags,*strict,'-O0','-c',root/'test/support/container_projection_artifact.c','-o',obj]);run('plan.link',[gcc,*objects,obj,*libs,'-o',binary])
         for source in cases:
             prefix=out/(source.stem+'.selected');run(source.stem+'.plan',[binary,source,prefix]);plan=json.loads(Path(str(prefix)+'.plan.json').read_text())
-            assert not any(any(word in module for word in ('_MODULE_ALL','TLS','X509_STORE','X509_PATH_BUILD')) for module in plan['NativeModules'])
+            assert not any(any(word in module for word in ('_MODULE_ALL','TLS')) for module in plan['NativeModules'])
             modules=plan['NativeModules'];sources=plan['Sources']
+            if source.stem.startswith('path.') or source.stem=='build.issuer':
+                assert not any('X509_STORE' in name or 'X509_PATH_BUILD' in name for name in modules)
+            if source.stem=='build.issuer':
+                assert any('issuer_match.c' in name for name in sources)
+                assert not any(any(word in name for word in ('path_validate','path_build','path_dispatch','store_')) for name in sources)
+            elif source.stem.startswith('build.'):
+                assert 'XRT_MODULE_X509_PATH_BUILD' in modules and 'XRT_MODULE_X509_STORE' in modules
+                assert not any('path_validate.c' in name for name in sources)
+                assert any('path_build_callback.c' in name for name in sources)==(source.stem=='build.callback')
             if source.stem=='path.enums':
                 assert not any('x509_' in name for name in sources) and not any('X509' in name or 'CRYPTO' in name for name in modules)
             if source.stem=='path.policy':
@@ -87,6 +96,11 @@ def main():
             report['Plans'].append(dict(Name=source.stem,**plan));save()
     except Exception as error:report['Failures'].append(dict(Name='pruning',Error=repr(error)));save()
     negatives={'default-path': 'auto x=X509Path()\n', 'default-outcome': 'auto x=X509PathOutcome()\n', 'array': 'func bad(array<int> chain,X509TrustAnchor anchor,X509PathPolicy policy)\n auto x=X509Path.check(chain,anchor,policy)\nend\n', 'flags': 'func bad(time at)\n auto x=X509PathPolicy(at,X509CrlPolicyFlags.strict)\nend\n', 'anchor': 'func bad(array<Certificate> chain,Certificate cert,X509PathPolicy policy)\n auto x=X509Path.check(chain,cert,policy)\nend\n', 'status': 'func bad(X509PathOutcome result) as bool\n return result.status\nend\n', 'private': 'func bad(X509PathPolicy value)\n auto x=value.handle\nend\n', 'callback': 'func bad(array<Certificate> chain,X509TrustAnchor anchor,X509PathPolicy policy)\n auto x=X509Path.check(chain,anchor,policy,func(Certificate c,X509Extension e,int d) as int\n return 1\nend)\nend\n'}
+    negatives.update({
+        'build-array':'func bad(Certificate target,array<int> candidates,TrustStore trust,X509PathPolicy policy)\n auto x=X509Path.build(target,candidates,trust,policy)\nend\n',
+        'build-trust':'func bad(Certificate target,array<Certificate> candidates,Certificate trust,X509PathPolicy policy)\n auto x=X509Path.build(target,candidates,trust,policy)\nend\n',
+        'build-callback':'func bad(Certificate target,array<Certificate> candidates,TrustStore trust,X509PathPolicy policy)\n auto x=X509Path.build(target,candidates,trust,policy,func(Certificate c,X509Extension e,int d) as int\n return 1\nend)\nend\n',
+        'issuer-type':'func bad(Certificate target,TrustStore issuer)\n auto x=target.matchesIssuer(issuer)\nend\n'})
     for name,body in negatives.items():
         try:
             source=fixture_dir/('bad.'+name+'.xl');source.write_text(body);target=out/('bad.'+name+'.c');message=run('bad.'+name,[driver,source,'cgen-default',target],True)

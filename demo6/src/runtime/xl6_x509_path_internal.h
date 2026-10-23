@@ -44,6 +44,16 @@ void* xl6X509AnchorCertificateV1(void*);
 const XL6_NativeHandlePolicyV1* xl6X509AnchorHandlePolicyV1Get(void);
 
 bool xl6X509PathPolicyValidV1(const xx509pathconfig*);
+typedef struct XL6_X509PathCallV1 {
+    xx509criticalproc procedure;
+    void* data;
+    bool failed;
+    xerror* error;
+} XL6_X509PathCallV1;
+void xl6X509PathCallBeginV1(XL6_X509PathCallV1*,const xx509pathconfig*,xx509pathconfig*);
+bool xl6X509PathCallEndV1(XL6_X509PathCallV1*,xx509check);
+bool xl6X509PathDecisionV1(XL6_X509PathOutcomeV1*,xx509check,const xx509pathdecision*,const char*);
+XL6_X509PathV1* xl6X509PathSnapshotV1(const xx509cert* const*,size_t,const xx509cert*,const xx509pathconfig*,int64_t);
 void* xl6X509PathValidateCreateV1(void* const*,size_t,void*,const xx509pathconfig*,int64_t,int64_t);
 void xl6X509PathOutcomeDestroyV1(void*);
 int64_t xl6X509PathOutcomeStatusV1(void*);

@@ -22,6 +22,7 @@ const char* xl6StdlibX509DataSource=
 #include "xl6_stdlib_x509_certificate_records.inc"
 #include "xl6_stdlib_x509_certificate_profiles.inc"
 #include "xl6_stdlib_x509_certificate_verify.inc"
+#include "xl6_stdlib_x509_certificate_path.inc"
     "end\n"
     "class CertificateRevocationList\n"
     "    private native point handle\n"

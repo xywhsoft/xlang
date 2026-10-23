@@ -570,6 +570,15 @@
     src\runtime\xl6_x509_path_value.c
     src\runtime\xl6_x509_path_result.c
     src\runtime\xl6_x509_path_validate.c
+    src\runtime\xl6_x509_path_operation.c
+    src\runtime\xl6_x509_path_snapshot.c
+    src\runtime\xl6_x509_certificate_inputs.c
+    src\runtime\xl6_x509_path_build_core.c
+    src\runtime\xl6_x509_path_build_array.c
+    src\runtime\xl6_x509_path_build.c
+    src\runtime\xl6_x509_path_dispatch.c
+    src\runtime\xl6_x509_path_build_callback.c
+    src\runtime\xl6_x509_issuer_match.c
     src\runtime\xl6_x509_path_policy.c
     src\runtime\xl6_x509_path_fields.c
     src\runtime\xl6_x509_path_array.c
