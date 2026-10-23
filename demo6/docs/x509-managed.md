@@ -1,8 +1,9 @@
 # X.509 接入：完整模块归属与拥有数据边界
 
 状态：已有两个拥有数据类型及其 35 个源码 API、七类结构化记录及 68 个
-精确驻留入口；本批继续接入 11 类 typed profile／分发点／约束记录和 85 个
-入口。完整 P5 仍在进行，不把数据／元信息读取等同于完整证书认证。
+精确驻留入口、11 类 typed profile／分发点／约束记录和 85 个入口；本批继续
+接入三类 CRL 条目／IDP 记录和 45 个入口。完整 P5 仍在进行，不把数据／
+元信息读取等同于完整证书认证。
 
 这是原五组长期任务 P5 的执行清单，不缩减已批准的 21 个模块范围。
 语言公开面按证书、撤销、验证和信任来源组织，不机械复制原生游标／裸指针接口。
@@ -14,7 +15,7 @@
 | XRT 模块 | xlang 归属及完整能力 | 当前批次边界 |
 |---|---|---|
 | x509_parse | Certificate 完整 DER、算法、时间、Name／Extension、SPKI；原始字段独立拥有，结构化读取保留 ASN.1 标签及 RDN 序号 | 拥有数据、Name／Extension／算法／公钥信息及 UID 已接入 |
-| x509_crl | CertificateRevocationList、完整 DER／时间窗口、撤销条目及按序列号查询 | 拥有数据、Name／Extension／算法已接入；条目记录继续 |
+| x509_crl | CertificateRevocationList、完整 DER／时间窗口、撤销条目及按序列号查询 | 拥有数据、Name／Extension／算法、独立拥有条目／索引列表及序列号查询已接入；查询不是撤销结论 |
 | x509_signature | 解析后的签名方案、摘要、MGF、盐长及 trailer；未知 OID 保留而不猜算法 | 结构化元信息已接入；不代表验证后端可用 |
 | x509_digest | 证书／CRL 验证使用的原生摘要支撑；摘要算法复用已有 crypto，不另造同义算法库 | 后续验证依赖 |
 | x509_verify | 明确区分仅验证签名与完整路径／信任判断；支持能力按实际构建报告 | 后续 |
@@ -22,10 +23,10 @@
 | x509_verify_rsa | RSA PKCS#1／PSS 证书及 CRL 验证后端 | 后续验证依赖 |
 | x509_verify_ecdsa | P256／P384 证书及 CRL 验证后端 | 后续验证依赖 |
 | x509_verify_ed25519 | Ed25519 证书及 CRL 验证后端 | 后续验证依赖 |
-| x509_profile | SAN／IAN、KU、BasicConstraints、EKU、SKI／AKI、OID 记录 | typed 读取及拥有记录已接；独立 SKI DER 便利入口待补 |
+| x509_profile | SAN／IAN、KU、BasicConstraints、EKU、SKI／AKI、OID 记录 | typed 读取及拥有记录、独立 SKI DER 便利入口已接入 |
 | x509_name | RDN／属性、语义 Name 比较与包含关系，复用原生 Unicode 规范化 | 已接入，规范化比较单独裁剪 |
 | x509_distribution | CRLDistributionPoints／FreshestCRL、完整／相对名称、理由及 CRL issuer | 已接入拥有列表／记录及完整字段 |
-| x509_crl_profile | CRL 编号、delta base、AKI、IssuingPoint、条目理由／失效时间／issuer | 后续 |
+| x509_crl_profile | CRL 编号、delta base、AKI、IssuingPoint、条目理由／失效时间／issuer | 已接入拥有投影及独立 DER 值解析；不计算间接 issuer 继承或撤销策略 |
 | x509_crl_policy | 严格配置、已验证 CRL、complete／delta 组合、分段覆盖及状态归并 | 后续 |
 | x509_name_constraints | permitted／excluded 子树、名称类型及证书检查；未知能力不能静默忽略 | 已接入拥有记录、基点比较和严格检查；非路径／信任判断 |
 | x509_path | 有序路径、独立 trust anchor、用途／时间／critical 扩展策略 | 后续 |
@@ -174,7 +175,8 @@ checkout／发布 DLL／SO／VFS 已通过。没有修改独立 XRT、快照或�
 后续 typed profile／distribution／name_constraints 的实际进展与公共合同见
 [X.509 typed profile](x509-profiles.md)。该批增加 85 个精确驻留入口、27 个拥有
 结果、11 个真实叶策略及四个枚举；复用 XRT，无 Cgen 算法或符号特例。完整
-profile 便利入口、CRL profile／policy、验证／路径／信任／身份与 TLS 继续。
+profile／CRL 数据公共面的当前进展见 [CRL 条目与 typed profile](x509-crl-profiles.md)。
+CRL policy、验证／路径／信任／身份与 TLS 继续。
 
 另保留 P7 联合验收风险：把八组大量受管理临时值集中在一个顶层作用域的
 初始用例，Windows／Linux 均触发 240 秒前端输出／规划超时。独立函数版本

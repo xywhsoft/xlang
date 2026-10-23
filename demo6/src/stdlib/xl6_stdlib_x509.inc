@@ -42,4 +42,5 @@ const char* xl6StdlibX509DataSource=
     "    extern \"xl6X509CrlSignatureParametersV1\" @pure @nonblocking get signatureParametersDer() as bytes\n"
     "    extern \"xl6X509CrlValidAtV1\" @pure @nonblocking func validAt(time instant) as bool\n"
 #include "xl6_stdlib_x509_crl_records.inc"
+#include "xl6_stdlib_x509_crl_methods.inc"
     "end\n";

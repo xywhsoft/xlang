@@ -295,7 +295,8 @@ def main():
         compat = ['-Wno-unused-function', '-Wno-unused-variable', '-Wno-unused-parameter', '-Wno-unused-but-set-variable',
                   '-Wno-unused-label', '-Wno-unused-const-variable', '-Wno-missing-field-initializers', '-Wno-pointer-sign']
         count = int(re.search(r'#define XL6_STDLIB_FUNC_COUNT (\d+)', (root/'src/stdlib/xl6_stdlib_data.h').read_text()).group(1))
-        assert count == 1023
+        index = (root/'src/stdlib/xl6_stdlib_func_index.inc').read_text()
+        assert int(re.search(r'#if XL6_STDLIB_FUNC_COUNT != (\d+)', index).group(1)) == count
         for wrong in (count-1, count+1):
             try:
                 path = out/f'bad.index.{wrong}.c'

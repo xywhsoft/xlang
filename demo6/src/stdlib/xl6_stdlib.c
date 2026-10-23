@@ -834,9 +834,19 @@ static int xl6StdlibUsesX509Types(const XL6_AstNode* root)
         "X509GeneralNames","X509GeneralName","X509Oids","X509KeyUsage","X509BasicConstraints",
         "X509AuthorityKeyIdentifier","X509DistributionPoints","X509DistributionPoint","X509NameConstraints",
         "X509GeneralSubtrees","X509GeneralSubtree","X509GeneralNameKind","X509KeyUsageFlags",
-        "X509ReasonFlags","X509DistributionNameKind"};
+        "X509ReasonFlags","X509DistributionNameKind",
+        "X509CrlEntries","X509CrlEntry","X509IssuingDistributionPoint","X509CrlVersion","X509CrlReason"};
     for(size_t i=0;i<sizeof(types)/sizeof(*types);++i)if(xl6StdlibNodeUsesTypeName(root,types[i]))return 1;
     return 0;
+}
+
+static int xl6StdlibNeedsX509(const XL6_AstNode* root,const int* used)
+{
+    return xl6StdlibUsesX509Types(root) ||
+        xl6StdlibFuncUsed(used,"x509","parseSubjectKeyId") ||
+        xl6StdlibFuncUsed(used,"x509","parseCrlNumber") ||
+        xl6StdlibFuncUsed(used,"x509","parseCrlReason") ||
+        xl6StdlibFuncUsed(used,"x509","parseInvalidityDate");
 }
 
 static int xl6StdlibHasConcurrentImport(const XL6_AstNode* node)
@@ -2255,7 +2265,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsCompress ) xl6StdlibBuilderAppend(&builder, xl6StdlibCompressOptionsSource);
     if ( needsDeflater ) xl6StdlibBuilderAppend(&builder, xl6StdlibDeflaterSource);
     if ( needsInflater ) xl6StdlibBuilderAppend(&builder, xl6StdlibInflaterSource);
-    if (xl6StdlibUsesX509Types(root) || xl6StdlibNodeUsesTypeName(root, "DerValue") ||
+    if (xl6StdlibNeedsX509(root,used) || xl6StdlibNodeUsesTypeName(root, "DerValue") ||
         xl6StdlibNodeUsesTypeName(root, "DerReader") ||
         xl6StdlibNodeUsesTypeName(root, "DerBuilder") ||
         xl6StdlibNodeUsesTypeName(root, "PemBlock") ||
@@ -2295,10 +2305,11 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsCryptoClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibCryptoClassSource);
     }
-    if (xl6StdlibUsesX509Types(root)) {
+    if (xl6StdlibNeedsX509(root,used)) {
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509EnumsSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509RecordsSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509ProfilesSource);
+        xl6StdlibBuilderAppend(&builder,xl6StdlibX509CrlProfilesSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509DataSource);
     }
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||

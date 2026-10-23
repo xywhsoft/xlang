@@ -321,6 +321,7 @@ const char* xl6StdlibXidClassSource =
 #include "xl6_stdlib_x509.inc"
 #include "xl6_stdlib_x509_records.inc"
 #include "xl6_stdlib_x509_profiles.inc"
+#include "xl6_stdlib_x509_crl_profiles.inc"
 
 #include "xl6_stdlib_net_address.inc"
 #include "xl6_stdlib_net_resolver.inc"
@@ -5230,6 +5231,10 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"crypto", "hkdfSha512Extract", "__xl_std_crypto_hkdfSha512Extract", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha512ExtractV1},
     {"crypto", "hkdfSha512Expand", "__xl_std_crypto_hkdfSha512Expand", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha512ExpandV1},
     {"crypto", "timingSafeEqual", "__xl_std_crypto_timingSafeEqual", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoTimingSafeEqualV1},
+    {"x509", "parseSubjectKeyId", "__xl_std_x509_parseSubjectKeyId", NULL, NULL, 0, "bytes", xl6StdResidentxl6X509SubjectKeyIdParseV1},
+    {"x509", "parseCrlNumber", "__xl_std_x509_parseCrlNumber", NULL, NULL, 0, "bytes", xl6StdResidentxl6X509CrlNumberParseV1},
+    {"x509", "parseCrlReason", "__xl_std_x509_parseCrlReason", NULL, NULL, 0, "X509CrlReason", xl6StdResidentxl6X509CrlReasonParseV1},
+    {"x509", "parseInvalidityDate", "__xl_std_x509_parseInvalidityDate", NULL, NULL, 0, "time", xl6StdResidentxl6X509CrlInvalidityDateParseV1},
     {"asn1", "parse", "__xl_std_asn1_parse", NULL, NULL, 0, "DerValue", xl6StdResidentxl6DerParseV1},
     {"pem", "parse", "__xl_std_pem_parse", NULL, NULL, 0, "PemBlock", xl6StdResidentxl6PemFindV1},
     {"pem", "encode", "__xl_std_pem_encode", NULL, NULL, 0, "string", xl6StdResidentxl6PemEncodeV1},

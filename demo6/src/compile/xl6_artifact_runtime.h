@@ -212,6 +212,7 @@ typedef enum XL6_ArtifactRuntimeId {
 #include "xl6_x509_component_ids.inc"
 #include "xl6_x509_records_component_ids.inc"
 #include "xl6_x509_profiles_component_ids.inc"
+#include "xl6_x509_crl_profiles_component_ids.inc"
     XL6_ARTIFACT_DER_VALUE,
     XL6_ARTIFACT_OWNERSHIP_DOMAIN_DER_VALUE,
     XL6_ARTIFACT_DER_READER,
