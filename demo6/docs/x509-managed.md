@@ -1,8 +1,8 @@
 # X.509 接入：完整模块归属与拥有数据边界
 
-状态：本批两个拥有数据类型及其 35 个源码 API 已完成双平台验收；完整 P5
-仍在进行。四个静态工厂、两个真实叶策略、语言调用和无关旧接口裁剪均有独立
-证据，不把原始数据接入等同于完整证书认证。
+状态：两个拥有数据类型及其 35 个源码 API 已完成双平台验收；当前增加七类
+不可变结构化记录、四个封闭枚举及 68 个精确驻留入口。完整 P5 仍在进行，
+不把数据／元信息读取等同于完整证书认证。本批证据范围见文末。
 
 这是原五组长期任务 P5 的执行清单，不缩减已批准的 21 个模块范围。
 语言公开面按证书、撤销、验证和信任来源组织，不机械复制原生游标／裸指针接口。
@@ -13,9 +13,9 @@
 
 | XRT 模块 | xlang 归属及完整能力 | 当前批次边界 |
 |---|---|---|
-| x509_parse | Certificate 完整 DER、算法、时间、Name／Extension、SPKI；原始字段独立拥有，结构化读取保留 ASN.1 标签及 RDN 序号 | 本批接拥有数据和原始字段；结构化记录继续 |
-| x509_crl | CertificateRevocationList、完整 DER／时间窗口、撤销条目及按序列号查询 | 本批接拥有数据和原始字段；条目记录继续 |
-| x509_signature | 解析后的签名方案、摘要、MGF、盐长及 trailer；未知 OID 保留而不猜算法 | 后续 |
+| x509_parse | Certificate 完整 DER、算法、时间、Name／Extension、SPKI；原始字段独立拥有，结构化读取保留 ASN.1 标签及 RDN 序号 | 拥有数据、Name／Extension／算法／公钥信息及 UID 已接入 |
+| x509_crl | CertificateRevocationList、完整 DER／时间窗口、撤销条目及按序列号查询 | 拥有数据、Name／Extension／算法已接入；条目记录继续 |
+| x509_signature | 解析后的签名方案、摘要、MGF、盐长及 trailer；未知 OID 保留而不猜算法 | 结构化元信息已接入；不代表验证后端可用 |
 | x509_digest | 证书／CRL 验证使用的原生摘要支撑；摘要算法复用已有 crypto，不另造同义算法库 | 后续验证依赖 |
 | x509_verify | 明确区分仅验证签名与完整路径／信任判断；支持能力按实际构建报告 | 后续 |
 | x509_crl_verify | CRL 的签发者和签名验证，与撤销覆盖策略分开 | 后续 |
@@ -23,7 +23,7 @@
 | x509_verify_ecdsa | P256／P384 证书及 CRL 验证后端 | 后续验证依赖 |
 | x509_verify_ed25519 | Ed25519 证书及 CRL 验证后端 | 后续验证依赖 |
 | x509_profile | SAN／IAN、KU、BasicConstraints、EKU、SKI／AKI、OID 记录 | 后续 |
-| x509_name | RDN／属性、语义 Name 比较与包含关系，复用原生 Unicode 规范化 | 后续 |
+| x509_name | RDN／属性、语义 Name 比较与包含关系，复用原生 Unicode 规范化 | 已接入，规范化比较单独裁剪 |
 | x509_distribution | CRLDistributionPoints／FreshestCRL、完整／相对名称、理由及 CRL issuer | 后续 |
 | x509_crl_profile | CRL 编号、delta base、AKI、IssuingPoint、条目理由／失效时间／issuer | 后续 |
 | x509_crl_policy | 严格配置、已验证 CRL、complete／delta 组合、分段覆盖及状态归并 | 后续 |
@@ -102,3 +102,78 @@ TLS 或发布 DLL／SO／VFS 验收。不运行畸形证书／签名攻击样本
 输出门验证拒绝。输入／日志／产物哈希独立复核，Linux 原件及 F 盘镜像保留。
 证据根 `F:/xlang-validation/five-groups-20261023/p5-x509`，最终身份见
 `verified-commit.json`。没有修改 Cgen、独立 XRT、固定快照或时间 ABI。
+
+## 结构化记录层
+
+公开 `X509Name`、`X509NameAttribute`、`X509Extensions`、`X509Extension`、
+`X509Algorithm`、`X509SignatureInfo`、`X509PublicKeyInfo`。每个记录只拥有自己的
+完整 DER 片段；子记录不引用父对象，不让小字段保留整张证书或大型 CRL。Name
+及 Extensions 在一次分配中保存片段和解析索引，创建时线性解析，at 为 O(1)，
+find 按原始 DER 顺序返回首个匹配。查找未命中返回 nullable 空，不建立或丢弃
+NotFound 错误；真正的分配／资源错误仍 checked 报告。
+
+```xlang
+auto cert = Certificate.fromDer(encoded)
+auto subject = cert.subjectName()
+auto commonName = subject.find("2.5.4.3")
+if commonName != null then println(commonName.value.raw) end
+auto extensions = cert.extensions()
+auto algorithm = cert.signatureAlgorithm
+auto scheme = algorithm.signatureInfo()
+```
+
+Name 属性保留零起始 `rdnIndex`、完整属性 DER、OID 内容及点分文本、值的完整
+TLV 和拥有的 DerValue；不把任意 ASN.1 标签猜成 UTF-8。多个属性可属于同一个
+RDN。equals／isWithin 复用 XRT Unicode 规范化，只在实际使用比较时拉入相应
+模块。Extension 保留 OID、critical 和 extnValue 内部 bytes，不猜扩展语义；
+SAN、KU、约束、分发点等 typed profile 是下一层，不能因此视为已完成。
+
+Algorithm 保留完整参数 TLV 及 hasParameters，缺省参数与编码 NULL 不混同。
+signatureInfo 对未知算法 OID 返回空；已识别算法返回封闭 X509SignatureKind、
+X509Digest、MGF 摘要、盐长及 trailer。字段是否适用由 kind 决定；digest.none
+并不表示 EdDSA 内部没有摘要运算。解析能力与验证能力分离，不根据后端缺失
+更换算法，也不因识别了 Ed448 就声称能够验证 Ed448。
+
+PublicKeyInfo 保留 SPKI、算法、BIT STRING 内部公钥字节、RSA 无符号 n／e，
+并返回封闭 X509KeyKind／X509Curve；非 RSA 的 n／e 为空 bytes。不自动转换为
+忽略 RSA-PSS 限制的普通 RSA 对象。证书另公开 issuer／subjectUniqueId、
+各自 unusedBits 和 has 标志，避免把“字段缺省”和“已编码空位串”混同。
+
+Name／Extensions 从 DER 构造默认限制 16 MiB 和 65536 项；从证书投影时可设置
+项目上限。0 显式关闭该项预算，负数报 ValueError，超过限制报 RangeError。
+预算不截断输入或返回半成品。Extensions 接受空 bytes 表示缺省扩展列表。
+DerValue.asTime 复用 XRT UTC／GeneralizedTime 解析，返回精确语言 time。
+
+68 个声明、登记和 XLIR 合同逐项闭合。七类记录全部进入已有真实叶策略与
+拥有目录；nullable 工厂使用独立错误作用域，空结果不是错误判别哨兵。原有
+DER OID 文本转换改为接管解码缓冲，移除隐藏 STRING 依赖及一次额外复制。
+适配驻留 runtime，Cgen 不增加算法、包装函数或按符号追溯语义。
+
+`tools/check_x509_records.py` 的八组正常固定密钥样例涵盖 RSA PKCS#1／PSS、
+P256／P384、Ed25519、X25519／X448 公钥及 CRL；独立工具验证每份样例签名。
+检查 Unicode／多值 RDN、内嵌 NUL、OID、参数、UID、父对象先释放、逐分配
+失败与七个真实叶目录。`tools/check_stdlib_x509_records.py` 检查源码语言、
+四枚举合同、JIT／module／独立 AOT、跨线程只读及按需裁剪。
+
+本批正式边界为 native `*-r3`、source-driver `*-r4`、语言 `api-*-r2`。
+Windows 181／Linux 186，共 367 阶段，包括 92／92 个新语言／IR／裁剪阶段、
+59／59 个上一批数据接口回归、9／9 个旧 DER／密钥／数学回归、9／11 个
+新记录原生阶段、9／11 个原有原生数据回归，以及 3／4 个独立原生重放。
+全源码构建为 991／990 TU，不混计阶段。每原生配置 707 个分配预算、379 次
+实际失败、110 个句柄发布预算和七类真实叶目录通过；850 处新坏合同及
+75 个模块／C／头输出门通过，上一批 399／37 项合同与输出门也继续通过。
+记录读取不拉入验证／密码学／TLS，Name 比较和签名元信息分别按需裁剪，
+仅枚举程序不拉入 X.509，旧接口无 X.509 残留依赖。
+
+证据根 `F:/xlang-validation/five-groups-20261023/p5-x509-records`；全部输入、
+日志、产物、源码驱动身份独立复核，Linux 原件及 F 盘镜像同时保留，最终
+提交身份见 `verified-commit.json`。验收针对冻结的完整工作区，不声称纯净
+checkout／发布 DLL／SO／VFS 已通过。没有修改独立 XRT、快照或时间 ABI。
+此层不关闭 profile、约束、撤销策略、路径、信任库、身份匹配或 TLS。
+
+另保留 P7 联合验收风险：把八组大量受管理临时值集中在一个顶层作用域的
+初始用例，Windows／Linux 均触发 240 秒前端输出／规划超时。独立函数版本
+能输出但 C 仍较大；正式字段核对复用小型校验函数，数据、断言和调用范围
+不减少。原始诊断证据保留在本批 `api-*-r1`，不能将正式功能通过解释为长
+资源作用域的编译性能／清理代码体积已经封板；这需要后续按通用 IR 清理
+生命周期方案评估，不为 X.509 增加符号特例或 Cgen 补丁。
