@@ -1,7 +1,11 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
+$testRoot = [IO.Path]::GetFullPath((Join-Path $root 'build/test'))
+$work = Join-Path $testRoot ('plist_guard_' + [guid]::NewGuid().ToString('N'))
 
 Push-Location $root
 try {
@@ -39,7 +43,33 @@ try {
     if (($xlangOutput -join "`n") -cne ($cOutput -join "`n")) {
         throw 'plist C/XLang example output differs'
     }
-    Write-Output 'plist Windows C/XLang gate: PASS'
+    if (-not $SkipAot) {
+        [IO.Directory]::CreateDirectory($work) | Out-Null
+        $core = Join-Path $work 'plist_core.exe'
+        & $xl build release/extlibs/plist/test/smoke.xl -o $core
+        if ($LASTEXITCODE -ne 0) { throw 'plist import AOT build failed' }
+        & $core
+        if ($LASTEXITCODE -ne 0) { throw 'plist import AOT run failed' }
+
+        $example = Join-Path $work 'plist_example.exe'
+        & $xl build release/examples/extlibs/plist.xl -o $example
+        if ($LASTEXITCODE -ne 0) { throw 'plist example AOT build failed' }
+        $aotOutput = & $example
+        if ($LASTEXITCODE -ne 0 -or ($aotOutput -join "`n") -cne ($cOutput -join "`n")) {
+            throw 'plist example AOT output differs from C/XLang'
+        }
+    }
+    if ($SkipAot) {
+        Write-Output 'plist Windows C/XLang (AOT skipped) gate: PASS'
+    } else {
+        Write-Output 'plist Windows C/XLang/AOT gate: PASS'
+    }
 } finally {
     Pop-Location
+    if (Test-Path -LiteralPath $work) {
+        $checked = [IO.Path]::GetFullPath($work)
+        if (-not $checked.StartsWith($testRoot + [IO.Path]::DirectorySeparatorChar,
+            [StringComparison]::OrdinalIgnoreCase)) { throw 'unsafe plist test cleanup path' }
+        Remove-Item -LiteralPath $checked -Recurse -Force
+    }
 }
