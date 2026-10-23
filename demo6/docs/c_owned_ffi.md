@@ -164,15 +164,16 @@ allocation-counter checks use the separate debug runtime lane. Acceptance
 records belong under `build/c-owned/`; this targeted check is not a claim that
 all repository-wide inventories and unrelated release gates are green.
 
-Current redesign acceptance (`build/c-owned/compiler-mainline-acceptance/acceptance.json`)
-built 1,087 source translation units and verified unchanged build inputs. Two
-runtime units, 12 generated-C programs and 10 negative declarations passed.
-O0/O2 contract harnesses each checked 495 RuntimeOps / 3,960 operand effects,
-22 capture mutations, 73 managed-storage mutations and four nullable-join
-mutations. Thirteen C interoperability programs and nine ordinary programs
-passed both source JIT and standalone EXE; ordinary generated C included no
-C owner runtime header. The full check now runs these ordinary contracts and
-programs to protect virtual, async and generator dispatch during loan cleanup.
+Current acceptance (`build/c-owned/complete-nullable-acceptance-1/acceptance.json`)
+built 1,088 source translation units and verified unchanged build inputs. Two
+runtime units (the owner unit at both O0 and O2), 17 generated-C programs and
+12 negative declarations passed. O0/O2 contract harnesses each checked 495
+RuntimeOps / 3,960 operand effects, 22 capture mutations, 73 managed-storage
+mutations and four nullable-join mutations. Eighteen C interoperability programs
+and 13 ordinary programs passed both source JIT and standalone EXE; ordinary
+generated C included no C owner runtime header. The source runtime receipt is
+`build/c-owned/complete-nullable-public-2/build.json`. These ordinary contracts
+and programs protect virtual, async and generator dispatch during loan cleanup.
 
 `xlir_c_owned_calls.xl` checks explicit/inferred generic identities, concrete
 signature separation, recursive generic forwarding, a 65-parameter function,
@@ -195,14 +196,6 @@ error propagation. Its emitted C must contain no `xl6CBytesCopyV1` input
 materialization. Ordinary codec, compression, encoding and validator programs
 also run through JIT/EXE, and their emitted C must not include the C owner
 runtime merely because span overloads were imported.
-
-Follow-up acceptance (`build/c-owned/complete-spans-acceptance-2/`): 1,088 source
-translation units, two runtime units, 15 generated-C programs, ten negative
-declarations, O0/O2 ownership contracts, 16 C interoperability programs through
-both source JIT and standalone EXE, and 13 ordinary programs through both
-paths. All ordinary emitted C omits C owner headers. The shared-owner runtime
-unit also passes separately at O2 with four concurrent workers. The source
-runtime receipt is `build/c-owned/complete-spans-public-4/build.json`.
 
 `xlir_c_owned_nullable.xl` covers optional returns, generic forwarding, indirect
 string reads, present-empty, null tests and `is` narrowing, joins with ordinary

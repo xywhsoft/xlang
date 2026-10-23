@@ -53,6 +53,11 @@ if (!$sourceManifest.SourceXrt -or !$sourceRuntimeObjects.Count) { throw 'Genera
 if ($LASTEXITCODE) { throw 'C owner runtime test build failed' }
 & "$outputPath/runtime.exe"
 if ($LASTEXITCODE) { throw 'C owner runtime tests failed' }
+$ownerO2Flags=@($flags | Where-Object { $_ -ne '-O0' }) + '-O2'
+& $context.Compiler @ownerO2Flags test/cases/xlir_c_owned_runtime.c release/xl.dll -o "$outputPath/runtime-O2.exe"
+if ($LASTEXITCODE) { throw 'Optimized C owner runtime test build failed' }
+& "$outputPath/runtime-O2.exe"
+if ($LASTEXITCODE) { throw 'Optimized C owner runtime tests failed' }
 & $context.Compiler @flags test/cases/xlir_c_owned_print_runtime.c release/xl.dll -o "$outputPath/print-runtime.exe"
 if ($LASTEXITCODE) { throw 'C print runtime test build failed' }
 & "$outputPath/print-runtime.exe"
