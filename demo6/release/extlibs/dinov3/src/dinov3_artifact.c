@@ -55,7 +55,10 @@ static xvalue* dino_shape(void* handle, int* value_count)
     size_t i;
     int count;
     int product = 1;
-    if (handle == NULL || value_count == NULL) return NULL;
+    if (handle == NULL || value_count == NULL) {
+        dino_set_error("DinoV3 output is unavailable");
+        return NULL;
+    }
     count = ort_result_float_count_native(handle);
     shape_json = ort_result_float_shape_json_native(handle);
     if (count < 0 || count > DINO_MAX_VALUES || shape_json == NULL ||
@@ -117,7 +120,7 @@ XL_EXPORT int dinov3_available_native(void)
 XL_EXPORT const char* dinov3_last_error_native(void)
 {
     char* text = dino_error_buffer(false);
-    return text != NULL && text[0] != '\0' ? text : ort_last_error_native();
+    return text != NULL ? text : ort_last_error_native();
 }
 
 XL_EXPORT void* dinov3_embedding_json_native(void* result_handle)
@@ -127,7 +130,10 @@ XL_EXPORT void* dinov3_embedding_json_native(void* result_handle)
     xvalue* shape;
     int count = 0;
     bool valid;
-    if (result_handle == NULL) return xrtStrDup("[]");
+    if (result_handle == NULL) {
+        dino_set_error("DinoV3 output is unavailable");
+        return NULL;
+    }
     shape = dino_shape(result_handle, &count);
     if (shape == NULL) return NULL;
     xrtValueRelease(shape);
@@ -145,7 +151,10 @@ XL_EXPORT void* dinov3_output_json_native(void* result_handle, const char* sourc
     xvalue* shape;
     int count = 0;
     bool valid;
-    if (result_handle == NULL) return xrtStrDup("{}");
+    if (result_handle == NULL) {
+        dino_set_error("DinoV3 output is unavailable");
+        return NULL;
+    }
     shape = dino_shape(result_handle, &count);
     if (shape == NULL) return NULL;
     xrtJsonWriteConfigInit(&config);

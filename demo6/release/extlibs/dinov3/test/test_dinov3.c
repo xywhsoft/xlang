@@ -58,6 +58,18 @@ int main(void)
     xrtFree(output);
     xrtFree(embedding);
 
+    if (require(dinov3_embedding_json_native(NULL) == NULL &&
+                strstr(dinov3_last_error_native(), "unavailable") != NULL,
+                "missing embedding must fail")) return 1;
+    if (require(dinov3_output_json_native(NULL, "missing") == NULL &&
+                strstr(dinov3_last_error_native(), "unavailable") != NULL,
+                "missing output must fail")) return 1;
+    embedding = dinov3_embedding_json_native(&left);
+    if (require(embedding_matches(embedding) &&
+                dinov3_last_error_native()[0] == '\0',
+                "embedding after missing output")) return 1;
+    xrtFree(embedding);
+
     left.shape = "[2,3]";
     if (require(dinov3_embedding_json_native(&left) == NULL,
                 "shape/count mismatch")) return 1;
@@ -82,7 +94,8 @@ int main(void)
     left.shape = "[1,3]";
     left_values[0] = NAN;
     if (require(dinov3_embedding_json_native(&left) == NULL &&
-                dinov3_l2_norm_native(&left) == 0.0,
+                dinov3_l2_norm_native(&left) == 0.0 &&
+                strstr(dinov3_last_error_native(), "non-finite") != NULL,
                 "non-finite embedding")) return 1;
     left_values[0] = 1.0f;
     left.shape = "[0]";

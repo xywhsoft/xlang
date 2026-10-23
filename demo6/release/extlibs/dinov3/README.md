@@ -8,6 +8,8 @@ DinoV3 图片嵌入扩展库使用 OpenCV 预处理和 ONNX Runtime 执行模型
 
 `DinoV3Model.op_call(imagePath)` 返回 `DinoV3Output`。输入/输出名称配置拒绝内嵌 NUL，避免传给 ONNX C 接口时静默截断；空名称仍返回 `false`。输出对象独占 ONNX 结果句柄，`release()` 可提前释放，析构时自动释放；`shape_json()`、`count()`、`at()` 只借用句柄，不额外释放。不要将已释放输出的裸 `handle` 传给 C。C 公开接口在 `include/dinov3.h`；`embedding_json` 和 `output_json` 返回独立持有的 XRT 字符串，调用方用 `xrtFree` 释放，XLang 包装层自动接管。`last_error` 借用当前线程错误槽。
 
+缺模型、图片或推理失败时，`op_call` 可以返回 `ok() == false` 的结果对象，调用方可用 `error()` 查询原因或调用 `release()`；读取该对象的维度、元素、范数或 JSON 会抛 `RuntimeError`，不会把失败伪装成零向量、`[]` 或 `{}`。`at(index)` 对有效结果的越界索引抛 `ValueError`。快捷入口 `embedding_json`、`infer_json`、`similarity` 和 `cosine_similarity` 在无有效结果时也抛 `RuntimeError`；合法的零范数或零相似度仍返回 `0`。C 的两个 JSON 入口收到空句柄时返回 `NULL`，并在 `last_error` 留下诊断；成功结果仍由调用方释放。包内 C 操作成功后清空包内错误，不再回退呈现 ONNX 旧诊断。
+
 包内 C 结果处理直接复用 `onnxruntime` 的公开 C ABI，不再额外加载一份桥接 DLL。结果 shape 必须为非空维度数组，元素乘积与结果数一致，最多 100000 个浮点值；非有限值拒绝输出。JSON 使用 XRT 结构化写入，路径不受旧固定缓冲区限制。
 
 `docs/site.html` 是官网详情页的可维护源文件，当前页面公开使用方法和待验收边界，不代表包已签收生产发布。
@@ -18,7 +20,7 @@ Windows：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/d
 
 Linux：`sh release/extlibs/dinov3/test/check.sh`
 
-两套门禁以链接期五函数测试桩验证 C 结果处理：嵌入向量、shape/count、NaN、长度错误、长路径 JSON 和独立所有权；Linux C 使用 ASan/UBSan。两套门禁均运行 XLang 输入/输出名称 NUL 负例。Windows 另以发布目录的真实 `onnxruntime_xlang.dll` 验证 C 桥接装载，并运行 XLang 导入与缺模型负例。设置 `DINOV3_MODEL` 和 `DINOV3_TEST_IMAGE` 后，Windows 门禁额外运行 C/XLang 同图真实模型范例，要求 384 维输出且全部元素逐项误差不超过 `1e-5`；模型与图片路径均由调用方提供。加 `-ParallelLive` 时，再让两条线程各自创建会话、推理并对照串行结果。测试桩和两线程 smoke 均不代替后端长期稳定性认证；完整 AOT 仍待复核。
+两套门禁以链接期五函数测试桩验证 C 结果处理：嵌入向量、shape/count、NaN、长度错误、长路径 JSON 和独立所有权；Linux C 使用 ASan/UBSan。两套门禁均运行 XLang 输入/输出名称 NUL 和无效输出负例。Windows 另以发布目录的真实 `onnxruntime_xlang.dll` 验证 C 桥接装载，并运行 XLang 导入与缺模型负例。设置 `DINOV3_MODEL` 和 `DINOV3_TEST_IMAGE` 后，Windows 门禁额外运行 C/XLang 同图真实模型范例，要求 384 维输出且全部元素逐项误差不超过 `1e-5`；模型与图片路径均由调用方提供。加 `-ParallelLive` 时，再让两条线程各自创建会话、推理并对照串行结果。测试桩和两线程 smoke 均不代替后端长期稳定性认证；完整 AOT 仍待复核。
 
 门禁每次使用独占临时构建目录并在退出时清理，不复用上次构建的可执行文件。
 

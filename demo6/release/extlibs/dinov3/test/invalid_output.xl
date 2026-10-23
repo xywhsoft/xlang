@@ -1,0 +1,79 @@
+import dinov3
+
+auto model = dinov3.DinoV3("__missing_dinov3_model__.onnx")
+auto output = model.op_call("__missing_image__.png")
+assert not output.ok()
+
+bool rejected = false
+try
+    output.shape_json()
+catch RuntimeError e
+    rejected = true
+end
+assert rejected, "missing output shape must fail"
+
+rejected = false
+try
+    output.count()
+catch RuntimeError e
+    rejected = true
+end
+assert rejected, "missing output count must fail"
+
+rejected = false
+try
+    output.at(0)
+catch RuntimeError e
+    rejected = true
+end
+assert rejected, "missing output element must fail"
+
+rejected = false
+try
+    output.to_json()
+catch RuntimeError e
+    rejected = true
+end
+assert rejected, "missing output JSON must fail"
+
+rejected = false
+try
+    output.l2_norm()
+catch RuntimeError e
+    rejected = true
+end
+assert rejected, "missing output norm must fail"
+
+rejected = false
+try
+    dinov3.embedding_json("__missing_dinov3_model__.onnx", "__missing_image__.png")
+catch RuntimeError e
+    rejected = true
+end
+assert rejected, "missing model embedding must fail"
+
+rejected = false
+try
+    dinov3.infer_json("__missing_dinov3_model__.onnx", "__missing_image__.png")
+catch RuntimeError e
+    rejected = true
+end
+assert rejected, "missing model inference must fail"
+
+rejected = false
+try
+    dinov3.similarity("__missing_dinov3_model__.onnx", "__missing_left__.png", "__missing_right__.png")
+catch RuntimeError e
+    rejected = true
+end
+assert rejected, "missing model similarity must fail"
+
+rejected = false
+try
+    dinov3.cosine_similarity("__missing_dinov3_model__.onnx", "__missing_left__.png", "__missing_right__.png")
+catch RuntimeError e
+    rejected = true
+end
+assert rejected, "missing model cosine similarity must fail"
+
+assert output.release() == false

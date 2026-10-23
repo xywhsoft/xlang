@@ -10,6 +10,30 @@ func main(...) as int
     assert output.ok(), output.error()
     assert output.count() == 384, "unexpected embedding size"
     assert output.shape_json() == "[1,384]", "unexpected embedding shape"
+    assert output.error() == "", "successful output must have no error"
+    assert output.l2_norm() > 0, "embedding norm must be positive"
+    bool rejected = false
+    try
+        output.at(-1)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "negative embedding index must fail"
+    rejected = false
+    try
+        output.at(output.count())
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "embedding index at count must fail"
     println(output.to_json())
+    assert output.release()
+    rejected = false
+    try
+        output.to_json()
+    catch RuntimeError e
+        rejected = true
+    end
+    assert rejected, "released output must not be readable"
     return 0
 end

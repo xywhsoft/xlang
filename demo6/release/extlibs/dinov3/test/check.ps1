@@ -49,6 +49,7 @@ try {
         try {
             Run 'XLang missing-model boundary' (Join-Path $release 'xl.exe') @('run', 'examples/extlibs/dinov3.xl')
             Run 'XLang ONNX name boundaries' (Join-Path $release 'xl.exe') @('run', 'extlibs/dinov3/test/nul_names.xl')
+            Run 'XLang unavailable output boundaries' (Join-Path $release 'xl.exe') @('run', 'extlibs/dinov3/test/invalid_output.xl')
         } finally {
             Pop-Location
         }

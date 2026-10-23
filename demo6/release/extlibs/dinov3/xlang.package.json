@@ -20,7 +20,7 @@
                                         "XRT_MODULE_THREAD_KEY"
                                    ]
                  },
-    "coverage": { "mode": "suite", "tests": ["test/nul_names.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/nul_names.xl", "test/invalid_output.xl"] },
     "links":  [
 
               ],

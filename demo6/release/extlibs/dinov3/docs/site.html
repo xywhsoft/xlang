@@ -28,6 +28,7 @@
       <tr><td><code>output.shape_json() / output.count() / output.at(i)</code></td><td>读取张量维度与元素</td></tr>
       <tr><td><code>dinov3.similarity(model, left, right)</code></td><td>计算余弦相似度</td></tr>
     </tbody></table>
+    <p>模型或图片不可用时，先检查 <code>output.ok()</code> 并读取 <code>output.error()</code>。无效或已释放结果的数据访问会抛错，不会返回空向量；快捷推理与相似度入口同样不会把失败伪装成有效结果。</p>
     <h2>范例</h2>
     <pre><code>import dinov3
 

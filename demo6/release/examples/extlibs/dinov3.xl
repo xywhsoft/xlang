@@ -16,18 +16,15 @@ assert model.set_normalize(0.0039215689, 0.485, 0.456, 0.406, 0.229, 0.224, 0.22
 auto output = model.op_call("__missing_image__.png")
 assert output.ok() == false, "dinov3 missing output ok failed"
 assert output.valid() == false, "dinov3 missing output valid failed"
-assert string.len(output.error()) >= 0, "dinov3 output error failed"
-assert output.shape_json() == "[]", "dinov3 missing output shape failed"
-assert output.count() == 0, "dinov3 missing output count failed"
-assert output.at(0) == 0, "dinov3 missing output at failed"
-assert output.embedding_json() == "[]", "dinov3 missing output embedding failed"
-assert output.to_json() == "{}", "dinov3 missing output json failed"
-assert output.l2_norm() == 0, "dinov3 missing output norm failed"
+assert string.len(output.error()) > 0, "dinov3 output error failed"
 
-assert dinov3.embedding_json("__missing_dinov3_model__.onnx", "__missing_image__.png") == "[]", "dinov3 embedding_json model failed"
-assert dinov3.infer_json("__missing_dinov3_model__.onnx", "__missing_image__.png") == "{}", "dinov3 infer_json model failed"
-assert dinov3.similarity("__missing_dinov3_model__.onnx", "__missing_left__.png", "__missing_right__.png") == 0, "dinov3 similarity model failed"
-assert dinov3.cosine_similarity("__missing_dinov3_model__.onnx", "__missing_left__.png", "__missing_right__.png") == 0, "dinov3 cosine model failed"
+bool rejected = false
+try
+    output.embedding_json()
+catch RuntimeError e
+    rejected = true
+end
+assert rejected, "dinov3 unavailable embedding must fail"
 
 assert output.release() == false, "dinov3 output release failed"
 

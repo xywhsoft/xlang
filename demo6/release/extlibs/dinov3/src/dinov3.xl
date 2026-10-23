@@ -16,14 +16,18 @@ extern "ort_result_float_at_native" func dinov3_result_at_native(point handle, c
 
 func dinov3_embedding_json_native(point result_handle) as string
 	point raw = dinov3_embedding_json_raw_native(result_handle)
-	if raw == null then return "[]" end
+	if raw == null then throw RuntimeError dinov3_last_error_native() end
 	return __xl_runtime.takeCstr(raw)
 end
 
 func dinov3_output_json_native(point result_handle, string source_path) as string
 	point raw = dinov3_output_json_raw_native(result_handle, source_path)
-	if raw == null then return "{}" end
+	if raw == null then throw RuntimeError dinov3_last_error_native() end
 	return __xl_runtime.takeCstr(raw)
+end
+
+func dinov3_require_output(point handle)
+	if handle == null then throw RuntimeError "DinoV3 output is unavailable" end
 end
 
 func dinov3_resize_width(int width, int height, int short_side) as int
@@ -104,32 +108,48 @@ class DinoV3Output
 	end
 
 	func error() as string
-		return onnxruntime.last_error()
+		if self.handle != null then return "" end
+		string message = onnxruntime.last_error()
+		if message != "" then return message end
+		return "DinoV3 output is unavailable"
 	end
 
 	func shape_json() as string
+		dinov3_require_output(self.handle)
 		return dinov3_result_shape_native(self.handle)
 	end
 
 	func count() as int
-		return dinov3_result_count_native(self.handle)
+		dinov3_require_output(self.handle)
+		int count = dinov3_result_count_native(self.handle)
+		if count < 0 then throw RuntimeError "DinoV3 result count is unavailable" end
+		return count
 	end
 
 	func at(int index) as float
-		if index < 0 or index > 2147483647 then return 0 end
+		dinov3_require_output(self.handle)
+		if index < 0 or index >= self.count() then
+			throw ValueError "DinoV3 embedding index is out of range"
+		end
 		return dinov3_result_at_native(self.handle, c_int(index))
 	end
 
 	func embedding_json() as string
+		dinov3_require_output(self.handle)
 		return dinov3_embedding_json_native(self.handle)
 	end
 
 	func to_json() as string
+		dinov3_require_output(self.handle)
 		return dinov3_output_json_native(self.handle, self.source_path)
 	end
 
 	func l2_norm() as float
-		return dinov3_l2_norm_native(self.handle)
+		dinov3_require_output(self.handle)
+		float value = dinov3_l2_norm_native(self.handle)
+		string message = dinov3_last_error_native()
+		if message != "" then throw RuntimeError message end
+		return value
 	end
 end
 
@@ -276,9 +296,12 @@ func dinov3_similarity(string model_path, string left_image_path, string right_i
 	DinoV3Output left = model.op_call(left_image_path)
 	DinoV3Output right = model.op_call(right_image_path)
 	if left.ok() == false or right.ok() == false then
-		return 0.0
+		throw RuntimeError "DinoV3 output is unavailable"
 	end
-	return dinov3_cosine_native(left.handle, right.handle)
+	float value = dinov3_cosine_native(left.handle, right.handle)
+	string message = dinov3_last_error_native()
+	if message != "" then throw RuntimeError message end
+	return value
 end
 
 func dinov3_cosine_similarity(string model_path, string left_image_path, string right_image_path) as float

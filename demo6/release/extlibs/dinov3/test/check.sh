@@ -15,3 +15,4 @@ trap 'rm -rf -- "$BUILD"' EXIT
     -ldl -lm -pthread -o "$BUILD/test_dinov3_linux"
 "$BUILD/test_dinov3_linux"
 (cd "$ROOT" && timeout 90s ./release/xl run release/extlibs/dinov3/test/nul_names.xl)
+(cd "$ROOT" && timeout 90s ./release/xl run release/extlibs/dinov3/test/invalid_output.xl)
