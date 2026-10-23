@@ -126,6 +126,30 @@ int main(void)
 
     CHECK(xlin_cross3_into(1, 0, 0, 0, 1, 0, &x, &y, &z));
     CHECK(x == 0 && y == 0 && z == 1);
+    {
+        unsigned int seed = 0x8a31u;
+        int sample;
+        for (sample = 0; sample < 256; ++sample) {
+            double ax, ay, az, bx, by, bz, rx, ry, rz;
+            seed = seed * 1664525u + 1013904223u;
+            ax = (double)((seed >> 16) % 11u) - 5.0;
+            seed = seed * 1664525u + 1013904223u;
+            ay = (double)((seed >> 16) % 11u) - 5.0;
+            seed = seed * 1664525u + 1013904223u;
+            az = (double)((seed >> 16) % 11u) - 5.0;
+            seed = seed * 1664525u + 1013904223u;
+            bx = (double)((seed >> 16) % 11u) - 5.0;
+            seed = seed * 1664525u + 1013904223u;
+            by = (double)((seed >> 16) % 11u) - 5.0;
+            seed = seed * 1664525u + 1013904223u;
+            bz = (double)((seed >> 16) % 11u) - 5.0;
+            CHECK(xlin_cross3_into(ax, ay, az, bx, by, bz, &x, &y, &z));
+            CHECK(xlin_dot3(ax, ay, az, x, y, z) == 0.0);
+            CHECK(xlin_dot3(bx, by, bz, x, y, z) == 0.0);
+            CHECK(xlin_cross3_into(bx, by, bz, ax, ay, az, &rx, &ry, &rz));
+            CHECK(x == -rx && y == -ry && z == -rz);
+        }
+    }
     x = 123;
     y = 456;
     CHECK(!xlin_cross3_into(1, 0, 0, 0, 1, 0, &x, &y, &x) &&
