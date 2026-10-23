@@ -26,6 +26,13 @@
 3. `bash release/extlibs/zip/test/check_symlink.sh` 仅检查预先放好的
    符号链接；通过不消除步骤 2 的检查后替换窗口。
 
+确定性竞争复现可在 Linux 测试构建中包装 `xrtPathRename`：准备归档
+`sub/a.txt`、目标根 `dest/sub` 与根外目录 `outside`。包装器在原调用前
+把已创建临时文件的 `dest/sub` 移到 `outside/sub`，再把 `dest/sub`
+替换成指向 `outside/sub` 的链接，然后调用原始 `xrtPathRename`。
+旧的临时文件和目标名称都会沿该链接在根外重新解析；断言根外不能出现
+`a.txt`。这套注入尚未执行，不能把静态调用链当成已测得的越界写入结果。
+
 ## 收口路线
 
 1. 由维护 XRT 同步的线程更新 DEMO6 单头文件并验证新 API 的实际链接，
