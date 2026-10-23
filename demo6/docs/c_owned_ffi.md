@@ -55,7 +55,7 @@ invalid length therefore cannot leak it.
 | Operation | Behavior |
 | --- | --- |
 | Typed local `string/bytes` or `auto` initialized from a C-backed result | Preserves C storage and shares ownership |
-| Synchronous result declared `as cstring/cbytes` | Preserves the C owner across the return |
+| Synchronous result declared `as cstring/cbytes`, including optional results | Preserves the C owner across the return |
 | Length, integer indexing, comparisons, iteration | Reads the original allocation |
 | Borrowed string parameters and string reader methods | Receive a length-bearing borrowed string view |
 | Direct named language functions and concrete generic instances | Compiler specializes matching string/bytes parameters and single results to preserve C storage |
@@ -65,7 +65,8 @@ invalid length therefore cannot leak it.
 | Whole replacement, indexed write, string `+=` | Automatically constructs/replaces the value; other aliases keep their old contents |
 | Explicit `string(cstring)` / `bytes(cbytes)` | Requests an independent payload copy |
 | Closure captures, mutable captured cells, async/generator locals | Shares the C owner, including across suspension and worker tasks |
-| `var`, containers, fields, nullable joins | Materializes the ordinary representation at the boundary |
+| Nullable joins, `??`, `?=`, null tests and flow narrowing | Preserve C storage; null and present-empty remain distinct |
+| `var`, containers, fields | Materializes the ordinary representation at the boundary |
 
 A writable by-value language parameter first acquires its own owner. Changing
 it cannot free or mutate the caller's value. Replacement publishes the new
@@ -128,8 +129,13 @@ ordinary escape boundaries have their normal allocation costs. The reference
 count is atomic only on C owner acquisition/release. C owner locals and captures
 use a private frame leaf profile; they remain outside XRT dynamic values and
 collections. Reads have no atomic operation or ordinary-value tag test.
-C markers are not allowed in fields, global declarations, aliases, nullable
-marker declarations or generic elements.
+C markers are not allowed in fields, global declarations, aliases, uninitialized
+nullable marker declarations or generic elements. Optional synchronous return
+markers (`as cstring?` / `as cbytes?`) and inferred optional locals are supported.
+The compiler-private optional descriptor uses `{NULL, SIZE_MAX, NULL}` for null;
+present-empty uses zero length. It remains three words and shares the existing
+owner/capture machinery. Presence checks occur only on optional paths. Ordinary
+XRT nullable types, dynamic values and string/bytes layouts are unchanged.
 
 Mixed printing prepares ordinary argument formatting before the first write.
 The console may then receive several writes; a line-atomic output guarantee
@@ -197,3 +203,13 @@ both source JIT and standalone EXE, and 13 ordinary programs through both
 paths. All ordinary emitted C omits C owner headers. The shared-owner runtime
 unit also passes separately at O2 with four concurrent workers. The source
 runtime receipt is `build/c-owned/complete-spans-public-4/build.json`.
+
+`xlir_c_owned_nullable.xl` covers optional returns, generic forwarding, indirect
+string reads, present-empty, null tests and `is` narrowing, joins with ordinary
+nullable values, coalescing, null-aware assignment, transparent writes, aliases,
+worker captures, generator locals and exception cleanup. Emitted C must contain
+no string/bytes input materialization. `xlir_c_owned_nullable_boundaries.xl`
+separately checks copying into dynamic values, typed arrays and ordinary fields,
+including absent values and logical `type()` identity. The runtime unit checks
+the null sentinel independently of present-empty and validates its copy/drop
+and ordinary-null conversions.

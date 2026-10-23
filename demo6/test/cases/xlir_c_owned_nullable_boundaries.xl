@@ -1,0 +1,47 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+extern "c_owned_released" @no_raise func released() as int
+func textFactory(bool flag) as cstring?
+    return flag ? cstring.take(nativeText(),nativeFree) : null
+end
+func bytesFactory(bool flag) as cbytes?
+    return flag ? cbytes.take(nativeBytes(),4,nativeFree) : null
+end
+class Holder
+    string? text = null
+    bytes? data = null
+end
+func check(bool flag)
+    auto text = textFactory(flag)
+    auto data = bytesFactory(flag)
+    var box = text
+    var binary = data
+    array<string?> texts = [text,null]
+    array<bytes?> values = [data,null]
+    auto holder = Holder()
+    holder.text = text
+    holder.data = data
+    assert type(text) == type(holder.text)
+    assert type(data) == type(holder.data)
+    assert (text is string) == flag
+    assert (data is bytes) == flag
+    if flag
+        assert not original(holder.text ?? "bad") and not originalBytes(holder.data ?? b"bad")
+        text = null
+        data = null
+        assert released() == 2
+        assert box == "hello" and binary == b"\0\xff\x11*"
+        assert (texts[0] ?? "bad") == "hello" and (values[0] ?? b"bad") == b"\0\xff\x11*"
+        assert (holder.text ?? "bad") == "hello" and (holder.data ?? b"bad") == b"\0\xff\x11*"
+    else
+        assert box == null and binary == null
+        assert texts[0] == null and values[0] == null
+        assert holder.text == null and holder.data == null
+    end
+end
+check(true)
+check(false)
+assert released() == 2

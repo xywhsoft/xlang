@@ -432,6 +432,7 @@ static XL6_IrNullAbi xl6IrNullAbiFromCAbi(XL6_IrCAbi cAbi)
 static XL6_IrCAbi xl6IrNullableCAbiForElement(const XL6_IrType* element)
 {
     if ( element == NULL ) return XL6_IR_C_ABI_UNSUPPORTED;
+    if(xl6IrTypeIsCOwned(element))return element->cAbi;
     if (xl6IrNullableNativeValuePlanForElement(element))return XL6_IR_C_ABI_NATIVE_VALUE;
     /* A pure-native class is a nominal value, not the raw handle itself.  A
      * NULL handle is therefore a valid present payload and cannot double as
@@ -1598,6 +1599,12 @@ int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
     }
     if ( type->paramCount != 1 || type->params == NULL || type->returnCount != 0 ||
          (element = xl6IrTypeGet(pool, type->params[0])) == NULL ) return 0;
+    if(xl6IrTypeIsCOwned(element) && element->kind==XL6_IR_TYPE_BUILTIN) {
+        type->cAbi=element->cAbi;type->ownershipAbi=XL6_IR_OWNERSHIP_ABI_MANAGED;
+        type->nullAbi=XL6_IR_NULL_ABI_TAGGED_VALUE;
+        type->abiId=xl6TypeAbiIdText(element->cAbi==XL6_IR_C_ABI_C_STRING ? "xlang.cstring.optional.v1" : "xlang.cbytes.optional.v1");
+        type->cName[0]='\0';return xl6IrTypeFinalizeErrorResultCName(pool,type);
+    }
     const XL6_IrNativeValuePlan* nullableNative=xl6IrNullableNativeValuePlanForElement(element);
     if(nullableNative){
         type->cAbi=XL6_IR_C_ABI_NATIVE_VALUE;type->ownershipAbi=XL6_IR_OWNERSHIP_ABI_MANAGED;
@@ -16942,7 +16949,8 @@ static int xl6IrNullableProjectionTypeIsClosed(
         nullable->params != NULL
             ? xl6IrTypeGet(&module->types, nullable->params[0]) : NULL;
     if ( nullable == NULL || element == NULL ) return 0;
-    if (xl6IrNullableNativeValuePlan(&module->types,nullable))return 1;
+    if (xl6IrNullableNativeValuePlan(&module->types,nullable) ||
+        (xl6IrTypeIsCOwned(nullable) && xl6IrTypeIsCOwned(element) && nullable->cAbi==element->cAbi))return 1;
     if ( nullable->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
          nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          nullable->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
@@ -22998,7 +23006,8 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                       element->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
                       type->cName[0] != '\0') ||
                      type->cAbi == XL6_IR_C_ABI_UNSUPPORTED ||
-                     xl6IrNullableNativeValuePlan(pool,type)!=NULL)) ||
+                     xl6IrNullableNativeValuePlan(pool,type)!=NULL ||
+                     (xl6IrTypeIsCOwned(type) && xl6IrTypeIsCOwned(element) && type->cAbi==element->cAbi))) ||
                    ((type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL ||
                       type->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL) &&
                      type->nullAbi == element->nullAbi &&
@@ -38941,7 +38950,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     return xl6IrDiag(diags, NULL,
                         "XLIR extern function parameter cannot use the direct closure physical ABI");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW) {
-                if((target->kind!=XL6_IR_CALL_TARGET_EXTERN_C && target->kind!=XL6_IR_CALL_TARGET_NATIVE_FACTORY) || !xl6IrTypeIsCOwned(parameterType) ||
+                if((target->kind!=XL6_IR_CALL_TARGET_EXTERN_C && target->kind!=XL6_IR_CALL_TARGET_NATIVE_FACTORY) || !xl6IrTypeIsCOwned(parameterType) || parameterType->kind!=XL6_IR_TYPE_BUILTIN ||
                     target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
                     (target->runtimeBridge!=XL6_IR_RUNTIME_BRIDGE_NONE && !xl6IrRuntimeDirectBridgeTargetMatches(module,target)) ||
                     target->parameterPhysicalFieldDeclarations[parameter]!=XL6_IR_NODE_INVALID)
@@ -40939,7 +40948,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                           nullType->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
                           !(nullType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
                             (nullType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ||
-                             xl6IrNullableNativeValuePlan(&module->types,nullType)!=NULL))) )
+                             xl6IrNullableNativeValuePlan(&module->types,nullType)!=NULL || xl6IrTypeIsCOwned(nullType)))) )
                         return xl6IrDiag(diags, NULL,
                                          "XLIR null construction has no exact sentinel ABI");
                 }
@@ -40957,7 +40966,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                           testedType->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
                           !(testedType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
                             (testedType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ||
-                             xl6IrNullableNativeValuePlan(&module->types,testedType)!=NULL))) )
+                             xl6IrNullableNativeValuePlan(&module->types,testedType)!=NULL || xl6IrTypeIsCOwned(testedType)))) )
                         return xl6IrDiag(diags, xl6IrNodeGet(module, instruction->origin),
                                          "XLIR null test has no exact sentinel operand ABI");
                 }
@@ -40977,7 +40986,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     int nativeTagged=xl6IrNullableNativeValuePlan(&module->types,nullableType)!=NULL;
                     int taggedAbi = nullableType != NULL &&
                         ((nullableType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
-                        nullableType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE) || nativeTagged);
+                        nullableType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE) || nativeTagged || xl6IrTypeIsCOwned(nullableType));
                     int sentinelAbi;
                     const XL6_IrNode* origin = xl6IrNodeGet(
                         module, instruction->origin);

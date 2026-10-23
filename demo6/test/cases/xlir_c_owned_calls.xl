@@ -24,6 +24,7 @@ func checkCalls()
     cstring text = cstring.take(nativeText(), nativeFree)
     cbytes data = cbytes.take(nativeBytes(), 4, nativeFree)
     auto callback = reader
+    auto spanCallback = originalBytes
     int before = allocations()
     assert original(choose::<string,int>(text,42))
     assert original(choose::<string,bool>(text,true))
@@ -32,6 +33,7 @@ func checkCalls()
     assert originalBytes(choose::<bytes,int>(data,1))
     assert originalBytes(choose(data,true))
     assert callback(text)
+    assert spanCallback(data)
     assert original(many(text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text))
     if tracking then assert allocations() == before end
     assert callback(cstring.take(nativeText(), nativeFree))

@@ -1,0 +1,153 @@
+import concurrent
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+extern "c_owned_released" @no_raise func released() as int
+func forward(string? text) as string?
+    return text
+end
+func factory(bool flag) as cstring?
+    return flag ? cstring.take(nativeText(),nativeFree) : null
+end
+func readOptional(string? text) as bool
+    if text == null then return false end
+    return original(text)
+end
+func check(bool flag)
+    string text = cstring.take(nativeText(),nativeFree)
+    bytes data = cbytes.take(nativeBytes(),4,nativeFree)
+    auto maybeText = flag ? text : null
+    bytes? maybeData = flag ? data : null
+    auto forwarded = forward(maybeText)
+    auto reader = readOptional
+    assert reader(maybeText) == flag
+    assert (maybeText is string) == flag and (maybeData is bytes) == flag
+    if maybeText is string
+        assert original(maybeText) and maybeText.length == 5
+    end
+    if maybeData is bytes
+        assert originalBytes(maybeData) and maybeData.length == 4
+    end
+    string selected = maybeText ?? "fallback"
+    assert forwarded == null or flag
+    assert forwarded == maybeText
+    assert maybeText == (flag ? "hello" : null)
+    assert maybeData == (flag ? b"\0\xff\x11*" : null)
+    println(maybeText,maybeData)
+    bytes binary = maybeData ?? b"fallback"
+    if flag
+        assert original(selected) and originalBytes(binary)
+        assert maybeText != null and maybeData != null
+        if maybeText != null and maybeData != null
+            assert maybeText.length == 5 and maybeData.length == 4
+        else
+            assert false
+        end
+    else
+        assert maybeText == null and maybeData == null
+        assert selected == "fallback" and binary == b"fallback"
+    end
+end
+check(true)
+assert released() == 2
+check(false)
+assert released() == 4
+
+func emptyText() as cstring?
+    return cstring.take(null,nativeFree)
+end
+func emptyBytes() as cbytes?
+    return cbytes.take(null,0,nativeFree)
+end
+func identity<T>(T value) as T
+    return value
+end
+func checkEmptyAndAlias()
+    auto empty = emptyText()
+    auto emptyBinary = emptyBytes()
+    assert empty != null and emptyBinary != null
+    assert (empty ?? "bad") == "" and (emptyBinary ?? b"bad") == b""
+    auto only = factory(true)
+    auto other = identity(only)
+    if only != null then only[0] = 'H' end
+    assert (only ?? "bad") == "Hello" and original(other ?? "bad")
+    only = "replacement"
+    assert (only ?? "bad") == "replacement"
+    only = null
+    assert released() == 4 and original(other ?? "bad")
+    other = null
+    assert released() == 5
+    auto absent = factory(false)
+    assert absent == null and absent != empty
+    assert absent == factory(false)
+    absent ?= "fallback"
+    assert (absent ?? "bad") == "fallback"
+    empty ?= "ignored"
+    assert (empty ?? "bad") == ""
+    println(empty,absent,emptyBinary)
+end
+checkEmptyAndAlias()
+
+async func checkCapturedOptional()
+    auto text = factory(true)
+    auto reader = func() as bool => original(text ?? "bad")
+    assert await task.spawn(reader)
+end
+await checkCapturedOptional()
+assert released() == 6
+func optionalStream() as generator<int>
+    auto text = factory(true)
+    yield int((text ?? "bad").length)
+    assert original(text ?? "bad")
+end
+func checkOptionalStream()
+    for value in optionalStream()
+        assert value == 5
+    end
+end
+checkOptionalStream()
+assert released() == 7
+try
+    auto text = factory(true)
+    throw "optional cleanup"
+catch ignored
+end
+assert released() == 8
+
+func binaryFactory(bool present) as cbytes?
+    return present ? cbytes.take(nativeBytes(),4,nativeFree) : null
+end
+func checkBinaryWrite()
+    auto data = binaryFactory(true)
+    auto old = data
+    if data != null then data[1] = uint8(7) end
+    if data != null then assert data[1] == 7 end
+    assert originalBytes(old ?? b"")
+    data = null
+    assert released() == 8
+    old = null
+    assert released() == 9
+end
+checkBinaryWrite()
+func checkMixed(bool flag)
+    auto raw = factory(flag)
+    string? ordinary = "hello"
+    auto mixed = flag ? raw : ordinary
+    assert (mixed ?? "bad") == "hello"
+    if flag then assert original(mixed ?? "bad") end
+    auto selected = (flag ? ordinary : null) ?? cstring.take(nativeText(),nativeFree)
+    assert selected == "hello"
+    if not flag then assert original(selected) end
+    auto binary = binaryFactory(flag)
+    bytes? normal = b"\0\xff\x11*"
+    auto combined = flag ? binary : normal
+    assert (combined ?? b"") == b"\0\xff\x11*"
+    auto chosen = (flag ? normal : null) ?? cbytes.take(nativeBytes(),4,nativeFree)
+    assert chosen == b"\0\xff\x11*"
+    if not flag then assert originalBytes(chosen) end
+end
+checkMixed(true)
+checkMixed(false)
+assert released() == 13

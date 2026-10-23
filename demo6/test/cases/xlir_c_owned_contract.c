@@ -24,6 +24,25 @@ static void checkSpanContracts(XL6_IrModule* ir)
     }
 }
 
+static void checkOptionalContracts(XL6_IrModule* ir)
+{
+    for(size_t i=0;i<ir->instructionCount;++i) {
+        XL6_IrInstruction* instruction=&ir->instructions[i];
+        if(instruction->runtimeOp!=XL6_IR_RUNTIME_C_COMPARE_EQ || instruction->operandCount!=2)continue;
+        const XL6_IrInstruction* source=NULL;
+        XL6_IrValueId value=ir->operands[instruction->firstOperand];
+        for(size_t j=0;j<ir->instructionCount;++j)
+            if(ir->instructions[j].result==value){source=&ir->instructions[j];break;}
+        const XL6_IrType* type=source ? xl6IrTypeGet(&ir->types,source->type) : NULL;
+        if(!type || type->kind!=XL6_IR_TYPE_NULLABLE)continue;
+        XL6_DiagList diags={0};
+        instruction->runtimeOp=XL6_IR_RUNTIME_C_COMPARE_LT;
+        assert(!xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags);
+        instruction->runtimeOp=XL6_IR_RUNTIME_C_COMPARE_EQ;
+        assert(xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags);
+    }
+}
+
 int main(int argc,char** argv)
 {
     XL6_ParseResult parsed; XL6_IrModule ir; XL6_Output out;
@@ -39,7 +58,7 @@ int main(int argc,char** argv)
             if(xl6OutputOpenFile(&out,path)){xl6IrDumpModuleJson(&out,&ir);xl6OutputClose(&out);}
         }
     }
-    if(ok)checkSpanContracts(&ir);
+    if(ok){checkSpanContracts(&ir);checkOptionalContracts(&ir);}
     if(ok && strcmp(argv[2],"check")) {
         ok=xl6OutputOpenFile(&out,argv[2]);
         if(ok) {

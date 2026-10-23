@@ -21,6 +21,10 @@ typedef struct XL6_COwnedV1 {
     XL6_COwnerV1* Owner;
 } XL6_COwnedV1;
 
+/* Only compiler-known optional slots use this impossible adopted length.
+ * Empty C values remain distinct from null without adding a descriptor word. */
+static inline int xl6COwnedIsNoneV1(XL6_COwnedV1 value)
+{ return !value.Data && value.Size==SIZE_MAX; }
 static inline void xl6COwnedDropV1(XL6_COwnedV1* value)
 {
     XL6_COwnedV1 owned=*value;
@@ -114,8 +118,20 @@ static inline xbytesview xl6CBytesViewV1(XL6_COwnedV1 value)
     return (xbytesview){(const uint8*)value.Data, value.Size};
 }
 
+static inline xstrview xl6CStringNullableViewV1(XL6_COwnedV1 value)
+{ return xl6COwnedIsNoneV1(value) ? (xstrview){0} : xl6CStringViewV1(value); }
+
+static inline XL6_COwnedV1 xl6CStringFromNullableStringV1(xstrview value)
+{ return value.Data ? xl6CStringFromStringV1(value) : (XL6_COwnedV1){NULL,SIZE_MAX,NULL}; }
+static inline XL6_COwnedV1 xl6CBytesFromNullableBytesV1(xvalue* value)
+{
+    if(!value || !xrtValueType(value)) {xrtValueRelease(value);return (XL6_COwnedV1){NULL,SIZE_MAX,NULL};}
+    return xl6CBytesFromBytesV1(value);
+}
+
 static inline xstrview xl6CStringCopyV1(XL6_COwnedV1 value)
 {
+    if(xl6COwnedIsNoneV1(value))return (xstrview){0};
     xstrview view = xl6CStringViewV1(value);
     char* data = xrtStrDupN(view.Data, view.Size);
     return (xstrview){data, data ? view.Size : 0};
@@ -125,11 +141,11 @@ static inline xstrview xl6CStringCopyV1(XL6_COwnedV1 value)
  * managed string and no allocator-dependent adoption shortcut. */
 static inline xvalue* xl6CStringBoxV1(XL6_COwnedV1 value)
 {
-    return xrtValueString(xl6CStringViewV1(value));
+    return xl6COwnedIsNoneV1(value) ? xrtValueRetain(xrtValueNull()) : xrtValueString(xl6CStringViewV1(value));
 }
 
 static inline xvalue* xl6CBytesCopyV1(XL6_COwnedV1 value)
 {
-    return xrtValueBytes(xl6CBytesViewV1(value));
+    return xl6COwnedIsNoneV1(value) ? xrtValueRetain(xrtValueNull()) : xrtValueBytes(xl6CBytesViewV1(value));
 }
 #endif
