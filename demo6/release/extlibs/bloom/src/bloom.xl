@@ -20,7 +20,7 @@ class BloomFilter
     extern "xbloom_estimated_fpp" func estimatedFppNative() as c_double
     extern "xbloom_estimated_count" func estimatedCountNative() as c_longlong
     extern "xbloom_union" func unionNative(point other) as c_int
-    extern "xbloom_serialize" func serializeNative() as string
+    extern "xbloom_serialize_owned" func serializeNative() as point
     extern "xbloom_clone" func cloneNative() as point
 
     get valid() as bool
@@ -85,7 +85,9 @@ class BloomFilter
         if self.handle == null then
             throw RuntimeError "bloom: filter is destroyed"
         end
-        return self.serializeNative()
+        point result = self.serializeNative()
+        if result == null then throw MemoryError __bloom_error() end
+        return __xl_runtime.takeCstr(result)
     end
 
     // In-place union: this filter also contains everything in other.
@@ -172,7 +174,7 @@ class CountingBloomFilter
     extern "xcounting_bloom_estimated_fpp" func estimatedFppNative() as c_double
     extern "xcounting_bloom_estimated_count" func estimatedCountNative() as c_longlong
     extern "xcounting_bloom_union" func unionNative(point other) as c_int
-    extern "xcounting_bloom_serialize" func serializeNative() as string
+    extern "xcounting_bloom_serialize_owned" func serializeNative() as point
     extern "xcounting_bloom_clone" func cloneNative() as point
 
     get valid() as bool
@@ -241,7 +243,9 @@ class CountingBloomFilter
         if self.handle == null then
             throw RuntimeError "counting bloom: filter is destroyed"
         end
-        return self.serializeNative()
+        point result = self.serializeNative()
+        if result == null then throw MemoryError __bloom_error() end
+        return __xl_runtime.takeCstr(result)
     end
 
     // In-place union via per-slot counter max. Returns false on dimension mismatch.

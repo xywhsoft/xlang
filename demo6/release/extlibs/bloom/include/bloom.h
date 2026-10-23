@@ -19,6 +19,7 @@ double xbloom_estimated_fpp(void *filter);
 long long xbloom_estimated_count(void *filter);
 int xbloom_union(void *filter, void *other);
 const char *xbloom_serialize(void *filter);
+void *xbloom_serialize_owned(void *filter);
 void *xbloom_deserialize(const char *data);
 void *xbloom_clone(void *filter);
 void *xbloom_adopt(void *filter);
@@ -37,12 +38,14 @@ double xcounting_bloom_estimated_fpp(void *filter);
 long long xcounting_bloom_estimated_count(void *filter);
 int xcounting_bloom_union(void *filter, void *other);
 const char *xcounting_bloom_serialize(void *filter);
+void *xcounting_bloom_serialize_owned(void *filter);
 void *xcounting_bloom_deserialize(const char *data);
 void *xcounting_bloom_clone(void *filter);
 void *xcounting_bloom_adopt(void *filter);
 
 /* length=-1 按 C 字符串取长度；非负值允许包含 NUL 的二进制输入。
-   serialize 字符串借用 XRT 临时区，长期保存应复制。合并不转移对象所有权。 */
+   serialize 字符串借用 XRT 临时区；serialize_owned 返回独立内存，须用 xrtFree 释放。
+   合并不转移对象所有权。 */
 #ifdef __cplusplus
 }
 #endif

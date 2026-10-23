@@ -87,6 +87,11 @@ int main(void)
     xbloom_add(filter, "beta", -1);
     serialized = xbloom_serialize(filter);
     {
+        char *owned = xbloom_serialize_owned(filter);
+        assert(owned != NULL && strcmp(owned, serialized) == 0);
+        xrtFree(owned);
+    }
+    {
         char *old_version = xrtStrDup(serialized);
         assert(old_version != NULL);
         memcpy(old_version + 8, "01000000", 8);
@@ -119,6 +124,8 @@ int main(void)
     assert(xcounting_bloom_deserialize("0") == NULL); expect_error(XERR_VALUE);
     assert(xbloom_clone(NULL) == NULL); expect_error(XERR_STATE);
     assert(xcounting_bloom_serialize(NULL)[0] == '\0'); expect_error(XERR_STATE);
+    assert(xbloom_serialize_owned(NULL) == NULL); expect_error(XERR_STATE);
+    assert(xcounting_bloom_serialize_owned(NULL) == NULL); expect_error(XERR_STATE);
 
     filter = xbloom_create(32, 0.01);
     assert(filter != NULL);
@@ -140,6 +147,12 @@ int main(void)
     xcounting_bloom_add(filter, "same", -1);
     xcounting_bloom_remove(filter, "same", -1);
     assert(xcounting_bloom_contains(filter, "same", -1));
+    {
+        const char *borrowed = xcounting_bloom_serialize(filter);
+        char *owned = xcounting_bloom_serialize_owned(filter);
+        assert(owned != NULL && strcmp(owned, borrowed) == 0);
+        xrtFree(owned);
+    }
     corrupt_header(xcounting_bloom_serialize(filter), xcounting_bloom_deserialize);
     restored = xcounting_bloom_deserialize(xcounting_bloom_serialize(filter));
     assert(restored && xcounting_bloom_count(restored) == 1);

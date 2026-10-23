@@ -49,7 +49,10 @@ assert restored.contains("beta")
 
 公开头 `include/bloom.h`；创建、恢复、clone 的句柄由 C 调用方各释放一次，
 `destroy(NULL)` 安全。不能重复释放同一非空句柄。`serialize` 字符串借用 XRT 临时区，
-长期保存请复制。单独编译 `bloom_native.c` 并链接一份 XRT 即可，不依赖编译器内部类型。
+长期保存请复制；`serialize_owned` 返回独立的十六进制文本内存，调用方使用
+`xrtFree` 释放，失败时返回 NULL 并设置 XRT 错误。XLang 的 `serialize()` 直接接管
+拥有型结果，不再从临时区复制整串。单独编译 `bloom_native.c` 并链接一份 XRT
+即可，不依赖编译器内部类型。
 
 `examples/extlibs/bloom.xl` 覆盖语言 API；`bloom_basic.xl` 与 `bloom_c.c` 是四行
 同结果范例。专项门禁 `tools/check_extlib_argon2_bloom.ps1` 校验所有生成原型、

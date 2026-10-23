@@ -62,6 +62,18 @@ static int operation(unsigned int kind)
     case 7: copy = xcounting_bloom_create(100, 0.01); break;
     case 8: copy = xcounting_bloom_deserialize(counting_text); break;
     case 9: copy = xcounting_bloom_clone(counting); break;
+    case 11: {
+        char *owned = xbloom_serialize_owned(filter);
+        int ok = owned != NULL && owned[0] != '\0';
+        xrtFree(owned);
+        return ok;
+    }
+    case 12: {
+        char *owned = xcounting_bloom_serialize_owned(counting);
+        int ok = owned != NULL && owned[0] != '\0';
+        xrtFree(owned);
+        return ok;
+    }
     default: return xcounting_bloom_serialize(counting)[0] != '\0';
     }
     if (kind < 7) xbloom_destroy(copy);
@@ -92,7 +104,7 @@ int main(void)
 
     /* 普通堆与临时区分别注入；失败必须报 MemoryError，且不改变输入对象。 */
     for (mode = 0; mode < 2; ++mode) {
-      for (kind = 0; kind < 11; ++kind) {
+      for (kind = 0; kind < 13; ++kind) {
         unsigned int good = 0, bad = 0;
         if (mode == 0 && (kind == 6 || kind == 10)) continue;
         if (mode == 1 && kind != 0 && kind != 2 && kind != 6 && kind != 10) continue;

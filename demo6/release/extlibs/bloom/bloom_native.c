@@ -112,6 +112,28 @@ static unsigned char *bloom_hex_decode(const char *hex, size_t *out_len) {
 #define BLOOM_VERSION     2u
 #define BLOOM_CB_VERSION  1u
 
+/* 借用版使用临时区；拥有版直接分配最终字符串，供 xlang 接管。 */
+static char *bloom_serialize_hex(const unsigned char *header, const unsigned char *body,
+                                  unsigned long long body_bytes, int owned, const char *name) {
+    size_t i, size;
+    char *hex, *p;
+    if (body_bytes > (SIZE_MAX - BLOOM_HDR_BYTES - 1u) / 2u) {
+        bloom_error(XERR_MEMORY, name);
+        return NULL;
+    }
+    size = (BLOOM_HDR_BYTES + (size_t)body_bytes) * 2u + 1u;
+    hex = owned ? (char *)xrtMalloc(size) : (char *)xrtTemp(size);
+    if (!hex) {
+        bloom_error(XERR_MEMORY, name);
+        return NULL;
+    }
+    p = hex;
+    for (i = 0; i < BLOOM_HDR_BYTES; ++i) { bloom_hex_byte(p, header[i]); p += 2; }
+    for (i = 0; i < (size_t)body_bytes; ++i) { bloom_hex_byte(p, body[i]); p += 2; }
+    *p = '\0';
+    return hex;
+}
+
 /* ------------------------------------------------------------------ */
 /* Bloom storage chunk constants                                        */
 /* ------------------------------------------------------------------ */
@@ -311,18 +333,12 @@ int xbloom_union(void *aptr, void *bptr) {
     return 1;
 }
 
-/* Serialize to a hex string (header + bit array). Returns "" on error. */
-const char *xbloom_serialize(void *ptr) {
+static char *bloom_serialize(void *ptr, int owned) {
     XBloom *b = (XBloom *)ptr;
-    unsigned long long body_bytes, total_bin, i;
+    unsigned long long body_bytes;
     unsigned char hdr[BLOOM_HDR_BYTES];
-    const unsigned char *body;
-    char *hex, *p;
-    if (!b) { bloom_error(XERR_STATE, "bloom: filter is destroyed"); return ""; }
+    if (!b) { bloom_error(XERR_STATE, "bloom: filter is destroyed"); return NULL; }
     body_bytes = b->num_blocks * BLOOM_BLOCK_BYTES;
-    total_bin = BLOOM_HDR_BYTES + body_bytes;
-    hex = (char *)xrtTemp((size_t)(total_bin * 2) + 1);
-    if (!hex) { bloom_error(XERR_MEMORY, "bloom: out of memory"); return ""; }
     bloom_put_u32(hdr + 0, BLOOM_MAGIC);
     bloom_put_u32(hdr + 4, BLOOM_VERSION);
     bloom_put_u32(hdr + 8, b->nhashes);
@@ -330,12 +346,18 @@ const char *xbloom_serialize(void *ptr) {
     bloom_put_u64(hdr + 16, b->num_blocks);
     bloom_put_u64(hdr + 24, b->count);
     bloom_put_u64(hdr + 32, b->capacity);
-    p = hex;
-    for (i = 0; i < BLOOM_HDR_BYTES; i++) { bloom_hex_byte(p, hdr[i]); p += 2; }
-    body = (const unsigned char *)b->blocks;
-    for (i = 0; i < body_bytes; i++) { bloom_hex_byte(p, body[i]); p += 2; }
-    *p = '\0';
-    return hex;
+    return bloom_serialize_hex(hdr, (const unsigned char *)b->blocks, body_bytes, owned,
+                               "bloom: out of memory");
+}
+
+/* C 借用出口保持不变；拥有出口由调用方使用 xrtFree 释放。 */
+const char *xbloom_serialize(void *ptr) {
+    char *text = bloom_serialize(ptr, 0);
+    return text ? text : "";
+}
+
+void *xbloom_serialize_owned(void *ptr) {
+    return bloom_serialize(ptr, 1);
 }
 
 /* Reconstruct a filter from a hex string produced by xbloom_serialize.
@@ -652,18 +674,12 @@ int xcounting_bloom_union(void *aptr, void *bptr) {
     return 1;
 }
 
-/* Serialize counting filter to a hex string. Returns "" on error. */
-const char *xcounting_bloom_serialize(void *ptr) {
+static char *counting_bloom_serialize(void *ptr, int owned) {
     XCountingBloom *cb = (XCountingBloom *)ptr;
-    unsigned long long body_bytes, total_bin, i;
+    unsigned long long body_bytes;
     unsigned char hdr[BLOOM_HDR_BYTES];
-    const unsigned char *body;
-    char *hex, *p;
-    if (!cb) { bloom_error(XERR_STATE, "counting bloom: filter is destroyed"); return ""; }
+    if (!cb) { bloom_error(XERR_STATE, "counting bloom: filter is destroyed"); return NULL; }
     body_bytes = (cb->nslots + 1) / 2;
-    total_bin = BLOOM_HDR_BYTES + body_bytes;
-    hex = (char *)xrtTemp((size_t)(total_bin * 2) + 1);
-    if (!hex) { bloom_error(XERR_MEMORY, "counting bloom: out of memory"); return ""; }
     bloom_put_u32(hdr + 0, BLOOM_CB_MAGIC);
     bloom_put_u32(hdr + 4, BLOOM_CB_VERSION);
     bloom_put_u32(hdr + 8, cb->nhashes);
@@ -671,12 +687,17 @@ const char *xcounting_bloom_serialize(void *ptr) {
     bloom_put_u64(hdr + 16, cb->nslots);
     bloom_put_u64(hdr + 24, cb->count);
     bloom_put_u64(hdr + 32, cb->capacity);
-    p = hex;
-    for (i = 0; i < BLOOM_HDR_BYTES; i++) { bloom_hex_byte(p, hdr[i]); p += 2; }
-    body = (const unsigned char *)cb->counters;
-    for (i = 0; i < body_bytes; i++) { bloom_hex_byte(p, body[i]); p += 2; }
-    *p = '\0';
-    return hex;
+    return bloom_serialize_hex(hdr, (const unsigned char *)cb->counters, body_bytes, owned,
+                               "counting bloom: out of memory");
+}
+
+const char *xcounting_bloom_serialize(void *ptr) {
+    char *text = counting_bloom_serialize(ptr, 0);
+    return text ? text : "";
+}
+
+void *xcounting_bloom_serialize_owned(void *ptr) {
+    return counting_bloom_serialize(ptr, 1);
 }
 
 /* Reconstruct a counting filter from a hex string. Returns NULL on error. */

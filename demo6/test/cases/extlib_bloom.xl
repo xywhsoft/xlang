@@ -100,6 +100,10 @@ func main(...) as int
     assert not rf.contains("absent"), "deserialized not contains absent"
     assert rf.bits == sf.bits, "deserialized bits match"
     assert rf.hashes == sf.hashes, "deserialized hashes match"
+    sf.add("persist3")
+    string laterBlob = sf.serialize()
+    assert blob != laterBlob, "earlier serialization remains independent"
+    assert rf.count == 2 and sf.count == 3, "serialized snapshot remains stable"
 
     // ─── deserialize invalid input throws ───
     caught = false
