@@ -68,14 +68,7 @@ static size_t xsrt_arrow(XsrtLine line) {
 }
 
 static xvalue *xsrt_string(XsrtLine line) {
-    str owned = (str)xrtMalloc(line.size + 1);
-    xvalue *result;
-    if (owned == NULL) return NULL;
-    memcpy(owned, line.data, line.size);
-    owned[line.size] = '\0';
-    result = xrtValueStringTake(&owned, line.size);
-    xrtFree(owned);
-    return result;
+    return xrtValueString((xstrview){line.data ? line.data : "", line.size});
 }
 
 static int xsrt_two(XsrtLine *line, int *value) {
