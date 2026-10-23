@@ -99,6 +99,8 @@ Windows 默认门禁（在 `demo6` 目录执行）：`powershell -NoProfile -Exe
 hook 帧边界和快照协议测试在 `-DNDEBUG` 下仍启用断言；Windows
 `-Stress` 与 Linux 门禁均以发布宏编译相关测试。两份测试在 Windows
 严格 GCC 发布宏下单独编译、运行通过；这不扩张为真实 GPU 或插件内部验收。
+Windows/Linux 包门禁使用本次独占的 `build/test/op/run_*` 目录，退出时
+只清理该目录，不覆盖旧的固定测试产物或另一份并行门禁的文件。
 
 默认门禁的核心与公开范例 AOT 产物每次使用独占文件名，并在成功或失败后清理本次文件；并行运行不会复用旧产物。这只验证公开调用层，不扩大插件内部测试范围。
 

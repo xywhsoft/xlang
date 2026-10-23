@@ -2,7 +2,8 @@ param([switch]$RealGpu, [switch]$Stress, [switch]$SkipAot)
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
-$build = Join-Path $root 'build/test/op'
+$buildParent = Join-Path $root 'build/test/op'
+$build = Join-Path $buildParent ('run_' + [guid]::NewGuid().ToString('N'))
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
 $tcc = Join-Path $root 'build/tmp/tcc_bootstrap.exe'
 $xl = Join-Path $root 'release/xl.exe'
@@ -274,4 +275,10 @@ try {
     }
 } finally {
     Pop-Location
+    $parentPath = [IO.Path]::GetFullPath($buildParent).TrimEnd('\') + '\'
+    $buildPath = [IO.Path]::GetFullPath($build)
+    if (-not $buildPath.StartsWith($parentPath, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "op test directory escaped build/test: $buildPath"
+    }
+    [IO.Directory]::Delete($buildPath, $true)
 }
