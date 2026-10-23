@@ -165,12 +165,9 @@ static bool __xrtNetrcScanToken(xrt_netrc_scanner* pScanner,
 			goto fail;
 		}
 	}
-	if ( pBuffer->Size > 0u ) {
-		pToken->sText = xrtStrDupN((cstr)pBuffer->Data, pBuffer->Size);
-	} else {
-		pToken->sText = xrtStrDup("");
-	}
 	pToken->iSize = pBuffer->Size;
+	if ( !xrtBufferAppendByte(pBuffer, 0u) ) { goto memory_error; }
+	pToken->sText = (str)xrtBufferTake(pBuffer, NULL, NULL);
 	xrtBufferDestroy(pBuffer);
 	if ( pToken->sText == NULL ) {
 		__xrtNetrcSetError(pScanner->Context->Error, XRT_NETRC_ERROR_MEMORY,
@@ -228,9 +225,9 @@ static bool __xrtNetrcIsTopLevel(const xrt_netrc_token* pToken)
 }
 
 static bool __xrtNetrcSetAuthField(xvalue* pAuth, const char* sField,
-	const xrt_netrc_token* pValue)
+	xrt_netrc_token* pValue)
 {
-	xvalue* pText = __xrtNetrcText((const char*)pValue->sText, pValue->iSize);
+	xvalue* pText = xrtValueStringTake(&pValue->sText, pValue->iSize);
 	return pText != NULL && __xrtNetrcSetValue(pAuth, sField, pText);
 }
 

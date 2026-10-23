@@ -27,6 +27,10 @@ C 使用 `include/xrt_netrc.h`。示例见 `release/examples/extlibs/netrc.xl`
 XLang 的 `stringify()` 使用 `xnetrc_stringify_text` 直接接管该文本缓冲的
 底层分配，不再通过 `Buffer.text()` 复制；C 侧调用文本桥接后须用
 `xrtFree` 释放。补齐终止字节时，容量不足的缓冲仍可能扩容。
+解析 `login`、`account`、`password` 时，词法缓冲直接移交给认证字段的
+`xvalue`，不再先复制 token、入字段时再复制一次。空引号字段与长 UTF-8
+字段保持原有长度语义；`xrtValueStringTake` 可能因调整容量而重新分配，
+不保证底层绝对零搬移。主机名等仍由文档持有，不能移交借用指针。
 从文档字典读取的子值是借用的，文档释放后不可继续使用。
 C 流入口 `xrtNetrcParse` / `xrtNetrcWrite` 的 `bTakeOwnership=true` 表示
 无论正文成功或失败都关闭并释放流；若正文成功而关闭失败，返回
