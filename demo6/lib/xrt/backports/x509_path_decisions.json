@@ -1,0 +1,135 @@
+{
+  "Schema": 1,
+  "Purpose": "Explicit X509 path decisions; validation rejection is not operation failure",
+  "Integration": "Guarded canonical source deltas only, not a whole upstream or time ABI upgrade",
+  "CanonicalCommit": "c980bc84bd8eaddcdfc37bf7c0ddaba77505c37b",
+  "PreviousCanonicalCommit": "688f9385ea33a63c5c49a09bbcd7ec7cc66f2267",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/x509.h",
+      "Sha256": "f27bcf43b7eb7b235c756b9f5583f81232d00f2d312075d612b7d555a2220e34"
+    },
+    {
+      "Path": "src/internal/xrt_crypto.h",
+      "Sha256": "cebb1ddf5eeceab5acd6c492ece3b6fa2adaebdb4830621858fb3354ecfdca84"
+    },
+    {
+      "Path": "src/internal/xrt_crypto_rsa_pkcs1.h",
+      "Sha256": "c930dd0dae6c005315746c21ac0197c828f83dbe902c365739e92c008f46d153"
+    },
+    {
+      "Path": "src/internal/xrt_crypto_rsa_pss.h",
+      "Sha256": "78e01098424b28c0f99aec6dbc66f70875fa72ceae010dd66c96a84bfcb0b161"
+    },
+    {
+      "Path": "src/internal/xrt_crypto_ecdsa.h",
+      "Sha256": "d7619797e8534d684fc4ccc5abfa6998fe03e80d8850208bd41d811866532311"
+    },
+    {
+      "Path": "src/internal/xrt_crypto_ed25519.h",
+      "Sha256": "5ea07e2e36d94fcc2ca603d04cf5c96a531a6b1f1cc2e10ad3e3487e5f9000f0"
+    },
+    {
+      "Path": "src/internal/xrt_x509.h",
+      "Sha256": "9db41d74009b353f0f1a68bbcb91c80254c45150f59b063cb534ef62bd24b29d"
+    },
+    {
+      "Path": "src/crypto/rsa_pkcs1.c",
+      "Sha256": "8624b2c846dc0985d4d626effebb90a8a890613113acaa115c084827f7380ada"
+    },
+    {
+      "Path": "src/crypto/rsa_pss.c",
+      "Sha256": "7f49f8b3c45141f0eaa627c9d125d58fbd0af391552c75e33bde0ab9d66e4952"
+    },
+    {
+      "Path": "src/crypto/ecdsa_der.c",
+      "Sha256": "047086acf28f1d8dda0f2d672244bc929a50848f7099d36abfb57a99344f7009"
+    },
+    {
+      "Path": "src/crypto/ecdsa_verify.c",
+      "Sha256": "f2d897425b8a864f9168a2e523f985c308664867be877d7ad68e141bb489903e"
+    },
+    {
+      "Path": "src/crypto/ecdsa_verify_der.c",
+      "Sha256": "64bc6504422f494257fb4ab84cd8863581fb63c7a04b5f956b61522f4cb8f0e7"
+    },
+    {
+      "Path": "src/crypto/ed25519_verify.c",
+      "Sha256": "cfd9b4be23a40d79d10867a9150b2d304c9502d834d5dd17d333a98134d8ae46"
+    },
+    {
+      "Path": "src/crypto/ed25519.c",
+      "Sha256": "c96ae080c599b1b7b881894eeea4240e514dd1717d75684d831ccb2084dbbedc"
+    },
+    {
+      "Path": "src/x509/core.c",
+      "Sha256": "5ec7953c597e01430d816f22d2af7b07f2b1160a2169f142173921294f010236"
+    },
+    {
+      "Path": "src/x509/verify.c",
+      "Sha256": "a929d6bd069d4dbb907f28ec981d7a98bb71e02c423b291f1613d79b6fc25500"
+    },
+    {
+      "Path": "src/x509/verify_rsa.c",
+      "Sha256": "6788cfcc3f5eed6878351f2cc02fb5977c4403f02a6d313511e562e275a0b11a"
+    },
+    {
+      "Path": "src/x509/verify_ecdsa.c",
+      "Sha256": "d8919ce5265702b6d9de3bd68942aaff372ac9489609976b949ba1949f12c834"
+    },
+    {
+      "Path": "src/x509/verify_ed25519.c",
+      "Sha256": "bd0ca6d0a4901de216970693d310946e264535676acbd01c1ea62908f22c32aa"
+    },
+    {
+      "Path": "src/x509/name_constraints_match.c",
+      "Sha256": "87207157b998f68014f17c11b135a92a2cf4322ff32d3f8c0e5b55df8032afca"
+    },
+    {
+      "Path": "src/x509/path.c",
+      "Sha256": "6454883bd6278b5d1200318a31c65b680b639fa9566ab9cfb409dc39ade6af99"
+    },
+    {
+      "Path": "src/x509/path_build.c",
+      "Sha256": "9fde2fbc8b5b307092c26e9f4c3923202581fe821f770834a8105473940d6690"
+    }
+  ],
+  "ConsumerBase": "072601a47518b60a2f70b0e4af830bc5326051ae",
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "89134f8de1139e7b2fc3ef184d9c9b4c64f88560fc6b0063928bb016d411d669",
+      "AfterSha256": "a852a708bc843223e4f2170adb6d0bc44f6a37e554dbecfeb210233d2749f575",
+      "UnselectedSectionsPreserved": true
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "45ef39cd9e87fd67ef66672e75a779a85b33478db54b48ba267c096d5d7a9464",
+      "AfterSha256": "a7db0c332cc494dbfcf38da430d02cd038efe90d15e2594a45674fed7d391a51",
+      "UnselectedSectionsPreserved": true
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "d03ba1dc7ad04710a02136ca7acd71bcdfc98ccd48654d4f07fdb27ae8273616",
+      "AfterSha256": "4b8c6710d56c7c0a1658516ee2e757df1884de72e8d1382a3392a0cbe05e640b",
+      "UnselectedSectionsPreserved": true
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "b7549b9baa9fd66cda4171cc8314a788be3006807fc8b44aa44e888f94726f31",
+      "AfterSha256": "5b41debfb0bbd43ee01eed8f6f6a45ffc90f37f53896117c85fc8784298b13cf",
+      "UnselectedSectionsPreserved": true
+    }
+  ],
+  "PublicApiCounts": {
+    "XRT": 3372,
+    "Xruntime": 3837,
+    "XruntimeOwned": 465
+  },
+  "PreservedContracts": [
+    "Embedded time and relative timeouts remain microseconds",
+    "Independent native millisecond/For ABI remains unchanged",
+    "All unselected snapshot sections are byte-identical as text",
+    "Unrelated native/worktree edits excluded"
+  ]
+}

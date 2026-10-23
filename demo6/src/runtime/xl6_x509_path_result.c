@@ -1,40 +1,6 @@
 #include "xl6_x509_path_internal.h"
 #include "src/api/xl_foreign_error.h"
 
-static bool domainIs(const xerror* error,const char* expected,size_t size)
-{
-    xstrview domain=xrtErrorDomainView(error);
-    return domain.Size==size && domain.Data && !memcmp(domain.Data,expected,size);
-}
-static bool verdict(const xerror* error,int64_t* status)
-{
-    if(!domainIs(error,"xrt.x509",8))return false;
-    xerrkind kind=xrtErrorKind(error);int32_t code=xrtErrorCode(error);
-    if(kind==XERR_UNSUPPORTED && (code==X509_ERROR_SIGNATURE || code==X509_ERROR_NAME_CONSTRAINTS)) {
-        *status=XL6_X509_PATH_UNSUPPORTED_V1;return true;
-    }
-    if(kind!=XERR_PROTOCOL)return false;
-    switch(code) {
-    case X509_ERROR_SIGNATURE:case X509_ERROR_ISSUER:case X509_ERROR_PATH:
-    case X509_ERROR_PATH_CONSTRAINT:case X509_ERROR_CRITICAL_EXTENSION:
-    case X509_ERROR_PURPOSE:case X509_ERROR_NAME_CONSTRAINTS:return true;
-    default:return false;
-    }
-}
-bool xl6X509PathClassifyV1(const xerror* error,int64_t* status)
-{
-    if(!error || !status)return false;
-    int64_t selected=XL6_X509_PATH_REJECTED_V1;
-    if(!verdict(error,&selected))return false;
-    for(const xerror* cause=xrtErrorCause(error);cause;cause=xrtErrorCause(cause)) {
-        if(verdict(cause,&selected))continue;
-        if(domainIs(cause,"xrt.crypto",10) &&
-            ((xrtErrorKind(cause)==XERR_PROTOCOL && xrtErrorCode(cause)==XCRYPTO_ERROR_SIGNATURE) ||
-             (xrtErrorKind(cause)==XERR_VALUE && xrtErrorCode(cause)==XCRYPTO_ERROR_KEY)))continue;
-        return false; /* Includes wrapped OOM, arguments and unknown domains. */
-    }
-    *status=selected;return true;
-}
 void xl6X509PathOutcomeDestroyV1(void* raw)
 {
     XL6_X509PathOutcomeV1* self=raw;
@@ -49,6 +15,8 @@ int64_t xl6X509PathOutcomeStatusV1(void* raw)
 {const XL6_X509PathOutcomeV1* self=checked(raw);return self?self->status:0;}
 int64_t xl6X509PathOutcomeCodeV1(void* raw)
 {const XL6_X509PathOutcomeV1* self=checked(raw);return self?self->code:0;}
+int64_t xl6X509PathOutcomeDepthV1(void* raw)
+{const XL6_X509PathOutcomeV1* self=checked(raw);return self?self->depth:-1;}
 bool xl6X509PathOutcomeRequireV1(void* raw)
 {
     const XL6_X509PathOutcomeV1* self=checked(raw);

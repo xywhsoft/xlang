@@ -1,7 +1,7 @@
 # X.509 有序路径：拥有底座与语言接口
 
-状态：拥有底座之后，已接入 31 个驻留入口、四类公开拥有对象、一个内部
-critical 上下文、三个枚举和五个真实叶目录；最终双平台联合源码验收已通过。
+状态：拥有底座之后，已接入 32 个驻留入口、四类公开拥有对象、一个内部
+critical 上下文、三个枚举和五个真实叶目录；本批切换显式原生决定并补入 depth。
 它仍不代表 path/build/store/identity 或完整 X.509 已接入。
 
 上述正式验收绑定提交 `8e2f2a6e6` 的冻结工作区。之后另一项 C-owned 编译器
@@ -9,16 +9,16 @@ critical 上下文、三个枚举和五个真实叶目录；最终双平台联�
 双端 source-r3／native-public-r5／api-r4／regression-r2 重新验收，1571 阶段
 再次通过。合并前后证据分开保留；后者见 `verified-postmerge-commit.json`。
 
-最新原生进度：独立 XRT `c980bc84b` 已完成路径／建链显式结果及吞错修复，
-双平台 138 阶段通过。xlang 固定快照和驻留分类器尚未切换；本页 31 个
-语言入口仍是原接线，下一批定点同步新结果合同并清退原因链分类器。
+最新进度：独立 XRT `c980bc84b` 的路径／建链显式结果及吞错修复已定点回补，
+驻留适配直接消费 `xrtX509PathCheck`，原因链分类器已删除。固定快照仍保持
+微秒／Until，独立 XRT 仍保持毫秒／For；不是整体快照或时间 ABI 升级。
 
 ## 实现边界
 
 - `xl6_x509_anchor.c` 从显式 Certificate 复制 DER，并由 XRT 提取独立信任锚。
   这不是认证该证书，也不把它隐式加入待验证路径。
 - `xl6_x509_path_validate.c` 复制目标在首的有序证书链、独立 anchor 和用途 OID，
-  建立自有解析索引，再调用固定的 `xrtX509PathValidate`。不复制路径验证算法。
+  建立自有解析索引，再调用固定的 `xrtX509PathCheck`。不复制路径验证算法。
 - `xl6_x509_path_result.c` 保留类型化接受／拒绝结论、精确原生原因码与原诊断。
   只有验证成功才保留并交付路径；拒绝结果不交付半验证路径。
 
@@ -32,15 +32,14 @@ critical 上下文、三个枚举和五个真实叶目录；最终双平台联�
 
 ## 错误及回调
 
-接受、拒绝和已明确报告的后端不支持分别表示。拒绝不等于“签名损坏”：固定
-XRT 的 `X509_ERROR_PATH` 同时包含时间、路径形状等拒绝，signature 类也可能是
-算法策略拒绝。底座保留原生原因，不用消息文本猜出更精细的结论；后续公开
-typed 结果不能宣称原生未提供的粒度。
+接受、拒绝、后端不支持和操作错误由原生显式区分；线程当前错误、消息文本、
+错误域和原因链均不决定控制流。原生 reason／depth 直接进入结果；时间、
+密钥用途、签名算法拥有独立原因，不能据此再细猜“签名损坏”等原生未区分的结论。
 
-只识别已知 `xrt.x509` 高层验证 envelope 和已知签名 cause。错误域使用精确
-字节长度比较；资源、参数、内部错误、未知域／未知 cause 都保持 checked
-失败。即使外层为路径／签名拒绝，原因链中的 OOM 也不能吞成正常拒绝。
-`require` 重发保留的原始诊断，不构造替代错误；清理保留已存在的错误槽。
+完成的负结论在驻留边界创建独立拥有的诊断，复制原生展示文本并记录深度；
+不保留可卸载代码中的静态文本指针。诊断分配失败是 checked 操作失败，不交付
+正常 outcome。原生操作错误、回调异常和无诊断失败在清理前传播；清理不得
+覆盖第一个失败。`requireValid` 重发 outcome 保留的同一诊断，不重新验证。
 
 内部同步 C critical callback 由栈上代理跟踪：返回 ERROR、设置错误或返回非法
 状态都保持 checked 失败。失败但没有诊断对象也通过既有错误作用域保留失败位，
@@ -75,7 +74,7 @@ typed 结果不能宣称原生未提供的粒度。
 | `X509TrustAnchor` | `X509TrustAnchor(certificate)`；独立拥有的 `certificate` 投影 |
 | `X509PathPolicy` | `X509PathPolicy(at, flags=none, keyUsage=none, purpose="", maxCertificates=64, maxBytes=16777216)`；六个只读属性 |
 | `X509Path` | `check(array<Certificate> certificates, anchor, policy)` 与 critical handler 重载，返回 `X509PathOutcome` |
-| `X509PathOutcome` | `status`、`reason`、`path: X509Path?`、`requireValid()` |
+| `X509PathOutcome` | `status`、`reason`、`depth`、`path: X509Path?`、`requireValid()` |
 | `X509Path` | 成功结果的 `count`、`at(index)`、`anchor`、`checkedAt`、`flags`、`keyUsage`、`purpose` |
 
 数组中目标证书在首，随后为有序中间证书，独立锚不放进数组。创建锚是调用方
@@ -88,9 +87,10 @@ none 不关闭签名、时间或 CA 检查，也不允许 SHA-1；后者必须�
 总字节。预算零为显式无限，负值 checked 拒绝。
 
 `X509ValidationStatus` 为 valid／rejected／unsupported。`X509PathReason` 使用
-精确原生高层原因码：none、signature、issuer、path、constraints、criticalExtension、
-purpose、nameConstraints；不从诊断文本细猜“过期”或“签名损坏”。原生未细分
-的算法策略拒绝仍按其原始类别保留，不能宣称所有不支持情况均被细分。
+精确原生原因码：none、validityTime、signature、keyUsage、signatureAlgorithm、
+issuer、path、constraints、criticalExtension、purpose、nameConstraints；不从
+诊断文本细猜“过期”或“签名损坏”。depth 为目标起算的零基证书索引；成功或
+原生未指定位置时为 -1，独立锚及路径级问题不虚构为目标索引。
 requireValid 在负结论上抛出原诊断；path 为 null，资源或回调失败根本不返回
 正常 outcome。成功 path 投影共享不可变原生存储的原子引用，不复制整条链；
 子证书和锚仍独立复制，避免仅保存一张证书却长期钉住大型路径。
@@ -113,9 +113,9 @@ ABI、枚举、owner、nullable 结果、集合物理合同及效果均在现有
 ## 后续仍须完成
 
 发行者候选匹配、候选回溯建链、
-TrustStore／文件／系统来源、身份匹配和与 CRL/TLS 的组合。固定原生返回的
-结论粒度与建链时资源错误处理
-仍需逐项核对，不能用通用 false、消息匹配或 Cgen 分支掩盖。
+TrustStore／文件／系统来源、身份匹配和与 CRL/TLS 的组合。原生建链操作错误
+传播已修复并回补；公开建链仍须接入拥有快照及成功发布，不以原生修复替代
+语言层验收，不能用通用 false、消息匹配或 Cgen 分支掩盖。
 
 已确认一项建链依赖缺陷：固定原生 `xrtX509PathBuild` 会把候选分支的 OOM
 当作可继续搜索的验证拒绝，后续正常候选成功时释放该错误并返回成功。
@@ -132,7 +132,8 @@ X509_ERROR／Memory 复现：已有另一候选的用途拒绝时，最终结果
 必须终止的操作／回调失败。优先补足原生 typed decision 与结构化原因，共用
 现有验证算法；不要把更复杂的域名／消息猜测继续堆到驻留适配层。
 
-独立 XRT、固定快照、时间 ABI、Cgen 和发布资产均未修改。完整目标继续 active。
+上述为修复前的历史复现，已由后续 `c980bc84b` 修复及本批定点回补关闭；
+不是当前仍存在的阻塞。时间 ABI、Cgen 和发布二进制未修改。完整目标继续 active。
 
 ## 公开接线正式验收（2026-10-23）
 
@@ -246,3 +247,34 @@ accepted=0／原 Memory 保留／swallowed=0。前者是取消了拒绝诊断分
 这是原生前置验收，不是 xlang 新快照、候选建链公开面、完整 P5 或发布验收。
 下一步定点回补，驻留适配直接消费原生结果并删除 xl6X509PathClassifyV1，
 再继续候选发行者、build／store／identity、TLS 和联合验收。Cgen 本轮未改。
+
+## 显式决定已接入 xlang（2026-10-23）
+
+本批以原生 `c980bc84b` 为来源，对 22 段实现／内部／公开声明应用带精确旧
+上下文的差分，另同步两个声明头的同一公开段。四个消费者的未选中段全部
+独立重查不变；不带入原生无关改动。回补身份及源哈希在
+`lib/xrt/backports/x509_path_decisions.json`，不是整个上游版本升级。
+
+`xl6X509PathClassifyV1` 及全部错误域／原因链控制流已删除。驻留层直接消费
+原生 check／reason／depth；ERROR、原诊断或 checked callback 失败先传播，
+再清理结果。正常负结论独立复制展示诊断；复制失败不返回正常拒绝。结果
+新增 `depth`，原因补入 validityTime／keyUsage／signatureAlgorithm，仍不把
+验证通过等同于撤销、身份或 TLS 认证。Cgen 无新增包装和算法。
+
+新公开面为 32 个精确目标／11 个拥有结果／五个叶策略，462 处坏合同及
+37 个完整 module／C／header 拒绝门。普通正常证书测试覆盖精确时间／用途
+原因、深度、负结论诊断留存和正常 Ed448 的 unsupported；没有变异签名、
+畸形密码输入或运行原生密码安全套件。旧有资源／回调／发布／拥有账本测试
+保留，原生每配置仍是 36 个预算／28 次真实失败／十个发布预算。
+
+本批证据使用独立目录
+`F:/xlang-validation/five-groups-20261023/p5-x509-explicit`；不覆盖前述原生
+及合并前后回执。最终验收和提交身份以该目录 `verified-commit.json` 为准。
+只验证冻结完整工作区源码，不宣称 clean-checkout、发布资产或完整 P5 完成。
+候选建链公开面、信任来源、身份、TLS 和联合发布仍继续，目标保持 active。
+
+本批双端最终矩阵全部通过：Windows 784／Linux 787，共 1571 阶段，含原生
+独立重放；完整源码构建为 1088／1087 TU，编译单元数不混计阶段。正式目录
+为 native-*-r1、source-*-r1、api-*-r1、regression-*-r1；新路径 API 每端 71、
+七组回归每端 701，GCC O0／O2、TCC 和 Linux ASan／UBSan 通过。输入／对象／
+驱动／日志／产物哈希独立重查，Linux 原件和独立 F 盘镜像同时保留。

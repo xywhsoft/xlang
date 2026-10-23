@@ -8,6 +8,26 @@ def language_fixtures(root,out):
     for name in ('rsa','p256','p384','ed25519'):
         for field in ('root','mid','leaf','custom'):
             header+='bytes '+name+'_'+field+' = '+literal((out/(name+'.'+field+'.der')).read_bytes())+'\n'
+    # A normal, independently verified Ed448 pair exercises unsupported
+    # capability without a malformed certificate or mutated signature.
+    from datetime import datetime,timezone
+    from cryptography import x509
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import ed448
+    key=ed448.Ed448PrivateKey.from_private_bytes(bytes(range(57)))
+    name=lambda value:x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME,value)])
+    def signed(subject,issuer,serial,ca):
+        return (x509.CertificateBuilder().subject_name(name(subject)).issuer_name(name(issuer))
+            .public_key(key.public_key()).serial_number(serial)
+            .not_valid_before(datetime(2020,1,1,tzinfo=timezone.utc)).not_valid_after(datetime(2040,1,1,tzinfo=timezone.utc))
+            .add_extension(x509.BasicConstraints(ca=ca,path_length=None),True)
+            .sign(key,None))
+    unavailable_root=signed('normal unavailable root','normal unavailable root',1,True)
+    unavailable_target=signed('normal unavailable target','normal unavailable root',2,False)
+    for field,certificate in [('root',unavailable_root),('target',unavailable_target)]:
+        certificate.verify_directly_issued_by(unavailable_root)
+        data=certificate.public_bytes(serialization.Encoding.DER);(out/('unsupported.'+field+'.der')).write_bytes(data)
+        header+='bytes unsupported_'+field+' = '+literal(data)+'\n'
     def emit(name,body,data=True):
         path=out/(name+'.xl');path.write_text((header if data else '')+body+'\nprintln("ok")\n');cases.append(path)
     emit('path.enums','''
@@ -15,6 +35,7 @@ auto flags=X509PathFlags.requireKeyUsage | X509PathFlags.requirePurpose
 if (flags & X509PathFlags.requirePurpose) != X509PathFlags.requirePurpose then throw RuntimeError "flags" end
 if X509ValidationStatus.valid == X509ValidationStatus.rejected then throw RuntimeError "status" end
 if X509PathReason.none == X509PathReason.path then throw RuntimeError "reason" end
+if X509PathReason.validityTime == X509PathReason.keyUsage or X509PathReason.signatureAlgorithm == X509PathReason.signature then throw RuntimeError "precise reasons" end
 ''',False)
     emit('path.policy','''
 auto policy=X509PathPolicy(at,X509PathFlags.requireKeyUsage | X509PathFlags.requirePurpose,X509KeyUsageFlags.digitalSignature,"1.3.6.1.5.5.7.3.1",12,4096)
@@ -32,7 +53,7 @@ func test_NAME() as X509Path
     array<Certificate> chain=[Certificate.fromDer(NAME_leaf),Certificate.fromDer(NAME_mid)]
     auto policy=X509PathPolicy(at,X509PathFlags.requireKeyUsage | X509PathFlags.requirePurpose,X509KeyUsageFlags.digitalSignature,"1.3.6.1.5.5.7.3.1")
     auto outcome=X509Path.check(chain,anchor,policy)
-    if outcome.status != X509ValidationStatus.valid or outcome.reason != X509PathReason.none then throw RuntimeError "accepted" end
+    if outcome.status != X509ValidationStatus.valid or outcome.reason != X509PathReason.none or outcome.depth != -1 then throw RuntimeError "accepted" end
     outcome.requireValid()
     auto path=outcome.path
     if path == null then throw RuntimeError "path" end
@@ -76,7 +97,7 @@ auto policy=X509PathPolicy(at)
 auto rejected=X509Path.check(chain,anchor,policy,func(Certificate c,X509Extension e,int depth) as bool
     return false
 end)
-if rejected.status != X509ValidationStatus.rejected or rejected.reason != X509PathReason.criticalExtension or rejected.path != null then throw RuntimeError "not handled" end
+if rejected.status != X509ValidationStatus.rejected or rejected.reason != X509PathReason.criticalExtension or rejected.depth != 0 or rejected.path != null then throw RuntimeError "not handled" end
 bool caught=false
 try
     auto failed=X509Path.check(chain,anchor,policy,func(Certificate c,X509Extension e,int depth) as bool
@@ -92,7 +113,12 @@ if not caught then throw RuntimeError "original callback error" end
 array<Certificate> chain=[Certificate.fromDer(ed25519_leaf),Certificate.fromDer(ed25519_mid)]
 auto anchor=X509TrustAnchor(Certificate.fromDer(ed25519_root))
 auto rejected=X509Path.check(chain,anchor,X509PathPolicy(time(0)))
-if rejected.status != X509ValidationStatus.rejected or rejected.reason != X509PathReason.path or rejected.path != null then throw RuntimeError "time conclusion" end
+if rejected.status != X509ValidationStatus.rejected or rejected.reason != X509PathReason.validityTime or rejected.depth != 0 or rejected.path != null then throw RuntimeError "time conclusion" end
+auto wrongUsage=X509Path.check(chain,anchor,X509PathPolicy(at,X509PathFlags.requireKeyUsage,X509KeyUsageFlags.certificateSign))
+if wrongUsage.status != X509ValidationStatus.rejected or wrongUsage.reason != X509PathReason.keyUsage or wrongUsage.depth != 0 then throw RuntimeError "key usage conclusion" end
+array<Certificate> unavailableChain=[Certificate.fromDer(unsupported_target)]
+auto unavailable=X509Path.check(unavailableChain,X509TrustAnchor(Certificate.fromDer(unsupported_root)),X509PathPolicy(at))
+if unavailable.status != X509ValidationStatus.unsupported or unavailable.reason != X509PathReason.signature or unavailable.depth != 0 or unavailable.path != null then throw RuntimeError "unsupported capability" end
 bool caught=false
 try
     rejected.requireValid()
@@ -130,6 +156,7 @@ auto b=policy.maxBytes
 auto result=X509Path.check(chain,anchor,policy)
 auto status=result.status
 auto reason=result.reason
+auto depth=result.depth
 result.requireValid()
 auto path=result.path
 if path != null then

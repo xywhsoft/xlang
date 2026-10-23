@@ -26,6 +26,7 @@ typedef struct XL6_X509PathV1 {
 typedef struct XL6_X509PathOutcomeV1 {
     int64_t status;
     int32_t code;
+    int64_t depth;
     xerror* diagnostic;
     XL6_X509PathV1* path;
 } XL6_X509PathOutcomeV1;
@@ -43,13 +44,11 @@ void* xl6X509AnchorCertificateV1(void*);
 const XL6_NativeHandlePolicyV1* xl6X509AnchorHandlePolicyV1Get(void);
 
 bool xl6X509PathPolicyValidV1(const xx509pathconfig*);
-/* false means a checked failure, not a negative validation conclusion. No
- * diagnostics are matched by message, operation text, or generic error kind. */
-bool xl6X509PathClassifyV1(const xerror*,int64_t*);
 void* xl6X509PathValidateCreateV1(void* const*,size_t,void*,const xx509pathconfig*,int64_t,int64_t);
 void xl6X509PathOutcomeDestroyV1(void*);
 int64_t xl6X509PathOutcomeStatusV1(void*);
 int64_t xl6X509PathOutcomeCodeV1(void*);
+int64_t xl6X509PathOutcomeDepthV1(void*);
 bool xl6X509PathOutcomeRequireV1(void*);
 const XL6_NativeHandlePolicyV1* xl6X509PathOutcomeHandlePolicyV1Get(void);
 
