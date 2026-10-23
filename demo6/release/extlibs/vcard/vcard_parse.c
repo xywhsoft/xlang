@@ -42,12 +42,11 @@ static int xv_add_field(xvalue *object, const XvProperty *property, xstrview raw
         return xrtValueArrayAppendNew(existing, item);
     }
     {
-        xstrview previous;
         xvalue *array = xrtValueArray();
         int appended = 0;
         if (array == NULL) { xrtValueRelease(item); return 0; }
-        if (xrtValueGetString(existing, &previous)) {
-            xvalue *old = xrtValueString(previous);
+        if (xrtValueType(existing) == XVALUE_STRING) {
+            xvalue *old = xrtValueRetain(existing);
             if (old != NULL && xrtValueArrayAppendNew(array, old)) {
                 appended = xrtValueArrayAppendNew(array, item);
                 item = NULL;

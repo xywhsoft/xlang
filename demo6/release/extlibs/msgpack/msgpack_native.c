@@ -406,10 +406,11 @@ xvalue* xmsgpack_decode(const void* pData, size_t iSize)
     return pValue;
 }
 
+/* bin 便利入口直接读写帧，避免先构造 xvalue 再复制到返回缓冲。 */
 xbuffer* xmsgpack_encode_bytes(const void* pData, size_t iSize)
 {
-    xvalue* pValue;
     xbuffer* pResult;
+    xrtClearError();
     if (pData == NULL && iSize != 0u) {
         xmsgpack_error(XERR_ARGUMENT, "MessagePack byte input is missing");
         return NULL;
@@ -418,23 +419,47 @@ xbuffer* xmsgpack_encode_bytes(const void* pData, size_t iSize)
         xmsgpack_error(XERR_RANGE, "MessagePack byte input exceeds the 64 MiB safety limit");
         return NULL;
     }
-    pValue = xrtValueBytes((xbytesview){ (cbytes)pData, iSize });
-    if (pValue == NULL) { return NULL; }
-    pResult = xmsgpack_encode(pValue);
-    xrtValueRelease(pValue);
+    pResult = xrtBufferCreate();
+    if (pResult == NULL) return NULL;
+    if (!xmsgpack_length(pResult, 0u, 0u, 0xc4u, 0xc5u, 0xc6u, iSize) ||
+        (iSize != 0u && !xmsgpack_append(pResult, pData, iSize))) {
+        xrtBufferDestroy(pResult);
+        return NULL;
+    }
     return pResult;
 }
 
 xbuffer* xmsgpack_decode_bytes(const void* pData, size_t iSize)
 {
-    xvalue* pValue = xmsgpack_decode(pData, iSize);
-    xbytesview Bytes;
-    xbuffer* pResult = NULL;
-    if (pValue == NULL) { return NULL; }
-    if (!xrtValueGetBytes(pValue, &Bytes)) { xrtValueRelease(pValue); xmsgpack_error(XERR_VALUE, "MessagePack input must contain exactly one byte string"); return NULL; }
-    pResult = xrtBufferFrom(Bytes);
-    xrtValueRelease(pValue);
-    return pResult;
+    xmsgpack_reader Reader = { (const uint8*)pData, iSize, 0u, 0u };
+    uint64 iLength;
+    uint8 iHead;
+    xrtClearError();
+    if (pData == NULL || iSize == 0u) {
+        xmsgpack_error(XERR_ARGUMENT, "MessagePack input is missing");
+        return NULL;
+    }
+    if (iSize > XMSGPACK_MAX_BYTES) {
+        xmsgpack_error(XERR_RANGE, "MessagePack input exceeds the 64 MiB safety limit");
+        return NULL;
+    }
+    iHead = Reader.Data[Reader.Offset++];
+    if (iHead != 0xc4u && iHead != 0xc5u && iHead != 0xc6u) {
+        xmsgpack_error(XERR_VALUE, "MessagePack input must contain exactly one byte string");
+        return NULL;
+    }
+    if (!xmsgpack_read_uint(&Reader, iHead == 0xc4u ? 1u :
+        (iHead == 0xc5u ? 2u : 4u), &iLength)) return NULL;
+    if (iLength > XMSGPACK_MAX_BYTES) {
+        xmsgpack_error(XERR_RANGE, "MessagePack string exceeds the 64 MiB safety limit");
+        return NULL;
+    }
+    if (!xmsgpack_need(&Reader, (size_t)iLength)) return NULL;
+    if (Reader.Offset + (size_t)iLength != Reader.Size) {
+        xmsgpack_error(XERR_VALUE, "trailing bytes after MessagePack value");
+        return NULL;
+    }
+    return xrtBufferFrom((xbytesview){ Reader.Data + Reader.Offset, (size_t)iLength });
 }
 
 str xmsgpack_to_hex(const void* pData, size_t iSize)

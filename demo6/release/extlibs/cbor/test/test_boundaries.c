@@ -405,6 +405,18 @@ int main(void) {
     buffer = xcbor_decode_bytes(empty_raw, sizeof(empty_raw));
     CHECK(buffer && buffer->Size == 0);
     xrtBufferDestroy(buffer);
+    buffer = xcbor_decode_bytes(text, sizeof(text));
+    CHECK(buffer == NULL && xrtGetError() &&
+        xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    buffer = xcbor_decode_bytes(unsupported_tag, sizeof(unsupported_tag));
+    CHECK(buffer == NULL && xrtGetError() &&
+        xrtErrorKind(xrtGetError()) == XERR_UNSUPPORTED);
+    {
+        static const unsigned char trailing[] = {0x41, 0x00, 0x00};
+        buffer = xcbor_decode_bytes(trailing, sizeof(trailing));
+        CHECK(buffer == NULL && xrtGetError() &&
+            xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    }
 
     value = xcbor_decode(text, sizeof(text));
     CHECK(value && xrtValueGetString(value, &string) && string.Size == 5 &&

@@ -33,6 +33,11 @@ C0/C1 控制字符、常见零宽格式字符、双向文本控制字符或 BOM�
 旗标与选项不会生效，错误说明也不会被后续参数覆盖。XLang 包装层将
 `NULL` 转为异常。
 
+长选项错误说明先在 XRT 内存中组装，再由结果对象直接接管；不再
+额外复制整条消息。短固定错误说明仍从静态文本建立独立结果。
+其余借用文本直接由 `xrtValueString` 建立拥有型结果，不再先分配
+临时 C 字符串再交给 `xrtValueStringTake`；结果释放方式不变。
+
 支持 `--name`、`--name=value`、`-a`、组合短旗标、短选项附加值和 `--`
 之后的位置参数。旗标不能使用 `--name=value`；不会丢弃等号后的内容。
 长选项值、声明名称及其错误说明均不设固定缓冲上限，受可用内存约束。
@@ -112,3 +117,9 @@ Windows `test/check_c.ps1` 的严格 C、固定范例与 C 单文件 JIT/AOT，
 以及 Linux `test/check_c.sh` 的 C ASan/UBSan 均通过。当前发布版运行
 `test/cases/extlib_cli.xl` 仍缺 `xl6_xrt_os_args`，故本轮没有验证 XLang
 运行或双语同输出，也不签收完整 AOT。
+
+2026-10-23：长选项错误消息的已拥有内存直接交给 `xvalue` 字符串，
+避免组装后再次整段复制。未知、缺值、旗标误带值三条长消息内容保持；
+未知选项的逐点分配失败扫描增加活动分配基线。Windows 严格 C 门禁
+与 Linux C ASan/UBSan 门禁通过。当前 `xl run test/cases/extlib_cli.xl`
+仍缺 `xl6_xrt_os_args`，本轮不声称 XLang 运行或完整发布验收通过。

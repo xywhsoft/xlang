@@ -45,6 +45,8 @@ XLang `save()` 抛出 `MemoryError`；故障解除后可正常保存并读回。
 原生 `xbson_oid_time` 最多探测 25 字节以确认精确的 24 位长度，C 调用方仍须传入有效 NUL 结尾字符串。
 
 C 接口直接依赖公开的 XRT `xvalue`，不需要 xlang 私有运行时头文件。返回的 `xvalue*` 由调用方 `xrtValueRelease`，`xbson_to_hex` 和 `xbson_gen_oid` 返回的 `char*` 由调用方 `xrtFree`。三个整数结果使用 `int64_t`，与 XLang `int` 的跨平台 ABI 一致。失败时动态值接口返回 null 值并设置 XRT 错误；字符串接口返回 `NULL`。
+`encode` 的结果始终独立拥有：小文档从写入器的栈缓冲复制到结果值，
+超过内联缓冲的文档由结果值直接接管 XRT 堆缓冲，不再整段复制一次。
 成功调用 `toHex`、`objectId`、`docLength` 或 `oidTime` 后，C 端不会保留前次操作的 XRT 错误状态。
 
 `examples/bson_c.c` 可在 `demo6/release` 下直接运行：
@@ -175,3 +177,9 @@ AOT 的共享阻断不变，不签收整包发布级。
 Windows `-SkipAot` 的严格 C、XLang 边界、双语范例和核心 AOT，以及
 Linux C ASan/UBSan、XLang/双语联合门禁均通过。旧固定目录中的历史
 产物未改动；完整带输出 AOT 的共享阻断仍在，不签收整包发布级。
+
+2026-10-23：`encode` 在写入器已使用堆缓冲时直接把该缓冲移交给
+`xvalue` bytes，省去结束时的同尺寸分配和整段复制；栈内小文档仍
+分配独立结果。600 字节字段的 C 故障扫描新增完整解码往返，验证
+释放与错误恢复。Windows `-SkipAot` 的严格 C/XLang、双语与核心 AOT，
+Linux C ASan/UBSan、XLang 联合门禁通过；完整 AOT 仍待共享主线缺符号修复。

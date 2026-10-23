@@ -627,6 +627,9 @@ static bool test_allocation_failures(int mode)
 		xvalue* result;
 		bool triggered;
 		xerrkind kind;
+		xmemdebugsnapshot before, after;
+		xrtClearError();
+		xrtMemDebugSnapshot(&before);
 		if (!xrtMemDebugFailAfter(failure)) goto cleanup;
 		result = xcli_parse(args, spec);
 		triggered = xrtMemDebugFailTriggered();
@@ -654,6 +657,13 @@ static bool test_allocation_failures(int mode)
 			++succeeded;
 		}
 		xrtValueRelease(result);
+		xrtClearError();
+		xrtMemDebugSnapshot(&after);
+		if (mode == 4 && (before.LiveCount != after.LiveCount ||
+			before.LiveBytes != after.LiveBytes)) {
+			fprintf(stderr, "cli long error allocation point %u leaked\n", failure);
+			goto cleanup;
+		}
 	}
 	ok = rejected >= 2u && succeeded == 2u;
 cleanup:

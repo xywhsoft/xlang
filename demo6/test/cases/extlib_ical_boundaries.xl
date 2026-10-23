@@ -9,6 +9,8 @@ UID:one@demo
 DTSTAMP:20260801T000000Z
 DTSTART;TZID=Asia/Shanghai:20260810T090000
 SUMMARY:真实标题
+CATEGORIES:开发
+CATEGORIES:会议
 RRULE:FREQ=WEEKLY;BYDAY=MO,TU
 BEGIN:VALARM
 SUMMARY:警报标题
@@ -19,6 +21,9 @@ END:VCALENDAR
     var calendar = ical.parse(source)
     var event = calendar["events"][0]
     assert event["summary"] == "真实标题"
+    assert event["categories"].length == 2
+    assert event["categories"][0] == "开发"
+    assert event["categories"][1] == "会议"
     assert event["dtstartTzid"] == "Asia/Shanghai"
     assert event["rrule"] == "FREQ=WEEKLY;BYDAY=MO,TU"
     string output = ical.build(calendar)

@@ -10,6 +10,7 @@ static const char* const entries[]={
     #undef XL6_TEXT_EXPORT
 };
 _Static_assert(X509_ERROR_PATH==24 && X509_ERROR_NAME_CONSTRAINTS==44,"native reason vocabulary changed");
+_Static_assert(X509_ERROR_TIME==7 && X509_ERROR_KEY_USAGE==15 && X509_ERROR_SIGNATURE_ALGORITHM==21,"precise native reason vocabulary changed");
 static size_t refusals,targets,handles,resources,outputRefusals;
 static void refused(XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
@@ -113,7 +114,7 @@ int main(int argc,char** argv)
         #undef BAD
     }
     for(size_t i=0;i<sizeof(entries)/sizeof(*entries);++i){if(!seen[i])fprintf(stderr,"missing X509 target: %s\n",entries[i]);assert(seen[i]);}
-    assert(targets>=31&&handles>=5&&resources>=11&&refusals>300&&outputRefusals>=31&&xl6IrVerifyModule(module,NULL));
+    assert(targets>=32&&handles>=5&&resources>=11&&refusals>300&&outputRefusals>=32&&xl6IrVerifyModule(module,NULL));
     printf("X509 ordered path XLIR: %zu direct targets, %zu owned results, %zu bad contracts, %zu module/C/header output gates\n",
         targets,resources,refusals,outputRefusals);
     xl6CompileUnitFree(&unit);return 0;

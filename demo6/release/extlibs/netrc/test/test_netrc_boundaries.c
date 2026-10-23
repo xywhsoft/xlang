@@ -56,6 +56,28 @@ cleanup:
 	return bOk;
 }
 
+static bool test_auth_field_transfer(void)
+{
+	static const char sPassword[] =
+		"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"
+		"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";
+	static const char sSource[] =
+		"machine host login \"\" password "
+		"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"
+		"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz\n";
+	xrtnetrcerror Error;
+	xvalue* pDocument = xrtNetrcParseMemory(sSource,
+		sizeof(sSource) - 1u, NULL, &Error);
+	xvalue* pHosts = pDocument != NULL ?
+		xrtValueObjectGet(pDocument, xrtStrView("hosts")) : NULL;
+	xvalue* pAuth = pHosts != NULL ?
+		xrtValueObjectGet(pHosts, xrtStrView("host")) : NULL;
+	bool bOk = pAuth != NULL && text_equals(pAuth, "login", "") &&
+		text_equals(pAuth, "password", sPassword);
+	xrtValueRelease(pDocument);
+	return bOk;
+}
+
 static bool test_default_written_last(void)
 {
 	static const char sSource[] =
@@ -1187,7 +1209,8 @@ int main(void)
 		fprintf(stderr, "test_netrc_boundaries: cannot enter test directory\n");
 		bOk = false;
 	} else {
-		bOk = test_roundtrip() && test_default_written_last() &&
+		bOk = test_roundtrip() && test_auth_field_transfer() &&
+			test_default_written_last() &&
 			test_macro_crlf() &&
 			test_mutation_roundtrip() && test_rejections() &&
 			test_scanner_error_locations() &&

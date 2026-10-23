@@ -15,21 +15,8 @@ static void xcli_error(const char *message) {
 /* ---------- 值对象辅助 ---------- */
 
 static xvalue *xcli_text(const char *s) {
-    size_t n = s ? strlen(s) : 0;
-    str owned = (str)xrtMalloc(n + 1);
-    xvalue *value;
-    if (owned == NULL) {
-        return NULL;
-    }
-    if (n > 0) {
-        memcpy(owned, s, n);
-    }
-    owned[n] = '\0';
-    value = xrtValueStringTake(&owned, n);
-    if (value == NULL && owned != NULL) {
-        xrtFree(owned);
-    }
-    return value;
+    const char *text = s != NULL ? s : "";
+    return xrtValueString((xstrview){ text, strlen(text) });
 }
 
 static xvalue *xcli_get(xvalue *obj, const char *key) {
@@ -287,23 +274,29 @@ static bool xcli_fail_long_result(xvalue *result, const char *prefix,
     size_t prefixLen = strlen(prefix);
     size_t nameLen = strlen(name);
     size_t suffixLen = strlen(suffix);
-    char *message;
-    bool ok;
+    size_t length;
+    str message;
+    xvalue *text;
     if (prefixLen > SIZE_MAX - suffixLen - 1u ||
         nameLen > SIZE_MAX - prefixLen - suffixLen - 1u) {
         xrtSetErrorInfo(XERR_RANGE, XCLI_DOMAIN, 0,
             "option name is too long");
         return false;
     }
-    message = (char *)xrtMalloc(prefixLen + nameLen + suffixLen + 1u);
+    length = prefixLen + nameLen + suffixLen;
+    message = (str)xrtMalloc(length + 1u);
     if (message == NULL) return false;
     memcpy(message, prefix, prefixLen);
     memcpy(message + prefixLen, name, nameLen);
     memcpy(message + prefixLen + nameLen, suffix, suffixLen);
-    message[prefixLen + nameLen + suffixLen] = '\0';
-    ok = xcli_fail_result(result, message);
+    message[length] = '\0';
+    if (!xcli_set_bool(result, "ok", 0)) {
+        xrtFree(message);
+        return false;
+    }
+    text = xrtValueStringTake(&message, length);
     xrtFree(message);
-    return ok;
+    return text != NULL && xcli_set(result, "error", text);
 }
 
 xvalue *xcli_parse(xvalue *args, xvalue *spec) {
