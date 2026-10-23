@@ -561,6 +561,18 @@ int main(int argc, char **argv)
 
     catalog = xgt_parse_po(localized);
     CHECK(catalog && xrtValueType(catalog) == XVALUE_OBJECT);
+    {
+        xvalue *entry = xrtValueObjectGet(catalog, (xstrview){ "menu\004Open", 9 });
+        xstrview translation;
+        char missing[] = "not translated";
+        CHECK(entry && xrtValueGetString(entry, &translation));
+        CHECK(xgt_tc_borrowed(catalog, "menu", "Open") == translation.Data);
+        CHECK(xgt_t_borrowed(catalog, missing) == missing);
+        CHECK(xgt_tn_borrowed(catalog, missing, "plural", 2) != NULL);
+        CHECK(strcmp(xgt_tnc_borrowed(catalog, "storage", "file", "files", 2), "two") == 0);
+        CHECK(xgt_t_borrowed(NULL, missing) == NULL);
+        CHECK(xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_TYPE);
+    }
     result = xgt_tc(catalog, "menu", "Open");
     CHECK(result && strcmp(result, "menu open") == 0);
     xrtFree(result);

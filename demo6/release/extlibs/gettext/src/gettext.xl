@@ -1,9 +1,9 @@
 extern "xgt_parse_po" func __gt_parse_po(string text) as var
 extern "xgt_parse_mo" func __gt_parse_mo(var data) as var
-extern "xgt_t" func __gt_t(var catalog, string msgid) as point
-extern "xgt_tn" func __gt_tn(var catalog, string msgid, string msgidPlural, int n) as point
-extern "xgt_tc" func __gt_tc(var catalog, string context, string msgid) as point
-extern "xgt_tnc" func __gt_tnc(var catalog, string context, string msgid, string msgidPlural, int n) as point
+extern "xgt_t_borrowed" func __gt_t(var catalog, string msgid) as string
+extern "xgt_tn_borrowed" func __gt_tn(var catalog, string msgid, string msgidPlural, int n) as string
+extern "xgt_tc_borrowed" func __gt_tc(var catalog, string context, string msgid) as string
+extern "xgt_tnc_borrowed" func __gt_tnc(var catalog, string context, string msgid, string msgidPlural, int n) as string
 
 func __gt_cstr(string text)
     if string.indexOf(text, "\0", false, string.byteLen(text), 1) >= 0 then
@@ -41,7 +41,7 @@ end
 // t 查询单数译文；缺失时返回 msgid 本身
 export func t(var catalog, string msgid) as string
     __gt_cstr(msgid)
-    return __xl_runtime.takeCstr(__gt_t(catalog, msgid))
+    return __gt_t(catalog, msgid)
 end
 
 // tn 按目录的 Plural-Forms 选择复数译文；缺失时回退原文
@@ -51,14 +51,14 @@ export func tn(var catalog, string msgid, string msgidPlural, int n) as string
     end
     __gt_cstr(msgid)
     __gt_cstr(msgidPlural)
-    return __xl_runtime.takeCstr(__gt_tn(catalog, msgid, msgidPlural, n))
+    return __gt_tn(catalog, msgid, msgidPlural, n)
 end
 
 // tc/tnc 使用 msgctxt 区分同名译文；未命中时仍回退无上下文原文。
 export func tc(var catalog, string context, string msgid) as string
     __gt_cstr(context)
     __gt_cstr(msgid)
-    return __xl_runtime.takeCstr(__gt_tc(catalog, context, msgid))
+    return __gt_tc(catalog, context, msgid)
 end
 
 export func tnc(var catalog, string context, string msgid, string msgidPlural, int n) as string
@@ -68,5 +68,5 @@ export func tnc(var catalog, string context, string msgid, string msgidPlural, i
     __gt_cstr(context)
     __gt_cstr(msgid)
     __gt_cstr(msgidPlural)
-    return __xl_runtime.takeCstr(__gt_tnc(catalog, context, msgid, msgidPlural, n))
+    return __gt_tnc(catalog, context, msgid, msgidPlural, n)
 end
