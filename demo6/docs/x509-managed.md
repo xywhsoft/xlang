@@ -28,7 +28,7 @@
 | x509_name | RDN／属性、语义 Name 比较与包含关系，复用原生 Unicode 规范化 | 已接入，规范化比较单独裁剪 |
 | x509_distribution | CRLDistributionPoints／FreshestCRL、完整／相对名称、理由及 CRL issuer | 已接入拥有列表／记录及完整字段 |
 | x509_crl_profile | CRL 编号、delta base、AKI、IssuingPoint、条目理由／失效时间／issuer | 已接入拥有投影及独立 DER 值解析；不计算间接 issuer 继承或撤销策略 |
-| x509_crl_policy | 严格配置、已验证 CRL、complete／delta 组合、分段覆盖及状态归并 | 后续 |
+| x509_crl_policy | 严格配置、已验证 CRL、complete／delta 组合、分段覆盖及状态归并 | 拥有底座进行中；公开 ABI／回调／语言接线仍待完成，见专项 |
 | x509_name_constraints | permitted／excluded 子树、名称类型及证书检查；未知能力不能静默忽略 | 已接入拥有记录、基点比较和严格检查；非路径／信任判断 |
 | x509_path | 有序路径、独立 trust anchor、用途／时间／critical 扩展策略 | 后续 |
 | x509_path_build | 候选 issuer、独立 anchor、回溯建链、成功时拥有的路径与 typed 结果 | 后续 |
@@ -180,6 +180,9 @@ profile／CRL 数据公共面的当前进展见 [CRL 条目与 typed profile](x5
 签名检查、类型化签名状态及独立 SPKI 已接入，详见
 [签名检查与独立 SPKI](x509-signatures.md)。CRL policy、完整路径／信任／身份
 验证与 TLS 继续。
+
+CRL policy 的拥有底座和后续公共面边界见 [CRL 策略接入](x509-crl-policy.md)。
+此层尚未登记语言 API，不能将其原生单测计为公开接入完成。
 
 另保留 P7 联合验收风险：把八组大量受管理临时值集中在一个顶层作用域的
 初始用例，Windows／Linux 均触发 240 秒前端输出／规划超时。独立函数版本
