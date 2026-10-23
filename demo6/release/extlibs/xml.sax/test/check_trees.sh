@@ -71,4 +71,5 @@ for kind in sax dom etree; do
         "$work/${kind}_c.txt"
     diff -u "$work/${kind}_c.txt" "$work/${kind}_xl.txt"
 done
+timeout 90s "$xl" run test/cases/extlib_xml_tree_interop.xl
 printf 'XML SAX/trees Linux C ASan/UBSan and XLang golden gate: PASS\n'

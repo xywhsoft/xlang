@@ -48,6 +48,9 @@ C 的 `xrtXmlElementWrite` 空 Writer、`xrtXmlElementSave` 空路径在序列�
   同时验证 DOM 与 ElementTree 的 C 写出边界、三包 XLang 边界及
   C/XLang 范例逐字对照；需要 `release/xl`。
 - Windows 可从 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/xml.sax/test/check_trees.ps1`，联合验证三包 C/XL 边界、分配故障、私有入口负例和双语范例。
+- 联合门禁另运行 `test/cases/extlib_xml_tree_interop.xl`，双向检查 DOM 与
+  ElementTree 的序列化/解析结果。混合内容中的前导文本和子节点尾文本
+  在 ElementTree 分别位于 `text`、`tail`，DOM 则保留独立文本子节点。
 
 发布阻断：XL AOT 构建当前报 `unresolved reference to
 'xl6ValueDataSnapshotV1'`，复现及主线修复建议见
