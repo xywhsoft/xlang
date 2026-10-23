@@ -115,6 +115,7 @@ int main(int argc, char** argv)
         fputs("clipboard test needs its build directory\n", stderr);
         return 1;
     }
+    CHECK(xrtMemDebugEnable(true));
     /* 单独的 window station 有自己的剪贴板，不碰交互桌面的内容。 */
     HWINSTA station = CreateWindowStationW(NULL, 0, WINSTA_ALL_ACCESS, NULL);
     if (!station || !SetProcessWindowStation(station)) {
@@ -258,6 +259,34 @@ int main(int argc, char** argv)
     CHECK(long_format_text.Size == strlen(long_name) &&
           memcmp(long_format_text.Data, long_name, long_format_text.Size) == 0);
     xrtValueRelease(long_format_name);
+
+    /* 字符串接管失败时，格式名仍由调用方释放，不能泄漏或释放两次。 */
+    xmemdebugsnapshot before_format, after_format;
+    size_t format_failures = 0u, format_successes = 0u;
+    xrtMemDebugSnapshot(&before_format);
+    for (size_t failure = 0u; failure < 32u && format_successes < 2u; ++failure) {
+        CHECK(xrtMemDebugFailAfter(failure));
+        xvalue* candidate = x_clipboard_format_name(long_custom);
+        int triggered = xrtMemDebugFailTriggered();
+        xrtMemDebugFailClear();
+        if (candidate != NULL) {
+            xstrview text;
+            CHECK(xrtValueGetString(candidate, &text) && text.Size == strlen(long_name) &&
+                  memcmp(text.Data, long_name, text.Size) == 0);
+            ++format_successes;
+        } else {
+            CHECK(triggered);
+            ++format_failures;
+        }
+        xrtValueRelease(candidate);
+        xrtClearError();
+        xrtMemDebugSnapshot(&after_format);
+        CHECK(after_format.LiveCount == before_format.LiveCount &&
+              after_format.LiveBytes == before_format.LiveBytes &&
+              after_format.InvalidFreeCount == before_format.InvalidFreeCount &&
+              after_format.DoubleFreeCount == before_format.DoubleFreeCount);
+    }
+    CHECK(format_failures > 0u && format_successes == 2u);
 
     /* 注册格式按原始字节快照，恢复后仍可由原生 Win32 调用读取。 */
     CHECK(x_clipboard_set_text("snapshot-custom"));
