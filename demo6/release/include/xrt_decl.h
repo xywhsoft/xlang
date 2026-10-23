@@ -28227,6 +28227,19 @@ typedef struct xtlsverifierconfig {
 } xtlsverifierconfig;
 
 
+/* Explicit resource limits. Zero disables that particular limit. Legacy
+ * verifier/peer entry points remain unlimited; Init supplies bounded defaults.
+ * Byte limits count complete DER, not prefixes or allocation capacities. */
+typedef struct xtlsverifylimits {
+	size_t MaxPeerCertificates;
+	size_t MaxPeerBytes;
+	size_t MaxPathCertificates;
+	size_t MaxSearchSteps;
+	size_t MaxTrustCertificates;
+	size_t MaxTrustBytes;
+} xtlsverifylimits;
+
+
 
 XRT_EXTERN_C_BEGIN
 
@@ -28236,10 +28249,22 @@ XRT_EXTERN_C_BEGIN
 XRT_API void xrtTlsVerifierConfigInit(xtlsverifierconfig* pConfig);
 
 
+/* Initialize finite peer/path/work/trust budgets without allocating. */
+XRT_API void xrtTlsVerifyLimitsInit(xtlsverifylimits* pLimits);
+
+
 
 /* 创建可跨线程共享的验证器；成功后接管自定义上下文。 */
 XRT_API xtlsverifier* xrtTlsVerifierCreate(
 	const xtlsverifierconfig* pConfig
+);
+
+
+/* Copy explicit limits and trust data. Context is adopted only on success.
+ * Limits is required; an all-zero value deliberately requests no limits. */
+XRT_API xtlsverifier* xrtTlsVerifierCreateLimited(
+	const xtlsverifierconfig* pConfig,
+	const xtlsverifylimits* pLimits
 );
 
 
@@ -28260,6 +28285,17 @@ XRT_API void xrtTlsVerifierRelease(xtlsverifier* pVerifier);
 XRT_API bool xrtTlsPeerVerify(
 	const xtlspeer* pPeer,
 	const xx509store* pStore,
+	xtlsverifypolicyproc pPolicy,
+	ptr pContext
+);
+
+
+/* Same modern path/name rules with explicit budgets; no input is truncated.
+ * Peer limits apply before custom policy or path work. Limits is required. */
+XRT_API bool xrtTlsPeerVerifyLimited(
+	const xtlspeer* pPeer,
+	const xx509store* pStore,
+	const xtlsverifylimits* pLimits,
 	xtlsverifypolicyproc pPolicy,
 	ptr pContext
 );
