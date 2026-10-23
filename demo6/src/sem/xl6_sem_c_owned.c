@@ -248,8 +248,7 @@ static uint64 xl6SemCOwnedSignatureHash(const XL6_AstNode* node,uint64 hash)
 }
 static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call,XL6_AstNode* function,int concreteGeneric)
 {
-    if(function->kind!=XL6_AST_FUNC || xl6SemFuncIsGeneric(function) ||
-        (function->flags & XL6_AST_FLAG_ASYNC) ||
+    if((function->kind!=XL6_AST_FUNC && function->kind!=XL6_AST_ASYNC_FUNC) || xl6SemFuncIsGeneric(function) ||
         call->childCount!=2 || call->children[0]->kind!=XL6_AST_NAME)return function;
     XL6_AstNode* params=function->childCount>1 ? function->children[1] : NULL;
     XL6_AstNode* args=call->children[1];
@@ -287,7 +286,7 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     }
     xrtFree(promote);
     XL6_AstNode* returns=signature->children[2];
-    if(returns->childCount==1 &&
+    if(function->kind!=XL6_AST_ASYNC_FUNC && !(function->flags & XL6_AST_FLAG_ASYNC) && returns->childCount==1 &&
         (xl6TextEquals(returns->children[0]->text,"string") || xl6TextEquals(returns->children[0]->text,"bytes"))) {
         XL6_AstNode* type=returns->children[0];
         const char* marker=xl6TextEquals(type->text,"string") ? "cstring" : "cbytes";
@@ -299,7 +298,7 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     XL6_AstNode* specialized=NULL;
     for(size_t i=0;i<ctx->root->childCount;++i) {
         XL6_AstNode* candidate=ctx->root->children[i];
-        if(candidate->kind==XL6_AST_FUNC && xl6TextEquals(xl6SemFuncName(candidate),name)){specialized=candidate;break;}
+        if((candidate->kind==XL6_AST_FUNC || candidate->kind==XL6_AST_ASYNC_FUNC) && xl6TextEquals(xl6SemFuncName(candidate),name)){specialized=candidate;break;}
     }
     if(!specialized) {
         specialized=signature;signature=NULL;

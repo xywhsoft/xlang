@@ -63,3 +63,25 @@ func checkStream()
 end
 checkStream()
 assert released() == 6
+
+async func borrowedAcrossAwait(string text, bytes data, future<int> gate) as bool
+    int tick = await gate
+    return tick == 1 and original(text) and originalBytes(data)
+end
+async func genericBorrow<T>(T ignored, bytes data, future<int> gate) as bool
+    int tick = await gate
+    return tick == 1 and originalBytes(data)
+end
+async func checkAsyncInputs()
+    string text = cstring.take(nativeText(),nativeFree)
+    bytes data = cbytes.take(nativeBytes(),4,nativeFree)
+    auto gate = Promise::<int>()
+    auto job = borrowedAcrossAwait(text,data,gate.future)
+    auto genericJob = genericBorrow(text,data,gate.future)
+    assert released() == 6
+    assert gate.tryResolve(1)
+    assert await job and await genericJob
+    assert original(text) and originalBytes(data)
+end
+await checkAsyncInputs()
+assert released() == 8

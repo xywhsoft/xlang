@@ -58,7 +58,7 @@ invalid length therefore cannot leak it.
 | Synchronous result declared `as cstring/cbytes` | Preserves the C owner across the return |
 | Length, integer indexing, comparisons, iteration | Reads the original allocation |
 | Borrowed string parameters and string reader methods | Receive a length-bearing borrowed string view |
-| Direct named synchronous language functions and concrete generic instances | Compiler specializes matching string/bytes parameters and single results to preserve C storage |
+| Direct named language functions and concrete generic instances | Compiler specializes matching string/bytes parameters and single results to preserve C storage |
 | Direct `print` / `println` | Text goes directly to the console; bytes stream through the XLON sink encoder |
 | String interpolation and concatenation; binary concatenation | Read original inputs and construct the new output; no preliminary input materialization |
 | `type(value)` / `value is string/bytes` | Reports the corresponding ordinary type |
@@ -73,7 +73,7 @@ value only after construction succeeds. Negative indexes and failures follow
 the existing sequence rules. C text and C binary data are never interchangeable.
 
 Compiler specialization covers fixed positional/named arguments and default
-arguments of directly resolved synchronous functions, including explicit and
+arguments of directly resolved functions, including async inputs and explicit and
 inferred generic instances. Signature keys include concrete types and have no
 63-parameter mask limit. Borrowed string inputs also keep their C view through
 function-value calls. Indirect results, virtual calls and legacy native binary
@@ -168,3 +168,8 @@ workers, mutable cells, a genuinely suspended await, and generator locals. The
 runtime unit races four threads acquiring/dropping the same C allocation and
 verifies one final release. The resident profile is compiler-private and adds
 no C kind to xvalue or ordinary string/bytes representations.
+
+Async input specialization retains the C owner into the worker frame before
+publishing the task, including inferred generic calls. Future and generator
+payloads remain ordinary container elements; local C owners across suspension
+do not materialize.
