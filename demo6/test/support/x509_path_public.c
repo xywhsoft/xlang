@@ -74,8 +74,8 @@ int main(void)
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);assert(!orderedFoundationMain());buildTests();
     const PathVector* vector=&pathVectors[3];
     void* root=xl6X509CertificateCreateSpanV1(vector->root);assert(root);void* anchor=xl6X509AnchorCreateV1(root);xl6X509CertificateDestroyV1(root);assert(anchor);
-    FAULTS(xl6X509PathPolicyCreateV1(pathTime,3,1,(xstrview){"1.3.6.1.5.5.7.3.1",17},64,16777216),xl6X509PathPolicyDestroyV1);
-    void* policy=xl6X509PathPolicyCreateV1(pathTime,0,0,(xstrview){"",0},64,16777216);assert(policy);
+    FAULTS(xl6X509PathPolicyCreateV1(pathTime,3,1,(xstrview){"1.3.6.1.5.5.7.3.1",17},64,16777216,100000),xl6X509PathPolicyDestroyV1);
+    void* policy=xl6X509PathPolicyCreateV1(pathTime,0,0,(xstrview){"",0},64,16777216,100000);assert(policy);
     xvalue* ordinary=input(vector->leaf,vector->mid);xvalue* custom=input(vector->custom,vector->mid);
     FAULTS(xl6X509PathCheckV1(arrayContext(),ordinary,anchor,policy),xl6X509PathOutcomeDestroyV1);
     void* context=xl6X509PathCriticalCreateV1();assert(context);
@@ -102,10 +102,10 @@ int main(void)
         if(!hit)break;
         assert(prefix<127);
     }
-    PUBLISH(xl6X509PathPolicyCreateV1(pathTime,0,0,(xstrview){"",0},0,0),xl6X509PathPolicyHandlePolicyV1Get());
+    PUBLISH(xl6X509PathPolicyCreateV1(pathTime,0,0,(xstrview){"",0},0,0,100000),xl6X509PathPolicyHandlePolicyV1Get());
     PUBLISH(xl6X509PathCriticalCreateV1(),xl6X509PathCriticalHandlePolicyV1Get());
     CATALOG(xl6X509AnchorCreateV1(&((XL6_X509CertificateV1){.view=((XL6_X509AnchorV1*)anchor)->certificate})),Anchor);
-    CATALOG(xl6X509PathPolicyCreateV1(pathTime,0,0,(xstrview){"",0},0,0),PathPolicy);
+    CATALOG(xl6X509PathPolicyCreateV1(pathTime,0,0,(xstrview){"",0},0,0,100000),PathPolicy);
     result=xl6X509PathCheckV1(arrayContext(),ordinary,anchor,policy);assert(result);
     void* path=xl6X509PathOutcomePathV1(result);assert(path);xl6X509PathOutcomeDestroyV1(result);CATALOG(path,Path);
     CATALOG(xl6X509PathCheckV1(arrayContext(),ordinary,anchor,policy),PathOutcome);

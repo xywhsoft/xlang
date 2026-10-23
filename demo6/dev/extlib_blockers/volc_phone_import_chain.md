@@ -1,0 +1,44 @@
+# volc.phone 导入链被 xhttp.multipart 阻断
+
+最小复现：从 `demo6` 目录运行：
+
+```powershell
+.\release\xl.exe check dev\extlib_blockers\volc_phone_import_chain.xl
+```
+
+期望：仅导入 `volc.phone` 的程序通过检查。实际：当前发布物在 `release/extlibs/xhttp.multipart/src/xlang/xhttp_multipart.xl:352` 报 `[sem] unknown class/union field`。链路为 `volc.phone -> volc.core -> xhttp.client -> xhttp.multipart`，不是 `volc.phone` 的请求体或响应解析代码触发。
+
+根因和修复方向与 [`volc.core` 导入阻断](volc_core_import_chain.md)相同：由独立维护 `xhttp.multipart` 的上下文按现行 `Buffer` API 修复 `appendBytes` 调用，并回归 `import xhttp.client`、`import volc.core`、`import volc.phone`。本任务不在 `volc.phone` 中增加兼容绕过，也不修改独立维护的依赖包。修复后再运行 `release/examples/extlibs/volc_phone.xl` 与 C/XL 对照测试。
+
+2026-10-16 使用当前 `release/xl.exe check` 复验，仅导入仍在
+`xhttp_multipart.xl:352` 报 `Buffer.appendBytes` 无匹配成员。阻断未解除；
+`volc.phone` 的 JSON 与 Unicode 整体修复继续等待依赖链恢复后验收。
+
+2026-10-17 使用当前 `release/xl.exe check` 再验，仅导入仍停在
+`xhttp_multipart.xl:352` 的 `Buffer.appendBytes` 无匹配成员；本任务不修改
+独立维护的依赖包，也不将未运行的 `volc.phone` 语言路径记为通过。
+
+2026-10-17 再次复验 `xl check release\extlibs\volc.phone\src\phone.xl`，
+仍在同一依赖位置失败。静态审计另发现包内
+`x_volc_phone_native.c` 的 `x_volc_phone_substr` 把结果放入进程共享的
+8 槽指针数组，轮转时立即释放旧槽；`g_xvolc_phone_lock` 仅创建，
+从未用于保护槽位或返回值。跨线程调用可能在 XLang 复制返回文本前
+释放另一个线程仍在读取的缓冲。此风险尚未通过并发运行验证，不能
+把静态判断写成已复现的崩溃。依赖导入修复后，先以离线并发和 Unicode/
+转义 JSON 用例固定问题，再改用 XRT JSON 结构化解析并删除这份仅服务
+手写切片的 C helper；不要靠给共享环加锁保留不必要的生命周期机制。
+
+2026-10-18 再以当前 `release/xl.exe run examples/extlibs/volc_phone.xl`
+复验，仍在 `xhttp_multipart.xl:352:23` 报 `[sem] unknown class/union field`，
+未进入 `volc.phone` 的示例正文。清单核对显示该包也是当前普通队列中
+唯一缺少 C 对照范例和包级 README/官网详情源的包；依赖链恢复后应将
+这些交付物与 JSON/并发修复一起验收，不把当前未执行的语言路径记为通过。
+
+2026-10-20 用现行 `release/xl.exe check dev/extlib_blockers/volc_phone_import_chain.xl`
+再次复验，仍于 `xhttp_multipart.xl:352:23` 报未知字段，并于 352:34 报
+`Buffer.appendBytes` 无匹配成员。阻断状态不变；本任务继续跳过该包，
+不改独立维护的 `xhttp.multipart` 或为其添加兼容绕过。
+
+2026-10-24 包内已删除 `x_volc_phone_substr` 和未同步的八槽结果缓存，
+改为 `string.slice`，并补中文离线断言。当前 `xl check` 仍在上述
+`xhttp.multipart:352` 处失败；包内断言尚未执行，不因此签收包级修复。

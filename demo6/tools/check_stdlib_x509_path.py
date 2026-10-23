@@ -24,8 +24,8 @@ def main():
     fixture_dir=out/'fixtures';fixture_dir.mkdir();cases,contract=language_fixtures(root,fixture_dir)
     exported=set(re.findall(r'XL6_TEXT_EXPORT\((\w+),',(root/'src/runtime/xl6_x509_path_symbols.inc').read_text()))
     declared=set(re.findall(r'XL6_TEXT_API [^;\n]*?\b(\w+)\(',(root/'src/runtime/xl6_x509_path_abi.h').read_text()))
-    contracted=set(re.findall(r'^\{"(\w+)"',(root/'src/ir/xl6_ir_x509_path_contracts.inc').read_text(),re.M))|set(re.findall(r'XL6_NATIVE_COLLECTION_BRIDGE\("(\w+)"',(root/'src/abi/xl6_x509_path_collection_contracts.inc').read_text()));assert len(exported)==35 and exported==declared==contracted
-    report=dict(Complete=False,Rows=[],Failures=[],Products=[],Plans=[],ResidentEntries=35,SourceBuild=str(a.source_build),
+    contracted=set(re.findall(r'^\{"(\w+)"',(root/'src/ir/xl6_ir_x509_path_contracts.inc').read_text(),re.M))|set(re.findall(r'XL6_NATIVE_COLLECTION_BRIDGE\("(\w+)"',(root/'src/abi/xl6_x509_path_collection_contracts.inc').read_text()));assert len(exported)==36 and exported==declared==contracted
+    report=dict(Complete=False,Rows=[],Failures=[],Products=[],Plans=[],ResidentEntries=36,SourceBuild=str(a.source_build),
         Inputs={str(path):sha(path) for path in [Path(__file__),gcc,root/'tools/check_x509_path_owned.py',root/'tools/check_key_format_wire.py',
             *[root/'test/support'/('crypto_'+name+'_runtime.c') for name in ('rsa','nist','ed25519','xdh')],
             root/'tools/x509_path_language_fixtures.py',root/'tools/x509_build_language_fixtures.py',root/'tools/x509_path_fixtures.py',root/'test/cases/xlir_x509_path_contract.c',root/'test/support/container_projection_artifact.c']},
@@ -84,7 +84,7 @@ def main():
             elif source.stem.startswith('build.'):
                 assert 'XRT_MODULE_X509_PATH_BUILD' in modules and 'XRT_MODULE_X509_STORE' in modules
                 assert not any('path_validate.c' in name for name in sources)
-                assert any('path_build_callback.c' in name for name in sources)==(source.stem=='build.callback')
+                assert any('path_build_callback.c' in name for name in sources)==(source.stem in ('build.callback','build.work'))
             if source.stem=='path.enums':
                 assert not any('x509_' in name for name in sources) and not any('X509' in name or 'CRYPTO' in name for name in modules)
             if source.stem=='path.policy':
@@ -100,7 +100,9 @@ def main():
         'build-array':'func bad(Certificate target,array<int> candidates,TrustStore trust,X509PathPolicy policy)\n auto x=X509Path.build(target,candidates,trust,policy)\nend\n',
         'build-trust':'func bad(Certificate target,array<Certificate> candidates,Certificate trust,X509PathPolicy policy)\n auto x=X509Path.build(target,candidates,trust,policy)\nend\n',
         'build-callback':'func bad(Certificate target,array<Certificate> candidates,TrustStore trust,X509PathPolicy policy)\n auto x=X509Path.build(target,candidates,trust,policy,func(Certificate c,X509Extension e,int d) as int\n return 1\nend)\nend\n',
-        'issuer-type':'func bad(Certificate target,TrustStore issuer)\n auto x=target.matchesIssuer(issuer)\nend\n'})
+        'issuer-type':'func bad(Certificate target,TrustStore issuer)\n auto x=target.matchesIssuer(issuer)\nend\n',
+        'search-work-type':'func bad(time at)\n auto x=X509PathPolicy(at,X509PathFlags.none,X509KeyUsageFlags.none,"",64,16777216,"bad")\nend\n',
+        'search-work-setter':'func bad(X509PathPolicy policy)\n policy.maxSearchSteps=1\nend\n'})
     for name,body in negatives.items():
         try:
             source=fixture_dir/('bad.'+name+'.xl');source.write_text(body);target=out/('bad.'+name+'.c');message=run('bad.'+name,[driver,source,'cgen-default',target],True)

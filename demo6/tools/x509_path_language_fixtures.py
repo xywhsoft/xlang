@@ -41,7 +41,7 @@ if X509PathReason.validityTime == X509PathReason.keyUsage or X509PathReason.sign
 auto policy=X509PathPolicy(at,X509PathFlags.requireKeyUsage | X509PathFlags.requirePurpose,X509KeyUsageFlags.digitalSignature,"1.3.6.1.5.5.7.3.1",12,4096)
 if policy.at != at or policy.flags != (X509PathFlags.requireKeyUsage | X509PathFlags.requirePurpose) then throw RuntimeError "time flags" end
 if policy.keyUsage != X509KeyUsageFlags.digitalSignature or policy.purpose != "1.3.6.1.5.5.7.3.1" then throw RuntimeError "usage purpose" end
-if policy.maxCertificates != 12 or policy.maxBytes != 4096 then throw RuntimeError "budgets" end
+if policy.maxCertificates != 12 or policy.maxBytes != 4096 or policy.maxSearchSteps != 100000 then throw RuntimeError "budgets" end
 auto plain=X509PathPolicy(at)
 if plain.purpose != "" or plain.flags != X509PathFlags.none then throw RuntimeError "defaults" end
 ''')
@@ -159,6 +159,7 @@ auto u=policy.keyUsage
 auto p=policy.purpose
 auto n=policy.maxCertificates
 auto b=policy.maxBytes
+auto steps=policy.maxSearchSteps
 auto result=X509Path.check(chain,anchor,policy)
 auto status=result.status
 auto reason=result.reason
