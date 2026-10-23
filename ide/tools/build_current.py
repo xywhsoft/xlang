@@ -74,7 +74,8 @@ def compile_snapshot(options, root, report):
             raise ValueError('SDK matched-set validation failed: ' + relative)
         expected[relative.casefold()] = row['sha256']
     inputs = []
-    for directory in ('src', 'tests', 'tools', 'data', 'third_party/xge_sdk'):
+    for directory in ('src', 'tests', 'tools', 'data', 'third_party/xge_sdk',
+                      'third_party/sdk_patches/xrt-process-tree-v1'):
         for path in sorted((IDE / directory).rglob('*')):
             if '__pycache__' in path.parts or path.suffix == '.pyc':
                 continue

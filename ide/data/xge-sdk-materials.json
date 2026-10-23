@@ -1,7 +1,7 @@
 {
   "format": "xlang-ide-sdk-materials-1",
-  "sourceManifestSha256": "d79cf7eb1913f2fbc4772a959b92735b30953e53dd10b2c1f1836de9110ddc64",
-  "sdkDllSha256": "44e5e9d09e4f96768d77c329bd6b016065dada84f7f7162d81af79c39c83e8ea",
+  "sourceManifestSha256": "b0e8ab8e95f0a469fe77d8f311ae7e7a4fdf3293048302ffb5f895f50a9717a6",
+  "sdkDllSha256": "91ddb616d3c0a65017e686922e377ebdadb104a36eea16491d1fecdc271026c3",
   "sourceScope": "XGE 3.0.0 IDE-profile compiler dependency closure, build inputs, public headers and notices; explicit compatibility patches recorded in provenance",
   "translationUnits": [
     "single/xge.c",
@@ -3475,13 +3475,13 @@
     },
     {
       "path": "extlibs/xrt/upstream.json",
-      "sha256": "024b84f195ac98a5bbb71fbdfb60492bf20cc239e38fbcd96065e46268cd36df",
-      "size": 583
+      "sha256": "31451c4e78a4359dcd809394873231369108208b23e63f93e21df9bfa960de6a",
+      "size": 2010
     },
     {
       "path": "extlibs/xrt/xrt.h",
-      "sha256": "a222542a4abe652ee92cd28f6de21d6fa7a76398d04c03c6b24b45329c57d1a3",
-      "size": 8534010
+      "sha256": "095a852f390a83e7adef52e8e456634298f40245b7a36ec1e55b138e91143e16",
+      "size": 8534258
     },
     {
       "path": "extlibs/xrt/xrt_config.h",

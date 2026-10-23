@@ -24,6 +24,20 @@
       "sha256": "e477a131fea6c1eb5b33cff656495154fd2e999420cd8b38cf1a4776dbfb1f7c",
       "payload": "xui_code_annotation.c",
       "diff": "xui_code_annotation.patch"
+    },
+    {
+      "path": "extlibs/xrt/xrt.h",
+      "upstreamSha256": "a222542a4abe652ee92cd28f6de21d6fa7a76398d04c03c6b24b45329c57d1a3",
+      "sha256": "095a852f390a83e7adef52e8e456634298f40245b7a36ec1e55b138e91143e16",
+      "payload": "xrt.h",
+      "diff": "xrt.h.patch"
+    },
+    {
+      "path": "extlibs/xrt/upstream.json",
+      "upstreamSha256": "024b84f195ac98a5bbb71fbdfb60492bf20cc239e38fbcd96065e46268cd36df",
+      "sha256": "31451c4e78a4359dcd809394873231369108208b23e63f93e21df9bfa960de6a",
+      "payload": "upstream.json",
+      "diff": "upstream.json.patch"
     }
   ]
 }

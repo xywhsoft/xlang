@@ -1,3 +1,6 @@
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0601
+#endif
 #include "platform/process.h"
 #include "platform/path.h"
 #include <windows.h>
@@ -6,9 +9,11 @@
 #include <string.h>
 #define OUTPUT_LIMIT (1024u*1024u)
 #define INPUT_LIMIT (64u*1024u)
+typedef struct process_output { xide_process* process;int channel; } process_output;
 struct xide_process {
     CRITICAL_SECTION lock;
     HANDLE reader,writer,wake,log,errorLog;
+    HANDLE controlWake,outputs[2];process_output outputArgs[2];volatile LONG stopReaders;
     xprocess* native;
     char *program,*nativeProgram,*directory,*nativeDirectory,*logPath,*errorLogPath;
     HANDLE directoryPin,aliasPin;
@@ -19,6 +24,7 @@ struct xide_process {
     size_t argumentCount,environmentCount;
     unsigned char *output,*input,*stderrBytes;
     size_t outputStart,outputCount,inputCount,stderrStart,stderrCount,outputCapacity;
+    ULONGLONG outputProgress;
     int interactive,separateStderr,cancel,closeInput,writerDone,rootExited;
     xide_process_info info;
     ULONGLONG began;
@@ -92,6 +98,7 @@ static void failure(xide_process* process,const char* message)
     process->info.ioError=1;
     if(!*process->info.error) snprintf(process->info.error,sizeof(process->info.error),"%s",message);
     LeaveCriticalSection(&process->lock);
+    SetEvent(process->controlWake);
     notifyOwner(process);
 }
 static void output(xide_process* process,const unsigned char* bytes,size_t size,int errorChannel)
@@ -107,9 +114,47 @@ static void output(xide_process* process,const unsigned char* bytes,size_t size,
  size_t discard=*count+size>limit ? *count+size-limit : 0;
  if(discard) { *start=(*start+discard)%limit; *count-=discard; if(errorChannel) process->info.stderrDroppedBytes+=discard; else process->info.droppedBytes+=discard; }
  size_t end=(*start+*count)%limit,first=limit-end; if(first>size) first=size;
- memcpy(target+end,bytes,first); memcpy(target,bytes+first,size-first); *count+=size;
+ memcpy(target+end,bytes,first); memcpy(target,bytes+first,size-first); *count+=size;process->outputProgress+=size;
  LeaveCriticalSection(&process->lock);
  notifyOwner(process);
+}
+static DWORD WINAPI outputWorker(void* user)
+{
+    process_output* stream=user;xide_process* process=stream->process;
+    int kind=stream->channel ? XPROCESS_STDERR : XPROCESS_STDOUT;unsigned char buffer[16384];
+    while(!InterlockedCompareExchange(&process->stopReaders,0,0)) {
+        int64 count=xrtProcessRead(process->native,kind,buffer,sizeof(buffer));
+        if(count>0) output(process,buffer,(size_t)count,stream->channel);
+        else {
+            if(count<0 && !InterlockedCompareExchange(&process->stopReaders,0,0)) {
+                char message[512];currentError(message,sizeof(message),"Process output failed");failure(process,message);
+            }
+            break;
+        }
+    }
+    xrtProcessClose(process->native,kind);return 0;
+}
+static void joinIo(xide_process* process)
+{
+    HANDLE threads[3];DWORD count=0;
+    for(int i=0;i<2;++i) if(process->outputs[i]) threads[count++]=process->outputs[i];
+    if(process->writer) threads[count++]=process->writer;
+    if(!count) return;
+    for(;;) {
+        EnterCriticalSection(&process->lock);ULONGLONG before=process->outputProgress;LeaveCriticalSection(&process->lock);
+        DWORD result=WaitForMultipleObjects(count,threads,TRUE,2000);
+        if(result==WAIT_OBJECT_0) return;
+        EnterCriticalSection(&process->lock);int progressed=process->outputProgress!=before;LeaveCriticalSection(&process->lock);
+        if(result!=WAIT_TIMEOUT || !progressed) break;
+    }
+    failure(process,"Process pipes did not close after tree cleanup");
+    InterlockedExchange(&process->stopReaders,1);
+    /* Cancellation may race the brief gap before a synchronous read. Repeat
+       only on this abnormal teardown path until all dedicated workers stop. */
+    for(;;) {
+        for(DWORD i=0;i<count;++i) CancelSynchronousIo(threads[i]);
+        if(WaitForMultipleObjects(count,threads,TRUE,20)==WAIT_OBJECT_0) break;
+    }
 }
 static DWORD WINAPI writeWorker(void* data)
 {
@@ -143,7 +188,7 @@ finished:
 }
 static DWORD WINAPI readWorker(void* data)
 {
-    xide_process* process=data; unsigned char buffer[16384]; char message[512];
+    xide_process* process=data; char message[512];
     if(process->logPath) {
         wchar_t* path=xidePathNativeWide(process->logPath);
         process->log=path ? CreateFileW(path,GENERIC_WRITE,FILE_SHARE_READ,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL) : INVALID_HANDLE_VALUE;
@@ -179,39 +224,25 @@ static DWORD WINAPI readWorker(void* data)
         process->writer=CreateThread(NULL,0,writeWorker,process,0,NULL);
         if(!process->writer) { failure(process,"Unable to create program-input worker"); xrtProcessKillTree(process->native); }
     }
-    int stopSent=0,rootExited=0; ULONGLONG exitedAt=0,activeReadAt=0;
-    for(;;) {
-        EnterCriticalSection(&process->lock); cancelled=process->cancel; LeaveCriticalSection(&process->lock);
-        if(cancelled && !stopSent) { xrtProcessKillTree(process->native); stopSent=1; }
-        if(!rootExited && xrtProcessState(process->native)==XPROCESS_EXITED) {
-            rootExited=1; exitedAt=GetTickCount64();
-            /* A completed task never leaves descendants holding inherited pipes. */
-            xrtProcessKillTree(process->native);
-            EnterCriticalSection(&process->lock); process->rootExited=1; SetEvent(process->wake); LeaveCriticalSection(&process->lock);
-        }
-        int closed=0,readAny=0,streams=process->separateStderr ? 2 : 1;
-        for(int channel=0;channel<streams;++channel) {
-            int kind=channel ? XPROCESS_STDERR : XPROCESS_STDOUT; DWORD available=0; HANDLE pipe=(HANDLE)xrtProcessStreamNative(process->native,kind);
-            if(pipe==INVALID_HANDLE_VALUE || !PeekNamedPipe(pipe,NULL,0,NULL,&available,NULL)) {
-                DWORD reason=GetLastError();
-                if(pipe!=INVALID_HANDLE_VALUE && reason!=ERROR_BROKEN_PIPE && reason!=ERROR_PIPE_NOT_CONNECTED) failure(process,"Unable to inspect process output pipe");
-                ++closed;
-            } else if(available) {
-                size_t size=available; if(size>sizeof(buffer)) size=sizeof(buffer);
-                int64 received=xrtProcessRead(process->native,kind,buffer,size);
-                if(received>0) { output(process,buffer,(size_t)received,channel); readAny=1; }
-                else if(received<0) { currentError(message,sizeof(message),"Process output failed"); failure(process,message); }
-            }
-        }
-        if(rootExited && closed==streams) break;
-        if(rootExited && !readAny && GetTickCount64()-exitedAt>2000) { failure(process,"Process pipes did not close after tree cleanup"); break; }
-        /* A short yielding burst avoids timer-granularity throttling between
-           synchronous pipe writes; quiet processes still sleep. */
-        if(readAny) activeReadAt=GetTickCount64();
-        else if(GetTickCount64()-activeReadAt<8) SwitchToThread();
-        else Sleep(5);
+    for(int channel=0;channel<(process->separateStderr ? 2 : 1);++channel) {
+        process->outputArgs[channel]=(process_output){process,channel};
+        process->outputs[channel]=CreateThread(NULL,0,outputWorker,process->outputArgs+channel,0,NULL);
+        if(!process->outputs[channel]) failure(process,"Unable to create process-output worker");
     }
-    if(process->writer) WaitForSingleObject(process->writer,INFINITE);
+    HANDLE handles[]={(HANDLE)xrtProcessNative(process->native),process->controlWake};int stopSent=0;
+    for(;;) {
+        EnterCriticalSection(&process->lock); int stopping=process->cancel || process->info.ioError; LeaveCriticalSection(&process->lock);
+        if(stopping && !stopSent) {xrtProcessKillTree(process->native);stopSent=1;}
+        DWORD result=WaitForMultipleObjects(2,handles,FALSE,INFINITE);
+        if(result==WAIT_OBJECT_0) break;
+        if(result!=WAIT_OBJECT_0+1) {failure(process,"Unable to wait for process activity");xrtProcessKillTree(process->native);break;}
+    }
+    /* Publish the SDK's terminal snapshot before querying status. Kill the
+       owned descendants so inherited writers cannot hold an output open. */
+    if(xrtProcessWait(process->native)!=XWAIT_OK) {currentError(message,sizeof(message),"Unable to wait for process exit");failure(process,message);}
+    xrtProcessKillTree(process->native);
+    EnterCriticalSection(&process->lock);process->rootExited=1;SetEvent(process->wake);LeaveCriticalSection(&process->lock);
+    joinIo(process);
     xprocessstatus status={0};
     if(xrtProcessStatus(process->native,&status)) {
         EnterCriticalSection(&process->lock); process->info.exit=status; LeaveCriticalSection(&process->lock);
@@ -255,7 +286,8 @@ static xide_process* startProcess(const xide_process_spec* spec,size_t maximum,c
     process->outputCapacity=spec->stdoutCapacity ? spec->stdoutCapacity : OUTPUT_LIMIT;
     process->output=malloc(process->outputCapacity); process->input=malloc(INPUT_LIMIT);
     process->wake=CreateEventW(NULL,TRUE,FALSE,NULL);
-    if(!process->program || (spec->directory && !process->directory) || (spec->logPath && !process->logPath) || !process->output || !process->input || !process->wake) goto failed;
+    process->controlWake=CreateEventW(NULL,FALSE,FALSE,NULL);
+    if(!process->program || (spec->directory && !process->directory) || (spec->logPath && !process->logPath) || !process->output || !process->input || !process->wake || !process->controlWake) goto failed;
     process->arguments=calloc(spec->argumentCount+1,sizeof(*process->arguments));
     process->environment=calloc(spec->environmentCount+1,sizeof(*process->environment));
     if(!process->arguments || !process->environment) goto failed;
@@ -314,7 +346,7 @@ void xideProcessCloseInput(xide_process* process)
 }
 void xideProcessCancel(xide_process* process)
 {
-    if(process) { EnterCriticalSection(&process->lock); if(process->info.state!=XIDE_PROCESS_FINISHED) process->cancel=1; SetEvent(process->wake); LeaveCriticalSection(&process->lock); }
+    if(process) { EnterCriticalSection(&process->lock); if(process->info.state!=XIDE_PROCESS_FINISHED) process->cancel=1; SetEvent(process->wake);SetEvent(process->controlWake); LeaveCriticalSection(&process->lock); }
 }
 void xideProcessDestroy(xide_process* process)
 {
@@ -322,7 +354,9 @@ void xideProcessDestroy(xide_process* process)
     xideProcessCancel(process);
     if(process->reader) { WaitForSingleObject(process->reader,INFINITE); CloseHandle(process->reader); }
     if(process->writer) CloseHandle(process->writer);
+    for(int i=0;i<2;++i) if(process->outputs[i]) CloseHandle(process->outputs[i]);
     if(process->wake) CloseHandle(process->wake);
+    if(process->controlWake) CloseHandle(process->controlWake);
     for(size_t i=0;i<process->argumentCount;++i) free(process->arguments[i]);
     for(size_t i=0;i<process->environmentCount;++i) { free((void*)process->environment[i].Name); free((void*)process->environment[i].Value); }
     free(process->arguments); free(process->environment); free(process->program); free(process->nativeProgram); free(process->directory); free(process->nativeDirectory); free(process->logPath); free(process->errorLogPath); free(process->stderrBytes); free(process->output); free(process->input);
