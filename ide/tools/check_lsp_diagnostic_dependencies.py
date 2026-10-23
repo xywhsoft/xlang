@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import struct
+import subprocess
 from check_lsp_automatic_diagnostics import AutomaticClient
 
 
@@ -51,8 +52,9 @@ class DependencyClient(AutomaticClient):
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--server',type=Path,required=True);parser.add_argument('--output',type=Path,required=True);args=parser.parse_args()
-    server=args.server.resolve(strict=True);root=args.output.resolve();root.mkdir(parents=True,exist_ok=False);clients=[];cases=[];protected={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in [server,Path(__file__),Path(__file__).with_name('check_lsp_automatic_diagnostics.py'),Path(__file__).with_name('check_language_snapshots.py')]};status='failed'
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--server',type=Path,required=True);parser.add_argument('--output',type=Path,required=True);parser.add_argument('--receiver',type=Path,action='append',default=[]);args=parser.parse_args()
+    receivers=[p.resolve(strict=True) for p in args.receiver]
+    server=args.server.resolve(strict=True);root=args.output.resolve();root.mkdir(parents=True,exist_ok=False);clients=[];cases=[];protected={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in [server,Path(__file__),Path(__file__).with_name('check_lsp_automatic_diagnostics.py'),Path(__file__).with_name('check_language_snapshots.py'),*receivers]};status='failed'
     (root/'driver.py').write_bytes(Path(__file__).read_bytes())
     def done(name,**data):cases.append(dict(name=name,passed=True,**data))
     def client(name,dependency=True,input_proof=True,delay=0,automatic=True):
@@ -125,7 +127,25 @@ def main():
     finally:
         for i,c in enumerate(clients):
             stderr=c.stop();(root/f'server-{i}.json').write_text(json.dumps(c.transcript,ensure_ascii=False,indent=2),encoding='utf-8');(root/f'server-{i}.stderr').write_text(stderr,encoding='utf-8')
-        (root/'result.json').write_text(json.dumps(dict(status=status,scope='opt-in exact shared dependency dictionaries; standard push/file proofs retained, not yet the IDE automatic diagnostic controller',protected=protected,cases=cases),ensure_ascii=False,indent=2),encoding='utf-8');print(json.dumps(dict(status=status,cases=len(cases),proof=str(root/'result.json'))))
+        replays=[];receiver_failure=None
+        if status=='passed' and receivers:
+            for receiver in receivers:
+                for i in range(len(clients)):
+                    source=root/f'server-{i}.json';before=hashlib.sha256(source.read_bytes()).hexdigest();command=[str(receiver),'--transcript',str(source)]
+                    try:
+                        run=subprocess.run(command,capture_output=True,timeout=30)
+                        record=dict(command=command,exit=run.returncode,stdout=run.stdout.decode('utf-8','replace'),stderr=run.stderr.decode('utf-8','replace'),inputSha256=before)
+                    except (OSError,subprocess.TimeoutExpired) as error:
+                        record=dict(command=command,exit=-1,stdout='',stderr=str(error),inputSha256=before)
+                    replays.append(record)
+                    if record['exit'] or hashlib.sha256(source.read_bytes()).hexdigest()!=before:
+                        receiver_failure='C diagnostic receiver failed or changed its input: '+str(command);break
+                if receiver_failure:break
+            if not receiver_failure and not all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==h for p,h in protected.items()):receiver_failure='Receiver/server/test fingerprint changed.'
+            if receiver_failure:status='failed'
+            else:done('C-receivers-accept-real-dependency-file-proof-and-current-body-streams',receivers=len(receivers),transcripts=len(clients),replays=len(replays))
+        (root/'result.json').write_text(json.dumps(dict(status=status,scope='opt-in exact shared dependency dictionaries and optional native C receiver replay; standard push/file proofs retained, not yet the IDE automatic diagnostic controller',protected=protected,cases=cases,receiverReplays=replays),ensure_ascii=False,indent=2),encoding='utf-8');print(json.dumps(dict(status=status,cases=len(cases),proof=str(root/'result.json'))))
+        if receiver_failure:raise AssertionError(receiver_failure)
 
 
 if __name__=='__main__':main()

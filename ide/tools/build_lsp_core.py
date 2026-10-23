@@ -35,6 +35,9 @@ SERVER_SOURCES = (
 )
 CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_overload_scan_test", "analysis_completion_candidates_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_cursor_syntax_test", "analysis_text_test", "document_sync_test")
 HOST_TESTS = ("analysis_index_view_test", "language_input_guard_test", "diagnostic_store_test", "language_definition_proof_test", "snapshot_report_test")
+CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test")
+CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c")
+HOST_TESTS += CLIENT_TESTS
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 CORE_TESTS = ("analysis_process_tree_test", *CORE_TESTS)
 CORE_TESTS = ("diagnostic_paths_test", *CORE_TESTS)
@@ -322,6 +325,7 @@ def main() -> None:
         if os.name != "nt":
             parser.error("the current host still uses Windows transport/process adapters; the standalone core is separate")
         sources += [(ide / path, True) for path in SERVER_SOURCES]
+        sources += [(ide / path, True) for path in CLIENT_TEST_SOURCES]
     if any(not path.is_file() for path, _ in sources):
         parser.error("frontend root must contain the shared xlang lexer, parser, AST and XRT assets")
     output.mkdir(parents=True, exist_ok=False)
@@ -436,6 +440,8 @@ def main() -> None:
                 extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
                           if Path(source).stem != "xlang_ls" and
                           not (name == "snapshot_report_test" and Path(source).stem == "language_snapshot")]
+            if name in CLIENT_TESTS:
+                extra += [str(objects[Path(source).stem]) for source in CLIENT_TEST_SOURCES]
             run([str(cc), str(objects[name]), *extra, str(core), "-Wl,--gc-sections", *libraries, "-o", str(program)], name + "-link")
             result = run([str(program)], name + "-run", 30)
             if b"passed:" not in result.stdout:

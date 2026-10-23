@@ -27,6 +27,8 @@ $sources += 'src\platform\text_utf.c'
 $sources += 'src\services\highlight_result.c'
 $sources += 'src\services\completion_result.c'
 $sources += 'src\services\sync_plan.c'
+$sources += 'src\services\diagnostic_dependencies.c'
+$sources += 'src\services\diagnostic_notice.c'
 $sources += 'src\platform\startup_alias.c'
 $sources += 'src\platform\startup_stage.c'
 $sources += 'src\platform\startup_cache.c'
@@ -87,6 +89,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Catalog source verification failed.' }
 & python -X utf8 (Join-Path $PSScriptRoot 'font_resources.py') --source (Join-Path $ideRoot 'data\fonts') --destination (Join-Path $releaseRoot 'data\fonts')
 if ($LASTEXITCODE -ne 0) { throw 'Pinned offline font resource verification failed.' }
 if ($Tests) {
+    foreach ($fixture in @('diagnostic_dependencies_test','diagnostic_notice_test')) {
+        & $compiler @flags (Join-Path $ideRoot ('tests\'+$fixture+'.c')) @objects @libraries -o (Join-Path $releaseRoot ($fixture+'.exe'))
+        if ($LASTEXITCODE -ne 0) { throw "$fixture link failed." }
+    }
     & $compiler @flags (Join-Path $ideRoot 'tests\diagnostic_paths_test.c') @objects @libraries -o (Join-Path $releaseRoot 'diagnostic_paths_test.exe')
     if ($LASTEXITCODE -ne 0) { throw 'Diagnostic dependency digest fixture link failed.' }
     # This boundary fixture owns the real snapshot implementation.
