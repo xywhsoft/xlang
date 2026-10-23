@@ -22,6 +22,9 @@ void xlsCompletionSessionDestroy(xls_completion_session* session);
 xls_semantic_completion* xlsCompletionSessionQuery(xls_completion_session* session,
     const xls_analysis_document* documents,size_t count,const char* entryKey,
     const char* queryKey,size_t offset,int (*cancelled)(void*),void* user,char* error,size_t capacity);
+/* NULL entryKey requires a context and selects its entry. The query remains
+ * an actual opened overlay. Exact results retain/revalidate disk input proofs;
+ * changed inputs/cursors still run the shared fresh path, counted explicitly. */
 xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_session* session,xls_context* context,
     const xls_analysis_document* documents,size_t count,const char* entryKey,
     const char* queryKey,size_t offset,int (*cancelled)(void*),void* user,char* error,size_t capacity);

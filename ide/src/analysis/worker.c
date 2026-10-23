@@ -120,13 +120,14 @@ int xlsWorkerLoad(xls_worker* worker,xls_worker_load* load)
 }
 static xls_query* submit(xls_worker* worker,xls_context* context,const xls_analysis_document* documents,size_t count,const char* target,enum query_kind kind,size_t rangeLimit,const char* queryKey,size_t offset)
 {
-    if(!worker || !documents || !count || count>worker->limits.documents || !validLabel(target) ||
+    if(!worker || !documents || !count || count>worker->limits.documents ||
+       (target ? !validLabel(target) : !context || (kind!=QUERY_CHECK && kind!=QUERY_COMPLETION)) ||
        (kind==QUERY_COMPLETION && !validLabel(queryKey))) return NULL;
     query_input* input=xrtMalloc(sizeof(*input));
     if(!input) return NULL;
-    memset(input,0,sizeof(*input)); input->context=xlsContextRetain(context); input->worker=worker; input->target=xrtStrDup(target); input->kind=kind; input->rangeLimit=rangeLimit;
+    memset(input,0,sizeof(*input)); input->context=xlsContextRetain(context); input->worker=worker; input->target=target ? xrtStrDup(target) : NULL; input->kind=kind; input->rangeLimit=rangeLimit;
     input->offset=offset; if(queryKey) input->queryKey=xrtStrDup(queryKey);
-    if(!input->target || (queryKey && !input->queryKey) || !xrtMapInit(&input->documents,sizeof(query_document)) ||
+    if((target && !input->target) || (queryKey && !input->queryKey) || !xrtMapInit(&input->documents,sizeof(query_document)) ||
         !xrtMapSetDrop(&input->documents,dropDocument,NULL)) { freeInput(input,NULL); return NULL; }
     size_t bytes=0;
     for(size_t i=0;i<count;++i) {
@@ -139,9 +140,8 @@ static xls_query* submit(xls_worker* worker,xls_context* context,const xls_analy
         query_document document={xrtStrDup(source->key),xrtStrDup(source->path),xlsTextRetain(source->text),source->identity,source->revision};
         if(!document.key || !document.path || !xrtMapSet(&input->documents,key,&document)) { dropDocument(key,&document,NULL); goto failed; }
     }
-    xbytesview wanted=keyView(target);
-    query_document* targetDocument=xrtMapGet(&input->documents,wanted);
-    if(!targetDocument || !xlsFrontendContextValid(context,targetDocument->path,NULL,0)) goto failed;
+    query_document* targetDocument=target ? xrtMapGet(&input->documents,keyView(target)) : NULL;
+    if((target && !targetDocument) || !xlsFrontendContextValid(context,targetDocument ? targetDocument->path : xlsContextSpec(context)->entry,NULL,0)) goto failed;
     if(queryKey && !xrtMapHas(&input->documents,keyView(queryKey))) goto failed;
     xls_query* query=xrtMalloc(sizeof(*query));
     if(!query) goto failed;

@@ -176,4 +176,69 @@ static int run(void)
     CHECK(oldEnvironment ? xrtEnvSet("XLANG_PACKAGE_PATH",oldEnvironment) : xrtEnvRemove("XLANG_PACKAGE_PATH"));
     xrtFree(oldEnvironment);xrtFree(cwd);xrtFree(wrong);xrtFree(directory);xrtFree(a);xrtFree(b);xrtFree(shared);xrtFree(entry);xrtFree(pa);xrtFree(pb);return 1;
 }
-int main(void) {if(!run()) return 1;printf("analysis_context_resolution_test passed: %u checks; same-entry project isolation, real packages, check/cursor caches, nested/TLS actors and independent lifetimes\n",checks);return 0;}
+static int diskEntry(void)
+{
+    char root[160],error[256];snprintf(root,sizeof(root),"build/context-disk-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+    char* directory=xrtPathAbs(root);char* entry=directory ? xrtPathJoin(directory,"main.xl") : NULL;
+    char* helper=directory ? xrtPathJoin(directory,"helper.xl") : NULL;char* project=directory ? xrtPathJoin(directory,"project.xlp") : NULL;
+    const char* mainText="\xef\xbb\xbfimport helper\r\nfunc main(...) as int\r\n return helper.value()\r\nend\r\n";
+    const char* good="import ctx_twin_package as tp\nexport func value() as int\n return tp.value()\nend\n";
+    const char* cursor="import ctx_twin_package as tp\nexport func value() as int\n tp.\n return 0\nend\n";
+    const char* api="export func value() as int\n return 7\nend\nexport func alpha() as int\n return 1\nend\n";
+    CHECK(directory && entry && helper && project && xrtDirCreateAll(directory) && writeFile(entry,mainText) && package(directory,api));
+    xls_context *ca=context(project,entry,directory,"debug","packages"),*copy=context(project,entry,directory,"debug","packages");CHECK(ca && copy);
+    xls_text *text=xlsTextCreate(good,strlen(good),4096,NULL),*cursorText=xlsTextCreate(cursor,strlen(cursor),4096,NULL);CHECK(text && cursorText);
+    xls_analysis_document doc={"member",helper,text,10,1},cursorDoc={"member",helper,cursorText,20,1};
+    xls_check_session* checksSession=xlsCheckSessionCreate(NULL);xls_completion_session* cursors=xlsCompletionSessionCreate(NULL);CHECK(checksSession && cursors);
+    CHECK(!xlsCheckSessionCheck(checksSession,&doc,1,NULL,1,NULL,NULL,error,sizeof(error)));
+    CHECK(!xlsCompletionSessionQuery(cursors,&cursorDoc,1,NULL,"member",0,NULL,NULL,error,sizeof(error)));
+    xls_semantic_check* first=xlsCheckSessionCheckInContext(checksSession,ca,&doc,1,NULL,1,NULL,NULL,error,sizeof(error));
+    CHECK(observed(first,directory,1));
+    xls_check_inputs input;CHECK(xlsSemanticCheckInputs(first,&input));int found=0;
+    for(size_t i=0;i<input.sources;++i) {
+        xls_check_source source;CHECK(xlsSemanticCheckSource(first,i,&source));
+        if(!strcmp(source.path,entry)) {CHECK(!strcmp(source.origin,"disk") && source.rawSize==strlen(mainText) && source.size==strlen(mainText)-3 && !memcmp(source.text,mainText+3,source.size));++found;}
+        if(!strcmp(source.path,helper)) CHECK(!strcmp(source.origin,"overlay"));
+    }
+    CHECK(found==1);
+    xls_semantic_check* result=xlsCheckSessionCheckInContext(checksSession,copy,&doc,1,NULL,1,NULL,NULL,error,sizeof(error));CHECK(result==first);xlsSemanticCheckDestroy(result);
+    doc.revision=2;result=xlsCheckSessionCheckInContext(checksSession,ca,&doc,1,NULL,1,NULL,NULL,error,sizeof(error));CHECK(result==first);xlsSemanticCheckDestroy(result);
+    doc.revision=1;CHECK(!xlsCheckSessionCheckInContext(checksSession,ca,&doc,1,NULL,1,NULL,NULL,error,sizeof(error)));doc.revision=2;
+    CHECK(!xlsCheckSessionCheckInContext(checksSession,ca,&doc,1,NULL,1,stop,NULL,error,sizeof(error)) && xlsSemanticCheckValidate(first));
+    xls_check_stats checkStats;xlsCheckSessionStats(checksSession,&checkStats);CHECK(checkStats.builds==1 && checkStats.hits==2 && !checkStats.entryFullParses && checkStats.documents==1 && checkStats.textBytes==strlen(good));
+    size_t offset=(size_t)(strstr(cursor," tp.")-cursor)+4;
+    xls_semantic_completion* initial=xlsCompletionSessionQueryInContext(cursors,ca,&cursorDoc,1,NULL,"member",offset,NULL,NULL,error,sizeof(error));CHECK(label(initial,"alpha","beta"));
+    xls_semantic_completion* completion=xlsCompletionSessionQueryInContext(cursors,copy,&cursorDoc,1,NULL,"member",offset,NULL,NULL,error,sizeof(error));CHECK(completion==initial);xlsSemanticCompletionDestroy(completion);
+    cursorDoc.revision=2;completion=xlsCompletionSessionQueryInContext(cursors,ca,&cursorDoc,1,NULL,"member",offset,NULL,NULL,error,sizeof(error));CHECK(completion==initial);xlsSemanticCompletionDestroy(completion);
+    CHECK(!xlsCompletionSessionQueryInContext(cursors,ca,&cursorDoc,1,NULL,"member",offset,stop,NULL,error,sizeof(error)) && xlsSemanticCompletionValidate(initial));
+    xls_completion_stats cursorStats;xlsCompletionSessionStats(cursors,&cursorStats);CHECK(cursorStats.builds==1 && cursorStats.hits==2 && cursorStats.cursorFreshBuilds==1 && !cursorStats.cursorFullParses);
+    /* Atomic replacement with identical bytes changes file identity. Both
+       cached results must permanently invalidate, not just compare text. */
+    CHECK(writeFile(entry,mainText) && !xlsSemanticCheckValidate(first) && !xlsSemanticCompletionValidate(initial));
+    result=xlsCheckSessionCheckInContext(checksSession,ca,&doc,1,NULL,1,NULL,NULL,error,sizeof(error));CHECK(result && result!=first && xlsSemanticCheckInfo(result).accepted);xlsSemanticCheckDestroy(result);
+    completion=xlsCompletionSessionQueryInContext(cursors,ca,&cursorDoc,1,NULL,"member",offset,NULL,NULL,error,sizeof(error));CHECK(completion && completion!=initial && label(completion,"alpha","beta"));xlsSemanticCompletionDestroy(completion);
+    xlsCheckSessionStats(checksSession,&checkStats);xlsCompletionSessionStats(cursors,&cursorStats);CHECK(checkStats.builds==2 && checkStats.invalidations==1 && cursorStats.builds==2 && cursorStats.invalidations==1);
+    CHECK(package(directory,"export func value() as int\n return 7\nend\nexport func gamma() as int\n return 1\nend\n"));
+    completion=xlsCompletionSessionQueryInContext(cursors,ca,&cursorDoc,1,NULL,"member",offset,NULL,NULL,error,sizeof(error));CHECK(label(completion,"gamma","alpha"));xlsSemanticCompletionDestroy(completion);
+    CHECK(writeFile(entry,"import helper\nfunc main(...) as int\n return \"wrong\"\nend\n"));
+    result=xlsCheckSessionCheckInContext(checksSession,ca,&doc,1,NULL,1,NULL,NULL,error,sizeof(error));
+    xls_semantic_input overlay={helper,good,strlen(good)};xls_semantic_check* fresh=xlsSemanticCheckCreateInContext(ca,entry,&overlay,1,1,NULL,NULL,error,sizeof(error));
+    CHECK(result && fresh && !xlsSemanticCheckInfo(result).accepted && xlsSemanticCheckInfo(result).diagnostics==xlsSemanticCheckInfo(fresh).diagnostics);
+    xlsSemanticCheckDestroy(result);xlsSemanticCheckDestroy(fresh);CHECK(writeFile(entry,mainText));
+    /* Switching between an actual open entry and context.entry changes the
+       batch, even when all source bytes agree. No fictitious revision/identity. */
+    xls_text* entryText=xlsTextCreate(mainText,strlen(mainText),4096,NULL);CHECK(entryText);
+    xls_analysis_document opened[]={doc,{"entry",entry,entryText,30,1}};
+    result=xlsCheckSessionCheckInContext(checksSession,ca,opened,2,"entry",1,NULL,NULL,error,sizeof(error));CHECK(result && xlsSemanticCheckInfo(result).accepted);xlsSemanticCheckDestroy(result);
+    result=xlsCheckSessionCheckInContext(checksSession,ca,&doc,1,NULL,1,NULL,NULL,error,sizeof(error));CHECK(result && xlsSemanticCheckInfo(result).accepted);xlsSemanticCheckDestroy(result);
+    xls_worker* actor=xlsWorkerCreate(NULL,4);CHECK(actor && !xlsWorkerCheck(actor,&doc,1,NULL) && !xlsWorkerSyntax(actor,&doc,1,NULL));
+    xls_query *q=xlsWorkerCheckInContext(actor,copy,&doc,1,NULL),*qc=xlsWorkerCompletionInContext(actor,copy,&cursorDoc,1,NULL,"member",offset);CHECK(q && qc);
+    xlsContextRelease(copy);xlsTextRelease(text);xlsTextRelease(cursorText);xlsTextRelease(entryText);
+    result=waitCheck(q);completion=waitCompletion(qc);CHECK(result && completion);xlsQueryDestroy(q);xlsQueryDestroy(qc);xlsWorkerDestroy(actor);
+    CHECK(xlsSemanticCheckInfo(result).accepted && xlsSemanticCheckValidate(result) && label(completion,"gamma","alpha"));
+    xlsContextRelease(ca);xlsCheckSessionDestroy(checksSession);xlsCompletionSessionDestroy(cursors);
+    CHECK(xlsSemanticCheckContext(result) && xlsSemanticCompletionContext(completion) && xlsSemanticCheckValidate(result) && xlsSemanticCompletionValidate(completion));
+    xlsSemanticCheckDestroy(first);xlsSemanticCheckDestroy(result);xlsSemanticCompletionDestroy(completion);xlsSemanticCompletionDestroy(initial);
+    xrtFree(directory);xrtFree(entry);xrtFree(helper);xrtFree(project);return 1;
+}
+int main(void) {if(!run() || !diskEntry()) return 1;printf("analysis_context_resolution_test passed: %u checks; same-entry project isolation, real packages, retained disk entry check/cursor proofs, nested/TLS actors and independent lifetimes\n",checks);return 0;}

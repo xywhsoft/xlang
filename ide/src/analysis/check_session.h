@@ -28,7 +28,11 @@ xls_semantic_check* xlsCheckSessionCheck(xls_check_session* session,
     int captureIndex,int (*cancelled)(void*),void* user,char* error,size_t capacity);
 /* Explicit contexts are retained by the accepted batch/result. Context
  * changes invalidate cached semantics and syntax baselines; full equality
- * permits independently captured equivalent descriptors to hit the cache. */
+ * permits independently captured equivalent descriptors to hit the cache.
+ * NULL target selects context.entry. The shared frontend loads/guards a disk
+ * entry without a synthetic overlay; exact queries retain its checked result.
+ * Its syntax is not yet retained across rebuilds; entry syntax counters count
+ * session-built overlay syntax only. */
 xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* session,xls_context* context,
     const xls_analysis_document* documents,size_t count,const char* target,
     int captureIndex,int (*cancelled)(void*),void* user,char* error,size_t capacity);
