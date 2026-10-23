@@ -8,8 +8,8 @@ extern "x_clipboard_snapshot_release" func x_clipboard_snapshot_release(point sn
 extern "x_clipboard_sequence_number" func x_clipboard_sequence_number() as int
 extern "x_clipboard_count_formats" func x_clipboard_count_formats() as int
 extern "x_clipboard_formats" func x_clipboard_formats() as var
-extern "x_clipboard_formats_json" func x_clipboard_formats_json() as var
-extern "x_clipboard_format_name" func x_clipboard_format_name(int format_id) as var
+extern "x_clipboard_formats_json_owned" func x_clipboard_formats_json_owned() as point
+extern "x_clipboard_format_name_owned" func x_clipboard_format_name_owned(int format_id) as point
 extern "x_clipboard_register_format" func x_clipboard_register_format(string name) as int
 extern "x_clipboard_is_format_available" func x_clipboard_is_format_available(int format_id) as int
 extern "x_clipboard_has_text" func x_clipboard_has_text() as int
@@ -18,12 +18,12 @@ extern "x_clipboard_has_files" func x_clipboard_has_files() as int
 extern "x_clipboard_get_text_owned" func x_clipboard_get_text_owned() as point
 extern "x_clipboard_set_text" func x_clipboard_set_text(string text) as int
 extern "x_clipboard_get_files" func x_clipboard_get_files() as var
-extern "x_clipboard_get_file" func x_clipboard_get_file() as var
+extern "x_clipboard_get_file_owned" func x_clipboard_get_file_owned() as point
 extern "x_clipboard_set_files" func x_clipboard_set_files(array paths) as int
 extern "x_clipboard_set_file" func x_clipboard_set_file(string path) as int
 extern "x_clipboard_save_image" func x_clipboard_save_image(string path) as int
 extern "x_clipboard_set_image" func x_clipboard_set_image(string path) as int
-extern "x_clipboard_image_info_json" func x_clipboard_image_info_json() as var
+extern "x_clipboard_image_info_json_owned" func x_clipboard_image_info_json_owned() as point
 
 func __clipboard_require_c_string(string text)
     // C 接口以 NUL 结尾；显式长度避免把 XLang 字符串静默截断。
@@ -101,7 +101,11 @@ export func types() as var
 end
 
 export func formats_json() as string
-    return string(x_clipboard_formats_json())
+    point result = x_clipboard_formats_json_owned()
+    if result == null then
+        return "[]"
+    end
+    return __xl_runtime.takeCstr(result)
 end
 
 export func types_json() as string
@@ -109,7 +113,11 @@ export func types_json() as string
 end
 
 export func format_name(int format_id) as string
-    return string(x_clipboard_format_name(format_id))
+    point result = x_clipboard_format_name_owned(format_id)
+    if result == null then
+        return ""
+    end
+    return __xl_runtime.takeCstr(result)
 end
 
 export func register_format(string name) as int
@@ -163,7 +171,11 @@ export func read_files() as var
 end
 
 export func get_file() as string
-    return string(x_clipboard_get_file())
+    point result = x_clipboard_get_file_owned()
+    if result == null then
+        return ""
+    end
+    return __xl_runtime.takeCstr(result)
 end
 
 export func set_files(array paths) as bool
@@ -198,5 +210,9 @@ export func write_image(string path) as bool
 end
 
 export func image_info_json() as string
-    return string(x_clipboard_image_info_json())
+    point result = x_clipboard_image_info_json_owned()
+    if result == null then
+        return "{\"available\":false}"
+    end
+    return __xl_runtime.takeCstr(result)
 end
