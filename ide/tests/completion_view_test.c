@@ -108,6 +108,22 @@ static int verify(void* user)
  CHECK(xideEditorOpen(&app,entry,&error) && settle(&app)); xide_document* xl=app.activeDocument; xide_completion_view* v=app.completionView;
  CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app) && v->count==1 && has(v,"zzResult") && !strcmp(v->items[0].sDetail,"int") && xuiCodeEditIsCompletionOpen(xl->editor));
  CHECK(v->start==(int)(strstr(local,"zzROther")-local) && v->end==v->start+8 && capture(&app,light));
+ /* All commits in one input batch keep only the final caret intent. No
+    source capture or protocol query runs inside the input handler. */
+ const char* beforeBurst="func main(...) as int\n    int zzResult = 7\n    return zzOther\nend\n";
+ CHECK(prepare(&app,xl,beforeBurst,"zzOther",2));cvdismiss(v);CHECK(xuiInputSetModifiers(app.context,0)==XUI_OK);
+ uint64_t burstSerial=v->syncSerial;int burstQuery=v->nextId;
+ CHECK(xuiInputTextEx(app.context,'R',NULL)==XUI_OK && xuiDispatchPendingEvents(app.context)==XUI_OK);
+ CHECK(xuiInputTextEx(app.context,'e',NULL)==XUI_OK && xuiDispatchPendingEvents(app.context)==XUI_OK);
+ CHECK(xuiInputKeyDownEx(app.context,XUI_KEY_BACKSPACE,0,NULL)==XUI_OK && xuiDispatchPendingEvents(app.context)==XUI_OK && xuiInputKeyUpEx(app.context,XUI_KEY_BACKSPACE,0,NULL)==XUI_OK && xuiDispatchPendingEvents(app.context)==XUI_OK);
+ CHECK(!strcmp(xuiCodeEditGetText(xl->editor),local) && v->repeatEditor==xl->editor && v->repeatId==xl->id && v->repeatOffset==(int)(strstr(local,"zzROther")-local)+3 && !v->wanted && !v->pending && !v->request && v->syncSerial==burstSerial && v->nextId==burstQuery);
+ CHECK(waitReady(&app) && has(v,"zzResult") && v->count==1 && v->syncSerial==burstSerial+1 && v->nextId==burstQuery+1 && v->version==xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xl->editor)));
+ /* Escape before the first owner poll cancels that intent without analysis. */
+ CHECK(prepare(&app,xl,beforeBurst,"zzOther",2));cvdismiss(v);CHECK(xuiInputSetModifiers(app.context,0)==XUI_OK);burstSerial=v->syncSerial;burstQuery=v->nextId;
+ CHECK(xuiInputTextEx(app.context,'R',NULL)==XUI_OK && xuiDispatchPendingEvents(app.context)==XUI_OK && v->repeatEditor==xl->editor);
+ CHECK(xuiInputKeyDownEx(app.context,XUI_KEY_ESCAPE,0,NULL)==XUI_OK && xuiDispatchPendingEvents(app.context)==XUI_OK && xuiInputKeyUpEx(app.context,XUI_KEY_ESCAPE,0,NULL)==XUI_OK && xuiDispatchPendingEvents(app.context)==XUI_OK);
+ CHECK(settle(&app) && !v->wanted && !v->repeatEditor && !v->result && v->syncSerial==burstSerial && v->nextId==burstQuery);
+ CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app));
  /* Repeating a query keeps the connection, wire documents and captured body. */
  xls_sync_stats syncBefore={0},syncAfter={0}; xlsSyncStats(v->sync,&syncBefore);
  xide_language_client* retainedClient=v->client; const char* retainedText=v->inputs[0].text;
