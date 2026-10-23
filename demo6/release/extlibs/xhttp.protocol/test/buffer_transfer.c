@@ -1,6 +1,10 @@
 #include "../src/xlang/xhttp_protocol_native_internal.h"
-#include <assert.h>
+#include <stdio.h>
 #include <string.h>
+
+#define CHECK(condition) do { if (!(condition)) { \
+	fprintf(stderr, "xhttp.protocol buffer transfer line %d: %s\n", __LINE__, #condition); \
+	return 1; } } while (0)
 
 int main(void)
 {
@@ -10,21 +14,21 @@ int main(void)
 	char* owned;
 	bytes previous;
 
-	assert(data != NULL);
+	CHECK(data != NULL);
 	memcpy(data, "hello", 5u);
 	text = xrtBufferCreateTake(&data, 5u, 6u);
 	binary = xrtBufferFrom((xbytesview){(const uint8*)"a\0b", 3u});
-	assert(text != NULL && binary != NULL && data == NULL);
+	CHECK(text != NULL && binary != NULL && data == NULL);
 	previous = text->Data;
 	owned = (char*)xhttp_protocol_buffer_take_cstr(text);
-	assert((bytes)owned == previous && strcmp(owned, "hello") == 0);
-	assert(text->Data == NULL && text->Size == 0u);
+	CHECK((bytes)owned == previous && strcmp(owned, "hello") == 0);
+	CHECK(text->Data == NULL && text->Size == 0u);
 	xrtFree(owned);
 	xrtBufferDestroy(text);
 
 	previous = binary->Data;
-	assert(xhttp_protocol_buffer_take_cstr(binary) == NULL);
-	assert(binary->Data == previous && binary->Size == 3u);
+	CHECK(xhttp_protocol_buffer_take_cstr(binary) == NULL);
+	CHECK(binary->Data == previous && binary->Size == 3u);
 	xrtBufferDestroy(binary);
 	return 0;
 }
