@@ -9,6 +9,10 @@
  * The shared semantic pass mutates a private tree, never a session snapshot.
  * No code generation, project execution, compiler process or DLL is involved. */
 typedef struct xls_semantic_completion xls_semantic_completion;
+/* Immutable work for this result's actual build, also retained on exact-result
+ * hits. Ordinary entry syntax only; imports/semantics still run afresh. */
+typedef struct xls_completion_entry_work { uint64_t parsed,reused,declined;size_t bytes; } xls_completion_entry_work;
+xls_completion_entry_work xlsSemanticCompletionEntryWork(const xls_semantic_completion* result);
 typedef struct xls_semantic_input { const char *path,*text; size_t size; } xls_semantic_input;
 typedef struct xls_completion_info {
     const char *path,*prefix,*error;

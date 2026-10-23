@@ -9,6 +9,7 @@ def derive(frontend: Path, output: Path) -> list[dict]:
         "src/compile/xl6_imports.c": "f8e571ffa7f48b2ddc55b20e7d73de782604024d3930e2bb27fd68dc55b16182",
         "src/sem/xl6_completion.c": "384d4cf57a648900ee1b9d93df1895ba22526639f3393702891027c94053c94c",
         "src/package/xl6_package.c": "628681072acdd939c85b112ccd19af647b9084b9e460db6850d8140c18c5e881",
+        "src/compile/xl6_source_overlay.c": "cfe3ed6985af841504c13b62deeb24e552086ed8a67c1f34e46847f21cf281cf",
     }
     rows = []
     for relative, expected in sources.items():
@@ -19,7 +20,14 @@ def derive(frontend: Path, output: Path) -> list[dict]:
             raise ValueError("shared resolution changed; audit scoped input/validation and original search rules: " + str(original))
         source = raw.decode("utf-8").replace("\r\n", "\n")
         source = '#include "analysis/frontend_context.h"\n' + source
-        if original.stem == "xl6_source_report":
+        if original.stem == "xl6_source_overlay":
+            source = '#include "analysis/frontend_entry_cache.h"\n' + source
+            old = 'xl6ParseSourceWithCompletion('
+            if source.count(old) != 2:
+                raise ValueError("shared source overlay parse seams changed")
+            source = source.replace(old, 'xlsFrontendEntryParse(')
+            seams = 4
+        elif original.stem == "xl6_source_report":
             old = '(char*)xrtEnvGet((str)"XLANG_PACKAGE_PATH")'
             if source.count(old) != 3 or source.count("xrtPathAbs(path)") != 3:
                 raise ValueError("shared report resolution/validation seams changed")
@@ -87,5 +95,5 @@ def derive(frontend: Path, output: Path) -> list[dict]:
         compiled.write_text(source, encoding="utf-8", newline="\n")
         rows.append(dict(source=str(original), sourceSha256=digest,
                          compiledSource=str(compiled), compiledSha256=hashlib.sha256(compiled.read_bytes()).hexdigest(),
-                         auditedSeams=seams, change="request-owned directory/package inputs; original resolution/validation rules retained; default calls unchanged"))
+                         auditedSeams=seams, change=("optional bounded pre-import entry AST reuse; original source reporting and parser fallback retained" if original.stem == "xl6_source_overlay" else "request-owned directory/package inputs; original resolution/validation rules retained; default calls unchanged")))
     return rows

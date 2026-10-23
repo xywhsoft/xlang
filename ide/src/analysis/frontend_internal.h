@@ -30,6 +30,12 @@ xls_semantic_completion* xlsSemanticCompletionCreateParsed(const char* entry,con
 xls_semantic_completion* xlsSemanticCompletionCreateParsedInContext(xls_context* context,const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
+struct xls_entry_cache;
+/* Entry/source reporting remains the original shared frontend. This optional
+ * one-owner cache only copies an ordinary pre-import entry AST. */
+xls_semantic_completion* xlsSemanticCompletionCreateCachedInContext(xls_context* context,struct xls_entry_cache* cache,
+    const char* entry,const char* queryPath,size_t offset,const xls_semantic_input* inputs,size_t count,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity);
 /* Private mutable copy for compiler semantic passes. Destination must be
  * empty/initialized. Diagnostics and sources are independently owned. */
 int xlsSyntaxCopyParse(const xls_syntax* syntax,XL6_ParseResult* result);

@@ -114,7 +114,7 @@ def main():
                checkOnSave=False, analysisConfiguration=packet(1))), 1)
         reply, _ = c.reply(1)
         caps = reply['result']['capabilities']['experimental']
-        assert caps['analysisConfiguration'] == 1 and caps['analysisProfile'] == PROFILE and caps['retainedDiskEntry'] == 1, reply
+        assert caps['analysisConfiguration'] == 1 and caps['analysisProfile'] == PROFILE and caps['retainedDiskEntry'] == 1 and caps['retainedEntryParse'] == 1, reply
         c.send('initialized', {})
         process = c.process.pid
         c.open(helper, helper_text, 7)
@@ -240,6 +240,61 @@ def main():
         value = call(c, 'xlang/check', dict(textDocument=dict(uri=helper.as_uri()), version=9))
         assert value['analysisContext']['epoch'] == 9 and value['analysis']['builds'] == before['builds'] and value['analysis']['cacheHits'] == before['cacheHits']+1, value
         done('equal-context-replacement-fences-publication-without-rechecking-semantics')
+        # Independent real process: the entry stays closed, member bytes change
+        # on every request. These are semantic rebuilds, not exact-result hits.
+        second = Client(server, compiler, root)
+        clients.append(second)
+        second.send('initialize', dict(capabilities={}, initializationOptions=dict(automaticDiagnostics=False,
+                    checkOnSave=False, analysisConfiguration=packet(1))), 1)
+        reply, _ = second.reply(1)
+        assert reply['result']['capabilities']['experimental']['retainedEntryParse'] == 1, reply
+        second.send('initialized', {})
+        second.open(helper, cursor, 1)
+        value = query(second, cursor, 1, 1, 0, {'value', 'alpha'})
+        work = value['analysis']['lastBuildEntryParse']
+        assert not value['entryOpen'] and work['parsed'] == 1 and work['reused'] == 0 and work['bytes'] > 0, value
+        for version in range(2, 18):
+            edited = cursor+f'// actual member edit {version}\n'
+            second.change(helper, edited, version)
+            value = query(second, edited, version, 1, 0, {'value', 'alpha'})
+            work = value['analysis']['lastBuildEntryParse']
+            assert value['analysis']['builds'] == version and value['analysis']['cacheHits'] == 0 and work['parsed'] == 0 and work['reused'] == 1, value
+            assert all(i['detail'] == 'func() as int' for i in value['items']), value
+        done('member-edits-rebuild-semantics-and-reuse-only-unchanged-disk-entry-parse')
+        original_entry = entry.read_bytes()
+        try:
+            replacement = entry.with_suffix('.entry-cache-replacement')
+            replacement.write_bytes(original_entry)
+            os.replace(replacement, entry)
+            value = query(second, edited, version, 1, 0, {'value', 'alpha'})
+            assert value['analysis']['builds'] == 18 and value['analysis']['lastBuildEntryParse']['reused'] == 1, value
+            entry.write_bytes(original_entry+b'\r\n// changed entry source\r\n')
+            value = query(second, edited, version, 1, 0, {'value', 'alpha'})
+            assert value['analysis']['builds'] == 19 and value['analysis']['lastBuildEntryParse']['parsed'] == 1 and value['analysis']['lastBuildEntryParse']['reused'] == 0, value
+        finally:
+            entry.write_bytes(original_entry)
+        done('entry-identity-recaptures-proof-and-entry-body-change-reparses')
+        call(second, 'xlang/configureAnalysis', packet(2, 1))
+        value = query(second, edited, version, 2, 1, {'value', 'beta'})
+        assert value['analysis']['lastBuildEntryParse']['parsed'] == 1 and any(i['label'] == 'value' and i['detail'] == 'func() as string' for i in value['items']), value
+        done('entry-parse-context-change-keeps-real-package-types-and-declarations')
+        again = query(second, edited, version, 2, 1, {'value', 'beta'})
+        assert again['analysis']['builds'] == value['analysis']['builds'] and again['analysis']['cacheHits'] == value['analysis']['cacheHits']+1 and again['analysis']['lastBuildEntryParse'] == value['analysis']['lastBuildEntryParse'], again
+        done('exact-result-hit-preserves-last-build-work-without-claiming-new-parse')
+        second.open(entry, entry_text, 1)
+        value = query(second, edited, version, 2, 1, {'value', 'beta'})
+        assert value['entryOpen'] and value['analysis']['lastBuildEntryParse']['parsed'] == 1 and value['analysis']['lastBuildEntryParse']['bytes'] > 0, value
+        builds = value['analysis']['builds']
+        edited += '// changed member with opened entry\n'
+        version += 1
+        second.change(helper, edited, version)
+        value = query(second, edited, version, 2, 1, {'value', 'beta'})
+        assert value['analysis']['builds'] == builds+1 and value['analysis']['lastBuildEntryParse']['reused'] == 1 and value['analysis']['lastBuildEntryParse']['parsed'] == 0, value
+        done('canonical-open-entry-also-reuses-ordinary-parse-after-member-edit')
+        second.send('textDocument/didClose', dict(textDocument=dict(uri=entry.as_uri())))
+        value = query(second, edited, version, 2, 1, {'value', 'beta'})
+        assert not value['entryOpen'] and value['analysis']['lastBuildEntryParse']['bytes'] > 0 and value['analysis']['builds'] == builds+2, value
+        done('closing-entry-restores-real-disk-proof-and-eligible-entry-cache')
         assert all(sha(p) == digest for p, digest in protected.items()) and not helper.exists() and not compiler.exists()
         done('unsaved-member-not-written-and-source-tools-unchanged')
         report['status'] = 'passed'
