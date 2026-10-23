@@ -1,4 +1,5 @@
 #include "analysis/check_session.h"
+#include "analysis/completion_session.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
@@ -13,15 +14,15 @@ static int digest(const xvalue* value,const unsigned char expected[32])
     char hex[65]; for(size_t i=0;i<32;++i) snprintf(hex+2*i,3,"%02x",expected[i]);
     const char* actual=string(value); return actual && !strcmp(actual,hex);
 }
-static int parity(xls_semantic_check* result)
+static int parityInputs(xls_semantic_check* result,xls_semantic_completion* cursor)
 {
-    xls_check_inputs inputs; CHECK(xlsSemanticCheckInputs(result,&inputs));
-    size_t size=0; char* text=xlsSemanticCheckReportJson(result,&size); CHECK(text && size);
+    xls_inputs inputs; CHECK(cursor ? xlsSemanticCompletionInputs(cursor,&inputs) : xlsSemanticCheckInputs(result,&inputs));
+    size_t size=0; char* text=cursor ? xlsSemanticCompletionJson(cursor,&size) : xlsSemanticCheckReportJson(result,&size); CHECK(text && size);
     xvalue* json=xrtJsonParse(xrtStrViewN(text,size)); xlsSemanticStringFree(text); CHECK(json);
     const xvalue *files=field(field(json,"sourceReport"),"files"),*resolution=field(json,"resolutionReport"),*probes=field(resolution,"probes");
     CHECK(inputs.sources==xrtValueCount(files) && inputs.probes==xrtValueCount(probes));
     for(size_t i=0;i<inputs.sources;++i) {
-        xls_check_source source; CHECK(xlsSemanticCheckSource(result,i,&source));
+        xls_input_source source; CHECK(cursor ? xlsSemanticCompletionSource(cursor,i,&source) : xlsSemanticCheckSource(result,i,&source));
         const xvalue* item=xrtValueArrayGet(files,i); unsigned char hash[32];
         CHECK(!strcmp(source.path,string(field(item,"path"))) && !strcmp(source.origin,string(field(item,"origin"))));
         CHECK(integer(field(item,"kind"),(size_t)source.kind) && integer(field(item,"textSize"),source.size) && integer(field(item,"rawSize"),source.rawSize));
@@ -30,19 +31,20 @@ static int parity(xls_semantic_check* result)
         CHECK(digest(field(item,"textSha256"),source.textSha256) && digest(field(item,"rawSha256"),source.rawSha256));
     }
     for(size_t i=0;i<inputs.probes;++i) {
-        xls_check_probe probe; bool exists=false; const xvalue* item=xrtValueArrayGet(probes,i);
-        CHECK(xlsSemanticCheckProbe(result,i,&probe) && !strcmp(probe.path,string(field(item,"path"))));
+        xls_input_probe probe; bool exists=false; const xvalue* item=xrtValueArrayGet(probes,i);
+        CHECK((cursor ? xlsSemanticCompletionProbe(cursor,i,&probe) : xlsSemanticCheckProbe(result,i,&probe)) && !strcmp(probe.path,string(field(item,"path"))));
         CHECK(xrtValueGetBool(field(item,"exists"),&exists) && exists==probe.exists);
     }
     bool observed=false; CHECK(xrtValueGetBool(field(resolution,"packagePathObserved"),&observed) && observed==inputs.packagePathObserved);
     const char* package=string(field(resolution,"XLANG_PACKAGE_PATH"));
     CHECK(package && inputs.packagePath ? !strcmp(package,inputs.packagePath) : package==inputs.packagePath);
-    xls_check_source source; xls_check_probe probe; memset(&source,0x55,sizeof(source)); memset(&probe,0x55,sizeof(probe));
-    CHECK(!xlsSemanticCheckSource(result,inputs.sources,&source) && !source.path && !source.text && !source.size && !source.kind && !source.textSha256[0]);
-    CHECK(!xlsSemanticCheckProbe(result,inputs.probes,&probe) && !probe.path && !probe.exists);
-    CHECK(!xlsSemanticCheckInputs(result,NULL) && !xlsSemanticCheckSource(result,0,NULL) && !xlsSemanticCheckProbe(result,0,NULL));
+    xls_input_source source; xls_input_probe probe; memset(&source,0x55,sizeof(source)); memset(&probe,0x55,sizeof(probe));
+    CHECK(!(cursor ? xlsSemanticCompletionSource(cursor,inputs.sources,&source) : xlsSemanticCheckSource(result,inputs.sources,&source)) && !source.path && !source.text && !source.size && !source.kind && !source.textSha256[0]);
+    CHECK(!(cursor ? xlsSemanticCompletionProbe(cursor,inputs.probes,&probe) : xlsSemanticCheckProbe(result,inputs.probes,&probe)) && !probe.path && !probe.exists);
+    CHECK(cursor ? !xlsSemanticCompletionInputs(cursor,NULL) && !xlsSemanticCompletionSource(cursor,0,NULL) && !xlsSemanticCompletionProbe(cursor,0,NULL) : !xlsSemanticCheckInputs(result,NULL) && !xlsSemanticCheckSource(result,0,NULL) && !xlsSemanticCheckProbe(result,0,NULL));
     xrtValueRelease(json); return 1;
 }
+static int parity(xls_semantic_check* result) {return parityInputs(result,NULL);}
 static int run(void)
 {
     xls_check_inputs inputs; xls_check_source source; xls_check_probe probe;
@@ -108,4 +110,92 @@ static int run(void)
     result=xlsSemanticCheckCreate(entry,&overlay,1,0,NULL,NULL,error,sizeof(error)); CHECK(result && !xlsSemanticCheckInfo(result).accepted && parity(result)); xlsSemanticCheckDestroy(result);
     xrtFree(candidate); xrtFree(package); xrtFree(src); xrtFree(manifest); xrtFree(api); xrtFree(entry); xrtFree(directory); return 1;
 }
-int main(void) { if(!run()) return 1; printf("analysis_input_view_test passed: %u checks; actual sources/manifests/probes/environment, JSON parity and retained ownership\n",checks); return 0; }
+typedef struct cursor_reader {
+    xls_semantic_completion* owner;
+    xls_input_source source;
+    size_t index;
+    xatomic32 *phase,*arrived,*done;
+    int okay;
+} cursor_reader;
+static int32 readCursor(void* user)
+{
+    cursor_reader* r=user;r->okay=1;xrtAtomic32FetchAdd(r->arrived,1,XMEMORY_ACQ_REL);
+    while(!xrtAtomic32Load(r->phase,XMEMORY_ACQUIRE)) xrtThreadYield();
+    for(unsigned i=0;i<4000;++i) {
+        xls_inputs inputs;xls_input_source source;
+        if(!xlsSemanticCompletionInputs(r->owner,&inputs) || !xlsSemanticCompletionSource(r->owner,r->index,&source) ||
+           source.text!=r->source.text || source.size!=r->source.size || strcmp(source.origin,"disk") || !inputs.sources) r->okay=0;
+    }
+    xrtAtomic32FetchAdd(r->done,1,XMEMORY_ACQ_REL);
+    while(xrtAtomic32Load(r->phase,XMEMORY_ACQUIRE)<2) xrtThreadYield();
+    xls_inputs inputs;memset(&inputs,0x55,sizeof(inputs));
+    r->okay=r->okay && !xlsSemanticCompletionInputs(r->owner,&inputs) && !inputs.sources && !inputs.packagePath &&
+        !strcmp(r->source.text,"export func value() as int\r\n return 42\r\nend\r\n");
+    xlsSemanticCompletionDestroy(r->owner);return 0;
+}
+static int cursorViews(void)
+{
+    xls_inputs inputs;xls_input_source source;xls_input_probe probe;
+    memset(&inputs,0x55,sizeof(inputs));memset(&source,0x55,sizeof(source));memset(&probe,0x55,sizeof(probe));
+    CHECK(!xlsSemanticCompletionInputs(NULL,&inputs) && !inputs.sources && !inputs.probes && !inputs.packagePathObserved && !inputs.packagePath);
+    CHECK(!xlsSemanticCompletionSource(NULL,SIZE_MAX,&source) && !source.path && !source.size && !source.rawSha256[0]);
+    CHECK(!xlsSemanticCompletionProbe(NULL,0,&probe) && !probe.path && !probe.exists);
+    char root[160],error[256];snprintf(root,sizeof(root),"build/cursor-input-view-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+    char *directory=xrtPathAbs(root),*entry=directory ? xrtPathJoin(directory,"entry.xl") : NULL,*dep=directory ? xrtPathJoin(directory,"view_cursor_dep.xl") : NULL;
+    CHECK(directory && entry && dep && xrtDirCreateAll(directory));
+    const char* dependency="\xef\xbb\xbf" "export func value() as int\r\n return 42\r\nend\r\n";
+    const char* body="\xef\xbb\xbf// 中文😀\r\nimport view_cursor_dep\r\nfunc main(...) as int\r\n return view_cursor_dep.value()\r\nend\r\n";
+    CHECK(xrtFileWriteAtomic(dep,(xbytesview){(const unsigned char*)dependency,strlen(dependency)}));
+    size_t at=(size_t)(strstr(body,".value")-body)+3-3;
+    xls_text* text=xlsTextCreate(body,strlen(body),4096,NULL);xls_completion_session* session=xlsCompletionSessionCreate(NULL);CHECK(text && session);
+    xls_analysis_document doc={"entry",entry,text,11,1};
+    xls_semantic_completion* result=xlsCompletionSessionQuery(session,&doc,1,"entry","entry",at,NULL,NULL,error,sizeof(error));
+    CHECK(result && xlsSemanticCompletionInfo(result).available);xlsCompletionSessionDestroy(session);xlsTextRelease(text);
+    CHECK(parityInputs(NULL,result) && xlsSemanticCompletionInputs(result,&inputs) && inputs.sources==2 && inputs.probes);
+    size_t index=SIZE_MAX;
+    for(size_t i=0;i<inputs.sources;++i) {
+        CHECK(xlsSemanticCompletionSource(result,i,&source));
+        if(!strcmp(source.path,entry)) CHECK(!strcmp(source.origin,"overlay") && !strcmp(source.text,body+3) && !memcmp(source.textSha256,source.rawSha256,32));
+        if(!strcmp(source.path,dep)) {index=i;CHECK(!strcmp(source.origin,"disk") && !strcmp(source.text,dependency+3) && source.rawSize==source.size+3 && memcmp(source.textSha256,source.rawSha256,32));}
+    }
+    CHECK(index!=SIZE_MAX && xlsSemanticCompletionSource(result,index,&source));
+    xatomic32 phase,arrived,done;xrtAtomic32Init(&phase,0);xrtAtomic32Init(&arrived,0);xrtAtomic32Init(&done,0);
+    cursor_reader readers[2];xthread* threads[2];
+    for(unsigned i=0;i<2;++i) {readers[i]=(cursor_reader){xlsSemanticCompletionRetain(result),source,index,&phase,&arrived,&done,0};threads[i]=xrtThreadCreate(readCursor,&readers[i],0);CHECK(threads[i]);}
+    uint64_t until=xrtClock()+5000000;while(xrtAtomic32Load(&arrived,XMEMORY_ACQUIRE)<2 && xrtClock()<until) xrtSleep(1);CHECK(xrtAtomic32Load(&arrived,XMEMORY_ACQUIRE)==2);
+    xrtAtomic32Store(&phase,1,XMEMORY_RELEASE);for(unsigned i=0;i<10;++i) CHECK(xlsSemanticCompletionValidate(result));
+    until=xrtClock()+5000000;while(xrtAtomic32Load(&done,XMEMORY_ACQUIRE)<2 && xrtClock()<until) xrtSleep(1);CHECK(xrtAtomic32Load(&done,XMEMORY_ACQUIRE)==2);
+    CHECK(xrtFileWriteAtomic(dep,(xbytesview){(const unsigned char*)dependency,strlen(dependency)}) && !xlsSemanticCompletionValidate(result));
+    memset(&source,0x55,sizeof(source));memset(&probe,0x55,sizeof(probe));
+    CHECK(!xlsSemanticCompletionSource(result,index,&source) && !source.path && !source.text && !source.rawSha256[0]);
+    CHECK(!xlsSemanticCompletionProbe(result,0,&probe) && !probe.path && !probe.exists);
+    xlsSemanticCompletionDestroy(result);result=NULL;xrtAtomic32Store(&phase,2,XMEMORY_RELEASE);
+    for(unsigned i=0;i<2;++i) {CHECK(xrtThreadWait(threads[i])==XWAIT_OK && readers[i].okay);xrtThreadDestroy(threads[i]);}
+    /* A larger borrowed source stays exact. It is never reconstructed from
+       JSON strings; getters expose the same report-owned bytes repeatedly. */
+    xstrbuf large;xrtStrBufInit(&large);CHECK(xrtStrBufAppend(&large,xrtStrView(body)));
+    int built=1;while(large.Size<1024u*1024u) if(!xrtStrBufAppend(&large,xrtStrView("// unchanged input bytes 中文😀\r\n"))) {built=0;break;}
+    CHECK(built && large.Size>=1024u*1024u);
+    xls_semantic_input overlay={entry,large.Data,large.Size};result=xlsSemanticCompletionCreate(entry,entry,at,&overlay,1,NULL,NULL,error,sizeof(error));
+    CHECK(result && xlsSemanticCompletionInfo(result).available && xlsSemanticCompletionInputs(result,&inputs));
+    CHECK(xlsSemanticCompletionSource(result,0,&source) && source.size==large.Size-3 && !memcmp(source.text,large.Data+3,source.size));
+    const char* borrowed=source.text;xrtStrBufFree(&large);CHECK(!strncmp(borrowed,"// 中文😀\r\n",strlen("// 中文😀\r\n")) && parityInputs(NULL,result));xlsSemanticCompletionDestroy(result);
+    overlay=(xls_semantic_input){entry,"",0};result=xlsSemanticCompletionCreate(entry,entry,0,&overlay,1,NULL,NULL,error,sizeof(error));
+    CHECK(result && !xlsSemanticCompletionInfo(result).available && parityInputs(NULL,result) && xlsSemanticCompletionSource(result,0,&source) && !source.size && source.text && !*source.text);xlsSemanticCompletionDestroy(result);
+    const char* missing="import cursor_view_missing_package\nfunc main(...) as int\n return missingValue\nend\n";
+    overlay=(xls_semantic_input){entry,missing,strlen(missing)};at=(size_t)(strstr(missing,"missingValue")-missing)+4;
+    result=xlsSemanticCompletionCreate(entry,entry,at,&overlay,1,NULL,NULL,error,sizeof(error));
+    CHECK(result && !xlsSemanticCompletionInfo(result).available && parityInputs(NULL,result) && xlsSemanticCompletionInputs(result,&inputs) && inputs.packagePathObserved && inputs.probes);
+    const char* package=inputs.packagePath;char* old=xrtEnvGet("XLANG_PACKAGE_PATH");CHECK(xrtEnvSet("XLANG_PACKAGE_PATH",directory));
+    CHECK(xlsSemanticCompletionInputs(result,&inputs) && inputs.packagePath==package);
+    int invalid=!xlsSemanticCompletionValidate(result),restored=old ? xrtEnvSet("XLANG_PACKAGE_PATH",old) : xrtEnvRemove("XLANG_PACKAGE_PATH");
+    CHECK(restored && invalid && !xlsSemanticCompletionInputs(result,&inputs) && !inputs.sources);xrtFree(old);xlsSemanticCompletionDestroy(result);
+    for(unsigned mode=0;mode<2;++mode) {
+        xls_context_spec spec={.kind=XLS_CONTEXT_PROJECT,.project=directory,.entry=entry,.directory=directory,.configuration="inputs",.analysisProfile="fixture-linked-native",.targetKind="exe",.packagePath=mode ? "" : NULL};
+        xls_context* context=xlsContextCreate(&spec,1024*1024,NULL);CHECK(context);
+        result=xlsSemanticCompletionCreateInContext(context,entry,entry,at,&overlay,1,NULL,NULL,error,sizeof(error));xlsContextRelease(context);
+        CHECK(result && parityInputs(NULL,result) && xlsSemanticCompletionInputs(result,&inputs) && inputs.packagePathObserved && (mode ? inputs.packagePath && !*inputs.packagePath : !inputs.packagePath));xlsSemanticCompletionDestroy(result);
+    }
+    xrtFree(directory);xrtFree(entry);xrtFree(dep);return 1;
+}
+int main(void) { if(!run() || !cursorViews()) return 1; printf("analysis_input_view_test passed: %u checks plus8000 concurrent cursor reads; shared check/cursor report rows, source/manifests/probes/environment, JSON parity, invalidation and retained ownership\n",checks); return 0; }

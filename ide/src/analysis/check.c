@@ -1,6 +1,7 @@
 #include "analysis/check.h"
 #include "analysis/frontend_context.h"
 #include "analysis/frontend_entry_cache.h"
+#include "analysis/frontend_input_view.h"
 #include "analysis/frontend_index.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_sem.h"
@@ -196,28 +197,15 @@ int xlsSemanticCheckDiagnostic(const xls_semantic_check* r,size_t index,xls_chec
 }
 int xlsSemanticCheckInputs(const xls_semantic_check* r,xls_check_inputs* out)
 {
-    if(out) memset(out,0,sizeof(*out));
-    if(!r || !out || invalid(r)) return 0;
-    /* Validation can mutate report.complete/error, never these captured rows.
-     * Read only immutable fields; the atomic invalid flag gates new views. */
-    *out=(xls_check_inputs){r->report.count,r->report.probeCount,r->report.packagePath,r->report.packagePathObserved};
-    return 1;
+    return xlsInputReportInputs(r && !invalid(r) ? &r->report : NULL,out);
 }
 int xlsSemanticCheckSource(const xls_semantic_check* r,size_t index,xls_check_source* out)
 {
-    if(out) memset(out,0,sizeof(*out));
-    if(!r || !out || invalid(r) || index>=r->report.count) return 0;
-    const XL6_SourceReportItem* source=&r->report.items[index];
-    out->path=source->path; out->text=source->text; out->origin=source->origin;
-    out->size=source->size; out->rawSize=source->rawSize; out->kind=source->kind;
-    memcpy(out->textSha256,source->textSha256,32); memcpy(out->rawSha256,source->rawSha256,32);
-    return 1;
+    return xlsInputReportSource(r && !invalid(r) ? &r->report : NULL,index,out);
 }
 int xlsSemanticCheckProbe(const xls_semantic_check* r,size_t index,xls_check_probe* out)
 {
-    if(out) memset(out,0,sizeof(*out));
-    if(!r || !out || invalid(r) || index>=r->report.probeCount) return 0;
-    *out=(xls_check_probe){r->report.probes[index].path,r->report.probes[index].exists}; return 1;
+    return xlsInputReportProbe(r && !invalid(r) ? &r->report : NULL,index,out);
 }
 const xls_semantic_index* xlsSemanticCheckTypedIndex(const xls_semantic_check* r)
 { return r && !invalid(r) && r->accepted ? r->typedIndex : NULL; }

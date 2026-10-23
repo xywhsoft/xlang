@@ -63,7 +63,7 @@ static int fixtureSource(const char* text,const char* normalizedText)
  free(q.packagePath);xrtValueRelease(valid);xrtFree(path);return 1;
 }
 #ifdef XLS_COMPILER_XRT
-static int fixtureCaptured(void)
+static int fixtureCaptured(int cursor)
 {
  char root[160];snprintf(root,sizeof(root),"build/snapshot-captured-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
  char *directory=xrtPathAbs(root),*path=directory ? xrtPathJoin(directory,"entry.xl") : NULL,*dep=directory ? xrtPathJoin(directory,"snapshot_view_dep.xl") : NULL;
@@ -72,16 +72,18 @@ static int fixtureCaptured(void)
  const char* entry="\xef\xbb\xbf// 中文😀\r\nimport snapshot_view_dep\r\nfunc main(...) as int\r\n return snapshot_view_dep.value()\r\nend\r\n";
  CHECK(xrtFileWriteAtomic(dep,(xbytesview){(const unsigned char*)dependency,strlen(dependency)}));
  xls_semantic_input input={path,entry,strlen(entry)};char message[256];
- xls_semantic_check* checked=xlsSemanticCheckCreate(path,&input,1,1,NULL,NULL,message,sizeof(message));
- CHECK(checked && xlsSemanticCheckInfo(checked).accepted);
- char* report=xlsSemanticCheckReportJson(checked,NULL);CHECK(report);
+ size_t at=(size_t)(strstr(entry,".value")-entry)+3-3;
+ xls_semantic_check* checked=cursor ? NULL : xlsSemanticCheckCreate(path,&input,1,1,NULL,NULL,message,sizeof(message));
+ xls_semantic_completion* completed=cursor ? xlsSemanticCompletionCreate(path,path,at,&input,1,NULL,NULL,message,sizeof(message)) : NULL;
+ CHECK(cursor ? completed && xlsSemanticCompletionInfo(completed).available : checked && xlsSemanticCheckInfo(checked).accepted);
+ char* report=cursor ? xlsSemanticCompletionJson(completed,NULL) : xlsSemanticCheckReportJson(checked,NULL);CHECK(report);
  xvalue* valid=xrtJsonParse(sv(report));xlsSemanticStringFree(report);CHECK(valid);
- xls_check_inputs inputs;CHECK(xlsSemanticCheckInputs(checked,&inputs) && inputs.sources==2 && inputs.probes);
+ xls_inputs inputs;CHECK((cursor ? xlsSemanticCompletionInputs(completed,&inputs) : xlsSemanticCheckInputs(checked,&inputs)) && inputs.sources==2 && inputs.probes);
  xide_language_snapshot snapshot={path,entry,9};xide_language_check q={.path=path,.snapshots=&snapshot,.snapshotCount=1,.nativeSemantic=1};xide_model_error error={0};
  CHECK(xideLanguageCheckPackagePath(&q.packagePath,&error));
  source_graph plain={0};fixtureHashes=0;CHECK(loadGraph(&q,valid,&plain,&error) && fixtureHashes>0);
  const char* wrong="0000000000000000000000000000000000000000000000000000000000000000";
- for(int mode=0;mode<12;++mode) {
+ for(int mode=0;mode<13;++mode) {
   xvalue* raw=xrtValueDeepClone(valid);CHECK(raw);
   xvalue* item=xrtValueArrayGet(get(get(raw,"sourceReport"),"files"),0);CHECK(item);
   if(mode==1) CHECK(put(item,"textSha256",xrtValueString(sv(wrong))));
@@ -95,16 +97,22 @@ static int fixtureCaptured(void)
   if(mode==9) CHECK(put(get(raw,"resolutionReport"),"packagePathObserved",xrtValueBool(!inputs.packagePathObserved)));
   if(mode==10) CHECK(put(item,"rawSize",xrtValueInt((int64)strlen(entry))));
   if(mode==11) snapshot.text="func main(...) as int\n return 0\nend\n";
-  source_graph graph={.checked=xlsSemanticCheckRetain(checked)};memset(&error,0,sizeof(error));fixtureHashes=0;
+  source_graph graph={.checked=xlsSemanticCheckRetain(checked),.completed=xlsSemanticCompletionRetain(completed)};
+  if(mode==12) {
+   if(!graph.checked) graph.checked=xlsSemanticCheckCreate(path,&input,1,1,NULL,NULL,message,sizeof(message));
+   if(!graph.completed) graph.completed=xlsSemanticCompletionCreate(path,path,at,&input,1,NULL,NULL,message,sizeof(message));
+   CHECK(graph.checked && graph.completed);
+  }
+  memset(&error,0,sizeof(error));fixtureHashes=0;
   int okay=loadGraph(&q,raw,&graph,&error);snapshot.text=entry;CHECK(okay==(mode==0) && !fixtureHashes);
   if(okay) {
    CHECK(graph.count==plain.count && graph.bytes==plain.bytes && xrtValueEqual(graph.resolution,plain.resolution));
    for(size_t i=0;i<graph.count;++i) {
-    xls_check_source source;CHECK(xlsSemanticCheckSource(checked,i,&source));
+    xls_input_source source;CHECK(cursor ? xlsSemanticCompletionSource(completed,i,&source) : xlsSemanticCheckSource(checked,i,&source));
     CHECK(graph.items[i].borrowed && graph.items[i].original==source.text && !plain.items[i].borrowed);
     CHECK(!strcmp(graph.items[i].text,plain.items[i].text) && !strcmp(graph.items[i].original,plain.items[i].original));
    }
-   CHECK(validateGraph(&q,&graph,&error) && xlsSemanticCheckValidate(checked));
+   CHECK(validateGraph(&q,&graph,&error) && (cursor ? xlsSemanticCompletionValidate(completed) : xlsSemanticCheckValidate(checked)));
   }
   clearGraph(&graph);xrtValueRelease(raw);
  }
@@ -114,12 +122,35 @@ static int fixtureCaptured(void)
   * must reject it. The JSON-only path still rejects on its initial disk read. */
  const char* changed="export func value() as int\n return 43\nend\n";
  CHECK(xrtFileWriteAtomic(dep,(xbytesview){(const unsigned char*)changed,strlen(changed)}));
- source_graph graph={.checked=xlsSemanticCheckRetain(checked)};memset(&error,0,sizeof(error));fixtureHashes=0;
+ source_graph graph={.checked=xlsSemanticCheckRetain(checked),.completed=xlsSemanticCompletionRetain(completed)};memset(&error,0,sizeof(error));fixtureHashes=0;
  CHECK(loadGraph(&q,valid,&graph,&error) && !fixtureHashes);
  source_graph legacy={0};memset(&error,0,sizeof(error));CHECK(!loadGraph(&q,valid,&legacy,&error));clearGraph(&legacy);
- memset(&error,0,sizeof(error));CHECK(!validateGraph(&q,&graph,&error) && !xlsSemanticCheckValidate(checked));
+ memset(&error,0,sizeof(error));CHECK(!validateGraph(&q,&graph,&error) && !(cursor ? xlsSemanticCompletionValidate(completed) : xlsSemanticCheckValidate(checked)));
  xlsSemanticCheckDestroy(checked);checked=NULL;
+ xlsSemanticCompletionDestroy(completed);completed=NULL;
  CHECK(graph.count==2 && strstr(graph.items[1].original,"42"));clearGraph(&graph);
+ /* A transient missing candidate permanently invalidates an owner even when
+    the filesystem predicate is restored. Publication must still reject it. */
+ const char* missing="import snapshot_probe_only_missing\nfunc main(...) as int\n return missingValue\nend\n";
+ input=(xls_semantic_input){path,missing,strlen(missing)};snapshot.text=missing;at=(size_t)(strstr(missing,"missingValue")-missing)+4;
+ checked=cursor ? NULL : xlsSemanticCheckCreate(path,&input,1,0,NULL,NULL,message,sizeof(message));
+ completed=cursor ? xlsSemanticCompletionCreate(path,path,at,&input,1,NULL,NULL,message,sizeof(message)) : NULL;
+ CHECK(cursor ? completed!=NULL : checked!=NULL);
+ report=cursor ? xlsSemanticCompletionJson(completed,NULL) : xlsSemanticCheckReportJson(checked,NULL);CHECK(report);
+ xvalue* missingRaw=xrtJsonParse(sv(report));xlsSemanticStringFree(report);CHECK(missingRaw);
+ graph=(source_graph){.checked=xlsSemanticCheckRetain(checked),.completed=xlsSemanticCompletionRetain(completed)};
+ memset(&error,0,sizeof(error));CHECK(loadGraph(&q,missingRaw,&graph,&error) && capturedInputs(&graph,&inputs));
+ char* candidate=NULL;
+ for(size_t i=0;i<inputs.probes && !candidate;++i) {
+  xls_input_probe p;CHECK(cursor ? xlsSemanticCompletionProbe(completed,i,&p) : xlsSemanticCheckProbe(checked,i,&p));
+  size_t n=strlen(directory);if(!p.exists && !strncmp(p.path,directory,n) && (p.path[n]=='/' || p.path[n]=='\\')) candidate=xrtStrDup(p.path);
+ }
+ char* parent=candidate ? xrtPathParent(candidate) : NULL;
+ CHECK(candidate && parent && xrtDirCreateAll(parent) && xrtFileWriteAtomic(candidate,(xbytesview){(const unsigned char*)dependency,strlen(dependency)}));
+ CHECK(!(cursor ? xlsSemanticCompletionValidate(completed) : xlsSemanticCheckValidate(checked)) && xrtFileDelete(candidate));
+ memset(&error,0,sizeof(error));CHECK(resolution(&q,graph.resolution,&error));
+ memset(&error,0,sizeof(error));CHECK(!validateGraph(&q,&graph,&error) && strstr(error.message,"永久失效"));
+ xlsSemanticCheckDestroy(checked);xlsSemanticCompletionDestroy(completed);clearGraph(&graph);xrtValueRelease(missingRaw);xrtFree(parent);xrtFree(candidate);snapshot.text=entry;
  free(q.packagePath);xrtValueRelease(valid);xrtFree(directory);xrtFree(path);xrtFree(dep);return 1;
 }
 #endif
@@ -132,7 +163,7 @@ int main(void)
  if(!fixtureSource(large.Data,large.Data)) return 1;
  xrtStrBufFree(&large);
 #ifdef XLS_COMPILER_XRT
- if(!fixtureCaptured()) return 1;
+ if(!fixtureCaptured(0) || !fixtureCaptured(1)) return 1;
 #endif
  printf("snapshot_report_test passed: %u checks; real overlay graph boundary, both digest fields independently required, differing/equal forged digests, schema/path/size/origin rejection, empty/ASCII/BOM/CRLF/Unicode/1MiB and exact retained bytes.\n",fixtureChecks);return 0;
 }

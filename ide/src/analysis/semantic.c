@@ -2,6 +2,7 @@
 #include "analysis/frontend_context.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_entry_cache.h"
+#include "analysis/frontend_input_view.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
 #include "src/stdlib/xl6_stdlib.h"
@@ -142,6 +143,12 @@ static xls_semantic_completion* create(xls_context* context,xls_entry_cache* cac
 }
 xls_completion_entry_work xlsSemanticCompletionEntryWork(const xls_semantic_completion* result)
 { return result ? result->entryWork : (xls_completion_entry_work){0}; }
+int xlsSemanticCompletionInputs(const xls_semantic_completion* r,xls_inputs* out)
+{ return xlsInputReportInputs(r && !invalid(r) ? &r->report : NULL,out); }
+int xlsSemanticCompletionSource(const xls_semantic_completion* r,size_t index,xls_input_source* out)
+{ return xlsInputReportSource(r && !invalid(r) ? &r->report : NULL,index,out); }
+int xlsSemanticCompletionProbe(const xls_semantic_completion* r,size_t index,xls_input_probe* out)
+{ return xlsInputReportProbe(r && !invalid(r) ? &r->report : NULL,index,out); }
 xls_semantic_completion* xlsSemanticCompletionCreateCachedInContext(xls_context* context,xls_entry_cache* cache,const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,int (*cancelled)(void*),void* user,char* error,size_t capacity)
 { return create(context,cache,entry,queryPath,offset,inputs,count,NULL,cancelled,user,error,capacity); }
