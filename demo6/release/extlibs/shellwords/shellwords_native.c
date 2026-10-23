@@ -10,14 +10,17 @@ static void __xswError(const char* sMessage)
 
 static bool __xswPush(xvalue* pWords, xbuffer* pWord)
 {
-	xvalue* pText = xrtValueString((xstrview){
-		(const char*)pWord->Data, pWord->Size });
-	if ( pText == NULL ) { return false; }
+	size_t iSize = pWord->Size;
+	str sOwned = (str)xrtBufferTake(pWord, NULL, NULL);
+	xvalue* pText = xrtValueStringTake(&sOwned, iSize);
+	if ( pText == NULL ) {
+		xrtFree(sOwned);
+		return false;
+	}
 	if ( !xrtValueArrayAppendTake(pWords, &pText) ) {
 		xrtValueRelease(pText);
 		return false;
 	}
-	xrtBufferClear(pWord);
 	return true;
 }
 

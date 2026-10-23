@@ -261,16 +261,21 @@ static bool xsm_xml_event(ptr context, const xrtxmlevent *event) {
             xbytesview bytes = xrtBufferView(&parser->text);
             xvalue *value;
             xstrview key;
+            str owned;
             if (xsm_field(parser->entry, parser->fieldName) != NULL) return false;
             if (strcmp(parser->fieldName, "loc") == 0) {
                 if (!xsm_loc_valid((xstrview){
                         bytes.Data ? (const char *)bytes.Data : "", bytes.Size})) return false;
                 parser->hasLoc = 1;
             }
-            value = xrtValueString((xstrview){
-                bytes.Data ? (const char *)bytes.Data : "", bytes.Size});
+            owned = (str)xrtBufferTake(&parser->text, NULL, NULL);
+            value = xrtValueStringTake(&owned, bytes.Size);
+            if (value == NULL) {
+                xrtFree(owned);
+                return false;
+            }
             key = (xstrview){parser->fieldName, strlen(parser->fieldName)};
-            if (value == NULL || !xrtValueObjectSetNew(parser->entry, key, value)) return false;
+            if (!xrtValueObjectSetNew(parser->entry, key, value)) return false;
             parser->fieldName = NULL;
         } else if (parser->depth == 2) {
             xvalue *entry = parser->entry;
