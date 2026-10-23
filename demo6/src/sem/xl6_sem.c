@@ -11215,6 +11215,8 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
         if ( nameNode != NULL && nameNode->kind == XL6_AST_NAME ) {
             func = xl6SemResolveExplicitGenericCallFunc(ctx, node, nameNode->text, typeArgs, 1);
             if ( func != NULL ) {
+                int cOwned=xl6SemCOwnedGenericCall(ctx,node,func,typeArgs);
+                if(cOwned)return cOwned>0 && ok;
                 XL6_AstNode* concreteFunc = xl6SemSubstituteGenericTypeArgs(
                     xl6SemFuncTypeParams(func),
                     typeArgs,
@@ -11308,7 +11310,13 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
         }
         xl6AstFree(receiverType);
     }
-    if(func) { func=xl6SemCOwnedSpecialize(ctx,node,func);if(!func)return 0; }
+    if(func && xl6SemFuncIsGeneric(func)) {
+        XL6_AstNode* typeArgs=xl6SemInferCallTypeArgs(ctx,node,func);
+        int cOwned=typeArgs ? xl6SemCOwnedGenericCall(ctx,node,func,typeArgs) : 0;
+        xl6AstFree(typeArgs);
+        if(cOwned)return cOwned>0 && ok;
+    }
+    if(func) { func=xl6SemCOwnedSpecialize(ctx,node,func,0);if(!func)return 0; }
     if ( func != NULL ) {
         xl6SemSetCallPlan(node, XL6_SEM_CALL_DIRECT, func);
     }

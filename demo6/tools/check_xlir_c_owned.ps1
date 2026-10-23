@@ -49,6 +49,7 @@ $generatedSources=@(
     'test/cases/xlir_c_owned_basic.xl','test/cases/xlir_c_owned_lifetime.xl',
     'test/cases/xlir_c_owned_reads.xl','test/cases/xlir_c_owned_capture.xl',
     'test/cases/xlir_c_owned_views.xl','test/cases/xlir_c_owned_flow.xl',
+    'test/cases/xlir_c_owned_calls.xl',
     'test/cases/xlir_c_owned_writes.xl','test/cases/xlir_c_owned_print.xl',
     'test/cases/xlir_c_owned_traverse.xl','test/cases/xlir_c_owned_sequence.xl',
     'test/cases/xlir_c_owned_borrows.xl','test/cases/xlir_c_owned_failure.xl')
@@ -57,7 +58,7 @@ foreach ($source in $generatedSources) {
     $generated = Join-Path $outputPath "$name.c"
     & $compiler $source $generated
     if ($LASTEXITCODE) { throw "C owner $name compilation failed" }
-    & $context.Compiler @flags "-I$outputPath/include" $generated test/cases/xlir_c_owned_native.c release/xl.dll -o "$outputPath/$name.exe"
+    & $context.Compiler @flags "-I$outputPath/include" $generated test/cases/xlir_c_owned_native.c src/runtime/xl6_code_lease.c release/xl.dll '-Wl,--gc-sections' -o "$outputPath/$name.exe"
     if ($LASTEXITCODE) { throw "C owner $name generated C build failed" }
     & "$outputPath/$name.exe"
     if ($LASTEXITCODE) { throw "C owner $name execution failed" }

@@ -232,54 +232,78 @@ static XL6_AstNode* xl6SemCOwnedClone(const XL6_AstNode* source)
     }
     return copy;
 }
-static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call,XL6_AstNode* function)
+/* The signature key includes every concrete parameter and result, avoiding a
+ * fixed-width argument mask and distinguishing concrete generic instances. */
+static uint64 xl6SemCOwnedSignatureHash(const XL6_AstNode* node,uint64 hash)
+{
+    if(!node)return hash;
+    hash^=(uint64)node->kind;hash*=UINT64_C(1099511628211);
+    for(const unsigned char* p=(const unsigned char*)(node->text ? node->text : "");*p;++p) {
+        hash^=*p;hash*=UINT64_C(1099511628211);
+    }
+    hash^=node->flags & (XL6_AST_FLAG_BYVAL|XL6_AST_FLAG_BYREF|XL6_AST_FLAG_OUT);
+    hash*=UINT64_C(1099511628211);
+    for(size_t i=0;i<node->childCount;++i)hash=xl6SemCOwnedSignatureHash(node->children[i],hash);
+    return hash;
+}
+static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call,XL6_AstNode* function,int concreteGeneric)
 {
     if(function->kind!=XL6_AST_FUNC || xl6SemFuncIsGeneric(function) ||
         (function->flags & XL6_AST_FLAG_ASYNC) ||
         call->childCount!=2 || call->children[0]->kind!=XL6_AST_NAME)return function;
     XL6_AstNode* params=function->childCount>1 ? function->children[1] : NULL;
     XL6_AstNode* args=call->children[1];
-    if(!params || params->childCount>63 || (size_t)xl6SemFixedParamCount(params)!=params->childCount)return function;
-    uint64 mask=0;
-    size_t positional=0;
+    if(!params || (size_t)xl6SemFixedParamCount(params)!=params->childCount)return function;
+    unsigned char* promote=params->childCount ? xrtCalloc(params->childCount,1) : NULL;
+    if(params->childCount && !promote)return NULL;
+    int any=0;size_t positional=0;
     for(size_t i=0;i<args->childCount;++i) {
         XL6_AstNode* arg=args->children[i];
         int position=arg->kind==XL6_AST_NAMED_ARG ? xl6SemFindParamIndex(params,(int)params->childCount,arg->text) : (int)positional++;
         if(position<0 || (size_t)position>=params->childCount ||
-            (arg->kind!=XL6_AST_ARG && arg->kind!=XL6_AST_NAMED_ARG) || arg->childCount!=1)return function;
+            (arg->kind!=XL6_AST_ARG && arg->kind!=XL6_AST_NAMED_ARG) || arg->childCount!=1) {xrtFree(promote);return function;}
         XL6_AstNode* parameter=params->children[position];
         if(parameter->flags & (XL6_AST_FLAG_BYREF|XL6_AST_FLAG_OUT))continue;
         XL6_AstNode* actual=xl6SemInferAutoTypeNode(ctx,arg->children[0]);
         const char* base=actual ? xl6COwnedBaseName(actual->text) : NULL;
-        if(base && parameter->childCount && xl6TextEquals(base,parameter->children[0]->text))mask|=UINT64_C(1)<<position;
+        if(base && parameter->childCount &&
+            (xl6TextEquals(base,parameter->children[0]->text) ||
+             (concreteGeneric && xl6TextEquals(actual->text,parameter->children[0]->text))))
+            any=promote[position]=1;
         xl6AstFree(actual);
     }
-    if(!mask)return function;
-    char name[96];snprintf(name,sizeof(name),"__xl_c_owned_%u_%llx",function->semanticSymbolId,(unsigned long long)mask);
+    if(!any){xrtFree(promote);return function;}
+    XL6_AstNode* signature=xl6SemCOwnedClone(function);
+    if(!signature){xrtFree(promote);return NULL;}
+    signature->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
+    for(size_t p=0;p<params->childCount;++p)if(promote[p]) {
+        XL6_AstNode* parameter=signature->children[1]->children[p];
+        XL6_AstNode* type=parameter->children[0];
+        if(!xl6COwnedBaseName(type->text)) {
+            const char* marker=xl6TextEquals(type->text,"string") ? "cstring" : "cbytes";
+            xrtFree(type->text);type->text=xrtStrDup(marker);
+        }
+        parameter->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
+    }
+    xrtFree(promote);
+    XL6_AstNode* returns=signature->children[2];
+    if(returns->childCount==1 &&
+        (xl6TextEquals(returns->children[0]->text,"string") || xl6TextEquals(returns->children[0]->text,"bytes"))) {
+        XL6_AstNode* type=returns->children[0];
+        const char* marker=xl6TextEquals(type->text,"string") ? "cstring" : "cbytes";
+        xrtFree(type->text);type->text=xrtStrDup(marker);
+    }
+    uint64 hash=xl6SemCOwnedSignatureHash(signature->children[1],UINT64_C(14695981039346656037));
+    hash=xl6SemCOwnedSignatureHash(returns,hash);
+    char name[96];snprintf(name,sizeof(name),"__xl_c_owned_%u_%llx",function->semanticSymbolId,(unsigned long long)hash);
     XL6_AstNode* specialized=NULL;
     for(size_t i=0;i<ctx->root->childCount;++i) {
         XL6_AstNode* candidate=ctx->root->children[i];
         if(candidate->kind==XL6_AST_FUNC && xl6TextEquals(xl6SemFuncName(candidate),name)){specialized=candidate;break;}
     }
     if(!specialized) {
-        specialized=xl6SemCOwnedClone(function);
-        if(!specialized)return NULL;
-        specialized->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
+        specialized=signature;signature=NULL;
         xrtFree(specialized->children[0]->text);specialized->children[0]->text=xrtStrDup(name);
-        for(size_t p=0;p<params->childCount;++p)if(mask & (UINT64_C(1)<<p)) {
-            XL6_AstNode* parameter=specialized->children[1]->children[p];
-            XL6_AstNode* type=parameter->children[0];
-            const char* marker=xl6TextEquals(type->text,"string") ? "cstring" : "cbytes";
-            xrtFree(type->text);type->text=xrtStrDup(marker);
-            parameter->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
-        }
-        XL6_AstNode* returns=specialized->children[2];
-        if(returns->childCount==1 &&
-            (xl6TextEquals(returns->children[0]->text,"string") || xl6TextEquals(returns->children[0]->text,"bytes"))) {
-            XL6_AstNode* type=returns->children[0];
-            const char* marker=xl6TextEquals(type->text,"string") ? "cstring" : "cbytes";
-            xrtFree(type->text);type->text=xrtStrDup(marker);
-        }
         if(!xl6SemAssignEntitySymbolIds(ctx,specialized)){xl6AstFree(specialized);return NULL;}
         XL6_Scope* saved=ctx->scope;
         while(ctx->scope->parent)ctx->scope=ctx->scope->parent;
@@ -287,9 +311,44 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
         if(!declared){xl6AstFree(specialized);return NULL;}
         xl6AstAddChild(ctx->root,specialized);
     }
+    xl6AstFree(signature);
     xrtFree(call->children[0]->text);call->children[0]->text=xrtStrDup(name);
     xl6AstFree(call->inferredType);call->inferredType=NULL;
     return specialized;
+}
+static int xl6SemCOwnedSubstituteTypes(XL6_AstNode** place,const XL6_AstNode* params,const XL6_AstNode* args)
+{
+    XL6_AstNode* node=*place;
+    if(node->kind==XL6_AST_TYPE) {
+        XL6_AstNode* type=xl6SemSubstituteGenericTypeArgs(params,args,node);
+        if(!type)return 0;
+        xl6AstFree(node);*place=type;return 1;
+    }
+    for(size_t i=0;i<node->childCount;++i)
+        if(!xl6SemCOwnedSubstituteTypes(&node->children[i],params,args))return 0;
+    return 1;
+}
+/* Resolve only the C-bearing instance here. Ordinary instances keep the
+ * canonical XLIR generic-specialization pipeline and its existing ABI. */
+static int xl6SemCOwnedGenericCall(XL6_SemContext* ctx,XL6_AstNode* call,XL6_AstNode* function,const XL6_AstNode* typeArgs)
+{
+    XL6_AstNode* concrete=xl6SemCOwnedClone(function);
+    if(!concrete)return -1;
+    concrete->semanticSymbolId=function->semanticSymbolId;
+    if(!xl6SemCOwnedSubstituteTypes(&concrete,xl6SemFuncTypeParams(function),typeArgs)) {xl6AstFree(concrete);return -1;}
+    XL6_AstNode* typeParams=xl6SemFuncTypeParams(concrete);
+    for(size_t i=0;typeParams && i<typeParams->childCount;++i)xl6AstFree(typeParams->children[i]);
+    if(typeParams)typeParams->childCount=0;
+    XL6_AstNode* original=call->children[0];
+    call->children[0]=xl6SemCOwnedClone(function->children[0]);
+    XL6_AstNode* selected=xl6SemCOwnedSpecialize(ctx,call,concrete,1);
+    if(!selected || selected==concrete) {
+        xl6AstFree(call->children[0]);call->children[0]=original;xl6AstFree(concrete);
+        return selected ? 0 : -1;
+    }
+    xl6AstFree(original);xl6AstFree(concrete);
+    xl6SemSetCallPlan(call,XL6_SEM_CALL_DIRECT,selected);
+    return xl6SemCheckKnownCall(ctx,call,selected) ? 1 : -1;
 }
 
 static int xl6SemCOwnedPrint(XL6_SemContext* ctx,XL6_AstNode* call)
