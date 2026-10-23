@@ -21,6 +21,7 @@ const char* xl6StdlibX509DataSource=
     "    extern \"xl6X509CertificateValidAtV1\" @pure @nonblocking func validAt(time instant) as bool\n"
 #include "xl6_stdlib_x509_certificate_records.inc"
 #include "xl6_stdlib_x509_certificate_profiles.inc"
+#include "xl6_stdlib_x509_certificate_verify.inc"
     "end\n"
     "class CertificateRevocationList\n"
     "    private native point handle\n"
@@ -43,4 +44,5 @@ const char* xl6StdlibX509DataSource=
     "    extern \"xl6X509CrlValidAtV1\" @pure @nonblocking func validAt(time instant) as bool\n"
 #include "xl6_stdlib_x509_crl_records.inc"
 #include "xl6_stdlib_x509_crl_methods.inc"
+#include "xl6_stdlib_x509_crl_verify.inc"
     "end\n";

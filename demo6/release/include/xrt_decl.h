@@ -27363,6 +27363,14 @@ XRT_API bool xrtX509ExtensionFind(
 
 
 
+/* 严格解析独立 SPKI；成功视图借用完整 Der，失败输出保持不变。 */
+XRT_API bool xrtX509PublicKeyParse(
+	xbytesview Der,
+	xx509pubkey* pPublicKey
+);
+
+
+
 /* 解析 SubjectPublicKeyInfo，并返回支持未来算法的通用借用视图。 */
 XRT_API bool xrtX509PublicKey(
 	const xx509cert* pCert,

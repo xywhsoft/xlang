@@ -87,10 +87,10 @@ end
                  f'auto a0 = X509Algorithm.fromDer({literal(rows[0]["algorithm"])})',
                  'assert X509Algorithm.fromDer(b"\\x30\\x05\\x06\\x03\\x2a\\x03\\x04").signatureInfo() == null',
                  'assert X509Extensions.fromDer(b"").count == 0','int limits = 0',
-                 'try',' auto bad = n0.at(-1)','catch RangeError',' limits += 1','end',
-                 'try',' auto bad = X509Name.fromDer(n0.toDer(),0,1)','catch RangeError',' limits += 1','end',
-                 'try',' auto bad = X509Extensions.fromDer(x0.toDer(),0,1)','catch RangeError',' limits += 1','end',
-                 'try',' auto bad = X509Algorithm.fromDer(a0.toDer(),-1)','catch ValueError',' limits += 1','end','assert limits == 4']
+                 'try',' auto bad = n0.at(-1)','catch RangeError error',' limits += 1','end',
+                 'try',' auto bad = X509Name.fromDer(n0.toDer(),0,1)','catch RangeError error',' limits += 1','end',
+                 'try',' auto bad = X509Extensions.fromDer(x0.toDer(),0,1)','catch RangeError error',' limits += 1','end',
+                 'try',' auto bad = X509Algorithm.fromDer(a0.toDer(),-1)','catch ValueError error',' limits += 1','end','assert limits == 4']
     def save(name,lines):
         path=directory/(name+'.xl');path.write_text('\n'.join(lines)+'\n',encoding='utf8');return path
     all_source=save('records.all',combined)

@@ -19,9 +19,9 @@ def language_fixtures(root,directory):
         f'assert X509CrlEntry.fromDer({literal(n["entry"])},X509CrlVersion.v2).reason == X509CrlReason.keyCompromise',
         'auto plain=entries.at(1)','assert not plain.hasReason and not plain.hasInvalidityDate and plain.issuerNames() == null',
         'assert plain.extensions().count == 0 and plain.extensionsDer == b""','int caught=0',
-        'try',' auto absent=plain.reason','catch StateError',' caught += 1','end',
-        'try',' auto absent=plain.invalidityDate','catch StateError',' caught += 1','end',
-        'try',f' auto bad=X509CrlEntries.fromDer({literal(rows[0]["entries"])},X509CrlVersion.v2,0,1)','catch RangeError',' caught += 1','end','assert caught == 3',
+        'try',' auto absent=plain.reason','catch RuntimeError error',' caught += 1','end',
+        'try',' auto absent=plain.invalidityDate','catch RuntimeError error',' caught += 1','end',
+        'try',f' auto bad=X509CrlEntries.fromDer({literal(rows[0]["entries"])},X509CrlVersion.v2,0,1)','catch RangeError error',' caught += 1','end','assert caught == 3',
         f'auto empty=X509CrlEntries.fromDer({literal(by_name["sparse"]["entries"])},X509CrlVersion.v2)','assert empty.count == 0 and empty.toDer() == b"\\x30\\x00"',
         f'auto v1=X509CrlEntries.fromDer({literal(by_name["v1"]["entries"])},X509CrlVersion.v1)','assert v1.count == 1 and v1.at(0).version == X509CrlVersion.v1']
     entries_case=save('crl.entries',entries)

@@ -83,6 +83,8 @@ const char* xl6StdlibX509RecordsSource=
     "    extern \"xl6X509AlgorithmParametersV1\" @pure @nonblocking get parametersDer() as bytes\n"
     "    extern \"xl6X509AlgorithmSignatureInfoV1\" @pure @nonblocking func signatureInfo() as X509SignatureInfo?\n"
     "end\n"
+    ;
+const char* xl6StdlibX509SignatureInfoSource =
     "class X509SignatureInfo\n"
     "    private native point handle\n"
     "    extern \"xl6X509SignatureInfoDestroyV1\" @no_raise @nonblocking destroy()\n"
@@ -91,10 +93,13 @@ const char* xl6StdlibX509RecordsSource=
     "    extern \"xl6X509SignatureInfoMaskHashV1\" @pure @nonblocking get maskDigest() as X509Digest\n"
     "    extern \"xl6X509SignatureInfoSaltBytesV1\" @pure @nonblocking get saltBytes() as uint64\n"
     "    extern \"xl6X509SignatureInfoTrailerV1\" @pure @nonblocking get trailer() as uint64\n"
-    "end\n"
+#include "xl6_stdlib_x509_signature_verify.inc"
+    ;
+const char* xl6StdlibX509PublicKeyInfoSource =
     "class X509PublicKeyInfo\n"
     "    private native point handle\n"
     "    extern \"xl6X509PublicKeyInfoDestroyV1\" @no_raise @nonblocking destroy()\n"
+    "    static extern \"xl6X509PublicKeyInfoFromSpkiV1\" @nonblocking func fromSpkiDer(bytes encoded, int maxBytes = 16777216) as X509PublicKeyInfo\n"
     "    extern \"xl6X509PublicKeyInfoSpkiV1\" @pure @nonblocking get spkiDer() as bytes\n"
     "    extern \"xl6X509PublicKeyInfoKindV1\" @pure @nonblocking get kind() as X509KeyKind\n"
     "    extern \"xl6X509PublicKeyInfoCurveV1\" @pure @nonblocking get curve() as X509Curve\n"

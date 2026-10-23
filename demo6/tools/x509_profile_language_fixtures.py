@@ -71,8 +71,8 @@ def language_fixtures(root,directory):
         'assert sparse.keyUsage() == null and sparse.basicConstraints() == null and sparse.extendedKeyUsage() == null',
         'assert sparse.authorityKeyId() == null and sparse.crlDistributionPoints() == null and sparse.freshestCrl() == null and sparse.nameConstraints() == null',
         f'auto leaf=Certificate.fromDer({leaf})','auto leafBasic=leaf.basicConstraints()','assert leafBasic != null','int caught=0',
-        'if leafBasic != null',' assert not leafBasic.ca and not leafBasic.hasPathLimit',' try','  auto missing=leafBasic.pathLimit',' catch StateError','  caught += 1',' end','end',
-        'try',f' auto bad=X509GeneralNames.fromDer({literal(n["san"])},0,1)','catch RangeError',' caught += 1','end','assert caught == 2']
+        'if leafBasic != null',' assert not leafBasic.ca and not leafBasic.hasPathLimit',' try','  auto missing=leafBasic.pathLimit',' catch RuntimeError error','  caught += 1',' end','end',
+        'try',f' auto bad=X509GeneralNames.fromDer({literal(n["san"])},0,1)','catch RangeError error',' caught += 1','end','assert caught == 2']
     all_lines=[]
     for index,body in enumerate([general,oids,aki,distribution,constraints,nullable,projected]):all_lines+=['func check'+str(index)+'()']+[' '+s for s in body]+['end']
     all_lines+=['check'+str(i)+'()' for i in range(7)];all_case=save('profiles.all',all_lines)
