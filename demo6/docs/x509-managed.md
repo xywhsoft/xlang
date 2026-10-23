@@ -3,8 +3,9 @@
 状态：已有两个拥有数据类型及其 35 个源码 API、七类结构化记录及 68 个
 精确驻留入口、11 类 typed profile／分发点／约束记录和 85 个入口；本批继续
 接入三类 CRL 条目／IDP 记录和 45 个入口，及签名检查／独立 SPKI 的 15 个
-入口。累计 248 个驻留入口、23 类拥有数据类型；完整 P5 仍在进行，不把
-数据读取或签名通过等同于完整证书认证。
+入口。CRL policy 再补入 30 个驻留入口、四类公开拥有对象和一个内部回调
+上下文。累计 278 个驻留入口、27 类公开拥有数据类型（另有内部上下文）；
+完整 P5 仍在进行，不把数据读取、签名通过或 CRL 结论等同于完整证书认证。
 
 这是原五组长期任务 P5 的执行清单，不缩减已批准的 21 个模块范围。
 语言公开面按证书、撤销、验证和信任来源组织，不机械复制原生游标／裸指针接口。
@@ -28,7 +29,7 @@
 | x509_name | RDN／属性、语义 Name 比较与包含关系，复用原生 Unicode 规范化 | 已接入，规范化比较单独裁剪 |
 | x509_distribution | CRLDistributionPoints／FreshestCRL、完整／相对名称、理由及 CRL issuer | 已接入拥有列表／记录及完整字段 |
 | x509_crl_profile | CRL 编号、delta base、AKI、IssuingPoint、条目理由／失效时间／issuer | 已接入拥有投影及独立 DER 值解析；不计算间接 issuer 继承或撤销策略 |
-| x509_crl_policy | 严格配置、已验证 CRL、complete／delta 组合、分段覆盖及状态归并 | 拥有底座进行中；公开 ABI／回调／语言接线仍待完成，见专项 |
+| x509_crl_policy | 严格配置、已验证 CRL、complete／delta 组合、分段覆盖及状态归并 | 已接入拥有快照、完整／delta、绑定目标的不可变归并、类型化撤销状态和 checked 关键扩展回调；不是完整路径／信任验证 |
 | x509_name_constraints | permitted／excluded 子树、名称类型及证书检查；未知能力不能静默忽略 | 已接入拥有记录、基点比较和严格检查；非路径／信任判断 |
 | x509_path | 有序路径、独立 trust anchor、用途／时间／critical 扩展策略 | 后续 |
 | x509_path_build | 候选 issuer、独立 anchor、回溯建链、成功时拥有的路径与 typed 结果 | 后续 |
@@ -181,8 +182,8 @@ profile／CRL 数据公共面的当前进展见 [CRL 条目与 typed profile](x5
 [签名检查与独立 SPKI](x509-signatures.md)。CRL policy、完整路径／信任／身份
 验证与 TLS 继续。
 
-CRL policy 的拥有底座和后续公共面边界见 [CRL 策略接入](x509-crl-policy.md)。
-此层尚未登记语言 API，不能将其原生单测计为公开接入完成。
+CRL policy 的公共 API、拥有边界和验收见 [CRL 策略接入](x509-crl-policy.md)。
+本层不关闭路径／建链、完整 typed 验证结果、信任来源、身份或 TLS。
 
 另保留 P7 联合验收风险：把八组大量受管理临时值集中在一个顶层作用域的
 初始用例，Windows／Linux 均触发 240 秒前端输出／规划超时。独立函数版本

@@ -53,33 +53,13 @@ int64_t xl6X509RevocationStatusV1(void* raw)
 }
 uint64_t xl6X509RevocationCoverageV1(void* raw)
 {const XL6_X509RevocationV1* self=checked(raw);return self?self->value.CoveredReasons:0;}
+int64_t xl6X509RevocationReasonsV1(void* raw)
+{return (int64_t)xl6X509RevocationCoverageV1(raw);}
 bool xl6X509RevocationObservedV1(void* raw)
-{const XL6_X509RevocationV1* self=checked(raw);return self && self->observed;}
+{const XL6_X509RevocationV1* self=checked(raw);return self && (self->observed || self->value.CoveredReasons!=0);}
 void* xl6X509RevocationEntryV1(void* raw)
 {
     const XL6_X509RevocationV1* self=checked(raw);
     return self && self->observed && self->value.Entry.Raw.Size?xl6X509CrlEntryCopyV1(self->value.Entry.Raw,self->version):NULL;
-}
-void* xl6X509ValidatedCrlQueryV1(void* raw,void* certificate)
-{
-    if(!raw || !certificate){xl6X509FailV1(XERR_ARGUMENT,"CRL query needs validated CRL and certificate");return NULL;}
-    const XL6_X509ValidatedCrlV1* self=raw;xx509revocation value={0};
-    xx509result result=xrtX509CrlCheck(&self->value,&((XL6_X509CertificateV1*)certificate)->view,&value);
-    if(!xl6X509OutcomeV1(result!=X509_ERROR))return NULL;
-    return xl6X509RevocationCopyV1(&value,self->crl.Version,result==X509_VALUE);
-}
-void* xl6X509CrlSetQueryV1(void* raw,void* certificate)
-{
-    if(!raw || !certificate){xl6X509FailV1(XERR_ARGUMENT,"CRL set query needs set and certificate");return NULL;}
-    const XL6_X509CrlSetV1* self=raw;xx509revocation value={0};
-    xx509result result=xrtX509CrlSetCheck(&self->value,&((XL6_X509CertificateV1*)certificate)->view,&value);
-    if(!xl6X509OutcomeV1(result!=X509_ERROR))return NULL;
-    /* A delta necessarily uses v2. A base entry keeps its base CRL version. */
-    xx509crlversion version=self->base->crl.Version;
-    if(result==X509_VALUE && value.Entry.Raw.Data) {
-        uintptr_t start=(uintptr_t)self->delta->crl.Raw.Data,p=(uintptr_t)value.Entry.Raw.Data;
-        if(p>=start && p-start<self->delta->crl.Raw.Size)version=self->delta->crl.Version;
-    }
-    return xl6X509RevocationCopyV1(&value,version,result==X509_VALUE);
 }
 XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6X509RevocationHandlePolicyV1Get,xl6X509RevocationDestroyV1)
