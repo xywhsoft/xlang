@@ -62,3 +62,7 @@ bool xl6InflaterCloseV1(void* raw)
 bool xl6InflaterClosedV1(void* raw)
 {XL6_Inflater* self=check(raw,false);return self && !self->stream;}
 XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6InflaterHandlePolicyV1Get,xl6InflaterDestroyV1)
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+bool xl6InflaterWriteBytesSpanV1(void* self,xbytesview data,void* target,bool final,int64_t size)
+{xbytesview input;return xl6BufferSpanInput(data,size,&input) && write(self,input,target,final);}

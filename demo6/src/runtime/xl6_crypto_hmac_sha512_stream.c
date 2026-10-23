@@ -43,3 +43,19 @@ xstrview xl6CryptoHmacSha512HexV1(void* raw)
  xstrview result=ok?xl6CryptoHex(output,sizeof(output)):xl6TextFailure;
  xrtSecureZero(output,sizeof(output));return result;}
 XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6CryptoHmacSha512HandlePolicyV1Get,xl6CryptoHmacSha512DestroyV1)
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+void* xl6CryptoHmacSha512CreateSpanV1(xbytesview keyValue)
+{
+    xbytesview key={0};if (!xl6BufferSpanInput(keyValue,-1,&key)) return NULL;
+    State* self=xrtCalloc(1,sizeof(*self));if (!self) return NULL;
+    if (!xl6TextThreadInit(&self->owner)) {xl6CryptoHmacSha512DestroyV1(self);return NULL;}
+    if (!xrtHmacSha512Init(&self->state,key.Data,key.Size)) {xl6CryptoHmacSha512DestroyV1(self);return NULL;}
+    self->initial=self->state;return self;
+}
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+void xl6CryptoHmacSha512UpdateBytesSpanV1(void* raw,xbytesview data,int64_t size)
+{State* self=check(raw);xbytesview input={0};if (!self || !xl6BufferSpanInput(data,size,&input)) return;
+
+ (void)xrtHmacSha512Update(&self->state,input.Data,input.Size);}

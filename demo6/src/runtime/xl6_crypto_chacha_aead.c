@@ -31,3 +31,11 @@ xvalue* xl6CryptoChaChaAeadSealTextV1(void* self,xstrview text,const xvalue* non
 xvalue* xl6CryptoChaChaAeadOpenV1(void* self,const xvalue* data,const xvalue* nonce,const xvalue* aad,int64_t size,int64_t aadSize)
 {xbytesview input;return xl6BufferBytesInput(data,size,&input)?crypt(self,input,nonce,aad,aadSize,false):NULL;}
 XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6CryptoChaChaAeadHandlePolicyV1Get,xl6CryptoChaChaAeadDestroyV1)
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+void* xl6CryptoChaChaAeadCreateSpanV1(xbytesview keyValue)
+{
+    xbytesview key;if (!xl6BufferSpanInput(keyValue,-1,&key)) return NULL;
+    if (key.Size!=32) {xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    void* self=xrtMalloc(32);if (self) memcpy(self,key.Data,32);return self;
+}

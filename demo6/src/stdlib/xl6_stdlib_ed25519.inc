@@ -39,6 +39,7 @@ const char* xl6StdlibEd25519ClassSource =
     "    extern \"xl6CryptoEd25519KeySignTextV1\" @pure @nonblocking func sign(string message, int size = -1) as bytes\n"
     "    extern \"xl6CryptoEd25519KeySignContextTextV1\" @pure @nonblocking func signContext(string message, bytes context, int size = -1) as bytes\n"
     "    extern \"xl6CryptoEd25519KeySignBytesV1\" @pure @nonblocking func sign(bytes message, int size = -1) as bytes\n"
+    "    extern \"xl6CryptoEd25519KeySignBytesSpanV1\" @pure @nonblocking func sign(cbytes message, int size = -1) as bytes\n"
     "    extern \"xl6CryptoEd25519KeySignContextBytesV1\" @pure @nonblocking func signContext(bytes message, bytes context, int size = -1) as bytes\n"
     "    extern \"xl6CryptoEd25519KeySignBufferV1\" @nonblocking func signBuffer(Buffer message, int size = -1) as bytes\n"
     "    extern \"xl6CryptoEd25519KeySignContextBufferV1\" @nonblocking func signContextBuffer(Buffer message, bytes context, int size = -1) as bytes\n"

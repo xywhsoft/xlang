@@ -1,0 +1,76 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+func preferBytes(bytes data) as int
+    return 1
+end
+func preferBytes<T>(T data) as int
+    return 2
+end
+func check()
+    bytes data = cbytes.take(nativeBytes(),4,nativeFree)
+    bytes normal = b"\0\xff\x11*"
+    assert preferBytes(data) == 1
+    assert codec.hexEncode(data) == "00ff112a"
+    assert codec.base64Encode(data) == "AP8RKg=="
+    assert codec.percentDecode(codec.percentEncode(data)) == normal
+    assert crc32.checksum(data) == crc32.checksum(normal)
+    assert crypto.sha256Hex(data) == crypto.sha256Hex(normal)
+    assert cryptoLegacy.sha1(data) == cryptoLegacy.sha1(normal)
+    assert crypto.sha224(data) == crypto.sha224(normal)
+    assert crypto.sha384(data) == crypto.sha384(normal)
+    assert crypto.sha512(data) == crypto.sha512(normal)
+    assert crypto.sha512_256(data) == crypto.sha512_256(normal)
+    assert crypto.hmacSha256(data,normal) == crypto.hmacSha256(normal,data)
+    assert crypto.hmacSha384(data,data) == crypto.hmacSha384(normal,normal)
+    assert crypto.hmacSha512(normal,data) == crypto.hmacSha512(data,normal)
+    assert crypto.timingSafeEqual(data,normal)
+    assert crypto.hkdfSha256(data,normal,data,32) == crypto.hkdfSha256(normal,normal,normal,32)
+    assert crypto.pbkdf2Sha256(data,normal,2,16) == crypto.pbkdf2Sha256(normal,data,2,16)
+    auto hash = crypto.sha256Stream()
+    hash.update(data)
+    assert hash.final() == crypto.sha256(normal)
+    auto hmac = crypto.hmacSha256Stream(data)
+    hmac.update(data)
+    assert hmac.final() == crypto.hmacSha256(normal,normal)
+    assert compress.decode(compress.encode(data)) == normal
+    auto encoder = compress.deflater()
+    auto encoded = Buffer()
+    assert encoder.write(data,encoded)
+    assert encoder.finish(encoded)
+    assert compress.decode(encoded.toBytes()) == normal
+    auto buffer = Buffer(data)
+    assert buffer.toBytes() == normal
+    assert buffer.assign(data) and buffer.append(data)
+    assert buffer.insert(0,data)
+    assert buffer.toBytes() == normal + normal + normal
+    bytes textBytes = cbytes.take(nativeText(),5,nativeFree)
+    assert encoding.decodeUtf8(textBytes) == "hello"
+    assert encoding.isUtf8(textBytes) and not encoding.isUtf8(data)
+    assert encoding.transcode(textBytes,1,1) == b"hello"
+    auto valid, offset = unicode.validate(data)
+    assert not valid and offset == 1
+    assert encoding.bom(data) == 0
+    assert encoding.bomSize(data) == 0
+    auto validator = unicode.validator()
+    assert validator.feed(textBytes,true) == unicode.complete
+    auto kind, bom, confidence = encoding.detect(textBytes)
+    assert kind == encoding.utf8 and bom == 0 and confidence > 0
+    assert codec.hexEncode(data,2) == "00ff"
+    assert crypto.sha256Hex(data,2) == crypto.sha256Hex(normal,2)
+    int rejected = 0
+    try
+        codec.hexEncode(data,-2)
+    catch RangeError e
+        rejected += 1
+    end
+    try
+        encoding.decodeUtf8(data)
+    catch ValueError e
+        rejected += 1
+    end
+    assert rejected == 2
+    assert originalBytes(data)
+end
+check()

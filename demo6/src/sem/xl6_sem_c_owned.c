@@ -176,8 +176,8 @@ static int xl6SemCheckCOwnedTake(XL6_SemContext* ctx, XL6_AstNode* call)
 static int xl6SemValidateCOwnedTypes(XL6_SemContext* ctx,XL6_AstNode* node,XL6_AstNode* parent)
 {
     int ok=1;
-    if(node->kind==XL6_AST_EXTERN_FUNC) {
-        XL6_AstNode* params=node->childCount>1 ? node->children[1] : NULL;
+    if(node->kind==XL6_AST_EXTERN_FUNC || node->kind==XL6_AST_NATIVE_EXTERN_FUNC || node->kind==XL6_AST_NATIVE_EXTERN_SPECIAL) {
+        XL6_AstNode* params=(XL6_AstNode*)xl6SemCallableParams(node);
         for(size_t i=0;params && i<params->childCount;++i) {
             XL6_AstNode* param=params->children[i];
             const XL6_AstNode* type=param && param->childCount ? param->children[0] : NULL;
@@ -188,7 +188,8 @@ static int xl6SemValidateCOwnedTypes(XL6_SemContext* ctx,XL6_AstNode* node,XL6_A
             }
         }
     }
-    if(node->kind==XL6_AST_EXTERN_FUNC || node->kind==XL6_AST_EXPORT_FUNC || node->kind==XL6_AST_ASYNC_FUNC ||
+    if(node->kind==XL6_AST_EXTERN_FUNC || node->kind==XL6_AST_NATIVE_EXTERN_FUNC ||
+        node->kind==XL6_AST_NATIVE_EXTERN_SPECIAL || node->kind==XL6_AST_EXPORT_FUNC || node->kind==XL6_AST_ASYNC_FUNC ||
         (node->flags & XL6_AST_FLAG_ASYNC)) {
         const XL6_AstNode* returns=xl6SemCallableReturns(node);
         for(size_t r=0;returns && r<returns->childCount;++r)

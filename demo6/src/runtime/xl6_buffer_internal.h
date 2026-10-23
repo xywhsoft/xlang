@@ -31,6 +31,9 @@ static inline bool xl6BufferAllocation(bool ok)
         xrtSetErrorKind(XERR_MEMORY);
     return ok;
 }
+/* Span and legacy readers share exactly the same prefix/error rules. */
+static inline bool xl6BufferSpanInput(xbytesview input,int64_t size,xbytesview* output)
+{ *output=input;return xl6BufferSelect(output,size); }
 static inline bool xl6BufferBytesInput(const xvalue* value, int64_t size, xbytesview* view)
 {
     if (!value || !xrtValueGetBytes(value, view)) {

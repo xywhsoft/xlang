@@ -43,3 +43,9 @@ xstrview xl6CryptoMd5HexV1(void* raw)
  xstrview result=ok?xl6CryptoHex(output,sizeof(output)):xl6TextFailure;
  xrtSecureZero(output,sizeof(output));return result;}
 XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6CryptoMd5HandlePolicyV1Get,xl6CryptoMd5DestroyV1)
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+void xl6CryptoMd5UpdateBytesSpanV1(void* raw,xbytesview data,int64_t size)
+{State* self=check(raw);xbytesview input={0};if (!self || !xl6BufferSpanInput(data,size,&input)) return;
+
+ (void)xrtMd5Update(&self->state,input.Data,input.Size);}

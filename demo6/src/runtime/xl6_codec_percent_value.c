@@ -11,3 +11,7 @@ xvalue* xl6CodecPercentDecodeV1(xstrview text,int64_t size,bool form)
     xrtPercentDecodeMeasured(text,form,data);data[length]=0;
     return xl6CodecBytesTake(data,length);
 }
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+xstrview xl6CodecPercentBytesSpanV1(xbytesview value,int64_t size,xstrview safe,bool form,bool unreserved,int64_t safeSize)
+{xbytesview input;return xl6BufferSpanInput(value,size,&input)?xl6CodecPercentViewV1(input,safe,form,unreserved,safeSize):xl6TextFailure;}

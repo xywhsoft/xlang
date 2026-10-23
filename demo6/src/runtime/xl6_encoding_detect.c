@@ -12,3 +12,10 @@ XL6_ProductI64x3V1 xl6EncodingGuessBytesV1(const xvalue* data, int64_t size)
     xstrview view;
     return xl6UnicodeBytes(data,size,&view) ? xl6EncodingGuess(view) : (XL6_ProductI64x3V1){0,0,0};
 }
+
+/* Synchronous input spans; no preliminary managed bytes allocation. */
+XL6_ProductI64x3V1 xl6EncodingGuessBytesSpanV1(xbytesview data, int64_t size)
+{
+    xstrview view;
+    return xl6UnicodeSpan(data,size,&view) ? xl6EncodingGuess(view) : (XL6_ProductI64x3V1){0,0,0};
+}

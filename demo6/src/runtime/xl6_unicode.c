@@ -41,3 +41,10 @@ int64_t xl6UnicodeScalarIndexV1(xstrview text, int64_t offset, int64_t size)
     size_t index = xrtUtf8Index(text, (size_t)offset);
     return index == XRT_NPOS ? -1 : (int64_t)index;
 }
+
+/* Synchronous input spans; no preliminary managed bytes allocation. */
+int64_t xl6UnicodeInvalidBytesSpanV1(xbytesview data, int64_t size)
+{
+    xstrview text;
+    return xl6UnicodeSpan(data, size, &text) ? xl6UnicodeInvalid(text) : -1;
+}

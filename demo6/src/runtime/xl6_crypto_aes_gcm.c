@@ -35,3 +35,13 @@ xvalue* xl6CryptoAesGcmSealTextV1(void* self,xstrview text,const xvalue* nonce,c
 xvalue* xl6CryptoAesGcmOpenV1(void* self,const xvalue* data,const xvalue* nonce,const xvalue* aad,int64_t size,int64_t aadSize)
 {xbytesview input;return xl6BufferBytesInput(data,size,&input)?crypt(self,input,nonce,aad,aadSize,false):NULL;}
 XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6CryptoAesGcmHandlePolicyV1Get,xl6CryptoAesGcmDestroyV1)
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+void* xl6CryptoAesGcmCreateSpanV1(xbytesview keyValue)
+{
+    xbytesview key;if (!xl6BufferSpanInput(keyValue,-1,&key)) return NULL;
+    if (key.Size!=16 && key.Size!=24 && key.Size!=32) {xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    xaesgcm* self=xrtCalloc(1,sizeof(*self));if (!self) return NULL;
+    if (!xrtAesGcmInit(self,key.Data,key.Size,16)) {xl6CryptoAesGcmDestroyV1(self);return NULL;}
+    return self;
+}

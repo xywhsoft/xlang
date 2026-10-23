@@ -60,6 +60,7 @@ struct xfuture;
 struct XL6_NativeHandlePolicyV1;
 XL6_TEXT_API int64_t xl6Crc32StringV1(uint64_t previous, xstrview text, int64_t size);
 XL6_TEXT_API int64_t xl6Crc32BytesV1(uint64_t previous, const xvalue* value, int64_t size);
+XL6_TEXT_API int64_t xl6Crc32BytesSpanV1(uint64_t previous, xbytesview value, int64_t size);
 XL6_TEXT_API int64_t xl6Crc32BufferV1(uint64_t previous, void* value, int64_t size);
 XL6_TEXT_API void* xl6_xrt_rng_create(uint64_t,uint64_t);
 XL6_TEXT_API void* xl6_xrt_rng_create_default(uint64_t);
@@ -182,17 +183,21 @@ XL6_TEXT_API void* xl6BufferDataV1(void* buffer);
 XL6_TEXT_API void* xl6BufferHandleV1(void* buffer);
 XL6_TEXT_API void* xl6BufferFromTextV1(xstrview text, int64_t size);
 XL6_TEXT_API void* xl6BufferFromBytesV1(const xvalue* bytes, int64_t size);
+XL6_TEXT_API void* xl6BufferFromBytesSpanV1(xbytesview bytes, int64_t size);
 XL6_TEXT_API void* xl6BufferCopyV1(void* source, int64_t size);
 XL6_TEXT_API bool xl6BufferResizeV1(void* buffer, int64_t size, int64_t fill);
 XL6_TEXT_API bool xl6BufferTrimV1(void* buffer);
 XL6_TEXT_API bool xl6BufferAssignTextV1(void* buffer, xstrview text, int64_t size);
 XL6_TEXT_API bool xl6BufferAssignBytesV1(void* buffer, const xvalue* bytes, int64_t size);
+XL6_TEXT_API bool xl6BufferAssignBytesSpanV1(void* buffer, xbytesview bytes, int64_t size);
 XL6_TEXT_API bool xl6BufferAssignBufferV1(void* buffer, void* source, int64_t size);
 XL6_TEXT_API bool xl6BufferAppendTextV1(void* buffer, xstrview text, int64_t size);
 XL6_TEXT_API bool xl6BufferAppendBytesV1(void* buffer, const xvalue* bytes, int64_t size);
+XL6_TEXT_API bool xl6BufferAppendBytesSpanV1(void* buffer, xbytesview bytes, int64_t size);
 XL6_TEXT_API bool xl6BufferAppendBufferV1(void* buffer, void* source, int64_t size);
 XL6_TEXT_API bool xl6BufferInsertTextV1(void* buffer, int64_t offset, xstrview text, int64_t size);
 XL6_TEXT_API bool xl6BufferInsertBytesV1(void* buffer, int64_t offset, const xvalue* bytes, int64_t size);
+XL6_TEXT_API bool xl6BufferInsertBytesSpanV1(void* buffer, int64_t offset, xbytesview bytes, int64_t size);
 XL6_TEXT_API bool xl6BufferInsertBufferV1(void* buffer, int64_t offset, void* source, int64_t size);
 XL6_TEXT_API bool xl6BufferRemoveV1(void* buffer, int64_t offset, int64_t count);
 XL6_TEXT_API xvalue* xl6BufferBytesV1(void* buffer, int64_t size);
@@ -621,6 +626,7 @@ XL6_TEXT_API bool xl6UnicodeScalarV1(int64_t code);
 XL6_TEXT_API xstrview xl6UnicodeCharStringV1(uint32_t scalar);
 XL6_TEXT_API int64_t xl6UnicodeInvalidTextV1(xstrview text, int64_t size);
 XL6_TEXT_API int64_t xl6UnicodeInvalidBytesV1(const xvalue* data, int64_t size);
+XL6_TEXT_API int64_t xl6UnicodeInvalidBytesSpanV1(xbytesview data, int64_t size);
 XL6_TEXT_API int64_t xl6UnicodeByteOffsetV1(xstrview text, int64_t index, int64_t size);
 XL6_TEXT_API int64_t xl6UnicodeScalarIndexV1(xstrview text, int64_t offset, int64_t size);
 /* Encoding ids 0 unknown / 1 UTF8 / 2 UTF16LE / 3 BE / 4 UTF32LE / 5 BE.
@@ -630,9 +636,13 @@ XL6_TEXT_API int64_t xl6UnicodeScalarIndexV1(xstrview text, int64_t offset, int6
  * exact independent data and failed results expose no partial allocation. */
 XL6_TEXT_API xvalue* xl6EncodingEncodeV1(xstrview text, int64_t encoding, bool bom, int64_t policy, int64_t size);
 XL6_TEXT_API xstrview xl6EncodingDecodeV1(const xvalue* data, int64_t encoding, int64_t policy, int64_t bom, int64_t size);
+XL6_TEXT_API xstrview xl6EncodingDecodeSpanV1(xbytesview data, int64_t encoding, int64_t policy, int64_t bom, int64_t size);
 XL6_TEXT_API xvalue* xl6EncodingTranscodeV1(const xvalue* data, int64_t source, int64_t target, int64_t policy, int64_t bom, int64_t size);
+XL6_TEXT_API xvalue* xl6EncodingTranscodeSpanV1(xbytesview data, int64_t source, int64_t target, int64_t policy, int64_t bom, int64_t size);
 XL6_TEXT_API int64_t xl6EncodingBomV1(const xvalue* data, int64_t size);
+XL6_TEXT_API int64_t xl6EncodingBomSpanV1(xbytesview data, int64_t size);
 XL6_TEXT_API int64_t xl6EncodingBomSizeV1(const xvalue* data, int64_t size);
+XL6_TEXT_API int64_t xl6EncodingBomSizeSpanV1(xbytesview data, int64_t size);
 XL6_TEXT_API xvalue* xl6EncodingBomBytesV1(int64_t encoding);
 XL6_TEXT_API int64_t xl6EncodingUnitSizeV1(int64_t encoding);
 XL6_TEXT_API xstrview xl6EncodingNameV1(int64_t encoding);
@@ -642,12 +652,14 @@ XL6_TEXT_API xstrview xl6EncodingRepairTextV1(xstrview text, int64_t size);
  * valid arguments. A BOM gets confidence 100 even with an invalid body. */
 XL6_TEXT_API XL6_ProductI64x3V1 xl6EncodingGuessTextV1(xstrview text, int64_t size);
 XL6_TEXT_API XL6_ProductI64x3V1 xl6EncodingGuessBytesV1(const xvalue* data, int64_t size);
+XL6_TEXT_API XL6_ProductI64x3V1 xl6EncodingGuessBytesSpanV1(xbytesview data, int64_t size);
 /* Validator chunks are synchronous borrows. Data-invalid is an ordinary
  * XUTF_INVALID result, not a raised error; argument/lifetime/overflow faults
  * raise. final seals the stream; reset starts a new stream on its owner thread. */
 XL6_TEXT_API void* xl6UnicodeValidatorCreateV1(void);
 XL6_TEXT_API void xl6UnicodeValidatorDestroyV1(void* handle);
 XL6_TEXT_API int64_t xl6UnicodeValidatorFeedV1(void* handle, const xvalue* data, bool final, int64_t size);
+XL6_TEXT_API int64_t xl6UnicodeValidatorFeedSpanV1(void* handle, xbytesview data, bool final, int64_t size);
 XL6_TEXT_API void xl6UnicodeValidatorResetV1(void* handle);
 XL6_TEXT_API int64_t xl6UnicodeValidatorErrorV1(void* handle);
 XL6_TEXT_API int64_t xl6UnicodeValidatorTotalV1(void* handle);

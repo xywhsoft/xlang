@@ -76,8 +76,9 @@ Compiler specialization covers fixed positional/named arguments and default
 arguments of directly resolved functions, including async inputs and explicit and
 inferred generic instances. Signature keys include concrete types and have no
 63-parameter mask limit. Borrowed string inputs also keep their C view through
-function-value calls. Indirect results, virtual calls and legacy native binary
-readers can still cross an ordinary-value boundary. They are not a promise of
+function-value calls. Indirect results with an ordinary signature, virtual calls and unmigrated native
+binary readers can still cross an ordinary-value boundary. A function-value
+signature explicitly returning `cstring/cbytes` retains the C owner. They are not a promise of
 universal zero-copy dispatch. Explicit source-language C parameter
 types remain restricted to extern declarations; ordinary language readers
 continue declaring `string` / `bytes`.
@@ -108,7 +109,15 @@ Existing native declarations keep their ABI: legacy `string` parameters use
 C string pointers where applicable; legacy `bytes` parameters expect managed
 `xvalue*`. A raw C bytes allocation must materialize when passed to the latter.
 Migrate such native readers to a span entry point before claiming zero-copy
-extension-library coverage. No XRT modification is needed for the new span ABI.
+extension-library coverage. Eighty resident synchronous entries now have span
+overloads: Buffer input construction/writes, codec encoders, CRC32, digests and
+stream updates, HMAC, HKDF/PBKDF2, timing-safe comparison, selected key setup and
+signing, compression, Unicode validation and encoding conversion/detection.
+Mixed C/ordinary byte parameters select the span overload without allocating
+input owners; ordinary-only calls retain their legacy ABI.
+No XRT modification is needed for the new span ABI. Async/retaining external
+APIs still require an ownership-aware adapter; a borrowed span is never a
+promise to keep the input after the call returns.
 
 ## Costs and supported scope
 
@@ -173,3 +182,18 @@ Async input specialization retains the C owner into the worker frame before
 publishing the task, including inferred generic calls. Future and generator
 payloads remain ordinary container elements; local C owners across suspension
 do not materialize.
+
+`xlir_c_owned_stdlib.xl` exercises resident span dispatch, mixed HMAC/KDF inputs,
+Buffer construction/writes, Unicode, encoding, compression, prefix bounds and
+error propagation. Its emitted C must contain no `xl6CBytesCopyV1` input
+materialization. Ordinary codec, compression, encoding and validator programs
+also run through JIT/EXE, and their emitted C must not include the C owner
+runtime merely because span overloads were imported.
+
+Follow-up acceptance (`build/c-owned/complete-spans-acceptance-2/`): 1,088 source
+translation units, two runtime units, 15 generated-C programs, ten negative
+declarations, O0/O2 ownership contracts, 16 C interoperability programs through
+both source JIT and standalone EXE, and 13 ordinary programs through both
+paths. All ordinary emitted C omits C owner headers. The shared-owner runtime
+unit also passes separately at O2 with four concurrent workers. The source
+runtime receipt is `build/c-owned/complete-spans-public-4/build.json`.

@@ -3,15 +3,20 @@ static const char xl6StdEncodingEncodeBody[] =
 static const char xl6StdEncodingDetectTextBody[] =
     "extern \"xl6EncodingGuessTextV1\" func __xl_std_encoding_detect(string text, int size = -1) as (int, int, int)\n";
 static const char xl6StdEncodingDetectBytesBody[] =
-    "extern \"xl6EncodingGuessBytesV1\" func __xl_std_encoding_detect(bytes data, int size = -1) as (int, int, int)\n";
+    "extern \"xl6EncodingGuessBytesV1\" func __xl_std_encoding_detect(bytes data, int size = -1) as (int, int, int)\n"
+    "extern \"xl6EncodingGuessBytesSpanV1\" func __xl_std_encoding_detect(cbytes data, int size = -1) as (int, int, int)\n";
 static const char xl6StdEncodingDecodeBody[] =
-    "extern \"xl6EncodingDecodeV1\" func __xl_std_encoding_decode(bytes data, int encoding = 1, int policy = 0, int bom = 1, int size = -1) as string\n";
+    "extern \"xl6EncodingDecodeV1\" func __xl_std_encoding_decode(bytes data, int encoding = 1, int policy = 0, int bom = 1, int size = -1) as string\n"
+    "extern \"xl6EncodingDecodeSpanV1\" func __xl_std_encoding_decode(cbytes data, int encoding = 1, int policy = 0, int bom = 1, int size = -1) as string\n";
 static const char xl6StdEncodingTranscodeBody[] =
-    "extern \"xl6EncodingTranscodeV1\" func __xl_std_encoding_transcode(bytes data, int source, int target, int policy = 0, int bom = 1, int size = -1) as bytes\n";
+    "extern \"xl6EncodingTranscodeV1\" func __xl_std_encoding_transcode(bytes data, int source, int target, int policy = 0, int bom = 1, int size = -1) as bytes\n"
+    "extern \"xl6EncodingTranscodeSpanV1\" func __xl_std_encoding_transcode(cbytes data, int source, int target, int policy = 0, int bom = 1, int size = -1) as bytes\n";
 static const char xl6StdEncodingBomBody[] =
-    "extern \"xl6EncodingBomV1\" func __xl_std_encoding_bom(bytes data, int size = -1) as int\n";
+    "extern \"xl6EncodingBomV1\" func __xl_std_encoding_bom(bytes data, int size = -1) as int\n"
+    "extern \"xl6EncodingBomSpanV1\" func __xl_std_encoding_bom(cbytes data, int size = -1) as int\n";
 static const char xl6StdEncodingBomSizeBody[] =
-    "extern \"xl6EncodingBomSizeV1\" func __xl_std_encoding_bomSize(bytes data, int size = -1) as int\n";
+    "extern \"xl6EncodingBomSizeV1\" func __xl_std_encoding_bomSize(bytes data, int size = -1) as int\n"
+    "extern \"xl6EncodingBomSizeSpanV1\" func __xl_std_encoding_bomSize(cbytes data, int size = -1) as int\n";
 static const char xl6StdEncodingBomBytesBody[] =
     "extern \"xl6EncodingBomBytesV1\" func __xl_std_encoding_bomBytes(int encoding) as bytes\n";
 static const char xl6StdEncodingUnitSizeBody[] =
@@ -62,6 +67,7 @@ static const char xl6StdEncodingIsUtf8Body[] =
     "extern \"xl6TextIsUtf8V1\" func __xl_std_encoding_is_utf8(string text, int size = -1) as bool\n";
 static const char xl6StdEncodingIsUtf8BytesBody[] =
     "extern \"xl6UnicodeInvalidBytesV1\" func __xl_encoding_invalid(bytes data, int size) as int\n"
+    "extern \"xl6UnicodeInvalidBytesSpanV1\" func __xl_encoding_invalid(cbytes data, int size) as int\n"
     "func __xl_std_encoding_is_utf8(bytes data, int size = -1) as bool\n"
     "    return __xl_encoding_invalid(data, size) == -1\n"
     "end\n";
