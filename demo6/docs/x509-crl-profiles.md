@@ -35,7 +35,7 @@ maxEntries = 65536)` 读取完整 SEQUENCE；提供 `count`、`version`、`at(in
 
 条目的 typed 扩展为 `hasReason`／`reason`、`hasInvalidityDate`／
 `invalidityDate` 与 `issuerNames(maxNames = 65536)`。reason/date 缺省时读取
-值抛 StateError；不得冒充 unspecified 或时间零。issuerNames 只报告该条目
+值抛 RuntimeError（原生 XERR_STATE）；不得冒充 unspecified 或时间零。issuerNames 只报告该条目
 显式携带的 CertificateIssuer，不计算间接 CRL 的继承状态。
 
 `X509CrlReason` 包含 0—6、8—10 共十个标准值，7 不是成员。它不同于可组合的
@@ -46,7 +46,7 @@ maxEntries = 65536)` 读取完整 SEQUENCE；提供 `count`、`version`、`at(in
 `relativeNameDer()`、`onlyUserCertificates`、`onlyCaCertificates`、
 `onlyAttributeCertificates`、`hasReasons`、`reasons`、`indirect`、`toDer()`。
 完整与相对名称沿用已有枚举；相对名称返回完整 SET DER。缺省名称的 nameKind
-或不适用的 relativeNameDer 抛 StateError；fullNames 不适用时返回 null。
+或不适用的 relativeNameDer 抛 RuntimeError（原生 XERR_STATE）；fullNames 不适用时返回 null。
 理由缺省时 hasReasons 为 false、reasons 为 none，不由此推导策略允许范围。
 
 每个对象拥有自身 DER 与必要索引，不持有原生短期借用。子对象复制自身片段，
@@ -60,7 +60,7 @@ maxEntries = 65536)` 读取完整 SEQUENCE；提供 `count`、`version`、`at(in
 分别返回 bytes、bytes 幅值、X509CrlReason、time；必须是一份完整 DER，不按
 size 截断，也不把任意二进制转成 string。它们不要求构造 Certificate／CRL。
 
-所有预算 0 表示显式不限，负值报 ArgumentError，超过预算报 RangeError。
+所有预算 0 表示显式不限，负值报 ValueError（原生 XERR_ARGUMENT），超过预算报 RangeError。
 解析及分配错误经过 checked 边界，不误标 no-raise。缺省 bytes? 用拥有的 null
 Value，C NULL 只表示失败；可空类的物理合同与此不同，不能相互套用。
 
@@ -72,9 +72,10 @@ Value，C NULL 只表示失败；可空类的物理合同与此不同，不能�
 仅进行正常功能、预算、OOM、生命周期、ABI、IR、JIT／AOT 和裁剪验证，不进行
 网络流量、畸形样本、攻击模拟或安全专项。
 
-本批不关闭 CRL policy、真实签名验证、typed 验证结果、路径／信任库／系统
-来源／身份检查、TLS 或最终 shipping 联合验收；长资源作用域的编译性能及
-清理 C 体积风险也保持打开。
+本数据批次不关闭 CRL policy、真实签名验证、typed 验证结果、路径／信任库／
+系统来源／身份检查、TLS 或最终 shipping 联合验收。后续签名检查及类型化
+签名状态已接入，见 [签名检查](x509-signatures.md)，但仍不是撤销／完整信任
+结论；长资源作用域的编译性能及清理 C 体积风险也保持打开。
 
 2026-10-23 正式验收为 Windows 380／Linux 383，共 763 阶段：各有新语言／IR／
 裁剪 115、上一批 profile 93、记录 92、原始数据接口 59、旧 DER／密钥／数学

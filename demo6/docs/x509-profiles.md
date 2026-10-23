@@ -56,7 +56,7 @@ GeneralName 的普通 IP 值是 4／16 字节地址；GeneralSubtree.base() 的 
 
 DirectoryName 保留完整 Name DER，directoryName(maxAttributes=65536) 返回
 独立拥有的 X509Name。text 只适用于原生已验证的 email／DNS／URI IA5 内容；
-registeredOid 只适用于 registeredId，其他选择调用这些投影 checked 报 StateError。
+registeredOid 只适用于 registeredId，其他选择调用这些投影 checked 报 RuntimeError（原生 XERR_STATE）。
 
 AKI serialContent 保留规范 INTEGER 内容及必要正数符号零；Subtree 的
 minimumMagnitude／maximumMagnitude 则是 XRT 已去掉符号零的非负大端幅值，
@@ -66,7 +66,7 @@ DistributionPoint.nameDer 是原始上下文标记，relativeNameDer() 才返回
 SET 编码的相对 RDN；不把它伪装成完整 Distinguished Name。fullNames() 在
 缺少名称或相对名称模式下为空，issuerNames() 在缺少 issuer 时为空；其余
 字段由 has 标志和 nameKind 明确区分。读取缺省 nameKind／pathLimit 报
-StateError，不伪造默认名称种类或无限路径上限。
+RuntimeError（原生 XERR_STATE），不伪造默认名称种类或无限路径上限。
 
 ## 拥有权、预算与裁剪
 
@@ -112,5 +112,6 @@ DER／密钥／数学回归；原生专项 9／11 阶段，另有 3／4 个独�
 
 此处记录的是 profile 批次边界。后续独立 SubjectKeyIdentifier／CRL DER 值
 解析、撤销条目及 CRL profile 的实际进展见 [CRL typed profile](x509-crl-profiles.md)。
-P5 仍缺 CRL policy、签名验证与 typed 验证结果、路径／信任来源／身份检查；
-TLS 和联合验收继续，不能把数据读取宣称为全部 X.509 模块已封板。
+签名检查与独立 SPKI 的后续进展见 [签名检查](x509-signatures.md)。P5 仍缺
+CRL policy、完整路径及 typed 验证结果、信任来源／身份检查；TLS 和联合
+验收继续，不能把数据读取宣称为全部 X.509 模块已封板。

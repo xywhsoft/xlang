@@ -835,7 +835,8 @@ static int xl6StdlibUsesX509Types(const XL6_AstNode* root)
         "X509AuthorityKeyIdentifier","X509DistributionPoints","X509DistributionPoint","X509NameConstraints",
         "X509GeneralSubtrees","X509GeneralSubtree","X509GeneralNameKind","X509KeyUsageFlags",
         "X509ReasonFlags","X509DistributionNameKind",
-        "X509CrlEntries","X509CrlEntry","X509IssuingDistributionPoint","X509CrlVersion","X509CrlReason"};
+        "X509CrlEntries","X509CrlEntry","X509IssuingDistributionPoint","X509CrlVersion","X509CrlReason",
+        "X509SignatureStatus"};
     for(size_t i=0;i<sizeof(types)/sizeof(*types);++i)if(xl6StdlibNodeUsesTypeName(root,types[i]))return 1;
     return 0;
 }
@@ -2308,8 +2309,13 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if (xl6StdlibNeedsX509(root,used)) {
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509EnumsSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509RecordsSource);
+        xl6StdlibBuilderAppend(&builder,xl6StdlibX509SignatureInfoSource);
+        if(needsBufferClass)xl6StdlibBuilderAppend(&builder,xl6StdlibX509SignatureInfoBufferSource);
+        xl6StdlibBuilderAppend(&builder,"end\n");
+        xl6StdlibBuilderAppend(&builder,xl6StdlibX509PublicKeyInfoSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509ProfilesSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509CrlProfilesSource);
+        xl6StdlibBuilderAppend(&builder,xl6StdlibX509SignatureStatusSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509DataSource);
     }
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||

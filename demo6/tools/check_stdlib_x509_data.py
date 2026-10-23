@@ -41,7 +41,7 @@ def crl_checks(variable,data):
         lines += [f'assert {variable}.hasNextUpdate',f'assert {variable}.nextUpdate == time({end})',f'assert not {variable}.validAt(time({end+1}))']
     else:
         lines += [f'assert not {variable}.hasNextUpdate','bool missing = false','try',f' auto absent = {variable}.nextUpdate',
-                  'catch StateError',' missing = true','end','assert missing']
+                  'catch RuntimeError error',' missing = true','end','assert missing']
     return lines
 
 
@@ -61,7 +61,7 @@ def language_fixtures(root,directory):
                     (f'{cls}.fromPem({literal(pem,True)},0,{len(data)-1})','RangeError'),
                     (f'{name}.toPem({len(pem)-1})','RangeError'),(f'{cls}.fromDer({literal(data)},-1)','ValueError')]
         for operation,error in operations:
-            lines += ['try',' auto refused = '+operation,'catch '+error,f' limits{index} += 1','end']
+            lines += ['try',' auto refused = '+operation,'catch '+error+' caughtError',f' limits{index} += 1','end']
         lines += [f'assert limits{index} == 5']
         lines += crl_checks(name,data) if is_crl else certificate_checks(name,data)
         lines += [f'array<{cls}> holders{index} = [{name}]',f'assert holders{index}[0].toDer() == {literal(data)}']

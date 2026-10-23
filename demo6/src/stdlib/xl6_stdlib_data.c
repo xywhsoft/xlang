@@ -322,6 +322,8 @@ const char* xl6StdlibXidClassSource =
 #include "xl6_stdlib_x509_records.inc"
 #include "xl6_stdlib_x509_profiles.inc"
 #include "xl6_stdlib_x509_crl_profiles.inc"
+#include "xl6_stdlib_x509_signature_status.inc"
+#include "xl6_stdlib_x509_signature_verify_buffer.inc"
 
 #include "xl6_stdlib_net_address.inc"
 #include "xl6_stdlib_net_resolver.inc"

@@ -533,6 +533,12 @@
     src\runtime\xl6_x509_crl_number_parse.c
     src\runtime\xl6_x509_crl_reason_parse.c
     src\runtime\xl6_x509_crl_invalidity_parse.c
+    src\runtime\xl6_x509_verify_result.c
+    src\runtime\xl6_x509_public_key_parse.c
+    src\runtime\xl6_x509_certificate_verify.c
+    src\runtime\xl6_x509_crl_verify.c
+    src\runtime\xl6_x509_signature_verify.c
+    src\runtime\xl6_x509_signature_verify_buffer.c
     src\runtime\xl6_der_value.c
     src\runtime\xl6_der_value_domain.c
     src\runtime\xl6_der_reader.c

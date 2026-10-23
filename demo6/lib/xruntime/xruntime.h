@@ -25463,6 +25463,14 @@ XRT_API bool xrtX509ExtensionListFind(
 
 
 
+/* 严格解析独立 SPKI；成功视图借用完整 Der，失败输出保持不变。 */
+XRT_API bool xrtX509PublicKeyParse(
+	xbytesview Der,
+	xx509pubkey* pPublicKey
+);
+
+
+
 /* 查找第一个 OID 完全相同的扩展。 */
 XRT_API bool xrtX509ExtensionFind(
 	const xx509cert* pCert,
@@ -166152,39 +166160,54 @@ bool __xrtX509PublicKeyValue(
 
 
 
-/* 解析 SubjectPublicKeyInfo，并返回支持未来算法的通用借用视图。 */
-XRT_API bool xrtX509PublicKey(
-	const xx509cert* pCert,
+/* 严格解析一份独立 SPKI；全部视图借用 Der，失败时输出保持不变。 */
+XRT_API bool xrtX509PublicKeyParse(
+	xbytesview Der,
 	xx509pubkey* pPublicKey
 )
 {
 	xdercursor Cursor;
 	xdervalue Value;
 
-	if ( (pCert == NULL) || (pPublicKey == NULL) ||
-		(pCert->SubjectPublicKeyInfo.Data == NULL) ||
-		(pCert->SubjectPublicKeyInfo.Size == 0) ) {
+	if ( (pPublicKey == NULL) ||
+		(Der.Data == NULL) ||
+		(Der.Size == 0) ) {
 		__xrtErrorSetInvalidArgument();
 		return false;
 	}
 	if ( !xrtDerInit(
-		&Cursor, pCert->SubjectPublicKeyInfo.Data,
-		pCert->SubjectPublicKeyInfo.Size
+		&Cursor, Der.Data,
+		Der.Size
 	) || (xrtDerRead(&Cursor, &Value) != XDER_VALUE) ||
 		!xrtDerDone(&Cursor) ) {
 		__xrtX509Error(
 			XERR_PROTOCOL, X509_ERROR_PUBLIC_KEY, "x509-public-key",
-			"certificate SubjectPublicKeyInfo view is malformed",
-			SIZE_MAX, NULL
+			"SubjectPublicKeyInfo DER is malformed",
+			SIZE_MAX, xrtGetError()
 		);
 		return false;
 	}
 	return __xrtX509PublicKeyValue(
 		&Value, pPublicKey,
-		pCert->SubjectPublicKeyInfo.Data,
-		pCert->SubjectPublicKeyInfo.Size,
+		Der.Data,
+		Der.Size,
 		"x509-public-key"
 	);
+}
+
+
+
+/* 解析证书中的 SPKI；与独立入口共用同一解析和错误合同。 */
+XRT_API bool xrtX509PublicKey(
+	const xx509cert* pCert,
+	xx509pubkey* pPublicKey
+)
+{
+	if ( pCert == NULL ) {
+		__xrtErrorSetInvalidArgument();
+		return false;
+	}
+	return xrtX509PublicKeyParse(pCert->SubjectPublicKeyInfo, pPublicKey);
 }
 
 #endif
