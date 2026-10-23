@@ -4593,12 +4593,16 @@ static XL6_IrValueId xl6IrLowerNodeAsType(
         const XL6_IrCallSite* site=xl6IrCallSiteGet(ctx->module,origin);
         const XL6_IrCallTarget* callee=call ? xl6IrCallTargetGet(ctx->module,call->targetSymbol) : NULL;
         if(target->cAbi==XL6_IR_C_ABI_MANAGED_STRING &&
-            xl6IrTypeGet(&ctx->module->types,source->storageType)->cAbi==XL6_IR_C_ABI_C_STRING && site && callee) {
+            xl6IrTypeGet(&ctx->module->types,source->storageType)->cAbi==XL6_IR_C_ABI_C_STRING && site) {
+            const XL6_IrNode* callable=call && call->childCount ? xl6IrNodeGet(ctx->module,ctx->module->children[call->firstChild]) : NULL;
+            const XL6_IrType* signature=callable ? xl6IrTypeGet(&ctx->module->types,callable->storageType) : NULL;
             for(size_t argument=0;argument<site->argumentCount;++argument) {
                 const XL6_IrCallArgument* binding=&ctx->module->callArguments[site->firstArgument+argument];
-                size_t parameter=binding->parameter+(site->receiver ? 1u : 0u);
-                if(binding->expression==sourceId && parameter<callee->parameterCount &&
-                    callee->parameterAbis[parameter]==XL6_IR_PARAMETER_ABI_BORROW) {
+                size_t parameter=binding->parameter+(site->receiver && site->callKind!=XL6_SEM_CALL_FUNCTION_VALUE ? 1u : 0u);
+                XL6_IrParameterAbi abi=callee && parameter<callee->parameterCount ? callee->parameterAbis[parameter] :
+                    signature && signature->kind==XL6_IR_TYPE_FUNCTION && parameter<signature->paramCount ?
+                        signature->parameterAbis[parameter] : XL6_IR_PARAMETER_ABI_INVALID;
+                if(binding->expression==sourceId && abi==XL6_IR_PARAMETER_ABI_BORROW) {
                     XL6_IrValueId owner=xl6IrLowerProtectOwnedBorrow(ctx,origin,xl6IrLowerNode(ctx,sourceId));
                     return owner ? xl6IrLowerEmitRuntimeCall(ctx,origin,targetType,XL6_IR_RUNTIME_CSTRING_VIEW,&owner,1) : 0;
                 }
@@ -26343,6 +26347,9 @@ static XL6_IrValueId xl6IrLowerFunctionValueCall(
     const XL6_IrExitPlan* errorPlan;
     XL6_IrValueId* operands = NULL;
     XL6_SymbolId* borrowedTemps = NULL;
+    XL6_SymbolId* cleanupOwners = NULL;
+    XL6_SymbolId* cleanupDestroys = NULL;
+    size_t cleanupCount = 0;
     XL6_SymbolId calleeTemporary = 0;
     XL6_IrValueId result = XL6_IR_VALUE_INVALID;
     size_t evaluationOwnerFirst = ctx->evaluationOwnerCount;
@@ -26485,6 +26492,15 @@ static XL6_IrValueId xl6IrLowerFunctionValueCall(
                     &ctx->module->callArguments[site->firstArgument + i],
                     operands[parameter + 1])) goto done;
     }
+    size_t pendingCount=ctx->evaluationOwnerCount-evaluationOwnerFirst;
+    cleanupOwners=pendingCount ? xrtCalloc(pendingCount,sizeof(*cleanupOwners)) : NULL;
+    cleanupDestroys=pendingCount ? xrtCalloc(pendingCount,sizeof(*cleanupDestroys)) : NULL;
+    if(pendingCount && (!cleanupOwners || !cleanupDestroys)){ctx->failed=1;goto done;}
+    for(size_t p=evaluationOwnerFirst;p<ctx->evaluationOwnerCount;++p) {
+        const XL6_IrLowerEvaluationOwner* owner=&ctx->evaluationOwners[p];
+        if(owner->transfer)continue;
+        cleanupOwners[cleanupCount]=owner->storage;cleanupDestroys[cleanupCount++]=owner->destroySymbol;
+    }
     if ( !xl6IrLowerCommitEvaluationOwners(ctx, id, evaluationOwnerFirst) ||
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_CLOSURE_CALL, id, node->storageType, 0,
                          operands, signature->paramCount + 1, &result) ) {
@@ -26494,7 +26510,7 @@ static XL6_IrValueId xl6IrLowerFunctionValueCall(
     ctx->module->instructions[ctx->module->instructionCount - 1].calleeType = signatureType;
     {
         XL6_IrLowerCallCleanup cleanup = {
-            borrowedTemps, signature->paramCount, NULL, calleeTemporary, 0};
+            cleanupOwners, cleanupCount, cleanupDestroys, 0, 0};
         if (!xl6IrLowerCompleteCall(ctx, id, node, NULL, &result, errorPlan, &cleanup)) {
             result = XL6_IR_VALUE_INVALID;
             goto done;
@@ -26506,6 +26522,8 @@ done:
     ctx->evaluationOwnerCount = evaluationOwnerFirst;
     xrtFree(operands);
     xrtFree(borrowedTemps);
+    xrtFree(cleanupOwners);
+    xrtFree(cleanupDestroys);
     return result;
 }
 

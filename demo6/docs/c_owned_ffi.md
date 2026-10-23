@@ -58,7 +58,7 @@ invalid length therefore cannot leak it.
 | Synchronous result declared `as cstring/cbytes` | Preserves the C owner across the return |
 | Length, integer indexing, comparisons, iteration | Reads the original allocation |
 | Borrowed string parameters and string reader methods | Receive a length-bearing borrowed string view |
-| Direct named synchronous nongeneric language functions | Compiler specializes matching string/bytes parameters and single results to preserve C storage |
+| Direct named synchronous language functions and concrete generic instances | Compiler specializes matching string/bytes parameters and single results to preserve C storage |
 | Direct `print` / `println` | Text goes directly to the console; bytes stream through the XLON sink encoder |
 | String interpolation and concatenation; binary concatenation | Read original inputs and construct the new output; no preliminary input materialization |
 | `type(value)` / `value is string/bytes` | Reports the corresponding ordinary type |
@@ -71,11 +71,13 @@ it cannot free or mutate the caller's value. Replacement publishes the new
 value only after construction succeeds. Negative indexes and failures follow
 the existing sequence rules. C text and C binary data are never interchangeable.
 
-Compiler specialization currently covers fixed positional/named arguments and
-default arguments of directly resolved, synchronous nongeneric functions, with
-up to 63 parameters. Indirect function values, virtual/generic calls and legacy
-native binary readers can cross an ordinary-value boundary. They are not a
-promise of universal zero-copy dispatch. Explicit source-language C parameter
+Compiler specialization covers fixed positional/named arguments and default
+arguments of directly resolved synchronous functions, including explicit and
+inferred generic instances. Signature keys include concrete types and have no
+63-parameter mask limit. Borrowed string inputs also keep their C view through
+function-value calls. Indirect results, virtual calls and legacy native binary
+readers can still cross an ordinary-value boundary. They are not a promise of
+universal zero-copy dispatch. Explicit source-language C parameter
 types remain restricted to extern declarations; ordinary language readers
 continue declaring `string` / `bytes`.
 
@@ -154,3 +156,7 @@ mutations. Thirteen C interoperability programs and nine ordinary programs
 passed both source JIT and standalone EXE; ordinary generated C included no
 C owner runtime header. The full check now runs these ordinary contracts and
 programs to protect virtual, async and generator dispatch during loan cleanup.
+
+`xlir_c_owned_calls.xl` checks explicit/inferred generic identities, concrete
+signature separation, recursive generic forwarding, a 65-parameter function,
+function-value string loans and cleanup of nested temporary C arguments.
