@@ -31,7 +31,7 @@
 | x509_crl_profile | CRL 编号、delta base、AKI、IssuingPoint、条目理由／失效时间／issuer | 已接入拥有投影及独立 DER 值解析；不计算间接 issuer 继承或撤销策略 |
 | x509_crl_policy | 严格配置、已验证 CRL、complete／delta 组合、分段覆盖及状态归并 | 已接入拥有快照、完整／delta、绑定目标的不可变归并、类型化撤销状态和 checked 关键扩展回调；不是完整路径／信任验证 |
 | x509_name_constraints | permitted／excluded 子树、名称类型及证书检查；未知能力不能静默忽略 | 已接入拥有记录、基点比较和严格检查；非路径／信任判断 |
-| x509_path | 有序路径、独立 trust anchor、用途／时间／critical 扩展策略 | 后续 |
+| x509_path | 有序路径、独立 trust anchor、用途／时间／critical 扩展策略 | 拥有型 ordered-path 内部底座已实现，语言接线与验收后续；见专项 |
 | x509_path_build | 候选 issuer、独立 anchor、回溯建链、成功时拥有的路径与 typed 结果 | 后续 |
 | x509_store | TrustStore 导入／去重、证书／锚读取和不可变验证快照 | 后续 |
 | x509_store_file | 文件 DER／PEM 的事务导入，与现有 file／VFS 边界协调 | 后续 |
@@ -47,6 +47,9 @@
 只能在全部检查通过后发布。原生 critical 策略／其他回调若进入语言公开面，必须
 具备真实拥有边、代码租约和 checked 调用，不得交付短生命周期的指针视图。
 CRL 状态未确定或覆盖不完整不能伪称 good；TLS 最终使用同一信任和身份体系。
+
+有序路径内部底座见 [路径拥有底座](x509-path-owned.md)。该步骤没有增加本表头
+的 278 个语言驻留入口计数，不能算作 path/build/store 的公开接入完成。
 
 ## 本批拥有数据及源码 API
 
