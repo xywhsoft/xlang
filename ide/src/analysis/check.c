@@ -1,5 +1,6 @@
 #include "analysis/check.h"
 #include "analysis/frontend_context.h"
+#include "analysis/frontend_entry_cache.h"
 #include "analysis/frontend_index.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_sem.h"
@@ -147,7 +148,9 @@ xls_semantic_check* xlsSemanticCheckCreateIncrementalInContext(xls_context* cont
 {
     if(!xlsFrontendContextValid(context,entry,error,capacity)) return NULL;
     xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
+    xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,NULL,context,entry);
     xls_semantic_check* result=createBody(context,entry,inputs,count,captureIndex,syntax,previous,cancelled,user,error,capacity);
+    xlsFrontendEntryEnd(&entryScope,0);
     if(!xlsFrontendContextEnd(&scope)) {
         xlsSemanticCheckDestroy(result); fail(error,capacity,(scope.failed&2) ? "cannot retain bounded completion namespace" : "cannot resolve native context path or package environment"); return NULL;
     }

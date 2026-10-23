@@ -2,6 +2,7 @@
 #include "analysis/frontend_context.h"
 #include "analysis/input_batch.h"
 #include "analysis/frontend_internal.h"
+#include "analysis/frontend_entry_cache.h"
 #include "src/sem/xl6_completion.h"
 #include <xrt.h>
 #include <stdio.h>
@@ -13,6 +14,7 @@ struct xls_completion_session {
     size_t offset;
     xls_semantic_completion* result;
     xls_syntax* entrySyntax;
+    xls_entry_cache* entryCache;
     xls_completion_stats stats;
 };
 xls_completion_session* xlsCompletionSessionCreate(const xls_session_limits* limits)
@@ -21,7 +23,7 @@ xls_completion_session* xlsCompletionSessionCreate(const xls_session_limits* lim
     xls_completion_session* s=xrtCalloc(1,sizeof(*s)); if(s) s->limits=chosen; return s;
 }
 void xlsCompletionSessionDestroy(xls_completion_session* s)
-{ if(s) { xlsInputBatchDestroy(s->batch); xlsSyntaxRelease(s->entrySyntax); xlsSemanticCompletionDestroy(s->result); xrtFree(s); } }
+{ if(s) { xlsInputBatchDestroy(s->batch); xlsSyntaxRelease(s->entrySyntax); xlsSemanticCompletionDestroy(s->result); xlsEntryCacheDestroy(s->entryCache); xrtFree(s); } }
 void xlsCompletionSessionStats(const xls_completion_session* s,xls_completion_stats* stats)
 { if(stats) *stats=s ? s->stats : (xls_completion_stats){0}; }
 xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_session* s,xls_context* context,
@@ -69,7 +71,8 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
              * surface. This is the original native frontend, never CLI;
              * the explicit route counter distinguishes it from reuse. */
             ++s->stats.cursorFreshBuilds;
-            result=xlsSemanticCompletionCreateInContext(context,xlsInputBatchEntry(batch),query->path,offset,inputs,count,cancelled,user,error,capacity);
+            if(entry!=query && !s->entryCache) s->entryCache=xlsEntryCacheCreate(32u*1024u*1024u);
+            result=xlsSemanticCompletionCreateCachedInContext(context,entry!=query ? s->entryCache : NULL,xlsInputBatchEntry(batch),query->path,offset,inputs,count,cancelled,user,error,capacity);
             xlsSyntaxRelease(syntax); syntax=NULL;
         }
         if(!result) goto done;
