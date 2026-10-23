@@ -97,6 +97,7 @@ export class Writer
     private extern "xcsv_writer_end" func endNative() as bool
     private extern "xcsv_writer_close" func closeNative() as bool
     private extern "xcsv_writer_take_buffer" func takeBufferNative() as point
+    private extern "xcsv_writer_take_text" func takeTextNative() as point
 
     func write(array<string> fields)
         for value in fields
@@ -118,6 +119,14 @@ export class Writer
 
     func finish() as Buffer
         return Buffer(self.takeBufferNative())
+    end
+
+    func finishText() as string
+        point result = self.takeTextNative()
+        if result == null then
+            throw CsvError "CSV writer has no available text result"
+        end
+        return __xl_std_runtime_take_cstr(result)
     end
 end
 
@@ -236,6 +245,10 @@ export class DictWriter
     func finish() as Buffer
         return self.output.finish()
     end
+
+    func finishText() as string
+        return self.output.finishText()
+    end
 end
 
 
@@ -324,7 +337,7 @@ export func stringify(array<array<string>> rows, string delimiter = ",",
     for row in rows
         output.write(row)
     end
-    return output.finish().text()
+    return output.finishText()
 end
 
 

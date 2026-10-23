@@ -433,3 +433,18 @@ void* xcsv_writer_take_buffer(void* pValue)
 	if ( pResult == NULL ) { xcsv_publish_error(); }
 	return pResult;
 }
+
+/* 直接移交缓冲的底层分配，省去 Buffer.text 的整串副本。 */
+void* xcsv_writer_take_text(void* pValue)
+{
+	xbuffer* pBuffer = (xbuffer*)xcsv_writer_take_buffer(pValue);
+	char* sText;
+	if ( pBuffer == NULL ) { return NULL; }
+	if ( !xrtBufferAppendByte(pBuffer, 0) ) {
+		xrtBufferDestroy(pBuffer);
+		return NULL;
+	}
+	sText = (char*)xrtBufferTake(pBuffer, NULL, NULL);
+	xrtBufferDestroy(pBuffer);
+	return sText;
+}

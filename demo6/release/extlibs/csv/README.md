@@ -109,10 +109,13 @@ C 调用方仍须传入有效 NUL 结尾字符串。
 | `Writer` | `write(array<string> fields)` | 写一整行，不保留调用者数组 |
 | `Writer` | `close()` | 完成输出；文件只有成功 close 才提交 |
 | `Writer` | `finish() as Buffer` | 内存模式下完成并取走结果，只能取一次；文件模式不可用 |
+| `Writer` | `finishText() as string` | 内存模式下直接取走文本；只能取一次，与 `finish()` 二选一 |
 | `DictReader` | `next(), row(), close(), eof, rowNumber` | row 返回新的 `dict<string>`；首行为表头，第一条数据行编号为 1 |
 | `DictReader` | `headers as array<string>` | 返回表头副本 |
-| `DictWriter` | `write(dict<string> values), close(), finish()` | 缺失键写空字符串，多余键抛 CsvError |
+| `DictWriter` | `write(dict<string> values), close(), finish(), finishText()` | 缺失键写空字符串，多余键抛 CsvError；文本结果可直接取得 |
 | `DictWriter` | 构造时的 `headers` | 固定输出列顺序；当前不提供读取 headers 的属性 |
+
+`finishText()` 直接接管内存写入器的 XRT 缓冲分配，避免再通过 `Buffer.text()` 复制整份结果；为补上 C 字符串终止字节，缓冲容量不足时仍可能扩容。它只适用于内存模式，且与 `finish()` 共用一次性取结果状态。C 侧调用 `xcsv_writer_take_text` 后须用 `xrtFree` 释放返回值。
 
 字典输入必须有表头，重复表头、数据列数不符都会抛 `CsvError`。空表头名称允许，
 但仍不得重复。读取到最后一条不带换行的记录时，`next()` 可返回 true 而 `eof` 已为 true，

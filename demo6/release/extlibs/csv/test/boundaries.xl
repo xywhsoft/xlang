@@ -167,6 +167,13 @@ end
 assert caught
 output.write(["ok"])
 assert output.finish().text() == "ok\n"
+auto textOutput = csv.create()
+textOutput.write(["a,b"])
+assert textOutput.finishText() == "\"a,b\"\n"
+assert csv.create().finishText() == ""
+auto dictTextOutput = csv.createDict(["name"])
+dictTextOutput.write({"name": "Alice"})
+assert dictTextOutput.finishText() == "name\nAlice\n"
 caught = false
 try
     csv.createDict([embedded], writeHeader = false)

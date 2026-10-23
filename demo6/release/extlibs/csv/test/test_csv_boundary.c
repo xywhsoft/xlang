@@ -126,6 +126,25 @@ static void pending_row(void)
     xcsv_writer_destroy(writer);
 }
 
+static void take_text(void)
+{
+    void* writer = xcsv_writer_create_memory(",", "\"", 0, false, false, 0, 0, 0, 0, 0);
+    char* result;
+    assert(writer && xcsv_writer_begin(writer) && xcsv_writer_field(writer, "a,b") &&
+        xcsv_writer_end(writer));
+    result = xcsv_writer_take_text(writer);
+    assert(result && !strcmp(result, "\"a,b\"\n"));
+    xrtFree(result);
+    xcsv_writer_destroy(writer);
+
+    writer = xcsv_writer_create_memory(",", "\"", 0, false, false, 0, 0, 0, 0, 0);
+    assert(writer);
+    result = xcsv_writer_take_text(writer);
+    assert(result && !strcmp(result, ""));
+    xrtFree(result);
+    xcsv_writer_destroy(writer);
+}
+
 static void dialect_length(void)
 {
     char unterminated[2] = {',', 'x'};
@@ -145,6 +164,7 @@ int main(int argc, char** argv)
     if (!strcmp(name, "all") || !strcmp(name, "close")) close_once();
     if (!strcmp(name, "all") || !strcmp(name, "nul")) nul_input();
     if (!strcmp(name, "all") || !strcmp(name, "pending-row")) pending_row();
+    if (!strcmp(name, "all") || !strcmp(name, "take-text")) take_text();
     if (!strcmp(name, "all") || !strcmp(name, "dialect-length")) dialect_length();
     xrtClearError();
     puts("csv boundaries: PASS");

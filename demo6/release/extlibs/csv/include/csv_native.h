@@ -29,6 +29,8 @@ bool xcsv_writer_field(void* writer, cstr value);
 bool xcsv_writer_end(void* writer);
 bool xcsv_writer_close(void* writer);
 void* xcsv_writer_take_buffer(void* writer);
+/* 取走内存写入器的 UTF-8 结果；调用方使用 xrtFree 释放。 */
+void* xcsv_writer_take_text(void* writer);
 
 #ifdef __cplusplus
 }

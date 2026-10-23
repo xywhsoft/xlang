@@ -64,8 +64,10 @@ rows.close()</code></pre>
     <p>Reader 提供 next()、field(index)、row()、close()，及 eof、rowNumber、count 属性。
     行号和字段索引从 0 开始，没有当前行时 rowNumber/count 为 -1。field/row 返回独立结果。
     DictReader 提供 next/row/close、eof/rowNumber 和表头副本 headers，第一条数据行编号为 1。</p>
-    <p>Writer/DictWriter 提供 write、close、finish。finish 仅限内存模式，完成并取走 Buffer，
-    只能取一次。最后一行没有换行时，next 可返回 true 而 eof 已为 true；遍历始终使用 while next()。</p>
+    <p>Writer/DictWriter 提供 write、close、finish、finishText。finish 取走 Buffer；finishText
+    直接接管底层缓冲并返回 string，避免再复制整份文本。两者仅限内存模式且只能二选一、取一次。
+    C 侧的 xcsv_writer_take_text 返回值由调用方使用 xrtFree 释放。最后一行没有换行时，
+    next 可返回 true 而 eof 已为 true；遍历始终使用 while next()。</p>
 
     <h2 id="options">格式与限额</h2>
     <p>读选项顺序：delimiter、quote、strict、maxInput、maxOutput、maxField、maxRows、maxFields。
