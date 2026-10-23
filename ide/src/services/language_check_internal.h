@@ -17,6 +17,7 @@ struct xide_language_check {
  xvalue *guardFiles,*guardResolution; xide_toolchain_stamp guardToolchain;
  xide_semantic_definitions* definitions;
 #ifdef XLS_COMPILER_XRT
+ xls_context* context;
  xls_text* snapshotTexts[64]; char* snapshotKeys[64]; uint64_t snapshotIdentities[64];
  int retainedSnapshots; char* semanticTarget; xls_worker* semanticActor;
  xls_check_stats semanticStats; xls_completion_stats completionStats; uint64_t semanticThread,captureThread;

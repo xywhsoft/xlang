@@ -174,6 +174,12 @@ static xvalue* emptyGroup(const xvalue* source)
  if(!okay) { xrtValueRelease(result); result=NULL; } return result;
 }
 #include "diagnostic_dependencies.inc"
+static int sameRecordContext(unsigned char cache[RECORD_LIMIT][RECORD_LIMIT],record* const* records,size_t left,size_t right)
+{
+ if(!cache[left][right]) cache[left][right]=cache[right][left]=(unsigned char)
+  (xideLanguageInputGuardSameContext(records[left]->guard,records[right]->guard) ? 1 : 2);
+ return cache[left][right]==1;
+}
 static int makeSnapshot(xide_diagnostic_store* store,record* const* records,size_t count,xcancel* cancel,output* out)
 {
  size_t limit=store->limits.publishedReportBytes;
@@ -191,9 +197,12 @@ static int makeSnapshot(xide_diagnostic_store* store,record* const* records,size
     !xrtArrayInit(&out->publication->dependencies,sizeof(dependency_set)) || !xrtArrayInit(&out->publication->dependencyIndex,sizeof(dependency_index)) ||
     !xrtArrayInit(&out->publication->groupDependencies,sizeof(size_t)) || !(out->publication->documents=xrtValueArray())) { fail(out,"Cannot allocate merged diagnostics."); goto done; }
  group_ref* refs=(group_ref*)references.Data; xvalue* merged=NULL; const stored_group* previous=NULL; uint64 groupId=0;
+ /* One full context comparison per contributing record pair, rather than
+    repeatedly comparing potentially large descriptors for every shared file. */
+ unsigned char contexts[RECORD_LIMIT][RECORD_LIMIT]={{0}};size_t previousOwner=0;
  for(size_t i=0;i<references.Count;++i) {
   if(xrtCancelRequested(cancel)) { fail(out,"Diagnostic merge cancelled."); goto done; }
-  stored_group* source=refs[i].group;
+  stored_group* source=refs[i].group;size_t owner=refs[i].order/(FILE_LIMIT+RECORD_LIMIT);
   if(!previous || comparePath(previous->key,source->key)) {
    if(++groupId>GROUP_LIMIT) { fail(out,"Merged diagnostic file limit exceeded."); goto done; }
    merged=emptyGroup(source->value); size_t bytes=merged ? encodedBytes(merged,limit-publishedBytes) : SIZE_MAX;
@@ -205,7 +214,10 @@ static int makeSnapshot(xide_diagnostic_store* store,record* const* records,size
    if(!appended) free(key);
    appended=appended && xrtValueArrayAppend(out->publication->documents,merged); xrtValueRelease(merged);
    if(!appended) { fail(out,"Cannot retain merged diagnostic group."); goto done; }
-   previous=source;
+   previous=source;previousOwner=owner;
+  } else if(!sameRecordContext(contexts,records,previousOwner,owner)) {
+   out->conflictPath=xrtStrDup(string(get(source->value,"path")));
+   fail(out,out->conflictPath ? "Conflicting diagnostic analysis contexts." : "Cannot retain diagnostic context conflict path.");goto done;
   } else if(!compatible(previous->value,source->value)) {
    out->conflictPath=xrtStrDup(string(get(source->value,"path")));
    fail(out,out->conflictPath ? "Conflicting diagnostic input versions or fingerprints." : "Cannot retain changed diagnostic input path."); goto done;

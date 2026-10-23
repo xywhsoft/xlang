@@ -40,7 +40,7 @@ static xls_semantic_check* retainedCheck(xide_language_check* q,xide_model_error
  for(size_t i=0;i<q->snapshotCount;++i) documents[i]=(xls_analysis_document){q->snapshotKeys[i],q->snapshots[i].path,
   q->snapshotTexts[i],q->snapshotIdentities[i],(uint64_t)((int64_t)q->snapshots[i].version-INT_MIN)};
  HANDLE event=CreateEventW(NULL,FALSE,FALSE,NULL);
- xls_query* query=event ? xlsWorkerCheck(q->semanticActor,documents,q->snapshotCount,q->semanticTarget) : NULL;
+ xls_query* query=event ? xlsWorkerCheckInContext(q->semanticActor,q->context,documents,q->snapshotCount,q->semanticTarget) : NULL;
  xls_semantic_check* result=NULL;
  if(!query || !xlsQuerySetWake(query,nativeQueryWake,event)) { fail(e,"Cannot submit retained semantic analysis."); goto done; }
  for(;;) {
@@ -67,7 +67,7 @@ static xls_semantic_completion* retainedCompletion(xide_language_check* q,xide_m
   if(xidePathLexicalEqual(q->queryPath,q->snapshots[i].path)) target=q->snapshotKeys[i];
  }
  HANDLE event=CreateEventW(NULL,FALSE,FALSE,NULL);
- xls_query* query=event && target ? xlsWorkerCompletion(q->semanticActor,documents,q->snapshotCount,
+ xls_query* query=event && target ? xlsWorkerCompletionInContext(q->semanticActor,q->context,documents,q->snapshotCount,
   q->semanticTarget,target,(size_t)q->queryOffset) : NULL;
  xls_semantic_completion* result=NULL;
  if(!query || !xlsQuerySetWake(query,nativeQueryWake,event)) { fail(e,"Cannot submit retained cursor analysis."); goto done; }
@@ -93,7 +93,7 @@ static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_seman
  for(size_t i=0;i<q->snapshotCount;++i) inputs[i]=(xls_semantic_input){q->snapshots[i].path,q->snapshots[i].text,strlen(q->snapshots[i].text)};
  size_t size=0; char* report=NULL;
  if(q->queryPath) {
-  xls_semantic_completion* result=q->semanticActor ? retainedCompletion(q,e) : xlsSemanticCompletionCreate(q->path,q->queryPath,(size_t)q->queryOffset,
+  xls_semantic_completion* result=q->semanticActor ? retainedCompletion(q,e) : xlsSemanticCompletionCreateInContext(q->context,q->path,q->queryPath,(size_t)q->queryOffset,
    inputs,q->snapshotCount,nativeCancelled,q,e->message,sizeof(e->message));
   if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
   report=xlsSemanticCompletionJson(result,&size);
@@ -101,7 +101,7 @@ static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_seman
   xlsSemanticCompletionDestroy(result);
  } else {
   xls_semantic_check* result=q->semanticActor ? retainedCheck(q,e) :
-   xlsSemanticCheckCreate(q->path,inputs,q->snapshotCount,1,nativeCancelled,q,e->message,sizeof(e->message));
+   xlsSemanticCheckCreateInContext(q->context,q->path,inputs,q->snapshotCount,1,nativeCancelled,q,e->message,sizeof(e->message));
   if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
   *checked=result;
   report=xlsSemanticCheckReportJson(result,&size);
@@ -191,6 +191,32 @@ int xideLanguageCheckPackagePath(char** out,xide_model_error* e)
  int okay=text && WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,w,-1,text,bytes,NULL,NULL); free(w);
  if(!okay) { free(text); return fail(e,"包搜索环境无法稳定转换为 UTF-8。"); } *out=text; return 1;
 }
+static int packageCurrent(xide_language_check* q,xide_model_error* e,const char* message)
+{
+#ifdef XLS_COMPILER_XRT
+ if(q->context) {
+  const char* expected=xlsContextSpec(q->context)->packagePath;
+  int same=q->nativeSemantic && (expected && q->packagePath ? !strcmp(expected,q->packagePath) : expected==q->packagePath);
+  return same ? 1 : fail(e,"原生上下文与捕获的包搜索输入不一致。");
+ }
+#endif
+ char* now=NULL; if(!xideLanguageCheckPackagePath(&now,e)) return 0;
+ int same=now && q->packagePath ? !strcmp(now,q->packagePath) : now==q->packagePath; free(now);
+ return same ? 1 : fail(e,message);
+}
+static int capturePackage(xide_language_check* q,xide_model_error* e)
+{
+#ifdef XLS_COMPILER_XRT
+ if(q->context) {
+  const char* expected=xlsContextSpec(q->context)->packagePath;
+  if(!q->nativeSemantic || (expected && !(q->packagePath=malloc(strlen(expected)+1))))
+   return fail(e,"无法捕获原生上下文的包搜索输入。");
+  if(expected) memcpy(q->packagePath,expected,strlen(expected)+1);
+  return 1;
+ }
+#endif
+ return xideLanguageCheckPackagePath(&q->packagePath,e);
+}
 static int resolution(xide_language_check* q,const xvalue* value,xide_model_error* e)
 {
  int64 schema=0; bool observed=false; const xvalue* probes=get(value,"probes"),*env=get(value,"XLANG_PACKAGE_PATH");
@@ -198,8 +224,7 @@ static int resolution(xide_language_check* q,const xvalue* value,xide_model_erro
  const char* package=string(env); if(!package && xrtValueType(env)!=XVALUE_NULL) return fail(e,"包路径报告无效。");
  if(!observed && package) return fail(e,"未观察的包路径报告无效。");
  if(observed && (package && q->packagePath ? strcmp(package,q->packagePath)!=0 : package!=q->packagePath)) return fail(e,"编译器包路径与本次不可变环境不一致。");
- char* now=NULL; if(!xideLanguageCheckPackagePath(&now,e)) return 0;
- int same=now && q->packagePath ? !strcmp(now,q->packagePath) : now==q->packagePath; free(now); if(!same) return fail(e,"检查期间包搜索环境已变化。");
+ if(!packageCurrent(q,e,"检查期间包搜索环境已变化。")) return 0;
  size_t bytes=0;
  for(size_t i=0;i<xrtValueCount(probes);++i) {
   if(cancelled(q)) return 0;
@@ -316,9 +341,7 @@ int xideLanguageSnapshotGuard(xide_language_check* q,xide_model_error* e)
   if(formatted(get(item,"origin"),"overlay")) continue;
   char* text=diskText(q,string(get(item,"path")),item,NULL,e); if(!text) return 0; free(text);
  }
- char* now=NULL; if(!xideLanguageCheckPackagePath(&now,e)) return 0;
- int same=now && q->packagePath ? !strcmp(now,q->packagePath) : now==q->packagePath; free(now);
- if(!same) return fail(e,"发布后包搜索环境已变化。");
+ if(!packageCurrent(q,e,"发布后包搜索环境已变化。")) return 0;
  const xvalue* probes=get(q->guardResolution,"probes");
  for(size_t i=0;i<xrtValueCount(probes);++i) {
   if(cancelled(q)) return 0;
@@ -397,7 +420,7 @@ int xideLanguageSnapshotRun(xide_language_check* q,xvalue** output,xide_model_er
  HANDLE leases[64]; for(size_t i=0;i<64;++i) leases[i]=INVALID_HANDLE_VALUE;
  char cursor[32]; snprintf(cursor,sizeof(cursor),"%d",q->queryOffset);
  const char* args[2560]={"check",q->path,"--json","--source-report"}; size_t count=4; int code=0,success=0; bool okay=false; uint64_t began=GetTickCount64();
- if(cancelled(q) || !xideLanguageCheckPackagePath(&q->packagePath,e)) goto done;
+ if(cancelled(q) || !capturePackage(q,e)) goto done;
  q->packagePathCaptured=1;
 #ifdef XLS_COMPILER_XRT
  if(q->nativeSemantic) {

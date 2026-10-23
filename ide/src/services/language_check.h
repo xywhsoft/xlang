@@ -40,6 +40,17 @@ xide_language_check* xideLanguageCheckStartRetained(xide_toolchains* cache,const
  const char* directory,xls_worker* actor,const xls_analysis_document* documents,size_t count,
  const char* target,const char* queryPath,int line,int character,
  const xide_language_analysis_options* options,xide_model_error* error);
+/* Same retained host boundary with an independently retained native context.
+   The open target must match context.entry, and directory must match the
+   context's build directory. Unsupported frontend options reject before
+   starting a worker. Detached input proofs retain the context as well;
+   explicit package inputs never fall back to the process environment.
+   NULL preserves the existing host API, including global environment guards. */
+xide_language_check* xideLanguageCheckStartRetainedInContext(xls_context* context,
+ xide_toolchains* cache,const char* compiler,const char* directory,xls_worker* actor,
+ const xls_analysis_document* documents,size_t count,const char* target,
+ const char* queryPath,int line,int character,const xide_language_analysis_options* options,
+ xide_model_error* error);
 #endif
 
 /* Worker-only C ABI query: disk entry is allowed, open .xl overlays remain
@@ -93,6 +104,11 @@ int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*cancel
 /* Borrowed immutable actual-input file reports, not all captured overlays.
    Valid until the caller releases its reference; safe across validations. */
 const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard);
+/* Immutable semantic scope equality, without I/O or allocation. Distinct
+   explicit contexts must not contribute to one file's merged diagnostics.
+   Both default/legacy guards are equal in scope. NULL guards are invalid.
+   Equality checks complete context bytes, not pointer/hash identity alone. */
+int xideLanguageInputGuardSameContext(const xide_language_input_guard* left,const xide_language_input_guard* right);
 /* Worker-only exact invalidation scope: actual inputs and every observed
    import candidate, including absent paths and manifests. Sorted/deduplicated
    with existing platform lexical path rules; no filesystem access. Caller
@@ -104,8 +120,9 @@ int xideLanguageInputGuardCurrent(const xide_language_input_guard* guard);
 void xideLanguageInputGuardInvalidate(xide_language_input_guard* guard);
 /* Lexical inputs/candidate lookup only, without disk access. */
 int xideLanguageInputGuardTouches(const xide_language_input_guard* guard,const char* path);
-/* Worker-only serialized metadata size for bounded diagnostic retention;
-   SIZE_MAX on serialization failure. This is not a heap/RSS measurement. */
+/* Worker-only serialized metadata plus retained immutable context bytes for
+   bounded diagnostic retention; shared contexts are conservatively charged
+   per guard. SIZE_MAX on failure. This is not a heap/RSS measurement. */
 size_t xideLanguageInputGuardReportBytes(const xide_language_input_guard* guard);
 /* Nonblocking retirement: Destroy can be called after WorkerFinished without
    waiting for disk work on the owner thread. Cache must outlive the worker. */
