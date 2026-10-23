@@ -186,7 +186,7 @@ static int xl6IrCgenEmitModuleDefinitions(
                     type->cAbi == XL6_IR_C_ABI_MANAGED_STRING && type->kind != XL6_IR_TYPE_NULLABLE) ||
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING &&
                     type->cAbi == XL6_IR_C_ABI_MANAGED_STRING && type->kind == XL6_IR_TYPE_NULLABLE) ||
-                   (item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE && xl6IrNativeValuePlanForType(type)!=NULL) ||
+                   (item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE && xl6IrOwnedTransferPlanForType(type)!=NULL) ||
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE &&
                     (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
                      type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES)) ||
@@ -237,7 +237,7 @@ static int xl6IrCgenEmitModuleDefinitions(
                 (unsigned int)closure->targetSymbol, (unsigned long)capture);
             if(nativeLayout){
                 const XL6_IrNativeValuePlan* native=item->abi==XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE ?
-                    xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,item->type)) : NULL;
+                    xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,item->type)) : NULL;
                 xl6OutputPrintf(out,", %s}",native ? native->captureProfileSymbol : "NULL");
             }
             xl6OutputPuts(",\n",out);

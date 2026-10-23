@@ -242,7 +242,7 @@ static const char* xl6IrCgenFrameDestroyForType(const XL6_IrModule* module,
     XL6_IrTypeId type,XL6_IrContinuationFrameDestroyAbi abi)
 {
     if(abi==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE){
-        const XL6_IrNativeValuePlan* plan=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,type));
+        const XL6_IrNativeValuePlan* plan=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,type));
         return plan && plan->captureProfileSymbol ? plan->dropSymbol : NULL;
     }
     return xl6IrCgenFrameDestroyFunction(abi);

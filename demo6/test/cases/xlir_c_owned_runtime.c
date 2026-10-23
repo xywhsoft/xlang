@@ -21,6 +21,17 @@ static void* allocation(const void* bytes, size_t size)
     return result;
 }
 
+static int32 shareOwner(void* raw)
+{
+    const XL6_COwnedV1* source=raw;
+    for(unsigned i=0;i<10000;++i) {
+        XL6_COwnedV1 copy=xl6COwnedCopyV1(*source);
+        assert(copy.Data==source->Data && copy.Size==source->Size);
+        xl6COwnedDropV1(&copy);
+    }
+    return 0;
+}
+
 int main(void)
 {
     const char text[] = "A\xe4\xbd\xa0\xe5\xa5\xbd";
@@ -98,6 +109,12 @@ int main(void)
     c=xl6CStringTakeV1(allocation(text,sizeof(text)),release);
     assert(!c.Data && !c.Owner && released==7 && xrtMemDebugFailTriggered());
     xrtMemDebugFailClear();xrtClearError();
+    c=xl6CStringTakeV1(allocation(text,sizeof(text)),release);
+    xthread* threads[4];
+    for(size_t i=0;i<4;++i){threads[i]=xrtThreadCreate(shareOwner,&c,0);assert(threads[i]);}
+    for(size_t i=0;i<4;++i){assert(xrtThreadWait(threads[i])==XWAIT_OK);xrtThreadDestroy(threads[i]);}
+    assert(released==7 && xrtAtomic64Load(&c.Owner->References,XMEMORY_ACQUIRE)==1);
+    xl6COwnedDropV1(&c);assert(released==8);
     puts("C owned runtime: independent copies, binary NUL, empty, release-once and failed adoption passed");
     return 0;
 }

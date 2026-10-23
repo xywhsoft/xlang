@@ -16403,6 +16403,7 @@ static int xl6SemCheckBoundarySymbolUse(XL6_SemContext* ctx, const XL6_AstNode* 
                 xl6TextEquals(cellValue->text, "type") ||
                 xl6TextEquals(cellValue->text, "string") ||
                 xl6TextEquals(cellValue->text, "bytes") ||
+                xl6COwnedBaseName(cellValue->text) ||
                 xl6TextEquals(cellValue->text, "var") ||
                 (cellInfo && cellInfo->kind==XL6_TYPE_BUILTIN && xl6TypeRegistryIsNativeValueAbi(cellInfo->abiId))) ) {
             xl6SemErrorNode(ctx, node, "可变捕获需要已实现的共享 cell 元素 ABI");
@@ -16432,9 +16433,7 @@ static int xl6SemCheckNameExpr(XL6_SemContext* ctx, XL6_AstNode* node)
         /* A read is a resolved use, not a declaration.  Keep the target
          * explicitly so XLIR lowering never has to look the name up again. */
         node->semanticTargetSymbolId = sym->id;
-        if(sym->type && xl6COwnedBaseName(sym->type->text) && ctx->captureBoundaryAllowsCapture &&
-            xl6ScopeNameIsOutsideBoundary(ctx->scope,ctx->captureBoundary,node->text) &&
-            !xl6SemCOwnedResult(ctx,node,xl6COwnedBaseName(sym->type->text)))return 0;
+
         if ( ctx->suppressDefiniteAssignment == 0 &&
              (sym->kind == XL6_SYM_VALUE || sym->kind == XL6_SYM_CONST) &&
              !sym->definitelyAssigned ) {
@@ -16725,11 +16724,7 @@ static int xl6SemDeclareVarWithKind(
         xl6SemErrorNode(ctx,node,"C owners require explicit local initialization with take");
         ok=0;
     }
-    if(declaredType && xl6COwnedBaseName(declaredType->text) && ctx->currentFunction &&
-        (ctx->currentFunction->kind==XL6_AST_ASYNC_FUNC || ctx->generatorDepth ||
-         (ctx->currentFunction->flags & XL6_AST_FLAG_ASYNC))) {
-        xl6SemErrorNode(ctx,node,"C owners cannot live in coroutine frames; materialize string/bytes in a synchronous scope");ok=0;
-    }
+
 
     if ( initExpr != NULL && initExpr->kind == XL6_AST_NAME &&
          declaredType != NULL && xl6TextEquals(declaredType->text, "auto") ) {

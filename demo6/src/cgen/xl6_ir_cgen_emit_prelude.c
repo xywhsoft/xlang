@@ -140,7 +140,7 @@ static int xl6IrCgenEmitRuntimePrelude(
             for(size_t i=0;i<module->types.count;++i){
                 const XL6_IrType* cell=&module->types.items[i];
                 if(cell->kind!=XL6_IR_TYPE_CELL || cell->paramCount!=1 || !cell->params)continue;
-                const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,cell->params[0]));
+                const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,cell->params[0]));
                 if(native && native->captureHeader)xl6OutputPrintf(out,"#include <%s>\n",native->captureHeader);
             }
         }
@@ -397,7 +397,7 @@ static int xl6IrCgenEmitRuntimePrelude(
     }
     if(needs->needsNativeFuturePayloadRuntime || needs->needsNativeCaptureProfileHeaders) {
         for(size_t i=0;i<module->types.count;++i) {
-            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(&module->types.items[i]);
+            const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(&module->types.items[i]);
             if(native)xl6OutputPrintf(out,"#include <%s>\n",native->captureHeader);
         }
     }

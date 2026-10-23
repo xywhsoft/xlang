@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <__xl_runtime/xruntime_decl.h>
-static int64_t count;
+static xatomic64 count;
 static const char* originalText;
 static const void* originalBinary;
 void* c_owned_text(void)
@@ -20,8 +20,8 @@ void* c_owned_binary(void)
     const unsigned char bytes[]={0,255,17,42};
     void* data=malloc(sizeof(bytes)); assert(data); memcpy(data,bytes,sizeof(bytes)); originalBinary=data; return data;
 }
-void c_owned_release(void* data) { assert(data); ++count; free(data); }
-int64_t c_owned_released(void) { return count; }
+void c_owned_release(void* data) { assert(data); xrtAtomic64FetchAdd(&count,1,XMEMORY_RELAXED); free(data); }
+int64_t c_owned_released(void) { return (int64_t)xrtAtomic64Load(&count,XMEMORY_ACQUIRE); }
 void* c_owned_unicode(void)
 {
     const char text[]="A\xe4\xbd\xa0\xe5\xa5\xbd" "B";

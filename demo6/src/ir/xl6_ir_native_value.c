@@ -33,7 +33,7 @@ XL6_IrClosureStorageAbi xl6IrClosureEnvironmentAbi(const XL6_IrModule* module,co
     for(size_t i=0;i<target->captureCount;++i){
         const XL6_IrClosureCapture* capture=&module->closureCaptures[target->firstCapture+i];
         if(capture->abi!=XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE)continue;
-        const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,capture->type));
+        const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,capture->type));
         if(!native || !native->captureHeader || !native->captureProfileSymbol)return XL6_IR_CLOSURE_STORAGE_NONE;
         result=XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3;
     }
@@ -53,7 +53,7 @@ XL6_IrCellStorageAbi xl6IrModuleCellStorageRequirement(const XL6_IrModule* modul
     if(!module)return XL6_IR_CELL_STORAGE_NONE;
     for(size_t i=0;i<module->storageCount;++i)
         if(module->storages[i].cellType!=XL6_IR_TYPE_INVALID &&
-            xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,module->storages[i].type)))
+            xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,module->storages[i].type)))
             return XL6_IR_CELL_STORAGE_RESIDENT_NATIVE_LEAF_V2;
     return XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1;
 }

@@ -36,7 +36,7 @@ static int xl6IrCgenEmitCaptureSlotV2(XL6_Output* out,const XL6_IrModule* module
 {
     const char* kind=xl6IrCgenCaptureKind(destroy);const char* publisher="NULL";
     if(destroy==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE) {
-        const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,id));
+        const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,id));
         if(!native || !native->captureProfileSymbol)return 0;
         kind="XL6_CAPTURE_NATIVE_LEAF_V2";publisher=native->captureProfileSymbol;
     }
@@ -59,7 +59,7 @@ static int xl6IrCgenEmitActivationLayout(XL6_Output* out, const char* prefix, XL
             const XL6_IrContinuationFrameSlot* frame = &frames[local];
             const char* kind = xl6IrCgenCaptureKind(frame->destroyAbi);
             const XL6_IrNativeValuePlan* native=frame->destroyAbi==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE ?
-                xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type)) : NULL;
+                xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,frame->type)) : NULL;
             if(native && nativeLayout)kind="XL6_CAPTURE_NATIVE_LEAF_V2";
             if (!kind) return 0;
             if(nativeLayout)xl6OutputPuts("    {",out);

@@ -326,7 +326,7 @@ static int xl6IrCgenEmitActivationCapture(
 {
     int acquired;
     const char* type=xl6IrCgenType(module,id);
-    const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,id));
+    const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,id));
     if (transfer==XL6_IR_ASYNC_FRAME_TRANSFER_BORROW_STORAGE || transfer==XL6_IR_ASYNC_FRAME_TRANSFER_MOVE_OWNED ||
         !xl6IrCgenEmitFrameAcquisitionBegin(out,type,transfer,input,&acquired,native)) return 0;
     if (acquired) {

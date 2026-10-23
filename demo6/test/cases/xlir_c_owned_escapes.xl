@@ -34,9 +34,9 @@ auto value = stored()
 assert released() == 2
 assert value.text == "hello" and value.data[1] == 255
 auto work = job()
-assert released() == 4
+assert released() == 2
 assert await task.spawn(work) == 9
 auto outer = nested()
-assert released() == 5
+assert released() == 2
 auto inner = outer()
 assert inner() == "hello"

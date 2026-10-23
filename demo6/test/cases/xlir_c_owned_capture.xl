@@ -16,8 +16,10 @@ end
 func check()
     auto text = reader()
     auto data = binaryReader()
-    assert released() == 2
+    assert released() == 0
     assert text() == "hello" and data() == 255
 end
 
 check()
+
+assert released() == 2

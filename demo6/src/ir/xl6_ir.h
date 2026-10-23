@@ -7889,6 +7889,7 @@ XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTy
 void xl6IrDumpModuleText(XL6_Output* out, const XL6_IrModule* module);
 void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module);
 const XL6_IrNativeValuePlan* xl6IrNativeValuePlanForType(const XL6_IrType*);
+const XL6_IrNativeValuePlan* xl6IrOwnedTransferPlanForType(const XL6_IrType*);
 /* Canonical result representation, shared by lowering, verification and C
  * emission. It does not decide which aggregate/boxing operations admit T. */
 XL6_IrAsyncResultAbi xl6IrAsyncResultAbiForType(const XL6_IrType*);

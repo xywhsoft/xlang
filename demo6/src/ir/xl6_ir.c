@@ -20116,7 +20116,7 @@ static int xl6IrEvaluationOperandMayRaise(
     if (node->valueCategory != XL6_IR_VALUE_NONE && node->storageType != XL6_IR_TYPE_INVALID) {
         const XL6_IrType* type = xl6IrTypeGet(&module->types, node->storageType);
         return (type != NULL && (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
-            xl6IrNativeValuePlanForType(type) != NULL)) ||
+            xl6IrOwnedTransferPlanForType(type) != NULL)) ||
             xl6IrTypeReleaseEffect(module, node->storageType) == XL6_IR_RELEASE_EFFECT_MAY_RAISE;
     }
     if (node->kind != XL6_IR_NODE_LIST && node->kind != XL6_IR_NODE_OTHER) return 0;
@@ -20140,7 +20140,7 @@ static XL6_IrErrorAbi xl6IrNodeEvaluationErrorAbi(
         const XL6_IrType* type = xl6IrTypeGet(&module->types, node->storageType);
         if (type != NULL &&
             (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
-             type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES || xl6IrNativeValuePlanForType(type) != NULL))
+             type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES || xl6IrOwnedTransferPlanForType(type) != NULL))
             return XL6_IR_ERROR_ABI_MAY_RAISE;
     }
     if (node->implicitNameAbi == XL6_IR_IMPLICIT_NAME_CLASS_FIELD &&
@@ -27819,8 +27819,10 @@ static XL6_IrAsyncFrameTransferAbi xl6IrAsyncBorrowTransferForType(
     case XL6_IR_C_ABI_CLOSURE_PTR: return XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_CLOSURE;
     case XL6_IR_C_ABI_RUNTIME_CELL_PTR: return XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_CELL;
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: return XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_ERROR;
+    case XL6_IR_C_ABI_C_STRING:
+    case XL6_IR_C_ABI_C_BYTES:
     case XL6_IR_C_ABI_NATIVE_VALUE:
-        return xl6IrNativeValuePlanForType(type) ? XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE : XL6_IR_ASYNC_FRAME_TRANSFER_INVALID;
+        return xl6IrOwnedTransferPlanForType(type) ? XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE : XL6_IR_ASYNC_FRAME_TRANSFER_INVALID;
     default: return XL6_IR_ASYNC_FRAME_TRANSFER_INVALID;
     }
 }
@@ -27845,8 +27847,10 @@ XL6_IrAsyncFrameDestroyAbi xl6IrOwnedValueDestroyAbi(
         return XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_VALUE_ITERATOR;
     case XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR:
         return XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_GENERATOR;
+    case XL6_IR_C_ABI_C_STRING:
+    case XL6_IR_C_ABI_C_BYTES:
     case XL6_IR_C_ABI_NATIVE_VALUE:
-        return xl6IrNativeValuePlanForType(type) ? XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE : XL6_IR_ASYNC_FRAME_DESTROY_INVALID;
+        return xl6IrOwnedTransferPlanForType(type) ? XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE : XL6_IR_ASYNC_FRAME_DESTROY_INVALID;
     default: return XL6_IR_ASYNC_FRAME_DESTROY_INVALID;
     }
 }
@@ -40307,7 +40311,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING &&
                     type->cAbi == XL6_IR_C_ABI_MANAGED_STRING && type->kind == XL6_IR_TYPE_NULLABLE) ||
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE &&
-                    xl6IrNativeValuePlanForType(type)!=NULL) ||
+                    xl6IrOwnedTransferPlanForType(type)!=NULL) ||
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE &&
                     (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
                      type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES)) ||

@@ -14,6 +14,7 @@
 #include "src/runtime/xl6_value_named_write.h"
 #include "src/runtime/xl6_closure.h"
 #include "src/runtime/xl6_closure_capture_v3.h"
+#include "src/runtime/xl6_c_owned_capture.h"
 #include "src/runtime/xl6_cell.h"
 #include "src/runtime/xl6_slot.h"
 #include "src/runtime/xl6_generator.h"

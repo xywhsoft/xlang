@@ -118,7 +118,7 @@ static int xl6IrCgenEmitUnionTypes(
 static const char* xl6IrCgenCellKind(const XL6_IrType* element)
 {
     if (element == NULL) return NULL;
-    if(xl6IrNativeValuePlanForType(element))return "XL6_CELL_NATIVE_LEAF_V2";
+    if(xl6IrOwnedTransferPlanForType(element))return "XL6_CELL_NATIVE_LEAF_V2";
     switch (element->cAbi) {
     case XL6_IR_C_ABI_BOOL: return "XL6_CELL_BOOL";
     case XL6_IR_C_ABI_CHAR_U32: return "XL6_CELL_CHAR";

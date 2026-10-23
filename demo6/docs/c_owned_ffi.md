@@ -64,7 +64,8 @@ invalid length therefore cannot leak it.
 | `type(value)` / `value is string/bytes` | Reports the corresponding ordinary type |
 | Whole replacement, indexed write, string `+=` | Automatically constructs/replaces the value; other aliases keep their old contents |
 | Explicit `string(cstring)` / `bytes(cbytes)` | Requests an independent payload copy |
-| `var`, containers, fields, closure captures, nullable joins | Materializes the ordinary representation at the boundary |
+| Closure captures, mutable captured cells, async/generator locals | Shares the C owner, including across suspension and worker tasks |
+| `var`, containers, fields, nullable joins | Materializes the ordinary representation at the boundary |
 
 A writable by-value language parameter first acquires its own owner. Changing
 it cannot free or mutate the caller's value. Replacement publishes the new
@@ -115,8 +116,9 @@ Zero-copy means no duplicate input payload on the documented static read paths.
 C adoption still pays for its owner record, reference-count maintenance and
 length scanning for NUL-terminated text. Output creation, explicit copying and
 ordinary escape boundaries have their normal allocation costs. The reference
-count is local/non-atomic; C owner locals cannot persist in coroutine/generator
-frames. Capturing for asynchronous work stores an ordinary value snapshot.
+count is atomic only on C owner acquisition/release. C owner locals and captures
+use a private frame leaf profile; they remain outside XRT dynamic values and
+collections. Reads have no atomic operation or ordinary-value tag test.
 C markers are not allowed in fields, global declarations, aliases, nullable
 marker declarations or generic elements.
 
@@ -160,3 +162,9 @@ programs to protect virtual, async and generator dispatch during loan cleanup.
 `xlir_c_owned_calls.xl` checks explicit/inferred generic identities, concrete
 signature separation, recursive generic forwarding, a 65-parameter function,
 function-value string loans and cleanup of nested temporary C arguments.
+
+`xlir_c_owned_frames.xl` checks original pointers through closure capture, task
+workers, mutable cells, a genuinely suspended await, and generator locals. The
+runtime unit races four threads acquiring/dropping the same C allocation and
+verifies one final release. The resident profile is compiler-private and adds
+no C kind to xvalue or ordinary string/bytes representations.
