@@ -25,11 +25,16 @@ static int xv_add_field(xvalue *object, const XvProperty *property, xstrview raw
     xvalue *existing = xrtValueObjectGet(object, key);
     xvalue *item;
     xbuffer decoded;
+    char *text;
+    size_t size;
     if (!xrtBufferInit(&decoded)) return 0;
     if (property->raw_wire) {
         if (!xv_append(&decoded, raw.Data, raw.Size)) goto fail;
     } else if (!xv_unescape(raw, &decoded)) goto fail;
-    item = xrtValueString((xstrview){decoded.Size ? (char *)decoded.Data : "", decoded.Size});
+    size = decoded.Size;
+    text = (char *)xrtBufferTake(&decoded, NULL, NULL);
+    item = (text != NULL || size == 0u) ? xrtValueStringTake(&text, size) : NULL;
+    xrtFree(text);
     xrtBufferUnit(&decoded);
     if (item == NULL) return 0;
     if (existing == NULL) return xrtValueObjectSetNew(object, key, item);
