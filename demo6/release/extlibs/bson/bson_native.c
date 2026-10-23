@@ -759,12 +759,11 @@ static void bson_encode_value(struct bson *b, const char *key, int klen,
    ═══════════════════════════════════════════ */
 
 /* Decode BSON bytes into a document. */
-xvalue* xbson_decode(xvalue* data) {
+xvalue* xbson_decode_span(xbytesview wire) {
     struct bson_reader br;
     size_t items = 0u;
-    xbytesview wire;
     xrtClearError();
-    if (!bson_wire(data, &wire) || wire.Size < 5) {
+    if (wire.Data == NULL || wire.Size < 5) {
         bson_error("bson: invalid data"); return xvoCreateNull();
     }
     if (wire.Size > MAX_BSON_BYTES) { bson_range_error("bson: input exceeds the 64 MiB safety limit"); return xvoCreateNull(); }
@@ -779,14 +778,23 @@ xvalue* xbson_decode(xvalue* data) {
     return result;
 }
 
+xvalue* xbson_decode(xvalue* data) {
+    xbytesview wire = {0};
+    if (!bson_wire(data, &wire)) {
+        xrtClearError();
+        bson_error("bson: invalid data");
+        return xvoCreateNull();
+    }
+    return xbson_decode_span(wire);
+}
+
 /* Decode concatenated BSON stream → array of tables */
-xvalue* xbson_decode_all(xvalue* data) {
+xvalue* xbson_decode_all_span(xbytesview wire) {
     struct bson_reader br;
     size_t items = 0u;
-    xbytesview wire;
     xvalue* arr;
     xrtClearError();
-    if (!bson_wire(data, &wire) || wire.Size < 5) {
+    if (wire.Data == NULL || wire.Size < 5) {
         bson_error("bson: invalid data"); return xvoCreateNull();
     }
     if (wire.Size > MAX_BSON_BYTES) { bson_range_error("bson: input exceeds the 64 MiB safety limit"); return xvoCreateNull(); }
@@ -820,13 +828,22 @@ xvalue* xbson_decode_all(xvalue* data) {
     return arr;
 }
 
+xvalue* xbson_decode_all(xvalue* data) {
+    xbytesview wire = {0};
+    if (!bson_wire(data, &wire)) {
+        xrtClearError();
+        bson_error("bson: invalid data");
+        return xvoCreateNull();
+    }
+    return xbson_decode_all_span(wire);
+}
+
 /* Binary-safe concatenation of two BSON vars */
-xvalue* xbson_concat(xvalue* a, xvalue* b) {
-    xbytesview first, second;
+xvalue* xbson_concat_span(xbytesview first, xbytesview second) {
     size_t total;
     unsigned char *buf;
     xrtClearError();
-    if (!bson_wire(a, &first) || !bson_wire(b, &second)) {
+    if (first.Data == NULL || second.Data == NULL) {
         bson_error("bson: concat requires two BSON documents");
         return xvoCreateNull();
     }
@@ -852,6 +869,16 @@ xvalue* xbson_concat(xvalue* a, xvalue* b) {
     memcpy(buf, first.Data, first.Size);
     memcpy(buf + first.Size, second.Data, second.Size);
     return bson_bytes_take(buf, total);
+}
+
+xvalue* xbson_concat(xvalue* a, xvalue* b) {
+    xbytesview first = {0}, second = {0};
+    if (!bson_wire(a, &first) || !bson_wire(b, &second)) {
+        xrtClearError();
+        bson_error("bson: concat requires two BSON documents");
+        return xvoCreateNull();
+    }
+    return xbson_concat_span(first, second);
 }
 
 /* Encode var (table) into BSON bytes. */
@@ -958,13 +985,12 @@ int64_t xbson_save(const char *path, xvalue* val) {
 }
 
 /* BSON binary var → hex string (debug) */
-char *xbson_to_hex(xvalue* data) {
+char *xbson_to_hex_span(xbytesview wire) {
     static const char *hex = "0123456789abcdef";
-    xbytesview wire;
     char *out;
     size_t i;
     xrtClearError();
-    if (!bson_wire(data, &wire) || wire.Size == 0) {
+    if (wire.Data == NULL || wire.Size == 0) {
         bson_error("bson: invalid data"); return NULL;
     }
     if (wire.Size > MAX_BSON_BYTES) {
@@ -983,6 +1009,16 @@ char *xbson_to_hex(xvalue* data) {
     }
     out[wire.Size*2] = '\0';
     return out;
+}
+
+char *xbson_to_hex(xvalue* data) {
+    xbytesview wire = {0};
+    if (!bson_wire(data, &wire)) {
+        xrtClearError();
+        bson_error("bson: invalid data");
+        return NULL;
+    }
+    return xbson_to_hex_span(wire);
 }
 
 /* Generate new ObjectId (24-char hex string) */
@@ -1007,13 +1043,21 @@ void* xbson_to_hex_abi(xvalue* data) { return xbson_to_hex(data); }
 void* xbson_gen_oid_abi(void) { return xbson_gen_oid(); }
 
 /* Get BSON document length from binary var header */
-int64_t xbson_doc_length(xvalue* data) {
-    xbytesview wire;
+int64_t xbson_doc_length_span(xbytesview wire) {
     xrtClearError();
-    if (!bson_wire(data, &wire) || wire.Size < 5 ||
+    if (wire.Data == NULL || wire.Size < 5 ||
         wire.Size > MAX_BSON_BYTES || wire.Data[wire.Size - 1] != 0 ||
         get_length(wire.Data) != (int32_t)wire.Size) return 0;
     return (int64_t)wire.Size;
+}
+
+int64_t xbson_doc_length(xvalue* data) {
+    xbytesview wire = {0};
+    if (!bson_wire(data, &wire)) {
+        xrtClearError();
+        return 0;
+    }
+    return xbson_doc_length_span(wire);
 }
 
 /* Extract timestamp from ObjectId hex → xtime */
@@ -1042,3 +1086,5 @@ int64_t xbson_oid_time(const char *hex24) {
     }
     return (int64_t)ts;
 }
+
+void* xbson_to_hex_span_abi(xbytesview data) { return xbson_to_hex_span(data); }

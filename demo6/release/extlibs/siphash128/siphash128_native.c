@@ -20,11 +20,9 @@ static void xsiphash128_error(xerrkind code, const char* message)
     xrtSetErrorInfo(code, "xlang.extlib.siphash128", 0, message);
 }
 
-static bool xsiphash128_key(const xvalue* value, uint8_t out[16])
+static bool xsiphash128_key_span(xbytesview view, uint8_t out[16])
 {
-    xbytesview view = {0};
-    if (value == NULL || !xrtValueGetBytes(value, &view) ||
-        view.Size != 16 || view.Data == NULL) {
+    if (view.Size != 16 || view.Data == NULL) {
         xsiphash128_error(XERR_VALUE, "SipHash key must contain exactly 16 bytes");
         return false;
     }
@@ -76,14 +74,14 @@ static xbuffer* xsiphash128_output(const siphash128_state* state)
     return output;
 }
 
-static xbuffer* xsiphash128_hash_raw(const void* data, size_t actual,
-    const xvalue* keyValue, int64_t limit)
+static xbuffer* xsiphash128_hash_span_raw(const void* data, size_t actual,
+    xbytesview keyValue, int64_t limit)
 {
     uint8_t key[16];
     siphash128_state state;
     size_t size;
     xbuffer* result;
-    if (!xsiphash128_key(keyValue, key)) return NULL;
+    if (!xsiphash128_key_span(keyValue, key)) return NULL;
     if (!xsiphash128_length(data, actual, limit, 0, &size)) {
         xrtSecureZero(key, sizeof(key));
         return NULL;
@@ -94,6 +92,14 @@ static xbuffer* xsiphash128_hash_raw(const void* data, size_t actual,
     xrtSecureZero(&state, sizeof(state));
     xrtSecureZero(key, sizeof(key));
     return result;
+}
+
+static xbuffer* xsiphash128_hash_raw(const void* data, size_t actual,
+    const xvalue* keyValue, int64_t limit)
+{
+    xbytesview key = {0};
+    if (keyValue != NULL) xrtValueGetBytes(keyValue, &key);
+    return xsiphash128_hash_span_raw(data, actual, key, limit);
 }
 
 void* xsiphash128_hash_string(const char* data, size_t actual,
@@ -115,11 +121,11 @@ void* xsiphash128_hash_buffer(void* data, size_t actual,
     return xsiphash128_hash_raw(data, actual, key, limit);
 }
 
-void* xsiphash128_hasher_create(xvalue* keyValue)
+void* xsiphash128_hasher_create_span(xbytesview keyValue)
 {
     uint8_t key[16];
     xsiphash128_hasher* hasher;
-    if (!xsiphash128_key(keyValue, key)) return NULL;
+    if (!xsiphash128_key_span(keyValue, key)) return NULL;
     hasher = (xsiphash128_hasher*)xrtMalloc(sizeof(*hasher));
     if (hasher != NULL) {
         memcpy(hasher->key, key, sizeof(key));
@@ -127,6 +133,13 @@ void* xsiphash128_hasher_create(xvalue* keyValue)
     }
     xrtSecureZero(key, sizeof(key));
     return hasher;
+}
+
+void* xsiphash128_hasher_create(xvalue* keyValue)
+{
+    xbytesview key = {0};
+    if (keyValue != NULL) xrtValueGetBytes(keyValue, &key);
+    return xsiphash128_hasher_create_span(key);
 }
 
 void* xsiphash128_hasher_adopt(void* handle)
@@ -215,4 +228,28 @@ uint64_t xsiphash128_hasher_input_bytes(void* handle)
         return 0;
     }
     return ((xsiphash128_hasher*)handle)->state.total;
+}
+
+void* xsiphash128_hash_string_span(const char* data, size_t actual,
+    xbytesview key, int64_t limit)
+{
+    return xsiphash128_hash_span_raw(data, actual, key, limit);
+}
+void* xsiphash128_hash_bytes_span(xbytesview data, xbytesview key, int64_t limit)
+{
+    return xsiphash128_hash_span_raw(data.Data, data.Size, key, limit);
+}
+void* xsiphash128_hash_buffer_span(void* data, size_t actual,
+    xbytesview key, int64_t limit)
+{
+    return xsiphash128_hash_span_raw(data, actual, key, limit);
+}
+bool xsiphash128_hasher_update_span(void* handle, xbytesview data, int64_t limit)
+{
+    return xsiphash128_update_view(handle, data.Data, data.Size, limit);
+}
+
+void xsiphash128_hasher_update_span_checked(void* handle, xbytesview data, int64_t limit)
+{
+    (void)xsiphash128_update_view(handle, data.Data, data.Size, limit);
 }

@@ -1,9 +1,9 @@
 // Domain-separated SipHash-2-4-128. The 64-bit variant lives in stdlib siphash.
 // Digests are 16 bytes in little-endian order. SipHash is a keyed table hash,
 // not a password hash or a cryptographic MAC for untrusted messages.
-extern "xsiphash128_hash_string" func __hashString(string data, c_size actual, bytes key, int size) as point
-extern "xsiphash128_hash_bytes" func __hashBytes(bytes data, bytes key, int size) as point
-extern "xsiphash128_hash_buffer" func __hashBuffer(point data, c_size actual, bytes key, int size) as point
+extern "xsiphash128_hash_string_span" func __hashString(string data, c_size actual, cbytes key, int size) as point
+extern "xsiphash128_hash_bytes_span" func __hashBytes(cbytes data, cbytes key, int size) as point
+extern "xsiphash128_hash_buffer_span" func __hashBuffer(point data, c_size actual, cbytes key, int size) as point
 
 export const int KEY_LENGTH = 16
 export const int DIGEST_LENGTH = 16
@@ -30,11 +30,12 @@ end
 
 export class SipHasher128
     native point handle
-    extern "xsiphash128_hasher_create" create(bytes key)
+    extern "xsiphash128_hasher_create_span" create(cbytes key)
     extern "xsiphash128_hasher_adopt" create(point handle)
     extern "xsiphash128_hasher_destroy" destroy()
     extern "xsiphash128_hasher_update_string" func updateStringNative(string data, c_size actual, int size) as bool
-    extern "xsiphash128_hasher_update_bytes" func updateBytesNative(bytes data, int size) as bool
+    extern "xsiphash128_hasher_update_span_checked" func update(cbytes data, int size = -1)
+    extern "xsiphash128_hasher_update_span" func updateBytesNative(cbytes data, int size) as bool
     extern "xsiphash128_hasher_update_raw" func updateRawNative(point data, c_size actual, int size) as bool
     extern "xsiphash128_hasher_digest" func digestNative() as point
     extern "xsiphash128_hasher_reset" func reset()
@@ -44,10 +45,6 @@ export class SipHasher128
     func update(string data, int size = -1)
         if size < -1 then throw RangeError "SipHash size is invalid" end
         if not self.updateStringNative(data, c_size(string.byteLen(data)), size) then throw RangeError "SipHash update failed" end
-    end
-    func update(bytes data, int size = -1)
-        if size < -1 then throw RangeError "SipHash size is invalid" end
-        if not self.updateBytesNative(data, size) then throw RangeError "SipHash update failed" end
     end
     func updateBuffer(Buffer data, int size = -1)
         if size < -1 then throw RangeError "SipHash size is invalid" end

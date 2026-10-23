@@ -70,3 +70,13 @@ export func tnc(var catalog, string context, string msgid, string msgidPlural, i
     __gt_cstr(msgidPlural)
     return __xl_runtime.takeCstr(__gt_tnc(catalog, context, msgid, msgidPlural, n))
 end
+
+extern "xgt_parse_mo_span" func __gt_parse_mo_span(cbytes data) as var
+
+export func parseMo(bytes data) as var
+    var r = __gt_parse_mo_span(data)
+    if r == null then
+        throw ValueError "gettext: not a valid mo file"
+    end
+    return r
+end

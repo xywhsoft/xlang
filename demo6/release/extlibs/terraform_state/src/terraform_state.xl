@@ -1,6 +1,6 @@
 // Terraform state 的只读查询接口。解析结果保留为 var，方便直接访问原始字段。
-extern "xtf_parse_value" func __parse(var text) as var
-extern "xtf_valid_value" func __valid(var text) as bool
+extern "xtf_parse_span" func __parse(cstring text) as var
+extern "xtf_valid_span" func __valid(cstring text) as bool
 extern "xtf_version" func __version(var state) as int
 extern "xtf_serial" func __serial(var state) as int
 extern "xtf_lineage_borrowed" func __lineage(var state) as string

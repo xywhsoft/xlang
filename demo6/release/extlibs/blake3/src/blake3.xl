@@ -217,7 +217,7 @@ end
 // Keyed 流式哈希器（MAC 模式）。
 export class Blake3KeyedHasher
     native point handle
-    extern "xblake3_hasher_create_keyed_bytes" create(bytes key, c_ulonglong maxInput)
+    extern "xblake3_hasher_create_keyed_span" create(cbytes key, c_ulonglong maxInput)
     private extern "xblake3_hasher_adopt" create(point handle)
     extern "xblake3_hasher_destroy" destroy()
     private extern "xblake3_hasher_update" func updateNative(point data, c_size size) as bool

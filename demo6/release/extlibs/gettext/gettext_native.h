@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 typedef struct xvalue xvalue;
+typedef struct xbytesview xbytesview;
 
 #define XGT_MAX_CATALOG_BYTES (64u * 1024u * 1024u)
 
@@ -13,6 +14,7 @@ extern "C" {
 /* 目录返回值用 xrtValueRelease；查询结果用 xrtFree。 */
 xvalue *xgt_parse_po(const char *text);
 xvalue *xgt_parse_mo(xvalue *bytes_value);
+xvalue *xgt_parse_mo_span(xbytesview data);
 xvalue *xgt_load_mo(const char *path);
 void *xgt_t(xvalue *catalog, const char *msgid);
 void *xgt_tn(xvalue *catalog, const char *msgid,

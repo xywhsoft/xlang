@@ -253,6 +253,25 @@ xvalue* xtf_parse_value(xvalue* pText)
 
 
 
+/* Synchronous span entry: retain the caller's exact byte length without boxing. */
+xvalue* xtf_parse_span(xstrview Text)
+{
+    return xtf_parse_view(Text);
+}
+
+bool xtf_valid_span(xstrview Text)
+{
+    xvalue* pState = xtf_parse_view(Text);
+    if (pState == NULL) {
+        if (xrtGetError() == NULL || xrtErrorKind(xrtGetError()) != XERR_MEMORY)
+            xrtClearError();
+        return false;
+    }
+    xrtValueRelease(pState);
+    xrtClearError();
+    return true;
+}
+
 xvalue* xtf_parse_len(cstr sText, size_t iLength)
 {
     return xtf_parse_view((xstrview){ sText, iLength });

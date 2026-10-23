@@ -554,6 +554,11 @@ xvalue *xgt_parse_mo(xvalue *bytesValue) {
     return xgt_null();
 }
 
+xvalue *xgt_parse_mo_span(xbytesview view) {
+    xrtClearError();
+    return xgt_parse_mo_bytes((const unsigned char *)view.Data, view.Size);
+}
+
 xvalue *xgt_load_mo(const char *path) {
     size_t size = 0;
     bytes data;

@@ -18,6 +18,8 @@ xvalue* xtf_parse(const char* text);
 xvalue* xtf_parse_value(xvalue* text);
 bool xtf_valid(const char* text);
 bool xtf_valid_value(xvalue* text);
+xvalue* xtf_parse_span(xstrview text);
+bool xtf_valid_span(xstrview text);
 
 int64_t xtf_version(xvalue* state);
 int64_t xtf_serial(xvalue* state);

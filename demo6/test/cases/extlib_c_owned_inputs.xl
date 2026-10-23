@@ -1,0 +1,59 @@
+import terraform_state
+import redis
+import bson
+import gettext
+import siphash128
+import blake2
+import blake3
+
+extern "extlib_owned_text" @no_raise func ownedText(cstring text) as point
+extern "extlib_owned_bytes" @no_raise func ownedBytes(cbytes data) as point
+extern "extlib_owned_free" @no_raise func drop(point data)
+extern "extlib_owned_released" @no_raise func released() as int
+
+func exercise()
+    string stateText = "{\"version\":4,\"serial\":7,\"lineage\":\"line\",\"resources\":[],\"outputs\":{}}"
+    cstring state = cstring.take(ownedText(stateText), drop)
+    assert terraform_state.valid(state)
+    assert terraform_state.serial(terraform_state.parse(state)) == 7
+    assert not terraform_state.valid(state + "\0garbage")
+    cstring reply = cstring.take(ownedText("$3\r\nABC\r\n"), drop)
+    assert redis.isComplete(reply)
+    assert redis.decode(reply)["value"]["value"] == "ABC"
+    cbytes wire = cbytes.take(ownedBytes(b"$3\r\nA\x00B\r\n"), 9, drop)
+    assert redis.isCompleteBytes(wire)
+    assert redis.decodeBytes(wire)["value"]["value"] == "A\0B"
+    cbytes document = cbytes.take(ownedBytes(b"\x05\x00\x00\x00\x00"), 5, drop)
+    assert bson.docLength(document) == 5
+    assert bson.toHex(document) == "0500000000"
+    assert bson.decodeAll(document).length == 1
+    assert bson.decodeAll(bson.concat(document, document)).length == 2
+    assert bson.decode(document).length == 0
+    var dynamicDocument = b"\x05\x00\x00\x00\x00"
+    assert bson.docLength(dynamicDocument) == 5
+    assert bson.toHex(dynamicDocument) == bson.toHex(document)
+    cbytes catalog = cbytes.take(ownedBytes(b"\xde\x12\x04\x95\x00\x00\x00\x00\x00\x00\x00\x00\x1c\x00\x00\x00\x1c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"), 28, drop)
+    assert gettext.t(gettext.parseMo(catalog), "missing") == "missing"
+    cbytes key = cbytes.take(ownedBytes(b"0123456789abcdef"), 16, drop)
+    cbytes message = cbytes.take(ownedBytes(b"A\x00B"), 3, drop)
+    assert siphash128.hash(message, key).compare(siphash128.hash(b"A\x00B", b"0123456789abcdef")) == 0
+    siphash128.SipHasher128 hasher = siphash128.hasher(key)
+    hasher.update(message)
+    assert hasher.digest().compare(siphash128.hash(message, key)) == 0
+    blake2.Blake2bKeyedHasher b2 = blake2.Blake2bKeyedHasher(c_size(32), key, c_ulonglong(0))
+    b2.update("A\0B")
+    blake2.Blake2bKeyedHasher b2ordinary = blake2.Blake2bKeyedHasher(c_size(32), b"0123456789abcdef", c_ulonglong(0))
+    b2ordinary.update("A\0B")
+    assert b2.digestHex() == b2ordinary.digestHex()
+    cbytes key32 = cbytes.take(ownedBytes(b"0123456789abcdef0123456789abcdef"), 32, drop)
+    blake3.Blake3KeyedHasher b3 = blake3.Blake3KeyedHasher(key32, c_ulonglong(0))
+    blake3.Blake3KeyedHasher b3ordinary = blake3.Blake3KeyedHasher(b"0123456789abcdef0123456789abcdef", c_ulonglong(0))
+    b3.update("A\0B")
+    b3ordinary.update("A\0B")
+    assert b3.digestHex() == b3ordinary.digestHex()
+    assert released() == 0
+end
+
+exercise()
+assert released() == 8
+print("extension span inputs ok")

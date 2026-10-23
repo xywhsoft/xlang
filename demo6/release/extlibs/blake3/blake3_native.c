@@ -243,3 +243,10 @@ XBLAKE3_EXPORT void* xblake3_hasher_digest_bytes(void* handle, size_t outlen)
     }
     return buffer;
 }
+
+XBLAKE3_EXPORT void* xblake3_hasher_create_keyed_span(xbytesview key,
+    unsigned long long maximum)
+{
+    xrtClearError();
+    return xblake3_hasher_create_keyed((void*)key.Data, key.Size, maximum);
+}

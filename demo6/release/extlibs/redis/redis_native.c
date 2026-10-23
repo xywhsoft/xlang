@@ -493,3 +493,21 @@ bool xr_is_complete_raw(void* Data, size_t Size)
     xrtClearError();
     return xr_input_raw(Data, Size, &Reader) && xr_complete_reader(&Reader);
 }
+
+/* RESP is binary-safe: span length, never strlen, bounds every read. */
+xvalue* xr_decode_text_span(xstrview Reply)
+{
+    return xr_decode_raw((void*)Reply.Data, Reply.Size);
+}
+bool xr_is_complete_text_span(xstrview Reply)
+{
+    return xr_is_complete_raw((void*)Reply.Data, Reply.Size);
+}
+xvalue* xr_decode_bytes_span(xbytesview Reply)
+{
+    return xr_decode_raw((void*)Reply.Data, Reply.Size);
+}
+bool xr_is_complete_bytes_span(xbytesview Reply)
+{
+    return xr_is_complete_raw((void*)Reply.Data, Reply.Size);
+}

@@ -7,6 +7,8 @@ struct xvalue;
 extern "C" {
 #endif
 
+void* xblake3_hasher_create_keyed_span(xbytesview key, unsigned long long maximum);
+
 /* point 的物理 ABI 是 void*；只在进入核心接口时转换为 const 借用。 */
 bool xblake3_available(void);
 const char* xblake3_version(void);

@@ -24,4 +24,12 @@ void* xbson_gen_oid_abi(void);
 int64_t xbson_doc_length(xvalue* data);
 int64_t xbson_oid_time(const char* hex24);
 
+/* Synchronous borrowed spans; returned values have the same ownership as above. */
+xvalue* xbson_decode_span(xbytesview data);
+xvalue* xbson_decode_all_span(xbytesview data);
+xvalue* xbson_concat_span(xbytesview a, xbytesview b);
+char* xbson_to_hex_span(xbytesview data);
+void* xbson_to_hex_span_abi(xbytesview data);
+int64_t xbson_doc_length_span(xbytesview data);
+
 #endif

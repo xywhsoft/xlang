@@ -8,6 +8,11 @@
 extern "C" {
 #endif
 
+void* xblake2b_hasher_create_keyed_span(size_t outlen, xbytesview key,
+    unsigned long long maximum);
+void* xblake2s_hasher_create_keyed_span(size_t outlen, xbytesview key,
+    unsigned long long maximum);
+
 /* 薄绑定物理 ABI；核心 const 数据接口见 xrt_blake2.h。 */
 bool xblake2_available(void);
 const char* xblake2_version(void);

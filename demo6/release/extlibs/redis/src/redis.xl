@@ -1,7 +1,7 @@
 extern "xr_encode" func __r_encode(var args) as var
 extern "xr_encode_bytes" func __r_encode_bytes(var args) as point
-extern "xr_decode" func __r_decode(var reply) as var
-extern "xr_is_complete" func __r_is_complete(var reply) as bool
+extern "xr_decode_text_span" func __r_decode(cstring reply) as var
+extern "xr_is_complete_text_span" func __r_is_complete(cstring reply) as bool
 extern "xr_decode_raw" func __r_decode_raw(point data, c_size size) as var
 extern "xr_is_complete_raw" func __r_is_complete_raw(point data, c_size size) as bool
 extern "xr_frame_create" func __r_frame_create() as point
@@ -73,7 +73,7 @@ export func command(TcpStream stream, var args, int timeoutMs = 5000,
     bool synchronized = false
     var reply = null
     try
-        if not stream.sendBytes(payload.data(), c_size(payload.len())) then
+        if stream.send(payload) != NetStatus.ok then
             throw ValueError "redis: send failed"
         end
         uint64 elapsed = time.monotonic() - started
@@ -81,7 +81,7 @@ export func command(TcpStream stream, var args, int timeoutMs = 5000,
             throw ValueError "redis: command timed out"
         end
         int remainingMs = int((limitUs - elapsed + 999) / 1000)
-        if not stream.drain(remainingMs) then
+        if stream.wait(TcpWait.drain, remainingMs) != NetStatus.ok then
             throw ValueError "redis: send timed out"
         end
         Buffer buffer = Buffer()
@@ -92,22 +92,22 @@ export func command(TcpStream stream, var args, int timeoutMs = 5000,
                 throw ValueError "redis: command timed out"
             end
             remainingMs = int((limitUs - elapsed + 999) / 1000)
-            Buffer chunk = Buffer()
+            bytes chunk = b""
             try
-                chunk = stream.recvBytes(remainingMs)
+                chunk = stream.recv(65536, remainingMs)
             catch ValueError error
                 if time.monotonic() - started >= limitUs then
                     throw ValueError "redis: command timed out"
                 end
                 throw ValueError "redis: receive failed: " + error.message
             end
-            if chunk.len() == 0 then
+            if chunk.length == 0 then
                 if time.monotonic() - started >= limitUs then
                     throw ValueError "redis: command timed out"
                 end
                 throw ValueError "redis: connection closed"
             end
-            if buffer.len() + chunk.len() > maxReplyBytes then
+            if buffer.len() + chunk.length > maxReplyBytes then
                 throw ValueError "redis: reply exceeds configured limit"
             end
             if not buffer.append(chunk) then
@@ -133,7 +133,7 @@ export func command(TcpStream stream, var args, int timeoutMs = 5000,
     return value["value"]
 end
 
-// 便捷命令：连接由调用方通过 TcpStream(tcp.connect(host, port)) 创建并持有
+// 便捷命令：连接由调用方通过 TcpStream.dial(engine, resolver, host, port) 创建并持有
 export func get(TcpStream stream, string key) as var
     return command(stream, ["GET", key])
 end
@@ -152,4 +152,19 @@ end
 
 export func exists(TcpStream stream, string key) as int
     return int(command(stream, ["EXISTS", key]))
+end
+
+extern "xr_decode_bytes_span" func __r_decode_span(cbytes reply) as var
+extern "xr_is_complete_bytes_span" func __r_complete_span(cbytes reply) as bool
+
+export func decodeBytes(bytes reply) as var
+    var result = __r_decode_span(reply)
+    if result == null then
+        throw ValueError "redis: reply is incomplete or malformed"
+    end
+    return result
+end
+
+export func isCompleteBytes(bytes reply) as bool
+    return __r_complete_span(reply)
 end

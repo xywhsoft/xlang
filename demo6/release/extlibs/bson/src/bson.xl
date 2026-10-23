@@ -120,3 +120,50 @@ export func oidTime(string hex24) as time
     end
     return time.fromUnix(seconds)
 end
+
+// Static bytes inputs borrow their payload; dynamic var overloads remain available.
+extern "xbson_decode_span" func _bson_decode_span(cbytes data) as var
+
+export func decode(bytes data) as var
+    var result = _bson_decode_span(data)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return result
+end
+
+extern "xbson_decode_all_span" func _bson_decode_all_span(cbytes data) as var
+
+export func decodeAll(bytes data) as var
+    var result = _bson_decode_all_span(data)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return result
+end
+
+extern "xbson_to_hex_span_abi" func _bson_to_hex_span(cbytes data) as point
+
+export func toHex(bytes data) as string
+    point result = _bson_to_hex_span(data)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return __xl_runtime.takeCstr(result)
+end
+
+extern "xbson_doc_length_span" func _bson_doc_len_span(cbytes data) as int
+
+export func docLength(bytes data) as int
+    return _bson_doc_len_span(data)
+end
+
+extern "xbson_concat_span" func _bson_concat_span(cbytes a, cbytes b) as var
+
+export func concat(bytes a, bytes b) as var
+    var result = _bson_concat_span(a, b)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return result
+end

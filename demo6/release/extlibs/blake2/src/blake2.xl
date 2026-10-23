@@ -320,7 +320,7 @@ end
 
 export class Blake2bKeyedHasher
     native point handle
-    extern "xblake2b_hasher_create_keyed_bytes" create(c_size outLen, bytes key, c_ulonglong maxInput)
+    extern "xblake2b_hasher_create_keyed_span" create(c_size outLen, cbytes key, c_ulonglong maxInput)
     private extern "xblake2b_hasher_adopt" create(point handle)
     extern "xblake2b_hasher_destroy" destroy()
     private extern "xblake2b_hasher_update" func updateNative(point data, c_size size) as bool
@@ -454,7 +454,7 @@ end
 
 export class Blake2sKeyedHasher
     native point handle
-    extern "xblake2s_hasher_create_keyed_bytes" create(c_size outLen, bytes key, c_ulonglong maxInput)
+    extern "xblake2s_hasher_create_keyed_span" create(c_size outLen, cbytes key, c_ulonglong maxInput)
     private extern "xblake2s_hasher_adopt" create(point handle)
     extern "xblake2s_hasher_destroy" destroy()
     private extern "xblake2s_hasher_update" func updateNative(point data, c_size size) as bool

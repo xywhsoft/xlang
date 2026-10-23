@@ -425,3 +425,17 @@ XBLAKE2_EXPORT void* xblake2s_hasher_clone(void* handle)
     xrtClearError();
     return xrtBlake2sHasherClone(handle);
 }
+
+XBLAKE2_EXPORT void* xblake2b_hasher_create_keyed_span(size_t outlen,
+    xbytesview key, unsigned long long maximum)
+{
+    xrtClearError();
+    return xblake2b_hasher_create_keyed(outlen, (void*)key.Data, key.Size, maximum);
+}
+
+XBLAKE2_EXPORT void* xblake2s_hasher_create_keyed_span(size_t outlen,
+    xbytesview key, unsigned long long maximum)
+{
+    xrtClearError();
+    return xblake2s_hasher_create_keyed(outlen, (void*)key.Data, key.Size, maximum);
+}
