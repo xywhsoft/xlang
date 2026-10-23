@@ -1,0 +1,50 @@
+{
+  "Schema": 1,
+  "Purpose": "Empty trust sources are completed rejection, not a state/operation error",
+  "CanonicalCommit": "0dd4111853bcf5a018109f14c3251250ec1e875a",
+  "PreviousCanonicalCommit": "50649120eba1f33b9ca3a3006d0d7179f34143a2",
+  "WholeSnapshotUpgrade": false,
+  "TimeAbiPreserved": true,
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "bd1d4e9baf221644e00846c253dae6eb082b0577a373a1d6313ef96563c8ea0f",
+      "AfterSha256": "effaaf3e77b2d4cb48161c95f937e2ca36bd3d2fa5c0ce6f3382b1f3422581df"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "bf1a5a8cb2e4dd76d1786c478bfa2fc216f534193723acd8afe2f54d2243867f",
+      "AfterSha256": "e2113f528cdcd73cd11f96bd85037a69715b0959afd69c23ef80da89674f5d82"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "45d3b8f62da04b57af692f964c2edf622c8cf5d5053ee010ab78c97fd2fb92fe",
+      "AfterSha256": "130c28ed679ee638a558f385b2f6d7fa6c7959095a3388b7b0c091863c1641de"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "3536db9dd075afd71b64ef5352efa65810397033f39ae9a3cda61209817935cd",
+      "AfterSha256": "b7113bac6dd7d2972df0d388847bf22a97161b3b92c858143329af788630b42a"
+    }
+  ],
+  "Sources": [
+    {
+      "Path": "include/xrt/x509.h",
+      "Sha256": "29179e3feb5d2d7772b581ee3a3abcad7c6222117105273edd8e9d802e8e2aea"
+    },
+    {
+      "Path": "src/x509/store.c",
+      "Sha256": "bf18ce8ca1feec962b490bd979be703ff4397cc12b307355a8f3e5b0705ef8b4"
+    },
+    {
+      "Path": "src/x509/path_build.c",
+      "Sha256": "cabd7695d25defd638fe827421f337129ff65caba6617fce5c1c1401dd7d403b"
+    }
+  ],
+  "NativeAcceptance": "42 Windows/Linux native stages; not language or shipping acceptance",
+  "PreservedContracts": [
+    "Embedded microseconds/Until",
+    "Independent native milliseconds/For",
+    "All unselected sections"
+  ]
+}

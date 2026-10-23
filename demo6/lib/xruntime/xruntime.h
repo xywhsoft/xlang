@@ -26047,7 +26047,8 @@ XRT_API xx509check xrtX509PathCheck(
 
 #if defined(XRT_FEATURE_X509_PATH_BUILD)
 
-/* 在候选发行者和信任锚中回溯构建并验证路径；结果仅在成功时发布。 */
+/* 在候选发行者和信任锚中回溯构建并验证路径；结果仅在成功时发布。
+ * 合法的空锚集合是无可信路径的完成拒绝，不是参数或资源错误。 */
 XRT_API bool xrtX509PathBuild(
 	const xx509cert* pTarget,
 	const xx509pathsource* pSource,
@@ -26139,7 +26140,7 @@ XRT_API const xx509anchor* xrtX509StoreAnchor(
 
 
 
-/* 把外部候选发行者与信任库锚组成可直接建链的借用源。 */
+/* 把外部候选发行者与信任库锚组成可直接建链的借用源；允许空库和零候选。 */
 XRT_API bool xrtX509StoreSource(
 	const xx509store* pStore,
 	const xx509cert* const* ppIssuers,
@@ -183661,7 +183662,7 @@ static bool __xrtX509PathBuildArguments(
 		(pTarget->Raw.Data == NULL) || (pTarget->Raw.Size == 0) ||
 		((pSource->Issuers == NULL) && (pSource->IssuerCount != 0)) ||
 		((const void*)pSource->Issuers == (const void*)ppPath) ||
-		(pSource->Anchors == NULL) || (pSource->AnchorCount == 0) ||
+		((pSource->Anchors == NULL) && (pSource->AnchorCount != 0)) ||
 		(iCapacity > (SIZE_MAX / sizeof(xrt_x509_path_frame))) ) {
 		return false;
 	}
@@ -183727,6 +183728,13 @@ static xrt_x509_decision __xrtX509PathSearch(
 	) ) {
 		__xrtErrorSetInvalidArgument();
 		return __xrtX509CheckError();
+	}
+	/* A valid but empty trust set is an ordinary completed rejection, not an
+	 * argument/resource failure. No candidate search or frame allocation can
+	 * produce a trusted path without an anchor. */
+	if ( pSource->AnchorCount == 0 ) {
+		return __xrtX509Decision(X509_CHECK_REJECTED, X509_ERROR_PATH_BUILD,
+			"no trust anchors are configured");
 	}
 	if ( iCapacity > XRT_X509_PATH_LOCAL_FRAMES ) {
 		pFrames = (xrt_x509_path_frame*)xrtMalloc(
@@ -184974,13 +184982,6 @@ XRT_API bool xrtX509StoreSource(
 	if ( (pStore == NULL) || (pSource == NULL) ||
 		((ppIssuers == NULL) && (iIssuerCount != 0)) ) {
 		__xrtErrorSetInvalidArgument();
-		return false;
-	}
-	if ( pStore->Count == 0 ) {
-		__xrtX509StoreError(
-			XERR_STATE, "x509-store-source",
-			"an empty trust store cannot terminate a certification path", NULL
-		);
 		return false;
 	}
 	Source.Issuers = ppIssuers;
