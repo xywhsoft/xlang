@@ -1,0 +1,14 @@
+--- src/process/process.c (matched source function)
++++ src/process/process.c (IDE overlay)
+@@ -19,6 +19,11 @@
+ 	(void)xrtMutexLock(&pProcess->Lock);
+ 	if ( pProcess->State == XPROCESS_EXITED ) {
+ 		(void)xrtMutexUnlock(&pProcess->Lock);
++#if defined(_WIN32) || defined(_WIN64)
++		/* The owned Job still identifies descendants after the root exits.
++		   Preserve the terminal root status while cleaning that Job. */
++		if ( Stop == XPROCESS_STOP_KILL_TREE ) return pProc(pProcess);
++#endif
+ 		return true;
+ 	}
+ 	(void)xrtMutexUnlock(&pProcess->Lock);

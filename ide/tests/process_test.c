@@ -16,8 +16,22 @@ static void emit(const char* value)
 {
     DWORD written; WriteFile(GetStdHandle(STD_OUTPUT_HANDLE),value,(DWORD)strlen(value),&written,NULL);
 }
+static DWORD WINAPI floodError(void* user)
+{
+    (void)user;char bytes[16384];memset(bytes,'E',sizeof(bytes));DWORD written;
+    for(int i=0;i<192;++i) if(!WriteFile(GetStdHandle(STD_ERROR_HANDLE),bytes,sizeof(bytes),&written,NULL) || written!=sizeof(bytes)) return 1;
+    return 0;
+}
 static int child(int count,wchar_t** arguments)
 {
+    if(!wcscmp(arguments[2],L"early-eof")) {
+        CloseHandle(GetStdHandle(STD_OUTPUT_HANDLE));Sleep(40);DWORD written;
+        return WriteFile(GetStdHandle(STD_ERROR_HANDLE),"AFTER-EOF\n",10,&written,NULL) && written==10 ? 0 : 2;
+    }
+    if(!wcscmp(arguments[2],L"retained")) {
+        char line[80];snprintf(line,sizeof(line),"HANDLE=%llu\n",(unsigned long long)(uintptr_t)GetStdHandle(STD_OUTPUT_HANDLE));emit(line);
+        char input;DWORD size;return ReadFile(GetStdHandle(STD_INPUT_HANDLE),&input,1,&size,NULL) && size==1 ? 0 : 2;
+    }
     if(!wcscmp(arguments[2],L"notify")) {
         char command;DWORD size,written;
         while(ReadFile(GetStdHandle(STD_INPUT_HANDLE),&command,1,&size,NULL) && size) {
@@ -35,18 +49,19 @@ static int child(int count,wchar_t** arguments)
         return 0;
     }
     if(!wcscmp(arguments[2],L"separate")) {
-        emit("PROTO-only\n"); char bytes[16384]; memset(bytes,'E',sizeof(bytes)); DWORD written;
-        for(int i=0;i<192;++i) WriteFile(GetStdHandle(STD_ERROR_HANDLE),bytes,sizeof(bytes),&written,NULL);
-        emit("PROTO-end\n"); return 0;
+        HANDLE thread=CreateThread(NULL,0,floodError,NULL,0,NULL);if(!thread)return 2;
+        emit("PROTO-only\n");emit("PROTO-end\n");WaitForSingleObject(thread,INFINITE);DWORD code=1;GetExitCodeThread(thread,&code);CloseHandle(thread);return (int)code;
     }
     if(!wcscmp(arguments[2],L"sleep")) { Sleep(60000); return 0; }
-    if(!wcscmp(arguments[2],L"tree")) {
+    if(!wcscmp(arguments[2],L"tree") || !wcscmp(arguments[2],L"orphan")) {
         wchar_t self[32768],command[32768]; GetModuleFileNameW(NULL,self,32768);
         if(swprintf(command,32768,L"\"%ls\" child sleep",self)<0) return 2;
         STARTUPINFOW startup={0}; startup.cb=sizeof(startup); PROCESS_INFORMATION process={0};
         if(!CreateProcessW(NULL,command,NULL,NULL,TRUE,CREATE_NO_WINDOW,NULL,NULL,&startup,&process)) return 3;
         char line[64]; snprintf(line,sizeof(line),"CHILD=%lu\n",process.dwProcessId); emit(line);
-        CloseHandle(process.hThread); CloseHandle(process.hProcess); Sleep(60000); return 0;
+        CloseHandle(process.hThread); CloseHandle(process.hProcess);
+        if(!wcscmp(arguments[2],L"orphan")) {char input;DWORD size;return ReadFile(GetStdHandle(STD_INPUT_HANDLE),&input,1,&size,NULL) && size==1 ? 0 : 2;}
+        Sleep(60000); return 0;
     }
     if(!wcscmp(arguments[2],L"echo")) {
         for(int i=3;i<count;++i) { char* value=utf8(arguments[i]); emit("ARG["); emit(value); emit("]\n"); free(value); }
@@ -125,7 +140,7 @@ int main(int argc,char** argv)
     int count=0; wchar_t** arguments=CommandLineToArgvW(GetCommandLineW(),&count);
     if(count>=3 && !wcscmp(arguments[1],L"child")) { int result=child(count,arguments); LocalFree(arguments); return result; }
     int failed=0; xide_process_info info={0}; xide_process* process=NULL;
-    char *self=NULL,*directory=NULL,*log=NULL,*bad=NULL; unsigned char* logBytes=NULL; HANDLE descendant=NULL;
+    char *self=NULL,*directory=NULL,*log=NULL,*bad=NULL; unsigned char* logBytes=NULL; HANDLE descendant=NULL,retainedWriter=NULL;
     char error[512]={0},output[32768]={0}; size_t outputSize=0,logSize=0;
     CHECK(argc==2 && arguments); self=utf8(arguments[0]); LocalFree(arguments); arguments=NULL;
     directory=xidePathResolve(argv[1],"中文 进程"); CHECK(directory && xrtDirCreateAll(directory));
@@ -172,6 +187,27 @@ int main(int argc,char** argv)
     char stderrPath[32768]; CHECK(snprintf(stderrPath,sizeof(stderrPath),"%s.stderr",log)>0); logBytes=xrtFileReadAll(stderrPath,&logSize); CHECK(logBytes && logSize==3u*1024u*1024u); for(size_t i=0;i<logSize;++i) CHECK(logBytes[i]=='E'); xrtFree(logBytes); logBytes=NULL;
     size_t stderrCount=0,n=0; while((n=xideProcessReadError(process,output,sizeof(output)))>0) stderrCount+=n; CHECK(stderrCount==1024u*1024u);
     xideProcessDestroy(process); process=NULL; request.separateStderr=0;
+    const char* earlyArguments[]={"child","early-eof"};request.arguments=earlyArguments;request.separateStderr=1;request.logPath=NULL;
+    process=xideProcessStart(&request,error,sizeof(error));CHECK(process);outputSize=0;
+    CHECK(waitDone(process,&info,output,sizeof(output),&outputSize,8000) && !info.ioError && info.exit.Code==0 && outputSize==0);
+    outputSize=xideProcessReadError(process,output,sizeof(output)-1);output[outputSize]=0;CHECK(!strcmp(output,"AFTER-EOF\n"));
+    xideProcessDestroy(process);process=NULL;request.separateStderr=0;
+    const char* retainedArguments[]={"child","retained"};request.arguments=retainedArguments;request.interactive=1;
+    process=xideProcessStart(&request,error,sizeof(error));CHECK(process);outputSize=0;output[0]=0;deadline=GetTickCount64()+8000;
+    while(!strstr(output,"HANDLE=") && GetTickCount64()<deadline) {outputSize+=xideProcessRead(process,output+outputSize,sizeof(output)-outputSize-1);output[outputSize]=0;Sleep(5);}
+    xideProcessGetInfo(process,&info);CHECK(strstr(output,"HANDLE=") && info.started);
+    HANDLE sourceProcess=OpenProcess(PROCESS_DUP_HANDLE,FALSE,(DWORD)info.id);CHECK(sourceProcess);
+    int duplicated=DuplicateHandle(sourceProcess,(HANDLE)(uintptr_t)strtoull(strstr(output,"HANDLE=")+7,NULL,10),GetCurrentProcess(),&retainedWriter,0,FALSE,DUPLICATE_SAME_ACCESS);CloseHandle(sourceProcess);CHECK(duplicated);
+    CHECK(xideProcessWrite(process,"q",1));xideProcessCloseInput(process);
+    CHECK(waitDone(process,&info,NULL,0,&outputSize,6000) && info.ioError && !info.cancelled && strstr(info.error,"pipes did not close"));
+    CloseHandle(retainedWriter);retainedWriter=NULL;xideProcessDestroy(process);process=NULL;
+    const char* orphanArguments[]={"child","orphan"};request.arguments=orphanArguments;
+    process=xideProcessStart(&request,error,sizeof(error));CHECK(process);outputSize=0;output[0]=0;deadline=GetTickCount64()+8000;
+    while(!strstr(output,"CHILD=") && GetTickCount64()<deadline) {outputSize+=xideProcessRead(process,output+outputSize,sizeof(output)-outputSize-1);output[outputSize]=0;Sleep(5);}
+    CHECK(strstr(output,"CHILD="));DWORD orphanId=(DWORD)strtoul(strstr(output,"CHILD=")+6,NULL,10);descendant=OpenProcess(SYNCHRONIZE,FALSE,orphanId);CHECK(descendant);
+    CHECK(xideProcessWrite(process,"q",1));xideProcessCloseInput(process);
+    CHECK(waitDone(process,&info,NULL,0,&outputSize,6000) && !info.ioError && info.exit.Code==0 && WaitForSingleObject(descendant,1000)==WAIT_OBJECT_0);
+    CloseHandle(descendant);descendant=NULL;xideProcessDestroy(process);process=NULL;request.interactive=0;
     const char* treeArguments[]={"child","tree"}; request.arguments=treeArguments; request.logPath=NULL;
     process=xideProcessStart(&request,error,sizeof(error)); CHECK(process); outputSize=0; output[0]=0; deadline=GetTickCount64()+8000;
     while(!strstr(output,"CHILD=") && GetTickCount64()<deadline) { size_t size=xideProcessRead(process,output+outputSize,sizeof(output)-outputSize-1); outputSize+=size; output[outputSize]=0; Sleep(5); }
@@ -185,8 +221,9 @@ int main(int argc,char** argv)
     CHECK(xideProcessWrite(process,input,sizeof(input))); Sleep(100); xideProcessCancel(process);
     CHECK(waitDone(process,&info,NULL,0,&outputSize,4000) && info.cancelled);
     xideProcessDestroy(process); process=NULL;
-    puts("process_test passed: Unicode/quoting/environment/cwd, merged and separated streams, independent bounded stderr/raw logs, input, raw log and bounded output, spawn failure, blocked-input cancellation and descendant cleanup.");
+    puts("process_test passed: Unicode/quoting/environment/cwd, concurrent separated streams, early stdout EOF, retained external writer cancellation, normal-root descendant cleanup, independent bounded stderr/raw logs, input, raw log and bounded output, spawn failure and blocked-input cancellation.");
 cleanup:
+    if(retainedWriter) CloseHandle(retainedWriter);
     if(descendant) CloseHandle(descendant);
     xideProcessDestroy(process); xrtFree(logBytes); free(self); free(directory); free(log); free(bad); if(arguments) LocalFree(arguments); return failed;
 }

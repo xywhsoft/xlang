@@ -13,6 +13,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import time
+from xrt_process_tree_overlay import derive as derive_process_runtime
 
 FRONTEND_SOURCES = (
     "src/lexer/xl6_token.c", "src/lexer/xl6_lexer_api.c", "src/lexer/xl6_lexer_gen.c",
@@ -35,6 +36,7 @@ SERVER_SOURCES = (
 CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_overload_scan_test", "analysis_completion_candidates_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_cursor_syntax_test", "analysis_text_test", "document_sync_test")
 HOST_TESTS = ("analysis_index_view_test", "language_input_guard_test", "diagnostic_store_test", "language_definition_proof_test")
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
+CORE_TESTS = ("analysis_process_tree_test", *CORE_TESTS)
 
 
 def sha(path: Path) -> str:
@@ -330,6 +332,7 @@ def main() -> None:
         original_sem, generated_sem, sem_overlay = prepare_native_sem(frontend, output)
         original_stdlib, generated_stdlib, stdlib_overlay = prepare_native_stdlib(frontend, output)
         original_types, generated_types, types_overlay = prepare_native_types(frontend, output)
+        runtime_overlay = derive_process_runtime(frontend / 'lib/xrt/xrt.h', output / 'native_xrt/xrt.h')
     except ValueError as error:
         parser.error(str(error))
     sources = [(generated_index if path == original_index else path, owned) for path, owned in sources]
@@ -344,7 +347,8 @@ def main() -> None:
               "-I" + str(ide / "src"), "-I" + str(frontend),
               "-I" + str(frontend / "src/ir"),
               "-I" + str(frontend / "release"), "-I" + str(frontend / "release/include"),
-              "-I" + str(frontend / "lib/xrt"), "-include", str(frontend / "lib/xrt/xrt.h")]
+              "-I" + str(output / 'native_xrt'), "-I" + str(frontend / "lib/xrt"),
+              "-include", str(output / 'native_xrt/xrt.h')]
     # MODULE_ALL also selects memory-debug pointer validation. Its release
     # path scans heap ownership when freeing large JSON trees. Select the
     # library's existing release policy consistently in EVERY translation unit;
@@ -368,6 +372,9 @@ def main() -> None:
         str(original_sem): sem_overlay["sourceSha256"], str(original_stdlib): stdlib_overlay["sourceSha256"],
         str(original_types): types_overlay["sourceSha256"]}, {}, [], {}
     source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay]
+    source_overlays.append(runtime_overlay)
+    inputs[runtime_overlay['source']] = runtime_overlay['sourceSha256']
+    inputs.update(runtime_overlay['sourceMaterials'])
     runtime_profiles = []
     started = time.monotonic()
     status = "failed"

@@ -1,4 +1,6 @@
 # Pinned inventories and compatibility patches use hashes of the original bytes.
 /data/** -text
 /third_party/** -text
+# Unified diff context markers are part of the pinned patch representation.
+/third_party/**/*.patch -whitespace
 /tools/clangd_input_trace/** -text

@@ -3,7 +3,7 @@
   "exitCode": 0,
   "profile": "ide",
   "version": "3.0.0",
-  "source": "D:\\GIT\\x-lang\\ide\\build\\lsp-next-20261022\\m7a2b2-sdk-native-v1\\source",
+  "source": "E:\\codex-builds-xlang-lsp-20261023\\m7a2b7d-c1c36026\\sdk-tree-v1\\source",
   "sourceCommit": "f248fd17192b3eb81c2a29dc34549b696e6e4c43",
   "sourceUnchanged": true,
   "sourceArchiveSha256": "b8bb921ed085fbe313b0d2572d817f52d2c8c5a3405efc5a8c68a867d8d3e60e",
@@ -64,7 +64,7 @@
       "-Iextlibs/xrt/extlibs/xllm-session/include",
       "-Iextlibs/xrt/extlibs/xwork/include",
       "-DXGE_ENABLE_HARFBUZZ=1",
-      "-DXGE_BUILD_ABI_FINGERPRINT=0xca42fcd5f3458a2aULL"
+      "-DXGE_BUILD_ABI_FINGERPRINT=0xaf7e3aef23a1b4f8ULL"
     ],
     "features": [
       "XGE_ENABLE_2D",
@@ -309,9 +309,6 @@
       "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c"
     ],
     "compiled": [
-      "src/xui/code/xui_code_edit.c"
-    ],
-    "reused": [
       "single/xge.c",
       "modules/xlayout/xlayout.c",
       "src/xui/core/xui_core.c",
@@ -402,6 +399,7 @@
       "src/xui/code/xui_code_language.c",
       "src/xui/code/xui_code_search.c",
       "src/xui/code/xui_code_layout.c",
+      "src/xui/code/xui_code_edit.c",
       "src/xui/core/xui_proxy_xge.c",
       "src/xui/core/xui_edit.c",
       "src/xui/core/xui_drag_drop.c",
@@ -477,9 +475,10 @@
       "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c",
       "extlibs/harfbuzz/src/harfbuzz.cc"
     ],
+    "reused": [],
     "linked": true,
     "runtime_dependencies": [],
-    "seconds": 4.193037599994568,
+    "seconds": 250.54386659999727,
     "runtime_bytes": 10052530,
     "unstripped_bytes": 12148403
   },
@@ -509,6 +508,20 @@
         "sha256": "e477a131fea6c1eb5b33cff656495154fd2e999420cd8b38cf1a4776dbfb1f7c",
         "payload": "xui_code_annotation.c",
         "diff": "xui_code_annotation.patch"
+      },
+      {
+        "path": "extlibs/xrt/xrt.h",
+        "upstreamSha256": "a222542a4abe652ee92cd28f6de21d6fa7a76398d04c03c6b24b45329c57d1a3",
+        "sha256": "095a852f390a83e7adef52e8e456634298f40245b7a36ec1e55b138e91143e16",
+        "payload": "xrt.h",
+        "diff": "xrt.h.patch"
+      },
+      {
+        "path": "extlibs/xrt/upstream.json",
+        "upstreamSha256": "024b84f195ac98a5bbb71fbdfb60492bf20cc239e38fbcd96065e46268cd36df",
+        "sha256": "31451c4e78a4359dcd809394873231369108208b23e63f93e21df9bfa960de6a",
+        "payload": "upstream.json",
+        "diff": "upstream.json.patch"
       }
     ]
   },
@@ -987,16 +1000,16 @@
   },
   "outputs": [
     {
-      "path": "D:\\GIT\\x-lang\\ide\\build\\lsp-next-20261022\\m7a2b2-sdk-native-v1\\source\\build\\ide\\xge.dll",
-      "sha256": "44e5e9d09e4f96768d77c329bd6b016065dada84f7f7162d81af79c39c83e8ea"
+      "path": "E:\\codex-builds-xlang-lsp-20261023\\m7a2b7d-c1c36026\\sdk-tree-v1\\source\\build\\ide\\xge.dll",
+      "sha256": "91ddb616d3c0a65017e686922e377ebdadb104a36eea16491d1fecdc271026c3"
     },
     {
-      "path": "D:\\GIT\\x-lang\\ide\\build\\lsp-next-20261022\\m7a2b2-sdk-native-v1\\source\\build\\ide\\xge.lib",
-      "sha256": "587529fede485bd6f9a4fc8c2cf1f10cc1a3e517248248e293d8773786991838"
+      "path": "E:\\codex-builds-xlang-lsp-20261023\\m7a2b7d-c1c36026\\sdk-tree-v1\\source\\build\\ide\\xge.lib",
+      "sha256": "675bf40eb235195ee5cb0afee40ffe220eb3f0653b06ae1e7920971e5071123d"
     },
     {
-      "path": "D:\\GIT\\x-lang\\ide\\build\\lsp-next-20261022\\m7a2b2-sdk-native-v1\\source\\build\\ide\\xge_build_config.h",
-      "sha256": "b159558f23bbba0ce48538a843b4948cf0fd8f9cfda752ee3e953a415f187b9e"
+      "path": "E:\\codex-builds-xlang-lsp-20261023\\m7a2b7d-c1c36026\\sdk-tree-v1\\source\\build\\ide\\xge_build_config.h",
+      "sha256": "0d31f87b4b77f8d1699db4cb6293ed134bfff2218a61b3bb274005976f5a1761"
     }
   ]
 }
