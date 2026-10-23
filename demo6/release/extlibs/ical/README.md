@@ -143,3 +143,9 @@ Linux C ASan/UBSan、XLang 与线格式门禁均通过。完整范例 AOT 的共
 门禁，以及 Linux C ASan/UBSan、XLang 和双语门禁通过。默认 Windows
 核心 AOT 通过，公开范例 AOT 仍缺共享 `xl6ValueDataSnapshotV1`；
 整包未签收发布级。
+
+2026-10-23：重复属性升为字符串数组时，首个已拥有的 `xvalue`
+直接增加引用后进入数组，不再复制一遍属性文本。C 分配故障样本
+现在包含两条中文 `CATEGORIES`，逐点检查失败后的内存平衡和成功
+时的双值内容。Windows `-SkipAot` 与 Linux C ASan/UBSan、XLang、
+双语及独立线格式门禁通过；完整范例 AOT 的共享阻断未变。

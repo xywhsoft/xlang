@@ -70,7 +70,8 @@ static int test_parse_ownership(void) {
     const char source[] = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n"
         "PRODID:Widget\\, Inc\r\nBEGIN:VEVENT\r\nUID:a@demo\r\n"
         "DTSTAMP:20260801T000000Z\r\nDTSTART:20260810T090000Z\r\n"
-        "SUMMARY:第一行\\n第二行\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        "SUMMARY:第一行\\n第二行\r\nCATEGORIES:开发\r\n"
+        "CATEGORIES:会议\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
     xmemdebugsnapshot before, after;
     int failures = 0, successes = 0;
     xrtMemDebugSnapshot(&before);
@@ -90,6 +91,9 @@ static int test_parse_ownership(void) {
             CHECK(calendar && equals(field(calendar, "prodid"), "Widget, Inc"));
             event = xrtValueArrayAt(field(calendar, "events"), 0);
             CHECK(equals(field(event, "summary"), "第一行\n第二行"));
+            CHECK(xrtValueCount(field(event, "categories")) == 2);
+            CHECK(equals(xrtValueArrayAt(field(event, "categories"), 0), "开发"));
+            CHECK(equals(xrtValueArrayAt(field(event, "categories"), 1), "会议"));
             ++successes;
         }
         xrtValueRelease(calendar);

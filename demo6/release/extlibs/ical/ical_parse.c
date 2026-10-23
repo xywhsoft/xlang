@@ -77,12 +77,11 @@ static int xi_add_property(xvalue *object, const XiProperty *property, xstrview 
         return xrtValueArrayAppendNew(previous, item);
     }
     {
-        xstrview prior_text;
         xvalue *array = xrtValueArray();
         int appended = 0;
         if (array == NULL) { xrtValueRelease(item); return 0; }
-        if (xrtValueGetString(previous, &prior_text)) {
-            xvalue *old = xrtValueString(prior_text);
+        if (xrtValueType(previous) == XVALUE_STRING) {
+            xvalue *old = xrtValueRetain(previous);
             if (old != NULL && xrtValueArrayAppendNew(array, old)) {
                 appended = xrtValueArrayAppendNew(array, item);
                 item = NULL;
