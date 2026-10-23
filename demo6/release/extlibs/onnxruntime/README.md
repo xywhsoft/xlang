@@ -30,8 +30,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/onnxruntime/
 门禁覆盖严格 GCC、59 个 C 入口的公开声明、56 个桥接符号的装载检查、
 UTF-8 中文路径的环境变量与程序目录装载、C 和 XLang 的真实模型加载及
 零张量推理、XLang `int` 收窄拒绝、残缺桥接 DLL 拒绝、显式缺失路径与
-旧错误隔离、C/XLang 模型元数据范例对照。默认门禁还验证 C 直接构建、
-无输出推理 AOT 及带输出模型信息范例的 AOT；`-SkipAot` 只用于 C/JIT
+旧错误隔离、C/XLang 模型元数据范例对照，并固定公开 API 范例的 JIT
+输出。默认门禁还验证 C 直接构建、无输出推理 AOT、带输出模型信息范例
+及公开 API 范例的 AOT；`-SkipAot` 只用于 C/JIT
 聚焦检查。测试模型借用
 `release/extlibs/rapidocr/models/ch_ppocr_mobile_v2.0_cls_infer.onnx`；这只是
 测试资产，不是运行时包依赖。范例位于 `examples/model_info.xl` 和
@@ -64,3 +65,10 @@ XLang 范例的真实模型元数据逐字对照，构建产物仅存于本次�
 `test/catalog_call.xl` 已登记为 `coverage.tests`，从 `demo6` 根目录运行真实模型的零张量推理并释放所有结果。通用目录门禁只覆盖公开调用链；桥接内部与带输出 AOT 的限制保持上文口径。
 
 2026-10-22：包级脚本原默认在无输出推理 AOT 通过后报告全绿，未构建公开模型信息范例。现默认继续构建/运行该范例 AOT 并与同次 C 输出对照，新增 `-SkipAot` 聚焦路径。当前聚焦门禁通过；默认门禁完成 C 直接构建、真实模型 JIT 与无输出推理 AOT 后，在完整范例构建处准确报主线缺少 `xl6ValueDataSnapshotV1`。独占构建目录在失败后已清理；不签收完整 AOT 或桥接 DLL 内部实现。
+
+2026-10-23：`release/examples/extlibs/onnxruntime.xl` 的公开 API 范例
+不再只检查退出码；JIT 固定输出 `onnxruntime extlib ok`，默认门禁也加入
+该范例的独立 AOT 构建和同输出核对。Windows 聚焦门禁通过真实模型、
+中文路径、残缺桥接拒绝和公开语言调用；默认门禁的无输出推理 AOT
+通过，先在已有模型信息范例 AOT 因共享缺符号失败，新增步骤尚未执行到。
+独立尝试构建公开 API 范例也复现同一缺符号；本次独占目录已清理。

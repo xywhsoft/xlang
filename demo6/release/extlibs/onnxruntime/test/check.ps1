@@ -91,7 +91,10 @@ try {
         if ($cOutput -cne $directAot) { throw 'C direct executable metadata differs' }
     }
 
-    $null = Run 'XLang existing API example' $xl @('run', 'examples/extlibs/onnxruntime.xl')
+    $publicOutput = Run 'XLang existing API example' $xl @('run', 'examples/extlibs/onnxruntime.xl')
+    if ($publicOutput -cne 'onnxruntime extlib ok') {
+        throw "XLang public API example output differs: $publicOutput"
+    }
     $null = Run 'XLang model inference JIT' $xl @('run', 'extlibs/onnxruntime/test/model_probe.xl')
     $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/onnxruntime/examples/model_info.xl')
     if ($cOutput -cne $xlOutput -or $cOutput -cne $directOutput) {
@@ -107,6 +110,14 @@ try {
         $null = Run 'XLang example AOT build' $xl @('build', 'extlibs/onnxruntime/examples/model_info.xl', '-o', $exampleExe)
         $exampleOutput = Run 'XLang example AOT' $exampleExe @()
         if ($exampleOutput -cne $cOutput) { throw 'XLang AOT model metadata differs' }
+
+        $publicExe = Join-Path $work 'onnxruntime_public_xl.exe'
+        $null = Run 'XLang public API example AOT build' $xl @(
+            'build', 'examples/extlibs/onnxruntime.xl', '-o', $publicExe)
+        $publicAot = Run 'XLang public API example AOT' $publicExe @()
+        if ($publicAot -cne $publicOutput) {
+            throw 'XLang public API example JIT/AOT output differs'
+        }
     }
 } finally {
     Pop-Location
