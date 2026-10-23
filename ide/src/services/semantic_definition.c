@@ -14,7 +14,11 @@ typedef struct span { int source,startOffset,endOffset; point start,end; } span;
 typedef struct node { unsigned parent,depth,declared,target,typeId,declaredType,referencedType; uint64_t typeAbi; int call,kind,origin,typeSyntax,typeParams,typeConstraint,nameSyntax,genericType,memberSyntax; char *name,*header,*type; span full,token,selection; } node;
 typedef struct declaration { unsigned symbol; size_t node; } declaration;
 typedef struct endpoint { int source,offset,line,column; point* output; } endpoint;
-struct xide_semantic_definitions { node* nodes; size_t count,declCount,typeCount,sourceCount; declaration *declarations,*typeDeclarations; char** paths; size_t textBytes; };
+#define CURSOR_SELECTION UINT32_C(0x80000000)
+typedef struct cursor_row { uint32_t source,sl,sc,el,ec,maximumLine,maximumCharacter,node; } cursor_row;
+typedef struct reference_row { uint32_t targetSource,targetStart,targetEnd,source,start,end,node; } reference_row;
+struct xide_semantic_definitions { node* nodes; size_t count,declCount,typeCount,sourceCount; declaration *declarations,*typeDeclarations; char** paths; size_t textBytes; xarray cursors,references;int lookupReady; };
+static int buildLookup(xide_semantic_definitions* d);
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* get(const xvalue* o,const char* k) { return o && xrtValueType(o)==XVALUE_OBJECT ? xrtValueObjectGet(o,sv(k)) : NULL; }
 static const char* string(const xvalue* v) { xstrview s={0}; return v && xrtValueGetString(v,&s) && s.Size<=65535 && !memchr(s.Data,0,s.Size) ? s.Data : NULL; }
@@ -144,7 +148,7 @@ int xideSemanticRangesToLsp(const xide_semantic_source* sources,size_t count,xid
  free(spans);free(ends);return okay;
 }
 void xideSemanticDefinitionsDestroy(xide_semantic_definitions* d)
-{ if(d) { if(d->paths) for(size_t i=0;i<d->sourceCount;++i) free(d->paths[i]); free(d->paths); if(d->nodes) for(size_t i=0;i<d->count;++i) { free(d->nodes[i].name); free(d->nodes[i].header); free(d->nodes[i].type); } free(d->declarations); free(d->typeDeclarations); free(d->nodes); free(d); } }
+{ if(d) { if(d->lookupReady&1)xrtArrayUnit(&d->cursors);if(d->lookupReady&2)xrtArrayUnit(&d->references);if(d->paths) for(size_t i=0;i<d->sourceCount;++i) free(d->paths[i]); free(d->paths); if(d->nodes) for(size_t i=0;i<d->count;++i) { free(d->nodes[i].name); free(d->nodes[i].header); free(d->nodes[i].type); } free(d->declarations); free(d->typeDeclarations); free(d->nodes); free(d); } }
 static xide_semantic_definitions* definitionsCreate(const xvalue* index,
 #ifdef XLS_COMPILER_XRT
  const xls_semantic_index* typed,
@@ -218,6 +222,7 @@ static xide_semantic_definitions* definitionsCreate(const xvalue* index,
   }
   d->typeCount=unique;
  }
+ if(okay) okay=buildLookup(d);
  free(ends); if(okay) return d; xideSemanticDefinitionsDestroy(d);
 invalid:
  if(error) { error->code=XIDE_MODEL_INVALID; snprintf(error->message,sizeof(error->message),"编译器语义索引的身份、来源或范围无法验证。"); } return NULL;
@@ -236,7 +241,7 @@ static int comparePoint(point a,point b) { return a.line!=b.line ? (a.line>b.lin
 static int contains(const span* s,int source,point p) { return s->source==source && comparePoint(s->start,p)<=0 && comparePoint(p,s->end)<0; }
 static xvalue* position(point p) { xvalue* v=xrtValueObject(); if(v && put(v,"line",xrtValueInt(p.line)) && put(v,"character",xrtValueInt(p.character))) return v; xrtValueRelease(v); return NULL; }
 static int sourceFor(xide_semantic_definitions* d,const char* path)
-{ if(d && path) for(size_t i=0;i<d->sourceCount;++i) if(xidePathLexicalEqual(path,d->paths[i])) return (int)i+1; return 0; }
+{ if(d && path) for(size_t i=0;i<d->sourceCount;++i) if(!strcmp(path,d->paths[i]) || xidePathLexicalEqual(path,d->paths[i])) return (int)i+1; return 0; }
 static size_t resolveDeclaration(xide_semantic_definitions* d,size_t chosen,int source,point p)
 {
  node* n=&d->nodes[chosen]; unsigned target=n->target ? n->target : n->declared;
@@ -259,15 +264,34 @@ static size_t resolveDeclaration(xide_semantic_definitions* d,size_t chosen,int 
  }
  return found ? found->node : SIZE_MAX;
 }
-static size_t selectNode(xide_semantic_definitions* d,int source,int line,int character,size_t* decl)
+typedef struct cursor_search {xide_semantic_definitions* definitions;point position;int source,width;size_t chosen,visited;} cursor_search;
+static void searchCursorTree(cursor_search* search,size_t lo,size_t hi)
 {
- point p={line,character}; size_t chosen=SIZE_MAX; int width=INT_MAX;
- for(size_t i=0;i<d->count;++i) {
-  node* n=&d->nodes[i]; const span* s=contains(&n->selection,source,p) && (n->declared || n->declaredType) ? &n->selection : &n->token;
-  if(contains(s,source,p)) { int w=s->endOffset-s->startOffset; if(w<width || (w==width && (chosen==SIZE_MAX || n->depth>d->nodes[chosen].depth))) { chosen=i; width=w; } }
+ if(lo==hi)return;
+ xide_semantic_definitions* d=search->definitions;size_t mid=lo+(hi-lo)/2;const cursor_row* r=(const cursor_row*)d->cursors.Data+mid;++search->visited;
+ if(comparePoint((point){(int)r->maximumLine,(int)r->maximumCharacter},search->position)<=0)return;
+ searchCursorTree(search,lo,mid);
+ if(comparePoint((point){(int)r->sl,(int)r->sc},search->position)<=0) {
+  size_t i=r->node&~CURSOR_SELECTION;node* n=d->nodes+i;const span* s=r->node&CURSOR_SELECTION ? &n->selection : &n->token;
+  int suppressed=!(r->node&CURSOR_SELECTION) && (n->declared || n->declaredType) && contains(&n->selection,search->source,search->position);
+  if(!suppressed && contains(s,search->source,search->position)) {int width=s->endOffset-s->startOffset;size_t chosen=search->chosen;
+   if(width<search->width || (width==search->width && (chosen==SIZE_MAX || n->depth>d->nodes[chosen].depth || (n->depth==d->nodes[chosen].depth && i<chosen)))) {search->chosen=i;search->width=width;}
+  }
+  searchCursorTree(search,mid+1,hi);
  }
+}
+static size_t selectNodeIndexed(xide_semantic_definitions* d,int source,int line,int character,size_t* decl,size_t* visited)
+{
+ const cursor_row* rows=(const cursor_row*)d->cursors.Data;size_t lo=0,hi=d->cursors.Count;
+ while(lo<hi) {size_t mid=lo+(hi-lo)/2;if(rows[mid].source<(unsigned)source)lo=mid+1;else hi=mid;}
+ size_t first=lo;hi=d->cursors.Count;
+ while(lo<hi) {size_t mid=lo+(hi-lo)/2;if(rows[mid].source<=(unsigned)source)lo=mid+1;else hi=mid;}
+ point p={line,character};cursor_search search={d,p,source,INT_MAX,SIZE_MAX,0};searchCursorTree(&search,first,lo);size_t chosen=search.chosen;
+ if(visited)*visited=search.visited;
  *decl=chosen==SIZE_MAX ? SIZE_MAX : resolveDeclaration(d,chosen,source,p); return chosen;
 }
+static size_t selectNode(xide_semantic_definitions* d,int source,int line,int character,size_t* decl)
+{ return selectNodeIndexed(d,source,line,character,decl,NULL); }
 static xvalue* wireRange(const span* s)
 { xvalue* r=xrtValueObject(); if(r && put(r,"start",position(s->start)) && put(r,"end",position(s->end))) return r; xrtValueRelease(r); return NULL; }
 xvalue* xideSemanticDefinition(xide_semantic_definitions* d,const char* path,int line,int character)
@@ -287,32 +311,124 @@ static const span* occurrence(const node* n,int source,point p,int atCursor)
  if((n->nameSyntax || n->typeSyntax || n->memberSyntax) && n->token.source==source && (!atCursor || contains(&n->token,source,p))) return &n->token;
  return NULL;
 }
-static int compareSpan(const void* a,const void* b)
+static int unsignedOrder(uint32_t a,uint32_t b) {return (a>b)-(a<b);}
+static int compareCursor(const void* a,const void* b)
 {
- const span *x=a,*y=b;return x->startOffset!=y->startOffset ? (x->startOffset>y->startOffset)-(x->startOffset<y->startOffset) : (x->endOffset>y->endOffset)-(x->endOffset<y->endOffset);
+ const cursor_row *x=a,*y=b;int c=unsignedOrder(x->source,y->source);if(!c)c=unsignedOrder(x->sl,y->sl);if(!c)c=unsignedOrder(x->sc,y->sc);return c ? c : unsignedOrder(x->node,y->node);
+}
+static int compareReference(const void* a,const void* b)
+{
+ const reference_row *x=a,*y=b;int c=unsignedOrder(x->targetSource,y->targetSource);
+ if(!c)c=unsignedOrder(x->targetStart,y->targetStart);
+ if(!c)c=unsignedOrder(x->targetEnd,y->targetEnd);
+ if(!c)c=unsignedOrder(x->source,y->source);
+ if(!c)c=unsignedOrder(x->start,y->start);
+ if(!c)c=unsignedOrder(x->end,y->end);
+ return c ? c : unsignedOrder(x->node,y->node);
+}
+static int appendCursor(xide_semantic_definitions* d,const span* s,uint32_t index)
+{
+ if(!s->source || s->endOffset<=s->startOffset)return 1;
+ cursor_row r={(uint32_t)s->source,(uint32_t)s->start.line,(uint32_t)s->start.character,(uint32_t)s->end.line,(uint32_t)s->end.character,0,0,index};
+ return xrtArrayAppend(&d->cursors,&r,1);
+}
+/* An implicit balanced interval tree per source. A long enclosing span must
+   not turn point lookup into a backwards scan through unrelated short tokens. */
+static point buildCursorTree(cursor_row* rows,size_t lo,size_t hi)
+{
+ size_t mid=lo+(hi-lo)/2;cursor_row* r=rows+mid;point maximum={(int)r->el,(int)r->ec};
+ if(lo<mid) {point left=buildCursorTree(rows,lo,mid);if(comparePoint(left,maximum)>0)maximum=left;}
+ if(mid+1<hi) {point right=buildCursorTree(rows,mid+1,hi);if(comparePoint(right,maximum)>0)maximum=right;}
+ r->maximumLine=(uint32_t)maximum.line;r->maximumCharacter=(uint32_t)maximum.character;return maximum;
+}
+static int buildLookup(xide_semantic_definitions* d)
+{
+ if(!xrtArrayInit(&d->cursors,sizeof(cursor_row)))return 0;
+ d->lookupReady=1;if(!xrtArrayInit(&d->references,sizeof(reference_row)))return 0;
+ d->lookupReady=3;
+ for(size_t i=0;i<d->count;++i) {
+  node* n=d->nodes+i;
+  int hasSelection=n->declared || n->declaredType;
+  if(!appendCursor(d,&n->token,(uint32_t)i|(hasSelection && sameSelection(&n->selection,&n->token) ? CURSOR_SELECTION : 0)))return 0;
+  if(hasSelection && !sameSelection(&n->selection,&n->token) && !appendCursor(d,&n->selection,(uint32_t)i|CURSOR_SELECTION))return 0;
+ }
+ if(!xrtArraySort(&d->cursors,compareCursor))return 0;
+ cursor_row* cursors=(cursor_row*)d->cursors.Data;
+ for(size_t i=0;i<d->cursors.Count;) {size_t end=i+1;while(end<d->cursors.Count && cursors[end].source==cursors[i].source)++end;buildCursorTree(cursors,i,end);i=end;}
+ for(size_t i=0;i<d->count;++i) {
+  const node* n=d->nodes+i;int atSource=(n->declared || n->declaredType) && n->selection.source ? n->selection.source : n->token.source;
+  const span* at=occurrence(n,atSource,(point){0},0);if(!at || !at->source || at->endOffset<=at->startOffset)continue;
+  size_t resolved=resolveDeclaration(d,i,at->source,at->start);if(resolved==SIZE_MAX)continue;
+  const span* target=&d->nodes[resolved].selection;if(!target->source || target->endOffset<=target->startOffset)continue;
+  reference_row r={(uint32_t)target->source,(uint32_t)target->startOffset,(uint32_t)target->endOffset,(uint32_t)at->source,(uint32_t)at->startOffset,(uint32_t)at->endOffset,(uint32_t)i};
+  if(!xrtArrayAppend(&d->references,&r,1))return 0;
+ }
+ if(!xrtArraySort(&d->references,compareReference))return 0;
+ reference_row* rows=(reference_row*)d->references.Data;size_t used=0;
+ for(size_t i=0;i<d->references.Count;++i) {
+  reference_row r=rows[i];
+  if(used) {reference_row previous=rows[used-1];previous.node=r.node;if(!compareReference(&previous,&r))continue;}
+  rows[used++]=r;
+ }
+ return xrtArrayResize(&d->references,used);
+}
+static int referenceTargetOrder(const reference_row* r,const span* target,int source)
+{
+ int c=unsignedOrder(r->targetSource,(uint32_t)target->source);
+ if(!c)c=unsignedOrder(r->targetStart,(uint32_t)target->startOffset);
+ if(!c)c=unsignedOrder(r->targetEnd,(uint32_t)target->endOffset);
+ if(!c && source)c=unsignedOrder(r->source,(uint32_t)source);
+ return c;
+}
+static int referenceOccurrenceOrder(const reference_row* r,const span* target)
+{
+ int c=unsignedOrder(r->source,(uint32_t)target->source);if(!c)c=unsignedOrder(r->start,(uint32_t)target->startOffset);return c ? c : unsignedOrder(r->end,(uint32_t)target->endOffset);
+}
+static int referenceView(xide_semantic_definitions* d,int source,int line,int character,int includeDeclaration,int onlySource,xide_semantic_reference_view* view)
+{
+ *view=(xide_semantic_reference_view){d,0,0,SIZE_MAX};
+ size_t decl=SIZE_MAX,chosen=selectNode(d,source,line,character,&decl);
+ if(chosen==SIZE_MAX || decl==SIZE_MAX || !occurrence(d->nodes+chosen,source,(point){line,character},1))return 1;
+ const span* target=&d->nodes[decl].selection;if(!target->source || target->endOffset<=target->startOffset)return 1;
+ const reference_row* rows=(const reference_row*)d->references.Data;size_t lo=0,hi=d->references.Count;
+ while(lo<hi) {size_t mid=lo+(hi-lo)/2;if(referenceTargetOrder(rows+mid,target,onlySource)<0)lo=mid+1;else hi=mid;}
+ size_t first=lo;hi=d->references.Count;
+ while(lo<hi) {size_t mid=lo+(hi-lo)/2;if(referenceTargetOrder(rows+mid,target,onlySource)<=0)lo=mid+1;else hi=mid;}
+ size_t last=lo;view->first=first;view->count=last-first;
+ if(!includeDeclaration) {
+  lo=first;hi=last;while(lo<hi) {size_t mid=lo+(hi-lo)/2;if(referenceOccurrenceOrder(rows+mid,target)<0)lo=mid+1;else hi=mid;}
+  if(lo<last && !referenceOccurrenceOrder(rows+lo,target)) {view->excluded=lo-first;--view->count;}
+ }
+ return 1;
+}
+int xideSemanticReferences(xide_semantic_definitions* d,const char* path,int line,int character,int includeDeclaration,xide_semantic_reference_view* view)
+{
+ if(view)*view=(xide_semantic_reference_view){0};
+ int source=sourceFor(d,path);if(!view || !source || line<0 || character<0 || (includeDeclaration!=0 && includeDeclaration!=1))return 0;
+ return referenceView(d,source,line,character,includeDeclaration,0,view);
+}
+int xideSemanticReferenceAt(const xide_semantic_reference_view* view,size_t index,xide_semantic_reference* out)
+{
+ if(out)*out=(xide_semantic_reference){0};
+ if(!view || !out || !view->definitions || index>=view->count)return 0;
+ const xide_semantic_definitions* d=view->definitions;
+ if(view->first>d->references.Count || view->count>d->references.Count-view->first || (view->excluded!=SIZE_MAX && (view->excluded>view->count || view->count==d->references.Count-view->first)))return 0;
+ size_t at=view->first+index+(view->excluded!=SIZE_MAX && index>=view->excluded);
+ const reference_row* r=(const reference_row*)d->references.Data+at;const span* s=occurrence(d->nodes+r->node,(int)r->source,(point){0},0);
+ if(!s || !s->source || s->startOffset!=(int)r->start || s->endOffset!=(int)r->end)return 0;
+ *out=(xide_semantic_reference){d->paths[r->source-1],{.line=s->start.line,.character=s->start.character,.offset=s->startOffset},{.line=s->end.line,.character=s->end.character,.offset=s->endOffset},r->source==r->targetSource && r->start==r->targetStart && r->end==r->targetEnd};return 1;
 }
 xvalue* xideSemanticDocumentHighlights(xide_semantic_definitions* d,const char* path,int line,int character)
 {
  int source=sourceFor(d,path);if(!source || line<0 || character<0) return NULL;
- size_t decl=SIZE_MAX,chosen=selectNode(d,source,line,character,&decl);xvalue* out=xrtValueArray();if(!out) return NULL;
- if(chosen==SIZE_MAX || decl==SIZE_MAX || !occurrence(&d->nodes[chosen],source,(point){line,character},1)) return out;
- const span* target=&d->nodes[decl].selection;if(!target->source || target->endOffset<=target->startOffset) return out;
- /* Resolve each token directly through the same overload/type/lexical IDs as
-  * navigation. Do not repeat the whole-tree cursor search per occurrence.
-  * Declaration locations join duplicate checked instances, never spellings. */
- span* matches=malloc((d->count+1)*sizeof(*matches));if(!matches) { xrtValueRelease(out);return NULL; } size_t used=0;
- for(size_t i=0;i<d->count;++i) {
-  const span* at=occurrence(&d->nodes[i],source,(point){0},0);if(!at || at->endOffset<=at->startOffset) continue;
-  size_t resolved=resolveDeclaration(d,i,source,at->start);
-  if(resolved!=SIZE_MAX && sameSelection(target,&d->nodes[resolved].selection)) matches[used++]=*at;
- }
- qsort(matches,used,sizeof(*matches),compareSpan);int okay=1;
- for(size_t i=0;okay && i<used;++i) {
-  if(i && sameSelection(&matches[i-1],&matches[i])) continue;
-  xvalue* value=xrtValueObject();okay=value && put(value,"range",wireRange(&matches[i])) && put(value,"kind",xrtValueInt(1));
+ xide_semantic_reference_view view={0};if(!referenceView(d,source,line,character,1,source,&view))return NULL;
+ xvalue* out=xrtValueArray();if(!out)return NULL;int okay=1;const reference_row* rows=(const reference_row*)d->references.Data;
+ for(size_t i=0;okay && i<view.count;++i) {
+  const reference_row* r=rows+view.first+i;const span* s=occurrence(d->nodes+r->node,source,(point){0},0);
+  xvalue* value=xrtValueObject();okay=value && put(value,"range",wireRange(s)) && put(value,"kind",xrtValueInt(1));
   if(okay) { okay=xrtValueArrayAppendNew(out,value);value=NULL; } xrtValueRelease(value);
  }
- free(matches);if(!okay) { xrtValueRelease(out);return NULL; }return out;
+ if(!okay) { xrtValueRelease(out);return NULL; }return out;
 }
 xvalue* xideSemanticHover(xide_semantic_definitions* d,const char* path,int line,int character)
 {

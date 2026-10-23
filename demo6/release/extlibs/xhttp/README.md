@@ -32,7 +32,9 @@ python tools\sync_xhttp_package.py --xrt-root <xrt-root>
 ```text
 release\xl.exe run release\extlibs\xhttp\test\xhttp_url_test.xl
 release\xl.exe run release\extlibs\xhttp\test\xhttp_query_test.xl
+pwsh -NoProfile -File tools\run_extlib_c.ps1 -Package xhttp -Source release\extlibs\xhttp\test\xhttp_buffer_transfer.c
 ```
 
 两组用例也必须通过 `xl build` 静态产物验证，并检查生成模块不包含
 `XRT_MODULE_ALL` 或 `XRUNTIME_MODULE_ALL`。
+文本返回优先转交原生 Buffer 的分配；含内嵌 NUL 的结果继续按长度转换。

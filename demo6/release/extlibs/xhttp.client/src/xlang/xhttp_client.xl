@@ -22,6 +22,7 @@ extern "xl6_xrt_tls_stream_adopt" func __xhttp_client_tls_stream_adopt(
     point stream) as point
 extern "xhttp_client_tls_stream_discard" func __xhttp_client_tls_stream_discard(
     point stream)
+extern "xhttp_client_buffer_take_cstr" func __xhttp_client_buffer_take_cstr(point handle) as point
 
 
 
@@ -54,13 +55,13 @@ export const int RESPONSE_UPGRADED = 4
 
 
 
-// 复制当前线程错误文本并生成稳定字符串。
+// 接管当前线程错误文本的独立快照。
 func __xhttp_client_error() as string
     point handle = __xhttp_client_error_native()
     if handle == null then
         return "xhttp.client operation failed"
     end
-    return Buffer(handle).text()
+    return __xhttp_client_text(handle)
 end
 
 
@@ -75,12 +76,22 @@ end
 
 
 
+// 普通文本移交 Buffer 数据；含 NUL 的结果保持长度感知转换。
+func __xhttp_client_text(point handle) as string
+    Buffer result = Buffer(handle)
+    point text = __xhttp_client_buffer_take_cstr(result.handle)
+    if text != null then return __xl_runtime.takeCstr(text) end
+    return result.text()
+end
+
+
+
 // 把可空的原生文本副本转换为语言字符串。
 func __xhttp_client_optional_text(point handle) as string?
     if handle == null then
         return null
     end
-    return Buffer(handle).text()
+    return __xhttp_client_text(handle)
 end
 
 
@@ -144,13 +155,13 @@ export class Request
     end
 
     get method() as string
-        return Buffer(__xhttp_client_handle(
-            self.textNative(c_longlong(0)))).text()
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(0))))
     end
 
     get url() as string
-        return Buffer(__xhttp_client_handle(
-            self.textNative(c_longlong(1)))).text()
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(1))))
     end
 
     get parsedUrl() as Url
@@ -360,23 +371,23 @@ export class Http1RequestPlan
     end
 
     get method() as string
-        return Buffer(__xhttp_client_handle(
-            self.textNative(c_longlong(2)))).text()
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(2))))
     end
 
     get url() as string
-        return Buffer(__xhttp_client_handle(
-            self.textNative(c_longlong(3)))).text()
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(3))))
     end
 
     get target() as string
-        return Buffer(__xhttp_client_handle(
-            self.textNative(c_longlong(4)))).text()
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(4))))
     end
 
     get host() as string
-        return Buffer(__xhttp_client_handle(
-            self.textNative(c_longlong(5)))).text()
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(5))))
     end
 
     get port() as int
@@ -486,8 +497,8 @@ export class Response
     end
 
     get reason() as string
-        return Buffer(__xhttp_client_handle(
-            self.textNative(c_longlong(0)))).text()
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(0))))
     end
 
     get headerCount() as int
@@ -507,8 +518,8 @@ export class Response
     end
 
     get url() as string
-        return Buffer(__xhttp_client_handle(
-            self.textNative(c_longlong(1)))).text()
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(1))))
     end
 
     get parsedUrl() as Url

@@ -72,6 +72,9 @@ str xhttpProtocolNativeTextCopy(
 	size_t iSize
 );
 
+/* 普通文本转交底层分配；含 NUL 的 Buffer 继续按长度读取。 */
+XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_buffer_take_cstr(void* handle);
+
 
 
 #endif

@@ -11,6 +11,7 @@ extern "xhttp_form_decode" func __xhttp_form_decode(
     string text, c_size size) as point
 extern "xhttp_query_count" func __xhttp_query_count(
     string text, c_size size) as c_longlong
+extern "xhttp_buffer_take_cstr" func __xhttp_buffer_take_cstr(point handle) as point
 
 
 
@@ -27,23 +28,29 @@ export const int URL_PORT_VALUE = 512
 
 
 
-// 复制当前线程错误文本并生成稳定字符串。
+// 接管当前线程错误文本的独立快照。
 func __xhttp_error() as string
     point handle = __xhttp_error_native()
     if handle == null then
         return "xhttp operation failed"
     end
-    return Buffer(handle).text()
+    Buffer result = Buffer(handle)
+    point text = __xhttp_buffer_take_cstr(result.handle)
+    if text != null then return __xl_runtime.takeCstr(text) end
+    return result.text()
 end
 
 
 
-// 接管原生 Buffer 并生成稳定字符串。
+// 普通文本移交 Buffer 数据；含 NUL 的结果保持长度感知转换。
 func __xhttp_text(point handle) as string
     if handle == null then
         throw RuntimeError __xhttp_error()
     end
-    return Buffer(handle).text()
+    Buffer result = Buffer(handle)
+    point text = __xhttp_buffer_take_cstr(result.handle)
+    if text != null then return __xl_runtime.takeCstr(text) end
+    return result.text()
 end
 
 
@@ -392,7 +399,7 @@ export class QueryParams
         if result == null then
             return null
         end
-        return Buffer(result).text()
+        return __xhttp_text(result)
     end
 
     func parseAppend(string text) as bool

@@ -55,6 +55,20 @@ int main(void)
         if (strcmp(x_volc_core_sha256_hex("abc"), digest) != 0 || xrtGetError() != NULL)
             return fail("successful call retained stale XRT error");
     }
+    {
+        const char* borrowed = x_volc_core_json_string("owned text");
+        char* owned = (char*)x_volc_core_take_result(borrowed);
+        char* static_copy = (char*)x_volc_core_take_result(x_volc_core_version());
+        int i;
+        if (owned != borrowed || strcmp(owned, "\"owned text\"") != 0 ||
+            static_copy == NULL || strcmp(static_copy, x_volc_core_version()) != 0)
+            return fail("result ownership transfer");
+        for (i = 0; i < 16; ++i) x_volc_core_sha256_hex("abc");
+        if (strcmp(owned, "\"owned text\"") != 0)
+            return fail("transferred result was recycled");
+        xrtFree(owned);
+        xrtFree(static_copy);
+    }
     test_pair_allocation_failure();
     test_buffer_bounds();
     test_signed_fields();

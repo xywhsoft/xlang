@@ -30,6 +30,26 @@ static int highlights(xide_semantic_definitions* d,const char* path,const char* 
     }
     xrtValueRelease(out);return 1;
 }
+typedef struct expected_reference {const char* path;const char* text;expected_token token;int declaration;} expected_reference;
+static int references(xide_semantic_definitions* d,const char* path,const char* text,
+ expected_token cursor,int includeDeclaration,const expected_reference* expected,size_t count)
+{
+ const char* query=strstr(text,cursor.marker);int line,character;CHECK(query && count<=16 && xideLspOffsetToPosition(text,(int)(query-text+cursor.skip),&line,&character));
+ xide_semantic_reference_view view={0};CHECK(xideSemanticReferences(d,path,line,character,includeDeclaration,&view) && view.count==count);
+ unsigned seen=0;
+ for(size_t i=0;i<count;++i) {
+  xide_semantic_reference item={0};CHECK(xideSemanticReferenceAt(&view,i,&item));size_t matched=count;
+  for(size_t j=0;j<count;++j) {
+   const expected_reference* e=expected+j;const char* at=strstr(e->text,e->token.marker);CHECK(at);
+   int bom=!memcmp(e->text,"\xef\xbb\xbf",3),offset=(int)(at-e->text+e->token.skip);int sl,sc,el,ec;
+   CHECK(xideLspOffsetToPosition(e->text,offset,&sl,&sc) && xideLspOffsetToPosition(e->text,offset+(int)e->token.bytes,&el,&ec));
+   if(xidePathLexicalEqual(item.path,e->path) && item.start.offset==offset-(bom ? 3 : 0) && item.end.offset==offset+(int)e->token.bytes-(bom ? 3 : 0) &&
+      item.start.line==sl && item.start.character==sc && item.end.line==el && item.end.character==ec && item.declaration==e->declaration) {matched=j;break;}
+  }
+  CHECK(matched<count && !(seen&(1u<<matched)));seen|=1u<<matched;
+ }
+ xide_semantic_reference out={0};CHECK(!xideSemanticReferenceAt(&view,count,&out));return 1;
+}
 static int highlightIdentities(void)
 {
     char* path=xrtPathAbs("highlight-入口.xl");CHECK(path);
@@ -47,6 +67,12 @@ static int highlightIdentities(void)
     CHECK(highlights(d,path,text,inner[1],inner,2)&&highlights(d,path,text,other[2],other,4));
     CHECK(highlights(d,path,text,intCalls[1],intCalls,3)&&highlights(d,path,text,stringCalls[1],stringCalls,2));
     CHECK(highlights(d,path,text,aliases[1],aliases,2));
+    expected_reference callReferences[]={{path,text,intCalls[0],1},{path,text,intCalls[1],0},{path,text,intCalls[2],0}};
+    expected_reference shadowReferences[]={{path,text,inner[0],1},{path,text,inner[1],0}};
+    expected_reference aliasReferences[]={{path,text,aliases[0],1},{path,text,aliases[1],0}};
+    CHECK(references(d,path,text,intCalls[1],1,callReferences,3) && references(d,path,text,intCalls[0],0,callReferences+1,2));
+    CHECK(references(d,path,text,inner[1],1,shadowReferences,2) && references(d,path,text,aliases[1],1,aliasReferences,2));
+    CHECK(references(d,path,text,(expected_token){"// 值",3,3},1,NULL,0) && references(d,path,text,(expected_token){"😀",0,4},1,NULL,0));
     CHECK(highlights(d,path,text,(expected_token){"// 值",3,3},NULL,0)&&highlights(d,path,text,(expected_token){"😀",0,4},NULL,0));
     CHECK(!xideSemanticDocumentHighlights(d,"unknown.xl",0,0)&&!xideSemanticDocumentHighlights(d,path,-1,0));
     xideSemanticDefinitionsDestroy(d);xrtFree(path);return 1;
@@ -82,6 +108,11 @@ static int run(void)
     CHECK(!xideSemanticDefinitionsCreate(get(raw,"semanticIndex"),wrong,count,&e));
     CHECK(!xideSemanticDefinitionsCreateTyped(NULL,sources,count,&e));
     xlsSemanticCheckDestroy(checked); xrtValueRelease(raw); xlsSemanticStringFree(json);
+    expected_reference importedReferences[]={{path,text,{"typed_view_dep.value()",sizeof("typed_view_dep.")-1,5},0},{dep,dependency,{"export func value()",12,5},1}};
+    CHECK(references(native,path,text,importedReferences[0].token,1,importedReferences,2) && references(legacy,path,text,importedReferences[0].token,1,importedReferences,2));
+    CHECK(references(native,dep,dependency,importedReferences[1].token,0,importedReferences,1) && references(legacy,dep,dependency,importedReferences[1].token,0,importedReferences,1));
+    expected_reference genericReferences[]={{path,text,{"keep<T>",5,1},1},{path,text,{"keep<T>(T value)",8,1},0},{path,text,{"value) as T",10,1},0}};
+    CHECK(references(native,path,text,genericReferences[1].token,1,genericReferences,3) && references(legacy,path,text,genericReferences[1].token,1,genericReferences,3));
     /* Both navigation tables must outlive the check, AST, collector and DOM.
      * Compare all positions, including whitespace, end boundaries and the
      * second UTF-16 unit of a non-BMP scalar; not just a few chosen tokens. */

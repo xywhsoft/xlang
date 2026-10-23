@@ -69,6 +69,9 @@ xbuffer* xhttpClientNativeBuffer(xstrview Text);
 /* 把借用二进制视图复制到稳定的 xlang Buffer 句柄。 */
 xbuffer* xhttpClientNativeBytes(xbytesview Data);
 
+/* 普通文本转交底层分配；含 NUL 的 Buffer 继续按长度读取。 */
+XLANG_XHTTP_CLIENT_EXPORT void* xhttp_client_buffer_take_cstr(void* handle);
+
 
 
 #endif

@@ -27,4 +27,8 @@ python tools\sync_xhttp_protocol_package.py --xrt-root <xrt-root>
 release\xl.exe run release\extlibs\xhttp.protocol\test\xhttp_protocol_headers_test.xl
 release\xl.exe run release\extlibs\xhttp.protocol\test\xhttp_protocol_cookie_test.xl
 release\xl.exe run release\extlibs\xhttp.protocol\test\xhttp_protocol_mime_test.xl
+pwsh -NoProfile -File tools\run_extlib_c.ps1 -Package xhttp.protocol -Source release\extlibs\xhttp.protocol\test\buffer_transfer.c
 ```
+
+文本结果优先转交原生 Buffer 的分配，含内嵌 NUL 的字段仍按长度复制，
+不将二进制字段截成 C 字符串。

@@ -11,6 +11,9 @@ const char* x_volc_core_version(void);
 const char* x_volc_core_last_error(void);
 int x_volc_core_last_status(void);
 
+/* 仅供语言桥接使用：槽内分配转交，静态文本返回独立副本，均由 xrtFree 释放。 */
+void* x_volc_core_take_result(const char* text);
+
 const char* x_volc_core_sha256_hex(const char* text);
 const char* x_volc_core_hmac_sha256_hex(const char* key, const char* text);
 const char* x_volc_core_hmac_sha256_hex_key(const char* hex_key, const char* text);

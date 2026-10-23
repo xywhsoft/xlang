@@ -16,3 +16,15 @@ Request request = Request.make("POST", "https://example.test/items")
 request.setHeader("Accept", "application/json")
 request.setBody("{\"name\":\"xrt\"}", "application/json")
 ```
+
+方法、URL、目标、主机、原因短语和 Header 文本优先转交原生 Buffer 的分配；
+含内嵌 NUL 的结果保留按长度转换，响应正文不走零结尾文本快路。
+
+定向 C 测试：
+
+```text
+pwsh -NoProfile -File tools\run_extlib_c.ps1 -Package xhttp.client -Source release\extlibs\xhttp.client\test\buffer_transfer.c
+```
+
+当前 XLang `check` 仍先被依赖包 `xhttp.multipart` 的 `Buffer.appendBytes` 语义错误
+阻断；通过上述 C 边界测试不等于客户端全链路验收。

@@ -16,6 +16,7 @@ extern "xhttp_protocol_mime_lookup" func __xhttp_mime_lookup(
     string text, c_size size, bool path) as point
 extern "xhttp_protocol_content_compressible" func __xhttp_content_compressible(
     string text, c_size size) as bool
+extern "xhttp_protocol_buffer_take_cstr" func __xhttp_protocol_buffer_take_cstr(point handle) as point
 
 
 
@@ -44,23 +45,29 @@ export const int COOKIE_PRIORITY_HIGH = 3
 
 
 
-// 复制当前线程错误文本并生成稳定字符串。
+// 接管当前线程错误文本的独立快照。
 func __xhttp_protocol_error() as string
     point handle = __xhttp_protocol_error_native()
     if handle == null then
         return "xhttp.protocol operation failed"
     end
-    return Buffer(handle).text()
+    Buffer result = Buffer(handle)
+    point text = __xhttp_protocol_buffer_take_cstr(result.handle)
+    if text != null then return __xl_runtime.takeCstr(text) end
+    return result.text()
 end
 
 
 
-// 接管原生 Buffer 并生成稳定字符串。
+// 普通文本移交 Buffer 数据；含 NUL 的结果保持长度感知转换。
 func __xhttp_protocol_text(point handle) as string
     if handle == null then
         throw RuntimeError __xhttp_protocol_error()
     end
-    return Buffer(handle).text()
+    Buffer result = Buffer(handle)
+    point text = __xhttp_protocol_buffer_take_cstr(result.handle)
+    if text != null then return __xl_runtime.takeCstr(text) end
+    return result.text()
 end
 
 
@@ -204,7 +211,7 @@ export class Headers
         if result == null then
             return null
         end
-        return Buffer(result).text()
+        return __xhttp_protocol_text(result)
     end
 
     func getAll(string name) as array<string>
@@ -367,7 +374,7 @@ export class Cookies
         if result == null then
             return null
         end
-        return Buffer(result).text()
+        return __xhttp_protocol_text(result)
     end
 
     func clone() as Cookies

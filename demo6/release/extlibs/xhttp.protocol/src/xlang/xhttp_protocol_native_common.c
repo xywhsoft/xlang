@@ -112,3 +112,17 @@ XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_last_error(void)
 		strlen(sMessage)
 	});
 }
+
+
+
+/* 不改变二进制字段；有终止空间时直接移交原分配。 */
+XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_buffer_take_cstr(void* handle)
+{
+	xbuffer* buffer = (xbuffer*)handle;
+	if (buffer == NULL || buffer->Size == SIZE_MAX ||
+		(buffer->Size != 0u && buffer->Data == NULL) ||
+		(buffer->Size != 0u && memchr(buffer->Data, 0, buffer->Size) != NULL) ||
+		!xrtBufferReserve(buffer, buffer->Size + 1u)) return NULL;
+	buffer->Data[buffer->Size] = 0;
+	return xrtBufferTake(buffer, NULL, NULL);
+}
