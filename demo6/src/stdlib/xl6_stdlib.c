@@ -830,7 +830,11 @@ static int xl6StdlibUsesX509Types(const XL6_AstNode* root)
 {
     static const char* const types[]={"Certificate","CertificateRevocationList","X509Name","X509NameAttribute",
         "X509Extensions","X509Extension","X509Algorithm","X509SignatureInfo","X509PublicKeyInfo",
-        "X509SignatureKind","X509Digest","X509KeyKind","X509Curve"};
+        "X509SignatureKind","X509Digest","X509KeyKind","X509Curve",
+        "X509GeneralNames","X509GeneralName","X509Oids","X509KeyUsage","X509BasicConstraints",
+        "X509AuthorityKeyIdentifier","X509DistributionPoints","X509DistributionPoint","X509NameConstraints",
+        "X509GeneralSubtrees","X509GeneralSubtree","X509GeneralNameKind","X509KeyUsageFlags",
+        "X509ReasonFlags","X509DistributionNameKind"};
     for(size_t i=0;i<sizeof(types)/sizeof(*types);++i)if(xl6StdlibNodeUsesTypeName(root,types[i]))return 1;
     return 0;
 }
@@ -2294,6 +2298,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if (xl6StdlibUsesX509Types(root)) {
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509EnumsSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509RecordsSource);
+        xl6StdlibBuilderAppend(&builder,xl6StdlibX509ProfilesSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509DataSource);
     }
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||

@@ -320,6 +320,7 @@ const char* xl6StdlibXidClassSource =
 #include "xl6_stdlib_key_formats.inc"
 #include "xl6_stdlib_x509.inc"
 #include "xl6_stdlib_x509_records.inc"
+#include "xl6_stdlib_x509_profiles.inc"
 
 #include "xl6_stdlib_net_address.inc"
 #include "xl6_stdlib_net_resolver.inc"
