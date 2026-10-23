@@ -40,6 +40,7 @@ bool xtab_measure(const char* text, size_t length, size_t* width)
         /* 不可见格式符和双向控制符会破坏终端列宽与阅读顺序。 */
         if (xrtUtf8Decode(view, &scalar, &read) != XUTF_OK || read == 0u ||
             scalar < 0x20u || (scalar >= 0x7fu && scalar <= 0x9fu) ||
+            scalar == 0x00adu ||
             scalar == 0x061cu || (scalar >= 0x200bu && scalar <= 0x200fu) ||
             (scalar >= 0x202au && scalar <= 0x202eu) ||
             scalar == 0x2028u || scalar == 0x2029u ||

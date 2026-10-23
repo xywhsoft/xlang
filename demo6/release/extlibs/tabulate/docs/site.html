@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / tabulate</p><h1>tabulate</h1>
     <p class="extlib-lead">用单元格数组生成纯文本终端表格。</p>
-    <p>支持空单元格、逗号文本和常见中文列宽；单元格限定为单行文本，拒绝 U+2028/U+2029 行与段落分隔符、常见零宽及双向控制符，写入失败自动回滚。完整 AOT 发布验收仍受共享链接问题阻断。</p>
+    <p>支持空单元格、逗号文本和常见中文列宽；单元格限定为单行文本，拒绝 U+00AD soft hyphen、U+2028/U+2029 行与段落分隔符、常见零宽及双向控制符，写入失败自动回滚。完整 AOT 发布验收仍受共享链接问题阻断。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>成员</th><th>用途</th></tr></thead><tbody>

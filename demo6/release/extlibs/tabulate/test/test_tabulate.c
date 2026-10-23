@@ -92,6 +92,7 @@ static int test_transaction_faults(void)
 static int test_format_controls(void)
 {
     const char* controls[] = {
+        "a\xC2\xAD" "b", /* U+00AD soft hyphen */
         "a\xE2\x80\x8B" "b", /* U+200B zero-width space */
         "a\xE2\x80\xAE" "b", /* U+202E right-to-left override */
         "a\xE2\x81\xA6" "b", /* U+2066 left-to-right isolate */
