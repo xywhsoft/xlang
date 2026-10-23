@@ -41,13 +41,14 @@ static void* operate(unsigned int operation, xvalue* source)
         case 6: return xcbor_decode(chunked_bytes_wire, sizeof(chunked_bytes_wire));
         case 7: return xcbor_decode(chunked_text_wire, sizeof(chunked_text_wire));
         case 8: return xcbor_decode(empty_bytes_wire, sizeof(empty_bytes_wire));
-        default: return xcbor_decode(empty_text_wire, sizeof(empty_text_wire));
+        case 9: return xcbor_decode(empty_text_wire, sizeof(empty_text_wire));
+        default: return xcbor_decode_bytes(chunked_bytes_wire, sizeof(chunked_bytes_wire));
     }
 }
 
 static void release_result(unsigned int operation, void* result)
 {
-    if (operation == 1u || operation >= 6u) xrtValueRelease(result);
+    if (operation == 1u || (operation >= 6u && operation <= 9u)) xrtValueRelease(result);
     else if (operation == 4u) xrtFree(result);
     else xrtBufferDestroy(result);
 }
@@ -60,7 +61,7 @@ int main(void)
 
     CHECK(source != NULL && name != NULL);
     CHECK(xrtValueObjectSetTake(source, XRT_STR_LITERAL("name"), &name));
-    for (operation = 0; operation < 10u; ++operation) {
+    for (operation = 0; operation < 11u; ++operation) {
         unsigned int failure;
         unsigned int triggered_count = 0u;
         bool completed = false;
@@ -98,6 +99,12 @@ int main(void)
                         CHECK(text.Size == sizeof(expected) - 1u &&
                             memcmp(text.Data, expected, text.Size) == 0);
                     } else CHECK(text.Size == 0u);
+                }
+                if (operation == 10u) {
+                    xbuffer* bytes = (xbuffer*)result;
+                    const unsigned char expected[] = {0x00, 0xff, 0xaa};
+                    CHECK(bytes->Size == sizeof(expected) &&
+                        memcmp(bytes->Data, expected, sizeof(expected)) == 0);
                 }
                 completed = true;
             }

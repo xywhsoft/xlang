@@ -300,6 +300,42 @@ static double xcbor_half(uint16 bits)
 
 static xvalue* xcbor_read_value(xcborreader* pReader, size_t iDepth);
 
+static xbuffer* xcbor_read_chunks(xcborreader* pReader, uint8 iMajor)
+{
+    xbuffer* pJoined = xrtBufferCreate();
+    if (!pJoined) return NULL;
+    for (;;) {
+        uint8 iChunkMajor, iInfo;
+        uint64 iSize;
+        if (!xcbor_need(pReader, 1u)) break;
+        if (pReader->Data[pReader->Offset] == 0xffu) {
+            pReader->Offset++;
+            return pJoined;
+        }
+        if (!xcbor_head_read(pReader, &iChunkMajor, &iInfo, &iSize) ||
+            iChunkMajor != iMajor || iSize == UINT64_MAX ||
+            iSize > XCBOR_MAX_BYTES - pJoined->Size ||
+            !xcbor_need(pReader, (size_t)iSize) ||
+            pReader->Items == XCBOR_MAX_ITEMS) {
+            if (!xrtGetError()) xcbor_error(XERR_VALUE, "invalid CBOR string chunk");
+            break;
+        }
+        if (iMajor == 3u && !xrtUtf8Valid((xstrview){
+            (cstr)(pReader->Data + pReader->Offset), (size_t)iSize
+        }, NULL)) {
+            xcbor_error(XERR_VALUE, "CBOR text chunk is not valid UTF-8");
+            break;
+        }
+        if (!xrtBufferAppend(pJoined, (xbytesview){
+            pReader->Data + pReader->Offset, (size_t)iSize
+        })) break;
+        pReader->Offset += (size_t)iSize;
+        pReader->Items++;
+    }
+    xrtBufferDestroy(pJoined);
+    return NULL;
+}
+
 static xvalue* xcbor_read_string(xcborreader* pReader, uint8 iMajor, uint64 iLength)
 {
     xvalue* pResult;
@@ -320,54 +356,26 @@ static xvalue* xcbor_read_string(xcborreader* pReader, uint8 iMajor, uint64 iLen
         return pResult;
     }
     {
-        xbuffer* pJoined = xrtBufferCreate();
-        if (!pJoined) return NULL;
-        for (;;) {
-            uint8 iChunkMajor, iInfo;
-            uint64 iSize;
-            if (!xcbor_need(pReader, 1u)) break;
-            if (pReader->Data[pReader->Offset] == 0xffu) {
-                size_t iJoinedSize = pJoined->Size;
-                bytes pJoinedData;
-                pReader->Offset++;
-                pJoinedData = xrtBufferTake(pJoined, NULL, NULL);
-                if (pJoinedData == NULL && iJoinedSize != 0u) {
-                    xrtBufferDestroy(pJoined);
-                    return NULL;
-                }
-                if (iMajor == 2u) {
-                    pResult = xrtValueBytesTake(&pJoinedData, iJoinedSize);
-                } else {
-                    str sText = (str)pJoinedData;
-                    pResult = xrtValueStringTake(&sText, iJoinedSize);
-                    pJoinedData = (bytes)sText;
-                }
-                xrtFree(pJoinedData);
-                xrtBufferDestroy(pJoined);
-                return pResult;
-            }
-            if (!xcbor_head_read(pReader, &iChunkMajor, &iInfo, &iSize) ||
-                iChunkMajor != iMajor || iSize == UINT64_MAX ||
-                iSize > XCBOR_MAX_BYTES - pJoined->Size ||
-                !xcbor_need(pReader, (size_t)iSize) ||
-                pReader->Items == XCBOR_MAX_ITEMS) {
-                if (!xrtGetError()) xcbor_error(XERR_VALUE, "invalid CBOR string chunk");
-                break;
-            }
-            if (iMajor == 3u && !xrtUtf8Valid((xstrview){
-                (cstr)(pReader->Data + pReader->Offset), (size_t)iSize
-            }, NULL)) {
-                xcbor_error(XERR_VALUE, "CBOR text chunk is not valid UTF-8");
-                break;
-            }
-            if (!xrtBufferAppend(pJoined, (xbytesview){
-                pReader->Data + pReader->Offset, (size_t)iSize
-            })) break;
-            pReader->Offset += (size_t)iSize;
-            pReader->Items++;
+        xbuffer* pJoined = xcbor_read_chunks(pReader, iMajor);
+        size_t iJoinedSize;
+        bytes pJoinedData;
+        if (pJoined == NULL) return NULL;
+        iJoinedSize = pJoined->Size;
+        pJoinedData = xrtBufferTake(pJoined, NULL, NULL);
+        if (pJoinedData == NULL && iJoinedSize != 0u) {
+            xrtBufferDestroy(pJoined);
+            return NULL;
         }
+        if (iMajor == 2u) {
+            pResult = xrtValueBytesTake(&pJoinedData, iJoinedSize);
+        } else {
+            str sText = (str)pJoinedData;
+            pResult = xrtValueStringTake(&sText, iJoinedSize);
+            pJoinedData = (bytes)sText;
+        }
+        xrtFree(pJoinedData);
         xrtBufferDestroy(pJoined);
-        return NULL;
+        return pResult;
     }
 }
 
@@ -642,20 +650,47 @@ xbuffer* xcbor_encode_bytes(const void* pData, size_t iSize)
 
 xbuffer* xcbor_decode_bytes(const void* pData, size_t iSize)
 {
-    xvalue* pValue;
-    xbytesview Data;
+    xcborreader Reader;
+    uint8 iMajor, iInfo;
+    uint64 iLength;
     xbuffer* pOutput;
-    pValue = xcbor_decode(pData, iSize);
-    if (!pValue || xrtValueType(pValue) != XVALUE_BYTES ||
-        !xrtValueGetBytes(pValue, &Data)) {
-        if (!xrtGetError()) xcbor_error(XERR_VALUE,
-            "CBOR input must contain exactly one byte string");
-        xrtValueRelease(pValue);
+    xrtClearError();
+    if ((pData == NULL && iSize != 0u) || iSize == 0u) {
+        xcbor_error(XERR_ARGUMENT, "CBOR input is missing");
         return NULL;
     }
-    pOutput = xrtBufferFrom(Data);
-    xrtValueRelease(pValue);
-    if (pOutput != NULL) { xrtClearError(); }
+    if (iSize > XCBOR_MAX_BYTES) {
+        xcbor_error(XERR_RANGE, "CBOR input exceeds the 64 MiB safety limit");
+        return NULL;
+    }
+    Reader = (xcborreader){ (const uint8*)pData, iSize, 0u, 0u };
+    if (!xcbor_head_read(&Reader, &iMajor, &iInfo, &iLength)) return NULL;
+    if (iMajor != 2u) {
+        xvalue* pValue = xcbor_decode(pData, iSize);
+        if (pValue != NULL) {
+            xrtValueRelease(pValue);
+            xcbor_error(XERR_VALUE, "CBOR input must contain exactly one byte string");
+        }
+        return NULL;
+    }
+    if (iInfo != 31u && iLength == UINT64_MAX) {
+        xcbor_error(XERR_RANGE, "CBOR definite length exceeds the safety limit");
+        return NULL;
+    }
+    if (iInfo == 31u) {
+        pOutput = xcbor_read_chunks(&Reader, 2u);
+    } else {
+        if (iLength > SIZE_MAX || !xcbor_need(&Reader, (size_t)iLength)) return NULL;
+        pOutput = xrtBufferFrom((xbytesview){ Reader.Data + Reader.Offset, (size_t)iLength });
+        Reader.Offset += (size_t)iLength;
+    }
+    if (pOutput == NULL) return NULL;
+    if (Reader.Offset != Reader.Size) {
+        xrtBufferDestroy(pOutput);
+        xcbor_error(XERR_VALUE, "trailing bytes after the CBOR item");
+        return NULL;
+    }
+    xrtClearError();
     return pOutput;
 }
 
