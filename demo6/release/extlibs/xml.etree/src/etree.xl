@@ -65,7 +65,7 @@ class Element
     extern "xetree_attributes" func attributes() as var
     private extern "xetree_find" func findNative(string path) as point
     private extern "xetree_find_all" func findAllNative(string path) as var
-    private extern "xetree_stringify" func stringifyNative(c_bool pretty,
+    private extern "xetree_stringify_text" func stringifyNative(c_bool pretty,
         c_uint indent, c_bool declaration, c_ulonglong maxOutput) as point
     private extern "xetree_save" func saveNative(string path, c_bool pretty,
         c_uint indent, c_bool declaration, c_ulonglong maxOutput) as bool
@@ -159,8 +159,7 @@ class Element
         point result = self.stringifyNative(c_bool(pretty), c_uint(indent),
             c_bool(declaration), c_ulonglong(maxOutput))
         if result == null then throw XmlError __etree_error() end
-        Buffer data = Buffer(result)
-        return data.text()
+        return __xl_runtime.takeCstr(result)
     end
 
     func save(string path, bool pretty = false, int indent = 2,

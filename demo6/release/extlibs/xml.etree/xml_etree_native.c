@@ -163,6 +163,23 @@ XRT_API void* xetree_stringify(void* pHandle, bool bPretty, unsigned int iIndent
 	return pResult;
 }
 
+/* 文本缓冲所有权转移给调用方，由 xrtFree 释放。 */
+XRT_API void* xetree_stringify_text(void* pHandle, bool bPretty,
+	unsigned int iIndent, bool bDeclaration, unsigned long long iMaxOutput)
+{
+	xbuffer* pResult = (xbuffer*)xetree_stringify(pHandle, bPretty,
+		iIndent, bDeclaration, iMaxOutput);
+	char* sText;
+	if ( pResult == NULL ) { return NULL; }
+	if ( !xrtBufferAppendByte(pResult, 0) ) {
+		xrtBufferDestroy(pResult);
+		return NULL;
+	}
+	sText = (char*)xrtBufferTake(pResult, NULL, NULL);
+	xrtBufferDestroy(pResult);
+	return sText;
+}
+
 XRT_API bool xetree_save(void* pHandle, const char* sPath, bool bPretty,
 	unsigned int iIndent, bool bDeclaration, unsigned long long iMaxOutput)
 {

@@ -19,6 +19,11 @@ assert toml.dateTimeKind(toml.parse(text)["released"]) == 1
 
 - `parse(text)`、`load(path)`：解析字符串或 UTF-8 路径文件，返回 `var` 字典。
 - `stringify(value)`、`save(path, value)`：生成 TOML 文本或写入文件。
+
+`stringify` 的原生桥接通过 `xtoml_stringify_text` 取走 XRT 文本缓冲的底层分配，
+XLang 直接接管结果，不再从 `Buffer.text()` 复制整份文本；补齐 NUL 终止字节时
+若容量不足，缓冲仍可能扩容。C 侧调用该桥接函数后须用 `xrtFree` 释放返回值。
+原有 `xtoml_stringify` 仍返回可独立销毁的 `xbuffer*`。
 - `localDate`、`localTime`、`localDateTime`、`offsetDateTime`：创建四种 TOML 日期时间值。中央 C/XLang 对照范例分别构造四种值，检查微秒和时区偏移；保存后的文件由 Python `tomllib` 独立解析。
 - `dateTimeKind` 返回 0（非日期时间）、1（日期）、2（时间）、3（本地日期时间）或 4（带偏移日期时间）；`isLocalDate` 等函数提供布尔判断。
 - `dateTimePart(value, part)`：part 0..7 依次为年、月、日、时、分、秒、微秒、时区偏移分钟；`dateTimeText` 返回 TOML 文本表示。

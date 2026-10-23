@@ -24,6 +24,9 @@ C 使用 `include/xrt_netrc.h`。示例见 `release/examples/extlibs/netrc.xl`
 `save(path)` 保存到文件。C 版 `xrtNetrcParseMemory` / `xrtNetrcLoad`
 返回调用方拥有的 `xvalue*`，须 `xrtValueRelease`；
 `xrtNetrcStringify` 返回调用方拥有的 `xbuffer*`，须 `xrtBufferDestroy`。
+XLang 的 `stringify()` 使用 `xnetrc_stringify_text` 直接接管该文本缓冲的
+底层分配，不再通过 `Buffer.text()` 复制；C 侧调用文本桥接后须用
+`xrtFree` 释放。补齐终止字节时，容量不足的缓冲仍可能扩容。
 从文档字典读取的子值是借用的，文档释放后不可继续使用。
 C 流入口 `xrtNetrcParse` / `xrtNetrcWrite` 的 `bTakeOwnership=true` 表示
 无论正文成功或失败都关闭并释放流；若正文成功而关闭失败，返回

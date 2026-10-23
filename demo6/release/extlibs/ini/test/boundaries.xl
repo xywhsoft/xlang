@@ -116,6 +116,7 @@ func main(...) as int
 
     // 内存中允许保留原值，但不能把无法无损表示的值写成另一份配置。
     auto writable = ini.create()
+    assert writable.stringify() == ""
     writable.set("server", "message", "first\n")
     rejected = false
     try
@@ -126,8 +127,10 @@ func main(...) as int
     assert rejected, "trailing newline must not be silently changed"
     writable.set("server", "message", "first\nsecond")
     writable.set("", "global", "root")
+    writable.set("server", "city", "上海")
     auto restored = ini.parse(writable.stringify())
     assert restored.get("server", "message") == "first\nsecond"
+    assert restored.get("server", "city") == "上海"
     assert restored.get("", "global") == "root", "global keys must precede named sections"
 
     // 配置内存错误必须保持为 MemoryError，不能被包装成普通状态错误。

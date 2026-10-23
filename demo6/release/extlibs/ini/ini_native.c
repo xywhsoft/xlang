@@ -206,6 +206,21 @@ XINI_EXPORT void* xini_stringify(void* pValue)
 	return pOutput;
 }
 
+/* 将文本缓冲直接交给调用方；返回值由 xrtFree 释放。 */
+XINI_EXPORT void* xini_stringify_text(void* pValue)
+{
+	xbuffer* pOutput = (xbuffer*)xini_stringify(pValue);
+	char* sText;
+	if ( pOutput == NULL ) { return NULL; }
+	if ( !xrtBufferAppendByte(pOutput, 0) ) {
+		xrtBufferDestroy(pOutput);
+		return NULL;
+	}
+	sText = (char*)xrtBufferTake(pOutput, NULL, NULL);
+	xrtBufferDestroy(pOutput);
+	return sText;
+}
+
 XINI_EXPORT bool xini_save(void* pValue, cstr sPath)
 {
 	bool bResult = xrtIniSave((xrtiniconfig*)pValue, xini_borrowed(sPath));

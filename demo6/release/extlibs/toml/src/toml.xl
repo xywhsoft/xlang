@@ -9,7 +9,7 @@ extern "xtoml_parse" func __toml_parse(string data, c_ulonglong size,
 extern "xtoml_load" func __toml_load(string path, c_ulonglong maxInput,
     c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
     c_ulonglong maxNodes, c_uint maxDepth) as var
-extern "xtoml_stringify" func __toml_stringify(var value,
+extern "xtoml_stringify_text" func __toml_stringify_text(var value,
     c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
     c_ulonglong maxNodes, c_uint maxDepth) as point
 extern "xtoml_save" func __toml_save(string path, var value,
@@ -72,7 +72,7 @@ export func errorOffset() as int
 end
 
 func __toml_error() as string
-    return __xl_std_runtime_take_cstr(__toml_error_message())
+    return __xl_runtime.takeCstr(__toml_error_message())
 end
 
 export func parse(string text, int maxInput = 268435456,
@@ -108,14 +108,13 @@ export func stringify(var value, int maxOutput = 536870912,
     int maxItem = 268435456, int maxEntries = 100000,
     int maxNodes = 1000000, int maxDepth = 128) as string
     __toml_limits(0, maxOutput, maxItem, maxEntries, maxNodes, maxDepth)
-    point result = __toml_stringify(value, c_ulonglong(maxOutput),
+    point result = __toml_stringify_text(value, c_ulonglong(maxOutput),
         c_ulonglong(maxItem), c_ulonglong(maxEntries),
         c_ulonglong(maxNodes), c_uint(maxDepth))
     if result == null then
         throw TomlError __toml_error()
     end
-    Buffer data = Buffer(result)
-    return data.text()
+    return __xl_runtime.takeCstr(result)
 end
 
 export func save(string path, var value, int maxOutput = 536870912,
@@ -193,5 +192,5 @@ end
 export func dateTimeText(var value) as string
     point result = __toml_datetime_text(value)
     if result == null then throw TypeError "value is not a TOML date/time value" end
-    return __xl_std_runtime_take_cstr(result)
+    return __xl_runtime.takeCstr(result)
 end

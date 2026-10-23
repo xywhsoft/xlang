@@ -9,7 +9,7 @@ extern "xnetrc_parse" func __netrc_parse(string data, uint64 size,
 extern "xnetrc_load" func __netrc_load(string path, c_bool strict,
     uint64 maxInput, uint64 maxOutput, uint64 maxItem,
     uint64 maxEntries, uint64 maxNodes) as var
-extern "xnetrc_stringify" func __netrc_stringify(var value,
+extern "xnetrc_stringify_text" func __netrc_stringify_text(var value,
     uint64 maxOutput, uint64 maxItem, uint64 maxEntries,
     uint64 maxNodes) as point
 extern "xnetrc_save" func __netrc_save(string path, var value,
@@ -89,12 +89,11 @@ export class Netrc
     func stringify(int maxOutput = 536870912, int maxItem = 268435456,
         int maxEntries = 100000, int maxNodes = 1000000) as string
         __netrc_check_limits(0, maxOutput, maxItem, maxEntries, maxNodes)
-        point result = __netrc_stringify(self.document,
+        point result = __netrc_stringify_text(self.document,
             uint64(maxOutput), uint64(maxItem),
             uint64(maxEntries), uint64(maxNodes))
         if result == null then throw ConfigError __netrc_error() end
-        Buffer data = Buffer(result)
-        return data.text()
+        return __xl_runtime.takeCstr(result)
     end
 
     func save(string path, int maxOutput = 536870912,

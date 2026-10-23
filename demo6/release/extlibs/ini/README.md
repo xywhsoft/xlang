@@ -28,6 +28,11 @@ config.set("server", "port", "9090")
 string text = config.stringify()
 ```
 
+`stringify()` 通过 `xini_stringify_text` 取走 XRT 文本缓冲的底层分配，
+XLang 直接接管，避免再经 `Buffer.text()` 复制；补齐终止字节时缓冲容量不足
+仍可能扩容。C 侧使用 `xini_stringify_text` 须以 `xrtFree` 释放返回值；
+原有 `xini_stringify` 仍返回 `xbuffer*`。
+
 `ini.create`、`ini.parse`、`ini.load` 返回 `Config`。格式错误、重复键、
 缺少文件或键、类型转换失败、写入失败和资源限制均抛出 `ConfigError`；
 底层分配失败抛出 `MemoryError`，不混作普通配置错误；

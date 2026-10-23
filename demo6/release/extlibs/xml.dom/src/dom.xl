@@ -71,7 +71,7 @@ class Node
         string value) as bool
     private extern "xdom_remove_attribute" func removeAttributeNative(string name) as bool
     private extern "xdom_attributes" func attributesNative() as var
-    private extern "xdom_stringify" func stringifyNative(c_bool pretty,
+    private extern "xdom_stringify_text" func stringifyNative(c_bool pretty,
         c_uint indent, c_bool declaration, c_ulonglong maxOutput) as point
     private extern "xdom_save" func saveNative(string path, c_bool pretty,
         c_uint indent, c_bool declaration, c_ulonglong maxOutput) as bool
@@ -210,8 +210,7 @@ class Node
         point result = self.stringifyNative(c_bool(pretty), c_uint(indent),
             c_bool(declaration), c_ulonglong(maxOutput))
         if result == null then throw XmlError __dom_error() end
-        Buffer data = Buffer(result)
-        return data.text()
+        return __xl_runtime.takeCstr(result)
     end
 
     func save(string path, bool pretty = false, int indent = 2,

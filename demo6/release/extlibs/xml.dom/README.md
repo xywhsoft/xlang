@@ -1,5 +1,10 @@
 # xml.dom
 
+`stringify()` 通过 `xdom_stringify_text` 接管 XRT 写出的 UTF-8 缓冲，
+避免再由 `Buffer.text()` 复制整份结果。C 侧使用该文本桥接函数后
+以 `xrtFree` 释放返回值；原有 `xdom_stringify` 仍返回独立的 `xbuffer*`。
+补齐终止字节时，缓冲容量不足仍可能扩容。
+
 基于 Expat 的 XML 文档树。XLang 使用 `import xml.dom`，C 使用
 `include/xrt_xml_dom.h`；解析、节点树和写出共用同一套实现。
 

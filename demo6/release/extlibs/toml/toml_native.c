@@ -143,6 +143,25 @@ XTOML_EXPORT void* xtoml_stringify(xvalue* pValue,
 	return pResult;
 }
 
+/* 将文本缓冲直接交给调用方；返回值由 xrtFree 释放。 */
+XTOML_EXPORT void* xtoml_stringify_text(xvalue* pValue,
+	unsigned long long iMaxOutput, unsigned long long iMaxItem,
+	unsigned long long iMaxEntries, unsigned long long iMaxNodes,
+	uint32 iMaxDepth)
+{
+	xbuffer* pResult = (xbuffer*)xtoml_stringify(pValue, iMaxOutput,
+		iMaxItem, iMaxEntries, iMaxNodes, iMaxDepth);
+	char* sText;
+	if ( pResult == NULL ) { return NULL; }
+	if ( !xrtBufferAppendByte(pResult, 0) ) {
+		xrtBufferDestroy(pResult);
+		return NULL;
+	}
+	sText = (char*)xrtBufferTake(pResult, NULL, NULL);
+	xrtBufferDestroy(pResult);
+	return sText;
+}
+
 XTOML_EXPORT bool xtoml_save(const char* sPath, xvalue* pValue,
 	unsigned long long iMaxOutput, unsigned long long iMaxItem,
 	unsigned long long iMaxEntries, unsigned long long iMaxNodes,

@@ -1,5 +1,10 @@
 # xml.etree
 
+`stringify()` 通过 `xetree_stringify_text` 接管 XRT 写出的 UTF-8 缓冲，
+避免再由 `Buffer.text()` 复制整份结果。C 侧使用该文本桥接函数后
+以 `xrtFree` 释放返回值；原有 `xetree_stringify` 仍返回独立的 `xbuffer*`。
+补齐终止字节时，缓冲容量不足仍可能扩容。
+
 基于 XRT XML/Expat 的轻量 ElementTree。`import xml.etree` 后可用
 `create`、`parse`、`load` 和 `Element` 的属性、子节点、路径查询、序列化接口。
 路径查询支持直接子元素和 `//name` 后代匹配；不是完整 XPath。

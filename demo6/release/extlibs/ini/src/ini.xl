@@ -45,7 +45,7 @@ class Config
     private extern "xini_set" func setNative(string section, string key, string value) as bool
     private extern "xini_remove" func removeNative(string section, string key) as bool
     private extern "xini_remove_section" func removeSectionNative(string section) as bool
-    private extern "xini_stringify" func stringifyNative() as point
+    private extern "xini_stringify_text" func stringifyTextNative() as point
     private extern "xini_save" func saveNative(string path) as bool
 
     get valid() as bool
@@ -56,7 +56,7 @@ class Config
     func errorText() as string
         if self.handle == null then return "INI operation failed" end
         point value = self.errorTextNative()
-        return __xl_std_runtime_take_cstr(value)
+        return __xl_runtime.takeCstr(value)
     end
 
     get errorCode() as int
@@ -83,7 +83,7 @@ class Config
             if value == null then
                 throw ConfigError "INI section index is out of range"
             end
-            result.append(__xl_std_runtime_take_cstr(value))
+            result.append(__xl_runtime.takeCstr(value))
             i += 1
         end
         return result
@@ -103,7 +103,7 @@ class Config
             if value == null then
                 throw ConfigError "INI key index is out of range"
             end
-            result.append(__xl_std_runtime_take_cstr(value))
+            result.append(__xl_runtime.takeCstr(value))
             i += 1
         end
         return result
@@ -126,7 +126,7 @@ class Config
         if result == null then
             throw ConfigError self.errorText()
         end
-        return __xl_std_runtime_take_cstr(result)
+        return __xl_runtime.takeCstr(result)
     end
 
     func get(string key) as string
@@ -215,12 +215,11 @@ class Config
     end
 
     func stringify() as string
-        point result = self.stringifyNative()
+        point result = self.stringifyTextNative()
         if result == null then
             throw ConfigError self.errorText()
         end
-        Buffer data = Buffer(result)
-        return data.text()
+        return __xl_runtime.takeCstr(result)
     end
 
     func save(string path)

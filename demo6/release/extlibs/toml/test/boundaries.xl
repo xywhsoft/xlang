@@ -8,6 +8,7 @@ func main(...) as int
     assert toml.dateTimeKind(source["released"]) == 1
 
     string encoded = toml.stringify(source)
+    assert toml.stringify({}) == ""
     var again = toml.parse(encoded)
     assert again["title"] == "demo"
     assert toml.dateTimeKind(again["released"]) == 1

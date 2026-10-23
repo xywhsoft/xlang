@@ -13,6 +13,8 @@ extern xvalue* xtoml_load(const char*, unsigned long long, unsigned long long,
     unsigned long long, unsigned long long, unsigned long long, unsigned int);
 extern void* xtoml_stringify(xvalue*, unsigned long long, unsigned long long,
     unsigned long long, unsigned long long, unsigned int);
+extern void* xtoml_stringify_text(xvalue*, unsigned long long, unsigned long long,
+    unsigned long long, unsigned long long, unsigned int);
 extern bool xtoml_save(const char*, xvalue*, unsigned long long,
     unsigned long long, unsigned long long, unsigned long long, unsigned int);
 extern int64_t xtoml_datetime_kind(xvalue*);

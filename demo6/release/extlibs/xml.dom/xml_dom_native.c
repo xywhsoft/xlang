@@ -178,6 +178,23 @@ XRT_API ptr xdom_stringify(ptr pHandle, bool bPretty, uint32 iIndent,
 	return pResult;
 }
 
+/* 文本缓冲所有权转移给调用方，由 xrtFree 释放。 */
+XRT_API ptr xdom_stringify_text(ptr pHandle, bool bPretty, uint32 iIndent,
+	bool bDeclaration, unsigned long long iMaxOutput)
+{
+	xbuffer* pResult = (xbuffer*)xdom_stringify(pHandle, bPretty,
+		iIndent, bDeclaration, iMaxOutput);
+	char* sText;
+	if ( pResult == NULL ) { return NULL; }
+	if ( !xrtBufferAppendByte(pResult, 0) ) {
+		xrtBufferDestroy(pResult);
+		return NULL;
+	}
+	sText = (char*)xrtBufferTake(pResult, NULL, NULL);
+	xrtBufferDestroy(pResult);
+	return sText;
+}
+
 XRT_API bool xdom_save(ptr pHandle, const char* sPath, bool bPretty,
 	uint32 iIndent, bool bDeclaration, unsigned long long iMaxOutput)
 {

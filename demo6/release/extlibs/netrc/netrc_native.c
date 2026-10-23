@@ -141,6 +141,23 @@ XNETRC_EXPORT void* xnetrc_stringify(xvalue* pValue, uint64 iMaxOutput,
 	}
 }
 
+/* 返回独立的 XRT 文本分配，调用方以 xrtFree 释放。 */
+XNETRC_EXPORT void* xnetrc_stringify_text(xvalue* pValue, uint64 iMaxOutput,
+	uint64 iMaxItem, uint64 iMaxEntries, uint64 iMaxNodes)
+{
+	xbuffer* pResult = (xbuffer*)xnetrc_stringify(pValue, iMaxOutput,
+		iMaxItem, iMaxEntries, iMaxNodes);
+	char* sText;
+	if ( pResult == NULL ) { return NULL; }
+	if ( !xrtBufferAppendByte(pResult, 0) ) {
+		xrtBufferDestroy(pResult);
+		return NULL;
+	}
+	sText = (char*)xrtBufferTake(pResult, NULL, NULL);
+	xrtBufferDestroy(pResult);
+	return sText;
+}
+
 XNETRC_EXPORT bool xnetrc_save(cstr sPath, xvalue* pValue,
 	uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxEntries, uint64 iMaxNodes)
 {
