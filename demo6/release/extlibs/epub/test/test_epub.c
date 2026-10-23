@@ -121,6 +121,27 @@ int main(int argc, char **argv) {
             bytes[damaged[k]] = original;
         }
     }
+    {
+        unsigned random = 0x62e2a911u;
+        size_t k;
+        for (k = 0; k < 512; ++k) {
+            size_t offset;
+            unsigned char original;
+            random = random * 1664525u + 1013904223u;
+            offset = (size_t)random % size;
+            original = bytes[offset];
+            bytes[offset] ^= (unsigned char)(1u << (random >> 24 & 7u));
+            CHECK(xrtFileWriteAll(broken, (xbytesview){bytes, size}));
+            entry = xep_read_entry(broken, "mimetype");
+            if (entry == NULL) {
+                CHECK(xrtGetError() != NULL);
+            } else {
+                CHECK(strcmp(entry, "application/epub+zip") == 0 || entry[0] == 0);
+                xrtFree(entry);
+            }
+            bytes[offset] = original;
+        }
+    }
     bytes[directory + 34] = 1; /* 条目不能声明位于其他磁盘。 */
     CHECK(xrtFileWriteAll(broken, (xbytesview){bytes, size}));
     CHECK(xep_read_entry(broken, "mimetype") == NULL);

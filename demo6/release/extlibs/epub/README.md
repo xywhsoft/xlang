@@ -124,3 +124,5 @@ PowerShell 5.1 在解析脚本前因系统代码页误读中文。完整 AOT 阻
 2026-10-20：Windows 门禁新增显式 `-SkipAot` 快速模式；默认模式继续构建并运行核心 AOT，再构建双语范例 AOT、核对输出与 EPUB 文件字节。AOT 核心电子书使用系统临时目录的随机文件名并在 `finally` 删除，门禁构建产物使用本次独占目录，成功或失败均清理。Windows 快速模式与核心 AOT 通过；默认门禁在范例 AOT 链接处准确报告共享 `xl6ValueDataSnapshotV1` 缺符号，并以非零状态退出，不误报整包通过。完整发布验收仍待主线修复。
 
 2026-10-21：生成超出 8 MiB 原错误归类为参数错误。C/XLang 回归先复现，现单段输出与累积 ZIP 超限均保留范围错误，并核对失败不覆盖已有 EPUB。Windows `test/check.ps1 -SkipAot` 和 Linux `test/check.sh` 的 C ASan/UBSan、XLang、独立 ZIP/XML 门禁通过；默认 Windows 门禁的核心 AOT 通过，范例 AOT 仍缺共享符号 `xl6ValueDataSnapshotV1`。
+
+2026-10-24：读取器增加固定种子的 512 组 ZIP 单位翻转样本。每组只改变一个归档字节，要求读取 `mimetype` 时明确报错、保持原文，或在条目名被破坏时返回空结果，不得静默返回损坏正文。Windows `test/check.ps1 -SkipAot` 与 Linux `test/check.sh`（含 C ASan/UBSan、XLang 和独立 ZIP/XML 校验）通过。这是可复跑的有限扰动回归，不代替通用模糊测试；完整 AOT 的共享符号阻断未变。
