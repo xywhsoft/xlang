@@ -166,5 +166,64 @@ static int crWorkers(void)
  xideCompletionDecoderDestroy(d);CHECK(crWaitDrop(&shutdown) && (DWORD)xrtAtomic32Load(&shutdown.thread,XMEMORY_RELAXED)!=owner);
  xlsTextRelease(text);CloseHandle(gate.entered);CloseHandle(gate.release);return 1;
 }
+typedef struct crReceive {xide_completion_decoder* decoder;xvalue* message;int accepted;DWORD thread;} crReceive;
+static DWORD WINAPI crReader(void* user)
+{crReceive* r=user;r->thread=GetCurrentThreadId();r->accepted=xideCompletionDecoderReceiveOwned(r->message,256,r->decoder);return 0;}
+static int crIdle(xide_completion_decoder* d)
+{
+ uint64_t until=GetTickCount64()+10000;
+ do {xrtMutexLock(&d->lock);int idle=!d->pending.token && !d->pending.message;xrtMutexUnlock(&d->lock);if(idle)return 1;Sleep(1);}while(GetTickCount64()<until);
+ return 0;
+}
+static int crPreparedReceives(void)
+{
+ DWORD owner=GetCurrentThreadId();crGate gate={CreateEventW(NULL,TRUE,FALSE,NULL),CreateEventW(NULL,TRUE,FALSE,NULL),0,0};CHECK(gate.entered && gate.release);
+ xide_completion_decoder* d=xideCompletionDecoderCreate(crWake,&gate);xls_text* text=xlsTextCreate(crSource,strlen(crSource),4096,NULL);CHECK(d && text);
+ CHECK(!xideCompletionDecoderExpect(NULL,1,text,crExpected) && !xideCompletionDecoderExpect(d,0,text,crExpected) && !xideCompletionDecoderExpect(d,1,NULL,crExpected));
+ for(int mode=0;mode<4;++mode) {xide_completion_expected bad=crExpected;if(mode==0)bad.request=1;if(mode==1)bad.version=0;if(mode==2)bad.offset=-1;if(mode==3)bad.offset=4096;CHECK(!xideCompletionDecoderExpect(d,1,text,bad));}
+ xrtAtomic32Store(&failAllocation,1,XMEMORY_RELAXED);CHECK(!xideCompletionDecoderExpect(d,21,text,crExpected));xrtAtomic32Store(&failAllocation,0,XMEMORY_RELAXED);
+ CHECK(!strcmp(xlsTextData(text),crSource) && xideCompletionDecoderExpect(d,22,xlsTextRetain(text),crExpected));
+ /* An armed source is bounded but must sleep until a reply or cancellation. */
+ Sleep(20);CHECK(!gate.finished && !xideCompletionDecoderTake(d));
+ xvalue* message=crMake(1);CHECK(message);
+ CHECK(!xideCompletionDecoderExpect(d,23,text,crExpected) && !xideCompletionDecoderSubmit(d,23,message,text,crExpected) && !xideCompletionDecoderDiscard(d,message));
+ CHECK(!xideCompletionDecoderReceiveOwned(message,0,d) && !xideCompletionDecoderReceiveOwned(message,TEXT_LIMIT+1u,d) && !xideCompletionDecoderReceiveOwned(message,256,NULL));
+ for(int mode=0;mode<5;++mode) {
+  xvalue* bad=crMake(1);CHECK(bad);
+  if(mode==0)CHECK(crSet(bad,"id",xrtValueInt(8)));
+  if(mode==1)CHECK(crSet(bad,"id",xrtValueString(xrtStrView("7"))));
+  if(mode==2)CHECK(crSet(bad,"method",xrtValueString(xrtStrView("server/request"))));
+  if(mode==3)CHECK(crSet(bad,"jsonrpc",xrtValueString(xrtStrView("wrong"))));
+  if(mode==4)CHECK(crSet(bad,"method",xrtValueNull()));
+  CHECK(!xideCompletionDecoderReceiveOwned(bad,256,d) && xrtValueType(bad)==XVALUE_OBJECT);xrtValueRelease(bad);
+ }
+ crDrop first={0};CHECK(crAttach(message,&first));crReceive reader={d,message,0,0};HANDLE thread=CreateThread(NULL,0,crReader,&reader,0,NULL);CHECK(thread && WaitForSingleObject(thread,10000)==WAIT_OBJECT_0);CloseHandle(thread);
+ CHECK(reader.accepted && reader.thread!=owner);message=NULL;xide_completion_result* answer=crWait(d);
+ CHECK(answer && answer->valid && answer->token==22 && answer->count==1 && !strcmp(answer->items[0].label,"Item0000") && !xrtAtomic32Load(&first.count,XMEMORY_ACQUIRE));
+ xvalue* duplicate=crMake(1);CHECK(duplicate && !xideCompletionDecoderReceiveOwned(duplicate,256,d));xrtValueRelease(duplicate);
+ CHECK(xideCompletionDecoderRetire(d,answer) && crWaitDrop(&first) && (DWORD)xrtAtomic32Load(&first.thread,XMEMORY_RELAXED)!=owner);
+ /* Cancellation while awaiting a response releases the source off-thread and
+    never accepts that request after the current token was invalidated. */
+ CHECK(crIdle(d) && xideCompletionDecoderExpect(d,24,xlsTextRetain(text),crExpected));xideCompletionDecoderCancel(d);
+ message=crMake(1);CHECK(message && !xideCompletionDecoderReceiveOwned(message,256,d) && crIdle(d) && !xideCompletionDecoderTake(d));xrtValueRelease(message);
+ /* Hold the worker after publishing another result, then interleave a reader
+    with cancellation while the single pending source/reply slot is occupied. */
+ InterlockedExchange(&gate.block,1);ResetEvent(gate.entered);ResetEvent(gate.release);crDrop held={0};message=crMake(1);
+ CHECK(message && crAttach(message,&held) && xideCompletionDecoderSubmit(d,25,message,xlsTextRetain(text),crExpected));
+ CHECK(WaitForSingleObject(gate.entered,10000)==WAIT_OBJECT_0);answer=xideCompletionDecoderTake(d);CHECK(answer && answer->valid && answer->token==25);
+ CHECK(xideCompletionDecoderRetire(d,answer) && xideCompletionDecoderExpect(d,26,xlsTextRetain(text),crExpected));
+ crDrop stale={0};message=crMake(1);CHECK(message && crAttach(message,&stale));reader=(crReceive){d,message,0,0};thread=CreateThread(NULL,0,crReader,&reader,0,NULL);CHECK(thread && WaitForSingleObject(thread,10000)==WAIT_OBJECT_0);CloseHandle(thread);CHECK(reader.accepted);
+ duplicate=crMake(1);CHECK(duplicate && !xideCompletionDecoderReceiveOwned(duplicate,256,d) && !xideCompletionDecoderDiscard(d,duplicate));xrtValueRelease(duplicate);
+ xideCompletionDecoderCancel(d);CHECK(!xrtAtomic32Load(&stale.count,XMEMORY_ACQUIRE));SetEvent(gate.release);
+ CHECK(crWaitDrop(&held) && crWaitDrop(&stale) && crIdle(d) && !xideCompletionDecoderTake(d) && (DWORD)xrtAtomic32Load(&stale.thread,XMEMORY_RELAXED)!=owner);
+ /* A malformed matching root still passes through strict worker validation. */
+ CHECK(xideCompletionDecoderExpect(d,27,xlsTextRetain(text),crExpected));message=crMake(1);CHECK(message && crSet(crGet(message,"result"),"version",xrtValueInt(99)) && xideCompletionDecoderReceiveOwned(message,256,d));answer=crWait(d);
+ CHECK(answer && answer->token==27 && !answer->valid && !answer->message);CHECK(xideCompletionDecoderRetire(d,answer));
+ /* Failed reservation leaves the original Submit path usable. */
+ CHECK(crIdle(d));xrtAtomic32Store(&failAllocation,1,XMEMORY_RELAXED);CHECK(!xideCompletionDecoderExpect(d,28,text,crExpected));xrtAtomic32Store(&failAllocation,0,XMEMORY_RELAXED);
+ message=crMake(1);CHECK(message && xideCompletionDecoderSubmit(d,29,message,xlsTextRetain(text),crExpected));answer=crWait(d);CHECK(answer && answer->valid && answer->token==29);CHECK(xideCompletionDecoderRetire(d,answer));
+ CHECK(crIdle(d) && xideCompletionDecoderExpect(d,30,xlsTextRetain(text),crExpected));xideCompletionDecoderDestroy(d);CHECK(!strcmp(xlsTextData(text),crSource));xlsTextRelease(text);
+ CloseHandle(gate.entered);CloseHandle(gate.release);return 1;
+}
 int main(void)
-{if(!crParsing() || !crEdges() || !crWorkers())return 1;printf("completion_result_test passed: %d checks; complete strict batch/Unicode/range/bounds/allocation validation, 4096 stable candidates, exact source lease, gated bounded worker slots, stale cancellation and worker-thread ownership retirement.\n",checks);return 0;}
+{if(!crParsing() || !crEdges() || !crWorkers() || !crPreparedReceives())return 1;printf("completion_result_test passed: %d checks; strict batch/Unicode/range/bounds/allocation validation, 4096 candidates, exact source lease, bounded worker slots, prepared cross-thread receive, stale cancellation, fallback and worker-thread retirement.\n",checks);return 0;}

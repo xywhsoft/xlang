@@ -33,6 +33,18 @@ xide_completion_decoder* xideCompletionDecoderCreate(void (*wake)(void*),void* u
  * Nonzero tokens are unique for the decoder lifetime. No source/JSON copying. */
 int xideCompletionDecoderSubmit(xide_completion_decoder* decoder,uint64_t token,
     xvalue* message,xls_text* text,xide_completion_expected expected);
+/* Owner prepares an exact sent-source context BEFORE admitting its request.
+ * Success TAKES the source lease, reserves the same pending slot and allocates
+ * the small result header now. False takes nothing; the caller may keep the
+ * original owner-submit path. No body scan/copy or extra worker/queue. */
+int xideCompletionDecoderExpect(xide_completion_decoder* decoder,uint64_t token,
+    xls_text* text,xide_completion_expected expected);
+/* Transport-worker receiver. Success TAKES only the matching response for the
+ * current prepared token; unrelated/duplicate/cancelled messages fall through.
+ * Fills the reserved slot without allocation, copying or GUI/model access.
+ * Cancel/Expect/Submit and this receiver serialize through the decoder lock.
+ * Source/context/message cleanup remains on the existing XRT worker. */
+int xideCompletionDecoderReceiveOwned(xvalue* message,size_t bytes,void* decoder);
 /* Shares the pending slot, changes no active token/result; success TAKES. */
 int xideCompletionDecoderDiscard(xide_completion_decoder* decoder,xvalue* message);
 /* Separate bounded retirement slot. Success TAKES; false keeps caller ownership. */

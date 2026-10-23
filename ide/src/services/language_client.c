@@ -8,7 +8,7 @@
 #define QUEUE_COUNT 2048u
 typedef struct node { struct node* next; char* bytes; size_t length,offset; xvalue* value; } node;
 struct xide_language_batch { node *head,*tail;size_t bytes,count; };
-struct xide_language_client { CRITICAL_SECTION lock; HANDLE worker; volatile LONG stop; xmutex changedLock;xcond changed;int changedLockReady,changedReady,signaled; char *program,*directory; char** arguments; size_t argumentCount; enum xide_language_client_state state; char error[768]; node *sendHead,*sendTail,*receiveHead,*receiveTail; size_t sendBytes,receiveBytes,sendCount,receiveCount; void (*wake)(void*); void* wakeUser; };
+struct xide_language_client { CRITICAL_SECTION lock; HANDLE worker; volatile LONG stop; xmutex changedLock;xcond changed;int changedLockReady,changedReady,signaled; char *program,*directory; char** arguments; size_t argumentCount; enum xide_language_client_state state; char error[768]; node *sendHead,*sendTail,*receiveHead,*receiveTail; size_t sendBytes,receiveBytes,sendCount,receiveCount; void (*wake)(void*); void* wakeUser; xide_language_receive_proc receiver;void* receiverUser; };
 static void signalTransport(void* user)
 { xide_language_client* c=user;if(c->changedReady) {xrtMutexLock(&c->changedLock);c->signaled=1;xrtCondSignal(&c->changed);xrtMutexUnlock(&c->changedLock);} }
 static xwaitresult waitTransport(xide_language_client* c,int64 timeout)
@@ -54,9 +54,19 @@ static void wakeOwner(xide_language_client* c)
 { EnterCriticalSection(&c->lock); void (*wake)(void*)=c->wake; void* user=c->wakeUser; LeaveCriticalSection(&c->lock); if(wake) wake(user); }
 void xideLanguageClientSetWake(xide_language_client* c,void (*wake)(void*),void* user)
 { if(!c) return; EnterCriticalSection(&c->lock); c->wake=wake; c->wakeUser=user; int pending=c->receiveHead!=NULL || c->state>=XIDE_LS_STOPPED; LeaveCriticalSection(&c->lock); if(pending) wakeOwner(c); }
+int xideLanguageClientSetReceiver(xide_language_client* c,xide_language_receive_proc receiver,void* user)
+{
+ if(!c || !receiver) return 0;
+ EnterCriticalSection(&c->lock);int okay=!c->receiver && c->state<XIDE_LS_STOPPED && !InterlockedCompareExchange(&c->stop,0,0);
+ if(okay) {c->receiver=receiver;c->receiverUser=user;}
+ LeaveCriticalSection(&c->lock);return okay;
+}
 static int receive(xvalue* value,size_t length,void* user)
 {
- xide_language_client* c=user;node* n=calloc(1,sizeof(*n));if(!n) return 0;
+ xide_language_client* c=user;
+ EnterCriticalSection(&c->lock);xide_language_receive_proc receiver=c->receiver;void* receiverUser=c->receiverUser;LeaveCriticalSection(&c->lock);
+ if(receiver && receiver(value,length,receiverUser)>0) return 1;
+ node* n=calloc(1,sizeof(*n));if(!n) return 0;
  n->value=value;n->length=length;
  EnterCriticalSection(&c->lock); int okay=c->receiveCount<QUEUE_COUNT && length<=QUEUE_BYTES-c->receiveBytes;
  if(okay) { if(c->receiveTail) c->receiveTail->next=n; else c->receiveHead=n; c->receiveTail=n; ++c->receiveCount; c->receiveBytes+=length; }

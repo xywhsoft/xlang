@@ -7,6 +7,13 @@ typedef struct xide_language_client_spec {
  size_t argumentCount;
 } xide_language_client_spec;
 typedef struct xide_language_client xide_language_client;
+/* An owned notification/response may be handed off on the transport worker.
+ * Install once per client. The callback/user outlive ClientStop, never touch
+ * GUI state or call Stop, and must return promptly. Positive success TAKES the
+ * parsed root; zero leaves it for the normal bounded queue. Wire byte counts
+ * come from the existing parser/frame bound, without JSON re-encoding. */
+typedef int (*xide_language_receive_proc)(xvalue* message,size_t bytes,void* user);
+int xideLanguageClientSetReceiver(xide_language_client* client,xide_language_receive_proc receive,void* user);
 typedef struct xide_language_batch xide_language_batch;
 /* Thread-exclusive prepared notification batch. Encoding/allocation happens
  * in Append; Send performs a bounded all-or-none queue splice with no encoding.
