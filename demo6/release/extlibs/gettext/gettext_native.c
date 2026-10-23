@@ -48,14 +48,7 @@ static xvalue *xgt_null(void) {
 }
 
 static xvalue *xgt_text(const char *s, size_t n) {
-    str owned = (str)xrtMalloc(n + 1);
-    xvalue *value;
-    if (owned == NULL) return NULL;
-    if (n > 0) memcpy(owned, s, n);
-    owned[n] = '\0';
-    value = xrtValueStringTake(&owned, n);
-    if (value == NULL && owned != NULL) xrtFree(owned);
-    return value;
+    return xrtValueString((xstrview){s, n});
 }
 
 static char *xgt_copy(const char *text, size_t size) {
