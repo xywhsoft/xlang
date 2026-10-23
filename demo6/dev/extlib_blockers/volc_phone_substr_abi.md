@@ -1,5 +1,10 @@
 # volc.phone 切片函数参数 ABI 不一致
 
+**状态（2026-10-24）：旧原生切片桥已删除，本条 ABI 问题不再存在。**
+下文是当时的复现记录，第二条命令因 C 源码已删除而不再适用。
+`phone.xl` 现在使用 `string.slice`，同时消除了按字节截断和共享结果槽；
+`volc.phone` 的导入链与 JSON 文本扫描问题仍分别等待修复和验收。
+
 `src/phone.xl` 将 `x_volc_phone_substr` 声明为接受两个 XLang `int`
 （64 位），`x_volc_phone_native.c` 的定义却接受两个 C `int`（32 位）。
 不导入已被 `xhttp.multipart` 阻断的包，也能从 `demo6` 目录直接复现：

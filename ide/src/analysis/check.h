@@ -12,6 +12,33 @@ typedef struct xls_check_info {
 } xls_check_info;
 /* One-based compiler Unicode-scalar coordinates; the host converts to LSP. */
 typedef struct xls_check_diagnostic { const char *path,*message; int line,column; } xls_check_diagnostic;
+
+/* Captured facts, not an implicit validation or a filesystem query. All string
+ * pointers borrow the retained check; hashes are copied. Source text is strict
+ * UTF-8 after optional BOM removal, with its original CR/LF bytes. Disk rawSize
+ * and rawSha256 describe the original file; overlays describe post-BOM bytes
+ * in both fields. kind is a bit mask (source=1, manifest=2). */
+typedef struct xls_check_source {
+    const char *path,*text,*origin;
+    size_t size,rawSize;
+    int kind;
+    unsigned char textSha256[32],rawSha256[32];
+} xls_check_source;
+typedef struct xls_check_probe { const char* path; int exists; } xls_check_probe;
+typedef struct xls_check_inputs {
+    size_t sources,probes;
+    const char* packagePath;
+    int packagePathObserved;
+} xls_check_inputs;
+/* No allocation, hashing, JSON or I/O. Includes diagnostic/error results with
+ * complete captured inputs. Unknown/unobserved package environment is distinct
+ * from an observed absent/empty value. Does not observe the current environment.
+ * Failure clears non-NULL outputs. Known-invalid results reject fresh views;
+ * already borrowed views remain memory-valid until their check is released,
+ * but cannot prove current inputs. Validate again before publishing/using facts. */
+int xlsSemanticCheckInputs(const xls_semantic_check* result,xls_check_inputs* inputs);
+int xlsSemanticCheckSource(const xls_semantic_check* result,size_t index,xls_check_source* source);
+int xlsSemanticCheckProbe(const xls_semantic_check* result,size_t index,xls_check_probe* probe);
 typedef struct xls_check_semantic_work { uint64_t functionsChecked,functionsReused,contextHits,memoBytes; } xls_check_semantic_work;
 /* Work captured by the opt-in retained-entry path. The independent fresh
  * reference API does not instrument function calls and reports zero here. */

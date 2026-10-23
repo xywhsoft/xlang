@@ -115,7 +115,7 @@ int main(int argc,char** argv)
         #undef BAD
     }
     for(size_t i=0;i<sizeof(entries)/sizeof(*entries);++i){if(!seen[i])fprintf(stderr,"missing X509 target: %s\n",entries[i]);assert(seen[i]);}
-    assert(targets>=35&&handles>=5&&resources>=13&&refusals>300&&outputRefusals>=35&&xl6IrVerifyModule(module,NULL));
+    assert(targets>=36&&handles>=5&&resources>=13&&refusals>300&&outputRefusals>=36&&xl6IrVerifyModule(module,NULL));
     printf("X509 ordered path XLIR: %zu direct targets, %zu owned results, %zu bad contracts, %zu module/C/header output gates\n",
         targets,resources,refusals,outputRefusals);
     xl6CompileUnitFree(&unit);return 0;

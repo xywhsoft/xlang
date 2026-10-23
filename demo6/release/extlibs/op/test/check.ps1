@@ -2,7 +2,8 @@ param([switch]$RealGpu, [switch]$Stress, [switch]$SkipAot)
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
-$build = Join-Path $root 'build/test/op'
+$buildParent = Join-Path $root 'build/test/op'
+$build = Join-Path $buildParent ('run_' + [guid]::NewGuid().ToString('N'))
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
 $tcc = Join-Path $root 'build/tmp/tcc_bootstrap.exe'
 $xl = Join-Path $root 'release/xl.exe'
@@ -102,11 +103,11 @@ try {
         return
     }
     $bounds = Join-Path $build 'hook_bounds.exe'
-    Run 'strict bounds build' $gcc @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+    Run 'strict bounds build' $gcc @('-std=c11', '-O2', '-DNDEBUG', '-Wall', '-Wextra', '-Werror',
         'release/extlibs/op/test/test_hook_bounds.c', '-o', $bounds)
     Run 'hook bounds' $bounds @()
     $protocol = Join-Path $build 'hook_protocol.exe'
-    Run 'strict protocol build' $gcc @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+    Run 'strict protocol build' $gcc @('-std=c11', '-O2', '-DNDEBUG', '-Wall', '-Wextra', '-Werror',
         'release/extlibs/op/test/test_hook_protocol.c', '-o', $protocol)
     Run 'hook protocol' $protocol @()
     Run 'SDK D3D9 ABI slots' $gcc @('-std=c11', '-Wall', '-Wextra', '-Werror',
@@ -274,4 +275,10 @@ try {
     }
 } finally {
     Pop-Location
+    $parentPath = [IO.Path]::GetFullPath($buildParent).TrimEnd('\') + '\'
+    $buildPath = [IO.Path]::GetFullPath($build)
+    if (-not $buildPath.StartsWith($parentPath, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "op test directory escaped build/test: $buildPath"
+    }
+    [IO.Directory]::Delete($buildPath, $true)
 }

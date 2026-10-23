@@ -1,6 +1,12 @@
 /* Exercise the actual untrusted source-report boundary in both XRT owners.
    The test owns this implementation; omit language_snapshot.o when linking. */
+#include "app_xrt.h"
+static unsigned fixtureHashes;
+static bool snapshotHash(const void* data,size_t size,void* digest)
+{ ++fixtureHashes; return xrtSha256(data,size,digest); }
+#define xrtSha256 snapshotHash
 #include "../src/services/language_snapshot.c"
+#undef xrtSha256
 
 static unsigned fixtureChecks;
 #define CHECK(v) do { ++fixtureChecks; if(!(v)) { fprintf(stderr,"snapshot_report_test:%d: %s\n",__LINE__,#v); return 0; } } while(0)
@@ -56,6 +62,67 @@ static int fixtureSource(const char* text,const char* normalizedText)
  }
  free(q.packagePath);xrtValueRelease(valid);xrtFree(path);return 1;
 }
+#ifdef XLS_COMPILER_XRT
+static int fixtureCaptured(void)
+{
+ char root[160];snprintf(root,sizeof(root),"build/snapshot-captured-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+ char *directory=xrtPathAbs(root),*path=directory ? xrtPathJoin(directory,"entry.xl") : NULL,*dep=directory ? xrtPathJoin(directory,"snapshot_view_dep.xl") : NULL;
+ CHECK(directory && path && dep && xrtDirCreateAll(directory));
+ const char* dependency="\xef\xbb\xbf" "export func value() as int\r\n return 42\r\nend\r\n";
+ const char* entry="\xef\xbb\xbf// 中文😀\r\nimport snapshot_view_dep\r\nfunc main(...) as int\r\n return snapshot_view_dep.value()\r\nend\r\n";
+ CHECK(xrtFileWriteAtomic(dep,(xbytesview){(const unsigned char*)dependency,strlen(dependency)}));
+ xls_semantic_input input={path,entry,strlen(entry)};char message[256];
+ xls_semantic_check* checked=xlsSemanticCheckCreate(path,&input,1,1,NULL,NULL,message,sizeof(message));
+ CHECK(checked && xlsSemanticCheckInfo(checked).accepted);
+ char* report=xlsSemanticCheckReportJson(checked,NULL);CHECK(report);
+ xvalue* valid=xrtJsonParse(sv(report));xlsSemanticStringFree(report);CHECK(valid);
+ xls_check_inputs inputs;CHECK(xlsSemanticCheckInputs(checked,&inputs) && inputs.sources==2 && inputs.probes);
+ xide_language_snapshot snapshot={path,entry,9};xide_language_check q={.path=path,.snapshots=&snapshot,.snapshotCount=1,.nativeSemantic=1};xide_model_error error={0};
+ CHECK(xideLanguageCheckPackagePath(&q.packagePath,&error));
+ source_graph plain={0};fixtureHashes=0;CHECK(loadGraph(&q,valid,&plain,&error) && fixtureHashes>0);
+ const char* wrong="0000000000000000000000000000000000000000000000000000000000000000";
+ for(int mode=0;mode<12;++mode) {
+  xvalue* raw=xrtValueDeepClone(valid);CHECK(raw);
+  xvalue* item=xrtValueArrayGet(get(get(raw,"sourceReport"),"files"),0);CHECK(item);
+  if(mode==1) CHECK(put(item,"textSha256",xrtValueString(sv(wrong))));
+  if(mode==2) CHECK(put(item,"rawSha256",xrtValueString(sv(wrong))));
+  if(mode==3) CHECK(put(item,"kind",xrtValueInt(2)));
+  if(mode==4) CHECK(put(item,"origin",xrtValueString(sv("disk"))));
+  if(mode==5) CHECK(put(item,"path",xrtValueString(sv("relative.xl"))));
+  if(mode==6) CHECK(put(get(raw,"sourceReport"),"files",xrtValueArray()));
+  if(mode==7) CHECK(put(item,"path",xrtValueString(sv(dep))));
+  if(mode==8) CHECK(put(get(raw,"resolutionReport"),"probes",xrtValueArray()));
+  if(mode==9) CHECK(put(get(raw,"resolutionReport"),"packagePathObserved",xrtValueBool(!inputs.packagePathObserved)));
+  if(mode==10) CHECK(put(item,"rawSize",xrtValueInt((int64)strlen(entry))));
+  if(mode==11) snapshot.text="func main(...) as int\n return 0\nend\n";
+  source_graph graph={.checked=xlsSemanticCheckRetain(checked)};memset(&error,0,sizeof(error));fixtureHashes=0;
+  int okay=loadGraph(&q,raw,&graph,&error);snapshot.text=entry;CHECK(okay==(mode==0) && !fixtureHashes);
+  if(okay) {
+   CHECK(graph.count==plain.count && graph.bytes==plain.bytes && xrtValueEqual(graph.resolution,plain.resolution));
+   for(size_t i=0;i<graph.count;++i) {
+    xls_check_source source;CHECK(xlsSemanticCheckSource(checked,i,&source));
+    CHECK(graph.items[i].borrowed && graph.items[i].original==source.text && !plain.items[i].borrowed);
+    CHECK(!strcmp(graph.items[i].text,plain.items[i].text) && !strcmp(graph.items[i].original,plain.items[i].original));
+   }
+   CHECK(validateGraph(&q,&graph,&error) && xlsSemanticCheckValidate(checked));
+  }
+  clearGraph(&graph);xrtValueRelease(raw);
+ }
+ clearGraph(&plain);
+ /* The typed rows are captured snapshots, not fresh filesystem reads. A disk
+  * edit can be loaded from the old snapshot, but both publication validators
+  * must reject it. The JSON-only path still rejects on its initial disk read. */
+ const char* changed="export func value() as int\n return 43\nend\n";
+ CHECK(xrtFileWriteAtomic(dep,(xbytesview){(const unsigned char*)changed,strlen(changed)}));
+ source_graph graph={.checked=xlsSemanticCheckRetain(checked)};memset(&error,0,sizeof(error));fixtureHashes=0;
+ CHECK(loadGraph(&q,valid,&graph,&error) && !fixtureHashes);
+ source_graph legacy={0};memset(&error,0,sizeof(error));CHECK(!loadGraph(&q,valid,&legacy,&error));clearGraph(&legacy);
+ memset(&error,0,sizeof(error));CHECK(!validateGraph(&q,&graph,&error) && !xlsSemanticCheckValidate(checked));
+ xlsSemanticCheckDestroy(checked);checked=NULL;
+ CHECK(graph.count==2 && strstr(graph.items[1].original,"42"));clearGraph(&graph);
+ free(q.packagePath);xrtValueRelease(valid);xrtFree(directory);xrtFree(path);xrtFree(dep);return 1;
+}
+#endif
 int main(void)
 {
  if(!fixtureSource("","") || !fixtureSource("func main(...) as int\n return 0\nend\n","func main(...) as int\n return 0\nend\n") ||
@@ -64,5 +131,8 @@ int main(void)
  while(large.Size<1024u*1024u) if(!xrtStrBufAppend(&large,sv("// 中文😀 unchanged source bytes\n"))) return 1;
  if(!fixtureSource(large.Data,large.Data)) return 1;
  xrtStrBufFree(&large);
+#ifdef XLS_COMPILER_XRT
+ if(!fixtureCaptured()) return 1;
+#endif
  printf("snapshot_report_test passed: %u checks; real overlay graph boundary, both digest fields independently required, differing/equal forged digests, schema/path/size/origin rejection, empty/ASCII/BOM/CRLF/Unicode/1MiB and exact retained bytes.\n",fixtureChecks);return 0;
 }

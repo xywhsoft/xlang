@@ -1,7 +1,5 @@
 import volc.core
 
-extern "x_volc_phone_substr" func x_volc_phone_substr(string text, int start, int len) as string
-
 const string ACEP_HOST = "open.volcengineapi.com"
 const string ACEP_SERVICE = "ACEP"
 const string DEFAULT_REGION = "cn-north-1"
@@ -403,12 +401,12 @@ export func json_string_field(string raw, string key) as string
 		return ""
 	end
 	start = start + string.len(pattern)
-	string rest = x_volc_phone_substr(raw, start, string.len(raw) - start)
+	string rest = string.slice(raw, start, string.len(raw) - start)
 	int end_pos = string.indexOf(rest, "\"")
 	if end_pos < 0 then
 		return ""
 	end
-	return x_volc_phone_substr(rest, 0, end_pos)
+	return string.slice(rest, 0, end_pos)
 end
 
 export func json_int_field(string raw, string key) as int
@@ -422,7 +420,7 @@ export func json_int_field(string raw, string key) as int
 		return 0
 	end
 	start = start + string.len(pattern)
-	string rest = x_volc_phone_substr(raw, start, string.len(raw) - start)
+	string rest = string.slice(raw, start, string.len(raw) - start)
 	int comma = string.indexOf(rest, ",")
 	int brace = string.indexOf(rest, "}")
 	int end_pos = comma
@@ -432,7 +430,7 @@ export func json_int_field(string raw, string key) as int
 	if end_pos < 0 then
 		end_pos = string.len(rest)
 	end
-	string token = string.trim(x_volc_phone_substr(rest, 0, end_pos))
+	string token = string.trim(string.slice(rest, 0, end_pos))
 	if token == "" then
 		return 0
 	end
@@ -450,7 +448,7 @@ export func json_section(string raw, string key) as string
 		return ""
 	end
 	start = start + string.len(pattern)
-	string rest = x_volc_phone_substr(raw, start, string.len(raw) - start)
+	string rest = string.slice(raw, start, string.len(raw) - start)
 	return rest
 end
 

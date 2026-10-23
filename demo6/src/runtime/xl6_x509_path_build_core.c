@@ -5,7 +5,7 @@ static bool add(size_t* total,size_t size)
     *total+=size;return true;
 }
 void* xl6X509PathBuildCreateV1(void* rawTarget,void* const* candidates,size_t count,void* rawTrust,const xx509pathconfig* config,
-    int64_t maxCertificates,int64_t maxBytes,int64_t maxCandidates,int64_t maxSourceBytes)
+    int64_t maxCertificates,int64_t maxBytes,int64_t maxCandidates,int64_t maxSourceBytes,int64_t maxSearchSteps)
 {
     if(xrtGetError())return NULL;
     if(!rawTarget || !rawTrust || (!candidates && count)){
@@ -13,7 +13,8 @@ void* xl6X509PathBuildCreateV1(void* rawTarget,void* const* candidates,size_t co
     }
     const xx509cert* target=&((const XL6_X509CertificateV1*)rawTarget)->view;
     const XL6_X509StoreVersionV1* trust=rawTrust;
-    if(maxCertificates<0 || maxBytes<0 || maxCandidates<0 || maxSourceBytes<0){xl6X509FailV1(XERR_ARGUMENT,"negative path build budget");return NULL;}
+    if(maxCertificates<0 || maxBytes<0 || maxCandidates<0 || maxSourceBytes<0 || maxSearchSteps<0){xl6X509FailV1(XERR_ARGUMENT,"negative path build budget");return NULL;}
+    if((uint64_t)maxSearchSteps>SIZE_MAX){xl6X509FailV1(XERR_RANGE,"path search budget exceeds native size range");return NULL;}
     if(!xl6X509PathPolicyValidV1(config) || !xl6X509SpanV1(target->Raw))return NULL;
     size_t sourceCount=xrtX509StoreCount(trust->value),bytes=config->Purpose.Size;
     if(trust->bytes<0 || (uint64_t)trust->bytes>SIZE_MAX){xl6X509FailV1(XERR_STATE,"invalid trust snapshot byte size");return NULL;}
@@ -42,7 +43,7 @@ void* xl6X509PathBuildCreateV1(void* rawTarget,void* const* candidates,size_t co
     if(ok){
         xx509pathconfig policy;XL6_X509PathCallV1 call;xl6X509PathCallBeginV1(&call,config,&policy);
         xx509pathdecision decision={0};xx509pathresult selected={0};
-        xx509check check=xrtX509PathBuildCheck(target,&source,&policy,path,capacity,&selected,&decision);
+        xx509check check=xrtX509PathBuildCheckLimit(target,&source,&policy,path,capacity,(size_t)maxSearchSteps,&selected,&decision);
         ok=xl6X509PathCallEndV1(&call,check);
         if(ok && check==X509_CHECK_VALID){
             xx509cert anchor;
