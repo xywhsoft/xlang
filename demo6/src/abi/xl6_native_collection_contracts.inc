@@ -1,6 +1,7 @@
 /* One closed collection registry shared by source admission and typed XLIR.
  * Macro consumers may select just names; physical types, item widths and
  * ownership remain verified from these same descriptors before emission. */
+#include "xl6_x509_path_collection_contracts.inc"
 #include "xl6_net_vector_collection_contracts.inc"
 #include "xl6_tcp_vector_collection_contracts.inc"
 #include "xl6_udp_collection_contracts.inc"

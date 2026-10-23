@@ -35,7 +35,6 @@ bool xl6X509PathClassifyV1(const xerror* error,int64_t* status)
     }
     *status=selected;return true;
 }
-void xl6X509PathDestroyV1(void* raw){xl6X509FreeV1(raw);}
 void xl6X509PathOutcomeDestroyV1(void* raw)
 {
     XL6_X509PathOutcomeV1* self=raw;
@@ -58,19 +57,4 @@ bool xl6X509PathOutcomeRequireV1(void* raw)
     if(!self->diagnostic)return xl6X509FailV1(XERR_STATE,"negative path outcome has no diagnostic");
     xrtSetErrorTake(xrtErrorRef(self->diagnostic));return false;
 }
-void* xl6X509PathCertificateV1(void* raw,int64_t index)
-{
-    const XL6_X509PathV1* self=raw;size_t selected;
-    if(!self){xl6X509FailV1(XERR_ARGUMENT,"missing validated path");return NULL;}
-    return xl6X509IndexV1(index,self->count,&selected)?
-        xl6X509CertificateCreateSpanV1(self->certificates[selected].Raw):NULL;
-}
-void* xl6X509PathAnchorV1(void* raw)
-{
-    const XL6_X509PathV1* self=raw;
-    if(!self){xl6X509FailV1(XERR_ARGUMENT,"missing validated path");return NULL;}
-    XL6_X509CertificateV1 certificate={.view=self->anchorCertificate};
-    return xl6X509AnchorCreateV1(&certificate);
-}
-XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6X509PathHandlePolicyV1Get,xl6X509PathDestroyV1)
 XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6X509PathOutcomeHandlePolicyV1Get,xl6X509PathOutcomeDestroyV1)

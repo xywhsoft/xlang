@@ -16,6 +16,7 @@ typedef struct XL6_X509AnchorV1 {
     uint8 data[];
 } XL6_X509AnchorV1;
 typedef struct XL6_X509PathV1 {
+    xatomic64 references;
     size_t count;
     xx509cert anchorCertificate;
     xx509anchor anchor;
@@ -28,6 +29,13 @@ typedef struct XL6_X509PathOutcomeV1 {
     xerror* diagnostic;
     XL6_X509PathV1* path;
 } XL6_X509PathOutcomeV1;
+typedef struct XL6_X509PathPolicyV1 {
+    xx509pathconfig value;
+    int64_t maxCertificates,maxBytes;
+    uint8 data[];
+} XL6_X509PathPolicyV1;
+bool xl6X509PolicyRetainV1(xatomic64*);
+void* xl6X509PathRefV1(void*);
 
 void* xl6X509AnchorCreateV1(void*);
 void xl6X509AnchorDestroyV1(void*);
