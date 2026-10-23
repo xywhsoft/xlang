@@ -211,7 +211,7 @@ export class Headers
         if result == null then
             return null
         end
-        return Buffer(result).text()
+        return __xhttp_protocol_text(result)
     end
 
     func getAll(string name) as array<string>
@@ -374,7 +374,7 @@ export class Cookies
         if result == null then
             return null
         end
-        return Buffer(result).text()
+        return __xhttp_protocol_text(result)
     end
 
     func clone() as Cookies
