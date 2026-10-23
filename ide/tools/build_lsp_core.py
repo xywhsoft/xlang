@@ -33,7 +33,7 @@ SERVER_SOURCES = (
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
     "src/server/xlang_ls.c",
 )
-CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_overload_scan_test", "analysis_completion_candidates_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_cursor_syntax_test", "analysis_text_test", "document_sync_test")
+CORE_TESTS = ("analysis_context_test", "analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_overload_scan_test", "analysis_completion_candidates_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_cursor_syntax_test", "analysis_text_test", "document_sync_test")
 HOST_TESTS = ("semantic_lookup_test", "analysis_index_view_test", "language_input_guard_test", "diagnostic_store_test", "language_definition_proof_test", "snapshot_report_test")
 CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test", "diagnostic_stream_test")
 CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c", "src/services/diagnostic_stream.c")
@@ -316,7 +316,7 @@ def main() -> None:
     sources += [(ide / "src/protocol/input_state.c", True)]
     sources += [(ide / "src/protocol/diagnostic_paths.c", True)]
     sources += [(ide / path, True) for path in (
-        "src/analysis/text.c", "src/analysis/ast_clone.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
+        "src/analysis/text.c", "src/analysis/context.c", "src/analysis/ast_clone.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
@@ -422,7 +422,7 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "ast_clone", "syntax", "session", "worker", "folding", "semantic", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "context", "ast_clone", "syntax", "session", "worker", "folding", "semantic", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         limited_index = output / "xl6_sem_index_limit.o"
