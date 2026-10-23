@@ -22,6 +22,12 @@ C 字符串入口会在各自字节上限内寻找 NUL，再建立视图；超�
 
 ## 验证与范例
 
+2026-10-24：子序列评分现在仅在模式字符命中后解码下一个模式标量；
+扫描长候选时不再为每个未命中的字符重复解码同一模式字符。C 回归固定
+ASCII 与中文模式在多次未命中后的精确评分及不匹配结果。Windows 严格
+C/线程/XLang/双语门禁和 Linux C ASan/UBSan、线程、双语门禁通过；
+完整带输出 AOT 的共享符号阻断不变。
+
 - XLang：`release/examples/extlibs/fuzzy.xl`
 - 同输出 C：`release/extlibs/fuzzy/examples/fuzzy_c.c`，可直接用 `xl run` 单文件执行；正式 C 构建仍独立链接 `fuzzy_native.c`。
 - 边界：包内 `test/test_fuzzy.c`、`test/test_threads.c`、`test/boundaries.xl`，以及 `demo6/test/cases/extlib_fuzzy.xl`

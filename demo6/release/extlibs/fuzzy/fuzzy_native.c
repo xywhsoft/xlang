@@ -112,17 +112,16 @@ static long long xfuzzy_score_view(xstrview pattern, xstrview text)
 {
     size_t pattern_at = 0u, text_at = 0u, index = 0u;
     size_t last_match = XRT_NPOS, consecutive = 0u;
-    uint32 previous = 0u;
+    uint32 previous = 0u, expected;
+    size_t expected_size;
     long long score = 0;
     if (pattern.Size == 0u) return 0;
+    if (xrtUtf8Decode(pattern, &expected, &expected_size) != XUTF_OK)
+        return -2;
     while (pattern_at < pattern.Size && text_at < text.Size) {
-        uint32 expected, current;
-        size_t expected_size, current_size;
-        xstrview remainder = xrtStrViewN(pattern.Data + pattern_at,
-            pattern.Size - pattern_at);
-        if (xrtUtf8Decode(remainder, &expected, &expected_size) != XUTF_OK)
-            return -2;
-        remainder = xrtStrViewN(text.Data + text_at, text.Size - text_at);
+        uint32 current;
+        size_t current_size;
+        xstrview remainder = xrtStrViewN(text.Data + text_at, text.Size - text_at);
         if (xrtUtf8Decode(remainder, &current, &current_size) != XUTF_OK)
             return -2;
         if (xfuzzy_ascii_fold(expected) == xfuzzy_ascii_fold(current)) {
@@ -136,6 +135,12 @@ static long long xfuzzy_score_view(xstrview pattern, xstrview text)
             ++score;
             last_match = index;
             pattern_at += expected_size;
+            if (pattern_at < pattern.Size) {
+                remainder = xrtStrViewN(pattern.Data + pattern_at,
+                    pattern.Size - pattern_at);
+                if (xrtUtf8Decode(remainder, &expected, &expected_size) != XUTF_OK)
+                    return -2;
+            }
         }
         previous = current;
         text_at += current_size;

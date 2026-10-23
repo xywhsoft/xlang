@@ -154,6 +154,9 @@ int main(void)
     CHECK(xfuzzy_match("你", "你好") >= 0);
     CHECK(xfuzzy_match("汉", "你好") == -1);
     CHECK(xfuzzy_match("xyz", "foobar") == -1);
+    CHECK(xfuzzy_match("ab", "zzzzab") == 8);
+    CHECK(xfuzzy_match("\xe4\xbd\xa0" "a", "zzz\xe4\xbd\xa0" "a") == 8);
+    CHECK(xfuzzy_match("ab", "zzzz") == -1);
     CHECK(xfuzzy_match("abc", "abc") > xfuzzy_match("abc", "a_b_c"));
     result = (char*)xfuzzy_best("abc", "a_b_c\nabc");
     CHECK(result != NULL && strcmp(result, "abc") == 0);
