@@ -16825,6 +16825,11 @@ static int xl6SemDeclareVarWithKind(
     if(ok && declaredType && xl6TextEquals(declaredType->text,"auto") && initExpr) {
         inferredType=xl6SemInferAutoTypeNode(ctx,initExpr);
         if(inferredType) {
+            if(valueKind==XL6_SYM_GLOBAL_VALUE && xl6SemCOwnedTypeBase(inferredType)) {
+                if(!xl6SemCOwnedGlobalType(ctx,inferredType)) {xl6AstFree(inferredType);return 0;}
+                xl6AstFree(node->inferredType);node->inferredType=xl6SemCloneTypeNode(inferredType);
+                if(!node->inferredType) {xl6AstFree(inferredType);return 0;}
+            }
             if(xl6SemExprIntegerLiteralValue(initExpr,NULL,NULL) &&
                 !xl6SemExprIntegerLiteralFitsType(initExpr,inferredType->text)) {
                 xl6SemErrorNode(ctx,initExpr,"整数字面量超出 auto 推断类型的表示范围");
@@ -17174,12 +17179,18 @@ static int xl6SemCheckMultiVarDeclWithKind(
             }
             if ( typeNode != NULL ) {
                 XL6_AstNode* symbolType = xl6SemCloneTypeNode(typeNode);
-                if ( symbolType == NULL || !xl6SemOwnTypeNode(ctx, symbolType) ) {
+                if ( symbolType == NULL ||
+                     (valueKind==XL6_SYM_GLOBAL_VALUE && !xl6SemCOwnedGlobalType(ctx,symbolType)) ||
+                     !xl6SemOwnTypeNode(ctx, symbolType) ) {
                     xl6AstFree(symbolType);
                     ok = 0;
                     continue;
                 }
                 typeNode = symbolType;
+                if(valueKind==XL6_SYM_GLOBAL_VALUE && xl6SemCOwnedTypeBase(returns->children[i])) {
+                    xl6AstFree(name->inferredType);name->inferredType=xl6SemCloneTypeNode(typeNode);
+                    if(!name->inferredType){ok=0;continue;}
+                }
             }
             if ( !xl6ScopeAddTyped(ctx, name, valueKind, typeNode) ) {
                 ok = 0;

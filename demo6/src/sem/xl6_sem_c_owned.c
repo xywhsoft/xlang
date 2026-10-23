@@ -3,6 +3,21 @@ static const XL6_AstNode* xl6SemCOwnedElement(const XL6_AstNode* type)
 { const XL6_AstNode* inner=xl6SemNullableInnerType(type);return inner ? inner : type; }
 static const char* xl6SemCOwnedTypeBase(const XL6_AstNode* type)
 { const XL6_AstNode* element=xl6SemCOwnedElement(type);return element ? xl6COwnedBaseName(element->text) : NULL; }
+/* Global storage has the ordinary value ABI, including inferred declarations.
+ * Change only the receiving type; the initializer keeps its C owner until the
+ * normal copy succeeds (or unwinds on failure). */
+static int xl6SemCOwnedGlobalType(XL6_SemContext* ctx,XL6_AstNode* type)
+{
+    XL6_AstNode* element=(XL6_AstNode*)xl6SemCOwnedElement(type);
+    const char* base=element ? xl6COwnedBaseName(element->text) : NULL;
+    if(!base)return 1;
+    char* text=xrtStrDup(base);
+    if(!text)return 0;
+    xrtFree(element->text);element->text=text;
+    element->flags &= ~XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
+    xl6SemBindInferredTypeIdentity(ctx,type);
+    return 1;
+}
 static int xl6SemCOwnedTypeMatchCost(const XL6_AstNode* actual,const XL6_AstNode* target)
 {
     if(!actual || !target)return -1;

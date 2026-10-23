@@ -30,6 +30,8 @@ end
 It scans the byte length once; the producer guarantees the encoding and
 terminator. Embedded NUL terminates C text. `cbytes.take(pointer, length,
 releaser)` adopts arbitrary bytes with an explicit nonnegative byte length.
+Unsigned C sizes (including `c_size` and `uint64`) are accepted; values above
+`INT64_MAX` fail through a checked conversion after the pointer is anchored.
 Text length/indexing use Unicode scalar units; binary indexing returns `uint8`.
 
 A non-null zero-length allocation is still released. Null with zero length
@@ -66,7 +68,7 @@ invalid length therefore cannot leak it.
 | Explicit `string(cstring)` / `bytes(cbytes)` | Requests an independent payload copy |
 | Closure captures, mutable captured cells, async/generator locals | Shares the C owner, including across suspension and worker tasks |
 | Nullable joins, `??`, `?=`, null tests and flow narrowing | Preserve C storage; null and present-empty remain distinct |
-| `var`, containers, fields | Materializes the ordinary representation at the boundary |
+| `var`, containers, fields, module globals (including `auto` and multi-result bindings) | Materializes the ordinary representation at the boundary |
 
 A writable by-value language parameter first acquires its own owner. Changing
 it cannot free or mutate the caller's value. Replacement publishes the new
@@ -76,7 +78,13 @@ the existing sequence rules. C text and C binary data are never interchangeable.
 Compiler specialization covers fixed positional/named arguments and default
 arguments of directly resolved functions, including async inputs and explicit and
 inferred generic instances. Signature keys include concrete types and have no
-63-parameter mask limit. Borrowed string inputs also keep their C view through
+63-parameter mask limit. A C-backed default argument also selects the C input
+and result specialization when that default is used; explicit overrides do not
+evaluate it. Default evaluation order and exception cleanup are unchanged.
+`task.spawn` specializes statically resolved named language readers to keep C
+inputs in their task frames. Function-value variables keep their fixed signature
+and its ordinary conversion rules; Future payloads keep their ordinary result
+representation. Borrowed string inputs also keep their C view through
 function-value calls. Indirect results with an ordinary signature, virtual calls and unmigrated native
 binary readers can still cross an ordinary-value boundary. A function-value
 signature explicitly returning `cstring/cbytes` retains the C owner. They are not a promise of
@@ -129,8 +137,11 @@ ordinary escape boundaries have their normal allocation costs. The reference
 count is atomic only on C owner acquisition/release. C owner locals and captures
 use a private frame leaf profile; they remain outside XRT dynamic values and
 collections. Reads have no atomic operation or ordinary-value tag test.
-C markers are not allowed in fields, global declarations, aliases, uninitialized
-nullable marker declarations or generic elements. Optional synchronous return
+C markers are not allowed in fields, explicit global declarations, aliases, uninitialized
+nullable marker declarations or generic elements. An inferred module global
+uses ordinary string/bytes storage just like an explicitly typed ordinary global;
+the initializer's C owner is released after the copy, including on failure. This
+rule also covers nullable and multi-result globals. Optional synchronous return
 markers (`as cstring?` / `as cbytes?`) and inferred optional locals are supported.
 The compiler-private optional descriptor uses `{NULL, SIZE_MAX, NULL}` for null;
 present-empty uses zero length. It remains three words and shares the existing

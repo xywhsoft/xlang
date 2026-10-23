@@ -29597,6 +29597,8 @@ static XL6_IrValueId xl6IrLowerProjectedValueAsType(
 {
     XL6_IrTypeId sourceType = xl6IrLowerValueType(ctx, value);
     if (sourceType == targetType) return value;
+    if (xl6IrTypeIsCOwned(xl6IrTypeGet(&ctx->module->types,sourceType)))
+        return xl6IrLowerCOwnedCopy(ctx,origin,targetType,value);
     if (xl6IrLowerTypeIsRuntimeXValue(ctx->module, targetType))
         return xl6IrLowerBoxRuntimeXValue(ctx, origin, targetType,
             xl6IrNodeGet(ctx->module, sourceId), value);
@@ -29670,8 +29672,20 @@ static int xl6IrLowerProductBindings(
                 ctx->module->functions[ctx->functionIndex].kind == XL6_IR_FUNCTION_MODULE_INIT &&
                 ctx->moduleTopLevel ? XL6_IR_STORAGE_GLOBAL : XL6_IR_STORAGE_LOCAL;
             XL6_IrTypeId cellType;
+            XL6_IrTypeId receivingType=target && kind==XL6_IR_STORAGE_GLOBAL &&
+                target->storageType!=XL6_IR_TYPE_INVALID ? target->storageType : product->params[field];
+            XL6_IrValueId value=elements[field];
+            int converted=receivingType!=product->params[field];
+            if(converted) {
+                value=xl6IrLowerProjectedValueAsType(ctx,origin,sourceId,value,receivingType);
+                if(!value)goto done;
+                if(managed) {
+                    ctx->evaluationOwners[first].transfer=0;
+                    if(!xl6IrLowerCompleteEvaluationBorrowRange(ctx,origin,first,first+1,&value))goto done;
+                }
+            }
             if (target == NULL || target->kind != XL6_IR_NODE_NAME || target->symbol == 0 ||
-                !xl6IrLowerRegisterStorage(ctx, kind, target->symbol, product->params[field],
+                !xl6IrLowerRegisterStorage(ctx, kind, target->symbol, receivingType,
                     targetId, ctx->module->functions[ctx->functionIndex].declaration)) goto done;
             cellType = xl6IrLowerCaptureCellTypeForSource(ctx->module, target->symbol);
             if (cellType != XL6_IR_TYPE_INVALID &&
@@ -29679,11 +29693,11 @@ static int xl6IrLowerProductBindings(
             /* Transfer this field out of the pending product owners before
              * shared cell construction protects it across allocation. Other
              * fields stay protected; no second owner aliases the same value. */
-            if (managed && !xl6IrLowerCommitEvaluationOwnerRange(ctx, origin, first, first + 1)) goto done;
+            if (managed && !converted && !xl6IrLowerCommitEvaluationOwnerRange(ctx, origin, first, first + 1)) goto done;
             if (cellType != XL6_IR_TYPE_INVALID
-                ? !xl6IrLowerConstructCell(ctx, targetId, targetId, target->symbol, elements[field])
-                : !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, targetId, product->params[field],
-                    target->symbol, &elements[field], 1, NULL)) goto done;
+                ? !xl6IrLowerConstructCell(ctx, targetId, targetId, target->symbol, value)
+                : !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, targetId, receivingType,
+                    target->symbol, &value, 1, NULL)) goto done;
         } else {
             XL6_IrLowerStorageTargetPlan plan;
             XL6_IrValueId value = elements[field];

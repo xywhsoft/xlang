@@ -3238,7 +3238,9 @@ int xl6IrDeclarationBindingAt(const XL6_IrModule* module, XL6_IrNodeId declarati
         name = xl6IrNodeGet(module, binding->origin);
         if (name == NULL || name->kind != XL6_IR_NODE_NAME ||
             (name->symbol == 0 && (name->text == NULL || strcmp(name->text, "_") != 0))) return 0;
-        binding->symbol = name->symbol; binding->type = type->params[index];
+        binding->symbol = name->symbol;
+        binding->type = name->storageType != XL6_IR_TYPE_INVALID
+            ? name->storageType : type->params[index];
     } else if (binding->symbol == 0) return 0;
     return xl6IrTypeGet(&module->types, binding->type) != NULL;
 }
