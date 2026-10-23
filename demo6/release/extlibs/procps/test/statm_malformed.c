@@ -7,13 +7,19 @@
 
 static const char *input;
 static size_t input_size;
+static xerrkind read_error;
 
 /* 只替换本测试进程的 statm 读取，不访问实际进程文件。 */
 bytes __wrap_xrtFileReadAllLimit(cstr path, size_t limit, size_t *size)
 {
-    size_t length = input_size != 0u ? input_size : strlen(input);
+    size_t length;
     bytes copy;
     (void)path;
+    if (read_error != XERR_NONE) {
+        xrtSetErrorInfo(read_error, "procps.test", 0, "injected statm read error");
+        return NULL;
+    }
+    length = input_size != 0u ? input_size : strlen(input);
     if (length > limit) return NULL;
     copy = xrtMalloc(length + 1u);
     if (copy == NULL) return NULL;
@@ -38,5 +44,10 @@ int main(void)
     input = "100 2\0junk\n";
     input_size = sizeof("100 2\0junk\n") - 1u;
     if (xprocps_mem_kb(1) != -1 || xrtGetError() != NULL) return 5;
+    read_error = XERR_NOT_FOUND;
+    if (xprocps_mem_kb(1) != -1 || xrtGetError() != NULL) return 6;
+    read_error = XERR_MEMORY;
+    if (xprocps_mem_kb(1) != -1 || xrtGetError() == NULL ||
+        xrtErrorKind(xrtGetError()) != XERR_MEMORY) return 7;
     return 0;
 }

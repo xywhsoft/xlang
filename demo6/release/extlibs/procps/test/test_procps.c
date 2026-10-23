@@ -50,6 +50,7 @@ int main(int argc, char** argv)
     CHECK(!xprocps_exists(INT64_MAX));
     CHECK(xprocps_mem_kb(self) > 0);
     CHECK(xprocps_mem_kb(-1) == -1);
+    CHECK(xprocps_mem_kb(INT32_MAX) == -1 && xrtGetError() == NULL);
     xrtSetErrorInfo(XERR_VALUE, "procps.test", 0, "stale error");
     CHECK(xprocps_pid() == self && xrtGetError() == NULL);
     xrtSetErrorInfo(XERR_VALUE, "procps.test", 0, "stale error");

@@ -19,7 +19,7 @@ println(procps.memKb(selfId))
 | `name(pid)` | UTF-8 可执行文件名；不可访问或已退出时抛 `ValueError` |
 | `pids()` | `array<int>`，完整进程快照；不保证顺序 |
 | `count()` | 调用时刻的进程数量 |
-| `memKb(pid)` | 常驻内存（Windows Working Set、Linux RSS），单位 KiB；不可读取时为 `-1` |
+| `memKb(pid)` | 常驻内存（Windows Working Set、Linux RSS），单位 KiB；进程退出或不可读取时为 `-1` |
 
 进程可能在枚举与后续查询之间退出，因此 `count()` 不保证等于先前
 `pids().length`，`exists(pid)` 为真也不保证下一次调用仍可读取数据。
@@ -34,6 +34,8 @@ Linux 优先读取 `/proc/pid/exe`，无可执行路径时回退 `comm`（内核
 Linux 的 `/proc/<pid>/statm` 前两列须为完整的非负十进制整数；负数、
 数字尾部杂项或文件中的内嵌 NUL 均视为不可读取，`memKb` 返回 `-1`，
 不把原始字节当作有效 RSS，也不把探测失败变成 XLang 异常。
+读取期间进程退出或文件不可访问同样返回 `-1`，且 C 错误槽不残留文件错误；
+内存分配失败仍保留 `XERR_MEMORY`，由 XLang 抛出 `MemoryError`。
 
 C 头文件为 `include/procps_native.h`。`xprocps_pids` 返回调用方持有的
 XRT `xvalue*` 数组，使用 `xrtValueRelease`；`xprocps_name` 返回独立
@@ -92,3 +94,5 @@ C/XLang 范例对照，Windows C/XLang 边界通过。完整 AOT 重试仍首先
 Linux 包级门禁；Windows 直接运行通过。未恢复旧字符串接口。
 
 2026-10-19：C 教学范例补 TCC 单文件入口，直接 `xl run` 与包运行器路径均通过；新增 Windows `test/check.ps1`，联合严格 GCC 头文件与清单宏检查、C/XLang 边界、三条范例路径的固定进程事实输出。Linux `test/check.sh` 同步固定结果和单文件 C 对照，严格 GCC、ASan/UBSan、非法 UTF-8 进程名与双语门禁通过。完整 AOT 共享缺符号阻断仍在，不签收发布级。
+
+2026-10-23：修复 Linux 查询已退出进程时 `statm` 文件错误被 XLang 自动抛出的情况；现在按公开合同返回 `-1`，仅保留真实内存故障。C 链接器夹具分别验证文件不存在与内存失败，C/XLang 用例验证不存在的 PID。Windows `check.ps1 -SkipAot`、Linux `check.sh`（含 ASan/UBSan）通过；完整 AOT 仍未签收。

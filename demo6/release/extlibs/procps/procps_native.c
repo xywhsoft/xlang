@@ -403,7 +403,13 @@ int64_t xprocps_mem_kb(int64_t pid)
         if (pid > INT_MAX) return -1;
         snprintf(path, sizeof(path), "/proc/%lld/statm", (long long)pid);
         text = (char*)xrtFileReadAllLimit(path, 128u, &size);
-        if (text == NULL) return -1;
+        if (text == NULL) {
+            const xerror* error = xrtGetError();
+            /* 进程消失或 statm 不可读是正常查询结果，内存失败仍须传播。 */
+            if (error == NULL || xrtErrorKind(error) != XERR_MEMORY)
+                xrtClearError();
+            return -1;
+        }
         cursor = text;
         /* 第一列是虚拟页，第二列才是 RSS；两列均须是完整的非负整数。 */
         if (memchr(text, '\0', size) != NULL ||

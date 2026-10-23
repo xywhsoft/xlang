@@ -10,6 +10,7 @@ assert not procps.exists(9223372036854775807)
 assert procps.name(selfId) != ""
 assert procps.memKb(selfId) > 0
 assert procps.memKb(-1) == -1
+assert procps.memKb(2147483647) == -1
 
 array<int> ids = procps.pids()
 bool found = false
