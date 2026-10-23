@@ -10050,7 +10050,7 @@ static int xl6IrBuildFunctionValueCallSite(
 static int xl6IrBuildCallSite(XL6_IrModule* module, XL6_IrNodeId origin)
 {
     const XL6_IrNode* call = xl6IrNodeGet(module, origin);
-    if (call && (call->callKind==XL6_SEM_CALL_C_OWNED_TAKE || call->callKind==XL6_SEM_CALL_C_OWNED_COPY || call->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)) return 1;
+    if (call && (call->callKind==XL6_SEM_CALL_C_OWNED_TAKE || call->callKind==XL6_SEM_CALL_C_OWNED_COPY || call->callKind==XL6_SEM_CALL_C_OWNED_VIEW || call->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)) return 1;
     XL6_IrNodeId declaration;
     const XL6_IrNode* target;
     XL6_IrNodeId parameterListId;
@@ -14549,7 +14549,7 @@ static int xl6IrBuildCopyIntrinsicSignature(
 static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
 {
     const XL6_IrNode* call = xl6IrNodeGet(module, origin);
-    if (call && (call->callKind==XL6_SEM_CALL_C_OWNED_TAKE || call->callKind==XL6_SEM_CALL_C_OWNED_COPY || call->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)) return 1;
+    if (call && (call->callKind==XL6_SEM_CALL_C_OWNED_TAKE || call->callKind==XL6_SEM_CALL_C_OWNED_COPY || call->callKind==XL6_SEM_CALL_C_OWNED_VIEW || call->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)) return 1;
     const XL6_IrNode* callee;
     const XL6_IrNode* persistenceGenericName = NULL;
     const XL6_IrType* result;
@@ -28102,6 +28102,8 @@ static XL6_IrOwnership xl6IrValueOwnershipDepth(
         switch (definition->runtimeOp) {
         case XL6_IR_RUNTIME_NONE:
             return XL6_IR_OWNERSHIP_NONE;
+        case XL6_IR_RUNTIME_CSTRING_VIEW:
+            return XL6_IR_OWNERSHIP_BORROW;
         case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64:
         case XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64:
         case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_OR_NULL:
@@ -49358,6 +49360,7 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
 #undef XL6_SLOT_MAP_OP
     case XL6_IR_RUNTIME_STRING_DUP: return "string-dup";
     case XL6_IR_RUNTIME_STRING_COPY: return "string-copy";
+    case XL6_IR_RUNTIME_CSTRING_VIEW: return "cstring-view";
     case XL6_IR_RUNTIME_CSTRING_TAKE: return "cstring-take";
     case XL6_IR_RUNTIME_CBYTES_TAKE: return "cbytes-take";
     case XL6_IR_RUNTIME_CSTRING_COPY: return "cstring-copy";

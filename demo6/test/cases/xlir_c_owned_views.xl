@@ -1,0 +1,27 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_released" @no_raise func released() as int
+extern "c_owned_debug" @no_raise func debug() as bool
+extern "c_owned_allocations" @no_raise func allocations() as int
+
+func inspect(string text, string needle) as bool
+    return original(text) and text.contains(needle)
+end
+
+func checkViews()
+    bool checked = debug()
+    cstring text = cstring.take(nativeText(), nativeFree)
+    string needle = "ell"
+    int before = allocations()
+    assert original(text)
+    assert text.contains(needle)
+    assert inspect(text, needle)
+    if checked then assert allocations() == before end
+    assert released() == 0
+    assert original(cstring.take(nativeText(), nativeFree))
+    assert released() == 1
+end
+
+checkViews()
+assert released() == 2

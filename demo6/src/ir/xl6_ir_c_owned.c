@@ -19,7 +19,7 @@ int xl6IrTypeIsCOwned(const XL6_IrType* type)
 }
 int xl6IrCOwnedRuntimeOpIs(XL6_IrRuntimeOp op)
 {
-    return op>=XL6_IR_RUNTIME_CSTRING_TAKE && op<=XL6_IR_RUNTIME_C_COMPARE_GE;
+    return op>=XL6_IR_RUNTIME_CSTRING_TAKE && op<=XL6_IR_RUNTIME_CSTRING_VIEW;
 }
 XL6_IrCallErrorPhysicalAbi xl6IrCOwnedErrorPhysicalAbi(XL6_IrRuntimeOp op)
 {
@@ -63,6 +63,9 @@ int xl6IrCOwnedInstructionCompatible(const XL6_IrModule* module,const XL6_IrInst
     const XL6_IrType* source=input ? xl6IrTypeGet(&module->types,input->type) : NULL;
     const XL6_IrType* result=xl6IrTypeGet(&module->types,ins->type);
     if(!source || !result) return 0;
+    if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_VIEW)
+        return ins->operandCount==1 && !ins->targetSymbol && xl6IrTypeIsCOwned(source) &&
+            source->cAbi==XL6_IR_C_ABI_C_STRING && result->cAbi==XL6_IR_C_ABI_MANAGED_STRING;
     if(ins->runtimeOp>=XL6_IR_RUNTIME_C_COMPARE_EQ) {
         const XL6_IrInstruction* right=ins->operandCount==2 ?
             xl6IrValueDefinition(module,module->operands[ins->firstOperand+1],NULL) : NULL;

@@ -4,10 +4,12 @@
 #include <stdint.h>
 #include <__xl_runtime/xruntime_decl.h>
 static int64_t count;
+static const char* originalText;
 void* c_owned_text(void)
 {
-    char* data=malloc(6); assert(data); memcpy(data,"hello",6); return data;
+    char* data=malloc(6); assert(data); memcpy(data,"hello",6); originalText=data; return data;
 }
+bool c_owned_text_is_original(const char* data) { return data==originalText; }
 void* c_owned_number(void)
 {
     char* data=malloc(3); assert(data); memcpy(data,"42",3); return data;

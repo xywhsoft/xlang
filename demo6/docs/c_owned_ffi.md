@@ -84,6 +84,15 @@ failure. Normal `string` and `bytes` layouts and cleanup remain unchanged.
 
 ## Validation
 
+Compiler-only redesign is being implemented in stages. The first stage gives
+typed string readers an explicit `cstring-view` loan, including ordinary
+borrowed string parameters and string methods. The loan retains its source
+lifetime in XLIR and does not create a managed string. `xlir_c_owned_views.xl`
+checks original pointer identity through a user function and a C reader,
+allocation-free reads, and cleanup of nested temporary arguments. The other
+materialization boundaries listed above describe the previous implementation
+until their respective redesign stages land.
+
 Run from `demo6` with a compatible `release/xl.dll` available:
 
 ```powershell

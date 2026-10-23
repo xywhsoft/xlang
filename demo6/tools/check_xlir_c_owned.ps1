@@ -44,6 +44,7 @@ if ($LASTEXITCODE) { throw 'C owner runtime tests failed' }
 $generatedSources=@(
     'test/cases/xlir_c_owned_basic.xl','test/cases/xlir_c_owned_lifetime.xl',
     'test/cases/xlir_c_owned_reads.xl','test/cases/xlir_c_owned_capture.xl',
+    'test/cases/xlir_c_owned_views.xl',
     'test/cases/xlir_c_owned_borrows.xl','test/cases/xlir_c_owned_failure.xl')
 foreach ($source in $generatedSources) {
     $name=[IO.Path]::GetFileNameWithoutExtension($source).Substring('xlir_c_owned_'.Length)
@@ -98,5 +99,5 @@ if ($PublicDriver) {
         & "$outputPath/aot-$name.exe"
         if($LASTEXITCODE){throw "C owner source EXE execution failed: $name"}
     }
-    Write-Output 'C owner source acceptance: 7 JIT and 7 standalone EXE programs passed'
+    Write-Output "C owner source acceptance: $($publicSources.Count) JIT and $($publicSources.Count) standalone EXE programs passed"
 }
