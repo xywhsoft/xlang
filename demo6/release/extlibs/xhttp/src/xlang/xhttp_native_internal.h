@@ -50,4 +50,7 @@ xbuffer* xhttpNativeBufferTake(
 /* 返回当前 XRT 结构化错误文本的独立副本。 */
 XLANG_XHTTP_EXPORT void* xhttp_last_error(void);
 
+/* 普通文本可转交底层分配；含 NUL 的 Buffer 仍由调用方按长度读取。 */
+XLANG_XHTTP_EXPORT void* xhttp_buffer_take_cstr(void* handle);
+
 #endif
