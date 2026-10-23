@@ -206,6 +206,30 @@ int main(void) {
     }
     CHECK(check_query(tree, rects, -1, -1, 2000, 2000) == 0);
 
+    /* 反复命中同一批 ID，逐步检查删除收缩和重新插入后的包围盒。 */
+    {
+        int removals = 0, insertions = 0;
+        for (index = 0; index < 600; ++index) {
+            int id = (int)((next_random() >> 16) % 128u);
+            double x = (double)(next_random() % 1000u);
+            double y = (double)(next_random() % 1000u);
+            if (rects[id].alive) {
+                CHECK(xrtree_remove(tree, id));
+                rects[id].alive = 0;
+                ++removals;
+            } else {
+                rects[id] = (TestRect){x, y, x + (id % 19), y + (id % 13), 1};
+                CHECK(xrtree_insert(tree, id, rects[id].x0, rects[id].y0,
+                    rects[id].x1, rects[id].y1));
+                ++insertions;
+            }
+            CHECK(check_query(tree, rects, x, y, x + 70, y + 70) == 0);
+            if ((index & 15) == 0)
+                CHECK(check_query(tree, rects, -1, -1, 2000, 2000) == 0);
+        }
+        CHECK(removals > 0 && insertions > 0);
+    }
+
     CHECK(!xrtree_insert(tree, 9999, 2, 2, 1, 3));
     xrtClearError();
     CHECK(!xrtree_insert(tree, 9999, NAN, 0, 1, 1));
@@ -218,10 +242,14 @@ int main(void) {
         xrtValueRelease(bad);
         xrtClearError();
     }
-    CHECK(xrtree_count(tree) == ITEMS);
+    {
+        int live = 0;
+        for (index = 0; index < ITEMS; ++index) live += rects[index].alive;
+        CHECK(xrtree_count(tree) == live);
+    }
 
     for (index = ITEMS - 1; index >= 0; --index) {
-        CHECK(xrtree_remove(tree, index));
+        if (rects[index].alive) CHECK(xrtree_remove(tree, index));
         rects[index].alive = 0;
     }
     CHECK(xrtree_count(tree) == 0);
