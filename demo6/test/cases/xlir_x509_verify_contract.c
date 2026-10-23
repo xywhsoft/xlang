@@ -2,6 +2,7 @@
 #include "src/compile/xl6_compile_unit.h"
 #include "src/cgen/xl6_ir_cgen.h"
 #include <assert.h>
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 static const char* const entries[]={
@@ -27,7 +28,19 @@ static void refused(XL6_IrModule* module,const XL6_IrCallTarget* target)
 int main(int argc,char** argv)
 {
     assert(argc==2);XL6_CompileUnit unit;xl6CompileUnitInit(&unit);
-    assert(xl6CompileUnitLoadFile(&unit,argv[1],1)&&xl6IrLowerModule(&unit.ir,&unit.parse.diags));
+    int loaded=xl6CompileUnitLoadFile(&unit,argv[1],1);
+    int lowered=loaded && xl6IrLowerModule(&unit.ir,&unit.parse.diags);
+    if(!loaded || !lowered){
+        int savedErrno=errno;const xerror* error=xrtGetError();
+        fprintf(stderr,"X509 contract input failure: load=%d lower=%d phase=%s errno=%d\n",
+            loaded,lowered,unit.phase?unit.phase:"none",savedErrno);
+        if(error)fprintf(stderr,"native kind=%d code=%d operation=%s message=%s\n",
+            (int)xrtErrorKind(error),(int)xrtErrorCode(error),
+            xrtErrorOperation(error)?xrtErrorOperation(error):"none",
+            xrtErrorMessage(error)?xrtErrorMessage(error):"none");
+        xl6DiagPrintText(&unit.parse.diags,argv[1]);
+    }
+    assert(loaded && lowered);
     XL6_IrModule* module=&unit.ir;assert(xl6IrVerifyModule(module,NULL));
     XL6_IrTypeId integer=0,boolean=0;
     for(size_t i=0;i<module->types.count;++i) {
