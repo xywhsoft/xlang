@@ -19,18 +19,9 @@ typedef struct xls_check_diagnostic { const char *path,*message; int line,column
  * UTF-8 after optional BOM removal, with its original CR/LF bytes. Disk rawSize
  * and rawSha256 describe the original file; overlays describe post-BOM bytes
  * in both fields. kind is a bit mask (source=1, manifest=2). */
-typedef struct xls_check_source {
-    const char *path,*text,*origin;
-    size_t size,rawSize;
-    int kind;
-    unsigned char textSha256[32],rawSha256[32];
-} xls_check_source;
-typedef struct xls_check_probe { const char* path; int exists; } xls_check_probe;
-typedef struct xls_check_inputs {
-    size_t sources,probes;
-    const char* packagePath;
-    int packagePathObserved;
-} xls_check_inputs;
+typedef xls_input_source xls_check_source;
+typedef xls_input_probe xls_check_probe;
+typedef xls_inputs xls_check_inputs;
 /* No allocation, hashing, JSON or I/O. Includes diagnostic/error results with
  * complete captured inputs. Unknown/unobserved package environment is distinct
  * from an observed absent/empty value. Does not observe the current environment.

@@ -23,6 +23,7 @@ typedef struct source_item { char *path,*text; const char* original; const xvalu
 typedef struct source_graph { source_item* items; size_t count,bytes; const xvalue* resolution;
 #ifdef XLS_COMPILER_XRT
  xls_semantic_check* checked;
+ xls_semantic_completion* completed;
 #endif
 } source_graph;
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
@@ -85,7 +86,7 @@ done:
  if(cancelled(q) || !result) { xlsQueryCancel(query); xlsSemanticCompletionDestroy(result); result=NULL; }
  xlsQueryDestroy(query); if(event) CloseHandle(event); return result;
 }
-static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_semantic_check** checked,xide_model_error* e)
+static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_semantic_check** checked,xls_semantic_completion** completed,xide_model_error* e)
 {
  if(q->retainedSnapshots) for(size_t i=0;i<q->snapshotCount;++i) {
   if(cancelled(q)) return 0;
@@ -99,9 +100,9 @@ static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_seman
    inputs,q->snapshotCount,nativeCancelled,q,e->message,sizeof(e->message));
   if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
   q->completionEntryWork=xlsSemanticCompletionEntryWork(result);
+  *completed=result;
   report=xlsSemanticCompletionJson(result,&size);
   *code=xlsSemanticCompletionInfo(result).available ? 0 : 1;
-  xlsSemanticCompletionDestroy(result);
  } else {
   xls_semantic_check* result=retainedNative(q) ? retainedCheck(q,e) :
    xlsSemanticCheckCreateInContext(q->context,q->path,inputs,q->snapshotCount,1,nativeCancelled,q,e->message,sizeof(e->message));
@@ -245,12 +246,18 @@ static void clearGraph(source_graph* g)
  free(g->items);
 #ifdef XLS_COMPILER_XRT
  xlsSemanticCheckDestroy(g->checked);
+ xlsSemanticCompletionDestroy(g->completed);
 #endif
  memset(g,0,sizeof(*g));
 }
 static int overlayIndex(xide_language_check* q,const char* path)
 { for(size_t i=0;i<q->snapshotCount;++i) if(xidePathLexicalEqual(path,q->snapshots[i].path)) return (int)i; return -1; }
 #ifdef XLS_COMPILER_XRT
+static int capturedInputs(const source_graph* g,xls_inputs* inputs)
+{
+ if(g->checked && g->completed) {memset(inputs,0,sizeof(*inputs));return 0;}
+ return g->checked ? xlsSemanticCheckInputs(g->checked,inputs) : xlsSemanticCompletionInputs(g->completed,inputs);
+}
 static int capturedDigest(const xvalue* value,const unsigned char digest[32])
 {
  const char* hex=string(value); static const char digits[]="0123456789abcdef";
@@ -259,22 +266,24 @@ static int capturedDigest(const xvalue* value,const unsigned char digest[32])
  return 1;
 }
 static int capturedSource(source_graph* g,size_t index,const char* path,const char* origin,
- const xvalue* item,int64 size,int64 rawSize,int64 kind,xls_check_source* source)
+ const xvalue* item,int64 size,int64 rawSize,int64 kind,xls_input_source* source)
 {
- return xlsSemanticCheckSource(g->checked,index,source) && !strcmp(source->path,path) && !strcmp(source->origin,origin) &&
+ int captured=g->checked ? xlsSemanticCheckSource(g->checked,index,source) : xlsSemanticCompletionSource(g->completed,index,source);
+ return captured && !strcmp(source->path,path) && !strcmp(source->origin,origin) &&
   source->size==(size_t)size && source->rawSize==(size_t)rawSize && source->kind==kind &&
   capturedDigest(get(item,"textSha256"),source->textSha256) && capturedDigest(get(item,"rawSha256"),source->rawSha256);
 }
-static int capturedResolution(const source_graph* g,const xvalue* value,const xls_check_inputs* inputs)
+static int capturedResolution(const source_graph* g,const xvalue* value,const xls_inputs* inputs)
 {
  const xvalue* probes=get(value,"probes"); bool observed=false;
  const xvalue* environment=get(value,"XLANG_PACKAGE_PATH"); const char* package=string(environment);
  if(xrtValueCount(probes)!=inputs->probes || !xrtValueGetBool(get(value,"packagePathObserved"),&observed) ||
     observed!=inputs->packagePathObserved || (package && inputs->packagePath ? strcmp(package,inputs->packagePath)!=0 : package!=inputs->packagePath)) return 0;
  for(size_t i=0;i<inputs->probes;++i) {
-  xls_check_probe probe={0}; bool exists=false; const xvalue* item=xrtValueArrayGet(probes,i);
+  xls_input_probe probe={0}; bool exists=false; const xvalue* item=xrtValueArrayGet(probes,i);
   const char* path=string(get(item,"path"));
-  if(!xlsSemanticCheckProbe(g->checked,i,&probe) || !path || strcmp(path,probe.path) ||
+  int captured=g->checked ? xlsSemanticCheckProbe(g->checked,i,&probe) : xlsSemanticCompletionProbe(g->completed,i,&probe);
+  if(!captured || !path || strcmp(path,probe.path) ||
      !xrtValueGetBool(get(item,"exists"),&exists) || exists!=probe.exists) return 0;
  }
  return 1;
@@ -285,8 +294,11 @@ static int loadGraph(xide_language_check* q,const xvalue* raw,source_graph* g,xi
  const xvalue* report=get(raw,"sourceReport"),*files=get(report,"files"); int64 schema=0; bool complete=false;
  if(!integer(get(report,"schema"),&schema,1,1) || !formatted(get(report,"scope"),"loaded-sources-and-manifests") || !xrtValueGetBool(get(report,"complete"),&complete) || !complete || !formatted(get(report,"error"),"") || !formatted(get(report,"errorFile"),"") || !files || xrtValueType(files)!=XVALUE_ARRAY || !xrtValueCount(files) || xrtValueCount(files)>512) return fail(e,"源码快照报告缺失、不完整或无法验证。");
 #ifdef XLS_COMPILER_XRT
- xls_check_inputs captured={0};
- if(g->checked && (!xlsSemanticCheckInputs(g->checked,&captured) || captured.sources!=xrtValueCount(files))) return fail(e,"原生输入视图与同次来源报告不一致。");
+ xls_inputs captured={0};
+ if(g->checked || g->completed) {
+  int valid=capturedInputs(g,&captured);
+  if(!valid || captured.sources!=xrtValueCount(files)) return fail(e,"原生输入视图与同次来源报告不一致。");
+ }
 #endif
  g->items=calloc(xrtValueCount(files),sizeof(*g->items)); if(!g->items) return 0;
  int entry=0;
@@ -297,8 +309,8 @@ static int loadGraph(xide_language_check* q,const xvalue* raw,source_graph* g,xi
   for(size_t j=0;j<g->count;++j) if(xidePathLexicalEqual(resolved,g->items[j].path)) { free(resolved); return fail(e,"源码报告含重复路径。"); }
   int overlay=overlayIndex(q,resolved),borrowed=0; char* text=NULL; const char* original=NULL;
 #ifdef XLS_COMPILER_XRT
-  if(g->checked) {
-   xls_check_source source={0};
+  if(g->checked || g->completed) {
+   xls_input_source source={0};
    if(capturedSource(g,i,path,origin,item,size,rawSize,kind,&source)) {
     const char* submitted=overlay>=0 ? q->snapshots[overlay].text : NULL; size_t submittedSize=submitted ? strlen(submitted) : 0;
     size_t bom=submittedSize>=3 && !memcmp(submitted,"\xef\xbb\xbf",3) ? 3 : 0;
@@ -324,7 +336,7 @@ static int loadGraph(xide_language_check* q,const xvalue* raw,source_graph* g,xi
  }
  g->resolution=get(raw,"resolutionReport"); int valid=entry && resolution(q,g->resolution,e);
 #ifdef XLS_COMPILER_XRT
- if(valid && g->checked) valid=capturedResolution(g,g->resolution,&captured);
+ if(valid && (g->checked || g->completed)) valid=capturedResolution(g,g->resolution,&captured);
 #endif
  return valid ? 1 : fail(e,*e->message ? "入口或导入候选报告无法验证。" : "源码报告缺少覆盖后的入口。");
 }
@@ -335,7 +347,11 @@ static int validateGraph(xide_language_check* q,source_graph* g,xide_model_error
   char* text=diskText(q,item->path,item->report,NULL,e); if(!text) return 0;
   int same=!strcmp(text,item->text); free(text); if(!same) return fail(e,"检查期间磁盘源码已变化。");
  }
- return resolution(q,g->resolution,e);
+ int valid=resolution(q,g->resolution,e);
+#ifdef XLS_COMPILER_XRT
+ if(valid && (g->checked || g->completed)) {xls_inputs inputs;valid=capturedInputs(g,&inputs);if(!valid) fail(e,"原生输入视图已永久失效。");}
+#endif
+ return valid;
 }
 /* Reports were fully validated on capture. Retain owned reports, not graph
    text or borrowed JSON. Each disk input is read/hash-checked again, including
@@ -423,6 +439,7 @@ int xideLanguageSnapshotRun(xide_language_check* q,xvalue** output,xide_model_er
  xide_toolchain_stamp stamp={0}; xide_toolchain_profile profile={0}; source_graph graph={0}; char *help=NULL,*json=NULL,*temp=NULL,*files[64]={0}; int indexed=0; xvalue *raw=NULL,*result=NULL;
 #ifdef XLS_COMPILER_XRT
  xls_semantic_check* nativeCheck=NULL;
+ xls_semantic_completion* nativeCompletion=NULL;
 #endif
  HANDLE leases[64]; for(size_t i=0;i<64;++i) leases[i]=INVALID_HANDLE_VALUE;
  char cursor[32]; snprintf(cursor,sizeof(cursor),"%d",q->queryOffset);
@@ -431,7 +448,7 @@ int xideLanguageSnapshotRun(xide_language_check* q,xvalue** output,xide_model_er
  q->packagePathCaptured=1;
 #ifdef XLS_COMPILER_XRT
  if(q->nativeSemantic) {
-  if(q->nativeBridge || !nativeAnalysis(q,&json,&code,&nativeCheck,e)) goto done;
+  if(q->nativeBridge || !nativeAnalysis(q,&json,&code,&nativeCheck,&nativeCompletion,e)) goto done;
   indexed=q->queryPath==NULL;
   goto analysed;
  }
@@ -461,6 +478,7 @@ int xideLanguageSnapshotRun(xide_language_check* q,xvalue** output,xide_model_er
 #ifdef XLS_COMPILER_XRT
 analysed:
  graph.checked=xlsSemanticCheckRetain(nativeCheck);
+ graph.completed=xlsSemanticCompletionRetain(nativeCompletion);
 #endif
  if(q->nativeBridge) {
   xjsonreadconfig config; xrtJsonReadConfigInit(&config); config.MaxInputBytes=80u*1024u*1024u; config.MaxStringBytes=24u*1024u*1024u; config.MaxValues=2097152; config.MaxContainerItems=32768; config.MaxDepth=32; raw=xrtJsonRead(sv(json),&config);
@@ -580,6 +598,7 @@ analysed:
 done:
 #ifdef XLS_COMPILER_XRT
  xlsSemanticCheckDestroy(nativeCheck);
+ xlsSemanticCompletionDestroy(nativeCompletion);
 #endif
  for(size_t i=0;i<q->snapshotCount;++i) { if(leases[i]!=INVALID_HANDLE_VALUE) CloseHandle(leases[i]); free(files[i]); } free(temp);
  clearGraph(&graph); xrtValueRelease(raw); xrtValueRelease(result); free(help); free(json); xideToolchainProfileClear(&profile); return success;

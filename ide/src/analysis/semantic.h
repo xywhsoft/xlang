@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "analysis/context.h"
+#include "analysis/input_view.h"
 
 /* Host-independent, query-owned semantic facts. Inputs are borrowed for the
  * call only, paths must be absolute, and offsets exclude an optional UTF-8 BOM.
@@ -13,6 +14,14 @@ typedef struct xls_semantic_completion xls_semantic_completion;
  * hits. Ordinary entry syntax only; imports/semantics still run afresh. */
 typedef struct xls_completion_entry_work { uint64_t parsed,reused,declined;size_t bytes; } xls_completion_entry_work;
 xls_completion_entry_work xlsSemanticCompletionEntryWork(const xls_semantic_completion* result);
+/* Borrowed captured input rows; no allocation/hash/JSON/I/O. Also available
+ * for source-error cursor results with valid reports. Invalid owners reject
+ * and clear outputs. Keep the result retained for every view. Borrowed bytes
+ * remain memory-valid after invalidation but cannot prove current freshness;
+ * explicitly validate before publication/use. */
+int xlsSemanticCompletionInputs(const xls_semantic_completion* result,xls_inputs* inputs);
+int xlsSemanticCompletionSource(const xls_semantic_completion* result,size_t index,xls_input_source* source);
+int xlsSemanticCompletionProbe(const xls_semantic_completion* result,size_t index,xls_input_probe* probe);
 typedef struct xls_semantic_input { const char *path,*text; size_t size; } xls_semantic_input;
 typedef struct xls_completion_info {
     const char *path,*prefix,*error;

@@ -326,7 +326,7 @@ def main() -> None:
     sources += [(ide / "src/protocol/input_state.c", True)]
     sources += [(ide / "src/protocol/diagnostic_paths.c", True)]
     sources += [(ide / path, True) for path in (
-        "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/ast_clone.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
+        "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/input_view.c", "src/analysis/ast_clone.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
