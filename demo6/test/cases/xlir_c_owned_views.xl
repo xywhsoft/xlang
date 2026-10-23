@@ -25,3 +25,22 @@ end
 
 checkViews()
 assert released() == 2
+
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_text_span_original" @no_raise func originalSpan(cstring text) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+extern "c_owned_binary_span_valid" @no_raise func validBytes(cbytes data) as bool
+extern "c_owned_debug_enabled" @no_raise func debugEnabled() as bool
+func nativeViews()
+    cstring text = cstring.take(nativeText(), nativeFree)
+    cbytes data = cbytes.take(nativeBytes(), 4, nativeFree)
+    bytes ordinary = b"\x00\xff\x11*"
+    int before = allocations()
+    assert originalSpan(text)
+    assert originalBytes(data)
+    assert validBytes(ordinary)
+    if debugEnabled() then assert allocations() == before end
+    assert validBytes(b"\x00\xff\x11*")
+end
+nativeViews()
+assert released() == 4

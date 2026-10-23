@@ -66,6 +66,7 @@ foreach ($source in $generatedSources) {
 $prefix = "extern `"c_owned_text`" @no_raise func make() as point`nextern `"c_owned_release`" @no_raise func drop(point p)`n"
 $negative = @(
     @{Name='parameter';Body="func probe(cstring a)`nend";Message='C markers are limited'},
+    @{Name='span-return';Body="extern `"wrong`" @no_raise func wrong() as cbytes";Message='C result markers require'},
     @{Name='container';Body="func probe()`n array<cbytes> a`nend";Message='C markers are limited'},
     @{Name='global';Body="cstring a = cstring.take(make(), drop)";Message='explicit local initialization'},
     @{Name='releaser';Body="extern `"wrong`" func wrong(point p)`nfunc probe()`n cstring a = cstring.take(make(), wrong)`nend";Message='releaser must be'},

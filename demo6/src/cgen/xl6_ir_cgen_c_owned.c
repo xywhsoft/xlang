@@ -46,6 +46,13 @@ static int xl6IrCgenEmitCOwned(XL6_Output* out,const XL6_IrModule* module,
         xl6OutputPrintf(out,"    v%u = xl6CStringFromStringV1(v%u);\n",result,source);
     } else if(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_FROM_BYTES) {
         xl6OutputPrintf(out,"    v%u = xl6CBytesFromBytesV1(v%u);\n    bool projection_ok_%u = v%u.Owner != NULL;\n",result,source,result,result);
+    } else if(ins->runtimeOp==XL6_IR_RUNTIME_C_BORROW_VIEW) {
+        const XL6_IrInstruction* def=xl6IrCgenValueDefinition(module,module->operands[ins->firstOperand],NULL);
+        const XL6_IrType* type=xl6IrTypeGet(&module->types,def->type);
+        if(type->cAbi==XL6_IR_C_ABI_MANAGED_STRING)
+            xl6OutputPrintf(out,"    v%u=(XL6_COwnedV1){(void*)v%u.Data,v%u.Size,NULL};\n",result,source,source);
+        else xl6OutputPrintf(out,"    { xbytesview bytes; if(!xrtValueGetBytes(v%u,&bytes))abort();\n"
+            "      v%u=(XL6_COwnedV1){(void*)bytes.Data,bytes.Size,NULL}; }\n",source,result);
     } else if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_VIEW) {
         xl6OutputPrintf(out,"    v%u = xl6CStringViewV1(v%u);\n",result,source);
     } else if(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_CONCAT || ins->runtimeOp>=XL6_IR_RUNTIME_C_COMPARE_EQ) {

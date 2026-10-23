@@ -28109,6 +28109,7 @@ static XL6_IrOwnership xl6IrValueOwnershipDepth(
         switch (definition->runtimeOp) {
         case XL6_IR_RUNTIME_NONE:
             return XL6_IR_OWNERSHIP_NONE;
+        case XL6_IR_RUNTIME_C_BORROW_VIEW:
         case XL6_IR_RUNTIME_CSTRING_VIEW:
             return XL6_IR_OWNERSHIP_BORROW;
         case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64:
@@ -38932,9 +38933,15 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 if ( target->parameterPhysicalFieldDeclarations[parameter] !=
                          XL6_IR_NODE_INVALID ||
                      (target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
-                      parameterType->kind == XL6_IR_TYPE_FUNCTION) )
+                      (parameterType->kind == XL6_IR_TYPE_FUNCTION || xl6IrTypeIsCOwned(parameterType))) )
                     return xl6IrDiag(diags, NULL,
                         "XLIR extern function parameter cannot use the direct closure physical ABI");
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW) {
+                if(target->kind!=XL6_IR_CALL_TARGET_EXTERN_C || !xl6IrTypeIsCOwned(parameterType) ||
+                    target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
+                    target->runtimeBridge!=XL6_IR_RUNTIME_BRIDGE_NONE ||
+                    target->parameterPhysicalFieldDeclarations[parameter]!=XL6_IR_NODE_INVALID)
+                    return xl6IrDiag(diags,NULL,"C span parameter lacks an exact native read-only ABI");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW ||
                       target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD) {
                 if(!xl6IrRuntimeDirectBridgeValueAddressParameter(target->cName,parameter) ||
@@ -48711,6 +48718,7 @@ static const char* xl6IrCallParameterPhysicalAbiName(
         return "generic-zero-payload";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW:
         return "checked-result-closure-borrow";
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW: return "c-span-borrow";
     default: return "invalid";
     }
 }
@@ -49372,6 +49380,7 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_STRING_DUP: return "string-dup";
     case XL6_IR_RUNTIME_STRING_COPY: return "string-copy";
     case XL6_IR_RUNTIME_CBYTES_FORMAT: return "cbytes-format";
+    case XL6_IR_RUNTIME_C_BORROW_VIEW: return "c-borrow-view";
     case XL6_IR_RUNTIME_CBYTES_CONCAT: return "cbytes-concat";
     case XL6_IR_RUNTIME_C_PRINT: return "c-print";
     case XL6_IR_RUNTIME_C_PRINTLN: return "c-println";

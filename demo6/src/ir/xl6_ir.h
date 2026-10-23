@@ -2215,6 +2215,7 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_C_PRINTLN,
     XL6_IR_RUNTIME_CBYTES_CONCAT,
     XL6_IR_RUNTIME_CBYTES_FORMAT,
+    XL6_IR_RUNTIME_C_BORROW_VIEW,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -4090,7 +4091,8 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
     XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD,
     /* Exact nullary checked result-slot adapter + its code owner, borrowed
      * only for this call. The resident producer owns both leases separately. */
-    XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW
+    XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW
 } XL6_IrCallParameterPhysicalAbi;
 
 /* A raw C callback may cross ordinary language wrapper functions before it

@@ -438,6 +438,10 @@ static const char* xl6IrCgenExternParameterType(
     if ( module == NULL || target == NULL || parameter >= target->parameterCount ||
          target->parameterTypes == NULL || target->parameterAbis == NULL ||
          target->parameterPhysicalAbis == NULL ) return NULL;
+    if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW) {
+        type=xl6IrTypeGet(&module->types,target->parameterTypes[parameter]);
+        return xl6IrTypeIsCOwned(type) ? (type->cAbi==XL6_IR_C_ABI_C_STRING ? "xstrview" : "xbytesview") : NULL;
+    }
     if ( target->parameterPhysicalAbis[parameter] ==
              XL6_IR_CALL_PARAMETER_PHYSICAL_LANGUAGE_FUNCTION_VALUE )
         return "XL6_Function";
