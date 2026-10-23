@@ -59,6 +59,7 @@ static int xl6IrDirectNumericEnumMatches(const XL6_IrModule* module,
 #include "xl6_ir_x509_verify_enums.inc"
 #include "xl6_ir_x509_crl_policy_enums.inc"
 #include "xl6_ir_x509_path_enums.inc"
+#include "xl6_ir_tls_identity_enums.inc"
 #include "xl6_ir_net_backend_enum.inc"
 #include "xl6_ir_net_engine_state_enum.inc"
 #include "xl6_ir_net_socket_enums.inc"
@@ -286,6 +287,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_x509_path_contracts.inc"
 #include "xl6_ir_x509_store_contracts.inc"
 #include "xl6_ir_x509_identity_contracts.inc"
+#include "xl6_ir_tls_identity_contracts.inc"
 #include "xl6_ir_compress_contracts.inc"
 #include "xl6_ir_template_contracts.inc"
     {"xl6Crc32StringV1",T,I,3,{U,S,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
