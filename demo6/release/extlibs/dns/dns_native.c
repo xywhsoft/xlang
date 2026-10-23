@@ -7,7 +7,7 @@
 #define XRT_MODULE_VALUE_CONTAINER
 #include "xrt.h"
 
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_MSC_VER)
 #define XDNS_THREAD __declspec(thread)
 #elif defined(__GNUC__)
 #define XDNS_THREAD __thread
@@ -267,7 +267,7 @@ xvalue* xdns_resolve(const char* sHost, long long iFamily)
     for (i = 0u; i < xrtNetAddrListCount(pAddresses); ++i) {
         const xnetaddr* pAddress = xrtNetAddrListGet(pAddresses, i);
         str sText = pAddress != NULL ? xrtNetAddrString(pAddress) : NULL;
-        xvalue* pItem = sText != NULL ? xrtValueString(xrtStrView(sText)) : NULL;
+        xvalue* pItem = sText != NULL ? xrtValueStringTake(&sText, strlen(sText)) : NULL;
         xrtFree(sText);
         if (pItem == NULL || !xrtValueArrayAppendTake(pResult, &pItem)) {
             xrtValueRelease(pItem);
