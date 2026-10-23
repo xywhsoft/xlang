@@ -41,6 +41,8 @@ XLang 的配置、模型、字典、输入图片和可视化输出路径均拒�
 
 `rapidocr_assemble_result*_native` 已改为 XRT 严格 JSON 解析和序列化。四种组装入口均返回独立缓冲，C 调用方以 `xrtFree(result)` 释放，XLang 包装层自动接管；非法 JSON、非数组 boxes、超过 256 条识别结果或单段超过 4 MiB 时明确失败，不再静默截断。C 测试覆盖引号/反斜杠、超过旧 1 KiB 文本和 64 KiB 总缓冲的结果、连续调用与错误输入。
 
+公开的检测框、字典信息、识别/分类解码及 OCR 条目转换接口中，C 返回 `NULL` 表示操作失败，XLang 现在抛带原生诊断的 `RuntimeError`，不再把坏张量、缺字典或无效句柄伪装为 `[]`/`{}`。合法的无检测框仍返回 `[]`；完整推理的无文字结果仍由 `RapidOCROutput.ok()` 和空 `text()` 表达。推理内部的分批分类/识别失败继续汇入结果对象的 `error()`，不伪装为成功数据。无模型负例见 `test/native_failures.xl`，由 Windows/Linux 包级门禁运行。
+
 C 端可用 `rapidocr_charset_open_native(path)` 读取拥有型字典句柄，以 `rapidocr_rec_decode_result_at_charset_native(result, charset, index)` 复用，最后调用 `rapidocr_charset_release_native(charset)`。句柄是只读快照，公开 ABI 用 `void*` 与 XLang `point` 保持一致；不得在释放后继续使用。按路径的独立解码入口仍保留，每次调用读取指定文件。
 
 多框几何的 C 快路径用 `rapidocr_boxes_open_native(boxes_json)` 一次解析并复制最多 256 个框，以 `rapidocr_boxes_count_handle_native`、`rapidocr_boxes_coord_native`、`rapidocr_boxes_rec_target_width_native` 按索引读取，最后调用 `rapidocr_boxes_release_native`。源 JSON 在打开后即可释放；示例见 `examples/postprocess_c.c`。XLang 的 OCR 管线使用同一快照，并由内部类析构释放；公开的 `rapidocr.box_x(boxes_json, index)` 等单次查询接口仍按调用解析输入。

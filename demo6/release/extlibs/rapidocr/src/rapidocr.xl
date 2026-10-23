@@ -85,6 +85,15 @@ func rapidocr_require_json(string value)
 	end
 end
 
+func rapidocr_take_json_result(point result) as string
+	if result == null then
+		string message = rapidocr_last_error_native()
+		if message == "" then message = "RapidOCR native result failed" end
+		throw RuntimeError message
+	end
+	return __xl_runtime.takeCstr(result)
+end
+
 func rapidocr_open_session(string model_path, bool needed) as InferenceSessionObject
 	if needed then
 		return onnxruntime.InferenceSession(model_path)
@@ -625,20 +634,26 @@ func rapidocr_recognize_boxes(Image img, string boxes, bool use_cls, InferenceSe
 			end
 			if cls_result.ok() then
 				cls0 = rapidocr_cls_decode_result_at(cls_result.handle, 0)
+				if cls0 == "" then return "", "", "classifier decode failed: " + rapidocr_last_error_native() end
 				if batch_count > 1 then
 					cls1 = rapidocr_cls_decode_result_at(cls_result.handle, 1)
+					if cls1 == "" then return "", "", "classifier decode failed: " + rapidocr_last_error_native() end
 				end
 				if batch_count > 2 then
 					cls2 = rapidocr_cls_decode_result_at(cls_result.handle, 2)
+					if cls2 == "" then return "", "", "classifier decode failed: " + rapidocr_last_error_native() end
 				end
 				if batch_count > 3 then
 					cls3 = rapidocr_cls_decode_result_at(cls_result.handle, 3)
+					if cls3 == "" then return "", "", "classifier decode failed: " + rapidocr_last_error_native() end
 				end
 				if batch_count > 4 then
 					cls4 = rapidocr_cls_decode_result_at(cls_result.handle, 4)
+					if cls4 == "" then return "", "", "classifier decode failed: " + rapidocr_last_error_native() end
 				end
 				if batch_count > 5 then
 					cls5 = rapidocr_cls_decode_result_at(cls_result.handle, 5)
+					if cls5 == "" then return "", "", "classifier decode failed: " + rapidocr_last_error_native() end
 				end
 				cls = cls0
 			end
@@ -1087,37 +1102,32 @@ end
 func rapidocr_det_boxes_from_output(string output_json, int image_width, int image_height) as string
 	rapidocr_require_json(output_json)
 	point result = rapidocr_det_boxes_from_output_native(output_json, rapidocr_to_c_int(image_width), rapidocr_to_c_int(image_height), 0.3)
-	if result == null then return "[]" end
-	return __xl_runtime.takeCstr(result)
+	return rapidocr_take_json_result(result)
 end
 
 func rapidocr_det_boxes_from_output(string output_json, int image_width, int image_height, float threshold) as string
 	rapidocr_require_json(output_json)
 	point result = rapidocr_det_boxes_from_output_native(output_json, rapidocr_to_c_int(image_width), rapidocr_to_c_int(image_height), threshold)
-	if result == null then return "[]" end
-	return __xl_runtime.takeCstr(result)
+	return rapidocr_take_json_result(result)
 end
 
 func rapidocr_charset_info(string path) as string
 	rapidocr_require_path(path)
 	point result = rapidocr_charset_info_native(path)
-	if result == null then return "{}" end
-	return __xl_runtime.takeCstr(result)
+	return rapidocr_take_json_result(result)
 end
 
 func rapidocr_rec_decode(string output_json, string keys_path) as string
 	rapidocr_require_json(output_json)
 	rapidocr_require_path(keys_path)
 	point result = rapidocr_rec_decode_native(output_json, keys_path)
-	if result == null then return "{}" end
-	return __xl_runtime.takeCstr(result)
+	return rapidocr_take_json_result(result)
 end
 
 func rapidocr_rec_decode_result(point result_handle, string keys_path) as string
 	rapidocr_require_path(keys_path)
 	point result = rapidocr_rec_decode_result_native(result_handle, keys_path)
-	if result == null then return "{}" end
-	return __xl_runtime.takeCstr(result)
+	return rapidocr_take_json_result(result)
 end
 
 func rapidocr_rec_decode_at_charset(point result_handle, point charset, int batch_index) as string
@@ -1128,21 +1138,19 @@ end
 
 func rapidocr_cls_decode_result(point result_handle) as string
 	point result = rapidocr_cls_decode_result_native(result_handle)
-	if result == null then return "{}" end
-	return __xl_runtime.takeCstr(result)
+	return rapidocr_take_json_result(result)
 end
 
 func rapidocr_cls_decode_result_at(point result_handle, int batch_index) as string
 	point result = rapidocr_cls_decode_result_at_native(result_handle, rapidocr_to_c_int(batch_index))
-	if result == null then return "{}" end
+	if result == null then return "" end
 	return __xl_runtime.takeCstr(result)
 end
 
 func rapidocr_ocr_items_json2(string result_json, float text_score) as string
 	rapidocr_require_json(result_json)
 	point result = rapidocr_to_ocr_items_json2_native(result_json, text_score)
-	if result == null then return "[]" end
-	return __xl_runtime.takeCstr(result)
+	return rapidocr_take_json_result(result)
 end
 
 func rapidocr_ocr_items_json(string result_json) as string

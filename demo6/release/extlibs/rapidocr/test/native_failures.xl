@@ -1,0 +1,56 @@
+import rapidocr
+
+func main(...) as int
+    bool rejected = false
+    try
+        rapidocr.det_boxes_from_output("{}", 80, 80)
+    catch RuntimeError error
+        rejected = string.contains(error.message, "detector")
+    end
+    assert rejected, "invalid detector tensor must not become empty boxes"
+
+    rejected = false
+    try
+        rapidocr.charset_info("__missing_rapidocr_charset__.txt")
+    catch RuntimeError error
+        rejected = error.message != ""
+    end
+    assert rejected, "missing charset must not become an empty object"
+
+    string keys = "extlibs/rapidocr/test/charset_special.txt"
+    rejected = false
+    try
+        rapidocr.rec_decode(`{"shape":[3,4],"data":[0,1]}`, keys)
+    catch RuntimeError error
+        rejected = string.contains(error.message, "incomplete")
+    end
+    assert rejected, "invalid recognition output must not become an empty object"
+
+    rejected = false
+    try
+        rapidocr.rec_decode_result(null, keys)
+    catch RuntimeError error
+        rejected = error.message != ""
+    end
+    assert rejected, "missing result handle must not become an empty object"
+
+    rejected = false
+    try
+        rapidocr.cls_decode_result(null)
+    catch RuntimeError error
+        rejected = error.message != ""
+    end
+    assert rejected, "missing classifier result must not become an empty object"
+
+    rejected = false
+    try
+        rapidocr.to_ocr_items_json(`{"boxes":[{}],"txts":["a"],"scores":[1]}`)
+    catch RuntimeError error
+        rejected = error.message != ""
+    end
+    assert rejected, "invalid OCR result must not become an empty array"
+
+    string empty_boxes = rapidocr.det_boxes_from_output(`{"shape":[4,4],"data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}`, 80, 80)
+    assert empty_boxes == "[]", "valid empty detector result must stay valid"
+    return 0
+end

@@ -116,6 +116,7 @@ try {
     try {
         $null = Run 'XLang API smoke' $xl @('run', 'examples/extlibs/rapidocr.xl')
         $null = Run 'XLang decoder boundaries' $xl @('run', 'extlibs/rapidocr/test/rec_decode_smoke.xl')
+        $null = Run 'XLang native failure boundaries' $xl @('run', 'extlibs/rapidocr/test/native_failures.xl')
         $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/rapidocr/examples/postprocess.xl')
         if ($xlOutput -cne $cOutput) { throw 'C/XLang postprocess output differs' }
         $null = Run 'real model and failure paths' $xl @('run', 'extlibs/rapidocr/test/real_inference.xl')

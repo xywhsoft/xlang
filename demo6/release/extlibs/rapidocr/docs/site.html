@@ -47,7 +47,7 @@ engine.release()</code></pre>
       <tr><td><code>output.to_ocr_json() / rapidocr.to_ocr_items_json(result_json)</code></td><td>将结果转换为 OCR 条目 JSON；支持文字和置信度阈值。</td></tr>
       <tr><td><code>release()</code></td><td>提前释放引擎或结果；对象析构也会释放原生资源。</td></tr>
     </tbody></table>
-    <p>C 头文件 <code>extlibs/rapidocr/include/rapidocr.h</code> 当前提供后处理与可选原生桥接层入口。缺少或残缺桥接层时 C 创建与调用明确返回空句柄及错误，不再制造伪引擎或空 JSON；显式桥接路径失败不回退搜索。XLang 无桥接时仍可使用包内 OpenCV/ONNX 模型链路。C 不能独立完成整套 OCR 推理，不能把 C 后处理范例当作 C OCR 成品。</p>
+    <p>C 头文件 <code>extlibs/rapidocr/include/rapidocr.h</code> 当前提供后处理与可选原生桥接层入口。缺少或残缺桥接层时 C 创建与调用明确返回空句柄及错误，不再制造伪引擎或空 JSON；显式桥接路径失败不回退搜索。公开的 XLang 后处理入口遇到坏张量、缺字典或无效结果句柄会抛带诊断的 <code>RuntimeError</code>；合法无检测框仍返回 <code>[]</code>。XLang 无桥接时仍可使用包内 OpenCV/ONNX 模型链路。C 不能独立完成整套 OCR 推理，不能把 C 后处理范例当作 C OCR 成品。</p>
   </section>
   <section id="verify">
     <h2>验证与现状</h2>

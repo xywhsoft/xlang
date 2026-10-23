@@ -29,3 +29,4 @@ RAPIDOCR_XLANG_DLL="$work/complete_rapidocr.so" "$work/complete_probe_linux"
 $cc $flags $includes $sources release/extlibs/rapidocr/examples/postprocess_c.c \
     -ldl -pthread -lm -o "$work/postprocess_c_linux"
 "$work/postprocess_c_linux"
+(cd "$root/release" && timeout 90s ./xl run extlibs/rapidocr/test/native_failures.xl)

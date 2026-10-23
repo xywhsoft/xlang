@@ -1,7 +1,6 @@
 import rapidocr
 
 string keysPath = rapidocr.default_model_dir() + "\\ppocr_keys_v1.txt"
-point nullResult = null
 
 assert rapidocr.available(), "rapidocr dependencies should be available"
 assert string.len(rapidocr.backend()) > 0, "rapidocr backend failed"
@@ -11,13 +10,11 @@ assert string.contains(rapidocr.default_model_dir(), "rapidocr\\models"), "rapid
 assert string.contains(rapidocr.default_config_json(), "ch_PP-OCRv4_det_infer.onnx"), "rapidocr default_config_json failed"
 assert string.contains(rapidocr.model_layout_json(), "ppocr_keys_v1.txt"), "rapidocr model_layout_json failed"
 
-string emptyBoxes = rapidocr.det_boxes_from_output("{}", 320, 240)
+string emptyTensor = `{"shape":[4,4],"data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}`
+string emptyBoxes = rapidocr.det_boxes_from_output(emptyTensor, 320, 240)
 assert rapidocr.box_count(emptyBoxes) == 0, "rapidocr det_boxes_from_output failed"
-assert rapidocr.box_count(rapidocr.det_boxes_from_output("{}", 320, 240, 0.5)) == 0, "rapidocr det_boxes_from_output threshold failed"
+assert rapidocr.box_count(rapidocr.det_boxes_from_output(emptyTensor, 320, 240, 0.5)) == 0, "rapidocr det_boxes_from_output threshold failed"
 assert string.len(rapidocr.charset_info(keysPath)) > 0, "rapidocr charset_info failed"
-assert string.len(rapidocr.rec_decode("[]", keysPath)) >= 0, "rapidocr rec_decode failed"
-assert string.len(rapidocr.rec_decode_result(nullResult, keysPath)) >= 0, "rapidocr rec_decode_result failed"
-assert string.len(rapidocr.cls_decode_result(nullResult)) >= 0, "rapidocr cls_decode_result failed"
 
 assert rapidocr.box_x("[]", 0) == 0, "rapidocr box_x failed"
 assert rapidocr.box_y("[]", 0) == 0, "rapidocr box_y failed"

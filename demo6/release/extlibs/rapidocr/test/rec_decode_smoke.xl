@@ -106,13 +106,35 @@ func main(...) as int
     assert string(value["text"]) == "\"\\A"
     assert int(value["tokens"]) == 3
 
-    assert rapidocr.rec_decode(`{"shape":[3,4],"data":[0,1]}`, keys) == "{}"
-    assert string.contains(rapidocr.last_error(), "incomplete")
-    assert rapidocr.rec_decode(source, "__missing_rapidocr_charset__.txt") == "{}"
-    assert string.contains(rapidocr.last_error(), "charset")
+    bool rejectedNative = false
+    try
+        rapidocr.rec_decode(`{"shape":[3,4],"data":[0,1]}`, keys)
+    catch RuntimeError error
+        rejectedNative = string.contains(error.message, "incomplete")
+    end
+    assert rejectedNative, "incomplete recognizer output must fail"
+    rejectedNative = false
+    try
+        rapidocr.rec_decode(source, "__missing_rapidocr_charset__.txt")
+    catch RuntimeError error
+        rejectedNative = string.contains(error.message, "charset")
+    end
+    assert rejectedNative, "missing charset must fail"
     point none = null
-    assert rapidocr.rec_decode_result(none, keys) == "{}"
-    assert rapidocr.cls_decode_result(none) == "{}"
+    rejectedNative = false
+    try
+        rapidocr.rec_decode_result(none, keys)
+    catch RuntimeError error
+        rejectedNative = error.message != ""
+    end
+    assert rejectedNative, "missing recognizer result must fail"
+    rejectedNative = false
+    try
+        rapidocr.cls_decode_result(none)
+    catch RuntimeError error
+        rejectedNative = error.message != ""
+    end
+    assert rejectedNative, "missing classifier result must fail"
     bool invalidAssembly = false
     try
         rapidocr.assemble_result("not-json", "{}")
