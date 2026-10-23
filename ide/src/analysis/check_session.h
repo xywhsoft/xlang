@@ -31,8 +31,11 @@ xls_semantic_check* xlsCheckSessionCheck(xls_check_session* session,
  * permits independently captured equivalent descriptors to hit the cache.
  * NULL target selects context.entry. The shared frontend loads/guards a disk
  * entry without a synthetic overlay; exact queries retain its checked result.
- * Its syntax is not yet retained across rebuilds; entry syntax counters count
- * session-built overlay syntax only. */
+ * Rebuilds may copy a bounded ordinary pre-import disk entry AST after the
+ * shared frontend recaptures its actual bytes and file proof. Imports and
+ * semantic/IR checks still run. Entry syntax counters count session-built
+ * overlay syntax only; xlsSemanticCheckEntryWork reports ordinary disk work.
+ * Limit/allocation/copy failures use the original parser. */
 xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* session,xls_context* context,
     const xls_analysis_document* documents,size_t count,const char* target,
     int captureIndex,int (*cancelled)(void*),void* user,char* error,size_t capacity);

@@ -1,6 +1,7 @@
 #include "analysis/check_session.h"
 #include "analysis/frontend_context.h"
 #include "analysis/frontend_internal.h"
+#include "analysis/frontend_entry_cache.h"
 #include "analysis/input_batch.h"
 #include <xrt.h>
 #include <stdio.h>
@@ -12,6 +13,7 @@ struct xls_check_session {
     xls_session_limits limits;
     xls_semantic_check* result;
     xls_syntax* entrySyntax;
+    xls_entry_cache* entryCache;
     xls_check_stats stats;
 };
 static int stopped(int (*cancelled)(void*),void* user) { return cancelled && cancelled(user); }
@@ -22,7 +24,7 @@ xls_check_session* xlsCheckSessionCreate(const xls_session_limits* limits)
     xls_check_session* s=xrtCalloc(1,sizeof(*s)); if(s) s->limits=chosen; return s;
 }
 void xlsCheckSessionDestroy(xls_check_session* s)
-{ if(s) { xlsInputBatchDestroy(s->batch); xlsSyntaxRelease(s->entrySyntax); xlsSemanticCheckDestroy(s->result); xrtFree(s); } }
+{ if(s) { xlsInputBatchDestroy(s->batch); xlsSyntaxRelease(s->entrySyntax); xlsSemanticCheckDestroy(s->result); xlsEntryCacheDestroy(s->entryCache); xrtFree(s); } }
 void xlsCheckSessionStats(const xls_check_session* s,xls_check_stats* stats)
 { if(stats) *stats=s ? s->stats : (xls_check_stats){0}; }
 xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* s,xls_context* context,
@@ -58,7 +60,8 @@ xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* s,xls_conte
         if(stopped(cancelled,user)) goto cancel;
         xls_semantic_check* baseline=previous && s->captureIndex==captureIndex &&
             !strcmp(xlsInputBatchDirectory(s->batch),xlsInputBatchDirectory(batch)) ? s->result : NULL;
-        result=xlsSemanticCheckCreateIncrementalInContext(context,entry,inputs,count,captureIndex,syntax,baseline,cancelled,user,error,capacity);
+        if(!entryDocument && !s->entryCache) s->entryCache=xlsEntryCacheCreate(32u*1024u*1024u);
+        result=xlsSemanticCheckCreateCachedInContext(context,!entryDocument ? s->entryCache : NULL,entry,inputs,count,captureIndex,syntax,baseline,cancelled,user,error,capacity);
         if(!result) goto done;
         xls_check_semantic_work work=xlsSemanticCheckWork(result);
         s->stats.semanticFunctionsChecked+=work.functionsChecked; s->stats.semanticFunctionsReused+=work.functionsReused;

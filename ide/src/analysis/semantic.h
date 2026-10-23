@@ -12,7 +12,8 @@
 typedef struct xls_semantic_completion xls_semantic_completion;
 /* Immutable work for this result's actual build, also retained on exact-result
  * hits. Ordinary entry syntax only; imports/semantics still run afresh. */
-typedef struct xls_completion_entry_work { uint64_t parsed,reused,declined;size_t bytes; } xls_completion_entry_work;
+typedef struct xls_completion_entry_work { uint64_t parsed,reused,declined;size_t bytes; } xls_entry_parse_work;
+typedef xls_entry_parse_work xls_completion_entry_work;
 xls_completion_entry_work xlsSemanticCompletionEntryWork(const xls_semantic_completion* result);
 /* Borrowed captured input rows; no allocation/hash/JSON/I/O. Also available
  * for source-error cursor results with valid reports. Invalid owners reject

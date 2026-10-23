@@ -99,7 +99,7 @@ static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_seman
   xls_semantic_completion* result=retainedNative(q) ? retainedCompletion(q,e) : xlsSemanticCompletionCreateInContext(q->context,q->path,q->queryPath,(size_t)q->queryOffset,
    inputs,q->snapshotCount,nativeCancelled,q,e->message,sizeof(e->message));
   if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
-  q->completionEntryWork=xlsSemanticCompletionEntryWork(result);
+  q->entryParseWork=xlsSemanticCompletionEntryWork(result);
   *completed=result;
   report=xlsSemanticCompletionJson(result,&size);
   *code=xlsSemanticCompletionInfo(result).available ? 0 : 1;
@@ -108,6 +108,7 @@ static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_seman
    xlsSemanticCheckCreateInContext(q->context,q->path,inputs,q->snapshotCount,1,nativeCancelled,q,e->message,sizeof(e->message));
   if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
   *checked=result;
+  q->entryParseWork=xlsSemanticCheckEntryWork(result);
   report=xlsSemanticCheckReportJson(result,&size);
   *code=xlsSemanticCheckInfo(result).accepted ? 0 : 1;
  }
@@ -561,9 +562,9 @@ analysed:
    put(stats,"cursorSyntaxHits",xrtValueInt((int64)q->completionStats.cursorSyntaxHits)) &&
    put(stats,"cursorFreshBuilds",xrtValueInt((int64)q->completionStats.cursorFreshBuilds));
   xvalue* entryWork=xrtValueObject();
-  okayStats=okayStats && entryWork && put(entryWork,"parsed",xrtValueInt((int64)q->completionEntryWork.parsed)) &&
-   put(entryWork,"reused",xrtValueInt((int64)q->completionEntryWork.reused)) && put(entryWork,"declined",xrtValueInt((int64)q->completionEntryWork.declined)) &&
-   put(entryWork,"bytes",xrtValueInt((int64)q->completionEntryWork.bytes));
+  okayStats=okayStats && entryWork && put(entryWork,"parsed",xrtValueInt((int64)q->entryParseWork.parsed)) &&
+   put(entryWork,"reused",xrtValueInt((int64)q->entryParseWork.reused)) && put(entryWork,"declined",xrtValueInt((int64)q->entryParseWork.declined)) &&
+   put(entryWork,"bytes",xrtValueInt((int64)q->entryParseWork.bytes));
   if(okayStats) {okayStats=put(stats,"lastBuildEntryParse",entryWork);entryWork=NULL;}
   xrtValueRelease(entryWork);
   if(!okayStats) { xrtValueRelease(stats); goto done; }
@@ -582,6 +583,12 @@ analysed:
    put(stats,"semanticFunctionsReused",xrtValueInt((int64)q->semanticStats.semanticFunctionsReused)) &&
    put(stats,"semanticContextHits",xrtValueInt((int64)q->semanticStats.semanticContextHits)) &&
    put(stats,"semanticMemoBytes",xrtValueInt((int64)q->semanticStats.semanticMemoBytes));
+  xvalue* entryWork=xrtValueObject();
+  okayStats=okayStats && entryWork && put(entryWork,"parsed",xrtValueInt((int64)q->entryParseWork.parsed)) &&
+   put(entryWork,"reused",xrtValueInt((int64)q->entryParseWork.reused)) && put(entryWork,"declined",xrtValueInt((int64)q->entryParseWork.declined)) &&
+   put(entryWork,"bytes",xrtValueInt((int64)q->entryParseWork.bytes));
+  if(okayStats) {okayStats=put(stats,"lastBuildEntryParse",entryWork);entryWork=NULL;}
+  xrtValueRelease(entryWork);
   if(!okayStats) { xrtValueRelease(stats); goto done; }
   if(!put(result,"analysis",stats)) goto done;
  }
