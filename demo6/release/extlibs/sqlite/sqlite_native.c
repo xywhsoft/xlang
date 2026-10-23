@@ -199,7 +199,7 @@ XSQLITE_EXPORT int xsqlite3_column_bytes_native(void* stmt, int column)
     return size;
 }
 
-XSQLITE_EXPORT const char* xsqlite3_column_text_native(void* stmt, int column)
+static const char* xsqlite_column_text_view(void* stmt, int column)
 {
     if (!xsqlite_column(stmt, column, 1)) return "";
     const char* text = (const char*)sqlite3_column_text(stmt, column);
@@ -213,7 +213,19 @@ XSQLITE_EXPORT const char* xsqlite3_column_text_native(void* stmt, int column)
             "sqlite text contains NUL; read column_text_bytes instead");
         return "";
     }
-    return xsqlite_text(text);
+    return text != NULL ? text : "";
+}
+
+XSQLITE_EXPORT const char* xsqlite3_column_text_native(void* stmt, int column)
+{
+    return xsqlite_text(xsqlite_column_text_view(stmt, column));
+}
+
+/* 语言侧直接接管这一次复制，原 C 借用入口保持不变。 */
+XSQLITE_EXPORT char* xsqlite3_column_text_owned_native(void* stmt, int column)
+{
+    const char* text = xsqlite_column_text_view(stmt, column);
+    return xrtGetError() == NULL ? xrtStrDup(text) : NULL;
 }
 
 static void* xsqlite_column_buffer(void* stmt, int column, int text)
@@ -238,12 +250,23 @@ XSQLITE_EXPORT void* xsqlite3_column_text_bytes_native(void* stmt, int column)
     return xsqlite_column_buffer(stmt, column, 1);
 }
 
-XSQLITE_EXPORT const char* xsqlite3_column_name_native(void* stmt, int column)
+static const char* xsqlite_column_name_view(void* stmt, int column)
 {
     if (!xsqlite_column(stmt, column, 0)) return "";
     const char* name = sqlite3_column_name(stmt, column);
     if (name == NULL) { xsqlite_error(NULL, SQLITE_NOMEM); return ""; }
-    return xsqlite_text(name);
+    return name;
+}
+
+XSQLITE_EXPORT const char* xsqlite3_column_name_native(void* stmt, int column)
+{
+    return xsqlite_text(xsqlite_column_name_view(stmt, column));
+}
+
+XSQLITE_EXPORT char* xsqlite3_column_name_owned_native(void* stmt, int column)
+{
+    const char* name = xsqlite_column_name_view(stmt, column);
+    return xrtGetError() == NULL ? xrtStrDup(name) : NULL;
 }
 
 /* 元数据和资源管理：返回码入口不隐式抛出 SQL 执行错误；调用方保留完整状态码。 */
@@ -260,9 +283,20 @@ XSQLITE_EXPORT const char* xsqlite3_errmsg_native(void* db)
     return db != NULL ? xsqlite_text(sqlite3_errmsg(db)) : "null sqlite3 handle";
 }
 
+XSQLITE_EXPORT char* xsqlite3_errmsg_owned_native(void* db)
+{
+    return xrtStrDup(db != NULL ? sqlite3_errmsg(db) : "null sqlite3 handle");
+}
+
 XSQLITE_EXPORT const char* xsqlite3_stmt_errmsg_native(void* stmt)
 {
     return stmt != NULL ? xsqlite3_errmsg_native(sqlite3_db_handle(stmt)) : "null sqlite3_stmt handle";
+}
+
+XSQLITE_EXPORT char* xsqlite3_stmt_errmsg_owned_native(void* stmt)
+{
+    return xrtStrDup(stmt != NULL ? sqlite3_errmsg(sqlite3_db_handle(stmt)) :
+        "null sqlite3_stmt handle");
 }
 
 XSQLITE_EXPORT int xsqlite3_close_native(void* db) { return sqlite3_close(db); }
@@ -283,6 +317,12 @@ XSQLITE_EXPORT const char* xsqlite3_last_insert_rowid_text_native(void* db)
     char text[32];
     snprintf(text, sizeof(text), "%lld", (long long)sqlite3_last_insert_rowid(db));
     return xsqlite_text(text);
+}
+
+XSQLITE_EXPORT char* xsqlite3_last_insert_rowid_text_owned_native(void* db)
+{
+    if (db == NULL) { xsqlite_error(NULL, SQLITE_MISUSE); return NULL; }
+    return xrtFormat("%lld", (long long)sqlite3_last_insert_rowid(db));
 }
 XSQLITE_EXPORT int xsqlite3_busy_timeout_native(void* db, int milliseconds)
 {

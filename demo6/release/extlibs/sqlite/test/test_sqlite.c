@@ -114,6 +114,9 @@ int main(void)
     CHECK(xsqlite3_changes_native(db) == 1 && xsqlite3_total_changes_native(db) == 1);
     CHECK(xsqlite3_last_insert_rowid_native(db) == 7);
     CHECK(strcmp(xsqlite3_last_insert_rowid_text_native(db), "7") == 0);
+    char* owned_rowid = xsqlite3_last_insert_rowid_text_owned_native(db);
+    CHECK(owned_rowid != NULL && strcmp(owned_rowid, "7") == 0);
+    xrtFree(owned_rowid);
     CHECK(xsqlite3_close_native(db) == SQLITE_BUSY);
     CHECK(xsqlite3_reset_native(insert) == SQLITE_OK);
     CHECK(xsqlite3_clear_bindings_native(insert) == SQLITE_OK);
@@ -137,6 +140,10 @@ int main(void)
     CHECK(xsqlite3_column_double_native(stmt, 2) == 12.5);
     const char* held = xsqlite3_column_text_native(stmt, 3);
     CHECK(strcmp(held, "hello UTF-8: \xe4\xbd\xa0\xe5\xa5\xbd") == 0);
+    char* owned_text = xsqlite3_column_text_owned_native(stmt, 3);
+    char* owned_name = xsqlite3_column_name_owned_native(stmt, 3);
+    CHECK(owned_text != NULL && strcmp(owned_text, held) == 0);
+    CHECK(owned_name != NULL && strcmp(owned_name, "s") == 0);
     for (int i = 0; i < 64; ++i) CHECK(strcmp(xsqlite3_column_name_native(stmt, i % 6), "") != 0);
     CHECK(strcmp(held, "hello UTF-8: \xe4\xbd\xa0\xe5\xa5\xbd") == 0);
     CHECK(xsqlite3_column_type_native(stmt, 4) == SQLITE_BLOB);
@@ -158,6 +165,10 @@ int main(void)
     CHECK(xsqlite3_finalize_native(stmt) == SQLITE_OK);
     CHECK(memcmp(bytes->Data, expected, sizeof(expected)) == 0);
     xrtBufferDestroy(bytes);
+    CHECK(strcmp(owned_text, "hello UTF-8: \xe4\xbd\xa0\xe5\xa5\xbd") == 0);
+    CHECK(strcmp(owned_name, "s") == 0);
+    xrtFree(owned_text);
+    xrtFree(owned_name);
 
     /* 含 NUL 的文本不得静默截断；显式字节接口完整往返。 */
     stmt = xsqlite3_prepare_v2_native(db, "select ?, ?");
@@ -166,6 +177,8 @@ int main(void)
     CHECK(xsqlite3_bind_blob_text_native(stmt, 2, "binary") == SQLITE_OK);
     CHECK(xsqlite3_step_native(stmt) == SQLITE_ROW);
     CHECK(strcmp(xsqlite3_column_text_native(stmt, 0), "") == 0);
+    CHECK(xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    CHECK(xsqlite3_column_text_owned_native(stmt, 0) == NULL);
     CHECK(xrtErrorKind(xrtGetError()) == XERR_VALUE);
     CHECK(strstr(xsqlite_last_error_native(), "NUL") != NULL);
     CHECK(strstr(xsqlite3_last_error(), "NUL") != NULL);
@@ -188,13 +201,21 @@ int main(void)
     CHECK(xsqlite3_exec_native(db, "insert into t(id) values(7)") == SQLITE_CONSTRAINT);
     CHECK((xsqlite3_extended_errcode_native(db) & 0xff) == SQLITE_CONSTRAINT);
     CHECK(strstr(xsqlite3_errmsg_native(db), "UNIQUE") != NULL);
+    char* owned_error = xsqlite3_errmsg_owned_native(db);
+    CHECK(owned_error != NULL && strstr(owned_error, "UNIQUE") != NULL);
     stmt = xsqlite3_prepare_v2_native(db, "insert into t(id) values(7)");
     CHECK(stmt != NULL && xsqlite3_step_native(stmt) == SQLITE_CONSTRAINT);
     CHECK(strstr(xsqlite3_stmt_errmsg_native(stmt), "UNIQUE") != NULL);
+    char* owned_stmt_error = xsqlite3_stmt_errmsg_owned_native(stmt);
+    CHECK(owned_stmt_error != NULL && strstr(owned_stmt_error, "UNIQUE") != NULL);
     CHECK(xsqlite3_finalize_native(stmt) == SQLITE_CONSTRAINT);
     CHECK(xsqlite3_exec_native(db, "begin; insert into t(id) values(9); rollback") == SQLITE_OK);
     CHECK(xsqlite3_close_native(db) == SQLITE_OK);
     CHECK(strcmp(held, "hello UTF-8: \xe4\xbd\xa0\xe5\xa5\xbd") == 0);
+    CHECK(strstr(owned_error, "UNIQUE") != NULL);
+    CHECK(strstr(owned_stmt_error, "UNIQUE") != NULL);
+    xrtFree(owned_error);
+    xrtFree(owned_stmt_error);
 
     /* close_v2 后语句继续持有连接；最后 finalize 才释放。 */
     db = xsqlite3_open_v2_native(":memory:", SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, "");

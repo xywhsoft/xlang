@@ -147,15 +147,15 @@ extern "xsqlite3_column_double_native" func __xl6_native_sqlite_sqlite3_column_d
 export func sqlite3_column_double(point stmt, int column) as float
     return __xl6_native_sqlite_sqlite3_column_double(stmt, __sqlite_c_int(column))
 end
-extern "xsqlite3_column_text_native" func __xl6_native_sqlite_sqlite3_column_text(point stmt, c_int column) as string
+extern "xsqlite3_column_text_owned_native" func __xl6_native_sqlite_sqlite3_column_text(point stmt, c_int column) as point
 
 export func sqlite3_column_text(point stmt, int column) as string
-    return __xl6_native_sqlite_sqlite3_column_text(stmt, __sqlite_c_int(column))
+    return __xl_runtime.takeCstr(__xl6_native_sqlite_sqlite3_column_text(stmt, __sqlite_c_int(column)))
 end
-extern "xsqlite3_column_text_native" func __xl6_native_sqlite_sqlite3_column_blob_text(point stmt, c_int column) as string
+extern "xsqlite3_column_text_owned_native" func __xl6_native_sqlite_sqlite3_column_blob_text(point stmt, c_int column) as point
 
 export func sqlite3_column_blob_text(point stmt, int column) as string
-    return __xl6_native_sqlite_sqlite3_column_blob_text(stmt, __sqlite_c_int(column))
+    return __xl_runtime.takeCstr(__xl6_native_sqlite_sqlite3_column_blob_text(stmt, __sqlite_c_int(column)))
 end
 extern "xsqlite3_column_blob_native" func __sqlite_column_blob(point stmt, c_int column) as point
 extern "xsqlite3_column_text_bytes_native" func __sqlite_column_text_bytes(point stmt, c_int column) as point
@@ -172,20 +172,20 @@ extern "xsqlite3_column_bytes_native" func __xl6_native_sqlite_sqlite3_column_by
 export func sqlite3_column_bytes(point stmt, int column) as int
     return __xl6_native_sqlite_sqlite3_column_bytes(stmt, __sqlite_c_int(column))
 end
-extern "xsqlite3_column_name_native" func __xl6_native_sqlite_sqlite3_column_name(point stmt, c_int column) as string
+extern "xsqlite3_column_name_owned_native" func __xl6_native_sqlite_sqlite3_column_name(point stmt, c_int column) as point
 
 export func sqlite3_column_name(point stmt, int column) as string
-    return __xl6_native_sqlite_sqlite3_column_name(stmt, __sqlite_c_int(column))
+    return __xl_runtime.takeCstr(__xl6_native_sqlite_sqlite3_column_name(stmt, __sqlite_c_int(column)))
 end
-extern "xsqlite3_errmsg_native" func __xl6_native_sqlite_sqlite3_errmsg(point db) as string
+extern "xsqlite3_errmsg_owned_native" func __xl6_native_sqlite_sqlite3_errmsg(point db) as point
 
 export func sqlite3_errmsg(point db) as string
-    return __xl6_native_sqlite_sqlite3_errmsg(db)
+    return __xl_runtime.takeCstr(__xl6_native_sqlite_sqlite3_errmsg(db))
 end
-extern "xsqlite3_stmt_errmsg_native" func __sqlite_stmt_error(point stmt) as string
+extern "xsqlite3_stmt_errmsg_owned_native" func __sqlite_stmt_error(point stmt) as point
 
 export func sqlite3_stmt_errmsg(point stmt) as string
-    return __sqlite_stmt_error(stmt)
+    return __xl_runtime.takeCstr(__sqlite_stmt_error(stmt))
 end
 extern "xsqlite3_errstr_native" func __xl6_native_sqlite_sqlite3_errstr(c_int rc) as string
 
@@ -207,10 +207,10 @@ extern "xsqlite3_total_changes_native" func __xl6_native_sqlite_sqlite3_total_ch
 export func sqlite3_total_changes(point db) as int
     return __xl6_native_sqlite_sqlite3_total_changes(db)
 end
-extern "xsqlite3_last_insert_rowid_text_native" func __xl6_native_sqlite_sqlite3_last_insert_rowid_text(point db) as string
+extern "xsqlite3_last_insert_rowid_text_owned_native" func __xl6_native_sqlite_sqlite3_last_insert_rowid_text(point db) as point
 
 export func sqlite3_last_insert_rowid_text(point db) as string
-    return __xl6_native_sqlite_sqlite3_last_insert_rowid_text(db)
+    return __xl_runtime.takeCstr(__xl6_native_sqlite_sqlite3_last_insert_rowid_text(db))
 end
 extern "xsqlite3_last_insert_rowid_native" func __xl6_native_sqlite_sqlite3_last_insert_rowid(point db) as int64
 

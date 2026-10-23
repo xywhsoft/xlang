@@ -80,6 +80,8 @@ Statement：
 `third_party/sqlite3.h`。句柄必须来自同一份 SQLite 库，不能混用其他 DLL 的句柄。
 借用文本副本保存在 XRT 临时区，寿命到该区 clear/rewind；C 调用方需要长期保存时
 自行复制。返回的 Buffer 由 C 调用方 `xrtBufferDestroy`，xlang 则由 Buffer 对象释放。
+`*_owned_native` 文本入口返回一份 `xrtFree` 负责释放的独立副本；xlang 直接接管
+这份内存，列值和诊断不再经过临时区与第二次字符串复制。原有 C 入口保持借用合同。
 
 底层状态码入口不把 SQLite 业务失败变成 XRT 异常；没有状态码的创建、prepare、
 读列入口使用 XRT 错误对象。裸 C 句柄不检测悬空指针，释放后复用属于 C 调用方错误。
@@ -135,6 +137,10 @@ ASan/UBSan 下通过；Windows 严格 GCC `-DNDEBUG` 与 TCC 范例输出和黄�
 随后仍在 `extlib_sqlite.xl:550` 的既有 XLIR ABI 错误处停止。
 Linux C ASan/UBSan、149 个分配故障点及四线程隔离门禁通过，
 未签收整包发布级。
+
+2026-10-24：列文本、列名、连接/语句诊断和行号文本的 xlang 返回路径改为
+一次复制后直接接管；C 测试验证副本在 `step/finalize/close` 后仍有效、含 NUL
+列继续拒绝。当前发布版的 xlang 运行门禁仍在既有 XLIR ABI 检查处停止。
 
 语义依据：[列结果](https://www.sqlite.org/c3ref/column_blob.html)、
 [关闭连接](https://www.sqlite.org/c3ref/close.html)、
