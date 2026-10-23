@@ -1,0 +1,52 @@
+{
+  "Schema": 1,
+  "Purpose": "Share transactional exact-byte DER and PEM trust imports for bounded file and VFS readers",
+  "CanonicalCommit": "e52d9142118bac48c5fdb5b0758adf5d49c2dbd1",
+  "PreviousCanonicalCommit": "a31852464d895c85b782dc65822488faf3ae070d",
+  "WholeSnapshotUpgrade": false,
+  "TimeAbiPreserved": true,
+  "PublicStructLayoutsPreserved": true,
+  "AddedApi": "xrtX509StoreAddData",
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "ba9a0a69095480be1874189c85dadc621b28ab8d6e7b80d4118f4fa6376afb99",
+      "AfterSha256": "acb6184b374b5e82c295e4d82de6375c8c82a8f92939455f1efeda741de1aff5"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "b00fa07209efbb0e767686ad7721d2516254b4d8f3d04b4d6a965043580f5655",
+      "AfterSha256": "bcdd57d12adeff91a864d1ddc9cb9bd6363f8a524507dce15695e67e0e431163"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "03f10a699aca49b8b1c943e2a0ae22674196158b55b20e63f07cb765269f2aa6",
+      "AfterSha256": "74eaeb9bd4935aff698d3a4d624cfbe4b13cca5e44d235435622e4a17aad289c"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "f0b4491ff8fd4cd6f375ba473b1756aa12e8da41c92f325ec03efeb29bea483f",
+      "AfterSha256": "4c5ebbf637be57115b56a15a441ae442900e592258597acf3febdaf86a5df2f9"
+    }
+  ],
+  "Sources": [
+    {
+      "Path": "include/xrt/x509.h",
+      "Sha256": "36ebe27f0863b125abea0083bac12baf728ffba072e342d8298b27d17251e99d"
+    },
+    {
+      "Path": "src/x509/store.c",
+      "Sha256": "3b90626ff9b63011f29fe5c3609b13858df262c3b1cb2847b4d1e48a84ed7981"
+    },
+    {
+      "Path": "src/x509/store_file.c",
+      "Sha256": "2541e720cb55c71df1fd5857709ad1723c429fc2de8767ebda4ab06ac56e9efc"
+    }
+  ],
+  "NativeAcceptance": "84 Windows/Linux normal native stages; language and shipping acceptance remain separate",
+  "PreservedContracts": [
+    "Embedded microseconds/Until",
+    "Independent native milliseconds/For",
+    "All unselected sections"
+  ]
+}

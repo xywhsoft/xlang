@@ -564,6 +564,11 @@
     src\runtime\xl6_x509_store_query.c
     src\runtime\xl6_x509_store_items_query.c
     src\runtime\xl6_x509_store_update.c
+    src\runtime\xl6_x509_store_data.c
+    src\runtime\xl6_x509_store_file.c
+    src\runtime\xl6_x509_store_vfs.c
+    src\runtime\xl6_x509_store_system.c
+    src\runtime\xl6_x509_store_system_update.c
     src\runtime\xl6_x509_store_domain.c
     src\runtime\xl6_x509_store_snapshot_domain.c
     src\runtime\xl6_x509_path_config.c

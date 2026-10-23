@@ -28030,6 +28030,17 @@ XRT_API bool xrtX509StoreAddPem(
 	size_t* pAdded
 );
 
+/* Auto-detect one DER certificate or a PEM certificate bundle using the same
+ * native rule as file import. Input is borrowed for this call only; accepted
+ * DER is owned by the store. Failure leaves store entries and pAdded unchanged.
+ * Empty input is a format error; duplicate-only input succeeds with zero added.
+ * Input size is exact, not a C-string length or a truncating resource limit. */
+XRT_API bool xrtX509StoreAddData(
+	xx509store* pStore,
+	xbytesview Data,
+	size_t* pAdded
+);
+
 
 
 /* 按索引借用已解析证书；后续写入信任库会使结构指针失效。 */
