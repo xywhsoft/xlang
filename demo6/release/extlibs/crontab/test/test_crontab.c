@@ -94,13 +94,23 @@ static bool reference_match(int rule, const xdatetime* date) {
             date->Weekday >= 1 && date->Weekday <= 5;
         case 2: return date->Minute == 0 && date->Hour == 12 &&
             date->Month == 1 && (date->Day == 15 || date->Weekday == 2);
-        default: return date->Minute == 13 && date->Hour % 4 == 0;
+        case 3: return date->Minute == 13 && date->Hour % 4 == 0;
+        case 4: return date->Minute >= 5 && (date->Minute - 5) % 10 == 0;
+        case 5: return date->Minute >= 3 && date->Minute <= 21 &&
+            (date->Minute - 3) % 6 == 0 && date->Hour >= 2 &&
+            (date->Hour - 2) % 5 == 0;
+        case 6: return date->Minute == 0 && date->Hour == 12 &&
+            date->Day % 2 == 1 && date->Weekday == 2;
+        default: return date->Minute == 0 && date->Hour == 12 &&
+            (date->Day % 2 == 1 || date->Weekday == 0);
     }
 }
 
 static int test_next_reference(void) {
     static const char* rules[] = {
-        "*/17 * * * *", "5 12 * * 1-5", "0 12 15 1 2", "13 */4 * * *"
+        "*/17 * * * *", "5 12 * * 1-5", "0 12 15 1 2", "13 */4 * * *",
+        "5/10 * * * *", "3-21/6 2-22/5 * * *", "0 12 */2 * 2",
+        "0 12 1-31/2 * 0,7"
     };
     const int64_t base = INT64_C(1704067200); /* 2024-01-01 00:00 UTC */
     size_t rule;

@@ -88,6 +88,12 @@ Linux 可在 `demo6` 目录运行 `bash release/extlibs/crontab/test/check.sh`�
 Windows 包级和 Linux ASan/UBSan、DST、双语门禁通过。它不证明所有时区
 或历史规则均正确；完整带输出 AOT 的共享缺符号阻断仍在。
 
+2026-10-24：独立逐分钟枚举对照扩至八条规则、每条 16 个起点，新增
+`N/S`、分钟与小时的 `N-M/S`、月内日 `*/2` 与星期的 AND，以及受限
+月内日与星期的 OR。Windows `-SkipAot` 严格 C/XLang、双语门禁和 Linux
+ASan/UBSan、两组 DST、历史时区门禁通过；本次只扩测试，完整 AOT
+仍受共享缺符号阻断，不作发布签收。
+
 2026-10-20：Windows `test/check.ps1` 增加 `-SkipAot` 聚焦模式；默认
 先完成 C/XLang 同机输出对照，再构建/运行无输出核心与带输出范例 AOT，
 范例结果仍与同机 C 输出比较，不硬编码依赖时区的时间戳。AOT 产物
