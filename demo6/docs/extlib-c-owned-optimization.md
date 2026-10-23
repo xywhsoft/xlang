@@ -15,6 +15,8 @@
 
 `cstring/cbytes` 的特化现覆盖 `export func`。生成的特化函数为私有函数，公开导出仍使用原来的普通值 ABI。SipHasher 的二进制更新直接绑定带错误通道的原生 span 方法，避免先物化普通 bytes。
 
+Redis 编码入口继续直接接受原生 XVALUE_ARRAY；当前语言的 array、array<string>、array<bytes>、array<var> 句柄在该边界转换为编码器使用的普通动态数组，元素按 xvalue 引用保留。不会直接解释不透明语言句柄的内部布局。当前 TCP 环回验证包含分段/NUL 回复、逻辑错误回复后的连接复用及总超时；原生 TimeoutError 在命令层保持原来的 ValueError 超时契约。
+
 验证：`test/cases/xlir_extlib_c_owned_inputs.xl` 通过当前源码编译器的 JIT 和独立 EXE；EXE 保留的 `module.c` 中没有 `xl6CBytesCopyV1`、`xl6CStringCopyV1` 或 `xl6CStringBoxV1` 的隐式调用。测试覆盖 C 分配器生命周期、UTF-8、二进制 NUL、动态兼容入口、一次性与增量结果一致性。`xlir_c_owned_calls.xl` 的导出函数重载、默认参数和结果转发通过生成 C 的独立程序验证。
 
 ## 文本输入与输出
@@ -56,4 +58,4 @@ pwsh -NoProfile -File tools/build_xlir_public_source_driver.ps1 -Directory build
 pwsh -NoProfile -File tools/check_extlib_c_owned.ps1 -PublicDirectory build/c-owned/extlib-public -Directory build/c-owned/extlib-acceptance
 ```
 
-验收脚本运行 4 个 JIT/独立 EXE 场景、CSV 字典与边界、正反 HTTP 头包含顺序及 10 个原生测试，检查静态输入生成代码无隐式 C 载荷物化，并记录源码、编译器、对象文件的 SHA256。验收目录必须为新的目录。测试使用 `xlir_` 前缀，避免让仍依赖旧发布编译器的通用扩展库套件误执行这些新编译器场景。
+验收脚本运行 5 个 JIT/独立 EXE 场景、CSV 字典与边界、正反 HTTP 头包含顺序及 10 个原生测试，检查静态输入生成代码无隐式 C 载荷物化，并记录源码、编译器、对象文件的 SHA256。验收目录必须为新的目录。测试使用 `xlir_` 前缀，避免让仍依赖旧发布编译器的通用扩展库套件误执行这些新编译器场景。

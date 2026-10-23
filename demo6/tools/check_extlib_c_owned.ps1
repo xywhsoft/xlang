@@ -18,10 +18,10 @@ $packages = @('terraform_state','redis','bson','gettext','siphash128','blake2','
     'xhttp.multipart','xhttp.form_data','xhttp.body_async','xhttp.body_codec','xhttp.body_decode',
     'xhttp.body_file','xhttp.body_stream')
 $caseNames = @('xlir_extlib_c_owned_inputs','xlir_extlib_c_owned_text',
-    'xlir_extlib_c_owned_http','xlir_extlib_owned_http_text')
+    'xlir_extlib_c_owned_http','xlir_extlib_owned_http_text','xlir_extlib_redis_current_tcp')
 $files = @($PSCommandPath,$gcc,(Join-Path $root 'tools/extlib_smoke_process.ps1'))
 $files += @(Get-ChildItem -LiteralPath (Join-Path $root 'test/cases') -File | Where-Object {
-    $_.Name -like 'xlir_extlib_c_owned*' -or $_.Name -like 'xlir_extlib_owned_http*' -or
+    $_.Name -like 'xlir_extlib_c_owned*' -or $_.Name -like 'xlir_extlib_owned_http*' -or $_.Name -eq 'xlir_extlib_redis_current_tcp.xl' -or
     $_.Name -in @('extlib_http_owned_native.c','extlib_http_feature_order.c')
 } | ForEach-Object FullName)
 foreach ($package in $packages) {
@@ -109,7 +109,7 @@ try {
     $env:XLANG_PACKAGE_PATH = $oldPackagePath
     Pop-Location
     $record = [ordered]@{date=[DateTimeOffset]::Now.ToString('o');outcome=$outcome;
-        scope='Four current-source JIT/EXE programs, no implicit C payload materialization, native legacy boundaries and allocation failures. HTTP Request component is tested independently; full legacy TCP/TLS facade is not covered.';
+        scope='Five current-source JIT/EXE programs, no implicit C payload materialization, current TCP Redis, native legacy boundaries and allocation failures. HTTP Request component is tested independently; full legacy TCP/TLS facade is not covered.';
         publicBuild=(Join-Path $publicPath 'build.json');inputs=$inputs;checks=@($checks.ToArray())}
     [IO.File]::WriteAllText((Join-Path $work 'results.json'),($record | ConvertTo-Json -Depth 8),$utf8)
 }

@@ -1,0 +1,61 @@
+import redis
+import concurrent
+
+func serve(TcpStream stream) as int
+    for index in range(3)
+        bytes request = b""
+        while not redis.isCompleteBytes(request)
+            bytes chunk = stream.recv(4096, 3000)
+            assert chunk.length != 0
+            request = request + chunk
+        end
+        assert redis.decodeBytes(request)["value"]["value"][0]["value"] == "PING"
+        if index == 0 then
+            assert stream.send(b"$3\r\nA") == NetStatus.ok
+            assert stream.wait(TcpWait.drain, 3000) == NetStatus.ok
+            time.sleep(10)
+            assert stream.send(b"\x00B\r\n") == NetStatus.ok
+        elseif index == 1 then
+            assert stream.send(b"-ERR expected\r\n") == NetStatus.ok
+        else
+            assert stream.send(b"+PONG\r\n") == NetStatus.ok
+        end
+        assert stream.wait(TcpWait.drain, 3000) == NetStatus.ok
+    end
+    return 3
+end
+
+async func exercise()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto client = TcpStream(engine, listener.localAddress())
+    auto peer = listener.accept(3000)
+    assert client.wait(TcpWait.open, 3000) == NetStatus.ok
+    auto server = task.spawn(serve, peer)
+    assert redis.command(client, ["PING"], 3000) == "A\0B"
+    bool logicalError = false
+    try
+        redis.command(client, ["PING"], 3000)
+    catch ValueError error
+        logicalError = error.message.contains("ERR expected")
+    end
+    assert logicalError
+    assert redis.command(client, ["PING"], 3000) == "PONG"
+    assert await server == 3
+    bool timedOut = false
+    try
+        redis.command(client, ["PING"], 20)
+    catch ValueError error
+        timedOut = error.message.contains("timed out")
+    end
+    assert timedOut
+    client.close()
+    peer.close()
+    listener.close()
+    engine.close()
+    assert engine.wait(3000)
+end
+
+await exercise()
+println("Redis current TCP: fragments/NUL, logical error, connection reuse and deadline")
