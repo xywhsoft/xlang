@@ -32,4 +32,24 @@ xvalue* xideSemanticDocumentSymbols(xide_semantic_definitions* definitions,const
  * source order, using checked declaration identity rather than spelling.
  * Text kind is used until read/write facts are available. No disk reads. */
 xvalue* xideSemanticDocumentHighlights(xide_semantic_definitions* definitions,const char* path,int line,int character);
+/* Borrowed, immutable same-checked-compilation references, including imported
+ * sources already in that compilation. This is not a project-wide index.
+ * Keep definitions alive until all views/items are no longer used. Index lookup
+ * and At allocate nothing; query retains the existing lexical path matching
+ * (which may allocate for alternate paths). No filesystem/source scan or
+ * spelling-based symbol search. Byte offsets use compiler UTF-8 after BOM;
+ * UTF-16 positions include the captured overlay's BOM prefix. */
+typedef struct xide_semantic_reference_view {
+ const xide_semantic_definitions* definitions;
+ size_t first,count,excluded;
+} xide_semantic_reference_view;
+typedef struct xide_semantic_reference {
+ const char* path;
+ xide_lsp_position start,end;
+ int declaration;
+} xide_semantic_reference;
+int xideSemanticReferences(xide_semantic_definitions* definitions,const char* path,
+ int line,int character,int includeDeclaration,xide_semantic_reference_view* view);
+int xideSemanticReferenceAt(const xide_semantic_reference_view* view,size_t index,
+ xide_semantic_reference* reference);
 #endif

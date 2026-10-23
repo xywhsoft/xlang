@@ -102,7 +102,7 @@ if ($CServerPath) {
     & (Join-Path $releaseRoot 'c_completion_view_test.exe') (Join-Path $testRoot 'c-completion-ui') $CServerPath
     if ($LASTEXITCODE -ne 0) { throw 'Native C completion gate failed.' }
 }
-foreach ($test in @('language_refresh_test','language_test','resource_text_test','workbench_test','catalog_view_test')) {
+foreach ($test in @('semantic_lookup_test','language_refresh_test','language_test','resource_text_test','workbench_test','catalog_view_test')) {
     & (Join-Path $releaseRoot ($test+'.exe'))
     if ($LASTEXITCODE -ne 0) { throw "$test failed." }
 }
