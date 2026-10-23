@@ -15,21 +15,8 @@ static void xcli_error(const char *message) {
 /* ---------- 值对象辅助 ---------- */
 
 static xvalue *xcli_text(const char *s) {
-    size_t n = s ? strlen(s) : 0;
-    str owned = (str)xrtMalloc(n + 1);
-    xvalue *value;
-    if (owned == NULL) {
-        return NULL;
-    }
-    if (n > 0) {
-        memcpy(owned, s, n);
-    }
-    owned[n] = '\0';
-    value = xrtValueStringTake(&owned, n);
-    if (value == NULL && owned != NULL) {
-        xrtFree(owned);
-    }
-    return value;
+    const char *text = s != NULL ? s : "";
+    return xrtValueString((xstrview){ text, strlen(text) });
 }
 
 static xvalue *xcli_get(xvalue *obj, const char *key) {
