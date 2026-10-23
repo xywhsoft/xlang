@@ -102,6 +102,10 @@ static void cvdismiss(xide_completion_view* v)
  if(v->request && v->client && v->initialized) { xvalue* p=xrtValueObject(); cvput(p,"id",xrtValueInt(v->request)); cvsend(v,"$/cancelRequest",p,0); }
  cvclearResult(v); v->wanted=v->pending=v->ready=v->request=0; v->repeatEditor=NULL;
 }
+static void cvqueueInput(xide_completion_view* v,xide_document* d,int offset)
+{
+ cvdismiss(v);v->document=d;v->id=d->id;v->repeatEditor=d->editor;v->repeatId=d->id;v->repeatOffset=offset;xgeRenderRequest();
+}
 static void cvfreeInput(completion_input* b)
 { free(b->path); free(b->uri); xrtValueRelease(b->textValue); free(b->language); memset(b,0,sizeof(*b)); }
 static void cvfreeInputs(xide_completion_view* v)
@@ -235,7 +239,9 @@ void xideCompletionViewRequest(xide_app* app,xui_widget editor,int offset,int fo
   if(xuiCodeTokenBufferGetTokensInRange(xuiCodeEditGetTokenBuffer(editor),xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(editor)),offset-1,offset,tokens,8,&count)!=XUI_OK) return;
   for(int i=0;i<count && i<8;++i) if(tokens[i].iKind==XUI_CODE_TOKEN_COMMENT || tokens[i].iKind==XUI_CODE_TOKEN_STRING || tokens[i].iKind==XUI_CODE_TOKEN_CHAR || tokens[i].iKind==XUI_CODE_TOKEN_ERROR) return;
  }
- cvdismiss(v); v->document=d; v->id=d->id; v->version=version; v->offset=offset; v->wanted=v->pending=1; v->due=GetTickCount64()+(force ? 0 : 80); xgeRenderRequest();
+ /* Input commits are coalesced by the owner frame, so asynchronous language
+    queries need no second debounce after the editor's assist scheduling. */
+ cvdismiss(v); v->document=d; v->id=d->id; v->version=version; v->offset=offset; v->wanted=v->pending=1; v->due=GetTickCount64(); xgeRenderRequest();
 }
 static int cvcompareNames(const void* a,const void* b) { return strcmp(*(const char* const*)a,*(const char* const*)b); }
 /* Takes a fully validated result only after rechecking the current UI/model.
@@ -398,9 +404,20 @@ int xideCompletionViewInput(xide_app* app,xui_widget editor,const xui_code_input
    v->edit=(xui_code_text_edit_t){sizeof(v->edit),{v->start,v->end},v->editText}; action->pEdits=&v->edit; action->iEditCount=1; action->iFlags|=XUI_CODE_INPUT_ACTION_APPLY_EDITS; action->iSelectionAnchor=action->iSelectionCaret=v->start+event->iTextSize;
   } return XUI_OK;
  }
- if(event->iPhase==XUI_CODE_INPUT_COMMITTED && (v->wanted || v->repeatEditor==editor) && v->document && v->document->editor==editor) {
+ if(event->iPhase==XUI_CODE_INPUT_COMMITTED) {
+  int active=(v->wanted || v->repeatEditor==editor) && v->document && v->document->editor==editor;
   int repeat=event->iSource!=XUI_CODE_INPUT_SOURCE_COMPLETION && event->iSource!=XUI_CODE_INPUT_SOURCE_PASTE;
-  cvdismiss(v); if(repeat) { v->repeatEditor=editor; v->repeatId=v->document->id; v->repeatOffset=event->tSelectionAfter.iCaretOffset; xgeRenderRequest(); }
+  unsigned char last=event->sText && event->iTextSize>0 ? (unsigned char)event->sText[event->iTextSize-1] : 0;
+  int typed=(event->iSource==XUI_CODE_INPUT_SOURCE_KEYBOARD || event->iSource==XUI_CODE_INPUT_SOURCE_IME) &&
+   (last>=128 || isalnum(last) || last=='_' || last=='.');
+  xide_document* d=app->activeDocument;
+  if(active || (typed && cvnamed(d) && d->editor==editor && !strcmp(d->language,"xlang"))) {
+   if(repeat && d && d->editor==editor && cvnamed(d) && !strcmp(d->language,"xlang")) {
+    /* One cheap latest-intent slot for the input batch. Eligibility, lexical
+       context and all document capture stay in the regular owner poll. */
+    cvqueueInput(v,d,event->tSelectionAfter.iCaretOffset);
+   } else cvdismiss(v);
+  }
  } return XUI_OK;
 }
 static const int cvEvents[]={XUI_EVENT_KEY_DOWN,XUI_EVENT_BLUR,XUI_EVENT_POINTER_DOWN,XUI_EVENT_POINTER_WHEEL,XUI_EVENT_IME_COMPOSITION};
@@ -408,10 +425,20 @@ static int cvEvent(xui_widget widget,const xui_event_t* event,void* user)
 {
  completion_binding* b=user; xide_completion_view* v=b->app->completionView; int index=-1;
  for(int i=0;i<5;++i) if(cvEvents[i]==event->iType) index=i;
+ xide_document* d=v ? v->document : NULL;
+ int deletion=v && d && d->editor==widget && (v->wanted || v->repeatEditor==widget) && event->iType==XUI_EVENT_KEY_DOWN && !event->iModifiers && (event->iKey==XUI_KEY_BACKSPACE || event->iKey==XUI_KEY_DELETE);
+ uint64_t id=deletion ? d->id : 0;uint32_t version=deletion ? xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(widget)) : 0;
  int dismiss=event->iType!=XUI_EVENT_KEY_DOWN;
  if(event->iType==XUI_EVENT_KEY_DOWN) dismiss=event->iKey==XUI_KEY_ESCAPE || event->iKey==XUI_KEY_LEFT || event->iKey==XUI_KEY_RIGHT || event->iKey==XUI_KEY_HOME || event->iKey==XUI_KEY_END || ((event->iModifiers&XUI_MOD_CTRL) && event->iKey!=XUI_KEY_SPACE);
  if(v && dismiss && v->document && v->document->editor==widget) cvdismiss(v);
- return index>=0 && b->handlers[index] ? b->handlers[index](widget,event,b->users[index]) : XUI_OK;
+ int result=index>=0 && b->handlers[index] ? b->handlers[index](widget,event,b->users[index]) : XUI_OK;
+ /* Native deletion commands bypass the text-commit hook. Observe the result
+    after the original handler, without reproducing its editing/selection rules. */
+ if(deletion && result>=0 && d->open && d->id==id && b->app->activeDocument==d && d->editor==widget && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(widget))!=version) {
+  xui_code_selection_t selection={0};
+  if(xuiCodeSelectionGetState(xuiCodeEditGetSelection(widget),&selection)==XUI_OK && selection.iCaretOffset==selection.iAnchorOffset) cvqueueInput(v,d,selection.iCaretOffset);
+ }
+ return result;
 }
 int xideCompletionViewBindEditor(xide_app* app,xui_widget editor)
 {

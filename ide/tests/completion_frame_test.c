@@ -28,8 +28,12 @@ static int frame(void* user)
  if(!f->started) {f->started=1;CHECK(xideAppFrame(app)==XGE_OK);xide_model_error error={0};CHECK(xideEditorOpen(app,f->path,&error));f->document=app->activeDocument;
   xui_code_document document=xuiCodeEditGetDocument(f->document->editor);
   CHECK(xuiCodeDocumentReplace(document,0,xuiCodeDocumentGetLength(document),f->source)==XUI_OK && xideRefreshEditorSyntax(f->document->editor)==XUI_OK);
-  CHECK(xuiCodeSelectionGotoOffset(xuiCodeEditGetSelection(f->document->editor),document,f->offset+1,0)==XUI_OK && xuiSetFocusWidget(app->context,f->document->editor)==XUI_OK);
-  xideCompletionViewRequest(app,f->document->editor,f->offset+1,1);CHECK(app->completionView->wanted);f->phase=1;f->deadline=GetTickCount64()+30000;xgeRenderRequest();return XGE_OK;
+  CHECK(xuiCodeDocumentReplace(document,f->offset,f->offset+1,"")==XUI_OK && xideRefreshEditorSyntax(f->document->editor)==XUI_OK);
+  CHECK(xuiCodeSelectionGotoOffset(xuiCodeEditGetSelection(f->document->editor),document,f->offset,0)==XUI_OK && xuiSetFocusWidget(app->context,f->document->editor)==XUI_OK);
+  /* Cold initialization must start from ordinary typing, without an explicit
+     completion request. This warmup is outside the measured samples. */
+  CHECK(xuiInputTextEx(app->context,'R',NULL)==XUI_OK && xuiDispatchPendingEvents(app->context)==XUI_OK);
+  f->phase=1;f->deadline=GetTickCount64()+30000;xgeRenderRequest();return XGE_OK;
  }
  CHECK(GetTickCount64()<f->deadline);
  xide_completion_view* v=app->completionView;xui_widget editor=f->document->editor;xui_code_document document=xuiCodeEditGetDocument(editor);
