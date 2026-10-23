@@ -74,6 +74,10 @@ int main(void)
     char* stats;
     char long_name[5001];
     int i;
+    int stats_failures = 0;
+    int stats_successes = 0;
+    int location_failures = 0;
+    int location_successes = 0;
 
     if (require(xfeat_stats_reset_native(), "reset concurrent statistics")) return 1;
     for (i = 0; i < THREADS; ++i) {
@@ -187,6 +191,31 @@ int main(void)
     query_rows[3] = NAN;
     if (require(xfeat_features_from_result_native(&query_result, 100, 100, 100, 100) == NULL,
                 "non-finite descriptors should fail")) return 1;
+    for (i = 0; i < 32; ++i) {
+        bool triggered;
+        if (require(xrtMemDebugFailAfter((uint64)i), "JSON fault setup")) return 1;
+        stats = xfeat_stats_json_native();
+        triggered = xrtMemDebugFailTriggered();
+        xrtMemDebugFailClear();
+        if (require(triggered ? stats == NULL : stats != NULL,
+                    "statistics JSON allocation failure")) return 1;
+        if (triggered) stats_failures++;
+        else stats_successes++;
+        xrtFree(stats);
+
+        if (require(xrtMemDebugFailAfter((uint64)i), "location fault setup")) return 1;
+        json = xfeat_location_json_native(NULL, "target.png", "");
+        triggered = xrtMemDebugFailTriggered();
+        xrtMemDebugFailClear();
+        if (require(triggered ? json == NULL : json != NULL,
+                    "location JSON allocation failure")) return 1;
+        if (triggered) location_failures++;
+        else location_successes++;
+        xrtFree(json);
+    }
+    if (require(stats_failures > 0 && stats_successes > 0 &&
+                location_failures > 0 && location_successes > 0,
+                "JSON fault injection coverage")) return 1;
     puts("xfeat UTF-8 bridge and feature rows: PASS");
     return 0;
 }

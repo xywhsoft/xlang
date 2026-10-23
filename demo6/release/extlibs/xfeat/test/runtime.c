@@ -22,5 +22,8 @@
 #ifndef XRT_MODULE_BUFFER
 #define XRT_MODULE_BUFFER
 #endif
+#ifndef XRT_MODULE_MEMORY_DEBUG
+#define XRT_MODULE_MEMORY_DEBUG
+#endif
 #define XRT_IMPLEMENTATION
 #include "xrt.h"

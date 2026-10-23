@@ -39,6 +39,7 @@ try {
         '-DXRT_MODULE_PATH_SYSTEM', '-DXRT_MODULE_ENVIRONMENT', '-DXRT_MODULE_ONCE',
         '-DXRT_MODULE_MUTEX', '-DXRT_MODULE_THREAD_KEY',
         '-DXRT_MODULE_VALUE_CONTAINER', '-DXRT_MODULE_JSON', '-DXRT_MODULE_BUFFER',
+        '-DXRT_MODULE_MEMORY_DEBUG',
         '-Ilib/xrt', '-Irelease/extlibs/xfeat/include',
         'release/extlibs/xfeat/test/test_loader.c', 'release/extlibs/xfeat/src/xfeat_artifact.c',
         'release/extlibs/xfeat/test/runtime.c', '-lws2_32', '-ladvapi32', '-liphlpapi', '-lm',
@@ -64,6 +65,8 @@ try {
     Push-Location $release
     try {
         Run 'XLang ABI smoke' (Join-Path $release 'xl.exe') @('run', 'examples/extlibs/xfeat.xl')
+        Run 'XLang JSON allocation failure' (Join-Path $release 'xl.exe') @('run', 'extlibs/xfeat/test/json_failure.xl')
+        Run 'XLang saved image result' (Join-Path $release 'xl.exe') @('run', 'extlibs/xfeat/test/save_result.xl')
         Run 'XLang NUL argument boundaries' (Join-Path $release 'xl.exe') @('run', 'extlibs/xfeat/test/nul_arguments.xl')
         Run 'XLang catalog contract' (Join-Path $release 'xl.exe') @('run', '../test/cases/extlib_xfeat.xl')
     } finally {

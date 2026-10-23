@@ -1,0 +1,42 @@
+import xfeat
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+for operation in range(2)
+    int failures = 0
+    int successes = 0
+    for allocation in range(128)
+        bool rejected = false
+        string result = ""
+        assert failAfter(uint64(allocation))
+        try
+            if operation == 0 then
+                result = xfeat.stats_json()
+            else
+                point engine = null
+                point query = null
+                result = xfeat.locate_json(engine, query, "__missing_target__.png")
+            end
+        catch MemoryError error
+            rejected = true
+        catch RuntimeError error
+            rejected = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        if triggered then
+            assert rejected, "failed JSON allocation must not return an object"
+            failures += 1
+        else
+            if operation == 0 then
+                assert not rejected and string.contains(result, "\"all\"")
+            else
+                assert not rejected and string.contains(result, "\"found\":false")
+            end
+            successes += 1
+        end
+    end
+    assert failures > 0 and successes > 0
+end

@@ -1,0 +1,36 @@
+import xfeat
+
+func main(...) as int
+    point engine = null
+    point query = null
+    string source = "extlibs/xfeat/test/assets/target.png"
+    string root = dir.temp("", "xlang-xfeat-save-", "")
+    string output = path.join(root, "copy.png")
+    try
+        string result = xfeat.locate_and_save(engine, query, source, output)
+        assert string.contains(result, "\"found\":false")
+        assert file.exists(output) and file.size(output) > 0
+        Buffer original = Buffer(file.readBytes(output))
+
+        bool rejected = false
+        try
+            xfeat.locate_and_save(engine, query, "__missing_target__.png", output)
+        catch IOError error
+            rejected = true
+        end
+        assert rejected and Buffer(file.readBytes(output)) == original, "missing target must not replace output"
+
+        rejected = false
+        try
+            xfeat.locate_and_save(engine, "__missing_query__.png", source,
+                path.join(root, "absent", "copy.png"))
+        catch IOError error
+            rejected = true
+        end
+        assert rejected, "failed image save must not return success JSON"
+        assert not file.exists(path.join(root, "absent", "copy.png"))
+    finally
+        assert dir.delete(root), "XFeat test directory must be removed"
+    end
+    return 0
+end

@@ -22,6 +22,7 @@ mkdir -p "$work/中文路径"
     -DXRT_MODULE_PATH_SYSTEM -DXRT_MODULE_ENVIRONMENT -DXRT_MODULE_ONCE \
     -DXRT_MODULE_MUTEX -DXRT_MODULE_THREAD_KEY \
     -DXRT_MODULE_VALUE_CONTAINER -DXRT_MODULE_JSON -DXRT_MODULE_BUFFER \
+    -DXRT_MODULE_MEMORY_DEBUG \
     -I"$ROOT/lib/xrt" -I"$ROOT/release/extlibs/xfeat/include" \
     "$ROOT/release/extlibs/xfeat/test/test_loader.c" \
     "$ROOT/release/extlibs/xfeat/src/xfeat_artifact.c" \
@@ -30,5 +31,6 @@ mkdir -p "$work/中文路径"
 ONNXRUNTIME_XLANG_DLL="$work/中文路径/fake_ort.so" \
     "$work/test_loader_linux"
 (cd "$ROOT" && timeout 90s ./release/xl run release/extlibs/xfeat/test/aot_core.xl)
+(cd "$ROOT/release" && timeout 90s ./xl run extlibs/xfeat/test/json_failure.xl)
 (cd "$ROOT" && timeout 90s ./release/xl run release/extlibs/xfeat/test/nul_arguments.xl)
 (cd "$ROOT" && timeout 90s ./release/xl run test/cases/extlib_xfeat.xl)

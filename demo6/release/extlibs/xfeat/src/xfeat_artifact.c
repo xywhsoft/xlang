@@ -346,9 +346,9 @@ XL_EXPORT void* xfeat_stats_json_native(void)
 	xjsonwriteconfig config;
 	xjsonwriter* writer;
 	XFeatStatsBucket snapshot[3];
-	if ( !xfeat_stats_lock_enter() ) return NULL;
+	if ( !xfeat_stats_lock_enter() ) { xfeat_set_error("XFeat statistics lock failed"); return NULL; }
 	memcpy(snapshot, g_stats, sizeof(snapshot));
-	if ( !xrtMutexUnlock(&g_stats_lock) ) return NULL;
+	if ( !xrtMutexUnlock(&g_stats_lock) ) { xfeat_set_error("XFeat statistics unlock failed"); return NULL; }
 	xrtJsonWriteConfigInit(&config);
 	writer = xrtJsonWriterCreate(&config);
 	if ( writer == NULL ) { xfeat_set_error("out of memory"); return NULL; }

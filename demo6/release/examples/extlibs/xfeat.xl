@@ -31,10 +31,4 @@ assert string.contains(jsonEngineNamed, "\"found\":false"), "xfeat locate_json e
 string jsonPreparedNamed = xfeat.locate_json(nullEngine, nullQuerySet, "__missing_target__.png", "target.png", "out.png")
 assert string.contains(jsonPreparedNamed, "\"found\":false"), "xfeat locate_json prepared named failed"
 
-string savedPrepared = xfeat.locate_and_save(nullEngine, nullQuerySet, "__missing_target__.png", "__missing_output__.png")
-assert string.contains(savedPrepared, "\"found\":false"), "xfeat locate_and_save prepared failed"
-
-string savedEngine = xfeat.locate_and_save(nullEngine, "__missing_query__.png", "__missing_target__.png", "__missing_output__.png")
-assert string.contains(savedEngine, "\"found\":false"), "xfeat locate_and_save engine failed"
-
 println("xfeat extlib ok")
