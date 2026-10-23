@@ -1,4 +1,4 @@
-param([switch]$StrictC)
+param([switch]$StrictC, [switch]$SkipAot)
 
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') { throw 'uia requires Windows' }
@@ -11,7 +11,12 @@ $work = Join-Path $workRoot ('uia_guard_' + [guid]::NewGuid().ToString('N'))
 
 function Invoke-Checked([string]$Label, [string[]]$Arguments) {
     Write-Host $Label
-    $output = & $xl @Arguments 2>&1
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = & $xl @Arguments 2>&1
+    } finally {
+        $ErrorActionPreference = 'Stop'
+    }
     if ($LASTEXITCODE -ne 0) {
         $output | ForEach-Object { Write-Host $_ }
         throw "$Label failed with exit code $LASTEXITCODE"
@@ -39,11 +44,6 @@ try {
     )
     if ($xlExample -cne $cExample) { throw "C/XLang output differs: $xlExample / $cExample" }
 
-    $aot = Join-Path $work 'aot_core.exe'
-    [void](Invoke-Checked 'XLang core AOT build' @('build', 'extlibs/uia/test/aot_core.xl', '-o', $aot))
-    & $aot
-    if ($LASTEXITCODE -ne 0) { throw 'XLang core AOT run failed' }
-
     if ($StrictC) {
         $gcc = (Get-Command gcc -ErrorAction Stop).Source
         $outputExe = Join-Path $work 'uia_c_test.exe'
@@ -55,7 +55,31 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'GCC standalone C run failed' }
     }
 
-    Write-Host 'uia package checks: PASS'
+    if (-not $SkipAot) {
+        $aot = Join-Path $work 'aot_core.exe'
+        [void](Invoke-Checked 'XLang core AOT build' @('build', 'extlibs/uia/test/aot_core.xl', '-o', $aot))
+        & $aot
+        if ($LASTEXITCODE -ne 0) { throw 'XLang core AOT run failed' }
+
+        $fullAot = Join-Path $work 'uia_full.exe'
+        [void](Invoke-Checked 'XLang full example AOT build' @('build',
+            'examples/extlibs/uia.xl', '-o', $fullAot))
+        $fullOutput = & $fullAot 2>&1
+        if ($LASTEXITCODE -ne 0 -or ($fullOutput | Out-String).Trim() -cne $full) {
+            throw 'XLang full example AOT output differs from JIT'
+        }
+
+        $pairedAot = Join-Path $work 'uia_quick.exe'
+        [void](Invoke-Checked 'XLang paired example AOT build' @('build',
+            'examples/extlibs/uia_quick.xl', '-o', $pairedAot))
+        $pairedOutput = & $pairedAot 2>&1
+        if ($LASTEXITCODE -ne 0 -or ($pairedOutput | Out-String).Trim() -cne $cExample) {
+            throw 'XLang paired example AOT output differs from C'
+        }
+    }
+
+    Write-Host $(if ($SkipAot) { 'uia C/JIT checks: PASS (AOT skipped)' }
+        else { 'uia package checks: PASS' })
 } finally {
     Pop-Location
     $safeRoot = $workRoot.TrimEnd('\', '/')

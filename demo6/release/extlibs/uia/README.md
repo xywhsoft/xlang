@@ -27,7 +27,7 @@ Windows UI Automation 扩展库。C 桥接源代码和公开头文件分别为
 powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/uia/test/check.ps1 -StrictC
 ```
 
-包级门禁把核心 AOT 与独立 GCC C 测试产物写入本次独占的 `demo6/build/test` 子目录，结束时仅清理该目录；不会再向 `release/build/test/uia` 写入新产物。
+默认门禁同时构建并运行核心、完整公开范例和配对范例 AOT，并与 JIT/C 输出对照；当前共享主线缺符号会让默认门禁明确失败。开发时可加 `-SkipAot` 只检查 C/JIT，不能据此签收发布级。门禁把 AOT 与独立 GCC C 测试产物写入本次独占的 `demo6/build/test` 子目录，结束时仅清理该目录；不会再向 `release/build/test/uia` 写入新产物。
 
 ## 验收状态
 
@@ -47,4 +47,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/uia/test/check.ps1 -
 
 `test/test_uia_boundaries.xl` 已登记为 `coverage.tests`。本包属于平台套件，通用目录门禁默认跳过，只有明确选择 Windows UIA 包时才运行自建窗口用例。
 
-2026-10-24：长 BSTR 文本和动态 JSON 返回改为所有权转移，移除 `extern as string` 对整段输出的重复复制。C 侧验证 70,002 字节 JSON 指针原样转移、后续缓存复用不改写旧结果、错误路径不转移；XLang 侧验证长文本和快照跨调用仍有效。完整 `check.ps1 -StrictC` 通过。
+2026-10-24：长 BSTR 文本和动态 JSON 返回改为所有权转移，移除 `extern as string` 对整段输出的重复复制。C 侧验证 70,002 字节 JSON 指针原样转移、后续缓存复用不改写旧结果、错误路径不转移；XLang 侧验证长文本和快照跨调用仍有效。C/JIT 与核心 AOT 检查通过；完整范例 AOT 尚未签收。

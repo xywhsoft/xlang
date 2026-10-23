@@ -53,7 +53,7 @@ uia.shutdown()</code></pre>
     <pre><code>xl run examples/extlibs/uia_quick.xl
 xl run examples/extlibs/uia_quick_c.c extlibs/uia/x_uia_artifact.c --link user32 --link ole32 --link oleaut32
 powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/uia/test/check.ps1 -StrictC</code></pre>
-    <p>自建窗口的 C/JIT、自动与显式释放、原生组合条件、文本入口内嵌 NUL 拒绝、跨线程拒绝、事件短轮次压力和双语同输出已通过。构造 9,001 字符 BSTR 的转换层、9,000 字符快照属性和超过旧 64 KiB 的 JSON 均通过 C 回归；自建 Windows 控件的 UIA 属性只返回 4,096 字节，不能作为第三方控件超长属性端到端验收。定位器仍采用定长字段和最多 16 层的类路径；超长字段、超限路径、文本或数值属性读取失败及关键遍历失败均返回错误，不生成貌似有效的截断结果。自建窗口的正常定位器及 <code>ui.auto</code> 门禁已通过。最小核心 AOT 已构建并运行；完整范例 AOT 仍受共享运行时缺符号阻断。UIA 上下文限定在创建线程使用；真实应用的权限、DPI、远程会话及 Windows 版本矩阵仍需验证。</p>
+    <p>自建窗口的 C/JIT、自动与显式释放、原生组合条件、文本入口内嵌 NUL 拒绝、跨线程拒绝、事件短轮次压力和双语同输出已通过。构造 9,001 字符 BSTR 的转换层、9,000 字符快照属性和超过旧 64 KiB 的 JSON 均通过 C 回归；自建 Windows 控件的 UIA 属性只返回 4,096 字节，不能作为第三方控件超长属性端到端验收。定位器仍采用定长字段和最多 16 层的类路径；超长字段、超限路径、文本或数值属性读取失败及关键遍历失败均返回错误，不生成貌似有效的截断结果。自建窗口的正常定位器及 <code>ui.auto</code> 门禁已通过。默认门禁要求核心、完整公开范例和配对范例 AOT 全部构建运行并核对输出；<code>-SkipAot</code> 仅为 C/JIT 快测。最小核心 AOT 已构建并运行；完整范例 AOT 仍受共享运行时缺符号阻断，默认门禁据此失败。UIA 上下文限定在创建线程使用；真实应用的权限、DPI、远程会话及 Windows 版本矩阵仍需验证。</p>
   </section>
 </main>
 <script src="../main.js"></script>
