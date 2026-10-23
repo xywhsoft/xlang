@@ -26,5 +26,10 @@ try
 catch ValueError error
     failures += 1
 end
-assert failures == 1
+try
+    procps.name(2147483647)
+catch ValueError error
+    failures += 1
+end
+assert failures == 2
 println("procps boundaries: PASS")

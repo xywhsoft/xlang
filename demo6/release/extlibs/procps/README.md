@@ -30,6 +30,8 @@ Linux 优先读取 `/proc/pid/exe`，无可执行路径时回退 `comm`（内核
 误判为读取失败；两条路径都校验 UTF-8。若系统文件名包含非法 UTF-8 字节，
 `name()` 抛 `ValueError`，C 接口返回 `NULL` 并设置 `XERR_VALUE`，不返回
 非法字符串。错误和权限不会由静态缓冲或固定文本长度静默截断。
+进程已退出或名称不可读时，C 接口返回 `NULL` 且不留文件错误，XLang
+包装抛 `ValueError`；真正的内存失败仍保留 `XERR_MEMORY` 并抛 `MemoryError`。
 
 Linux 的 `/proc/<pid>/statm` 前两列须为完整的非负十进制整数；负数、
 数字尾部杂项或文件中的内嵌 NUL 均视为不可读取，`memKb` 返回 `-1`，
@@ -96,3 +98,5 @@ Linux 包级门禁；Windows 直接运行通过。未恢复旧字符串接口。
 2026-10-19：C 教学范例补 TCC 单文件入口，直接 `xl run` 与包运行器路径均通过；新增 Windows `test/check.ps1`，联合严格 GCC 头文件与清单宏检查、C/XLang 边界、三条范例路径的固定进程事实输出。Linux `test/check.sh` 同步固定结果和单文件 C 对照，严格 GCC、ASan/UBSan、非法 UTF-8 进程名与双语门禁通过。完整 AOT 共享缺符号阻断仍在，不签收发布级。
 
 2026-10-23：修复 Linux 查询已退出进程时 `statm` 文件错误被 XLang 自动抛出的情况；现在按公开合同返回 `-1`，仅保留真实内存故障。C 链接器夹具分别验证文件不存在与内存失败，C/XLang 用例验证不存在的 PID。Windows `check.ps1 -SkipAot`、Linux `check.sh`（含 ASan/UBSan）通过；完整 AOT 仍未签收。
+
+同日修复 Linux `name(pid)` 在进程消失后将 `/proc/<pid>/comm` 文件错误直接抛为 `FileError` 的问题。缺失/不可读回到公开的 `ValueError` 语义；注入夹具固定保留 `XERR_MEMORY`，真实不存在 PID 的 C/XLang 负例固定无残留文件错误与异常类型。Windows 聚焦门禁、Linux ASan/UBSan 与双语门禁通过，完整 AOT 未签收。

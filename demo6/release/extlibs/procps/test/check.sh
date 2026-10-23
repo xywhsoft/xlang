@@ -43,6 +43,13 @@ timeout 120s "$work/long_exe_name"
     -Wl,--wrap=xrtFileReadAllLimit -no-pie -lm -ldl \
     -o "$work/statm_malformed"
 timeout 120s "$work/statm_malformed"
+"$cc" "${flags[@]}" "$work/xrt_runtime.o" \
+    release/extlibs/procps/procps_native.c \
+    release/extlibs/procps/test/name_fallback.c \
+    -Wl,--wrap=readlink -Wl,--wrap=__readlink_chk \
+    -Wl,--wrap=xrtFileReadAllLimit -no-pie -lm -ldl \
+    -o "$work/name_fallback"
+timeout 120s "$work/name_fallback"
 bad="$work/procps-"$'\xff'
 mv -- "$work/test_procps" "$bad"
 "$bad" --invalid-name

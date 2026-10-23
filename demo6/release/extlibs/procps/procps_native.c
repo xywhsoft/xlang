@@ -341,6 +341,11 @@ char* xprocps_name(int64_t pid)
             xprocps_error(XERR_VALUE, "process name is not valid UTF-8");
             return NULL;
         }
+    } else {
+        const xerror* error = xrtGetError();
+        /* 进程消失或名称不可读由语言层报告为不可用；内存失败仍须传播。 */
+        if (error == NULL || xrtErrorKind(error) != XERR_MEMORY)
+            xrtClearError();
     }
     return fallback;
 #endif

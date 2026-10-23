@@ -74,6 +74,7 @@ int main(int argc, char** argv)
     CHECK(first != NULL && xrtGetError() == NULL);
     xrtFree(first);
     CHECK(xprocps_name(-1) == NULL);
+    CHECK(xprocps_name(INT32_MAX) == NULL && xrtGetError() == NULL);
 
     xrtSetErrorInfo(XERR_VALUE, "procps.test", 0, "stale error");
     ids = xprocps_pids();
