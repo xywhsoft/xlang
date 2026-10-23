@@ -319,7 +319,11 @@ static uint64 xl6SemCOwnedSignatureHash(const XL6_AstNode* node,uint64 hash)
     for(size_t i=0;i<node->childCount;++i)hash=xl6SemCOwnedSignatureHash(node->children[i],hash);
     return hash;
 }
-static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call,XL6_AstNode* function,int concreteGeneric)
+enum {
+    XL6_C_OWNED_CONCRETE_GENERIC=1,
+    XL6_C_OWNED_ORDINARY_RESULT=2
+};
+static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call,XL6_AstNode* function,int options)
 {
     if((function->kind!=XL6_AST_FUNC && function->kind!=XL6_AST_ASYNC_FUNC) || xl6SemFuncIsGeneric(function) ||
         call->childCount!=2 || call->children[0]->kind!=XL6_AST_NAME)return function;
@@ -344,7 +348,7 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
         const XL6_AstNode* argument=xl6SemCOwnedElement(actual);
         if(base && formal &&
             (xl6TextEquals(base,formal->text) ||
-             (concreteGeneric && argument && xl6TextEquals(argument->text,formal->text))))
+             ((options & XL6_C_OWNED_CONCRETE_GENERIC) && argument && xl6TextEquals(argument->text,formal->text))))
             any=promote[position]=1;
         xl6AstFree(actual);
     }
@@ -375,7 +379,7 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     }
     xrtFree(promote);
     XL6_AstNode* returns=signature->children[2];
-    if(function->kind!=XL6_AST_ASYNC_FUNC && !(function->flags & XL6_AST_FLAG_ASYNC) && returns->childCount==1 &&
+    if(!(options & XL6_C_OWNED_ORDINARY_RESULT) && function->kind!=XL6_AST_ASYNC_FUNC && !(function->flags & XL6_AST_FLAG_ASYNC) && returns->childCount==1 &&
         (xl6TextEquals(xl6SemCOwnedElement(returns->children[0])->text,"string") || xl6TextEquals(xl6SemCOwnedElement(returns->children[0])->text,"bytes"))) {
         XL6_AstNode* type=(XL6_AstNode*)xl6SemCOwnedElement(returns->children[0]);
         type->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
@@ -405,6 +409,26 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     xl6AstFree(call->inferredType);call->inferredType=NULL;
     return specialized;
 }
+/* Only a resolved function declaration may be specialized. A mutable callable
+ * value keeps its signature and uses the ordinary worker argument boundary. */
+static int xl6SemCOwnedSpawn(XL6_SemContext* ctx,XL6_AstNode* call,XL6_AstNode* callable)
+{
+    if(!callable || callable->kind!=XL6_AST_NAME || !callable->semanticTargetSymbolId)return 1;
+    XL6_Symbol* binding=xl6ScopeFind(ctx->scope,callable->text);
+    if(!binding || binding->kind!=XL6_SYM_FUNC)return 1;
+    XL6_AstNode* function=NULL;
+    for(size_t i=0;i<ctx->root->childCount;++i)
+        if(ctx->root->children[i]->semanticSymbolId==callable->semanticTargetSymbolId){function=ctx->root->children[i];break;}
+    if(!function || function->kind!=XL6_AST_FUNC)return 1;
+    XL6_AstNode* args=call->children[1];
+    XL6_AstNode arguments={0},probe={0};XL6_AstNode* children[2]={callable,&arguments};
+    arguments.kind=XL6_AST_LIST;arguments.children=args->children+1;arguments.childCount=args->childCount-1;
+    probe.kind=XL6_AST_CALL;probe.children=children;probe.childCount=2;
+    /* Future payloads keep the public result representation. */
+    XL6_AstNode* selected=xl6SemCOwnedSpecialize(ctx,&probe,function,XL6_C_OWNED_ORDINARY_RESULT);
+    if(!selected)return 0;
+    return selected==function || xl6SemBindUniqueNamedFunctionValue(ctx,callable,1);
+}
 static int xl6SemCOwnedSubstituteTypes(XL6_AstNode** place,const XL6_AstNode* params,const XL6_AstNode* args)
 {
     XL6_AstNode* node=*place;
@@ -430,7 +454,7 @@ static int xl6SemCOwnedGenericCall(XL6_SemContext* ctx,XL6_AstNode* call,XL6_Ast
     if(typeParams)typeParams->childCount=0;
     XL6_AstNode* original=call->children[0];
     call->children[0]=xl6SemCOwnedClone(function->children[0]);
-    XL6_AstNode* selected=xl6SemCOwnedSpecialize(ctx,call,concrete,1);
+    XL6_AstNode* selected=xl6SemCOwnedSpecialize(ctx,call,concrete,XL6_C_OWNED_CONCRETE_GENERIC);
     if(!selected || selected==concrete) {
         xl6AstFree(call->children[0]);call->children[0]=original;xl6AstFree(concrete);
         return selected ? 0 : -1;

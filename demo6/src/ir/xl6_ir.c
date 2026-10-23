@@ -10869,7 +10869,7 @@ int xl6IrTaskSpawnParameterAbiSupported(
             type->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
             type->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ||
             type->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR ||
-            xl6IrNativeValuePlanForType(type) != NULL);
+            xl6IrOwnedTransferPlanForType(type) != NULL);
 }
 
 static int xl6IrBuildClassAssignableTo(
@@ -10887,6 +10887,14 @@ int xl6IrTaskSpawnArgumentCanBind(
     if (!actual || !parameter) return 0;
     if (actualType == parameterType ||
         xl6IrCallableTypesCompatible(module, actualType, parameterType)) return 1;
+    if(xl6IrTypeIsCOwned(actual) || xl6IrTypeIsCOwned(parameter)) {
+        if(actual->kind==XL6_IR_TYPE_NULLABLE && parameter->kind!=XL6_IR_TYPE_NULLABLE)return 0;
+        int text=(actual->cAbi==XL6_IR_C_ABI_C_STRING || actual->cAbi==XL6_IR_C_ABI_MANAGED_STRING) &&
+            (parameter->cAbi==XL6_IR_C_ABI_C_STRING || parameter->cAbi==XL6_IR_C_ABI_MANAGED_STRING);
+        int bytes=(actual->cAbi==XL6_IR_C_ABI_C_BYTES || actual->cAbi==XL6_IR_C_ABI_MANAGED_BYTES) &&
+            (parameter->cAbi==XL6_IR_C_ABI_C_BYTES || parameter->cAbi==XL6_IR_C_ABI_MANAGED_BYTES);
+        if(text || bytes)return 1;
+    }
     if (xl6IrTypeIsDynamicXValueBuiltin(module, parameterType))
         return xl6IrTypeCanBoxRuntimeXValue(module, actualType);
     if (parameter->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&

@@ -1,0 +1,68 @@
+import concurrent
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_released" @no_raise func released() as int
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+func make() as cstring
+    return cstring.take(nativeText(),nativeFree)
+end
+func makeBytes() as cbytes
+    return cbytes.take(nativeBytes(),4,nativeFree)
+end
+func reader(string text,bytes data) as bool
+    return original(text) and originalBytes(data)
+end
+func optionalReader(string? text) as bool
+    return text!=null and original(text)
+end
+func throwing(string text) as bool
+    assert original(text)
+    throw "worker failed"
+end
+async func check()
+    auto text=make()
+    auto data=makeBytes()
+    assert await task.spawn(reader,text,data)
+    assert await task.spawn(originalBytes,data)
+    auto maybe=true ? text : null
+    auto absent=false ? text : null
+    assert await task.spawn(optionalReader,maybe)
+    assert not await task.spawn(optionalReader,absent)
+    assert released()==0
+    bool caught=false
+    try
+        bool ignored=await task.spawn(throwing,make())
+    catch ignored
+        caught=true
+    end
+    assert caught and released()==1
+end
+await check()
+assert released()==3
+
+func valueReader(string text) as bool
+    return text=="hello"
+end
+func returnText(string text) as string
+    assert original(text)
+    return text
+end
+async func checkFixedSignature()
+    auto text=make()
+    auto callback=valueReader
+    assert await task.spawn(callback,text)
+    assert await task.spawn(returnText,text)=="hello"
+end
+await checkFixedSignature()
+assert released()==4
+func failBytes() as cbytes
+    throw "argument failed"
+end
+try
+    auto ignored=task.spawn(reader,make(),failBytes())
+    assert false
+catch ignored
+end
+assert released()==5
