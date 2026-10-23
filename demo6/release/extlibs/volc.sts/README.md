@@ -44,8 +44,10 @@ Linux 可运行 `bash release/extlibs/volc.sts/test/check.sh`，以 ASan/UBSan
 不增加发布产物的代码量。
 直参签名和请求入口的换行拒绝、失败后成功预览的恢复已进入 C 边界门禁；
 XLang 直参包装改为直接调用定型入口，尚待依赖导入恢复后运行验证。
-当前 XLang 仅导入 `volc.sts` 就会在独立维护的 `xhttp.multipart` 的
-`Buffer.appendBytes` 处失败，最小复现见
+2026-10-24 用现行 `release/xl.exe check release/examples/extlibs/volc_sts.xl`
+复验，首先在独立维护的 `xhttp.body/src/xlang/xhttp_body.xl:59` 报未知
+`cstring`，`xhttp.client` 同样不认识该类型；旧记录中的
+`xhttp.multipart` / `Buffer.appendBytes` 不是当前首个阻断。原始复现见
 `dev/extlib_blockers/volc_sts_xhttp_multipart_import.md`。依赖修复后还需
 重跑 XLang 范例、补结构化 JSON 响应解析、mock/沙箱请求、C/XL
 同输出及完整 AOT。本包尚未达到发布验收。

@@ -4,7 +4,11 @@
 
 ## 当前状态
 
-**未达到发布验收，不应用于生产请求。** 现行 `xl.exe` 仅检查 `import volc.phone` 就会在独立维护的 `xhttp.multipart` 的 `Buffer.appendBytes` 调用处失败；因此现有 XLang 范例、在线请求和 AOT 均未通过。复现：
+**未达到发布验收，不应用于生产请求。** 2026-10-24 用现行
+`release/xl.exe` 检查 `import volc.phone`，首先在独立维护的
+`xhttp.body/src/xlang/xhttp_body.xl:59` 报未知类型 `cstring`，随后
+`xhttp.client` 也报同类错误；旧记录中的 `xhttp.multipart` / `appendBytes`
+不再是当前首个阻断。因此现有 XLang 范例、在线请求和 AOT 均未通过。复现：
 
 ```powershell
 cd demo6
