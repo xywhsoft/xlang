@@ -1,0 +1,37 @@
+import xhttp.body
+import xhttp.form_data
+from xhttp import Url
+from xhttp.body import Body
+extern "xhttp_client_request_create" func makeRequest(string method, c_size methodSize, string url, c_size urlSize) as point
+extern "xhttp_client_request_set_text_body" func setRequestText(point request, cstring text, cstring contentType) as bool
+extern "xhttp_client_request_body" func requestBody(point request) as point
+extern "xhttp_client_request_destroy" func destroyRequest(point request) as c_longlong
+
+extern "extlib_owned_text" @no_raise func ownedText(cstring text) as point
+extern "extlib_owned_free" @no_raise func drop(point data)
+extern "extlib_owned_released" @no_raise func released() as int
+
+func exercise()
+    assert Url.parse("https://example.test/").secure
+    Body body = Body.fromText("middle")
+    body = body.appendText(cstring.take(ownedText("你好"), drop))
+    body = body.prependText(cstring.take(ownedText("["), drop))
+    assert released() == 2
+    assert body.text() == "[middle你好"
+    assert Body.fromText("A").appendText("\0B").text() == "A\0B"
+    point request = makeRequest("POST", c_size(4), "https://example.test/", c_size(21))
+    assert request != null
+    try
+        assert setRequestText(request, cstring.take(ownedText("owned body"), drop), "text/plain")
+        assert released() == 3
+        assert Body(requestBody(request)).text() == "owned body"
+        assert setRequestText(request, "A\0B", "text/plain")
+        assert Body(requestBody(request)).text() == "A\0B"
+    finally
+        destroyRequest(request)
+    end
+end
+
+exercise()
+assert released() == 3
+println("extension HTTP input snapshots ok")

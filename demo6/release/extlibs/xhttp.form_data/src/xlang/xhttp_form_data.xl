@@ -120,14 +120,26 @@ end
 
 // FormDataEncoded 把组合式正文、boundary 和 Content-Type 作为一次编码结果返回。
 export class FormDataEncoded
-    Body body
-    MultipartBoundary boundary
+    private Body? storedBody = null
+    private MultipartBoundary? storedMultipartBoundary = null
     string contentType
 
     create(Body body, MultipartBoundary boundary, string contentType)
-        self.body = body
-        self.boundary = boundary
+        self.storedBody = body
+        self.storedMultipartBoundary = boundary
         self.contentType = contentType
+    end
+
+    get body() as Body
+        Body? value = self.storedBody
+        if value == null then throw RuntimeError "FormDataEncoded is not initialized" end
+        return value
+    end
+
+    get boundary() as MultipartBoundary
+        MultipartBoundary? value = self.storedMultipartBoundary
+        if value == null then throw RuntimeError "FormDataEncoded is not initialized" end
+        return value
     end
 end
 
@@ -137,7 +149,7 @@ end
 export class FormDataPart
     native point handle
     extern "xhttp_form_data_part_wrap" create(point handle)
-    extern "xhttp_form_data_part_destroy" destroy()
+    extern "xhttp_form_data_part_destroy_abi" destroy()
     extern "xhttp_form_data_part_text" func textNative(
         c_longlong field) as point
     extern "xhttp_form_data_part_has" func hasNative(
@@ -211,7 +223,7 @@ export class FormData
     native point handle
     extern "xhttp_form_data_create" create()
     extern "xhttp_form_data_wrap" create(point handle)
-    extern "xhttp_form_data_destroy" destroy()
+    extern "xhttp_form_data_destroy_abi" destroy()
     extern "xhttp_form_data_native" func nativeHandle() as point
     extern "xhttp_form_data_clone" func cloneNative() as point
     extern "xhttp_form_data_clear" func clear()
@@ -535,7 +547,7 @@ export class FormDataIter
     native point handle
     int index
     extern "xhttp_form_data_clone" create(point source)
-    extern "xhttp_form_data_destroy" destroy()
+    extern "xhttp_form_data_destroy_abi" destroy()
     extern "xhttp_form_data_value" func valueNative(
         c_longlong field) as c_ulonglong
     extern "xhttp_form_data_at" func atNative(

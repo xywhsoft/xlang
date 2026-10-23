@@ -3,7 +3,7 @@ extern "xhttp_protocol_cookie_count" func __xhttp_cookie_count(
     string text, c_size size) as c_longlong
 extern "xhttp_protocol_set_cookie_validate" func __xhttp_set_cookie_validate(
     string text, c_size size) as bool
-extern "xhttp_protocol_set_cookie_build" func __xhttp_set_cookie_build(
+extern "xhttp_protocol_set_cookie_build_owned" func __xhttp_set_cookie_build(
     string name, c_size nameSize,
     string value, c_size valueSize,
     string domain, c_size domainSize,
@@ -102,7 +102,7 @@ export class Headers
     extern "xhttp_protocol_headers_parse" create(
         string text, c_size size)
     extern "xhttp_protocol_headers_wrap" create(point handle)
-    extern "xhttp_protocol_headers_destroy" destroy()
+    extern "xhttp_protocol_headers_destroy_abi" destroy()
     extern "xhttp_protocol_headers_native" func nativeHandle() as point
     extern "xhttp_protocol_headers_clone" func cloneNative() as point
     extern "xhttp_protocol_headers_value" func valueNative(
@@ -123,7 +123,7 @@ export class Headers
         string name, c_size size, c_ulonglong occurrence) as point
     extern "xhttp_protocol_headers_add_block" func addBlockNative(
         string text, c_size size) as bool
-    extern "xhttp_protocol_headers_build" func buildNative() as point
+    extern "xhttp_protocol_headers_build_owned" func buildNative() as point
 
     static func parse(string text) as Headers
         return Headers(text, c_size(string.byteLen(text)))
@@ -230,7 +230,7 @@ export class Headers
     end
 
     func build() as string
-        return __xhttp_protocol_text(self.buildNative())
+        return __xhttp_protocol_owned_text(self.buildNative())
     end
 
     func __len__() as int
@@ -257,7 +257,7 @@ export class HeadersIter
     native point handle
     int index
     extern "xhttp_protocol_headers_clone" create(point source)
-    extern "xhttp_protocol_headers_destroy" destroy()
+    extern "xhttp_protocol_headers_destroy_abi" destroy()
     extern "xhttp_protocol_headers_value" func valueNative(
         c_longlong field) as c_ulonglong
     extern "xhttp_protocol_headers_at_text" func atTextNative(
@@ -306,7 +306,7 @@ export class Cookies
     extern "xhttp_protocol_cookies_parse" create(
         string text, c_size size)
     extern "xhttp_protocol_cookies_wrap" create(point handle)
-    extern "xhttp_protocol_cookies_destroy" destroy()
+    extern "xhttp_protocol_cookies_destroy_abi" destroy()
     extern "xhttp_protocol_cookies_native" func nativeHandle() as point
     extern "xhttp_protocol_cookies_clone" func cloneNative() as point
     extern "xhttp_protocol_cookies_count" func countNative() as c_ulonglong
@@ -315,7 +315,7 @@ export class Cookies
         c_ulonglong index, c_longlong field) as point
     extern "xhttp_protocol_cookies_get" func getNative(
         string name, c_size size, c_ulonglong occurrence) as point
-    extern "xhttp_protocol_cookies_build" func buildNative() as point
+    extern "xhttp_protocol_cookies_build_owned" func buildNative() as point
 
     static func parse(string text) as Cookies
         return Cookies(text, c_size(string.byteLen(text)))
@@ -375,7 +375,7 @@ export class Cookies
     end
 
     func build() as string
-        return __xhttp_protocol_text(self.buildNative())
+        return __xhttp_protocol_owned_text(self.buildNative())
     end
 
     func __len__() as int
@@ -399,18 +399,25 @@ end
 
 // CookiesIter 持有独立 Cookies 快照。
 export class CookiesIter
-    Cookies cookies
+    private Cookies? storedCookies = null
     int index
 
+    get cookies() as Cookies
+        Cookies? value = self.storedCookies
+        if value == null then throw RuntimeError "CookiesIter is not initialized" end
+        return value
+    end
+
     create(point handle)
-        self.cookies = Cookies(__xhttp_protocol_handle(handle))
+        self.storedCookies = Cookies(__xhttp_protocol_handle(handle))
     end
 
     func __next__() as (bool, CookiePair)
-        if self.index >= self.cookies.count then
+        Cookies cookies = self.cookies
+        if self.index >= cookies.count then
             return false, CookiePair("", "")
         end
-        CookiePair result = self.cookies.at(self.index)
+        CookiePair result = cookies.at(self.index)
         self.index += 1
         return true, result
     end
@@ -439,7 +446,7 @@ export class SetCookie
     extern "xhttp_protocol_set_cookie_parse" create(
         string text, c_size size)
     extern "xhttp_protocol_set_cookie_wrap" create(point handle)
-    extern "xhttp_protocol_set_cookie_destroy" destroy()
+    extern "xhttp_protocol_set_cookie_destroy_abi" destroy()
     extern "xhttp_protocol_set_cookie_native" func nativeHandle() as point
     extern "xhttp_protocol_set_cookie_clone" func cloneNative() as point
     extern "xhttp_protocol_set_cookie_text" func textNative(
@@ -476,7 +483,7 @@ export class SetCookie
         bool httpOnly = false,
         bool partitioned = false
     ) as string
-        return __xhttp_protocol_text(__xhttp_set_cookie_build(
+        return __xhttp_protocol_owned_text(__xhttp_set_cookie_build(
             name, c_size(string.byteLen(name)),
             value, c_size(string.byteLen(value)),
             domain, c_size(string.byteLen(domain)),
@@ -620,7 +627,7 @@ export class MediaType
     extern "xhttp_protocol_media_parse" create(
         string text, c_size size)
     extern "xhttp_protocol_media_wrap" create(point handle)
-    extern "xhttp_protocol_media_destroy" destroy()
+    extern "xhttp_protocol_media_destroy_abi" destroy()
     extern "xhttp_protocol_media_native" func nativeHandle() as point
     extern "xhttp_protocol_media_clone" func cloneNative() as point
     extern "xhttp_protocol_media_text" func textNative(
@@ -633,7 +640,7 @@ export class MediaType
         string name, c_size size) as c_longlong
     extern "xhttp_protocol_media_param_text" func paramTextNative(
         string name, c_size size) as point
-    extern "xhttp_protocol_media_build" func buildNative() as point
+    extern "xhttp_protocol_media_build_owned" func buildNative() as point
 
     static func parse(string text) as MediaType
         return MediaType(text, c_size(string.byteLen(text)))
@@ -695,7 +702,7 @@ export class MediaType
     end
 
     func build() as string
-        return __xhttp_protocol_text(self.buildNative())
+        return __xhttp_protocol_owned_text(self.buildNative())
     end
 
     func __toString__() as string
@@ -716,4 +723,10 @@ export class Mime
         return __xhttp_protocol_text(__xhttp_mime_lookup(
             path, c_size(string.byteLen(path)), true))
     end
+end
+
+// Protocol builders return XRT-owned, NUL-free, terminated text.
+func __xhttp_protocol_owned_text(point handle) as string
+    if handle == null then throw RuntimeError __xhttp_protocol_error() end
+    return __xl_runtime.takeCstr(handle)
 end

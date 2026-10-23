@@ -448,3 +448,15 @@ xhttp_client_exchange_value(void* pHandle, long long iField)
 			return 0u;
 	}
 }
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_CLIENT_EXPORT void xhttp_client_plan_destroy_abi(void* handle)
+{
+    (void)xhttp_client_plan_destroy(handle);
+}
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_CLIENT_EXPORT void xhttp_client_exchange_destroy_abi(void* handle)
+{
+    (void)xhttp_client_exchange_destroy(handle);
+}

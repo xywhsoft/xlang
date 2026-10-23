@@ -270,8 +270,8 @@ XLANG_XHTTP_PROTOCOL_EXPORT bool xhttp_protocol_headers_add_block(
 
 
 /* 构建包含最终空行的完整 Header 块。 */
-XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_headers_build(
-	void* pHandle
+static void* xhttp_protocol_headers_build_impl(
+	void* pHandle, size_t* outputSize
 )
 {
 	xhttpheaders* pHeaders = xhttpProtocolHeadersRequire(pHandle);
@@ -282,10 +282,29 @@ XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_headers_build(
 		return NULL;
 	}
 	sText = xrtHttpHeadersBuild(pHeaders, &iSize);
-	return sText != NULL ?
-		xhttpProtocolNativeBufferTake(
-			(bytes)sText,
-			iSize,
-			iSize + 1u
-		) : NULL;
+	if ( outputSize != NULL ) *outputSize = iSize;
+	return sText;
+}
+
+XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_headers_build_owned(
+	void* pHandle
+)
+{
+    return xhttp_protocol_headers_build_impl(pHandle, NULL);
+}
+
+/* Compatibility C entry continues to return an owned Buffer. */
+XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_headers_build(
+	void* pHandle
+)
+{
+    size_t size = 0;
+    str text = (str)xhttp_protocol_headers_build_impl(pHandle, &size);
+    return text != NULL ? xhttpProtocolNativeBufferTake((bytes)text, size, size + 1u) : NULL;
+}
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_PROTOCOL_EXPORT void xhttp_protocol_headers_destroy_abi(void* handle)
+{
+    (void)xhttp_protocol_headers_destroy(handle);
 }

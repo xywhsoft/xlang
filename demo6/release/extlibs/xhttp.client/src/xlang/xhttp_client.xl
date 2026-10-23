@@ -96,7 +96,7 @@ end
 export class Request
     native point handle
     extern "xhttp_client_request_wrap" create(point handle)
-    extern "xhttp_client_request_destroy" destroy()
+    extern "xhttp_client_request_destroy_abi" destroy()
     extern "xhttp_client_request_native" func nativeHandle() as point
     extern "xhttp_client_request_clone" func cloneNative() as point
     extern "xhttp_client_request_text" func textNative(
@@ -120,6 +120,8 @@ export class Request
     extern "xhttp_client_request_set_body" func setBodyNative(
         point body) as bool
     extern "xhttp_client_request_clear_body" func clearBodyNative() as bool
+    extern "xhttp_client_request_set_text_body" func setTextBodyNative(
+        cstring text, cstring contentType) as bool
     extern "xhttp_client_request_set_bytes" func setBytesNative(
         point data, c_size size,
         string contentType, c_size contentTypeSize) as bool
@@ -267,11 +269,9 @@ export class Request
         string text,
         string contentType = "text/plain; charset=utf-8"
     )
-        Buffer data = Buffer()
-        if not data.append(text) then
+        if not self.setTextBodyNative(text, contentType) then
             throw RuntimeError __xhttp_client_error()
         end
-        self.setBody(data, contentType)
     end
 
     func clearBody()
@@ -336,7 +336,7 @@ end
 export class Http1RequestPlan
     native point handle
     extern "xhttp_client_plan_wrap" create(point handle)
-    extern "xhttp_client_plan_destroy" destroy()
+    extern "xhttp_client_plan_destroy_abi" destroy()
     extern "xhttp_client_plan_native" func nativeHandle() as point
     extern "xhttp_client_plan_text" func textNative(
         c_longlong field) as point
@@ -452,7 +452,7 @@ end
 export class Response
     native point handle
     extern "xhttp_client_response_wrap" create(point handle)
-    extern "xhttp_client_response_destroy" destroy()
+    extern "xhttp_client_response_destroy_abi" destroy()
     extern "xhttp_client_response_native" func nativeHandle() as point
     extern "xhttp_client_response_value" func valueNative(
         c_longlong field) as c_ulonglong
@@ -552,7 +552,7 @@ end
 export class Http1Exchange
     native point handle
     extern "xhttp_client_exchange_wrap" create(point handle)
-    extern "xhttp_client_exchange_destroy" destroy()
+    extern "xhttp_client_exchange_destroy_abi" destroy()
     extern "xhttp_client_exchange_native" func nativeHandle() as point
     extern "xhttp_client_exchange_output" func outputNative(
         c_size maxBytes) as point
@@ -773,7 +773,7 @@ end
 export class HttpResult
     native point handle
     extern "xhttp_client_result_wrap" create(point handle)
-    extern "xhttp_client_result_destroy" destroy()
+    extern "xhttp_client_result_destroy_abi" destroy()
     extern "xhttp_client_result_native" func nativeHandle() as point
     extern "xhttp_client_result_has_response" get hasResponse() as bool
     extern "xhttp_client_result_take_response" func takeResponseNative() as point
@@ -907,7 +907,7 @@ end
 export class HttpClient
     native point handle
     extern "xhttp_client_wrap" create(point handle)
-    extern "xhttp_client_destroy" destroy()
+    extern "xhttp_client_destroy_abi" destroy()
     extern "xhttp_client_native" func nativeHandle() as point
     extern "xhttp_client_drain" func drain() as bool
     extern "xhttp_client_abort" func abort() as bool

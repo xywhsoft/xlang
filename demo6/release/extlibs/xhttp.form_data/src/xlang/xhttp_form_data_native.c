@@ -597,3 +597,15 @@ XLANG_XHTTP_FORM_DATA_EXPORT unsigned long long xhttp_form_data_part_flags(
 
 	return pPart != NULL ? (unsigned long long)pPart->Flags : 0u;
 }
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_FORM_DATA_EXPORT void xhttp_form_data_destroy_abi(void* handle)
+{
+    (void)xhttp_form_data_destroy(handle);
+}
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_FORM_DATA_EXPORT void xhttp_form_data_part_destroy_abi(void* handle)
+{
+    (void)xhttp_form_data_part_destroy(handle);
+}

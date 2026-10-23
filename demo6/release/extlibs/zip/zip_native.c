@@ -348,3 +348,10 @@ XZIP_EXPORT void* xzip_archive_take_buffer(void* pHandle)
 	}
 	return pData;
 }
+
+XZIP_EXPORT bool xzip_archive_add_text(void* handle, const char* name,
+    xstrview text, bool overwrite, int method, int level)
+{
+    return xzip_archive_add(handle, name, (void*)text.Data, text.Size,
+        overwrite, method, level);
+}

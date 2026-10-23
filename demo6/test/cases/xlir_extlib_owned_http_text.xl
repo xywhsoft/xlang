@@ -1,0 +1,31 @@
+import xhttp
+import xhttp.protocol
+from xhttp import QueryParams, FormCodec
+from xhttp.protocol import Headers, Cookies, SetCookie, MediaType
+
+extern "xhttp_protocol_headers_build_owned" func buildHeaders(point handle) as point
+extern "extlib_text_is_pointer" @no_raise func samePointer(cstring text, point expected) as bool
+
+func exercise()
+    auto headers = Headers()
+    assert headers.add("X-Test", "hello")
+    string block = headers.build()
+    assert block == "X-Test: hello\r\n\r\n"
+    point allocation = buildHeaders(headers.nativeHandle())
+    string adopted = __xl_runtime.takeCstr(allocation)
+    assert samePointer(adopted, allocation), "HTTP builder output must be adopted without a payload copy"
+    assert adopted == block
+    assert Headers().build() == "\r\n"
+    assert Cookies.parse("a=1; b=two").build() == "a=1; b=two"
+    assert MediaType.parse("text/plain; charset=utf-8").build() == "text/plain; charset=utf-8"
+    assert SetCookie.build("sid", "abc", path="/", secure=true) == "sid=abc; Path=/; Secure"
+    auto params = QueryParams()
+    params.append("x", "A\0B")
+    assert params.build() == "x=A%00B"
+    assert FormCodec.encode("A\0你好") == "A%00%E4%BD%A0%E5%A5%BD"
+    assert FormCodec.encode(Buffer.fromHex("00ff")) == "%00%FF"
+    assert FormCodec.encode("") == ""
+    assert FormCodec.decode("A%00B").text() == "A\0B"
+end
+exercise()
+println("HTTP owned builder text ok")

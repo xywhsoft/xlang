@@ -169,3 +169,9 @@ XLANG_XHTTP_CLIENT_EXPORT void* xhttp_client_response_body(
 	return pResponse != NULL ?
 		xhttpClientNativeBytes(xrtHttpResponseBody(pResponse)) : NULL;
 }
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_CLIENT_EXPORT void xhttp_client_response_destroy_abi(void* handle)
+{
+    (void)xhttp_client_response_destroy(handle);
+}

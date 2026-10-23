@@ -329,3 +329,9 @@ XLANG_XHTTP_EXPORT long long xhttp_url_default_port(
 {
 	return xrtUrlDefaultPort((xstrview){ sScheme, iSize });
 }
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_EXPORT void xhttp_url_destroy_abi(void* handle)
+{
+    (void)xhttp_url_destroy(handle);
+}

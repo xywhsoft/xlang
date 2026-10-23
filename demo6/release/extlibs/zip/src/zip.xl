@@ -105,6 +105,8 @@ export class ZipArchive
     private extern "xzip_archive_directory_at" func directoryNative(int index) as bool
     private extern "xzip_archive_comment_at" func commentNative(int index) as point
     private extern "xzip_archive_read_at" func readNative(int index) as point
+    private extern "xzip_archive_add_text" func addTextNative(string name, cstring text,
+        c_bool overwrite, c_int method, c_int level) as bool
     private extern "xzip_archive_add" func addNative(string name, point data, c_size size,
         c_bool overwrite, c_int method, c_int level) as bool
     private extern "xzip_archive_add_file" func addFileNative(string name, string path,
@@ -202,9 +204,12 @@ export class ZipArchive
 
     func add(string name, string text, bool overwrite = false,
         string method = "default", int level = -1)
-        Buffer data = Buffer()
-        data.append(text)
-        self.add(name, data, overwrite, method, level)
+        __zip_cstr(name)
+        __zip_check_entry_level(level)
+        if not self.addTextNative(name, text, c_bool(overwrite),
+            c_int(__zip_method(method)), c_int(level)) then
+            throw ArchiveError __zip_error()
+        end
     end
 
     func addFile(string name, string path, bool overwrite = false,

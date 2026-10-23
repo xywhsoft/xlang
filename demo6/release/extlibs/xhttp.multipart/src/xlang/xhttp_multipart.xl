@@ -146,7 +146,7 @@ export class MultipartBoundary
     extern "xhttp_multipart_boundary_create" create(
         string text, c_size size, c_longlong mode)
     extern "xhttp_multipart_boundary_wrap" create(point handle)
-    extern "xhttp_multipart_boundary_destroy" destroy()
+    extern "xhttp_multipart_boundary_destroy_abi" destroy()
     extern "xhttp_multipart_boundary_native" func nativeHandle() as point
     extern "xhttp_multipart_boundary_text" func textNative() as point
 
@@ -195,7 +195,7 @@ export class MultipartPart
     native point handle
     var owner = null
     extern "xhttp_multipart_part_wrap" create(point handle)
-    extern "xhttp_multipart_part_destroy" destroy()
+    extern "xhttp_multipart_part_destroy_abi" destroy()
     extern "xhttp_multipart_part_native" func nativeHandle() as point
     extern "xhttp_multipart_part_data" func data() as point
     extern "xhttp_multipart_part_size" func sizeNative() as c_ulonglong
@@ -294,7 +294,7 @@ export class MultipartParser
         c_longlong maxPartBytes, c_longlong maxBodyBytes,
         bool validate)
     extern "xhttp_multipart_parser_wrap" create(point handle)
-    extern "xhttp_multipart_parser_destroy" destroy()
+    extern "xhttp_multipart_parser_destroy_abi" destroy()
     extern "xhttp_multipart_parser_native" func nativeHandle() as point
     extern "xhttp_multipart_parser_next" func nextNative() as point
     extern "xhttp_multipart_parser_reset" func reset() as bool
@@ -349,8 +349,7 @@ export class MultipartParser
         MultipartLimits? limits = null
     ) as MultipartParser
         Buffer stable = Buffer()
-        if not stable.appendBytes(
-            source, c_size(string.byteLen(source))) then
+        if not stable.append(source) then
             throw RuntimeError __xhttp_multipart_error()
         end
         return MultipartParser.borrow(stable, boundary, limits, true)
@@ -412,10 +411,16 @@ end
 
 // MultipartWriter 既提供完整便利写出，也保留头、正文、尾分段发送路径。
 export class MultipartWriter
-    MultipartBoundary boundary
+    private MultipartBoundary? storedMultipartBoundary = null
+
+    get boundary() as MultipartBoundary
+        MultipartBoundary? value = self.storedMultipartBoundary
+        if value == null then throw RuntimeError "MultipartWriter is not initialized" end
+        return value
+    end
 
     create(MultipartBoundary boundary)
-        self.boundary = boundary
+        self.storedMultipartBoundary = boundary
     end
 
     get contentType() as string
@@ -497,7 +502,7 @@ export class MultipartEvent
     native point handle
     var source = null
     extern "xhttp_multipart_event_wrap" create(point handle)
-    extern "xhttp_multipart_event_destroy" destroy()
+    extern "xhttp_multipart_event_destroy_abi" destroy()
     extern "xhttp_multipart_event_status" func statusNative() as c_longlong
     extern "xhttp_multipart_event_consumed" func consumedNative() as c_ulonglong
     extern "xhttp_multipart_event_part" func partNative() as point
@@ -561,7 +566,7 @@ export class MultipartReader
         c_longlong maxDelimiterBytes, c_longlong maxHeaderBytes,
         c_longlong maxPartBytes, c_longlong maxBodyBytes)
     extern "xhttp_multipart_reader_wrap" create(point handle)
-    extern "xhttp_multipart_reader_destroy" destroy()
+    extern "xhttp_multipart_reader_destroy_abi" destroy()
     extern "xhttp_multipart_reader_native" func nativeHandle() as point
     extern "xhttp_multipart_reader_reset" func reset() as bool
     extern "xhttp_multipart_reader_read" func readNative(

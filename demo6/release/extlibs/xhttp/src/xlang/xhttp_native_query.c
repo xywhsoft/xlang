@@ -363,7 +363,8 @@ XLANG_XHTTP_EXPORT bool xhttp_params_maintain(
 
 
 /* 构建 form-urlencoded 文本并把所有权移交给 Buffer。 */
-XLANG_XHTTP_EXPORT void* xhttp_params_build(void* pHandle)
+static void* xhttp_params_build_impl(void* pHandle, size_t* outputSize
+)
 {
 	str sText;
 	size_t iSize = 0u;
@@ -372,32 +373,56 @@ XLANG_XHTTP_EXPORT void* xhttp_params_build(void* pHandle)
 		return NULL;
 	}
 	sText = xrtQueryParamsBuild((xqueryparams*)pHandle, &iSize);
-	return sText != NULL ?
-		xhttpNativeBufferTake(
-			(bytes)sText,
-			iSize,
-			iSize + 1u
-		) : NULL;
+	if ( outputSize != NULL ) *outputSize = iSize;
+	return sText;
+}
+
+XLANG_XHTTP_EXPORT void* xhttp_params_build_owned(void* pHandle)
+{
+    return xhttp_params_build_impl(pHandle, NULL);
+}
+
+/* Compatibility C entry continues to return an owned Buffer. */
+XLANG_XHTTP_EXPORT void* xhttp_params_build(void* pHandle)
+{
+    size_t size = 0;
+    str text = (str)xhttp_params_build_impl(pHandle, &size);
+    return text != NULL ? xhttpNativeBufferTake((bytes)text, size, size + 1u) : NULL;
 }
 
 
 
 /* 对单段字节执行 form-urlencoded 编码。 */
-XLANG_XHTTP_EXPORT void* xhttp_form_encode(
+static void* xhttp_form_encode_build_impl(
 	const void* pData,
-	size_t iSize
+	size_t iSize, size_t* outputSize
 )
 {
 	str sText;
 	size_t iOutput = 0u;
 
 	sText = xrtFormEncodeNew(pData, iSize, &iOutput);
-	return sText != NULL ?
-		xhttpNativeBufferTake(
-			(bytes)sText,
-			iOutput,
-			iOutput + 1u
-		) : NULL;
+	if ( outputSize != NULL ) *outputSize = iOutput;
+	return sText;
+}
+
+XLANG_XHTTP_EXPORT void* xhttp_form_encode_owned(
+	const void* pData,
+	size_t iSize
+)
+{
+    return xhttp_form_encode_build_impl(pData, iSize, NULL);
+}
+
+/* Compatibility C entry continues to return an owned Buffer. */
+XLANG_XHTTP_EXPORT void* xhttp_form_encode(
+	const void* pData,
+	size_t iSize
+)
+{
+    size_t size = 0;
+    str text = (str)xhttp_form_encode_build_impl(pData, iSize, &size);
+    return text != NULL ? xhttpNativeBufferTake((bytes)text, size, size + 1u) : NULL;
 }
 
 
@@ -442,4 +467,20 @@ XLANG_XHTTP_EXPORT long long xhttp_query_count(
 		NULL,
 		&iCount
 	) ? (long long)iCount : -1;
+}
+
+XLANG_XHTTP_EXPORT void* xhttp_form_encode_text_owned(const char* text, size_t size)
+{
+    return xhttp_form_encode_owned(text, size);
+}
+
+XLANG_XHTTP_EXPORT void* xhttp_form_encode_owned_abi(void* data, size_t size)
+{
+    return xhttp_form_encode_owned(data, size);
+}
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_EXPORT void xhttp_params_destroy_abi(void* handle)
+{
+    (void)xhttp_params_destroy(handle);
 }

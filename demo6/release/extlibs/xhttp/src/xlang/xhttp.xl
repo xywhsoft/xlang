@@ -3,9 +3,9 @@ extern "xhttp_url_path_normalize" func __xhttp_path_normalize(
     string path, c_size size) as point
 extern "xhttp_url_default_port" func __xhttp_default_port(
     string scheme, c_size size) as c_longlong
-extern "xhttp_form_encode" func __xhttp_form_encode(
+extern "xhttp_form_encode_owned_abi" func __xhttp_form_encode(
     point data, c_size size) as point
-extern "xhttp_form_encode_text" func __xhttp_form_encode_text(
+extern "xhttp_form_encode_text_owned" func __xhttp_form_encode_text(
     string text, c_size size) as point
 extern "xhttp_form_decode" func __xhttp_form_decode(
     string text, c_size size) as point
@@ -70,7 +70,7 @@ export class Url
     native point handle
     extern "xhttp_url_parse" create(string text, c_size size)
     extern "xhttp_url_wrap" create(point handle)
-    extern "xhttp_url_destroy" destroy()
+    extern "xhttp_url_destroy_abi" destroy()
     extern "xhttp_url_native" func nativeHandle() as point
     extern "xhttp_url_text" func textNative() as point
     extern "xhttp_url_component" func componentNative(
@@ -265,7 +265,7 @@ export class QueryParams
     extern "xhttp_params_parse" create(
         string text, c_size size, bool lenient)
     extern "xhttp_params_wrap" create(point handle)
-    extern "xhttp_params_destroy" destroy()
+    extern "xhttp_params_destroy_abi" destroy()
     extern "xhttp_params_native" func nativeHandle() as point
     extern "xhttp_params_clone" func cloneNative() as point
     extern "xhttp_params_value" func valueNative(
@@ -291,7 +291,7 @@ export class QueryParams
         string text, c_size size) as bool
     extern "xhttp_params_maintain" func maintainNative(
         c_longlong operation) as bool
-    extern "xhttp_params_build" func buildNative() as point
+    extern "xhttp_params_build_owned" func buildNative() as point
 
     static func parse(string text, bool lenient = false) as QueryParams
         return QueryParams(text, c_size(string.byteLen(text)), lenient)
@@ -413,7 +413,7 @@ export class QueryParams
     end
 
     func build() as string
-        return __xhttp_text(self.buildNative())
+        return __xhttp_owned_text(self.buildNative())
     end
 
     func __len__() as int
@@ -440,7 +440,7 @@ export class QueryParamsIter
     native point handle
     int index
     extern "xhttp_params_clone" create(point source)
-    extern "xhttp_params_destroy" destroy()
+    extern "xhttp_params_destroy_abi" destroy()
     extern "xhttp_params_value" func valueNative(
         c_longlong field) as c_ulonglong
     extern "xhttp_params_at_text" func atTextNative(
@@ -478,12 +478,12 @@ end
 // FormCodec 提供字节优先的 application/x-www-form-urlencoded 单值编解码。
 export class FormCodec
     static func encode(string text) as string
-        return __xhttp_text(__xhttp_form_encode_text(
+        return __xhttp_owned_text(__xhttp_form_encode_text(
             text, c_size(string.byteLen(text))))
     end
 
     static func encode(Buffer data) as string
-        return __xhttp_text(__xhttp_form_encode(
+        return __xhttp_owned_text(__xhttp_form_encode(
             data.data(), c_size(data.len())))
     end
 
@@ -509,4 +509,10 @@ export class Query
     static func valid(string text) as bool
         return Query.count(text) >= 0
     end
+end
+
+// Protocol builders return XRT-owned, NUL-free, terminated text.
+func __xhttp_owned_text(point handle) as string
+    if handle == null then throw RuntimeError __xhttp_error() end
+    return __xl_runtime.takeCstr(handle)
 end

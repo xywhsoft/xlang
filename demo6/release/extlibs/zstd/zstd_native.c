@@ -389,3 +389,13 @@ XZSTD_EXPORT unsigned long long xzstd_decompressor_members(void* pHandle)
 {
 	return xrtZstdDecompressorMembers((const xrtzstddecompressor*)pHandle);
 }
+
+XZSTD_EXPORT void* xzstd_compress_text(xstrview text, int level,
+    unsigned long long maxInput, unsigned long long maxOutput)
+{
+    return xzstd_compress((void*)text.Data, text.Size, level, maxInput, maxOutput);
+}
+XZSTD_EXPORT bool xzstd_compressor_update_text(void* handle, xstrview text)
+{
+    return xzstd_compressor_update(handle, (void*)text.Data, text.Size);
+}

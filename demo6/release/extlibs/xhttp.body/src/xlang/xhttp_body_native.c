@@ -452,3 +452,27 @@ XLANG_XHTTP_BODY_EXPORT void* xhttp_body_with_bytes(
 	Pieces[1] = bPrepend ? Body : Bytes;
 	return xrtHttpBodyCompose(Pieces, 2u);
 }
+
+XLANG_XHTTP_BODY_EXPORT void* xhttp_body_with_text(void* handle,
+    xstrview text, bool prepend)
+{
+    return xhttp_body_with_bytes(handle, (void*)text.Data, text.Size, prepend);
+}
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_BODY_EXPORT void xhttp_body_destroy_abi(void* handle)
+{
+    (void)xhttp_body_destroy(handle);
+}
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_BODY_EXPORT void xhttp_body_reader_destroy_abi(void* handle)
+{
+    (void)xhttp_body_reader_destroy(handle);
+}
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_BODY_EXPORT void xhttp_body_chunk_destroy_abi(void* handle)
+{
+    (void)xhttp_body_chunk_destroy(handle);
+}

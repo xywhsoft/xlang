@@ -358,3 +358,15 @@ xhttp_multipart_event_error_offset(void* pHandle)
 
 	return pEvent != NULL ? pEvent->Error.Offset : 0u;
 }
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_MULTIPART_EXPORT void xhttp_multipart_reader_destroy_abi(void* handle)
+{
+    (void)xhttp_multipart_reader_destroy(handle);
+}
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_MULTIPART_EXPORT void xhttp_multipart_event_destroy_abi(void* handle)
+{
+    (void)xhttp_multipart_event_destroy(handle);
+}

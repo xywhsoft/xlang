@@ -287,3 +287,14 @@ XRT_API void* xsax_error_message(void)
 		pState->tError.sMessage : "XML SAX operation failed";
 	return xrtStrDup(sMessage);
 }
+
+XRT_API void* xsax_open_text(const char* text, unsigned long long size,
+    bool namespaceAware, bool preserveComments, bool allowDtd,
+    bool allowExternalEntities, unsigned long long maxInput,
+    unsigned long long maxOutput, unsigned long long maxItem,
+    unsigned long long maxEntries, unsigned long long maxNodes, unsigned int maxDepth)
+{
+    return xsax_open_memory((void*)text, size, namespaceAware, preserveComments,
+        allowDtd, allowExternalEntities, maxInput, maxOutput, maxItem,
+        maxEntries, maxNodes, maxDepth);
+}

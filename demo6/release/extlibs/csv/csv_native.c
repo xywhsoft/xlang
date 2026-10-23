@@ -448,3 +448,12 @@ void* xcsv_writer_take_text(void* pValue)
 	xrtBufferDestroy(pBuffer);
 	return sText;
 }
+
+/* The reader still owns one input snapshot; the XL temporary Buffer is gone. */
+void* xcsv_reader_open_text(cstr text, uint64 size, cstr delimiter, cstr quote,
+    bool strict, uint64 maxInput, uint64 maxOutput, uint64 maxItem,
+    uint64 maxRows, uint64 maxFields)
+{
+    return xcsv_reader_open_memory((void*)text, size, delimiter, quote, strict,
+        maxInput, maxOutput, maxItem, maxRows, maxFields);
+}

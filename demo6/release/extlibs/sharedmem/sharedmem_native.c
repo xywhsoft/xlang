@@ -422,3 +422,8 @@ int xshm_zero(void* Handle)
     memset(Shared->Mapping + sizeof(xshm_header), 0, Shared->Size);
     return 1;
 }
+
+int xshm_write_text(void* handle, int64_t offset, xstrview text)
+{
+    return xshm_write(handle, offset, text.Data, text.Size);
+}

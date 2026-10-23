@@ -222,8 +222,8 @@ XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_cookies_get(
 
 
 /* 规范构建当前 Cookies 的字段值。 */
-XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_cookies_build(
-	void* pHandle
+static void* xhttp_protocol_cookies_build_impl(
+	void* pHandle, size_t* outputSize
 )
 {
 	xhttp_protocol_cookies* pCookies =
@@ -237,10 +237,25 @@ XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_cookies_build(
 	sText = xrtCookieBuild(
 		pCookies->Pairs, pCookies->Count, &iSize
 	);
-	return sText != NULL ?
-		xhttpProtocolNativeBufferTake(
-			(bytes)sText, iSize, iSize + 1u
-		) : NULL;
+	if ( outputSize != NULL ) *outputSize = iSize;
+	return sText;
+}
+
+XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_cookies_build_owned(
+	void* pHandle
+)
+{
+    return xhttp_protocol_cookies_build_impl(pHandle, NULL);
+}
+
+/* Compatibility C entry continues to return an owned Buffer. */
+XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_cookies_build(
+	void* pHandle
+)
+{
+    size_t size = 0;
+    str text = (str)xhttp_protocol_cookies_build_impl(pHandle, &size);
+    return text != NULL ? xhttpProtocolNativeBufferTake((bytes)text, size, size + 1u) : NULL;
 }
 
 
@@ -527,7 +542,7 @@ XLANG_XHTTP_PROTOCOL_EXPORT bool xhttp_protocol_set_cookie_validate(
 
 
 /* 从常用属性直接构建 Set-Cookie 字段值。 */
-XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_set_cookie_build(
+static void* xhttp_protocol_set_cookie_build_impl(
 	const char* sName,
 	size_t iName,
 	const char* sValue,
@@ -544,7 +559,7 @@ XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_set_cookie_build(
 	long long iPriority,
 	bool bSecure,
 	bool bHttpOnly,
-	bool bPartitioned
+	bool bPartitioned, size_t* outputSize
 )
 {
 	xsetcookie Cookie;
@@ -588,8 +603,67 @@ XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_set_cookie_build(
 		Cookie.Flags |= XSET_COOKIE_PARTITIONED;
 	}
 	sText = xrtSetCookieBuild(&Cookie, &iSize);
-	return sText != NULL ?
-		xhttpProtocolNativeBufferTake(
-			(bytes)sText, iSize, iSize + 1u
-		) : NULL;
+	if ( outputSize != NULL ) *outputSize = iSize;
+	return sText;
+}
+
+XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_set_cookie_build_owned(
+	const char* sName,
+	size_t iName,
+	const char* sValue,
+	size_t iValue,
+	const char* sDomain,
+	size_t iDomain,
+	const char* sPath,
+	size_t iPath,
+	bool bHasExpires,
+	long long iExpires,
+	bool bHasMaxAge,
+	long long iMaxAge,
+	long long iSameSite,
+	long long iPriority,
+	bool bSecure,
+	bool bHttpOnly,
+	bool bPartitioned
+)
+{
+    return xhttp_protocol_set_cookie_build_impl(sName, iName, sValue, iValue, sDomain, iDomain, sPath, iPath, bHasExpires, iExpires, bHasMaxAge, iMaxAge, iSameSite, iPriority, bSecure, bHttpOnly, bPartitioned, NULL);
+}
+
+/* Compatibility C entry continues to return an owned Buffer. */
+XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_set_cookie_build(
+	const char* sName,
+	size_t iName,
+	const char* sValue,
+	size_t iValue,
+	const char* sDomain,
+	size_t iDomain,
+	const char* sPath,
+	size_t iPath,
+	bool bHasExpires,
+	long long iExpires,
+	bool bHasMaxAge,
+	long long iMaxAge,
+	long long iSameSite,
+	long long iPriority,
+	bool bSecure,
+	bool bHttpOnly,
+	bool bPartitioned
+)
+{
+    size_t size = 0;
+    str text = (str)xhttp_protocol_set_cookie_build_impl(sName, iName, sValue, iValue, sDomain, iDomain, sPath, iPath, bHasExpires, iExpires, bHasMaxAge, iMaxAge, iSameSite, iPriority, bSecure, bHttpOnly, bPartitioned, &size);
+    return text != NULL ? xhttpProtocolNativeBufferTake((bytes)text, size, size + 1u) : NULL;
+}
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_PROTOCOL_EXPORT void xhttp_protocol_cookies_destroy_abi(void* handle)
+{
+    (void)xhttp_protocol_cookies_destroy(handle);
+}
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_PROTOCOL_EXPORT void xhttp_protocol_set_cookie_destroy_abi(void* handle)
+{
+    (void)xhttp_protocol_set_cookie_destroy(handle);
 }

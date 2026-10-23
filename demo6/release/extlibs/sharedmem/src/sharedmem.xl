@@ -17,6 +17,7 @@ export class SharedMemory
     private extern "xshm_size" func sizeNative() as int
     private extern "xshm_name_of" func nameNative() as string
     private extern "xshm_write_abi" func writeNative(int offset, point data, c_size length) as c_int
+    private extern "xshm_write_text" func writeTextNative(int offset, cstring text) as c_int
     private extern "xshm_read" func readNative(int offset, c_size length) as point
     private extern "xshm_write_int64" func writeIntNative(int offset, int value) as c_int
     private extern "xshm_read_int64_value" func readIntNative(int offset) as int
@@ -44,9 +45,9 @@ export class SharedMemory
     end
 
     func writeText(int offset, string text)
-        Buffer bytes = Buffer()
-        if not bytes.append(text) then throw MemoryError "shared memory text allocation failed" end
-        self.write(offset, bytes)
+        if self.writeTextNative(offset, text) == 0 then
+            throw RangeError __shm_error()
+        end
     end
 
     func readText(int offset, int length) as string

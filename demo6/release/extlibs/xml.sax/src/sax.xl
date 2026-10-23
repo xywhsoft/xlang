@@ -3,6 +3,11 @@ extern "xsax_open_memory" func __sax_open_memory(point data,
     c_bool allowDtd, c_bool allowExternalEntities, c_ulonglong maxInput,
     c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
     c_ulonglong maxNodes, c_uint maxDepth) as point
+extern "xsax_open_text" func __sax_open_text(string text,
+    c_ulonglong size, c_bool namespaceAware, c_bool preserveComments,
+    c_bool allowDtd, c_bool allowExternalEntities, c_ulonglong maxInput,
+    c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
+    c_ulonglong maxNodes, c_uint maxDepth) as point
 extern "xsax_open_file" func __sax_open_file(string path,
     c_bool namespaceAware, c_bool preserveComments, c_bool allowDtd,
     c_bool allowExternalEntities, c_ulonglong maxInput,
@@ -112,9 +117,7 @@ export func reader(string text, bool namespaceAware = true,
     if string.byteLen(text) > maxInput then
         throw ValueError "xml.sax: input exceeds maxInput"
     end
-    Buffer data = Buffer()
-    data.append(text)
-    point handle = __sax_open_memory(data.data(), c_ulonglong(data.len()),
+    point handle = __sax_open_text(text, c_ulonglong(string.byteLen(text)),
         c_bool(namespaceAware), c_bool(preserveComments), c_bool(allowDtd),
         c_bool(allowExternalEntities), c_ulonglong(maxInput),
         c_ulonglong(maxOutput), c_ulonglong(maxItem),

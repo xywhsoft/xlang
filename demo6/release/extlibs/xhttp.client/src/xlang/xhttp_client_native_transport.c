@@ -380,10 +380,7 @@ static int xhttpClientFutureMap(
 	bInvoked = xrtValueInvoke(pMapper->Boxer, &Frame, &Result);
 	xrtValueRelease(pArgumentValue);
 	if ( !bInvoked ) {
-		if ( xl6ExtlibErrorPending() ) {
-			xl6ExtlibErrorPublishXrt();
-			xl6ExtlibErrorClear();
-		}
+		/* xrtValueInvoke publishes the callback error through XRT itself. */
 		xrtCallResultUnit(&Result);
 		return xhttpClientFutureMapError(
 			pOutput,
@@ -634,4 +631,16 @@ XLANG_XHTTP_CLIENT_EXPORT long long xhttp_client_result_value(
 			);
 			return 0;
 	}
+}
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_CLIENT_EXPORT void xhttp_client_destroy_abi(void* handle)
+{
+    (void)xhttp_client_destroy(handle);
+}
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_CLIENT_EXPORT void xhttp_client_result_destroy_abi(void* handle)
+{
+    (void)xhttp_client_result_destroy(handle);
 }

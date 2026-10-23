@@ -629,3 +629,15 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_part_transfer_encoding(
 		Text.Size
 	});
 }
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_MULTIPART_EXPORT void xhttp_multipart_boundary_destroy_abi(void* handle)
+{
+    (void)xhttp_multipart_boundary_destroy(handle);
+}
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_MULTIPART_EXPORT void xhttp_multipart_part_destroy_abi(void* handle)
+{
+    (void)xhttp_multipart_part_destroy(handle);
+}

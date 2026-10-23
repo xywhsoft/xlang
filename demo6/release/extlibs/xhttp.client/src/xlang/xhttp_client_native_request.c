@@ -376,3 +376,16 @@ XLANG_XHTTP_CLIENT_EXPORT bool xhttp_client_request_set_form_data(
 		(const xmultipartboundary*)pBoundary
 	);
 }
+
+XLANG_XHTTP_CLIENT_EXPORT bool xhttp_client_request_set_text_body(
+    void* handle, xstrview text, xstrview contentType)
+{
+    return xhttp_client_request_set_bytes(handle, (void*)text.Data, text.Size,
+        contentType.Data, contentType.Size);
+}
+
+/* Void destructor ABI used by current XLang native classes. */
+XLANG_XHTTP_CLIENT_EXPORT void xhttp_client_request_destroy_abi(void* handle)
+{
+    (void)xhttp_client_request_destroy(handle);
+}

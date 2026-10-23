@@ -31,6 +31,9 @@ export class Reader
     private extern "xcsv_reader_open_memory" create(point data, uint64 size,
         string delimiter, string quote, c_bool strict, uint64 maxInput,
         uint64 maxOutput, uint64 maxField, uint64 maxRows, uint64 maxFields)
+    private extern "xcsv_reader_open_text" create(string text, uint64 size,
+        string delimiter, string quote, c_bool strict, uint64 maxInput,
+        uint64 maxOutput, uint64 maxField, uint64 maxRows, uint64 maxFields)
     private extern "xcsv_reader_open_file" create(string path, string delimiter,
         string quote, c_bool strict, uint64 maxInput, uint64 maxOutput,
         uint64 maxField, uint64 maxRows, uint64 maxFields)
@@ -133,17 +136,23 @@ end
 
 // 字典层只处理表头和行形状，底层输入、错误和关闭规则复用普通读取器。
 export class DictReader
-    private Reader source
+    private Reader? source = null
     private array<string> fieldNames = array<string>[]
     private bool hasRow = false
 
+    private get activeReader() as Reader
+        Reader? value = self.source
+        if value == null then throw RuntimeError "CSV source is not initialized" end
+        return value
+    end
+
     create(Reader source)
         self.source = source
-        if not self.source.next() then
+        if not source.next() then
             throw CsvError "CSV dictionary input has no header row"
         end
         set<string> seen = set<string>{}
-        for name in self.source.row()
+        for name in source.row()
             if name in seen then
                 throw CsvError "CSV dictionary header contains a duplicate field: " + name
             end
@@ -157,19 +166,20 @@ export class DictReader
     end
 
     get eof() as bool
-        return self.source.eof
+        return self.activeReader.eof
     end
 
     get rowNumber() as int
-        return self.source.rowNumber
+        return self.activeReader.rowNumber
     end
 
     func next() as bool
+        Reader source = self.activeReader
         self.hasRow = false
-        if not self.source.next() then
+        if not source.next() then
             return false
         end
-        if self.source.count != self.fieldNames.length then
+        if source.count != self.fieldNames.length then
             throw CsvError "CSV dictionary row field count does not match its header"
         end
         self.hasRow = true
@@ -180,23 +190,30 @@ export class DictReader
         if not self.hasRow then
             throw RuntimeError "CSV dictionary reader has no current row"
         end
+        Reader source = self.activeReader
         dict<string> result = dict<string>{}
         for i in range(self.fieldNames.length)
-            result[self.fieldNames[i]] = self.source.field(i)
+            result[self.fieldNames[i]] = source.field(i)
         end
         return result
     end
 
     func close()
         self.hasRow = false
-        self.source.close()
+        self.activeReader.close()
     end
 end
 
 
 export class DictWriter
-    private Writer output
+    private Writer? output = null
     private array<string> fieldNames = array<string>[]
+
+    private get activeWriter() as Writer
+        Writer? value = self.output
+        if value == null then throw RuntimeError "CSV output is not initialized" end
+        return value
+    end
 
     create(Writer output, array<string> headers, bool writeHeader = true)
         self.output = output
@@ -212,7 +229,7 @@ export class DictWriter
             self.fieldNames.append(name)
         end
         if writeHeader then
-            self.output.write(self.fieldNames)
+            output.write(self.fieldNames)
         end
     end
 
@@ -235,19 +252,19 @@ export class DictWriter
         if matched != values.length then
             throw CsvError "CSV dictionary row contains a field outside its header"
         end
-        self.output.write(fields)
+        self.activeWriter.write(fields)
     end
 
     func close()
-        self.output.close()
+        self.activeWriter.close()
     end
 
     func finish() as Buffer
-        return self.output.finish()
+        return self.activeWriter.finish()
     end
 
     func finishText() as string
-        return self.output.finishText()
+        return self.activeWriter.finishText()
     end
 end
 
@@ -290,10 +307,9 @@ export func parse(string text, string delimiter = ",", string quote = "\"",
     if maxInput != 0 and string.byteLen(text) > maxInput then
         throw RangeError "CSV input exceeds maxInput"
     end
-    Buffer data = Buffer()
-    data.append(text)
-    Reader source = open(data, delimiter, quote, strict, maxInput, maxOutput,
-        maxField, maxRows, maxFields)
+    Reader source = Reader(text, uint64(string.byteLen(text)), delimiter, quote,
+        c_bool(strict), uint64(maxInput), uint64(maxOutput), uint64(maxField),
+        uint64(maxRows), uint64(maxFields))
     array<var> result = array<var>[]
     while source.next()
         var row = source.row()
