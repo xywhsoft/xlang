@@ -237,14 +237,11 @@ static void xclip_set_xrt_error(void)
 
 
 /* 创建字符串 Value 并把所有权移入数组。 */
-static int xclip_array_append_text(xvalue* pArray, const char* sText)
+static int xclip_array_append_text(xvalue* pArray, char** pText)
 {
 	xvalue* pValue;
 
-	if ( sText == NULL ) {
-		sText = "";
-	}
-	pValue = xrtValueString((xstrview){ sText, strlen(sText) });
+	pValue = xrtValueStringTake(pText, strlen(*pText));
 	if ( pValue == NULL ) {
 		xclip_set_error("out of memory");
 		return 0;
@@ -274,15 +271,17 @@ static xvalue* xclip_value_text(const char* text)
 
 static xvalue* xclip_take_text(char* text)
 {
-	xvalue* result = xclip_value_text(text);
+	xvalue* result = xrtValueStringTake(&text, strlen(text));
 	xrtFree(text);
 	return result;
 }
 
 static xvalue* xclip_value_buffer(xbuffer* buffer)
 {
-	xvalue* result = xrtValueString((xstrview){
-		buffer->Data != NULL ? (const char*)buffer->Data : "", buffer->Size });
+	size_t size = buffer->Size;
+	char* text = (char*)xrtBufferTake(buffer, NULL, NULL);
+	xvalue* result = (text != NULL || size == 0u) ? xrtValueStringTake(&text, size) : NULL;
+	xrtFree(text);
 	xrtBufferUnit(buffer);
 	return result;
 }
@@ -1073,7 +1072,7 @@ XL_EXPORT xvalue* x_clipboard_formats(void)
 			break;
 		}
 		char* name = xclip_format_name_alloc(fmt);
-		int appended = name != NULL && xclip_array_append_text(out, name);
+		int appended = name != NULL && xclip_array_append_text(out, &name);
 		xrtFree(name);
 		if ( !appended ) {
 			CloseClipboard();
@@ -1139,8 +1138,7 @@ XL_EXPORT xvalue* x_clipboard_format_name(int64_t format_id)
 	}
 	name = xclip_format_name_alloc((UINT)format_id);
 	if ( name == NULL ) return NULL;
-	result = xrtValueString((xstrview){ name, strlen(name) });
-	xrtFree(name);
+	result = xclip_take_text(name);
 	if ( result != NULL ) xclip_set_error("");
 	return result;
 }
@@ -1351,7 +1349,7 @@ XL_EXPORT xvalue* x_clipboard_get_files(void)
 			return NULL;
 		}
 		char* utf8 = xclip_wide_to_utf8(wide);
-		int appended = utf8 != NULL && xclip_array_append_text(out, utf8);
+		int appended = utf8 != NULL && xclip_array_append_text(out, &utf8);
 		xrtFree(wide);
 		xrtFree(utf8);
 		if ( !appended ) {

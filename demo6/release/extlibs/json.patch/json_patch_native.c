@@ -814,7 +814,7 @@ xvalue *xjsonpatch_encode_pointer_value(xvalue *key) {
         return xjp_null_fail("pointer key must be a string");
     encoded = xjp_encode_pointer(text, &size);
     if (encoded == NULL) return xrtValueNull();
-    result = xrtValueString((xstrview){encoded, size});
+    result = xrtValueStringTake(&encoded, size);
     xrtFree(encoded);
     return result != NULL ? result : xrtValueNull();
 }

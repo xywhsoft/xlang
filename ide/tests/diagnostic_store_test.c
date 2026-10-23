@@ -1,4 +1,5 @@
 #include "services/diagnostic_store.h"
+#include "protocol/diagnostic_paths.h"
 #include "platform/path.h"
 #include <xrt.h>
 #include <stdio.h>
@@ -43,6 +44,75 @@ static size_t errors(const xvalue* groups,const char* path)
 static int invalidated(const xvalue* keys,const char* key)
 { for(size_t i=0;i<xrtValueCount(keys);++i) { const char* value=string(xrtValueArrayGet(keys,i)); if(value && !strcmp(value,key)) return 1; } return 0; }
 static void wake(void* user) { xrtAtomic32FetchAdd(user,1,XMEMORY_RELAXED); }
+static xvalue* dependencyPaths(const xide_diagnostic_publication* publication,size_t index)
+{
+ const char* id=xideDiagnosticPublicationDependencyId(publication,index);const xvalue* chunks=xideDiagnosticPublicationDependencyChunks(publication,index);
+ CHECK(id && chunks && xrtValueCount(chunks)>0 && xideDiagnosticPublicationFindDependency(publication,id)==index);
+ xvalue* paths=xrtValueArray();CHECK(paths);
+ for(size_t i=0;i<xrtValueCount(chunks);++i) {
+  const xvalue* chunk=xrtValueArrayGet(chunks,i),*part=get(chunk,"paths");int64 schema=0,number=0,total=0;bool removed=true;size_t bytes=0;
+  char* encoded=xrtJsonStringify(chunk,false,&bytes);CHECK(encoded && bytes<=256u*1024u);xrtFree(encoded);
+  CHECK(xrtValueGetInt(get(chunk,"schema"),&schema) && schema==1 && !strcmp(string(get(chunk,"id")),id) &&
+   xrtValueGetInt(get(chunk,"part"),&number) && number==(int64)i && xrtValueGetInt(get(chunk,"parts"),&total) && total==(int64)xrtValueCount(chunks) &&
+   xrtValueGetBool(get(chunk,"removed"),&removed) && !removed && part && xrtValueType(part)==XVALUE_ARRAY);
+  for(size_t j=0;j<xrtValueCount(part);++j) CHECK(xrtValueArrayAppend(paths,xrtValueArrayGet(part,j)));
+ }
+ char digest[65];CHECK(xlsDiagnosticPathsDigest(paths,digest) && !strcmp(digest,id));return paths;
+}
+static int dependencyContains(const xvalue* paths,const char* path)
+{for(size_t i=0;i<xrtValueCount(paths);++i) if(xidePathLexicalEqual(string(xrtValueArrayGet(paths,i)),path)) return 1;return 0;}
+static xide_diagnostic_publication* takePublication(xide_diagnostic_query* query)
+{
+ xide_diagnostic_snapshot result={0};CHECK(query && waitFor(query,&result)==XIDE_DIAGNOSTIC_READY);
+ xide_diagnostic_publication* p=NULL;xvalue* invalidated=NULL;CHECK(xideDiagnosticQueryTake(query,&p,&invalidated) && p);
+ xrtValueRelease(invalidated);xideDiagnosticQueryDestroy(query);return p;
+}
+static int dependencyScopes(void)
+{
+ CHECK(!xideDiagnosticStoreCreateWithDependencies(NULL,2));CHECK(!xideDiagnosticPublicationDependencyCount(NULL) && !xideDiagnosticPublicationDependencyId(NULL,0));
+ CHECK(!xideDiagnosticPublicationGroupDependency(NULL,0) && !xideDiagnosticPublicationDependencyChunks(NULL,0) && xideDiagnosticPublicationFindDependency(NULL,"x")==SIZE_MAX);
+ char relative[100];snprintf(relative,sizeof(relative),"build/dependency-scopes-%llu",(unsigned long long)xrtClock());CHECK(xrtDirCreateAll(relative));char* root=xrtPathAbs(relative);CHECK(root);
+ char *a=xrtPathJoin(root,"a.xl"),*b=xrtPathJoin(root,"b.xl"),*shared=xrtPathJoin(root,"shared.xl"),*other=xrtPathJoin(root,"other.xl");CHECK(a && b && shared && other);
+ const char* entry="import shared\nfunc main(...) as int\n return shared.value()\nend\n";
+ xide_language_snapshot inputs[]={{a,entry,1},{b,entry,1},{shared,"export func value() as int\n return \"bad\"\nend\n",1},{other,"func main(...) as int\n return missing\nend\n",1}};
+ xide_diagnostic_store* store=xideDiagnosticStoreCreateWithDependencies(NULL,1);fixture value=capture(root,a,inputs,4,0);CHECK(store && value.guard);
+ xvalue* expected=xideLanguageInputGuardPaths(value.guard,NULL,NULL);CHECK(expected);
+ xide_diagnostic_publication* first=takePublication(insert(store,"a",value));CHECK(first && xideDiagnosticPublicationDependencyCount(first)==1);
+ xvalue* firstPaths=dependencyPaths(first,0);CHECK(firstPaths && xrtValueEqual(expected,firstPaths));xrtValueRelease(expected);xrtValueRelease(firstPaths);
+ char firstId[65];memcpy(firstId,xideDiagnosticPublicationDependencyId(first,0),65);
+ value=capture(root,b,inputs,4,0);CHECK(value.guard);xide_diagnostic_publication* second=takePublication(insert(store,"b",value));
+ CHECK(second && xideDiagnosticPublicationDependencyCount(second)==3 && xideDiagnosticPublicationFindDependency(second,firstId)!=SIZE_MAX);
+ size_t group=xideDiagnosticPublicationFind(second,shared);const char* id=xideDiagnosticPublicationGroupDependency(second,group);CHECK(id);
+ xvalue* paths=dependencyPaths(second,xideDiagnosticPublicationFindDependency(second,id));CHECK(paths && dependencyContains(paths,a) && dependencyContains(paths,b) && dependencyContains(paths,shared) && !dependencyContains(paths,other));xrtValueRelease(paths);
+ value=capture(root,other,inputs,4,0);CHECK(value.guard);xide_diagnostic_publication* third=takePublication(insert(store,"other",value));CHECK(third);
+ size_t independent=xideDiagnosticPublicationFind(third,other);char independentId[65];memcpy(independentId,xideDiagnosticPublicationGroupDependency(third,independent),65);
+ xide_diagnostic_publication* fourth=takePublication(xideDiagnosticStoreRemove(store,"a"));CHECK(fourth && xideDiagnosticPublicationFindDependency(fourth,independentId)!=SIZE_MAX);
+ CHECK(xideDiagnosticPublicationEqual(third,independent,fourth,xideDiagnosticPublicationFind(fourth,other)));
+ id=xideDiagnosticPublicationGroupDependency(fourth,xideDiagnosticPublicationFind(fourth,shared));CHECK(id);
+ paths=dependencyPaths(fourth,xideDiagnosticPublicationFindDependency(fourth,id));CHECK(paths && !dependencyContains(paths,a) && dependencyContains(paths,b));
+ xideDiagnosticStoreDestroy(store);xideDiagnosticPublicationDestroy(first);xideDiagnosticPublicationDestroy(second);xideDiagnosticPublicationDestroy(third);xideDiagnosticPublicationDestroy(fourth);
+ CHECK(dependencyContains(paths,b));xrtValueRelease(paths);xrtFree(a);xrtFree(b);xrtFree(shared);xrtFree(other);xrtFree(root);return 1;
+}
+static int dependencyParts(void)
+{
+ char* base=xrtPathAbs("build/long-virtual-dependency-root");CHECK(base);xstrbuf directory;xrtStrBufInit(&directory);CHECK(xrtStrBufAppend(&directory,xrtStrView(base)));xrtFree(base);
+ while(directory.Size<6000) CHECK(xrtStrBufAppend(&directory,xrtStrView("/segment-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")));
+ xstrbuf entry;xrtStrBufInit(&entry);
+ for(size_t i=0;i<47;++i) {char line[64];snprintf(line,sizeof(line),"import m%zu\n",i);CHECK(xrtStrBufAppend(&entry,xrtStrView(line)));}
+ CHECK(xrtStrBufAppend(&entry,xrtStrView("func main(...) as int\n return 0\nend\n")));
+ /* The native frontend limits source imports to512-byte paths. Long missing
+    package candidates still belong to its observed input guard, including an
+    erroneous entry; exercise multipart metadata without inventing imports. */
+ char* path=xrtPathJoin(directory.Data,"entry.xl");char* candidate=xrtPathJoin(directory.Data,"m0/xlang.package.json");CHECK(path && candidate);
+ xide_language_snapshot input={path,entry.Data,1};
+ xide_diagnostic_store* store=xideDiagnosticStoreCreateWithDependencies(NULL,1);fixture value=capture(directory.Data,path,&input,1,0);CHECK(store && value.guard);
+ xide_diagnostic_publication* publication=takePublication(insert(store,"long",value));CHECK(publication && xideDiagnosticPublicationCount(publication)==1 && xideDiagnosticPublicationDependencyCount(publication)==1);
+ const xvalue* chunks=xideDiagnosticPublicationDependencyChunks(publication,0);CHECK(xrtValueCount(chunks)>1);
+ xvalue* paths=dependencyPaths(publication,0);CHECK(paths);const char* id=xideDiagnosticPublicationDependencyId(publication,0);
+ CHECK(dependencyContains(paths,path) && dependencyContains(paths,candidate) && !strcmp(xideDiagnosticPublicationGroupDependency(publication,0),id));
+ xideDiagnosticStoreDestroy(store);xideDiagnosticPublicationDestroy(publication);CHECK(dependencyContains(paths,path));xrtValueRelease(paths);xrtFree(path);xrtFree(candidate);
+ xrtStrBufFree(&entry);xrtStrBufFree(&directory);return 1;
+}
 static int run(void)
 {
  xide_diagnostic_snapshot snapshot={0}; CHECK(xideDiagnosticQueryResult(NULL,&snapshot)==XIDE_DIAGNOSTIC_FAILED && !snapshot.documents);
@@ -189,6 +259,6 @@ static int run(void)
 }
 int main(void)
 {
- if(!run()) return 1;
+ if(!run() || !dependencyScopes() || !dependencyParts()) return 1;
  printf("diagnostic_store_test passed: %u checks; real multi-entry diagnostics, exact collision-safe deduplication, version/limit failures, independent inputs/lifetimes, async ownership and4MiB disk sweep queue/cancel/shutdown.\n",checks); return 0;
 }

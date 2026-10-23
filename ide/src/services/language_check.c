@@ -139,6 +139,50 @@ xide_language_input_guard* xideLanguageCheckCaptureInputGuard(xide_language_chec
 }
 const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard)
 { return guard ? guard->files : NULL; }
+typedef struct guard_path { const xvalue* value; wchar_t* native; } guard_path;
+static int compareGuardPath(const void* a,const void* b)
+{
+ const guard_path *x=a,*y=b; int order=xidePathNativeKeyCompare(x->native,y->native);
+ return order ? order : strcmp(string(x->value),string(y->value));
+}
+xvalue* xideLanguageInputGuardsPaths(const xide_language_input_guard* const* guards,size_t count,int (*stopped)(void*),void* user)
+{
+ if(count>64 || (count && !guards) || (stopped && stopped(user))) return NULL;
+ size_t total=0,used=0;
+ for(size_t g=0;g<count;++g) {
+  if(!guards[g]) return NULL;
+  size_t files=xrtValueCount(guards[g]->files),probes=xrtValueCount(get(guards[g]->resolution,"probes"));
+  if(files>512 || probes>2048) return NULL;
+  total+=files+probes;
+ }
+ guard_path* paths=xrtCalloc(total+1,sizeof(*paths)); xvalue* out=NULL;
+ if(!paths) return NULL;
+ for(size_t g=0;g<count;++g) {
+ const xvalue* lists[]={guards[g]->files,get(guards[g]->resolution,"probes")};
+ size_t counts[]={xrtValueCount(lists[0]),xrtValueCount(lists[1])};
+ for(size_t i=0;i<2;++i) for(size_t j=0;j<counts[i];++j) {
+  if(used%16==0 && stopped && stopped(user)) goto done;
+  const xvalue* value=get(xrtValueArrayGet(lists[i],j),"path");const char* path=string(value);
+  wchar_t* native=path ? xidePathNativeWide(path) : NULL;
+  if(!native) goto done;
+  paths[used++]=(guard_path){value,native};
+ }
+ }
+ if(used) qsort(paths,used,sizeof(*paths),compareGuardPath);
+ out=xrtValueArray();if(!out) goto done;
+ for(size_t i=0;i<used;++i) {
+  if((i%16==0 && stopped && stopped(user)) ||
+     ((!i || xidePathNativeKeyCompare(paths[i-1].native,paths[i].native)) && !xrtValueArrayAppend(out,(xvalue*)paths[i].value))) {
+   xrtValueRelease(out);out=NULL;goto done;
+  }
+ }
+ if(stopped && stopped(user)) {xrtValueRelease(out);out=NULL;}
+done:
+ for(size_t i=0;i<used;++i) free(paths[i].native);
+ xrtFree(paths);return out;
+}
+xvalue* xideLanguageInputGuardPaths(const xide_language_input_guard* guard,int (*stopped)(void*),void* user)
+{ return guard ? xideLanguageInputGuardsPaths(&guard,1,stopped,user) : NULL; }
 int xideLanguageInputGuardCurrent(const xide_language_input_guard* guard)
 { return guard && !xrtAtomic32Load(&guard->invalid,XMEMORY_ACQUIRE); }
 void xideLanguageInputGuardInvalidate(xide_language_input_guard* guard)

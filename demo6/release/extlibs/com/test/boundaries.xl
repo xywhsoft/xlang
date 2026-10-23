@@ -28,6 +28,10 @@ func main(...) as int
 
     var value = com.invoke(handle, "LongText", array[])
     assert string.byteLen(string(value)) == 6006, "long value text"
+    value = com.invoke(handle, "EmptyText", array[])
+    assert string.byteLen(string(value)) == 0, "empty BSTR value"
+    value = com.invoke(handle, "NulText", array[])
+    assert string.byteLen(string(value)) == 3 and string(value) == "a\0b", "embedded NUL BSTR value"
     assert int(com.invoke_named(handle, "Sub", array[9, 4], array["left", ""])) == 5, "named then positional"
     assert int(com.invoke_named(handle, "Sub", array[9, 4], array["", "right"])) == 5, "positional then named"
     try

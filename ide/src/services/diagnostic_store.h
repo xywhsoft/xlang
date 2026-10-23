@@ -22,6 +22,9 @@ typedef struct xide_diagnostic_load { size_t queued,running; uint64_t submitted,
    per entry. Default limits:64records,32MiB retained/4MiB publication encoded
    reports,8queued jobs. Byte limits measure JSON metadata, not heap/RSS. */
 xide_diagnostic_store* xideDiagnosticStoreCreate(const xide_diagnostic_limits* limits);
+/* Opt-in immutable path dictionaries for exact client invalidation. Work is
+   confined to the same actor. Existing callers retain their original format. */
+xide_diagnostic_store* xideDiagnosticStoreCreateWithDependencies(const xide_diagnostic_limits* limits,int enabled);
 /* Cancels/joins actor; shutdown-only, never on an interactive owner path.
    Completed query snapshots can outlive the store. */
 void xideDiagnosticStoreDestroy(xide_diagnostic_store* store);
@@ -52,6 +55,13 @@ size_t xideDiagnosticPublicationFind(const xide_diagnostic_publication* publicat
 /* Prepared sorted path comparison and exact group equality, no I/O or copies. */
 int xideDiagnosticPublicationCompare(const xide_diagnostic_publication* left,size_t leftIndex,const xide_diagnostic_publication* right,size_t rightIndex);
 int xideDiagnosticPublicationEqual(const xide_diagnostic_publication* left,size_t leftIndex,const xide_diagnostic_publication* right,size_t rightIndex);
+/* Worker-prepared dictionary chunks are bounded to256KiB. IDs reference exact
+   path sets shared by contributing entries; no report clone or I/O here. */
+size_t xideDiagnosticPublicationDependencyCount(const xide_diagnostic_publication* publication);
+const char* xideDiagnosticPublicationDependencyId(const xide_diagnostic_publication* publication,size_t index);
+const char* xideDiagnosticPublicationGroupDependency(const xide_diagnostic_publication* publication,size_t index);
+size_t xideDiagnosticPublicationFindDependency(const xide_diagnostic_publication* publication,const char* id);
+const xvalue* xideDiagnosticPublicationDependencyChunks(const xide_diagnostic_publication* publication,size_t index);
 int xideDiagnosticQuerySetWake(xide_diagnostic_query* query,void (*wake)(void*),void* user);
 void xideDiagnosticQueryCancel(xide_diagnostic_query* query);
 void xideDiagnosticQueryDestroy(xide_diagnostic_query* query);

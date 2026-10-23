@@ -48,6 +48,8 @@ static IDispatchVtbl g_x_com_test_vtbl = {
 #define X_COM_TEST_DISP_VALUES 9
 #define X_COM_TEST_DISP_GRID 10
 #define X_COM_TEST_DISP_EMPTY 11
+#define X_COM_TEST_DISP_EMPTY_TEXT 12
+#define X_COM_TEST_DISP_NUL_TEXT 13
 #define X_COM_TEST_DISP_LEFT 101
 #define X_COM_TEST_DISP_RIGHT 102
 #define X_COM_TEST_DISP_VALUE 103
@@ -103,6 +105,14 @@ static int x_com_test_name_to_dispid(const wchar_t* name, DISPID* dispid)
 	}
 	if ( x_com_wide_equals_ci(name, L"LongText") ) {
 		*dispid = X_COM_TEST_DISP_LONG_TEXT;
+		return 1;
+	}
+	if ( x_com_wide_equals_ci(name, L"EmptyText") ) {
+		*dispid = X_COM_TEST_DISP_EMPTY_TEXT;
+		return 1;
+	}
+	if ( x_com_wide_equals_ci(name, L"NulText") ) {
+		*dispid = X_COM_TEST_DISP_NUL_TEXT;
 		return 1;
 	}
 	if ( x_com_wide_equals_ci(name, L"Fail") ) {
@@ -394,6 +404,25 @@ static HRESULT STDMETHODCALLTYPE x_com_test_Invoke(IDispatch* self, DISPID dispI
 			text[6000] = 0x4f60;
 			text[6001] = 0x597d;
 			pVarResult->bstrVal = SysAllocStringLen(text, 6002u);
+			if ( pVarResult->bstrVal == NULL ) {
+				return E_OUTOFMEMORY;
+			}
+			pVarResult->vt = VT_BSTR;
+		}
+		return S_OK;
+	case X_COM_TEST_DISP_EMPTY_TEXT:
+		if ( pVarResult != NULL ) {
+			pVarResult->bstrVal = SysAllocStringLen(L"", 0u);
+			if ( pVarResult->bstrVal == NULL ) {
+				return E_OUTOFMEMORY;
+			}
+			pVarResult->vt = VT_BSTR;
+		}
+		return S_OK;
+	case X_COM_TEST_DISP_NUL_TEXT:
+		if ( pVarResult != NULL ) {
+			const wchar_t text[3] = { L'a', 0, L'b' };
+			pVarResult->bstrVal = SysAllocStringLen(text, 3u);
 			if ( pVarResult->bstrVal == NULL ) {
 				return E_OUTOFMEMORY;
 			}

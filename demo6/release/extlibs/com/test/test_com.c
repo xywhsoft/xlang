@@ -201,6 +201,32 @@ int main(void)
     xrtValueRelease(pResult);
 
     pArgs = xrtValueArray();
+    pResult = x_com_invoke_array(pObject, "EmptyText", pArgs);
+    xrtValueRelease(pArgs);
+    if (pResult == NULL || !xrtValueGetString(pResult, &text) || text.Size != 0u) {
+        xrtValueRelease(pResult);
+        x_com_release(pObject);
+        return fail("empty BSTR value");
+    }
+    xrtValueRelease(pResult);
+
+    pArgs = xrtValueArray();
+    pResult = x_com_invoke_array(pObject, "NulText", pArgs);
+    xrtValueRelease(pArgs);
+    if (pResult == NULL || !xrtValueGetString(pResult, &text) ||
+        text.Size != 3u || memcmp(text.Data, "a\0b", 3u) != 0) {
+        xrtValueRelease(pResult);
+        x_com_release(pObject);
+        return fail("BSTR value with embedded NUL");
+    }
+    xrtValueRelease(pResult);
+    if (strcmp(x_com_get_text(pObject, "NulText"), "") != 0 ||
+        strcmp(x_com_last_error(), "COM text contains NUL; use invoke() for a value result") != 0) {
+        x_com_release(pObject);
+        return fail("C string API must reject embedded NUL");
+    }
+
+    pArgs = xrtValueArray();
     pResult = x_com_invoke_array(pObject, "Fail", pArgs);
     xrtValueRelease(pArgs);
     xrtValueRelease(pResult);

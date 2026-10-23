@@ -539,6 +539,23 @@
     src\runtime\xl6_x509_crl_verify.c
     src\runtime\xl6_x509_signature_verify.c
     src\runtime\xl6_x509_signature_verify_buffer.c
+    src\runtime\xl6_x509_crl_policy_value.c
+    src\runtime\xl6_x509_crl_policy.c
+    src\runtime\xl6_x509_crl_set.c
+    src\runtime\xl6_x509_revocation.c
+    src\runtime\xl6_x509_crl_query.c
+    src\runtime\xl6_x509_crl_set_query.c
+    src\runtime\xl6_x509_revocation_check.c
+    src\runtime\xl6_x509_revocation_update.c
+    src\runtime\xl6_x509_crl_critical.c
+    src\runtime\xl6_x509_crl_validate.c
+    src\runtime\xl6_x509_crl_validate_callback.c
+    src\runtime\xl6_x509_crl_policy_fields.c
+    src\runtime\xl6_x509_validated_crl_domain.c
+    src\runtime\xl6_x509_crl_set_domain.c
+    src\runtime\xl6_x509_revocation_domain.c
+    src\runtime\xl6_x509_revocation_check_domain.c
+    src\runtime\xl6_x509_crl_critical_domain.c
     src\runtime\xl6_der_value.c
     src\runtime\xl6_der_value_domain.c
     src\runtime\xl6_der_reader.c

@@ -1,5 +1,6 @@
 #include "services/diagnostic_store.h"
 #include "platform/path.h"
+#include "protocol/diagnostic_paths.h"
 #include <xrt.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -12,11 +13,13 @@
 #define DIAGNOSTIC_LIMIT 4096u
 typedef struct stored_group { wchar_t* key; xvalue* value; } stored_group;
 typedef struct record { char* key; xide_language_input_guard* guard; xarray groups; size_t bytes; } record;
-struct xide_diagnostic_store { xtaskpool* pool; record* records[RECORD_LIMIT]; xide_diagnostic_limits limits; };
+struct xide_diagnostic_store { xtaskpool* pool; record* records[RECORD_LIMIT]; xide_diagnostic_limits limits; int dependencies; };
 struct xide_diagnostic_query { xfuture* future; xfuturewatch watch; int watchInitialized,watchLinked; void (*wake)(void*); void* user; };
 enum operation { PUT,REMOVE,INVALIDATE,SWEEP,SNAPSHOT,CLEAR };
 typedef struct input { xide_diagnostic_store* store; enum operation kind; char* key; xvalue* checked; xide_language_input_guard* guard; } input;
-struct xide_diagnostic_publication { xvalue* documents; xarray keys; };
+typedef struct dependency_set { char id[65];xvalue* chunks; } dependency_set;
+typedef struct dependency_index {char id[65];size_t index;} dependency_index;
+struct xide_diagnostic_publication { xvalue* documents; xarray keys,dependencies,dependencyIndex,groupDependencies; };
 typedef struct output { xide_diagnostic_publication* publication; xvalue* invalidated; size_t records,bytes; uint64_t thread; int taken; char* conflictPath; char error[256]; } output;
 typedef struct source_key { wchar_t* key; int seen; } source_key;
 typedef struct group_ref { stored_group* group; size_t order; } group_ref;
@@ -65,6 +68,8 @@ void xideDiagnosticPublicationDestroy(xide_diagnostic_publication* publication)
  if(!publication) return;
  wchar_t** keys=(wchar_t**)publication->keys.Data;
  for(size_t i=0;i<publication->keys.Count;++i) free(keys[i]);
+ for(size_t i=0;i<publication->dependencies.Count;++i) xrtValueRelease(((dependency_set*)publication->dependencies.Data)[i].chunks);
+ xrtArrayUnit(&publication->dependencies);xrtArrayUnit(&publication->dependencyIndex);xrtArrayUnit(&publication->groupDependencies);
  xrtArrayUnit(&publication->keys); xrtValueRelease(publication->documents); xrtFree(publication);
 }
 size_t xideDiagnosticPublicationCount(const xide_diagnostic_publication* publication)
@@ -168,8 +173,10 @@ static xvalue* emptyGroup(const xvalue* source)
  if(okay) okay=put(result,"diagnostics",xrtValueArray());
  if(!okay) { xrtValueRelease(result); result=NULL; } return result;
 }
-static int makeSnapshot(record* const* records,size_t count,size_t limit,xcancel* cancel,output* out)
+#include "diagnostic_dependencies.inc"
+static int makeSnapshot(xide_diagnostic_store* store,record* const* records,size_t count,xcancel* cancel,output* out)
 {
+ size_t limit=store->limits.publishedReportBytes;
  xarray references={0},seen={0}; xmap hashes={0}; int okay=0; size_t publishedBytes=2;
  if(limit<publishedBytes) return fail(out,"Merged diagnostic report byte limit exceeded.");
  if(!xrtArrayInit(&references,sizeof(group_ref)) || !xrtArrayInit(&seen,sizeof(seen_diagnostic)) || !xrtMapInit(&hashes,sizeof(size_t))) { fail(out,"Cannot allocate diagnostic merge state."); goto done; }
@@ -180,7 +187,9 @@ static int makeSnapshot(record* const* records,size_t count,size_t limit,xcancel
  }
  if(references.Count) qsort(references.Data,references.Count,sizeof(group_ref),compareGroup);
  out->publication=xrtCalloc(1,sizeof(*out->publication));
- if(!out->publication || !xrtArrayInit(&out->publication->keys,sizeof(wchar_t*)) || !(out->publication->documents=xrtValueArray())) { fail(out,"Cannot allocate merged diagnostics."); goto done; }
+ if(!out->publication || !xrtArrayInit(&out->publication->keys,sizeof(wchar_t*)) ||
+    !xrtArrayInit(&out->publication->dependencies,sizeof(dependency_set)) || !xrtArrayInit(&out->publication->dependencyIndex,sizeof(dependency_index)) ||
+    !xrtArrayInit(&out->publication->groupDependencies,sizeof(size_t)) || !(out->publication->documents=xrtValueArray())) { fail(out,"Cannot allocate merged diagnostics."); goto done; }
  group_ref* refs=(group_ref*)references.Data; xvalue* merged=NULL; const stored_group* previous=NULL; uint64 groupId=0;
  for(size_t i=0;i<references.Count;++i) {
   if(xrtCancelRequested(cancel)) { fail(out,"Diagnostic merge cancelled."); goto done; }
@@ -219,6 +228,7 @@ static int makeSnapshot(record* const* records,size_t count,size_t limit,xcancel
    if(!appended || !xrtArrayPush(&seen,&remembered)) { fail(out,"Cannot retain merged diagnostic."); goto done; } *head=newHead;
   }
  }
+ if(store->dependencies && !prepareDependencies(store,records,refs,references.Count,cancel,out)) goto done;
  okay=1;
 done:
  xrtArrayUnit(&references); xrtArrayUnit(&seen); xrtMapUnit(&hashes); return okay;
@@ -249,7 +259,7 @@ static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* result)
  }
  size_t bytes=0;
  for(size_t i=0;i<store->limits.records;++i) if(trial[i] && (!addBytes(&bytes,trial[i]->bytes) || bytes>store->limits.retainedReportBytes)) { fail(out,"Retained diagnostic report byte limit exceeded."); goto done; }
- if(!makeSnapshot(trial,store->limits.records,store->limits.publishedReportBytes,cancel,out)) goto done;
+ if(!makeSnapshot(store,trial,store->limits.records,cancel,out)) goto done;
  if(xrtCancelRequested(cancel)) goto done;
  for(size_t i=0;i<store->limits.records;++i) if(store->records[i]!=trial[i]) { releaseRecord(store->records[i]); store->records[i]=trial[i]; }
  fresh=NULL;
@@ -259,14 +269,16 @@ done:
  if(*out->error) { xideDiagnosticPublicationDestroy(out->publication); out->publication=NULL; xrtValueRelease(out->invalidated); out->invalidated=NULL; }
  *result=(xtaskvalue){out,freeOutput,NULL}; return XTASK_SUCCESS;
 }
-xide_diagnostic_store* xideDiagnosticStoreCreate(const xide_diagnostic_limits* limits)
+xide_diagnostic_store* xideDiagnosticStoreCreateWithDependencies(const xide_diagnostic_limits* limits,int enabled)
 {
  xide_diagnostic_limits chosen=limits ? *limits : (xide_diagnostic_limits){64,32u*1024u*1024u,4u*1024u*1024u,8};
- if(!chosen.records || chosen.records>RECORD_LIMIT || !chosen.retainedReportBytes || !chosen.publishedReportBytes || !chosen.queue || chosen.queue>64) return NULL;
- xide_diagnostic_store* store=xrtCalloc(1,sizeof(*store)); if(!store) return NULL; store->limits=chosen;
+ if((enabled!=0 && enabled!=1) || !chosen.records || chosen.records>RECORD_LIMIT || !chosen.retainedReportBytes || !chosen.publishedReportBytes || !chosen.queue || chosen.queue>64) return NULL;
+ xide_diagnostic_store* store=xrtCalloc(1,sizeof(*store)); if(!store) return NULL; store->limits=chosen;store->dependencies=enabled;
  xtaskpoolconfig config={.Threads=1,.QueueLimit=chosen.queue}; store->pool=xrtTaskPoolCreate(&config);
  if(!store->pool) { xideDiagnosticStoreDestroy(store); return NULL; } return store;
 }
+xide_diagnostic_store* xideDiagnosticStoreCreate(const xide_diagnostic_limits* limits)
+{ return xideDiagnosticStoreCreateWithDependencies(limits,0); }
 void xideDiagnosticStoreDestroy(xide_diagnostic_store* store)
 {
  if(!store) return;

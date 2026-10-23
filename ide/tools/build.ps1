@@ -43,6 +43,7 @@ $sources += 'src\platform\failure_window.c'
 $sources += 'src\analysis\text.c'
 $sources += 'src\protocol\document_sync.c'
 $sources += 'src\protocol\input_state.c'
+$sources += 'src\protocol\diagnostic_paths.c'
 foreach ($source in $sources) {
     $object = Join-Path $objectRoot (($source.Replace('\','_')) + '.o')
     & $compiler @flags -c (Join-Path $ideRoot $source) -o $object
@@ -86,6 +87,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Catalog source verification failed.' }
 & python -X utf8 (Join-Path $PSScriptRoot 'font_resources.py') --source (Join-Path $ideRoot 'data\fonts') --destination (Join-Path $releaseRoot 'data\fonts')
 if ($LASTEXITCODE -ne 0) { throw 'Pinned offline font resource verification failed.' }
 if ($Tests) {
+    & $compiler @flags (Join-Path $ideRoot 'tests\diagnostic_paths_test.c') @objects @libraries -o (Join-Path $releaseRoot 'diagnostic_paths_test.exe')
+    if ($LASTEXITCODE -ne 0) { throw 'Diagnostic dependency digest fixture link failed.' }
     # This boundary fixture owns the real snapshot implementation.
     $reportObjects = $objects | Where-Object { $_ -notmatch 'src_services_language_snapshot\.c\.o$' }
     & $compiler @flags (Join-Path $ideRoot 'tests\snapshot_report_test.c') @reportObjects @libraries -o (Join-Path $releaseRoot 'snapshot_report_test.exe')

@@ -4,6 +4,7 @@
 #include "../cbor_native.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #define CHECK(condition) do { if (!(condition)) { \
     fprintf(stderr, "CBOR allocation test failed at %d: %s\n", __LINE__, #condition); \
@@ -19,6 +20,14 @@ static const unsigned char raw_bytes[] = {0xde, 0xad, 0xbe, 0xef};
 static const unsigned char maximum_unsigned_wire[] = {
     0x1b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
+static const unsigned char chunked_bytes_wire[] = {
+    0x5f, 0x42, 0x00, 0xff, 0x41, 0xaa, 0xff
+};
+static const unsigned char chunked_text_wire[] = {
+    0x7f, 0x61, 'A', 0x63, 0xe4, 0xbd, 0xa0, 0xff
+};
+static const unsigned char empty_bytes_wire[] = {0x5f, 0xff};
+static const unsigned char empty_text_wire[] = {0x7f, 0xff};
 
 static void* operate(unsigned int operation, xvalue* source)
 {
@@ -28,13 +37,17 @@ static void* operate(unsigned int operation, xvalue* source)
         case 2: return xcbor_encode_bytes(raw_bytes, sizeof(raw_bytes));
         case 3: return xcbor_decode_bytes(bytes_wire, sizeof(bytes_wire));
         case 4: return xcbor_to_hex(nested_wire, sizeof(nested_wire));
-        default: return xcbor_from_hex("44deadbeef");
+        case 5: return xcbor_from_hex("44deadbeef");
+        case 6: return xcbor_decode(chunked_bytes_wire, sizeof(chunked_bytes_wire));
+        case 7: return xcbor_decode(chunked_text_wire, sizeof(chunked_text_wire));
+        case 8: return xcbor_decode(empty_bytes_wire, sizeof(empty_bytes_wire));
+        default: return xcbor_decode(empty_text_wire, sizeof(empty_text_wire));
     }
 }
 
 static void release_result(unsigned int operation, void* result)
 {
-    if (operation == 1u) xrtValueRelease(result);
+    if (operation == 1u || operation >= 6u) xrtValueRelease(result);
     else if (operation == 4u) xrtFree(result);
     else xrtBufferDestroy(result);
 }
@@ -47,7 +60,7 @@ int main(void)
 
     CHECK(source != NULL && name != NULL);
     CHECK(xrtValueObjectSetTake(source, XRT_STR_LITERAL("name"), &name));
-    for (operation = 0; operation < 6u; ++operation) {
+    for (operation = 0; operation < 10u; ++operation) {
         unsigned int failure;
         unsigned int triggered_count = 0u;
         bool completed = false;
@@ -68,6 +81,24 @@ int main(void)
                     xrtErrorKind(xrtGetError()) == XERR_MEMORY);
             } else {
                 CHECK(result != NULL && xrtGetError() == NULL);
+                if (operation == 6u || operation == 8u) {
+                    xbytesview data;
+                    CHECK(xrtValueGetBytes(result, &data));
+                    if (operation == 6u) {
+                        const unsigned char expected[] = {0x00, 0xff, 0xaa};
+                        CHECK(data.Size == sizeof(expected) &&
+                            memcmp(data.Data, expected, sizeof(expected)) == 0);
+                    } else CHECK(data.Size == 0u);
+                }
+                if (operation == 7u || operation == 9u) {
+                    xstrview text;
+                    CHECK(xrtValueGetString(result, &text));
+                    if (operation == 7u) {
+                        const char expected[] = "A\xe4\xbd\xa0";
+                        CHECK(text.Size == sizeof(expected) - 1u &&
+                            memcmp(text.Data, expected, text.Size) == 0);
+                    } else CHECK(text.Size == 0u);
+                }
                 completed = true;
             }
             release_result(operation, result);
