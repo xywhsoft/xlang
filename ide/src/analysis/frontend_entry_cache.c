@@ -5,19 +5,68 @@
 #include <xrt.h>
 #include <string.h>
 #define ENTRY_BYTES (32u*1024u*1024u)
-struct xls_entry_cache_data { xls_context* context;char *path,*text;size_t length,bytes;XL6_AstNode* root; };
-struct xls_entry_cache { xls_entry_cache_data* data;size_t limit;int active; };
+struct xls_entry_cache_data { xls_context* context;char *path,*text;size_t length,bytes;XL6_AstNode* root;struct xls_entry_cache_data *previous,*next; };
+struct xls_entry_cache { xls_entry_cache_data *data,*first,*last;size_t limit,moduleBytes;int active;xmap modules; };
 static _Thread_local xls_entry_cache_scope* current;
 static void releaseData(xls_entry_cache_data* data)
 {if(data) {xlsContextRelease(data->context);xrtFree(data->path);xrtFree(data->text);xl6AstFree(data->root);xrtFree(data);}}
+static xbytesview key(const char* path) {return (xbytesview){(const unsigned char*)path,strlen(path)};}
+static void unlinkModule(xls_entry_cache* cache,xls_entry_cache_data* data)
+{
+    if(data->previous) data->previous->next=data->next;else cache->first=data->next;
+    if(data->next) data->next->previous=data->previous;else cache->last=data->previous;
+    data->previous=data->next=NULL;
+}
+static void linkModule(xls_entry_cache* cache,xls_entry_cache_data* data)
+{
+    data->next=cache->first;data->previous=NULL;
+    if(cache->first) cache->first->previous=data;else cache->last=data;
+    cache->first=data;
+}
+static void dropModule(xbytesview name,void* value,void* user)
+{
+    (void)name;xls_entry_cache* cache=user;xls_entry_cache_data* data=*(xls_entry_cache_data**)value;
+    if(data) {unlinkModule(cache,data);cache->moduleBytes-=data->bytes;releaseData(data);}
+}
+static void dropPending(xbytesview name,void* value,void* user)
+{(void)name;(void)user;releaseData(*(xls_entry_cache_data**)value);}
 xls_entry_cache* xlsEntryCacheCreate(size_t bytes)
 {
     if(!bytes || bytes>ENTRY_BYTES) return NULL;
-    xls_entry_cache* cache=xrtCalloc(1,sizeof(*cache));if(cache) cache->limit=bytes;return cache;
+    xls_entry_cache* cache=xrtCalloc(1,sizeof(*cache));if(!cache) return NULL;
+    cache->limit=bytes;
+    if(!xrtMapInit(&cache->modules,sizeof(xls_entry_cache_data*)) || !xrtMapSetDrop(&cache->modules,dropModule,cache)) {xrtMapUnit(&cache->modules);xrtFree(cache);return NULL;}
+    return cache;
 }
 void xlsEntryCacheDestroy(xls_entry_cache* cache)
-{if(cache) {releaseData(cache->data);xrtFree(cache);}}
+{if(cache) {xrtMapUnit(&cache->modules);releaseData(cache->data);xrtFree(cache);}}
 size_t xlsEntryCacheBytes(const xls_entry_cache* cache) {return cache && cache->data ? cache->data->bytes : 0;}
+size_t xlsModuleCacheBytes(const xls_entry_cache* cache) {return cache ? cache->moduleBytes : 0;}
+static void trimModules(xls_entry_cache* cache,size_t budget)
+{
+    while(cache->last && (cache->moduleBytes>budget || xrtMapCount(&cache->modules)>512))
+        if(!xrtMapRemove(&cache->modules,key(cache->last->path))) break;
+}
+static void commitModules(xls_entry_cache_scope* scope)
+{
+    xls_entry_cache* cache=scope->cache;size_t budget=cache->limit-xlsEntryCacheBytes(cache);
+    trimModules(cache,budget);
+    if(!scope->pendingModulesReady) return;
+    xmapiter iterator;if(!xrtMapIterBegin(&scope->pendingModules,&iterator)) return;
+    xls_entry_cache_data** pending;
+    while((pending=xrtMapIterNext(&iterator,NULL))!=NULL) {
+        xls_entry_cache_data* data=*pending;
+        if(data->bytes>budget) {++scope->moduleWork.declined;continue;}
+        /* Obtain a stable destination before any eviction. A key allocation
+         * failure preserves the old cache and never affects compiler output. */
+        xls_entry_cache_data** slot=xrtMapGetOrAdd(&cache->modules,key(data->path),NULL);
+        if(!slot) {++scope->moduleWork.declined;continue;}
+        if(*slot) {dropModule((xbytesview){0},slot,cache);*slot=NULL;}
+        trimModules(cache,budget-data->bytes);
+        *slot=data;*pending=NULL;linkModule(cache,data);cache->moduleBytes+=data->bytes;
+    }
+    xrtMapIterEnd(&iterator);
+}
 void xlsFrontendEntryBegin(xls_entry_cache_scope* scope,xls_entry_cache* cache,const xls_context* context,const char* entry)
 {
     *scope=(xls_entry_cache_scope){.previous=current,.context=context,.entry=entry};
@@ -29,13 +78,17 @@ xls_completion_entry_work xlsFrontendEntryEnd(xls_entry_cache_scope* scope,int c
     if(current!=scope) return (xls_completion_entry_work){0};
     if(scope->cache) {
         if(commit && scope->pending) {releaseData(scope->cache->data);scope->cache->data=scope->pending;scope->pending=NULL;}
-        scope->cache->active=0;scope->work.bytes=xlsEntryCacheBytes(scope->cache);
+        if(commit) commitModules(scope);
+        scope->cache->active=0;scope->work.bytes=xlsEntryCacheBytes(scope->cache);scope->moduleWork.bytes=xlsModuleCacheBytes(scope->cache);
     }
+    if(scope->pendingModulesReady) xrtMapUnit(&scope->pendingModules);
     releaseData(scope->pending);scope->pending=NULL;xrtFree(scope->canonicalEntry);scope->canonicalEntry=NULL;current=scope->previous;return scope->work;
 }
-static xls_entry_cache_data* capture(xls_entry_cache_scope* scope,const char* text,const char* path,size_t length,const XL6_AstNode* root)
+static xls_entry_cache_data* capture(xls_entry_cache_scope* scope,const char* text,const char* path,size_t length,const XL6_AstNode* root,size_t limit,size_t extra)
 {
-    size_t pathBytes=strlen(path)+1,contextBytes=xlsContextBytes(scope->context),limit=scope->cache->limit;
+    size_t pathBytes=strlen(path)+1,contextBytes=xlsContextBytes(scope->context);
+    if(extra>limit || contextBytes>limit-extra) return NULL;
+    contextBytes+=extra;
     if(contextBytes>limit || sizeof(xls_entry_cache_data)>limit-contextBytes) return NULL;
     size_t bytes=contextBytes+sizeof(xls_entry_cache_data);
     if(pathBytes>limit-bytes || length>=limit-bytes-pathBytes) return NULL;
@@ -47,23 +100,63 @@ static xls_entry_cache_data* capture(xls_entry_cache_scope* scope,const char* te
     if(!data->root) {releaseData(data);return NULL;}
     data->bytes=bytes+treeBytes;return data;
 }
+static int matches(const xls_entry_cache_data* old,const xls_context* context,const char* text,const char* path,size_t length)
+{return old && xlsFrontendContextsEqual(old->context,context) && !strcmp(old->path,path) && old->length==length && !memcmp(old->text,text,length);}
+static int copy(const xls_entry_cache_data* old,size_t limit,XL6_ParseResult* result)
+{
+    xls_ast_clone_options options={.bytes=limit};XL6_AstNode* tree=xlsAstClone(old->root,&options,NULL);
+    if(!tree) return 0;
+    result->root=tree;result->diags.defaultFile=xl6AstSourcePath(tree);return 1;
+}
+static int moduleParse(xls_entry_cache_scope* scope,const char* text,const char* path,XL6_ParseResult* result,XL6_CompletionQuery* query)
+{
+    xls_entry_cache* cache=scope->cache;size_t length=strlen(text);
+    xls_entry_cache_data** pending=scope->pendingModulesReady ? xrtMapGet(&scope->pendingModules,key(path)) : NULL;
+    xls_entry_cache_data** stored=xrtMapGet(&cache->modules,key(path));
+    xls_entry_cache_data* old=pending ? *pending : stored ? *stored : NULL;
+    if(matches(old,scope->context,text,path,length)) {
+        if(copy(old,cache->limit,result)) {
+            if(!pending) {unlinkModule(cache,old);linkModule(cache,old);}
+            ++scope->moduleWork.reused;return 1;
+        }
+        ++scope->moduleWork.declined;
+    }
+    ++scope->moduleWork.parsed;
+    int okay=xl6ParseSourceWithCompletion(text,path,result,query);
+    if(okay && result->root && !result->diags.count) {
+        size_t entry=scope->pending ? scope->pending->bytes : xlsEntryCacheBytes(cache);
+        size_t retained=scope->pendingModuleBytes-(pending ? (*pending)->bytes : 0);
+        size_t budget=cache->limit-entry;
+        xls_entry_cache_data* data=retained<budget ? capture(scope,text,path,length,result->root,budget-retained,strlen(path)+1) : NULL;
+        if(data) {
+            if(!scope->pendingModulesReady) {
+                if(xrtMapInit(&scope->pendingModules,sizeof(xls_entry_cache_data*)) && xrtMapSetDrop(&scope->pendingModules,dropPending,NULL)) scope->pendingModulesReady=1;
+                else xrtMapUnit(&scope->pendingModules);
+            }
+            if(scope->pendingModulesReady && (pending || xrtMapCount(&scope->pendingModules)<512) && xrtMapSet(&scope->pendingModules,key(path),&data)) scope->pendingModuleBytes=retained+data->bytes;
+            else {releaseData(data);++scope->moduleWork.declined;}
+        } else ++scope->moduleWork.declined;
+    }
+    return okay;
+}
 int xlsFrontendEntryParse(const char* text,const char* path,XL6_ParseResult* result,XL6_CompletionQuery* query)
 {
     xls_entry_cache_scope* scope=current;
     if(!scope || !scope->cache || !text || !path || !result || result->root || result->diags.count ||
-       !scope->entry || (strcmp(path,scope->entry) && (!scope->canonicalEntry || strcmp(path,scope->canonicalEntry))) ||
-       (query && xl6CompletionTarget(query,path)))
+       !scope->entry || (query && xl6CompletionTarget(query,path)))
         return xl6ParseSourceWithCompletion(text,path,result,query);
+    if(strcmp(path,scope->entry) && (!scope->canonicalEntry || strcmp(path,scope->canonicalEntry)))
+        return moduleParse(scope,text,path,result,query);
     size_t length=strlen(text);xls_entry_cache_data* old=scope->cache->data;
-    if(old && xlsFrontendContextsEqual(old->context,scope->context) && !strcmp(old->path,path) && old->length==length && !memcmp(old->text,text,length)) {
-        xls_ast_clone_options options={.bytes=scope->cache->limit};XL6_AstNode* tree=xlsAstClone(old->root,&options,NULL);
-        if(tree) {result->root=tree;result->diags.defaultFile=xl6AstSourcePath(tree);++scope->work.reused;return 1;}
+    if(matches(old,scope->context,text,path,length)) {
+        if(copy(old,scope->cache->limit,result)) {++scope->work.reused;return 1;}
         ++scope->work.declined;
     }
     ++scope->work.parsed;
     int okay=xl6ParseSourceWithCompletion(text,path,result,query);
     if(okay && result->root && !result->diags.count) {
-        xls_entry_cache_data* data=capture(scope,text,path,length,result->root);
+        size_t budget=scope->cache->limit-scope->pendingModuleBytes;
+        xls_entry_cache_data* data=capture(scope,text,path,length,result->root,budget,0);
         if(data) {releaseData(scope->pending);scope->pending=data;}
         else ++scope->work.declined;
     }

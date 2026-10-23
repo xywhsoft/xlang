@@ -46,6 +46,7 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
     if(equal) result=xlsSemanticCompletionRetain(s->result);
     else {
         xls_semantic_input inputs[64]; xlsInputBatchInputs(batch,inputs,64); ++s->stats.builds;
+        if(!s->entryCache) s->entryCache=xlsEntryCacheCreate(32u*1024u*1024u);
         if(entry && entry==query) {
             const xls_analysis_document* old=xlsInputBatchTarget(s->batch);
             const xls_syntax* previous=xlsFrontendContextsEqual(context,xlsInputBatchContext(s->batch)) && old && s->entrySyntax && s->queryKey && !strcmp(s->queryKey,old->key) &&
@@ -63,7 +64,7 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
                 }
             }
             if(cancelled && cancelled(user)) goto cancel;
-            if(syntax) result=xlsSemanticCompletionCreateParsedInContext(context,entry->path,query->path,offset,inputs,count,syntax,cancelled,user,error,capacity);
+            if(syntax) result=xlsSemanticCompletionCreateCachedParsedInContext(context,s->entryCache,entry->path,query->path,offset,inputs,count,syntax,cancelled,user,error,capacity);
         }
         if(!result) {
             if(cancelled && cancelled(user)) goto cancel;
@@ -71,8 +72,7 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
              * surface. This is the original native frontend, never CLI;
              * the explicit route counter distinguishes it from reuse. */
             ++s->stats.cursorFreshBuilds;
-            if(entry!=query && !s->entryCache) s->entryCache=xlsEntryCacheCreate(32u*1024u*1024u);
-            result=xlsSemanticCompletionCreateCachedInContext(context,entry!=query ? s->entryCache : NULL,xlsInputBatchEntry(batch),query->path,offset,inputs,count,cancelled,user,error,capacity);
+            result=xlsSemanticCompletionCreateCachedInContext(context,s->entryCache,xlsInputBatchEntry(batch),query->path,offset,inputs,count,cancelled,user,error,capacity);
             xlsSyntaxRelease(syntax); syntax=NULL;
         }
         if(!result) goto done;

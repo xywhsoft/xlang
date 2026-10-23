@@ -36,6 +36,10 @@ struct xls_entry_cache;
 xls_semantic_completion* xlsSemanticCompletionCreateCachedInContext(xls_context* context,struct xls_entry_cache* cache,
     const char* entry,const char* queryPath,size_t offset,const xls_semantic_input* inputs,size_t count,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
+/* Retained cursor syntax for the entry; ordinary imports may use the cache. */
+xls_semantic_completion* xlsSemanticCompletionCreateCachedParsedInContext(xls_context* context,struct xls_entry_cache* cache,
+    const char* entry,const char* queryPath,size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity);
 /* Private mutable copy for compiler semantic passes. Destination must be
  * empty/initialized. Diagnostics and sources are independently owned. */
 int xlsSyntaxCopyParse(const xls_syntax* syntax,XL6_ParseResult* result);
@@ -48,8 +52,8 @@ xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
 xls_semantic_check* xlsSemanticCheckCreateIncrementalInContext(xls_context* context,const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity);
-/* Optional ordinary-entry cache after shared source loading/reporting. Parsed
- * overlay syntax takes priority and explicitly shadows this cache. */
+/* Ordinary entry/import cache after shared source loading/reporting. Parsed
+ * overlay syntax bypasses entry parsing; ordinary imports may still reuse. */
 xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,struct xls_entry_cache* cache,const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity);
