@@ -138,7 +138,7 @@ static int cvstartClient(xide_completion_view* v)
  v->compiler=compiler ? cvcopy(compiler) : NULL; v->directory=xidePathDirectory(v->document->path);
  int ok=program && v->compiler && v->directory && xideLanguageCheckPackagePath(&v->package,NULL);
  if(ok) v->client=xideLanguageClientStart(program,v->compiler,v->directory,NULL);
- free(program); if(!v->client) { cvstopClient(v); return 0; }
+ free(program); if(!v->client || !xideLanguageClientSetReceiver(v->client,xideCompletionDecoderReceiveOwned,v->decoder)) { cvstopClient(v); return 0; }
  xideLanguageClientSetWake(v->client,cvwake,v->app); v->nextId=1;
  xvalue *p=xrtValueObject(),*options=xrtValueObject(); cvput(p,"capabilities",xrtValueObject()); cvput(options,"checkOnSave",xrtValueBool(false)); cvput(options,"automaticDiagnostics",xrtValueBool(false)); cvput(p,"initializationOptions",options);
  if(!cvsend(v,"initialize",p,1)) { cvstopClient(v); return 0; } return 1;
@@ -185,7 +185,18 @@ static int cvfinishSync(xide_completion_view* v)
  if(okay) {okay=cvput(p,"textDocument",d);d=NULL;}if(okay) {okay=cvput(p,"position",pos);pos=NULL;}
  okay=okay && cvput(p,"version",xrtValueInt(target->wireVersion));xrtValueRelease(d);xrtValueRelease(pos);
  if(!okay) {xrtValueRelease(p);return 0;}
- v->request=++v->nextId; return cvsend(v,"textDocument/completion",p,v->request);
+ v->request=++v->nextId;
+ /* The notification batch is already admitted and its wire versions adopted.
+    Reserve exact-source decoding before sending, so the reader can hand off a
+    reply without waiting for another GUI frame. Final acceptance stays below. */
+ if(v->decodeSerial<UINT64_MAX) {
+  xls_text* text=xlsSyncRetainText(v->sync,target->uri,target->wireVersion);
+  uint64_t token=++v->decodeSerial;xide_completion_expected expected={v->request,target->wireVersion,v->offset};
+  if(text && xideCompletionDecoderExpect(v->decoder,token,text,expected)) {
+   v->decodeToken=token;v->decodeSession=v->session;v->decoding=1;v->decodeDeadline=0;
+  } else xlsTextRelease(text);
+ }
+ return cvsend(v,"textDocument/completion",p,v->request);
 }
 static void cvfailSync(xide_completion_view* v)
 { cvstopClient(v); }

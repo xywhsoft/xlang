@@ -131,7 +131,7 @@ static int32 run(ptr user)
     for(;;) {
         decode_job job={0};xide_completion_result* garbage=NULL;
         xrtMutexLock(&d->lock);
-        while(!d->stop && !d->pending.message && !d->retired && !(d->completed && d->completed->token!=d->current))
+        while(!d->stop && !d->pending.message && !(d->pending.token && d->pending.token!=d->current) && !d->retired && !(d->completed && d->completed->token!=d->current))
             xrtCondWait(&d->changed,&d->lock);
         if(d->stop) {xrtMutexUnlock(&d->lock);break;}
         if(d->retired) {garbage=d->retired;d->retired=NULL;}
@@ -162,14 +162,33 @@ int xideCompletionDecoderSubmit(xide_completion_decoder* d,uint64_t token,xvalue
 {
     if(!d || !token || !message || !text) return 0;
     xide_completion_result* result=xrtCalloc(1,sizeof(*result));if(!result) return 0;
-    xrtMutexLock(&d->lock);int okay=!d->stop && !d->pending.message;
+    xrtMutexLock(&d->lock);int okay=!d->stop && !d->pending.message && !d->pending.token;
     if(okay) {d->current=token;d->pending=(decode_job){token,message,text,expected,result};result=NULL;xrtCondSignal(&d->changed);}
     xrtMutexUnlock(&d->lock);xideCompletionResultRelease(result);return okay;
+}
+int xideCompletionDecoderExpect(xide_completion_decoder* d,uint64_t token,xls_text* text,xide_completion_expected expected)
+{
+    if(!d || !token || !text || expected.request<=1 || expected.version<=0 || expected.offset<0 ||
+       (size_t)expected.offset>xlsTextSize(text) || xlsTextSize(text)>TEXT_LIMIT) return 0;
+    xide_completion_result* result=xrtCalloc(1,sizeof(*result));if(!result) return 0;
+    xrtMutexLock(&d->lock);int okay=!d->stop && !d->pending.message && !d->pending.token;
+    if(okay) {d->current=token;d->pending=(decode_job){token,NULL,text,expected,result};result=NULL;}
+    xrtMutexUnlock(&d->lock);xideCompletionResultRelease(result);return okay;
+}
+int xideCompletionDecoderReceiveOwned(xvalue* message,size_t bytes,void* user)
+{
+    xide_completion_decoder* d=user;int request=0;
+    if(!d || !message || !bytes || bytes>TEXT_LIMIT || field(message,"method") ||
+       !literal(field(message,"jsonrpc"),"2.0") || !integer(field(message,"id"),&request)) return 0;
+    xrtMutexLock(&d->lock);int okay=!d->stop && d->pending.token && d->pending.token==d->current &&
+        !d->pending.message && d->pending.expected.request==request;
+    if(okay) {d->pending.message=message;xrtCondSignal(&d->changed);}
+    xrtMutexUnlock(&d->lock);return okay;
 }
 int xideCompletionDecoderDiscard(xide_completion_decoder* d,xvalue* message)
 {
     if(!d || !message) return 0;
-    xrtMutexLock(&d->lock);int okay=!d->stop && !d->pending.message;
+    xrtMutexLock(&d->lock);int okay=!d->stop && !d->pending.message && !d->pending.token;
     if(okay) {d->pending=(decode_job){.message=message};xrtCondSignal(&d->changed);}xrtMutexUnlock(&d->lock);return okay;
 }
 int xideCompletionDecoderRetire(xide_completion_decoder* d,xide_completion_result* result)

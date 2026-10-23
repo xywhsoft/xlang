@@ -176,8 +176,39 @@ static int invalid(void)
  CHECK(!xideLspStreamFeedOwned(&stream,"x",2u*8u*1024u*1024u+8193u,keepOwned,&r,&error) && stream.failed && !r.count);
  xideLspStreamClear(&stream);return 1;
 }
+typedef struct routed {xide_language_client* client;xvalue* root;size_t bytes;int calls,accept,unlocked;} routed;
+static int routeOwned(xvalue* root,size_t bytes,void* user)
+{
+ routed* r=user;++r->calls;r->bytes=bytes;
+ lifetime life={.lock=&r->client->lock};HANDLE thread=CreateThread(NULL,0,tryLock,&life,0,NULL);DWORD result=0;
+ if(thread){if(WaitForSingleObject(thread,5000)==WAIT_OBJECT_0)GetExitCodeThread(thread,&result);CloseHandle(thread);}r->unlocked=(int)result;
+ if(r->accept) r->root=root;
+ return r->accept;
+}
+static int receivers(void)
+{
+ CHECK(!xideLanguageClientSetReceiver(NULL,routeOwned,NULL));
+ size_t length=0;char* frame=rawFrame(source,strlen(source),&length);CHECK(frame);
+ /* The typed hook receives the parser-owned original root and original wire
+    length for every fragmentation boundary, including allocation saturation. */
+ for(size_t split=0;split<=length;++split) {
+  xide_language_client c;initClient(&c);routed r={.client=&c,.accept=1};sink s={.client=&c};xide_lsp_stream stream={0};xide_model_error error={0};
+  CHECK(!xideLanguageClientSetReceiver(&c,NULL,&r) && xideLanguageClientSetReceiver(&c,routeOwned,&r) && !xideLanguageClientSetReceiver(&c,routeOwned,&r));
+  c.receiveCount=QUEUE_COUNT;c.receiveBytes=QUEUE_BYTES;failNode=1;
+  int a=xideLspStreamFeedOwned(&stream,frame,split,queued,&s,&error),b=xideLspStreamFeedOwned(&stream,frame+split,length-split,queued,&s,&error);failNode=0;
+  CHECK(a && b && r.calls==1 && r.root==s.seen && r.bytes==strlen(source) && r.unlocked && !c.receiveHead && !c.receiveTail && c.receiveCount==QUEUE_COUNT && c.receiveBytes==QUEUE_BYTES);
+  xideLspStreamClear(&stream);CHECK(textIs(member(member(r.root,"result"),"name"),"中文😀"));xrtValueRelease(r.root);c.receiveCount=c.receiveBytes=0;unitClient(&c);
+ }
+ xide_language_client c;initClient(&c);routed r={.client=&c};CHECK(xideLanguageClientSetReceiver(&c,routeOwned,&r));
+ lifetime life={.lock=&c.lock};xvalue* value=xrtValueObject();CHECK(value && attach(value,&life) && receive(value,17,&c));
+ CHECK(r.calls==1 && r.unlocked && !r.root && c.receiveCount==1 && c.receiveBytes==17 && !life.drops);
+ size_t wire=0;CHECK(xideLanguageClientNextSized(&c,&wire)==value && wire==17);xrtValueRelease(value);CHECK(life.drops==1 && life.unlocked);
+ c.state=XIDE_LS_STOPPED;CHECK(!xideLanguageClientSetReceiver(&c,routeOwned,&r));unitClient(&c);
+ initClient(&c);InterlockedExchange(&c.stop,1);CHECK(!xideLanguageClientSetReceiver(&c,routeOwned,&r));unitClient(&c);
+ free(frame);return 1;
+}
 int main(void)
 {
- if(!transportSignals() || !fragmentation() || !frames() || !rejection() || !bounds() || !sizedQueue() || !invalid()) return 1;
+ if(!transportSignals() || !fragmentation() || !frames() || !rejection() || !bounds() || !sizedQueue() || !invalid() || !receivers()) return 1;
  printf("lsp_receive_test passed: %d checks; exact parsed-root ownership and raw wire accounting, all split points, Unicode/nested values, borrowed compatibility, coalesced/partial/invalid frames, bounded count/bytes, allocation rollback and rejected-root cleanup outside the queue lock.\n",checks);return 0;
 }

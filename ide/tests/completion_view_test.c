@@ -98,7 +98,7 @@ static xui_widget candidateList(xide_app* a,xui_widget widget)
 static int capture(xide_app* a,const char* path) { if(!settle(a) || xuiUpdate(a->context,0)!=XUI_OK || xuiLayout(a->context)!=XUI_OK) return 0; xui_widget list=candidateList(a,xuiCodeEditGetCompletionPopupWidget(a->activeDocument->editor)); if(list) { xui_rect_t row=xuiListViewGetItemRect(list,0),viewport=xuiListViewGetViewportRect(list); if(xuiListViewGetSelected(list)!=0 || row.fY<viewport.fY || row.fY+row.fH>viewport.fY+viewport.fH || !a->completionView->count || strcmp(xuiListViewGetItemText(list,0),a->completionView->items[0].sLabel)) return 0; } xui_rect_i_t r={0,0,a->viewportWidth,a->viewportHeight}; return a->proxy.surfaceClear(&a->proxy,a->target,0xffeeeeeeu)==XUI_OK && xuiRender(a->context,a->target,&r,1)==XUI_OK && xideAppCapture(a,path)==XGE_OK; }
 static int verify(void* user)
 {
- fixture* f=user; if(f->started) return XGE_OK; f->started=1; xide_app app={0}; xide_model_error error={0}; int began=0; xvalue *fake=NULL,*valid=NULL; xui_code_completion_item_t* composed=NULL; xide_completion_result* held=NULL;fixture_retire blocker={0},queued={0},delayed={0},oldMessage={0};
+ fixture* f=user; if(f->started) return XGE_OK; f->started=1; xide_app app={0}; xide_model_error error={0}; int began=0; xvalue *fake=NULL,*valid=NULL; xui_code_completion_item_t* composed=NULL; xide_completion_result* held=NULL;fixture_retire blocker={0},queued={0},delayed={0},oldMessage={0},handoffBlocker={0},handoffQueued={0};
  char *root=NULL,*entry=NULL,*dep=NULL,*disk=NULL,*native=NULL,*light=NULL,*dark=NULL,*canonicalChinese=NULL;
  char* previousPackage=NULL; int packageTouched=0; CHECK(xideLanguageCheckPackagePath(&previousPackage,&error));
  char unique[80]; snprintf(unique,sizeof(unique),"completion-%lu-%llu",GetCurrentProcessId(),(unsigned long long)GetTickCount64()); root=xidePathResolve(f->directory,unique); entry=xidePathResolve(root,"入口😀.xl"); dep=xidePathResolve(root,"dep.xl"); disk=xidePathResolve(root,"disk.xl"); native=xidePathResolve(root,"helper.c"); light=xidePathResolve(root,"completion-light.png"); dark=xidePathResolve(root,"completion-dark.png");
@@ -108,6 +108,25 @@ static int verify(void* user)
  CHECK(xideEditorOpen(&app,entry,&error) && settle(&app)); xide_document* xl=app.activeDocument; xide_completion_view* v=app.completionView;
  CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app) && v->count==1 && has(v,"zzResult") && !strcmp(v->items[0].sDetail,"int") && xuiCodeEditIsCompletionOpen(xl->editor));
  CHECK(v->start==(int)(strstr(local,"zzROther")-local) && v->end==v->start+8 && capture(&app,light));
+ /* A real stdio response must finish strict decoding while the GUI owner does
+    no polling at all. The previous owner-submit path cannot satisfy this. */
+ CHECK(prepare(&app,xl,local,"zzROther",3));xideCompletionViewRequest(&app,xl->editor,(int)(strstr(local,"zzROther")-local)+3,1);
+ CHECK(holdSync(v));cvpollSync(v);CHECK(v->decoding && v->decodeToken && !v->syncToken && v->request>1);
+ uint64_t handoffToken=v->decodeToken,handoffUntil=GetTickCount64()+10000;
+ do {held=xideCompletionDecoderTake(v->decoder);if(!held)Sleep(1);}while(!held && GetTickCount64()<handoffUntil);
+ CHECK(held && held->valid && held->token==handoffToken && held->count==1 && !strcmp(held->items[0].label,"zzResult"));
+ cvread(v,1);cvacceptDecoded(v,held,1);held=NULL;CHECK(v->ready && has(v,"zzResult"));
+ /* Saturate the same pending slot before sending. Reservation must fail
+    without dropping the reply; existing owner-submit retry remains usable. */
+ cvdismiss(v);handoffBlocker.entered=CreateEventW(NULL,TRUE,FALSE,NULL);handoffBlocker.release=CreateEventW(NULL,TRUE,FALSE,NULL);CHECK(handoffBlocker.entered && handoffBlocker.release);
+ fake=fixtureOwned(&handoffBlocker);CHECK(fake);handoffUntil=GetTickCount64()+10000;
+ while(fake && GetTickCount64()<handoffUntil) {if(xideCompletionDecoderDiscard(v->decoder,fake))fake=NULL;else Sleep(1);}
+ CHECK(!fake && WaitForSingleObject(handoffBlocker.entered,10000)==WAIT_OBJECT_0);fake=fixtureOwned(&handoffQueued);CHECK(fake && xideCompletionDecoderDiscard(v->decoder,fake));fake=NULL;
+ CHECK(prepare(&app,xl,local,"zzROther",3));xideCompletionViewRequest(&app,xl->editor,(int)(strstr(local,"zzROther")-local)+3,1);CHECK(holdSync(v));cvpollSync(v);
+ CHECK(!v->decoding && !v->decodeToken && v->request>1);handoffUntil=GetTickCount64()+10000;
+ while(!xideLanguageClientHasPending(v->client) && GetTickCount64()<handoffUntil)Sleep(1);
+ CHECK(xideLanguageClientHasPending(v->client));cvread(v,1);CHECK(v->deferredMessage && !v->decoding);
+ SetEvent(handoffBlocker.release);CHECK(waitReady(&app) && has(v,"zzResult") && waitFixtureDrop(&handoffBlocker) && waitFixtureDrop(&handoffQueued) && !xrtAtomic32Load(&handoffBlocker.timedOut,XMEMORY_ACQUIRE));
  /* All commits in one input batch keep only the final caret intent. No
     source capture or protocol query runs inside the input handler. */
  const char* beforeBurst="func main(...) as int\n    int zzResult = 7\n    return zzOther\nend\n";
@@ -274,9 +293,10 @@ static int verify(void* user)
  CHECK(prepare(&app,xl,"math.sq","math.sq",7) && invoke(&app) && !v->count && xuiCodeEditIsCompletionOpen(xl->editor) && key(&app,XUI_KEY_ENTER,0) && !strcmp(xuiCodeEditGetText(xl->editor),"math.sqrt"));
  printf("completion_view_test passed: %d native assertions; native-backend=%d; whole-token Enter/Tab and undo, BOM/CRLF/Unicode, dot trigger, real overloads and shadowing, unsaved dependencies, malformed responses, typing refresh, Esc/caret/focus/tab/edit/close/reuse/C rejection, modal/environment, static-name deduplication, concurrent diagnostics, source guard, restart and old-compiler compatibility; renders in %s.\n",f->checks,v->nativeBackend,root);
 cleanup:
+ if(handoffBlocker.release) SetEvent(handoffBlocker.release);
  if(blocker.release) SetEvent(blocker.release);
  if(packageTouched) { wchar_t restore[32768]; if(!previousPackage || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,previousPackage,-1,restore,32768)) SetEnvironmentVariableW(L"XLANG_PACKAGE_PATH",previousPackage ? restore : NULL); } free(previousPackage);
- free(composed); xrtValueRelease(fake); xrtValueRelease(valid);xideCompletionResultRelease(held); if(began) xgeEnd(); xideAppDestroy(&app);if(blocker.entered) CloseHandle(blocker.entered);if(blocker.release) CloseHandle(blocker.release); free(root); free(entry); free(dep); free(disk); free(native); free(light); free(dark); free(canonicalChinese); xgeQuit(); return XGE_OK;
+ free(composed); xrtValueRelease(fake); xrtValueRelease(valid);xideCompletionResultRelease(held); if(began) xgeEnd(); xideAppDestroy(&app);if(blocker.entered) CloseHandle(blocker.entered);if(blocker.release) CloseHandle(blocker.release);if(handoffBlocker.entered) CloseHandle(handoffBlocker.entered);if(handoffBlocker.release) CloseHandle(handoffBlocker.release); free(root); free(entry); free(dep); free(disk); free(native); free(light); free(dark); free(canonicalChinese); xgeQuit(); return XGE_OK;
 }
 static DWORD WINAPI worker(void* data) { fixture* f=data; if(!SetThreadDesktop(f->desktop)) return 1; xge_desc_t d={0}; d.iWidth=1600; d.iHeight=1000; d.sTitle="xlang completion verification"; d.iFlags=XGE_INIT_WINDOW|XGE_INIT_HIGHDPI; d.iRunMode=XGE_RUN_GAME_LOOP; int result=xgeInit(&d); if(result==XGE_OK) result=xgeRun(verify,f); xgeUnit(); return result==XGE_OK && f->started && !f->failed ? 0 : 1; }
 int main(int argc,char** argv) { if(argc!=4 || !xrtDirCreateAll(argv[1])) return 2; fixture f={.directory=argv[1],.compiler=argv[2],.legacy=argv[3]}; wchar_t name[100]; swprintf(name,100,L"XlangCompletionVerification-%lu",GetCurrentProcessId()); f.desktop=CreateDesktopW(name,NULL,NULL,0,DESKTOP_CREATEWINDOW|DESKTOP_READOBJECTS|DESKTOP_WRITEOBJECTS|DESKTOP_ENUMERATE,NULL); if(!f.desktop) return 1; HANDLE t=CreateThread(NULL,0,worker,&f,0,NULL); DWORD code=1; if(t) { if(WaitForSingleObject(t,120000)!=WAIT_OBJECT_0) { fputs("completion_view_test timed out\n",stderr); ExitProcess(1); } GetExitCodeThread(t,&code); CloseHandle(t); } CloseDesktop(f.desktop); return (int)code; }
