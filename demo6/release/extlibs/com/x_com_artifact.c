@@ -168,13 +168,10 @@ static xvalue* x_com_value_from_wide(BSTR text)
 	size_t size;
 	char* utf8 = x_com_utf8_from_wide(text, text != NULL ? SysStringLen(text) : 0u, &size);
 	xvalue* value;
-	xstrview view;
 	if ( utf8 == NULL ) {
 		return xrtValueNull();
 	}
-	view.Data = utf8;
-	view.Size = size;
-	value = xrtValueString(view);
+	value = xrtValueStringTake(&utf8, size);
 	xrtFree(utf8);
 	return value;
 }
