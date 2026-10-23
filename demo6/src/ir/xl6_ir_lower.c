@@ -3498,8 +3498,7 @@ static int xl6IrLowerValueHasOwner(const XL6_IrLowerContext* ctx, XL6_IrValueId 
                 xl6IrTypeGet(&ctx->module->types,nullable->type)))return 0;
         }
         if (definition->kind != XL6_IR_INSTR_VALUE && definition->kind != XL6_IR_INSTR_NULLABLE_WRAP &&
-            definition->kind != XL6_IR_INSTR_NULLABLE_UNWRAP &&
-            !(definition->kind == XL6_IR_INSTR_RUNTIME_CALL && definition->runtimeOp == XL6_IR_RUNTIME_CSTRING_VIEW)) break;
+            definition->kind != XL6_IR_INSTR_NULLABLE_UNWRAP) break;
         if (definition->operandCount != 1 || definition->targetValue != 0) return 0;
         value = ctx->module->operands[definition->firstOperand];
     }
@@ -3529,6 +3528,8 @@ static XL6_IrValueId xl6IrLowerAcquireValueOwner(
     if (info->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL || xl6IrLowerValueHasOwner(ctx, value))
         return value;
     if (info->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) {
+        if (xl6IrTypeIsCOwned(info))
+            return xl6IrLowerEmitRuntimeCall(ctx,origin,type,XL6_IR_RUNTIME_C_OWNED_COPY,&value,1);
         if (xl6IrNativeValuePlanForType(info))
             return xl6IrLowerEmitRuntimeCall(ctx,origin,type,XL6_IR_RUNTIME_NATIVE_VALUE_COPY,&value,1);
         if (info->cAbi == XL6_IR_C_ABI_MANAGED_STRING)
@@ -4563,6 +4564,15 @@ static XL6_IrValueId xl6IrLowerNodeAsType(
     if ( source == NULL || target == NULL ) {
         xl6IrLowerDiag(ctx, origin, "XLIR typed value boundary has no resolved target ABI");
         return XL6_IR_VALUE_INVALID;
+    }
+    const XL6_IrType* cSource=xl6IrTypeGet(&ctx->module->types,source->storageType);
+    if(xl6IrTypeIsCOwned(target) && !xl6IrTypeIsCOwned(cSource)) {
+        XL6_IrRuntimeOp convert=target->cAbi==XL6_IR_C_ABI_C_STRING && cSource->cAbi==XL6_IR_C_ABI_MANAGED_STRING
+            ? XL6_IR_RUNTIME_CSTRING_FROM_STRING : target->cAbi==XL6_IR_C_ABI_C_BYTES && cSource->cAbi==XL6_IR_C_ABI_MANAGED_BYTES
+                ? XL6_IR_RUNTIME_CBYTES_FROM_BYTES : XL6_IR_RUNTIME_NONE;
+        if(convert==XL6_IR_RUNTIME_NONE)return 0;
+        XL6_IrValueId input=xl6IrLowerAcquireValueOwner(ctx,origin,xl6IrLowerNode(ctx,sourceId));
+        return input ? xl6IrLowerEmitRuntimeCall(ctx,origin,targetType,convert,&input,1) : 0;
     }
     if(xl6IrTypeIsCOwned(xl6IrTypeGet(&ctx->module->types,source->storageType)) &&
         source->storageType!=targetType) {
@@ -7494,6 +7504,7 @@ static XL6_IrValueId xl6IrLowerOwnedStorageValue(
     if ( type == NULL || sourceNode == NULL || source == XL6_IR_VALUE_INVALID )
         return XL6_IR_VALUE_INVALID;
     if ( type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL ) return source;
+    if(xl6IrTypeIsCOwned(type))return xl6IrLowerAcquireValueOwner(ctx,origin,source);
     if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
         return xl6IrLowerOwnedManagedStringValue(
             ctx, origin, typeId, sourceNode, source);
@@ -7524,6 +7535,7 @@ static XL6_IrValueId xl6IrLowerOwnedValueBoundary(
         return XL6_IR_VALUE_INVALID;
     if ( typeInfo->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL ) return source;
     if ( xl6IrValueOwnershipGet(ctx->module, source) == XL6_IR_OWNERSHIP_MOVE ) return source;
+    if(xl6IrTypeIsCOwned(typeInfo))return xl6IrLowerAcquireValueOwner(ctx,origin,source);
     if ( typeInfo->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
         return xl6IrLowerOwnedManagedStringValue(ctx, origin, type, sourceNode, source);
     if ( typeInfo->cAbi == XL6_IR_C_ABI_MANAGED_BYTES || typeInfo->cAbi == XL6_IR_C_ABI_NATIVE_VALUE )
@@ -11844,7 +11856,9 @@ static int xl6IrLowerMaterializeBorrowedParameterOwners(
              storage->type != target->parameterTypes[parameter] || type == NULL ||
              !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, storage->declaration,
                               storage->type, symbol, NULL, 0, &borrowed) ) return 0;
-        if ( type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE )
+        if (xl6IrTypeIsCOwned(type))
+            owned=xl6IrLowerEmitRuntimeCall(ctx,storage->declaration,storage->type,XL6_IR_RUNTIME_C_OWNED_COPY,&borrowed,1);
+        else if ( type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE )
             owned = xl6IrLowerEmitRuntimeCall(ctx,storage->declaration,storage->type,
                 XL6_IR_RUNTIME_NATIVE_VALUE_COPY,&borrowed,1);
         else if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
@@ -27268,6 +27282,9 @@ static int xl6IrLowerValueSequenceElementAssign(
             XL6_IR_INDEX_WRITE_STRING_SCALAR_SET_COPY
         ? XL6_IR_RUNTIME_STRING_SCALAR_SET_COPY
         : XL6_IR_RUNTIME_BYTES_SET_COPY;
+    if(xl6IrTypeIsCOwned(xl6IrTypeGet(&ctx->module->types,receiver->storageType)))
+        operation=lhs->indexWriteAbi==XL6_IR_INDEX_WRITE_STRING_SCALAR_SET_COPY
+            ? XL6_IR_RUNTIME_CSTRING_SET_COPY : XL6_IR_RUNTIME_CBYTES_SET_COPY;
     if ( indexType == XL6_IR_TYPE_INVALID )
         return xl6IrLowerDiag(ctx, origin,
             "XLIR string/bytes indexed write has no canonical signed index TypeId");

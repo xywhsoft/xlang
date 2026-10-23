@@ -7,27 +7,66 @@
 #include "include/xruntime_decl.h"
 #endif
 
-/* Local, unique C allocation owner. Language reads only borrow Data; ordinary
- * value boundaries materialize string/bytes. No owner Copy/Clone/box ABI exists.
- * Release uses the target C ABI and cannot raise or outlive its loaded code. */
+/* Compiler-private owners. Ordinary string/bytes and XRT layouts are unchanged.
+ * Reads use Data/Size directly; only acquisition and cleanup inspect Owner. */
 typedef void (*XL6_CReleaseV1)(void*);
+typedef struct XL6_COwnerV1 {
+    size_t References;
+    void* Allocation;
+    XL6_CReleaseV1 Release;
+} XL6_COwnerV1;
 typedef struct XL6_COwnedV1 {
     void* Data;
     size_t Size;
-    XL6_CReleaseV1 Release;
+    XL6_COwnerV1* Owner;
 } XL6_COwnedV1;
 
 static inline void xl6COwnedDropV1(XL6_COwnedV1* value)
 {
-    XL6_COwnedV1 owned = *value;
-    *value = (XL6_COwnedV1){0};
-    if (owned.Data) owned.Release(owned.Data);
+    XL6_COwnedV1 owned=*value;
+    *value=(XL6_COwnedV1){0};
+    if(owned.Owner) {
+        if(--owned.Owner->References==0) {
+            void* allocation=owned.Owner->Allocation;
+            XL6_CReleaseV1 release=owned.Owner->Release;
+            xrtFree(owned.Owner);
+            release(allocation);
+        }
+    } else xrtFree(owned.Data); /* ordinary string committed into a C-capable slot */
 }
-
-/* The generated slot transfer detaches and clears its source before this call. */
 static inline void xl6COwnedDropValueV1(XL6_COwnedV1 value)
 {
     xl6COwnedDropV1(&value);
+}
+static inline XL6_COwnedV1 xl6COwnedTakeV1(void* data,size_t size,XL6_CReleaseV1 release)
+{
+    if(!data)return (XL6_COwnedV1){0};
+    XL6_COwnerV1* owner=(XL6_COwnerV1*)xrtMalloc(sizeof(*owner));
+    if(!owner) { release(data); return (XL6_COwnedV1){0}; }
+    *owner=(XL6_COwnerV1){1,data,release};
+    return (XL6_COwnedV1){data,size,owner};
+}
+/* One independent owner; shared C storage never copies payload bytes. Ordinary
+ * strings stored after a write retain their existing value-copy semantics. */
+static inline XL6_COwnedV1 xl6COwnedCopyV1(XL6_COwnedV1 value)
+{
+    if(value.Owner) { ++value.Owner->References; return value; }
+    if(!value.Data)return value;
+    char* copy=xrtStrDupN((const char*)value.Data,value.Size);
+    return (XL6_COwnedV1){copy,copy ? value.Size : 0,NULL};
+}
+static inline XL6_COwnedV1 xl6CStringFromStringV1(xstrview value)
+{
+    return (XL6_COwnedV1){(void*)value.Data,value.Size,NULL};
+}
+static inline void xl6COwnedReleaseBytesV1(void* value) { xrtValueRelease((xvalue*)value); }
+static inline XL6_COwnedV1 xl6CBytesFromBytesV1(xvalue* value)
+{
+    xbytesview view={0};
+    if(!xrtValueGetBytes(value,&view)) { xrtValueRelease(value); return (XL6_COwnedV1){0}; }
+    XL6_COwnedV1 result=xl6COwnedTakeV1(value,view.Size,xl6COwnedReleaseBytesV1);
+    if(result.Owner)result.Data=(void*)view.Data;
+    return result;
 }
 
 /* A successful take owns exactly the original allocation address. NULL is an
@@ -35,7 +74,7 @@ static inline void xl6COwnedDropValueV1(XL6_COwnedV1 value)
  * compiler admits only an exact, named, no-raise C void(void*) releaser. */
 static inline XL6_COwnedV1 xl6CStringTakeV1(void* data, XL6_CReleaseV1 release)
 {
-    return (XL6_COwnedV1){data, data ? strlen((const char*)data) : 0, release};
+    return xl6COwnedTakeV1(data,data ? strlen((const char*)data) : 0,release);
 }
 
 static inline XL6_COwnedV1 xl6CBytesTakeV1(void* data, int64_t size, XL6_CReleaseV1 release)
@@ -46,7 +85,7 @@ static inline XL6_COwnedV1 xl6CBytesTakeV1(void* data, int64_t size, XL6_CReleas
         xrtSetErrorKind(XERR_ARGUMENT);
         return (XL6_COwnedV1){0};
     }
-    return (XL6_COwnedV1){data, (size_t)size, release};
+    return xl6COwnedTakeV1(data,(size_t)size,release);
 }
 
 static inline xstrview xl6CStringViewV1(XL6_COwnedV1 value)

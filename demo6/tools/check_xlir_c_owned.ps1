@@ -44,7 +44,8 @@ if ($LASTEXITCODE) { throw 'C owner runtime tests failed' }
 $generatedSources=@(
     'test/cases/xlir_c_owned_basic.xl','test/cases/xlir_c_owned_lifetime.xl',
     'test/cases/xlir_c_owned_reads.xl','test/cases/xlir_c_owned_capture.xl',
-    'test/cases/xlir_c_owned_views.xl',
+    'test/cases/xlir_c_owned_views.xl','test/cases/xlir_c_owned_flow.xl',
+    'test/cases/xlir_c_owned_writes.xl',
     'test/cases/xlir_c_owned_borrows.xl','test/cases/xlir_c_owned_failure.xl')
 foreach ($source in $generatedSources) {
     $name=[IO.Path]::GetFileNameWithoutExtension($source).Substring('xlir_c_owned_'.Length)
@@ -59,17 +60,13 @@ foreach ($source in $generatedSources) {
 }
 $prefix = "extern `"c_owned_text`" @no_raise func make() as point`nextern `"c_owned_release`" @no_raise func drop(point p)`n"
 $negative = @(
-    @{Name='copy-owner';Body="func probe()`n cstring a = cstring.take(make(), drop)`n cstring b = a`nend";Message='C owner initialization must take'},
-    @{Name='reassign';Body="func probe()`n cstring a = cstring.take(make(), drop)`n a = a`nend";Message='read-only'},
-    @{Name='write-index';Body="func probe()`n cbytes a = cbytes.take(make(), 1, drop)`n a[0] = 1`nend";Message='read-only'},
-    @{Name='parameter';Body="func probe(cstring a)`nend";Message='C owners are local-only'},
-    @{Name='return';Body="func probe() as cstring`n return cstring.take(make(), drop)`nend";Message='C owners are local-only'},
-    @{Name='container';Body="func probe()`n array<cbytes> a`nend";Message='C owners are local-only'},
+    @{Name='parameter';Body="func probe(cstring a)`nend";Message='C markers are limited'},
+    @{Name='container';Body="func probe()`n array<cbytes> a`nend";Message='C markers are limited'},
     @{Name='global';Body="cstring a = cstring.take(make(), drop)";Message='explicit local initialization'},
     @{Name='releaser';Body="extern `"wrong`" func wrong(point p)`nfunc probe()`n cstring a = cstring.take(make(), wrong)`nend";Message='releaser must be'},
-    @{Name='field';Body="class Box`n cstring value`nend";Message='C owners are local-only'},
-    @{Name='nullable';Body="func probe()`n cstring? value`nend";Message='C owners are local-only'},
-    @{Name='alias';Body="typedef Alias = cstring";Message='C owners are local-only'},
+    @{Name='field';Body="class Box`n cstring value`nend";Message='C markers are limited'},
+    @{Name='nullable';Body="func probe()`n cstring? value`nend";Message='C markers are limited'},
+    @{Name='alias';Body="typedef Alias = cstring";Message='C markers are limited'},
     @{Name='coroutine';Body="async func probe()`n cstring value = cstring.take(make(), drop)`nend";Message='coroutine frames'},
     @{Name='binary-text';Body="func probe()`n cbytes value = cbytes.take(make(), 1, drop)`n string wrong = string(value)`nend";Message='matching base type'}
 )

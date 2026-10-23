@@ -46,11 +46,11 @@ func testOwned() as int
     end
     assert released() == 7
     auto temporary = cstring.take(nativeText(), nativeFree)
-    assert temporary == "hello" and released() == 8
+    assert temporary == "hello" and released() == 7
     assert cstring.take(nativeText(), nativeFree).length == 5
     assert cbytes.take(nativeBytes(), 4, nativeFree)[1] == 255
     assert cstring.take(nativeText(), nativeFree).contains("ell")
-    assert released() == 11
+    assert released() == 10
     cstring emptyText = cstring.take(null, nativeFree)
     cbytes emptyData = cbytes.take(null, 0, nativeFree)
     assert emptyText.length == 0 and emptyData.length == 0

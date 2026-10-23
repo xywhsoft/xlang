@@ -19,11 +19,14 @@ int xl6IrTypeIsCOwned(const XL6_IrType* type)
 }
 int xl6IrCOwnedRuntimeOpIs(XL6_IrRuntimeOp op)
 {
-    return op>=XL6_IR_RUNTIME_CSTRING_TAKE && op<=XL6_IR_RUNTIME_CSTRING_VIEW;
+    return op>=XL6_IR_RUNTIME_CSTRING_TAKE && op<=XL6_IR_RUNTIME_CBYTES_SET_COPY;
 }
 XL6_IrCallErrorPhysicalAbi xl6IrCOwnedErrorPhysicalAbi(XL6_IrRuntimeOp op)
 {
-    if(op==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE || op==XL6_IR_RUNTIME_CSTRING_AT || op==XL6_IR_RUNTIME_CBYTES_AT)
+    if(op==XL6_IR_RUNTIME_CSTRING_SET_COPY || op==XL6_IR_RUNTIME_CBYTES_SET_COPY ||
+        op==XL6_IR_RUNTIME_C_OWNED_COPY || op==XL6_IR_RUNTIME_CSTRING_TAKE ||
+        op==XL6_IR_RUNTIME_CBYTES_TAKE || op==XL6_IR_RUNTIME_CBYTES_FROM_BYTES ||
+        op==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE || op==XL6_IR_RUNTIME_CSTRING_AT || op==XL6_IR_RUNTIME_CBYTES_AT)
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     if(op==XL6_IR_RUNTIME_CSTRING_BOX || op==XL6_IR_RUNTIME_CBYTES_COPY)
         return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
@@ -63,6 +66,23 @@ int xl6IrCOwnedInstructionCompatible(const XL6_IrModule* module,const XL6_IrInst
     const XL6_IrType* source=input ? xl6IrTypeGet(&module->types,input->type) : NULL;
     const XL6_IrType* result=xl6IrTypeGet(&module->types,ins->type);
     if(!source || !result) return 0;
+    if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_SET_COPY || ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_SET_COPY) {
+        const XL6_IrInstruction* key=ins->operandCount==3 ? xl6IrValueDefinition(module,module->operands[ins->firstOperand+1],NULL) : NULL;
+        const XL6_IrInstruction* item=ins->operandCount==3 ? xl6IrValueDefinition(module,module->operands[ins->firstOperand+2],NULL) : NULL;
+        const XL6_IrType* keyType=key ? xl6IrTypeGet(&module->types,key->type) : NULL;
+        const XL6_IrType* itemType=item ? xl6IrTypeGet(&module->types,item->type) : NULL;
+        int text=ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_SET_COPY;
+        return !ins->targetSymbol && keyType && itemType && ins->type==input->type && xl6IrTypeIsCOwned(source) &&
+            source->cAbi==(text ? XL6_IR_C_ABI_C_STRING : XL6_IR_C_ABI_C_BYTES) &&
+            keyType->integerTarget==XL6_IR_INTEGER_TARGET_SIGNED_64 &&
+            (text ? itemType->cAbi==XL6_IR_C_ABI_CHAR_U32 : itemType->integerTarget==XL6_IR_INTEGER_TARGET_UNSIGNED_8);
+    }
+    if(ins->runtimeOp==XL6_IR_RUNTIME_C_OWNED_COPY)
+        return ins->operandCount==1 && !ins->targetSymbol && xl6IrTypeIsCOwned(source) && ins->type==input->type;
+    if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_FROM_STRING || ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_FROM_BYTES)
+        return ins->operandCount==1 && !ins->targetSymbol && xl6IrTypeIsCOwned(result) &&
+            ((source->cAbi==XL6_IR_C_ABI_MANAGED_STRING && result->cAbi==XL6_IR_C_ABI_C_STRING && ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_FROM_STRING) ||
+             (source->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && result->cAbi==XL6_IR_C_ABI_C_BYTES && ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_FROM_BYTES));
     if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_VIEW)
         return ins->operandCount==1 && !ins->targetSymbol && xl6IrTypeIsCOwned(source) &&
             source->cAbi==XL6_IR_C_ABI_C_STRING && result->cAbi==XL6_IR_C_ABI_MANAGED_STRING;

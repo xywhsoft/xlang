@@ -175,13 +175,103 @@ static int xl6SemCheckCOwnedTake(XL6_SemContext* ctx, XL6_AstNode* call)
 static int xl6SemValidateCOwnedTypes(XL6_SemContext* ctx,XL6_AstNode* node,XL6_AstNode* parent)
 {
     int ok=1;
+    if(node->kind==XL6_AST_EXTERN_FUNC || node->kind==XL6_AST_EXPORT_FUNC || node->kind==XL6_AST_ASYNC_FUNC ||
+        (node->flags & XL6_AST_FLAG_ASYNC)) {
+        const XL6_AstNode* returns=xl6SemCallableReturns(node);
+        for(size_t r=0;returns && r<returns->childCount;++r)
+            if(xl6COwnedBaseName(returns->children[r]->text)) {
+                xl6SemErrorNode(ctx,node,"C result markers require a synchronous language function with an explicit take adapter");ok=0;
+            }
+    }
     if (node->kind==XL6_AST_TYPE && xl6COwnedBaseName(node->text) &&
-        (!parent || (parent->kind!=XL6_AST_VAR_DECL && parent->kind!=XL6_AST_CONST_DECL) ||
-         xl6SemVarDeclTypeNode(parent)!=node)) {
-        xl6SemErrorNode(ctx,node,"C owners are local-only; use string/bytes for parameters, results, fields and generic arguments");
+        (!parent || (parent->kind!=XL6_AST_VAR_DECL && parent->kind!=XL6_AST_CONST_DECL && parent->kind!=XL6_AST_RETURN_TYPES &&
+          !(parent->kind==XL6_AST_PARAM && (parent->flags & XL6_AST_FLAG_C_OWNED_SPECIALIZATION))) ||
+         (parent->kind!=XL6_AST_RETURN_TYPES && parent->kind!=XL6_AST_PARAM && xl6SemVarDeclTypeNode(parent)!=node))) {
+        xl6SemErrorNode(ctx,node,"C markers are limited to initialized locals and synchronous results; use base types at storage boundaries");
         ok=0;
     }
     for(size_t i=0;i<node->childCount;++i)
         if(!xl6SemValidateCOwnedTypes(ctx,node->children[i],node))ok=0;
     return ok;
+}
+
+/* Clone a body for an exact static owner signature. Type identities and binding
+ * symbols are rechecked in its own scope; decoded literals retain their bytes. */
+static XL6_AstNode* xl6SemCOwnedClone(const XL6_AstNode* source)
+{
+    XL6_AstNode* copy=source->text ? xl6AstNewText(source->kind,source->text,strlen(source->text),NULL)
+        : xl6AstNew(source->kind,NULL);
+    if(!copy)return NULL;
+    copy->flags=source->flags;copy->line=source->line;copy->column=source->column;
+    copy->range=source->range;copy->tokenRange=source->tokenRange;xl6AstCopySource(copy,source);
+    if(source->literalDecoded) {
+        copy->literalDecoded=1;copy->literalScalar=source->literalScalar;
+        if(source->literalData && !xl6AstSetLiteralData(copy,source->literalData,source->literalSize)) {
+            xl6AstFree(copy);return NULL;
+        }
+    }
+    if(source->semanticCallKind==XL6_SEM_CALL_C_OWNED_COMPARE || source->semanticCallKind==XL6_SEM_CALL_C_OWNED_VIEW)
+        copy->semanticCallKind=source->semanticCallKind;
+    for(size_t i=0;i<source->childCount;++i) {
+        XL6_AstNode* child=xl6SemCOwnedClone(source->children[i]);
+        if(!child){xl6AstFree(copy);return NULL;}
+        xl6AstAddChild(copy,child);
+    }
+    return copy;
+}
+static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call,XL6_AstNode* function)
+{
+    if(function->kind!=XL6_AST_FUNC || xl6SemFuncIsGeneric(function) ||
+        (function->flags & (XL6_AST_FLAG_ASYNC|XL6_AST_FLAG_C_OWNED_SPECIALIZATION)) ||
+        call->childCount!=2 || call->children[0]->kind!=XL6_AST_NAME)return function;
+    XL6_AstNode* params=function->childCount>1 ? function->children[1] : NULL;
+    XL6_AstNode* args=call->children[1];
+    if(!params || params->childCount!=args->childCount || params->childCount>63)return function;
+    uint64 mask=0;
+    for(size_t p=0;p<params->childCount;++p) {
+        XL6_AstNode* parameter=params->children[p];
+        XL6_AstNode* arg=args->children[p];
+        if(xl6SemParamIsVararg(parameter) || arg->kind!=XL6_AST_ARG || arg->childCount!=1)return function;
+        if(parameter->flags & (XL6_AST_FLAG_BYREF|XL6_AST_FLAG_OUT))return function;
+        XL6_AstNode* actual=xl6SemInferAutoTypeNode(ctx,arg->children[0]);
+        const char* base=actual ? xl6COwnedBaseName(actual->text) : NULL;
+        if(base && parameter->childCount && xl6TextEquals(base,parameter->children[0]->text))mask|=UINT64_C(1)<<p;
+        xl6AstFree(actual);
+    }
+    if(!mask)return function;
+    char name[96];snprintf(name,sizeof(name),"__xl_c_owned_%u_%llx",function->semanticSymbolId,(unsigned long long)mask);
+    XL6_AstNode* specialized=NULL;
+    for(size_t i=0;i<ctx->root->childCount;++i) {
+        XL6_AstNode* candidate=ctx->root->children[i];
+        if(candidate->kind==XL6_AST_FUNC && xl6TextEquals(xl6SemFuncName(candidate),name)){specialized=candidate;break;}
+    }
+    if(!specialized) {
+        specialized=xl6SemCOwnedClone(function);
+        if(!specialized)return NULL;
+        specialized->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
+        xrtFree(specialized->children[0]->text);specialized->children[0]->text=xrtStrDup(name);
+        for(size_t p=0;p<params->childCount;++p)if(mask & (UINT64_C(1)<<p)) {
+            XL6_AstNode* parameter=specialized->children[1]->children[p];
+            XL6_AstNode* type=parameter->children[0];
+            const char* marker=xl6TextEquals(type->text,"string") ? "cstring" : "cbytes";
+            xrtFree(type->text);type->text=xrtStrDup(marker);
+            parameter->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
+        }
+        XL6_AstNode* returns=specialized->children[2];
+        if(returns->childCount==1 &&
+            (xl6TextEquals(returns->children[0]->text,"string") || xl6TextEquals(returns->children[0]->text,"bytes"))) {
+            XL6_AstNode* type=returns->children[0];
+            const char* marker=xl6TextEquals(type->text,"string") ? "cstring" : "cbytes";
+            xrtFree(type->text);type->text=xrtStrDup(marker);
+        }
+        if(!xl6SemAssignEntitySymbolIds(ctx,specialized)){xl6AstFree(specialized);return NULL;}
+        XL6_Scope* saved=ctx->scope;
+        while(ctx->scope->parent)ctx->scope=ctx->scope->parent;
+        int declared=xl6SemDeclareGlobalFuncName(ctx,specialized->children[0]);ctx->scope=saved;
+        if(!declared){xl6AstFree(specialized);return NULL;}
+        xl6AstAddChild(ctx->root,specialized);
+    }
+    xrtFree(call->children[0]->text);call->children[0]->text=xrtStrDup(name);
+    xl6AstFree(call->inferredType);call->inferredType=NULL;
+    return specialized;
 }
