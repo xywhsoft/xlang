@@ -46,6 +46,18 @@ func main(...) as int
         assert file.delete(child)
         assert watcher.poll() == "MODIFIED:" + directory, "child deleted"
         assert watcher.remove(dirIndex), "remove directory watch"
+
+        string left = path.join(root, "left.txt")
+        string right = path.join(root, "right.txt")
+        assert file.writeText(left, "a") and file.writeText(right, "b")
+        watch.Watcher pair = watch.create()
+        assert pair.add(left) == 0 and pair.add(right) == 1
+        assert file.writeText(left, "aa") and file.writeText(right, "bb")
+        assert pair.poll() == "MODIFIED:" + left, "first changed path"
+        // 左侧再次变化时，右侧的待处理事件不能被饿死。
+        assert file.writeText(left, "aaa")
+        assert pair.poll() == "MODIFIED:" + right, "round-robin fairness"
+        assert pair.poll() == "MODIFIED:" + left, "repeated change is delivered"
     finally
         assert dir.delete(root), "watch boundary temporary directory must be removed"
     end

@@ -99,8 +99,13 @@ static int run_tests(void) {
         event = xwatch_poll(pair);
         CHECK(event && strstr(event, left));
         xrtFree(event);
+        /* 左侧持续变化时，轮转游标仍应先交付右侧待处理事件。 */
+        CHECK(xrtFileWriteAll(left, (xbytesview){(const uint8_t*)"aaa", 3}));
         event = xwatch_poll(pair);
         CHECK(event && strstr(event, right));
+        xrtFree(event);
+        event = xwatch_poll(pair);
+        CHECK(event && strstr(event, left));
         xrtFree(event);
         xwatch_destroy(pair);
         CHECK(xrtFileDelete(left) && xrtFileDelete(right));

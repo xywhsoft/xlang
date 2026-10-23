@@ -95,3 +95,9 @@ Windows `test/check.ps1 -SkipAot` 的 C/目录竞态/XLang/双语门禁和 Linux
 两边均断言计数和索引状态；当时 Windows/Linux 包门禁核对固定五行输出。
 Windows `-SkipAot`、Linux C ASan/UBSan 与双语门禁通过；默认 Windows
 边界 AOT 通过，带输出范例仍缺共享 `xl6ValueDataSnapshotV1`，不签收整包。
+
+2026-10-23：C/XLang 边界测试增加持续变化的双监视项：第一项事件交付后
+立即再次修改它，下一次 `poll` 仍须先交付第二项待处理事件，随后才交付
+第一项的新变化。Windows `-SkipAot` 和 Linux C ASan/UBSan、XLang、
+双语门禁通过；监视器实现无需修改。Windows 完整门禁再次确认边界 AOT
+通过，公开范例 AOT 仍缺共享 `xl6ValueDataSnapshotV1`，整包未签收发布级。
