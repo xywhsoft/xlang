@@ -399,7 +399,7 @@ export class QueryParams
         if result == null then
             return null
         end
-        return Buffer(result).text()
+        return __xhttp_text(result)
     end
 
     func parseAppend(string text) as bool
