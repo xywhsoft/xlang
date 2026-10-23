@@ -193,6 +193,12 @@ static int frame(void* user)
     xideCatalogViewAfterLayout(app); TRY(xuiLayout(app->context));
     xideSessionAfterLayout(app); xideSessionPoll(app);
     TRY(xuiUpdate(app->context, xgeGetDelta()));
+    /* Workers can finish while layout/update runs. Take already-ready work
+       before drawing instead of adding a display interval to each handoff.
+       Poll never waits; layout also includes a newly opened completion popup. */
+    if(xideCompletionViewActive(app)) {
+        xideCompletionViewPoll(app); TRY(xuiLayout(app->context));
+    }
     TRY(xideCatalogViewPrepareRender(app));
     TRY(app->proxy.surfaceClear(&app->proxy, app->target, ideThemeColor(app->theme, IDE_BG)));
     xui_rect_i_t full = {0, 0, width, height};
