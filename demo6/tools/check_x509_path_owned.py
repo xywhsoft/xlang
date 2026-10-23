@@ -13,7 +13,7 @@ def main():
     sha=lambda f:hashlib.sha256(Path(f).read_bytes()).hexdigest()
     gcc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
     tcc=Path(shutil.which('tcc') or 'E:/software/tcc/tcc.exe').resolve()
-    sources=[root/'src/runtime'/('xl6_x509_'+s+'.c') for s in ('value','certificate','record_storage','anchor','path_result','path_validate')]
+    sources=[root/'src/runtime'/('xl6_x509_'+s+'.c') for s in ('value','certificate','record_storage','record_oid','crl_policy_value','anchor','path_value','path_result','path_config','path_fields','path_validate')]
     sources+=[root/'src/runtime/xl6_native_handle.c',root/'src/api/xl_foreign_error.c']
     files=[Path(__file__),root/'tools/x509_path_fixtures.py',root/'tools/check_key_format_wire.py',
         root/'test/support/x509_path_owned.c',*sources,*root.glob('src/runtime/*.h'),root/'src/api/xl_foreign_error.h',
@@ -35,7 +35,7 @@ def main():
         assert code==0,str(log);return log.read_text(encoding='utf8',errors='replace')
     flags=['-std=c11','-DXL_STATIC_EMBED','-I'+str(root),'-I'+str(root/'release'),'-I'+str(out)]
     if os.name!='nt':flags+=['-D_GNU_SOURCE']
-    impl=out/'native.c';impl.write_text('#define XRT_MODULE_X509_PATH\n#define XRT_MODULE_X509_VERIFY_RSA\n#define XRT_MODULE_X509_VERIFY_ECDSA\n#define XRT_MODULE_X509_VERIFY_ED25519\n#define XRT_MODULE_MEMORY_DEBUG\n#define XRT_MODULE_VALUE\n#define XRT_MODULE_ONCE\n#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n')
+    impl=out/'native.c';impl.write_text('#define XRT_MODULE_X509_PATH\n#define XRT_MODULE_X509_VERIFY_RSA\n#define XRT_MODULE_X509_VERIFY_ECDSA\n#define XRT_MODULE_X509_VERIFY_ED25519\n#define XRT_MODULE_MEMORY_DEBUG\n#define XRT_MODULE_VALUE\n#define XRT_MODULE_ONCE\n#define XRT_MODULE_ATOMIC\n#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n')
     libs=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-pthread','-ldl','-lm']
     modes=[('gcc.O0',gcc,['-O0']),('gcc.O2',gcc,['-O2']),('tcc',tcc,[])]
     if os.name!='nt':modes.append(('asan',gcc,['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']))
