@@ -13,6 +13,7 @@
 static void test_pair_allocation_failure(void);
 static void test_thread_isolation(void);
 static void test_buffer_bounds(void);
+static void test_large_result_transfer(void);
 static void test_signed_fields(void);
 static void test_canonical_path(void);
 
@@ -71,6 +72,7 @@ int main(void)
     }
     test_pair_allocation_failure();
     test_buffer_bounds();
+    test_large_result_transfer();
     test_signed_fields();
     test_canonical_path();
     test_thread_isolation();
@@ -79,6 +81,24 @@ int main(void)
 }
 
 #include "../x_volc_core_native.c"
+
+/* 在线响应先拥有一份快照；语言取走该快照后不能再由结果槽回收。 */
+static void test_large_result_transfer(void)
+{
+    char body[65537];
+    const char* borrowed;
+    char* owned;
+    int i;
+
+    memset(body, 'x', sizeof(body) - 1u);
+    body[sizeof(body) - 1u] = '\0';
+    borrowed = xvolc_return_copy(body, sizeof(body) - 1u);
+    owned = (char*)x_volc_core_take_result(borrowed);
+    assert(owned == borrowed && strlen(owned) == sizeof(body) - 1u);
+    for (i = 0; i < 16; ++i) x_volc_core_sha256_hex("abc");
+    assert(memcmp(owned, body, sizeof(body)) == 0);
+    xrtFree(owned);
+}
 
 /* 控制字符不能改变规范请求的行结构或授权头。 */
 static void test_signed_fields(void)

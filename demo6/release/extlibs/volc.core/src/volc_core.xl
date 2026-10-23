@@ -68,45 +68,45 @@ extern "x_volc_core_sign_preview" func __xl6_native_volc_core_sign_preview(strin
 export func sign_preview(string method, string host, string path, string service, string region, string action, string version, string access_key, string secret_key, string session_token, string content_type, string extra_pairs, string body, string x_date) as string
     return __volc_core_text(__xl6_native_volc_core_sign_preview(method, host, path, service, region, action, version, access_key, secret_key, session_token, content_type, extra_pairs, body, x_date))
 end
-extern "x_volc_core_request" func __xl6_native_volc_core_request(string method, string host, string path, string service, string region, string action, string version, string access_key, string secret_key, string session_token, string content_type, string extra_pairs, string body, c_int timeout_ms) as string
+extern "x_volc_core_request" func __xl6_native_volc_core_request(string method, string host, string path, string service, string region, string action, string version, string access_key, string secret_key, string session_token, string content_type, string extra_pairs, string body, c_int timeout_ms) as point
 
 export func request(string method, string host, string path, string service, string region, string action, string version, string access_key, string secret_key, string session_token, string content_type, string extra_pairs, string body, int timeout_ms) as string
-    return __xl6_native_volc_core_request(method, host, path, service, region, action, version, access_key, secret_key, session_token, content_type, extra_pairs, body, __volc_core_c_int(timeout_ms))
+    return __volc_core_text(__xl6_native_volc_core_request(method, host, path, service, region, action, version, access_key, secret_key, session_token, content_type, extra_pairs, body, __volc_core_c_int(timeout_ms)))
 end
-extern "x_volc_core_request_acep" func __xl6_native_volc_core_request_acep(string action, string version, string access_key, string secret_key, string session_token, string body, c_int timeout_ms) as string
+extern "x_volc_core_request_acep" func __xl6_native_volc_core_request_acep(string action, string version, string access_key, string secret_key, string session_token, string body, c_int timeout_ms) as point
 
 export func request_acep(string action, string version, string access_key, string secret_key, string session_token, string body, int timeout_ms) as string
-    return __xl6_native_volc_core_request_acep(action, version, access_key, secret_key, session_token, body, __volc_core_c_int(timeout_ms))
+    return __volc_core_text(__xl6_native_volc_core_request_acep(action, version, access_key, secret_key, session_token, body, __volc_core_c_int(timeout_ms)))
 end
 extern "x_volc_core_sign_preview_acep" func __xl6_native_volc_core_sign_preview_acep(string action, string version, string access_key, string secret_key, string session_token, string body, string x_date) as point
 
 export func sign_preview_acep(string action, string version, string access_key, string secret_key, string session_token, string body, string x_date) as string
     return __volc_core_text(__xl6_native_volc_core_sign_preview_acep(action, version, access_key, secret_key, session_token, body, x_date))
 end
-extern "x_volc_core_request_sts" func __xl6_native_volc_core_request_sts(string access_key, string secret_key, string role_trn, string role_session_name, c_int duration_seconds, c_int timeout_ms) as string
+extern "x_volc_core_request_sts" func __xl6_native_volc_core_request_sts(string access_key, string secret_key, string role_trn, string role_session_name, c_int duration_seconds, c_int timeout_ms) as point
 
 export func request_sts(string access_key, string secret_key, string role_trn, string role_session_name, int duration_seconds, int timeout_ms) as string
-    return __xl6_native_volc_core_request_sts(access_key, secret_key, role_trn, role_session_name, __volc_core_c_int(duration_seconds), __volc_core_c_int(timeout_ms))
+    return __volc_core_text(__xl6_native_volc_core_request_sts(access_key, secret_key, role_trn, role_session_name, __volc_core_c_int(duration_seconds), __volc_core_c_int(timeout_ms)))
 end
 extern "x_volc_core_sign_preview_sts" func __xl6_native_volc_core_sign_preview_sts(string access_key, string secret_key, string role_trn, string role_session_name, c_int duration_seconds, string x_date) as point
 
 export func sign_preview_sts(string access_key, string secret_key, string role_trn, string role_session_name, int duration_seconds, string x_date) as string
     return __volc_core_text(__xl6_native_volc_core_sign_preview_sts(access_key, secret_key, role_trn, role_session_name, __volc_core_c_int(duration_seconds), x_date))
 end
-extern "x_volc_core_request_acep_spec" func __xl6_native_volc_core_request_acep_spec(string spec) as string
+extern "x_volc_core_request_acep_spec" func __xl6_native_volc_core_request_acep_spec(string spec) as point
 
 export func request_acep_spec(string spec) as string
-    return __xl6_native_volc_core_request_acep_spec(spec)
+    return __volc_core_text(__xl6_native_volc_core_request_acep_spec(spec))
 end
 extern "x_volc_core_sign_preview_acep_spec" func __xl6_native_volc_core_sign_preview_acep_spec(string spec) as point
 
 export func sign_preview_acep_spec(string spec) as string
     return __volc_core_text(__xl6_native_volc_core_sign_preview_acep_spec(spec))
 end
-extern "x_volc_core_request_sts_spec" func __xl6_native_volc_core_request_sts_spec(string spec) as string
+extern "x_volc_core_request_sts_spec" func __xl6_native_volc_core_request_sts_spec(string spec) as point
 
 export func request_sts_spec(string spec) as string
-    return __xl6_native_volc_core_request_sts_spec(spec)
+    return __volc_core_text(__xl6_native_volc_core_request_sts_spec(spec))
 end
 extern "x_volc_core_sign_preview_sts_spec" func __xl6_native_volc_core_sign_preview_sts_spec(string spec) as point
 

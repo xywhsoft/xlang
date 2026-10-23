@@ -22,7 +22,10 @@ string preview = volc.core.sign_preview_acep(
 
 `x_volc_core_take_result` 供语言桥接显式消费结果槽：若指针属于当前线程的槽，
 直接转交分配；静态失败文本则复制一次。结果统一由 `xrtFree` 释放。旧 C API 的
-借用合同不变；HTTP 响应体仍走原有路径，不把可能含 NUL 的字节当成零结尾文本接管。
+借用合同不变。在线请求的 XLang 文本包装也直接取走响应结果槽，
+不再为整段响应做第二次复制；C 端从 HTTP 借用视图生成独立快照的那一次复制仍必需。
+当前公开返回仍是 C 字符串文本语义，内嵌 NUL 会截断 XLang 所见内容；
+不能把它当作二进制响应 API 使用。
 
 原生 C 范例在 `examples/signing.c`；XLang 范例在 `release/examples/extlibs/volc_core.xl`。两者以固定日期和测试凭据进行离线签名，不访问火山引擎。
 
@@ -38,7 +41,7 @@ bash release/extlibs/volc.core/test/check.sh
 Windows 门禁包含严格 GCC 语法检查、C 边界及离线范例。Linux 门禁
 以 `-DNDEBUG`、ASan/UBSan 分离编译 C 边界与离线范例，并核对固定输出；
 链接器仅移除未调用的在线 HTTP 路径，不把该路径算作已验证。
-C 测试覆盖哈希/HMAC 固定向量、查询编码、签名预览、无效/不存在的日期、日期解析错误不泄漏到 XRT 线程状态、成功调用清理旧错误、查询参数第二次分配失败时的清理，以及双线程返回缓存、错误和状态隔离。XLang 范例当前在导入依赖 `xhttp.multipart` 时失败，最小复现和主线修复建议见 `demo6/dev/extlib_blockers/volc_core_import_chain.md`；本任务不修改 XRT 专门维护的包。真实云请求和 XLang 调用链未通过，所以本包**尚未达到发布验收**。
+C 测试覆盖哈希/HMAC 固定向量、查询编码、签名预览、无效/不存在的日期、日期解析错误不泄漏到 XRT 线程状态、成功调用清理旧错误、查询参数第二次分配失败时的清理、大文本结果槽转移，以及双线程返回缓存、错误和状态隔离。当前发布版 `xl.exe` 在 `xhttp.body` / `xhttp.client` 依赖中首先报未知 `cstring` 类型；最小复现和主线修复建议见 `demo6/dev/extlib_blockers/volc_core_import_chain.md`。真实云请求和 XLang 调用链未通过，所以本包**尚未达到发布验收**。
 
 2026-10-20：`available` 与 `last_status` 的 C 原型均返回 32 位 `int`，XLang 原声明分别误用 `bool` 和 64 位 `int`。现统一按 `c_int` 接入，再在公开函数边界转换为原有的 `bool`/`int`；C 定向门禁通过。上述 `xhttp.multipart` 导入阻断仍在，故尚不能宣称 XLang ABI 实跑通过。
 
@@ -57,3 +60,7 @@ C 边界与离线范例均通过。XLang 导入链仍在 `xhttp.multipart` 的
 2026-10-24：离线文本结果的 XLang 包装改为直接接管 C 结果槽，消除槽内复制之后的
 第二次语言字符串复制。C 测试验证原指针转交、轮转后存活和静态文本复制；Windows
 严格 C 与 Linux ASan/UBSan 离线门禁通过。XLang 导入仍被 `xhttp.multipart` 阻断。
+
+2026-10-24：五个在线 `request*` 包装复用同一结果槽接管路径；64 KiB 原生结果
+转移、槽轮转后的存活测试通过 Windows 严格 C 与 Linux ASan/UBSan 离线门禁。
+发布版 `xl.exe` 的上述 `cstring` 导入阻断仍在，未宣称在线或 XLang 运行验收。
