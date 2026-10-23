@@ -50,7 +50,8 @@ KDF 与 `deriveHasher` 按完整 UTF-8 字节长度读取上下文，内嵌 NUL 
 
 `outLen` 必须为正。BLAKE3 支持可扩展长度输出，同一输入的短摘要是长摘要的前缀；
 不同于 BLAKE2 将长度作为初始化参数。当前分配型薄绑定统一在分配前检查 XRT 默认
-512 MiB 输出预算；hex 的摘要和文本临时空间最多约为 `3 * outLen + 1`，
+512 MiB 输出预算；XLang hex 路径的摘要临时区与拥有型文本合计最多约为
+`3 * outLen + 1`，
 输出预算不是峰值内存承诺。零和负数不表示“默认值”或“无限制”。
 
 没有独立的 keyed/KDF 一次性 Bytes 函数，需要原始字节时使用对应对象的
@@ -152,6 +153,8 @@ Hasher/File 的 NULL 配置使用默认资源限制。流对象用 `xrtBlake3Opt
 薄绑定头 [include/blake3_native.h](include/blake3_native.h) 与生成原型一致：
 hex 返回值借用当前 XRT 临时区，清理或回退后失效，长期保留需复制；原始摘要返回
 拥有型 `xbuffer*`，C 调用方须 `xrtBufferDestroy`。错误来自 `xrtGetError()`，
+新增 `_owned` hex 入口返回独立 XRT 分配，C 调用方须 `xrtFree`；XLang 直接
+接管该分配，不经 `extern as string` 的全文复制。失败时 `_owned` 返回 NULL。
 不要保存跨后续错误操作的借用错误消息。创建得到的原生对象由对应 destroy 释放。
 核心 `xrtBlake3File` 借用 Reader；C 调用方须检查自有 Reader 的关闭结果。
 XLang 的 `hashFileHex` 自行关闭文件，关闭失败不会返回摘要，并保留先发生的

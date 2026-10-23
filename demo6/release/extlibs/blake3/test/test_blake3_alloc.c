@@ -43,6 +43,7 @@ static bool operation(unsigned int kind)
     void* h = NULL;
     xbuffer* bytes = NULL;
     const char* text;
+    void* owned = NULL;
     unsigned int mode = 0;
     if (kind == 0) h = xblake3_hasher_create(128);
     else if (kind == 1) h = xblake3_hasher_create_keyed((void*)key, 32, 128);
@@ -50,10 +51,21 @@ static bool operation(unsigned int kind)
     else if (kind == 3) h = xblake3_hasher_clone(source);
     else if (kind == 4) bytes = xblake3_hash_str_bytes("abc", 3, 131);
     else if (kind == 5) bytes = xblake3_hasher_digest_bytes(source, 131);
-    else if (kind >= 10) {
+    else if (kind == 10 || kind == 11) {
         text = xblake3_file_hex(input_file, 1048576, 32, NULL);
         if (!text[0]) return false;
         assert(strcmp(text, expected_file) == 0);
+        return true;
+    }
+    else if (kind >= 12) {
+        if (kind == 12) owned = xblake3_hash_str_hex_owned("abc", 3, 131);
+        else if (kind == 13) { mode = 1; owned = xblake3_hash_mac_str_hex_owned("abc", 3, key, 32, 131); }
+        else if (kind == 14) { mode = 2; owned = xblake3_hash_kdf_str_hex_owned("abc", 3, "test", 4, 131); }
+        else if (kind == 15) owned = xblake3_hasher_digest_hex_owned(source, 131);
+        else owned = xblake3_file_hex_owned(input_file, 1048576, 32, NULL);
+        if (owned == NULL) return false;
+        assert(strcmp(owned, kind == 16 ? expected_file : expected[mode]) == 0);
+        xrtFree(owned);
         return true;
     }
     else {
@@ -86,9 +98,9 @@ int main(void)
     assert(xrtTempClear() && xrtTempTrim(xrtTempCurrent(), 0));
     xrtClearError();
     xrtMemDebugSnapshot(&before);
-    for (kind = 0; kind < 12; ++kind) {
+    for (kind = 0; kind < 17; ++kind) {
         unsigned int good = 0, bad = 0;
-        bool ordinary = kind < 6 || kind == 10;
+        bool ordinary = kind < 6 || kind == 10 || kind == 16;
         for (index = 0; index < 12; ++index) {
             bool ok, injected;
             if (ordinary) assert(xrtMemDebugFailAfter(index));
@@ -108,6 +120,7 @@ int main(void)
             assert(after.InvalidFreeCount == before.InvalidFreeCount && after.DoubleFreeCount == before.DoubleFreeCount);
             assert(after.OverflowCount == before.OverflowCount && after.UnderflowCount == before.UnderflowCount);
         }
+        if (!good || !bad) fprintf(stderr, "blake3 allocation kind=%u good=%u bad=%u\n", kind, good, bad);
         assert(good && bad);
     }
     xblake3_hasher_destroy(source);

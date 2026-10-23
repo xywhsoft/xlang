@@ -1,15 +1,15 @@
 // BLAKE3 普通哈希、keyed hash 与 KDF；支持 Buffer、UTF-8、文件和流式对象。
 extern "xblake3_last_error" func __blake3_error() as string
 extern "xblake3_version" func __blake3_version() as string
-extern "xblake3_hash_hex" func __blake3_hash_hex(point data, c_size size, c_size outLen) as string
-extern "xblake3_hash_str_hex" func __blake3_hash_str(string data, c_size size, c_size outLen) as string
+extern "xblake3_hash_hex_owned" func __blake3_hash_hex(point data, c_size size, c_size outLen) as point
+extern "xblake3_hash_str_hex_owned" func __blake3_hash_str(string data, c_size size, c_size outLen) as point
 extern "xblake3_hash_bytes" func __blake3_hash_bytes(point data, c_size size, c_size outLen) as point
 extern "xblake3_hash_str_bytes" func __blake3_hash_str_bytes(string data, c_size size, c_size outLen) as point
-extern "xblake3_hash_mac_hex" func __blake3_hash_mac_hex(point data, c_size size, point key, c_size keyLen, c_size outLen) as string
-extern "xblake3_hash_mac_str_hex" func __blake3_hash_mac_str(string data, c_size size, string key, c_size keyLen, c_size outLen) as string
-extern "xblake3_hash_kdf_hex" func __blake3_hash_kdf_hex(point keyMat, c_size keyMatLen, string context, c_size contextLen, c_size outLen) as string
-extern "xblake3_hash_kdf_str_hex" func __blake3_hash_kdf_str(string keyMat, c_size keyMatLen, string context, c_size contextLen, c_size outLen) as string
-extern "xblake3_file_hex" func __blake3_file_hex(string path, c_ulonglong maxInput, c_size outLen, var onProgress) as string
+extern "xblake3_hash_mac_hex_owned" func __blake3_hash_mac_hex(point data, c_size size, point key, c_size keyLen, c_size outLen) as point
+extern "xblake3_hash_mac_str_hex_owned" func __blake3_hash_mac_str(string data, c_size size, string key, c_size keyLen, c_size outLen) as point
+extern "xblake3_hash_kdf_hex_owned" func __blake3_hash_kdf_hex(point keyMat, c_size keyMatLen, string context, c_size contextLen, c_size outLen) as point
+extern "xblake3_hash_kdf_str_hex_owned" func __blake3_hash_kdf_str(string keyMat, c_size keyMatLen, string context, c_size contextLen, c_size outLen) as point
+extern "xblake3_file_hex_owned" func __blake3_file_hex(string path, c_ulonglong maxInput, c_size outLen, var onProgress) as point
 extern "xblake3_hasher_create_kdf" func __blake3_kdf_create(string context, c_size contextLen, c_ulonglong maxInput) as point
 
 
@@ -37,6 +37,13 @@ func __blake3_output(int value) as c_size
     return c_size(value)
 end
 
+func __blake3_text(point value) as string
+    if value == null then
+        throw ValueError __blake3_error()
+    end
+    return __xl_runtime.takeCstr(value)
+end
+
 // XRT 进度帧使用 uint64；公开回调收到经过范围检查的 int。
 func __blake3_progress(func(int, int, int) as bool callback) as var
     return xcall(func(uint64 inputBytes, uint64 totalBytes, uint64 outputBytes) as bool
@@ -54,19 +61,11 @@ end
 
 // 一次性 BLAKE3 哈希（返回十六进制小写字符串，默认 32 字节 = 64 hex 字符）。
 export func hashHex(Buffer data, int outLen = BLAKE3_OUT_LEN) as string
-    string result = __blake3_hash_hex(data.data(), c_size(data.len()), __blake3_output(outLen))
-    if result == "" then
-        throw ValueError __blake3_error()
-    end
-    return result
+    return __blake3_text(__blake3_hash_hex(data.data(), c_size(data.len()), __blake3_output(outLen)))
 end
 
 export func hashHex(string text, int outLen = BLAKE3_OUT_LEN) as string
-    string result = __blake3_hash_str(text, c_size(string.byteLen(text)), __blake3_output(outLen))
-    if result == "" then
-        throw ValueError __blake3_error()
-    end
-    return result
+    return __blake3_text(__blake3_hash_str(text, c_size(string.byteLen(text)), __blake3_output(outLen)))
 end
 
 // 一次性 BLAKE3 哈希（返回原始字节 Buffer，默认 32 字节）。
@@ -88,40 +87,24 @@ end
 
 // MAC 模式（keyed hash，BLAKE3 原生支持，无需 HMAC 包装）。
 export func hashMacHex(Buffer data, Buffer key, int outLen = BLAKE3_OUT_LEN) as string
-    string result = __blake3_hash_mac_hex(data.data(), c_size(data.len()),
-        key.data(), c_size(key.len()), __blake3_output(outLen))
-    if result == "" then
-        throw ValueError __blake3_error()
-    end
-    return result
+    return __blake3_text(__blake3_hash_mac_hex(data.data(), c_size(data.len()),
+        key.data(), c_size(key.len()), __blake3_output(outLen)))
 end
 
 export func hashMacHex(string text, string key, int outLen = BLAKE3_OUT_LEN) as string
-    string result = __blake3_hash_mac_str(text, c_size(string.byteLen(text)),
-        key, c_size(string.byteLen(key)), __blake3_output(outLen))
-    if result == "" then
-        throw ValueError __blake3_error()
-    end
-    return result
+    return __blake3_text(__blake3_hash_mac_str(text, c_size(string.byteLen(text)),
+        key, c_size(string.byteLen(key)), __blake3_output(outLen)))
 end
 
 // KDF 模式（密钥派生）。
 export func hashKdfHex(Buffer keyMaterial, string context, int outLen = BLAKE3_OUT_LEN) as string
-    string result = __blake3_hash_kdf_hex(keyMaterial.data(), c_size(keyMaterial.len()),
-        context, c_size(string.byteLen(context)), __blake3_output(outLen))
-    if result == "" then
-        throw ValueError __blake3_error()
-    end
-    return result
+    return __blake3_text(__blake3_hash_kdf_hex(keyMaterial.data(), c_size(keyMaterial.len()),
+        context, c_size(string.byteLen(context)), __blake3_output(outLen)))
 end
 
 export func hashKdfHex(string keyMaterial, string context, int outLen = BLAKE3_OUT_LEN) as string
-    string result = __blake3_hash_kdf_str(keyMaterial, c_size(string.byteLen(keyMaterial)),
-        context, c_size(string.byteLen(context)), __blake3_output(outLen))
-    if result == "" then
-        throw ValueError __blake3_error()
-    end
-    return result
+    return __blake3_text(__blake3_hash_kdf_str(keyMaterial, c_size(string.byteLen(keyMaterial)),
+        context, c_size(string.byteLen(context)), __blake3_output(outLen)))
 end
 
 
@@ -138,11 +121,11 @@ export func hashFileHex(string path, int maxInput = 268435456,
     if onProgress != null then
         progress = __blake3_progress(onProgress)
     end
-    string result = __blake3_file_hex(path, c_ulonglong(maxInput), __blake3_output(outLen), progress)
-    if result == "" then
+    point result = __blake3_file_hex(path, c_ulonglong(maxInput), __blake3_output(outLen), progress)
+    if result == null then
         throw FileError __blake3_error()
     end
-    return result
+    return __xl_runtime.takeCstr(result)
 end
 
 
@@ -155,7 +138,7 @@ export class Blake3Hasher
     extern "xblake3_hasher_destroy" destroy()
     private extern "xblake3_hasher_update" func updateNative(point data, c_size size) as bool
     private extern "xblake3_hasher_update_str" func updateStrNative(string data, c_size size) as bool
-    private extern "xblake3_hasher_digest_hex" func digestHexNative(c_size outLen) as string
+    private extern "xblake3_hasher_digest_hex_owned" func digestHexNative(c_size outLen) as point
     private extern "xblake3_hasher_digest_bytes" func digestBytesNative(c_size outLen) as point
     private extern "xblake3_hasher_reset" func resetNative() as bool
     private extern "xblake3_hasher_input_bytes" func inputBytesNative() as c_ulonglong
@@ -182,11 +165,7 @@ export class Blake3Hasher
     end
 
     func digestHex(int outLen = BLAKE3_OUT_LEN) as string
-        string result = self.digestHexNative(__blake3_output(outLen))
-        if result == "" then
-            throw ValueError __blake3_error()
-        end
-        return result
+        return __blake3_text(self.digestHexNative(__blake3_output(outLen)))
     end
 
     // 读取当前摘要（原始 Buffer，不终结状态）。
@@ -222,7 +201,7 @@ export class Blake3KeyedHasher
     extern "xblake3_hasher_destroy" destroy()
     private extern "xblake3_hasher_update" func updateNative(point data, c_size size) as bool
     private extern "xblake3_hasher_update_str" func updateStrNative(string data, c_size size) as bool
-    private extern "xblake3_hasher_digest_hex" func digestHexNative(c_size outLen) as string
+    private extern "xblake3_hasher_digest_hex_owned" func digestHexNative(c_size outLen) as point
     private extern "xblake3_hasher_digest_bytes" func digestBytesNative(c_size outLen) as point
     private extern "xblake3_hasher_reset" func resetNative() as bool
     private extern "xblake3_hasher_input_bytes" func inputBytesNative() as c_ulonglong
@@ -249,11 +228,7 @@ export class Blake3KeyedHasher
     end
 
     func digestHex(int outLen = BLAKE3_OUT_LEN) as string
-        string result = self.digestHexNative(__blake3_output(outLen))
-        if result == "" then
-            throw ValueError __blake3_error()
-        end
-        return result
+        return __blake3_text(self.digestHexNative(__blake3_output(outLen)))
     end
 
     // 读取当前摘要（原始 Buffer，不终结状态）。

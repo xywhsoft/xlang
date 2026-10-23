@@ -54,6 +54,7 @@ static void boundaries(void)
 {
     uint8 input[3] = {0, 1, 255}, digest[131];
     char expected[263];
+    void* owned;
     size_t written;
     xrtresourcelimits limits;
     void* h;
@@ -97,6 +98,13 @@ static void boundaries(void)
     assert(xrtBlake3Hash(input, 3, digest, sizeof(digest), NULL));
     assert(xrtHexEncode(digest, sizeof(digest), expected, sizeof(expected), &written, 0));
     assert(strcmp(xblake3_hash_hex(input, 3, 131), expected) == 0);
+    owned = xblake3_hash_hex_owned(input, 3, 131);
+    assert(owned && strcmp(owned, expected) == 0);
+    xrtFree(owned);
+    assert(!xblake3_hash_hex_owned(input, 3, 0));
+    assert(xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    assert(!xblake3_hash_mac_hex_owned(input, 3, NULL, 32, 32));
+    assert(xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     bytes = xblake3_hash_bytes(input, 3, 131);
     assert(bytes && xrtBufferView(bytes).Size == 131 && memcmp(xrtBufferView(bytes).Data, digest, 131) == 0);
     xrtBufferDestroy(bytes);
@@ -105,6 +113,9 @@ static void boundaries(void)
     assert(xblake3_hasher_input_bytes(h) == 3);
     copy = xblake3_hasher_clone(h);
     assert(copy && strcmp(xblake3_hasher_digest_hex(copy, 131), expected) == 0);
+    owned = xblake3_hasher_digest_hex_owned(copy, 131);
+    assert(owned && strcmp(owned, expected) == 0);
+    xrtFree(owned);
     bytes = xblake3_hasher_digest_bytes(h, 131);
     assert(bytes && memcmp(xrtBufferView(bytes).Data, digest, 131) == 0);
     xrtBufferDestroy(bytes);
@@ -117,6 +128,9 @@ static void boundaries(void)
     h = xblake3_hasher_create_keyed((void*)key, 32, 0);
     assert(h && xblake3_hasher_update_str(h, "abc", 3));
     assert(strcmp(xblake3_hasher_digest_hex(h, 65), xblake3_hash_mac_str_hex("abc", 3, key, 32, 65)) == 0);
+    owned = xblake3_hash_mac_str_hex_owned("abc", 3, key, 32, 65);
+    assert(owned && strcmp(owned, xblake3_hasher_digest_hex(h, 65)) == 0);
+    xrtFree(owned);
     xblake3_hasher_destroy(h);
     key_value = xrtValueBytes((xbytesview){(const uint8*)key, 32u});
     assert(key_value != NULL);
@@ -129,7 +143,16 @@ static void boundaries(void)
     h = xblake3_hasher_create_kdf("xlang test", 10, 0);
     assert(h && xblake3_hasher_update_str(h, "abc", 3));
     assert(strcmp(xblake3_hasher_digest_hex(h, 65), xblake3_hash_kdf_str_hex("abc", 3, "xlang test", 10, 65)) == 0);
+    owned = xblake3_hash_kdf_str_hex_owned("abc", 3, "xlang test", 10, 65);
+    assert(owned && strcmp(owned, xblake3_hasher_digest_hex(h, 65)) == 0);
+    xrtFree(owned);
     xblake3_hasher_destroy(h);
+    owned = xblake3_file_hex_owned("release/extlibs/blake3/test/test_vectors.json", 1048576, 32, NULL);
+    assert(owned && strcmp(owned,
+        xblake3_file_hex("release/extlibs/blake3/test/test_vectors.json", 1048576, 32, NULL)) == 0);
+    xrtFree(owned);
+    assert(!xblake3_file_hex_owned("", 0, 32, NULL));
+    assert(xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     assert(xrtTempClear());
 }
 

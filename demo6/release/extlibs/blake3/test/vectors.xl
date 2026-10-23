@@ -22,5 +22,10 @@ func main(...) as int
 
     // XOF 越过 64 字节块边界时仍须与同一官方向量相符。
     assert blake3.hashHex(one, 65) == "2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213c3a6cb8bf623e20cdb535f8d1a5ffb86342d9c0b64aca3bce1d31f60adfa137b35"
+    string longHex = blake3.hashHex("abc", 1024)
+    assert string.byteLen(longHex) == 2048
+    blake3.Blake3Hasher stream = blake3.Blake3Hasher(c_ulonglong(4096))
+    stream.update("abc")
+    assert stream.digestHex(1024) == longHex
     return 0
 end
