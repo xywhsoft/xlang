@@ -81,6 +81,11 @@ static int xl6SemNormalizeCOwnedExpr(XL6_SemContext* ctx,XL6_AstNode** place)
     }
     call->line=expression->line;call->column=expression->column;
     xl6AstAddChild(arg,expression);xl6AstAddChild(args,arg);*place=call;
+    if(!strcmp(base,"string")) {
+        if(!xl6SemCheckExpr(ctx,expression))return 0;
+        xl6SemSetCallPlan(call,XL6_SEM_CALL_C_OWNED_VIEW,NULL);
+        return xl6SemCOwnedResult(ctx,call,base);
+    }
     return xl6SemCheckCOwnedCopy(ctx,call)==1;
 }
 static int xl6SemCheckCOwnedRead(XL6_SemContext* ctx,XL6_AstNode* node)

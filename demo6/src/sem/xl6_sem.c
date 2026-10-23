@@ -10932,6 +10932,7 @@ static XL6_AstNode* xl6SemFindMultiReturnCallArg(
 
 static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
 {
+    if(node->semanticCallKind==XL6_SEM_CALL_C_OWNED_VIEW)return xl6SemCOwnedResult(ctx,node,"string");
     if(node->semanticCallKind==XL6_SEM_CALL_C_OWNED_COMPARE)return xl6SemCOwnedResult(ctx,node,"bool");
     int ok;
     int implicitMethodRewrite;
@@ -19422,6 +19423,8 @@ static int xl6SemCheckFor(XL6_SemContext* ctx, XL6_AstNode* node)
     if(ok && iterable) {
         ok=xl6SemNormalizeCOwnedExpr(ctx,&node->children[1]);
         iterable=node->children[1];
+        if(iterable->semanticCallKind==XL6_SEM_CALL_C_OWNED_VIEW)
+            iterable->semanticCallKind=XL6_SEM_CALL_C_OWNED_COPY;
     }
 
     if ( (node->flags & XL6_AST_FLAG_ASYNC) != 0 ) {

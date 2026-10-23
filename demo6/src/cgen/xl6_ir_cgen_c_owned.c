@@ -6,7 +6,9 @@ static int xl6IrCgenEmitCOwned(XL6_Output* out,const XL6_IrModule* module,
         return xl6IrCgenDiag(diags,module,ins->origin,"C owner operation has no exact physical ABI");
     unsigned result=(unsigned)ins->result;
     unsigned source=(unsigned)module->operands[ins->firstOperand];
-    if(ins->runtimeOp>=XL6_IR_RUNTIME_C_COMPARE_EQ) {
+    if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_VIEW) {
+        xl6OutputPrintf(out,"    v%u = xl6CStringViewV1(v%u);\n",result,source);
+    } else if(ins->runtimeOp>=XL6_IR_RUNTIME_C_COMPARE_EQ) {
         for(unsigned i=0;i<2;++i) {
             unsigned value=(unsigned)module->operands[ins->firstOperand+i];
             const XL6_IrInstruction* def=xl6IrCgenValueDefinition(module,value,NULL);

@@ -12,6 +12,7 @@ typedef struct XL6_IrLifetimeSource {
 static int xl6IrRuntimePreservesLoans(XL6_IrRuntimeOp operation)
 {
     switch (operation) {
+    case XL6_IR_RUNTIME_CSTRING_VIEW:
     case XL6_IR_RUNTIME_STRING_DUP:
     case XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED:
     case XL6_IR_RUNTIME_F32_AS_CHECKED:
@@ -246,7 +247,8 @@ static int xl6IrLifetimeSourceForValue(const XL6_IrModule* module, size_t defini
     if (definition >= module->instructionCount || depth > module->instructionCount) return 0;
     instruction = &module->instructions[definition];
     if (instruction->kind == XL6_IR_INSTR_VALUE || instruction->kind == XL6_IR_INSTR_NULLABLE_WRAP ||
-        instruction->kind == XL6_IR_INSTR_NULLABLE_UNWRAP) {
+        instruction->kind == XL6_IR_INSTR_NULLABLE_UNWRAP ||
+        (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL && instruction->runtimeOp == XL6_IR_RUNTIME_CSTRING_VIEW)) {
         if (instruction->operandCount != 1 || instruction->firstOperand >= module->operandCount ||
             instruction->targetValue != 0 ||
             xl6IrValueDefinition(module, module->operands[instruction->firstOperand], &parent) == NULL) return 0;
