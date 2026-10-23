@@ -24,8 +24,8 @@ def main():
     fixture_dir=out/'fixtures';fixture_dir.mkdir();cases,contract=language_fixtures(root,fixture_dir)
     exported=set(re.findall(r'XL6_TEXT_EXPORT\((\w+),',(root/'src/runtime/xl6_x509_path_symbols.inc').read_text()))
     declared=set(re.findall(r'XL6_TEXT_API [^;\n]*?\b(\w+)\(',(root/'src/runtime/xl6_x509_path_abi.h').read_text()))
-    contracted=set(re.findall(r'^\{"(\w+)"',(root/'src/ir/xl6_ir_x509_path_contracts.inc').read_text(),re.M))|set(re.findall(r'XL6_NATIVE_COLLECTION_BRIDGE\("(\w+)"',(root/'src/abi/xl6_x509_path_collection_contracts.inc').read_text()));assert len(exported)==31 and exported==declared==contracted
-    report=dict(Complete=False,Rows=[],Failures=[],Products=[],Plans=[],ResidentEntries=31,SourceBuild=str(a.source_build),
+    contracted=set(re.findall(r'^\{"(\w+)"',(root/'src/ir/xl6_ir_x509_path_contracts.inc').read_text(),re.M))|set(re.findall(r'XL6_NATIVE_COLLECTION_BRIDGE\("(\w+)"',(root/'src/abi/xl6_x509_path_collection_contracts.inc').read_text()));assert len(exported)==32 and exported==declared==contracted
+    report=dict(Complete=False,Rows=[],Failures=[],Products=[],Plans=[],ResidentEntries=32,SourceBuild=str(a.source_build),
         Inputs={str(path):sha(path) for path in [Path(__file__),gcc,root/'tools/check_x509_path_owned.py',root/'tools/check_key_format_wire.py',
             *[root/'test/support'/('crypto_'+name+'_runtime.c') for name in ('rsa','nist','ed25519','xdh')],
             root/'tools/x509_path_language_fixtures.py',root/'tools/x509_path_fixtures.py',root/'test/cases/xlir_x509_path_contract.c',root/'test/support/container_projection_artifact.c']},

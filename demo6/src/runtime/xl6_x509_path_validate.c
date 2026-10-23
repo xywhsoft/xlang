@@ -1,5 +1,6 @@
 #include "xl6_x509_path_internal.h"
 #include "src/api/xl_foreign_error.h"
+#include <stdio.h>
 
 typedef struct CriticalCall {
     xx509criticalproc procedure;
@@ -73,26 +74,50 @@ void* xl6X509PathValidateCreateV1(void* const* certificates,size_t count,void* a
         !xl6X509LimitV1(config?config->Purpose.Size:0,maxBytes,"path purpose exceeds byte budget") ||
         !xl6X509PathPolicyValidV1(config))return NULL;
     XL6_X509PathOutcomeV1* result=xrtCalloc(1,sizeof(*result));if(!result)return NULL;
+    result->depth=-1;
     result->path=snapshot(certificates,count,anchor,config,maxBytes);
     if(!result->path){xl6X509PathOutcomeDestroyV1(result);return NULL;}
     const xx509cert** index=(const xx509cert**)(result->path->certificates+count);
     xx509pathconfig policy=result->path->policy;
     CriticalCall call={.procedure=config->Critical,.data=config->UserData};
     if(config->Critical){policy.Critical=critical;policy.UserData=&call;}
-    bool valid=xrtX509PathValidate(index,count,&result->path->anchor,&policy);
+    xx509pathdecision decision={0};
+    xx509check check=xrtX509PathCheck(index,count,&result->path->anchor,&policy,&decision);
     xerror* error=xrtTakeError();
     if(call.failed) {
-        xrtErrorFree(error);xl6X509PathOutcomeDestroyV1(result);
+        xrtErrorFree(error);
         /* A missing diagnostic is still a failed checked callback, never a
          * normal unsupported-extension verdict manufactured by native code. */
-        xl6ErrorScopePropagateFailure((xl6_error_result){false,call.error});return NULL;
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,call.error});
+        xl6X509PathOutcomeDestroyV1(result);return NULL;
     }
-    if(valid && !error){result->status=XL6_X509_PATH_VALID_V1;return result;}
-    int64_t status=0;
-    if(!valid && xl6X509PathClassifyV1(error,&status)) {
-        result->status=status;result->code=xrtErrorCode(error);result->diagnostic=error;
+    if(error || check==X509_CHECK_ERROR) {
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,error});
+        xl6X509PathOutcomeDestroyV1(result);return NULL;
+    }
+    if(check==X509_CHECK_VALID){result->status=XL6_X509_PATH_VALID_V1;return result;}
+    if(check==X509_CHECK_REJECTED || check==X509_CHECK_UNSUPPORTED) {
+        if(!decision.Reason || !decision.Message ||
+            (decision.Depth!=SIZE_MAX && decision.Depth>INT64_MAX)) {
+            xl6X509FailV1(XERR_STATE,"native path returned an invalid completed decision");
+            xl6X509PathOutcomeDestroyV1(result);return NULL;
+        }
+        result->status=check==X509_CHECK_REJECTED?XL6_X509_PATH_REJECTED_V1:XL6_X509_PATH_UNSUPPORTED_V1;
+        result->code=decision.Reason;result->depth=decision.Depth==SIZE_MAX?-1:(int64_t)decision.Depth;
+        char data[48];xerrordesc description={0};
+        description.Kind=check==X509_CHECK_REJECTED?XERR_PROTOCOL:XERR_UNSUPPORTED;
+        description.Domain="xrt.x509";description.Code=(int32)decision.Reason;
+        description.Operation="x509-path-check";description.Message=decision.Message;
+        if(decision.Depth!=SIZE_MAX) {
+            (void)snprintf(data,sizeof(data),"depth=%llu",(unsigned long long)decision.Depth);
+            description.Data=data;
+        }
+        /* Copy native static text before publishing: outcomes never retain a
+         * source view, callback, or pointer into unloadable native code. */
+        result->diagnostic=xrtErrorBuild(&description);
+        if(!result->diagnostic){xl6X509PathOutcomeDestroyV1(result);return NULL;}
         xl6X509PathDestroyV1(result->path);result->path=NULL;return result;
     }
-    xrtSetErrorTake(error);xl6X509FailV1(XERR_STATE,"path validation failed without a usable diagnostic");
+    xl6X509FailV1(XERR_STATE,"native path returned an unknown result");
     xl6X509PathOutcomeDestroyV1(result);return NULL;
 }
