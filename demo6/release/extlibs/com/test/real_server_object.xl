@@ -3,6 +3,7 @@ import com
 auto dictionary = com.ComObject("Scripting.Dictionary")
 dictionary.invoke("Add", array["key", "value"])
 assert dictionary.int("Count") == 1
+assert dictionary.text("Count") == "1"
 assert string(dictionary.invoke("Item", array["key"])) == "value"
 assert dictionary.close()
 assert not dictionary.valid()

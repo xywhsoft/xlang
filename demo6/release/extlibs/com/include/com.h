@@ -21,6 +21,8 @@ int64_t x_com_is_null(void* handle);
 
 /* 文本借用自 handle，下一次该 handle 的文本读取或释放后失效。 */
 const char* x_com_get_text(void* handle, const char* name);
+/* 返回值由调用方 xrtFree；失败返回 NULL，空文本返回独立空串。 */
+void* x_com_get_text_owned(void* handle, const char* name);
 int64_t x_com_get_int(void* handle, const char* name);
 int64_t x_com_put_var(void* handle, const char* name, xvalue* value);
 int64_t x_com_put_ref(void* handle, const char* name, xvalue* value);

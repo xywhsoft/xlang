@@ -39,6 +39,8 @@ int main(void)
     int64 iValue = 0;
     xstrview text;
     const char* borrowed;
+    void* owned;
+    void* owned_again;
     HANDLE thread;
     DWORD thread_result;
     HRESULT apartment_result;
@@ -189,6 +191,28 @@ int main(void)
         x_com_release(pObject);
         return fail("long UTF-8 property text");
     }
+    owned = x_com_get_text_owned(pObject, "LongText");
+    if (owned == NULL || strlen((const char*)owned) != 6006u ||
+        strcmp((const char*)owned + 6000u, "\xE4\xBD\xA0\xE5\xA5\xBD") != 0) {
+        xrtFree(owned);
+        x_com_release(pObject);
+        return fail("owned long UTF-8 property text");
+    }
+    owned_again = x_com_get_text_owned(pObject, "LongText");
+    if (owned_again == NULL || owned_again == owned ||
+        strlen((const char*)owned_again) != 6006u ||
+        strcmp((const char*)owned + 6000u, "\xE4\xBD\xA0\xE5\xA5\xBD") != 0) {
+        xrtFree(owned_again);
+        xrtFree(owned);
+        x_com_release(pObject);
+        return fail("owned result must survive another text read");
+    }
+    xrtFree(owned_again);
+    xrtFree(owned);
+    if (strlen(x_com_get_text(pObject, "LongText")) != 6006u) {
+        x_com_release(pObject);
+        return fail("borrowed getter after owned transfer");
+    }
     pArgs = xrtValueArray();
     pResult = x_com_invoke_array(pObject, "LongText", pArgs);
     xrtValueRelease(pArgs);
@@ -199,6 +223,14 @@ int main(void)
         return fail("long UTF-8 value text");
     }
     xrtValueRelease(pResult);
+
+    owned = x_com_get_text_owned(pObject, "EmptyText");
+    if (owned == NULL || ((const char*)owned)[0] != '\0') {
+        xrtFree(owned);
+        x_com_release(pObject);
+        return fail("owned empty BSTR text");
+    }
+    xrtFree(owned);
 
     pArgs = xrtValueArray();
     pResult = x_com_invoke_array(pObject, "EmptyText", pArgs);
@@ -224,6 +256,11 @@ int main(void)
         strcmp(x_com_last_error(), "COM text contains NUL; use invoke() for a value result") != 0) {
         x_com_release(pObject);
         return fail("C string API must reject embedded NUL");
+    }
+    if (x_com_get_text_owned(pObject, "NulText") != NULL ||
+        strcmp(x_com_last_error(), "COM text contains NUL; use invoke() for a value result") != 0) {
+        x_com_release(pObject);
+        return fail("owned C string API must reject embedded NUL");
     }
 
     pArgs = xrtValueArray();

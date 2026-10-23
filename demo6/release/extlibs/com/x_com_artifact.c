@@ -945,6 +945,25 @@ XL_EXPORT const char* x_com_get_text(void* handle, const char* name)
 	return text;
 }
 
+/* 语言侧直接接管 UTF-8 缓冲；原 C 借用接口继续由对象持有结果。 */
+XL_EXPORT void* x_com_get_text_owned(void* handle, const char* name)
+{
+	XComObject* object = (XComObject*)handle;
+	const char* text = x_com_get_text(handle, name);
+	char* owned;
+	if ( xrtGetError() != NULL ) return NULL;
+	if ( object->text != NULL && text == object->text ) {
+		owned = object->text;
+		object->text = NULL;
+		object->text_size = 0u;
+		object->text_capacity = 0u;
+		return owned;
+	}
+	owned = (char*)xrtMalloc(1u);
+	if ( owned != NULL ) owned[0] = '\0';
+	return owned;
+}
+
 XL_EXPORT int64_t x_com_get_int(void* handle, const char* name)
 {
 	XComObject* object = (XComObject*)handle;

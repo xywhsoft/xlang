@@ -5,7 +5,7 @@ extern "x_com_version" func x_com_version() as string
 extern "x_com_release" func x_com_release(point handle) as int
 extern "x_com_is_null" func x_com_is_null(point handle) as int
 extern "x_com_last_error" func x_com_last_error() as string
-extern "x_com_get_text" func x_com_get_text(point handle, string name) as string
+extern "x_com_get_text_owned" func x_com_get_text(point handle, string name) as point
 extern "x_com_get_int" func x_com_get_int(point handle, string name) as int
 extern "x_com_put_var" func x_com_put_var(point handle, string name, var value) as int
 extern "x_com_put_ref" func x_com_put_ref(point handle, string name, var value) as int
@@ -60,7 +60,7 @@ export class ComObject extends object
 
 	func text(string name) as string
 		__com_c_string(name)
-		return x_com_get_text(self.handle, name)
+		return __xl_runtime.takeCstr(x_com_get_text(self.handle, name))
 	end
 
 	func int(string name) as int
@@ -130,7 +130,7 @@ end
 
 export func get_text(point handle, string name) as string
 	__com_c_string(name)
-	return x_com_get_text(handle, name)
+	return __xl_runtime.takeCstr(x_com_get_text(handle, name))
 end
 
 export func get_int(point handle, string name) as int

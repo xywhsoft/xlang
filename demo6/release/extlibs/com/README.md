@@ -20,6 +20,10 @@ retry or release it. A
 successful `x_com_invoke_*` result is an XRT `xvalue*` owned by the caller and
 must be released with `xrtValueRelease`. `x_com_get_text` returns borrowed
 UTF-8 text valid until the next text read on that handle or `x_com_release`.
+`x_com_get_text_owned` instead transfers a separate XRT allocation; the C
+caller releases it with `xrtFree`. XLang uses this path so the converted text
+is not copied again at `extern as string`. The original C borrowed getter and
+its lifetime remain available.
 Text with embedded NUL cannot use this C-string getter; use `invoke` to receive
 an XRT string value with its explicit byte length.
 
@@ -89,3 +93,13 @@ cross-apartment use, other COM servers, or the still-blocked full AOT path.
 of using the single-name catch-all form. Both the deterministic fixture gate
 and the optional real `Scripting.Dictionary` C/XLang gate pass with `-SkipAot`.
 This tightens test evidence only; the package API and full-AOT blocker are unchanged.
+
+2026-10-24: The XLang text getter now takes ownership of the native UTF-8
+result instead of copying it after COM conversion. The original C borrowed
+getter remains unchanged. The focused `-SkipAot` gate passes C, XLang and
+example parity, including 6006-byte text, empty values and embedded-NUL
+rejection. The published `xl.exe` runs the optional real-server text read.
+The current source-built compiler emits an EXE with `x_com_get_text_owned`
+followed by `takeCstr`, but its real-server top-level script exits 3 without
+a diagnostic in both JIT and EXE; the smaller `com.available()` source run
+passes. Do not count this as current-source AOT acceptance until isolated.

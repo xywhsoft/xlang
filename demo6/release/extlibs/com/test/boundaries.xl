@@ -9,6 +9,15 @@ func main(...) as int
     string text = com.get_text(handle, "LongText")
     assert string.byteLen(text) == 6006, "long UTF-8 text"
     assert string.slice(text, 6000, 2) == "你好", "long UTF-8 suffix"
+    assert com.get_text(handle, "EmptyText") == "", "owned empty COM text"
+    assert string.byteLen(text) == 6006 and string.slice(text, 6000, 2) == "你好", "saved COM text"
+    bool nulTextRejected = false
+    try
+        com.get_text(handle, "NulText")
+    catch ValueError error
+        nulTextRejected = true
+    end
+    assert nulTextRejected, "C-string getter must reject embedded NUL"
     assert com.get_int(handle, "BigInt") == 1099511627776, "64-bit COM integer"
 
     bool truncatedName = false
@@ -65,6 +74,7 @@ func main(...) as int
     com.ComObject wrapped = com.ComObject(com.attach(x_com_test_object()))
     assert wrapped.valid(), "public COM class"
     assert wrapped.int("HasChild") == 0, "COM class member"
+    assert string.byteLen(wrapped.text("LongText")) == 6006, "COM class owned text"
     truncatedName = false
     try
         wrapped.text("LongText\0ignored")
