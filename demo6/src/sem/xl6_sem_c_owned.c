@@ -340,7 +340,7 @@ enum {
 };
 static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call,XL6_AstNode* function,int options)
 {
-    if((function->kind!=XL6_AST_FUNC && function->kind!=XL6_AST_ASYNC_FUNC) || xl6SemFuncIsGeneric(function) ||
+    if((function->kind!=XL6_AST_FUNC && function->kind!=XL6_AST_EXPORT_FUNC && function->kind!=XL6_AST_ASYNC_FUNC) || xl6SemFuncIsGeneric(function) ||
         call->childCount!=2 || call->children[0]->kind!=XL6_AST_NAME)return function;
     XL6_AstNode* params=function->childCount>1 ? function->children[1] : NULL;
     XL6_AstNode* args=call->children[1];
@@ -381,6 +381,9 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     if(!any){xrtFree(promote);return function;}
     XL6_AstNode* signature=xl6SemCOwnedClone(function);
     if(!signature){xrtFree(promote);return NULL;}
+    /* An exported language wrapper still has a private static specialization.
+     * Keep its public ABI ordinary; only direct calls use the C owner ABI. */
+    if(signature->kind==XL6_AST_EXPORT_FUNC)signature->kind=XL6_AST_FUNC;
     signature->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
     for(size_t p=0;p<params->childCount;++p)if(promote[p]) {
         XL6_AstNode* parameter=signature->children[1]->children[p];

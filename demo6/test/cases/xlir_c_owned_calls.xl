@@ -16,6 +16,17 @@ end
 func reader(string value) as bool
     return original(value)
 end
+// Imported extension wrappers have EXPORT_FUNC declarations too. Their public
+// ABI stays ordinary, while a direct C-owner call must keep the original span.
+export func exportedReader(bytes value, int expected = 4) as bool
+    return value.length == expected and originalBytes(value)
+end
+export func exportedReader(string value) as bool
+    return original(value)
+end
+export func exportedForward(bytes value) as bytes
+    return value
+end
 func many(string x0, string x1, string x2, string x3, string x4, string x5, string x6, string x7, string x8, string x9, string x10, string x11, string x12, string x13, string x14, string x15, string x16, string x17, string x18, string x19, string x20, string x21, string x22, string x23, string x24, string x25, string x26, string x27, string x28, string x29, string x30, string x31, string x32, string x33, string x34, string x35, string x36, string x37, string x38, string x39, string x40, string x41, string x42, string x43, string x44, string x45, string x46, string x47, string x48, string x49, string x50, string x51, string x52, string x53, string x54, string x55, string x56, string x57, string x58, string x59, string x60, string x61, string x62, string x63, string x64) as string
     return x64
 end
@@ -34,6 +45,9 @@ func checkCalls()
     assert originalBytes(choose(data,true))
     assert callback(text)
     assert spanCallback(data)
+    assert exportedReader(data)
+    assert exportedReader(text)
+    assert originalBytes(exportedForward(data))
     assert original(many(text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text))
     if tracking then assert allocations() == before end
     assert callback(cstring.take(nativeText(), nativeFree))
