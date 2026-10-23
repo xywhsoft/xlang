@@ -22,6 +22,9 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
         needs->needsStringScalarRuntime=1;
         needs->needsBytesRuntime=1;
     }
+    for(size_t i=0;i<module->instructionCount;++i)
+        if(module->instructions[i].runtimeOp==XL6_IR_RUNTIME_C_PRINT || module->instructions[i].runtimeOp==XL6_IR_RUNTIME_C_PRINTLN)
+            needs->needsCOwnedPrintRuntime=1;
     /* The shared union boxer binds a nominal identity even in a read-only
      * consumer. Close its helper dependency once, not via incidental channel
      * construction or a library-specific call-site exception. */
@@ -614,6 +617,9 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     }
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
+        if(instruction->kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            (instruction->runtimeOp==XL6_IR_RUNTIME_C_PRINT || instruction->runtimeOp==XL6_IR_RUNTIME_C_PRINTLN) &&
+            xl6IrCgenInstructionIsReachable(module,i) && !visitor(context,"xl6ValueTextV1"))return 0;
         if(instruction->kind==XL6_IR_INSTR_RUNTIME_CALL&&instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ENUM_BIND&&
             xl6IrCgenInstructionIsReachable(module,i)&&!visitor(context,"xl6ValueEnumBindTakeV1")) return 0;
         const XL6_IrPersistenceInvocationContract* configured=instruction->kind==XL6_IR_INSTR_RUNTIME_CALL

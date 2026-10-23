@@ -103,6 +103,16 @@ private owner record is allocated only for adopted C storage; ordinary types
 and XRT layouts are unchanged. Adoption failure releases the C allocation.
 `xlir_c_owned_flow.xl` and `xlir_c_owned_writes.xl` check these transitions.
 
+The third stage loans C storage to primitive iteration and direct print calls.
+Iteration retains an owner snapshot, so rebinding the source during traversal
+does not change the sequence. Printing C text passes its pointer straight to
+the console. Binary values use the existing XLON sink writer, which encodes
+from the original bytes without creating a dynamic bytes value or a complete
+output buffer. Mixed ordinary arguments are formatted before the first write;
+console writes may then stream in several parts. Tests cover original pointer
+identity at the console boundary, allocation-free text printing and traversal,
+formatting failure before output, and write failure propagation.
+
 Run from `demo6` with a compatible `release/xl.dll` available:
 
 ```powershell

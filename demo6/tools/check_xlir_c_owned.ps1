@@ -41,11 +41,16 @@ if ($BuildOnly) { exit 0 }
 if ($LASTEXITCODE) { throw 'C owner runtime test build failed' }
 & "$outputPath/runtime.exe"
 if ($LASTEXITCODE) { throw 'C owner runtime tests failed' }
+& $context.Compiler @flags test/cases/xlir_c_owned_print_runtime.c release/xl.dll -o "$outputPath/print-runtime.exe"
+if ($LASTEXITCODE) { throw 'C print runtime test build failed' }
+& "$outputPath/print-runtime.exe"
+if ($LASTEXITCODE) { throw 'C print runtime tests failed' }
 $generatedSources=@(
     'test/cases/xlir_c_owned_basic.xl','test/cases/xlir_c_owned_lifetime.xl',
     'test/cases/xlir_c_owned_reads.xl','test/cases/xlir_c_owned_capture.xl',
     'test/cases/xlir_c_owned_views.xl','test/cases/xlir_c_owned_flow.xl',
-    'test/cases/xlir_c_owned_writes.xl',
+    'test/cases/xlir_c_owned_writes.xl','test/cases/xlir_c_owned_print.xl',
+    'test/cases/xlir_c_owned_traverse.xl',
     'test/cases/xlir_c_owned_borrows.xl','test/cases/xlir_c_owned_failure.xl')
 foreach ($source in $generatedSources) {
     $name=[IO.Path]::GetFileNameWithoutExtension($source).Substring('xlir_c_owned_'.Length)

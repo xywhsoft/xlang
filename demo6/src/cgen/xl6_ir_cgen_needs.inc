@@ -2,6 +2,7 @@
 /* This is backend metadata, not a source-name or generated-text classifier. */
 XL6_IR_CGEN_NEED(int, needsModuleOwnershipViews, NONE)
 XL6_IR_CGEN_NEED(int, needsCOwnedRuntime, NONE)
+XL6_IR_CGEN_NEED(int, needsCOwnedPrintRuntime, NONE)
 XL6_IR_CGEN_NEED(int, needsLogAdapterDeclarations, NONE)
 XL6_IR_CGEN_NEED(int, needsTextAdapterDeclarations, NONE)
 XL6_IR_CGEN_NEED(const XL6_IrClassField*, openDynamicField, NONE)

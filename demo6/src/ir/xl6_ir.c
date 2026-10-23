@@ -43,7 +43,7 @@ static XL6_IrErrorAbi xl6IrNodeConstructionErrorAbi(const XL6_IrModule* module, 
         const XL6_IrNode* target=xl6IrNodeGet(module,module->children[node->firstChild]);
         if(target && xl6IrTypeIsCOwned(xl6IrTypeGet(&module->types,target->storageType)))return XL6_IR_ERROR_ABI_MAY_RAISE;
     }
-    if(node && (node->callKind==XL6_SEM_CALL_C_OWNED_TAKE ||
+    if(node && (node->callKind==XL6_SEM_CALL_C_OWNED_PRINT || node->callKind==XL6_SEM_CALL_C_OWNED_TAKE ||
         ((node->kind==XL6_IR_NODE_VALUE_DECL || node->kind==XL6_IR_NODE_ASSIGN || node->sourceKind==XL6_AST_RETURN) &&
          xl6IrTypeIsCOwned(xl6IrTypeGet(&module->types,node->storageType)))))return XL6_IR_ERROR_ABI_MAY_RAISE;
     if(node && node->callKind==XL6_SEM_CALL_C_OWNED_COPY)return XL6_IR_ERROR_ABI_MAY_RAISE;
@@ -10059,7 +10059,7 @@ static int xl6IrBuildFunctionValueCallSite(
 static int xl6IrBuildCallSite(XL6_IrModule* module, XL6_IrNodeId origin)
 {
     const XL6_IrNode* call = xl6IrNodeGet(module, origin);
-    if (call && (call->callKind==XL6_SEM_CALL_C_OWNED_TAKE || call->callKind==XL6_SEM_CALL_C_OWNED_COPY || call->callKind==XL6_SEM_CALL_C_OWNED_VIEW || call->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)) return 1;
+    if (call && (call->callKind==XL6_SEM_CALL_C_OWNED_TAKE || call->callKind==XL6_SEM_CALL_C_OWNED_COPY || call->callKind==XL6_SEM_CALL_C_OWNED_VIEW || call->callKind==XL6_SEM_CALL_C_OWNED_PRINT || call->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)) return 1;
     XL6_IrNodeId declaration;
     const XL6_IrNode* target;
     XL6_IrNodeId parameterListId;
@@ -14558,7 +14558,7 @@ static int xl6IrBuildCopyIntrinsicSignature(
 static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
 {
     const XL6_IrNode* call = xl6IrNodeGet(module, origin);
-    if (call && (call->callKind==XL6_SEM_CALL_C_OWNED_TAKE || call->callKind==XL6_SEM_CALL_C_OWNED_COPY || call->callKind==XL6_SEM_CALL_C_OWNED_VIEW || call->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)) return 1;
+    if (call && (call->callKind==XL6_SEM_CALL_C_OWNED_TAKE || call->callKind==XL6_SEM_CALL_C_OWNED_COPY || call->callKind==XL6_SEM_CALL_C_OWNED_VIEW || call->callKind==XL6_SEM_CALL_C_OWNED_PRINT || call->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)) return 1;
     const XL6_IrNode* callee;
     const XL6_IrNode* persistenceGenericName = NULL;
     const XL6_IrType* result;
@@ -19359,9 +19359,9 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
          iteratorType != NULL &&
          iteratorType->kind == XL6_IR_TYPE_BUILTIN &&
          (iteratorType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
-          iteratorType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES) &&
+          iteratorType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES || xl6IrTypeIsCOwned(iteratorType)) &&
          iteratorType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-         ((iteratorType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+         (xl6IrTypeIsCOwned(iteratorType) || (iteratorType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
            iteratorType->typeValueId ==
                module->runtimeTypeMap.stringTypeValueId) ||
           (iteratorType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
@@ -19372,7 +19372,7 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
         const XL6_IrType* valueTargetType;
         const XL6_IrType* indexTargetType = NULL;
         int stringSequence =
-            iteratorType->cAbi == XL6_IR_C_ABI_MANAGED_STRING;
+            iteratorType->cAbi == XL6_IR_C_ABI_MANAGED_STRING || iteratorType->cAbi==XL6_IR_C_ABI_C_STRING;
         if ( targets->childCount == 2 ) {
             indexTarget = xl6IrNodeGet(
                 module, module->children[targets->firstChild]);
@@ -33753,7 +33753,8 @@ static int xl6IrVerifyPrimitiveSequenceLoopOutcomes(
         size_t b, unwindIndex;
         if ( projection->kind != XL6_IR_INSTR_RUNTIME_CALL ||
              (projection->runtimeOp != XL6_IR_RUNTIME_STRING_SCALAR_AT &&
-              projection->runtimeOp != XL6_IR_RUNTIME_BYTES_AT) ) continue;
+              projection->runtimeOp != XL6_IR_RUNTIME_BYTES_AT &&
+              projection->runtimeOp != XL6_IR_RUNTIME_CSTRING_AT && projection->runtimeOp != XL6_IR_RUNTIME_CBYTES_AT) ) continue;
         target = xl6IrNodeGet(module, projection->origin);
         targets = target != NULL ? xl6IrNodeGet(module, target->parent) : NULL;
         loopId = targets != NULL ? targets->parent : XL6_IR_NODE_INVALID;
@@ -33771,6 +33772,8 @@ static int xl6IrVerifyPrimitiveSequenceLoopOutcomes(
         expected = loop->loopAbi == XL6_IR_LOOP_ABI_STRING_UTF8_VALUE ||
                    loop->loopAbi == XL6_IR_LOOP_ABI_STRING_UTF8_INDEX_VALUE
             ? XL6_IR_RUNTIME_STRING_SCALAR_AT : XL6_IR_RUNTIME_BYTES_AT;
+        if(xl6IrTypeIsCOwned(xl6IrTypeGet(&module->types,loop->loopResourceType)))
+            expected=expected==XL6_IR_RUNTIME_STRING_SCALAR_AT ? XL6_IR_RUNTIME_CSTRING_AT : XL6_IR_RUNTIME_CBYTES_AT;
         for (b = 0; b < module->blockCount; ++b) {
             const XL6_IrBlock* candidate = &module->blocks[b];
             if ( i >= candidate->firstInstruction &&
@@ -49367,6 +49370,8 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
 #undef XL6_SLOT_MAP_OP
     case XL6_IR_RUNTIME_STRING_DUP: return "string-dup";
     case XL6_IR_RUNTIME_STRING_COPY: return "string-copy";
+    case XL6_IR_RUNTIME_C_PRINT: return "c-print";
+    case XL6_IR_RUNTIME_C_PRINTLN: return "c-println";
     case XL6_IR_RUNTIME_CSTRING_SET_COPY: return "cstring-set-copy";
     case XL6_IR_RUNTIME_CBYTES_SET_COPY: return "cbytes-set-copy";
     case XL6_IR_RUNTIME_C_OWNED_COPY: return "c-owned-copy";
