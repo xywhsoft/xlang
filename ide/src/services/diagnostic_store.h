@@ -20,7 +20,11 @@ typedef struct xide_diagnostic_load { size_t queued,running; uint64_t submitted,
 
 /* One XRT actor owns all records, merges and disk sweeps. No timer or worker
    per entry. Default limits:64records,32MiB retained/4MiB publication encoded
-   reports,8queued jobs. Byte limits measure JSON metadata, not heap/RSS. */
+   reports,8queued jobs. Retained limits charge JSON metadata and native
+   immutable contexts, conservatively per guard, not heap/RSS. Contributions
+   to one file must have equal complete contexts; conflicting context updates
+   fail atomically and preserve previous records/publication. Disjoint files
+   may come from different contexts. */
 xide_diagnostic_store* xideDiagnosticStoreCreate(const xide_diagnostic_limits* limits);
 /* Opt-in immutable path dictionaries for exact client invalidation. Work is
    confined to the same actor. Existing callers retain their original format. */

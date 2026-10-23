@@ -11,6 +11,9 @@
 #define TEXT_LIMIT (8u*1024u*1024u)
 #define CHECK_OUTPUT_LIMIT (1024u*1024u)
 #include "services/language_check_internal.h"
+#ifdef XLS_COMPILER_XRT
+#include "analysis/frontend_context.h"
+#endif
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* get(const xvalue* o,const char* k) { return o ? xrtValueObjectGet(o,sv(k)) : NULL; }
 static const char* string(const xvalue* v) { xstrview s={0}; return v && xrtValueGetString(v,&s) && !memchr(s.Data,0,s.Size) && s.Size<=INT_MAX && (!s.Size || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s.Data,(int)s.Size,NULL,0)) ? s.Data : NULL; }
@@ -109,6 +112,9 @@ enum xide_guard_state xideLanguageCheckGuardState(xide_language_check* q,char* m
 struct xide_language_input_guard {
  xatomic32 references,invalid; char *compiler,*directory,*packagePath;
  int nativeBackend; xvalue *files,*resolution; xide_toolchain_stamp toolchain;
+#ifdef XLS_COMPILER_XRT
+ xls_context* context;
+#endif
 };
 xide_language_input_guard* xideLanguageInputGuardRetain(xide_language_input_guard* guard)
 { if(guard) xrtAtomic32FetchAdd(&guard->references,1,XMEMORY_RELAXED); return guard; }
@@ -116,6 +122,9 @@ void xideLanguageInputGuardRelease(xide_language_input_guard* guard)
 {
  if(!guard || xrtAtomic32FetchSub(&guard->references,1,XMEMORY_ACQ_REL)!=1) return;
  xrtFree(guard->compiler); xrtFree(guard->directory); xrtFree(guard->packagePath);
+#ifdef XLS_COMPILER_XRT
+ xlsContextRelease(guard->context);
+#endif
  xrtValueRelease(guard->files); xrtValueRelease(guard->resolution); xrtFree(guard);
 }
 xide_language_input_guard* xideLanguageCheckCaptureInputGuard(xide_language_check* q,xide_model_error* error)
@@ -131,6 +140,9 @@ xide_language_input_guard* xideLanguageCheckCaptureInputGuard(xide_language_chec
   if(q->packagePath) guard->packagePath=xrtStrDup(q->packagePath);
   guard->files=xrtValueDeepClone(q->guardFiles); guard->resolution=xrtValueDeepClone(q->guardResolution);
   guard->nativeBackend=q->nativeSemantic; guard->toolchain=q->guardToolchain;
+#ifdef XLS_COMPILER_XRT
+  guard->context=xlsContextRetain(q->context);
+#endif
   okay=guard->compiler && guard->directory && (!q->packagePath || guard->packagePath) && guard->files && guard->resolution;
  }
  LeaveCriticalSection(&q->lock);
@@ -139,6 +151,15 @@ xide_language_input_guard* xideLanguageCheckCaptureInputGuard(xide_language_chec
 }
 const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard)
 { return guard ? guard->files : NULL; }
+int xideLanguageInputGuardSameContext(const xide_language_input_guard* left,const xide_language_input_guard* right)
+{
+ if(!left || !right) return 0;
+#ifdef XLS_COMPILER_XRT
+ return xlsFrontendContextsEqual(left->context,right->context);
+#else
+ return 1;
+#endif
+}
 typedef struct guard_path { const xvalue* value; wchar_t* native; } guard_path;
 static int compareGuardPath(const void* a,const void* b)
 {
@@ -204,7 +225,13 @@ size_t xideLanguageInputGuardReportBytes(const xide_language_input_guard* guard)
  if(!guard) return SIZE_MAX;
  xjsonwriteconfig config; xrtJsonWriteConfigInit(&config); config.MaxOutputBytes=SIZE_MAX;
  size_t bytes=0;
- return xrtJsonWrite(guard->files,&config,countGuardBytes,&bytes) && xrtJsonWrite(guard->resolution,&config,countGuardBytes,&bytes) ? bytes : SIZE_MAX;
+ if(!xrtJsonWrite(guard->files,&config,countGuardBytes,&bytes) || !xrtJsonWrite(guard->resolution,&config,countGuardBytes,&bytes)) return SIZE_MAX;
+#ifdef XLS_COMPILER_XRT
+ size_t contextBytes=guard->context ? xlsContextBytes(guard->context) : 0;
+ if(contextBytes>SIZE_MAX-bytes) return SIZE_MAX;
+ bytes+=contextBytes;
+#endif
+ return bytes;
 }
 int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*stopped)(void*),void* user,xide_model_error* error)
 {
@@ -214,6 +241,9 @@ int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*stoppe
     consumers never mutate a producer check or share its worker lifetime. */
  xide_language_check view={0}; view.compiler=guard->compiler; view.directory=guard->directory;
  view.packagePath=guard->packagePath; view.nativeSemantic=guard->nativeBackend;
+#ifdef XLS_COMPILER_XRT
+ view.context=guard->context;
+#endif
  view.guardFiles=guard->files; view.guardResolution=guard->resolution; view.guardToolchain=guard->toolchain;
  view.externalCancel=stopped; view.externalUser=user;
  int okay=xideLanguageSnapshotGuard(&view,error);
@@ -294,7 +324,7 @@ void xideLanguageCheckDestroy(xide_language_check* q)
   free((char*)q->snapshots[i].text);
  }
 #ifdef XLS_COMPILER_XRT
- free(q->semanticTarget);
+ free(q->semanticTarget); xlsContextRelease(q->context);
 #endif
  free(q->snapshots); if(q->stopEvent) CloseHandle(q->stopEvent); xrtValueRelease(q->guardFiles); xrtValueRelease(q->guardResolution); xideSemanticDefinitionsDestroy(q->definitions); free(q->queryPath); free(q->packagePath); free(q->compiler); free(q->directory); free(q->path); free(q->text); xrtValueRelease(q->result); DeleteCriticalSection(&q->lock); free(q);
 }
@@ -355,7 +385,7 @@ xide_language_check* xideLanguageCheckStartCompletionSnapshotsEx(xide_toolchains
 #ifdef XLS_COMPILER_XRT
 static int retainedLabel(const char* s)
 { size_t n=s ? strlen(s) : 0; return n && n<=262144 && xrtUtf8Valid((xstrview){s,n},NULL); }
-xide_language_check* xideLanguageCheckStartRetained(xide_toolchains* cache,const char* compiler,
+xide_language_check* xideLanguageCheckStartRetainedInContext(xls_context* context,xide_toolchains* cache,const char* compiler,
  const char* directory,xls_worker* actor,const xls_analysis_document* documents,size_t count,
  const char* target,const char* queryPath,int line,int character,
  const xide_language_analysis_options* options,xide_model_error* e)
@@ -366,6 +396,7 @@ xide_language_check* xideLanguageCheckStartRetained(xide_toolchains* cache,const
  }
  xide_language_check* q=calloc(1,sizeof(*q)); if(!q) return NULL;
  InitializeCriticalSection(&q->lock); q->cache=cache; q->nativeSemantic=q->retainedSnapshots=1; q->semanticActor=actor;
+ q->context=xlsContextRetain(context);
  q->compiler=xidePathResolveLexical(NULL,compiler); q->directory=xidePathResolveLexical(NULL,directory);
  q->semanticTarget=copy(target); q->snapshots=calloc(count,sizeof(*q->snapshots)); q->captureThread=xrtThreadCurrentId();
  if(!q->compiler || !q->directory || !q->semanticTarget || !q->snapshots) goto invalid;
@@ -376,6 +407,14 @@ xide_language_check* xideLanguageCheckStartRetained(xide_toolchains* cache,const
      !xidePathHasExtension(d->path,".xl") || d->revision>UINT32_MAX || n>TEXT_LIMIT || n>32u*1024u*1024u-bytes) goto invalid;
   char *path=xidePathResolveLexical(q->directory,d->path),*key=copy(d->key);
   if(!path || !key) { free(path); free(key); goto invalid; }
+  /* Host paths use '/', while native callers may have canonical XRT '\\'
+     paths. Verify lexical identity, then keep the context's exact entry
+     spelling for the core's immutable batch/context equality contract. */
+  if(context && !strcmp(key,target)) {
+   const char* entry=xlsContextSpec(context)->entry;
+   if(!xidePathLexicalEqual(path,entry)) { free(path); free(key); goto invalid; }
+   free(path);path=copy(entry);if(!path) {free(key);goto invalid;}
+  }
   for(size_t j=0;j<i;++j) if(xidePathLexicalEqual(path,q->snapshots[j].path) || !strcmp(key,q->snapshotKeys[j])) { free(path); free(key); goto invalid; }
   q->snapshotKeys[i]=key; q->snapshotTexts[i]=xlsTextRetain(d->text); q->snapshotIdentities[i]=d->identity;
   q->snapshots[q->snapshotCount++]=(xide_language_snapshot){path,xlsTextData(d->text),(int)((int64_t)d->revision+INT_MIN)};
@@ -383,6 +422,12 @@ xide_language_check* xideLanguageCheckStartRetained(xide_toolchains* cache,const
   if(!strcmp(key,target)) { q->path=copy(path); q->version=q->snapshots[i].version; if(!q->path) goto invalid; }
  }
  if(!q->path) goto invalid;
+ if(!xlsFrontendContextValid(context,q->path,e ? e->message : NULL,e ? sizeof(e->message) : 0)) {
+  xideLanguageCheckDestroy(q); if(e) e->code=XIDE_MODEL_INVALID; return NULL;
+ }
+ if(context && !xidePathLexicalEqual(q->directory,xlsContextSpec(context)->directory)) {
+  xideLanguageCheckDestroy(q); fail(e,"Host build directory does not match the immutable native context."); return NULL;
+ }
  if(queryPath) {
   q->queryPath=xidePathResolveLexical(q->directory,queryPath); int found=0;
   if(!q->queryPath) goto invalid;
@@ -399,6 +444,11 @@ xide_language_check* xideLanguageCheckStartRetained(xide_toolchains* cache,const
 invalid:
  xideLanguageCheckDestroy(q); fail(e,"Cannot capture retained native analysis inputs."); return NULL;
 }
+xide_language_check* xideLanguageCheckStartRetained(xide_toolchains* cache,const char* compiler,
+ const char* directory,xls_worker* actor,const xls_analysis_document* documents,size_t count,
+ const char* target,const char* queryPath,int line,int character,
+ const xide_language_analysis_options* options,xide_model_error* error)
+{ return xideLanguageCheckStartRetainedInContext(NULL,cache,compiler,directory,actor,documents,count,target,queryPath,line,character,options,error); }
 #endif
 
 static int bridgeArgument(const char* path)
