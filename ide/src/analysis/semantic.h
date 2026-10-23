@@ -24,7 +24,9 @@ typedef struct xls_completion_item {
 
 /* At most 64 overlays, 8 MiB/file, 32 MiB total. Cancellation is checked at
  * phase boundaries; existing shared parser/semantic internals are not yet
- * interruptible. Separate results may be used on separate worker threads. */
+ * interruptible. Separate results may be used on separate worker threads.
+ * The query must be an overlay. An unopened entry may be loaded through the
+ * shared frontend's disk loader and retains its actual disk input proofs. */
 xls_semantic_completion* xlsSemanticCompletionCreate(const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);

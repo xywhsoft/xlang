@@ -160,6 +160,14 @@ int xideLanguageInputGuardSameContext(const xide_language_input_guard* left,cons
  return 1;
 #endif
 }
+const xls_context* xideLanguageInputGuardContext(const xide_language_input_guard* guard)
+{
+#ifdef XLS_COMPILER_XRT
+ return guard ? guard->context : NULL;
+#else
+ (void)guard;return NULL;
+#endif
+}
 typedef struct guard_path { const xvalue* value; wchar_t* native; } guard_path;
 static int compareGuardPath(const void* a,const void* b)
 {
@@ -385,22 +393,23 @@ xide_language_check* xideLanguageCheckStartCompletionSnapshotsEx(xide_toolchains
 #ifdef XLS_COMPILER_XRT
 static int retainedLabel(const char* s)
 { size_t n=s ? strlen(s) : 0; return n && n<=262144 && xrtUtf8Valid((xstrview){s,n},NULL); }
-xide_language_check* xideLanguageCheckStartRetainedInContext(xls_context* context,xide_toolchains* cache,const char* compiler,
+static xide_language_check* startRetained(xls_context* context,int configured,xide_toolchains* cache,const char* compiler,
  const char* directory,xls_worker* actor,const xls_analysis_document* documents,size_t count,
  const char* target,const char* queryPath,int line,int character,
  const xide_language_analysis_options* options,xide_model_error* e)
 {
- if(!cache || !compiler || !directory || !documents || !count || count>64 || !retainedLabel(target) ||
+ if((configured && !context) || !cache || !compiler || !directory || !documents || !count || count>64 || !retainedLabel(target) ||
     (!queryPath && !actor) || (queryPath && (line<0 || character<0)) || (options && !options->nativeBackend)) {
   fail(e,"Invalid retained native analysis request."); return NULL;
  }
  xide_language_check* q=calloc(1,sizeof(*q)); if(!q) return NULL;
  InitializeCriticalSection(&q->lock); q->cache=cache; q->nativeSemantic=q->retainedSnapshots=1; q->semanticActor=actor;
- q->context=xlsContextRetain(context);
+ q->context=xlsContextRetain(context);q->configuredEntry=configured;
  q->compiler=xidePathResolveLexical(NULL,compiler); q->directory=xidePathResolveLexical(NULL,directory);
- q->semanticTarget=copy(target); q->snapshots=calloc(count,sizeof(*q->snapshots)); q->captureThread=xrtThreadCurrentId();
- if(!q->compiler || !q->directory || !q->semanticTarget || !q->snapshots) goto invalid;
- size_t bytes=0;
+ q->semanticTarget=configured ? NULL : copy(target);q->path=configured ? copy(xlsContextSpec(context)->entry) : NULL;
+ q->snapshots=calloc(count,sizeof(*q->snapshots)); q->captureThread=xrtThreadCurrentId();
+ if(!q->compiler || !q->directory || (!configured && !q->semanticTarget) || (configured && !q->path) || !q->snapshots) goto invalid;
+ size_t bytes=0;int foundTarget=0;
  for(size_t i=0;i<count;++i) {
   const xls_analysis_document* d=&documents[i]; size_t n=xlsTextSize(d->text);
   if(!d->text || !retainedLabel(d->key) || !retainedLabel(d->path) || !xrtPathIsAbs(d->path) ||
@@ -410,18 +419,19 @@ xide_language_check* xideLanguageCheckStartRetainedInContext(xls_context* contex
   /* Host paths use '/', while native callers may have canonical XRT '\\'
      paths. Verify lexical identity, then keep the context's exact entry
      spelling for the core's immutable batch/context equality contract. */
-  if(context && !strcmp(key,target)) {
+  if(context && ((!configured && !strcmp(key,target)) || (configured && xidePathLexicalEqual(path,xlsContextSpec(context)->entry)))) {
    const char* entry=xlsContextSpec(context)->entry;
    if(!xidePathLexicalEqual(path,entry)) { free(path); free(key); goto invalid; }
    free(path);path=copy(entry);if(!path) {free(key);goto invalid;}
+   if(configured) {if(q->semanticTarget) {free(path);free(key);goto invalid;}q->semanticTarget=copy(key);if(!q->semanticTarget) {free(path);free(key);goto invalid;}}
   }
   for(size_t j=0;j<i;++j) if(xidePathLexicalEqual(path,q->snapshots[j].path) || !strcmp(key,q->snapshotKeys[j])) { free(path); free(key); goto invalid; }
   q->snapshotKeys[i]=key; q->snapshotTexts[i]=xlsTextRetain(d->text); q->snapshotIdentities[i]=d->identity;
   q->snapshots[q->snapshotCount++]=(xide_language_snapshot){path,xlsTextData(d->text),(int)((int64_t)d->revision+INT_MIN)};
   bytes+=n;
-  if(!strcmp(key,target)) { q->path=copy(path); q->version=q->snapshots[i].version; if(!q->path) goto invalid; }
+  if(!strcmp(key,target)) { if(!configured) q->path=copy(path);q->version=q->snapshots[i].version;foundTarget=1;if(!q->path) goto invalid; }
  }
- if(!q->path) goto invalid;
+ if(!q->path || !foundTarget) goto invalid;
  if(!xlsFrontendContextValid(context,q->path,e ? e->message : NULL,e ? sizeof(e->message) : 0)) {
   xideLanguageCheckDestroy(q); if(e) e->code=XIDE_MODEL_INVALID; return NULL;
  }
@@ -444,6 +454,17 @@ xide_language_check* xideLanguageCheckStartRetainedInContext(xls_context* contex
 invalid:
  xideLanguageCheckDestroy(q); fail(e,"Cannot capture retained native analysis inputs."); return NULL;
 }
+xide_language_check* xideLanguageCheckStartRetainedInContext(xls_context* context,xide_toolchains* cache,const char* compiler,
+ const char* directory,xls_worker* actor,const xls_analysis_document* documents,size_t count,
+ const char* target,const char* queryPath,int line,int character,
+ const xide_language_analysis_options* options,xide_model_error* error)
+{ return startRetained(context,0,cache,compiler,directory,actor,documents,count,target,queryPath,line,character,options,error); }
+xide_language_check* xideLanguageCheckStartConfigured(xls_context* context,xide_toolchains* cache,const char* compiler,
+ xls_worker* actor,const xls_analysis_document* documents,size_t count,const char* target,const char* queryPath,int line,int character,
+ const xide_language_analysis_options* options,xide_model_error* error)
+{ return startRetained(context,1,cache,compiler,context ? xlsContextSpec(context)->directory : NULL,actor,documents,count,target,queryPath,line,character,options,error); }
+int xideLanguageCheckMatchesContext(const xide_language_check* check,const xls_context* context)
+{ return check && xlsFrontendContextsEqual(check->context,context); }
 xide_language_check* xideLanguageCheckStartRetained(xide_toolchains* cache,const char* compiler,
  const char* directory,xls_worker* actor,const xls_analysis_document* documents,size_t count,
  const char* target,const char* queryPath,int line,int character,

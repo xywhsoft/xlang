@@ -93,14 +93,14 @@ static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_seman
  for(size_t i=0;i<q->snapshotCount;++i) inputs[i]=(xls_semantic_input){q->snapshots[i].path,q->snapshots[i].text,strlen(q->snapshots[i].text)};
  size_t size=0; char* report=NULL;
  if(q->queryPath) {
-  xls_semantic_completion* result=q->semanticActor ? retainedCompletion(q,e) : xlsSemanticCompletionCreateInContext(q->context,q->path,q->queryPath,(size_t)q->queryOffset,
+  xls_semantic_completion* result=q->semanticActor && q->semanticTarget ? retainedCompletion(q,e) : xlsSemanticCompletionCreateInContext(q->context,q->path,q->queryPath,(size_t)q->queryOffset,
    inputs,q->snapshotCount,nativeCancelled,q,e->message,sizeof(e->message));
   if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
   report=xlsSemanticCompletionJson(result,&size);
   *code=xlsSemanticCompletionInfo(result).available ? 0 : 1;
   xlsSemanticCompletionDestroy(result);
  } else {
-  xls_semantic_check* result=q->semanticActor ? retainedCheck(q,e) :
+  xls_semantic_check* result=q->semanticActor && q->semanticTarget ? retainedCheck(q,e) :
    xlsSemanticCheckCreateInContext(q->context,q->path,inputs,q->snapshotCount,1,nativeCancelled,q,e->message,sizeof(e->message));
   if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
   *checked=result;
@@ -313,7 +313,11 @@ static int loadGraph(xide_language_check* q,const xvalue* raw,source_graph* g,xi
   } else if(!strcmp(origin,"disk") && overlay<0) { char* owned=NULL; text=diskText(q,resolved,item,&owned,e); original=owned; }
   if(!text || !original) { free(text); if(!borrowed) free((char*)original); free(resolved); if(!e->code) fail(e,"源码报告与提交的文档覆盖不一致。"); return 0; }
   g->items[g->count++]=(source_item){resolved,text,original,item,overlay,borrowed}; g->bytes+=(size_t)size;
-  if(xidePathLexicalEqual(resolved,q->path) && (overlay>=0 || q->nativeBridge) && kind==1) entry=1;
+  if(xidePathLexicalEqual(resolved,q->path) && (overlay>=0 || q->nativeBridge
+#ifdef XLS_COMPILER_XRT
+    || q->configuredEntry
+#endif
+   ) && kind==1) entry=1;
  }
  g->resolution=get(raw,"resolutionReport"); int valid=entry && resolution(q,g->resolution,e);
 #ifdef XLS_COMPILER_XRT
@@ -522,7 +526,7 @@ analysed:
  }
  if(!q->queryPath && !q->nativeBridge && !put(result,"semanticDefinitions",xrtValueBool(q->definitions!=NULL))) goto done;
 #ifdef XLS_COMPILER_XRT
- if(q->semanticActor && q->queryPath) {
+ if(q->semanticActor && q->semanticTarget && q->queryPath) {
   xvalue* stats=xrtValueObject();
   int okayStats=stats && put(stats,"builds",xrtValueInt((int64)q->completionStats.builds)) &&
    put(stats,"cacheHits",xrtValueInt((int64)q->completionStats.hits)) && put(stats,"invalidations",xrtValueInt((int64)q->completionStats.invalidations)) &&
@@ -538,7 +542,7 @@ analysed:
   if(!okayStats) { xrtValueRelease(stats); goto done; }
   if(!put(result,"analysis",stats)) goto done;
  }
- if(q->semanticActor && !q->queryPath) {
+ if(q->semanticActor && q->semanticTarget && !q->queryPath) {
   xvalue* stats=xrtValueObject();
   int okayStats=stats && put(stats,"builds",xrtValueInt((int64)q->semanticStats.builds)) && put(stats,"cacheHits",xrtValueInt((int64)q->semanticStats.hits)) &&
    put(stats,"invalidations",xrtValueInt((int64)q->semanticStats.invalidations)) && put(stats,"documents",xrtValueInt((int64)q->semanticStats.documents)) &&
@@ -555,6 +559,7 @@ analysed:
   if(!put(result,"analysis",stats)) goto done;
  }
  if(nativeCheck && !xlsSemanticCheckValidate(nativeCheck)) { fail(e,"原生分析的输入在发布前已改变。"); goto done; }
+ if(q->configuredEntry && !put(result,"retainedEntry",xrtValueBool(q->semanticTarget!=NULL))) goto done;
 #endif
  if(!validateGraph(q,&graph,e) || (!q->nativeSemantic && !xideToolchainValidate(q->compiler,&stamp,e)) || cancelled(q)) goto done;
  q->guardFiles=xrtValueDeepClone(get(get(raw,"sourceReport"),"files"));

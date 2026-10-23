@@ -16,6 +16,13 @@ if ($LASTEXITCODE -ne 0) { throw 'Resident native folding, cache and cancellatio
 if ($LASTEXITCODE -ne 0) { throw 'Native semantic completion, source guards and cancellation gate failed.' }
 & python -X utf8 -B (Join-Path $PSScriptRoot 'check_lsp_namespace_completion.py') --server (Join-Path $releaseRoot 'xlang-ls.exe') --output (Join-Path $testRoot ('namespace-completion-'+[Guid]::NewGuid().ToString('N')))
 if ($LASTEXITCODE -ne 0) { throw 'Native namespace exports, semantic overloads and source guards gate failed.' }
+& python -X utf8 -B (Join-Path $PSScriptRoot 'check_lsp_analysis_configuration.py') --server (Join-Path $releaseRoot 'xlang-ls.exe') --output (Join-Path $testRoot ('analysis-configuration-'+[Guid]::NewGuid().ToString('N')))
+if ($LASTEXITCODE -ne 0) { throw 'Configured native analysis, disk entry and configuration fencing gate failed.' }
+& (Join-Path $releaseRoot 'analysis_catalog_test.exe')
+if ($LASTEXITCODE -ne 0) { throw 'Analysis context wire/catalog ownership and selection gate failed.' }
+$configurationCompiler = if ($CompilerPath) { $CompilerPath } else { Join-Path $releaseRoot 'absent-executor\xl.exe' }
+& (Join-Path $releaseRoot 'analysis_configuration_view_test.exe') (Join-Path $testRoot ('analysis-configuration-view-'+[Guid]::NewGuid().ToString('N'))) $configurationCompiler
+if ($LASTEXITCODE -ne 0) { throw 'IDE project/configuration analysis routing gate failed.' }
 & python -X utf8 -B (Join-Path $PSScriptRoot 'check_lsp_native_analysis.py') --server (Join-Path $releaseRoot 'xlang-ls.exe') --output (Join-Path $testRoot ('native-analysis-'+[Guid]::NewGuid().ToString('N')))
 if ($LASTEXITCODE -ne 0) { throw 'Native semantic/IR diagnostics, guarded index and navigation gate failed.' }
 & python -X utf8 -B (Join-Path $PSScriptRoot 'check_lsp_diagnostic_dependencies.py') --server (Join-Path $releaseRoot 'xlang-ls.exe') --receiver (Join-Path $releaseRoot 'diagnostic_dependencies_test.exe') --receiver (Join-Path $releaseRoot 'diagnostic_stream_test.exe') --output (Join-Path $testRoot ('diagnostic-dependencies-'+[Guid]::NewGuid().ToString('N')))

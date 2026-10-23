@@ -240,7 +240,7 @@ static void diagnosticPoll(server* s)
    root=s->diagnosticResultRoot; identity=s->diagnosticResultIdentity;
    if(s->docs[root].uri && s->docs[root].identity==identity && s->diagnosticResultGeneration==s->generation) {
     char key[32]; snprintf(key,sizeof(key),"%llu",identity); kind=DIAGNOSTIC_PUT;
-    xvalue* owned=s->diagnosticResult; s->diagnosticResult=NULL; query=xideDiagnosticStorePutTake(s->diagnostics,key,s->diagnosticProof,owned);
+    xvalue* owned=s->diagnosticResult; s->diagnosticResult=NULL; query=s->catalog ? xideDiagnosticStorePutConfigured(s->diagnostics,key,s->diagnosticProof,owned,s->catalog) : xideDiagnosticStorePutTake(s->diagnostics,key,s->diagnosticProof,owned);
    } else if(s->docs[root].uri) diagnosticSchedule(s,root,(unsigned)s->diagnosticDelay);
    diagnosticDropResult(s);
   } else if(s->diagnosticNeedsSnapshot) { kind=DIAGNOSTIC_SNAPSHOT; query=xideDiagnosticStoreSnapshot(s->diagnostics); }

@@ -2,6 +2,7 @@
 #define XLANG_IDE_COMPLETION_VIEW_H
 #include "app/xide_app.h"
 int xideCompletionViewCreate(xide_app* app);
+void xideCompletionViewConfigurationChanged(xide_app* app);
 void xideCompletionViewStop(xide_app* app);
 void xideCompletionViewDestroy(xide_app* app);
 void xideCompletionViewPoll(xide_app* app);

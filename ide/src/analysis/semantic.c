@@ -74,7 +74,7 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
     }
     const XL6_SourceOverlayItem* target=xl6SourceOverlayFind(&r->overlay,r->path);
     const XL6_SourceOverlayItem* entryInput=xl6SourceOverlayFind(&r->overlay,entry);
-    if(!target || !entryInput || offset>target->size ||
+    if(!target || (syntax && !entryInput) || offset>target->size ||
        (offset<target->size && ((unsigned char)target->text[offset]&0xc0)==0x80)) goto invalid;
     r->overlay.report=&r->report; r->overlay.completionQuery=&r->query; r->deps.sourceOverlay=&r->overlay;
     int okay;

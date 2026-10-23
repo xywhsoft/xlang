@@ -1,4 +1,5 @@
 #include "ui/language_view.h"
+#include "services/analysis_configuration.h"
 #include "editor/lsp_coordinates.h"
 #include "ui/c_language_view.h"
 #include "ui/editor_view.h"
@@ -50,7 +51,7 @@ struct xide_language_view {
  xvalue* deferredMessage; int deferredDiscard; uint64_t highlightSession,deferredSession;
  xide_sync_planner* syncPlanner;xide_sync_result* syncReady;
  uint64_t syncToken,syncSerial,syncSession,syncDeadline;int syncMode,syncSubmitted;
- xide_automatic_diagnostics* autoView;int autoEnabled,autoProbed,autoManual;
+ xide_automatic_diagnostics* autoView;int autoEnabled,autoProbed,autoManual,analysisRequired;
  char message[768];
 };
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
@@ -124,6 +125,7 @@ static void applyHover(xide_app* app,const xvalue* result,const xvalue* error);
 static int automaticCreate(xide_language_view* v);
 static void automaticDestroy(xide_language_view* v);
 static void automaticReset(xide_language_view* v);
+static void automaticFault(xide_language_view* v,const char* reason);
 static void automaticPoll(xide_app* app);
 static int automaticBlocked(xide_language_view* v);
 static int automaticReceive(xide_language_view* v,xvalue* message,size_t bytes);
@@ -166,6 +168,14 @@ static void reset(xide_app* app)
  xide_language_view* v=app->languageView;automaticReset(v); clearDiagnostics(app); xideLanguageClientStop(v->client); v->client=NULL; free(v->compiler); free(v->directory); free(v->uri); free(v->path);
  v->compiler=v->directory=v->uri=v->path=NULL; free(v->packagePath); v->packagePath=NULL; v->packageCaptured=0; freeInputs(v); xlsSyncDestroy(v->sync); v->sync=NULL; v->snapshotSupported=v->syncKind=v->nativeBackend=0; v->onDemandMode=v->onDemandSupported=v->definitionProofSupported=0; v->semanticRefreshAt=v->checkRetryAt=v->preemptDeadline=0; v->initialized=v->busy=v->waitingInitialize=0; v->invalidated=1; v->document=NULL; v->requestId=0; v->automatic=0; v->recheckAt=0; v->highlightSupported=v->highlightPreparing=0;
  v->autoEnabled=v->autoProbed=v->autoManual=0;
+ v->analysisRequired=0;
+}
+void xideLanguageViewConfigurationChanged(xide_app* app)
+{
+ if(!app || !app->languageView) return;
+ xide_language_view* v=app->languageView;
+ if(v->client || v->snapshotResult || v->autoProbed) reset(app);
+ xgeRenderRequest();
 }
 static char* serverPath(void)
 {
@@ -251,7 +261,12 @@ static int connectClient(xide_app* app,xide_document* d)
   v->client=program && v->compiler && v->directory ? xideLanguageClientStart(program,compiler,directory,&e) : NULL; free(program);
   if(!v->client) { snprintf(v->message,sizeof(v->message),"%s",*e.message ? e.message : "无法启动 xlang-ls；请重新构建 IDE。"); free(directory); return 0; }
   xideLanguageClientSetWake(v->client,languageWake,app);
+  xvalue* configuration=xideAnalysisConfigurationPacket(&app->workspaceModel,app->selectedProject,app->configurationId,v->packagePath,1,&e);
+  if(!configuration) {snprintf(v->message,sizeof(v->message),"%s",*e.message ? e.message : "无法准备工程分析配置。");reset(app);free(directory);return 0;}
+  v->analysisRequired=xrtValueCount(get(get(configuration,"catalog"),"projects"))>0;
   xvalue *p=xrtValueObject(),*options=xrtValueObject(),*capabilities=xrtValueObject(),*experimental=xrtValueObject();
+  if(!p || !options || !capabilities || !experimental) {xrtValueRelease(configuration);xrtValueRelease(p);xrtValueRelease(options);xrtValueRelease(capabilities);xrtValueRelease(experimental);reset(app);free(directory);return 0;}
+  put(options,"analysisConfiguration",configuration);
   if(v->autoView && !app->disableAutomaticDiagnostics) {
    xvalue* td=xrtValueObject(),*diagnostics=xrtValueObject();put(diagnostics,"versionSupport",xrtValueBool(true));put(td,"publishDiagnostics",diagnostics);put(capabilities,"textDocument",td);
    put(experimental,"diagnosticInputProof",xrtValueBool(true));put(experimental,"diagnosticDependencyProof",xrtValueBool(true));put(experimental,"diagnosticOverlayProof",xrtValueBool(true));
@@ -692,8 +707,11 @@ void xideLanguageViewPoll(xide_app* app)
   else if(number(get(m,"id"),&id)) {
    const xvalue* result=get(m,"result"),*error=get(m,"error"); const char* reason=boundedString(get(error,"message"),4096);
    if(id==1 && !v->initialized) {
-    const xvalue* cap=get(result,"capabilities"); const char* encoding=string(get(cap,"positionEncoding")); bool supported=false;
+    const xvalue* cap=get(result,"capabilities"); const char* encoding=string(get(cap,"positionEncoding")); bool supported=false;int configurationSchema=0;
     if(error || !encoding || strcmp(encoding,"utf-16") || !xrtValueGetBool(get(get(cap,"experimental"),"savedEntryDiagnostics"),&supported) || !supported) { snprintf(v->message,sizeof(v->message),"语言服务初始化失败：%s",reason ? reason : "诊断能力不兼容"); reset(app); }
+    else if(v->analysisRequired && (!number(get(get(cap,"experimental"),"analysisConfiguration"),&configurationSchema) || configurationSchema!=1)) {
+     automaticFault(v,"当前语言服务不支持工程分析配置，请更新语言服务。");
+    }
     else {
      int64 kind=1; const xvalue* sync=get(cap,"textDocumentSync");
      if(xrtValueType(sync)==XVALUE_OBJECT) sync=get(sync,"change");

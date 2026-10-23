@@ -7,6 +7,8 @@
 #include "services/session.h"
 #include "ui/editor_view.h"
 #include "ui/configuration_view.h"
+#include "ui/language_view.h"
+#include "ui/completion_view.h"
 #include "platform/path.h"
 #include "lang/languages.h"
 #include "theme/theme.h"
@@ -176,8 +178,10 @@ static void selected(xui_widget widget,int id,void* user)
     if(!node) return;
     const char* owner=node->type==NODE_FILE && !*node->project && selectedProject(app) ? app->selectedProject : node->project;
     char* project=duplicate(owner); if(!project) return;
+    int analysisChanged=!app->selectedProject || strcmp(app->selectedProject,project);
     free(app->selectedProject); app->selectedProject=project; app->workspaceView->selectedNode=id;
     syncProperties(app);
+    if(analysisChanged) {xideLanguageViewConfigurationChanged(app);xideCompletionViewConfigurationChanged(app);}
 }
 int xideWorkspaceViewRefresh(xide_app* app)
 {
@@ -236,7 +240,7 @@ int xideWorkspaceViewRefresh(xide_app* app)
     clearNodes(app->workspaceView->nodes,app->workspaceView->count);
     app->workspaceView->nodes=fresh.nodes; app->workspaceView->count=fresh.count; app->workspaceView->capacity=fresh.capacity; app->workspaceView->nextId=fresh.nextId;
     if(nodeAt(app->workspaceView,selectedId)) xuiTreeViewSetSelected(app->workspace,selectedId);
-    syncProperties(app); xgeRenderRequest(); return XUI_OK;
+    syncProperties(app);xideLanguageViewConfigurationChanged(app);xideCompletionViewConfigurationChanged(app); xgeRenderRequest(); return XUI_OK;
 failed:
     clearNodes(fresh.nodes,fresh.count); return XUI_ERROR_OUT_OF_MEMORY;
 }

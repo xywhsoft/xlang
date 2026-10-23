@@ -13,10 +13,10 @@
 #define DIAGNOSTIC_LIMIT 4096u
 typedef struct stored_group { wchar_t* key; xvalue* value; } stored_group;
 typedef struct record { char* key; xide_language_input_guard* guard; xarray groups; size_t bytes; } record;
-struct xide_diagnostic_store { xtaskpool* pool; record* records[RECORD_LIMIT]; xide_diagnostic_limits limits; int dependencies; };
+struct xide_diagnostic_store { xtaskpool* pool; record* records[RECORD_LIMIT]; xide_diagnostic_limits limits; int dependencies;xide_analysis_catalog* catalog; };
 struct xide_diagnostic_query { xfuture* future; xfuturewatch watch; int watchInitialized,watchLinked; void (*wake)(void*); void* user; };
 enum operation { PUT,REMOVE,INVALIDATE,SWEEP,SNAPSHOT,CLEAR };
-typedef struct input { xide_diagnostic_store* store; enum operation kind; char* key; xvalue* checked; xide_language_input_guard* guard; } input;
+typedef struct input { xide_diagnostic_store* store; enum operation kind; char* key; xvalue* checked; xide_language_input_guard* guard;xide_analysis_catalog* catalog; } input;
 typedef struct dependency_set { char id[65];xvalue* chunks; } dependency_set;
 typedef struct dependency_index {char id[65];size_t index;} dependency_index;
 struct xide_diagnostic_publication { xvalue* documents; xarray keys,dependencies,dependencyIndex,groupDependencies; };
@@ -60,7 +60,7 @@ static void releaseRecord(record* value)
  xrtArrayUnit(&value->groups); xideLanguageInputGuardRelease(value->guard); xrtFree(value->key); xrtFree(value);
 }
 static void freeInput(void* data,void* user)
-{ (void)user; input* value=data; xrtFree(value->key); xrtValueRelease(value->checked); xideLanguageInputGuardRelease(value->guard); xrtFree(value); }
+{ (void)user; input* value=data; xrtFree(value->key); xrtValueRelease(value->checked); xideLanguageInputGuardRelease(value->guard);xideAnalysisCatalogDestroy(value->catalog); xrtFree(value); }
 static void freeOutput(void* data,void* user)
 { (void)user; output* value=data; xideDiagnosticPublicationDestroy(value->publication); xrtValueRelease(value->invalidated); xrtFree(value->conflictPath); xrtFree(value); }
 void xideDiagnosticPublicationDestroy(xide_diagnostic_publication* publication)
@@ -180,7 +180,37 @@ static int sameRecordContext(unsigned char cache[RECORD_LIMIT][RECORD_LIMIT],rec
   (xideLanguageInputGuardSameContext(records[left]->guard,records[right]->guard) ? 1 : 2);
  return cache[left][right]==1;
 }
-static int makeSnapshot(xide_diagnostic_store* store,record* const* records,size_t count,xcancel* cancel,output* out)
+static int selectContributions(xide_analysis_catalog* catalog,record* const* records,size_t count,xarray* references,
+ unsigned char cache[RECORD_LIMIT][RECORD_LIMIT],xcancel* cancel,output* out)
+{
+ wchar_t* entries[RECORD_LIMIT]={0};int preferred[RECORD_LIMIT]={0};int okay=0;size_t kept=0;group_ref* refs=(group_ref*)references->Data;
+ for(size_t i=0;i<count;++i) if(records[i]) {
+  const xls_context* context=xideLanguageInputGuardContext(records[i]->guard);if(!context) continue;
+  entries[i]=xidePathNativeWide(xlsContextSpec(context)->entry);if(!entries[i]) {fail(out,"Cannot prepare configured diagnostic entry keys.");goto done;}
+  preferred[i]=xideAnalysisCatalogPrefers(catalog,context);
+ }
+ for(size_t first=0;first<references->Count;) {
+  if(xrtCancelRequested(cancel)) goto done;
+  size_t last=first+1;while(last<references->Count && !comparePath(refs[first].group->key,refs[last].group->key)) ++last;
+  const xls_context* wanted=NULL;enum xide_analysis_binding binding=xideAnalysisCatalogFindNative(catalog,refs[first].group->key,&wanted);
+  if(binding==XIDE_ANALYSIS_ERROR) {fail(out,"Cannot resolve configured diagnostic ownership.");goto done;}
+  size_t chosen=SIZE_MAX;int best=0;
+  for(size_t i=first;i<last;++i) {
+   size_t owner=refs[i].order/(FILE_LIMIT+RECORD_LIMIT);if(!entries[owner]) continue;
+   const xls_context* context=xideLanguageInputGuardContext(records[owner]->guard);
+   if(binding==XIDE_ANALYSIS_PROJECT) {if(context==wanted || xlsContextEqual(context,wanted)) {chosen=owner;break;}}
+   else if(binding==XIDE_ANALYSIS_UNOWNED) {int score=!comparePath(entries[owner],refs[first].group->key) ? 3 : preferred[owner] ? 2 : 1;if(score>best) {best=score;chosen=owner;}}
+  }
+  if(chosen!=SIZE_MAX) for(size_t i=first;i<last;++i) {
+   size_t owner=refs[i].order/(FILE_LIMIT+RECORD_LIMIT);
+   if(sameRecordContext(cache,records,chosen,owner)) refs[kept++]=refs[i];
+  }
+  first=last;
+ }
+ references->Count=kept;okay=1;
+done:for(size_t i=0;i<count;++i) free(entries[i]);return okay;
+}
+static int makeSnapshot(xide_diagnostic_store* store,record* const* records,size_t count,xide_analysis_catalog* catalog,xcancel* cancel,output* out)
 {
  size_t limit=store->limits.publishedReportBytes;
  xarray references={0},seen={0}; xmap hashes={0}; int okay=0; size_t publishedBytes=2;
@@ -192,6 +222,8 @@ static int makeSnapshot(xide_diagnostic_store* store,record* const* records,size
   for(size_t j=0;j<records[i]->groups.Count;++j) { group_ref ref={&groups[j],i*(FILE_LIMIT+RECORD_LIMIT)+j}; if(!xrtArrayPush(&references,&ref)) { fail(out,"Cannot index diagnostic contributions."); goto done; } }
  }
  if(references.Count) qsort(references.Data,references.Count,sizeof(group_ref),compareGroup);
+ unsigned char contexts[RECORD_LIMIT][RECORD_LIMIT]={{0}};
+ if(catalog && !selectContributions(catalog,records,count,&references,contexts,cancel,out)) goto done;
  out->publication=xrtCalloc(1,sizeof(*out->publication));
  if(!out->publication || !xrtArrayInit(&out->publication->keys,sizeof(wchar_t*)) ||
     !xrtArrayInit(&out->publication->dependencies,sizeof(dependency_set)) || !xrtArrayInit(&out->publication->dependencyIndex,sizeof(dependency_index)) ||
@@ -199,7 +231,7 @@ static int makeSnapshot(xide_diagnostic_store* store,record* const* records,size
  group_ref* refs=(group_ref*)references.Data; xvalue* merged=NULL; const stored_group* previous=NULL; uint64 groupId=0;
  /* One full context comparison per contributing record pair, rather than
     repeatedly comparing potentially large descriptors for every shared file. */
- unsigned char contexts[RECORD_LIMIT][RECORD_LIMIT]={{0}};size_t previousOwner=0;
+ size_t previousOwner=0;
  for(size_t i=0;i<references.Count;++i) {
   if(xrtCancelRequested(cancel)) { fail(out,"Diagnostic merge cancelled."); goto done; }
   stored_group* source=refs[i].group;size_t owner=refs[i].order/(FILE_LIMIT+RECORD_LIMIT);
@@ -271,9 +303,10 @@ static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* result)
  }
  size_t bytes=0;
  for(size_t i=0;i<store->limits.records;++i) if(trial[i] && (!addBytes(&bytes,trial[i]->bytes) || bytes>store->limits.retainedReportBytes)) { fail(out,"Retained diagnostic report byte limit exceeded."); goto done; }
- if(!makeSnapshot(store,trial,store->limits.records,cancel,out)) goto done;
+ if(!makeSnapshot(store,trial,store->limits.records,in->catalog ? in->catalog : store->catalog,cancel,out)) goto done;
  if(xrtCancelRequested(cancel)) goto done;
  for(size_t i=0;i<store->limits.records;++i) if(store->records[i]!=trial[i]) { releaseRecord(store->records[i]); store->records[i]=trial[i]; }
+ if(in->catalog) {xideAnalysisCatalogDestroy(store->catalog);store->catalog=xideAnalysisCatalogRetain(in->catalog);}
  fresh=NULL;
 done:
  releaseRecord(fresh);
@@ -296,6 +329,7 @@ void xideDiagnosticStoreDestroy(xide_diagnostic_store* store)
  if(!store) return;
  if(store->pool) { xrtTaskPoolCancel(store->pool); xrtTaskPoolDestroy(store->pool); }
  for(size_t i=0;i<RECORD_LIMIT;++i) releaseRecord(store->records[i]);
+ xideAnalysisCatalogDestroy(store->catalog);
  xrtFree(store);
 }
 int xideDiagnosticStoreLoad(xide_diagnostic_store* store,xide_diagnostic_load* load)
@@ -305,23 +339,26 @@ int xideDiagnosticStoreLoad(xide_diagnostic_store* store,xide_diagnostic_load* l
  if(!store || !xrtTaskPoolGet(store->pool,&stats)) return 0;
  *load=(xide_diagnostic_load){stats.Queued,stats.Running,stats.Submitted,stats.Completed,stats.Cancelled,stats.Rejected}; return 1;
 }
-static xide_diagnostic_query* submit(xide_diagnostic_store* store,enum operation kind,const char* key,xide_language_input_guard* guard,xvalue* checked)
+static xide_diagnostic_query* submit(xide_diagnostic_store* store,enum operation kind,const char* key,xide_language_input_guard* guard,xvalue* checked,xide_analysis_catalog* catalog)
 {
  if(!store || (kind==PUT && (!guard || !checked)) || ((kind==PUT || kind==REMOVE || kind==INVALIDATE) && (!key || !*key || strlen(key)>65535 || !xrtUtf8Valid(sv(key),NULL)))) { xrtValueRelease(checked); return NULL; }
  input* in=xrtCalloc(1,sizeof(*in)); xide_diagnostic_query* query=xrtCalloc(1,sizeof(*query));
  if(!in || !query) { xrtFree(in); xrtFree(query); xrtValueRelease(checked); return NULL; }
  in->store=store; in->kind=kind; in->checked=checked; in->guard=xideLanguageInputGuardRetain(guard); if(key) in->key=xrtStrDup(key);
+ in->catalog=xideAnalysisCatalogRetain(catalog);
  if(key && !in->key) { freeInput(in,NULL); xrtFree(query); return NULL; }
  xtaskargs args={.Destroy=freeInput}; query->future=xrtTaskSubmit(store->pool,execute,in,&args);
  if(!query->future) { freeInput(in,NULL); xrtFree(query); return NULL; } return query;
 }
 xide_diagnostic_query* xideDiagnosticStorePutTake(xide_diagnostic_store* store,const char* key,xide_language_input_guard* guard,xvalue* checked)
-{ return submit(store,PUT,key,guard,checked); }
-xide_diagnostic_query* xideDiagnosticStoreRemove(xide_diagnostic_store* store,const char* key) { return submit(store,REMOVE,key,NULL,NULL); }
-xide_diagnostic_query* xideDiagnosticStoreInvalidate(xide_diagnostic_store* store,const char* path) { return submit(store,INVALIDATE,path,NULL,NULL); }
-xide_diagnostic_query* xideDiagnosticStoreSweep(xide_diagnostic_store* store) { return submit(store,SWEEP,NULL,NULL,NULL); }
-xide_diagnostic_query* xideDiagnosticStoreSnapshot(xide_diagnostic_store* store) { return submit(store,SNAPSHOT,NULL,NULL,NULL); }
-xide_diagnostic_query* xideDiagnosticStoreClear(xide_diagnostic_store* store) { return submit(store,CLEAR,NULL,NULL,NULL); }
+{ return submit(store,PUT,key,guard,checked,NULL); }
+xide_diagnostic_query* xideDiagnosticStorePutConfigured(xide_diagnostic_store* store,const char* key,xide_language_input_guard* guard,xvalue* checked,xide_analysis_catalog* catalog)
+{if(!catalog || !xideLanguageInputGuardContext(guard)) {xrtValueRelease(checked);return NULL;}return submit(store,PUT,key,guard,checked,catalog);}
+xide_diagnostic_query* xideDiagnosticStoreRemove(xide_diagnostic_store* store,const char* key) { return submit(store,REMOVE,key,NULL,NULL,NULL); }
+xide_diagnostic_query* xideDiagnosticStoreInvalidate(xide_diagnostic_store* store,const char* path) { return submit(store,INVALIDATE,path,NULL,NULL,NULL); }
+xide_diagnostic_query* xideDiagnosticStoreSweep(xide_diagnostic_store* store) { return submit(store,SWEEP,NULL,NULL,NULL,NULL); }
+xide_diagnostic_query* xideDiagnosticStoreSnapshot(xide_diagnostic_store* store) { return submit(store,SNAPSHOT,NULL,NULL,NULL,NULL); }
+xide_diagnostic_query* xideDiagnosticStoreClear(xide_diagnostic_store* store) { return submit(store,CLEAR,NULL,NULL,NULL,NULL); }
 enum xide_diagnostic_state xideDiagnosticQueryResult(xide_diagnostic_query* query,xide_diagnostic_snapshot* result)
 {
  if(result) memset(result,0,sizeof(*result));
