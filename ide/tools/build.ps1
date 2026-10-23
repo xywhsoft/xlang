@@ -29,6 +29,7 @@ $sources += 'src\services\completion_result.c'
 $sources += 'src\services\sync_plan.c'
 $sources += 'src\services\diagnostic_dependencies.c'
 $sources += 'src\services\diagnostic_notice.c'
+$sources += 'src\services\diagnostic_stream.c'
 $sources += 'src\platform\startup_alias.c'
 $sources += 'src\platform\startup_stage.c'
 $sources += 'src\platform\startup_cache.c'
@@ -93,6 +94,10 @@ if ($Tests) {
         & $compiler @flags (Join-Path $ideRoot ('tests\'+$fixture+'.c')) @objects @libraries -o (Join-Path $releaseRoot ($fixture+'.exe'))
         if ($LASTEXITCODE -ne 0) { throw "$fixture link failed." }
     }
+    # The stream fixture owns the implementation for deterministic worker gates.
+    $diagnosticStreamObjects = $objects | Where-Object { $_ -notmatch 'src_services_diagnostic_stream\.c\.o$' }
+    & $compiler @flags (Join-Path $ideRoot 'tests\diagnostic_stream_test.c') @diagnosticStreamObjects @libraries -o (Join-Path $releaseRoot 'diagnostic_stream_test.exe')
+    if ($LASTEXITCODE -ne 0) { throw 'Diagnostic background stream fixture link failed.' }
     & $compiler @flags (Join-Path $ideRoot 'tests\diagnostic_paths_test.c') @objects @libraries -o (Join-Path $releaseRoot 'diagnostic_paths_test.exe')
     if ($LASTEXITCODE -ne 0) { throw 'Diagnostic dependency digest fixture link failed.' }
     # This boundary fixture owns the real snapshot implementation.

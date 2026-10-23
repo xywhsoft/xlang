@@ -16,7 +16,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Resident native folding, cache and cancellatio
 if ($LASTEXITCODE -ne 0) { throw 'Native semantic completion, source guards and cancellation gate failed.' }
 & python -X utf8 -B (Join-Path $PSScriptRoot 'check_lsp_native_analysis.py') --server (Join-Path $releaseRoot 'xlang-ls.exe') --output (Join-Path $testRoot ('native-analysis-'+[Guid]::NewGuid().ToString('N')))
 if ($LASTEXITCODE -ne 0) { throw 'Native semantic/IR diagnostics, guarded index and navigation gate failed.' }
-& python -X utf8 -B (Join-Path $PSScriptRoot 'check_lsp_diagnostic_dependencies.py') --server (Join-Path $releaseRoot 'xlang-ls.exe') --receiver (Join-Path $releaseRoot 'diagnostic_dependencies_test.exe') --output (Join-Path $testRoot ('diagnostic-dependencies-'+[Guid]::NewGuid().ToString('N')))
+& python -X utf8 -B (Join-Path $PSScriptRoot 'check_lsp_diagnostic_dependencies.py') --server (Join-Path $releaseRoot 'xlang-ls.exe') --receiver (Join-Path $releaseRoot 'diagnostic_dependencies_test.exe') --receiver (Join-Path $releaseRoot 'diagnostic_stream_test.exe') --output (Join-Path $testRoot ('diagnostic-dependencies-'+[Guid]::NewGuid().ToString('N')))
 if ($LASTEXITCODE -ne 0) { throw 'Shared exact diagnostic dependency dictionary gate failed.' }
 if ($NativeExtensionCompilerPath) {
     if (-not $CServerPath) { throw 'Native extension checks require CServerPath.' }
@@ -115,7 +115,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Actual application-frame completion input/rend
 if ($LASTEXITCODE -ne 0) { throw 'Overlay source report integrity gate failed.' }
 & (Join-Path $releaseRoot 'diagnostic_paths_test.exe')
 if ($LASTEXITCODE -ne 0) { throw 'Diagnostic dependency digest gate failed.' }
-foreach ($fixture in @('diagnostic_dependencies_test','diagnostic_notice_test')) {
+foreach ($fixture in @('diagnostic_dependencies_test','diagnostic_notice_test','diagnostic_stream_test')) {
     & (Join-Path $releaseRoot ($fixture+'.exe'))
     if ($LASTEXITCODE -ne 0) { throw "$fixture failed." }
 }
