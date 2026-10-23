@@ -118,7 +118,7 @@ def main():
                checkOnSave=False, analysisConfiguration=packet(1))), 1)
         reply, _ = c.reply(1)
         caps = reply['result']['capabilities']['experimental']
-        assert caps['analysisConfiguration'] == 1 and caps['analysisProfile'] == PROFILE and caps['retainedDiskEntry'] == 1 and caps['retainedEntryParse'] == 1, reply
+        assert caps['analysisConfiguration'] == 1 and caps['analysisProfile'] == PROFILE and caps['retainedDiskEntry'] == 1 and caps['retainedEntryParse'] == 1 and caps['retainedModuleParse'] == 1, reply
         c.send('initialized', {})
         process = c.process.pid
         c.open(helper, helper_text, 7)
@@ -265,6 +265,8 @@ def main():
             assert value['analysis']['builds'] == version and value['analysis']['cacheHits'] == 0 and work['parsed'] == 0 and work['reused'] == 1, value
             assert all(i['detail'] == 'func() as int' for i in value['items']), value
         done('member-edits-rebuild-semantics-and-reuse-only-unchanged-disk-entry-parse')
+        assert value['analysis']['lastBuildModuleParse']['parsed'] == 0 and value['analysis']['lastBuildModuleParse']['reused'] == 1, value
+        done('member-cursor-edits-reuse-ordinary-package-module-and-bypass-cursor-module')
         original_entry = entry.read_bytes()
         try:
             replacement = entry.with_suffix('.entry-cache-replacement')
@@ -318,6 +320,8 @@ def main():
             work = value['analysis']['lastBuildEntryParse']
             assert value['analysis']['builds'] == version and not value['analysis']['cacheHits'] and not work['parsed'] and work['reused'] == 1, value
         done('static-check-member-edits-rebuild-facts-and-reuse-ordinary-disk-entry')
+        assert value['analysis']['lastBuildModuleParse']['parsed'] == 1 and value['analysis']['lastBuildModuleParse']['reused'] == 1, value
+        done('checked-member-edits-reparse-changed-member-and-reuse-package-module')
         again = check(third, 1, 0, True, version)
         assert again['analysis']['builds'] == value['analysis']['builds'] and again['analysis']['cacheHits'] == value['analysis']['cacheHits']+1 and again['analysis']['lastBuildEntryParse'] == value['analysis']['lastBuildEntryParse'], again
         done('static-check-exact-hit-retains-last-build-parse-work')
@@ -353,13 +357,18 @@ def main():
         value = check(third, 1, 0, True, version)
         assert value['analysis']['lastBuildEntryParse']['reused'] == 1, value
         done('static-check-package-type-change-reruns-semantic-and-ir-validation')
+        assert value['analysis']['lastBuildModuleParse']['parsed'] == 1 and value['analysis']['lastBuildModuleParse']['reused'] == 1, value
+        done('changed-package-reparses-only-its-ordinary-tree-before-full-type-check')
         call(third, 'xlang/configureAnalysis', packet(2, 1))
         value = check(third, 2, 1, False, version)
         assert value['analysis']['lastBuildEntryParse']['parsed'] == 1 and not value['analysis']['lastBuildEntryParse']['reused'], value
+        assert value['analysis']['lastBuildModuleParse']['parsed'] == 2 and value['analysis']['lastBuildModuleParse']['reused'] == 0, value
         call(third, 'xlang/configureAnalysis', packet(3, 0))
         value = check(third, 3, 0, True, version)
         assert value['analysis']['lastBuildEntryParse']['parsed'] == 1, value
         done('static-check-full-context-change-reparses-before-current-package-checks')
+        assert value['analysis']['lastBuildModuleParse']['parsed'] == 1 and value['analysis']['lastBuildModuleParse']['reused'] == 1, value
+        done('module-cache-full-context-isolation-preserves-current-imports')
         third.open(entry, entry_text, 1)
         value = check(third, 3, 0, True, version)
         work = value['analysis']['lastBuildEntryParse']
@@ -374,6 +383,8 @@ def main():
         value = check(third, 3, 0, True, version)
         assert not value['entryOpen'] and value['analysis']['lastBuildEntryParse']['reused'] == 1, value
         done('static-check-open-entry-keeps-chunk-syntax-and-close-restores-disk-cache')
+        assert value['analysis']['lastBuildModuleParse']['parsed'] == 0 and value['analysis']['lastBuildModuleParse']['reused'] == 2, value
+        done('closing-entry-retains-two-current-module-trees-with-new-source-proofs')
         assert all(sha(p) == digest for p, digest in protected.items()) and not helper.exists() and not compiler.exists()
         done('unsaved-member-not-written-and-source-tools-unchanged')
         report['status'] = 'passed'

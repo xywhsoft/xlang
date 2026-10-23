@@ -100,6 +100,7 @@ static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_seman
    inputs,q->snapshotCount,nativeCancelled,q,e->message,sizeof(e->message));
   if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
   q->entryParseWork=xlsSemanticCompletionEntryWork(result);
+  q->moduleParseWork=xlsSemanticCompletionModuleWork(result);
   *completed=result;
   report=xlsSemanticCompletionJson(result,&size);
   *code=xlsSemanticCompletionInfo(result).available ? 0 : 1;
@@ -109,6 +110,7 @@ static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_seman
   if(!result) { e->code=XIDE_MODEL_INVALID; return 0; }
   *checked=result;
   q->entryParseWork=xlsSemanticCheckEntryWork(result);
+  q->moduleParseWork=xlsSemanticCheckModuleWork(result);
   report=xlsSemanticCheckReportJson(result,&size);
   *code=xlsSemanticCheckInfo(result).accepted ? 0 : 1;
  }
@@ -567,6 +569,12 @@ analysed:
    put(entryWork,"bytes",xrtValueInt((int64)q->entryParseWork.bytes));
   if(okayStats) {okayStats=put(stats,"lastBuildEntryParse",entryWork);entryWork=NULL;}
   xrtValueRelease(entryWork);
+  xvalue* moduleWork=xrtValueObject();
+  okayStats=okayStats && moduleWork && put(moduleWork,"parsed",xrtValueInt((int64)q->moduleParseWork.parsed)) &&
+   put(moduleWork,"reused",xrtValueInt((int64)q->moduleParseWork.reused)) && put(moduleWork,"declined",xrtValueInt((int64)q->moduleParseWork.declined)) &&
+   put(moduleWork,"bytes",xrtValueInt((int64)q->moduleParseWork.bytes));
+  if(okayStats) {okayStats=put(stats,"lastBuildModuleParse",moduleWork);moduleWork=NULL;}
+  xrtValueRelease(moduleWork);
   if(!okayStats) { xrtValueRelease(stats); goto done; }
   if(!put(result,"analysis",stats)) goto done;
  }
@@ -589,6 +597,12 @@ analysed:
    put(entryWork,"bytes",xrtValueInt((int64)q->entryParseWork.bytes));
   if(okayStats) {okayStats=put(stats,"lastBuildEntryParse",entryWork);entryWork=NULL;}
   xrtValueRelease(entryWork);
+  xvalue* moduleWork=xrtValueObject();
+  okayStats=okayStats && moduleWork && put(moduleWork,"parsed",xrtValueInt((int64)q->moduleParseWork.parsed)) &&
+   put(moduleWork,"reused",xrtValueInt((int64)q->moduleParseWork.reused)) && put(moduleWork,"declined",xrtValueInt((int64)q->moduleParseWork.declined)) &&
+   put(moduleWork,"bytes",xrtValueInt((int64)q->moduleParseWork.bytes));
+  if(okayStats) {okayStats=put(stats,"lastBuildModuleParse",moduleWork);moduleWork=NULL;}
+  xrtValueRelease(moduleWork);
   if(!okayStats) { xrtValueRelease(stats); goto done; }
   if(!put(result,"analysis",stats)) goto done;
  }

@@ -22,7 +22,7 @@ struct xide_language_check {
  xls_text* snapshotTexts[64]; char* snapshotKeys[64]; uint64_t snapshotIdentities[64];
  int retainedSnapshots; char* semanticTarget; xls_worker* semanticActor;
  xls_check_stats semanticStats; xls_completion_stats completionStats; uint64_t semanticThread,captureThread;
- xls_entry_parse_work entryParseWork;
+ xls_entry_parse_work entryParseWork,moduleParseWork;
 #endif
 };
 int xideLanguageCheckRunCompiler(xide_language_check* check,const char* const* args,size_t count,size_t limit,char** output,int* exitCode,xide_model_error* error);

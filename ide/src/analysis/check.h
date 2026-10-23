@@ -39,6 +39,7 @@ xls_check_semantic_work xlsSemanticCheckWork(const xls_semantic_check* result);
  * retain it. Overlay chunk syntax uses the existing session counters instead;
  * imports, semantic checking and IR still run after ordinary AST reuse. */
 xls_entry_parse_work xlsSemanticCheckEntryWork(const xls_semantic_check* result);
+xls_entry_parse_work xlsSemanticCheckModuleWork(const xls_semantic_check* result);
 
 /* Private immutable result, independent of transport/GUI and session ASTs.
  * Shared parser/imports/stdlib/semantics AND typed IR checks run in-process.

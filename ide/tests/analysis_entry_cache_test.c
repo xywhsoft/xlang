@@ -16,6 +16,14 @@ static char* fixtureAbsolute(const char* path) {if(!operation()) return NULL;cha
 static void fixtureFree(void* p) {if(p) --live;xrtFree(p);}
 static XL6_AstNode* fixtureClone(const XL6_AstNode* root,const xls_ast_clone_options* options,size_t* bytes)
 {return operation() ? xlsAstClone(root,options,bytes) : NULL;}
+static bool fixtureMapInit(xmap* map,size_t bytes) {return operation() && xrtMapInit(map,bytes);}
+static bool fixtureMapDrop(xmap* map,xmapdrop drop,void* user) {return operation() && xrtMapSetDrop(map,drop,user);}
+static bool fixtureMapSet(xmap* map,xbytesview key,const void* value) {return operation() && xrtMapSet(map,key,value);}
+static void* fixtureMapAdd(xmap* map,xbytesview key,bool* added) {return operation() ? xrtMapGetOrAdd(map,key,added) : NULL;}
+#define xrtMapInit fixtureMapInit
+#define xrtMapSetDrop fixtureMapDrop
+#define xrtMapSet fixtureMapSet
+#define xrtMapGetOrAdd fixtureMapAdd
 #define xrtCalloc fixtureCalloc
 #define xrtStrDup fixtureDup
 #define xrtStrDupN fixtureDupN
@@ -25,6 +33,7 @@ static XL6_AstNode* fixtureClone(const XL6_AstNode* root,const xls_ast_clone_opt
 #define xlsEntryCacheCreate privateCreate
 #define xlsEntryCacheDestroy privateDestroy
 #define xlsEntryCacheBytes privateBytes
+#define xlsModuleCacheBytes privateModuleBytes
 #define xlsFrontendEntryBegin privateBegin
 #define xlsFrontendEntryEnd privateEnd
 #define xlsFrontendEntryParse privateParse
@@ -35,9 +44,14 @@ static XL6_AstNode* fixtureClone(const XL6_AstNode* root,const xls_ast_clone_opt
 #undef xrtPathAbs
 #undef xrtFree
 #undef xlsAstClone
+#undef xrtMapInit
+#undef xrtMapSetDrop
+#undef xrtMapSet
+#undef xrtMapGetOrAdd
 #undef xlsEntryCacheCreate
 #undef xlsEntryCacheDestroy
 #undef xlsEntryCacheBytes
+#undef xlsModuleCacheBytes
 #undef xlsFrontendEntryBegin
 #undef xlsFrontendEntryEnd
 #undef xlsFrontendEntryParse
@@ -96,6 +110,7 @@ static int parity(xls_semantic_completion* result,xls_context* context,const cha
     xls_semantic_completion* fresh=xlsSemanticCompletionCreateInContext(context,entry,input->path,at,input,1,NULL,NULL,NULL,0);
     char *a=xlsSemanticCompletionJson(result,NULL),*b=xlsSemanticCompletionJson(fresh,NULL);CHECK(result && fresh && a && b && !strcmp(a,b));
     CHECK(!xlsSemanticCompletionEntryWork(fresh).parsed && !xlsSemanticCompletionEntryWork(fresh).reused);
+    CHECK(!xlsSemanticCompletionModuleWork(fresh).parsed && !xlsSemanticCompletionModuleWork(fresh).reused);
     xlsSemanticStringFree(a);xlsSemanticStringFree(b);xlsSemanticCompletionDestroy(fresh);return 1;
 }
 typedef struct cancel_data {unsigned calls,at;} cancel_data;
@@ -125,7 +140,8 @@ static int integrated(void)
     for(unsigned i=0;i<20;++i) {
         char text[256];snprintf(text,sizeof(text),"%s// actual edit %u\n",cursor,i);input=(xls_semantic_input){helper,text,strlen(text)};
         xls_semantic_completion* result=xlsSemanticCompletionCreateCachedInContext(context,cache,entry,helper,at,&input,1,NULL,NULL,error,sizeof(error));
-        CHECK(parity(result,context,entry,&input,at) && !xlsSemanticCompletionEntryWork(result).parsed && xlsSemanticCompletionEntryWork(result).reused==1);xlsSemanticCompletionDestroy(result);
+        CHECK(parity(result,context,entry,&input,at) && !xlsSemanticCompletionEntryWork(result).parsed && xlsSemanticCompletionEntryWork(result).reused==1);
+        CHECK(!xlsSemanticCompletionModuleWork(result).parsed && xlsSemanticCompletionModuleWork(result).reused==1 && xlsSemanticCompletionModuleWork(result).bytes>0);xlsSemanticCompletionDestroy(result);
     }
     input=(xls_semantic_input){helper,cursor,strlen(cursor)};
     nested_data nested={context,entry,input,at,0,0};
@@ -158,6 +174,7 @@ static int checkParity(xls_semantic_check* result,xls_context* context,const cha
     char *a=xlsSemanticCheckJson(result,NULL),*b=xlsSemanticCheckJson(fresh,NULL);
     CHECK(result && fresh && a && b && !strcmp(a,b) && xlsSemanticCheckValidate(result));
     CHECK(!xlsSemanticCheckEntryWork(fresh).parsed && !xlsSemanticCheckEntryWork(fresh).reused);
+    CHECK(!xlsSemanticCheckModuleWork(fresh).parsed && !xlsSemanticCheckModuleWork(fresh).reused);
     xlsSemanticStringFree(a);xlsSemanticStringFree(b);xlsSemanticCheckDestroy(fresh);return 1;
 }
 static int checkIntegrated(void)
@@ -181,6 +198,7 @@ static int checkIntegrated(void)
         document.text=text;document.revision=i+2;input=(xls_semantic_input){helper,edited,strlen(edited)};
         xls_semantic_check* result=xlsCheckSessionCheckInContext(session,context,&document,1,NULL,1,NULL,NULL,error,sizeof(error));
         CHECK(checkParity(result,context,entry,&input,1) && xlsSemanticCheckInfo(result).accepted && !xlsSemanticCheckEntryWork(result).parsed && xlsSemanticCheckEntryWork(result).reused==1);
+        CHECK(xlsSemanticCheckModuleWork(result).parsed==1 && xlsSemanticCheckModuleWork(result).reused==1 && xlsSemanticCheckModuleWork(result).bytes>0);
         xls_check_stats stats;xlsCheckSessionStats(session,&stats);CHECK(stats.builds==i+2 && !stats.hits && !stats.entryFullParses && !stats.entrySyntaxHits);
         xlsSemanticCheckDestroy(result);xlsTextRelease(text);
     }
@@ -232,4 +250,63 @@ static int checkIntegrated(void)
     xlsSemanticCheckDestroy(result);xlsSemanticCheckDestroy(initial);
     xrtFree(directory);xrtFree(entry);xrtFree(helper);xrtFree(package);xrtFree(manifest);xrtFree(api);return 1;
 }
-int main(void) {if(!primitive() || !integrated() || !checkIntegrated()) return 1;printf("analysis_entry_cache_test passed: %u checks; pre-semantic AST parity,budget/fault/nested/cancel ownership,real disk/member check and completion edits,fresh semantic JSON/index/IR equivalence\n",checks);return 0;}
+static int modulePrimitive(void)
+{
+    char* entry=xrtPathAbs("module-entry.xl");char* path=xrtPathAbs("module-ordinary.xl");CHECK(entry && path);
+    const char* body="export func value() as int\n return 7\nend\n";
+    size_t operations=0,charged=0;
+    for(size_t failure=0;failure<=operations;++failure) {
+        calls=0;failAt=failure;xls_entry_cache* cache=privateCreate(1024*1024);xls_entry_cache_scope scope;privateBegin(&scope,cache,NULL,entry);
+        XL6_ParseResult result,fresh;xl6ParseResultInit(&result);xl6ParseResultInit(&fresh);
+        CHECK(privateParse(body,path,&result,NULL) && xl6ParseSource(body,path,&fresh) && equal(result.root,fresh.root));
+        privateEnd(&scope,1);if(!failure) {operations=calls;charged=privateModuleBytes(cache);CHECK(operations>=10 && charged>strlen(body) && scope.moduleWork.parsed==1 && !scope.moduleWork.declined);}
+        xl6ParseResultFree(&result);xl6ParseResultFree(&fresh);privateDestroy(cache);CHECK(!live);
+    }
+    failAt=0;
+    for(unsigned less=0;less<2;++less) {
+        xls_entry_cache* cache=privateCreate(charged-less);CHECK(cache);xls_entry_cache_scope scope;privateBegin(&scope,cache,NULL,entry);XL6_ParseResult result;xl6ParseResultInit(&result);
+        CHECK(privateParse(body,path,&result,NULL));privateEnd(&scope,1);
+        CHECK(scope.moduleWork.parsed==1 && scope.moduleWork.declined==less && privateModuleBytes(cache)==(less ? 0 : charged));
+        xl6ParseResultFree(&result);privateDestroy(cache);CHECK(!live);
+    }
+    xls_entry_cache* cache=privateCreate(8u*1024u*1024u);CHECK(cache);int okay=1;
+    for(unsigned i=0;i<512 && okay;++i) {
+        char name[512];snprintf(name,sizeof(name),"%s-dependency-%u.xl",entry,i);xls_entry_cache_scope scope;privateBegin(&scope,cache,NULL,entry);XL6_ParseResult result;xl6ParseResultInit(&result);
+        okay=privateParse(body,name,&result,NULL);privateEnd(&scope,1);okay=okay && scope.moduleWork.parsed==1 && xrtMapCount(&cache->modules)==(i<512 ? i+1 : 512) && privateBytes(cache)+privateModuleBytes(cache)<=cache->limit;xl6ParseResultFree(&result);
+    }
+    CHECK(okay && xrtMapCount(&cache->modules)==512);
+    char newest[512],evicted[512];snprintf(newest,sizeof(newest),"%s-dependency-0.xl",entry);snprintf(evicted,sizeof(evicted),"%s-dependency-1.xl",entry);
+    xls_entry_cache_scope scope;privateBegin(&scope,cache,NULL,entry);XL6_ParseResult result;xl6ParseResultInit(&result);CHECK(privateParse(body,newest,&result,NULL));privateEnd(&scope,1);
+    CHECK(scope.moduleWork.reused==1 && !scope.moduleWork.parsed);xl6ParseResultFree(&result);
+    char added[512];snprintf(added,sizeof(added),"%s-dependency-512.xl",entry);
+    privateBegin(&scope,cache,NULL,entry);xl6ParseResultInit(&result);CHECK(privateParse(body,added,&result,NULL));privateEnd(&scope,1);
+    CHECK(scope.moduleWork.parsed==1 && xrtMapCount(&cache->modules)==512);xl6ParseResultFree(&result);
+    privateBegin(&scope,cache,NULL,entry);xl6ParseResultInit(&result);CHECK(privateParse(body,evicted,&result,NULL));privateEnd(&scope,1);
+    CHECK(scope.moduleWork.parsed==1 && !scope.moduleWork.reused && xrtMapCount(&cache->modules)==512);xl6ParseResultFree(&result);
+    /* A cancelled new module and changed existing module are never installed. */
+    size_t before=privateModuleBytes(cache);privateBegin(&scope,cache,NULL,entry);xl6ParseResultInit(&result);CHECK(privateParse("func changed() as int\n return 9\nend\n",evicted,&result,NULL));privateEnd(&scope,0);xl6ParseResultFree(&result);
+    CHECK(privateModuleBytes(cache)==before && xrtMapCount(&cache->modules)==512);
+    privateBegin(&scope,cache,NULL,entry);xl6ParseResultInit(&result);CHECK(privateParse(body,evicted,&result,NULL));privateEnd(&scope,1);CHECK(scope.moduleWork.reused==1);xl6ParseResultFree(&result);privateDestroy(cache);CHECK(!live);
+    /* Entry plus modules share the same budget, and a new larger entry evicts
+       modules only on commit. Pending abort preserves both committed stores. */
+    cache=privateCreate(charged*3);CHECK(cache);
+    for(unsigned i=0;i<8;++i) {
+        char name[512];snprintf(name,sizeof(name),"%s-budget-%u.xl",entry,i);privateBegin(&scope,cache,NULL,entry);xl6ParseResultInit(&result);CHECK(privateParse(body,name,&result,NULL));privateEnd(&scope,1);xl6ParseResultFree(&result);
+        CHECK(privateBytes(cache)+privateModuleBytes(cache)<=cache->limit && xrtMapCount(&cache->modules)<8);
+    }
+    privateBegin(&scope,cache,NULL,entry);xl6ParseResultInit(&result);CHECK(privateParse(body,entry,&result,NULL));privateEnd(&scope,1);xl6ParseResultFree(&result);
+    CHECK(privateBytes(cache)>0 && privateBytes(cache)+privateModuleBytes(cache)<=cache->limit);
+    /* Multiple captures in one scope obey the pending generation budget. */
+    size_t retained=privateModuleBytes(cache);privateBegin(&scope,cache,NULL,entry);int all=1;
+    for(unsigned i=0;i<20;++i) {
+        char name[512];snprintf(name,sizeof(name),"%s-pending-%u.xl",entry,i);xl6ParseResultInit(&result);
+        all=all && privateParse(body,name,&result,NULL) && scope.pendingModuleBytes+privateBytes(cache)<=cache->limit;xl6ParseResultFree(&result);
+    }
+    privateEnd(&scope,0);CHECK(all && privateModuleBytes(cache)==retained && scope.moduleWork.declined>0);
+    /* A hit-copy failure must use the shared parser, retaining valid output. */
+    calls=0;failAt=2;privateBegin(&scope,cache,NULL,entry);xl6ParseResultInit(&result);
+    char hit[512];snprintf(hit,sizeof(hit),"%s-budget-7.xl",entry);CHECK(privateParse(body,hit,&result,NULL));privateEnd(&scope,1);
+    CHECK(scope.moduleWork.parsed==1 && scope.moduleWork.declined==1 && !scope.moduleWork.reused);xl6ParseResultFree(&result);failAt=0;
+    privateDestroy(cache);CHECK(!live);xrtFree(entry);xrtFree(path);return 1;
+}
+int main(void) {if(!primitive() || !integrated() || !checkIntegrated() || !modulePrimitive()) return 1;printf("analysis_entry_cache_test passed: %u checks; pre-semantic AST parity,budget/fault/nested/cancel ownership,real disk/member check and completion edits,fresh semantic JSON/index/IR equivalence\n",checks);return 0;}

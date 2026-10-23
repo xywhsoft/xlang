@@ -27,7 +27,7 @@ struct xls_semantic_check {
     xls_semantic_index* typedIndex;
     xls_sem_memo* memo;
     xls_sem_work semanticWork;
-    xls_entry_parse_work entryWork;
+    xls_entry_parse_work entryWork,moduleWork;
     const char* phase;
     int accepted,captureIndex;
 };
@@ -150,7 +150,7 @@ xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,x
 {
     if(!xlsFrontendContextValid(context,entry,error,capacity)) return NULL;
     xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
-    xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,syntax ? NULL : cache,context,entry);
+    xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,cache,context,entry);
     xls_semantic_check* result=createBody(context,entry,inputs,count,captureIndex,syntax,previous,cancelled,user,error,capacity);
     if(result && stopped(cancelled,user)) {xlsSemanticCheckDestroy(result);result=NULL;fail(error,capacity,"semantic check cancelled");}
     int scoped=xlsFrontendContextEnd(&scope);
@@ -158,7 +158,7 @@ xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,x
     if(!scoped) {
         xlsSemanticCheckDestroy(result); fail(error,capacity,(scope.failed&2) ? "cannot retain bounded completion namespace" : "cannot resolve native context path or package environment"); return NULL;
     }
-    if(result) result->entryWork=work;
+    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;}
     return result;
 }
 xls_semantic_check* xlsSemanticCheckCreateIncrementalInContext(xls_context* context,const char* entry,
@@ -167,6 +167,8 @@ xls_semantic_check* xlsSemanticCheckCreateIncrementalInContext(xls_context* cont
 { return xlsSemanticCheckCreateCachedInContext(context,NULL,entry,inputs,count,captureIndex,syntax,previous,cancelled,user,error,capacity); }
 xls_entry_parse_work xlsSemanticCheckEntryWork(const xls_semantic_check* result)
 { return result ? result->entryWork : (xls_entry_parse_work){0}; }
+xls_entry_parse_work xlsSemanticCheckModuleWork(const xls_semantic_check* result)
+{ return result ? result->moduleWork : (xls_entry_parse_work){0}; }
 xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)

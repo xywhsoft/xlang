@@ -16,7 +16,8 @@ typedef struct xls_check_stats {
  * rebuilds. Exact-input reuse still revalidates disk files, negative import
  * candidates and observed package environment. Rebuilds reuse the immutable
  * entry syntax when possible, copying a private mutable tree for unchanged
- * full semantic/IR verification. Dependency parsing is still performed anew. */
+ * full semantic/IR verification. Ordinary imports share the bounded parse aid;
+ * their source capture and import expansion/semantic checks still run. */
 xls_check_session* xlsCheckSessionCreate(const xls_session_limits* limits);
 void xlsCheckSessionDestroy(xls_check_session* session);
 /* Returned reference is independent of session replacement/destruction.

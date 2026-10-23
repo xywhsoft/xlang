@@ -60,8 +60,8 @@ xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* s,xls_conte
         if(stopped(cancelled,user)) goto cancel;
         xls_semantic_check* baseline=previous && s->captureIndex==captureIndex &&
             !strcmp(xlsInputBatchDirectory(s->batch),xlsInputBatchDirectory(batch)) ? s->result : NULL;
-        if(!entryDocument && !s->entryCache) s->entryCache=xlsEntryCacheCreate(32u*1024u*1024u);
-        result=xlsSemanticCheckCreateCachedInContext(context,!entryDocument ? s->entryCache : NULL,entry,inputs,count,captureIndex,syntax,baseline,cancelled,user,error,capacity);
+        if(!s->entryCache) s->entryCache=xlsEntryCacheCreate(32u*1024u*1024u);
+        result=xlsSemanticCheckCreateCachedInContext(context,s->entryCache,entry,inputs,count,captureIndex,syntax,baseline,cancelled,user,error,capacity);
         if(!result) goto done;
         xls_check_semantic_work work=xlsSemanticCheckWork(result);
         s->stats.semanticFunctionsChecked+=work.functionsChecked; s->stats.semanticFunctionsReused+=work.functionsReused;
