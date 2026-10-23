@@ -123,6 +123,8 @@ C 接口见 `include/redis_native.h`，输入 `xvalue*` 仅借用；
   `bash release/extlibs/redis/test/check_live.sh`：它选择本次临时端口，
   只启动绑定 `127.0.0.1`、关闭持久化的实例，并以 Redis 报告的进程 ID
   核对服务归属。已有 Redis 不会被连接或关闭；成功或失败均清理本次服务。
+  真服务 C 示例和 C 边界先于 XLang 检查运行，故语言编译失败时仍可明确
+  区分原生接口是否已经通过；整个脚本仍返回失败，不作降级验收。
 - `examples/extlibs/redis_live.xl` 是可选的真实 Redis 示例，要求
   默认 `127.0.0.1:6379` 运行 Redis；设 `REDIS_LIVE_PORT` 可指定其他端口。
   `examples/extlibs/redis_live_c.c` 用 XRT socket
@@ -154,6 +156,14 @@ XL AOT 当前因主线缺少 `xl6ValueDataSnapshotV1` 而失败，见
 缺该符号。包清单现声明与 `test/live_runtime.c` 一致的四个 XRT
 模块；该裁剪运行时已独立编译并通过 C 边界，但最终 AOT 体积与运行
 仍须待共享符号修复后验证。
+2026-10-24 在当前 WSL 发布物上复跑 `check_live.sh`：C 边界、分配、线程
+和真服务调用均通过 ASan/UBSan。单独执行
+`./release/xl check test/cases/extlib_redis.xl` 也在包源码
+`src/redis.xl:3` 报未知 `cstring`，
+同次还报告未知 `cbytes`、`NetStatus` 与 `TcpWait`。这是该 Linux 发布版
+编译器与当前包/标准库声明不一致的可独立复现阻断；同步 Linux 发布物后
+重跑完整 C/XLang 真服务门禁，不在包内增加旧签名回退，也不把 C 通过
+记作 XLang 通过。
 真实 Redis 单连接成功/错误/主动断线后显式重连及四连接短轮次并发路径已验证，C 原生宿主也
 经过真服务门禁；尚未覆盖长时运行、
 自动重试策略（当前 API 不承诺自动重连）以及完整 AOT，因此暂不签收发布验收。
