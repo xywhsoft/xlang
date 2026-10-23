@@ -21,20 +21,6 @@ static xx509result critical(const xx509cert* certificate,const xx509ext* extensi
     return status;
 }
 
-bool xl6X509PathPolicyValidV1(const xx509pathconfig* config)
-{
-    if(!config || (config->Flags&~(X509_PATH_REQUIRE_KEY_USAGE|X509_PATH_REQUIRE_PURPOSE|X509_PATH_ALLOW_SHA1)) ||
-        (config->KeyUsage&UINT16_C(0xfe00)) ||
-        ((config->Flags&X509_PATH_REQUIRE_KEY_USAGE) && !config->KeyUsage) ||
-        ((config->Flags&X509_PATH_REQUIRE_PURPOSE) && !config->Purpose.Size) ||
-        (config->Purpose.Size && !config->Purpose.Data))
-        return xl6X509FailV1(XERR_ARGUMENT,"invalid explicit path policy");
-    if(config->Purpose.Size) {
-        xbuffer text={0};bool ok=xl6X509OutcomeV1(xrtDerOidDecode(config->Purpose,&text));
-        xl6X509BufferFreeV1(&text);if(!ok)return false;
-    }
-    return true;
-}
 static bool add(size_t* total,size_t size)
 {
     if(size>SIZE_MAX-*total)return xl6X509FailV1(XERR_RANGE,"path snapshot allocation overflow");
@@ -56,6 +42,7 @@ static XL6_X509PathV1* snapshot(void* const* certificates,size_t count,const XL6
     }
     if(!xl6X509LimitV1(inputBytes,maxBytes,"path input exceeds byte budget") || !add(&total,inputBytes))return NULL;
     XL6_X509PathV1* self=xrtCalloc(1,total);if(!self)return NULL;
+    xrtAtomic64Init(&self->references,1);
     self->count=count;self->policy=*policy;
     /* Only this synchronous call uses the borrowed callback. A published
      * path never retains UserData, a closure, or a generated code address. */
