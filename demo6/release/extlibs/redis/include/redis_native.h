@@ -24,6 +24,9 @@ xvalue* xr_decode_text_span(xstrview reply);
 bool xr_is_complete_text_span(xstrview reply);
 xvalue* xr_decode_bytes_span(xbytesview reply);
 bool xr_is_complete_bytes_span(xbytesview reply);
+xvalue* xr_args_create(void);
+bool xr_args_append(xvalue* args, xvalue* item);
+bool xr_args_native(xvalue* args);
 
 /* 增量检查首个 RESP 帧；data 必须是同一缓冲的追加前缀，允许重新分配地址。
    返回 false 且无 XRT 错误表示数据未到齐；失败时销毁状态，不再继续追加。 */

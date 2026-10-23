@@ -511,3 +511,20 @@ bool xr_is_complete_bytes_span(xbytesview Reply)
 {
     return xr_is_complete_raw((void*)Reply.Data, Reply.Size);
 }
+
+/* Typed language arrays are runtime handles, not XVALUE_ARRAY backing stores.
+ * The language adapter visits them and retains each boxed command argument. */
+xvalue* xr_args_create(void)
+{
+    return xrtValueArray();
+}
+
+bool xr_args_append(xvalue* Args, xvalue* Item)
+{
+    return xrtValueArrayAppend(Args, Item);
+}
+
+bool xr_args_native(xvalue* Args)
+{
+    return Args != NULL && xrtValueType(Args) == XVALUE_ARRAY;
+}

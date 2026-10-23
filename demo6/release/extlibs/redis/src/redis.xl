@@ -13,7 +13,7 @@ extern "xr_frame_destroy" func __r_frame_destroy(point frame)
 // encode 把命令参数数组编码为 RESP 数组请求
 // redis.encode(["SET", "key", "value"]) → "*3\r\n$3\r\nSET\r\n..."
 export func encode(var args) as string
-    var payload = __r_encode(args)
+    var payload = __r_encode(__r_normalize_args(args))
     if payload == null then
         throw ValueError "redis: invalid command arguments"
     end
@@ -22,7 +22,7 @@ end
 
 // 二进制命令参数使用 bytes；结果为调用方持有的原始 RESP 字节。
 export func encodeBytes(var args) as Buffer
-    point handle = __r_encode_bytes(args)
+    point handle = __r_encode_bytes(__r_normalize_args(args))
     if handle == null then
         throw ValueError "redis: invalid command arguments"
     end
@@ -95,6 +95,8 @@ export func command(TcpStream stream, var args, int timeoutMs = 5000,
             bytes chunk = b""
             try
                 chunk = stream.recv(65536, remainingMs)
+            catch TimeoutError error
+                throw ValueError "redis: command timed out"
             catch ValueError error
                 if time.monotonic() - started >= limitUs then
                     throw ValueError "redis: command timed out"
@@ -167,4 +169,29 @@ end
 
 export func isCompleteBytes(bytes reply) as bool
     return __r_complete_span(reply)
+end
+
+extern "xr_args_create" func __r_args_create() as var
+extern "xr_args_append" func __r_args_append(var args, var item) as bool
+
+extern "xr_args_native" func __r_args_native(var args) as bool
+
+func __r_normalize_args(var args) as var
+    if __r_args_native(args) then return args end
+    if not (args is array or args is array<string> or args is array<bytes> or args is array<var>) then
+        return args
+    end
+    int count = args.length
+    if count == 0 or count > 100000 then
+        throw RangeError "RESP command argument count is out of range"
+    end
+    var result = __r_args_create()
+    int index = 0
+    while index < count
+        if not __r_args_append(result, args[index]) then
+            throw MemoryError "redis: could not prepare command arguments"
+        end
+        index += 1
+    end
+    return result
 end
