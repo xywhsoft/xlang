@@ -3,6 +3,7 @@
 #include "services/language_client.h"
 #include "services/language_check.h"
 #include "services/sync_plan.h"
+#include "services/completion_result.h"
 #include "editor/lsp_coordinates.h"
 #include "platform/file_watch.h"
 #include "platform/path.h"
@@ -22,11 +23,14 @@ struct xide_completion_view {
  xide_app* app; xide_language_client* client; char *compiler,*directory,*package;
  completion_input inputs[COMPLETION_DOCS]; size_t inputCount; int nextId,initialized,supported,syncKind,nativeBackend; xls_sync* sync;
  xide_document* document; uint64_t id,due; uint32_t version; int offset,wanted,pending,request,ready,sawOpen,refreshing;
- xvalue* result; xui_code_completion_item_t* items; const char** nameIndex; int count,start,end,collectEligible;
+ const xvalue* result; xui_code_completion_item_t* items; const char* const* nameIndex; int count,start,end,collectEligible;
  xui_widget repeatEditor; uint64_t repeatId; int repeatOffset;
  xui_code_text_edit_t edit; char editText[513]; completion_binding* bindings;
  xide_sync_planner* syncPlanner; xide_sync_result* syncReady;
  uint64_t syncToken,syncSerial,syncSession,session,syncDeadline; int syncSubmitted;
+ xide_completion_decoder* decoder;xide_completion_result* decoded;
+ uint64_t decodeToken,decodeSerial,decodeSession,decodeDeadline;
+ int decoding; xvalue* deferredMessage;int deferredDiscard;uint64_t deferredSession;
 };
 static xstrview cvsv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* cvget(const xvalue* o,const char* key) { return o && xrtValueType(o)==XVALUE_OBJECT ? xrtValueObjectGet(o,cvsv(key)) : NULL; }
@@ -77,14 +81,24 @@ static int cvretireSync(xide_completion_view* v)
  }
  return 1;
 }
+static int cvflushResult(xide_completion_view* v)
+{
+ if(v->decoded && !v->result) {
+  if(!xideCompletionDecoderRetire(v->decoder,v->decoded)) {xgeRenderRequestAfter(.02f);return 0;}
+  v->decoded=NULL;
+ }
+ return 1;
+}
 static void cvclearResult(xide_completion_view* v)
 {
  if(v->document && v->document->editor) xuiCodeEditCancelCompletion(v->document->editor);
- free(v->items); free(v->nameIndex); v->items=NULL; v->nameIndex=NULL; v->count=v->collectEligible=0; xrtValueRelease(v->result); v->result=NULL; v->sawOpen=0;
+ /* Strings and name index belong to the worker-owned immutable result. Stop
+    native use first; only the small UI adapter array is freed on this thread. */
+ free(v->items);v->items=NULL;v->nameIndex=NULL;v->result=NULL;v->count=v->collectEligible=v->sawOpen=0;cvflushResult(v);
 }
 static void cvdismiss(xide_completion_view* v)
 {
- cvcancelSync(v);
+ cvcancelSync(v);xideCompletionDecoderCancel(v->decoder);v->decodeToken=v->decodeDeadline=0;v->decoding=0;
  if(v->request && v->client && v->initialized) { xvalue* p=xrtValueObject(); cvput(p,"id",xrtValueInt(v->request)); cvsend(v,"$/cancelRequest",p,0); }
  cvclearResult(v); v->wanted=v->pending=v->ready=v->request=0; v->repeatEditor=NULL;
 }
@@ -221,49 +235,20 @@ void xideCompletionViewRequest(xide_app* app,xui_widget editor,int offset,int fo
  }
  cvdismiss(v); v->document=d; v->id=d->id; v->version=version; v->offset=offset; v->wanted=v->pending=1; v->due=GetTickCount64()+(force ? 0 : 80); xgeRenderRequest();
 }
-static int cvrange(xui_code_document document,const xvalue* range,int* start,int* end)
-{
- int sl=0,sc=0,el=0,ec=0; return cvnumber(cvget(cvget(range,"start"),"line"),&sl) && cvnumber(cvget(cvget(range,"start"),"character"),&sc) && cvnumber(cvget(cvget(range,"end"),"line"),&el) && cvnumber(cvget(cvget(range,"end"),"character"),&ec) && xideCodeDocumentLspToOffset(document,sl,sc,start) && xideCodeDocumentLspToOffset(document,el,ec,end) && *start<=*end;
-}
-static int cvsameRange(const xvalue* a,const xvalue* b)
-{
- const char* points[]={"start","end"}; const char* axes[]={"line","character"};
- for(int i=0;i<2;++i) for(int j=0;j<2;++j) { int x=0,y=0; if(!cvnumber(cvget(cvget(a,points[i]),axes[j]),&x) || !cvnumber(cvget(cvget(b,points[i]),axes[j]),&y) || x!=y) return 0; }
- return 1;
-}
-static int cvname(const char* name)
-{
- size_t n=name ? strlen(name) : 0; if(!n || n>512 || ((unsigned char)name[0]<128 && !isalpha((unsigned char)name[0]) && name[0]!='_')) return 0;
- for(size_t i=0;i<n;++i) if((unsigned char)name[i]<128 && !isalnum((unsigned char)name[i]) && name[i]!='_') return 0;
- return 1;
-}
 static int cvcompareNames(const void* a,const void* b) { return strcmp(*(const char* const*)a,*(const char* const*)b); }
-static int cvapply(xide_completion_view* v,const xvalue* result)
+/* Takes a fully validated result only after rechecking the current UI/model.
+   All candidate strings/name lookups remain backed by its owned envelope. */
+static int cvapply(xide_completion_view* v,xide_completion_result* result)
 {
- if(v->syncToken || !cvcontext(v,0) || !cvinputsCurrent(v)) return 0;
- completion_input* target=NULL; for(size_t i=0;i<v->inputCount;++i) if(v->inputs[i].document==v->document) target=&v->inputs[i];
- int version=0,query=0; const char *scope=cvstring(cvget(result,"scope")),*guard=cvstring(cvget(result,"guardScope"));
- const xvalue* list=cvget(result,"items");
- if(!target || !cvnumber(cvget(result,"version"),&version) || version!=target->wireVersion || !cvnumber(cvget(result,"queryId"),&query) || query!=v->request || !scope || strcmp(scope,"cursor-query") || !guard || strcmp(guard,"background-poll") || !cvbool(cvget(result,"checkedCompilation"),0) || !cvbool(cvget(result,"isIncomplete"),0) || !list || xrtValueType(list)!=XVALUE_ARRAY || xrtValueCount(list)>COMPLETION_ITEMS) return 0;
- if(cvbool(cvget(result,"available"),0)) return xrtValueCount(list)==0 && cvbool(cvget(result,"ok"),0);
- const char* prefix=cvstring(cvget(result,"prefix")); int start=0,end=0;
- if(!cvbool(cvget(result,"available"),1) || !cvbool(cvget(result,"ok"),1) || !prefix || !cvrange(xuiCodeEditGetDocument(v->document->editor),cvget(result,"replacementRange"),&start,&end) || start>v->offset || end<v->offset || strlen(prefix)!=(size_t)(v->offset-start) || memcmp(prefix,target->text+start,strlen(prefix))) return 0;
- if(start==end) { if(!start || target->text[start-1]!='.') return 0; }
- else {
-  if(start>0 && ((unsigned char)target->text[start-1]>=128 || isalnum((unsigned char)target->text[start-1]) || target->text[start-1]=='_')) return 0;
-  if((unsigned char)target->text[end]>=128 || isalnum((unsigned char)target->text[end]) || target->text[end]=='_') return 0;
-  for(int at=start;at<end;++at) if((unsigned char)target->text[at]<128 && !isalnum((unsigned char)target->text[at]) && target->text[at]!='_') return 0;
+ if(!result || !result->valid || !result->available || result->count>COMPLETION_ITEMS || (result->count && (!result->items || !result->names)) || v->decoded || v->syncToken || !cvcontext(v,0) || !cvinputsCurrent(v) || !cvconnectionCurrent(v)) return 0;
+ size_t count=result->count;xui_code_completion_item_t* items=count ? calloc(count,sizeof(*items)) : NULL;
+ if(count && !items) return 0;
+ for(size_t i=0;i<count;++i) {
+  const xide_completion_item* source=result->items+i;
+  items[i]=(xui_code_completion_item_t){.iSize=sizeof(*items),.sLabel=source->label,.sInsertText=source->label,.sFilterText=source->label,
+   .sDetail=source->detail,.sSortText=source->sort,.iSortOrder=(int)i,.iUserData=(intptr_t)source->symbol};
  }
- size_t n=xrtValueCount(list); xui_code_completion_item_t* items=calloc(n ? n : 1,sizeof(*items)); if(!items) return 0;
- for(size_t i=0;i<n;++i) { const xvalue *item=xrtValueArrayGet(list,i),*edit=cvget(item,"textEdit"); int format=0,kind=0; int64 symbol=0;
-  const char *name=cvstring(cvget(item,"label")),*insert=cvstring(cvget(edit,"newText")),*detail=cvstring(cvget(item,"detail")),*filter=cvstring(cvget(item,"filterText")),*sort=cvstring(cvget(item,"sortText"));
-  if(!cvname(name) || !insert || strcmp(name,insert) || !filter || strcmp(filter,name) || !sort || strlen(sort)>32 || !cvnumber(cvget(item,"insertTextFormat"),&format) || format!=1 || !cvnumber(cvget(item,"kind"),&kind) || (kind!=2 && kind!=3 && kind!=5 && kind!=6 && kind!=7 && kind!=21) || !xrtValueGetInt(cvget(cvget(item,"data"),"symbolId"),&symbol) || symbol<0 || (uint64_t)symbol>UINT32_MAX || !cvsameRange(cvget(edit,"range"),cvget(result,"replacementRange")) || (cvget(item,"detail") && (!detail || strlen(detail)>8192))) { free(items); return 0; }
-  items[i].iSize=sizeof(items[i]); items[i].sLabel=name; items[i].sInsertText=name; items[i].sFilterText=name; items[i].sDetail=detail ? detail : ""; items[i].sSortText=sort; items[i].iSortOrder=(int)i; items[i].iUserData=(intptr_t)symbol;
- }
- const char** names=malloc((n ? n : 1)*sizeof(*names)); if(!names) { free(items); return 0; }
- for(size_t i=0;i<n;++i) names[i]=items[i].sLabel;
- qsort(names,n,sizeof(*names),cvcompareNames);
- v->nameIndex=names; v->result=xrtValueRetain((xvalue*)result); v->items=items; v->count=(int)n; v->start=start; v->end=end; return 1;
+ v->decoded=result;v->result=cvget(result->message,"result");v->items=items;v->nameIndex=result->names;v->count=(int)count;v->start=result->start;v->end=result->end;return 1;
 }
 static void cvreveal(xide_completion_view* v,xui_widget widget)
 {
@@ -277,38 +262,92 @@ static void cvreveal(xide_completion_view* v,xui_widget widget)
  }
  for(xui_widget child=xuiWidgetGetFirstChild(widget);child;child=xuiWidgetGetNextSibling(child)) cvreveal(v,child);
 }
+static int cvdecodeCurrent(xide_completion_view* v)
+{
+ if(v->decodeSession!=v->session || v->syncToken || !cvcontext(v,0) || !cvinputsCurrent(v) || !cvconnectionCurrent(v)) return 0;
+ for(size_t i=0;i<v->inputCount;++i) if(v->inputs[i].document==v->document)
+  return v->inputs[i].wireVersion>0 && v->inputs[i].wireVersion==xlsSyncVersion(v->sync,v->inputs[i].uri);
+ return 0;
+}
+/* >0 transfers message ownership; <0 keeps one bounded deferred message. */
+static int cvtakeResponse(xide_completion_view* v,xvalue* message)
+{
+ if(!v->decodeToken) {
+  if(v->decodeSerial==UINT64_MAX) {v->ready=1;return 0;}
+  v->decodeToken=++v->decodeSerial;v->decodeSession=v->session;
+ }
+ if(!cvdecodeCurrent(v)) {cvdismiss(v);return 0;}
+ completion_input* target=NULL;for(size_t i=0;i<v->inputCount;++i) if(v->inputs[i].document==v->document) target=v->inputs+i;
+ xls_text* text=target ? xlsSyncRetainText(v->sync,target->uri,target->wireVersion) : NULL;
+ if(!text) {cvdismiss(v);return 0;}
+ xide_completion_expected expected={v->request,target->wireVersion,v->offset};
+ if(xideCompletionDecoderSubmit(v->decoder,v->decodeToken,message,text,expected)) {v->decoding=1;v->decodeDeadline=0;return 1;}
+ xlsTextRelease(text);if(!v->decodeDeadline) v->decodeDeadline=GetTickCount64()+1000;
+ if(GetTickCount64()<v->decodeDeadline) {xgeRenderRequestAfter(.02f);return -1;}
+ xideCompletionDecoderCancel(v->decoder);v->decodeToken=v->decodeDeadline=0;v->ready=1;return 0;
+}
+/* Caller owns result and has no previous held/adopted result. */
+static void cvacceptDecoded(xide_completion_view* v,xide_completion_result* result,int refresh)
+{
+ int current=v->decoding && result->token==v->decodeToken && cvdecodeCurrent(v);
+ if(v->decoding && result->token==v->decodeToken && !current) cvdismiss(v);
+ if(current) {
+  v->ready=1;v->decoding=0;v->decodeToken=0;
+  if(cvapply(v,result)) {
+   result=NULL;
+   if(refresh && v->count) {
+    v->refreshing=1;xuiCodeEditShowCompletion(v->document->editor);v->refreshing=0;cvreveal(v,xuiCodeEditGetCompletionPopupWidget(v->document->editor));
+    if(v->end>v->offset) xuiCodeEditClearInlineCompletion(v->document->editor);
+    v->sawOpen=xuiCodeEditIsCompletionOpen(v->document->editor);xgeRenderRequest();
+   }
+  }
+ }
+ if(result) {v->decoded=result;v->result=NULL;cvflushResult(v);}
+}
+static void cvpollDecoded(xide_completion_view* v,int refresh)
+{
+ if(!cvflushResult(v) || v->decoded || v->deferredMessage || xideLanguageClientHasPending(v->client)) return;
+ xide_completion_result* result=xideCompletionDecoderTake(v->decoder);if(result) cvacceptDecoded(v,result,refresh);
+}
+static const char* cvmethod(const xvalue* message)
+{ const xvalue* value=cvget(message,"method");xstrview s={0};return value && xrtValueGetString(value,&s) && s.Size<=128 ? cvstring(value) : NULL; }
 static void cvread(xide_completion_view* v,int refresh)
 {
- xvalue* m=NULL;
- while(v->client && (m=xideLanguageClientNext(v->client))) {
-  int id=0; const char* method=cvstring(cvget(m,"method"));
-  if(method && !strcmp(method,"xlang/completionInvalidated")) { int query=0; if(cvnumber(cvget(cvget(m,"params"),"queryId"),&query) && query==v->request) cvdismiss(v); }
+ (void)refresh;int count=0;
+ while(count++<128) {
+  if(v->deferredMessage && v->deferredSession!=v->session) v->deferredDiscard=1;
+  if(v->deferredMessage && v->deferredDiscard) {
+   if(!xideCompletionDecoderDiscard(v->decoder,v->deferredMessage)) {xgeRenderRequestAfter(.02f);break;}
+   v->deferredMessage=NULL;
+  }
+  xvalue* m=v->deferredMessage;v->deferredMessage=NULL;
+  if(!m && !(m=xideLanguageClientNext(v->client))) break;
+  int id=0;const char* method=cvmethod(m);
+  if(method && !strcmp(method,"xlang/completionInvalidated")) {int query=0;if(cvnumber(cvget(cvget(m,"params"),"queryId"),&query) && query==v->request) cvdismiss(v);}
   else if(cvnumber(cvget(m,"id"),&id) && id==1 && !v->initialized) {
-   const xvalue* caps=cvget(cvget(m,"result"),"capabilities"); v->initialized=1; v->supported=cvbool(cvget(cvget(caps,"experimental"),"cursorCompletion"),1) && xrtValueType(cvget(caps,"completionProvider"))==XVALUE_OBJECT;
+   const xvalue* caps=cvget(cvget(m,"result"),"capabilities");v->initialized=1;v->supported=cvbool(cvget(cvget(caps,"experimental"),"cursorCompletion"),1) && xrtValueType(cvget(caps,"completionProvider"))==XVALUE_OBJECT;
    v->nativeBackend=cvbool(cvget(cvget(caps,"experimental"),"nativeCursorCompletion"),1);
-   int64 kind=1; const xvalue* sync=cvget(caps,"textDocumentSync");
-   if(xrtValueType(sync)==XVALUE_OBJECT) sync=cvget(sync,"change");
+   int64 kind=1;const xvalue* sync=cvget(caps,"textDocumentSync");if(xrtValueType(sync)==XVALUE_OBJECT) sync=cvget(sync,"change");
    if(sync && !xrtValueGetInt(sync,&kind)) kind=0;
    if(kind!=1 && kind!=2) kind=0;
    v->syncKind=(int)kind;
    if(v->supported) v->sync=xlsSyncCreate((int)kind);
    v->supported=v->supported && v->sync!=NULL;
-   if(v->supported) cvsend(v,"initialized",xrtValueObject(),0); else cvdismiss(v);
-  } else if(id>1 && id==v->request && v->wanted && !v->ready) {
-   v->ready=1; const xvalue* result=cvget(m,"result");
-   if(!cvget(m,"error") && cvapply(v,result) && refresh && v->count) {
-    v->refreshing=1; xuiCodeEditShowCompletion(v->document->editor); v->refreshing=0; cvreveal(v,xuiCodeEditGetCompletionPopupWidget(v->document->editor));
-    if(v->end>v->offset) xuiCodeEditClearInlineCompletion(v->document->editor);
-    v->sawOpen=xuiCodeEditIsCompletionOpen(v->document->editor); xgeRenderRequest();
-   }
+   if(v->supported) cvsend(v,"initialized",xrtValueObject(),0);else cvdismiss(v);
+  } else if(id>1 && id==v->request && v->wanted && !v->ready && !v->decoding) {
+   int accepted=cvtakeResponse(v,m);
+   if(accepted>0) m=NULL;
+   else if(accepted<0) {v->deferredMessage=m;v->deferredDiscard=0;v->deferredSession=v->session;m=NULL;}
   }
-  xrtValueRelease(m);
+  if(m && !xideCompletionDecoderDiscard(v->decoder,m)) {v->deferredMessage=m;v->deferredDiscard=1;v->deferredSession=v->session;}
+  if(v->deferredMessage) {xgeRenderRequestAfter(.02f);break;}
  }
+ if(xideLanguageClientHasPending(v->client)) xgeRenderRequestAfter(.02f);
 }
 void xideCompletionViewPoll(xide_app* app)
 {
  xide_completion_view* v=app ? app->completionView : NULL; if(!v) return;
- cvretireSync(v);
+ cvretireSync(v);if(!cvflushResult(v)) return;
  if(v->repeatEditor) { xui_widget editor=v->repeatEditor; uint64_t id=v->repeatId; int offset=v->repeatOffset; v->repeatEditor=NULL;
   if(app->activeDocument && app->activeDocument->id==id && app->activeDocument->editor==editor) xideCompletionViewRequest(app,editor,offset,0);
  }
@@ -319,11 +358,12 @@ void xideCompletionViewPoll(xide_app* app)
   if(!retry) return;
   xideCompletionViewRequest(app,editor,offset,1); xuiCodeEditShowCompletion(editor);
  }
+ cvpollDecoded(v,1);
  int open=xuiCodeEditIsCompletionOpen(v->document->editor);
  if(v->sawOpen && !open) { cvdismiss(v); return; } if(open) v->sawOpen=1;
  if(v->syncToken) {cvpollSync(v);return;}
  if(!v->pending) return;
- if(GetTickCount64()<v->due) { xgeRenderRequest(); return; }
+ uint64_t now=GetTickCount64();if(now<v->due) { xgeRenderRequestAfter((float)(v->due-now)/1000.0f); return; }
  if(!cvstartClient(v)) return;
  if(!v->initialized) return;
  v->pending=0; if(!cvbegin(v)) cvdismiss(v);else cvpollSync(v);
@@ -352,7 +392,7 @@ int xideCompletionViewInput(xide_app* app,xui_widget editor,const xui_code_input
   memcpy(v->editText,event->sText,(size_t)event->iTextSize); v->editText[event->iTextSize]=0;
   cvread(v,0); action->iFlags=XUI_CODE_INPUT_ACTION_CONSUME|XUI_CODE_INPUT_ACTION_SET_SELECTION|XUI_CODE_INPUT_ACTION_CLOSE_ASSIST;
   action->iSelectionAnchor=action->iSelectionCaret=event->tSelectionBefore.iCaretOffset;
-  if(v->result && v->client && xideLanguageClientState(v->client,NULL,0)==XIDE_LS_RUNNING && cvcontext(v,1) && cvinputsCurrent(v) && cvconnectionCurrent(v) && event->iDocumentVersion==v->version && event->tSelectionBefore.iAnchorOffset==v->start && event->tSelectionBefore.iCaretOffset==v->offset) {
+  if(v->result && !v->deferredMessage && !xideLanguageClientHasPending(v->client) && v->client && xideLanguageClientState(v->client,NULL,0)==XIDE_LS_RUNNING && cvcontext(v,1) && cvinputsCurrent(v) && cvconnectionCurrent(v) && event->iDocumentVersion==v->version && event->tSelectionBefore.iAnchorOffset==v->start && event->tSelectionBefore.iCaretOffset==v->offset) {
    v->edit=(xui_code_text_edit_t){sizeof(v->edit),{v->start,v->end},v->editText}; action->pEdits=&v->edit; action->iEditCount=1; action->iFlags|=XUI_CODE_INPUT_ACTION_APPLY_EDITS; action->iSelectionAnchor=action->iSelectionCaret=v->start+event->iTextSize;
   } return XUI_OK;
  }
@@ -389,14 +429,14 @@ int xideCompletionViewActive(xide_app* app)
 int xideCompletionViewCreate(xide_app* app)
 {
  app->completionView=calloc(1,sizeof(*app->completionView));xide_completion_view* v=app->completionView;if(!v) return XUI_ERROR_OUT_OF_MEMORY;
- v->app=app;v->syncPlanner=xideSyncPlannerCreate(cvwake,app);if(v->syncPlanner) return XUI_OK;
- free(v);app->completionView=NULL;return XUI_ERROR_OUT_OF_MEMORY;
+ v->app=app;v->syncPlanner=xideSyncPlannerCreate(cvwake,app);v->decoder=xideCompletionDecoderCreate(cvwake,app);if(v->syncPlanner && v->decoder) return XUI_OK;
+ xideSyncPlannerDestroy(v->syncPlanner);xideCompletionDecoderDestroy(v->decoder);free(v);app->completionView=NULL;return XUI_ERROR_OUT_OF_MEMORY;
 }
 void xideCompletionViewStop(xide_app* app) { if(app && app->completionView) cvstopClient(app->completionView); }
 void xideCompletionViewDestroy(xide_app* app)
 {
  xide_completion_view* v=app ? app->completionView : NULL; if(!v) return;
  /* Stop runs before the context/documents are destroyed. No widget access here. */
- xideLanguageClientStop(v->client);xideSyncPlannerDestroy(v->syncPlanner);xideSyncResultRelease(v->syncReady); cvfreeInputs(v); xlsSyncDestroy(v->sync); free(v->compiler); free(v->directory); free(v->package); free(v->items); free(v->nameIndex); xrtValueRelease(v->result);
+ xideLanguageClientStop(v->client);xideSyncPlannerDestroy(v->syncPlanner);xideSyncResultRelease(v->syncReady);xideCompletionDecoderDestroy(v->decoder);xideCompletionResultRelease(v->decoded);xrtValueRelease(v->deferredMessage); cvfreeInputs(v); xlsSyncDestroy(v->sync); free(v->compiler); free(v->directory); free(v->package); free(v->items);
  while(v->bindings) { completion_binding* next=v->bindings->next; free(v->bindings); v->bindings=next; } free(v); app->completionView=NULL;
 }
