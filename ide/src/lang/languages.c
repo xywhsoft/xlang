@@ -3,6 +3,8 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
+#include <xrt.h>
 
 /* Keywords follow demo6/src/lexer/xl6_lexer.l. This is lexical highlighting,
  * not a parser or a replacement for compiler diagnostics. All offsets are UTF-8 bytes. */
@@ -76,8 +78,8 @@ static int numberEnd(const char* text, int length, int start)
     }
     return i;
 }
-static int xlangLex(xui_code_document_t* document, int startLine, int endLine,
-                    xui_code_token_t* tokens, int capacity, int* count, void* user)
+static int xlangLexInto(xui_code_document_t* document, int startLine, int endLine,
+                    xui_code_token_t* tokens, int capacity, int* count, void* user, xarray* output)
 {
     (void)user;
     if (!document || !count || capacity < 0) return XUI_ERROR_INVALID_ARGUMENT;
@@ -133,9 +135,18 @@ static int xlangLex(xui_code_document_t* document, int startLine, int endLine,
         } else {
             ++i; if (strchr("()[]{}", c)) kind = XUI_CODE_TOKEN_BRACE;
         }
-        emit(tokens, capacity, count, start, i, kind, rangeStart, rangeEnd);
+        if(output && i > rangeStart && start < rangeEnd && i > start) {
+            xui_code_token_t token={start,i,kind,kind,0};
+            if(*count==INT_MAX || !xrtArrayAppend(output,&token,1)) return XUI_ERROR_OUT_OF_MEMORY;
+            ++*count;
+        } else emit(tokens, capacity, count, start, i, kind, rangeStart, rangeEnd);
     }
     return XUI_OK;
+}
+static int xlangLex(xui_code_document_t* document, int startLine, int endLine,
+                    xui_code_token_t* tokens, int capacity, int* count, void* user)
+{
+    return xlangLexInto(document,startLine,endLine,tokens,capacity,count,user,NULL);
 }
 static int lineAt(const char* text, int* offset, int* line, int end)
 {
@@ -154,41 +165,52 @@ static void foldEmit(xui_code_fold_range_t* ranges, int capacity, int* count, in
     if (ranges && *count < capacity) ranges[*count] = (xui_code_fold_range_t){sizeof(xui_code_fold_range_t), start, end, level, flags | XUI_CODE_FOLD_HEADER};
     ++*count;
 }
-static int xlangFold(xui_code_document_t* document, xui_code_fold_range_t* ranges, int capacity, int* count, void* user)
+/* Both the public provider and the editor refresh use this fold walk. The
+ * editor supplies the just-produced tokens, so folding never re-lexes its text. */
+static int xlangFoldTokens(xui_code_document document,const xui_code_token_t* tokens,int tokenCount,
+                           xui_code_fold_range_t* ranges,int capacity,int* count,xarray* output)
 {
     static const char* const blocks[] = {"func", "class", "protocol", "enum", "union", "if", "while", "for", "try", "match", "get", "let"};
     static const char* const modifiers[] = {"async", "public", "private", "protected", "static", "virtual", "override", "final", "export"};
-    int tokenCount = 0, result, offset = 0, line = 0, depth = 0, first = 1;
-    (void)user;
-    if (!document || !count || capacity < 0) return XUI_ERROR_INVALID_ARGUMENT;
-    *count = 0;
-    result = xlangLex(document, 0, -1, NULL, 0, &tokenCount, NULL);
-    if (result != XUI_OK || !tokenCount) return result;
-    xui_code_token_t* tokens = malloc((size_t)tokenCount * sizeof(*tokens));
-    int* stack = malloc((size_t)tokenCount * sizeof(*stack));
-    if (!tokens || !stack) { free(tokens); free(stack); return XUI_ERROR_OUT_OF_MEMORY; }
-    result = xlangLex(document, 0, -1, tokens, tokenCount, &tokenCount, NULL);
-    const char* text = xuiCodeDocumentGetText(document);
-    for (int i = 0; result == XUI_OK && i < tokenCount; ++i) {
-        xui_code_token_t* token = &tokens[i];
-        int previous = line;
-        int start = lineAt(text, &offset, &line, token->iStartOffset);
-        if (previous != line) first = 1;
-        int end = lineAt(text, &offset, &line, token->iEndOffset);
-        if (token->iKind == XUI_CODE_TOKEN_COMMENT || token->iKind == XUI_CODE_TOKEN_STRING || token->iKind == XUI_CODE_TOKEN_ERROR) {
-            foldEmit(ranges, capacity, count, start, end, depth,
-                     token->iKind == XUI_CODE_TOKEN_COMMENT ? XUI_CODE_FOLD_COMMENT : XUI_CODE_FOLD_CUSTOM);
-            first = end > start; continue;
+    int result=XUI_OK,offset=0,line=0,depth=0,first=1; xarray stack;
+    *count=0;
+    if(!xrtArrayInit(&stack,sizeof(int))) return XUI_ERROR_OUT_OF_MEMORY;
+    if(!xrtArrayReserve(&stack,(size_t)tokenCount)) {xrtArrayUnit(&stack);return XUI_ERROR_OUT_OF_MEMORY;}
+    const char* text=xuiCodeDocumentGetText(document);
+    for(int i=0;i<tokenCount && result==XUI_OK;++i) {
+        const xui_code_token_t* token=tokens+i;int previous=line;
+        int start=lineAt(text,&offset,&line,token->iStartOffset);
+        if(previous!=line) first=1;
+        int end=lineAt(text,&offset,&line,token->iEndOffset),foldStart=-1,foldEnd=end,level=depth;uint32_t flags=0;
+        if(token->iKind==XUI_CODE_TOKEN_COMMENT || token->iKind==XUI_CODE_TOKEN_STRING || token->iKind==XUI_CODE_TOKEN_ERROR) {
+            foldStart=start;flags=token->iKind==XUI_CODE_TOKEN_COMMENT ? XUI_CODE_FOLD_COMMENT : XUI_CODE_FOLD_CUSTOM;
+            first=end>start;
+        } else {
+            if(first && word(text,token->iStartOffset,token->iEndOffset,"end")) {
+                if(depth) {--depth;foldStart=((int*)stack.Data)[depth];foldEnd=start;level=depth;}
+            } else if(first && wordIn(text,token->iStartOffset,token->iEndOffset,blocks,sizeof(blocks)/sizeof(*blocks))) {
+                ((int*)stack.Data)[depth++]=start;
+            } else if(first && wordIn(text,token->iStartOffset,token->iEndOffset,modifiers,sizeof(modifiers)/sizeof(*modifiers))) continue;
+            first=0;
         }
-        if (first && word(text, token->iStartOffset, token->iEndOffset, "end")) {
-            if (depth) { --depth; foldEmit(ranges, capacity, count, stack[depth], start, depth, 0); }
-        } else if (first && wordIn(text, token->iStartOffset, token->iEndOffset, blocks, sizeof(blocks) / sizeof(*blocks))) {
-            stack[depth++] = start;
-        } else if (first && wordIn(text, token->iStartOffset, token->iEndOffset, modifiers, sizeof(modifiers) / sizeof(*modifiers))) continue;
-        first = 0;
+        if(foldStart>=0 && foldEnd>foldStart) {
+            if(output) {
+                xui_code_fold_range_t range={sizeof(range),foldStart,foldEnd,level,flags|XUI_CODE_FOLD_HEADER};
+                if(*count==INT_MAX || !xrtArrayAppend(output,&range,1)) result=XUI_ERROR_OUT_OF_MEMORY;
+                else ++*count;
+            } else foldEmit(ranges,capacity,count,foldStart,foldEnd,level,flags);
+        }
     }
-    free(stack); free(tokens);
-    return result;
+    xrtArrayUnit(&stack);return result;
+}
+static int xlangFold(xui_code_document_t* document, xui_code_fold_range_t* ranges, int capacity, int* count, void* user)
+{
+    (void)user;
+    if(!document || !count || capacity<0) return XUI_ERROR_INVALID_ARGUMENT;
+    *count=0;xarray tokens;if(!xrtArrayInit(&tokens,sizeof(xui_code_token_t))) return XUI_ERROR_OUT_OF_MEMORY;
+    int tokenCount=0,result=xlangLexInto(document,0,-1,NULL,0,&tokenCount,NULL,&tokens);
+    if(result==XUI_OK) result=xlangFoldTokens(document,(const xui_code_token_t*)tokens.Data,tokenCount,ranges,capacity,count,NULL);
+    xrtArrayUnit(&tokens);return result;
 }
 const char* xideLanguageForPath(const char* path)
 {
@@ -244,7 +266,7 @@ static int compareFold(const void* left,const void* right)
     if(a->iLevel!=b->iLevel) return a->iLevel<b->iLevel ? -1 : 1;
     return 0;
 }
-int xideRebuildEditorFolds(xui_widget editor)
+static int rebuildEditorFolds(xui_widget editor,const xui_code_token_t* lexical,int lexicalCount,int shared)
 {
     xui_code_language_t language={0}; xui_code_fold_state state=xuiCodeEditGetFoldState(editor);
     int result=xuiCodeLanguageRegistryFind(xuiCodeEditGetLanguageRegistry(editor),xuiCodeEditGetLanguage(editor),&language);
@@ -256,7 +278,15 @@ int xideRebuildEditorFolds(xui_widget editor)
     if(result!=XUI_OK) { free(previous); return result; }
     if(previousCount) qsort(previous,(size_t)previousCount,sizeof(*previous),compareFold);
     xuiCodeFoldStateClear(state);
-    if(language.onFold) result=xuiCodeFoldStateBuildFromProvider(state,xuiCodeEditGetDocument(editor),language.onFold,language.pUser);
+    if(shared && language.onFold==xlangFold && language.onLex==xlangLex) {
+        xarray folds;
+        if(!xrtArrayInit(&folds,sizeof(xui_code_fold_range_t))) result=XUI_ERROR_OUT_OF_MEMORY;
+        else {
+            int count=0;result=xlangFoldTokens(xuiCodeEditGetDocument(editor),lexical,lexicalCount,NULL,0,&count,&folds);
+            if(result==XUI_OK) result=xuiCodeFoldStateSetRanges(state,(const xui_code_fold_range_t*)folds.Data,count);
+            xrtArrayUnit(&folds);
+        }
+    } else if(language.onFold) result=xuiCodeFoldStateBuildFromProvider(state,xuiCodeEditGetDocument(editor),language.onFold,language.pUser);
     int count=xuiCodeFoldStateGetCount(state);
     xui_code_fold_range_t* ranges=count ? malloc((size_t)count*sizeof(*ranges)) : NULL;
     if(count && !ranges) result=XUI_ERROR_OUT_OF_MEMORY;
@@ -272,6 +302,12 @@ int xideRebuildEditorFolds(xui_widget editor)
     }
     free(previous); free(ranges); return result;
 }
+int xideRebuildEditorFolds(xui_widget editor)
+{
+    /* A token cache does not carry its language identity. Only an in-flight
+     * refresh may share tokens; a standalone rebuild uses the real provider. */
+    return rebuildEditorFolds(editor,NULL,0,0);
+}
 int xideRefreshEditorSyntax(xui_widget editor)
 {
     xui_code_document document = xuiCodeEditGetDocument(editor);
@@ -279,6 +315,15 @@ int xideRefreshEditorSyntax(xui_widget editor)
     int count = 0;
     int result = xuiCodeLanguageRegistryFind(xuiCodeEditGetLanguageRegistry(editor), xuiCodeEditGetLanguage(editor), &language);
     if (result != XUI_OK) return result;
+    if(language.onLex==xlangLex) {
+        xarray tokens;
+        if(!xrtArrayInit(&tokens,sizeof(xui_code_token_t))) return XUI_ERROR_OUT_OF_MEMORY;
+        result=xlangLexInto(document,0,-1,NULL,0,&count,NULL,&tokens);
+        if(result==XUI_OK) result=xuiCodeTokenBufferSetRange(xuiCodeEditGetTokenBuffer(editor),(const xui_code_token_t*)tokens.Data,count,
+                                  xuiCodeDocumentGetVersion(document),0,xuiCodeDocumentGetLength(document));
+        if(result==XUI_OK) result=rebuildEditorFolds(editor,(const xui_code_token_t*)tokens.Data,count,1);
+        xrtArrayUnit(&tokens);return result;
+    }
     result = xuiCodeLanguageLex(&language, document, 0, -1, NULL, 0, &count, NULL, 0);
     if (result != XUI_OK) return result;
     xui_code_token_t* tokens = count ? malloc((size_t)count * sizeof(*tokens)) : NULL;
