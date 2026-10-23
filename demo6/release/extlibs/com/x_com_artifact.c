@@ -428,20 +428,42 @@ static int x_com_append_text(XComObject* object, const char* text, size_t size)
 
 static int x_com_append_wide(XComObject* object, BSTR text)
 {
-	size_t size;
-	char* utf8 = x_com_utf8_from_wide(text, text != NULL ? SysStringLen(text) : 0u, &size);
-	int ok;
-	if ( utf8 == NULL ) {
+	size_t length = text != NULL ? SysStringLen(text) : 0u;
+	size_t i;
+	size_t old_size;
+	int size;
+	if ( length == 0u ) {
+		return x_com_append_text(object, "", 0u);
+	}
+	if ( length > INT_MAX ) {
+		x_com_set_error("COM string is too long");
 		return 0;
 	}
-	if ( memchr(utf8, 0, size) != NULL ) {
-		x_com_set_error("COM text contains NUL; use invoke() for a value result");
-		xrtFree(utf8);
+	for ( i = 0u; i < length; ++i ) {
+		if ( text[i] == 0 ) {
+			x_com_set_error("COM text contains NUL; use invoke() for a value result");
+			return 0;
+		}
+	}
+	size = WideCharToMultiByte(CP_UTF8, 0, text, (int)length, NULL, 0, NULL, NULL);
+	if ( size <= 0 ) {
+		x_com_set_error("COM UTF-16 conversion failed");
 		return 0;
 	}
-	ok = x_com_append_text(object, utf8, size);
-	xrtFree(utf8);
-	return ok;
+	if ( !x_com_reserve_text(object, (size_t)size) ) {
+		return 0;
+	}
+	old_size = object->text_size;
+	/* 直接写入拥有型结果缓冲，失败时恢复旧文本的终止符。 */
+	if ( WideCharToMultiByte(CP_UTF8, 0, text, (int)length,
+		object->text + old_size, size, NULL, NULL) != size ) {
+		object->text[old_size] = '\0';
+		x_com_set_error("COM UTF-16 conversion failed");
+		return 0;
+	}
+	object->text_size += (size_t)size;
+	object->text[object->text_size] = '\0';
+	return 1;
 }
 
 static int x_com_append_variant_text(XComObject* object, VARIANT* value)

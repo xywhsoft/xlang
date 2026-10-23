@@ -65,6 +65,8 @@ by the package's deterministic C/XLang boundary test.
 The same fixture verifies empty `BSTR` values and embedded-NUL `BSTR` values:
 `invoke` preserves the full three-byte value, while the C-string-only `get_text`
 rejects it instead of returning a truncated prefix.
+The `get_text` path converts `BSTR` directly into its reusable UTF-8 result
+buffer; `invoke` transfers its separately allocated UTF-8 value into XRT.
 
 The optional `xl run extlibs/com/test/real_server_object.xl` verifies the
 `ComObject` convenience syntax against the real `Scripting.Dictionary` server.
