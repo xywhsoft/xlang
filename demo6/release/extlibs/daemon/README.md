@@ -23,6 +23,9 @@ PID 文件内容只接受正整数及可选的单个尾随换行；无效内容�
 ## C
 
 公开接口在 `include/daemon_native.h`。`xdaemon_create` 返回的句柄由 `xdaemon_destroy` 释放；`xdaemon_name` 借用对象内部文本。C 与 XLang 使用同一套实现，没有额外包装状态。
+中央 C 范例 `release/examples/extlibs/daemon_c.c` 可直接用
+`xl run release/examples/extlibs/daemon_c.c` 运行；TCC 单文件路径包含包实现，
+普通 GCC 构建仍分别编译并链接原生源码。
 XLang 的 `service.name` 是独立的 `string` 值；服务对象离开作用域后，
 已取得的名称仍可使用。包内 `test/ffi_boundaries.xl` 固定这一所有权边界。
 创建、写入、释放、读取 PID 文件和存活查询会在入口清除上次调用遗留的 XRT 错误；析构走内部释放路径，不主动清掉待处理的业务错误。失败后可修正参数并重试。
@@ -40,6 +43,7 @@ pwsh -NoProfile -File release/extlibs/daemon/test/check.ps1
 ./release/xl.exe run release/extlibs/daemon/test/ffi_boundaries.xl
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package daemon -Source release/extlibs/daemon/test/test_daemon.c
 ./release/xl.exe run release/examples/extlibs/daemon.xl
+./release/xl.exe run release/examples/extlibs/daemon_c.c
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package daemon -Source release/examples/extlibs/daemon_c.c
 wsl bash release/extlibs/daemon/test/check.sh
 ```

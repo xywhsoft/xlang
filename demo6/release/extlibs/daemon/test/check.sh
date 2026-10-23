@@ -48,7 +48,11 @@ for negative in private_native_negative private_status_negative private_getter_n
 done
 timeout 120s release/xl run release/examples/extlibs/daemon.xl \
     > "$work/daemon_xl.txt"
+timeout 120s release/xl run release/examples/extlibs/daemon_c.c \
+    > "$work/daemon_direct.txt"
 sed -E 's/ pid=[0-9]+$/ pid=<pid>/' "$work/daemon_c.txt" > "$work/daemon_c_normalized.txt"
 sed -E 's/ pid=[0-9]+$/ pid=<pid>/' "$work/daemon_xl.txt" > "$work/daemon_xl_normalized.txt"
+sed -E 's/ pid=[0-9]+$/ pid=<pid>/' "$work/daemon_direct.txt" > "$work/daemon_direct_normalized.txt"
 diff -u "$work/daemon_c_normalized.txt" "$work/daemon_xl_normalized.txt"
+diff -u "$work/daemon_c_normalized.txt" "$work/daemon_direct_normalized.txt"
 printf 'daemon Linux C ASan/UBSan and XLang parity gate: PASS\n'

@@ -72,11 +72,13 @@ try {
     }
 
     $cOutput = RunC 'C example' 'release/examples/extlibs/daemon_c.c'
+    $directOutput = Run 'C example direct' $xl @('run', 'release/examples/extlibs/daemon_c.c')
     $xlOutput = Run 'XLang example' $xl @('run', 'release/examples/extlibs/daemon.xl')
     $cOutput = $cOutput -replace 'pid=\d+', 'pid=<pid>'
+    $directOutput = $directOutput -replace 'pid=\d+', 'pid=<pid>'
     $xlOutput = $xlOutput -replace 'pid=\d+', 'pid=<pid>'
-    if ($cOutput -cne $xlOutput) {
-        throw "C/XLang daemon output differs:`nC:`n$cOutput`nXL:`n$xlOutput"
+    if ($cOutput -cne $xlOutput -or $directOutput -cne $cOutput) {
+        throw "daemon output differs:`nC:`n$cOutput`nDirect:`n$directOutput`nXL:`n$xlOutput"
     }
     Write-Host '[daemon] C/XLang parity: PASS'
     if (-not $SkipAot) {

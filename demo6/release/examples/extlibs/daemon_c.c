@@ -1,7 +1,10 @@
 #define XRT_MODULE_PATH_SYSTEM
 #define XRT_MODULE_STRING_FORMAT
+#ifdef __TINYC__
+#include "../../extlibs/daemon/daemon_native.c"
+#endif
 #include "xrt.h"
-#include "daemon_native.h"
+#include "../../extlibs/daemon/include/daemon_native.h"
 
 #include <stdio.h>
 
