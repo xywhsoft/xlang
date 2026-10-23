@@ -839,7 +839,8 @@ static int xl6StdlibUsesX509Types(const XL6_AstNode* root)
         "X509SignatureStatus","X509CrlPolicyFlags","X509RevocationStatus","X509ValidatedCrl",
         "X509CrlSet","X509RevocationResult","X509RevocationCheck","__X509CrlCriticalContext",
         "X509TrustAnchor","X509PathPolicy","X509PathOutcome","X509Path","__X509PathCriticalContext",
-        "X509PathFlags","X509ValidationStatus","X509PathReason","TrustStore","TrustStoreSnapshot"};
+        "X509PathFlags","X509ValidationStatus","X509PathReason","TrustStore","TrustStoreSnapshot",
+        "TlsIdentity","TlsIdentityKind"};
     for(size_t i=0;i<sizeof(types)/sizeof(*types);++i)if(xl6StdlibNodeUsesTypeName(root,types[i]))return 1;
     return 0;
 }
@@ -1732,6 +1733,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsEd25519Class;
     int needsNistClass;
     int needsRsaPublicClass, needsRsaPrivateClass;
+    int needsTlsIdentity;
     int needsTccClass;
     int needsXlangClass;
     int needsCoreClass;
@@ -1977,11 +1979,12 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibFuncUsed(used, "compress", "encodeBuffer") || xl6StdlibFuncUsed(used, "compress", "decode") ||
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer");
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
-    needsRsaPrivateClass = xl6StdlibNodeUsesTypeName(root,"RsaPrivateKey") || xl6StdlibFuncUsed(used,"cryptoAdvanced","rsaPrivate");
+    needsTlsIdentity = xl6StdlibNodeUsesTypeName(root,"TlsIdentity") || xl6StdlibNodeUsesTypeName(root,"TlsIdentityKind");
+    needsRsaPrivateClass = needsTlsIdentity || xl6StdlibNodeUsesTypeName(root,"RsaPrivateKey") || xl6StdlibFuncUsed(used,"cryptoAdvanced","rsaPrivate");
     needsRsaPublicClass = needsRsaPrivateClass || xl6StdlibNodeUsesTypeName(root,"RsaPublicKey") || xl6StdlibFuncUsed(used,"cryptoAdvanced","rsaPublic");
-    needsNistClass = xl6StdlibNodeUsesTypeName(root,"P256Key") || xl6StdlibNodeUsesTypeName(root,"P384Key") ||
+    needsNistClass = needsTlsIdentity || xl6StdlibNodeUsesTypeName(root,"P256Key") || xl6StdlibNodeUsesTypeName(root,"P384Key") ||
         xl6StdlibFuncUsed(used,"crypto","p256KeyPair") || xl6StdlibFuncUsed(used,"crypto","p384KeyPair");
-    needsEd25519Class = xl6StdlibNodeUsesTypeName(root,"Ed25519Key") ||
+    needsEd25519Class = needsTlsIdentity || xl6StdlibNodeUsesTypeName(root,"Ed25519Key") ||
         xl6StdlibFuncUsed(used,"crypto","ed25519KeyPair");
     /*
         只有公开面真正交换字节容器时才注入 Buffer。同步地址解析等纯网络
@@ -2352,6 +2355,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         if(xl6StdlibUsesX509PathClasses(root))xl6StdlibBuilderAppend(&builder,xl6StdlibX509StoreSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509DataSource);
     }
+    if(needsTlsIdentity)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsIdentitySource);
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||
         xl6StdlibFuncUsed(used,"crypto","x25519KeyPair") || xl6StdlibFuncUsed(used,"crypto","x448KeyPair"))
         xl6StdlibBuilderAppend(&builder,xl6StdlibXdhClassSource);

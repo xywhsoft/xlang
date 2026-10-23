@@ -37,6 +37,7 @@ struct xlir_closure;
 #include "xl6_x509_path_abi.h"
 #include "xl6_x509_store_abi.h"
 #include "xl6_x509_identity_abi.h"
+#include "xl6_tls_identity_abi.h"
 #include "xl6_codec_abi.h"
 #include "xl6_net_address_abi.h"
 #include "xl6_net_resolver_abi.h"
