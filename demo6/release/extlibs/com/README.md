@@ -62,6 +62,9 @@ executable. Full AOT is separately blocked by the shared DEMO6
 `xl6ValueDataSnapshotV1` link issue. SAFEARRAY
 empty, nonzero-lower-bound, mixed-value, and multidimensional paths are covered
 by the package's deterministic C/XLang boundary test.
+The same fixture verifies empty `BSTR` values and embedded-NUL `BSTR` values:
+`invoke` preserves the full three-byte value, while the C-string-only `get_text`
+rejects it instead of returning a truncated prefix.
 
 The optional `xl run extlibs/com/test/real_server_object.xl` verifies the
 `ComObject` convenience syntax against the real `Scripting.Dictionary` server.
