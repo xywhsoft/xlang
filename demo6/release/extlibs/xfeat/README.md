@@ -12,7 +12,8 @@ XFeat 特征匹配扩展库：通过 OpenCV 读取图片、ONNX Runtime 提取�
 
 预处理固定为 BGR 转 RGB、按 `1/255` 归一化、右下补零到 32 的倍数，C 结果解析过滤补零区坐标。定位器有意拒绝宽或高超过目标图一半的结果，因此整图对自身不是正例；`examples/live_model.xl` 将目标图中心四分之一区域另存为查询图，再验证局部定位。`locate_and_save` 在正常未找到时保存原图，在读图、绘图或写盘失败时抛 `IOError`，不返回成功 JSON；输出路径由调用者提供，建议使用构建目录。
 
-在 `demo6` 目录运行 Windows 门禁：
+在 `demo6` 目录运行 Windows 门禁；默认还构建运行公开 XLang 范例 AOT，
+`-SkipAot` 只用于 C/JIT 聚焦复验，不能作为发布签收：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/xfeat/test/check.ps1
@@ -59,3 +60,8 @@ PowerShell 5.1 会按系统代码页误读。脚本现带 UTF-8 BOM；默认门�
 结束时仅清理本次目录，避免并行门禁互相覆盖产物；保留已有固定目录
 中的文件。Windows 默认门禁和 Linux C ASan/UBSan、XLang 用例均通过。
 这只改测试隔离，不改变包 ABI，也不解除完整带输出 AOT 的主线阻断。
+
+2026-10-23：默认门禁新增公开范例 AOT 构建与固定输出检查；当前严格 C、
+真实 ONNX 会话、XLang JIT 与无输出核心 AOT 均通过，范例 AOT 在共享
+`xl6ValueDataSnapshotV1` 未解析处准确失败。`-SkipAot` 聚焦模式通过，
+独占构建目录在成功和失败后均已清理；不据此签收整包发布级。

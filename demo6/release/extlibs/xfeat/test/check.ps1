@@ -1,4 +1,4 @@
-﻿param([switch]$ParallelLive)
+﻿param([switch]$ParallelLive, [switch]$SkipAot)
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 $buildRoot = Join-Path $root 'build/test/xfeat'
@@ -64,7 +64,11 @@ try {
     }
     Push-Location $release
     try {
-        Run 'XLang ABI smoke' (Join-Path $release 'xl.exe') @('run', 'examples/extlibs/xfeat.xl')
+        $smoke = & (Join-Path $release 'xl.exe') run 'examples/extlibs/xfeat.xl' 2>&1
+        if ($LASTEXITCODE -ne 0 -or ($smoke -join "`n").Trim() -cne 'xfeat extlib ok') {
+            throw "XLang ABI smoke failed: $($smoke -join "`n")"
+        }
+        Write-Host '[xfeat] XLang ABI smoke: PASS'
         Run 'XLang JSON allocation failure' (Join-Path $release 'xl.exe') @('run', 'extlibs/xfeat/test/json_failure.xl')
         Run 'XLang saved image result' (Join-Path $release 'xl.exe') @('run', 'extlibs/xfeat/test/save_result.xl')
         Run 'XLang NUL argument boundaries' (Join-Path $release 'xl.exe') @('run', 'extlibs/xfeat/test/nul_arguments.xl')
@@ -72,10 +76,26 @@ try {
     } finally {
         Pop-Location
     }
-    $core = Join-Path $build 'aot_core.exe'
-    Run 'XLang AOT core build' (Join-Path $release 'xl.exe') @(
-        'build', 'release/extlibs/xfeat/test/aot_core.xl', '-o', $core)
-    Run 'XLang AOT core' $core @()
+    if (-not $SkipAot) {
+        $core = Join-Path $build 'aot_core.exe'
+        Run 'XLang AOT core build' (Join-Path $release 'xl.exe') @(
+            'build', 'release/extlibs/xfeat/test/aot_core.xl', '-o', $core)
+        Run 'XLang AOT core' $core @()
+        $example = Join-Path $build 'xfeat_example.exe'
+        Run 'XLang AOT example build' (Join-Path $release 'xl.exe') @(
+            'build', 'release/examples/extlibs/xfeat.xl', '-o', $example)
+        $oldBridge = $env:ONNXRUNTIME_XLANG_DLL
+        try {
+            $env:ONNXRUNTIME_XLANG_DLL = $realBridge
+            $smoke = & $example 2>&1
+            if ($LASTEXITCODE -ne 0 -or ($smoke -join "`n").Trim() -cne 'xfeat extlib ok') {
+                throw "XLang AOT example failed: $($smoke -join "`n")"
+            }
+            Write-Host '[xfeat] XLang AOT example: PASS'
+        } finally {
+            $env:ONNXRUNTIME_XLANG_DLL = $oldBridge
+        }
+    }
     if ($env:XFEAT_MODEL -or $env:XFEAT_TEST_IMAGE) {
         if (-not $env:XFEAT_MODEL) {
             throw 'XFEAT_TEST_IMAGE requires XFEAT_MODEL'
