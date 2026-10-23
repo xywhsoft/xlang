@@ -1,7 +1,8 @@
+#include "../../include/xhttp_multipart_package.h"
+
 #ifndef XHTTP_INTERNAL_H
 #define XHTTP_INTERNAL_H
 
-#include "../../include/xhttp_multipart_package.h"
 
 #include <limits.h>
 #include <string.h>

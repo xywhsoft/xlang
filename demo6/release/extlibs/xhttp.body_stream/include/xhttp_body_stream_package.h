@@ -7,6 +7,9 @@
 	#define XRT_MODULE_IO_BUFFER
 #endif
 
+/* Native sources may share one compiler preprocessor. Recompute the
+ * monotonic feature closure when another split HTTP package is activated. */
+#undef XHTTP_FEATURES_H
 #include "xhttp/features.h"
 #include <xrt.h>
 
