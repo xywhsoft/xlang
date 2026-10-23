@@ -1,4 +1,5 @@
 #include "analysis/completion_session.h"
+#include "analysis/frontend_context.h"
 #include "analysis/input_batch.h"
 #include "analysis/frontend_internal.h"
 #include "src/sem/xl6_completion.h"
@@ -23,7 +24,7 @@ void xlsCompletionSessionDestroy(xls_completion_session* s)
 { if(s) { xlsInputBatchDestroy(s->batch); xlsSyntaxRelease(s->entrySyntax); xlsSemanticCompletionDestroy(s->result); xrtFree(s); } }
 void xlsCompletionSessionStats(const xls_completion_session* s,xls_completion_stats* stats)
 { if(stats) *stats=s ? s->stats : (xls_completion_stats){0}; }
-xls_semantic_completion* xlsCompletionSessionQuery(xls_completion_session* s,
+xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_session* s,xls_context* context,
     const xls_analysis_document* documents,size_t count,const char* entryKey,
     const char* queryKey,size_t offset,int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
@@ -31,7 +32,7 @@ xls_semantic_completion* xlsCompletionSessionQuery(xls_completion_session* s,
     xls_syntax* syntax=NULL;
     if(error && capacity) *error=0;
     if(!s) goto invalid;
-    batch=xlsInputBatchCreate(&s->limits,s->batch,documents,count,entryKey,cancelled,user,error,capacity);
+    batch=xlsInputBatchCreateInContext(context,&s->limits,s->batch,documents,count,entryKey,cancelled,user,error,capacity);
     if(!batch) goto done;
     const xls_analysis_document *entry=xlsInputBatchTarget(batch),*query=xlsInputBatchFind(batch,queryKey);
     if(!query) goto invalid;
@@ -45,7 +46,7 @@ xls_semantic_completion* xlsCompletionSessionQuery(xls_completion_session* s,
         xls_semantic_input inputs[64]; xlsInputBatchInputs(batch,inputs,64); ++s->stats.builds;
         if(entry==query) {
             const xls_analysis_document* old=xlsInputBatchTarget(s->batch);
-            const xls_syntax* previous=old && s->entrySyntax && s->queryKey && !strcmp(s->queryKey,old->key) &&
+            const xls_syntax* previous=xlsFrontendContextsEqual(context,xlsInputBatchContext(s->batch)) && old && s->entrySyntax && s->queryKey && !strcmp(s->queryKey,old->key) &&
                 !strcmp(old->key,entry->key) && old->identity==entry->identity && !strcmp(old->path,entry->path) ? s->entrySyntax : NULL;
             if(previous && s->offset==offset && xlsInputSameBody(old,entry)) {
                 syntax=xlsSyntaxRetain(s->entrySyntax); ++s->stats.cursorSyntaxHits;
@@ -60,7 +61,7 @@ xls_semantic_completion* xlsCompletionSessionQuery(xls_completion_session* s,
                 }
             }
             if(cancelled && cancelled(user)) goto cancel;
-            if(syntax) result=xlsSemanticCompletionCreateParsed(entry->path,query->path,offset,inputs,count,syntax,cancelled,user,error,capacity);
+            if(syntax) result=xlsSemanticCompletionCreateParsedInContext(context,entry->path,query->path,offset,inputs,count,syntax,cancelled,user,error,capacity);
         }
         if(!result) {
             if(cancelled && cancelled(user)) goto cancel;
@@ -68,7 +69,7 @@ xls_semantic_completion* xlsCompletionSessionQuery(xls_completion_session* s,
              * surface. This is the original native frontend, never CLI;
              * the explicit route counter distinguishes it from reuse. */
             ++s->stats.cursorFreshBuilds;
-            result=xlsSemanticCompletionCreate(entry->path,query->path,offset,inputs,count,cancelled,user,error,capacity);
+            result=xlsSemanticCompletionCreateInContext(context,entry->path,query->path,offset,inputs,count,cancelled,user,error,capacity);
             xlsSyntaxRelease(syntax); syntax=NULL;
         }
         if(!result) goto done;
@@ -84,3 +85,8 @@ invalid: if(error && capacity) snprintf(error,capacity,"invalid completion batch
 cancel: if(error && capacity) snprintf(error,capacity,"completion session cancelled");
 done: xlsSyntaxRelease(syntax); xlsInputBatchDestroy(batch); return result;
 }
+
+xls_semantic_completion* xlsCompletionSessionQuery(xls_completion_session* session,
+    const xls_analysis_document* documents,size_t count,const char* entryKey,
+    const char* queryKey,size_t offset,int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{ return xlsCompletionSessionQueryInContext(session,NULL,documents,count,entryKey,queryKey,offset,cancelled,user,error,capacity); }

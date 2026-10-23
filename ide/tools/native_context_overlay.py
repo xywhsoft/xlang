@@ -1,0 +1,91 @@
+"""Audit and adapt shared resolution inputs without copying its search rules."""
+from pathlib import Path
+import hashlib
+
+
+def derive(frontend: Path, output: Path) -> list[dict]:
+    sources = {
+        "src/compile/xl6_source_report.c": "e5ada493079927e46fade888ab983883bbcc4a72897acae096a441a7924f771b",
+        "src/compile/xl6_imports.c": "f8e571ffa7f48b2ddc55b20e7d73de782604024d3930e2bb27fd68dc55b16182",
+        "src/sem/xl6_completion.c": "384d4cf57a648900ee1b9d93df1895ba22526639f3393702891027c94053c94c",
+        "src/package/xl6_package.c": "628681072acdd939c85b112ccd19af647b9084b9e460db6850d8140c18c5e881",
+    }
+    rows = []
+    for relative, expected in sources.items():
+        original = frontend / relative
+        raw = original.read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        if digest != expected:
+            raise ValueError("shared resolution changed; audit scoped input/validation and original search rules: " + str(original))
+        source = raw.decode("utf-8").replace("\r\n", "\n")
+        source = '#include "analysis/frontend_context.h"\n' + source
+        if original.stem == "xl6_source_report":
+            old = '(char*)xrtEnvGet((str)"XLANG_PACKAGE_PATH")'
+            if source.count(old) != 3 or source.count("xrtPathAbs(path)") != 3:
+                raise ValueError("shared report resolution/validation seams changed")
+            source = source.replace(old, "xlsFrontendContextPackagePath()")
+            source = source.replace("xrtPathAbs(path)", "xlsFrontendContextAbsolute(path)")
+            seams = 7
+        elif original.stem == "xl6_package":
+            old = "static int xl6PackageTryManifest(XL6_PackageResolveResult* result, const char* path, XL6_PackageResolveKind kind)\n{"
+            marker = "static int xl6PackageLooksLikePath(const char* target)\n{"
+            if source.count(old) != 1 or source.count(marker) != 1:
+                raise ValueError("shared package candidate seam changed")
+            source = source.replace(old, old.replace("xl6PackageTryManifest(", "xlsPackageTryManifestOriginal("), 1)
+            wrapper = """static int xl6PackageTryManifest(XL6_PackageResolveResult* result, const char* path, XL6_PackageResolveKind kind)
+{
+    if (!path || !*path || !xlsFrontendContextCurrent()) return xlsPackageTryManifestOriginal(result,path,kind);
+    char* absolute = xlsFrontendContextAbsolute(path);
+    if (!absolute) return 0;
+    int okay = xlsPackageTryManifestOriginal(result,absolute,kind);
+    xrtFree(absolute); return okay;
+}
+
+"""
+            source = source.replace(marker, wrapper + marker, 1)
+            seams = 3
+        elif original.stem == "xl6_imports":
+            source = '#include "src/sem/xl6_completion.h"\n' + source
+            marker = 'static int xl6ImportsTryRewriteQualifiedNamespaceRef(\n'
+            old = '    symbol = xl6ImportsFindSymbol(symbols, ns, parts[count - 1]);'
+            if source.count(marker) != 1 or source.count(old) != 1:
+                raise ValueError("shared qualified namespace cursor seam changed")
+            source = source.replace(marker, '#include "analysis/frontend_namespace.inc"\n' + marker, 1)
+            source = source.replace(old,
+                '    if (!nsInfo->isPrivate && xlsImportsNamespaceCursor(node)) {\n'
+                '        int okay=xlsImportsCaptureNamespace(node,symbols,ns); xrtFree(ns); return okay;\n'
+                '    }\n' + old, 1)
+            seams = 4
+        else:
+            old = 'int xl6CompletionAdd(XL6_CompletionQuery* q,'
+            marker = 'void xl6CompletionFree(XL6_CompletionQuery* q)\n{'
+            if source.count(old) != 1 or source.count(marker) != 1:
+                raise ValueError("shared completion label seam changed")
+            source = source.replace(old, 'static int xlsCompletionAddOriginal(XL6_CompletionQuery* q,', 1)
+            wrapper = """int xl6CompletionAdd(XL6_CompletionQuery* q,const char* name,const char* kind,XL6_SymbolId symbolId,const XL6_AstNode* selection,char* canonical)
+{
+    if (!q || q->error || !name || !*name || !xlsFrontendNamespaceActive())
+        return xlsCompletionAddOriginal(q,name,kind,symbolId,selection,canonical);
+    size_t count=xlsFrontendNamespaceCount(name);
+    if (!count) { xrtFree(canonical); return 1; }
+    for (size_t i=0;i<count;++i) {
+        char* owned=i+1==count ? canonical : canonical ? xrtStrDup(canonical) : NULL;
+        if (canonical && !owned) { q->error="cannot retain namespace completion signature"; xrtFree(canonical); return 0; }
+        if (!xlsCompletionAddOriginal(q,xlsFrontendNamespaceName(name,i),kind,symbolId,selection,owned)) {
+            if (i+1<count) xrtFree(canonical);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+"""
+            source = source.replace(marker, wrapper + marker, 1)
+            seams = 3
+        compiled = output / "frontend" / original.name
+        compiled.parent.mkdir(parents=True, exist_ok=True)
+        compiled.write_text(source, encoding="utf-8", newline="\n")
+        rows.append(dict(source=str(original), sourceSha256=digest,
+                         compiledSource=str(compiled), compiledSha256=hashlib.sha256(compiled.read_bytes()).hexdigest(),
+                         auditedSeams=seams, change="request-owned directory/package inputs; original resolution/validation rules retained; default calls unchanged"))
+    return rows

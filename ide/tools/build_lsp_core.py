@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import time
 from xrt_process_tree_overlay import derive as derive_process_runtime
+from native_context_overlay import derive as derive_context_runtime
 
 FRONTEND_SOURCES = (
     "src/lexer/xl6_token.c", "src/lexer/xl6_lexer_api.c", "src/lexer/xl6_lexer_gen.c",
@@ -33,7 +34,7 @@ SERVER_SOURCES = (
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
     "src/server/xlang_ls.c",
 )
-CORE_TESTS = ("analysis_input_view_test", "analysis_context_test", "analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_overload_scan_test", "analysis_completion_candidates_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_cursor_syntax_test", "analysis_text_test", "document_sync_test")
+CORE_TESTS = ("analysis_context_fault_test", "analysis_context_resolution_test", "analysis_input_view_test", "analysis_context_test", "analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_overload_scan_test", "analysis_completion_candidates_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_cursor_syntax_test", "analysis_text_test", "document_sync_test")
 HOST_TESTS = ("semantic_lookup_test", "analysis_index_view_test", "language_input_guard_test", "diagnostic_store_test", "language_definition_proof_test", "snapshot_report_test")
 CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test", "diagnostic_stream_test")
 CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c", "src/services/diagnostic_stream.c")
@@ -158,7 +159,7 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
              '        XL6_AstNode* child = root->children[i];\n'
              '        if ( child->kind == XL6_AST_FUNC || child->kind == XL6_AST_ASYNC_FUNC ) {')
     changes = {
-        '} XL6_SemContext;': '} XL6_SemContext;\n#include "analysis/frontend_sem.inc"',
+        '} XL6_SemContext;': '} XL6_SemContext;\n#include "analysis/frontend_context.h"\n#include "analysis/frontend_sem.inc"',
         'static int xl6SemCheckFunc(XL6_SemContext* ctx, XL6_AstNode* node)\n{':
             'static int xlsSemCheckFuncOriginal(XL6_SemContext* ctx, XL6_AstNode* node)\n{',
         begin: '    xlsSemMemoBegin(&ctx);\n' + begin,
@@ -190,8 +191,15 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     completion_changes = {
         ' XL6_Scope* scope;XL6_CompletionQuery* q=ctx->completionQuery;size_t i,j;':
             ' XL6_Scope* scope;XL6_CompletionQuery* q=ctx->completionQuery;size_t i,j;\n'
+            ' int namespaceQuery=xlsFrontendNamespaceActive();\n'
             ' xmap heads={0};xls_sem_overload_scan scan=xlsSemOverloadBegin(ctx->root,&heads);\n'
             ' xls_type_alias_scope aliasScope;xlsSemCompletionTypesBegin(&aliasScope,ctx->root);',
+        '   if (!xl6SemCompletionSymbolAllowed(ctx,sym)) continue;':
+            '   if (!xl6SemCompletionSymbolAllowed(ctx,sym)) continue;\n'
+            '   if (namespaceQuery&&!xlsFrontendNamespaceCount(sym->name)) continue;',
+        '  if (xl6ScopeFind(ctx->scope,info->name)) continue;':
+            '  if (xl6ScopeFind(ctx->scope,info->name)) continue;\n'
+            '  if (namespaceQuery&&!xlsFrontendNamespaceCount(info->name)) continue;',
         '    for (j=0;j<ctx->root->childCount&&!q->error;++j) {':
             '    for (j=xlsSemOverloadFirst(&scan,&heads,sym->name,ctx->root->childCount);\n'
             '         j<ctx->root->childCount&&!q->error;j=xlsSemOverloadNext(&scan,j,ctx->root->childCount)) {',
@@ -209,7 +217,7 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
-        change='bounded ordered conflict/completion candidates, read-only name-query alias scope and opt-in exact-context function memos; original rules and final annotations retained',
+        change='bounded ordered conflict/completion candidates with public namespace prefilter, read-only name-query alias scope and opt-in exact-context function memos; original rules and final annotations retained',
         auditedSeams=len(changes)+len(conflict_changes)+len(completion_changes)+1, memoBytes=64 * 1024 * 1024,
         overloadCandidateBytes=8 * 1024 * 1024,
         auditedDependencies={str(registry): registry_sha})
@@ -316,7 +324,7 @@ def main() -> None:
     sources += [(ide / "src/protocol/input_state.c", True)]
     sources += [(ide / "src/protocol/diagnostic_paths.c", True)]
     sources += [(ide / path, True) for path in (
-        "src/analysis/text.c", "src/analysis/context.c", "src/analysis/ast_clone.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
+        "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/ast_clone.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
@@ -338,6 +346,7 @@ def main() -> None:
         original_sem, generated_sem, sem_overlay = prepare_native_sem(frontend, output)
         original_stdlib, generated_stdlib, stdlib_overlay = prepare_native_stdlib(frontend, output)
         original_types, generated_types, types_overlay = prepare_native_types(frontend, output)
+        context_overlays = derive_context_runtime(frontend, output)
         runtime_overlay = derive_process_runtime(frontend / 'lib/xrt/xrt.h', output / 'native_xrt/xrt.h')
     except ValueError as error:
         parser.error(str(error))
@@ -346,6 +355,8 @@ def main() -> None:
     sources = [(generated_sem if path == original_sem else path, owned) for path, owned in sources]
     sources = [(generated_stdlib if path == original_stdlib else path, owned) for path, owned in sources]
     sources = [(generated_types if path == original_types else path, owned) for path, owned in sources]
+    scoped_sources = {Path(row['source']): Path(row['compiledSource']) for row in context_overlays}
+    sources = [(scoped_sources.get(path, path), owned) for path, owned in sources]
     env = dict(os.environ)
     env["PATH"] = str(cc.parent) + os.pathsep + env.get("PATH", "")
     common = ["-std=c11", "-ffunction-sections", "-fdata-sections", "-DXRT_MODULE_ALL=", "-DXLS_COMPILER_XRT=1",
@@ -377,7 +388,8 @@ def main() -> None:
         str(original_index): index_overlay["sourceSha256"], str(original_ir): ir_overlay["sourceSha256"],
         str(original_sem): sem_overlay["sourceSha256"], str(original_stdlib): stdlib_overlay["sourceSha256"],
         str(original_types): types_overlay["sourceSha256"]}, {}, [], {}
-    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay]
+    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, *context_overlays]
+    inputs.update({row["source"]: row["sourceSha256"] for row in context_overlays})
     source_overlays.append(runtime_overlay)
     inputs[runtime_overlay['source']] = runtime_overlay['sourceSha256']
     inputs.update(runtime_overlay['sourceMaterials'])
@@ -422,7 +434,7 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "context", "ast_clone", "syntax", "session", "worker", "folding", "semantic", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "context", "frontend_context", "ast_clone", "syntax", "session", "worker", "folding", "semantic", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         limited_index = output / "xl6_sem_index_limit.o"

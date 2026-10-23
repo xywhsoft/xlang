@@ -26,5 +26,11 @@ void xlsCheckSessionDestroy(xls_check_session* session);
 xls_semantic_check* xlsCheckSessionCheck(xls_check_session* session,
     const xls_analysis_document* documents,size_t count,const char* target,
     int captureIndex,int (*cancelled)(void*),void* user,char* error,size_t capacity);
+/* Explicit contexts are retained by the accepted batch/result. Context
+ * changes invalidate cached semantics and syntax baselines; full equality
+ * permits independently captured equivalent descriptors to hit the cache. */
+xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* session,xls_context* context,
+    const xls_analysis_document* documents,size_t count,const char* target,
+    int captureIndex,int (*cancelled)(void*),void* user,char* error,size_t capacity);
 void xlsCheckSessionStats(const xls_check_session* session,xls_check_stats* stats);
 #endif

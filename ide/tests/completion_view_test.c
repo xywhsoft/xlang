@@ -99,7 +99,7 @@ static int capture(xide_app* a,const char* path) { if(!settle(a) || xuiUpdate(a-
 static int verify(void* user)
 {
  fixture* f=user; if(f->started) return XGE_OK; f->started=1; xide_app app={0}; xide_model_error error={0}; int began=0; xvalue *fake=NULL,*valid=NULL; xui_code_completion_item_t* composed=NULL; xide_completion_result* held=NULL;fixture_retire blocker={0},queued={0},delayed={0},oldMessage={0},handoffBlocker={0},handoffQueued={0};
- char *root=NULL,*entry=NULL,*dep=NULL,*disk=NULL,*native=NULL,*light=NULL,*dark=NULL,*canonicalChinese=NULL;
+ char *root=NULL,*entry=NULL,*dep=NULL,*disk=NULL,*native=NULL,*light=NULL,*dark=NULL,*canonicalChinese=NULL,*packageFolder=NULL,*packageManifest=NULL,*packageApi=NULL;
  char* previousPackage=NULL; int packageTouched=0; CHECK(xideLanguageCheckPackagePath(&previousPackage,&error));
  char unique[80]; snprintf(unique,sizeof(unique),"completion-%lu-%llu",GetCurrentProcessId(),(unsigned long long)GetTickCount64()); root=xidePathResolve(f->directory,unique); entry=xidePathResolve(root,"入口😀.xl"); dep=xidePathResolve(root,"dep.xl"); disk=xidePathResolve(root,"disk.xl"); native=xidePathResolve(root,"helper.c"); light=xidePathResolve(root,"completion-light.png"); dark=xidePathResolve(root,"completion-dark.png");
  const char *saved="func main(...) as int\n    return 0\nend\n",*local="func main(...) as int\n    int zzResult = 7\n    return zzROther\nend\n",*chinese="\xef\xbb\xbf" "func main(...) as int\r\n    string 文本 = \"😀\"; int 结果 = 7\r\n    return 结后缀\r\nend\r\n",*klass="class Box\n    int value\n    func getValue() as int\n        return self.value\n    end\nend\nfunc main(...) as int\n    auto box = Box()\n    return box\nend\n",*imported="import dep\nfunc main(...) as int\n    auto box = dep.Box()\n    return box.\nend\n",*helper="export class Box\n    int value\nend\n";
@@ -278,6 +278,16 @@ static int verify(void* user)
  Sleep(1800); CHECK(key(&app,XUI_KEY_ENTER,0) && !strcmp(xuiCodeEditGetText(xl->editor),diskQuery) && !v->result);
  CHECK(writeText(disk,helper) && invoke(&app) && has(v,"value"));
  CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app)); xideLanguageClientStop(v->client); v->client=NULL; v->initialized=0; CHECK(key(&app,XUI_KEY_ENTER,0) && !strcmp(xuiCodeEditGetText(xl->editor),local) && !v->result && invoke(&app) && has(v,"zzResult"));
+ if(v->nativeBackend) {
+  packageFolder=xidePathResolve(root,"query_package"); packageManifest=packageFolder ? xidePathResolve(packageFolder,"xlang.package.json") : NULL; packageApi=packageFolder ? xidePathResolve(packageFolder,"api.xl") : NULL;
+  const char* manifest="{\"format\":\"xlang-package-1\",\"name\":\"query_package\",\"version\":\"1.0.0\",\"abiVersion\":\"1\",\"kind\":\"source\",\"artifact\":{\"kind\":\"source\",\"xlSources\":[\"api.xl\"]},\"dependencies\":[],\"links\":[],\"loadlibs\":[]}";
+  const char* exported="export func zzExport(int value) as int\n return value\nend\nexport func zzExport(string value) as int\n return 1\nend\nfunc zzHidden() as int\n return 2\nend\n";
+  const char* namespaceQuery="import query_package as qp\nfunc main(...) as int\n qp.zzEx\n return 0\nend\n";
+  CHECK(packageFolder && packageManifest && packageApi && xrtDirCreateAll(packageFolder) && writeText(packageManifest,manifest) && writeText(packageApi,exported));
+  CHECK(prepare(&app,xl,namespaceQuery,"qp.zzEx",7) && invoke(&app) && v->count==2 && has(v,"zzExport") && !has(v,"zzHidden") && xuiCodeEditGetCompletionCount(xl->editor)==2);
+  CHECK(strcmp(v->items[0].sDetail,v->items[1].sDetail) && key(&app,XUI_KEY_ENTER,0) && strstr(xuiCodeEditGetText(xl->editor)," qp.zzExport\n"));
+  CHECK(key(&app,'Z',XUI_MOD_CTRL) && !strcmp(xuiCodeEditGetText(xl->editor),namespaceQuery));
+ }
  /* A pending request cannot survive reuse of the editor's document slot. */
  CHECK(prepare(&app,xl,local,"zzROther",3) && key(&app,XUI_KEY_SPACE,XUI_MOD_CTRL)); uint64_t oldId=xl->id;
  CHECK(xideEditorClose(&app,xl,1,&error) && settle(&app) && !v->result); xide_document* reused=xideDocumentNew(&app.documents,"c",&error);
@@ -296,7 +306,7 @@ cleanup:
  if(handoffBlocker.release) SetEvent(handoffBlocker.release);
  if(blocker.release) SetEvent(blocker.release);
  if(packageTouched) { wchar_t restore[32768]; if(!previousPackage || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,previousPackage,-1,restore,32768)) SetEnvironmentVariableW(L"XLANG_PACKAGE_PATH",previousPackage ? restore : NULL); } free(previousPackage);
- free(composed); xrtValueRelease(fake); xrtValueRelease(valid);xideCompletionResultRelease(held); if(began) xgeEnd(); xideAppDestroy(&app);if(blocker.entered) CloseHandle(blocker.entered);if(blocker.release) CloseHandle(blocker.release);if(handoffBlocker.entered) CloseHandle(handoffBlocker.entered);if(handoffBlocker.release) CloseHandle(handoffBlocker.release); free(root); free(entry); free(dep); free(disk); free(native); free(light); free(dark); free(canonicalChinese); xgeQuit(); return XGE_OK;
+ free(composed); xrtValueRelease(fake); xrtValueRelease(valid);xideCompletionResultRelease(held); if(began) xgeEnd(); xideAppDestroy(&app);if(blocker.entered) CloseHandle(blocker.entered);if(blocker.release) CloseHandle(blocker.release);if(handoffBlocker.entered) CloseHandle(handoffBlocker.entered);if(handoffBlocker.release) CloseHandle(handoffBlocker.release); free(root); free(entry); free(dep); free(disk); free(native); free(light); free(dark); free(canonicalChinese); free(packageFolder); free(packageManifest); free(packageApi); xgeQuit(); return XGE_OK;
 }
 static DWORD WINAPI worker(void* data) { fixture* f=data; if(!SetThreadDesktop(f->desktop)) return 1; xge_desc_t d={0}; d.iWidth=1600; d.iHeight=1000; d.sTitle="xlang completion verification"; d.iFlags=XGE_INIT_WINDOW|XGE_INIT_HIGHDPI; d.iRunMode=XGE_RUN_GAME_LOOP; int result=xgeInit(&d); if(result==XGE_OK) result=xgeRun(verify,f); xgeUnit(); return result==XGE_OK && f->started && !f->failed ? 0 : 1; }
 int main(int argc,char** argv) { if(argc!=4 || !xrtDirCreateAll(argv[1])) return 2; fixture f={.directory=argv[1],.compiler=argv[2],.legacy=argv[3]}; wchar_t name[100]; swprintf(name,100,L"XlangCompletionVerification-%lu",GetCurrentProcessId()); f.desktop=CreateDesktopW(name,NULL,NULL,0,DESKTOP_CREATEWINDOW|DESKTOP_READOBJECTS|DESKTOP_WRITEOBJECTS|DESKTOP_ENUMERATE,NULL); if(!f.desktop) return 1; HANDLE t=CreateThread(NULL,0,worker,&f,0,NULL); DWORD code=1; if(t) { if(WaitForSingleObject(t,120000)!=WAIT_OBJECT_0) { fputs("completion_view_test timed out\n",stderr); ExitProcess(1); } GetExitCodeThread(t,&code); CloseHandle(t); } CloseDesktop(f.desktop); return (int)code; }

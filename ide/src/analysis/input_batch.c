@@ -1,9 +1,11 @@
 #include "analysis/input_batch.h"
+#include "analysis/frontend_context.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
 struct xls_input_batch {
     xmap keys;
+    xls_context* context;
     xls_analysis_document documents[64];
     size_t count,bytes,target;
     char* directory;
@@ -28,7 +30,7 @@ void xlsInputBatchDestroy(xls_input_batch* b)
         xrtFree((void*)b->documents[i].key); xrtFree((void*)b->documents[i].path);
         xlsTextRelease(b->documents[i].text);
     }
-    xrtFree(b->directory); xrtFree(b);
+    xlsContextRelease(b->context); xrtFree(b->directory); xrtFree(b);
 }
 const xls_analysis_document* xlsInputBatchFind(const xls_input_batch* b,const char* name)
 {
@@ -39,13 +41,14 @@ const xls_analysis_document* xlsInputBatchFind(const xls_input_batch* b,const ch
 const xls_analysis_document* xlsInputBatchTarget(const xls_input_batch* b)
 { return b ? &b->documents[b->target] : NULL; }
 const char* xlsInputBatchDirectory(const xls_input_batch* b) { return b ? b->directory : NULL; }
+const xls_context* xlsInputBatchContext(const xls_input_batch* b) { return b ? b->context : NULL; }
 size_t xlsInputBatchBytes(const xls_input_batch* b) { return b ? b->bytes : 0; }
 int xlsInputSameBody(const xls_analysis_document* a,const xls_analysis_document* b)
 {
     return a && b && (a->text==b->text || (xlsTextSize(a->text)==xlsTextSize(b->text) &&
         !memcmp(xlsTextData(a->text),xlsTextData(b->text),xlsTextSize(a->text))));
 }
-xls_input_batch* xlsInputBatchCreate(const xls_session_limits* limits,const xls_input_batch* previous,
+xls_input_batch* xlsInputBatchCreateInContext(xls_context* context,const xls_session_limits* limits,const xls_input_batch* previous,
     const xls_analysis_document* documents,size_t count,const char* target,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
@@ -54,7 +57,7 @@ xls_input_batch* xlsInputBatchCreate(const xls_session_limits* limits,const xls_
     if(!xlsInputLimits(limits,&chosen) || !documents || !count || count>chosen.documents || !label(target)) goto invalid;
     if(cancelled && cancelled(user)) goto cancel;
     b=xrtCalloc(1,sizeof(*b)); if(!b) goto memory;
-    b->target=SIZE_MAX; b->directory=xrtPathAbs(".");
+    b->context=xlsContextRetain(context); b->target=SIZE_MAX; b->directory=context ? xrtStrDup(xlsContextSpec(context)->directory) : xrtPathAbs(".");
     if(!b->directory || !xrtMapInit(&b->keys,sizeof(size_t))) goto memory;
     for(size_t i=0;i<count;++i) {
         if(cancelled && cancelled(user)) goto cancel;
@@ -74,15 +77,20 @@ xls_input_batch* xlsInputBatchCreate(const xls_session_limits* limits,const xls_
         if(!strcmp(name,target)) b->target=index;
     }
     if(b->target==SIZE_MAX) goto invalid;
+    if(!xlsFrontendContextValid(context,b->documents[b->target].path,error,capacity)) goto done;
     return b;
 invalid: fail(error,capacity,"invalid semantic batch identity, revision, path or capacity"); goto done;
 memory: fail(error,capacity,"cannot retain semantic input batch"); goto done;
 cancel: fail(error,capacity,"semantic session cancelled");
 done: xlsInputBatchDestroy(b); return NULL;
 }
+xls_input_batch* xlsInputBatchCreate(const xls_session_limits* limits,const xls_input_batch* previous,
+    const xls_analysis_document* documents,size_t count,const char* target,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{ return xlsInputBatchCreateInContext(NULL,limits,previous,documents,count,target,cancelled,user,error,capacity); }
 int xlsInputBatchEqual(const xls_input_batch* a,const xls_input_batch* b)
 {
-    if(!a || !b || a->count!=b->count || strcmp(a->directory,b->directory) ||
+    if(!a || !b || !xlsFrontendContextsEqual(a->context,b->context) || a->count!=b->count || strcmp(a->directory,b->directory) ||
        strcmp(xlsInputBatchTarget(a)->key,xlsInputBatchTarget(b)->key)) return 0;
     for(size_t i=0;i<b->count;++i) {
         const xls_analysis_document *in=&b->documents[i],*old=xlsInputBatchFind(a,in->key);
