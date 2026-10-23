@@ -32,6 +32,11 @@ xide_process* xideProcessStart(const xide_process_spec* spec,char* error,size_t 
 /* Explicit bounded opt-in for large compiler resource responses (80 MiB). */
 xide_process* xideProcessStartExtended(const xide_process_spec* spec,char* error,size_t capacity);
 void xideProcessGetInfo(xide_process* process,xide_process_info* info);
+/* Coalescible readiness notification: output, input capacity or state changed.
+   Also calls wake immediately on registration, so late observers recheck state.
+   Callbacks run outside process locks on workers or the registering thread.
+   Keep user and callback code alive until Destroy has joined the workers. */
+void xideProcessSetWake(xide_process* process,void (*wake)(void*),void* user);
 size_t xideProcessRead(xide_process* process,void* data,size_t capacity);
 size_t xideProcessReadError(xide_process* process,void* data,size_t capacity);
 int xideProcessWrite(xide_process* process,const void* data,size_t size);

@@ -22,7 +22,21 @@ struct xide_process {
     int interactive,separateStderr,cancel,closeInput,writerDone,rootExited;
     xide_process_info info;
     ULONGLONG began;
+    void (*notify)(void*); void* notifyUser;
 };
+static void notifyOwner(xide_process* process)
+{
+    EnterCriticalSection(&process->lock);
+    void (*wake)(void*)=process->notify; void* user=process->notifyUser;
+    LeaveCriticalSection(&process->lock);
+    if(wake) wake(user);
+}
+void xideProcessSetWake(xide_process* process,void (*wake)(void*),void* user)
+{
+    if(!process) return;
+    EnterCriticalSection(&process->lock); process->notify=wake; process->notifyUser=user; LeaveCriticalSection(&process->lock);
+    notifyOwner(process);
+}
 static char* copy(const char* text)
 {
     if(!text) return NULL;
@@ -78,6 +92,7 @@ static void failure(xide_process* process,const char* message)
     process->info.ioError=1;
     if(!*process->info.error) snprintf(process->info.error,sizeof(process->info.error),"%s",message);
     LeaveCriticalSection(&process->lock);
+    notifyOwner(process);
 }
 static void output(xide_process* process,const unsigned char* bytes,size_t size,int errorChannel)
 {
@@ -94,6 +109,7 @@ static void output(xide_process* process,const unsigned char* bytes,size_t size,
  size_t end=(*start+*count)%limit,first=limit-end; if(first>size) first=size;
  memcpy(target+end,bytes,first); memcpy(target,bytes+first,size-first); *count+=size;
  LeaveCriticalSection(&process->lock);
+ notifyOwner(process);
 }
 static DWORD WINAPI writeWorker(void* data)
 {
@@ -107,6 +123,7 @@ static DWORD WINAPI writeWorker(void* data)
         int close=process->closeInput && !size;
         if(!process->inputCount) ResetEvent(process->wake);
         LeaveCriticalSection(&process->lock);
+        if(!done && size) notifyOwner(process);
         if(done || close) break;
         size_t offset=0;
         while(offset<size) {
@@ -121,6 +138,7 @@ static DWORD WINAPI writeWorker(void* data)
 finished:
     xrtProcessClose(process->native,XPROCESS_STDIN);
     EnterCriticalSection(&process->lock); process->writerDone=1; LeaveCriticalSection(&process->lock);
+    notifyOwner(process);
     return 0;
 }
 static DWORD WINAPI readWorker(void* data)
@@ -156,6 +174,7 @@ static DWORD WINAPI readWorker(void* data)
     EnterCriticalSection(&process->lock);
     process->info.started=1; process->info.id=xrtProcessId(process->native); process->info.state=XIDE_PROCESS_RUNNING;
     LeaveCriticalSection(&process->lock);
+    notifyOwner(process);
     if(process->interactive) {
         process->writer=CreateThread(NULL,0,writeWorker,process,0,NULL);
         if(!process->writer) { failure(process,"Unable to create program-input worker"); xrtProcessKillTree(process->native); }
@@ -209,6 +228,7 @@ finished:
     process->info.durationMs=GetTickCount64()-process->began;
     process->info.cancelled=process->cancel; process->info.state=XIDE_PROCESS_FINISHED;
     LeaveCriticalSection(&process->lock);
+    notifyOwner(process);
     return 0;
 }
 static xide_process* startProcess(const xide_process_spec* spec,size_t maximum,char* error,size_t capacity)
