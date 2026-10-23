@@ -893,9 +893,15 @@ xvalue* xbson_encode(xvalue* val) {
     total = b.size;
     w_length_at(&b, total, off);
 
-    result = (char *)xrtMalloc(total);
-    if (!result) { bson_free(&b); bson_memory_error(); return xvoCreateNull(); }
-    memcpy(result, b.ptr, total);
+    if (b.ptr == b.buffer) {
+        result = (char *)xrtMalloc(total);
+        if (!result) { bson_free(&b); bson_memory_error(); return xvoCreateNull(); }
+        memcpy(result, b.ptr, total);
+    } else {
+        /* 堆缓冲直接交给结果值；析构写入器时不能再释放。 */
+        result = (char *)b.ptr;
+        b.ptr = b.buffer;
+    }
     bson_free(&b);
     return bson_bytes_take(result, (size_t)total);
 }

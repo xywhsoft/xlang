@@ -399,8 +399,17 @@ static int encode_allocation_failures(void) {
             CHECK(encoded == NULL || xrtValueType(encoded) == XVALUE_NULL);
             CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
         } else {
+            xvalue* decoded;
+            xstrview restored;
             completed = encoded != NULL && xrtValueType(encoded) == XVALUE_BYTES &&
                 xrtGetError() == NULL;
+            CHECK(completed);
+            decoded = xbson_decode(encoded);
+            CHECK(decoded != NULL && xrtValueType(decoded) == XVALUE_OBJECT &&
+                xrtValueGetString(xrtValueObjectGet(decoded, XRT_STR_LITERAL("blob")),
+                    &restored) && restored.Size == sizeof(text) &&
+                memcmp(restored.Data, text, sizeof(text)) == 0);
+            xrtValueRelease(decoded);
         }
         xrtValueRelease(encoded);
         CHECK(live_unchanged(before, "encode", failure));
