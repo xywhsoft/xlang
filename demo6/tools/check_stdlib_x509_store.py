@@ -1,5 +1,5 @@
 """Current-source managed trust stores and immutable versions.
-Not candidate building, system trust, identity, TLS or shipping acceptance.
+Includes explicit read-only OS trust sources, not identity/TLS/shipping.
 Only ordinary offline certificates and language/ownership checks.
 """
 from pathlib import Path
@@ -24,13 +24,13 @@ def main():
     fixture_dir=out/'fixtures';fixture_dir.mkdir();cases,contract=language_fixtures(root,fixture_dir)
     exported=set(re.findall(r'XL6_TEXT_EXPORT\((\w+),',(root/'src/runtime/xl6_x509_store_symbols.inc').read_text()))
     declared=set(re.findall(r'XL6_TEXT_API [^;\n]*?\b(\w+)\(',(root/'src/runtime/xl6_x509_store_abi.h').read_text()))
-    contracted=set(re.findall(r'^\{"(\w+)"',(root/'src/ir/xl6_ir_x509_store_contracts.inc').read_text(),re.M));assert len(exported)==17 and exported==declared==contracted
+    contracted=set(re.findall(r'^\{"(\w+)"',(root/'src/ir/xl6_ir_x509_store_contracts.inc').read_text(),re.M));assert len(exported)==25 and exported==declared==contracted
     policies=(root/'src/runtime/xl6_native_resource_policies.inc').read_text()
     for owner,provider,getter in (
         ('xl6X509StoreDestroyV1','X509_STORE_VALUE','xl6X509StoreHandlePolicyV1Get'),
         ('xl6X509StoreSnapshotDestroyV1','X509_STORE_VERSION','xl6X509StoreSnapshotHandlePolicyV1Get')):
         assert 'XL6_NATIVE_RESOURCE_POLICY("'+owner+'",'+provider+','+getter+')' in policies
-    report=dict(Complete=False,Rows=[],Failures=[],Products=[],Plans=[],ResidentEntries=17,SourceBuild=str(a.source_build),
+    report=dict(Complete=False,Rows=[],Failures=[],Products=[],Plans=[],ResidentEntries=25,SourceBuild=str(a.source_build),
         Inputs={str(path):sha(path) for path in [Path(__file__),gcc,root/'tools/check_x509_store_owned.py',root/'tools/check_key_format_wire.py',
             *[root/'test/support'/('crypto_'+name+'_runtime.c') for name in ('rsa','nist','ed25519','xdh')],
             root/'tools/x509_store_language_fixtures.py',root/'tools/x509_path_fixtures.py',root/'test/cases/xlir_x509_store_contract.c',root/'test/support/container_projection_artifact.c']},
@@ -81,6 +81,12 @@ def main():
             modules=plan['NativeModules'];sources=plan['Sources']
             assert not any('_MODULE_ALL' in module or 'TLS' in module or 'X509_VERIFY_' in module for module in modules)
             assert not any('path_validate.c' in s or 'path_check_callback.c' in s for s in sources)
+            sourceKinds={kind:any('xl6_x509_store_'+kind+'.c' in s for s in sources) for kind in ('file','vfs','system')}
+            assert sourceKinds['file']==(source.stem=='store.sources.file')
+            assert sourceKinds['vfs']==(source.stem=='store.sources.vfs')
+            assert sourceKinds['system']==(source.stem=='store.sources.system')
+            if not source.stem.startswith('store.sources.'):
+                assert not any(module in modules for module in ('XRT_MODULE_FILE_WHOLE','XRT_MODULE_VFS','XRT_MODULE_X509_STORE_SYSTEM'))
             if source.stem=='store.empty':
                 assert not any('store_update.c' in s or 'store_items.c' in s for s in sources)
             if source.stem=='store.snapshot.only':
@@ -89,6 +95,9 @@ def main():
             report['Plans'].append(dict(Name=source.stem,**plan));save()
     except Exception as error:report['Failures'].append(dict(Name='pruning',Error=repr(error)));save()
     negatives={'default-snapshot': 'auto x=TrustStoreSnapshot()\n', 'wrong-result': 'TrustStoreSnapshot x=TrustStore()\n', 'wrong-certificate': 'auto x=TrustStore()\nx.add(b"data")\n', 'wrong-merge': 'auto x=TrustStore()\nx.merge(Certificate.fromDer(b"data"))\n', 'private': 'auto x=TrustStore()\nauto raw=x.handle\n', 'snapshot-mutation': 'func bad(TrustStoreSnapshot value,Certificate certificate)\n value.add(certificate)\nend\n'}
+    negatives.update({'wrong-encoded':'auto x=TrustStore()\nx.addEncoded(123)\n',
+        'wrong-vfs':'auto x=TrustStore()\nx.addVfs(Buffer(),"/trust.der")\n',
+        'system-arguments':'auto x=TrustStore.fromSystem(1)\n'})
     for name,body in negatives.items():
         try:
             source=fixture_dir/('bad.'+name+'.xl');source.write_text(body);target=out/('bad.'+name+'.c');message=run('bad.'+name,[driver,source,'cgen-default',target],True)

@@ -1801,7 +1801,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root, "PackOptions") || xl6StdlibNodeUsesTypeName(root, "PackStats") ||
         xl6StdlibNodeUsesTypeName(root, "Vfs") || xl6StdlibNodeUsesTypeName(root, "MemoryFS") ||
         xl6StdlibNodeUsesTypeName(root, "DiskFS") || xl6StdlibNodeUsesTypeName(root, "PackFS") ||
-        xl6StdlibNodeUsesTypeName(root, "VfsMount");
+        xl6StdlibNodeUsesTypeName(root, "VfsMount") || xl6StdlibUsesX509PathClasses(root);
     needsRandomBufferMethods = needsRandomClass &&
         (xl6StdlibNodeUsesMemberName(root, "fillBytes") ||
          xl6StdlibNodeUsesMemberName(root, "shuffleBuffer"));
@@ -1993,7 +1993,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsTcpStreamClass || needsUdpClass ||
         needsTlsSessionClass || needsHttp1Class || needsHttpDecoderClass ||
         needsWsFrameClass || needsWebSocketClass || needsFileClass ||
-        needsAsyncFileClass || needsCryptoClass || needsEd25519Class || needsLoggerClass;
+        needsAsyncFileClass || needsCryptoClass || needsEd25519Class || needsLoggerClass || xl6StdlibUsesX509PathClasses(root);
     needsTccClass = xl6StdlibNeedsTccClass(root, used);
     needsXlangClass = xl6StdlibNeedsXlangClass(root, used);
     if ( needsCryptoClass || needsFileClass ) {

@@ -64,6 +64,16 @@ int64_t xl6X509StoreAddPemV1(void* raw,xstrview text,int64_t size)
         xrtX509StoreAddPem(write.version->value,text.Data,text.Size,NULL);
     return finish(&write,ok);
 }
+int64_t xl6X509StoreAddDataSpanV1(void* raw,xbytesview input)
+{
+    if((input.Size && !input.Data) || input.Size>INT64_MAX){
+        xl6X509FailV1(input.Size>INT64_MAX?XERR_RANGE:XERR_ARGUMENT,"invalid encoded trust input span");return 0;
+    }
+    Write write={0};if(!begin(raw,&write))return 0;
+    bool ok=bounded(&write,input.Size) && writable(&write) &&
+        xrtX509StoreAddData(write.version->value,input,NULL);
+    return finish(&write,ok);
+}
 int64_t xl6X509StoreMergeV1(void* raw,void* source)
 {
     if(!source){xl6X509FailV1(XERR_ARGUMENT,"missing immutable trust store source");return 0;}

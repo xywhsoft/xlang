@@ -1,5 +1,5 @@
-"""Owned trust-store versions; offline normal certificates and routine OOM.
-Not candidate building, system sources, identity, TLS or shipping acceptance.
+"""Owned trust-store versions and source imports; normal certificates/OOM.
+OS roots are read-only. Not identity, TLS or shipping acceptance.
 """
 from pathlib import Path
 import argparse,hashlib,json,os,shutil,subprocess,time
@@ -13,7 +13,7 @@ def main():
     gcc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
     tcc=Path(shutil.which('tcc') or 'E:/software/tcc/tcc.exe').resolve()
     files=[Path(__file__),gcc,tcc,root/'tools/x509_path_fixtures.py',root/'tools/check_key_format_wire.py',
-        root/'test/support/x509_store_owned.c',root/'test/support/x509_store_plan.c',root/'src/compile/xl6_compile_unit.c',
+        root/'test/support/x509_store_owned.c',root/'test/support/x509_store_sources.c',root/'test/support/x509_store_plan.c',root/'src/compile/xl6_compile_unit.c',
         *[root/'test/support'/('crypto_'+name+'_runtime.c') for name in ('rsa','nist','ed25519','xdh')],
         *root.glob('src/runtime/*.h'),*root.glob('src/runtime/*.inc'),*root.glob('src/compile/*.h'),*root.glob('src/compile/*.inc'),
         root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h']
@@ -43,7 +43,7 @@ def main():
     assert not any('path_validate.c' in str(s) or 'path_check_callback.c' in str(s) for s in sources)
     report['Closure']=dict(Sources=list(map(str,sources)),Modules=modules)
     for f in sources:report['Inputs'][str(f)]=sha(f)
-    impl=out/'native.c';impl.write_text(modules+'\n#define XRT_MODULE_MEMORY_DEBUG\n'+
+    impl=out/'native.c';impl.write_text(modules+'\n#define XRT_MODULE_MEMORY_DEBUG\n#define XRT_MODULE_VFS_MEMORY\n'+
         ('#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n' if '#define XRUNTIME_MODULE_' in modules else '#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n'))
     libs=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-pthread','-ldl','-lm']
     modes=[('gcc.O0',gcc,['-O0']),('gcc.O2',gcc,['-O2']),('tcc',tcc,[])]
@@ -54,6 +54,10 @@ def main():
             run(name+'.build',[cc,*flags,*options,*(['-Wall','-Wextra','-Werror','-fmax-errors=5'] if cc==gcc else []),
                 root/'test/support/x509_store_owned.c',impl,*sources,*libs,'-o',binary])
             assert 'X509 owned store:' in run(name+'.run',[binary])
+            binary=out/(name+'.sources'+('.exe' if os.name=='nt' else ''))
+            run(name+'.sources.build',[cc,*flags,*options,*(['-Wall','-Wextra','-Werror','-fmax-errors=5'] if cc==gcc else []),
+                root/'test/support/x509_store_sources.c',impl,*sources,*libs,'-o',binary])
+            assert 'X509 trust sources:' in run(name+'.sources.run',[binary,out/(name+'.owned')])
         except Exception as error:report['Failures'].append(dict(Name=name,Error=repr(error)));save()
     report['InputsUnchanged']=all(sha(f)==digest for f,digest in report['Inputs'].items())
     report['Products']=[dict(Path=str(f),Sha256=sha(f)) for f in out.iterdir() if f.is_file() and f.name!='results.json']
