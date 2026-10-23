@@ -142,7 +142,8 @@ static int xsrt_range(XsrtLine line, int vtt, int64_t *start, int64_t *end,
             if (xsrt_arrow(*settings) != SIZE_MAX) return 0;
         }
     }
-    return xsrt_stamp(left, vtt, start) && xsrt_stamp(right, vtt, end) && *end >= *start;
+    return xsrt_stamp(left, vtt, start) && xsrt_stamp(right, vtt, end) &&
+        (vtt ? *end > *start : *end >= *start);
 }
 
 static int xsrt_put(xvalue *object, const char *key, xvalue *item) {
@@ -355,7 +356,8 @@ static char *xsrt_build_cues(xvalue *cues, int vtt) {
         int n;
         if (lines == NULL || xrtValueType(lines) != XVALUE_ARRAY ||
             !xsrt_integer(cue, "startMs", &start) ||
-            !xsrt_integer(cue, "endMs", &end) || end < start) goto bad_buffer;
+            !xsrt_integer(cue, "endMs", &end) ||
+            (vtt ? end <= start : end < start)) goto bad_buffer;
         if (vtt && start < previousStart) goto bad_buffer;
         if (vtt) {
             xvalue *idValue;

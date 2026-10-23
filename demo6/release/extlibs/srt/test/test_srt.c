@@ -275,6 +275,13 @@ int main(void) {
         xrtValueRelease(styled);
     }
     CHECK(invalid_vtt("WEBVTT\n\n00:00.000 --> 00:01.000\nHi --> there\n"));
+    CHECK(invalid_vtt("WEBVTT\n\n00:01.000 --> 00:01.000\nZero duration\n"));
+    {
+        xvalue *zero = xsrt_parse("1\n00:00:01,000 --> 00:00:01,000\nZero duration\n");
+        CHECK(zero != NULL && xrtValueType(zero) == XVALUE_ARRAY &&
+            xrtValueCount(zero) == 1);
+        xrtValueRelease(zero);
+    }
     {
         xvalue *compact = xsrt_parse("1\n00:00:00,000-->00:00:01,000\nHi\n");
         CHECK(compact != NULL && xrtValueType(compact) == XVALUE_ARRAY &&
@@ -329,6 +336,15 @@ int main(void) {
         CHECK(xsrt_build_vtt(ordered) == NULL && xrtGetError() != NULL &&
             xrtErrorKind(xrtGetError()) == XERR_VALUE);
         xrtClearError();
+        CHECK(xrtValueObjectSetNew(secondCue, XRT_STR_LITERAL("id"),
+            xrtValueString(XRT_STR_LITERAL("second"))));
+        CHECK(xrtValueObjectSetNew(secondCue, XRT_STR_LITERAL("endMs"),
+            xrtValueInt(1000)));
+        CHECK(xsrt_build_vtt(ordered) == NULL && xrtGetError() != NULL &&
+            xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        xrtClearError();
+        CHECK(xrtValueObjectSetNew(secondCue, XRT_STR_LITERAL("endMs"),
+            xrtValueInt(3000)));
         xrtValueRelease(ordered);
     }
     {
