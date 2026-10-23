@@ -27,7 +27,7 @@
       <tr><td><code>tar.open(buffer/path)</code>、<code>reader.next()</code></td><td>顺序读取归档条目</td></tr>
       <tr><td><code>tar.create(path)</code>、<code>tar.openForAppend(path)</code></td><td>创建文件归档，关闭后再追加条目</td></tr>
       <tr><td><code>reader.info()</code>、<code>reader.read()</code></td><td>读取条目元数据与原始内容；元数据类型可写为 <code>tar.TarInfo</code></td></tr>
-      <tr><td><code>reader.extractAll()</code>、<code>extractSelected()</code></td><td>提取到指定目录；目标根路径允许调用方选用符号链接，归档条目不得经目录内链接逃逸；选择白名单按完整名称匹配，含 NUL 的名称在提取前拒绝</td></tr>
+      <tr><td><code>reader.extractAll()</code>、<code>extractSelected()</code></td><td>提取到指定目录；目标根路径允许调用方选用符号链接，归档条目不得经目录内链接逃逸；选择白名单按完整名称匹配，含 NUL 的名称在提取前拒绝。覆盖提取尚无单文件失败原子性，失败时可能改写旧文件，不宜直接覆盖需保留的生产数据</td></tr>
     </tbody></table>
     <h2 id="example">xlang</h2>
     <pre><code>import tar

@@ -11,6 +11,7 @@
 `preservePermissions = true` 表示恢复归档中的 POSIX mode。Windows 的 XRT 根文件 API 明确不支持设置 POSIX mode，因此提取会在创建目标目录或文件**之前**返回 `XRT_TAR_ERROR_UNSUPPORTED`；默认 `false` 仍可正常提取。Linux 使用原生文件系统执行权限回归；WSL 的 `/mnt/*` Windows 挂载盘不适合作为 POSIX mode 验收位置。
 
 提取使用 XRT 锚定根文件接口，拒绝不安全归档路径；是否允许符号链接、硬链接和特殊文件由显式选项控制。`test/test_tar_c.c` 包含路径、上限、追加/恢复、选择、回调和权限边界。
+**覆盖提取尚无单文件失败原子性。** 若已有目标文件，归档正文损坏或写入失败可能在返回错误前截断/改写旧文件；不要直接覆盖需要保留的生产数据。Windows/Linux 最小复现及根内原子提交所需接口见 `dev/extlib_blockers/tar_overwrite_failed_entry.md`。锚定根目录防止路径逃逸，但不等于失败时自动回滚。
 调用方指定的目标根路径可以经过符号链接，锚点为其解析后的目录；归档条目不能借目标目录内部已有的链接越过该锚点。归档内创建链接仍受显式选项控制。
 读写器创建时同时校验 `xrttaroptions` 和内嵌 `xrtresourcelimits` 的版本与结构长度；未知版本或截断的限制结构报告 `XRT_TAR_ERROR_ARGUMENT`，不进入归档处理。
 当前结构中的两个保留字段也必须为零；不读取调用方声明长度之外的顶层字段。
