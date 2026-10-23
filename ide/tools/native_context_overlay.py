@@ -54,6 +54,20 @@ def derive(frontend: Path, output: Path) -> list[dict]:
             seams = 3
         elif original.stem == "xl6_imports":
             source = '#include "src/sem/xl6_completion.h"\n' + source
+            source = '#include "analysis/frontend_import_names.h"\n' + source
+            shape = '    size_t count;\n} XL6_ImportNameMap;'
+            if source.count(shape) != 1:
+                raise ValueError("shared append-only import name map changed")
+            source = source.replace(shape, '    size_t count;\n    xls_import_names_index* xlsIndex;\n} XL6_ImportNameMap;', 1)
+            for name in ['Init', 'Free', 'Find', 'RewriteDotted']:
+                start = ('static void ' if name in ['Init', 'Free'] else 'static const char* ' if name == 'Find' else 'static char* ') + 'xl6ImportsNameMap' + name + '('
+                if source.count(start) != 1:
+                    raise ValueError("shared import name scan seam changed: " + name)
+                source = source.replace(start, start.replace('xl6ImportsNameMap'+name, 'xlsImportsNameMap'+name+'Original'), 1)
+            marker_names = 'static int xl6ImportsNameMapAdd('
+            if source.count(marker_names) != 1:
+                raise ValueError("shared import name append seam changed")
+            source = source.replace(marker_names, '#include "analysis/frontend_import_names.inc"\n' + marker_names, 1)
             marker = 'static int xl6ImportsTryRewriteQualifiedNamespaceRef(\n'
             old = '    symbol = xl6ImportsFindSymbol(symbols, ns, parts[count - 1]);'
             if source.count(marker) != 1 or source.count(old) != 1:
@@ -63,7 +77,7 @@ def derive(frontend: Path, output: Path) -> list[dict]:
                 '    if (!nsInfo->isPrivate && xlsImportsNamespaceCursor(node)) {\n'
                 '        int okay=xlsImportsCaptureNamespace(node,symbols,ns); xrtFree(ns); return okay;\n'
                 '    }\n' + old, 1)
-            seams = 4
+            seams = 10
         else:
             old = 'int xl6CompletionAdd(XL6_CompletionQuery* q,'
             marker = 'void xl6CompletionFree(XL6_CompletionQuery* q)\n{'
