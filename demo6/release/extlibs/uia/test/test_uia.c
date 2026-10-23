@@ -132,6 +132,23 @@ int main(void)
 			fprintf(stderr, "UIA JSON output hit the fixed buffer\n");
 			goto cleanup;
 		}
+		{
+			char* owned = (char*)x_uia_take_text(x_uia_json_finish(&json, "UIA JSON output limit"),
+				&g_x_uia_json, &g_x_uia_json_capacity);
+			if ( owned != json.data || g_x_uia_json != NULL || g_x_uia_json_capacity != 0u ) {
+				fprintf(stderr, "UIA JSON ownership was copied instead of transferred\n");
+				xrtFree(owned);
+				goto cleanup;
+			}
+			x_uia_json_init(&json);
+			x_uia_json_append_raw(&json, "new result");
+			if ( strlen(owned) != 70002u || strcmp(json.data, "new result") != 0 ) {
+				fprintf(stderr, "UIA transferred JSON was overwritten\n");
+				xrtFree(owned);
+				goto cleanup;
+			}
+			xrtFree(owned);
+		}
 		x_uia_json_init(&json);
 		json.length = X_UIA_JSON_MAX_BYTES;
 		x_uia_json_append_raw(&json, "x");
@@ -142,6 +159,31 @@ int main(void)
 			goto cleanup;
 		}
 		x_uia_set_error("");
+	}
+	{
+		char* owned = (char*)x_uia_element_snapshot_json_owned(pRoot, 2, 32);
+		if ( owned == NULL || strstr(owned, "\"children\":") == NULL ||
+			x_uia_element_cached_children_json(pRoot, 2, 32) == NULL ||
+			strstr(owned, "\"children\":") == NULL ) {
+			fprintf(stderr, "UIA snapshot ownership failed\n");
+			xrtFree(owned);
+			goto cleanup;
+		}
+		xrtFree(owned);
+		owned = (char*)x_uia_element_name_owned(pFound);
+		if ( owned == NULL || x_uia_element_class_name(pFound) == NULL ||
+			xrtGetError() != NULL ) {
+			fprintf(stderr, "UIA BSTR ownership failed\n");
+			xrtFree(owned);
+			goto cleanup;
+		}
+		xrtFree(owned);
+		xrtClearError();
+		if ( x_uia_element_name_owned(NULL) != NULL || xrtGetError() == NULL ) {
+			fprintf(stderr, "UIA owned getter lost its error\n");
+			goto cleanup;
+		}
+		xrtClearError();
 	}
 	{
 		char shortField[512];

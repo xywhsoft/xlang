@@ -12,6 +12,7 @@ Windows UI Automation 扩展库。C 桥接源代码和公开头文件分别为
 - `Process`、`TestWindow`、`Condition`、`Element`、`Events` 是拥有型句柄；XLang 自动析构，`release()` 可提前释放且再次调用返回 false。C 调用方必须使用对应的 `x_uia_*_release`；`xvalue` 元素数组中的每个原生句柄也须单独释放。
 - UIA 上下文绑定首次使用它的线程；`Element`、`Condition`、`Events` 句柄及所有 UIA 操作只能在该线程使用。其他线程的调用会拒绝；如需交接，请在原线程释放所有句柄并调用 `uia.shutdown()`，再由新线程初始化。
 - `shutdown()` 在仍有 UIA 句柄时拒绝卸载。C 返回的文本借用进程内缓冲，下次 UIA 调用前复制；`last_error()` 也是进程全局状态，不要跨线程持有。
+- 对应的 `_owned` C 文本接口返回独立的 XRT 分配，调用方用 `xrtFree` 释放；XLang 的属性文本、快照、缓存子树、定位器和事件 JSON 直接接管这份分配。原 C 借用接口和调用约定不变；版本号、错误消息及固定短矩形 JSON 仍为借用接口。
 - UIA 的 BSTR 文本转换按需扩容，`shutdown()` 释放该缓冲；不再因旧 8 KiB 槽而返回空文本。内嵌 NUL 或非法 UTF-16 明确报错，内存不足保留内存错误。文本仍只在当前 UIA 线程、下一次相关调用前借用。
 - 快照、缓存快照和事件 JSON 按需扩容，完整输出上限为 16 MiB；超限或分配失败返回 `{}` 并设置错误，不返回截断的 JSON。快照中的名称、自动化 ID 和类名不再受旧 1 KiB 属性缓冲限制。
 - `launch`、三个文本定位条件和 `Element.set_value` 在 XLang 侧拒绝内嵌 NUL，避免 C 字符串接口只使用前缀；拒绝的输入不会修改控件。
@@ -45,3 +46,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/uia/test/check.ps1 -
 原生层仅使用 XRT 值容器和基础错误接口，已删除源码中的全量 XRT 宏并在包清单声明 `XRT_MODULE_VALUE_CONTAINER`。同一最小 AOT 从 3,843,584 降至 929,280 字节，构建和运行通过；`test/aot_core.xl` 已纳入包级门禁。Windows `-StrictC` 下的 C smoke、自建窗口、XLang 边界和双语范例也通过。该裁剪不解除完整范例 AOT 的共享主线阻断。
 
 `test/test_uia_boundaries.xl` 已登记为 `coverage.tests`。本包属于平台套件，通用目录门禁默认跳过，只有明确选择 Windows UIA 包时才运行自建窗口用例。
+
+2026-10-24：长 BSTR 文本和动态 JSON 返回改为所有权转移，移除 `extern as string` 对整段输出的重复复制。C 侧验证 70,002 字节 JSON 指针原样转移、后续缓存复用不改写旧结果、错误路径不转移；XLang 侧验证长文本和快照跨调用仍有效。完整 `check.ps1 -StrictC` 通过。

@@ -21,6 +21,12 @@ func main(...) as int
 	assert edit.valid(), "edit element unavailable"
 	assert edit.set_value("fallback text"), "edit value update failed"
 	assert edit.text() == "fallback text", "text fallback must clear unsupported-pattern error"
+	string longText = string.repeat("x", 3000) + "你好"
+	assert edit.set_value(longText), "long edit value update failed"
+	string savedText = edit.text()
+	assert savedText == longText, "long text was truncated"
+	assert edit.set_value("fallback text"), "second edit value update failed"
+	assert savedText == longText, "transferred text changed after another UIA call"
 	caught = false
 	try
 		edit.set_value("fallback\0hidden")
@@ -58,6 +64,14 @@ func main(...) as int
 	end
 	assert caught, "launch command must reject embedded NUL"
 	auto root = uia.from_hwnd(window.hwnd())
+	string snapshot = root.snapshot_json(2, 32)
+	assert snapshot != "{}", "snapshot failed"
+	string cached = root.cached_children_json(2, 32)
+	assert cached != "{}", "cached snapshot failed"
+	string locator = root.locator_json()
+	assert locator != "{}", "locator failed"
+	assert snapshot == root.snapshot_json(2, 32), "transferred snapshot changed after cache reuse"
+	assert locator == root.locator_json(), "transferred locator changed after another lookup"
 	auto editClass = uia.by_class_name("Edit")
 	auto editType = uia.by_control_type(50004)
 	auto combined = uia.all_of(editClass, editType)

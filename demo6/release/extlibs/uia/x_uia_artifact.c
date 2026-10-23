@@ -3081,3 +3081,74 @@ XL_EXPORT int x_uia_element_wait_window_closed(void* handle, int timeout_ms)
 	x_uia_set_error("");
 	return 1;
 }
+
+/* C 接口继续借用缓存；语言接口接管同一份 XRT 分配。 */
+static void* x_uia_take_text(const char* text, char** buffer, size_t* capacity)
+{
+	char* owned;
+	size_t length;
+	if ( text == NULL || xrtGetError() != NULL ) { return NULL; }
+	if ( text == *buffer ) {
+		owned = *buffer;
+		*buffer = NULL;
+		*capacity = 0u;
+		return owned;
+	}
+	length = strlen(text);
+	owned = (char*)xrtMalloc(length + 1u);
+	if ( owned != NULL ) { memcpy(owned, text, length + 1u); }
+	return owned;
+}
+
+XL_EXPORT void* x_uia_element_name_owned(void* handle)
+{
+	return x_uia_take_text(x_uia_element_name(handle), &g_x_uia_bstr_text, &g_x_uia_bstr_capacity);
+}
+
+XL_EXPORT void* x_uia_element_automation_id_owned(void* handle)
+{
+	return x_uia_take_text(x_uia_element_automation_id(handle), &g_x_uia_bstr_text, &g_x_uia_bstr_capacity);
+}
+
+XL_EXPORT void* x_uia_element_class_name_owned(void* handle)
+{
+	return x_uia_take_text(x_uia_element_class_name(handle), &g_x_uia_bstr_text, &g_x_uia_bstr_capacity);
+}
+
+XL_EXPORT void* x_uia_element_value_owned(void* handle)
+{
+	return x_uia_take_text(x_uia_element_value(handle), &g_x_uia_bstr_text, &g_x_uia_bstr_capacity);
+}
+
+XL_EXPORT void* x_uia_element_text_owned(void* handle)
+{
+	return x_uia_take_text(x_uia_element_text(handle), &g_x_uia_bstr_text, &g_x_uia_bstr_capacity);
+}
+
+XL_EXPORT void* x_uia_element_snapshot_json_owned(void* handle, int depth, int max_nodes)
+{
+	return x_uia_take_text(x_uia_element_snapshot_json(handle, depth, max_nodes),
+		&g_x_uia_json, &g_x_uia_json_capacity);
+}
+
+XL_EXPORT void* x_uia_element_cached_children_json_owned(void* handle, int depth, int max_nodes)
+{
+	return x_uia_take_text(x_uia_element_cached_children_json(handle, depth, max_nodes),
+		&g_x_uia_json, &g_x_uia_json_capacity);
+}
+
+XL_EXPORT void* x_uia_locator_for_owned(void* handle)
+{
+	return x_uia_take_text(x_uia_locator_for(handle), &g_x_uia_json, &g_x_uia_json_capacity);
+}
+
+XL_EXPORT void* x_uia_focused_locator_owned(void)
+{
+	return x_uia_take_text(x_uia_focused_locator(), &g_x_uia_json, &g_x_uia_json_capacity);
+}
+
+XL_EXPORT void* x_uia_events_poll_json_owned(void* handle, int timeout_ms)
+{
+	return x_uia_take_text(x_uia_events_poll_json(handle, timeout_ms),
+		&g_x_uia_json, &g_x_uia_json_capacity);
+}
