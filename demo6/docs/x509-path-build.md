@@ -1,9 +1,8 @@
 # X.509 发行者匹配与候选建链
 
-状态：公开声明、精确 XLIR 合同与驻留适配、双端冻结专项及联合回归已通过。
-完整 P5、TLS 和 shipping 仍未完成；原生搜索工作预算已定点回补，但下列语言
-接口尚未接入该预算，仍走不限额原生入口。不代替身份或撤销策略，也不是
-生产封板声明。
+状态：公开声明、精确 XLIR 合同与驻留适配已接入候选建链及语言级搜索预算，
+双端冻结路径专项已通过；最新联合回归的轮次和开放问题见文末。完整 P5、
+TLS 和 shipping 仍未完成，不代替身份或撤销策略，也不是生产封板声明。
 
 ## 公开接口
 
@@ -19,6 +18,18 @@ X509Path.build(target, issuers, trust, policy, critical,
 `trust` 可为 TrustStoreSnapshot 或 TrustStore；后者在进入建链前先取得稳定
 快照，整个验证期间不再进入可变库的锁。`policy` 是已有的不可变 X509PathPolicy。
 没有隐式系统根、联网补链、下载发行者或 CRL。
+
+搜索预算放在已有的不可变策略中，与深度、结果字节预算一起设置：
+
+```xlang
+X509PathPolicy(at, flags = X509PathFlags.none, keyUsage = X509KeyUsageFlags.none,
+               purpose = "", maxCertificates = 64, maxBytes = 16777216,
+               maxSearchSteps = 100000)
+```
+
+上面是参数默认值说明，不是额外的命名参数语法。`policy.maxSearchSteps` 是
+只读 int 属性。普通／回调建链共用该字段，不创建另一套选项对象或隐藏线程
+预算；回调入口及通用驻留合同表没有扩容，也没有增加 Cgen 压参包装。
 
 `matchesIssuer` 仅复用 XRT 的发行者名称及可用 AKI／SKI 候选匹配，不验证
 签名，不作授信、用途或有效期判断。false 是普通不匹配，真实操作错误仍抛出。
@@ -57,12 +68,18 @@ auto path = outcome.path
 |---|---|
 | policy.maxCertificates（默认 64） | 最大搜索路径深度，不含独立锚 |
 | policy.maxBytes（默认 16 MiB） | 成功路径 DER、选中锚 DER 和用途 OID 的拥有副本总量 |
+| policy.maxSearchSteps（默认 100000） | 候选／锚每次访问一步，完整候选路径验证另预扣证书数；只约束候选建链，不约束已有序路径检查 |
 | maxCandidates（默认 4096） | 候选数组条目＋信任快照锚总数；重复候选也计数，不含单独的 target |
 | maxSourceBytes（默认 64 MiB） | target、全部候选、快照唯一锚的 DER 和用途 OID 总字节 |
 
 预算不是 size 截断：超额 checked 报错，不改变证书或返回截断路径。零显式
 关闭相应预算，负值拒绝；求和和索引分配仍检查溢出。maxBytes 约束最终发布
 的拥有结果，输入遍历由另外的 maxSourceBytes 约束。
+
+搜索预算耗尽是 RangeError，不是完成的 rejected／unsupported：即使已经遇到
+被拒绝的候选，也不能把未完成的搜索冒充最终验证决定。错误不发布路径。
+这是确定的搜索工作量，不是 CPU 指令或墙钟期限，不能中断单次比较、验签
+或应用回调；默认有限，只有显式零值才关闭该项限制。负值构造抛 ValueError。
 
 候选数组先由既有 nominal／native-class admission 校验并独立保留每个句柄，
 随后解除集合占用；快照原子保留不可变版本。用户回调可以清空候选数组或
@@ -113,6 +130,28 @@ r2 曾有一次 Windows AOT storage-release ABI 诊断，六次相同输入的�
 分别见 `verified-native-commit.json`／`verified-xlang-commit.json`。快照专项含
 四种正常链、20 个精确预算边界、八次独立嵌套调用及无诊断回调失败。
 
-当前语言 build 参数及驻留 ABI 没有借此变动：仍须补公开可选参数、精确合同、
-驻留调用和 JIT／AOT 后再封板，不以回调计数或 Cgen 补丁模拟。文件／系统
-信任来源、身份匹配、TLS、静态低层符号映射及联合发布也仍需继续。
+上述原生回补批次没有修改语言接口；其后的语言接线改为从 X509PathPolicy
+读取 maxSearchSteps，普通及回调路径统一调用原生限额入口。策略工厂增至七
+个参数，另加一个只读 getter；公开／驻留声明与精确 XLIR 合同同步，不改变
+build 的回调 ABI，也不扩大通用合同表。P5 仍须继续文件／系统信任来源、
+身份匹配，之后完成 TLS、静态低层符号映射及联合发布。
+
+## 语言预算的最终批次验收
+
+证据根 `F:/xlang-validation/five-groups-20261024/p5-x509-managed-work`，回执
+`verified-commit.json`。在 8799 份稳定输入上验收，原捕获的 194 份 Python
+生成缓存单列，不作源码证据；生产代码在 Windows／Linux 及测试诊断叠加中
+逐字节一致。完整源码分别为 1106／1105 TU，每端九组共 913 阶段，含路径
+143 阶段。加驻留及独立重放后 Windows 925／Linux 928，共 1853；另外的
+限额参数拥有重入每端六阶段单列，不混入主计数。
+
+Windows 首轮有一个 GCC 明确 OOM 和一个 load／lower 断言失败，不能称为
+首轮全绿。原始七组通过保留，签名／记录两组在生产源码不变、仅改合同失败
+诊断的叠加中单组复测，全部通过；不是重复构建全部生产对象或更改 verifier。
+诊断独立提交 `5f08e2b68`；原程序六次及增强程序十二次 Windows 重放、增强
+合同的 Linux O0／O2 通过，不证明首次 load 失败已被修复。初始及纠正后的
+诊断辅助程序日志也全部保留；辅助程序曾缺 xl.dll 的启动失败不计作产品故障。
+
+资源样本、全部轮次、原输入／对象／产物／日志及 Linux 原件／镜像均保留。
+此前一次 AOT storage-release 诊断和本次首次 load 失败的原始原因仍未确认，
+继续列入 P7；这份回执不等于最新活动工作区、纯净 checkout 或 shipping 验收。
