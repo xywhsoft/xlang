@@ -59,3 +59,13 @@ Buffer／Vfs 依赖并不表示输出程序必须带入其实现。
 微秒／Until 与独立 XRT 毫秒／For 各自合同，不进行整体时间 ABI 升级。
 
 本专项不代表身份匹配、TLS 或 shipping 验收已经完成。
+
+## 来源批次的后续联合回归
+
+`cf0c3cda2` 对应的冻结源码两端九组总回归现已通过，均为单组调度：
+每端语言／回归 960 阶段，连同驻留与独立重放为 Windows 981、Linux 987，
+共 1968；加该批原生 84 为 2052。独立复核 26343 份文件，Linux 原件及
+18195 份镜像保留，回执 `verified-full-regression.json` 位于本批证据根。
+
+这份联合结果不包含随后正在开发的身份入口，不等于最新工作区或 shipping。
+历史 Windows load／lower 断言与 AOT storage-release 诊断的根因仍未关闭。
