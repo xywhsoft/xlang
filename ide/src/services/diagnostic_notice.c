@@ -52,6 +52,8 @@ void xideDiagnosticNoticeRelease(xide_diagnostic_notice* n)
 {
  if(!n) return;
  if(n->items) for(size_t i=0;i<n->count;++i) xrtFree(n->items[i].title);
+ for(size_t i=0;i<n->bindingCount;++i) {free(n->bindings[i].path);free(n->bindings[i].key);}
+ xrtFree(n->bindings);
  xrtFree(n->items);free(n->path);free(n->key);xrtValueRelease(n->params);xideDiagnosticDependencyRelease(n->dependency);xrtFree(n);
 }
 xide_diagnostic_notice* xideDiagnosticNoticeDecode(xide_diagnostic_dependencies* dependencies,const xvalue* params,
@@ -66,6 +68,7 @@ xide_diagnostic_notice* xideDiagnosticNoticeDecode(xide_diagnostic_dependencies*
     (get(params,"version") && !integer(get(params,"version"),&version,INT_MIN,INT_MAX)) || stopped(cancelled,user)) goto failed;
  n=xrtCalloc(1,sizeof(*n));if(!n) {reason="Cannot allocate diagnostic publication.";goto failed;}
  n->generation=generation;n->cleared=clear;n->version=(int)version;n->versionPresent=get(params,"version")!=NULL;
+ if(get(proof,"serial")) {if(!decimal(string(get(proof,"serial"),20,1),0,&n->inputSerial)) goto failed;n->hasSerial=1;}
  n->uri=uri;n->path=xideLspUriToPath(uri,NULL);n->key=n->path ? xidePathNativeWide(n->path) : NULL;
  if(!n->path || !n->key) goto failed;
  if(clear) {
@@ -99,6 +102,29 @@ xide_diagnostic_notice* xideDiagnosticNoticeDecode(xide_diagnostic_dependencies*
    snprintf(out->title,length,"%s:%lld:%lld · %s",n->path,(long long)sl+1,(long long)sc+1,message);
   }
   n->dependency=xideDiagnosticDependencyRetain(dependency);
+  const xvalue* overlays=get(proof,"overlays");
+  if(overlays) {
+   if(!n->hasSerial || xrtValueType(overlays)!=XVALUE_ARRAY || xrtValueCount(overlays)>64) goto failed;
+   n->hasOverlays=1;n->bindings=xrtCalloc(64,sizeof(*n->bindings));if(!n->bindings) goto failed;
+   wchar_t* seen[64]={0};size_t used=0;int okay=1;
+   for(size_t i=0;okay && i<xrtValueCount(overlays);++i) {
+    const xvalue* binding=xrtValueArrayGet(overlays,i);const char* bindingUri=string(get(binding,"uri"),262144,1);int64 bindingVersion=0;
+    char* path=bindingUri ? xideLspUriToPath(bindingUri,NULL) : NULL;wchar_t* key=path ? xidePathNativeWide(path) : NULL;
+    okay=key && integer(get(binding,"version"),&bindingVersion,INT_MIN,INT_MAX) && !stopped(cancelled,user);
+    for(size_t j=0;okay && j<used;++j) if(!xidePathNativeKeyCompare(seen[j],key)) okay=0;
+    if(!okay) {free(path);free(key);break;}
+    size_t keyBytes=(wcslen(key)+1)*sizeof(wchar_t);seen[used]=malloc(keyBytes);if(!seen[used]) {free(path);free(key);okay=0;break;}
+    memcpy(seen[used++],key,keyBytes);
+    if(xideDiagnosticDependencyContainsKey(n->dependency,key)) n->bindings[n->bindingCount++]=(xide_diagnostic_binding){bindingUri,path,key,(int)bindingVersion,0,0};
+    else {free(path);free(key);}
+   }
+   for(size_t i=0;i<used;++i) free(seen[i]);
+   if(!okay) goto failed;
+   if(n->overlay) {
+    int own=0;for(size_t i=0;i<n->bindingCount;++i) if(!xidePathNativeKeyCompare(n->key,n->bindings[i].key) && n->version==n->bindings[i].version && !strcmp(n->uri,n->bindings[i].uri)) own=1;
+    if(!own) goto failed;
+   }
+  }
  }
  if(stopped(cancelled,user)) {reason="Diagnostic decoding cancelled.";goto failed;}
  if(!xideDiagnosticDependenciesReference(dependencies,n->path,clear ? NULL : xideDiagnosticDependencyId(n->dependency))) {reason=xideDiagnosticDependenciesError(dependencies);goto failed;}
@@ -127,8 +153,10 @@ static int normalizedDigest(const xls_text* source,char hex[65],size_t* length,i
 int xideDiagnosticNoticeMap(xide_diagnostic_notice* n,const xls_text* source,int (*cancelled)(void*),void* user)
 {
  if(!n || n->cleared || n->mapped || !source || xlsTextSize(source)>TEXT_LIMIT || stopped(cancelled,user)) return 0;
+ n->sourceVerified=0;
  char digest[65];size_t size=0;
  if(!normalizedDigest(source,digest,&size,cancelled,user) || size!=n->normalizedSize || strcmp(digest,n->normalizedSha256)) return 0;
+ n->sourceVerified=1;
  xide_lsp_position* positions=xrtCalloc(n->count*2+1,sizeof(*positions));if(!positions) return 0;
  int bom=xlsTextSize(source)>=3 && !memcmp(xlsTextData(source),"\xef\xbb\xbf",3),okay=1;
  for(size_t i=0;okay && i<n->count;++i) {

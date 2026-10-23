@@ -156,22 +156,26 @@ static char* normalized(const char* text,size_t size)
  for(size_t i=0;i<size;++i) { if(text[i]=='\r') { if(i+1<size && text[i+1]=='\n') ++i; out[at++]='\n'; } else out[at++]=text[i]; }
  out[at]=0; return out;
 }
-static char* diskText(xide_language_check* q,const char* path,const xvalue* item,char** original,xide_model_error* e)
+char* xideLanguageReadDiskProof(const char* path,const xvalue* item,int (*stop)(void*),void* user,char** original,xide_model_error* e)
 {
+ if(original) *original=NULL;
  int64 rawSize=0,textSize=0; xfileinfo first,last,named; unsigned char probe; size_t done=0,probeSize=0,bom=0; char *raw=NULL,*text=NULL;
  if(!integer(get(item,"rawSize"),&rawSize,0,FILE_LIMIT) || !integer(get(item,"textSize"),&textSize,0,FILE_LIMIT)) { fail(e,"源码报告长度无效。"); return NULL; }
  xfile file=xideIoOpen(path,XFILE_READ);
  int okay=file && xideIoReceiptFileStat(file,&first) && infoEqual(&first,&first) && first.Size==(uint64)rawSize && metadata(item,&first);
  if(okay) { raw=malloc((size_t)rawSize+1); okay=raw!=NULL; }
- if(okay) okay=!cancelled(q) && xrtReadFull(file,raw,(size_t)rawSize,&done) && done==(size_t)rawSize && xrtRead(file,&probe,1,&probeSize) && !probeSize && xideIoReceiptFileStat(file,&last) && infoEqual(&first,&last) && xideIoReceiptStat(path,&named) && infoEqual(&first,&named) && hash(raw,done,get(item,"rawSha256"));
+ if(okay) okay=(!stop || !stop(user)) && xrtReadFull(file,raw,(size_t)rawSize,&done) && done==(size_t)rawSize && xrtRead(file,&probe,1,&probeSize) && !probeSize && xideIoReceiptFileStat(file,&last) && infoEqual(&first,&last) && xideIoReceiptStat(path,&named) && infoEqual(&first,&named) && hash(raw,done,get(item,"rawSha256"));
  if(file && !xrtClose(file)) okay=0;
  if(okay) {
   raw[done]=0; if(done>=3 && !memcmp(raw,"\xef\xbb\xbf",3)) bom=3;
   okay=done-bom==(size_t)textSize && !memchr(raw+bom,0,done-bom) && (!(done-bom) || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,raw+bom,(int)(done-bom),NULL,0)) && hash(raw+bom,done-bom,get(item,"textSha256"));
  }
- if(okay) { text=normalized(raw+bom,done-bom); if(text && original) { memmove(raw,raw+bom,done-bom+1); *original=raw; raw=NULL; } }
+ if(okay && (!stop || !stop(user))) { text=normalized(raw+bom,done-bom); if(text && original) { memmove(raw,raw+bom,done-bom+1); *original=raw; raw=NULL; } }
  free(raw); if(!text) fail(e,"磁盘输入与编译器使用的源码摘要、身份或编码不一致。"); return text;
 }
+static int diskProofCancelled(void* user) {return cancelled(user);}
+static char* diskText(xide_language_check* q,const char* path,const xvalue* item,char** original,xide_model_error* e)
+{return xideLanguageReadDiskProof(path,item,diskProofCancelled,q,original,e);}
 int xideLanguageCheckPackagePath(char** out,xide_model_error* e)
 {
  SetLastError(ERROR_SUCCESS); DWORD n=GetEnvironmentVariableW(L"XLANG_PACKAGE_PATH",NULL,0),code=GetLastError(); *out=NULL;

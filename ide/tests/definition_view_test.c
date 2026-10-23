@@ -89,6 +89,9 @@ static int verify(void* user)
  } else {
   CHECK(replace(xl,overload) && gotoOffset(&app,xl,(int)(strstr(overload,"pick(\"x\")")-overload)) && requestDefinition(&app) && waitDefinition(&app) && !app.languageView->definitionProofSupported && !app.languageView->snapshotResult && !app.languageView->definitionRequest && !app.languageView->definitionPending);
  }
+ /* The cold F12/dependency/disk queries above exercise default automatic mode.
+    The remaining oracle inspects the explicit manual batch representation. */
+ if(!f->legacy) { CHECK(app.languageView->autoEnabled); app.disableAutomaticDiagnostics=1; reset(&app); automaticDestroy(app.languageView); }
  CHECK(replace(xl,overload) && xideEditorShow(&app,xl)==XUI_OK && xideActionExecute(&app,XIDE_ACTION_CHECK_CURRENT)==XIDE_ACTION_DISPATCHED && waitChecked(&app) && xideActionQuery(&app,XIDE_ACTION_DEFINITION).enabled);
  int call=(int)(strstr(overload,"pick(\"x\")")-overload),definition=(int)(strstr(overload,"pick(string")-overload);
  CHECK(gotoOffset(&app,xl,call) && xuiInputKeyDown(app.context,XUI_KEY_F12,0)==XUI_OK && xuiInputKeyUp(app.context,XUI_KEY_F12,0)==XUI_OK && waitDefinition(&app) && app.activeDocument==xl && caret(xl)==definition && capture(&app,light));

@@ -213,10 +213,40 @@ static void replayTranscript(const char* path)
  for(size_t i=0;i<64;++i) {xrtFree(sources[i].uri);xlsTextRelease(sources[i].text);}
  printf("real diagnostic stream accepted: batches=%zu notices=%zu mapped-exact-snapshot=%zu unmatched-overlay=%zu; bounded background FIFO and retirement.\n",state.batches,state.notices,state.mapped,state.unmatched);
 }
+static void dependencyOverlayVersions(void)
+{
+ gateSet(&startupGate,1);gateSet(&mapGate,1);xide_diagnostic_stream* stream=xideDiagnosticStreamCreate(NULL,NULL);xls_sync* sync=xlsSyncCreateMonotonic(2);char* second=xideLspPathToUri("D:/工程😀/main.xl",NULL);CHECK(stream && sync && second && xideDiagnosticStreamReset(stream,1));
+ xls_sync_document docs[]={{"file:///D:/dep.xl",bodyA,strlen(bodyA),11,1},{second,bodyA,strlen(bodyA),22,1}};CHECK(xlsSyncUpdate(sync,docs,2,discardEmit,NULL) && xlsSyncVersion(sync,second)==2);
+ xvalue* saved=NULL;
+ for(size_t i=0;i<4;++i) {
+  xide_diagnostic_batch* batch=makeBatch(i==0,0,NULL);xvalue* root=publication(1,hashA,"one"),*proof=get(get(root,"params"),"xlang"),*overlays=xrtValueArray();CHECK(root && overlays && put(proof,"serial",xrtValueString(xrtStrView("2"))));
+  for(size_t j=0;j<3;++j) {
+   if(i==1 && j==1) continue;
+   xvalue* binding=xrtValueObject();CHECK(binding && put(binding,"uri",xrtValueString(xrtStrView(j==0 ? docs[0].uri : j==1 ? second : "file:///D:/unrelated.xl"))) && put(binding,"version",xrtValueInt(j==0 ? 1 : j==1 ? i==2 ? 9 : 2 : 77)) && xrtValueArrayAppend(overlays,binding));xrtValueRelease(binding);
+  }
+  CHECK(put(proof,"overlays",overlays));append(batch,root);CHECK(xideDiagnosticStreamSubmitCausal(stream,1,101+i,2,batch,sync,NULL)==1);xide_diagnostic_result* result=waitResult(stream);CHECK(result->valid && result->count==1 && !result->unmappedOverlays && result->notices[0]->mapped && result->notices[0]->hasOverlays && result->notices[0]->hasSerial && result->notices[0]->inputSerial==2 && result->notices[0]->wireBytes>0);
+  xide_diagnostic_notice* notice=result->notices[0];CHECK(notice->overlaysMatched==(i==0 || i==3) && notice->bindingCount==(i==1 ? 1u : 2u));
+  if(notice->overlaysMatched) CHECK(notice->bindings[0].identity==11 && notice->bindings[1].identity==22 && notice->bindings[1].revision==1);
+  if(i==3) {saved=xrtValueDeepClone(notice->params);CHECK(saved);}
+  xideDiagnosticResultRelease(result);
+ }
+ xide_diagnostic_batch* batch=makeBatch(0,0,NULL);append(batch,envelope("textDocument/publishDiagnostics",xrtValueDeepClone(saved)));append(batch,publication(1,hashA,"missing negotiated proof"));
+ CHECK(xideDiagnosticStreamSubmitCausal(stream,1,200,2,batch,sync,NULL)==1);xide_diagnostic_result* result=waitResult(stream);CHECK(!result->valid && result->count==2 && !xideDiagnosticResultTakeNotice(result,0) && *result->error);xideDiagnosticResultRelease(result);
+ CHECK(xideDiagnosticStreamReset(stream,2));batch=makeBatch(1,0,NULL);xvalue* future=xrtValueDeepClone(saved);CHECK(future && put(get(future,"xlang"),"serial",xrtValueString(xrtStrView("3"))));append(batch,envelope("textDocument/publishDiagnostics",future));
+ CHECK(xideDiagnosticStreamSubmitCausal(stream,2,201,2,batch,sync,NULL)==1);result=waitResult(stream);CHECK(!result->valid && !xideDiagnosticResultTakeNotice(result,0) && strstr(result->error,"future"));xideDiagnosticResultRelease(result);
+ CHECK(xideDiagnosticStreamReset(stream,3));batch=makeBatch(1,0,NULL);
+ append(batch,envelope("textDocument/publishDiagnostics",xrtValueDeepClone(saved)));
+ xvalue* invalid=xrtValueDeepClone(saved);CHECK(invalid && put(get(get(xrtValueArrayGet(get(invalid,"diagnostics"),0),"range"),"end"),"character",xrtValueInt(99999)));
+ append(batch,envelope("textDocument/publishDiagnostics",invalid));
+ CHECK(xideDiagnosticStreamSubmitCausal(stream,3,202,2,batch,sync,NULL)==1);result=waitResult(stream);
+ CHECK(!result->valid && result->count==2 && result->notices[0]->mapped && result->notices[1]->sourceVerified && !result->notices[1]->mapped && !xideDiagnosticResultTakeNotice(result,0) && *result->error);
+ xideDiagnosticResultRelease(result);xrtValueRelease(saved);
+ xlsSyncDestroy(sync);xideDiagnosticStreamDestroy(stream);free(second);
+}
 int main(int argc,char** argv)
 {
  gateInit(&startupGate,1);gateInit(&mapGate,1);gateInit(&retireGate,1);xrtAtomic32Init(&failAt,0);
  if(argc==3 && !strcmp(argv[1],"--transcript")) {replayTranscript(argv[2]);gateUnit(&startupGate);gateUnit(&mapGate);gateUnit(&retireGate);return 0;}
- fifoAndSnapshots();resetDuringMapping();poisonAndUnmatchedSources();retirementAndBounds();allocationAndShutdown();gateUnit(&startupGate);gateUnit(&mapGate);gateUnit(&retireGate);
+ fifoAndSnapshots();resetDuringMapping();poisonAndUnmatchedSources();retirementAndBounds();allocationAndShutdown();dependencyOverlayVersions();gateUnit(&startupGate);gateUnit(&mapGate);gateUnit(&retireGate);
  printf("diagnostic_stream_test passed: %u checks; bounded FIFO, immutable exact-source snapshots, off-owner decoding/mapping/retirement, reset during blocked mapping, no partial invalid batch delivery, poisoned-session recovery, mismatched source handling, allocation rollback and detached lifetime.\n",checks);return 0;
 }

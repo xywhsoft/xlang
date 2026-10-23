@@ -12,6 +12,7 @@
 #include <string.h>
 typedef struct fixture { const char *directory,*compiler; HDESK desktop; int started,failed; } fixture;
 #define CHECK(v) do { if(!(v)) { fprintf(stderr,"language_view_test:%d: %s; %s; %s\n",__LINE__,#v,error.message,xideLanguageViewMessage(&app)); f->failed=1; goto cleanup; } } while(0)
+/* Explicit manual compatibility oracle. Default automatic mode has its own real UI fixture. */
 static int writeText(const char* p,const char* s) { return xrtFileWriteAtomic(p,(xbytesview){(const unsigned char*)s,strlen(s)}); }
 static int settle(xide_app* a) { if(xuiDispatchPendingEvents(a->context)!=XUI_OK) return 0; xideEditorPoll(a); xideTaskViewPoll(a); xideLanguageViewPoll(a); xideWorkbenchLayout(a); return xuiLayout(a->context)==XUI_OK && !a->frameError; }
 static int waitCheck(xide_app* a) { uint64_t until=GetTickCount64()+15000; do { if(!settle(a)) return 0; if(!xideLanguageViewBusy(a)) return 1; Sleep(5); } while(GetTickCount64()<until); return 0; }
@@ -41,7 +42,7 @@ static int verify(void* user)
  wchar_t module[32768]; char binary[131072]; CHECK(GetModuleFileNameW(NULL,module,32768)); wchar_t* slash=wcsrchr(module,L'\\'); CHECK(slash); wcscpy(slash+1,L"xide_language_program.exe"); CHECK(WideCharToMultiByte(CP_UTF8,0,module,-1,binary,sizeof(binary),NULL,NULL));
  const char* saved="int 中文 = missingName\n"; const char* nativeText="int helper(void) { return 42; }\n";
  CHECK(root && tools && compiler && entry && mode && xrtDirCreateAll(tools) && xrtFileCopy(binary,compiler,true) && writeText(mode,"bad") && writeText(entry,saved) && writeText(native,nativeText));
- app.hidden=1; app.noSession=1; app.highDpi=1; app.dpiOverride=1.25f; app.compilerPath=compiler; app.settingsPath=settings; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
+ app.hidden=1; app.noSession=1; app.disableAutomaticDiagnostics=1; app.highDpi=1; app.dpiOverride=1.25f; app.compilerPath=compiler; app.settingsPath=settings; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
  CHECK(xideActionCount()==73 && xideActionNamed("language.checkSaved")->id==66 && xideActionNamed("language.cancelCheck")->id==67 && !xideActionQuery(&app,XIDE_ACTION_CHECK_SAVED).enabled);
  CHECK(xideEditorOpen(&app,entry,&error) && xideEditorOpen(&app,native,&error) && settle(&app)); xide_document *xl=xideDocumentsFind(&app.documents,entry),*c=app.activeDocument; CHECK(xl && c && token(xl->editor,"int",XUI_CODE_TOKEN_TYPE) && token(c->editor,"return",XUI_CODE_TOKEN_KEYWORD) && !xideActionQuery(&app,XIDE_ACTION_CHECK_SAVED).enabled);
  xui_code_document core=xuiCodeEditGetDocument(xl->editor); uint32_t cv=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(c->editor)),xv=xuiCodeDocumentGetVersion(core); int windows=xuiDockPanelGetWindowCount(app.dock);
@@ -73,7 +74,7 @@ static int verify(void* user)
  CHECK(killOwnedServer()); uint64_t until=GetTickCount64()+5000; do { CHECK(settle(&app)); if(!xideLanguageViewDiagnosticCount(&app)) break; Sleep(5); } while(GetTickCount64()<until);
  CHECK(!xideLanguageViewDiagnosticCount(&app) && strstr(xideLanguageViewMessage(&app),"已结束") && xideActionQuery(&app,XIDE_ACTION_CHECK_SAVED).enabled && xideActionExecute(&app,XIDE_ACTION_CHECK_SAVED)==XIDE_ACTION_DISPATCHED && waitCheck(&app) && xideLanguageViewDiagnosticCount(&app)==1);
  if(f->compiler) { xideLanguageViewStop(&app); app.compilerPath=f->compiler; /* Recreate compiler ownership through a fresh native app, no settings mutation. */
-  if(began) { CHECK(xgeEnd()==XGE_OK); began=0; } xideAppDestroy(&app); memset(&app,0,sizeof(app)); app.hidden=1; app.noSession=1; app.highDpi=1; app.compilerPath=f->compiler; app.settingsPath=settings; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
+  if(began) { CHECK(xgeEnd()==XGE_OK); began=0; } xideAppDestroy(&app); memset(&app,0,sizeof(app)); app.hidden=1; app.noSession=1; app.disableAutomaticDiagnostics=1; app.highDpi=1; app.compilerPath=f->compiler; app.settingsPath=settings; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
   CHECK(xideEditorOpen(&app,moved,&error) && xideEditorOpen(&app,native,&error) && settle(&app)); xl=xideDocumentsFind(&app.documents,moved); CHECK(xl && xideEditorShow(&app,xl)==XUI_OK && xideActionExecute(&app,XIDE_ACTION_CHECK_SAVED)==XIDE_ACTION_DISPATCHED && waitCheck(&app) && xideLanguageViewDiagnosticCount(&app)==1 && centerBottom(&app,xl) && capture(&app,real));
  }
  printf("language_view_test passed: native menu/actions, real CodeEdit diagnostics and central problem jump, C/xlang syntax, stale edit/save/cancel/language/rename/close guards, owned server crash/restart/full resync and native renders in %s.\n",root);

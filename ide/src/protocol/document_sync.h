@@ -17,6 +17,15 @@ typedef struct xls_sync_stats { uint64_t opens,changes,closes,textBytes; } xls_s
 typedef int (*xls_sync_emit)(void* user,const char* method,const xvalue* params);
 /* changeKind is 1 (full) or 2 (incremental). One owner thread per instance. */
 xls_sync* xlsSyncCreate(int changeKind);
+/* IDE diagnostic-proof mode: every new identity or changed body receives a
+ * connection-unique positive wire version, including close/reopen. Counter
+ * exhaustion requires a fresh connection; failed planning consumes no numbers.
+ * The original constructor preserves its per-document compatibility policy. */
+xls_sync* xlsSyncCreateMonotonic(int changeKind);
+typedef struct xls_sync_binding {const char* uri;uint64_t identity,revision;int version;} xls_sync_binding;
+/* Borrow metadata at an online slot, no source scan/allocation. One sync owner;
+ * false for a poisoned source, invalid output or end of the online slots. */
+int xlsSyncBindingAt(const xls_sync* sync,size_t index,xls_sync_binding* binding);
 /* Owner-thread snapshot. The returned instance has its own mutable state and
  * may move to another thread; published immutable entries/text are retained.
  * A poisoned source cannot be cloned. No document body is scanned or copied. */

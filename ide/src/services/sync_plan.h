@@ -4,12 +4,14 @@
 #include "services/language_client.h"
 
 typedef struct xide_sync_input { const char* uri;xvalue* text;uint64_t identity,revision; } xide_sync_input;
+typedef struct xide_sync_operation {xvalue* uri;int close;} xide_sync_operation;
 typedef struct xide_sync_result {
     uint64_t token;
     int valid;
     xls_sync* sync;
     xide_language_batch* batch;
     char digest[65];size_t count;int versions[64];
+    size_t operationCount;xide_sync_operation operations[128];
 } xide_sync_result;
 typedef struct xide_sync_planner xide_sync_planner;
 /* One owner, one XRT worker; wake never touches UI and outlives Destroy.

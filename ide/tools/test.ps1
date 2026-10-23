@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$SkipBuild, [switch]$SkipRender, [string]$CompilerPath, [string]$CompletionCompilerPath, [string]$CServerPath, [string]$CInputTraceServerPath, [string]$BridgeCompilerPath, [string]$MappingCompilerPath, [string]$PortablePackagePath, [string]$BuildInputCompilerPath, [string]$TestRoot, [string]$TypeFactsCompilerPath, [string]$PublicTypeCompilerPath, [string]$ClassScalarCompilerPath, [string]$NativeScalarCompilerPath, [switch]$NativeDebugTrace, [string]$CServerMaterialsManifest, [string]$NativeAggregateCompilerPath, [string]$NativeExtensionCompilerPath)
 $ErrorActionPreference='Stop'
 $ideRoot=Split-Path -Parent $PSScriptRoot
@@ -18,6 +18,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Native semantic completion, source guards and 
 if ($LASTEXITCODE -ne 0) { throw 'Native semantic/IR diagnostics, guarded index and navigation gate failed.' }
 & python -X utf8 -B (Join-Path $PSScriptRoot 'check_lsp_diagnostic_dependencies.py') --server (Join-Path $releaseRoot 'xlang-ls.exe') --receiver (Join-Path $releaseRoot 'diagnostic_dependencies_test.exe') --receiver (Join-Path $releaseRoot 'diagnostic_stream_test.exe') --output (Join-Path $testRoot ('diagnostic-dependencies-'+[Guid]::NewGuid().ToString('N')))
 if ($LASTEXITCODE -ne 0) { throw 'Shared exact diagnostic dependency dictionary gate failed.' }
+& python -X utf8 -B (Join-Path $PSScriptRoot 'check_lsp_overlay_proofs.py') --server (Join-Path $releaseRoot 'xlang-ls.exe') --output (Join-Path $testRoot ('diagnostic-overlay-proofs-'+[Guid]::NewGuid().ToString('N')))
+if ($LASTEXITCODE -ne 0) { throw 'Causal diagnostic overlay input proof gate failed.' }
 if ($NativeExtensionCompilerPath) {
     if (-not $CServerPath) { throw 'Native extension checks require CServerPath.' }
     & python -X utf8 (Join-Path $PSScriptRoot 'check_c_extensions.py') --compiler $NativeExtensionCompilerPath --server $CServerPath --fixture (Join-Path $releaseRoot 'c_extension_test.exe') --output (Join-Path $testRoot 'c-extensions')
@@ -111,6 +113,8 @@ $highlightCompiler=if ($CompilerPath) { $CompilerPath } else { Join-Path $releas
 if ($LASTEXITCODE -ne 0) { throw 'IDE semantic document highlight requests, guards, capacity and pixel gate failed.' }
 & (Join-Path $releaseRoot 'completion_frame_test.exe') (Join-Path $testRoot 'completion-frames') $highlightCompiler
 if ($LASTEXITCODE -ne 0) { throw 'Actual application-frame completion input/render gate failed.' }
+& (Join-Path $releaseRoot 'automatic_diagnostics_view_test.exe') (Join-Path $testRoot 'automatic-diagnostics-ui') (Join-Path $releaseRoot 'absent-executor\xl.exe')
+if ($LASTEXITCODE -ne 0) { throw 'Default automatic diagnostic UI, ownership and backpressure gate failed.' }
 & (Join-Path $releaseRoot 'snapshot_report_test.exe')
 if ($LASTEXITCODE -ne 0) { throw 'Overlay source report integrity gate failed.' }
 & (Join-Path $releaseRoot 'diagnostic_paths_test.exe')

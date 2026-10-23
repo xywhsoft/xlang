@@ -13,6 +13,7 @@
 #include "../src/ui/language_view.c"
 typedef struct fixture { const char *root,*compiler;HDESK desktop;int started,failed,checks,legacy; } fixture;
 #define CHECK(e) do {++f->checks;if(!(e)){fprintf(stderr,"sync_view:%d %s; %s; %s; request=%d decode=%d applied=%zu receipt=%d invalid=%d\n",__LINE__,#e,error.message,xideLanguageViewMessage(&app),app.languageView ? app.languageView->highlightRequest : 0,app.languageView ? app.languageView->highlightDecoding : 0,app.languageView ? app.languageView->highlightApplied : 0,app.languageView ? app.languageView->receiptReady : 0,app.languageView ? app.languageView->invalidated : 0);f->failed=1;goto cleanup;}}while(0)
+/* Explicit manual compatibility oracle. Default automatic mode has its own real UI fixture. */
 static int writeText(const char* path,const char* text)
 { return xrtFileWriteAtomic(path,(xbytesview){(const unsigned char*)text,strlen(text)}); }
 static int settle(xide_app* app)
@@ -58,7 +59,7 @@ static int run(void* user)
 
  const char* saved="// initial\nfunc main(...) as int\n int result = 7\n return result\nend\n";
  entry=xidePathResolve(f->root,"sync😀.xl");CHECK(entry && writeText(entry,saved));
- app.hidden=1;app.noSession=1;app.compilerPath=f->compiler;CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK);began=1;
+ app.hidden=1;app.noSession=1; app.disableAutomaticDiagnostics=1;app.compilerPath=f->compiler;CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK);began=1;
  CHECK(xideEditorOpen(&app,entry,&error));xide_document* xl=app.activeDocument;xui_code_document document=xuiCodeEditGetDocument(xl->editor);xide_language_view* v=app.languageView;
  int declaration=(int)(strstr(saved,"result")-saved),use=(int)(strstr(saved+declaration+6,"result")-saved);
  CHECK(point(&app,xl,declaration) && waitHighlights(&app,2) && capture(&app,f->root,"sync-current.png") && key(&app,XUI_KEY_ESCAPE));

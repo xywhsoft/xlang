@@ -11,7 +11,7 @@ struct xide_sync_planner {
     void (*wake)(void*);void* user;
 };
 void xideSyncResultRelease(xide_sync_result* result)
-{ if(result) {xlsSyncDestroy(result->sync);xideLanguageBatchDestroy(result->batch);xrtFree(result);} }
+{ if(result) {for(size_t i=0;i<result->operationCount;++i) xrtValueRelease(result->operations[i].uri);xlsSyncDestroy(result->sync);xideLanguageBatchDestroy(result->batch);xrtFree(result);} }
 static void releaseJob(sync_job* job)
 {
     if(!job) return;
@@ -21,7 +21,12 @@ static void releaseJob(sync_job* job)
 static int current(xide_sync_planner* planner,uint64_t token)
 { xrtMutexLock(&planner->lock);int okay=!planner->stop && planner->current==token;xrtMutexUnlock(&planner->lock);return okay; }
 static int collect(void* user,const char* method,const xvalue* params)
-{ return xideLanguageBatchAppend(user,method,params); }
+{
+ xide_sync_result* result=user;const xvalue* document=xrtValueObjectGet(params,xrtStrView("textDocument"));
+ const xvalue* uri=xrtValueObjectGet(document,xrtStrView("uri"));
+ if(result->operationCount==128 || !uri || !xideLanguageBatchAppend(result->batch,method,params)) return 0;
+ result->operations[result->operationCount++]=(xide_sync_operation){xrtValueRetain(uri),!strcmp(method,"textDocument/didClose")};return 1;
+}
 static int32 run(ptr user)
 {
     xide_sync_planner* planner=user;
@@ -46,7 +51,7 @@ static int32 run(ptr user)
                 documents[i]=(xls_sync_document){uri.Data,text.Data ? text.Data : "",text.Size,input->identity,input->revision};
             }
             result->batch=xideLanguageBatchCreate();
-            okay=okay && result->batch && xlsSyncUpdate(result->sync,documents,job->count,collect,result->batch) &&
+            okay=okay && result->batch && xlsSyncUpdate(result->sync,documents,job->count,collect,result) &&
                 xlsSyncInputState(result->sync,result->digest,&result->count);
             for(size_t i=0;okay && i<job->count;++i) {
                 result->versions[i]=xlsSyncVersion(result->sync,documents[i].uri);if(!result->versions[i]) okay=0;

@@ -16,7 +16,7 @@ typedef struct sync_entry {
     xls_text* text;
 } sync_entry;
 typedef struct sync_message { const char* method; xvalue* params; size_t textBytes; } sync_message;
-struct xls_sync { xarray entries; int kind,failed; xls_sync_stats stats; };
+struct xls_sync { xarray entries; int kind,failed,monotonic,nextVersion; xls_sync_stats stats; };
 
 static xstrview sv(const char* text) { return (xstrview){text,strlen(text)}; }
 static int put(xvalue* object,const char* name,xvalue* value)
@@ -43,7 +43,7 @@ static sync_entry* find(const xarray* entries,const char* uri)
     }
     return NULL;
 }
-static sync_entry* createEntry(const xls_sync_document* document,sync_entry* previous)
+static sync_entry* createEntry(const xls_sync_document* document,sync_entry* previous,int* clock)
 {
     sync_entry* entry=xrtMalloc(sizeof(*entry));
     if(!entry) return NULL;
@@ -60,8 +60,8 @@ static sync_entry* createEntry(const xls_sync_document* document,sync_entry* pre
         !memcmp(xlsTextData(previous->text),document->text,document->length)) {
         entry->text=xlsTextRetain(previous->text); entry->version=previous->version;
     } else {
-        if(same && previous->version==INT_MAX) { release(entry); return NULL; }
-        entry->version=same ? previous->version+1 : 1;
+        if((clock && *clock==INT_MAX) || (!clock && same && previous->version==INT_MAX)) { release(entry); return NULL; }
+        entry->version=clock ? ++*clock : same ? previous->version+1 : 1;
         entry->text=xlsTextCreate(document->text,document->length,TEXT_LIMIT,NULL);
     }
     if(!entry->text) { release(entry); return NULL; }
@@ -77,6 +77,15 @@ xls_sync* xlsSyncCreate(int changeKind)
     if(!xrtArrayInit(&sync->entries,sizeof(sync_entry*))) { xrtFree(sync); return NULL; }
     return sync;
 }
+xls_sync* xlsSyncCreateMonotonic(int changeKind)
+{xls_sync* sync=xlsSyncCreate(changeKind);if(sync) sync->monotonic=1;return sync;}
+int xlsSyncBindingAt(const xls_sync* sync,size_t index,xls_sync_binding* binding)
+{
+    if(binding) *binding=(xls_sync_binding){0};
+    if(!sync || sync->failed || !binding || index>=sync->entries.Count) return 0;
+    const sync_entry* entry=*(sync_entry*const*)xrtArrayConstGet(&sync->entries,index);
+    *binding=(xls_sync_binding){entry->uri,entry->identity,entry->revision,entry->version};return 1;
+}
 void xlsSyncDestroy(xls_sync* sync)
 { if(sync) { freeEntries(&sync->entries); xrtFree(sync); } }
 xls_sync* xlsSyncClone(const xls_sync* sync)
@@ -87,7 +96,7 @@ xls_sync* xlsSyncClone(const xls_sync* sync)
         sync_entry* entry=retain(*(sync_entry*const*)xrtArrayConstGet(&sync->entries,i));
         if(!xrtArrayPush(&result->entries,&entry)) { release(entry);xlsSyncDestroy(result);return NULL; }
     }
-    result->stats=sync->stats;return result;
+    result->stats=sync->stats;result->monotonic=sync->monotonic;result->nextVersion=sync->nextVersion;return result;
 }
 int xlsSyncVersion(const xls_sync* sync,const char* uri)
 {
@@ -156,7 +165,7 @@ int xlsSyncUpdate(xls_sync* sync,const xls_sync_document* documents,size_t count
                   xls_sync_emit emit,void* user)
 {
     if(!sync || sync->failed || !emit || count>DOC_LIMIT || (count && !documents)) return 0;
-    xarray next={0},messages={0}; size_t total=0; int okay=0;
+    xarray next={0},messages={0}; size_t total=0; int okay=0,nextVersion=sync->nextVersion;
     if(!xrtArrayInit(&next,sizeof(sync_entry*)) || !xrtArrayInit(&messages,sizeof(sync_message))) goto finished;
     for(size_t i=0;i<count;++i) {
         const xls_sync_document* document=&documents[i];
@@ -166,7 +175,7 @@ int xlsSyncUpdate(xls_sync* sync,const xls_sync_document* documents,size_t count
         total+=document->length;
         sync_entry* old=find(&sync->entries,document->uri);
         sync_entry* entry=old && old->identity==document->identity && old->revision==document->revision ?
-            retain(old) : createEntry(document,old);
+            retain(old) : createEntry(document,old,sync->monotonic ? &nextVersion : NULL);
         if(!entry) goto finished;
         if(xlsTextSize(entry->text)!=document->length || !xrtArrayPush(&next,&entry)) { release(entry); goto finished; }
     }
@@ -188,7 +197,7 @@ int xlsSyncUpdate(xls_sync* sync,const xls_sync_document* documents,size_t count
         else ++sync->stats.closes;
         sync->stats.textBytes+=message->textBytes;
     }
-    freeEntries(&sync->entries); sync->entries=next; memset(&next,0,sizeof(next)); okay=1;
+    freeEntries(&sync->entries); sync->entries=next;sync->nextVersion=nextVersion;memset(&next,0,sizeof(next)); okay=1;
 finished:
     freeEntries(&next);
     for(size_t i=0;i<messages.Count;++i) xrtValueRelease(((sync_message*)xrtArrayGet(&messages,i))->params);

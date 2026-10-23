@@ -25,17 +25,35 @@ static void diagnosticMap(server* s,const xide_diagnostic_publication* publicati
 { for(size_t i=0;i<DOC_LIMIT;++i) indices[i]=s->docs[i].uri ? xideDiagnosticPublicationFind(publication,s->docs[i].path) : SIZE_MAX; }
 /* Fixed metadata projection from this publication, no source/report clone or
    file I/O. Generation is ordering context, not a client synchronization ack. */
+static const xvalue* diagnosticOverlayBindings(server* s)
+{
+ if(s->diagnosticOverlayState && s->diagnosticOverlayGeneration==s->generation) return s->diagnosticOverlayState;
+ xvalue* bindings=xrtValueArray();int okay=bindings!=NULL;
+ for(size_t i=0;okay && i<DOC_LIMIT;++i) if(s->docs[i].uri) {
+  xvalue* item=xrtValueObject();okay=item && put(item,"uri",xrtValueString(sv(s->docs[i].uri))) && put(item,"version",xrtValueInt(s->docs[i].version)) && xrtValueArrayAppend(bindings,item);xrtValueRelease(item);
+ }
+ if(!okay) {xrtValueRelease(bindings);return NULL;}
+ xrtValueRelease(s->diagnosticOverlayState);s->diagnosticOverlayState=bindings;s->diagnosticOverlayGeneration=s->generation;return bindings;
+}
 static xvalue* diagnosticEnvelope(server* s,const xvalue* group,int clear,const char* dependency)
 {
  char generation[32]; snprintf(generation,sizeof(generation),"%llu",s->generation);
  xvalue *out=xrtValueObject(),*document=NULL;
  int okay=out && put(out,"schema",xrtValueInt(1)) && put(out,"generation",xrtValueString(sv(generation))) && put(out,"cleared",xrtValueBool(clear!=0));
+ if(okay && s->diagnosticOverlayProof) {char serial[32];snprintf(serial,sizeof(serial),"%llu",s->inputSerial);okay=put(out,"serial",xrtValueString(sv(serial)));}
  if(okay && !clear) {
   const char* fields[]={"path","origin","version","normalizedSize","normalizedSha256","input"};
   document=xrtValueObject(); okay=document!=NULL;
   for(size_t i=0;okay && i<sizeof(fields)/sizeof(*fields);++i) { const xvalue* value=get(group,fields[i]); if(value) okay=xrtValueObjectSet(document,sv(fields[i]),value); }
   if(okay) { okay=put(out,"document",document); document=NULL; }
   if(okay && s->diagnosticDependencyProof) okay=dependency && put(out,"dependencies",xrtValueString(sv(dependency)));
+  /* Bind this publication to the exact online versions. The receiver filters
+   * these bounded metadata rows by the already proven dependency dictionary;
+   * an unrelated edit therefore cannot invalidate this file's diagnostics.
+   * Build once per generation; no body hash/copy or filesystem operation. */
+  if(okay && s->diagnosticOverlayProof) {
+   const xvalue* bindings=diagnosticOverlayBindings(s);okay=bindings && xrtValueObjectSet(out,sv("overlays"),bindings);
+  }
  }
  xrtValueRelease(document); if(!okay) { xrtValueRelease(out); out=NULL; } return out;
 }
@@ -167,6 +185,10 @@ static void diagnosticInvalidatedRoots(server* s,const xvalue* invalidated,int k
   const char* key=string(xrtValueArrayGet(invalidated,i)); char* end=NULL; unsigned long long identity=key ? strtoull(key,&end,10) : 0;
   if(!identity || !end || *end || (kind==DIAGNOSTIC_PUT && identity==replaced)) continue;
   for(int j=0;j<DOC_LIMIT;++j) if(s->docs[j].uri && s->docs[j].identity==identity) {
+    /* The actor has proved this entry's old inputs invalid. A navigation guard
+     * may still await its periodic observation; never serve cached facts from
+     * it between the diagnostic withdrawal and the next native check. */
+    if(s->guard && !s->guardCancelled && s->guardUri && !strcmp(s->guardUri,s->docs[j].uri)) clearPublished(s);
    if(s->diagnosticResult && s->diagnosticResultRoot==j && s->diagnosticResultGeneration==s->generation) break;
    if(s->check && s->checkForDiagnostics && s->checkDocument==j && s->checkBatchGeneration==s->generation) break;
    diagnosticSchedule(s,j,(unsigned)s->diagnosticDelay); break;
@@ -249,10 +271,12 @@ static void diagnosticStop(server* s)
 static void diagnosticWatched(server* s,const xvalue* params)
 {
  if(!s->automaticDiagnostics) return;
+ if(s->inputSerial==ULLONG_MAX) {s->writeFailed=1;return;}
  const xvalue* changes=get(params,"changes");
  if(!changes || xrtValueType(changes)!=XVALUE_ARRAY) { fputs("xlang-ls: rejected watched file changes.\n",stderr); return; }
  size_t count=xrtValueCount(changes); if(!count) return;
  if(count>INVALIDATION_LIMIT) {
+  ++s->inputSerial;
   ++s->generation; if(s->check && s->snapshotMode) cancel(s,-32801,"Watched input set changed.");
   cancelCompletion(s,-32801,"Watched input set changed.",1); clearPublished(s);
   diagnosticResetState(s,"Watched file changes exceeded their bound; resynchronizing open documents."); return;
@@ -265,6 +289,7 @@ static void diagnosticWatched(server* s,const xvalue* params)
   if(okay) { size_t size=strlen(paths[i])+1; okay=size<=1024u*1024u-bytes; if(okay) bytes+=size; }
  }
  if(okay) {
+  ++s->inputSerial;
   ++s->generation; if(s->check && s->snapshotMode) cancel(s,-32801,"Watched input set changed.");
   cancelCompletion(s,-32801,"Watched input set changed.",1); clearPublished(s);
   for(size_t i=0;i<count;++i) diagnosticInput(s,-1,paths[i],0);
