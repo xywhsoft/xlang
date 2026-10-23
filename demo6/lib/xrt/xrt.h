@@ -25861,6 +25861,19 @@ typedef struct xtlsverifierconfig {
 } xtlsverifierconfig;
 
 
+/* Explicit resource limits. Zero disables that particular limit. Legacy
+ * verifier/peer entry points remain unlimited; Init supplies bounded defaults.
+ * Byte limits count complete DER, not prefixes or allocation capacities. */
+typedef struct xtlsverifylimits {
+	size_t MaxPeerCertificates;
+	size_t MaxPeerBytes;
+	size_t MaxPathCertificates;
+	size_t MaxSearchSteps;
+	size_t MaxTrustCertificates;
+	size_t MaxTrustBytes;
+} xtlsverifylimits;
+
+
 
 XRT_EXTERN_C_BEGIN
 
@@ -25870,10 +25883,22 @@ XRT_EXTERN_C_BEGIN
 XRT_API void xrtTlsVerifierConfigInit(xtlsverifierconfig* pConfig);
 
 
+/* Initialize finite peer/path/work/trust budgets without allocating. */
+XRT_API void xrtTlsVerifyLimitsInit(xtlsverifylimits* pLimits);
+
+
 
 /* 创建可跨线程共享的验证器；成功后接管自定义上下文。 */
 XRT_API xtlsverifier* xrtTlsVerifierCreate(
 	const xtlsverifierconfig* pConfig
+);
+
+
+/* Copy explicit limits and trust data. Context is adopted only on success.
+ * Limits is required; an all-zero value deliberately requests no limits. */
+XRT_API xtlsverifier* xrtTlsVerifierCreateLimited(
+	const xtlsverifierconfig* pConfig,
+	const xtlsverifylimits* pLimits
 );
 
 
@@ -25894,6 +25919,17 @@ XRT_API void xrtTlsVerifierRelease(xtlsverifier* pVerifier);
 XRT_API bool xrtTlsPeerVerify(
 	const xtlspeer* pPeer,
 	const xx509store* pStore,
+	xtlsverifypolicyproc pPolicy,
+	ptr pContext
+);
+
+
+/* Same modern path/name rules with explicit budgets; no input is truncated.
+ * Peer limits apply before custom policy or path work. Limits is required. */
+XRT_API bool xrtTlsPeerVerifyLimited(
+	const xtlspeer* pPeer,
+	const xx509store* pStore,
+	const xtlsverifylimits* pLimits,
 	xtlsverifypolicyproc pPolicy,
 	ptr pContext
 );
@@ -180207,6 +180243,8 @@ struct xtlsverifier {
 	xtlsverifyreleaseproc Release;
 	ptr Context;
 	bool AllowSha1;
+	bool Limited;
+	xtlsverifylimits Limits;
 };
 
 
@@ -180244,38 +180282,63 @@ static bool __xrtTlsVerifyCause(cstr sOperation, cstr sMessage)
 /* 深复制信任库，使验证器不再借用可变锚和 DER 视图。 */
 static xx509store* __xrtTlsVerifierStore(const xx509store* pSource)
 {
-	xx509store* pStore;
+	/* The canonical clone rebuilds the index without a quadratic dedup scan. */
+	return pSource != NULL ? xrtX509StoreClone(pSource) : NULL;
+}
+
+
+static bool __xrtTlsVerifyLimit(
+	size_t iActual, size_t iLimit, cstr sMessage
+)
+{
+	return (iLimit == 0) || (iActual <= iLimit) ||
+		__xrtTlsVerifyError(XERR_RANGE, "limit-tls-verifier", sMessage);
+}
+
+
+/* Evaluate trust budgets before creating a second owned store. */
+static bool __xrtTlsTrustLimits(
+	const xx509store* pStore, const xtlsverifylimits* pLimits
+)
+{
+	size_t iBytes = 0;
 	size_t iCount;
 
-	if ( pSource == NULL ) {
-		return NULL;
+	if ( (pStore == NULL) || (pLimits == NULL) ) {
+		return true;
 	}
-	iCount = xrtX509StoreCount(pSource);
-	pStore = xrtX509StoreCreate();
-	if ( pStore == NULL ) {
-		return NULL;
+	iCount = xrtX509StoreCount(pStore);
+	if ( !__xrtTlsVerifyLimit(iCount, pLimits->MaxTrustCertificates,
+		"TLS trust certificate count exceeds its budget") ) {
+		return false;
 	}
 	for ( size_t i = 0; i < iCount; i++ ) {
-		const xx509cert* pCertificate = xrtX509StoreCertificate(
-			pSource, i
-		);
+		const xx509cert* pCertificate = xrtX509StoreCertificate(pStore, i);
 
-		if ( (pCertificate == NULL) ||
-			(xrtX509StoreAdd(
-				pStore, pCertificate->Raw.Data, pCertificate->Raw.Size
-			) != X509_VALUE) ) {
-			xrtX509StoreFree(pStore);
-			return NULL;
+		if ( pCertificate == NULL ) {
+			return __xrtTlsVerifyCause("limit-tls-verifier", "TLS trust certificate is unavailable");
+		}
+		if ( pCertificate->Raw.Size > SIZE_MAX - iBytes ) {
+			return __xrtTlsVerifyError(XERR_RANGE, "limit-tls-verifier", "TLS trust byte count overflows");
+		}
+		iBytes += pCertificate->Raw.Size;
+		if ( !__xrtTlsVerifyLimit(iBytes, pLimits->MaxTrustBytes,
+			"TLS trust bytes exceed their budget") ) {
+			return false;
 		}
 	}
-	return pStore;
+	return true;
 }
 
 
 
 /* 验证公开对端视图的指针、角色和证书数量。 */
-static bool __xrtTlsPeerValid(const xtlspeer* pPeer)
+static bool __xrtTlsPeerValid(
+	const xtlspeer* pPeer, const xtlsverifylimits* pLimits
+)
 {
+	size_t iBytes = 0;
+
 	if ( (pPeer == NULL) ||
 		((pPeer->Role != XTLS_CLIENT) && (pPeer->Role != XTLS_SERVER)) ||
 		((pPeer->Name.Data == NULL) && (pPeer->Name.Size != 0)) ||
@@ -180286,6 +180349,11 @@ static bool __xrtTlsPeerValid(const xtlspeer* pPeer)
 			"TLS peer verification input is invalid"
 		);
 	}
+	if ( (pLimits != NULL) &&
+		!__xrtTlsVerifyLimit(pPeer->CertificateCount, pLimits->MaxPeerCertificates,
+			"TLS peer certificate count exceeds its budget") ) {
+		return false;
+	}
 	for ( size_t i = 0; i < pPeer->CertificateCount; i++ ) {
 		if ( (pPeer->Certificates[i].Raw.Data == NULL) ||
 			(pPeer->Certificates[i].Raw.Size == 0) ) {
@@ -180293,6 +180361,16 @@ static bool __xrtTlsPeerValid(const xtlspeer* pPeer)
 				XERR_ARGUMENT, "verify-tls-peer",
 				"TLS peer contains an invalid certificate view"
 			);
+		}
+		if ( pLimits != NULL ) {
+			if ( pPeer->Certificates[i].Raw.Size > SIZE_MAX - iBytes ) {
+				return __xrtTlsVerifyError(XERR_RANGE, "limit-tls-verifier", "TLS peer byte count overflows");
+			}
+			iBytes += pPeer->Certificates[i].Raw.Size;
+			if ( !__xrtTlsVerifyLimit(iBytes, pLimits->MaxPeerBytes,
+				"TLS peer bytes exceed their budget") ) {
+				return false;
+			}
 		}
 	}
 	if ( (pPeer->Role == XTLS_SERVER) && (pPeer->Name.Size == 0) ) {
@@ -180362,7 +180440,8 @@ static bool __xrtTlsPeerVerify(
 	const xx509store* pStore,
 	xtlsverifypolicyproc pPolicy,
 	ptr pContext,
-	bool bAllowSha1
+	bool bAllowSha1,
+	const xtlsverifylimits* pLimits
 )
 {
 	static const uint8 ServerPurpose[] = {
@@ -180376,10 +180455,12 @@ static bool __xrtTlsPeerVerify(
 	xx509pathsource Source;
 	xx509pathconfig Config;
 	xx509pathresult Result;
+	xx509pathdecision Decision;
 	xtlsverifiedpeer Verified;
 	bool bVerified;
+	size_t iPathCapacity;
 
-	if ( !__xrtTlsPeerValid(pPeer) || (pStore == NULL) ) {
+	if ( !__xrtTlsPeerValid(pPeer, pLimits) || (pStore == NULL) ) {
 		if ( pStore == NULL ) {
 			(void)__xrtTlsVerifyError(
 				XERR_ARGUMENT, "verify-tls-peer",
@@ -180387,6 +180468,14 @@ static bool __xrtTlsPeerVerify(
 			);
 		}
 		return false;
+	}
+	if ( !__xrtTlsTrustLimits(pStore, pLimits) ) {
+		return false;
+	}
+	iPathCapacity = pPeer->CertificateCount;
+	if ( (pLimits != NULL) && (pLimits->MaxPathCertificates != 0) &&
+		(iPathCapacity > pLimits->MaxPathCertificates) ) {
+		iPathCapacity = pLimits->MaxPathCertificates;
 	}
 	ppWorkspace = __xrtTlsPeerWorkspace(pPeer->CertificateCount);
 	if ( ppWorkspace == NULL ) {
@@ -180416,10 +180505,25 @@ static bool __xrtTlsPeerVerify(
 	}
 	bVerified = xrtX509StoreSource(
 		pStore, ppWorkspace, pPeer->CertificateCount - 1u, &Source
-	) && xrtX509PathBuild(
-		&pPeer->Certificates[0], &Source, &Config,
-		ppPath, pPeer->CertificateCount, &Result
 	);
+	if ( bVerified && (pLimits == NULL) ) {
+		/* Keep the legacy bool entry's exact error translation. */
+		bVerified = xrtX509PathBuild(&pPeer->Certificates[0], &Source,
+			&Config, ppPath, iPathCapacity, &Result);
+	} else if ( bVerified ) {
+		xx509check Check = xrtX509PathBuildCheckLimit(
+			&pPeer->Certificates[0], &Source, &Config, ppPath,
+			iPathCapacity, pLimits->MaxSearchSteps, &Result, &Decision
+		);
+		if ( Check == X509_CHECK_REJECTED ) {
+			/* A completed policy rejection is not an unrelated stale error. */
+			xrtFree(ppWorkspace);
+			return __xrtTlsVerifyError(XERR_PROTOCOL, "verify-tls-peer",
+				Decision.Message != NULL ? Decision.Message :
+				"TLS peer certification path is invalid");
+		}
+		bVerified = Check == X509_CHECK_VALID;
+	}
 	if ( !bVerified ) {
 		xrtFree(ppWorkspace);
 		return __xrtTlsVerifyCause(
@@ -180472,8 +180576,36 @@ XRT_API bool xrtTlsPeerVerify(
 )
 {
 	return __xrtTlsPeerVerify(
-		pPeer, pStore, pPolicy, pContext, false
+		pPeer, pStore, pPolicy, pContext, false, NULL
 	);
+}
+
+
+XRT_API bool xrtTlsPeerVerifyLimited(
+	const xtlspeer* pPeer,
+	const xx509store* pStore,
+	const xtlsverifylimits* pLimits,
+	xtlsverifypolicyproc pPolicy,
+	ptr pContext
+)
+{
+	if ( pLimits == NULL ) {
+		return __xrtTlsVerifyError(XERR_ARGUMENT, "verify-tls-peer", "TLS verification limits are null");
+	}
+	return __xrtTlsPeerVerify(pPeer, pStore, pPolicy, pContext, false, pLimits);
+}
+
+
+XRT_API void xrtTlsVerifyLimitsInit(xtlsverifylimits* pLimits)
+{
+	if ( pLimits == NULL ) {
+		(void)__xrtTlsVerifyError(XERR_ARGUMENT, "init-tls-verify-limits", "TLS verification limits are null");
+		return;
+	}
+	*pLimits = (xtlsverifylimits) {
+		64u, 16u * 1024u * 1024u, 64u, 100000u,
+		4096u, 64u * 1024u * 1024u
+	};
 }
 
 
@@ -180494,8 +180626,9 @@ XRT_API void xrtTlsVerifierConfigInit(xtlsverifierconfig* pConfig)
 
 
 /* 创建深复制信任库并接管自定义上下文的共享验证器。 */
-XRT_API xtlsverifier* xrtTlsVerifierCreate(
-	const xtlsverifierconfig* pConfig
+static xtlsverifier* __xrtTlsVerifierCreate(
+	const xtlsverifierconfig* pConfig,
+	const xtlsverifylimits* pLimits
 )
 {
 	xtlsverifier* pVerifier;
@@ -180515,6 +180648,9 @@ XRT_API xtlsverifier* xrtTlsVerifierCreate(
 			XERR_VALUE, "create-tls-verifier",
 			"TLS verifier trust store is empty"
 		);
+		return NULL;
+	}
+	if ( !__xrtTlsTrustLimits(pConfig->Store, pLimits) ) {
 		return NULL;
 	}
 	pStore = __xrtTlsVerifierStore(pConfig->Store);
@@ -180541,7 +180677,30 @@ XRT_API xtlsverifier* xrtTlsVerifierCreate(
 	pVerifier->Release = pConfig->Release;
 	pVerifier->Context = pConfig->Context;
 	pVerifier->AllowSha1 = pConfig->AllowSha1;
+	pVerifier->Limited = pLimits != NULL;
+	if ( pLimits != NULL ) {
+		pVerifier->Limits = *pLimits;
+	}
 	return pVerifier;
+}
+
+
+XRT_API xtlsverifier* xrtTlsVerifierCreate(const xtlsverifierconfig* pConfig)
+{
+	return __xrtTlsVerifierCreate(pConfig, NULL);
+}
+
+
+XRT_API xtlsverifier* xrtTlsVerifierCreateLimited(
+	const xtlsverifierconfig* pConfig,
+	const xtlsverifylimits* pLimits
+)
+{
+	if ( pLimits == NULL ) {
+		(void)__xrtTlsVerifyError(XERR_ARGUMENT, "create-tls-verifier", "TLS verification limits are null");
+		return NULL;
+	}
+	return __xrtTlsVerifierCreate(pConfig, pLimits);
 }
 
 
@@ -180612,7 +180771,7 @@ XRT_API bool xrtTlsVerifierVerify(
 		pVerifier->Time(pVerifier->Context) : xrtNow();
 	Peer.Certificates = pCertificates;
 	Peer.CertificateCount = iCertificateCount;
-	if ( !__xrtTlsPeerValid(&Peer) ) {
+	if ( !__xrtTlsPeerValid(&Peer, pVerifier->Limited ? &pVerifier->Limits : NULL) ) {
 		return false;
 	}
 	if ( pVerifier->Verify != NULL ) {
@@ -180650,7 +180809,8 @@ XRT_API bool xrtTlsVerifierVerify(
 		return __xrtTlsPeerVerify(
 			&Peer, pVerifier->Store,
 			pVerifier->Policy, pVerifier->Context,
-			pVerifier->AllowSha1
+			pVerifier->AllowSha1,
+			pVerifier->Limited ? &pVerifier->Limits : NULL
 		);
 	}
 	if ( Decision == XTLS_VERIFY_REJECT ) {

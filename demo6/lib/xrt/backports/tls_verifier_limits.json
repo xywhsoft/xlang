@@ -1,0 +1,49 @@
+{
+  "Schema": 1,
+  "Purpose": "Explicit TLS verifier trust/peer/path/work budgets and canonical immutable store cloning",
+  "CanonicalCommit": "43f4f38bb7e6e15fad95ba4eb3f0c47bf61ac2a6",
+  "PreviousCanonicalCommit": "af2f24f120209f77a8ba7f50957e02154c48c557",
+  "WholeSnapshotUpgrade": false,
+  "TimeAbiPreserved": true,
+  "ExistingPublicStructLayoutsPreserved": true,
+  "ExistingFunctionSignaturesPreserved": true,
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "0a2ebdc8dd0441ed8fc93a3d001a8f72fbe0d5ac0855b4284bf44f2687be0b03",
+      "AfterSha256": "2cd3acd372338573de147082687bd6f5045f4f69d05678ae353aabc256953823"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "ad9b1222ab60e340aa8f744e0f545b60a789fc85600a68f310a6418b778361a8",
+      "AfterSha256": "da36a132f0197aec95ab78456fcad815bee3b88400c930ece292960f6a56aafb"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "c649275e0d1ad0ebb6fde7e9e524e4550f9ae812fc48ddff8fcfbb5c9b721e4e",
+      "AfterSha256": "9b3f4789b7c85ed9321bbc52531ad5c293a5dbdb6a9f0c1d6395f9d7983b69cb"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "bb335931a92862d4b32b2d3f7786314d3b7e9f448342bb81255005a475cd41eb",
+      "AfterSha256": "0432a7034d3e2a4909cb28d58db84b02720d15736b55b8fe2c082b3c20b16810"
+    }
+  ],
+  "Sources": [
+    {
+      "Path": "include/xrt/tls_verify.h",
+      "Sha256": "f699202e30d58017391c9a95372ac13c2a51b476050920f81aad07430c23a71e"
+    },
+    {
+      "Path": "src/tls/verify.c",
+      "Sha256": "08e3b49576b1ae4ea74b086aa36cdccd7ede0762744534d8ab47458ad72a000f"
+    }
+  ],
+  "NativeAcceptance": "42 ordinary Windows/Linux GCC O0/O2, TCC modular/single and Linux ASan/UBSan phases; exact budgets, allocation rollback and context ownership",
+  "PreservedContracts": [
+    "Embedded microseconds/Until",
+    "Independent native milliseconds/For",
+    "Legacy unlimited verifier entries",
+    "All unselected sections"
+  ]
+}
