@@ -13438,6 +13438,9 @@ static int xl6SemCheckTaskSpawnCall(XL6_SemContext* ctx, XL6_AstNode* node)
         xl6AstFree(fnType);
         return 0;
     }
+    if(!xl6SemCOwnedSpawn(ctx,node,fnExpr)){xl6AstFree(fnType);return 0;}
+    xl6AstFree(fnType);fnType=xl6SemInferAutoTypeNode(ctx,fnExpr);
+    if(!fnType)return 0;
 
     params = fnType->children[0];
     returns = fnType->children[1];
