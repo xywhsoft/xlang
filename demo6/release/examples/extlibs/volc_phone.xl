@@ -55,6 +55,12 @@ assert volc.phone.json_int_field(successRaw, "Online") == 1, "volc.phone json_in
 assert volc.phone.json_int_field("{\"value\": -42, \"next\": 1}", "value") == -42, "volc.phone json_int_field comma boundary failed"
 assert volc.phone.json_int_field("{\"value\": 7}", "value") == 7, "volc.phone json_int_field object boundary failed"
 assert string.contains(volc.phone.json_section(successRaw, "Result"), "\"PodId\""), "volc.phone json_section failed"
+// 字符位置须和 string.indexOf/len 一致，不能当成 UTF-8 字节偏移。
+string unicodeRaw = "{\"城市\":\"北京\",\"RequestId\":\"请求-一\",\"Online\":7,\"Result\":{\"name\":\"你好\"}}"
+assert volc.phone.json_string_field(unicodeRaw, "RequestId") == "请求-一", "volc.phone unicode string field failed"
+assert volc.phone.json_int_field(unicodeRaw, "Online") == 7, "volc.phone unicode int field failed"
+assert string.contains(volc.phone.json_section(unicodeRaw, "Result"), "你好"), "volc.phone unicode section failed"
+assert volc.phone.json_string_field(unicodeRaw, "RequestId") == "请求-一", "volc.phone repeated slice failed"
 assert volc.phone.task_state("{\"TaskResult\":100}") == "success", "volc.phone task_state success failed"
 assert volc.phone.task_state("{\"TaskResult\":10}") == "running", "volc.phone task_state running failed"
 assert volc.phone.task_state("{\"Error\":{\"Code\":\"bad\"}}") == "error", "volc.phone task_state error failed"

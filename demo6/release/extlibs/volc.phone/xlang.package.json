@@ -7,7 +7,6 @@
     "artifact":  {
                      "kind":  "source",
                      "cSources":  [
-                                      "x_volc_phone_native.c"
                                   ],
                      "xlSources":  [
                                        "src/phone.xl"
