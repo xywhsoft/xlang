@@ -63,6 +63,19 @@ foreach ($source in $generatedSources) {
     if ($LASTEXITCODE) { throw "C owner $name execution failed" }
     Write-Output "C owner $name passed"
 }
+# Ordinary ownership contracts protect the common call/cleanup paths touched by
+# C loans. Reuse the exact compiler objects just built above.
+foreach ($optimization in @('O0','O2')) {
+    $contractFlags=@($flags | Where-Object { $_ -ne '-O0' }) + "-$optimization"
+    foreach ($name in @('xlir_runtime_operand_catalog','xlir_capture_ownership_contract',
+        'xlir_managed_storage_inputs_contract','xlir_conditional_nullable_join_contract')) {
+        $executable=Join-Path $outputPath "$name-$optimization.exe"
+        & $context.Compiler @contractFlags "test/cases/$name.c" @objects release/xl.dll '-Wl,--gc-sections' -o $executable
+        if ($LASTEXITCODE) { throw "Ordinary contract build failed: $name $optimization" }
+        & $executable
+        if ($LASTEXITCODE) { throw "Ordinary contract failed: $name $optimization" }
+    }
+}
 $prefix = "extern `"c_owned_text`" @no_raise func make() as point`nextern `"c_owned_release`" @no_raise func drop(point p)`n"
 $negative = @(
     @{Name='parameter';Body="func probe(cstring a)`nend";Message='C markers are limited'},
@@ -103,4 +116,23 @@ if ($PublicDriver) {
         if($LASTEXITCODE){throw "C owner source EXE execution failed: $name"}
     }
     Write-Output "C owner source acceptance: $($publicSources.Count) JIT and $($publicSources.Count) standalone EXE programs passed"
+    $ordinarySources=@('char_bytes_literals','char_bytes_advanced','anonymous_functions',
+        'cgen_implicit_string_methods','nullable_string_lifecycle','cgen_task_spawn_fstring',
+        'xlir_managed_storage_inputs','cgen_base_method_static_dispatch','cgen_async_generator')
+    foreach($name in $ordinarySources) {
+        $source="test/cases/$name.xl"
+        & $sourceDriver $source run "$outputPath/ordinary-jit-$name"
+        if($LASTEXITCODE){throw "Ordinary source JIT failed: $name"}
+        & $sourceDriver $source exe "$outputPath/ordinary-aot-$name"
+        if($LASTEXITCODE){throw "Ordinary source EXE build failed: $name"}
+        & "$outputPath/ordinary-aot-$name.exe"
+        if($LASTEXITCODE){throw "Ordinary source EXE execution failed: $name"}
+        & $sourceDriver $source cgen-default "$outputPath/ordinary-$name.c"
+        if($LASTEXITCODE){throw "Ordinary C generation failed: $name"}
+        if([IO.File]::ReadAllText("$outputPath/ordinary-$name.c").Contains('__xl_runtime/xl6_c_owned.h')) {
+            throw "Ordinary program acquired the C owner runtime: $name"
+        }
+    }
+    Write-Output "Ordinary source acceptance: $($ordinarySources.Count) JIT and standalone EXE programs; no C owner headers"
+
 }
