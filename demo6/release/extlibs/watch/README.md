@@ -101,3 +101,9 @@ Windows `-SkipAot`、Linux C ASan/UBSan 与双语门禁通过；默认 Windows
 第一项的新变化。Windows `-SkipAot` 和 Linux C ASan/UBSan、XLang、
 双语门禁通过；监视器实现无需修改。Windows 完整门禁再次确认边界 AOT
 通过，公开范例 AOT 仍缺共享 `xl6ValueDataSnapshotV1`，整包未签收发布级。
+
+2026-10-24：XLang 边界新增返回字符串的生命周期回归：保存 `path()` 结果，
+移除对应监视项后仍须保留原 UTF-8 路径；保存 `poll()` 的事件文本，后续
+交付其他事件后原结果仍不变。Windows `test/check.ps1 -SkipAot` 的 C、
+目录竞态、XLang 与双语门禁，以及 Linux `test/check.sh` 的 C ASan/UBSan、
+XLang 和双语门禁通过。完整带输出 AOT 阻断未变。

@@ -7,7 +7,8 @@ func main(...) as int
         watch.Watcher watcher = watch.create()
         int index = watcher.add(target)
         assert index == 0 and watcher.count == 1, "add missing path"
-        assert watcher.path(index) == target, "path kept as UTF-8"
+        string savedPath = watcher.path(index)
+        assert savedPath == target, "path kept as UTF-8"
         assert watcher.poll() == "", "no change"
 
         assert file.writeText(target, "a")
@@ -26,6 +27,7 @@ func main(...) as int
         assert watcher.poll() == "DELETED:" + target, "delete event"
         assert watcher.remove(index), "remove"
         assert watcher.count == 0 and watcher.path(index) == "", "removed entry"
+        assert savedPath == target, "returned path remains owned after removal"
         assert watcher.add(target) == index, "recycle slot"
         bool rejected = false
         try
@@ -53,11 +55,13 @@ func main(...) as int
         watch.Watcher pair = watch.create()
         assert pair.add(left) == 0 and pair.add(right) == 1
         assert file.writeText(left, "aa") and file.writeText(right, "bb")
-        assert pair.poll() == "MODIFIED:" + left, "first changed path"
+        string firstEvent = pair.poll()
+        assert firstEvent == "MODIFIED:" + left, "first changed path"
         // 左侧再次变化时，右侧的待处理事件不能被饿死。
         assert file.writeText(left, "aaa")
         assert pair.poll() == "MODIFIED:" + right, "round-robin fairness"
         assert pair.poll() == "MODIFIED:" + left, "repeated change is delivered"
+        assert firstEvent == "MODIFIED:" + left, "event remains owned after later polls"
     finally
         assert dir.delete(root), "watch boundary temporary directory must be removed"
     end
