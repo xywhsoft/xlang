@@ -163,17 +163,40 @@ static int xsm_matches_agent(XsmSpan agent, XsmSpan token) {
     return 1;
 }
 
+static int xsm_valid_rule_text(xvalue *item, xstrview *view) {
+    if (item == NULL || xrtValueType(item) != XVALUE_STRING ||
+        !xrtValueGetString(item, view) || !view->Size ||
+        memchr(view->Data, 0, view->Size) != NULL ||
+        !xrtUtf8Valid(*view, NULL)) {
+        xsm_robots_error("invalid robots decision group");
+        return 0;
+    }
+    return 1;
+}
+
+static int xsm_valid_group_shape(xvalue *group) {
+    xvalue *agents = xsm_get(group, "agents");
+    xvalue *allow = xsm_get(group, "allow");
+    xvalue *disallow = xsm_get(group, "disallow");
+    if (agents == NULL || xrtValueType(agents) != XVALUE_ARRAY ||
+        xrtValueCount(agents) == 0 ||
+        allow == NULL || xrtValueType(allow) != XVALUE_ARRAY ||
+        disallow == NULL || xrtValueType(disallow) != XVALUE_ARRAY) {
+        xsm_robots_error("invalid robots decision group");
+        return 0;
+    }
+    return 1;
+}
+
 static int64 xsm_agent_score(xvalue *group, XsmSpan agent) {
     xvalue *agents = xsm_get(group, "agents");
     int64 best = -1, i, count;
-    if (agents == NULL || xrtValueType(agents) != XVALUE_ARRAY) return -1;
     count = xrtValueCount(agents);
     for (i = 0; i < count; ++i) {
         xvalue *item = xrtValueArrayAt(agents, i);
         xstrview view;
-        if (item != NULL && xrtValueType(item) == XVALUE_STRING &&
-            xrtValueGetString(item, &view) &&
-            xsm_matches_agent(agent, (XsmSpan){view.Data, view.Size})) {
+        if (!xsm_valid_rule_text(item, &view)) return -2;
+        if (xsm_matches_agent(agent, (XsmSpan){view.Data, view.Size})) {
             int64 score = view.Size == 1 && view.Data[0] == '*' ? 0 : (int64)view.Size;
             if (score > best) best = score;
         }
@@ -268,20 +291,19 @@ static int xsm_score_rules(xvalue *group, const char *name, XsmSpan path,
                            size_t *best) {
     xvalue *list = xsm_get(group, name);
     int64 i, count;
-    if (list == NULL || xrtValueType(list) != XVALUE_ARRAY) return 0;
     count = xrtValueCount(list);
     for (i = 0; i < count; ++i) {
         xvalue *item = xrtValueArrayAt(list, i);
         xstrview view;
-        if (item != NULL && xrtValueType(item) == XVALUE_STRING &&
-            xrtValueGetString(item, &view)) {
-            XsmSpan rule = {view.Data, view.Size};
-            size_t score = xsm_specificity(rule);
-            if (*best == SIZE_MAX || score > *best) {
-                int match = xsm_match(rule, path);
-                if (match < 0) return -1;
-                if (match) *best = score;
-            }
+        XsmSpan rule;
+        size_t score;
+        if (!xsm_valid_rule_text(item, &view)) return -1;
+        rule = (XsmSpan){view.Data, view.Size};
+        score = xsm_specificity(rule);
+        if (*best == SIZE_MAX || score > *best) {
+            int match = xsm_match(rule, path);
+            if (match < 0) return -1;
+            if (match) *best = score;
         }
     }
     return 0;
@@ -289,11 +311,12 @@ static int xsm_score_rules(xvalue *group, const char *name, XsmSpan path,
 
 long long xsm_robots_allows_n(xvalue *robots, const char *userAgent,
                               size_t agentSize, const char *path, size_t pathSize) {
-    xvalue *groups = xsm_get(robots, "groups");
+    xvalue *groups;
     int64 i, count, bestAgent = -1;
     size_t bestAllow = SIZE_MAX, bestDisallow = SIZE_MAX;
     XsmSpan agent, request;
     xrtClearError();
+    groups = xsm_get(robots, "groups");
     if (groups == NULL || xrtValueType(groups) != XVALUE_ARRAY ||
         userAgent == NULL || path == NULL || memchr(userAgent, 0, agentSize) ||
         memchr(path, 0, pathSize) ||
@@ -306,7 +329,11 @@ long long xsm_robots_allows_n(xvalue *robots, const char *userAgent,
     request = (XsmSpan){path, pathSize};
     count = xrtValueCount(groups);
     for (i = 0; i < count; ++i) {
-        int64 score = xsm_agent_score(xrtValueArrayAt(groups, i), agent);
+        xvalue *group = xrtValueArrayAt(groups, i);
+        int64 score;
+        if (!xsm_valid_group_shape(group)) return -1;
+        score = xsm_agent_score(group, agent);
+        if (score == -2) return -1;
         if (score > bestAgent) bestAgent = score;
     }
     if (bestAgent < 0) return 1;

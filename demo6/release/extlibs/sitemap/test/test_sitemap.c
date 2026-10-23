@@ -582,6 +582,14 @@ int main(void) {
     CHECK(xsm_robots_allows(robots, "AnyBot", "/safe") == 1 &&
           xrtGetError() == NULL);
     xrtValueRelease(robots);
+    robots = xsm_robots_parse("User-agent: *\nDisallow: /private\n");
+    CHECK(robots != NULL && xrtValueType(robots) == XVALUE_OBJECT);
+    CHECK(xrtValueObjectSetNew(xrtValueArrayAt(xrtValueObjectGet(robots,
+          (xstrview){"groups", 6}), 0), (xstrview){"disallow", 8},
+          xrtValueString((xstrview){"bad", 3})));
+    CHECK(xsm_robots_allows(robots, "Bot", "/private") == -1 &&
+          xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    xrtValueRelease(robots);
     robots = xsm_robots_parse("User-agent: *\nDisallow: /\xff\n");
     CHECK(robots != NULL && xrtValueType(robots) == XVALUE_NULL &&
           xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);

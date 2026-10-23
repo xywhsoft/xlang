@@ -152,6 +152,34 @@ func main(...) as int
     end
     assert raised == 1, "NUL path rejected"
     assert sitemap.robotsAllows(robots, "Bot", "/open"), "robots query recovers after error"
+    raised = 0
+    try
+        sitemap.robotsAllows({"groups": [{"agents": ["*"], "allow": [], "disallow": "bad"}]}, "Bot", "/private")
+    catch ValueError error
+        raised = 1
+    end
+    assert raised == 1, "malformed disallow rules rejected"
+    raised = 0
+    try
+        sitemap.robotsAllows({"groups": [42]}, "Bot", "/private")
+    catch ValueError error
+        raised = 1
+    end
+    assert raised == 1, "malformed robots group rejected"
+    raised = 0
+    try
+        sitemap.robotsAllows({"groups": [{"agents": [42], "allow": [], "disallow": []}]}, "Bot", "/private")
+    catch ValueError error
+        raised = 1
+    end
+    assert raised == 1, "malformed robots agent rejected"
+    raised = 0
+    try
+        sitemap.robotsAllows({"groups": [{"agents": ["*"], "allow": [], "disallow": [42]}]}, "Bot", "/private")
+    catch ValueError error
+        raised = 1
+    end
+    assert raised == 1, "malformed robots rule rejected"
     string largeRobots = "#" + string.repeat("a", 1024 * 1024)
     raised = 0
     try

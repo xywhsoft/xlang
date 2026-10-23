@@ -8,7 +8,7 @@
 - `sitemap.buildIndex(entries)`：生成 `<sitemapindex>`；每项需 `loc`，可带 `lastmod`。
 - `sitemap.parse(xml)`、`sitemap.parseIndex(xml)`：严格解析对应根元素，返回对象数组。支持 sitemap 默认命名空间、XML 实体和 UTF-8；拒绝畸形 XML、异名空间字段、DTD、外部实体、内嵌 NUL 及缺失 `loc`。
 - `sitemap.robotsParse(text)`：返回 `{groups: [{agents, allow, disallow}], sitemaps}`。空行和注释不结束规则组；同组可连续声明多个 `User-agent`。已有规则后遇到新的 `User-agent` 才开始下一组。
-- `sitemap.robotsAllows(robots, productToken, path)`：传入爬虫的 product token（如 `ExampleBot`，不是完整 HTTP User-Agent）；代理组按整个 token 不区分大小写匹配，不把 `Bot` 当作 `NotBot`。相同 token 的规则组合并；没有专属组时回退到 `*`。最长字面路径规则生效，平局由 `Allow` 胜出。支持路径规则中的 `*` 和末尾 `$`；其他位置的 `$` 是普通字符。没有匹配规则则允许。
+- `sitemap.robotsAllows(robots, productToken, path)`：传入爬虫的 product token（如 `ExampleBot`，不是完整 HTTP User-Agent）；代理组按整个 token 不区分大小写匹配，不把 `Bot` 当作 `NotBot`。相同 token 的规则组合并；没有专属组时回退到 `*`。最长字面路径规则生效，平局由 `Allow` 胜出。支持路径规则中的 `*` 和末尾 `$`；其他位置的 `$` 是普通字符。没有匹配规则则允许。`robots` 应来自 `robotsParse`；手工构造时，每组必须有非空字符串数组 `agents` 及字符串数组 `allow`、`disallow`，非法组或参与决策的非法规则报 `ValueError`，不会当作空规则放行。
 
 robots 匹配以传入路径的 UTF-8 字节为准，不做 URL 解析、百分号编码规范化或爬虫厂商专有扩展解释。适用于站点常规规则决策，**不承诺与所有搜索引擎的完整 robots 实现逐项一致**。XML 只公开上述字段；生成时 URL 条目仅允许 `loc`、`lastmod`、`changefreq`、`priority`，索引条目仅允许 `loc`、`lastmod`，未知键会报错而不会被静默丢弃。图片/视频扩展元素等额外命名空间目前不进入这个包的结构模型，也不校验日期/优先级字段的业务格式或自动拆分超大站点地图。生成与解析均按 [Sitemaps 协议](https://www.sitemaps.org/protocol.html)限制 `loc` 少于 2,048 个字符，但不作完整 URI/IRI 校验。构建时要求字段为有效 UTF-8 且符合 XML 1.0 字符范围，U+FFFE/U+FFFF 会被拒绝。输入格式错误抛 `ValueError`，不再返回空字符串掩盖生成失败。
 robots 长规则按 `*` 分段向前匹配；长字面片段用 KMP，单条规则的匹配耗时随规则和路径字节数线性增长。匹配所需内存分配失败时，C 入口返回 `-1` 并保留 `XERR_MEMORY`，不会误报为“允许访问”。
