@@ -13,6 +13,7 @@
 | `gettext.tnc(catalog, context, msgid, plural, n)` | 带 `msgctxt` 的复数查询 |
 
 没有 `Plural-Forms` 头时默认按英语 `n != 1` 选择形式。复数数量必须非负。PO 的转义、多行条目、上下文和按顺序编号的复数项均可解析；MO 支持大端、小端。查询结果彼此独立，不会覆盖前一次调用结果。PO/MO 格式错误不作静默降级。目录是数据对象而不是共享全局状态，可同时保留多个语种。
+四种查询的 `catalog` 必须是解析得到的 XRT object；传入 `null`、数字或其他类型时，C 返回 `NULL` 并设置 `XERR_TYPE`，XLang 抛 `TypeError`。只有合法目录中的消息未命中时才返回原文。
 复数公式的总递归深度上限为 48，括号、条件表达式和连续一元运算符共同计数；超限目录报格式错误，不绕过解析器的栈深限制。
 导入时会验证公式语法并抽样常见计数，但不能证明任意计数都不会除零；若某个计数触发公式错误，该次查询报 `ValueError`，其他计数的查询仍可继续。未选中的条件分支不执行除法。
 PO 源文本与 MO 中的原文、译文必须是有效 UTF-8；无效字节及 PO 转义产生的无效字节均报格式错误。包不按目录头的 `charset` 转码；非 UTF-8 目录须在调用前转换为 UTF-8。
@@ -110,3 +111,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/gettext/test
 固定对象或测试文件，Linux 也不再创建仓库内固定目录；失败后清理本次
 产物。默认 Windows 门禁仍在首个边界 AOT 构建处缺共享
 `xl6NativeHandleTraceLeaf`，尚未完成整包发布验收。
+
+2026-10-23：查询原将非对象 `catalog` 当成未命中，静默返回原文。现由共用查询出口检查类型；C 对 `t/tn/tc/tnc` 及空指针、XLang 对四种公开查询分别固定 `XERR_TYPE` / `TypeError`，合法目录的原文回退不变。Windows `test/check.ps1 -SkipAot` 与 Linux `test/check.sh`（C ASan/UBSan、XLang 双语对照）通过；完整 AOT 仍未签收。

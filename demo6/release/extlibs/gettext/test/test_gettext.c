@@ -9,6 +9,15 @@
     return 1; \
 } } while (0)
 
+static int rejected_catalog_type(void *result)
+{
+    const xerror *error = xrtGetError();
+    int rejected = result == NULL && error &&
+        xrtErrorKind(error) == XERR_TYPE;
+    xrtFree(result);
+    return rejected;
+}
+
 static void write32(unsigned char *out, unsigned value, int big)
 {
     int i;
@@ -523,6 +532,14 @@ int main(int argc, char **argv)
     CHECK(test_po_mutations());
     CHECK(test_six_form_plural());
     CHECK(test_plural_unary_depth());
+    catalog = xrtValueInt(42);
+    CHECK(catalog != NULL);
+    CHECK(rejected_catalog_type(xgt_t(catalog, "missing")));
+    CHECK(rejected_catalog_type(xgt_tn(catalog, "one", "many", 2)));
+    CHECK(rejected_catalog_type(xgt_tc(catalog, "menu", "missing")));
+    CHECK(rejected_catalog_type(xgt_tnc(catalog, "menu", "one", "many", 2)));
+    CHECK(rejected_catalog_type(xgt_t(NULL, "missing")));
+    xrtValueRelease(catalog);
     catalog = xgt_parse_po("msgid \"x\"\nmsgstr \"\\377\"\n");
     CHECK(catalog && xrtValueType(catalog) == XVALUE_NULL);
     CHECK(xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_VALUE);

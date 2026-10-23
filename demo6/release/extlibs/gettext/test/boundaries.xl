@@ -15,6 +15,35 @@ func main(...) as int
     var mo = gettext.parseMo(data)
     assert gettext.t(mo, "hello") == "world!", "bytes mo"
     bool caught = false
+    var badCatalog = 42
+    try
+        gettext.t(badCatalog, "missing")
+    catch TypeError e
+        caught = true
+    end
+    assert caught, "query catalog must be an object"
+    caught = false
+    try
+        gettext.tn(badCatalog, "one", "many", 2)
+    catch TypeError e
+        caught = true
+    end
+    assert caught, "plural query catalog must be an object"
+    caught = false
+    try
+        gettext.tc(badCatalog, "menu", "missing")
+    catch TypeError e
+        caught = true
+    end
+    assert caught, "context query catalog must be an object"
+    caught = false
+    try
+        gettext.tnc(badCatalog, "menu", "one", "many", 2)
+    catch TypeError e
+        caught = true
+    end
+    assert caught, "context plural query catalog must be an object"
+    caught = false
     try
         gettext.parseMo(42)
     catch ValueError e

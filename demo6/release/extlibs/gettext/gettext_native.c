@@ -613,6 +613,11 @@ static void *xgt_translate(xvalue *catalog, const char *key,
     int was_array;
     size_t index = 0;
     xrtClearError();
+    if (catalog == NULL || xrtValueType(catalog) != XVALUE_OBJECT) {
+        xrtSetErrorInfo(XERR_TYPE, XGT_DOMAIN, 0,
+            "gettext catalog must be an object");
+        return NULL;
+    }
     if ((singular && strchr(singular, '\004')) ||
         (plural && strchr(plural, '\004'))) {
         xgt_error("gettext context separator in message ID");
