@@ -124,4 +124,76 @@ auto result=X509Path.build(Certificate.fromDer(TARGET),none,store.snapshot(),X50
 if result.status != X509ValidationStatus.unsupported or result.reason != X509PathReason.signature or result.depth != 0 or result.path != null then throw RuntimeError "unsupported build backend" end
 '''.replace('ROOT',literal((out/'unsupported.root.der').read_bytes())).replace('TARGET',literal((out/'unsupported.target.der').read_bytes()))
     put('build.unsupported',unsupported)
+    work='''class WorkCounter
+    int calls=0
+end
+func exercise(bytes rootDer,bytes midDer,bytes leafDer,bytes customDer)
+    auto store=TrustStore()
+    store.add(Certificate.fromDer(rootDer))
+    auto stable=store.snapshot()
+    auto target=Certificate.fromDer(leafDer)
+    array<Certificate> candidates=[Certificate.fromDer(midDer)]
+    auto ordinary=X509PathPolicy(time(1893456000000000))
+    if ordinary.maxSearchSteps != 100000 then throw RuntimeError "finite default search work" end
+    bool caught=false
+    try
+        auto failed=X509Path.build(target,candidates,stable,X509PathPolicy(time(1893456000000000),X509PathFlags.none,X509KeyUsageFlags.none,"",64,16777216,4))
+    catch RangeError error
+        caught=true
+    end
+    if not caught then throw RuntimeError "search must stop before full validation" end
+    auto exact=X509PathPolicy(time(1893456000000000),X509PathFlags.none,X509KeyUsageFlags.none,"",64,16777216,5)
+    if exact.maxSearchSteps != 5 then throw RuntimeError "exact work getter" end
+    X509Path.build(target,candidates,stable,exact).requireValid()
+    X509Path.build(target,candidates,store,exact).requireValid()
+    auto unlimited=X509PathPolicy(time(1893456000000000),X509PathFlags.none,X509KeyUsageFlags.none,"",64,16777216,0)
+    if unlimited.maxSearchSteps != 0 then throw RuntimeError "explicit unlimited work" end
+    X509Path.build(target,candidates,stable,unlimited).requireValid()
+    auto largest=X509PathPolicy(time(1893456000000000),X509PathFlags.none,X509KeyUsageFlags.none,"",64,16777216,9223372036854775807)
+    X509Path.build(target,candidates,stable,largest).requireValid()
+    caught=false
+    try
+        auto failed=X509PathPolicy(time(1893456000000000),X509PathFlags.none,X509KeyUsageFlags.none,"",64,16777216,-1)
+    catch ValueError error
+        caught=true
+    end
+    if not caught then throw RuntimeError "negative search budget" end
+    auto counter=WorkCounter()
+    target=Certificate.fromDer(customDer)
+    caught=false
+    try
+        auto failed=X509Path.build(target,candidates,stable,X509PathPolicy(time(1893456000000000),X509PathFlags.none,X509KeyUsageFlags.none,"",64,16777216,4),func(Certificate c,X509Extension e,int depth) as bool
+            counter.calls+=1
+            return true
+        end)
+    catch RangeError error
+        caught=true
+    end
+    if not caught or counter.calls != 0 then throw RuntimeError "exhaustion must not invoke callback" end
+    auto accepted=X509Path.build(target,candidates,stable,exact,func(Certificate c,X509Extension e,int depth) as bool
+        counter.calls+=1
+        // The outer call has consumed its full budget; nested calls are independent.
+        array<Certificate> none=[]
+        auto inner=X509PathPolicy(time(1893456000000000),X509PathFlags.none,X509KeyUsageFlags.none,"",64,16777216,2)
+        X509Path.build(Certificate.fromDer(midDer),none,stable,inner).requireValid()
+        return true
+    end)
+    accepted.requireValid()
+    if counter.calls != 1 then throw RuntimeError "independent callback budget" end
+    caught=false
+    try
+        auto failed=X509Path.build(target,candidates,stable,exact,func(Certificate c,X509Extension e,int depth) as bool
+            throw ValueError "original work callback"
+            return true
+        end)
+    catch ValueError error
+        caught=true
+    end
+    if not caught then throw RuntimeError "original callback error, not search range" end
+    X509Path.build(Certificate.fromDer(leafDer),candidates,stable,exact).requireValid()
+end
+'''
+    for family in ('rsa','p256','p384','ed25519'):
+        work+='exercise('+','.join(data(family,k) for k in ('root','mid','leaf','custom'))+')\n'
+    put('build.work',work)
     return cases

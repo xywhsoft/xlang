@@ -32,7 +32,7 @@ typedef struct XL6_X509PathOutcomeV1 {
 } XL6_X509PathOutcomeV1;
 typedef struct XL6_X509PathPolicyV1 {
     xx509pathconfig value;
-    int64_t maxCertificates,maxBytes;
+    int64_t maxCertificates,maxBytes,maxSearchSteps;
     uint8 data[];
 } XL6_X509PathPolicyV1;
 bool xl6X509PolicyRetainV1(xatomic64*);

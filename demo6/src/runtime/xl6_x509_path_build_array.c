@@ -11,7 +11,7 @@ void* xl6X509PathBuildArrayRunV1(XL6_NativeClassArrayContextV1 context,void* tar
     if(xrtGetError() || scope.failed)ok=false;
     if(ok){
         xx509pathconfig config=policy->value;config.Critical=critical;config.UserData=data;
-        result=xl6X509PathBuildCreateV1(target,input.raw,input.count,trust,&config,policy->maxCertificates,policy->maxBytes,maxCandidates,maxSourceBytes);
+        result=xl6X509PathBuildCreateV1(target,input.raw,input.count,trust,&config,policy->maxCertificates,policy->maxBytes,maxCandidates,maxSourceBytes,policy->maxSearchSteps);
         ok=result!=NULL;
     }
     if(!ok || xrtGetError() || scope.failed)xl6ErrorScopeCaptureFailure(&scope);
