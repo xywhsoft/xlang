@@ -34,6 +34,12 @@ static int xl6IrCgenEmitCOwned(XL6_Output* out,const XL6_IrModule* module,
             "        if (data) { memcpy(data,v%u.Data,v%u.Size); data[index]=(unsigned char)v%u;\n"
             "          v%u=xl6COwnedTakeV1(data,v%u.Size,xrtFree); }\n      } }\n"
             "    bool projection_ok_%u = v%u.Owner != NULL;\n",result,source,key,source,source,source,item,result,source,result,result);
+    } else if(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_FORMAT) {
+        xl6OutputPrintf(out,"    v%u=(xlir_string){0};\n"
+            "    { xxlonwriteconfig config; xrtXlonWriteConfigInit(&config); xxlonwriter* writer=xrtXlonWriterCreate(&config);\n"
+            "      if(writer && xrtXlonWriterBytes(writer,xl6CBytesViewV1(v%u)) && xrtXlonWriterFinish(writer)) {\n"
+            "        size_t size=0; char* text=xrtXlonWriterTake(writer,&size); v%u=(xlir_string){text,text ? size : 0}; }\n"
+            "      xrtXlonWriterFree(writer); }\n",result,source,result);
     } else if(ins->runtimeOp==XL6_IR_RUNTIME_C_OWNED_COPY) {
         xl6OutputPrintf(out,"    v%u = xl6COwnedCopyV1(v%u);\n    bool projection_ok_%u = !v%u.Data || v%u.Data != NULL;\n",result,source,result,source,result);
     } else if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_FROM_STRING) {
@@ -42,7 +48,7 @@ static int xl6IrCgenEmitCOwned(XL6_Output* out,const XL6_IrModule* module,
         xl6OutputPrintf(out,"    v%u = xl6CBytesFromBytesV1(v%u);\n    bool projection_ok_%u = v%u.Owner != NULL;\n",result,source,result,result);
     } else if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_VIEW) {
         xl6OutputPrintf(out,"    v%u = xl6CStringViewV1(v%u);\n",result,source);
-    } else if(ins->runtimeOp>=XL6_IR_RUNTIME_C_COMPARE_EQ) {
+    } else if(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_CONCAT || ins->runtimeOp>=XL6_IR_RUNTIME_C_COMPARE_EQ) {
         for(unsigned i=0;i<2;++i) {
             unsigned value=(unsigned)module->operands[ins->firstOperand+i];
             const XL6_IrInstruction* def=xl6IrCgenValueDefinition(module,value,NULL);
@@ -52,12 +58,22 @@ static int xl6IrCgenEmitCOwned(XL6_Output* out,const XL6_IrModule* module,
                 xl6OutputPrintf(out,"    if (!xrtValueGetBytes(v%u, &c_view_%u_%u)) abort();\n",value,result,i);
             else xl6OutputPrintf(out,"    c_view_%u_%u = (xbytesview){ (const uint8*)v%u.Data, v%u.Size };\n",result,i,value,value);
         }
+        if(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_CONCAT) {
+            xl6OutputPrintf(out,"    v%u=(XL6_COwnedV1){0};\n"
+                "    { xbytesview a=c_view_%u_0,b=c_view_%u_1;\n"
+                "      if(a.Size>SIZE_MAX-b.Size)xrtSetErrorKind(XERR_RANGE); else {\n"
+                "        size_t size=a.Size+b.Size; unsigned char* data=(unsigned char*)xrtMalloc(size ? size : 1u);\n"
+                "        if(data) { if(a.Size)memcpy(data,a.Data,a.Size); if(b.Size)memcpy(data+a.Size,b.Data,b.Size);\n"
+                "          v%u=xl6COwnedTakeV1(data,size,xrtFree); } } }\n"
+                "    bool projection_ok_%u = v%u.Owner != NULL;\n",result,result,result,result,result,result);
+        } else {
         const char* relation=ins->runtimeOp==XL6_IR_RUNTIME_C_COMPARE_EQ ? "==" :
             ins->runtimeOp==XL6_IR_RUNTIME_C_COMPARE_NE ? "!=" : ins->runtimeOp==XL6_IR_RUNTIME_C_COMPARE_LT ? "<" :
             ins->runtimeOp==XL6_IR_RUNTIME_C_COMPARE_LE ? "<=" : ins->runtimeOp==XL6_IR_RUNTIME_C_COMPARE_GT ? ">" : ">=";
         xl6OutputPrintf(out,"    { xbytesview a=c_view_%u_0, b=c_view_%u_1; size_t n=a.Size<b.Size ? a.Size : b.Size;\n"
             "      int order=n ? memcmp(a.Data,b.Data,n) : 0; if (!order) order=(a.Size>b.Size)-(a.Size<b.Size);\n"
             "      v%u = order %s 0; }\n",result,result,result,relation);
+        }
     } else if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_LENGTH) {
         xl6OutputPrintf(out,"    v%u = (int64_t)xrtUtf8Count(xl6CStringViewV1(v%u));\n",result,source);
     } else if(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_LENGTH) {

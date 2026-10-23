@@ -10934,6 +10934,7 @@ static XL6_AstNode* xl6SemFindMultiReturnCallArg(
 
 static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
 {
+    if(node->semanticCallKind==XL6_SEM_CALL_C_OWNED_CONCAT)return xl6SemCOwnedResult(ctx,node,"cbytes");
     if(node->semanticCallKind==XL6_SEM_CALL_C_OWNED_VIEW)return xl6SemCOwnedResult(ctx,node,"string");
     if(node->semanticCallKind==XL6_SEM_CALL_C_OWNED_COMPARE)return xl6SemCOwnedResult(ctx,node,"bool");
     {int printed=xl6SemCOwnedPrint(ctx,node);if(printed>=0)return printed;}
@@ -14017,12 +14018,19 @@ static XL6_AstNode* xl6SemInferConditionalType(XL6_SemContext* ctx, XL6_AstNode*
     left = xl6SemResolveAliasType(ctx, thenType);
     right = xl6SemResolveAliasType(ctx, elseType);
     if (left == NULL || right == NULL) goto done;
-    if (xl6SemTypeEquals(ctx, left, right)) {
+    const char* leftBase=xl6COwnedBaseName(left->text);
+    const char* rightBase=xl6COwnedBaseName(right->text);
+    if((leftBase && xl6TextEquals(leftBase,rightBase ? rightBase : right->text)) ||
+        (rightBase && xl6TextEquals(rightBase,left->text))) {
+        result=xl6SemCloneTypeNode(leftBase ? left : right);
+    } else if (xl6SemTypeEquals(ctx, left, right)) {
         result = xl6SemCloneTypeNode(left);
     } else if (xl6TextEquals(left->text, "null") || xl6TextEquals(right->text, "null")) {
         const XL6_AstNode* absent = xl6TextEquals(left->text, "null") ? left : right;
         const XL6_AstNode* present = absent == left ? right : left;
         result = xl6SemCloneTypeNode(present);
+        const char* base=xl6COwnedBaseName(present->text);
+        if(base) {xrtFree(result->text);result->text=xrtStrDup(base);xl6SemBindInferredTypeIdentity(ctx,result);}
         if (!xl6SemTypeCanAssignFromType(ctx, absent, present))
             result = xl6SemLiftNullableType(result, expr);
     } else {
@@ -16338,7 +16346,7 @@ static int xl6SemCheckFStringExpr(XL6_SemContext* ctx, XL6_AstNode* node)
             ok = 0;
             continue;
         }
-        if ( !xl6SemExprHasImplicitToString(ctx, child) ) {
+        if ( !xl6COwnedBaseName(xl6SemExprStaticTypeName(ctx,child)) && !xl6SemExprHasImplicitToString(ctx, child) ) {
             xl6SemErrorNode(ctx, child, "f-string 插值表达式不能转换为 string");
             ok = 0;
         }
@@ -16861,7 +16869,6 @@ static int xl6SemCheckExpr(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     int ok = xl6SemCheckExprRaw(ctx, node);
     if(ok && node && node->kind==XL6_AST_CONDITIONAL && node->childCount==3) {
-        for(size_t i=1;i<3;++i)if(!xl6SemNormalizeCOwnedExpr(ctx,&node->children[i]))ok=0;
         xl6AstFree(node->inferredType);node->inferredType=NULL;
     }
 
@@ -17922,6 +17929,19 @@ static int xl6SemCheckAssign(XL6_SemContext* ctx, XL6_AstNode* node)
     left = node->childCount > 0 ? node->children[0] : NULL;
     right = node->childCount > 1 ? node->children[1] : NULL;
     op = node->text != NULL ? node->text : "=";
+    if(left && left->kind==XL6_AST_NAME && xl6TextEquals(op,"+=")) {
+        XL6_Symbol* binding=xl6ScopeFind(ctx->scope,left->text);
+        if(binding && binding->type && xl6COwnedBaseName(binding->type->text)) {
+            XL6_AstNode* read=xl6AstNewText(XL6_AST_NAME,left->text,strlen(left->text),NULL);
+            XL6_AstNode* add=xl6AstNewText(XL6_AST_BINARY,"+",1,NULL);
+            if(!read || !add){xl6AstFree(read);xl6AstFree(add);return 0;}
+            read->line=add->line=node->line;read->column=add->column=node->column;
+            xl6AstCopySource(read,node);xl6AstCopySource(add,node);
+            xl6AstAddChild(add,read);xl6AstAddChild(add,right);node->children[1]=right=add;
+            xrtFree(node->text);node->text=xrtStrDup("=");op=node->text;
+            if(!op)return 0;
+        }
+    }
     unionInitSymbol = xl6SemUnionFieldInitSymbol(ctx, left, op);
     readOnlyLengthTarget = 0;
     dynamicMemberTarget = 0;

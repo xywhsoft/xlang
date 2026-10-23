@@ -50,7 +50,7 @@ $generatedSources=@(
     'test/cases/xlir_c_owned_reads.xl','test/cases/xlir_c_owned_capture.xl',
     'test/cases/xlir_c_owned_views.xl','test/cases/xlir_c_owned_flow.xl',
     'test/cases/xlir_c_owned_writes.xl','test/cases/xlir_c_owned_print.xl',
-    'test/cases/xlir_c_owned_traverse.xl',
+    'test/cases/xlir_c_owned_traverse.xl','test/cases/xlir_c_owned_sequence.xl',
     'test/cases/xlir_c_owned_borrows.xl','test/cases/xlir_c_owned_failure.xl')
 foreach ($source in $generatedSources) {
     $name=[IO.Path]::GetFileNameWithoutExtension($source).Substring('xlir_c_owned_'.Length)

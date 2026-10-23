@@ -43,8 +43,8 @@ static XL6_IrErrorAbi xl6IrNodeConstructionErrorAbi(const XL6_IrModule* module, 
         const XL6_IrNode* target=xl6IrNodeGet(module,module->children[node->firstChild]);
         if(target && xl6IrTypeIsCOwned(xl6IrTypeGet(&module->types,target->storageType)))return XL6_IR_ERROR_ABI_MAY_RAISE;
     }
-    if(node && (node->callKind==XL6_SEM_CALL_C_OWNED_PRINT || node->callKind==XL6_SEM_CALL_C_OWNED_TAKE ||
-        ((node->kind==XL6_IR_NODE_VALUE_DECL || node->kind==XL6_IR_NODE_ASSIGN || node->sourceKind==XL6_AST_RETURN) &&
+    if(node && (node->callKind==XL6_SEM_CALL_C_OWNED_CONCAT || node->callKind==XL6_SEM_CALL_C_OWNED_PRINT || node->callKind==XL6_SEM_CALL_C_OWNED_TAKE ||
+        ((node->kind==XL6_IR_NODE_VALUE_DECL || node->kind==XL6_IR_NODE_CONDITIONAL || node->kind==XL6_IR_NODE_PARAM_DECL || node->kind==XL6_IR_NODE_ASSIGN || node->sourceKind==XL6_AST_RETURN) &&
          xl6IrTypeIsCOwned(xl6IrTypeGet(&module->types,node->storageType)))))return XL6_IR_ERROR_ABI_MAY_RAISE;
     if(node && node->callKind==XL6_SEM_CALL_C_OWNED_COPY)return XL6_IR_ERROR_ABI_MAY_RAISE;
     if(node && node->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)return XL6_IR_ERROR_ABI_MAY_RAISE;
@@ -10059,7 +10059,7 @@ static int xl6IrBuildFunctionValueCallSite(
 static int xl6IrBuildCallSite(XL6_IrModule* module, XL6_IrNodeId origin)
 {
     const XL6_IrNode* call = xl6IrNodeGet(module, origin);
-    if (call && (call->callKind==XL6_SEM_CALL_C_OWNED_TAKE || call->callKind==XL6_SEM_CALL_C_OWNED_COPY || call->callKind==XL6_SEM_CALL_C_OWNED_VIEW || call->callKind==XL6_SEM_CALL_C_OWNED_PRINT || call->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)) return 1;
+    if (call && (call->callKind==XL6_SEM_CALL_C_OWNED_TAKE || call->callKind==XL6_SEM_CALL_C_OWNED_COPY || call->callKind==XL6_SEM_CALL_C_OWNED_VIEW || call->callKind==XL6_SEM_CALL_C_OWNED_PRINT || call->callKind==XL6_SEM_CALL_C_OWNED_CONCAT || call->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)) return 1;
     XL6_IrNodeId declaration;
     const XL6_IrNode* target;
     XL6_IrNodeId parameterListId;
@@ -14558,7 +14558,7 @@ static int xl6IrBuildCopyIntrinsicSignature(
 static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
 {
     const XL6_IrNode* call = xl6IrNodeGet(module, origin);
-    if (call && (call->callKind==XL6_SEM_CALL_C_OWNED_TAKE || call->callKind==XL6_SEM_CALL_C_OWNED_COPY || call->callKind==XL6_SEM_CALL_C_OWNED_VIEW || call->callKind==XL6_SEM_CALL_C_OWNED_PRINT || call->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)) return 1;
+    if (call && (call->callKind==XL6_SEM_CALL_C_OWNED_TAKE || call->callKind==XL6_SEM_CALL_C_OWNED_COPY || call->callKind==XL6_SEM_CALL_C_OWNED_VIEW || call->callKind==XL6_SEM_CALL_C_OWNED_PRINT || call->callKind==XL6_SEM_CALL_C_OWNED_CONCAT || call->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)) return 1;
     const XL6_IrNode* callee;
     const XL6_IrNode* persistenceGenericName = NULL;
     const XL6_IrType* result;
@@ -34523,7 +34523,7 @@ static int xl6IrTargetContainsBinding(const XL6_IrModule* module,
         const XL6_IrType* type=receiver != NULL
             ? xl6IrTypeGet(&module->types,receiver->storageType) : NULL;
         if (type != NULL && (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
-                             type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES))
+                             type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES || xl6IrTypeIsCOwned(type)))
             return xl6IrTargetContainsBinding(module,module->children[node->firstChild],symbol,0,depth+1);
         return 0;
     }
@@ -34613,7 +34613,7 @@ static size_t xl6IrParameterEntryFailureIndex(const XL6_IrModule* module,
             block->firstInstruction + block->instructionCount - cursor < 3) return SIZE_MAX;
         type = xl6IrTypeGet(&module->types, target->parameterTypes[p]);
         if (type == NULL) return SIZE_MAX;
-        if (type->cAbi != XL6_IR_C_ABI_MANAGED_STRING &&
+        if (type->cAbi != XL6_IR_C_ABI_MANAGED_STRING && !xl6IrTypeIsCOwned(type) &&
             !xl6IrNativeValuePlanForType(type)) { cursor += 3; continue; }
         test = &module->instructions[cursor + 2];
         if (test->kind != XL6_IR_INSTR_ERROR_TEST || test->trueTarget == 0 ||
@@ -34897,7 +34897,8 @@ static int xl6IrVerifyBorrowedParameterOwnerAbi(
         type = xl6IrTypeGet(&module->types, target->parameterTypes[parameter]);
         load = &module->instructions[cursor++];
         retain = &module->instructions[cursor++];
-        if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
+        if(xl6IrTypeIsCOwned(type))expectedRuntime=XL6_IR_RUNTIME_C_OWNED_COPY;
+        else if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
             expectedRuntime = type->kind == XL6_IR_TYPE_NULLABLE
                 ? XL6_IR_RUNTIME_STRING_NULLABLE_COPY
                 : XL6_IR_RUNTIME_STRING_COPY;
@@ -34907,7 +34908,7 @@ static int xl6IrVerifyBorrowedParameterOwnerAbi(
             expectedRuntime = XL6_IR_RUNTIME_BYTES_RETAIN;
         else if (type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE)
             expectedRuntime = XL6_IR_RUNTIME_NATIVE_VALUE_COPY;
-        if (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING || type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE) {
+        if (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING || type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE || xl6IrTypeIsCOwned(type)) {
             const XL6_IrInstruction* test = &module->instructions[cursor++];
             const XL6_IrBlock* failure;
             size_t p, releases = 0, edges = 0, scan;
@@ -49370,6 +49371,8 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
 #undef XL6_SLOT_MAP_OP
     case XL6_IR_RUNTIME_STRING_DUP: return "string-dup";
     case XL6_IR_RUNTIME_STRING_COPY: return "string-copy";
+    case XL6_IR_RUNTIME_CBYTES_FORMAT: return "cbytes-format";
+    case XL6_IR_RUNTIME_CBYTES_CONCAT: return "cbytes-concat";
     case XL6_IR_RUNTIME_C_PRINT: return "c-print";
     case XL6_IR_RUNTIME_C_PRINTLN: return "c-println";
     case XL6_IR_RUNTIME_CSTRING_SET_COPY: return "cstring-set-copy";
