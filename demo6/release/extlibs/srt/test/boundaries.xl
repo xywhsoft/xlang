@@ -19,6 +19,7 @@ func main(...) as int
     assert noted.length == 1, "tab-prefixed VTT note skipped"
     var styled = srt.parseVtt("WEBVTT\n\nSTYLE\n::cue { color: white }\n\nREGION\nid:main\n\n00:00.000 --> 00:01.000\nVisible\n\nNOTE after cue\ncomment\n")
     assert styled.length == 1, "layout blocks before cue and note after cue"
+    assert srt.parseVtt("WEBVTT\n\nSTYLE \t\n::cue { color: white }\n\nREGION\t \nid:main\n\n00:00.000 --> 00:01.000\nVisible\n").length == 1, "layout block headings allow trailing whitespace"
     assert srt.parseVtt("WEBVTT\n\n00:00.000\t-->\t00:01.000\nHi\n").length == 1, "tab-separated VTT arrow"
     assert srt.parse("1\n00:00:00,000-->00:00:01,000\nHi\n").length == 1, "SRT arrow spacing remains lenient"
 

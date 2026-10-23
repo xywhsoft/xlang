@@ -274,6 +274,14 @@ int main(void) {
             xrtValueCount(styled) == 1);
         xrtValueRelease(styled);
     }
+    {
+        xvalue *spaced = xsrt_parse_vtt(
+            "WEBVTT\n\nSTYLE \t\n::cue { color: white }\n\n"
+            "REGION\t \nid:main\n\n00:00.000 --> 00:01.000\nVisible\n");
+        CHECK(spaced != NULL && xrtValueType(spaced) == XVALUE_ARRAY &&
+            xrtValueCount(spaced) == 1);
+        xrtValueRelease(spaced);
+    }
     CHECK(invalid_vtt("WEBVTT\n\n00:00.000 --> 00:01.000\nHi --> there\n"));
     CHECK(invalid_vtt("WEBVTT\n\n00:01.000 --> 00:01.000\nZero duration\n"));
     {
@@ -308,6 +316,8 @@ int main(void) {
         "REGION\nid:late\n"));
     CHECK(invalid_vtt("WEBVTT\n\n00:00.000 --> 00:01.000\nHi\n\n"
         "STYLE\n::cue { color: white }\n"));
+    CHECK(invalid_vtt("WEBVTT\n\n00:00.000 --> 00:01.000\nHi\n\n"
+        "STYLE \t\n::cue { color: white }\n"));
     CHECK(invalid_vtt("WEBVTT\n\n00:02.000 --> 00:03.000\nLater\n\n"
         "00:01.000 --> 00:02.000\nEarlier\n"));
     CHECK(invalid_vtt("WEBVTT\n\nrepeat\n00:00.000 --> 00:01.000\nA\n\n"

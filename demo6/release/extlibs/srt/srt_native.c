@@ -33,10 +33,18 @@ static int xsrt_prefix(XsrtLine line, const char *text) {
     return line.size >= size && memcmp(line.data, text, size) == 0;
 }
 
+static int xsrt_heading(XsrtLine line, const char *text) {
+    size_t i, size = strlen(text);
+    if (line.size < size || memcmp(line.data, text, size) != 0) return 0;
+    for (i = size; i < line.size; ++i)
+        if (line.data[i] != ' ' && line.data[i] != '\t') return 0;
+    return 1;
+}
+
 static int xsrt_vtt_control(XsrtLine line) {
     return xsrt_equal(line, "NOTE") || xsrt_prefix(line, "NOTE ") ||
-           xsrt_prefix(line, "NOTE\t") || xsrt_equal(line, "STYLE") ||
-           xsrt_equal(line, "REGION");
+           xsrt_prefix(line, "NOTE\t") || xsrt_heading(line, "STYLE") ||
+           xsrt_heading(line, "REGION");
 }
 
 static int xsrt_next(const char **cursor, const char *limit, XsrtLine *line) {
@@ -200,7 +208,7 @@ static xvalue *xsrt_parse_cues(const char *text, size_t size, int vtt) {
         size_t k;
         if (!line.size) continue;
         if (vtt && xsrt_vtt_control(line)) {
-            if ((xsrt_equal(line, "STYLE") || xsrt_equal(line, "REGION")) &&
+            if ((xsrt_heading(line, "STYLE") || xsrt_heading(line, "REGION")) &&
                 xrtValueCount(result) > 0) goto invalid;
             if (xsrt_arrow(line) != SIZE_MAX) goto invalid;
             while (xsrt_next(&cursor, limit, &line) && line.size)

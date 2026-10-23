@@ -26,6 +26,7 @@ Windows `-SkipAot` 与 Linux ASan/UBSan 包级门禁通过；默认 Windows
 解析接受 LF/CRLF 和 UTF-8 BOM，拒绝孤立 `\r`；正文按原样保留 UTF-8 字节和行内空白，拒绝内嵌 NUL 以免静默截断。WebVTT `NOTE`（含空格或 tab 注释标题）、`STYLE`、`REGION` 块跳过，**不保留**样式内容，也不解释 cue 文本标记/定位设置的语义。这是字幕文本与时间轴库，不是完整 WebVTT 浏览器排版引擎。生成时 cue 必须具有非负、顺序正确的整数时间和字符串行；行内换行、NUL、空行不被接受，以免输出不可往返的文档。WebVTT 的 `id` 不得与控制块标题冲突，解析与生成均拒绝 `settings` 中的第二个 `-->`；生成时 `id` 也不得包含 `-->`。时间戳和 SRT 序号按 `int64` 范围检查，不提前收窄有效上界。无固定行长或 64 KiB 输出上限。
 
 WebVTT 正文中的 `-->` 在解析和生成时均拒绝；被跳过的 `NOTE`、`STYLE`、`REGION` 块也不能含有 `-->`，否则解析报错，而不是静默丢弃非法块。`STYLE` 和 `REGION` 只能位于首个 cue 之前，`NOTE` 仍可位于 cue 后。这些边界遵循 [W3C WebVTT 格式](https://www.w3.org/TR/webvtt1/)；普通 SRT 正文不受这些 WebVTT 限制。
+`STYLE`、`REGION` 标题后可跟空格或 tab，但不能跟其他文字；这种写法仍按控制块处理，不会误作 cue ID。
 WebVTT cue 的开始时间按文件顺序不得倒退（允许相等），非空 cue ID 在同一文档中必须唯一。解析和生成都验证这两点；普通 SRT 不套用 WebVTT 的时间顺序与 ID 规则。
 
 SRT/WebVTT 输入整体必须是有效 UTF-8；C 值模型构建时，cue 正文、WebVTT `id` 和 `settings` 也必须是有效 UTF-8。XRT 字符串本身可保存任意字节，因此这些检查在字幕包边界执行。
@@ -45,6 +46,13 @@ cue 行、ID 和设置均从借用的输入切片直接构造独立的 XRT 字�
 时间解析结果与格式化输入均使用 `int64_t`，与 XLang `int` 的 C ABI 一致。实现源直接包含公开头，避免两套声明再次漂移。
 
 ## 范例与包级验证
+
+2026-10-24：WebVTT 的 `STYLE`、`REGION` 标题原只接受完全相等的
+行，合法的尾随空格或 tab 被误识别为 cue ID。C 正例先红后绿，
+解析器共用标题判断，同时维持 cue 后禁止这两类块的规则；XLang
+正例、Windows `-SkipAot`、Linux C ASan/UBSan 与双语门禁通过。
+Windows 核心 AOT 通过，完整范例 AOT 仍缺共享
+`xl6ValueDataSnapshotV1`，整包未签收发布级。
 
 2026-10-24：WebVTT cue 原允许开始与结束时间相等，解析和生成均与
 WebVTT 时间轴规则不符。C/XLang 红例确认后，两条路径改为结束时间
