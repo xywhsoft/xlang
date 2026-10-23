@@ -18,11 +18,21 @@ DinoV3 图片嵌入扩展库使用 OpenCV 预处理和 ONNX Runtime 执行模型
 
 Windows：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/dinov3/test/check.ps1`
 
+只运行 C、真实桥接和 XLang JIT 聚焦检查时可加 `-SkipAot`；当前主线
+AOT 阻断期间，带真实模型或 `-ParallelLive` 的独立验证也应加此开关。
+默认门禁在无输出核心 AOT 之后还必须构建并运行公开的缺模型范例，
+核对固定输出。
+
 Linux：`sh release/extlibs/dinov3/test/check.sh`
 
 两套门禁以链接期五函数测试桩验证 C 结果处理：嵌入向量、shape/count、NaN、长度错误、长路径 JSON 和独立所有权；Linux C 使用 ASan/UBSan。两套门禁均运行 XLang 输入/输出名称 NUL 和无效输出负例。Windows 另以发布目录的真实 `onnxruntime_xlang.dll` 验证 C 桥接装载，并运行 XLang 导入与缺模型负例。设置 `DINOV3_MODEL` 和 `DINOV3_TEST_IMAGE` 后，Windows 门禁额外运行 C/XLang 同图真实模型范例，要求 384 维输出且全部元素逐项误差不超过 `1e-5`；模型与图片路径均由调用方提供。加 `-ParallelLive` 时，再让两条线程各自创建会话、推理并对照串行结果。测试桩和两线程 smoke 均不代替后端长期稳定性认证；完整 AOT 仍待复核。
 
 门禁每次使用独占临时构建目录并在退出时清理，不复用上次构建的可执行文件。
+
+2026-10-23：`-SkipAot` 聚焦门禁的严格 C、真实桥接加载及 XLang
+缺模型/名称/输出边界通过；默认门禁的核心 AOT 通过，但公开范例 AOT
+构建在共享 `xl6ValueDataSnapshotV1` 缺符号处失败。公开范例的 JIT 输出
+已固定为 `dinov3 extlib ok`；完整 AOT 与整包发布级仍未签收。
 
 2026-10-15：manifest 声明原生结果处理实际使用的 XRT 值容器、JSON、
 Buffer、once 和线程键模块。无模型 `test/aot_core.xl` 调用公开

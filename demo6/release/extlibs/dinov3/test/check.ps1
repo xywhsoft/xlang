@@ -1,4 +1,4 @@
-param([switch]$ParallelLive)
+param([switch]$ParallelLive, [switch]$SkipAot)
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 $release = Join-Path $root 'release'
@@ -47,7 +47,10 @@ try {
         Run 'real bridge C load' $live @()
         Push-Location $release
         try {
-            Run 'XLang missing-model boundary' (Join-Path $release 'xl.exe') @('run', 'examples/extlibs/dinov3.xl')
+            $jitOutput = @(Run 'XLang missing-model boundary' (Join-Path $release 'xl.exe') @('run', 'examples/extlibs/dinov3.xl'))
+            if (($jitOutput -join "`n").Trim() -cne 'dinov3 extlib ok') {
+                throw "XLang public example output differs: $($jitOutput -join '; ')"
+            }
             Run 'XLang ONNX name boundaries' (Join-Path $release 'xl.exe') @('run', 'extlibs/dinov3/test/nul_names.xl')
             Run 'XLang unavailable output boundaries' (Join-Path $release 'xl.exe') @('run', 'extlibs/dinov3/test/invalid_output.xl')
         } finally {
@@ -56,10 +59,26 @@ try {
     } finally {
         $env:ONNXRUNTIME_XLANG_DLL = $oldBridge
     }
-    $core = Join-Path $build 'aot_core.exe'
-    Run 'XLang AOT core build' (Join-Path $release 'xl.exe') @(
-        'build', 'release/extlibs/dinov3/test/aot_core.xl', '-o', $core)
-    Run 'XLang AOT core' $core @()
+    if (-not $SkipAot) {
+        $core = Join-Path $build 'aot_core.exe'
+        Run 'XLang AOT core build' (Join-Path $release 'xl.exe') @(
+            'build', 'release/extlibs/dinov3/test/aot_core.xl', '-o', $core)
+        Run 'XLang AOT core' $core @()
+
+        $example = Join-Path $build 'dinov3_example.exe'
+        Run 'XLang public example AOT build' (Join-Path $release 'xl.exe') @(
+            'build', 'release/examples/extlibs/dinov3.xl', '-o', $example)
+        $oldBridge = $env:ONNXRUNTIME_XLANG_DLL
+        try {
+            $env:ONNXRUNTIME_XLANG_DLL = $bridge
+            $aotOutput = @(Run 'XLang public example AOT' $example @())
+            if (($aotOutput -join "`n").Trim() -cne 'dinov3 extlib ok') {
+                throw "XLang public example AOT output differs: $($aotOutput -join '; ')"
+            }
+        } finally {
+            $env:ONNXRUNTIME_XLANG_DLL = $oldBridge
+        }
+    }
     if ($env:DINOV3_MODEL -or $env:DINOV3_TEST_IMAGE) {
         if (-not $env:DINOV3_MODEL -or -not $env:DINOV3_TEST_IMAGE) {
             throw 'set both DINOV3_MODEL and DINOV3_TEST_IMAGE'
