@@ -31383,8 +31383,10 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 return XL6_IR_VALUE_INVALID;
             }
             callEmitted = xl6IrLowerEmit(ctx,
-                dispatchSlot != SIZE_MAX ? XL6_IR_INSTR_VIRTUAL_CALL : XL6_IR_INSTR_CALL,
-                id, physicalReturnType, node->targetSymbol, operands, operandCount,
+                dispatchSlot != SIZE_MAX ? XL6_IR_INSTR_VIRTUAL_CALL :
+                    (target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC ? XL6_IR_INSTR_ASYNC_START :
+                     target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR ? XL6_IR_INSTR_GENERATOR_START : XL6_IR_INSTR_CALL),
+                id, physicalReturnType, dispatchSlot != SIZE_MAX ? 0 : node->targetSymbol, operands, operandCount,
                 physicalReturnType == XL6_IR_TYPE_INVALID &&
                     xl6IrLowerSelectedCallErrorAbi(ctx->module,target,dispatchSlot)!=XL6_IR_ERROR_ABI_MAY_RAISE
                     ? NULL : &result);
