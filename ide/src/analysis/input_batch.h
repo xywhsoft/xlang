@@ -8,6 +8,10 @@ int xlsInputLimits(const xls_session_limits* requested,xls_session_limits* chose
 xls_input_batch* xlsInputBatchCreate(const xls_session_limits* limits,const xls_input_batch* previous,
     const xls_analysis_document* documents,size_t count,const char* target,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
+xls_input_batch* xlsInputBatchCreateInContext(xls_context* context,const xls_session_limits* limits,const xls_input_batch* previous,
+    const xls_analysis_document* documents,size_t count,const char* target,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity);
+const xls_context* xlsInputBatchContext(const xls_input_batch* batch);
 void xlsInputBatchDestroy(xls_input_batch* batch);
 const xls_analysis_document* xlsInputBatchFind(const xls_input_batch* batch,const char* key);
 const xls_analysis_document* xlsInputBatchTarget(const xls_input_batch* batch);

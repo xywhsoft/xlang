@@ -27,6 +27,9 @@ int xlsSyntaxCopyCursorParse(const xls_syntax* syntax,struct XL6_CompletionQuery
 xls_semantic_completion* xlsSemanticCompletionCreateParsed(const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
+xls_semantic_completion* xlsSemanticCompletionCreateParsedInContext(xls_context* context,const char* entry,const char* queryPath,
+    size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity);
 /* Private mutable copy for compiler semantic passes. Destination must be
  * empty/initialized. Diagnostics and sources are independently owned. */
 int xlsSyntaxCopyParse(const xls_syntax* syntax,XL6_ParseResult* result);
@@ -34,6 +37,9 @@ xls_semantic_check* xlsSemanticCheckCreateParsed(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
 xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
+    const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
+    xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity);
+xls_semantic_check* xlsSemanticCheckCreateIncrementalInContext(xls_context* context,const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity);
 /* Nodes are immutable chunk facts, with original chunk coordinates. Use the

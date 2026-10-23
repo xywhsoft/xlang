@@ -1,4 +1,5 @@
 #include "analysis/check_session.h"
+#include "analysis/frontend_context.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/input_batch.h"
 #include <xrt.h>
@@ -24,7 +25,7 @@ void xlsCheckSessionDestroy(xls_check_session* s)
 { if(s) { xlsInputBatchDestroy(s->batch); xlsSyntaxRelease(s->entrySyntax); xlsSemanticCheckDestroy(s->result); xrtFree(s); } }
 void xlsCheckSessionStats(const xls_check_session* s,xls_check_stats* stats)
 { if(stats) *stats=s ? s->stats : (xls_check_stats){0}; }
-xls_semantic_check* xlsCheckSessionCheck(xls_check_session* s,
+xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* s,xls_context* context,
     const xls_analysis_document* documents,size_t count,const char* target,
     int captureIndex,int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
@@ -32,7 +33,7 @@ xls_semantic_check* xlsCheckSessionCheck(xls_check_session* s,
     xls_syntax* syntax=NULL;
     if(error && capacity) *error=0;
     if(!s || (captureIndex!=0 && captureIndex!=1)) goto invalid;
-    batch=xlsInputBatchCreate(&s->limits,s->batch,documents,count,target,cancelled,user,error,capacity);
+    batch=xlsInputBatchCreateInContext(context,&s->limits,s->batch,documents,count,target,cancelled,user,error,capacity);
     if(!batch) goto done;
     const xls_analysis_document* entryDocument=xlsInputBatchTarget(batch);
     const char* entry=entryDocument->path;
@@ -45,7 +46,7 @@ xls_semantic_check* xlsCheckSessionCheck(xls_check_session* s,
         ++s->stats.builds;
         const xls_analysis_document* oldTarget=xlsInputBatchTarget(s->batch);
         const xls_analysis_document* old=oldTarget && !strcmp(oldTarget->key,target) ? xlsInputBatchFind(s->batch,target) : NULL;
-        const xls_syntax* previous=old && old->identity==entryDocument->identity && !strcmp(old->path,entry) ? s->entrySyntax : NULL;
+        const xls_syntax* previous=xlsFrontendContextsEqual(context,xlsInputBatchContext(s->batch)) && old && old->identity==entryDocument->identity && !strcmp(old->path,entry) ? s->entrySyntax : NULL;
         if(previous && xlsInputSameBody(old,entryDocument)) { syntax=xlsSyntaxRetain(s->entrySyntax); ++s->stats.entrySyntaxHits; }
         else {
             char* path=xrtPathAbs(entry); if(!path) goto memory;
@@ -57,7 +58,7 @@ xls_semantic_check* xlsCheckSessionCheck(xls_check_session* s,
         if(stopped(cancelled,user)) goto cancel;
         xls_semantic_check* baseline=previous && s->captureIndex==captureIndex &&
             !strcmp(xlsInputBatchDirectory(s->batch),xlsInputBatchDirectory(batch)) ? s->result : NULL;
-        result=xlsSemanticCheckCreateIncremental(entry,inputs,count,captureIndex,syntax,baseline,cancelled,user,error,capacity);
+        result=xlsSemanticCheckCreateIncrementalInContext(context,entry,inputs,count,captureIndex,syntax,baseline,cancelled,user,error,capacity);
         if(!result) goto done;
         xls_check_semantic_work work=xlsSemanticCheckWork(result);
         s->stats.semanticFunctionsChecked+=work.functionsChecked; s->stats.semanticFunctionsReused+=work.functionsReused;
@@ -76,3 +77,8 @@ memory: fail(error,capacity,"cannot retain semantic input batch"); goto done;
 cancel: fail(error,capacity,"semantic session cancelled");
 done: xlsSyntaxRelease(syntax); xlsInputBatchDestroy(batch); return result;
 }
+
+xls_semantic_check* xlsCheckSessionCheck(xls_check_session* session,
+    const xls_analysis_document* documents,size_t count,const char* target,
+    int captureIndex,int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{ return xlsCheckSessionCheckInContext(session,NULL,documents,count,target,captureIndex,cancelled,user,error,capacity); }

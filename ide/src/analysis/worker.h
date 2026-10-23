@@ -28,10 +28,16 @@ xls_query* xlsWorkerFolding(xls_worker* worker,const xls_analysis_document* docu
  * background checks when foreground latency must remain independent. */
 xls_query* xlsWorkerCheck(xls_worker* worker,const xls_analysis_document* documents,
                         size_t count,const char* target);
+/* Same core context contract as check.h. Captures one immutable reference
+ * before queueing; caller can immediately release its context afterwards. */
+xls_query* xlsWorkerCheckInContext(xls_worker* worker,xls_context* context,
+    const xls_analysis_document* documents,size_t count,const char* target);
 /* Exact cursor projections use their own retained session on this actor.
  * Use a dedicated foreground actor to avoid the full-check queue. */
 xls_query* xlsWorkerCompletion(xls_worker* worker,const xls_analysis_document* documents,
     size_t count,const char* entry,const char* queryKey,size_t offset);
+xls_query* xlsWorkerCompletionInContext(xls_worker* worker,xls_context* context,
+    const xls_analysis_document* documents,size_t count,const char* entry,const char* queryKey,size_t offset);
 void xlsQueryCancel(xls_query* query);
 /* Register once from the submitting owner. Wake can run on the completing
  * worker or synchronously if already ready; it must be short/thread-safe and

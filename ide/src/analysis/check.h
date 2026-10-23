@@ -2,6 +2,7 @@
 #define XLANG_ANALYSIS_CHECK_H
 #include "analysis/semantic.h"
 #include "analysis/index.h"
+#include "analysis/context.h"
 
 typedef struct xls_semantic_check xls_semantic_check;
 #define XLS_CHECK_REPORT_BYTES (36u * 1024u * 1024u)
@@ -54,6 +55,16 @@ xls_check_semantic_work xlsSemanticCheckWork(const xls_semantic_check* result);
 xls_semantic_check* xlsSemanticCheckCreate(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
+/* Explicit immutable resolution context. Entry must match context.entry.
+ * Supports a build directory and raw package environment without changing
+ * process state. C/resource/include/link settings currently reject; members
+ * are index metadata, not implicit imports. Profile describes this linked
+ * frontend, never selects another compiler. NULL preserves the legacy API.
+ * Context/result ownership is independent. Manifest freshness is host-owned. */
+xls_semantic_check* xlsSemanticCheckCreateInContext(xls_context* context,const char* entry,
+    const xls_semantic_input* inputs,size_t count,int captureIndex,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity);
+const xls_context* xlsSemanticCheckContext(const xls_semantic_check* result);
 /* Each owner holds a reference. Destroy releases one reference. Immutable
  * facts may be read concurrently; input validation and lazy compatibility
  * exports are serialized internally. Invalidation remains permanent. */

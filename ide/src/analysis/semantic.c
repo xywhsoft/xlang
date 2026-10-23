@@ -1,4 +1,5 @@
 #include "analysis/semantic.h"
+#include "analysis/frontend_context.h"
 #include "analysis/frontend_internal.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
@@ -9,6 +10,7 @@
 
 struct xls_semantic_completion {
     xatomic32 references,invalid;
+    xls_context* context;
     xmutex lock;
     int lockInitialized,available;
     XL6_ParseResult parse;
@@ -43,9 +45,9 @@ void xlsSemanticCompletionDestroy(xls_semantic_completion* r)
     xl6ImportDepsFree(&r->deps);
     xl6SourceOverlayClear(&r->overlay);
     xl6SourceReportFree(&r->report);
-    xrtFree(r->queryError); xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
+    xlsContextRelease(r->context); xrtFree(r->queryError); xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
 }
-static xls_semantic_completion* create(const char* entry,const char* queryPath,
+static xls_semantic_completion* createBody(xls_context* context,const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
@@ -56,7 +58,7 @@ static xls_semantic_completion* create(const char* entry,const char* queryPath,
     }
     if(stopped(cancelled,user)) { fail(error,capacity,"semantic completion cancelled"); return NULL; }
     r=xrtCalloc(1,sizeof(*r)); if(!r) { fail(error,capacity,"cannot allocate semantic completion"); return NULL; }
-    xrtAtomic32Init(&r->references,1); xrtAtomic32Init(&r->invalid,0);
+    xrtAtomic32Init(&r->references,1); xrtAtomic32Init(&r->invalid,0); r->context=xlsContextRetain(context);
     if(!xrtMutexInit(&r->lock)) goto invalid;
     r->lockInitialized=1;
     xl6ParseResultInit(&r->parse); xl6ImportDepsInit(&r->deps); xl6SourceReportInit(&r->report);
@@ -119,16 +121,40 @@ cancel:
     fail(error,capacity,"semantic completion cancelled");
     xlsSemanticCompletionDestroy(r); return NULL;
 }
+static xls_semantic_completion* create(xls_context* context,const char* entry,const char* queryPath,
+    size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{
+    if(!xlsFrontendContextValid(context,entry,error,capacity)) return NULL;
+    xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
+    xls_semantic_completion* result=createBody(context,entry,queryPath,offset,inputs,count,syntax,cancelled,user,error,capacity);
+    if(!xlsFrontendContextEnd(&scope)) {
+        xlsSemanticCompletionDestroy(result); fail(error,capacity,(scope.failed&2) ? "cannot retain bounded completion namespace" : "cannot resolve native context path or package environment"); return NULL;
+    }
+    return result;
+}
+xls_semantic_completion* xlsSemanticCompletionCreateInContext(xls_context* context,const char* entry,const char* queryPath,
+    size_t offset,const xls_semantic_input* inputs,size_t count,int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{ return create(context,entry,queryPath,offset,inputs,count,NULL,cancelled,user,error,capacity); }
+xls_semantic_completion* xlsSemanticCompletionCreateParsedInContext(xls_context* context,const char* entry,const char* queryPath,
+    size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{
+    if(!syntax) { fail(error,capacity,"parsed completion requires cursor syntax"); return NULL; }
+    return create(context,entry,queryPath,offset,inputs,count,syntax,cancelled,user,error,capacity);
+}
+const xls_context* xlsSemanticCompletionContext(const xls_semantic_completion* result)
+{ return result ? result->context : NULL; }
 xls_semantic_completion* xlsSemanticCompletionCreate(const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
-{ return create(entry,queryPath,offset,inputs,count,NULL,cancelled,user,error,capacity); }
+{ return create(NULL,entry,queryPath,offset,inputs,count,NULL,cancelled,user,error,capacity); }
 xls_semantic_completion* xlsSemanticCompletionCreateParsed(const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
     if(!syntax) { fail(error,capacity,"parsed completion requires cursor syntax"); return NULL; }
-    return create(entry,queryPath,offset,inputs,count,syntax,cancelled,user,error,capacity);
+    return create(NULL,entry,queryPath,offset,inputs,count,syntax,cancelled,user,error,capacity);
 }
 xls_completion_info xlsSemanticCompletionInfo(const xls_semantic_completion* r)
 {
@@ -150,7 +176,9 @@ int xlsSemanticCompletionItem(const xls_semantic_completion* r,size_t index,xls_
 static int validateLocked(xls_semantic_completion* r)
 {
     if(invalid(r)) return 0;
-    if(!xl6SourceReportValidate(&r->report)) { xrtAtomic32Store(&r->invalid,1,XMEMORY_RELEASE); return 0; }
+    xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,r->context);
+    int okay=xl6SourceReportValidate(&r->report); int scoped=xlsFrontendContextEnd(&scope);
+    if(!okay || !scoped) { xrtAtomic32Store(&r->invalid,1,XMEMORY_RELEASE); return 0; }
     return 1;
 }
 int xlsSemanticCompletionValidate(xls_semantic_completion* r)

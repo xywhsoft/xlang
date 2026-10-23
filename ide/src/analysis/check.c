@@ -1,4 +1,5 @@
 #include "analysis/check.h"
+#include "analysis/frontend_context.h"
 #include "analysis/frontend_index.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_sem.h"
@@ -12,6 +13,7 @@
 
 struct xls_semantic_check {
     xatomic32 references,invalid;
+    xls_context* context;
     xmutex lock;
     int lockInitialized;
     XL6_ParseResult parse;
@@ -39,9 +41,9 @@ void xlsSemanticCheckDestroy(xls_semantic_check* r)
     xrtFree(r->index); xlsFrontendIndexDestroy(r->typedIndex); xlsFrontendSemMemoDestroy(r->memo);
     xl6IrModuleFree(&r->ir); xl6ParseResultFree(&r->parse);
     xl6ImportDepsFree(&r->deps); xl6SourceOverlayClear(&r->overlay); xl6SourceReportFree(&r->report);
-    xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
+    xlsContextRelease(r->context); xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
 }
-xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
+static xls_semantic_check* createBody(xls_context* context,const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
@@ -54,7 +56,7 @@ xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
     }
     if(stopped(cancelled,user)) { fail(error,capacity,"semantic check cancelled"); return NULL; }
     r=xrtCalloc(1,sizeof(*r)); if(!r) { fail(error,capacity,"cannot allocate semantic check"); return NULL; }
-    xrtAtomic32Init(&r->references,1); xrtAtomic32Init(&r->invalid,0);
+    xrtAtomic32Init(&r->references,1); xrtAtomic32Init(&r->invalid,0); r->context=xlsContextRetain(context);
     if(!xrtMutexInit(&r->lock)) goto invalid;
     r->lockInitialized=1;
     xl6ParseResultInit(&r->parse); xl6ImportDepsInit(&r->deps); xl6SourceReportInit(&r->report); xl6IrModuleInit(&r->ir);
@@ -95,7 +97,7 @@ xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
         r->phase="sem";
         if(syntax) {
             const xls_sem_memo* baseline=NULL;
-            int compatible=previous && previous->memo && previous->captureIndex==captureIndex && !strcmp(previous->path,r->path) &&
+            int compatible=previous && xlsFrontendContextsEqual(previous->context,context) && previous->memo && previous->captureIndex==captureIndex && !strcmp(previous->path,r->path) &&
                 previous->overlay.count==r->overlay.count && xlsSemanticCheckValidate(previous);
             /* Changed imported overlays are not interchangeable merely
              * because they have the same public spelling. This first slice
@@ -139,6 +141,28 @@ cancel:
     fail(error,capacity,"semantic check cancelled");
     xlsSemanticCheckDestroy(r); return NULL;
 }
+xls_semantic_check* xlsSemanticCheckCreateIncrementalInContext(xls_context* context,const char* entry,
+    const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
+    xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{
+    if(!xlsFrontendContextValid(context,entry,error,capacity)) return NULL;
+    xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
+    xls_semantic_check* result=createBody(context,entry,inputs,count,captureIndex,syntax,previous,cancelled,user,error,capacity);
+    if(!xlsFrontendContextEnd(&scope)) {
+        xlsSemanticCheckDestroy(result); fail(error,capacity,(scope.failed&2) ? "cannot retain bounded completion namespace" : "cannot resolve native context path or package environment"); return NULL;
+    }
+    return result;
+}
+xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
+    const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
+    xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{ return xlsSemanticCheckCreateIncrementalInContext(NULL,entry,inputs,count,captureIndex,syntax,previous,cancelled,user,error,capacity); }
+xls_semantic_check* xlsSemanticCheckCreateInContext(xls_context* context,const char* entry,
+    const xls_semantic_input* inputs,size_t count,int captureIndex,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{ return xlsSemanticCheckCreateIncrementalInContext(context,entry,inputs,count,captureIndex,NULL,NULL,cancelled,user,error,capacity); }
+const xls_context* xlsSemanticCheckContext(const xls_semantic_check* result)
+{ return result ? result->context : NULL; }
 xls_semantic_check* xlsSemanticCheckCreate(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
@@ -208,7 +232,9 @@ const char* xlsSemanticCheckIndex(xls_semantic_check* r)
 static int validateLocked(xls_semantic_check* r)
 {
     if(invalid(r)) return 0;
-    if(!xl6SourceReportValidate(&r->report)) { xrtAtomic32Store(&r->invalid,1,XMEMORY_RELEASE); return 0; }
+    xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,r->context);
+    int okay=xl6SourceReportValidate(&r->report); int scoped=xlsFrontendContextEnd(&scope);
+    if(!okay || !scoped) { xrtAtomic32Store(&r->invalid,1,XMEMORY_RELEASE); return 0; }
     return 1;
 }
 int xlsSemanticCheckValidate(xls_semantic_check* r)

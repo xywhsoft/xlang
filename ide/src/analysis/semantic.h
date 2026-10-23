@@ -2,6 +2,7 @@
 #define XLANG_ANALYSIS_SEMANTIC_H
 #include <stddef.h>
 #include <stdint.h>
+#include "analysis/context.h"
 
 /* Host-independent, query-owned semantic facts. Inputs are borrowed for the
  * call only, paths must be absolute, and offsets exclude an optional UTF-8 BOM.
@@ -27,6 +28,12 @@ typedef struct xls_completion_item {
 xls_semantic_completion* xlsSemanticCompletionCreate(const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
+/* Same explicit resolution/unsupported-build-option contract as check.h.
+ * The result retains context and re-enters it for later proof validation. */
+xls_semantic_completion* xlsSemanticCompletionCreateInContext(xls_context* context,const char* entry,const char* queryPath,
+    size_t offset,const xls_semantic_input* inputs,size_t count,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity);
+const xls_context* xlsSemanticCompletionContext(const xls_semantic_completion* result);
 /* Immutable facts may outlive the producing session and be consumed on
  * separate threads. Each consumer owns a reference; retain requires an
  * existing live reference. Validation/serialization are internally locked. */
