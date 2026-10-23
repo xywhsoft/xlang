@@ -28111,7 +28111,9 @@ XRT_API xx509result xrtX509MatchDns(
 
 
 
-/* 在 SAN 的 DNS-ID 或 IP-ID 中匹配引用主机；pName 为空时只返回结果。 */
+/* 在 SAN 的 DNS-ID 或 IP-ID 中匹配引用主机；pName 为空时只返回结果。
+ * Host 是精确长度视图，不含 C 终止符，内嵌 NUL 拒绝；不进行 DNS 查询。
+ * 匹配后的名称借用证书数据；DONE / ERROR 不修改 pName。 */
 XRT_API xx509result xrtX509MatchHost(
 	const xx509cert* pCert,
 	xstrview Host,

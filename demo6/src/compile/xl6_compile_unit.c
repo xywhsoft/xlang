@@ -245,6 +245,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
 #include "xl6_x509_crl_policy_components.inc"
 #include "xl6_x509_path_components.inc"
 #include "xl6_x509_store_components.inc"
+#include "xl6_x509_identity_components.inc"
     {"src/runtime/xl6_der_value.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_ASN1_DER", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_der_value_domain.c", D(R(OWNERSHIP_CATALOG),R(DER_VALUE)), {NULL}},
     {"src/runtime/xl6_der_reader.c", D(R(NATIVE_HANDLE),R(DER_VALUE)), {"XRT_MODULE_ASN1_DER", "XRT_MODULE_VALUE", "XRT_MODULE_THREAD"}},
