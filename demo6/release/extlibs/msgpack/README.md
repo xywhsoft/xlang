@@ -28,6 +28,9 @@ println(document["name"])
 
 解码接受 float32 并转换成 XLang 浮点数；时间以 XRT 微秒精度表示，编码选最短标准布局。外部时间戳的纳秒部分若不是整微秒，或时间超出 XRT `time` 范围，会明确报错，不做静默舍入。整数可覆盖标准线格式的有符号 int64 和无符号 uint64；解码值不超过 `INT64_MAX` 时沿用 `int`，超过时用 XRT `uint64` 保存。线格式无法保留较小正整数在输入端的有符号类型区别。其他未建模的 ext 类型仍明确拒绝。编码不支持的 `var` 类型也明确失败。文本键和值都按显式长度处理，允许内嵌 NUL，不会在第一个 NUL 处截断；HEX 文本入口则拒绝内嵌 NUL。二进制输入/输出上限 64 MiB；调试用 HEX 文本最多 128 MiB。C 入口将缺失输入报为 `XERR_ARGUMENT`，超限报为 `XERR_RANGE`；这些输入错误在 XLang 层抛 `ValueError`，分配故障另抛 `MemoryError`。整个文档的数组项和字典项合计最多 100 万，嵌套深度最多 64；编解码均采用相同预算。重复 map 键、非法 UTF-8、截断与尾随字节都拒绝。范围遵循 [MessagePack 规范](https://github.com/msgpack/msgpack/blob/master/spec.md)允许应用层约束 map 键和扩展类型的设计。
 
+浮点特殊值按 IEEE-754 位型保存：float64 负零、正负无穷与 NaN 的固定 wire 可重编码为同一字节序列；float32 负零提升到 float64 后仍保留符号位。包内 C 与 XLang 边界用例同时固定这些结果。
+2026-10-24 的 Windows 严格 C/XLang 聚焦门禁和 Linux C ASan/UBSan、XLang 联合门禁均通过；完整 AOT 仍按下文的共享链接阻断处理。
+
 C 侧包含 `msgpack_native.h`，返回的 `xbuffer*` 用 `xrtBufferDestroy`，返回的 `xvalue*` 用 `xrtValueRelease`，`xmsgpack_to_hex` 返回的字符串用 `xrtFree`。`xmsgpack_encode(NULL)` 是缺少参数，返回 `NULL` 并设置 `XERR_ARGUMENT`；传入 `xrtValueNull()` 则合法编码为 MessagePack `nil`。C 的 `xmsgpack_decode` 失败返回 `NULL`，合法 `nil` 返回拥有型 `XVALUE_NULL`；XLang `_abi` 将失败值适配为空值哨兵，用线程错误槽区分。HEX 文本入口拒绝内嵌 NUL，不会只解析前缀。
 原生 `xmsgpack_from_hex` 查找 C 文本终止符时最多读取 128 MiB 加一个字节；
 超限返回 `XERR_RANGE`，不会对不可信长度调用无界 `strlen`。

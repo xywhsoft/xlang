@@ -1,6 +1,7 @@
 #define XRT_MODULE_ALL
 #include "xrt.h"
 #include "../msgpack_native.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +27,47 @@ static int null_value_contract(void) {
     CHECK(encoded != NULL && encoded->Size == 1u &&
         encoded->Data[0] == 0xc0u && xrtGetError() == NULL);
     xrtBufferDestroy(encoded);
+    return 0;
+}
+
+static int floating_wire_contract(void) {
+    static const uint8 f32_negative_zero[] = {0xcau, 0x80u, 0u, 0u, 0u};
+    static const uint8 wires[][9] = {
+        {0xcbu, 0x80u, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
+        {0xcbu, 0x7fu, 0xf0u, 0u, 0u, 0u, 0u, 0u, 0u},
+        {0xcbu, 0xffu, 0xf0u, 0u, 0u, 0u, 0u, 0u, 0u},
+        {0xcbu, 0x7fu, 0xf8u, 0u, 0u, 0u, 0u, 0u, 1u}
+    };
+    size_t i;
+    for (i = 0u; i < sizeof(wires) / sizeof(wires[0]); ++i) {
+        xvalue* value = xmsgpack_decode(wires[i], sizeof(wires[i]));
+        xbuffer* encoded;
+        double number;
+        CHECK(value != NULL && xrtValueType(value) == XVALUE_FLOAT &&
+            xrtValueGetFloat(value, &number) && xrtGetError() == NULL);
+        if (i == 0u) CHECK(number == 0.0 && signbit(number));
+        if (i == 1u) CHECK(isinf(number) && number > 0.0);
+        if (i == 2u) CHECK(isinf(number) && number < 0.0);
+        if (i == 3u) CHECK(isnan(number));
+        encoded = xmsgpack_encode(value);
+        CHECK(encoded != NULL && encoded->Size == sizeof(wires[i]) &&
+            memcmp(encoded->Data, wires[i], sizeof(wires[i])) == 0);
+        xrtBufferDestroy(encoded);
+        xrtValueRelease(value);
+    }
+    {
+        xvalue* value = xmsgpack_decode(f32_negative_zero,
+            sizeof(f32_negative_zero));
+        xbuffer* encoded;
+        double number;
+        CHECK(value != NULL && xrtValueGetFloat(value, &number) &&
+            number == 0.0 && signbit(number));
+        encoded = xmsgpack_encode(value);
+        CHECK(encoded != NULL && encoded->Size == sizeof(wires[0]) &&
+            memcmp(encoded->Data, wires[0], sizeof(wires[0])) == 0);
+        xrtBufferDestroy(encoded);
+        xrtValueRelease(value);
+    }
     return 0;
 }
 
@@ -389,6 +431,7 @@ static int mutation_matrix(void) {
 
 int main(void) {
     CHECK(null_value_contract() == 0);
+    CHECK(floating_wire_contract() == 0);
     CHECK(unsigned_integer_roundtrip() == 0);
     CHECK(length_headers() == 0);
     CHECK(binary_direct_path() == 0);

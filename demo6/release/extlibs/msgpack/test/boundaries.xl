@@ -11,6 +11,14 @@ func main(...) as int
     end
     assert rejected, "hex input must not be silently truncated"
     assert msgpack.decode(msgpack.fromHex("ca3fc00000")) == 1.5, "float32"
+    for wire in ["cb8000000000000000", "cb7ff0000000000000", "cbfff0000000000000", "cb7ff8000000000001"]
+        var decoded = msgpack.decode(msgpack.fromHex(wire))
+        assert msgpack.toHex(msgpack.encode(decoded)) == wire, "float64 bit pattern"
+    end
+    assert msgpack.toHex(msgpack.encode(msgpack.decode(msgpack.fromHex("ca80000000")))) == "cb8000000000000000", "float32 negative zero"
+    assert math.isInf(float(msgpack.decode(msgpack.fromHex("cb7ff0000000000000")))), "positive infinity"
+    assert math.isInf(float(msgpack.decode(msgpack.fromHex("cbfff0000000000000")))), "negative infinity"
+    assert math.isNaN(float(msgpack.decode(msgpack.fromHex("cb7ff8000000000001")))), "NaN"
     assert msgpack.decode(msgpack.fromHex("d6ff00000000")) == time(0), "timestamp32"
     assert msgpack.toHex(msgpack.encode(time(1))) == "d7ff00000fa000000000", "timestamp64"
     assert msgpack.decode(msgpack.fromHex("c70cff1dcd6500ffffffffffffffff")) == time(-500000), "timestamp96"
