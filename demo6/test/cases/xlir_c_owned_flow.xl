@@ -3,6 +3,8 @@ extern "c_owned_binary" @no_raise func nativeBytes() as point
 extern "c_owned_release" @no_raise func nativeFree(point data)
 extern "c_owned_text_is_original" @no_raise func original(string text) as bool
 extern "c_owned_released" @no_raise func released() as int
+extern "c_owned_debug" @no_raise func debugMemory() as bool
+extern "c_owned_allocations" @no_raise func allocations() as int
 func identity(string x) as string
     return x
 end
@@ -24,6 +26,7 @@ func make() as cstring
     return cstring.take(nativeText(), nativeFree)
 end
 func checkFlow()
+    bool tracking = debugMemory()
     string a = identity(make())
     auto b = a
     assert original(a) and original(b)
@@ -33,8 +36,10 @@ func checkFlow()
     b = "456"
     assert released() == 1
     bytes c = makeBytes()
+    int before = allocations()
     assert bin(c) == 259 and bin(x = c, offset = 1) == 259
     assert originalBytes(identityBytes(c))
+    if tracking then assert allocations() == before end
 end
 checkFlow()
 assert released() == 2
