@@ -52,25 +52,19 @@ static void* detachedPath(void* const* chain,void* anchor,const xx509pathconfig*
     XL6_X509PathOutcomeV1* result=xl6X509PathValidateCreateV1(chain,2,anchor,policy,0,0);assert(result);
     void* path=result->path;assert(path);result->path=NULL;xl6X509PathOutcomeDestroyV1(result);return path;
 }
-static void classification(void)
+static void decisionIsolation(void)
 {
-    int64_t status=991;
-    xerror* error=xrtErrorCreate(XERR_PROTOCOL,"xrt.x509",X509_ERROR_PATH,"ordinary diagnostic");assert(error);
-    assert(xl6X509PathClassifyV1(error,&status) && status==XL6_X509_PATH_REJECTED_V1);xrtErrorFree(error);
-    error=xrtErrorCreate(XERR_UNSUPPORTED,"xrt.x509",X509_ERROR_SIGNATURE,"ordinary diagnostic");assert(error);
-    assert(xl6X509PathClassifyV1(error,&status) && status==XL6_X509_PATH_UNSUPPORTED_V1);xrtErrorFree(error);
-    const xerrkind kinds[]={XERR_MEMORY,XERR_ARGUMENT,XERR_STATE};
-    for(size_t i=0;i<sizeof(kinds)/sizeof(*kinds);++i) {
-        error=xrtErrorCreate(kinds[i],"xrt.x509",X509_ERROR_PATH,"ordinary diagnostic");assert(error);status=991;
-        assert(!xl6X509PathClassifyV1(error,&status) && status==991);xrtErrorFree(error);
-    }
-    error=xrtErrorCreate(XERR_PROTOCOL,"external",X509_ERROR_PATH,"ordinary diagnostic");assert(error);
-    assert(!xl6X509PathClassifyV1(error,&status));xrtErrorFree(error);
-    xerrordescview description={.Kind=XERR_PROTOCOL,.Code=X509_ERROR_PATH,.Domain={"xrt.x509\0other",14}};
-    error=xrtErrorBuildView(&description);assert(error);assert(!xl6X509PathClassifyV1(error,&status));xrtErrorFree(error);
-    error=xrtErrorCreate(XERR_MEMORY,"allocator",1,"ordinary diagnostic");assert(error);
-    xerror* wrapper=xrtErrorWrap(error,XERR_PROTOCOL,"xrt.x509",X509_ERROR_SIGNATURE,"ordinary diagnostic");assert(wrapper);
-    assert(!xl6X509PathClassifyV1(wrapper,&status));xrtErrorFree(wrapper);xrtErrorFree(error);
+    const PathVector* vector=&pathVectors[3];xx509cert root,mid,leaf;xx509anchor anchor;
+    assert(xrtX509Parse(vector->root.Data,vector->root.Size,&root) && xrtX509Anchor(&root,&anchor));
+    assert(xrtX509Parse(vector->mid.Data,vector->mid.Size,&mid) && xrtX509Parse(vector->leaf.Data,vector->leaf.Size,&leaf));
+    const xx509cert* chain[2]={&leaf,&mid};xx509pathconfig config={0};xx509pathdecision decision;
+    /* Even a pre-existing diagnostic that looks like a validation rejection
+     * cannot determine the explicit native result or alter its precise reason. */
+    xerror* prior=xrtErrorCreate(XERR_PROTOCOL,"xrt.x509",X509_ERROR_PATH,"unrelated diagnostic");assert(prior);
+    xrtSetErrorTake(prior);assert(xrtMemDebugFailAfter(0));
+    assert(xrtX509PathCheck(chain,2,&anchor,&config,&decision)==X509_CHECK_REJECTED &&
+        decision.Reason==X509_ERROR_TIME && decision.Depth==0 && xrtGetError()==prior && !xrtMemDebugFailTriggered());
+    xrtMemDebugFailClear();xrtClearError();
 }
 typedef struct Reads {XL6_X509PathV1* path;const PathVector* vector;} Reads;
 static void readMany(Reads* input)
@@ -109,7 +103,7 @@ static void ordinary(const PathVector* vector,bool faults)
     void* chain[]={leaf,mid};
     if(faults)FAULTS(xl6X509PathValidateCreateV1(chain,2,anchor,&policy,64,16777216),xl6X509PathOutcomeDestroyV1);
     XL6_X509PathOutcomeV1* result=xl6X509PathValidateCreateV1(chain,2,anchor,&policy,64,16777216);
-    assert(result && xl6X509PathOutcomeStatusV1(result)==XL6_X509_PATH_VALID_V1 && xl6X509PathOutcomeCodeV1(result)==0);
+    assert(result && xl6X509PathOutcomeStatusV1(result)==XL6_X509_PATH_VALID_V1 && xl6X509PathOutcomeCodeV1(result)==0 && xl6X509PathOutcomeDepthV1(result)==-1);
     assert(result->path && result->path->count==2 && xl6X509PathOutcomeRequireV1(result));
     assert(equal(result->path->policy.Purpose,policy.Purpose) && result->path->policy.Purpose.Data!=purpose);
     assert(!result->path->policy.Critical && !result->path->policy.UserData);
@@ -122,9 +116,11 @@ static void ordinary(const PathVector* vector,bool faults)
         policy.Time=0;
         FAULTS(xl6X509PathValidateCreateV1(chain,2,anchor,&policy,0,0),xl6X509PathOutcomeDestroyV1);
         XL6_X509PathOutcomeV1* rejected=xl6X509PathValidateCreateV1(chain,2,anchor,&policy,0,0);
-        assert(rejected && rejected->status==XL6_X509_PATH_REJECTED_V1 && !rejected->path && rejected->code==X509_ERROR_PATH && !xrtGetError());
+        assert(rejected && rejected->status==XL6_X509_PATH_REJECTED_V1 && !rejected->path && rejected->code==X509_ERROR_TIME &&
+            xl6X509PathOutcomeDepthV1(rejected)==0 && !xrtGetError());
+        xstrview data=xrtErrorDataView(rejected->diagnostic);assert(data.Size==7 && !memcmp(data.Data,"depth=0",7));
         assert(!xl6X509PathOutcomeRequireV1(rejected) && xrtGetError()==rejected->diagnostic);
-        xl6X509PathOutcomeDestroyV1(rejected);assert(xrtErrorCode(xrtGetError())==X509_ERROR_PATH);xrtClearError();policy.Time=pathTime;
+        xl6X509PathOutcomeDestroyV1(rejected);assert(xrtErrorCode(xrtGetError())==X509_ERROR_TIME);xrtClearError();policy.Time=pathTime;
         unsigned calls=0;chain[0]=custom;policy.Critical=acceptCritical;policy.UserData=&calls;
         XL6_X509PathOutcomeV1* handled=xl6X509PathValidateCreateV1(chain,2,anchor,&policy,0,0);
         assert(handled && handled->status==XL6_X509_PATH_VALID_V1 && calls==1);
@@ -157,7 +153,7 @@ static void ordinary(const PathVector* vector,bool faults)
 }
 int main(void)
 {
-    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);classification();
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);decisionIsolation();
     for(size_t i=0;i<sizeof(pathVectors)/sizeof(*pathVectors);++i)ordinary(&pathVectors[i],i==3);
     balanced(before);printf("X509 ordered path: 4 normal chains, %zu allocation budgets, %zu failures, %zu publication budgets; balanced\n",budgets,failures,publications);return 0;
 }

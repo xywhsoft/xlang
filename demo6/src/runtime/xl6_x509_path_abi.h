@@ -17,6 +17,7 @@ XL6_TEXT_API int64_t xl6X509PathPolicyMaxCertificatesV1(void*);
 XL6_TEXT_API int64_t xl6X509PathPolicyMaxBytesV1(void*);
 XL6_TEXT_API int64_t xl6X509PathOutcomeStatusV1(void*);
 XL6_TEXT_API int64_t xl6X509PathOutcomeCodeV1(void*);
+XL6_TEXT_API int64_t xl6X509PathOutcomeDepthV1(void*);
 XL6_TEXT_API void xl6X509PathOutcomeVerifyV1(void*);
 XL6_TEXT_API void* xl6X509PathOutcomePathV1(void*);
 XL6_TEXT_API int64_t xl6X509PathCountV1(void*);

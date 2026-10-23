@@ -14,6 +14,7 @@
 {"xl6X509PathPolicyMaxBytesV1",T,I,1,{V},.parameterOwners={"xl6X509PathPolicyDestroyV1"},.pure=1,.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
 {"xl6X509PathOutcomeStatusV1",T,I,1,{V},.parameterOwners={"xl6X509PathOutcomeDestroyV1"},.pure=1,.nonblocking=1,.resultEnum=&xl6IrX509ValidationStatusContract,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
 {"xl6X509PathOutcomeCodeV1",T,I,1,{V},.parameterOwners={"xl6X509PathOutcomeDestroyV1"},.pure=1,.nonblocking=1,.resultEnum=&xl6IrX509PathReasonContract,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+{"xl6X509PathOutcomeDepthV1",T,I,1,{V},.parameterOwners={"xl6X509PathOutcomeDestroyV1"},.pure=1,.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
 {"xl6X509PathOutcomeVerifyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6X509PathOutcomeDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
 {"xl6X509PathOutcomePathV1",T,V,1,{V},.resultOwner="xl6X509PathDestroyV1",.parameterOwners={"xl6X509PathOutcomeDestroyV1"},.pure=1,.nonblocking=1,.nullableResult=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
 {"xl6X509PathCountV1",T,I,1,{V},.parameterOwners={"xl6X509PathDestroyV1"},.pure=1,.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
