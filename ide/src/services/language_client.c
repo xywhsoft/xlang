@@ -44,13 +44,16 @@ static void wakeOwner(xide_language_client* c)
 { EnterCriticalSection(&c->lock); void (*wake)(void*)=c->wake; void* user=c->wakeUser; LeaveCriticalSection(&c->lock); if(wake) wake(user); }
 void xideLanguageClientSetWake(xide_language_client* c,void (*wake)(void*),void* user)
 { if(!c) return; EnterCriticalSection(&c->lock); c->wake=wake; c->wakeUser=user; int pending=c->receiveHead!=NULL || c->state>=XIDE_LS_STOPPED; LeaveCriticalSection(&c->lock); if(pending) wakeOwner(c); }
-static int receive(const xvalue* value,void* user)
+static int receive(xvalue* value,size_t length,void* user)
 {
- xide_language_client* c=user; node* n=calloc(1,sizeof(*n)); size_t length=0; char* encoded=xrtJsonStringify(value,false,&length); xrtFree(encoded);
- if(!n || !length || !(n->value=xrtValueDeepClone(value))) { clear(n); return 0; } n->length=length;
+ xide_language_client* c=user;node* n=calloc(1,sizeof(*n));if(!n) return 0;
+ n->value=value;n->length=length;
  EnterCriticalSection(&c->lock); int okay=c->receiveCount<QUEUE_COUNT && length<=QUEUE_BYTES-c->receiveBytes;
  if(okay) { if(c->receiveTail) c->receiveTail->next=n; else c->receiveHead=n; c->receiveTail=n; ++c->receiveCount; c->receiveBytes+=length; }
- LeaveCriticalSection(&c->lock); if(!okay) clear(n); else wakeOwner(c); return okay;
+ LeaveCriticalSection(&c->lock);
+ /* Only success takes the root. The stream releases rejected frames after
+    this callback returns, outside the queue lock. Count original wire bytes. */
+ if(!okay) {n->value=NULL;clear(n);}else wakeOwner(c);return okay;
 }
 static DWORD WINAPI worker(void* user)
 {
@@ -64,7 +67,7 @@ static DWORD WINAPI worker(void* user)
   }
   LeaveCriticalSection(&c->lock);
   clear(sent); /* Large encoded bodies are retired outside the owner lock. */
-  char bytes[16384]; size_t k=xideProcessRead(p,bytes,sizeof(bytes)); if(k && !xideLspStreamFeed(&stream,bytes,k,receive,c,&e)) { okay=0; break; }
+  char bytes[16384]; size_t k=xideProcessRead(p,bytes,sizeof(bytes)); if(k && !xideLspStreamFeedOwned(&stream,bytes,k,receive,c,&e)) { okay=0; break; }
   size_t warning=xideProcessReadError(p,bytes,sizeof(bytes)); if(warning) { size_t keep=warning<sizeof(stderrTail)-1 ? warning : sizeof(stderrTail)-1; memcpy(stderrTail,bytes+warning-keep,keep); stderrTail[keep]=0; }
   xideProcessGetInfo(p,&info);
   if(info.ioError || info.droppedBytes) { fail(&e,*info.error ? info.error : "语言服务协议输出被丢弃。"); okay=0; break; }

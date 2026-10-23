@@ -48,9 +48,9 @@ static int header(xide_lsp_stream* s,xide_model_error* e)
  }
  if(!found) { return fail(e,"LSP Content-Length is required."); } s->header=n; s->body=body; return 1;
 }
-int xideLspStreamFeed(xide_lsp_stream* s,const void* data,size_t length,xide_lsp_message_proc receive,void* user,xide_model_error* e)
+static int feed(xide_lsp_stream* s,const void* data,size_t length,xide_lsp_message_proc receive,xide_lsp_owned_message_proc owned,void* user,xide_model_error* e)
 {
- if(!s || s->failed || (!data && length) || !receive) return fail(e,"Invalid LSP stream state.");
+ if(!s || s->failed || (!data && length) || (!receive && !owned)) return fail(e,"Invalid LSP stream state.");
  if(length>BUFFER_LIMIT-s->length) { s->failed=1; return fail(e,"LSP receive buffer exceeds its bound."); }
  size_t need=s->length+length+1; if(need>s->capacity) { size_t cap=need>4096 ? need : 4096; char* p=realloc(s->bytes,cap); if(!p) { s->failed=1; return fail(e,"Cannot allocate LSP stream buffer."); } s->bytes=p; s->capacity=cap; }
  if(length) { memcpy(s->bytes+s->length,data,length); } s->length+=length; s->bytes[s->length]=0;
@@ -59,12 +59,18 @@ int xideLspStreamFeed(xide_lsp_stream* s,const void* data,size_t length,xide_lsp
   if(!s->header || s->length-s->header<s->body) return 1;
   const char* body=s->bytes+s->header; if(!utf8(body,s->body)) { fail(e,"LSP body is not valid UTF-8 JSON."); goto invalid; }
   xvalue* value=xrtJsonParse((xstrview){body,s->body}); if(!value || xrtValueType(value)!=XVALUE_OBJECT) { xrtValueRelease(value); fail(e,"LSP body must be a JSON object."); goto invalid; }
-  int accepted=receive(value,user); xrtValueRelease(value); if(!accepted) { fail(e,"LSP message receiver rejected the frame."); goto invalid; }
+  int accepted=owned ? owned(value,s->body,user) : receive(value,user);
+  if(!owned || !accepted) xrtValueRelease(value);
+  if(!accepted) { fail(e,"LSP message receiver rejected the frame."); goto invalid; }
   size_t consumed=s->header+s->body; memmove(s->bytes,s->bytes+consumed,s->length-consumed); s->length-=consumed; s->bytes[s->length]=0; s->header=s->body=0;
  }
  return 1;
 invalid: s->failed=1; return 0;
 }
+int xideLspStreamFeed(xide_lsp_stream* s,const void* data,size_t length,xide_lsp_message_proc receive,void* user,xide_model_error* e)
+{ return feed(s,data,length,receive,NULL,user,e); }
+int xideLspStreamFeedOwned(xide_lsp_stream* s,const void* data,size_t length,xide_lsp_owned_message_proc receive,void* user,xide_model_error* e)
+{ return feed(s,data,length,NULL,receive,user,e); }
 int xideLspStreamEnd(xide_lsp_stream* s,xide_model_error* e) { return s && !s->failed && !s->length ? 1 : fail(e,"LSP stream ended in a partial or invalid frame."); }
 char* xideLspFrame(const xvalue* value,size_t* length,xide_model_error* e)
 {
