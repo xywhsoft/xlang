@@ -25594,6 +25594,24 @@ XRT_API xx509check xrtX509PathBuildCheck(
 	xx509pathdecision* pDecision
 );
 
+/* Bound deterministic search work, not elapsed time. Each candidate or anchor
+ * visit costs one step (including duplicates/nonmatches); a full path evaluation
+ * additionally costs its certificate count. Charge before doing the work.
+ * Zero explicitly disables the limit. Exhaustion is ERROR/XERR_RANGE, never a
+ * completed rejection; pResult and pDecision remain unchanged. Input admission,
+ * one comparison/verification and application callbacks are not preempted.
+ * No public type/layout or time contract is changed. */
+XRT_API xx509check xrtX509PathBuildCheckLimit(
+	const xx509cert* pTarget,
+	const xx509pathsource* pSource,
+	const xx509pathconfig* pConfig,
+	const xx509cert** ppPath,
+	size_t iCapacity,
+	size_t iMaxSteps,
+	xx509pathresult* pResult,
+	xx509pathdecision* pDecision
+);
+
 #endif
 
 
@@ -178516,6 +178534,22 @@ static bool __xrtX509PathBuildUsed(
 
 
 
+/* Debit before executing a search operation. A NULL counter is the explicitly
+ * unlimited mode, so even unlimited search never accumulates/overflows a sum. */
+static bool __xrtX509PathBuildSpend(size_t* pRemaining, size_t iCost)
+{
+	if ( pRemaining != NULL ) {
+		if ( iCost > *pRemaining ) {
+			__xrtErrorSetRange();
+			return false;
+		}
+		*pRemaining -= iCost;
+	}
+	return true;
+}
+
+
+
 /* 在候选发行者和信任锚中确定性回溯构建有效路径。 */
 static xrt_x509_decision __xrtX509PathSearch(
 	const xx509cert* pTarget,
@@ -178523,6 +178557,7 @@ static xrt_x509_decision __xrtX509PathSearch(
 	const xx509pathconfig* pConfig,
 	const xx509cert** ppPath,
 	size_t iCapacity,
+	size_t iMaxSteps,
 	xx509pathresult* pResult
 )
 {
@@ -178533,6 +178568,8 @@ static xrt_x509_decision __xrtX509PathSearch(
 	bool bHasDecision = false;
 	size_t iDepth = 0;
 	bool bTooDeep = false;
+	size_t Remaining = iMaxSteps;
+	size_t* pRemaining = iMaxSteps != 0 ? &Remaining : NULL;
 
 	if ( !__xrtX509PathBuildArguments(
 		pTarget, pSource, pConfig, ppPath, iCapacity, pResult
@@ -178569,7 +178606,13 @@ static xrt_x509_decision __xrtX509PathSearch(
 			pFrame->AnchorsTried = true;
 			for ( size_t i = 0; i < pSource->AnchorCount; i++ ) {
 				const xx509anchor* pAnchor = &pSource->Anchors[i];
-				xx509result Match = xrtX509NameEqual(
+				xx509result Match;
+
+				if ( !__xrtX509PathBuildSpend(pRemaining, 1u) ) {
+					Decision = __xrtX509CheckError();
+					goto Done;
+				}
+				Match = xrtX509NameEqual(
 					pCurrent->Issuer, pAnchor->Name
 				);
 
@@ -178579,6 +178622,10 @@ static xrt_x509_decision __xrtX509PathSearch(
 				}
 				if ( Match != X509_VALUE ) {
 					continue;
+				}
+				if ( !__xrtX509PathBuildSpend(pRemaining, iDepth + 1u) ) {
+					Decision = __xrtX509CheckError();
+					goto Done;
 				}
 				Decision = __xrtX509PathEvaluate(
 					ppPath, iDepth + 1u, pAnchor, pConfig
@@ -178603,10 +178650,14 @@ static xrt_x509_decision __xrtX509PathSearch(
 
 		/* 每层按调用方顺序尝试尚未访问的候选发行者。 */
 		while ( pFrame->NextIssuer < pSource->IssuerCount ) {
-			const xx509cert* pCandidate =
-				pSource->Issuers[pFrame->NextIssuer++];
+			const xx509cert* pCandidate;
 			xx509result Match;
 
+			if ( !__xrtX509PathBuildSpend(pRemaining, 1u) ) {
+				Decision = __xrtX509CheckError();
+				goto Done;
+			}
+			pCandidate = pSource->Issuers[pFrame->NextIssuer++];
 			if ( __xrtX509PathBuildUsed(
 				ppPath, iDepth + 1u, pCandidate
 			) ) {
@@ -178662,12 +178713,23 @@ XRT_API xx509check xrtX509PathBuildCheck(
 	size_t iCapacity, xx509pathresult* pResult, xx509pathdecision* pDecision
 )
 {
+	return xrtX509PathBuildCheckLimit(pTarget, pSource, pConfig, ppPath,
+		iCapacity, 0, pResult, pDecision);
+}
+
+XRT_API xx509check xrtX509PathBuildCheckLimit(
+	const xx509cert* pTarget, const xx509pathsource* pSource,
+	const xx509pathconfig* pConfig, const xx509cert** ppPath,
+	size_t iCapacity, size_t iMaxSteps,
+	xx509pathresult* pResult, xx509pathdecision* pDecision
+)
+{
 	xrt_x509_decision Decision;
 	if ( pDecision == NULL ) {
 		__xrtErrorSetInvalidArgument();
 		return X509_CHECK_ERROR;
 	}
-	Decision = __xrtX509PathSearch(pTarget, pSource, pConfig, ppPath, iCapacity, pResult);
+	Decision = __xrtX509PathSearch(pTarget, pSource, pConfig, ppPath, iCapacity, iMaxSteps, pResult);
 	if ( Decision.Result != X509_CHECK_ERROR ) {
 		pDecision->Reason = Decision.Reason;
 		pDecision->Depth = Decision.Depth;
@@ -178683,7 +178745,7 @@ XRT_API bool xrtX509PathBuild(
 )
 {
 	xrt_x509_decision Decision = __xrtX509PathSearch(
-		pTarget, pSource, pConfig, ppPath, iCapacity, pResult);
+		pTarget, pSource, pConfig, ppPath, iCapacity, 0, pResult);
 	xerror* Cause;
 	if ( Decision.Result == X509_CHECK_VALID ) {
 		return true;
