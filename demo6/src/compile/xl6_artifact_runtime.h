@@ -210,6 +210,7 @@ typedef enum XL6_ArtifactRuntimeId {
     XL6_ARTIFACT_CRYPTO_RSA_PKCS1_SIGN,
 #include "xl6_key_component_ids.inc"
 #include "xl6_x509_component_ids.inc"
+#include "xl6_x509_records_component_ids.inc"
     XL6_ARTIFACT_DER_VALUE,
     XL6_ARTIFACT_OWNERSHIP_DOMAIN_DER_VALUE,
     XL6_ARTIFACT_DER_READER,

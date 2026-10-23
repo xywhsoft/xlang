@@ -19,6 +19,7 @@ const char* xl6StdlibAsn1ClassSource =
     "    extern \"xl6DerBitsV1\" func bits() as bytes\n"
     "    extern \"xl6DerUnusedBitsV1\" get unusedBits() as int\n"
     "    extern \"xl6DerOidTextV1\" func oidText() as string\n"
+#include "xl6_stdlib_x509_der_time.inc"
     "    extern \"xl6DerValueReaderV1\" func reader() as DerReader\n"
     "end\n"
     "class DerReader\n"

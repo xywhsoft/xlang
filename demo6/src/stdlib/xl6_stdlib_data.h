@@ -136,6 +136,8 @@ extern const char* xl6StdlibAsn1ClassSource;
 extern const char* xl6StdlibCryptoClassSource;
 extern const char* xl6StdlibXdhClassSource;
 extern const char* xl6StdlibX509DataSource;
+extern const char* xl6StdlibX509RecordsSource;
+extern const char* xl6StdlibX509EnumsSource;
 extern const char* xl6StdlibEd25519ClassSource;
 extern const char* xl6StdlibSignatureHashSource;
 extern const char* xl6StdlibNistClassSource;

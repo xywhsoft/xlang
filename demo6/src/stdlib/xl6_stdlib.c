@@ -826,6 +826,15 @@ static int xl6StdlibNodeUsesTypeName(const XL6_AstNode* node, const char* typeNa
     return 0;
 }
 
+static int xl6StdlibUsesX509Types(const XL6_AstNode* root)
+{
+    static const char* const types[]={"Certificate","CertificateRevocationList","X509Name","X509NameAttribute",
+        "X509Extensions","X509Extension","X509Algorithm","X509SignatureInfo","X509PublicKeyInfo",
+        "X509SignatureKind","X509Digest","X509KeyKind","X509Curve"};
+    for(size_t i=0;i<sizeof(types)/sizeof(*types);++i)if(xl6StdlibNodeUsesTypeName(root,types[i]))return 1;
+    return 0;
+}
+
 static int xl6StdlibHasConcurrentImport(const XL6_AstNode* node)
 {
     if (!node) return 0;
@@ -2242,7 +2251,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsCompress ) xl6StdlibBuilderAppend(&builder, xl6StdlibCompressOptionsSource);
     if ( needsDeflater ) xl6StdlibBuilderAppend(&builder, xl6StdlibDeflaterSource);
     if ( needsInflater ) xl6StdlibBuilderAppend(&builder, xl6StdlibInflaterSource);
-    if (xl6StdlibNodeUsesTypeName(root, "DerValue") ||
+    if (xl6StdlibUsesX509Types(root) || xl6StdlibNodeUsesTypeName(root, "DerValue") ||
         xl6StdlibNodeUsesTypeName(root, "DerReader") ||
         xl6StdlibNodeUsesTypeName(root, "DerBuilder") ||
         xl6StdlibNodeUsesTypeName(root, "PemBlock") ||
@@ -2282,8 +2291,11 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsCryptoClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibCryptoClassSource);
     }
-    if (xl6StdlibNodeUsesTypeName(root,"Certificate") || xl6StdlibNodeUsesTypeName(root,"CertificateRevocationList"))
+    if (xl6StdlibUsesX509Types(root)) {
+        xl6StdlibBuilderAppend(&builder,xl6StdlibX509EnumsSource);
+        xl6StdlibBuilderAppend(&builder,xl6StdlibX509RecordsSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509DataSource);
+    }
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||
         xl6StdlibFuncUsed(used,"crypto","x25519KeyPair") || xl6StdlibFuncUsed(used,"crypto","x448KeyPair"))
         xl6StdlibBuilderAppend(&builder,xl6StdlibXdhClassSource);

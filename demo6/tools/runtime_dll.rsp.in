@@ -449,6 +449,33 @@
     src\runtime\xl6_x509_pem.c
     src\runtime\xl6_x509_certificate_pem.c
     src\runtime\xl6_x509_crl_pem.c
+    src\runtime\xl6_x509_record_storage.c
+    src\runtime\xl6_x509_record_oid.c
+    src\runtime\xl6_x509_attribute.c
+    src\runtime\xl6_x509_attribute_domain.c
+    src\runtime\xl6_x509_attribute_value.c
+    src\runtime\xl6_x509_name.c
+    src\runtime\xl6_x509_name_record_domain.c
+    src\runtime\xl6_x509_name_compare.c
+    src\runtime\xl6_x509_extension.c
+    src\runtime\xl6_x509_extension_domain.c
+    src\runtime\xl6_x509_extensions.c
+    src\runtime\xl6_x509_extensions_domain.c
+    src\runtime\xl6_x509_algorithm.c
+    src\runtime\xl6_x509_algorithm_domain.c
+    src\runtime\xl6_x509_signature_info.c
+    src\runtime\xl6_x509_signature_info_domain.c
+    src\runtime\xl6_x509_public_key_info.c
+    src\runtime\xl6_x509_public_key_info_domain.c
+    src\runtime\xl6_x509_certificate_names.c
+    src\runtime\xl6_x509_crl_names.c
+    src\runtime\xl6_x509_certificate_extensions.c
+    src\runtime\xl6_x509_crl_extensions.c
+    src\runtime\xl6_x509_certificate_algorithms.c
+    src\runtime\xl6_x509_crl_algorithms.c
+    src\runtime\xl6_x509_certificate_key_info.c
+    src\runtime\xl6_x509_certificate_unique_ids.c
+    src\runtime\xl6_x509_der_time.c
     src\runtime\xl6_der_value.c
     src\runtime\xl6_der_value_domain.c
     src\runtime\xl6_der_reader.c

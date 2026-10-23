@@ -37,8 +37,16 @@ xstrview xl6DerOidTextV1(void* raw)
     if (!self || !xrtDerOid(&self->value,&oid) || !xrtDerOidDecode(oid,&result)) {
         xl6CryptoFreeSecret(result.Data,result.Size);return xl6TextFailure;
     }
-    /* Buffer has no implicit terminator; the language string ABI does. */
-    xstrview text=xl6TextCopy((xstrview){(const char*)result.Data,result.Size});
-    xl6CryptoFreeSecret(result.Data,result.Size);return text;
+    /* Transfer the decoder's storage rather than copying it through STRING.
+     * Buffer has no implicit terminator; the language string ABI does. */
+    if (result.Size>=INT64_MAX) {
+        xrtSetErrorKind(XERR_RANGE);xl6CryptoFreeSecret(result.Data,result.Size);return xl6TextFailure;
+    }
+    size_t size=result.Size;
+    if (!xrtBufferAppend(&result,(xbytesview){(const uint8*)"",1})) {
+        xl6CryptoFreeSecret(result.Data,result.Size);return xl6TextFailure;
+    }
+    bytes data=xrtBufferTake(&result,NULL,NULL);
+    return (xstrview){(const char*)data,size};
 }
 XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6DerValueHandlePolicyV1Get,xl6DerValueDestroyV1)
