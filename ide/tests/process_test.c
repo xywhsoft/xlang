@@ -18,6 +18,17 @@ static void emit(const char* value)
 }
 static int child(int count,wchar_t** arguments)
 {
+    if(!wcscmp(arguments[2],L"notify")) {
+        char command;DWORD size,written;
+        while(ReadFile(GetStdHandle(STD_INPUT_HANDLE),&command,1,&size,NULL) && size) {
+            if(command=='q') return 0;
+            Sleep(40);
+            if(command=='o') emit("OUTPUT\n");
+            else if(command=='e') WriteFile(GetStdHandle(STD_ERROR_HANDLE),"WARNING\n",8,&written,NULL);
+            else return 3;
+        }
+        return 2;
+    }
     if(!wcscmp(arguments[2],L"flood")) {
         char bytes[16384]; memset(bytes,'X',sizeof(bytes)); DWORD written;
         for(int i=0;i<192;++i) WriteFile(GetStdHandle(STD_OUTPUT_HANDLE),bytes,sizeof(bytes),&written,NULL);
@@ -49,6 +60,49 @@ static int child(int count,wchar_t** arguments)
     }
     return 4;
 }
+typedef struct readiness {xmutex lock;xcond changed;int signaled;volatile LONG notifications;} readiness;
+static void ready(void* user)
+{ readiness* state=user;InterlockedIncrement(&state->notifications);xrtMutexLock(&state->lock);state->signaled=1;xrtCondSignal(&state->changed);xrtMutexUnlock(&state->lock); }
+static xwaitresult waitReady(readiness* state,int64 timeout)
+{
+    xrtMutexLock(&state->lock);xwaitresult result=XWAIT_OK;
+    if(!state->signaled) result=xrtCondWaitFor(&state->changed,&state->lock,timeout);
+    if(state->signaled) {state->signaled=0;result=XWAIT_OK;}else if(result==XWAIT_OK)result=XWAIT_TIMEOUT;
+    xrtMutexUnlock(&state->lock);return result;
+}
+static int readNotified(xide_process* process,readiness* state,int errorChannel,const char* expected)
+{
+    char bytes[80]={0};size_t count=0;
+    while(count<strlen(expected)) {
+        size_t n=errorChannel ? xideProcessReadError(process,bytes+count,sizeof(bytes)-count-1) : xideProcessRead(process,bytes+count,sizeof(bytes)-count-1);
+        count+=n;
+        if(!n && waitReady(state,2000)!=XWAIT_OK) return 0;
+    }
+    return !strcmp(bytes,expected);
+}
+static int notifications(const char* self,const char* directory)
+{
+    readiness state={0};xide_process* process=NULL;int okay=0;char error[512]={0};xide_process_info info={0};
+    if(!xrtMutexInit(&state.lock)) return 0;
+    if(!xrtCondInit(&state.changed)) {xrtMutexUnit(&state.lock);return 0;}
+    const char* arguments[]={"child","notify"};
+    xide_process_spec spec={.program=self,.directory=directory,.arguments=arguments,.argumentCount=2,.interactive=1,.separateStderr=1};
+    process=xideProcessStart(&spec,error,sizeof(error));if(!process) goto done;
+    xideProcessSetWake(process,ready,&state);
+    if(waitReady(&state,2000)!=XWAIT_OK || !xideProcessWrite(process,"o",1) || !readNotified(process,&state,0,"OUTPUT\n") ||
+       !xideProcessWrite(process,"e",1) || !readNotified(process,&state,1,"WARNING\n") || !xideProcessWrite(process,"q",1)) goto done;
+    for(;;) {
+        xideProcessGetInfo(process,&info);if(info.state==XIDE_PROCESS_FINISHED) break;
+        if(waitReady(&state,2000)!=XWAIT_OK) goto done;
+    }
+    if(info.ioError || info.exit.Kind!=XPROCESS_EXIT_CODE || info.exit.Code || state.notifications<5) goto done;
+    LONG before=InterlockedCompareExchange(&state.notifications,0,0);
+    xideProcessSetWake(process,ready,&state);
+    if(InterlockedCompareExchange(&state.notifications,0,0)<=before || waitReady(&state,0)!=XWAIT_OK) goto done;
+    okay=1;
+done:
+    xideProcessDestroy(process);xrtCondUnit(&state.changed);xrtMutexUnit(&state.lock);return okay;
+}
 static int waitDone(xide_process* process,xide_process_info* info,char* output,size_t capacity,size_t* count,unsigned timeout)
 {
     ULONGLONG began=GetTickCount64();
@@ -75,6 +129,7 @@ int main(int argc,char** argv)
     char error[512]={0},output[32768]={0}; size_t outputSize=0,logSize=0;
     CHECK(argc==2 && arguments); self=utf8(arguments[0]); LocalFree(arguments); arguments=NULL;
     directory=xidePathResolve(argv[1],"中文 进程"); CHECK(directory && xrtDirCreateAll(directory));
+    CHECK(notifications(self,directory));
     log=xidePathResolve(directory,"完整 日志.bin"); bad=xidePathResolve(directory,"missing-program.exe"); CHECK(log && bad);
     const char* echoArguments[]={"child","echo","中文 空格","","a\"b","ends\\","back\\\"quote"};
     xprocessenv environment[]={ {"XIDE_PROCESS_TEST","继承环境 空格"} };

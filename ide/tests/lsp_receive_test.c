@@ -54,7 +54,20 @@ static int queued(xvalue* root,size_t bytes,void* user)
 static void initClient(xide_language_client* c)
 { memset(c,0,sizeof(*c));InitializeCriticalSection(&c->lock); }
 static void unitClient(xide_language_client* c)
-{ clear(c->receiveHead);DeleteCriticalSection(&c->lock); }
+{ clear(c->sendHead);clear(c->receiveHead);if(c->changedReady)xrtCondUnit(&c->changed);if(c->changedLockReady)xrtMutexUnit(&c->changedLock);DeleteCriticalSection(&c->lock); }
+static int transportSignals(void)
+{
+ xide_language_client c;initClient(&c);c.changedLockReady=xrtMutexInit(&c.changedLock);c.changedReady=c.changedLockReady && xrtCondInit(&c.changed);CHECK(c.changedReady);
+ xvalue* message=xrtValueObject();CHECK(message && xideLanguageClientSend(&c,message,NULL));
+ CHECK(waitTransport(&c,0)==XWAIT_OK && waitTransport(&c,0)==XWAIT_TIMEOUT);
+ xide_language_batch* batch=xideLanguageBatchCreate();CHECK(batch && xideLanguageBatchAppend(batch,"test/changed",message) && xideLanguageBatchSend(&c,batch));
+ CHECK(waitTransport(&c,0)==XWAIT_OK && waitTransport(&c,0)==XWAIT_TIMEOUT);
+ batch=xideLanguageBatchCreate();CHECK(batch && xideLanguageBatchSend(&c,batch) && waitTransport(&c,0)==XWAIT_TIMEOUT);
+ c.state=XIDE_LS_FAILED;CHECK(!xideLanguageClientSend(&c,message,NULL) && waitTransport(&c,0)==XWAIT_TIMEOUT);
+ batch=xideLanguageBatchCreate();CHECK(batch && xideLanguageBatchAppend(batch,"test/changed",message) && !xideLanguageBatchSend(&c,batch) && waitTransport(&c,0)==XWAIT_TIMEOUT);xideLanguageBatchDestroy(batch);
+ signalTransport(&c);signalTransport(&c);CHECK(waitTransport(&c,0)==XWAIT_OK && waitTransport(&c,0)==XWAIT_TIMEOUT);
+ xrtValueRelease(message);unitClient(&c);return 1;
+}
 static const char source[]=" \n { \"jsonrpc\" : \"2.0\", \"result\" : {\"name\":\"中文😀\",\"nested\":[true,null,7]} } \t ";
 static int fragmentation(void)
 {
@@ -147,6 +160,6 @@ static int invalid(void)
 }
 int main(void)
 {
- if(!fragmentation() || !frames() || !rejection() || !bounds() || !invalid()) return 1;
+ if(!transportSignals() || !fragmentation() || !frames() || !rejection() || !bounds() || !invalid()) return 1;
  printf("lsp_receive_test passed: %d checks; exact parsed-root ownership and raw wire accounting, all split points, Unicode/nested values, borrowed compatibility, coalesced/partial/invalid frames, bounded count/bytes, allocation rollback and rejected-root cleanup outside the queue lock.\n",checks);return 0;
 }
