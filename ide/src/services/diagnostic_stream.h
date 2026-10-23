@@ -48,12 +48,21 @@ int xideDiagnosticStreamReset(xide_diagnostic_stream* stream,uint64_t session);
  * serial is cleared on failure. Within one session, accepted batches are FIFO. */
 int xideDiagnosticStreamSubmit(xide_diagnostic_stream* stream,uint64_t session,uint64_t sourceEpoch,
  xide_diagnostic_batch* batch,const xls_sync* sync,uint64_t* serial);
+/* Negotiated0.27 IDE mode. The worker requires a canonical client-input serial
+ * on every notice, bounded by the exact admitted-input ceiling, plus complete
+ * overlay proof metadata on non-cleared notices. Failure rejects the ENTIRE
+ * batch before any result can be installed, including when UI adoption slices.
+ * Ownership and backpressure match Submit; the older0.26 API stays usable. */
+int xideDiagnosticStreamSubmitCausal(xide_diagnostic_stream* stream,uint64_t session,uint64_t sourceEpoch,
+ uint64_t inputCeiling,xide_diagnostic_batch* batch,const xls_sync* sync,uint64_t* serial);
 xide_diagnostic_result* xideDiagnosticStreamTake(xide_diagnostic_stream* stream);
 /* A valid result means structurally accepted wire data, NOT semantic freshness.
  * Matching overlay source leases are verified/mapped on the worker. Unmatched
- * versions/bodies keep unmapped notices for host stale-input handling; disk
- * proofs still need host disk/body validation. Host also checks receipt history,
- * local identities/revisions, dependency changes, session and configuration. */
+ * versions/bodies keep unmapped notices for host stale-input handling. Negotiated
+ * disk notices reuse the snapshot proof reader and normalized mapper here;
+ * explicit jumps still recheck disk identity/body at the action boundary.
+ * Host also checks causal input fences, local identities/revisions, dependency
+ * changes, session and configuration. */
 xide_diagnostic_notice* xideDiagnosticResultTakeNotice(xide_diagnostic_result* result,size_t index);
 void xideDiagnosticResultRelease(xide_diagnostic_result* result);
 /* Success TAKES one object to its non-UI release callback on the same worker.

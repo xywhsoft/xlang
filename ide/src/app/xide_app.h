@@ -61,6 +61,7 @@ typedef struct xide_app {
     xide_session* session;
     const char* sessionRoot; char* projectSessionPath;
     int noSession,themeExplicit,sessionSwitchConfirmed,windowSizeExplicit;
+    int disableAutomaticDiagnostics; /* Explicit manual/compatibility profile. */
     xide_command_catalog catalog; xide_catalog_view* catalogView;
     const char *catalogPath,*initialCommand,*initialCommandSearch;
     xide_workspace workspaceModel;

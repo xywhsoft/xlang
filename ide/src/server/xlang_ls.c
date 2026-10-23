@@ -38,7 +38,8 @@ typedef struct server {
  xls_session_stats analysisStats; uint64_t analysisThread;
  semantic_request semantic[DOC_LIMIT]; unsigned long long semanticOrder; int checkForSemantic;
  xide_diagnostic_store* diagnostics; xide_diagnostic_query* diagnosticQuery; xide_diagnostic_publication* diagnosticPublication;
- int automaticDiagnostics,diagnosticVersions,diagnosticInputProof,diagnosticDependencyProof,diagnosticDelay,checkForDiagnostics,diagnosticKind,diagnosticRoot;
+ int automaticDiagnostics,diagnosticVersions,diagnosticInputProof,diagnosticDependencyProof,diagnosticOverlayProof,diagnosticDelay,checkForDiagnostics,diagnosticKind,diagnosticRoot;
+ xvalue* diagnosticOverlayState;unsigned long long diagnosticOverlayGeneration,inputSerial;
  int diagnosticNeedsSnapshot,diagnosticReset,diagnosticBindingsChanged,diagnosticFailed[DOC_LIMIT];
  unsigned long long diagnosticJobGeneration,diagnosticJobIdentity,diagnosticOrder[DOC_LIMIT],diagnosticNextOrder;
  uint64_t diagnosticDue[DOC_LIMIT],diagnosticSweepAt,diagnosticRetryAt,diagnosticLogAt;
@@ -344,6 +345,7 @@ static DWORD WINAPI reader(void* user)
 }
 static void documents(server* s,const char* method,const xvalue* params)
 {
+ if(s->inputSerial==ULLONG_MAX) {s->writeFailed=1;return;}
  const xvalue* item=get(params,"textDocument"); const char* uri=string(get(item,"uri")); int i=find(s,uri);
  if(!strcmp(method,"textDocument/didOpen")) {
   const char *text=string(get(item,"text")),*language=string(get(item,"languageId")); int version=0;
@@ -355,11 +357,11 @@ static void documents(server* s,const char* method,const xvalue* params)
   unsigned char uriHash[32];
   if(!content || !name || !xlsInputStateUri(uri,uriHash)) { free(path); xlsTextRelease(content); free(name); goto invalid; }
   unsigned long long generation=++s->generation;
-  s->docs[i]=(document){.uri=name,.path=path,.text=xlsTextData(content),.content=content,.version=version,.generation=generation,.identity=generation}; memcpy(s->docs[i].uriHash,uriHash,32); s->textBytes+=xlsTextSize(content); cancelCompletion(s,-32801,"Open-document cursor input set changed.",1); if(s->check && s->snapshotMode) cancel(s,-32801,"Open-document snapshot set changed."); clearPublished(s); diagnosticInput(s,i,path,1); return;
+  s->docs[i]=(document){.uri=name,.path=path,.text=xlsTextData(content),.content=content,.version=version,.generation=generation,.identity=generation}; memcpy(s->docs[i].uriHash,uriHash,32); s->textBytes+=xlsTextSize(content);++s->inputSerial; cancelCompletion(s,-32801,"Open-document cursor input set changed.",1); if(s->check && s->snapshotMode) cancel(s,-32801,"Open-document snapshot set changed."); clearPublished(s); diagnosticInput(s,i,path,1); return;
  }
  if(i<0) goto invalid;
  document* d=&s->docs[i];
- if(!strcmp(method,"textDocument/didClose")) { cancelNative(s,i,-32800,"Document closed."); cancelSemantic(s,i,-32800,"Document closed."); cancelCompletion(s,-32800,"Document closed.",1); if(s->check && (s->snapshotMode || s->checkDocument==i)) cancel(s,-32800,"Document closed."); if(s->pending==i) s->pending=-1; clearPublished(s); publish(s,d,NULL); ++s->generation; diagnosticInput(s,-1,d->path,1); clearDocument(s,i); s->diagnosticDue[i]=0; s->diagnosticFailed[i]=0; return; }
+ if(!strcmp(method,"textDocument/didClose")) {++s->inputSerial; cancelNative(s,i,-32800,"Document closed."); cancelSemantic(s,i,-32800,"Document closed."); cancelCompletion(s,-32800,"Document closed.",1); if(s->check && (s->snapshotMode || s->checkDocument==i)) cancel(s,-32800,"Document closed."); if(s->pending==i) s->pending=-1; clearPublished(s); publish(s,d,NULL); ++s->generation; diagnosticInput(s,-1,d->path,1); clearDocument(s,i); s->diagnosticDue[i]=0; s->diagnosticFailed[i]=0; return; }
  if(!strcmp(method,"textDocument/didChange")) {
   const xvalue* changes=get(params,"contentChanges"); int version=0;
   if(!integer(get(item,"version"),&version) || version<=d->version || !changes || xrtValueType(changes)!=XVALUE_ARRAY || xrtValueCount(changes)>1024) goto invalid;
@@ -386,11 +388,11 @@ static void documents(server* s,const char* method,const xvalue* params)
   cancelCompletion(s,-32801,"Open-document cursor content changed.",1);
   cancelNative(s,i,-32801,"Native analysis document changed.");
   cancelSemantic(s,i,-32801,"Semantic analysis document changed.");
-  s->textBytes=s->textBytes-xlsTextSize(d->content)+xlsTextSize(content); xlsTextRelease(d->content); d->content=content; d->text=xlsTextData(content); d->version=version; d->generation=++s->generation; clearPublished(s); publish(s,d,NULL); diagnosticInput(s,i,d->path,0); return;
+  s->textBytes=s->textBytes-xlsTextSize(d->content)+xlsTextSize(content); xlsTextRelease(d->content); d->content=content; d->text=xlsTextData(content); d->version=version; d->generation=++s->generation;++s->inputSerial; clearPublished(s); publish(s,d,NULL); diagnosticInput(s,i,d->path,0); return;
  }
  if(!strcmp(method,"textDocument/didSave")) {
   const xvalue* supplied=get(params,"text"); const char* text=string(supplied); if(supplied && (!text || strcmp(text,d->text))) goto invalid;
-  if(s->automaticDiagnostics) {
+  ++s->inputSerial;if(s->automaticDiagnostics) {
    ++s->generation; if(s->check && s->snapshotMode) cancel(s,-32801,"Saved inputs changed.");
    cancelCompletion(s,-32801,"Saved input visibility changed.",1); clearPublished(s); diagnosticInput(s,i,d->path,0);
   } else if(s->checkOnSave) startCheck(s,i,NULL,0);
@@ -503,6 +505,7 @@ static void inputState(server* s,const xvalue* id,const xvalue* params)
  snprintf(generation,sizeof(generation),"%llu",s->generation);
  xvalue* result=xrtValueObject();
  int okay=result && put(result,"schema",xrtValueInt(1)) && put(result,"generation",xrtValueString(sv(generation))) && put(result,"documents",xrtValueInt((int64)count)) && put(result,"sha256",xrtValueString(sv(digest)));
+ if(okay && s->diagnosticOverlayProof) {char serial[32];snprintf(serial,sizeof(serial),"%llu",s->inputSerial);okay=put(result,"serial",xrtValueString(sv(serial)));}
  if(okay) response(s,id,result,0,NULL); else { xrtValueRelease(result); response(s,id,NULL,-32603,"Unable to encode online document bindings."); }
 }
 static void dispatch(server* s,const xvalue* message)
@@ -532,13 +535,21 @@ static void dispatch(server* s,const xvalue* message)
   const xvalue* dependencySupport=get(get(get(params,"capabilities"),"experimental"),"diagnosticDependencyProof");
   if(dependencySupport && !xrtValueGetBool(dependencySupport,&dependencyProof)) { response(s,id,NULL,-32602,"Diagnostic dependency proof capability must be boolean."); return; }
   if(dependencyProof && !inputProof) { response(s,id,NULL,-32602,"Diagnostic dependency proofs require diagnosticInputProof."); return; }
+  bool overlayProof=false,conditional=false;
+  const xvalue* overlaySupport=get(get(get(params,"capabilities"),"experimental"),"diagnosticOverlayProof");
+  const xvalue* conditionalOption=get(options,"automaticDiagnosticsIfSupported");
+  if((overlaySupport && !xrtValueGetBool(overlaySupport,&overlayProof)) || (conditionalOption && !xrtValueGetBool(conditionalOption,&conditional)) ||
+     (overlayProof && (!dependencyProof || !versions)) || (conditional && (!overlayProof || s->cliDiagnostics))) {
+   response(s,id,NULL,-32602,"Diagnostic overlay proofs require dependency proofs and version support; conditional automatic diagnostics require native overlay proofs.");return;
+  }
+  automatic=automatic || conditional;
   const xvalue* definitionProofSupport=get(get(get(params,"capabilities"),"experimental"),"definitionInputProof");
   if(definitionProofSupport && !xrtValueGetBool(definitionProofSupport,&definitionProof)) { response(s,id,NULL,-32602,"Definition input proof capability must be boolean."); return; }
   const xvalue* rangeLimit=get(get(get(get(params,"capabilities"),"textDocument"),"foldingRange"),"rangeLimit"); int64 limit=65536;
   if(rangeLimit && (!xrtValueGetInt(rangeLimit,&limit) || limit<0 || limit>UINT32_MAX)) { response(s,id,NULL,-32602,"Folding rangeLimit must be a nonnegative 32-bit integer."); return; }
   s->foldingLimit=(size_t)(limit>65536 ? 65536 : limit);
   if(automatic && !s->diagnostics && !(s->diagnostics=xideDiagnosticStoreCreateWithDependencies(NULL,dependencyProof))) { response(s,id,NULL,-32603,"Unable to create the automatic diagnostic actor."); return; }
-  s->automaticDiagnostics=automatic; s->diagnosticVersions=versions; s->diagnosticInputProof=inputProof; s->diagnosticDependencyProof=dependencyProof; s->definitionInputProof=definitionProof; s->diagnosticDelay=delay; s->diagnosticSweepAt=GetTickCount64()+1000;
+  s->automaticDiagnostics=automatic; s->diagnosticVersions=versions; s->diagnosticInputProof=inputProof; s->diagnosticDependencyProof=dependencyProof;s->diagnosticOverlayProof=overlayProof; s->definitionInputProof=definitionProof; s->diagnosticDelay=delay; s->diagnosticSweepAt=GetTickCount64()+1000;
   xvalue *result=xrtValueObject(),*cap=xrtValueObject(),*sync=xrtValueObject(),*save=xrtValueObject(),*info=xrtValueObject(),*scope=xrtValueObject();
   put(cap,"positionEncoding",xrtValueString(sv("utf-16"))); put(sync,"openClose",xrtValueBool(true)); put(sync,"change",xrtValueInt(2)); put(save,"includeText",xrtValueBool(true)); put(sync,"save",save); put(cap,"textDocumentSync",sync);
   put(cap,"foldingRangeProvider",xrtValueBool(true)); put(scope,"residentSyntax",xrtValueBool(true)); put(scope,"analysisRuntime",xrtValueString(sv("compiler-xrt")));
@@ -549,6 +560,7 @@ static void dispatch(server* s,const xvalue* message)
   put(scope,"automaticDiagnostics",xrtValueBool(automatic)); put(scope,"diagnosticDelay",xrtValueInt(delay));
   put(scope,"diagnosticInputProof",xrtValueBool(true));
   put(scope,"diagnosticDependencyProof",xrtValueBool(true));
+  put(scope,"diagnosticOverlayProof",xrtValueBool(true));
   put(scope,"inputState",xrtValueBool(true));
   put(scope,"definitionInputProof",xrtValueBool(true));
   put(scope,"nativeSnapshotDiagnostics",xrtValueBool(!s->cliDiagnostics)); put(scope,"diagnosticsBackend",xrtValueString(sv(s->cliDiagnostics ? "cli" : "native")));
@@ -558,7 +570,7 @@ static void dispatch(server* s,const xvalue* message)
   put(scope,"savedDiagnosticsBackend",xrtValueString(sv("cli")));
   put(scope,"savedEntryDiagnostics",xrtValueBool(true)); put(scope,"unsavedDependencies",xrtValueBool(true)); put(scope,"snapshotDiagnostics",xrtValueBool(true)); put(scope,"snapshotDocumentFingerprint",xrtValueBool(true)); put(scope,"snapshotInputGuard",xrtValueString(sv("background-poll"))); put(scope,"cSemantics",xrtValueBool(false)); put(scope,"snapshotDefinition",xrtValueBool(true)); put(cap,"definitionProvider",xrtValueBool(true)); put(cap,"hoverProvider",xrtValueBool(true)); put(cap,"documentSymbolProvider",xrtValueBool(true)); xvalue *completion=xrtValueObject(),*triggers=xrtValueArray(),*dot=xrtValueString(sv(".")); xrtValueArrayAppend(triggers,dot); xrtValueRelease(dot); put(completion,"resolveProvider",xrtValueBool(false)); put(completion,"triggerCharacters",triggers); put(cap,"completionProvider",completion); put(scope,"cursorCompletion",xrtValueBool(true)); put(scope,"completionInputGuard",xrtValueString(sv("background-poll"))); put(scope,"snapshotHover",xrtValueBool(true)); put(scope,"snapshotDocumentSymbols",xrtValueBool(true)); put(cap,"experimental",scope); put(result,"capabilities",cap);
   put(cap,"documentHighlightProvider",xrtValueBool(true));
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.26"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.27"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
@@ -628,7 +640,7 @@ int main(void)
  }
  for(size_t i=0;i<DOC_LIMIT;++i) if(s.native[i].query) { xlsQueryCancel(s.native[i].query); releaseNative(&s.native[i]); }
  for(size_t i=0;i<DOC_LIMIT;++i) if(s.semantic[i].id) releaseSemantic(&s.semantic[i]);
- diagnosticStop(&s); xideDiagnosticStoreDestroy(s.diagnostics); xrtValueRelease(s.diagnosticAnalysis);
+ diagnosticStop(&s); xideDiagnosticStoreDestroy(s.diagnostics); xrtValueRelease(s.diagnosticAnalysis);xrtValueRelease(s.diagnosticOverlayState);
  xlsWorkerDestroy(s.analysis);
  xideLanguageCheckDestroy(s.completion); xrtValueRelease(s.completionId); xrtValueRelease(s.completionPendingId); free(s.completionUri); xideLanguageCheckDestroy(s.check); xideLanguageCheckDestroy(s.guard); xlsWorkerDestroy(s.semanticAnalysis); xlsWorkerDestroy(s.cursorAnalysis); xrtValueRelease(s.guardId); free(s.guardUri); xrtValueRelease(s.checkId); xrtValueRelease(s.publishedGroups); xideToolchainsDestroy(s.cache);
  while(s.head) { message* m=s.head; s.head=m->next; xrtValueRelease(m->value); free(m); }

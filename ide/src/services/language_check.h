@@ -7,6 +7,12 @@ typedef struct xide_language_analysis_options {
  int nativeBackend; void (*wake)(void*); void* user;
 } xide_language_analysis_options;
 typedef xide_language_analysis_options xide_language_completion_options;
+/* Worker-only shared disk proof reader. Validates handle/name identity,
+ * timestamps, raw/post-BOM hashes and UTF-8; returns malloc-owned LF text.
+ * Optional original receives malloc-owned post-BOM bytes with original EOLs.
+ * Does not establish semantic/dependency freshness. */
+char* xideLanguageReadDiskProof(const char* path,const xvalue* input,
+ int (*cancelled)(void*),void* user,char** original,xide_model_error* error);
 /* Immutable 64-file, 8 MiB/file, 32 MiB batch; entry must be present. Never
    writes original files. Result documents carry per-file UTF-16 diagnostics
    and versions for open files. Disk inputs are verified before publication and while the result is retained. */

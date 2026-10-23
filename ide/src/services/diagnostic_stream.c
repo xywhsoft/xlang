@@ -1,13 +1,20 @@
 #include "services/diagnostic_stream.h"
+#include "services/language_check.h"
+#include "protocol/lsp_wire.h"
+#include "platform/path.h"
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #define SLOTS 2u
 struct xide_diagnostic_batch {
- size_t count,bytes;xvalue* messages[XIDE_DIAGNOSTIC_BATCH_MESSAGES];
+ size_t count,bytes;xvalue* messages[XIDE_DIAGNOSTIC_BATCH_MESSAGES];size_t sizes[XIDE_DIAGNOSTIC_BATCH_MESSAGES];
 };
+typedef struct source_binding {xls_sync_binding value;wchar_t* key;} source_binding;
 typedef struct diagnostic_job {
  uint64_t session,serial,epoch;xide_diagnostic_batch* batch;xls_sync* sync;
  xide_diagnostic_result* result;
+ source_binding sources[64];size_t sourceCount;int sourcesReady;
+ int causal;uint64_t inputCeiling;
 } diagnostic_job;
 typedef struct retirement {void* value;void (*release)(void*);} retirement;
 struct xide_diagnostic_stream {
@@ -24,7 +31,7 @@ xide_diagnostic_batch* xideDiagnosticBatchCreate(void) {return xrtCalloc(1,sizeo
 int xideDiagnosticBatchAppend(xide_diagnostic_batch* b,xvalue* message,size_t bytes)
 {
  if(!b || !message || !bytes || b->count>=XIDE_DIAGNOSTIC_BATCH_MESSAGES || bytes>XIDE_DIAGNOSTIC_BATCH_BYTES-b->bytes) return 0;
- b->messages[b->count++]=message;b->bytes+=bytes;return 1;
+ b->sizes[b->count]=bytes;b->messages[b->count++]=message;b->bytes+=bytes;return 1;
 }
 size_t xideDiagnosticBatchCount(const xide_diagnostic_batch* b) {return b ? b->count : 0;}
 size_t xideDiagnosticBatchBytes(const xide_diagnostic_batch* b) {return b ? b->bytes : 0;}
@@ -38,7 +45,7 @@ xide_diagnostic_notice* xideDiagnosticResultTakeNotice(xide_diagnostic_result* r
  xide_diagnostic_notice* n=result->notices[index];result->notices[index]=NULL;return n;
 }
 static void releaseJob(diagnostic_job* job)
-{if(job) {xideDiagnosticBatchRelease(job->batch);xlsSyncDestroy(job->sync);xideDiagnosticResultRelease(job->result);xrtFree(job);}}
+{if(job) {for(size_t i=0;i<job->sourceCount;++i) free(job->sources[i].key);xideDiagnosticBatchRelease(job->batch);xlsSyncDestroy(job->sync);xideDiagnosticResultRelease(job->result);xrtFree(job);}}
 static const xvalue* field(const xvalue* value,const char* name)
 {return value && xrtValueType(value)==XVALUE_OBJECT ? xrtValueObjectGet(value,xrtStrView(name)) : NULL;}
 static int textIs(const xvalue* value,const char* expected)
@@ -50,6 +57,27 @@ static int cancelled(void* user)
  xrtMutexLock(&s->lock);int invalid=s->stop || s->session!=c->session;xrtMutexUnlock(&s->lock);return invalid;
 }
 static void notify(xide_diagnostic_stream* s) {if(s->wake) s->wake(s->user);}
+static int matchOverlays(diagnostic_job* job,xide_diagnostic_notice* n)
+{
+ if(!job->sync || !n->hasOverlays) return 0;
+ if(!job->sourcesReady) {
+  xls_sync_binding value;
+  while(job->sourceCount<64 && xlsSyncBindingAt(job->sync,job->sourceCount,&value)) {
+   char* path=xideLspUriToPath(value.uri,NULL);wchar_t* key=path ? xidePathNativeWide(path) : NULL;free(path);if(!key) return 0;
+   job->sources[job->sourceCount++]=(source_binding){value,key};
+  }
+  job->sourcesReady=1;
+ }
+ size_t matched=0;
+ for(size_t i=0;i<job->sourceCount;++i) {
+  source_binding* source=job->sources+i;if(!xideDiagnosticDependencyContainsKey(n->dependency,source->key)) continue;
+  xide_diagnostic_binding* binding=NULL;
+  for(size_t j=0;j<n->bindingCount;++j) if(!xidePathNativeKeyCompare(n->bindings[j].key,source->key)) {binding=n->bindings+j;break;}
+  if(!binding || strcmp(binding->uri,source->value.uri) || binding->version!=source->value.version) return 0;
+  binding->identity=source->value.identity;binding->revision=source->value.revision;++matched;
+ }
+ return matched==n->bindingCount;
+}
 static void process(xide_diagnostic_stream* s,diagnostic_job* job)
 {
  xide_diagnostic_result* result=job->result;
@@ -76,10 +104,21 @@ static void process(xide_diagnostic_stream* s,diagnostic_job* job)
    xide_diagnostic_notice* n=xideDiagnosticNoticeDecode(s->registry,params,cancelled,&c,result->error,sizeof(result->error));
    if(!n) {if(!cancelled(&c)) s->poisoned=1;return;}
    result->notices[result->count++]=n;
+   if(job->causal && (!n->hasSerial || n->inputSerial>job->inputCeiling || (!n->cleared && !n->hasOverlays))) {
+    snprintf(result->error,sizeof(result->error),"Missing or future causal diagnostic input proof.");s->poisoned=1;return;
+   }
+   n->wireBytes=job->batch->sizes[i];
+   if(!n->cleared && n->hasOverlays) n->overlaysMatched=matchOverlays(job,n);
    if(!n->cleared && n->overlay) {
     xls_text* text=job->sync ? xlsSyncRetainText(job->sync,n->uri,n->version) : NULL;
     int mapped=text && xideDiagnosticNoticeMap(n,text,cancelled,&c);xlsTextRelease(text);
+    if(job->causal && !mapped && n->sourceVerified && !cancelled(&c)) {snprintf(result->error,sizeof(result->error),"Invalid diagnostic range for its verified source, or mapping resources unavailable.");s->poisoned=1;return;}
     if(!mapped) ++result->unmappedOverlays;
+   } else if(!n->cleared && n->hasOverlays) {
+    xide_model_error error={0};char* bytes=xideLanguageReadDiskProof(n->path,n->input,cancelled,&c,NULL,&error);
+    xls_text* source=bytes ? xlsTextCreate(bytes,strlen(bytes),8u*1024u*1024u,NULL) : NULL;free(bytes);
+    int available=source!=NULL;n->diskValidated=source && xideDiagnosticNoticeMap(n,source,cancelled,&c);xlsTextRelease(source);
+    if(job->causal && available && !n->diskValidated && !cancelled(&c)) {snprintf(result->error,sizeof(result->error),"Invalid diagnostic proof/range for its verified disk source, or mapping resources unavailable.");s->poisoned=1;return;}
    }
   } else {snprintf(result->error,sizeof(result->error),"Unexpected method in diagnostic batch.");s->poisoned=1;return;}
  }
@@ -138,7 +177,7 @@ int xideDiagnosticStreamReset(xide_diagnostic_stream* s,uint64_t session)
  if(okay && session!=s->session) {s->session=session;xrtCondSignal(&s->changed);}
  xrtMutexUnlock(&s->lock);return okay;
 }
-int xideDiagnosticStreamSubmit(xide_diagnostic_stream* s,uint64_t session,uint64_t epoch,xide_diagnostic_batch* batch,const xls_sync* sync,uint64_t* serial)
+static int submit(xide_diagnostic_stream* s,uint64_t session,uint64_t epoch,int causal,uint64_t ceiling,xide_diagnostic_batch* batch,const xls_sync* sync,uint64_t* serial)
 {
  if(serial) *serial=0;
  if(!s || !session || !batch || !batch->count) return -1;
@@ -148,7 +187,7 @@ int xideDiagnosticStreamSubmit(xide_diagnostic_stream* s,uint64_t session,uint64
  xrtMutexUnlock(&s->lock);
  if(!available) return valid ? 0 : -1;
  diagnostic_job* job=xrtCalloc(1,sizeof(*job));if(!job) return -1;
- job->result=xrtCalloc(1,sizeof(*job->result));job->session=session;job->epoch=epoch;job->sync=sync ? xlsSyncClone(sync) : NULL;
+ job->result=xrtCalloc(1,sizeof(*job->result));job->session=session;job->epoch=epoch;job->causal=causal;job->inputCeiling=ceiling;job->sync=sync ? xlsSyncClone(sync) : NULL;
  if(!job->result || (sync && !job->sync)) {releaseJob(job);return -1;}
  xrtMutexLock(&s->lock);valid=!s->stop && session==s->session && s->serial!=UINT64_MAX;available=valid && s->stats.outstanding<SLOTS;
  if(available) {
@@ -158,6 +197,10 @@ int xideDiagnosticStreamSubmit(xide_diagnostic_stream* s,uint64_t session,uint64
  } else ++s->stats.rejected;
  xrtMutexUnlock(&s->lock);releaseJob(job);return available ? 1 : valid ? 0 : -1;
 }
+int xideDiagnosticStreamSubmit(xide_diagnostic_stream* s,uint64_t session,uint64_t epoch,xide_diagnostic_batch* batch,const xls_sync* sync,uint64_t* serial)
+{return submit(s,session,epoch,0,UINT64_MAX,batch,sync,serial);}
+int xideDiagnosticStreamSubmitCausal(xide_diagnostic_stream* s,uint64_t session,uint64_t epoch,uint64_t ceiling,xide_diagnostic_batch* batch,const xls_sync* sync,uint64_t* serial)
+{return submit(s,session,epoch,1,ceiling,batch,sync,serial);}
 xide_diagnostic_result* xideDiagnosticStreamTake(xide_diagnostic_stream* s)
 {
  if(!s) return NULL;

@@ -137,7 +137,8 @@ preserved:
   /* Reconnection must retire a previously held reply instead of interpreting
      its old ID as initialization/a new request in the next session. */
   CHECK(!v->deferredMessage);v->deferredMessage=xrtJsonParse(xrtStrView("{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}"));CHECK(v->deferredMessage);v->deferredDiscard=0;v->deferredSession=v->highlightSession;
-  reset(&app);uint64_t session=v->highlightSession;CHECK(settle(&app) && v->highlightSession==session && !v->initialized);
+  /* Isolate retirement from default automatic probing/reconnection. */
+   reset(&app);automaticPause(v);uint64_t session=v->highlightSession;CHECK(settle(&app) && v->highlightSession==session && !v->initialized && (!v->deferredMessage || v->deferredDiscard));
  }
  xide_text_file disk={0};CHECK(xideTextFileRead(entry,&disk,&error) && !strcmp(disk.text,saved));xideTextFileClear(&disk);
  printf("highlight_view_test passed: %d native assertions; legacy=%d; cold unsaved Unicode semantic identity, actual BACKGROUND markers, two themes, independent find/diagnostic/indicator ownership, suppression and selection/focus/C/caret guards, source/version/undo preservation.\n",f->checks,f->legacy);

@@ -117,6 +117,29 @@ static int diskAndWithdrawal(void)
  n=decode(d,p);CHECK(n && n->cleared && !n->dependency && !n->count);xide_dependency_stats stats;xideDiagnosticDependenciesStats(d,&stats);CHECK(!stats.bindings);xideDiagnosticNoticeRelease(n);xrtValueRelease(p);xideDiagnosticDependenciesDestroy(d);return 1;
 }
 static int cancel(void* user) {unsigned* counter=user;return ++counter[0]>=counter[1];}
+static int overlayProofs(void)
+{
+ xide_diagnostic_dependencies* d=registry();CHECK(d);
+ for(size_t i=0;i<8;++i) {
+  xvalue* p=notice();CHECK(p);xvalue* proof=get(p,"xlang");
+  const char* json="[{\"uri\":\"file:///D:/dep.xl\",\"version\":7},{\"uri\":\"file:///D:/unrelated.xl\",\"version\":99}]";
+  xjsonreadconfig config;xrtJsonReadConfigInit(&config);xvalue* overlays=xrtJsonRead(xrtStrView(json),&config);CHECK(overlays && put(proof,"serial",valueString("12")) && put(proof,"overlays",overlays));
+  if(i==0) {
+   xide_diagnostic_notice* n=decode(d,p);CHECK(n && n->hasSerial && n->inputSerial==12 && n->hasOverlays && n->bindingCount==1 && !n->overlaysMatched && n->bindings[0].version==7 && !strcmp(n->bindings[0].uri,"file:///D:/dep.xl"));xideDiagnosticNoticeRelease(n);
+  } else {
+   if(i==1) CHECK(xrtValueObjectRemove(proof,xrtStrView("serial")));
+   if(i==2) CHECK(put(proof,"serial",valueString("18446744073709551616")));
+   if(i==3) CHECK(put(proof,"serial",valueString("01")));
+   if(i==4) CHECK(put(proof,"overlays",xrtValueObject()));
+   if(i==5) CHECK(put((xvalue*)xrtValueArrayGet(get(proof,"overlays"),1),"uri",valueString("file:///d:/%64ep.xl")));
+   if(i==6) CHECK(put((xvalue*)xrtValueArrayGet(get(proof,"overlays"),0),"version",xrtValueInt(8)));
+   if(i==7) CHECK(put(proof,"overlays",xrtValueArray()));
+   CHECK(rejects(d,p));
+  }
+  xrtValueRelease(p);
+ }
+ xideDiagnosticDependenciesDestroy(d);return 1;
+}
 static int cancellation(void)
 {
  unsigned failures=0,success=0;
@@ -129,6 +152,6 @@ static int cancellation(void)
 }
 int main(void)
 {
- xideDiagnosticNoticeRelease(NULL);if(xideDiagnosticNoticeMap(NULL,NULL,NULL,NULL) || !mapping() || !emptyAndAliases() || !signedAndDefaults() || !malformed() || !diskAndWithdrawal() || !cancellation()) return 1;
+ xideDiagnosticNoticeRelease(NULL);if(xideDiagnosticNoticeMap(NULL,NULL,NULL,NULL) || !mapping() || !emptyAndAliases() || !signedAndDefaults() || !malformed() || !diskAndWithdrawal() || !cancellation() || !overlayProofs()) return 1;
  printf("diagnostic_notice_test passed: %u checks; real file-proof schema, native dependency binding, clean/withdrawal separation, signed versions/generation overflow, source hash and atomic UTF16 mapping, Unicode/BOM/LF/CRLF/CR/1MiB, metadata rejection, cancellation and detached ownership.\n",checks);return 0;
 }

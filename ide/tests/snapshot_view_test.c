@@ -16,6 +16,7 @@
 #include "../src/ui/language_view.c"
 typedef struct fixture { const char *directory,*compiler; HDESK desktop; int started,failed; } fixture;
 #define CHECK(v) do { if(!(v)) { fprintf(stderr,"snapshot_view_test:%d: %s; %s; %s\n",__LINE__,#v,error.message,xideLanguageViewMessage(&app)); f->failed=1; goto cleanup; } } while(0)
+/* Explicit manual compatibility oracle. Default automatic mode has its own real UI fixture. */
 static int writeText(const char* p,const char* s) { return xrtFileWriteAtomic(p,(xbytesview){(const unsigned char*)s,strlen(s)}); }
 static int settle(xide_app* a) { if(xuiDispatchPendingEvents(a->context)!=XUI_OK) return 0; xideEditorPoll(a); xideFileSyncPoll(a); xideTaskViewPoll(a); xideLanguageViewPoll(a); xideWorkbenchLayout(a); return xuiLayout(a->context)==XUI_OK && !a->frameError; }
 static int waitCheck(xide_app* a) { uint64_t until=GetTickCount64()+15000; do { if(!settle(a)) return 0; if(!xideLanguageViewBusy(a)) return 1; Sleep(5); } while(GetTickCount64()<until); return 0; }
@@ -77,7 +78,7 @@ static int verify(void* user)
  const char *nativeText="int helper(void) { return 42; }\n"; xide_file_snapshot before[3],after[3];
  CHECK(root && entry && dep && native && xrtDirCreateAll(root) && writeText(entry,saved) && writeText(dep,good) && writeText(native,nativeText));
  CHECK(xideFileSnapshotInspect(entry,&before[0],&error) && xideFileSnapshotInspect(dep,&before[1],&error) && xideFileSnapshotInspect(native,&before[2],&error));
- app.hidden=1; app.noSession=1; app.highDpi=1; app.dpiOverride=1.25f; app.compilerPath=f->compiler; app.settingsPath=settings; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
+ app.hidden=1; app.noSession=1; app.disableAutomaticDiagnostics=1; app.highDpi=1; app.dpiOverride=1.25f; app.compilerPath=f->compiler; app.settingsPath=settings; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
  CHECK(xideActionCount()==73 && xideActionNamed("language.check")->id==68 && !xideActionQuery(&app,XIDE_ACTION_CHECK_CURRENT).enabled);
  CHECK(xideEditorOpen(&app,entry,&error) && xideEditorOpen(&app,dep,&error) && xideEditorOpen(&app,native,&error) && settle(&app));
  xide_document *xl=xideDocumentsFind(&app.documents,entry),*dependency=xideDocumentsFind(&app.documents,dep),*c=app.activeDocument;

@@ -28,6 +28,24 @@ static void clear(sink* target)
 }
 static received* message(sink* target,size_t at) { return xrtArrayGet(&target->messages,at); }
 static int ignore(void* user,const char* method,const xvalue* params) { (void)user;(void)method;(void)params;return 1; }
+static int monotonic(void)
+{
+ xls_sync* sync=xlsSyncCreateMonotonic(2);xls_sync_binding binding={0};
+ xls_sync_document docs[]={{"file:///one.xl","one",3,1,1},{"file:///two.xl","two",3,2,1}};
+ CHECK(sync && !xlsSyncBindingAt(NULL,0,&binding) && !binding.uri && xlsSyncUpdate(sync,docs,2,ignore,NULL));
+ CHECK(xlsSyncVersion(sync,docs[0].uri)==1 && xlsSyncVersion(sync,docs[1].uri)==2 && xlsSyncBindingAt(sync,1,&binding) && binding.identity==2 && binding.revision==1 && binding.version==2 && !strcmp(binding.uri,docs[1].uri));
+ CHECK(!xlsSyncBindingAt(sync,2,&binding) && !binding.uri && !xlsSyncBindingAt(sync,0,NULL));
+ xls_sync* clone=xlsSyncClone(sync);xls_text* original=xlsSyncRetainText(sync,docs[0].uri,1);CHECK(clone && original);
+ docs[0].text="ONE";docs[0].revision=2;xls_sync_document duplicate[]={docs[0],docs[0]};
+ CHECK(!xlsSyncUpdate(sync,duplicate,2,ignore,NULL) && xlsSyncVersion(sync,docs[0].uri)==1);
+ CHECK(xlsSyncUpdate(sync,docs,2,ignore,NULL) && xlsSyncVersion(sync,docs[0].uri)==3 && xlsSyncVersion(sync,docs[1].uri)==2);
+ CHECK(xlsSyncUpdate(clone,docs,2,ignore,NULL) && xlsSyncVersion(clone,docs[0].uri)==3);
+ CHECK(xlsSyncUpdate(sync,docs+1,1,ignore,NULL) && !xlsSyncVersion(sync,docs[0].uri));
+ docs[0].identity=3;docs[0].revision=1;CHECK(xlsSyncUpdate(sync,docs,2,ignore,NULL) && xlsSyncVersion(sync,docs[0].uri)==4);
+ ++docs[0].revision;CHECK(xlsSyncUpdate(sync,docs,2,ignore,NULL) && xlsSyncVersion(sync,docs[0].uri)==4 && xlsSyncBindingAt(sync,0,&binding) && binding.identity==3 && binding.revision==2);
+ CHECK(xlsSyncUpdate(sync,NULL,0,ignore,NULL) && xlsSyncUpdate(sync,docs,2,ignore,NULL) && xlsSyncVersion(sync,docs[0].uri)==5 && xlsSyncVersion(sync,docs[1].uri)==6);
+ xlsSyncDestroy(sync);xlsSyncDestroy(clone);CHECK(!strcmp(xlsTextData(original),"one"));xlsTextRelease(original);return 0;
+}
 typedef struct clone_job { xls_sync* sync;int failed; } clone_job;
 static int32 updateClone(ptr user)
 {
@@ -60,6 +78,7 @@ static int clones(void)
 
 int main(void)
 {
+    if(monotonic()) return 1;
     CHECK(!clones());
     char digest[65],before[65],after[65]; size_t online=99;
     CHECK(!xlsSyncInputState(NULL,digest,&online) && !digest[0] && !online);
