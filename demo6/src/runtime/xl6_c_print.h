@@ -30,6 +30,10 @@ static inline bool xl6CPrintV1(XL6_CPrintPartV1* parts,size_t count,bool newline
             part->Data=part->Rendered.Data;part->Size=part->Rendered.Size;
         } else if(part->Kind==2) {
             xxlonwriteconfig config; xrtXlonWriteConfigInit(&config);
+            if(part->Size>SIZE_MAX-2 || (part->Size+2)/3>(SIZE_MAX-9)/4 ||
+                config.MaxOutputBytes<9 || ((part->Size+2)/3)*4>config.MaxOutputBytes-9) {
+                xrtSetErrorKind(XERR_RANGE);ready=false;break;
+            }
             part->Writer=xrtXlonWriterCreateSink(&config,xl6CPrintSinkV1,NULL);
             ready=part->Writer!=NULL;
         }

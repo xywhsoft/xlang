@@ -3469,7 +3469,8 @@ static int xl6IrLowerIntrinsicTypeOf(
     if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_CONST, id, call->storageType,
                          0, NULL, 0, result) ) return 1;
     written = snprintf(immediate, sizeof(immediate), "0x%016llXULL",
-                       (unsigned long long)sourceType->typeValueId);
+                       (unsigned long long)(sourceType->cAbi==XL6_IR_C_ABI_C_STRING ? ctx->module->runtimeTypeMap.stringTypeValueId :
+                           sourceType->cAbi==XL6_IR_C_ABI_C_BYTES ? ctx->module->runtimeTypeMap.bytesTypeValueId : sourceType->typeValueId));
     if ( written < 0 || (size_t)written >= sizeof(immediate) ||
          (ctx->module->instructions[ctx->module->instructionCount - 1].immediateText =
               xrtStrDupN(immediate, (size_t)written)) == NULL ) {
@@ -4843,7 +4844,7 @@ static XL6_IrValueId xl6IrLowerCOwnedCompare(XL6_IrLowerContext* ctx,XL6_IrNodeI
         values[i]=xl6IrLowerProtectOwnedBorrow(ctx,id,values[i]);
         if(!values[i])return XL6_IR_VALUE_INVALID;
     }
-    XL6_IrRuntimeOp op=node->cOwnedCompareOp;
+    XL6_IrRuntimeOp op=node->callKind==XL6_SEM_CALL_C_OWNED_CONCAT ? XL6_IR_RUNTIME_CBYTES_CONCAT : node->cOwnedCompareOp;
     XL6_IrValueId result=xl6IrLowerEmitRuntimeCall(ctx,id,node->storageType,op,values,2);
     if(result && !xl6IrLowerCompleteEvaluationBorrows(ctx,id,first,&result))return XL6_IR_VALUE_INVALID;
     return result;
@@ -9495,6 +9496,13 @@ static XL6_IrValueId xl6IrLowerInterpolatedStringPart(
             ctx, partId, origin, stringType, XL6_IR_RUNTIME_STRING_DUP,
             "\"\"", XL6_IR_TYPE_INVALID, NULL, 0);
     sourceType = xl6IrNodeMaterializedValueType(ctx->module, part);
+    if(xl6IrTypeGet(&ctx->module->types,sourceType)->cAbi==XL6_IR_C_ABI_C_BYTES) {
+        source=xl6IrLowerProtectOwnedBorrow(ctx,origin,xl6IrLowerNode(ctx,partId));
+        result=source ? xl6IrLowerEmitRuntimeCallPayload(ctx,partId,origin,stringType,XL6_IR_RUNTIME_CBYTES_FORMAT,
+            NULL,XL6_IR_TYPE_INVALID,&source,1) : 0;
+        if(result && !xl6IrLowerCompleteEvaluationBorrows(ctx,origin,first,&result))return 0;
+        return result;
+    }
     abi = xl6IrClassifyStringConversionAbi(ctx->module, sourceType, &classType);
     if (abi == XL6_IR_STRING_CONVERSION_INVALID) {
         xl6IrLowerDiag(ctx, partId,
@@ -9539,7 +9547,13 @@ static XL6_IrValueId xl6IrLowerInterpolatedString(
             accumulator = xl6IrLowerProtectOwnedBorrow(ctx, origin, accumulator);
             if (accumulator == XL6_IR_VALUE_INVALID) return accumulator;
         }
-        partValue = xl6IrLowerInterpolatedStringPart(
+        const XL6_IrType* partType=xl6IrTypeGet(&ctx->module->types,part->storageType);
+        if(partType && partType->cAbi==XL6_IR_C_ABI_C_STRING) {
+            XL6_IrValueId owned=xl6IrLowerProtectOwnedBorrow(ctx,origin,xl6IrLowerNode(ctx,partId));
+            partValue=owned ? xl6IrLowerEmitRuntimeCallPayload(ctx,partId,origin,node->storageType,
+                accumulator ? XL6_IR_RUNTIME_CSTRING_VIEW : XL6_IR_RUNTIME_CSTRING_COPY,NULL,XL6_IR_TYPE_INVALID,&owned,1) : 0;
+            if(!accumulator && partValue && !xl6IrLowerCompleteEvaluationBorrows(ctx,origin,first,&partValue))return 0;
+        } else partValue = xl6IrLowerInterpolatedStringPart(
             ctx, origin, partId, part, node->storageType);
         if (partValue == XL6_IR_VALUE_INVALID) return partValue;
         if (accumulator == XL6_IR_VALUE_INVALID) accumulator = partValue;
@@ -14272,7 +14286,7 @@ static int xl6IrLowerCalleeParameterLifetimeMayRaise(
             return 1;
         if (target->kind == XL6_IR_CALL_TARGET_INTERNAL &&
             target->parameterAbis[p] == XL6_IR_PARAMETER_ABI_BORROW && type != NULL &&
-            type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+            (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING || xl6IrTypeIsCOwned(type)) &&
             xl6IrCallTargetParameterBindingOwnsStorage(module, target, p)) return 1;
         if (target->parameterLifetimes != NULL &&
             target->parameterLifetimes[p].cleanupEffect == XL6_IR_RELEASE_EFFECT_MAY_RAISE) return 1;
@@ -30503,7 +30517,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             }
             if(node->callKind==XL6_SEM_CALL_C_OWNED_TAKE)
                 return xl6IrLowerCOwnedTake(ctx,id,node);
-            if(node->callKind==XL6_SEM_CALL_C_OWNED_COMPARE)
+            if(node->callKind==XL6_SEM_CALL_C_OWNED_COMPARE || node->callKind==XL6_SEM_CALL_C_OWNED_CONCAT)
                 return xl6IrLowerCOwnedCompare(ctx,id,node);
             if(node->callKind==XL6_SEM_CALL_C_OWNED_COPY || node->callKind==XL6_SEM_CALL_C_OWNED_VIEW) {
                 const XL6_IrNode* args=xl6IrNodeGet(ctx->module,ctx->module->children[node->firstChild+1]);
@@ -31419,6 +31433,20 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                  targetType->typeValueId == 0 ) {
                 xl6IrLowerDiag(ctx, id, "XLIR type-is requires a concrete xvalue class runtime-tag ABI");
                 return XL6_IR_VALUE_INVALID;
+            }
+            if(xl6IrTypeIsCOwned(sourceType)) {
+                size_t first=ctx->evaluationOwnerCount;
+                observed=xl6IrLowerProtectOwnedBorrow(ctx,id,xl6IrLowerNode(ctx,ctx->module->children[node->firstChild]));
+                if(!observed)return 0;
+                const XL6_IrType* base=targetType;
+                if(base->kind==XL6_IR_TYPE_NULLABLE && base->paramCount==1)base=xl6IrTypeGet(&ctx->module->types,base->params[0]);
+                int matches=base && ((sourceType->cAbi==XL6_IR_C_ABI_C_STRING && base->cAbi==XL6_IR_C_ABI_MANAGED_STRING) ||
+                    (sourceType->cAbi==XL6_IR_C_ABI_C_BYTES && base->cAbi==XL6_IR_C_ABI_MANAGED_BYTES));
+                if(!xl6IrLowerEmit(ctx,XL6_IR_INSTR_CONST,id,node->storageType,0,NULL,0,&result))return 0;
+                ctx->module->instructions[ctx->module->instructionCount-1].immediateText=xrtStrDup(matches ? "true" : "false");
+                if(!ctx->module->instructions[ctx->module->instructionCount-1].immediateText)return 0;
+                if(result && !xl6IrLowerCompleteEvaluationBorrows(ctx,id,first,&result))return 0;
+                return result;
             }
             /* A statically trivial builtin cannot inhabit a nominal,
              * function or union target.  Preserve evaluation of the left

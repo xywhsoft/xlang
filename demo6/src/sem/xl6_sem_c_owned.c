@@ -4,18 +4,19 @@ static int xl6SemCOwnedResult(XL6_SemContext*,XL6_AstNode*,const char*);
 static int xl6SemCOwnedCompare(XL6_SemContext* ctx,XL6_AstNode* node)
 {
     if(node->childCount!=2 || !node->text ||
-        (!xl6TextEquals(node->text,"==") && !xl6TextEquals(node->text,"!=") &&
+        (!xl6TextEquals(node->text,"+") && !xl6TextEquals(node->text,"==") && !xl6TextEquals(node->text,"!=") &&
          !xl6TextEquals(node->text,"<") && !xl6TextEquals(node->text,"<=") &&
          !xl6TextEquals(node->text,">") && !xl6TextEquals(node->text,">=")))return -1;
     XL6_AstNode* types[2]={xl6SemInferAutoTypeNode(ctx,node->children[0]),xl6SemInferAutoTypeNode(ctx,node->children[1])};
     const char* a=types[0] ? xl6COwnedBaseName(types[0]->text) : NULL;
     const char* b=types[1] ? xl6COwnedBaseName(types[1]->text) : NULL;
     int owned=a || b;
+    int concat=xl6TextEquals(node->text,"+");
     int same=owned && types[0] && types[1] &&
         xl6TextEquals(a ? a : xl6SemResolveAliasName(ctx,types[0]->text),
                      b ? b : xl6SemResolveAliasName(ctx,types[1]->text));
     xl6AstFree(types[0]);xl6AstFree(types[1]);
-    if(!owned)return -1;
+    if(!owned || (concat && ((a && strcmp(a,"bytes")) || (b && strcmp(b,"bytes")))))return -1;
     if(!same) {xl6SemErrorNode(ctx,node,"C owner comparisons require matching text or binary operands");return 0;}
     XL6_AstNode* callee=xl6AstNewText(XL6_AST_NAME,"__xl_c_owned_compare",20,NULL);
     XL6_AstNode* args=xl6AstNew(XL6_AST_LIST,NULL);
@@ -27,8 +28,8 @@ static int xl6SemCOwnedCompare(XL6_SemContext* ctx,XL6_AstNode* node)
         xl6AstAddChild(arguments[i],node->children[i]);xl6AstAddChild(args,arguments[i]);
     }
     node->kind=XL6_AST_CALL;node->children[0]=callee;node->children[1]=args;
-    xl6SemSetCallPlan(node,XL6_SEM_CALL_C_OWNED_COMPARE,NULL);
-    return xl6SemCOwnedResult(ctx,node,"bool");
+    xl6SemSetCallPlan(node,concat ? XL6_SEM_CALL_C_OWNED_CONCAT : XL6_SEM_CALL_C_OWNED_COMPARE,NULL);
+    return xl6SemCOwnedResult(ctx,node,concat ? "cbytes" : "bool");
 }
 static int xl6SemCOwnedResult(XL6_SemContext* ctx,XL6_AstNode* node,const char* name)
 {
@@ -210,7 +211,7 @@ static XL6_AstNode* xl6SemCOwnedClone(const XL6_AstNode* source)
             xl6AstFree(copy);return NULL;
         }
     }
-    if(source->semanticCallKind==XL6_SEM_CALL_C_OWNED_COMPARE || source->semanticCallKind==XL6_SEM_CALL_C_OWNED_VIEW)
+    if(source->semanticCallKind==XL6_SEM_CALL_C_OWNED_COMPARE || source->semanticCallKind==XL6_SEM_CALL_C_OWNED_CONCAT || source->semanticCallKind==XL6_SEM_CALL_C_OWNED_VIEW)
         copy->semanticCallKind=source->semanticCallKind;
     for(size_t i=0;i<source->childCount;++i) {
         XL6_AstNode* child=xl6SemCOwnedClone(source->children[i]);

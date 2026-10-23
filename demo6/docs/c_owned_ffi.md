@@ -113,6 +113,13 @@ console writes may then stream in several parts. Tests cover original pointer
 identity at the console boundary, allocation-free text printing and traversal,
 formatting failure before output, and write failure propagation.
 
+Sequence composition now keeps native owners through mixed conditional joins,
+binary concatenation and string interpolation. Reflection reports the base
+`string`/`bytes` identity. Writable value parameters acquire an independent
+owner before modification, preserving the caller's original data; their
+acquisition failure uses the checked parameter-prefix cleanup contract.
+`xlir_c_owned_sequence.xl` covers these paths, including nullable joins.
+
 Run from `demo6` with a compatible `release/xl.dll` available:
 
 ```powershell

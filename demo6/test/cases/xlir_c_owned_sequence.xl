@@ -1,0 +1,34 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+func changed(string value) as string
+    value[0] = 'H'
+    value += "!"
+    return value
+end
+func changedBytes(bytes value) as bytes
+    value[1] = 7
+    value = value + b"!"
+    return value
+end
+func checkSequences()
+    string text = cstring.take(nativeText(),nativeFree)
+    bytes data = cbytes.take(nativeBytes(),4,nativeFree)
+    bytes result = data + b"xyz"
+    assert result.length == 7 and result[1] == 255 and result[-1] == 122
+    string formatted = f"{text}: {data}"
+    assert formatted == "hello: bytes(\"AP8RKg==\")"
+    assert type(text) == type("hello") and type(data) == type(b"x")
+    assert text is string and data is bytes
+    assert not (text is bytes)
+    string upper = changed(text)
+    bytes modified = changedBytes(data)
+    assert upper == "Hello!" and text == "hello"
+    auto selected = text.length == 5 ? text : "other"
+    auto ordinary = text.length == 0 ? text : "other"
+    assert selected == "hello" and ordinary == "other"
+    string? maybe = text.length == 5 ? text : null
+    if maybe != null then assert maybe == "hello" else assert false end
+    assert modified[1] == 7 and modified[-1] == 33 and data[1] == 255
+end
+checkSequences()
