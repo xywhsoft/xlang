@@ -55,6 +55,13 @@ func main(...) as int
     assert raised == 1 and bar.render() == first, "zero-width prefix rejected"
     raised = 0
     try
+        bar.setPrefix("a\xc2\xadb")
+    catch ValueError error
+        raised = 1
+    end
+    assert raised == 1 and bar.render() == first, "soft hyphen prefix rejected"
+    raised = 0
+    try
         bar.setPrefix("a\0b")
     catch ValueError error
         raised = 1
