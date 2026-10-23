@@ -214,6 +214,25 @@ XRT_API ptr xplist_stringify(ptr pHandle, int iFormat, bool bPretty,
 	return pResult;
 }
 
+/* 仅接管 XML 文本；二进制 plist 继续由 xbuffer 返回。 */
+XRT_API ptr xplist_stringify_text(ptr pHandle, bool bPretty,
+	bool bSortKeys, uint32 iIndent, uint64 iMaxOutput, uint64 iMaxItem,
+	uint64 iMaxEntries, uint64 iMaxNodes, uint32 iMaxDepth)
+{
+	xbuffer* pResult = (xbuffer*)xplist_stringify(pHandle,
+		XRT_PLIST_FORMAT_XML, bPretty, bSortKeys, iIndent, iMaxOutput,
+		iMaxItem, iMaxEntries, iMaxNodes, iMaxDepth);
+	char* sText;
+	if ( pResult == NULL ) { return NULL; }
+	if ( !xrtBufferAppendByte(pResult, 0) ) {
+		xrtBufferDestroy(pResult);
+		return NULL;
+	}
+	sText = (char*)xrtBufferTake(pResult, NULL, NULL);
+	xrtBufferDestroy(pResult);
+	return sText;
+}
+
 XRT_API bool xplist_save(ptr pHandle, cstr sPath, int iFormat, bool bPretty,
 	bool bSortKeys, uint32 iIndent, uint64 iMaxOutput, uint64 iMaxItem,
 	uint64 iMaxEntries, uint64 iMaxNodes, uint32 iMaxDepth)

@@ -14,6 +14,11 @@ Apple property list 的 XML 1.0 与 `bplist00` 读写。XLang 入口使用 `impo
 | `uid(value)`, `isUid(value)`, `uidValue(value)` | 二进制 plist 的 UID 值 |
 | `errorCode/Line/Column/Offset()` | 最近一次原生解析/写入错误，按线程隔离 |
 
+`stringify` 仅在 XML 模式通过 `xplist_stringify_text` 接管原生缓冲的
+底层 XRT 分配，避免 `dumps(...).text()` 再复制整份文本；补齐终止字节
+时缓冲容量不足仍可能扩容。C 侧调用文本桥接后用 `xrtFree` 释放。
+二进制输出继续使用 `dumps(..., "binary")` 和 `xbuffer*`，不经过 C 字符串。
+
 `UID` 是导出类型，可写 `plist.UID id = plist.uid(42)`；内部原生文档句柄不向导入方导出。
 `NativeDocument` 仅供包内桥接使用，导入方无法声明或构造；
 `test/private_native_document_negative.xl` 将此作为编译负例纳入 Windows/Linux 门禁，

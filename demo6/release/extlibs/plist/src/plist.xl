@@ -68,6 +68,9 @@ class NativeDocument
         uint64 maxOutput, uint64 maxItem,
         uint64 maxEntries, uint64 maxNodes,
         c_uint maxDepth) as point
+    extern "xplist_stringify_text" func stringifyTextNative(c_bool pretty,
+        c_bool sortKeys, c_uint indent, uint64 maxOutput, uint64 maxItem,
+        uint64 maxEntries, uint64 maxNodes, c_uint maxDepth) as point
     extern "xplist_save" func saveNative(string path, c_int format,
         c_bool pretty, c_bool sortKeys, c_uint indent,
         uint64 maxOutput, uint64 maxItem,
@@ -78,7 +81,7 @@ end
 
 
 func __plist_error() as string
-    return __xl_std_runtime_take_cstr(__plist_error_message())
+    return __xl_runtime.takeCstr(__plist_error_message())
 end
 
 func __plist_raise_error()
@@ -353,9 +356,21 @@ export func stringify(var value, bool pretty = true,
     bool sortKeys = false, int indent = 2, int maxOutput = 536870912,
     int maxItem = 268435456, int maxEntries = 100000,
     int maxNodes = 1000000, int maxDepth = 128) as string
-    Buffer result = dumps(value, "xml", pretty, sortKeys, indent,
-        maxOutput, maxItem, maxEntries, maxNodes, maxDepth)
-    return result.text()
+    __plist_check_limits(1, maxOutput, maxItem,
+        maxEntries, maxNodes, maxDepth)
+    __plist_check_indent(indent)
+    NativeDocument document = NativeDocument()
+    point root = __plist_from_value(document, value, 1, maxDepth,
+        maxNodes, maxEntries, maxItem)
+    if root == null or not document.setRoot(root) then
+        __plist_raise_build_error("could not build plist document")
+    end
+    point result = document.stringifyTextNative(c_bool(pretty),
+        c_bool(sortKeys), c_uint(indent), uint64(maxOutput),
+        uint64(maxItem), uint64(maxEntries), uint64(maxNodes),
+        c_uint(maxDepth))
+    if result == null then __plist_raise_error() end
+    return __xl_runtime.takeCstr(result)
 end
 
 export func dump(string path, var value, string format = "xml",
