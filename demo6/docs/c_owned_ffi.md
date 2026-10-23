@@ -145,8 +145,8 @@ allocation-counter checks use the separate debug runtime lane. Acceptance
 records belong under `build/c-owned/`; this targeted check is not a claim that
 all repository-wide inventories and unrelated release gates are green.
 
-Current redesign acceptance (`build/c-owned/compiler-acceptance/acceptance.json`)
-built 1,071 source translation units and verified unchanged build inputs. Two
+Current redesign acceptance (`build/c-owned/compiler-mainline-acceptance/acceptance.json`)
+built 1,087 source translation units and verified unchanged build inputs. Two
 runtime units, 12 generated-C programs and 10 negative declarations passed.
 O0/O2 contract harnesses each checked 495 RuntimeOps / 3,960 operand effects,
 22 capture mutations, 73 managed-storage mutations and four nullable-join
