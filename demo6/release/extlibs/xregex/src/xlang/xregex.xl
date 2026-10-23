@@ -4,6 +4,7 @@ extern "xregex_error_pattern_index_native" func __xregex_error_pattern_index(err
 extern "xregex_escape_native" func __xregex_escape_native(string text, c_size size) as point
 extern "xregex_text_range_native" func __xregex_text_range_native(
     string text, c_size textSize, uint64 start, uint64 count) as point
+extern "xregex_buffer_take_cstr_native" func __xregex_buffer_take_cstr_native(point result) as point
 extern "xregex_valid_native" func __xregex_valid_native(string pattern, c_size size) as bool
 extern "xregex_set_compile_native" func __xregex_set_compile_native(
     array<string> patterns, c_uint flags, uint64 maxPatternBytes,
@@ -27,12 +28,16 @@ export const int DEFAULT_MAX_CAPTURES = 4096
 
 
 
-// 把 native 返回的独立 Buffer 转换为稳定字符串。
+// 普通文本直接移交分配；含 NUL 的结果保留精确长度。
+func __xregex_buffer_text(Buffer result) as string
+    point text = __xregex_buffer_take_cstr_native(result.handle)
+    if text != null then return __xl_runtime.takeCstr(text) end
+    return result.text()
+end
+
 func __xregex_text_result(point result) as string
-    if result == null then
-        throw RuntimeError __xregex_error()
-    end
-    return Buffer(result).text()
+    if result == null then throw RuntimeError __xregex_error() end
+    return __xregex_buffer_text(Buffer(result))
 end
 
 
@@ -406,7 +411,7 @@ export class Regex
         if suffix == null or not output.append(Buffer(suffix)) then
             throw RuntimeError __xregex_error()
         end
-        return output.text()
+        return __xregex_buffer_text(output)
     end
 
     // 创建保留输入生命周期的流式拆分器。

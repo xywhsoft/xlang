@@ -29,6 +29,8 @@ end
   释放原 Regex 都不会使 matcher 悬空。next 复用当前输入，不再复制全文。
 - XL capture/find/findAll 和拆分项返回独立字符串，后续匹配或释放对象不会改写结果。
   复制有成本，仅需判断时优先使用布尔接口。
+- 原生文本结果优先移交无 NUL 且已有终止空间的 XRT 缓冲，避免 `Buffer.text()`
+  再复制一次；含 NUL 或无法安全移交的结果仍按明确长度生成字符串。
 - XL splitter 创建时复制输入，之后逐项生成结果；它不是分块网络输入的增量解析器。
 - Regex/RegexSet 不可变，不同 matcher 可独立执行；同一个可变 matcher、splitter
   或 set matcher 须串行使用。replaceWith 回调应只读取传入 matcher，不对它重新
@@ -196,6 +198,12 @@ Linux 独立 C 门禁为 bash tools/check_extlib_xregex.sh，依赖 GCC、Python
 XREGEX_DECLARATIONS 可指向 Windows 门禁生成的 declarations.inc，核对真实原型的
 LP64 兼容性；XREGEX_WORK_DIR 选择构建目录。
 
-限定验证范围为 Windows C/XL、JIT/AOT、49 个绑定原型、双语黄金输出，以及独立
+门禁目标覆盖 Windows C/XL、JIT/AOT、50 个绑定原型、双语黄金输出，以及独立
 Linux C sanitizer、LP64 原型和逐点分配失败。最新结果以带日期的门禁输出为准，
 不据此宣称 Linux xlang JIT/AOT、32 位/ARM、同一可变对象并发或完整性能基准已验收。
+
+2026-10-24 文本移交复核：Windows 严格 C 所有权与 169 个分配失败检查、
+XLang 功能/生命周期和双语范例 JIT、Linux C ASan/UBSan 通过；生成的
+`xregex_buffer_take_cstr_native` 声明与 C 实现经 GCC 严格检查。完整 Windows
+门禁在中央 AOT 构建时遇到主线未解析符号 `xl6NativeHandleTraceLeaf`，
+后续 AOT 阶段未执行，不能据此签收。

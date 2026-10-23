@@ -97,6 +97,19 @@ static xbuffer* xregex_take_string(str sText, size_t iSize)
 
 
 
+/* 仅移交有终止空间且不含 NUL 的文本；其余结果保留原缓冲供长度感知转换。 */
+XREGEX_EXPORT void* xregex_buffer_take_cstr_native(void* pResult)
+{
+	xbuffer* pBuffer = (xbuffer*)pResult;
+	if ( pBuffer == NULL || pBuffer->Data == NULL ||
+		 pBuffer->Size >= pBuffer->Capacity ||
+		 memchr(pBuffer->Data, 0, pBuffer->Size) != NULL ) { return NULL; }
+	pBuffer->Data[pBuffer->Size] = 0;
+	return xrtBufferTake(pBuffer, NULL, NULL);
+}
+
+
+
 /* 复制一个借用视图，确保它可以越过下一次 matcher 调用。 */
 static xbuffer* xregex_copy_view(xstrview Text)
 {

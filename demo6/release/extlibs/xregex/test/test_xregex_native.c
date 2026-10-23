@@ -22,6 +22,40 @@ static void capture(void* matcher, int64 index, const char* text, size_t size)
     xrtBufferDestroy(result);
 }
 
+/* 成功时必须交出原指针；无法以 C 字符串表达时不能改变缓冲所有权。 */
+static void text_transfer(void)
+{
+    static const unsigned char binary[] = {'a', 0, 'b'};
+    xbytesview bytesView = {binary, sizeof(binary)};
+    xbuffer* result = xregex_escape_native("a+b?", 4);
+    bytes owned;
+    void* original;
+    void* text;
+    assert(result && result->Data && result->Capacity > result->Size);
+    original = result->Data;
+    text = xregex_buffer_take_cstr_native(result);
+    assert(text == original && strcmp((const char*)text, "a\\+b\\?") == 0);
+    assert(result->Data == NULL);
+    xrtBufferDestroy(result);
+    xrtFree(text);
+
+    result = xrtBufferFrom(bytesView);
+    assert(result && result->Size == sizeof(binary));
+    original = result->Data;
+    assert(xregex_buffer_take_cstr_native(result) == NULL);
+    assert(result->Data == original && memcmp(result->Data, binary, sizeof(binary)) == 0);
+    xrtBufferDestroy(result);
+
+    owned = xrtMalloc(3);
+    assert(owned);
+    memcpy(owned, "abc", 3);
+    result = xrtBufferCreateTake(&owned, 3, 3);
+    assert(result && owned == NULL && result->Capacity == result->Size);
+    original = result->Data;
+    assert(xregex_buffer_take_cstr_native(result) == NULL && result->Data == original);
+    xrtBufferDestroy(result);
+}
+
 /* 调用结束后立即覆盖并释放输入，之后的捕获和 next 仍能读取完整内容。 */
 static void ownership(void)
 {
@@ -297,6 +331,7 @@ int main(void)
     unsigned int rejected;
     assert(xrtMemDebugEnable(true));
     xrtMemDebugSnapshot(&before);
+    text_transfer();
     ownership();
     binary_and_empty();
     splitter_handle();

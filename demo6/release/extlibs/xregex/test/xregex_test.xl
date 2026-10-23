@@ -5,6 +5,7 @@ from xregex import Regex, RegexMatch, RegexMatcher, RegexSet, RegexSetMatcher, R
 
 func main(...) as int
     assert xregex.escape("a+b?") == "a\\+b\\?"
+    assert xregex.escape("a\0b") == "a\0b"
     assert xregex.valid("(?<word>[a-z]+)")
     assert not xregex.valid("(")
     assert xregex.test("[0-9]+", "id=42")
@@ -57,11 +58,15 @@ func main(...) as int
     assert digits.replace("a1 b22", "<$0>") == "a<1> b<22>"
     assert digits.replaceFirst("a1 b22", "x") == "ax b22"
     assert digits.replace("a1", "x", 0) == "a1"
+    assert digits.replace("a1", "\0") == "a\0"
 
     string callback = digits.replaceWith("a1 b22", func(RegexMatcher current) as string
         return "[" + current.capture().text + "]"
     end)
     assert callback == "a[1] b[22]"
+    assert digits.replaceWith("a1", func(RegexMatcher current) as string
+        return "\0"
+    end) == "a\0"
 
     Regex comma = xregex.compile("(,)")
     array<string> splitAll = comma.split("a,b,,c")
