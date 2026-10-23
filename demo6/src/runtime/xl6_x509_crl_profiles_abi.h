@@ -1,0 +1,48 @@
+#ifndef XL6_X509_CRL_PROFILES_ABI_H
+#define XL6_X509_CRL_PROFILES_ABI_H
+XL6_TEXT_API void xl6X509CrlEntriesDestroyV1(void*);
+XL6_TEXT_API void xl6X509CrlEntryDestroyV1(void*);
+XL6_TEXT_API void xl6X509IssuingDistributionPointDestroyV1(void*);
+XL6_TEXT_API void* xl6X509CrlEntriesFromDerV1(const xvalue*,int64_t,int64_t,int64_t);
+XL6_TEXT_API xvalue* xl6X509CrlEntriesToDerV1(void*);
+XL6_TEXT_API uint64_t xl6X509CrlEntriesCountV1(void*);
+XL6_TEXT_API int64_t xl6X509CrlEntriesVersionV1(void*);
+XL6_TEXT_API void* xl6X509CrlEntriesAtV1(void*,int64_t);
+XL6_TEXT_API void* xl6X509CrlEntryFromDerV1(const xvalue*,int64_t,int64_t);
+XL6_TEXT_API xvalue* xl6X509CrlEntryToDerV1(void*);
+XL6_TEXT_API int64_t xl6X509CrlEntryVersionV1(void*);
+XL6_TEXT_API xvalue* xl6X509CrlEntrySerialV1(void*);
+XL6_TEXT_API int64_t xl6X509CrlEntryRevokedAtV1(void*);
+XL6_TEXT_API xvalue* xl6X509CrlEntryExtensionsDerV1(void*);
+XL6_TEXT_API void* xl6X509CrlEntryExtensionsV1(void*,int64_t);
+XL6_TEXT_API bool xl6X509CrlEntryHasReasonV1(void*);
+XL6_TEXT_API int64_t xl6X509CrlEntryReasonV1(void*);
+XL6_TEXT_API bool xl6X509CrlEntryHasInvalidityDateV1(void*);
+XL6_TEXT_API int64_t xl6X509CrlEntryInvalidityDateV1(void*);
+XL6_TEXT_API void* xl6X509CrlEntryIssuerV1(void*,int64_t);
+XL6_TEXT_API void* xl6X509IssuingDistributionPointFromDerV1(const xvalue*,int64_t);
+XL6_TEXT_API xvalue* xl6X509IssuingDistributionPointToDerV1(void*);
+XL6_TEXT_API bool xl6X509IssuingDistributionPointHasNameV1(void*);
+XL6_TEXT_API int64_t xl6X509IssuingDistributionPointNameKindV1(void*);
+XL6_TEXT_API xvalue* xl6X509IssuingDistributionPointNameDerV1(void*);
+XL6_TEXT_API bool xl6X509IssuingDistributionPointOnlyUsersV1(void*);
+XL6_TEXT_API bool xl6X509IssuingDistributionPointOnlyCasV1(void*);
+XL6_TEXT_API bool xl6X509IssuingDistributionPointHasReasonsV1(void*);
+XL6_TEXT_API int64_t xl6X509IssuingDistributionPointReasonsV1(void*);
+XL6_TEXT_API bool xl6X509IssuingDistributionPointIndirectV1(void*);
+XL6_TEXT_API bool xl6X509IssuingDistributionPointOnlyAttributesV1(void*);
+XL6_TEXT_API xvalue* xl6X509IssuingDistributionPointRelativeNameV1(void*);
+XL6_TEXT_API void* xl6X509IssuingDistributionPointFullNamesV1(void*,int64_t);
+XL6_TEXT_API void* xl6X509CrlEntriesV1(void*,int64_t);
+XL6_TEXT_API void* xl6X509CrlFindSerialV1(void*,const xvalue*);
+XL6_TEXT_API void* xl6X509CrlFindCertificateV1(void*,void*);
+XL6_TEXT_API xvalue* xl6X509CrlNumberV1(void*);
+XL6_TEXT_API xvalue* xl6X509CrlDeltaBaseV1(void*);
+XL6_TEXT_API void* xl6X509CrlAuthorityKeyIdV1(void*);
+XL6_TEXT_API void* xl6X509CrlIssuingPointV1(void*);
+XL6_TEXT_API void* xl6X509CrlFreshestV1(void*,int64_t);
+XL6_TEXT_API xvalue* xl6X509SubjectKeyIdParseV1(const xvalue*,int64_t);
+XL6_TEXT_API xvalue* xl6X509CrlNumberParseV1(const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6X509CrlReasonParseV1(const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6X509CrlInvalidityDateParseV1(const xvalue*,int64_t);
+#endif

@@ -110,7 +110,7 @@ DER／密钥／数学回归；原生专项 9／11 阶段，另有 3／4 个独�
 `verified-commit.json`。这是冻结的完整工作区源码验收，不是纯净 checkout
 或发布 DLL／SO／VFS 验收。未修改 Cgen、独立 XRT、固定快照或时间 ABI。
 
-P5 仍缺撤销条目及 CRL profile／policy、签名验证与 typed 验证结果、路径／
-信任来源／身份检查；TLS 和联合验收继续。独立 SubjectKeyIdentifier DER 解析
-便利入口尚待与后续独立 CRL 值解析入口一并整理，不能把此批宣称为全部
-X.509 模块或整个 profile 公共面已封板。
+此处记录的是 profile 批次边界。后续独立 SubjectKeyIdentifier／CRL DER 值
+解析、撤销条目及 CRL profile 的实际进展见 [CRL typed profile](x509-crl-profiles.md)。
+P5 仍缺 CRL policy、签名验证与 typed 验证结果、路径／信任来源／身份检查；
+TLS 和联合验收继续，不能把数据读取宣称为全部 X.509 模块已封板。
