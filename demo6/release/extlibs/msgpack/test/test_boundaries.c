@@ -128,6 +128,42 @@ static int length_headers(void) {
     return 0;
 }
 
+static int binary_direct_path(void) {
+    const unsigned char truncated_header[] = {0xc5u, 0u};
+    const unsigned char truncated_body[] = {0xc4u, 2u, 'a'};
+    const unsigned char trailing[] = {0xc4u, 1u, 'a', 'b'};
+    const unsigned char text[] = {0xa1u, 'a'};
+    unsigned char wire[] = {0xc4u, 1u, 'a'};
+    xbuffer *buffer;
+
+    xrtSetErrorInfo(XERR_VALUE, "msgpack.test", 0, "old error");
+    buffer = xmsgpack_encode_bytes(NULL, 0u);
+    CHECK(buffer && buffer->Size == 2u && buffer->Data[0] == 0xc4u &&
+        buffer->Data[1] == 0u && xrtGetError() == NULL);
+    xrtBufferDestroy(buffer);
+    buffer = xmsgpack_decode_bytes((const unsigned char[]){0xc4u, 0u}, 2u);
+    CHECK(buffer && buffer->Size == 0u && xrtGetError() == NULL);
+    xrtBufferDestroy(buffer);
+
+    buffer = xmsgpack_decode_bytes(wire, sizeof(wire));
+    CHECK(buffer && buffer->Size == 1u && buffer->Data[0] == 'a');
+    wire[2] = 'b';
+    CHECK(buffer->Data[0] == 'a');
+    xrtBufferDestroy(buffer);
+
+    CHECK(xmsgpack_decode_bytes(truncated_header, sizeof(truncated_header)) == NULL &&
+        xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    CHECK(xmsgpack_decode_bytes(truncated_body, sizeof(truncated_body)) == NULL &&
+        xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    CHECK(xmsgpack_decode_bytes(trailing, sizeof(trailing)) == NULL &&
+        xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    CHECK(xmsgpack_decode_bytes(text, sizeof(text)) == NULL &&
+        xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    CHECK(xmsgpack_decode_bytes(NULL, 0u) == NULL &&
+        xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    return 0;
+}
+
 static int oversized_input_errors(void) {
     size_t size = 64u * 1024u * 1024u + 1u;
     unsigned char* input = (unsigned char*)malloc(size);
@@ -355,6 +391,7 @@ int main(void) {
     CHECK(null_value_contract() == 0);
     CHECK(unsigned_integer_roundtrip() == 0);
     CHECK(length_headers() == 0);
+    CHECK(binary_direct_path() == 0);
     CHECK(oversized_input_errors() == 0);
     CHECK(header_matrix() == 0);
     CHECK(mutation_matrix() == 0);

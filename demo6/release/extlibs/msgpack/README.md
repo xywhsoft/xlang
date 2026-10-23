@@ -2,6 +2,12 @@
 
 `msgpack` 使用 `Buffer` 承载二进制数据，`var` 承载动态值。`nil` 是合法值，`decode` 返回 XLang `null`，不会误报为解码失败。
 
+2026-10-23：`encodeBytes` / `decodeBytes` 直接处理 bin8/bin16/bin32 帧，
+不再经 `xvalue` 中转复制整份字节。空字节串仍编码为 `c4 00`，
+解码只接受单个 bin 值；截断、尾随字节和非 bin 输入仍明确报错。
+Windows 聚焦 C/XLang 与 Linux C ASan/UBSan、XLang 门禁通过，
+包含逐点分配故障和返回缓冲独立持有测试。完整 AOT 的共享阻断未变。
+
 ```xlang
 import msgpack
 
