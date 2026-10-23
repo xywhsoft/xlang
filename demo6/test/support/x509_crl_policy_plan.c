@@ -10,8 +10,12 @@ int main(int argc,char** argv)
         #define XL6_TEXT_EXPORT(Symbol,Provider) XL6_ARTIFACT_##Provider,
         #include "src/runtime/xl6_x509_verify_symbols.inc"
         #include "src/runtime/xl6_x509_crl_profiles_symbols.inc"
+        #include "src/runtime/xl6_x509_crl_policy_symbols.inc"
         #undef XL6_TEXT_EXPORT
-        XL6_ARTIFACT_OWNERSHIP_DOMAIN_X509_CRL_ENTRY
+        XL6_ARTIFACT_OWNERSHIP_DOMAIN_X509_CRL_ENTRY,
+        XL6_ARTIFACT_OWNERSHIP_DOMAIN_X509_VALIDATED_CRL,XL6_ARTIFACT_OWNERSHIP_DOMAIN_X509_CRL_SET,
+        XL6_ARTIFACT_OWNERSHIP_DOMAIN_X509_REVOCATION,XL6_ARTIFACT_OWNERSHIP_DOMAIN_X509_REVOCATION_CHECK,
+        XL6_ARTIFACT_OWNERSHIP_DOMAIN_X509_CRL_CRITICAL
     };
     bool seen[XL6_ARTIFACT_RUNTIME_COUNT]={0};
     for(size_t i=0;i<sizeof(selected)/sizeof(*selected);++i)if(!seen[selected[i]]) {
@@ -23,8 +27,6 @@ int main(int argc,char** argv)
     else {
         assert(!strcmp(argv[1],"--modules"));
         for(size_t i=0;i<plan.runtime.nativeModuleCount;++i)printf("#define %s\n",plan.runtime.nativeModules[i]);
-        puts("#define XRT_MODULE_X509_CRL_POLICY");
-        puts("#define XRT_MODULE_ATOMIC");
     }
     return 0;
 }
