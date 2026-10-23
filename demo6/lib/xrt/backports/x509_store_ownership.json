@@ -1,0 +1,51 @@
+{
+  "Schema": 1,
+  "CanonicalCommit": "50649120eba1f33b9ca3a3006d0d7179f34143a2",
+  "PreviousCanonicalCommit": "c980bc84bd8eaddcdfc37bf7c0ddaba77505c37b",
+  "WholeSnapshotUpgrade": false,
+  "TimeAbiPreserved": true,
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "a852a708bc843223e4f2170adb6d0bc44f6a37e554dbecfeb210233d2749f575",
+      "AfterSha256": "bd1d4e9baf221644e00846c253dae6eb082b0577a373a1d6313ef96563c8ea0f"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "a7db0c332cc494dbfcf38da430d02cd038efe90d15e2594a45674fed7d391a51",
+      "AfterSha256": "bf1a5a8cb2e4dd76d1786c478bfa2fc216f534193723acd8afe2f54d2243867f"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "4b8c6710d56c7c0a1658516ee2e757df1884de72e8d1382a3392a0cbe05e640b",
+      "AfterSha256": "45d3b8f62da04b57af692f964c2edf622c8cf5d5053ee010ab78c97fd2fb92fe"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "5b41debfb0bbd43ee01eed8f6f6a45ffc90f37f53896117c85fc8784298b13cf",
+      "AfterSha256": "3536db9dd075afd71b64ef5352efa65810397033f39ae9a3cda61209817935cd"
+    }
+  ],
+  "Purpose": "Trust store ownership prerequisites; guarded canonical deltas only",
+  "Sources": [
+    {
+      "Path": "include/xrt/x509.h",
+      "Sha256": "9fb480be141a470119741b57c211415b95031f09326452c7d5d4371a97787109"
+    },
+    {
+      "Path": "src/x509/store.c",
+      "Sha256": "d829ea23015eaff32bdc149f967353f8fec0e3271ea1e25053a82ee4ebe13c92"
+    }
+  ],
+  "PreservedContracts": [
+    "Embedded microseconds/Until ABI",
+    "Independent native milliseconds/For ABI",
+    "All unselected sections",
+    "Unrelated worktree/index changes"
+  ],
+  "PublicApiCounts": {
+    "XRT": 3374,
+    "Xruntime": 3839,
+    "XruntimeOwned": 465
+  }
+}

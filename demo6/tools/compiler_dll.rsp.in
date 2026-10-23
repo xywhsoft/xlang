@@ -557,6 +557,15 @@
     src\runtime\xl6_x509_revocation_check_domain.c
     src\runtime\xl6_x509_crl_critical_domain.c
     src\runtime\xl6_x509_anchor.c
+    src\runtime\xl6_x509_store_version.c
+    src\runtime\xl6_x509_store_value.c
+    src\runtime\xl6_x509_store_fields.c
+    src\runtime\xl6_x509_store_items.c
+    src\runtime\xl6_x509_store_query.c
+    src\runtime\xl6_x509_store_items_query.c
+    src\runtime\xl6_x509_store_update.c
+    src\runtime\xl6_x509_store_domain.c
+    src\runtime\xl6_x509_store_snapshot_domain.c
     src\runtime\xl6_x509_path_config.c
     src\runtime\xl6_x509_path_value.c
     src\runtime\xl6_x509_path_result.c

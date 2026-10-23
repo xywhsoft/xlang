@@ -27970,6 +27970,11 @@ XRT_API xx509store* xrtX509StoreCreate(void);
 
 
 
+/* 深复制全部 DER 和索引；结果不借用源信任库，源须在调用期间保持不变。 */
+XRT_API xx509store* xrtX509StoreClone(const xx509store* pSource);
+
+
+
 /* 释放信任库拥有的证书、索引和对象。 */
 XRT_API void xrtX509StoreFree(xx509store* pStore);
 
@@ -27985,6 +27990,15 @@ XRT_API xx509result xrtX509StoreAdd(
 	xx509store* pStore,
 	const void* pDer,
 	size_t iSize
+);
+
+
+
+/* 事务式复制合并源条目，精确去重；失败不发布 pAdded，源不变。 */
+XRT_API bool xrtX509StoreMerge(
+	xx509store* pStore,
+	const xx509store* pSource,
+	size_t* pAdded
 );
 
 

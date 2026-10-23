@@ -839,7 +839,7 @@ static int xl6StdlibUsesX509Types(const XL6_AstNode* root)
         "X509SignatureStatus","X509CrlPolicyFlags","X509RevocationStatus","X509ValidatedCrl",
         "X509CrlSet","X509RevocationResult","X509RevocationCheck","__X509CrlCriticalContext",
         "X509TrustAnchor","X509PathPolicy","X509PathOutcome","X509Path","__X509PathCriticalContext",
-        "X509PathFlags","X509ValidationStatus","X509PathReason"};
+        "X509PathFlags","X509ValidationStatus","X509PathReason","TrustStore","TrustStoreSnapshot"};
     for(size_t i=0;i<sizeof(types)/sizeof(*types);++i)if(xl6StdlibNodeUsesTypeName(root,types[i]))return 1;
     return 0;
 }
@@ -862,8 +862,14 @@ static int xl6StdlibUsesX509CrlPolicyClasses(const XL6_AstNode* root)
     return 0;
 }
 
+static int xl6StdlibUsesX509StoreClasses(const XL6_AstNode* root)
+{
+    return xl6StdlibNodeUsesTypeName(root,"TrustStore") || xl6StdlibNodeUsesTypeName(root,"TrustStoreSnapshot");
+}
+
 static int xl6StdlibUsesX509PathClasses(const XL6_AstNode* root)
 {
+    if(xl6StdlibUsesX509StoreClasses(root))return 1;
     static const char* const names[]={"X509TrustAnchor","X509PathPolicy","X509PathOutcome","X509Path","__X509PathCriticalContext"};
     for(size_t i=0;i<sizeof(names)/sizeof(*names);++i)if(xl6StdlibNodeUsesTypeName(root,names[i]))return 1;
     return 0;
@@ -2345,6 +2351,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
             xl6StdlibNodeUsesTypeName(root,"X509ValidationStatus") || xl6StdlibNodeUsesTypeName(root,"X509PathReason"))
             xl6StdlibBuilderAppend(&builder,xl6StdlibX509PathEnumsSource);
         if(xl6StdlibUsesX509PathClasses(root))xl6StdlibBuilderAppend(&builder,xl6StdlibX509PathSource);
+        if(xl6StdlibUsesX509StoreClasses(root))xl6StdlibBuilderAppend(&builder,xl6StdlibX509StoreSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509DataSource);
     }
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||

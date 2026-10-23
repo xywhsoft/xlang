@@ -146,6 +146,7 @@ extern const char* xl6StdlibX509SignatureStatusSource;
 extern const char* xl6StdlibX509CrlPolicySource;
 extern const char* xl6StdlibX509PathEnumsSource;
 extern const char* xl6StdlibX509PathSource;
+extern const char* xl6StdlibX509StoreSource;
 extern const char* xl6StdlibX509CrlPolicyEnumsSource;
 extern const char* xl6StdlibX509EnumsSource;
 extern const char* xl6StdlibEd25519ClassSource;
