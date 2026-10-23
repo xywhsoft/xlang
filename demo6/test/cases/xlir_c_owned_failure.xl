@@ -4,6 +4,7 @@ extern "c_owned_release" @no_raise func nativeFree(point data)
 extern "c_owned_debug" @no_raise func debugMemory() as bool
 extern "c_owned_fail_next" @no_raise func failNext()
 extern "c_owned_fail_clear" @no_raise func clearFailure()
+extern "c_owned_released" @no_raise func released() as int
 
 func check()
     cstring text = cstring.take(nativeText(), nativeFree)
@@ -35,4 +36,29 @@ end
 
 if debugMemory() then
     check()
+end
+
+string globalText="keep"
+bytes globalData=b"keep"
+func failGlobalPair() as (cstring,cbytes)
+    auto text=cstring.take(nativeText(),nativeFree)
+    auto data=cbytes.take(nativeBytes(),4,nativeFree)
+    failNext()
+    return text,data
+end
+func checkGlobalFailure()
+    auto before=released()
+    bool caught=false
+    try
+        globalText,globalData=failGlobalPair()
+    catch ignored
+        clearFailure()
+        caught=true
+    end
+    clearFailure()
+    assert caught and globalText=="keep" and globalData==b"keep"
+    assert released()==before+2
+end
+if debugMemory() then
+    checkGlobalFailure()
 end

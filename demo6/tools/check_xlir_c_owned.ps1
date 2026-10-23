@@ -71,6 +71,7 @@ $generatedSources=@(
     'test/cases/xlir_c_owned_sizes.xl',
     'test/cases/xlir_c_owned_defaults.xl',
     'test/cases/xlir_c_owned_spawn.xl',
+    'test/cases/xlir_c_owned_globals.xl',
     'test/cases/xlir_c_owned_nullable.xl','test/cases/xlir_c_owned_nullable_boundaries.xl',
     'test/cases/xlir_c_owned_writes.xl','test/cases/xlir_c_owned_print.xl',
     'test/cases/xlir_c_owned_traverse.xl','test/cases/xlir_c_owned_sequence.xl',
@@ -155,7 +156,8 @@ if ($PublicDriver) {
     $ordinarySources=@('char_bytes_literals','char_bytes_advanced','anonymous_functions',
         'cgen_implicit_string_methods','nullable_string_lifecycle','cgen_task_spawn_fstring',
         'stdlib_codec','stdlib_compress_values','stdlib_encoding','stdlib_unicode_validator',
-        'xlir_managed_storage_inputs','cgen_base_method_static_dispatch','cgen_async_generator')
+        'xlir_managed_storage_inputs','cgen_base_method_static_dispatch','cgen_async_generator',
+        'xlir_module_product_globals')
     foreach($name in $ordinarySources) {
         $source="test/cases/$name.xl"
         & $sourceDriver $source run "$outputPath/ordinary-jit-$name"
