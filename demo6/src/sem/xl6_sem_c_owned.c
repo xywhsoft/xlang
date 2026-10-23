@@ -17,6 +17,24 @@ static int xl6SemCOwnedTypeMatchCost(const XL6_AstNode* actual,const XL6_AstNode
     return -1;
 }
 static int xl6SemCheckCOwnedTake(XL6_SemContext*,XL6_AstNode*);
+/* The C owner ABI takes signed 64-bit lengths. Keep the checked conversion
+ * in the typed graph, so overflow follows the already anchored take cleanup. */
+static int xl6SemCOwnedSignedLength(XL6_SemContext* ctx,XL6_AstNode** place)
+{
+    XL6_AstNode* value=*place;
+    const char* type=xl6SemResolveAliasName(ctx,xl6SemExprStaticTypeName(ctx,value));
+    XL6_SemIntTypeInfo info;
+    if(!xl6SemIntTypeInfo(type,&info) || info.bits<64 || info.isSigned)return 1;
+    XL6_AstNode* name=xl6AstNewText(XL6_AST_NAME,"int",3,NULL);
+    XL6_AstNode* args=xl6AstNew(XL6_AST_LIST,NULL);
+    XL6_AstNode* arg=xl6AstNew(XL6_AST_ARG,NULL);
+    if(!name || !args || !arg){xl6AstFree(name);xl6AstFree(args);xl6AstFree(arg);return 0;}
+    XL6_AstNode* call=xl6AstNewCall(name,args,NULL);
+    if(!call){xl6AstFree(name);xl6AstFree(args);xl6AstFree(arg);return 0;}
+    call->line=value->line;call->column=value->column;xl6AstCopySource(call,value);
+    xl6AstAddChild(arg,value);xl6AstAddChild(args,arg);*place=call;
+    return xl6SemCheckExpr(ctx,call);
+}
 static int xl6SemCOwnedResult(XL6_SemContext*,XL6_AstNode*,const char*);
 static int xl6SemCOwnedCompare(XL6_SemContext* ctx,XL6_AstNode* node)
 {
@@ -185,6 +203,7 @@ static int xl6SemCheckCOwnedTake(XL6_SemContext* ctx, XL6_AstNode* call)
         !xl6SemIsIntegerTypeName(xl6SemExprStaticTypeName(ctx,length)))) {
         xl6SemErrorNode(ctx,length,"C bytes length must be an integer"); ok=0;
     }
+    if(length && ok && !xl6SemCOwnedSignedLength(ctx,&call->children[1]->children[1]->children[0]))ok=0;
     XL6_AstNode* selected = NULL;
     XL6_Symbol* releaseBinding=releaser && releaser->kind==XL6_AST_NAME ? xl6ScopeFind(ctx->scope,releaser->text) : NULL;
     if(!releaseBinding || releaseBinding->kind!=XL6_SYM_FUNC) {
@@ -307,14 +326,16 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     XL6_AstNode* params=function->childCount>1 ? function->children[1] : NULL;
     XL6_AstNode* args=call->children[1];
     if(!params || (size_t)xl6SemFixedParamCount(params)!=params->childCount)return function;
-    unsigned char* promote=params->childCount ? xrtCalloc(params->childCount,1) : NULL;
+    unsigned char* promote=params->childCount ? xrtCalloc(params->childCount,2) : NULL;
     if(params->childCount && !promote)return NULL;
+    unsigned char* provided=promote ? promote+params->childCount : NULL;
     int any=0;size_t positional=0;
     for(size_t i=0;i<args->childCount;++i) {
         XL6_AstNode* arg=args->children[i];
         int position=arg->kind==XL6_AST_NAMED_ARG ? xl6SemFindParamIndex(params,(int)params->childCount,arg->text) : (int)positional++;
         if(position<0 || (size_t)position>=params->childCount ||
             (arg->kind!=XL6_AST_ARG && arg->kind!=XL6_AST_NAMED_ARG) || arg->childCount!=1) {xrtFree(promote);return function;}
+        provided[position]=1;
         XL6_AstNode* parameter=params->children[position];
         if(parameter->flags & (XL6_AST_FLAG_BYREF|XL6_AST_FLAG_OUT))continue;
         XL6_AstNode* actual=xl6SemInferAutoTypeNode(ctx,arg->children[0]);
@@ -325,6 +346,17 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
             (xl6TextEquals(base,formal->text) ||
              (concreteGeneric && argument && xl6TextEquals(argument->text,formal->text))))
             any=promote[position]=1;
+        xl6AstFree(actual);
+    }
+    for(size_t p=0;p<params->childCount;++p)if(!provided[p]) {
+        XL6_AstNode* parameter=params->children[p];
+        if(parameter->childCount<2 || (parameter->flags & (XL6_AST_FLAG_BYREF|XL6_AST_FLAG_OUT)))continue;
+        XL6_AstNode* expression=parameter->children[1];
+        XL6_AstNode* actual=expression->inferredType ? xl6SemCloneTypeNode(expression->inferredType) :
+            xl6SemInferAutoTypeNode(ctx,expression);
+        const char* base=xl6SemCOwnedTypeBase(actual);
+        const XL6_AstNode* formal=xl6SemCOwnedElement(parameter->children[0]);
+        if(base && formal && xl6TextEquals(base,formal->text))any=promote[p]=1;
         xl6AstFree(actual);
     }
     if(!any){xrtFree(promote);return function;}

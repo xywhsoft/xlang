@@ -1,0 +1,56 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_released" @no_raise func released() as int
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+int evaluated=0
+func text() as cstring
+    evaluated+=1
+    return cstring.take(nativeText(),nativeFree)
+end
+func data() as cbytes
+    evaluated+=1
+    return cbytes.take(nativeBytes(),4,nativeFree)
+end
+func forward(string value=text()) as cstring
+    return value
+end
+func forwardBytes(bytes value=data()) as bytes
+    return value
+end
+func mixed(int prefix=9,string value=text(),bytes binary=data()) as bool
+    return prefix==9 and original(value) and originalBytes(binary)
+end
+func maybe() as cstring?
+    return text()
+end
+func optional(string? value=maybe()) as string?
+    return value
+end
+func check()
+    auto value=forward()
+    assert original(value)
+    auto binary=forwardBytes()
+    assert originalBytes(binary)
+    auto nullable=optional()
+    assert original(nullable ?? "bad")
+    assert mixed(prefix=9)
+    assert evaluated==5 and released()==2
+    assert forward(value="ordinary")=="ordinary"
+    assert evaluated==5
+end
+check()
+assert released()==5
+func fail() as int
+    throw "default failed"
+end
+func failing(string value=text(),int next=fail()) as int
+    return next
+end
+try
+    int ignored=failing()
+    assert false
+catch ignored
+end
+assert released()==6 and evaluated==6
