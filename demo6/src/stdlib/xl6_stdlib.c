@@ -836,7 +836,8 @@ static int xl6StdlibUsesX509Types(const XL6_AstNode* root)
         "X509GeneralSubtrees","X509GeneralSubtree","X509GeneralNameKind","X509KeyUsageFlags",
         "X509ReasonFlags","X509DistributionNameKind",
         "X509CrlEntries","X509CrlEntry","X509IssuingDistributionPoint","X509CrlVersion","X509CrlReason",
-        "X509SignatureStatus"};
+        "X509SignatureStatus","X509CrlPolicyFlags","X509RevocationStatus","X509ValidatedCrl",
+        "X509CrlSet","X509RevocationResult","X509RevocationCheck","__X509CrlCriticalContext"};
     for(size_t i=0;i<sizeof(types)/sizeof(*types);++i)if(xl6StdlibNodeUsesTypeName(root,types[i]))return 1;
     return 0;
 }
@@ -848,6 +849,15 @@ static int xl6StdlibNeedsX509(const XL6_AstNode* root,const int* used)
         xl6StdlibFuncUsed(used,"x509","parseCrlNumber") ||
         xl6StdlibFuncUsed(used,"x509","parseCrlReason") ||
         xl6StdlibFuncUsed(used,"x509","parseInvalidityDate");
+}
+
+static int xl6StdlibUsesX509CrlPolicyClasses(const XL6_AstNode* root)
+{
+    static const char* const types[]={"X509ValidatedCrl","X509CrlSet","X509RevocationResult",
+        "X509RevocationCheck","__X509CrlCriticalContext"};
+    for(size_t i=0;i<sizeof(types)/sizeof(*types);++i)
+        if(xl6StdlibNodeUsesTypeName(root,types[i]))return 1;
+    return 0;
 }
 
 static int xl6StdlibHasConcurrentImport(const XL6_AstNode* node)
@@ -2316,6 +2326,12 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509ProfilesSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509CrlProfilesSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509SignatureStatusSource);
+        if(xl6StdlibUsesX509CrlPolicyClasses(root) ||
+            xl6StdlibNodeUsesTypeName(root,"X509CrlPolicyFlags") ||
+            xl6StdlibNodeUsesTypeName(root,"X509RevocationStatus"))
+            xl6StdlibBuilderAppend(&builder,xl6StdlibX509CrlPolicyEnumsSource);
+        if(xl6StdlibUsesX509CrlPolicyClasses(root))
+            xl6StdlibBuilderAppend(&builder,xl6StdlibX509CrlPolicySource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509DataSource);
     }
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||

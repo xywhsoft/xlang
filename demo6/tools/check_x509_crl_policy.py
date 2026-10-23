@@ -1,4 +1,4 @@
-"""Offline resident CRL policy foundation; not public ABI, trust or shipping acceptance."""
+"""Offline resident CRL policy adapters; not language, trust or shipping acceptance."""
 from pathlib import Path
 import argparse,hashlib,json,os,shutil,subprocess,time
 import cryptography
@@ -11,7 +11,7 @@ def main():
     sha=lambda f:hashlib.sha256(Path(f).read_bytes()).hexdigest()
     gcc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
     tcc=Path(shutil.which('tcc') or 'E:/software/tcc/tcc.exe').resolve()
-    extra=[root/('src/runtime/'+name+'.c') for name in ('xl6_x509_crl_policy','xl6_x509_crl_set','xl6_x509_revocation','xl6_x509_revocation_check')]
+    extra=[]
     files=[Path(__file__),root/'tools/x509_crl_policy_fixtures.py',root/'tools/check_key_format_wire.py',
         root/'tools/check_x509_owned.py',gcc,tcc,root/'test/support/x509_crl_policy.c',
         root/'test/support/x509_crl_policy_plan.c',root/'src/compile/xl6_compile_unit.c',
@@ -44,7 +44,8 @@ def main():
     assert not any(s in modules for s in ('_MODULE_ALL','MODULE_TLS','MODULE_X509_PATH','MODULE_X509_STORE'))
     report['Closure']=dict(Sources=list(map(str,sources)),Modules=modules)
     for f in sources:report['Inputs'][str(f)]=sha(f)
-    impl=out/'native.c';impl.write_text(modules+'\n#define XRT_MODULE_MEMORY_DEBUG\n#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n')
+    impl=out/'native.c';impl.write_text(modules+'\n#define XRT_MODULE_MEMORY_DEBUG\n'+
+        ('#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n' if '#define XRUNTIME_MODULE_' in modules else '#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n'))
     libs=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-pthread','-ldl','-lm']
     modes=[('gcc.O0',gcc,['-O0']),('gcc.O2',gcc,['-O2']),('tcc',tcc,[])]
     if os.name!='nt':modes.append(('asan',gcc,['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']))

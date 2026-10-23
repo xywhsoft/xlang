@@ -1,5 +1,8 @@
 /* Ordinary fixed-key policy data, ownership and allocation-failure contracts. */
 #include "src/runtime/xl6_x509_crl_policy_internal.h"
+#include "src/runtime/xl6_x509_crl_critical_internal.h"
+#include "src/runtime/xl6_ownership_catalog.h"
+#include "src/runtime/xl6_ownership_domains.h"
 #include <assert.h>
 #include <stdio.h>
 #include "x509_crl_policy_vectors.h"
@@ -31,6 +34,19 @@ static bool publish(void* raw,const XL6_NativeHandlePolicyV1* policy,size_t pref
     assert(!raw && (hit?(!value && xrtGetError()):(value && !xrtGetError())));xrtClearError();
     xrtValueRelease(value);assert(!xrtGetError());return hit;
 }
+static void catalog(void* raw,const XL6_NativeHandlePolicyV1* policy,const XL6_OwnershipDomainV1* domain)
+{
+    xvalue* value=xl6NativeHandleTakeV1(&raw,policy);assert(value && !raw);
+    XL6_OwnershipCatalog* registry=xl6OwnershipCatalogCreateV1(&domain,1);assert(registry);
+    xrtownershipref ref=xrtValueOwnership(value);xrtownershipscope freeze={0};size_t count=0;
+    assert(xrtOwnershipFreezeTryBegin(&freeze) && ref.Ops->Count(ref.Data,&count) && count==1);
+    const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* preparation=NULL;const XL6_OwnershipFinishV1* finish=NULL;
+    assert(xl6OwnershipCatalogResolveV1(ref,registry,&adapter,&preparation,&finish) && adapter && !preparation && !finish);
+    int token=0;assert(adapter->Hold(ref.Data) && adapter->Claim(ref.Data,&token));adapter->Restore(ref.Data,&token);
+    assert(xrtOwnershipScopeEnd(&freeze));adapter->Drop(ref.Data);xl6OwnershipCatalogDestroyV1(registry);
+    xrtValueRelease(value);assert(!xrtGetError());
+}
+#define CATALOG(Call,Part) catalog(Call,xl6X509##Part##HandlePolicyV1Get(),xl6OwnershipDomainX509##Part##V1Get())
 #define PUBLISH(Call,Part) do { \
     for(size_t prefix=0;prefix<32;++prefix) { \
         xmemdebugsnapshot before;xrtMemDebugSnapshot(&before); \
@@ -107,6 +123,12 @@ static void ordinary(void)
     PUBLISH(xl6X509CrlSetCreateV1(base,delta),CrlSet);
     PUBLISH(xl6X509ValidatedCrlQueryV1(base,target),Revocation);
     PUBLISH(xl6X509RevocationCheckCreateV1(clear),RevocationCheck);
+    CATALOG(xl6X509ValidatedCrlRefV1(base),ValidatedCrl);
+    CATALOG(xl6X509CrlSetCreateV1(base,delta),CrlSet);
+    CATALOG(xl6X509ValidatedCrlQueryV1(base,target),Revocation);
+    CATALOG(xl6X509RevocationCheckCreateV1(clear),RevocationCheck);
+    CATALOG(xl6X509CrlCriticalCreateV1(),CrlCritical);
+    PUBLISH(xl6X509CrlCriticalCreateV1(),CrlCritical);
     FAULTS(xl6X509ValidatedCrlQueryV1(base,target),xl6X509RevocationDestroyV1);
     FAULTS(xl6X509CrlSetQueryV1(set,target),xl6X509RevocationDestroyV1);
     void* result=queried(base,target,false);state(result,XL6_X509_REVOCATION_REVOKED_V1,X509_CRL_REASON_FLAG_ALL);
@@ -134,7 +156,8 @@ static void ordinary(void)
     FAULTS(xl6X509RevocationCheckWithCrlV1(empty,left),xl6X509RevocationCheckDestroyV1);
     void* partial=next(empty,left,false);assert(!xl6X509RevocationCheckDeterminedV1(partial));
     assert(!xl6X509RevocationCheckWithCrlV1(partial,laterRight) && xrtErrorKind(xrtGetError())==XERR_ARGUMENT);xrtClearError();
-    result=xl6X509RevocationCheckResultV1(partial);state(result,XL6_X509_REVOCATION_UNKNOWN_V1,X509_CRL_REASON_FLAG_KEY_COMPROMISE);xl6X509RevocationDestroyV1(result);
+    result=xl6X509RevocationCheckResultV1(partial);state(result,XL6_X509_REVOCATION_UNKNOWN_V1,X509_CRL_REASON_FLAG_KEY_COMPROMISE);
+    assert(xl6X509RevocationObservedV1(result));xl6X509RevocationDestroyV1(result);
     FAULTS(xl6X509RevocationCheckWithCrlV1(partial,right),xl6X509RevocationCheckDestroyV1);
     void* complete=next(partial,right,false);assert(xl6X509RevocationCheckDeterminedV1(complete));
     result=xl6X509RevocationCheckResultV1(complete);state(result,XL6_X509_REVOCATION_GOOD_V1,X509_CRL_REASON_FLAG_ALL);
@@ -181,9 +204,79 @@ static void callbacks(void)
     invalid=(xx509revocation){.State=X509_REVOCATION_REVOKED,.CoveredReasons=X509_CRL_REASON_FLAG_ALL};
     assert(!xl6X509RevocationCopyV1(&invalid,X509_CRL_VERSION_2,true) && xrtGetError());xrtClearError();
 }
+typedef struct LanguageCall {
+    void* context;
+    void* crl;
+    void* issuer;
+    void* savedEntry;
+    void* savedExtension;
+    unsigned calls;
+    bool reject,fail,noDiagnostic,nested,scopeChecked;
+} LanguageCall;
+static void borrowedEnvironmentDrop(void* raw){(void)raw;}
+static bool borrowedEnvironmentTrace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
+{(void)raw;(void)visit;(void)user;return true;}
+static bool language(void* raw,bool* output)
+{
+    LanguageCall* call=raw;++call->calls;
+    void* entry=xl6X509CrlCriticalEntryV1(call->context);
+    if(xrtGetError())return false;
+    void* extension=xl6X509CrlCriticalExtensionV1(call->context);
+    if(!extension){xl6X509CrlEntryDestroyV1(entry);return false;}
+    xl6X509CrlEntryDestroyV1(call->savedEntry);xl6X509ExtensionDestroyV1(call->savedExtension);
+    call->savedEntry=entry;call->savedExtension=extension;
+    if(call->nested) {
+        call->scopeChecked=true;
+        XL6_Closure* callback=xl6ClosureRuntimeV1Get()->Create(NULL,(void (*)(void))language,NULL,call,borrowedEnvironmentDrop,NULL,NULL,0,borrowedEnvironmentTrace);assert(callback);
+        assert(!xl6X509CrlValidateCallbackV1(call->crl,call->issuer,policy_time,0,31,call->context,callback) &&
+            xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();xl6ClosureRuntimeV1Get()->Release(callback);
+    }
+    if(call->fail){if(!call->noDiagnostic)xrtSetErrorKind(XERR_RANGE);return false;}
+    *output=!call->reject;return true;
+}
+static void languageDrop(LanguageCall* call)
+{xl6X509CrlEntryDestroyV1(call->savedEntry);xl6X509ExtensionDestroyV1(call->savedExtension);call->savedEntry=NULL;call->savedExtension=NULL;}
+static void languageCallbacks(void)
+{
+    void* crl=xl6X509CrlCreateSpanV1(policy_critical_view);void* issuer=xl6X509CertificateCreateSpanV1(policy_issuer_view);
+    void* context=xl6X509CrlCriticalCreateV1();assert(crl && issuer && context);
+    FAULTS(xl6X509CrlCriticalCreateV1(),xl6X509CrlCriticalDestroyV1);
+    assert(!xl6X509CrlCriticalExtensionV1(context) && xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();
+    const XL6_ClosureRuntimeV1* closures=xl6ClosureRuntimeV1Get();
+    LanguageCall call={.context=context,.crl=crl,.issuer=issuer,.nested=true};
+    XL6_Closure* callback=closures->Create(NULL,(void (*)(void))language,NULL,&call,borrowedEnvironmentDrop,NULL,NULL,0,borrowedEnvironmentTrace);assert(callback);
+    void* validated=xl6X509CrlValidateCallbackV1(crl,issuer,policy_time,0,31,context,callback);
+    assert(validated && call.calls==2 && call.scopeChecked && call.savedEntry && call.savedExtension);
+    xl6X509ValidatedCrlDestroyV1(validated);languageDrop(&call);
+    call.nested=false;call.reject=true;
+    assert(!xl6X509CrlValidateCallbackV1(crl,issuer,policy_time,0,31,context,callback) && xrtGetError());xrtClearError();languageDrop(&call);
+    call.reject=false;call.fail=true;xl6_error_scope scope={0};assert(xl6ErrorScopeBegin(&scope));
+    assert(!xl6X509CrlValidateCallbackV1(crl,issuer,policy_time,0,31,context,callback));
+    xl6_error_result failed=xl6ErrorScopeEnd(&scope);assert(!failed.ok && xrtErrorIs(failed.error,XERR_RANGE));xrtErrorFree(failed.error);xrtClearError();languageDrop(&call);
+    call.noDiagnostic=true;assert(xl6ErrorScopeBegin(&scope));
+    assert(!xl6X509CrlValidateCallbackV1(crl,issuer,policy_time,0,31,context,callback));
+    failed=xl6ErrorScopeEnd(&scope);assert(!failed.ok && !failed.error && !xrtGetError());languageDrop(&call);
+    call.noDiagnostic=false;
+    call.fail=false;
+    for(size_t prefix=0;prefix<128;++prefix) {
+        xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);assert(xl6ErrorScopeBegin(&scope));assert(xrtMemDebugFailAfter(prefix));
+        void* result=xl6X509CrlValidateCallbackV1(crl,issuer,policy_time,0,31,context,callback);
+        bool hit=xrtMemDebugFailTriggered();xrtMemDebugFailClear();++budgets;if(hit)++failures;
+        if(!result)xl6ErrorScopeCaptureFailure(&scope);
+        xl6_error_result outcome=xl6ErrorScopeEnd(&scope);assert(hit?(!result && !outcome.ok):(result && outcome.ok));
+        xrtErrorFree(outcome.error);xrtClearError();languageDrop(&call);xl6X509ValidatedCrlDestroyV1(result);balanced(before);
+        if(!hit)break;
+        assert(prefix<127);
+    }
+    validated=xl6X509CrlValidateCallbackV1(crl,issuer,policy_time,0,31,context,callback);assert(validated);
+    closures->Release(callback);xl6X509CrlCriticalDestroyV1(context);xl6X509CrlDestroyV1(crl);xl6X509CertificateDestroyV1(issuer);
+    assert(call.savedEntry && call.savedExtension && xl6X509CrlEntryVersionV1(call.savedEntry)==2);
+    xvalue* encoded=xl6X509ExtensionValueV1(call.savedExtension);assert(encoded);xrtValueRelease(encoded);
+    languageDrop(&call);xl6X509ValidatedCrlDestroyV1(validated);
+}
 int main(void)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);assert(!xrtGetError());
-    ordinary();callbacks();balanced(before);assert(!xrtGetError());
+    ordinary();callbacks();languageCallbacks();balanced(before);assert(!xrtGetError());
     printf("X509 CRL policy: 7 ordinary CRLs, %zu allocation budgets, %zu failures, %zu publication budgets; balanced\n",budgets,failures,publications);return 0;
 }

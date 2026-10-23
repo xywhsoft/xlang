@@ -25,7 +25,7 @@ static void diagnosticMap(server* s,const xide_diagnostic_publication* publicati
 { for(size_t i=0;i<DOC_LIMIT;++i) indices[i]=s->docs[i].uri ? xideDiagnosticPublicationFind(publication,s->docs[i].path) : SIZE_MAX; }
 /* Fixed metadata projection from this publication, no source/report clone or
    file I/O. Generation is ordering context, not a client synchronization ack. */
-static xvalue* diagnosticEnvelope(server* s,const xvalue* group,int clear)
+static xvalue* diagnosticEnvelope(server* s,const xvalue* group,int clear,const char* dependency)
 {
  char generation[32]; snprintf(generation,sizeof(generation),"%llu",s->generation);
  xvalue *out=xrtValueObject(),*document=NULL;
@@ -35,6 +35,7 @@ static xvalue* diagnosticEnvelope(server* s,const xvalue* group,int clear)
   document=xrtValueObject(); okay=document!=NULL;
   for(size_t i=0;okay && i<sizeof(fields)/sizeof(*fields);++i) { const xvalue* value=get(group,fields[i]); if(value) okay=xrtValueObjectSet(document,sv(fields[i]),value); }
   if(okay) { okay=put(out,"document",document); document=NULL; }
+  if(okay && s->diagnosticDependencyProof) okay=dependency && put(out,"dependencies",xrtValueString(sv(dependency)));
  }
  xrtValueRelease(document); if(!okay) { xrtValueRelease(out); out=NULL; } return out;
 }
@@ -47,17 +48,32 @@ static void diagnosticEmit(server* s,const xide_diagnostic_publication* publicat
  xvalue *out=xrtValueObject(),*params=xrtValueObject(); int okay=uri && out && params;
  if(okay) okay=put(out,"jsonrpc",xrtValueString(sv("2.0"))) && put(out,"method",xrtValueString(sv("textDocument/publishDiagnostics"))) && put(params,"uri",xrtValueString(sv(uri)));
  if(okay && s->diagnosticVersions && version) okay=put(params,"version",xrtValueDeepClone(version));
- if(okay && s->diagnosticInputProof) okay=put(params,"xlang",diagnosticEnvelope(s,group,clear));
+ if(okay && s->diagnosticInputProof) okay=put(params,"xlang",diagnosticEnvelope(s,group,clear,xideDiagnosticPublicationGroupDependency(publication,index)));
  if(okay) okay=clear ? put(params,"diagnostics",xrtValueArray()) : xrtValueObjectSet(params,sv("diagnostics"),get(group,"diagnostics"));
  if(okay) { okay=put(out,"params",params); params=NULL; }
  xrtValueRelease(params); xrtValueRelease(ownedVersion); free(ownedUri);
  if(okay) sendMessage(s,out); else { xrtValueRelease(out); s->writeFailed=1; }
+}
+static void diagnosticDependencyMessage(server* s,const xvalue* params)
+{
+ xvalue* out=xrtValueObject();int okay=out && put(out,"jsonrpc",xrtValueString(sv("2.0"))) &&
+  put(out,"method",xrtValueString(sv("xlang/diagnosticDependencies"))) && xrtValueObjectSet(out,sv("params"),params);
+ if(okay) sendMessage(s,out);else {xrtValueRelease(out);s->writeFailed=1;}
+}
+static void diagnosticDependencyRelease(server* s,const char* id)
+{
+ xvalue* params=xrtValueObject();int okay=params && id && put(params,"schema",xrtValueInt(1)) &&
+  put(params,"id",xrtValueString(sv(id))) && put(params,"removed",xrtValueBool(true));
+ if(okay) diagnosticDependencyMessage(s,params);else s->writeFailed=1;
+ xrtValueRelease(params);
 }
 static void diagnosticDiscardPublication(server* s,int clear)
 {
  if(clear && s->diagnosticPublication) {
   size_t indices[DOC_LIMIT]; diagnosticMap(s,s->diagnosticPublication,indices);
   for(size_t i=0;i<xideDiagnosticPublicationCount(s->diagnosticPublication);++i) diagnosticEmit(s,s->diagnosticPublication,i,indices,1);
+  if(s->diagnosticDependencyProof) for(size_t i=0;i<xideDiagnosticPublicationDependencyCount(s->diagnosticPublication);++i)
+   diagnosticDependencyRelease(s,xideDiagnosticPublicationDependencyId(s->diagnosticPublication,i));
  }
  xideDiagnosticPublicationDestroy(s->diagnosticPublication); s->diagnosticPublication=NULL;
 }
@@ -120,12 +136,27 @@ static int diagnosticPublish(server* s,xide_diagnostic_publication* next)
   int version=0; const xvalue* group=xideDiagnosticPublicationGroup(next,newIndices[i]);
   if(!integer(get(group,"version"),&version) || version!=s->docs[i].version) return 0;
  }
+ if(s->diagnosticDependencyProof) for(size_t i=0;i<xideDiagnosticPublicationDependencyCount(next);++i) {
+  const char* id=xideDiagnosticPublicationDependencyId(next,i);
+  if(xideDiagnosticPublicationFindDependency(s->diagnosticPublication,id)!=SIZE_MAX) continue;
+  const xvalue* chunks=xideDiagnosticPublicationDependencyChunks(next,i);
+  for(size_t j=0;j<xrtValueCount(chunks);++j) diagnosticDependencyMessage(s,xrtValueArrayGet(chunks,j));
+ }
  size_t oldCount=xideDiagnosticPublicationCount(s->diagnosticPublication),newCount=xideDiagnosticPublicationCount(next),a=0,b=0;
  while(a<oldCount || b<newCount) {
   int order=a==oldCount ? 1 : b==newCount ? -1 : xideDiagnosticPublicationCompare(s->diagnosticPublication,a,next,b);
   if(order<0) diagnosticEmit(s,s->diagnosticPublication,a++,oldIndices,1);
   else if(order>0) diagnosticEmit(s,next,b++,newIndices,0);
-  else { if(s->diagnosticBindingsChanged || !xideDiagnosticPublicationEqual(s->diagnosticPublication,a,next,b)) diagnosticEmit(s,next,b,newIndices,0); ++a; ++b; }
+  else {
+   const char *oldDependency=xideDiagnosticPublicationGroupDependency(s->diagnosticPublication,a),*newDependency=xideDiagnosticPublicationGroupDependency(next,b);
+   int changed=s->diagnosticDependencyProof && (!oldDependency || !newDependency || strcmp(oldDependency,newDependency));
+   if(changed || s->diagnosticBindingsChanged || !xideDiagnosticPublicationEqual(s->diagnosticPublication,a,next,b)) diagnosticEmit(s,next,b,newIndices,0);
+   ++a;++b;
+  }
+ }
+ if(s->diagnosticDependencyProof) for(size_t i=0;i<xideDiagnosticPublicationDependencyCount(s->diagnosticPublication);++i) {
+  const char* id=xideDiagnosticPublicationDependencyId(s->diagnosticPublication,i);
+  if(xideDiagnosticPublicationFindDependency(next,id)==SIZE_MAX) diagnosticDependencyRelease(s,id);
  }
  xideDiagnosticPublicationDestroy(s->diagnosticPublication); s->diagnosticPublication=next; s->diagnosticBindingsChanged=0; s->diagnosticNeedsSnapshot=0; return 1;
 }
