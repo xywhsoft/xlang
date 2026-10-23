@@ -604,7 +604,7 @@ static char *xgt_context_key(const char *context, const char *msgid) {
     return key;
 }
 
-static void *xgt_translate(xvalue *catalog, const char *key,
+static const char *xgt_translate_borrowed(xvalue *catalog, const char *key,
     const char *singular, const char *plural, int64_t n, int use_plural) {
     xvalue *value;
     xstrview text;
@@ -635,39 +635,39 @@ static void *xgt_translate(xvalue *catalog, const char *key,
     if (value != NULL && (!use_plural || n == 1 || was_array) &&
         xrtValueType(value) == XVALUE_STRING && xrtValueGetString(value, &text) &&
         text.Size != 0) {
-        return xgt_copy(text.Data, text.Size);
+        return text.Data;
     }
-    if (use_plural && n != 1 && plural) return xgt_copy(plural, strlen(plural));
-    return xgt_copy(singular ? singular : "", singular ? strlen(singular) : 0);
+    if (use_plural && n != 1 && plural) return plural;
+    return singular ? singular : "";
 }
 
-void *xgt_t(xvalue *catalog, const char *msgid) {
-    return xgt_translate(catalog, msgid, msgid, NULL, 1, 0);
+const char *xgt_t_borrowed(xvalue *catalog, const char *msgid) {
+    return xgt_translate_borrowed(catalog, msgid, msgid, NULL, 1, 0);
 }
 
-void *xgt_tn(xvalue *catalog, const char *msgid,
+const char *xgt_tn_borrowed(xvalue *catalog, const char *msgid,
     const char *msgidPlural, int64_t n) {
-    return xgt_translate(catalog, msgid, msgid, msgidPlural, n, 1);
+    return xgt_translate_borrowed(catalog, msgid, msgid, msgidPlural, n, 1);
 }
 
-void *xgt_tc(xvalue *catalog, const char *context, const char *msgid) {
+const char *xgt_tc_borrowed(xvalue *catalog, const char *context, const char *msgid) {
     char *key;
-    void *result;
+    const char *result;
     xrtClearError();
     key = xgt_context_key(context, msgid);
     if (!key) {
         if (context && msgid) return NULL;
-        return xgt_copy(msgid ? msgid : "", msgid ? strlen(msgid) : 0);
+        return msgid ? msgid : "";
     }
-    result = xgt_translate(catalog, key, msgid, NULL, 1, 0);
+    result = xgt_translate_borrowed(catalog, key, msgid, NULL, 1, 0);
     xrtFree(key);
     return result;
 }
 
-void *xgt_tnc(xvalue *catalog, const char *context, const char *msgid,
+const char *xgt_tnc_borrowed(xvalue *catalog, const char *context, const char *msgid,
     const char *msgidPlural, int64_t n) {
     char *key;
-    void *result;
+    const char *result;
     xrtClearError();
     if (n < 0) {
         xgt_error("plural count must not be negative");
@@ -678,10 +678,32 @@ void *xgt_tnc(xvalue *catalog, const char *context, const char *msgid,
         if (context && msgid) return NULL;
         const char *fallback = n == 1 || !msgidPlural ?
             (msgid ? msgid : "") : msgidPlural;
-        return xgt_copy(fallback, strlen(fallback));
+        return fallback;
     }
-    result = xgt_translate(catalog, key, msgid, msgidPlural, n, 1);
+    result = xgt_translate_borrowed(catalog, key, msgid, msgidPlural, n, 1);
     xrtFree(key);
     return result;
+}
+
+void *xgt_t(xvalue *catalog, const char *msgid) {
+    const char *text = xgt_t_borrowed(catalog, msgid);
+    return text ? xgt_copy(text, strlen(text)) : NULL;
+}
+
+void *xgt_tn(xvalue *catalog, const char *msgid,
+    const char *msgidPlural, int64_t n) {
+    const char *text = xgt_tn_borrowed(catalog, msgid, msgidPlural, n);
+    return text ? xgt_copy(text, strlen(text)) : NULL;
+}
+
+void *xgt_tc(xvalue *catalog, const char *context, const char *msgid) {
+    const char *text = xgt_tc_borrowed(catalog, context, msgid);
+    return text ? xgt_copy(text, strlen(text)) : NULL;
+}
+
+void *xgt_tnc(xvalue *catalog, const char *context, const char *msgid,
+    const char *msgidPlural, int64_t n) {
+    const char *text = xgt_tnc_borrowed(catalog, context, msgid, msgidPlural, n);
+    return text ? xgt_copy(text, strlen(text)) : NULL;
 }
 

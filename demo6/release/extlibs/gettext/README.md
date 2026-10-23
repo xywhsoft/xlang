@@ -1,6 +1,7 @@
 # gettext
 
-从 GNU PO 文本或 MO 二进制目录查询译文。目录本身是 XRT object；C 可直接调用 `gettext_native.h` 声明的函数，查询结果由调用方使用 `xrtFree` 释放，解析结果使用 `xrtValueRelease` 释放。
+从 GNU PO 文本或 MO 二进制目录查询译文。目录本身是 XRT object；C 可直接调用 `gettext_native.h` 声明的函数，原有查询结果由调用方使用 `xrtFree` 释放，解析结果使用 `xrtValueRelease` 释放。
+`xgt_*_borrowed` 只在同步调用期间借用目录译文或传入的原文，不得释放返回指针；保留结果时必须保持目录及原文存活或自行复制。XLang 包装使用借用入口，直接形成语言字符串，省去原先 C 侧分配及第一次正文复制；C 的拥有型查询合同不变。
 PO/MO 解析时，译文片段直接从借用的解析视图构造独立 XRT 字符串值，
 不再先复制进临时 C 字符串；目录和输入的所有权合同不变。
 
