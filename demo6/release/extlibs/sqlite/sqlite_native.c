@@ -40,6 +40,12 @@ static const char* xsqlite_text(const char* text)
     return copy != NULL ? copy : "";
 }
 
+/* 语言侧拥有型出口只复制一次，且不要求额外的 XRT 字符串模块。 */
+static char* xsqlite_owned_text(const char* text)
+{
+    return (char*)xrtMemDup(text, strlen(text) + 1u);
+}
+
 static int xsqlite_column(sqlite3_stmt* stmt, int column, int require_row)
 {
     xrtClearError();
@@ -225,7 +231,7 @@ XSQLITE_EXPORT const char* xsqlite3_column_text_native(void* stmt, int column)
 XSQLITE_EXPORT char* xsqlite3_column_text_owned_native(void* stmt, int column)
 {
     const char* text = xsqlite_column_text_view(stmt, column);
-    return xrtGetError() == NULL ? xrtStrDup(text) : NULL;
+    return xrtGetError() == NULL ? xsqlite_owned_text(text) : NULL;
 }
 
 static void* xsqlite_column_buffer(void* stmt, int column, int text)
@@ -266,7 +272,7 @@ XSQLITE_EXPORT const char* xsqlite3_column_name_native(void* stmt, int column)
 XSQLITE_EXPORT char* xsqlite3_column_name_owned_native(void* stmt, int column)
 {
     const char* name = xsqlite_column_name_view(stmt, column);
-    return xrtGetError() == NULL ? xrtStrDup(name) : NULL;
+    return xrtGetError() == NULL ? xsqlite_owned_text(name) : NULL;
 }
 
 /* 元数据和资源管理：返回码入口不隐式抛出 SQL 执行错误；调用方保留完整状态码。 */
@@ -285,7 +291,7 @@ XSQLITE_EXPORT const char* xsqlite3_errmsg_native(void* db)
 
 XSQLITE_EXPORT char* xsqlite3_errmsg_owned_native(void* db)
 {
-    return xrtStrDup(db != NULL ? sqlite3_errmsg(db) : "null sqlite3 handle");
+    return xsqlite_owned_text(db != NULL ? sqlite3_errmsg(db) : "null sqlite3 handle");
 }
 
 XSQLITE_EXPORT const char* xsqlite3_stmt_errmsg_native(void* stmt)
@@ -295,7 +301,7 @@ XSQLITE_EXPORT const char* xsqlite3_stmt_errmsg_native(void* stmt)
 
 XSQLITE_EXPORT char* xsqlite3_stmt_errmsg_owned_native(void* stmt)
 {
-    return xrtStrDup(stmt != NULL ? sqlite3_errmsg(sqlite3_db_handle(stmt)) :
+    return xsqlite_owned_text(stmt != NULL ? sqlite3_errmsg(sqlite3_db_handle(stmt)) :
         "null sqlite3_stmt handle");
 }
 
@@ -322,7 +328,9 @@ XSQLITE_EXPORT const char* xsqlite3_last_insert_rowid_text_native(void* db)
 XSQLITE_EXPORT char* xsqlite3_last_insert_rowid_text_owned_native(void* db)
 {
     if (db == NULL) { xsqlite_error(NULL, SQLITE_MISUSE); return NULL; }
-    return xrtFormat("%lld", (long long)sqlite3_last_insert_rowid(db));
+    char text[32];
+    snprintf(text, sizeof(text), "%lld", (long long)sqlite3_last_insert_rowid(db));
+    return xsqlite_owned_text(text);
 }
 XSQLITE_EXPORT int xsqlite3_busy_timeout_native(void* db, int milliseconds)
 {
