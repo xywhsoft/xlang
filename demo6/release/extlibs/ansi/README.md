@@ -56,3 +56,9 @@ Windows 包级门禁在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy B
 覆盖先前只在 API 表中列出的样式、颜色、光标及屏幕控制入口。
 Windows `test/check.ps1 -SkipAot` 与 Linux `test/check.sh` 的 C ASan/UBSan、
 XLang 和双语同输出门禁通过；完整 AOT 的共享缺符号阻断未解除。
+
+2026-10-24：重新运行 Windows `test/check.ps1 -SkipAot` 和 Linux
+`test/check.sh`，严格 C、线程、包内边界、C 单文件、XLang 范例及双语
+输出均通过，Linux 同时通过 ASan/UBSan。Windows 默认门禁继续在
+公开范例 AOT 链接 `xl6ValueDataSnapshotV1` 时非零退出；因此这次只
+签收 C/JIT 与 Linux sanitizer 路径，不将整包标为发布级通过。
