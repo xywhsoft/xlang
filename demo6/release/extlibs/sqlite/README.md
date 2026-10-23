@@ -82,6 +82,9 @@ Statement：
 自行复制。返回的 Buffer 由 C 调用方 `xrtBufferDestroy`，xlang 则由 Buffer 对象释放。
 `*_owned_native` 文本入口返回一份 `xrtFree` 负责释放的独立副本；xlang 直接接管
 这份内存，列值和诊断不再经过临时区与第二次字符串复制。原有 C 入口保持借用合同。
+语言 `point` 物理 ABI 另使用 `*_point_native` 入口，仅把同一拥有型指针按
+`void*` 返回；C 调用方仍可使用返回 `char*` 的 `*_owned_native`，两者均须
+由接收方最终调用 `xrtFree`，不能同时接管同一结果。
 
 底层状态码入口不把 SQLite 业务失败变成 XRT 异常；没有状态码的创建、prepare、
 读列入口使用 XRT 错误对象。裸 C 句柄不检测悬空指针，释放后复用属于 C 调用方错误。
@@ -141,6 +144,14 @@ Linux C ASan/UBSan、149 个分配故障点及四线程隔离门禁通过，
 2026-10-24：列文本、列名、连接/语句诊断和行号文本的 xlang 返回路径改为
 一次复制后直接接管；C 测试验证副本在 `step/finalize/close` 后仍有效、含 NUL
 列继续拒绝。当前发布版的 xlang 运行门禁仍在既有 XLIR ABI 检查处停止。
+
+同日以当前源码驱动构建公开范例 AOT 时，发现生成的 `point` 返回原型
+为 `void*`，而原 C 头声明的五个拥有型文本入口返回 `char*`，TCC 将其判为
+重定义冲突。现新增五个无复制的 `void*` ABI 入口，保留原 C `char*` API；
+C 测试逐一检查结果内容及独立释放。当前源码驱动下，中央语言用例的 JIT、
+AOT 和公开范例 AOT 均运行通过，配对范例输出匹配黄金文件；Windows
+严格 C 边界/分配/线程测试与 Linux C ASan/UBSan 通过。正式 `xl.exe`
+仍在旧 XLIR runtime operation ABI 处停止，因此正式包级门禁尚未签收。
 
 语义依据：[列结果](https://www.sqlite.org/c3ref/column_blob.html)、
 [关闭连接](https://www.sqlite.org/c3ref/close.html)、
