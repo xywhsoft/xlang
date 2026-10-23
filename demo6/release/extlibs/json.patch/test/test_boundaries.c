@@ -352,12 +352,33 @@ int main(void) {
     xrtClearError();
     {
         xvalue* key = xrtValueString((xstrview){"a\0b", 3});
-        xvalue* encoded_value = xjsonpatch_encode_pointer_value(key);
-        xstrview text;
-        CHECK(key && encoded_value &&
-            xrtValueGetString(encoded_value, &text) && text.Size == 4u &&
-            memcmp(text.Data, "/a\0b", 4u) == 0);
-        xrtValueRelease(encoded_value);
+        xmemdebugsnapshot before, after;
+        int failures = 0, successes = 0;
+        CHECK(key != NULL);
+        xrtMemDebugSnapshot(&before);
+        for (int i = 0; i < 64 && successes < 2; ++i) {
+            xvalue* encoded_value;
+            xstrview text;
+            bool injected;
+            CHECK(xrtMemDebugFailAfter(i));
+            encoded_value = xjsonpatch_encode_pointer_value(key);
+            injected = xrtMemDebugFailTriggered();
+            xrtMemDebugFailClear();
+            if (injected) {
+                CHECK(xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_MEMORY &&
+                    encoded_value && xrtValueType(encoded_value) == XVALUE_NULL);
+                ++failures;
+            } else {
+                CHECK(encoded_value && xrtValueGetString(encoded_value, &text) &&
+                    text.Size == 4u && memcmp(text.Data, "/a\0b", 4u) == 0);
+                ++successes;
+            }
+            xrtValueRelease(encoded_value);
+            xrtClearError();
+            xrtMemDebugSnapshot(&after);
+            CHECK(before.LiveCount == after.LiveCount && before.LiveBytes == after.LiveBytes);
+        }
+        CHECK(failures > 0 && successes == 2);
         xrtValueRelease(key);
     }
     CHECK(xjsonpatch_encode_pointer_len("\xff", 1u) == NULL &&
