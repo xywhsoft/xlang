@@ -7,44 +7,6 @@
 #define XRT_MODULE_VALUE_CONTAINER
 #include "xrt.h"
 
-#if defined(_MSC_VER)
-#define XDNS_THREAD __declspec(thread)
-#elif defined(__GNUC__)
-#define XDNS_THREAD __thread
-#else
-#define XDNS_THREAD
-#endif
-
-#define XDNS_RESULT_SLOTS 8u
-
-static XDNS_THREAD xbuffer g_xdns_results[XDNS_RESULT_SLOTS];
-static XDNS_THREAD size_t g_xdns_result_index;
-
-static const char* xdns_result_text(xbuffer* pBuffer)
-{
-    xbuffer* pResult;
-    size_t iSlot;
-
-    if (pBuffer == NULL) {
-        xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.dns", 0,
-            "DNS result buffer is missing");
-        return "";
-    }
-    if (!xrtBufferAppendByte(pBuffer, 0u)) {
-        xrtBufferUnit(pBuffer);
-        xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.dns", 0,
-            "could not allocate DNS result text");
-        return "";
-    }
-    iSlot = g_xdns_result_index++ % XDNS_RESULT_SLOTS;
-    pResult = &g_xdns_results[iSlot];
-    xrtBufferUnit(pResult);
-    *pResult = *pBuffer;
-    memset(pBuffer, 0, sizeof(*pBuffer));
-    xrtClearError();
-    return (const char*)pResult->Data;
-}
-
 /* DNS record type name */
 const char* xdns_type_name(long long type) {
     switch (type) {
@@ -172,8 +134,8 @@ long long xdns_valid_name(const char* sName)
     return sName[iLength - 1u] != '-' ? 1 : 0;
 }
 
-/* 把完整域名写为 DNS wire name，再由 XRT 统一编码为小写十六进制。 */
-const char* xdns_encode_name(const char* sDomain)
+/* 返回 XRT 拥有的文本，调用方使用 xrtFree 释放。 */
+char* xdns_encode_name(const char* sDomain)
 {
     xbuffer tWire;
     const char* sLabel;
@@ -183,10 +145,10 @@ const char* xdns_encode_name(const char* sDomain)
     if (!xdns_valid_name(sDomain)) {
         xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.dns", 0,
             "invalid DNS domain name");
-        return "";
+        return NULL;
     }
     if (!xrtBufferInit(&tWire)) {
-        return "";
+        return NULL;
     }
     iLength = strlen(sDomain);
     if (iLength != 0u && sDomain[iLength - 1u] == '.') { --iLength; }
@@ -200,7 +162,7 @@ const char* xdns_encode_name(const char* sDomain)
             xrtBufferUnit(&tWire);
             xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.dns", 0,
                 "could not encode DNS domain name");
-            return "";
+            return NULL;
         }
         if (sDot == NULL || (size_t)(sDot - sDomain) >= iLength) { break; }
         sLabel = sDot + 1;
@@ -209,21 +171,18 @@ const char* xdns_encode_name(const char* sDomain)
         xrtBufferUnit(&tWire);
         xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.dns", 0,
             "could not encode DNS domain name");
-        return "";
+        return NULL;
     }
     sHex = xrtHexEncodeNew(tWire.Data, tWire.Size, 0u);
     xrtBufferUnit(&tWire);
-    if (sHex == NULL) { return ""; }
-    if (!xrtBufferInit(&tWire) ||
-        !xrtBufferAppend(&tWire, (xbytesview){ (cbytes)sHex, strlen(sHex) })) {
-        xrtFree(sHex);
-        xrtBufferUnit(&tWire);
-        xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.dns", 0,
-            "could not store DNS encoded name");
-        return "";
-    }
-    xrtFree(sHex);
-    return xdns_result_text(&tWire);
+    if (sHex != NULL) { xrtClearError(); }
+    return sHex;
+}
+
+/* XLang point ABI 使用 void*；C 调用方继续获得 char*。 */
+void* xdns_encode_name_xl(const char* sDomain)
+{
+    return xdns_encode_name(sDomain);
 }
 
 long long xdns_is_ipv4(const char* sAddress)

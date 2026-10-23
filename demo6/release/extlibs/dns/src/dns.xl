@@ -2,7 +2,7 @@ extern "xdns_type_name" func __type_name(int type) as string
 extern "xdns_class_name" func __class_name(int cls) as string
 extern "xdns_rcode_name" func __rcode_name(int rcode) as string
 extern "xdns_opcode_name" func __opcode_name(int opcode) as string
-extern "xdns_encode_name" func __encode_name(string domain) as string
+extern "xdns_encode_name_xl" func __encode_name(string domain) as point
 extern "xdns_valid_name" func __valid_name(string name) as int
 extern "xdns_is_ipv4" func __is_ipv4(string addr) as int
 extern "xdns_resolve" func __resolve(string host, int family) as var
@@ -24,7 +24,11 @@ export func opcodeName(int opcode) as string
 end
 
 export func encodeName(string domain) as string
-    return __encode_name(domain)
+    point result = __encode_name(domain)
+    if result == null then
+        return ""
+    end
+    return __xl_runtime.takeCstr(result)
 end
 
 export func validName(string name) as int

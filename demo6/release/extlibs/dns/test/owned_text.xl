@@ -1,0 +1,15 @@
+import dns
+
+string first = dns.encodeName("example.com")
+string second = dns.encodeName("a.io")
+assert first == "076578616d706c6503636f6d00"
+assert second == "016102696f00"
+assert first == "076578616d706c6503636f6d00"
+bool rejected = false
+try
+    dns.encodeName("bad..name")
+catch e
+    rejected = true
+end
+assert rejected
+assert dns.encodeName("b.net") == "0162036e657400"
