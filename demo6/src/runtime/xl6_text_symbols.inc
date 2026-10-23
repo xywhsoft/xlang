@@ -1449,3 +1449,7 @@ XL6_TEXT_EXPORT(xl6_xrt_fs_map_destroy, FS_MAP_OWNER)
 XL6_TEXT_EXPORT(xl6_xrt_fs_lock_destroy, FS_LOCK_OWNER)
 XL6_TEXT_EXPORT(xl6_xrt_fs_root_destroy, FS_ROOT_OWNER)
 XL6_TEXT_EXPORT(xl6_xrt_io_writer_write_buffer, IO_WRITER_DATA)
+
+XL6_TEXT_EXPORT(xl6COwnedCopyCapturedV1, C_OWNED_CAPTURE)
+XL6_TEXT_EXPORT(xl6COwnedDropCapturedV1, C_OWNED_CAPTURE)
+XL6_TEXT_EXPORT(xl6COwnedCaptureProfileV1Get, C_OWNED_CAPTURE)

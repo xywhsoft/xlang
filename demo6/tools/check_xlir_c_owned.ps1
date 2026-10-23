@@ -37,6 +37,18 @@ $compiler = Join-Path $outputPath 'contract.exe'
 if ($LASTEXITCODE) { throw 'C owner compiler driver link failed' }
 Write-Output "C owner compiler: $compiler"
 if ($BuildOnly) { exit 0 }
+# C-owning captures use current resident cleanup interfaces. Link generated
+# programs to the same source runtime that is used by JIT/AOT acceptance.
+if (!$PublicDriver) {
+    $sourceDirectory=Join-Path $outputPath 'public-source'
+    & "$PSScriptRoot/build_xlir_public_source_driver.ps1" -Directory $sourceDirectory
+    if (!$?) { throw 'Current source runtime build failed' }
+    $PublicDriver=Join-Path $sourceDirectory 'public_source.exe'
+}
+$sourceManifest=Get-Content -LiteralPath (Join-Path (Split-Path $PublicDriver) 'build.json') -Raw | ConvertFrom-Json
+$sourceRuntimeObjects=@($sourceManifest.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o' } | ForEach-Object Path)
+if (!$sourceManifest.SourceXrt -or !$sourceRuntimeObjects.Count) { throw 'Generated C requires a current source runtime manifest' }
+
 & $context.Compiler @flags test/cases/xlir_c_owned_runtime.c release/xl.dll -o "$outputPath/runtime.exe"
 if ($LASTEXITCODE) { throw 'C owner runtime test build failed' }
 & "$outputPath/runtime.exe"
@@ -49,7 +61,7 @@ $generatedSources=@(
     'test/cases/xlir_c_owned_basic.xl','test/cases/xlir_c_owned_lifetime.xl',
     'test/cases/xlir_c_owned_reads.xl','test/cases/xlir_c_owned_capture.xl',
     'test/cases/xlir_c_owned_views.xl','test/cases/xlir_c_owned_flow.xl',
-    'test/cases/xlir_c_owned_calls.xl',
+    'test/cases/xlir_c_owned_calls.xl','test/cases/xlir_c_owned_frames.xl',
     'test/cases/xlir_c_owned_writes.xl','test/cases/xlir_c_owned_print.xl',
     'test/cases/xlir_c_owned_traverse.xl','test/cases/xlir_c_owned_sequence.xl',
     'test/cases/xlir_c_owned_borrows.xl','test/cases/xlir_c_owned_failure.xl')
@@ -58,7 +70,11 @@ foreach ($source in $generatedSources) {
     $generated = Join-Path $outputPath "$name.c"
     & $compiler $source $generated
     if ($LASTEXITCODE) { throw "C owner $name compilation failed" }
-    & $context.Compiler @flags "-I$outputPath/include" $generated test/cases/xlir_c_owned_native.c src/runtime/xl6_code_lease.c release/xl.dll '-Wl,--gc-sections' -o "$outputPath/$name.exe"
+    $linkArgs=@($flags)+@("-I$outputPath/include",$generated,'test/cases/xlir_c_owned_native.c')+
+        $sourceRuntimeObjects+@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-Wl,--gc-sections','-o',"$outputPath/$name.exe")
+    $response=Join-Path $outputPath "$name.rsp"
+    [IO.File]::WriteAllText($response,(@($linkArgs | ForEach-Object { '"'+$_.Replace('\','/').Replace('"','\"')+'"' }) -join "`n"),[Text.UTF8Encoding]::new($false))
+    & $context.Compiler ('@'+$response)
     if ($LASTEXITCODE) { throw "C owner $name generated C build failed" }
     & "$outputPath/$name.exe"
     if ($LASTEXITCODE) { throw "C owner $name execution failed" }
@@ -87,7 +103,6 @@ $negative = @(
     @{Name='field';Body="class Box`n cstring value`nend";Message='C markers are limited'},
     @{Name='nullable';Body="func probe()`n cstring? value`nend";Message='C markers are limited'},
     @{Name='alias';Body="typedef Alias = cstring";Message='C markers are limited'},
-    @{Name='coroutine';Body="async func probe()`n cstring value = cstring.take(make(), drop)`nend";Message='coroutine frames'},
     @{Name='binary-text';Body="func probe()`n cbytes value = cbytes.take(make(), 1, drop)`n string wrong = string(value)`nend";Message='matching base type'}
 )
 foreach ($case in $negative) {

@@ -572,7 +572,7 @@ static int xl6IrCgenEmitGeneratorInstruction(
                     snprintf(input,sizeof(input),"v%u",(unsigned int)frame->value);
                     snprintf(initialized,sizeof(initialized),"frame->i%lu",(unsigned long)frame->initBit);
                     if (!xl6IrCgenEmitFrameAcquisitionBegin(out,type,frame->transferAbi,input,&acquired,
-                            xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type)))) return 0;
+                            xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,frame->type)))) return 0;
                     if(acquired){
                         if(!xl6IrCgenEmitFrameAcquisitionFailureBegin(out,frame->transferAbi,input))return 0;
                         xl6OutputPrintf(out,"    goto xlir_prepare_done_%lu; }\n",(unsigned long)suspension->prepareInstruction);
@@ -636,7 +636,7 @@ static int xl6IrCgenEmitGeneratorMachine(
     for(local=0;local<machine->frameSlotCount;++local){
         const XL6_IrContinuationFrameSlot* frame=&module->generatorFrameSlots[machine->firstFrameSlot+local];
         if(frame->destroyAbi==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE){
-            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type));
+            const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,frame->type));
             if(!native || !native->captureHeader || !native->captureProfileSymbol)return 0;
             xl6OutputPrintf(out,"#include <%s>\n",native->captureHeader);
         }
@@ -715,7 +715,7 @@ static int xl6IrCgenEmitGeneratorMachine(
             storage->cellType != XL6_IR_TYPE_INVALID ? storage->cellType : storage->type);
         if ( type == NULL || cType == NULL ) return xl6IrCgenDiag(diags, module,
             storage->declaration, "XLIR generator local storage has no C ABI");
-        if (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING || type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE)
+        if (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING || type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE || xl6IrTypeIsCOwned(type))
             xl6OutputPrintf(out, "    %s s%u = {0};\n",
                 cType, (unsigned int)storage->symbol);
         else

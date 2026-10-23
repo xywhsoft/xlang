@@ -13851,11 +13851,6 @@ static int xl6IrLowerClosureCaptureAdd(
     XL6_IrNodeId origin, XL6_SymbolId sourceSymbol, XL6_IrTypeId type, int mutable)
 {
     const XL6_IrType* captureType = xl6IrTypeGet(&ctx->module->types, type);
-    if(xl6IrTypeIsCOwned(captureType)) {
-        type=xl6IrLowerFindTypeByCAbi(ctx->module,captureType->cAbi==XL6_IR_C_ABI_C_STRING ?
-            XL6_IR_C_ABI_MANAGED_STRING : XL6_IR_C_ABI_MANAGED_BYTES);
-        captureType=xl6IrTypeGet(&ctx->module->types,type);
-    }
     XL6_IrClosureCapture* capture;
     size_t i;
     for ( i = closure->firstCapture; i < closure->firstCapture + closure->captureCount; ++i )
@@ -13870,7 +13865,7 @@ static int xl6IrLowerClosureCaptureAdd(
              captureType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
           captureType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ||
           captureType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ||
-          xl6IrNativeValuePlanForType(captureType)!=NULL) )
+          xl6IrOwnedTransferPlanForType(captureType)!=NULL) )
         return xl6IrLowerDiag(ctx, origin,
                                "XLIR closure capture requires an implemented frame ownership ABI");
     if ( mutable && !((captureType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
@@ -13884,7 +13879,7 @@ static int xl6IrLowerClosureCaptureAdd(
                       captureType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
                       captureType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
                       captureType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
-                      xl6IrNativeValuePlanForType(captureType)!=NULL) )
+                      xl6IrOwnedTransferPlanForType(captureType)!=NULL) )
         return xl6IrLowerDiag(ctx, origin,
                               "XLIR mutable closure capture requires a supported cell element ABI");
     if ( !xl6IrLowerGrow((void**)&ctx->module->closureCaptures,
@@ -13901,7 +13896,7 @@ static int xl6IrLowerClosureCaptureAdd(
     capture->type = type;
     capture->cellType = mutable ? xl6IrTypeInternCell(ctx->module, type) : XL6_IR_TYPE_INVALID;
     capture->abi = mutable ? XL6_IR_CLOSURE_CAPTURE_RETAIN_CELL
-        : xl6IrNativeValuePlanForType(captureType) ? XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE
+        : xl6IrOwnedTransferPlanForType(captureType) ? XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE
         : captureType->cAbi == XL6_IR_C_ABI_MANAGED_STRING
         ? (captureType->kind == XL6_IR_TYPE_NULLABLE
             ? XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING : XL6_IR_CLOSURE_CAPTURE_COPY_STRING)
@@ -29888,7 +29883,8 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                                          item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_CELL
                                              ? item->cellType : actualType,
                                          source, NULL, 0, &captures[i]) ) break;
-                    if(xl6IrTypeIsCOwned(xl6IrTypeGet(&ctx->module->types,actualType))) {
+                    if(xl6IrTypeIsCOwned(xl6IrTypeGet(&ctx->module->types,actualType)) &&
+                        !xl6IrTypeIsCOwned(xl6IrTypeGet(&ctx->module->types,item->type))) {
                         captures[i]=xl6IrLowerCOwnedCopy(ctx,id,item->type,captures[i]);
                         captures[i]=xl6IrLowerProtectOwnedBorrow(ctx,id,captures[i]);
                         if(!captures[i])break;

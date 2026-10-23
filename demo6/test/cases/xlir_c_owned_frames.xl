@@ -1,0 +1,65 @@
+import concurrent
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+extern "c_owned_released" @no_raise func released() as int
+func captured() as func() as bool
+    cstring text = cstring.take(nativeText(), nativeFree)
+    cbytes data = cbytes.take(nativeBytes(), 4, nativeFree)
+    return func() as bool => original(text) and originalBytes(data)
+end
+async func checkCaptured()
+    auto callback = captured()
+    assert released() == 0 and callback()
+    assert await task.spawn(callback)
+end
+await checkCaptured()
+assert released() == 2
+func checkMutable()
+    cbytes data = cbytes.take(nativeBytes(), 4, nativeFree)
+    auto old = data
+    auto change = func() as int
+        data[0] = uint8(7)
+        return data.length
+    end
+    assert change() == 4
+    assert data[0] == 7 and old[0] == 0
+end
+checkMutable()
+assert released() == 3
+async func suspended(future<int> gate, Promise<int> entered) as int
+    cstring text = cstring.take(nativeText(), nativeFree)
+    cbytes data = cbytes.take(nativeBytes(), 4, nativeFree)
+    assert entered.tryResolve(1)
+    int value = await gate
+    assert original(text) and originalBytes(data)
+    return text.length + data.length + value
+end
+async func checkSuspended()
+    auto gate = Promise::<int>()
+    auto entered = Promise::<int>()
+    auto work = suspended(gate.future,entered)
+    assert await entered.future == 1
+    assert released() == 3 and not work.isDone()
+    assert gate.tryResolve(1)
+    assert await work == 10
+    assert released() == 5
+end
+await checkSuspended()
+func stream() as generator<int>
+    cbytes data = cbytes.take(nativeBytes(), 4, nativeFree)
+    yield int(data[0])
+    yield int(data[1])
+end
+func checkStream()
+    int index = 0
+    for value in stream()
+        assert value == (index == 0 ? 0 : 255)
+        index += 1
+    end
+    assert index == 2
+end
+checkStream()
+assert released() == 6

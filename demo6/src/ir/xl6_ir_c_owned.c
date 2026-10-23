@@ -17,6 +17,17 @@ int xl6IrTypeIsCOwned(const XL6_IrType* type)
         ((type->cAbi==XL6_IR_C_ABI_C_STRING && type->abiId==xl6TypeAbiIdText("xlang.cstring.v1")) ||
          (type->cAbi==XL6_IR_C_ABI_C_BYTES && type->abiId==xl6TypeAbiIdText("xlang.cbytes.v1")));
 }
+/* Reuse the existing native-leaf capture machinery without admitting C
+ * carriers to native boxing, containers or the XRT language type registry. */
+const XL6_IrNativeValuePlan* xl6IrOwnedTransferPlanForType(const XL6_IrType* type)
+{
+    static const XL6_IrNativeValuePlan plan={
+        .abiName="xlang.compiler.c-owner.v1",.cName="XL6_COwnedV1",
+        .header="__xl_runtime/xl6_c_owned.h",.copySymbol="xl6COwnedCopyCapturedV1",
+        .dropSymbol="xl6COwnedDropCapturedV1",.releaseEffect=XL6_IR_RELEASE_EFFECT_NO_RAISE,
+        .captureHeader="__xl_runtime/xl6_c_owned_capture.h",.captureProfileSymbol="xl6COwnedCaptureProfileV1Get"};
+    return xl6IrTypeIsCOwned(type) ? &plan : xl6IrNativeValuePlanForType(type);
+}
 int xl6IrCOwnedRuntimeOpIs(XL6_IrRuntimeOp op)
 {
     return op>=XL6_IR_RUNTIME_CSTRING_TAKE && op<=XL6_IR_RUNTIME_C_BORROW_VIEW;

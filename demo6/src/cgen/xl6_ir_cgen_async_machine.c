@@ -187,7 +187,7 @@ static int xl6IrCgenEmitAsyncMachine(
     for(local=0;local<machine->frameSlotCount;++local){
         const XL6_IrContinuationFrameSlot* frame=&module->asyncMachineFrameSlots[machine->firstFrameSlot+local];
         if(frame->destroyAbi==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE){
-            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type));
+            const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,frame->type));
             if(!native || !native->captureHeader || !native->captureProfileSymbol)goto done;
             xl6OutputPrintf(out,"#include <%s>\n",native->captureHeader);
         }

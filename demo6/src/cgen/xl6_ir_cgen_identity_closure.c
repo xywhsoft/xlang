@@ -548,7 +548,7 @@ static int xl6IrCgenEmitCellInstruction(
     switch (instruction->kind) {
     case XL6_IR_INSTR_CELL_NEW:
         {
-            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(element);
+            const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(element);
             if(native){
                 if(!native->captureProfileSymbol)return 0;
                 xl6OutputPrintf(out,"    v%u = xl6CellCreateNativeV2(%s());\n",
@@ -658,7 +658,7 @@ static int xl6IrCgenEmitClosureMakeInstruction(
             &module->closureCaptures[target->firstCapture + capture];
         XL6_IrValueId value = module->operands[instruction->firstOperand + capture];
         if(item->abi==XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE){
-            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,item->type));
+            const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,item->type));
             if(!native)return 0;
             needsCopies=1;
             xl6OutputPrintf(out,"        bool native_capture_ok_%lu_%lu = %s(v%u, &e%lu->c%lu);\n",

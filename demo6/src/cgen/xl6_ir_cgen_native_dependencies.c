@@ -253,6 +253,7 @@ int xl6IrCgenVisitNativeModules(const XL6_IrModule* module, XL6_DiagList* diags,
             (uint64_t)needs.Field,visitor,context)) return 0;
 #include "src/cgen/xl6_ir_cgen_needs.inc"
 #undef XL6_IR_CGEN_NEED
+    if(needs.needsCOwnedRuntime && !visitor(context,"XRT_MODULE_ATOMIC"))return 0;
     if ((needs.needsPersistenceRestoreFormats & XL6_IR_PERSIST_FORMAT_JSON) &&
         !visitor(context,"XRT_MODULE_JSON_READ")) return 0;
     if ((needs.needsPersistenceRestoreFormats & XL6_IR_PERSIST_FORMAT_XLON) &&
@@ -453,7 +454,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         for(size_t c=0;c<target->captureCount;++c){
             const XL6_IrClosureCapture* capture=&module->closureCaptures[target->firstCapture+c];
             if(capture->abi!=XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE)continue;
-            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,capture->type));
+            const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,capture->type));
             if(!native || !visitor(context,native->captureProfileSymbol) || !visitor(context,native->copySymbol))return 0;
         }
     }
@@ -463,7 +464,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         for(size_t c=0;c<boundary->captureCount;++c) {
             const XL6_IrCallbackCapture* capture=&module->callbackCaptures[boundary->firstCapture+c];
             if(capture->destroyAbi!=XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE)continue;
-            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,capture->type));
+            const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,capture->type));
             if(!native || !visitor(context,native->captureProfileSymbol) || !visitor(context,native->copySymbol))return 0;
         }
     }
@@ -473,7 +474,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             target->kind!=XL6_IR_CALL_TARGET_INTERNAL_ASYNC || !target->asyncCaptureDestroyAbis)continue;
         for(size_t p=0;p<target->parameterCount;++p) {
             if(target->asyncCaptureDestroyAbis[p]!=XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE)continue;
-            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,target->parameterTypes[p]));
+            const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,target->parameterTypes[p]));
             if(!native || !visitor(context,native->captureProfileSymbol) || !visitor(context,native->copySymbol))return 0;
         }
     }
@@ -481,7 +482,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         const XL6_IrCallTarget* target=&module->callTargets[t];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE ||
             target->asyncResultAbi!=XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)continue;
-        const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,target->workerReturnType));
+        const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,target->workerReturnType));
         if(!native || !visitor(context,native->captureProfileSymbol) || !visitor(context,native->dropSymbol))return 0;
     }
     for(size_t i=0;i<module->instructionCount;++i) {
@@ -492,7 +493,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                 (instruction->kind==XL6_IR_INSTR_AWAIT ? instruction->type : instruction->payloadType) : 0,
             instruction->sourceAsyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE ? instruction->sourcePayloadType : 0};
         for(size_t p=0;p<2;++p)if(payloads[p]) {
-            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,payloads[p]));
+            const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,payloads[p]));
             if(!native || !visitor(context,native->captureProfileSymbol))return 0;
         }
         if(instruction->runtimeOp==XL6_IR_RUNTIME_TASK_SPAWN_CLOSURE &&
@@ -506,7 +507,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         for(size_t f=0;f<machine->frameSlotCount;++f){
             const XL6_IrContinuationFrameSlot* frame=&module->asyncMachineFrameSlots[machine->firstFrameSlot+f];
             if(frame->destroyAbi==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE){
-                const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type));
+                const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,frame->type));
                 if(!native || !native->captureProfileSymbol || !visitor(context,native->captureProfileSymbol))return 0;
                 if(frame->transferAbi==XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE && !visitor(context,native->copySymbol))return 0;
             }
@@ -517,14 +518,14 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         const XL6_IrCallTarget* target=xl6IrCallTargetGet(module,machine->targetSymbol);
         if(!target || target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
         if(machine->yieldAbi==XL6_IR_GENERATOR_YIELD_MOVE_NATIVE_VALUE){
-            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,machine->itemType));
+            const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,machine->itemType));
             if(!native || !native->captureProfileSymbol || !visitor(context,native->captureProfileSymbol) ||
                 !visitor(context,native->dropSymbol))return 0;
         }
         for(size_t f=0;f<machine->frameSlotCount;++f){
             const XL6_IrContinuationFrameSlot* frame=&module->generatorFrameSlots[machine->firstFrameSlot+f];
             if(frame->destroyAbi==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE){
-                const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type));
+                const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,frame->type));
                 if(!native || !native->captureProfileSymbol || !visitor(context,native->captureProfileSymbol))return 0;
                 if(frame->transferAbi==XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE && !visitor(context,native->copySymbol))return 0;
             }
@@ -639,7 +640,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         }
         if(instruction->kind==XL6_IR_INSTR_CELL_NEW && xl6IrCgenInstructionIsReachable(module,i)){
             const XL6_IrStorage* storage=xl6IrStorageGet(module,instruction->targetSymbol);
-            const XL6_IrNativeValuePlan* native=storage ? xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,storage->type)) : NULL;
+            const XL6_IrNativeValuePlan* native=storage ? xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,storage->type)) : NULL;
             if(native && (!native->captureProfileSymbol || !visitor(context,"xl6CellCreateNativeV2") ||
                 !visitor(context,native->captureProfileSymbol)))return 0;
         }

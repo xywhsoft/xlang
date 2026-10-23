@@ -710,6 +710,7 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_slot_map_iterator_count.c"
   "$ROOT/src/runtime/xl6_capture_v2.c"
   "$ROOT/src/runtime/xl6_slot_map_key_capture.c"
+  "$ROOT/src/runtime/xl6_c_owned_capture.c"
   "$ROOT/src/runtime/xl6_native_future_payload.c"
   "$ROOT/src/runtime/xl6_nullable_slot_map_key.c"
   "$ROOT/src/runtime/xl6_nullable_slot_map_key_capture.c"

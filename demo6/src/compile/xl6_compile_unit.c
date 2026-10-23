@@ -494,6 +494,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_slot_map_iterator_count.c",D(R(SLOT_MAP_ITERATOR_CORE),R(SLOT_MAP_NATIVE)),{NULL}},
     {"src/runtime/xl6_capture_v2.c",D(R(CAPTURE),R(FOREIGN_ERROR)),{"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_slot_map_key_capture.c",D(R(CAPTURE_V2),R(SLOT_MAP_KEY_NATIVE)),{NULL}},
+    {"src/runtime/xl6_c_owned_capture.c",D(R(CAPTURE_V2)),{"XRT_MODULE_ATOMIC","XRT_MODULE_STRING","XRT_MODULE_VALUE_CONTAINER","XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_native_future_payload.c",D(R(CAPTURE_V2),R(FOREIGN_ERROR)),
         {"XRT_MODULE_MEMORY","XRT_MODULE_FUTURE","XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_nullable_slot_map_key.c",D(R(SLOT_MAP_KEY_NATIVE),R(SLOT_MAP_KEY_VALUE),R(FOREIGN_ERROR)),

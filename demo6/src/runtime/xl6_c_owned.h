@@ -11,7 +11,7 @@
  * Reads use Data/Size directly; only acquisition and cleanup inspect Owner. */
 typedef void (*XL6_CReleaseV1)(void*);
 typedef struct XL6_COwnerV1 {
-    size_t References;
+    xatomic64 References;
     void* Allocation;
     XL6_CReleaseV1 Release;
 } XL6_COwnerV1;
@@ -26,7 +26,7 @@ static inline void xl6COwnedDropV1(XL6_COwnedV1* value)
     XL6_COwnedV1 owned=*value;
     *value=(XL6_COwnedV1){0};
     if(owned.Owner) {
-        if(--owned.Owner->References==0) {
+        if(xrtAtomic64FetchSub(&owned.Owner->References,1,XMEMORY_ACQ_REL)==1) {
             void* allocation=owned.Owner->Allocation;
             XL6_CReleaseV1 release=owned.Owner->Release;
             xrtFree(owned.Owner);
@@ -43,14 +43,15 @@ static inline XL6_COwnedV1 xl6COwnedTakeV1(void* data,size_t size,XL6_CReleaseV1
     if(!data)return (XL6_COwnedV1){0};
     XL6_COwnerV1* owner=(XL6_COwnerV1*)xrtMalloc(sizeof(*owner));
     if(!owner) { release(data); return (XL6_COwnedV1){0}; }
-    *owner=(XL6_COwnerV1){1,data,release};
+    owner->Allocation=data;owner->Release=release;
+    xrtAtomic64Init(&owner->References,1);
     return (XL6_COwnedV1){data,size,owner};
 }
 /* One independent owner; shared C storage never copies payload bytes. Ordinary
  * strings stored after a write retain their existing value-copy semantics. */
 static inline XL6_COwnedV1 xl6COwnedCopyV1(XL6_COwnedV1 value)
 {
-    if(value.Owner) { ++value.Owner->References; return value; }
+    if(value.Owner) { xrtAtomic64FetchAdd(&value.Owner->References,1,XMEMORY_RELAXED); return value; }
     if(!value.Data)return value;
     char* copy=xrtStrDupN((const char*)value.Data,value.Size);
     return (XL6_COwnedV1){copy,copy ? value.Size : 0,NULL};
