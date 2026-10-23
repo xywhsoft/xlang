@@ -122,12 +122,17 @@ int xideLanguageClientSend(xide_language_client* c,const xvalue* message,xide_mo
  if(okay) { if(c->sendTail) c->sendTail->next=n; else c->sendHead=n; c->sendTail=n; ++c->sendCount; c->sendBytes+=n->length; } LeaveCriticalSection(&c->lock);
  if(!okay) { clear(n); return fail(e,"语言服务已结束或发送队列达到上限。"); } signalTransport(c);return 1;
 }
-xvalue* xideLanguageClientNext(xide_language_client* c)
+xvalue* xideLanguageClientNextSized(xide_language_client* c,size_t* bytes)
 {
- if(!c) { return NULL; } EnterCriticalSection(&c->lock); node* n=c->receiveHead; xvalue* value=NULL;
- if(n) { c->receiveHead=n->next; if(!c->receiveHead) c->receiveTail=NULL; --c->receiveCount; c->receiveBytes-=n->length; value=n->value; n->value=NULL; n->next=NULL; clear(n); }
- LeaveCriticalSection(&c->lock); return value;
+ if(bytes) *bytes=0;
+ if(!c) return NULL;
+ EnterCriticalSection(&c->lock);node* n=c->receiveHead;xvalue* value=NULL;
+ if(n) {c->receiveHead=n->next;if(!c->receiveHead)c->receiveTail=NULL;--c->receiveCount;c->receiveBytes-=n->length;
+  value=n->value;n->value=NULL;n->next=NULL;if(bytes)*bytes=n->length;}
+ LeaveCriticalSection(&c->lock);clear(n);return value;
 }
+xvalue* xideLanguageClientNext(xide_language_client* c)
+{return xideLanguageClientNextSized(c,NULL);}
 int xideLanguageClientHasPending(xide_language_client* c)
 { if(!c) return 0; EnterCriticalSection(&c->lock); int pending=c->receiveHead!=NULL; LeaveCriticalSection(&c->lock); return pending; }
 enum xide_language_client_state xideLanguageClientState(xide_language_client* c,char* message,size_t capacity)
