@@ -39,3 +39,19 @@ func checkCalls()
 end
 checkCalls()
 assert released() == 3
+
+func factory() as func() as cstring
+    return func() as cstring => cstring.take(nativeText(),nativeFree)
+end
+func binaryFactory() as func() as cbytes
+    return func() as cbytes => cbytes.take(nativeBytes(),4,nativeFree)
+end
+func checkResultCallbacks()
+    auto callback = factory()
+    auto binaryCallback = binaryFactory()
+    string text = callback()
+    bytes data = binaryCallback()
+    assert original(text) and originalBytes(data)
+end
+checkResultCallbacks()
+assert released() == 5

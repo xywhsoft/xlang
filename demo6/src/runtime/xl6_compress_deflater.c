@@ -67,3 +67,7 @@ bool xl6DeflaterCloseV1(void* raw)
 bool xl6DeflaterClosedV1(void* raw)
 {XL6_Deflater* self=check(raw,false);return self && !self->stream;}
 XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6DeflaterHandlePolicyV1Get,xl6DeflaterDestroyV1)
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+bool xl6DeflaterWriteBytesSpanV1(void* self,xbytesview data,void* target,int64_t flush,int64_t size)
+{xbytesview input;return xl6BufferSpanInput(data,size,&input) && write(self,input,target,flush);}

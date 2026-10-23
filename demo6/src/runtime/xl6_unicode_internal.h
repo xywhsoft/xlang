@@ -12,6 +12,8 @@ static inline bool xl6UnicodeBytes(const xvalue* value, int64_t size, xstrview* 
     *view = (xstrview){(const char*)bytes.Data, bytes.Size};
     return xl6TextSelectRaw(view, size);
 }
+static inline bool xl6UnicodeSpan(xbytesview input,int64_t size,xstrview* output)
+{ *output=(xstrview){(const char*)input.Data,input.Size};return xl6TextSelectRaw(output,size); }
 static inline int64_t xl6UnicodeInvalid(xstrview text)
 {
     size_t error = XRT_NPOS;

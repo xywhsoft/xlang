@@ -106,3 +106,45 @@ xvalue* xl6EncodingBomBytesV1(int64_t encoding)
     width = xrtEncodingWriteBom((xencoding)encoding, data, sizeof(data));
     return xrtValueBytes((xbytesview){data, width});
 }
+
+/* Synchronous input spans; no preliminary managed bytes allocation. */
+xstrview xl6EncodingDecodeSpanV1(xbytesview value, int64_t encoding, int64_t policy, int64_t bom, int64_t size)
+{
+    xstrview input;
+    size_t output = 0;
+    unsigned char* data;
+    if (!xl6EncodingOptions(encoding, policy) || !xl6UnicodeSpan(value, size, &input) ||
+        !xl6EncodingSource(&input, encoding, bom)) return xl6TextFailure;
+    data = xrtTranscode((xbytesview){(const unsigned char*)input.Data, input.Size},
+        (xencoding)encoding, XENCODING_UTF8, (xutfpolicy)policy, false, &output);
+    return xl6TextOwn((char*)data, output);
+}
+
+xvalue* xl6EncodingTranscodeSpanV1(xbytesview value, int64_t source, int64_t target, int64_t policy, int64_t bom, int64_t size)
+{
+    xstrview input;
+    size_t output = 0;
+    unsigned char* data;
+    if (!xl6EncodingOptions(source, policy) || !xl6EncodingOptions(target, policy)) return NULL;
+    if (bom < 0 || bom > 7) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
+    if (!xl6UnicodeSpan(value, size, &input) || !xl6EncodingSource(&input, source, bom & 3)) return NULL;
+    data = xrtTranscode((xbytesview){(const unsigned char*)input.Data, input.Size},
+        (xencoding)source, (xencoding)target, (xutfpolicy)policy, (bom & 4) != 0, &output);
+    return xl6EncodingTake(data, output);
+}
+
+int64_t xl6EncodingBomSpanV1(xbytesview value, int64_t size)
+{
+    xstrview input;
+    return xl6UnicodeSpan(value, size, &input)
+        ? (int64_t)xrtEncodingBom((xbytesview){(const unsigned char*)input.Data, input.Size}, NULL) : 0;
+}
+
+int64_t xl6EncodingBomSizeSpanV1(xbytesview value, int64_t size)
+{
+    xstrview input;
+    size_t width = 0;
+    if (xl6UnicodeSpan(value, size, &input))
+        (void)xrtEncodingBom((xbytesview){(const unsigned char*)input.Data, input.Size}, &width);
+    return (int64_t)width;
+}

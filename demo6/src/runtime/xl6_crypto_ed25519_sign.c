@@ -37,3 +37,10 @@ xvalue* xl6CryptoEd25519KeySignPrehashV1(void* self,const xvalue* value,const xv
     return xl6CryptoEd25519Material(value,XRT_ED25519_PREHASH_SIZE,&digest)?
         xl6CryptoEd25519KeySignSpanV1(self,digest,XED25519_PREHASH,context):NULL;
 }
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+xvalue* xl6CryptoEd25519KeySignBytesSpanV1(void* self,xbytesview value,int64_t size)
+{
+    xbytesview message;
+    return xl6BufferSpanInput(value,size,&message)?xl6CryptoEd25519KeySignSpanV1(self,message,XED25519_PURE,NULL):NULL;
+}

@@ -3783,10 +3783,12 @@ static int xl6SemExprParamMatchCostEx(
     }
 
     exprType = xl6SemExprStaticTypeName(ctx, (XL6_AstNode*)expr);
-    if (xl6COwnedBaseName(targetType) &&
-        (xl6TextEquals(exprType,targetType) || xl6TextEquals(exprType,xl6COwnedBaseName(targetType))))return 5;
+    if (xl6COwnedBaseName(targetType)) {
+        if(xl6TextEquals(exprType,targetType))return 0;
+        if(xl6TextEquals(exprType,xl6COwnedBaseName(targetType)))return 1;
+    }
     if (xl6COwnedBaseName(exprType) && xl6TextEquals(xl6COwnedBaseName(exprType),targetType))
-        return 5;
+        return 10; /* Prefer span borrows, while retaining ordinary overload precedence over generics. */
     if ( exprType == NULL ) {
         exprType = xl6SemLiteralExprTypeName(expr);
     }

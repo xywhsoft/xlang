@@ -225,13 +225,14 @@ static int xl6IrCgenEmitProductTypes(
  * carriers are exact per-TypeId products and therefore live beside their
  * value type. */
 static int xl6IrCgenEmitStructuralErrorResultTypes(
-    XL6_Output* out, const XL6_IrModule* module, XL6_DiagList* diags)
+    XL6_Output* out, const XL6_IrModule* module, XL6_DiagList* diags,int emitCOwned)
 {
     size_t typeIndex;
     int emitted = 0;
     for ( typeIndex = 0; typeIndex < module->types.count; ++typeIndex ) {
         const XL6_IrType* type = &module->types.items[typeIndex];
         const char* valueType;
+        if(xl6IrTypeIsCOwned(type) && !emitCOwned)continue;
         if ( type->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE &&
              type->cAbi != XL6_IR_C_ABI_PRODUCT &&
              type->cAbi != XL6_IR_C_ABI_UNION && !xl6IrTypeIsCOwned(type)) continue;

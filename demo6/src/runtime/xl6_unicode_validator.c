@@ -69,3 +69,20 @@ bool xl6UnicodeValidatorFinishedV1(void* handle)
 
 /* Resident policy: terminal Drop runs after the phased handle is detached. */
 XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6UnicodeValidatorHandlePolicyV1Get,xl6UnicodeValidatorDestroyV1)
+
+/* Synchronous input spans; no preliminary managed bytes allocation. */
+int64_t xl6UnicodeValidatorFeedSpanV1(void* handle, xbytesview data, bool final, int64_t size)
+{
+    XL6_Utf8Validator* validator = xl6UnicodeValidatorCheck(handle);
+    xstrview text;
+    if (!validator || !xl6UnicodeSpan(data, size, &text)) return XUTF_INVALID;
+    if (validator->finished) { xrtSetErrorKind(XERR_STATE); return XUTF_INVALID; }
+    /* XRT uses size_t. Keep all exposed offsets/total in the language int
+     * domain, and reject overflow before committing the chunk or final bit. */
+    if (text.Size > (uint64_t)INT64_MAX - validator->state.Total) {
+        xrtSetErrorKind(XERR_RANGE); return XUTF_INVALID;
+    }
+    xutfstatus status = xrtUtf8StateFeed(&validator->state, text, final);
+    if (final) validator->finished = true;
+    return (int64_t)status;
+}

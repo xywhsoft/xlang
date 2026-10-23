@@ -11,3 +11,7 @@ xvalue* xl6DeflateTextV1(xstrview text,int64_t size,int64_t format,int64_t level
 {return xl6TextSelectRaw(&text,size)?encode((xbytesview){(const uint8*)text.Data,text.Size},format,level,strategy,limit,window):NULL;}
 xvalue* xl6DeflateBufferV1(void* value,int64_t size,int64_t format,int64_t level,int64_t strategy,int64_t limit,int64_t window)
 {xbytesview input;return xl6CompressBufferInput(value,size,&input)?encode(input,format,level,strategy,limit,window):NULL;}
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+xvalue* xl6DeflateBytesSpanV1(xbytesview value,int64_t size,int64_t format,int64_t level,int64_t strategy,int64_t limit,int64_t window)
+{xbytesview input;return xl6BufferSpanInput(value,size,&input)?encode(input,format,level,strategy,limit,window):NULL;}

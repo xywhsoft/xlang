@@ -205,6 +205,7 @@ const char* xl6StdlibBufferClassSource =
     "    extern \"xl6BufferAdoptV1\" create(point handle)\n"
     "    extern \"xl6BufferFromTextV1\" create(string text, int size = -1)\n"
     "    extern \"xl6BufferFromBytesV1\" create(bytes data, int size = -1)\n"
+    "    extern \"xl6BufferFromBytesSpanV1\" create(cbytes data, int size = -1)\n"
     "    extern \"xl6BufferCopyV1\" create(Buffer source, int size = -1)\n"
     "    extern \"xl6BufferDestroyV1\" destroy()\n"
     "    static extern \"xl6BufferFromHexV1\" func fromHex(string text, int flags = 0, int size = -1) as Buffer\n"
@@ -219,12 +220,15 @@ const char* xl6StdlibBufferClassSource =
     "    extern \"xl6BufferTrimV1\" func trim() as bool\n"
     "    extern \"xl6BufferAssignTextV1\" func assign(string text, int size = -1) as bool\n"
     "    extern \"xl6BufferAssignBytesV1\" func assign(bytes data, int size = -1) as bool\n"
+    "    extern \"xl6BufferAssignBytesSpanV1\" func assign(cbytes data, int size = -1) as bool\n"
     "    extern \"xl6BufferAssignBufferV1\" func assign(Buffer source, int size = -1) as bool\n"
     "    extern \"xl6BufferAppendTextV1\" func append(string text, int size = -1) as bool\n"
     "    extern \"xl6BufferAppendBytesV1\" func append(bytes data, int size = -1) as bool\n"
+    "    extern \"xl6BufferAppendBytesSpanV1\" func append(cbytes data, int size = -1) as bool\n"
     "    extern \"xl6BufferAppendBufferV1\" func append(Buffer source, int size = -1) as bool\n"
     "    extern \"xl6BufferInsertTextV1\" func insert(int index, string text, int size = -1) as bool\n"
     "    extern \"xl6BufferInsertBytesV1\" func insert(int index, bytes data, int size = -1) as bool\n"
+    "    extern \"xl6BufferInsertBytesSpanV1\" func insert(int index, cbytes data, int size = -1) as bool\n"
     "    extern \"xl6BufferInsertBufferV1\" func insert(int index, Buffer source, int size = -1) as bool\n"
     "    extern \"xl6BufferRemoveV1\" func remove(int index, int count = -1) as bool\n"
     "    extern \"xl6BufferBytesV1\" func toBytes(int size = -1) as bytes\n"
@@ -3698,7 +3702,9 @@ static const char xl6StdXlonOptionsBody[] =
 
 
 static const XL6_StdlibParam xl6StdCrc32TextParams[] = {{"uint64","previous"},{"string","data"},{"int","size"}};
-static const XL6_StdlibParam xl6StdCrc32BytesParams[] = {{"uint64","previous"},{"bytes","data"},{"int","size"}};
+static const char xl6StdCrc32NativeBytesBody[] =
+    "extern \"xl6Crc32BytesV1\" @pure @nonblocking func __xl_crc32_bytes(uint64 previous, bytes data, int size) as uint32\n"
+    "extern \"xl6Crc32BytesSpanV1\" @pure @nonblocking func __xl_crc32_bytes(uint64 previous, cbytes data, int size) as uint32\n";
 static const XL6_StdlibParam xl6StdCrc32BufferParams[] = {{"uint64","previous"},{"Buffer","data"},{"int","size"}};
 static const char xl6StdCrc32TextBody[] =
     "func __xl_std_crc32_checksum(string data, int size = -1) as uint32\n"
@@ -5084,7 +5090,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"xlon", "visit", "__xl_std_xlon_visit", NULL, NULL, 0, "int", xl6StdXlonVisitConfiguredBody},
 
     {"__crc32", "text", "__xl_crc32_text", "xl6Crc32StringV1", xl6StdCrc32TextParams, 3, "uint32", NULL},
-    {"__crc32", "bytes", "__xl_crc32_bytes", "xl6Crc32BytesV1", xl6StdCrc32BytesParams, 3, "uint32", NULL},
+    {"__crc32", "bytes", "__xl_crc32_bytes", NULL, NULL, 0, "uint32", xl6StdCrc32NativeBytesBody},
     {"__crc32", "buffer", "__xl_crc32_buffer", "xl6Crc32BufferV1", xl6StdCrc32BufferParams, 3, "uint32", NULL},
     {"crc32", "checksum", "__xl_std_crc32_checksum", NULL, NULL, 0, "uint32", xl6StdCrc32TextBody},
     {"crc32", "checksum", "__xl_std_crc32_checksum", NULL, NULL, 0, "uint32", xl6StdCrc32BytesBody},
@@ -5432,6 +5438,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
 const XL6_StdlibForeignContract xl6StdlibForeignContracts[] = {
     {"__xl_crc32_text", "xl6Crc32StringV1", XL6_STDLIB_FOREIGN_EFFECT_PURE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
     {"__xl_crc32_bytes", "xl6Crc32BytesV1", XL6_STDLIB_FOREIGN_EFFECT_PURE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+    {"__xl_crc32_bytes", "xl6Crc32BytesSpanV1", XL6_STDLIB_FOREIGN_EFFECT_PURE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
     {"__xl_crc32_buffer", "xl6Crc32BufferV1", XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
 #define XL6_HASH_VALUE_EFFECTS (XL6_STDLIB_FOREIGN_EFFECT_PURE | \
     XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING)

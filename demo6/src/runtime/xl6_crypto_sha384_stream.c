@@ -43,3 +43,9 @@ xstrview xl6CryptoSha384HexV1(void* raw)
  xstrview result=ok?xl6CryptoHex(output,sizeof(output)):xl6TextFailure;
  xrtSecureZero(output,sizeof(output));return result;}
 XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6CryptoSha384HandlePolicyV1Get,xl6CryptoSha384DestroyV1)
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+void xl6CryptoSha384UpdateBytesSpanV1(void* raw,xbytesview data,int64_t size)
+{State* self=check(raw);xbytesview input={0};if (!self || !xl6BufferSpanInput(data,size,&input)) return;
+
+ (void)xrtSha384Update(&self->state,input.Data,input.Size);}

@@ -8,3 +8,7 @@ xvalue* xl6CodecHexDecodeV1(xstrview text,int64_t size,int64_t flags)
     size_t length=0;bytes data=xrtHexDecodeNew(text,&length,(uint32_t)flags);
     return xl6CodecBytesTake(data,length);
 }
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+xstrview xl6CodecHexBytesSpanV1(xbytesview value,int64_t size,int64_t flags)
+{xbytesview input;return xl6BufferSpanInput(value,size,&input)?xl6CodecHexViewV1(input,flags):xl6TextFailure;}

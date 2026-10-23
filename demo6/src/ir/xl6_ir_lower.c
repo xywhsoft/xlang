@@ -13070,7 +13070,7 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
             XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;
         target->parameterPhysicalFieldDeclarations[parameterOffset + i] =
             XL6_IR_NODE_INVALID;
-        if(target->kind==XL6_IR_CALL_TARGET_EXTERN_C && (parameter->flags & XL6_AST_FLAG_C_SPAN_PARAM)) {
+        if((target->kind==XL6_IR_CALL_TARGET_EXTERN_C || target->kind==XL6_IR_CALL_TARGET_NATIVE_FACTORY) && (parameter->flags & XL6_AST_FLAG_C_SPAN_PARAM)) {
             if(!xl6IrTypeIsCOwned(xl6IrTypeGet(&module->types,parameter->storageType)) ||
                 target->parameterAbis[parameterOffset+i]!=XL6_IR_PARAMETER_ABI_BORROW)
                 return xl6IrLowerDiag(ctx,declaration,"C span parameter lacks a read-only native ABI");

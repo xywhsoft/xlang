@@ -9,3 +9,7 @@ xvalue* xl6CodecBase64DecodeV1(xstrview text,int64_t size,int64_t flags,xstrview
     bytes data=xrtBase64DecodeNew(text.Data,text.Size,&length,&config);
     return xl6CodecBytesTake(data,length);
 }
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+xstrview xl6CodecBase64BytesSpanV1(xbytesview value,int64_t size,int64_t flags,xstrview alphabet,int64_t alphabetSize)
+{xbytesview input;return xl6BufferSpanInput(value,size,&input)?xl6CodecBase64ViewV1(input,flags,alphabet,alphabetSize):xl6TextFailure;}

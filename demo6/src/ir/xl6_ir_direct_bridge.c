@@ -289,14 +289,18 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6Crc32StringV1",T,I,3,{U,S,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
     {"xl6CodecHexTextV1",T,S,3,{S,I,I},.pure=1,.nonblocking=1},
     {"xl6CodecHexBytesV1",T,S,3,{Y,I,I},.pure=1,.nonblocking=1},
+    {"xl6CodecHexBytesSpanV1",T,S,3,{XL6_IR_C_ABI_C_BYTES,I,I},.pure=1,.nonblocking=1},
     {"xl6CodecHexDecodeV1",T,Y,3,{S,I,I},.pure=1,.nonblocking=1},
     {"xl6CodecBase64TextV1",T,S,5,{S,I,I,S,I},.pure=1,.nonblocking=1},
     {"xl6CodecBase64BytesV1",T,S,5,{Y,I,I,S,I},.pure=1,.nonblocking=1},
+    {"xl6CodecBase64BytesSpanV1",T,S,5,{XL6_IR_C_ABI_C_BYTES,I,I,S,I},.pure=1,.nonblocking=1},
     {"xl6CodecBase64DecodeV1",T,Y,5,{S,I,I,S,I},.pure=1,.nonblocking=1},
     {"xl6CodecPercentTextV1",T,S,6,{S,I,S,B,B,I},.pure=1,.nonblocking=1},
     {"xl6CodecPercentBytesV1",T,S,6,{Y,I,S,B,B,I},.pure=1,.nonblocking=1},
+    {"xl6CodecPercentBytesSpanV1",T,S,6,{XL6_IR_C_ABI_C_BYTES,I,S,B,B,I},.pure=1,.nonblocking=1},
     {"xl6CodecPercentDecodeV1",T,Y,3,{S,I,B},.pure=1,.nonblocking=1},
     {"xl6Crc32BytesV1",T,I,3,{U,Y,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
+    {"xl6Crc32BytesSpanV1",T,I,3,{U,XL6_IR_C_ABI_C_BYTES,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
     {"xl6Crc32BufferV1",T,I,3,{U,V,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.parameterOwners={NULL,"xl6BufferDestroyV1"},.nonblocking=1},
     {"xl6DictValueRemoveV1",T,B,2,{V,S},.parameterDynamicBorrows={1,0}},
     /* Printing borrows one dynamic argument array and can allocate or fail I/O.
@@ -347,6 +351,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6BufferHandleV1",T,XL6_IR_C_ABI_RAW_POINTER,1,{V},.parameterOwners={"xl6BufferDestroyV1"}},
     {"xl6BufferFromTextV1",T,V,2,{S,I},.resultOwner="xl6BufferDestroyV1"},
     {"xl6BufferFromBytesV1",T,V,2,{Y,I},.resultOwner="xl6BufferDestroyV1"},
+    {"xl6BufferFromBytesSpanV1",T,V,2,{XL6_IR_C_ABI_C_BYTES,I},.resultOwner="xl6BufferDestroyV1"},
     {"xl6BufferCopyV1",T,V,2,{V,I},.resultOwner="xl6BufferDestroyV1",.parameterOwners={"xl6BufferDestroyV1"}},
     {"xl6BufferFromHexV1",T,V,3,{S,I,I},.resultOwner="xl6BufferDestroyV1"},
     {"xl6BufferHexV1",T,S,3,{V,I,I},.parameterOwners={"xl6BufferDestroyV1"}},
@@ -356,12 +361,15 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6BufferTrimV1",T,B,1,{V},.parameterOwners={"xl6BufferDestroyV1"}},
     {"xl6BufferAssignTextV1",T,B,3,{V,S,I},.parameterOwners={"xl6BufferDestroyV1"}},
     {"xl6BufferAssignBytesV1",T,B,3,{V,Y,I},.parameterOwners={"xl6BufferDestroyV1"}},
+    {"xl6BufferAssignBytesSpanV1",T,B,3,{V,XL6_IR_C_ABI_C_BYTES,I},.parameterOwners={"xl6BufferDestroyV1"}},
     {"xl6BufferAssignBufferV1",T,B,3,{V,V,I},.parameterOwners={"xl6BufferDestroyV1","xl6BufferDestroyV1"}},
     {"xl6BufferAppendTextV1",T,B,3,{V,S,I},.parameterOwners={"xl6BufferDestroyV1"}},
     {"xl6BufferAppendBytesV1",T,B,3,{V,Y,I},.parameterOwners={"xl6BufferDestroyV1"}},
+    {"xl6BufferAppendBytesSpanV1",T,B,3,{V,XL6_IR_C_ABI_C_BYTES,I},.parameterOwners={"xl6BufferDestroyV1"}},
     {"xl6BufferAppendBufferV1",T,B,3,{V,V,I},.parameterOwners={"xl6BufferDestroyV1","xl6BufferDestroyV1"}},
     {"xl6BufferInsertTextV1",T,B,4,{V,I,S,I},.parameterOwners={"xl6BufferDestroyV1"}},
     {"xl6BufferInsertBytesV1",T,B,4,{V,I,Y,I},.parameterOwners={"xl6BufferDestroyV1"}},
+    {"xl6BufferInsertBytesSpanV1",T,B,4,{V,I,XL6_IR_C_ABI_C_BYTES,I},.parameterOwners={"xl6BufferDestroyV1"}},
     {"xl6BufferInsertBufferV1",T,B,4,{V,I,V,I},.parameterOwners={"xl6BufferDestroyV1",NULL,"xl6BufferDestroyV1"}},
     {"xl6BufferRemoveV1",T,B,3,{V,I,I},.parameterOwners={"xl6BufferDestroyV1"}},
     {"xl6BufferBytesV1",T,Y,2,{V,I},.parameterOwners={"xl6BufferDestroyV1"}},
@@ -689,11 +697,13 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6UnicodeCharStringV1",T,S,1,{C}},
     {"xl6UnicodeInvalidTextV1",T,I,2,{S,I}},
     {"xl6UnicodeInvalidBytesV1",T,I,2,{Y,I}},
+    {"xl6UnicodeInvalidBytesSpanV1",T,I,2,{XL6_IR_C_ABI_C_BYTES,I}},
     {"xl6UnicodeByteOffsetV1",T,I,3,{S,I,I}},
     {"xl6UnicodeScalarIndexV1",T,I,3,{S,I,I}},
     {"xl6UnicodeValidatorCreateV1",T,V,0,{0},.resultOwner="xl6UnicodeValidatorDestroyV1"},
     {"xl6UnicodeValidatorDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6UnicodeValidatorHandlePolicyV1Get"},
     {"xl6UnicodeValidatorFeedV1",T,I,4,{V,Y,B,I},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
+    {"xl6UnicodeValidatorFeedSpanV1",T,I,4,{V,XL6_IR_C_ABI_C_BYTES,B,I},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
     {"xl6UnicodeValidatorResetV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
     {"xl6UnicodeValidatorErrorV1",T,I,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
     {"xl6UnicodeValidatorTotalV1",T,I,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
@@ -702,15 +712,20 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6HtmlEscapeAttributeV1",T,S,2,{S,I}},
     {"xl6EncodingEncodeV1",T,Y,5,{S,I,B,I,I}},
     {"xl6EncodingDecodeV1",T,S,5,{Y,I,I,I,I}},
+    {"xl6EncodingDecodeSpanV1",T,S,5,{XL6_IR_C_ABI_C_BYTES,I,I,I,I}},
     {"xl6EncodingTranscodeV1",T,Y,6,{Y,I,I,I,I,I}},
+    {"xl6EncodingTranscodeSpanV1",T,Y,6,{XL6_IR_C_ABI_C_BYTES,I,I,I,I,I}},
     {"xl6EncodingBomV1",T,I,2,{Y,I}},
+    {"xl6EncodingBomSpanV1",T,I,2,{XL6_IR_C_ABI_C_BYTES,I}},
     {"xl6EncodingBomSizeV1",T,I,2,{Y,I}},
+    {"xl6EncodingBomSizeSpanV1",T,I,2,{XL6_IR_C_ABI_C_BYTES,I}},
     {"xl6EncodingBomBytesV1",T,Y,1,{I}},
     {"xl6EncodingUnitSizeV1",T,I,1,{I}},
     {"xl6EncodingNameV1",T,S,1,{I}},
     {"xl6EncodingRepairTextV1",T,S,2,{S,I}},
     {"xl6EncodingGuessTextV1",T,XL6_IR_C_ABI_PRODUCT,2,{S,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_I64X3_V1},
     {"xl6EncodingGuessBytesV1",T,XL6_IR_C_ABI_PRODUCT,2,{Y,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_I64X3_V1},
+    {"xl6EncodingGuessBytesSpanV1",T,XL6_IR_C_ABI_PRODUCT,2,{XL6_IR_C_ABI_C_BYTES,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_I64X3_V1},
     {"xl6RegexCreateV1",T,V,5,{S,I,I,I,I},.resultOwner="xl6RegexDestroyV1"},
     {"xl6RegexDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6RegexHandlePolicyV1Get"},
     {"xl6RegexPatternV1",T,S,1,{V},.parameterOwners={"xl6RegexDestroyV1"}},
@@ -1439,6 +1454,14 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     for (i = 0; i < contract->parameterCount; ++i) {
         const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[i]);
         XL6_IrCAbi abi = contract->parameters[i];
+        if(abi==XL6_IR_C_ABI_C_BYTES || abi==XL6_IR_C_ABI_C_STRING) {
+            if(!xl6IrTypeIsCOwned(type) || type->cAbi!=abi ||
+                target->parameterAbis[i]!=XL6_IR_PARAMETER_ABI_BORROW ||
+                target->parameterPhysicalAbis[i]!=XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW ||
+                target->parameterConstraintAbis[i]!=XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
+                target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID)return 0;
+            continue;
+        }
         if(contract->parameterEnums[i]) {
             if(contract->parameterEnums[i]->cAbi!=abi||
                 !xl6IrDirectNumericEnumMatches(module,target->parameterTypes[i],contract->parameterEnums[i])||

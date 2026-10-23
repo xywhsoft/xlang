@@ -4,6 +4,7 @@ const char* xl6StdlibUtf8ValidatorSource =
     "    extern \"xl6UnicodeValidatorCreateV1\" create()\n"
     "    extern \"xl6UnicodeValidatorDestroyV1\" destroy()\n"
     "    extern \"xl6UnicodeValidatorFeedV1\" func feed(bytes data, bool final = false, int size = -1) as int\n"
+    "    extern \"xl6UnicodeValidatorFeedSpanV1\" func feed(cbytes data, bool final = false, int size = -1) as int\n"
     "    extern \"xl6UnicodeValidatorResetV1\" func reset()\n"
     "    extern \"xl6UnicodeValidatorErrorV1\" get errorOffset() as int\n"
     "    extern \"xl6UnicodeValidatorTotalV1\" get total() as int\n"
@@ -24,6 +25,7 @@ static const char xl6StdUnicodeValidateTextBody[] =
     "    return offset == -1, offset\nend\n";
 static const char xl6StdUnicodeValidateBytesBody[] =
     "extern \"xl6UnicodeInvalidBytesV1\" func __xl_unicode_invalid_bytes(bytes data, int size) as int\n"
+    "extern \"xl6UnicodeInvalidBytesSpanV1\" func __xl_unicode_invalid_bytes(cbytes data, int size) as int\n"
     "func __xl_std_unicode_validate(bytes data, int size = -1) as (bool, int)\n"
     "    int offset = __xl_unicode_invalid_bytes(data, size)\n"
     "    return offset == -1, offset\nend\n";

@@ -127,3 +127,12 @@ xstrview xl6BufferTextV1(void* raw, int64_t size)
     if (!xl6TextSelect(&text, -1)) return xl6TextFailure;
     return xl6TextCopy(text);
 }
+
+void* xl6BufferFromBytesSpanV1(xbytesview input,int64_t size)
+{ return xl6BufferSelect(&input,size) ? bufferCopy(input) : NULL; }
+bool xl6BufferAssignBytesSpanV1(void* raw,xbytesview input,int64_t size)
+{ return xl6BufferSelect(&input,size) && bufferApply(raw,input,BUFFER_ASSIGN,0); }
+bool xl6BufferAppendBytesSpanV1(void* raw,xbytesview input,int64_t size)
+{ return xl6BufferSelect(&input,size) && bufferApply(raw,input,BUFFER_APPEND,0); }
+bool xl6BufferInsertBytesSpanV1(void* raw,int64_t offset,xbytesview input,int64_t size)
+{ return xl6BufferSelect(&input,size) && bufferApply(raw,input,BUFFER_INSERT,offset); }

@@ -53,3 +53,23 @@ xstrview xl6CryptoSha224BufferHexV1(void* data,int64_t size)
     xstrview result=ok?xl6CryptoHex(output,sizeof(output)):xl6TextFailure;
     xrtSecureZero(output,sizeof(output));return result;
 }
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+xvalue* xl6CryptoSha224BytesSpanV1(xbytesview data,int64_t size)
+{
+    xbytesview key={0},input={0};uint8 output[28];
+    if (!xl6BufferSpanInput(data,size,&input)) return NULL;
+    bool ok=digest(key,input,output);
+    xvalue* result=ok?xl6CryptoCopySecret(output,sizeof(output)):NULL;
+    xrtSecureZero(output,sizeof(output));return result;
+}
+
+/* Synchronous readonly span: the caller keeps the input owner alive. */
+xstrview xl6CryptoSha224BytesHexSpanV1(xbytesview data,int64_t size)
+{
+    xbytesview key={0},input={0};uint8 output[28];
+    if (!xl6BufferSpanInput(data,size,&input)) return xl6TextFailure;
+    bool ok=digest(key,input,output);
+    xstrview result=ok?xl6CryptoHex(output,sizeof(output)):xl6TextFailure;
+    xrtSecureZero(output,sizeof(output));return result;
+}

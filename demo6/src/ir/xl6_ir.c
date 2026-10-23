@@ -38941,9 +38941,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     return xl6IrDiag(diags, NULL,
                         "XLIR extern function parameter cannot use the direct closure physical ABI");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW) {
-                if(target->kind!=XL6_IR_CALL_TARGET_EXTERN_C || !xl6IrTypeIsCOwned(parameterType) ||
+                if((target->kind!=XL6_IR_CALL_TARGET_EXTERN_C && target->kind!=XL6_IR_CALL_TARGET_NATIVE_FACTORY) || !xl6IrTypeIsCOwned(parameterType) ||
                     target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
-                    target->runtimeBridge!=XL6_IR_RUNTIME_BRIDGE_NONE ||
+                    (target->runtimeBridge!=XL6_IR_RUNTIME_BRIDGE_NONE && !xl6IrRuntimeDirectBridgeTargetMatches(module,target)) ||
                     target->parameterPhysicalFieldDeclarations[parameter]!=XL6_IR_NODE_INVALID)
                     return xl6IrDiag(diags,NULL,"C span parameter lacks an exact native read-only ABI");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW ||
