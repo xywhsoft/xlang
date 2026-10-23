@@ -5,7 +5,7 @@ from xhttp.body import Body
 extern "xhttp_client_request_create" func makeRequest(string method, c_size methodSize, string url, c_size urlSize) as point
 extern "xhttp_client_request_set_text_body" func setRequestText(point request, cstring text, cstring contentType) as bool
 extern "xhttp_client_request_body" func requestBody(point request) as point
-extern "xhttp_client_request_destroy" func destroyRequest(point request) as c_longlong
+extern "xhttp_client_request_destroy_abi" func destroyRequest(point request)
 
 extern "extlib_owned_text" @no_raise func ownedText(cstring text) as point
 extern "extlib_owned_free" @no_raise func drop(point data)
