@@ -3,8 +3,13 @@
 #include "model/workspace.h"
 typedef struct xide_lsp_stream { char* bytes; size_t length,capacity,body,header; int failed; } xide_lsp_stream;
 typedef int (*xide_lsp_message_proc)(const xvalue* message,void* user);
+/* Success TAKES the parsed root; rejection takes nothing and the stream frees
+ * it. bodyLength is the exact UTF-8 Content-Length, including JSON whitespace.
+ * No borrowed pointers into the stream buffer survive either callback. */
+typedef int (*xide_lsp_owned_message_proc)(xvalue* message,size_t bodyLength,void* user);
 void xideLspStreamClear(xide_lsp_stream* stream);
 int xideLspStreamFeed(xide_lsp_stream* stream,const void* bytes,size_t length,xide_lsp_message_proc receive,void* user,xide_model_error* error);
+int xideLspStreamFeedOwned(xide_lsp_stream* stream,const void* bytes,size_t length,xide_lsp_owned_message_proc receive,void* user,xide_model_error* error);
 int xideLspStreamEnd(xide_lsp_stream* stream,xide_model_error* error);
 char* xideLspFrame(const xvalue* message,size_t* length,xide_model_error* error);
 char* xideLspPathToUri(const char* absolutePath,xide_model_error* error);
