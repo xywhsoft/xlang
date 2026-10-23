@@ -281,3 +281,29 @@ Linux 856，共 1709 阶段；旧轮结果不混计。全部输入、对象、�
 BuildCheck／StoreClone／StoreMerge 四个底层名字；本批驻留 provider 显式选择
 模块，不依赖该反查。显式 FFI 的制品映射仍须统一刷新验收，不能以 JIT 低层
 符号已登记代替 AOT 映射完整。长期任务继续 active，不声称 shipping 已通过。
+
+## 候选建链的空信任源合同（2026-10-23）
+
+为接通稳定信任快照上的候选建链，先压实原生空库边界。独立 XRT
+`0dd411185` 使 `xrtX509StoreSource` 接受空库／零候选；合法空锚源经
+`xrtX509PathBuildCheck` 给出 `REJECTED`／`X509_ERROR_PATH_BUILD`，depth 为
+`SIZE_MAX`，不分配搜索帧或诊断，不发布成功路径／结果，也不覆盖已有线程
+错误。非法的非零计数／空数组仍是操作错误，不被空库快捷路径掩盖。旧 bool
+入口继续为完成拒绝给出 NOT_FOUND 诊断，没有增加隐式系统授信。
+
+原生分文件／单头、GCC O0／O2、TCC、Linux ASan／UBSan 和独立重放共
+42 阶段。三份已有正常固定证书的签名由已有独立 oracle 核对，没有执行原
+密码安全套件；旧 Store 测试中的空库断言同步更新，但未运行其原安全套件。
+
+四份 xlang 实现／声明头只应用上述两个源和公开注释的精确差分，记录在
+`lib/xrt/backports/x509_empty_trust_source.json`。原微秒／Until、独立原生
+毫秒／For、所有未选中段、API 数量／符号表／能力矩阵／deferred 清单不变。
+四种实现／声明组合各用四类正常证书验收：Windows 36／Linux 48，共
+84 阶段，含独立重放、已有错误及失败输出保持、零搜索分配和内存平衡。
+首轮只有新夹具遗漏 const 的严格编译失败，r2 修正并完整重跑；原报告保留。
+
+证据根 `F:/xlang-validation/five-groups-20261023/p5-x509-empty-source`，原生
+回执 `verified-native-commit.json`，xlang 回执 `verified-xlang-commit.json`。
+这是原生和快照支撑验收，未增加语言公开入口，仍为 327 个；不是候选建链
+语言接口／JIT／AOT、完整源码重建、TLS 或发布验收。后续继续发行者匹配、
+候选建链及其 typed reason／回调接线、文件／系统来源与身份验证。
