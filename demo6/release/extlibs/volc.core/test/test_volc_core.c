@@ -93,7 +93,10 @@ static void test_large_result_transfer(void)
     memset(body, 'x', sizeof(body) - 1u);
     body[sizeof(body) - 1u] = '\0';
     borrowed = xvolc_return_copy(body, sizeof(body) - 1u);
+    assert(xrtMemDebugFailAfter(0u));
     owned = (char*)x_volc_core_take_result(borrowed);
+    assert(!xrtMemDebugFailTriggered());
+    xrtMemDebugFailClear();
     assert(owned == borrowed && strlen(owned) == sizeof(body) - 1u);
     for (i = 0; i < 16; ++i) x_volc_core_sha256_hex("abc");
     assert(memcmp(owned, body, sizeof(body)) == 0);

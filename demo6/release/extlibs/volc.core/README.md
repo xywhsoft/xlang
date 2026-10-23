@@ -62,5 +62,6 @@ C 边界与离线范例均通过。XLang 导入链仍在 `xhttp.multipart` 的
 严格 C 与 Linux ASan/UBSan 离线门禁通过。XLang 导入仍被 `xhttp.multipart` 阻断。
 
 2026-10-24：五个在线 `request*` 包装复用同一结果槽接管路径；64 KiB 原生结果
-转移、槽轮转后的存活测试通过 Windows 严格 C 与 Linux ASan/UBSan 离线门禁。
+转移、接管时无额外分配、槽轮转后的存活测试通过 Windows 严格 C 与
+Linux ASan/UBSan 离线门禁。
 发布版 `xl.exe` 的上述 `cstring` 导入阻断仍在，未宣称在线或 XLang 运行验收。
