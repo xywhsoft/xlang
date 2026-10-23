@@ -102,11 +102,11 @@ try {
         return
     }
     $bounds = Join-Path $build 'hook_bounds.exe'
-    Run 'strict bounds build' $gcc @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+    Run 'strict bounds build' $gcc @('-std=c11', '-O2', '-DNDEBUG', '-Wall', '-Wextra', '-Werror',
         'release/extlibs/op/test/test_hook_bounds.c', '-o', $bounds)
     Run 'hook bounds' $bounds @()
     $protocol = Join-Path $build 'hook_protocol.exe'
-    Run 'strict protocol build' $gcc @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+    Run 'strict protocol build' $gcc @('-std=c11', '-O2', '-DNDEBUG', '-Wall', '-Wextra', '-Werror',
         'release/extlibs/op/test/test_hook_protocol.c', '-o', $protocol)
     Run 'hook protocol' $protocol @()
     Run 'SDK D3D9 ABI slots' $gcc @('-std=c11', '-Wall', '-Wextra', '-Werror',

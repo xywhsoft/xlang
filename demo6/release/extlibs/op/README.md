@@ -96,6 +96,10 @@ WGL 原实现只改主模块 IAT 中的 `wglSwapBuffers`，对常见 `gdi32!Swap
 
 Windows 默认门禁（在 `demo6` 目录执行）：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/op/test/check.ps1`。它验证 GCC 包装层 ABI、C/XLang 只读调用、范例同输出、无输出核心 AOT 以及带输出公开范例 AOT/C 对照。`-SkipAot` 只跑包侧 C/JIT 聚焦检查，不作为发布签收；当前默认路径在公开范例构建处因共享 `xl6ValueDataSnapshotV1` 缺符号准确失败。`-Stress` 保留帧尺寸/协议、SDK 槽位、hook 编译、窗口/进程/内存与 UTF-8 等插件专项测试；`-RealGpu` 还运行 D3D9、D3D11、WGL、OpenGL 和 DXGI 的真实图形测试，需要可用 Windows 图形设备。默认只读测试不移动鼠标、不改剪贴板；真实 GPU 测试会创建和移动自己的临时测试窗口。GCC 包源码检查仅屏蔽动态加载函数指针转换和遗留未使用参数告警。Linux 门禁 `sh release/extlibs/op/test/check.sh` 只跑平台无关帧尺寸测试和 ASan/UBSan，不声称支持 Linux 桌面自动化。
 
+hook 帧边界和快照协议测试在 `-DNDEBUG` 下仍启用断言；Windows
+`-Stress` 与 Linux 门禁均以发布宏编译相关测试。两份测试在 Windows
+严格 GCC 发布宏下单独编译、运行通过；这不扩张为真实 GPU 或插件内部验收。
+
 默认门禁的核心与公开范例 AOT 产物每次使用独占文件名，并在成功或失败后清理本次文件；并行运行不会复用旧产物。这只验证公开调用层，不扩大插件内部测试范围。
 
 2026-10-18：XLang 包装层的零结尾 C 文本参数统一拒绝内嵌 NUL；
