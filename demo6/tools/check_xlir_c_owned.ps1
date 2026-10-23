@@ -139,6 +139,8 @@ foreach ($case in $negative) {
     }
 }
 Write-Output "C owner negative cases passed: $($negative.Count)"
+& "$PSScriptRoot/check_xlir_c_owned_globals_fault.ps1" -Directory "$outputPath/globals-fault" -Compiler $compiler -PublicDriver $PublicDriver
+if(!$?){throw 'C owner global initialization fault validation failed'}
 if ($PublicDriver) {
     $sourceDriver=(Resolve-Path -LiteralPath $PublicDriver).Path
     $publicSources=@($generatedSources|Where-Object{$_ -notlike '*_failure.xl'})+
