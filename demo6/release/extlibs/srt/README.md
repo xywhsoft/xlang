@@ -33,7 +33,7 @@ SRT/WebVTT 输入整体必须是有效 UTF-8；C 值模型构建时，cue 正文
 
 ## C API 与所有权
 
-公开声明位于 `include/srt_native.h`，依赖 XRT 的 `xvalue`。C 字符串可调用 `xsrt_parse` / `xsrt_parse_vtt`，显式字节长度输入使用 `_n` 后缀入口；XLang 桥只用 `_n` 入口，避免内嵌 NUL 被截断。解析结果由调用方 `xrtValueRelease`；格式错误返回 `XVALUE_NULL`，同时设置 XRT 错误。`xsrt_build` / `xsrt_build_vtt` / `xsrt_format_time` 返回独立 NUL 结尾缓冲，调用方 `xrtFree`；失败返回 `NULL`。无静态返回缓冲，可并行处理不同文档。XLang 包装会把构建结果立即转成语言字符串并释放 C 缓冲。
+公开声明位于 `include/srt_native.h`，依赖 XRT 的 `xvalue`。C 字符串可调用 `xsrt_parse` / `xsrt_parse_vtt`，显式字节长度输入使用 `_n` 后缀入口；XLang 桥只用 `_n` 入口，避免内嵌 NUL 被截断。解析结果由调用方 `xrtValueRelease`；格式错误返回 `XVALUE_NULL`，同时设置 XRT 错误。`xsrt_build` / `xsrt_build_vtt` / `xsrt_format_time` 返回独立 NUL 结尾缓冲，C 调用方须用 `xrtFree` 释放；失败返回 `NULL`。无静态返回缓冲，可并行处理不同文档。XLang 包装通过 `__xl_runtime.takeCstr` 直接接管原分配，字符串生命周期结束时由运行时释放，不额外复制正文。
 
 `_n` 解析只读取指定的字节范围，不要求输入以 NUL 结尾，也不复制整份字幕；返回的 cue 字符串仍由 XRT 独立持有，调用方在解析结束后可以释放原输入。
 cue 行、ID 和设置均从借用的输入切片直接构造独立的 XRT 字符串值，
