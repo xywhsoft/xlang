@@ -20,6 +20,15 @@ static int xi_set_text(xvalue *object, const char *key, xstrview value) {
         (xstrview){key, strlen(key)}, item);
 }
 
+static xvalue *xi_take_decoded(xbuffer *decoded) {
+    size_t size = decoded->Size;
+    char *text = (char *)xrtBufferTake(decoded, NULL, NULL);
+    xvalue *item = (text != NULL || size == 0u) ? xrtValueStringTake(&text, size) : NULL;
+    xrtFree(text);
+    xrtBufferUnit(decoded);
+    return item;
+}
+
 static int xi_unescape(xstrview raw, xbuffer *out) {
     size_t i;
     for (i = 0; i < raw.Size; ++i) {
@@ -37,12 +46,15 @@ static int xi_unescape(xstrview raw, xbuffer *out) {
 
 static int xi_set_unescaped_text(xvalue *object, const char *key, xstrview raw) {
     xbuffer decoded;
-    int ok;
+    xvalue *item;
     if (!xrtBufferInit(&decoded)) return 0;
-    ok = xi_unescape(raw, &decoded) && xi_set_text(object, key,
-        (xstrview){decoded.Size ? (char *)decoded.Data : "", decoded.Size});
-    xrtBufferUnit(&decoded);
-    return ok;
+    if (!xi_unescape(raw, &decoded)) {
+        xrtBufferUnit(&decoded);
+        return 0;
+    }
+    item = xi_take_decoded(&decoded);
+    return item != NULL && xrtValueObjectSetNew(object,
+        (xstrview){key, strlen(key)}, item);
 }
 
 static int xi_add_property(xvalue *object, const XiProperty *property, xstrview raw) {
@@ -54,8 +66,7 @@ static int xi_add_property(xvalue *object, const XiProperty *property, xstrview 
     if (property->is_text) {
         if (!xi_unescape(raw, &decoded)) goto fail;
     } else if (!xi_append(&decoded, raw.Data, raw.Size)) goto fail;
-    item = xrtValueString((xstrview){decoded.Size ? (char *)decoded.Data : "", decoded.Size});
-    xrtBufferUnit(&decoded);
+    item = xi_take_decoded(&decoded);
     if (item == NULL) return 0;
     if (previous == NULL) return xrtValueObjectSetNew(object, key, item);
     if (xi_is_single_property(property)) {

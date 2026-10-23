@@ -65,6 +65,42 @@ static int test_parse(void) {
     return 0;
 }
 
+/* 解码后的文本接管失败时，不得遗留缓冲或半成品日历。 */
+static int test_parse_ownership(void) {
+    const char source[] = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n"
+        "PRODID:Widget\\, Inc\r\nBEGIN:VEVENT\r\nUID:a@demo\r\n"
+        "DTSTAMP:20260801T000000Z\r\nDTSTART:20260810T090000Z\r\n"
+        "SUMMARY:第一行\\n第二行\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+    xmemdebugsnapshot before, after;
+    int failures = 0, successes = 0;
+    xrtMemDebugSnapshot(&before);
+    for (int i = 0; i < 256 && successes < 2; ++i) {
+        xvalue *calendar;
+        bool injected;
+        CHECK(xrtMemDebugFailAfter(i));
+        calendar = xi_parse(source, sizeof(source) - 1u);
+        injected = xrtMemDebugFailTriggered();
+        xrtMemDebugFailClear();
+        if (injected) {
+            CHECK(calendar == NULL && xrtGetError() &&
+                xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+            ++failures;
+        } else {
+            xvalue *event;
+            CHECK(calendar && equals(field(calendar, "prodid"), "Widget, Inc"));
+            event = xrtValueArrayAt(field(calendar, "events"), 0);
+            CHECK(equals(field(event, "summary"), "第一行\n第二行"));
+            ++successes;
+        }
+        xrtValueRelease(calendar);
+        xrtClearError();
+        xrtMemDebugSnapshot(&after);
+        CHECK(before.LiveCount == after.LiveCount && before.LiveBytes == after.LiveBytes);
+    }
+    CHECK(failures > 0 && successes == 2);
+    return 0;
+}
+
 static int test_text_identifiers(void) {
     const char source[] = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n"
         "PRODID:Widget\\, Inc\\; ical\\nEdition\r\n"
@@ -441,6 +477,8 @@ static int test_input_limit(void) {
 }
 
 int main(int argc, char **argv) {
+    CHECK(xrtMemDebugEnable(true));
+    CHECK(test_parse_ownership() == 0);
     CHECK(test_parse() == 0);
     CHECK(test_text_identifiers() == 0);
     CHECK(test_mutated_text() == 0);
