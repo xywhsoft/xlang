@@ -183,6 +183,7 @@ static int xl6SemFuncReturnsGenerator(XL6_SemContext* ctx, const XL6_AstNode* fu
 static int xl6SemFuncIsAsyncGenerator(XL6_SemContext* ctx, const XL6_AstNode* func);
 static int xl6SemIsResourceHandleTypeName(const char* name);
 static const XL6_AstNode* xl6SemCallableParams(const XL6_AstNode* node);
+static int xl6SemCOwnedTypeMatchCost(const XL6_AstNode*,const XL6_AstNode*);
 static const XL6_AstNode* xl6SemCallableReturns(const XL6_AstNode* node);
 static int xl6SemFixedParamCount(const XL6_AstNode* params);
 static int xl6SemParamRequiredCount(const XL6_AstNode* params);
@@ -3643,9 +3644,11 @@ static int xl6SemRememberInferredType(
     if ( typeCopy == NULL ) {
         return 0;
     }
-    if(xl6COwnedBaseName(typeCopy->text)) {
-        const char* base=xl6COwnedBaseName(typeCopy->text);
-        xrtFree(typeCopy->text);typeCopy->text=xrtStrDup(base);
+    XL6_AstNode* cElement=(XL6_AstNode*)xl6SemNullableInnerType(typeCopy);
+    if(!cElement)cElement=typeCopy;
+    if(xl6COwnedBaseName(cElement->text)) {
+        const char* base=xl6COwnedBaseName(cElement->text);
+        xrtFree(cElement->text);cElement->text=xrtStrDup(base);
         xl6SemBindInferredTypeIdentity(ctx,typeCopy);
     }
 
@@ -3783,12 +3786,14 @@ static int xl6SemExprParamMatchCostEx(
     }
 
     exprType = xl6SemExprStaticTypeName(ctx, (XL6_AstNode*)expr);
-    if (xl6COwnedBaseName(targetType)) {
-        if(xl6TextEquals(exprType,targetType))return 0;
-        if(xl6TextEquals(exprType,xl6COwnedBaseName(targetType)))return 1;
+    const XL6_AstNode* cInner=xl6SemNullableInnerType(typeNode);
+    if(xl6COwnedBaseName(cInner ? cInner->text : targetType) || xl6COwnedBaseName(exprType) ||
+        cInner) {
+        exprTypeNode=xl6SemInferAutoTypeNode(ctx,(XL6_AstNode*)expr);
+        int cCost=xl6SemCOwnedTypeMatchCost(exprTypeNode,typeNode);
+        xl6AstFree(exprTypeNode);
+        if(cCost>=0)return cCost;
     }
-    if (xl6COwnedBaseName(exprType) && xl6TextEquals(xl6COwnedBaseName(exprType),targetType))
-        return 10; /* Prefer span borrows, while retaining ordinary overload precedence over generics. */
     if ( exprType == NULL ) {
         exprType = xl6SemLiteralExprTypeName(expr);
     }
@@ -10937,7 +10942,7 @@ static XL6_AstNode* xl6SemFindMultiReturnCallArg(
 static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     if(node->semanticCallKind==XL6_SEM_CALL_C_OWNED_CONCAT)return xl6SemCOwnedResult(ctx,node,"cbytes");
-    if(node->semanticCallKind==XL6_SEM_CALL_C_OWNED_VIEW)return xl6SemCOwnedResult(ctx,node,"string");
+    if(node->semanticCallKind==XL6_SEM_CALL_C_OWNED_VIEW)return xl6SemCOwnedNormalizedResult(ctx,node,"string");
     if(node->semanticCallKind==XL6_SEM_CALL_C_OWNED_COMPARE)return xl6SemCOwnedResult(ctx,node,"bool");
     {int printed=xl6SemCOwnedPrint(ctx,node);if(printed>=0)return printed;}
     int ok;
@@ -14040,13 +14045,20 @@ static XL6_AstNode* xl6SemInferConditionalType(XL6_SemContext* ctx, XL6_AstNode*
         const XL6_AstNode* present = absent == left ? right : left;
         result = xl6SemCloneTypeNode(present);
         const char* base=xl6COwnedBaseName(present->text);
-        if(base) {xrtFree(result->text);result->text=xrtStrDup(base);xl6SemBindInferredTypeIdentity(ctx,result);}
+        if(base)result->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
         if (!xl6SemTypeCanAssignFromType(ctx, absent, present))
             result = xl6SemLiftNullableType(result, expr);
     } else {
         leftInner = xl6SemNullableInnerType(left);
         rightInner = xl6SemNullableInnerType(right);
-        if ((leftInner != NULL || rightInner != NULL) &&
+        const XL6_AstNode* a=leftInner ? leftInner : left,*b=rightInner ? rightInner : right;
+        const char* ac=xl6COwnedBaseName(a->text),*bc=xl6COwnedBaseName(b->text);
+        if((leftInner || rightInner) && ((ac && xl6TextEquals(ac,bc ? bc : b->text)) ||
+            (bc && xl6TextEquals(bc,a->text)))) {
+            XL6_AstNode* value=xl6SemCloneTypeNode(ac ? a : b);
+            value->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
+            result=xl6SemLiftNullableType(value,expr);
+        } else if ((leftInner != NULL || rightInner != NULL) &&
             xl6SemTypeEquals(ctx, leftInner != NULL ? leftInner : left,
                 rightInner != NULL ? rightInner : right)) {
             result = xl6SemLiftNullableType(xl6SemCloneTypeNode(
@@ -14087,7 +14099,11 @@ static XL6_AstNode* xl6SemInferNullCoalesceType(
     result = NULL;
 
     if ( innerType != NULL ) {
-        if ( rightType != NULL &&
+        const char* rightC=xl6SemCOwnedTypeBase(rightType);
+        const char* leftC=xl6COwnedBaseName(innerType->text);
+        if(rightC && xl6TextEquals(rightC,leftC ? leftC : innerType->text)) {
+            result=xl6SemCloneTypeNode(rightType);
+        } else if ( rightType != NULL &&
              xl6SemTypeCanAssignFromType(ctx, rightType, innerType) ) {
             result = xl6SemCloneTypeNode(innerType);
         } else if ( rightType != NULL &&
@@ -15230,7 +15246,19 @@ static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
         ok = xl6SemCheckChildrenExpr(ctx, node);
     }
     {int compare=xl6SemCOwnedCompare(ctx,node);if(compare>=0)return compare && ok;}
-    for(size_t i=0;node && i<node->childCount;++i)
+    int preserveCOwned=xl6TextEquals(node->text,"??");
+    if((xl6TextEquals(node->text,"==") || xl6TextEquals(node->text,"!=")) && node->childCount==2) {
+        XL6_AstNode* value=node->children[0]->kind==XL6_AST_NULL ? node->children[1] :
+            node->children[1]->kind==XL6_AST_NULL ? node->children[0] : NULL;
+        XL6_AstNode* actual=value ? xl6SemInferAutoTypeNode(ctx,value) : NULL;
+        if(actual && xl6SemNullableInnerType(actual) && xl6SemCOwnedTypeBase(actual))preserveCOwned=1;
+        if(value && value->kind==XL6_AST_NAME) {
+            XL6_Symbol* symbol=xl6ScopeFind(ctx->scope,value->text);
+            if(symbol && xl6SemNullableInnerType(symbol->type) && xl6SemCOwnedTypeBase(symbol->type))preserveCOwned=1;
+        }
+        xl6AstFree(actual);
+    }
+    if(!preserveCOwned)for(size_t i=0;node && i<node->childCount;++i)
         if(!xl6SemNormalizeCOwnedExpr(ctx,&node->children[i]))ok=0;
     containerOp = xl6SemBinaryIsContainerOp(ctx, node);
     protocolName = node != NULL ? xl6SemBinaryProtocolName(node->text) : NULL;
@@ -16771,6 +16799,15 @@ static int xl6SemDeclareVarWithKind(
     if(ok && ctx->currentFunction && initExpr && declaredType && !xl6COwnedBaseName(declaredType->text)) {
         XL6_AstNode* actual=xl6SemInferAutoTypeNode(ctx,initExpr);
         const char* base=actual ? xl6COwnedBaseName(actual->text) : NULL;
+        const XL6_AstNode* optional=xl6SemNullableInnerType(declaredType);
+        const XL6_AstNode* actualOptional=actual ? xl6SemNullableInnerType(actual) : NULL;
+        const char* optionalBase=actualOptional ? xl6COwnedBaseName(actualOptional->text) : base;
+        if(optional && optionalBase && xl6TextEquals(optionalBase,optional->text)) {
+            XL6_AstNode* inner=(XL6_AstNode*)optional;
+            xrtFree(inner->text);inner->text=xrtStrDup(actualOptional ? actualOptional->text : actual->text);
+            inner->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
+            xl6SemBindInferredTypeIdentity(ctx,declaredType);
+        }
         if(base && xl6TextEquals(base,xl6SemResolveAliasName(ctx,declaredType->text))) {
             xrtFree(declaredType->text);declaredType->text=xrtStrDup(actual->text);
             xl6SemBindInferredTypeIdentity(ctx,declaredType);
@@ -17936,7 +17973,7 @@ static int xl6SemCheckAssign(XL6_SemContext* ctx, XL6_AstNode* node)
     op = node->text != NULL ? node->text : "=";
     if(left && left->kind==XL6_AST_NAME && xl6TextEquals(op,"+=")) {
         XL6_Symbol* binding=xl6ScopeFind(ctx->scope,left->text);
-        if(binding && binding->type && xl6COwnedBaseName(binding->type->text)) {
+        if(binding && xl6SemCOwnedTypeBase(binding->type)) {
             XL6_AstNode* read=xl6AstNewText(XL6_AST_NAME,left->text,strlen(left->text),NULL);
             XL6_AstNode* add=xl6AstNewText(XL6_AST_BINARY,"+",1,NULL);
             if(!read || !add){xl6AstFree(read);xl6AstFree(add);return 0;}
@@ -18543,7 +18580,13 @@ static int xl6SemApplyConditionFlow(
         if ( symbol == NULL || symbol->kind == XL6_SYM_FUNC ) {
             return 1;
         }
-        if ( !xl6SemPushFlowFact(ctx, symbol->id, condition->children[1]) ) {
+        const XL6_AstNode* narrowed=condition->children[1];
+        const XL6_AstNode* carrier=xl6SemCOwnedElement(symbol->type);
+        const XL6_AstNode* tested=xl6SemCOwnedElement(narrowed);
+        const char* base=carrier ? xl6COwnedBaseName(carrier->text) : NULL;
+        if(base && tested && xl6TextEquals(base,tested->text))
+            narrowed=xl6SemNullableInnerType(condition->children[1]) ? symbol->type : carrier;
+        if ( !xl6SemPushFlowFact(ctx, symbol->id, narrowed) ) {
             xl6SemErrorNode(ctx, condition, "out of memory while recording runtime type flow");
             return 0;
         }

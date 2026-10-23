@@ -55,7 +55,7 @@ static int xl6IrCgenVerifyDeclarations(
                     return xl6IrCgenCallParameterDiag(diags, module, target,
                         parameter, "uses a direct closure at an extern boundary");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW) {
-                if((target->kind!=XL6_IR_CALL_TARGET_EXTERN_C && target->kind!=XL6_IR_CALL_TARGET_NATIVE_FACTORY) || !xl6IrTypeIsCOwned(parameterType) ||
+                if((target->kind!=XL6_IR_CALL_TARGET_EXTERN_C && target->kind!=XL6_IR_CALL_TARGET_NATIVE_FACTORY) || !xl6IrTypeIsCOwned(parameterType) || parameterType->kind!=XL6_IR_TYPE_BUILTIN ||
                     target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
                     (target->runtimeBridge!=XL6_IR_RUNTIME_BRIDGE_NONE && !xl6IrRuntimeDirectBridgeTargetMatches(module,target)) ||
                     target->parameterPhysicalFieldDeclarations[parameter]!=XL6_IR_NODE_INVALID)

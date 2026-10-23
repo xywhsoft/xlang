@@ -3468,9 +3468,15 @@ static int xl6IrLowerIntrinsicTypeOf(
                          source->storageType, 0, &observed, 1, NULL) ) return 1;
     if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_CONST, id, call->storageType,
                          0, NULL, 0, result) ) return 1;
-    written = snprintf(immediate, sizeof(immediate), "0x%016llXULL",
-                       (unsigned long long)(sourceType->cAbi==XL6_IR_C_ABI_C_STRING ? ctx->module->runtimeTypeMap.stringTypeValueId :
-                           sourceType->cAbi==XL6_IR_C_ABI_C_BYTES ? ctx->module->runtimeTypeMap.bytesTypeValueId : sourceType->typeValueId));
+    uint64 logicalType=sourceType->typeValueId;
+    if(xl6IrTypeIsCOwned(sourceType)) {
+        if(sourceType->kind==XL6_IR_TYPE_NULLABLE) {
+            const unsigned char* name=(const unsigned char*)(sourceType->cAbi==XL6_IR_C_ABI_C_STRING ? "type:nullable<string>" : "type:nullable<bytes>");
+            logicalType=UINT64_C(1469598103934665603);
+            for(;*name;++name){logicalType^=*name;logicalType*=UINT64_C(1099511628211);}
+        } else logicalType=sourceType->cAbi==XL6_IR_C_ABI_C_STRING ? ctx->module->runtimeTypeMap.stringTypeValueId : ctx->module->runtimeTypeMap.bytesTypeValueId;
+    }
+    written = snprintf(immediate, sizeof(immediate), "0x%016llXULL",(unsigned long long)logicalType);
     if ( written < 0 || (size_t)written >= sizeof(immediate) ||
          (ctx->module->instructions[ctx->module->instructionCount - 1].immediateText =
               xrtStrDupN(immediate, (size_t)written)) == NULL ) {
@@ -4567,7 +4573,8 @@ static XL6_IrValueId xl6IrLowerNodeAsType(
         return XL6_IR_VALUE_INVALID;
     }
     const XL6_IrType* cSource=xl6IrTypeGet(&ctx->module->types,source->storageType);
-    if(xl6IrTypeIsCOwned(target) && !xl6IrTypeIsCOwned(cSource)) {
+    if(xl6IrTypeIsCOwned(target) && !xl6IrTypeIsCOwned(cSource) && source->sourceKind!=XL6_AST_NULL &&
+        (target->kind==XL6_IR_TYPE_BUILTIN || (cSource && cSource->kind==XL6_IR_TYPE_NULLABLE))) {
         XL6_IrRuntimeOp convert=target->cAbi==XL6_IR_C_ABI_C_STRING && cSource->cAbi==XL6_IR_C_ABI_MANAGED_STRING
             ? XL6_IR_RUNTIME_CSTRING_FROM_STRING : target->cAbi==XL6_IR_C_ABI_C_BYTES && cSource->cAbi==XL6_IR_C_ABI_MANAGED_BYTES
                 ? XL6_IR_RUNTIME_CBYTES_FROM_BYTES : XL6_IR_RUNTIME_NONE;
@@ -4588,7 +4595,7 @@ static XL6_IrValueId xl6IrLowerNodeAsType(
         return input ? xl6IrLowerEmitRuntimeCall(ctx,origin,targetType,convert,&input,1) : 0;
     }
     if(xl6IrTypeIsCOwned(xl6IrTypeGet(&ctx->module->types,source->storageType)) &&
-        source->storageType!=targetType) {
+        source->storageType!=targetType && !xl6IrTypeIsCOwned(target)) {
         const XL6_IrNode* call=xl6IrNodeGet(ctx->module,origin);
         const XL6_IrCallSite* site=xl6IrCallSiteGet(ctx->module,origin);
         const XL6_IrCallTarget* callee=call ? xl6IrCallTargetGet(ctx->module,call->targetSymbol) : NULL;
@@ -4616,7 +4623,7 @@ static XL6_IrValueId xl6IrLowerNodeAsType(
                 targetType, 0, NULL, 0, &result) ? result : XL6_IR_VALUE_INVALID;
         if ( target->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE ) {
             if ( target->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE &&
-                 !xl6IrNullableNativeValuePlan(&ctx->module->types,target) ) {
+                 !xl6IrNullableNativeValuePlan(&ctx->module->types,target) && !xl6IrTypeIsCOwned(target)) {
                 xl6IrLowerDiag(ctx, origin,
                                 "XLIR tagged nullable value has no explicit product ABI");
                 return XL6_IR_VALUE_INVALID;
@@ -4727,7 +4734,7 @@ static XL6_IrValueId xl6IrLowerNodeAsType(
         elementType = target->params[0];
         element = xl6IrTypeGet(&ctx->module->types, elementType);
         taggedAbi = (target->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-            target->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE) || xl6IrNullableNativeValuePlan(&ctx->module->types,target)!=NULL;
+            target->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE) || xl6IrNullableNativeValuePlan(&ctx->module->types,target)!=NULL || xl6IrTypeIsCOwned(target);
         sentinelAbi = element != NULL &&
             (target->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL ||
              target->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL) &&
@@ -23307,7 +23314,7 @@ static XL6_IrValueId xl6IrLowerNullableCoalesce(
     left = leftNode != NULL ? xl6IrLowerNode(ctx, leftId) : XL6_IR_VALUE_INVALID;
     leftType = xl6IrLowerValueType(ctx, left);
     nullableType = xl6IrTypeGet(&ctx->module->types, leftType);
-    native=xl6IrNullableNativeValuePlan(&ctx->module->types,nullableType)!=NULL;
+    native=xl6IrNullableNativeValuePlan(&ctx->module->types,nullableType)!=NULL || xl6IrTypeIsCOwned(nullableType);
     tagged = nullableType != NULL &&
         nullableType->kind == XL6_IR_TYPE_NULLABLE &&
         nullableType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
@@ -23351,7 +23358,12 @@ static XL6_IrValueId xl6IrLowerNullableCoalesce(
                         "XLIR xvalue-sentinel coalescing has no exact projected result TypeId");
         return XL6_IR_VALUE_INVALID;
     }
-    if ( (managedPointer || native) && elementType != node->storageType && leftType != node->storageType ) {
+    const XL6_IrType* resultInfo=xl6IrTypeGet(&ctx->module->types,node->storageType);
+    const XL6_IrType* sourceElement=xl6IrTypeGet(&ctx->module->types,elementType);
+    int cPresent=managedPointer && xl6IrTypeIsCOwned(resultInfo) && sourceElement &&
+        ((sourceElement->cAbi==XL6_IR_C_ABI_MANAGED_STRING && resultInfo->cAbi==XL6_IR_C_ABI_C_STRING) ||
+         (sourceElement->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && resultInfo->cAbi==XL6_IR_C_ABI_C_BYTES));
+    if ( (managedPointer || native) && !cPresent && elementType != node->storageType && leftType != node->storageType ) {
         xl6IrLowerDiag(ctx, id,
             "XLIR managed-pointer coalescing has no exact owned result TypeId");
         return XL6_IR_VALUE_INVALID;
@@ -23424,6 +23436,16 @@ static XL6_IrValueId xl6IrLowerNullableCoalesce(
                             "XLIR nullable present payload does not match coalesced result ABI");
             return XL6_IR_VALUE_INVALID;
         }
+    }
+    if(cPresent) {
+        XL6_IrTypeId resultElement=resultInfo->kind==XL6_IR_TYPE_NULLABLE ? resultInfo->params[0] : node->storageType;
+        present=xl6IrLowerAcquireValueOwner(ctx,id,present);
+        if(!present)return XL6_IR_VALUE_INVALID;
+        present=xl6IrLowerEmitRuntimeCall(ctx,id,resultElement,
+            resultInfo->cAbi==XL6_IR_C_ABI_C_STRING ? XL6_IR_RUNTIME_CSTRING_FROM_STRING : XL6_IR_RUNTIME_CBYTES_FROM_BYTES,&present,1);
+        if(!present)return XL6_IR_VALUE_INVALID;
+        if(resultInfo->kind==XL6_IR_TYPE_NULLABLE &&
+            !xl6IrLowerEmit(ctx,XL6_IR_INSTR_NULLABLE_WRAP,id,node->storageType,0,&present,1,&present))return XL6_IR_VALUE_INVALID;
     }
     if ( managedPointer || native ) {
         /* A nullable fallback keeps the result nullable. Rewrap explicitly;
@@ -27415,7 +27437,8 @@ static int xl6IrLowerStorageAssignIfNull(
     if (plan.nullAbi == XL6_IR_NULL_ABI_NONE) return 1;
     if (plan.nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL &&
         plan.nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
-        !(plan.nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE && plan.cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE)) {
+        !(plan.nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
+          (plan.cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE || xl6IrTypeIsCOwned(xl6IrTypeGet(&ctx->module->types,plan.type))))) {
         xl6IrLowerDiag(ctx, id,
             "XLIR null-aware assignment requires exact null-test and storage ownership ABIs");
         return -1;
@@ -31476,9 +31499,22 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 if(base->kind==XL6_IR_TYPE_NULLABLE && base->paramCount==1)base=xl6IrTypeGet(&ctx->module->types,base->params[0]);
                 int matches=base && ((sourceType->cAbi==XL6_IR_C_ABI_C_STRING && base->cAbi==XL6_IR_C_ABI_MANAGED_STRING) ||
                     (sourceType->cAbi==XL6_IR_C_ABI_C_BYTES && base->cAbi==XL6_IR_C_ABI_MANAGED_BYTES));
-                if(!xl6IrLowerEmit(ctx,XL6_IR_INSTR_CONST,id,node->storageType,0,NULL,0,&result))return 0;
-                ctx->module->instructions[ctx->module->instructionCount-1].immediateText=xrtStrDup(matches ? "true" : "false");
-                if(!ctx->module->instructions[ctx->module->instructionCount-1].immediateText)return 0;
+                const XL6_IrType* physical=xl6IrTypeGet(&ctx->module->types,xl6IrLowerValueType(ctx,observed));
+                int optional=physical && physical->kind==XL6_IR_TYPE_NULLABLE;
+                int wantsNull=targetType->kind==XL6_IR_TYPE_NULLABLE || (targetType->name && !strcmp(targetType->name,"null"));
+                if(optional && ((matches && !wantsNull) || (!matches && wantsNull))) {
+                    XL6_IrValueId isNull;
+                    if(!xl6IrLowerEmit(ctx,XL6_IR_INSTR_NULL_TEST,id,node->storageType,0,&observed,1,&isNull))return 0;
+                    result=isNull;
+                    if(matches) {
+                        if(!xl6IrLowerEmit(ctx,XL6_IR_INSTR_UNARY,id,node->storageType,0,&isNull,1,&result))return 0;
+                        ctx->module->instructions[ctx->module->instructionCount-1].opcode=XL6_IR_OPCODE_NOT;
+                    }
+                } else {
+                    if(!xl6IrLowerEmit(ctx,XL6_IR_INSTR_CONST,id,node->storageType,0,NULL,0,&result))return 0;
+                    ctx->module->instructions[ctx->module->instructionCount-1].immediateText=xrtStrDup(matches ? "true" : "false");
+                    if(!ctx->module->instructions[ctx->module->instructionCount-1].immediateText)return 0;
+                }
                 if(result && !xl6IrLowerCompleteEvaluationBorrows(ctx,id,first,&result))return 0;
                 return result;
             }
@@ -31771,7 +31807,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                       otherType->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
                       !(otherType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
                         (otherType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ||
-                         xl6IrNullableNativeValuePlan(&ctx->module->types,otherType)!=NULL))) ) {
+                         xl6IrNullableNativeValuePlan(&ctx->module->types,otherType)!=NULL || xl6IrTypeIsCOwned(otherType)))) ) {
                     xl6IrLowerDiag(ctx, id,
                                     otherType != NULL && otherType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE
                                         ? "XLIR tagged nullable null test requires an explicit product ABI"

@@ -12,10 +12,13 @@ static XL6_IrRuntimeOp xl6IrCOwnedCompareOp(const char* text)
 }
 int xl6IrTypeIsCOwned(const XL6_IrType* type)
 {
-    return type && type->kind==XL6_IR_TYPE_BUILTIN && !type->paramCount &&
-        type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED && type->nullAbi==XL6_IR_NULL_ABI_NONE &&
-        ((type->cAbi==XL6_IR_C_ABI_C_STRING && type->abiId==xl6TypeAbiIdText("xlang.cstring.v1")) ||
-         (type->cAbi==XL6_IR_C_ABI_C_BYTES && type->abiId==xl6TypeAbiIdText("xlang.cbytes.v1")));
+    if(!type || type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED)return 0;
+    int optional=type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params &&
+        type->nullAbi==XL6_IR_NULL_ABI_TAGGED_VALUE;
+    int plain=type->kind==XL6_IR_TYPE_BUILTIN && !type->paramCount && type->nullAbi==XL6_IR_NULL_ABI_NONE;
+    return (plain || optional) &&
+        ((type->cAbi==XL6_IR_C_ABI_C_STRING && type->abiId==xl6TypeAbiIdText(optional ? "xlang.cstring.optional.v1" : "xlang.cstring.v1")) ||
+         (type->cAbi==XL6_IR_C_ABI_C_BYTES && type->abiId==xl6TypeAbiIdText(optional ? "xlang.cbytes.optional.v1" : "xlang.cbytes.v1")));
 }
 /* Reuse the existing native-leaf capture machinery without admitting C
  * carriers to native boxing, containers or the XRT language type registry. */
@@ -36,7 +39,7 @@ XL6_IrCallErrorPhysicalAbi xl6IrCOwnedErrorPhysicalAbi(XL6_IrRuntimeOp op)
 {
     if(op==XL6_IR_RUNTIME_C_PRINT || op==XL6_IR_RUNTIME_C_PRINTLN)return XL6_IR_CALL_ERROR_PHYSICAL_FALSE_RESULT;
     if(op==XL6_IR_RUNTIME_CBYTES_CONCAT)return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
-    if(op==XL6_IR_RUNTIME_CSTRING_SET_COPY || op==XL6_IR_RUNTIME_CBYTES_SET_COPY ||
+    if(op==XL6_IR_RUNTIME_CSTRING_COPY || op==XL6_IR_RUNTIME_CSTRING_SET_COPY || op==XL6_IR_RUNTIME_CBYTES_SET_COPY ||
         op==XL6_IR_RUNTIME_C_OWNED_COPY || op==XL6_IR_RUNTIME_CSTRING_TAKE ||
         op==XL6_IR_RUNTIME_CBYTES_TAKE || op==XL6_IR_RUNTIME_CBYTES_FROM_BYTES ||
         op==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE || op==XL6_IR_RUNTIME_CSTRING_AT || op==XL6_IR_RUNTIME_CBYTES_AT)
@@ -61,7 +64,7 @@ int xl6IrCOwnedTakeNodeCompatible(const XL6_IrModule* module,const XL6_IrNode* n
     const XL6_IrType* result=node ? xl6IrTypeGet(&module->types,node->storageType) : NULL;
     const XL6_IrNode* args=node && node->childCount==2 ?
         xl6IrNodeGet(module,module->children[node->firstChild+1]) : NULL;
-    if(!node || node->callKind!=XL6_SEM_CALL_C_OWNED_TAKE || !xl6IrTypeIsCOwned(result) ||
+    if(!node || node->callKind!=XL6_SEM_CALL_C_OWNED_TAKE || (!xl6IrTypeIsCOwned(result) || result->kind!=XL6_IR_TYPE_BUILTIN) ||
         !args || args->childCount!=(result->cAbi==XL6_IR_C_ABI_C_STRING ? 2u : 3u) ||
         !xl6IrCOwnedReleaser(module,node->targetSymbol)) return 0;
     return 1;
@@ -102,24 +105,27 @@ int xl6IrCOwnedInstructionCompatible(const XL6_IrModule* module,const XL6_IrInst
             (text ? itemType->cAbi==XL6_IR_C_ABI_CHAR_U32 : itemType->integerTarget==XL6_IR_INTEGER_TARGET_UNSIGNED_8);
     }
     if(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_FORMAT)
-        return ins->operandCount==1 && !ins->targetSymbol && source->cAbi==XL6_IR_C_ABI_C_BYTES && result->cAbi==XL6_IR_C_ABI_MANAGED_STRING;
+        return ins->operandCount==1 && !ins->targetSymbol && source->kind==XL6_IR_TYPE_BUILTIN && source->cAbi==XL6_IR_C_ABI_C_BYTES && result->cAbi==XL6_IR_C_ABI_MANAGED_STRING;
     if(ins->runtimeOp==XL6_IR_RUNTIME_C_OWNED_COPY)
         return ins->operandCount==1 && !ins->targetSymbol && xl6IrTypeIsCOwned(source) && ins->type==input->type;
     if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_FROM_STRING || ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_FROM_BYTES)
         return ins->operandCount==1 && !ins->targetSymbol && xl6IrTypeIsCOwned(result) &&
+            ((source->kind==XL6_IR_TYPE_NULLABLE)==(result->kind==XL6_IR_TYPE_NULLABLE)) &&
             ((source->cAbi==XL6_IR_C_ABI_MANAGED_STRING && result->cAbi==XL6_IR_C_ABI_C_STRING && ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_FROM_STRING) ||
              (source->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && result->cAbi==XL6_IR_C_ABI_C_BYTES && ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_FROM_BYTES));
     if(ins->runtimeOp==XL6_IR_RUNTIME_C_BORROW_VIEW)
-        return ins->operandCount==1 && !ins->targetSymbol && xl6IrTypeIsCOwned(result) &&
+        return ins->operandCount==1 && !ins->targetSymbol && xl6IrTypeIsCOwned(result) && source->kind==XL6_IR_TYPE_BUILTIN && result->kind==XL6_IR_TYPE_BUILTIN &&
             ((source->cAbi==XL6_IR_C_ABI_MANAGED_STRING && result->cAbi==XL6_IR_C_ABI_C_STRING) ||
              (source->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && result->cAbi==XL6_IR_C_ABI_C_BYTES));
     if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_VIEW)
         return ins->operandCount==1 && !ins->targetSymbol && xl6IrTypeIsCOwned(source) &&
-            source->cAbi==XL6_IR_C_ABI_C_STRING && result->cAbi==XL6_IR_C_ABI_MANAGED_STRING;
+            source->cAbi==XL6_IR_C_ABI_C_STRING && result->cAbi==XL6_IR_C_ABI_MANAGED_STRING &&
+            (source->kind!=XL6_IR_TYPE_NULLABLE || result->kind==XL6_IR_TYPE_NULLABLE);
     if(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_CONCAT) {
         const XL6_IrInstruction* right=ins->operandCount==2 ? xl6IrValueDefinition(module,module->operands[ins->firstOperand+1],NULL) : NULL;
         const XL6_IrType* other=right ? xl6IrTypeGet(&module->types,right->type) : NULL;
-        return !ins->targetSymbol && other && result->cAbi==XL6_IR_C_ABI_C_BYTES &&
+        return !ins->targetSymbol && other && source->kind==XL6_IR_TYPE_BUILTIN && other->kind==XL6_IR_TYPE_BUILTIN &&
+            result->kind==XL6_IR_TYPE_BUILTIN && result->cAbi==XL6_IR_C_ABI_C_BYTES &&
             (source->cAbi==XL6_IR_C_ABI_C_BYTES || source->cAbi==XL6_IR_C_ABI_MANAGED_BYTES) &&
             (other->cAbi==XL6_IR_C_ABI_C_BYTES || other->cAbi==XL6_IR_C_ABI_MANAGED_BYTES);
     }
@@ -130,6 +136,8 @@ int xl6IrCOwnedInstructionCompatible(const XL6_IrModule* module,const XL6_IrInst
         int text=source->cAbi==XL6_IR_C_ABI_C_STRING || source->cAbi==XL6_IR_C_ABI_MANAGED_STRING;
         int binary=source->cAbi==XL6_IR_C_ABI_C_BYTES || source->cAbi==XL6_IR_C_ABI_MANAGED_BYTES;
         return !ins->targetSymbol && other && result->cAbi==XL6_IR_C_ABI_BOOL &&
+            ((source->kind==XL6_IR_TYPE_NULLABLE)==(other->kind==XL6_IR_TYPE_NULLABLE)) &&
+            (source->kind!=XL6_IR_TYPE_NULLABLE || ins->runtimeOp==XL6_IR_RUNTIME_C_COMPARE_EQ || ins->runtimeOp==XL6_IR_RUNTIME_C_COMPARE_NE) &&
             (xl6IrTypeIsCOwned(source) || xl6IrTypeIsCOwned(other)) &&
             ((text && (other->cAbi==XL6_IR_C_ABI_C_STRING || other->cAbi==XL6_IR_C_ABI_MANAGED_STRING)) ||
              (binary && (other->cAbi==XL6_IR_C_ABI_C_BYTES || other->cAbi==XL6_IR_C_ABI_MANAGED_BYTES)));
@@ -139,7 +147,7 @@ int xl6IrCOwnedInstructionCompatible(const XL6_IrModule* module,const XL6_IrInst
         int index=ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_AT || ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_AT;
         const XL6_IrInstruction* key=index && ins->operandCount==2 ?
             xl6IrValueDefinition(module,module->operands[ins->firstOperand+1],NULL) : NULL;
-        return !ins->targetSymbol && xl6IrTypeIsCOwned(source) &&
+        return !ins->targetSymbol && xl6IrTypeIsCOwned(source) && source->kind==XL6_IR_TYPE_BUILTIN &&
             source->cAbi==(binary ? XL6_IR_C_ABI_C_BYTES : XL6_IR_C_ABI_C_STRING) &&
             ins->operandCount==(index ? 2u : 1u) &&
             (!index || (key && xl6IrTypeGet(&module->types,key->type)->cAbi==XL6_IR_C_ABI_I64)) &&
@@ -148,7 +156,7 @@ int xl6IrCOwnedInstructionCompatible(const XL6_IrModule* module,const XL6_IrInst
     if(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE) {
         const XL6_IrInstruction* length=ins->operandCount==2 ?
             xl6IrValueDefinition(module,module->operands[ins->firstOperand+1],NULL) : NULL;
-        return !ins->targetSymbol && xl6IrTypeIsCOwned(source) &&
+        return !ins->targetSymbol && xl6IrTypeIsCOwned(source) && source->kind==XL6_IR_TYPE_BUILTIN &&
             source->cAbi==XL6_IR_C_ABI_C_BYTES && ins->type==input->type &&
             length && xl6IrTypeGet(&module->types,length->type)->cAbi==XL6_IR_C_ABI_I64;
     }
@@ -163,9 +171,11 @@ int xl6IrCOwnedInstructionCompatible(const XL6_IrModule* module,const XL6_IrInst
     }
     if(ins->targetSymbol || ins->operandCount!=1 || !xl6IrTypeIsCOwned(source))return 0;
     if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_COPY)
-        return source->cAbi==XL6_IR_C_ABI_C_STRING && result->cAbi==XL6_IR_C_ABI_MANAGED_STRING;
+        return source->cAbi==XL6_IR_C_ABI_C_STRING && result->cAbi==XL6_IR_C_ABI_MANAGED_STRING &&
+            (source->kind!=XL6_IR_TYPE_NULLABLE || result->kind==XL6_IR_TYPE_NULLABLE);
     if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_BOX)
         return source->cAbi==XL6_IR_C_ABI_C_STRING && xl6IrTypeIsDynamicXValueBuiltin(module,ins->type);
     return source->cAbi==XL6_IR_C_ABI_C_BYTES &&
-        (result->cAbi==XL6_IR_C_ABI_MANAGED_BYTES || xl6IrTypeIsDynamicXValueBuiltin(module,ins->type));
+        ((result->cAbi==XL6_IR_C_ABI_MANAGED_BYTES &&
+          (source->kind!=XL6_IR_TYPE_NULLABLE || result->kind==XL6_IR_TYPE_NULLABLE)) || xl6IrTypeIsDynamicXValueBuiltin(module,ins->type));
 }

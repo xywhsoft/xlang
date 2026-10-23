@@ -73,6 +73,23 @@ int main(void)
     XL6_COwnedV1 empty = xl6CBytesTakeV1(allocation(NULL, 0), 0, release);
     xl6COwnedDropV1(&empty);
     assert(released == 3);
+
+    XL6_COwnedV1 none = {NULL, SIZE_MAX, NULL};
+    assert(xl6COwnedIsNoneV1(none) && !xl6COwnedIsNoneV1(empty));
+    assert(!xl6CStringNullableViewV1(none).Data);
+    assert(xl6CStringNullableViewV1(empty).Data && !xl6CStringNullableViewV1(empty).Size);
+    assert(!xl6CStringCopyV1(none).Data);
+    boxed = xl6CStringBoxV1(none);
+    bytes = xl6CBytesCopyV1(none);
+    assert(boxed && bytes && !xrtValueType(boxed) && !xrtValueType(bytes));
+    xrtValueRelease(boxed);
+    xrtValueRelease(bytes);
+    shared = xl6COwnedCopyV1(none);
+    assert(xl6COwnedIsNoneV1(shared));
+    xl6COwnedDropV1(&shared);
+    assert(xl6COwnedIsNoneV1(xl6CStringFromNullableStringV1((xstrview){0})));
+    assert(xl6COwnedIsNoneV1(xl6CBytesFromNullableBytesV1(xrtValueRetain(xrtValueNull()))));
+    assert(released == 3);
     empty = xl6CStringTakeV1(NULL, release);
     copied = xl6CStringCopyV1(empty);
     assert(copied.Data && !copied.Size && !*copied.Data);

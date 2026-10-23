@@ -79,7 +79,7 @@ static int xl6IrCgenNullInstructionAbi(
           (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
            type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES)) ||
          (type->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-          (type->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE || xl6IrNullableNativeValuePlan(&module->types,type)!=NULL)));
+          (type->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE || xl6IrNullableNativeValuePlan(&module->types,type)!=NULL || xl6IrTypeIsCOwned(type))));
 }
 
 static int xl6IrCgenEmitNullInstruction(
@@ -93,7 +93,9 @@ static int xl6IrCgenEmitNullInstruction(
             "XLIR C emitter null ABI is unresolved");
     if (xl6IrInstructionIsZeroPayload(module, instruction)) return 1;
     type = xl6IrTypeGet(&module->types, instruction->type);
-    if ( type->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL )
+    if(xl6IrTypeIsCOwned(type))
+        xl6OutputPrintf(out,"    v%u = (XL6_COwnedV1){NULL,SIZE_MAX,NULL};\n",(unsigned)instruction->result);
+    else if ( type->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL )
         xl6OutputPrintf(out, "    v%u = xrtValueRetain(xrtValueNull());\n",
             (unsigned int)instruction->result);
     else if ( type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL )
@@ -134,7 +136,7 @@ static int xl6IrCgenNullableInstructionAbi(
             (operandType->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL ||
              operandType->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL ||
              (operandType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-              (operandType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE || xl6IrNullableNativeValuePlan(&module->types,operandType)!=NULL)));
+              (operandType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE || xl6IrNullableNativeValuePlan(&module->types,operandType)!=NULL || xl6IrTypeIsCOwned(operandType))));
     }
     if ( instruction->kind != XL6_IR_INSTR_NULLABLE_WRAP &&
          instruction->kind != XL6_IR_INSTR_NULLABLE_UNWRAP ) return 0;
@@ -147,7 +149,7 @@ static int xl6IrCgenNullableInstructionAbi(
     taggedAbi = nullableType != NULL &&
         nullableType->kind == XL6_IR_TYPE_NULLABLE &&
         ((nullableType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
-        nullableType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE) || xl6IrNullableNativeValuePlan(&module->types,nullableType)!=NULL);
+        nullableType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE) || xl6IrNullableNativeValuePlan(&module->types,nullableType)!=NULL || xl6IrTypeIsCOwned(nullableType));
     sentinelAbi = nullableType != NULL && element != NULL &&
         nullableType->kind == XL6_IR_TYPE_NULLABLE &&
         (nullableType->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL ||
@@ -177,7 +179,9 @@ static int xl6IrCgenEmitNullableInstruction(
     operand = xl6IrCgenValueDefinition(module, value, NULL);
     operandType = xl6IrTypeGet(&module->types, operand->type);
     if ( instruction->kind == XL6_IR_INSTR_NULL_TEST ) {
-        if ( operandType->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL )
+        if(xl6IrTypeIsCOwned(operandType))
+            xl6OutputPrintf(out,"    v%u = xl6COwnedIsNoneV1(v%u);\n",(unsigned)instruction->result,(unsigned)value);
+        else if ( operandType->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL )
             xl6OutputPrintf(out,
                 "    v%u = (v%u == NULL || xrtValueType(v%u) == 0);\n",
                 (unsigned int)instruction->result, (unsigned int)value,
@@ -190,6 +194,8 @@ static int xl6IrCgenEmitNullableInstruction(
         else
             xl6OutputPrintf(out, "    v%u = !v%u.hasValue;\n",
                 (unsigned int)instruction->result, (unsigned int)value);
+    } else if(xl6IrTypeIsCOwned(operandType) || xl6IrTypeIsCOwned(xl6IrTypeGet(&module->types,instruction->type))) {
+        xl6OutputPrintf(out,"    v%u = v%u;\n",(unsigned)instruction->result,(unsigned)value);
     } else if ( instruction->kind == XL6_IR_INSTR_NULLABLE_WRAP &&
                 xl6IrTypeGet(&module->types, instruction->type)->cAbi ==
                     XL6_IR_C_ABI_TAGGED_NULLABLE ) {

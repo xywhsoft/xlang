@@ -1,4 +1,21 @@
 /* Included by xl6_sem.c after callable/expression helpers. */
+static const XL6_AstNode* xl6SemCOwnedElement(const XL6_AstNode* type)
+{ const XL6_AstNode* inner=xl6SemNullableInnerType(type);return inner ? inner : type; }
+static const char* xl6SemCOwnedTypeBase(const XL6_AstNode* type)
+{ const XL6_AstNode* element=xl6SemCOwnedElement(type);return element ? xl6COwnedBaseName(element->text) : NULL; }
+static int xl6SemCOwnedTypeMatchCost(const XL6_AstNode* actual,const XL6_AstNode* target)
+{
+    if(!actual || !target)return -1;
+    const XL6_AstNode* a=xl6SemCOwnedElement(actual),*b=xl6SemCOwnedElement(target);
+    int sourceOptional=xl6SemNullableInnerType(actual)!=NULL,targetOptional=xl6SemNullableInnerType(target)!=NULL;
+    if(sourceOptional && !targetOptional)return -1;
+    const char* from=xl6COwnedBaseName(a->text),*to=xl6COwnedBaseName(b->text);
+    if(!from && !to)return -1;
+    if(xl6TextEquals(a->text,b->text))return sourceOptional==targetOptional ? 0 : 1;
+    if(to && xl6TextEquals(a->text,to))return 1;
+    if(from && xl6TextEquals(from,b->text))return 10;
+    return -1;
+}
 static int xl6SemCheckCOwnedTake(XL6_SemContext*,XL6_AstNode*);
 static int xl6SemCOwnedResult(XL6_SemContext*,XL6_AstNode*,const char*);
 static int xl6SemCOwnedCompare(XL6_SemContext* ctx,XL6_AstNode* node)
@@ -7,15 +24,23 @@ static int xl6SemCOwnedCompare(XL6_SemContext* ctx,XL6_AstNode* node)
         (!xl6TextEquals(node->text,"+") && !xl6TextEquals(node->text,"==") && !xl6TextEquals(node->text,"!=") &&
          !xl6TextEquals(node->text,"<") && !xl6TextEquals(node->text,"<=") &&
          !xl6TextEquals(node->text,">") && !xl6TextEquals(node->text,">=")))return -1;
+    if(node->children[0]->kind==XL6_AST_NULL || node->children[1]->kind==XL6_AST_NULL)return -1;
     XL6_AstNode* types[2]={xl6SemInferAutoTypeNode(ctx,node->children[0]),xl6SemInferAutoTypeNode(ctx,node->children[1])};
-    const char* a=types[0] ? xl6COwnedBaseName(types[0]->text) : NULL;
-    const char* b=types[1] ? xl6COwnedBaseName(types[1]->text) : NULL;
+    const XL6_AstNode* elements[2]={xl6SemCOwnedElement(types[0]),xl6SemCOwnedElement(types[1])};
+    if((elements[0] && xl6TextEquals(elements[0]->text,"null")) ||
+       (elements[1] && xl6TextEquals(elements[1]->text,"null"))) {xl6AstFree(types[0]);xl6AstFree(types[1]);return -1;}
+    int nullable=(types[0] && xl6SemNullableInnerType(types[0])) || (types[1] && xl6SemNullableInnerType(types[1]));
+    const char* a=xl6SemCOwnedTypeBase(types[0]);
+    const char* b=xl6SemCOwnedTypeBase(types[1]);
     int owned=a || b;
     int concat=xl6TextEquals(node->text,"+");
     int same=owned && types[0] && types[1] &&
-        xl6TextEquals(a ? a : xl6SemResolveAliasName(ctx,types[0]->text),
-                     b ? b : xl6SemResolveAliasName(ctx,types[1]->text));
+        xl6TextEquals(a ? a : xl6SemResolveAliasName(ctx,elements[0]->text),
+                     b ? b : xl6SemResolveAliasName(ctx,elements[1]->text));
+    int sameOptional=(xl6SemNullableInnerType(types[0])!=NULL)==(xl6SemNullableInnerType(types[1])!=NULL);
     xl6AstFree(types[0]);xl6AstFree(types[1]);
+    if(nullable && !sameOptional)return -1;
+    if(nullable && !xl6TextEquals(node->text,"==") && !xl6TextEquals(node->text,"!="))return -1;
     if(!owned || (concat && ((a && strcmp(a,"bytes")) || (b && strcmp(b,"bytes")))))return -1;
     if(!same) {xl6SemErrorNode(ctx,node,"C owner comparisons require matching text or binary operands");return 0;}
     XL6_AstNode* callee=xl6AstNewText(XL6_AST_NAME,"__xl_c_owned_compare",20,NULL);
@@ -38,6 +63,20 @@ static int xl6SemCOwnedResult(XL6_SemContext* ctx,XL6_AstNode* node,const char* 
     if(!node->inferredType)return 0;
     xl6SemBindInferredTypeIdentity(ctx,node->inferredType); return 1;
 }
+static int xl6SemCOwnedNormalizedResult(XL6_SemContext* ctx,XL6_AstNode* call,const char* base)
+{
+    XL6_AstNode* argument=xl6SemCallArgExprAt(call,0);
+    XL6_AstNode* actual=argument ? xl6SemInferAutoTypeNode(ctx,argument) : NULL;
+    int optional=xl6SemNullableInnerType(actual)!=NULL;
+    xl6AstFree(actual);
+    if(!xl6SemCOwnedResult(ctx,call,base))return 0;
+    if(optional) {
+        call->inferredType=xl6SemLiftNullableType(call->inferredType,call);
+        if(!call->inferredType)return 0;
+        xl6SemBindInferredTypeIdentity(ctx,call->inferredType);
+    }
+    return 1;
+}
 static int xl6SemCOwnedBaseForExpr(XL6_SemContext* ctx,XL6_AstNode* expression,const char** base)
 {
     XL6_AstNode* actual=xl6SemInferAutoTypeNode(ctx,expression);
@@ -58,19 +97,27 @@ static int xl6SemCheckCOwnedCopy(XL6_SemContext* ctx,XL6_AstNode* node)
         (!xl6TextEquals(callee->text,"string") && !xl6TextEquals(callee->text,"bytes")))return -1;
     const char* base=NULL;
     if(!xl6SemCOwnedBaseForExpr(ctx,arg,&base))return 0;
+    if(!base && (node->flags & XL6_AST_FLAG_C_OWNED_SPECIALIZATION)) {
+        XL6_AstNode* actual=xl6SemInferAutoTypeNode(ctx,arg);
+        base=xl6SemCOwnedTypeBase(actual);xl6AstFree(actual);
+    }
     if(!base)return -1;
     if(!xl6TextEquals(base,callee->text)) {
         xl6SemErrorNode(ctx,node,"C text and binary carriers only convert to their matching base type");return 0;
     }
     if(!xl6SemCheckExpr(ctx,arg))return 0;
     xl6SemSetCallPlan(node,XL6_SEM_CALL_C_OWNED_COPY,NULL);
-    return xl6SemCOwnedResult(ctx,node,base);
+    return xl6SemCOwnedNormalizedResult(ctx,node,base);
 }
 static int xl6SemNormalizeCOwnedExpr(XL6_SemContext* ctx,XL6_AstNode** place)
 {
     XL6_AstNode* expression=*place;
     const char* base=NULL;
     if(!xl6SemCOwnedBaseForExpr(ctx,expression,&base))return 0;
+    if(!base) {
+        XL6_AstNode* actual=xl6SemInferAutoTypeNode(ctx,expression);
+        base=xl6SemCOwnedTypeBase(actual);xl6AstFree(actual);
+    }
     if(!base)return 1;
     XL6_AstNode* name=xl6AstNewText(XL6_AST_NAME,base,strlen(base),NULL);
     XL6_AstNode* args=xl6AstNew(XL6_AST_LIST,NULL);
@@ -80,12 +127,12 @@ static int xl6SemNormalizeCOwnedExpr(XL6_SemContext* ctx,XL6_AstNode** place)
         if(call)xl6AstFree(call);else{xl6AstFree(name);xl6AstFree(args);}
         xl6AstFree(arg);return 0;
     }
-    call->line=expression->line;call->column=expression->column;
+    call->line=expression->line;call->column=expression->column;call->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
     xl6AstAddChild(arg,expression);xl6AstAddChild(args,arg);*place=call;
     if(!strcmp(base,"string")) {
         if(!xl6SemCheckExpr(ctx,expression))return 0;
         xl6SemSetCallPlan(call,XL6_SEM_CALL_C_OWNED_VIEW,NULL);
-        return xl6SemCOwnedResult(ctx,call,base);
+        return xl6SemCOwnedNormalizedResult(ctx,call,base);
     }
     return xl6SemCheckCOwnedCopy(ctx,call)==1;
 }
@@ -188,16 +235,22 @@ static int xl6SemValidateCOwnedTypes(XL6_SemContext* ctx,XL6_AstNode* node,XL6_A
             }
         }
     }
+    if(node->kind==XL6_AST_RETURN_TYPES) {
+        for(size_t r=0;r<node->childCount;++r) {
+            XL6_AstNode* inner=(XL6_AstNode*)xl6SemNullableInnerType(node->children[r]);
+            if(inner && xl6COwnedBaseName(inner->text))inner->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
+        }
+    }
     if(node->kind==XL6_AST_EXTERN_FUNC || node->kind==XL6_AST_NATIVE_EXTERN_FUNC ||
         node->kind==XL6_AST_NATIVE_EXTERN_SPECIAL || node->kind==XL6_AST_EXPORT_FUNC || node->kind==XL6_AST_ASYNC_FUNC ||
         (node->flags & XL6_AST_FLAG_ASYNC)) {
         const XL6_AstNode* returns=xl6SemCallableReturns(node);
         for(size_t r=0;returns && r<returns->childCount;++r)
-            if(xl6COwnedBaseName(returns->children[r]->text)) {
+            if(xl6SemCOwnedTypeBase(returns->children[r])) {
                 xl6SemErrorNode(ctx,node,"C result markers require a synchronous language function with an explicit take adapter");ok=0;
             }
     }
-    if (node->kind==XL6_AST_TYPE && xl6COwnedBaseName(node->text) &&
+    if (node->kind==XL6_AST_TYPE && xl6COwnedBaseName(node->text) && !(node->flags & XL6_AST_FLAG_C_OWNED_SPECIALIZATION) &&
         (!parent || (parent->kind!=XL6_AST_VAR_DECL && parent->kind!=XL6_AST_CONST_DECL && parent->kind!=XL6_AST_RETURN_TYPES &&
           !(parent->kind==XL6_AST_PARAM && (parent->flags & (XL6_AST_FLAG_C_OWNED_SPECIALIZATION|XL6_AST_FLAG_C_SPAN_PARAM)))) ||
          (parent->kind!=XL6_AST_RETURN_TYPES && parent->kind!=XL6_AST_PARAM && xl6SemVarDeclTypeNode(parent)!=node))) {
@@ -265,10 +318,12 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
         XL6_AstNode* parameter=params->children[position];
         if(parameter->flags & (XL6_AST_FLAG_BYREF|XL6_AST_FLAG_OUT))continue;
         XL6_AstNode* actual=xl6SemInferAutoTypeNode(ctx,arg->children[0]);
-        const char* base=actual ? xl6COwnedBaseName(actual->text) : NULL;
-        if(base && parameter->childCount &&
-            (xl6TextEquals(base,parameter->children[0]->text) ||
-             (concreteGeneric && xl6TextEquals(actual->text,parameter->children[0]->text))))
+        const char* base=xl6SemCOwnedTypeBase(actual);
+        const XL6_AstNode* formal=parameter->childCount ? xl6SemCOwnedElement(parameter->children[0]) : NULL;
+        const XL6_AstNode* argument=xl6SemCOwnedElement(actual);
+        if(base && formal &&
+            (xl6TextEquals(base,formal->text) ||
+             (concreteGeneric && argument && xl6TextEquals(argument->text,formal->text))))
             any=promote[position]=1;
         xl6AstFree(actual);
     }
@@ -278,7 +333,8 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     signature->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
     for(size_t p=0;p<params->childCount;++p)if(promote[p]) {
         XL6_AstNode* parameter=signature->children[1]->children[p];
-        XL6_AstNode* type=parameter->children[0];
+        XL6_AstNode* type=(XL6_AstNode*)xl6SemCOwnedElement(parameter->children[0]);
+        type->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
         if(!xl6COwnedBaseName(type->text)) {
             const char* marker=xl6TextEquals(type->text,"string") ? "cstring" : "cbytes";
             xrtFree(type->text);type->text=xrtStrDup(marker);
@@ -288,8 +344,9 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     xrtFree(promote);
     XL6_AstNode* returns=signature->children[2];
     if(function->kind!=XL6_AST_ASYNC_FUNC && !(function->flags & XL6_AST_FLAG_ASYNC) && returns->childCount==1 &&
-        (xl6TextEquals(returns->children[0]->text,"string") || xl6TextEquals(returns->children[0]->text,"bytes"))) {
-        XL6_AstNode* type=returns->children[0];
+        (xl6TextEquals(xl6SemCOwnedElement(returns->children[0])->text,"string") || xl6TextEquals(xl6SemCOwnedElement(returns->children[0])->text,"bytes"))) {
+        XL6_AstNode* type=(XL6_AstNode*)xl6SemCOwnedElement(returns->children[0]);
+        type->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
         const char* marker=xl6TextEquals(type->text,"string") ? "cstring" : "cbytes";
         xrtFree(type->text);type->text=xrtStrDup(marker);
     }
@@ -362,7 +419,7 @@ static int xl6SemCOwnedPrint(XL6_SemContext* ctx,XL6_AstNode* call)
         XL6_AstNode* arg=args->children[i];
         if(arg->kind!=XL6_AST_ARG || arg->childCount!=1)return -1;
         XL6_AstNode* type=xl6SemInferAutoTypeNode(ctx,arg->children[0]);
-        owned|=type && xl6COwnedBaseName(type->text)!=NULL;
+        owned|=xl6SemCOwnedTypeBase(type)!=NULL;
         xl6AstFree(type);
     }
     if(!owned)return -1;

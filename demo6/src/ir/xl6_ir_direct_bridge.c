@@ -1455,7 +1455,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
         const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[i]);
         XL6_IrCAbi abi = contract->parameters[i];
         if(abi==XL6_IR_C_ABI_C_BYTES || abi==XL6_IR_C_ABI_C_STRING) {
-            if(!xl6IrTypeIsCOwned(type) || type->cAbi!=abi ||
+            if(!xl6IrTypeIsCOwned(type) || type->kind!=XL6_IR_TYPE_BUILTIN || type->cAbi!=abi ||
                 target->parameterAbis[i]!=XL6_IR_PARAMETER_ABI_BORROW ||
                 target->parameterPhysicalAbis[i]!=XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW ||
                 target->parameterConstraintAbis[i]!=XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||

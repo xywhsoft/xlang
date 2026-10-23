@@ -63,6 +63,7 @@ $generatedSources=@(
     'test/cases/xlir_c_owned_views.xl','test/cases/xlir_c_owned_flow.xl',
     'test/cases/xlir_c_owned_calls.xl','test/cases/xlir_c_owned_frames.xl',
     'test/cases/xlir_c_owned_stdlib.xl',
+    'test/cases/xlir_c_owned_nullable.xl','test/cases/xlir_c_owned_nullable_boundaries.xl',
     'test/cases/xlir_c_owned_writes.xl','test/cases/xlir_c_owned_print.xl',
     'test/cases/xlir_c_owned_traverse.xl','test/cases/xlir_c_owned_sequence.xl',
     'test/cases/xlir_c_owned_borrows.xl','test/cases/xlir_c_owned_failure.xl')
@@ -73,6 +74,9 @@ foreach ($source in $generatedSources) {
     if ($LASTEXITCODE) { throw "C owner $name compilation failed" }
     if($name -eq 'stdlib' -and [IO.File]::ReadAllText($generated).Contains('xl6CBytesCopyV1(')) {
         throw 'Native read-only standard library calls materialized a C bytes input'
+    }
+    if($name -eq 'nullable' -and [IO.File]::ReadAllText($generated) -match 'xl6C(String|Bytes)CopyV1\(') {
+        throw 'Typed nullable C reads materialized their input'
     }
     if ($LASTEXITCODE) { throw "C owner $name compilation failed" }
     $linkArgs=@($flags)+@("-I$outputPath/include",$generated,'test/cases/xlir_c_owned_native.c')+
@@ -102,6 +106,8 @@ $prefix = "extern `"c_owned_text`" @no_raise func make() as point`nextern `"c_ow
 $negative = @(
     @{Name='parameter';Body="func probe(cstring a)`nend";Message='C markers are limited'},
     @{Name='span-return';Body="extern `"wrong`" @no_raise func wrong() as cbytes";Message='C result markers require'},
+    @{Name='optional-span-return';Body="extern `"wrong`" @no_raise func wrong() as cbytes?";Message='C result markers require'},
+    @{Name='optional-async-return';Body="async func wrong() as cstring?`n return null`nend";Message='C result markers require'},
     @{Name='native-span-return';Body="class Box`n native point handle`n extern `"wrong`" func wrong() as cbytes`nend";Message='C result markers require'},
     @{Name='container';Body="func probe()`n array<cbytes> a`nend";Message='C markers are limited'},
     @{Name='global';Body="cstring a = cstring.take(make(), drop)";Message='explicit local initialization'},
