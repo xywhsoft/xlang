@@ -4,6 +4,11 @@
 critical 上下文、三个枚举和五个真实叶目录；最终双平台联合源码验收已通过。
 它仍不代表 path/build/store/identity 或完整 X.509 已接入。
 
+上述正式验收绑定提交 `8e2f2a6e6` 的冻结工作区。之后另一项 C-owned 编译器
+合并 `2d1471ceb` 改变了 AST／IR／语义及 Cgen，但未改本批路径实现。已使用
+双端 source-r3／native-public-r5／api-r4／regression-r2 重新验收，1571 阶段
+再次通过。合并前后证据分开保留；后者见 `verified-postmerge-commit.json`。
+
 ## 实现边界
 
 - `xl6_x509_anchor.c` 从显式 Certificate 复制 DER，并由 XRT 提取独立信任锚。
@@ -108,6 +113,21 @@ TrustStore／文件／系统来源、身份匹配和与 CRL/TLS 的组合。固�
 结论粒度与建链时资源错误处理
 仍需逐项核对，不能用通用 false、消息匹配或 Cgen 分支掩盖。
 
+已确认一项建链依赖缺陷：固定原生 `xrtX509PathBuild` 会把候选分支的 OOM
+当作可继续搜索的验证拒绝，后续正常候选成功时释放该错误并返回成功。
+证据根的 `build-oom-probe-r1` 使用四张正常、独立核对签名的证书、两个合法
+CA 用途配置和 FailAfter(0)，实测 `accepted=1 fault=1 kind=0 swallowed=1`。
+没有网络或畸形密码输入。当前 ordered 接口并不选择 PATH_BUILD，故不受这条
+未接入路径影响；候选建链接入前必须修复独立 XRT 并定点同步固定快照，
+不能在 Cgen 或语言适配层用重试／吞错掩盖。
+
+`build-callback-resource-probe-r1` 又以正常 CA 的自定义 critical handler 返回
+X509_ERROR／Memory 复现：已有另一候选的用途拒绝时，最终结果变成 NotFound，
+原因链中 Memory 完全丢失（`accepted=0 kind=8 memory_in_chain=0 swallowed=1`）。
+这不仅是可选诊断分配的恢复问题；原生建链必须明确区分可回溯的验证拒绝与
+必须终止的操作／回调失败。优先补足原生 typed decision 与结构化原因，共用
+现有验证算法；不要把更复杂的域名／消息猜测继续堆到驻留适配层。
+
 独立 XRT、固定快照、时间 ABI、Cgen 和发布资产均未修改。完整目标继续 active。
 
 ## 公开接线正式验收（2026-10-23）
@@ -143,3 +163,19 @@ harness 曾误将读取常量的夹具依赖源加入编译，导致多 main 链
 这是冻结完整工作区的源码验收，不是纯净 checkout／发布 DLL／SO／VFS 或
 完整 P5 验收。长资源作用域的通用 IR 性能／清理 C 体积风险仍开放。没有
 进行网络流量、原生网络安全测试、畸形密码数据或攻击模拟。
+
+## C-owned 编译器合并后的独立复测
+
+在 `2d1471ceb` 合并之后重新构建 1087／1086 TU，重跑同一完整矩阵：Windows
+784／Linux 787，共 1571 阶段再次通过，未复用先前的验证结果。31 个入口、
+11 个拥有结果、450 处坏合同与 36 个输出门，以及 36 个分配预算、28 次失败、
+十个发布预算／五个目录的原生专项均通过。本批路径实现和声明没有改变。
+
+正式边界为 source-*-r3、native-public-*-r5、双端 api-r4、regression-r2。
+驱动／输入／日志／产物再次独立哈希复核，Linux 原件与新的
+`postmerge-linux-evidence` 镜像均保留；合并前的全部证据和两个原提交回执
+不覆盖。当前证据与提交身份见 `verified-postmerge-commit.json`。
+
+这是路径与七组既有标准库对该编译器合并的集成验收，不代替 C-owned 特性
+自身测试，更不是发布验收。上述两个原生建链错误仍未修复，且当前接口不
+选择 PATH_BUILD。下一批先补原生显式验证／操作失败分流，再接入候选建链。
