@@ -1,3 +1,5 @@
+param([switch]$SkipAot)
+
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') { throw 'ui.auto requires Windows' }
 
@@ -60,6 +62,22 @@ try {
         Write-Host "Screenshot: $($image.Width)x$($image.Height)"
     } finally {
         $image.Dispose()
+    }
+    if (-not $SkipAot) {
+        $coreExe = Join-Path $work 'ui_auto_core.exe'
+        & $xl build extlibs/ui.auto/test/named_type.xl -o $coreExe
+        if ($LASTEXITCODE -ne 0) { throw 'ui.auto core AOT build failed' }
+        & $coreExe
+        if ($LASTEXITCODE -ne 0) { throw 'ui.auto core AOT run failed' }
+
+        $exampleExe = Join-Path $work 'ui_auto_example.exe'
+        & $xl build examples/extlibs/ui_auto.xl -o $exampleExe
+        if ($LASTEXITCODE -ne 0) { throw 'ui.auto example AOT build failed' }
+        $aotExample = @(& $exampleExe)
+        if ($LASTEXITCODE -ne 0) { throw 'ui.auto example AOT run failed' }
+        if ([string]::Join("`n", $aotExample) -cne [string]::Join("`n", $xlExample)) {
+            throw 'ui.auto example AOT output differs from C/XLang JIT'
+        }
     }
     Write-Host 'ui.auto package checks: PASS'
 } finally {

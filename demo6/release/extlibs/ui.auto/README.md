@@ -30,8 +30,14 @@ JSON 字段类型必须正确，且至少有
 
 ```powershell
 ./xl.exe run examples/extlibs/ui_auto.xl
-powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/ui.auto/test/check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/ui.auto/test/check.ps1 -SkipAot
 ```
+
+默认不带 `-SkipAot` 的门禁还须构建运行具名类型核心用例和公开范例 AOT，
+并将范例输出与 C/XLang JIT 对照；只有显式 `-SkipAot` 才跳过这两步。
+2026-10-24 聚焦门禁通过，默认门禁在核心 AOT 构建处准确报告共享
+`xl6ValueDataSnapshotV1` 缺符号并返回失败，本次独占测试目录已清理。
+因此以下成功路径仅是 C/JIT 调用层证据，不作完整发布级签收。
 
 对照 C 范例为 `examples/extlibs/ui_auto_c.c`，直接使用 `uia` 的 C API
 组合控件类、类型与进程条件，并与 XLang 范例一样完成输入、读取和按钮点击。
