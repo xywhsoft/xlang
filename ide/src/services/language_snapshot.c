@@ -120,6 +120,14 @@ static int hash(const void* bytes,size_t size,const xvalue* value)
  for(int i=0;i<32;++i) snprintf(hex+2*i,3,"%02x",digest[i]);
  return !strcmp(expected,hex);
 }
+/* Overlay raw/text reports describe the same post-BOM bytes. Require both
+   complete digests to agree before verifying that one digest against input;
+   neither an unchecked second field nor a second full-source hash is needed. */
+static int overlayHash(const void* bytes,size_t size,const xvalue* text,const xvalue* raw)
+{
+ const char *a=string(text),*b=string(raw);
+ return a && b && strlen(a)==64 && strlen(b)==64 && !memcmp(a,b,64) && hash(bytes,size,text);
+}
 static int absolute(const char* path)
 {
  if(!path) return 0;
@@ -214,7 +222,7 @@ static int loadGraph(xide_language_check* q,const xvalue* raw,source_graph* g,xi
    const char* submitted=overlay>=0 ? q->snapshots[overlay].text : ""; size_t submittedSize=strlen(submitted),bom=submittedSize>=3 && !memcmp(submitted,"\xef\xbb\xbf",3) ? 3 : 0;
    /* CLI reads the UTF-8 snapshot file after removing its BOM. The report
       hashes that actual compiler input; LSP positions retain the open BOM. */
-   if(overlay>=0 && (kind&1) && size==(int64)(submittedSize-bom) && rawSize==size && hash(submitted+bom,(size_t)size,get(item,"textSha256")) && hash(submitted+bom,(size_t)size,get(item,"rawSha256"))) { text=normalized(submitted,submittedSize); if(text) { original=malloc((size_t)size+1); if(original) memcpy(original,submitted+bom,(size_t)size+1); } }
+   if(overlay>=0 && (kind&1) && size==(int64)(submittedSize-bom) && rawSize==size && overlayHash(submitted+bom,(size_t)size,get(item,"textSha256"),get(item,"rawSha256"))) { text=normalized(submitted,submittedSize); if(text) { original=malloc((size_t)size+1); if(original) memcpy(original,submitted+bom,(size_t)size+1); } }
   } else if(!strcmp(origin,"disk") && overlay<0) text=diskText(q,resolved,item,&original,e);
   if(!text || !original) { free(text); free(original); free(resolved); if(!e->code) fail(e,"源码报告与提交的文档覆盖不一致。"); return 0; }
   g->items[g->count++]=(source_item){resolved,text,original,item,overlay}; g->bytes+=(size_t)size;

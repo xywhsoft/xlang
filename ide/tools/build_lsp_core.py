@@ -34,7 +34,7 @@ SERVER_SOURCES = (
     "src/server/xlang_ls.c",
 )
 CORE_TESTS = ("analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_overload_scan_test", "analysis_completion_candidates_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_cursor_syntax_test", "analysis_text_test", "document_sync_test")
-HOST_TESTS = ("analysis_index_view_test", "language_input_guard_test", "diagnostic_store_test", "language_definition_proof_test")
+HOST_TESTS = ("analysis_index_view_test", "language_input_guard_test", "diagnostic_store_test", "language_definition_proof_test", "snapshot_report_test")
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 CORE_TESTS = ("analysis_process_tree_test", *CORE_TESTS)
 
@@ -432,7 +432,8 @@ def main() -> None:
                 extra.append(str(limited_index))
             if name in HOST_TESTS:
                 extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
-                          if Path(source).stem != "xlang_ls"]
+                          if Path(source).stem != "xlang_ls" and
+                          not (name == "snapshot_report_test" and Path(source).stem == "language_snapshot")]
             run([str(cc), str(objects[name]), *extra, str(core), "-Wl,--gc-sections", *libraries, "-o", str(program)], name + "-link")
             result = run([str(program)], name + "-run", 30)
             if b"passed:" not in result.stdout:

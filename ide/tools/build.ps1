@@ -86,6 +86,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Catalog source verification failed.' }
 & python -X utf8 (Join-Path $PSScriptRoot 'font_resources.py') --source (Join-Path $ideRoot 'data\fonts') --destination (Join-Path $releaseRoot 'data\fonts')
 if ($LASTEXITCODE -ne 0) { throw 'Pinned offline font resource verification failed.' }
 if ($Tests) {
+    # This boundary fixture owns the real snapshot implementation.
+    $reportObjects = $objects | Where-Object { $_ -notmatch 'src_services_language_snapshot\.c\.o$' }
+    & $compiler @flags (Join-Path $ideRoot 'tests\snapshot_report_test.c') @reportObjects @libraries -o (Join-Path $releaseRoot 'snapshot_report_test.exe')
+    if ($LASTEXITCODE -ne 0) { throw 'Snapshot report boundary fixture link failed.' }
     & $compiler @flags (Join-Path $ideRoot 'tests\build_inputs_test.c') @objects @libraries -o (Join-Path $releaseRoot 'build_inputs_test.exe')
     if ($LASTEXITCODE -ne 0) { throw 'Build input receipt test link failed.' }
     & $compiler @flags (Join-Path $ideRoot 'tests\task_path_test.c') @objects @libraries -o (Join-Path $releaseRoot 'task_path_test.exe')
