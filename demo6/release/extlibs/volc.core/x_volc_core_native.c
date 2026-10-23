@@ -145,6 +145,22 @@ static const char* xvolc_return_text(const char* text)
 	return xvolc_return_copy(text, text ? strlen(text) : 0u);
 }
 
+/* XLang 消费结果槽时直接取走分配；静态失败文本则复制一次。 */
+void* x_volc_core_take_result(const char* text)
+{
+	xvolc_state* state = xvolc_state_get();
+	size_t i;
+	if (state == NULL) return NULL;
+	if (text == NULL) text = "";
+	for (i = 0u; i < sizeof(state->returns) / sizeof(state->returns[0]); ++i) {
+		if (state->returns[i] == text) {
+			state->returns[i] = NULL;
+			return (void*)text;
+		}
+	}
+	return xrtMemDup(text, strlen(text) + 1u);
+}
+
 static void xvolc_buf_init(xvolc_buf* b)
 {
 	b->data = NULL;

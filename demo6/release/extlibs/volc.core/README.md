@@ -20,6 +20,10 @@ string preview = volc.core.sign_preview_acep(
 
 声明见 `include/volc_core_native.h`。返回的 `const char*` 由包持有，调用方不得释放；需要跨线程或长期保存时应立即复制。返回槽及 `last_error`/`last_status` 使用 XRT 原生线程局部键，线程退出时清理；不同线程的诊断与返回缓存不会互相覆盖。**这只是离线签名层的线程隔离验证，不是在线客户端的并发认证。**在线 `request*` 会创建并销毁一个 XRT 网络引擎及 HTTP 客户端，尚未验收连接复用、并发和真实服务行为。
 
+`x_volc_core_take_result` 供语言桥接显式消费结果槽：若指针属于当前线程的槽，
+直接转交分配；静态失败文本则复制一次。结果统一由 `xrtFree` 释放。旧 C API 的
+借用合同不变；HTTP 响应体仍走原有路径，不把可能含 NUL 的字节当成零结尾文本接管。
+
 原生 C 范例在 `examples/signing.c`；XLang 范例在 `release/examples/extlibs/volc_core.xl`。两者以固定日期和测试凭据进行离线签名，不访问火山引擎。
 
 ## 当前验证
@@ -49,3 +53,7 @@ C 边界与离线范例均通过。XLang 导入链仍在 `xhttp.multipart` 的
 2026-10-22：通用签名入口拒绝上述签名字段中的控制字符，防止改变规范请求行结构或授权头；C 离线测试覆盖八个字段的 CR/LF、主机 TAB/DEL，以及含换行请求体的成功恢复。Windows 严格 GCC 和 Linux ASan/UBSan 离线门禁通过；XLang 与在线路径仍未验收。
 
 2026-10-22：签名与请求改用同一条规范 URI；C 离线测试及范例固定验证 `/a b/中文` 的授权签名，另测 `%` 二次编码和非绝对路径拒绝。Windows 严格 GCC、Linux ASan/UBSan 离线门禁通过；真实在线 URL 仍待网络验收，XLang 导入阻断未解除。
+
+2026-10-24：离线文本结果的 XLang 包装改为直接接管 C 结果槽，消除槽内复制之后的
+第二次语言字符串复制。C 测试验证原指针转交、轮转后存活和静态文本复制；Windows
+严格 C 与 Linux ASan/UBSan 离线门禁通过。XLang 导入仍被 `xhttp.multipart` 阻断。
