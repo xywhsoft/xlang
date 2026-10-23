@@ -87,6 +87,13 @@ int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*cancel
 /* Borrowed immutable actual-input file reports, not all captured overlays.
    Valid until the caller releases its reference; safe across validations. */
 const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard);
+/* Worker-only exact invalidation scope: actual inputs and every observed
+   import candidate, including absent paths and manifests. Sorted/deduplicated
+   with existing platform lexical path rules; no filesystem access. Caller
+   owns the array, which outlives guard. Cancellation does not invalidate guard. */
+xvalue* xideLanguageInputGuardPaths(const xide_language_input_guard* guard,int (*cancelled)(void*),void* user);
+/* Same exact scope for the union of at most64 contributing entry guards. */
+xvalue* xideLanguageInputGuardsPaths(const xide_language_input_guard* const* guards,size_t count,int (*cancelled)(void*),void* user);
 int xideLanguageInputGuardCurrent(const xide_language_input_guard* guard);
 void xideLanguageInputGuardInvalidate(xide_language_input_guard* guard);
 /* Lexical inputs/candidate lookup only, without disk access. */
