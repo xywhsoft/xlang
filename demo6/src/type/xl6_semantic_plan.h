@@ -31,7 +31,8 @@ typedef enum XL6_SemCallKind {
     XL6_SEM_CALL_C_OWNED_COPY,
     XL6_SEM_CALL_C_OWNED_READ,
     XL6_SEM_CALL_C_OWNED_COMPARE,
-    XL6_SEM_CALL_C_OWNED_VIEW
+    XL6_SEM_CALL_C_OWNED_VIEW,
+    XL6_SEM_CALL_C_OWNED_PRINT
 } XL6_SemCallKind;
 
 typedef enum XL6_SemLvalueKind {

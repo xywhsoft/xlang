@@ -6,7 +6,23 @@ static int xl6IrCgenEmitCOwned(XL6_Output* out,const XL6_IrModule* module,
         return xl6IrCgenDiag(diags,module,ins->origin,"C owner operation has no exact physical ABI");
     unsigned result=(unsigned)ins->result;
     unsigned source=(unsigned)module->operands[ins->firstOperand];
-    if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_SET_COPY) {
+    if(ins->runtimeOp==XL6_IR_RUNTIME_C_PRINT || ins->runtimeOp==XL6_IR_RUNTIME_C_PRINTLN) {
+        xl6OutputPrintf(out,"    XL6_CPrintPartV1 c_print_%u[%lu] = {0};\n",result,(unsigned long)ins->operandCount);
+        for(size_t i=0;i<ins->operandCount;++i) {
+            unsigned value=(unsigned)module->operands[ins->firstOperand+i];
+            const XL6_IrInstruction* def=xl6IrCgenValueDefinition(module,value,NULL);
+            const XL6_IrType* type=xl6IrTypeGet(&module->types,def->type);
+            if(xl6IrTypeIsCOwned(type) || type->cAbi==XL6_IR_C_ABI_MANAGED_STRING)
+                xl6OutputPrintf(out,"    c_print_%u[%lu].Kind=%d; c_print_%u[%lu].Data=v%u.Data; c_print_%u[%lu].Size=v%u.Size;\n",
+                    result,(unsigned long)i,type->cAbi==XL6_IR_C_ABI_C_BYTES ? 2 : 1,result,(unsigned long)i,value,result,(unsigned long)i,value);
+            else if(type->cAbi==XL6_IR_C_ABI_MANAGED_BYTES)
+                xl6OutputPrintf(out,"    { xbytesview bytes={0}; if(!xrtValueGetBytes(v%u,&bytes))abort();\n"
+                    "      c_print_%u[%lu].Kind=2; c_print_%u[%lu].Data=bytes.Data; c_print_%u[%lu].Size=bytes.Size; }\n",
+                    value,result,(unsigned long)i,result,(unsigned long)i,result,(unsigned long)i);
+            else xl6OutputPrintf(out,"    c_print_%u[%lu].Kind=3; c_print_%u[%lu].Value=v%u;\n",result,(unsigned long)i,result,(unsigned long)i,value);
+        }
+        xl6OutputPrintf(out,"    v%u = xl6CPrintV1(c_print_%u,%lu,%s);\n",result,result,(unsigned long)ins->operandCount,ins->runtimeOp==XL6_IR_RUNTIME_C_PRINTLN ? "true" : "false");
+    } else if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_SET_COPY) {
         xl6OutputPrintf(out,"    v%u = xl6CStringFromStringV1(xlir_string_scalar_set_copy(xl6CStringViewV1(v%u), v%u, v%u));\n"
             "    bool projection_ok_%u = v%u.Data != NULL;\n",result,source,
             (unsigned)module->operands[ins->firstOperand+1],(unsigned)module->operands[ins->firstOperand+2],result,result);

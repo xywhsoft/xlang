@@ -10936,6 +10936,7 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     if(node->semanticCallKind==XL6_SEM_CALL_C_OWNED_VIEW)return xl6SemCOwnedResult(ctx,node,"string");
     if(node->semanticCallKind==XL6_SEM_CALL_C_OWNED_COMPARE)return xl6SemCOwnedResult(ctx,node,"bool");
+    {int printed=xl6SemCOwnedPrint(ctx,node);if(printed>=0)return printed;}
     int ok;
     int implicitMethodRewrite;
     int channelOk;
@@ -19271,6 +19272,7 @@ static XL6_AstNode* xl6SemCloneForTargetType(XL6_SemContext* ctx, XL6_AstNode* i
         return NULL;
     }
 
+    if(xl6COwnedBaseName(typeName))typeName=xl6COwnedBaseName(typeName);
     if ( xl6TextEquals(typeName, "generator") ) {
         if ( targetCount == 2 && targetIndex == 0 ) {
             xl6AstFree(iterableType);
@@ -19404,12 +19406,6 @@ static int xl6SemCheckFor(XL6_SemContext* ctx, XL6_AstNode* node)
     iterable = node->childCount > 1 ? node->children[1] : NULL;
     if ( node->childCount > 1 && !xl6SemCheckExpr(ctx, iterable) ) {
         ok = 0;
-    }
-    if(ok && iterable) {
-        ok=xl6SemNormalizeCOwnedExpr(ctx,&node->children[1]);
-        iterable=node->children[1];
-        if(iterable->semanticCallKind==XL6_SEM_CALL_C_OWNED_VIEW)
-            iterable->semanticCallKind=XL6_SEM_CALL_C_OWNED_COPY;
     }
 
     if ( (node->flags & XL6_AST_FLAG_ASYNC) != 0 ) {

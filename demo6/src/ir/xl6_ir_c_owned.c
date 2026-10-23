@@ -19,10 +19,11 @@ int xl6IrTypeIsCOwned(const XL6_IrType* type)
 }
 int xl6IrCOwnedRuntimeOpIs(XL6_IrRuntimeOp op)
 {
-    return op>=XL6_IR_RUNTIME_CSTRING_TAKE && op<=XL6_IR_RUNTIME_CBYTES_SET_COPY;
+    return op>=XL6_IR_RUNTIME_CSTRING_TAKE && op<=XL6_IR_RUNTIME_C_PRINTLN;
 }
 XL6_IrCallErrorPhysicalAbi xl6IrCOwnedErrorPhysicalAbi(XL6_IrRuntimeOp op)
 {
+    if(op==XL6_IR_RUNTIME_C_PRINT || op==XL6_IR_RUNTIME_C_PRINTLN)return XL6_IR_CALL_ERROR_PHYSICAL_FALSE_RESULT;
     if(op==XL6_IR_RUNTIME_CSTRING_SET_COPY || op==XL6_IR_RUNTIME_CBYTES_SET_COPY ||
         op==XL6_IR_RUNTIME_C_OWNED_COPY || op==XL6_IR_RUNTIME_CSTRING_TAKE ||
         op==XL6_IR_RUNTIME_CBYTES_TAKE || op==XL6_IR_RUNTIME_CBYTES_FROM_BYTES ||
@@ -66,6 +67,17 @@ int xl6IrCOwnedInstructionCompatible(const XL6_IrModule* module,const XL6_IrInst
     const XL6_IrType* source=input ? xl6IrTypeGet(&module->types,input->type) : NULL;
     const XL6_IrType* result=xl6IrTypeGet(&module->types,ins->type);
     if(!source || !result) return 0;
+    if(ins->runtimeOp==XL6_IR_RUNTIME_C_PRINT || ins->runtimeOp==XL6_IR_RUNTIME_C_PRINTLN) {
+        const XL6_IrNode* origin=xl6IrNodeGet(module,ins->origin);
+        if(ins->targetSymbol || result->cAbi!=XL6_IR_C_ABI_BOOL || !origin || origin->callKind!=XL6_SEM_CALL_C_OWNED_PRINT)return 0;
+        for(size_t i=0;i<ins->operandCount;++i) {
+            const XL6_IrInstruction* def=xl6IrValueDefinition(module,module->operands[ins->firstOperand+i],NULL);
+            const XL6_IrType* type=def ? xl6IrTypeGet(&module->types,def->type) : NULL;
+            if(!type || (!xl6IrTypeIsCOwned(type) && type->cAbi!=XL6_IR_C_ABI_MANAGED_STRING &&
+                type->cAbi!=XL6_IR_C_ABI_MANAGED_BYTES && !xl6IrTypeIsDynamicXValueBuiltin(module,def->type)))return 0;
+        }
+        return 1;
+    }
     if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_SET_COPY || ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_SET_COPY) {
         const XL6_IrInstruction* key=ins->operandCount==3 ? xl6IrValueDefinition(module,module->operands[ins->firstOperand+1],NULL) : NULL;
         const XL6_IrInstruction* item=ins->operandCount==3 ? xl6IrValueDefinition(module,module->operands[ins->firstOperand+2],NULL) : NULL;

@@ -222,20 +222,23 @@ static XL6_AstNode* xl6SemCOwnedClone(const XL6_AstNode* source)
 static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call,XL6_AstNode* function)
 {
     if(function->kind!=XL6_AST_FUNC || xl6SemFuncIsGeneric(function) ||
-        (function->flags & (XL6_AST_FLAG_ASYNC|XL6_AST_FLAG_C_OWNED_SPECIALIZATION)) ||
+        (function->flags & XL6_AST_FLAG_ASYNC) ||
         call->childCount!=2 || call->children[0]->kind!=XL6_AST_NAME)return function;
     XL6_AstNode* params=function->childCount>1 ? function->children[1] : NULL;
     XL6_AstNode* args=call->children[1];
-    if(!params || params->childCount!=args->childCount || params->childCount>63)return function;
+    if(!params || params->childCount>63 || (size_t)xl6SemFixedParamCount(params)!=params->childCount)return function;
     uint64 mask=0;
-    for(size_t p=0;p<params->childCount;++p) {
-        XL6_AstNode* parameter=params->children[p];
-        XL6_AstNode* arg=args->children[p];
-        if(xl6SemParamIsVararg(parameter) || arg->kind!=XL6_AST_ARG || arg->childCount!=1)return function;
-        if(parameter->flags & (XL6_AST_FLAG_BYREF|XL6_AST_FLAG_OUT))return function;
+    size_t positional=0;
+    for(size_t i=0;i<args->childCount;++i) {
+        XL6_AstNode* arg=args->children[i];
+        int position=arg->kind==XL6_AST_NAMED_ARG ? xl6SemFindParamIndex(params,(int)params->childCount,arg->text) : (int)positional++;
+        if(position<0 || (size_t)position>=params->childCount ||
+            (arg->kind!=XL6_AST_ARG && arg->kind!=XL6_AST_NAMED_ARG) || arg->childCount!=1)return function;
+        XL6_AstNode* parameter=params->children[position];
+        if(parameter->flags & (XL6_AST_FLAG_BYREF|XL6_AST_FLAG_OUT))continue;
         XL6_AstNode* actual=xl6SemInferAutoTypeNode(ctx,arg->children[0]);
         const char* base=actual ? xl6COwnedBaseName(actual->text) : NULL;
-        if(base && parameter->childCount && xl6TextEquals(base,parameter->children[0]->text))mask|=UINT64_C(1)<<p;
+        if(base && parameter->childCount && xl6TextEquals(base,parameter->children[0]->text))mask|=UINT64_C(1)<<position;
         xl6AstFree(actual);
     }
     if(!mask)return function;
@@ -274,4 +277,26 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     xrtFree(call->children[0]->text);call->children[0]->text=xrtStrDup(name);
     xl6AstFree(call->inferredType);call->inferredType=NULL;
     return specialized;
+}
+
+static int xl6SemCOwnedPrint(XL6_SemContext* ctx,XL6_AstNode* call)
+{
+    XL6_AstNode* name=call->childCount ? call->children[0] : NULL;
+    if(!name || name->kind!=XL6_AST_NAME ||
+       (!xl6TextEquals(name->text,"__xl_std_print") && !xl6TextEquals(name->text,"__xl_std_println")))return -1;
+    XL6_AstNode* args=call->childCount>1 ? call->children[1] : NULL;
+    int owned=0;
+    for(size_t i=0;args && i<args->childCount;++i) {
+        XL6_AstNode* arg=args->children[i];
+        if(arg->kind!=XL6_AST_ARG || arg->childCount!=1)return -1;
+        XL6_AstNode* type=xl6SemInferAutoTypeNode(ctx,arg->children[0]);
+        owned|=type && xl6COwnedBaseName(type->text)!=NULL;
+        xl6AstFree(type);
+    }
+    if(!owned)return -1;
+    for(size_t i=0;i<args->childCount;++i)
+        if(!xl6SemCheckExpr(ctx,args->children[i]->children[0]))return 0;
+    xl6SemSetCallPlan(call,XL6_SEM_CALL_C_OWNED_PRINT,NULL);
+    xl6AstFree(call->inferredType);call->inferredType=NULL;
+    return 1;
 }
