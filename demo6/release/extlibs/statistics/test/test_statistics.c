@@ -110,6 +110,92 @@ static int test_integer_reference(void)
     return 0;
 }
 
+/* 用整数和的恒等式独立核对双变量统计，避免与原生浮点算法共用实现。 */
+static int test_pair_reference(void)
+{
+    uint32_t seed = 0x4c9d2b71u;
+    unsigned trial;
+    for (trial = 0; trial < 256u; ++trial) {
+        size_t n = 2u + trial % 31u, i;
+        int64_t sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+        int64_t vx, vy, cov;
+        xvalue *x = xrtValueArray();
+        xvalue *y = xrtValueArray();
+        xvalue *fit;
+        double expected_slope, expected_intercept;
+        double actual_slope, actual_intercept;
+        CHECK(x != NULL && y != NULL);
+        for (i = 0; i < n; ++i) {
+            int64_t xi, yi;
+            seed = seed * 1664525u + 1013904223u;
+            xi = (int64_t)((seed >> 8u) % 201u) - 100;
+            seed = seed * 1664525u + 1013904223u;
+            yi = (int64_t)((seed >> 8u) % 201u) - 100;
+            sx += xi; sy += yi;
+            sxx += xi * xi; syy += yi * yi; sxy += xi * yi;
+            CHECK(xrtValueArrayAppendNew(x, xrtValueInt(xi)));
+            CHECK(xrtValueArrayAppendNew(y, xrtValueInt(yi)));
+        }
+        vx = (int64_t)n * sxx - sx * sx;
+        vy = (int64_t)n * syy - sy * sy;
+        cov = (int64_t)n * sxy - sx * sy;
+        CHECK(equal_result(xstat_covariance(x, y),
+            (double)cov / ((double)n * (double)n)));
+        CHECK(equal_result(xstat_covariance_sample(x, y),
+            (double)cov / ((double)n * (double)(n - 1u))));
+        if (vx != 0 && vy != 0) {
+            CHECK(equal_result(xstat_correlation(x, y),
+                (double)cov / sqrt((double)vx * (double)vy)));
+        }
+        if (vx != 0) {
+            expected_slope = (double)cov / (double)vx;
+            expected_intercept =
+                ((double)sy - expected_slope * (double)sx) / (double)n;
+            fit = xstat_linear_fit(x, y);
+            CHECK(fit && xrtValueType(fit) == XVALUE_ARRAY &&
+                xrtValueCount(fit) == 2);
+            CHECK(xrtValueGetFloat(xrtValueArrayAt(fit, 0), &actual_slope) &&
+                fabs(actual_slope - expected_slope) < 1e-10);
+            CHECK(xrtValueGetFloat(xrtValueArrayAt(fit, 1), &actual_intercept) &&
+                fabs(actual_intercept - expected_intercept) < 1e-10);
+            xrtValueRelease(fit);
+        }
+        xrtValueRelease(x);
+        xrtValueRelease(y);
+    }
+    {
+        const double fixed_x[] = {2, 2, 2};
+        const double varying_x[] = {1, 2, 3};
+        const double fixed_y[] = {7, 7, 7};
+        xvalue *constant = xrtValueArray();
+        xvalue *varying = xrtValueArray();
+        xvalue *other = xrtValueArray();
+        xvalue *failed;
+        xvalue *fit;
+        double slope, intercept;
+        CHECK(constant && varying && other &&
+            append_numbers(constant, fixed_x, 3) &&
+            append_numbers(varying, varying_x, 3) &&
+            append_numbers(other, fixed_y, 3));
+        failed = xstat_correlation(constant, varying);
+        CHECK(failed && xrtValueType(failed) == XVALUE_NULL && xrtGetError());
+        xrtValueRelease(failed);
+        failed = xstat_linear_fit(constant, varying);
+        CHECK(failed && xrtValueType(failed) == XVALUE_NULL && xrtGetError());
+        xrtValueRelease(failed);
+        fit = xstat_linear_fit(varying, other);
+        CHECK(fit && xrtValueCount(fit) == 2 &&
+            xrtValueGetFloat(xrtValueArrayAt(fit, 0), &slope) && slope == 0 &&
+            xrtValueGetFloat(xrtValueArrayAt(fit, 1), &intercept) && intercept == 7 &&
+            xrtGetError() == NULL);
+        xrtValueRelease(fit);
+        xrtValueRelease(constant);
+        xrtValueRelease(varying);
+        xrtValueRelease(other);
+    }
+    return 0;
+}
+
 /* 箱数固定时，中间计数不应为每个样本反复分配 xvalue。 */
 static int test_histogram_allocation_bound(void)
 {
@@ -169,6 +255,7 @@ int main(void)
     int64 count;
 
     CHECK(test_integer_reference() == 0);
+    CHECK(test_pair_reference() == 0);
     CHECK(test_histogram_allocation_bound() == 0);
 
     CHECK(values && empty && append_numbers(values, numbers, 8));
