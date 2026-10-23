@@ -327,10 +327,22 @@ static xvalue* xcbor_read_string(xcborreader* pReader, uint8 iMajor, uint64 iLen
             uint64 iSize;
             if (!xcbor_need(pReader, 1u)) break;
             if (pReader->Data[pReader->Offset] == 0xffu) {
+                size_t iJoinedSize = pJoined->Size;
+                bytes pJoinedData;
                 pReader->Offset++;
-                pResult = iMajor == 2u ?
-                    xrtValueBytes((xbytesview){pJoined->Data, pJoined->Size}) :
-                    xrtValueString((xstrview){(cstr)pJoined->Data, pJoined->Size});
+                pJoinedData = xrtBufferTake(pJoined, NULL, NULL);
+                if (pJoinedData == NULL && iJoinedSize != 0u) {
+                    xrtBufferDestroy(pJoined);
+                    return NULL;
+                }
+                if (iMajor == 2u) {
+                    pResult = xrtValueBytesTake(&pJoinedData, iJoinedSize);
+                } else {
+                    str sText = (str)pJoinedData;
+                    pResult = xrtValueStringTake(&sText, iJoinedSize);
+                    pJoinedData = (bytes)sText;
+                }
+                xrtFree(pJoinedData);
                 xrtBufferDestroy(pJoined);
                 return pResult;
             }
