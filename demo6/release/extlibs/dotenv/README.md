@@ -87,6 +87,11 @@ XLang 门禁均通过。Windows 默认门禁的核心 AOT 通过，带输出范�
 用例和双语范例，以及 Linux C ASan/UBSan、XLang 联合门禁通过。
 解析器无需修改；完整 AOT 的共享阻断仍未解除。
 
+2026-10-24：XLang 回归保存 `get()` 返回的字符串，再覆盖对应键并清空配置，
+确认先前结果仍独立可读。Windows `test/check.ps1 -SkipAot` 与 Linux
+`test/check.sh`（含 C ASan/UBSan、XLang 和双语对照）通过。C 的 `get()`
+仍返回对象内部借用地址，不能直接移交给语言字符串；完整 AOT 阻断未变。
+
 2026-10-14：修复缺文件后成功解析仍残留旧 XRT 错误的连续调用问题，并验证 `set`、`get`、`has`、`count`、`clear`、`apply`、`load` 的相同边界。Windows 包级 C/XLang 门禁与 Linux ASan/UBSan 通过；AOT 阻断状态不变。
 
 2026-10-15：新增解析 17 项与更新已有键的逐点分配失败矩阵，覆盖扩容、

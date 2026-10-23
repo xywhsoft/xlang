@@ -61,6 +61,13 @@ func main(...) as int
     assert rejected and config.get("A") == "one\tline\nnext\rreturn\"quote\\slash"
     config.parse("RECOVERED=ok\n")
     assert config.get("RECOVERED") == "ok" and not config.has("A")
+
+    config.set("STABLE", "owned string result from dotenv")
+    string saved = config.get("STABLE")
+    config.set("STABLE", "replaced")
+    assert saved == "owned string result from dotenv"
+    config.clear()
+    assert saved == "owned string result from dotenv" and config.count == 0
     println("dotenv replace: PASS")
     return 0
 end
