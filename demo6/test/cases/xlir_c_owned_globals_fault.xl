@@ -1,0 +1,7 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+func pair() as (cstring,cbytes)
+    return cstring.take(nativeText(),nativeFree),cbytes.take(nativeBytes(),4,nativeFree)
+end
+auto text,data=pair()
