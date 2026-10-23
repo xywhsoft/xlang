@@ -330,6 +330,7 @@ const char* xl6StdlibXidClassSource =
 #include "xl6_stdlib_x509_crl_policy.inc"
 #include "xl6_stdlib_x509_path.inc"
 #include "xl6_stdlib_x509_store.inc"
+#include "xl6_stdlib_x509_identity.inc"
 #include "xl6_stdlib_x509_signature_verify_buffer.inc"
 
 #include "xl6_stdlib_net_address.inc"
@@ -5243,6 +5244,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"crypto", "hkdfSha512Expand", "__xl_std_crypto_hkdfSha512Expand", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha512ExpandV1},
     {"crypto", "timingSafeEqual", "__xl_std_crypto_timingSafeEqual", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoTimingSafeEqualV1},
     {"x509", "parseSubjectKeyId", "__xl_std_x509_parseSubjectKeyId", NULL, NULL, 0, "bytes", xl6StdResidentxl6X509SubjectKeyIdParseV1},
+    {"x509", "matchesDns", "__xl_std_x509_matchesDns", NULL, NULL, 0, "bool", xl6StdResidentxl6X509MatchesDnsV1},
     {"x509", "parseCrlNumber", "__xl_std_x509_parseCrlNumber", NULL, NULL, 0, "bytes", xl6StdResidentxl6X509CrlNumberParseV1},
     {"x509", "parseCrlReason", "__xl_std_x509_parseCrlReason", NULL, NULL, 0, "X509CrlReason", xl6StdResidentxl6X509CrlReasonParseV1},
     {"x509", "parseInvalidityDate", "__xl_std_x509_parseInvalidityDate", NULL, NULL, 0, "time", xl6StdResidentxl6X509CrlInvalidityDateParseV1},

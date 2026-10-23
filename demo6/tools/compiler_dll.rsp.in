@@ -569,6 +569,9 @@
     src\runtime\xl6_x509_store_vfs.c
     src\runtime\xl6_x509_store_system.c
     src\runtime\xl6_x509_store_system_update.c
+    src\runtime\xl6_x509_identity_dns.c
+    src\runtime\xl6_x509_identity_host.c
+    src\runtime\xl6_x509_identity_match.c
     src\runtime\xl6_x509_store_domain.c
     src\runtime\xl6_x509_store_snapshot_domain.c
     src\runtime\xl6_x509_path_config.c

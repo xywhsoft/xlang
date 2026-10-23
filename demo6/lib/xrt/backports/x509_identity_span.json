@@ -1,0 +1,48 @@
+{
+  "Schema": 1,
+  "Purpose": "Preserve exact numeric host byte view before native C-string parsing",
+  "CanonicalCommit": "af2f24f120209f77a8ba7f50957e02154c48c557",
+  "PreviousCanonicalCommit": "e52d9142118bac48c5fdb5b0758adf5d49c2dbd1",
+  "WholeSnapshotUpgrade": false,
+  "TimeAbiPreserved": true,
+  "PublicStructLayoutsPreserved": true,
+  "FunctionSignaturesPreserved": true,
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "acb6184b374b5e82c295e4d82de6375c8c82a8f92939455f1efeda741de1aff5",
+      "AfterSha256": "0a2ebdc8dd0441ed8fc93a3d001a8f72fbe0d5ac0855b4284bf44f2687be0b03"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "bcdd57d12adeff91a864d1ddc9cb9bd6363f8a524507dce15695e67e0e431163",
+      "AfterSha256": "ad9b1222ab60e340aa8f744e0f545b60a789fc85600a68f310a6418b778361a8"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "74eaeb9bd4935aff698d3a4d624cfbe4b13cca5e44d235435622e4a17aad289c",
+      "AfterSha256": "c649275e0d1ad0ebb6fde7e9e524e4550f9ae812fc48ddff8fcfbb5c9b721e4e"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "4c5ebbf637be57115b56a15a441ae442900e592258597acf3febdaf86a5df2f9",
+      "AfterSha256": "bb335931a92862d4b32b2d3f7786314d3b7e9f448342bb81255005a475cd41eb"
+    }
+  ],
+  "Sources": [
+    {
+      "Path": "include/xrt/x509.h",
+      "Sha256": "4a5c724d4580b64f8591092261fea48831570ec20b6d0a89bc9cd4eca99f64ac"
+    },
+    {
+      "Path": "src/x509/identity.c",
+      "Sha256": "73bd5a257327ed3760084368919fe06e1d9567b3cc174819c9f12e057b5a5111"
+    }
+  ],
+  "NativeAcceptance": "42 ordinary Windows/Linux native phases; old canonical code fails exactly one normal C sizeof/terminator ABI check",
+  "PreservedContracts": [
+    "Embedded microseconds/Until",
+    "Independent native milliseconds/For",
+    "All unselected sections"
+  ]
+}
