@@ -1,0 +1,39 @@
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_released" @no_raise func released() as int
+func read(uint64 size)
+    auto data=cbytes.take(nativeBytes(),size,nativeFree)
+    assert data.length==4 and data[1]==255
+end
+func readNative(c_size size)
+    auto data=cbytes.take(nativeBytes(),size,nativeFree)
+    assert data.length==4 and data[-1]==42
+end
+read(uint64(4))
+readNative(c_size(4))
+assert released()==2
+func overflow(uint64 size)
+    bool caught=false
+    try
+        auto data=cbytes.take(nativeBytes(),size,nativeFree)
+    catch ignored
+        caught=true
+    end
+    assert caught
+end
+overflow(uint64(9223372036854775808))
+overflow(uint64(18446744073709551615))
+assert released()==4
+func invalid()
+    bool caught=false
+    try
+        auto data=cbytes.take(null,uint64(1),nativeFree)
+    catch ignored
+        caught=true
+    end
+    assert caught
+    auto empty=cbytes.take(null,uint64(0),nativeFree)
+    assert empty.length==0
+end
+invalid()
+assert released()==4

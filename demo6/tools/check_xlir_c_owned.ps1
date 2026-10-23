@@ -68,6 +68,8 @@ $generatedSources=@(
     'test/cases/xlir_c_owned_views.xl','test/cases/xlir_c_owned_flow.xl',
     'test/cases/xlir_c_owned_calls.xl','test/cases/xlir_c_owned_frames.xl',
     'test/cases/xlir_c_owned_stdlib.xl',
+    'test/cases/xlir_c_owned_sizes.xl',
+    'test/cases/xlir_c_owned_defaults.xl',
     'test/cases/xlir_c_owned_nullable.xl','test/cases/xlir_c_owned_nullable_boundaries.xl',
     'test/cases/xlir_c_owned_writes.xl','test/cases/xlir_c_owned_print.xl',
     'test/cases/xlir_c_owned_traverse.xl','test/cases/xlir_c_owned_sequence.xl',
