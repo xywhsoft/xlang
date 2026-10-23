@@ -44,6 +44,7 @@ NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 CORE_TESTS = ("analysis_process_tree_test", *CORE_TESTS)
 CORE_TESTS = ("diagnostic_paths_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_entry_cache_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_import_names_test", *CORE_TESTS)
 
 
 def sha(path: Path) -> str:
@@ -363,7 +364,7 @@ def main() -> None:
     env["PATH"] = str(cc.parent) + os.pathsep + env.get("PATH", "")
     common = ["-std=c11", "-ffunction-sections", "-fdata-sections", "-DXRT_MODULE_ALL=", "-DXLS_COMPILER_XRT=1",
               "-finput-charset=UTF-8", "-fexec-charset=UTF-8",
-              "-I" + str(ide / "src"), "-I" + str(frontend),
+              "-I" + str(ide / "src"), "-I" + str(output / "frontend"), "-I" + str(frontend),
               "-I" + str(frontend / "src/ir"),
               "-I" + str(frontend / "release"), "-I" + str(frontend / "release/include"),
               "-I" + str(output / 'native_xrt'), "-I" + str(frontend / "lib/xrt"),
