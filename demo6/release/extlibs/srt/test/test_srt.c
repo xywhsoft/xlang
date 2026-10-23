@@ -275,6 +275,20 @@ int main(void) {
         xrtValueRelease(styled);
     }
     CHECK(invalid_vtt("WEBVTT\n\n00:00.000 --> 00:01.000\nHi --> there\n"));
+    {
+        xvalue *compact = xsrt_parse("1\n00:00:00,000-->00:00:01,000\nHi\n");
+        CHECK(compact != NULL && xrtValueType(compact) == XVALUE_ARRAY &&
+            xrtValueCount(compact) == 1);
+        xrtValueRelease(compact);
+    }
+    CHECK(invalid_vtt("WEBVTT\n\n00:00.000--> 00:01.000\nHi\n"));
+    CHECK(invalid_vtt("WEBVTT\n\n00:00.000 -->00:01.000\nHi\n"));
+    {
+        xvalue *tabbed = xsrt_parse_vtt("WEBVTT\n\n00:00.000\t-->\t00:01.000\nHi\n");
+        CHECK(tabbed != NULL && xrtValueType(tabbed) == XVALUE_ARRAY &&
+            xrtValueCount(tabbed) == 1);
+        xrtValueRelease(tabbed);
+    }
     CHECK(invalid_vtt("WEBVTT\n\nNOTE bad --> note\nignored\n\n"
         "00:00.000 --> 00:01.000\nVisible\n"));
     CHECK(invalid_vtt("WEBVTT\n\n00:00.000 --> 00:01.000\nVisible\n\n"

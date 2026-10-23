@@ -19,6 +19,7 @@ Windows `-SkipAot` 与 Linux ASan/UBSan 包级门禁通过；默认 Windows
 
 - `srt.parse(text)` / `srt.build(cues)`：SRT。需要正整数序号和 `HH:MM:SS,mmm` 时间戳。
 - `srt.parseVtt(text)` / `srt.buildVtt(cues)`：WebVTT。需要 `WEBVTT` 头及空行，支持 cue ID、普通设置串、`MM:SS.mmm` 与 `HH:MM:SS.mmm`。生成时统一输出小时格式。
+- WebVTT 时间轴的 `-->` 两侧各须至少一个空格或 tab；普通 SRT 仍接受无空白的箭头。
 - `srt.parseTime(stamp)` / `srt.formatTime(milliseconds)`：解析 SRT/VTT 时间戳；格式化为 SRT 格式。非法值抛 `ValueError`。
 
 解析接受 LF/CRLF 和 UTF-8 BOM，拒绝孤立 `\r`；正文按原样保留 UTF-8 字节和行内空白，拒绝内嵌 NUL 以免静默截断。WebVTT `NOTE`（含空格或 tab 注释标题）、`STYLE`、`REGION` 块跳过，**不保留**样式内容，也不解释 cue 文本标记/定位设置的语义。这是字幕文本与时间轴库，不是完整 WebVTT 浏览器排版引擎。生成时 cue 必须具有非负、顺序正确的整数时间和字符串行；行内换行、NUL、空行不被接受，以免输出不可往返的文档。WebVTT 的 `id` 不得与控制块标题冲突，解析与生成均拒绝 `settings` 中的第二个 `-->`；生成时 `id` 也不得包含 `-->`。时间戳和 SRT 序号按 `int64` 范围检查，不提前收窄有效上界。无固定行长或 64 KiB 输出上限。
@@ -43,6 +44,12 @@ cue 行、ID 和设置均从借用的输入切片直接构造独立的 XRT 字�
 时间解析结果与格式化输入均使用 `int64_t`，与 XLang `int` 的 C ABI 一致。实现源直接包含公开头，避免两套声明再次漂移。
 
 ## 范例与包级验证
+
+2026-10-24：WebVTT 解析原接受时间戳紧贴 `-->` 的非标准时间轴；
+C/XLang 负例先复现，再限定 WebVTT 两侧空白规则，保留 tab 正例与 SRT
+原有宽容解析。Windows `test/check.ps1 -SkipAot` 的严格 C、XLang
+分配故障及双语范例通过；Linux `test/check.sh` 的 C ASan/UBSan、
+XLang 与双语对照通过。完整 AOT 仍受共享缺符号阻断，不据此签收整包发布级。
 
 2026-10-14：修复无效 UTF-8 的 C 输入被解析为正常字幕、无效 UTF-8 cue 被生成的问题，SRT/WebVTT 解析和生成三条红绿负例通过。`test/check.ps1` 覆盖严格 GCC、C/XL 边界及双语同输出；`test/check.sh` 对 C 边界启用 Linux ASan/UBSan 与泄漏检查，两套门禁均通过。完整 AOT 阻断不变。
 

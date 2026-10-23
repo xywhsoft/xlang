@@ -125,6 +125,10 @@ static int xsrt_range(XsrtLine line, int vtt, int64_t *start, int64_t *end,
     XsrtLine left, right;
     size_t i;
     if (arrow == SIZE_MAX) return 0;
+    /* WebVTT 时间轴的箭头两侧必须各有空格或 tab；SRT 保留原有宽容解析。 */
+    if (vtt && (arrow == 0 || arrow + 3 == line.size ||
+        (line.data[arrow - 1] != ' ' && line.data[arrow - 1] != '\t') ||
+        (line.data[arrow + 3] != ' ' && line.data[arrow + 3] != '\t'))) return 0;
     left = xsrt_trim((XsrtLine){line.data, arrow});
     right = xsrt_trim((XsrtLine){line.data + arrow + 3, line.size - arrow - 3});
     settings->data = right.data + right.size;
