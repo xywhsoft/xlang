@@ -20468,7 +20468,8 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
                     "c_callback can only annotate a function-typed extern parameter");
                 ok = 0;
             }
-            if ( !xl6SemIsCAbiClassHandleType(ctx, typeNode) &&
+            if ( !xl6COwnedBaseName(typeNode->text) &&
+                 !xl6SemIsCAbiClassHandleType(ctx, typeNode) &&
                  !xl6SemIsCAbiClassType(ctx, typeNode) &&
                  !xl6SemIsCAbiEnumType(ctx, typeNode) &&
                  !xl6SemIsCAbiTypedContainerType(ctx, typeNode) &&

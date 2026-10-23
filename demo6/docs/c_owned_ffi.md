@@ -1,155 +1,146 @@
-# C allocation carriers: `cstring` and `cbytes`
+# Compiler-managed C strings and bytes
 
-These built-in types own a C allocation in a synchronous local scope. They are
-read-only bridges to the existing `string` and `bytes` value types, not aliases,
-classes, or additional `xvalue` kinds. XRT requires no ABI change.
+`cstring` and `cbytes` mark C-backed `string` and `bytes` values in the compiler.
+They do not introduce XRT value kinds or change ordinary string/bytes layouts.
+Typed code carries a private pointer, length and owner reference. Reading its
+contents borrows the C allocation; replacing or writing a binding constructs
+its replacement automatically. There is no per-read tag test on ordinary
+string/bytes paths.
 
 ```xlang
 extern "library_text" @no_raise func libraryText() as point
 extern "library_free" @no_raise func libraryFree(point data)
 
-func readText() as string
-    cstring native = cstring.take(libraryText(), libraryFree)
-    assert native.length >= 0
-    return native
+func readText() as cstring
+    return cstring.take(libraryText(), libraryFree)
+end
+
+func example()
+    string text = readText()
+    print(text)          // reads the original C allocation
+    auto saved = text   // shares its owner; no payload copy
+    text[0] = 'H'        // constructs the replacement; saved keeps the original
+    text = "replacement"
 end
 ```
 
+## Adoption and release
+
 `cstring.take(pointer, releaser)` adopts a NUL-terminated UTF-8 allocation.
-Its byte length is scanned once. The producer guarantees the encoding and
-terminator; no encoding conversion is performed. Embedded NUL terminates C
-text. Use `cbytes` for arbitrary bytes or unknown encodings.
+It scans the byte length once; the producer guarantees the encoding and
+terminator. Embedded NUL terminates C text. `cbytes.take(pointer, length,
+releaser)` adopts arbitrary bytes with an explicit nonnegative byte length.
+Text length/indexing use Unicode scalar units; binary indexing returns `uint8`.
 
-`cbytes.take(pointer, length, releaser)` adopts a binary allocation with an
-explicit nonnegative length. A non-null allocation with zero length is still
-released. A null pointer with zero length is an empty carrier; a null pointer
-with a positive length is invalid.
+A non-null zero-length allocation is still released. Null with zero length
+represents empty data; null with a positive length is rejected. The pointer
+must be the allocation address accepted by the releaser. After adoption the
+producer must neither mutate nor free it.
 
-Both constructors accept positional arguments. The releaser must resolve to
-an unambiguous named `extern @no_raise func(point)` with no result. It uses the
-target C calling convention, never an xlang closure. Its code must remain
-loaded until cleanup. Producers with a different release signature need a C
-adapter. Context-bearing release callbacks are outside this contract.
+The releaser is an unambiguous named `extern @no_raise func(point)` with no
+result, using the target C calling convention. Its code must remain loaded
+until the last reference is dropped. Other signatures require a small C adapter.
+The compiler does not assume that the producer and xlang use the same allocator.
 
-Ownership transfers to the carrier. The producer must not mutate or free the
-allocation afterward. The pointer must be the address accepted by the releaser,
-not an independently borrowed substring or interior address.
+Adoption allocates one C-only owner record. Aliasing increments its reference
+count without copying the payload or allocating another record. Scope exits,
+early returns and exception unwinding release the allocation exactly once when
+the last owner disappears. Storage is detached before invoking the releaser.
+Owner-record allocation failure also releases the incoming C allocation.
+Binary adoption anchors the pointer before evaluating its length; a throwing or
+invalid length therefore cannot leak it.
 
-## Read and value boundaries
+## Read, write and escape rules
 
 | Operation | Behavior |
 | --- | --- |
-| Explicit carrier initialization with `take` | Adopt without copying data |
-| `.length`, integer indexing, six ordinary comparisons | Borrow C data |
-| `cstring.length` / indexing | Same Unicode scalar units as `string` |
-| `cbytes.length` / indexing | Byte units; indexing returns `uint8` |
-| `string value = nativeText`, `auto value = nativeText` | One independent string copy |
-| `bytes value = nativeBytes`, `auto value = nativeBytes` | One independent bytes copy |
-| `string(nativeText)`, `bytes(nativeBytes)` | Explicit independent copy |
-| `var value = native` | Copy directly into ordinary string/bytes representation |
-| Function arguments, returns, fields, typed container values | Materialize the matching ordinary type |
-| Closure capture | Store an ordinary string/bytes snapshot |
-| Iteration and supported scalar conversions | Materialize the base type and reuse existing rules |
-| Other string/bytes methods and allocating operators | Materialize and reuse existing implementations |
+| Typed local `string/bytes` or `auto` initialized from a C-backed result | Preserves C storage and shares ownership |
+| Synchronous result declared `as cstring/cbytes` | Preserves the C owner across the return |
+| Length, integer indexing, comparisons, iteration | Reads the original allocation |
+| Borrowed string parameters and string reader methods | Receive a length-bearing borrowed string view |
+| Direct named synchronous nongeneric language functions | Compiler specializes matching string/bytes parameters and single results to preserve C storage |
+| Direct `print` / `println` | Text goes directly to the console; bytes stream through the XLON sink encoder |
+| String interpolation and concatenation; binary concatenation | Read original inputs and construct the new output; no preliminary input materialization |
+| `type(value)` / `value is string/bytes` | Reports the corresponding ordinary type |
+| Whole replacement, indexed write, string `+=` | Automatically constructs/replaces the value; other aliases keep their old contents |
+| Explicit `string(cstring)` / `bytes(cbytes)` | Requests an independent payload copy |
+| `var`, containers, fields, closure captures, nullable joins | Materializes the ordinary representation at the boundary |
 
-Negative indexes and range errors follow the existing sequence rules. Text and
-binary carriers are not interchangeable. Ordinary assignment leaves the source
-carrier alive; it never creates another owner of the same C allocation.
+A writable by-value language parameter first acquires its own owner. Changing
+it cannot free or mutate the caller's value. Replacement publishes the new
+value only after construction succeeds. Negative indexes and failures follow
+the existing sequence rules. C text and C binary data are never interchangeable.
 
-"One copy" describes carrier-to-value materialization. Existing ordinary-value
-semantics may subsequently copy that value, for example into a typed string
-container or a string closure environment. This does not change the ownership
-contract or permit allocator-dependent adoption shortcuts.
+Compiler specialization currently covers fixed positional/named arguments and
+default arguments of directly resolved, synchronous nongeneric functions, with
+up to 63 parameters. Indirect function values, virtual/generic calls and legacy
+native binary readers can cross an ordinary-value boundary. They are not a
+promise of universal zero-copy dispatch. Explicit source-language C parameter
+types remain restricted to extern declarations; ordinary language readers
+continue declaring `string` / `bytes`.
 
-## Scope restrictions and failure
+## Native borrowed span parameters
 
-Carrier bindings require explicit initialization with a fresh `take` expression.
-Bindings and contents cannot be reassigned. Carrier parameters, return types,
-fields, aliases, nullable carriers and generic carrier elements are rejected.
-Declare the corresponding ordinary type at these boundaries.
+An extern `cstring` parameter has the C physical type `xstrview`; an extern
+`cbytes` parameter has `xbytesview`. Both are readonly, default-mode borrowed
+parameters. They accept either C-backed or ordinary values without copying the
+payload or allocating an owner record at the call boundary.
 
-Carrier locals cannot persist in coroutine or generator frames. Synchronous
-code may capture a carrier into a closure and schedule that ordinary-value
-snapshot for asynchronous work.
+```xlang
+extern "library_inspect_text" @no_raise func inspectText(cstring text) as bool
+extern "library_inspect_bytes" @no_raise func inspectBytes(cbytes data) as bool
+```
 
-Normal scope exit, early return, loop exits and exception unwinding all release
-the allocation exactly once. Storage is detached before invoking the releaser.
-Binary construction anchors the allocation before evaluating its length, so a
-throwing length expression also releases the allocation. Invalid lengths consume
-and release the adopted allocation.
+```c
+bool library_inspect_text(xstrview text);
+bool library_inspect_bytes(xbytesview data);
+```
 
-Failed materialization preserves the source owner. Assignment publishes the new
-ordinary value only after a successful copy, preserving the old target on
-failure. Normal `string` and `bytes` layouts and cleanup remain unchanged.
+The callee may read the span only for the duration of the call and must not
+retain, modify or free it. `byval`, `byref` and `out` modes are rejected.
+C result markers are not raw extern return ABIs: use a synchronous language
+`take` adapter as above to state the releaser explicitly.
+
+Existing native declarations keep their ABI: legacy `string` parameters use
+C string pointers where applicable; legacy `bytes` parameters expect managed
+`xvalue*`. A raw C bytes allocation must materialize when passed to the latter.
+Migrate such native readers to a span entry point before claiming zero-copy
+extension-library coverage. No XRT modification is needed for the new span ABI.
+
+## Costs and supported scope
+
+Zero-copy means no duplicate input payload on the documented static read paths.
+C adoption still pays for its owner record, reference-count maintenance and
+length scanning for NUL-terminated text. Output creation, explicit copying and
+ordinary escape boundaries have their normal allocation costs. The reference
+count is local/non-atomic; C owner locals cannot persist in coroutine/generator
+frames. Capturing for asynchronous work stores an ordinary value snapshot.
+C markers are not allowed in fields, global declarations, aliases, nullable
+marker declarations or generic elements.
+
+Mixed printing prepares ordinary argument formatting before the first write.
+The console may then receive several writes; a line-atomic output guarantee
+is not provided. The binary format budget is checked before output, while
+console I/O failures propagate through the normal error path.
 
 ## Validation
 
-Compiler-only redesign is being implemented in stages. The first stage gives
-typed string readers an explicit `cstring-view` loan, including ordinary
-borrowed string parameters and string methods. The loan retains its source
-lifetime in XLIR and does not create a managed string. `xlir_c_owned_views.xl`
-checks original pointer identity through a user function and a C reader,
-allocation-free reads, and cleanup of nested temporary arguments. The other
-materialization boundaries listed above describe the previous implementation
-until their respective redesign stages land.
-
-The second stage preserves C storage in typed local initialization and `auto`,
-accepts synchronous `cstring`/`cbytes` results, shares C owners across aliases,
-and replaces or partially writes a binding without explicit conversion. Named
-static calls get an internal owner specialization where required, so typed
-identity functions and binary readers can keep the original storage. Partial
-writes construct their final result directly from the borrowed C view. The
-private owner record is allocated only for adopted C storage; ordinary types
-and XRT layouts are unchanged. Adoption failure releases the C allocation.
-`xlir_c_owned_flow.xl` and `xlir_c_owned_writes.xl` check these transitions.
-
-The third stage loans C storage to primitive iteration and direct print calls.
-Iteration retains an owner snapshot, so rebinding the source during traversal
-does not change the sequence. Printing C text passes its pointer straight to
-the console. Binary values use the existing XLON sink writer, which encodes
-from the original bytes without creating a dynamic bytes value or a complete
-output buffer. Mixed ordinary arguments are formatted before the first write;
-console writes may then stream in several parts. Tests cover original pointer
-identity at the console boundary, allocation-free text printing and traversal,
-formatting failure before output, and write failure propagation.
-
-Sequence composition now keeps native owners through mixed conditional joins,
-binary concatenation and string interpolation. Reflection reports the base
-`string`/`bytes` identity. Writable value parameters acquire an independent
-owner before modification, preserving the caller's original data; their
-acquisition failure uses the checked parameter-prefix cleanup contract.
-`xlir_c_owned_sequence.xl` covers these paths, including nullable joins.
-
-Run from `demo6` with a compatible `release/xl.dll` available:
+From `demo6`, with a compatible debug-capable `release/xl.dll`:
 
 ```powershell
 pwsh -NoProfile -File tools/check_xlir_c_owned.ps1
 ```
 
-The check builds compiler sources independently, executes generated C, checks
-allocation failure and release counts, and rejects invalid carrier declarations.
-`xlir_c_owned_storage.xl` additionally exercises typed container boundaries
-against the current source runtime.
+This builds current compiler sources, runtime units and generated-C programs.
+Tests check original pointer identity at native/console boundaries, allocation
+counters for reads, shared release counts, writes and writable parameters,
+conditional joins, iteration with source rebinding, dynamic boundaries,
+adoption/copy failure and invalid declaration rejection.
 
-For full source API/JIT and standalone EXE acceptance, first build the existing
-public source driver with `tools/build_xlir_public_source_driver.ps1`, then pass
-its `public_source.exe` path through `check_xlir_c_owned.ps1 -PublicDriver <path>`.
-Memory-debug allocation/failure checks run against a debug-capable runtime;
-source shipping profiles without memory debug still execute the value/lifetime
-programs, while allocation counters are checked separately by the debug run.
-The standalone check is also discovered by the existing XLIR full-regression
-and RC0 supplemental runners; its source fixtures use explicit inventory paths.
-
-Two pre-existing regression fixtures fail identically with the pre-change
-compiler at `1b4aef459`: `cgen_string_embedded_nul.xl` expects codec byte results
-to be strings, and `cgen_var_string_concat.xl` fails its checked-conversion
-assertion. They are not acceptance gates for the C owner feature.
-
-Mainline integration acceptance rebuilt 884 C translation units from source.
-The runtime unit, six generated-C programs, 13 negative cases, seven JIT and
-seven standalone EXE programs passed. Seven existing ordinary-value programs
-also passed both JIT and standalone EXE. O0/O2 contract fixtures checked all
-484 RuntimeOps (3,872 operand effects), closure capture mutations, managed
-storage mutations and nullable joins. Ordinary generated C does not include
-the C carrier runtime header. This targeted acceptance does not claim that the
-repository-wide RC0, source wiring and documentation inventories are green.
+For source-runtime JIT and standalone EXE acceptance, build
+`tools/build_xlir_public_source_driver.ps1` in a fresh directory, then pass its
+`public_source.exe` to `check_xlir_c_owned.ps1 -PublicDriver <path>`. Source
+shipping builds without memory debug still run value and lifetime assertions;
+allocation-counter checks use the separate debug runtime lane. Acceptance
+records belong under `build/c-owned/`; this targeted check is not a claim that
+all repository-wide inventories and unrelated release gates are green.

@@ -51,9 +51,15 @@ static int xl6IrCgenVerifyDeclarations(
                          XL6_IR_NODE_INVALID ||
                      (target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
                       parameterType != NULL &&
-                      parameterType->kind == XL6_IR_TYPE_FUNCTION) )
+                      (parameterType->kind == XL6_IR_TYPE_FUNCTION || xl6IrTypeIsCOwned(parameterType))) )
                     return xl6IrCgenCallParameterDiag(diags, module, target,
                         parameter, "uses a direct closure at an extern boundary");
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW) {
+                if(target->kind!=XL6_IR_CALL_TARGET_EXTERN_C || !xl6IrTypeIsCOwned(parameterType) ||
+                    target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
+                    target->runtimeBridge!=XL6_IR_RUNTIME_BRIDGE_NONE ||
+                    target->parameterPhysicalFieldDeclarations[parameter]!=XL6_IR_NODE_INVALID)
+                    return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no read-only C span ABI");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW ||
                       target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD) {
                 if(!xl6IrRuntimeDirectBridgeValueAddressParameter(target->cName,parameter) ||

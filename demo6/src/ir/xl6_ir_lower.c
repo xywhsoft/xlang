@@ -3570,7 +3570,7 @@ static XL6_IrValueId xl6IrLowerStableBorrowValue(
         if (definition == NULL) return XL6_IR_VALUE_INVALID;
         if (definition->kind != XL6_IR_INSTR_VALUE && definition->kind != XL6_IR_INSTR_NULLABLE_WRAP &&
             definition->kind != XL6_IR_INSTR_NULLABLE_UNWRAP &&
-            !(definition->kind == XL6_IR_INSTR_RUNTIME_CALL && definition->runtimeOp == XL6_IR_RUNTIME_CSTRING_VIEW)) break;
+            !(definition->kind == XL6_IR_INSTR_RUNTIME_CALL && (definition->runtimeOp == XL6_IR_RUNTIME_CSTRING_VIEW || definition->runtimeOp == XL6_IR_RUNTIME_C_BORROW_VIEW))) break;
         if (definition->operandCount != 1 || definition->targetValue != 0) return XL6_IR_VALUE_INVALID;
         root = ctx->module->operands[definition->firstOperand];
     }
@@ -4572,6 +4572,18 @@ static XL6_IrValueId xl6IrLowerNodeAsType(
             ? XL6_IR_RUNTIME_CSTRING_FROM_STRING : target->cAbi==XL6_IR_C_ABI_C_BYTES && cSource->cAbi==XL6_IR_C_ABI_MANAGED_BYTES
                 ? XL6_IR_RUNTIME_CBYTES_FROM_BYTES : XL6_IR_RUNTIME_NONE;
         if(convert==XL6_IR_RUNTIME_NONE)return 0;
+        const XL6_IrNode* call=xl6IrNodeGet(ctx->module,origin);
+        const XL6_IrCallSite* site=xl6IrCallSiteGet(ctx->module,origin);
+        const XL6_IrCallTarget* callee=call ? xl6IrCallTargetGet(ctx->module,call->targetSymbol) : NULL;
+        for(size_t i=0;site && callee && i<site->argumentCount;++i) {
+            const XL6_IrCallArgument* binding=&ctx->module->callArguments[site->firstArgument+i];
+            size_t p=binding->parameter+(site->receiver ? 1u : 0u);
+            if(binding->expression==sourceId && p<callee->parameterCount &&
+                callee->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW) {
+                XL6_IrValueId input=xl6IrLowerProtectOwnedBorrow(ctx,origin,xl6IrLowerNode(ctx,sourceId));
+                return input ? xl6IrLowerEmitRuntimeCall(ctx,origin,targetType,XL6_IR_RUNTIME_C_BORROW_VIEW,&input,1) : 0;
+            }
+        }
         XL6_IrValueId input=xl6IrLowerAcquireValueOwner(ctx,origin,xl6IrLowerNode(ctx,sourceId));
         return input ? xl6IrLowerEmitRuntimeCall(ctx,origin,targetType,convert,&input,1) : 0;
     }
@@ -13054,6 +13066,12 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
             XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;
         target->parameterPhysicalFieldDeclarations[parameterOffset + i] =
             XL6_IR_NODE_INVALID;
+        if(target->kind==XL6_IR_CALL_TARGET_EXTERN_C && (parameter->flags & XL6_AST_FLAG_C_SPAN_PARAM)) {
+            if(!xl6IrTypeIsCOwned(xl6IrTypeGet(&module->types,parameter->storageType)) ||
+                target->parameterAbis[parameterOffset+i]!=XL6_IR_PARAMETER_ABI_BORROW)
+                return xl6IrLowerDiag(ctx,declaration,"C span parameter lacks a read-only native ABI");
+            target->parameterPhysicalAbis[parameterOffset+i]=XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW;
+        }
         if ( (target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||
               target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
              xl6IrTypeGet(&module->types, parameter->storageType) != NULL &&

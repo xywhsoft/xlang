@@ -2,8 +2,27 @@
 #include "src/parser/xl6_parser_api.h"
 #include "src/sem/xl6_sem.h"
 #include "src/stdlib/xl6_stdlib.h"
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
+
+static void checkSpanContracts(XL6_IrModule* ir)
+{
+    for(size_t i=0;i<ir->callTargetCount;++i) {
+        XL6_IrCallTarget* target=&ir->callTargets[i];
+        for(size_t p=0;p<target->parameterCount;++p) {
+            if(target->parameterPhysicalAbis[p]!=XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW)continue;
+            XL6_DiagList diags={0};
+            target->parameterPhysicalAbis[p]=XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;
+            assert(!xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags);
+            target->parameterPhysicalAbis[p]=XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW;
+            target->parameterAbis[p]=XL6_IR_PARAMETER_ABI_OWNED;
+            assert(!xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags);
+            target->parameterAbis[p]=XL6_IR_PARAMETER_ABI_BORROW;
+            assert(xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags);
+        }
+    }
+}
 
 int main(int argc,char** argv)
 {
@@ -20,6 +39,7 @@ int main(int argc,char** argv)
             if(xl6OutputOpenFile(&out,path)){xl6IrDumpModuleJson(&out,&ir);xl6OutputClose(&out);}
         }
     }
+    if(ok)checkSpanContracts(&ir);
     if(ok && strcmp(argv[2],"check")) {
         ok=xl6OutputOpenFile(&out,argv[2]);
         if(ok) {

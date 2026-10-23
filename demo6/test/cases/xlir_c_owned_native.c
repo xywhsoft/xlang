@@ -5,6 +5,7 @@
 #include <__xl_runtime/xruntime_decl.h>
 static int64_t count;
 static const char* originalText;
+static const void* originalBinary;
 void* c_owned_text(void)
 {
     char* data=malloc(6); assert(data); memcpy(data,"hello",6); originalText=data; return data;
@@ -17,7 +18,7 @@ void* c_owned_number(void)
 void* c_owned_binary(void)
 {
     const unsigned char bytes[]={0,255,17,42};
-    void* data=malloc(sizeof(bytes)); assert(data); memcpy(data,bytes,sizeof(bytes)); return data;
+    void* data=malloc(sizeof(bytes)); assert(data); memcpy(data,bytes,sizeof(bytes)); originalBinary=data; return data;
 }
 void c_owned_release(void* data) { assert(data); ++count; free(data); }
 int64_t c_owned_released(void) { return count; }
@@ -33,3 +34,9 @@ int64_t c_owned_allocations(void)
 {
     xmemdebugsnapshot snapshot={0};xrtMemDebugSnapshot(&snapshot);return (int64_t)snapshot.AllocCount;
 }
+
+bool c_owned_text_span_original(xstrview text) { return text.Data==originalText && text.Size==5; }
+bool c_owned_binary_span_original(xbytesview data) { return data.Data==originalBinary && data.Size==4; }
+bool c_owned_binary_span_valid(xbytesview data) { const unsigned char expected[]={0,255,17,42}; return data.Size==4 && !memcmp(data.Data,expected,4); }
+
+bool c_owned_debug_enabled(void) { return xrtMemDebugEnabled(); }

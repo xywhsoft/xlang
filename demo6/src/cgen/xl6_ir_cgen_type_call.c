@@ -599,6 +599,12 @@ static int xl6IrCgenEmitCallOperand(
 {
     if ( target == NULL || parameter >= target->parameterCount ||
          target->parameterPhysicalAbis == NULL ) return 0;
+    if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW) {
+        const XL6_IrType* type=xl6IrTypeGet(&module->types,target->parameterTypes[parameter]);
+        if(!xl6IrTypeIsCOwned(type))return 0;
+        xl6OutputPrintf(out,"%s(v%u)",type->cAbi==XL6_IR_C_ABI_C_STRING ? "xl6CStringViewV1" : "xl6CBytesViewV1",(unsigned)value);
+        return !xl6OutputHasFailed(out);
+    }
     if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD) {
         const XL6_IrInstruction* definition = xl6IrCgenValueDefinition(module, value, NULL);
         if (!xl6IrInstructionIsZeroPayload(module, definition) ||

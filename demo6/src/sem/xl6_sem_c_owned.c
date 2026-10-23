@@ -176,6 +176,18 @@ static int xl6SemCheckCOwnedTake(XL6_SemContext* ctx, XL6_AstNode* call)
 static int xl6SemValidateCOwnedTypes(XL6_SemContext* ctx,XL6_AstNode* node,XL6_AstNode* parent)
 {
     int ok=1;
+    if(node->kind==XL6_AST_EXTERN_FUNC) {
+        XL6_AstNode* params=node->childCount>1 ? node->children[1] : NULL;
+        for(size_t i=0;params && i<params->childCount;++i) {
+            XL6_AstNode* param=params->children[i];
+            const XL6_AstNode* type=param && param->childCount ? param->children[0] : NULL;
+            if(type && xl6COwnedBaseName(type->text)) {
+                if(param->flags & (XL6_AST_FLAG_BYVAL|XL6_AST_FLAG_BYREF|XL6_AST_FLAG_OUT)) {
+                    xl6SemErrorNode(ctx,param,"C span parameters require the default read-only borrow mode");ok=0;
+                } else param->flags|=XL6_AST_FLAG_C_SPAN_PARAM;
+            }
+        }
+    }
     if(node->kind==XL6_AST_EXTERN_FUNC || node->kind==XL6_AST_EXPORT_FUNC || node->kind==XL6_AST_ASYNC_FUNC ||
         (node->flags & XL6_AST_FLAG_ASYNC)) {
         const XL6_AstNode* returns=xl6SemCallableReturns(node);
@@ -186,7 +198,7 @@ static int xl6SemValidateCOwnedTypes(XL6_SemContext* ctx,XL6_AstNode* node,XL6_A
     }
     if (node->kind==XL6_AST_TYPE && xl6COwnedBaseName(node->text) &&
         (!parent || (parent->kind!=XL6_AST_VAR_DECL && parent->kind!=XL6_AST_CONST_DECL && parent->kind!=XL6_AST_RETURN_TYPES &&
-          !(parent->kind==XL6_AST_PARAM && (parent->flags & XL6_AST_FLAG_C_OWNED_SPECIALIZATION))) ||
+          !(parent->kind==XL6_AST_PARAM && (parent->flags & (XL6_AST_FLAG_C_OWNED_SPECIALIZATION|XL6_AST_FLAG_C_SPAN_PARAM)))) ||
          (parent->kind!=XL6_AST_RETURN_TYPES && parent->kind!=XL6_AST_PARAM && xl6SemVarDeclTypeNode(parent)!=node))) {
         xl6SemErrorNode(ctx,node,"C markers are limited to initialized locals and synchronous results; use base types at storage boundaries");
         ok=0;
