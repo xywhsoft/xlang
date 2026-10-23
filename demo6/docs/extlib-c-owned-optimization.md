@@ -56,6 +56,9 @@ Redis 编码入口继续直接接受原生 XVALUE_ARRAY；当前语言的 array�
 ```powershell
 pwsh -NoProfile -File tools/build_xlir_public_source_driver.ps1 -Directory build/c-owned/extlib-public
 pwsh -NoProfile -File tools/check_extlib_c_owned.ps1 -PublicDirectory build/c-owned/extlib-public -Directory build/c-owned/extlib-acceptance
+python tools/check_extlib_owned_text_codegen.py build/c-owned/extlib-acceptance/xlir_extlib_owned_http_text.temps/module.c --receipt build/c-owned/extlib-acceptance/owned-output-codegen.json
 ```
 
 验收脚本运行 5 个 JIT/独立 EXE 场景、CSV 字典与边界、正反 HTTP 头包含顺序及 10 个原生测试，检查静态输入生成代码无隐式 C 载荷物化，并记录源码、编译器、对象文件的 SHA256。验收目录必须为新的目录。测试使用 `xlir_` 前缀，避免让仍依赖旧发布编译器的通用扩展库套件误执行这些新编译器场景。
+
+输出检查另外验证 7 条 HTTP 字符串返回路径及它们的接管助手没有 `xlir_string_copy/from_utf8/from_cstr` 复制调用。`Headers.build` 等语言包装层也在检查范围内；不是只检查一次底层 `takeCstr` 调用。
