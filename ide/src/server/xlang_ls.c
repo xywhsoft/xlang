@@ -3,6 +3,7 @@
 #include "protocol/input_state.h"
 #include "services/language_check.h"
 #include "services/diagnostic_store.h"
+#include "services/analysis_catalog.h"
 #include "platform/path.h"
 #include "analysis/worker.h"
 #include <windows.h>
@@ -17,10 +18,10 @@
 #define QUEUE_LIMIT (64u*1024u*1024u)
 #define INVALIDATION_LIMIT 128u
 typedef struct message { struct message* next; xvalue* value; size_t size; int input; } message;
-typedef struct document { char *uri,*path; const char* text; xls_text* content; int version; unsigned long long generation,identity; unsigned char uriHash[32]; } document;
+typedef struct document { char *uri,*path; const char* text; xls_text* content; int version; unsigned long long generation,identity; unsigned char uriHash[32];xls_context* context;int binding; } document;
 typedef struct native_request { xvalue* id; xls_query* query; int document,version; unsigned long long identity,generation; } native_request;
 typedef struct semantic_request {
- xvalue* id; int document,version,line,character,kind,started;
+ xvalue* id; int document,version,line,character,kind,started,bound;
  unsigned long long identity,generation,order;
 } semantic_request;
 typedef struct server {
@@ -34,6 +35,7 @@ typedef struct server {
  int completionDocument,completionVersion,completionResponded,completionPublished,completionCancelled;
  unsigned long long completionGeneration,completionPendingGeneration;
  int completionPendingDocument,completionPendingEntry,completionPendingVersion,completionPendingLine,completionPendingCharacter;
+ int completionContextDocument;
  xls_worker *analysis,*semanticAnalysis,*cursorAnalysis; native_request native[DOC_LIMIT]; size_t foldingLimit;
  xls_session_stats analysisStats; uint64_t analysisThread;
  semantic_request semantic[DOC_LIMIT]; unsigned long long semanticOrder; int checkForSemantic;
@@ -47,6 +49,7 @@ typedef struct server {
  xvalue *diagnosticResult,*diagnosticAnalysis; xide_language_input_guard* diagnosticProof;
  int diagnosticResultRoot; unsigned long long diagnosticResultIdentity,diagnosticResultGeneration;
  uint64_t diagnosticChecks,diagnosticOperations,diagnosticWorkerThread; size_t diagnosticRecords; char diagnosticError[512];
+ xide_analysis_catalog* catalog;int64 configurationEpoch;
 } server;
 static void cancelSemantic(server*,int,int,const char*);
 static void semanticCheckFinished(server*,int,unsigned long long,int,int,const char*,int);
@@ -55,11 +58,21 @@ static void diagnosticInput(server*,int,const char*,int);
 static int diagnosticCapture(server*,int,xide_language_check*,xvalue**,int);
 static void diagnosticCheckFailed(server*,int,int,const char*);
 static void diagnosticStop(server*);
+static int configureAnalysis(server*,const xvalue*,xide_model_error*);
+static xvalue* configurationStamp(const server*,int);
 static xvalue* diagnosticEnvelope(server*,const xvalue*,int,const char*);
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* get(const xvalue* o,const char* key) { return o && xrtValueType(o)==XVALUE_OBJECT ? xrtValueObjectGet(o,sv(key)) : NULL; }
 static const char* string(const xvalue* v) { xstrview s={0}; return v && xrtValueGetString(v,&s) && !memchr(s.Data,0,s.Size) && s.Size<=INT_MAX && (!s.Size || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s.Data,(int)s.Size,NULL,0)) ? s.Data : NULL; }
 static int put(xvalue* o,const char* key,xvalue* v) { return v && xrtValueObjectSetNew(o,sv(key),v); }
+static xls_context* bindAnalysis(const xide_analysis_catalog* catalog,const char* path,int* state)
+{
+ *state=XIDE_ANALYSIS_UNOWNED;if(!catalog) return NULL;
+ const xls_context* context=NULL;*state=xideAnalysisCatalogFind(catalog,path,&context);
+ if(*state==XIDE_ANALYSIS_PROJECT) return xlsContextRetain((xls_context*)context);
+ if(*state==XIDE_ANALYSIS_UNOWNED) {xls_context* file=xideAnalysisCatalogFile(catalog,path);if(!file) *state=XIDE_ANALYSIS_ERROR;return file;}
+ return NULL;
+}
 static char* copy(const char* s) { size_t n=strlen(s)+1; char* p=malloc(n); if(p) memcpy(p,s,n); return p; }
 static int validText(const char* s) { size_t n=s ? strlen(s) : TEXT_LIMIT+1u; return n<=TEXT_LIMIT && (!n || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s,(int)n,NULL,0)); }
 static int validPosition(const document* d,int line,int character)
@@ -120,7 +133,7 @@ static void cancel(server* s,int code,const char* reason)
 { if(s->check) { s->cancelCode=code; s->cancelReason=reason; xideLanguageCheckCancel(s->check); } }
 static int find(server* s,const char* uri) { if(uri) for(int i=0;i<DOC_LIMIT;++i) if(s->docs[i].uri && !strcmp(s->docs[i].uri,uri)) return i; return -1; }
 static void clearDocument(server* s,int i)
-{ document* d=&s->docs[i]; s->textBytes-=xlsTextSize(d->content); free(d->uri); free(d->path); xlsTextRelease(d->content); memset(d,0,sizeof(*d)); }
+{ document* d=&s->docs[i]; s->textBytes-=xlsTextSize(d->content); free(d->uri); free(d->path); xlsTextRelease(d->content);xlsContextRelease(d->context); memset(d,0,sizeof(*d)); }
 static void releaseNative(native_request* request)
 { xlsQueryDestroy(request->query); xrtValueRelease(request->id); memset(request,0,sizeof(*request)); }
 static void cancelNative(server* s,int documentIndex,int code,const char* reason)
@@ -185,12 +198,18 @@ static void startCheck(server* s,int index,const xvalue* id,int snapshots)
 {
  document* d=&s->docs[index]; xide_model_error e={0};
  if(s->check) { if(id) response(s,id,NULL,-32001,"A source check is still stopping; retry after its response."); else s->pending=index; return; }
+ if(s->catalog && d->binding<0) {
+  const char* reason=d->binding==XIDE_ANALYSIS_AMBIGUOUS ? "The source belongs to multiple projects; select its analysis project." : "Cannot resolve configured analysis inputs.";
+  if(id) response(s,id,NULL,-32602,reason);else diagnosticCheckFailed(s,index,-32602,reason);return;
+ }
+ if(s->catalog && !s->cliDiagnostics) snapshots=1;
  if(snapshots) {
   xide_language_analysis_options options={!s->cliDiagnostics,nativeWake,s};
   if(!s->cliDiagnostics) {
    xls_analysis_document inputs[DOC_LIMIT]; size_t count=0;
    for(int i=0;i<DOC_LIMIT;++i) if(s->docs[i].uri) { document* in=&s->docs[i]; inputs[count++]=(xls_analysis_document){in->uri,in->path,in->content,in->identity,(uint64_t)((int64_t)in->version-INT_MIN)}; }
-   s->check=xideLanguageCheckStartRetained(s->cache,s->compiler,s->directory,s->semanticAnalysis,inputs,count,d->uri,NULL,0,0,&options,&e);
+   s->check=s->catalog ? xideLanguageCheckStartConfigured(d->context,s->cache,s->compiler,s->semanticAnalysis,inputs,count,d->uri,NULL,0,0,&options,&e) :
+    xideLanguageCheckStartRetained(s->cache,s->compiler,s->directory,s->semanticAnalysis,inputs,count,d->uri,NULL,0,0,&options,&e);
   } else {
    xide_language_snapshot inputs[DOC_LIMIT]; size_t count=0;
    for(int i=0;i<DOC_LIMIT;++i) if(s->docs[i].uri) inputs[count++]=(xide_language_snapshot){s->docs[i].path,s->docs[i].text,s->docs[i].version};
@@ -233,6 +252,7 @@ static void pollCheck(server* s)
   if(s->checkId) response(s,s->checkId,NULL,semanticCode,semanticReason);
  }
  else if(state==XIDE_CHECK_READY && result) {
+  if(s->catalog && !put(result,"analysisContext",configurationStamp(s,s->checkDocument))) {xrtValueRelease(result);result=NULL;semanticCode=-32603;semanticReason="Unable to stamp analysis configuration.";if(s->checkId) response(s,s->checkId,NULL,semanticCode,semanticReason);goto checkFinished;}
   xvalue* list=get(result,"diagnostics"); int published=0;
   bool definitions=false; xrtValueGetBool(get(result,"semanticDefinitions"),&definitions); indexed=definitions;
   if(s->snapshotMode) {
@@ -245,6 +265,7 @@ static void pollCheck(server* s)
   if(!published) { semanticCode=-32603; semanticReason="Unable to publish verified snapshot groups."; if(s->checkId) response(s,s->checkId,NULL,semanticCode,semanticReason); xrtValueRelease(result); result=NULL; }
   if(s->checkId && result) { put(result,"count",xrtValueInt((int64)xrtValueCount(list))); response(s,s->checkId,result,0,NULL); result=NULL; }
  } else { semanticCode=-32603; semanticReason=*error ? error : "Unable to obtain verified diagnostics."; if(s->checkId) response(s,s->checkId,NULL,semanticCode,semanticReason); else fprintf(stderr,"xlang-ls: %s\n",error); }
+checkFinished:
  if(background && current && semanticCode) diagnosticCheckFailed(s,semanticDocument,semanticCode,semanticReason);
  xrtValueRelease(result);
  if(s->check && !xideLanguageCheckWorkerFinished(s->check)) { xideLanguageCheckCancel(s->check); s->guard=s->check; s->check=NULL; s->guardCancelled=1; }
@@ -278,10 +299,12 @@ static void startCompletion(server* s)
  char* uri=copy(d->uri);
  if(!uri) { response(s,s->completionPendingId,NULL,-32603,"Unable to retain cursor input identity."); goto discard; }
  xide_language_completion_options options={!s->cliCompletion,nativeWake,s};
+ if(s->catalog && s->docs[entry].binding<0) {free(uri);response(s,s->completionPendingId,NULL,-32602,"Completion needs an unambiguous configured project.");goto discard;}
  if(!s->cliCompletion) {
   xls_analysis_document inputs[DOC_LIMIT]; size_t count=0;
   for(int j=0;j<DOC_LIMIT;++j) if(s->docs[j].uri) { document* in=&s->docs[j]; inputs[count++]=(xls_analysis_document){in->uri,in->path,in->content,in->identity,(uint64_t)((int64_t)in->version-INT_MIN)}; }
-  s->completion=xideLanguageCheckStartRetained(s->cache,s->compiler,s->directory,s->cursorAnalysis,inputs,count,s->docs[entry].uri,d->path,s->completionPendingLine,s->completionPendingCharacter,&options,&e);
+  s->completion=s->catalog ? xideLanguageCheckStartConfigured(s->docs[entry].context,s->cache,s->compiler,s->cursorAnalysis,inputs,count,d->uri,d->path,s->completionPendingLine,s->completionPendingCharacter,&options,&e) :
+   xideLanguageCheckStartRetained(s->cache,s->compiler,s->directory,s->cursorAnalysis,inputs,count,s->docs[entry].uri,d->path,s->completionPendingLine,s->completionPendingCharacter,&options,&e);
  } else {
   xide_language_snapshot inputs[DOC_LIMIT]; size_t count=0;
   for(int j=0;j<DOC_LIMIT;++j) if(s->docs[j].uri) inputs[count++]=(xide_language_snapshot){s->docs[j].path,s->docs[j].text,s->docs[j].version};
@@ -289,7 +312,7 @@ static void startCompletion(server* s)
  }
  if(!s->completion) { free(uri); response(s,s->completionPendingId,NULL,-32603,*e.message ? e.message : "Unable to start cursor query."); goto discard; }
  s->completionUri=uri; s->completionId=s->completionPendingId; s->completionPendingId=NULL;
- s->completionDocument=i; s->completionVersion=d->version; s->completionGeneration=s->generation;
+ s->completionDocument=i;s->completionContextDocument=entry; s->completionVersion=d->version; s->completionGeneration=s->generation;
  s->completionResponded=s->completionPublished=s->completionCancelled=0; return;
 discard: xrtValueRelease(s->completionPendingId); s->completionPendingId=NULL;
 }
@@ -312,10 +335,11 @@ static void pollCompletion(server* s)
  if(s->completion) {
   char error[512]={0}; enum xide_check_state state=xideLanguageCheckState(s->completion,error,sizeof(error));
   if(!s->completionCancelled && (s->completionGeneration!=s->generation || !s->docs[s->completionDocument].uri || s->docs[s->completionDocument].version!=s->completionVersion)) cancelCompletion(s,-32801,"Cursor input set is no longer current.",0);
-  if(!s->completionCancelled && xideLanguageCheckGuardState(s->completion,error,sizeof(error))==XIDE_GUARD_INVALID) cancelCompletion(s,-32801,*error ? error : "Cursor source guard invalidated.",0);
+  char guardError[512]={0};
+  if(!s->completionCancelled && xideLanguageCheckGuardState(s->completion,guardError,sizeof(guardError))==XIDE_GUARD_INVALID) cancelCompletion(s,-32801,*guardError ? guardError : "Cursor source guard invalidated.",0);
   if(!s->completionCancelled && !s->completionResponded && state!=XIDE_CHECK_RUNNING) {
    xvalue* result=xideLanguageCheckResult(s->completion);
-   if(state==XIDE_CHECK_READY && result && put(result,"queryId",xrtValueDeepClone(s->completionId))) { response(s,s->completionId,result,0,NULL); result=NULL; s->completionPublished=1; }
+   if(state==XIDE_CHECK_READY && result && (!s->catalog || put(result,"analysisContext",configurationStamp(s,s->completionContextDocument))) && put(result,"queryId",xrtValueDeepClone(s->completionId))) { response(s,s->completionId,result,0,NULL); result=NULL; s->completionPublished=1; }
    else { response(s,s->completionId,NULL,state==XIDE_CHECK_CANCELLED ? -32800 : -32603,*error ? error : "Unable to obtain verified cursor facts."); s->completionCancelled=1; xideLanguageCheckCancel(s->completion); }
    xrtValueRelease(result); s->completionResponded=1;
   }
@@ -357,7 +381,7 @@ static void documents(server* s,const char* method,const xvalue* params)
   unsigned char uriHash[32];
   if(!content || !name || !xlsInputStateUri(uri,uriHash)) { free(path); xlsTextRelease(content); free(name); goto invalid; }
   unsigned long long generation=++s->generation;
-  s->docs[i]=(document){.uri=name,.path=path,.text=xlsTextData(content),.content=content,.version=version,.generation=generation,.identity=generation}; memcpy(s->docs[i].uriHash,uriHash,32); s->textBytes+=xlsTextSize(content);++s->inputSerial; cancelCompletion(s,-32801,"Open-document cursor input set changed.",1); if(s->check && s->snapshotMode) cancel(s,-32801,"Open-document snapshot set changed."); clearPublished(s); diagnosticInput(s,i,path,1); return;
+  s->docs[i]=(document){.uri=name,.path=path,.text=xlsTextData(content),.content=content,.version=version,.generation=generation,.identity=generation};s->docs[i].context=bindAnalysis(s->catalog,path,&s->docs[i].binding); memcpy(s->docs[i].uriHash,uriHash,32); s->textBytes+=xlsTextSize(content);++s->inputSerial; cancelCompletion(s,-32801,"Open-document cursor input set changed.",1); if(s->check && s->snapshotMode) cancel(s,-32801,"Open-document snapshot set changed."); clearPublished(s); diagnosticInput(s,i,path,1); return;
  }
  if(i<0) goto invalid;
  document* d=&s->docs[i];
@@ -411,6 +435,7 @@ static xvalue* semanticResult(server* s,const semantic_request* request)
 {
  if(!s->guard || s->guardCancelled) return NULL;
  document* d=&s->docs[request->document];
+ if(s->catalog && (d->binding<0 || ((!request->bound || d->binding==XIDE_ANALYSIS_PROJECT) && !xideLanguageCheckMatchesContext(s->guard,d->context)))) return NULL;
  return request->kind==3 ? xideLanguageCheckDocumentHighlights(s->guard,d->path,request->version,request->line,request->character) :
   request->kind==2 ? xideLanguageCheckDocumentSymbols(s->guard,d->path,request->version) :
   request->kind==1 ? xideLanguageCheckHover(s->guard,d->path,request->version,request->line,request->character) :
@@ -477,6 +502,7 @@ static void semanticQuery(server* s,const xvalue* id,const xvalue* params,int qu
  if(namedId && strlen(namedId)>65535) { response(s,id,NULL,-32602,"Semantic request ID exceeds 64 KiB."); return; }
  if(i<0 || (suppliedVersion && !integer(suppliedVersion,&version)) || version!=s->docs[i].version || (query!=2 && (!integer(get(get(params,"position"),"line"),&line) || line<0 || !integer(get(get(params,"position"),"character"),&character) || character<0)) || (batch && !validId(batch))) { response(s,id,NULL,-32602,"Open document and valid UTF-16 position are required; supplied version/checkId must be current."); return; }
  if(query!=2 && !validPosition(&s->docs[i],line,character)) { response(s,id,NULL,-32602,"Position is not a UTF-16 scalar boundary."); return; }
+ if(s->catalog && s->docs[i].binding<0) {response(s,id,NULL,-32602,"Semantic queries need an unambiguous configured analysis project.");return;}
  if(batch && (!s->guard || s->guardCancelled || !sameId(batch,s->guardId))) { response(s,id,NULL,-32801,"Checked compilation is no longer current."); return; }
  size_t slot=DOC_LIMIT;
  for(size_t j=0;j<DOC_LIMIT;++j) {
@@ -484,7 +510,7 @@ static void semanticQuery(server* s,const xvalue* id,const xvalue* params,int qu
   if(!s->semantic[j].id && slot==DOC_LIMIT) slot=j;
  }
  semantic_request captured={.document=i,.version=version,.line=line,.character=character,.kind=query,
-  .identity=s->docs[i].identity,.generation=s->generation,.order=++s->semanticOrder};
+  .identity=s->docs[i].identity,.generation=s->generation,.order=++s->semanticOrder,.bound=batch!=NULL};
  xvalue* result=semanticResult(s,&captured);
  if(result) { response(s,id,result,0,NULL); return; }
  if(batch || s->cliDiagnostics) { response(s,id,NULL,-32801,"No current semantic index; run a successful source check first."); return; }
@@ -495,6 +521,34 @@ static void semanticQuery(server* s,const xvalue* id,const xvalue* params,int qu
  s->semantic[slot]=captured;
 }
 #include "server/automatic_diagnostics.inc"
+static int configureAnalysis(server* s,const xvalue* value,xide_model_error* error)
+{
+ int64 epoch=0;
+ if(xrtValueType(value)!=XVALUE_OBJECT || xrtValueCount(value)!=2 || !xrtValueGetInt(get(value,"epoch"),&epoch) ||
+    epoch<=0 || (s->initialized && epoch<=s->configurationEpoch) || epoch==INT64_MAX || s->generation==ULLONG_MAX || s->inputSerial==ULLONG_MAX || s->cliCompletion || s->cliDiagnostics) {
+  snprintf(error->message,sizeof(error->message),"Analysis configuration needs a newer positive epoch and native backends.");return 0;
+ }
+ xide_analysis_catalog* catalog=xideAnalysisCatalogCreate(get(value,"catalog"),error->message,sizeof(error->message));if(!catalog) return 0;
+ xls_context* contexts[DOC_LIMIT]={0};int bindings[DOC_LIMIT]={0};int okay=1;
+ for(size_t i=0;i<DOC_LIMIT && okay;++i) if(s->docs[i].uri) {contexts[i]=bindAnalysis(catalog,s->docs[i].path,bindings+i);okay=bindings[i]!=XIDE_ANALYSIS_ERROR;}
+ if(!okay) {for(size_t i=0;i<DOC_LIMIT;++i) xlsContextRelease(contexts[i]);xideAnalysisCatalogDestroy(catalog);snprintf(error->message,sizeof(error->message),"Cannot prepare open-document analysis bindings.");return 0;}
+ if(s->initialized) {
+  ++s->generation;++s->inputSerial;s->pending=-1;
+  cancel(s,-32801,"Analysis configuration changed.");cancelSemantic(s,-1,-32801,"Analysis configuration changed.");cancelCompletion(s,-32801,"Analysis configuration changed.",1);clearPublished(s);
+  if(s->automaticDiagnostics) diagnosticResetState(s,NULL);
+ }
+ for(size_t i=0;i<DOC_LIMIT;++i) {xlsContextRelease(s->docs[i].context);s->docs[i].context=contexts[i];s->docs[i].binding=bindings[i];}
+ xideAnalysisCatalogDestroy(s->catalog);s->catalog=catalog;s->configurationEpoch=epoch;return 1;
+}
+static xvalue* configurationStamp(const server* s,int index)
+{
+ const xls_context* context=s->docs[index].context;if(!context) return NULL;
+ const xls_context_spec* spec=xlsContextSpec(context);xvalue* value=xrtValueObject();
+ int okay=value && put(value,"schema",xrtValueInt(1)) && put(value,"epoch",xrtValueInt(s->configurationEpoch)) &&
+  put(value,"project",xrtValueString(sv(spec->project))) && put(value,"configuration",xrtValueString(sv(spec->configuration))) &&
+  put(value,"entry",xrtValueString(sv(spec->entry))) && put(value,"directory",xrtValueString(sv(spec->directory)));
+ if(!okay) {xrtValueRelease(value);value=NULL;}return value;
+}
 static void inputState(server* s,const xvalue* id,const xvalue* params)
 {
  if(params && (xrtValueType(params)!=XVALUE_OBJECT || xrtValueCount(params))) { response(s,id,NULL,-32602,"Input state takes no parameters."); return; }
@@ -548,12 +602,15 @@ static void dispatch(server* s,const xvalue* message)
   const xvalue* rangeLimit=get(get(get(get(params,"capabilities"),"textDocument"),"foldingRange"),"rangeLimit"); int64 limit=65536;
   if(rangeLimit && (!xrtValueGetInt(rangeLimit,&limit) || limit<0 || limit>UINT32_MAX)) { response(s,id,NULL,-32602,"Folding rangeLimit must be a nonnegative 32-bit integer."); return; }
   s->foldingLimit=(size_t)(limit>65536 ? 65536 : limit);
+  const xvalue* configuration=get(options,"analysisConfiguration");xide_model_error configurationError={0};
+  if(configuration && !configureAnalysis(s,configuration,&configurationError)) {response(s,id,NULL,-32602,configurationError.message);return;}
   if(automatic && !s->diagnostics && !(s->diagnostics=xideDiagnosticStoreCreateWithDependencies(NULL,dependencyProof))) { response(s,id,NULL,-32603,"Unable to create the automatic diagnostic actor."); return; }
   s->automaticDiagnostics=automatic; s->diagnosticVersions=versions; s->diagnosticInputProof=inputProof; s->diagnosticDependencyProof=dependencyProof;s->diagnosticOverlayProof=overlayProof; s->definitionInputProof=definitionProof; s->diagnosticDelay=delay; s->diagnosticSweepAt=GetTickCount64()+1000;
   xvalue *result=xrtValueObject(),*cap=xrtValueObject(),*sync=xrtValueObject(),*save=xrtValueObject(),*info=xrtValueObject(),*scope=xrtValueObject();
   put(cap,"positionEncoding",xrtValueString(sv("utf-16"))); put(sync,"openClose",xrtValueBool(true)); put(sync,"change",xrtValueInt(2)); put(save,"includeText",xrtValueBool(true)); put(sync,"save",save); put(cap,"textDocumentSync",sync);
   put(cap,"foldingRangeProvider",xrtValueBool(true)); put(scope,"residentSyntax",xrtValueBool(true)); put(scope,"analysisRuntime",xrtValueString(sv("compiler-xrt")));
   put(scope,"nativeCursorCompletion",xrtValueBool(!s->cliCompletion)); put(scope,"completionBackend",xrtValueString(sv(s->cliCompletion ? "cli" : "native")));
+  put(scope,"analysisConfiguration",xrtValueInt(!s->cliCompletion && !s->cliDiagnostics ? 1 : 0));put(scope,"analysisProfile",xrtValueString(sv(XIDE_ANALYSIS_PROFILE)));
   put(scope,"retainedCursorCompletion",xrtValueBool(!s->cliCompletion));
   put(scope,"retainedCursorSyntax",xrtValueBool(!s->cliCompletion));
   put(scope,"automaticSemanticQueries",xrtValueBool(!s->cliDiagnostics));
@@ -570,7 +627,7 @@ static void dispatch(server* s,const xvalue* message)
   put(scope,"savedDiagnosticsBackend",xrtValueString(sv("cli")));
   put(scope,"savedEntryDiagnostics",xrtValueBool(true)); put(scope,"unsavedDependencies",xrtValueBool(true)); put(scope,"snapshotDiagnostics",xrtValueBool(true)); put(scope,"snapshotDocumentFingerprint",xrtValueBool(true)); put(scope,"snapshotInputGuard",xrtValueString(sv("background-poll"))); put(scope,"cSemantics",xrtValueBool(false)); put(scope,"snapshotDefinition",xrtValueBool(true)); put(cap,"definitionProvider",xrtValueBool(true)); put(cap,"hoverProvider",xrtValueBool(true)); put(cap,"documentSymbolProvider",xrtValueBool(true)); xvalue *completion=xrtValueObject(),*triggers=xrtValueArray(),*dot=xrtValueString(sv(".")); xrtValueArrayAppend(triggers,dot); xrtValueRelease(dot); put(completion,"resolveProvider",xrtValueBool(false)); put(completion,"triggerCharacters",triggers); put(cap,"completionProvider",completion); put(scope,"cursorCompletion",xrtValueBool(true)); put(scope,"completionInputGuard",xrtValueString(sv("background-poll"))); put(scope,"snapshotHover",xrtValueBool(true)); put(scope,"snapshotDocumentSymbols",xrtValueBool(true)); put(cap,"experimental",scope); put(result,"capabilities",cap);
   put(cap,"documentHighlightProvider",xrtValueBool(true));
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.27"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.28"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
@@ -595,6 +652,14 @@ static void dispatch(server* s,const xvalue* message)
  if(!strcmp(method,"xlang/inputState")) { if(id) inputState(s,id,params); return; }
  if(!strcmp(method,"workspace/didChangeWatchedFiles")) { if(id) response(s,id,NULL,-32600,"Watched file changes must be a notification."); else diagnosticWatched(s,params); return; }
  if(!strcmp(method,"textDocument/completion")) { if(id) requestCompletion(s,id,params); return; }
+ if(!strcmp(method,"xlang/configureAnalysis") || !strcmp(method,"workspace/didChangeConfiguration")) {
+  int standard=!strcmp(method,"workspace/didChangeConfiguration");xide_model_error error={0};
+  if((standard && id) || (!standard && !id)) {if(id) response(s,id,NULL,-32600,"Invalid configuration request/notification form.");return;}
+  const xvalue* configuration=standard ? get(get(get(params,"settings"),"xlang"),"analysisConfiguration") : params;
+  if(standard && !configuration) return;
+  if(!configureAnalysis(s,configuration,&error)) {if(id) response(s,id,NULL,-32602,error.message);else diagnosticLog(s,error.message);return;}
+  if(id) {xvalue* value=xrtValueObject();put(value,"schema",xrtValueInt(1));put(value,"epoch",xrtValueInt(s->configurationEpoch));put(value,"projects",xrtValueInt((int64)xideAnalysisCatalogCount(s->catalog)));response(s,id,value,0,NULL);}return;
+ }
  if(!strcmp(method,"textDocument/definition")) { if(id) semanticQuery(s,id,params,0); return; }
  if(!strcmp(method,"textDocument/hover")) { if(id) semanticQuery(s,id,params,1); return; }
  if(!strcmp(method,"textDocument/documentSymbol")) { if(id) semanticQuery(s,id,params,2); return; }
@@ -645,5 +710,6 @@ int main(void)
  xideLanguageCheckDestroy(s.completion); xrtValueRelease(s.completionId); xrtValueRelease(s.completionPendingId); free(s.completionUri); xideLanguageCheckDestroy(s.check); xideLanguageCheckDestroy(s.guard); xlsWorkerDestroy(s.semanticAnalysis); xlsWorkerDestroy(s.cursorAnalysis); xrtValueRelease(s.guardId); free(s.guardUri); xrtValueRelease(s.checkId); xrtValueRelease(s.publishedGroups); xideToolchainsDestroy(s.cache);
  while(s.head) { message* m=s.head; s.head=m->next; xrtValueRelease(m->value); free(m); }
  for(int i=0;i<DOC_LIMIT;++i) clearDocument(&s,i);
+ xideAnalysisCatalogDestroy(s.catalog);
  if(s.event) { CloseHandle(s.event); } DeleteCriticalSection(&s.lock); free(s.compiler); free(s.directory); return s.writeFailed ? 2 : s.exitCode;
 }

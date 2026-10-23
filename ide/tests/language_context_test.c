@@ -21,7 +21,7 @@ static int writeText(const char* path,const char* text)
 static xls_context* context(const char* entry,const char* directory,const char* configuration,const char* package)
 {
  xls_context_spec spec={.kind=XLS_CONTEXT_PROJECT,.project=directory,.configuration=configuration,.entry=entry,
-  .directory=directory,.analysisProfile="linked-native-host",.targetKind="exe",.packagePath=package};
+  .directory=directory,.analysisProfile=XIDE_ANALYSIS_PROFILE,.targetKind="exe",.packagePath=package};
  return xlsContextCreate(&spec,1024*1024,NULL);
 }
 static char* package(const char* directory,int stringType)
@@ -80,6 +80,27 @@ static int storeResult(xide_diagnostic_query* query,int expected,xide_diagnostic
  CHECK(query);uint64_t began=xrtClock();enum xide_diagnostic_state state;
  while((state=xideDiagnosticQueryResult(query,value))==XIDE_DIAGNOSTIC_PENDING && xrtClock()-began<15000000) xrtSleep(1);
  CHECK(state==(enum xide_diagnostic_state)expected);return 1;
+}
+static xide_analysis_catalog* selectedCatalog(xls_context* a,xls_context* b,int selected)
+{
+ xvalue *root=xrtValueObject(),*list=xrtValueArray();xls_context* contexts[]={a,b};int okay=root && list;
+ for(size_t i=0;okay && i<2;++i) {xvalue* value=xideAnalysisContextWrite(contexts[i]);okay=value && xrtValueArrayAppend(list,value);xrtValueRelease(value);}
+ okay=okay && xrtValueObjectSetNew(root,sv("schema"),xrtValueInt(1)) && xrtValueObjectSetNew(root,sv("selectedProject"),xrtValueString(sv(xlsContextSpec(contexts[selected])->project))) && xrtValueObjectSetNew(root,sv("packagePath"),xrtValueString(sv("packages")));
+ if(okay) {okay=xrtValueObjectSetNew(root,sv("projects"),list);list=NULL;}
+ xide_analysis_catalog* catalog=okay ? xideAnalysisCatalogCreate(root,NULL,0) : NULL;xrtValueRelease(list);xrtValueRelease(root);return catalog;
+}
+static int selectedPublication(xide_diagnostic_query* query,const char* entry,const char* included,const char* excluded,int errors)
+{
+ xide_diagnostic_publication* publication=NULL;xvalue* invalidated=NULL;CHECK(xideDiagnosticQueryTake(query,&publication,&invalidated));
+ size_t index=xideDiagnosticPublicationFind(publication,entry);CHECK(index!=SIZE_MAX);
+ CHECK((xrtValueCount(get(xideDiagnosticPublicationGroup(publication,index),"diagnostics"))>0)==errors);
+ const char* id=xideDiagnosticPublicationGroupDependency(publication,index);CHECK(id);
+ const xvalue* chunks=xideDiagnosticPublicationDependencyChunks(publication,xideDiagnosticPublicationFindDependency(publication,id));CHECK(chunks);
+ int found=0,foreign=0;
+ for(size_t i=0;i<xrtValueCount(chunks);++i) {const xvalue* paths=get(xrtValueArrayGet(chunks,i),"paths");
+  for(size_t j=0;j<xrtValueCount(paths);++j) {const xvalue* value=xrtValueArrayGet(paths,j);if(pathIs(value,included)) found=1;if(pathIs(value,excluded)) foreign=1;}
+ }
+ CHECK(found && !foreign);xideDiagnosticPublicationDestroy(publication);xrtValueRelease(invalidated);return 1;
 }
 static int run(void)
 {
@@ -147,13 +168,27 @@ static int run(void)
  /* A bounded store charges retained context bytes; failure retains no record. */
  xide_diagnostic_limits tiny={.records=2,.retainedReportBytes=1,.publishedReportBytes=1024,.queue=2};xide_diagnostic_store* small=xideDiagnosticStoreCreate(&tiny);CHECK(small);
  put=xideDiagnosticStorePutTake(small,"too-small",gb,xrtValueDeepClone(rb));CHECK(storeResult(put,XIDE_DIAGNOSTIC_FAILED,&state));xideDiagnosticQueryDestroy(put);xideDiagnosticStoreDestroy(small);
+ /* Configured publication selects one existing checked context per file,
+    including only that context's actual source/probe dependency proofs. */
+ first=start(ca,cache,compiler,a,actor,entry,text,0);CHECK(first);ac=ready(first);CHECK(report(ac,1,a));
+ xide_language_input_guard* selectedGuard=xideLanguageCheckCaptureInputGuard(first,&error);CHECK(selectedGuard);xideLanguageCheckDestroy(first);
+ xide_analysis_catalog *catalogA=selectedCatalog(ca,cb,0),*catalogB=selectedCatalog(ca,cb,1);CHECK(catalogA && catalogB);
+ xide_diagnostic_store* scoped=xideDiagnosticStoreCreateWithDependencies(NULL,1);CHECK(scoped);
+ put=xideDiagnosticStorePutConfigured(scoped,"A",selectedGuard,ac,catalogA);CHECK(storeResult(put,XIDE_DIAGNOSTIC_READY,&state));xideDiagnosticQueryDestroy(put);
+ put=xideDiagnosticStorePutConfigured(scoped,"B",gb,xrtValueDeepClone(rb),catalogA);CHECK(storeResult(put,XIDE_DIAGNOSTIC_READY,&state) && state.records==2);
+ CHECK(selectedPublication(put,entry,apiA,apiB,0));xideDiagnosticQueryDestroy(put);
+ put=xideDiagnosticStorePutConfigured(scoped,"B",gb,xrtValueDeepClone(rb),catalogB);CHECK(storeResult(put,XIDE_DIAGNOSTIC_READY,&state) && state.records==2);
+ CHECK(selectedPublication(put,entry,apiB,apiA,1));xideDiagnosticQueryDestroy(put);
+ xideAnalysisCatalogDestroy(catalogA);xideAnalysisCatalogDestroy(catalogB);xideLanguageInputGuardRelease(selectedGuard);
  xlsContextRelease(ca);xlsContextRelease(cb);xlsWorkerDestroy(actor);xlsWorkerDestroy(other);xideToolchainsDestroy(cache);xlsTextRelease(text);xlsTextRelease(queryText);
  CHECK(xideLanguageInputGuardValidate(gb,NULL,NULL,&error));
  put=xideDiagnosticStoreSweep(store);CHECK(storeResult(put,XIDE_DIAGNOSTIC_READY,&state) && state.records==1);xideDiagnosticQueryDestroy(put);
  CHECK(writeText(apiA,"export func value() as int\n return 8\nend\n"));put=xideDiagnosticStoreSweep(store);
  CHECK(storeResult(put,XIDE_DIAGNOSTIC_READY,&state) && !state.records && xrtValueCount(state.invalidated)==1);xideDiagnosticQueryDestroy(put);xideDiagnosticStoreDestroy(store);
+ put=xideDiagnosticStoreSweep(scoped);CHECK(storeResult(put,XIDE_DIAGNOSTIC_READY,&state) && state.records==1 && selectedPublication(put,entry,apiB,apiA,1));xideDiagnosticQueryDestroy(put);
  CHECK(xideLanguageInputGuardValidate(gb,NULL,NULL,&error) && writeText(apiB,"export func value() as string\n return \"changed\"\nend\n"));
  CHECK(!xideLanguageInputGuardValidate(gb,NULL,NULL,&error) && !xideLanguageInputGuardCurrent(gb));xideLanguageInputGuardRelease(gb);xrtValueRelease(rb);
+ put=xideDiagnosticStoreSweep(scoped);CHECK(storeResult(put,XIDE_DIAGNOSTIC_READY,&state) && !state.records);xideDiagnosticQueryDestroy(put);xideDiagnosticStoreDestroy(scoped);
  CHECK(previous ? xrtEnvSet("XLANG_PACKAGE_PATH",previous) : xrtEnvRemove("XLANG_PACKAGE_PATH"));free(previous);
  xrtFree(global);xrtFree(apiA);xrtFree(apiB);xrtFree(compiler);xrtFree(entry);xrtFree(a);xrtFree(b);xrtFree(root);return 1;
 }

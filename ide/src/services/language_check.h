@@ -1,6 +1,7 @@
 #ifndef XLANG_IDE_LANGUAGE_CHECK_H
 #define XLANG_IDE_LANGUAGE_CHECK_H
 #include "services/toolchain.h"
+#include "analysis/context.h"
 typedef struct xide_language_check xide_language_check;
 typedef struct xide_language_snapshot { const char *path,*text; int version; } xide_language_snapshot;
 typedef struct xide_language_analysis_options {
@@ -51,6 +52,17 @@ xide_language_check* xideLanguageCheckStartRetainedInContext(xls_context* contex
  const xls_analysis_document* documents,size_t count,const char* target,
  const char* queryPath,int line,int character,const xide_language_analysis_options* options,
  xide_model_error* error);
+/* Configured project root with an open triggering document. context.entry may
+   be another overlay or an unopened disk entry; disk reads/proofs stay on the
+   worker. The reply version belongs to trigger. An open entry uses the actor;
+   a disk entry currently uses the original one-shot native frontend. */
+xide_language_check* xideLanguageCheckStartConfigured(xls_context* context,
+ xide_toolchains* cache,const char* compiler,xls_worker* actor,
+ const xls_analysis_document* documents,size_t count,const char* trigger,
+ const char* queryPath,int line,int character,const xide_language_analysis_options* options,
+ xide_model_error* error);
+/* Immutable context match, without disk work; caller keeps check alive. */
+int xideLanguageCheckMatchesContext(const xide_language_check* check,const xls_context* context);
 #endif
 
 /* Worker-only C ABI query: disk entry is allowed, open .xl overlays remain
@@ -109,6 +121,8 @@ const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard
    Both default/legacy guards are equal in scope. NULL guards are invalid.
    Equality checks complete context bytes, not pointer/hash identity alone. */
 int xideLanguageInputGuardSameContext(const xide_language_input_guard* left,const xide_language_input_guard* right);
+/* Borrowed native context, NULL for legacy/GUI proofs. No I/O or allocation. */
+const xls_context* xideLanguageInputGuardContext(const xide_language_input_guard* guard);
 /* Worker-only exact invalidation scope: actual inputs and every observed
    import candidate, including absent paths and manifests. Sorted/deduplicated
    with existing platform lexical path rules; no filesystem access. Caller

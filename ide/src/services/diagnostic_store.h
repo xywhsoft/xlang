@@ -1,6 +1,7 @@
 #ifndef XIDE_DIAGNOSTIC_STORE_H
 #define XIDE_DIAGNOSTIC_STORE_H
 #include "services/language_check.h"
+#include "services/analysis_catalog.h"
 #include <stdint.h>
 
 typedef struct xide_diagnostic_store xide_diagnostic_store;
@@ -39,6 +40,13 @@ int xideDiagnosticStoreLoad(xide_diagnostic_store* store,xide_diagnostic_load* l
    merging, validating files or waiting on the caller. Source errors are valid
    diagnostic results. Superseded/cancelled work must be version-gated by host. */
 xide_diagnostic_query* xideDiagnosticStorePutTake(xide_diagnostic_store* store,const char* key,xide_language_input_guard* guard,xvalue* checkedResult);
+/* Native configured publication: retain the immutable catalog and choose one
+   context per file before the existing strict merge. Explicit project owners
+   win; unowned files prefer their own entry, then the selected project, then
+   deterministic record order. No cross-context diagnostics are mixed. Shares
+   the existing actor, guards, quotas and exact dependency dictionaries.
+   Always consumes checkedResult; requires a native context-bearing proof. */
+xide_diagnostic_query* xideDiagnosticStorePutConfigured(xide_diagnostic_store* store,const char* key,xide_language_input_guard* guard,xvalue* checkedResult,xide_analysis_catalog* catalog);
 xide_diagnostic_query* xideDiagnosticStoreRemove(xide_diagnostic_store* store,const char* key);
 /* Open/close/change of an overlay invalidates roots whose actual files or
    observed resolution candidates match path, without touching other roots. */
