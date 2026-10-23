@@ -1,4 +1,5 @@
 extern "xac_last_error" func __aho_corasick_error() as string
+extern "xac_buffer_take_cstr" func __ac_buffer_take_cstr(point buffer) as point
 extern "xac_scan_begin" func __ac_scan_begin(point automaton,
     string text, c_size size) as point
 extern "xac_search_non_overlapping" func __ac_search_non_overlapping(
@@ -166,12 +167,16 @@ end
 
 
 
-// 接管原生 Buffer 并转换为字符串，空 Buffer 也是合法结果。
+// 无 NUL 的缓冲直接移交底层分配；含 NUL 的结果仍由长度感知路径复制。
+func __ac_buffer_text(Buffer result) as string
+    point text = __ac_buffer_take_cstr(result.handle)
+    if text != null then return __xl_runtime.takeCstr(text) end
+    return result.text()
+end
+
 func __ac_text_result(point result) as string
-    if result == null then
-        throw RuntimeError __aho_corasick_error()
-    end
-    return Buffer(result).text()
+    if result == null then throw RuntimeError __aho_corasick_error() end
+    return __ac_buffer_text(Buffer(result))
 end
 
 
@@ -371,7 +376,7 @@ export class Automaton
         if position < textBytes then
             __ac_append(self.handle, output, text, position, textBytes - position)
         end
-        return output.text()
+        return __ac_buffer_text(output)
     end
 
     func mask(string text, string mask = "*") as string

@@ -122,6 +122,29 @@ static void transforms(void)
     void* ac = automaton(0, 0, 4);
     bytes_are(xac_replace(ac, "zab", 3, "*", 1), "z*", 2);
     bytes_are(xac_mask(ac, "zab", 3, "#", 1), "z##", 3);
+    xbuffer* plain = xac_replace(ac, "zab", 3, "*", 1);
+    void* original = plain->Data;
+    char* taken = xac_buffer_take_cstr(plain);
+    assert(taken == original && strcmp(taken, "z*") == 0);
+    assert(plain->Data == NULL && plain->Size == 0);
+    xrtFree(taken);
+    xrtBufferDestroy(plain);
+
+    xbuffer* with_nul = xrtBufferCreate();
+    xbytesview nul_text = { (const unsigned char*)"a\0b", 3 };
+    assert(with_nul && xrtBufferAppend(with_nul, nul_text));
+    assert(xac_buffer_take_cstr(with_nul) == NULL);
+    assert(with_nul->Size == 3 && memcmp(with_nul->Data, "a\0b", 3) == 0);
+    xrtBufferDestroy(with_nul);
+
+    bytes exact_data = xrtMalloc(3);
+    assert(exact_data != NULL);
+    memcpy(exact_data, "abc", 3);
+    xbuffer* exact = xrtBufferCreateTake(&exact_data, 3, 3);
+    assert(exact && xac_buffer_take_cstr(exact) == NULL);
+    assert(exact->Size == 3 && memcmp(exact->Data, "abc", 3) == 0);
+    xrtBufferDestroy(exact);
+
     assert(xac_highlight(ac, "zab", 3, "<", 1, ">", 1) == NULL); error_is(XERR_RANGE);
     assert(xac_replace(ac, "xxxxx", 5, "", 0) == NULL); error_is(XERR_RANGE);
     xbuffer* output = xrtBufferCreate();

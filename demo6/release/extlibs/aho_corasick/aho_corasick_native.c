@@ -441,6 +441,20 @@ XAHO_EXPORT int xac_output_append(
 
 
 
+/* 不分配、不改变含 NUL 的结果；可移交时由 XLang 接管底层 XRT 分配。 */
+XAHO_EXPORT void* xac_buffer_take_cstr(void* pOutput)
+{
+	xbuffer* pBuffer = (xbuffer*)pOutput;
+	if ( pBuffer == NULL || pBuffer->Data == NULL ||
+		pBuffer->Size >= pBuffer->Capacity ||
+		memchr(pBuffer->Data, 0, pBuffer->Size) != NULL ) { return NULL; }
+	pBuffer->Data[pBuffer->Size] = 0;
+	return xrtBufferTake(pBuffer, NULL, NULL);
+}
+
+
+
+
 /* 固定替换并返回 Buffer。 */
 XAHO_EXPORT void* xac_replace(
 	void* pHandle,
