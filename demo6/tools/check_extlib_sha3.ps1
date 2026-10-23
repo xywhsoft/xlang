@@ -99,6 +99,14 @@ try {
         }
         if ($output -cne $golden) { throw 'Language example output mismatch' }
     }
+    $ownedCase = 'release/extlibs/sha3/test/owned_text.xl'
+    $ownedOutput = Check 'owned-text-jit' $xl @('run',$ownedCase)
+    if ($ownedOutput -cne 'sha3 owned text ok') { throw 'SHA3 owned text output mismatch' }
+    if (!$SkipAot) {
+        $ownedBinary = Join-Path $work 'owned-text.exe'
+        $null = Check 'owned-text-build' $xl @('build',$ownedCase,'-o',$ownedBinary)
+        if ((Check 'owned-text-aot' $ownedBinary @()) -cne $ownedOutput) { throw 'SHA3 owned text JIT/AOT mismatch' }
+    }
     foreach ($name in @('basic','files')) {
         $stem = if ($name -eq 'basic') { 'sha3_basic' } else { 'sha3' }
         $golden = [IO.File]::ReadAllText((Join-Path $Root "release/examples/extlibs/$stem.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
