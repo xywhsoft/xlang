@@ -3783,6 +3783,8 @@ static int xl6SemExprParamMatchCostEx(
     }
 
     exprType = xl6SemExprStaticTypeName(ctx, (XL6_AstNode*)expr);
+    if (xl6COwnedBaseName(targetType) &&
+        (xl6TextEquals(exprType,targetType) || xl6TextEquals(exprType,xl6COwnedBaseName(targetType))))return 5;
     if (xl6COwnedBaseName(exprType) && xl6TextEquals(xl6COwnedBaseName(exprType),targetType))
         return 5;
     if ( exprType == NULL ) {
@@ -11304,6 +11306,7 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
         }
         xl6AstFree(receiverType);
     }
+    if(func) { func=xl6SemCOwnedSpecialize(ctx,node,func);if(!func)return 0; }
     if ( func != NULL ) {
         xl6SemSetCallPlan(node, XL6_SEM_CALL_DIRECT, func);
     }
@@ -13725,12 +13728,12 @@ static XL6_AstNode* xl6SemCloneIndexedItemType(XL6_SemContext* ctx, XL6_AstNode*
         concreteType = xl6SemResolveAliasType(ctx, nullableInner);
     }
     concreteType = xl6SemClassValueType(ctx, concreteType);
-    if ( concreteType != NULL && xl6TextEquals(concreteType->text, "string") ) {
+    if ( concreteType != NULL && (xl6TextEquals(concreteType->text, "string") || xl6TextEquals(concreteType->text,"cstring")) ) {
         itemType = xl6AstNewText(XL6_AST_TYPE, "char", 4, NULL);
         xl6AstFree(receiverType);
         return itemType;
     }
-    if ( concreteType != NULL && xl6TextEquals(concreteType->text, "bytes") ) {
+    if ( concreteType != NULL && (xl6TextEquals(concreteType->text, "bytes") || xl6TextEquals(concreteType->text,"cbytes")) ) {
         itemType = xl6AstNewText(XL6_AST_TYPE, "uint8", 5, NULL);
         xl6AstFree(receiverType);
         return itemType;
@@ -16701,8 +16704,7 @@ static int xl6SemDeclareVarWithKind(
     initExpr = xl6SemVarDeclInitExpr(node);
 
     if (declaredType && xl6COwnedBaseName(declaredType->text) &&
-        (valueKind != XL6_SYM_VALUE || !ctx->currentFunction || !initExpr ||
-         initExpr->kind!=XL6_AST_CALL)) {
+        (valueKind != XL6_SYM_VALUE || !ctx->currentFunction || !initExpr)) {
         xl6SemErrorNode(ctx,node,"C owners require explicit local initialization with take");
         ok=0;
     }
@@ -16752,10 +16754,15 @@ static int xl6SemDeclareVarWithKind(
     if ( initExpr != NULL && !xl6SemCheckExpr(ctx, initExpr) ) {
         ok = 0;
     }
-    if (declaredType && xl6COwnedBaseName(declaredType->text) && initExpr &&
-        initExpr->semanticCallKind!=XL6_SEM_CALL_C_OWNED_TAKE) {
-        xl6SemErrorNode(ctx,initExpr,"C owner initialization must take a fresh C allocation; assign to string/bytes to copy");
-        ok=0;
+    if(ok && ctx->currentFunction && initExpr && declaredType && !xl6COwnedBaseName(declaredType->text)) {
+        XL6_AstNode* actual=xl6SemInferAutoTypeNode(ctx,initExpr);
+        const char* base=actual ? xl6COwnedBaseName(actual->text) : NULL;
+        if(base && xl6TextEquals(base,xl6SemResolveAliasName(ctx,declaredType->text))) {
+            xrtFree(declaredType->text);declaredType->text=xrtStrDup(actual->text);
+            xl6SemBindInferredTypeIdentity(ctx,declaredType);
+            xl6AstFree(node->inferredType);node->inferredType=xl6SemCloneTypeNode(actual);
+        }
+        xl6AstFree(actual);
     }
     /* Register the name as unassigned before checking its initializer, but
      * commit auto's storage type only from the checked expression. A Future
@@ -16763,14 +16770,6 @@ static int xl6SemDeclareVarWithKind(
      * checked; an earlier bare-name guess must never become the symbol/IR type. */
     if(ok && declaredType && xl6TextEquals(declaredType->text,"auto") && initExpr) {
         inferredType=xl6SemInferAutoTypeNode(ctx,initExpr);
-        if(inferredType && xl6COwnedBaseName(inferredType->text)) {
-            const char* base=xl6COwnedBaseName(inferredType->text);
-            xrtFree(inferredType->text); inferredType->text=xrtStrDup(base);
-            xl6SemBindInferredTypeIdentity(ctx,inferredType);
-            xl6AstFree(node->inferredType);
-            node->inferredType=xl6SemCloneTypeNode(inferredType);
-            if(!node->inferredType) { xl6AstFree(inferredType); return 0; }
-        }
         if(inferredType) {
             if(xl6SemExprIntegerLiteralValue(initExpr,NULL,NULL) &&
                 !xl6SemExprIntegerLiteralFitsType(initExpr,inferredType->text)) {
@@ -17005,6 +17004,9 @@ static int xl6SemTypeCanAssignFromType(XL6_SemContext* ctx, const XL6_AstNode* v
     if ( targetType == NULL || valueType == NULL ) {
         return 1;
     }
+    if(xl6COwnedBaseName(targetType->text) &&
+        (xl6TextEquals(valueType->text,targetType->text) ||
+         xl6TextEquals(xl6SemResolveAliasName(ctx,valueType->text),xl6COwnedBaseName(targetType->text))))return 1;
     if (xl6COwnedBaseName(valueType->text) &&
         xl6TextEquals(xl6COwnedBaseName(valueType->text),xl6SemResolveAliasName(ctx,targetType->text))) return 1;
     if ( xl6TextEquals(targetType->text, "auto") ) {
@@ -17919,16 +17921,6 @@ static int xl6SemCheckAssign(XL6_SemContext* ctx, XL6_AstNode* node)
     left = node->childCount > 0 ? node->children[0] : NULL;
     right = node->childCount > 1 ? node->children[1] : NULL;
     op = node->text != NULL ? node->text : "=";
-    {
-        XL6_AstNode* root=left;
-        while(root && (root->kind==XL6_AST_INDEX || root->kind==XL6_AST_MEMBER) && root->childCount)
-            root=root->children[0];
-        XL6_Symbol* binding=root && root->kind==XL6_AST_NAME ? xl6ScopeFind(ctx->scope,root->text) : NULL;
-        if(binding && binding->type && xl6COwnedBaseName(binding->type->text)) {
-            xl6SemErrorNode(ctx,left,"C owner bindings and their contents are read-only");
-            return 0;
-        }
-    }
     unionInitSymbol = xl6SemUnionFieldInitSymbol(ctx, left, op);
     readOnlyLengthTarget = 0;
     dynamicMemberTarget = 0;
@@ -18263,13 +18255,6 @@ static int xl6SemCheckMultiAssign(XL6_SemContext* ctx, XL6_AstNode* node)
     ok = 1;
     targets = node->childCount > 0 ? node->children[0] : NULL;
     expr = node->childCount > 1 ? node->children[1] : NULL;
-    for(size_t target=0;targets && target<targets->childCount;++target) {
-        XL6_AstNode* name=targets->children[target];
-        XL6_Symbol* binding=name && name->kind==XL6_AST_NAME ? xl6ScopeFind(ctx->scope,name->text) : NULL;
-        if(binding && binding->type && xl6COwnedBaseName(binding->type->text)) {
-            xl6SemErrorNode(ctx,name,"C owner bindings are read-only");return 0;
-        }
-    }
 
     if ( expr == NULL || !xl6SemCheckExpr(ctx, expr) ) {
         ok = 0;

@@ -2206,6 +2206,11 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_C_COMPARE_GE,
     /* A typed read loan; this does not acquire or materialize a string. */
     XL6_IR_RUNTIME_CSTRING_VIEW,
+    XL6_IR_RUNTIME_C_OWNED_COPY,
+    XL6_IR_RUNTIME_CSTRING_FROM_STRING,
+    XL6_IR_RUNTIME_CBYTES_FROM_BYTES,
+    XL6_IR_RUNTIME_CSTRING_SET_COPY,
+    XL6_IR_RUNTIME_CBYTES_SET_COPY,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 

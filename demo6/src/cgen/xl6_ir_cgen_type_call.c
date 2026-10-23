@@ -234,7 +234,7 @@ static int xl6IrCgenEmitStructuralErrorResultTypes(
         const char* valueType;
         if ( type->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE &&
              type->cAbi != XL6_IR_C_ABI_PRODUCT &&
-             type->cAbi != XL6_IR_C_ABI_UNION ) continue;
+             type->cAbi != XL6_IR_C_ABI_UNION && !xl6IrTypeIsCOwned(type)) continue;
         valueType = xl6IrCgenType(module, (XL6_IrTypeId)(typeIndex + 1));
         if ( valueType == NULL || type->errorResultCName[0] == '\0' )
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,

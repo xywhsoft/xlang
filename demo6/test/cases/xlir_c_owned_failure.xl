@@ -22,7 +22,7 @@ func check()
     caught = false
     failNext()
     try
-        bytes result = data
+        bytes result = bytes(data)
     catch ignored
         clearFailure()
         caught = true

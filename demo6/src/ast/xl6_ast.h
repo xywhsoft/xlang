@@ -126,6 +126,8 @@ typedef enum XL6_AstKind {
 #define XL6_AST_FLAG_FOREIGN_NO_RAISE 0x00200000u
 #define XL6_AST_FLAG_FOREIGN_NONBLOCKING 0x00400000u
 #define XL6_AST_FLAG_FOREIGN_PURE 0x00800000u
+/* Compiler-created native owner specialization; not source syntax. */
+#define XL6_AST_FLAG_C_OWNED_SPECIALIZATION 0x01000000u
 #define XL6_AST_FLAG_INTERNAL_NULLABLE 0x40000000u
 /* 仅供语义规范化使用，源码不能构造该标记。 */
 #define XL6_AST_FLAG_CLASS_HANDLE 0x80000000u

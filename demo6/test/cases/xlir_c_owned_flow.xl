@@ -1,0 +1,27 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_released" @no_raise func released() as int
+func identity(string x) as string
+    return x
+end
+func bin(bytes x) as int
+    return x.length + x[1]
+end
+func make() as cstring
+    return cstring.take(nativeText(), nativeFree)
+end
+func checkFlow()
+    string a = identity(make())
+    auto b = a
+    assert original(a) and original(b)
+    a = "123"
+    assert a == "123" and original(b) and released() == 0
+    b = "456"
+    assert released() == 1
+    bytes c = cbytes.take(nativeBytes(),4,nativeFree)
+    assert bin(c) == 259
+end
+checkFlow()
+assert released() == 2

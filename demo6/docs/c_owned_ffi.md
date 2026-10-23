@@ -93,6 +93,16 @@ allocation-free reads, and cleanup of nested temporary arguments. The other
 materialization boundaries listed above describe the previous implementation
 until their respective redesign stages land.
 
+The second stage preserves C storage in typed local initialization and `auto`,
+accepts synchronous `cstring`/`cbytes` results, shares C owners across aliases,
+and replaces or partially writes a binding without explicit conversion. Named
+static calls get an internal owner specialization where required, so typed
+identity functions and binary readers can keep the original storage. Partial
+writes construct their final result directly from the borrowed C view. The
+private owner record is allocated only for adopted C storage; ordinary types
+and XRT layouts are unchanged. Adoption failure releases the C allocation.
+`xlir_c_owned_flow.xl` and `xlir_c_owned_writes.xl` check these transitions.
+
 Run from `demo6` with a compatible `release/xl.dll` available:
 
 ```powershell

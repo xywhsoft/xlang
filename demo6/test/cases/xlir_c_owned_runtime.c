@@ -8,7 +8,7 @@ static XL6_COwnedV1* observedOwner;
 static void release(void* data)
 {
     if (observedOwner) {
-        assert(!observedOwner->Data && !observedOwner->Size && !observedOwner->Release);
+        assert(!observedOwner->Data && !observedOwner->Size && !observedOwner->Owner);
     }
     ++released;
     free(data);
@@ -36,10 +36,14 @@ int main(void)
     assert(xrtValueGetString(boxed, &boxedText));
     assert(boxedText.Data != c.Data && boxedText.Size == c.Size);
     assert(!memcmp(boxedText.Data, text, sizeof(text)-1));
+    XL6_COwnedV1 shared=xl6COwnedCopyV1(c);
+    assert(shared.Data==c.Data && shared.Owner==c.Owner);
     observedOwner = &c;
     xl6COwnedDropV1(&c);
     xl6COwnedDropV1(&c);
     observedOwner = NULL;
+    assert(released==0 && xl6CStringViewV1(shared).Data);
+    xl6COwnedDropV1(&shared);
     assert(released == 1 && !memcmp(copied.Data, text, sizeof(text)));
     xrtFree((void*)copied.Data);
     xrtValueRelease(boxed);
@@ -90,6 +94,10 @@ int main(void)
     assert(!bytes && xrtMemDebugFailTriggered() && b.Data && released==5);
     xrtMemDebugFailClear();xrtClearError();xl6COwnedDropV1(&b);
     assert(released==6);
+    assert(xrtMemDebugFailAfter(0));
+    c=xl6CStringTakeV1(allocation(text,sizeof(text)),release);
+    assert(!c.Data && !c.Owner && released==7 && xrtMemDebugFailTriggered());
+    xrtMemDebugFailClear();xrtClearError();
     puts("C owned runtime: independent copies, binary NUL, empty, release-once and failed adoption passed");
     return 0;
 }
