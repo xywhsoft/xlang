@@ -230,6 +230,9 @@ int main(void) {
     xrtClearError();
     CHECK(xprog_set_prefix_n(first, "a\xe2\x80\x8b" "b", 5) == 0); /* U+200B */
     xrtClearError();
+    CHECK(xprog_set_prefix_n(first, "a\xc2\xad" "b", 4) == 0); /* U+00AD */
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    xrtClearError();
     CHECK(xprog_set_prefix_n(first, "a\xe2\x81\xa0" "b", 5) == 0); /* U+2060 */
     xrtClearError();
     CHECK(xprog_set_prefix_n(first, "a\xef\xbb\xbf" "b", 5) == 0); /* U+FEFF */

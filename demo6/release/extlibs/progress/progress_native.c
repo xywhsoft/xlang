@@ -80,7 +80,7 @@ int xprog_set_prefix_n(void *handle, const char *prefix, size_t size) {
         if (xrtUtf8Decode((xstrview){prefix + i, size - i},
             &scalar, &read) != XUTF_OK || read == 0u || scalar < 0x20u ||
             (scalar >= 0x7fu && scalar <= 0x9fu) ||
-            scalar == 0x2028u || scalar == 0x2029u ||
+            scalar == 0x00adu || scalar == 0x2028u || scalar == 0x2029u ||
             scalar == 0x061cu || (scalar >= 0x200bu && scalar <= 0x200fu) ||
             (scalar >= 0x202au && scalar <= 0x202eu) ||
             (scalar >= 0x2060u && scalar <= 0x206fu) ||
