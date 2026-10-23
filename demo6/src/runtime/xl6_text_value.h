@@ -30,6 +30,7 @@ struct xlir_closure;
 #include "xl6_key_abi.h"
 #include "xl6_x509_abi.h"
 #include "xl6_x509_records_abi.h"
+#include "xl6_x509_profiles_abi.h"
 #include "xl6_codec_abi.h"
 #include "xl6_net_address_abi.h"
 #include "xl6_net_resolver_abi.h"

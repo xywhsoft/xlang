@@ -476,6 +476,41 @@
     src\runtime\xl6_x509_certificate_key_info.c
     src\runtime\xl6_x509_certificate_unique_ids.c
     src\runtime\xl6_x509_der_time.c
+    src\runtime\xl6_x509_profile_value.c
+    src\runtime\xl6_x509_general_names.c
+    src\runtime\xl6_x509_general_names_domain.c
+    src\runtime\xl6_x509_general_name.c
+    src\runtime\xl6_x509_general_name_domain.c
+    src\runtime\xl6_x509_oids.c
+    src\runtime\xl6_x509_oids_domain.c
+    src\runtime\xl6_x509_key_usage.c
+    src\runtime\xl6_x509_key_usage_domain.c
+    src\runtime\xl6_x509_basic_constraints.c
+    src\runtime\xl6_x509_basic_constraints_domain.c
+    src\runtime\xl6_x509_authority_key_id.c
+    src\runtime\xl6_x509_authority_key_id_domain.c
+    src\runtime\xl6_x509_distribution_points.c
+    src\runtime\xl6_x509_distribution_points_domain.c
+    src\runtime\xl6_x509_distribution_point.c
+    src\runtime\xl6_x509_distribution_point_domain.c
+    src\runtime\xl6_x509_name_constraints.c
+    src\runtime\xl6_x509_name_constraints_domain.c
+    src\runtime\xl6_x509_general_subtrees.c
+    src\runtime\xl6_x509_general_subtrees_domain.c
+    src\runtime\xl6_x509_general_subtree.c
+    src\runtime\xl6_x509_general_subtree_domain.c
+    src\runtime\xl6_x509_general_name_directory.c
+    src\runtime\xl6_x509_general_name_within.c
+    src\runtime\xl6_x509_distribution_point_names.c
+    src\runtime\xl6_x509_name_constraints_check.c
+    src\runtime\xl6_x509_certificate_general_names.c
+    src\runtime\xl6_x509_certificate_key_usage.c
+    src\runtime\xl6_x509_certificate_basic_constraints.c
+    src\runtime\xl6_x509_certificate_oids.c
+    src\runtime\xl6_x509_certificate_subject_key_id.c
+    src\runtime\xl6_x509_certificate_authority_key_id.c
+    src\runtime\xl6_x509_certificate_distribution.c
+    src\runtime\xl6_x509_certificate_constraints.c
     src\runtime\xl6_der_value.c
     src\runtime\xl6_der_value_domain.c
     src\runtime\xl6_der_reader.c

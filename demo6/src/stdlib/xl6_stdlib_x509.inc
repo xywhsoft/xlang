@@ -20,6 +20,7 @@ const char* xl6StdlibX509DataSource=
     "    extern \"xl6X509CertificateSignatureParametersV1\" @pure @nonblocking get signatureParametersDer() as bytes\n"
     "    extern \"xl6X509CertificateValidAtV1\" @pure @nonblocking func validAt(time instant) as bool\n"
 #include "xl6_stdlib_x509_certificate_records.inc"
+#include "xl6_stdlib_x509_certificate_profiles.inc"
     "end\n"
     "class CertificateRevocationList\n"
     "    private native point handle\n"

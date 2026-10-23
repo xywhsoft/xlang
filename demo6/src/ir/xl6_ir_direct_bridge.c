@@ -54,6 +54,7 @@ static int xl6IrDirectNumericEnumMatches(const XL6_IrModule* module,
 #include "xl6_ir_signature_hash_enum.inc"
 #include "xl6_ir_rsa_enums.inc"
 #include "xl6_ir_x509_records_enums.inc"
+#include "xl6_ir_x509_profiles_enums.inc"
 #include "xl6_ir_net_backend_enum.inc"
 #include "xl6_ir_net_engine_state_enum.inc"
 #include "xl6_ir_net_socket_enums.inc"
@@ -274,6 +275,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_key_contracts.inc"
 #include "xl6_ir_x509_contracts.inc"
 #include "xl6_ir_x509_records_contracts.inc"
+#include "xl6_ir_x509_profiles_contracts.inc"
 #include "xl6_ir_compress_contracts.inc"
 #include "xl6_ir_template_contracts.inc"
     {"xl6Crc32StringV1",T,I,3,{U,S,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
@@ -1414,7 +1416,8 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 const XL6_IrType* base = result->params ? xl6IrTypeGet(&module->types, result->params[0]) : NULL;
                 if (!base || base->kind != XL6_IR_TYPE_BUILTIN || base->cAbi != contract->result ||
                     base->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED || base->paramCount ||
-                    base->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL) return 0;
+                    base->nullAbi != (contract->result==XL6_IR_C_ABI_MANAGED_BYTES
+                        ? XL6_IR_NULL_ABI_XVALUE_SENTINEL : XL6_IR_NULL_ABI_POINTER_SENTINEL)) return 0;
             }
             if (contract->result == XL6_IR_C_ABI_MANAGED_STRING || contract->result == XL6_IR_C_ABI_MANAGED_BYTES) {
                 if (result->cAbi != contract->result || result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
