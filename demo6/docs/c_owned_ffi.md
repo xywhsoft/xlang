@@ -175,16 +175,33 @@ allocation-counter checks use the separate debug runtime lane. Acceptance
 records belong under `build/c-owned/`; this targeted check is not a claim that
 all repository-wide inventories and unrelated release gates are green.
 
-Current acceptance (`build/c-owned/complete-nullable-acceptance-1/acceptance.json`)
-built 1,088 source translation units and verified unchanged build inputs. Two
-runtime units (the owner unit at both O0 and O2), 17 generated-C programs and
-12 negative declarations passed. O0/O2 contract harnesses each checked 495
+Current acceptance (`build/c-owned/audit-fixes-acceptance-2/acceptance.json`)
+built 1,097 source translation units and verified 2,192 unchanged build inputs.
+Two runtime units (the owner unit at both O0 and O2), 21 generated-C programs
+and 12 negative declarations passed. O0/O2 contract harnesses each checked 495
 RuntimeOps / 3,960 operand effects, 22 capture mutations, 73 managed-storage
-mutations and four nullable-join mutations. Eighteen C interoperability programs
-and 13 ordinary programs passed both source JIT and standalone EXE; ordinary
-generated C included no C owner runtime header. The source runtime receipt is
-`build/c-owned/complete-nullable-public-2/build.json`. These ordinary contracts
-and programs protect virtual, async and generator dispatch during loan cleanup.
+mutations and four nullable-join mutations. Twenty-two C interoperability
+programs and 14 ordinary programs passed both source JIT and standalone EXE;
+ordinary generated C included no C owner runtime header. The source runtime
+receipt is `build/c-owned/audit-fixes-public-1/build.json`.
+
+The global initialization fault gate explicitly enables memory debugging before
+module initialization and sweeps 32 allocation limits. Four limits trigger
+allocation failures and 28 complete normally; all C producer allocations are
+released, including when a preceding global result has already been published.
+`tools/check_xlir_c_owned_globals_fault.ps1` also runs from the main C owner gate.
+
+The first complete acceptance is recorded in `audit-fixes-acceptance-1.log`.
+The final pass resumed after the system exhausted commit memory during linking;
+`--no-keep-memory` reduced linker memory use without changing compiler inputs.
+Its original and resumed logs, source hashes and fault results are retained in
+the second acceptance directory. These targeted contracts do not assert that
+unrelated repository-wide release gates have passed.
+
+`xlir_c_owned_sizes.xl`, `xlir_c_owned_defaults.xl`, `xlir_c_owned_spawn.xl` and
+`xlir_c_owned_globals.xl` cover unsigned lengths and overflow cleanup, C defaults
+and explicit overrides, worker input ownership and fixed result boundaries,
+and ordinary nullable/multi-result global storage and replacement.
 
 `xlir_c_owned_calls.xl` checks explicit/inferred generic identities, concrete
 signature separation, recursive generic forwarding, a 65-parameter function,
