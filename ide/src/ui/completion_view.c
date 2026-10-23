@@ -227,7 +227,9 @@ void xideCompletionViewRequest(xide_app* app,xui_widget editor,int offset,int fo
  if(!v || !d || d->editor!=editor || !cveligible(app,d) || xuiGetFocusWidget(app->context)!=editor) return;
  xui_code_selection_t s={0}; if(xuiCodeSelectionGetState(xuiCodeEditGetSelection(editor),&s)!=XUI_OK || s.iCaretOffset!=offset || s.iCaretOffset!=s.iAnchorOffset) return;
  uint32_t version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(editor));
- if(!force && v->wanted && v->document==d && v->id==d->id && v->version==version && v->offset==offset && (!v->inputCount || cvinputsCurrent(v))) return;
+ /* Pending capture still describes the previous batch. A provider refresh
+    must preserve the current intent/deadline; cvbegin captures all fresh inputs. */
+ if(!force && v->wanted && v->document==d && v->id==d->id && v->version==version && v->offset==offset && (v->pending || !v->inputCount || cvinputsCurrent(v))) return;
  if(!cvprefixAllowed(xuiCodeEditGetDocument(editor),offset)) return;
  if(offset>0) { xui_code_token_t tokens[8]; int count=0;
   if(xuiCodeTokenBufferGetTokensInRange(xuiCodeEditGetTokenBuffer(editor),xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(editor)),offset-1,offset,tokens,8,&count)!=XUI_OK) return;
