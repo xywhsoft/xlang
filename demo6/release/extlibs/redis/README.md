@@ -79,6 +79,8 @@ C 接口见 `include/redis_native.h`，输入 `xvalue*` 仅借用；
 - `xl run extlibs/redis/test/command_loopback.xl` 在本机随机端口测试
   `TcpStream` 命令往返、分段回复、错误回复，以及持续滴送不完整回复时的
   整次调用超时；还检查自定义短超时、回复字节限额与参数校验前置。
+  发送前的分配故障须抛 `MemoryError`，且不消耗连接；清除故障后同一连接
+  可正常执行命令。
   畸形回复、超限和超时后验证旧流不再可发送。
 - `test/check.ps1` 是不依赖真实服务的 Windows 包级门禁；普通模式包含
   C 边界/分配故障/线程、XL 边界与分配故障、TCP 回环和双语范例对照，

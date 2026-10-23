@@ -1,5 +1,9 @@
 import redis
 
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
 func serve(TcpStream peer, string response) as int
     string request = ""
     while not redis.isComplete(request)
@@ -155,6 +159,17 @@ func main(...) as int
         invalidArgs = true
     end
     assert invalidArgs, "invalid command must fail before sending"
+    var ping = ["PING"]
+    bool memoryCaught = false
+    assert failAfter(uint64(0))
+    try
+        redis.command(client, ping, 250)
+    catch MemoryError error
+        memoryCaught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert triggered and memoryCaught, "allocation failure must not consume the connection"
     assert redis.command(client, ["PING"], 250) == "PONG"
     assert job.wait()
     client.close()
