@@ -862,15 +862,13 @@ static int xl6StdlibUsesX509CrlPolicyClasses(const XL6_AstNode* root)
     return 0;
 }
 
-static int xl6StdlibUsesX509StoreClasses(const XL6_AstNode* root)
-{
-    return xl6StdlibNodeUsesTypeName(root,"TrustStore") || xl6StdlibNodeUsesTypeName(root,"TrustStoreSnapshot");
-}
-
 static int xl6StdlibUsesX509PathClasses(const XL6_AstNode* root)
 {
-    if(xl6StdlibUsesX509StoreClasses(root))return 1;
-    static const char* const names[]={"X509TrustAnchor","X509PathPolicy","X509PathOutcome","X509Path","__X509PathCriticalContext"};
+    /* Path methods and trust-store projections refer to each other. Inject
+     * this declaration island together; runtime components still follow only
+     * reachable calls, not the presence of an unused class declaration. */
+    static const char* const names[]={"TrustStore","TrustStoreSnapshot","X509TrustAnchor",
+        "X509PathPolicy","X509PathOutcome","X509Path","__X509PathCriticalContext"};
     for(size_t i=0;i<sizeof(names)/sizeof(*names);++i)if(xl6StdlibNodeUsesTypeName(root,names[i]))return 1;
     return 0;
 }
@@ -2351,7 +2349,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
             xl6StdlibNodeUsesTypeName(root,"X509ValidationStatus") || xl6StdlibNodeUsesTypeName(root,"X509PathReason"))
             xl6StdlibBuilderAppend(&builder,xl6StdlibX509PathEnumsSource);
         if(xl6StdlibUsesX509PathClasses(root))xl6StdlibBuilderAppend(&builder,xl6StdlibX509PathSource);
-        if(xl6StdlibUsesX509StoreClasses(root))xl6StdlibBuilderAppend(&builder,xl6StdlibX509StoreSource);
+        if(xl6StdlibUsesX509PathClasses(root))xl6StdlibBuilderAppend(&builder,xl6StdlibX509StoreSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509DataSource);
     }
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||
