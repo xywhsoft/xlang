@@ -188,6 +188,38 @@ static bool passClose(ptr pContext)
 	return true;
 }
 
+static bool rejectEvent(ptr pContext, const xrtxmlevent* pEvent)
+{
+	int* pCalls = (int*)pContext;
+	(void)pEvent;
+	++*pCalls;
+	return false;
+}
+
+static bool testCallbackReject(void)
+{
+	xreaderops Ops = {0};
+	test_close_reader Probe = { "<r><child/></r>", 15u, 0u, 0 };
+	xrtxmlerror Error;
+	test_state State = {0};
+	xreader* pReader;
+	int iCalls = 0;
+	bool bOk;
+	Ops.Read = readForClose;
+	Ops.Close = failClose;
+	pReader = xrtReaderCreate(&Ops, &Probe);
+	if ( pReader == NULL ) { return false; }
+	bOk = !xrtXmlSaxParse(pReader, true, NULL, rejectEvent, &iCalls,
+		&Error) && Error.iCode == XRT_XML_ERROR_CALLBACK &&
+		iCalls == 1 && Probe.Closed == 1;
+	xrtClearError();
+	bOk = xrtXmlSaxParseMemory("<ok/>", 5u, NULL, onEvent, &State,
+		&Error) && Error.iCode == XRT_XML_OK &&
+		State.iStarts == 1 && State.iEnds == 1 && bOk;
+	if ( !bOk ) { fputs("XML SAX callback rejection was not isolated\n", stderr); }
+	return bOk;
+}
+
 static bool testParseCloseFailure(void)
 {
 	xreaderops Ops = {0};
@@ -480,6 +512,7 @@ int main(void)
 	xrtXmlOptionsInit(&tOptions);
 	bOk = testSmallLimits() && testZeroLimits() && testUnsupportedLimits() &&
 		testInvalidApiArguments() &&
+		testCallbackReject() &&
 		testParseCloseFailure() &&
 		testPullCloseFailure() && testEarlyClose() &&
 		testReaderMemoryErrors() &&

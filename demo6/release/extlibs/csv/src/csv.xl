@@ -63,7 +63,7 @@ export class Reader
     end
 
     func field(int index) as string
-        return __xl_std_runtime_take_cstr(self.fieldNative(index))
+        return __xl_runtime.takeCstr(self.fieldNative(index))
     end
 
     func row() as array<string>
@@ -129,7 +129,7 @@ export class Writer
         if result == null then
             throw CsvError "CSV writer has no available text result"
         end
-        return __xl_std_runtime_take_cstr(result)
+        return __xl_runtime.takeCstr(result)
     end
 end
 

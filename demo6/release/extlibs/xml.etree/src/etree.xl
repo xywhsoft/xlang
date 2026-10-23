@@ -11,7 +11,7 @@ extern "xetree_error_offset" func __etree_error_offset() as int
 extern "xetree_error_message" func __etree_error_message() as point
 
 func __etree_error() as string
-    return __xl_std_runtime_take_cstr(__etree_error_message())
+    return __xl_runtime.takeCstr(__etree_error_message())
 end
 
 // 检查原始 int，不能让负数限额或超宽深度在 C ABI 中回绕。
@@ -78,26 +78,26 @@ class Element
         return self.kindNative()
     end
     get name() as string
-        return __xl_std_runtime_take_cstr(self.nameNative())
+        return __xl_runtime.takeCstr(self.nameNative())
     end
     get localName() as string
-        return __xl_std_runtime_take_cstr(self.localNameNative())
+        return __xl_runtime.takeCstr(self.localNameNative())
     end
     get namespaceUri() as string
-        return __xl_std_runtime_take_cstr(self.namespaceUriNative())
+        return __xl_runtime.takeCstr(self.namespaceUriNative())
     end
     get prefix() as string
-        return __xl_std_runtime_take_cstr(self.prefixNative())
+        return __xl_runtime.takeCstr(self.prefixNative())
     end
     get text() as string
-        return __xl_std_runtime_take_cstr(self.textNative())
+        return __xl_runtime.takeCstr(self.textNative())
     end
     let text(string value)
         __etree_c_string(value)
         if not self.setTextNative(value) then throw XmlError "could not set XML text" end
     end
     get tail() as string
-        return __xl_std_runtime_take_cstr(self.tailNative())
+        return __xl_runtime.takeCstr(self.tailNative())
     end
     let tail(string value)
         __etree_c_string(value)
@@ -123,7 +123,7 @@ class Element
         __etree_c_string(name)
         point result = self.getAttributeNative(name)
         if result == null then return defaultValue end
-        return __xl_std_runtime_take_cstr(result)
+        return __xl_runtime.takeCstr(result)
     end
 
     func set(string name, string value)

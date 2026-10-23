@@ -146,7 +146,7 @@ export class ZipArchive
         if result == null then
             throw ArchiveError __zip_error()
         end
-        return __xl_std_runtime_take_cstr(result)
+        return __xl_runtime.takeCstr(result)
     end
 
     func info(int index) as ZipInfo
@@ -155,7 +155,7 @@ export class ZipArchive
         if commentResult == null then
             throw ArchiveError __zip_error()
         end
-        string comment = __xl_std_runtime_take_cstr(commentResult)
+        string comment = __xl_runtime.takeCstr(commentResult)
         return ZipInfo(name, self.sizeNative(index), self.compressedSizeNative(index),
             self.mtimeNative(index), self.crcNative(index), self.methodNative(index),
             self.directoryNative(index), comment)

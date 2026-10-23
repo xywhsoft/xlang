@@ -93,7 +93,7 @@ export func frameToHex(Buffer frame) as string
     if result == null then
         throw ValueError __mq_error()
     end
-    return __xl_std_runtime_take_cstr(result)
+    return __xl_runtime.takeCstr(result)
 end
 
 export func parse(string hex) as var

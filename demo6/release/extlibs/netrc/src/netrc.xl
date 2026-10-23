@@ -34,7 +34,7 @@ end
 
 
 func __netrc_error() as string
-    return __xl_std_runtime_take_cstr(__netrc_error_message())
+    return __xl_runtime.takeCstr(__netrc_error_message())
 end
 
 

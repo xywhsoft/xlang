@@ -12,7 +12,7 @@ extern "xdom_error_offset" func __dom_error_offset() as int
 extern "xdom_error_message" func __dom_error_message() as point
 
 func __dom_error() as string
-    return __xl_std_runtime_take_cstr(__dom_error_message())
+    return __xl_runtime.takeCstr(__dom_error_message())
 end
 
 // 限额先按有符号值检查，避免传给 C 后变成极大的无符号值。
@@ -83,22 +83,22 @@ class Node
         return self.typeNative()
     end
     get typeName() as string
-        return __xl_std_runtime_take_cstr(self.typeNameNative())
+        return __xl_runtime.takeCstr(self.typeNameNative())
     end
     get name() as string
-        return __xl_std_runtime_take_cstr(self.nameNative())
+        return __xl_runtime.takeCstr(self.nameNative())
     end
     get localName() as string
-        return __xl_std_runtime_take_cstr(self.localNameNative())
+        return __xl_runtime.takeCstr(self.localNameNative())
     end
     get namespaceUri() as string
-        return __xl_std_runtime_take_cstr(self.namespaceUriNative())
+        return __xl_runtime.takeCstr(self.namespaceUriNative())
     end
     get prefix() as string
-        return __xl_std_runtime_take_cstr(self.prefixNative())
+        return __xl_runtime.takeCstr(self.prefixNative())
     end
     get value() as string
-        return __xl_std_runtime_take_cstr(self.valueNative())
+        return __xl_runtime.takeCstr(self.valueNative())
     end
     let value(string newValue)
         __dom_c_string(newValue)
@@ -107,7 +107,7 @@ class Node
         end
     end
     get textContent() as string
-        return __xl_std_runtime_take_cstr(self.textContentNative())
+        return __xl_runtime.takeCstr(self.textContentNative())
     end
     get childCount() as int
         return self.childCountNative()
@@ -188,7 +188,7 @@ class Node
         __dom_c_string(name)
         point result = self.getAttributeNative(name)
         if result == null then return defaultValue end
-        return __xl_std_runtime_take_cstr(result)
+        return __xl_runtime.takeCstr(result)
     end
 
     func setAttribute(string name, string value)

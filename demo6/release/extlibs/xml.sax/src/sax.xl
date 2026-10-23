@@ -25,7 +25,7 @@ extern "xsax_error_message" func __sax_error_message() as point
 
 
 func __sax_error() as string
-    return __xl_std_runtime_take_cstr(__sax_error_message())
+    return __xl_runtime.takeCstr(__sax_error_message())
 end
 
 // 在转换为无符号 C 参数前校验，避免负数或过宽深度回绕。

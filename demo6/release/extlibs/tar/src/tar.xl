@@ -160,19 +160,19 @@ class TarReader
     func info() as TarInfo
         point nameResult = self.nameNative()
         if nameResult == null then throw ArchiveError __tar_error() end
-        string name = __xl_std_runtime_take_cstr(nameResult)
+        string name = __xl_runtime.takeCstr(nameResult)
 
         point linkResult = self.linkNameNative()
         if linkResult == null then throw ArchiveError __tar_error() end
-        string linkName = __xl_std_runtime_take_cstr(linkResult)
+        string linkName = __xl_runtime.takeCstr(linkResult)
 
         point userResult = self.userNameNative()
         if userResult == null then throw ArchiveError __tar_error() end
-        string userName = __xl_std_runtime_take_cstr(userResult)
+        string userName = __xl_runtime.takeCstr(userResult)
 
         point groupResult = self.groupNameNative()
         if groupResult == null then throw ArchiveError __tar_error() end
-        string groupName = __xl_std_runtime_take_cstr(groupResult)
+        string groupName = __xl_runtime.takeCstr(groupResult)
         return TarInfo(name, linkName, userName, groupName, self.sizeNative(),
             self.mtimeNative(), self.uidNative(), self.gidNative(), self.modeNative(),
             self.deviceMajorNative(), self.deviceMinorNative(), self.typeNative())
