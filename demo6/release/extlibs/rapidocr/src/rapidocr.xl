@@ -118,7 +118,11 @@ end
 
 func rapidocr_extlib_path(string relative) as string
 	point result = rapidocr_extlib_path_native(relative)
-	if result == null then return "" end
+	if result == null then
+		string message = rapidocr_last_error_native()
+		if message == "" then message = "RapidOCR resource path resolution failed" end
+		throw RuntimeError message
+	end
 	return __xl_runtime.takeCstr(result)
 end
 

@@ -36,7 +36,7 @@ else
     println(output.error())
 end
 engine.release()</code></pre>
-    <p>默认模型位于包的 <code>models/</code> 目录。识别成功但未发现文字时，<code>ok()</code> 为真，<code>text()</code> 为空。</p>
+    <p>默认模型位于包的 <code>models/</code> 目录；资源路径解析失败会抛错，不以空目录继续配置模型。识别成功但未发现文字时，<code>ok()</code> 为真，<code>text()</code> 为空。</p>
   </section>
   <section id="api">
     <h2>接口</h2>

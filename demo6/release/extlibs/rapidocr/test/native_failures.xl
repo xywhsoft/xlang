@@ -1,5 +1,9 @@
 import rapidocr
 
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
 func main(...) as int
     bool rejected = false
     try
@@ -52,5 +56,28 @@ func main(...) as int
 
     string empty_boxes = rapidocr.det_boxes_from_output(`{"shape":[4,4],"data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}`, 80, 80)
     assert empty_boxes == "[]", "valid empty detector result must stay valid"
+
+    int triggered_count = 0
+    int success_count = 0
+    for allocation in range(64)
+        bool failed = false
+        string resource_path = ""
+        assert failAfter(uint64(allocation))
+        try
+            resource_path = rapidocr.default_model_dir()
+        catch MemoryError error
+            failed = true
+        catch RuntimeError error
+            failed = true
+        end
+        if failTriggered() then triggered_count += 1 end
+        failClear()
+        if not failed then
+            assert resource_path != "", "resource resolution must not return an empty path"
+            success_count += 1
+        end
+        assert rapidocr.default_model_dir() != "", "resource resolution must recover after allocation failure"
+    end
+    assert triggered_count > 0 and success_count > 0
     return 0
 end
