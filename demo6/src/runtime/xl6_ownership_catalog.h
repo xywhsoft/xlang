@@ -31,7 +31,10 @@
     X(ListenerEvents, xnetlistenereventsownershipv1) \
     X(NetTask, xnettaskownershipv1) \
     X(NetTimer, xnettimerownershipv1) \
-    X(NetWorkerExit, xnetengineworkerexitownershipv1)
+    X(NetWorkerExit, xnetengineworkerexitownershipv1) \
+    X(TlsStreamEvents, xtlsstreamownershipv1) \
+    X(TlsListenerEvents, xtlslistenerownershipv1) \
+    X(TlsDialDone, xtlsdialownershipv1)
 #define XL6_DECLARE_POLICY(Name, Type) struct Type;
 XL6_OWNERSHIP_POLICY_GROUPS(XL6_DECLARE_POLICY)
 #undef XL6_DECLARE_POLICY
