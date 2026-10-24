@@ -30,7 +30,7 @@
 println(slugify.slugify("Café &amp; 你好"))  // cafe-and-你好</code></pre>
     <p><code>&amp;</code> 和 <code>@</code> 作为独立词转换，例如 <code>a&amp;b</code> 得到 <code>a-and-b</code>。垂直制表、换页、NEL 与 Ogham 空格等空白作为词边界，不会拼接两侧文本。这不是完整 Unicode 转写，也不是 URL 编码或路径安全验证；不同标题可能产生同一 slug。范围、C 所有权和测试证据见包内 README。</p>
     <h2 id="verify">验证</h2>
-    <p>2026-10-25 空白边界新增 C/XLang 回归；Windows 严格 C、线程、语言与双语快测及 Linux C ASan/UBSan、线程、XLang 门禁通过。当前发布构建的 AOT 有独立主线阻断，整包未在这次修改后重新签收；复现见包内 README。此前 Windows 默认 AOT 通过的记录只对应当时发布物。</p>
+    <p>2026-10-25 空白边界新增 C/XLang 回归；Windows 严格 C、线程、语言与双语快测及 Linux C ASan/UBSan、线程、XLang 门禁通过。随后以本机重建的 Windows 发布版复跑默认包门禁，核心、边界和公开范例三份 AOT 均通过；此前 AOT 阻断属于旧构建。Linux 发布版仍需独立重建验收，详见包内 README。</p>
   </section>
 </main>
 </body>
