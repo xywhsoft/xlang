@@ -1,5 +1,16 @@
 # serial
 
+> 2026-10-24 发布版复验：严格 GCC、回环与分配故障 C 测试、Windows
+> 超时配置、生成 C 原型和 C JIT 均通过；XLang JIT 在销毁 `Serial`
+> 时抛 `RuntimeError: operation is not valid in the current state`。
+> `test/teardown_repro.xl` 在 JIT 与 AOT 均复现，
+> `test/class_teardown_control.xl` 表明纯 XLang class 的 `destroy()`
+> 写入 `self` 字段同样失败。生成 C 在析构中调用
+> `xrtValueObjectSetNewPostCommit`，但 XRT 此时已给接收对象标记
+> `FINALIZING`，字段写入会被拒绝。应在 class/XRT 生命周期边界
+> 设计受控的析构期字段清理，不应全局放宽 `FINALIZING` 禁令。
+> 包内不引入兼容绕行；主线修复后需重跑完整默认门禁。
+
 同步串口 I/O，提供 xlang `Serial` 对象和同一套独立 C 接口。
 句柄、UTF-8 路径、分配、缓冲、锁与线程错误由 XRT 管理，Windows 串口参数通过系统 API 配置。
 

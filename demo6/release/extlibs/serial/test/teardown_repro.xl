@@ -1,0 +1,6 @@
+import serial
+
+func main(...) as int
+    auto port = serial.openLoopback()
+    return 0
+end
