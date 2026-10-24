@@ -63,6 +63,12 @@ def main():
                 else:
                     assert not result['items'], result
                 assert result['analysis']['lastBuildSemantics']['checked'] >= 1, result
+                annotations = result['analysis']['lastBuildAnnotations']
+                assert not annotations['materialized'] and annotations['retainedBytes'] <= 8*1024*1024, result
+                if available:
+                    assert annotations['deferred'] == 1 and annotations['retainedBytes'] > 0, result
+                else:
+                    assert not annotations['deferred'] and not annotations['retainedBytes'], result
                 return result
 
             version, text = 7, body(0)

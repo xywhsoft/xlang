@@ -70,6 +70,9 @@ typedef struct xls_sem_build {
     xls_sem_work work;
     xls_sem_moves moves;
     xls_sem_cursor queryCursor;
+    xls_sem_tail** deferred;
+    const XL6_AstNode* deferredRoot;
+    const XL6_CompletionQuery* deferredQuery;
     size_t cursor;
     int begun,enabled,compatible;
 } xls_sem_build;
@@ -643,11 +646,13 @@ static int xlsSemMovesBuild(xls_sem_moves* moves,const XL6_SourceReport* old,con
 }
 static int xlsSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* module,XL6_CompletionQuery* query,
     int captureIndex,const char* path,const XL6_SourceReport* sources,
-    const XL6_SourceReport* previousSources,const xls_sem_memo* previous,xls_sem_memo** result,xls_sem_work* work)
+    const XL6_SourceReport* previousSources,const xls_sem_memo* previous,xls_sem_memo** result,xls_sem_work* work,xls_sem_tail** deferred)
 {
     if(result) *result=NULL;
+    if(deferred) *deferred=NULL;
     if(work) memset(work,0,sizeof(*work));
-    xls_sem_build build={.previous=xlsActiveSemBuild,.baseline=previous};
+    xls_sem_build build={.previous=xlsActiveSemBuild,.baseline=previous,.deferred=deferred,
+        .deferredRoot=root,.deferredQuery=query};
     xls_sem_memo* memo=path && sources ? xrtCalloc(1,sizeof(*memo)) : NULL;
     if(memo) {
         memo->path=xrtStrDup(path);
@@ -669,8 +674,12 @@ static int xlsSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mod
 int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* module,
     int captureIndex,const char* path,const XL6_SourceReport* sources,
     const XL6_SourceReport* previousSources,const xls_sem_memo* previous,xls_sem_memo** result,xls_sem_work* work)
-{ return xlsSemCheckMemo(root,diags,module,NULL,captureIndex,path,sources,previousSources,previous,result,work); }
+{ return xlsSemCheckMemo(root,diags,module,NULL,captureIndex,path,sources,previousSources,previous,result,work,NULL); }
 int xlsFrontendSemCheckCursorMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* module,
     XL6_CompletionQuery* query,const char* path,const XL6_SourceReport* sources,
     const XL6_SourceReport* previousSources,const xls_sem_memo* previous,xls_sem_memo** result,xls_sem_work* work)
-{ return xlsSemCheckMemo(root,diags,module,query,0,path,sources,previousSources,previous,result,work); }
+{ return xlsSemCheckMemo(root,diags,module,query,0,path,sources,previousSources,previous,result,work,NULL); }
+int xlsFrontendSemCheckCursorDeferred(XL6_AstNode* root,XL6_DiagList* diags,const char* module,
+    XL6_CompletionQuery* query,const char* path,const XL6_SourceReport* sources,
+    const XL6_SourceReport* previousSources,const xls_sem_memo* previous,xls_sem_memo** result,xls_sem_work* work,xls_sem_tail** tail)
+{ return xlsSemCheckMemo(root,diags,module,query,0,path,sources,previousSources,previous,result,work,tail); }

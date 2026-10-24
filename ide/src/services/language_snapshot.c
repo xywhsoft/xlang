@@ -591,6 +591,13 @@ analysed:
    put(callWork,"bytes",xrtValueInt((int64)calls.bytes));
   if(okayStats) {okayStats=put(stats,"lastBuildCallCandidates",callWork);callWork=NULL;}
   xrtValueRelease(callWork);
+   xls_sem_tail_work annotations=xlsSemanticCompletionTailWork(nativeCompletion);
+   xvalue* annotationWork=xrtValueObject();
+   okayStats=okayStats && annotationWork && put(annotationWork,"deferred",xrtValueInt((int64)annotations.deferred)) &&
+    put(annotationWork,"materialized",xrtValueInt((int64)annotations.materialized)) &&
+    put(annotationWork,"retainedBytes",xrtValueInt((int64)annotations.retainedBytes));
+   if(okayStats) {okayStats=put(stats,"lastBuildAnnotations",annotationWork);annotationWork=NULL;}
+   xrtValueRelease(annotationWork);
   if(!okayStats) { xrtValueRelease(stats); goto done; }
   if(!put(result,"analysis",stats)) goto done;
  }
