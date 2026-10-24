@@ -4,6 +4,7 @@ import slugify
 
 func main(...) as int
     println(slugify.slugify("Café & 你好"))
+    println(slugify.slugify("Ẁorld"))
     println(slugify.slugify("Ｆｕｌｌ１２３"))
     println(slugify.slugify("Release v2.0 -- 新特性"))
     println("ASCII:", slugify.isAscii("hello-world"))

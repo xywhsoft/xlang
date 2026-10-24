@@ -16,7 +16,7 @@ static int show(const char* title)
 
 int main(void)
 {
-    if (!show("Café & 你好") || !show("Ｆｕｌｌ１２３") ||
+    if (!show("Café & 你好") || !show("Ẁorld") || !show("Ｆｕｌｌ１２３") ||
         !show("Release v2.0 -- 新特性")) return 1;
     puts(xsl_is_ascii("hello-world", 11) == 1 ? "ASCII: true" : "ASCII: false");
     return 0;

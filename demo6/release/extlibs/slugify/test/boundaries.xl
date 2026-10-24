@@ -1,6 +1,8 @@
 import slugify
 
 assert slugify.slugify("Café & 你好") == "cafe-and-你好"
+assert slugify.slugify("Ẁorld") == "world"
+assert slugify.slugify("ẁorld") == "world"
 assert slugify.slugify("©Āāɨẙ♦") == "caaiy"
 assert slugify.slugify("a&b") == "a-and-b"
 assert slugify.slugify("a\vb") == "a-b"

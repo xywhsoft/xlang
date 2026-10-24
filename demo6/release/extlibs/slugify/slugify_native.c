@@ -172,6 +172,10 @@ void* xsl_slugify(const char* text, long long length)
                        (scalar >= 0x2018u && scalar <= 0x2026u) ||
                        (scalar >= 0x2663u && scalar <= 0x2666u)))
             ? xsl_latin1(scalar) : NULL;
+        /* 拉丁扩展附加区的成对大写沿用表内小写转写。 */
+        if (replacement == NULL && scalar >= 0x1e00u && scalar <= 0x1e94u &&
+            (scalar & 1u) == 0u)
+            replacement = xsl_latin1(scalar + 1u);
         if (scalar < 0x80u) {
             if (!xsl_ascii(&output, &separator, (unsigned char)scalar)) goto done;
         } else if (replacement != NULL) {

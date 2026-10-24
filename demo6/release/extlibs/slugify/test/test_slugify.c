@@ -74,6 +74,8 @@ int main(void)
     CHECK(same("a@", "a-at"));
     CHECK(same("user@example.com", "user-at-example-com"));
     CHECK(same("caf\xc3\xa9 m\xc3\xbcnchen", "cafe-munchen"));
+    CHECK(same("\xe1\xba\x80orld", "world")); /* Ẁ 与 ẁ 使用相同转写。 */
+    CHECK(same("\xe1\xba\x81orld", "world"));
     CHECK(same("\xc2\xa9\xc4\x80\xc4\x81\xc9\xa8\xe1\xba\x99\xe2\x99\xa6", "caaiy"));
     CHECK(same("cafe\xcc\x81", "cafe"));
     CHECK(same("\xe4\xbd\xa0\xe5\xa5\xbd\xef\xbc\x9a\xe4\xb8\x96\xe7\x95\x8c", "\xe4\xbd\xa0\xe5\xa5\xbd-\xe4\xb8\x96\xe7\x95\x8c"));
