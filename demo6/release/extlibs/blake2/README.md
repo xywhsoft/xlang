@@ -194,3 +194,15 @@ C/JIT 通过；完整 AOT 仍缺共享 `xl6NativeHandleTraceLeaf`，未签收。
 XLang JIT 和双语门禁，以及 Linux 216 条已知答案、ASan/UBSan、
 线程和双语门禁通过。库实现/API 未改，完整 AOT 和私有构造器
 的主线阻断仍未解除，不签收整包发布级。
+
+2026-10-24：当前 Windows 发布构建的默认专项门禁 48 项通过，包括
+216 条已知答案、严格 C 边界、38 个生成原型、C/XLang JIT 与 AOT
+以及双语范例输出对照。此前的 `xl6NativeHandleTraceLeaf` 缺符号
+在本次 BLAKE2 复测中不再出现。两份可执行范例改为显式 `main`，
+使原生 hasher 按函数生命周期释放；顶层写法的 AOT 退出状态错误
+仍存在，同类最小复现与修复建议见
+`demo6/dev/extlib_blockers/blake3_global_native_aot.md`。
+包外 `private extern create(point)` 的只编译负例仍被错误接受，
+不能运行该负例或签收完整发布级访问安全。Linux 包门禁待当前 Linux
+发布版重建，构建脚本阻塞见
+`demo6/dev/extlib_blockers/linux_release_x509_sources.md`。

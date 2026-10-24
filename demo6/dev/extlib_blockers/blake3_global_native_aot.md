@@ -30,3 +30,8 @@ build/blake3_global_repro.exe
 JIT/AOT 输出相同、退出码均为 0，再复跑 BLAKE3 完整门禁。
 教学范例使用显式 `main` 是可执行程序的正常写法，不是对此缺陷的修复；
 不能删除复现或据此宣称顶层写法已稳定。
+
+2026-10-24 BLAKE2 独立复测：顶层使用 `Blake2bHasher`/`Blake2sHasher`
+的完整教学范例也在 AOT 输出完成后报相同状态错误；改为显式 `main`
+后，BLAKE2 默认门禁 48 项通过。这表明问题不只影响 BLAKE3，
+但仍不能据此推断所有 native-backed class 均受影响。

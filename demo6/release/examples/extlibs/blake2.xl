@@ -1,41 +1,43 @@
 import blake2
 
-// BLAKE2b/BLAKE2s 高性能哈希（支持 keyed MAC）。
+func main(...) as int
+    // BLAKE2b/BLAKE2s 高性能哈希（支持 keyed MAC）。
+    string sample = "hello xlang"
 
-string sample = "hello xlang"
+    // 一次性哈希
+    println("BLAKE2b: " + blake2.blake2bHashHex(sample))
+    println("BLAKE2s: " + blake2.blake2sHashHex(sample))
+    println("BLAKE2b (32B): " + blake2.blake2bHashHex(sample, 32))
 
-// 一次性哈希
-println("BLAKE2b: " + blake2.blake2bHashHex(sample))
-println("BLAKE2s: " + blake2.blake2sHashHex(sample))
-println("BLAKE2b (32B): " + blake2.blake2bHashHex(sample, 32))
+    // Keyed MAC
+    println("BLAKE2b MAC: " + blake2.blake2bKeyedHex(sample, "my-secret-key"))
 
-// Keyed MAC
-println("BLAKE2b MAC: " + blake2.blake2bKeyedHex(sample, "my-secret-key"))
+    // 流式哈希
+    auto hasher = blake2.blake2bHasher()
+    hasher.update("hello ")
+    hasher.update("xlang")
+    assert hasher.digestHex() == blake2.blake2bHashHex(sample), "blake2 streaming mismatch"
+    println("streaming inputBytes: " + string(hasher.inputBytes))
 
-// 流式哈希
-auto hasher = blake2.blake2bHasher()
-hasher.update("hello ")
-hasher.update("xlang")
-assert hasher.digestHex() == blake2.blake2bHashHex(sample), "blake2 streaming mismatch"
-println("streaming inputBytes: " + string(hasher.inputBytes))
+    // clone 独立副本
+    auto h1 = blake2.blake2sHasher()
+    h1.update("hello")
+    auto h2 = h1.clone()
+    h1.update(" xlang")
+    h2.update(" world")
+    println("clone h1: " + h1.digestHex())
+    println("clone h2: " + h2.digestHex())
 
-// clone 独立副本
-auto h1 = blake2.blake2sHasher()
-h1.update("hello")
-auto h2 = h1.clone()
-h1.update(" xlang")
-h2.update(" world")
-println("clone h1: " + h1.digestHex())
-println("clone h2: " + h2.digestHex())
+    // 文件哈希
+    string work = dir.temp("", "xlang-blake2-example-", "")
+    try
+        string input = path.join(work, "blake2_sample.txt")
+        assert file.writeText(input, sample)
+        assert blake2.blake2bFileHex(input) == blake2.blake2bHashHex(sample), "blake2 file mismatch"
+    finally
+        assert dir.delete(work), "BLAKE2 example temporary directory must be removed"
+    end
 
-// 文件哈希
-string work = dir.temp("", "xlang-blake2-example-", "")
-try
-    string input = path.join(work, "blake2_sample.txt")
-    assert file.writeText(input, sample)
-    assert blake2.blake2bFileHex(input) == blake2.blake2bHashHex(sample), "blake2 file mismatch"
-finally
-    assert dir.delete(work), "BLAKE2 example temporary directory must be removed"
+    println("blake2 extlib ok")
+    return 0
 end
-
-println("blake2 extlib ok")
