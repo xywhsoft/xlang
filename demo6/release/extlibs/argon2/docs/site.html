@@ -57,7 +57,7 @@
       <span class="extlib-badge">ABI 1</span>
     </div>
     <p class="extlib-lead">Argon2 密码哈希（RFC 9106）— 2015 年密码哈希竞赛（PHC）冠军算法，具备内存硬特性，有效抵抗 GPU/ASIC 暴力破解。C 层实现 Blake2b + Argon2 完整核心，xlang 层提供安全、易用的高层 API，提供当前包公开的密码哈希与 PHC 验证能力。</p>
-    <p>当前发布版的 C 接口已验证；XLang 导入仍受 <code>uint8 - int</code> 的编译器问题阻断，以下 XLang 范例暂不能在该版本运行。</p>
+    <p>2026-10-25 的 Windows 发布版已通过 C/XLang JIT、独立 EXE、含 NUL 输入往返及双语范例；Linux C 接口通过 ASan/UBSan。Linux XLang AOT 尚未用新发布版验收。</p>
   </div>
 
   <!-- Tab 栏 -->
@@ -81,7 +81,7 @@
       <li>RFC 9106 参数组：64 MiB / t=3 / p=4，或 2 GiB / t=1 / p=4；
       默认使用前者。<a href="https://www.rfc-editor.org/rfc/rfc9106.html#section-4">标准原文</a>。</li>
       <li>parallelism 是 lane 数，当前参考实现顺序处理。C ABI 对密码、盐、secret、ad 和 PHC 文本传入显式字节长度；含 NUL 的密码与上下文不会被截断，PHC 文本含 NUL 则拒绝。</li>
-      <li>verify 接收 secret/ad，验证者必须重传与 hash 相同的上下文。当前 XLang 包导入仍被 XLIR 编译问题阻断，C 成功路径已验收；不要把它当成已完成 XLang 发布验收。</li>
+      <li>verify 接收 secret/ad，验证者必须重传与 hash 相同的上下文。当前 Windows 发布版的 XLang JIT/AOT 和 C 成功路径均已验收；Linux XLang AOT 仍待新发布版复验。</li>
       <li><code>argon2_basic.xl</code> 与 <code>argon2_c.c</code> 提供同结果范例，
       固定盐与低成本仅用于可重复演示。</li>
     </ul>
@@ -153,7 +153,7 @@ end</pre></div></div>
     <div class="api-item">
       <div class="api-sig"><span class="kw">export func</span> <span class="fn">verify</span>(<span class="type">string</span> password, <span class="type">string</span> encoded, <span class="type">string</span> secret = <span class="str">""</span>, <span class="type">string</span> ad = <span class="str">""</span>) <span class="kw">as</span> <span class="type">bool</span></div>
       <p>验证密码是否匹配 PHC 编码字符串。自动解析编码中的算法变体、全部参数、盐和哈希值，重新计算后以恒定时间比较。</p>
-      <div class="api-note">secret/ad 不保存在 PHC 中，调用方须重传。原生资源错误通过 XRT 错误槽进入 XLang 异常；完整 XLang 验收仍受 XLIR 问题阻断。不要用普通字符串比较替代验证。</div>
+      <div class="api-note">secret/ad 不保存在 PHC 中，调用方须重传。原生资源错误通过 XRT 错误槽进入 XLang 异常；不要用普通字符串比较代替验证。</div>
     </div>
 
     <div class="api-item">

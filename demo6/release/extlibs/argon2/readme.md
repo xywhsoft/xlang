@@ -1,5 +1,14 @@
 # argon2
 
+2026-10-25：当前 Windows 发布版已运行 `tools/check_extlib_argon2_bloom.ps1`：
+严格 C/生成原型、RFC 向量、分配故障、XLang 完整语言用例、C/XLang
+固定输出及两种独立 EXE 的 AOT 构建与执行均通过。先前的
+`uint8` 与 `int` 混合算术 XLIR 最小复现现退出 0；语言用例中的内嵌
+NUL 密码、盐、secret 和 ad 往返也已在 JIT/AOT 实跑。
+Linux `tools/check_extlib_argon2_bloom.sh` 的 C ASan/UBSan、固定向量、
+范例与分配故障通过；本轮未用重建的 Linux xlang 执行语言/AOT 门禁。
+下面保留旧构建的失败记录作追溯，不代表当前 Windows 发布版仍被阻断。
+
 官方 Argon2 参考实现的 xlang/C 包，内存、临时字符串、安全随机数和错误槽复用 XRT。
 支持 Argon2d、Argon2i、Argon2id，默认 Argon2id。当前后端按顺序处理各 lane；
 `parallelism` 是算法参数，不承诺创建相同数量的系统线程。
@@ -32,8 +41,8 @@ assert not argon2.verify("wrong", stored)
 - C ABI 的密码、手动盐、secret、ad 和 PHC 文本均接收显式字节长度；XLang
   封装传入 `string.byteLen`。含 NUL 的密码与上下文参与完整哈希，PHC 文本
   内嵌 NUL 被拒绝，不存在按前缀处理的旧接口。C 回归及 Linux sanitizer 已通过；
-  XLang 往返仍受下述 XLIR 阻断，见 `dev/extlib_blockers/argon2_text_nul.md`。
-  当前没有对外承诺 Buffer 重载。
+  当前 Windows 发布版的 XLang 往返已通过；旧 XLIR 阻断记录见
+  `dev/extlib_blockers/argon2_text_nul.md`。当前没有对外承诺 Buffer 重载。
 - 输出 4..256 字节，盐 8..64 字节；成本为正数，内存单位 KiB，最大 2097152 KiB。
   验证外部 PHC 同样先检查此边界。算法还要求内存与 lane 数匹配。
 - 上限不是请求配额：不要把未受信任的 PHC 直接当成可无限运行的任务。
@@ -56,7 +65,7 @@ t=1/m=2097152/p=4。两组对应 [RFC 9106 第 4 节](https://www.rfc-editor.org
 源文件以 package manifest 为准，链接一份 XRT。输入密码由调用方拥有，库不会擦除它。
 
 范例：`examples/extlibs/argon2.xl` 为教学覆盖；`argon2_basic.xl` 与 `argon2_c.c`
-为六行同结果对照。当前 C 范例已通过，XLang 侧受下述主线问题阻断。
+为六行同结果对照。当前 Windows 发布版的 C/XLang 对照与 AOT 均已通过。
 
 专项门禁：`tools/check_extlib_argon2_bloom.ps1`，包含生成的全部 C 原型、严格 GCC、
 C/xlang JIT/AOT、负例和分配故障。具体运行结果应查看该次 `results.json`，不能只凭
@@ -64,9 +73,10 @@ C/xlang JIT/AOT、负例和分配故障。具体运行结果应查看该次 `res
 `test/test_argon2.c` 另核对 RFC 9106 第 5 节 Argon2d/i/id 的三个固定 Tag，
 覆盖密码、盐、secret 和 ad 的完整字节传递，避免仅用本库生成再由本库验证。
 该用例已通过 Windows 严格 GCC、TCC C JIT 与 Linux ASan/UBSan；不替代 XLang 验收。
-当前 `xl.exe` 在包内 `string.byteAt(info, 0) - 48` 处报告 typed XLIR
-物理转换错误，导致导入后不能编译；最小复现及修复建议见
-`dev/extlib_blockers/argon2_byteat_sub.md`。新长度 ABI 与含 NUL 往返仍待主线修复后完成 XLang 运行验收；外部调用的 XRT 错误转异常规则已核对生成器和其他包的边界测试，不能代替本包的最终实测。
+旧版 `xl.exe` 曾在包内 `string.byteAt(info, 0) - 48` 处报告 typed XLIR
+物理转换错误；最小复现及当时的修复建议见
+`dev/extlib_blockers/argon2_byteat_sub.md`。当前 Windows 发布版已运行
+最小复现和含 NUL 的完整语言用例，不再以该历史错误阻断验收。
 
 2026-10-21：C 测试原在 `assert` 中执行 PHC 校验、非法输入和随机盐调用，
 定义 `NDEBUG` 会跳过这些操作。测试单元现保持断言启用，仅 `argon2`

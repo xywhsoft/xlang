@@ -1,5 +1,11 @@
 # argon2 主线阻断：uint8 与 int 算术的 XLIR 路径
 
+2026-10-25 复验：当前 Windows 发布版运行本页最小复现退出 0；
+`test/cases/extlib_argon2.xl` 的 JIT 与专项门禁中的独立 EXE 均通过，
+含 NUL 的完整输入也已验收。**Argon2 的这条阻断已解除。**
+下述 2026-10-12 至 10-22 的失败、其他压缩包的复现和修复建议是
+历史快照；本次没有据此推断它们各自当前的包级状态。
+
 - 验证时间：2026-10-12；`demo6/release/xl.exe`（2026-10-07 构建）及同目录 DLL。
 - 影响：`xl run examples/extlibs/argon2_basic.xl` 和 `xl run ../test/cases/extlib_argon2.xl` 均不能完成编译。定位到 `extlibs/argon2/src/argon2.xl:93` 的 `string.byteAt(info, 0) - 48`。
 - 最小复现：`xl run ../dev/extlib_blockers/argon2_byteat_sub.xl`，在 `demo6/release` 目录执行。
@@ -7,7 +13,7 @@
 - 实际：退出码 1，报 `:2:39: [ir] typed XLIR operator operand has no canonical physical-to-execution path`。
 - 疑似原因：`string.byteAt` 返回 `uint8`，和 `int` 常量组成二元算术时，语义层已接受，但 typed XLIR 未提供该物理类型到算术执行类型的规范路径。诊断位于 `src/ir/xl6_ir.c` 的运算符操作数 ABI 校验处。
 - 建议：在主线的共享数值拓宽/XLIR 物理转换路径补全 `uint8` 与 `int` 算术，确保直接返回、赋值、嵌套表达式和比较都一致；加最小正反例。此任务不修改主线，也不在每个扩展包内加显式转换绕行。
-- 状态：blocked-upstream；主线修复后恢复 `argon2` 包的发布级验收。
+- 当时状态：blocked-upstream；当前 Argon2 最小复现与包级语言门禁已通过。
 
 ## 第二个触发面：bz2
 
