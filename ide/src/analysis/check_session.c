@@ -15,6 +15,7 @@ struct xls_check_session {
     xls_syntax* entrySyntax;
     xls_entry_cache* entryCache;
     xls_check_stats stats;
+    uint64_t usedInputs;int usageKnown;
 };
 static int stopped(int (*cancelled)(void*),void* user) { return cancelled && cancelled(user); }
 static void fail(char* error,size_t size,const char* message) { if(error && size) snprintf(error,size,"%s",message); }
@@ -39,7 +40,9 @@ xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* s,xls_conte
     if(!batch) goto done;
     const xls_analysis_document* entryDocument=xlsInputBatchTarget(batch);
     const char* entry=xlsInputBatchEntry(batch);
-    int equal=s->result && s->captureIndex==captureIndex && xlsInputBatchEqual(s->batch,batch);
+    uint64_t remapped=0;int ordinary=s->result && s->captureIndex==captureIndex && xlsInputBatchEqual(s->batch,batch);
+    int used=s->result && s->captureIndex==captureIndex && s->usageKnown && xlsInputBatchEqualUsed(s->batch,batch,s->usedInputs,NULL,&remapped);
+    int equal=ordinary || used;
     xls_semantic_input inputs[64]; xlsInputBatchInputs(batch,inputs,64);
     if(equal && !xlsSemanticCheckValidate(s->result)) { equal=0; ++s->stats.invalidations; }
     if(stopped(cancelled,user)) goto cancel;
@@ -75,7 +78,8 @@ xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* s,xls_conte
         s->stats.semanticContextHits+=work.contextHits;
     }
     if(stopped(cancelled,user)) { xlsSemanticCheckDestroy(result); result=NULL; goto cancel; }
-    if(equal) ++s->stats.hits;
+    if(equal){++s->stats.hits;if(used && !ordinary)++s->stats.inputScopeHits;s->usageKnown=used;s->usedInputs=remapped;}
+    else s->usageKnown=xlsSemanticCheckInputUsage(result,&s->usedInputs);
     xlsInputBatchDestroy(s->batch); s->batch=batch; batch=NULL;
     xlsSemanticCheckDestroy(s->result); s->result=xlsSemanticCheckRetain(result);
     s->captureIndex=captureIndex; s->stats.documents=count; s->stats.textBytes=xlsInputBatchBytes(s->batch);

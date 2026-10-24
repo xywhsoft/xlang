@@ -2,12 +2,14 @@
 #include "analysis/signature_internal.h"
 #include "analysis/input_batch.h"
 #include "analysis/frontend_context.h"
+#include "analysis/frontend_internal.h"
 #include <stdio.h>
 #include <string.h>
 struct xls_signature_session {
     xls_session_limits limits;xls_input_batch* batch;
     const char* queryKey;size_t offset;xls_signature_help* result;
     xls_entry_cache* entryCache;xls_signature_stats stats;
+    uint64_t usedInputs;int usageKnown;
 };
 xls_signature_session* xlsSignatureSessionCreate(const xls_session_limits* limits)
 {
@@ -30,11 +32,13 @@ xls_signature_help* xlsSignatureSessionQueryInContext(xls_signature_session* s,x
     size_t bytes=xlsTextSize(query->text),bom=bytes>=3 && !memcmp(xlsTextData(query->text),"\xef\xbb\xbf",3) ? 3 : 0;
     if(offset>bytes-bom || (offset<bytes-bom && ((unsigned char)xlsTextData(query->text)[offset+bom]&0xc0)==0x80) ||
        (offset && offset<bytes-bom && xlsTextData(query->text)[offset+bom-1]=='\r' && xlsTextData(query->text)[offset+bom]=='\n'))goto invalid;
-    int caret=0;int equal=s->result && s->offset==offset && !strcmp(s->queryKey,query->key) && xlsInputBatchEqual(s->batch,batch);
+    uint64_t remapped=0;int ordinary=s->result && xlsInputBatchEqual(s->batch,batch);
+    int used=s->result && s->usageKnown && xlsInputBatchEqualUsed(s->batch,batch,s->usedInputs,queryKey,&remapped);
+    int caret=0;int equal=s->result && s->offset==offset && !strcmp(s->queryKey,query->key) && (ordinary || used);
     if(equal && !xlsSignatureValidate(s->result)){equal=0;++s->stats.invalidations;}
     if(cancelled && cancelled(user))goto cancel;
     if(equal)result=xlsSignatureRetain(s->result);
-    else if(s->result && !strcmp(s->queryKey,query->key) && xlsInputBatchEqual(s->batch,batch) &&
+    else if(s->result && !strcmp(s->queryKey,query->key) && (ordinary || used) &&
             (result=xlsSignatureReposition(s->result,offset))!=NULL){caret=1;}
     else{
         ++s->stats.builds;int compatible=s->result && s->batch && count==s->stats.documents && xlsFrontendContextsEqual(context,xlsInputBatchContext(s->batch)) &&
@@ -51,6 +55,8 @@ xls_signature_help* xlsSignatureSessionQueryInContext(xls_signature_session* s,x
     if(cancelled && cancelled(user)){xlsSignatureRelease(result);result=NULL;goto cancel;}
     if(equal)++s->stats.hits;
     if(caret){++s->stats.caretHits;++s->stats.indexHits;}
+    if(equal || caret){if(used && !ordinary)++s->stats.inputScopeHits;s->usageKnown=used;s->usedInputs=remapped;}
+    else s->usageKnown=xlsSemanticCompletionInputUsage(xlsSignatureSemantic(result),&s->usedInputs);
     s->queryKey=query->key;s->offset=offset;xlsInputBatchDestroy(s->batch);s->batch=batch;batch=NULL;
     xlsSignatureRelease(s->result);s->result=xlsSignatureRetain(result);s->stats.documents=count;s->stats.textBytes=xlsInputBatchBytes(s->batch);goto done;
 invalid:if(error && capacity)snprintf(error,capacity,"invalid signature batch,target or UTF-8 cursor");goto done;

@@ -1,5 +1,33 @@
 #include "analysis/frontend_input_view.h"
+#include "analysis/frontend_input_usage.h"
 #include <string.h>
+static _Thread_local xls_input_usage_scope* activeUsage;
+void xlsFrontendInputUsageBegin(xls_input_usage_scope* scope)
+{if(scope){*scope=(xls_input_usage_scope){.previous=activeUsage};activeUsage=scope;}}
+void xlsFrontendInputUsageBind(const struct XL6_SourceOverlay* overlay,size_t count)
+{
+    if(!activeUsage)return;
+    if(activeUsage->bound || !overlay || count>64){activeUsage->failed=1;return;}
+    activeUsage->overlay=overlay;activeUsage->count=count;activeUsage->bound=1;
+}
+void xlsFrontendInputUsageRead(const struct XL6_SourceOverlay* overlay,size_t index)
+{
+    if(!activeUsage || !activeUsage->bound || activeUsage->overlay!=overlay)return;
+    if(index>=activeUsage->count){activeUsage->failed=1;return;}
+    activeUsage->used|=UINT64_C(1)<<index;
+}
+int xlsFrontendInputUsageFailure(const struct XL6_SourceOverlay* overlay)
+{
+    if(activeUsage && activeUsage->bound && (!overlay || activeUsage->overlay==overlay))activeUsage->failed=1;
+    return 0;
+}
+int xlsFrontendInputUsageEnd(xls_input_usage_scope* scope,uint64_t* used)
+{
+    if(used)*used=0;
+    if(!scope || activeUsage!=scope)return 0;
+    int complete=scope->bound && !scope->failed;if(complete && used)*used=scope->used;
+    activeUsage=scope->previous;return complete;
+}
 int xlsInputReportInputs(const XL6_SourceReport* report,xls_inputs* out)
 {
     if(out) memset(out,0,sizeof(*out));

@@ -3,6 +3,7 @@
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_entry_cache.h"
 #include "analysis/frontend_input_view.h"
+#include "analysis/frontend_input_usage.h"
 #include "analysis/signature_internal.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
@@ -32,6 +33,7 @@ struct xls_semantic_completion {
     xls_sem_storage_work storageWork;
     xls_ast_materialize_work materializationWork;
     xls_signature_data* signature;
+    uint64_t usedInputs;int usageKnown;
 };
 static int absolute(const char* path)
 {
@@ -90,6 +92,7 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
         if(in->size>=3 && !memcmp(in->text,"\xef\xbb\xbf",3)) bom=3;
         if(!xl6SourceOverlaySet(&r->overlay,in->path,in->text+bom,in->size-bom)) goto invalid;
     }
+    xlsFrontendInputUsageBind(&r->overlay,r->overlay.count);
     const XL6_SourceOverlayItem* target=xl6SourceOverlayFind(&r->overlay,r->path);
     const XL6_SourceOverlayItem* entryInput=xl6SourceOverlayFind(&r->overlay,entry);
     if(!target || offset>target->size ||
@@ -179,7 +182,9 @@ static xls_semantic_completion* create(xls_context* context,xls_entry_cache* cac
     xlsAstMaterializeBegin(&materialization,memoEnabled ? xlsAstMaterializeBudget() : 0);
     xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,cache,context,entry);
     entryScope.cursorSyntax=syntax;
+    xls_input_usage_scope usage;xlsFrontendInputUsageBegin(&usage);
     xls_semantic_completion* result=createBody(context,entry,queryPath,offset,inputs,count,syntax,previous,memoEnabled,cancelled,user,error,capacity,signatureData ? &signature : NULL);
+    uint64_t used=0;int known=xlsFrontendInputUsageEnd(&usage,&used);
     if(signatureData){if(!signature.adopted)xlsSignatureDataDestroy(signatureData);xlsSignatureScopeEnd(&signature);if(signature.cancelObserved){xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"signature query cancelled");}}
     if(entryScope.cursorFailed) {xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"cannot own exact imported cursor syntax");}
     if(result && stopped(cancelled,user)) {xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"semantic completion cancelled");}
@@ -189,8 +194,14 @@ static xls_semantic_completion* create(xls_context* context,xls_entry_cache* cac
     if(!scoped) {
         xlsSemanticCompletionDestroy(result); fail(error,capacity,(scope.failed&2) ? "cannot retain bounded completion namespace" : "cannot resolve native context path or package environment"); return NULL;
     }
-    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->cursorSyntaxApplied|=entryScope.cursorApplied;result->materializationWork=materializationWork;}
+    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->cursorSyntaxApplied|=entryScope.cursorApplied;result->materializationWork=materializationWork;result->usedInputs=used;result->usageKnown=known && result->report.complete && result->report.count && result->overlay.count==count;}
     return result;
+}
+int xlsSemanticCompletionInputUsage(const xls_semantic_completion* result,uint64_t* used)
+{
+    if(used)*used=0;
+    if(!used || !result || invalid(result) || !result->usageKnown)return 0;
+    *used=result->usedInputs;return 1;
 }
 xls_completion_entry_work xlsSemanticCompletionEntryWork(const xls_semantic_completion* result)
 { return result ? result->entryWork : (xls_completion_entry_work){0}; }

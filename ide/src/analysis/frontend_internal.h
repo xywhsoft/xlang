@@ -11,6 +11,12 @@
 const XL6_AstNode* xlsSyntaxAst(const xls_syntax* syntax);
 const XL6_IrModule* xlsSemanticCheckIr(const xls_semantic_check* result);
 const XL6_AstNode* xlsSemanticCheckAst(const xls_semantic_check* result);
+/* Immutable mask in the producing API's overlay order, captured by the
+ * original frontend's real lookups. Unknown/incomplete/invalid owners reject.
+ * Private sessions additionally prove unchanged membership and mandatory
+ * entry/query bodies, then still validate all original disk/probe inputs. */
+int xlsSemanticCheckInputUsage(const xls_semantic_check* result,uint64_t* used);
+int xlsSemanticCompletionInputUsage(const xls_semantic_completion* result,uint64_t* used);
 typedef struct xls_parse_work { uint64_t full,fragments,reused,bytes; } xls_parse_work;
 xls_syntax* xlsSyntaxBuild(const char* path,xls_text* text,const xls_syntax* previous,xls_parse_work* work);
 /* Private ordinary module-cache construction. Adopt consumes *root after

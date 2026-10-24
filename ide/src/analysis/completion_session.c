@@ -16,6 +16,7 @@ struct xls_completion_session {
     xls_syntax* cursorSyntax;
     xls_entry_cache* entryCache;
     xls_completion_stats stats;
+    uint64_t usedInputs;int usageKnown;
 };
 xls_completion_session* xlsCompletionSessionCreate(const xls_session_limits* limits)
 {
@@ -40,7 +41,9 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
     if(!query) goto invalid;
     size_t bytes=xlsTextSize(query->text),bom=bytes>=3 && !memcmp(xlsTextData(query->text),"\xef\xbb\xbf",3) ? 3 : 0;
     if(offset>bytes-bom || (offset<bytes-bom && ((unsigned char)xlsTextData(query->text)[offset+bom]&0xc0)==0x80)) goto invalid;
-    int equal=s->result && s->offset==offset && !strcmp(s->queryKey,query->key) && xlsInputBatchEqual(s->batch,batch);
+    uint64_t remapped=0;int ordinary=s->result && xlsInputBatchEqual(s->batch,batch);
+    int used=s->result && s->usageKnown && xlsInputBatchEqualUsed(s->batch,batch,s->usedInputs,queryKey,&remapped);
+    int equal=s->result && s->offset==offset && !strcmp(s->queryKey,query->key) && (ordinary || used);
     if(equal && !xlsSemanticCompletionValidate(s->result)) { equal=0; ++s->stats.invalidations; }
     if(cancelled && cancelled(user)) goto cancel;
     if(equal) result=xlsSemanticCompletionRetain(s->result);
@@ -87,7 +90,8 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
         if(!result) goto done;
     }
     if(cancelled && cancelled(user)) { xlsSemanticCompletionDestroy(result); result=NULL; goto cancel; }
-    if(equal) ++s->stats.hits;
+    if(equal){++s->stats.hits;if(used && !ordinary)++s->stats.inputScopeHits;s->usageKnown=used;s->usedInputs=remapped;}
+    else s->usageKnown=xlsSemanticCompletionInputUsage(result,&s->usedInputs);
     s->queryKey=query->key; s->offset=offset;
     xlsInputBatchDestroy(s->batch); s->batch=batch; batch=NULL;
     xlsSemanticCompletionDestroy(s->result); s->result=xlsSemanticCompletionRetain(result);

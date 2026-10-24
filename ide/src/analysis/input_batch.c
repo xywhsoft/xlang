@@ -94,17 +94,30 @@ xls_input_batch* xlsInputBatchCreate(const xls_session_limits* limits,const xls_
     const xls_analysis_document* documents,size_t count,const char* target,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
 { return xlsInputBatchCreateInContext(NULL,limits,previous,documents,count,target,cancelled,user,error,capacity); }
-int xlsInputBatchEqual(const xls_input_batch* a,const xls_input_batch* b)
+static int equalBatch(const xls_input_batch* a,const xls_input_batch* b,uint64_t used,int all,const char* query,uint64_t* remapped)
 {
+    if(remapped)*remapped=0;
     if(!a || !b || !xlsFrontendContextsEqual(a->context,b->context) || a->count!=b->count || strcmp(a->directory,b->directory)) return 0;
+    if(!all && a->count<64 && (used>>a->count))return 0;
+    if(query && !xlsInputBatchFind(b,query))return 0;
     const xls_analysis_document *at=xlsInputBatchTarget(a),*bt=xlsInputBatchTarget(b);
     if((at!=NULL)!=(bt!=NULL) || (at && strcmp(at->key,bt->key))) return 0;
+    uint64_t mapped=0;
     for(size_t i=0;i<b->count;++i) {
-        const xls_analysis_document *in=&b->documents[i],*old=xlsInputBatchFind(a,in->key);
-        if(!old || old->identity!=in->identity || strcmp(old->path,in->path) || !xlsInputSameBody(old,in)) return 0;
+        const xls_analysis_document* in=&b->documents[i];const size_t* index=xrtMapConstGet(&a->keys,key(in->key));
+        const xls_analysis_document* old=index ? &a->documents[*index] : NULL;
+        if(!old || old->identity!=in->identity || strcmp(old->path,in->path))return 0;
+        int observed=(used&(UINT64_C(1)<<*index))!=0;
+        if((all || observed || old==at || (query && !strcmp(in->key,query))) && !xlsInputSameBody(old,in))return 0;
+        if(observed)mapped|=UINT64_C(1)<<i;
     }
+    if(remapped)*remapped=mapped;
     return 1;
 }
+int xlsInputBatchEqual(const xls_input_batch* a,const xls_input_batch* b)
+{return equalBatch(a,b,0,1,NULL,NULL);}
+int xlsInputBatchEqualUsed(const xls_input_batch* a,const xls_input_batch* b,uint64_t used,const char* query,uint64_t* remapped)
+{return remapped && equalBatch(a,b,used,0,query,remapped);}
 size_t xlsInputBatchInputs(const xls_input_batch* b,xls_semantic_input* inputs,size_t capacity)
 {
     if(!b || !inputs || b->count>capacity) return 0;
