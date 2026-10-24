@@ -45,3 +45,11 @@
 `RuntimeError: operation is not valid in the current state`，退出码 1。
 这又增加一个同症状路径，尚未通过底层跟踪证明与 BLAKE3 同根；
 主线修复后应复跑 LRU 默认包门禁，并保留顶层对象测试。
+
+同日从当前源码重建 Windows 发布版后，`floatEnv` 默认包门禁的
+严格 C、语言 JIT 边界/分配、四项包外访问负例及双语范例通过，
+但独立 EXE 运行 `test/cases/stdlib_crt_float_env.xl` 时，顶层
+`floatEnv.Snapshot` 的操作完成后于退出期报相同状态错误并退出 1。
+同文件 JIT 正常退出。此用例还涵盖跨线程恢复拒绝，不能把快照
+移到局部来掩盖退出期故障；修复主线后重跑默认包门禁。此处只确认
+可观察症状，尚未证明与哈希器、缓存类的内部根因完全相同。
