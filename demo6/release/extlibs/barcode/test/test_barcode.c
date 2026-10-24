@@ -70,6 +70,33 @@ static int test_codes(void) {
     return 0;
 }
 
+static int test_ean_parity(void) {
+    /* EAN-13 首位选择左六位的 L/G 模式；掩码高位对应最左位。 */
+    static const unsigned char g_mask[10] = {
+        0x00, 0x0B, 0x0D, 0x0E, 0x13, 0x19, 0x1C, 0x15, 0x16, 0x1A
+    };
+    static const char left[] = "0001101";
+    static const char right[] = "0100111";
+    char digits[] = "000000000000";
+    int first, slot, bit;
+    for (first = 0; first < 10; ++first) {
+        xvalue *modules;
+        digits[0] = (char)('0' + first);
+        modules = xb_ean13(digits, 12);
+        CHECK(modules != NULL && xrtValueCount(modules) == 95);
+        for (slot = 0; slot < 6; ++slot) {
+            const char *expected = (g_mask[first] & (1u << (5 - slot))) ? right : left;
+            for (bit = 0; bit < 7; ++bit) {
+                int64 actual;
+                CHECK(xrtValueGetInt(xrtValueArrayAt(modules, 3 + slot * 7 + bit), &actual));
+                CHECK(actual == expected[bit] - '0');
+            }
+        }
+        xrtValueRelease(modules);
+    }
+    return 0;
+}
+
 static int test_rendering(void) {
     void *ascii = xb_ascii("4006381333931", 13, false);
     void *upc_ascii = xb_ascii("12345678901", 11, true);
@@ -161,7 +188,7 @@ static int test_error_recovery(void) {
 }
 
 int main(void) {
-    if (test_codes() || test_rendering() || test_allocation_errors() ||
+    if (test_codes() || test_ean_parity() || test_rendering() || test_allocation_errors() ||
         test_error_recovery()) return 1;
     puts("barcode C: PASS");
     return 0;
