@@ -38,3 +38,10 @@
 核心/公开范例 AOT 均已越过旧的 `xl6ValueDataSnapshotV1` 缺符号点。
 这强化了顶层对象退役边界的风险，但尚不能仅凭相同症状断定与 BLAKE3
 完全同根。修复后保留此顶层用例，重跑完整包门禁，不把测试移到局部。
+
+同日 `lru` 默认 `test/check.ps1` 的 C、JIT、双语范例与边界 AOT 构建
+通过。`release/extlibs/lru/test/boundaries.xl` 在顶层持有多个原生句柄；
+独立 EXE 打印 `lru boundaries: PASS` 后退出阶段仍报
+`RuntimeError: operation is not valid in the current state`，退出码 1。
+这又增加一个同症状路径，尚未通过底层跟踪证明与 BLAKE3 同根；
+主线修复后应复跑 LRU 默认包门禁，并保留顶层对象测试。
