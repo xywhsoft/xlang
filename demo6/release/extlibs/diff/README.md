@@ -1,5 +1,11 @@
 # diff
 
+2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 通过严格 GCC、
+C 边界及线程、XLang 核心与边界、双语固定输出，并构建运行公开范例
+和包内边界两个独立 EXE；边界 AOT 输出固定为 `diff boundaries: PASS`。
+旧版共享快照缺符号已不阻断本包的 Windows AOT。Linux 仍以独立的
+`test/check.sh` 验收，本轮未用当前源码重新构建 Linux 独立 EXE。
+
 有界行级 LCS 差异。`diff.lines(oldText, newText)` 返回按原顺序排列的文本行，每行以前缀 ` `（相同）、`-`（删除）或 `+`（新增）开头；`diff.stats` 返回 `新增数,删除数,相同行数`。它**不是**带文件头、hunk 范围的 unified patch，不能直接交给 `patch` 命令应用。
 
 行以 `\n` 分隔，行末 `\r` 会被规范化移除；输出行统一以 `\n` 结束。末尾单独的换行不额外形成空行，中间的空行则保留。按 UTF-8 字节比较整行，不做 Unicode 规范化。C 字符串 ABI 不支持嵌入 NUL 的内容；XLang 两个文本入口会明确拒绝，不静默截成前缀。
@@ -38,7 +44,10 @@ TCC 单文件路径由范例包含包内实现；正式包和严格 GCC 门禁�
 2026-10-16 将包内 `test/boundaries.xl` 登记到 `coverage.tests`，从
 `demo6` 工作目录运行通过；本轮未重跑 C/Linux/AOT 门禁。
 
-`test/cases/extlib_diff.xl` 无输出核心 AOT 已构建并运行成功。`xl build extlibs/diff/test/boundaries.xl -o ../build/test/diff_xl_test.exe` 当前因共享链接缺少 `xl6ValueDataSnapshotV1` 而失败；完整 AOT 尚未验收。主线修复后重跑，见 `dev/extlib_blockers/text_snapshot_link.md`。
+历史发布物中，`test/cases/extlib_diff.xl` 无输出核心 AOT 通过，
+但包内边界 AOT 曾因共享 `xl6ValueDataSnapshotV1` 缺符号失败。
+当前构建的复验结果见本页开头；旧阻断记录仍见
+`dev/extlib_blockers/text_snapshot_link.md`。
 
 2026-10-14 补齐恰好 2048 行的 C/XLang 正例，并对 `lines`、`stats` 的各分配点注入失败：失败必须报内存错误，清除故障后再次调用仍产生完整结果。定向测试通过。
 

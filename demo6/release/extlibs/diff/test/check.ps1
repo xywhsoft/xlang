@@ -54,6 +54,16 @@ try {
         $aotLines = @(& $example)
         if ($LASTEXITCODE -ne 0) { throw 'diff XLang example AOT failed' }
         Confirm-Output 'XLang example AOT' $aotLines
+
+        $boundary = Join-Path $work 'diff_boundaries.exe'
+        & $xl build release/extlibs/diff/test/boundaries.xl -o $boundary
+        if ($LASTEXITCODE -ne 0) { throw 'diff XLang boundaries AOT build failed' }
+        $boundaryLines = @(& $boundary)
+        if ($LASTEXITCODE -ne 0) { throw 'diff XLang boundaries AOT failed' }
+        if ([string]::Join("`n", @($boundaryLines | ForEach-Object { $_ -replace "`r$", '' })) -cne
+            'diff boundaries: PASS') {
+            throw 'diff XLang boundaries AOT output changed'
+        }
     }
 
     if ($SkipAot) {
