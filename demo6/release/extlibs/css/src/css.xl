@@ -6,35 +6,43 @@ extern "xcss_validate" func __css_valid(string css) as bool
 extern "xcss_strip_comments" func __css_strip(string css) as point
 
 // 原生解析器使用零结尾 C 字符串，不能忽略内嵌 NUL 后的样式表。
-func __css_text(string value) as string
+func __css_text(string value)
     if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
         throw ValueError "css: text contains NUL"
     end
-    return value
 end
 
 
 
 export func get(string css, string selector, string property) as string
-    return __xl_runtime.takeCstr(__css_get(__css_text(css), __css_text(selector), __css_text(property)))
+    __css_text(css)
+    __css_text(selector)
+    __css_text(property)
+    return __xl_runtime.takeCstr(__css_get(css, selector, property))
 end
 
 export func countRules(string css) as int
-    return __css_crules(__css_text(css))
+    __css_text(css)
+    return __css_crules(css)
 end
 
 export func countProps(string css, string selector) as int
-    return __css_cprops(__css_text(css), __css_text(selector))
+    __css_text(css)
+    __css_text(selector)
+    return __css_cprops(css, selector)
 end
 
 export func selectorAt(string css, int idx) as string
-    return __xl_runtime.takeCstr(__css_selat(__css_text(css), idx))
+    __css_text(css)
+    return __xl_runtime.takeCstr(__css_selat(css, idx))
 end
 
 export func validate(string css) as bool
-    return __css_valid(__css_text(css))
+    __css_text(css)
+    return __css_valid(css)
 end
 
 export func stripComments(string css) as string
-    return __xl_runtime.takeCstr(__css_strip(__css_text(css)))
+    __css_text(css)
+    return __xl_runtime.takeCstr(__css_strip(css))
 end
