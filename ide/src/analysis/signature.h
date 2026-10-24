@@ -35,6 +35,10 @@ xls_signature_work xlsSignatureWork(const xls_signature_help* result);
  * A first full seed is not a fallback. Limits are completed-data, not RSS. */
 typedef struct xls_signature_parse_work { uint64_t full,fragments,reused,bytes,exactHits,cacheBytes,fallbacks; } xls_signature_parse_work;
 xls_signature_parse_work xlsSignatureParseWork(const xls_signature_help* result);
+/* Original native type-restoration work creating the immutable model. Exact
+ * and caret views keep its provenance. Counts pool storage, not process RSS. */
+typedef struct xls_signature_storage_work { uint64_t nodes,pages,chargedBytes,heapFallbacks; } xls_signature_storage_work;
+xls_signature_storage_work xlsSignatureStorageWork(const xls_signature_help* result);
 xls_signature_info xlsSignatureInfo(const xls_signature_help* result);
 int xlsSignatureItem(const xls_signature_help* result,size_t index,xls_signature_item* item);
 int xlsSignatureParameter(const xls_signature_help* result,size_t index,size_t parameter,xls_signature_parameter* value);
