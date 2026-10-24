@@ -151,3 +151,11 @@ C ASan/UBSan + XLang 门禁通过。此矩阵不是完整 fuzz。当前完整范
 重试已变为 `xl6_channel_language_abi.h:7` 的头文件声明顺序错误；
 包脚本现在完整报告失败诊断。复现与修复方向见
 `dev/extlib_blockers/runtime_channel_header_cycle_aot.md`，未签收发布级。
+
+2026-10-24 当前 Windows 发布版复测：默认 `test/check.ps1` 全部通过，
+包括严格 C 测试与范例、C/XLang 输出对照、限额/内存失败/对象替换
+边界，以及中心用例和完整教学范例的 AOT 构建与执行。旧记录中的
+`xl6ValueDataSnapshotV1` 缺符号及 channel 头声明顺序错误在本次路径
+均未复现。Linux XLang 门禁尚未使用当前源码重建的发布物复验，
+构建阻塞见 `demo6/dev/extlib_blockers/linux_release_x509_sources.md`；
+本条不代表 Linux AOT、长期压力或跨平台发布级签收。
