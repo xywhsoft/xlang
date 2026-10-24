@@ -1,5 +1,13 @@
 # sitemap
 
+2026-10-24：更新后的 Windows 发布版，独立 C 边界测试通过；
+公开 XLang 双语范例在第一个 `build` 调用报
+`ValueError: sitemap entries must be an array`。最小对照证明
+`parse` 返回的 XRT 数组可重新生成 XML，而等价的语言数组不能；
+见 `dev/extlib_blockers/sitemap_build_var_array_projection.xl` 与
+`foreign_var_container_projection.md`。本包不添加编译器内部
+句柄兼容路径，当前发布版的完整语言/AOT 门禁未签收。
+
 `sitemap` 生成和解析 Sitemap XML 0.9 的 URL 集合、索引文件，并解析常用 `robots.txt` 规则。XML 使用现有 `xml.sax` / Expat 扩展库作结构解析；本包只负责 sitemap 字段，避免自写 XML 词法器。
 
 ## XLang API
