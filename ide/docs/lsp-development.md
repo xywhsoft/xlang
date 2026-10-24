@@ -4,7 +4,7 @@
 
 本期动态补全指基于当前未保存、不完整代码、作用域、接收对象类型及流分析实时查询候选。性能优先于扩展功能数量；协议能力仅在实现与验收完成后声明。
 
-最新功能切片为 M7a2b19b：完成共享前端上的结构化语义签名、独立常驻签名会话与后台查询，支持未完成调用、重载、显式泛型、成员／构造器及函数值；21406项专项、51原生／592协议／16 IDE通过。当前只是参数提示语义核心，服务仍0.46，signatureHelp协议及IDE参数窗尚未启用，下一步优先接入。完整长期目标active；发布5241文件未覆盖。
+最新功能切片为 M7a2b19c：xlang-ls升至0.47，接入标准textDocument/signatureHelp，支持字符串／UTF-16参数标签协商、当前参数、trigger／retrigger／context、独立可取消前台查询与来源失效通知。92原生协议专项、41真实签名协议场景、52原生／633协议／16 IDE回归通过。IDE参数窗尚未接入，下一阶段优先实现；完整长期目标active，发布5241文件未覆盖。
 
 ## 架构与复用
 
@@ -1711,3 +1711,28 @@ signature_session捕获完整immutable输入／context／身份／entry／CWD；
 未插桩原生计时使用96混合helper、约3kLOC、BOM／CRLF与两个实际重载；fresh／retained以ABBA四个独立进程运行。每进程首请求单列，6预热后30数字编辑、30完全相同查询、30同实参光标移动，共360采样。计时含索引／解析／语义／来源捕获，排除正文创建、进程启动及结果验证；每次核对实际签名、偏好、参数、语义／索引／结果复用。这不是LSP往返、IDE显示、RSS、冷尾或完整规模验收；19a十万行64MiB索引不可用仍未解决，整体性能目标未达成。
 
 下一阶段优先标准signatureHelp与IDE XUI参数窗：独立前台管线、输入／配置／generation／取消／发布守卫、trigger／retrigger／context、UTF-16参数标签或字符串标签、无候选null及真实端到端检查。完整适用LSP、真正依赖／IR增量、清单／反向归属、IDE原位配置／异步准备、nativeC／resource／include／link、规模／UI／RSS／长时与最终发布继续。外部exe、纯C／编译器XRT、未来opaque DLL边界、无DAP／运行态补全不变。发布5241文件／SDK／冻结前端未改；证据build/lsp-next-20261022/m7a2b19b-result.json及signature-native-timing-v1，长期目标active。
+
+
+## M7a2b19c：标准signatureHelp协议（0.47）
+
+最新功能切片为 M7a2b19c：xlang-ls升至0.47，接入标准textDocument/signatureHelp，支持字符串／UTF-16参数标签协商、当前参数、trigger／retrigger／context、独立可取消前台查询与来源失效通知。92原生协议专项、41真实签名协议场景、52原生／633协议／16 IDE回归通过。IDE参数窗尚未接入，下一阶段优先实现；完整长期目标active，发布5241文件未覆盖。
+
+| 实际signatureHelp往返 | 单文件 P50/P95/P99 ms | 项目关闭入口＋未保存成员 P50/P95/P99 ms |
+| --- | --- | --- |
+| 数字范围编辑后 | 48.420 / 54.811 / 60.164 | 53.675 / 59.682 / 62.145 |
+| 相同正文／光标 | 0.736 / 0.850 / 0.969 | 2.012 / 2.157 / 2.703 |
+| 同实参光标移动 | 42.431 / 47.389 / 48.619 | 47.859 / 54.982 / 59.152 |
+
+服务声明signatureHelpProvider，triggerCharacters为左括号／逗号，retriggerCharacters为右括号。protocol/signature_help复用19b结构化语义API，labelOffsetSupport决定参数标签字符串或UTF-16[start,end]；标签只遍历一次，避免按参数重复扫描。activeParameterSupport控制每签名字段，全局activeParameter保留当前候选位置；文档为协议允许的plain string。调用外／注释及未支持的恢复形态返回null。
+
+context存在时验证triggerKind1..3、isRetrigger bool、单Unicode标量triggerCharacter（kind2必需）和受限activeSignatureHelp／参数／文档schema；客户端历史签名不替代原生候选，也不覆盖原前缀rank。92原生断言含错误schema、字符串回退及callee非BMP字符的真实UTF-16范围，原21406签名专项继续通过。
+
+host在启动线程前固定signatureMode／flags，使用独立signatureAnalysis actor和一个active＋一个最新等待请求，与普通补全缓存独立。InputJson只调用原编译器source／resolution报告、phase signature，不返回CompletionList或签名事实；typed输入视图核对同次字节／元数据／来源／环境／导入候选，沿用发布前及后台source_graph守卫，I/O离开server owner。空null没有语义事实／伪造来源证明，只保留已捕获环境守卫并及时退休。
+
+$/cancelRequest／supersede／open／edit／close／配置／watched-files／诊断输入观察撤回签名。发布后变化发送xlang/signatureInvalidated(queryId,uri,version,reason)，响应除标准字段外带version／queryId／analysis和可选analysisContext供IDE验证。41个真实stdio场景含两种协商、未闭合调用／字符串、命名参数／成员／泛型类／构造器／函数值／返回函数、BOM／CRLF／中文／非BMP、retrigger命中、null、错误context／版本／关闭、独立并行普通补全、12k函数冷输入下的最新等待／取消／恢复，以及关闭项目入口＋未保存private成员查询／磁盘失效重建。收发实录保留。
+
+1027冻结输入，125原生对象全编译，57AST消费者同一AST17头且布局不变，50core成员不增，52原生夹具／53PE／54产物通过；29套633协议与16实际IDE／旧0.4回退／smoke通过。GUI路径预处理一致，105对象复用、零GUI编译／重链。GUI尚未发起signatureHelp，既有界面回归不算新参数窗验收。
+
+表中为未插桩实际stdio往返：96混合helper、约3kLOC／BOM／CRLF，单文件／配置项目／配置项目／单文件四个独立进程。配置项目入口关闭、成员未保存。各进程首请求单列，6预热后30数字范围编辑、30精确请求、30光标移动，共360采样；从didChange／发送前至匹配回复，包含旧guard退休／native／来源验证／wire，并检查真实标签／重载／参数／版本／语义复用／索引及结果命中。关闭自动诊断以隔离签名管线；不是GUI／完整UI／CPU／RSS／规模或冷尾验收。编辑与光标仍需解析、十万行索引仍不可用，整体性能目标未达成。
+
+下一阶段优先IDE非模态XUI参数窗、Ctrl+Shift+Space、左括号／逗号触发与右括号／光标／编辑retrigger、Esc／焦点／tab／身份／来源失效及旧服务回退。避免owner复制正文、解析大payload或另起重复LSP进程。推断泛型／protocol receiver／内建转换／嵌入恢复、真正依赖／IR增量、完整适用LSP、清单／反向归属、IDE原位配置／异步准备、nativeC／resource／include／link、规模／长时与最终发布继续。外部exe／纯C／编译器XRT／未来opaque DLL及无DAP／运行态补全不变；发布5241文件／SDK／冻结前端未改。证据build/lsp-next-20261022/m7a2b19c-result.json、signature-rpc-timing-v1与protocol-qa-v1/signature-help，长期目标active。
