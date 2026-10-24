@@ -4,10 +4,11 @@
 #include <stdio.h>
 #include <string.h>
 struct xls_input_batch {
+    xatomic32 references;
     xmap keys;
     xls_context* context;
     xls_analysis_document documents[64];
-    size_t count,bytes,target;
+    size_t count,bytes,target,storageBytes;
     char* directory;
 };
 static xbytesview key(const char* s) { return (xbytesview){(const unsigned char*)s,strlen(s)}; }
@@ -24,7 +25,7 @@ int xlsInputLimits(const xls_session_limits* requested,xls_session_limits* chose
 }
 void xlsInputBatchDestroy(xls_input_batch* b)
 {
-    if(!b) return;
+    if(!b || xrtAtomic32FetchSub(&b->references,1,XMEMORY_ACQ_REL)!=1) return;
     xrtMapUnit(&b->keys);
     for(size_t i=0;i<b->count;++i) {
         xrtFree((void*)b->documents[i].key); xrtFree((void*)b->documents[i].path);
@@ -32,6 +33,9 @@ void xlsInputBatchDestroy(xls_input_batch* b)
     }
     xlsContextRelease(b->context); xrtFree(b->directory); xrtFree(b);
 }
+xls_input_batch* xlsInputBatchRetain(const xls_input_batch* batch)
+{xls_input_batch* b=(xls_input_batch*)batch;if(b)xrtAtomic32FetchAdd(&b->references,1,XMEMORY_RELAXED);return b;}
+static size_t storageAdd(size_t left,size_t right){return right>SIZE_MAX-left ? SIZE_MAX : left+right;}
 const xls_analysis_document* xlsInputBatchFind(const xls_input_batch* b,const char* name)
 {
     if(!b || !name) return NULL;
@@ -48,6 +52,7 @@ const char* xlsInputBatchEntry(const xls_input_batch* b)
 const char* xlsInputBatchDirectory(const xls_input_batch* b) { return b ? b->directory : NULL; }
 const xls_context* xlsInputBatchContext(const xls_input_batch* b) { return b ? b->context : NULL; }
 size_t xlsInputBatchBytes(const xls_input_batch* b) { return b ? b->bytes : 0; }
+size_t xlsInputBatchStorageBytes(const xls_input_batch* b) {return b ? b->storageBytes : 0;}
 int xlsInputSameBody(const xls_analysis_document* a,const xls_analysis_document* b)
 {
     return a && b && (a->text==b->text || (xlsTextSize(a->text)==xlsTextSize(b->text) &&
@@ -63,8 +68,10 @@ xls_input_batch* xlsInputBatchCreateInContext(xls_context* context,const xls_ses
        (target ? !label(target) : !context)) goto invalid;
     if(cancelled && cancelled(user)) goto cancel;
     b=xrtCalloc(1,sizeof(*b)); if(!b) goto memory;
+    xrtAtomic32Init(&b->references,1);
     b->context=xlsContextRetain(context); b->target=SIZE_MAX; b->directory=context ? xrtStrDup(xlsContextSpec(context)->directory) : xrtPathAbs(".");
     if(!b->directory || !xrtMapInit(&b->keys,sizeof(size_t))) goto memory;
+    b->storageBytes=storageAdd(storageAdd(sizeof(*b),strlen(b->directory)+1),xlsContextBytes(context));
     for(size_t i=0;i<count;++i) {
         if(cancelled && cancelled(user)) goto cancel;
         const xls_analysis_document* in=&documents[i];
@@ -80,6 +87,7 @@ xls_input_batch* xlsInputBatchCreateInContext(xls_context* context,const xls_ses
         b->documents[index]=(xls_analysis_document){name,path,xlsTextRetain(in->text),in->identity,in->revision};
         if(!xrtMapSet(&b->keys,key(name),&index)) goto memory;
         b->bytes+=xlsTextSize(in->text);
+        b->storageBytes=storageAdd(storageAdd(storageAdd(b->storageBytes,xlsTextStorageBytes(in->text)),2*(strlen(name)+1)),strlen(path)+1);
         if(target && !strcmp(name,target)) b->target=index;
     }
     if(target && b->target==SIZE_MAX) goto invalid;

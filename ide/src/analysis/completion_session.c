@@ -1,6 +1,7 @@
 #include "analysis/completion_session.h"
 #include "analysis/frontend_context.h"
 #include "analysis/input_batch.h"
+#include "analysis/session_state.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_entry_cache.h"
 #include "src/sem/xl6_completion.h"
@@ -27,7 +28,23 @@ void xlsCompletionSessionDestroy(xls_completion_session* s)
 { if(s) { xlsInputBatchDestroy(s->batch); xlsSyntaxRelease(s->cursorSyntax); xlsSemanticCompletionDestroy(s->result); xlsEntryCacheDestroy(s->entryCache); xrtFree(s); } }
 void xlsCompletionSessionStats(const xls_completion_session* s,xls_completion_stats* stats)
 { if(stats) *stats=s ? s->stats : (xls_completion_stats){0}; }
-xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_session* s,xls_context* context,
+xls_session_state xlsCompletionSessionState(const xls_completion_session* s)
+{return (xls_session_state){s ? s->batch : NULL,s ? s->queryKey : NULL};}
+xls_semantic_checkpoint xlsCompletionSessionCheckpoint(const xls_completion_session* s)
+{
+    if(!s)return (xls_semantic_checkpoint){0};
+    return (xls_semantic_checkpoint){.inputs=xlsInputBatchRetain(s->batch),.completion=xlsSemanticCompletionRetain(s->result),
+        .syntax=xlsSyntaxRetain(s->cursorSyntax),.queryKey=s->queryKey,.offset=s->offset,.usedInputs=s->usedInputs,.usageKnown=s->usageKnown,
+        .documents=s->stats.documents,.textBytes=s->stats.textBytes};
+}
+void xlsCompletionSessionRestore(xls_completion_session* s,xls_semantic_checkpoint* old)
+{
+    if(!s || !old)return;
+    xlsInputBatchDestroy(s->batch);xlsSemanticCompletionDestroy(s->result);xlsSyntaxRelease(s->cursorSyntax);
+    s->batch=old->inputs;s->result=old->completion;s->cursorSyntax=old->syntax;s->queryKey=old->queryKey;s->offset=old->offset;s->usedInputs=old->usedInputs;s->usageKnown=old->usageKnown;
+    s->stats.documents=old->documents;s->stats.textBytes=old->textBytes;*old=(xls_semantic_checkpoint){0};
+}
+xls_semantic_completion* xlsCompletionSessionQueryWithHistory(xls_completion_session* s,xls_context* context,const xls_input_batch* history,
     const xls_analysis_document* documents,size_t count,const char* entryKey,
     const char* queryKey,size_t offset,int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
@@ -35,7 +52,7 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
     xls_syntax* syntax=NULL;
     if(error && capacity) *error=0;
     if(!s) goto invalid;
-    batch=xlsInputBatchCreateInContext(context,&s->limits,s->batch,documents,count,entryKey,cancelled,user,error,capacity);
+    batch=xlsInputBatchCreateInContext(context,&s->limits,history,documents,count,entryKey,cancelled,user,error,capacity);
     if(!batch) goto done;
     const xls_analysis_document* query=xlsInputBatchFind(batch,queryKey);
     if(!query) goto invalid;
@@ -102,6 +119,10 @@ cancel: if(error && capacity) snprintf(error,capacity,"completion session cancel
 done: xlsSyntaxRelease(syntax); xlsInputBatchDestroy(batch); return result;
 }
 
+xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_session* s,xls_context* context,
+    const xls_analysis_document* documents,size_t count,const char* entryKey,const char* queryKey,size_t offset,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{return xlsCompletionSessionQueryWithHistory(s,context,s ? s->batch : NULL,documents,count,entryKey,queryKey,offset,cancelled,user,error,capacity);}
 xls_semantic_completion* xlsCompletionSessionQuery(xls_completion_session* session,
     const xls_analysis_document* documents,size_t count,const char* entryKey,
     const char* queryKey,size_t offset,int (*cancelled)(void*),void* user,char* error,size_t capacity)

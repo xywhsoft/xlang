@@ -1,15 +1,25 @@
 #include "analysis/worker.h"
 #include "analysis/frontend_context.h"
+#include "analysis/session_state.h"
 #include <xrt.h>
 #include <string.h>
 #include <stdio.h>
 
-struct xls_worker { xtaskpool* pool; xls_session* session; xls_check_session* checks; xls_completion_session* completions; xls_signature_session* signatures; xls_session_limits limits; };
+enum query_kind { QUERY_SYNTAX,QUERY_FOLDING,QUERY_CHECK,QUERY_COMPLETION,QUERY_SIGNATURE };
+typedef struct semantic_session {
+    enum query_kind kind;
+    union {xls_check_session* check;xls_completion_session* completion;xls_signature_session* signature;} value;
+} semantic_session;
+struct xls_worker {
+    xtaskpool* pool;xls_session* session;xls_session_limits limits;
+    semantic_session cached[32];size_t cachedCount;xls_worker_cache_limits cacheLimits;xls_worker_cache_stats cacheStats;
+    xls_input_batch* history[3];
+    xls_check_stats checkTotals;xls_completion_stats completionTotals;xls_signature_stats signatureTotals;
+};
 struct xls_query { xfuture* future; xfuturewatch watch; int watchInitialized,watchLinked; void (*wake)(void*); void* user; };
 typedef struct query_document { char *key,*path; xls_text* text; uint64_t identity,revision; } query_document;
-enum query_kind { QUERY_SYNTAX,QUERY_FOLDING,QUERY_CHECK,QUERY_COMPLETION,QUERY_SIGNATURE };
 typedef struct query_input { xls_worker* worker; xls_context* context; xmap documents; char *target,*queryKey; enum query_kind kind; size_t rangeLimit,offset; } query_input;
-typedef struct query_result { xls_analysis_snapshot snapshot; xls_session_stats stats; uint64_t threadId; xls_folding* folding; xls_semantic_check* check; xls_check_stats checkStats; xls_semantic_completion* completion; xls_completion_stats completionStats; xls_signature_help* signature; xls_signature_stats signatureStats; char error[256]; } query_result;
+typedef struct query_result { xls_analysis_snapshot snapshot; xls_session_stats stats; uint64_t threadId; xls_folding* folding; xls_semantic_check* check; xls_check_stats checkStats; xls_semantic_completion* completion; xls_completion_stats completionStats; xls_signature_help* signature; xls_signature_stats signatureStats; xls_worker_cache_stats cacheStats; char error[256]; } query_result;
 static xbytesview keyView(const char* key) { return (xbytesview){(const unsigned char*)key,strlen(key)}; }
 static int validLabel(const char* label)
 { size_t size=label ? strlen(label) : 0; return size && size<=262144 && xrtUtf8Valid((xstrview){label,size},NULL); }
@@ -39,41 +49,7 @@ static bool captureCheck(xbytesview key,void* value,void* user)
     inputs->documents[inputs->count++]=(xls_analysis_document){d->key,d->path,d->text,d->identity,d->revision};
     return true;
 }
-static xtaskoutcome executeSemantic(xcancel* cancel,query_input* input,xtaskvalue* output)
-{
-    xls_worker* worker=input->worker;
-    int signature=input->kind==QUERY_SIGNATURE;
-    int cursor=input->kind==QUERY_COMPLETION;
-    if(signature ? !worker->signatures : cursor ? !worker->completions : !worker->checks) {
-        xls_session_limits limits=worker->limits;
-        if(limits.documents>64) limits.documents=64;
-        if(limits.documentBytes>8u*1024u*1024u) limits.documentBytes=8u*1024u*1024u;
-        if(limits.totalBytes>32u*1024u*1024u) limits.totalBytes=32u*1024u*1024u;
-        if(signature) { worker->signatures=xlsSignatureSessionCreate(&limits); if(!worker->signatures) return XTASK_FAILED; }
-        else if(cursor) { worker->completions=xlsCompletionSessionCreate(&limits); if(!worker->completions) return XTASK_FAILED; }
-        else { worker->checks=xlsCheckSessionCreate(&limits); if(!worker->checks) return XTASK_FAILED; }
-    }
-    check_inputs inputs={0}; xrtMapVisit(&input->documents,captureCheck,&inputs);
-    query_result* result=xrtCalloc(1,sizeof(*result)); if(!result) return XTASK_FAILED;
-    if(signature) {
-        result->signature=xlsSignatureSessionQueryInContext(worker->signatures,input->context,inputs.documents,inputs.count,input->target,
-            input->queryKey,input->offset,cancelled,cancel,result->error,sizeof(result->error));
-        xlsSignatureSessionStats(worker->signatures,&result->signatureStats);
-    } else if(cursor) {
-        result->completion=xlsCompletionSessionQueryInContext(worker->completions,input->context,inputs.documents,inputs.count,input->target,
-            input->queryKey,input->offset,cancelled,cancel,result->error,sizeof(result->error));
-        xlsCompletionSessionStats(worker->completions,&result->completionStats);
-    } else {
-        result->check=xlsCheckSessionCheckInContext(worker->checks,input->context,inputs.documents,inputs.count,input->target,1,
-            cancelled,cancel,result->error,sizeof(result->error));
-        xlsCheckSessionStats(worker->checks,&result->checkStats);
-    }
-    result->threadId=xrtThreadCurrentId();
-    if(xrtCancelRequested(cancel)) { freeResult(result,NULL); return XTASK_CANCELLED; }
-    /* An infrastructure failure still carries a bounded error, whereas source
-     * diagnostics are ordinary READY checked results with accepted == 0. */
-    *output=(xtaskvalue){result,freeResult,NULL}; return XTASK_SUCCESS;
-}
+#include "analysis/worker_cache.inc"
 static xtaskoutcome execute(xcancel* cancel,void* value,xtaskvalue* output)
 {
     query_input* input=value; xls_session* session=input->worker->session;
@@ -95,13 +71,16 @@ static xtaskoutcome execute(xcancel* cancel,void* value,xtaskvalue* output)
     if(xrtCancelRequested(cancel)) { freeResult(result,NULL); return XTASK_CANCELLED; }
     *output=(xtaskvalue){result,freeResult,NULL}; return XTASK_SUCCESS;
 }
-xls_worker* xlsWorkerCreate(const xls_session_limits* limits,size_t queueLimit)
+xls_worker* xlsWorkerCreateWithCache(const xls_session_limits* limits,size_t queueLimit,const xls_worker_cache_limits* cache)
 {
     xls_session_limits chosen=limits ? *limits : (xls_session_limits){64,8u*1024u*1024u,32u*1024u*1024u};
+    xls_worker_cache_limits selected=cache ? *cache : (xls_worker_cache_limits){8,64u*1024u*1024u};
     if(!chosen.documents || !chosen.documentBytes || chosen.documentBytes>chosen.totalBytes || chosen.totalBytes>SIZE_MAX/2) return NULL;
+    if(!selected.sessions || selected.sessions>32 || !selected.inputStorageBytes || selected.inputStorageBytes>SIZE_MAX/2)return NULL;
     xls_worker* worker=xrtMalloc(sizeof(*worker));
     if(!worker) return NULL;
-    memset(worker,0,sizeof(*worker)); worker->limits=chosen;
+    memset(worker,0,sizeof(*worker)); worker->limits=chosen;worker->cacheLimits=selected;
+    worker->cacheStats.sessionLimit=selected.sessions;worker->cacheStats.inputStorageLimit=selected.inputStorageBytes;
     /* During sequential synchronization old and new document sizes can briefly
      * coexist; the submitted final batch is still constrained by totalBytes. */
     xls_session_limits staging=chosen; staging.totalBytes*=2;
@@ -111,11 +90,16 @@ xls_worker* xlsWorkerCreate(const xls_session_limits* limits,size_t queueLimit)
     if(!worker->pool) { xlsWorkerDestroy(worker); return NULL; }
     return worker;
 }
+xls_worker* xlsWorkerCreate(const xls_session_limits* limits,size_t queueLimit)
+{return xlsWorkerCreateWithCache(limits,queueLimit,NULL);}
 void xlsWorkerDestroy(xls_worker* worker)
 {
     if(!worker) return;
     if(worker->pool) { xrtTaskPoolCancel(worker->pool); xrtTaskPoolDestroy(worker->pool); }
-    xlsSessionDestroy(worker->session); xlsCheckSessionDestroy(worker->checks); xlsCompletionSessionDestroy(worker->completions); xlsSignatureSessionDestroy(worker->signatures); xrtFree(worker);
+    xlsSessionDestroy(worker->session);
+    for(size_t i=0;i<worker->cachedCount;++i)destroySemantic(&worker->cached[i]);
+    for(size_t i=0;i<3;++i)xlsInputBatchDestroy(worker->history[i]);
+    xrtFree(worker);
 }
 int xlsWorkerLoad(xls_worker* worker,xls_worker_load* load)
 {
@@ -277,4 +261,12 @@ enum xls_query_state xlsQuerySignatureResult(xls_query* query,xls_signature_help
     if(stats)*stats=value->signatureStats;
     if(threadId)*threadId=value->threadId;
     return XLS_QUERY_READY;
+}
+int xlsQuerySessionCache(const xls_query* query,xls_worker_cache_stats* stats)
+{
+    if(stats)*stats=(xls_worker_cache_stats){0};
+    if(!query || !stats || xrtFutureState(query->future)!=XFUTURE_RESOLVED)return 0;
+    const query_result* result=xrtFutureValue(query->future);
+    if(!result || (!result->check && !result->completion && !result->signature))return 0;
+    *stats=result->cacheStats;return 1;
 }

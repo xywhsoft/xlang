@@ -19,6 +19,7 @@ struct xide_language_check {
 #ifdef XLS_COMPILER_XRT
  xls_context* context;
  int signatureMode; unsigned signatureFlags; xls_signature_stats signatureStats;
+ xls_worker_cache_stats sessionCache;
  int configuredEntry;
  xls_text* snapshotTexts[64]; char* snapshotKeys[64]; uint64_t snapshotIdentities[64];
  int retainedSnapshots; char* semanticTarget; xls_worker* semanticActor;

@@ -1,6 +1,7 @@
 #include "analysis/signature_session.h"
 #include "analysis/signature_internal.h"
 #include "analysis/input_batch.h"
+#include "analysis/session_state.h"
 #include "analysis/frontend_context.h"
 #include "analysis/frontend_internal.h"
 #include <stdio.h>
@@ -21,13 +22,28 @@ void xlsSignatureSessionDestroy(xls_signature_session* s)
 {if(s){xlsSignatureRelease(s->result);xlsInputBatchDestroy(s->batch);xlsEntryCacheDestroy(s->entryCache);xrtFree(s);}}
 void xlsSignatureSessionStats(const xls_signature_session* s,xls_signature_stats* stats)
 {if(stats)*stats=s ? s->stats : (xls_signature_stats){0};}
-xls_signature_help* xlsSignatureSessionQueryInContext(xls_signature_session* s,xls_context* context,
+xls_session_state xlsSignatureSessionState(const xls_signature_session* s)
+{return (xls_session_state){s ? s->batch : NULL,s ? s->queryKey : NULL};}
+xls_semantic_checkpoint xlsSignatureSessionCheckpoint(const xls_signature_session* s)
+{
+    if(!s)return (xls_semantic_checkpoint){0};
+    return (xls_semantic_checkpoint){.inputs=xlsInputBatchRetain(s->batch),.signature=xlsSignatureRetain(s->result),.queryKey=s->queryKey,
+        .offset=s->offset,.usedInputs=s->usedInputs,.usageKnown=s->usageKnown,.documents=s->stats.documents,.textBytes=s->stats.textBytes};
+}
+void xlsSignatureSessionRestore(xls_signature_session* s,xls_semantic_checkpoint* old)
+{
+    if(!s || !old)return;
+    xlsInputBatchDestroy(s->batch);xlsSignatureRelease(s->result);s->batch=old->inputs;s->result=old->signature;
+    s->queryKey=old->queryKey;s->offset=old->offset;s->usedInputs=old->usedInputs;s->usageKnown=old->usageKnown;
+    s->stats.documents=old->documents;s->stats.textBytes=old->textBytes;*old=(xls_semantic_checkpoint){0};
+}
+xls_signature_help* xlsSignatureSessionQueryWithHistory(xls_signature_session* s,xls_context* context,const xls_input_batch* history,
     const xls_analysis_document* documents,size_t count,const char* entry,const char* queryKey,size_t offset,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
     xls_input_batch* batch=NULL;xls_signature_help* result=NULL;if(error && capacity)*error=0;
     if(!s)goto invalid;
-    batch=xlsInputBatchCreateInContext(context,&s->limits,s->batch,documents,count,entry,cancelled,user,error,capacity);if(!batch)goto done;
+    batch=xlsInputBatchCreateInContext(context,&s->limits,history,documents,count,entry,cancelled,user,error,capacity);if(!batch)goto done;
     const xls_analysis_document* query=xlsInputBatchFind(batch,queryKey);if(!query)goto invalid;
     size_t bytes=xlsTextSize(query->text),bom=bytes>=3 && !memcmp(xlsTextData(query->text),"\xef\xbb\xbf",3) ? 3 : 0;
     if(offset>bytes-bom || (offset<bytes-bom && ((unsigned char)xlsTextData(query->text)[offset+bom]&0xc0)==0x80) ||
@@ -63,3 +79,7 @@ invalid:if(error && capacity)snprintf(error,capacity,"invalid signature batch,ta
 cancel:if(error && capacity)snprintf(error,capacity,"signature query cancelled");
 done:xlsInputBatchDestroy(batch);return result;
 }
+xls_signature_help* xlsSignatureSessionQueryInContext(xls_signature_session* s,xls_context* context,
+    const xls_analysis_document* documents,size_t count,const char* entry,const char* queryKey,size_t offset,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{return xlsSignatureSessionQueryWithHistory(s,context,s ? s->batch : NULL,documents,count,entry,queryKey,offset,cancelled,user,error,capacity);}

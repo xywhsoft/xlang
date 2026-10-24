@@ -1368,3 +1368,16 @@ check／completion／signature 三类会话分别保存自身使用范围。精�
 同一测量源码配对原 0.51／最终 0.52，65／193 个源码的实际闭包，各保留 64 份贡献，ABBA 八进程共 160 次无关事件，包含队列、事件唤醒与原完整合并。最终分位及准备成本见 lsp-development.md，不是 64 个独立项目或完整 IDE 的性能验收。本阶段没有新的 IDE 帧／RSS／规模结论。
 
 当前交付是根输入闭包反向索引，尚需模块边、工程清单解析、持久语义 IR、相关编辑分析和完整适用协议。整体性能与长期目标 active。外部服务优先、未来 opaque xlc.dll、无 DAP／运行态补全，SDK／冻结前端及发布 5241 文件保持原样。证据 build/lsp-next-20261022/m7a2b20b-result.json 和外部 m7a2b20b-7b906627 的 component-v3、protocol-qa-final-v2、gui-qa-final-v2、actor-paired-v2。
+
+
+## M7a2b21a：可嵌入语义根会话池（0.53）
+
+`xlsWorkerCreateWithCache` 提供 1..32 槽及正数已知输入存储预算；旧 Create 默认每 worker 共 8 槽／64 MiB 输入计费，三种服务共享容量。按完整 context 值、服务种类、必要入口／查询的键、路径与身份选会话，原来源验证和语义判断仍执行。会话选择／LRU／关闭清理无额外路径或语言规则，只有一个 owner 线程修改缓存，跨线程结果持有语义不变。
+
+immutable input_batch 改为 XRT 原子引用 owner。worker 的每种服务保留最新成功 batch 校验当前输入流版本；各根 batch 仅是自身语义／语法基线，避免旧根遗漏已见高版本或错误拒绝关闭重开。私有 session_state.h 的 WithHistory 和 Checkpoint／Restore 不是宿主协议接口；公开单会话调用保持原历史契约。检查点无分配地保留结果、输入和必要语法等；失败或 worker 最后取消门恢复旧接受事实，允许真实计数与 source-only 解析辅助缓存推进。744 个真实取消门验证三种服务／单槽及多槽／冷根、相关与无关编辑；可选会话分配失败实际降级后仍与新建 AST／IR／JSON 完全对照。
+
+`xlsQuerySessionCache` 返回成功语义查询的值统计：路由 hits／misses、淘汰／关闭清理／创建失败降级、会话数和输入计费；取消／失败／纯语法查询清空输出。路由命中不代表事实命中，原 builds／cacheHits 等累计真实工作在 worker 范围跨根保留；文档／字节等 gauge 描述当前查询。native 宿主在 analysis.sessionCache 编码；核心不依赖 JSON／XUI／stdio。现有 IDE 自动获得根复用。
+
+输入计费包括文本容量、上下文及已知批次／标签；共享容量按根保守重复计费，不包含 AST／IR／语义 memo／解析缓存、allocator／容器元数据、额外当前历史引用和调用方持有结果。槽位／输入预算使缓存有界，但 64 MiB 不是语义总内存或 RSS cap；活跃会话单独超额仍接受原语言输入，创建额外会话失败可复用已有同类会话。真正模型预算仍待后续实现。
+
+131 原生对象完整构建、57 夹具／58 PE／59 outputs／60 AST17 consumers／51 archive members；32 套 859 协议及 18 组 IDE 重跑。原生核心仍独立 compiler XRT，无 xge.dll／xlc.dll 依赖。106 GUI 产品对象经实际依赖和预处理 token 证明复用；测量夹具 fresh link。1152 stdio／160 GUI 切换样本、冷请求及内存成本见 lsp-development.md 和外部证据。根会话保留不等于模块图／语义 IR 真正增量，完整长期目标 active，发布未更新。

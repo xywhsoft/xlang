@@ -15,6 +15,9 @@ xls_input_batch* xlsInputBatchCreateInContext(xls_context* context,const xls_ses
  * Target then returns NULL; Entry returns the actual compilation path.
  * Shared frontend input reports guard disk entries and their dependencies. */
 const xls_context* xlsInputBatchContext(const xls_input_batch* batch);
+/* Immutable input history can be shared by the worker's current revision
+ * authority and a retained root. Retain/release do not copy source bodies. */
+xls_input_batch* xlsInputBatchRetain(const xls_input_batch* batch);
 void xlsInputBatchDestroy(xls_input_batch* batch);
 const xls_analysis_document* xlsInputBatchFind(const xls_input_batch* batch,const char* key);
 const xls_analysis_document* xlsInputBatchTarget(const xls_input_batch* batch);
@@ -32,4 +35,8 @@ int xlsInputBatchEqualUsed(const xls_input_batch* a,const xls_input_batch* b,
     uint64_t used,const char* query,uint64_t* remapped);
 size_t xlsInputBatchInputs(const xls_input_batch* batch,xls_semantic_input* inputs,size_t capacity);
 size_t xlsInputBatchBytes(const xls_input_batch* batch);
+/* Known input storage charge:text buffer/line capacities,context,labels and
+ * batch. Shared text/context charged per root. Excludes map allocator metadata,
+ * semantic models/AST/IR/parse aids and RSS. SIZE_MAX means unrepresentable. */
+size_t xlsInputBatchStorageBytes(const xls_input_batch* batch);
 #endif
