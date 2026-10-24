@@ -17,7 +17,9 @@ typedef struct xls_completion_stats {
  * cache construction/copy uses the original shared native query path,
  * counted by cursorFreshBuilds. An ordinary entry AST may now be reused by
  * that path; the result's EntryWork reports its actual parse/copy work.
- * Module prerequisites and final annotations still run. Query-neutral functions
+ * Module prerequisites still run. Final IR annotations are deferred only for
+ * successful private cursor results and materialized before full AST exposure.
+ * Query-neutral functions
  * may reuse bounded immutable semantic facts,including query-source siblings
  * with exact old/current marker provenance and exclusion proofs. The active
  * projection and uncertain identities/coordinates use the original checker.

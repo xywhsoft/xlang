@@ -6,6 +6,17 @@
 #include "src/compile/xl6_source_report.h"
 struct XL6_CompletionQuery;
 typedef struct xls_sem_memo xls_sem_memo;
+typedef struct xls_sem_tail xls_sem_tail;
+typedef struct xls_sem_tail_work { uint64_t deferred,materialized,retainedBytes; } xls_sem_tail_work;
+/* Completion replies do not consume final IR annotations. A private result may
+ * retain the exact registry and materialize the original passes once, before
+ * exposing its full AST. Ordinary/fresh checking remains eager. */
+void xlsFrontendSemTailMaterialize(xls_sem_tail* tail);
+void xlsFrontendSemTailDestroy(xls_sem_tail* tail);
+xls_sem_tail_work xlsFrontendSemTailWork(const xls_sem_tail* tail);
+typedef struct xls_sem_tail_control { struct xls_sem_tail_control* previous;size_t bytes; } xls_sem_tail_control;
+void xlsFrontendSemTailBegin(xls_sem_tail_control* control,size_t bytes);
+void xlsFrontendSemTailEnd(xls_sem_tail_control* control);
 typedef struct xls_sem_work { uint64_t checked,reused,contextHits,bytes; } xls_sem_work;
 /* Private opt-in around the unchanged compiler checker. Memo facts are
  * immutable, independently owned, and never a substitute for whole-module
@@ -27,6 +38,10 @@ int xlsFrontendSemCheckCursorMemo(XL6_AstNode* root,XL6_DiagList* diags,const ch
     struct XL6_CompletionQuery* query,const char* entry,const XL6_SourceReport* sources,
     const XL6_SourceReport* previousSources,const xls_sem_memo* previous,
     xls_sem_memo** result,xls_sem_work* work);
+int xlsFrontendSemCheckCursorDeferred(XL6_AstNode* root,XL6_DiagList* diags,const char* module,
+    struct XL6_CompletionQuery* query,const char* entry,const XL6_SourceReport* sources,
+    const XL6_SourceReport* previousSources,const xls_sem_memo* previous,
+    xls_sem_memo** result,xls_sem_work* work,xls_sem_tail** tail);
 typedef struct xls_sem_overload_work {
     uint64_t rootVisits,indexes,pairVisits,bytes;
 } xls_sem_overload_work;

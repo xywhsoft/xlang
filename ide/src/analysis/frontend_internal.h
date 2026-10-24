@@ -63,7 +63,10 @@ xls_semantic_completion* xlsSemanticCompletionCreateIncrementalInContext(xls_con
     xls_semantic_completion* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity);
 xls_sem_work xlsSemanticCompletionSemWork(const xls_semantic_completion* result);
 xls_sem_call_work xlsSemanticCompletionCallWork(const xls_semantic_completion* result);
+/* One mutex-protected materialization precedes full AST exposure. Query JSON,
+ * items and immutable semantic units never require or observe partial IR data. */
 const XL6_AstNode* xlsSemanticCompletionAst(const xls_semantic_completion* result);
+xls_sem_tail_work xlsSemanticCompletionTailWork(const xls_semantic_completion* result);
 /* Private mutable copy for compiler semantic passes. Destination must be
  * empty/initialized. Diagnostics and sources are independently owned. */
 int xlsSyntaxCopyParse(const xls_syntax* syntax,XL6_ParseResult* result);

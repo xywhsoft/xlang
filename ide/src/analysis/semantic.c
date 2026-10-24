@@ -27,6 +27,7 @@ struct xls_semantic_completion {
     xls_sem_memo* memo;
     xls_sem_work semanticWork;
     xls_sem_call_work callWork;
+    xls_sem_tail* tail;
 };
 static int absolute(const char* path)
 {
@@ -49,6 +50,7 @@ void xlsSemanticCompletionDestroy(xls_semantic_completion* r)
 {
     if(!r || xrtAtomic32FetchSub(&r->references,1,XMEMORY_ACQ_REL)!=1) return;
     xl6CompletionFree(&r->query);
+    xlsFrontendSemTailDestroy(r->tail);
     xl6ParseResultFree(&r->parse);
     xl6ImportDepsFree(&r->deps);
     xl6SourceOverlayClear(&r->overlay);
@@ -137,8 +139,8 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
                 const XL6_SourceOverlayItem* old=xl6SourceOverlayFind(&previous->overlay,current->path);
                 compatible=old && !strcmp(old->path,current->path);
             }
-            xlsFrontendSemCheckCursorMemo(r->parse.root,&r->parse.diags,module,&r->query,entry,&r->report,
-                compatible ? &previous->report : NULL,compatible ? previous->memo : NULL,&r->memo,&r->semanticWork);
+            xlsFrontendSemCheckCursorDeferred(r->parse.root,&r->parse.diags,module,&r->query,entry,&r->report,
+                compatible ? &previous->report : NULL,compatible ? previous->memo : NULL,&r->memo,&r->semanticWork,&r->tail);
         } else xl6SemCheckModuleWithQuery(r->parse.root,&r->parse.diags,module,0,&r->query);
         xlsFrontendSemCallsEnd(&calls,&r->callWork);
     }
@@ -185,7 +187,18 @@ xls_sem_work xlsSemanticCompletionSemWork(const xls_semantic_completion* result)
 xls_sem_call_work xlsSemanticCompletionCallWork(const xls_semantic_completion* result)
 {return result ? result->callWork : (xls_sem_call_work){0};}
 const XL6_AstNode* xlsSemanticCompletionAst(const xls_semantic_completion* result)
-{return result ? result->parse.root : NULL;}
+{
+    xls_semantic_completion* r=(xls_semantic_completion*)result;
+    if(!r || !xrtMutexLock(&r->lock))return NULL;
+    xlsFrontendSemTailMaterialize(r->tail);
+    const XL6_AstNode* root=r->parse.root;xrtMutexUnlock(&r->lock);return root;
+}
+xls_sem_tail_work xlsSemanticCompletionTailWork(const xls_semantic_completion* result)
+{
+    xls_semantic_completion* r=(xls_semantic_completion*)result;
+    if(!r || !xrtMutexLock(&r->lock))return (xls_sem_tail_work){0};
+    xls_sem_tail_work work=xlsFrontendSemTailWork(r->tail);xrtMutexUnlock(&r->lock);return work;
+}
 xls_semantic_completion* xlsSemanticCompletionCreateIncrementalInContext(xls_context* context,xls_entry_cache* cache,
     const char* entry,const char* queryPath,size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     xls_semantic_completion* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)

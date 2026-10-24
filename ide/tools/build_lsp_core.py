@@ -51,6 +51,7 @@ CORE_TESTS = ("analysis_syntax_storage_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_cursor_memo_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_call_candidates_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_cursor_source_memo_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_completion_annotations_test", *CORE_TESTS)
 
 
 def sha(path: Path) -> str:
@@ -256,12 +257,29 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         if source.count(old) != 1:
             raise ValueError('shared call candidate lifetime seam changed; audit: ' + old)
         source = source.replace(old, new)
+    # Final annotation rules stay byte-for-byte in the audited TU. Extract
+    # their original invocation block once so eager and deferred paths call
+    # exactly the same helpers with the same plan-region initialization.
+    start = source.index('    xl6SemAnnotateTypeIdentities(&ctx, root);')
+    end = source.index('    xl6SemPopScope(&ctx, &globalScope);', start)
+    tail = source[start:end]
+    if tail.count('xl6SemAnnotateExecutionPlans(root, &planState);') != 1:
+        raise ValueError('shared final semantic annotation block changed; audit')
+    source = source[:start] + ('    if (!xlsSemDeferAnnotations(&ctx, root))\n'
+                              '        xlsSemFinalizeAnnotations(&ctx, root);\n') + source[end:]
+    seam = 'int xl6SemCheckModuleWithQuery('
+    if source.count(seam) != 1:
+        raise ValueError('shared deferred annotation include seam changed; audit')
+    helper = ('static void xlsSemFinalizeAnnotations(XL6_SemContext* ctx, XL6_AstNode* root)\n{\n' +
+              tail.replace('&ctx', 'ctx') + '}\n#include "analysis/frontend_sem_tail.inc"\n\n')
+    source = source.replace(seam, helper + seam)
     compiled = output / 'frontend/xl6_sem.c'
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
-        change='bounded ordered conflict/completion and root-body call candidates,public namespace prefilter,read-only name-query alias scope and opt-in exact-context function memos;original predicates,diagnostics and final annotations retained',
-        auditedSeams=len(changes)+len(conflict_changes)+len(completion_changes)+6, memoBytes=64 * 1024 * 1024,
+        change='bounded ordered conflict/completion and root-body call candidates,namespace/alias filters,exact-context function memos and private lazy cursor IR annotations;original predicates/diagnostics and full AST annotations retained on demand;ordinary/fresh eager unchanged',
+        auditedSeams=len(changes)+len(conflict_changes)+len(completion_changes)+9, memoBytes=64 * 1024 * 1024,
+        deferredRegistryBytes=8 * 1024 * 1024,
         overloadCandidateBytes=8 * 1024 * 1024,
         auditedDependencies={str(registry): registry_sha})
 

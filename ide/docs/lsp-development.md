@@ -4,7 +4,7 @@
 
 本期动态补全指基于当前未保存、不完整代码、作用域、接收对象类型及流分析实时查询候选。性能优先于扩展功能数量；协议能力仅在实现与验收完成后声明。
 
-最新功能切片为 M7a2b15：服务0.43将查询文件中可证明与当前光标无关的兄弟函数纳入语义复用，事实独立拥有原始marker，私有显式绑定校验当前marker，默认AST克隆规则与布局不变。46原生／592协议／16 IDE通过。约3k独立文件编辑补全P95为50.135ms，约16k导入补全P95为346–476ms；尚未达到整体性能与规模目标。完整协议、语义／IR／依赖、IDE和最终交付继续，长期目标active，发布载荷未覆盖。
+最新功能切片为 M7a2b16：服务0.44让成功的私有补全结果延后最终类型身份／执行计划标注，完整AST首次读取仍在锁内执行原始完整收尾；普通／fresh／错误／预算回退保持立即标注。47原生／592协议／16 IDE通过。两项IR收尾在补全回复中实际零调用；完整性能、规模与UI仍未验收，完整协议、语义／IR／依赖、IDE及最终交付继续，长期目标active，发布载荷未覆盖。
 
 ## 架构与复用
 
@@ -1548,3 +1548,43 @@ scope在原root函数体检查循环开始前创建，结束后释放，然后�
 本轮导入四场景的中位／P95／P99均下降，独立编辑P95从57.158到50.135ms，精确缓存P95为1.087ms；不能据此宣布完整UI性能或所有负载稳定。16k编辑P95仍346–476ms，独立P95也略高于50ms且不是显示耗时。实际语义事实约17.40／34.73MB是有界memo计费，不是全进程／瞬时分配／RSS；完整前置、最终标注和私有AST物化／回收继续存在。10万／百万行、UI owner／显示尾延迟、冷尾、RSS／CPU／分配／取消及长时验收未完成。其余适用LSP（工程引用／签名帮助／重命名／语义token等）、真正依赖／IR增量、清单新鲜度／反向源归属、IDE原位配置／异步准备、原生C／资源／include／link及最终发布继续。外部exe、未来DLL边界、无DAP／运行态补全保持。
 
 失败试验均保留：首次RPC插桩生成在编译前因needle匹配两个请求路径拒绝，随后限定completion；component-v1通过当时2022原生／24协议子集，补充移动空dot后component-v2夹具误用不存在的info.replacementStart／End字段导致编译失败，改为既有start／end；最终component-v3为2100新原生／27新协议，完整回归均通过。最终15个IDE路径提交；发布5241文件、SDK、冻结原始共享前端未改。证据见build/lsp-next-20261022/m7a2b15-build-location.json、m7a2b15-result.json、rpc-profile-before-v2／after-v1、cursor-source-rpc-timing-v1及single-file-rpc-timing-v1。
+
+
+## M7a2b16：按需生成补全结果的 IR 标注（0.44）
+
+先剖析当前0.43，128／256函数每成员的隔离原生补全，各4预热＋10样本，逐次核验当前候选、语法片段和真实同源语义复用。16k语料中，原函数检查仅4次、累计中位1.691ms，但恢复类型事实复制累计38.578ms、key生成18.048ms、memo begin17.215ms，最终类型身份16.597ms、执行计划16.797ms；语义总160.674ms、整个原生会话308.323ms。各计时含嵌套调用，不可相加为端到端延迟。这证明函数体检查已经很少，不能再围绕已优化的root调用扫描重复投入。
+
+审计原共享TU：补全候选的name／canonical／symbol／selection在最终两项标注前已确定；JSON与typed item只读取预先拥有的文本、symbol和selection的source／tokenRange。最终类型标注只依赖ctx.root／ctx.types，执行计划只依赖root和原plan state，不发诊断、不改变候选或selection来源／范围。适配器从SHA门禁的原TU提取完整原始调用block，只将ctx由栈变量改为参数，在一个helper内保留原type walk和nextRegion=2／root region=1等初始化；立即和延后路线调用同一个helper，无第二份语言／计划规则。
+
+仅成功的私有会话补全可延后：精确build root/query、parsed=1、reached=1、available、无query错误／诊断、captureIndex=0；其余仍立即收尾。原类型注册表按所有权移动到同结果的opaque tail，清空原ctx后仍运行原scope／flow／临时type-node清理。registry字符串／向量／槽拥有独立内存，声明指向同一结果的root；无旧结果、report或text借用。局部8MiB按registry容量、字符串与tail计费，超过额度或tail分配失败立即走原收尾；不形成语言限制，也不是进程RSS／峰值额度。
+
+查询JSON、typed items和服务回复不需要IR标注。私有完整AST getter在结果mutex内仅首次执行原始两项标注，释放registry保留少量tail状态，再返回实际同一AST；没有重新解析或重跑checker，也没有用另一份fresh AST替代增量结果来通过测试。所有完整AST／source-marker／类型身份／region／计划字段仍与独立公开fresh API逐字段对照。公开fresh补全、普通检查／index／IR路径保持立即完整标注。其他读者只读不受标注影响的immutable候选／范围；AST只有完整物化后才被暴露。取消或不取AST而退休结果时释放拥有的registry。完整AST物化可能耗时，应留在需要它的后台消费者中，不接入UI owner热路径。
+
+宿主增加analysis.lastBuildAnnotations的deferred／materialized／retainedBytes。它描述同一构造结果当前的原生标注状态，精确命中仍是该结果，不是本次请求做了另一份工作。私有getter使用同结果锁；public work／AST clone options布局不变。标准协议能力声明保持真实已完成范围。
+
+新增原生专项265项：四类源码（基本流程、typedef／class／用户类型、泛型、try／catch／finally与owned字符串），四档额度（8MiB／0／1／SIZE_MAX封顶）、嵌套额度恢复、无效receiver完整回退、会话／正文销毁后的结果、JSON在物化前后完全相等、完整fresh AST逐字段相等且同一指针，四个线程并发读取／物化24轮。此前2100查询源memo、448 cursor memo、1343completion、1064ordinary全量index／IR等保留。已有27个真实stdio同源memo场景加强逐次断言：所有成功回复deferred=1、materialized=0、registry有界，错误回复无延后数据；包含独立文件／工程两种入口、24次range编辑、光标跨已缓存函数、精确命中、重开、恢复和移动零宽dot。
+
+完整1005冻结输入、6原生对象为2core（semantic／xl6_sem）、2host（server／language_snapshot）与2fixture（新增annotations／直接包含snapshot实现的snapshot_report）。core仅替换semantic.o与xl6_sem.o；47原生／48PE／49原生产物含archive，28套592协议、16实际IDE／旧0.4／启动回归通过。原生snapshot生产对象明确登记为本阶段16，navigation9沿用。105GUI对象核验复用，GUI分支前后预处理SHA一致，零GUI编译／重链。
+
+### 请求耗时与边界
+
+0.44相同隔离原生插桩的两项最终标注实际均0次，16k语义中位141.331ms、会话303.697ms；类型事实复制43.646ms、key22.691ms、原函数检查2.076ms。8k会话则106.035→128.491ms回退，说明不同运行的负载／分配波动不能由“省掉一项工作”直接推出稳定加速，原始慢样本保留。两份插桩的audited uninstrumented wrapper和实际instrumented source分别持久化并校验，before原receipt及元数据修正亦保留，不改原始计时。
+
+所有自有构建／QA／插桩结束后，再测未插桩0.43／0.44真实stdio ABBA：导入场景360暖range编辑，128每进程6预热＋30测量、256为3＋15；两版均保持同源memo实际checked≤5／reused≥256或512、所有函数计数完整，语法full1后实际fragment及候选／版本／替换范围／声明URI／调用索引核验，after每回复另外证明未执行IR标注。独立文件不传工程／工作空间配置，2983行96helper，各进程首请求另存＋6预热＋30编辑再30精确查询，共120编辑＋120缓存样本；两版均checked≤2／reused≥96。wall从发送改动到接收解码回复，详细断言排除；GetProcessTimes服务全线程kernel＋user CPU在wall计时外采样，约15.625ms量化，不含客户端／子进程，不假设整机空闲。
+
+| 实际stdio场景 | 0.43 wall P50/P95/P99 ms | 0.44 wall P50/P95/P99 ms | 0.43 CPU P50/P95 ms | 0.44 CPU P50/P95 ms |
+| --- | --- | --- | --- | --- |
+| 7954行，入口未打开 | 137.654 / 168.272 / 223.003 | 137.676 / 205.823 / 249.759 | 140.625 / 171.875 | 140.625 / 203.125 |
+| 7954行，入口已打开 | 140.516 / 214.266 / 252.139 | 135.422 / 195.938 / 290.134 | 140.625 / 203.125 | 140.625 / 187.500 |
+| 15890行，入口未打开 | 399.897 / 562.181 / 587.874 | 402.464 / 494.403 / 561.413 | 406.250 / 515.625 | 406.250 / 468.750 |
+| 15890行，入口已打开 | 360.807 / 445.335 / 507.116 | 377.681 / 473.502 / 534.887 | 359.375 / 437.500 | 375.000 / 453.125 |
+| 2983行独立文件，真实编辑 | 50.368 / 67.165 / 82.271 | 41.845 / 65.809 / 90.360 | 46.875 / 78.125 | 46.875 / 62.500 |
+| 2983行独立文件，精确缓存 | 1.080 / 1.493 / 3.170 | 1.093 / 1.375 / 1.699 | 0.000 / 0.000 | 0.000 / 0.000 |
+
+本轮未形成稳定端到端加速：7954行未打开入口P95从168.272回退到205.823ms，15890行已打开入口P95从445.335到473.502ms、P99从507.116到534.887ms；独立编辑中位下降但P99从82.271到90.360ms。不能把省掉两次遍历直接等同于用户可见速度改善。
+
+为进一步区分程序版本和功能本身，在相同未插桩0.44生产archive、同一进程／session内逐请求ABBA切换私有0／8MiB额度。128／256函数每成员，每档16预热＋80测量（两模式各40，共160暖样本），真实数值改动、当前候选／语法／同源memo／pending状态核验。8k原生会话eager→deferred中位177.939→155.979ms、P95为214.071→204.899ms；16k中位468.788→434.393ms、P95为569.082→527.118ms，P99则585.010→604.933ms回退。这只证明同一程序中避免IR收尾的核心路径效果和现有尾部波动，不覆盖stdio／UI／CPU／RSS验收，也不替代上表端到端回退样本。
+
+这些是RPC回复或明确标注的原生会话耗时，不是IDE显示、冷启动尾延迟或完整规模验收。是否达标仍按既定P95／P99、UI owner、10k／100k／百万行、RSS／分配／取消／CPU和长时稳定性要求检查；省去IR标注不等于已有跨代IR复用。当前原生仍物化／释放完整私有AST、imports／stdlib、函数key与恢复type树；memo及registry局部额度不是总RSS。后续继续减少这些成本，建设真正依赖／IR增量、反向归属／清单新鲜度，完成工程引用／签名帮助／重命名／语义token等其余适用协议、IDE原位配置／异步准备、nativeC／resource／include／link和最终发布。无DAP／运行态补全，外部exe及未来DLL边界保持。
+
+首次native probe夹具缺少queryKey参数且main单行触发严格缩进警告，修正后也改用实际typedef语法；probe-v2与最终完整构建均通过。失败产物保留，未掩盖产品失败。14个IDE路径提交；5241发布文件、SDK、冻结原始共享前端均未改。证据见build/lsp-next-20261022/m7a2b16-build-location.json、m7a2b16-result.json、native-sem-profile-before-v1／after-v1、deferred-annotations-rpc-timing-v1与single-file-rpc-timing-v1；长期目标active。
