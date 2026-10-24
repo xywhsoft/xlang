@@ -43,6 +43,19 @@ static void checkOptionalContracts(XL6_IrModule* ir)
     }
 }
 
+static void checkStringResultContracts(XL6_IrModule* ir)
+{
+    for(size_t i=0;i<ir->callableBridgeResultCount;++i) {
+        XL6_IrCallableBridgeResult* slot=&ir->callableBridgeResults[i];
+        if(slot->encodeAbi!=XL6_IR_CALLABLE_BRIDGE_STRING_MOVE)continue;
+        XL6_DiagList diags={0};
+        slot->encodeAbi=XL6_IR_CALLABLE_BRIDGE_STRING_COPY;
+        assert(!xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags);
+        slot->encodeAbi=XL6_IR_CALLABLE_BRIDGE_STRING_MOVE;
+        assert(xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags);
+    }
+}
+
 int main(int argc,char** argv)
 {
     XL6_ParseResult parsed; XL6_IrModule ir; XL6_Output out;
@@ -58,7 +71,7 @@ int main(int argc,char** argv)
             if(xl6OutputOpenFile(&out,path)){xl6IrDumpModuleJson(&out,&ir);xl6OutputClose(&out);}
         }
     }
-    if(ok){checkSpanContracts(&ir);checkOptionalContracts(&ir);}
+    if(ok){checkSpanContracts(&ir);checkOptionalContracts(&ir);checkStringResultContracts(&ir);}
     if(ok && strcmp(argv[2],"check")) {
         ok=xl6OutputOpenFile(&out,argv[2]);
         if(ok) {

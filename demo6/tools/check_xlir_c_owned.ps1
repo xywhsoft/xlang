@@ -92,7 +92,7 @@ foreach ($source in $generatedSources) {
     }
     if ($LASTEXITCODE) { throw "C owner $name compilation failed" }
     $linkArgs=@($flags)+@("-I$outputPath/include",$generated,'test/cases/xlir_c_owned_native.c')+
-        $sourceRuntimeObjects+@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-Wl,--gc-sections','-o',"$outputPath/$name.exe")
+        $sourceRuntimeObjects+@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-Wl,--gc-sections','-Wl,--no-keep-memory','-o',"$outputPath/$name.exe")
     $response=Join-Path $outputPath "$name.rsp"
     [IO.File]::WriteAllText($response,(@($linkArgs | ForEach-Object { '"'+$_.Replace('\','/').Replace('"','\"')+'"' }) -join "`n"),[Text.UTF8Encoding]::new($false))
     & $context.Compiler ('@'+$response)
@@ -145,6 +145,8 @@ foreach ($case in $negative) {
 Write-Output "C owner negative cases passed: $($negative.Count)"
 & "$PSScriptRoot/check_xlir_c_owned_globals_fault.ps1" -Directory "$outputPath/globals-fault" -Compiler $compiler -PublicDriver $PublicDriver
 if(!$?){throw 'C owner global initialization fault validation failed'}
+& "$PSScriptRoot/check_xlir_c_owned_boundary_fault.ps1" -Directory "$outputPath/boundary-fault" -Compiler $compiler -PublicDriver $PublicDriver
+if(!$?){throw 'C owner callable boundary fault validation failed'}
 if ($PublicDriver) {
     $sourceDriver=(Resolve-Path -LiteralPath $PublicDriver).Path
     $publicSources=@($generatedSources|Where-Object{$_ -notlike '*_failure.xl'})+

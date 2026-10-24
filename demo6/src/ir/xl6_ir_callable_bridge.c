@@ -144,6 +144,7 @@ static int xl6IrCallableBridgeResultPlan(
     case XL6_IR_C_ABI_RAW_POINTER: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_POINTER; break;
     case XL6_IR_C_ABI_MANAGED_STRING:
         plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_STRING_COPY;
+        plan->encodeAbi = XL6_IR_CALLABLE_BRIDGE_STRING_MOVE;
         plan->destroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_FREE_STRING; break;
     case XL6_IR_C_ABI_MANAGED_BYTES:
         plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN;

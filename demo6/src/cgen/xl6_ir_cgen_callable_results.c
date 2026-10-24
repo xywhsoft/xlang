@@ -49,6 +49,13 @@ static int xl6IrCgenEmitCallableBridgeEncode(
             boxed, input, input, input); break;
     case XL6_IR_CALLABLE_BRIDGE_STRING_COPY:
         xl6OutputPrintf(out, "    %s = %s.Data != NULL ? xrtValueString(%s) : NULL;\n", boxed, input, input); break;
+    case XL6_IR_CALLABLE_BRIDGE_STRING_MOVE:
+        /* The result owns an XRT string already. Transfer that allocation
+         * into its final xvalue, retaining the original on any failure. */
+        xl6OutputPrintf(out,
+            "    { str moved_text = (str)%s.Data; %s = moved_text != NULL ? xrtValueStringTake(&moved_text, %s.Size) : NULL;\n"
+            "      %s.Data = moved_text; if (%s != NULL) %s.Size = 0; }\n",
+            input, boxed, input, input, boxed, input); break;
     case XL6_IR_CALLABLE_BRIDGE_ERROR_REF:
         xl6OutputPrintf(out, "    %s = xl6ErrorValueRefV1(%s, 0x%016llXULL);\n",
             boxed, input, (unsigned long long)item->typeValueId); break;

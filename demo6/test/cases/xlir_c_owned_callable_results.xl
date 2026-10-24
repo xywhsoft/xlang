@@ -43,6 +43,12 @@ func makeCallback() as func() as cstring
     factoryCount+=1
     return make
 end
+func variadicText(...) as cstring
+    return make()
+end
+func keywordBytes(***) as cbytes
+    return makeBytes()
+end
 class Parent
     virtual func text(bool present) as string?
         return present ? "base" : null
@@ -91,6 +97,9 @@ func check()
     func() as string once=makeCallback()
     assert factoryCount==1 and once()=="hello" and once()=="hello"
     assert factoryCount==1
+    var variadic=xcall(variadicText)
+    var keyword=xcall(keywordBytes)
+    assert variadic(1,2)=="hello" and keyword(answer=42)==b"\0\xff\x11*"
     auto optional=xcall(maybe)
     auto optionalBytes=xcall(maybeBytes)
     assert optional(false)==null and optional(true)=="hello"
@@ -105,7 +114,7 @@ func check()
     assert concrete.text(true)==expected and concrete.data()==b"\0\xff\x11*"
 end
 check()
-assert released()==23
+assert released()==25
 async func workers()
     string? expected="hello"
     bytes? expectedBytes=b"\0\xff\x11*"
@@ -121,4 +130,4 @@ async func workers()
     assert await task.spawn(maybeBytes,true)==expectedBytes
 end
 await workers()
-assert released()==29
+assert released()==31
