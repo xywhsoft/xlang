@@ -34,6 +34,8 @@ XL6_TEXT_API void xl6NetFrameResultCopyIntoV1(const void*,void*);
 XL6_TEXT_API void* xl6NetLineFramerCreateTextV1(xstrview,int64_t,bool,int64_t,int64_t);
 XL6_TEXT_API void* xl6NetLineFramerCreateBytesV1(const xvalue*,int64_t,bool,int64_t,int64_t);
 XL6_TEXT_API void* xl6NetLengthFramerCreateV1(int64_t,int64_t,int64_t,int64_t,int64_t,bool,int64_t);
+XL6_TEXT_API void xl6NetLineFramerAppendRefV1(void*,void*,int64_t,int64_t);
+XL6_TEXT_API void xl6NetLengthFramerAppendRefV1(void*,void*,int64_t,int64_t);
 #define XL6_NET_FRAMER_DECL(Name) \
 XL6_TEXT_API void xl6Net##Name##FramerDestroyV1(void*); \
 XL6_TEXT_API void xl6Net##Name##FramerResetV1(void*); \

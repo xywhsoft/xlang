@@ -40,6 +40,7 @@ struct xlir_closure;
 #include "xl6_tls_session_abi.h"
 #include "xl6_tls_transport_abi.h"
 #include "xl6_tls_io_abi.h"
+#include "xl6_tls_data_abi.h"
 #include "xl6_tls_stream_options_abi.h"
 #include "xl6_codec_abi.h"
 #include "xl6_net_address_abi.h"

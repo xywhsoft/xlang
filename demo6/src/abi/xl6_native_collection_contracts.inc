@@ -8,6 +8,7 @@
 #include "xl6_tls_role_context_collection_contracts.inc"
 #include "xl6_net_vector_collection_contracts.inc"
 #include "xl6_tcp_vector_collection_contracts.inc"
+#include "xl6_tls_vector_collection_contracts.inc"
 #include "xl6_udp_collection_contracts.inc"
 #include "xl6_net_batch_collection_contracts.inc"
 XL6_NATIVE_COLLECTION_BRIDGE("xl6NetAddressListFromArrayV1",T,V,1,{V},.resultOwner="xl6NetAddressListDestroyV1",.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1,.nativeClassArrayParameter=1,.nativeClassArrayOwner="xl6NetAddressDestroyV1",.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE)
