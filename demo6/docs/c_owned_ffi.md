@@ -60,7 +60,7 @@ invalid length therefore cannot leak it.
 | Synchronous result declared `as cstring/cbytes`, including optional results | Preserves the C owner across the return |
 | Length, integer indexing, comparisons, iteration | Reads the original allocation |
 | Borrowed string parameters and string reader methods | Receive a length-bearing borrowed string view |
-| Direct named language functions and concrete generic instances | Compiler specializes matching string/bytes parameters and single results to preserve C storage |
+| Direct named language functions, concrete generic instances and nonvirtual/static methods | Compiler specializes matching string/bytes parameters (including aliases) and each eligible result to preserve C storage |
 | Direct `print` / `println` | Text goes directly to the console; bytes stream through the XLON sink encoder |
 | String interpolation and concatenation; binary concatenation | Read original inputs and construct the new output; no preliminary input materialization |
 | `type(value)` / `value is string/bytes` | Reports the corresponding ordinary type |
@@ -82,12 +82,22 @@ inferred generic instances. Signature keys include concrete types and have no
 and result specialization when that default is used; explicit overrides do not
 evaluate it. Default evaluation order and exception cleanup are unchanged.
 `task.spawn` specializes statically resolved named language readers to keep C
-inputs in their task frames. Function-value variables keep their fixed signature
+inputs in their task frames, including exported language readers. Function-value variables keep their fixed signature
 and its ordinary conversion rules; Future payloads keep their ordinary result
-representation. Borrowed string inputs also keep their C view through
+representation. A synchronous owner-result producer passed to `task.spawn` is
+automatically adapted to that ordinary result ABI, including nullable results.
+Borrowed string inputs also keep their C view through
 function-value calls. Indirect results with an ordinary signature, virtual calls and unmigrated native
 binary readers can still cross an ordinary-value boundary. A function-value
-signature explicitly returning `cstring/cbytes` retains the C owner. They are not a promise of
+signature explicitly returning `cstring/cbytes` retains the C owner. Assigning
+that callable to an ordinary result signature automatically creates a result
+adapter; the original callable expression is evaluated once and snapshotted.
+Named producers use a private body specialization. `xcall` performs the same
+adaptation before erasure, including product and nullable results. Overload
+resolution prefers an exact owner signature to a materializing conversion.
+An override returning a C marker adopts an ordinary base slot's result ABI;
+the body materializes on return. Slots explicitly returning C markers on both
+base and derived declarations keep their owner ABI. These rules are not a promise of
 universal zero-copy dispatch. Explicit source-language C parameter
 types remain restricted to extern declarations; ordinary language readers
 continue declaring `string` / `bytes`.
@@ -120,6 +130,10 @@ Source packages may publish synchronous `export func` results as `cstring` or
 `cbytes`, including nullable and multi-result signatures. Imported direct calls
 and exactly typed function values keep the private C owner result. Locals and
 readonly calls share that owner without copying its payload.
+
+Ordinary callback signatures, erased calls and Future results automatically
+materialize; callers need no explicit `string(...)` / `bytes(...)` conversion.
+Direct imported calls and owner-typed callbacks retain the original allocation.
 
 ```xlang
 extern "library_text" @no_raise func libraryText() as point
