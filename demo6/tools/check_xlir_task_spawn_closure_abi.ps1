@@ -1,6 +1,4 @@
-param(
-    [string]$Root = ""
-)
+param([string]$Root = "",[string]$Directory = '')
 
 $ErrorActionPreference = "Stop"
 
@@ -11,8 +9,10 @@ if ( $Root -eq "" ) {
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_task_spawn_closure_abi.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_generated_module_host.c"
-$outputDir = Join-Path $Root "build\tmp"
-$testDir = Join-Path $Root "build\test"
+if(!$Directory){$Directory='build/test/task-spawn-abi-'+[guid]::NewGuid().ToString('N')}
+$outputDir=if([IO.Path]::IsPathRooted($Directory)){$Directory}else{Join-Path $Root $Directory}
+if(Test-Path -LiteralPath $outputDir){throw 'Use a fresh task ABI output directory'}
+$testDir=$outputDir
 $typedJson = Join-Path $outputDir "xlir_task_spawn_closure_abi.typed.json"
 $loweredJson = Join-Path $outputDir "xlir_task_spawn_closure_abi.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_task_spawn_closure_abi.c"
@@ -88,7 +88,7 @@ for ($i = 0; $i -lt $operations.Count; ++$i) {
     if ($op.callbackBoundary -ne $i + 1) { throw 'Task callback identity is not canonical' }
     $boundary = $lowered.callbackBoundaries[$op.callbackBoundary - 1]
     if ($boundary.instruction -ne $op.index -or $boundary.captureCount -ne $op.operandCount -or
-        $boundary.transportAbi -ne 1 -or $boundary.cleanupAbi -ne 1 -or
+        $boundary.transportAbi -ne 1 -or $boundary.storageAbi -ne 5 -or $boundary.cleanupAbi -ne 1 -or
         $boundary.errorAbi -ne 2 -or $boundary.forwardAbi -ne 1) {
         throw 'Task capture boundary lost pool/transaction/AsyncError/no-forward contracts'
     }
@@ -123,18 +123,20 @@ if ( $c -cne $second ) {
 }
 foreach ( $required in @(
     "typedef struct xlir_task_spawn_frame_",
-    "static xtaskoutcome xlir_task_spawn_task_",
+    "static XL6_TaskOutcome xlir_task_spawn_task_",
     "static xfuture* xlir_task_spawn_start_",
     "frame->callable = callable != NULL ? xlir_closure_retain(callable) : NULL;",
-    "args.Destroy = xlir_task_spawn_frame_free_",
-    "xlir_async_pool_submit(xlir_task_spawn_task_",
-    "frame->p0 = a0 != NULL ? xrtStrDup(a0) : NULL;",
+    "static const XL6_CaptureLayoutV2 xlir_task_spawn_layout_",
+    "(xl6TaskRuntimeV3Get()->Allocate)",
+    "(xl6TaskRuntimeV3Get()->Cleanup)(frame)",
+    "XL6_CAPTURE_XVALUE",
+    "future = xlir_async_pool_submit(frame, NULL,",
+    "frame->p0 = xlir_string_copy(a0);",
     "frame->p0 = a0 != NULL ? xrtValueRetain(a0) : NULL;",
-    "{ xvalue* value = frame->p0; frame->p0 = NULL; xrtValueRelease(value); }",
-    "result->Destroy = xlir_async_string_free;",
+    "result->Destroy = xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_STRING);",
     "extern bool xrtCancelRequested(const xcancel*);",
     "cancelled = ok && !xrtGetError() && xrtCancelRequested(cancel);",
-    "return XTASK_CANCELLED;"
+    "return XL6_TASK_CANCELLED;"
 ) ) {
     if ( ! $c.Contains($required) ) {
         throw "XLIR task.spawn mechanical C ABI emission is missing: $required"
@@ -143,12 +145,12 @@ foreach ( $required in @(
 if ( ([regex]::Matches($c,
         'static xfuture\* xlir_task_spawn_start_[0-9]+\(')).Count -ne 4 -or
      ([regex]::Matches($c,
-        'static xtaskoutcome xlir_task_spawn_task_[0-9]+\(')).Count -ne 4 -or
+        'static XL6_TaskOutcome xlir_task_spawn_task_[0-9]+\(')).Count -ne 4 -or
      ([regex]::Matches($c,
-        'if \(cancelled\) \{ xrtClearError\(\); return XTASK_CANCELLED; \}')).Count -ne 4 ) {
+        'if \(cancelled\) \{ xrtClearError\(\); return XL6_TASK_CANCELLED; \}')).Count -ne 4 ) {
     throw "XLIR task.spawn did not emit exactly one typed helper pair per RuntimeOp"
 }
-$workers = [regex]::Matches($c, '(?ms)^static xtaskoutcome xlir_task_spawn_task_[0-9]+\([^;]*?^\}')
+$workers = [regex]::Matches($c, '(?ms)^static XL6_TaskOutcome xlir_task_spawn_task_[0-9]+\([^;]*?^\}')
 foreach ($worker in $workers) {
     $cleanup = $worker.Value.IndexOf('if (frame) xlir_task_spawn_frame_cleanup_')
     $publish = $worker.Value.IndexOf('result->Value = value;')
@@ -169,11 +171,20 @@ foreach ( $forbidden in @(
     }
 }
 
-$xlirCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include build\tmp\xlir_task_spawn_closure_abi.c test\cases\xlir_generated_module_host.c !XL6_CGEN_LINKS! -o build\test\xlir_task_spawn_closure_abi.exe && build\test\xlir_task_spawn_closure_abi.exe'
-& $env:ComSpec /d /v:on /c $xlirCommand
-if ( $LASTEXITCODE -ne 0 ) {
-    throw "XLIR task.spawn strict-C/runtime gate failed"
-}
+$headers=Join-Path $outputDir 'include/__xl_runtime'
+[IO.Directory]::CreateDirectory($headers)|Out-Null
+Copy-Item -Path (Join-Path $Root 'src/runtime/*.h') -Destination $headers
+Copy-Item -LiteralPath (Join-Path $Root 'release/include/xruntime_decl.h') -Destination $headers
+$flags=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function',
+    '-Wno-unused-label','-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
+    '-Wno-missing-field-initializers','-DXLIR_GENERATED_MODULE_PREINCLUDED',
+    '-include',$generatedC,$hostSource,"-I$outputDir/include","-I$Root/release/include","-I$Root",
+    (Join-Path $Root 'release/xl.dll'),'-lws2_32','-liphlpapi','-lshell32','-o',$xlirExe)
+& gcc @flags
+if($LASTEXITCODE){throw 'XLIR task.spawn strict C build failed'}
+Copy-Item -LiteralPath (Join-Path $Root 'release/xl.dll') -Destination (Join-Path $testDir 'xl.dll')
+& $xlirExe
+if($LASTEXITCODE){throw 'XLIR task.spawn strict C runtime failed'}
 
 Write-Output "XLIR task.spawn closure/frame ABI gate passed: verified canonical arguments, typed RuntimeOp metadata, managed captures/results, deterministic mechanical C, and strict runtime."
 exit 0
