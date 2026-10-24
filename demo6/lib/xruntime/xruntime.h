@@ -4300,11 +4300,8 @@
 #ifndef XRT_MODULE_TLS_STREAM_DIAL
 #define XRT_MODULE_TLS_STREAM_DIAL
 #endif
-#ifndef XRT_MODULE_FUTURE
-#define XRT_MODULE_FUTURE
-#endif
-#ifndef XRT_MODULE_FUTURE_BRIDGE
-#define XRT_MODULE_FUTURE_BRIDGE
+#ifndef XRT_MODULE_NET_DIAL_FUTURE_COMMON
+#define XRT_MODULE_NET_DIAL_FUTURE_COMMON
 #endif
 #endif
 
@@ -4712,8 +4709,8 @@
 #ifndef XRT_MODULE_NET_TCP
 #define XRT_MODULE_NET_TCP
 #endif
-#ifndef XRT_MODULE_FUTURE_BRIDGE
-#define XRT_MODULE_FUTURE_BRIDGE
+#ifndef XRT_MODULE_FUTURE
+#define XRT_MODULE_FUTURE
 #endif
 #endif
 
@@ -18983,9 +18980,8 @@ XRT_EXTERN_C_END
 #if defined(XRT_FEATURE_NET_TCP_DIAL_FUTURE) && \
 	(!defined(XRT_FEATURE_NET_TCP_DIAL) || \
 	 !defined(XRT_FEATURE_NET_DIAL_FUTURE_COMMON) || \
-	 !defined(XRT_FEATURE_FUTURE) || \
-	 !defined(XRT_FEATURE_FUTURE_BRIDGE))
-	#error "XRT TCP Dial Future support requires TCP Dial, Future and Future bridge support"
+	 !defined(XRT_FEATURE_FUTURE))
+	#error "XRT TCP Dial Future support requires TCP Dial, Future and Dial Future common"
 #endif
 
 #if defined(XRT_FEATURE_NET_TCP_SYNC) && \
@@ -27901,8 +27897,8 @@ XRT_EXTERN_C_END
 #if defined(XRT_FEATURE_TLS_STREAM_DIAL_FUTURE) && \
 	(!defined(XRT_FEATURE_TLS_STREAM_DIAL) || \
 	 !defined(XRT_FEATURE_FUTURE) || \
-	 !defined(XRT_FEATURE_FUTURE_BRIDGE))
-	#error "XRT TLS Stream Dial Future support requires TLS Stream Dial, Future and Future bridge"
+	 !defined(XRT_FEATURE_NET_DIAL_FUTURE_COMMON))
+	#error "XRT TLS Stream Dial Future support requires TLS Stream Dial, Future and Dial Future common"
 #endif
 
 #if defined(XRT_FEATURE_TLS_STREAM_LISTENER) && \
@@ -28307,6 +28303,11 @@ XRT_API xtlsdial* xrtTlsDial(
 
 
 #if defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+XRT_API xtlsdial* xrtTlsDialProxyOwnedV1(xnetengine* pEngine,
+	xnetresolver* pResolver, const xnetproxy* pProxy, cstr sHost, uint16 iPort,
+	const xtlsclientconfig* pTls, const xtlsdialconfig* pConfig, ptr pData,
+	const xtlsdialownershipv1* pPolicy);
+XRT_API const xnetproxydialownershipv1* xrtTlsDialProxyTransportOwnershipV1Get(void);
 /* 经代理 CONNECT 隧道后对真实目标完成端到端 TLS；代理只在调用期间借用。 */
 XRT_API xtlsdial* xrtTlsDialProxy(
 	xnetengine* pEngine,
@@ -28340,6 +28341,30 @@ XRT_API xfuture* xrtTlsDialAsync(
 	const xtlsstreamevents* pStreamEvents,
 	ptr pStreamData
 );
+/* Same success1/failure0 Data transfer as Stream ownership. Completion before
+ * submission publication returns immediately rather than blocking a Worker. */
+XRT_API xfuture* xrtTlsDialAsyncOwnedV1(xnetengine* pEngine,
+	xnetresolver* pResolver, cstr sHost, uint16 iPort,
+	const xtlsclientconfig* pTls, const xtlsdialconfig* pConfig,
+	ptr pData, const xtlsstreamownershipv1* pPolicy);
+#if defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+XRT_API xfuture* xrtTlsDialProxyAsyncOwnedV1(xnetengine* pEngine,
+	xnetresolver* pResolver, const xnetproxy* pProxy, cstr sHost, uint16 iPort,
+	const xtlsclientconfig* pTls, const xtlsdialconfig* pConfig,
+	ptr pData, const xtlsstreamownershipv1* pPolicy);
+#endif
+XRT_API const xtlsdialownershipv1* xrtTlsDialFutureDialPolicyV1Get(void);
+XRT_API const xtlsdialownershipv1* xrtTlsDialFutureDialPushPolicyV1Get(void);
+XRT_API const xfutureproducerownershipv1* xrtTlsDialFutureProducerPolicyV1Get(void);
+XRT_API const xcancelwatchownershipv1* xrtTlsDialFutureCancelPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtTlsDialFuturePayloadPolicyV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtTlsDialFutureOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtTlsDialFutureOwnershipAdapterV1(
+	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+XRT_API const xrtownershipquiescencev1* xrtTlsDialFutureContextOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtTlsDialFutureContextOwnershipAdapterV1(
+	xrtownershipref Reference, const xtlsstreamownershipv1* const* pPolicies,
+	size_t iPolicyCount, const xrtownershippreparationv1** ppPreparation);
 #endif
 
 
@@ -64777,15 +64802,24 @@ typedef struct xrt_net_dial_future_policy {
     void (*Destroy)(ptr operation);
     bool (*Cancel)(ptr operation);
     xrtownershipref (*Ownership)(const void* operation);
+    const xfuturepayloadownershipv1* Payload;
+    void (*AbortValue)(ptr value);
+    void (*DropOwner)(const void* owner);
 } xrt_net_dial_future_policy;
 typedef ptr (*xrt_net_dial_future_submit)(ptr context, const void* arguments);
 
 extern const xrtownershipops __xrtNetStreamDialFutureOps;
+extern const xfuturepayloadownershipv1 __xrtNetStreamDialFuturePayloadPolicy;
 void __xrtNetStreamDialFutureDrop(const void* data);
 void __xrtNetStreamDialFutureComplete(ptr context, xnetresult result,
-    xnetstream* stream, const xerror* failure);
+    ptr value, const xerror* failure);
 xfuture* __xrtNetStreamDialFutureCreate(const xrt_net_dial_future_policy* policy,
     xrt_net_dial_future_submit submit, const void* arguments);
+/* Success transfers one optional owner credit; failure transfers none.
+ * The owner is independently admitted rather than flattening its graph. */
+xfuture* __xrtNetStreamDialFutureCreateOwned(const xrt_net_dial_future_policy* policy,
+    xrt_net_dial_future_submit submit, const void* arguments, xrtownershipref owner);
+xrtownershipref __xrtNetStreamDialFutureOwner(const void* context);
 const xfutureproducerownershipv1* __xrtNetStreamDialFutureProducerPolicyV1Get(void);
 const xcancelwatchownershipv1* __xrtNetStreamDialFutureCancelPolicyV1Get(void);
 const xfuturepayloadownershipv1* __xrtNetStreamDialFuturePayloadPolicyV1Get(void);
@@ -144716,264 +144750,253 @@ XRT_API const xrtownershipadapterv1* xrtNetDialOwnershipAdapterV1(xrtownershipre
 
 #if defined(XRT_FEATURE_NET_DIAL_FUTURE_COMMON)
 
-/* One physical producer. Promise is an actual owning endpoint; Bridge borrows
- * that endpoint and owns the cancellation Watch, never a second Promise.
- * Constructor, producer, request and Watch each hold a real context reference. */
+/* Constructor, producer, Watch and accepted Done own real references.
+ * Early completion transfers its result to a slot and returns. Either that
+ * callback or the submitter consumes it after publication; neither waits. */
 typedef struct xrt_net_stream_dial_future {
-    xfuturebridge Bridge;
     volatile int32 References;
     xmutex Lock;
     size_t Active;
-    bool Publishing, Completed, Cleared;
+    bool Publishing, Received, Processing, Completed, Cleared, CancelRequested;
+    bool OwnerHeld, Finishing, Finished;
     const void* Claim;
     xpromise* Promise;
+    xcancelwatch* Watch;
     const xrt_net_dial_future_policy* Policy;
-    ptr Dial;
+    ptr Dial, Value;
+    xerror* Error;
+    xnetresult Result;
+    xrtownershipref Owner;
+    xerror* FinishError;
 } xrt_net_stream_dial_future;
 
-static void __xrtNetStreamDialFutureBegin(xrt_net_stream_dial_future* context, xrtownershipscope* scope)
-{
-    if (!xrtOwnershipMutationBegin(scope) || !xrtMutexLock(&context->Lock)) abort();
-}
-static void __xrtNetStreamDialFutureEnd(xrt_net_stream_dial_future* context, xrtownershipscope* scope)
-{
-    if (!xrtMutexUnlock(&context->Lock) || !xrtOwnershipScopeEnd(scope)) abort();
-}
+static void __xrtNetStreamDialFutureBegin(xrt_net_stream_dial_future* c, xrtownershipscope* s)
+{ if (!xrtOwnershipMutationBegin(s) || !xrtMutexLock(&c->Lock)) abort(); }
+static void __xrtNetStreamDialFutureEnd(xrt_net_stream_dial_future* c, xrtownershipscope* s)
+{ if (!xrtMutexUnlock(&c->Lock) || !xrtOwnershipScopeEnd(s)) abort(); }
 static bool __xrtNetStreamDialFutureCount(const void* data, size_t* count)
 {
-    const xrt_net_stream_dial_future* context = data; xrtownershipref watch; int32 references;
-    if (!context || !count || context->Publishing || context->Active || context->Cleared ||
-        !xrtFutureBridgeWatchOwnershipV1(&context->Bridge, &watch)) return false;
-    references = __xrtAtomicRefLoad(&context->References);
-    if (references <= 0) return false;
-    *count = (size_t)references; return true;
+    const xrt_net_stream_dial_future* c = data;
+    if (!c || !count || c->Publishing || c->Active || c->Processing || c->Cleared || c->Value || c->Error ||
+        (c->Owner.Data && !c->OwnerHeld) || (!c->Completed && (!c->Dial || !c->Promise || !c->Watch)) ||
+        (c->Completed && (c->Dial || c->Promise || c->Watch))) return false;
+    int32 refs = __xrtAtomicRefLoad(&c->References); if (refs <= 0) return false;
+    *count = (size_t)refs; return true;
 }
-static bool __xrtNetStreamDialFutureTrace(const void* data, xrtownershipvisitor visit, ptr visitor)
+static bool __xrtNetStreamDialFutureTrace(const void* data, xrtownershipvisitor visit, ptr context)
 {
-    const xrt_net_stream_dial_future* context = data; xrtownershipref watch; size_t count;
-    if (!visit || !__xrtNetStreamDialFutureCount(data, &count) ||
-        !xrtFutureBridgeWatchOwnershipV1(&context->Bridge, &watch)) return false;
-    if (context->Promise && !visit(xrtPromiseOwnership(context->Promise), visitor)) return false;
-    if (context->Dial && !visit(context->Policy->Ownership(context->Dial), visitor)) return false;
-    return !watch.Data || visit(watch, visitor);
+    const xrt_net_stream_dial_future* c = data; size_t count;
+    return visit && __xrtNetStreamDialFutureCount(c, &count) &&
+        (!c->Promise || visit(xrtPromiseOwnership(c->Promise), context)) &&
+        (!c->Dial || visit(c->Policy->Ownership(c->Dial), context)) &&
+        (!c->Watch || visit(xrtCancelWatchOwnership(c->Watch), context)) &&
+        (!c->OwnerHeld || visit(c->Owner, context));
 }
-const xrtownershipops __xrtNetStreamDialFutureOps = {
-    __xrtNetStreamDialFutureCount, __xrtNetStreamDialFutureTrace
-};
+const xrtownershipops __xrtNetStreamDialFutureOps = {__xrtNetStreamDialFutureCount, __xrtNetStreamDialFutureTrace};
 static bool __xrtNetStreamDialFutureBusy(const void* data)
-{
-    const xrt_net_stream_dial_future* context = data; xrtownershipref watch;
-    return context && !context->Cleared && (context->Publishing || context->Active ||
-        !xrtFutureBridgeWatchOwnershipV1(&context->Bridge, &watch));
-}
+{ const xrt_net_stream_dial_future* c = data; return c && !c->Cleared && (c->Publishing || c->Active || c->Processing); }
 const xrtownershipquiescencev1* __xrtNetStreamDialFutureOwnershipQuiescenceV1Get(void)
 {
-    static const xrtownershipquiescencev1 policy = {sizeof(policy),
-        &__xrtNetStreamDialFutureOps, __xrtNetStreamDialFutureBusy};
-    return &policy;
+    static const xrtownershipquiescencev1 p = {sizeof(p), &__xrtNetStreamDialFutureOps, __xrtNetStreamDialFutureBusy}; return &p;
 }
-static xrtownershipref __xrtNetStreamDialFutureOwnership(const xrt_net_stream_dial_future* context)
-{ return (xrtownershipref){context, context ? &__xrtNetStreamDialFutureOps : NULL}; }
+static xrtownershipref __xrtNetStreamDialFutureOwnership(const xrt_net_stream_dial_future* c)
+{ return (xrtownershipref){c, c ? &__xrtNetStreamDialFutureOps : NULL}; }
+xrtownershipref __xrtNetStreamDialFutureOwner(const void* data)
+{
+    const xrt_net_stream_dial_future* c = data;
+    /* Accepted operation/callback or submitter keeps this immutable slot alive.
+     * A provisional owner remains the caller's credit until acceptance. */
+    if (!c || !c->Owner.Data || !c->Owner.Ops || !c->Policy->DropOwner) abort();
+    return c->Owner;
+}
 static bool __xrtNetStreamDialFutureHold(const void* data)
 {
-    xrt_net_stream_dial_future* context = (xrt_net_stream_dial_future*)data;
-    xrtownershipscope scope = {0}; bool held;
-    __xrtNetStreamDialFutureBegin(context, &scope);
-    held = !context->Cleared && xrtRefRetain(&context->References) > 0;
-    __xrtNetStreamDialFutureEnd(context, &scope); return held;
+    xrt_net_stream_dial_future* c = (xrt_net_stream_dial_future*)data; xrtownershipscope s = {0};
+    __xrtNetStreamDialFutureBegin(c, &s);
+    bool held = !c->Cleared && xrtRefRetain(&c->References) >= 0;
+    __xrtNetStreamDialFutureEnd(c, &s); return held;
 }
 void __xrtNetStreamDialFutureDrop(const void* data)
 {
-    xrt_net_stream_dial_future* context = (xrt_net_stream_dial_future*)data;
-    xrtownershipscope scope = {0}; xrtownershipref watch; int32 left;
-    __xrtNetStreamDialFutureBegin(context, &scope); left = xrtRefRelease(&context->References);
-    if (left < 0 || (!left && (context->Publishing || !context->Completed || context->Active ||
-        context->Promise || context->Dial ||
-        !xrtFutureBridgeWatchOwnershipV1(&context->Bridge, &watch) || watch.Data))) abort();
-    __xrtNetStreamDialFutureEnd(context, &scope);
+    xrt_net_stream_dial_future* c = (xrt_net_stream_dial_future*)data; xrtownershipscope s = {0};
+    __xrtNetStreamDialFutureBegin(c, &s); int32 left = xrtRefRelease(&c->References);
+    if (left < 0 || (!left && (c->Publishing || !c->Completed || c->Active || c->Processing ||
+        c->Promise || c->Dial || c->Watch || c->Value || c->Error))) abort();
+    xrtownershipref owner = {0};
+    if (!left && c->OwnerHeld) { owner = c->Owner; c->OwnerHeld = false; c->Owner = (xrtownershipref){0}; }
+    __xrtNetStreamDialFutureEnd(c, &s);
     if (!left) {
-        if (!xrtOwnershipMutationBegin(&scope)) abort();
-        if (!xrtMutexUnit(&context->Lock)) abort();
-        xrtFree(context);
-        if (!xrtOwnershipScopeEnd(&scope)) abort();
+        if (owner.Data) c->Policy->DropOwner(owner.Data);
+        xrtErrorFree(c->FinishError);
+        if (!xrtMutexUnit(&c->Lock)) abort();
+        xrtFree(c);
     }
 }
-
-/* The terminal payload owns exactly one native Stream reference. */
 static void __xrtNetStreamDialFutureFree(ptr value, ptr data)
-{
-    if (data) abort();
-    xrtNetStreamDestroy((xnetstream*)value);
-}
-static bool __xrtNetStreamDialFuturePayloadTrace(const void* value, const void* data,
-    xrtownershipvisitor visit, ptr visitor)
-{ return value && !data && visit && visit(xrtNetStreamOwnership(value), visitor); }
-static const xfuturepayloadownershipv1 __xrtNetStreamDialFuturePayloadPolicy = {
-    sizeof(xfuturepayloadownershipv1), __xrtNetStreamDialFutureFree, __xrtNetStreamDialFuturePayloadTrace
-};
+{ if (data) abort(); xrtNetStreamDestroy(value); }
+static bool __xrtNetStreamDialFuturePayloadTrace(const void* value, const void* data, xrtownershipvisitor visit, ptr context)
+{ return value && !data && visit && visit(xrtNetStreamOwnership(value), context); }
+const xfuturepayloadownershipv1 __xrtNetStreamDialFuturePayloadPolicy = {
+    sizeof(xfuturepayloadownershipv1), __xrtNetStreamDialFutureFree, __xrtNetStreamDialFuturePayloadTrace};
 static const xfutureproducerownershipv1 __xrtNetStreamDialFutureProducerPolicy = {
-    sizeof(xfutureproducerownershipv1), __xrtNetStreamDialFutureDrop
-};
-
-/* The Watch owns this activation. Independently retain the Dial while
- * locked, so normal completion can move/release its field concurrently. */
+    sizeof(xfutureproducerownershipv1), __xrtNetStreamDialFutureDrop};
 static void __xrtNetStreamDialFutureCancel(ptr data)
 {
-    xrt_net_stream_dial_future* context = data; xrtownershipscope scope = {0}; ptr dial;
-    xerror* previous = xrtTakeError();
-    __xrtNetStreamDialFutureBegin(context, &scope); ++context->Active;
-    dial = context->Dial ? context->Policy->Ref(context->Dial) : NULL;
-    __xrtNetStreamDialFutureEnd(context, &scope);
-    if (dial) { (void)context->Policy->Cancel(dial); context->Policy->Destroy(dial); }
-    __xrtNetStreamDialFutureBegin(context, &scope); --context->Active;
-    __xrtNetStreamDialFutureEnd(context, &scope);
-    xrtClearError(); xrtSetErrorTake(previous);
+    xrt_net_stream_dial_future* c = data; xrtownershipscope s = {0}; xerror* prior = xrtTakeError();
+    __xrtNetStreamDialFutureBegin(c, &s); if (c->Active == SIZE_MAX) abort(); ++c->Active;
+    c->CancelRequested = true; ptr dial = c->Dial ? c->Policy->Ref(c->Dial) : NULL;
+    __xrtNetStreamDialFutureEnd(c, &s);
+    if (dial) { (void)c->Policy->Cancel(dial); c->Policy->Destroy(dial); }
+    __xrtNetStreamDialFutureBegin(c, &s); --c->Active; __xrtNetStreamDialFutureEnd(c, &s);
+    xrtClearError(); xrtSetErrorTake(prior);
 }
 static const xcancelwatchownershipv1 __xrtNetStreamDialFutureCancelPolicy = {
     sizeof(xcancelwatchownershipv1), __xrtNetStreamDialFutureCancel,
-    __xrtNetStreamDialFutureDrop, &__xrtNetStreamDialFutureOps
-};
+    __xrtNetStreamDialFutureDrop, &__xrtNetStreamDialFutureOps};
 
-/* The native Dial owns the activation through Done AND its release tail.
- * Acquire Ready before reading constructor-published fields. Waits, callbacks,
- * Promise notification and semantic releases run outside the frame lock and
- * shared mutation scope. No native Dial is accepted on bridge setup failure. */
-void __xrtNetStreamDialFutureComplete(ptr data, xnetresult result,
-    xnetstream* stream, const xerror* failure)
+/* Selected constructor OR callback consumes the slots while retaining its
+ * genuine caller/Done context reference and an Active credit. */
+static void __xrtNetStreamDialFutureProcess(xrt_net_stream_dial_future* c)
 {
-    xrt_net_stream_dial_future* context=data; xrtownershipscope scope={0};
-    xpromise* promise; ptr held; xerror* error=NULL;
-    xerror* previous=xrtTakeError();
-    bool ready=xrtFutureBridgeWait(&context->Bridge);
-    __xrtNetStreamDialFutureBegin(context,&scope); ++context->Active;
-    __xrtNetStreamDialFutureEnd(context,&scope);
-    xrtFutureBridgeUnwatch(&context->Bridge);
-    if (result!=XNET_RESULT_OK && failure) error=xrtErrorRef(failure);
-    else if (result==XNET_RESULT_OK && !stream) {
-        __xrtNetSetError(XERR_INTERNAL,XNET_ERROR_DIAL_CONNECT,"complete-stream-dial-future",
-            "native Dial reported success without a Stream",0);
-        error=xrtTakeError();
-    }
-    __xrtNetStreamDialFutureBegin(context,&scope);
-    promise=context->Promise; context->Promise=NULL;
-    held=context->Dial; context->Dial=NULL; context->Completed=true;
-    __xrtNetStreamDialFutureEnd(context,&scope);
-    context->Policy->Destroy(held);
-    if (!ready || result!=XNET_RESULT_OK) {
-        if (stream) { (void)xrtNetStreamAbort(stream); xrtNetStreamDestroy(stream); stream=NULL; }
-    }
-    if (ready && result==XNET_RESULT_OK && stream) {
-        if (!xrtPromiseResolveOwnedPolicyV1(promise,stream,&__xrtNetStreamDialFuturePayloadPolicy)) {
-            (void)xrtNetStreamAbort(stream); xrtNetStreamDestroy(stream);
+    xrtownershipscope s = {0}; xerror* prior = xrtTakeError();
+    __xrtNetStreamDialFutureBegin(c, &s);
+    if (c->Publishing || !c->Received || !c->Processing || !c->Active || c->Completed) abort();
+    xpromise* promise = c->Promise; c->Promise = NULL;
+    xcancelwatch* watch = c->Watch; c->Watch = NULL;
+    ptr dial = c->Dial; c->Dial = NULL; ptr value = c->Value; c->Value = NULL;
+    xerror* error = c->Error; c->Error = NULL; xnetresult result = c->Result;
+    c->Completed = true;
+    __xrtNetStreamDialFutureEnd(c, &s);
+    xrtCancelUnwatch(watch); c->Policy->Destroy(dial);
+    if (result == XNET_RESULT_OK && value) {
+        if (!xrtPromiseResolveOwnedPolicyV1(promise, value, c->Policy->Payload)) {
+            c->Policy->AbortValue(value); c->Policy->Payload->Drop(value, NULL);
         }
-    } else if (ready && result==XNET_RESULT_CANCELLED) (void)xrtPromiseCancel(promise);
-    else if (ready && error) (void)xrtPromiseReject(promise,error);
-    else if (ready) (void)xrtPromiseClose(promise);
+    } else {
+        if (value) { c->Policy->AbortValue(value); c->Policy->Payload->Drop(value, NULL); }
+        if (result == XNET_RESULT_CANCELLED) (void)xrtPromiseCancel(promise);
+        else if (error) (void)xrtPromiseReject(promise, error);
+        else (void)xrtPromiseClose(promise);
+    }
     xrtErrorFree(error); xrtPromiseDestroy(promise);
-    __xrtNetStreamDialFutureBegin(context,&scope); --context->Active;
-    __xrtNetStreamDialFutureEnd(context,&scope);
-    xrtClearError(); xrtSetErrorTake(previous);
+    __xrtNetStreamDialFutureBegin(c, &s); c->Processing = false; --c->Active; __xrtNetStreamDialFutureEnd(c, &s);
+    xrtClearError(); xrtSetErrorTake(prior);
 }
-const xfutureproducerownershipv1* __xrtNetStreamDialFutureProducerPolicyV1Get(void)
-{ return &__xrtNetStreamDialFutureProducerPolicy; }
-const xcancelwatchownershipv1* __xrtNetStreamDialFutureCancelPolicyV1Get(void)
-{ return &__xrtNetStreamDialFutureCancelPolicy; }
-const xfuturepayloadownershipv1* __xrtNetStreamDialFuturePayloadPolicyV1Get(void)
-{ return &__xrtNetStreamDialFuturePayloadPolicy; }
-
+void __xrtNetStreamDialFutureComplete(ptr data, xnetresult result, ptr value, const xerror* failure)
+{
+    xrt_net_stream_dial_future* c = data; xrtownershipscope s = {0}; xerror* prior = xrtTakeError();
+    xerror* error = failure ? xrtErrorRef(failure) : NULL;
+    if (result == XNET_RESULT_OK && !value) {
+        __xrtNetSetError(XERR_INTERNAL, XNET_ERROR_DIAL_CONNECT, "complete-dial-future",
+            "native Dial reported success without a value", 0); xrtErrorFree(error); error = xrtTakeError();
+    }
+    __xrtNetStreamDialFutureBegin(c, &s);
+    if (c->Received || c->Completed || c->Cleared) abort();
+    c->Received = true; c->Result = result; c->Value = value; c->Error = error;
+    bool process = !c->Publishing;
+    if (process) { c->Processing = true; if (c->Active == SIZE_MAX) abort(); ++c->Active; }
+    __xrtNetStreamDialFutureEnd(c, &s);
+    if (process) __xrtNetStreamDialFutureProcess(c);
+    xrtClearError(); xrtSetErrorTake(prior);
+}
+const xfutureproducerownershipv1* __xrtNetStreamDialFutureProducerPolicyV1Get(void) { return &__xrtNetStreamDialFutureProducerPolicy; }
+const xcancelwatchownershipv1* __xrtNetStreamDialFutureCancelPolicyV1Get(void) { return &__xrtNetStreamDialFutureCancelPolicy; }
+const xfuturepayloadownershipv1* __xrtNetStreamDialFuturePayloadPolicyV1Get(void) { return &__xrtNetStreamDialFuturePayloadPolicy; }
 static bool __xrtNetStreamDialFutureClaim(const void* data, const void* token)
 {
-    xrt_net_stream_dial_future* context = (xrt_net_stream_dial_future*)data; size_t count;
-    if (!token || !__xrtNetStreamDialFutureCount(data, &count) ||
-        (context->Claim && context->Claim != token)) return false;
-    context->Claim = token; return true;
+    xrt_net_stream_dial_future* c = (xrt_net_stream_dial_future*)data; size_t count;
+    if (!token || (c->Claim && c->Claim != token) || !__xrtNetStreamDialFutureCount(c, &count)) return false;
+    c->Claim = token; return true;
 }
 static void __xrtNetStreamDialFutureRestore(const void* data, const void* token)
-{
-    xrt_net_stream_dial_future* context = (xrt_net_stream_dial_future*)data;
-    if (!token || context->Claim != token || context->Cleared) abort();
-    context->Claim = NULL;
-}
+{ xrt_net_stream_dial_future* c = (xrt_net_stream_dial_future*)data; if (!token || c->Claim != token || c->Cleared) abort(); c->Claim = NULL; }
 static bool __xrtNetStreamDialFutureReady(const void* data)
-{
-    const xrt_net_stream_dial_future* context = data; size_t count; xrtownershipref watch;
-    return __xrtNetStreamDialFutureCount(data, &count) && context->Completed && !context->Promise &&
-        !context->Dial && xrtFutureBridgeWatchOwnershipV1(&context->Bridge, &watch) && !watch.Data;
-}
+{ const xrt_net_stream_dial_future* c = data; size_t count; return __xrtNetStreamDialFutureCount(c, &count) && c->Completed; }
 static xrtownershipprepareresult __xrtNetStreamDialFuturePrepare(const void* data, const void* token)
 {
-    const xrt_net_stream_dial_future* context = data; xrtownershipscope freeze = {0}; bool ready;
-    if (!xrtOwnershipFreezeTryBegin(&freeze)) return XRT_OWNERSHIP_PREPARE_BUSY;
-    if (!token || context->Claim != token || context->Cleared) abort();
-    ready = __xrtNetStreamDialFutureReady(data);
-    if (!xrtOwnershipScopeEnd(&freeze)) abort();
+    const xrt_net_stream_dial_future* c = data; xrtownershipscope f = {0};
+    if (!xrtOwnershipFreezeTryBegin(&f)) return XRT_OWNERSHIP_PREPARE_BUSY;
+    if (!token || c->Claim != token || c->Cleared) abort();
+    bool ready = __xrtNetStreamDialFutureReady(data);
+    if (!xrtOwnershipScopeEnd(&f)) abort();
     return ready ? XRT_OWNERSHIP_PREPARE_READY : XRT_OWNERSHIP_PREPARE_BUSY;
 }
 static void __xrtNetStreamDialFutureClear(const void* data, const void* token)
+{ xrt_net_stream_dial_future* c = (xrt_net_stream_dial_future*)data; if (!token || c->Claim != token || c->Cleared || !__xrtNetStreamDialFutureReady(data)) abort(); c->Cleared = true; }
+static bool __xrtNetStreamDialFutureFinish(const void* data, const void* token)
 {
-    xrt_net_stream_dial_future* context = (xrt_net_stream_dial_future*)data;
-    if (!token || context->Claim != token || context->Cleared || !__xrtNetStreamDialFutureReady(data)) abort();
-    context->Cleared = true;
+    xrt_net_stream_dial_future* c = (xrt_net_stream_dial_future*)data; xrtownershipscope s = {0};
+    __xrtNetStreamDialFutureBegin(c, &s);
+    if (!token || c->Claim != token || !c->Cleared) abort();
+    if (c->Finishing) { __xrtNetStreamDialFutureEnd(c, &s); return false; }
+    if (c->Finished) {
+        xerror* error = c->FinishError; __xrtNetStreamDialFutureEnd(c, &s);
+        if (error && !xrtGetError()) xrtSetError(error);
+        return error == NULL;
+    }
+    c->Finishing = true; xrtownershipref owner = c->OwnerHeld ? c->Owner : (xrtownershipref){0};
+    c->Owner = (xrtownershipref){0}; c->OwnerHeld = false; __xrtNetStreamDialFutureEnd(c, &s);
+    xerror* prior = xrtTakeError(); if (owner.Data) c->Policy->DropOwner(owner.Data); xerror* error = xrtTakeError();
+    __xrtNetStreamDialFutureBegin(c, &s); c->FinishError = error; c->Finished = true; c->Finishing = false; __xrtNetStreamDialFutureEnd(c, &s);
+    if (prior) xrtSetErrorTake(prior); else if (error) xrtSetError(error);
+    return error == NULL;
 }
 const xrtownershipadapterv1* __xrtNetStreamDialFutureOwnershipAdapterV1(xrtownershipref ref,
     const xrt_net_dial_future_policy* policy, const xrtownershippreparationv1** preparation)
 {
-    static const xrtownershipadapterv1 adapter = {sizeof(adapter), __xrtNetStreamDialFutureHold,
-        __xrtNetStreamDialFutureDrop, __xrtNetStreamDialFutureClaim, __xrtNetStreamDialFutureRestore,
-        NULL, __xrtNetStreamDialFutureClear, NULL};
-    static const xrtownershippreparationv1 prepare = {sizeof(prepare), &adapter,
-        __xrtNetStreamDialFutureReady, __xrtNetStreamDialFuturePrepare};
+    static const xrtownershipadapterv1 a = {sizeof(a), __xrtNetStreamDialFutureHold, __xrtNetStreamDialFutureDrop,
+        __xrtNetStreamDialFutureClaim, __xrtNetStreamDialFutureRestore, NULL, __xrtNetStreamDialFutureClear, __xrtNetStreamDialFutureFinish};
+    static const xrtownershippreparationv1 p = {sizeof(p), &a, __xrtNetStreamDialFutureReady, __xrtNetStreamDialFuturePrepare};
     size_t count;
     if (!preparation || ref.Ops != &__xrtNetStreamDialFutureOps || !ref.Data ||
-        ((const xrt_net_stream_dial_future*)ref.Data)->Policy != policy ||
-        !__xrtNetStreamDialFutureCount(ref.Data, &count)) return NULL;
-    *preparation = &prepare; return &adapter;
+        ((const xrt_net_stream_dial_future*)ref.Data)->Policy != policy || !__xrtNetStreamDialFutureCount(ref.Data, &count)) return NULL;
+    *preparation = &p; return &a;
 }
-
+xfuture* __xrtNetStreamDialFutureCreateOwned(const xrt_net_dial_future_policy* policy,
+    xrt_net_dial_future_submit submit, const void* arguments, xrtownershipref owner)
+{
+    if (!policy || !policy->Ref || !policy->Destroy || !policy->Cancel || !policy->Ownership ||
+        !policy->Payload || policy->Payload->size != sizeof(*policy->Payload) || !policy->Payload->Drop ||
+        !policy->Payload->Trace || !policy->AbortValue || !submit ||
+        (owner.Data ? (!owner.Ops || !policy->DropOwner) : owner.Ops != NULL)) abort();
+    xrt_net_stream_dial_future* c = xrtCalloc(1, sizeof(*c)); if (!c) return NULL;
+    c->References = 1; c->Publishing = true; c->Policy = policy; c->Owner = owner;
+    if (!xrtMutexInit(&c->Lock)) { xrtFree(c); return NULL; }
+    xfuture* future = NULL; c->Promise = xrtPromiseCreate(&future, NULL);
+    if (!c->Promise) { (void)xrtMutexUnit(&c->Lock); xrtFree(c); return NULL; }
+    if (!__xrtNetStreamDialFutureHold(c)) abort();
+    if (!xrtPromiseProducerBindTakeV1(c->Promise, __xrtNetStreamDialFutureOwnership(c), &__xrtNetStreamDialFutureProducerPolicy)) {
+        __xrtNetStreamDialFutureDrop(c); goto failed;
+    }
+    xcancel* cancel = xrtPromiseCancelToken(c->Promise);
+    if (!cancel) goto failed;
+    if (!__xrtNetStreamDialFutureHold(c)) abort();
+    c->Watch = xrtCancelWatchOwnedV1(cancel, c, &__xrtNetStreamDialFutureCancelPolicy); xrtCancelDestroy(cancel);
+    if (!c->Watch) { __xrtNetStreamDialFutureDrop(c); goto failed; }
+    if (!__xrtNetStreamDialFutureHold(c)) abort();
+    ptr dial = submit(c, arguments);
+    if (!dial) { __xrtNetStreamDialFutureDrop(c); goto failed; }
+    xrtownershipscope s = {0}; __xrtNetStreamDialFutureBegin(c, &s);
+    c->Dial = dial; c->OwnerHeld = owner.Data != NULL; c->Publishing = false;
+    bool process = c->Received; bool cancelPending = c->CancelRequested && !process;
+    if (process) { c->Processing = true; ++c->Active; }
+    ptr cancelling = cancelPending ? policy->Ref(dial) : NULL;
+    __xrtNetStreamDialFutureEnd(c, &s);
+    if (cancelling) { (void)policy->Cancel(cancelling); policy->Destroy(cancelling); }
+    if (process) __xrtNetStreamDialFutureProcess(c);
+    __xrtNetStreamDialFutureDrop(c); return future;
+failed: {
+    xerror* error = xrtTakeError(); xrtownershipscope s = {0}; __xrtNetStreamDialFutureBegin(c, &s);
+    if (c->Received || c->Value || c->Error) abort();
+    xpromise* promise = c->Promise; c->Promise = NULL; xcancelwatch* watch = c->Watch; c->Watch = NULL;
+    c->Publishing = false; c->Completed = true; ++c->Active; __xrtNetStreamDialFutureEnd(c, &s);
+    xrtCancelUnwatch(watch); xrtPromiseDestroy(promise); xrtFutureDestroy(future);
+    __xrtNetStreamDialFutureBegin(c, &s); --c->Active; __xrtNetStreamDialFutureEnd(c, &s);
+    __xrtNetStreamDialFutureDrop(c); xrtClearError(); xrtSetErrorTake(error); return NULL;
+}}
 xfuture* __xrtNetStreamDialFutureCreate(const xrt_net_dial_future_policy* policy,
     xrt_net_dial_future_submit submit, const void* arguments)
-{
-    xrt_net_stream_dial_future* context; xfuture* future; xpromise* promise;
-    ptr dial; xerror* error; xrtownershipscope scope = {0};
-    if (!policy || !policy->Ref || !policy->Destroy || !policy->Cancel ||
-        !policy->Ownership || !submit) abort();
-    context = xrtCalloc(1, sizeof(*context));
-    if (!context) return NULL;
-    context->References = 1; context->Publishing = true; context->Policy = policy;
-    if (!xrtMutexInit(&context->Lock)) { xrtFree(context); return NULL; }
-    future = xrtFutureBridgeCreate(&context->Bridge, NULL);
-    if (!future) { (void)xrtMutexUnit(&context->Lock); xrtFree(context); return NULL; }
-    __xrtNetStreamDialFutureBegin(context, &scope);
-    context->Promise = xrtFutureBridgePromise(&context->Bridge);
-    __xrtNetStreamDialFutureEnd(context, &scope);
-    if (!__xrtNetStreamDialFutureHold(context)) abort();
-    if (!xrtPromiseProducerBindTakeV1(context->Promise, __xrtNetStreamDialFutureOwnership(context),
-        &__xrtNetStreamDialFutureProducerPolicy)) { __xrtNetStreamDialFutureDrop(context); goto failed; }
-    if (!__xrtNetStreamDialFutureHold(context)) abort();
-    if (!xrtFutureBridgeWatchOwnedV1(&context->Bridge, context,
-        &__xrtNetStreamDialFutureCancelPolicy)) { __xrtNetStreamDialFutureDrop(context); goto failed; }
-    /* No fallible bridge setup remains after work acceptance. Dial consumes
-     * this reference only on success; an immediate callback waits for Ready. */
-    if (!__xrtNetStreamDialFutureHold(context)) abort();
-    dial = submit(context, arguments);
-    if (!dial) { __xrtNetStreamDialFutureDrop(context); goto failed; }
-    __xrtNetStreamDialFutureBegin(context, &scope);
-    context->Dial = dial; context->Publishing = false;
-    __xrtNetStreamDialFutureEnd(context, &scope);
-    if (!xrtFutureBridgeReady(&context->Bridge)) abort();
-    __xrtNetStreamDialFutureDrop(context); return future;
-failed:
-    error = xrtTakeError();
-    if (!xrtFutureBridgeFail(&context->Bridge)) abort();
-    xrtFutureBridgeUnwatch(&context->Bridge);
-    __xrtNetStreamDialFutureBegin(context, &scope);
-    promise = context->Promise; context->Promise = NULL;
-    context->Publishing = false; context->Completed = true;
-    __xrtNetStreamDialFutureEnd(context, &scope);
-    xrtPromiseDestroy(promise); xrtFutureDestroy(future); __xrtNetStreamDialFutureDrop(context);
-    xrtClearError(); xrtSetErrorTake(error); return NULL;
-}
-
+{ return __xrtNetStreamDialFutureCreateOwned(policy, submit, arguments, (xrtownershipref){0}); }
 #endif
 #endif
 
@@ -144994,9 +145017,11 @@ static bool __xrtNetProxyDialFutureCancel(ptr operation)
 { return xrtNetProxyDialCancel(operation); }
 static xrtownershipref __xrtNetProxyDialFutureTraceOperation(const void* operation)
 { return xrtNetProxyDialOwnership(operation); }
+static void __xrtNetProxyDialFutureAbortValue(ptr value) { (void)xrtNetStreamAbort(value); }
 static const xrt_net_dial_future_policy __xrtNetProxyDialFutureOperations = {
     __xrtNetProxyDialFutureRef, __xrtNetProxyDialFutureDestroy,
-    __xrtNetProxyDialFutureCancel, __xrtNetProxyDialFutureTraceOperation
+    __xrtNetProxyDialFutureCancel, __xrtNetProxyDialFutureTraceOperation,
+    &__xrtNetStreamDialFuturePayloadPolicy, __xrtNetProxyDialFutureAbortValue, NULL
 };
 static void __xrtNetProxyDialFutureDone(xnetproxydial* dial, xnetresult result,
     xnetstream* stream, const xerror* failure, ptr data)
@@ -145071,9 +145096,11 @@ static bool __xrtNetDialFutureCancel(ptr operation)
 { return xrtNetDialCancel(operation); }
 static xrtownershipref __xrtNetDialFutureTraceOperation(const void* operation)
 { return xrtNetDialOwnership(operation); }
+static void __xrtNetDialFutureAbortValue(ptr value) { (void)xrtNetStreamAbort(value); }
 static const xrt_net_dial_future_policy __xrtNetDialFutureOperations = {
     __xrtNetDialFutureRef, __xrtNetDialFutureDestroy,
-    __xrtNetDialFutureCancel, __xrtNetDialFutureTraceOperation
+    __xrtNetDialFutureCancel, __xrtNetDialFutureTraceOperation,
+    &__xrtNetStreamDialFuturePayloadPolicy, __xrtNetDialFutureAbortValue, NULL
 };
 static void __xrtNetDialFutureDone(xnetdial* dial, xnetresult result,
     xnetstream* stream, const xerror* failure, ptr data)
@@ -176271,6 +176298,10 @@ static void __xrtTlsDialOwnedTryRelease(xtlsdial* d)
 static void __xrtTlsDialOwnedCancelStage(xtlsdial* d)
 {
 	if (!xrtNetWorkerIsCurrent(d->Worker)) abort();
+	#if defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+		xnetproxydial* proxy = xrtAtomicPtrLoad(&d->ProxyDial, XMEMORY_ACQUIRE);
+		if (proxy && xrtNetProxyDialCancel(proxy)) return;
+	#endif
 	xnetdial* tcp = xrtAtomicPtrLoad(&d->TransportDial, XMEMORY_ACQUIRE);
 	if (tcp && xrtNetDialCancel(tcp)) return;
 	if (d->OwnedStream) (void)__xrtTlsStreamAbortAccepted(d->OwnedStream);
@@ -176405,6 +176436,19 @@ XRT_API const xnetdialownershipv1* xrtTlsDialTransportOwnershipV1Get(void)
 	static const xnetdialownershipv1 p = {sizeof(p), __xrtTlsDialOwnedTcpDone,
 		__xrtTlsDialOwnedDrop, &__xrtTlsDialOwnershipOps}; return &p;
 }
+#if defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+static void __xrtTlsDialOwnedProxyDone(xnetproxydial* proxy, xnetresult result,
+	xnetstream* stream, const xerror* error, ptr data)
+{
+	xtlsdial* d = __xrtTlsDialOwnedFrame(data); (void)proxy;
+	__xrtTlsDialOwnedTransportDone(d, result, stream, error); __xrtTlsDialOwnedFrameEnd(d);
+}
+XRT_API const xnetproxydialownershipv1* xrtTlsDialProxyTransportOwnershipV1Get(void)
+{
+	static const xnetproxydialownershipv1 p = {sizeof(p), __xrtTlsDialOwnedProxyDone,
+		__xrtTlsDialOwnedDrop, &__xrtTlsDialOwnershipOps}; return &p;
+}
+#endif
 static void __xrtTlsDialOwnedRuntimeDrop(ptr data) { xrtTlsDialDestroy(data); }
 XRT_API const xnetruntimeownershipv1* xrtTlsDialRuntimeOwnershipV1Get(void)
 {
@@ -176417,6 +176461,9 @@ static void __xrtTlsDialOwnedResources(xtlsdial* d)
 {
 	xrtownershipscope m = {0}; if (!xrtOwnershipMutationBegin(&m)) abort();
 	xnetdial* tcp = xrtAtomicPtrExchange(&d->TransportDial, NULL, XMEMORY_ACQ_REL);
+	#if defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+		xnetproxydial* proxy = xrtAtomicPtrExchange(&d->ProxyDial, NULL, XMEMORY_ACQ_REL);
+	#endif
 	xtlssession* session = d->OwnedSession; d->OwnedSession = NULL;
 	xtlsstream* stream = d->OwnedStream; d->OwnedStream = NULL;
 	xerror* error = d->Error; d->Error = NULL;
@@ -176426,13 +176473,20 @@ static void __xrtTlsDialOwnedResources(xtlsdial* d)
 	d->Engine = NULL; d->OwnershipEngineHeld = false; d->OwnershipStorageHeld = false;
 	if (!xrtOwnershipScopeEnd(&m)) abort();
 	xrtTlsSessionDestroy(session); xrtTlsStreamDestroy(stream); xrtNetDialDestroy(tcp); xrtErrorFree(error);
+	#if defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+		xrtNetProxyDialDestroy(proxy);
+	#endif
 	if (data) d->OwnershipPolicy->Drop(data);
 	if (operational) __xrtNetEngineObjectRelease(engine);
 	if (storage) __xrtNetEngineStorageRelease(engine);
 }
-XRT_API xtlsdial* xrtTlsDialOwnedV1(xnetengine* engine, xnetresolver* resolver, cstr host, uint16 port,
+static xtlsdial* __xrtTlsDialOwnedStart(xnetengine* engine, xnetresolver* resolver, const void* proxy,
+	cstr host, uint16 port,
 	const xtlsclientconfig* tls, const xtlsdialconfig* config, ptr data, const xtlsdialownershipv1* policy)
 {
+	#if !defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+		(void)proxy;
+	#endif
 	if (!engine || !resolver || !host || !host[0] || !port || !data || !policy || policy->size != sizeof(*policy) ||
 		!policy->Done || !policy->Drop || !policy->Ops || !policy->Ops->Count || !policy->Ops->Trace) {
 		__xrtErrorSetInvalidArgument(); return NULL;
@@ -176484,13 +176538,29 @@ XRT_API xtlsdial* xrtTlsDialOwnedV1(xnetengine* engine, xnetresolver* resolver, 
 		else { xrtAtomic64Store(&d->Timer, id, XMEMORY_RELEASE);
 			if (xrtAtomic32Load(&d->TimerDone, XMEMORY_ACQUIRE)) xrtAtomic64Store(&d->Timer, 0, XMEMORY_RELEASE); }
 	} else if (!ready) xrtAtomic32Store(&d->TimerDone, 1, XMEMORY_RELEASE);
-	xnetdial* tcp = NULL;
+	xnetdial* tcp = NULL; bool accepted = false;
+	#if defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+		xnetproxydial* proxyDial = NULL;
+	#endif
 	if (ready) {
 		bool held = xrtTlsDialRef(d) != NULL;
-		tcp = held ? xrtNetDialOwnedV1(engine, resolver, host, port, &cfg.Transport, NULL, NULL, d, xrtTlsDialTransportOwnershipV1Get()) : NULL;
-		if (!tcp && held) xrtTlsDialDestroy(d);
+		#if defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+			if (proxy) {
+				xnetproxydialconfig pc; xrtNetProxyDialConfigInit(&pc); pc.Transport = cfg.Transport;
+				pc.Timeout = 0; /* the enclosing timer owns the total deadline */
+				proxyDial = held ? xrtNetProxyDialOwnedV1(engine, resolver, proxy, host, port,
+					&pc, NULL, NULL, d, xrtTlsDialProxyTransportOwnershipV1Get()) : NULL;
+				accepted = proxyDial != NULL;
+			} else
+		#endif
+		{
+			tcp = held ? xrtNetDialOwnedV1(engine, resolver, host, port, &cfg.Transport,
+				NULL, NULL, d, xrtTlsDialTransportOwnershipV1Get()) : NULL;
+			accepted = tcp != NULL;
+		}
+		if (!accepted && held) xrtTlsDialDestroy(d);
 	}
-	if (!tcp) {
+	if (!accepted) {
 		xerror* failure = xrtTakeError(); __xrtTlsDialCancelTimer(d);
 		xtlssession* session = d->OwnedSession; d->OwnedSession = NULL; xrtTlsSessionDestroy(session);
 		xrtownershipscope m = {0}; if (!xrtOwnershipMutationBegin(&m)) abort();
@@ -176506,11 +176576,26 @@ XRT_API xtlsdial* xrtTlsDialOwnedV1(xnetengine* engine, xnetresolver* resolver, 
 	xrtownershipscope m = {0}; if (!xrtOwnershipMutationBegin(&m)) abort();
 	__xrtSpinLock(&d->OwnershipLock);
 	xrtAtomicPtrStore(&d->TransportDial, tcp, XMEMORY_RELEASE); d->OwnershipPublished = true;
+	#if defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+		xrtAtomicPtrStore(&d->ProxyDial, proxyDial, XMEMORY_RELEASE);
+	#endif
 	__xrtSpinUnlock(&d->OwnershipLock);
 	if (__xrtTlsDialStopping(d)) (void)__xrtTlsDialOwnedPostStop(d);
 	if (!xrtOwnershipScopeEnd(&m)) abort();
 	__xrtTlsDialOwnedTryRelease(d); __xrtTlsDialOwnedLeave(d); return d;
 }
+XRT_API xtlsdial* xrtTlsDialOwnedV1(xnetengine* engine, xnetresolver* resolver, cstr host, uint16 port,
+	const xtlsclientconfig* tls, const xtlsdialconfig* config, ptr data, const xtlsdialownershipv1* policy)
+{ return __xrtTlsDialOwnedStart(engine, resolver, NULL, host, port, tls, config, data, policy); }
+#if defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+XRT_API xtlsdial* xrtTlsDialProxyOwnedV1(xnetengine* engine, xnetresolver* resolver, const xnetproxy* proxy,
+	cstr host, uint16 port, const xtlsclientconfig* tls, const xtlsdialconfig* config, ptr data,
+	const xtlsdialownershipv1* policy)
+{
+	if (!proxy) { __xrtErrorSetInvalidArgument(); return NULL; }
+	return __xrtTlsDialOwnedStart(engine, resolver, proxy, host, port, tls, config, data, policy);
+}
+#endif
 static bool __xrtTlsDialOwnedCount(const void* data, size_t* count)
 {
 	const xtlsdial* d = data;
@@ -176534,6 +176619,10 @@ static bool __xrtTlsDialOwnedTrace(const void* data, xrtownershipvisitor visit, 
 		(d->OwnershipEngineHeld && !visit(xrtNetEngineOwnership(d->Engine), context)) ||
 		(d->OwnershipDataHeld && !visit((xrtownershipref){d->DoneData, d->OwnershipPolicy->Ops}, context))) return false;
 	xnetdial* tcp = xrtAtomicPtrLoad(&d->TransportDial, XMEMORY_ACQUIRE);
+	#if defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+		xnetproxydial* proxy = xrtAtomicPtrLoad(&d->ProxyDial, XMEMORY_ACQUIRE);
+		if (proxy && !visit(xrtNetProxyDialOwnership(proxy), context)) return false;
+	#endif
 	return (!tcp || visit(xrtNetDialOwnership(tcp), context)) &&
 		(!d->OwnedStream || visit(xrtTlsStreamOwnership(d->OwnedStream), context)) &&
 		(!d->OwnedSession || xrtTlsSessionBufferOwnershipTrace(d->OwnedSession, visit, context)) &&
@@ -176633,191 +176722,244 @@ XRT_API const xrtownershipadapterv1* xrtTlsDialOwnershipAdapterV1(xrtownershipre
 
 #if defined(XRT_FEATURE_TLS_STREAM_DIAL_FUTURE)
 
-
-
 #if defined(XRT_FEATURE_TLS_STREAM_DIAL_FUTURE)
 
-/* TLS Dial Future 桥接一个受管 TLS Dial 与一个公开 Future。 */
-typedef struct xrt_tls_dial_future {
-	xfuturebridge Bridge;
-	volatile int32 References;
-	xtlsdial* Dial;
-} xrt_tls_dial_future;
-
-
-
-/* Future 成功值只持有一个 TLS Stream 调用方引用。 */
-static void __xrtTlsDialFutureFree(ptr pValue, ptr pData)
+/* The owner is independent of the producer's terminal slots: delivered Streams
+ * may still borrow configuration/events after Promise, Watch and Dial retire. */
+typedef struct xrt_tls_dial_future_owner {
+    volatile int32 References;
+    const xtlsstreamownershipv1* Policy;
+    ptr Data;
+    const void* Claim;
+    bool Publishing, DataHeld, Cleared, Finishing, Finished;
+    xerror* FinishError;
+} xrt_tls_dial_future_owner;
+static bool __xrtTlsDialFutureOwnerCount(const void* data, size_t* count)
 {
-	(void)pData;
-	xrtTlsStreamDestroy((xtlsstream*)pValue);
+    const xrt_tls_dial_future_owner* o = data;
+    if (!o || !count || o->Publishing || o->Cleared || !o->DataHeld || !o->Data || !o->Policy) return false;
+    int32 refs = __xrtAtomicRefLoad(&o->References); if (refs <= 0) return false;
+    *count = (size_t)refs; return true;
 }
-
-
-
-/* Future 的协作取消请求转发给 DNS、TCP 或 TLS 当前有效阶段。 */
-static void __xrtTlsDialFutureCancel(ptr pData)
+static bool __xrtTlsDialFutureOwnerTrace(const void* data, xrtownershipvisitor visit, ptr context)
 {
-	xrt_tls_dial_future* pContext =
-		(xrt_tls_dial_future*)pData;
-
-	(void)xrtTlsDialCancel(pContext->Dial);
+    const xrt_tls_dial_future_owner* o = data; size_t count;
+    return visit && __xrtTlsDialFutureOwnerCount(o, &count) && visit((xrtownershipref){o->Data, o->Policy->Ops}, context);
 }
-
-
-
-/* 把不可能出现的空成功结果转换为结构化 TLS 内部错误。 */
-static xerror* __xrtTlsDialFutureInvalidError(void)
+static const xrtownershipops __xrtTlsDialFutureOwnerOps = {__xrtTlsDialFutureOwnerCount, __xrtTlsDialFutureOwnerTrace};
+static bool __xrtTlsDialFutureOwnerHold(const void* data)
 {
-	xerror* pError;
-
-	__xrtTlsError(
-		XERR_INTERNAL,
-		XTLS_ERROR_INTERNAL,
-		"complete-tls-dial-future",
-		"TLS dial reported success without a stream",
-		SIZE_MAX
-	);
-	pError = xrtTakeError();
-	return pError;
+    xrt_tls_dial_future_owner* o = (xrt_tls_dial_future_owner*)data; xrtownershipscope m = {0};
+    if (!xrtOwnershipMutationBegin(&m)) return false;
+    bool held = !o->Cleared && xrtRefRetain(&o->References) >= 0;
+    if (!xrtOwnershipScopeEnd(&m)) abort();
+    return held;
 }
-
-
-
-/* 把 TLS Dial 唯一终态转发到 Promise，并处理装配失败竞态。 */
-static void __xrtTlsDialFutureDone(
-	xtlsdial* pDial,
-	xnetresult Result,
-	xtlsstream* pStream,
-	const xerror* pError,
-	ptr pData
-)
+static void __xrtTlsDialFutureOwnerDrop(const void* data)
 {
-	xrt_tls_dial_future* pContext =
-		(xrt_tls_dial_future*)pData;
-	xpromise* pPromise = xrtFutureBridgePromise(&pContext->Bridge);
-	xtlsdial* pHeld = pContext->Dial;
-	xerror* pFailure = NULL;
-	bool bReady;
-
-	(void)pDial;
-	bReady = xrtFutureBridgeWait(&pContext->Bridge);
-	xrtFutureBridgeUnwatch(&pContext->Bridge);
-	if ( (Result != XNET_RESULT_OK) && (pError != NULL) ) {
-		pFailure = xrtErrorRef(pError);
-	} else if ( (Result == XNET_RESULT_OK) && (pStream == NULL) ) {
-		pFailure = __xrtTlsDialFutureInvalidError();
-	}
-	xrtTlsDialDestroy(pHeld);
-	if ( xrtRefRelease(&pContext->References) == 0 ) {
-		xrtFree(pContext);
-	}
-	if ( !bReady ) {
-		if ( pStream != NULL ) {
-			(void)xrtTlsStreamAbort(pStream);
-			xrtTlsStreamDestroy(pStream);
-		}
-	} else if ( (Result == XNET_RESULT_OK) &&
-		(pStream != NULL) ) {
-		if ( !xrtPromiseResolveOwned(
-			pPromise,
-			pStream,
-			__xrtTlsDialFutureFree,
-			NULL
-		) ) {
-			(void)xrtTlsStreamAbort(pStream);
-			xrtTlsStreamDestroy(pStream);
-		}
-	} else if ( Result == XNET_RESULT_CANCELLED ) {
-		(void)xrtPromiseCancel(pPromise);
-	} else if ( pFailure != NULL ) {
-		(void)xrtPromiseReject(pPromise, pFailure);
-	} else {
-		(void)xrtPromiseClose(pPromise);
-	}
-	xrtErrorFree(pFailure);
-	xrtPromiseDestroy(pPromise);
+    xrt_tls_dial_future_owner* o = (xrt_tls_dial_future_owner*)data; xrtownershipscope m = {0};
+    if (!xrtOwnershipMutationBegin(&m)) abort();
+    int32 left = xrtRefRelease(&o->References); if (left < 0 || (!left && o->Publishing)) abort();
+    ptr user = NULL;
+    if (!left && o->DataHeld) { user = o->Data; o->Data = NULL; o->DataHeld = false; }
+    if (!xrtOwnershipScopeEnd(&m)) abort();
+    if (!left) { if (user) o->Policy->Drop(user); xrtErrorFree(o->FinishError); xrtFree(o); }
 }
-
-
-
-/* 创建受管 TLS Dial、Promise 和双向取消桥接。 */
-XRT_API xfuture* xrtTlsDialAsync(
-	xnetengine* pEngine,
-	xnetresolver* pResolver,
-	cstr sHost,
-	uint16 iPort,
-	const xtlsclientconfig* pTls,
-	const xtlsdialconfig* pConfig,
-	const xtlsstreamevents* pStreamEvents,
-	ptr pStreamData
-)
+static bool __xrtTlsDialFutureOwnerBusy(const void* data)
+{ const xrt_tls_dial_future_owner* o = data; return o && !o->Cleared && o->Publishing; }
+XRT_API const xrtownershipquiescencev1* xrtTlsDialFutureContextOwnershipQuiescenceV1Get(void)
 {
-	xrt_tls_dial_future* pContext;
-	xfuture* pFuture;
-	xerror* pError;
-
-	pContext = (xrt_tls_dial_future*)xrtCalloc(
-		1,
-		sizeof(*pContext)
-	);
-	if ( pContext == NULL ) {
-		return NULL;
-	}
-	pFuture = xrtFutureBridgeCreate(&pContext->Bridge, NULL);
-	if ( pFuture == NULL ) {
-		xrtFree(pContext);
-		return NULL;
-	}
-	pContext->References = 2;
-	pContext->Dial = xrtTlsDial(
-		pEngine,
-		pResolver,
-		sHost,
-		iPort,
-		pTls,
-		pConfig,
-		pStreamEvents,
-		pStreamData,
-		__xrtTlsDialFutureDone,
-		pContext
-	);
-	if ( pContext->Dial == NULL ) {
-		pError = xrtTakeError();
-		xrtFutureDestroy(pFuture);
-		xrtPromiseDestroy(xrtFutureBridgePromise(&pContext->Bridge));
-		xrtFree(pContext);
-		if ( pError != NULL ) {
-			xrtSetError(pError);
-			xrtErrorFree(pError);
-		}
-		return NULL;
-	}
-	if ( !xrtFutureBridgeWatch(
-		&pContext->Bridge,
-		__xrtTlsDialFutureCancel,
-		pContext
-	) ) {
-		pError = xrtTakeError();
-		(void)xrtFutureBridgeFail(&pContext->Bridge);
-		(void)xrtTlsDialCancel(pContext->Dial);
-		xrtFutureDestroy(pFuture);
-		if ( pError != NULL ) {
-			xrtSetError(pError);
-			xrtErrorFree(pError);
-		}
-		if ( xrtRefRelease(&pContext->References) == 0 ) {
-			xrtFree(pContext);
-		}
-		return NULL;
-	}
-	(void)xrtFutureBridgeReady(&pContext->Bridge);
-	if ( xrtRefRelease(&pContext->References) == 0 ) {
-		xrtFree(pContext);
-	}
-	return pFuture;
+    static const xrtownershipquiescencev1 p = {sizeof(p), &__xrtTlsDialFutureOwnerOps, __xrtTlsDialFutureOwnerBusy}; return &p;
 }
+static bool __xrtTlsDialFutureOwnerClaim(const void* data, const void* token)
+{
+    xrt_tls_dial_future_owner* o = (xrt_tls_dial_future_owner*)data; size_t count;
+    if (!token || (o->Claim && o->Claim != token) || !__xrtTlsDialFutureOwnerCount(o, &count)) return false;
+    o->Claim = token; return true;
+}
+static void __xrtTlsDialFutureOwnerRestore(const void* data, const void* token)
+{
+    xrt_tls_dial_future_owner* o = (xrt_tls_dial_future_owner*)data;
+    if (!token || o->Claim != token || o->Cleared) abort();
+    o->Claim = NULL;
+}
+static bool __xrtTlsDialFutureOwnerReady(const void* data)
+{ size_t count; return __xrtTlsDialFutureOwnerCount(data, &count); }
+static xrtownershipprepareresult __xrtTlsDialFutureOwnerPrepare(const void* data, const void* token)
+{
+    const xrt_tls_dial_future_owner* o = data; xrtownershipscope f = {0};
+    if (!xrtOwnershipFreezeTryBegin(&f)) return XRT_OWNERSHIP_PREPARE_BUSY;
+    if (!token || o->Claim != token || o->Cleared) abort();
+    bool ready = __xrtTlsDialFutureOwnerReady(o);
+    if (!xrtOwnershipScopeEnd(&f)) abort();
+    return ready ? XRT_OWNERSHIP_PREPARE_READY : XRT_OWNERSHIP_PREPARE_BUSY;
+}
+static void __xrtTlsDialFutureOwnerClear(const void* data, const void* token)
+{
+    xrt_tls_dial_future_owner* o = (xrt_tls_dial_future_owner*)data;
+    if (!token || o->Claim != token || !__xrtTlsDialFutureOwnerReady(o)) abort();
+    o->Cleared = true;
+}
+static bool __xrtTlsDialFutureOwnerFinish(const void* data, const void* token)
+{
+    xrt_tls_dial_future_owner* o = (xrt_tls_dial_future_owner*)data; xrtownershipscope m = {0};
+    if (!xrtOwnershipMutationBegin(&m)) return false;
+    if (!token || o->Claim != token || !o->Cleared) abort();
+    if (o->Finishing) { if (!xrtOwnershipScopeEnd(&m)) abort(); return false; }
+    if (o->Finished) {
+        xerror* error = o->FinishError; if (!xrtOwnershipScopeEnd(&m)) abort();
+        if (error && !xrtGetError()) xrtSetError(error);
+        return error == NULL;
+    }
+    o->Finishing = true; ptr user = o->DataHeld ? o->Data : NULL; o->Data = NULL; o->DataHeld = false;
+    if (!xrtOwnershipScopeEnd(&m)) abort();
+    xerror* prior = xrtTakeError(); if (user) o->Policy->Drop(user); xerror* error = xrtTakeError();
+    if (!xrtOwnershipMutationBegin(&m)) abort();
+    o->FinishError = error; o->Finishing = false; o->Finished = true;
+    if (!xrtOwnershipScopeEnd(&m)) abort();
+    if (prior) xrtSetErrorTake(prior); else if (error) xrtSetError(error);
+    return error == NULL;
+}
+XRT_API const xrtownershipadapterv1* xrtTlsDialFutureContextOwnershipAdapterV1(xrtownershipref ref,
+    const xtlsstreamownershipv1* const* policies, size_t count, const xrtownershippreparationv1** preparation)
+{
+    static const xrtownershipadapterv1 a = {sizeof(a), __xrtTlsDialFutureOwnerHold, __xrtTlsDialFutureOwnerDrop,
+        __xrtTlsDialFutureOwnerClaim, __xrtTlsDialFutureOwnerRestore, NULL, __xrtTlsDialFutureOwnerClear, __xrtTlsDialFutureOwnerFinish};
+    static const xrtownershippreparationv1 p = {sizeof(p), &a, __xrtTlsDialFutureOwnerReady, __xrtTlsDialFutureOwnerPrepare};
+    if (!preparation || ref.Ops != &__xrtTlsDialFutureOwnerOps || !ref.Data || (count && !policies)) return NULL;
+    const xrt_tls_dial_future_owner* o = ref.Data; bool known = false;
+    for (size_t i = 0; i < count; ++i) if (policies[i] == o->Policy) { known = true; break; }
+    if (!known || !o->Policy || o->Policy->size != sizeof(*o->Policy) || !o->Policy->Drop ||
+        !o->Policy->Ops || !o->Policy->Ops->Count || !o->Policy->Ops->Trace || !__xrtTlsDialFutureOwnerReady(o)) return NULL;
+    *preparation = &p; return &a;
+}
+static xrt_tls_dial_future_owner* __xrtTlsDialFutureOwner(ptr context)
+{
+    xrtownershipref ref = __xrtNetStreamDialFutureOwner(context);
+    if (ref.Ops != &__xrtTlsDialFutureOwnerOps) abort();
+    return (xrt_tls_dial_future_owner*)ref.Data;
+}
+#define XRT_TLS_FUTURE_EVENT(Name) \
+static void __xrtTlsDialFuture##Name(xtlsstream* stream, ptr context) \
+{ xrt_tls_dial_future_owner* o = __xrtTlsDialFutureOwner(context); \
+  if (o->Policy->Events.Name) o->Policy->Events.Name(stream, o->Data); }
+XRT_TLS_FUTURE_EVENT(Open)
+XRT_TLS_FUTURE_EVENT(End)
+XRT_TLS_FUTURE_EVENT(Writable)
+XRT_TLS_FUTURE_EVENT(Drain)
+XRT_TLS_FUTURE_EVENT(Ticket)
+#undef XRT_TLS_FUTURE_EVENT
+static void __xrtTlsDialFutureRead(xtlsstream* stream, const xnetbuf* buffer, ptr context)
+{
+    xrt_tls_dial_future_owner* o = __xrtTlsDialFutureOwner(context);
+    if (o->Policy->Events.Read) o->Policy->Events.Read(stream, buffer, o->Data);
+}
+static void __xrtTlsDialFutureClose(xtlsstream* stream, xnetresult result, const xerror* error, ptr context)
+{
+    xrt_tls_dial_future_owner* o = __xrtTlsDialFutureOwner(context);
+    if (o->Policy->Events.Close) o->Policy->Events.Close(stream, result, error, o->Data);
+}
+static void __xrtTlsDialFutureDone(xtlsdial* dial, xnetresult result, xtlsstream* stream, const xerror* error, ptr context)
+{ (void)dial; __xrtNetStreamDialFutureComplete(context, result, stream, error); }
+static void __xrtTlsDialFutureLegacyDone(xtlsdial* dial, xnetresult result, xtlsstream* stream, const xerror* error, ptr context)
+{
+    __xrtTlsDialFutureDone(dial, result, stream, error, context);
+    __xrtNetStreamDialFutureDrop(context); /* legacy Done data owns no policy tail */
+}
+XRT_API const xtlsdialownershipv1* xrtTlsDialFutureDialPolicyV1Get(void)
+{
+    static const xtlsdialownershipv1 p = {sizeof(p), {__xrtTlsDialFutureOpen, NULL, __xrtTlsDialFutureEnd,
+        __xrtTlsDialFutureWritable, __xrtTlsDialFutureDrain, __xrtTlsDialFutureClose, __xrtTlsDialFutureTicket},
+        __xrtTlsDialFutureDone, __xrtNetStreamDialFutureDrop, &__xrtNetStreamDialFutureOps}; return &p;
+}
+XRT_API const xtlsdialownershipv1* xrtTlsDialFutureDialPushPolicyV1Get(void)
+{
+    static const xtlsdialownershipv1 p = {sizeof(p), {__xrtTlsDialFutureOpen, __xrtTlsDialFutureRead, __xrtTlsDialFutureEnd,
+        __xrtTlsDialFutureWritable, __xrtTlsDialFutureDrain, __xrtTlsDialFutureClose, __xrtTlsDialFutureTicket},
+        __xrtTlsDialFutureDone, __xrtNetStreamDialFutureDrop, &__xrtNetStreamDialFutureOps}; return &p;
+}
+static ptr __xrtTlsDialFutureRef(ptr dial) { return xrtTlsDialRef(dial); }
+static void __xrtTlsDialFutureDestroy(ptr dial) { xrtTlsDialDestroy(dial); }
+static bool __xrtTlsDialFutureCancel(ptr dial) { return xrtTlsDialCancel(dial); }
+static xrtownershipref __xrtTlsDialFutureOwnership(const void* dial) { return xrtTlsDialOwnership(dial); }
+static void __xrtTlsDialFutureAbortValue(ptr value) { (void)__xrtTlsStreamAbortAccepted(value); }
+static void __xrtTlsDialFutureFree(ptr value, ptr data)
+{ if (data) abort(); xrtTlsStreamDestroy(value); }
+static bool __xrtTlsDialFuturePayloadTrace(const void* value, const void* data, xrtownershipvisitor visit, ptr context)
+{ return value && !data && visit && visit(xrtTlsStreamOwnership(value), context); }
+static const xfuturepayloadownershipv1 __xrtTlsDialFuturePayload = {
+    sizeof(xfuturepayloadownershipv1), __xrtTlsDialFutureFree, __xrtTlsDialFuturePayloadTrace};
+static const xrt_net_dial_future_policy __xrtTlsDialFutureOperations = {
+    __xrtTlsDialFutureRef, __xrtTlsDialFutureDestroy, __xrtTlsDialFutureCancel, __xrtTlsDialFutureOwnership,
+    &__xrtTlsDialFuturePayload, __xrtTlsDialFutureAbortValue, __xrtTlsDialFutureOwnerDrop};
 
+typedef struct xrt_tls_dial_future_arguments {
+    xnetengine* Engine; xnetresolver* Resolver; const void* Proxy;
+    cstr Host; uint16 Port; const xtlsclientconfig* Tls; const xtlsdialconfig* Config;
+    const xtlsstreamevents* Events; ptr Data; const xtlsstreamownershipv1* Policy;
+} xrt_tls_dial_future_arguments;
+static ptr __xrtTlsDialFutureSubmit(ptr context, const void* arguments)
+{
+    const xrt_tls_dial_future_arguments* a = arguments;
+    if (!a->Policy) return xrtTlsDial(a->Engine, a->Resolver, a->Host, a->Port, a->Tls, a->Config,
+        a->Events, a->Data, __xrtTlsDialFutureLegacyDone, context);
+    const xtlsdialownershipv1* policy = a->Policy->Events.Read ?
+        xrtTlsDialFutureDialPushPolicyV1Get() : xrtTlsDialFutureDialPolicyV1Get();
+    #if defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+        if (a->Proxy) return xrtTlsDialProxyOwnedV1(a->Engine, a->Resolver, a->Proxy, a->Host, a->Port,
+            a->Tls, a->Config, context, policy);
+    #endif
+    return xrtTlsDialOwnedV1(a->Engine, a->Resolver, a->Host, a->Port, a->Tls, a->Config, context, policy);
+}
+static xfuture* __xrtTlsDialFutureCreate(const xrt_tls_dial_future_arguments* args)
+{
+    if (!args->Policy) return __xrtNetStreamDialFutureCreate(&__xrtTlsDialFutureOperations, __xrtTlsDialFutureSubmit, args);
+    const xtlsstreamownershipv1* policy = args->Policy;
+    if (!args->Data || policy->size != sizeof(*policy) || !policy->Drop || !policy->Ops || !policy->Ops->Count || !policy->Ops->Trace) {
+        __xrtErrorSetInvalidArgument(); return NULL;
+    }
+    xrt_tls_dial_future_owner* o = xrtCalloc(1, sizeof(*o)); if (!o) return NULL;
+    /* Wrapper and provisional transferred slot each own one credit. The extra
+     * wrapper credit keeps this record alive even if accepted work finishes
+     * and releases its entire graph before Create returns. */
+    o->References = 2; o->Publishing = true; o->Policy = policy; o->Data = args->Data;
+    xfuture* future = __xrtNetStreamDialFutureCreateOwned(&__xrtTlsDialFutureOperations,
+        __xrtTlsDialFutureSubmit, args, (xrtownershipref){o, &__xrtTlsDialFutureOwnerOps});
+    xrtownershipscope m = {0}; if (!xrtOwnershipMutationBegin(&m)) abort();
+    o->Publishing = false; o->DataHeld = future != NULL;
+    if (!xrtOwnershipScopeEnd(&m)) abort();
+    if (!future) __xrtTlsDialFutureOwnerDrop(o); /* failed transfer retains both credits */
+    __xrtTlsDialFutureOwnerDrop(o); return future;
+}
+XRT_API xfuture* xrtTlsDialAsync(xnetengine* engine, xnetresolver* resolver, cstr host, uint16 port,
+    const xtlsclientconfig* tls, const xtlsdialconfig* config, const xtlsstreamevents* events, ptr data)
+{
+    xrt_tls_dial_future_arguments args = {engine, resolver, NULL, host, port, tls, config, events, data, NULL};
+    return __xrtTlsDialFutureCreate(&args);
+}
+XRT_API xfuture* xrtTlsDialAsyncOwnedV1(xnetengine* engine, xnetresolver* resolver, cstr host, uint16 port,
+    const xtlsclientconfig* tls, const xtlsdialconfig* config, ptr data, const xtlsstreamownershipv1* policy)
+{
+    if (!policy) { __xrtErrorSetInvalidArgument(); return NULL; }
+    xrt_tls_dial_future_arguments args = {engine, resolver, NULL, host, port, tls, config, NULL, data, policy};
+    return __xrtTlsDialFutureCreate(&args);
+}
+#if defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+XRT_API xfuture* xrtTlsDialProxyAsyncOwnedV1(xnetengine* engine, xnetresolver* resolver, const xnetproxy* proxy,
+    cstr host, uint16 port, const xtlsclientconfig* tls, const xtlsdialconfig* config, ptr data, const xtlsstreamownershipv1* policy)
+{
+    if (!proxy || !policy) { __xrtErrorSetInvalidArgument(); return NULL; }
+    xrt_tls_dial_future_arguments args = {engine, resolver, proxy, host, port, tls, config, NULL, data, policy};
+    return __xrtTlsDialFutureCreate(&args);
+}
+#endif
+XRT_API const xfutureproducerownershipv1* xrtTlsDialFutureProducerPolicyV1Get(void) { return __xrtNetStreamDialFutureProducerPolicyV1Get(); }
+XRT_API const xcancelwatchownershipv1* xrtTlsDialFutureCancelPolicyV1Get(void) { return __xrtNetStreamDialFutureCancelPolicyV1Get(); }
+XRT_API const xfuturepayloadownershipv1* xrtTlsDialFuturePayloadPolicyV1Get(void) { return &__xrtTlsDialFuturePayload; }
+XRT_API const xrtownershipquiescencev1* xrtTlsDialFutureOwnershipQuiescenceV1Get(void) { return __xrtNetStreamDialFutureOwnershipQuiescenceV1Get(); }
+XRT_API const xrtownershipadapterv1* xrtTlsDialFutureOwnershipAdapterV1(xrtownershipref ref,
+    const xrtownershippreparationv1** preparation)
+{ return __xrtNetStreamDialFutureOwnershipAdapterV1(ref, &__xrtTlsDialFutureOperations, preparation); }
 #endif
 #endif
 

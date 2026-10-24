@@ -736,3 +736,34 @@ select／IOCP／epoll、模块化／单头、GCC O0／O2、TCC、Linux ASan／UB
 旧借用 Dial、Proxy Dial 和 FutureBridgeWait 尚未因此拥有化。接下来仍
 需 Future 激活／拥有结果、Proxy、语言传输迁移、动态回调／恢复、旧
 后端清退和完整 P7；本批不是整个工作区、发布 DLL 或完整 TLS 验收。
+
+## 原生拥有式 Dial Future／Proxy 与非阻塞发布
+
+新增三个 owned 工厂及十个图／策略入口，API 3432／3897。TCP、Proxy、
+TLS Future 的公共发布器改为直接 Promise＋Owned CancelWatch，不再调用
+阻塞的 FutureBridgeWait。提前完成保留真实结果槽并立即返回；发布前
+取消在实际 Dial 发布后转发，互斥锁选出唯一处理者。TLS payload 使用
+精确 TLS Drop／Trace，不使用 TCP 句柄强转。
+
+TLS 配置和事件由独立 owner record 追踪，完成后已交付 Stream 仍保留
+上下文。wrapper 与暂定转移各一真实信用，防止操作在构造返回前完成时
+过早释放 record；成功消费一份用户 Data，失败消费零份。永久 pull／
+push 策略分别保留正确的 Read 模式。拥有式 Proxy 完成代理握手后在同一
+Worker Attach TLS，单一总期限覆盖全部阶段。
+
+旧借用 Async 同步移除阻塞等待，但不改变其 StreamData／事件借用合同，
+不自动授予图认证。Future／owner record 分别准入，准备等待实际源完成，
+Clear 不执行用户回调，Finish 域外保留首次清理错误；所有目标 pin 保持
+到全图 Finish 完成。原生相对毫秒与快照绝对微秒 ABI、Cgen 均未改变。
+
+证据 `F:/xlang-validation/five-groups-20261024/p6-tls-dial-future`。正式 r1
+冻结原生 2348、xlang 9014 输入；原生 1176 步、91 次实际 fixture 执行，
+固定快照 21 步、14 次执行通过。新图夹具累计 1092 个闭合图／证明、420
+次拒绝、210 次持久清理错误、588 个分配预算中的 504 次失败，台账平衡。
+两端全源码 O2 1156／1155 TU，配置／IR／裁剪、产品回归和 51 个精确 SDK
+原型的实际 TCC 绑定，共 260 步通过。另有 16 项模块选择检查，确认相关
+Future 不引入阻塞 Bridge。接受输入、对象、产物和日志哈希独立复核，
+Linux 原件保留、报告复制；仅普通显式本机回环及离线检查，无安全专项。
+
+语言 TLS 传输 facade 迁移、动态回调／ticket／恢复、旧后端清退、跨组
+闭合和完整 P7 尚未完成；不能将本批等同整个工作区或发布产品验收。
