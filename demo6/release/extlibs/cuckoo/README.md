@@ -24,6 +24,13 @@ seen.remove("session:abc123")
 
 ## 验证
 
+2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
+严格 C、满桶/高装载与失败回滚、XLang 边界和分配故障、私有原生
+入口拒绝、C/XLang 同输出及核心/公开范例 AOT 均通过。此前完整
+AOT 共享缺符号属于旧发布物；本次未重跑 Linux sanitizer。
+这项验收只证明本包承诺的近似过滤器边界，不保证无假阳性或
+任何外部二进制格式互通。
+
 从 `demo6` 目录运行：
 
 ```powershell
