@@ -18805,6 +18805,16 @@ XRT_API xnetstream* xrtNetStreamConnect(
 	ptr pData
 );
 
+/* Creation-time event ownership: installs the permanent descriptor BEFORE
+ * posting connect/start work, so even an immediate Open/Close sees its owner.
+ * Success consumes exactly one Data reference; failure consumes none. Event
+ * callbacks borrow it; Drop is deferred until the Worker callback stacks have
+ * returned, with the same replacement/close rules as SetEventsOwnedV1.
+ * Descriptor and callback code must remain resident. */
+XRT_API xnetstream* xrtNetStreamConnectOwnedV1(xnetengine* pEngine,
+	const xnetaddr* pRemote, uint64 iAffinity, const xnetstreamconfig* pConfig,
+	ptr pData, const xnetstreameventsownershipv1* pPolicy);
+
 
 
 #if defined(XRT_FEATURE_NET_TCP_DIAL)
@@ -133883,7 +133893,8 @@ static xnetstream* __xrtNetStreamConnectCreate(
 	const xnetstreamevents* pEvents,
 	ptr pData,
 	const void* pControl,
-	bool bDeferred
+	bool bDeferred,
+	__xrt_net_stream_events_owner* pOwner
 )
 {
 	xnetstreamconfig Config;
@@ -133956,6 +133967,9 @@ static xnetstream* __xrtNetStreamConnectCreate(
 		xrtErrorFree(pError);
 		return NULL;
 	}
+	/* Construction is still marked active. Publish the ONE actual context
+	 * credit before any Worker can enter a callback, never after Post. */
+	pStream->EventOwner = pOwner;
 	pStream->Remote = *pRemote;
 	#if defined(XRT_FEATURE_NET_TCP_DIAL)
 		if ( pControl != NULL ) {
@@ -133978,6 +133992,8 @@ static xnetstream* __xrtNetStreamConnectCreate(
 	) ) {
 		pError = xrtTakeError();
 		pStream->StartPending = false;
+		/* No startup task was accepted: return the context credit intact. */
+		pStream->EventOwner = NULL;
 		pStream->Socket = NULL;
 		(void)xrtNetSocketClose(Socket);
 		xrtAtomic32Store(
@@ -134016,8 +134032,21 @@ XRT_API xnetstream* xrtNetStreamConnect(
 		pEvents,
 		pData,
 		NULL,
-		false
+		false,
+		NULL
 	);
+}
+
+XRT_API xnetstream* xrtNetStreamConnectOwnedV1(xnetengine* pEngine,
+	const xnetaddr* pRemote, uint64 iAffinity, const xnetstreamconfig* pConfig,
+	ptr pData, const xnetstreameventsownershipv1* pPolicy)
+{
+	__xrt_net_stream_events_owner* pOwner = __xrtNetStreamEventsPrepare(pData, pPolicy);
+	if (!pOwner) return NULL;
+	xnetstream* pStream = __xrtNetStreamConnectCreate(pEngine, pRemote,
+		iAffinity, pConfig, &pPolicy->Events, pData, NULL, false, pOwner);
+	if (!pStream) xrtFree(pOwner); /* creation failure consumes no Data credit */
+	return pStream;
 }
 
 
@@ -134046,7 +134075,8 @@ xnetstream* __xrtNetStreamCreateControlled(
 		NULL,
 		NULL,
 		pControl,
-		true
+		true,
+		NULL
 	);
 }
 
@@ -168279,6 +168309,7 @@ XRT_API bool xrtTlsStreamAttach(
 	xnetbufpool* pPool;
 	xtlsstream* pStream;
 	xtlsrole Role;
+	xnetbufpool* PreviousPools[4];
 
 	if ( ppStream != NULL ) {
 		*ppStream = NULL;
@@ -168350,7 +168381,24 @@ XRT_API bool xrtTlsStreamAttach(
 	if ( pStream == NULL ) {
 		return false;
 	}
+	PreviousPools[0] = pSession->Feed.Pool;
+	PreviousPools[1] = pSession->Send.Pool;
+	PreviousPools[2] = pSession->Plain.Pool;
+	PreviousPools[3] = pSession->Scratch.Pool;
 	if ( !__xrtTlsSessionPool(pSession, pPool) ) {
+		pStream->Session = NULL;
+		__xrtTlsStreamDiscard(pStream);
+		return false;
+	}
+	/* TCP owns replacement ordering, read-Future exclusion and deferred old
+	 * callback retirement. Direct field writes leave an old EventOwner behind.
+	 * This setter runs no callbacks; failure precedes TCP publication. Restore
+	 * the four allocation policies without consuming either caller reference. */
+	if ( !xrtNetStreamSetEvents(pTransport, &__xrtTlsStreamTransportEvents, pStream) ) {
+		pSession->Feed.Pool = PreviousPools[0];
+		pSession->Send.Pool = PreviousPools[1];
+		pSession->Plain.Pool = PreviousPools[2];
+		pSession->Scratch.Pool = PreviousPools[3];
 		pStream->Session = NULL;
 		__xrtTlsStreamDiscard(pStream);
 		return false;
@@ -168360,8 +168408,6 @@ XRT_API bool xrtTlsStreamAttach(
 		pTransport,
 		XMEMORY_RELEASE
 	);
-	pTransport->Events = __xrtTlsStreamTransportEvents;
-	xrtAtomicPtrStore(&pTransport->Data, pStream, XMEMORY_RELEASE);
 	*ppStream = pStream;
 	__xrtTlsStreamTransportOpen(pTransport, pStream);
 	return true;
@@ -168476,13 +168522,15 @@ XRT_API bool xrtTlsStreamAccept(
 		xrtTlsSessionDestroy(pSession);
 		return false;
 	}
+	if ( !xrtNetStreamSetEvents(pTransport, &__xrtTlsStreamTransportEvents, pStream) ) {
+		__xrtTlsStreamDiscard(pStream);
+		return false;
+	}
 	xrtAtomicPtrStore(
 		&pStream->Transport,
 		pTransport,
 		XMEMORY_RELEASE
 	);
-	pTransport->Events = __xrtTlsStreamTransportEvents;
-	xrtAtomicPtrStore(&pTransport->Data, pStream, XMEMORY_RELEASE);
 	*ppStream = pStream;
 	return true;
 }
