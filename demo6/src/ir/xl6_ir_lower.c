@@ -25810,7 +25810,8 @@ static int xl6IrLowerIntrinsicTaskSpawn(
          callable->cAbi != XL6_IR_C_ABI_CLOSURE_PTR ||
          callable->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
          (callable->callableErasureAbi !=
-              XL6_IR_CALLABLE_ERASURE_FIXED && !arrayVariadic) ||
+              XL6_IR_CALLABLE_ERASURE_FIXED &&
+          callable->callableErasureAbi != XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC && !arrayVariadic) ||
          (!arrayVariadic
               ? canonicalOperandCount != intrinsic->operandCount
               : callable->paramCount == 0 ||

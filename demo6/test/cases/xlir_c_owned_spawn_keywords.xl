@@ -1,0 +1,59 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+func ordinary(int base,***) as int
+    return base+arg.length
+end
+func owner(***) as cstring
+    assert arg.length==0 or (arg.length==2 and arg["answer"]==42 and arg["label"]=="tail")
+    return cstring.take(nativeText(),nativeFree)
+end
+func reader(bytes data,***) as bool
+    return originalBytes(data) and arg["answer"]==42
+end
+func optional(bool present,***) as cbytes?
+    return present ? cbytes.take(nativeBytes(),4,nativeFree) : null
+end
+int evaluations=0
+func argument(int expected) as int
+    assert evaluations==expected
+    evaluations+=1
+    return expected
+end
+func ordered(int base,***) as bool
+    return base==0 and arg["first"]==1 and arg["second"]==2
+end
+func failedArgument() as int
+    throw "keyword failed"
+end
+async func check()
+    assert await task.spawn(ordinary,7)==7
+    assert await task.spawn(ordinary,7,answer=42,label="tail")==9
+    auto raw=owner
+    assert await task.spawn(raw)=="hello"
+    assert await task.spawn(raw,answer=42,label="tail")=="hello"
+    auto snapshot=task.spawn(raw,answer=42,label="tail")
+    raw=func(***) as cstring => "replacement"
+    assert await snapshot=="hello"
+    auto captured=func(int base,***) as cstring => base==7 ? owner() : "wrong"
+    assert await task.spawn(captured,7,answer=42)=="hello"
+    auto data=cbytes.take(nativeBytes(),4,nativeFree)
+    assert await task.spawn(reader,data,answer=42)
+    auto maybe=optional
+    assert await task.spawn(maybe,false,answer=42)==null
+    bytes? expected=b"\0\xff\x11*"
+    assert await task.spawn(maybe,true,answer=42)==expected
+    auto future=task.spawn(ordered,argument(0),first=argument(1),second=argument(2))
+    assert evaluations==3 and await future
+    evaluations=0
+    bool caught=false
+    try
+        auto failed=task.spawn(ordered,argument(0),first=failedArgument(),second=argument(1))
+        await failed
+    catch ignored
+        caught=true
+    end
+    assert caught and evaluations==1
+end
+await check()

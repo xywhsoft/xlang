@@ -592,13 +592,8 @@ if errorlevel 1 (
 )
 
 release\xl.exe check test\cases\sem_task_spawn_dict_vararg.xl >nul 2> build\test\sem_task_spawn_dict_vararg.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_dict_vararg.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn does not support ***" build\test\sem_task_spawn_dict_vararg.err.txt >nul
 if errorlevel 1 (
-    echo sem_task_spawn_dict_vararg.xl missing task.spawn dict vararg diagnostic.
+    echo sem_task_spawn_dict_vararg.xl should pass language checking.
     exit /b 1
 )
 
