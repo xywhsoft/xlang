@@ -76,6 +76,7 @@ $generatedSources=@(
     'test/cases/xlir_c_owned_callable_results.xl','test/cases/xlir_c_owned_variadic_results.xl',
     'test/cases/xlir_c_owned_variadic_inputs.xl','test/cases/xlir_c_owned_nested_results.xl',
     'test/cases/xlir_c_owned_text_length.xl','test/cases/xlir_c_owned_nullable_callables.xl',
+    'test/cases/xlir_c_owned_partial_results.xl',
     'test/cases/xlir_c_owned_spawn_keywords.xl',
     'test/cases/xlir_c_owned_globals.xl',
     'test/cases/xlir_c_owned_nullable.xl','test/cases/xlir_c_owned_nullable_boundaries.xl',
@@ -138,7 +139,11 @@ $negative = @(
     @{Name='text-length-type';Body="func probe()`n auto value=cstring.take(make(),true,drop)`nend";Message='byte length must be an integer'},
     @{Name='task-keyword-duplicate';Body="func job(***) as int`n return 7`nend`nauto f=task.spawn(job,answer=1,answer=2)";Message='keyword argument is duplicated'},
     @{Name='task-keyword-positional-tail';Body="func job(***) as int`n return 7`nend`nauto f=task.spawn(job,1)";Message='*** tail requires keyword'},
-    @{Name='task-keyword-missing-prefix';Body="func job(int first,***) as int`n return first`nend`nauto f=task.spawn(job)";Message='missing fixed arguments'}
+    @{Name='task-keyword-missing-prefix';Body="func job(int first,***) as int`n return first`nend`nauto f=task.spawn(job)";Message='missing fixed arguments'},
+    @{Name='nullable-callable-presence';Body="func source(bool present) as (func() as cstring)?`n if present then return func() as cstring => cstring.take(make(),drop) end`n return null`nend`nfunc probe()`n auto value=source(false)`n func() as string wrong=value`nend";Message='initializer'},
+    @{Name='nested-callable-input';Body="func source() as func(int) as cstring`n return func(int value) as cstring => cstring.take(make(),drop)`nend`nfunc probe()`n auto value=source`n func() as func(string) as string wrong=value`nend";Message='target function, value function'},
+    @{Name='nested-callable-kind';Body="func source() as func() as cstring`n return func() as cstring => cstring.take(make(),drop)`nend`nfunc probe()`n auto value=source`n func() as func() as bytes wrong=value`nend";Message='target function, value function'},
+    @{Name='nested-callable-direction';Body="func source() as func() as string`n return func() as string => `"ordinary`"`nend`nfunc probe()`n auto value=source`n func() as func() as cstring wrong=value`nend";Message='target function, value function'}
 )
 foreach ($case in $negative) {
     $source = Join-Path $outputPath ('reject-' + $case.Name + '.xl')

@@ -49,6 +49,16 @@ func nullableDefault(bool present,int base) as (func(int,***) as cbytes)?
     auto value=data()
     return func(int first=base,***) as cbytes => first==base ? value : b"wrong"
 end
+func pairFactory() as func() as (cstring,cbytes,int)
+    return pair
+end
+func nullablePairFactory(bool present) as (func() as (cstring,cbytes,int))?
+    if present then return pair end
+    return null
+end
+func nestedPairFactory() as func() as func() as (cstring,cbytes,int)
+    return pairFactory
+end
 func arrayAdapter() as func(...) as string
     auto raw=arrayText
     return raw
@@ -134,7 +144,7 @@ export "owned_boundary_exercise" func exercise(int mode) as bool
         auto raw=nullableFactory
         var callback=xcall(raw)
         return callback(true)()=="hello" and callback(false)==null
-    else
+    elseif mode==15
         auto source=nullableDefault(true,19)
         (func(int,***) as bytes)? callback=source
         source=null
@@ -143,5 +153,28 @@ export "owned_boundary_exercise" func exercise(int mode) as bool
             return dynamic()==b"\0\xff\x11*" and dynamic(first=19,answer=42)==b"\0\xff\x11*"
         end
         return false
+    elseif mode==16
+        auto raw=pairFactory
+        func() as func() as (string,cbytes,int) callback=raw
+        auto first,second,number=callback()()
+        return first=="hello" and second==b"\0\xff\x11*" and number==7
+    elseif mode==17
+        func() as func() as (cstring,bytes,int) callback=pairFactory
+        auto first,second,number=callback()()
+        return first=="hello" and second==b"\0\xff\x11*" and number==7
+    elseif mode==18
+        auto raw=nullablePairFactory(true)
+        (func() as (string,cbytes,int))? callback=raw
+        raw=null
+        if callback!=null then
+            auto first,second,number=callback()
+            return first=="hello" and second==b"\0\xff\x11*" and number==7
+        end
+        return false
+    else
+        auto raw=nestedPairFactory
+        func() as func() as func() as (cstring,bytes,int) callback=raw
+        auto first,second,number=callback()()()
+        return first=="hello" and second==b"\0\xff\x11*" and number==7
     end
 end
