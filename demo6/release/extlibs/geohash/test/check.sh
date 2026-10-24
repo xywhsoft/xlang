@@ -25,6 +25,12 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 timeout 90s "$work/test_geohash"
 
 "$cc" "${flags[@]}" release/extlibs/geohash/geohash_native.c \
+    release/extlibs/geohash/test/test_threads.c "$work/xrt_runtime.o" \
+    -lm -ldl -o "$work/test_threads"
+timeout 90s "$work/test_threads" | tee "$work/threads.txt"
+printf 'geohash threads: PASS\n' | diff -u - "$work/threads.txt"
+
+"$cc" "${flags[@]}" release/extlibs/geohash/geohash_native.c \
     release/extlibs/geohash/examples/geohash_c.c \
     "$work/xrt_runtime.o" -lm -ldl -o "$work/geohash_example"
 timeout 30s "$work/geohash_example" > "$work/c.txt"

@@ -1,5 +1,14 @@
 # geohash
 
+2026-10-24 当前发布物复验：Windows 默认 `test/check.ps1` 的严格 GCC、
+C/XLang 边界、分配故障、固定黄金输出以及核心、范例、边界三项 AOT
+全部通过。边界程序原本会打印 `geohash boundaries: PASS`，门禁却要求
+无输出，导致成功执行被误判失败；现在要求 JIT 与 AOT 输出逐字一致。
+Linux `test/check.sh` 的 C ASan/UBSan、线程、XLang JIT 与双语黄金输出
+也通过。旧版 `xl6ValueDataSnapshotV1` 缺符号不再是当前 Windows 阻断；
+本轮未用新 Linux 编译器构建独立 EXE。以下旧记录的“当前缺符号”
+均指当时的发布物。
+
 `geohash` 将经纬度编码为 1..12 字符的标准小写 Geohash Base32 文本。经度位先于纬度位交错；处于分割中点的坐标归入上半格。仅接受有限范围内的纬度 `[-90, 90]`、经度 `[-180, 180]`；最大端点归入最后一格。解码严格校验长度和字符，不跳过错误输入，也不静默修改精度。
 
 ## XLang API
@@ -28,9 +37,9 @@
 - 边界：包内 `test/test_geohash.c`、`test/test_threads.c`、`test/boundaries.xl`（含内嵌 NUL 前缀负例），以及 `demo6/test/cases/extlib_geohash.xl`
 
 在 `demo6/release` 运行 `xl run extlibs/geohash/test/boundaries.xl`。在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package geohash -Source release/extlibs/geohash/test/test_geohash.c`。
-`pwsh -NoProfile -File release/extlibs/geohash/test/check.ps1 -SkipAot` 汇总严格 GCC manifest 宏、C/XLang 边界和三路范例黄金输出检查。去掉 `-SkipAot` 会继续构建并运行核心 AOT、带输出范例 AOT 和边界 AOT；当前范例构建在下述共享缺符号处失败，因此完整门禁不会误报通过。固定输出见 `examples/geohash.expected.txt`，不只依赖两种语言互相一致。
+`pwsh -NoProfile -File release/extlibs/geohash/test/check.ps1 -SkipAot` 汇总严格 GCC manifest 宏、C/XLang 边界和三路范例黄金输出检查。去掉 `-SkipAot` 会继续构建并运行核心 AOT、带输出范例 AOT 和边界 AOT；当前 Windows 发布版均已通过。固定输出见 `examples/geohash.expected.txt`，不只依赖两种语言互相一致。
 
-2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、C/XL 边界与线程测试、同输出范例及 `test/cases/extlib_geohash.xl` 无输出核心 AOT。`xl build extlibs/geohash/test/boundaries.xl -o ../build/test/geohash_xl_test.exe` 当前因共享链接缺少 `xl6ValueDataSnapshotV1` 而失败，完整 AOT 尚未验收；见 `dev/extlib_blockers/text_snapshot_link.md`。
+2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、C/XL 边界与线程测试、同输出范例及 `test/cases/extlib_geohash.xl` 无输出核心 AOT。当时完整 AOT 缺少共享 `xl6ValueDataSnapshotV1`；现行复验结果见本页开头。
 
 Linux 可在 `demo6` 目录运行 `bash release/extlibs/geohash/test/check.sh`，同次验证严格 GCC/ASan/UBSan 的 C 边界、中央与包内 XLang 用例，以及 C/XLang 范例与固定黄金文件的逐字对照。2026-10-14 新增全部 1、2 字符格子（1056 格）的中心点重新编码与邻格互逆验证，并在 C/XLang 测试最高 12 字符精度的经线环绕和极点终止；实现未改。此测试不是全部 12 字符编码空间的穷举证明。
 

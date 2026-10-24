@@ -36,9 +36,16 @@ try {
         '-Werror', '-fsyntax-only', '-Ilib/xrt', '-Irelease/extlibs/geohash/include') +
         $moduleFlags + @('release/extlibs/geohash/geohash_native.c'))
     $null = RunC 'C boundaries' 'release/extlibs/geohash/test/test_geohash.c'
+    $threadsOutput = RunC 'C threads' 'release/extlibs/geohash/test/test_threads.c'
+    if ($threadsOutput -cne 'geohash threads: PASS') {
+        throw "unexpected C threads output: $threadsOutput"
+    }
     $null = Run 'XLang existing test' $xl @('run', 'test/cases/extlib_geohash.xl')
-    $null = Run 'XLang boundaries' $xl @('run',
+    $boundariesOutput = Run 'XLang boundaries' $xl @('run',
         'release/extlibs/geohash/test/boundaries.xl')
+    if ($boundariesOutput -cne 'geohash boundaries: PASS') {
+        throw "unexpected XLang boundaries output: $boundariesOutput"
+    }
     $null = Run 'XLang allocations' $xl @('run',
         'release/extlibs/geohash/test/allocations.xl')
     $cOutput = RunC 'C example' 'release/extlibs/geohash/examples/geohash_c.c'
@@ -69,8 +76,8 @@ try {
         $boundaries = Join-Path $work 'boundaries.exe'
         $null = Run 'boundaries AOT build' $xl @('build',
             'release/extlibs/geohash/test/boundaries.xl', '-o', $boundaries)
-        if ((Run 'boundaries AOT run' $boundaries @()) -cne '') {
-            throw 'boundaries AOT produced output'
+        if ((Run 'boundaries AOT run' $boundaries @()) -cne $boundariesOutput) {
+            throw 'boundaries AOT output differs from JIT'
         }
     }
     if ($SkipAot) {
