@@ -14,6 +14,7 @@
 #ifdef XLS_COMPILER_XRT
 #include "analysis/semantic.h"
 #include "analysis/check.h"
+#include "analysis/frontend_internal.h"
 static int nativeCancelled(void* user);
 #endif
 #define FILE_LIMIT (8u*1024u*1024u)
@@ -575,6 +576,13 @@ analysed:
    put(moduleWork,"bytes",xrtValueInt((int64)q->moduleParseWork.bytes));
   if(okayStats) {okayStats=put(stats,"lastBuildModuleParse",moduleWork);moduleWork=NULL;}
   xrtValueRelease(moduleWork);
+  xls_sem_work work=xlsSemanticCompletionSemWork(nativeCompletion);
+  xvalue* semWork=xrtValueObject();
+  okayStats=okayStats && semWork && put(semWork,"checked",xrtValueInt((int64)work.checked)) &&
+   put(semWork,"reused",xrtValueInt((int64)work.reused)) && put(semWork,"contextHits",xrtValueInt((int64)work.contextHits)) &&
+   put(semWork,"bytes",xrtValueInt((int64)work.bytes));
+  if(okayStats) {okayStats=put(stats,"lastBuildSemantics",semWork);semWork=NULL;}
+  xrtValueRelease(semWork);
   if(!okayStats) { xrtValueRelease(stats); goto done; }
   if(!put(result,"analysis",stats)) goto done;
  }

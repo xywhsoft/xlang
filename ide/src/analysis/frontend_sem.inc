@@ -100,6 +100,14 @@ static int xlsSemWorthMemo(const XL6_AstNode* node,size_t* nodes,size_t depth)
 }
 static int xlsSemCandidate(const XL6_AstNode* node)
 { size_t nodes=0; return xlsSemFunction(node) && xlsSemWorthMemo(node,&nodes,0); }
+static int xlsSemQueryNeutral(const XL6_AstNode* node,size_t depth)
+{
+    if(!node) return 1;
+    if(depth>512 || (node->source && node->source->completionQuery)) return 0;
+    if(!xlsSemQueryNeutral(node->inferredType,depth+1) || !xlsSemQueryNeutral(node->semanticDeclaredType,depth+1)) return 0;
+    for(size_t i=0;i<node->childCount;++i) if(!xlsSemQueryNeutral(node->children[i],depth+1)) return 0;
+    return 1;
+}
 typedef struct xls_sem_key_paths { xmap paths; size_t next,lastId; const char* last; } xls_sem_key_paths;
 static int xlsSemKeySource(xstrbuf* key,const char* path,xls_sem_key_paths* paths)
 {
@@ -176,7 +184,7 @@ static void xlsSemSourceUnpin(xbytesview key,void* value,void* user)
 static void xlsSemMemoBegin(XL6_SemContext* ctx)
 {
     xls_sem_build* build=xlsActiveSemBuild;
-    if(!build || ctx->completionQuery) return;
+    if(!build) return;
     build->begun=1;
     if(!build->memo || (ctx->diags && ctx->diags->count)) return;
     int candidate=0;
@@ -187,7 +195,10 @@ static void xlsSemMemoBegin(XL6_SemContext* ctx)
     m->bytes=m->entries.Capacity*sizeof(xls_sem_entry);
     if(!xlsSemKeyText(&m->context,ctx->moduleName) || !xlsSemKeyNumber(&m->context,ctx->captureIndex) ||
        !xlsSemKeyNumber(&m->context,ctx->nextSymbolId) || !xlsSemKeyNumber(&m->context,ctx->types.nextId) || !xlsSemKeyNode(&m->context,ctx->root,0,1) ||
-       !xlsSemGlobalState(ctx,&m->context) || m->context.Capacity>XLS_SEM_MEMO_BYTES-m->bytes) return;
+       !xlsSemGlobalState(ctx,&m->context) ||
+       !xlsSemKeyNumber(&m->context,ctx->completionQuery!=NULL) ||
+       (ctx->completionQuery && !xlsSemKeyText(&m->context,ctx->completionQuery->path)) ||
+       m->context.Capacity>XLS_SEM_MEMO_BYTES-m->bytes) return;
     m->bytes+=m->context.Capacity;
     if(!xlsSemSourcePool(ctx->root,&build->sources,0)) return;
     for(size_t i=0;i<ctx->root->childCount;++i) {
@@ -445,9 +456,9 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
 {
     xls_sem_build* build=xlsActiveSemBuild;
     size_t* slot=build && build->enabled ? xrtMapGet(&build->slots,(xbytesview){(const unsigned char*)&node,sizeof(node)}) : NULL;
-    if(!slot || ctx->currentClass || ctx->currentFunction || ctx->typeParams || ctx->captureBoundary || ctx->currentReturns || ctx->completionQuery) {
+    if(!slot || ctx->currentClass || ctx->currentFunction || ctx->typeParams || ctx->captureBoundary || ctx->currentReturns) {
         if(build && build->begun && !build->enabled && !ctx->currentClass && !ctx->currentFunction &&
-           !ctx->completionQuery && ctx->scope && !ctx->scope->parent) {
+           ctx->scope && !ctx->scope->parent) {
             for(size_t i=build->cursor;i<ctx->root->childCount;++i) if(ctx->root->children[i]==node) {
                 ++build->work.checked; build->cursor=i+1; break;
             }
@@ -459,7 +470,10 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     const xls_sem_entry* old=build->compatible ? xrtArrayConstGet(&build->baseline->entries,*slot) : NULL;
     entry->start=ctx->nextSymbolId; entry->typeStart=ctx->types.nextId;
     entry->lexicalRange=node->range;
-    if(!xlsSemCandidate(node)) {
+    /* The whole query source stays on the original path, including unchanged
+     * sibling functions. Old marker ranges are not safe source identities.
+     * Also decline facts whose resolved types borrow that source. */
+    if(!xlsSemCandidate(node) || (ctx->completionQuery && !xlsSemQueryNeutral(node,0))) {
         if(old && (entry->start!=old->start || entry->typeStart!=old->typeStart)) build->compatible=0;
         ++build->work.checked; int okay=xlsSemCheckFuncOriginal(ctx,node); entry->end=ctx->nextSymbolId;
         entry->typeEnd=ctx->types.nextId;
@@ -470,6 +484,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     int usable=(!ctx->diags || !ctx->diags->count) && xlsSemGlobalState(ctx,&state) && xlsSemKeyNode(&entry->key,node,0,0) &&
         xlsSemKeyBytes(&entry->key,state.Data,state.Size) && xrtArrayInit(&raw,sizeof(xls_sem_raw)) && xlsSemRawNodes(node,&raw,0);
     int okay=0,reused=0;
+    XL6_CompletionQuery beforeQuery={0}; if(ctx->completionQuery) beforeQuery=*ctx->completionQuery;
     /* A change to earlier local allocation can renumber class fields and
      * later contexts as well. Stop reuse for the remaining module, rather
      * than treating a later coincidental counter match as proof of identity. */
@@ -487,7 +502,10 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     entry->end=ctx->nextSymbolId; entry->typeNodes=ctx->queryTypeNodes-nodes; entry->typeBytes=ctx->queryTypeBytes-bytes;
     entry->typeEnd=ctx->types.nextId;
     if(old && (entry->end!=old->end || entry->typeEnd!=old->typeEnd)) build->compatible=0;
-    if(okay && usable && (!ctx->diags || !ctx->diags->count) && xlsSemSameShape(node,&raw) && xlsSemGlobalState(ctx,&after) && xlsSemEqualKey(&state,&after) &&
+    int neutral=!ctx->completionQuery || (xlsSemQueryNeutral(node,0) &&
+        beforeQuery.reached==ctx->completionQuery->reached && beforeQuery.available==ctx->completionQuery->available &&
+        beforeQuery.count==ctx->completionQuery->count && beforeQuery.error==ctx->completionQuery->error);
+    if(okay && usable && neutral && (!ctx->diags || !ctx->diags->count) && xlsSemSameShape(node,&raw) && xlsSemGlobalState(ctx,&after) && xlsSemEqualKey(&state,&after) &&
        entry->key.Capacity<=XLS_SEM_MEMO_BYTES-m->bytes) {
         m->bytes+=entry->key.Capacity; size_t owned=0;
         size_t positions=entry->positions.Capacity*sizeof(xls_sem_position);
@@ -571,7 +589,7 @@ static int xlsSemMovesBuild(xls_sem_moves* moves,const XL6_SourceReport* old,con
     }
     xrtMapUnit(&paths); return okay && before==after;
 }
-int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* module,
+static int xlsSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* module,XL6_CompletionQuery* query,
     int captureIndex,const char* path,const XL6_SourceReport* sources,
     const XL6_SourceReport* previousSources,const xls_sem_memo* previous,xls_sem_memo** result,xls_sem_work* work)
 {
@@ -588,7 +606,7 @@ int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mo
     }
     build.memo=memo; xlsActiveSemBuild=&build;
     if(memo && previous && !xlsSemMovesBuild(&build.moves,previousSources,sources)) build.baseline=NULL;
-    int okay=xl6SemCheckModuleWithQuery(root,diags,module,captureIndex,NULL);
+    int okay=xl6SemCheckModuleWithQuery(root,diags,module,captureIndex,query);
     xlsActiveSemBuild=build.previous; xrtMapUnit(&build.slots); xrtMapUnit(&build.sources);
     xrtMapUnit(&build.moves.paths); xrtArrayUnit(&build.moves.changedSources);
     build.work.bytes=memo && build.enabled ? memo->bytes : 0;
@@ -596,3 +614,11 @@ int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mo
     if(result && build.enabled) *result=memo; else xlsFrontendSemMemoDestroy(memo);
     return okay;
 }
+int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* module,
+    int captureIndex,const char* path,const XL6_SourceReport* sources,
+    const XL6_SourceReport* previousSources,const xls_sem_memo* previous,xls_sem_memo** result,xls_sem_work* work)
+{ return xlsSemCheckMemo(root,diags,module,NULL,captureIndex,path,sources,previousSources,previous,result,work); }
+int xlsFrontendSemCheckCursorMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* module,
+    XL6_CompletionQuery* query,const char* path,const XL6_SourceReport* sources,
+    const XL6_SourceReport* previousSources,const xls_sem_memo* previous,xls_sem_memo** result,xls_sem_work* work)
+{ return xlsSemCheckMemo(root,diags,module,query,0,path,sources,previousSources,previous,result,work); }

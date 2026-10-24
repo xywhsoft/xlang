@@ -17,7 +17,10 @@ typedef struct xls_completion_stats {
  * cache construction/copy uses the original shared native query path,
  * counted by cursorFreshBuilds. An ordinary entry AST may now be reused by
  * that path; the result's EntryWork reports its actual parse/copy work.
- * Imports/semantics still rebuild. Returned reference outlives the session. */
+ * Module prerequisites and final annotations still run. Query-neutral functions
+ * in other sources may reuse bounded immutable semantic facts; the entire
+ * query source and uncertain identities/coordinates use the original checker.
+ * Returned reference outlives the session. */
 xls_completion_session* xlsCompletionSessionCreate(const xls_session_limits* limits);
 void xlsCompletionSessionDestroy(xls_completion_session* session);
 /* UTF-8 offset after BOM. Increasing same-body revisions can reuse facts;

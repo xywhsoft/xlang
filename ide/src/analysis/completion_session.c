@@ -46,6 +46,15 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
     if(equal) result=xlsSemanticCompletionRetain(s->result);
     else {
         xls_semantic_input inputs[64]; xlsInputBatchInputs(batch,inputs,64); ++s->stats.builds;
+        int compatible=s->result && s->batch && count==s->stats.documents &&
+            xlsFrontendContextsEqual(context,xlsInputBatchContext(s->batch)) &&
+            !strcmp(xlsInputBatchDirectory(batch),xlsInputBatchDirectory(s->batch)) &&
+            !strcmp(xlsInputBatchEntry(batch),xlsInputBatchEntry(s->batch));
+        for(size_t i=0;compatible && i<count;++i) {
+            const xls_analysis_document* old=xlsInputBatchFind(s->batch,documents[i].key);
+            compatible=old && old->identity==documents[i].identity && !strcmp(old->path,documents[i].path);
+        }
+        xls_semantic_completion* baseline=compatible ? s->result : NULL;
         if(!s->entryCache) s->entryCache=xlsEntryCacheCreate(32u*1024u*1024u);
         {
             const xls_analysis_document* old=xlsInputBatchFind(s->batch,queryKey);
@@ -64,7 +73,7 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
                 }
             }
             if(cancelled && cancelled(user)) goto cancel;
-            if(syntax) result=xlsSemanticCompletionCreateCachedParsedInContext(context,s->entryCache,xlsInputBatchEntry(batch),query->path,offset,inputs,count,syntax,cancelled,user,error,capacity);
+            if(syntax) result=xlsSemanticCompletionCreateIncrementalInContext(context,s->entryCache,xlsInputBatchEntry(batch),query->path,offset,inputs,count,syntax,baseline,cancelled,user,error,capacity);
         }
         if(!result) {
             if(cancelled && cancelled(user)) goto cancel;
@@ -72,7 +81,7 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
              * surface. This is the original native frontend, never CLI;
              * the explicit route counter distinguishes it from reuse. */
             ++s->stats.cursorFreshBuilds;
-            result=xlsSemanticCompletionCreateCachedInContext(context,s->entryCache,xlsInputBatchEntry(batch),query->path,offset,inputs,count,cancelled,user,error,capacity);
+            result=xlsSemanticCompletionCreateIncrementalInContext(context,s->entryCache,xlsInputBatchEntry(batch),query->path,offset,inputs,count,NULL,baseline,cancelled,user,error,capacity);
             xlsSyntaxRelease(syntax); syntax=NULL;
         }
         if(!result) goto done;

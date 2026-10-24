@@ -4,6 +4,7 @@
 #include "src/ast/xl6_ast.h"
 #include "src/diag/xl6_diag.h"
 #include "src/compile/xl6_source_report.h"
+struct XL6_CompletionQuery;
 typedef struct xls_sem_memo xls_sem_memo;
 typedef struct xls_sem_work { uint64_t checked,reused,contextHits,bytes; } xls_sem_work;
 /* Private opt-in around the unchanged compiler checker. Memo facts are
@@ -17,6 +18,13 @@ int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mo
     const XL6_SourceReport* previousSources,const xls_sem_memo* previous,
     xls_sem_memo** result,xls_sem_work* work);
 void xlsFrontendSemMemoDestroy(xls_sem_memo* memo);
+/* Cursor mode only retains query-neutral functions from other sources. Query
+ * source metadata is never rebound, and projection state must stay unchanged
+ * across the original check before facts can be published. */
+int xlsFrontendSemCheckCursorMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* module,
+    struct XL6_CompletionQuery* query,const char* entry,const XL6_SourceReport* sources,
+    const XL6_SourceReport* previousSources,const xls_sem_memo* previous,
+    xls_sem_memo** result,xls_sem_work* work);
 typedef struct xls_sem_overload_work {
     uint64_t rootVisits,indexes,pairVisits,bytes;
 } xls_sem_overload_work;
