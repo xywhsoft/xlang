@@ -183,6 +183,8 @@ xls_entry_parse_work xlsSemanticCheckModuleWork(const xls_semantic_check* result
 { return result ? result->moduleWork : (xls_entry_parse_work){0}; }
 xls_parse_work xlsSemanticCheckModuleParseWork(const xls_semantic_check* result)
 { return result ? result->moduleSyntaxWork : (xls_parse_work){0}; }
+xls_ast_intern_work xlsSemanticCheckMemoTypes(const xls_semantic_check* result)
+{return xlsFrontendSemMemoTypes(result ? result->memo : NULL);}
 xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)

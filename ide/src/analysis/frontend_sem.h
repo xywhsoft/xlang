@@ -5,6 +5,7 @@
 #include "src/diag/xl6_diag.h"
 #include "src/compile/xl6_source_report.h"
 #include "analysis/ast_storage.h"
+#include "analysis/ast_intern.h"
 struct XL6_CompletionQuery;
 typedef struct xls_sem_memo xls_sem_memo;
 typedef struct xls_sem_storage_work { uint64_t nodes,pages,chargedBytes,heapFallbacks; } xls_sem_storage_work;
@@ -37,6 +38,11 @@ int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mo
     const XL6_SourceReport* previousSources,const xls_sem_memo* previous,
     xls_sem_memo** result,xls_sem_work* work);
 void xlsFrontendSemMemoDestroy(xls_sem_memo* memo);
+/* Static memo forest representation,not current-query work or RSS.
+ * Shared units are charged once per entry,including on restored views.
+ * Foreground cursor/signature memos use the original independent facts and
+ * report zero forest provenance. No extra traversal on their hot path. */
+xls_ast_intern_work xlsFrontendSemMemoTypes(const xls_sem_memo* memo);
 /* Cursor mode retains only query-neutral functions. Query-source siblings
  * additionally prove exact source/marker identity and range/text exclusion;
  * their immutable units own the original marker stamp. Explicit private clone
