@@ -71,27 +71,31 @@ static int xl6IrDirectNumericEnumMatches(const XL6_IrModule* module,
 #include "xl6_ir_udp_enums.inc"
 #include "xl6_ir_tcp_enums.inc"
 #include "xl6_ir_tcp_server_enums.inc"
+/* Closed resident signatures include full transport constructors. This is
+ * compiler descriptor capacity, not a limit on ordinary language functions.
+ * All per-parameter profiles share one bound and lookup rejects overflow. */
+enum { XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY = 16 };
 typedef struct XL6_IrDirectBridgeContract {
     const char* name;
     XL6_IrRuntimeBridgeKind kind;
     XL6_IrCAbi result;
     size_t parameterCount;
-    XL6_IrCAbi parameters[8];
+    XL6_IrCAbi parameters[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
     XL6_IrCAbi resultArrayItemAbi;
     XL6_IrIntegerTarget resultIntegerTarget;
-    XL6_IrCAbi parameterArrayItemAbis[8];
+    XL6_IrCAbi parameterArrayItemAbis[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
     const char* resultOwner;
-    const char* parameterOwners[8];
+    const char* parameterOwners[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
     int nullableResult;
     int noRaise;
     XL6_IrNativeProductAbi resultProductAbi;
     /* Exact synchronous checked closure profiles. A closure pointer alone is
      * not a callable signature; zero means this parameter is not a closure. */
-    XL6_IrCAbi parameterNullaryCallableResultAbis[8];
+    XL6_IrCAbi parameterNullaryCallableResultAbis[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
     /* Collections and dynamic borrows are sealed per entry, not inferred from
      * the common xvalue* C representation. Zero preserves the array profile. */
     XL6_IrCollectionAbi resultCollectionAbi;
-    unsigned char parameterDynamicBorrows[8];
+    unsigned char parameterDynamicBorrows[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
     unsigned char pure;
     unsigned char nonblocking;
     /* Future is a managed generic carrier, never an unchecked pointer or
@@ -105,7 +109,7 @@ typedef struct XL6_IrDirectBridgeContract {
      * same permanent native-value profile authorizes argument borrows and
      * independent owned results; emission uses the ordinary call ABI. */
     XL6_IrNativeValueAbi resultNativeValueAbi;
-    XL6_IrNativeValueAbi parameterNativeValueAbis[8];
+    XL6_IrNativeValueAbi parameterNativeValueAbis[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
     XL6_IrCallNativeContextAbi nativeContext;
     unsigned nativeServicesRequired;
     unsigned char genericFutureResult;
@@ -136,9 +140,9 @@ typedef struct XL6_IrDirectBridgeContract {
      * logical invocation representation. This selects the shared codec plan. */
     unsigned char sequenceValueResult;
     const XL6_IrNumericEnumContract* resultEnum;
-    const XL6_IrNumericEnumContract* parameterEnums[8];
+    const XL6_IrNumericEnumContract* parameterEnums[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
     const XL6_IrNumericEnumContract* resultProductEnums[3];
-    const XL6_IrNumericEnumContract* parameterArrayItemEnums[8];
+    const XL6_IrNumericEnumContract* parameterArrayItemEnums[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -296,6 +300,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_tls_role_context_contracts.inc"
 #include "xl6_ir_tls_session_contracts.inc"
 #include "xl6_ir_tls_stream_options_contracts.inc"
+#include "xl6_ir_tls_transport_contracts.inc"
 #include "xl6_ir_compress_contracts.inc"
 #include "xl6_ir_template_contracts.inc"
     {"xl6Crc32StringV1",T,I,3,{U,S,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
@@ -918,7 +923,8 @@ static const XL6_IrDirectBridgeContract* xl6IrDirectBridgeContract(const char* n
     size_t i;
     if (name == NULL) return NULL;
     for (i = 0; i < sizeof(xl6IrDirectBridgeContracts) / sizeof(xl6IrDirectBridgeContracts[0]); ++i)
-        if (strcmp(name, xl6IrDirectBridgeContracts[i].name) == 0)
+        if (xl6IrDirectBridgeContracts[i].parameterCount <= XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY &&
+            strcmp(name, xl6IrDirectBridgeContracts[i].name) == 0)
             return &xl6IrDirectBridgeContracts[i];
     return NULL;
 }
@@ -933,7 +939,8 @@ static const XL6_IrDirectBridgeContract* xl6IrDirectBridgeContractSpelling(const
     if (length>=2 && name[0]=='"' && name[length-1]=='"')
         for(size_t i=0;i<sizeof(xl6IrDirectBridgeContracts)/sizeof(xl6IrDirectBridgeContracts[0]);++i) {
             const XL6_IrDirectBridgeContract* row=&xl6IrDirectBridgeContracts[i];
-            if(strlen(row->name)==length-2 && !memcmp(name+1,row->name,length-2))return row;
+            if(row->parameterCount<=XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY &&
+                strlen(row->name)==length-2 && !memcmp(name+1,row->name,length-2))return row;
         }
     return NULL;
 }

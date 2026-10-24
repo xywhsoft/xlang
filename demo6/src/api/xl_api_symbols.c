@@ -28,6 +28,7 @@
 #include "src/runtime/xl6_executor_jobs.h"
 #include "src/runtime/xl6_execution_resource.h"
 #include "src/runtime/xl6_execution_net_file.h"
+#include "src/runtime/xl6_execution_tls.h"
 #include "src/runtime/xl6_execution_tcp_dial.h"
 #include "src/runtime/xl6_execution_module_abi.h"
 #include "src/runtime/xl6_network_service.h"

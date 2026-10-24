@@ -807,3 +807,50 @@ drain，共 129／131 步通过。接受输入、对象、产物和日志哈希�
 删除。下一步须把 TlsStream／TlsServer／拨号接到真实 execution resource
 和角色上下文上，再迁移全部调用声明、动态回调／ticket／恢复并清退旧
 实现。完整 TLS、当前整个工作区、发布 DLL／SO 和 P7 仍未验收完成。
+
+## TLS execution resource 与语言物理 ABI
+
+TLS Stream／Listener 现在有各自的 execution family，复用现有 Source、
+Engine 父拥有者、scoped entry、退休队列和 checked 目录，不建立第二套
+语言生命周期。原生 Data 直接拥有真实 Resource 的 reference credit，
+不增加语言 owner：最后一个语言 owner 消失仍会请求清理；正在执行的
+原生调用和回调尾部则保护实际存储，不通过隐藏 lease／leaf 掩盖关系。
+尚未成功发布的原生对象同样延迟到真实关闭后退役，不能直接释放记录。
+
+Client／Server 使用不可变角色上下文。原生 Session／Listener 复制名称、
+ALPN 并保留实际 Context／Verifier／Identity；构造返回后不借用语言配置
+对象。私有接收结果导入仅允许同一 Engine 的真实 Stream，不向默认标准库
+提供 raw pointer 构造。普通 Listener 关闭保留已交付子流的独立生命周期。
+
+十个独立驻留组件覆盖资源、角色构造、语言适配与四个 domain。十六个物理
+入口公开构造、状态、地址、关闭和取消；两个原生句柄策略按真实 Resource
+追踪，四个构造入口显式要求 execution source。状态读取不能误标 pure；
+析构 no-raise／nonblocking，其他入口保持其 checked 错误与执行效果合同。
+命名空间／类名不参与 Cgen 算法选择，完整构造接受精确长度的名称片段。
+
+完整构造有十个逻辑参数，因此统一将直接调用描述表的所有逐参数配置
+改为共同的十六项容量，查找同时拒绝超界描述；这不是普通语言函数的
+参数数量限制。不能仅扩展类型数组而漏掉第九／十参数的拥有者或其他
+物理配置，也不能以忽略警告或跳过验证来接入此入口。
+
+证据 `F:/xlang-validation/five-groups-20261024/p6-tls-resources`。原生冻结
+2348、xlang 冻结 9055 文件；r1 完整构建暴露上述容量问题，r2 仅修订
+该合同源文件，原生资源与目录测试所消费的实现不变。失败记录全部保留。
+最终两端完整 O2 源码构建 1175／1174 TU；新资源、配置／产品回归、SDK、
+JIT／module／独立 AOT 合计 Windows 161、Linux 166 步通过。普通用户
+类名运行两种构造并完成真实握手，生成 C 只有驻留调用，无旧 TLS 函数体。
+29 个精确 SDK 原型实际 TCC 绑定，真实策略身份和 checked drain 通过。
+两端 O0／O2 合同变异均为 16 入口、7 拥有结果、2 策略、4 execution
+service、127 次拒绝和 18 组空输出门，通过后才允许发射 C／头文件。
+
+新资源夹具实际执行 14 次，覆盖 select／IOCP／epoll、GCC O0／O2、TCC
+和 Linux ASan／UBSan；56 个拥有图、28 次普通销毁、14 次调用中最后
+owner 消失、14 次发布失败退役均平衡。原生拥有目录另有 Windows 71／
+Linux 80 步、42 次实际执行通过。两类夹具合计 617 图、1345 个分配预算
+中的 925 次失败，全部台账平衡。两类验收共 478 步；输入、对象、产物和
+日志由独立读取器重新校验哈希，Linux 原件保留并复制报告。
+
+本批不改 XRT 算法、两边时间 ABI 或 Cgen，不进行公网／DNS／恶意报文／
+密码学安全专项。默认 TlsStream／TlsServer 尚未切换：同步／Future I/O、
+Listener accept、Dial／Proxy、动态回调、ticket／恢复和旧生成实现清退
+仍需继续；跨组闭合、当前整个工作区、发布 DLL／SO 及完整 P7 也未验收。

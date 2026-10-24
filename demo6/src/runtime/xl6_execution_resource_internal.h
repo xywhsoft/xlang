@@ -22,6 +22,8 @@ typedef struct XL6_ExecutionCreateOptionsV1 {
         const struct XL6_TcpServerCreateOptionsV1* server;
         const struct XL6_UdpCreateOptionsV1* udp;
         const struct XL6_NetFileCreateOptionsV1* file;
+        const struct XL6_TlsStreamCreateOptionsV1* tlsStream;
+        const struct XL6_TlsListenerCreateOptionsV1* tlsListener;
     } value;
 } XL6_ExecutionCreateOptionsV1;
 typedef struct XL6_ExecutionFamilyV1 {
@@ -70,6 +72,14 @@ struct XL6_ExecutionResourceV1 {
 XL6_EXECUTION_INTERNAL XL6_ExecutionResourceV1* xl6ExecutionCreateInternalV1(
     XL6_ExecutionSourceV1*,const XL6_ExecutionFamilyV1*,const XL6_ExecutionCreateOptionsV1*);
 XL6_EXECUTION_INTERNAL bool xl6ExecutionRequestedInternalV1(const XL6_ExecutionResourceV1*);
+/* Actual native Data credits, not language owners. A trusted resident factory
+ * acquires one before an owned native constructor, transfers it on success,
+ * and drops it itself on failure (which consumes zero). These credits do not
+ * suppress last-language-owner retirement. No callback inference or fake leaf.
+ * The exact same Ops backs ordinary Resource graph references. */
+XL6_EXECUTION_INTERNAL extern const xrtownershipops xl6ExecutionResourceNativeOpsV1;
+XL6_EXECUTION_INTERNAL bool xl6ExecutionResourceNativePinV1(XL6_ExecutionResourceV1*);
+XL6_EXECUTION_INTERNAL void xl6ExecutionResourceNativeDropV1(const void*);
 /* Exclusive Resolver lifecycle scope has already consumed its native creator.
  * Clear the slot under the shared metadata gate; keep the registered resource
  * until its actual user owners are released. No joins or releases here. */
