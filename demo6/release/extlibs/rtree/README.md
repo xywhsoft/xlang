@@ -20,6 +20,12 @@ C API 见 `include/rtree_native.h`。句柄由 `xrtree_destroy` 释放，`xrtree
 
 ## 范例与验证
 
+2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
+严格 C/ABI、2048 项暴力查询参照、极端矩形分裂选种、XLang 边界
+和故障注入、私有原生入口拒绝、三条范例路径固定输出，以及核心/
+公开范例 AOT 全部通过。旧的带输出 AOT 共享缺符号属于先前
+发布物；本次没有重跑 Linux native/narrow `long double` sanitizer。
+
 - `release/examples/extlibs/rtree.xl` 与 `rtree_c.c` 可直接 `xl run`，输出一致。
 - `release/extlibs/rtree/test/test_rtree.c` 使用暴力矩形扫描校验 2048 项、1000 次随机查询、删除/重插和故障注入；另在固定种子的 600 步交错修改中，反复删除和重新插入同一批 ID，每步检查局部查询，定期检查全量查询。2048 项完整查询另扫描前 64 个分配故障点，确认失败诊断和树状态不变。`test/boundaries.xl` 覆盖 600 项完整查询、公开类型和非法输入；`test/allocations.xl` 覆盖创建、分裂插入及 64 项查询前 64 点的明确 `MemoryError` 类型与恢复。两份 XLang 测试已登记到包清单的 `coverage.tests`。
 
