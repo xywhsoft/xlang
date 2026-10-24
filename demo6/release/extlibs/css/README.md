@@ -51,7 +51,7 @@ C ABI 一致；C 输出计数可使用 `<inttypes.h>` 的 `PRId64`。
 - `xl run extlibs/css/test/boundaries.xl`
 - `xl run extlibs/css/test/allocations.xl` 对六个公开 XLang 入口分别扫描至首个无故障成功（最多 128 点），每入口至少命中一次 `MemoryError`，每次清除故障后立即重试并核对正常结果。2026-10-21 的 Windows `-SkipAot` 与 Linux 包级门禁均通过；不据此签收完整 AOT。
 - 从 `demo6` 目录运行
-  `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/css/test/check.ps1 -SkipAot`，
+  `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/css/test/check.ps1`，
   一次验证清单宏严格编译、C ABI、C 边界与线程、XLang 边界和双语同输出；
   去掉 `-SkipAot` 时继续验证无输出核心及完整 AOT。
 - Windows GCC `-Wall -Wextra -Werror`、Linux ASan/UBSan 严格测试通过；
@@ -61,15 +61,18 @@ C ABI 一致；C 输出计数可使用 `<inttypes.h>` 的 `PRId64`。
 
 2026-10-13 增加“有效前缀 + NUL + 损坏尾部”的红绿用例，并复跑 C/XL 边界、线程测试和双语范例。
 
-完整边界 XL AOT 当前因主线缺少 `xl6ValueDataSnapshotV1` 而失败，见
-`demo6/dev/extlib_blockers/text_snapshot_link.md`；尚未完成发布验收。
+2026-10-24 使用更新后的 Windows 发布版复验：默认包门禁完整通过，
+包括严格 GCC、ABI、C/XLang 边界和分配故障、线程测试、双语范例及
+公开范例 AOT。Linux C ASan/UBSan、线程与 XLang 对照门禁也通过。
+旧发布版缺少 `xl6ValueDataSnapshotV1` 的阻断已解除；包级门禁通过
+不等于完整 CSS 浏览器语义或整个 xlang 发布版签收。
 包 manifest 仅声明原生源码使用的 XRT 缓冲与 Unicode 模块；新增无输出
 `test/aot_core.xl`，覆盖规则校验、规则数和属性数。从 `demo6/release`
 执行 `.\xl.exe build extlibs/css/test/aot_core.xl -o ../build/test/css_core.exe`
 后运行产物；首次缓冲模块裁剪从 3,554,816 缩至 576,512 字节。
 加入 UTF-8 校验所需的 Unicode 模块后，当前同一核心产物为 577,536 字节，
 已构建运行通过。
-完整边界 AOT 的共享快照缺符号问题仍未解除。
+以下为历史验证记录；共享快照缺符号描述均指当时的旧发布版。
 
 2026-10-15：中央 `test/cases/extlib_css.xl` 的两处畸形样式表负例
 改为捕获当前合同规定的 `ValueError`；中央 JIT 与无输出 AOT
