@@ -12,6 +12,7 @@ struct XL6_TlsClientContextV1;
 struct XL6_TlsServerContextV1;
 struct xtlslistenerconfig;
 struct xstrview;
+struct xfuture;
 XL6_CODE_LEASE_API XL6_ExecutionResourceV1* xl6ExecutionTlsConnectV1(
     XL6_ExecutionSourceV1*,XL6_ExecutionResourceV1*,const struct xnetaddr*,uint32_t,
     const struct XL6_TlsClientContextV1*,struct xstrview,struct xstrview,
@@ -24,6 +25,11 @@ XL6_CODE_LEASE_API XL6_ExecutionResourceV1* xl6ExecutionTlsListenV1(
  * constructor exposes this path. Success retains one native creator. */
 XL6_CODE_LEASE_API XL6_ExecutionResourceV1* xl6ExecutionTlsAdoptV1(
     XL6_ExecutionSourceV1*,XL6_ExecutionResourceV1*,struct xtlsstream*);
+XL6_CODE_LEASE_API XL6_ExecutionResourceV1* xl6ExecutionTlsPrepareAcceptV1(
+    XL6_ExecutionSourceV1*,XL6_ExecutionResourceV1*);
+XL6_CODE_LEASE_API struct xfuture* xl6ExecutionTlsAcceptSourceForV1(
+    XL6_ExecutionResourceV1*,XL6_ExecutionResourceV1*);
+XL6_CODE_LEASE_API bool xl6ExecutionTlsPromoteAcceptV1(XL6_ExecutionResourceV1*);
 XL6_CODE_LEASE_API const struct XL6_ExecutionFamilyV1* xl6ExecutionTlsStreamFamilyV1Get(void);
 XL6_CODE_LEASE_API const struct XL6_ExecutionFamilyV1* xl6ExecutionTlsListenerFamilyV1Get(void);
 XL6_CODE_LEASE_API const struct xtlsstreamownershipv1* xl6ExecutionTlsStreamDataPolicyV1Get(void);

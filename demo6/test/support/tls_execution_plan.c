@@ -12,6 +12,7 @@ static XL6_ArtifactOwnershipPlan plan(unsigned mode)
         assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_OWNERSHIP_DOMAIN_TLS_STREAM_FUTURE_NATIVE));
         assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_OWNERSHIP_DOMAIN_TLS_LISTENER_FUTURE_NATIVE));
         assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_TLS_STREAM_LANGUAGE));
+        assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_TLS_STREAM_CONNECT));
         assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_TLS_LISTENER_LANGUAGE));
     }
     XL6_ArtifactRuntimePlan native;XL6_ArtifactOwnershipPlan result;

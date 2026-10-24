@@ -1,0 +1,65 @@
+#ifndef XL6_TLS_IO_ABI_H
+#define XL6_TLS_IO_ABI_H
+#include "xl6_tls_transport_abi.h"
+#include "xl6_native_class_abi.h"
+XL6_TEXT_API xfuture* xl6TlsStreamRecvAsyncV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t maximum);
+XL6_TEXT_API xfuture* xl6TlsStreamRecvAsyncCancelV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t maximum,void* parent);
+XL6_TEXT_API xfuture* xl6TlsStreamRecvAsyncUntilV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t maximum,uint64_t due);
+XL6_TEXT_API xfuture* xl6TlsStreamRecvAsyncUntilCancelV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t maximum,uint64_t due,void* parent);
+XL6_TEXT_API xfuture* xl6TlsStreamRecvAsyncTimeoutV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t maximum,int64_t millis);
+XL6_TEXT_API xfuture* xl6TlsStreamRecvAsyncTimeoutCancelV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t maximum,void* parent,int64_t millis);
+XL6_TEXT_API xvalue* xl6TlsStreamRecvV1(void* receiver,int64_t maximum,int64_t millis);
+XL6_TEXT_API xvalue* xl6TlsStreamRecvCancelV1(void* receiver,int64_t maximum,void* parent,int64_t millis);
+XL6_TEXT_API xvalue* xl6TlsStreamRecvUntilV1(void* receiver,int64_t maximum,uint64_t due);
+XL6_TEXT_API xvalue* xl6TlsStreamRecvUntilCancelV1(void* receiver,int64_t maximum,uint64_t due,void* parent);
+XL6_TEXT_API xfuture* xl6TlsStreamWaitAsyncV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t condition);
+XL6_TEXT_API xfuture* xl6TlsStreamWaitAsyncCancelV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t condition,void* parent);
+XL6_TEXT_API xfuture* xl6TlsStreamWaitAsyncUntilV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t condition,uint64_t due);
+XL6_TEXT_API xfuture* xl6TlsStreamWaitAsyncUntilCancelV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t condition,uint64_t due,void* parent);
+XL6_TEXT_API xfuture* xl6TlsStreamWaitAsyncTimeoutV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t condition,int64_t millis);
+XL6_TEXT_API xfuture* xl6TlsStreamWaitAsyncTimeoutCancelV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t condition,void* parent,int64_t millis);
+XL6_TEXT_API bool xl6TlsStreamWaitV1(void* receiver,int64_t condition,int64_t millis);
+XL6_TEXT_API bool xl6TlsStreamWaitCancelV1(void* receiver,int64_t condition,void* parent,int64_t millis);
+XL6_TEXT_API bool xl6TlsStreamWaitUntilV1(void* receiver,int64_t condition,uint64_t due);
+XL6_TEXT_API bool xl6TlsStreamWaitUntilCancelV1(void* receiver,int64_t condition,uint64_t due,void* parent);
+XL6_TEXT_API xfuture* xl6TlsStreamSendTextAsyncV1(XL6_RuntimeServicesV1 services,void* receiver,xstrview input,int64_t size);
+XL6_TEXT_API xfuture* xl6TlsStreamSendTextAsyncCancelV1(XL6_RuntimeServicesV1 services,void* receiver,xstrview input,int64_t size,void* parent);
+XL6_TEXT_API xfuture* xl6TlsStreamSendTextAsyncUntilV1(XL6_RuntimeServicesV1 services,void* receiver,xstrview input,int64_t size,uint64_t due);
+XL6_TEXT_API xfuture* xl6TlsStreamSendTextAsyncUntilCancelV1(XL6_RuntimeServicesV1 services,void* receiver,xstrview input,int64_t size,uint64_t due,void* parent);
+XL6_TEXT_API xfuture* xl6TlsStreamSendTextAsyncTimeoutV1(XL6_RuntimeServicesV1 services,void* receiver,xstrview input,int64_t size,int64_t millis);
+XL6_TEXT_API xfuture* xl6TlsStreamSendTextAsyncTimeoutCancelV1(XL6_RuntimeServicesV1 services,void* receiver,xstrview input,int64_t size,void* parent,int64_t millis);
+XL6_TEXT_API int64_t xl6TlsStreamSendTextV1(void* receiver,xstrview input,int64_t size,int64_t millis);
+XL6_TEXT_API int64_t xl6TlsStreamSendTextCancelV1(void* receiver,xstrview input,int64_t size,void* parent,int64_t millis);
+XL6_TEXT_API int64_t xl6TlsStreamSendTextUntilV1(void* receiver,xstrview input,int64_t size,uint64_t due);
+XL6_TEXT_API int64_t xl6TlsStreamSendTextUntilCancelV1(void* receiver,xstrview input,int64_t size,uint64_t due,void* parent);
+XL6_TEXT_API xfuture* xl6TlsStreamSendBytesAsyncV1(XL6_RuntimeServicesV1 services,void* receiver,const xvalue* input,int64_t size);
+XL6_TEXT_API xfuture* xl6TlsStreamSendBytesAsyncCancelV1(XL6_RuntimeServicesV1 services,void* receiver,const xvalue* input,int64_t size,void* parent);
+XL6_TEXT_API xfuture* xl6TlsStreamSendBytesAsyncUntilV1(XL6_RuntimeServicesV1 services,void* receiver,const xvalue* input,int64_t size,uint64_t due);
+XL6_TEXT_API xfuture* xl6TlsStreamSendBytesAsyncUntilCancelV1(XL6_RuntimeServicesV1 services,void* receiver,const xvalue* input,int64_t size,uint64_t due,void* parent);
+XL6_TEXT_API xfuture* xl6TlsStreamSendBytesAsyncTimeoutV1(XL6_RuntimeServicesV1 services,void* receiver,const xvalue* input,int64_t size,int64_t millis);
+XL6_TEXT_API xfuture* xl6TlsStreamSendBytesAsyncTimeoutCancelV1(XL6_RuntimeServicesV1 services,void* receiver,const xvalue* input,int64_t size,void* parent,int64_t millis);
+XL6_TEXT_API int64_t xl6TlsStreamSendBytesV1(void* receiver,const xvalue* input,int64_t size,int64_t millis);
+XL6_TEXT_API int64_t xl6TlsStreamSendBytesCancelV1(void* receiver,const xvalue* input,int64_t size,void* parent,int64_t millis);
+XL6_TEXT_API int64_t xl6TlsStreamSendBytesUntilV1(void* receiver,const xvalue* input,int64_t size,uint64_t due);
+XL6_TEXT_API int64_t xl6TlsStreamSendBytesUntilCancelV1(void* receiver,const xvalue* input,int64_t size,uint64_t due,void* parent);
+XL6_TEXT_API xfuture* xl6TlsStreamSendBufferAsyncV1(XL6_RuntimeServicesV1 services,void* receiver,void* input,int64_t size);
+XL6_TEXT_API xfuture* xl6TlsStreamSendBufferAsyncCancelV1(XL6_RuntimeServicesV1 services,void* receiver,void* input,int64_t size,void* parent);
+XL6_TEXT_API xfuture* xl6TlsStreamSendBufferAsyncUntilV1(XL6_RuntimeServicesV1 services,void* receiver,void* input,int64_t size,uint64_t due);
+XL6_TEXT_API xfuture* xl6TlsStreamSendBufferAsyncUntilCancelV1(XL6_RuntimeServicesV1 services,void* receiver,void* input,int64_t size,uint64_t due,void* parent);
+XL6_TEXT_API xfuture* xl6TlsStreamSendBufferAsyncTimeoutV1(XL6_RuntimeServicesV1 services,void* receiver,void* input,int64_t size,int64_t millis);
+XL6_TEXT_API xfuture* xl6TlsStreamSendBufferAsyncTimeoutCancelV1(XL6_RuntimeServicesV1 services,void* receiver,void* input,int64_t size,void* parent,int64_t millis);
+XL6_TEXT_API int64_t xl6TlsStreamSendBufferV1(void* receiver,void* input,int64_t size,int64_t millis);
+XL6_TEXT_API int64_t xl6TlsStreamSendBufferCancelV1(void* receiver,void* input,int64_t size,void* parent,int64_t millis);
+XL6_TEXT_API int64_t xl6TlsStreamSendBufferUntilV1(void* receiver,void* input,int64_t size,uint64_t due);
+XL6_TEXT_API int64_t xl6TlsStreamSendBufferUntilCancelV1(void* receiver,void* input,int64_t size,uint64_t due,void* parent);
+XL6_TEXT_API xfuture* xl6TlsListenerAcceptAsyncV1(XL6_RuntimeServicesV1 services,XL6_ExecutionServicesV1 execution,XL6_NativeClassResultContextV1 context,void* receiver);
+XL6_TEXT_API xfuture* xl6TlsListenerAcceptAsyncCancelV1(XL6_RuntimeServicesV1 services,XL6_ExecutionServicesV1 execution,XL6_NativeClassResultContextV1 context,void* receiver,void* parent);
+XL6_TEXT_API xfuture* xl6TlsListenerAcceptAsyncUntilV1(XL6_RuntimeServicesV1 services,XL6_ExecutionServicesV1 execution,XL6_NativeClassResultContextV1 context,void* receiver,uint64_t due);
+XL6_TEXT_API xfuture* xl6TlsListenerAcceptAsyncUntilCancelV1(XL6_RuntimeServicesV1 services,XL6_ExecutionServicesV1 execution,XL6_NativeClassResultContextV1 context,void* receiver,uint64_t due,void* parent);
+XL6_TEXT_API xfuture* xl6TlsListenerAcceptAsyncTimeoutV1(XL6_RuntimeServicesV1 services,XL6_ExecutionServicesV1 execution,XL6_NativeClassResultContextV1 context,void* receiver,int64_t millis);
+XL6_TEXT_API xfuture* xl6TlsListenerAcceptAsyncTimeoutCancelV1(XL6_RuntimeServicesV1 services,XL6_ExecutionServicesV1 execution,XL6_NativeClassResultContextV1 context,void* receiver,void* parent,int64_t millis);
+XL6_TEXT_API void* xl6TlsListenerAcceptV1(XL6_ExecutionServicesV1 execution,void* receiver,int64_t millis);
+XL6_TEXT_API void* xl6TlsListenerAcceptCancelV1(XL6_ExecutionServicesV1 execution,void* receiver,void* parent,int64_t millis);
+XL6_TEXT_API void* xl6TlsListenerAcceptUntilV1(XL6_ExecutionServicesV1 execution,void* receiver,uint64_t due);
+XL6_TEXT_API void* xl6TlsListenerAcceptUntilCancelV1(XL6_ExecutionServicesV1 execution,void* receiver,uint64_t due,void* parent);
+#endif

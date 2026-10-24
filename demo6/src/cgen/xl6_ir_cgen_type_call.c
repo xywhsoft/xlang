@@ -483,15 +483,24 @@ static const char* xl6IrCgenSequenceTransferAbiToken(XL6_IrRuntimeResourcePayloa
 static int xl6IrCgenEmitNativeServices(XL6_Output* out,const XL6_IrCallTarget* target)
 {
     const unsigned mask=target->nativeServicesRequired;
-    if(mask==XL6_IR_CALL_NATIVE_SERVICE_EXECUTION_SOURCE_V1){
-        xl6OutputPuts("(XL6_ExecutionServicesV1){ xlir_execution_source }",out);
-        return !xl6OutputHasFailed(out);
+    const unsigned runtime=mask&~XL6_IR_CALL_NATIVE_SERVICE_EXECUTION_SOURCE_V1;
+    /* Orthogonal service views keep their existing physical ABI. When both
+     * are required, runtime services precede execution services; neither is
+     * stored implicitly in an object or inferred from its class spelling. */
+    if((mask&~(XL6_IR_CALL_NATIVE_SERVICE_EXECUTION_SOURCE_V1|
+        XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1|XL6_IR_CALL_NATIVE_SERVICE_DEADLINE_V1))||
+        (!runtime&&!(mask&XL6_IR_CALL_NATIVE_SERVICE_EXECUTION_SOURCE_V1))||
+        (runtime&&runtime!=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1&&runtime!=(XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1|
+        XL6_IR_CALL_NATIVE_SERVICE_DEADLINE_V1)))return 0;
+    if(runtime){
+        xl6OutputPuts("(XL6_RuntimeServicesV1){ .executor = xlir_continuation_executor",out);
+        if(runtime&XL6_IR_CALL_NATIVE_SERVICE_DEADLINE_V1)xl6OutputPuts(", .deadline = xlir_deadline_source",out);
+        xl6OutputPuts(" }",out);
     }
-    if(mask!=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1 && mask!=(XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1|
-        XL6_IR_CALL_NATIVE_SERVICE_DEADLINE_V1))return 0;
-    xl6OutputPuts("(XL6_RuntimeServicesV1){ .executor = xlir_continuation_executor",out);
-    if(mask&XL6_IR_CALL_NATIVE_SERVICE_DEADLINE_V1)xl6OutputPuts(", .deadline = xlir_deadline_source",out);
-    xl6OutputPuts(" }",out);
+    if(mask&XL6_IR_CALL_NATIVE_SERVICE_EXECUTION_SOURCE_V1){
+        if(runtime)xl6OutputPuts(", ",out);
+        xl6OutputPuts("(XL6_ExecutionServicesV1){ xlir_execution_source }",out);
+    }
     return !xl6OutputHasFailed(out);
 }
 
