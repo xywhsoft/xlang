@@ -84,7 +84,7 @@ def main():
                 text = updated
                 result = complete(left, text, version, marker)
                 work = result['analysis']['lastBuildSemantics']
-                assert work['contextHits'] == 1 and work['reused'] >= 12 and work['checked'] >= 14, result
+                assert work['contextHits'] == 1 and work['reused'] >= 24 and work['checked'] >= 1 and work['checked'] + work['reused'] == 29, result
             done('twelve-real-range-edits-reuse-only-other-sources', result)
             version += 1
             client.change(left, text, version)

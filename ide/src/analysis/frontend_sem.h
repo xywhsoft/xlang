@@ -18,9 +18,11 @@ int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mo
     const XL6_SourceReport* previousSources,const xls_sem_memo* previous,
     xls_sem_memo** result,xls_sem_work* work);
 void xlsFrontendSemMemoDestroy(xls_sem_memo* memo);
-/* Cursor mode only retains query-neutral functions from other sources. Query
- * source metadata is never rebound, and projection state must stay unchanged
- * across the original check before facts can be published. */
+/* Cursor mode retains only query-neutral functions. Query-source siblings
+ * additionally prove exact source/marker identity and range/text exclusion;
+ * their immutable units own the original marker stamp. Explicit private clone
+ * admission binds those facts to current metadata. Projection state must stay
+ * unchanged across the original check before facts can be published. */
 int xlsFrontendSemCheckCursorMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* module,
     struct XL6_CompletionQuery* query,const char* entry,const XL6_SourceReport* sources,
     const XL6_SourceReport* previousSources,const xls_sem_memo* previous,
