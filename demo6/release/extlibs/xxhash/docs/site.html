@@ -79,9 +79,8 @@ h.reset()</code></pre>
       以及 Unicode、Reader/回调、分配故障、四线程、JIT/AOT 与双语固定输出对照。
       负数或超宽种子在语义阶段拒绝；TCC 的系统头包含顺序也有回归检查。
       入口为 <code>tools/check_extlib_xxhash.ps1</code>、<code>tools/check_extlib_xxhash.sh</code> 与 <code>tools/check_extlib_linux_xl.sh xxhash</code>。
-      Windows 当前可加 <code>-SkipAot</code> 验证 C/JIT，Linux 包门禁另验证 C 单文件直跑；
-      当前完整 AOT 仍受共享运行时缺符号阻断，不能据此签收发布级。
-      Linux C sanitizer 和 XLang JIT 已分别通过，不等同于 Linux XLang AOT 或全平台认证。当前不公开 XXH3/128 语言 API、
+      2026-10-24 使用更新后的 Windows 发布版复验，默认门禁包含严格 C、独立向量、生成原型、双语输出及公开范例 AOT，全部通过；旧版共享缺符号阻断已解除。Linux 包门禁也通过 C ASan/UBSan、单文件直跑及 XLang JIT 对照。
+      <code>-SkipAot</code> 仅供开发时缩短反馈。当前结果不等同于 Linux XLang AOT 或全平台认证。当前不公开 XXH3/128 语言 API、
       XXH32 流式对象，不宣称共享可变对象并发或性能已认证。</p>
     <p>后端固定为 v0.8.3 commit <code>e626a72bc2321cd320e953a0ccf1584cad60f363</code>，
       BSD-2-Clause；来源、适配层和独立向量见包内 VENDOR.md。</p>
