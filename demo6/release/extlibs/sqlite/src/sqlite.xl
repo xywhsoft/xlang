@@ -298,8 +298,8 @@ export class Statement
 
     destroy()
         if self.handle != null then
+            // 析构期间只释放资源，不再写入正在退役的对象字段。
             sqlite3_finalize(self.handle)
-            self.handle = null
         end
     end
 
@@ -462,8 +462,8 @@ export class Database
 
     destroy()
         if self.handle != null then
+            // 未结束的语句由 SQLite 延迟关闭；对象退役时无需清空字段。
             sqlite3_close_v2(self.handle)
-            self.handle = null
         end
     end
 

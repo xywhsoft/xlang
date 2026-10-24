@@ -132,8 +132,7 @@ memory() as Database</code></pre>
     <p>Windows 37 项检查通过：44 个生成原型、45 个常量、SQLite 的 149 个分配故障点、
     XRT Buffer 与临时文本分配失败、四个独立线程、中文路径/锁竞争和 C/xlang JIT/AOT/GCC 范例输出对照。
     Linux 独立 C 的 ASan/UBSan/泄漏检查通过；不是 Linux xlang 的验收。</p>
-    <p>2026-10-20：文件/锁测试改用独占临时目录；当前仍在执行前遇到主线 XLIR C emitter ABI 错误，
-    此项改动尚未完成运行验证，不能据此签收整包。</p>
+    <p>2026-10-24：当前 Windows 发布版通过 37 项完整门禁，包括文件/锁与对象析构边界的 JIT/AOT、44 个生成原型、45 个常量及 C/XLang 范例。数据库和语句析构只释放原生句柄，不再写入正在退役的对象字段；显式 close/finalize 保持幂等。Linux C ASan/UBSan、149 个分配故障点与四线程隔离通过；Linux XLang JIT/AOT 尚未在本轮验收。此前的 XLIR ABI 错误属于旧发布物记录。</p>
     <p>范围不包含断电恢复、网络文件系统、跨进程 WAL 故障矩阵、32 位/ARM 或性能认证。
     包装尚未提供数据库加密、异步线程池、自动事务重试、备份/增量 BLOB、高级回调或自定义 SQL 函数。</p>
   </section>
