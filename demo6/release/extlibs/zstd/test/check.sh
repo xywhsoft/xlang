@@ -49,6 +49,7 @@ diff -u "$work/basic_c.txt" "$work/basic_direct.txt"
 timeout 90s ./release/xl run test/cases/extlib_zstd_progress.xl
 timeout 90s ./release/xl run release/extlibs/zstd/test/wire_fixture.xl
 timeout 90s ./release/xl run release/extlibs/zstd/test/file_ops.xl
+timeout 90s ./release/xl run release/extlibs/zstd/test/concat_boundary.xl
 timeout 45s ./release/xl run release/extlibs/zstd/examples/basic.xl > "$work/basic_xl.txt"
 diff -u "$work/basic_c.txt" "$work/basic_xl.txt"
 printf 'zstd Linux ASan/UBSan gate: PASS\n'

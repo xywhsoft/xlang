@@ -55,7 +55,8 @@ try {
     $xlOutput = Run 'XLang example' $xl @('run', 'release/extlibs/zstd/examples/basic.xl')
     foreach ($case in @('test/cases/extlib_zstd_progress.xl',
         'release/extlibs/zstd/test/wire_fixture.xl',
-        'release/extlibs/zstd/test/file_ops.xl')) {
+        'release/extlibs/zstd/test/file_ops.xl',
+        'release/extlibs/zstd/test/concat_boundary.xl')) {
         $null = Run "XLang $case" $xl @('run', $case)
     }
     if ($gccOutput -cne 'zstd round trip: hello zstd' -or

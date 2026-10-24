@@ -72,3 +72,10 @@ Windows C/XLang 最小范例和 Linux C ASan/UBSan 联合门禁通过；
 恢复。Windows 严格 GCC 与 Linux ASan/UBSan 门禁通过；该故障注入
 不覆盖上游 Zstandard 内部分配器。同日重新运行 Python Zstandard 0.25.0
 的四组固定数据双向互通，检查通过；完整 XLang AOT 的主线阻断仍未解除。
+
+2026-10-24：新增 `test/concat_boundary.xl`，分别验证两个完整帧同批
+拼接、一次性帧加分批压缩帧、先单帧解压后再复用输入、两次 `update`
+组成的串联解压，按字节核对包含 NUL/0xff 的结果。当前源码驱动的
+内存运行与独立 EXE 均通过，测试已登记在包清单及双平台门禁。
+完整教学范例的截断负例仍被已登记的 `CompressionError` 派发问题
+阻断；不把捕获更宽的 `IOError` 当作修复，也不据此签收整包发布级。

@@ -1,0 +1,51 @@
+import zstd
+
+func main(...) as int
+    Buffer source = Buffer()
+    source.append("abc")
+    source.appendByte(0)
+    source.appendByte(255)
+    Buffer first = zstd.compress(source)
+    assert zstd.decompress(first) == source
+    Buffer second = zstd.compress("def")
+    Buffer joined = Buffer()
+    joined.append(first)
+    joined.append(second)
+    assert joined.len() == first.len() + second.len()
+    Buffer firstExpected = Buffer()
+    firstExpected.append(source)
+    firstExpected.append("def")
+    assert zstd.decompress(joined) == firstExpected
+
+    auto encoder = zstd.compressor(6)
+    Buffer streamed = Buffer()
+    encoder.update("ghi")
+    streamed.append(encoder.drain())
+    encoder.update("jkl")
+    streamed.append(encoder.drain())
+    encoder.finish()
+    streamed.append(encoder.drain())
+    assert zstd.decompress(streamed).text() == "ghijkl"
+    auto decoder = zstd.decompressor()
+    decoder.update(streamed)
+    decoder.finish()
+    assert decoder.drain().text() == "ghijkl"
+
+    Buffer mixed = Buffer()
+    mixed.append(first)
+    mixed.append(streamed)
+    assert mixed.len() == first.len() + streamed.len()
+    Buffer mixedPlain = zstd.decompress(mixed)
+    Buffer mixedExpected = Buffer()
+    mixedExpected.append(source)
+    mixedExpected.append("ghijkl")
+    assert mixedPlain == mixedExpected
+    auto multi = zstd.decompressor()
+    multi.update(first)
+    multi.update(streamed)
+    multi.finish()
+    assert multi.drain() == mixedPlain
+    assert multi.members == 2
+
+    return 0
+end
