@@ -45,6 +45,7 @@ CORE_TESTS = ("analysis_process_tree_test", *CORE_TESTS)
 CORE_TESTS = ("diagnostic_paths_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_entry_cache_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_import_names_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_index_storage_test", *CORE_TESTS)
 
 
 def sha(path: Path) -> str:
@@ -66,8 +67,12 @@ def prepare_native_index(frontend: Path, output: Path) -> tuple[Path, Path, dict
     if source.count(definition) != 1:
         raise ValueError("shared index budget declaration changed; audit its native build overlay")
     for old, new in {
-        '} XL6_IndexBuild;': '} XL6_IndexBuild;\n#include "analysis/frontend_index_budget.inc"',
+        '} XL6_IndexBuild;': '    size_t factsCapacity, sourcesCapacity;\n} XL6_IndexBuild;\n#include "analysis/frontend_index_budget.inc"',
         'if (!xl6IndexBudget(b, 1536)) return 0;': 'if (!xlsIndexRecordBudget(b)) return 0;',
+        'b->count >= XL6_INDEX_NODES': 'b->count >= xlsIndexNodeLimit(b)',
+        '    f = &b->facts[b->count++];': '    if (!xlsIndexReserveFact(b)) return 0;\n    f = &b->facts[b->count++];',
+        '    if (b->sourceCount >= XL6_INDEX_NODES) {': '    if (!xlsIndexReserveSource(b)) {',
+        '        b->error = "semantic index exceeds source identity limit";': '        if (!b->error) b->error = "semantic index exceeds source identity limit";',
     }.items():
         if source.count(old) != 1:
             raise ValueError('shared typed-index allocation seam changed: ' + old)
@@ -80,8 +85,8 @@ def prepare_native_index(frontend: Path, output: Path) -> tuple[Path, Path, dict
         '\n#include "analysis/frontend_index.inc"\n').encode("utf-8"))
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
-        change="preserve shared collector; separate precharged typed arenas from JSON record allowance", indexBytes=NATIVE_INDEX_BYTES,
-        auditedSeams=4, nativeRecordBytes=64, legacyJsonRecordBytes=1536,
+        change="preserve shared collector; typed arenas grow within byte budget, legacy JSON retains fixed node/record limits", indexBytes=NATIVE_INDEX_BYTES,
+        auditedSeams=8, nativeRecordBytes=64, legacyJsonRecordBytes=1536,
         auditedDependencies={str(type_model): type_sha})
 
 

@@ -108,9 +108,10 @@ def main():
         assert not r['ok'] and r['count']==1 and r['analysis']['builds']==1 and r['analysis']['cacheHits']==1,r
         absent(c);done('source-errors-publish-diagnostics-return-empty-and-do-not-spin');c.stop()
 
-        c=client();oversized=''.join('func helper_%d(int value) as int\n return value + 1\nend\n'%i for i in range(6000))+'func main(...) as int\n return 0\nend\n';c.open(entry,oversized)
+        from lsp_resource_case import index_byte_limit_source
+        c=client();oversized=index_byte_limit_source();c.open(entry,oversized)
         id=send(c,'textDocument/definition',params(text=oversized,needle='main'));rows,_=collect(c,[id])
-        assert rows[id]['error']['code']==-32603 and 'index exceeds tree limit' in rows[id]['error']['message'],rows
+        assert rows[id]['error']['code']==-32603 and 'index exceeds byte limit' in rows[id]['error']['message'],rows
         c.change(entry,good,2);r,_=call(c,'textDocument/definition',params());assert r==location(entry,good,good.index('result'),6),r
         done('resource-failure-remains-error-and-current-body-recovers');c.stop()
 

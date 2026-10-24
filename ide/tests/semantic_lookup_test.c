@@ -17,18 +17,22 @@ static bool lookupSort(xarray* a,xarraycompare compare)
 {return lookupOperation() && xrtArraySort(a,compare);}
 static bool lookupResize(xarray* a,size_t count)
 {return lookupOperation() && xrtArrayResize(a,count);}
+static bool lookupReserve(xarray* a,size_t count)
+{return lookupOperation() && xrtArrayReserve(a,count);}
 static void lookupUnit(xarray* a)
 {if(!lookupArrays)lookupBadLifetime=1;else --lookupArrays;xrtArrayUnit(a);}
 #define xrtArrayInit lookupInit
 #define xrtArrayAppend lookupAppend
 #define xrtArraySort lookupSort
 #define xrtArrayResize lookupResize
+#define xrtArrayReserve lookupReserve
 #define xrtArrayUnit lookupUnit
 #include "../src/services/semantic_definition.c"
 #undef xrtArrayInit
 #undef xrtArrayAppend
 #undef xrtArraySort
 #undef xrtArrayResize
+#undef xrtArrayReserve
 #undef xrtArrayUnit
 
 static size_t checks;
@@ -119,11 +123,25 @@ static int lookupQueries(size_t count)
  lookupFail=0;xideSemanticDefinitionsDestroy(d);CHECK(!lookupArrays && !lookupBadLifetime);
  printf("lookup scale: %zu declarations, %zu nodes including full-source token, maximum indexed cursor work=%zu, charged array capacity=%zu bytes.\n",count,count*2+1,maximumWork,charged);return 1;
 }
+#ifdef XLS_COMPILER_XRT
+static int typedLimits(void)
+{
+ xide_semantic_source source={"/typed-capacity.xl","",1,0};
+ size_t low=0,high=CURSOR_SELECTION;
+ while(low+1<high) {size_t mid=low+(high-low)/2;if(typedCapacity(mid,&source,1))low=mid;else high=mid;}
+ CHECK(low>65536 && typedCapacity(low,&source,1) && !typedCapacity(low+1,&source,1));
+ CHECK(!typedCapacity(SIZE_MAX,&source,1) && !typedCapacity(CURSOR_SELECTION,&source,1));
+ source.path=NULL;CHECK(!typedCapacity(0,&source,1));return 1;
+}
+#endif
 int main(void)
 {
  lookup_input empty;if(!lookupInput(&empty,0))return 1;xide_semantic_definitions* zero=lookupCreate(&empty);xide_semantic_reference_view view={0};
  if(!zero || zero->cursors.Count || zero->references.Count || !xideSemanticReferences(zero,empty.path,0,0,1,&view) || view.count)return 1;
  xideSemanticDefinitionsDestroy(zero);lookupInputUnit(&empty);
- if(!lookupFaults() || !lookupQueries(3) || !lookupQueries(5000))return 1;
+ if(!lookupFaults() || !lookupQueries(1) || !lookupQueries(3) || !lookupQueries(5000))return 1;
+#ifdef XLS_COMPILER_XRT
+ if(!typedLimits())return 1;
+#endif
  printf("semantic_lookup_test passed: %zu checks; every XRT index operation failure/recovery, immutable input, same-span selection precedence, typed reference/declaration views, guarded bounds, independent ownership and cached lookup work.\n",checks);return 0;
 }
