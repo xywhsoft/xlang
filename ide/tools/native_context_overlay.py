@@ -68,6 +68,20 @@ def derive(frontend: Path, output: Path) -> list[dict]:
             if source.count(marker_names) != 1:
                 raise ValueError("shared import name append seam changed")
             source = source.replace(marker_names, '#include "analysis/frontend_import_names.inc"\n' + marker_names, 1)
+            for name in ['ModuleHasDeclName', 'ModuleHasNaturalDeclName', 'PrepareSourceModule']:
+                start = 'static int xl6Imports' + name + '('
+                if source.count(start) != 1:
+                    raise ValueError("shared import preparation seam changed: " + name)
+                replacement = start.replace('xl6Imports'+name, 'xlsImports'+name+'Original')
+                if name == 'ModuleHasDeclName':
+                    replacement = 'static int xl6ImportsModuleHasDeclName(const XL6_AstNode*,const char*);\n' + replacement
+                source = source.replace(start, replacement, 1)
+            marker_decls = 'static char* xl6ImportsImportedPublicNameForInternal('
+            setter = '            xl6ImportsSetDeclName(child, internalName);'
+            if source.count(marker_decls) != 1 or source.count(setter) != 1:
+                raise ValueError("shared preparation root/rename observer seam changed")
+            source = source.replace(marker_decls, '#include "analysis/frontend_import_decls.inc"\n' + marker_decls, 1)
+            source = source.replace(setter, '            xlsImportsSetIndexedDeclName(moduleRoot, i, child, internalName);', 1)
             marker = 'static int xl6ImportsTryRewriteQualifiedNamespaceRef(\n'
             old = '    symbol = xl6ImportsFindSymbol(symbols, ns, parts[count - 1]);'
             if source.count(marker) != 1 or source.count(old) != 1:
@@ -77,7 +91,7 @@ def derive(frontend: Path, output: Path) -> list[dict]:
                 '    if (!nsInfo->isPrivate && xlsImportsNamespaceCursor(node)) {\n'
                 '        int okay=xlsImportsCaptureNamespace(node,symbols,ns); xrtFree(ns); return okay;\n'
                 '    }\n' + old, 1)
-            seams = 10
+            seams = 16
         else:
             old = 'int xl6CompletionAdd(XL6_CompletionQuery* q,'
             marker = 'void xl6CompletionFree(XL6_CompletionQuery* q)\n{'

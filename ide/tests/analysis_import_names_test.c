@@ -8,9 +8,11 @@ static int operation(void) {return ++calls!=failAt;}
 static void* fixtureCalloc(size_t count,size_t size) {return operation() ? xrtCalloc(count,size) : NULL;}
 static bool fixtureMapInit(xmap* map,size_t bytes) {return operation() && xrtMapInit(map,bytes);}
 static bool fixtureMapSet(xmap* map,xbytesview key,const void* value) {return operation() && xrtMapSet(map,key,value);}
+static bool fixtureMapRemove(xmap* map,xbytesview key) {return operation() && xrtMapRemove(map,key);}
 #define xrtCalloc fixtureCalloc
 #define xrtMapInit fixtureMapInit
 #define xrtMapSet fixtureMapSet
+#define xrtMapRemove fixtureMapRemove
 #define xl6ImportDepsInit privateDepsInit
 #define xl6ImportDepsFree privateDepsFree
 #define xl6ImportsExpandModule privateExpand
@@ -30,6 +32,7 @@ static bool fixtureMapSet(xmap* map,xbytesview key,const void* value) {return op
 #undef xrtCalloc
 #undef xrtMapInit
 #undef xrtMapSet
+#undef xrtMapRemove
 #undef xl6ImportDepsInit
 #undef xl6ImportDepsFree
 #undef xl6ImportsExpandModule
@@ -93,6 +96,7 @@ static int pair(xls_context* context,const char* entry,const xls_semantic_input*
     char *a=xlsSemanticCheckJson(fast,NULL),*b=xlsSemanticCheckJson(slow,NULL);CHECK(fast && slow && a && b && !strcmp(a,b));
     CHECK(xlsSemanticCheckInfo(fast).accepted==accepted && xlsSemanticCheckValidate(fast) && xlsSemanticCheckValidate(slow));
     CHECK(fastWork.indexedRows>=128 && fastWork.lookups>0 && fastWork.noDotSkips>0 && !slowWork.indexedRows && !slowWork.lookups && slowWork.fallbacks>0);
+    CHECK(fastWork.declRows>=128 && fastWork.declLookups>0 && fastWork.declRenames>0 && !slowWork.declRows && !slowWork.declLookups && slowWork.declFallbacks>0);
     xlsSemanticStringFree(a);xlsSemanticStringFree(b);xlsSemanticCheckDestroy(fast);xlsSemanticCheckDestroy(slow);return 1;
 }
 typedef struct thread_input {xls_context* context;const char* entry;xls_semantic_input input;size_t budget;xatomic32* arrived;int okay;} thread_input;
@@ -121,4 +125,51 @@ static int integrated(void)
     for(unsigned i=0;i<2;++i) {CHECK(xrtThreadWait(threads[i])==XWAIT_OK && readers[i].okay);xrtThreadDestroy(threads[i]);}
     xlsContextRelease(context);xrtStrBufFree(&source);xrtFree(directory);xrtFree(entry);xrtFree(dep);return 1;
 }
-int main(void) {if(!primitive() || !integrated()) return 1;printf("analysis_import_names_test passed: %u checks; original exact/dotted first-match parity,Unicode,budget/fault/append/lifetime,full semantic JSON/index/IR and concurrent TLS reference isolation\n",checks);return 0;}
+static int declarationAnswers(const XL6_AstNode* root,const char* name)
+{
+    CHECK(xl6ImportsModuleHasDeclName(root,name)==xlsImportsModuleHasDeclNameOriginal(root,name));
+    CHECK(xl6ImportsModuleHasNaturalDeclName(root,name)==xlsImportsModuleHasNaturalDeclNameOriginal(root,name));return 1;
+}
+static int declarationPrimitive(void)
+{
+    xstrbuf body;xrtStrBufInit(&body);int built=1;
+    for(unsigned i=0;i<20;++i) {char text[96];snprintf(text,sizeof(text),"func name%u() as int\n return %u\nend\n",i,i);if(!xrtStrBufAppend(&body,xrtStrView(text))) built=0;}
+    CHECK(built && xrtStrBufAppend(&body,xrtStrView("func same(int value) as int\n return value\nend\nfunc same(string value) as int\n return 0\nend\nclass Box\n int value\nend\n")));
+    XL6_ParseResult a,b;xl6ParseResultInit(&a);xl6ParseResultInit(&b);CHECK(xl6ParseSource(body.Data,"decl-root-a.xl",&a) && xl6ParseSource(body.Data,"decl-root-b.xl",&b));
+    xls_import_names_scope scope;privateBegin(&scope,8u*1024u*1024u);xls_import_decl_index index;xlsImportDeclBegin(&index,a.root);
+    CHECK(index.enabled && xrtMapCount(&index.names)==22 && declarationAnswers(a.root,"same") && declarationAnswers(a.root,"missing") && declarationAnswers(a.root,NULL) && declarationAnswers(a.root,""));
+    size_t exact=index.bytes;CHECK(exact>128);
+    xlsImportsSetIndexedDeclName(a.root,20,a.root->children[20],"__xl6_import_test_same");
+    CHECK(declarationAnswers(a.root,"same") && declarationAnswers(a.root,"__xl6_import_test_same") && xl6ImportsModuleHasNaturalDeclName(a.root,"same"));
+    xlsImportsSetIndexedDeclName(a.root,21,a.root->children[21],"__xl6_import_test_same");
+    CHECK(declarationAnswers(a.root,"same") && declarationAnswers(a.root,"__xl6_import_test_same") && !xl6ImportsModuleHasDeclName(a.root,"same"));
+    size_t* count=xrtMapGet(&index.names,xlsImportDeclKey("__xl6_import_test_same"));CHECK(count && *count==2 && !xl6ImportsModuleHasNaturalDeclName(a.root,"__xl6_import_test_same"));
+    xls_import_names_scope reference;privateBegin(&reference,0);xlsImportsSetIndexedDeclName(a.root,20,a.root->children[20],"same");CHECK(declarationAnswers(a.root,"same"));xls_import_names_work work;privateEnd(&reference,&work);CHECK(!work.declLookups && work.declRenames==1);
+    CHECK(declarationAnswers(a.root,"same") && declarationAnswers(a.root,"__xl6_import_test_same"));
+    xls_import_decl_index nested;xlsImportDeclBegin(&nested,b.root);CHECK(nested.enabled);
+    xlsImportsSetIndexedDeclName(a.root,22,a.root->children[22],"重命名😀");CHECK(declarationAnswers(a.root,"Box") && declarationAnswers(a.root,"重命名😀") && declarationAnswers(b.root,"Box"));xlsImportDeclEnd(&nested);
+    CHECK(declarationAnswers(a.root,"重命名😀"));xlsImportDeclBegin(&nested,a.root);CHECK(!nested.enabled && !index.enabled);xlsImportsSetIndexedDeclName(a.root,0,a.root->children[0],"afterReentry");xlsImportDeclEnd(&nested);
+    CHECK(declarationAnswers(a.root,"name0") && declarationAnswers(a.root,"afterReentry"));xlsImportDeclEnd(&index);privateEnd(&scope,&work);CHECK(!index.names.Count && work.declRows==46 && work.declLookups>0 && work.declRenames==3);
+    xl6ParseResultFree(&a);xl6ParseResultFree(&b);
+    for(unsigned shortfall=0;shortfall<2;++shortfall) {
+        xl6ParseResultInit(&a);CHECK(xl6ParseSource(body.Data,"decl-budget.xl",&a));privateBegin(&scope,exact-shortfall);xlsImportDeclBegin(&index,a.root);
+        CHECK(index.enabled==!shortfall && declarationAnswers(a.root,"same"));xlsImportDeclEnd(&index);privateEnd(&scope,&work);CHECK(work.maxDeclBytes<=exact-shortfall);xl6ParseResultFree(&a);
+    }
+    /* Fail every map init/insert/remove operation, including update after the
+       actual AST rename. Cache observer failure never changes that operation. */
+    size_t operations=0;
+    for(size_t failure=0;failure<=operations;++failure) {
+        xl6ParseResultInit(&a);CHECK(xl6ParseSource(body.Data,"decl-fault.xl",&a));calls=0;failAt=failure;privateBegin(&scope,8u*1024u*1024u);xlsImportDeclBegin(&index,a.root);
+        xlsImportsSetIndexedDeclName(a.root,0,a.root->children[0],"newName");if(!failure) {operations=calls;CHECK(operations>=25);}
+        CHECK(declarationAnswers(a.root,"name0") && declarationAnswers(a.root,"newName") && !strcmp(xl6ImportsDeclName(a.root->children[0]),"newName"));
+        xlsImportDeclEnd(&index);privateEnd(&scope,&work);CHECK(!index.names.Count);xl6ParseResultFree(&a);
+    }
+    failAt=0;xl6ParseResultInit(&a);CHECK(xl6ParseSource(body.Data,"decl-guard.xl",&a));xlsImportDeclBegin(&index,a.root);
+    xlsImportsSetIndexedDeclName(a.root,SIZE_MAX,a.root->children[0],"guarded");CHECK(!index.enabled && declarationAnswers(a.root,"guarded"));xlsImportDeclEnd(&index);xl6ParseResultFree(&a);
+    /* Distinct-key capacity is checked independently of source grammar. */
+    index=(xls_import_decl_index){.limit=8u*1024u*1024u,.bytes=sizeof(index),.enabled=1};CHECK(xrtMapInit(&index.names,sizeof(size_t)));int bounded=1;
+    for(unsigned i=0;i<65536 && bounded;++i) {char name[32];snprintf(name,sizeof(name),"capacity%u",i);bounded=xlsImportDeclAdd(&index,name);}
+    CHECK(bounded && xrtMapCount(&index.names)==65536 && !xlsImportDeclAdd(&index,"overflow") && index.bytes<=index.limit);xlsImportDeclDisable(&index);CHECK(!index.names.Count);
+    xrtStrBufFree(&body);return 1;
+}
+int main(void) {if(!primitive() || !integrated() || !declarationPrimitive()) return 1;printf("analysis_import_names_test passed: %u checks; original exact/dotted first-match parity,Unicode,budget/fault/append/lifetime,full semantic JSON/index/IR and concurrent TLS reference isolation\n",checks);return 0;}
