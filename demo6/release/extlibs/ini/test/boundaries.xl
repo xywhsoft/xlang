@@ -129,6 +129,14 @@ func main(...) as int
     assert restored.get("server", "message") == "first\nsecond", "multiline value must round trip"
     assert restored.get("server", "city") == "上海", "UTF-8 value must round trip"
     assert restored.get("", "global") == "root", "global keys must precede named sections"
+    cstring owned = restored.get("server", "city")
+    string retained = owned
+    owned = restored.stringify()
+    assert retained == "上海" and owned == restored.stringify(), "owned text survives reassignment"
+    array<string> sections = restored.sectionNames()
+    array<string> keys = restored.keys("server")
+    assert sections.length > 0 and keys.length == 2, "owned names enter string arrays"
+    assert keys[0] == "message" and keys[1] == "city", "name order and text"
 
     // 配置内存错误必须保持为 MemoryError，不能被包装成普通状态错误。
     int allocationIndex = 0

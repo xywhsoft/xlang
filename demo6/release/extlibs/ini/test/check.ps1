@@ -39,6 +39,15 @@ try {
         $null = Run 'C boundaries' $xl @('run', 'extlibs/ini/test/test_ini.c',
             '--inc-path', '../lib/xrt')
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/ini/test/boundaries.xl')
+        $generated = Join-Path $work 'owned_text.c'
+        $null = Run 'owned-text cgen' $xl @('cgen',
+            'extlibs/ini/test/boundaries.xl', '--emit', $generated)
+        $adoptions = [regex]::Matches([IO.File]::ReadAllText($generated),
+            '\bxl6CStringTakeV1\s*\(').Count
+        if ($adoptions -ne 2) {
+            throw "INI get/stringify must use two direct C-owner adoptions (got $adoptions)"
+        }
+        Write-Host '[ini] owned-text codegen: PASS'
         $oldErrorActionPreference = $ErrorActionPreference
         try {
             $ErrorActionPreference = 'Continue'
