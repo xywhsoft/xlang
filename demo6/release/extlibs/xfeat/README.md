@@ -1,5 +1,12 @@
 # xfeat
 
+2026-10-24 从当前源码重建 Windows 发布版后，默认
+`test/check.ps1` 完整通过严格 C、匹配核心、UTF-8 桥接、真实
+ONNX 会话所有权、XLang 图片保存与参数边界、核心及公开范例 AOT。
+本次未设置 `XFEAT_MODEL`，因此没有重跑需外部 XFeat 权重的真实
+图片定位；此前的真实模型验收记录仍是独立历史证据，不能由本次
+无模型门禁替代。
+
 XFeat 特征匹配扩展库：通过 OpenCV 读取图片、ONNX Runtime 提取特征，使用双向描述子匹配和 RANSAC 仿射估计定位目标。
 
 **尚未达到完整发布级验收。** 本机已有兼容的外部 XFeat 模型，真实图片局部定位已通过；权重不随本包分发。包内 `test/assets/target.png` 与 `unrelated.png` 来自本仓库 IDE 文档截图，分别提供可分发的正例目标和不相关负例。创建引擎必须显式提供 `xfeat.open(query_model_path, target_model_path)`；无模型的假默认入口已删除。`release/examples/extlibs/xfeat.xl` 只验证 ABI 与失败路径，`examples/live_model.xl` 才运行真实定位。

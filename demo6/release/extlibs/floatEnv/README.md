@@ -1,5 +1,13 @@
 # floatEnv
 
+> 2026-10-24 从当前源码重建 Windows 发布版后，默认 `test/check.ps1`
+> 的严格 C、XLang JIT 边界/分配故障、包外访问负例和 C/XLang 范例
+> 均通过；顶层持有 `Snapshot` 的 `test/cases/stdlib_crt_float_env.xl`
+> 在独立 EXE 中于退出期报
+> `RuntimeError: operation is not valid in the current state`。
+> 这与已登记的顶层 native-backed class 退役问题同形，尚未证明同根。
+> 默认门禁保持红色，完整 AOT 与私有句柄构造器均未签收。
+
 `floatEnv` 操作**当前 OS 线程**的浮点环境：舍入模式、IEEE 异常标志和状态快照。它不改变其他线程，也不控制编译器对浮点表达式的常量折叠。快照不能跨线程恢复；在 `await`、任务迁移和回调跨线程场景，不要把快照当作进程级状态使用。
 
 ## XLang API
