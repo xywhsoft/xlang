@@ -63,3 +63,9 @@ Windows C 定向测试、Linux 严格 GCC/ASan/UBSan、线程和 C/XLang 双语�
 2026-10-19：新增 Windows `test/check.ps1` 和固定范例预期，检查包运行器 C、直接运行的 C、XLang 三条输出路径；Linux `test/check.sh` 同步核对预期。两平台门禁通过，Linux 含 ASan/UBSan。算法未改，完整带输出 AOT 的共享缺符号阻断未解除，不签收发布级。
 
 2026-10-20：Windows 门禁新增默认的完整范例 AOT 构建、运行和固定输出检查，并为原 C/JIT 路径提供显式 `-SkipAot`。快测通过；默认在 C/JIT 全部通过后，完整范例构建因共享 `xl6ValueDataSnapshotV1` 缺符号非零退出，尚未执行到 AOT 输出检查。产物使用每次独占目录且失败后已清理；实现未改，整包不签收发布级。
+
+2026-10-24 当前 Windows 发布版复测：默认 `test/check.ps1` 的 C
+边界/线程、XLang 边界、C/XLang 固定范例输出及完整范例 AOT 均通过。
+旧版 `xl6ValueDataSnapshotV1` 缺符号在本次路径不再出现。Linux
+ASan/UBSan 与语言 JIT 沿用既有记录；此次未以重建后的 Linux 发布物
+复验，也不把有界行级输出称作可直接应用的 unified patch。
