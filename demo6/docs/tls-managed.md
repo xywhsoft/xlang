@@ -600,3 +600,37 @@ Linux 7092 份已接受构建与测试产物独立归档、逐项复核，原件
 畸形流量、模糊或网络安全专项。Stream 运行时根、会话／配置／异步节点
 的完整拥有边，Listener／Dial、静止检查和 checked 退役，动态回调、恢复、
 旧后端清理及 P7 仍开放；长期任务没有缩小到这一交接前置。
+
+## 显式拥有 TLS Stream 核心底座（V1）
+
+新增 Connect／Attach／Client／Accept 四个 OwnedV1 工厂，以及引用、运行时、
+传输事件、静止策略与 Adapter 五个低层入口。永久上下文策略真实持有事件
+和所有 Session 借用回调，成功消费一个 Data 引用、失败消费零个，Session
+先于 Data 销毁。旧借用工厂不会自动获得认证，Events／Data 不可被替换。
+
+图中分别列出实际 Engine 操作引用和 storage 引用、原有 RuntimeHeld 根、
+TCP 事件拥有引用、Session 四个缓冲队列及错误根因，不伪造引用数。Claim
+隔离新提交，Prepare 通过原生生命周期推进真正关闭；未读缓冲在停止后于
+Freeze 外释放并重新验证全图，避免池租约与 Engine 退役的循环依赖。
+Clear 不执行回调，Finish 保留首次清理错误，优先恢复进入时的线程错误，
+重复检查不重复析构。底层算法驻留 XRT，Cgen 无改动，两边时间 ABI 保留。
+
+此阶段仍明确拒绝旧式 pending Future 节点和未知 Listener 管理上下文。
+它不是完整 Stream／Future、Listener／Dial 接入，也没有把传输错误地标成
+叶节点。还须补全原生异步节点、共享上下文、Listener／Dial 拥有图，再迁移
+语言公开面、动态回调、恢复及旧后端；P6／P7 与发布产品验收继续开放。
+
+验收证据为 `F:/xlang-validation/five-groups-20261024/p6-tls-stream-ownership`。
+原生冻结 2334 输入，最终 r3 仅将测试数组改为等价逐项初始化，以避开
+Windows TCC 的 initializer 内部错误；r1／r2／探测失败证据原样保留。xlang
+冻结 9010 输入，两端原始产物保留，不将源码冻结验收冒充当前全部工作区
+或发布 DLL 的验收；未运行公网、DNS、畸形流量或安全专项。
+
+最终原生 Windows 411／Linux 548 编译运行步骤、21／28 次实际 fixture
+执行通过，包含模块化／单头、GCC O0／O2、TCC、Linux ASan／UBSan 及
+select／IOCP／epoll。新图用例累计验证 56 个实际循环图、28 次持久清理
+失败与完整内存台账；未把编译步骤计作独立测试。两端全源码 O2 分别
+1156／1155 TU，xlang 配置／IR／裁剪、产品 ABI／数学／TLS 回归及九个
+精确 SDK 新符号的真实 TCC 绑定执行共 129／131 阶段通过。所有接受的
+输入、对象和产物由独立读取器逐项复核哈希；Linux 原件仍在 WSL，接受
+报告另复制到证据根，未删除或以旧产物替换当前验证。
