@@ -14,8 +14,10 @@ static void check_language_boundary(void)
         "func factory() as func(byref int) as int\nreturn consume\nend\nvar erased = xcall(factory)\n",
         "func consume(out int value)\nvalue = 1\nend\n"
         "func factory() as func(out int)\nreturn consume\nend\nvar erased = xcall(factory)\n",
-        "func consume(future<int> value) as int\nreturn 42\nend\n"
-        "func factory() as func(future<int>) as int\nreturn consume\nend\nvar erased = xcall(factory)\n"
+        /* Shared Future payloads now have a Value codec. Channels still do
+         * not, so this remains an actual unsupported returned signature. */
+        "func consume(channel<int> value) as int\nreturn 42\nend\n"
+        "func factory() as func(channel<int>) as int\nreturn consume\nend\nvar erased = xcall(factory)\n"
     };
     size_t i;
     for (i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
