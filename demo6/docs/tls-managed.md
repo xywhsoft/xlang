@@ -634,3 +634,39 @@ select／IOCP／epoll。新图用例累计验证 56 个实际循环图、28 次�
 精确 SDK 新符号的真实 TCC 绑定执行共 129／131 阶段通过。所有接受的
 输入、对象和产物由独立读取器逐项复核哈希；Linux 原件仍在 WSL，接受
 报告另复制到证据根，未删除或以旧产物替换当前验证。
+
+## 原生 TLS Future 激活与拥有结果
+
+以真实引用节点替换旧 pending Future 的保守拒绝。构造／FIFO、Promise
+producer 和 Owned CancelWatch 各持有一个引用，节点只 Trace 实际的
+Stream、Promise、Watch 和缓存 Engine 租约。接收结果使用永久 bytes
+拥有策略；没有裸析构函数遮蔽结果图，也没有按每个引用重复展开子图。
+
+Publishing／Active 排除半发布与调用中的图，失败先退役 Watch、归还预算
+和全部引用。完成后即脱离 Engine 缓存租约，即使收集 pin 仍保留外壳也
+不能阻塞退役；普通无 pin 完成仍复用小节点缓存，元数据不超 128 字节。
+FIFO walker 校验环、尾、节点类型、偏移、读写数和字节预算。节点 Prepare
+等待真实源完成，不能把已产生 Future 提前关闭来假装收敛。
+
+Claim 隔离新公开提交，不中断原生已受理的读写；内部 accepted 路径仍要求
+正确 Worker、未 Clear 对象及真实写入／关闭／取消门。没有临时解除 Claim
+或公开不安全绕过入口。同步仅更新六个命名段及对应声明／符号／矩阵，
+新增五个低层策略／Adapter 入口，API 3395／3860，时间 ABI 与 Cgen 不改。
+
+普通固定密钥新夹具覆盖三个客户端拥有工厂及 Accept、待读导致 Attach
+失败的引用与池回滚、构造 OOM、分片发送和 NUL 拥有结果、真实 pending
+节点的三个引用、策略副本拒绝、Claim／Restore、实际停止、惰性 pin、
+持久清理错误及内存台账；旧 Stream 与交接用例一并回归。证据根为
+`F:/xlang-validation/five-groups-20261024/p6-tls-stream-future`。仍不表示
+Listener／Dial、语言传输迁移、动态回调／恢复、旧后端清退或 P7 完成。
+
+本批最终冻结原生 2337、xlang 9011 输入。原生 Windows 417／Linux 556
+编译运行步骤、24／32 次实际 fixture 执行通过；新图夹具累计 168 个
+循环图、336 个 pending 激活、336 个拥有结果、840 个预算中的 504 次
+失败、56 次 Attach 回滚、84 次持久清理错误，均平衡收尾。覆盖 Select、
+IOCP、epoll、GCC O0／O2、TCC、模块化／单头及 Linux ASan／UBSan。
+两端全源码 O2 1156／1155 TU，配置／IR／裁剪 51／53、产品 ABI／数学／
+TLS 回归各 72、十四个精确 SDK 符号的真实 TCC 绑定各 6，共 260 阶段
+通过。输入、对象和产物哈希独立复核；Linux 原件留于 WSL，接受报告
+复制到证据根。只做普通本机回环与离线检查，无公网、DNS 或安全专项，
+不冒充当前完整工作区、发布 DLL 或整个 TLS 验收。

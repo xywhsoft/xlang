@@ -27930,6 +27930,18 @@ XRT_API const xrtownershipadapterv1* xrtTlsStreamOwnershipAdapterV1(
 	xrtownershipref Reference, const xtlsstreamownershipv1* const* pPolicies,
 	size_t iPolicyCount, const xrtownershippreparationv1** ppPreparation);
 
+#if defined(XRT_FEATURE_TLS_STREAM_FUTURE)
+/* Actual async activation, cancellation-context and result policies. Admission
+ * of a policy never admits an unknown Stream or transitive child. Preparation
+ * waits for normal source retirement; it does not prematurely close a Future. */
+XRT_API const xfutureproducerownershipv1* xrtTlsStreamFutureProducerPolicyV1Get(void);
+XRT_API const xcancelwatchownershipv1* xrtTlsStreamFutureCancelPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtTlsStreamFutureBytesPayloadPolicyV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtTlsStreamFutureOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtTlsStreamFutureOwnershipAdapterV1(
+	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+#endif
+
 
 
 /*
@@ -50562,6 +50574,9 @@ __xrt_net_stream_events_owner* __xrtNetStreamEventsPrepare(ptr pData,
 bool __xrtNetStreamEventsAttach(xnetstream* pStream, __xrt_net_stream_events_owner* pOwner);
 void __xrtNetStreamEventsDiscard(__xrt_net_stream_events_owner* pOwner);
 xnetresult __xrtNetStreamSendSecureTake(xnetstream* pStream, ptr pData, size_t iSize);
+/* Already accepted protocol work on the owning Worker; still checks write,
+ * close and abort gates, and never admits a cleared native participant. */
+xnetresult __xrtNetStreamSendBufferAccepted(xnetstream* pStream, xnetbuf* pBuffer);
 
 /* Stream 的可变 IO 状态只由所属 Worker 访问。 */
 struct xnetstream {
@@ -53370,6 +53385,14 @@ struct xtlsstream {
  * are excluded by Engine quiescence, not by a lock held across callbacks. */
 bool __xrtTlsStreamOwnershipEnter(xtlsstream* pStream, bool bSubmit);
 void __xrtTlsStreamOwnershipLeave(xtlsstream* pStream);
+
+#if defined(XRT_FEATURE_TLS_STREAM_FUTURE)
+/* Already accepted native work is not a new public submission. It still
+ * requires the correct Worker and may never access a cleared participant. */
+xtlsresult __xrtTlsStreamReadAccepted(xtlsstream*, void*, size_t, size_t*);
+xtlsresult __xrtTlsStreamSendAccepted(xtlsstream*, const void*, size_t, size_t*);
+bool __xrtTlsStreamAsyncOwnershipWalk(const xtlsstream*, xrtownershipvisitor, ptr);
+#endif
 
 
 
@@ -131869,9 +131892,9 @@ static void __xrtNetStreamWakeLifecycle(xnetstream* pStream)
 
 
 /* 进入跨线程发送提交区，阻止关闭过程越过已开始的提交。 */
-static bool __xrtNetStreamBeginSend(xnetstream* pStream)
+static bool __xrtNetStreamBeginSendMode(xnetstream* pStream, bool bSubmission)
 {
-	if (!__xrtNetStreamOwnershipEnter(pStream, true)) return false;
+	if (!__xrtNetStreamOwnershipEnter(pStream, bSubmission)) return false;
 	/* A terminal shell can outlive its Engine; do not consult Worker then. */
 	if (xrtNetStreamState(pStream) == XNET_STREAM_CLOSED) {
 		__xrtNetStreamOwnershipLeave(pStream);
@@ -131898,6 +131921,9 @@ static bool __xrtNetStreamBeginSend(xnetstream* pStream)
 	}
 	return true;
 }
+
+static bool __xrtNetStreamBeginSend(xnetstream* pStream)
+{ return __xrtNetStreamBeginSendMode(pStream, true); }
 
 
 
@@ -135380,9 +135406,10 @@ XRT_API xnetresult xrtNetStreamSendBytesVec(xnetstream* pStream,
 
 
 /* Prepare first, then atomically transfer and publish a complete chain. */
-XRT_API xnetresult xrtNetStreamSendBuffer(
+static xnetresult __xrtNetStreamSendBufferImpl(
 	xnetstream* pStream,
-	xnetbuf* pBuffer
+	xnetbuf* pBuffer,
+	bool bSubmission
 )
 {
 	__xrt_net_stream_buffer* pBatch;
@@ -135393,7 +135420,7 @@ XRT_API xnetresult xrtNetStreamSendBuffer(
 		__xrtErrorSetInvalidArgument();
 		return XNET_RESULT_ERROR;
 	}
-	if (!__xrtNetStreamBeginSend(pStream)) return XNET_RESULT_CLOSED;
+	if (!__xrtNetStreamBeginSendMode(pStream, bSubmission)) return XNET_RESULT_CLOSED;
 	if ( (pBuffer == &pStream->WriteBuffer) ||
 		(pBuffer->Reserved != NULL) || pBuffer->ReservedNew ) {
 		__xrtNetStreamSetError(
@@ -135443,6 +135470,17 @@ XRT_API xnetresult xrtNetStreamSendBuffer(
 	__xrtNetStreamEndSend(pStream);
 	__xrtNetStreamActiveLeave(pStream);
 	return Result;
+}
+
+XRT_API xnetresult xrtNetStreamSendBuffer(xnetstream* stream, xnetbuf* buffer)
+{ return __xrtNetStreamSendBufferImpl(stream, buffer, true); }
+
+xnetresult __xrtNetStreamSendBufferAccepted(xnetstream* stream, xnetbuf* buffer)
+{
+	if (!stream) { __xrtErrorSetInvalidArgument(); return XNET_RESULT_ERROR; }
+	if (xrtNetStreamState(stream) == XNET_STREAM_CLOSED) return XNET_RESULT_CLOSED;
+	if (!xrtNetWorkerIsCurrent(stream->Worker)) { __xrtErrorSetInvalidState(); return XNET_RESULT_ERROR; }
+	return __xrtNetStreamSendBufferImpl(stream, buffer, false);
 }
 
 
@@ -167089,9 +167127,10 @@ void __xrtTlsStreamDiscard(xtlsstream* pStream)
 
 
 /* 验证调用发生在底层 TCP Stream 的所属 Worker。 */
-static bool __xrtTlsStreamWorker(
+static bool __xrtTlsStreamWorkerMode(
 	xtlsstream* pStream,
-	cstr sOperation
+	cstr sOperation,
+	bool bSubmission
 )
 {
 	xnetstream* pTransport;
@@ -167107,7 +167146,7 @@ static bool __xrtTlsStreamWorker(
 		return false;
 	}
 	if (xrtAtomic32Load(&pStream->OwnershipState, XMEMORY_ACQUIRE) & XRT_TLS_STREAM_OWNERSHIP_CLEARED ||
-		xrtAtomicPtrLoad(&pStream->OwnershipClaim, XMEMORY_ACQUIRE)) {
+		(bSubmission && xrtAtomicPtrLoad(&pStream->OwnershipClaim, XMEMORY_ACQUIRE))) {
 		__xrtErrorSetInvalidState(); return false;
 	}
 	pTransport = (xnetstream*)xrtAtomicPtrLoad(
@@ -167127,6 +167166,9 @@ static bool __xrtTlsStreamWorker(
 	}
 	return true;
 }
+
+static bool __xrtTlsStreamWorker(xtlsstream* pStream, cstr sOperation)
+{ return __xrtTlsStreamWorkerMode(pStream, sOperation, true); }
 
 
 
@@ -167360,7 +167402,7 @@ static xnetresult __xrtTlsStreamFlush(xtlsstream* pStream)
 	if ( bGuard ) {
 		pStream->Driving = true;
 	}
-	Result = xrtNetStreamSendBuffer(pTransport, pBuffer);
+	Result = __xrtNetStreamSendBufferAccepted(pTransport, pBuffer);
 	if ( Result == XNET_RESULT_OK ) {
 		if ( !__xrtTlsSessionSendMoved(pStream->Session) ) {
 			Result = XNET_RESULT_ERROR;
@@ -168790,7 +168832,8 @@ static xtlsresult __xrtTlsStreamSendSpans(
 	xtlsstream* pStream,
 	const xnetspan* pSpans,
 	size_t iCount,
-	size_t* pWritten
+	size_t* pWritten,
+	bool bSubmission
 )
 {
 	xtlsresult Result = XTLS_OK;
@@ -168800,7 +168843,7 @@ static xtlsresult __xrtTlsStreamSendSpans(
 	if ( pWritten != NULL ) {
 		*pWritten = 0;
 	}
-	if ( !__xrtTlsStreamWorker(pStream, "send-tls-stream") ||
+	if ( !__xrtTlsStreamWorkerMode(pStream, "send-tls-stream", bSubmission) ||
 		(pWritten == NULL) ) {
 		if ( (pStream != NULL) && (pWritten == NULL) ) {
 			__xrtTlsStreamSetError(
@@ -168894,7 +168937,8 @@ XRT_API xtlsresult xrtTlsStreamSend(
 		pStream,
 		&Span,
 		1u,
-		pWritten
+		pWritten,
+		true
 	);
 }
 
@@ -168912,9 +168956,18 @@ XRT_API xtlsresult xrtTlsStreamSendVec(
 		pStream,
 		pSpans,
 		iCount,
-		pWritten
+		pWritten,
+		true
 	);
 }
+
+#if defined(XRT_FEATURE_TLS_STREAM_FUTURE)
+xtlsresult __xrtTlsStreamSendAccepted(xtlsstream* stream, const void* data, size_t size, size_t* written)
+{
+	xnetspan span = {(cbytes)data, size};
+	return __xrtTlsStreamSendSpans(stream, &span, 1, written, false);
+}
+#endif
 
 
 
@@ -169158,16 +169211,17 @@ static void __xrtTlsStreamAfterRead(xtlsstream* pStream)
 
 
 /* 复制并安全消费一段明文。 */
-XRT_API xtlsresult xrtTlsStreamRead(
+static xtlsresult __xrtTlsStreamReadImpl(
 	xtlsstream* pStream,
 	void* pOutput,
 	size_t iCapacity,
-	size_t* pRead
+	size_t* pRead,
+	bool bSubmission
 )
 {
 	xtlsresult Result;
 
-	if ( !__xrtTlsStreamWorker(pStream, "read-tls-stream") ) {
+	if ( !__xrtTlsStreamWorkerMode(pStream, "read-tls-stream", bSubmission) ) {
 		if ( pRead != NULL ) {
 			*pRead = 0;
 		}
@@ -169184,6 +169238,13 @@ XRT_API xtlsresult xrtTlsStreamRead(
 	}
 	return Result;
 }
+
+XRT_API xtlsresult xrtTlsStreamRead(xtlsstream* stream, void* output, size_t capacity, size_t* read)
+{ return __xrtTlsStreamReadImpl(stream, output, capacity, read, true); }
+#if defined(XRT_FEATURE_TLS_STREAM_FUTURE)
+xtlsresult __xrtTlsStreamReadAccepted(xtlsstream* stream, void* output, size_t capacity, size_t* read)
+{ return __xrtTlsStreamReadImpl(stream, output, capacity, read, false); }
+#endif
 
 
 
@@ -169625,13 +169686,7 @@ static bool __xrtTlsStreamOwnershipCount(const void* pData, size_t* pCount)
 		if (s->ManagedOpen || s->ManagedClose || s->ManagedData) return false;
 	#endif
 	#if defined(XRT_FEATURE_TLS_STREAM_FUTURE)
-		/* Pending async graphs must be independently represented. Until their
-		 * participant is installed, refuse them rather than flattening nodes. */
-		if (xrtAtomic32Load(&s->AsyncCount, XMEMORY_ACQUIRE) || s->AsyncSendHead || s->AsyncSendTail ||
-			s->AsyncWaitHead || s->AsyncWaitTail || s->AsyncPosted || s->AsyncRunning ||
-			xrtAtomic64Load(&s->AsyncBytes, XMEMORY_ACQUIRE) ||
-			xrtAtomic32Load(&s->AsyncReads, XMEMORY_ACQUIRE) ||
-			xrtAtomic32Load(&s->AsyncSends, XMEMORY_ACQUIRE)) return false;
+		if (!__xrtTlsStreamAsyncOwnershipWalk(s, NULL, NULL)) return false;
 	#endif
 	if (s->RuntimeHeld) {
 		if (!s->OwnershipEngineHeld || s->RuntimeOwner.Data != s || !s->RuntimeOwner.Previous ||
@@ -169659,6 +169714,9 @@ static bool __xrtTlsStreamOwnershipTrace(const void* pData, xrtownershipvisitor 
 		!visit(xrtNetStreamOwnership(xrtAtomicPtrLoad(&s->Transport, XMEMORY_ACQUIRE)), context) ||
 		!visit((xrtownershipref){xrtAtomicPtrLoad(&s->Data, XMEMORY_ACQUIRE), s->OwnershipPolicy->Ops}, context) ||
 		!xrtTlsSessionBufferOwnershipTrace(s->Session, visit, context)) return false;
+	#if defined(XRT_FEATURE_TLS_STREAM_FUTURE)
+		if (!__xrtTlsStreamAsyncOwnershipWalk(s, visit, context)) return false;
+	#endif
 	return !s->Error || visit(xrtErrorOwnership(s->Error), context);
 }
 XRT_API xrtownershipref xrtTlsStreamOwnership(const xtlsstream* pStream)
@@ -171056,15 +171114,19 @@ typedef enum __xrt_tls_stream_reserve_result {
 
 
 /*
-	节点、Promise 和发送副本采用单一分配。
+	节点元数据和发送副本采用单一分配，Promise 独立拥有。
 	Offset 只由所属 Worker 推进，已开始的发送不会被中途取消。
 */
 struct __xrt_tls_stream_async {
+	volatile int32 References;
+	volatile int32 Active;
+	const void* Claim;
 	__xrt_tls_stream_async* Next;
 	xtlsstream* Stream;
-	xnetworker* CacheWorker;
+	xatomicptr CacheWorker;
 	xpromise* Promise;
 	xcancelwatch* Watch;
+	xatomic32 Done;
 	size_t Size;
 	size_t Offset;
 	size_t MaxBytes;
@@ -171072,6 +171134,8 @@ struct __xrt_tls_stream_async {
 	uint8 Wait;
 	bool Linked;
 	bool TerminalRead;
+	bool Publishing;
+	bool Cleared;
 	uint8 Data[];
 };
 
@@ -171098,32 +171162,15 @@ static __xrt_tls_stream_async* __xrtTlsStreamAsyncAlloc(
 		);
 
 	if ( pAsync != NULL ) {
-		pAsync->CacheWorker = pWorker;
+		pAsync->References = 1;
+		pAsync->Active = 1;
+		pAsync->Publishing = true;
+		xrtAtomicPtrInit(&pAsync->CacheWorker, pWorker);
+		xrtAtomic32Init(&pAsync->Done, 0);
 	} else if ( pWorker != NULL ) {
 		__xrtNetEngineObjectRelease(pWorker->Engine);
 	}
 	return pAsync;
-}
-
-
-
-/* 在 Stream 引用释放前归还异步节点及其 Engine 生命周期租约。 */
-static void __xrtTlsStreamAsyncRecycle(
-	__xrt_tls_stream_async* pAsync
-)
-{
-	xnetworker* pWorker = pAsync->CacheWorker;
-	size_t iAllocation = sizeof(*pAsync) + pAsync->Size;
-
-	if ( pWorker != NULL ) {
-		__xrtNetWorkerNodeRecycleHeld(
-			pWorker,
-			pAsync,
-			iAllocation
-		);
-	} else {
-		xrtFree(pAsync);
-	}
 }
 
 
@@ -171154,6 +171201,188 @@ static void __xrtTlsStreamBytesFree(ptr pValue, ptr pData)
 {
 	(void)pData;
 	xrtNetBytesDestroy((xnetbytes*)pValue);
+}
+
+/* The constructor/list, producer binding and owned cancellation registration
+ * each hold ONE actual activation reference. Next is structural, not owning. */
+static void __xrtTlsStreamAsyncCancel(ptr pData);
+static void __xrtTlsStreamAsyncEnter(__xrt_tls_stream_async* a)
+{
+	xrtownershipscope scope = {0};
+	if (!xrtOwnershipMutationBegin(&scope)) abort();
+	int32 active = __xrtAtomicRefLoad(&a->Active);
+	for (;;) {
+		if (active < 0 || active == INT32_MAX || a->Cleared) abort();
+		int32 previous = __xrtAtomicRefCompareExchange(&a->Active, active + 1, active);
+		if (previous == active) break;
+		active = previous;
+	}
+	if (!xrtOwnershipScopeEnd(&scope)) abort();
+}
+static void __xrtTlsStreamAsyncLeave(__xrt_tls_stream_async* a)
+{
+	xrtownershipscope scope = {0};
+	if (!xrtOwnershipMutationBegin(&scope)) abort();
+	if (xrtRefRelease(&a->Active) < 0) abort();
+	if (!xrtOwnershipScopeEnd(&scope)) abort();
+}
+static bool __xrtTlsStreamAsyncHold(const void* data)
+{
+	__xrt_tls_stream_async* a = (__xrt_tls_stream_async*)data; xrtownershipscope scope = {0};
+	if (!xrtOwnershipMutationBegin(&scope)) return false;
+	bool held = !a->Cleared && xrtRefRetain(&a->References) >= 0;
+	if (!xrtOwnershipScopeEnd(&scope)) abort();
+	return held;
+}
+static void __xrtTlsStreamAsyncDrop(const void* data)
+{
+	__xrt_tls_stream_async* a = (__xrt_tls_stream_async*)data; xrtownershipscope scope = {0};
+	if (!xrtOwnershipMutationBegin(&scope)) abort();
+	xnetworker* worker = NULL;
+	size_t allocation = sizeof(*a) + a->Size;
+	if (xrtAtomic32Load(&a->Done, XMEMORY_ACQUIRE) && !__xrtAtomicRefLoad(&a->Active)) {
+		if (__xrtAtomicRefCompareExchange(&a->References, 0, 1) == 1) {
+			worker = xrtAtomicPtrExchange(&a->CacheWorker, NULL, XMEMORY_ACQ_REL);
+			if (!xrtOwnershipScopeEnd(&scope)) abort();
+			if (worker) __xrtNetWorkerNodeRecycleHeld(worker, a, allocation);
+			else xrtFree(a);
+			return;
+		}
+		/* Pins may preserve an inert shell, never its operational Engine lease. */
+		worker = xrtAtomicPtrExchange(&a->CacheWorker, NULL, XMEMORY_ACQ_REL);
+	}
+	int32 left = xrtRefRelease(&a->References);
+	if (left < 0) abort();
+	if (!left && (!xrtAtomic32Load(&a->Done, XMEMORY_ACQUIRE) || a->Publishing || a->Linked ||
+		a->Promise || a->Watch || a->Stream || __xrtAtomicRefLoad(&a->Active) ||
+		xrtAtomicPtrLoad(&a->CacheWorker, XMEMORY_ACQUIRE))) abort();
+	if (!xrtOwnershipScopeEnd(&scope)) abort();
+	if (!left) xrtFree(a);
+	if (worker) __xrtNetEngineObjectRelease(worker->Engine); /* last Worker access */
+}
+static bool __xrtTlsStreamAsyncBusy(const void* data)
+{
+	const __xrt_tls_stream_async* a = data;
+	if (!a || a->Cleared) return false;
+	if (a->Publishing || __xrtAtomicRefLoad(&a->Active)) return true;
+	return !xrtAtomic32Load(&a->Done, XMEMORY_ACQUIRE) &&
+		xrtTlsStreamOwnershipQuiescenceV1Get()->Busy(a->Stream);
+}
+static bool __xrtTlsStreamAsyncCount(const void* data, size_t* count)
+{
+	const __xrt_tls_stream_async* a = data;
+	if (!a || !count || a->Cleared || __xrtTlsStreamAsyncBusy(a)) return false;
+	bool done = xrtAtomic32Load(&a->Done, XMEMORY_ACQUIRE) != 0;
+	if (done && (a->Promise || a->Watch || a->Stream || a->Linked ||
+		xrtAtomicPtrLoad(&a->CacheWorker, XMEMORY_ACQUIRE))) return false;
+	if (!done && (!a->Linked || !a->Promise || !a->Watch || !a->Stream)) return false;
+	int32 refs = __xrtAtomicRefLoad(&a->References);
+	if (refs <= 0) return false;
+	*count = (size_t)refs; return true;
+}
+static bool __xrtTlsStreamAsyncTrace(const void* data, xrtownershipvisitor visit, ptr context)
+{
+	const __xrt_tls_stream_async* a = data; size_t count;
+	if (!visit || !__xrtTlsStreamAsyncCount(a, &count)) return false;
+	if (a->Stream && !visit(xrtTlsStreamOwnership(a->Stream), context)) return false;
+	xnetworker* worker = xrtAtomicPtrLoad(&a->CacheWorker, XMEMORY_ACQUIRE);
+	if (worker && !visit(xrtNetEngineOwnership(worker->Engine), context)) return false;
+	if (a->Promise && !visit(xrtPromiseOwnership(a->Promise), context)) return false;
+	return !a->Watch || visit(xrtCancelWatchOwnership(a->Watch), context);
+}
+static const xrtownershipops __xrtTlsStreamAsyncOps = {__xrtTlsStreamAsyncCount, __xrtTlsStreamAsyncTrace};
+static xrtownershipref __xrtTlsStreamAsyncOwnership(const __xrt_tls_stream_async* a)
+{ return (xrtownershipref){a, a ? &__xrtTlsStreamAsyncOps : NULL}; }
+static void __xrtTlsStreamAsyncOwnedCancel(ptr data)
+{
+	__xrt_tls_stream_async* a = data; __xrtTlsStreamAsyncEnter(a);
+	__xrtTlsStreamAsyncCancel(a); __xrtTlsStreamAsyncLeave(a);
+}
+static const xfutureproducerownershipv1 __xrtTlsStreamAsyncProducer = {
+	sizeof(xfutureproducerownershipv1), __xrtTlsStreamAsyncDrop};
+static const xcancelwatchownershipv1 __xrtTlsStreamAsyncCancelPolicy = {
+	sizeof(xcancelwatchownershipv1), __xrtTlsStreamAsyncOwnedCancel, __xrtTlsStreamAsyncDrop, &__xrtTlsStreamAsyncOps};
+static bool __xrtTlsStreamBytesTrace(const void* value, const void* data, xrtownershipvisitor visit, ptr context)
+{ return value && !data && visit && visit(xrtNetBytesOwnership(value), context); }
+static const xfuturepayloadownershipv1 __xrtTlsStreamBytesPayload = {
+	sizeof(xfuturepayloadownershipv1), __xrtTlsStreamBytesFree, __xrtTlsStreamBytesTrace};
+XRT_API const xfutureproducerownershipv1* xrtTlsStreamFutureProducerPolicyV1Get(void) { return &__xrtTlsStreamAsyncProducer; }
+XRT_API const xcancelwatchownershipv1* xrtTlsStreamFutureCancelPolicyV1Get(void) { return &__xrtTlsStreamAsyncCancelPolicy; }
+XRT_API const xfuturepayloadownershipv1* xrtTlsStreamFutureBytesPayloadPolicyV1Get(void) { return &__xrtTlsStreamBytesPayload; }
+XRT_API const xrtownershipquiescencev1* xrtTlsStreamFutureOwnershipQuiescenceV1Get(void)
+{
+	static const xrtownershipquiescencev1 policy = {sizeof(policy), &__xrtTlsStreamAsyncOps, __xrtTlsStreamAsyncBusy};
+	return &policy;
+}
+static bool __xrtTlsStreamAsyncClaim(const void* data, const void* token)
+{
+	__xrt_tls_stream_async* a = (__xrt_tls_stream_async*)data; size_t count;
+	if (!token || (a->Claim && a->Claim != token) || !__xrtTlsStreamAsyncCount(a, &count)) return false;
+	a->Claim = token; return true;
+}
+static void __xrtTlsStreamAsyncRestore(const void* data, const void* token)
+{
+	__xrt_tls_stream_async* a = (__xrt_tls_stream_async*)data;
+	if (!token || a->Claim != token || a->Cleared) abort();
+	a->Claim = NULL;
+}
+static bool __xrtTlsStreamAsyncReady(const void* data)
+{
+	const __xrt_tls_stream_async* a = data; size_t count;
+	return __xrtTlsStreamAsyncCount(a, &count) && xrtAtomic32Load(&a->Done, XMEMORY_ACQUIRE);
+}
+static xrtownershipprepareresult __xrtTlsStreamAsyncPrepare(const void* data, const void* token)
+{
+	const __xrt_tls_stream_async* a = data; xrtownershipscope freeze = {0};
+	if (!xrtOwnershipFreezeTryBegin(&freeze)) return XRT_OWNERSHIP_PREPARE_BUSY;
+	if (!token || a->Claim != token || a->Cleared) abort();
+	bool ready = __xrtTlsStreamAsyncReady(a);
+	if (!xrtOwnershipScopeEnd(&freeze)) abort();
+	/* Only the actual source may complete accepted work. No adapter cancellation. */
+	return ready ? XRT_OWNERSHIP_PREPARE_READY : XRT_OWNERSHIP_PREPARE_BUSY;
+}
+static void __xrtTlsStreamAsyncClear(const void* data, const void* token)
+{
+	__xrt_tls_stream_async* a = (__xrt_tls_stream_async*)data;
+	if (!token || a->Claim != token || a->Cleared || !__xrtTlsStreamAsyncReady(a)) abort();
+	a->Cleared = true;
+}
+XRT_API const xrtownershipadapterv1* xrtTlsStreamFutureOwnershipAdapterV1(xrtownershipref ref,
+	const xrtownershippreparationv1** preparation)
+{
+	static const xrtownershipadapterv1 adapter = {sizeof(adapter), __xrtTlsStreamAsyncHold, __xrtTlsStreamAsyncDrop,
+		__xrtTlsStreamAsyncClaim, __xrtTlsStreamAsyncRestore, NULL, __xrtTlsStreamAsyncClear, NULL};
+	static const xrtownershippreparationv1 prepare = {sizeof(prepare), &adapter, __xrtTlsStreamAsyncReady, __xrtTlsStreamAsyncPrepare};
+	size_t count;
+	if (!preparation || ref.Ops != &__xrtTlsStreamAsyncOps || !__xrtTlsStreamAsyncCount(ref.Data, &count)) return NULL;
+	*preparation = &prepare; return &adapter;
+}
+static bool __xrtTlsStreamAsyncSetup(__xrt_tls_stream_async* a, xfuture** future)
+{
+	a->Promise = xrtPromiseCreate(future, NULL);
+	if (!a->Promise || !__xrtTlsStreamAsyncHold(a)) return false;
+	if (!xrtPromiseProducerBindTakeV1(a->Promise, __xrtTlsStreamAsyncOwnership(a), &__xrtTlsStreamAsyncProducer)) {
+		__xrtTlsStreamAsyncDrop(a); return false;
+	}
+	xcancel* cancel = xrtPromiseCancelToken(a->Promise);
+	if (!cancel) return false;
+	if (!__xrtTlsStreamAsyncHold(a)) { xrtCancelDestroy(cancel); return false; }
+	a->Watch = xrtCancelWatchOwnedV1(cancel, a, &__xrtTlsStreamAsyncCancelPolicy);
+	xrtCancelDestroy(cancel);
+	if (!a->Watch) { __xrtTlsStreamAsyncDrop(a); return false; }
+	return true;
+}
+static void __xrtTlsStreamAsyncRetire(__xrt_tls_stream_async* a)
+{
+	xrtownershipscope scope = {0};
+	if (!xrtOwnershipMutationBegin(&scope)) abort();
+	if (a->Promise || a->Watch || a->Linked || xrtAtomic32Load(&a->Done, XMEMORY_ACQUIRE)) abort();
+	xtlsstream* stream = a->Stream; a->Stream = NULL;
+	a->Publishing = false;
+	xrtAtomic32Store(&a->Done, 1, XMEMORY_RELEASE);
+	if (!xrtOwnershipScopeEnd(&scope)) abort();
+	xrtTlsStreamDestroy(stream);
+	__xrtTlsStreamAsyncLeave(a); __xrtTlsStreamAsyncDrop(a);
 }
 
 
@@ -171240,6 +171469,21 @@ static void __xrtTlsStreamAsyncRollback(
 		) == 0) ) {
 		__xrtTlsStreamFutureNotify(pStream);
 	}
+}
+
+/* Roll back only unpublished work. Retiring Watch synchronizes all callbacks
+ * before the Stream slot is removed; the producer owns its own node credit. */
+static void __xrtTlsStreamAsyncDiscard(__xrt_tls_stream_async* a, xfuture** future)
+{
+	xerror* error = xrtTakeError();
+	xcancelwatch* watch = a->Watch; a->Watch = NULL;
+	xpromise* promise = a->Promise; a->Promise = NULL;
+	xrtCancelUnwatch(watch);
+	__xrtTlsStreamAsyncRollback(a->Stream, a->Size,
+		__xrtTlsStreamAsyncIsSend(a), __xrtTlsStreamAsyncIsRead(a));
+	xrtPromiseDestroy(promise); xrtFutureDestroy(*future); *future = NULL;
+	__xrtTlsStreamAsyncRetire(a);
+	xrtClearError(); xrtSetErrorTake(error);
 }
 
 
@@ -171645,7 +171889,7 @@ static xnetbytes* __xrtTlsStreamAsyncReceive(
 			XMEMORY_RELEASE
 		);
 	} else {
-		Result = xrtTlsStreamRead(
+		Result = __xrtTlsStreamReadAccepted(
 			pStream,
 			Span.Data,
 			iSize,
@@ -171682,6 +171926,7 @@ static void __xrtTlsStreamAsyncFinish(
 	xpromise* pPromise = pAsync->Promise;
 	xtlsstream* pStream = pAsync->Stream;
 
+	__xrtTlsStreamAsyncEnter(pAsync);
 	if ( Result == __XRT_TLS_STREAM_ASYNC_RECEIVE ) {
 		pBytes = __xrtTlsStreamAsyncReceive(
 			pAsync,
@@ -171694,6 +171939,7 @@ static void __xrtTlsStreamAsyncFinish(
 	}
 	xrtCancelUnwatch(pAsync->Watch);
 	pAsync->Watch = NULL;
+	pAsync->Promise = NULL;
 	__xrtTlsStreamAsyncRelease(pAsync);
 	if ( (Result == __XRT_TLS_STREAM_ASYNC_FAILED) &&
 		(pFailure == NULL) ) {
@@ -171708,17 +171954,13 @@ static void __xrtTlsStreamAsyncFinish(
 			pFailure = pCreated;
 		}
 	}
-	__xrtTlsStreamAsyncRecycle(pAsync);
-	xrtTlsStreamDestroy(pStream);
-
 	if ( Result == __XRT_TLS_STREAM_ASYNC_READY ) {
 		(void)xrtPromiseResolve(pPromise, NULL);
 	} else if ( Result == __XRT_TLS_STREAM_ASYNC_RECEIVE ) {
-		if ( !xrtPromiseResolveOwned(
+		if ( !xrtPromiseResolveOwnedPolicyV1(
 			pPromise,
 			pBytes,
-			__xrtTlsStreamBytesFree,
-			NULL
+			&__xrtTlsStreamBytesPayload
 		) ) {
 			xrtNetBytesDestroy(pBytes);
 		}
@@ -171737,6 +171979,7 @@ static void __xrtTlsStreamAsyncFinish(
 	xrtErrorFree(pCreated);
 	xrtErrorFree(pError);
 	xrtPromiseDestroy(pPromise);
+	__xrtTlsStreamAsyncRetire(pAsync);
 }
 
 
@@ -171808,8 +172051,6 @@ static __xrt_tls_stream_async* __xrtTlsStreamAsyncCreate(
 	xtlsstream* pOwned;
 	xnetstream* pTransport;
 	xnetworker* pCacheWorker = NULL;
-	xcancel* pCancel;
-	xerror* pError;
 	size_t iAllocation;
 	xtlsstreamstate State;
 	__xrt_tls_stream_reserve_result Reserve;
@@ -171944,60 +172185,8 @@ static __xrt_tls_stream_async* __xrtTlsStreamAsyncCreate(
 	pAsync->Wait = (uint8)Wait;
 	pAsync->Size = iSize;
 	pAsync->TerminalRead = bTerminalRead;
-	pAsync->Promise = xrtPromiseCreate(ppFuture, NULL);
-	if ( pAsync->Promise == NULL ) {
-		pError = xrtTakeError();
-		xrtFutureDestroy(*ppFuture);
-		__xrtTlsStreamAsyncRollback(
-			pAsync->Stream,
-			pAsync->Size,
-			__xrtTlsStreamAsyncIsSend(pAsync),
-			__xrtTlsStreamAsyncIsRead(pAsync)
-		);
-		{
-			xtlsstream* pFailedStream = pAsync->Stream;
-
-			__xrtTlsStreamAsyncRecycle(pAsync);
-			xrtTlsStreamDestroy(pFailedStream);
-		}
-		if ( pError != NULL ) {
-			xrtSetError(pError);
-			xrtErrorFree(pError);
-		}
-		*ppFuture = NULL;
-		return NULL;
-	}
-	pCancel = xrtPromiseCancelToken(pAsync->Promise);
-	if ( pCancel != NULL ) {
-		pAsync->Watch = xrtCancelWatch(
-			pCancel,
-			__xrtTlsStreamAsyncCancel,
-			pAsync
-		);
-		xrtCancelDestroy(pCancel);
-	}
-	if ( pAsync->Watch == NULL ) {
-		pError = xrtTakeError();
-		xrtFutureDestroy(*ppFuture);
-		xrtPromiseDestroy(pAsync->Promise);
-		__xrtTlsStreamAsyncRollback(
-			pAsync->Stream,
-			pAsync->Size,
-			__xrtTlsStreamAsyncIsSend(pAsync),
-			__xrtTlsStreamAsyncIsRead(pAsync)
-		);
-		{
-			xtlsstream* pFailedStream = pAsync->Stream;
-
-			__xrtTlsStreamAsyncRecycle(pAsync);
-			xrtTlsStreamDestroy(pFailedStream);
-		}
-		if ( pError != NULL ) {
-			xrtSetError(pError);
-			xrtErrorFree(pError);
-		}
-		*ppFuture = NULL;
-		return NULL;
+	if (!__xrtTlsStreamAsyncSetup(pAsync, ppFuture)) {
+		__xrtTlsStreamAsyncDiscard(pAsync, ppFuture); return NULL;
 	}
 	return pAsync;
 }
@@ -172016,6 +172205,8 @@ static void __xrtTlsStreamAsyncSubmit(
 	bool bTerminalReceive;
 	bool bTerminalQueued = false;
 
+	xrtownershipscope publish = {0};
+	if (!xrtOwnershipMutationBegin(&publish)) abort();
 	__xrtSpinLock(&pStream->AsyncLock);
 	State = xrtTlsStreamState(pStream);
 	bTerminal = (State == XTLS_STREAM_CLOSED) ||
@@ -172052,7 +172243,10 @@ static void __xrtTlsStreamAsyncSubmit(
 		__xrtTlsStreamAsyncWaitAppend(pStream, pAsync);
 		bTerminalQueued = true;
 	}
+	pAsync->Publishing = false;
+	if (xrtRefRelease(&pAsync->Active) != 0) abort();
 	__xrtSpinUnlock(&pStream->AsyncLock);
+	if (!xrtOwnershipScopeEnd(&publish)) abort();
 
 	if ( bTerminalQueued ) {
 		__xrtTlsStreamFutureNotify(pStream);
@@ -172181,7 +172375,7 @@ static __xrt_tls_stream_async_result __xrtTlsStreamAsyncSend(
 		return __XRT_TLS_STREAM_ASYNC_READY;
 	}
 	xrtClearError();
-	Result = xrtTlsStreamSend(
+	Result = __xrtTlsStreamSendAccepted(
 		pStream,
 		pAsync->Data + pAsync->Offset,
 		pAsync->Size - pAsync->Offset,
@@ -172206,7 +172400,7 @@ static __xrt_tls_stream_async_result __xrtTlsStreamAsyncSend(
 
 
 /* 在所属 Worker 上按公平批次推进发送，再完成全部已满足的观察操作。 */
-void __xrtTlsStreamFutureNotify(xtlsstream* pStream)
+static void __xrtTlsStreamFutureNotifyImpl(xtlsstream* pStream)
 {
 	uint32 iCompleted = 0;
 	uint32 iBatch;
@@ -172313,6 +172507,18 @@ void __xrtTlsStreamFutureNotify(xtlsstream* pStream)
 	if ( bRunAgain ) {
 		__xrtTlsStreamFutureNotify(pStream);
 	}
+}
+
+void __xrtTlsStreamFutureNotify(xtlsstream* stream)
+{
+	if (!stream) return;
+	xtlsstream* held = xrtTlsStreamRef(stream);
+	if (!held) return;
+	if (__xrtTlsStreamOwnershipEnter(held, false)) {
+		__xrtTlsStreamFutureNotifyImpl(held);
+		__xrtTlsStreamOwnershipLeave(held);
+	}
+	xrtTlsStreamDestroy(held);
 }
 
 
@@ -172563,6 +172769,44 @@ XRT_API xfuture* xrtTlsStreamSendVecAsync(xtlsstream* s, const xnetspan* spans, 
 {
 	if (!__xrtTlsStreamOwnershipEnter(s, true)) return NULL;
 	xfuture* result = __xrtTlsStreamSendVecAsync(s, spans, count); __xrtTlsStreamOwnershipLeave(s); return result;
+}
+
+/* Read only after source quiescence. Both FIFO chains own their original
+ * constructor credits, not per-child estimates. Reservations under creation
+ * are excluded by the Stream's native submission frame. */
+bool __xrtTlsStreamAsyncOwnershipWalk(const xtlsstream* stream, xrtownershipvisitor visit, ptr context)
+{
+	if (stream->AsyncPosted || stream->AsyncRunning || stream->AsyncAgain || stream->AsyncCommand.Task) return false;
+	uint64 bytes = 0; size_t count = 0, sends = 0, reads = 0;
+	for (size_t queue = 0; queue < 2; ++queue) {
+		const __xrt_tls_stream_async* head = queue ? stream->AsyncWaitHead : stream->AsyncSendHead;
+		const __xrt_tls_stream_async* tail = queue ? stream->AsyncWaitTail : stream->AsyncSendTail;
+		const __xrt_tls_stream_async *slow = head, *fast = head, *last = NULL;
+		while (fast && fast->Next) {
+			slow = slow->Next; fast = fast->Next->Next; if (slow == fast) return false;
+		}
+		for (const __xrt_tls_stream_async* a = head; a; a = a->Next) {
+			if (!a->Linked || a->Publishing || a->Cleared || a->Stream != stream ||
+				!a->Promise || !a->Watch || __xrtAtomicRefLoad(&a->Active) ||
+				xrtAtomic32Load(&a->Done, XMEMORY_ACQUIRE) || __xrtAtomicRefLoad(&a->References) <= 0 ||
+				a->Offset > a->Size || count == SIZE_MAX) return false;
+			if (!queue) {
+				if (a->Kind != __XRT_TLS_STREAM_ASYNC_SEND || a->Size > UINT64_MAX - bytes) return false;
+				bytes += a->Size; ++sends;
+			} else {
+				if (a->Kind != __XRT_TLS_STREAM_ASYNC_RECV && a->Kind != __XRT_TLS_STREAM_ASYNC_WAIT) return false;
+				if (a->Kind == __XRT_TLS_STREAM_ASYNC_WAIT && a->Wait > XTLS_STREAM_WAIT_CLOSE) return false;
+				if (__xrtTlsStreamAsyncIsRead(a)) ++reads;
+			}
+			++count; last = a;
+			if (visit && !visit(__xrtTlsStreamAsyncOwnership(a), context)) return false;
+		}
+		if (last != tail) return false;
+	}
+	return count == xrtAtomic32Load(&stream->AsyncCount, XMEMORY_ACQUIRE) &&
+		sends == xrtAtomic32Load(&stream->AsyncSends, XMEMORY_ACQUIRE) &&
+		reads == xrtAtomic32Load(&stream->AsyncReads, XMEMORY_ACQUIRE) &&
+		bytes == xrtAtomic64Load(&stream->AsyncBytes, XMEMORY_ACQUIRE);
 }
 
 #endif
