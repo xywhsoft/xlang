@@ -24,6 +24,13 @@ assert ids.remove(65536)
 
 ## 验证
 
+2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
+严格 C、独立位图模型、分配故障回滚、XLang 边界、私有原生入口
+拒绝、双语固定输出及核心/公开范例 AOT 全部通过。旧的完整 AOT
+共享符号缺失只对应先前发布物；本次未重跑 Linux sanitizer。
+验收仍限于本包的 `uint32` 内存集合合同，不包含标准 Roaring
+二进制序列化或跨实现互通。
+
 从 `demo6` 目录运行：
 
 ```powershell
