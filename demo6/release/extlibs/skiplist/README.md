@@ -28,6 +28,12 @@ println(rows[0]["value"])
 
 ## 验证
 
+2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
+严格 C/ABI、随机源故障、独立有序模型与分配回滚、XLang 边界和
+故障恢复、私有原生入口拒绝、三条范例路径固定输出，以及核心/
+公开范例 AOT 全部通过。先前带输出 AOT 的共享缺符号记录属于
+旧发布物；本次未重跑 Linux sanitizer，公开并发与复杂度合同不变。
+
 Windows 聚焦快测：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/skiplist/test/check.ps1 -SkipAot`。它同次检查 C 独立模型、包外 `setNative` 访问拒绝、XLang 边界与 C/XLang 固定范例输出。去掉 `-SkipAot` 后，默认还构建运行核心和公开范例 AOT，后者必须匹配同一黄金输出；每次使用并清理独占构建目录。当前快测和核心 AOT 通过，完整范例仍被共享 `xl6ValueDataSnapshotV1` 缺符号阻断，不签收整包发布级。
 
 从 `demo6` 目录运行：
