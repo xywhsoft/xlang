@@ -23,6 +23,9 @@ void xlsTextRelease(xls_text* text);
 const char* xlsTextData(const xls_text* text);
 size_t xlsTextSize(const xls_text* text);
 size_t xlsTextLines(const xls_text* text);
+/* Completed owned storage, including actual buffer/line-index capacities.
+ * Excludes allocator overhead. Zero means absent or unrepresentable. */
+size_t xlsTextStorageBytes(const xls_text* text);
 /* UTF-16 positions. Columns beyond EOL clamp to EOL; nonexistent lines and
  * surrogate-interior positions fail. Newlines retain original LF/CRLF/CR. */
 int xlsTextOffset(const xls_text* text, xls_position position, size_t* offset);

@@ -47,6 +47,7 @@ CORE_TESTS = ("analysis_entry_cache_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_import_names_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_index_storage_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_regions_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_syntax_storage_test", *CORE_TESTS)
 
 
 def sha(path: Path) -> str:

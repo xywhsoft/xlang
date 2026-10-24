@@ -18,6 +18,14 @@ const char* xlsTextData(const xls_text* text)
 { return text && text->bytes.Data ? text->bytes.Data : ""; }
 size_t xlsTextSize(const xls_text* text) { return text ? text->bytes.Size : 0; }
 size_t xlsTextLines(const xls_text* text) { return text ? text->lines.Count : 0; }
+size_t xlsTextStorageBytes(const xls_text* text)
+{
+    if(!text || text->bytes.Capacity==SIZE_MAX || text->lines.Capacity>SIZE_MAX/sizeof(size_t)) return 0;
+    size_t bytes=sizeof(*text),data=text->bytes.Data ? text->bytes.Capacity+1 : 0;
+    size_t lines=text->lines.Capacity*sizeof(size_t);
+    if(data>SIZE_MAX-bytes || lines>SIZE_MAX-bytes-data) return 0;
+    return bytes+data+lines;
+}
 
 static xls_text* allocateText(void)
 {

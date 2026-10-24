@@ -11,6 +11,17 @@ const XL6_IrModule* xlsSemanticCheckIr(const xls_semantic_check* result);
 const XL6_AstNode* xlsSemanticCheckAst(const xls_semantic_check* result);
 typedef struct xls_parse_work { uint64_t full,fragments,reused,bytes; } xls_parse_work;
 xls_syntax* xlsSyntaxBuild(const char* path,xls_text* text,const xls_syntax* previous,xls_parse_work* work);
+/* Private ordinary module-cache construction. Adopt consumes *root after
+ * allocation (including a subsequent failure); leaves it intact if allocation
+ * fails. No published AST is adopted. TryFunction never falls back to a full
+ * parse. Failed/uncertain edits use the caller's original parser instead. */
+xls_syntax* xlsSyntaxAdoptOrdinary(const char* path,xls_text* text,XL6_AstNode** root);
+xls_syntax* xlsSyntaxTryFunction(const char* path,xls_text* text,const xls_syntax* previous,xls_parse_work* work);
+/* Completed private cache data, including each retained chunk in full even
+ * when another generation shares it. Excludes allocator/sort overhead and
+ * transient compiler copies. No lazy AST view is permitted in this cache. */
+int xlsSyntaxCacheBytes(const xls_syntax* syntax,size_t limit,size_t* bytes);
+xls_parse_work xlsSemanticCheckModuleParseWork(const xls_semantic_check* result);
 struct XL6_CompletionQuery;
 /* Private cursor parse. Query starts empty except absolute path/offset and
  * owns the shared parser's prefix on return, including rejected source.

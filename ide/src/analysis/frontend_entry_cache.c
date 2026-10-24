@@ -5,11 +5,11 @@
 #include <xrt.h>
 #include <string.h>
 #define ENTRY_BYTES (32u*1024u*1024u)
-struct xls_entry_cache_data { xls_context* context;char *path,*text;size_t length,bytes;XL6_AstNode* root;struct xls_entry_cache_data *previous,*next; };
+struct xls_entry_cache_data { xls_context* context;char *path,*text;size_t length,bytes;XL6_AstNode* root;xls_syntax* syntax;struct xls_entry_cache_data *previous,*next; };
 struct xls_entry_cache { xls_entry_cache_data *data,*first,*last;size_t limit,moduleBytes;int active;xmap modules; };
 static _Thread_local xls_entry_cache_scope* current;
 static void releaseData(xls_entry_cache_data* data)
-{if(data) {xlsContextRelease(data->context);xrtFree(data->path);xrtFree(data->text);xl6AstFree(data->root);xrtFree(data);}}
+{if(data) {xlsContextRelease(data->context);xrtFree(data->path);if(!data->syntax)xrtFree(data->text);xlsSyntaxRelease(data->syntax);xl6AstFree(data->root);xrtFree(data);}}
 static xbytesview key(const char* path) {return (xbytesview){(const unsigned char*)path,strlen(path)};}
 static void unlinkModule(xls_entry_cache* cache,xls_entry_cache_data* data)
 {
@@ -104,9 +104,35 @@ static int matches(const xls_entry_cache_data* old,const xls_context* context,co
 {return old && xlsFrontendContextsEqual(old->context,context) && !strcmp(old->path,path) && old->length==length && !memcmp(old->text,text,length);}
 static int copy(const xls_entry_cache_data* old,size_t limit,XL6_ParseResult* result)
 {
+    if(old->syntax) {
+        if(!xlsSyntaxCopyParse(old->syntax,result)) return 0;
+        result->diags.defaultFile=xl6AstSourcePath(result->root); return 1;
+    }
     xls_ast_clone_options options={.bytes=limit};XL6_AstNode* tree=xlsAstClone(old->root,&options,NULL);
     if(!tree) return 0;
     result->root=tree;result->diags.defaultFile=xl6AstSourcePath(tree);return 1;
+}
+static xls_entry_cache_data* captureSyntax(xls_entry_cache_scope* scope,const char* path,
+    xls_syntax* syntax,size_t limit)
+{
+    size_t fixed=sizeof(xls_entry_cache_data),context=xlsContextBytes(scope->context),pathBytes=strlen(path)+1,tree=0;
+    if(!syntax || context>limit || fixed>limit-context || pathBytes>(limit-context-fixed)/2) return NULL;
+    fixed+=context+2*pathBytes;
+    if(!xlsSyntaxCacheBytes(syntax,limit-fixed,&tree)) return NULL;
+    xls_entry_cache_data* data=xrtCalloc(1,sizeof(*data));if(!data) return NULL;
+    data->context=xlsContextRetain((xls_context*)scope->context);data->path=xrtStrDup(path);
+    data->syntax=xlsSyntaxRetain(syntax);data->text=(char*)xlsTextData(xlsSyntaxText(syntax));data->length=xlsTextSize(xlsSyntaxText(syntax));data->bytes=fixed+tree;
+    if(!data->path) {releaseData(data);return NULL;}return data;
+}
+static void stageModule(xls_entry_cache_scope* scope,const char* path,xls_entry_cache_data* data,size_t retained)
+{
+    if(!data) {++scope->moduleWork.declined;return;}
+    if(!scope->pendingModulesReady) {
+        if(xrtMapInit(&scope->pendingModules,sizeof(xls_entry_cache_data*)) && xrtMapSetDrop(&scope->pendingModules,dropPending,NULL)) scope->pendingModulesReady=1;
+        else xrtMapUnit(&scope->pendingModules);
+    }
+    if(scope->pendingModulesReady && (xrtMapHas(&scope->pendingModules,key(path)) || xrtMapCount(&scope->pendingModules)<512) && xrtMapSet(&scope->pendingModules,key(path),&data)) scope->pendingModuleBytes=retained+data->bytes;
+    else {releaseData(data);++scope->moduleWork.declined;}
 }
 static int moduleParse(xls_entry_cache_scope* scope,const char* text,const char* path,XL6_ParseResult* result,XL6_CompletionQuery* query)
 {
@@ -121,21 +147,33 @@ static int moduleParse(xls_entry_cache_scope* scope,const char* text,const char*
         }
         ++scope->moduleWork.declined;
     }
+    size_t entry=scope->pending ? scope->pending->bytes : xlsEntryCacheBytes(cache);
+    size_t retained=scope->pendingModuleBytes-(pending ? (*pending)->bytes : 0);
+    size_t budget=cache->limit-entry;
+    if(old && old->syntax && xlsFrontendContextsEqual(old->context,scope->context) && !strcmp(old->path,path)) {
+        xls_text* body=xlsTextCreate(text,length,cache->limit,NULL);xls_parse_work work={0};
+        xls_syntax* syntax=body ? xlsSyntaxTryFunction(path,body,old->syntax,&work) : NULL;
+        scope->moduleSyntaxWork.fragments+=work.fragments;scope->moduleSyntaxWork.bytes+=work.bytes;
+        if(syntax && xlsSyntaxCopyParse(syntax,result)) {
+            result->diags.defaultFile=xl6AstSourcePath(result->root);
+            ++scope->moduleWork.parsed;scope->moduleSyntaxWork.reused+=work.reused;
+            stageModule(scope,path,retained<budget ? captureSyntax(scope,path,syntax,budget-retained) : NULL,retained);
+            xlsSyntaxRelease(syntax);xlsTextRelease(body);return 1;
+        }
+        xlsSyntaxRelease(syntax);xlsTextRelease(body);
+    }
     ++scope->moduleWork.parsed;
+    ++scope->moduleSyntaxWork.full;scope->moduleSyntaxWork.bytes+=length;
     int okay=xl6ParseSourceWithCompletion(text,path,result,query);
     if(okay && result->root && !result->diags.count) {
-        size_t entry=scope->pending ? scope->pending->bytes : xlsEntryCacheBytes(cache);
-        size_t retained=scope->pendingModuleBytes-(pending ? (*pending)->bytes : 0);
-        size_t budget=cache->limit-entry;
         xls_entry_cache_data* data=retained<budget ? capture(scope,text,path,length,result->root,budget-retained,strlen(path)+1) : NULL;
         if(data) {
-            if(!scope->pendingModulesReady) {
-                if(xrtMapInit(&scope->pendingModules,sizeof(xls_entry_cache_data*)) && xrtMapSetDrop(&scope->pendingModules,dropPending,NULL)) scope->pendingModulesReady=1;
-                else xrtMapUnit(&scope->pendingModules);
-            }
-            if(scope->pendingModulesReady && (pending || xrtMapCount(&scope->pendingModules)<512) && xrtMapSet(&scope->pendingModules,key(path),&data)) scope->pendingModuleBytes=retained+data->bytes;
-            else {releaseData(data);++scope->moduleWork.declined;}
-        } else ++scope->moduleWork.declined;
+            xls_text* body=xlsTextCreate(text,length,cache->limit,NULL);
+            xls_syntax* syntax=body ? xlsSyntaxAdoptOrdinary(path,body,&data->root) : NULL;
+            xls_entry_cache_data* chunks=syntax ? captureSyntax(scope,path,syntax,budget-retained) : NULL;
+            xlsSyntaxRelease(syntax);xlsTextRelease(body);releaseData(data);data=chunks;
+        }
+        stageModule(scope,path,data,retained);
     }
     return okay;
 }
