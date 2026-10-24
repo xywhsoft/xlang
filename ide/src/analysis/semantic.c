@@ -26,6 +26,7 @@ struct xls_semantic_completion {
     int cursorSyntaxApplied;
     xls_sem_memo* memo;
     xls_sem_work semanticWork;
+    xls_sem_call_work callWork;
 };
 static int absolute(const char* path)
 {
@@ -125,6 +126,8 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
         char module[256]; char* stem=xrtPathStem(entry);
         if(!stem) goto invalid;
         snprintf(module,sizeof(module),"%s",*stem ? stem : "module"); xrtFree(stem);
+        xls_sem_call_control calls;
+        xlsFrontendSemCallsBegin(&calls,xlsFrontendSemCallsBudget());
         if(memoEnabled) {
             int compatible=previous && previous->memo && !strcmp(previous->path,r->path) &&
                 xlsFrontendContextsEqual(previous->context,context) && previous->overlay.count==r->overlay.count &&
@@ -137,6 +140,7 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
             xlsFrontendSemCheckCursorMemo(r->parse.root,&r->parse.diags,module,&r->query,entry,&r->report,
                 compatible ? &previous->report : NULL,compatible ? previous->memo : NULL,&r->memo,&r->semanticWork);
         } else xl6SemCheckModuleWithQuery(r->parse.root,&r->parse.diags,module,0,&r->query);
+        xlsFrontendSemCallsEnd(&calls,&r->callWork);
     }
     if(stopped(cancelled,user)) goto cancel;
     r->available=r->query.available && !r->query.error &&
@@ -178,6 +182,8 @@ int xlsSemanticCompletionCursorSyntaxApplied(const xls_semantic_completion* resu
 {return result && result->cursorSyntaxApplied;}
 xls_sem_work xlsSemanticCompletionSemWork(const xls_semantic_completion* result)
 {return result ? result->semanticWork : (xls_sem_work){0};}
+xls_sem_call_work xlsSemanticCompletionCallWork(const xls_semantic_completion* result)
+{return result ? result->callWork : (xls_sem_call_work){0};}
 const XL6_AstNode* xlsSemanticCompletionAst(const xls_semantic_completion* result)
 {return result ? result->parse.root : NULL;}
 xls_semantic_completion* xlsSemanticCompletionCreateIncrementalInContext(xls_context* context,xls_entry_cache* cache,
