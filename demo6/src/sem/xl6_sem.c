@@ -139,6 +139,8 @@ static void xl6SemConversionMismatchError(XL6_SemContext* ctx, XL6_AstNode* node
 static void xl6SemVarBoxMismatchError(XL6_SemContext* ctx, XL6_AstNode* node, const char* reason);
 static void xl6SemCountMismatchError(XL6_SemContext* ctx, XL6_AstNode* node, const char* reason, size_t expected, size_t actual);
 static int xl6SemCheckKnownCall(XL6_SemContext* ctx, XL6_AstNode* call, XL6_AstNode* func);
+static int xl6SemCheckFunc(XL6_SemContext*,XL6_AstNode*);
+static XL6_AstNode* xl6SemCOwnedSpecializeMethod(XL6_SemContext*,XL6_AstNode*,XL6_AstNode*);
 static int xl6SemExprFunctionValueMatchAlreadyDiagnosed(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode);
 static int xl6SemCheckChannelTypeArg(XL6_SemContext* ctx, const XL6_AstNode* callee);
 static int xl6SemTypeCanBeMessageValue(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
@@ -8882,6 +8884,8 @@ static int xl6SemCheckMemberFunctionValueCall(XL6_SemContext* ctx, XL6_AstNode* 
              ) :
              NULL;
     if ( method != NULL ) {
+        method=xl6SemCOwnedSpecializeMethod(ctx,call,method);
+        if(!method){xl6AstFree(receiverType);return 0;}
         xl6SemSetCallPlan(call, XL6_SEM_CALL_METHOD, method);
         xl6SemAnnotateResolvedCallOwnership(call, method);
         {
@@ -11166,6 +11170,8 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
         XL6_AstNode* concreteStatic=NULL;
         func = xl6SemResolveStaticClassFuncCall(ctx, node, 1);
         if ( func != NULL ) {
+            func=xl6SemCOwnedSpecializeMethod(ctx,node,func);
+            if(!func){xl6AstFree(staticOwner);return 0;}
             xl6SemSetCallPlan(node, XL6_SEM_CALL_STATIC_METHOD, func);
             if(staticArgs && xl6SemClassHasTypeParams(staticClass)) {
                 concreteStatic=xl6SemSubstituteClassType(staticClass,staticArgs,func);
@@ -23671,6 +23677,9 @@ static int xl6SemCheckClass(XL6_SemContext* ctx, XL6_AstNode* node)
             } else if ( member->kind == XL6_AST_FUNC ||
                         member->kind == XL6_AST_ASYNC_FUNC ||
                         member->kind == XL6_AST_EXPORT_FUNC ) {
+                /* Private compiler specializations are checked when created,
+                 * even if their declaring class was visited earlier. */
+                if(member->flags & XL6_AST_FLAG_C_OWNED_SPECIALIZATION)continue;
                 int memberOk;
                 oldImplicitSelfName = ctx->implicitSelfName;
                 oldCurrentClass = ctx->currentClass;

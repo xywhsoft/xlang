@@ -13620,7 +13620,7 @@ static int xl6IrBuildDynamicMethodEligible(
           method->sourceKind != XL6_AST_ASYNC_FUNC &&
           method->sourceKind != XL6_AST_EXPORT_FUNC &&
           method->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) ||
-         (method->flags & (XL6_AST_FLAG_STATIC | XL6_AST_FLAG_PRIVATE |
+         (method->flags & (XL6_AST_FLAG_C_OWNED_SPECIALIZATION | XL6_AST_FLAG_STATIC | XL6_AST_FLAG_PRIVATE |
                            XL6_AST_FLAG_PROTECTED)) != 0 ||
          method->symbol == 0 ) return 0;
     name = xl6IrBuildClassMethodName(module, declaration);

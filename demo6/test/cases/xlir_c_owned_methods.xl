@@ -1,0 +1,58 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+func make() as cstring
+    return cstring.take(nativeText(),nativeFree)
+end
+func makeBytes() as cbytes
+    return cbytes.take(nativeBytes(),4,nativeFree)
+end
+typedef Blob = bytes
+class Reader
+    int count=2
+    func read(bytes value) as bool
+        return self.count==2 and originalBytes(value)
+    end
+    static func readStatic(bytes value) as bool
+        return originalBytes(value)
+    end
+    func forward(string text, Blob value) as (string,bytes)
+        assert self.count==2
+        return text,value
+    end
+    func defaultRead(Blob value=makeBytes()) as bool
+        return originalBytes(value)
+    end
+end
+class ChildReader extends Reader
+end
+class GenericReader<T>
+    T item
+    func read(bytes value) as bool
+        return originalBytes(value)
+    end
+    static func staticRead(bytes value) as bool
+        return originalBytes(value)
+    end
+end
+func reader(bytes value) as bool
+    return originalBytes(value)
+end
+func check()
+    auto data=makeBytes()
+    auto object=Reader()
+    assert reader(data)
+    assert object.read(data) and Reader.readStatic(data)
+    auto text=make()
+    auto first,second=object.forward(text,data)
+    assert original(first) and originalBytes(second)
+    auto inherited=ChildReader()
+    assert inherited.read(data)
+    auto generic=GenericReader::<int>()
+    assert generic.read(data) and GenericReader::<int>.staticRead(data)
+    assert object.defaultRead()
+end
+check()
+
