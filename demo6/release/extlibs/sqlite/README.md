@@ -153,6 +153,17 @@ AOT 和公开范例 AOT 均运行通过，配对范例输出匹配黄金文件�
 严格 C 边界/分配/线程测试与 Linux C ASan/UBSan 通过。正式 `xl.exe`
 仍在旧 XLIR runtime operation ABI 处停止，因此正式包级门禁尚未签收。
 
+2026-10-24：当前发布版 `xl.exe` 已越过上述 XLIR ABI 阻断。随后
+边界用例暴露 `Database` 和 `Statement` 在 `destroy()` 释放原生句柄后
+写回正在退役的对象字段，触发 XRT 状态错误；析构不再写字段，显式
+`close`/`finalize` 仍会清空句柄并保持幂等。新增不手动 finalize 的
+语句清理回归，并保留语句逃逸后由 `close_v2` 延迟关闭连接的回归。
+Windows 完整门禁 37 项通过，包含 44 个生成原型、45 个常量、
+中央/边界/文件 JIT/AOT 与 C/XLang 对照。Linux C ASan/UBSan、
+149 个分配故障点和四线程隔离通过；Linux XLang JIT/AOT、长期
+压力及跨进程 WAL 故障矩阵不在本次验收范围。自动析构不返回 SQLite
+状态码，需要获知失败原因时仍应显式调用 `finalize` 或 `close`。
+
 语义依据：[列结果](https://www.sqlite.org/c3ref/column_blob.html)、
 [关闭连接](https://www.sqlite.org/c3ref/close.html)、
 [参数绑定](https://www.sqlite.org/c3ref/bind_blob.html)。

@@ -1,0 +1,9 @@
+import clipboard
+
+func main(...) as int
+    assert clipboard.get_text() == "before"
+    auto saved = clipboard.snapshot()
+    assert saved.valid()
+    assert clipboard.set_text("after")
+    return 0
+end

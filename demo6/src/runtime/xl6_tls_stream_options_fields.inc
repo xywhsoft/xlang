@@ -1,0 +1,11 @@
+#ifdef XL6_TLS_STREAM_MILLIS
+XL6_TLS_STREAM_MILLIS(HandshakeTimeout,handshakeTimeoutMillis)
+XL6_TLS_STREAM_MILLIS(CloseTimeout,closeTimeoutMillis)
+#endif
+#ifdef XL6_TLS_STREAM_BYTES
+XL6_TLS_STREAM_BYTES(AsyncBytesLimit,maxAsyncBytes)
+#endif
+#ifdef XL6_TLS_STREAM_COUNT
+XL6_TLS_STREAM_COUNT(AsyncCountLimit,maxAsyncOperations)
+XL6_TLS_STREAM_COUNT(AsyncBatch,asyncBatch)
+#endif

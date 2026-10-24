@@ -40,3 +40,11 @@ XRT 可用的数组/对象快照，明确所有权、循环引用、深度限额
 不能让每个包自行识别编译器私有的 handle 布局。修复后同时复验
 这两个最小文件，以及 BSON、CBOR、MessagePack、FIX、statistics、
 JSON Patch 的 JIT/独立 EXE 公开范例。本普通包任务不改主线。
+
+2026-10-24 补充当前 Windows 发布物的 `clipboard` 复现：包级隔离运行器
+在 `test/mutate.xl` 的 `clipboard.set_files(files)` 断言处失败，C 入口
+`x_clipboard_set_files(xvalue*)` 要求 `xrtValueType(paths) == XVALUE_ARRAY`。
+生成 C 对 `array files = [...]` 先调用 `xl6SequenceReferenceCreateV1`，
+再调用 `xl6ArrayProjectionTakeV1`，并将该结果直接传入原生函数；
+`last_error()` 为 `clipboard: invalid input or data`。未通过修改扩展库
+接受编译器内部 handle 布局来绕过，待主线统一 foreign 容器 ABI 后复验。

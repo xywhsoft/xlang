@@ -21,3 +21,11 @@
 清理时是否仍允许调用所属代码及原生析构。修复后应分别复验三份最小
 文件，以及 BLAKE2/BLAKE3 公开范例的 JIT、独立 EXE；不能仅把范例
 移进 `main` 来掩盖全局对象缺陷。本普通扩展包任务不修改主线。
+
+2026-10-24 当前发布版复验：`release/xl.exe` SHA-256 为
+`CCF98FF05BAAA71C1827EAA0C8B7A011A9A17EAB1AECD593CD89848D227C5A2B`。
+`xl run dev/extlib_blockers/global_native_class_aot_fini.xl` 打印 `ready`
+并退出 0；同文件 `xl build` 的独立 EXE 打印 `ready` 后仍抛上述状态
+错误并退出 1。SQLite 包本轮修正了普通 class 的析构期字段写入，
+但 Blake3 使用原生 `extern destroy`，不能把两者视为已证实的同一根因。
+应在主线排查模块退役时的 native-backed class 析构及错误作用域。

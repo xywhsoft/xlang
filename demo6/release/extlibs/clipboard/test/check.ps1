@@ -73,6 +73,8 @@ try {
         $null = Run 'XLang readonly' $xl @('run', 'extlibs/clipboard/test/readonly.xl')
         $null = Run 'XLang invalid file list' $xl @('run', 'extlibs/clipboard/test/invalid_files.xl')
         $null = Run 'XLang thread state' $xl @('run', 'extlibs/clipboard/test/state_smoke.xl')
+        $null = Run 'isolated implicit snapshot cleanup' $runner @($xl,
+            'extlibs/clipboard/test/implicit_snapshot_cleanup.xl', $release)
         $null = Run 'isolated XLang mutation' $runner @($xl, 'extlibs/clipboard/test/mutate.xl', $release)
         $null = Run 'isolated C snapshot example' $runner @($snapshotC, '-', $release, '--binary')
         $null = Run 'isolated C snapshot direct xl run' $runner @($xl,
@@ -90,6 +92,11 @@ try {
         $generatedMutation = Join-Path $work 'mutate.c'
         $null = Run 'generated mutation C' $xl @('cgen', 'extlibs/clipboard/test/mutate.xl', '--emit', $generatedMutation)
         if (!$SkipAot) {
+            $snapshotCleanup = Join-Path $work 'snapshot_cleanup_aot.exe'
+            $null = Run 'implicit snapshot cleanup AOT build' $xl @('build',
+                'extlibs/clipboard/test/implicit_snapshot_cleanup.xl', '-o', $snapshotCleanup)
+            $null = Run 'isolated implicit snapshot cleanup AOT' $runner @($snapshotCleanup,
+                '-', $release, '--binary')
             $binary = Join-Path $work 'readonly_aot.exe'
             $null = Run 'XLang AOT build' $xl @('build', 'extlibs/clipboard/test/readonly.xl', '-o', $binary)
             $null = Run 'XLang AOT' $binary @()

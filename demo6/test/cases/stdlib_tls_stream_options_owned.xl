@@ -1,0 +1,16 @@
+func make() as TlsStreamOptions
+ return TlsStreamOptions().withTimeoutsMillis(17, -1).withAsyncLimits(8192, 3)
+end
+func reader(TlsStreamOptions options) as func() as int
+ return func() as int
+  auto copy = options.withAsyncLimits(16384, 4, 2)
+  if options.handshakeTimeoutMillis == 17 and options.closeTimeoutMillis == -1 and options.maxAsyncBytes == 8192 and copy.maxAsyncBytes == 16384 then return 0 end
+  return 1
+ end
+end
+array<TlsStreamOptions> values = [make()]
+auto first = thread(reader(values[0]))
+auto second = thread(reader(values[0]))
+assert first.waitTimeout(30000) and second.waitTimeout(30000)
+assert first.exitCode() == 0 and second.exitCode() == 0
+assert values[0].maxAsyncBytes == 8192

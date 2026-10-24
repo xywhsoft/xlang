@@ -45,7 +45,7 @@ C 入口统一要求 `xrtlzmaoptions` 与内嵌 `xrtresourcelimits` 的当前完
 在 `demo6` 目录执行聚焦验证：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/lzma/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/lzma/test/check.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package lzma -Source release/extlibs/lzma/test/test_lzma.c
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package lzma -Source release/extlibs/lzma/examples/basic_c.c
 cd release
@@ -79,15 +79,20 @@ C/XLang 最小范例同输出。Linux 包级门禁以严格 GCC、ASan/UBSan 验
 并运行 XLang 边界、文件用例及双语范例逐字节输出对照。
 中央进度用例在独立系统临时目录内验证压缩、解压、取消与 NUL 路径，
 由 Linux 包级门禁一并运行；成功或失败都会清理临时目录。
-完整 `test/cases/extlib_lzma.xl` 目前被已记录的 Buffer 字节索引
-XLIR 问题阻断；本任务不修改编译器，改用包内 `test/boundaries.xl` 覆盖主要边界。
-独立 `test/aot_core.xl` 的裁剪 AOT 已构建并运行（1,000,960 字节）；
-`xl build extlibs/lzma/test/boundaries.xl` 当前在主线缺少
-`xl6ValueDataSnapshotV1` 处链接失败，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`。
-独立 C 范例命名为 `basic_c.c`，不会被 `basic.xl` 的 AOT 编译自动当作伴随源。
-完整 AOT 的共享符号阻断仍需在主线修复；`test/aot_core.xl` 曾在旧构建中独立编译运行，当前发布物状态见下方复核记录。
+当前 `release/xl.exe` 下，完整 `test/cases/extlib_lzma.xl` 的 JIT 与 AOT
+均已运行通过；中央用例使用独占系统临时目录及标准 `.xz` 后缀。
+Windows 包级脚本 `test/check.ps1` 将严格 GCC、C 边界、XLang
+边界/文件/进度/中央用例、原生方法访问负例、C/XLang 同输出、核心
+与中央 AOT 合为一次验收；`-SkipAot` 仅供聚焦诊断，不作为发布签收。
+脚本使用独立临时构建目录，结束后核对绝对路径并清理。
+Linux 包级脚本运行包内边界、文件和分配用例、C ASan/UBSan 及 Python
+标准 `.xz` 双向互通。Linux 现有 `release/xl` 早于本次 XLIR 修复，完整
+中央用例仍报 typed XLIR 错误；2026-10-24 尝试重建 Linux 发布物时，
+`libxl.so` 链接缺少多项 X509 符号，尚未得到新发布物，因此不签收 Linux
+中央用例。独立 C 范例命名为 `basic_c.c`，不会被 `basic.xl` 的 AOT
+编译自动当作伴随源。
 
-Windows 包级脚本 `test/check.ps1` 将严格 GCC、C 边界、XLang 边界/文件/进度、原生方法访问负例、C/XLang 同输出及核心 AOT 合为一次验收；`-SkipAot` 只跳过当前受主线阻断的 AOT，不能作为发布签收。脚本使用独立临时构建目录，结束后核对绝对路径并清理。
+以下为历史复核记录，仅描述各日期所用构建的状态，不作为当前阻断清单。
 
 2026-10-16 复核最终格式仅为标准 `.xz`，未发现私有容器回退。Linux 包级脚本现于同次运行中执行 XLang 边界并逐字节对照 C/XLang 范例输出；严格 GCC、ASan/UBSan、Python 标准库双向互通均通过。完整 AOT 的共享主线阻断不变。
 
@@ -121,4 +126,9 @@ XLang 边界和双语范例，以及 Linux C ASan/UBSan、Python 标准 `.xz` �
 同日补齐 C 单文件范例：`xl run release/extlibs/lzma/examples/basic_c.c`
 以及对该文件直接 `xl build` 后运行均可得到与 XLang 范例一致的输出。
 范例仅在 TCC 单文件路径包含 XZ 后端源码；正式包仍按 manifest 分离编译。
+
+2026-10-24：当前 Windows 发布物默认门禁通过，包含完整中央用例 JIT/AOT。
+Linux C ASan/UBSan、包内 XLang 用例及 Python 标准 `.xz` 双向互通通过；
+Linux 中央用例待编译器发布物完成重建。先前 Buffer 字节运算和 AOT
+共享符号阻断在本次 Windows 复核范围内不再复现。
 Windows 包级门禁固定两条直接路径，Linux 门禁固定直接运行对照。

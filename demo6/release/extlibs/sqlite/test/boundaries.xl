@@ -5,6 +5,13 @@ func escapedStatement() as sqlite.Statement
     return db.prepare("select 42")
 end
 
+func implicitStatementCleanup() as int
+    auto db = sqlite.memory()
+    auto stmt = db.prepare("select 7")
+    assert stmt.row_ready()
+    return stmt.column_int(0)
+end
+
 func main(...) as int
     auto db = sqlite.memory()
     assert db.execute("create table entry(id integer primary key, text_value text, payload blob, optional text)")
@@ -129,6 +136,7 @@ func main(...) as int
     auto escaped = escapedStatement()
     assert escaped.row_ready() and escaped.column_int(0) == 42
     assert escaped.finalize() == sqlite.SQLITE_OK
+    assert implicitStatementCleanup() == 7
     caught = false
     try
         sqlite.open_v2(":memory:", sqlite.SQLITE_OPEN_READWRITE, "xlang-missing-vfs")
