@@ -598,6 +598,13 @@ analysed:
     put(annotationWork,"retainedBytes",xrtValueInt((int64)annotations.retainedBytes));
    if(okayStats) {okayStats=put(stats,"lastBuildAnnotations",annotationWork);annotationWork=NULL;}
    xrtValueRelease(annotationWork);
+   xls_sem_storage_work storage=xlsSemanticCompletionStorageWork(nativeCompletion);
+   xvalue* storageWork=xrtValueObject();
+   okayStats=okayStats && storageWork && put(storageWork,"nodes",xrtValueInt((int64)storage.nodes)) &&
+    put(storageWork,"pages",xrtValueInt((int64)storage.pages)) && put(storageWork,"chargedBytes",xrtValueInt((int64)storage.chargedBytes)) &&
+    put(storageWork,"heapFallbacks",xrtValueInt((int64)storage.heapFallbacks));
+   if(okayStats){okayStats=put(stats,"lastBuildStorage",storageWork);storageWork=NULL;}
+   xrtValueRelease(storageWork);
   if(!okayStats) { xrtValueRelease(stats); goto done; }
   if(!put(result,"analysis",stats)) goto done;
  }

@@ -64,6 +64,10 @@ def main():
                     assert not result['items'], result
                 assert result['analysis']['lastBuildSemantics']['checked'] >= 1, result
                 annotations = result['analysis']['lastBuildAnnotations']
+                storage = result['analysis']['lastBuildStorage']
+                assert storage['chargedBytes'] <= 64*1024*1024, result
+                if result['analysis']['lastBuildSemantics']['reused']:
+                    assert storage['nodes'] > storage['pages'] > 0 and storage['chargedBytes'] > 0, result
                 assert not annotations['materialized'] and annotations['retainedBytes'] <= 8*1024*1024, result
                 if available:
                     assert annotations['deferred'] == 1 and annotations['retainedBytes'] > 0, result
