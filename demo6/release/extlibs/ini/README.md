@@ -201,3 +201,11 @@ ASan/UBSan 与 XLang 对照门禁通过；
 分类捕获一致。Windows `test/check.ps1 -SkipAot` 与 Linux `test/check.sh`
 的 C ASan/UBSan、XLang 和双语门禁通过；包实现与公开 API 未改，完整
 AOT 的共享阻断仍待主线修复。
+
+2026-10-24 当前 Windows 发布版复测：默认 `test/check.ps1` 完整通过，
+包括严格 GCC C 范例、C/XLang 边界、私有入口负例、双语输出对照，
+以及浮点核心、完整边界和教学范例的 AOT 构建与运行。先前的
+`xl6NativeHandleTraceLeaf` 缺符号在本次范围内不再复现。
+Linux 语言门禁此次未以当前源码重建，旧 Linux 发布物及重建阻塞见
+`demo6/dev/extlib_blockers/linux_release_x509_sources.md`；本条不作为
+Linux AOT 或跨平台发布级签收。
