@@ -46,6 +46,17 @@ try {
     if ($boundariesOutput -cne 'geohash boundaries: PASS') {
         throw "unexpected XLang boundaries output: $boundariesOutput"
     }
+    $generated = Join-Path $work 'owned_text.c'
+    $null = Run 'owned-text cgen' $xl @('cgen',
+        'release/extlibs/geohash/test/boundaries.xl', '--emit', $generated)
+    $generatedText = [IO.File]::ReadAllText($generated)
+    $adoptions = [regex]::Matches($generatedText,
+        '\bxl6CStringTakeV1\s*\(').Count
+    # IR may specialize calls with owned arguments; check the six public returns.
+    if ($adoptions -lt 6 -or $generatedText.Contains('xl6_xrt_take_cstr')) {
+        throw "geohash returns must adopt C owners without copying (got $adoptions adoptions)"
+    }
+    Write-Host '[geohash] owned-text codegen: PASS'
     $null = Run 'XLang allocations' $xl @('run',
         'release/extlibs/geohash/test/allocations.xl')
     $cOutput = RunC 'C example' 'release/extlibs/geohash/examples/geohash_c.c'

@@ -1,5 +1,10 @@
 # geohash
 
+2026-10-25：`encode`、`bbox` 和四个邻居查询公开返回 `cstring`，
+直接接管 C 端 XRT 分配，避免结果文本二次复制。调用方仍可赋给
+`string` 独立保留；Windows 包门禁核对生成 C 的六处接管路径及
+C/JIT/AOT 行为。
+
 2026-10-24 当前发布物复验：Windows 默认 `test/check.ps1` 的严格 GCC、
 C/XLang 边界、分配故障、固定黄金输出以及核心、范例、边界三项 AOT
 全部通过。边界程序原本会打印 `geohash boundaries: PASS`，门禁却要求

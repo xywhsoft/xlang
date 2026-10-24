@@ -5,6 +5,7 @@ extern "xgeohash_bbox" func __geo_bbox(string hash) as point
 extern "xgeohash_neighbor" func __geo_neighbor(string hash, c_int direction) as point
 extern "xgeohash_precision" func __geo_precision(string hash) as c_int
 extern "xl6_xrt_last_error_text" func __geo_error() as string
+extern "xrtFree" @no_raise func __geo_free(point data)
 
 // C 的 NUL 结尾字符串不能表示内嵌 NUL；先检查完整 XLang 输入。
 func __geo_checked(string hash) as c_int
@@ -16,13 +17,13 @@ func __geo_checked(string hash) as c_int
     return count
 end
 
-export func encode(float lat, float lon, int precision = 6) as string
+export func encode(float lat, float lon, int precision = 6) as cstring
     if precision < 1 or precision > 12 then
         throw ValueError "precision must be between 1 and 12"
     end
     point result = __geo_encode(c_double(lat), c_double(lon), c_int(precision))
     if result == null then throw ValueError __geo_error() end
-    return __xl_runtime.takeCstr(result)
+    return cstring.take(result, __geo_free)
 end
 
 export func decodeLat(string hash) as float
@@ -35,39 +36,39 @@ export func decodeLon(string hash) as float
     return __geo_decode_lon(hash)
 end
 
-export func bbox(string hash) as string
+export func bbox(string hash) as cstring
     __geo_checked(hash)
     point result = __geo_bbox(hash)
     if result == null then throw ValueError __geo_error() end
-    return __xl_runtime.takeCstr(result)
+    return cstring.take(result, __geo_free)
 end
 
-export func north(string hash) as string
+export func north(string hash) as cstring
     __geo_checked(hash)
     point result = __geo_neighbor(hash, c_int(0))
     if result == null then throw ValueError __geo_error() end
-    return __xl_runtime.takeCstr(result)
+    return cstring.take(result, __geo_free)
 end
 
-export func south(string hash) as string
+export func south(string hash) as cstring
     __geo_checked(hash)
     point result = __geo_neighbor(hash, c_int(1))
     if result == null then throw ValueError __geo_error() end
-    return __xl_runtime.takeCstr(result)
+    return cstring.take(result, __geo_free)
 end
 
-export func east(string hash) as string
+export func east(string hash) as cstring
     __geo_checked(hash)
     point result = __geo_neighbor(hash, c_int(2))
     if result == null then throw ValueError __geo_error() end
-    return __xl_runtime.takeCstr(result)
+    return cstring.take(result, __geo_free)
 end
 
-export func west(string hash) as string
+export func west(string hash) as cstring
     __geo_checked(hash)
     point result = __geo_neighbor(hash, c_int(3))
     if result == null then throw ValueError __geo_error() end
-    return __xl_runtime.takeCstr(result)
+    return cstring.take(result, __geo_free)
 end
 
 export func precision(string hash) as int
