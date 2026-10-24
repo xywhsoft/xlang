@@ -26,6 +26,17 @@
 
 ## 范例和验证
 
+2026-10-24 当前 Windows 发布版默认门禁：严格 GCC、C 故障/线程、
+XLang JIT 边界、分配故障、固定布局及私有入口检查均通过；核心 AOT 和
+公开范例 AOT 也通过，并与 C 黄金输出一致。旧版
+`xl6ValueDataSnapshotV1` 缺符号已不是当前阻断。包内
+`test/boundaries.xl` 在顶层保存两个 native-backed 环对象，独立 EXE
+打印 `PASS` 后于模块退出期报 `RuntimeError: operation is not valid in
+the current state`；同文件 JIT 退出 0，局部对象的公开范例 AOT 退出 0。
+这与已登记的顶层 native-backed class 退役问题同形，尚未证明完全同根。
+不移动对象到 `main` 掩盖测试，也不在包内另造退出期兼容路径；
+**完整边界 AOT 和整包发布级尚未签收**。
+
 - XLang：`release/examples/extlibs/consistent_hash.xl`
 - 同输出 C 对照：`release/extlibs/consistent_hash/examples/consistent_hash_c.c`
 - 边界：`release/extlibs/consistent_hash/test/test_consistent_hash.c`、`test_threads.c`、`boundaries.xl`、`allocations.xl` 与 `test/cases/extlib_consistent_hash.xl`
@@ -37,13 +48,13 @@ Linux 可在 `demo6` 运行 `bash release/extlibs/consistent_hash/test/check.sh`
 用严格 GCC + ASan/UBSan 检查 C 边界、并发及 C 范例，同时运行中央与
 包内 XLang 用例，并将双语范例与 `examples/consistent_hash.expected.txt`
 的固定映射逐字节比较。
-Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/consistent_hash/test/check.ps1 -SkipAot`，一并检查严格 GCC、C 故障与线程、中央和包内 XLang、原生入口私有性及双语黄金输出。去掉 `-SkipAot` 会依次构建运行核心、带输出范例及边界 AOT；当前范例构建会明确停在共享缺符号问题，不能签收整包。C 教学范例内含包的原生实现，可在两平台直接 `xl run release/extlibs/consistent_hash/examples/consistent_hash_c.c`；正式包仍按清单分别编译该原生源码。
+Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/consistent_hash/test/check.ps1 -SkipAot`，一并检查严格 GCC、C 故障与线程、中央和包内 XLang、原生入口私有性及双语黄金输出。去掉 `-SkipAot` 会依次构建运行核心、带输出范例及边界 AOT；当前边界 EXE 在顶层对象退役时失败，详见上文。C 教学范例内含包的原生实现，可在两平台直接 `xl run release/extlibs/consistent_hash/examples/consistent_hash_c.c`；正式包仍按清单分别编译该原生源码。
+
+以下 2026-10-23 及更早记录中的共享缺符号描述均为旧发布版历史，不代表当前构建状态。
 
 2026-10-22：新增固定节点映射黄金输出，Windows 快测和 Linux C ASan/UBSan、XLang 门禁通过。Windows 默认模式核心 AOT 通过，范例 AOT 构建缺共享 `xl6ValueDataSnapshotV1`，所以范例运行比较及后续边界 AOT 尚未执行；每次独占构建目录已清理。本轮不修改哈希算法或 C/XLang API。
 
 2026-10-22：增量合并替代每次新增节点后的全环 `qsort`。C 测试用 64 个节点、每节点 128 个副本及 2048 个键，对照独立的一次性完整排序；原有添加顺序、固定映射、扩容分配失败与回滚用例保持通过。Windows `test/check.ps1 -SkipAot` 的 C、线程、XLang 和双语固定输出，以及 Linux `test/check.sh` 的 C ASan/UBSan、线程、XLang 与双语门禁通过。公开映射/API 不变；完整带输出 AOT 的共享缺符号阻断未变，不签收整包发布级。
-
-当前 `xl build extlibs/consistent_hash/test/boundaries.xl -o ../build/test/consistent_hash_xl_test.exe` 报共享链接缺符号 `xl6ValueDataSnapshotV1`；**AOT 尚未验收**。阻断记录见 `dev/extlib_blockers/text_snapshot_link.md`，修复后需重跑该命令。
 
 2026-10-14 补充删除节点后的映射回归检查：删除新节点后，1000 个键须恢复原环映射；覆盖 4096 字节节点名、10000 副本与超长名称拒绝。添加节点时名称长度仅计算一次，避免长名称随副本数重复扫描。C 边界、C 并发和 XLang 边界定向测试通过。
 同日补 C 失败→成功错误槽回归，覆盖创建、增删节点、查询和计数；
