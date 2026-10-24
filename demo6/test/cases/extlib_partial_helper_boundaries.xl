@@ -16,6 +16,19 @@ func main(...) as int
     string dsn = mysql.formatDsn("::1", 3306, "数据库", "用户")
     assert mysql.dsnPart(dsn, "host") == "::1"
     assert mysql.dsnPart(dsn, "db") == "数据库" and mysql.dsnPart(dsn, "user") == "用户"
+    string longText = string.repeat("'", 10000)
+    string escaped = mysql.escape(longText)
+    assert string.byteLen(escaped) == 20000
+    string longDsn = mysql.formatDsn("::1", 3306, longText, "user")
+    assert mysql.dsnPart(longDsn, "db") == longText
+    assert escaped == string.repeat("\\'", 10000)
+    bool badPart = false
+    try
+        mysql.dsnPart(dsn, "password")
+    catch ValueError
+        badPart = true
+    end
+    assert badPart
     for port in [0, 65536, 4294970602]
         bool caught = false
         try

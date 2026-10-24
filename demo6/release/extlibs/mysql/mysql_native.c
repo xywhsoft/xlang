@@ -106,13 +106,17 @@ const char* xmysql_cap_name(long long cap) {
 
 // ----------------------------- 临时文本与参数边界 -----------------------------
 
-static const char* mysql_argument(const char* message) {
+static char* mysql_argument(const char* message) {
     xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.mysql", 1, message);
     return NULL;
 }
 
+static char* mysql_text_alloc(size_t size, int owned) {
+    return owned ? xrtMalloc(size) : xrtTemp(size);
+}
+
 /* 仅实现反斜杠字符串字面量转义，不代替数据库驱动的参数绑定。 */
-const char* xmysql_escape(const char* input) {
+static char* mysql_escape(const char* input, int owned) {
     const char* p;
     char* text;
     size_t length, pos = 0;
@@ -123,7 +127,7 @@ const char* xmysql_escape(const char* input) {
         xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.mysql", 2, "mysql escaped text is too large");
         return NULL;
     }
-    text = xrtTemp(length * 2 + 1);
+    text = mysql_text_alloc(length * 2 + 1, owned);
     if (text == NULL) return NULL;
     for (p = input; *p; ++p) {
         char escaped = 0;
@@ -141,6 +145,14 @@ const char* xmysql_escape(const char* input) {
     return text;
 }
 
+const char* xmysql_escape(const char* input) {
+    return mysql_escape(input, 0);
+}
+
+void* xmysql_escape_owned(const char* input) {
+    return mysql_escape(input, 1);
+}
+
 /* DSN 辅助格式不承载密码/查询参数，拒绝会改变结构的分隔符。 */
 static bool mysql_component(const char* text, const char* forbidden) {
     const unsigned char* p = (const unsigned char*)text;
@@ -149,7 +161,8 @@ static bool mysql_component(const char* text, const char* forbidden) {
     return true;
 }
 
-const char* xmysql_format_dsn(const char* host, int port, const char* dbname, const char* user) {
+static char* mysql_format_dsn(const char* host, int port, const char* dbname,
+                              const char* user, int owned) {
     int size;
     char* text;
     bool ipv6;
@@ -165,13 +178,21 @@ const char* xmysql_format_dsn(const char* host, int port, const char* dbname, co
         xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.mysql", 2, "mysql DSN is too large");
         return NULL;
     }
-    text = xrtTemp((size_t)size + 1);
+    text = mysql_text_alloc((size_t)size + 1, owned);
     if (text != NULL) snprintf(text, (size_t)size + 1, "mysql://%s@%s%s%s:%d/%s",
         user, ipv6 ? "[" : "", host, ipv6 ? "]" : "", port, dbname);
     return text;
 }
 
-const char* xmysql_dsn_part(const char* dsn, const char* part) {
+const char* xmysql_format_dsn(const char* host, int port, const char* dbname, const char* user) {
+    return mysql_format_dsn(host, port, dbname, user, 0);
+}
+
+void* xmysql_format_dsn_owned(const char* host, int port, const char* dbname, const char* user) {
+    return mysql_format_dsn(host, port, dbname, user, 1);
+}
+
+static char* mysql_dsn_part(const char* dsn, const char* part, int owned) {
     const char *user, *at, *host, *endHost, *port, *slash, *begin, *end, *p;
     unsigned number = 0;
     xrtClearError();
@@ -210,7 +231,23 @@ const char* xmysql_dsn_part(const char* dsn, const char* part) {
     else if (strcmp(part, "port") == 0) { begin = port; end = slash; }
     else if (strcmp(part, "db") == 0) { begin = slash + 1; end = begin + strlen(begin); }
     else return mysql_argument("unknown mysql DSN component");
-    return xrtTempStr(xrtTempCurrent(), (xstrview){begin, (size_t)(end - begin)});
+    {
+        size_t length = (size_t)(end - begin);
+        char* result = mysql_text_alloc(length + 1, owned);
+        if (result != NULL) {
+            memcpy(result, begin, length);
+            result[length] = '\0';
+        }
+        return result;
+    }
+}
+
+const char* xmysql_dsn_part(const char* dsn, const char* part) {
+    return mysql_dsn_part(dsn, part, 0);
+}
+
+void* xmysql_dsn_part_owned(const char* dsn, const char* part) {
+    return mysql_dsn_part(dsn, part, 1);
 }
 
 /* 按经典公开范围分类，不声称范围内每一个编号都已定义。 */

@@ -58,6 +58,7 @@ static void mysql_text(void)
 {
     char large[10001];
     const char *escaped, *dsn, *user, *host, *port, *db;
+    char *ownedEscape, *ownedDsn, *ownedDb;
     size_t i;
     memset(large, '\'', 10000); large[10000] = 0;
     escaped = xmysql_escape(large);
@@ -73,8 +74,21 @@ static void mysql_text(void)
     assert(user && host && port && db);
     assert(strcmp(user, "user") == 0 && strcmp(host, "::1") == 0 && strcmp(port, "65535") == 0);
     assert(strcmp(db, large) == 0 && strlen(escaped) == 20000);
+    ownedEscape = xmysql_escape_owned(large);
+    ownedDsn = xmysql_format_dsn_owned("::1", 65535, large, "user");
+    ownedDb = xmysql_dsn_part_owned(dsn, "db");
+    assert(ownedEscape && ownedDsn && ownedDb);
+    assert(strlen(ownedEscape) == 10000 && strcmp(ownedDsn, dsn) == 0);
+    assert(strcmp(ownedDb, large) == 0);
+    xrtFree(ownedDb);
+    xrtFree(ownedDsn);
+    xrtFree(ownedEscape);
+    ownedEscape = xmysql_escape_owned("it's");
+    assert(ownedEscape && strcmp(ownedEscape, "it\\'s") == 0);
+    xrtFree(ownedEscape);
     assert(strcmp(xmysql_escape("'\"\\\n\r\x1a"), "\\'\\\"\\\\\\n\\r\\Z") == 0);
     assert(xmysql_escape(NULL) == NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    assert(xmysql_escape_owned(NULL) == NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     assert(strcmp(xmysql_escape(""), "") == 0 && xrtGetError() == NULL);
     assert(xmysql_format_dsn(NULL, 3306, "db", "u") == NULL);
     assert(xmysql_format_dsn("h", 0, "db", "u") == NULL);

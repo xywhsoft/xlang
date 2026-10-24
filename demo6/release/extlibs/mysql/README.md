@@ -28,6 +28,9 @@ QUERY_WAS_SLOW、PS_OUT_PARAMS、IN_TRANS_READONLY、SESSION_STATE_CHANGED。
 - C 头是 `include/mysql_native.h`。查表结果是只读常量；escape、statusStr、DSN
   结果借用当前 XRT 临时区。连续调用不会互相覆盖，不可单独 `free`。
   C 调用方在自己的临时区生命周期结束前复制需长期保留的内容。
+- `escape`、`formatDsn`、`dsnPart` 另有同名 `_owned` C 入口，返回独立的
+  XRT 分配，调用方用 `xrtFree` 释放。XLang 使用拥有型入口并直接接管结果，
+  避免临时区结果再次复制为语言字符串；原 C 借用入口保持不变。
 - 不使用固定大小共享字符串缓冲区，不静默截断。分配失败保留 XRT 内存错误。
 - 参数非法走 XRT argument 错误，xlang 对应 `ValueError`；不能把错误当空结果。
 - DSN 支持 UTF-8 user/db 和未加方括号的 IPv6 host，但不处理密码、查询参数、

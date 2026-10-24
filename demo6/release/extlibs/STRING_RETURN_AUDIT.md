@@ -4,7 +4,7 @@
 
 | 形态 | 涉及包数 | 结论 |
 | --- | ---: | --- |
-| `__xl_runtime.takeCstr` | 69 | 对 XRT 拥有、零结尾的分配已直接转交载荷；改成 `cstring.take` 反而多一个 owner 记录。 |
+| `__xl_runtime.takeCstr` | 70 | 对 XRT 拥有、零结尾的分配已直接转交载荷；改成 `cstring.take` 反而多一个 owner 记录。 |
 | 源码 `.text()` | 25 | 包含 UI 方法与应用代码；Buffer 结果须逐类核对 NUL、来源和对象寿命，不能整批替换。 |
 | `extern ... as string` | 158 | 大多是 C 静态/对象借用文本，语言侧一次复制是必要的；需额外识别 C 已先复制到临时区或结果槽的情况。 |
 
@@ -15,6 +15,7 @@
 - `sqlite`：列文本、列名、连接/语句错误和行号文本新增一次复制的拥有型 C 入口，XLang 直接接管；既有 C 借用入口不变。含 NUL 的列继续要求字节接口。
 - `volc.core`：离线摘要、规范查询、JSON 编码和签名预览从线程结果槽取走分配；静态失败文本复制一次。HTTP 响应体仍不按零结尾文本接管。
 - `volc.phone`：移除按字节切片、进程共享八槽缓存和 `extern string` 的二次复制；统一使用语言自带的 UTF-8 字符切片。导入链的主线阻断仍需单独解除。
+- `mysql`：清单外的已实现协议辅助包，`escape`、`formatDsn`、`dsnPart` 增加 XRT 拥有型结果，XLang 直接接管；原 C 临时区借用入口仍可用。C 严格构建、C JIT/AOT 与 XLang JIT 通过；XLang AOT 被既有 `xl6ValueDataSnapshotV1` 未解析符号挡住。
 
 ## 保留原路径
 

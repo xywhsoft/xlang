@@ -2,9 +2,9 @@ extern "xmysql_cmd_name" func __cmd_name(int cmd) as string
 extern "xmysql_col_type" func __col_type(int type) as string
 extern "xmysql_status_str" func __status_str(int status) as string
 extern "xmysql_cap_name" func __cap_name(int cap) as string
-extern "xmysql_escape" func __escape(string input) as string
-extern "xmysql_format_dsn" func __format_dsn(string host, c_int port, string dbname, string user) as string
-extern "xmysql_dsn_part" func __dsn_part(string dsn, string part) as string
+extern "xmysql_escape_owned" func __escape(string input) as point
+extern "xmysql_format_dsn_owned" func __format_dsn(string host, c_int port, string dbname, string user) as point
+extern "xmysql_dsn_part_owned" func __dsn_part(string dsn, string part) as point
 extern "xmysql_error_class" func __error_class(int code) as string
 
 export func cmdName(int cmd) as string
@@ -24,18 +24,18 @@ export func capName(int cap) as string
 end
 
 export func escape(string input) as string
-    return __escape(input)
+    return __xl_runtime.takeCstr(__escape(input))
 end
 
 export func formatDsn(string host, int port, string dbname, string user) as string
     if port < 1 or port > 65535 then
         throw ValueError "mysql port must be in 1..65535"
     end
-    return __format_dsn(host, c_int(port), dbname, user)
+    return __xl_runtime.takeCstr(__format_dsn(host, c_int(port), dbname, user))
 end
 
 export func dsnPart(string dsn, string part) as string
-    return __dsn_part(dsn, part)
+    return __xl_runtime.takeCstr(__dsn_part(dsn, part))
 end
 
 export func errorClass(int code) as string
