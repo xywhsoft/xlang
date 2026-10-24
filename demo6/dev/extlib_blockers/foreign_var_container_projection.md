@@ -1,5 +1,14 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-25 CBOR 新发布版的独立最小复现：
+`release/xl.exe run dev/extlib_blockers/cbor_var_projection.xl` 与同源
+`xl build` 独立 EXE 均在 `cbor.encode(var values)` 抛
+`NotImplementedError: CBOR cannot encode this dynamic value type`；此前
+`cbor.encode(1)` 的固定字节对照通过。原生编码器已有
+`XVALUE_ARRAY` 分支，语言数组到原生 `var` 的表示未满足它。
+默认包门禁的严格 C、边界/分配和 C 范例通过，首个 XLang 用例失败，
+后续 AOT 未执行；不能沿用旧发布物的“C/JIT 通过、AOT 缺符号”状态。
+
 2026-10-25 `fix` 发布版复验：从 `demo6` 执行
 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/fix/test/check.ps1`，
 严格 C 语法、XRT 编译、C 测试与 C 范例均通过；首个

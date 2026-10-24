@@ -62,11 +62,12 @@ int main(void)
   </section>
   <section id="verify">
     <h2>验证状态</h2>
-    <p>C/XLang 成对范例覆盖六个公开入口；含 NUL 与 <code>0xFF</code> 的字节样本固定编码为 <code>4300ff41</code>。两平台门禁同时核对独立预期输出和双语结果，完整 AOT 仍未签收。</p>
+    <p>2026-10-25 Windows 发布版复验：严格 C、C 边界/分配故障与 C 范例通过；首个 XLang 边界在语言数组传入 <code>encode(var)</code> 时报告不支持的动态类型，JIT 与独立 EXE 最小复现均失败。问题属于共享 foreign <code>var</code> 容器投影边界，完整语言与 AOT 门禁尚未签收；不能沿用早期 C/XLang 全绿的结果。</p>
+    <p>C/XLang 成对范例覆盖六个公开入口；含 NUL 与 <code>0xFF</code> 的字节样本固定编码为 <code>4300ff41</code>。既有双语黄金输出仍保留，待共享边界修复后重跑两平台完整门禁。</p>
     <p>2026-10-21 XLang 六个公开入口的分配故障用例改为逐入口扫描到首次成功，并在每次失败后立即清除故障、重试。Windows/Linux 正式运行器均通过；包实现未改，完整 AOT 的共享阻断未变。</p>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/cbor/test/check.ps1 -SkipAot
 wsl bash release/extlibs/cbor/test/check.sh</code></pre>
-    <p>2026-10-16：Windows 严格 GCC、C/XLang 边界、随机输入与双语输出对照通过；Linux 包级 C smoke、边界与范例通过 ASan/UBSan，同次脚本还验证 XLang 边界及 C/XLang 范例逐字节同输出。六个公开入口新增逐点分配故障扫描，C 保留 <code>XERR_MEMORY</code>、XLang 捕获 <code>MemoryError</code>，失败清除后可重试；解码故障覆盖嵌套数组、字典和字节串。整份文档累计项数的恰好达限/超限红绿回归通过。当前完整 AOT 在首个核心构建缺少 <code>xl6NativeHandleTraceLeaf</code>，不能据此宣称全部发布形态已验收。</p>
+    <p>2026-10-16 历史发布物：Windows 严格 GCC、C/XLang 边界、随机输入与双语输出对照通过；Linux 包级 C smoke、边界与范例通过 ASan/UBSan，同次脚本还验证 XLang 边界及 C/XLang 范例逐字节同输出。六个公开入口新增逐点分配故障扫描，C 保留 <code>XERR_MEMORY</code>、XLang 捕获 <code>MemoryError</code>，失败清除后可重试；解码故障覆盖嵌套数组、字典和字节串。整份文档累计项数的恰好达限/超限红绿回归通过。当时完整 AOT 在首个核心构建缺少 <code>xl6NativeHandleTraceLeaf</code>，这一诊断不代表当前发布物的首个阻断。</p>
   </section>
 </main>
 <script src="../main.js"></script>

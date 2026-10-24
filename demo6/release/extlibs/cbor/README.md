@@ -1,5 +1,14 @@
 # cbor
 
+2026-10-25 使用当日重建的 Windows 发布版执行默认 `test/check.ps1`：
+manifest 严格 C、C 边界/分配故障与 C 范例均通过；首个 XLang
+`test/boundaries.xl` 在语言数组进入 `encode(var)` 时抛
+`NotImplementedError: CBOR cannot encode this dynamic value type`，尚未进入 AOT。
+`dev/extlib_blockers/cbor_var_projection.xl` 用整数正例与单元素数组在
+JIT/独立 EXE 均复现，见共享 foreign `var` 容器投影记录。本包不解释
+编译器私有句柄，当前不能签收完整语言和发布门禁；下文旧版缺符号
+及 C/JIT 通过的记录仅对应各自当时的发布物。
+
 成对 C/XLang 范例覆盖六个公开入口：值图往返包含 `UINT64_MAX`，
 二进制往返使用 `00ff41`，固定编码为 CBOR `4300ff41`。
 Windows/Linux 包门禁均将两种语言的输出与 `examples/basic.expected.txt`
