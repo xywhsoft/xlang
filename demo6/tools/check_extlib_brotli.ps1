@@ -147,12 +147,10 @@ try {
     $binary = Join-Path $work 'file-allocation.exe'
     $null = Check 'file-allocation-build' $gcc ($packageFlags + @('-DNDEBUG','release/extlibs/brotli/test/file_allocation.c') + $objects + $links + @('-o',$binary))
     $null = Check 'file-allocation' $binary @((Join-Path $work ('files-'+[Guid]::NewGuid().ToString('N'))))
-    # 同一故障断言也必须经过 DLL/JIT 与嵌入资源 AOT，不能只验证独立 GCC。
-    $probe = 'release/extlibs/brotli/test/file_allocation.c'
-    $null = Check 'file-allocation-jit' $xl (@('run',$probe) + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','--',(Join-Path $work ('jit-files-'+[Guid]::NewGuid().ToString('N')))))
+    $null = Check 'file-allocation-jit' $xl (@('run','release/extlibs/brotli/test/file_allocation.c') + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','--',(Join-Path $work ('jit-files-'+[Guid]::NewGuid().ToString('N')))))
     $binary = Join-Path $work 'file-allocation-aot.exe'
     if (!$SkipAot) {
-        $null = Check 'file-allocation-aot-build' $xl (@('build',$probe) + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','-o',$binary))
+        $null = Check 'file-allocation-aot-build' $xl (@('build','release/extlibs/brotli/test/file_allocation.c') + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','-o',$binary))
         $null = Check 'file-allocation-aot' $binary @((Join-Path $work ('aot-files-'+[Guid]::NewGuid().ToString('N'))))
     }
     $outcome = 'passed'
