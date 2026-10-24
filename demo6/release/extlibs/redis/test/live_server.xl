@@ -5,7 +5,10 @@ func main(...) as int
     int port = int(env.get("REDIS_LIVE_PORT") ?? "6379")
     string key = "xlang:test:redis:live:value"
     string listKey = "xlang:test:redis:live:list"
-    TcpStream stream = tcp.connect("127.0.0.1", port, 3000)
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    TcpStream stream = TcpStream(engine, NetAddress.loopback(4, port))
+    assert stream.wait(TcpWait.open, 3000) == NetStatus.ok
     redis.del(stream, key)
     redis.del(stream, listKey)
 
@@ -50,9 +53,12 @@ func main(...) as int
     assert rejected
     stream.close()
 
-    TcpStream again = tcp.connect("127.0.0.1", port, 3000)
+    TcpStream again = TcpStream(engine, NetAddress.loopback(4, port))
+    assert again.wait(TcpWait.open, 3000) == NetStatus.ok
     assert redis.command(again, ["PING"]) == "PONG"
     again.close()
+    engine.close()
+    assert engine.wait(5000)
     println("redis real server: ok")
     return 0
 end

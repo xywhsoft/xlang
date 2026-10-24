@@ -3,8 +3,17 @@ set -euo pipefail
 
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)
 cd "$root"
+mode=${1:-}
+if [[ -n $mode && $mode != --windows-xl ]]; then
+    printf 'usage: check_live.sh [--windows-xl]\n' >&2
+    exit 2
+fi
 command -v redis-server >/dev/null || { printf 'redis-server is required\n' >&2; exit 1; }
 command -v redis-cli >/dev/null || { printf 'redis-cli is required\n' >&2; exit 1; }
+if [[ $mode == --windows-xl ]]; then
+    command -v cmd.exe >/dev/null || { printf 'WSL Windows interop is required\n' >&2; exit 1; }
+    [[ -f release/xl.exe ]] || { printf 'release/xl.exe is required\n' >&2; exit 1; }
+fi
 
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-redis-live-XXXXXX")
 pid=
@@ -48,4 +57,29 @@ if [[ $ready != 1 ]] || ! kill -0 "$pid" 2>/dev/null; then
     exit 1
 fi
 
-REDIS_LIVE=1 REDIS_LIVE_PORT="$port" bash release/extlibs/redis/test/check.sh
+if [[ $mode == --windows-xl ]]; then
+    export REDIS_LIVE_PORT="$port"
+    export WSLENV="${WSLENV:+$WSLENV:}REDIS_LIVE_PORT/w"
+    ./release/xl.exe run release/examples/extlibs/redis_live.xl |
+        tr -d '\r' > "$work/example_xl.txt"
+    ./release/xl.exe run release/examples/extlibs/redis_live_c.c |
+        tr -d '\r' > "$work/example_c.txt"
+    diff -u "$work/example_c.txt" "$work/example_xl.txt"
+    [[ $(<"$work/example_xl.txt") == $'PING: PONG\nGET: hello\nEXISTS: 1\nINCR: 1\nEXISTS after DEL: 0' ]] || {
+        printf 'Redis live example output differs from fixed expectation\n' >&2
+        exit 1
+    }
+    [[ $(./release/xl.exe run release/extlibs/redis/test/live_server.xl) == 'redis real server: ok' ]]
+    [[ $(./release/xl.exe run release/extlibs/redis/test/live_server_c.c \
+        release/extlibs/redis/redis_native.c | tr -d '\r') == 'redis real server C: ok' ]]
+    [[ $(./release/xl.exe run release/extlibs/redis/test/concurrent_server.xl | tr -d '\r') == \
+        'redis concurrent server: 50 rounds ok' ]]
+    if [[ ${REDIS_STRESS:-0} == 1 ]]; then
+        [[ $(./release/xl.exe run release/extlibs/redis/test/concurrent_server.xl -- 10000 |
+            tr -d '\r') == 'redis concurrent server: 10000 rounds ok' ]]
+        printf 'redis Windows live stress (4 x 10000): PASS\n'
+    fi
+    printf 'redis Windows xl.exe / WSL live server gate: PASS\n'
+else
+    REDIS_LIVE=1 REDIS_LIVE_PORT="$port" bash release/extlibs/redis/test/check.sh
+fi

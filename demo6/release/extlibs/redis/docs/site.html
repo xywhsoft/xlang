@@ -42,9 +42,9 @@ assert binary["value"]["value"] == Buffer.fromHex("61ff62").toBytes()</code></pr
     <p>超时为 1..2147483647 毫秒，回复上限为 1..67108864 字节；无效参数或编码失败时连接未发送数据，空命令失败后可在同一连接继续发送有效命令。完整 Redis error 回复可继续复用连接。发送失败、超时、超限、畸形或多余回复会中止连接，后续命令需显式重连。<code>decodeBytes</code> 遇非 UTF-8 的剩余回复时，<code>rest</code> 保留为原始 bytes。</p>
     <h2 id="c-api">C</h2>
     <p>包含 <code>include/redis_native.h</code>。输入值仅借用；返回的 <code>xvalue*</code> 由调用方使用 <code>xrtValueRelease</code> 释放，<code>xr_encode_bytes</code> 返回的 Buffer 由调用方使用 <code>xrtBufferDestroy</code> 释放。查看包内 README 获取字节长度、错误与容量边界。</p>
-    <p>真实服务双语示例为 <code>release/examples/extlibs/redis_live.xl</code> 与 <code>redis_live_c.c</code>，都执行 PING、SET、GET、EXISTS、INCR、DEL，并验证键删除后的不存在；C 示例使用增量帧检查器接收分片回复。单独运行默认连接 6379，也可设置 <code>REDIS_LIVE_PORT</code>。包内 <code>test/check_live.sh</code> 使用本次临时端口和进程 ID 校验启动自管理 Redis，不会接管已有服务。</p>
+    <p>真实服务双语示例为 <code>release/examples/extlibs/redis_live.xl</code> 与 <code>redis_live_c.c</code>，都执行 PING、SET、GET、EXISTS、INCR、DEL，并验证键删除后的不存在；C 示例使用增量帧检查器接收分片回复。单独运行默认连接 6379，也可设置 <code>REDIS_LIVE_PORT</code>。包内 <code>test/check_live.sh</code> 使用本次临时端口和进程 ID 校验启动自管理 Redis，不会接管已有服务；在 WSL 中加 <code>--windows-xl</code> 可用当前 Windows 发布版验证真实服务，<code>REDIS_STRESS=1</code> 另跑四连接各 10,000 轮。</p>
     <h2 id="verification">验证范围</h2>
-    <p>2026-10-24：当前 Windows 默认门禁通过严格 C、分配故障、线程、XLang 边界和本地 TCP 预检/分包/错误/断线/限额/超时/复用；核心、回环及公开范例的独立 EXE 均已构建运行，C/XLang 范例逐字输出一致。同连接十万次短时 JIT 回环也通过。真实 Redis 服务曾有单独的短时验证，但本轮未复验；数小时稳定性与当前 Linux 发布物不在这次签收范围内。</p>
+    <p>2026-10-24：当前 Windows 默认门禁通过严格 C、分配故障、线程、XLang 边界和本地 TCP 预检/分包/错误/断线/限额/超时/复用；核心、回环及公开范例的独立 EXE 均已构建运行，C/XLang 范例逐字输出一致。同连接十万次短时 JIT 回环也通过。当前 Windows <code>xl.exe</code> 还在 WSL 自管理 Redis 上通过真实调用、错误恢复、显式重连及四连接各 10,000 轮短时压力。数小时稳定性与当前 Linux 发布物不在这次签收范围内。</p>
   </section>
 </main>
 </body>

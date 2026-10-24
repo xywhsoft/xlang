@@ -14,6 +14,13 @@
 签收，不代表真实 Redis 长时运行或当前 Linux 发布物的完整复验；
 下文旧链接阻断记录对应当时的发布物。
 
+同日用当前 Windows `xl.exe` 和 WSL 内自管理的 Redis 复验真实服务：
+`test/check_live.sh --windows-xl` 的 C/XLang 固定输出、二进制键值、
+错误回复后复用、服务端断线后重连及四连接各 50 轮均通过；
+`REDIS_STRESS=1` 再通过四连接各 10,000 轮。三份真服务 XLang
+范例/测试已改用当前 `NetEngine`、`NetAddress`、`TcpStream` 接口。
+这属于短时实测，不代替数小时运行或当前 Linux 发布版验收。
+
 ```xlang
 import redis
 
@@ -136,6 +143,11 @@ C 接口见 `include/redis_native.h`，输入 `xvalue*` 仅借用；
   核对服务归属。已有 Redis 不会被连接或关闭；成功或失败均清理本次服务。
   真服务 C 示例和 C 边界先于 XLang 检查运行，故语言编译失败时仍可明确
   区分原生接口是否已经通过；整个脚本仍返回失败，不作降级验收。
+  在 WSL 内也可加 `--windows-xl`，使用同一自管理 Redis 实例验证当前
+  Windows `release/xl.exe` 的真实服务调用与 C/XLang 固定输出；脚本经
+  `WSLENV` 仅传递本次端口。`REDIS_STRESS=1` 额外运行四连接各 10,000 轮。
+  此模式需要 WSL Windows 互操作与已构建的 Windows 发布版，不表示
+  Linux `release/xl` 已通过。
 - `examples/extlibs/redis_live.xl` 是可选的真实 Redis 示例，要求
   默认 `127.0.0.1:6379` 运行 Redis；设 `REDIS_LIVE_PORT` 可指定其他端口。
   `examples/extlibs/redis_live_c.c` 用 XRT socket
