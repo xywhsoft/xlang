@@ -359,16 +359,22 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     }
     XL6_AstNode* params=function->childCount>1 ? function->children[1] : NULL;
     XL6_AstNode* args=call->children[1];
-    if(!params || (!(options & XL6_C_OWNED_RESULT_ONLY) && (size_t)xl6SemFixedParamCount(params)!=params->childCount))return function;
+    if(!params)return function;
+    size_t fixedCount=(size_t)xl6SemFixedParamCount(params);
     unsigned char* promote=params->childCount ? xrtCalloc(params->childCount,2) : NULL;
     if(params->childCount && !promote)return NULL;
     unsigned char* provided=promote ? promote+params->childCount : NULL;
     int any=0;size_t positional=0;
     for(size_t i=0;!(options & XL6_C_OWNED_RESULT_ONLY) && i<args->childCount;++i) {
         XL6_AstNode* arg=args->children[i];
-        int position=arg->kind==XL6_AST_NAMED_ARG ? xl6SemFindParamIndex(params,(int)params->childCount,arg->text) : (int)positional++;
-        if(position<0 || (size_t)position>=params->childCount ||
-            (arg->kind!=XL6_AST_ARG && arg->kind!=XL6_AST_NAMED_ARG) || arg->childCount!=1) {xrtFree(promote);return function;}
+        int position=arg->kind==XL6_AST_NAMED_ARG ? xl6SemFindParamIndex(params,(int)fixedCount,arg->text) : (int)positional++;
+        if((arg->kind!=XL6_AST_ARG && arg->kind!=XL6_AST_NAMED_ARG) || arg->childCount!=1) {xrtFree(promote);return function;}
+        /* Variadic elements keep their ordinary boxed boundary. Only the
+         * fixed prefix participates in the C-owner specialization key. */
+        if(position<0 || (size_t)position>=fixedCount) {
+            if(fixedCount<params->childCount)continue;
+            xrtFree(promote);return function;
+        }
         provided[position]=1;
         XL6_AstNode* parameter=params->children[position];
         if(parameter->flags & (XL6_AST_FLAG_BYREF|XL6_AST_FLAG_OUT))continue;
@@ -382,7 +388,7 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
             any=promote[position]=1;
         xl6AstFree(actual);
     }
-    for(size_t p=0;!(options & XL6_C_OWNED_RESULT_ONLY) && p<params->childCount;++p)if(!provided[p]) {
+    for(size_t p=0;!(options & XL6_C_OWNED_RESULT_ONLY) && p<fixedCount;++p)if(!provided[p]) {
         XL6_AstNode* parameter=params->children[p];
         if(parameter->childCount<2 || (parameter->flags & (XL6_AST_FLAG_BYREF|XL6_AST_FLAG_OUT)))continue;
         XL6_AstNode* expression=parameter->children[1];
