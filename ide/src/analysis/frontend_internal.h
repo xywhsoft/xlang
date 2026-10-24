@@ -5,6 +5,7 @@
 #include "src/parser/xl6_parser_api.h"
 #include "src/ir/xl6_ir.h"
 #include "analysis/frontend_sem.h"
+#include "analysis/ast_materialize.h"
 /* Compiler facts remain inside the analysis layer. Never mutate a published
  * parse tree; semantic passes require their own owned representation. */
 const XL6_AstNode* xlsSyntaxAst(const xls_syntax* syntax);
@@ -64,6 +65,7 @@ xls_semantic_completion* xlsSemanticCompletionCreateIncrementalInContext(xls_con
 xls_sem_work xlsSemanticCompletionSemWork(const xls_semantic_completion* result);
 xls_sem_call_work xlsSemanticCompletionCallWork(const xls_semantic_completion* result);
 xls_sem_storage_work xlsSemanticCompletionStorageWork(const xls_semantic_completion* result);
+xls_ast_materialize_work xlsSemanticCompletionMaterializationWork(const xls_semantic_completion* result);
 /* One mutex-protected materialization precedes full AST exposure. Query JSON,
  * items and immutable semantic units never require or observe partial IR data. */
 const XL6_AstNode* xlsSemanticCompletionAst(const xls_semantic_completion* result);

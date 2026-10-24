@@ -65,6 +65,11 @@ def main():
                 assert result['analysis']['lastBuildSemantics']['checked'] >= 1, result
                 annotations = result['analysis']['lastBuildAnnotations']
                 storage = result['analysis']['lastBuildStorage']
+                materialization = result['analysis']['lastBuildMaterialization']
+                assert materialization['nodes'] > materialization['pages'] > 0, result
+                assert 0 < materialization['chargedBytes'] <= 64*1024*1024, result
+                assert materialization['pooledCopies'] == materialization['calls'] > 0, result
+                assert not materialization['heapCopies'] and not materialization['poolFallbacks'], result
                 assert storage['chargedBytes'] <= 64*1024*1024, result
                 if result['analysis']['lastBuildSemantics']['reused']:
                     assert storage['nodes'] > storage['pages'] > 0 and storage['chargedBytes'] > 0, result

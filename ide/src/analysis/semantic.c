@@ -29,6 +29,7 @@ struct xls_semantic_completion {
     xls_sem_call_work callWork;
     xls_sem_tail* tail;
     xls_sem_storage_work storageWork;
+    xls_ast_materialize_work materializationWork;
 };
 static int absolute(const char* path)
 {
@@ -167,6 +168,8 @@ static xls_semantic_completion* create(xls_context* context,xls_entry_cache* cac
 {
     if(!xlsFrontendContextValid(context,entry,error,capacity)) return NULL;
     xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
+    xls_ast_materialize_scope materialization;
+    xlsAstMaterializeBegin(&materialization,memoEnabled ? xlsAstMaterializeBudget() : 0);
     xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,cache,context,entry);
     entryScope.cursorSyntax=syntax;
     xls_semantic_completion* result=createBody(context,entry,queryPath,offset,inputs,count,syntax,previous,memoEnabled,cancelled,user,error,capacity);
@@ -174,10 +177,11 @@ static xls_semantic_completion* create(xls_context* context,xls_entry_cache* cac
     if(result && stopped(cancelled,user)) {xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"semantic completion cancelled");}
     int scoped=xlsFrontendContextEnd(&scope);
     xls_completion_entry_work work=xlsFrontendEntryEnd(&entryScope,result && scoped);
+    xls_ast_materialize_work materializationWork;xlsAstMaterializeEnd(&materialization,&materializationWork);
     if(!scoped) {
         xlsSemanticCompletionDestroy(result); fail(error,capacity,(scope.failed&2) ? "cannot retain bounded completion namespace" : "cannot resolve native context path or package environment"); return NULL;
     }
-    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->cursorSyntaxApplied|=entryScope.cursorApplied;}
+    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->cursorSyntaxApplied|=entryScope.cursorApplied;result->materializationWork=materializationWork;}
     return result;
 }
 xls_completion_entry_work xlsSemanticCompletionEntryWork(const xls_semantic_completion* result)
@@ -192,6 +196,8 @@ xls_sem_call_work xlsSemanticCompletionCallWork(const xls_semantic_completion* r
 {return result ? result->callWork : (xls_sem_call_work){0};}
 xls_sem_storage_work xlsSemanticCompletionStorageWork(const xls_semantic_completion* result)
 {return result ? result->storageWork : (xls_sem_storage_work){0};}
+xls_ast_materialize_work xlsSemanticCompletionMaterializationWork(const xls_semantic_completion* result)
+{return result ? result->materializationWork : (xls_ast_materialize_work){0};}
 const XL6_AstNode* xlsSemanticCompletionAst(const xls_semantic_completion* result)
 {
     xls_semantic_completion* r=(xls_semantic_completion*)result;

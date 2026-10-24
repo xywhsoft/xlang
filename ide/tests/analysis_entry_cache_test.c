@@ -17,6 +17,8 @@ static char* fixtureAbsolute(const char* path) {if(!operation()) return NULL;cha
 static void fixtureFree(void* p) {if(p) --live;xrtFree(p);}
 static XL6_AstNode* fixtureClone(const XL6_AstNode* root,const xls_ast_clone_options* options,size_t* bytes)
 {return operation() ? xlsAstClone(root,options,bytes) : NULL;}
+static XL6_AstNode* fixtureMaterialize(const XL6_AstNode* root,const xls_ast_clone_options* options,size_t* bytes)
+{return operation() ? xlsAstMaterialize(root,options,bytes) : NULL;}
 static bool fixtureMapInit(xmap* map,size_t bytes) {return operation() && xrtMapInit(map,bytes);}
 static bool fixtureMapDrop(xmap* map,xmapdrop drop,void* user) {return operation() && xrtMapSetDrop(map,drop,user);}
 static bool fixtureMapSet(xmap* map,xbytesview key,const void* value) {return operation() && xrtMapSet(map,key,value);}
@@ -49,6 +51,7 @@ static int fixtureStorage(const xls_syntax* syntax,size_t limit,size_t* bytes)
 #define xrtPathAbs fixtureAbsolute
 #define xrtFree fixtureFree
 #define xlsAstClone fixtureClone
+#define xlsAstMaterialize fixtureMaterialize
 #define xlsEntryCacheCreate privateCreate
 #define xlsEntryCacheDestroy privateDestroy
 #define xlsEntryCacheBytes privateBytes
@@ -63,6 +66,7 @@ static int fixtureStorage(const xls_syntax* syntax,size_t limit,size_t* bytes)
 #undef xrtPathAbs
 #undef xrtFree
 #undef xlsAstClone
+#undef xlsAstMaterialize
 #undef xlsTextCreate
 #undef xlsSyntaxAdoptOrdinary
 #undef xlsSyntaxTryFunction

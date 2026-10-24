@@ -1,6 +1,7 @@
 #include "analysis/frontend_entry_cache.h"
 #include "analysis/frontend_context.h"
 #include "analysis/ast_clone.h"
+#include "analysis/ast_materialize.h"
 #include "src/sem/xl6_completion.h"
 #include <xrt.h>
 #include <string.h>
@@ -108,7 +109,7 @@ static int copy(const xls_entry_cache_data* old,size_t limit,XL6_ParseResult* re
         if(!xlsSyntaxCopyParse(old->syntax,result)) return 0;
         result->diags.defaultFile=xl6AstSourcePath(result->root); return 1;
     }
-    xls_ast_clone_options options={.bytes=limit};XL6_AstNode* tree=xlsAstClone(old->root,&options,NULL);
+    xls_ast_clone_options options={.bytes=limit};XL6_AstNode* tree=xlsAstMaterialize(old->root,&options,NULL);
     if(!tree) return 0;
     result->root=tree;result->diags.defaultFile=xl6AstSourcePath(tree);return 1;
 }

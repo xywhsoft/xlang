@@ -8,7 +8,7 @@ static int cacheAdd(size_t* total,size_t bytes,size_t limit)
 static int cacheNodeBytes(const XL6_AstNode* node,size_t depth,xmap* sources,size_t* bytes,size_t limit)
 {
     if(!node) return 1;
-    if(depth>TREE_DEPTH || node->childCount>node->childCapacity ||
+    if(depth>TREE_DEPTH || node->xlsStorage || node->childCount>node->childCapacity ||
        node->childCapacity>SIZE_MAX/sizeof(*node->children) ||
        !cacheAdd(bytes,sizeof(*node),limit) ||
        !cacheAdd(bytes,node->childCapacity*sizeof(*node->children),limit)) return 0;
