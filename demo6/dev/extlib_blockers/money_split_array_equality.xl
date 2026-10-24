@@ -1,0 +1,14 @@
+import money
+
+func main(...) as int
+    var plain = [34, 34, 33]
+    array<int> typed = array<int>[34, 34, 33]
+    var split = money.split(101, 3)
+    println("plain: ", plain == [34, 34, 33])
+    println("typed: ", typed == array<int>[34, 34, 33])
+    println("split: ", split == [34, 34, 33])
+    println("split values: ", split.length, ",", split[0], ",", split[1], ",", split[2])
+    assert plain == [34, 34, 33] and typed == array<int>[34, 34, 33]
+    assert split == [34, 34, 33], "foreign var array equality differs from language arrays"
+    return 0
+end
