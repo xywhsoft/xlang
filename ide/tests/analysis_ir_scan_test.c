@@ -30,6 +30,26 @@ static int compareVerify(XL6_IrModule* ir,int accepted)
     CHECK(a==b && (accepted<0 || a==accepted) && sameDiagnostics(&indexed,&reference));
     xl6DiagFree(&indexed); xl6DiagFree(&reference); return 1;
 }
+static int compareRegions(XL6_IrModule* ir,int large)
+{
+    XL6_DiagList a,b; xl6DiagInit(&a); xl6DiagInit(&b);
+    xlsFrontendIrRegionReset(); CHECK(xlsFrontendIrRefreshRegionBudget(ir,0));
+    xls_ir_region_work original=xlsFrontendIrRegionWork(); char* expected=dump(ir); CHECK(expected);
+    xlsFrontendIrRegionReset(); CHECK(xlsFrontendIrRefreshRegionBudget(ir,8u*1024u*1024u));
+    xls_ir_region_work indexed=xlsFrontendIrRegionWork(); char* actual=dump(ir);
+    CHECK(actual && !strcmp(expected,actual)); xrtFree(actual);
+    CHECK(!original.indexes && !original.indexedVisits && indexed.peakBytes<=8u*1024u*1024u);
+    if(original.linearVisits) CHECK(indexed.indexes==1 && !indexed.linearVisits && indexed.indexedVisits<original.linearVisits);
+    xlsFrontendIrRegionReset(); CHECK(xlsFrontendIrRefreshRegionBudget(ir,1));
+    xls_ir_region_work tiny=xlsFrontendIrRegionWork(); actual=dump(ir);
+    CHECK(actual && !strcmp(expected,actual) && !tiny.indexes && !tiny.indexedVisits && tiny.linearVisits==original.linearVisits); xrtFree(actual); xrtFree(expected);
+    xlsFrontendIrRegionReset(); CHECK(xlsFrontendIrVerifyRegionBudget(ir,&a,0));
+    original=xlsFrontendIrRegionWork(); xlsFrontendIrRegionReset(); CHECK(xlsFrontendIrVerifyRegionBudget(ir,&b,8u*1024u*1024u));
+    indexed=xlsFrontendIrRegionWork(); CHECK(sameDiagnostics(&a,&b));
+    if(original.linearVisits) CHECK(indexed.indexes==1 && !indexed.linearVisits && indexed.indexedVisits<original.linearVisits);
+    if(large) printf("IR region block visits indexed=%llu original=%llu, data=%llu bytes\n",(unsigned long long)indexed.indexedVisits,(unsigned long long)original.linearVisits,(unsigned long long)indexed.peakBytes);
+    xl6DiagFree(&a); xl6DiagFree(&b); return 1;
+}
 static int compareScopeProof(XL6_IrModule* ir,int large)
 {
     XL6_DiagList indexed,reference; xl6DiagInit(&indexed); xl6DiagInit(&reference);
@@ -151,7 +171,7 @@ static int corpus(const char* source,int large)
     CHECK(!planReference.indexes && !planReference.indexedVisits && planReference.linearVisits);
     char* expected=dump(&ir);
     CHECK(expected && !strcmp(actual,expected)); xrtFree(actual); xrtFree(expected);
-    CHECK(compareVerify(&ir,1) && compareScopeProof(&ir,large) && compareConversions(&ir,0));
+    CHECK(compareVerify(&ir,1) && compareScopeProof(&ir,large) && compareConversions(&ir,0) && compareRegions(&ir,large));
     if(ir.callSiteCount) {
         size_t count=ir.callSiteCount,capacity=ir.callSiteCapacity;
         XL6_IrCallSite saved=ir.callSites[0];
@@ -209,6 +229,10 @@ static int corpus(const char* source,int large)
          * even after another plan for the same origin was already proven. */
         size_t count=ir.exitPlans[i].cleanupCount; --ir.exitPlans[i].cleanupCount;
         CHECK(compareVerify(&ir,0)); ir.exitPlans[i].cleanupCount=count; break;
+    }
+    for(size_t i=0;i<ir.nodeCount;++i) if(ir.nodes[i].kind==XL6_IR_NODE_BLOCK) {
+        uint32 region=ir.nodes[i].region; ir.nodes[i].region=UINT32_MAX;
+        CHECK(compareVerify(&ir,-1)); ir.nodes[i].region=region; break;
     }
     /* The optional preflight/index must never follow an adversarial parent
      * cycle before the shared verifier can issue its normal rejection. */

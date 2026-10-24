@@ -46,6 +46,7 @@ CORE_TESTS = ("diagnostic_paths_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_entry_cache_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_import_names_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_index_storage_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_regions_test", *CORE_TESTS)
 
 
 def sha(path: Path) -> str:
@@ -124,6 +125,13 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         'for (child = afterScope ? block->childCount + 1 : (size_t)plan->origin - 1; child > 0; --child) {':
             'for (child = afterScope ? block->childCount + 1 : xlsIrPreviousCandidate(module, owner, plan->origin, routed); child > 0;\n'
             '         child = afterScope ? child - 1 : xlsIrPreviousCandidate(module, owner, (XL6_IrNodeId)child, routed)) {',
+        '    for ( i = 0; i < module->nodeCount; ++i ) {\n'
+        '        const XL6_IrNode* scope = &module->nodes[i];\n'
+        '        XL6_IrNodeId scopeId = (XL6_IrNodeId)(i + 1);':
+            '    for ( i = xlsIrFirstRegionBlock(module,candidate->region); i < module->nodeCount;\n'
+            '          i = xlsIrNextRegionBlock(module,candidate->region,i) ) {\n'
+            '        const XL6_IrNode* scope = &module->nodes[i];\n'
+            '        XL6_IrNodeId scopeId = (XL6_IrNodeId)(i + 1);',
         'for ( j = 0; j < module->exitPlanCount; ++j ) {\n'
         '            if ( module->exitPlans[j].origin == (XL6_IrNodeId)(i + 1) ) {':
             'for ( j = xlsIrFirstPlanCandidate(module, (XL6_IrNodeId)(i + 1), module->exitPlanCount);\n'
@@ -146,7 +154,8 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         compiledSource=str(compiled), compiledSha256=sha(compiled),
         change='bounded nominal-declaration candidates, cleanup/plan/call-origin indexes and per-verification scope proofs; shared rules retained',
         auditedSeams=len(changes), indexBytes=16 * 1024 * 1024, planIndexBytes=8 * 1024 * 1024,
-        scopeProofBytes=1024 * 1024, callIndexBytes=8 * 1024 * 1024, typeLookupBytes=8 * 1024 * 1024)
+        scopeProofBytes=1024 * 1024, callIndexBytes=8 * 1024 * 1024, typeLookupBytes=8 * 1024 * 1024,
+        regionIndexBytes=8 * 1024 * 1024)
 
 
 def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
@@ -332,7 +341,7 @@ def main() -> None:
     sources += [(ide / "src/protocol/input_state.c", True)]
     sources += [(ide / "src/protocol/diagnostic_paths.c", True)]
     sources += [(ide / path, True) for path in (
-        "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/input_view.c", "src/analysis/ast_clone.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
+        "src/analysis/frontend_ir_regions.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/input_view.c", "src/analysis/ast_clone.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
@@ -442,7 +451,7 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "context", "frontend_context", "ast_clone", "syntax", "session", "worker", "folding", "semantic", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_ir_regions","frontend_entry_cache","input_view", "text", "context", "frontend_context", "ast_clone", "syntax", "session", "worker", "folding", "semantic", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         limited_index = output / "xl6_sem_index_limit.o"
