@@ -165,7 +165,9 @@ if ($PublicDriver) {
         'cgen_implicit_string_methods','nullable_string_lifecycle','cgen_task_spawn_fstring',
         'stdlib_codec','stdlib_compress_values','stdlib_encoding','stdlib_unicode_validator',
         'xlir_managed_storage_inputs','cgen_base_method_static_dispatch','cgen_async_generator',
-        'xlir_module_product_globals')
+        'xlir_module_product_globals','stdlib_callable_variadic_array',
+        'stdlib_runtime_callable_defaults','stdlib_runtime_callable_func_defaults',
+        'stdlib_runtime_callable_defaults_errors')
     foreach($name in $ordinarySources) {
         $source="test/cases/$name.xl"
         & $sourceDriver $source run "$outputPath/ordinary-jit-$name"

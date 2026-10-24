@@ -82,7 +82,7 @@ inferred generic instances. Signature keys include concrete types and have no
 and result specialization when that default is used; explicit overrides do not
 evaluate it. Default evaluation order and exception cleanup are unchanged.
 `task.spawn` specializes statically resolved named language readers to keep C
-inputs in their task frames, including exported language readers. Function-value variables keep their fixed signature
+inputs in their task frames, including exported language readers. Function-value variables keep their declared signature
 and its ordinary conversion rules; Future payloads keep their ordinary result
 representation. A synchronous owner-result producer passed to `task.spawn` is
 automatically adapted to that ordinary result ABI, including nullable results.
@@ -95,11 +95,18 @@ adapter; the original callable expression is evaluated once and snapshotted.
 Named producers use a private body specialization. `xcall` performs the same
 adaptation before erasure, including product and nullable results. Overload
 resolution prefers an exact owner signature to a materializing conversion.
-For a stored variadic callable with owner results, bind its named producer to
-an ordinary result signature before storing/erasing it (for example,
-`func(...) as string callback = producer`). Arbitrary captured variadic
-callables do not yet have a pack-forwarding result adapter; this case is
-rejected rather than invoking an incompatible closure ABI.
+Stored and captured variadic callables support the same automatic adaptation,
+including both `...` and `***`, fixed prefixes, nullable and product results.
+For example, `auto raw = producer; func(...) as string callback = raw` and
+`var erased = xcall(raw)` work without first binding the named declaration.
+The adapter borrows the existing array/dict argument pack directly: it neither
+repackages nor boxes its elements again. Parameter names, literal defaults and
+default expressions with captured variables retain the original callable's
+binding behavior and snapshot. Each product result converts independently
+after a single producer invocation. Direct calls through the original
+owner-returning signature still retain the C allocation without copying it;
+only the ordinary result boundary materializes. `task.spawn` also adapts
+stored `...` owner producers to ordinary Future results.
 An override returning a C marker adopts an ordinary base slot's result ABI;
 the body materializes on return. Slots explicitly returning C markers on both
 base and derived declarations keep their owner ABI. These rules are not a promise of
@@ -239,6 +246,19 @@ shipping builds without memory debug still run value and lifetime assertions;
 allocation-counter checks use the separate debug runtime lane. Acceptance
 records belong under `build/c-owned/`; this targeted check is not a claim that
 all repository-wide inventories and unrelated release gates are green.
+
+Stored-variadic acceptance (`build/c-owned/variadic-acceptance.log`) uses a
+1,165-unit source build (`variadic-public-current/build.json`, 2,337 unchanged
+inputs). It passes 28 generated-C programs, 29 C owner JIT/standalone EXE pairs,
+18 ordinary JIT/EXE pairs without C owner headers, 13 negative declarations and
+13 export checks. `xlir_c_owned_variadic_results.xl` covers stored/captured
+array/dict variadics, fixed prefixes, nullable/product results, snapshots,
+single evaluation, literal/captured defaults, keyword binding and task results;
+its verifier rejects 171 mutations. O0/O2 hosts verify argument-pack pointer
+identity for empty/populated array/dict packs and each sweep 960 allocation
+limits (154 failures, 806 completions), with balanced foreign allocations and
+no XRT live growth. The ordinary callable-result contract still rejects 197
+mutations; each optimization passes 680 executions and 480 allocation faults.
 
 Boundary completion acceptance (`build/c-owned/boundaries-acceptance-complete.log`)
 uses a 1,156-unit source build (`boundaries-public-current/build.json`). It
