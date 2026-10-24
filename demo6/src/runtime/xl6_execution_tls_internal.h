@@ -10,6 +10,7 @@
 typedef struct XL6_TlsStreamCreateOptionsV1 {
     XL6_ExecutionResourceV1* engine;
     xtlsstream* accepted; /* private, actual owned Listener/Dial result borrow */
+    XL6_ExecutionResourceV1* accepting; /* prepared real accept, no submission yet */
     xtlsstream* (*Build)(xnetengine*,XL6_ExecutionResourceV1*,const xtlsstreamownershipv1*,const struct XL6_TlsStreamCreateOptionsV1*);
     const struct XL6_TlsClientConnectOptionsV1* client;
 } XL6_TlsStreamCreateOptionsV1;
@@ -17,6 +18,13 @@ typedef struct XL6_TlsListenerCreateOptionsV1 {
     XL6_ExecutionResourceV1* engine;
     const struct xtlslistenerconfig* config; /* static role, copied synchronously */
 } XL6_TlsListenerCreateOptionsV1;
+
+typedef struct XL6_TlsStreamResourceV1 {
+    XL6_ExecutionResourceV1 base;
+    XL6_ExecutionResourceV1 *parent,*accepting;
+    xatomicptr native,pending;
+    xatomic32 prepared;
+} XL6_TlsStreamResourceV1;
 typedef struct XL6_TlsScopeV1 {
     XL6_ExecutionScopeV1 execution;
     xtlsstream* stream;
