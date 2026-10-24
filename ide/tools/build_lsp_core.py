@@ -485,6 +485,8 @@ def main() -> None:
     parser.add_argument("--server", action="store_true", help="also build the external language-server host")
     parser.add_argument("--skip-tests", action="store_true", help="build only, without compiling or running core fixtures")
     parser.add_argument("--configuration", choices=("Debug", "Release"), default="Release")
+    parser.add_argument("--cflag", action="append", default=[],
+                        help="additional compiler option; repeat --cflag=-option as needed")
     args = parser.parse_args()
     tests = CORE_TESTS + (HOST_TESTS if args.server else ())
     frontend, output = args.frontend_root.resolve(), args.output.resolve()
@@ -552,6 +554,7 @@ def main() -> None:
     common += ["-O2", "-DXRT_EXCLUDE_MEMORY_DEBUG="] if args.configuration == "Release" else ["-O0", "-g"]
     index_budget_flag = "-DXL6_INDEX_BYTES=" + str(NATIVE_INDEX_BYTES) + "u"
     common += [index_budget_flag]
+    common += args.cflag
     strict = ["-Wall", "-Wextra", "-Werror", "-Wno-unused-parameter"]
     shared = ["-Wall", "-Wno-pointer-sign", "-Wno-unused-function", "-Wno-unused-variable",
               "-Wno-unused-but-set-variable", "-Wno-format-truncation", "-Wno-dangling-pointer"]
