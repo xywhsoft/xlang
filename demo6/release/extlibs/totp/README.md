@@ -1,5 +1,11 @@
 # totp
 
+2026-10-24 发布版复验：Windows 默认包门禁通过严格 C、线程、
+XLang 边界和分配故障、固定 RFC 双语输出，以及核心、公开范例、
+边界、分配故障四份独立 EXE 的 AOT 构建与执行；JIT/AOT 用例输出
+逐份一致。旧共享链接缺符号记录只对应先前发布物。本轮没有重建
+Linux 发布版，也没有验证应用级限流、重放防护或密钥保存。
+
 `totp` 提供 RFC 4226 HOTP 与 RFC 6238 TOTP 的 **HMAC-SHA1** 版本。密钥使用 RFC 4648 Base32 文本；接受大小写字母及合法的可选 `=` 尾部填充，但拒绝空密钥、非法字符、内部填充、错误填充和非零填充位。当前限制编码密钥为 1..256 字节，不自动忽略空格。哈希与时钟复用 XRT，包内只组合 HMAC-SHA1。
 
 ## XLang API
@@ -47,6 +53,8 @@ Windows `test/check.ps1 -SkipAot` 与 Linux C ASan/UBSan、线程、XLang
 在 `demo6` 目录还可运行 `release/xl.exe run release/extlibs/totp/test/allocations.xl`；两份包内 XLang 用例均登记在 `coverage.tests`。Linux 运行 `bash release/extlibs/totp/test/check.sh`，以严格 GCC 和 ASan/UBSan 重建 C 边界与线程测试，检查 manifest 模块宏，并运行中央及包内 XLang 用例、逐字节核对 C/XLang 范例输出。2026-10-14 新增 C 输出分配故障、XLang 三个生成入口的内存异常和失败后恢复测试；算法没有更改。
 
 Windows 可从 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/totp/test/check.ps1`：严格 GCC 宏检查、C 边界和线程、中央及包内 XLang 用例，以及包运行器 C、单文件 C、XLang 范例分别与固定 RFC 输出比较。默认还构建运行中央核心与完整范例 AOT，并对照同一固定 RFC 输出；`-SkipAot` 只运行 C/JIT 快测。Linux 专属的系统时钟故障注入仍由 `test/check.sh` 检查。
+
+当前默认门禁还构建并运行包内边界与分配故障两份 AOT，与同次 JIT 输出对照。
 
 2026-10-14 补 C 公开入口的失败后成功/不匹配连续调用回归，修复旧线程错误残留；Windows 严格 GCC、C/XLang 边界与 Linux ASan/UBSan 均通过，完整 AOT 阻断不变。
 

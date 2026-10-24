@@ -40,13 +40,15 @@ try {
         & $runner -Package totp -Source "release/extlibs/totp/test/$source"
         if ($LASTEXITCODE -ne 0) { throw "totp C test failed: $source" }
     }
+    $xlOutputs = @{}
     foreach ($source in @(
         'test/cases/extlib_totp.xl',
         'release/extlibs/totp/test/boundaries.xl',
         'release/extlibs/totp/test/allocations.xl'
     )) {
-        & $xl run $source
+        $lines = @(& $xl run $source)
         if ($LASTEXITCODE -ne 0) { throw "totp XLang test failed: $source" }
+        $xlOutputs[$source] = [string]::Join("`n", $lines)
     }
 
     $xlLines = @(& $xl run release/examples/extlibs/totp.xl)
@@ -72,6 +74,15 @@ try {
             'release/examples/extlibs/totp.xl', '-o', $example)
         $aotLines = @(Run-Aot 'totp example AOT' $example @())
         Confirm-Output 'XLang AOT example' $aotLines
+        foreach ($case in @('boundaries', 'allocations')) {
+            $target = Join-Path $work "totp_${case}.exe"
+            $null = Run-Aot "totp $case build" $xl @('build',
+                "release/extlibs/totp/test/$case.xl", '-o', $target)
+            $aotLines = @(Run-Aot "totp $case AOT" $target @())
+            if ($xlOutputs["release/extlibs/totp/test/$case.xl"] -cne [string]::Join("`n", $aotLines)) {
+                throw "totp $case AOT output differs from JIT"
+            }
+        }
     }
 
     Write-Output 'totp Windows C/XLang gate: PASS'
