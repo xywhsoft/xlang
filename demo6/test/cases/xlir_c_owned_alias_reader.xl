@@ -10,11 +10,26 @@ func makeBytes() as cbytes
     return cbytes.take(nativeBytes(),4,nativeFree)
 end
 typedef Blob = bytes
+typedef Text = string
+typedef MaybeBlob = Blob?
 func reader(Blob value) as bool
     return originalBytes(value)
+end
+func optionalReader(MaybeBlob value) as bool
+    return value!=null and originalBytes(value)
+end
+func optionalText(Text? value) as bool
+    return value!=null and original(value)
+end
+func forward(Text? text,MaybeBlob value) as (Text?,MaybeBlob)
+    return text,value
 end
 func check()
     auto data=makeBytes()
     assert reader(data)
+    auto text=make()
+    assert optionalReader(data) and optionalText(text)
+    auto first,second=forward(text,data)
+    assert first!=null and second!=null and original(first) and originalBytes(second)
 end
 check()
