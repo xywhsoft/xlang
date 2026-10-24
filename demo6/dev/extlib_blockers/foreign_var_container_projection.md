@@ -48,3 +48,12 @@ JSON Patch 的 JIT/独立 EXE 公开范例。本普通包任务不改主线。
 再调用 `xl6ArrayProjectionTakeV1`，并将该结果直接传入原生函数；
 `last_error()` 为 `clipboard: invalid input or data`。未通过修改扩展库
 接受编译器内部 handle 布局来绕过，待主线统一 foreign 容器 ABI 后复验。
+
+同日 `com` 的当前 Windows 发布版也复现此边界：在 `demo6/release` 运行
+`./xl.exe run extlibs/com/test/boundaries.xl`，C 的 COM 测试对象创建成功，
+首次 `com.invoke(handle, "Sub", array[9, 4])` 却抛出
+`ValueError: arguments must be an array`。原生 `x_com_invoke_array` 收到的
+参数类型不是它声明要求的 `XVALUE_ARRAY`；独立 C 门禁通过。
+包内另有不传数组的 `implicit_object_cleanup.xl`，JIT/EXE 均通过，
+故该 COM 调用阻断不能与对象析构问题混作一个故障。修复共享边界后应
+重跑 `release/extlibs/com/test/check.ps1` 的完整 JIT/AOT 和双语对照。
