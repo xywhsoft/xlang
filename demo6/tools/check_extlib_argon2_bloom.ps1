@@ -87,7 +87,7 @@ try {
     $text = Check 'allocation' $alloc @()
     if ($text -notmatch '^argon2/bloom allocation: rejected=[1-9][0-9]* completed=[1-9][0-9]*$') { throw 'Allocation coverage marker missing' }
 
-    # 语言门禁仍严格失败，但不遮蔽与 XLIR 无关的两包 C 结果。
+    # XLang 声明必须全部生成 C 原型；头文件可额外公开仅供 C 使用的入口。
     foreach ($name in @('argon2','bloom')) {
         $case = "test/cases/extlib_$name.xl"
         $module = Join-Path $work "$name.c"
@@ -97,9 +97,14 @@ try {
         $decls = @(Get-Content $module -Encoding UTF8 | Where-Object { $_ -match "^extern .*\b${prefix}[a-z_]+\(" })
         $text = Get-Content (Join-Path $Root "release/extlibs/$name/include/$header") -Raw -Encoding UTF8
         $symbols = @([regex]::Matches($text,"\b${prefix}[a-z_]+(?=\()") | ForEach-Object Value | Sort-Object -Unique)
+        $binding = Get-Content (Join-Path $Root "release/extlibs/$name/src/$name.xl") -Raw -Encoding UTF8
+        $declared = @([regex]::Matches($binding,('extern\s+"(?<symbol>' + $prefix + '[a-z_]+)"')) |
+            ForEach-Object { $_.Groups['symbol'].Value } | Sort-Object -Unique)
         $emitted = @([regex]::Matches(($decls -join "`n"),"\b${prefix}[a-z_]+(?=\()") | ForEach-Object Value | Sort-Object -Unique)
-        if (@(Compare-Object $symbols $emitted).Count -ne 0 -or $decls.Count -ne $symbols.Count) {
-            throw "$name generated ABI coverage incomplete: expected $($symbols.Count), got $($decls.Count)"
+        $missingHeader = @($declared | Where-Object { $symbols -cnotcontains $_ })
+        if ($missingHeader.Count -ne 0 -or @(Compare-Object $declared $emitted).Count -ne 0 -or
+            $decls.Count -ne $declared.Count) {
+            throw "$name generated ABI coverage incomplete: declared $($declared.Count), emitted $($decls.Count), missing C header: $($missingHeader -join ', ')"
         }
         $abi = Join-Path $work "$name-abi.c"
         [IO.File]::WriteAllText($abi,"#include <stdint.h>`n#include `"$header`"`n" + ($decls -join "`n"),$utf8)
