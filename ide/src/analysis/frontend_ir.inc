@@ -3,6 +3,7 @@
  * to one immutable verification. Compiler materials are never modified. */
 #include "analysis/frontend_ir.h"
 #include "analysis/frontend_types.h"
+#include "analysis/frontend_ir_regions.h"
 
 #define XLS_IR_SCAN_BYTES (16u*1024u*1024u)
 #define XLS_IR_PLAN_BYTES (8u*1024u*1024u)
@@ -21,12 +22,29 @@ typedef struct xls_ir_scan {
     size_t planCount,planBudget;
     size_t scopeCount;
     int ready,topology,plansReady,plansAttempted,verifying,scopeAttempted,scopeReady;
+    xls_ir_region_index regions;
+    size_t regionBudget;
+    int regionsAttempted;
     struct xls_ir_scan* previous;
 } xls_ir_scan;
 static _Thread_local xls_ir_scan* xlsActiveIrScan;
 static _Thread_local xls_ir_scan_work xlsIrScanWork;
 static _Thread_local xls_ir_plan_scan_work xlsIrPlanWork;
 static _Thread_local xls_ir_scope_proof_work xlsIrScopeWork;
+static const xls_ir_region_index* xlsIrRegions(const XL6_IrModule* module)
+{
+    xls_ir_scan* scan=xlsActiveIrScan;
+    if(!scan || !scan->topology || scan->module!=module || scan->nodes!=module->nodes || scan->count!=module->nodeCount) return NULL;
+    if(!scan->regionsAttempted) {
+        scan->regionsAttempted=1;
+        xlsIrRegionBuild(&scan->regions,module,scan->regionBudget);
+    }
+    return &scan->regions;
+}
+static size_t xlsIrFirstRegionBlock(const XL6_IrModule* module,uint32 region)
+{ return xlsIrRegionFirst(xlsIrRegions(module),module,region); }
+static size_t xlsIrNextRegionBlock(const XL6_IrModule* module,uint32 region,size_t current)
+{ return xlsIrRegionNext(xlsIrRegions(module),module,region,current); }
 static XL6_IrNodeId xl6IrCleanupEnclosingCallable(const XL6_IrModule*,XL6_IrNodeId);
 static int xl6IrVerifyNodeTopology(const XL6_IrModule*,XL6_DiagList*);
 static int xlsIrRefreshExitPlansOriginal(XL6_IrModule*);
@@ -208,7 +226,7 @@ static int xlsIrCandidateCompare(const void* a,const void* b)
 }
 static void xlsIrScanInit(xls_ir_scan* scan,const XL6_IrModule* module)
 {
-    memset(scan,0,sizeof(*scan)); scan->previous=xlsActiveIrScan;
+    memset(scan,0,sizeof(*scan)); scan->previous=xlsActiveIrScan; scan->regionBudget=XLS_IR_REGION_BYTES;
     if(!module || !module->nodes || !module->nodeCount || !module->root || module->root>module->nodeCount ||
        module->nodeCount>UINT32_MAX) return;
     /* Run the compiler's own linear rooted-tree preflight before asking any
@@ -242,6 +260,7 @@ static void xlsIrScanDone(xls_ir_scan* scan)
     xlsActiveIrScan=scan->previous; xrtArrayUnit(&scan->all); xrtArrayUnit(&scan->routed);
     xrtArrayUnit(&scan->plans); xrtArrayUnit(&scan->positions);
     xrtArrayUnit(&scan->scopeProof);
+    xlsIrRegionClear(&scan->regions);
 }
 static size_t xlsIrScopeProofSlot(xls_ir_scan* scan,const XL6_IrModule* module,const XL6_IrExitPlan* plan)
 {
@@ -387,17 +406,23 @@ static XL6_IrNodeId xlsIrPreviousCandidate(const XL6_IrModule* module,
     return result;
 }
 int xl6IrRefreshExitPlans(XL6_IrModule* module)
+{ return xlsFrontendIrRefreshRegionBudget(module,XLS_IR_REGION_BYTES); }
+int xlsFrontendIrRefreshRegionBudget(XL6_IrModule* module,size_t bytes)
 {
     xls_ir_call_scan calls; xlsIrCallScanBegin(&calls,module,XLS_IR_CALL_BYTES);
-    xls_ir_scan scan; xlsIrScanInit(&scan,module); xlsActiveIrScan=&scan;
+    xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.regionBudget=bytes; xlsActiveIrScan=&scan;
     int okay=xlsIrRefreshExitPlansOriginal(module); xlsIrScanDone(&scan); xlsIrCallScanDone(&calls); return okay;
 }
-int xlsFrontendIrVerifyPlanBudget(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes)
+static int xlsIrVerifyBudgets(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes,size_t regionBytes)
 {
     xls_ir_call_scan calls; xlsIrCallScanBegin(&calls,module,bytes);
-    xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.planBudget=bytes; scan.verifying=1; xlsActiveIrScan=&scan;
+    xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.planBudget=bytes; scan.regionBudget=regionBytes; scan.verifying=1; xlsActiveIrScan=&scan;
     int okay=xlsIrVerifyModuleOriginal(module,diags); xlsIrScanDone(&scan); xlsIrCallScanDone(&calls); return okay;
 }
+int xlsFrontendIrVerifyPlanBudget(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes)
+{ return xlsIrVerifyBudgets(module,diags,bytes,XLS_IR_REGION_BYTES); }
+int xlsFrontendIrVerifyRegionBudget(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes)
+{ return xlsIrVerifyBudgets(module,diags,XLS_IR_PLAN_BYTES,bytes); }
 int xl6IrVerifyModule(const XL6_IrModule* module,XL6_DiagList* diags)
 { return xlsFrontendIrVerifyPlanBudget(module,diags,XLS_IR_PLAN_BYTES); }
 void xlsFrontendIrScanReset(void) { memset(&xlsIrScanWork,0,sizeof(xlsIrScanWork)); }

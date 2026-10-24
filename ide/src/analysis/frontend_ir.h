@@ -30,6 +30,13 @@ xls_ir_scope_proof_work xlsFrontendIrScopeProofWork(void);
 typedef struct xls_ir_call_scan_work {
     uint64_t indexes,records,queries,indexedVisits,linearVisits,peakBytes;
 } xls_ir_call_scan_work;
+typedef struct xls_ir_region_work {
+    uint64_t indexes,records,queries,indexedVisits,linearVisits,peakBytes,rootVisits;
+} xls_ir_region_work;
+void xlsFrontendIrRegionReset(void);
+xls_ir_region_work xlsFrontendIrRegionWork(void);
+int xlsFrontendIrRefreshRegionBudget(XL6_IrModule* module,size_t bytes);
+int xlsFrontendIrVerifyRegionBudget(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes);
 void xlsFrontendIrCallScanReset(void);
 xls_ir_call_scan_work xlsFrontendIrCallScanWork(void);
 int xlsFrontendIrConversionBudget(XL6_IrModule* module,size_t bytes);
