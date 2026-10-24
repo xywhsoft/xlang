@@ -26,6 +26,15 @@ build/c-owned/extlib-foreign-var/public_source.exe `
 `statistics/test/check.ps1 -SkipAot` 时，严格 C、XLang 和双语黄金
 输出全部通过；因此不能用旧二进制的通过替代当前源码验收。
 
+2026-10-25 更新发布版后，`msgpack` 的最小复现
+`./release/xl.exe run dev/extlib_blockers/msgpack_var_dict_projection.xl`
+退出 1，报 `NotImplementedError: MessagePack cannot encode this dynamic value type`。
+输入仅是 `var document = {"x": 1}`；原生编码器支持 `XVALUE_OBJECT`，
+此诊断来自不受支持的动态 tag 分支。默认包门禁的严格 C、边界、
+分配故障及 C 范例全部通过，首个 XLang 边界用例失败，未进入 AOT。
+应由主线统一 foreign `var` 容器投影，修复后复跑最小源及完整包门禁；
+不能在 MessagePack 包内解释编译器私有句柄。
+
 生成 C 对 `var document = {"x": 1}` 调用 `xl6DictCreateTakeV1`，
 对 `var values = [2, 4]` 使用 `xl6SequenceReferenceCreateV1` 与数组
 投影。前者在运行时由 `xrtValueHandleTake` 包装为 `XVALUE_HANDLE`；

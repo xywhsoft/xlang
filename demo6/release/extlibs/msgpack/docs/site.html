@@ -22,6 +22,7 @@
     <h1>msgpack</h1>
     <p class="extlib-lead">使用 Buffer 传输二进制 MessagePack，以 var 表达动态值。</p>
     <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+    <p>当前发布版的 XLang 字典传入 <code>encode(var)</code> 会在 foreign 容器边界报 <code>NotImplementedError</code>；下面的字典范例因此暂不能运行。C 接口与二进制专用入口已分别通过包级测试，完整语言与 AOT 门禁尚未签收。</p>
   </header>
   <section id="start">
     <h2>快速开始</h2>

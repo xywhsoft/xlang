@@ -1,5 +1,12 @@
 # MessagePack 扩展库
 
+2026-10-25 当前 Windows 发布版复验：默认包门禁的严格 C、边界、
+分配故障与 C 范例均通过；首个 XLang 边界用例在语言字典传给
+`encode(var)` 时报告 `NotImplementedError: MessagePack cannot encode this dynamic value type`。
+最小复现见 `../../../dev/extlib_blockers/msgpack_var_dict_projection.xl`。
+这与共享 foreign `var` 容器投影故障同形，尚未证明内部根因完全相同；
+本轮未进入 AOT，不签收完整语言/发布门禁，也不在包中识别私有句柄。
+
 `msgpack` 使用 `Buffer` 承载二进制数据，`var` 承载动态值。`nil` 是合法值，`decode` 返回 XLang `null`，不会误报为解码失败。
 
 2026-10-23：`encodeBytes` / `decodeBytes` 直接处理 bin8/bin16/bin32 帧，

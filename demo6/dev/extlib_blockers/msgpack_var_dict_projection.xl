@@ -1,0 +1,8 @@
+import msgpack
+
+func main(...) as int
+    var document = {"x": 1}
+    Buffer packed = msgpack.encode(document)
+    assert packed.len() > 0
+    return 0
+end
