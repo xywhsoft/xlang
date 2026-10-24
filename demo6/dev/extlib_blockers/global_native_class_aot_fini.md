@@ -29,3 +29,12 @@
 错误并退出 1。SQLite 包本轮修正了普通 class 的析构期字段写入，
 但 Blake3 使用原生 `extern destroy`，不能把两者视为已证实的同一根因。
 应在主线排查模块退役时的 native-backed class 析构及错误作用域。
+
+同日 `consistent_hash` 的包级默认 Windows 门禁提供第二个受影响路径：
+`release/extlibs/consistent_hash/test/boundaries.xl` 在顶层创建两个
+`ConsistentHash` 对象。JIT 检查通过并退出 0，独立 EXE 也先打印
+`consistent_hash boundaries: PASS`，随后模块退役时报相同的运行时状态
+错误并退出 1；而对象放在函数局部的公开范例 EXE 正常退出 0。
+核心/公开范例 AOT 均已越过旧的 `xl6ValueDataSnapshotV1` 缺符号点。
+这强化了顶层对象退役边界的风险，但尚不能仅凭相同症状断定与 BLAKE3
+完全同根。修复后保留此顶层用例，重跑完整包门禁，不把测试移到局部。
