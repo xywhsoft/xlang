@@ -99,6 +99,20 @@ try {
     }
     if (-not $SkipAot) {
         foreach ($kind in @('sax', 'dom', 'etree')) {
+            foreach ($case in @('boundaries', 'allocations')) {
+                $caseTarget = Join-Path $work "xml_${kind}_${case}_aot.exe"
+                $null = Run "$kind $case AOT build" $xl @('build',
+                    "release/extlibs/xml.$kind/test/$case.xl", '-o', $caseTarget)
+                $caseOutput = Run "$kind $case AOT" $caseTarget @()
+                $expected = if ($case -eq 'boundaries') {
+                    "xml.$kind boundaries: ok"
+                } else {
+                    "xml.$kind allocation: PASS"
+                }
+                if ($caseOutput -cne $expected) {
+                    throw "xml.$kind $case AOT output differs from fixed output"
+                }
+            }
             $target = Join-Path $work "xml_${kind}_aot.exe"
             $null = Run "$kind XLang AOT build" $xl @('build',
                 "release/examples/extlibs/xml_$kind.xl", '-o', $target)

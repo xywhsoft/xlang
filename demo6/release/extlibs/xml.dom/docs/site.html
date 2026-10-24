@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / xml.dom</p><h1>xml.dom</h1>
     <p class="extlib-lead">解析、编辑和序列化 XML 文档树。</p>
     <p>基于 XRT/Expat；支持元素、文本、注释、属性和父子节点操作。DTD 与外部实体默认拒绝。解析文本按显式字节长度直接传入，不创建整份输入的 Buffer 副本。</p>
+    <p>2026-10-24：Windows 三包联合门禁的 C/XLang 边界、DOM/ElementTree 往返及三包各自的边界、分配、范例独立 EXE 全部通过；Linux C ASan/UBSan 与 XLang JIT 双语门禁通过。Linux 独立 EXE 未验收；包外命名 Node 仍受访问控制阻断。下方旧缺符号记录只描述当时的发布物。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
@@ -32,7 +33,7 @@
 auto document = xml.dom.parse("&lt;root id='one'&gt;&lt;child&gt;你好&lt;/child&gt;&lt;/root&gt;")
 auto root = document.documentElement
 assert root.child(0).textContent == "你好"</code></pre>
-    <p>节点引用由对象管理；C 调用方按包内 README 释放引用。C 解析接管 Reader 时，关闭失败按底层错误返回 MEMORY 或 IO，不返回未确认关闭的文档树。XLang 显式解析限额必须为正，C 的 XRT 限额配置以 0 表示不限制；写出缩进为 0..16。名称遵循 XML 1.0，写出拒绝无效字符、注释和处理指令；属性空白与文本回车往返保持原值。保存失败不会覆盖已有文件。文本读取与写出使用显式遍历栈，可处理调用方放宽限额后的深树；8192 层解析/读取/序列化、内存故障和限额已有 C 回归。共享 Linux 门禁通过 C ASan/UBSan、三包 XLang 边界及双语范例逐字对照；Windows 标准输出行尾可能不同。完整 AOT 仍受共享运行时缺符号阻断。</p>
+    <p>节点引用由对象管理；C 调用方按包内 README 释放引用。C 解析接管 Reader 时，关闭失败按底层错误返回 MEMORY 或 IO，不返回未确认关闭的文档树。XLang 显式解析限额必须为正，C 的 XRT 限额配置以 0 表示不限制；写出缩进为 0..16。名称遵循 XML 1.0，写出拒绝无效字符、注释和处理指令；属性空白与文本回车往返保持原值。保存失败不会覆盖已有文件。文本读取与写出使用显式遍历栈，可处理调用方放宽限额后的深树；8192 层解析/读取/序列化、内存故障和限额已有 C 回归。共享 Linux 门禁通过 C ASan/UBSan、三包 XLang 边界及双语范例逐字对照；Windows 标准输出行尾可能不同。</p>
     <p>2026-10-21 保存与流写出的分配故障按内存错误报告，不再误报 IO；真实写入和关闭失败仍按 IO 报告。C 保存逐点注入、流故障、XLang <code>save()</code> 异常分类和故障后恢复通过 Windows/Linux 联合门禁；完整 AOT 阻断未变。</p>
     <p>C 的空输出 Writer、NULL 或空保存路径在序列化前报告 ARGUMENT，不误报为 IO 或先执行耗费内存的写出；对应负例与现有正常输出均通过 Windows/Linux 三包联合门禁。完整 AOT 仍受共享缺符号阻断。</p>
     <p>2026-10-20 三包共用门禁增加 DOM 范例固定 UTF-8 黄金输出，Windows 快速模式与 Linux ASan/UBSan 联合门禁通过。默认 AOT 门禁先在 SAX 构建处遇到共享 <code>xl6ValueDataSnapshotV1</code> 缺符号，DOM AOT 尚未执行到，不作发布级签收。</p>

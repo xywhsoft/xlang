@@ -1,5 +1,11 @@
 # xml.etree
 
+2026-10-24 当前发布物复验：Windows 三包联合默认门禁通过严格 C、
+XLang 边界/分配、私有入口负例、DOM/ElementTree 往返与固定双语输出，
+以及三包各自的边界、分配和范例 AOT；Linux 联合门禁通过 C ASan/UBSan、
+XLang JIT 与双语对照。旧共享缺符号不再阻断 Windows AOT；Linux 独立
+EXE 本轮未验收。下文较早的 AOT 阻断均指当时的发布物。
+
 `stringify()` 通过 `xetree_stringify_text` 接管 XRT 写出的 UTF-8 缓冲，
 避免再由 `Buffer.text()` 复制整份结果。C 侧使用该文本桥接函数后
 以 `xrtFree` 释放返回值；原有 `xetree_stringify` 仍返回独立的 `xbuffer*`。
@@ -52,10 +58,9 @@ C 的 `xrtXmlElementWrite` 空 Writer、`xrtXmlElementSave` 空路径在序列�
   ElementTree 的序列化/解析结果。混合内容中的前导文本和子节点尾文本
   在 ElementTree 分别位于 `text`、`tail`，DOM 则保留独立文本子节点。
 
-发布阻断：XL AOT 构建当前报 `unresolved reference to
-'xl6ValueDataSnapshotV1'`，复现及主线修复建议见
-`demo6/dev/extlib_blockers/text_snapshot_link.md`。包级 JIT/C 通过不等于
-发布验收完成。
+过去的 XL AOT 缺符号复现及当时建议见
+`demo6/dev/extlib_blockers/text_snapshot_link.md`。当前 Windows 包级
+AOT 结果以上述现行门禁为准，不能外推为 Linux 独立 EXE 验收。
 本包和 `xml.sax`/`_expat` 依赖现声明实际 XRT 模块，内部实现头不再
 强制启用 `XRT_MODULE_ALL`；Windows 裁剪 C 宿主和 Linux sanitizer 回归已通过。
 

@@ -1,5 +1,11 @@
 # xml.dom
 
+2026-10-24 当前发布物复验：Windows 三包联合默认门禁通过严格 C、
+XLang 边界/分配、私有入口负例、DOM/ElementTree 往返与固定双语输出，
+以及三包各自的边界、分配和范例 AOT；Linux 联合门禁通过 C ASan/UBSan、
+XLang JIT 与双语对照。旧共享缺符号不再阻断 Windows AOT；Linux 独立
+EXE 本轮未验收。`Node` 包外可命名类型仍受私有构造器访问控制问题限制。
+
 `stringify()` 通过 `xdom_stringify_text` 接管 XRT 写出的 UTF-8 缓冲，
 避免再由 `Buffer.text()` 复制整份结果。C 侧使用该文本桥接函数后
 以 `xrtFree` 释放返回值；原有 `xdom_stringify` 仍返回独立的 `xbuffer*`。
@@ -78,8 +84,8 @@ Windows 对应入口为 `powershell -NoProfile -ExecutionPolicy Bypass -File rel
 测试按各自模型检查，不要求两种节点结构逐项相同。
 
 两个示例的 XML 内容在归一化换行后相同；Windows C 标准输出使用 CRLF，XLang 使用 LF。Windows 严格 GCC、Linux ASan/UBSan、XL JIT 与
-上述包级测试通过。**AOT 发布验收仍被主线缺少
-`xl6ValueDataSnapshotV1` 阻断**，需在主线线程修复后重跑。
+上述包级测试通过。历史 AOT 缺符号记录只描述当时的发布物；当前
+Windows AOT 结果见本页开头。
 本包和 `xml.sax`/`_expat` 依赖现声明实际 XRT 模块，内部实现头不再
 强制启用 `XRT_MODULE_ALL`；Windows 裁剪 C 宿主和 Linux sanitizer 回归已通过。
 

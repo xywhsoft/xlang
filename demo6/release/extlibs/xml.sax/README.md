@@ -1,5 +1,11 @@
 # xml.sax
 
+2026-10-24 当前发布物复验：Windows 三包联合默认门禁通过严格 C、
+XLang 边界/分配、私有入口负例、固定双语输出，以及 SAX/DOM/ElementTree
+各自的边界、分配和范例 AOT；Linux 联合门禁通过 C ASan/UBSan、
+XLang JIT 与固定输出对照。旧 `xl6ValueDataSnapshotV1` 缺符号只属于
+历史发布物；本轮未构建 Linux 独立 EXE。
+
 基于 XRT XML/Expat 的流式 XML 解析。`import xml.sax` 后可用 `reader`、
 `open`、`parse`、`parseFile`；读取结果是含事件类型、名称、文本、属性和
 位置信息的 `var` 对象。`Reader` 可在 `for` 中迭代，也可调用 `next()`。
@@ -59,9 +65,8 @@ C push 入口要求非空事件回调；无效回调在读取输入前报告
 仅含包所需模块、不含测试内存调试的 XRT 对象为 409,155 字节；
 三个单文件 C 范例已在 Windows 严格 GCC 下与该对象独立链接并运行通过。
 
-XL AOT 目前被主线缺失的 `xl6ValueDataSnapshotV1` 符号阻断，见
-`demo6/dev/extlib_blockers/text_snapshot_link.md`；JIT/C 验证不代表
-发布验收完成。
+过去的 AOT 缺符号复现见 `demo6/dev/extlib_blockers/text_snapshot_link.md`；
+当前 Windows 包级结果以上述现行门禁为准，不能外推为 Linux AOT 验收。
 
 2026-10-15：中央 `test/cases/extlib_xml_sax.xl` 的畸形 XML 与 DTD
 负例改为捕获当前原生错误映射的 `ValueError`，完整中央 JIT 与无输出
