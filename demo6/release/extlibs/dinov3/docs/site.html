@@ -38,7 +38,7 @@ auto output = model.op_call(imagePath)
 assert output.ok(), output.error()
 println(output.count())
 println(output.embedding_json())</code></pre>
-    <p>以上直接缩放配置适用于已验证的 224×224、384 维模型。其他模型需核对输入/输出名称、尺寸与归一化参数。C/XLang 同图范例在包内 <code>examples/</code>；设置 <code>DINOV3_MODEL</code> 与 <code>DINOV3_TEST_IMAGE</code> 后可运行包级真实模型门禁，另可加 <code>-ParallelLive</code> 做两线程独立调用。两端 384 个元素和两线程结果已核对；完整 AOT 仍受共享主线阻断，当前不标记为生产发布完成。</p>
+    <p>以上直接缩放配置适用于已验证的 224×224、384 维模型。其他模型需核对输入/输出名称、尺寸与归一化参数。C/XLang 同图范例在包内 <code>examples/</code>；设置 <code>DINOV3_MODEL</code> 与 <code>DINOV3_TEST_IMAGE</code> 后可运行真实模型门禁，另可加 <code>-ParallelLive</code> 做两线程独立调用。2026-10-24 Windows 默认门禁已通过桥接装载、缺模型与无效结果负例、公开范例及负例 AOT；本轮没有外部权重，未重新核对真实推理。此前的 384 维 C/XLang 对照不代替当前发布物的同轮真实模型验收。</p>
   </section>
 </main>
 </body>

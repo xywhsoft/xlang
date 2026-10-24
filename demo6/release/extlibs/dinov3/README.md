@@ -1,8 +1,16 @@
 # dinov3
 
+2026-10-24 发布版复验：Windows 默认门禁通过严格 C、真实 ONNX
+桥接装载、XLang 缺模型/名称/无效结果负例，以及核心、公开范例和
+两份负例的独立 AOT 构建与执行。旧共享 AOT 链接阻断不再复现。
+本次没有提供外部权重，因此未重新运行真实图像推理；此前兼容模型
+的 C/XLang 384 维逐项对照和双线程调用仍是独立的历史证据，
+不能用本次无模型门禁替代。插件算法、设备矩阵及长期稳定性
+不属于本包公开调用链的验收范围。
+
 DinoV3 图片嵌入扩展库使用 OpenCV 预处理和 ONNX Runtime 执行模型。创建模型必须传入实际权重文件路径：`dinov3.DinoV3(modelPath)`。本包不携带权重，也不提供假默认模型。输入/输出名称、尺寸和归一化参数必须与所用模型匹配。
 
-**尚未达到完整发布级验收。** 本机已有兼容的外部模型，可做真实图像推理；权重不属于本包，也不随发布物分发。C/XLang 同图输出及两条独立线程各一次推理已核对，完整 AOT 仍未签收。ONNX 桥接 DLL 只验调用链，其内部算法由插件自身维护。`release/examples/extlibs/dinov3.xl` 是缺模型负例和 ABI smoke；真实推理范例在 `examples/live_model.xl` 和 `examples/live_model_c.c`。
+**当前发布物未完成真实模型的同轮复验。** 权重不属于本包，也不随发布物分发。此前 C/XLang 同图输出及两条独立线程各一次推理已核对；本轮 AOT 和公开调用负例已签收。ONNX 桥接 DLL 只验调用链，其内部算法由插件自身维护。`release/examples/extlibs/dinov3.xl` 是缺模型负例和 ABI smoke；真实推理范例在 `examples/live_model.xl` 和 `examples/live_model_c.c`。
 
 ## 接口和所有权
 
@@ -20,8 +28,8 @@ Windows：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/d
 
 只运行 C、真实桥接和 XLang JIT 聚焦检查时可加 `-SkipAot`；当前主线
 AOT 阻断期间，带真实模型或 `-ParallelLive` 的独立验证也应加此开关。
-默认门禁在无输出核心 AOT 之后还必须构建并运行公开的缺模型范例，
-核对固定输出。
+默认门禁在无输出核心 AOT 之后还构建并运行公开的缺模型范例、
+名称校验和无效结果负例，核对固定输出或退出状态。
 
 Linux：`sh release/extlibs/dinov3/test/check.sh`
 

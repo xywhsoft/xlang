@@ -75,6 +75,12 @@ try {
             if (($aotOutput -join "`n").Trim() -cne 'dinov3 extlib ok') {
                 throw "XLang public example AOT output differs: $($aotOutput -join '; ')"
             }
+            foreach ($case in @('nul_names', 'invalid_output')) {
+                $target = Join-Path $build "$case.exe"
+                Run "XLang $case AOT build" (Join-Path $release 'xl.exe') @(
+                    'build', "release/extlibs/dinov3/test/$case.xl", '-o', $target)
+                Run "XLang $case AOT" $target @()
+            }
         } finally {
             $env:ONNXRUNTIME_XLANG_DLL = $oldBridge
         }
