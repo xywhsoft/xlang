@@ -74,3 +74,11 @@ C/xlang JIT/AOT、负例和分配故障。具体运行结果应查看该次 `res
 的测试配置；预处理确认盐生成调用仍在。Windows 严格 C 与 C JIT、
 Linux C ASan/UBSan 和分配故障门禁通过。Windows 随后的语言 cgen
 仍在 `extlib_argon2.xl:93` 遇到既有 typed XLIR 错误，未签收发布级。
+
+2026-10-24：当前发布版通过 Windows Argon2/Bloom 联合门禁 44 项，
+其中 Argon2 的严格 C、RFC 9106 固定向量、生成原型、XLang JIT/AOT、
+C/XLang 基础范例及教学范例均通过。门禁现以 XLang 实际 extern 声明
+核对生成原型，并要求它们全都存在于 C 头文件；C 独有入口不再被
+误判为缺少 XLang 原型。Linux C ASan/UBSan 与分配故障门禁通过。
+上述 typed XLIR 阻断是旧发布物历史状态；Linux XLang JIT/AOT、
+长期压力和性能标定仍未在本轮验证。
