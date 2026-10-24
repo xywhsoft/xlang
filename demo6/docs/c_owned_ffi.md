@@ -127,6 +127,20 @@ factory returning `func() as cstring` can bind to
 `func() as func() as string`, enter `xcall`, or publish an ordinary callback
 through a Future. Each returned callback keeps the original parameter names,
 defaults and snapshot; callable input signatures are unchanged.
+Nullable callable values participate in the same conversion. The compiler
+evaluates the source once, preserves null, and adapts only its present branch.
+This also covers stored factories returning nullable callables, including
+`xcall`, worker results and captured variadic defaults. Creating the adapter
+does not invoke the producer or copy its C payload; invocation through an
+ordinary result signature performs the normal result conversion.
+Result matching is recursive and pairwise: a factory returning
+`func() as (cstring,cbytes)` may bind to a factory returning
+`func() as (string,cbytes)` or `func() as (cstring,bytes)`. Only changed result
+slots materialize; unchanged C owner slots retain their original allocation.
+The same rule applies inside nullable and multiply nested callbacks. Exact
+owner signatures still take precedence during overload resolution. Conversion
+does not change callback input types, turn text into binary, or remove a
+nullable callable's presence check.
 An override returning a C marker adopts an ordinary base slot's result ABI;
 the body materializes on return. Slots explicitly returning C markers on both
 base and derived declarations keep their owner ABI. These rules are not a promise of

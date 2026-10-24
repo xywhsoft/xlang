@@ -182,7 +182,8 @@ if ($PublicDriver) {
         'xlir_managed_storage_inputs','cgen_base_method_static_dispatch','cgen_async_generator',
         'xlir_module_product_globals','stdlib_callable_variadic_array',
         'stdlib_runtime_callable_defaults','stdlib_runtime_callable_func_defaults',
-        'stdlib_runtime_callable_defaults_errors','stdlib_task_spawn_keywords')
+        'stdlib_runtime_callable_defaults_errors','stdlib_task_spawn_keywords',
+        'nullable_function_lifecycle','nullable_function_frames')
     foreach($name in $ordinarySources) {
         $source="test/cases/$name.xl"
         & $sourceDriver $source run "$outputPath/ordinary-jit-$name"
