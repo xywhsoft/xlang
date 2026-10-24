@@ -48,7 +48,7 @@ def main():
                     automaticDiagnostics=False, checkOnSave=False)), 1)
                 reply, _ = client.reply(1)
                 init = reply['result']
-                assert init['serverInfo']['version'] == '0.47', init
+                assert init['serverInfo']['version'] == '0.48', init
                 assert init['capabilities']['signatureHelpProvider'] == dict(
                     triggerCharacters=['(', ','], retriggerCharacters=[')']), init
                 client.send('initialized', {})
@@ -113,6 +113,27 @@ def main():
                 result, _, _ = request(body, dict(triggerKind=3, isRetrigger=True, activeSignatureHelp=previous), change=False, at=at)
                 assert result['analysis']['cacheHits'] >= 1 and result['signatures'] == previous['signatures'], result
                 done(f'{offsets}-retrigger-real-cache', analysis=result['analysis'])
+                # Same-call/current-argument views keep exact fresh metadata and
+                # reuse the semantic model across whitespace and non-BMP text.
+                result, body, at = request(definitions+'func main(...) as int\n return plus(7,@ "😀 文本")\nend\n')
+                previous = result
+                for target in range(at+1, at+6):
+                    result, _, _ = request(body, dict(triggerKind=3, isRetrigger=True), change=False, at=target)
+                    assert result['signatures'] == previous['signatures'] and result['activeParameter'] == 1, result
+                    assert result['analysis']['caretHits'] == previous['analysis']['caretHits']+1, result
+                    assert result['analysis']['indexBuilds'] == previous['analysis']['indexBuilds'] and result['analysis']['builds'] == previous['analysis']['builds'], result
+                    previous = result
+                done(f'{offsets}-immutable-caret-views', analysis=result['analysis'])
+                result, _, _ = request(body, change=False, at=body.index('plus(7,')+5)
+                assert result['activeParameter'] == 0 and result['analysis']['caretHits'] == previous['analysis']['caretHits'] and result['analysis']['builds'] > previous['analysis']['builds'], result
+                done(f'{offsets}-argument-change-rechecks', analysis=result['analysis'])
+                nested = definitions+'func main(...) as int\n return plus(plus(1,"inner"), "outer")\nend\n'
+                result, body, _ = request(nested, at=nested.index('outer'))
+                previous = result
+                result, _, _ = request(body, change=False, at=body.index('inner'))
+                assert result['analysis']['caretHits'] == previous['analysis']['caretHits'] and result['analysis']['builds'] > previous['analysis']['builds'], result
+                assert result['activeParameter'] == 1, result
+                done(f'{offsets}-nested-call-change-rechecks', analysis=result['analysis'])
                 # Both foreground modes accept the same current input concurrently.
                 mixed = definitions+'func main(...) as int\n int completionLocal=7\n return plus(7, completionL)\nend\n'
                 version += 1
@@ -208,13 +229,19 @@ def main():
             result = reply['result']
             assert result['signatures'][0]['label'] == 'target(int value) as int' and result['analysisContext']['epoch'] == 1, result
             done('configured-closed-entry-unsaved-query', context=result['analysisContext'])
+            client.send('textDocument/signatureHelp', dict(textDocument=dict(uri=helper.as_uri()), position=position(body, at+1)), 302)
+            reply, _ = client.reply(302)
+            view = reply['result']
+            assert view['signatures'] == result['signatures'] and view['analysis']['caretHits'] == result['analysis']['caretHits']+1 and view['analysis']['builds'] == result['analysis']['builds'], view
+            done('configured-caret-view-guard', analysis=view['analysis'])
             entry.write_text(entry.read_text()+'// changed disk proof\n', encoding='utf8')
-            invalid = wait_message(client, lambda v: v.get('method') == 'xlang/signatureInvalidated' and v['params']['queryId'] == 300)
+            invalid = wait_message(client, lambda v: v.get('method') == 'xlang/signatureInvalidated' and v['params']['queryId'] == 302)
             done('configured-disk-proof-invalidated', reason=invalid['params']['reason'])
             protected[str(entry)] = sha(entry)
             client.send('textDocument/signatureHelp', dict(textDocument=dict(uri=helper.as_uri()), position=position(body, at)), 301)
             reply, _ = client.reply(301)
             assert reply['result']['signatures'][0]['label'] == 'target(int value) as int', reply
+            assert reply['result']['analysis']['builds'] > view['analysis']['builds'], reply
             done('configured-disk-proof-rebuild')
         finally:
             client.stop()

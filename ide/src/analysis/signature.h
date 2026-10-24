@@ -1,9 +1,9 @@
 #ifndef XLANG_ANALYSIS_SIGNATURE_H
 #define XLANG_ANALYSIS_SIGNATURE_H
 #include "analysis/semantic.h"
-/* The opaque query owner shares the existing guarded native-result lifetime;
- * ordinary completion and signature-mode results never share a cache slot. */
-typedef struct xls_semantic_completion xls_signature_help;
+/* Immutable query views retain the guarded native model. Ordinary completion
+ * and signature results have distinct opaque owners and independent caches. */
+typedef struct xls_signature_help xls_signature_help;
 typedef struct xls_signature_info {
     const char *path,*error;
     size_t offset,count,activeSignature,argument;
@@ -28,6 +28,8 @@ xls_signature_help* xlsSignatureCreateInContext(xls_context* context,const char*
 xls_signature_help* xlsSignatureRetain(xls_signature_help* result);
 void xlsSignatureRelease(xls_signature_help* result);
 int xlsSignatureValidate(xls_signature_help* result);
+typedef struct xls_signature_work { uint64_t checked,reused; } xls_signature_work;
+xls_signature_work xlsSignatureWork(const xls_signature_help* result);
 xls_signature_info xlsSignatureInfo(const xls_signature_help* result);
 int xlsSignatureItem(const xls_signature_help* result,size_t index,xls_signature_item* item);
 int xlsSignatureParameter(const xls_signature_help* result,size_t index,size_t parameter,xls_signature_parameter* value);

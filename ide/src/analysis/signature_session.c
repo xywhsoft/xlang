@@ -30,24 +30,27 @@ xls_signature_help* xlsSignatureSessionQueryInContext(xls_signature_session* s,x
     size_t bytes=xlsTextSize(query->text),bom=bytes>=3 && !memcmp(xlsTextData(query->text),"\xef\xbb\xbf",3) ? 3 : 0;
     if(offset>bytes-bom || (offset<bytes-bom && ((unsigned char)xlsTextData(query->text)[offset+bom]&0xc0)==0x80) ||
        (offset && offset<bytes-bom && xlsTextData(query->text)[offset+bom-1]=='\r' && xlsTextData(query->text)[offset+bom]=='\n'))goto invalid;
-    int equal=s->result && s->offset==offset && !strcmp(s->queryKey,query->key) && xlsInputBatchEqual(s->batch,batch);
+    int caret=0;int equal=s->result && s->offset==offset && !strcmp(s->queryKey,query->key) && xlsInputBatchEqual(s->batch,batch);
     if(equal && !xlsSignatureValidate(s->result)){equal=0;++s->stats.invalidations;}
     if(cancelled && cancelled(user))goto cancel;
     if(equal)result=xlsSignatureRetain(s->result);
+    else if(s->result && !strcmp(s->queryKey,query->key) && xlsInputBatchEqual(s->batch,batch) &&
+            (result=xlsSignatureReposition(s->result,offset))!=NULL){caret=1;}
     else{
         ++s->stats.builds;int compatible=s->result && s->batch && count==s->stats.documents && xlsFrontendContextsEqual(context,xlsInputBatchContext(s->batch)) &&
             !strcmp(xlsInputBatchDirectory(batch),xlsInputBatchDirectory(s->batch)) && !strcmp(xlsInputBatchEntry(batch),xlsInputBatchEntry(s->batch));
         for(size_t i=0;compatible && i<count;++i){const xls_analysis_document* old=xlsInputBatchFind(s->batch,documents[i].key);compatible=old && old->identity==documents[i].identity && !strcmp(old->path,documents[i].path);}
         const xls_analysis_document* old=xlsInputBatchFind(s->batch,queryKey);xls_call_context* index=NULL;
-        if(s->result && old && s->queryKey && !strcmp(s->queryKey,queryKey) && old->identity==query->identity && !strcmp(old->path,query->path) && xlsInputSameBody(old,query))index=xlsSemanticSignatureData(s->result)->index;
+        if(s->result && old && s->queryKey && !strcmp(s->queryKey,queryKey) && old->identity==query->identity && !strcmp(old->path,query->path) && xlsInputSameBody(old,query))index=xlsSignatureData(s->result)->index;
         if(!s->entryCache)s->entryCache=xlsEntryCacheCreate(32u*1024u*1024u);
         xls_semantic_input inputs[64];xlsInputBatchInputs(batch,inputs,64);
         result=xlsSignatureCreateRetainedInContext(context,xlsInputBatchEntry(batch),query->path,offset,inputs,count,index,s->entryCache,compatible ? s->result : NULL,cancelled,user,error,capacity);
         if(!result)goto done;
-        if(index && xlsSemanticSignatureData(result)->index==index)++s->stats.indexHits;else ++s->stats.indexBuilds;
+        if(index && xlsSignatureData(result)->index==index)++s->stats.indexHits;else ++s->stats.indexBuilds;
     }
     if(cancelled && cancelled(user)){xlsSignatureRelease(result);result=NULL;goto cancel;}
     if(equal)++s->stats.hits;
+    if(caret){++s->stats.caretHits;++s->stats.indexHits;}
     s->queryKey=query->key;s->offset=offset;xlsInputBatchDestroy(s->batch);s->batch=batch;batch=NULL;
     xlsSignatureRelease(s->result);s->result=xlsSignatureRetain(result);s->stats.documents=count;s->stats.textBytes=xlsInputBatchBytes(s->batch);goto done;
 invalid:if(error && capacity)snprintf(error,capacity,"invalid signature batch,target or UTF-8 cursor");goto done;

@@ -26,6 +26,7 @@ typedef struct source_graph { source_item* items; size_t count,bytes; const xval
 #ifdef XLS_COMPILER_XRT
  xls_semantic_check* checked;
  xls_semantic_completion* completed;
+ xls_signature_help* signature;
 #endif
 } source_graph;
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
@@ -270,7 +271,7 @@ static void clearGraph(source_graph* g)
  free(g->items);
 #ifdef XLS_COMPILER_XRT
  xlsSemanticCheckDestroy(g->checked);
- xlsSemanticCompletionDestroy(g->completed);
+ xlsSemanticCompletionDestroy(g->completed);xlsSignatureRelease(g->signature);
 #endif
  memset(g,0,sizeof(*g));
 }
@@ -279,8 +280,8 @@ static int overlayIndex(xide_language_check* q,const char* path)
 #ifdef XLS_COMPILER_XRT
 static int capturedInputs(const source_graph* g,xls_inputs* inputs)
 {
- if(g->checked && g->completed) {memset(inputs,0,sizeof(*inputs));return 0;}
- return g->checked ? xlsSemanticCheckInputs(g->checked,inputs) : xlsSemanticCompletionInputs(g->completed,inputs);
+ if((g->checked!=NULL)+(g->completed!=NULL)+(g->signature!=NULL)>1) {memset(inputs,0,sizeof(*inputs));return 0;}
+ return g->checked ? xlsSemanticCheckInputs(g->checked,inputs) : g->signature ? xlsSignatureInputs(g->signature,inputs) : xlsSemanticCompletionInputs(g->completed,inputs);
 }
 static int capturedDigest(const xvalue* value,const unsigned char digest[32])
 {
@@ -292,7 +293,7 @@ static int capturedDigest(const xvalue* value,const unsigned char digest[32])
 static int capturedSource(source_graph* g,size_t index,const char* path,const char* origin,
  const xvalue* item,int64 size,int64 rawSize,int64 kind,xls_input_source* source)
 {
- int captured=g->checked ? xlsSemanticCheckSource(g->checked,index,source) : xlsSemanticCompletionSource(g->completed,index,source);
+ int captured=g->checked ? xlsSemanticCheckSource(g->checked,index,source) : g->signature ? xlsSignatureSource(g->signature,index,source) : xlsSemanticCompletionSource(g->completed,index,source);
  return captured && !strcmp(source->path,path) && !strcmp(source->origin,origin) &&
   source->size==(size_t)size && source->rawSize==(size_t)rawSize && source->kind==kind &&
   capturedDigest(get(item,"textSha256"),source->textSha256) && capturedDigest(get(item,"rawSha256"),source->rawSha256);
@@ -306,7 +307,7 @@ static int capturedResolution(const source_graph* g,const xvalue* value,const xl
  for(size_t i=0;i<inputs->probes;++i) {
   xls_input_probe probe={0}; bool exists=false; const xvalue* item=xrtValueArrayGet(probes,i);
   const char* path=string(get(item,"path"));
-  int captured=g->checked ? xlsSemanticCheckProbe(g->checked,i,&probe) : xlsSemanticCompletionProbe(g->completed,i,&probe);
+  int captured=g->checked ? xlsSemanticCheckProbe(g->checked,i,&probe) : g->signature ? xlsSignatureProbe(g->signature,i,&probe) : xlsSemanticCompletionProbe(g->completed,i,&probe);
   if(!captured || !path || strcmp(path,probe.path) ||
      !xrtValueGetBool(get(item,"exists"),&exists) || exists!=probe.exists) return 0;
  }
@@ -319,7 +320,7 @@ static int loadGraph(xide_language_check* q,const xvalue* raw,source_graph* g,xi
  if(!integer(get(report,"schema"),&schema,1,1) || !formatted(get(report,"scope"),"loaded-sources-and-manifests") || !xrtValueGetBool(get(report,"complete"),&complete) || !complete || !formatted(get(report,"error"),"") || !formatted(get(report,"errorFile"),"") || !files || xrtValueType(files)!=XVALUE_ARRAY || !xrtValueCount(files) || xrtValueCount(files)>512) return fail(e,"源码快照报告缺失、不完整或无法验证。");
 #ifdef XLS_COMPILER_XRT
  xls_inputs captured={0};
- if(g->checked || g->completed) {
+ if(g->checked || g->completed || g->signature) {
   int valid=capturedInputs(g,&captured);
   if(!valid || captured.sources!=xrtValueCount(files)) return fail(e,"原生输入视图与同次来源报告不一致。");
  }
@@ -333,7 +334,7 @@ static int loadGraph(xide_language_check* q,const xvalue* raw,source_graph* g,xi
   for(size_t j=0;j<g->count;++j) if(xidePathLexicalEqual(resolved,g->items[j].path)) { free(resolved); return fail(e,"源码报告含重复路径。"); }
   int overlay=overlayIndex(q,resolved),borrowed=0; char* text=NULL; const char* original=NULL;
 #ifdef XLS_COMPILER_XRT
-  if(g->checked || g->completed) {
+  if(g->checked || g->completed || g->signature) {
    xls_input_source source={0};
    if(capturedSource(g,i,path,origin,item,size,rawSize,kind,&source)) {
     const char* submitted=overlay>=0 ? q->snapshots[overlay].text : NULL; size_t submittedSize=submitted ? strlen(submitted) : 0;
@@ -360,7 +361,7 @@ static int loadGraph(xide_language_check* q,const xvalue* raw,source_graph* g,xi
  }
  g->resolution=get(raw,"resolutionReport"); int valid=entry && resolution(q,g->resolution,e);
 #ifdef XLS_COMPILER_XRT
- if(valid && (g->checked || g->completed)) valid=capturedResolution(g,g->resolution,&captured);
+ if(valid && (g->checked || g->completed || g->signature)) valid=capturedResolution(g,g->resolution,&captured);
 #endif
  return valid ? 1 : fail(e,*e->message ? "入口或导入候选报告无法验证。" : "源码报告缺少覆盖后的入口。");
 }
@@ -373,7 +374,7 @@ static int validateGraph(xide_language_check* q,source_graph* g,xide_model_error
  }
  int valid=resolution(q,g->resolution,e);
 #ifdef XLS_COMPILER_XRT
- if(valid && (g->checked || g->completed)) {xls_inputs inputs;valid=capturedInputs(g,&inputs);if(!valid) fail(e,"原生输入视图已永久失效。");}
+ if(valid && (g->checked || g->completed || g->signature)) {xls_inputs inputs;valid=capturedInputs(g,&inputs);if(!valid) fail(e,"原生输入视图已永久失效。");}
 #endif
  return valid;
 }
@@ -471,12 +472,12 @@ static int nativeSignatureRun(xide_language_check* q,xvalue** output,xide_model_
   result=xrtValueNull();q->guardFiles=xrtValueArray();q->guardResolution=xrtValueObject();okay=result && q->guardFiles && q->guardResolution && !cancelled(q);goto done;
  }
  size_t size=0;json=xlsSignatureInputJson(signature,&size);if(!json)goto done;
- raw=xrtJsonParse((xstrview){json,size});graph.completed=xlsSignatureRetain(signature);
+ raw=xrtJsonParse((xstrview){json,size});graph.signature=xlsSignatureRetain(signature);
  if(!raw || !loadGraph(q,raw,&graph,e))goto done;
  result=xlsSignatureHelpValue(signature,q->signatureFlags);if(!result)goto done;
- xvalue* stats=xrtValueObject();xls_sem_work sem=xlsSemanticCompletionSemWork(signature);
+ xvalue* stats=xrtValueObject();xls_signature_work sem=xlsSignatureWork(signature);
  int retained=stats && put(stats,"builds",xrtValueInt((int64)q->signatureStats.builds)) && put(stats,"cacheHits",xrtValueInt((int64)q->signatureStats.hits)) &&
-  put(stats,"indexBuilds",xrtValueInt((int64)q->signatureStats.indexBuilds)) && put(stats,"indexHits",xrtValueInt((int64)q->signatureStats.indexHits)) &&
+  put(stats,"caretHits",xrtValueInt((int64)q->signatureStats.caretHits)) && put(stats,"indexBuilds",xrtValueInt((int64)q->signatureStats.indexBuilds)) && put(stats,"indexHits",xrtValueInt((int64)q->signatureStats.indexHits)) &&
   put(stats,"workerThreadId",xrtValueInt((int64)q->semanticThread)) && put(stats,"captureThreadId",xrtValueInt((int64)q->captureThread)) &&
   put(stats,"checked",xrtValueInt((int64)sem.checked)) && put(stats,"reused",xrtValueInt((int64)sem.reused));
  if(retained){retained=put(result,"analysis",stats);stats=NULL;}xrtValueRelease(stats);

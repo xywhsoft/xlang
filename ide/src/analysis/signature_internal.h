@@ -19,6 +19,19 @@ typedef struct xls_signature_data {
     xls_call_site site;xarray records;
     int hasSite,projected;
 } xls_signature_data;
+struct xls_signature_help {
+    xatomic32 references;
+    xls_semantic_completion* semantic;
+    size_t offset;
+    xls_call_site site;
+};
+/* Read-only model access is private; views never chain owners or rewrite AST
+ * query stamps. The model remains immutable and owns all labels/source facts. */
+xls_semantic_completion* xlsSignatureSemantic(const xls_signature_help* result);
+xls_signature_data* xlsSignatureData(const xls_signature_help* result);
+xls_signature_help* xlsSignatureReposition(xls_signature_help* previous,size_t offset);
+char* xlsSemanticSignatureInputJson(xls_semantic_completion* result,size_t* size);
+
 typedef struct xls_signature_scope {
     struct xls_signature_scope* previous;
     xls_signature_data* data;XL6_CompletionQuery* query;
