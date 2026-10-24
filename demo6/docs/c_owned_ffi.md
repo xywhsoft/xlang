@@ -267,6 +267,26 @@ allocation-counter checks use the separate debug runtime lane. Acceptance
 records belong under `build/c-owned/`; this targeted check is not a claim that
 all repository-wide inventories and unrelated release gates are green.
 
+Completion acceptance (`build/c-owned/completion-final-acceptance.log`) uses a
+1,175-unit source build (`completion-public-current/build.json`, 2,355 unchanged
+inputs). All 32 generated-C programs, 33 C owner JIT/standalone EXE pairs,
+19 ordinary JIT/EXE pairs without C owner headers, 17 negative declarations and
+13 export checks pass. The operand-effect catalog checks all 496 RuntimeOps
+and 3,968 effects at both O0/O2. Each boundary host sweeps 1,152 allocation
+limits (178 failures and 974 completions), including nested callback factories
+and length-bearing text, with balanced foreign allocations and no XRT live
+growth. The ordinary result stress still passes 197 rejected mutations, 680
+executions and 480 allocation faults per optimization.
+
+The standard `build.bat` release build passes at its normal optimization level;
+recorded source inputs remain unchanged during the build. All 28 steps in
+`tools/check_xlir_c_owned_release.ps1` pass against both the staging directory
+and the published `release/` toolchain. Imported owner exports pass JIT and
+standalone EXE execution too. `check_xlir_task_spawn_closure_abi.ps1` checks the
+resident V3 frame layout, deterministic C, cleanup-before-publication and a
+strict GCC/runtime lane in a fresh output directory. Published acceptance
+receipts are under `build/c-owned/completion-main-acceptance/`.
+
 Stored-variadic acceptance (`build/c-owned/variadic-acceptance.log`) uses a
 1,165-unit source build (`variadic-public-current/build.json`, 2,337 unchanged
 inputs). It passes 28 generated-C programs, 29 C owner JIT/standalone EXE pairs,
