@@ -1,5 +1,13 @@
 # srt
 
+> 2026-10-24 发布版复验：严格 C、C 边界及 C 范例通过；首个
+> XLang 用例在 `srt.build(var cues)` 报 `cues must be an array`。
+> `test/foreign_array_repro.xl` 在 JIT 和 AOT 均复现；语言侧
+> `type(cues) == array` 成立，但 C 入口的 `xrtValueType(cues)`
+> 未识别为 `XVALUE_ARRAY`。直接传数组字面量也复现。
+> 这与其他包的外部 `var` 容器投影阻断同类，应在主线统一修复；
+> 包内不引入数据重建或转换绕行，修复后重跑完整 AOT 门禁。
+
 `srt` 解析、生成 SRT 和常用 WebVTT 字幕。解析后返回 cue 数组，每项包含 `index`、`startMs`、`endMs` 和字符串数组 `lines`。WebVTT 中还可带 `id`、`settings`。时间单位都是毫秒；`build` 会把 SRT 序号按数组顺序重新编号。
 
 2026-10-22：C 边界测试用固定 SRT/WebVTT 样本逐长度截断，并逐字节替换

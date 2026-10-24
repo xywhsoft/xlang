@@ -1,0 +1,8 @@
+import srt
+
+func main(...) as int
+    var cues = [{"startMs": 0, "endMs": 1000, "lines": ["hello"]}]
+    assert type(cues) == array
+    srt.build(cues)
+    return 0
+end
