@@ -38,6 +38,20 @@ typedef struct xls_sem_candidate_scope {
  * The same test allowance independently bounds its read-only alias vector. */
 void xlsFrontendSemCandidatesBegin(xls_sem_candidate_scope* scope,size_t bytes);
 void xlsFrontendSemCandidatesEnd(xls_sem_candidate_scope* scope,xls_sem_overload_work* work);
+/* Call resolution keeps original predicates/diagnostics and declaration order.
+ * A zero-byte same-thread control runs the original root scan for comparison.
+ * Controls are separate from conflict/completion-enumeration accounting. */
+typedef struct xls_sem_call_work {
+    uint64_t indexes,rootVisits,indexedQueries,linearQueries,candidateVisits,bytes;
+} xls_sem_call_work;
+typedef struct xls_sem_call_control {
+    struct xls_sem_call_control* previous;
+    size_t budget;
+    xls_sem_call_work work;
+} xls_sem_call_control;
+void xlsFrontendSemCallsBegin(xls_sem_call_control* scope,size_t bytes);
+void xlsFrontendSemCallsEnd(xls_sem_call_control* scope,xls_sem_call_work* work);
+size_t xlsFrontendSemCallsBudget(void);
 /* Private verification entry point: zero budget runs the unchanged pair scan.
  * The optional override/work record is scoped to this thread and call. */
 int xlsFrontendSemCheckOverloads(XL6_AstNode* root,XL6_DiagList* diags,

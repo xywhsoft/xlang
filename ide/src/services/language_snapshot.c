@@ -583,6 +583,14 @@ analysed:
    put(semWork,"bytes",xrtValueInt((int64)work.bytes));
   if(okayStats) {okayStats=put(stats,"lastBuildSemantics",semWork);semWork=NULL;}
   xrtValueRelease(semWork);
+  xls_sem_call_work calls=xlsSemanticCompletionCallWork(nativeCompletion);
+  xvalue* callWork=xrtValueObject();
+  okayStats=okayStats && callWork && put(callWork,"indexes",xrtValueInt((int64)calls.indexes)) &&
+   put(callWork,"rootVisits",xrtValueInt((int64)calls.rootVisits)) && put(callWork,"indexedQueries",xrtValueInt((int64)calls.indexedQueries)) &&
+   put(callWork,"linearQueries",xrtValueInt((int64)calls.linearQueries)) && put(callWork,"candidateVisits",xrtValueInt((int64)calls.candidateVisits)) &&
+   put(callWork,"bytes",xrtValueInt((int64)calls.bytes));
+  if(okayStats) {okayStats=put(stats,"lastBuildCallCandidates",callWork);callWork=NULL;}
+  xrtValueRelease(callWork);
   if(!okayStats) { xrtValueRelease(stats); goto done; }
   if(!put(result,"analysis",stats)) goto done;
  }

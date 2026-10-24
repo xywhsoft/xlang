@@ -49,6 +49,7 @@ CORE_TESTS = ("analysis_index_storage_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_regions_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_syntax_storage_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_cursor_memo_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_call_candidates_test", *CORE_TESTS)
 
 
 def sha(path: Path) -> str:
@@ -232,12 +233,34 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
             raise ValueError('shared completion candidate seam changed; audit: ' + old)
         completion = completion.replace(old, new)
     source = source[:start] + completion + source[end:]
+    # Only candidate iteration changes. Function names/root membership stay
+    # fixed during the audited root-body pass; signatures remain live reads.
+    resolver = 'static XL6_AstNode* xl6SemResolveCallFuncEx('
+    if source.count(resolver) != 1:
+        raise ValueError('shared call resolver include seam changed; audit')
+    source = source.replace(resolver, '#include "analysis/frontend_sem_calls.inc"\n' + resolver)
+    for name in ['xl6SemResolveCallFuncEx', 'xl6SemResolveExplicitGenericCallFunc']:
+        start = source.index('static XL6_AstNode* ' + name + '(')
+        end = source.index('\nstatic ', start + 1)
+        call_body = source[start:end]
+        old = '    for ( i = 0; i < ctx->root->childCount; ++i ) {'
+        if call_body.count(old) != 1:
+            raise ValueError('shared call candidate loop changed; audit: ' + name)
+        call_body = call_body.replace(old, '    for ( i = xlsSemCallFirst(ctx,name); i < ctx->root->childCount; i = xlsSemCallNext(ctx,i) ) {')
+        source = source[:start] + call_body + source[end:]
+    for old, new in {
+        '    xlsSemMemoBegin(&ctx);': '    xls_sem_call_scope callScope;\n    xlsSemCallsBegin(&callScope,&ctx);\n    xlsSemMemoBegin(&ctx);',
+        '    xl6SemAnnotateTypeIdentities(&ctx, root);': '    xlsSemCallsEnd(&callScope);\n    xl6SemAnnotateTypeIdentities(&ctx, root);',
+    }.items():
+        if source.count(old) != 1:
+            raise ValueError('shared call candidate lifetime seam changed; audit: ' + old)
+        source = source.replace(old, new)
     compiled = output / 'frontend/xl6_sem.c'
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
-        change='bounded ordered conflict/completion candidates with public namespace prefilter, read-only name-query alias scope and opt-in exact-context function memos; original rules and final annotations retained',
-        auditedSeams=len(changes)+len(conflict_changes)+len(completion_changes)+1, memoBytes=64 * 1024 * 1024,
+        change='bounded ordered conflict/completion and root-body call candidates,public namespace prefilter,read-only name-query alias scope and opt-in exact-context function memos;original predicates,diagnostics and final annotations retained',
+        auditedSeams=len(changes)+len(conflict_changes)+len(completion_changes)+6, memoBytes=64 * 1024 * 1024,
         overloadCandidateBytes=8 * 1024 * 1024,
         auditedDependencies={str(registry): registry_sha})
 
