@@ -1,7 +1,7 @@
 import blake2
 
 func bytesHex(Buffer data) as string
-    return codec.hexEncodeBytes(data.data(), c_size(data.len()))
+    return data.hex(int(HexFlags.Upper))
 end
 
 func rejectSize(int size)
