@@ -125,6 +125,7 @@ static bool xsl_ascii(xbuffer* output, bool* separator, unsigned char c)
         return true;
     }
     if (c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
+        c == '\v' || c == '\f' ||
         c == '-' || c == '_' || c == '.' || c == '/' || c == '+' ||
         c == '=' || c == ':' || c == ',' || c == ';' || c == '?' || c == '!')
         *separator = true;
@@ -176,7 +177,8 @@ void* xsl_slugify(const char* text, long long length)
         } else if (replacement != NULL) {
             for (p = replacement; *p != '\0'; ++p)
                 if (!xsl_ascii(&output, &separator, (unsigned char)*p)) goto done;
-        } else if (scalar == 0x00a0u || scalar == 0x30fbu ||
+        } else if (scalar == 0x0085u || scalar == 0x00a0u ||
+                   scalar == 0x1680u || scalar == 0x30fbu ||
                    (scalar >= 0x2000u && scalar <= 0x206fu) ||
                    (scalar >= 0x3000u && scalar <= 0x303fu) ||
                    (scalar >= 0xff00u && scalar <= 0xffefu)) {

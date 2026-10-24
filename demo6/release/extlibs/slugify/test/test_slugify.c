@@ -66,6 +66,10 @@ int main(void)
     CHECK(same("It's fine!", "its-fine"));
     CHECK(same("Tom & Jerry", "tom-and-jerry"));
     CHECK(same("a&b", "a-and-b"));
+    CHECK(same("a\vb", "a-b"));
+    CHECK(same("a\fb", "a-b"));
+    CHECK(same("a\xc2\x85" "b", "a-b")); /* U+0085 NEL */
+    CHECK(same("a\xe1\x9a\x80" "b", "a-b")); /* U+1680 Ogham space */
     CHECK(same("&a", "and-a"));
     CHECK(same("a@", "a-at"));
     CHECK(same("user@example.com", "user-at-example-com"));
