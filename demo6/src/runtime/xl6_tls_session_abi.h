@@ -31,4 +31,10 @@ XL6_TEXT_API XL6_ProductI64U64V1 xl6TlsSessionWriteBytesV1(void*,const xvalue*,i
 XL6_TEXT_API XL6_ProductI64BytesV1 xl6TlsSessionReadV1(void*,int64_t);
 XL6_TEXT_API xvalue* xl6TlsSessionTakeCipherV1(void*,int64_t);
 XL6_TEXT_API xvalue* xl6TlsSessionProtocolV1(void*);
+XL6_TEXT_API int64_t xl6TlsSessionPeerCertificateCountV1(void*);
+XL6_TEXT_API void* xl6TlsSessionPeerCertificateAtV1(void*,int64_t);
+XL6_TEXT_API int64_t xl6TlsSessionKeyUpdateV1(void*,bool);
+XL6_TEXT_API XL6_ProductBoolI64I64V1 xl6TlsSessionPeerAlertV1(void*);
+XL6_TEXT_API xvalue* xl6TlsSessionServerNameV1(void*);
+XL6_TEXT_API uint64_t xl6TlsSessionServerCookieV1(void*);
 #endif

@@ -1,0 +1,15 @@
+typedef Present = bool
+typedef Scalar = int
+func triple(Present present, Scalar first, int64 second) as (Present, Scalar, int64)
+    return present, first, second
+end
+func(bool, int, int) as (bool, int, int) indirect = triple
+auto present, first, second = indirect(true, -9, 257)
+assert present and first == -9 and second == 257
+bool assigned = true
+int a = 1
+int b = 2
+assigned, a, b = triple(false, 19, -71)
+assert not assigned and a == 19 and b == -71
+auto _, kept, _ = triple(true, 84, 33)
+assert kept == 84

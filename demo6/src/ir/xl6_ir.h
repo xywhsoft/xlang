@@ -619,7 +619,8 @@ typedef enum XL6_IrNativeProductAbi {
     XL6_IR_NATIVE_PRODUCT_BOOLI32_V1,
     XL6_IR_NATIVE_PRODUCT_BOOLU32_V1,
     XL6_IR_NATIVE_PRODUCT_I64U64_V1,
-    XL6_IR_NATIVE_PRODUCT_I64BYTES_V1
+    XL6_IR_NATIVE_PRODUCT_I64BYTES_V1,
+    XL6_IR_NATIVE_PRODUCT_BOOLI64I64_V1
 } XL6_IrNativeProductAbi;
 
 /* Exact resident slot/projection profile, independent of source spelling and

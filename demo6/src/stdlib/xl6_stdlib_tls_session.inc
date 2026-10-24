@@ -33,4 +33,10 @@ const char* xl6StdlibTlsManagedSessionClassSource=
     "    extern \"xl6TlsSessionReadV1\" @nonblocking func read(int maxBytes = 65536) as (TlsResult, bytes)\n"
     "    extern \"xl6TlsSessionTakeCipherV1\" @nonblocking func takeCipher(int maxBytes = 65536) as bytes\n"
     "    extern \"xl6TlsSessionProtocolV1\" @nonblocking get protocol() as bytes\n"
+    "    extern \"xl6TlsSessionPeerCertificateCountV1\" @nonblocking get peerCertificateCount() as int\n"
+    "    extern \"xl6TlsSessionPeerCertificateAtV1\" @nonblocking func peerCertificateAt(int index = 0) as Certificate\n"
+    "    extern \"xl6TlsSessionKeyUpdateV1\" @nonblocking func keyUpdate(bool requestPeer = false) as TlsResult\n"
+    "    extern \"xl6TlsSessionPeerAlertV1\" @nonblocking func peerAlert() as (bool, int, int)\n"
+    "    extern \"xl6TlsSessionServerNameV1\" @nonblocking get serverName() as bytes\n"
+    "    extern \"xl6TlsSessionServerCookieV1\" @nonblocking get serverCookie() as uint64\n"
     "end\n";

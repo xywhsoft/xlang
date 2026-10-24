@@ -449,3 +449,62 @@ Busy 延后、真实目录 Hold／Claim／Restore／Clear／重复 Finish、16-s
 没有网络流量、畸形密码材料或安全专项；没有更改系统时区、防护、页文件或
 WSL 服务。两边时间 ABI 均保留，Cgen 未改；完整工作区／发布产品、动态回调、
 恢复与传输、P6／P7 及历史 Windows 间歇诊断仍开放。
+
+## 会话观察与角色操作
+
+驻留会话使用永久的角色操作表，创建者分别提供客户端或服务端的 drive、
+KeyUpdate 和原生观察函数。共享适配只通过这张私有表分派，不按语言类型名
+回查，也不为一个客户端观察入口机械链接服务端握手实现。表没有语言闭包、
+动态模块地址或额外拥有边；活动准入、真实引用及 Busy 规则与会话基础相同。
+
+`peerCertificateCount` 在认证完成前为 0；失败会话 checked 拒绝，不能把已解析
+或只做过链检查的证书当成已完成认证的对端。`peerCertificateAt(index=0)` 必须
+在 ready／closing／closed 状态读取，负数及越界索引拒绝。它返回独立拥有的
+Certificate／DER 快照，来源会话销毁后仍可使用；分配失败不改变原会话。
+不支持的服务端客户端证书链为 0，不因此宣称原生已经支持 mTLS。
+
+`serverName` 返回接收到的 SNI 原始 bytes，尚无名称时为空，不强行转成 UTF-8；
+`serverCookie` 返回原生选择器的 uint64 元数据，静态身份默认为 0。两个入口
+只适用于服务端，在客户端调用 checked 拒绝。所有返回字节都是独立值。
+SNI／Alert 是收到的对端元数据，不是已认证身份或握手成功的凭据。
+
+`peerAlert()` 返回 `(hasAlert, level, description)`，后两项为 int，保留完整原生
+数值而不猜测未知 Alert。缺失时为 `(false, 0, 0)`，close_notify 的 description
+也为 0，因此不能仅靠 description 判断有无 Alert。该纯标量物理合同为
+`XL6_ProductBoolI64I64V1`：bool 加两个语言 signed64，别名独立解析；不接受
+窄整数、C 整数别名、任意枚举或托管字段，不把 bool 擦除为 int。模块／IR／
+C／头输出门继续校验闭合的 profile，Cgen 无 TLS 分支。
+
+`keyUpdate(requestPeer=false)` 通过本次角色的原生入口排队 TLS 1.3 KeyUpdate，
+返回 TlsResult；请求对端更新由原生协议驱动处理。调用方继续传递密文并 drive，
+不能把成功排队误认为对端已经处理。TLS 1.2／不合法状态按原生 checked 报错，
+wouldBlock 仍由调用方处理背压；该入口不承担重新握手、票据或恢复缓存职责。
+
+### 会话观察批次验收
+
+冻结 8981 份稳定输入，Windows／Linux 全源码 O2 分别构建 1154／1153 TU，
+无生产对象替换。两端各 137 个语言／IR／裁剪阶段、72 个既有产品 ABI／CRT
+数学／TLS 参数回归，驻留 Windows 10、Linux 12，合计 440 阶段通过。
+四类正常固定密钥握手覆盖认证前的证书拒绝、独立证书存活、SNI 值复制、
+Alert 存在位及 close_notify、客户端请求对端更新、服务端单向更新和更新后的
+双向应用数据；真实 JIT／module／独立 AOT 及严格 C O0／O2 均通过。
+
+31 个驻留目标、3 原生拥有结果、4 产品结果、3 bytes 结果、1 资源策略通过；
+两端 O0／O2 均拒绝 311 错误合同、31 同物理表示类型交换及 42 个模块／C／头
+零输出门。22 份实际裁剪计划保持角色分离且无 TLS 传输依赖，错误参数和
+窄整数三元 profile 拒绝；普通 bool／signed64 三元组的别名、间接调用、赋值
+与丢弃独立检查。驻留 GCC O0／O2、TCC、Linux ASan／UBSan 及内存账本通过，
+新增观察错误路径确认 pin 与准入门全部释放。
+
+能力矩阵工具补识别操作表中的已知 API 地址绑定，不把字符串、注释、类型
+声明或未知数据名当作证据，3 项针对性单元检查通过。这个报告工具变更发生
+在冻结后，不改变生产源或编译对象，另存工具控制哈希；新增的 15 条直接
+引用统计不等于本批新增了 15 个公开函数。矩阵现为 2239 直接引用／2431
+语义抽象，低层 API 仍为 3845。全部正式阶段在一次冻结上通过，未靠放宽
+verifier、删除负例或 Cgen 名称特判；证据根
+`F:/xlang-validation/five-groups-20261024/p6-tls-session-observe`。
+
+本批没有改 XRT 核心、两边时间 ABI 或 Cgen，没有网络流量或安全专项测试。
+动态选择／CRL／恢复回调、TLS 传输／Future、票据／恢复、旧后端和旧测试
+迁移、完整发布产品及 P7 继续；不把此处 KeyUpdate 的正常功能通过当作完整
+TLS 或安全审计完成，历史 Windows 间歇诊断保持开放。

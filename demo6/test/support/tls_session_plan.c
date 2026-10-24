@@ -8,7 +8,8 @@ int main(int argc,char** argv)
     assert(argc==2);XL6_ArtifactRuntimeSet roots={0};
     const XL6_ArtifactRuntimeId ids[]={XL6_ARTIFACT_TLS_SESSION_CLIENT,XL6_ARTIFACT_TLS_SESSION_SERVER,
         XL6_ARTIFACT_TLS_SESSION_STATE,XL6_ARTIFACT_TLS_SESSION_INPUT,XL6_ARTIFACT_TLS_SESSION_BUFFER,
-        XL6_ARTIFACT_TLS_SESSION_OUTPUT,XL6_ARTIFACT_OWNERSHIP_DOMAIN_TLS_SESSION};
+        XL6_ARTIFACT_TLS_SESSION_OUTPUT,XL6_ARTIFACT_OWNERSHIP_DOMAIN_TLS_SESSION,
+        XL6_ARTIFACT_TLS_SESSION_OBSERVE,XL6_ARTIFACT_TLS_SESSION_CERTIFICATE};
     for(size_t i=0;i<sizeof(ids)/sizeof(*ids);i++)assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,ids[i]));
     assert(xl6ArtifactRuntimeSymbolOwner("xl6TlsSessionReadV1")==XL6_ARTIFACT_TLS_SESSION_OUTPUT);
     assert(xl6ArtifactRuntimeSymbolOwner("xl6TlsSessionClientCreateV1")==XL6_ARTIFACT_TLS_SESSION_CLIENT);

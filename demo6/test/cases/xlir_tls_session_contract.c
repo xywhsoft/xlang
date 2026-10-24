@@ -50,6 +50,11 @@ int main(int argc,char** argv)
                 XL6_IrOwnershipAbi original=product->ownershipAbi;product->ownershipAbi=XL6_IR_OWNERSHIP_ABI_TRIVIAL;refuse(module,NULL);product->ownershipAbi=original;
                 XL6_IrTypeId element=product->params[1];product->params[1]=integer;refuse(module,t);product->params[1]=element;
             }
+            if(abi==XL6_IR_NATIVE_PRODUCT_BOOLI64I64_V1){
+                XL6_IrTypeId element=product->params[2];product->params[2]=boolean;refuse(module,t);product->params[2]=element;
+                element=product->params[0];product->params[0]=integer;refuse(module,NULL);product->params[0]=element;
+                XL6_IrOwnershipAbi original=product->ownershipAbi;product->ownershipAbi=XL6_IR_OWNERSHIP_ABI_MANAGED;refuse(module,NULL);product->ownershipAbi=original;
+            }
         }
         if(saved.resultPhysicalDestroySymbol){owned++;BAD(resultPhysicalAbi,XL6_IR_CALL_RESULT_PHYSICAL_DIRECT);t->resultPhysicalDestroySymbol=0;refuse(module,NULL);*t=saved;}
         for(size_t p=0;p<saved.parameterCount;p++){
@@ -60,7 +65,7 @@ int main(int argc,char** argv)
         assert(xl6IrVerifyModule(module,NULL));fprintf(stderr,"TLS session target %zu complete: %s\n",targets,name);fflush(stderr);
 #undef BAD
     }
-    assert(targets==25&&owned==2&&products==3&&bytesResults==2&&policies==1&&sameAbi>20&&rejected>240&&gates>30);
+    assert(targets==31&&owned==3&&products==4&&bytesResults==3&&policies==1&&sameAbi>25&&rejected>290&&gates>35);
     printf("TLS session XLIR: %zu targets; %zu native owned; %zu products; %zu bytes; %zu policy; %zu same-representation swaps; %zu rejected contracts; %zu output gates\n",targets,owned,products,bytesResults,policies,sameAbi,rejected,gates);
     xl6CompileUnitFree(&unit);return 0;
 }

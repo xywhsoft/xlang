@@ -27,7 +27,7 @@ static int64_t control(void* raw,unsigned operation)
 {
     XL6_TlsSessionV1* self=raw;XL6_TlsSessionScopeV1 scope={0};
     if(!xl6TlsSessionEnterInternalV1(self,true,&scope))return XTLS_ERROR;
-    xtlsresult result=operation==0?self->drive(self->native):
+    xtlsresult result=operation==0?self->role->drive(self->native):
         operation==1?xrtTlsSessionClose(self->native):xrtTlsSessionEof(self->native);
     xl6TlsOutcomeV1(result!=XTLS_ERROR);xl6TlsSessionLeaveInternalV1(&scope);return result;
 }

@@ -1450,7 +1450,7 @@ XL6_IrNativeProductAbi xl6IrNativeProductAbiForShape(const XL6_IrTypePool* pool,
     if (!pool || !type || type->kind != XL6_IR_TYPE_TUPLE || (type->paramCount != 2 && type->paramCount != 3) ||
         !type->params || type->returnCount) return XL6_IR_NATIVE_PRODUCT_NONE;
     const XL6_IrType* first = xl6IrTypeGet(pool,type->params[0]);
-    bool boolFirst = type->paramCount == 2 && first && first->cAbi == XL6_IR_C_ABI_BOOL;
+    bool boolFirst = first && first->cAbi == XL6_IR_C_ABI_BOOL;
     const XL6_IrType* second = xl6IrTypeGet(pool,type->params[1]);
     /* Closed owned scalar/bytes pair. Layout does not authorize the enum
      * vocabulary; the call contract checks that nominal identity separately.
@@ -1481,13 +1481,14 @@ XL6_IrNativeProductAbi xl6IrNativeProductAbiForShape(const XL6_IrTypePool* pool,
     if (boolFirst && tail != XL6_IR_C_ABI_TIME_I64 && tail != XL6_IR_C_ABI_I64 &&
         tail != XL6_IR_C_ABI_U64 && tail != XL6_IR_C_ABI_BOOL) return XL6_IR_NATIVE_PRODUCT_NONE;
     for (i=0;i<type->paramCount;++i) {
-        XL6_IrCAbi expected = type->paramCount == 3 ? XL6_IR_C_ABI_I64 :
+        XL6_IrCAbi expected = type->paramCount == 3 ?
+            (boolFirst && i == 0 ? XL6_IR_C_ABI_BOOL : XL6_IR_C_ABI_I64) :
             (boolFirst && i == 0 ? XL6_IR_C_ABI_BOOL : tail);
         const XL6_IrType* item = xl6IrTypeGet(pool,type->params[i]);
         if (!item || item->kind != XL6_IR_TYPE_BUILTIN || item->paramCount || item->returnCount ||
             item->collectionAbi != XL6_IR_COLLECTION_NONE || item->cAbi != expected ||
             (expected == XL6_IR_C_ABI_I64 && item->integerTarget != XL6_IR_INTEGER_TARGET_SIGNED_64 &&
-             !(boolFirst && i == 1 && (item->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_32 ||
+             !(type->paramCount == 2 && boolFirst && i == 1 && (item->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_32 ||
                  item->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_32))) ||
             (expected == XL6_IR_C_ABI_U64 && item->integerTarget != XL6_IR_INTEGER_TARGET_UNSIGNED_64) ||
             (expected != XL6_IR_C_ABI_I64 && expected != XL6_IR_C_ABI_U64 &&
@@ -1495,7 +1496,8 @@ XL6_IrNativeProductAbi xl6IrNativeProductAbiForShape(const XL6_IrTypePool* pool,
             item->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL || item->nullAbi != XL6_IR_NULL_ABI_NONE)
             return XL6_IR_NATIVE_PRODUCT_NONE;
     }
-    if (!boolFirst) return type->paramCount == 2 ? XL6_IR_NATIVE_PRODUCT_TIMEX2_V1 : XL6_IR_NATIVE_PRODUCT_I64X3_V1;
+    if(type->paramCount==3)return boolFirst?XL6_IR_NATIVE_PRODUCT_BOOLI64I64_V1:XL6_IR_NATIVE_PRODUCT_I64X3_V1;
+    if (!boolFirst) return XL6_IR_NATIVE_PRODUCT_TIMEX2_V1;
     if (tail == XL6_IR_C_ABI_I64 && second->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_32)
         return XL6_IR_NATIVE_PRODUCT_BOOLI32_V1;
     if (tail == XL6_IR_C_ABI_I64 && second->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_32)
@@ -1514,7 +1516,8 @@ const char* xl6IrNativeProductAbiCName(XL6_IrNativeProductAbi abi)
     abi == XL6_IR_NATIVE_PRODUCT_BOOLI32_V1 ? "XL6_ProductBoolI32V1" :
     abi == XL6_IR_NATIVE_PRODUCT_BOOLU32_V1 ? "XL6_ProductBoolU32V1" :
     abi == XL6_IR_NATIVE_PRODUCT_I64U64_V1 ? "XL6_ProductI64U64V1" :
-    abi == XL6_IR_NATIVE_PRODUCT_I64BYTES_V1 ? "XL6_ProductI64BytesV1" : NULL; }
+    abi == XL6_IR_NATIVE_PRODUCT_I64BYTES_V1 ? "XL6_ProductI64BytesV1" :
+    abi == XL6_IR_NATIVE_PRODUCT_BOOLI64I64_V1 ? "XL6_ProductBoolI64I64V1" : NULL; }
 const char* xl6IrNativeProductAbiGuard(XL6_IrNativeProductAbi abi)
 { return abi == XL6_IR_NATIVE_PRODUCT_I64X3_V1 ? "XL6_PRODUCT_ABI_I64X3_V1" :
     abi == XL6_IR_NATIVE_PRODUCT_TIMEX2_V1 ? "XL6_PRODUCT_ABI_TIMEX2_V1" :
@@ -1525,7 +1528,8 @@ const char* xl6IrNativeProductAbiGuard(XL6_IrNativeProductAbi abi)
     abi == XL6_IR_NATIVE_PRODUCT_BOOLI32_V1 ? "XL6_PRODUCT_ABI_BOOLI32_V1" :
     abi == XL6_IR_NATIVE_PRODUCT_BOOLU32_V1 ? "XL6_PRODUCT_ABI_BOOLU32_V1" :
     abi == XL6_IR_NATIVE_PRODUCT_I64U64_V1 ? "XL6_PRODUCT_ABI_I64U64_V1" :
-    abi == XL6_IR_NATIVE_PRODUCT_I64BYTES_V1 ? "XL6_PRODUCT_ABI_I64BYTES_V1" : NULL; }
+    abi == XL6_IR_NATIVE_PRODUCT_I64BYTES_V1 ? "XL6_PRODUCT_ABI_I64BYTES_V1" :
+    abi == XL6_IR_NATIVE_PRODUCT_BOOLI64I64_V1 ? "XL6_PRODUCT_ABI_BOOLI64I64_V1" : NULL; }
 XL6_IrOwnershipAbi xl6IrNativeProductOwnershipAbi(XL6_IrNativeProductAbi abi)
 {
     return abi==XL6_IR_NATIVE_PRODUCT_I64BYTES_V1?XL6_IR_OWNERSHIP_ABI_MANAGED:

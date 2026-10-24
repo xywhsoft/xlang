@@ -29,6 +29,12 @@
 {"xl6TlsSessionReadV1",T,XL6_IR_C_ABI_PRODUCT,2,{V,I},SS,.resultProductAbi=XL6_IR_NATIVE_PRODUCT_I64BYTES_V1,.resultProductEnums={&xl6IrTlsResultContract},SF},
 {"xl6TlsSessionTakeCipherV1",T,Y,2,{V,I},SS,SF},
 {"xl6TlsSessionProtocolV1",T,Y,1,{V},SS,SF},
+{"xl6TlsSessionPeerCertificateCountV1",T,I,1,{V},SS,SF},
+{"xl6TlsSessionPeerCertificateAtV1",T,V,2,{V,I},SS,.resultOwner="xl6X509CertificateDestroyV1",SF},
+{"xl6TlsSessionKeyUpdateV1",T,I,2,{V,B},SS,SR,SF},
+{"xl6TlsSessionPeerAlertV1",T,XL6_IR_C_ABI_PRODUCT,1,{V},SS,.resultProductAbi=XL6_IR_NATIVE_PRODUCT_BOOLI64I64_V1,SF},
+{"xl6TlsSessionServerNameV1",T,Y,1,{V},SS,SF},
+{"xl6TlsSessionServerCookieV1",T,U,1,{V},SS,SF},
 #undef SW
 #undef SR
 #undef SS

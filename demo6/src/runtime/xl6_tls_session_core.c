@@ -9,14 +9,14 @@ static void destroyNative(xtlssession* native)
     xerror* prior=xrtTakeError();xrtTlsSessionDestroy(native);
     if(prior){xrtClearError();xrtSetErrorTake(prior);}
 }
-XL6_TlsSessionV1* xl6TlsSessionTakeInternalV1(xtlssession* native,xtlsresult (*drive)(xtlssession*))
+XL6_TlsSessionV1* xl6TlsSessionTakeInternalV1(xtlssession* native,const XL6_TlsSessionRoleOpsV1* role)
 {
     if(!native)return NULL;
     if(xrtGetError()){destroyNative(native);return NULL;}
-    if(!drive){xl6TlsFailV1(XERR_ARGUMENT,"TLS session needs a resident role driver");destroyNative(native);return NULL;}
+    if(!role||!role->drive){xl6TlsFailV1(XERR_ARGUMENT,"TLS session needs permanent resident role operations");destroyNative(native);return NULL;}
     XL6_TlsSessionV1* self=xrtCalloc(1,sizeof(*self));
     if(!self){destroyNative(native);return NULL;}
-    self->refs=1;self->native=native;self->drive=drive;return self;
+    self->refs=1;self->native=native;self->role=role;return self;
 }
 bool xl6TlsSessionHoldInternalV1(const void* raw)
 {
