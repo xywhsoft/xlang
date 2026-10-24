@@ -19,7 +19,7 @@ Linux 验收仍以独立平台门禁为准。
 
 `fg` 仅接受 30..37、90..97；`bg` 仅接受 40..47、100..107。无效参数抛 `ValueError`，不再返回空字符串吞掉待输出的文本。所有 XLang 文本入口拒绝内嵌 NUL，避免 C 零结尾接口静默截断。`title` 拒绝控制字符及 U+2028/U+2029 行分隔符，避免标题文本注入额外终端指令。`strip` 识别完整 CSI 与 OSC（BEL 或 ESC `\\` 终止）；畸形、未知或未结束的 ESC 序列会报错，而非静默删除后续文本。
 
-`displayWidth` 忽略 CSI/OSC，按 UTF-8 标量估算**单行**占用列数：常见组合附加符、零宽空格/连接符与变体选择符为零列，东亚宽字符和常见 emoji 为两列。它不是完整 Unicode grapheme/终端排版引擎：ZWJ 复合 emoji、区域旗帜、East Asian Ambiguous 字符及终端实现差异可能与真实显示不同。制表符、换行、U+2028/U+2029、控制字符、非法 UTF-8、双向控制符或畸形转义序列报错；标题和 OSC 载荷同样拒绝 Unicode 行分隔符和双向控制符，OSC 载荷中的 DEL/C1 控制字符也拒绝。`strip` 只剥离 ANSI 序列，不负责清洗普通文本里的 Unicode 格式字符。
+`displayWidth` 忽略 CSI/OSC，按 UTF-8 标量估算**单行**占用列数：常见组合附加符、零宽空格/连接符与变体选择符为零列，东亚宽字符和常见 emoji 为两列。它不是完整 Unicode grapheme/终端排版引擎：ZWJ 复合 emoji、区域旗帜、East Asian Ambiguous 字符及终端实现差异可能与真实显示不同。制表符、换行、U+2028/U+2029、控制字符、U+00AD 软连字符、非法 UTF-8、双向控制符或畸形转义序列报错；标题和 OSC 载荷同样拒绝 Unicode 行分隔符和双向控制符，OSC 载荷中的 DEL/C1 控制字符也拒绝。`strip` 只剥离 ANSI 序列，不负责清洗普通文本里的 Unicode 格式字符。
 
 ## C 互操作
 
@@ -28,6 +28,10 @@ Linux 验收仍以独立平台门禁为准。
 公开 C 调用会清除本线程上一次的 XRT 错误；成功返回时 `xrtGetError()` 为 `NULL`。前一次调用失败后可直接调用其他 ANSI 入口，无需调用方先手动清错。包级 C 门禁以四个工作线程交错验证独立结果、UTF-8 列宽与错误槽隔离。
 
 ## 范例与验证
+
+2026-10-25：C/XLang 负例确认 `displayWidth` 原把软连字符算作固定一列；
+现在拒绝 U+00AD，避免终端换行行为改变列宽。Windows 默认门禁
+与 Linux C ASan/UBSan、XLang 边界和双语门禁复验此限制。
 
 - C/XLang 对照：`release/extlibs/ansi/examples/ansi_c.c`、`ansi.xl`。C 范例可直接 `xl run` 单文件执行；普通 C 构建仍独立链接 `ansi_native.c`。
 - 对照范例按原始转义字节校验所有公开构件（样式、颜色、光标和屏幕控制），同时展示 UTF-8 宽度与去除转义；验证不依赖终端渲染或颜色配置。

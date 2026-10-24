@@ -67,6 +67,11 @@ catch ValueError error
     failures += 1
 end
 try
+    ansi.displayWidth("a\u00adb")
+catch ValueError error
+    failures += 1
+end
+try
     ansi.displayWidth("a\xe2\x80\xaeb")
 catch ValueError error
     failures += 1
@@ -101,5 +106,5 @@ try
 catch ValueError error
     failures += 1
 end
-assert failures == 16
+assert failures == 17
 println("ansi boundaries: PASS")

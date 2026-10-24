@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / ansi</p><h1>ansi</h1>
     <p class="extlib-lead">ANSI 样式、颜色和光标序列的纯文本构件。</p>
-    <p>使用 XRT 分配独立结果，不会写终端，也不会截断长文本。C/XL 包级测试与 Linux sanitizer 已通过；XL AOT 当前受共享缺符号阻断。</p>
+    <p>使用 XRT 分配独立结果，不会写终端，也不会截断长文本。Windows C/XLang 包级门禁及独立 AOT、Linux C sanitizer 与 XLang 门禁已通过；Linux 新发布版 AOT 尚未验收。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
@@ -33,7 +33,7 @@
 string styled = ansi.fg("中文", 32)
 println(ansi.strip(styled))
 println(ansi.displayWidth(styled))</code></pre>
-    <p><code>displayWidth</code> 将常见零宽字符计为零列，但只是终端列宽估算，不承诺 ZWJ 复合 emoji 等所有 Unicode 字素簇精确；文本入口拒绝内嵌 NUL，标题和 OSC 载荷拒绝双向控制符，畸形 ANSI/UTF-8、OSC 载荷中的 DEL/C1 控制字符和非法颜色参数报错。2026-10-20：Windows 默认门禁新增完整带输出范例 AOT 与 C 输出对照，当前构建因共享 <code>xl6ValueDataSnapshotV1</code> 缺符号失败；<code>-SkipAot</code> 的 C/JIT 快测通过，不代表发布签收。完整合同、C 所有权及验证命令见包内 README。</p>
+    <p><code>displayWidth</code> 将常见零宽字符计为零列，但只是终端列宽估算，不承诺 ZWJ 复合 emoji 等所有 Unicode 字素簇精确；U+00AD 软连字符的宽度依赖换行，现明确拒绝。文本入口拒绝内嵌 NUL，标题和 OSC 载荷拒绝双向控制符，畸形 ANSI/UTF-8、OSC 载荷中的 DEL/C1 控制字符和非法颜色参数报错。2026-10-25 默认 Windows 门禁的边界和公开范例 AOT 均通过，Linux C ASan/UBSan 与 XLang 对照通过；完整合同、C 所有权及验证命令见包内 README。</p>
   </section>
 </main>
 </body>

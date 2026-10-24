@@ -290,6 +290,7 @@ int64_t xansi_display_width(const char* text)
         if (xrtUtf8Decode((xstrview){text + position, size - position},
             &scalar, &consumed) != XUTF_OK || scalar < 32u ||
             (scalar >= 127u && scalar <= 159u) ||
+            scalar == 0x00adu ||
             xansi_bidi_control(scalar) || xansi_line_break(scalar))
             goto invalid;
         if (width > INT64_MAX - 2) goto invalid;

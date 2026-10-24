@@ -76,6 +76,7 @@ int main(void)
     CHECK(xansi_strip("a\x1bX") == NULL);
     CHECK(xansi_display_width("\x1b]0;unterminated") == -1);
     CHECK(xansi_display_width("a\n") == -1);
+    CHECK(xansi_display_width("a\xc2\xad" "b") == -1); /* 软连字符宽度依赖换行。 */
     CHECK(xansi_display_width("a\xe2\x80\xae" "b") == -1);
     CHECK(xansi_display_width("a\xe2\x80\xa8" "b") == -1);
     CHECK(xansi_display_width("a\xe2\x80\xa9" "b") == -1);
