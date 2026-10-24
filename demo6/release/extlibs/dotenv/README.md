@@ -75,6 +75,17 @@ bash release/extlibs/dotenv/test/check.sh
 解析/环境边界、XLang 中央与包内边界，并将 C/XLang 范例同黄金输出逐字对照。
 包级 C/JIT 通过不等于完整发布签收。
 
+2026-10-24 编译器产物分层复验：现有 `release/xl.exe` 的默认包门禁仍在
+公开范例 AOT 链接时报缺少 `xl6ValueDataSnapshotV1`；同一包的
+`-SkipAot` 严格 C、C/XLang 范例黄金输出及语言边界全过。此前从源码
+构建的 `public_source.exe` 则把公开范例、中央用例和包内 `limits`、
+`apply_oom`、`create_oom`、`replace` 均编为独立 EXE，逐一运行退出 0；
+公开范例与 `examples/basic.expected.txt` 逐字一致，内存运行亦通过。
+这表明旧发布二进制的缺符号不能直接归为 dotenv 包实现缺陷，但不构成
+当前工作树的发布签收：重新构建源码驱动时，并行主线修改触发脚本的
+`Build inputs changed` 一致性检查，未得到新的可信产物。待主线稳定并
+同步发布版后，须重跑不带 `-SkipAot` 的完整包门禁。
+
 2026-10-21：C 与 XLang 补齐空文本、仅 UTF-8 BOM 文本的替换回归：
 两者都应成功清空原对象的旧条目；C 的零字节限额也接受真正的空文本。
 Windows `-SkipAot` 严格 C/XLang 与双语门禁、Linux C ASan/UBSan 和
