@@ -40,6 +40,7 @@ struct xlir_closure;
 #include "xl6_tls_identity_abi.h"
 #include "xl6_tls_parameters_abi.h"
 #include "xl6_tls_verifier_abi.h"
+#include "xl6_tls_role_context_abi.h"
 #include "xl6_codec_abi.h"
 #include "xl6_net_address_abi.h"
 #include "xl6_net_resolver_abi.h"

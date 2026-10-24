@@ -255,3 +255,79 @@ UTF-8 字节长度取前缀，超长取实际长度，其他非法负数拒绝�
 `tools/check_stdlib_tls_verifier.py --source-build <build.json> --out <新目录>`。
 本批不改 XRT 核心、两边时间 ABI 或 Cgen，不表示最新完整工作区／发布产品
 或整个 TLS 已验收，也不关闭历史 Windows 间歇诊断。
+
+## 客户端／服务端不可变角色上下文
+
+共用 `TlsParameters` 保存协议偏好和队列限额；角色自己的配置分别放在
+`TlsClientContext`、`TlsServerContext`，不以一个通用配置袋混合两种职责，
+也不再增加仅重复相同不可变内容的 Options 包装。
+
+```xlang
+auto client = TlsClientContext(TlsVerifier.fromSystem())
+client = client.withProtocols([b"h2", b"http/1.1"])
+
+auto server = TlsServerContext(identity)
+server = server.withProtocols([b"h2", b"http/1.1"], true)
+```
+
+客户端构造必须提供 `TlsVerifier`，没有不验证的缺省或回退；服务端必须
+提供 `TlsIdentity`。双参数构造先接收显式的 `TlsParameters`，再接收对应
+角色材料。单参数构造采用默认参数。上下文可跨连接复用，不发起网络、
+不创建会话、不产生握手随机数；它不是握手已完成或指定算法组合已可执行
+的证明。实际角色创建还必须通过 XRT 对完整线路与执行能力的 checked 校验。
+
+两者都有 `parameters`、`protocolCount`、`protocolAt(index)` 和
+`withParameters(parameters)`；客户端另有 `verifier`／`withVerifier`，
+服务端另有 `identity`／`withIdentity` 和 `requiresProtocol`。所有 with 方法
+返回新上下文，不修改原对象。参数／验证器／身份 getter 都返回独立拥有的
+原生引用或包装，能够晚于上下文及其来源对象释放。
+
+ALPN 是不透明协议标识，不是 Unicode 文本或逗号分隔字符串。`withProtocols`
+接收精确的 `array<bytes>`，每项 1—255 字节；包含两字节列表长度的完整
+ALPN extension_data 不超过 65535 字节。名称可含 NUL／非 UTF-8 字节，不做
+转换、截断、去重或隐式大小写折叠。完全相同的名称 checked 拒绝；临时排序
+与相邻比较只用于重复检查，公开的偏好顺序不改变。数量在 detached 元素
+存储分配之前检查，字节总额在协议数据分配之前检查。
+
+`protocolAt` 返回独立 bytes 值；修改它不影响上下文。空数组关闭 ALPN。
+服务端 `withProtocols(protocols, requireProtocol=false)` 将偏好与必需标志
+一起原子创建；要求协商却给空列表时拒绝，原对象不变。客户端列表只是
+offer，不额外暗含“必须选中一个”的未声明行为。完整 ClientHello 的其他
+扩展仍会占用线路预算，创建真实会话时不能跳过原生的整体长度校验。
+
+SNI／验证名称属于每次连接，不绑定在可复用上下文中。动态身份选择、恢复
+回调和 CRL 回调的拥有合同仍须后续接入，不能把含语言闭包的对象伪装成叶。
+本批两种目录是真实叶：只持有不可变原生对象与私有协议字节，没有语言引用、
+调用方视图或模块回调。默认构造不引入协议数组读取组件，只有 withProtocols
+选择该组件；客户端不因声明上下文引入服务端身份算法，反向亦然。
+
+### 角色上下文批次验收
+
+冻结 8933 份稳定输入，Windows／Linux 完整源码驱动分别构建 1144／1143 TU。
+正式阶段共 290：Windows 144、Linux 146；每端 129 个语言／IR／裁剪阶段，
+6 个独立私钥保留证明，驻留分别 9／11 阶段。源码构建与额外核对不混计。
+实际 JIT／module／独立 AOT、严格 C O0／O2、四类正常固定密钥证书、跨线程
+只读和 typed 容器、旧参数／验证策略／字符串数组回归均覆盖。
+
+21 个驻留目标、14 个原生拥有结果、2 个 bytes 结果、2 个精确 bytes 数组
+合同和 2 个真实资源策略通过；228 错误合同、17 个相同物理表示的角色交换、
+37 个模块及 C／头零输出拒绝门通过，十份实际裁剪计划保持角色与算法分离。
+每个驻留配置覆盖 152 构造／复制预算、100 实际失败、16 发布预算及真实
+目录 Hold／Claim／Restore；GCC O0／O2、TCC 和 Linux ASan／UBSan 内存平衡。
+
+原身份和上下文都释放后，保留的身份仍能执行正常签名；两端 O0／O2 的
+16 份签名由独立后端验证，不能仅以 count／非空签名代替私钥拥有证明。
+同一证明同时覆盖“空 ALPN 却要求协商”的 checked 拒绝及原上下文不变。
+
+测试夹具的数组函数名和与 bytes typedef 冲突的计数器已修正，生产代码及
+完整源码对象不变。每端复用 123 个未受影响阶段，只补跑合同矩阵；原失败、
+300 秒诊断轮次与后续逐目标进度全部保留，不删负例或输出门。默认复查工具
+仅对 contracts 阶段采用 900 秒上限，其他阶段保持 300 秒。工具为
+`check_tls_role_context_owned.py`、`check_stdlib_tls_role_context.py` 和
+`check_tls_role_context_key_retention.py`，证据根
+`F:/xlang-validation/five-groups-20261024/p6-tls-role-context`。
+
+本批没有修改 Cgen、XRT 核心或时间 ABI，没有网络／安全专项。角色上下文
+和默认验证器已经接线，不代表动态选择／CRL 回调、sans-I/O 会话、TLS 传输、
+恢复／票据／KeyUpdate、旧后端清退或发布产品已经验收。P6／P7 继续，历史
+Windows 间歇诊断不因本批通过而关闭。

@@ -140,6 +140,8 @@ extern const char* xl6StdlibTlsIdentitySource;
 extern const char* xl6StdlibTlsParametersSource;
 extern const char* xl6StdlibTlsVerificationPolicySource;
 extern const char* xl6StdlibTlsVerifierSource;
+extern const char* xl6StdlibTlsClientContextSource;
+extern const char* xl6StdlibTlsServerContextSource;
 extern const char* xl6StdlibX509RecordsSource;
 extern const char* xl6StdlibX509SignatureInfoSource;
 extern const char* xl6StdlibX509SignatureInfoBufferSource;

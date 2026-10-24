@@ -1,0 +1,2 @@
+XL6_NATIVE_COLLECTION_BRIDGE("xl6TlsClientContextWithProtocolsV1",T,V,2,{V,V},.parameterOwners={"xl6TlsClientContextDestroyV1"},.parameterArrayItemAbis={0,Y},.resultOwner="xl6TlsClientContextDestroyV1",.pure=1,.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE)
+XL6_NATIVE_COLLECTION_BRIDGE("xl6TlsServerContextWithProtocolsV1",T,V,3,{V,V,B},.parameterOwners={"xl6TlsServerContextDestroyV1"},.parameterArrayItemAbis={0,Y},.resultOwner="xl6TlsServerContextDestroyV1",.pure=1,.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE)
