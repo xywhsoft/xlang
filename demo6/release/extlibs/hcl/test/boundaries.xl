@@ -59,6 +59,15 @@ func main(...) as int
     assert hcl.blockLabelAt(source, "resource", 0, 1) == "web"
 
     string held = hcl.get(source, "name")
+    cstring owned = hcl.get(source, "name")
+    string retained = owned
+    owned = hcl.getRaw(source, "name")
+    assert retained == "web = primary", "string alias outlives replaced C owner"
+    assert owned == "\"web = primary\"", "raw text keeps its C owner"
+    cstring label = hcl.blockLabel(source, "resource", 0)
+    assert label == "aws_instance"
+    label = hcl.blockLabelAt(source, "resource", 0, 1)
+    assert label == "web"
     int i = 0
     while i < 12
         assert hcl.get(source, "name") == "web = primary"

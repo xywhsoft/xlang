@@ -37,6 +37,16 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "hcl XLang test failed: $source" }
     }
 
+    $generated = Join-Path $work 'owned_text.c'
+    & $xl cgen release/extlibs/hcl/test/boundaries.xl --emit $generated
+    if ($LASTEXITCODE -ne 0) { throw 'hcl owned-text cgen failed' }
+    $generatedText = [IO.File]::ReadAllText($generated)
+    $adoptions = [regex]::Matches($generatedText, '\bxl6CStringTakeV1\s*\(').Count
+    if ($adoptions -ne 4 -or $generatedText.Contains('xl6_xrt_take_cstr(')) {
+        throw "hcl text results must use four direct C-owner adoptions (got $adoptions)"
+    }
+    Write-Output 'hcl owned-text codegen: PASS'
+
     $cOutput = & $runner -Package hcl -Source release/examples/extlibs/hcl_c.c
     if ($LASTEXITCODE -ne 0) { throw 'hcl C example failed' }
     $directCOutput = & $xl run release/examples/extlibs/hcl_c.c

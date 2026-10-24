@@ -11,6 +11,7 @@ extern "xhcl_block_label_count" func __label_count(string hcl, string blockType,
 extern "xhcl_block_label_at" func __label_at(string hcl, string blockType, int index, int labelIndex) as point
 extern "xhcl_validate" func __validate(string hcl) as bool
 extern "xhcl_count_attrs" func __count_attrs(string hcl) as int
+extern "xrtFree" @no_raise func __hcl_free(point data)
 
 // 原生 HCL 接口使用 C 字符串，拒绝被 NUL 静默截断的输入。
 func __hcl_cstr(string value)
@@ -19,16 +20,16 @@ func __hcl_cstr(string value)
     end
 end
 
-export func get(string hcl, string key) as string
+export func get(string hcl, string key) as cstring
     __hcl_cstr(hcl)
     __hcl_cstr(key)
-    return __xl_runtime.takeCstr(__get(hcl, key))
+    return cstring.take(__get(hcl, key), __hcl_free)
 end
 
-export func getRaw(string hcl, string key) as string
+export func getRaw(string hcl, string key) as cstring
     __hcl_cstr(hcl)
     __hcl_cstr(key)
-    return __xl_runtime.takeCstr(__get_raw(hcl, key))
+    return cstring.take(__get_raw(hcl, key), __hcl_free)
 end
 
 export func getInt(string hcl, string key) as int
@@ -61,10 +62,10 @@ export func countBlocks(string hcl, string blockType) as int
     return __count_blocks(hcl, blockType)
 end
 
-export func blockLabel(string hcl, string blockType, int index) as string
+export func blockLabel(string hcl, string blockType, int index) as cstring
     __hcl_cstr(hcl)
     __hcl_cstr(blockType)
-    return __xl_runtime.takeCstr(__block_label(hcl, blockType, index))
+    return cstring.take(__block_label(hcl, blockType, index), __hcl_free)
 end
 
 export func blockLabelCount(string hcl, string blockType, int index) as int
@@ -73,10 +74,10 @@ export func blockLabelCount(string hcl, string blockType, int index) as int
     return __label_count(hcl, blockType, index)
 end
 
-export func blockLabelAt(string hcl, string blockType, int index, int labelIndex) as string
+export func blockLabelAt(string hcl, string blockType, int index, int labelIndex) as cstring
     __hcl_cstr(hcl)
     __hcl_cstr(blockType)
-    return __xl_runtime.takeCstr(__label_at(hcl, blockType, index, labelIndex))
+    return cstring.take(__label_at(hcl, blockType, index, labelIndex), __hcl_free)
 end
 
 export func validate(string hcl) as bool
