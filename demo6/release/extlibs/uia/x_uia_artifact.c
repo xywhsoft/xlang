@@ -17,6 +17,7 @@
 #if defined(__TINYC__)
 /* 内嵌 TCC 的 OLE 头缺少这两个公开 Win32 原型。 */
 UINT WINAPI SysStringLen(BSTR value);
+HRESULT WINAPI CoInitializeEx(LPVOID reserved, DWORD mode);
 HRESULT WINAPI CoCreateInstance(const CLSID* clsid, IUnknown* outer,
 	DWORD context, REFIID iid, void** result);
 #endif

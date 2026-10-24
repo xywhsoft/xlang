@@ -34,6 +34,8 @@ try {
         $file = "extlibs/uia/test/test_uia_$name.xl"
         [void](Invoke-Checked "XLang $name" @('run', $file))
     }
+    $implicit = Invoke-Checked 'XLang implicit handles' @('run',
+        'extlibs/uia/test/test_uia_implicit_handles.xl')
     $full = Invoke-Checked 'XLang full example' @('run', 'examples/extlibs/uia.xl')
     if ($full -ne 'uia extlib ok') { throw 'unexpected full example output' }
 
@@ -56,6 +58,13 @@ try {
     }
 
     if (-not $SkipAot) {
+        $implicitAot = Join-Path $work 'implicit_handles.exe'
+        [void](Invoke-Checked 'XLang implicit handles AOT build' @('build',
+            'extlibs/uia/test/test_uia_implicit_handles.xl', '-o', $implicitAot))
+        $implicitOutput = & $implicitAot 2>&1
+        if ($LASTEXITCODE -ne 0 -or ($implicitOutput | Out-String).Trim() -cne $implicit) {
+            throw 'XLang implicit handles AOT output differs from JIT'
+        }
         $aot = Join-Path $work 'aot_core.exe'
         [void](Invoke-Checked 'XLang core AOT build' @('build', 'extlibs/uia/test/aot_core.xl', '-o', $aot))
         & $aot

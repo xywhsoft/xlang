@@ -1,0 +1,35 @@
+import uia
+
+func probeProcess()
+    auto child = uia.launch("cmd.exe /c exit 0")
+    assert child.valid()
+end
+
+func probeElement()
+    auto window = uia.test_window()
+    assert window.valid()
+    auto root = uia.from_hwnd(window.hwnd())
+    assert root.valid()
+end
+
+func probeCondition()
+    auto condition = uia.by_name("xlang uia test")
+    assert condition.valid()
+end
+
+func probeEvents()
+    auto events = uia.events()
+    assert events.valid()
+end
+
+func main(...) as int
+    probeProcess()
+    println("uia process cleanup ok")
+    probeElement()
+    println("uia element cleanup ok")
+    probeCondition()
+    println("uia condition cleanup ok")
+    probeEvents()
+    println("uia events cleanup ok")
+    return 0
+end

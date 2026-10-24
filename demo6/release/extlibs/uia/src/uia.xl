@@ -140,7 +140,6 @@ class Process
 	destroy()
 		if self.handle != null then
 			point released = self.handle
-			self.handle = null
 			x_uia_process_release(released)
 		end
 	end
@@ -202,7 +201,6 @@ class TestWindow
 		if self.handle != null then
 			if x_uia_test_window_close(self.handle) != 0 then
 				point released = self.handle
-				self.handle = null
 				x_uia_test_window_release(released)
 			end
 		end
@@ -229,7 +227,6 @@ class Condition
 	destroy()
 		if self.handle != null then
 			point released = self.handle
-			self.handle = null
 			x_uia_condition_release(released)
 		end
 	end
@@ -259,7 +256,6 @@ class Element
 	destroy()
 		if self.handle != null then
 			point released = self.handle
-			self.handle = null
 			x_uia_element_release(released)
 		end
 	end
@@ -450,7 +446,6 @@ class Events
 	destroy()
 		if self.handle != null then
 			point released = self.handle
-			self.handle = null
 			x_uia_events_release(released)
 		end
 	end

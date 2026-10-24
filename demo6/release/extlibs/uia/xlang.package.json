@@ -27,7 +27,7 @@
     "dependencies":  [
 
                      ],
-    "coverage": { "mode": "suite", "tests": ["test/test_uia_boundaries.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/test_uia_boundaries.xl", "test/test_uia_implicit_handles.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

@@ -27,13 +27,13 @@ Windows UI Automation 扩展库。C 桥接源代码和公开头文件分别为
 powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/uia/test/check.ps1 -StrictC
 ```
 
-默认门禁同时构建并运行核心、完整公开范例和配对范例 AOT，并与 JIT/C 输出对照；当前共享主线缺符号会让默认门禁明确失败。开发时可加 `-SkipAot` 只检查 C/JIT，不能据此签收发布级。门禁把 AOT 与独立 GCC C 测试产物写入本次独占的 `demo6/build/test` 子目录，结束时仅清理该目录；不会再向 `release/build/test/uia` 写入新产物。
+默认门禁同时构建并运行隐式句柄清理、核心、完整公开范例和配对范例 AOT，并与 JIT/C 输出对照；当前 Windows 发布版 `-StrictC` 门禁已通过。开发时可加 `-SkipAot` 只检查 C/JIT，不能据此签收完整门禁。门禁把 AOT 与独立 GCC C 测试产物写入本次独占的 `demo6/build/test` 子目录，结束时仅清理该目录；不会再向 `release/build/test/uia` 写入新产物。
 
 ## 验收状态
 
 已通过完整 XLang 范例、C/XLang 同输出范例、空事件轮询、整数 ABI 边界、自动/显式析构、TCC C 冒烟和独立 GCC/XRT C 构建。另覆盖 Win64 `VARIANT` ABI、严格 UTF-8、五个文本入口的 NUL 拒绝、子条件提前释放、跨线程拒绝、活跃句柄阻止卸载、真实焦点回调及短轮次事件订阅/释放。测试只操作包自己创建的窗口。
 
-尚未发布级签收：单线程是明确的 API 限制，不支持同一 UIA 上下文的并行调用；真实桌面应用的权限隔离、DPI、远程会话和不同 Windows 版本尚未覆盖，事件长期压力也未验证。完整 XLang AOT 构建受主线 `xl6ValueDataSnapshotV1` 缺失阻断。
+尚未覆盖真实桌面应用的权限隔离、DPI、远程会话和不同 Windows 版本，以及事件长期压力；单线程是明确的 API 限制，不支持同一 UIA 上下文的并行调用。旧构建曾缺 `xl6ValueDataSnapshotV1`，当前完整 XLang AOT 门禁已通过。
 
 定位器仍使用定长字段和最多 16 层的类路径启发式；超长 `name`、`automationId`、`className`、路径段或深层树会返回 `{}` 并设置错误，不再静默丢失定位信息。调用方应检查错误；不要将定位器视为任意桌面结构下的无损表示。
 
@@ -45,6 +45,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/uia/test/check.ps1 -
 
 原生层仅使用 XRT 值容器和基础错误接口，已删除源码中的全量 XRT 宏并在包清单声明 `XRT_MODULE_VALUE_CONTAINER`。同一最小 AOT 从 3,843,584 降至 929,280 字节，构建和运行通过；`test/aot_core.xl` 已纳入包级门禁。Windows `-StrictC` 下的 C smoke、自建窗口、XLang 边界和双语范例也通过。该裁剪不解除完整范例 AOT 的共享主线阻断。
 
-`test/test_uia_boundaries.xl` 已登记为 `coverage.tests`。本包属于平台套件，通用目录门禁默认跳过，只有明确选择 Windows UIA 包时才运行自建窗口用例。
+`test/test_uia_boundaries.xl` 和 `test/test_uia_implicit_handles.xl` 已登记为 `coverage.tests`。本包属于平台套件，通用目录门禁默认跳过，只有明确选择 Windows UIA 包时才运行自建窗口用例。
 
 2026-10-24：长 BSTR 文本和动态 JSON 返回改为所有权转移，移除 `extern as string` 对整段输出的重复复制。C 侧验证 70,002 字节 JSON 指针原样转移、后续缓存复用不改写旧结果、错误路径不转移；XLang 侧验证长文本和快照跨调用仍有效。C/JIT 与核心 AOT 检查通过；完整范例 AOT 尚未签收。
+
+同日当前发布物复核：`TestWindow`、`Process`、`Element`、`Condition`、
+`Events` 五种有效句柄在自然析构时先后因写退役字段报 `RuntimeError`；
+聚焦用例逐段红绿验证，析构现只释放资源，显式 `release()` 保持原语义。
+TCC OLE 头缺少的 `CoInitializeEx` 原型仅在 `__TINYC__` 下声明，
+消除内嵌编译警告。Windows `-StrictC` 完整门禁通过，含五类对象 JIT/AOT、
+自建窗口、公开范例与 C/XLang 对照；旧完整 AOT 缺符号结论不再适用。
