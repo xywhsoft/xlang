@@ -1,5 +1,14 @@
 # SQLite
 
+2026-10-25 当前 Windows 发布版专项门禁通过 37 项：严格 C、
+SQLite/XRT 分配故障、线程、XLang JIT 与独立 EXE AOT、生成原型
+及 45 个常量、C/XLang 成对范例。Linux 独立 C 门禁的 ASan/UBSan、
+149 个 SQLite 分配故障点、XRT Buffer/临时文本分配及线程测试通过。
+两个门禁现使用每次独占的构建目录；Windows 留存独立 JSON 结果报告，
+测试结束仅清理本次构建产物，不覆盖旧的 `build/test/sqlite_guard` 文件。
+本次未使用新 Linux 发布版验证 XLang JIT/AOT，也未覆盖断电恢复、
+网络文件系统或所有并发故障。
+
 内置 SQLite 源码的本地数据库包，无需另外安装数据库 DLL。推荐使用 `Database`
 和 `Statement`；需要精确状态码或 C 互操作时使用 `sqlite3_*` 薄接口。
 

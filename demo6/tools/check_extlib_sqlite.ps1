@@ -5,7 +5,10 @@ $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
 $xl = Join-Path $Root 'release/xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
-$work = Join-Path $Root 'build/test/sqlite_guard'
+$workParent = Join-Path $Root 'build/test/sqlite_guard'
+$runId = [guid]::NewGuid().ToString('N')
+$work = Join-Path $workParent ("run_$runId")
+$reportPath = Join-Path $workParent ("results_$runId.json")
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $utf8 = [Text.UTF8Encoding]::new($false)
 $checks = [Collections.Generic.List[object]]::new()
@@ -105,5 +108,13 @@ try {
     $outcome = 'passed'
 } finally {
     $report = [ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;scope='SQLite wrapper ABI/constants, C/state/allocator/thread tests, xlang JIT/AOT/file locks and paired examples';generatedPrototypes=$decls.Count;constants=$constants.Count;inputs=$hashes;checks=@($checks.ToArray())}
-    [IO.File]::WriteAllText((Join-Path $work 'results.json'),($report | ConvertTo-Json -Depth 8),$utf8)
+    [IO.File]::WriteAllText($reportPath,($report | ConvertTo-Json -Depth 8),$utf8)
+    $parentPath = [IO.Path]::GetFullPath($workParent).TrimEnd('\', '/') + '\'
+    $workPath = [IO.Path]::GetFullPath($work)
+    if (-not $workPath.StartsWith($parentPath,
+        [StringComparison]::OrdinalIgnoreCase)) {
+        throw "SQLite temporary work path escaped build/test: $workPath"
+    }
+    Remove-Item -LiteralPath $workPath -Recurse -Force
+    Write-Host "[sqlite] report: $reportPath"
 }
