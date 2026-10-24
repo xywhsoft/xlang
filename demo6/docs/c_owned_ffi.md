@@ -114,6 +114,45 @@ retain, modify or free it. `byval`, `byref` and `out` modes are rejected.
 C result markers are not raw extern return ABIs: use a synchronous language
 `take` adapter as above to state the releaser explicitly.
 
+## Public functions and C exports
+
+Source packages may publish synchronous `export func` results as `cstring` or
+`cbytes`, including nullable and multi-result signatures. Imported direct calls
+and exactly typed function values keep the private C owner result. Locals and
+readonly calls share that owner without copying its payload.
+
+```xlang
+extern "library_text" @no_raise func libraryText() as point
+extern "library_free" @no_raise func libraryFree(point data)
+
+export func readText() as cstring
+    return cstring.take(libraryText(), libraryFree)
+end
+```
+
+The generated C export is a separate adapter with ordinary public carriers:
+`string` is a pointer/length pair released with `xrtFree`, and `bytes` is an
+owned `xvalue*` released with `xrtValueRelease`. Only calling that foreign entry
+copies a C-backed result. It releases the private owner before returning; a
+custom releaser and its code address never escape into the public C header.
+Null and present-empty results stay distinct. Product materialization rolls
+back both the public prefix and the private suffix on allocation failure, and
+body failures keep the shared foreign error transaction. Raw extern and async
+result markers remain rejected. Source parameters still use `string`/`bytes`;
+the compiler supplies C owner input specializations.
+
+`__xl_runtime.takeCstr(pointer)` remains useful for independent XRT-allocated,
+NUL-terminated UTF-8 text: it transfers directly to an ordinary string without
+a payload copy at the return boundary. It assumes `xrtFree` and does not retain
+the marker's shared-owner semantics on later ordinary assignments. Arbitrary
+bytes and custom releasers must use their explicit `take` adapters.
+
+`tools/check_xlir_c_owned_exports.ps1 -PublicDirectory <source-build>
+-Directory <fresh-directory>` checks public header isolation, rejected IR
+bridge mutations, static pointer identity, source-package imports, generated
+C host calls, null/empty results, binary NUL, exception cleanup and a 32-step
+allocation-failure sweep at O0/O2, plus source JIT and standalone EXE execution.
+
 Existing native declarations keep their ABI: legacy `string` parameters use
 C string pointers where applicable; legacy `bytes` parameters expect managed
 `xvalue*`. A raw C bytes allocation must materialize when passed to the latter.
@@ -175,7 +214,19 @@ allocation-counter checks use the separate debug runtime lane. Acceptance
 records belong under `build/c-owned/`; this targeted check is not a claim that
 all repository-wide inventories and unrelated release gates are green.
 
-Current acceptance (`build/c-owned/audit-fixes-acceptance-2/acceptance.json`)
+Export-result acceptance (`build/c-owned/export-results-acceptance4/results.json`)
+passes 13 checks against a 1,144-unit source build. Eight export recipes reject
+16 incorrect bridge/carrier mutations. Both O0/O2 C hosts sweep 32 allocation
+thresholds (11 failures and 21 completions each), checking foreign allocation
+balance and XRT live counts. Source JIT/EXE also cover imported nullable/default
+results, aliases, function values, class methods, replacement and ordinary
+dynamic/container escapes. The companion `export-results-regression1.log`
+records 22 generated-C programs, 23 C interoperability JIT/EXE pairs, 14 ordinary
+JIT/EXE pairs without C owner headers, 13 negative declarations and the existing
+32-step global initialization fault sweep. These receipts are scoped tests,
+not a repository-wide release claim.
+
+Earlier acceptance (`build/c-owned/audit-fixes-acceptance-2/acceptance.json`)
 built 1,097 source translation units and verified 2,192 unchanged build inputs.
 Two runtime units (the owner unit at both O0 and O2), 21 generated-C programs
 and 12 negative declarations passed. O0/O2 contract harnesses each checked 495

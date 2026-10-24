@@ -15,6 +15,8 @@
 
 `cstring/cbytes` 的特化现覆盖 `export func`。生成的特化函数为私有函数，公开导出仍使用原来的普通值 ABI。SipHasher 的二进制更新直接绑定带错误通道的原生 span 方法，避免先物化普通 bytes。
 
+公开返回值现也可声明为 `export func ... as cstring/cbytes`，包括 nullable 和多返回值。源码包导入及静态调用保留 owner；只有真正调用生成的 C 导出入口时，才物化普通 string/bytes 并释放私有 owner。公共 C 头不暴露 owner 结构。原先 `takeCstr` 的 XRT 文本接管路径仍可使用，返回边界本身不复制正文；其后续赋值遵循普通 string 的复制语义。具体合同和专项门禁见 `docs/c_owned_ffi.md`。
+
 Redis 编码入口继续直接接受原生 XVALUE_ARRAY；当前语言的 array、array<string>、array<bytes>、array<var> 句柄在该边界转换为编码器使用的普通动态数组，元素按 xvalue 引用保留。不会直接解释不透明语言句柄的内部布局。当前 TCP 环回验证包含分段/NUL 回复、逻辑错误回复后的连接复用及总超时；原生 TimeoutError 在命令层保持原来的 ValueError 超时契约。
 
 验证：`test/cases/xlir_extlib_c_owned_inputs.xl` 通过当前源码编译器的 JIT 和独立 EXE；EXE 保留的 `module.c` 中没有 `xl6CBytesCopyV1`、`xl6CStringCopyV1` 或 `xl6CStringBoxV1` 的隐式调用。测试覆盖 C 分配器生命周期、UTF-8、二进制 NUL、动态兼容入口、一次性与增量结果一致性。`xlir_c_owned_calls.xl` 的导出函数重载、默认参数和结果转发通过生成 C 的独立程序验证。

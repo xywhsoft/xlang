@@ -1,0 +1,31 @@
+import c_owned_exports
+from c_owned_exports import binary as makeBytes, text as makeText
+
+func exercise()
+    string text = makeText() ?? "fallback"
+    string alias = c_owned_exports.forward(text)
+    bytes data = makeBytes()
+    bytes binaryAlias = data
+    auto factory = makeBytes
+    assert c_owned_exports.originalText(text) and c_owned_exports.originalText(alias)
+    assert c_owned_exports.originalData(data) and c_owned_exports.originalData(binaryAlias)
+    assert makeText(false) == null
+    assert c_owned_exports.released() == 0
+    var dynamicText = text
+    var dynamicData = data
+    assert dynamicText == "package" and dynamicData == b"\0\xff\x11*"
+    array<string> texts = [text]
+    array<bytes> binaries = [data]
+    assert texts[0] == "package" and binaries[0] == b"\0\xff\x11*"
+    assert c_owned_exports.originalData(factory())
+    assert c_owned_exports.released() == 1
+    text = "replacement"
+    assert c_owned_exports.originalText(alias)
+    string methodText = c_owned_exports.Factory.makeText()
+    auto producer = c_owned_exports.Factory()
+    bytes methodBytes = producer.makeBytes()
+    assert c_owned_exports.originalText(methodText) and c_owned_exports.originalData(methodBytes)
+end
+exercise()
+assert c_owned_exports.released() == 5
+println("imported C owner results ok")

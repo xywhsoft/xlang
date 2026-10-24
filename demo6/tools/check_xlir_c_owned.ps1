@@ -66,7 +66,7 @@ $generatedSources=@(
     'test/cases/xlir_c_owned_basic.xl','test/cases/xlir_c_owned_lifetime.xl',
     'test/cases/xlir_c_owned_reads.xl','test/cases/xlir_c_owned_capture.xl',
     'test/cases/xlir_c_owned_views.xl','test/cases/xlir_c_owned_flow.xl',
-    'test/cases/xlir_c_owned_calls.xl','test/cases/xlir_c_owned_frames.xl',
+    'test/cases/xlir_c_owned_calls.xl','test/cases/xlir_c_owned_exports.xl','test/cases/xlir_c_owned_frames.xl',
     'test/cases/xlir_c_owned_stdlib.xl',
     'test/cases/xlir_c_owned_sizes.xl',
     'test/cases/xlir_c_owned_defaults.xl',
@@ -114,6 +114,7 @@ foreach ($optimization in @('O0','O2')) {
 $prefix = "extern `"c_owned_text`" @no_raise func make() as point`nextern `"c_owned_release`" @no_raise func drop(point p)`n"
 $negative = @(
     @{Name='parameter';Body="func probe(cstring a)`nend";Message='C markers are limited'},
+    @{Name='export-parameter';Body="export func probe(cstring a)`nend";Message='C markers are limited'},
     @{Name='span-return';Body="extern `"wrong`" @no_raise func wrong() as cbytes";Message='C result markers require'},
     @{Name='optional-span-return';Body="extern `"wrong`" @no_raise func wrong() as cbytes?";Message='C result markers require'},
     @{Name='optional-async-return';Body="async func wrong() as cstring?`n return null`nend";Message='C result markers require'},
@@ -175,5 +176,6 @@ if ($PublicDriver) {
         }
     }
     Write-Output "Ordinary source acceptance: $($ordinarySources.Count) JIT and standalone EXE programs; no C owner headers"
-
+    & "$PSScriptRoot/check_xlir_c_owned_exports.ps1" -PublicDirectory (Split-Path $sourceDriver) -Directory "$outputPath/exports-boundary"
+    if (!$?) { throw 'C owner public export boundary validation failed' }
 }

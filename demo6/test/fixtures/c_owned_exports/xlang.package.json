@@ -1,0 +1,12 @@
+{
+  "format": "xlang-package-1",
+  "name": "c_owned_exports",
+  "version": "1.0.0",
+  "abiVersion": "1",
+  "kind": "source",
+  "artifact": {
+    "kind": "source",
+    "xlSources": ["src/exports.xl"],
+    "cSources": ["src/exports.c"]
+  }
+}
