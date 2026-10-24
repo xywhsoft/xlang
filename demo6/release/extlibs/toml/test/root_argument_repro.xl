@@ -1,0 +1,11 @@
+import toml
+
+func main(...) as int
+    var parsed = toml.parse("title = \"demo\"\n")
+    assert toml.stringify(parsed) != ""
+
+    var literal = {"title": "demo"}
+    // 当前运行时在此报告 "TOML document root must be a dict"。
+    assert toml.stringify(literal) != ""
+    return 0
+end
