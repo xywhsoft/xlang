@@ -1,0 +1,6 @@
+func main(...) as int
+    array<array<string>> rows = array[]
+    rows.append(array["name", "value"])
+    println(rows.length)
+    return 0
+end

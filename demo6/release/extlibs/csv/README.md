@@ -5,6 +5,14 @@
 
 ## 当前验证范围
 
+2026-10-24 当前 Windows 发布版复验：七组独立 GCC C 测试及 454 项
+Python CSV 互通通过；默认综合门禁随后在中央 XLang 用例的
+`array<array<string>>.append(array[...])` 处报运行时 `TypeError`。
+不导入 CSV 的最小文件在 `check` 通过后于 JIT/EXE 同样失败，见
+`../../../dev/extlib_blockers/nested_array_append_runtime.md`。这次
+完整语言门禁未通过，也未走到 CSV AOT 验收；下列较早的通过记录
+均指当时的发布物，不代表当前构建已发布签收。
+
 2026-10-16：当前 Windows 包级严格 GCC、C/XL JIT、17 个生成原型、双语范例
 与文档代码块通过；Linux C ASan/UBSan、454 项 Python 独立互操作，以及
 Linux XLang 中央、包内边界、文件和范例 JIT 通过。默认 Linux XLang 门禁的
