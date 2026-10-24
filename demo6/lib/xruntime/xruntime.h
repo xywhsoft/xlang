@@ -28058,6 +28058,21 @@ typedef struct xtlsstreamownershipv1 {
 	const xrtownershipops* Ops;
 } xtlsstreamownershipv1;
 
+#if defined(XRT_FEATURE_TLS_STREAM_DIAL)
+/* One aggregate owner for Done, final Stream events and every borrowed TLS
+ * configuration context. Success takes one Data reference, failure takes none.
+ * Stream events are permanent; the delivered Stream retains this owner until
+ * its Session is destroyed. Callback Data is the original Data; StreamData is
+ * a private aggregate context and must not be cast by applications. */
+typedef struct xtlsdialownershipv1 {
+	size_t size;
+	xtlsstreamevents StreamEvents;
+	xtlsdialproc Done;
+	void (*Drop)(const void* pData);
+	const xrtownershipops* Ops;
+} xtlsdialownershipv1;
+#endif
+
 
 
 #if defined(XRT_FEATURE_TLS_STREAM_LISTENER)
@@ -28255,6 +28270,23 @@ XRT_API xtlsstream* xrtTlsListenerAcceptWait(
 #if defined(XRT_FEATURE_TLS_STREAM_DIAL)
 /* 初始化 TCP 拨号、TLS Stream 和总超时策略。 */
 XRT_API void xrtTlsDialConfigInit(xtlsdialconfig* pConfig);
+
+/* Uses owned TCP Dial with no borrowed Stream events, then installs the
+ * permanent TLS event context on its actual Worker. No event-table swap. */
+XRT_API xtlsdial* xrtTlsDialOwnedV1(xnetengine* pEngine,
+	xnetresolver* pResolver, cstr sHost, uint16 iPort,
+	const xtlsclientconfig* pTls, const xtlsdialconfig* pConfig,
+	ptr pData, const xtlsdialownershipv1* pPolicy);
+XRT_API xrtownershipref xrtTlsDialOwnership(const xtlsdial* pDial);
+XRT_API const xnetruntimeownershipv1* xrtTlsDialRuntimeOwnershipV1Get(void);
+XRT_API const xnettimerownershipv1* xrtTlsDialTimerOwnershipV1Get(void);
+XRT_API const xnetdialownershipv1* xrtTlsDialTransportOwnershipV1Get(void);
+XRT_API const xtlsstreamownershipv1* xrtTlsDialStreamOwnershipV1Get(void);
+XRT_API const xtlsstreamownershipv1* xrtTlsDialStreamPushOwnershipV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtTlsDialOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtTlsDialOwnershipAdapterV1(
+	xrtownershipref Reference, const xtlsdialownershipv1* const* pPolicies,
+	size_t iPolicyCount, const xrtownershippreparationv1** ppPreparation);
 
 
 
@@ -175146,6 +175178,8 @@ XRT_API const xrtownershipadapterv1* xrtTlsStreamOwnershipAdapterV1(xrtownership
 #define XRT_TLS_DIAL_GATE_TIMEOUT 2u
 #define XRT_TLS_DIAL_GATE_WINNER 3u
 #define XRT_TLS_DIAL_GATE_TERMINAL 4u
+#define XRT_TLS_DIAL_OWN_READY 1u
+#define XRT_TLS_DIAL_OWN_CLEARED 2u
 
 
 
@@ -175169,7 +175203,29 @@ struct xtlsdial {
 	xerror* Error;
 	uint64 Affinity;
 	bool RuntimeHeld;
+	/* Owned mode has a Worker-confined stage slot, not an atomically borrowed
+	 * Stream pointer. Public cancellation only posts to that Worker. */
+	const xtlsdialownershipv1* OwnershipPolicy;
+	xatomic32 OwnershipActive, OwnershipState, OwnershipStop;
+	xatomicptr OwnershipClaim;
+	xrt_spinlock OwnershipLock;
+	__xrt_net_engine_runtime RuntimeOwner;
+	__xrt_net_engine_internal OwnershipStopCommand;
+	xnetworker* Worker;
+	xtlssession* OwnedSession;
+	xtlsstream* OwnedStream;
+	xtlsstreamconfig OwnedConfig;
+	xerror* OwnershipFinishError;
+	bool OwnershipDataHeld, OwnershipEngineHeld, OwnershipStorageHeld;
+	bool OwnershipPublished, OwnershipAbandoned, OwnershipTransportDone;
+	bool OwnershipOpened, OwnershipFinishing, OwnershipFinished;
 };
+
+static const xrtownershipops __xrtTlsDialOwnershipOps;
+static void __xrtTlsDialOwnedTryRelease(xtlsdial*);
+static void __xrtTlsDialOwnedTransportDone(xtlsdial*, xnetresult, xnetstream*, const xerror*);
+static bool __xrtTlsDialOwnedCancel(xtlsdial*);
+static void __xrtTlsDialOwnedResources(xtlsdial*);
 
 
 
@@ -175214,8 +175270,14 @@ static xerror* __xrtTlsDialErrorCreate(
 /* 增加 TLS Dial 引用。 */
 XRT_API xtlsdial* xrtTlsDialRef(xtlsdial* pDial)
 {
-	if ( (pDial == NULL) ||
-		(xrtRefRetain(&pDial->References) < 0) ) {
+	xrtownershipscope m = {0};
+	if (!pDial) { __xrtErrorSetInvalidArgument(); return NULL; }
+	if (!xrtOwnershipMutationBegin(&m)) return NULL;
+	bool held = (!pDial->OwnershipPolicy ||
+		!(xrtAtomic32Load(&pDial->OwnershipState, XMEMORY_ACQUIRE) & XRT_TLS_DIAL_OWN_CLEARED)) &&
+		xrtRefRetain(&pDial->References) >= 0;
+	if (!xrtOwnershipScopeEnd(&m)) abort();
+	if (!held) {
 		__xrtTlsDialSetError(
 			XERR_ARGUMENT,
 			XTLS_ERROR_ARGUMENT,
@@ -175239,9 +175301,18 @@ XRT_API void xrtTlsDialDestroy(xtlsdial* pDial)
 #endif
 	xtlsstream* pStream;
 
-	if ( (pDial == NULL) ||
-		(xrtRefRelease(&pDial->References) != 0) ) {
-		return;
+	if (!pDial) return;
+	xrtownershipscope m = {0}; if (!xrtOwnershipMutationBegin(&m)) abort();
+	int32 left = xrtRefRelease(&pDial->References);
+	if (left < 0 || (!left && pDial->OwnershipPolicy && (pDial->RuntimeHeld ||
+		pDial->RuntimeOwner.Data || pDial->RuntimeOwner.Previous ||
+		xrtAtomic32Load(&pDial->OwnershipActive, XMEMORY_ACQUIRE) ||
+		xrtAtomic32Load(&pDial->OwnershipStop, XMEMORY_ACQUIRE)))) abort();
+	if (!xrtOwnershipScopeEnd(&m)) abort();
+	if (left) return;
+	if (pDial->OwnershipPolicy) {
+		__xrtTlsDialOwnedResources(pDial); xrtErrorFree(pDial->OwnershipFinishError);
+		xrtFree(pDial); return;
 	}
 	pTransportDial = (xnetdial*)xrtAtomicPtrLoad(
 		&pDial->TransportDial,
@@ -175330,11 +175401,13 @@ static void __xrtTlsDialFinish(
 		Result = XNET_RESULT_TIMEOUT;
 	}
 	__xrtTlsDialCancelTimer(pDial);
-	pStream = (xtlsstream*)xrtAtomicPtrExchange(
-		&pDial->Stream,
-		NULL,
-		XMEMORY_ACQ_REL
-	);
+	if (pDial->OwnershipPolicy) {
+		pStream = pDial->OwnedStream; pDial->OwnedStream = NULL;
+		xtlssession* session = pDial->OwnedSession; pDial->OwnedSession = NULL;
+		xrtTlsSessionDestroy(session);
+	} else {
+		pStream = (xtlsstream*)xrtAtomicPtrExchange(&pDial->Stream, NULL, XMEMORY_ACQ_REL);
+	}
 	if ( Result == XNET_RESULT_OK ) {
 		xrtAtomic32Store(
 			&pDial->State,
@@ -175390,7 +175463,9 @@ static void __xrtTlsDialFinish(
 			pDial->DoneData
 		);
 	}
-	if ( pDial->RuntimeHeld ) {
+	if (pDial->OwnershipPolicy) {
+		__xrtTlsDialOwnedTryRelease(pDial);
+	} else if ( pDial->RuntimeHeld ) {
 		pDial->RuntimeHeld = false;
 		xrtTlsDialDestroy(pDial);
 	}
@@ -175411,10 +175486,10 @@ static void __xrtTlsDialStreamOpen(xtlsstream* pStream, ptr pData)
 		XMEMORY_ACQ_REL,
 		XMEMORY_ACQUIRE
 	) ) {
-		(void)xrtTlsStreamAbort(pStream);
+		(void)__xrtTlsStreamAbortAccepted(pStream);
 		return;
 	}
-	if ( !xrtTlsStreamSetEvents(
+	if ( !pDial->OwnershipPolicy && !xrtTlsStreamSetEvents(
 		pStream,
 		&pDial->StreamEvents,
 		pDial->StreamData
@@ -175422,6 +175497,7 @@ static void __xrtTlsDialStreamOpen(xtlsstream* pStream, ptr pData)
 		(void)xrtTlsStreamAbort(pStream);
 		return;
 	}
+	if (pDial->OwnershipPolicy) pDial->OwnershipOpened = true;
 	xrtAtomic32Store(
 		&pDial->State,
 		XTLS_DIAL_CONNECTED,
@@ -175963,6 +176039,7 @@ XRT_API xtlsdial* xrtTlsDialProxy(
 XRT_API bool xrtTlsDialCancel(xtlsdial* pDial)
 {
 	uint32 iExpected = XRT_TLS_DIAL_GATE_OPEN;
+	if (pDial && pDial->OwnershipPolicy) return __xrtTlsDialOwnedCancel(pDial);
 
 	if ( pDial == NULL ) {
 		__xrtTlsDialSetError(
@@ -176127,6 +176204,423 @@ XRT_API bool xrtTlsDialTransportStats(
 		return false;
 	}
 	return xrtNetDialStats(pTransportDial, pStats);
+}
+
+/* Owned mode uses the same terminal gate and error vocabulary as the legacy
+ * entry, but never installs borrowed TCP events or swaps TLS event tables. */
+static bool __xrtTlsDialOwnedEnter(xtlsdial* d, bool submit)
+{
+	xrtownershipscope m = {0};
+	if (!d || !xrtOwnershipMutationBegin(&m)) return false;
+	bool entered = false;
+	uint32 active = xrtAtomic32Load(&d->OwnershipActive, XMEMORY_ACQUIRE);
+	if (!(xrtAtomic32Load(&d->OwnershipState, XMEMORY_ACQUIRE) & XRT_TLS_DIAL_OWN_CLEARED) &&
+		(!submit || !xrtAtomicPtrLoad(&d->OwnershipClaim, XMEMORY_ACQUIRE))) {
+		while (active < UINT32_MAX) {
+			uint32 expected = active;
+			if (xrtAtomic32CompareExchange(&d->OwnershipActive, &expected, active + 1,
+				XMEMORY_ACQ_REL, XMEMORY_ACQUIRE)) { entered = true; break; }
+			active = expected;
+		}
+	}
+	if (!xrtOwnershipScopeEnd(&m)) abort();
+	if (!entered) __xrtErrorSetInvalidState();
+	return entered;
+}
+static void __xrtTlsDialOwnedLeave(xtlsdial* d)
+{
+	xrtownershipscope m = {0}; if (!xrtOwnershipMutationBegin(&m)) abort();
+	if (!xrtAtomic32FetchSub(&d->OwnershipActive, 1, XMEMORY_ACQ_REL)) abort();
+	if (!xrtOwnershipScopeEnd(&m)) abort();
+}
+static xtlsdial* __xrtTlsDialOwnedFrame(ptr data)
+{
+	xtlsdial* d = xrtTlsDialRef(data);
+	if (!d || !__xrtTlsDialOwnedEnter(d, false)) abort();
+	return d;
+}
+static void __xrtTlsDialOwnedFrameEnd(xtlsdial* d)
+{ __xrtTlsDialOwnedLeave(d); xrtTlsDialDestroy(d); }
+static bool __xrtTlsDialOwnedBusy(const void* data)
+{
+	const xtlsdial* d = data;
+	return d && (xrtAtomic32Load(&d->OwnershipActive, XMEMORY_ACQUIRE) ||
+		(d->OwnershipStorageHeld && xrtNetEngineOwnershipQuiescenceV1Get()->Busy(d->Engine)));
+}
+static void __xrtTlsDialOwnedTryRelease(xtlsdial* d)
+{
+	xrtownershipscope m = {0}; if (!xrtOwnershipMutationBegin(&m)) abort();
+	__xrtSpinLock(&d->OwnershipLock);
+	bool release = d->RuntimeHeld && (d->OwnershipPublished || d->OwnershipAbandoned) &&
+		d->OwnershipTransportDone && xrtAtomic32Load(&d->TimerDone, XMEMORY_ACQUIRE) &&
+		!xrtAtomic32Load(&d->OwnershipStop, XMEMORY_ACQUIRE) &&
+		xrtAtomic32Load(&d->TerminalGate, XMEMORY_ACQUIRE) == XRT_TLS_DIAL_GATE_TERMINAL;
+	if (release) {
+		const xnetruntimeownershipv1* policy = NULL;
+		if (__xrtNetEngineRuntimeTake(d->Engine, &d->RuntimeOwner, &policy) != d ||
+			policy != xrtTlsDialRuntimeOwnershipV1Get() || !d->OwnershipEngineHeld) abort();
+		d->RuntimeHeld = false; d->OwnershipEngineHeld = false;
+		xrtAtomic32Store(&d->OwnershipState, XRT_TLS_DIAL_OWN_READY, XMEMORY_RELEASE);
+	}
+	__xrtSpinUnlock(&d->OwnershipLock);
+	if (!xrtOwnershipScopeEnd(&m)) abort();
+	if (release) { __xrtNetEngineObjectRelease(d->Engine); xrtTlsDialDestroy(d); }
+}
+/* The stage slots below are Worker-confined. A cancellation thread cannot
+ * race a raw pointer load against handoff/destruction of the creator credit. */
+static void __xrtTlsDialOwnedCancelStage(xtlsdial* d)
+{
+	if (!xrtNetWorkerIsCurrent(d->Worker)) abort();
+	xnetdial* tcp = xrtAtomicPtrLoad(&d->TransportDial, XMEMORY_ACQUIRE);
+	if (tcp && xrtNetDialCancel(tcp)) return;
+	if (d->OwnedStream) (void)__xrtTlsStreamAbortAccepted(d->OwnedStream);
+}
+static void __xrtTlsDialOwnedStopTask(xnetworker* worker, ptr data)
+{
+	xtlsdial* d = __xrtTlsDialOwnedFrame(data); (void)worker;
+	__xrtTlsDialOwnedCancelStage(d);
+	xrtownershipscope m = {0}; if (!xrtOwnershipMutationBegin(&m)) abort();
+	xrtAtomic32Store(&d->OwnershipStop, 0, XMEMORY_RELEASE);
+	if (!xrtOwnershipScopeEnd(&m)) abort();
+	__xrtTlsDialOwnedTryRelease(d); __xrtTlsDialOwnedFrameEnd(d);
+}
+static bool __xrtTlsDialOwnedPostStop(xtlsdial* d)
+{
+	/* Called under Mutation/Freeze. The embedded command borrows the actual
+	 * registered runtime credit, which cannot retire while OwnershipStop is set. */
+	__xrtSpinLock(&d->OwnershipLock);
+	if (!d->RuntimeHeld || xrtAtomic32Load(&d->OwnershipStop, XMEMORY_ACQUIRE)) {
+		__xrtSpinUnlock(&d->OwnershipLock); return true;
+	}
+	xrtAtomic32Store(&d->OwnershipStop, 1, XMEMORY_RELEASE);
+	bool posted = __xrtNetEnginePostInternal(d->Worker, &d->OwnershipStopCommand, __xrtTlsDialOwnedStopTask, d);
+	if (!posted) xrtAtomic32Store(&d->OwnershipStop, 0, XMEMORY_RELEASE);
+	__xrtSpinUnlock(&d->OwnershipLock); return posted;
+}
+static bool __xrtTlsDialOwnedCancel(xtlsdial* d)
+{
+	if (!__xrtTlsDialOwnedEnter(d, true)) return false;
+	xrtownershipscope m = {0}; if (!xrtOwnershipMutationBegin(&m)) abort();
+	uint32 expected = XRT_TLS_DIAL_GATE_OPEN;
+	bool accepted = xrtAtomic32CompareExchange(&d->TerminalGate, &expected,
+		XRT_TLS_DIAL_GATE_CANCEL, XMEMORY_ACQ_REL, XMEMORY_ACQUIRE);
+	if (accepted) (void)__xrtTlsDialOwnedPostStop(d);
+	if (!xrtOwnershipScopeEnd(&m)) abort();
+	__xrtTlsDialOwnedLeave(d); return accepted;
+}
+static void __xrtTlsDialOwnedTimer(xnetworker* worker, uint64 id, xnetresult result, ptr data)
+{
+	xtlsdial* d = __xrtTlsDialOwnedFrame(data); (void)worker; (void)id;
+	xrtAtomic32Store(&d->TimerDone, 1, XMEMORY_RELEASE);
+	xrtAtomic64Store(&d->Timer, 0, XMEMORY_RELEASE);
+	uint32 expected = XRT_TLS_DIAL_GATE_OPEN;
+	if (result == XNET_RESULT_OK && xrtAtomic32CompareExchange(&d->TerminalGate, &expected,
+		XRT_TLS_DIAL_GATE_TIMEOUT, XMEMORY_ACQ_REL, XMEMORY_ACQUIRE)) __xrtTlsDialOwnedCancelStage(d);
+	__xrtTlsDialOwnedTryRelease(d); __xrtTlsDialOwnedFrameEnd(d);
+}
+static void __xrtTlsDialOwnedDrop(const void* data) { xrtTlsDialDestroy((xtlsdial*)data); }
+static void __xrtTlsDialOwnedTimerDrop(ptr data) { xrtTlsDialDestroy(data); }
+XRT_API const xnettimerownershipv1* xrtTlsDialTimerOwnershipV1Get(void)
+{
+	static const xnettimerownershipv1 p = {sizeof(p), __xrtTlsDialOwnedTimer,
+		__xrtTlsDialOwnedTimerDrop, &__xrtTlsDialOwnershipOps}; return &p;
+}
+static void __xrtTlsDialOwnedOpen(xtlsstream* stream, ptr data)
+{
+	xtlsdial* d = __xrtTlsDialOwnedFrame(data);
+	__xrtTlsDialStreamOpen(stream, d); __xrtTlsDialOwnedFrameEnd(d);
+}
+static void __xrtTlsDialOwnedClose(xtlsstream* stream, xnetresult result, const xerror* error, ptr data)
+{
+	xtlsdial* d = __xrtTlsDialOwnedFrame(data);
+	if (d->OwnershipOpened && d->StreamEvents.Close) d->StreamEvents.Close(stream, result, error, d->StreamData);
+	if (result == XNET_RESULT_OK && !d->OwnershipOpened) {
+		__xrtTlsDialSetError(XERR_CLOSED, XTLS_ERROR_CLOSED, "dial-tls-stream", "TLS stream closed before opening", error);
+		__xrtTlsDialFinish(d, XNET_RESULT_ERROR, xrtGetError());
+	} else __xrtTlsDialFinish(d, result, error);
+	__xrtTlsDialOwnedFrameEnd(d);
+}
+static void __xrtTlsDialOwnedRead(xtlsstream* stream, const xnetbuf* buffer, ptr data)
+{
+	xtlsdial* d = __xrtTlsDialOwnedFrame(data);
+	if (d->OwnershipOpened && d->StreamEvents.Read) d->StreamEvents.Read(stream, buffer, d->StreamData);
+	__xrtTlsDialOwnedFrameEnd(d);
+}
+#define XRT_TLS_DIAL_FORWARD_EVENT(Name) \
+static void __xrtTlsDialOwned##Name(xtlsstream* stream, ptr data) \
+{ xtlsdial* d = __xrtTlsDialOwnedFrame(data); \
+  if (d->OwnershipOpened && d->StreamEvents.Name) d->StreamEvents.Name(stream, d->StreamData); \
+  __xrtTlsDialOwnedFrameEnd(d); }
+XRT_TLS_DIAL_FORWARD_EVENT(End)
+XRT_TLS_DIAL_FORWARD_EVENT(Writable)
+XRT_TLS_DIAL_FORWARD_EVENT(Drain)
+XRT_TLS_DIAL_FORWARD_EVENT(Ticket)
+#undef XRT_TLS_DIAL_FORWARD_EVENT
+XRT_API const xtlsstreamownershipv1* xrtTlsDialStreamOwnershipV1Get(void)
+{
+	static const xtlsstreamownershipv1 p = {sizeof(p), {__xrtTlsDialOwnedOpen, NULL,
+		__xrtTlsDialOwnedEnd, __xrtTlsDialOwnedWritable, __xrtTlsDialOwnedDrain,
+		__xrtTlsDialOwnedClose, __xrtTlsDialOwnedTicket}, __xrtTlsDialOwnedDrop, &__xrtTlsDialOwnershipOps}; return &p;
+}
+XRT_API const xtlsstreamownershipv1* xrtTlsDialStreamPushOwnershipV1Get(void)
+{
+	static const xtlsstreamownershipv1 p = {sizeof(p), {__xrtTlsDialOwnedOpen, __xrtTlsDialOwnedRead,
+		__xrtTlsDialOwnedEnd, __xrtTlsDialOwnedWritable, __xrtTlsDialOwnedDrain,
+		__xrtTlsDialOwnedClose, __xrtTlsDialOwnedTicket}, __xrtTlsDialOwnedDrop, &__xrtTlsDialOwnershipOps}; return &p;
+}
+static void __xrtTlsDialOwnedTransportDone(xtlsdial* d, xnetresult result, xnetstream* tcp, const xerror* error)
+{
+	if (result != XNET_RESULT_OK || __xrtTlsDialStopping(d)) {
+		if (tcp) { (void)xrtNetStreamAbort(tcp); xrtNetStreamDestroy(tcp); }
+		__xrtTlsDialFinish(d, result == XNET_RESULT_OK ? XNET_RESULT_CANCELLED : result, error);
+	} else {
+		xrtAtomic32Store(&d->State, XTLS_DIAL_HANDSHAKE, XMEMORY_RELEASE);
+		xtlssession* session = d->OwnedSession; d->OwnedSession = NULL;
+		const xtlsstreamownershipv1* policy = d->StreamEvents.Read ?
+			xrtTlsDialStreamPushOwnershipV1Get() : xrtTlsDialStreamOwnershipV1Get();
+		bool held = xrtTlsDialRef(d) != NULL;
+		/* A genuine, correctly typed owned slot is published by Attach before
+		 * it may invoke callbacks. Completion can synchronously clear the slot. */
+		if (!held || !xrtTlsStreamAttachOwnedV1(tcp, session, &d->OwnedConfig, d, policy, &d->OwnedStream)) {
+			xerror* failure = xrtTakeError();
+			if (held) xrtTlsDialDestroy(d);
+			xrtTlsSessionDestroy(session); (void)xrtNetStreamAbort(tcp); xrtNetStreamDestroy(tcp);
+			__xrtTlsDialFinish(d, XNET_RESULT_ERROR, failure); xrtErrorFree(failure);
+		} else if (__xrtTlsDialStopping(d) && d->OwnedStream) (void)__xrtTlsStreamAbortAccepted(d->OwnedStream);
+	}
+	xrtownershipscope m = {0}; if (!xrtOwnershipMutationBegin(&m)) abort();
+	__xrtSpinLock(&d->OwnershipLock);
+	d->OwnershipTransportDone = true;
+	__xrtSpinUnlock(&d->OwnershipLock);
+	if (!xrtOwnershipScopeEnd(&m)) abort();
+	__xrtTlsDialOwnedTryRelease(d);
+}
+static void __xrtTlsDialOwnedTcpDone(xnetdial* tcp, xnetresult result, xnetstream* stream, const xerror* error, ptr data)
+{
+	xtlsdial* d = __xrtTlsDialOwnedFrame(data); (void)tcp;
+	__xrtTlsDialOwnedTransportDone(d, result, stream, error); __xrtTlsDialOwnedFrameEnd(d);
+}
+XRT_API const xnetdialownershipv1* xrtTlsDialTransportOwnershipV1Get(void)
+{
+	static const xnetdialownershipv1 p = {sizeof(p), __xrtTlsDialOwnedTcpDone,
+		__xrtTlsDialOwnedDrop, &__xrtTlsDialOwnershipOps}; return &p;
+}
+static void __xrtTlsDialOwnedRuntimeDrop(ptr data) { xrtTlsDialDestroy(data); }
+XRT_API const xnetruntimeownershipv1* xrtTlsDialRuntimeOwnershipV1Get(void)
+{
+	static const xnetruntimeownershipv1 p = {sizeof(p), &__xrtTlsDialOwnershipOps,
+		__xrtTlsDialOwnedRuntimeDrop, NULL, 0}; return &p;
+}
+/* Detach under Mutation; destructors, configuration Drop and Engine release
+ * run outside the global domain. Session always dies before its context. */
+static void __xrtTlsDialOwnedResources(xtlsdial* d)
+{
+	xrtownershipscope m = {0}; if (!xrtOwnershipMutationBegin(&m)) abort();
+	xnetdial* tcp = xrtAtomicPtrExchange(&d->TransportDial, NULL, XMEMORY_ACQ_REL);
+	xtlssession* session = d->OwnedSession; d->OwnedSession = NULL;
+	xtlsstream* stream = d->OwnedStream; d->OwnedStream = NULL;
+	xerror* error = d->Error; d->Error = NULL;
+	ptr data = d->OwnershipDataHeld ? d->DoneData : NULL;
+	d->OwnershipDataHeld = false; d->DoneData = NULL; d->StreamData = NULL;
+	xnetengine* engine = d->Engine; bool operational = d->OwnershipEngineHeld, storage = d->OwnershipStorageHeld;
+	d->Engine = NULL; d->OwnershipEngineHeld = false; d->OwnershipStorageHeld = false;
+	if (!xrtOwnershipScopeEnd(&m)) abort();
+	xrtTlsSessionDestroy(session); xrtTlsStreamDestroy(stream); xrtNetDialDestroy(tcp); xrtErrorFree(error);
+	if (data) d->OwnershipPolicy->Drop(data);
+	if (operational) __xrtNetEngineObjectRelease(engine);
+	if (storage) __xrtNetEngineStorageRelease(engine);
+}
+XRT_API xtlsdial* xrtTlsDialOwnedV1(xnetengine* engine, xnetresolver* resolver, cstr host, uint16 port,
+	const xtlsclientconfig* tls, const xtlsdialconfig* config, ptr data, const xtlsdialownershipv1* policy)
+{
+	if (!engine || !resolver || !host || !host[0] || !port || !data || !policy || policy->size != sizeof(*policy) ||
+		!policy->Done || !policy->Drop || !policy->Ops || !policy->Ops->Count || !policy->Ops->Trace) {
+		__xrtErrorSetInvalidArgument(); return NULL;
+	}
+	xtlsdialconfig cfg; xrtTlsDialConfigInit(&cfg); if (config) cfg = *config;
+	/* The pinned language ABI uses an unsigned duration; native uses signed
+	 * milliseconds. Reject negative nonzero values without signedness tricks. */
+	if ((cfg.Timeout != 0 && cfg.Timeout <= 0) || !xrtNetEngineWorkerCount(engine) || !xrtNetDialConfigValid(&cfg.Transport)) {
+		__xrtErrorSetInvalidArgument(); return NULL;
+	}
+	if (!__xrtNetEngineObjectHold(engine)) return NULL;
+	if (!__xrtNetEngineStorageRetain(engine)) { __xrtNetEngineObjectRelease(engine); return NULL; }
+	xtlsdial* d = xrtCalloc(1, sizeof(*d));
+	if (!d) { __xrtNetEngineObjectRelease(engine); __xrtNetEngineStorageRelease(engine); return NULL; }
+	d->References = 2; d->OwnershipPolicy = policy; d->Engine = engine;
+	d->OwnershipEngineHeld = true; d->OwnershipStorageHeld = true; d->RuntimeHeld = true;
+	d->OwnershipDataHeld = true; d->StreamData = data; d->DoneData = data; d->Done = policy->Done;
+	d->StreamEvents = policy->StreamEvents; d->OwnedConfig = cfg.Stream; d->Affinity = cfg.Transport.Affinity;
+	xrtAtomic32Init(&d->OwnershipActive, 1); xrtAtomic32Init(&d->OwnershipState, 0);
+	xrtAtomic32Init(&d->OwnershipStop, 0); xrtAtomicPtrInit(&d->OwnershipClaim, NULL);
+	xrtAtomic32Init(&d->State, XTLS_DIAL_RESOLVING); xrtAtomic32Init(&d->TerminalGate, XRT_TLS_DIAL_GATE_OPEN);
+	xrtAtomic32Init(&d->TimerDone, cfg.Timeout ? 0 : 1); xrtAtomic64Init(&d->Timer, 0);
+	xrtAtomicPtrInit(&d->TransportDial, NULL); xrtAtomicPtrInit(&d->Stream, NULL);
+	#if defined(XRT_FEATURE_TLS_STREAM_DIAL_PROXY)
+		xrtAtomicPtrInit(&d->ProxyDial, NULL);
+	#endif
+	d->Worker = xrtNetEngineWorker(engine, (uint32)(d->Affinity % xrtNetEngineWorkerCount(engine)));
+	if (!__xrtNetEngineRuntimeAdopt(engine, &d->RuntimeOwner, d, xrtTlsDialRuntimeOwnershipV1Get())) {
+		d->RuntimeHeld = false; d->OwnershipDataHeld = false; __xrtTlsDialOwnedLeave(d);
+		xrtTlsDialDestroy(d); xrtTlsDialDestroy(d); return NULL;
+	}
+	xtlsclientconfig client; xrtTlsClientConfigInit(&client); if (tls) client = *tls;
+	if (cfg.ServerNameFromHost && !client.ServerName.Size) { client.ServerName.Data = host; client.ServerName.Size = strlen(host); }
+	d->OwnedSession = xrtTlsClientCreate(&client, NULL);
+	bool ready = d->OwnedSession && __xrtTlsStreamLimits(&cfg.Transport.Stream, d->OwnedSession);
+	if (ready && cfg.Timeout) {
+		bool held = xrtTlsDialRef(d) != NULL;
+		/* The pinned wait ABI declares an absolute xdeadline; native Schedule
+		 * accepts a relative duration. Use the declared contract, never a cast
+		 * or an assumption that the two numeric representations are equivalent. */
+		#if defined(XRT_DEADLINE_NEVER)
+			uint64 id = held ? xrtNetEngineScheduleOwnedV1(engine, d->Affinity,
+				xrtDeadlineAfter(cfg.Timeout), d, xrtTlsDialTimerOwnershipV1Get()) : 0;
+		#else
+			uint64 id = held ? xrtNetEngineScheduleOwnedV1(engine, d->Affinity,
+				cfg.Timeout, d, xrtTlsDialTimerOwnershipV1Get()) : 0;
+		#endif
+		if (!id) { if (held) xrtTlsDialDestroy(d); ready = false; xrtAtomic32Store(&d->TimerDone, 1, XMEMORY_RELEASE); }
+		else { xrtAtomic64Store(&d->Timer, id, XMEMORY_RELEASE);
+			if (xrtAtomic32Load(&d->TimerDone, XMEMORY_ACQUIRE)) xrtAtomic64Store(&d->Timer, 0, XMEMORY_RELEASE); }
+	} else if (!ready) xrtAtomic32Store(&d->TimerDone, 1, XMEMORY_RELEASE);
+	xnetdial* tcp = NULL;
+	if (ready) {
+		bool held = xrtTlsDialRef(d) != NULL;
+		tcp = held ? xrtNetDialOwnedV1(engine, resolver, host, port, &cfg.Transport, NULL, NULL, d, xrtTlsDialTransportOwnershipV1Get()) : NULL;
+		if (!tcp && held) xrtTlsDialDestroy(d);
+	}
+	if (!tcp) {
+		xerror* failure = xrtTakeError(); __xrtTlsDialCancelTimer(d);
+		xtlssession* session = d->OwnedSession; d->OwnedSession = NULL; xrtTlsSessionDestroy(session);
+		xrtownershipscope m = {0}; if (!xrtOwnershipMutationBegin(&m)) abort();
+		__xrtSpinLock(&d->OwnershipLock);
+		d->OwnershipDataHeld = false; d->OwnershipAbandoned = true; d->OwnershipTransportDone = true;
+		xrtAtomic32Store(&d->TerminalGate, XRT_TLS_DIAL_GATE_TERMINAL, XMEMORY_RELEASE);
+		xrtAtomic32Store(&d->State, XTLS_DIAL_FAILED, XMEMORY_RELEASE);
+		__xrtSpinUnlock(&d->OwnershipLock);
+		if (!xrtOwnershipScopeEnd(&m)) abort();
+		__xrtTlsDialOwnedTryRelease(d); __xrtTlsDialOwnedLeave(d); xrtTlsDialDestroy(d);
+		xrtClearError(); xrtSetErrorTake(failure); return NULL;
+	}
+	xrtownershipscope m = {0}; if (!xrtOwnershipMutationBegin(&m)) abort();
+	__xrtSpinLock(&d->OwnershipLock);
+	xrtAtomicPtrStore(&d->TransportDial, tcp, XMEMORY_RELEASE); d->OwnershipPublished = true;
+	__xrtSpinUnlock(&d->OwnershipLock);
+	if (__xrtTlsDialStopping(d)) (void)__xrtTlsDialOwnedPostStop(d);
+	if (!xrtOwnershipScopeEnd(&m)) abort();
+	__xrtTlsDialOwnedTryRelease(d); __xrtTlsDialOwnedLeave(d); return d;
+}
+static bool __xrtTlsDialOwnedCount(const void* data, size_t* count)
+{
+	const xtlsdial* d = data;
+	if (!d || !count || !d->OwnershipPolicy || __xrtTlsDialOwnedBusy(d) ||
+		(xrtAtomic32Load(&d->OwnershipState, XMEMORY_ACQUIRE) & XRT_TLS_DIAL_OWN_CLEARED) ||
+		!d->OwnershipStorageHeld || (!d->OwnershipPublished && !d->OwnershipAbandoned) ||
+		(!d->OwnershipAbandoned && (!d->OwnershipDataHeld || !d->DoneData))) return false;
+	if (d->RuntimeHeld) {
+		if (!d->OwnershipEngineHeld || d->RuntimeOwner.Data != d || !d->RuntimeOwner.Previous ||
+			d->RuntimeOwner.Engine != d->Engine || d->RuntimeOwner.Policy != xrtTlsDialRuntimeOwnershipV1Get()) return false;
+	} else if (d->OwnershipEngineHeld || d->RuntimeOwner.Data || d->RuntimeOwner.Previous ||
+		!(xrtAtomic32Load(&d->OwnershipState, XMEMORY_ACQUIRE) & XRT_TLS_DIAL_OWN_READY)) return false;
+	int32 refs = __xrtAtomicRefLoad(&d->References); if (refs <= 0) return false;
+	*count = (size_t)refs; return true;
+}
+static bool __xrtTlsDialOwnedTrace(const void* data, xrtownershipvisitor visit, ptr context)
+{
+	const xtlsdial* d = data; size_t count;
+	if (!visit || !__xrtTlsDialOwnedCount(d, &count)) return false;
+	if (!visit(xrtNetEngineOwnership(d->Engine), context) ||
+		(d->OwnershipEngineHeld && !visit(xrtNetEngineOwnership(d->Engine), context)) ||
+		(d->OwnershipDataHeld && !visit((xrtownershipref){d->DoneData, d->OwnershipPolicy->Ops}, context))) return false;
+	xnetdial* tcp = xrtAtomicPtrLoad(&d->TransportDial, XMEMORY_ACQUIRE);
+	return (!tcp || visit(xrtNetDialOwnership(tcp), context)) &&
+		(!d->OwnedStream || visit(xrtTlsStreamOwnership(d->OwnedStream), context)) &&
+		(!d->OwnedSession || xrtTlsSessionBufferOwnershipTrace(d->OwnedSession, visit, context)) &&
+		(!d->Error || visit(xrtErrorOwnership(d->Error), context));
+}
+static const xrtownershipops __xrtTlsDialOwnershipOps = {__xrtTlsDialOwnedCount, __xrtTlsDialOwnedTrace};
+XRT_API xrtownershipref xrtTlsDialOwnership(const xtlsdial* d)
+{ return (xrtownershipref){d, d ? &__xrtTlsDialOwnershipOps : NULL}; }
+XRT_API const xrtownershipquiescencev1* xrtTlsDialOwnershipQuiescenceV1Get(void)
+{ static const xrtownershipquiescencev1 p = {sizeof(p), &__xrtTlsDialOwnershipOps, __xrtTlsDialOwnedBusy}; return &p; }
+static bool __xrtTlsDialOwnedHold(const void* data) { return xrtTlsDialRef((xtlsdial*)data) != NULL; }
+static bool __xrtTlsDialOwnedReady(const void* data)
+{
+	const xtlsdial* d = data; size_t count;
+	return __xrtTlsDialOwnedCount(d, &count) && !d->RuntimeHeld && !d->OwnershipEngineHeld &&
+		d->OwnershipTransportDone && !d->OwnedStream && !d->OwnedSession &&
+		xrtAtomic32Load(&d->TimerDone, XMEMORY_ACQUIRE) && !xrtAtomic32Load(&d->OwnershipStop, XMEMORY_ACQUIRE) &&
+		xrtAtomic32Load(&d->TerminalGate, XMEMORY_ACQUIRE) == XRT_TLS_DIAL_GATE_TERMINAL;
+}
+static bool __xrtTlsDialOwnedClaim(const void* data, const void* token)
+{
+	xtlsdial* d = (xtlsdial*)data; size_t count; ptr old = xrtAtomicPtrLoad(&d->OwnershipClaim, XMEMORY_ACQUIRE);
+	if (!token || (old && old != token) || !__xrtTlsDialOwnedCount(d, &count)) return false;
+	xrtAtomicPtrStore(&d->OwnershipClaim, (ptr)token, XMEMORY_RELEASE); return true;
+}
+static void __xrtTlsDialOwnedRestore(const void* data, const void* token)
+{
+	xtlsdial* d = (xtlsdial*)data;
+	if (!token || xrtAtomicPtrLoad(&d->OwnershipClaim, XMEMORY_ACQUIRE) != token ||
+		(xrtAtomic32Load(&d->OwnershipState, XMEMORY_ACQUIRE) & XRT_TLS_DIAL_OWN_CLEARED)) abort();
+	xrtAtomicPtrStore(&d->OwnershipClaim, NULL, XMEMORY_RELEASE);
+}
+static xrtownershipprepareresult __xrtTlsDialOwnedPrepare(const void* data, const void* token)
+{
+	xtlsdial* d = (xtlsdial*)data; xrtownershipscope f = {0};
+	if (!xrtOwnershipFreezeTryBegin(&f)) return XRT_OWNERSHIP_PREPARE_BUSY;
+	if (!token || xrtAtomicPtrLoad(&d->OwnershipClaim, XMEMORY_ACQUIRE) != token ||
+		(xrtAtomic32Load(&d->OwnershipState, XMEMORY_ACQUIRE) & XRT_TLS_DIAL_OWN_CLEARED)) abort();
+	xrtownershipprepareresult result = XRT_OWNERSHIP_PREPARE_BUSY;
+	if (__xrtTlsDialOwnedReady(d)) result = XRT_OWNERSHIP_PREPARE_READY;
+	else if (!__xrtTlsDialOwnedBusy(d)) {
+		uint32 expected = XRT_TLS_DIAL_GATE_OPEN;
+		(void)xrtAtomic32CompareExchange(&d->TerminalGate, &expected, XRT_TLS_DIAL_GATE_CANCEL, XMEMORY_ACQ_REL, XMEMORY_ACQUIRE);
+		if (!__xrtTlsDialOwnedPostStop(d)) result = XRT_OWNERSHIP_PREPARE_FAILED;
+	}
+	if (!xrtOwnershipScopeEnd(&f)) abort();
+	return result;
+}
+static void __xrtTlsDialOwnedClear(const void* data, const void* token)
+{
+	xtlsdial* d = (xtlsdial*)data;
+	if (!token || xrtAtomicPtrLoad(&d->OwnershipClaim, XMEMORY_ACQUIRE) != token || !__xrtTlsDialOwnedReady(d)) abort();
+	xrtAtomic32Store(&d->OwnershipState, XRT_TLS_DIAL_OWN_READY | XRT_TLS_DIAL_OWN_CLEARED, XMEMORY_RELEASE);
+}
+static bool __xrtTlsDialOwnedFinish(const void* data, const void* token)
+{
+	xtlsdial* d = (xtlsdial*)data; xrtownershipscope m = {0}; if (!xrtOwnershipMutationBegin(&m)) return false;
+	if (!token || xrtAtomicPtrLoad(&d->OwnershipClaim, XMEMORY_ACQUIRE) != token ||
+		!(xrtAtomic32Load(&d->OwnershipState, XMEMORY_ACQUIRE) & XRT_TLS_DIAL_OWN_CLEARED)) abort();
+	if (d->OwnershipFinishing) { if (!xrtOwnershipScopeEnd(&m)) abort(); return false; }
+	if (d->OwnershipFinished) {
+		xerror* failure = d->OwnershipFinishError; if (!xrtOwnershipScopeEnd(&m)) abort();
+		if (failure && !xrtGetError()) xrtSetError(failure);
+		return failure == NULL;
+	}
+	d->OwnershipFinishing = true; if (!xrtOwnershipScopeEnd(&m)) abort();
+	xerror* prior = xrtTakeError(); __xrtTlsDialOwnedResources(d); xerror* failure = xrtTakeError();
+	if (!xrtOwnershipMutationBegin(&m)) abort();
+	d->OwnershipFinishError = failure; d->OwnershipFinishing = false; d->OwnershipFinished = true;
+	if (!xrtOwnershipScopeEnd(&m)) abort();
+	if (prior) xrtSetErrorTake(prior); else if (failure) xrtSetError(failure);
+	return failure == NULL;
+}
+XRT_API const xrtownershipadapterv1* xrtTlsDialOwnershipAdapterV1(xrtownershipref ref,
+	const xtlsdialownershipv1* const* policies, size_t policyCount, const xrtownershippreparationv1** preparation)
+{
+	static const xrtownershipadapterv1 a = {sizeof(a), __xrtTlsDialOwnedHold, __xrtTlsDialOwnedDrop,
+		__xrtTlsDialOwnedClaim, __xrtTlsDialOwnedRestore, NULL, __xrtTlsDialOwnedClear, __xrtTlsDialOwnedFinish};
+	static const xrtownershippreparationv1 p = {sizeof(p), &a, __xrtTlsDialOwnedReady, __xrtTlsDialOwnedPrepare};
+	if (!preparation || ref.Ops != &__xrtTlsDialOwnershipOps || !ref.Data || (policyCount && !policies) || __xrtTlsDialOwnedBusy(ref.Data)) return NULL;
+	const xtlsdial* d = ref.Data; bool known = false;
+	for (size_t i = 0; i < policyCount; ++i) if (policies[i] == d->OwnershipPolicy) { known = true; break; }
+	if (!known || !d->OwnershipPolicy || d->OwnershipPolicy->size != sizeof(*d->OwnershipPolicy) ||
+		!d->OwnershipPolicy->Done || !d->OwnershipPolicy->Drop || !d->OwnershipPolicy->Ops ||
+		!d->OwnershipPolicy->Ops->Count || !d->OwnershipPolicy->Ops->Trace) return NULL;
+	size_t count; if (!__xrtTlsDialOwnedCount(d, &count)) return NULL;
+	*preparation = &p; return &a;
 }
 
 #endif
