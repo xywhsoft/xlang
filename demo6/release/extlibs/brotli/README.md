@@ -170,3 +170,11 @@ Windows `-SkipAot` 门禁已走完此前被 AOT 提前挡住的文件分配与 J
 检查；Linux C ASan/UBSan、109 个分配故障点、文件事务、XLang 与
 双语门禁通过。默认 AOT 定向构建仍缺 `xl6NativeHandleTraceLeaf`，
 库实现/API 未改，不签收整包发布级。
+
+2026-10-24：外部固定流夹具改用当前公开的 `Buffer.fromHex`；包级
+Windows 门禁将文件分配故障夹具路径直接传给 JIT/AOT，避免空源码参数。
+当前发布版完整门禁 70 项通过、输入快照无变化，覆盖中央语言用例
+JIT/AOT、23 个生成原型、C/XL 范例、109 个分配故障点和文件事务。
+Linux C ASan/UBSan、泄漏检查、固定流与双语门禁也通过。旧 AOT
+缺符号是历史发布物状态；Linux XLang AOT、Windows ARM、长期压力
+和性能基准仍未在本轮验收。
