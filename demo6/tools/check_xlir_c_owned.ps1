@@ -71,6 +71,8 @@ $generatedSources=@(
     'test/cases/xlir_c_owned_sizes.xl',
     'test/cases/xlir_c_owned_defaults.xl',
     'test/cases/xlir_c_owned_spawn.xl',
+    'test/cases/xlir_c_owned_alias_reader.xl','test/cases/xlir_c_owned_tuple_forward.xl',
+    'test/cases/xlir_c_owned_spawn_export.xl',
     'test/cases/xlir_c_owned_globals.xl',
     'test/cases/xlir_c_owned_nullable.xl','test/cases/xlir_c_owned_nullable_boundaries.xl',
     'test/cases/xlir_c_owned_writes.xl','test/cases/xlir_c_owned_print.xl',

@@ -1,0 +1,23 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+func make() as cstring
+    return cstring.take(nativeText(),nativeFree)
+end
+func makeBytes() as cbytes
+    return cbytes.take(nativeBytes(),4,nativeFree)
+end
+export func exported(bytes value) as bool
+    return originalBytes(value)
+end
+func plain(bytes value) as bool
+    return originalBytes(value)
+end
+async func check()
+    auto data=makeBytes()
+    assert await task.spawn(plain,data)
+    assert await task.spawn(exported,data)
+end
+await check()
