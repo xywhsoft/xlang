@@ -1,0 +1,30 @@
+const char* xl6StdlibTlsVerificationPolicySource=
+    "class TlsVerificationPolicy\n"
+    "    private native point handle\n"
+    "    extern \"xl6TlsVerificationPolicyCreateV1\" @pure @nonblocking create(int maxPeerCertificates = 64, int maxPeerBytes = 16777216, int maxPathCertificates = 64, int maxSearchSteps = 100000, int maxTrustCertificates = 4096, int maxTrustBytes = 67108864, bool allowSha1 = false)\n"
+    "    extern \"xl6TlsVerificationPolicyDestroyV1\" @no_raise @nonblocking destroy()\n"
+#define XL6_TLS_VERIFY_LIMIT(Field,Name) "    extern \"xl6TlsVerificationPolicy" #Field "V1\" @pure @nonblocking get " #Name "() as int\n"
+#include "src/runtime/xl6_tls_verification_policy_fields.inc"
+#undef XL6_TLS_VERIFY_LIMIT
+    "    extern \"xl6TlsVerificationPolicyAllowsSha1V1\" @pure @nonblocking get allowsSha1() as bool\n"
+    "    extern \"xl6TlsVerificationPolicyUsesCurrentTimeV1\" @pure @nonblocking get usesCurrentTime() as bool\n"
+    "    extern \"xl6TlsVerificationPolicyFixedTimeV1\" @pure @nonblocking get fixedTime() as time\n"
+    "    extern \"xl6TlsVerificationPolicyWithTimeV1\" @pure @nonblocking func withTime(time at) as TlsVerificationPolicy\n"
+    "    extern \"xl6TlsVerificationPolicyWithCurrentTimeV1\" @pure @nonblocking func withCurrentTime() as TlsVerificationPolicy\n"
+    "end\n";
+const char* xl6StdlibTlsVerifierSource=
+    "class TlsVerifier\n"
+    "    private native point handle\n"
+    "    extern \"xl6TlsVerifierCreateV1\" @pure @nonblocking create(TrustStoreSnapshot trust)\n"
+    "    extern \"xl6TlsVerifierCreatePolicyV1\" @pure @nonblocking create(TrustStoreSnapshot trust, TlsVerificationPolicy policy)\n"
+    "    extern \"xl6TlsVerifierDestroyV1\" @no_raise @nonblocking destroy()\n"
+    "    extern \"xl6TlsVerifierPolicyV1\" @pure @nonblocking get policy() as TlsVerificationPolicy\n"
+    "    extern \"xl6TlsVerifierServerV1\" @nonblocking func verifyServer(array<Certificate> certificates, string name, int size = -1)\n"
+    "    extern \"xl6TlsVerifierClientV1\" @nonblocking func verifyClient(array<Certificate> certificates)\n"
+    "    static func fromSystem() as TlsVerifier\n"
+    "        return TlsVerifier(TrustStoreSnapshot.fromSystem())\n"
+    "    end\n"
+    "    static func fromSystem(TlsVerificationPolicy policy) as TlsVerifier\n"
+    "        return TlsVerifier(TrustStoreSnapshot.fromSystem(), policy)\n"
+    "    end\n"
+    "end\n";

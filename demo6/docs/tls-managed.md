@@ -184,3 +184,74 @@ TCC 和 Linux ASan／UBSan；纯枚举不拉入 TLS，配置不拉入密码学�
 证据根 `F:/xlang-validation/five-groups-20261024/p6-tls-parameters`。本批无网络
 或安全专项，未增加 Cgen 语义特判，未修改 XRT 或两边时间 ABI。分离角色
 选项／上下文、信任及 CRL／回调策略、会话、传输、恢复和 P7 仍待完成。
+
+## 默认信任验证器与验证策略
+
+`TlsVerificationPolicy` 管理前述六项验证预算，默认有限、负值拒绝、显式 0
+关闭对应配额；`allowSha1=false` 是默认值，兼容旧链须显式启用。策略不可变，
+`withTime(time)` 返回固定 UTC 微秒时钟的新策略，`withCurrentTime()` 返回
+使用每次验证当前时刻的新策略，不改变来源对象。`usesCurrentTime` 可检查
+时钟模式；没有固定时刻时读取 `fixedTime` checked 报 RuntimeError（原生
+XERR_STATE），而不伪造 0。
+固定 epoch 0 是合法时间，不表示“当前”或“缺省”。
+
+```xlang
+auto policy = TlsVerificationPolicy().withTime(time(1893456000000000))
+auto verifier = TlsVerifier(store.snapshot(), policy)
+verifier.verifyServer(certificates, "localhost")
+```
+
+`TlsVerifier(TrustStoreSnapshot)` 使用默认策略，双参数构造使用显式策略。
+创建时复制完整信任数据和策略；空信任库 checked 拒绝，失败不交付半成品，
+不回退到未验证模式。`fromSystem()`／`fromSystem(policy)` 显式装载系统快照，
+沿用已有 P5 系统信任库入口及其失败合同，不标注 nonblocking。
+来源 snapshot／store／policy 可以随后释放；`verifier.policy` 返回独立策略副本。
+
+固定时钟的数据由原生验证器自己的 Context 拥有，最后一个原生引用释放时
+清理，不指向语言包装或调用栈。已有原生消费者保留验证器后，即使语言包装
+已释放，时钟和信任快照仍有效；这为后续角色上下文／会话提供真实生命周期，
+不靠保留无关的语言对象掩盖原生借用。
+
+`verifyServer(array<Certificate>, string name, size=-1)` 与
+`verifyClient(array<Certificate>)` 是同步的离线 checked 校验，不建立连接。
+XRT 执行完整建链、时间、digitalSignature 用途及 serverAuth／clientAuth，
+服务端对端另匹配精确 DNS／IP 名称；不做 DNS 查询。前者的 size 按实际
+UTF-8 字节长度取前缀，超长取实际长度，其他非法负数拒绝，选中的名称不能
+为空或包含 NUL。证书数量／DER 字节预算不截断输入。
+
+这两个方法无 bool 返回：失败保持结构化原因，配额和内存错误不能被混同
+成普通“不可信”。捕获后得到稳定的证书拥有引用，原生连续视图只同步借用；
+小链使用栈视图，较大合法链使用检查溢出后的堆视图，错误和 OOM 都完整回滚。
+手动 verifyClient 不表示服务端握手已经支持 mTLS。
+
+纯策略组件不选择 TLS／X.509 算法；创建验证器与实际验证分属不同组件，
+后者才按合同引入 RSA／ECDSA／Ed25519 验证后端。两个新的真实资源策略与
+目录使用通用 NativeHandle 体系；证书数组使用已有密封的精确类数组合同，
+没有添加 Cgen 名称分支。完整 CRL／附加回调政策及角色／会话／传输接入
+仍在 P6 后续范围，本节不是它们已经完成的声明。
+
+### 验证器批次验收
+
+本批冻结 8916 份稳定输入；Windows／Linux 完整源码驱动分别构建
+1136／1135 TU，另列于验收阶段之外。共 276 阶段：Windows 137、Linux 139；
+含四种正常证书族的服务端／客户端离线校验、合法九证书链、独立拥有和线程
+只读、JIT／module／独立 AOT、严格生成 C O0／O2、旧参数及字符串数组回归。
+19 个驻留目标、6 个拥有结果、2 个精确证书数组合同、2 个真实资源策略、
+174 个错误合同及 21 个零输出门通过；十份实际裁剪计划覆盖纯策略、仅创建
+及实际验证，
+不因声明验证器而引入 TLS 角色、会话或网络传输。
+
+驻留实现另经 GCC O0／O2、TCC，Linux 再加 ASan／UBSan。每个配置覆盖
+60 个构造／复制预算、16 个验证预算、56 个合计实际分配失败、4 个发布预算；
+两个真实目录的 Hold／Claim／Restore 及精确内存账本平衡。释放语言包装后
+仅保留原生引用仍能使用固定时钟完成校验；固定 epoch 0 和当前时钟模式均
+显式检查。正常证书的签名由独立后端核对，不运行网络／安全专项。
+
+首轮测试使用不存在的 StateError，现改为既有 RuntimeError；TCC 不支持的
+测试视图数组推断改为定长数组与赋值。这些仅是测试控制修正，不改变冻结的
+生产代码或完整源码对象；前后轮次和原始失败全部保留。
+证据根 `F:/xlang-validation/five-groups-20261024/p6-tls-verifier`，复查工具为
+`tools/check_tls_verifier_owned.py` 及
+`tools/check_stdlib_tls_verifier.py --source-build <build.json> --out <新目录>`。
+本批不改 XRT 核心、两边时间 ABI 或 Cgen，不表示最新完整工作区／发布产品
+或整个 TLS 已验收，也不关闭历史 Windows 间歇诊断。

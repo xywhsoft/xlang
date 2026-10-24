@@ -4,6 +4,7 @@
 #include "xl6_x509_path_collection_contracts.inc"
 #include "xl6_tls_identity_collection_contracts.inc"
 #include "xl6_tls_parameters_collection_contracts.inc"
+#include "xl6_tls_verifier_collection_contracts.inc"
 #include "xl6_net_vector_collection_contracts.inc"
 #include "xl6_tcp_vector_collection_contracts.inc"
 #include "xl6_udp_collection_contracts.inc"
