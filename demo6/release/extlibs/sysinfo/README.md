@@ -17,7 +17,9 @@ println(sysinfo.memAvailable())
 但分配失败会返回空结果并保留内存错误，不会伪装为 `unknown`。
 原生实现使用 XRT 基础分配/释放、UTF-8 校验和严格整数解析，包清单声明
 `XRT_MODULE_UNICODE` 与 `XRT_MODULE_NUMBER_INTEGER`；无输出边界 AOT 保持裁剪构建。
-本次 Windows 构建的该 AOT 产物为 609,280 字节。
+2026-10-24 发布版复验：默认 Windows 门禁的严格 C、系统调用夹具、
+C/XLang 双语对照、语言边界以及带输出范例 AOT 全部通过；
+旧 `xl6ValueDataSnapshotV1` 缺符号属于历史发布物，不再阻断本包。
 Windows 版本号读取实际系统的 major/minor/build，不返回硬编码版本号；
 主机名和 CPU 名通过 Unicode 系统接口读取后转 UTF-8。注册表 CPU 名即使没有
 终止符也保留完整文本，异常的奇数字节宽度被拒绝。Linux 的 OS/架构
@@ -42,12 +44,12 @@ Linux 的 `memAvailable` 读取 `/proc/meminfo` 的 `MemAvailable`，计入内�
 空字符串；共用文本出口现在和非法 UTF-8 一样降级为 `unknown`，Windows
 主机名入口也明确拒绝空返回。Linux C ASan/UBSan、XLang 边界和双语门禁，
 Windows `-SkipAot` 严格 C、注册表夹具、XLang 与双语门禁通过。
-未模拟真实 Windows API 返回空主机名，完整带输出 AOT 仍待共享符号修复。
+未模拟真实 Windows API 返回空主机名；该次旧发布物的带输出 AOT 曾待共享符号修复。
 
 在 `demo6` 目录运行定向验证：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sysinfo/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sysinfo/test/check.ps1
 bash release/extlibs/sysinfo/test/check.sh
 ```
 
@@ -65,10 +67,10 @@ Windows/Linux 包门禁将这一路径与 GCC 编译运行、XLang 范例的输�
 `metrics_c.c` 展示可用内存、使用率和 uptime 的实际采样；这三个值可能
 在相邻调用间变化，门禁分别检查两种语言的输出格式和合法范围，不要求
 瞬时数值相同。两组范例合计覆盖全部 11 个公开查询。
-当前 Windows 严格 GCC、C/XLang 双语对照及边界 AOT 通过；Linux 包级门禁
+当前 Windows 严格 GCC、C/XLang 双语对照、边界与公开范例 AOT 通过；Linux 包级门禁
 同次运行严格 GCC、C ASan/UBSan、XLang 边界及双语范例逐字节对照。
-带文本输出的范例 AOT 仍缺共享运行时符号
-`xl6ValueDataSnapshotV1`，见 `dev/extlib_blockers/text_snapshot_link.md`。
+带文本输出的范例 AOT 已在 2026-10-24 发布版通过；此前共享运行时
+`xl6ValueDataSnapshotV1` 缺符号的历史记录见 `dev/extlib_blockers/text_snapshot_link.md`。
 六个整数 C 结果统一使用 `int64_t`，与 XLang `int` 在 Linux LP64 上保持一致。
 本机未具备多处理器组，相关计数路径只按 Windows API 合同与本机调用对照验收。
 Linux C 测试以前后两次 `/proc/meminfo` 快照对照 `memAvailable`，容许短时内存波动；

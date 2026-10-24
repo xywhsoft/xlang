@@ -91,6 +91,13 @@ try {
             $null = Run 'XLang boundaries build' $xl @('build',
                 'extlibs/sysinfo/test/boundaries.xl', '-o', $target)
             $null = Run 'XLang boundaries AOT' $target @()
+            $allocAot = Join-Path $work 'sysinfo_xl_allocations.exe'
+            $null = Run 'XLang allocations build' $xl @('build',
+                'extlibs/sysinfo/test/allocations.xl', '-o', $allocAot)
+            $allocOutput = Run 'XLang allocations AOT' $allocAot @()
+            if ($allocOutput -cne 'sysinfo allocations: PASS') {
+                throw "unexpected XLang allocation AOT output: $allocOutput"
+            }
             $exampleAot = Join-Path $work 'sysinfo_xl_example.exe'
             $null = Run 'XLang example build' $xl @('build',
                 'extlibs/sysinfo/examples/basic.xl', '-o', $exampleAot)
@@ -98,6 +105,11 @@ try {
             if ($aotOutput -cne $cOutput) {
                 throw 'XLang AOT system information differs from C'
             }
+            $metricsAot = Join-Path $work 'sysinfo_xl_metrics.exe'
+            $null = Run 'XLang metrics build' $xl @('build',
+                'extlibs/sysinfo/examples/metrics.xl', '-o', $metricsAot)
+            $aotMetrics = Run 'XLang metrics AOT' $metricsAot @()
+            CheckMetrics 'XLang metrics AOT' $aotMetrics
         }
     } finally {
         Pop-Location
