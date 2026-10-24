@@ -1,5 +1,12 @@
 # netrc
 
+2026-10-24 当前 Windows 发布版复验：严格 C/原生边界、C/XLang 范例、
+UTF-8 文件往返与 Python `.netrc` 互通均通过；默认门禁在具名类型
+用例的语言字典 `stringify()` 处失败。JIT 与独立 EXE 的最小复现见
+`../../../dev/extlib_blockers/netrc_constructor_literal.xl`，原因范围见
+`../../../dev/extlib_blockers/foreign_var_container_projection.md`。
+本轮完整门禁和 AOT 未签收，下列历史结果不能替代当前发布物验收。
+
 读取、修改和保存 UTF-8 `netrc` 凭据文件。XLang 使用 `import netrc`，
 C 使用 `include/xrt_netrc.h`。示例见 `release/examples/extlibs/netrc.xl`
 与 `examples/basic.c`。范例同时展示具名主机、`default` 回退和 `macdef`
