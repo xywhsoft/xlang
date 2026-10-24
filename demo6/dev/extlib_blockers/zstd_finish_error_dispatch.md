@@ -25,3 +25,9 @@
 `IOError: zstd stream is truncated or empty`、退出 1。应修复主线的
 `extern` 自动错误派发与包层转换合同，再复跑两条负例及完整范例；
 本任务暂不改 zstd 公开错误类型。
+
+2026-10-24 新 Windows 发布版再次复验：完成后写入最小用例仍抛
+`RuntimeError: zstd decompressor already finished`，截断帧最小用例仍抛
+`IOError: zstd stream is truncated or empty`，两者均退出 1。
+完整教学范例的 JIT 和独立 EXE 均在截断帧负例同样退出，尚未执行后续损坏帧
+断言；包级基础/固定帧/串联/文件/进度五条 AOT 路径通过不解除此阻断。
