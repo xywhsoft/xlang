@@ -206,3 +206,10 @@ Linux C ASan/UBSan、269 项互通、文件事务与 XLang 文件门禁通过。
 均通过，随后仍在 `extlib_bz2.xl:68` 的共享 typed XLIR 错误处停止。
 Linux C ASan/UBSan、互通和 XLang 文件门禁通过。没有修改包实现，
 不据此签收整包发布级。
+
+2026-10-24：使用当前发布版 `xl.exe` 不带 `-SkipAot` 重跑 Windows
+完整门禁，63 项检查全部通过且输入快照无变化，覆盖中央语言用例
+JIT/AOT、综合与双语范例、23 个生成 C 原型、严格 GCC、文件事务和
+269 项独立 Python bz2 互通。Linux C ASan/UBSan、独立互通及
+XLang 文件对照门禁通过。前述 typed XLIR 阻断属于旧发布版历史
+记录；Linux 完整 XLang AOT、长期压力和性能基准不在本次验收内。
