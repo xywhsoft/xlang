@@ -4,6 +4,8 @@
 
 目录和清单仅表示提供该包，不代表完整 API 或发布候选验收。首期优先级与暂缓名单见 [扩展库生态重整](../../docs/扩展库生态重整_2026-10-12.md)。
 
+旧 `jwt`、`oauth2` 包已移除。后续以 XRT 最新 `xjwt`、`xoauth2` 的公共 API 重新接入，不沿用旧包的实现与能力范围；替代绑定尚未发布。
+
 ## 使用方式
 
 - `xlang.package.json` 描述包名、版本、ABI 版本、`xlSources`、`cSources`、links/loadlibs、dependencies 和 native 元数据。
@@ -102,7 +104,6 @@
 - `jieba`：发布扩展库。
 - `json5`：发布扩展库。
 - `json.patch`：RFC 6901 指针、RFC 6902 补丁与 RFC 7386 合并补丁扩展库。
-- `jwt`：发布扩展库。
 - `kubernetes`：发布扩展库。
 - `langdetect`：发布扩展库。
 - `ldap`：发布扩展库。
@@ -136,7 +137,6 @@
 - `netrc`：machine/default/macdef 凭据文件扩展库。
 - `nsq`：发布扩展库。
 - `ntp`：NTP 报文编解码扩展库（hex 帧格式，连接走标准库 udp）。
-- `oauth2`：OAuth2 PKCE 扩展库（S256 挑战、授权 URL 与回调解析）。
 - `onnxruntime`：ONNX Runtime 扩展库。
 - `op`：发布扩展库。
 - `opencv`：发布扩展库。

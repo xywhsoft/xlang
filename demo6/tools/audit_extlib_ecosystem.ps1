@@ -76,7 +76,7 @@ $existingHardeningNames = @(
 $platformNames = @(
     "acme", "canbus", "clickhouse", "clip", "coap", "com", "daemon", "docker", "enet",
     "etcd", "ftp", "git", "gpio", "ldap", "libusb",
-    "mdns", "minio", "modbus", "mqtt", "nanomsg", "nats", "neo4j", "nsq", "ntp", "oauth2",
+    "mdns", "minio", "modbus", "mqtt", "nanomsg", "nats", "neo4j", "nsq", "ntp",
     "op", "opentelemetry", "passkey", "pcap", "portaudio", "procps", "prometheus", "redis", "rtmp",
     "sciter", "serial", "sharedmem", "singleinstance", "snmp", "socks", "sysinfo",
     "uia", "ui.auto", "upnp", "vault", "volc.core", "volc.phone", "volc.sts", "watch", "webview",
