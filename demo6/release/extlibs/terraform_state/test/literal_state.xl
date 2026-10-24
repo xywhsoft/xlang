@@ -1,0 +1,13 @@
+import terraform_state
+
+func main(...) as int
+    string source = """{"version":4,"serial":0,"lineage":"probe","resources":[],"outputs":{}}"""
+    var parsed = terraform_state.parse(source)
+    assert terraform_state.version(parsed) == 4, "parsed XRT object works"
+
+    var literal = {"version": 4, "serial": 0, "lineage": "probe",
+        "resources": [], "outputs": {}}
+    assert terraform_state.version(literal) == 4, "language object must reach C var as an object"
+    assert terraform_state.lineage(literal) == "probe"
+    return 0
+end

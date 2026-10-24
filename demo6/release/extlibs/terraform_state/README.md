@@ -1,5 +1,14 @@
 # terraform_state
 
+2026-10-24 当前 Windows 发布版：原有 C、XLang 解析查询、双语范例和
+完整 AOT 门禁通过，但新增合法语言字典传入 `version(var)` 的用例
+报 `TypeError: Terraform state must be a JSON object`；同结构的
+`parse()` 结果可正常查询。包级门禁现固定这条失败路径，不能仅凭
+解析产物的成功宣称公开 `var state` 参数完整可用。复现和主线修复
+方向见 `test/literal_state.xl` 及
+`dev/extlib_blockers/foreign_var_container_projection.md`；包内不
+读取编译器私有 handle。默认门禁须待共享 ABI 修复后重新验收。
+
 只读查询 Terraform **原始 `.tfstate` v4 JSON**。这不是 `terraform show -json`
 的 `format_version` / `values.root_module` 表示；两种格式不能混用。
 原始格式的 `resources`、`instances`、`outputs` 形状可参照

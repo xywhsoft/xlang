@@ -58,6 +58,7 @@ try {
     Push-Location (Join-Path $root 'release')
     try {
         $null = Run 'XLang boundaries JIT' $xl @('run', 'extlibs/terraform_state/test/boundaries.xl')
+        $null = Run 'XLang literal state' $xl @('run', 'extlibs/terraform_state/test/literal_state.xl')
         $null = Run 'XLang allocation failures JIT' $xl @('run', 'extlibs/terraform_state/test/allocations.xl')
         $null = Run 'XLang existing case' $xl @('run', '../test/cases/extlib_terraform_state.xl')
         $xlOutput = Run 'XLang example JIT' $xl @('run', 'extlibs/terraform_state/examples/basic.xl')
