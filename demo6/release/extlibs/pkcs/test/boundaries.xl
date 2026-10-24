@@ -13,6 +13,8 @@ assert pkcs.getLength("020100") == 1
 assert pkcs.nextOffset("0201000500", 0) == 3
 assert pkcs.nextOffset("0201000500", 3) == 5
 assert pkcs.getContent("0400") == ""
+assert pkcs.encodeOid("2.999.3") == "0603883703"
+assert pkcs.decodeOid("0603883703") == "2.999.3"
 
 // 保存旧结果并超过原实现的八个复用槽。
 string saved = pkcs.encodeInt(12345)

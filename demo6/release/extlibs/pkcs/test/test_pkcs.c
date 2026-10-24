@@ -78,6 +78,14 @@ int main(void)
     CHECK(decoded && strcmp(decoded, "1.2.840.113549.1.1.1") == 0);
     xrtFree(decoded);
 
+    /* 2.999 的首个合并子标识符为 1079，必须用两个 base-128 字节。 */
+    decoded = (char*)xpkcs_encode_oid("2.999.3");
+    CHECK(decoded && strcmp(decoded, "0603883703") == 0);
+    xrtFree(decoded);
+    decoded = (char*)xpkcs_decode_oid("0603883703");
+    CHECK(decoded && strcmp(decoded, "2.999.3") == 0);
+    xrtFree(decoded);
+
     content = (char*)xpkcs_concat(oid, null_value);
     CHECK(content && strcmp(content, "06092a864886f70d0101010500") == 0);
     sequence = (char*)xpkcs_wrap_sequence(content);
