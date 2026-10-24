@@ -58,17 +58,21 @@ XLang 在进入 C 字符串接口前检查内嵌 NUL，并按各函数原有失�
 
 ## 验证
 
-包清单显式声明空的 `xrtModules`：原生实现只调用 XRT 基础分配/释放入口，没有额外模块依赖。无输出边界用例在裁剪 XRT 的 AOT 产物中运行通过；这不改变带输出范例的共享快照链接阻断。
+包清单显式声明空的 `xrtModules`：原生实现只调用 XRT 基础分配/释放入口，没有额外模块依赖。
+2026-10-24 使用更新后的 Windows 发布版 `xl.exe` 复验：默认包门禁完整通过，
+包括 C ABI、C/XLang 边界、分配故障、双语范例黄金输出和公开范例 AOT。
+Linux 包门禁的 C ASan/UBSan 与 XLang 对照也通过。旧发布版的共享快照
+缺符号阻断已解除；包级通过不等于整个 xlang 发布版签收。
 
 在 `demo6` 目录运行：
 
 ```powershell
 ./release/xl.exe run release/extlibs/semver/examples/semver_c.c
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/semver/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/semver/test/check.ps1
 bash release/extlibs/semver/test/check.sh
 ```
 
-去掉 `-SkipAot` 可额外尝试独立可执行文件构建。脚本仅验证该包，不运行全仓回归。
+`-SkipAot` 只用于开发时缩短反馈；正式包门禁应运行默认命令。脚本仅验证该包，不运行全仓回归。
 Windows 日常门禁和可选的独立对照门禁各自使用单次独占的
 `build/test/semver_guard_*` / `build/test/semver_oracle_*` 目录；XRT 对象
 每次重新编译，结束或失败时仅清理本次目录，不复用固定缓存。
@@ -78,14 +82,17 @@ Windows 日常门禁和可选的独立对照门禁各自使用单次独占的
 `examples/basic.expected.txt` 逐行校验两种语言的输出。
 C 范例包含包内原生实现，可由 `xl run` 单文件执行；正式包仍按清单
 编译原生源文件。Windows/Linux 包门禁将直跑与严格 C 编译输出逐字比较。
-Windows C/XLang 范围矩阵、无输出边界与分配故障 AOT、Linux ASan/UBSan 已通过；
+Windows C/XLang 范围矩阵、边界与分配故障 AOT、公开范例 AOT、Linux ASan/UBSan 已通过；
 可选 node-semver 对照只比较双方共同支持的范围语法：本包另允许
 `A - B >=C` 将区间与其他比较条件取交集；若对照版本把它视为无效范围，
 oracle 跳过此扩展写法，而 C/XLang 边界用例仍独立验证其正反结果。
+
+以下为历史验证记录，其中缺符号阻断均指旧发布二进制。
+
 2026-10-22 使用 node-semver 7.8.5（提交 `7257c1423947`）对照：
 202,860 组共同语法全部一致，276 组上述扩展语法跳过；Windows 包级
 `-SkipAot` 与 Linux C ASan/UBSan、XLang 门禁通过。完整带输出 AOT
-仍受共享运行时缺符号阻断，不据此签收整包。
+当时仍受共享运行时缺符号阻断；上述 2026-10-24 默认门禁已完成复验。
 同日将独立对照扩到严格版本有效性与两两优先级：共同语义共
 279,319 组，0 差异，仍仅跳过上述 276 组扩展范围；测试 C 查询程序
 同时通过 Linux GCC `-Wall -Wextra -Werror` 语法检查。无效版本的
@@ -95,7 +102,7 @@ oracle 跳过此扩展写法，而 C/XLang 边界用例仍独立验证其正反�
 同一矩阵。这是有界的确定性回归，不代替可选的独立 node-semver 对照。
 Linux 包级脚本也运行中央、包内边界及分配故障 XLang 用例，并逐字节核对
 C/XLang 范例与共同黄金输出；C 侧仍使用 ASan/UBSan。
-带输出范例的 AOT 仍受主线 `xl6ValueDataSnapshotV1` 缺符号阻断。
+当时带输出范例的 AOT 仍受主线 `xl6ValueDataSnapshotV1` 缺符号阻断。
 超长 `clean` 输入的 C 回归还检查 XRT 请求分配量，防止恢复先复制后拒绝；
 大量首尾空白的有效版本也有定向测试。统计模块只启用于测试程序。
 分配故障注入覆盖三个 C 字符串入口的 `XERR_MEMORY` 与恢复，及三个 XLang

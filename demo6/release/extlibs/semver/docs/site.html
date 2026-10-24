@@ -47,9 +47,9 @@ assert semver.satisfies("1.2.2", "&lt;=1.2.3")</code></pre>
   <section id="verify">
     <h2>验证与边界</h2>
     <pre><code>xl run release/extlibs/semver/examples/semver_c.c
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/semver/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/semver/test/check.ps1
 bash release/extlibs/semver/test/check.sh</code></pre>
-    <p>2026-10-18：严格版本与范围解析在格式上限内检查 C 字符串终止符；超限输入不会继续无界扫描。C/XLang 验证了范围长度和元数据字段的恰好上限，Windows 严格 GCC、Linux ASan/UBSan 与双语黄金输出通过。2026-10-19：C 范例可直接用 xl 单文件运行，Windows/Linux 包门禁核对直跑与严格 C 编译输出一致。完整版本的 <code>&lt;=</code> 按包含式上界处理；带输出范例的 AOT 仍受主线 <code>xl6ValueDataSnapshotV1</code> 缺符号阻断，尚未签收完整发布验收。</p>
+    <p>严格版本与范围解析在格式上限内检查 C 字符串终止符；超限输入不会继续无界扫描。C/XLang 验证了范围长度和元数据字段的恰好上限；C 范例可直接用 xl 单文件运行。完整版本的 <code>&lt;=</code> 按包含式上界处理。2026-10-24 使用更新后的发布版复验，Windows 默认包门禁包含 C ABI、严格 GCC、双语黄金输出、边界与分配故障 AOT 及公开范例 AOT，全部通过；Linux C ASan/UBSan 与 XLang 对照也通过。旧发布版的 <code>xl6ValueDataSnapshotV1</code> 缺符号阻断已解除。</p>
   </section>
 </main>
 <script src="../main.js"></script>
