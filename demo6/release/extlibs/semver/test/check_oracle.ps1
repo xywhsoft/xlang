@@ -14,6 +14,9 @@ $oraclePackage = Get-Content -LiteralPath $oracleManifest -Raw | ConvertFrom-Jso
 if ($oraclePackage.name -cne 'semver') {
     throw "expected node-semver package in $oracle"
 }
+if ($oraclePackage.version -cne '7.8.5') {
+    throw "expected node-semver 7.8.5, got $($oraclePackage.version)"
+}
 $testRoot = [IO.Path]::GetFullPath((Join-Path $root 'build/test'))
 $work = Join-Path $testRoot ('semver_oracle_' + [guid]::NewGuid().ToString('N'))
 $runtime = Join-Path $work 'xrt_runtime.o'

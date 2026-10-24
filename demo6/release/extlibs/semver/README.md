@@ -121,8 +121,11 @@ C/XLang 范例与共同黄金输出；C 侧仍使用 ASan/UBSan。
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/semver/test/check_oracle.ps1 -OracleDir build/test/semver_oracle
 ```
 
-本轮以 node-semver 7.8.5（提交 `6e05b7637396ac66522cff8731f07cfe0ef49a29`）
-对照 201,480 组版本与范围（包含 alpha、beta、rc 预发布比较器），结果一致。对照仅覆盖本包公开的范围子集；
+2026-10-25 以 node-semver 7.8.5 对照 279,319 组版本与范围
+（包含 alpha、beta、rc 预发布比较器），差异为零；另有 276 组
+xlang 专有区间扩展被显式跳过。门禁固定要求 7.8.5：较早的 7.7.3
+会宽松匹配本包明确拒绝的 `1.x.3`，产生 32 条假回归。
+对照仅覆盖本包公开的范围子集；
 本包有意拒绝空 `||` 分支，而上游将其当作通配，该分歧由普通 C/XL 负例
 独立约束，不纳入“应相同”矩阵。对照脚本仅在维护范围语义时运行，
 不要求正常使用者安装 Node.js。
