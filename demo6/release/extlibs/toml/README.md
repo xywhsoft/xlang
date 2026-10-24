@@ -1,5 +1,13 @@
 # toml
 
+2026-10-24 当前 Windows 发布版复验：严格 C 语法和 C 边界通过，
+默认 `test/check.ps1` 在 XLang 边界的字典字面量写出路径失败，
+报 `TypeError: TOML document root must be a dict`。包内
+`test/root_argument_repro.xl` 单独复现：原生 `parse` 返回的字典可写出，
+语言创建的 `var` 字典传入同一 `stringify` 则失败。属于共享 foreign
+`var` 容器投影边界；本轮未执行后续双语范例和 AOT，不签收发布级。
+下文旧版 AOT 缺符号记录仅描述当时的发布物。
+
 TOML 解析、写出、文件读写及日期/时间值。底层 C API 在 `include/xrt_toml.h`，
 XLang API 由 `import toml` 导入；包内共用一套 XRT `xvalue` 实现。
 解析语法以 TOML 1.0 为目标：内联表不可跨行或带尾逗号，时间必须包含秒，

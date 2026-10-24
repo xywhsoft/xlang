@@ -1,5 +1,12 @@
 # statistics
 
+2026-10-24 当前 Windows 发布版复验：默认 `test/check.ps1` 的严格 C、
+ABI、C 边界和三组 C 范例通过；中央 XLang 用例的首个
+`statistics.count(var array)` 断言失败。共享 foreign `var` 数组投影
+最小复现及修复方向见 `../../../dev/extlib_blockers/foreign_var_container_projection.md`。
+后续 XLang 边界、双语范例和 AOT 未在本轮执行，不签收发布级；
+下文旧 AOT 缺符号记录不能替代本轮结果。
+
 `statistics` 对 XRT 数组中的整数、浮点数计算描述性统计。XLang 的 `var`
 数组可直接传入，C 侧使用 `xvalue` 数组。除 `count` 外，非数值或非有限元素会拒绝。
 
