@@ -1,8 +1,11 @@
 ﻿param(
-    [string]$Root = ""
+    [string]$Root = "",
+    [switch]$CheckOnly
 )
 
 $ErrorActionPreference = "Stop"
+
+# 并行开发时只校验包清单，不覆盖已有的生成报告。
 
 if ($Root -eq "") {
     $Root = Split-Path -Parent $PSScriptRoot
@@ -23,6 +26,13 @@ if (!(Test-Path -LiteralPath $extlibRoot -PathType Container)) {
 
 function Read-Utf8Text([string]$Path) {
     return [System.IO.File]::ReadAllText($Path, [System.Text.UTF8Encoding]::new($false))
+}
+
+function Test-PackageEntry([string]$Directory, [string]$Relative, [string]$PathType) {
+    if ([IO.Path]::IsPathRooted($Relative) -or
+        $Relative -match '^[A-Za-z]:' -or
+        $Relative -match '(^|[\\/])\.\.([\\/]|$)') { return $false }
+    return Test-Path -LiteralPath (Join-Path $Directory $Relative) -PathType $PathType
 }
 
 $featuredNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
@@ -101,16 +111,32 @@ foreach ($directory in Get-ChildItem -LiteralPath $extlibRoot -Directory | Sort-
                     continue
                 }
                 $path = Join-Path $directory.FullName $relative
-                if (!(Test-Path -LiteralPath $path -PathType Leaf)) {
+                if (!(Test-PackageEntry $directory.FullName $relative Leaf)) {
                     $issues.Add("missing artifact.${kind}: $relative")
                     continue
                 }
                 $declared[$kind].Add((Get-Item -LiteralPath $path))
             }
         }
+        foreach ($relative in @($manifest.artifact.includeDirs)) {
+            if ($null -eq $relative) { continue }
+            if ($relative -isnot [string] -or [string]::IsNullOrWhiteSpace($relative) -or
+                !(Test-PackageEntry $directory.FullName $relative Container)) {
+                $issues.Add("missing artifact.includeDirs: $relative")
+            }
+        }
         if ($declared.cSources.Count + $declared.xlSources.Count -eq 0) { $issues.Add('source package has no available declared sources') }
     } elseif ($null -ne $manifest) {
         $issues.Add('artifact kind requires an explicit audit implementation')
+    }
+    if ($null -ne $manifest) {
+        foreach ($relative in @($manifest.coverage.tests)) {
+            if ($null -eq $relative) { continue }
+            if ($relative -isnot [string] -or [string]::IsNullOrWhiteSpace($relative) -or
+                !(Test-PackageEntry $directory.FullName $relative Leaf)) {
+                $issues.Add("missing coverage.tests: $relative")
+            }
+        }
     }
     $xlSources = @($declared.xlSources.ToArray())
     $cSources = @($declared.cSources.ToArray())
@@ -251,7 +277,9 @@ $report = [pscustomobject]@{
     root = "release/extlibs"
     packages = $packages.ToArray()
 }
-[System.IO.File]::WriteAllText($outputJson, ($report | ConvertTo-Json -Depth 6), [System.Text.UTF8Encoding]::new($false))
+if (!$CheckOnly) {
+    [System.IO.File]::WriteAllText($outputJson, ($report | ConvertTo-Json -Depth 6), [System.Text.UTF8Encoding]::new($false))
+}
 
 $counts = @($packages | Group-Object status | Sort-Object Name)
 $lines = New-Object System.Collections.Generic.List[string]
@@ -273,8 +301,15 @@ $lines.Add("| --- | --- | --- | ---: | ---: | --- | --- | --- |") | Out-Null
 foreach ($pkg in $packages) {
     $lines.Add(("| `{0}` | `{1}` | {2} | {3} | {4} | {5} | {6} | {7} |" -f $pkg.name, $pkg.status, ($pkg.gates -join ', '), $pkg.xlangSources, $pkg.cSources, $pkg.focusedCase, $pkg.example, $pkg.reason.Replace('|', '\|'))) | Out-Null
 }
-[System.IO.File]::WriteAllText($outputMarkdown, [string]::Join("`n", $lines) + "`n", [System.Text.UTF8Encoding]::new($false))
+if (!$CheckOnly) {
+    [System.IO.File]::WriteAllText($outputMarkdown, [string]::Join("`n", $lines) + "`n", [System.Text.UTF8Encoding]::new($false))
+}
 
-Write-Host "Extension ecosystem audit written: $outputJson"
-Write-Host "Extension ecosystem report written: $outputMarkdown"
+if (!$CheckOnly) {
+    Write-Host "Extension ecosystem audit written: $outputJson"
+    Write-Host "Extension ecosystem report written: $outputMarkdown"
+}
 foreach ($count in $counts) { Write-Host ("{0}: {1}" -f $count.Name, $count.Count) }
+if ($CheckOnly -and @($packages | Where-Object { $_.status -eq 'invalid-package' }).Count -ne 0) {
+    throw 'Extension ecosystem contains invalid package manifests or declared paths'
+}
