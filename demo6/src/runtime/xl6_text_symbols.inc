@@ -19,6 +19,7 @@ XL6_TEXT_EXPORT(xl6TextLowerV1, TEXT_VALUE)
 #include "xl6_tls_verifier_symbols.inc"
 #include "xl6_tls_role_context_symbols.inc"
 #include "xl6_tls_session_symbols.inc"
+#include "xl6_tls_stream_options_symbols.inc"
 #include "xl6_compress_symbols.inc"
 #include "xl6_template_symbols.inc"
 XL6_TEXT_EXPORT(xl6CodecHexTextV1, CODEC_HEX)

@@ -99,27 +99,32 @@ func main(...) as int
         return 3
     end
 
-    dir.createAll("build/test/lzma-baseline")
-    string sourcePath = "build/test/lzma-baseline/source.bin"
-    string packedPath = "build/test/lzma-baseline/stream.lzma"
-    string plainPath = "build/test/lzma-baseline/plain.bin"
-    file.writeBytes(sourcePath, source.toBytes())
-    lzma.compressFile(sourcePath, packedPath)
-    lzma.decompressFile(packedPath, plainPath)
-    if file.readBytes(plainPath) != source.toBytes() then
-        return 4
-    end
-    bool overwriteRejected = false
+    string workDir = path.join(path.temp(), "xlang_lzma_central_" + crypto.randomString(20))
+    dir.createAll(workDir)
+    string sourcePath = path.join(workDir, "source.bin")
+    string packedPath = path.join(workDir, "stream.xz")
+    string plainPath = path.join(workDir, "plain.bin")
     try
-        lzma.compressFile(sourcePath, packedPath, overwrite = false)
-    catch ValueError e
-        overwriteRejected = true
+        assert file.writeBytes(sourcePath, source.toBytes())
+        lzma.compressFile(sourcePath, packedPath)
+        lzma.decompressFile(packedPath, plainPath)
+        if file.readBytes(plainPath) != source.toBytes() then
+            return 4
+        end
+        bool overwriteRejected = false
+        try
+            lzma.compressFile(sourcePath, packedPath, overwrite = false)
+        catch ValueError e
+            overwriteRejected = true
+        end
+        if not overwriteRejected then
+            return 5
+        end
+    finally
+        if file.exists(sourcePath) then assert file.delete(sourcePath) end
+        if file.exists(packedPath) then assert file.delete(packedPath) end
+        if file.exists(plainPath) then assert file.delete(plainPath) end
+        assert dir.delete(workDir), "temporary lzma directory must be removed"
     end
-    if not overwriteRejected then
-        return 5
-    end
-    file.delete(sourcePath)
-    file.delete(packedPath)
-    file.delete(plainPath)
     return 0
 end

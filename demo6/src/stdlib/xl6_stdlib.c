@@ -2378,6 +2378,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if(needsTlsClientContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsClientContextSource);
     if(needsTlsServerContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsServerContextSource);
     if(needsTlsManagedSession)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsManagedSessionClassSource);
+    if(xl6StdlibNodeUsesTypeName(root,"TlsStreamOptions"))xl6StdlibBuilderAppend(&builder,xl6StdlibTlsStreamOptionsSource);
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||
         xl6StdlibFuncUsed(used,"crypto","x25519KeyPair") || xl6StdlibFuncUsed(used,"crypto","x448KeyPair"))
         xl6StdlibBuilderAppend(&builder,xl6StdlibXdhClassSource);
