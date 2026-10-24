@@ -1,5 +1,12 @@
 # bz2
 
+> 2026-10-24 当前 Windows 发布版复验：默认
+> `tools/check_extlib_bz2.ps1` 完整通过。严格 C、分配故障、
+> Python bzip2 互通、文件事务、23 个实际生成原型、中央 XLang
+> 与进度回调 JIT/AOT，以及 C/XLang 基础和文件范例均通过。
+> 下文 XLIR 字节运算与 AOT 阻断是旧发布物的记录；本次没有
+> 重新构建 Linux 发布版，不能据此签收 Linux 完整门禁。
+
 bzip2 字节流、增量编解码与事务文件接口。算法使用仓库内 `_bzip2` 的 bzip2 1.0.8，
 内存、Buffer、Reader/Writer、UTF-8 文件路径和结构化错误使用 XRT，不加载压缩 DLL。
 
