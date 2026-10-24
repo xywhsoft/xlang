@@ -1,3 +1,4 @@
+typedef OptionalBoundaryReader = (func() as string)?
 extern "c_owned_text" @no_raise func nativeText() as point
 extern "c_owned_binary" @no_raise func nativeBytes() as point
 extern "c_owned_release" @no_raise func nativeFree(point data)
@@ -37,6 +38,16 @@ func defaultCallback(int base) as func(int,***) as cbytes
 end
 func factory() as func() as cstring
     return text
+end
+func nullableFactory(bool present) as (func() as cstring)?
+    if not present then return null end
+    auto value=text()
+    return func() as cstring => value
+end
+func nullableDefault(bool present,int base) as (func(int,***) as cbytes)?
+    if not present then return null end
+    auto value=data()
+    return func(int first=base,***) as cbytes => first==base ? value : b"wrong"
 end
 func arrayAdapter() as func(...) as string
     auto raw=arrayText
@@ -102,9 +113,35 @@ export "owned_boundary_exercise" func exercise(int mode) as bool
         auto raw=factory
         var callback=xcall(raw)
         return callback()()=="hello"
-    else
+    elseif mode==11
         auto value=cstring.take(nativeText(),5,nativeFree)
         var copied=value
         return copied=="hello"
+    elseif mode==12
+        auto source=nullableFactory(true)
+        (func() as string)? callback=source
+        source=null
+        (func() as string)? absent=nullableFactory(false)
+        if callback!=null then return callback()=="hello" and absent==null end
+        return false
+    elseif mode==13
+        auto raw=nullableFactory
+        func(bool) as OptionalBoundaryReader callback=raw
+        auto present=callback(true)
+        if present!=null then return present()=="hello" and callback(false)==null end
+        return false
+    elseif mode==14
+        auto raw=nullableFactory
+        var callback=xcall(raw)
+        return callback(true)()=="hello" and callback(false)==null
+    else
+        auto source=nullableDefault(true,19)
+        (func(int,***) as bytes)? callback=source
+        source=null
+        if callback!=null then
+            var dynamic=xcall(callback)
+            return dynamic()==b"\0\xff\x11*" and dynamic(first=19,answer=42)==b"\0\xff\x11*"
+        end
+        return false
     end
 end

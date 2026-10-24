@@ -75,7 +75,7 @@ $generatedSources=@(
     'test/cases/xlir_c_owned_spawn_export.xl','test/cases/xlir_c_owned_methods.xl',
     'test/cases/xlir_c_owned_callable_results.xl','test/cases/xlir_c_owned_variadic_results.xl',
     'test/cases/xlir_c_owned_variadic_inputs.xl','test/cases/xlir_c_owned_nested_results.xl',
-    'test/cases/xlir_c_owned_text_length.xl',
+    'test/cases/xlir_c_owned_text_length.xl','test/cases/xlir_c_owned_nullable_callables.xl',
     'test/cases/xlir_c_owned_spawn_keywords.xl',
     'test/cases/xlir_c_owned_globals.xl',
     'test/cases/xlir_c_owned_nullable.xl','test/cases/xlir_c_owned_nullable_boundaries.xl',

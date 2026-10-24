@@ -62,7 +62,7 @@ int main(void)
     assert(xlir_module_init());
     checkPackIdentity();
     size_t failures=0,successes=0;
-    for(int mode=0;mode<12;++mode) {
+    for(int mode=0;mode<16;++mode) {
         xl6_foreign_error_scope entry={0};
         assert(xl6ForeignCallBegin(&entry));
         assert(owned_boundary_exercise(mode));
