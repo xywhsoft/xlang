@@ -1,0 +1,7 @@
+import bson
+
+func main(...) as int
+    var document = {"x": 1}
+    bson.encode(document)
+    return 0
+end

@@ -1,0 +1,7 @@
+import statistics
+
+func main(...) as int
+    var values = [2, 4]
+    statistics.sum(values)
+    return 0
+end

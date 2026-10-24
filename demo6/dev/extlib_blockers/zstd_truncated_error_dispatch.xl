@@ -1,0 +1,15 @@
+import zstd
+
+func main(...) as int
+    Buffer frame = zstd.compress("abc")
+    Buffer truncated = Buffer()
+    for i in range(0, frame.len() - 1)
+        truncated.appendByte(frame[i])
+    end
+    try
+        zstd.decompress(truncated)
+    catch CompressionError e
+        return 0
+    end
+    return 1
+end
