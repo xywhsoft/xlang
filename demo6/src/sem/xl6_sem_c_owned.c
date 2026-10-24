@@ -3,6 +3,8 @@ static const XL6_AstNode* xl6SemCOwnedElement(const XL6_AstNode* type)
 { const XL6_AstNode* inner=xl6SemNullableInnerType(type);return inner ? inner : type; }
 static const char* xl6SemCOwnedTypeBase(const XL6_AstNode* type)
 { const XL6_AstNode* element=xl6SemCOwnedElement(type);return element ? xl6COwnedBaseName(element->text) : NULL; }
+static const XL6_AstNode* xl6SemCOwnedResolvedElement(XL6_SemContext* ctx,const XL6_AstNode* type)
+{ return xl6SemResolveAliasType(ctx,xl6SemCOwnedElement(xl6SemResolveAliasType(ctx,type))); }
 /* Global storage has the ordinary value ABI, including inferred declarations.
  * Change only the receiving type; the initializer keeps its C owner until the
  * normal copy succeeds (or unwinds on failure). */
@@ -372,7 +374,7 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
         if(parameter->flags & (XL6_AST_FLAG_BYREF|XL6_AST_FLAG_OUT))continue;
         XL6_AstNode* actual=xl6SemInferAutoTypeNode(ctx,arg->children[0]);
         const char* base=xl6SemCOwnedTypeBase(actual);
-        const XL6_AstNode* formal=parameter->childCount ? xl6SemCOwnedElement(xl6SemResolveAliasType(ctx,parameter->children[0])) : NULL;
+        const XL6_AstNode* formal=parameter->childCount ? xl6SemCOwnedResolvedElement(ctx,parameter->children[0]) : NULL;
         const XL6_AstNode* argument=xl6SemCOwnedElement(actual);
         if(base && formal &&
             (xl6TextEquals(base,formal->text) ||
@@ -387,7 +389,7 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
         XL6_AstNode* actual=expression->inferredType ? xl6SemCloneTypeNode(expression->inferredType) :
             xl6SemInferAutoTypeNode(ctx,expression);
         const char* base=xl6SemCOwnedTypeBase(actual);
-        const XL6_AstNode* formal=xl6SemCOwnedElement(xl6SemResolveAliasType(ctx,parameter->children[0]));
+        const XL6_AstNode* formal=xl6SemCOwnedResolvedElement(ctx,parameter->children[0]);
         if(base && formal && xl6TextEquals(base,formal->text))any=promote[p]=1;
         xl6AstFree(actual);
     }
@@ -411,7 +413,7 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
         XL6_AstNode* type=(XL6_AstNode*)xl6SemCOwnedElement(concrete);
         type->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
         if(!xl6COwnedBaseName(type->text)) {
-            const char* marker=xl6TextEquals(type->text,"string") ? "cstring" : "cbytes";
+            const char* marker=xl6TextEquals(xl6SemCOwnedResolvedElement(ctx,parameter->children[0])->text,"string") ? "cstring" : "cbytes";
             xrtFree(type->text);type->text=xrtStrDup(marker);
         }
         parameter->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
@@ -429,14 +431,14 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     for(size_t r=0;!(options & XL6_C_OWNED_ORDINARY_RESULT) && function->kind!=XL6_AST_ASYNC_FUNC &&
         !(function->flags & XL6_AST_FLAG_ASYNC) && returns && r<returns->childCount;++r) {
         const XL6_AstNode* resolved=xl6SemResolveAliasType(ctx,returns->children[r]);
-        const XL6_AstNode* element=xl6SemCOwnedElement(resolved);
+        const XL6_AstNode* element=xl6SemCOwnedResolvedElement(ctx,resolved);
         if(!element || (!xl6TextEquals(element->text,"string") && !xl6TextEquals(element->text,"bytes")))continue;
+        const char* marker=xl6TextEquals(element->text,"string") ? "cstring" : "cbytes";
         XL6_AstNode* concrete=xl6SemCloneTypeNode(resolved);
         if(!concrete){xl6AstFree(signature);return NULL;}
         xl6AstFree(returns->children[r]);returns->children[r]=concrete;
         XL6_AstNode* type=(XL6_AstNode*)xl6SemCOwnedElement(concrete);
         type->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
-        const char* marker=xl6TextEquals(type->text,"string") ? "cstring" : "cbytes";
         xrtFree(type->text);type->text=xrtStrDup(marker);
     }
     uint64 hash=xl6SemCOwnedSignatureHash(signature->children[1],UINT64_C(14695981039346656037));
