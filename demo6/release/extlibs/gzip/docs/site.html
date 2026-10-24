@@ -25,7 +25,7 @@
   <header class="extlib-head">
     <p><a href="../extlibs.html">扩展库</a> / gzip</p>
     <div class="extlib-title-row"><h1>gzip</h1><span class="extlib-cat-badge">压缩</span></div>
-    <p>2026-10-14 当前发布物的文件 OOM 事务故障注入在独立 C、<code>xl run</code>、<code>xl build</code> 产物及 <code>xl.dll</code>/<code>xlc.dll</code> 公开 C 脚本宿主上均通过。完整 XLang 用例仍被已记录的 XLIR 字节异或错误阻断，不据此宣称整个包已完成 RC 验收。</p>
+    <p>2026-10-24 使用更新后的 Windows 发布版复验，默认包门禁全部通过，含 C/zlib 互通、分配故障、文件事务、完整语言用例及双语 JIT/AOT。Linux C ASan/UBSan、互通和 XLang 文件用例通过；现有 Linux <code>release/xl</code> 运行完整语言用例仍报 typed XLIR 错误，需重建 Linux 发布版再验收。以下早期验证记录中的 Windows 阻断描述属于旧发布二进制。</p>
     <p class="extlib-lead">UTF-8 文本、二进制、增量流与事务文件压缩。直接复用宿主 XRT 的 gzip 编解码器和校验，无额外压缩 DLL。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api">
@@ -105,7 +105,7 @@ assert gzip.decompressText(output) == "leftright"</code></pre>
     139 项 Python/zlib 双向验证、9 个分配故障点、UTF-8 路径、取消和异常、同路径替换及原目标保留。
     WSL Linux C 路径通过相同互通测试及 ASan/UBSan/泄漏检查；包内 <code>test/file_ops.xl</code> 在 Windows/Linux 通过 UTF-8 文件往返、取消与失败目标保护。</p>
     <p>可重复门禁为 <code>tools/check_extlib_gzip.ps1</code> 和 <code>tools/check_extlib_gzip.sh</code>。
-    2026-10-16 Linux xlang 基础范例已运行通过；2026-10-17 包内文件用例加入 Linux 门禁。完整语言用例仍受 Buffer 字节索引异或的 XLIR 错误阻断。完整 Linux JIT/AOT、超大文件、并发压力、性能基准和断电恢复尚未验收。
+    2026-10-16 Linux xlang 基础范例已运行通过；2026-10-17 包内文件用例加入 Linux 门禁。现有 Linux 发布二进制的完整语言用例仍受 Buffer 字节索引异或的 XLIR 错误阻断。完整 Linux JIT/AOT、超大文件、并发压力、性能基准和断电恢复尚未验收。
     不把有日期、有范围的通过记录当作所有平台生产认证。</p>
     <p>2026-10-19：C 范例单文件直跑、独立构建和包运行器输出一致；Linux
     ASan/UBSan、139 项 zlib 互通、文件事务及 C/XLang 范例对照通过。

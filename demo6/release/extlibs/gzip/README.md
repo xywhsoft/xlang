@@ -3,10 +3,11 @@
 标准 gzip 字节流与事务文件压缩。编解码、CRC32 和 ISIZE 校验复用宿主 XRT，
 包内不再重复实现 gzip 封装。无额外压缩 DLL 依赖。
 
-> 2026-10-14 当前发布物的文件 OOM 事务故障注入在独立 C、`xl run`、
-> `xl build` 产物以及 `xl.dll`/`xlc.dll` 的公开 `xlRunCSourceFiles` 宿主上均通过。
-> 完整 XLang 用例仍受已记录的 XLIR 字节异或问题阻断，不能把文件专项通过
-> 当作整个包已完成 RC 验收。不覆盖模式区分目标不存在与查询失败。
+> 2026-10-24 使用更新后的 Windows 发布版复验：默认包门禁全部通过，
+> 包括 C/zlib 互通、分配故障、文件事务、语言用例及双语 JIT/AOT。
+> Linux C ASan/UBSan、互通和 XLang 文件用例通过，但现有 Linux
+> `release/xl` 运行完整语言用例仍在第 49 行报 typed XLIR 错误；
+> Linux 完整语言门禁尚未签收，需重建 Linux 发布版再验证。
 
 ## xlang
 
@@ -142,6 +143,8 @@ Python 3 在 PATH 中。Linux C 与 XLang 文件验证为 `bash tools/check_extl
 
 完整 Linux xlang JIT/AOT、超大文件、并发压力、断电恢复和性能基准不在本批验证范围；
 源码与发布二进制升级后需要重跑，不把本记录称为所有平台的生产认证。
+
+以下为历史验证记录；其中 Windows 的 XLIR/链接阻断指当时的旧发布版。
 
 2026-10-16：当前 Linux 发布物从 `demo6` 根目录运行 `gzip_basic.xl` 成功，覆盖 UTF-8、二进制、增量流和截断拒绝。完整 `test/cases/extlib_gzip.xl` 仍在第 49 行的 Buffer 字节索引异或触发已记录的 XLIR 错误；基础范例通过不代表完整 Linux JIT/AOT 验收。
 2026-10-17：当前 Windows/Linux `xl run` 的包内文件事务用例通过；Linux 包级门禁同时执行 C sanitizer、Python 互通和该语言用例。共享 XLIR 阻断未变。
