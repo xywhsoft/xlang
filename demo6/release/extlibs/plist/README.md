@@ -1,5 +1,13 @@
 # plist
 
+2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 通过：C 本体与
+桥接测试、XLang 边界/分配故障、包外私有类型负例、双语范例同输出，
+以及最小导入和公开范例 AOT。门禁现让 C/JIT/AOT 分别写出 XML 与
+binary plist，由 Python 标准库 `plistlib` 独立读回并核对内容；
+`-SkipAot` 模式同样执行 C/JIT 的独立格式检查。下文的 AOT 缺符号与
+序列策略阻断是旧发布物记录，不是这次 Windows 门禁结果；本轮未
+重建 Linux 发布版，不能把 Windows AOT 结果外推到 Linux。
+
 Apple property list 的 XML 1.0 与 `bplist00` 读写。XLang 入口使用 `import plist`；C 入口是 `include/xrt_plist.h` 中的 `xrtPlist*` API。实现复用 XRT 的 Buffer、文件、时间和资源限额，以及 `xml.dom` 的 XML 解析能力。
 
 ## XLang API
@@ -50,7 +58,7 @@ XLang 的 `dumps`/`dump` 在构造原生文档时即检查节点总数、每个�
 - XML 整数/实数直接使用 XRT 严格数值解析和空白标志，不复制数值文本；Base64 数据直接使用 XRT 忽略空白的严格解码，删除私有清洗与填充检查。整数正负边界、溢出/尾随垃圾、空/非法 Base64，以及整数、字符串、实数、日期和数据各前 128 个分配点的失败分类由 C 回归覆盖。分配失败返回内存错误，不会崩溃或伪装成格式错误。
 - `test/test_native.c`：桥接层 NUL 键值与错误码。
 - `test/boundaries.xl`：XLang 二进制/XML、UID、数据与路径 NUL、非法输入和限额。
-- Windows：`powershell -File release/extlibs/plist/test/check.ps1`，包含 C/XL 边界、双语范例同输出、最小导入与公开范例 AOT；`-SkipAot` 仅用于 C/JIT 快测，不代表发布验收。
+- Windows：`powershell -File release/extlibs/plist/test/check.ps1`，包含 C/XL 边界、双语范例同输出、`plistlib` 独立格式验证、最小导入与公开范例 AOT；`-SkipAot` 仅用于 C/JIT 快测，不代表发布验收。
 - Linux：`sh release/extlibs/plist/test/check.sh`，以 ASan/UBSan 检查 C 本体与桥接层，另用内嵌 TCC 执行同一份 C 日期测试、运行包内 XLang 边界/分配测试，核对双语范例输出，并由 Python 标准库读取四份范例产物。
 
 桥接层的 C `uint64_t`（XRT `uint64`）在 XLang extern 中统一声明为 `uint64`，包括输入/输出限额、数据长度及 UID；不使用在 Linux LP64 下不同类型的 `c_ulonglong`。Linux 包级脚本同时运行 XLang 主用例，防止声明再次漂移。

@@ -9,6 +9,7 @@ $work = Join-Path $testRoot ('plist_guard_' + [guid]::NewGuid().ToString('N'))
 
 Push-Location $root
 try {
+    [void][IO.Directory]::CreateDirectory($work)
     foreach ($source in @(
         'release/extlibs/plist/test/test_plist.c',
         'release/extlibs/plist/test/test_native.c'
@@ -36,15 +37,20 @@ try {
         throw "plist native document access check failed: $privateDiagnostic"
     }
 
-    $xlangOutput = & $xl run release/examples/extlibs/plist.xl
+    $cXml = Join-Path $work 'c.xml'
+    $cBinary = Join-Path $work 'c.bplist'
+    $xlXml = Join-Path $work 'xlang.xml'
+    $xlBinary = Join-Path $work 'xlang.bplist'
+    $xlangOutput = & $xl run release/examples/extlibs/plist.xl -- $xlXml $xlBinary
     if ($LASTEXITCODE -ne 0) { throw 'plist XLang example failed' }
-    $cOutput = & $xl run release/examples/extlibs/plist_c.c
+    $cOutput = & $xl run release/examples/extlibs/plist_c.c -- $cXml $cBinary
     if ($LASTEXITCODE -ne 0) { throw 'plist C example failed' }
     if (($xlangOutput -join "`n") -cne ($cOutput -join "`n")) {
         throw 'plist C/XLang example output differs'
     }
+    & python -I release/extlibs/plist/test/check_external.py $cXml $xlXml $cBinary $xlBinary
+    if ($LASTEXITCODE -ne 0) { throw 'plist C/XLang plistlib interop failed' }
     if (-not $SkipAot) {
-        [IO.Directory]::CreateDirectory($work) | Out-Null
         $core = Join-Path $work 'plist_core.exe'
         & $xl build release/extlibs/plist/test/smoke.xl -o $core
         if ($LASTEXITCODE -ne 0) { throw 'plist import AOT build failed' }
@@ -52,12 +58,16 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'plist import AOT run failed' }
 
         $example = Join-Path $work 'plist_example.exe'
+        $aotXml = Join-Path $work 'aot.xml'
+        $aotBinary = Join-Path $work 'aot.bplist'
         & $xl build release/examples/extlibs/plist.xl -o $example
         if ($LASTEXITCODE -ne 0) { throw 'plist example AOT build failed' }
-        $aotOutput = & $example
+        $aotOutput = & $example $aotXml $aotBinary
         if ($LASTEXITCODE -ne 0 -or ($aotOutput -join "`n") -cne ($cOutput -join "`n")) {
             throw 'plist example AOT output differs from C/XLang'
         }
+        & python -I release/extlibs/plist/test/check_external.py $cXml $aotXml $cBinary $aotBinary
+        if ($LASTEXITCODE -ne 0) { throw 'plist AOT plistlib interop failed' }
     }
     if ($SkipAot) {
         Write-Output 'plist Windows C/XLang (AOT skipped) gate: PASS'
