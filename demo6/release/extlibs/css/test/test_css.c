@@ -71,6 +71,29 @@ static int nestingBoundary(void)
     return 0;
 }
 
+static int groupBoundary(void)
+{
+    char sheet[256];
+    size_t i;
+    size_t depth;
+
+    for (depth = 64u; depth <= 65u; ++depth) {
+        size_t pos = 0u;
+        for (i = 0u; i < depth; ++i) sheet[pos++] = '(';
+        sheet[pos++] = 'x';
+        for (i = 0u; i < depth; ++i) sheet[pos++] = ')';
+        memcpy(sheet + pos, " { color: red; }", sizeof(" { color: red; }"));
+        if (depth == 64u) {
+            if (!xcss_validate(sheet) || xrtGetError() != NULL)
+                return fail("64 nested selector groups were rejected");
+        } else if (xcss_validate(sheet) || xrtGetError() == NULL ||
+                   xrtErrorKind(xrtGetError()) != XERR_RANGE) {
+            return fail("65 nested selector groups did not report range error");
+        }
+    }
+    return 0;
+}
+
 /* 变异合法嵌套样本，要求三个公开入口对整份语法给出一致判断。 */
 static int mutationBoundary(void)
 {
@@ -290,6 +313,25 @@ int main(void)
         !xcss_validate("a { content: 'line\\\fnext'; }")) {
         return fail("escaped CSS line continuation was rejected");
     }
+    if (xcss_validate("a([)] { color: red; }") ||
+        xrtGetError() == NULL || xrtErrorKind(xrtGetError()) != XERR_VALUE ||
+        xcss_validate("a { color: f([)]; }") ||
+        xrtGetError() == NULL || xrtErrorKind(xrtGetError()) != XERR_VALUE) {
+        return fail("crossed parentheses and brackets were accepted");
+    }
+    if (!xcss_validate("a([x]) { color: f([y]); }") ||
+        xrtGetError() != NULL) {
+        return fail("properly nested parentheses and brackets were rejected");
+    }
+    {
+        void* result = xcss_get("a { color: red; } b([)] { color: blue; }",
+            "a", "color");
+        if (result != NULL || xrtGetError() == NULL ||
+            xrtErrorKind(xrtGetError()) != XERR_VALUE) {
+            xrtFree(result);
+            return fail("get ignored crossed brackets in a later rule");
+        }
+    }
     {
         void* result = xcss_get("a { color: red; } b { content: 'bad\nline'; }",
             "a", "color");
@@ -335,7 +377,7 @@ int main(void)
             return fail("countRules ignored a malformed declaration");
         }
     }
-    if (nestingBoundary() || mutationBoundary() || utf8Boundary() ||
+    if (nestingBoundary() || groupBoundary() || mutationBoundary() || utf8Boundary() ||
         allocationFailures()) return 1;
     puts("css C smoke: PASS");
     return 0;

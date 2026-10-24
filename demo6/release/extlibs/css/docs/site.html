@@ -28,7 +28,7 @@
       <tr><td><code>validate</code></td><td>检查受支持的语法；畸形内容抛 ValueError，嵌套超限抛 RangeError</td></tr>
       <tr><td><code>stripComments</code></td><td>去掉注释，保留字符串中的相同文本</td></tr>
     </tbody></table>
-    <p><code>get</code>、<code>countRules</code>、<code>countProps</code>、<code>selectorAt</code> 均检查整份样式表的受支持语法；首个匹配之后出现坏规则也会报错。嵌套 at-rule 最多 64 层，第 65 层报告范围错误。引号内未转义 CR/LF/FF 拒绝，反斜杠续行有效。C/XLang 均要求整份样式表及查询名为有效 UTF-8，注释中的非法字节也拒绝；XLang 文本入口另拒绝内嵌 NUL。<code>stripComments</code> 仅处理注释与引号，不替代 <code>validate</code>。</p>
+    <p><code>get</code>、<code>countRules</code>、<code>countProps</code>、<code>selectorAt</code> 均检查整份样式表的受支持语法；首个匹配之后出现坏规则也会报错。嵌套 at-rule 最多 64 层；选择器和声明表达式中的圆括号、方括号必须按顺序闭合，合计最多嵌套 64 层。第 65 层报告 RangeError，交叉闭合报告 ValueError。引号内未转义 CR/LF/FF 拒绝，反斜杠续行有效。C/XLang 均要求整份样式表及查询名为有效 UTF-8，注释中的非法字节也拒绝；XLang 文本入口另拒绝内嵌 NUL。<code>stripComments</code> 仅处理注释与引号，不替代 <code>validate</code>。</p>
     <p>查询名称两侧的注释与空白不参与匹配：<code>a/*x*/ { color/*y*/: red; }</code> 可按 <code>a</code> 和 <code>color</code> 查询；名称中间的注释不合并两个 token。<code>selectorAt</code> 保留原始选择器文本。本包仍是受限查询器，不承诺完整 CSS 语义。</p>
     <h2 id="example">xlang</h2>
     <pre><code>import css

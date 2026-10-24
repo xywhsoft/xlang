@@ -89,6 +89,37 @@ func main(...) as int
     assert rejected, "raw newline inside CSS string must fail"
     assert css.validate("a { content: 'line\\\nnext'; }")
 
+    rejected = false
+    try
+        css.validate("a([)] { color: red; }")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "crossed selector brackets must fail"
+    rejected = false
+    try
+        css.get("a { color: f([)]; }", "a", "color")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "crossed declaration brackets must fail"
+    assert css.validate("a([x]) { color: f([y]); }")
+    assert css.validate(string.repeat("(", 64) + "x" + string.repeat(")", 64) + " { color: red; }")
+    rejected = false
+    try
+        css.validate(string.repeat("(", 65) + "x" + string.repeat(")", 65) + " { color: red; }")
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected, "65 nested selector groups must fail"
+    rejected = false
+    try
+        css.get("a { color: red; } b([)] { color: blue; }", "a", "color")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "query must inspect later crossed brackets"
+
     string malformedTail = "a { color: red; } b { color blue; }"
     rejected = false
     try

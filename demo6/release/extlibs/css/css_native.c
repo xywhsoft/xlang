@@ -15,6 +15,7 @@
 
 #define XCSS_DOMAIN "xlang.extlib.css"
 #define XCSS_MAX_NESTING 64u
+#define XCSS_MAX_GROUP_NESTING 64u
 
 typedef struct xcssinput {
     cstr Data;
@@ -177,13 +178,13 @@ static bool xcss_skip_string(xcssinput Input, size_t* pPos)
 
 
 
-/* Finds a delimiter outside string/comment/()[] nesting. */
+/* 只在字符串、注释和括号之外查找分隔符，并验证括号闭合顺序。 */
 static bool xcss_next_delimiter(xcssinput Input, size_t Begin, size_t End,
     cstr sDelimiters, size_t* pPos, char* pDelimiter)
 {
     size_t i = Begin;
-    size_t iParen = 0u;
-    size_t iBracket = 0u;
+    char Stack[XCSS_MAX_GROUP_NESTING];
+    size_t iDepth = 0u;
 
     while (i < End) {
         char cValue = Input.Data[i];
@@ -200,28 +201,26 @@ static bool xcss_next_delimiter(xcssinput Input, size_t Begin, size_t End,
             i += i + 1u < End ? 2u : 1u;
             continue;
         }
-        if (cValue == '(') ++iParen;
-        else if (cValue == ')') {
-            if (iParen == 0u) {
-                xcss_error(XERR_VALUE, "CSS has an unmatched ')' character");
+        if (cValue == '(' || cValue == '[') {
+            if (iDepth == XCSS_MAX_GROUP_NESTING) {
+                xcss_error(XERR_RANGE, "CSS group nesting exceeds 64 levels");
                 return false;
             }
-            --iParen;
-        } else if (cValue == '[') ++iBracket;
-        else if (cValue == ']') {
-            if (iBracket == 0u) {
-                xcss_error(XERR_VALUE, "CSS has an unmatched ']' character");
+            Stack[iDepth++] = cValue;
+        } else if (cValue == ')' || cValue == ']') {
+            if (iDepth == 0u || Stack[iDepth - 1u] != (cValue == ')' ? '(' : '[')) {
+                xcss_error(XERR_VALUE, "CSS has mismatched () or [] grouping");
                 return false;
             }
-            --iBracket;
-        } else if (iParen == 0u && iBracket == 0u && strchr(sDelimiters, cValue) != NULL) {
+            --iDepth;
+        } else if (iDepth == 0u && strchr(sDelimiters, cValue) != NULL) {
             *pPos = i;
             *pDelimiter = cValue;
             return true;
         }
         ++i;
     }
-    if (iParen != 0u || iBracket != 0u) {
+    if (iDepth != 0u) {
         xcss_error(XERR_VALUE, "CSS has an unclosed () or [] expression");
         return false;
     }
