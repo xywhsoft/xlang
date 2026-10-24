@@ -65,9 +65,9 @@ int main(void)
   </section>
   <section id="verify">
     <h2>验证状态</h2>
-    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/gettext/test/check.ps1 -SkipAot
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/gettext/test/check.ps1
 bash release/extlibs/gettext/test/check.sh</code></pre>
-    <p>Windows 严格 GCC、C/XLang 边界和双语范例，以及 Linux C ASan/UBSan、包内 XLang 边界/重复键负例与双语范例逐字节对照通过；两平台均对照 C 范例的 GCC 编译运行与单文件 <code>xl run</code> 输出。包 C 源文件只依赖公开 XRT 头文件。C/XLang 六复数形式测试覆盖嵌套条件与取模分组。PO/MO 解析的 C 逐点分配故障测试要求内存错误、无半成品目录和恢复后正常解析；XLang 的 PO/MO 解析及四种查询各自扫描至首个无故障成功，并在每次故障后立即重试。无效 UTF-8 负例也已覆盖。完整 AOT 尚受共享缺符号问题阻断，未签收发布级。</p>
+    <p>2026-10-24 使用更新后的 Windows 发布版复验，默认包门禁完整通过：严格 GCC、C/XLang 边界、分配故障、双语范例和公开范例 AOT；旧版共享缺符号已解除。Linux 本轮 C ASan/UBSan 先通过，现有旧版 <code>release/xl</code> 随后在 <code>cbytes</code> 声明处报未知类型，完整 Linux 语言门禁须待发布二进制重建后复验。包 C 源文件只依赖公开 XRT 头文件；PO/MO 解析和查询均有内存错误、恢复及无效 UTF-8 负例。</p>
   </section>
 </main>
 <script src="../main.js"></script>

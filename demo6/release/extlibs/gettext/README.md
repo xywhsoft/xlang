@@ -52,7 +52,16 @@ C 的 `xgt_load_mo` 使用 XRT 限额读取，同样最多接受 64 MiB；超限
 `XERR_RANGE`，其他文件错误保留其原始类别；
 格式错误仍为 `XERR_VALUE`，不把文件系统失败伪装成坏目录。
 
-XLang 示例：`release/examples/extlibs/gettext.xl`。对应 C 示例：`release/extlibs/gettext/examples/gettext_c.c`。在 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/gettext/test/check.ps1 -SkipAot` 可执行包级 C、XLang 与输出对照；不带 `-SkipAot` 时额外检查 AOT。
+XLang 示例：`release/examples/extlibs/gettext.xl`。对应 C 示例：`release/extlibs/gettext/examples/gettext_c.c`。在 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/gettext/test/check.ps1` 可执行完整包级 C、XLang、双语输出及 AOT 验证。
+
+2026-10-24 使用更新后的 Windows 发布版复验：默认包门禁完整通过，含
+严格 C、PO/MO 边界、分配故障、双语范例和公开范例 AOT。旧 Windows
+发布版的共享符号阻断已解除。Linux `check.sh` 先完成 C ASan/UBSan，
+随后现有 10 月 6 日的 `release/xl` 在 `src/gettext.xl` 的 `cbytes`
+声明处报“未知类型”；需重建 Linux 发布版后重跑完整语言门禁。
+这不构成 `gettext` 包源码的语法回退要求。
+
+以下为历史验证记录；共享缺符号的“当前”表述均指记录当时的旧发布版。
 2026-10-22：包内 C/XLang 成对范例新增 `tnc` 上下文复数、`parseMo` 固定二进制夹具和 `loadMo` 文件入口，现覆盖七个公开语言入口；C 范例还展示拥有型 MO 文件字节与目录值的释放。两侧各自核对译文，再比较完整输出。Windows `test/check.ps1 -SkipAot` 与 Linux `test/check.sh`（含 C ASan/UBSan）通过；库实现/API 未改，完整 AOT 仍受下述共享缺符号阻断。
 Windows 门禁每次使用独立的 `build/test/gettext_guard_*` 目录编译 XRT、C 测试和范例，结束时清理本次产物；并行门禁不会复用旧对象或互相覆盖。
 当前默认门禁的 C/JIT 阶段通过，首个边界 AOT 构建仍缺共享 `xl6NativeHandleTraceLeaf`；脚本按退出码报告此失败并清理本次目录，不能据此签收完整 AOT。
