@@ -11,16 +11,56 @@ static void trackedFree(void* p) { if(p)++freed;free(p); }
 #include "xlir_c_owned_native.c"
 #undef malloc
 #undef free
+static xvalue* expectedPack;
+static unsigned observedPacks;
+void owned_observe_array_pack(xvalue* pack) { assert(pack && (!expectedPack || pack==expectedPack));++observedPacks; }
+void owned_observe_dict_pack(xvalue* pack) { assert(pack && (!expectedPack || pack==expectedPack));++observedPacks; }
 #define main unusedGeneratedMain
 #include XL6_C_OWNED_BOUNDARY_PROGRAM
 #undef main
+#include XL6_C_OWNED_BOUNDARY_BINDINGS
+
+static void checkPackIdentity(void)
+{
+    xlir_closure *array=OWNED_ARRAY_ADAPTER,*dict=OWNED_DICT_ADAPTER;
+    assert(array && dict);
+    for(unsigned named=0;named<2;++named) {
+        expectedPack=named ? xrtValueObject() : xrtValueArray();assert(expectedPack);
+        for(unsigned populated=0;populated<2;++populated) {
+            if(populated) {
+                xvalue* item=xrtValueInt(42);assert(item);
+                assert(named ? xrtValueObjectSet(expectedPack,(xstrview){"answer",6},item) :
+                    xrtValueArrayAppend(expectedPack,item));
+                xrtValueRelease(item);
+            }
+            unsigned before=observedPacks;
+            if(named) {
+                xvalue* result=NULL;
+                assert(((bool(*)(void*,xvalue**,int64_t,xvalue*))dict->invoke)(
+                    dict->environment,&result,7,expectedPack));
+                assert(result);
+                xrtValueRelease(result);
+            } else {
+                xlir_string result={0};
+                assert(((bool(*)(void*,xlir_string*,xvalue*))array->invoke)(
+                    array->environment,&result,expectedPack));
+                assert(result.Size==5 && !memcmp(result.Data,"hello",5) && result.Data!=originalText);
+                xlir_string_drop(result);
+            }
+            assert(observedPacks==before+1 && allocated==freed);
+        }
+        xrtValueRelease(expectedPack);expectedPack=NULL;
+    }
+    puts("C owner variadic adapters: empty/populated array/dict pack pointer identity preserved");
+}
 
 int main(void)
 {
     assert(xrtMemDebugEnable(true) && xrtMemDebugEnabled());
     assert(xlir_module_init());
+    checkPackIdentity();
     size_t failures=0,successes=0;
-    for(int mode=0;mode<5;++mode) {
+    for(int mode=0;mode<9;++mode) {
         xl6_foreign_error_scope entry={0};
         assert(xl6ForeignCallBegin(&entry));
         assert(owned_boundary_exercise(mode));

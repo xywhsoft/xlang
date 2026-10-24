@@ -5013,6 +5013,7 @@ static int xl6IrLowerCallSiteAggregateAppend(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrCallSite* site,
     const XL6_IrCallArgument* binding, XL6_IrValueId container)
 {
+    if(binding->source==XL6_IR_CALL_ARGUMENT_VARIADIC_PACK)return 1;
     XL6_IrTypeId boolType = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
     const XL6_IrNode* item = xl6IrNodeGet(ctx->module, binding->expression);
     size_t keyFirst=ctx->evaluationOwnerCount;
@@ -11012,6 +11013,16 @@ static int xl6IrLowerPrepareCallSiteAggregate(
 {
     if (*value != XL6_IR_VALUE_INVALID) return 1;
     if (abi != XL6_IR_PARAMETER_ABI_BORROW) return 0;
+    if(site->argumentCount==site->fixedParameterCount+1) {
+        const XL6_IrCallArgument* pack=&ctx->module->callArguments[site->firstArgument+site->fixedParameterCount];
+        if(pack->source==XL6_IR_CALL_ARGUMENT_VARIADIC_PACK) {
+            const XL6_IrNode* expression=xl6IrNodeGet(ctx->module,pack->expression);
+            *value=xl6IrLowerCallArgumentAsType(ctx,origin,pack,type);
+            *value=xl6IrLowerAnchorResolvedCallBorrow(ctx,origin,pack->expression,expression,type,abi,*value,temporary);
+            *value=xl6IrLowerProtectCallEvaluationOperand(ctx,origin,type,abi,*value,*temporary);
+            return *value!=XL6_IR_VALUE_INVALID;
+        }
+    }
     *value = xl6IrLowerCallSiteAggregateNew(ctx, origin, site, type);
     if (*value == XL6_IR_VALUE_INVALID) return 0;
     *temporary = xl6IrLowerNewTempStorage(ctx, type, origin);

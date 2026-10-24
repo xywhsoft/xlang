@@ -19,7 +19,9 @@ try {
     & $compilerPath test/cases/xlir_c_owned_boundary_fault.xl "$work/program.c"
     if($LASTEXITCODE){throw 'Callable boundary fault source compilation failed'}
     $hostSource=(Resolve-Path test/cases/xlir_c_owned_boundary_fault_host.c).Path.Replace('\','/')
-    [IO.File]::WriteAllText("$work/host.c",('#define XL6_C_OWNED_BOUNDARY_PROGRAM "'+"$work/program.c".Replace('\','/')+'"'+"`n"+'#include "'+$hostSource+'"'+"`n"),$utf8)
+    $program="$work/program.c".Replace('\','/')
+    [IO.File]::WriteAllText("$work/host.c",('#define XL6_C_OWNED_BOUNDARY_PROGRAM "'+$program+'"'+"`n"+
+        '#define XL6_C_OWNED_BOUNDARY_BINDINGS "'+$program+'.bind.h"'+"`n"+'#include "'+$hostSource+'"'+"`n"),$utf8)
     foreach($optimization in @('O0','O2')) {
         $flags=@('-std=c11',"-$optimization",'-ffunction-sections','-fdata-sections',
             "-I$publicPath/include",'-Irelease/include',"$work/host.c")+$objects+

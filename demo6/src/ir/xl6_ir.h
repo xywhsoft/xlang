@@ -3542,7 +3542,9 @@ typedef enum XL6_IrCallArgumentSource {
     XL6_IR_CALL_ARGUMENT_IMPLICIT_STRING,
     /* Value computed by the paired getter/operator transaction, not a second
      * evaluation of the source RHS. expression names the update operation. */
-    XL6_IR_CALL_ARGUMENT_PROPERTY_UPDATE
+    XL6_IR_CALL_ARGUMENT_PROPERTY_UPDATE,
+    /* Compiler-generated callable adapter: borrow an existing final pack. */
+    XL6_IR_CALL_ARGUMENT_VARIADIC_PACK
 } XL6_IrCallArgumentSource;
 
 typedef enum XL6_IrCallVariadicAbi {
