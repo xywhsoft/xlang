@@ -1,13 +1,14 @@
 extern "xsl_slugify" func __sl_slugify(string text, c_longlong length) as point
 extern "xsl_is_ascii" func __sl_is_ascii(string text, c_longlong length) as c_int
 extern "xl6_xrt_last_error_text" func __sl_error() as string
+extern "xrtFree" @no_raise func __sl_free(point data)
 
 
 
-export func slugify(string text) as string
+export func slugify(string text) as cstring
     point result = __sl_slugify(text, c_longlong(string.byteLen(text)))
     if result == null then throw ValueError __sl_error() end
-    return __xl_runtime.takeCstr(result)
+    return cstring.take(result, __sl_free)
 end
 
 export func isAscii(string text) as bool

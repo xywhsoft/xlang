@@ -1,5 +1,13 @@
 import slugify
 
+func checkOwnedResult()
+    cstring owned = slugify.slugify("Café & 你好：😀")
+    string stable = owned
+    owned = slugify.slugify("another title")
+    assert stable == "cafe-and-你好" and owned == "another-title"
+end
+
+checkOwnedResult()
 assert slugify.slugify("Café & 你好") == "cafe-and-你好"
 assert slugify.slugify("Ẁorld") == "world"
 assert slugify.slugify("ẁorld") == "world"

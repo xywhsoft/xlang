@@ -1,5 +1,9 @@
 # slugify
 
+2026-10-25：公开 `slugify.slugify` 使用 `cstring` 直接接管 C 返回的
+XRT 分配，不再复制整份输出文本；调用方仍可赋给 `string` 并独立保留。
+Windows 包门禁同时核对生成 C 的所有权接管与 C/JIT/AOT 行为。
+
 2026-10-24 当前 Windows 发布版默认门禁通过：严格 C、线程、
 XLang 中央与边界、C/XLang 同输出，以及核心、边界和公开范例
 三个独立 EXE 的 AOT 构建与运行。旧共享链接缺符号只属于历史发布物。

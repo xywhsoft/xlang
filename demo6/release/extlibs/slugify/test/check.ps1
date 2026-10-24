@@ -52,6 +52,16 @@ try {
         throw 'direct C example output differs from GCC example'
     }
     $null = Run 'XLang boundaries' $xl @('run', 'release/extlibs/slugify/test/boundaries.xl')
+    [IO.Directory]::CreateDirectory($work) | Out-Null
+    $generated = Join-Path $work 'owned_text.c'
+    $null = Run 'owned-text cgen' $xl @('cgen',
+        'release/extlibs/slugify/test/boundaries.xl', '--emit', $generated)
+    $adoptions = [regex]::Matches([IO.File]::ReadAllText($generated),
+        '\bxl6CStringTakeV1\s*\(').Count
+    if ($adoptions -ne 1) {
+        throw "slugify return must use one direct C-owner adoption (got $adoptions)"
+    }
+    Write-Host '[slugify] owned-text codegen: PASS'
     $xlOutput = Run 'XLang example' $xl @('run', 'release/examples/extlibs/slugify.xl')
     if ($cOutput -cne $xlOutput) {
         throw "C/XLang example output differs`nC: $cOutput`nXLang: $xlOutput"
