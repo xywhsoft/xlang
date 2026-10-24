@@ -16,6 +16,11 @@ C API 见 `include/pinyin_native.h`。`xpinyin_convert[_n]` 与 `xpinyin_initial
 
 ## 范例与验证
 
+2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
+严格 GCC、C/XLang 边界、两条入口的分配故障、双语固定中文输出，
+以及无输出核心和带输出范例 AOT 均通过。旧的共享快照缺符号记录
+属于先前发布物；本次未重跑 Linux sanitizer，字表覆盖范围也未扩大。
+
 - `release/examples/extlibs/pinyin.xl` 与 `pinyin_c.c` 可直接 `xl run`，输出完全一致。
 - `release/extlibs/pinyin/test/test_pinyin.c` 覆盖长输入、结果所有权、非法 UTF-8、嵌入 NUL 和未知字符。
 - `release/extlibs/pinyin/test/boundaries.xl` 覆盖 XLang 桥接及异常；`demo6/test/cases/extlib_pinyin.xl` 是原有核心用例。
