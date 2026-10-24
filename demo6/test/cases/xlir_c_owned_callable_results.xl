@@ -1,0 +1,124 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_released" @no_raise func released() as int
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+func make() as cstring
+    return cstring.take(nativeText(),nativeFree)
+end
+export func makeBytes() as cbytes
+    return cbytes.take(nativeBytes(),4,nativeFree)
+end
+func maybe(bool present) as cstring?
+    return present ? make() : null
+end
+func maybeBytes(bool present) as cbytes?
+    return present ? makeBytes() : null
+end
+func pair() as (cstring,cbytes,int)
+    return make(),makeBytes(),7
+end
+func consume(func() as string producer) as string
+    return producer()
+end
+func factory() as func() as string
+    return make
+end
+func select(func() as string producer) as int
+    return 1
+end
+func select(func() as cstring producer) as int
+    return 2
+end
+func mixed(func() as (cstring,bytes,int) producer) as bool
+    auto text,data,number=producer()
+    return original(text) and not originalBytes(data) and number==7
+end
+func alternative() as cstring
+    return "replacement"
+end
+int factoryCount=0
+func makeCallback() as func() as cstring
+    factoryCount+=1
+    return make
+end
+class Parent
+    virtual func text(bool present) as string?
+        return present ? "base" : null
+    end
+    virtual func data() as bytes
+        return b"base"
+    end
+end
+class Child extends Parent
+    override func text(bool present) as cstring?
+        return maybe(present)
+    end
+    override func data() as cbytes
+        return makeBytes()
+    end
+end
+class Grandchild extends Child
+    override func data() as cbytes
+        return makeBytes()
+    end
+end
+func check()
+    string? expected="hello"
+    auto direct=make()
+    auto binary=makeBytes()
+    assert original(direct) and originalBytes(binary)
+    assert consume(make)=="hello"
+    func() as string callback=make
+    assert callback()=="hello"
+    auto inferred=make
+    callback=inferred
+    assert callback()=="hello" and factory()()=="hello"
+    auto anonymous=func() as cstring => make()
+    callback=anonymous
+    assert callback()=="hello"
+    auto textCall=xcall(make)
+    auto dataCall=xcall(makeBytes)
+    assert textCall()=="hello" and dataCall()==b"\0\xff\x11*"
+    auto storedCall=xcall(inferred)
+    assert storedCall()=="hello"
+    assert select(make)==2 and select(inferred)==2
+    assert mixed(pair)
+    func() as string snapshot=inferred
+    inferred=alternative
+    assert snapshot()=="hello" and inferred()=="replacement"
+    func() as string once=makeCallback()
+    assert factoryCount==1 and once()=="hello" and once()=="hello"
+    assert factoryCount==1
+    auto optional=xcall(maybe)
+    auto optionalBytes=xcall(maybeBytes)
+    assert optional(false)==null and optional(true)=="hello"
+    assert optionalBytes(false)==null and optionalBytes(true)==b"\0\xff\x11*"
+    auto product=xcall(pair)
+    auto text,data,number=product()
+    assert text=="hello" and data==b"\0\xff\x11*" and number==7
+    Parent object=Grandchild()
+    assert object.text(false)==null and object.text(true)==expected
+    assert object.data()==b"\0\xff\x11*"
+    auto concrete=Child()
+    assert concrete.text(true)==expected and concrete.data()==b"\0\xff\x11*"
+end
+check()
+assert released()==23
+async func workers()
+    string? expected="hello"
+    bytes? expectedBytes=b"\0\xff\x11*"
+    assert await task.spawn(make)=="hello"
+    assert await task.spawn(makeBytes)==b"\0\xff\x11*"
+    auto producer=make
+    assert await task.spawn(producer)=="hello"
+    auto anonymous=func() as cbytes => makeBytes()
+    assert await task.spawn(anonymous)==b"\0\xff\x11*"
+    assert await task.spawn(maybe,false)==null
+    assert await task.spawn(maybe,true)==expected
+    assert await task.spawn(maybeBytes,false)==null
+    assert await task.spawn(maybeBytes,true)==expectedBytes
+end
+await workers()
+assert released()==29

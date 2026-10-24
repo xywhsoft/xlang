@@ -141,6 +141,12 @@ static void xl6SemCountMismatchError(XL6_SemContext* ctx, XL6_AstNode* node, con
 static int xl6SemCheckKnownCall(XL6_SemContext* ctx, XL6_AstNode* call, XL6_AstNode* func);
 static int xl6SemCheckFunc(XL6_SemContext*,XL6_AstNode*);
 static XL6_AstNode* xl6SemCOwnedSpecializeMethod(XL6_SemContext*,XL6_AstNode*,XL6_AstNode*);
+static int xl6SemCOwnedResultListMatches(XL6_SemContext*,const XL6_AstNode*,const XL6_AstNode*);
+static XL6_AstNode* xl6SemCOwnedOrdinaryFunction(XL6_SemContext*,XL6_AstNode*);
+static XL6_AstNode* xl6SemCOwnedFunctionWithResults(XL6_SemContext*,XL6_AstNode*,const XL6_AstNode*);
+static int xl6SemCOwnedAdaptCallableExpr(XL6_SemContext*,XL6_AstNode*,const XL6_AstNode*);
+static int xl6SemCOwnedCallableResultCost(XL6_SemContext*,const XL6_AstNode*,const XL6_AstNode*);
+static int xl6SemCOwnedAdaptCallArguments(XL6_SemContext*,XL6_AstNode*,const XL6_AstNode*);
 static int xl6SemExprFunctionValueMatchAlreadyDiagnosed(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode);
 static int xl6SemCheckChannelTypeArg(XL6_SemContext* ctx, const XL6_AstNode* callee);
 static int xl6SemTypeCanBeMessageValue(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
@@ -3433,10 +3439,13 @@ static int xl6SemFindParamIndex(const XL6_AstNode* params, int fixedCount, const
 }
 
 static void xl6SemAnnotateResolvedCallOwnership(
+    XL6_SemContext* ctx,
     XL6_AstNode* call,
     const XL6_AstNode* callable
 )
 {
+    if(!xl6SemCOwnedAdaptCallArguments(ctx,call,callable))
+        xl6SemErrorNode(ctx,call,"cannot adapt C-owned callback results");
     const XL6_AstNode* params;
     XL6_AstNode* args;
     int fixedCount;
@@ -3843,6 +3852,8 @@ static int xl6SemExprParamMatchCostEx(
         return xl6SemExprCanBoxToVar(ctx, expr) ? 80 : -1;
     }
     if ( xl6TextEquals(targetType, "function") ) {
+        int conversion=xl6SemCOwnedCallableResultCost(ctx,expr,typeNode);
+        if(conversion)return !reportError || xl6SemCOwnedAdaptCallableExpr(ctx,(XL6_AstNode*)expr,typeNode) ? conversion : -1;
         return xl6SemExprCanMatchFunctionTypeEx(ctx, expr, typeNode, reportError) ? 0 : -1;
     }
     if ( xl6TextEquals(targetType, "type") ) {
@@ -5687,7 +5698,7 @@ static int xl6SemCheckClassCtorCall(XL6_SemContext* ctx, XL6_AstNode* call, XL6_
         selected = xl6SemResolveGenericClassCreate(ctx, call, classNode, typeArgs);
         if ( selected != NULL ) {
             xl6SemSetCallPlan(call, XL6_SEM_CALL_CONSTRUCTOR, selected);
-            xl6SemAnnotateResolvedCallOwnership(call, selected);
+            xl6SemAnnotateResolvedCallOwnership(ctx,call, selected);
             return 1;
         }
         if ( xl6SemClassHasCreate(classNode) ) return 0;
@@ -5701,7 +5712,7 @@ static int xl6SemCheckClassCtorCall(XL6_SemContext* ctx, XL6_AstNode* call, XL6_
     selected = xl6SemResolveCreateMember(ctx, call, classNode, XL6_AST_CREATE);
     if ( selected != NULL ) {
         xl6SemSetCallPlan(call, XL6_SEM_CALL_CONSTRUCTOR, selected);
-        xl6SemAnnotateResolvedCallOwnership(call, selected);
+        xl6SemAnnotateResolvedCallOwnership(ctx,call, selected);
         return 1;
     }
     if ( hasCreate ) {
@@ -5798,7 +5809,7 @@ static int xl6SemCheckBaseCtorCall(XL6_SemContext* ctx, XL6_AstNode* call)
     selected = xl6SemResolveCreateMember(ctx, call, baseDecl, XL6_AST_CREATE);
     if ( selected != NULL ) {
         xl6SemSetCallPlan(call, XL6_SEM_CALL_BASE_CONSTRUCTOR, selected);
-        xl6SemAnnotateResolvedCallOwnership(call, selected);
+        xl6SemAnnotateResolvedCallOwnership(ctx,call, selected);
         return 1;
     }
     if ( xl6SemClassHasCreate(baseDecl) ) {
@@ -6355,7 +6366,7 @@ static XL6_AstNode* xl6SemClonePropertyGetterType(
         const XL6_AstNode* returns = xl6SemCallableReturns(concreteGetter);
 
         xl6SemSetCallPlan(member, XL6_SEM_CALL_WITNESS, getter);
-        xl6SemAnnotateResolvedCallOwnership(call, concreteGetter);
+        xl6SemAnnotateResolvedCallOwnership(ctx,call, concreteGetter);
         result = returns != NULL && returns->childCount == 1 ?
             xl6SemCloneTypeNode(returns->children[0]) : NULL;
         xl6AstFree(concreteGetter);
@@ -6377,7 +6388,7 @@ static XL6_AstNode* xl6SemClonePropertyGetterType(
     getter = xl6SemResolveClassPropertyEx(ctx, call, classNode, concreteType, member->text, XL6_AST_GET, report);
     if ( getter != NULL ) {
         xl6SemSetCallPlan(member, XL6_SEM_CALL_PROPERTY_GET, getter);
-        xl6SemAnnotateResolvedCallOwnership(call, getter);
+        xl6SemAnnotateResolvedCallOwnership(ctx,call, getter);
     }
     result = xl6SemCloneClassCallableReturnType(ctx, concreteType, classNode, getter);
     xl6SemProtocolTempCallFree(call);
@@ -6528,7 +6539,7 @@ static XL6_AstNode* xl6SemClonePropertySetterValueType(
         result = valueParam != NULL && valueParam->childCount > 0 ?
             xl6SemCloneTypeNode(valueParam->children[0]) : NULL;
         xl6SemSetCallPlan(operation, XL6_SEM_CALL_WITNESS, setter);
-        xl6SemAnnotateResolvedCallOwnership(call, concreteSetter);
+        xl6SemAnnotateResolvedCallOwnership(ctx,call, concreteSetter);
         xl6AstFree(concreteSetter);
         xl6SemProtocolTempCallFree(call);
         xl6AstFree(receiverType);
@@ -6548,7 +6559,7 @@ static XL6_AstNode* xl6SemClonePropertySetterValueType(
     setter = xl6SemResolveClassPropertyEx(ctx, call, classNode, concreteType, member->text, XL6_AST_LET, report);
     if ( setter != NULL ) {
         xl6SemSetCallPlan(operation, XL6_SEM_CALL_PROPERTY_SET, setter);
-        xl6SemAnnotateResolvedCallOwnership(call, setter);
+        xl6SemAnnotateResolvedCallOwnership(ctx,call, setter);
     }
     params = setter != NULL ? xl6SemCallableParams(setter) : NULL;
     valueParam = params != NULL && params->childCount > 0 ? params->children[params->childCount - 1] : NULL;
@@ -7852,7 +7863,10 @@ static XL6_AstNode* xl6SemFindFunctionValueFunc(XL6_SemContext* ctx, const char*
              xl6SemFunctionTypeMatchesParts(ctx,
                                              functionType,
                                              func->childCount > 1 ? func->children[1] : NULL,
-                                             invocationReturns ? invocationReturns : func->childCount > 2 ? func->children[2] : NULL);
+                                             invocationReturns ? invocationReturns : func->childCount > 2 ? func->children[2] : NULL) ||
+             (functionType->childCount==2 && func->kind!=XL6_AST_ASYNC_FUNC &&
+              xl6SemCallableParamListMatchesFunctionParams(ctx,functionType->children[0],xl6SemCallableParams(func)) &&
+              xl6SemCOwnedResultListMatches(ctx,functionType->children[1],xl6SemCallableReturns(func)));
         xl6AstFree(invocationReturns);
         if (matches) {
             selected = func;
@@ -7941,6 +7955,12 @@ static int xl6SemBindResolvedFunctionValue(
         return 0;
     }
     mutableExpr = (XL6_AstNode*)expr;
+    if(functionType->childCount==2 &&
+       !xl6SemCallableTypeListEquals(ctx,functionType->children[1],xl6SemCallableReturns(selected)) &&
+       xl6SemCOwnedResultListMatches(ctx,functionType->children[1],xl6SemCallableReturns(selected))) {
+        selected=xl6SemCOwnedFunctionWithResults(ctx,(XL6_AstNode*)selected,functionType->children[1]);
+        if(!selected)return 0;
+    }
     typeCopy = xl6SemCloneTypeNode(functionType);
     if ( typeCopy == NULL ) {
         xl6SemErrorNode(ctx, expr, "out of memory while binding named function value type");
@@ -8045,6 +8065,7 @@ static int xl6SemCheckXCallConversion(XL6_SemContext* ctx, XL6_AstNode* node)
     if ( !xl6SemCheckExpr(ctx, arg) ) {
         ok = 0;
     }
+    if(ok && !xl6SemCOwnedAdaptCallableExpr(ctx,arg,NULL))return 0;
 
     functionType = xl6SemInferAutoTypeNode(ctx, arg);
     if ( functionType == NULL || !xl6TextEquals(functionType->text, "function") ||
@@ -8106,6 +8127,8 @@ static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNo
     if ( expr == NULL ) {
         return 1;
     }
+    if(xl6SemCOwnedCallableResultCost(ctx,expr,typeNode))
+        return !reportError || xl6SemCOwnedAdaptCallableExpr(ctx,(XL6_AstNode*)expr,typeNode);
     if ( expr->kind == XL6_AST_ANON_FUNC ) {
         return xl6SemFunctionTypeMatchesParts(ctx,
                                               typeNode,
@@ -8143,6 +8166,8 @@ static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNo
              * Recording the open destination type on the expression would
              * lose the only sound adapter ABI. */
             if ( typeNode->childCount == 0 ) {
+                selected=xl6SemCOwnedOrdinaryFunction(ctx,selected);
+                if(!selected)return 0;
                 concreteFunctionType = xl6SemFunctionTypeFromInvocation(ctx,selected,expr);
                 if ( concreteFunctionType == NULL ) {
                     xl6SemErrorNode(ctx, expr,
@@ -8547,6 +8572,7 @@ static int xl6SemDeclareGlobalFuncName(XL6_SemContext* ctx, XL6_AstNode* nameNod
 
 static int xl6SemCheckKnownCall(XL6_SemContext* ctx, XL6_AstNode* call, XL6_AstNode* func)
 {
+    if(!xl6SemCOwnedAdaptCallArguments(ctx,call,func))return 0;
     XL6_AstNode* params;
     XL6_AstNode* args;
     int fixedCount;
@@ -8887,7 +8913,7 @@ static int xl6SemCheckMemberFunctionValueCall(XL6_SemContext* ctx, XL6_AstNode* 
         method=xl6SemCOwnedSpecializeMethod(ctx,call,method);
         if(!method){xl6AstFree(receiverType);return 0;}
         xl6SemSetCallPlan(call, XL6_SEM_CALL_METHOD, method);
-        xl6SemAnnotateResolvedCallOwnership(call, method);
+        xl6SemAnnotateResolvedCallOwnership(ctx,call, method);
         {
             XL6_AstNode* resultType = method->kind == XL6_AST_ASYNC_FUNC ?
                 xl6SemCloneAsyncMemberCallResultType(
@@ -11242,7 +11268,7 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
                  * 名字表达式恢复成 borrow，造成语义计划和 lowering 互相矛盾。
                  */
                 xl6SemAnnotateResolvedCallOwnership(
-                    node,
+                    ctx,node,
                     concreteFunc != NULL ? concreteFunc : func);
                 xl6AstFree(concreteFunc);
             }
@@ -11329,7 +11355,7 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
         xl6AstFree(typeArgs);
         if(cOwned)return cOwned>0 && ok;
     }
-    if(func) { func=xl6SemCOwnedSpecialize(ctx,node,func,0);if(!func)return 0; }
+    if(func) { func=xl6SemCOwnedSpecialize(ctx,node,func,0,NULL);if(!func)return 0; }
     if ( func != NULL ) {
         xl6SemSetCallPlan(node, XL6_SEM_CALL_DIRECT, func);
     }
@@ -16471,7 +16497,9 @@ static int xl6SemCheckNameExpr(XL6_SemContext* ctx, XL6_AstNode* node)
         node->semanticSymbolId = sym->id;
         /* A read is a resolved use, not a declaration.  Keep the target
          * explicitly so XLIR lowering never has to look the name up again. */
-        node->semanticTargetSymbolId = sym->id;
+        if(sym->kind!=XL6_SYM_FUNC || !node->semanticTargetSymbolId || !node->inferredType ||
+           !xl6TextEquals(node->inferredType->text,"function"))
+            node->semanticTargetSymbolId = sym->id;
 
         if ( ctx->suppressDefiniteAssignment == 0 &&
              (sym->kind == XL6_SYM_VALUE || sym->kind == XL6_SYM_CONST) &&
@@ -21532,6 +21560,40 @@ static int xl6SemBaseMemberIsVirtualChain(const XL6_AstNode* member)
            xl6SemAstHasFlag(member, XL6_AST_FLAG_OVERRIDE);
 }
 
+/* A C result marker changes the private producer ABI, not a pre-existing
+ * virtual slot. Normalize the overriding declaration before any caller's
+ * result inference; its body uses the ordinary return materialization path. */
+static int xl6SemCOwnedNormalizeOverrides(XL6_SemContext* ctx,XL6_AstNode* classNode,unsigned depth)
+{
+    if(!classNode || classNode->kind!=XL6_AST_CLASS || depth>32)return 1;
+    XL6_AstNode* base=xl6SemBaseClassDecl(ctx,classNode);
+    if(base && !xl6SemCOwnedNormalizeOverrides(ctx,base,depth+1))return 0;
+    XL6_AstNode* body=classNode->childCount>1 ? classNode->children[1] : NULL;
+    for(size_t m=0;body && m<body->childCount;++m) {
+        XL6_AstNode* member=body->children[m];
+        if(!(member->flags & XL6_AST_FLAG_OVERRIDE) || member->kind!=XL6_AST_FUNC)continue;
+        XL6_AstNode* ancestor=base;
+        unsigned steps=0;
+        while(ancestor && steps++<32) {
+            XL6_AstNode* members=ancestor->childCount>1 ? ancestor->children[1] : NULL;
+            int found=0;
+            for(size_t b=0;members && b<members->childCount;++b) {
+                XL6_AstNode* candidate=members->children[b];
+                if(candidate->kind!=member->kind || (candidate->flags & XL6_AST_FLAG_STATIC) ||
+                   !xl6SemMembersShareOverloadGroup(member,candidate) ||
+                   !xl6SemParamListsExactEqual(ctx,xl6SemCallableParams(member),xl6SemCallableParams(candidate)))continue;
+                if(!xl6SemCOwnedResultListMatches(ctx,xl6SemCallableReturns(candidate),xl6SemCallableReturns(member)))continue;
+                XL6_AstNode* returns=xl6SemCloneTypeNode(xl6SemCallableReturns(candidate));
+                if(!returns)return 0;
+                xl6AstFree(member->children[2]);member->children[2]=returns;found=1;break;
+            }
+            if(found)break;
+            ancestor=xl6SemBaseClassDecl(ctx,ancestor);
+        }
+    }
+    return 1;
+}
+
 static int xl6SemCheckClassOverrideRules(XL6_SemContext* ctx, XL6_AstNode* classNode, XL6_AstNode* baseDecl)
 {
     XL6_AstNode* body;
@@ -22978,7 +23040,7 @@ static int xl6SemCheckProtocolCallArgs(XL6_SemContext* ctx, XL6_AstNode* call, c
 
     params = method != NULL && method->childCount > 1 ? method->children[1] : NULL;
     args = call != NULL && call->childCount > 1 ? call->children[1] : NULL;
-    xl6SemAnnotateResolvedCallOwnership(call, method);
+    xl6SemAnnotateResolvedCallOwnership(ctx,call, method);
     fixedCount = xl6SemFixedParamCount(params);
     hasArrayVararg = params != NULL && params->childCount > (size_t)fixedCount && xl6SemParamIsArrayVararg(params->children[fixedCount]);
     hasDictVararg = params != NULL && params->childCount > (size_t)fixedCount && xl6SemParamIsDictVararg(params->children[fixedCount]);
@@ -25373,6 +25435,8 @@ int xl6SemCheckModuleWithQuery(
     if ( !xl6SemAssignEntitySymbolIds(&ctx, root) ) {
         ok = 0;
     }
+    for(i=0;i<root->childCount;++i)
+        if(!xl6SemCOwnedNormalizeOverrides(&ctx,root->children[i],0))ok=0;
     if ( !xl6SemCheckOverloadConflicts(&ctx) ) {
         ok = 0;
     }
