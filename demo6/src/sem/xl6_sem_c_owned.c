@@ -20,6 +20,37 @@ static int xl6SemCOwnedGlobalType(XL6_SemContext* ctx,XL6_AstNode* type)
     xl6SemBindInferredTypeIdentity(ctx,type);
     return 1;
 }
+/* Result covariance extends through returned callables. Their input signature
+ * is unchanged; each returned closure gets its own ordinary-result adapter. */
+static int xl6SemCOwnedResultHasOwner(XL6_SemContext* ctx,const XL6_AstNode* type)
+{
+    type=xl6SemCOwnedResolvedElement(ctx,type);
+    if(!type)return 0;
+    if(xl6COwnedBaseName(type->text))return 1;
+    if(xl6TextEquals(type->text,"function") && type->childCount==2)
+        for(size_t r=0;r<type->children[1]->childCount;++r)
+            if(xl6SemCOwnedResultHasOwner(ctx,type->children[1]->children[r]))return 1;
+    return 0;
+}
+static int xl6SemCOwnedOrdinaryResultType(XL6_SemContext* ctx,XL6_AstNode** place)
+{
+    const XL6_AstNode* resolved=xl6SemResolveAliasType(ctx,*place);
+    if(resolved!=*place) {
+        XL6_AstNode* copy=xl6SemCloneTypeNode(resolved);
+        if(!copy)return 0;
+        xl6AstFree(*place);*place=copy;
+    }
+    XL6_AstNode* type=*place;
+    const XL6_AstNode* inner=xl6SemNullableInnerType(type);
+    if(inner) {
+        if(!xl6SemCOwnedOrdinaryResultType(ctx,&type->children[0]->children[0]))return 0;
+    } else if(xl6TextEquals(type->text,"function") && type->childCount==2) {
+        for(size_t r=0;r<type->children[1]->childCount;++r)
+            if(!xl6SemCOwnedOrdinaryResultType(ctx,&type->children[1]->children[r]))return 0;
+    } else return xl6SemCOwnedGlobalType(ctx,type);
+    xl6SemBindInferredTypeIdentity(ctx,type);
+    return 1;
+}
 static int xl6SemCOwnedTypeMatchCost(const XL6_AstNode* actual,const XL6_AstNode* target)
 {
     if(!actual || !target)return -1;
@@ -403,7 +434,7 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     if(options & XL6_C_OWNED_ORDINARY_RESULT)
         for(size_t r=0;originalReturns && r<originalReturns->childCount;++r)
             if(resultTypes ? !xl6SemTypeEquals(ctx,originalReturns->children[r],resultTypes->children[r]) :
-                xl6SemCOwnedTypeBase(originalReturns->children[r])!=NULL)any=1;
+                xl6SemCOwnedResultHasOwner(ctx,originalReturns->children[r]))any=1;
     if(!any){xrtFree(promote);return function;}
     XL6_AstNode* signature=xl6SemCOwnedClone(function);
     if(!signature){xrtFree(promote);return NULL;}
@@ -433,7 +464,7 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
         xl6AstFree(signature->children[2]);signature->children[2]=returns;
     } else if(options & XL6_C_OWNED_ORDINARY_RESULT)
         for(size_t r=0;returns && r<returns->childCount;++r)
-            if(!xl6SemCOwnedGlobalType(ctx,returns->children[r])){xl6AstFree(signature);return NULL;}
+            if(!xl6SemCOwnedOrdinaryResultType(ctx,&returns->children[r])){xl6AstFree(signature);return NULL;}
     for(size_t r=0;!(options & XL6_C_OWNED_ORDINARY_RESULT) && function->kind!=XL6_AST_ASYNC_FUNC &&
         !(function->flags & XL6_AST_FLAG_ASYNC) && returns && r<returns->childCount;++r) {
         const XL6_AstNode* resolved=xl6SemResolveAliasType(ctx,returns->children[r]);
@@ -501,8 +532,8 @@ static int xl6SemCOwnedResultListMatches(XL6_SemContext* ctx,const XL6_AstNode* 
         if(xl6SemTypeEquals(ctx,target->children[r],source->children[r]))continue;
         XL6_AstNode* normalized=xl6SemCloneTypeNode(xl6SemResolveAliasType(ctx,source->children[r]));
         if(!normalized)return 0;
-        if(xl6SemCOwnedTypeBase(normalized))changed=1;
-        int equal=xl6SemCOwnedGlobalType(ctx,normalized) && xl6SemTypeEquals(ctx,target->children[r],normalized);
+        if(xl6SemCOwnedResultHasOwner(ctx,normalized))changed=1;
+        int equal=xl6SemCOwnedOrdinaryResultType(ctx,&normalized) && xl6SemTypeEquals(ctx,target->children[r],normalized);
         xl6AstFree(normalized);if(!equal)return 0;
     }
     return changed;
@@ -566,7 +597,7 @@ static int xl6SemCOwnedAdaptCallableExpr(XL6_SemContext* ctx,XL6_AstNode* expr,c
     if(!target){xl6AstFree(source);return 0;}
     if(!expected || expected->childCount==0)
         for(size_t r=0;r<target->children[1]->childCount;++r)
-            if(!xl6SemCOwnedGlobalType(ctx,target->children[1]->children[r])){xl6AstFree(source);xl6AstFree(target);return 0;}
+            if(!xl6SemCOwnedOrdinaryResultType(ctx,&target->children[1]->children[r])){xl6AstFree(source);xl6AstFree(target);return 0;}
     if(!xl6SemCallableTypeListEquals(ctx,source->children[0],target->children[0]) ||
        !xl6SemCOwnedResultListMatches(ctx,target->children[1],source->children[1])) {
         xl6AstFree(source);xl6AstFree(target);return 1;

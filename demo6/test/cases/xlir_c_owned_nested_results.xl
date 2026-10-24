@@ -1,0 +1,60 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+func text() as cstring
+    return cstring.take(nativeText(),nativeFree)
+end
+func data() as cbytes
+    return cbytes.take(nativeBytes(),4,nativeFree)
+end
+func factory() as func() as cstring
+    return text
+end
+func nested() as func() as func() as cstring
+    return factory
+end
+func optionalFactory() as func(bool) as cstring?
+    return func(bool present) as cstring? => present ? text() : null
+end
+func productFactory() as (func() as cstring,cbytes,int)
+    return text,data(),7
+end
+func captured(int base) as func(int,***) as cbytes
+    return func(int first=base,***) as cbytes => first==base ? data() : b"wrong"
+end
+func check()
+    auto raw=factory
+    auto direct=raw()()
+    assert original(direct)
+    func() as func() as string adapted=raw
+    assert adapted()()=="hello"
+    func() as func() as string named=factory
+    assert named()()=="hello"
+    var erased=xcall(factory)
+    var stored=xcall(raw)
+    assert erased()()=="hello" and stored()()=="hello"
+    auto deeper=nested
+    var erasedDeeper=xcall(deeper)
+    assert erasedDeeper()()()=="hello"
+    auto optionalRaw=optionalFactory
+    var maybe=xcall(optionalRaw)
+    var callback=maybe()
+    assert callback(false)==null and callback(true)=="hello"
+    auto productRaw=productFactory
+    var product=xcall(productRaw)
+    auto producer,bytesValue,number=product()
+    assert producer()=="hello" and bytesValue==b"\0\xff\x11*" and number==7
+    auto capturing=captured
+    var dynamicFactory=xcall(capturing)
+    var withDefault=dynamicFactory(19)
+    assert withDefault()==b"\0\xff\x11*"
+    assert withDefault(first=19,answer=42)==b"\0\xff\x11*"
+end
+check()
+async func tasks()
+    auto raw=factory
+    auto callback=await task.spawn(raw)
+    assert callback()=="hello"
+end
+await tasks()
