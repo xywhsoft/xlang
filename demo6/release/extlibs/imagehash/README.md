@@ -25,6 +25,12 @@ int distance = imagehash.hamming(a, b)
 
 ## 验证
 
+2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
+严格 C、固定图像向量、线程错误隔离、XLang 故障注入、C 范例直接
+运行/构建、双语固定输出及核心/完整范例 AOT 均通过。旧的共享
+快照缺符号是先前发布物状态；本次未复跑 Linux sanitizer，固定
+样本也不能证明所有图像或其他 pHash 实现具有相同指纹布局。
+
 2026-10-22：Windows 默认门禁原只构建无输出核心 AOT，即使公开的
 XLang 范例 AOT 缺符号也会返回成功。现在默认模式还构建、运行完整
 范例并核对固定输出；当前在 `xl6ValueDataSnapshotV1` 未解析处正确
