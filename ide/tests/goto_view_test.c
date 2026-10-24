@@ -48,7 +48,7 @@ static int verify(void* user) {
  for(int i=0;i<4;++i) { images[i]=xidePathResolve(root,names[i]);CHECK(images[i]); }
  app.hidden=1;app.noSession=1;app.highDpi=1;app.dpiOverride=1.25f;app.settingsPath=settings;
  CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK);began=1;CHECK(settle(&app));
- CHECK(xideActionCount()==73 && !xideActionQuery(&app,XIDE_ACTION_EDITOR_GOTO).enabled && xideActionExecute(&app,XIDE_ACTION_EDITOR_GOTO)==XIDE_ACTION_DISABLED);
+ CHECK(xideActionCount()==74 && !xideActionQuery(&app,XIDE_ACTION_EDITOR_GOTO).enabled && xideActionExecute(&app,XIDE_ACTION_EDITOR_GOTO)==XIDE_ACTION_DISABLED);
  const xide_action_info* info=xideActionNamed("editor.gotoLine");CHECK(info && info->id==XIDE_ACTION_EDITOR_GOTO && info->codeCommand==XUI_CODE_COMMAND_GOTO_LINE && info->shortcutScope==XIDE_SHORTCUT_EDITOR);
  CHECK(xideEditorOpen(&app,source,&error) && settle(&app));xide_document* c=app.activeDocument;xui_code_document doc=xuiCodeEditGetDocument(c->editor);
  CHECK(!strcmp(c->language,"c") && !c->dirty && xuiCodeDocumentGetLineCount(doc)==3 && xideActionQuery(&app,XIDE_ACTION_EDITOR_GOTO).enabled);

@@ -454,6 +454,8 @@ int xideCatalogBindEditor(xide_app* app,xui_widget editor)
        SDK. The registered IDE hotkey calls ShowCompletion exactly once. */
     int ret=xuiCodeCommandMapUnbind(xuiCodeEditGetCommandMap(editor),XUI_KEY_SPACE,XUI_MOD_CTRL);
     if(ret!=XUI_OK && ret!=XUI_ERROR_UNSUPPORTED) return ret;
+    ret=xuiCodeCommandMapUnbind(xuiCodeEditGetCommandMap(editor),XUI_KEY_SPACE,XUI_MOD_CTRL|XUI_MOD_SHIFT);
+    if(ret!=XUI_OK && ret!=XUI_ERROR_UNSUPPORTED)return ret;
     TRY(xuiCodeProviderSetCompletion(xuiCodeEditGetProviders(editor),complete,app));
     TRY(xuiCodeEditSetInputHandler(editor,input,app)); return xuiCodeEditSetCompletionOptions(editor,1,1,app->catalog.count+4096<16384 ? (int)app->catalog.count+4096 : 16384,0.08f);
 }

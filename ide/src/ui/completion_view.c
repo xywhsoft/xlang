@@ -5,6 +5,10 @@
 #include "services/analysis_configuration.h"
 #include "services/sync_plan.h"
 #include "services/completion_result.h"
+#include "services/signature_result.h"
+#include "services/ui_font.h"
+#include "lang/languages.h"
+#include "theme/theme.h"
 #include "editor/lsp_coordinates.h"
 #include "platform/file_watch.h"
 #include "platform/path.h"
@@ -12,6 +16,7 @@
 #include "protocol/document_sync.h"
 #include <windows.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <limits.h>
 #include <ctype.h>
@@ -20,7 +25,15 @@
 #define COMPLETION_ITEMS 4096u
 typedef struct completion_input { xide_document* document; uint64_t id; uint32_t version; int wireVersion,externalState; char *path,*uri,*language; const char* text; xvalue* textValue; size_t length; } completion_input;
 typedef struct completion_binding { struct completion_binding* next; xide_app* app; xui_widget editor; xui_widget_event_proc handlers[5]; void* users[5]; } completion_binding;
+typedef struct signature_view {
+ xide_document* document;uint64_t id,epoch,decodeToken,serial,session;uint32_t version;
+ int offset,wanted,pending,request,supported,ready,triggerKind,retrigger,placed,theme,resumeIme;char trigger[5];
+ xide_signature_decoder* decoder;xide_signature_result *result,*retired;
+ xui_widget window,preview,documentation,status,previous,next;size_t selected;
+ xui_widget_event_proc windowEvent;void* windowEventUser;
+} signature_view;
 struct xide_completion_view {
+ signature_view signature;uint64_t inputEpoch;
  xide_app* app; xide_language_client* client; char *compiler,*directory,*package;
  completion_input inputs[COMPLETION_DOCS]; size_t inputCount; int nextId,initialized,supported,syncKind,nativeBackend,analysisRequired; xls_sync* sync;
  xide_document* document; uint64_t id,due; uint32_t version; int offset,wanted,pending,request,ready,sawOpen,refreshing;
@@ -33,6 +46,15 @@ struct xide_completion_view {
  uint64_t decodeToken,decodeSerial,decodeSession,decodeDeadline;
  int decoding; xvalue* deferredMessage;int deferredDiscard;uint64_t deferredSession;
 };
+static void svdismiss(xide_completion_view*);
+static void svpoll(xide_completion_view*);
+static int svcontext(xide_completion_view*,int);
+static int svsend(xide_completion_view*);
+static int svcreate(xide_completion_view*);
+static void svinput(xide_completion_view*,xui_widget,const xui_code_input_event_t*);
+static void svevent(xide_completion_view*,xui_widget,const xui_event_t*);
+static void svafterEvent(xide_completion_view*,xui_widget,const xui_event_t*);
+static void cvsendPending(xide_completion_view*);
 static xstrview cvsv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* cvget(const xvalue* o,const char* key) { return o && xrtValueType(o)==XVALUE_OBJECT ? xrtValueObjectGet(o,cvsv(key)) : NULL; }
 static int cvput(xvalue* o,const char* key,xvalue* v) { return v && xrtValueObjectSetNew(o,cvsv(key),v); }
@@ -99,12 +121,13 @@ static void cvclearResult(xide_completion_view* v)
 }
 static void cvdismiss(xide_completion_view* v)
 {
- cvcancelSync(v);xideCompletionDecoderCancel(v->decoder);v->decodeToken=v->decodeDeadline=0;v->decoding=0;
+ xideCompletionDecoderCancel(v->decoder);v->decodeToken=v->decodeDeadline=0;v->decoding=0;
  if(v->request && v->client && v->initialized) { xvalue* p=xrtValueObject(); cvput(p,"id",xrtValueInt(v->request)); cvsend(v,"$/cancelRequest",p,0); }
  cvclearResult(v); v->wanted=v->pending=v->ready=v->request=0; v->repeatEditor=NULL;
 }
 static void cvqueueInput(xide_completion_view* v,xide_document* d,int offset)
 {
+ if(v->syncToken && !cvinputsCurrent(v))cvcancelSync(v);
  cvdismiss(v);v->document=d;v->id=d->id;v->repeatEditor=d->editor;v->repeatId=d->id;v->repeatOffset=offset;xgeRenderRequest();
 }
 static void cvfreeInput(completion_input* b)
@@ -114,7 +137,7 @@ static void cvfreeInputs(xide_completion_view* v)
 static void cvstopClient(xide_completion_view* v)
 {
  ++v->session;
- cvdismiss(v); xideLanguageClientStop(v->client); v->client=NULL; cvfreeInputs(v); xlsSyncDestroy(v->sync); v->sync=NULL; free(v->compiler); free(v->directory); free(v->package); v->compiler=v->directory=v->package=NULL; v->initialized=v->supported=v->syncKind=v->nativeBackend=0;
+ cvcancelSync(v);svdismiss(v);v->signature.supported=0;cvdismiss(v); xideLanguageClientStop(v->client); v->client=NULL; cvfreeInputs(v); xlsSyncDestroy(v->sync); v->sync=NULL; free(v->compiler); free(v->directory); free(v->package); v->compiler=v->directory=v->package=NULL; v->initialized=v->supported=v->syncKind=v->nativeBackend=0;
 }
 void xideCompletionViewConfigurationChanged(xide_app* app)
 {if(app && app->completionView && (app->completionView->client || app->completionView->result)) cvstopClient(app->completionView);}
@@ -127,9 +150,16 @@ static char* cvserverPath(void)
 }
 static int cvconnectionCurrent(xide_completion_view* v)
 {
- const char* compiler=xideTaskViewCompiler(v->app); char* directory=v->document && v->document->path ? xidePathDirectory(v->document->path) : NULL; char* package=NULL;
+ const char* compiler=xideTaskViewCompiler(v->app); xide_document* active=v->app->activeDocument;char* directory=active && active->path ? xidePathDirectory(active->path) : NULL; char* package=NULL;
  int ok=compiler && directory && v->compiler && v->directory && xidePathEqual(compiler,v->compiler) && xidePathEqual(directory,v->directory) && xideLanguageCheckPackagePath(&package,NULL) && (package && v->package ? !strcmp(package,v->package) : package==v->package);
  free(directory); free(package); return ok;
+}
+/* The transport worker only reads immutable decoder pointers here. Both
+   decoders outlive ClientStop; no model/widget access occurs on this thread. */
+static int cvreceiveOwned(xvalue* message,size_t bytes,void* user)
+{
+ xide_completion_view* v=user;
+ return xideSignatureDecoderReceiveOwned(message,bytes,v->signature.decoder) || xideCompletionDecoderReceiveOwned(message,bytes,v->decoder);
 }
 static int cvstartClient(xide_completion_view* v)
 {
@@ -138,20 +168,21 @@ static int cvstartClient(xide_completion_view* v)
  xlsSyncDestroy(v->sync); v->sync=NULL; free(v->compiler); free(v->directory); free(v->package);
  v->compiler=v->directory=v->package=NULL; v->initialized=v->supported=v->syncKind=v->nativeBackend=0;
  const char* compiler=xideTaskViewCompiler(v->app); char* program=cvserverPath();
- v->compiler=compiler ? cvcopy(compiler) : NULL; v->directory=xidePathDirectory(v->document->path);
+ v->compiler=compiler ? cvcopy(compiler) : NULL; v->directory=v->app->activeDocument ? xidePathDirectory(v->app->activeDocument->path) : NULL;
  int ok=program && v->compiler && v->directory && xideLanguageCheckPackagePath(&v->package,NULL);
  if(ok) v->client=xideLanguageClientStart(program,v->compiler,v->directory,NULL);
- free(program); if(!v->client || !xideLanguageClientSetReceiver(v->client,xideCompletionDecoderReceiveOwned,v->decoder)) { cvstopClient(v); return 0; }
+ free(program); if(!v->client || !xideLanguageClientSetReceiver(v->client,cvreceiveOwned,v)) { cvstopClient(v); return 0; }
  xideLanguageClientSetWake(v->client,cvwake,v->app); v->nextId=1;
  xvalue* configuration=xideAnalysisConfigurationPacket(&v->app->workspaceModel,v->app->selectedProject,v->app->configurationId,v->package,1,NULL);
  xvalue *p=xrtValueObject(),*options=xrtValueObject();
  if(!configuration || !p || !options) {xrtValueRelease(configuration);xrtValueRelease(p);xrtValueRelease(options);cvstopClient(v);return 0;}
  v->analysisRequired=xrtValueCount(cvget(cvget(configuration,"catalog"),"projects"))>0;
- cvput(options,"analysisConfiguration",configuration);cvput(p,"capabilities",xrtValueObject()); cvput(options,"checkOnSave",xrtValueBool(false)); cvput(options,"automaticDiagnostics",xrtValueBool(false)); cvput(p,"initializationOptions",options);
+ cvput(options,"analysisConfiguration",configuration);xvalue* caps=xrtJsonParse(cvsv("{\"textDocument\":{\"signatureHelp\":{\"contextSupport\":true,\"signatureInformation\":{\"activeParameterSupport\":true,\"parameterInformation\":{\"labelOffsetSupport\":true},\"documentationFormat\":[\"plaintext\"]}}}}"));cvput(p,"capabilities",caps); cvput(options,"checkOnSave",xrtValueBool(false)); cvput(options,"automaticDiagnostics",xrtValueBool(false)); cvput(p,"initializationOptions",options);
  if(!cvsend(v,"initialize",p,1)) { cvstopClient(v); return 0; } return 1;
 }
 static int cvcapture(xide_completion_view* v)
 {
+ if(!cvinputsCurrent(v)){if(v->inputEpoch==UINT64_MAX)return 0;++v->inputEpoch;}
  cvcancelSync(v);
  completion_input previous[COMPLETION_DOCS]={0}; size_t count=v->inputCount;
  memcpy(previous,v->inputs,count*sizeof(*previous)); memset(v->inputs,0,sizeof(v->inputs)); v->inputCount=0;
@@ -179,7 +210,7 @@ static int cvcapture(xide_completion_view* v)
 }
 static int cvbegin(xide_completion_view* v)
 {
- if(!cvcontext(v,0) || !v->supported || !v->syncPlanner || !v->sync || v->syncSerial==UINT64_MAX || !cvcapture(v) || !cvinputsCurrent(v)) return 0;
+ if((!v->pending && !v->signature.pending) || !v->syncPlanner || !v->sync || v->syncSerial==UINT64_MAX || !cvcapture(v) || !cvinputsCurrent(v)) return 0;
  v->syncToken=++v->syncSerial;v->syncSession=v->session;v->syncDeadline=GetTickCount64()+5000;return 1;
 }
 static int cvfinishSync(xide_completion_view* v)
@@ -210,7 +241,7 @@ static void cvfailSync(xide_completion_view* v)
 static void cvpollSync(xide_completion_view* v)
 {
  if(!cvretireSync(v) || !v->syncToken) return;
- if(v->syncSession!=v->session || !cvcontext(v,0) || !cvinputsCurrent(v) || !cvconnectionCurrent(v)) {cvdismiss(v);return;}
+ if(v->syncSession!=v->session || (!v->wanted && !v->signature.wanted) || !cvinputsCurrent(v) || !cvconnectionCurrent(v)) {cvcancelSync(v);if(v->wanted)cvdismiss(v);return;}
  if(!v->syncSubmitted) {
   xide_sync_input inputs[COMPLETION_DOCS];for(size_t i=0;i<v->inputCount;++i) inputs[i]=(xide_sync_input){v->inputs[i].uri,v->inputs[i].textValue,v->inputs[i].id,v->inputs[i].version};
   int accepted=xideSyncPlannerSubmit(v->syncPlanner,v->syncToken,v->sync,inputs,v->inputCount);
@@ -231,7 +262,14 @@ static void cvpollSync(xide_completion_view* v)
  result->batch=NULL;xls_sync* old=v->sync;v->sync=result->sync;result->sync=old;
  for(size_t i=0;i<v->inputCount;++i) v->inputs[i].wireVersion=result->versions[i];
  v->syncToken=v->syncDeadline=0;v->syncSubmitted=0;result->token=0;
- cvretireSync(v);if(!cvfinishSync(v)) cvfailSync(v);
+ cvretireSync(v);cvsendPending(v);
+}
+static void cvsendPending(xide_completion_view* v)
+{
+ if(v->pending && v->wanted && cvcontext(v,0)){
+  if(!v->supported){cvdismiss(v);}else{v->pending=0;if(!cvfinishSync(v)){cvfailSync(v);return;}}
+ }
+ if(v->signature.pending && v->signature.wanted){int sent=svsend(v);if(sent<0)cvfailSync(v);else if(!sent)xgeRenderRequestAfter(.01f);}
 }
 static int cvprefixAllowed(xui_code_document document,int offset)
 {
@@ -259,6 +297,7 @@ void xideCompletionViewRequest(xide_app* app,xui_widget editor,int offset,int fo
  }
  /* Input commits are coalesced by the owner frame, so asynchronous language
     queries need no second debounce after the editor's assist scheduling. */
+ if(v->syncToken && !cvinputsCurrent(v))cvcancelSync(v);
  cvdismiss(v); v->document=d; v->id=d->id; v->version=version; v->offset=offset; v->wanted=v->pending=1; v->due=GetTickCount64(); xgeRenderRequest();
 }
 static int cvcompareNames(const void* a,const void* b) { return strcmp(*(const char* const*)a,*(const char* const*)b); }
@@ -349,7 +388,8 @@ static void cvread(xide_completion_view* v,int refresh)
   xvalue* m=v->deferredMessage;v->deferredMessage=NULL;
   if(!m && !(m=xideLanguageClientNext(v->client))) break;
   int id=0;const char* method=cvmethod(m);
-  if(method && !strcmp(method,"xlang/completionInvalidated")) {int query=0;if(cvnumber(cvget(cvget(m,"params"),"queryId"),&query) && query==v->request) cvdismiss(v);}
+  if(method && !strcmp(method,"xlang/signatureInvalidated")){int query=0;if(cvnumber(cvget(cvget(m,"params"),"queryId"),&query) && query==v->signature.request)svdismiss(v);}
+  else if(method && !strcmp(method,"xlang/completionInvalidated")) {int query=0;if(cvnumber(cvget(cvget(m,"params"),"queryId"),&query) && query==v->request) cvdismiss(v);}
   else if(cvnumber(cvget(m,"id"),&id) && id==1 && !v->initialized) {
    const xvalue* caps=cvget(cvget(m,"result"),"capabilities");v->initialized=1;v->supported=cvbool(cvget(cvget(caps,"experimental"),"cursorCompletion"),1) && xrtValueType(cvget(caps,"completionProvider"))==XVALUE_OBJECT;
    int configurationSchema=0;if(v->analysisRequired && (!cvnumber(cvget(cvget(caps,"experimental"),"analysisConfiguration"),&configurationSchema) || configurationSchema!=1)) v->supported=0;
@@ -358,9 +398,14 @@ static void cvread(xide_completion_view* v,int refresh)
    if(sync && !xrtValueGetInt(sync,&kind)) kind=0;
    if(kind!=1 && kind!=2) kind=0;
    v->syncKind=(int)kind;
-   if(v->supported) v->sync=xlsSyncCreate((int)kind);
+   v->signature.supported=xrtValueType(cvget(caps,"signatureHelpProvider"))==XVALUE_OBJECT && cvstring(cvget(cvget(caps,"experimental"),"signatureInputGuard")) && !strcmp(cvstring(cvget(cvget(caps,"experimental"),"signatureInputGuard")),"background-poll");
+   if(v->analysisRequired && (!cvnumber(cvget(cvget(caps,"experimental"),"analysisConfiguration"),&configurationSchema) || configurationSchema!=1))v->signature.supported=0;
+   if(v->supported || v->signature.supported) v->sync=xlsSyncCreate((int)kind);
    v->supported=v->supported && v->sync!=NULL;
-   if(v->supported) cvsend(v,"initialized",xrtValueObject(),0);else cvdismiss(v);
+   v->signature.supported=v->signature.supported && v->sync!=NULL;
+   if(v->supported || v->signature.supported)cvsend(v,"initialized",xrtValueObject(),0);
+   if(!v->supported)cvdismiss(v);
+   if(!v->signature.supported)svdismiss(v);
   } else if(id>1 && id==v->request && v->wanted && !v->ready && !v->decoding) {
    int accepted=cvtakeResponse(v,m);
    if(accepted>0) m=NULL;
@@ -373,27 +418,28 @@ static void cvread(xide_completion_view* v,int refresh)
 }
 void xideCompletionViewPoll(xide_app* app)
 {
- xide_completion_view* v=app ? app->completionView : NULL; if(!v) return;
- cvretireSync(v);if(!cvflushResult(v)) return;
- if(v->repeatEditor) { xui_widget editor=v->repeatEditor; uint64_t id=v->repeatId; int offset=v->repeatOffset; v->repeatEditor=NULL;
-  if(app->activeDocument && app->activeDocument->id==id && app->activeDocument->editor==editor) xideCompletionViewRequest(app,editor,offset,0);
+ xide_completion_view* v=app ? app->completionView : NULL;if(!v)return;
+ cvretireSync(v);svpoll(v);if(!cvflushResult(v))return;
+ if(v->repeatEditor){xui_widget editor=v->repeatEditor;uint64_t id=v->repeatId;int offset=v->repeatOffset;v->repeatEditor=NULL;
+  if(app->activeDocument && app->activeDocument->id==id && app->activeDocument->editor==editor)xideCompletionViewRequest(app,editor,offset,0);
  }
- cvread(v,1); if(!v->wanted) return;
- if(!cvcontext(v,0) || (v->inputCount && !v->pending && !cvinputsCurrent(v))) { cvdismiss(v); return; }
- if((v->client && (!cvconnectionCurrent(v) || xideLanguageClientState(v->client,NULL,0)>=XIDE_LS_STOPPED)) || (!v->client && !v->pending)) {
-  int retry=v->pending; xui_widget editor=v->document->editor; int offset=v->offset; cvstopClient(v);
-  if(!retry) return;
-  xideCompletionViewRequest(app,editor,offset,1); xuiCodeEditShowCompletion(editor);
+ cvread(v,1);svpoll(v);
+ if(v->wanted && (!cvcontext(v,0) || (v->inputCount && !v->pending && !cvinputsCurrent(v))))cvdismiss(v);
+ if(!v->wanted && !v->signature.wanted)return;
+ if(v->client && (!cvconnectionCurrent(v) || xideLanguageClientState(v->client,NULL,0)>=XIDE_LS_STOPPED)){
+  xide_document* d=app->activeDocument;int retry=v->pending,sigRetry=v->signature.pending,offset=v->offset,sigOffset=v->signature.offset;cvstopClient(v);
+  if(d && retry)xideCompletionViewRequest(app,d->editor,offset,1);
+  if(d && sigRetry)xideSignatureViewRequest(app,d->editor,sigOffset,1);
+  if(!v->wanted && !v->signature.wanted)return;
  }
- cvpollDecoded(v,1);
- int open=xuiCodeEditIsCompletionOpen(v->document->editor);
- if(v->sawOpen && !open) { cvdismiss(v); return; } if(open) v->sawOpen=1;
- if(v->syncToken) {cvpollSync(v);return;}
- if(!v->pending) return;
- uint64_t now=GetTickCount64();if(now<v->due) { xgeRenderRequestAfter((float)(v->due-now)/1000.0f); return; }
- if(!cvstartClient(v)) return;
- if(!v->initialized) return;
- v->pending=0; if(!cvbegin(v)) cvdismiss(v);else cvpollSync(v);
+ cvpollDecoded(v,1);svpoll(v);
+ if(v->wanted){int open=xuiCodeEditIsCompletionOpen(v->document->editor);if(v->sawOpen && !open)cvdismiss(v);else if(open)v->sawOpen=1;}
+ if(v->syncToken){cvpollSync(v);return;}
+ if(!v->pending && !v->signature.pending)return;
+ if(v->pending){uint64_t now=GetTickCount64();if(now<v->due){xgeRenderRequestAfter((float)(v->due-now)/1000.f);return;}}
+ if(!cvstartClient(v) || !v->initialized)return;
+ if(cvinputsCurrent(v) && v->inputCount && v->sync){int sent=1;for(size_t i=0;i<v->inputCount;++i)if(v->inputs[i].wireVersion<=0 || xlsSyncVersion(v->sync,v->inputs[i].uri)!=v->inputs[i].wireVersion)sent=0;if(sent){cvsendPending(v);return;}}
+ if(!cvbegin(v))cvfailSync(v);else cvpollSync(v);
 }
 int xideCompletionViewCollect(xide_app* app,xui_widget editor,int offset,xui_code_completion_item_t* items,int capacity,int* count)
 {
@@ -413,6 +459,7 @@ int xideCompletionViewHasName(xide_app* app,xui_widget editor,const char* name)
 int xideCompletionViewInput(xide_app* app,xui_widget editor,const xui_code_input_event_t* event,xui_code_input_action_t* action)
 {
  xide_completion_view* v=app ? app->completionView : NULL; if(!v || !event || !action) return XUI_OK;
+ svinput(v,editor,event);
  if(event->iPhase==XUI_CODE_INPUT_PREVIEW && event->iSource==XUI_CODE_INPUT_SOURCE_COMPLETION && event->sText && v->collectEligible && v->document && v->document->editor==editor) {
   int matched=0; for(int i=0;i<v->count;++i) if(event->iTextSize==(int)strlen(v->items[i].sInsertText) && !memcmp(event->sText,v->items[i].sInsertText,(size_t)event->iTextSize)) matched=1;
   if(!matched) return XUI_OK;
@@ -443,6 +490,10 @@ static const int cvEvents[]={XUI_EVENT_KEY_DOWN,XUI_EVENT_BLUR,XUI_EVENT_POINTER
 static int cvEvent(xui_widget widget,const xui_event_t* event,void* user)
 {
  completion_binding* b=user; xide_completion_view* v=b->app->completionView; int index=-1;
+ /* Opening the nonmodal XUI window briefly activates it, then restores the
+    editor. Its queued blur must not cancel a newer editor request. */
+ if(v && event->iType==XUI_EVENT_BLUR && event->pRelated==v->signature.window && xuiGetFocusWidget(b->app->context)==widget)return XUI_EVENT_DISPATCH_STOP;
+ if(v)svevent(v,widget,event);
  for(int i=0;i<5;++i) if(cvEvents[i]==event->iType) index=i;
  xide_document* d=v ? v->document : NULL;
  int deletion=v && d && d->editor==widget && (v->wanted || v->repeatEditor==widget) && event->iType==XUI_EVENT_KEY_DOWN && !event->iModifiers && (event->iKey==XUI_KEY_BACKSPACE || event->iKey==XUI_KEY_DELETE);
@@ -451,6 +502,7 @@ static int cvEvent(xui_widget widget,const xui_event_t* event,void* user)
  if(event->iType==XUI_EVENT_KEY_DOWN) dismiss=event->iKey==XUI_KEY_ESCAPE || event->iKey==XUI_KEY_LEFT || event->iKey==XUI_KEY_RIGHT || event->iKey==XUI_KEY_HOME || event->iKey==XUI_KEY_END || ((event->iModifiers&XUI_MOD_CTRL) && event->iKey!=XUI_KEY_SPACE);
  if(v && dismiss && v->document && v->document->editor==widget) cvdismiss(v);
  int result=index>=0 && b->handlers[index] ? b->handlers[index](widget,event,b->users[index]) : XUI_OK;
+ if(v && result>=0)svafterEvent(v,widget,event);
  /* Native deletion commands bypass the text-commit hook. Observe the result
     after the original handler, without reproducing its editing/selection rules. */
  if(deletion && result>=0 && d->open && d->id==id && b->app->activeDocument==d && d->editor==widget && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(widget))!=version) {
@@ -472,19 +524,22 @@ int xideCompletionViewBindEditor(xide_app* app,xui_widget editor)
 int xideCompletionViewActive(xide_app* app)
 {
  xide_completion_view* v=app ? app->completionView : NULL;
- return v && v->document && app->activeDocument==v->document && v->document->open && v->document->id==v->id && (v->wanted || v->repeatEditor) && xuiGetFocusWidget(app->context)==v->document->editor;
+ return (v && v->signature.wanted && svcontext(v,0)) || (v && v->document && app->activeDocument==v->document && v->document->open && v->document->id==v->id && (v->wanted || v->repeatEditor) && xuiGetFocusWidget(app->context)==v->document->editor);
 }
 int xideCompletionViewCreate(xide_app* app)
 {
  app->completionView=calloc(1,sizeof(*app->completionView));xide_completion_view* v=app->completionView;if(!v) return XUI_ERROR_OUT_OF_MEMORY;
- v->app=app;v->syncPlanner=xideSyncPlannerCreate(cvwake,app);v->decoder=xideCompletionDecoderCreate(cvwake,app);if(v->syncPlanner && v->decoder) return XUI_OK;
- xideSyncPlannerDestroy(v->syncPlanner);xideCompletionDecoderDestroy(v->decoder);free(v);app->completionView=NULL;return XUI_ERROR_OUT_OF_MEMORY;
+ v->app=app;v->syncPlanner=xideSyncPlannerCreate(cvwake,app);v->decoder=xideCompletionDecoderCreate(cvwake,app);v->signature.decoder=xideSignatureDecoderCreate(cvwake,app);v->signature.theme=-1;if(v->syncPlanner && v->decoder && v->signature.decoder && svcreate(v)==XUI_OK)return XUI_OK;
+ if(v->signature.window)xuiWidgetDestroy(v->signature.window);
+ xideSignatureDecoderDestroy(v->signature.decoder);xideSyncPlannerDestroy(v->syncPlanner);xideCompletionDecoderDestroy(v->decoder);free(v);app->completionView=NULL;return XUI_ERROR_OUT_OF_MEMORY;
 }
 void xideCompletionViewStop(xide_app* app) { if(app && app->completionView) cvstopClient(app->completionView); }
 void xideCompletionViewDestroy(xide_app* app)
 {
  xide_completion_view* v=app ? app->completionView : NULL; if(!v) return;
  /* Stop runs before the context/documents are destroyed. No widget access here. */
- xideLanguageClientStop(v->client);xideSyncPlannerDestroy(v->syncPlanner);xideSyncResultRelease(v->syncReady);xideCompletionDecoderDestroy(v->decoder);xideCompletionResultRelease(v->decoded);xrtValueRelease(v->deferredMessage); cvfreeInputs(v); xlsSyncDestroy(v->sync); free(v->compiler); free(v->directory); free(v->package); free(v->items);
+ xideLanguageClientStop(v->client);xideSyncPlannerDestroy(v->syncPlanner);xideSyncResultRelease(v->syncReady);xideCompletionDecoderDestroy(v->decoder);xideSignatureDecoderDestroy(v->signature.decoder);xideSignatureResultRelease(v->signature.result);xideSignatureResultRelease(v->signature.retired);xideCompletionResultRelease(v->decoded);xrtValueRelease(v->deferredMessage); cvfreeInputs(v); xlsSyncDestroy(v->sync); free(v->compiler); free(v->directory); free(v->package); free(v->items);
  while(v->bindings) { completion_binding* next=v->bindings->next; free(v->bindings); v->bindings=next; } free(v); app->completionView=NULL;
 }
+
+#include "ui/signature_view.inc"
