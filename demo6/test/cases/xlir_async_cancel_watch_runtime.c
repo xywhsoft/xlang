@@ -49,7 +49,11 @@ static void balanced(const xmemdebugsnapshot* before)
 static void request_cancel(xfuture* result)
 {
     assert(xrtFutureCancel(result)); ++cancellations;
-    assert(!xrtFutureCancel(result) && !xrtFutureDone(result) && !xrtGetError());
+    /* Admission schedules the resident worker; completion can race this
+     * caller's next instruction. A terminal result must already have retired
+     * both owners, but it need not remain pending until a second request. */
+    assert(!xrtFutureCancel(result) && !xrtGetError());
+    if (xrtFutureDone(result)) assert(drops[1] == 1 && drops[2] == 1);
 }
 static void run_case(unsigned mode, unsigned first, unsigned second, unsigned ready, int stage, int finalRaises, int dropRaises)
 {

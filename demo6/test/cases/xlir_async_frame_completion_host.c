@@ -12,7 +12,13 @@ void frame_completion_drop(int64_t id)
     int mode = frame_completion_dropped((int)id);
     if (mode) {
         xl6_error_result failure = {false, mode == 1 ? xrtErrorCreate(XERR_STATE, "frame completion", 90 + (int)id, "frame drop failed") : NULL};
-        if (mode == 1) assert(failure.error);
+        /* Fault injection may also prevent this test diagnostic allocation.
+         * Preserve the allocator's actual checked error, rather than assert
+         * that allocation succeeded while deliberately exhausting it. */
+        if (mode == 1 && !failure.error) {
+            failure.error = xrtTakeError();
+            assert(failure.error && xrtErrorKind(failure.error) == XERR_MEMORY);
+        }
         xl6ErrorScopePropagateFailure(failure);
     }
 }
