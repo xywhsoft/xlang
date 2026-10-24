@@ -45,9 +45,9 @@ try {
             'extlibs/redis/test/allocations.xl')
         $null = Run 'TCP current API' $xl @('run',
             '../test/cases/xlir_extlib_redis_current_tcp.xl')
+        $null = Run 'TCP reuse' $xl @('run', 'extlibs/redis/test/reuse_loopback.xl')
         $null = Run 'TCP fragmented/error/deadline' $xl @('run',
             'extlibs/redis/test/command_loopback.xl')
-        $null = Run 'TCP reuse' $xl @('run', 'extlibs/redis/test/reuse_loopback.xl')
         if ($Stress) {
             $null = Run 'TCP reuse 100000' $xl @('run',
                 'extlibs/redis/test/reuse_loopback.xl', '--', '100000')

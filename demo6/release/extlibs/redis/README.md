@@ -7,8 +7,9 @@
 
 2026-10-24 当前 Windows 发布版复验：严格 C 编译、C 边界/分配故障/线程、
 XLang 编解码边界/分配故障均通过；现行 TCP API 的分包、NUL、错误回复、
-连接复用和期限用例在 JIT 与独立 EXE 中通过。完整 `test/check.ps1`
-仍未通过：旧 `command_loopback.xl` / `reuse_loopback.xl` 使用了已经撤销的
+连接复用和期限用例在 JIT 与独立 EXE 中通过；包内
+`reuse_loopback.xl` 的 500 / 10000 次 JIT 往返及 500 次独立 EXE 也通过。
+完整 `test/check.ps1` 仍未通过：旧 `command_loopback.xl` 使用了已经撤销的
 文本 `recv`、`tcp.connect`、布尔 `send`、`drain` 写法，需迁移到
 `TcpListener`/`NetEngine`、`bytes`、`NetStatus`、`TcpWait` 后保留原边界
 覆盖重新运行。当前结果不构成包级发布签收；下文的历史门禁结果对应当时
