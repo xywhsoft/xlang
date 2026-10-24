@@ -359,7 +359,7 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
         if(parameter->flags & (XL6_AST_FLAG_BYREF|XL6_AST_FLAG_OUT))continue;
         XL6_AstNode* actual=xl6SemInferAutoTypeNode(ctx,arg->children[0]);
         const char* base=xl6SemCOwnedTypeBase(actual);
-        const XL6_AstNode* formal=parameter->childCount ? xl6SemCOwnedElement(parameter->children[0]) : NULL;
+        const XL6_AstNode* formal=parameter->childCount ? xl6SemCOwnedElement(xl6SemResolveAliasType(ctx,parameter->children[0])) : NULL;
         const XL6_AstNode* argument=xl6SemCOwnedElement(actual);
         if(base && formal &&
             (xl6TextEquals(base,formal->text) ||
@@ -374,7 +374,7 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
         XL6_AstNode* actual=expression->inferredType ? xl6SemCloneTypeNode(expression->inferredType) :
             xl6SemInferAutoTypeNode(ctx,expression);
         const char* base=xl6SemCOwnedTypeBase(actual);
-        const XL6_AstNode* formal=xl6SemCOwnedElement(parameter->children[0]);
+        const XL6_AstNode* formal=xl6SemCOwnedElement(xl6SemResolveAliasType(ctx,parameter->children[0]));
         if(base && formal && xl6TextEquals(base,formal->text))any=promote[p]=1;
         xl6AstFree(actual);
     }
@@ -387,7 +387,10 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     signature->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
     for(size_t p=0;p<params->childCount;++p)if(promote[p]) {
         XL6_AstNode* parameter=signature->children[1]->children[p];
-        XL6_AstNode* type=(XL6_AstNode*)xl6SemCOwnedElement(parameter->children[0]);
+        XL6_AstNode* concrete=xl6SemCloneTypeNode(xl6SemResolveAliasType(ctx,parameter->children[0]));
+        if(!concrete){xrtFree(promote);xl6AstFree(signature);return NULL;}
+        xl6AstFree(parameter->children[0]);parameter->children[0]=concrete;
+        XL6_AstNode* type=(XL6_AstNode*)xl6SemCOwnedElement(concrete);
         type->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
         if(!xl6COwnedBaseName(type->text)) {
             const char* marker=xl6TextEquals(type->text,"string") ? "cstring" : "cbytes";
@@ -397,9 +400,15 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     }
     xrtFree(promote);
     XL6_AstNode* returns=signature->children[2];
-    if(!(options & XL6_C_OWNED_ORDINARY_RESULT) && function->kind!=XL6_AST_ASYNC_FUNC && !(function->flags & XL6_AST_FLAG_ASYNC) && returns->childCount==1 &&
-        (xl6TextEquals(xl6SemCOwnedElement(returns->children[0])->text,"string") || xl6TextEquals(xl6SemCOwnedElement(returns->children[0])->text,"bytes"))) {
-        XL6_AstNode* type=(XL6_AstNode*)xl6SemCOwnedElement(returns->children[0]);
+    for(size_t r=0;!(options & XL6_C_OWNED_ORDINARY_RESULT) && function->kind!=XL6_AST_ASYNC_FUNC &&
+        !(function->flags & XL6_AST_FLAG_ASYNC) && returns && r<returns->childCount;++r) {
+        const XL6_AstNode* resolved=xl6SemResolveAliasType(ctx,returns->children[r]);
+        const XL6_AstNode* element=xl6SemCOwnedElement(resolved);
+        if(!element || (!xl6TextEquals(element->text,"string") && !xl6TextEquals(element->text,"bytes")))continue;
+        XL6_AstNode* concrete=xl6SemCloneTypeNode(resolved);
+        if(!concrete){xl6AstFree(signature);return NULL;}
+        xl6AstFree(returns->children[r]);returns->children[r]=concrete;
+        XL6_AstNode* type=(XL6_AstNode*)xl6SemCOwnedElement(concrete);
         type->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
         const char* marker=xl6TextEquals(type->text,"string") ? "cstring" : "cbytes";
         xrtFree(type->text);type->text=xrtStrDup(marker);
@@ -437,7 +446,7 @@ static int xl6SemCOwnedSpawn(XL6_SemContext* ctx,XL6_AstNode* call,XL6_AstNode* 
     XL6_AstNode* function=NULL;
     for(size_t i=0;i<ctx->root->childCount;++i)
         if(ctx->root->children[i]->semanticSymbolId==callable->semanticTargetSymbolId){function=ctx->root->children[i];break;}
-    if(!function || function->kind!=XL6_AST_FUNC)return 1;
+    if(!function || (function->kind!=XL6_AST_FUNC && function->kind!=XL6_AST_EXPORT_FUNC))return 1;
     XL6_AstNode* args=call->children[1];
     XL6_AstNode arguments={0},probe={0};XL6_AstNode* children[2]={callable,&arguments};
     arguments.kind=XL6_AST_LIST;arguments.children=args->children+1;arguments.childCount=args->childCount-1;
