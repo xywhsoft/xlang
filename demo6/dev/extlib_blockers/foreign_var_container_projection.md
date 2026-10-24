@@ -1,5 +1,14 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-25 发布版复验：`release/xlc.dll` SHA-256 为
+`70A40D58A996B558B91A030799B82EC0C3EB7A88D258717A34FF1A6010B69BBA`。
+从 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File
+release/extlibs/bson/test/check.ps1`，ABI、严格 C、BSON 边界及 C 范例
+先通过；第一个 XLang 边界用例随即报
+`ValueError: bson: encode requires a table (var dict)`，退出 1，
+后续语言和 AOT 门禁没有执行。仍应在共享 foreign `var` 投影边界修复，
+不能把包内 C 通过视为 BSON 发布验收。
+
 从 `demo6` 目录先构建当前源码驱动，再设置包搜索路径：
 
 ```powershell
