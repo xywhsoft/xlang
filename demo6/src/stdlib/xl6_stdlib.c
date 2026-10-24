@@ -840,7 +840,7 @@ static int xl6StdlibUsesX509Types(const XL6_AstNode* root)
         "X509CrlSet","X509RevocationResult","X509RevocationCheck","__X509CrlCriticalContext",
         "X509TrustAnchor","X509PathPolicy","X509PathOutcome","X509Path","__X509PathCriticalContext",
         "X509PathFlags","X509ValidationStatus","X509PathReason","TrustStore","TrustStoreSnapshot",
-        "TlsIdentity","TlsIdentityKind"};
+        "TlsIdentity","TlsIdentityKind","TlsVerifier"};
     for(size_t i=0;i<sizeof(types)/sizeof(*types);++i)if(xl6StdlibNodeUsesTypeName(root,types[i]))return 1;
     return 0;
 }
@@ -868,7 +868,7 @@ static int xl6StdlibUsesX509PathClasses(const XL6_AstNode* root)
     /* Path methods and trust-store projections refer to each other. Inject
      * this declaration island together; runtime components still follow only
      * reachable calls, not the presence of an unused class declaration. */
-    static const char* const names[]={"TrustStore","TrustStoreSnapshot","X509TrustAnchor",
+    static const char* const names[]={"TrustStore","TrustStoreSnapshot","X509TrustAnchor","TlsVerifier",
         "X509PathPolicy","X509PathOutcome","X509Path","__X509PathCriticalContext"};
     for(size_t i=0;i<sizeof(names)/sizeof(*names);++i)if(xl6StdlibNodeUsesTypeName(root,names[i]))return 1;
     return 0;
@@ -1733,7 +1733,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsEd25519Class;
     int needsNistClass;
     int needsRsaPublicClass, needsRsaPrivateClass;
-    int needsTlsIdentity, needsTlsParameters;
+    int needsTlsIdentity, needsTlsParameters, needsTlsVerifier, needsTlsVerificationPolicy;
     int needsTccClass;
     int needsXlangClass;
     int needsCoreClass;
@@ -1980,6 +1980,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer");
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
     needsTlsIdentity = xl6StdlibNodeUsesTypeName(root,"TlsIdentity") || xl6StdlibNodeUsesTypeName(root,"TlsIdentityKind");
+    needsTlsVerifier=xl6StdlibNodeUsesTypeName(root,"TlsVerifier");
+    needsTlsVerificationPolicy=needsTlsVerifier || xl6StdlibNodeUsesTypeName(root,"TlsVerificationPolicy");
     needsTlsParameters=xl6StdlibNodeUsesTypeName(root,"TlsParameters") || xl6StdlibNodeUsesTypeName(root,"TlsPolicy") ||
         xl6StdlibNodeUsesTypeName(root,"TlsLimits") || xl6StdlibNodeUsesTypeName(root,"TlsVersion") ||
         xl6StdlibNodeUsesTypeName(root,"TlsCipherSuite") || xl6StdlibNodeUsesTypeName(root,"TlsGroup") ||
@@ -2361,6 +2363,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if(needsTlsIdentity)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsIdentitySource);
     if(needsTlsParameters)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsParametersSource);
+    if(needsTlsVerificationPolicy)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsVerificationPolicySource);
+    if(needsTlsVerifier)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsVerifierSource);
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||
         xl6StdlibFuncUsed(used,"crypto","x25519KeyPair") || xl6StdlibFuncUsed(used,"crypto","x448KeyPair"))
         xl6StdlibBuilderAppend(&builder,xl6StdlibXdhClassSource);

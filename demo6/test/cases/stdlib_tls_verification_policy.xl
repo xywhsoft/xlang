@@ -1,0 +1,26 @@
+auto policy = TlsVerificationPolicy()
+assert policy.maxPeerCertificates == 64 and policy.maxPeerBytes == 16777216
+assert policy.maxPathCertificates == 64 and policy.maxSearchSteps == 100000
+assert policy.maxTrustCertificates == 4096 and policy.maxTrustBytes == 67108864
+assert policy.usesCurrentTime and not policy.allowsSha1
+auto fixed = policy.withTime(time(1893456000000000))
+assert fixed.fixedTime == time(1893456000000000) and not fixed.usesCurrentTime
+assert policy.usesCurrentTime
+auto epoch = policy.withTime(time(0))
+assert not epoch.usesCurrentTime and epoch.fixedTime == time(0)
+auto current = fixed.withCurrentTime()
+assert current.usesCurrentTime and current.maxPeerBytes == policy.maxPeerBytes
+int caught = 0
+try
+ auto missing = policy.fixedTime
+catch RuntimeError expected
+ caught += 1
+end
+try
+ auto bad = TlsVerificationPolicy(-1)
+catch RangeError expected
+ caught += 1
+end
+assert caught == 2
+auto unlimited = TlsVerificationPolicy(0, 0, 0, 0, 0, 0, true)
+assert unlimited.maxSearchSteps == 0 and unlimited.allowsSha1
