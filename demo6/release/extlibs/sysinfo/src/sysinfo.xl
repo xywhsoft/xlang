@@ -9,31 +9,32 @@ extern "xsysinfo_mem_usage_pct" func __si_mempct() as int
 extern "xsysinfo_page_size" func __si_pagesz() as int
 extern "xsysinfo_uptime" func __si_uptime() as int
 extern "xsysinfo_cpu_name" func __si_cpuname() as point
+extern "xrtFree" @no_raise func __si_free(point data)
 
 
 
-export func osName() as string
-    return __xl_runtime.takeCstr(__si_os())
+export func osName() as cstring
+    return cstring.take(__si_os(), __si_free)
 end
 
-export func osVersion() as string
-    return __xl_runtime.takeCstr(__si_ver())
+export func osVersion() as cstring
+    return cstring.take(__si_ver(), __si_free)
 end
 
-export func arch() as string
-    return __xl_runtime.takeCstr(__si_arch())
+export func arch() as cstring
+    return cstring.take(__si_arch(), __si_free)
 end
 
-export func hostname() as string
-    return __xl_runtime.takeCstr(__si_host())
+export func hostname() as cstring
+    return cstring.take(__si_host(), __si_free)
 end
 
 export func cpuCount() as int
     return __si_cpus()
 end
 
-export func cpuName() as string
-    return __xl_runtime.takeCstr(__si_cpuname())
+export func cpuName() as cstring
+    return cstring.take(__si_cpuname(), __si_free)
 end
 
 export func memTotal() as int

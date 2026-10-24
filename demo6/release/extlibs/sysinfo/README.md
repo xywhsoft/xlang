@@ -1,5 +1,12 @@
 # sysinfo
 
+2026-10-25：五个文本查询改为导出拥有型 `cstring`，直接接管原生
+XRT 分配，仍可直接赋给 `string`。当前 Windows 默认包门禁的严格 C、
+注册表夹具、语言边界与分配故障、C/XLang 双语范例和四份独立 EXE
+全部通过；生成代码检查五条返回路径均使用 `xl6CStringTakeV1`，
+没有退回旧 `takeCstr` 桥接。Linux `release/xl` 尚未更新到认识
+`cstring` 的版本，因此这次语言签名调整的 Linux 路径待新产物复验。
+
 `sysinfo` 提供 Windows/Linux 主机运行时信息：`osName`、`osVersion`、`arch`、
 `hostname`、`cpuName`、`cpuCount`、`memTotal`、`memAvailable`、
 `memUsagePct`、`pageSize` 和 `uptime`。
@@ -12,7 +19,8 @@ println(sysinfo.memAvailable())
 ```
 
 字符串始终为 UTF-8 的独立结果，不共用全局缓冲区。C API 见
-`sysinfo_native.h`，字符串结果必须用 `xrtFree` 释放；XLang 包装会自动释放。
+`sysinfo_native.h`，字符串结果必须用 `xrtFree` 释放；XLang 的拥有型
+`cstring` 包装会在生命周期结束时自动释放。
 每个公开查询开始时清除上一条 XRT 错误；探测不可用仍按下述规则返回默认值，
 但分配失败会返回空结果并保留内存错误，不会伪装为 `unknown`。
 原生实现使用 XRT 基础分配/释放、UTF-8 校验和严格整数解析，包清单声明

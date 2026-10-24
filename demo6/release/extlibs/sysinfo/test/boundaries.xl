@@ -5,6 +5,10 @@ func main(...) as int
     string version = sysinfo.osVersion()
     string arch = sysinfo.arch()
     string host = sysinfo.hostname()
+    cstring owned = sysinfo.osName()
+    string retained = owned
+    owned = sysinfo.arch()
+    assert retained == os and owned == arch, "owned system text survives reassignment"
     assert string.len(os) > 0 and string.len(version) > 0, "os text"
     assert string.len(arch) > 0 and string.len(host) > 0, "machine text"
     assert string.len(sysinfo.cpuName()) > 0, "cpu name"
