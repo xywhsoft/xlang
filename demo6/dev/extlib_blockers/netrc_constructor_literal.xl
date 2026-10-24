@@ -1,0 +1,10 @@
+import netrc
+
+func main(...) as int
+    netrc.Netrc parsed = netrc.parse("")
+    assert parsed.stringify() == ""
+    netrc.Netrc empty = netrc.Netrc({"hosts": {}, "macros": {}})
+    assert empty.hostNames().length == 0
+    assert empty.stringify() == ""
+    return 0
+end

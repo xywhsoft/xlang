@@ -65,3 +65,14 @@ JSON Patch 的 JIT/独立 EXE 公开范例。本普通包任务不改主线。
 C、真实 Windows `argv` 往返、两种语言的公开范例，在中央 XLang 用例
 调用 `join` 时失败。原生 `xsw_join` 要求 XRT 数组 tag；不在包里读取
 编译器私有句柄，修复共享 `var` 投影后复跑本最小文件和完整包门禁。
+
+同日 `netrc` 的当前 Windows 发布版复现字典侧：
+`./release/xl.exe run dev/extlib_blockers/netrc_constructor_literal.xl`
+在合法的 `netrc.Netrc({"hosts": {}, "macros": {}}).stringify()` 报
+`ConfigError: netrc document must be a dict`；独立 EXE 也以相同诊断
+退出 1。对照组 `netrc.parse("").stringify()` 正常，语言层构造及
+`hostNames()` 亦正常。默认包门禁先通过严格 C、原生边界、C/XLang
+双语和 UTF-8 文件范例、Python `.netrc` 互通及 XLang 主用例，
+在具名类型用例的此写出路径失败。`xnetrc_stringify_text(xvalue*)`
+最终要求 XRT 字典 tag；不要改写 Netrc 的合法构造语义来隐藏
+缺失的 foreign `var` 投影。主线修复后复跑最小 JIT/EXE 和完整包门禁。
