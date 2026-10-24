@@ -160,6 +160,87 @@ static int parseIncrementality(void)
  CHECK(held && xlsSignatureValidate(held) && xlsSignatureParseWork(held).cacheBytes==oldCharge && xlsSignatureParseWork(held).full==1);
  xls_signature_item item;CHECK(xlsSignatureItem(held,0,&item) && !strcmp(item.label,"plus(int left, string right = ...) as int"));xlsSignatureRelease(held);xrtFree(path);xrtFree(otherPath);return 1;
 }
+static int sameFullAst(const XL6_AstNode* a,const XL6_AstNode* b,int sources)
+{
+    if(!a || !b) return a==b;
+    XL6_AstNode left=*a,right=*b;
+    left.text=right.text=left.doc=right.doc=NULL; left.literalData=right.literalData=NULL;
+    left.children=right.children=NULL; left.inferredType=right.inferredType=left.semanticDeclaredType=right.semanticDeclaredType=NULL;
+    left.xlsStorage=right.xlsStorage=NULL;
+    left.source=right.source=NULL; left.childCapacity=right.childCapacity=0;
+    if(memcmp(&left,&right,sizeof(left)) || !sameText(a->text,b->text) || !sameText(a->doc,b->doc) || !!a->literalData!=!!b->literalData ||
+       (a->literalSize && memcmp(a->literalData,b->literalData,a->literalSize))) return 0;
+    if(a->source) {
+        if(!b->source || b->source==a->source || !sameText(a->source->path,b->source->path))return 0;
+        if(sources && (a->source->completionQuery!=b->source->completionQuery || a->source->completionStart!=b->source->completionStart ||
+           a->source->completionEnd!=b->source->completionEnd))return 0;
+    } else if(b->source) return 0;
+    if(!sameFullAst(a->inferredType,b->inferredType,sources) || !sameFullAst(a->semanticDeclaredType,b->semanticDeclaredType,sources)) return 0;
+    for(size_t i=0;i<a->childCount;++i) if(!sameFullAst(a->children[i],b->children[i],sources)) return 0;
+    return 1;
+}
+
+
+typedef struct signature_ast_reader {xls_signature_help* result;const XL6_AstNode* expected;int okay;} signature_ast_reader;
+static int32 signatureAstRead(void* user)
+{
+ signature_ast_reader* r=user;r->okay=1;
+ for(unsigned i=0;i<12;++i){const XL6_AstNode* ast=xlsSemanticCompletionAst(xlsSignatureSemantic(r->result));xls_sem_tail_work w=xlsSemanticCompletionTailWork(xlsSignatureSemantic(r->result));if(!ast || !sameFullAst(ast,r->expected,1) || !w.deferred || !w.materialized || w.retainedBytes>8u*1024u*1024u || !xlsSignatureValidate(r->result))r->okay=0;}
+ xlsSignatureRelease(r->result);return 0;
+}
+static int retainedFullAst(void)
+{
+ char* path=xrtPathAbs("signature-retained-full-ast.xl");CHECK(path);
+ const size_t budgets[]={0,1,8192,8u*1024u*1024u};xls_signature_help *held=NULL,*oracle=NULL;
+ for(unsigned b=0;b<4;++b){
+  xls_signature_session* session=xlsSignatureSessionCreate(NULL);CHECK(session);xls_analysis_document doc={"entry",path,NULL,211+b,1};
+  xls_sem_tail_control outer;xlsFrontendSemTailBegin(&outer,0);
+  for(unsigned i=0;i<5;++i){
+   xstrbuf source={0};CHECK(xrtStrBufAppendFormat(&source,"\xef\xbb\xbf// 中文😀 generation %u%s\r\n%s",i*100,i%2?" with longer Unicode 中文😀\r\n// extra line":"",functions));
+   for(unsigned j=0;j<32;++j)CHECK(xrtStrBufAppendFormat(&source,"func stable_%u(int value) as int\r\n int local=value+%u\r\n if local>0 then\r\n return local\r\n end\r\n return 0\r\nend\r\n",j,j));
+   CHECK(xrtStrBufAppendFormat(&source,"class Box\r\n func get(int value) as int\r\n return stable_0(value)\r\n end\r\nend\r\nfunc main(...) as int\r\n auto callback=stable_1\r\n auto box=Box()\r\n int typed=callback(%u)+box.get(%u)\r\n return %s(typed,\"😀 %u\")\r\nend\r\n",i,i,i==4?"missing":"plus",i));
+   size_t offset=(size_t)(strrchr(source.Data,'"')-source.Data)-3; ++doc.revision;xlsTextRelease(doc.text);doc.text=xlsTextCreate(source.Data,source.Size,1024*1024,NULL);CHECK(doc.text);
+   xls_sem_tail_control inner;xlsFrontendSemTailBegin(&inner,budgets[b]);xls_signature_help* r=xlsSignatureSessionQueryInContext(session,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);xlsFrontendSemTailEnd(&inner);
+   xls_semantic_input in={path,source.Data,source.Size};xls_signature_help* fresh=xlsSignatureCreateInContext(NULL,path,path,offset,&in,1,NULL,NULL,NULL,0);CHECK(r && fresh && parity(r,fresh));
+   xls_sem_tail_work before=xlsSemanticCompletionTailWork(xlsSignatureSemantic(r));CHECK(!before.materialized && before.retainedBytes<=budgets[b] && !xlsSemanticCompletionTailWork(xlsSignatureSemantic(fresh)).deferred);
+   if(i && i<4){CHECK(xlsSignatureWork(r).reused>=32);if(b==3)CHECK(before.deferred && before.retainedBytes>0);if(b<2)CHECK(!before.deferred && !before.retainedBytes);}
+   if(i==4)CHECK(!xlsSignatureInfo(r).available && !before.deferred && !before.retainedBytes);
+   /* A projected signature tree is not a fully checked call. Independently
+      check the actual complete source through the ordinary typed IR pipeline.
+      Its already checked helpers must keep every annotation and coordinate;
+      only the original completion-source stamp differs between these modes. */
+   xls_semantic_check* full=xlsSemanticCheckCreate(path,&in,1,0,NULL,NULL,NULL,0);CHECK(full);
+   if(i<4){
+    xls_check_info checked=xlsSemanticCheckInfo(full);CHECK(checked.accepted && checked.irTypes && checked.irNodes && xlsSemanticCheckIr(full));
+    const XL6_AstNode *projected=xlsSemanticCompletionAst(xlsSignatureSemantic(fresh)),*ordinary=xlsSemanticCheckAst(full);CHECK(projected && ordinary);
+    size_t helpers=0;
+    for(size_t n=0;n<projected->childCount;++n){const XL6_AstNode* fn=projected->children[n];
+     if(fn->kind!=XL6_AST_FUNC || !fn->childCount || !fn->children[0]->text || strncmp(fn->children[0]->text,"stable_",7))continue;
+     const XL6_AstNode* match=NULL;
+     for(size_t j=0;j<ordinary->childCount;++j){const XL6_AstNode* other=ordinary->children[j];if(other->kind==XL6_AST_FUNC && other->childCount && sameText(other->children[0]->text,fn->children[0]->text)){match=other;break;}}
+     CHECK(match && sameFullAst(fn,match,0));++helpers;
+    }
+    CHECK(helpers==32);
+    xls_signature_item selected;CHECK(xlsSignatureItem(r,xlsSignatureInfo(r).activeSignature,&selected));
+    const XL6_AstNode* call=findCall(ordinary,xlsSemanticCompletionInfo(xlsSignatureSemantic(r)).start,path);CHECK(call && call->semanticTargetSymbolId && call->semanticTargetSymbolId==selected.symbol);
+   }else CHECK(!xlsSemanticCheckInfo(full).accepted && xlsSemanticCheckInfo(full).diagnostics);
+   xlsSemanticCheckDestroy(full);
+   if(b==3 && i==3){held=xlsSignatureRetain(r);oracle=xlsSignatureRetain(fresh);}
+   else {
+    const XL6_AstNode* actual=xlsSemanticCompletionAst(xlsSignatureSemantic(r));CHECK(actual && sameFullAst(actual,xlsSemanticCompletionAst(xlsSignatureSemantic(fresh)),1));
+    xls_sem_tail_work after=xlsSemanticCompletionTailWork(xlsSignatureSemantic(r));CHECK(after.deferred==before.deferred && after.materialized==before.deferred && after.retainedBytes<=before.retainedBytes && actual==xlsSemanticCompletionAst(xlsSignatureSemantic(r)));
+   }
+   xlsSignatureRelease(r);xlsSignatureRelease(fresh);xrtStrBufFree(&source);
+  }
+  xlsFrontendSemTailEnd(&outer);xlsSignatureSessionDestroy(session);xlsTextRelease(doc.text);
+ }
+ CHECK(held && oracle && xlsSemanticCompletionTailWork(xlsSignatureSemantic(held)).deferred && !xlsSemanticCompletionTailWork(xlsSignatureSemantic(held)).materialized);
+ const XL6_AstNode* expected=xlsSemanticCompletionAst(xlsSignatureSemantic(oracle));CHECK(expected);signature_ast_reader readers[4];xthread* threads[4];
+ for(unsigned i=0;i<4;++i){readers[i]=(signature_ast_reader){xlsSignatureRetain(held),expected,0};threads[i]=xrtThreadCreate(signatureAstRead,&readers[i],0);CHECK(threads[i]);}
+ for(unsigned i=0;i<4;++i){CHECK(xrtThreadWait(threads[i])==XWAIT_OK && readers[i].okay);xrtThreadDestroy(threads[i]);}
+ CHECK(xlsSemanticCompletionTailWork(xlsSignatureSemantic(held)).materialized && xlsSemanticCompletionTailWork(xlsSignatureSemantic(held)).retainedBytes<=8u*1024u*1024u);xlsSignatureRelease(held);xlsSignatureRelease(oracle);xrtFree(path);return 1;
+}
+
 typedef struct cancel_state {unsigned calls,at;} cancel_state;
 static int cancelAt(void* user){cancel_state* c=user;return ++c->calls==c->at;}
 static int caretCancellationAndLifetime(void)
@@ -243,7 +324,7 @@ static int run(void)
  CHECK(originalOracle("func choose(int value,int other) as int\n return value\nend\nfunc choose(string value,int other) as int\n return other\nend\nfunc main(...) as int\n return choose(\"x\",@caret@0)\nend\n"));
  CHECK(originalOracle("class Box\n func method(int value) as int\n return value\n end\nend\nfunc main(...) as int\n auto box=Box()\n return box.method(@caret@7)\nend\n"));
  CHECK(originalOracle("class Box\n create(int value)\n end\nend\nfunc main(...) as int\n auto box=Box(@caret@7)\n return 0\nend\n"));
- CHECK(session());CHECK(parseIncrementality());CHECK(cancellation());CHECK(actor());CHECK(diskInputs());CHECK(isolationAndBounds());
+ CHECK(session());CHECK(parseIncrementality());CHECK(retainedFullAst());CHECK(cancellation());CHECK(actor());CHECK(diskInputs());CHECK(isolationAndBounds());
  return 1;
 }
 int main(void){if(!run())return 1;printf("Same-argument immutable caret views=%llu\n",(unsigned long long)caretViews);printf("analysis_signature_test passed: %u checks\n",checks);return 0;}

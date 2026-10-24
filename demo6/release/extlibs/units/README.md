@@ -30,6 +30,13 @@
 
 ## 范例与验证
 
+2026-10-25：从当前源码重新构建 Windows 发布版后，默认
+`test/check.ps1` 的严格 C/ABI、线程、语言边界、分配故障、
+C/XLang 同输出及核心/公开范例 AOT 均通过。同轮 WSL
+`test/check.sh` 的 C ASan/UBSan、线程、语言边界、分配故障和
+双语对照通过。Linux 使用现有 `release/xl` 运行语言用例；
+本轮没有重建 Linux 发布版或验证 Linux 独立 EXE。
+
 2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
 严格 C ABI、边界与四线程、C 文件直接运行、中央/包内 XLang 边界、
 分配故障、双语同输出及核心/完整范例 AOT 均通过。旧的完整 AOT

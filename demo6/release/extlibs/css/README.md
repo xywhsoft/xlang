@@ -24,6 +24,9 @@ assert css.selectorAt(sheet, 0) == "h1"
 样式表的受支持语法；即使首个匹配位于前半段，尾部损坏也会报错。
 这些查询与 `validate` 共用嵌套 at-rule 深度上限：64 层有效，第 65 层
 报告 `RangeError`，避免递归扫描耗尽 C 栈。
+选择器与声明表达式中的 `()`、`[]` 必须按实际嵌套顺序闭合；
+`([)]` 等交叉闭合报告 `ValueError`。两类括号合计最多嵌套 64 层，
+第 65 层报告 `RangeError`。查询不会跳过命中规则之后的坏括号。
 `stripComments` 只校验注释与引号边界，不替代 `validate`。
 引号字符串中的未转义 CR、LF、FF 属于语法错误；反斜杠续行有效，
 其中 CRLF 按一个换行处理。这遵循 [CSS Syntax 3 的字符串记号规则](https://www.w3.org/TR/css-syntax-3/#consume-string-token)，
@@ -39,6 +42,11 @@ C ABI 一致；C 输出计数可使用 `<inttypes.h>` 的 `PRId64`。
 
 包级验证：
 
+- 2026-10-25：C/XLang 红例确认扫描器原先分别计数 `()` 与 `[]`，
+  因而接受 `([)]` 交叉闭合；现改用顺序栈。选择器、声明值、
+  后续坏规则及 64/65 层临界值均有回归。当前 Windows 默认门禁的
+  严格 C/ABI、线程、分配故障、双语输出与边界/范例 AOT 全通过；
+  Linux C ASan/UBSan、线程、XLang JIT 和双语对照通过。
 - 2026-10-22：C/XLang 成对范例补齐 `countProps`、`stripComments`，
   六个公开入口均有调用示范；两侧分别断言固定选择器、属性数、
   注释剥离文本和查询值，不再只比较双方打印结果。注释剥离会保留
