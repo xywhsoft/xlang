@@ -59,6 +59,8 @@ CORE_TESTS = ("analysis_call_context_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_signature_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_input_usage_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_dependency_graph_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_worker_cache_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_worker_cache_fault_test", *CORE_TESTS)
 
 
 def sha(path: Path) -> str:

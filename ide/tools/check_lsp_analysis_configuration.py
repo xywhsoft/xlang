@@ -172,10 +172,12 @@ def main():
         assert value['retainedEntry'] and value['entryOpen'] and value['analysis']['builds'] == disk_builds+1, value
         again = query(c, cursor, 8, 6, 1, {'value', 'beta'})
         assert again['analysis']['cacheHits'] == value['analysis']['cacheHits']+1, again
+        open_hits = again['analysis']['cacheHits']
         done('open-project-root-uses-retained-cursor-actor-and-real-hit-counters')
         c.send('textDocument/didClose', dict(textDocument=dict(uri=entry.as_uri())))
         value = query(c, cursor, 8, 6, 1, {'value', 'beta'})
-        assert value['retainedEntry'] and not value['entryOpen'] and value['analysis']['builds'] == disk_builds+2, value
+        assert value['retainedEntry'] and not value['entryOpen'] and value['analysis']['builds'] == disk_builds+1, value
+        assert value['analysis']['cacheHits'] == open_hits+1 and value['analysis']['sessionCache']['pruned'] >= 1, value
         done('closing-root-restores-verified-retained-disk-route')
         old_query = value['queryId']
         replacement = entry.with_suffix('.replacement')
@@ -363,10 +365,12 @@ def main():
         value = check(third, 2, 1, False, version)
         assert value['analysis']['lastBuildEntryParse']['parsed'] == 1 and not value['analysis']['lastBuildEntryParse']['reused'], value
         assert value['analysis']['lastBuildModuleParse']['parsed'] == 2 and value['analysis']['lastBuildModuleParse']['reused'] == 0, value
+        before_return = value['analysis']
         call(third, 'xlang/configureAnalysis', packet(3, 0))
         value = check(third, 3, 0, True, version)
-        assert value['analysis']['lastBuildEntryParse']['parsed'] == 1, value
-        done('static-check-full-context-change-reparses-before-current-package-checks')
+        assert value['analysis']['lastBuildEntryParse']['reused'] == 1 and not value['analysis']['lastBuildEntryParse']['parsed'], value
+        assert value['analysis']['builds'] == before_return['builds'] and value['analysis']['cacheHits'] == before_return['cacheHits']+1 and value['analysis']['sessionCache']['hits'] == before_return['sessionCache']['hits']+1, value
+        done('static-check-context-return-validates-and-reuses-original-root-model')
         assert value['analysis']['lastBuildModuleParse']['parsed'] == 1 and value['analysis']['lastBuildModuleParse']['reused'] == 1, value
         done('module-cache-full-context-isolation-preserves-current-imports')
         third.open(entry, entry_text, 1)
@@ -383,8 +387,10 @@ def main():
         value = check(third, 3, 0, True, version)
         assert not value['entryOpen'] and value['analysis']['lastBuildEntryParse']['reused'] == 1, value
         done('static-check-open-entry-keeps-chunk-syntax-and-close-restores-disk-cache')
-        assert value['analysis']['lastBuildModuleParse']['parsed'] == 0 and value['analysis']['lastBuildModuleParse']['reused'] == 2, value
-        done('closing-entry-retains-two-current-module-trees-with-new-source-proofs')
+        # The disk-root session retained its own old helper tree while the open
+        # root was edited. Reparse that helper;reuse only the unchanged package.
+        assert value['analysis']['lastBuildModuleParse']['parsed'] == 1 and value['analysis']['lastBuildModuleParse']['reused'] == 1, value
+        done('closing-entry-updates-retained-disk-root-helper-and-reuses-current-package')
         assert all(sha(p) == digest for p, digest in protected.items()) and not helper.exists() and not compiler.exists()
         done('unsaved-member-not-written-and-source-tools-unchanged')
         report['status'] = 'passed'

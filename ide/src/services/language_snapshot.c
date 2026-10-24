@@ -40,6 +40,16 @@ static int nativeCancelled(void* user) { return cancelled(user); }
 static void nativeQueryWake(void* user) { SetEvent((HANDLE)user); }
 static int retainedNative(const xide_language_check* q)
 { return q->semanticActor && (q->semanticTarget || q->configuredEntry); }
+static int sessionCacheStats(xvalue* stats,const xide_language_check* q)
+{
+ const xls_worker_cache_stats* s=&q->sessionCache;xvalue* value=xrtValueObject();
+ int okay=value && put(value,"hits",xrtValueInt((int64)s->hits)) && put(value,"misses",xrtValueInt((int64)s->misses)) &&
+  put(value,"evictions",xrtValueInt((int64)s->evictions)) && put(value,"pruned",xrtValueInt((int64)s->pruned)) &&
+  put(value,"allocationFallbacks",xrtValueInt((int64)s->allocationFallbacks)) && put(value,"sessions",xrtValueInt((int64)s->sessions)) &&
+  put(value,"inputStorageBytes",xrtValueInt((int64)s->inputStorageBytes)) && put(value,"sessionLimit",xrtValueInt((int64)s->sessionLimit)) &&
+  put(value,"inputStorageLimit",xrtValueInt((int64)s->inputStorageLimit)) && put(value,"inputBudgetExceeded",xrtValueBool(s->inputBudgetExceeded!=0));
+ if(okay){okay=put(stats,"sessionCache",value);value=NULL;}xrtValueRelease(value);return okay;
+}
 static xls_semantic_check* retainedCheck(xide_language_check* q,xide_model_error* e)
 {
  xls_analysis_document documents[64];
@@ -52,7 +62,7 @@ static xls_semantic_check* retainedCheck(xide_language_check* q,xide_model_error
  for(;;) {
   if(cancelled(q)) break;
   enum xls_query_state state=xlsQueryCheckResult(query,&result,&q->semanticStats,&q->semanticThread,e->message,sizeof(e->message));
-  if(state==XLS_QUERY_READY) break;
+  if(state==XLS_QUERY_READY) {xlsQuerySessionCache(query,&q->sessionCache);break;}
   if(state!=XLS_QUERY_PENDING) { e->code=XIDE_MODEL_INVALID; break; }
   HANDLE waits[2]={q->stopEvent,event};
   DWORD wait=WaitForMultipleObjects(2,waits,FALSE,INFINITE);
@@ -80,7 +90,7 @@ static xls_semantic_completion* retainedCompletion(xide_language_check* q,xide_m
  for(;;) {
   if(cancelled(q)) break;
   enum xls_query_state state=xlsQueryCompletionResult(query,&result,&q->completionStats,&q->semanticThread,e->message,sizeof(e->message));
-  if(state==XLS_QUERY_READY) break;
+  if(state==XLS_QUERY_READY) {xlsQuerySessionCache(query,&q->sessionCache);break;}
   if(state!=XLS_QUERY_PENDING) { e->code=XIDE_MODEL_INVALID; break; }
   HANDLE waits[2]={q->stopEvent,event};
   if(WaitForMultipleObjects(2,waits,FALSE,INFINITE)==WAIT_FAILED) { fail(e,"Cannot wait for retained cursor analysis."); break; }
@@ -100,7 +110,7 @@ static xls_signature_help* retainedSignature(xide_language_check* q,xide_model_e
  for(;;){
   if(cancelled(q))break;
   enum xls_query_state state=xlsQuerySignatureResult(query,&result,&q->signatureStats,&q->semanticThread,e->message,sizeof(e->message));
-  if(state==XLS_QUERY_READY)break;
+  if(state==XLS_QUERY_READY){xlsQuerySessionCache(query,&q->sessionCache);break;}
   if(state!=XLS_QUERY_PENDING){e->code=XIDE_MODEL_INVALID;break;}
   HANDLE waits[2]={q->stopEvent,event};if(WaitForMultipleObjects(2,waits,FALSE,INFINITE)==WAIT_FAILED){fail(e,"Cannot wait for retained signature analysis.");break;}
  }
@@ -486,7 +496,7 @@ static int nativeSignatureRun(xide_language_check* q,xvalue** output,xide_model_
   put(stats,"signatureParseExactHits",xrtValueInt((int64)parse.exactHits)) && put(stats,"signatureSyntaxCacheBytes",xrtValueInt((int64)parse.cacheBytes)) &&
   put(stats,"signatureSyntaxFallbacks",xrtValueInt((int64)parse.fallbacks)) &&
   put(stats,"signatureTypeNodes",xrtValueInt((int64)storage.nodes)) && put(stats,"signatureTypePages",xrtValueInt((int64)storage.pages)) &&
-  put(stats,"signatureTypeBytes",xrtValueInt((int64)storage.chargedBytes)) && put(stats,"signatureTypeHeapFallbacks",xrtValueInt((int64)storage.heapFallbacks));
+  put(stats,"signatureTypeBytes",xrtValueInt((int64)storage.chargedBytes)) && put(stats,"signatureTypeHeapFallbacks",xrtValueInt((int64)storage.heapFallbacks)) && sessionCacheStats(stats,q);
  if(retained){retained=put(result,"analysis",stats);stats=NULL;}xrtValueRelease(stats);
  if(!retained || !put(result,"version",xrtValueInt(q->queryVersion)) || !xlsSignatureValidate(signature) || !validateGraph(q,&graph,e) || cancelled(q))goto done;
  q->guardFiles=xrtValueDeepClone(get(get(raw,"sourceReport"),"files"));q->guardResolution=xrtValueDeepClone(get(raw,"resolutionReport"));
@@ -623,7 +633,7 @@ analysed:
    put(stats,"cursorReusedDeclarations",xrtValueInt((int64)q->completionStats.cursorReusedDeclarations)) &&
    put(stats,"cursorParsedBytes",xrtValueInt((int64)q->completionStats.cursorParsedBytes)) &&
    put(stats,"cursorSyntaxHits",xrtValueInt((int64)q->completionStats.cursorSyntaxHits)) &&
-   put(stats,"cursorFreshBuilds",xrtValueInt((int64)q->completionStats.cursorFreshBuilds));
+   put(stats,"cursorFreshBuilds",xrtValueInt((int64)q->completionStats.cursorFreshBuilds)) && sessionCacheStats(stats,q);
   xvalue* entryWork=xrtValueObject();
   okayStats=okayStats && entryWork && put(entryWork,"parsed",xrtValueInt((int64)q->entryParseWork.parsed)) &&
    put(entryWork,"reused",xrtValueInt((int64)q->entryParseWork.reused)) && put(entryWork,"declined",xrtValueInt((int64)q->entryParseWork.declined)) &&
@@ -689,7 +699,7 @@ analysed:
    put(stats,"semanticFunctionsChecked",xrtValueInt((int64)q->semanticStats.semanticFunctionsChecked)) &&
    put(stats,"semanticFunctionsReused",xrtValueInt((int64)q->semanticStats.semanticFunctionsReused)) &&
    put(stats,"semanticContextHits",xrtValueInt((int64)q->semanticStats.semanticContextHits)) &&
-   put(stats,"semanticMemoBytes",xrtValueInt((int64)q->semanticStats.semanticMemoBytes));
+   put(stats,"semanticMemoBytes",xrtValueInt((int64)q->semanticStats.semanticMemoBytes)) && sessionCacheStats(stats,q);
   xvalue* entryWork=xrtValueObject();
   okayStats=okayStats && entryWork && put(entryWork,"parsed",xrtValueInt((int64)q->entryParseWork.parsed)) &&
    put(entryWork,"reused",xrtValueInt((int64)q->entryParseWork.reused)) && put(entryWork,"declined",xrtValueInt((int64)q->entryParseWork.declined)) &&

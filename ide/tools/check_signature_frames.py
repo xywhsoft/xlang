@@ -25,7 +25,10 @@ def main():
     parser.add_argument('--helpers', type=int, default=96)
     parser.add_argument('--samples', type=int, default=10)
     parser.add_argument('--scope', action='store_true', help='also measure edits to an unrelated open buffer')
+    parser.add_argument('--roots', action='store_true', help='measure alternating two unchanged editor tabs instead')
     args = parser.parse_args()
+    if args.scope and args.roots:
+        parser.error('choose scope or roots')
     if not 1 <= args.helpers <= 512 or not 2 <= args.samples <= 120:
         parser.error('helpers must be 1..512 and samples 2..120')
     fixture = args.fixture.resolve(strict=True)
@@ -42,15 +45,17 @@ def main():
     protected = {str(p): sha(p) for p in [fixture, fixture.parent/'xlang-ls.exe',
         fixture.parent/'xge.dll', program, Path(__file__), Path(__file__).with_name('check_lsp_module_semantics.py')]}
     rows, cold, commands = [], [], []
-    modes = 5 if args.scope else 4
+    modes = [5] if args.roots else list(range(5 if args.scope else 4))
     report = dict(status='failed', scope=__doc__, samples=rows, cold=cold,
-        commands=commands, protected=protected, helpers=args.helpers, lines=body.count('\n'), inputScopeMode=args.scope)
+        commands=commands, protected=protected, helpers=args.helpers, lines=body.count('\n'), inputScopeMode=args.scope, rootSwitchMode=args.roots)
     try:
         for run, reverse in enumerate([0, 1, 1, 0]):
             command = [str(fixture), str(out/f'run-{run}'), str(args.compiler.resolve()),
                 str(program), str(args.samples), str(reverse)]
             if args.scope:
                 command.append('scope')
+            if args.roots:
+                command.append('roots')
             cp = subprocess.run(command, capture_output=True, timeout=600, cwd=fixture.parent)
             log = out/f'run-{run}.log'
             log.write_bytes(cp.stdout+cp.stderr)
@@ -59,9 +64,9 @@ def main():
             values = [json.loads(v) for v in cp.stdout.decode('utf8').splitlines() if v.startswith('{')]
             first = [v for v in values if 'coldMs' in v]
             measured = [v for v in values if 'mode' in v]
-            assert len(first) == 1 and len(measured) == modes*args.samples
+            assert len(first) == 1 and len(measured) == len(modes)*args.samples
             cold.append(dict(run=run, **first[0]))
-            for mode in range(modes):
+            for mode in modes:
                 subset = [v for v in measured if v['mode'] == mode]
                 assert sorted(v['sample'] for v in subset) == list(range(args.samples))
                 assert all(v['frames'] > 0 and v['documentVersion'] > 0 and v['renderSubmittedMs'] >= v['inputMs'] for v in subset)
@@ -75,7 +80,7 @@ def main():
             return dict(samples=len(a), p50=a[math.ceil(.5*len(a))-1],
                 p95=a[math.ceil(.95*len(a))-1], p99=a[math.ceil(.99*len(a))-1], maximum=a[-1])
         report['summary'] = {str(mode): {field: stats([v[field] for v in rows if v['mode'] == mode])
-            for field in ['inputMs', 'renderSubmittedMs', 'maxFrameMs', 'guiCpuMs']} for mode in range(modes)}
+            for field in ['inputMs', 'renderSubmittedMs', 'maxFrameMs', 'guiCpuMs']} for mode in modes}
         report['status'] = 'passed'
     finally:
         (out/'result.json').write_text(json.dumps(report, ensure_ascii=False, indent=2)+'\n', encoding='utf8')

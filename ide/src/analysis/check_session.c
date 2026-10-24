@@ -3,6 +3,7 @@
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_entry_cache.h"
 #include "analysis/input_batch.h"
+#include "analysis/session_state.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
@@ -28,7 +29,23 @@ void xlsCheckSessionDestroy(xls_check_session* s)
 { if(s) { xlsInputBatchDestroy(s->batch); xlsSyntaxRelease(s->entrySyntax); xlsSemanticCheckDestroy(s->result); xlsEntryCacheDestroy(s->entryCache); xrtFree(s); } }
 void xlsCheckSessionStats(const xls_check_session* s,xls_check_stats* stats)
 { if(stats) *stats=s ? s->stats : (xls_check_stats){0}; }
-xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* s,xls_context* context,
+xls_session_state xlsCheckSessionState(const xls_check_session* s)
+{return (xls_session_state){s ? s->batch : NULL,NULL};}
+xls_semantic_checkpoint xlsCheckSessionCheckpoint(const xls_check_session* s)
+{
+    if(!s)return (xls_semantic_checkpoint){0};
+    return (xls_semantic_checkpoint){.inputs=xlsInputBatchRetain(s->batch),.check=xlsSemanticCheckRetain(s->result),
+        .syntax=xlsSyntaxRetain(s->entrySyntax),.usedInputs=s->usedInputs,.usageKnown=s->usageKnown,.captureIndex=s->captureIndex,
+        .documents=s->stats.documents,.textBytes=s->stats.textBytes,.memoBytes=s->stats.semanticMemoBytes};
+}
+void xlsCheckSessionRestore(xls_check_session* s,xls_semantic_checkpoint* old)
+{
+    if(!s || !old)return;
+    xlsInputBatchDestroy(s->batch);xlsSemanticCheckDestroy(s->result);xlsSyntaxRelease(s->entrySyntax);
+    s->batch=old->inputs;s->result=old->check;s->entrySyntax=old->syntax;s->usedInputs=old->usedInputs;s->usageKnown=old->usageKnown;s->captureIndex=old->captureIndex;
+    s->stats.documents=old->documents;s->stats.textBytes=old->textBytes;s->stats.semanticMemoBytes=old->memoBytes;*old=(xls_semantic_checkpoint){0};
+}
+xls_semantic_check* xlsCheckSessionCheckWithHistory(xls_check_session* s,xls_context* context,const xls_input_batch* history,
     const xls_analysis_document* documents,size_t count,const char* target,
     int captureIndex,int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
@@ -36,7 +53,7 @@ xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* s,xls_conte
     xls_syntax* syntax=NULL;
     if(error && capacity) *error=0;
     if(!s || (captureIndex!=0 && captureIndex!=1)) goto invalid;
-    batch=xlsInputBatchCreateInContext(context,&s->limits,s->batch,documents,count,target,cancelled,user,error,capacity);
+    batch=xlsInputBatchCreateInContext(context,&s->limits,history,documents,count,target,cancelled,user,error,capacity);
     if(!batch) goto done;
     const xls_analysis_document* entryDocument=xlsInputBatchTarget(batch);
     const char* entry=xlsInputBatchEntry(batch);
@@ -92,6 +109,10 @@ cancel: fail(error,capacity,"semantic session cancelled");
 done: xlsSyntaxRelease(syntax); xlsInputBatchDestroy(batch); return result;
 }
 
+xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* s,xls_context* context,
+    const xls_analysis_document* documents,size_t count,const char* target,int captureIndex,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{return xlsCheckSessionCheckWithHistory(s,context,s ? s->batch : NULL,documents,count,target,captureIndex,cancelled,user,error,capacity);}
 xls_semantic_check* xlsCheckSessionCheck(xls_check_session* session,
     const xls_analysis_document* documents,size_t count,const char* target,
     int captureIndex,int (*cancelled)(void*),void* user,char* error,size_t capacity)
