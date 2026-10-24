@@ -151,3 +151,13 @@ JSON object`。原生 `xtf_state` 要求 XRT object；公开签名只声明
 包清单与默认门禁，使整包保持红色直至主线统一对象投影。修复后
 复跑最小用例及完整 `release/extlibs/terraform_state/test/check.ps1`；
 不要在包侧识别编译器私有句柄。
+
+同日 `epub` 复现对象和数组输入边界：从 `demo6` 运行
+`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/epub/test/check.ps1`，
+严格 C 测试通过，随后 `test/cases/extlib_epub.xl` 的合法
+`epub.build(path, meta, chapters)` 报
+`ValueError: invalid EPUB metadata or chapter`。`meta` 为语言字典，
+`chapters` 为语言数组；原生 `xep_build` 在解析字段前要求
+`XVALUE_OBJECT` 和 `XVALUE_ARRAY`。这是与 foreign 容器投影同形的
+可观察失败，尚未逐个证明两个参数的内部表示。当前发布版默认门禁
+尚未进入完整范例和 AOT；共享边界修复后复跑该门禁。

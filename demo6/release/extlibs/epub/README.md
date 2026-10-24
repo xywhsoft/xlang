@@ -1,5 +1,13 @@
 # epub
 
+**当前发布门禁未通过。** 2026-10-24 从当前源码重建 Windows 发布版后，
+默认 `test/check.ps1` 的严格 C 边界通过，但首个 XLang 用例
+`test/cases/extlib_epub.xl` 在把合法的语言字典和章节数组传给
+`epub.build` 时报告 `ValueError: invalid EPUB metadata or chapter`。
+原生 `xep_build` 要求 XRT object/array，公开签名却接收两个 `var`；
+这与已登记的 foreign 容器投影故障同形，尚未证明内部根因完全相同。
+完整 XLang/AOT 门禁未签收；修复共享边界后须重跑默认门禁。
+
 `epub` 把简单 UTF-8 文本章节生成 EPUB 3 电子书。面向小型手册与纯文本出版物，不是通用 HTML/资源打包器。包使用专用 stored ZIP 容器，无额外压缩库；`mimetype` 位于首条目且没有 ZIP extra 字段。元数据、目录、spine 和 XHTML 章节由同一次构建生成。
 
 ```xlang
@@ -54,7 +62,7 @@ C 教学范例在 TCC 单文件运行时包含包内两份实现；正式包清�
 构建仍分别编译这些源文件。Linux 包级门禁将两种 C 构建生成的 EPUB
 逐字节比较，并与 XLang 范例的输出和生成物对照。
 
-包级验证还包括 Python 标准库的独立 ZIP CRC/XML 解析、100/101 章边界、4 KiB 长行、损坏中央目录、分配失败与旧文件保持、Windows 严格 GCC 及 Linux ASan/UBSan。C/xlang 范例输出一致。完整边界 AOT 仍因主线 `xl6ValueDataSnapshotV1` 缺符号无法链接，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`；因此本包暂记为包级通过，不签收正式发布级验收。
+历史包级验证还包括 Python 标准库的独立 ZIP CRC/XML 解析、100/101 章边界、4 KiB 长行、损坏中央目录、分配失败与旧文件保持、Windows 严格 GCC 及 Linux ASan/UBSan。此前 C/xlang 范例输出一致。旧发布物的完整边界 AOT 曾因主线 `xl6ValueDataSnapshotV1` 缺符号无法链接，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`；当前默认门禁先在上述容器输入处失败，不能据旧结论签收。
 
 2026-10-14 追加 XML 1.0 字符边界：C 负例先确认 U+FFFE 原会生成非法 XML，随后包内统一校验元数据和章节文本；C/XLang 对 U+FFFE/U+FFFF 的拒绝、原文件保持、严格 GCC 与正常 EPUB 的独立 ZIP/XML 解析通过。此轮未重跑 Linux sanitizer 或 EPUBCheck，完整 AOT 阻断未变。
 
