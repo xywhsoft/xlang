@@ -1,5 +1,11 @@
 # stb_image_resize2
 
+2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 全通过：严格
+GCC、C/XLang 边界与分配故障、三路双语范例固定输出，以及中央
+用例和公开图片范例的独立 EXE AOT 构建、执行及结果对照。
+下文共享 AOT 缺符号记录属于旧发布物；本轮未用新 Linux 发布版
+重跑独立 EXE，不能外推为 Linux AOT 验收。
+
 `stb_image_resize2` 使用 stb_image_resize2 2.18 缩放 uint8 图片。输入、输出
 均为独立的 XRT `Buffer`；不暴露无长度裸指针，也不要求调用者管理额外的
 图片句柄。`resize` 使用 sRGB 颜色空间缩放，`resizeLinear` 使用线性空间，
