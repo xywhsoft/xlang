@@ -1,5 +1,12 @@
 # vcard
 
+2026-10-24 当前发布版复验：默认 Windows 门禁的严格 C 测试通过，
+首个中央 XLang 用例在 `vcard.build(var card)` 接收语言字典时失败。
+原生解析得到的对象可正常写出，语言构造的字典在 JIT 和独立 EXE
+中均失败，见 `dev/extlib_blockers/vcard_var_object_projection.xl`。
+这是共享 foreign `var` 容器投影阻断；完整语言与 AOT 门禁尚未签收。
+下述语言字典写出示例描述目标 API，当前发布版不能据此作为可运行范例。
+
 2026-10-23：同名字段第二次出现时，解析器直接保留首个 `xvalue`
 字符串的引用并放入数组，不再复制它的全部文本。对象字段替换后由数组
 持有原值；Windows 聚焦门禁与 Linux C ASan/UBSan、XLang、双语门禁通过。
@@ -74,7 +81,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 
 在 Linux/WSL 的 `demo6` 目录另运行 `bash release/extlibs/vcard/test/check.sh`；脚本在临时目录编译运行，不写入发布目录。它同时执行 C ASan/UBSan、四组 XLang JIT 用例，并逐字节比较 C/XLang 范例的输出和生成的 `.vcf`。此门禁不覆盖完整 AOT。
 
-C/XL 测试覆盖 3.0/4.0 常用字段、重复字段、中文结构化字段、转义/反转义、9 KiB 长字段、75 字节折行、畸形包络、NUL/非法 UTF-8、非法控制字符、4 MiB 限额、独立结果和分配失败。Windows 严格 GCC、Linux ASan/UBSan、双语同输出及无输出 AOT 核心已通过。完整带输出范例 AOT 仍受主线 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`，因此尚未签收正式发布级验收。
+C/XL 测试覆盖 3.0/4.0 常用字段、重复字段、中文结构化字段、转义/反转义、9 KiB 长字段、75 字节折行、畸形包络、NUL/非法 UTF-8、非法控制字符、4 MiB 限额、独立结果和分配失败。历史门禁的 Windows 严格 GCC、Linux ASan/UBSan、双语同输出及无输出 AOT 核心曾通过；当前默认门禁在语言字典写出处先失败，未走到完整范例 AOT。旧发布物的 `xl6ValueDataSnapshotV1` 缺符号记录见 `demo6/dev/extlib_blockers/text_snapshot_link.md`，不能据此判断当前 vcard AOT 状态。
 
 解析重复字段与生成文本另扫描前 64 个分配故障位置：注入确实覆盖失败和成功分支，失败返回空结果并保留 `XERR_MEMORY`，清除故障后完整往返仍可用。Windows TCC C 测试、严格 GCC 语法检查和 Linux ASan/UBSan 包级门禁通过。
 

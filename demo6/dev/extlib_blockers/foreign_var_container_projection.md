@@ -98,3 +98,14 @@ C、真实 Windows `argv` 往返、两种语言的公开范例，在中央 XLang
 分配故障及线程测试均通过，首个 XLang 主用例即停止，后续
 语言、DLL 宿主复用、生成原型和 AOT 路径本轮均未验收。
 修复共享容器投影后须复跑本最小 JIT/EXE 及完整 `graph` 门禁。
+
+同日 `vcard` 的当前 Windows 发布版复现对象侧：
+`./release/xl.exe run dev/extlib_blockers/vcard_var_object_projection.xl`
+先输出 `parsed object: PASS`，随后在语言字典 `{"fn": "Ada"}` 调用
+`vcard.build(created)` 时抛出 `ValueError: invalid vCard field or output exceeds 4 MiB`；
+独立 EXE 也在同一位置失败。作为正对照，`vcard.parse(...)` 返回的
+XRT 对象可成功 `build()`。包级严格 C 测试通过，默认门禁首个中央
+XLang 用例在构造字典写出时终止；完整语言和 AOT 门禁未签收。
+原生 `xv_build(xvalue*)` 在写出字段前要求 `XVALUE_OBJECT`，
+不能通过在 vCard 包内识别编译器私有 handle 来回避共享 ABI 问题。
+主线修复后应重跑此 JIT/EXE 最小复现与完整包级门禁。
