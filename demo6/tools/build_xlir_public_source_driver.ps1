@@ -1,5 +1,5 @@
 param([string]$Directory = 'build/test/xlir_public_source', [switch]$RuntimeOnly, [switch]$NoCache,
-    [string]$CacheDirectory = '')
+    [string]$CacheDirectory = '', [ValidateSet('O0','O2')][string]$Optimization = 'O0')
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'xlir_c_object_cache.ps1')
 $rootPath = (Get-Location).Path
@@ -619,7 +619,7 @@ foreach ($entry in Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.txt
         $headers += [pscustomobject]@{Path=$target;Sha256=$hash;Source=$source.FullName}
     }
 }
-$flags = @('-std=c11','-Wall','-Wextra','-Werror','-O0','-DXL_STATIC_EMBED',"-DXL_ENABLE_EXE_COMPILER=$enableExe",'-DTCC_DISABLE_BUILTIN_VFS',
+$flags = @('-std=c11','-Wall','-Wextra','-Werror',"-$Optimization",'-DXL_STATIC_EMBED',"-DXL_ENABLE_EXE_COMPILER=$enableExe",'-DTCC_DISABLE_BUILTIN_VFS',
     '-Wno-unused-function','-Wno-unused-label','-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
     '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation',
     "-I$rootPath","-I$rootPath/release","-I$rootPath/release/include","-I$rootPath/lib/tcc","-I$rootPath/build/test")
@@ -634,6 +634,7 @@ for ($index = 0; $index -lt $sources.Count; ++$index) {
     }
     if ($source -match '^lib/tcc/') { $sourceFlags += '-Wno-error' }
     $record = Invoke-XlirCObject -Context $buildContext -Source (Join-Path $rootPath $source) -Object $objects[$index] -Flags $sourceFlags
+    $record | Add-Member -NotePropertyName Flags -NotePropertyValue @($sourceFlags)
     $objectRecords += $record
     Write-Output "[$($index + 1)/$($sources.Count)] $(if ($record.CacheHit) {'reuse'} else {'compile'}) $source ($($record.TotalSeconds)s)"
 }
@@ -652,7 +653,8 @@ try {
 } finally { Pop-Location }
 if (@($records | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count) { throw 'Build inputs changed' }
 Assert-XlirCToolchainUnchanged $buildContext
-$manifest = [pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Inputs=$records;Sources=$sources;RuntimeOnly=[bool]$RuntimeOnly;EnableExeCompiler=$enableExe;
+$manifest = [pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Complete=$true;InputsUnchanged=$true;Inputs=$records;Sources=$sources;RuntimeOnly=[bool]$RuntimeOnly;EnableExeCompiler=$enableExe;
+    Optimization=$Optimization;CompileFlags=$flags;
     Driver=(Join-Path $batchPath $binaryName);DriverSha256=(Get-FileHash (Join-Path $batchPath $binaryName)).Hash;Headers=$headers;
     Objects=$objectRecords;ToolchainSha256=$buildContext.ToolchainSha256;
     LinkResponse=$linkResponse;LinkResponseSha256=(Get-FileHash -LiteralPath $linkResponse).Hash;
