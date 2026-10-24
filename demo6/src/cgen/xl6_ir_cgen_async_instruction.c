@@ -391,11 +391,12 @@ static int xl6IrCgenEmitAsyncMachineInstruction(
             const XL6_IrType* type = xl6IrTypeGet(&module->types, instruction->type);
             if (storage == NULL) storage = xl6IrCgenSharedStorage(module, instruction->targetSymbol);
             if ( frame != NULL ) {
-                if ( !xl6IrCgenEmitFrameRelease(out, module, frame->type,
-                         frame->destroyAbi, frameSlot - machine->firstFrameSlot,
-                         frame->initBit) )
-                    return xl6IrCgenDiag(diags, module, instruction->origin,
-                        "XLIR async machine release has no frame lifetime ABI");
+                /* Each verified physical field has one typed detach/drop
+                 * helper. Repeating its slot-write temporaries at every
+                 * cleanup edge gives non-reusing C compilers enormous stack
+                 * frames, even though those blocks are mutually exclusive. */
+                xl6OutputPrintf(out, "    xlir_async_machine_release_%u_%lu(frame);\n",
+                    (unsigned int)target->symbol, (unsigned long)(frameSlot - machine->firstFrameSlot));
             } else if ( storage == NULL || type == NULL ||
                         !xl6IrCgenEmitSymbolRelease(out, module, instruction->type,
                             instruction->targetSymbol, 0) )
@@ -588,33 +589,19 @@ static int xl6IrCgenEmitAsyncMachineInstruction(
                 if (acquire) xl6OutputPuts("    }\n", out);
             }
             {
-                size_t frameLocal;
                 xl6OutputPrintf(out,
-                    "    { xlir_async_machine_frame_%u* next = (xlir_async_machine_frame_%u*)xlir_async_frame_allocate(sizeof(*next), &xlir_async_machine_storage_%u);\n"
+                    "    { xlir_async_machine_frame_%u* next = xlir_async_machine_allocate_%u();\n"
                     "      if (next == NULL) {\n",
-                    (unsigned int)target->symbol, (unsigned int)target->symbol, (unsigned int)target->symbol);
+                    (unsigned int)target->symbol, (unsigned int)target->symbol);
                 xl6IrCgenEmitAsyncSetupFailure(out, module, suspension);
-                xl6OutputPuts(
-                    "      }\n"
-                    "      next->outer = NULL;\n"
-                    "      next->source = NULL;\n", out);
-                for ( frameLocal = 0; frameLocal < machine->frameSlotCount; ++frameLocal ) {
-                    const XL6_IrAsyncMachineFrameSlot* nextFrame =
-                        &module->asyncMachineFrameSlots[machine->firstFrameSlot + frameLocal];
-                    if ( nextFrame->initBit != SIZE_MAX )
-                        xl6OutputPrintf(out, "      next->f%lu = (%s){0}; next->i%lu = 0;\n",
-                            (unsigned long)frameLocal,
-                            xl6IrCgenType(module,nextFrame->type),
-                            (unsigned long)nextFrame->initBit);
-                }
-                if (!xl6IrCgenEmitAsyncFrameHandoff(out, module, machine,
-                        suspension->firstHandoffAction, suspension->handoffActionCount, 0)) return 0;
+                xl6OutputPrintf(out, "      }\n      xlir_async_machine_handoff_%u_%lu(frame, next);\n",
+                    (unsigned int)target->symbol, (unsigned long)nextState);
                 xl6OutputPrintf(out,
                     "      if (!xlir_async_machine_watch_%u_%lu(next, v%u, &frame->ticket)) {\n",
                     (unsigned int)target->symbol, (unsigned long)nextState,
                     (unsigned int)module->operands[instruction->firstOperand]);
-                if (!xl6IrCgenEmitAsyncFrameHandoff(out, module, machine,
-                        suspension->firstRollbackAction, suspension->rollbackActionCount, 1)) return 0;
+                xl6OutputPrintf(out, "      xlir_async_machine_rollback_%u_%lu(frame, next);\n",
+                    (unsigned int)target->symbol, (unsigned long)nextState);
                 xl6OutputPuts(
                     "        xlir_async_frame_dispose(next);\n", out);
                 xl6IrCgenEmitAsyncSetupFailure(out, module, suspension);

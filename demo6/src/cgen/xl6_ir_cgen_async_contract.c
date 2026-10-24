@@ -963,12 +963,10 @@ static int xl6IrCgenAsyncMachineProgramSupported(
 static int xl6IrCgenAsyncDeclareMachineProgramValues(
     XL6_Output* out, const XL6_IrModule* module, const XL6_IrAsyncMachine* machine,
     const XL6_IrFunction* function, const unsigned char* blocks,
-    size_t resumeSuspension,
     XL6_DiagList* diags)
 {
     unsigned char* declared;
     size_t local;
-    int resume = resumeSuspension != SIZE_MAX;
     for (local = 0; local < machine->suspensionCount; ++local)
         xl6OutputPrintf(out, "    bool await_ok_%u = false;\n",
             (unsigned int)module->asyncSuspensions[machine->firstSuspension + local].resultValue);
@@ -1006,9 +1004,12 @@ static int xl6IrCgenAsyncDeclareMachineProgramValues(
                 instruction->kind == XL6_IR_INSTR_AWAIT ? " = {0}" : "");
         }
     }
-    if ( resume ) {
+    /* One executable CFG serves launch and every resume entry. A resumed
+     * result/projection is an entry definition even when its defining
+     * instruction is not in this union (e.g. a proved immediate await). */
+    for (local = 0; local < machine->suspensionCount; ++local) {
         const XL6_IrAsyncSuspension* suspension =
-            &module->asyncSuspensions[resumeSuspension];
+            &module->asyncSuspensions[machine->firstSuspension + local];
         const char* type = xl6IrCgenType(module, suspension->resultType);
         size_t action;
         size_t valueLocal = suspension->resultValue - function->firstValue;

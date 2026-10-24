@@ -301,10 +301,12 @@ $generated = [System.IO.File]::ReadAllText(
     $generatedPath, [System.Text.Encoding]::UTF8)
 $renderedCounts = [ordered]@{
     "=\s*xlir_xvalue_iterator_create\(v\d+\);" = 10
-    "=\s*xlir_xvalue_iterator_advance\(v\d+, &v\d+\);" = 11
-    "=\s*xlir_xvalue_iterator_item_string_copy\(v\d+\);" = 4
+    # Shared async CFG emission renders each verified operation once, not once
+    # per continuation entry that can reach it. Match the exact IR counts above.
+    "=\s*xlir_xvalue_iterator_advance\(v\d+, &v\d+\);" = 10
+    "=\s*xlir_xvalue_iterator_item_string_copy\(v\d+\);" = 3
     "=\s*xlir_xvalue_iterator_item_xvalue_retain\(v\d+\);" = 4
-    "=\s*xlir_xvalue_iterator_key_ordinal_i64\(v\d+\);" = 6
+    "=\s*xlir_xvalue_iterator_key_ordinal_i64\(v\d+\);" = 5
     "static xvalue\* xlir_xvalue_iterator_item_xvalue_retain\(" = 1
     "static int64_t xlir_xvalue_iterator_key_ordinal_i64\(" = 1
 }
@@ -343,8 +345,12 @@ foreach ( $resource in $itemResources ) {
     $pattern = "&\(xlir_released\), &\($escaped\), sizeof\(xlir_released\) \},\s*" +
         "\{ &\($escaped\), &\(xlir_empty\), sizeof\($escaped\) \}[\s\S]{0,400}?$drop\(xlir_released\);"
     $rendered = ([regex]::Matches($generated, $pattern)).Count
+    $calls = if ($frame.Count -eq 1) {
+        $helper = "xlir_async_machine_release_$($machines[0].targetSymbol)_$field"
+        ([regex]::Matches($generated, ([regex]::Escape($helper) + '\(frame\);'))).Count
+    } else { 0 }
     if ( ($frame.Count -eq 0 -and $rendered -ne $resource.ReleaseCount) -or
-         ($frame.Count -eq 1 -and $rendered -lt $resource.ReleaseCount) ) {
+         ($frame.Count -eq 1 -and ($rendered -ne 1 -or $calls -ne $resource.ReleaseCount)) ) {
         throw "Generated C lost an owned array-item release: s$($resource.Symbol)"
     }
 }
@@ -360,30 +366,43 @@ foreach ( $resource in $cursorResources ) {
     $pattern = "&\(xlir_released\), &\($escaped\), sizeof\(xlir_released\) \},\s*" +
         "\{ &\($escaped\), &\(xlir_empty\), sizeof\($escaped\) \}[\s\S]{0,400}?xlir_xvalue_iterator_destroy\(xlir_released\);"
     $rendered = ([regex]::Matches($generated, $pattern)).Count
+    $calls = if ($frame.Count -eq 1) {
+        $helper = "xlir_async_machine_release_$($machines[0].targetSymbol)_$field"
+        ([regex]::Matches($generated, ([regex]::Escape($helper) + '\(frame\);'))).Count
+    } else { 0 }
     if ( ($frame.Count -eq 0 -and $rendered -ne $resource.ReleaseCount) -or
-         ($frame.Count -eq 1 -and $rendered -lt $resource.ReleaseCount) ) {
+         ($frame.Count -eq 1 -and ($rendered -ne 1 -or $calls -ne $resource.ReleaseCount)) ) {
         throw "Generated C lost an array-cursor destroy edge: s$($resource.Symbol)"
     }
 }
-$resume = [regex]::Match(
+$program = [regex]::Match(
     $generated,
-    "static void xlir_async_machine_resume_\d+_0\(const xfutureresult\* input, xpromise\* output, void\* data\)\s*\{.*?(?=\nstatic xfuture\* xlir_async_start_)",
+    "static void xlir_async_machine_program_\d+\([^\n]+\)\s*\{.*?(?=\nstatic void xlir_async_machine_resume_)",
     [System.Text.RegularExpressions.RegexOptions]::Singleline)
-if ( ! $resume.Success -or
-     $resume.Value.Contains("xlir_xvalue_iterator_create(") -or
-     ! $resume.Value.Contains("xlir_xvalue_iterator_advance(") -or
-     ! $resume.Value.Contains("xlir_xvalue_iterator_item_string_copy(") -or
-     ! $resume.Value.Contains("xlir_xvalue_iterator_key_ordinal_i64(") -or
-     ! $resume.Value.Contains("xrtUtf8Count(") -or
-     ! $resume.Value.Contains("xlir_xvalue_iterator_destroy(") ) {
-    throw "Async continuation C did not mechanically emit the verified array cursor program"
+if ( ! $program.Success -or
+     ! $program.Value.Contains("xlir_xvalue_iterator_create(") -or
+     ! $program.Value.Contains("xlir_xvalue_iterator_advance(") -or
+     ! $program.Value.Contains("xlir_xvalue_iterator_item_string_copy(") -or
+     ! $program.Value.Contains("xlir_xvalue_iterator_key_ordinal_i64(") -or
+     ! $program.Value.Contains("xrtUtf8Count(") -or
+     ! $program.Value.Contains("xlir_async_machine_release_") -or
+     ! $generated.Contains("xlir_xvalue_iterator_destroy(") ) {
+    throw "Shared async CFG C did not mechanically emit the verified array cursor program"
+}
+$resume = [regex]::Match($generated,
+    "static void xlir_async_machine_resume_\d+_0\(const xfutureresult\* input, xpromise\* output, void\* data\)\s*\{[^}]+\}")
+if (!$resume.Success -or !$resume.Value.Contains("xlir_async_machine_program_") -or
+    $resume.Value.Contains("xlir_xvalue_iterator_")) {
+    throw "Async resume must select the shared CFG without recreating a cursor or duplicating its body"
 }
 $cursorField = [long]$cursorFrame[0].id - [long]$machines[0].firstFrameSlot
 $itemField = [long]$itemFrame[0].id - [long]$machines[0].firstFrameSlot
 foreach ( $required in @(
     "if (frame->i$($cursorFrame[0].initBit)) { xlir_xvalue_iterator* xlir_released;",
     "if (frame->i$($itemFrame[0].initBit)) { xlir_string xlir_released;",
-    "xfuture* ready = NULL; xpromise* promise = xrtPromiseCreate(&ready, NULL);"
+    "xlir_async_machine_frame_$($machines[0].targetSymbol)* frame = xlir_async_machine_allocate_$($machines[0].targetSymbol)();",
+    "return xl6ContinuationFrameLaunchV1(frame, xlir_continuation_executor, xlir_async_machine_entry_$($machines[0].targetSymbol),",
+    "xlir_async_machine_program_$($machines[0].targetSymbol)(frame, NULL, frame->outer, 0);"
 ) ) {
     if ( ! $generated.Contains($required) ) {
         throw "Generated C lost an async frame/launch completion ABI token: $required"

@@ -108,7 +108,7 @@ static int xl6IrCgenEmitAsyncMachine(
     const XL6_IrAsyncMachineEntry* launchEntry;
     unsigned char* launchBlocks = NULL;
     unsigned char* resumeBlocks = NULL;
-    unsigned char* resumePrograms = NULL;
+    unsigned char* programBlocks = NULL;
     size_t local;
     size_t parameter;
     size_t state;
@@ -139,15 +139,8 @@ static int xl6IrCgenEmitAsyncMachine(
     launchEntry = &module->asyncMachineEntries[machine->firstEntry];
     launchBlocks = (unsigned char*)xrtCalloc(machine->blockCount, 1);
     resumeBlocks = (unsigned char*)xrtCalloc(machine->blockCount, 1);
-    if ( machine->blockCount != 0 &&
-         machine->suspensionCount > SIZE_MAX / machine->blockCount ) {
-        xl6IrCgenDiag(diags, module, target->declaration,
-            "XLIR direct async machine program matrix is too large");
-        goto done;
-    }
-    resumePrograms = (unsigned char*)xrtCalloc(
-        machine->suspensionCount * machine->blockCount, 1);
-    if ( launchBlocks == NULL || resumeBlocks == NULL || resumePrograms == NULL ) {
+    programBlocks = (unsigned char*)xrtCalloc(machine->blockCount, 1);
+    if ( launchBlocks == NULL || resumeBlocks == NULL || programBlocks == NULL ) {
         xl6IrCgenDiag(diags, module, target->declaration,
             "XLIR direct async machine program allocation failed");
         goto done;
@@ -161,16 +154,15 @@ static int xl6IrCgenEmitAsyncMachine(
     for ( state = 0; state < machine->suspensionCount; ++state ) {
         const XL6_IrAsyncMachineEntry* resumeEntry =
             &module->asyncMachineEntries[machine->firstEntry + 1 + XL6_IR_ASYNC_RESUME_ENTRY_COUNT * state];
-        unsigned char* program = resumePrograms + state * machine->blockCount;
         if ( !xl6IrCgenAsyncMarkProgram(
-                 module, machine, resumeEntry->programBlock, program) ) {
+                 module, machine, resumeEntry->programBlock, resumeBlocks) ) {
             xl6IrCgenDiag(diags, module, target->declaration,
                 "XLIR verified async machine resume program is malformed");
             goto done;
         }
-        for ( local = 0; local < machine->blockCount; ++local )
-            if ( program[local] ) resumeBlocks[local] = 1;
     }
+    for (local = 0; local < machine->blockCount; ++local)
+        programBlocks[local] = launchBlocks[local] || resumeBlocks[local];
     if ( !xl6IrCgenAsyncMachineProgramSupported(
              module, target, machine, function, launchBlocks, resumeBlocks,
              &unsupportedReason, unsupportedReasonDetail,
@@ -229,6 +221,59 @@ static int xl6IrCgenEmitAsyncMachine(
         "static void xlir_async_machine_frame_free_%u(void* data, void* user)\n"
         "{ (void)user; xlir_async_frame_dispose(data); }\n", (unsigned int)target->symbol);
 
+    /* Initialization and each verified move transaction also live outside
+     * the CFG body. Their automatic storage scales with a frame, not with
+     * the number of syntactically distinct await/cleanup edges. */
+    xl6OutputPrintf(out,
+        "static xlir_async_machine_frame_%u* xlir_async_machine_allocate_%u(void)\n{\n"
+        "    xlir_async_machine_frame_%u* frame = (xlir_async_machine_frame_%u*)xlir_async_frame_allocate(sizeof(*frame), &xlir_async_machine_storage_%u);\n"
+        "    if (frame == NULL) return NULL;\n    frame->outer = NULL; frame->source = NULL;\n",
+        (unsigned int)target->symbol, (unsigned int)target->symbol, (unsigned int)target->symbol,
+        (unsigned int)target->symbol, (unsigned int)target->symbol);
+    for (local = 0; local < machine->frameSlotCount; ++local) {
+        const XL6_IrAsyncMachineFrameSlot* field = &module->asyncMachineFrameSlots[machine->firstFrameSlot + local];
+        if (field->initBit != SIZE_MAX)
+            xl6OutputPrintf(out, "    frame->f%lu = (%s){0}; frame->i%lu = 0;\n",
+                (unsigned long)local, xl6IrCgenType(module, field->type), (unsigned long)field->initBit);
+    }
+    xl6OutputPuts("    return frame;\n}\n", out);
+    for (state = 0; state < machine->suspensionCount; ++state) {
+        const XL6_IrAsyncSuspension* suspension = &module->asyncSuspensions[machine->firstSuspension + state];
+        xl6OutputPrintf(out, "static void xlir_async_machine_handoff_%u_%lu(xlir_async_machine_frame_%u* frame, xlir_async_machine_frame_%u* next)\n{\n",
+            (unsigned int)target->symbol, (unsigned long)state, (unsigned int)target->symbol, (unsigned int)target->symbol);
+        if (!xl6IrCgenEmitAsyncFrameHandoff(out, module, machine,
+                suspension->firstHandoffAction, suspension->handoffActionCount, 0)) goto done;
+        xl6OutputPuts("}\n", out);
+        xl6OutputPrintf(out, "static void xlir_async_machine_rollback_%u_%lu(xlir_async_machine_frame_%u* frame, xlir_async_machine_frame_%u* next)\n{\n",
+            (unsigned int)target->symbol, (unsigned long)state, (unsigned int)target->symbol, (unsigned int)target->symbol);
+        if (!xl6IrCgenEmitAsyncFrameHandoff(out, module, machine,
+                suspension->firstRollbackAction, suspension->rollbackActionCount, 1)) goto done;
+        xl6OutputPuts("}\n", out);
+    }
+
+    /* Render each exact field's existing detach-before-destroy ABI once.
+     * The helper neither catches errors nor changes the caller's cleanup
+     * transaction; it only bounds C automatic storage for repeated edges. */
+    for (local = 0; local < machine->frameSlotCount; ++local) {
+        const XL6_IrAsyncMachineFrameSlot* field = &module->asyncMachineFrameSlots[machine->firstFrameSlot + local];
+        size_t b; int used = 0;
+        if (field->source != XL6_IR_ASYNC_SPILL_SOURCE_STORAGE) continue;
+        for (b = 0; b < machine->blockCount && !used; ++b) {
+            const XL6_IrAsyncMachineBlock* block = &module->asyncMachineBlocks[machine->firstBlock + b];
+            size_t i;
+            if (!programBlocks[b]) continue;
+            for (i = block->firstInstruction; i < block->firstInstruction + block->instructionCount; ++i)
+                if (module->instructions[i].kind == XL6_IR_INSTR_RELEASE &&
+                    module->instructions[i].targetSymbol == field->storageSymbol) { used = 1; break; }
+        }
+        if (!used) continue;
+        xl6OutputPrintf(out, "static void xlir_async_machine_release_%u_%lu(xlir_async_machine_frame_%u* frame)\n{\n",
+            (unsigned int)target->symbol, (unsigned long)local, (unsigned int)target->symbol);
+        if (!xl6IrCgenEmitFrameRelease(out, module, field->type, field->destroyAbi, local, field->initBit))
+            goto done;
+        xl6OutputPuts("}\n", out);
+    }
+
     for ( state = 0; state < machine->suspensionCount; ++state ) {
         xl6OutputPrintf(out,
             "static void xlir_async_machine_resume_%u_%lu(const xfutureresult*, xpromise*, void*);\n",
@@ -237,29 +282,28 @@ static int xl6IrCgenEmitAsyncMachine(
             "static int xlir_async_machine_watch_%u_%lu(xlir_async_machine_frame_%u*, xfuture*, XL6_ContinuationTicket*);\n",
             (unsigned int)target->symbol, (unsigned long)state, (unsigned int)target->symbol);
     }
+    /* Entrypoints select verified XLIR blocks, not copies of their reachable
+     * suffixes. In particular, shared exceptional cleanup is emitted once.
+     * Frame handoff, Watch admission and completion barriers are unchanged. */
+    xl6OutputPrintf(out,
+        "static void xlir_async_machine_program_%u(xlir_async_machine_frame_%u* frame, const xfutureresult* input, xpromise* output, size_t entry)\n"
+        "{\n    xpromise* destination = output;\n",
+        (unsigned int)target->symbol, (unsigned int)target->symbol);
+    xl6IrCgenDeclareUnwindScope(out, module, function);
+    if (!xl6IrCgenAsyncDeclareMachineProgramValues(out, module, machine, function, programBlocks, diags) ||
+        !xl6IrCgenAsyncDeclareMachineProgramStorages(out, module, machine, function, programBlocks, diags)) goto done;
+    xl6OutputPuts("    if (frame == NULL) { (void)xrtPromiseClose(output); return; }\n    switch (entry) {\n", out);
+    xl6OutputPrintf(out, "    case 0: goto ap%lu;\n", (unsigned long)launchEntry->programBlock);
     for ( state = 0; state < machine->suspensionCount; ++state ) {
         const XL6_IrAsyncMachineEntry* resumeEntry =
             &module->asyncMachineEntries[machine->firstEntry + 1 + XL6_IR_ASYNC_RESUME_ENTRY_COUNT * state];
         const XL6_IrAsyncSuspension* suspension =
             &module->asyncSuspensions[machine->firstSuspension + state];
-        const unsigned char* program = resumePrograms + state * machine->blockCount;
         xl6OutputPrintf(out,
-            "static void xlir_async_machine_resume_%u_%lu(const xfutureresult* input, xpromise* output, void* data)\n"
-            "{\n"
-            "    xlir_async_machine_frame_%u* frame = (xlir_async_machine_frame_%u*)data;\n"
-            "    xpromise* destination = output;\n",
-            (unsigned int)target->symbol, (unsigned long)state,
-            (unsigned int)target->symbol, (unsigned int)target->symbol);
-        xl6IrCgenDeclareUnwindScope(out, module, function);
-        if ( !xl6IrCgenAsyncDeclareMachineProgramValues(
-                out, module, machine, function, program,
-                machine->firstSuspension + state, diags) ) goto done;
-        if ( !xl6IrCgenAsyncDeclareMachineProgramStorages(
-                out, module, machine, function, program, diags) ) goto done;
+            "    case %lu: {\n", (unsigned long)(state + 1));
         if (machine->futureOutcomeAbi != XL6_IR_FUTURE_OUTCOME_XRT_ERROR_KIND)
             goto done;
         xl6OutputPrintf(out,
-            "    if (frame == NULL) { (void)xrtPromiseClose(output); return; }\n"
             "    if (input == NULL) xrtSetErrorKind(XERR_STATE);\n"
             "    else await_ok_%u = xl6PayloadObserveOutcome(input->State, input->Error);\n",
             (unsigned int)suspension->resultValue);
@@ -276,40 +320,13 @@ static int xl6IrCgenEmitAsyncMachine(
                 (unsigned long)(project->frameSlot - machine->firstFrameSlot));
         }
         xl6OutputPrintf(out, "    goto ap%lu;\n", (unsigned long)resumeEntry->programBlock);
-        for ( local = 0; local < machine->blockCount; ++local ) {
-            const XL6_IrAsyncMachineBlock* block;
-            size_t instructionIndex;
-            if ( !program[local] ) continue;
-            block = &module->asyncMachineBlocks[machine->firstBlock + local];
-            xl6OutputPrintf(out, "ap%lu:;\n", (unsigned long)(machine->firstBlock + local));
-            for ( instructionIndex = block->firstInstruction;
-                  instructionIndex < block->firstInstruction + block->instructionCount;
-                  ++instructionIndex )
-                if ( !xl6IrCgenEmitAsyncMachineInstruction(
-                        out, module, target, machine, function, block,
-                        &module->instructions[instructionIndex], diags) ) goto done;
-        }
         xl6OutputPuts("}\n", out);
-        if (!xl6IrCgenEmitAsyncMachineWatch(
-                out, module, suspension, target->symbol, state)) goto done;
     }
-
-    /* Launch is an ordinary queued entry, not a second execution model. The
-     * constructor below only captures inputs and calls resident admission. */
-    xl6OutputPrintf(out,
-        "static void xlir_async_machine_entry_body_%u(xlir_async_machine_frame_%u* frame)\n{\n"
-        "    xpromise* destination = frame->outer;\n",
-        (unsigned int)target->symbol, (unsigned int)target->symbol);
-    xl6IrCgenDeclareUnwindScope(out, module, function);
-    if ( !xl6IrCgenAsyncDeclareMachineProgramValues(
-            out, module, machine, function, launchBlocks, SIZE_MAX, diags) ) goto done;
-    if ( !xl6IrCgenAsyncDeclareMachineProgramStorages(
-            out, module, machine, function, launchBlocks, diags) ) goto done;
-    xl6OutputPrintf(out, "    goto ap%lu;\n", (unsigned long)launchEntry->programBlock);
+    xl6OutputPuts("    default: abort(); /* Private entry IDs are verified XLIR constants. */\n    }\n", out);
     for ( local = 0; local < machine->blockCount; ++local ) {
         const XL6_IrAsyncMachineBlock* block;
         size_t instructionIndex;
-        if ( !launchBlocks[local] ) continue;
+        if ( !programBlocks[local] ) continue;
         block = &module->asyncMachineBlocks[machine->firstBlock + local];
         xl6OutputPrintf(out, "ap%lu:;\n", (unsigned long)(machine->firstBlock + local));
         for ( instructionIndex = block->firstInstruction;
@@ -319,12 +336,25 @@ static int xl6IrCgenEmitAsyncMachine(
                     out, module, target, machine, function, block,
                     &module->instructions[instructionIndex], diags) ) goto done;
     }
+    xl6OutputPuts("}\n", out);
+    for (state = 0; state < machine->suspensionCount; ++state) {
+        xl6OutputPrintf(out,
+            "static void xlir_async_machine_resume_%u_%lu(const xfutureresult* input, xpromise* output, void* data)\n"
+            "{ xlir_async_machine_program_%u((xlir_async_machine_frame_%u*)data, input, output, %lu); }\n",
+            (unsigned int)target->symbol, (unsigned long)state,
+            (unsigned int)target->symbol, (unsigned int)target->symbol, (unsigned long)(state + 1));
+        if (!xl6IrCgenEmitAsyncMachineWatch(out, module,
+                &module->asyncSuspensions[machine->firstSuspension + state], target->symbol, state)) goto done;
+    }
+    /* Launch is an ordinary queued entry into the same program. */
     xl6OutputPrintf(out,
-        "}\nstatic void xlir_async_machine_entry_%u(void* data)\n{\n"
+        "static void xlir_async_machine_entry_%u(void* data)\n{\n"
         "    xerror* saved = xrtTakeError();\n"
-        "    xlir_async_machine_entry_body_%u((xlir_async_machine_frame_%u*)data);\n"
+        "    xlir_async_machine_frame_%u* frame = (xlir_async_machine_frame_%u*)data;\n"
+        "    xlir_async_machine_program_%u(frame, NULL, frame->outer, 0);\n"
         "    xrtClearError(); xrtSetErrorTake(saved);\n}\n",
-        (unsigned int)target->symbol, (unsigned int)target->symbol, (unsigned int)target->symbol);
+        (unsigned int)target->symbol, (unsigned int)target->symbol,
+        (unsigned int)target->symbol, (unsigned int)target->symbol);
 
     xl6OutputPrintf(out, "static xfuture* xlir_async_start_raw_%u(",
                     (unsigned int)target->symbol);
@@ -337,20 +367,11 @@ static int xl6IrCgenEmitAsyncMachine(
     }
     xl6OutputPrintf(out,
         ")\n{\n"
-        "    xlir_async_machine_frame_%u* frame = (xlir_async_machine_frame_%u*)xlir_async_frame_allocate(sizeof(*frame), &xlir_async_machine_storage_%u);\n"
+        "    xlir_async_machine_frame_%u* frame = xlir_async_machine_allocate_%u();\n"
         "    if (frame == NULL) {\n",
-        (unsigned int)target->symbol, (unsigned int)target->symbol, (unsigned int)target->symbol);
+        (unsigned int)target->symbol, (unsigned int)target->symbol);
     if (!xl6IrCgenEmitActivationInputRollback(out, module, target, diags)) goto done;
-    xl6OutputPuts("    return NULL; }\n    frame->outer = NULL; frame->source = NULL;\n", out);
-    for ( local = 0; local < machine->frameSlotCount; ++local ) {
-        const XL6_IrAsyncMachineFrameSlot* frame =
-            &module->asyncMachineFrameSlots[machine->firstFrameSlot + local];
-        if ( frame->initBit == SIZE_MAX ) continue;
-        xl6OutputPrintf(out, "    frame->f%lu = (%s){0}; frame->i%lu = 0;\n",
-            (unsigned long)local,
-            xl6IrCgenType(module,frame->type),
-            (unsigned long)frame->initBit);
-    }
+    xl6OutputPuts("    return NULL; }\n", out);
     for ( local = 0; local < machine->prologueActionCount; ++local ) {
         const XL6_IrAsyncFrameAction* prologue =
             &module->asyncFrameActions[machine->firstPrologueAction + local];
@@ -385,7 +406,7 @@ static int xl6IrCgenEmitAsyncMachine(
 done:
     xrtFree(launchBlocks);
     xrtFree(resumeBlocks);
-    xrtFree(resumePrograms);
+    xrtFree(programBlocks);
     return ok;
 }
 
