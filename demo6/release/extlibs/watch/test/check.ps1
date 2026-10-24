@@ -114,14 +114,14 @@ try {
         Pop-Location
     }
     $generated = Join-Path $work 'owned_event.c'
-    $null = Run 'owned-event cgen' $xl @('cgen', $boundarySource,
+    $null = Run 'direct-event cgen' $xl @('cgen', $boundarySource,
         '--emit', $generated)
     $generatedText = [IO.File]::ReadAllText($generated)
-    $adoptions = [regex]::Matches($generatedText, '\bxl6CStringTakeV1\s*\(').Count
-    if ($adoptions -ne 1 -or $generatedText.Contains('xl6_xrt_take_cstr(')) {
-        throw "watch poll must adopt one C-owned event without the old bridge (got $adoptions)"
+    $adoptions = [regex]::Matches($generatedText, '\bxl6_xrt_take_cstr\s*\(').Count
+    if ($adoptions -lt 2 -or $generatedText.Contains('xl6CStringCopyV1')) {
+        throw 'watch poll must transfer the C event allocation without copying'
     }
-    Write-Host '[watch] owned-event codegen: PASS'
+    Write-Host '[watch] direct string adoption: PASS'
     if (-not $SkipAot) {
         $target = Join-Path $work 'watch_xl_test.exe'
         $null = Run 'XLang boundaries build' $xl @('build',

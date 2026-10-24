@@ -55,7 +55,7 @@ func main(...) as int
         watch.Watcher pair = watch.create()
         assert pair.add(left) == 0 and pair.add(right) == 1
         assert file.writeText(left, "aa") and file.writeText(right, "bb")
-        cstring firstEvent = pair.poll()
+        string firstEvent = pair.poll()
         string savedEvent = firstEvent
         assert firstEvent == "MODIFIED:" + left, "first changed path"
         // 左侧再次变化时，右侧的待处理事件不能被饿死。

@@ -4,7 +4,6 @@ func __ini_require_c_string(string value)
     end
 end
 
-extern "xrtFree" @no_raise func __ini_free(point data)
 
 func __ini_check_limits(int maxInput, int maxOutput, int maxItem,
     int maxNodes, int maxDepth)
@@ -121,17 +120,17 @@ class Config
         return self.has("", key)
     end
 
-    func get(string section, string key) as cstring
+    func get(string section, string key) as string
         __ini_require_c_string(section)
         __ini_require_c_string(key)
         point result = self.getNative(section, key)
         if result == null then
             throw ConfigError self.errorText()
         end
-        return cstring.take(result, __ini_free)
+        return __xl_runtime.takeCstr(result)
     end
 
-    func get(string key) as cstring
+    func get(string key) as string
         return self.get("", key)
     end
 
@@ -216,12 +215,12 @@ class Config
         return self.removeSectionNative(section)
     end
 
-    func stringify() as cstring
+    func stringify() as string
         point result = self.stringifyTextNative()
         if result == null then
             throw ConfigError self.errorText()
         end
-        return cstring.take(result, __ini_free)
+        return __xl_runtime.takeCstr(result)
     end
 
     func save(string path)

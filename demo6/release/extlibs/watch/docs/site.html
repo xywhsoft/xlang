@@ -39,7 +39,7 @@ watcher.remove(index)</code></pre>
     <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
       <tr><td><code>watch.create() / watch.exists(path)</code></td><td>创建监视实例或检查路径；创建分配失败时抛错。</td></tr>
       <tr><td><code>Watcher.add(path) / remove(index)</code></td><td>登记监视路径、删除监视项；空槽位可重用。</td></tr>
-      <tr><td><code>Watcher.poll()</code></td><td>每次最多返回一个 CREATED/MODIFIED/DELETED 事件；拥有型 <code>cstring</code> 可直接赋给 <code>string</code>。</td></tr>
+      <tr><td><code>Watcher.poll()</code></td><td>每次最多返回一个 CREATED/MODIFIED/DELETED 事件；普通 <code>string</code> 直接接管原生事件分配。</td></tr>
       <tr><td><code>Watcher.path(index) / count</code></td><td>读取路径和活跃监视数量。</td></tr>
     </tbody></table>
     <p>这是基于 XRT 元数据的轮询实现，不是操作系统通知接口。可用时比较文件身份和创建时间，同大小、保留修改时间的原子替换也能报告变化；目录直接子项同样纳入可用元数据。目录只扫描直接子项，事件指向被监视目录；两次轮询之间的全部中间变化不能还原。目录在元数据查询后、枚举前消失或变为文件时有界重取样一次；权限和内存错误仍返回失败。单个实例不支持多线程同时操作。XL 的路径入口不接受内嵌 NUL，避免 C 字符串截断。</p>
@@ -67,7 +67,7 @@ int main(void)
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/watch/test/check.ps1
 bash release/extlibs/watch/test/check.sh</code></pre>
     <p>C 范例可从 demo6 根目录直接以 <code>xl run release/extlibs/watch/examples/watch_c.c</code> 运行；Windows/Linux 包门禁均将其与 GCC、XLang 的输出对照。成对范例在独占临时目录验证文件创建、修改、删除事件，并演示索引删除与复用。Windows 严格 GCC、C/XLang 边界、双语范例及带输出 AOT 通过；两平台的定向目录竞争测试覆盖删除、变更类型与真实 I/O 错误，Linux C 文件/目录事件通过 ASan/UBSan，Linux XLang 包内边界用例也通过。文件/工作目录边界用例使用独占临时目录，不再写删固定的 <code>build/test/watch_guard</code>。C 源仅使用公开 XRT 头文件。旧 Windows AOT 缺符号已解除；Linux 独立 EXE 本轮未验收。</p>
-    <p>2026-10-25 拥有型事件改动：Windows 默认包门禁的 C、XLang 与 AOT 全部复验通过；Linux 现有 <code>release/xl</code> 尚不识别 <code>cstring</code>，新签名待重建后复验。</p>
+    <p>2026-10-25 所有权复核：Windows 默认包门禁的 C、XLang 与 AOT 全部复验通过；事件文本直接移交为普通字符串。Linux 更新后的包仍待复验。</p>
   </section>
 </main>
 <script src="../main.js"></script>

@@ -1,12 +1,12 @@
 # ini
 
-2026-10-25：`Config.get` 和 `Config.stringify` 改为返回拥有型
-`cstring`，直接接管各自的 XRT 文本分配；可直接赋给普通 `string`。
-`getOr` 保持带默认值的 `string` 结果。Windows 默认包门禁的严格 C、
-语言边界、C/XLang 范例及三份 AOT 均通过；生成 C 的两条公开文本
-出口使用 `xl6CStringTakeV1`。节名/键名装入 `array<string>` 时，
-当前共享容器 lowering 仍创建字符串值副本；包内不另造私有绕行。
-Linux `release/xl` 仍是尚不识别 `cstring` 的旧产物，语言侧待重建复验。
+2026-10-25 所有权复核：`Config.get` 和 `Config.stringify` 返回
+普通 `string`，`takeCstr` 直接移交各自的 XRT 文本分配。先前
+`cstring` 转成 `string` 时反而复制，现已修正；`getOr` 仍返回
+带默认值的 `string`。Windows 包门禁核对生成 C 的直接移交、
+C/XLang 范例及三份 AOT。节名/键名装入 `array<string>` 时，
+共享容器 lowering 仍创建字符串值副本；包内不另造私有绕行。
+Linux 更新后的包仍待复验。
 
 INI 配置解析与写入库。C 端公开 `xrtIni*` API；XLang 端提供 `Config` 类。
 支持节、注释、大小写选项、重复键检查、`${key}` / `${section.key}` 插值、
@@ -37,7 +37,7 @@ string text = config.stringify()
 ```
 
 `stringify()` 通过 `xini_stringify_text` 取走 XRT 文本缓冲的底层分配，
-XLang 以 `cstring` 直接接管，避免再经 `Buffer.text()` 复制；补齐终止字节时缓冲容量不足
+XLang 以普通 `string` 直接接管，避免再经 `Buffer.text()` 复制；补齐终止字节时缓冲容量不足
 仍可能扩容。C 侧使用 `xini_stringify_text` 须以 `xrtFree` 释放返回值；
 原有 `xini_stringify` 仍返回 `xbuffer*`。
 

@@ -40,14 +40,15 @@ try {
             '--inc-path', '../lib/xrt')
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/ini/test/boundaries.xl')
         $generated = Join-Path $work 'owned_text.c'
-        $null = Run 'owned-text cgen' $xl @('cgen',
+        $null = Run 'direct-text cgen' $xl @('cgen',
             'extlibs/ini/test/boundaries.xl', '--emit', $generated)
-        $adoptions = [regex]::Matches([IO.File]::ReadAllText($generated),
-            '\bxl6CStringTakeV1\s*\(').Count
-        if ($adoptions -ne 2) {
-            throw "INI get/stringify must use two direct C-owner adoptions (got $adoptions)"
+        $generatedText = [IO.File]::ReadAllText($generated)
+        $adoptions = [regex]::Matches($generatedText,
+            '\bxl6_xrt_take_cstr\s*\(').Count
+        if ($adoptions -lt 3 -or $generatedText.Contains('xl6CStringCopyV1')) {
+            throw 'INI get/stringify must transfer C allocations without copying'
         }
-        Write-Host '[ini] owned-text codegen: PASS'
+        Write-Host '[ini] direct string adoption: PASS'
         $oldErrorActionPreference = $ErrorActionPreference
         try {
             $ErrorActionPreference = 'Continue'

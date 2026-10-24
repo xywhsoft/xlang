@@ -1,5 +1,4 @@
 extern "xl6_xrt_last_error_text" func __watch_error() as string
-extern "xrtFree" @no_raise func __watch_free(point data)
 
 func __watch_has_nul(string path) as bool
     return string.indexOf(path, "\0", false, string.byteLen(path), 1) >= 0
@@ -49,7 +48,7 @@ export class Watcher
         return self.removeNative(idx)
     end
 
-    func poll() as cstring
+    func poll() as string
         if self.handle == null then
             throw RuntimeError "watch: instance is destroyed"
         end
@@ -57,7 +56,7 @@ export class Watcher
         if event == null then
             throw IOError "watch: poll failed: " + __watch_error()
         end
-        return cstring.take(event, __watch_free)
+        return __xl_runtime.takeCstr(event)
     end
 
     func path(int idx) as string

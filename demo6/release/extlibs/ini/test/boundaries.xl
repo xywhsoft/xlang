@@ -129,7 +129,7 @@ func main(...) as int
     assert restored.get("server", "message") == "first\nsecond", "multiline value must round trip"
     assert restored.get("server", "city") == "上海", "UTF-8 value must round trip"
     assert restored.get("", "global") == "root", "global keys must precede named sections"
-    cstring owned = restored.get("server", "city")
+    string owned = restored.get("server", "city")
     string retained = owned
     owned = restored.stringify()
     assert retained == "上海" and owned == restored.stringify(), "owned text survives reassignment"
