@@ -1,5 +1,11 @@
 # stb_image_write
 
+2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 全通过：严格
+GCC、C/XLang 边界、分配故障与输出限额、核心及公开范例 AOT。
+C、XLang JIT 和独立 EXE 的 PNG/JPEG/BMP/TGA/HDR 五份输出逐文件
+SHA-256 一致。下文共享 AOT 缺符号记录属于旧发布物；本轮未
+重建 Linux 发布版并验证其独立 EXE。
+
 `stb_image_write` 提供 PNG、JPEG、BMP、TGA、HDR 图片编码。XLang 输入必须是
 `Buffer`，不接受没有长度信息的裸指针；HDR `Buffer` 包含按行紧密排列的
 `float32` 通道，其余格式为每通道一个字节。`encode*` 返回独立的 `Buffer`，
