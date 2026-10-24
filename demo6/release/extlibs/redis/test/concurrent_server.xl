@@ -2,7 +2,10 @@ import redis
 
 // 真实服务门禁：每个任务独占连接，避免把单连接并发复用误当成客户端承诺。
 func exercise(int worker, int rounds, int port) as int
-    TcpStream stream = tcp.connect("127.0.0.1", port, 3000)
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    TcpStream stream = TcpStream(engine, NetAddress.loopback(4, port))
+    assert stream.wait(TcpWait.open, 3000) == NetStatus.ok
     string key = "xlang:test:redis:parallel:" + string(time.monotonic()) + ":" + string(worker)
     for i in range(rounds)
         string value = "value:" + string(worker) + ":" + string(i) + "\0end"
@@ -21,6 +24,8 @@ func exercise(int worker, int rounds, int port) as int
         end
     end
     stream.close()
+    engine.close()
+    assert engine.wait(5000)
     return 1
 end
 

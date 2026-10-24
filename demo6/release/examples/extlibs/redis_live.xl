@@ -3,7 +3,10 @@ import redis
 // 单独运行默认连接 6379；自管理门禁通过环境变量选择临时端口。
 func main(...) as int
     int port = int(env.get("REDIS_LIVE_PORT") ?? "6379")
-    TcpStream stream = tcp.connect("127.0.0.1", port, 3000)
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    TcpStream stream = TcpStream(engine, NetAddress.loopback(4, port))
+    assert stream.wait(TcpWait.open, 3000) == NetStatus.ok
     println("PING:", redis.command(stream, ["PING"]))
     redis.set(stream, "xlang:example:live", "hello")
     println("GET:", redis.get(stream, "xlang:example:live"))
@@ -14,5 +17,7 @@ func main(...) as int
     println("EXISTS after DEL:", redis.exists(stream, "xlang:example:counter"))
     redis.del(stream, "xlang:example:live")
     stream.close()
+    engine.close()
+    assert engine.wait(5000)
     return 0
 end
