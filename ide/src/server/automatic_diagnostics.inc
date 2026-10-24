@@ -208,6 +208,9 @@ static void diagnosticPoll(server* s)
    if(state==XIDE_DIAGNOSTIC_READY) {
     xide_diagnostic_publication* publication=NULL; xvalue* invalidated=NULL;
     s->diagnosticRecords=result.records; s->diagnosticWorkerThread=result.workerThreadId; ++s->diagnosticOperations;
+#ifdef XLS_COMPILER_XRT
+    s->diagnosticGraph=result.dependencyGraph;s->diagnosticGraphFallbacks=result.dependencyFallbacks;s->diagnosticGraphIndexed=result.dependencyIndexed;
+#endif
     if(xideDiagnosticQueryTake(s->diagnosticQuery,&publication,&invalidated)) {
      diagnosticInvalidatedRoots(s,invalidated,kind,identity);
      if(kind==DIAGNOSTIC_CLEAR) s->diagnosticReset=0;
@@ -306,6 +309,13 @@ static void diagnosticStats(server* s,const xvalue* id)
  put(result,"submittedChecks",xrtValueInt((int64)s->diagnosticChecks)); put(result,"completedOperations",xrtValueInt((int64)s->diagnosticOperations)); put(result,"retainedRoots",xrtValueInt((int64)s->diagnosticRecords));
  put(result,"publishedFiles",xrtValueInt((int64)xideDiagnosticPublicationCount(s->diagnosticPublication))); put(result,"workerThreadId",xrtValueInt((int64)s->diagnosticWorkerThread)); put(result,"ownerThreadId",xrtValueInt((int64)xrtThreadCurrentId()));
  put(result,"queued",xrtValueInt((int64)load.queued)); put(result,"running",xrtValueInt((int64)load.running)); put(result,"error",xrtValueString(sv(s->diagnosticError)));
+#ifdef XLS_COMPILER_XRT
+ put(result,"dependencyIndexed",xrtValueBool(s->diagnosticGraphIndexed));put(result,"dependencyPaths",xrtValueInt((int64)s->diagnosticGraph.paths));
+ put(result,"dependencyRoots",xrtValueInt((int64)s->diagnosticGraph.roots));put(result,"dependencyEdges",xrtValueInt((int64)s->diagnosticGraph.edges));
+ put(result,"dependencyBytes",xrtValueInt((int64)s->diagnosticGraph.bytes));put(result,"dependencyGeneration",xrtValueInt((int64)s->diagnosticGraph.generation));
+ put(result,"dependencyLookups",xrtValueInt((int64)s->diagnosticGraph.lookups));put(result,"dependencyComparisons",xrtValueInt((int64)s->diagnosticGraph.comparisons));
+ put(result,"dependencyFallbacks",xrtValueInt((int64)s->diagnosticGraphFallbacks));
+#endif
  if(s->diagnosticAnalysis) put(result,"lastAnalysis",xrtValueDeepClone(s->diagnosticAnalysis));
  response(s,id,result,0,NULL);
 }

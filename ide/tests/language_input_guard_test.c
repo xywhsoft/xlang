@@ -22,6 +22,10 @@ static int containsPath(const xvalue* paths,const char* expected)
 static int pathScope(xide_language_input_guard* guard,const char* entry,const char* dependency,const char* unused)
 {
  xvalue* paths=xideLanguageInputGuardPaths(guard,NULL,NULL);CHECK(paths && containsPath(paths,entry) && containsPath(paths,dependency) && !containsPath(paths,unused));
+#ifdef XLS_COMPILER_XRT
+ const xvalue* probes=xideLanguageInputGuardProbes(guard);CHECK(probes && xrtValueType(probes)==XVALUE_ARRAY && probes==xideLanguageInputGuardProbes(guard));
+ for(size_t i=0;i<xrtValueCount(probes);++i){xstrview path={0};CHECK(xrtValueGetString(xrtValueObjectGet(xrtValueArrayGet(probes,i),xrtStrView("path")),&path) && containsPath(paths,path.Data));}
+#endif
  for(size_t i=0;i<xrtValueCount(paths);++i) {xstrview p={0};CHECK(xrtValueGetString(xrtValueArrayGet(paths,i),&p) && xideLanguageInputGuardTouches(guard,p.Data));
   for(size_t j=0;j<i;++j) {xstrview q={0};CHECK(xrtValueGetString(xrtValueArrayGet(paths,j),&q) && !xidePathLexicalEqual(p.Data,q.Data));}
  }
@@ -43,6 +47,9 @@ static int consume(void* user)
   xide_language_input_guard* lease=xideLanguageInputGuardRetain(value->guard); xide_model_error error={0};
   if(xideLanguageInputGuardValidate(lease,NULL,NULL,&error)!=value->valid) ++value->failures;
   if(!xideLanguageInputGuardFiles(lease) || !xrtValueCount(xideLanguageInputGuardFiles(lease))) ++value->failures;
+#ifdef XLS_COMPILER_XRT
+  if(xrtValueType(xideLanguageInputGuardProbes(lease))!=XVALUE_ARRAY)++value->failures;
+#endif
   if(i%10==0) {xvalue* paths=xideLanguageInputGuardPaths(lease,NULL,NULL);if(!paths || !xrtValueCount(paths)) ++value->failures;xrtValueRelease(paths);}
   xideLanguageInputGuardRelease(lease);
  }
@@ -80,6 +87,9 @@ static int run(void)
  xide_model_error error={0}; CHECK(!xideLanguageCheckCaptureInputGuard(NULL,&error));
  CHECK(!xideLanguageInputGuardRetain(NULL)); xideLanguageInputGuardRelease(NULL);
  CHECK(!xideLanguageInputGuardFiles(NULL) && !xideLanguageInputGuardValidate(NULL,NULL,NULL,&error));
+#ifdef XLS_COMPILER_XRT
+ CHECK(!xideLanguageInputGuardProbes(NULL));
+#endif
  CHECK(!xideLanguageInputGuardPaths(NULL,NULL,NULL));
  char relative[160]; snprintf(relative,sizeof(relative),"build/input-guard-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
  CHECK(xrtDirCreateAll(relative)); char* root=xrtPathAbs(relative); CHECK(root);

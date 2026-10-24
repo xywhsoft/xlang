@@ -56,6 +56,9 @@ typedef struct server {
  xvalue *diagnosticResult,*diagnosticAnalysis; xide_language_input_guard* diagnosticProof;
  int diagnosticResultRoot; unsigned long long diagnosticResultIdentity,diagnosticResultGeneration;
  uint64_t diagnosticChecks,diagnosticOperations,diagnosticWorkerThread; size_t diagnosticRecords; char diagnosticError[512];
+#ifdef XLS_COMPILER_XRT
+ xls_dependency_stats diagnosticGraph;uint64_t diagnosticGraphFallbacks;int diagnosticGraphIndexed;
+#endif
  xide_analysis_catalog* catalog;int64 configurationEpoch;
 } server;
 static void cancelSemantic(server*,int,int,const char*);
@@ -713,7 +716,7 @@ static void dispatch(server* s,const xvalue* message)
   xrtValueArrayAppend(signatureTriggers,open);xrtValueArrayAppend(signatureTriggers,comma);xrtValueArrayAppend(retriggers,close);xrtValueRelease(open);xrtValueRelease(comma);xrtValueRelease(close);
   put(signature,"triggerCharacters",signatureTriggers);put(signature,"retriggerCharacters",retriggers);put(cap,"signatureHelpProvider",signature);put(scope,"signatureInputGuard",xrtValueString(sv("background-poll")));
   put(cap,"documentHighlightProvider",xrtValueBool(true));
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.51"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.52"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }

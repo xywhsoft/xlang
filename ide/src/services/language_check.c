@@ -151,6 +151,10 @@ xide_language_input_guard* xideLanguageCheckCaptureInputGuard(xide_language_chec
 }
 const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard)
 { return guard ? guard->files : NULL; }
+#ifdef XLS_COMPILER_XRT
+const xvalue* xideLanguageInputGuardProbes(const xide_language_input_guard* guard)
+{ return guard ? get(guard->resolution,"probes") : NULL; }
+#endif
 int xideLanguageInputGuardSameContext(const xide_language_input_guard* left,const xide_language_input_guard* right)
 {
  if(!left || !right) return 0;
