@@ -4,8 +4,16 @@
 #include "src/ast/xl6_ast.h"
 #include "src/diag/xl6_diag.h"
 #include "src/compile/xl6_source_report.h"
+#include "analysis/ast_storage.h"
 struct XL6_CompletionQuery;
 typedef struct xls_sem_memo xls_sem_memo;
+typedef struct xls_sem_storage_work { uint64_t nodes,pages,chargedBytes,heapFallbacks; } xls_sem_storage_work;
+typedef struct xls_sem_storage_control {
+    struct xls_sem_storage_control* previous;size_t budget;xls_sem_storage_work work;
+} xls_sem_storage_control;
+void xlsFrontendSemStorageBegin(xls_sem_storage_control* control,size_t bytes);
+void xlsFrontendSemStorageEnd(xls_sem_storage_control* control,xls_sem_storage_work* work);
+size_t xlsFrontendSemStorageBudget(void);
 typedef struct xls_sem_tail xls_sem_tail;
 typedef struct xls_sem_tail_work { uint64_t deferred,materialized,retainedBytes; } xls_sem_tail_work;
 /* Completion replies do not consume final IR annotations. A private result may

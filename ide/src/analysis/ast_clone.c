@@ -8,6 +8,7 @@ typedef struct clone_context {
     size_t bytes;
     xls_ast_cursor_source_policy cursorPolicy;
     void* policyUser;
+    xls_ast_storage* storage;
 } clone_context;
 static int charge(clone_context* c,size_t bytes)
 {
@@ -43,11 +44,22 @@ static int source(clone_context* c,const XL6_AstSource* in,XL6_AstNode* out)
 }
 static XL6_AstNode* clone(clone_context* c,const XL6_AstNode* in,size_t depth)
 {
-    if(!in || depth>512 || !charge(c,sizeof(*in))) return NULL;
-    XL6_AstNode* out=xrtCalloc(1,sizeof(*out)); if(!out) return NULL;
-    *out=*in; out->text=out->doc=NULL; out->literalData=NULL; out->source=NULL;
+    if(!in || depth>512) return NULL;
+    XL6_AstNode* out;
+    if(c->storage){
+        size_t before=xlsAstStorageWork(c->storage).bytes;
+        out=xlsAstStorageNode(c->storage,c->options.bytes ? c->options.bytes-c->bytes : SIZE_MAX);
+        if(!out)return NULL;
+        if(!charge(c,xlsAstStorageWork(c->storage).bytes-before)){xlsAstStorageFreeNode(out);return NULL;}
+    }else{
+        if(!charge(c,sizeof(*in)))return NULL;
+        out=xrtCalloc(1,sizeof(*out));if(!out)return NULL;
+    }
+    *out=*in; out->xlsStorage=c->storage;out->text=out->doc=NULL; out->literalData=NULL; out->source=NULL;
     out->children=NULL; out->childCount=out->childCapacity=0; out->inferredType=out->semanticDeclaredType=NULL;
-    if(c->options.transform && !c->options.transform(in,out,c->options.user)) goto failed;
+    int transformed=!c->options.transform || c->options.transform(in,out,c->options.user);
+    out->xlsStorage=c->storage; /* a transform never transfers allocation ownership */
+    if(!transformed) goto failed;
     if(in->text && !(out->text=duplicate(c,in->text))) goto failed;
     if(in->doc && !(out->doc=duplicate(c,in->doc))) goto failed;
     if(!source(c,in->source,out)) goto failed;
@@ -69,15 +81,27 @@ static XL6_AstNode* clone(clone_context* c,const XL6_AstNode* in,size_t depth)
     return out;
 failed: xl6AstFree(out); return NULL;
 }
-XL6_AstNode* xlsAstCloneWithCursorSource(const XL6_AstNode* input,const xls_ast_clone_options* options,
-    xls_ast_cursor_source_policy policy,void* user,size_t* bytes)
+XL6_AstNode* xlsAstClonePooled(const XL6_AstNode* input,const xls_ast_clone_options* options,
+    xls_ast_cursor_source_policy policy,void* user,size_t poolBudget,xls_ast_pool_work* work,size_t* bytes)
 {
     if(bytes) *bytes=0;
+    if(work)*work=(xls_ast_pool_work){0};
     clone_context context={.cursorPolicy=policy,.policyUser=user}; if(options) context.options=*options;
     if(!input || !xrtMapInit(&context.sources,sizeof(XL6_AstSource*))) return NULL;
+    if(poolBudget){
+        context.storage=xlsAstStorageCreate(poolBudget);
+        if(!context.storage || !charge(&context,xlsAstStorageWork(context.storage).bytes)){
+            xlsAstStorageUnpin(context.storage);xrtMapUnit(&context.sources);return NULL;
+        }
+    }
     XL6_AstNode* root=clone(&context,input,0); xrtMapUnit(&context.sources);
     if(root && bytes) *bytes=context.bytes;
+    if(root && work)*work=xlsAstStorageWork(context.storage);
+    xlsAstStorageUnpin(context.storage);
     return root;
 }
+XL6_AstNode* xlsAstCloneWithCursorSource(const XL6_AstNode* input,const xls_ast_clone_options* options,
+    xls_ast_cursor_source_policy policy,void* user,size_t* bytes)
+{return xlsAstClonePooled(input,options,policy,user,0,NULL,bytes);}
 XL6_AstNode* xlsAstClone(const XL6_AstNode* input,const xls_ast_clone_options* options,size_t* bytes)
 {return xlsAstCloneWithCursorSource(input,options,NULL,NULL,bytes);}

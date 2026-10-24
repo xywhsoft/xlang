@@ -52,6 +52,7 @@ CORE_TESTS = ("analysis_cursor_memo_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_call_candidates_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_cursor_source_memo_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_annotations_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ast_storage_test", *CORE_TESTS)
 
 
 def sha(path: Path) -> str:
@@ -365,6 +366,40 @@ def prepare_native_types(frontend: Path, output: Path) -> tuple[Path, Path, dict
         pointerBudgetBytes=8 * 1024 * 1024)
 
 
+def prepare_native_ast(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
+    """Private node-owner ABI; every native AST consumer must be rebuilt."""
+    original = frontend / 'src/ast/xl6_ast.c'
+    header = frontend / 'src/ast/xl6_ast.h'
+    runtime = frontend / 'lib/xrt/xrt.h'
+    if sha(original) != 'adf07bc08b6e6949fe1bb6095e373d130df205535e9e2fa1662d2cc7b4c65035' or sha(header) != '9416c3e3e37bcf244f604738f5065369967e53203b6d9663d2190a1730c3945b':
+        raise ValueError('shared AST changed; audit creation/copy/mutation/destruction and private owner layout')
+    if sha(runtime) != '1fc1fc8aa38437bddcf0d909bcfcccdd32a14b9f2e52fbd9661d97c172bf2a31':
+        raise ValueError('shared XRT changed; audit pool layout/page/index capacity charging and free lifetimes')
+    source = original.read_text(encoding='utf8')
+    old = '    xl6AstReleaseSource(node->source);\n    xrtFree(node);'
+    if source.count(old) != 1:
+        raise ValueError('shared AST free seam changed')
+    source = source.replace('#include "src/ast/xl6_ast.h"', '#include "src/ast/xl6_ast.h"\n#include "analysis/ast_storage.h"')
+    source = source.replace(old, '    xl6AstReleaseSource(node->source);\n'
+        '    if (node->xlsStorage) xlsAstStorageFreeNode(node); else xrtFree(node);')
+    text = header.read_text(encoding='utf8')
+    old = '    size_t childCapacity;\n} XL6_AstNode;'
+    if text.count(old) != 1:
+        raise ValueError('shared AST private ownership seam changed')
+    text = text.replace('#define XL6_AST_H', '#define XL6_AST_H\n#define XLS_NATIVE_AST_STORAGE 1')
+    text = text.replace(old, '    size_t childCapacity;\n    struct xls_ast_storage* xlsStorage;\n} XL6_AstNode;')
+    compiled = output / 'frontend/xl6_ast.c'
+    compiled_header = output / 'frontend/src/ast/xl6_ast.h'
+    compiled_header.parent.mkdir(parents=True, exist_ok=True)
+    compiled.write_text(source, encoding='utf8', newline='\n')
+    compiled_header.write_text(text, encoding='utf8', newline='\n')
+    return original, compiled, dict(source=str(original), sourceSha256=sha(original),
+        compiledSource=str(compiled), compiledSha256=sha(compiled), headerSource=str(header),
+        headerSourceSha256=sha(header), compiledHeader=str(compiled_header), compiledHeaderSha256=sha(compiled_header),
+        runtimeSource=str(runtime), runtimeSourceSha256=sha(runtime), auditedSeams=3,
+        change='append private node storage owner and dispatch only final node release;all language fields and field/source destruction rules retained;all native translation units rebuilt')
+
+
 def main() -> None:
     ide = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
@@ -385,7 +420,7 @@ def main() -> None:
     sources += [(ide / "src/protocol/input_state.c", True)]
     sources += [(ide / "src/protocol/diagnostic_paths.c", True)]
     sources += [(ide / path, True) for path in (
-        "src/analysis/frontend_ir_regions.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/input_view.c", "src/analysis/ast_clone.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
+        "src/analysis/frontend_ir_regions.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/input_view.c", "src/analysis/ast_storage.c", "src/analysis/ast_clone.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
@@ -407,6 +442,7 @@ def main() -> None:
         original_sem, generated_sem, sem_overlay = prepare_native_sem(frontend, output)
         original_stdlib, generated_stdlib, stdlib_overlay = prepare_native_stdlib(frontend, output)
         original_types, generated_types, types_overlay = prepare_native_types(frontend, output)
+        original_ast, generated_ast, ast_overlay = prepare_native_ast(frontend, output)
         context_overlays = derive_context_runtime(frontend, output)
         runtime_overlay = derive_process_runtime(frontend / 'lib/xrt/xrt.h', output / 'native_xrt/xrt.h')
     except ValueError as error:
@@ -416,6 +452,7 @@ def main() -> None:
     sources = [(generated_sem if path == original_sem else path, owned) for path, owned in sources]
     sources = [(generated_stdlib if path == original_stdlib else path, owned) for path, owned in sources]
     sources = [(generated_types if path == original_types else path, owned) for path, owned in sources]
+    sources = [(generated_ast if path == original_ast else path, owned) for path, owned in sources]
     scoped_sources = {Path(row['source']): Path(row['compiledSource']) for row in context_overlays}
     sources = [(scoped_sources.get(path, path), owned) for path, owned in sources]
     env = dict(os.environ)
@@ -449,12 +486,14 @@ def main() -> None:
         str(original_index): index_overlay["sourceSha256"], str(original_ir): ir_overlay["sourceSha256"],
         str(original_sem): sem_overlay["sourceSha256"], str(original_stdlib): stdlib_overlay["sourceSha256"],
         str(original_types): types_overlay["sourceSha256"]}, {}, [], {}
-    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, *context_overlays]
+    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, ast_overlay, *context_overlays]
+    inputs.update({ast_overlay['source']:ast_overlay['sourceSha256'], ast_overlay['headerSource']:ast_overlay['headerSourceSha256'], ast_overlay['runtimeSource']:ast_overlay['runtimeSourceSha256']})
     inputs.update({row["source"]: row["sourceSha256"] for row in context_overlays})
     source_overlays.append(runtime_overlay)
     inputs[runtime_overlay['source']] = runtime_overlay['sourceSha256']
     inputs.update(runtime_overlay['sourceMaterials'])
     runtime_profiles = []
+    ast_consumers = []
     started = time.monotonic()
     status = "failed"
 
@@ -482,7 +521,15 @@ def main() -> None:
         for source, owned in sources:
             flags = common + (strict if owned else shared)
             result = run([str(cc), *flags, "-MM", "-MT", "xlsObject", str(source)], source.stem + "-deps")
-            for path in dependencies(result.stdout.decode("utf-8")):
+            unit_dependencies = dependencies(result.stdout.decode("utf-8"))
+            ast_headers = {path for path in unit_dependencies if path.name == 'xl6_ast.h'}
+            if ast_headers:
+                if ast_headers != {Path(ast_overlay['compiledHeader']).resolve()}:
+                    raise RuntimeError('mixed native AST ownership layouts: ' + str(source))
+                ast_consumers.append(dict(source=str(source),header=str(next(iter(ast_headers)))))
+            for path in unit_dependencies:
+                if path.name == 'xl6_ast.h' and path != Path(ast_overlay['compiledHeader']).resolve():
+                    raise RuntimeError('mixed native AST ownership layouts: ' + str(path))
                 digest = sha(path)
                 if str(path) in inputs and inputs[str(path)] != digest:
                     raise RuntimeError(f"source changed during dependency discovery: {path}")
@@ -495,7 +542,7 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_ir_regions","frontend_entry_cache","input_view", "text", "context", "frontend_context", "ast_clone", "syntax", "session", "worker", "folding", "semantic", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_ir_regions","frontend_entry_cache","input_view", "text", "context", "frontend_context", "ast_storage", "ast_clone", "syntax", "session", "worker", "folding", "semantic", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         limited_index = output / "xl6_sem_index_limit.o"
@@ -542,12 +589,13 @@ def main() -> None:
         outputs[core.name] = sha(core)
         status = "passed"
     finally:
-        report = dict(schema=1,status=status,scope="standalone syntax and native semantic core; not shipped LSP or semantic incrementality",
+        report = dict(schema=1,status=status,scope="standalone native C/XRT shared analysis with private AST ownership; full LSP/performance/delivery goal remains incomplete",
                       frontendRoot=str(frontend),compiler=str(cc),compilerSha256=sha(cc),inputs=inputs,outputs=outputs,
                       configuration=args.configuration,serverBuilt=args.server,testsBuilt=not args.skip_tests,
                       commands=commands,runs=runs,imports=imports,elapsedSeconds=time.monotonic()-started)
         report["sourceOverlays"] = source_overlays
         report["runtimeProfiles"] = runtime_profiles
+        report["privateAstConsumers"] = ast_consumers
         (output / "build-result.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps(dict(status=status,report=str(output / "build-result.json")),ensure_ascii=False))
 
