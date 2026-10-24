@@ -5,11 +5,7 @@
 #if !defined(XRT_SINGLE_HEADER) && !defined(XRUNTIME_DECLARATIONS_H)
 #include "include/xruntime_decl.h"
 #endif
-#if defined(_WIN32) && defined(XL_BUILD_DLL)
-#define XL6_TEXT_API __declspec(dllexport)
-#else
-#define XL6_TEXT_API
-#endif
+#include "xl6_runtime_export.h"
 
 struct xlir_closure;
 #include "xl6_future_value.h"
@@ -41,6 +37,7 @@ struct xlir_closure;
 #include "xl6_tls_parameters_abi.h"
 #include "xl6_tls_verifier_abi.h"
 #include "xl6_tls_role_context_abi.h"
+#include "xl6_tls_session_abi.h"
 #include "xl6_codec_abi.h"
 #include "xl6_net_address_abi.h"
 #include "xl6_net_resolver_abi.h"

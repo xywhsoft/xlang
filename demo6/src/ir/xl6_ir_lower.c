@@ -10510,7 +10510,11 @@ static int xl6IrLowerCompleteCall(
              physical == XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR) &&
             xl6IrTypeHasStorageReleaseAbi(ctx->module, resultType)) {
             rollback = xl6IrLowerNewTempStorage(ctx, resultType, origin);
-            if (rollback == 0 || !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin,
+            /* The failure edge owns the whole result before entering unwind.
+             * Managed products require the existing explicit aggregate move,
+             * not a plain struct store whose ownership depends on adjacency. */
+            if (rollback == 0 || !xl6IrLowerEmit(ctx,
+                    xl6IrLowerDeferredStoreKind(ctx->module,resultType), origin,
                     resultType, rollback, &result, 1, NULL)) return 0;
         }
         if (!xl6IrLowerBeginErrorUnwind(ctx, origin) ||

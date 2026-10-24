@@ -61,6 +61,7 @@ static int xl6IrDirectNumericEnumMatches(const XL6_IrModule* module,
 #include "xl6_ir_x509_path_enums.inc"
 #include "xl6_ir_tls_identity_enums.inc"
 #include "xl6_ir_tls_parameters_enums.inc"
+#include "xl6_ir_tls_session_enums.inc"
 #include "xl6_ir_net_backend_enum.inc"
 #include "xl6_ir_net_engine_state_enum.inc"
 #include "xl6_ir_net_socket_enums.inc"
@@ -293,6 +294,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_tls_parameters_contracts.inc"
 #include "xl6_ir_tls_verifier_contracts.inc"
 #include "xl6_ir_tls_role_context_contracts.inc"
+#include "xl6_ir_tls_session_contracts.inc"
 #include "xl6_ir_compress_contracts.inc"
 #include "xl6_ir_template_contracts.inc"
     {"xl6Crc32StringV1",T,I,3,{U,S,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
@@ -1399,7 +1401,8 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
             if (!result || result->cAbi != XL6_IR_C_ABI_PRODUCT ||
                 result->nativeProductAbi != contract->resultProductAbi ||
                 xl6IrNativeProductAbiForShape(&module->types,result) != contract->resultProductAbi ||
-                result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL || result->nullAbi != XL6_IR_NULL_ABI_NONE ||
+                result->ownershipAbi != xl6IrNativeProductOwnershipAbi(contract->resultProductAbi) ||
+                result->nullAbi != XL6_IR_NULL_ABI_NONE ||
                 strcmp(result->cName,xl6IrNativeProductAbiCName(contract->resultProductAbi)) != 0) return 0;
             for(size_t p=0;p<3;++p){
                 const XL6_IrNumericEnumContract* expected=contract->resultProductEnums[p];

@@ -376,3 +376,76 @@ Linux ASan／UBSan；四个不同的字节拥有者确认四条队列均被访�
 这是 sans-I/O 会话集成的原生前置，不新增语言层 TlsSession 接口，不认证
 动态回调、传输／Future、恢复／票据／KeyUpdate 或发布产品；没有网络、
 畸形密码材料或安全专项测试。P6／P7 和历史诊断仍开放。
+
+## 受管理 sans-I/O 会话
+
+`TlsSession(TlsClientContext, serverName, size=-1, verifyName="", verifySize=-1)`
+和 `TlsSession(TlsServerContext)` 分别创建客户端／服务端会话。原生会话独立
+拥有配置、身份和验证器；来源语言对象可以先释放。SNI 与验证名称分离：空的
+verifyName 按原生合同继承 serverName；IP 身份应显式使用空 SNI 和 IP 验证名。
+名称采用双字段 string 和可选字节长度，不通过 strlen 恢复长度。
+
+公开状态为 TlsRole／TlsState／TlsWait／TlsResult；原生 ERROR 转为 checked
+错误，不伪装成 wouldBlock。`ready` 才表示握手完成，version／cipher 的选中
+不表示对端已认证；尚未选中时访问它们报状态错误。protocol 返回独立 bytes。
+
+`drive()` 推进协议；`feed(string|bytes, size=-1)` 接收精确字节，`feed(NetBuffer)`
+移动队列；wouldBlock／失败时后者保持来源不变。`write(string|bytes, size=-1)`
+返回 `(TlsResult, uint64)`，必须处理部分接收。`read(maxBytes=65536)` 返回
+`(TlsResult, bytes)`；`takeCipher(maxBytes=65536)` 返回待传输的密文字节。
+两种读取最多复制一批 16 个原生 span，maxBytes 是上界，不保证一次填满。
+分配和 bytes 装箱成功后才消费队列，OOM 不丢数据；不暴露借用 span，也不
+通过 const bytes 视图回填。Plain 仅在 ready／closing／closed 时允许交付。
+
+`close()` 发起协议关闭，`eof()` 告知底层输入终止；`dispose()` 是幂等的突然
+释放，不等于经过认证的关闭。析构只释放资源，不隐式完成握手、补尾或关闭
+通知。这里不拥有 socket，不自动等待输入，不引入 TCP／NetEngine／TlsStream。
+
+会话是可变原生节点，不是叶。真实引用计数包括语言句柄、原生别名、活动
+调用与收集器 pin；每次调用先取得互斥准入和真实引用，再离开 Mutation 执行
+原生代码。重入／并发调用 checked 拒绝，Busy 时拥有图快照延后；四条原生
+队列的真实拥有边参与目录，Claim／Restore／Clear／Finish 支持 checked 退役，
+最终原生释放在 Freeze 外执行。本批工厂仅接入静态原生身份和验证器；这不
+构成对任意 C 回调或未来语言闭包的拥有证明。
+
+`(int64或数值枚举, bytes)` 使用闭合的 `XL6_ProductI64BytesV1` 物理合同，
+尾项带一个拥有的 xvalue 引用。语义、类型化 IR、lowered IR 和模块／C／头
+输出门共同验证其 shape 与 ownership，失败边使用现有 PRODUCT_STORE_MOVE
+后再执行异常清理，不放宽聚合拥有权校验。Cgen 不增加 TLS 算法或名称分支。
+
+动态身份／CRL／恢复回调、票据／恢复／KeyUpdate、传输／Future、旧 TLS 后端
+清退及发布产品验收仍待后续批次；不能以 sans-I/O 正常握手代表完整 TLS 完成。
+旧 `stdlib_tls_session.xl`、`stdlib_tls_session_pair.xl`、`stdlib_tls_session_trim.xl`
+仍按旧 `TlsConfig.session()`／回调和恢复接口编写，保留其覆盖并待后续迁移，
+不计入本批通过项；本批不是默认全套测试或最新发布 DLL／SO 的验收。
+
+### 会话基础批次验收
+
+冻结 8977 份稳定输入，Windows／Linux 完整源码驱动分别构建 1152／1151 TU，
+全部 O2，不替换生产对象。合计 417 阶段：Windows 210、Linux 207，包含两端
+各 72 个既有产品 ABI／托管多返回值／CRT 数学／TLS 参数回归。四类固定密钥
+正常内存握手覆盖完整二进制 ALPN、分块 feed、NUL／非 UTF-8 数据、部分 read、
+COW、协议关闭、dispose 与 typed 容器，实际 JIT／module／独立 AOT 和严格
+C O0／O2 通过；20 份实际裁剪计划保持无传输依赖、单侧角色与空声明分离。
+
+25 目标、2 原生拥有结果、3 产品结果、2 bytes 结果、1 资源策略通过；两端
+O0／O2 均拒绝 249 错误合同、25 同物理表示类型交换及 32 个模块／C／头
+零输出门。驻留 GCC O0／O2、TCC、Linux ASan／UBSan 覆盖活动最后引用、
+Busy 延后、真实目录 Hold／Claim／Restore／Clear／重复 Finish、16-span 短取、
+字节内容哈希、8 输出分配预算（5 实际失败）、2 发布与 2 构造预算，内存平衡。
+
+原测试误把“未调用的工厂声明”当作原生可达性证明；修正断言并增加两份真实
+单侧构造用例，生产源码和全部编译对象不变，Windows 保留已通过的 98 阶段，
+补跑 30 阶段；Linux 以修正后的工具完整运行。本批源码修复还包括声明岛的
+完整依赖和 foreign managed-product 失败边的显式移动；没有放宽 verifier。
+
+首次 Windows 驻留编译 OOM 及各前轮诊断保留。Linux 第一份 R3 解包副本的
+8977 文件均为空，命令空成功未计通过；原归档正常，新目录恢复后逐文件哈希
+一致才构建／验收。独立原生库哈希保持不变，不将坏副本归咎于语言编译器。
+两端接受报告与产物重新哈希，Linux 构建及测试产物另存 F 盘归档并核对，
+全部原目录仍保留；证据根为
+`F:/xlang-validation/five-groups-20261024/p6-tls-session`。
+
+没有网络流量、畸形密码材料或安全专项；没有更改系统时区、防护、页文件或
+WSL 服务。两边时间 ABI 均保留，Cgen 未改；完整工作区／发布产品、动态回调、
+恢复与传输、P6／P7 及历史 Windows 间歇诊断仍开放。

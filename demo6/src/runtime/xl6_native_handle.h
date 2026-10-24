@@ -170,6 +170,7 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TlsVerificationPolicyHandl
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TlsVerifierHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TlsClientContextHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TlsServerContextHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TlsSessionHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6X509CrlHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6X509NameHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6X509GeneralNamesHandlePolicyV1Get(void);

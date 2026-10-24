@@ -1,0 +1,15 @@
+func relay(TlsSession session) as (TlsResult, bytes)
+    return session.read(32)
+end
+func write(TlsSession session, bytes input) as (TlsResult, uint64)
+    return session.write(input)
+end
+func ownedPair(int status, bytes data) as (int, bytes)
+    return status, data
+end
+auto status, data = ownedPair(3, b"a\0b")
+auto detached = data
+detached[0] = 90
+assert status == 3 and data == b"a\0b" and detached == b"Z\0b"
+array<bytes> storage = [data]
+assert storage[0] == b"a\0b"

@@ -2,9 +2,9 @@
 #define XL6_PRODUCT_ABI_H
 #include <stdint.h>
 #include <stdbool.h>
-/* Closed primitive product ABI, shared by native declarations and generated
- * C. Field order is the source multi-result order. No pointers/owners/padding
- * semantics are hidden in the carrier. Extend profiles explicitly, never by
+/* Closed product ABI, shared by native declarations and generated C. Field
+ * order is source multi-result order. Ownership is explicit in each profile;
+ * padding carries no semantics. Extend profiles explicitly, never by
  * guessing a foreign symbol or assigning a per-module TypeId spelling. */
 #ifndef XL6_PRODUCT_ABI_I64X3_V1
 #define XL6_PRODUCT_ABI_I64X3_V1
@@ -58,5 +58,13 @@ typedef struct XL6_ProductBoolBoolV1 { bool e0; bool e1; } XL6_ProductBoolBoolV1
 #ifndef XL6_PRODUCT_ABI_I64U64_V1
 #define XL6_PRODUCT_ABI_I64U64_V1
 typedef struct XL6_ProductI64U64V1 { int64_t e0; uint64_t e1; } XL6_ProductI64U64V1;
+#endif
+#ifndef XL6_PRODUCT_ABI_I64BYTES_V1
+#define XL6_PRODUCT_ABI_I64BYTES_V1
+struct xvalue;
+/* e1 transfers ONE owned bytes value to the ordinary language product. A
+ * failed checked call leaves it NULL; bytes content/type is not erased to var.
+ * Product copy/assignment/drop follows the exact bytes field's language ABI. */
+typedef struct XL6_ProductI64BytesV1 { int64_t e0; struct xvalue* e1; } XL6_ProductI64BytesV1;
 #endif
 #endif
