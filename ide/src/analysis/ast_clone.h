@@ -30,4 +30,9 @@ XL6_AstNode* xlsAstCloneWithCursorSource(const XL6_AstNode* input,const xls_ast_
  * Work counts constructed nodes/pages and conservative pool capacity charge. */
 XL6_AstNode* xlsAstClonePooled(const XL6_AstNode* input,const xls_ast_clone_options* options,
     xls_ast_cursor_source_policy policy,void* user,size_t poolBudget,xls_ast_pool_work* work,size_t* bytes);
+/* Borrow a construction-pinned forest owner. Does not unpin it. Per-copy bytes
+ * use the original logical node/field accounting; extra pool capacity is bounded
+ * separately. No implicit retry or transform/source-contract changes. */
+XL6_AstNode* xlsAstCloneInStorage(const XL6_AstNode* input,const xls_ast_clone_options* options,
+    xls_ast_storage* storage,size_t extraPoolBytes,size_t* bytes);
 #endif

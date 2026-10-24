@@ -2,6 +2,7 @@
  * owns data/range transformations, never a second grammar or lexer. */
 #include "analysis/frontend_internal.h"
 #include "analysis/ast_clone.h"
+#include "analysis/ast_materialize.h"
 #include "src/sem/xl6_completion.h"
 #include <limits.h>
 #include <string.h>
@@ -261,7 +262,7 @@ xls_syntax* xlsSyntaxAdoptOrdinary(const char* path,xls_text* text,XL6_AstNode**
     if(!path || !*path || !text || !root || !*root) return NULL;
     xls_syntax* s=allocate(path,text); if(!s) return NULL;
     s->parse.root=*root; *root=NULL; s->accepted=1;
-    if(!decompose(s)) goto failed;
+    if(s->parse.root->xlsStorage || !decompose(s)) goto failed;
     for(size_t i=0;i<s->units.Count;++i) {
         syntax_unit* unit=((placement*)xrtArrayGet(&s->units,i))->unit;
         if(!cacheTreeBytes(unit->node,SIZE_MAX,&unit->storageBytes)) goto failed;
@@ -295,14 +296,17 @@ int xlsSyntaxCursorMatches(const xls_syntax* syntax,const char* path,size_t offs
 {return syntax && syntax->cursor && path && !strcmp(syntax->path,path) && syntax->cursorOffset==offset;}
 const char* xlsSyntaxPath(const xls_syntax* syntax) { return syntax ? syntax->path : NULL; }
 const xls_text* xlsSyntaxText(const xls_syntax* syntax) { return syntax ? syntax->text : NULL; }
-static XL6_AstNode* materialize(const xls_syntax* s)
+static XL6_AstNode* materialize(const xls_syntax* s,int compilerPrivate)
 {
-    XL6_AstNode* root=copyNode(s->parse.root,NULL,0); int okay=root!=NULL;
+    xls_ast_clone_options rootOptions={.dropSources=1};
+    XL6_AstNode* root=compilerPrivate ? xlsAstMaterialize(s->parse.root,&rootOptions,NULL) : copyNode(s->parse.root,NULL,0); int okay=root!=NULL;
     if(okay && s->units.Count) {
         root->children=xrtCalloc(s->units.Count,sizeof(*root->children)); okay=root->children!=NULL; root->childCapacity=s->units.Count;
     }
     for(size_t i=0;okay && i<s->units.Count;++i) {
-        const placement* p=xrtArrayConstGet(&s->units,i); XL6_AstNode* node=copyNode(p->unit->node,p,0);
+        const placement* p=xrtArrayConstGet(&s->units,i);
+        xls_ast_clone_options options={placeNode,(void*)p,0,1,NULL};
+        XL6_AstNode* node=compilerPrivate ? xlsAstMaterialize(p->unit->node,&options,NULL) : copyNode(p->unit->node,p,0);
         if(!node) okay=0; else root->children[root->childCount++]=node;
     }
     if(okay) okay=attachSource(s,root);
@@ -313,7 +317,7 @@ int xlsSyntaxCopyParse(const xls_syntax* s,XL6_ParseResult* result)
 {
     if(!s || !result || result->root || result->diags.count) return 0;
     XL6_ParseResult copy; xl6ParseResultInit(&copy);
-    if(s->parse.root && !(copy.root=materialize(s))) goto failed;
+    if(s->parse.root && !(copy.root=materialize(s,1))) goto failed;
     for(size_t i=0;i<s->parse.diags.count;++i) {
         const XL6_Diag* d=&s->parse.diags.items[i];
         xl6DiagAddFile(&copy.diags,d->file ? d->file : s->path,d->line,d->column,d->message);
@@ -346,7 +350,7 @@ const XL6_AstNode* xlsSyntaxAst(const xls_syntax* s)
 {
     if(!s || !s->units.Count) return s ? s->parse.root : NULL;
     if(!xrtMutexLock(&s->view->lock)) return NULL;
-    if(!s->view->root) s->view->root=materialize(s);
+    if(!s->view->root) s->view->root=materialize(s,0);
     const XL6_AstNode* root=s->view->root; xrtMutexUnlock(&s->view->lock); return root;
 }
 typedef struct walk_node { const XL6_AstNode* node; const placement* place; } walk_node;

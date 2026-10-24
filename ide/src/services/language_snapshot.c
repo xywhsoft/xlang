@@ -605,6 +605,14 @@ analysed:
     put(storageWork,"heapFallbacks",xrtValueInt((int64)storage.heapFallbacks));
    if(okayStats){okayStats=put(stats,"lastBuildStorage",storageWork);storageWork=NULL;}
    xrtValueRelease(storageWork);
+   xls_ast_materialize_work copied=xlsSemanticCompletionMaterializationWork(nativeCompletion);
+   xvalue* materialization=xrtValueObject();
+   okayStats=okayStats && materialization && put(materialization,"calls",xrtValueInt((int64)copied.calls)) &&
+    put(materialization,"pooledCopies",xrtValueInt((int64)copied.pooledCopies)) && put(materialization,"heapCopies",xrtValueInt((int64)copied.heapCopies)) &&
+    put(materialization,"poolFallbacks",xrtValueInt((int64)copied.poolFallbacks)) && put(materialization,"nodes",xrtValueInt((int64)copied.nodes)) &&
+    put(materialization,"pages",xrtValueInt((int64)copied.pages)) && put(materialization,"chargedBytes",xrtValueInt((int64)copied.chargedBytes));
+   if(okayStats){okayStats=put(stats,"lastBuildMaterialization",materialization);materialization=NULL;}
+   xrtValueRelease(materialization);
   if(!okayStats) { xrtValueRelease(stats); goto done; }
   if(!put(result,"analysis",stats)) goto done;
  }

@@ -9,6 +9,8 @@ typedef struct clone_context {
     xls_ast_cursor_source_policy cursorPolicy;
     void* policyUser;
     xls_ast_storage* storage;
+    int logicalBudget;
+    size_t poolStart,poolAllowance;
 } clone_context;
 static int charge(clone_context* c,size_t bytes)
 {
@@ -46,7 +48,12 @@ static XL6_AstNode* clone(clone_context* c,const XL6_AstNode* in,size_t depth)
 {
     if(!in || depth>512) return NULL;
     XL6_AstNode* out;
-    if(c->storage){
+    if(c->storage && c->logicalBudget){
+        if(!charge(c,sizeof(*in)))return NULL;
+        size_t used=xlsAstStorageWork(c->storage).bytes-c->poolStart;
+        if(used>c->poolAllowance)return NULL;
+        out=xlsAstStorageNode(c->storage,c->poolAllowance-used);if(!out)return NULL;
+    }else if(c->storage){
         size_t before=xlsAstStorageWork(c->storage).bytes;
         out=xlsAstStorageNode(c->storage,c->options.bytes ? c->options.bytes-c->bytes : SIZE_MAX);
         if(!out)return NULL;
@@ -105,3 +112,15 @@ XL6_AstNode* xlsAstCloneWithCursorSource(const XL6_AstNode* input,const xls_ast_
 {return xlsAstClonePooled(input,options,policy,user,0,NULL,bytes);}
 XL6_AstNode* xlsAstClone(const XL6_AstNode* input,const xls_ast_clone_options* options,size_t* bytes)
 {return xlsAstCloneWithCursorSource(input,options,NULL,NULL,bytes);}
+XL6_AstNode* xlsAstCloneInStorage(const XL6_AstNode* input,const xls_ast_clone_options* options,
+    xls_ast_storage* storage,size_t extraPoolBytes,size_t* bytes)
+{
+    if(bytes)*bytes=0;
+    if(!input || !storage)return NULL;
+    clone_context context={.storage=storage,.logicalBudget=1,.poolStart=xlsAstStorageWork(storage).bytes,.poolAllowance=extraPoolBytes};
+    if(options)context.options=*options;
+    if(!xrtMapInit(&context.sources,sizeof(XL6_AstSource*)))return NULL;
+    XL6_AstNode* root=clone(&context,input,0);xrtMapUnit(&context.sources);
+    if(root && bytes)*bytes=context.bytes;
+    return root;
+}
