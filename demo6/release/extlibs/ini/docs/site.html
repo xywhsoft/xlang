@@ -52,7 +52,7 @@ println(config.stringify())</code></pre>
 bash release/extlibs/ini/test/check.sh</code></pre>
     <p>C Reader 的输入限额从当前读取位置计算，不包含已跳过的前缀；只有 <code>Size</code> 而没有 <code>Tell</code> 的 Reader 由实际读取阶段执行限额。</p>
     <p>2026-10-24 使用更新后的 Windows 发布版复验，默认门禁通过严格 GCC、C/XLang 边界、双语同输出、边界 AOT 及公开文件范例 AOT；Linux 包级门禁通过 C ASan/UBSan、内嵌 TCC C 用例、中央和包内 XLang 边界及双语输出对照。旧版共享缺符号已解除。XRT <code>uint64</code> 限额与 XLang <code>uint64</code> 对齐，C 32 位深度参数使用 <code>c_uint</code>。语言边界还验证中文路径、内嵌 NUL、资源限额和分配失败恢复；限额与分配故障分开验证，不依赖固定分配次数。这是 ini 包级证据，不等于整个 xlang 发布版签收。</p>
-    <p>2026-10-25 所有权复核：Windows 默认 C/XLang 与 AOT 门禁复验通过。普通字符串直接接管 XRT 分配；节名和键名装入 <code>array&lt;string&gt;</code> 时仍受共享容器装箱路径的一次文本复制影响。Linux 更新后的包仍待复验。</p>
+    <p>2026-10-25 所有权复核：Windows 默认 C/XLang 与 AOT 门禁复验通过。普通字符串直接接管 XRT 分配；节名和键名装入 <code>array&lt;string&gt;</code> 时仍受共享容器装箱路径的一次文本复制影响。Linux C sanitizer 与 XLang JIT/双语门禁已通过，独立 AOT 待复验。</p>
   </section>
 </main>
 <script src="../main.js"></script>

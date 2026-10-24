@@ -30,7 +30,7 @@
       <tr><td><code>countBlocks / blockLabel / blockLabelCount / blockLabelAt</code></td><td>查询块及标签</td></tr>
       <tr><td><code>validate</code></td><td>检查受支持的语法；非法内容抛 ValueError</td></tr>
     </tbody></table>
-    <p><code>get</code>、<code>getRaw</code>、<code>blockLabel</code>、<code>blockLabelAt</code> 返回普通 <code>string</code>；运行时直接接管 XRT 分配的原生文本，不重复复制。</p>
+    <p><code>get</code>、<code>getRaw</code>、<code>blockLabel</code>、<code>blockLabelAt</code> 返回普通 <code>string</code>；运行时直接接管 XRT 分配的原生文本，不重复复制。Windows 默认门禁与 Linux C sanitizer/XLang JIT 门禁已通过；独立 Linux AOT 待复验。</p>
     <h2 id="example">xlang</h2>
     <pre><code>import hcl
 string config = "resource \"server\" \"main\" { port = 8080 }"

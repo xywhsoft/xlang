@@ -3,7 +3,8 @@
 2026-10-25 所有权复核：四个文本查询返回普通 `string`，
 `takeCstr` 将 XRT 分配直接移交给结果。先前改为 `cstring` 后，
 调用方转成 `string` 反而复制文本，现已修正。Windows 包门禁核对
-生成 C 的直接移交及 C/XLang/AOT 行为。Linux 更新后的包仍待复验。
+生成 C 的直接移交及 C/XLang/AOT 行为。Linux C ASan/UBSan、
+XLang JIT 与双语门禁已通过；独立 Linux AOT 待新发布版复验。
 
 2026-10-24 当前发布物复验：Windows 默认 `test/check.ps1` 的严格 C、
 线程、XLang 边界与分配、C/XLang 同输出，以及核心、边界、分配、

@@ -3,7 +3,8 @@
 2026-10-25 所有权复核：五个文本查询返回普通 `string`，
 `takeCstr` 直接移交 XRT 分配。先前 `cstring` 返回转为 `string`
 会额外复制，现已修正。Windows 默认包门禁核对生成 C 的直接移交、
-双语范例及四份独立 EXE；Linux 更新后的包仍待复验。
+双语范例及四份独立 EXE；Linux C ASan/UBSan、XLang JIT 与双语门禁
+已通过，独立 Linux AOT 待新发布版复验。
 
 `sysinfo` 提供 Windows/Linux 主机运行时信息：`osName`、`osVersion`、`arch`、
 `hostname`、`cpuName`、`cpuCount`、`memTotal`、`memAvailable`、

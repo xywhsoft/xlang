@@ -3,7 +3,8 @@
 2026-10-25 所有权复核：公开 `slugify.slugify` 返回普通 `string`，
 `takeCstr` 将 C 返回的 XRT 分配直接移交给结果，不复制文本。
 先前改为 `cstring` 后，转换回 `string` 反而需要复制；现已修正。
-Windows 包门禁核对生成 C 的直接移交与 C/JIT/AOT 行为。
+Windows 包门禁核对生成 C 的直接移交与 C/JIT/AOT 行为；Linux C
+ASan/UBSan、线程、XLang JIT 与双语门禁已通过，独立 AOT 待复验。
 
 2026-10-24 当前 Windows 发布版默认门禁通过：严格 C、线程、
 XLang 中央与边界、C/XLang 同输出，以及核心、边界和公开范例

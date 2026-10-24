@@ -4,8 +4,9 @@
 `takeCstr` 直接接管 `xwatch_poll` 的独立事件分配。先前改为
 `cstring` 后转成 `string` 反而复制文本，现已修正。`path()` 的
 C 结果是借用指针，保持原有独立字符串语义。Windows 包门禁核对
-生成 C 的直接移交、目录竞态、双语范例和两份 AOT；Linux 更新后的
-包仍待复验。
+生成 C 的直接移交、目录竞态、双语范例和两份 AOT；Linux C
+ASan/UBSan、目录竞态及 XLang JIT/双语门禁已通过，独立 Linux AOT
+待新发布版复验。
 
 2026-10-24 当前发布物复验：Windows 默认 `test/check.ps1` 全部通过，
 包含严格 GCC、目录竞争、分配故障、C/XLang 双语固定输出、边界 AOT
