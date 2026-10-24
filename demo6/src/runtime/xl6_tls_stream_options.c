@@ -9,7 +9,7 @@ void* xl6TlsStreamOptionsCopyV1(const xtlsstreamconfig* value)
         xl6TlsFailV1(XERR_RANGE,"TLS asynchronous limits must be positive");return NULL;}
     xtlsstreamconfig* result=xrtMalloc(sizeof(*result));if(result)*result=*value;return result;
 }
-void* xl6TlsStreamOptionsCreateV1(void)
+void xl6TlsStreamOptionsDefaultsV1(xtlsstreamconfig* output)
 {
     /* Defaults are public XRT constants, not a second TLS implementation.
      * Calling the backend's trivial Init would select its whole TLS/TCP
@@ -21,8 +21,10 @@ void* xl6TlsStreamOptionsCreateV1(void)
         .AsyncCountLimit=XTLS_STREAM_ASYNC_COUNT_DEFAULT,
         .AsyncBatch=XTLS_STREAM_ASYNC_BATCH_DEFAULT
     };
-    return xl6TlsStreamOptionsCopyV1(&value);
+    *output=value;
 }
+void* xl6TlsStreamOptionsCreateV1(void)
+{xtlsstreamconfig value;xl6TlsStreamOptionsDefaultsV1(&value);return xl6TlsStreamOptionsCopyV1(&value);}
 void xl6TlsStreamOptionsDestroyV1(void* raw){xrtFree(raw);}
 static const xtlsstreamconfig* checked(void* raw)
 {

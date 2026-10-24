@@ -15,12 +15,18 @@ static bool create(Resource* base,const XL6_ExecutionCreateOptionsV1* options)
     Stream* r=(Stream*)base;const XL6_TlsStreamCreateOptionsV1* c=options->value.tlsStream;
     xrtAtomicPtrInit(&r->native,NULL);
     xrtAtomicPtrInit(&r->pending,NULL);xrtAtomic32Init(&r->prepared,0);
-    if(!c||((c->accepted!=NULL)+(c->Build!=NULL)+(c->accepting!=NULL)!=1)){
+    if(!c||((c->accepted!=NULL)+(c->Build!=NULL)+(c->accepting!=NULL)+c->dialing!=1)||
+        (c->resolving&&!c->dialing)){
         xrtSetErrorKind(XERR_ARGUMENT);return false;}
     XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionTlsEngineEnterV1(c->engine,&scope))return false;
     r->parent=xl6ExecutionResourceRetainV1(c->engine);xtlsstream* result=NULL;
     if(r->parent){
-        if(c->accepting){
+        if(c->dialing){
+            r->pendingKind=XL6_TLS_PENDING_DIAL_V1;
+            if(c->resolving)r->resolving=xl6ExecutionResourceRetainV1(c->resolving);
+            if(!c->resolving||r->resolving)xrtAtomic32Store(&r->prepared,1,XMEMORY_RELEASE);
+        }else if(c->accepting){
+            r->pendingKind=XL6_TLS_PENDING_ACCEPT_V1;
             r->accepting=xl6ExecutionResourceRetainV1(c->accepting);
             if(r->accepting)xrtAtomic32Store(&r->prepared,1,XMEMORY_RELEASE);
         }else if(c->accepted){
@@ -44,7 +50,8 @@ static bool dispose(Resource* base)
     xrtAtomic32Store(&r->prepared,0,XMEMORY_RELEASE);
     if(!xrtOwnershipScopeEnd(&m))abort();
     xrtFutureDestroy(pending);xrtTlsStreamDestroy(stream);
-    xl6ExecutionTlsParentDropV1(&r->accepting);xl6ExecutionTlsParentDropV1(&r->parent);return true;
+    xl6ExecutionTlsParentDropV1(&r->accepting);xl6ExecutionTlsParentDropV1(&r->resolving);
+    xl6ExecutionTlsParentDropV1(&r->parent);return true;
 }
 static bool rollback(Resource* base)
 {
@@ -81,7 +88,7 @@ static XL6_ModulePrepareResult retire(Resource* base)
     return dispose(base)?XL6_MODULE_PREPARE_READY:XL6_MODULE_PREPARE_FAILED;
 }
 static void drop(Resource* base)
-{const Stream* r=(const Stream*)base;if(native(base)||r->parent||r->accepting||
+{const Stream* r=(const Stream*)base;if(native(base)||r->parent||r->accepting||r->resolving||
     xrtAtomicPtrLoad(&r->pending,XMEMORY_ACQUIRE)||xrtAtomic32Load(&r->prepared,XMEMORY_ACQUIRE))abort();}
 static bool trace(const Resource* base,xrtownershipvisitor visit,void* context)
 {
@@ -90,6 +97,7 @@ static bool trace(const Resource* base,xrtownershipvisitor visit,void* context)
     return (!stream||visit(xrtTlsStreamOwnership(stream),context))&&
         (!pending||visit(xrtFutureOwnership(pending),context))&&
         (!r->accepting||visit(xl6ExecutionResourceOwnershipV1(r->accepting),context))&&
+        (!r->resolving||visit(xl6ExecutionResourceOwnershipV1(r->resolving),context))&&
         (!r->parent||visit(xl6ExecutionResourceOwnershipV1(r->parent),context));
 }
 static bool closeStream(Resource* base)
