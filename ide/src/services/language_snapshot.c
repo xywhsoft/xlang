@@ -475,7 +475,7 @@ static int nativeSignatureRun(xide_language_check* q,xvalue** output,xide_model_
  raw=xrtJsonParse((xstrview){json,size});graph.signature=xlsSignatureRetain(signature);
  if(!raw || !loadGraph(q,raw,&graph,e))goto done;
  result=xlsSignatureHelpValue(signature,q->signatureFlags);if(!result)goto done;
- xvalue* stats=xrtValueObject();xls_signature_work sem=xlsSignatureWork(signature);xls_signature_parse_work parse=xlsSignatureParseWork(signature);
+ xvalue* stats=xrtValueObject();xls_signature_work sem=xlsSignatureWork(signature);xls_signature_parse_work parse=xlsSignatureParseWork(signature);xls_signature_storage_work storage=xlsSignatureStorageWork(signature);
  int retained=stats && put(stats,"builds",xrtValueInt((int64)q->signatureStats.builds)) && put(stats,"cacheHits",xrtValueInt((int64)q->signatureStats.hits)) &&
   put(stats,"caretHits",xrtValueInt((int64)q->signatureStats.caretHits)) && put(stats,"indexBuilds",xrtValueInt((int64)q->signatureStats.indexBuilds)) && put(stats,"indexHits",xrtValueInt((int64)q->signatureStats.indexHits)) &&
   put(stats,"workerThreadId",xrtValueInt((int64)q->semanticThread)) && put(stats,"captureThreadId",xrtValueInt((int64)q->captureThread)) &&
@@ -483,7 +483,9 @@ static int nativeSignatureRun(xide_language_check* q,xvalue** output,xide_model_
   put(stats,"signatureFullParses",xrtValueInt((int64)parse.full)) && put(stats,"signatureFragmentParses",xrtValueInt((int64)parse.fragments)) &&
   put(stats,"signatureReusedDeclarations",xrtValueInt((int64)parse.reused)) && put(stats,"signatureParsedBytes",xrtValueInt((int64)parse.bytes)) &&
   put(stats,"signatureParseExactHits",xrtValueInt((int64)parse.exactHits)) && put(stats,"signatureSyntaxCacheBytes",xrtValueInt((int64)parse.cacheBytes)) &&
-  put(stats,"signatureSyntaxFallbacks",xrtValueInt((int64)parse.fallbacks));
+  put(stats,"signatureSyntaxFallbacks",xrtValueInt((int64)parse.fallbacks)) &&
+  put(stats,"signatureTypeNodes",xrtValueInt((int64)storage.nodes)) && put(stats,"signatureTypePages",xrtValueInt((int64)storage.pages)) &&
+  put(stats,"signatureTypeBytes",xrtValueInt((int64)storage.chargedBytes)) && put(stats,"signatureTypeHeapFallbacks",xrtValueInt((int64)storage.heapFallbacks));
  if(retained){retained=put(result,"analysis",stats);stats=NULL;}xrtValueRelease(stats);
  if(!retained || !put(result,"version",xrtValueInt(q->queryVersion)) || !xlsSignatureValidate(signature) || !validateGraph(q,&graph,e) || cancelled(q))goto done;
  q->guardFiles=xrtValueDeepClone(get(get(raw,"sourceReport"),"files"));q->guardResolution=xrtValueDeepClone(get(raw,"resolutionReport"));

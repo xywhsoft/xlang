@@ -1300,3 +1300,24 @@ xlsSignatureInfo 返回本次 offset 和参数位置，所有模型字节／来�
 两版使用相同 GUI 夹具二进制，仅原生服务不同；2993 行／96 混合 helper／60645 字节，BOM／CRLF／中文／非 BMP，ABBA 四进程，每路径每进程 20 次，共 320 样本。每次验证真实重载／当前参数／语义复用或缓存索引、版本／完整正文／选区／焦点和真实渲染提交；最后 Esc 并确认原始磁盘文件未改。首次参数查询另计，旧版 193.532–203.587 ms，新版 179.778–190.838 ms；应用已创建并打开文件，因此不是 IDE 冷启动。
 
 全部分位保留，单帧／输入和 GUI CPU 指标见 lsp-development 的本阶段表，CPU 量化较粗，不作为精确 CPU 优化结论。精确命中显示 P95 为 11.238→11.336 ms，有小幅回退。本次旧基线也比上轮偏高，因此仅作本次配对比较，不能跨轮直接比较绝对延迟。自动诊断关闭；尚未验收大型项目、RSS、完整冷启动、并行诊断和长时运行。语法分块复用不等于持久语义 IR／依赖图，私有 AST 物化、语义构建、旧结果回收及 UI 正文捕获仍有成本。下一阶段继续这些开销与真正依赖／IR 增量、清单／反向归属、完整适用 LSP、泛型推断／protocol receiver／内建转换／嵌入和匿名恢复、IDE 原位配置／异步准备、native C／resource／include／link、十万行索引和最终发布。首版保持外部 C/XRT、未来 opaque DLL、无 DAP／运行态补全。SDK、冻结前端和发布 5241 文件未改。证据 build/lsp-next-20261022/m7a2b19g-result.json、外部 component-v3、protocol-qa-v2、gui-qa-v2、signature-frame-paired-v1。
+
+
+## M7a2b19h：签名类型恢复开销观测（0.50）
+
+新增 xlsSignatureStorageWork，以独立 C 值返回原 native model 的 nodes／pages／chargedBytes／heapFallbacks，沿用创建方的不可变模型生命周期。宿主在 signatureHelp.analysis 中追加 signatureTypeNodes／signatureTypePages／signatureTypeBytes／signatureTypeHeapFallbacks。没有输出私有 AST，也没有混用 GUI 与编译器 XRT。
+
+这些是模型最初构建时恢复 memo 类型树的原生计数，精确／光标视图携带相同历史值，不能当成本次命中又执行了同量工作。节点数包括函数类型森林的临时根；页／字节是成功池恢复的保守容量计费，含空槽和池元数据，普通字符串／子数组／来源对象仍由 XRT 单独管理。它不是总分配、RSS 或全局内存上限。低预算回退后池节点／页／字节可以为零，而类型树仍已通过原堆路径完整恢复，heapFallbacks 表明这条路径。
+
+专项在连续 16 次编辑中分别验证首次冷模型、热模型和一次 4 KiB 类型池预算的堆回退；所有候选／参数／符号／原文仍与独立 fresh 查询一致。旧 warm 模型保留到会话销毁后，读取相同统计且仍可访问标签；同实参视图保留模型来源。既有 94 次 caret view、一万个扁平视图、4 个视图和 92 个分析取消点、原三项完整 typed CALL oracle 保持。真实协议样本改用 24 个含分支的 helper，要求实际 memo 恢复及正的池节点／页／容量，而非只看可用签名。
+
+最终 component-v3 冻结 1034 项输入，125 个 native 对象完整重编，57 个 AST 消费者仍使用同一 AST17 头，核心归档维持 50 成员；52 夹具／53 PE／54 产物通过。29 套 656 个协议场景、18 组实际 IDE／旧服务回退／smoke 重新执行通过。106 个 GUI 对象的实际 .d 依赖和 native-only snapshot 分支 GUI 预处理结果一致，35 个既有程序复用。final-core-source-proof.json 逐项核对全部 src：只有签名 getter／头、宿主统计和版本文件四处差异，其他源码字节均与已接受的 0.49 相同；移除新增 getter 后 signature.c 旧函数体也完全相同。
+
+首次最终构建的依赖扫描在系统提交空间紧张时报告 cc1.exe 无法分配内存。build_lsp_core.py 增加可重复的 --cflag 参数，默认空列表保持原命令；参数通过结构化 subprocess 参数转交编译器。最终 125 个对象均使用 --cflag=-ftrack-macro-expansion=0，关闭 GCC 宏展开诊断位置跟踪，保留 Release -O2 和原运行时策略；没有改系统配置或其他进程。选项记录在每条构建命令中。
+
+```powershell
+python -X utf8 -B .\tools\build_lsp_core.py --frontend-root .\build\compiler-c-native-extensions-v1 --server --configuration Release --output .\build\lsp-native-lowmem --cc E:\software\w64devkit\bin\gcc.exe --cflag=-ftrack-macro-expansion=0
+```
+
+证据：build/lsp-next-20261022/m7a2b19h-result.json；外部 m7a2b19h-05145245/component-v3、final-core-source-proof.json、protocol-qa-final-v1、gui-qa-final-v1、signature-native-cost-final-v1、signature-frame-final-v1。被否决实验保留在 rejected-shared-forest、rejected-adaptive-layout 及对应 same-process-* 目录。
+
+分配器实验均被撤回，最终所有 allocator／语义／AST 模块字节保持已接受的 0.49。完整否决数据和最终 wall／帧观测见 lsp-development.md。原生类型恢复复制仍是已识别的热点；下一阶段继续持久语义／IR 或经消费者审计的延迟物化，保留 fresh AST／IR／来源／取消对照及完整长期目标。
