@@ -1,5 +1,13 @@
 # watch
 
+2026-10-24 当前发布物复验：Windows 默认 `test/check.ps1` 全部通过，
+包含严格 GCC、目录竞争、分配故障、C/XLang 双语固定输出、边界 AOT
+以及带输出范例 AOT。Linux `test/check.sh` 的 C ASan/UBSan、目录竞争、
+XLang JIT 边界和双语输出也通过。旧版
+`xl6ValueDataSnapshotV1` 缺符号已不是当前 Windows 阻断；本轮没有
+用新 Linux 编译器构建并运行独立 EXE，不能外推为 Linux AOT 验收。
+以下早期记录的“当前缺符号”均指当时的旧发布版。
+
 `Watcher` 轮询 UTF-8 路径元数据，可监视文件与目录。`add(path)` 返回稳定索引；`poll()` 每次返回一个 `CREATED:path`、`MODIFIED:path`、`DELETED:path` 事件，或在无变化时返回空串；`remove(index)` 释放该项，后续 `add` 可重用索引。监视时路径可以尚不存在，此时后续创建会产生事件。`watch.exists(path)` 可单独检查路径。
 
 `Watcher` 是导出类型，可写 `watch.Watcher watcher = watch.create()`；现有 `auto` 写法仍可使用。
@@ -28,9 +36,8 @@ XL 的 `add` 拒绝内嵌 NUL 的路径，`exists` 对该路径返回 `false`，
 其中 C 范例已自包含包实现，可从 `demo6` 根目录直接运行
 `release/xl.exe run release/extlibs/watch/examples/watch_c.c`；包门禁也将这一路径的输出与 GCC、XLang 对照。C 范例添加监视目标失败时会销毁已创建的实例。
 三份 XLang 包内用例已登记到 `coverage.tests`；`tools/smoke_extlib_catalog.ps1 -Package watch` 会自动执行它们。Windows 包级脚本从隔离目录运行边界用例，并从 `release` 目录运行 XLang 范例。
-当前 Windows 严格 GCC、C/XL 边界、双语示例和边界 AOT 通过；带输出范例
-AOT 在 `xl6ValueDataSnapshotV1` 缺符号处阻断，见
-`dev/extlib_blockers/text_snapshot_link.md`。Linux 包门禁运行跨平台的
+当前 Windows 严格 GCC、C/XL 边界、双语示例、边界及带输出范例 AOT
+均通过。Linux 包门禁运行跨平台的
 `test/boundaries.xl`；中央 `test/cases/extlib_watch.xl` 使用 Windows 反斜杠路径，
 不作为 Linux 门禁。
 2026-10-16 移除 C 源对私有 `xl_runtime.h` 的依赖，改用公开 `xrt.h`；
