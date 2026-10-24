@@ -80,8 +80,8 @@ def main():
 
         text='import dep\nfunc main(...) as int\n return dep.value()\nend\n';target='export func value() as int\n int member = 7\n return mem\nend\n'
         c=client();c.open(entry,text,1);c.open(dep,target,1)
-        complete(c,target,'return mem',1,['member'],dict(cursorFullParses=0,cursorFragmentParses=0,cursorFreshBuilds=1),path=dep,entry_path=entry)
-        done('imported-query-route-reports-fresh-native-work');c.stop()
+        complete(c,target,'return mem',1,['member'],dict(cursorFullParses=1,cursorFragmentParses=0,cursorFreshBuilds=0),path=dep,entry_path=entry)
+        done('imported-query-route-uses-owned-cursor-syntax');c.stop()
         c=client('cli');done('cli-does-not-advertise-retained-cursor-syntax');c.stop()
         assert all(sha(p)==h for p,h in protected.items());report['status']='passed'
     finally:

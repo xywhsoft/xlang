@@ -211,7 +211,7 @@ static int diskEntry(void)
     xls_semantic_completion* completion=xlsCompletionSessionQueryInContext(cursors,copy,&cursorDoc,1,NULL,"member",offset,NULL,NULL,error,sizeof(error));CHECK(completion==initial);xlsSemanticCompletionDestroy(completion);
     cursorDoc.revision=2;completion=xlsCompletionSessionQueryInContext(cursors,ca,&cursorDoc,1,NULL,"member",offset,NULL,NULL,error,sizeof(error));CHECK(completion==initial);xlsSemanticCompletionDestroy(completion);
     CHECK(!xlsCompletionSessionQueryInContext(cursors,ca,&cursorDoc,1,NULL,"member",offset,stop,NULL,error,sizeof(error)) && xlsSemanticCompletionValidate(initial));
-    xls_completion_stats cursorStats;xlsCompletionSessionStats(cursors,&cursorStats);CHECK(cursorStats.builds==1 && cursorStats.hits==2 && cursorStats.cursorFreshBuilds==1 && !cursorStats.cursorFullParses);
+    xls_completion_stats cursorStats;xlsCompletionSessionStats(cursors,&cursorStats);CHECK(cursorStats.builds==1 && cursorStats.hits==2 && !cursorStats.cursorFreshBuilds && cursorStats.cursorFullParses==1);
     /* Atomic replacement with identical bytes changes file identity. Both
        cached results must permanently invalidate, not just compare text. */
     CHECK(writeFile(entry,mainText) && !xlsSemanticCheckValidate(first) && !xlsSemanticCompletionValidate(initial));
