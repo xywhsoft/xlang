@@ -1113,8 +1113,7 @@ static int xl6StdlibNeedsUdpConfigClass(const XL6_AstNode* root, const int* used
 static int xl6StdlibNeedsTlsLegacyConfigClass(const XL6_AstNode* root)
 {
     return xl6StdlibNodeUsesTypeName(root, "TlsConfig") ||
-           xl6StdlibNodeUsesTypeName(root, "TlsResume") ||
-           xl6StdlibNodeUsesTypeName(root, "TlsStream");
+           xl6StdlibNodeUsesTypeName(root, "TlsResume");
 }
 
 static int xl6StdlibNeedsTlsStreamClass(const XL6_AstNode* root, const int* used)
@@ -1755,7 +1754,12 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         return 0;
     }
     xl6StdlibApplyDeps(used);
-    needsTlsManagedSession=xl6StdlibNodeUsesTypeName(root,"TlsSession")||
+    /* Resolve the whole declaration island before deriving X.509 and network
+     * dependencies. Declaring a transport never selects a legacy runtime. */
+    needsTlsStreamClass=xl6StdlibNeedsTlsStreamClass(root,used);
+    needsTlsServerClass=xl6StdlibNeedsTlsServerClass(root,used);
+    needsTlsManagedSession=needsTlsStreamClass||needsTlsServerClass||
+        xl6StdlibNodeUsesTypeName(root,"TlsSession")||
         xl6StdlibNodeUsesTypeName(root,"TlsRole")||xl6StdlibNodeUsesTypeName(root,"TlsState")||
         xl6StdlibNodeUsesTypeName(root,"TlsWait")||xl6StdlibNodeUsesTypeName(root,"TlsResult");
     /* Both managed role constructors share the session declaration. Close
@@ -1843,8 +1847,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsTlsServerClass ) {
         needsTlsStreamClass = 1;
     }
-	needsTlsLegacyConfigClass = xl6StdlibNeedsTlsLegacyConfigClass(root) ||
-		needsTlsStreamClass || needsTlsServerClass;
+	needsTlsLegacyConfigClass = xl6StdlibNeedsTlsLegacyConfigClass(root);
     needsTcpProxyDial=xl6StdlibNodeUsesMemberName(root,"dialProxy")||
         xl6StdlibNodeUsesMemberName(root,"dialProxyAsync")||
         xl6StdlibNodeUsesMemberName(root,"dialProxyCancel")||
@@ -1854,12 +1857,12 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesMemberName(root,"dialProxyAsyncUntil")||
         xl6StdlibNodeUsesMemberName(root,"dialProxyAsyncUntilCancel");
     needsTcpProxyDialOptions=needsTcpProxyDial||xl6StdlibNodeUsesTypeName(root,"TcpProxyDialOptions");
-    needsTcpDialOptions=needsTcpProxyDialOptions||xl6StdlibNodeUsesTypeName(root,"TcpDialOptions")||
+    needsTcpDialOptions=needsTlsStreamClass||needsTcpProxyDialOptions||xl6StdlibNodeUsesTypeName(root,"TcpDialOptions")||
         xl6StdlibNodeUsesTypeName(root,"TlsDialOptions");
     needsTcpServerClass=xl6StdlibNodeUsesTypeName(root,"TcpServer")||xl6StdlibFuncUsed(used,"tcp","server");
     needsTcpServerOptions=needsTcpServerClass||xl6StdlibNodeUsesTypeName(root,"TcpServerOptions")||xl6StdlibNodeUsesTypeName(root,"TcpServerMode");
     needsTcpServerStats=needsTcpServerClass||xl6StdlibNodeUsesTypeName(root,"TcpServerStats")||xl6StdlibNodeUsesTypeName(root,"TcpServerState");
-    needsTcpListenOptions=needsTcpServerOptions||xl6StdlibNodeUsesTypeName(root,"TcpListenOptions")||xl6StdlibNodeUsesTypeName(root,"TcpAcceptDistribution");
+    needsTcpListenOptions=needsTlsServerClass||needsTcpServerOptions||xl6StdlibNodeUsesTypeName(root,"TcpListenOptions")||xl6StdlibNodeUsesTypeName(root,"TcpAcceptDistribution");
     needsTcpStreamOptions=needsTcpDialOptions||needsTcpListenOptions||xl6StdlibNodeUsesTypeName(root,"TcpStreamOptions")||xl6StdlibNodeUsesTypeName(root,"TcpReadMode");
     needsNetAddressClass = needsTcpListenOptions || xl6StdlibNeedsNetAddressClass(root, used);
     needsNetDefaultResolver=xl6StdlibFuncUsed(used,"net","resolveAsync")||xl6StdlibFuncUsed(used,"net","resolverStats");
@@ -1869,7 +1872,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetLengthFramer=xl6StdlibNodeUsesTypeName(root,"NetLengthFramer");
     needsNetFrameResult=needsNetLineFramer||needsNetLengthFramer||xl6StdlibNodeUsesTypeName(root,"NetFrameResult")||xl6StdlibNodeUsesTypeName(root,"NetFrameStatus");
     needsNetBuffer=needsTlsManagedSession||needsNetProxyHandshake||needsNetLineFramer||needsNetLengthFramer||xl6StdlibNodeUsesTypeName(root,"NetBuffer");
-    needsNetResolverClass=needsNetDefaultResolver||xl6StdlibNodeUsesTypeName(root,"NetResolver")||
+    needsNetResolverClass=needsTlsStreamClass||needsNetDefaultResolver||xl6StdlibNodeUsesTypeName(root,"NetResolver")||
         xl6StdlibNodeUsesTypeName(root,"NetResolveOperation");
     needsNetResolverOptionsClass=needsNetResolverClass||xl6StdlibNodeUsesTypeName(root,"NetResolverOptions");
     needsNetAddressListClass=needsNetResolverClass||xl6StdlibNodeUsesTypeName(root,"NetAddressList")||
@@ -1896,9 +1899,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetEngineStatsClass = xl6StdlibNeedsNetEngineStatsClass(root, used);
     needsNetResolverStatsClass = xl6StdlibNeedsNetResolverStatsClass(root, used);
     needsNetResolverStatsClass=needsNetResolverStatsClass||needsNetResolverClass;
-    needsNetProxyClass = needsNetProxyHandshake || xl6StdlibNeedsNetProxyClass(root, used);
+    needsNetProxyClass = needsTlsStreamClass || needsNetProxyHandshake || xl6StdlibNeedsNetProxyClass(root, used);
     needsNetFileClass = xl6StdlibNodeUsesTypeName(root,"NetFile");
-    needsNetEngineClass = needsNetFileClass || xl6StdlibNeedsNetEngineClass(root, used);
+    needsNetEngineClass = needsTlsStreamClass || needsNetFileClass || xl6StdlibNeedsNetEngineClass(root, used);
     needsTcpStreamStatsClass = xl6StdlibNodeUsesTypeName(root, "TcpStreamStats");
     needsTcpListenerStatsClass = xl6StdlibNodeUsesTypeName(root, "TcpListenerStats");
     needsTcpStreamClass = xl6StdlibNeedsTcpStreamClass(root, used);
@@ -2244,6 +2247,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if ( needsTlsStreamClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTlsStreamClassSource);
+        xl6StdlibBuilderAppend(&builder, xl6StdlibTlsStreamDialSource);
+        xl6StdlibBuilderAppend(&builder, "end\n");
     }
     if ( needsTlsServerClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTlsServerClassSource);
@@ -2379,9 +2384,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if(needsTlsClientContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsClientContextSource);
     if(needsTlsServerContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsServerContextSource);
     if(needsTlsManagedSession)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsManagedSessionClassSource);
-    if(xl6StdlibNodeUsesTypeName(root,"TlsStreamOptions")||xl6StdlibNodeUsesTypeName(root,"TlsDialOptions"))
+    if(needsTlsStreamClass||xl6StdlibNodeUsesTypeName(root,"TlsStreamOptions")||xl6StdlibNodeUsesTypeName(root,"TlsDialOptions"))
         xl6StdlibBuilderAppend(&builder,xl6StdlibTlsStreamOptionsSource);
-    if(xl6StdlibNodeUsesTypeName(root,"TlsDialOptions"))xl6StdlibBuilderAppend(&builder,xl6StdlibTlsDialOptionsSource);
+    if(needsTlsStreamClass||xl6StdlibNodeUsesTypeName(root,"TlsDialOptions"))xl6StdlibBuilderAppend(&builder,xl6StdlibTlsDialOptionsSource);
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||
         xl6StdlibFuncUsed(used,"crypto","x25519KeyPair") || xl6StdlibFuncUsed(used,"crypto","x448KeyPair"))
         xl6StdlibBuilderAppend(&builder,xl6StdlibXdhClassSource);
