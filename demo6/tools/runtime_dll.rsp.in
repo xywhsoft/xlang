@@ -594,6 +594,14 @@
     src\runtime\xl6_tls_verifier_verify.c
     src\runtime\xl6_tls_verification_policy_domain.c
     src\runtime\xl6_tls_verifier_domain.c
+    src\runtime\xl6_tls_protocols.c
+    src\runtime\xl6_tls_protocols_input.c
+    src\runtime\xl6_tls_client_context.c
+    src\runtime\xl6_tls_server_context.c
+    src\runtime\xl6_tls_client_context_protocols.c
+    src\runtime\xl6_tls_server_context_protocols.c
+    src\runtime\xl6_tls_client_context_domain.c
+    src\runtime\xl6_tls_server_context_domain.c
     src\runtime\xl6_x509_store_domain.c
     src\runtime\xl6_x509_store_snapshot_domain.c
     src\runtime\xl6_x509_path_config.c
