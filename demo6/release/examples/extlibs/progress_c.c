@@ -17,8 +17,15 @@ int main(void) {
         puts(line);
         xrtFree(line);
     }
-    printf("done: %s\nprogress example: PASS\n",
-           xprog_is_done(bar) ? "true" : "false");
+    printf("done: %s\n", xprog_is_done(bar) ? "true" : "false");
+    if (!xprog_set(bar, 3)) { xprog_destroy(bar); return 1; }
+    printf("reset current: %lld total: %lld percent: %d\n",
+           (long long)xprog_current(bar), (long long)xprog_total(bar),
+           xprog_percent(bar));
+    if (!xprog_advance(bar, 100)) { xprog_destroy(bar); return 1; }
+    printf("saturated current: %lld done: %s\n",
+           (long long)xprog_current(bar), xprog_is_done(bar) ? "true" : "false");
+    puts("progress example: PASS");
     xprog_destroy(bar);
     return 0;
 }

@@ -34,6 +34,8 @@ Linux 验收仍以独立门禁为准。
 
 ## 范例与验证
 
+2026-10-25：C/XLang 成对范例在原逐步渲染之外，增加 `set(3)` 后读取 `current/total/percent`，再超量 `advance(100)` 验证总量饱和；两份输出均与固定黄金文本逐字一致。Windows `test/check.ps1 -SkipAot` 的严格 C/ABI、边界、分配故障、私有入口负例和双语门禁，以及 Linux `test/check.sh` 的 C ASan/UBSan、XLang 门禁通过。当前工作树的 `xl build` 有独立主线阻断，见 `dev/extlib_blockers/release_aot_20261025.md`；本轮未重签 AOT。
+
 2026-10-24：U+00AD 软连字符原可进入进度前缀，在终端换行时改变可见
 文本；C 负例先确认旧实现接受该字符，再与 XLang 用例共同固定拒绝
 行为和旧前缀保持。Windows `test/check.ps1 -SkipAot` 的严格 C、

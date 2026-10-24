@@ -31,9 +31,11 @@
     <pre><code>import progress
 progress.ProgressBar bar = progress.create(10)
 bar.advance(5)
-println(bar.render())</code></pre>
+println(bar.render())
+bar.set(3)
+println(bar.current, bar.total, bar.percent)</code></pre>
     <p>不自动写终端；百分比和进度格数按精确整数阈值向下取整，即使总量接近 int64 上限也不提前进位。C 总量、步进和当前值使用与 XLang <code>int</code> 一致的 <code>int64_t</code> ABI。C 操作成功后清除前一次错误，析构不擦除调用方诊断。边界、C 所有权与测试证据见包内 README。</p>
-    <p>Linux 包级门禁覆盖 C ASan/UBSan、XLang 边界；两平台的 C/XLang 范例各自对照十档进度的固定预期输出。Windows 默认门禁先运行边界 AOT，再要求完整范例 AOT 匹配同一预期；当前完整范例构建因共享 <code>xl6ValueDataSnapshotV1</code> 缺符号失败，未执行到输出对照，不签收发布级。运行命令见包内 README。</p>
+    <p>2026-10-25：双语范例新增绝对设置、状态读取和超量饱和，Windows 严格 C/ABI、边界及固定输出快测与 Linux C ASan/UBSan、XLang 门禁通过。当前工作树的 AOT 构建仍有独立主线阻断，不能以快测签收完整发布形态；运行命令与复现见包内 README。</p>
   </section>
 </main>
 </body>

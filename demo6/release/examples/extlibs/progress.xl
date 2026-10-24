@@ -13,6 +13,10 @@ func main(...) as int
     end
 
     println("done:", bar.done)
+    bar.set(3)
+    println("reset current:", bar.current, "total:", bar.total, "percent:", bar.percent)
+    bar.advance(100)
+    println("saturated current:", bar.current, "done:", bar.done)
     println("progress example: PASS")
     return 0
 end
