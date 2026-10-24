@@ -29975,6 +29975,17 @@ typedef struct xtlslistenerevents {
 	void (*Close)(xtlslistener* pListener, ptr pData);
 } xtlslistenerevents;
 
+/* Permanent aggregate context. Data owns every borrowed event/selector/TLS
+ * configuration context; child records retain the Listener while sessions may
+ * still borrow it. Success takes one Data reference, failure takes none. */
+typedef struct xtlslistenerownershipv1 {
+	size_t size;
+	xtlslistenerevents Events;
+	xtlsstreamevents StreamEvents;
+	void (*Drop)(const void* pData);
+	const xrtownershipops* Ops;
+} xtlslistenerownershipv1;
+
 
 
 /*
@@ -30023,6 +30034,29 @@ XRT_API void xrtTlsStreamConfigInit(xtlsstreamconfig* pConfig);
 #if defined(XRT_FEATURE_TLS_STREAM_LISTENER)
 /* 初始化单 IPv4 动态端口、有界握手与有界完成队列。 */
 XRT_API void xrtTlsListenerConfigInit(xtlslistenerconfig* pConfig);
+
+XRT_API xtlslistener* xrtTlsListenerStartOwnedV1(xnetengine* pEngine,
+	const xtlslistenerconfig* pConfig, ptr pData, const xtlslistenerownershipv1* pPolicy);
+XRT_API xrtownershipref xrtTlsListenerOwnership(const xtlslistener* pListener);
+XRT_API const xnetruntimeownershipv1* xrtTlsListenerRuntimeOwnershipV1Get(void);
+XRT_API const xnetlistenereventsownershipv1* xrtTlsListenerTransportOwnershipV1Get(void);
+XRT_API const xtlsstreamownershipv1* xrtTlsListenerStreamOwnershipV1Get(void);
+XRT_API const xtlsstreamownershipv1* xrtTlsListenerStreamPushOwnershipV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtTlsListenerOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtTlsListenerOwnershipAdapterV1(xrtownershipref Reference,
+	const xtlslistenerownershipv1* const* pPolicies, size_t iPolicyCount,
+	const xrtownershippreparationv1** ppPreparation);
+XRT_API const xrtownershipquiescencev1* xrtTlsListenerStreamRecordOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtTlsListenerStreamRecordOwnershipAdapterV1(xrtownershipref Reference,
+	const xrtownershippreparationv1** ppPreparation);
+#if defined(XRT_FEATURE_TLS_STREAM_LISTENER_FUTURE)
+XRT_API const xfutureproducerownershipv1* xrtTlsListenerFutureProducerPolicyV1Get(void);
+XRT_API const xcancelwatchownershipv1* xrtTlsListenerFutureCancelPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtTlsListenerFutureStreamPayloadPolicyV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtTlsListenerFutureOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtTlsListenerFutureOwnershipAdapterV1(xrtownershipref Reference,
+	const xrtownershippreparationv1** ppPreparation);
+#endif
 
 
 

@@ -670,3 +670,32 @@ TLS 回归各 72、十四个精确 SDK 符号的真实 TCC 绑定各 6，共 260
 通过。输入、对象和产物哈希独立复核；Linux 原件留于 WSL，接受报告
 复制到证据根。只做普通本机回环与离线检查，无公网、DNS 或安全专项，
 不冒充当前完整工作区、发布 DLL 或整个 TLS 验收。
+
+## 原生 TLS Listener 组合图与 accept Future
+
+`StartOwnedV1` 成功消费一个 Data 引用，失败消费零个。Listener 保留
+Engine 操作及 storage 信用，运行时目录与底层 TCP 分别枚举真实引用。
+每条子连接记录拥有 Listener；未交付时另持 Stream 创建信用，握手链／
+完成队列及 Stream 上下文分别持有记录信用。交付只转移已有创建信用，
+不把链表指针或已发布 Stream 借用误算成拥有边。
+
+子连接复用永久 Stream Data／事件策略，pull 和 push Read 分开，不引入
+Observer 或在交接时改写事件。回调收到原始 Data，低层 StreamData 返回
+私有组合记录。普通 Listener Close 不关闭已交付连接；全图准备时各子
+Stream 执行自己的停止职责。待完成 accept 有 FIFO／producer／Owned
+CancelWatch 三份真实信用，结果使用拥有 Stream payload。Prepare 等待
+真实源完成，Clear 无用户回调，Finish 保留首次清理错误且可重复检查。
+
+定点同步五个命名段、新增十五个低层入口；API 3410／3875。两端各自
+时间 ABI 与 Cgen 不变。尚未完成 Dial、语言层传输迁移、动态回调／恢复、
+旧后端清退及完整 P7，因此本批不是完整 TLS 或发布产品验收。
+
+证据 `F:/xlang-validation/five-groups-20261024/p6-tls-listener`。最终冻结
+原生 2340、xlang 9012 输入；Windows／Linux 原生 429／572 编译运行步骤、
+27／36 次实际 fixture 执行通过。新夹具累计 224 个闭合图／证明、280 条
+记录、56 个待完成 accept、896 次拒绝、112 次持久清理错误，以及 1204
+个分配预算中的 812 次失败，均平衡收尾。覆盖 select／IOCP／epoll、模块化／
+单头、GCC O0／O2、TCC、Linux ASan／UBSan。两端全源码 O2 1156／1155 TU，
+配置／IR／裁剪、产品回归及二十九个精确 SDK 符号的真实 TCC 绑定共 260
+阶段通过。输入、对象和产物哈希独立复核；Linux 原件保留，接受报告复制。
+仅普通显式本机回环和离线检查，没有公网／DNS／安全专项。
