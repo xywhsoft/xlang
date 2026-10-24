@@ -3,7 +3,7 @@ param([Parameter(Mandatory=$true)][string]$Directory,
     [Parameter(Mandatory=$true)][string]$PublicDriver)
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
-$work=[IO.Path]::GetFullPath((Join-Path $root $Directory))
+$work=if([IO.Path]::IsPathRooted($Directory)){[IO.Path]::GetFullPath($Directory)}else{Join-Path $root $Directory}
 if(Test-Path -LiteralPath $work){throw 'Use a fresh callable boundary fault directory'}
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $compilerPath=(Resolve-Path -LiteralPath $Compiler).Path
