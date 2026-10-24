@@ -58,8 +58,15 @@ xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* s,xls_conte
             if(!syntax) goto memory;
         }
         if(stopped(cancelled,user)) goto cancel;
-        xls_semantic_check* baseline=previous && s->captureIndex==captureIndex &&
-            !strcmp(xlsInputBatchDirectory(s->batch),xlsInputBatchDirectory(batch)) ? s->result : NULL;
+        int compatible=s->result && s->captureIndex==captureIndex &&
+            xlsFrontendContextsEqual(context,xlsInputBatchContext(s->batch)) &&
+            !strcmp(xlsInputBatchEntry(s->batch),entry) &&
+            !strcmp(xlsInputBatchDirectory(s->batch),xlsInputBatchDirectory(batch));
+        for(size_t i=0;compatible && i<count;++i) {
+            const xls_analysis_document* old=xlsInputBatchFind(s->batch,documents[i].key);
+            compatible=old && old->identity==documents[i].identity && !strcmp(old->path,documents[i].path);
+        }
+        xls_semantic_check* baseline=compatible ? s->result : NULL;
         if(!s->entryCache) s->entryCache=xlsEntryCacheCreate(32u*1024u*1024u);
         result=xlsSemanticCheckCreateCachedInContext(context,s->entryCache,entry,inputs,count,captureIndex,syntax,baseline,cancelled,user,error,capacity);
         if(!result) goto done;

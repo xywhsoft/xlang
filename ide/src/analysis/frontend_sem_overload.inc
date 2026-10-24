@@ -103,6 +103,9 @@ int xlsFrontendSemCheckOverloads(XL6_AstNode* root,XL6_DiagList* diags,
     xls_sem_candidate_scope control;
     xlsFrontendSemCandidatesBegin(&control,bytes);
     int okay=xl6SemCheckModuleWithIndex(root,diags,module,captureIndex);
-    xlsFrontendSemCandidatesEnd(&control,work);
+    /* This structured call owns its local override. Always restore it before
+     * the stack frame ends, including after nested checker invocations. */
+    xlsActiveOverloadControl=control.previous;
+    if(work) *work=control.work;
     return okay;
 }

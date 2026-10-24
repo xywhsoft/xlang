@@ -34,11 +34,11 @@ static char* irJson(const xls_semantic_check* result)
     char* text=xl6OutputHasFailed(&output) ? NULL : xl6OutputTakeMemoryText(&output,NULL);
     xl6OutputDiscard(&output); return text;
 }
-static int fresh(xls_semantic_check* result,const xls_analysis_document* docs,size_t count)
+static int freshInContext(xls_semantic_check* result,xls_context* context,const char* entry,const xls_analysis_document* docs,size_t count)
 {
-    xls_semantic_input inputs[2]; CHECK(count<=2);
+    xls_semantic_input inputs[64]; CHECK(count<=64);
     for(size_t i=0;i<count;++i) inputs[i]=(xls_semantic_input){docs[i].path,xlsTextData(docs[i].text),xlsTextSize(docs[i].text)};
-    xls_semantic_check* baseline=xlsSemanticCheckCreate(docs[0].path,inputs,count,1,NULL,NULL,NULL,0); CHECK(result && baseline);
+    xls_semantic_check* baseline=xlsSemanticCheckCreateInContext(context,entry,inputs,count,1,NULL,NULL,NULL,0); CHECK(result && baseline);
     char *a=xlsSemanticCheckJson(result,NULL),*b=xlsSemanticCheckJson(baseline,NULL);
     if(a && b && strcmp(a,b)) {
         xrtFileWriteAtomic("build/memo-actual.json",(xbytesview){(const unsigned char*)a,strlen(a)});
@@ -52,6 +52,8 @@ static int fresh(xls_semantic_check* result,const xls_analysis_document* docs,si
     }
     xlsSemanticCheckDestroy(baseline); return 1;
 }
+static int fresh(xls_semantic_check* result,const xls_analysis_document* docs,size_t count)
+{ return freshInContext(result,NULL,docs[0].path,docs,count); }
 static xls_semantic_check* update(xls_check_session* session,xls_analysis_document* docs,size_t count,const char* source)
 {
     xls_text* body=xlsTextCreate(source,strlen(source),8u*1024u*1024u,NULL); if(!body) return NULL;
@@ -89,6 +91,79 @@ static int corpus(const char* prefix,const char* edited,const char* replacement,
     xlsSemanticCheckDestroy(first); xlsSemanticCheckDestroy(next); xlsCheckSessionDestroy(session); xlsTextRelease(doc.text); xrtFree(path); xrtStrBufFree(&body); return 1;
 }
 typedef struct reader { unsigned index; int passed; } reader;
+static int setBody(xls_analysis_document* doc,const char* text)
+{
+    xls_text* next=xlsTextCreate(text,strlen(text),8u*1024u*1024u,NULL);
+    if(!next) return 0;
+    xlsTextRelease(doc->text); doc->text=next; ++doc->revision; return 1;
+}
+static int cancelAfter(void* user)
+{ unsigned* calls=user; return ++*calls>=12; }
+static int multiSource(int diskEntry)
+{
+    char folder[160]; snprintf(folder,sizeof(folder),"build/memo-multiple-%d-%llu-%llu",diskEntry,
+        (unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+    CHECK(xrtDirCreateAll(folder)); char* directory=xrtPathAbs(folder);
+    char *entry=xrtPathJoin(directory,"main.xl"),*left=xrtPathJoin(directory,"memo_left.xl"),*right=xrtPathJoin(directory,"memo_right.xl");
+    CHECK(directory && entry && left && right);
+    const char* main="import memo_left\r\nimport memo_right\r\nfunc main(...) as int\r\n return memo_left.compute(3)+memo_right.compute(4)\r\nend\r\n";
+    CHECK(xrtFileWriteAtomic(entry,(xbytesview){(const unsigned char*)main,strlen(main)}));
+    xls_context_spec spec={.kind=XLS_CONTEXT_PROJECT,.project=directory,.configuration="debug",.entry=entry,.directory=directory,
+        .analysisProfile="fixture-linked-native",.targetKind="exe"};
+    xls_context* context=xlsContextCreate(&spec,1024u*1024u,NULL); xls_check_session* session=xlsCheckSessionCreate(NULL);
+    CHECK(context && session);
+    xls_analysis_document docs[3]={{"left",left,NULL,11,0},{"right",right,NULL,12,0},{"entry",entry,NULL,13,0}};
+    CHECK(setBody(&docs[2],main));
+    size_t count=diskEntry ? 2 : 3; const char* target=diskEntry ? NULL : "entry";
+    xls_semantic_check* first=NULL;
+    for(unsigned i=0;i<12;++i) {
+        for(unsigned d=0;d<2;++d) {
+            xstrbuf text={0};
+            CHECK(xrtStrBufAppendFormat(&text,"\xef\xbb\xbf%sfunc identity<T>(T value) as T\r\n return value\r\nend\r\n"
+                "func stable(int value) as int\r\n if value > 0 then\r\n return value\r\n end\r\n return 0\r\nend\r\n"
+                "export func compute(int value) as int\r\n if value > 0 then\r\n return identity::<int>(value)+%u\r\n end\r\n return 0\r\nend\r\n",
+                (i+d)%2 ? "// 中文😀 before both declarations\r\n\r\n" : "",i/3+d));
+            CHECK(setBody(&docs[d],text.Data)); xrtStrBufFree(&text);
+        }
+        char error[256]={0};
+        xls_semantic_check* result=xlsCheckSessionCheckInContext(session,context,docs,count,target,1,NULL,NULL,error,sizeof(error));
+        if(!result) fprintf(stderr,"multi-source: %s\n",error);
+        CHECK(result && xlsSemanticCheckInfo(result).accepted && freshInContext(result,context,entry,docs,count));
+        xls_check_semantic_work work=xlsSemanticCheckWork(result);
+        if(i) {
+            if(work.contextHits!=1 || work.functionsReused<2) fprintf(stderr,"multiple %d/%u work: checked=%llu reused=%llu context=%llu\n",diskEntry,i,(unsigned long long)work.functionsChecked,(unsigned long long)work.functionsReused,(unsigned long long)work.contextHits);
+            CHECK(work.contextHits==1 && work.functionsReused>=2);
+        }
+        else { first=xlsSemanticCheckRetain(result); CHECK(!work.functionsReused && work.functionsChecked>=7); }
+        CHECK(work.memoBytes && work.memoBytes<=64u*1024u*1024u);
+        CHECK(xlsSemanticCheckValidate(first)); xlsSemanticCheckDestroy(result);
+    }
+    /* A changed public signature changes the module environment. Original
+     * diagnostics must replace previously accepted facts. Repair then rechecks. */
+    CHECK(setBody(&docs[0],"export func compute(string value) as int\n return 0\nend\n"));
+    xls_semantic_check* result=xlsCheckSessionCheckInContext(session,context,docs,count,target,1,NULL,NULL,NULL,0);
+    CHECK(result && !xlsSemanticCheckInfo(result).accepted && freshInContext(result,context,entry,docs,count) && !xlsSemanticCheckWork(result).contextHits);
+    xlsSemanticCheckDestroy(result);
+    CHECK(setBody(&docs[0],"export func compute(int value) as int\n if value > 0 then\n return value\n end\n return 0\nend\n"));
+    result=xlsCheckSessionCheckInContext(session,context,docs,count,target,1,NULL,NULL,NULL,0);
+    CHECK(result && xlsSemanticCheckInfo(result).accepted && freshInContext(result,context,entry,docs,count) && !xlsSemanticCheckWork(result).functionsReused);
+    xlsSemanticCheckDestroy(result);
+    /* Reopening a member cannot reuse a previous document identity. */
+    ++docs[0].identity; result=xlsCheckSessionCheckInContext(session,context,docs,count,target,1,NULL,NULL,NULL,0);
+    CHECK(result && freshInContext(result,context,entry,docs,count) && !xlsSemanticCheckWork(result).contextHits);
+    xlsSemanticCheckDestroy(result);
+    /* Cancellation retains the accepted baseline; the next successful edit
+     * compares against it, never against the discarded intermediate tree. */
+    CHECK(setBody(&docs[1],"// shifted 中文😀\nexport func compute(int value) as int\n if value > 0 then\n return value\n end\n return 0\nend\n"));
+    unsigned calls=0; char error[256]={0};
+    result=xlsCheckSessionCheckInContext(session,context,docs,count,target,1,cancelAfter,&calls,error,sizeof(error));
+    CHECK(!result && calls>=12 && strstr(error,"cancelled"));
+    result=xlsCheckSessionCheckInContext(session,context,docs,count,target,1,NULL,NULL,NULL,0);
+    CHECK(result && xlsSemanticCheckInfo(result).accepted && freshInContext(result,context,entry,docs,count)); xlsSemanticCheckDestroy(result);
+    xlsCheckSessionDestroy(session); CHECK(xlsSemanticCheckValidate(first)); xlsSemanticCheckDestroy(first);
+    for(size_t i=0;i<3;++i) xlsTextRelease(docs[i].text);
+    xlsContextRelease(context); xrtFree(directory); xrtFree(entry); xrtFree(left); xrtFree(right); return 1;
+}
 static int32 parallel(void* user)
 {
     reader* r=user; r->passed=corpus("func choose(int value) as int\n if value > 0 then\n return value\n end\n return 0\nend\n",
@@ -142,7 +217,11 @@ static int run(void)
     result=update(session,docs,2,imported); CHECK(result && fresh(result,docs,2)); xlsSemanticCheckDestroy(result);
     xlsTextRelease(docs[1].text); const char* changed="export func value() as int\n return 8\nend\n";
     docs[1].text=xlsTextCreate(changed,strlen(changed),1024,NULL); ++docs[1].revision;
-    result=xlsCheckSessionCheck(session,docs,2,"entry",1,NULL,NULL,NULL,0); CHECK(result && fresh(result,docs,2) && !xlsSemanticCheckWork(result).contextHits); xlsSemanticCheckDestroy(result);
+    result=xlsCheckSessionCheck(session,docs,2,"entry",1,NULL,NULL,NULL,0);
+    /* The module environment survives a body-only dependency edit. This
+     * tiny value is below the memo gate; its member call is normalized by
+     * the original checker, so both still take the original function path. */
+    CHECK(result && fresh(result,docs,2) && xlsSemanticCheckWork(result).contextHits==1 && xlsSemanticCheckWork(result).functionsChecked==2); xlsSemanticCheckDestroy(result);
     xlsCheckSessionStats(session,&stats); CHECK(stats.semanticFunctionsReused>=180 && stats.semanticContextHits>=4);
     xlsCheckSessionDestroy(session); xlsTextRelease(docs[0].text); xlsTextRelease(docs[1].text); xrtFree(path); xrtFree(dep);
     const char* initial="func main(...) as int\n return 7\nend\n",*next="func main(...) as int\n return 8\nend\n";
@@ -161,6 +240,7 @@ static int run(void)
     reader readers[4]; xthread* threads[4];
     for(unsigned i=0;i<4;++i) { readers[i]=(reader){i,0}; threads[i]=xrtThreadCreate(parallel,&readers[i],0); CHECK(threads[i]); }
     for(unsigned i=0;i<4;++i) { CHECK(xrtThreadWait(threads[i])==XWAIT_OK && readers[i].passed); xrtThreadDestroy(threads[i]); }
+    CHECK(multiSource(0) && multiSource(1));
     return 1;
 }
 int main(void)
