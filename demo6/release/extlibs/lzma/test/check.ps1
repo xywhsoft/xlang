@@ -81,6 +81,7 @@ try {
         'release/extlibs/lzma/test/file_ops.xl',
         'release/extlibs/lzma/test/allocations.xl',
         'test/cases/extlib_lzma_progress.xl',
+        'test/cases/extlib_lzma.xl',
         'release/examples/extlibs/lzma.xl'
     )) {
         $null = Run "XLang $source" $xl @('run', $source)
@@ -106,6 +107,10 @@ try {
         $null = Run 'core AOT build' $xl @('build',
             'release/extlibs/lzma/test/aot_core.xl', '-o', $target)
         $null = Run 'core AOT run' $target @()
+        $centralTarget = Join-Path $work 'aot_central.exe'
+        $null = Run 'central AOT build' $xl @('build',
+            'test/cases/extlib_lzma.xl', '-o', $centralTarget)
+        $null = Run 'central AOT run' $centralTarget @()
     }
     Write-Host 'lzma Windows package gate: PASS'
 } finally {
