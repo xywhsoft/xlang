@@ -1,5 +1,11 @@
 # hcl
 
+2026-10-24 当前发布物复验：Windows 默认 `test/check.ps1` 的严格 C、
+线程、XLang 边界与分配、C/XLang 同输出，以及核心、边界、分配、
+公开范例四项独立 EXE 均通过；Linux `test/check.sh` 的 C ASan/UBSan、
+XLang JIT 和 C/XLang 范例对照通过。旧 Windows 共享缺符号阻断
+不再代表当前发布物；本轮未构建 Linux 独立 EXE。
+
 `hcl` 是面向配置浏览的**受限只读语法查询器**，不是 Terraform 求值器。
 它识别属性、块、标签、注释、字符串及复合表达式边界；表达式保留原文，
 不解析变量引用、函数、provider schema，也不生成或修改 HCL。
@@ -60,7 +66,7 @@ C 接口见 `include/hcl_native.h`。文本结果是**独立拥有型**内存，
 - Windows 从 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass
   -File release/extlibs/hcl/test/check.ps1`，同次检查严格 GCC 语法、
   C 边界/线程、中央与包内 XLang、分配故障、双语范例同输出、无输出核心
-  AOT 和带输出范例 AOT。加 `-SkipAot` 只运行 C/XLang 聚焦门禁。
+  AOT、边界与分配故障 AOT，以及带输出范例 AOT。加 `-SkipAot` 只运行 C/XLang 聚焦门禁。
   AOT 产物位于每次独占的 `build/test` 子目录，结束时校验路径并清理。
 - `xl run examples/extlibs/hcl.xl` 与 C 范例
   `examples/extlibs/hcl_c.c` 逐行内容一致，均展示 Unicode 转义解码；

@@ -57,6 +57,24 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'hcl core AOT run failed' }
         Write-Output 'hcl core AOT: PASS'
 
+        $boundaries = Join-Path $work 'boundaries.exe'
+        & $xl build release/extlibs/hcl/test/boundaries.xl -o $boundaries
+        if ($LASTEXITCODE -ne 0) { throw 'hcl boundaries AOT build failed' }
+        $boundariesOutput = & $boundaries
+        if ($LASTEXITCODE -ne 0 -or ($boundariesOutput -join "`n") -cne 'hcl boundaries: ok') {
+            throw 'hcl boundaries AOT failed or output differs'
+        }
+        Write-Output 'hcl boundaries AOT: PASS'
+
+        $allocations = Join-Path $work 'allocations.exe'
+        & $xl build release/extlibs/hcl/test/allocations.xl -o $allocations
+        if ($LASTEXITCODE -ne 0) { throw 'hcl allocations AOT build failed' }
+        $allocationsOutput = & $allocations
+        if ($LASTEXITCODE -ne 0 -or ($allocationsOutput -join "`n") -cne 'hcl allocation: PASS') {
+            throw 'hcl allocations AOT failed or output differs'
+        }
+        Write-Output 'hcl allocations AOT: PASS'
+
         $example = Join-Path $work 'example.exe'
         & $xl build release/examples/extlibs/hcl.xl -o $example
         if ($LASTEXITCODE -ne 0) { throw 'hcl example AOT build failed' }
