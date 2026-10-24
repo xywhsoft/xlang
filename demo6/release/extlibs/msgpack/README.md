@@ -6,6 +6,8 @@
 最小复现见 `../../../dev/extlib_blockers/msgpack_var_dict_projection.xl`。
 这与共享 foreign `var` 容器投影故障同形，尚未证明内部根因完全相同；
 本轮未进入 AOT，不签收完整语言/发布门禁，也不在包中识别私有句柄。
+包级 PowerShell 门禁保留原生 stderr 和退出码，并将此失败明确标为
+`XLang boundaries`，不会在运行器的通用异常处丢失阶段名称。
 
 `msgpack` 使用 `Buffer` 承载二进制数据，`var` 承载动态值。`nil` 是合法值，`decode` 返回 XLang `null`，不会误报为解码失败。
 

@@ -11,9 +11,16 @@ $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
 $links = @('-lWs2_32', '-lAdvapi32', '-lIphlpapi', '-lm')
 
 function Run([string]$name, [string]$program, [string[]]$arguments) {
-    $output = & $program @arguments 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "${name}: exit $LASTEXITCODE`n$($output -join "`n")"
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = & $program @arguments 2>&1
+        $code = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousPreference
+    }
+    if ($code -ne 0) {
+        throw "${name}: exit $code`n$($output -join "`n")"
     }
     Write-Host "[msgpack] ${name}: PASS"
     return ($output -join "`n").Replace("`r`n", "`n").TrimEnd("`n")
