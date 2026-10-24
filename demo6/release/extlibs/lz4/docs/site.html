@@ -12,7 +12,7 @@
   <h1>lz4</h1>
   <p>标准 LZ4 Frame、增量编解码、文件事务和同步进度回调。复用 LZ4F 与 XRT，无需额外压缩 DLL。</p>
   <h2>验证范围</h2>
-  <p>2026-09-28：Windows 63 步专项通过，包含 23 个实际生成 C 原型、故障注入、四线程 1000 轮和 C/XL JIT/AOT 同输出范例。Windows 和 Linux C 驱动各通过 514 项系统 liblz4 互操作检查；Linux C 通过 ASan/UBSan 与泄漏检测。2026-10-20 中央 XLang 文件范例改为独占系统临时目录并在异常路径清理，Linux 门禁通过 C/XLang 文件黄金对照；完整中央用例仍被共享字节位运算 XLIR 问题阻断，其中后续固定目录文件段尚未运行复验，不代表 Linux AOT、32 位、TSan、长期压力或性能基准已验收。</p>
+  <p>2026-10-24：当前 Windows 发布版通过 69 项专项检查，包含综合范例 JIT/AOT、23 个实际生成 C 原型、故障注入、四线程 1000 轮及 C/XL 同输出范例；输入快照无变化。Windows 和 Linux C 驱动各通过 514 项系统 liblz4 互操作检查；Linux C 通过 ASan/UBSan 与泄漏检测，Linux XLang 边界和双语对照也通过。此前的字节位运算 XLIR 阻断已不影响当前 Windows 发布版；Linux XLang AOT、32 位、TSan、长期压力和性能基准尚未验收。</p>
   <h2>快速使用</h2>
   <pre><code>import lz4
 
@@ -45,7 +45,7 @@ assert lz4.decompressText(wire) == "leftright"</code></pre>
   <h2>C 同等能力</h2>
   <p><code>xrt_lz4.h</code> 提供 options/error、一次性、增量、Reader/Writer、文件和普通 C 进度回调。输入借用，输出 xbuffer 归调用方释放，reader/writer 不由接口关闭或 flush。C 核心只依赖 XRT；语言 callable 适配另需 xruntime。</p>
   <h2>范例与复验</h2>
-  <p>发行目录提供综合范例 <code>examples/extlibs/lz4.xl</code>、可运行的 <code>lz4_basic.xl</code> 和 <code>lz4_files.xl</code>；C 对照在 <code>extlibs/lz4/examples/basic.c</code> 和 <code>files.c</code>。基础与文件两组使用相同输入和黄金输出。综合范例的文件段已改用独占临时目录，但当前仍在此前的 typed XLIR 字节 XOR 处编译失败，不能作为通过的完整范例。</p>
+  <p>发行目录提供已在 Windows JIT/AOT 验证的综合范例 <code>examples/extlibs/lz4.xl</code>，以及 <code>lz4_basic.xl</code> 和 <code>lz4_files.xl</code>；C 对照在 <code>extlibs/lz4/examples/basic.c</code> 和 <code>files.c</code>。基础与文件两组使用相同输入和黄金输出；文件范例使用独占临时目录并在异常路径清理。</p>
   <p><code>tools/check_extlib_lz4.ps1 -Interop</code> 运行完整 Windows 专项及独立互操作；不带 -Interop 不表示已验证互通。<code>tools/check_extlib_lz4.sh</code> 运行 Linux C sanitizer、XLang 边界与双语对照。实际输入哈希、参照库版本和输出由门禁保存。</p>
 </main>
 </body>

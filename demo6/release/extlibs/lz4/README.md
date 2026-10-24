@@ -187,3 +187,12 @@ Windows/Linux 门禁均以 `-DNDEBUG` 编译执行。Windows 严格 GCC
 typed XLIR 错误处停止。Linux C ASan/UBSan、514 项系统 liblz4
 互通、XLang 边界和双语对照通过。库实现/API 未改，主线阻断仍在，
 不签收整包发布级。
+
+2026-10-24：使用当前发布版 `xl.exe` 重跑 Windows 全门禁，修正 C
+教学范例内含实现却又被测试脚本重复追加包源码的问题。综合范例现可
+JIT 运行并编译执行；两组 C/XLang 黄金输出、23 个生成原型、严格
+GCC、线程、故障注入、文件事务及 514 项系统库互通均通过。门禁报告
+`outcome=passed`、69 项检查、输入快照无变化。Linux 门禁同时通过
+ASan/UBSan、泄漏检测、独立互通及 C/XLang 双语对照。上面的 XLIR
+阻断是历史记录，不再代表当前 Windows 发布版；Linux XLang AOT、
+32 位、TSan、长期压力与性能基准仍未纳入本次验收。

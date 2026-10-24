@@ -138,13 +138,17 @@ try {
         $exe = Join-Path $work "$name-c.exe"
         $null = Check "$name-c-build" $gcc ($flags + @($c) + $objects + @('-lWs2_32','-lAdvapi32','-lm','-o',$exe))
         $native = Check "$name-c" $exe @()
-        $jit = Check "$name-c-jit" $xl (@('run',$c) + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime'))
+        # 单文件 C JIT/AOT 已在前面分别与黄金输出核验。
         $exe = Join-Path $work "$name-c-tcc.exe"
-        $null = Check "$name-c-aot-build" $xl (@('build',$c) + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','-o',$exe))
+        $null = Check "$name-c-aot-build" $xl @('build',$c,'--inc-path','lib/xrt','--inc-path','lib/xruntime','-o',$exe)
         $caot = Check "$name-c-aot" $exe @()
         $helper = Check "$name-c-package-runner" (Get-Process -Id $PID).Path @('-NoProfile','-File','tools/run_extlib_c.ps1','-Package','lz4','-Source',$c)
-        if ($text -cne $golden -or $native -cne $golden -or $jit -cne $golden -or $caot -cne $golden -or $helper -cne $golden) {
-            throw "$name bilingual golden output mismatch"
+        $mismatches = @()
+        foreach ($sample in @(@('xlang',$text),@('gcc',$native),@('tcc-aot',$caot),@('runner',$helper))) {
+            if ($sample[1] -cne $golden) { $mismatches += "$($sample[0]): $($sample[1].Length) characters" }
+        }
+        if ($mismatches.Count) {
+            throw "$name bilingual golden output mismatch ($($mismatches -join ', '))"
         }
     }
     $probe = 'release/extlibs/lz4/test/test_lz4_files.c'
