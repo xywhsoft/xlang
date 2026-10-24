@@ -257,8 +257,83 @@ static int run(void)
  xideDiagnosticPublicationDestroy(publication); xrtFree(manifest); xrtFree(api);
  xrtFree(first); xrtFree(second); xrtFree(common); xrtFree(single); xrtFree(unused); xrtFree(future); xrtFree(root); return 1;
 }
-int main(void)
+#if defined(XLS_COMPILER_XRT) && defined(XLANG_ANALYSIS_DEPENDENCY_GRAPH_H)
+static int reverseOwners(void)
 {
+ char relative[96];snprintf(relative,sizeof(relative),"build/reverse-owners-%llu",(unsigned long long)xrtClock());CHECK(xrtDirCreateAll(relative));
+ char* root=xrtPathAbs(relative);CHECK(root);
+ char *a=xrtPathJoin(root,"Ä-entry.xl"),*b=xrtPathJoin(root,"independent.xl"),*unused=xrtPathJoin(root,"unused.xl"),*candidate=xrtPathJoin(root,"missing.xl");CHECK(a && b && unused && candidate);
+ xide_language_snapshot inputs[]={{a,"import missing\nfunc main(...) as int\n return missing.value()\nend\n",1},
+  {b,"func main(...) as int\n return otherMissing\nend\n",1},{unused,"not an actual analyzed input",1}};
+ fixture first=capture(root,a,inputs,3,0),last=capture(root,b,inputs,3,0);CHECK(first.guard && last.guard && xideLanguageInputGuardTouches(first.guard,candidate) && !xideLanguageInputGuardTouches(last.guard,candidate));
+ xide_diagnostic_store* store=xideDiagnosticStoreCreate(NULL);CHECK(store);xide_diagnostic_snapshot snapshot={0};
+ for(size_t i=0;i<63;++i){
+  char label[32];snprintf(label,sizeof(label),"root-%zu",i);
+  fixture copy={xideLanguageInputGuardRetain(first.guard),xrtValueDeepClone(first.result)};CHECK(copy.guard && copy.result);
+  xide_diagnostic_query* q=insert(store,label,copy);CHECK(q && waitFor(q,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==i+1 && snapshot.dependencyIndexed && !snapshot.dependencyFallbacks);xideDiagnosticQueryDestroy(q);
+ }
+ xide_diagnostic_query* q=insert(store,"independent",last);CHECK(q && waitFor(q,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==64 && snapshot.dependencyGraph.roots==64 && snapshot.dependencyGraph.edges>=64);xideDiagnosticQueryDestroy(q);
+ xls_dependency_stats old=snapshot.dependencyGraph;
+ q=xideDiagnosticStoreInvalidate(store,unused);CHECK(q && waitFor(q,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==64 && !xrtValueCount(snapshot.invalidated));
+ CHECK(snapshot.dependencyGraph.generation==old.generation && snapshot.dependencyGraph.lookups==old.lookups+1 && snapshot.dependencyGraph.comparisons-old.comparisons<=32 && !snapshot.dependencyFallbacks);xideDiagnosticQueryDestroy(q);
+ q=xideDiagnosticStoreInvalidate(store,candidate);CHECK(q && waitFor(q,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==1 && xrtValueCount(snapshot.invalidated)==63 && !invalidated(snapshot.invalidated,"independent"));
+ CHECK(snapshot.dependencyGraph.roots==1 && snapshot.dependencyGraph.edges==1 && snapshot.dependencyGraph.paths==1 && snapshot.dependencyGraph.generation==old.generation+1);xideDiagnosticQueryDestroy(q);
+ xideLanguageInputGuardRelease(first.guard);xrtValueRelease(first.result);
+ first=capture(root,a,inputs,3,0);CHECK(first.guard);q=insert(store,"new-owner",first);CHECK(q && waitFor(q,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==2 && snapshot.dependencyGraph.roots==2);xideDiagnosticQueryDestroy(q);
+ char* variant=xrtStrDup(a);CHECK(variant);char* upper=strstr(variant,"Ä");CHECK(upper);memcpy(upper,"ä",2);
+ for(char* p=variant;*p;++p)if(*p=='\\')*p='/';
+ CHECK(xidePathLexicalEqual(a,variant));
+ q=xideDiagnosticStoreInvalidate(store,variant);CHECK(q && waitFor(q,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==1 && invalidated(snapshot.invalidated,"new-owner") && !invalidated(snapshot.invalidated,"independent"));xideDiagnosticQueryDestroy(q);
+ q=xideDiagnosticStoreRemove(store,"independent");CHECK(q && waitFor(q,&snapshot)==XIDE_DIAGNOSTIC_READY && !snapshot.records && !snapshot.dependencyGraph.roots && !snapshot.dependencyGraph.paths && !snapshot.dependencyGraph.edges && !snapshot.dependencyFallbacks);xideDiagnosticQueryDestroy(q);
+ xideDiagnosticStoreDestroy(store);xrtFree(variant);xrtFree(a);xrtFree(b);xrtFree(unused);xrtFree(candidate);xrtFree(root);return 1;
+}
+#endif
+#ifdef XLS_COMPILER_XRT
+static void benchmarkWake(void* event){xrtEventSet(event);}
+static int reverseBenchmark(const char* root,size_t helpers,size_t samples)
+{
+ CHECK(helpers && helpers<=256 && samples>=2 && samples<=100 && xrtDirCreateAll(root));
+ char *entry=xrtPathJoin(root,"main.xl"),*unknown=xrtPathJoin(root,"unobserved-中文😀.xl");CHECK(entry && unknown);
+ xstrbuf body;xrtStrBufInit(&body);const char* api="export func value() as int\n return 7\nend\n";
+ for(size_t i=0;i<helpers;++i){char label[64],import[96];snprintf(label,sizeof(label),"helper_%zu.xl",i);snprintf(import,sizeof(import),"import helper_%zu\n",i);
+  char* path=xrtPathJoin(root,label);CHECK(path && writeText(path,api) && xrtStrBufAppend(&body,xrtStrView(import)));xrtFree(path);
+ }
+ CHECK(xrtStrBufAppend(&body,xrtStrView("func main(...) as int\n return helper_0.value()\nend\n")) && writeText(entry,"// entry stays unsaved\n"));
+ xide_language_snapshot source={entry,body.Data,1};uint64_t began=xrtClock();fixture f=capture(root,entry,&source,1,1);CHECK(f.guard && !xideLanguageInputGuardTouches(f.guard,unknown));
+ xide_diagnostic_store* store=xideDiagnosticStoreCreate(NULL);CHECK(store);xide_diagnostic_snapshot snapshot={0};
+ for(size_t i=0;i<64;++i){char label[32];snprintf(label,sizeof(label),"analysis-root-%zu",i);fixture copy={xideLanguageInputGuardRetain(f.guard),xrtValueDeepClone(f.result)};CHECK(copy.guard && copy.result);
+  xide_diagnostic_query* q=insert(store,label,copy);CHECK(q && waitFor(q,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==i+1);xideDiagnosticQueryDestroy(q);
+ }
+ printf("{\"setupMs\":%.3f,\"roots\":64,\"sourcesPerRoot\":%zu}\n",(double)(xrtClock()-began)/1000.0,helpers+1);fflush(stdout);
+#ifdef XLANG_ANALYSIS_DEPENDENCY_GRAPH_H
+ CHECK(snapshot.dependencyIndexed && snapshot.dependencyGraph.roots==64 && !snapshot.dependencyFallbacks);uint64_t generation=snapshot.dependencyGraph.generation,lookups=snapshot.dependencyGraph.lookups;
+#endif
+ xevent ready;CHECK(xrtEventInit(&ready,false,false));
+ for(size_t i=0;i<samples;++i){
+  began=xrtClock();xide_diagnostic_query* q=xideDiagnosticStoreInvalidate(store,unknown);
+  int notified=q && xideDiagnosticQuerySetWake(q,benchmarkWake,&ready) && xrtEventWaitFor(&ready,15000000)==XWAIT_OK;
+  enum xide_diagnostic_state state=notified ? xideDiagnosticQueryResult(q,&snapshot) : XIDE_DIAGNOSTIC_FAILED;
+  double elapsed=(double)(xrtClock()-began)/1000.0;CHECK(q && state==XIDE_DIAGNOSTIC_READY && snapshot.records==64 && !xrtValueCount(snapshot.invalidated) && xrtValueCount(snapshot.documents)==helpers+1);
+  int indexed=0;uint64_t comparisons=0,queries=0;
+#ifdef XLANG_ANALYSIS_DEPENDENCY_GRAPH_H
+  CHECK(snapshot.dependencyIndexed && snapshot.dependencyGraph.generation==generation && snapshot.dependencyGraph.lookups==lookups+i+1 && !snapshot.dependencyFallbacks);
+  indexed=1;comparisons=snapshot.dependencyGraph.comparisons;queries=snapshot.dependencyGraph.lookups;
+#endif
+  printf("{\"sample\":%zu,\"ms\":%.3f,\"indexed\":%d,\"roots\":64,\"documents\":%zu,\"lookups\":%llu,\"comparisons\":%llu}\n",i,elapsed,indexed,xrtValueCount(snapshot.documents),(unsigned long long)queries,(unsigned long long)comparisons);fflush(stdout);xideDiagnosticQueryDestroy(q);
+ }
+ CHECK(xrtEventUnit(&ready));xide_model_error error={0};CHECK(xideLanguageInputGuardValidate(f.guard,NULL,NULL,&error));xideLanguageInputGuardRelease(f.guard);xrtValueRelease(f.result);xideDiagnosticStoreDestroy(store);xrtStrBufFree(&body);xrtFree(entry);xrtFree(unknown);return 1;
+}
+#endif
+int main(int argc,char** argv)
+{
+#ifdef XLS_COMPILER_XRT
+ if(argc==5 && !strcmp(argv[1],"--benchmark"))return reverseBenchmark(argv[2],(size_t)strtoul(argv[3],NULL,10),(size_t)strtoul(argv[4],NULL,10)) ? 0 : 1;
+#else
+ (void)argc;(void)argv;
+#endif
  if(!run() || !dependencyScopes() || !dependencyParts()) return 1;
+#if defined(XLS_COMPILER_XRT) && defined(XLANG_ANALYSIS_DEPENDENCY_GRAPH_H)
+ if(!reverseOwners())return 1;
+#endif
  printf("diagnostic_store_test passed: %u checks; real multi-entry diagnostics, exact collision-safe deduplication, version/limit failures, independent inputs/lifetimes, async ownership and4MiB disk sweep queue/cancel/shutdown.\n",checks); return 0;
 }

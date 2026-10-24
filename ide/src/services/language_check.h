@@ -123,6 +123,12 @@ int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*cancel
 /* Borrowed immutable actual-input file reports, not all captured overlays.
    Valid until the caller releases its reference; safe across validations. */
 const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard);
+#ifdef XLS_COMPILER_XRT
+/* Borrowed complete immutable resolution candidates,including absent paths.
+   Same lifetime as Files;no sorting,canonicalization,allocation or I/O. Native
+   reverse indexing applies the existing lexical policy and owns its keys. */
+const xvalue* xideLanguageInputGuardProbes(const xide_language_input_guard* guard);
+#endif
 /* Immutable semantic scope equality, without I/O or allocation. Distinct
    explicit contexts must not contribute to one file's merged diagnostics.
    Both default/legacy guards are equal in scope. NULL guards are invalid.

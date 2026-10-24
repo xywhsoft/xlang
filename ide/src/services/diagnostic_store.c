@@ -13,14 +13,22 @@
 #define DIAGNOSTIC_LIMIT 4096u
 typedef struct stored_group { wchar_t* key; xvalue* value; } stored_group;
 typedef struct record { char* key; xide_language_input_guard* guard; xarray groups; size_t bytes; } record;
-struct xide_diagnostic_store { xtaskpool* pool; record* records[RECORD_LIMIT]; xide_diagnostic_limits limits; int dependencies;xide_analysis_catalog* catalog; };
+struct xide_diagnostic_store { xtaskpool* pool; record* records[RECORD_LIMIT]; xide_diagnostic_limits limits; int dependencies;xide_analysis_catalog* catalog;
+#ifdef XLS_COMPILER_XRT
+ xls_dependency_graph* reverse;uint64_t reverseFallbacks;
+#endif
+};
 struct xide_diagnostic_query { xfuture* future; xfuturewatch watch; int watchInitialized,watchLinked; void (*wake)(void*); void* user; };
 enum operation { PUT,REMOVE,INVALIDATE,SWEEP,SNAPSHOT,CLEAR };
 typedef struct input { xide_diagnostic_store* store; enum operation kind; char* key; xvalue* checked; xide_language_input_guard* guard;xide_analysis_catalog* catalog; } input;
 typedef struct dependency_set { char id[65];xvalue* chunks; } dependency_set;
 typedef struct dependency_index {char id[65];size_t index;} dependency_index;
 struct xide_diagnostic_publication { xvalue* documents; xarray keys,dependencies,dependencyIndex,groupDependencies; };
-typedef struct output { xide_diagnostic_publication* publication; xvalue* invalidated; size_t records,bytes; uint64_t thread; int taken; char* conflictPath; char error[256]; } output;
+typedef struct output { xide_diagnostic_publication* publication; xvalue* invalidated; size_t records,bytes; uint64_t thread; int taken; char* conflictPath; char error[256];
+#ifdef XLS_COMPILER_XRT
+ xls_dependency_stats dependencyGraph;uint64_t dependencyFallbacks;int dependencyIndexed;
+#endif
+} output;
 typedef struct source_key { wchar_t* key; int seen; } source_key;
 typedef struct group_ref { stored_group* group; size_t order; } group_ref;
 typedef struct seen_diagnostic { const xvalue* value; size_t next; } seen_diagnostic;
@@ -277,6 +285,9 @@ static int makeSnapshot(xide_diagnostic_store* store,record* const* records,size
 done:
  xrtArrayUnit(&references); xrtArrayUnit(&seen); xrtMapUnit(&hashes); return okay;
 }
+#ifdef XLS_COMPILER_XRT
+#include "services/diagnostic_reverse.inc"
+#endif
 static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* result)
 {
  input* in=data; xide_diagnostic_store* store=in->store;
@@ -285,9 +296,16 @@ static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* result)
  out->thread=xrtThreadCurrentId(); out->invalidated=xrtValueArray();
  record* trial[RECORD_LIMIT]; memcpy(trial,store->records,sizeof(trial)); record* fresh=NULL;
  if(!out->invalidated) { fail(out,"Cannot allocate diagnostic invalidation list."); goto done; }
+#ifdef XLS_COMPILER_XRT
+ uint64_t affected=0;int indexed=in->kind==INVALIDATE && reverseAffected(store,in->key,&affected);
+#endif
  for(size_t i=0;i<store->limits.records;++i) if(trial[i]) {
   record* value=trial[i];
+#ifdef XLS_COMPILER_XRT
+  if(in->kind==INVALIDATE && (indexed ? (affected&(UINT64_C(1)<<i))!=0 : xideLanguageInputGuardTouches(value->guard,in->key))) xideLanguageInputGuardInvalidate(value->guard);
+#else
   if(in->kind==INVALIDATE && xideLanguageInputGuardTouches(value->guard,in->key)) xideLanguageInputGuardInvalidate(value->guard);
+#endif
   if(in->kind==SWEEP) { xide_model_error error={0}; xideLanguageInputGuardValidate(value->guard,stopped,cancel,&error); }
   if(!xideLanguageInputGuardCurrent(value->guard) || in->kind==CLEAR || (in->kind==REMOVE && !strcmp(value->key,in->key))) {
    xvalue* key=xrtValueString(sv(value->key)); int appended=key && xrtValueArrayAppend(out->invalidated,key); xrtValueRelease(key);
@@ -305,9 +323,15 @@ static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* result)
  for(size_t i=0;i<store->limits.records;++i) if(trial[i] && (!addBytes(&bytes,trial[i]->bytes) || bytes>store->limits.retainedReportBytes)) { fail(out,"Retained diagnostic report byte limit exceeded."); goto done; }
  if(!makeSnapshot(store,trial,store->limits.records,in->catalog ? in->catalog : store->catalog,cancel,out)) goto done;
  if(xrtCancelRequested(cancel)) goto done;
+#ifdef XLS_COMPILER_XRT
+ if(!reverseUpdate(store,trial,cancel)) goto done;
+#endif
  for(size_t i=0;i<store->limits.records;++i) if(store->records[i]!=trial[i]) { releaseRecord(store->records[i]); store->records[i]=trial[i]; }
  if(in->catalog) {xideAnalysisCatalogDestroy(store->catalog);store->catalog=xideAnalysisCatalogRetain(in->catalog);}
  fresh=NULL;
+#ifdef XLS_COMPILER_XRT
+ xlsDependencyGraphStats(store->reverse,&out->dependencyGraph);out->dependencyFallbacks=store->reverseFallbacks;out->dependencyIndexed=store->reverse!=NULL;
+#endif
 done:
  releaseRecord(fresh);
  if(xrtCancelRequested(cancel)) { freeOutput(out,NULL); return XTASK_CANCELLED; }
@@ -319,6 +343,9 @@ xide_diagnostic_store* xideDiagnosticStoreCreateWithDependencies(const xide_diag
  xide_diagnostic_limits chosen=limits ? *limits : (xide_diagnostic_limits){64,32u*1024u*1024u,4u*1024u*1024u,8};
  if((enabled!=0 && enabled!=1) || !chosen.records || chosen.records>RECORD_LIMIT || !chosen.retainedReportBytes || !chosen.publishedReportBytes || !chosen.queue || chosen.queue>64) return NULL;
  xide_diagnostic_store* store=xrtCalloc(1,sizeof(*store)); if(!store) return NULL; store->limits=chosen;store->dependencies=enabled;
+#ifdef XLS_COMPILER_XRT
+ store->reverse=xlsDependencyGraphCreate(NULL,reverseCompare,NULL,NULL);
+#endif
  xtaskpoolconfig config={.Threads=1,.QueueLimit=chosen.queue}; store->pool=xrtTaskPoolCreate(&config);
  if(!store->pool) { xideDiagnosticStoreDestroy(store); return NULL; } return store;
 }
@@ -330,6 +357,9 @@ void xideDiagnosticStoreDestroy(xide_diagnostic_store* store)
  if(store->pool) { xrtTaskPoolCancel(store->pool); xrtTaskPoolDestroy(store->pool); }
  for(size_t i=0;i<RECORD_LIMIT;++i) releaseRecord(store->records[i]);
  xideAnalysisCatalogDestroy(store->catalog);
+#ifdef XLS_COMPILER_XRT
+ xlsDependencyGraphDestroy(store->reverse);
+#endif
  xrtFree(store);
 }
 int xideDiagnosticStoreLoad(xide_diagnostic_store* store,xide_diagnostic_load* load)
@@ -367,7 +397,14 @@ enum xide_diagnostic_state xideDiagnosticQueryResult(xide_diagnostic_query* quer
  if(state==XFUTURE_CANCELLED) return XIDE_DIAGNOSTIC_CANCELLED;
  const output* out=state==XFUTURE_RESOLVED ? xrtFutureValue(query->future) : NULL;
  if(!out || out->taken) { snprintf(result->error,sizeof(result->error),"Diagnostic actor failed or result ownership was transferred."); return XIDE_DIAGNOSTIC_FAILED; }
- *result=(xide_diagnostic_snapshot){out->publication ? out->publication->documents : NULL,out->invalidated,out->records,out->bytes,out->thread,out->conflictPath,{0}};
+ *result=(xide_diagnostic_snapshot){out->publication ? out->publication->documents : NULL,out->invalidated,out->records,out->bytes,out->thread,out->conflictPath,{0}
+#ifdef XLS_COMPILER_XRT
+ ,{0},0,0
+#endif
+ };
+#ifdef XLS_COMPILER_XRT
+ result->dependencyGraph=out->dependencyGraph;result->dependencyFallbacks=out->dependencyFallbacks;result->dependencyIndexed=out->dependencyIndexed;
+#endif
  snprintf(result->error,sizeof(result->error),"%s",out->error); return *out->error ? XIDE_DIAGNOSTIC_FAILED : XIDE_DIAGNOSTIC_READY;
 }
 int xideDiagnosticQueryTake(xide_diagnostic_query* query,xide_diagnostic_publication** publication,xvalue** invalidated)

@@ -3,6 +3,9 @@
 #include "services/language_check.h"
 #include "services/analysis_catalog.h"
 #include <stdint.h>
+#ifdef XLS_COMPILER_XRT
+#include "analysis/dependency_graph.h"
+#endif
 
 typedef struct xide_diagnostic_store xide_diagnostic_store;
 typedef struct xide_diagnostic_query xide_diagnostic_query;
@@ -15,6 +18,11 @@ typedef struct xide_diagnostic_snapshot {
  size_t records,retainedReportBytes; uint64_t workerThreadId;
  const char* conflictPath; /* borrowed, failed merge observed different inputs */
  char error[256];
+#ifdef XLS_COMPILER_XRT
+ xls_dependency_stats dependencyGraph;
+ uint64_t dependencyFallbacks;
+ int dependencyIndexed;
+#endif
 } xide_diagnostic_snapshot;
 enum xide_diagnostic_state { XIDE_DIAGNOSTIC_PENDING,XIDE_DIAGNOSTIC_READY,XIDE_DIAGNOSTIC_FAILED,XIDE_DIAGNOSTIC_CANCELLED };
 typedef struct xide_diagnostic_load { size_t queued,running; uint64_t submitted,completed,cancelled,rejected; } xide_diagnostic_load;
