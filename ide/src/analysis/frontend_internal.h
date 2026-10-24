@@ -4,6 +4,7 @@
 #include "analysis/check.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/ir/xl6_ir.h"
+#include "analysis/frontend_sem.h"
 /* Compiler facts remain inside the analysis layer. Never mutate a published
  * parse tree; semantic passes require their own owned representation. */
 const XL6_AstNode* xlsSyntaxAst(const xls_syntax* syntax);
@@ -55,6 +56,13 @@ xls_semantic_completion* xlsSemanticCompletionCreateCachedParsedInContext(xls_co
     const char* entry,const char* queryPath,size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
 int xlsSemanticCompletionCursorSyntaxApplied(const xls_semantic_completion* result);
+/* Session-owned opt-in. Fresh public completion APIs remain independent
+ * oracles. Previous results/memos are immutable and retained by the caller. */
+xls_semantic_completion* xlsSemanticCompletionCreateIncrementalInContext(xls_context* context,struct xls_entry_cache* cache,
+    const char* entry,const char* queryPath,size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
+    xls_semantic_completion* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity);
+xls_sem_work xlsSemanticCompletionSemWork(const xls_semantic_completion* result);
+const XL6_AstNode* xlsSemanticCompletionAst(const xls_semantic_completion* result);
 /* Private mutable copy for compiler semantic passes. Destination must be
  * empty/initialized. Diagnostics and sources are independently owned. */
 int xlsSyntaxCopyParse(const xls_syntax* syntax,XL6_ParseResult* result);
