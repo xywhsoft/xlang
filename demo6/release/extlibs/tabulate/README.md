@@ -1,5 +1,12 @@
 # tabulate
 
+2026-10-25：从当前源码完整重建 Windows 发布版后，默认
+`test/check.ps1` 通过严格 C/ABI、线程、XLang 边界与分配故障、
+私有入口负例、C/XLang 固定输出及核心/公开范例 AOT。
+WSL `test/check.sh` 通过 C ASan/UBSan、线程、XLang 边界与分配故障、
+双语输出对照。本轮未改表格实现或 API；此前发布物的 AOT 缺符号
+记录仅作历史追溯，不再是当前包的阻断。
+
 `tabulate` 把二维文本排版为纯文本终端表格。公开 XLang API 使用**单元格数组**，例如 `table.addRow(["Alice", "30", "Beijing, China"])`；不再把一行字符串当作伪 CSV 解析。这样空单元格、逗号和前后空格都有明确语义，也不会重复实现 CSV 协议。需要从 CSV 文件构建表格时，请先用独立的 `csv` 扩展库解析，再把字段数组交给本包。
 
 ## XLang API
