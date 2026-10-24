@@ -4890,7 +4890,8 @@ typedef enum XL6_IrCallableBridgeValueAbi {
     XL6_IR_CALLABLE_BRIDGE_TIME,
     XL6_IR_CALLABLE_BRIDGE_NATIVE_SCALAR,
     XL6_IR_CALLABLE_BRIDGE_FUTURE_COPY,
-    XL6_IR_CALLABLE_BRIDGE_FUTURE_REF
+    XL6_IR_CALLABLE_BRIDGE_FUTURE_REF,
+    XL6_IR_CALLABLE_BRIDGE_STRING_MOVE
 } XL6_IrCallableBridgeValueAbi;
 
 /* Logical integer domains are independent of the widened I64/U64 carrier.

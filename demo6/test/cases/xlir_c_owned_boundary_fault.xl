@@ -1,0 +1,46 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+func text() as cstring
+    return cstring.take(nativeText(),nativeFree)
+end
+func data() as cbytes
+    return cbytes.take(nativeBytes(),4,nativeFree)
+end
+func pair() as (cstring,cbytes,int)
+    return text(),data(),7
+end
+func optional(bool present) as cstring?
+    return present ? text() : null
+end
+class Base
+    virtual func get() as string
+        return "base"
+    end
+end
+class Derived extends Base
+    override func get() as cstring
+        return text()
+    end
+end
+export "owned_boundary_exercise" func exercise(int mode) as bool
+    if mode==0
+        func() as string callback=text
+        return callback()=="hello"
+    elseif mode==1
+        auto producer=text
+        func() as string callback=producer
+        producer=func() as cstring => "replacement"
+        return callback()=="hello"
+    elseif mode==2
+        var callback=xcall(pair)
+        auto first,second,number=callback()
+        return first=="hello" and second==b"\0\xff\x11*" and number==7
+    elseif mode==3
+        var callback=xcall(optional)
+        return callback(false)==null and callback(true)=="hello"
+    else
+        Base object=Derived()
+        return object.get()=="hello"
+    end
+end

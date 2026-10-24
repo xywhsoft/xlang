@@ -93,7 +93,8 @@ int main(int argc, char** argv)
         const XL6_IrType* errorType;
         assert(bridge && bridge->reverseSupported && bridge->parameterCount == 0 && bridge->resultCount == 4);
         slots = &ir.callableBridgeResults[bridge->firstResult];
-        assert(slots[0].decodeAbi == XL6_IR_CALLABLE_BRIDGE_STRING_COPY);
+        assert(slots[0].decodeAbi == XL6_IR_CALLABLE_BRIDGE_STRING_COPY &&
+            slots[0].encodeAbi == XL6_IR_CALLABLE_BRIDGE_STRING_MOVE);
         assert(slots[1].decodeAbi == XL6_IR_CALLABLE_BRIDGE_XVALUE_RETAIN &&
             slots[1].encodeAbi == XL6_IR_CALLABLE_BRIDGE_XVALUE_MOVE);
         assert(slots[2].decodeAbi == XL6_IR_CALLABLE_BRIDGE_ERROR_REF);

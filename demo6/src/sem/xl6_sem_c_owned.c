@@ -357,7 +357,7 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     }
     XL6_AstNode* params=function->childCount>1 ? function->children[1] : NULL;
     XL6_AstNode* args=call->children[1];
-    if(!params || (size_t)xl6SemFixedParamCount(params)!=params->childCount)return function;
+    if(!params || (!(options & XL6_C_OWNED_RESULT_ONLY) && (size_t)xl6SemFixedParamCount(params)!=params->childCount))return function;
     unsigned char* promote=params->childCount ? xrtCalloc(params->childCount,2) : NULL;
     if(params->childCount && !promote)return NULL;
     unsigned char* provided=promote ? promote+params->childCount : NULL;
