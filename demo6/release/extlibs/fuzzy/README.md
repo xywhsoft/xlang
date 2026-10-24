@@ -1,5 +1,11 @@
 # fuzzy
 
+2026-10-24：当前 Windows 发布版默认 `test/check.ps1` 全通过：严格 C、
+边界/线程/无终止符输入、XLang 中央与包内用例、C/XLang 同输出，
+以及核心和公开范例的独立 EXE AOT 构建、执行及输出对照。
+下文关于带输出 AOT 缺符号的记录属于旧发布物；Linux 门禁不由
+本次 Windows 结果代替。
+
 `fuzzy` 提供 Unicode 编辑距离、整数相似度、子序列评分和换行分隔候选中的最佳选择。编辑距离和比率直接复用 XRT `xrtUtf8Distance`，按 Unicode 标量而非 UTF-8 字节计算；`score` / `best` 的子序列评分也按标量前进，但**只对 ASCII 字母忽略大小写**，其他字符要求精确相等。不进行 Unicode 规范化或完整大小写折叠。
 
 ## API
