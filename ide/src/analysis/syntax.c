@@ -13,6 +13,8 @@ typedef struct syntax_unit {
     XL6_AstNode* node;
     size_t offset,size;
     int line,column;
+    size_t storageBytes;
+    int storageKnown;
 } syntax_unit;
 typedef struct placement { syntax_unit* unit; size_t offset; int line,column; } placement;
 typedef struct syntax_view { xmutex lock; XL6_AstNode* root; } syntax_view;
@@ -28,6 +30,7 @@ struct xls_syntax {
     size_t cursorOffset;
     XL6_AstRange cursorRange;
 };
+#include "analysis/syntax_storage.inc"
 static syntax_unit* retainUnit(syntax_unit* unit)
 { if(unit) xrtAtomic32FetchAdd(&unit->references,1,XMEMORY_RELAXED); return unit; }
 static void releaseUnit(syntax_unit* unit)
@@ -206,6 +209,10 @@ static xls_syntax* incremental(const char* path,xls_text* text,const xls_syntax*
                 parsed.root->children[0]=NULL;
                 xrtFree(fresh->doc); fresh->doc=unit->node->doc ? xrtStrDup(unit->node->doc) : NULL;
                 if(unit->node->doc && !fresh->doc) { releaseUnit(changed); goto failed; }
+                if(unit->storageKnown) {
+                    if(!cacheTreeBytes(changed->node,SIZE_MAX,&changed->storageBytes)) { releaseUnit(changed); goto failed; }
+                    changed->storageKnown=1;
+                }
                 next.unit=changed;
             } else next.unit=retainUnit(prior->unit);
             if(j>i) next.offset=(size_t)((int64_t)next.offset+delta);
@@ -249,6 +256,25 @@ static xls_syntax* build(const char* path,xls_text* text,const xls_syntax* previ
 }
 xls_syntax* xlsSyntaxBuild(const char* path,xls_text* text,const xls_syntax* previous,xls_parse_work* work)
 { return build(path,text,previous,NULL,work); }
+xls_syntax* xlsSyntaxAdoptOrdinary(const char* path,xls_text* text,XL6_AstNode** root)
+{
+    if(!path || !*path || !text || !root || !*root) return NULL;
+    xls_syntax* s=allocate(path,text); if(!s) return NULL;
+    s->parse.root=*root; *root=NULL; s->accepted=1;
+    if(!decompose(s)) goto failed;
+    for(size_t i=0;i<s->units.Count;++i) {
+        syntax_unit* unit=((placement*)xrtArrayGet(&s->units,i))->unit;
+        if(!cacheTreeBytes(unit->node,SIZE_MAX,&unit->storageBytes)) goto failed;
+        unit->storageKnown=1;
+    }
+    return s;
+failed: xlsSyntaxRelease(s); return NULL;
+}
+xls_syntax* xlsSyntaxTryFunction(const char* path,xls_text* text,const xls_syntax* previous,xls_parse_work* work)
+{
+    if(!path || !*path || !text || !work || !previous || previous->cursor) return NULL;
+    return incremental(path,text,previous,NULL,work);
+}
 static int emptyQuery(const XL6_CompletionQuery* query)
 {
     return query && !query->prefix && !query->parsed && !query->reached && !query->available &&

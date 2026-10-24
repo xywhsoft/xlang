@@ -20,6 +20,21 @@ static bool fixtureMapInit(xmap* map,size_t bytes) {return operation() && xrtMap
 static bool fixtureMapDrop(xmap* map,xmapdrop drop,void* user) {return operation() && xrtMapSetDrop(map,drop,user);}
 static bool fixtureMapSet(xmap* map,xbytesview key,const void* value) {return operation() && xrtMapSet(map,key,value);}
 static void* fixtureMapAdd(xmap* map,xbytesview key,bool* added) {return operation() ? xrtMapGetOrAdd(map,key,added) : NULL;}
+static xls_text* fixtureText(const char* text,size_t length,size_t limit,enum xls_text_error* error)
+{return operation() ? xlsTextCreate(text,length,limit,error) : NULL;}
+static xls_syntax* fixtureAdopt(const char* path,xls_text* text,XL6_AstNode** root)
+{return operation() ? xlsSyntaxAdoptOrdinary(path,text,root) : NULL;}
+static xls_syntax* fixtureFunction(const char* path,xls_text* text,const xls_syntax* old,xls_parse_work* work)
+{return operation() ? xlsSyntaxTryFunction(path,text,old,work) : NULL;}
+static int fixtureCopy(const xls_syntax* syntax,XL6_ParseResult* result)
+{return operation() && xlsSyntaxCopyParse(syntax,result);}
+static int fixtureStorage(const xls_syntax* syntax,size_t limit,size_t* bytes)
+{return operation() && xlsSyntaxCacheBytes(syntax,limit,bytes);}
+#define xlsTextCreate fixtureText
+#define xlsSyntaxAdoptOrdinary fixtureAdopt
+#define xlsSyntaxTryFunction fixtureFunction
+#define xlsSyntaxCopyParse fixtureCopy
+#define xlsSyntaxCacheBytes fixtureStorage
 #define xrtMapInit fixtureMapInit
 #define xrtMapSetDrop fixtureMapDrop
 #define xrtMapSet fixtureMapSet
@@ -44,6 +59,11 @@ static void* fixtureMapAdd(xmap* map,xbytesview key,bool* added) {return operati
 #undef xrtPathAbs
 #undef xrtFree
 #undef xlsAstClone
+#undef xlsTextCreate
+#undef xlsSyntaxAdoptOrdinary
+#undef xlsSyntaxTryFunction
+#undef xlsSyntaxCopyParse
+#undef xlsSyntaxCacheBytes
 #undef xrtMapInit
 #undef xrtMapSetDrop
 #undef xrtMapSet
@@ -175,6 +195,14 @@ static int checkParity(xls_semantic_check* result,xls_context* context,const cha
     CHECK(result && fresh && a && b && !strcmp(a,b) && xlsSemanticCheckValidate(result));
     CHECK(!xlsSemanticCheckEntryWork(fresh).parsed && !xlsSemanticCheckEntryWork(fresh).reused);
     CHECK(!xlsSemanticCheckModuleWork(fresh).parsed && !xlsSemanticCheckModuleWork(fresh).reused);
+    if(xlsSemanticCheckInfo(result).accepted) {
+        CHECK(equal(xlsSemanticCheckAst(result),xlsSemanticCheckAst(fresh)));
+        XL6_Output left,right;CHECK(xl6OutputOpenMemory(&left) && xl6OutputOpenMemory(&right));
+        xl6IrDumpModuleJson(&left,xlsSemanticCheckIr(result));xl6IrDumpModuleJson(&right,xlsSemanticCheckIr(fresh));
+        char *x=xl6OutputHasFailed(&left) ? NULL : xl6OutputTakeMemoryText(&left,NULL);
+        char *y=xl6OutputHasFailed(&right) ? NULL : xl6OutputTakeMemoryText(&right,NULL);
+        CHECK(x && y && !strcmp(x,y));xrtFree(x);xrtFree(y);xl6OutputDiscard(&left);xl6OutputDiscard(&right);
+    }
     xlsSemanticStringFree(a);xlsSemanticStringFree(b);xlsSemanticCheckDestroy(fresh);return 1;
 }
 static int checkIntegrated(void)
@@ -309,4 +337,68 @@ static int modulePrimitive(void)
     CHECK(scope.moduleWork.parsed==1 && scope.moduleWork.declined==1 && !scope.moduleWork.reused);xl6ParseResultFree(&result);failAt=0;
     privateDestroy(cache);CHECK(!live);xrtFree(entry);xrtFree(path);return 1;
 }
-int main(void) {if(!primitive() || !integrated() || !checkIntegrated() || !modulePrimitive()) return 1;printf("analysis_entry_cache_test passed: %u checks; pre-semantic AST parity,budget/fault/nested/cancel ownership,real disk/member check and completion edits,fresh semantic JSON/index/IR equivalence\n",checks);return 0;}
+static int moduleIncremental(void)
+{
+    char *entry=xrtPathAbs("incremental-entry.xl"),*path=xrtPathAbs("incremental-module.xl");CHECK(entry && path);
+    const char* format="\xef\xbb\xbf#doc\r\ndesc:\r\n 注释😀\r\n#end\r\nfunc first() as int\r\n return 1\r\nend\r\nexport func changed() as int\r\n // 变化😀 %u\r\n return %u\r\nend\r\nclass Box\r\n string 名称\r\nend\r\nfunc last() as int\r\n return 3\r\nend\r\n";
+    char original[1024];snprintf(original,sizeof(original),format,0u,0u);
+    xls_entry_cache* cache=privateCreate(1024*1024);CHECK(cache);xls_entry_cache_scope scope;XL6_ParseResult result,fresh,retained;
+    xl6ParseResultInit(&retained);privateBegin(&scope,cache,NULL,entry);CHECK(privateParse(original,path,&retained,NULL));privateEnd(&scope,1);
+    CHECK(scope.moduleSyntaxWork.full==1 && !scope.moduleSyntaxWork.fragments && !scope.moduleSyntaxWork.reused);
+    xls_entry_cache_data** data=xrtMapGet(&cache->modules,key(path));CHECK(data && (*data)->syntax && !(*data)->root);
+    size_t bytes=0;CHECK(xlsSyntaxCacheBytes((*data)->syntax,SIZE_MAX,&bytes) && bytes>strlen(original));
+    size_t exact=bytes;CHECK(xlsSyntaxCacheBytes((*data)->syntax,exact,&bytes) && bytes==exact);
+    CHECK(!xlsSyntaxCacheBytes((*data)->syntax,exact-1,&bytes) && !bytes);
+    xls_text* raw=xlsTextCreate(original,strlen(original),1024*1024,NULL);CHECK(raw && xlsTextStorageBytes(raw)>strlen(original));xlsTextRelease(raw);
+    for(unsigned i=1;i<=20;++i) {
+        char body[1024];snprintf(body,sizeof(body),format,i,i);xl6ParseResultInit(&result);xl6ParseResultInit(&fresh);
+        privateBegin(&scope,cache,NULL,entry);CHECK(privateParse(body,path,&result,NULL));privateEnd(&scope,1);
+        CHECK(scope.moduleWork.parsed==1 && !scope.moduleSyntaxWork.full && scope.moduleSyntaxWork.fragments==1 && scope.moduleSyntaxWork.reused==3 && scope.moduleSyntaxWork.bytes<strlen(body));
+        CHECK(xl6ParseSource(body,path,&fresh) && equal(result.root,fresh.root));xl6ParseResultFree(&result);xl6ParseResultFree(&fresh);
+        CHECK(privateBytes(cache)+privateModuleBytes(cache)<=cache->limit);
+    }
+    xl6ParseResultInit(&fresh);CHECK(xl6ParseSource(original,path,&fresh) && equal(retained.root,fresh.root));xl6ParseResultFree(&fresh);xl6ParseResultFree(&retained);
+    char previous[1024],next[1024];snprintf(previous,sizeof(previous),format,20u,20u);snprintf(next,sizeof(next),format,21u,21u);
+    size_t saved=privateModuleBytes(cache);privateBegin(&scope,cache,NULL,entry);xl6ParseResultInit(&result);CHECK(privateParse(next,path,&result,NULL));privateEnd(&scope,0);xl6ParseResultFree(&result);
+    CHECK(scope.moduleSyntaxWork.fragments==1 && scope.moduleSyntaxWork.reused==3 && privateModuleBytes(cache)==saved);
+    privateBegin(&scope,cache,NULL,entry);xl6ParseResultInit(&result);CHECK(privateParse(previous,path,&result,NULL));privateEnd(&scope,1);CHECK(scope.moduleWork.reused==1 && !scope.moduleWork.parsed);xl6ParseResultFree(&result);
+    const char* broken="func broken(\n";privateBegin(&scope,cache,NULL,entry);xl6ParseResultInit(&result);xl6ParseResultInit(&fresh);
+    CHECK(!privateParse(broken,path,&result,NULL) && !xl6ParseSource(broken,path,&fresh));privateEnd(&scope,1);
+    CHECK(result.diags.count==fresh.diags.count && result.diags.count && privateModuleBytes(cache)==saved);
+    for(size_t i=0;i<result.diags.count;++i) CHECK(result.diags.items[i].line==fresh.diags.items[i].line && result.diags.items[i].column==fresh.diags.items[i].column && same(result.diags.items[i].message,fresh.diags.items[i].message));
+    xl6ParseResultFree(&result);xl6ParseResultFree(&fresh);privateDestroy(cache);CHECK(!live);
+    size_t operations=0;
+    for(size_t failure=0;failure<=operations;++failure) {
+        calls=failAt=0;cache=privateCreate(1024*1024);CHECK(cache);privateBegin(&scope,cache,NULL,entry);xl6ParseResultInit(&result);CHECK(privateParse(original,path,&result,NULL));privateEnd(&scope,1);xl6ParseResultFree(&result);
+        calls=0;failAt=failure;privateBegin(&scope,cache,NULL,entry);xl6ParseResultInit(&result);xl6ParseResultInit(&fresh);
+        CHECK(privateParse(next,path,&result,NULL) && xl6ParseSource(next,path,&fresh) && equal(result.root,fresh.root));privateEnd(&scope,1);
+        if(!failure) {operations=calls;CHECK(operations>=10 && scope.moduleSyntaxWork.fragments==1 && scope.moduleSyntaxWork.reused==3);}
+        CHECK(privateBytes(cache)+privateModuleBytes(cache)<=cache->limit);xl6ParseResultFree(&result);xl6ParseResultFree(&fresh);privateDestroy(cache);CHECK(!live);
+    }
+    failAt=0;printf("Module function-update optional-operation seams=%zu,all failed/recovered\n",operations);xrtFree(entry);xrtFree(path);return 1;
+}
+static int moduleCheckIncremental(void)
+{
+    char relative[160],error[256];snprintf(relative,sizeof(relative),"build/module-function-cache-%llu",(unsigned long long)xrtClock());
+    char *directory=xrtPathAbs(relative),*entry=xrtPathJoin(directory,"main.xl"),*helper=xrtPathJoin(directory,"helper.xl");
+    CHECK(directory && entry && helper && xrtDirCreateAll(directory) && writeText(entry,"import helper\nfunc main(...) as int\n return helper.answer()\nend\n"));
+    xls_context_spec spec={.kind=XLS_CONTEXT_PROJECT,.project=directory,.entry=entry,.directory=directory,.configuration="debug",.analysisProfile="fixture-linked-native",.targetKind="exe"};
+    xls_context* context=xlsContextCreate(&spec,1024*1024,NULL);xls_check_session* session=xlsCheckSessionCreate(NULL);CHECK(context && session);
+    xls_semantic_check* initial=NULL;
+    for(unsigned i=0;i<12;++i) {
+        xstrbuf body={0};CHECK(xrtStrBufAppendFormat(&body,"// 模块😀\r\n"));
+        for(unsigned j=0;j<20;++j) CHECK(xrtStrBufAppendFormat(&body,"func helper_%u() as int\r\n return %u\r\nend\r\n",j,j));
+        CHECK(xrtStrBufAppendFormat(&body,"export func answer() as int\r\n return %u\r\nend\r\n",i));
+        xls_text* text=xlsTextCreate(body.Data,body.Size,1024*1024,NULL);CHECK(text);
+        xls_analysis_document document={.key="module",.path=helper,.text=text,.identity=1,.revision=i+1};xls_semantic_input input={helper,body.Data,body.Size};
+        xls_semantic_check* result=xlsCheckSessionCheckInContext(session,context,&document,1,NULL,1,NULL,NULL,error,sizeof(error));
+        CHECK(checkParity(result,context,entry,&input,1) && xlsSemanticCheckInfo(result).accepted);
+        xls_parse_work work=xlsSemanticCheckModuleParseWork(result);
+        CHECK(i ? !work.full && work.fragments==1 && work.reused==20 && work.bytes<body.Size : work.full==1 && !work.fragments && !work.reused);
+        if(!i) initial=xlsSemanticCheckRetain(result);
+        xlsSemanticCheckDestroy(result);xlsTextRelease(text);xrtStrBufFree(&body);
+    }
+    xlsCheckSessionDestroy(session);CHECK(initial && xlsSemanticCheckValidate(initial) && xlsSemanticCheckTypedIndex(initial));xlsSemanticCheckDestroy(initial);xlsContextRelease(context);
+    xrtFree(directory);xrtFree(entry);xrtFree(helper);return 1;
+}
+int main(void) {if(!primitive() || !integrated() || !checkIntegrated() || !modulePrimitive() || !moduleIncremental() || !moduleCheckIncremental()) return 1;printf("analysis_entry_cache_test passed: %u checks; pre-semantic and actual module-function AST/fresh semantic/index/IR parity,bounded chunk generations,fault/nested/cancel ownership and old retained results\n",checks);return 0;}

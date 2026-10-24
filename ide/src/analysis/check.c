@@ -28,6 +28,7 @@ struct xls_semantic_check {
     xls_sem_memo* memo;
     xls_sem_work semanticWork;
     xls_entry_parse_work entryWork,moduleWork;
+    xls_parse_work moduleSyntaxWork;
     const char* phase;
     int accepted,captureIndex;
 };
@@ -158,7 +159,7 @@ xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,x
     if(!scoped) {
         xlsSemanticCheckDestroy(result); fail(error,capacity,(scope.failed&2) ? "cannot retain bounded completion namespace" : "cannot resolve native context path or package environment"); return NULL;
     }
-    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;}
+    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->moduleSyntaxWork=entryScope.moduleSyntaxWork;}
     return result;
 }
 xls_semantic_check* xlsSemanticCheckCreateIncrementalInContext(xls_context* context,const char* entry,
@@ -169,6 +170,8 @@ xls_entry_parse_work xlsSemanticCheckEntryWork(const xls_semantic_check* result)
 { return result ? result->entryWork : (xls_entry_parse_work){0}; }
 xls_entry_parse_work xlsSemanticCheckModuleWork(const xls_semantic_check* result)
 { return result ? result->moduleWork : (xls_entry_parse_work){0}; }
+xls_parse_work xlsSemanticCheckModuleParseWork(const xls_semantic_check* result)
+{ return result ? result->moduleSyntaxWork : (xls_parse_work){0}; }
 xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)
