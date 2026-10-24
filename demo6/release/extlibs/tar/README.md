@@ -1,5 +1,14 @@
 # tar 扩展库
 
+2026-10-24 当前 Windows 发布版复验：严格 C/TAR 主用例、默认读取限额、
+C/TCC 直接运行与构建、内存/文件追加双语范例均通过；默认门禁在中央
+XLang 范例的 `extractSelected(..., ["docs/hello.txt"])` 处报数组类型错误。
+JIT 与独立 EXE 的最小复现见
+`../../../dev/extlib_blockers/tar_selected_names_projection.xl`；修复边界
+见[共享容器投影记录](../../../dev/extlib_blockers/foreign_var_container_projection.md)。
+本轮未签收完整语言/AOT 门禁。下文覆盖旧文件失败非原子性是另一个
+独立风险，不能因数组投影修复而视为关闭。
+
 提供内存/文件 TAR 读写、条目元数据、归档追加、安全提取、选择性提取及进度回调。C 使用 `include/xrt_tar.h`，XLang 使用 `import tar`；最小双语范例在 `examples/basic_c.c` 与 `examples/basic.xl`，两者都输出 `hello`。
 `examples/append_c.c` 与 `examples/append.xl` 成对展示文件归档的创建、追加和读回：旧条目、新条目都逐一核对，使用独占临时目录且结束时删除，不覆盖调用方文件。两者都输出 `first`、`second`。
 在 `demo6/release` 目录可直接运行 `./xl run extlibs/tar/examples/basic_c.c`；
