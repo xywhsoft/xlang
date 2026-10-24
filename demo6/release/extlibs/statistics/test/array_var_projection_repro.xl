@@ -1,0 +1,7 @@
+import statistics
+
+func main(...) as int
+    var values = [2, 4]
+    assert statistics.count(values) == 2, "array must reach C var as an array"
+    return 0
+end

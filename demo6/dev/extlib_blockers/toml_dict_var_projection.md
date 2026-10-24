@@ -1,4 +1,4 @@
-# TOML / XLang dict 到 C var 的投影阻断
+# XLang 容器到 C var 的投影阻断
 
 2026-10-24，更新后的 Windows 发布版 `xl.exe`。
 
@@ -24,3 +24,17 @@
 建议在主线统一定义静态 `dict` 到 C/XRT `var` 的值投影及所有权，
 同时验证数组、集合和嵌套容器，而非为 TOML 单独开兼容路径。
 修复后重跑最小复现、Windows/Linux 包门禁及 AOT。
+
+## 同族复现：statistics 数组
+
+运行：
+
+```powershell
+./release/xl.exe run release/extlibs/statistics/test/array_var_projection_repro.xl
+```
+
+预期 `statistics.count([2, 4])` 为 2；当前断言失败。
+`statistics` 的 C 入口 `xstat_count(xvalue*)` 只接受 `XVALUE_ARRAY`，
+而 XLang 数组生成路径使用受控数组句柄。默认包门禁的严格 C、ABI、
+C 边界和三组 C 范例通过，首个 XLang 主用例在 `count` 断言失败。
+修复投影时须同时覆盖数组与字典，而非只让单个包识别运行时句柄。
