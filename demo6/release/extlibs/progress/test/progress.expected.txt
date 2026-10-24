@@ -9,4 +9,6 @@ Processing [========================>     ]  80% (8/10)
 Processing [===========================>  ]  90% (9/10)
 Processing [==============================] 100% (10/10)
 done: true
+reset current: 3 total: 10 percent: 30
+saturated current: 10 done: true
 progress example: PASS

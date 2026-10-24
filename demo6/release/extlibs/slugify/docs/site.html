@@ -28,9 +28,9 @@
     <h2 id="example">xlang</h2>
     <pre><code>import slugify
 println(slugify.slugify("Café &amp; 你好"))  // cafe-and-你好</code></pre>
-    <p><code>&amp;</code> 和 <code>@</code> 作为独立词转换，例如 <code>a&amp;b</code> 得到 <code>a-and-b</code>。这不是完整 Unicode 转写，也不是 URL 编码或路径安全验证；不同标题可能产生同一 slug。范围、C 所有权和测试证据见包内 README。</p>
+    <p><code>&amp;</code> 和 <code>@</code> 作为独立词转换，例如 <code>a&amp;b</code> 得到 <code>a-and-b</code>。垂直制表、换页、NEL 与 Ogham 空格等空白作为词边界，不会拼接两侧文本。这不是完整 Unicode 转写，也不是 URL 编码或路径安全验证；不同标题可能产生同一 slug。范围、C 所有权和测试证据见包内 README。</p>
     <h2 id="verify">验证</h2>
-    <p>2026-10-24 当前 Windows 默认门禁通过严格 C、线程、XLang 边界和双语同输出，并构建运行核心、边界与公开范例三个独立 EXE；旧 <code>xl6ValueDataSnapshotV1</code> 缺符号只属于历史发布物。Linux 包级 C ASan/UBSan、线程、XLang JIT 边界与双语同输出也通过；Linux <code>release/xl</code> 仍是旧发布物，AOT 待主线链接问题修复后验收。</p>
+    <p>2026-10-25 空白边界新增 C/XLang 回归；Windows 严格 C、线程、语言与双语快测及 Linux C ASan/UBSan、线程、XLang 门禁通过。当前发布构建的 AOT 有独立主线阻断，整包未在这次修改后重新签收；复现见包内 README。此前 Windows 默认 AOT 通过的记录只对应当时发布物。</p>
   </section>
 </main>
 </body>
