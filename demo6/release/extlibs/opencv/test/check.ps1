@@ -56,12 +56,18 @@ try {
         $wrapper, $runtime) + $links + @('-o', $boundary))
     $null = Run 'C boundary' $boundary @()
     $null = Run 'XLang boundary' $xl @('run', 'extlibs/opencv/test/boundary.xl')
+    $null = Run 'XLang implicit image cleanup' $xl @('run',
+        'extlibs/opencv/test/implicit_image_cleanup.xl')
 
     $previousShim = $env:OPENCV_XLANG_DLL
     try {
         $env:OPENCV_XLANG_DLL = (Resolve-Path -LiteralPath 'extlibs/opencv/bin/opencv_xlang.dll').Path
         $null = Run 'explicit shim path' $boundary @()
         if (-not $SkipAot) {
+            $imageCleanup = Join-Path $work 'image_cleanup_aot.exe'
+            $null = Run 'implicit image cleanup AOT build' $xl @('build',
+                'extlibs/opencv/test/implicit_image_cleanup.xl', '-o', $imageCleanup)
+            $null = Run 'implicit image cleanup AOT' $imageCleanup @()
             $aot = Join-Path $work 'opencv_aot_core.exe'
             $null = Run 'XLang core AOT build' $xl @('build',
                 'extlibs/opencv/test/aot_core.xl', '-o', $aot)

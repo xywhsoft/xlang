@@ -29,7 +29,7 @@
     "dependencies":  [
 
                      ],
-    "coverage": { "mode": "suite", "tests": ["test/catalog_call.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/catalog_call.xl", "test/implicit_image_cleanup.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

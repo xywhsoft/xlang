@@ -43,7 +43,7 @@ source.release()</code></pre>
     <p>包含 <code>include/opencv.h</code>。<code>opencv_imread_native</code>、<code>opencv_resize_native</code> 等返回拥有型句柄，使用 <code>opencv_release_native</code> 释放；<code>backend</code>、<code>last_error</code> 等文本是借用结果，不得释放。对应范例在 <code>examples/image_info_c.c</code>，从发行目录可直接用 <code>xl run extlibs/opencv/examples/image_info_c.c</code> 或构建为 C 可执行文件。</p>
     <p>完整截图范例 <code>examples/extlibs/opencv.xl</code> 需要可截图的桌面；图像文件使用独占系统临时目录并在退出时删除，不覆盖工作目录中的固定文件。日常双语门禁仍使用包内固定 PPM 夹具，不依赖桌面截图。</p>
     <h2 id="verification">验证范围</h2>
-    <p>2026-10-20：GCC 分离构建、C 单文件 JIT、C 单文件构建执行与 XLang 对同一张 P6 图片读入及 4×4 缩放的输出一致。包级调用门禁还覆盖缺图、无效尺寸、释放、UTF-8 路径、显式后端路径以及残缺桥接 DLL 拒绝；首次查询 <code>last_error</code> 也会等待完整装载，再返回可读诊断。XLang 读写路径中的 NUL 会被拒绝。同一无输出 AOT 图像调用探针在 XRT 模块裁剪前后为 3,793,920 / 865,792 字节，均实际读图和缩放成功；带输出范例仍受主线共享符号缺失阻断。桥接 DLL 的源码和算法矩阵由插件独立维护，不作为本包调用层验收条件。</p>
+    <p>当前 Windows 包级门禁：GCC 分离构建、C 单文件运行与构建执行、XLang JIT/AOT 对同一张 P6 图片读入及缩放的输出一致。包级调用还覆盖缺图、无效尺寸、隐式析构、UTF-8 路径、显式后端路径及残缺桥接 DLL 拒绝；首次查询 <code>last_error</code> 也会等待完整装载，再返回可读诊断。XLang 读写路径中的 NUL 会被拒绝。旧构建的带输出 AOT 缺符号在当前发布物中不再复现。桥接 DLL 的源码和算法矩阵由插件独立维护，不作为本包调用层验收条件。</p>
   </section>
 </main>
 </body>

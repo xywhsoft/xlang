@@ -66,3 +66,10 @@ UTF-8 路径和残缺桥接拒绝门禁通过。仍只验公开调用层，不�
 UTF-8 路径和残缺 DLL 检查通过后，完整范例构建在共享主线符号
 `xl6ValueDataSnapshotV1` 处准确失败。脚本 UTF-8 BOM 保持不变，本次
 独占目录在失败后清理；不签收完整 AOT 或桥接插件内部实现。
+
+2026-10-24：当前 Windows 发布物下，`Image.destroy` 释放原生图像后
+写 `self.handle = null` 会在对象退役时抛 `RuntimeError`。包内 PPM
+夹具的隐式析构最小用例先红后绿，JIT 与独立 AOT 均通过。默认
+`test/check.ps1` 现完整通过，包括 C/XLang 图像调用、UTF-8 路径、
+残缺 DLL 拒绝及公开范例 AOT 对照；过去的 AOT 缺符号是旧构建状态。
+本轮只签收包的公开调用链与句柄所有权，不认证桥接 DLL 内部算法。
