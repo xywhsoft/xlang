@@ -38,7 +38,13 @@ C API 见 `include/stb_truetype_native.h`，许可证见 `LICENSE.stb.txt`。
 最小复现与主线修复建议见
 `demo6/dev/extlib_blockers/stb_truetype_private_handle_constructor.md`。
 Windows XLang 字体/字形边界与 Linux C ASan/UBSan、XLang 双语门禁通过；
-私有构造器及既有 AOT 链接问题修复前，本包不得签收发布级验收。
+私有构造器修复前，本包不得签收发布级访问安全。
+2026-10-24 当前 Windows 发布版复验：严格 C、XLang 边界/分配故障、
+C/XLang 双语输出，以及边界与公开字形范例的独立 EXE 均通过；
+旧 AOT 缺符号未复现。默认门禁现对 `Font(null)`、`Bitmap(null)` 两份
+只编译负例分别检查，两者仍错误返回 `ok`，因此门禁明确失败。
+它们仅用于 `xl check`，绝不能执行。主线需在导出类的构造器重载解析中
+拒绝包外调用 `private extern create(point)`，同时保留包内工厂接管。
 
 原生字体加载和字形栅格化入口会清除本线程上一次的 XRT 错误；
 文件读取失败时保留 XRT 的原始错误类型（例如文件超限 `XERR_RANGE`、
@@ -52,7 +58,7 @@ XLang 的字体加载和字形渲染把 XRT 内存错误转换为 `MemoryError`�
 从 `demo6` 目录进行包级验证；双语范例默认从 `xl.exe` 所在目录定位
 随仓库提供的测试字体，也接受第一个命令行参数指定自己的字体路径：
 
-- `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_truetype/test/check.ps1 -SkipAot`：Windows 单入口门禁；去掉 `-SkipAot` 还会尝试完整边界 AOT。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_truetype/test/check.ps1`：Windows 单入口门禁；默认构建运行边界和公开范例 AOT，最后验证两份私有构造器负例。`-SkipAot` 只跳过独立 EXE，不跳过访问安全门禁。
 
 - `.\release\xl.exe run release/examples/extlibs/stb_truetype.xl`
 - `.\release\xl.exe run release/extlibs/stb_truetype/test/boundaries.xl`
@@ -67,8 +73,9 @@ XLang 的字体加载和字形渲染把 XRT 内存错误转换为 `MemoryError`�
   输入复制、字形/空白位图、逐点分配失败、超限文件、整数回绕及路径截断边界；Windows GCC
   `-Wall -Wextra -Werror`、Linux ASan/UBSan 已通过。
 
-带输出的完整 XL AOT 仍受共享 `xl6ValueDataSnapshotV1` 缺符号阻断，见
-`demo6/dev/extlib_blockers/text_snapshot_link.md`；尚未发布验收。
+历史阻断：旧发布物的完整 XL AOT 曾缺 `xl6ValueDataSnapshotV1`，见
+`demo6/dev/extlib_blockers/text_snapshot_link.md`；当前 Windows 发布物的
+公开范例 AOT 已通过，剩余发布阻断是私有句柄构造器访问控制。
 
 2026-10-15：中央 `test/cases/extlib_stb_truetype.xl` 原用已删除的指针式 API，现改验对象版公开入口及无系统字体依赖的负例。C 加载/位图操作的失败后成功错误状态测试先红后绿；清单显式声明环境、路径、整文件和字符串 XRT 模块。中央无输出 AOT 构建运行通过（744,448 字节），C/XL 边界、双语逐字同输出及新增 Linux ASan/UBSan 门禁通过。带输出完整 AOT 仍缺共享快照符号。
 

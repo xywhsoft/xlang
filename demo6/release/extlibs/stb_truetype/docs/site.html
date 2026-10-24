@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / stb_truetype</p><h1>stb_truetype</h1>
     <p class="extlib-lead">读取字体指标，生成可由 Buffer 获取的灰度字形位图。</p>
-    <p>支持 XRT UTF-8 路径、内存字体和自动析构 Font/Bitmap。XLang 入口拒绝字体索引/码点整数回绕及路径内嵌 NUL。适用于应用随附的可信字体，不是恶意字体解析沙箱。C/XL 包级门禁通过；导出类私有原生构造器的访问控制及 XL AOT 链接问题仍待主线修复，暂未完成发布验收。</p>
+    <p>支持 XRT UTF-8 路径、内存字体和自动析构 Font/Bitmap。XLang 入口拒绝字体索引/码点整数回绕及路径内嵌 NUL。适用于应用随附的可信字体，不是恶意字体解析沙箱。当前 Windows 的 C/XLang 正例与独立 EXE 已通过，但编译器仍允许包外调用两个私有原生句柄构造器；发布级访问安全尚未签收。旧版 AOT 缺符号故障已不再复现。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数或类型</th><th>用途</th></tr></thead><tbody>

@@ -24,6 +24,23 @@ function Run([string]$label, [string]$program, [string[]]$arguments) {
     return ($lines -join "`n").Replace("`r", '').TrimEnd("`n")
 }
 
+function CheckPrivateConstructor([string]$typeName) {
+    $source = "release/extlibs/stb_truetype/test/private_$($typeName.ToLowerInvariant())_constructor_negative.xl"
+    $prior = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $diagnostic = @(& $xl check $source 2>&1 | ForEach-Object { $_.ToString() }) -join "`n"
+        $code = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $prior
+    }
+    if ($code -eq 0 -or -not $diagnostic.Contains($typeName) -or
+        -not $diagnostic.Contains('access')) {
+        throw "private $typeName constructor was not rejected: $diagnostic"
+    }
+    Write-Host "[stb_truetype] private $typeName constructor: PASS"
+}
+
 Push-Location $root
 try {
     [void][IO.Directory]::CreateDirectory($work)
@@ -78,6 +95,24 @@ try {
         $null = Run 'XLang boundaries AOT build' $xl @('build',
             'release/extlibs/stb_truetype/test/boundaries.xl', '-o', $aot)
         $null = Run 'XLang boundaries AOT' $aot @()
+        $exampleAot = Join-Path $work 'stb_truetype_example_xl.exe'
+        $null = Run 'XLang example AOT build' $xl @('build',
+            'release/examples/extlibs/stb_truetype.xl', '-o', $exampleAot)
+        $aotOutput = Run 'XLang example AOT' $exampleAot @($fontPath)
+        if ($aotOutput -cne $cOutput) {
+            throw 'C/XLang font example AOT output differs'
+        }
+    }
+    $accessFailures = @()
+    foreach ($typeName in @('Font', 'Bitmap')) {
+        try {
+            CheckPrivateConstructor $typeName
+        } catch {
+            $accessFailures += $_.Exception.Message
+        }
+    }
+    if ($accessFailures.Count -ne 0) {
+        throw ($accessFailures -join "`n")
     }
 } finally {
     Pop-Location
