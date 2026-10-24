@@ -1,5 +1,12 @@
 # slugify
 
+2026-10-24 当前 Windows 发布版默认门禁通过：严格 C、线程、
+XLang 中央与边界、C/XLang 同输出，以及核心、边界和公开范例
+三个独立 EXE 的 AOT 构建与运行。旧共享链接缺符号只属于历史发布物。
+Linux 当前包级脚本的严格 C、ASan/UBSan、线程、XLang JIT 边界及
+C/XLang 同输出通过；它使用的 `release/xl` 仍是旧发布物，待主线
+X509/TLS 链接修复后重建，不能把 Windows AOT 外推为 Linux 验收。
+
 `slugify` 把标题转成适合 URL 路径段的人类可读文本。ASCII 字母转小写，常见分隔符合并为 `-`，`&` / `@` 分别作为独立词转成 `and` / `at`；例如 `a&b` 得到 `a-and-b`。包内保留有限的拉丁预组字符转写表（例如 `é→e`、`ü→u`），忽略组合重音符；汉字（包括 Unicode 17 的 CJK 扩展 G、H、J）、假名和韩文原样保留。全角 ASCII 字母和数字转半角。**这不是完整的 Unicode 规范化、通用转写或 URL 编码器**；未覆盖的其他文字和 emoji 当前丢弃。不同原文可能产生同一 slug，持久链接需要由应用追加稳定 ID 等判重信息。
 
 ## API
@@ -40,7 +47,7 @@ C ASan/UBSan、线程、XLang 联合门禁通过。完整带输出 AOT 的共享
 
 在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/slugify/test/check.ps1`；Linux 运行 `bash release/extlibs/slugify/test/check.sh`。两份脚本均覆盖 C 边界、线程、中央与包内 XLang 用例及 C/XLang 范例逐字节同输出；Windows 默认还构建运行核心与完整范例 AOT，`-SkipAot` 只做 C/JIT 快测。Windows 另做严格 GCC 语法检查，Linux 的 C 测试启用 ASan/UBSan。测试覆盖长 ASCII/汉字输入、畸形 UTF-8、内嵌 NUL、独立结果和并发。
 
-2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、C/XL 边界与线程测试、双语同输出范例及 `test/cases/extlib_slugify.xl` 无输出核心 AOT。`xl build extlibs/slugify/test/boundaries.xl -o ../build/test/slugify_boundaries.exe` 当前因共享链接缺少 `xl6ValueDataSnapshotV1` 而失败，完整 AOT 尚未验收；见 `dev/extlib_blockers/text_snapshot_link.md`。
+2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、C/XL 边界与线程测试、双语同输出范例及 `test/cases/extlib_slugify.xl` 无输出核心 AOT。该次旧发布物的边界 AOT 曾因共享链接缺少 `xl6ValueDataSnapshotV1` 而失败；历史记录见 `dev/extlib_blockers/text_snapshot_link.md`。
 
 2026-10-14 补输入恰好 1 MiB 成功、超 1 字节拒绝的 C/XLang 边界，以及 C 动态输出缓冲分配失败后恢复测试。C/XLang 边界、C 并发与双语范例通过；上述完整 AOT 缺符号已用当前 `xl.exe` 复现。
 

@@ -63,6 +63,13 @@ try {
         $null = Run 'XLang core build' $xl @('build',
             'test/cases/extlib_slugify.xl', '-o', $core)
         $null = Run 'XLang core AOT' $core @()
+        $boundaries = Join-Path $work 'slugify_boundaries.exe'
+        $null = Run 'XLang boundaries build' $xl @('build',
+            'release/extlibs/slugify/test/boundaries.xl', '-o', $boundaries)
+        $boundaryOutput = Run 'XLang boundaries AOT' $boundaries @()
+        if ($boundaryOutput -cne 'slugify boundaries: PASS') {
+            throw "unexpected XLang boundaries AOT output: $boundaryOutput"
+        }
         $example = Join-Path $work 'slugify_example.exe'
         $null = Run 'XLang example build' $xl @('build',
             'release/examples/extlibs/slugify.xl', '-o', $example)

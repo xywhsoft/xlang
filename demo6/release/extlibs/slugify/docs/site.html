@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / slugify</p><h1>slugify</h1>
     <p class="extlib-lead">把标题变成可读的 URL 路径段。</p>
-<p>ASCII 小写、有限拉丁转写、汉字（含 Unicode 17 CJK 扩展 G/H/J）/假名/韩文保留；严格验证 UTF-8 和输入长度。完整 AOT 发布验收仍受共享链接问题阻断。</p>
+<p>ASCII 小写、有限拉丁转写、汉字（含 Unicode 17 CJK 扩展 G/H/J）/假名/韩文保留；严格验证 UTF-8 和输入长度。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
@@ -30,7 +30,7 @@
 println(slugify.slugify("Café &amp; 你好"))  // cafe-and-你好</code></pre>
     <p><code>&amp;</code> 和 <code>@</code> 作为独立词转换，例如 <code>a&amp;b</code> 得到 <code>a-and-b</code>。这不是完整 Unicode 转写，也不是 URL 编码或路径安全验证；不同标题可能产生同一 slug。范围、C 所有权和测试证据见包内 README。</p>
     <h2 id="verify">验证</h2>
-    <p>Windows <code>test/check.ps1</code> 与 Linux <code>test/check.sh</code> 均运行 C 边界、线程、XLang 边界和双语范例同输出；Linux C 路径使用 ASan/UBSan。2026-10-20：Windows 默认门禁新增核心及完整范例 AOT，<code>-SkipAot</code> 保留 C/JIT 快测；当前核心 AOT 通过，完整范例构建因共享的 <code>xl6ValueDataSnapshotV1</code> 缺符号失败。完整 AOT 尚未签收。</p>
+    <p>2026-10-24 当前 Windows 默认门禁通过严格 C、线程、XLang 边界和双语同输出，并构建运行核心、边界与公开范例三个独立 EXE；旧 <code>xl6ValueDataSnapshotV1</code> 缺符号只属于历史发布物。Linux 包级 C ASan/UBSan、线程、XLang JIT 边界与双语同输出也通过；Linux <code>release/xl</code> 仍是旧发布物，AOT 待主线链接问题修复后验收。</p>
   </section>
 </main>
 </body>
