@@ -19,7 +19,7 @@ struct XL6_ExecutionSourceV1 {
     const void* claim;
     bool starting,initialized,closed,active,parked,exited,joining,joined,graphStop,stop,cleared,retired,creator,failed;
 };
-static const xrtownershipops sourceOps,resourceOps;
+static const xrtownershipops sourceOps;
 static void begin(xrtownershipscope* scope)
 {
     if(!xrtOwnershipMutationBegin(scope))abort();
@@ -193,7 +193,7 @@ Resource* xl6ExecutionCreateInternalV1(Source* source,const XL6_ExecutionFamilyV
     if(!family||family->size!=sizeof(*family)||family->abiTag!=XL6_EXECUTION_FAMILY_TAG_V1||
         !family->Create||!family->Rollback||!family->Retire||!family->Finish||!family->Drop||!family->Trace||!family->Close||!family->Cancel||!family->Present||
         family->instanceBytes<sizeof(Resource)||!options||options->kind!=family->kind||
-        (family->kind<XL6_EXECUTION_EXECUTOR_V1||family->kind>XL6_EXECUTION_NET_FILE_V1)){
+        (family->kind<XL6_EXECUTION_EXECUTOR_V1||family->kind>XL6_EXECUTION_TLS_LISTENER_V1)){
         xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
     xrtownershipscope mutation={0};begin(&mutation);bool entered=sourceEnterLocked(source,false);
     bool admitted=entered&&!source->closed&&!source->claim;end(&mutation);
@@ -341,9 +341,9 @@ static bool resourceTrace(const void* raw,xrtownershipvisitor visit,void* contex
     if(r->source&&!visit(xl6ExecutionSourceOwnershipV1(r->source),context))return false;
     return r->family->Trace(r,visit,context);
 }
-static const xrtownershipops resourceOps={resourceCount,resourceTrace};
+const xrtownershipops xl6ExecutionResourceNativeOpsV1={resourceCount,resourceTrace};
 xrtownershipref xl6ExecutionSourceOwnershipV1(const Source* s){return (xrtownershipref){s,s?&sourceOps:NULL};}
-xrtownershipref xl6ExecutionResourceOwnershipV1(const Resource* r){return (xrtownershipref){r,r?&resourceOps:NULL};}
+xrtownershipref xl6ExecutionResourceOwnershipV1(const Resource* r){return (xrtownershipref){r,r?&xl6ExecutionResourceNativeOpsV1:NULL};}
 static bool sourceBusy(const void* raw)
 {const Source* s=raw;return s&&s->references&&!s->cleared&&(s->entries||s->active||s->joining||(!s->parked&&!s->exited));}
 static bool resourceBusy(const void* raw)
@@ -351,7 +351,16 @@ static bool resourceBusy(const void* raw)
 const xrtownershipquiescencev1* xl6ExecutionSourceQuiescenceV1Get(void)
 {static const xrtownershipquiescencev1 policy={sizeof(policy),&sourceOps,sourceBusy};return &policy;}
 const xrtownershipquiescencev1* xl6ExecutionResourceQuiescenceV1Get(void)
-{static const xrtownershipquiescencev1 policy={sizeof(policy),&resourceOps,resourceBusy};return &policy;}
+{static const xrtownershipquiescencev1 policy={sizeof(policy),&xl6ExecutionResourceNativeOpsV1,resourceBusy};return &policy;}
+bool xl6ExecutionResourceNativePinV1(Resource* r)
+{
+    xrtownershipscope mutation={0};begin(&mutation);
+    bool held=r&&r->owners&&r->references&&r->references<SIZE_MAX&&!r->requested&&!r->retiring&&!r->cleared&&!r->claim;
+    if(held)++r->references;
+    end(&mutation);if(!held)xrtSetErrorKind(XERR_STATE);return held;
+}
+void xl6ExecutionResourceNativeDropV1(const void* r)
+{if(r)resourceDrop((Resource*)r);}
 static bool sourceHold(const void* raw)
 {Source* s=(Source*)raw;xrtownershipscope mutation={0};begin(&mutation);bool ok=s->references&&s->references<SIZE_MAX&&!s->cleared;if(ok)++s->references;end(&mutation);return ok;}
 static bool resourceHold(const void* raw)
@@ -429,7 +438,7 @@ const xrtownershipadapterv1* xl6ExecutionOwnershipAdapterV1(xrtownershipref ref,
     static const xrtownershippreparationv1 resourcePolicy={sizeof(resourcePolicy),&resources,resourceReady,resourcePrepare};
     size_t refs;if(!preparation)return NULL;
     if(ref.Ops==&sourceOps&&sourceCount(ref.Data,&refs)){*preparation=&sourcePolicy;return &sources;}
-    if(ref.Ops==&resourceOps&&ref.Data&&(!count||families)){
+    if(ref.Ops==&xl6ExecutionResourceNativeOpsV1&&ref.Data&&(!count||families)){
         const Resource* r=ref.Data;bool known=false;
         for(size_t i=0;i<count;++i)if(families[i]&&families[i]==r->family){known=true;break;}
         if(known&&r->family->size==sizeof(*r->family)&&r->family->abiTag==XL6_EXECUTION_FAMILY_TAG_V1&&

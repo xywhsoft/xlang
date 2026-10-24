@@ -1,5 +1,13 @@
 # trie
 
+2026-10-25 当前包级复验：Windows 默认 `test/check.ps1` 全通过，
+包含严格 C/ABI、800 步独立键集合模型、XLang 边界及分配故障、
+C/XLang 固定输出，以及核心和公开范例的独立 EXE AOT。
+WSL `test/check.sh` 同次通过 C ASan/UBSan、上述语言边界、
+原生方法访问负例和双语固定输出。Linux `release/xl` 仍是旧发布物，
+本轮未用新版 Linux 编译器构建独立 EXE；不能把这次 Linux JIT
+通过外推为 Linux AOT 签收。未发现需要修改的包内实现缺陷。
+
 前缀字符串集合。`Trie` 提供插入、精确包含、前缀存在、前缀词数、删除、清空和总词数；重复插入不增加计数。空字符串可作为一个键，空前缀始终存在，`countPrefix("")` 返回总词数。
 
 ```xlang
