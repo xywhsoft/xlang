@@ -1321,3 +1321,12 @@ python -X utf8 -B .\tools\build_lsp_core.py --frontend-root .\build\compiler-c-n
 证据：build/lsp-next-20261022/m7a2b19h-result.json；外部 m7a2b19h-05145245/component-v3、final-core-source-proof.json、protocol-qa-final-v1、gui-qa-final-v1、signature-native-cost-final-v1、signature-frame-final-v1。被否决实验保留在 rejected-shared-forest、rejected-adaptive-layout 及对应 same-process-* 目录。
 
 分配器实验均被撤回，最终所有 allocator／语义／AST 模块字节保持已接受的 0.49。完整否决数据和最终 wall／帧观测见 lsp-development.md。原生类型恢复复制仍是已识别的热点；下一阶段继续持久语义／IR 或经消费者审计的延迟物化，保留 fresh AST／IR／来源／取消对照及完整长期目标。
+
+
+## M7a2b19i：签名完整结果的独立对照
+
+新增完整树递归对照覆盖所有语义／词法标量、推断／声明类型子树、实际来源与坐标；retained 与 fresh 签名必须具有相同的 completion source stamp。四种最终注解预算、20 次带 BOM／CRLF／Unicode 和前置行变化的版本中，有效源码另做 16 次普通完整静态检查与 typed IR 验证，逐次比较 32 个稳定 helper（共 512 次）并核对实际完整 CALL 目标。跨普通／投影模式仅允许原本不同的 completion source stamp；没有放宽类型／符号／区域或来源路径。四次错误源码必须保留真实诊断。
+
+保留的热结果未暴露 AST，经过后续错误编辑并在会话销毁后，由四线程各读取 12 次，对照独立 fresh AST 并验证来源。既有取消、视图、容量和来源检查保持，签名夹具增至 38726 项断言。此为未来持久化重构的完整结果基准。
+
+三版函数体类型延后恢复原型均已撤回；最终核心接口、语义／分配规则与全部产品源码完全保持 0.50。只重编并运行新的测试夹具，旧完整原生／协议／IDE 证据通过相同产品摘要复用。没有新的性能或协议能力验收，完整长期目标 active。细节与否决数据见 lsp-development.md 同阶段及 build/lsp-next-20261022/m7a2b19i-result.json。
