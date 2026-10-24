@@ -30,6 +30,7 @@ xls_syntax* xlsSyntaxTryFunction(const char* path,xls_text* text,const xls_synta
  * transient compiler copies. No lazy AST view is permitted in this cache. */
 int xlsSyntaxCacheBytes(const xls_syntax* syntax,size_t limit,size_t* bytes);
 xls_parse_work xlsSemanticCheckModuleParseWork(const xls_semantic_check* result);
+xls_ast_intern_work xlsSemanticCheckMemoTypes(const xls_semantic_check* result);
 struct XL6_CompletionQuery;
 /* Private cursor parse. Query starts empty except absolute path/offset and
  * owns the shared parser's prefix on return, including rejected source.

@@ -51,7 +51,12 @@ typedef struct xls_sem_unit {
     xarray facts;
     size_t bytes;
     xls_sem_cursor cursor;
-    char* cursorPath;
+    /* Cursor facts own the original marker path. Static facts have no cursor
+     * path and can instead own a type forest in the same payload slot. The
+     * existing cursor.path distinguishes these roles. With no marker,types
+     * is active (possibly NULL for independent facts);with a marker the
+     * cursorPath member is active. Foreground layout remains unchanged. */
+    union {char* cursorPath;xls_ast_intern* types;};
 } xls_sem_unit;
 typedef struct xls_sem_position { XL6_AstRange range,token; int line,column; } xls_sem_position;
 typedef struct xls_sem_entry {
@@ -68,6 +73,7 @@ struct xls_sem_memo {
     xstrbuf context;
     xarray entries;
     size_t bytes;
+    xls_ast_intern_work typeWork;
 };
 typedef struct xls_sem_move {
     const xls_text *oldText,*newText;
@@ -334,7 +340,13 @@ static void xlsSemFactsFree(xarray* facts)
 static xls_sem_unit* xlsSemUnitRetain(xls_sem_unit* unit)
 { if(unit) xrtAtomic32FetchAdd(&unit->references,1,XMEMORY_RELAXED); return unit; }
 static void xlsSemUnitRelease(xls_sem_unit* unit)
-{ if(unit && xrtAtomic32FetchSub(&unit->references,1,XMEMORY_ACQ_REL)==1) { xlsSemFactsFree(&unit->facts); xrtFree(unit->cursorPath); xrtFree(unit); } }
+{
+    if(unit && xrtAtomic32FetchSub(&unit->references,1,XMEMORY_ACQ_REL)==1){
+        if(!unit->cursor.path && unit->types){xrtArrayUnit(&unit->facts);xlsAstInternDestroy(unit->types);}
+        else{xlsSemFactsFree(&unit->facts);if(unit->cursor.path)xrtFree(unit->cursorPath);}
+        xrtFree(unit);
+    }
+}
 typedef struct xls_sem_type_copy {
     const XL6_AstNode* root;
     xls_ast_clone_options options;
@@ -386,8 +398,31 @@ static int xlsSemCopyFactTypesWithCursor(xarray* facts,const xls_ast_clone_optio
 }
 static int xlsSemCopyFactTypes(xarray* facts,const xls_ast_clone_options* options,size_t* bytes)
 {return xlsSemCopyFactTypesWithCursor(facts,options,NULL,NULL,bytes,0,NULL);}
-static int xlsSemCaptureFacts(const xarray* nodes,xarray* facts,size_t limit,size_t* bytes)
+static int xlsSemCaptureTypes(xls_sem_unit* unit,size_t limit,size_t* bytes)
 {
+    xarray types={0},slots={0};xarray* facts=&unit->facts;*bytes=0;
+    int okay=xrtArrayInit(&types,sizeof(const XL6_AstNode*)) && xrtArrayInit(&slots,sizeof(XL6_AstNode**));
+    for(size_t i=0;okay && i<facts->Count;++i){
+        xls_sem_fact* f=xrtArrayGet(facts,i);XL6_AstNode** fields[]={&f->inferred,&f->declaredType};
+        for(size_t j=0;okay && j<2;++j)if(*fields[j])okay=xrtArrayPush(&types,fields[j]) && xrtArrayPush(&slots,&fields[j]);
+    }
+    /* Unit facts borrow captured roots;only the immutable forest owns them.
+     * Clear borrowed compiler inputs even if gathering or capture failed. */
+    for(size_t i=0;i<facts->Count;++i){xls_sem_fact* f=xrtArrayGet(facts,i);f->inferred=f->declaredType=NULL;}
+    if(okay && types.Count){
+        xls_ast_intern_work work;
+        unit->types=xlsAstInternCapture((const XL6_AstNode**)types.Data,types.Count,limit,1024u*1024u,&work);
+        okay=unit->types!=NULL;
+        if(okay){
+            *bytes=(size_t)work.treeBytes;
+            for(size_t i=0;i<slots.Count;++i)**(XL6_AstNode***)xrtArrayGet(&slots,i)=(XL6_AstNode*)*(const XL6_AstNode**)xrtArrayGet(&types,i);
+        }
+    }
+    xrtArrayUnit(&types);xrtArrayUnit(&slots);return okay;
+}
+static int xlsSemCaptureFacts(const xarray* nodes,xls_sem_unit* unit,size_t limit,size_t* bytes,int shareTypes)
+{
+    xarray* facts=&unit->facts;
     *bytes=0;
     if(!xrtArrayInit(facts,sizeof(xls_sem_fact)) || nodes->Count>limit/sizeof(xls_sem_fact) ||
        !xrtArrayResize(facts,nodes->Count) || facts->Capacity>limit/sizeof(xls_sem_fact)) return 0;
@@ -399,7 +434,11 @@ static int xlsSemCaptureFacts(const xarray* nodes,xarray* facts,size_t limit,siz
             n->semanticCompoundOperatorSymbolId,n->semanticTypeAbiId,n->semanticCallKind,n->semanticLvalueKind,n->semanticOwnership,
             n->semanticExitKind,n->semanticScopeDepth,n->semanticTargetScopeDepth,n->semanticRegionId,n->semanticTargetRegionId,n->inferredType,n->semanticDeclaredType};
     }
-    size_t owned=0; int okay=xlsSemCopyFactTypes(facts,&(xls_ast_clone_options){.bytes=limit-*bytes},&owned);
+    /* Foreground cursor/signature memos keep the original independent fact
+     * representation. Static checks can retain the resource-saving forest.
+     * No language,source,coordinate or private restoration rules differ. */
+    size_t owned=0; int okay=shareTypes ? xlsSemCaptureTypes(unit,limit-*bytes,&owned) :
+        xlsSemCopyFactTypes(facts,&(xls_ast_clone_options){.bytes=limit-*bytes},&owned);
     *bytes+=owned; return okay;
 }
 
@@ -610,10 +649,12 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
             if(unit) {
                 xrtAtomic32Init(&unit->references,1);
                 size_t markerBytes=build->queryCursor.path ? strlen(build->queryCursor.path)+1 : 0;
-                if(markerBytes<=XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit)) unit->cursorPath=markerBytes ? xrtStrDup(build->queryCursor.path) : NULL;
-                unit->cursor=build->queryCursor;unit->cursor.path=unit->cursorPath;
-                if(markerBytes<=XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit) && (!markerBytes || unit->cursorPath) &&
-                   xlsSemCaptureFacts(&raw,&unit->facts,XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit)-markerBytes,&owned)) {
+                char* marker=NULL;
+                if(markerBytes<=XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit)) marker=markerBytes ? xrtStrDup(build->queryCursor.path) : NULL;
+                unit->cursor=build->queryCursor;unit->cursor.path=marker;
+                if(marker)unit->cursorPath=marker;else unit->types=NULL;
+                if(markerBytes<=XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit) && (!markerBytes || unit->cursor.path) &&
+                   xlsSemCaptureFacts(&raw,unit,XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit)-markerBytes,&owned,build->deferredQuery==NULL)) {
                     unit->bytes=owned+sizeof(*unit)+markerBytes;
                     entry->unit=unit; m->bytes+=unit->bytes;
                 } else xlsSemUnitRelease(unit);
@@ -629,6 +670,8 @@ void xlsFrontendSemMemoDestroy(xls_sem_memo* memo)
     for(size_t i=0;i<memo->entries.Count;++i) { xls_sem_entry* e=xrtArrayGet(&memo->entries,i); xrtStrBufFree(&e->key); xrtArrayUnit(&e->positions); xlsSemUnitRelease(e->unit); }
     xrtArrayUnit(&memo->entries); xrtStrBufFree(&memo->context); xrtFree(memo->path); xrtFree(memo);
 }
+xls_ast_intern_work xlsFrontendSemMemoTypes(const xls_sem_memo* memo)
+{return memo ? memo->typeWork : (xls_ast_intern_work){0};}
 static void xlsSemMoveFree(xbytesview key,void* value,void* user)
 {
     (void)key; (void)user; xls_sem_move* move=value;
@@ -706,6 +749,14 @@ static int xlsSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mod
     xlsActiveSemBuild=build.previous; xrtMapUnit(&build.slots); xrtMapUnit(&build.sources);
     xrtMapUnit(&build.moves.paths); xrtArrayUnit(&build.moves.changedSources);
     build.work.bytes=memo && build.enabled ? memo->bytes : 0;
+    if(memo && build.enabled && !query)for(size_t i=0;i<memo->entries.Count;++i){
+        const xls_sem_entry* entry=xrtArrayConstGet(&memo->entries,i);if(!entry->unit)continue;
+        xls_ast_intern_work types=xlsAstInternWork(entry->unit->types);
+#define XLS_TYPE_ADD(field) memo->typeWork.field+=types.field
+        XLS_TYPE_ADD(references);XLS_TYPE_ADD(uniqueRoots);XLS_TYPE_ADD(hits);XLS_TYPE_ADD(treeBytes);XLS_TYPE_ADD(keyBytes);XLS_TYPE_ADD(fallbacks);
+#undef XLS_TYPE_ADD
+        if(types.peakKeyBytes>memo->typeWork.peakKeyBytes)memo->typeWork.peakKeyBytes=types.peakKeyBytes;
+    }
     if(work) *work=build.work;
     if(result && build.enabled) *result=memo; else xlsFrontendSemMemoDestroy(memo);
     return okay;

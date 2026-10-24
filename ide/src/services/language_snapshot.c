@@ -50,6 +50,15 @@ static int sessionCacheStats(xvalue* stats,const xide_language_check* q)
   put(value,"inputStorageLimit",xrtValueInt((int64)s->inputStorageLimit)) && put(value,"inputBudgetExceeded",xrtValueBool(s->inputBudgetExceeded!=0));
  if(okay){okay=put(stats,"sessionCache",value);value=NULL;}xrtValueRelease(value);return okay;
 }
+static int memoTypeStats(xvalue* stats,xls_ast_intern_work work)
+{
+ xvalue* value=xrtValueObject();int okay=value!=NULL;
+#define MEMO_TYPE_FIELD(field) okay=okay && put(value,#field,xrtValueInt((int64)work.field))
+ MEMO_TYPE_FIELD(references);MEMO_TYPE_FIELD(uniqueRoots);MEMO_TYPE_FIELD(hits);MEMO_TYPE_FIELD(treeBytes);
+ MEMO_TYPE_FIELD(keyBytes);MEMO_TYPE_FIELD(peakKeyBytes);MEMO_TYPE_FIELD(fallbacks);
+#undef MEMO_TYPE_FIELD
+ if(okay){okay=put(stats,"memoTypes",value);value=NULL;}xrtValueRelease(value);return okay;
+}
 static xls_semantic_check* retainedCheck(xide_language_check* q,xide_model_error* e)
 {
  xls_analysis_document documents[64];
@@ -699,7 +708,7 @@ analysed:
    put(stats,"semanticFunctionsChecked",xrtValueInt((int64)q->semanticStats.semanticFunctionsChecked)) &&
    put(stats,"semanticFunctionsReused",xrtValueInt((int64)q->semanticStats.semanticFunctionsReused)) &&
    put(stats,"semanticContextHits",xrtValueInt((int64)q->semanticStats.semanticContextHits)) &&
-   put(stats,"semanticMemoBytes",xrtValueInt((int64)q->semanticStats.semanticMemoBytes)) && sessionCacheStats(stats,q);
+   put(stats,"semanticMemoBytes",xrtValueInt((int64)q->semanticStats.semanticMemoBytes)) && sessionCacheStats(stats,q) && memoTypeStats(stats,xlsSemanticCheckMemoTypes(nativeCheck));
   xvalue* entryWork=xrtValueObject();
   okayStats=okayStats && entryWork && put(entryWork,"parsed",xrtValueInt((int64)q->entryParseWork.parsed)) &&
    put(entryWork,"reused",xrtValueInt((int64)q->entryParseWork.reused)) && put(entryWork,"declined",xrtValueInt((int64)q->entryParseWork.declined)) &&

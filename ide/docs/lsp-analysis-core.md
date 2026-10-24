@@ -1381,3 +1381,18 @@ immutable input_batch 改为 XRT 原子引用 owner。worker 的每种服务保�
 输入计费包括文本容量、上下文及已知批次／标签；共享容量按根保守重复计费，不包含 AST／IR／语义 memo／解析缓存、allocator／容器元数据、额外当前历史引用和调用方持有结果。槽位／输入预算使缓存有界，但 64 MiB 不是语义总内存或 RSS cap；活跃会话单独超额仍接受原语言输入，创建额外会话失败可复用已有同类会话。真正模型预算仍待后续实现。
 
 131 原生对象完整构建、57 夹具／58 PE／59 outputs／60 AST17 consumers／51 archive members；32 套 859 协议及 18 组 IDE 重跑。原生核心仍独立 compiler XRT，无 xge.dll／xlc.dll 依赖。106 GUI 产品对象经实际依赖和预处理 token 证明复用；测量夹具 fresh link。1152 stdio／160 GUI 切换样本、冷请求及内存成本见 lsp-development.md 和外部证据。根会话保留不等于模块图／语义 IR 真正增量，完整长期目标 active，发布未更新。
+
+
+## M7a2b21b：不可变 memo 类型森林（0.54）
+
+analysis/ast_intern 是纯 C／XRT opaque owner。仅静态检查启用共享；前台保持原副本、布局及响应字段。Capture 从借用的类型根列表构建独立只读森林，成功后才替换返回引用；失败不消费／改写输入。精确身份包含全部词法／语义字段、完整 range/tokenRange（含未知范围的值）、来源存在／原路径／完成标记、文字／文档和显式长度字面量及递归结构；不将分配 owner、容量、source refcount、指针或 padding 当作语义身份。共享只发生在 forest 的根引用，子树仍由原 clone 生成独立所有权。
+
+XRT map 保留精确字节键，批量紧凑标量加本次捕获的原路径字典；没有自建容器、内存池、类型或路径语言规则。每函数默认 1 MiB 临时索引键／值逻辑计费；失败／超额退回原独立副本森林。真正 clone 数据预算另外遵守；临时 XRT 开销不是 RSS 上限。单元既有原子引用计数持有 forest，owner 自持统计；单元原 cursorPath 槽改为相同布局的显式 union：有 cursor.path 时激活 marker 字符串，没有 marker 时激活 types（可为 NULL）。独立前台事实无 marker 时 types 为 NULL，memo facts 只借用只读类型，避免逐事实重复持有副本。销毁只由单元 owner 释放唯一森林。
+
+恢复编译器事实仍沿原逐位置 clone，提供独立可变类型树，来源／光标重绑与保守坐标规则保持。没有让 mutable compiler AST 分享类型，也没有恢复之前被否决的分配器／默认池优化。原函数检查、模块声明、最终注解／IR 验证、取消检查点、输入历史和原 disk／manifest／probe／配置／发布守卫保持。
+
+新增静态 memo 类型来源 getter 和 静态 native 宿主 analysis.memoTypes；它是创建该模型时的 retained-unit 统计，缓存／视图保持同一值。roots/hits 指类型根别名，treeBytes 是森林逻辑数据，keyBytes 和 peakKeyBytes 是已释放临时身份数据的统计，均不能当作进程活内存或当前查询命中。
+
+133 对象 fresh build／58 fixtures／59 PE／60 outputs／52 archive members／62 AST17 consumers。345 身份／预算／真实索引故障断言、400 并发独立 clone，1064 memo／2100 cursor／38727 signature 与 744 worker 取消门通过；33 套 907 协议（新增两版各24）、18 组 IDE 回归。106 GUI 实际依赖及 token 证明支撑 35 程序复用。1152 热／288 编辑／240 冷 stdio、160 标签／320 逗号手动光标帧、进程 CPU 和 private／working set 证据见 lsp-development.md 及 m7a2b21b-c2ed0cca。
+
+模块／IR 的真正持久增量和整体模型预算仍待后续，不将该内部表示优化当作完整 LSP／IDE 目标完成。外部 executable、future opaque xlc.dll、无 DAP／运行态补全；发布目录未改，goal active。
