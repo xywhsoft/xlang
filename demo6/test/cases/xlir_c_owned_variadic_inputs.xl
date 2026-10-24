@@ -1,0 +1,59 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+func make() as cbytes
+    return cbytes.take(nativeBytes(),4,nativeFree)
+end
+typedef Blob=bytes
+func arrayReader(Blob data,... ) as bool
+    return originalBytes(data) and arg.length<=2
+end
+func dictReader(bytes data,***) as bool
+    return originalBytes(data) and arg.length<=2
+end
+func textEcho(string data,...) as string
+    return data
+end
+func product(string text,bytes data,***) as (string,bytes,int)
+    return text,data,arg.length
+end
+func defaultReader(bytes data=make(),...) as bool
+    return originalBytes(data)
+end
+func genericReader<T>(T data,...) as T
+    return data
+end
+class Reader
+    func inspect(bytes data,***) as bool
+        return originalBytes(data)
+    end
+end
+async func asyncReader(bytes data,...) as bool
+    return originalBytes(data)
+end
+func check()
+    auto data=make()
+    auto text=cstring.take(nativeText(),nativeFree)
+    assert arrayReader(data) and arrayReader(data,1,"tail")
+    assert dictReader(data) and dictReader(data,answer=42,label="tail")
+    assert dictReader(data=data,answer=42)
+    assert original(textEcho(text,1))
+    auto outText,outBytes,count=product(text,data,answer=42)
+    assert original(outText) and originalBytes(outBytes) and count==1
+    assert originalBytes(genericReader(data,1))
+    assert originalBytes(genericReader::<bytes>(data,"tail"))
+    assert Reader().inspect(data,answer=42)
+end
+func defaults()
+    assert defaultReader()
+end
+check()
+defaults()
+async func tasks()
+    auto data=make()
+    assert await asyncReader(data,1)
+    assert await task.spawn(arrayReader,data,1)
+end
+await tasks()
