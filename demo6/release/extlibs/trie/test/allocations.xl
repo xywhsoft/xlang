@@ -6,7 +6,8 @@ extern "xrtMemDebugFailClear" func failClear()
 
 int createFailures = 0
 int createSuccesses = 0
-for allocation in range(12)
+// 从首个分配点扫到成功路径，不依赖运行时固定的分配次数。
+for allocation in range(128)
     bool caught = false
     assert failAfter(uint64(allocation))
     try
@@ -17,14 +18,16 @@ for allocation in range(12)
     end
     bool triggered = failTriggered()
     failClear()
-    assert caught == triggered
+    assert caught == triggered, "create error does not match injection"
     if caught then createFailures += 1 else createSuccesses += 1 end
+    if createFailures > 0 and createSuccesses > 0 then break end
 end
-assert createFailures > 0 and createSuccesses > 0
+assert createFailures > 0 and createSuccesses > 0, "create scan lacks failure or success"
 
 int insertFailures = 0
 int insertSuccesses = 0
-for allocation in range(16)
+// 插入也逐点扫描；找到故障和恢复后立即停止。
+for allocation in range(128)
     trie.Trie words = trie.create()
     words.insert("old")
     bool caught = false
@@ -36,15 +39,16 @@ for allocation in range(16)
     end
     bool triggered = failTriggered()
     failClear()
-    assert caught == triggered
-    assert words.contains("old")
-    assert words.contains("new") == not caught
+    assert caught == triggered, "insert error does not match injection"
+    assert words.contains("old"), "insert failure lost old key"
+    assert words.contains("new") == not caught, "insert result differs from error"
     if caught then
-        assert words.count == 1
+        assert words.count == 1, "failed insert changed count"
     else
-        assert words.count == 2
+        assert words.count == 2, "successful insert did not change count"
     end
     if caught then insertFailures += 1 else insertSuccesses += 1 end
+    if insertFailures > 0 and insertSuccesses > 0 then break end
 end
-assert insertFailures > 0 and insertSuccesses > 0
+assert insertFailures > 0 and insertSuccesses > 0, "insert scan lacks failure or success"
 println("trie allocations: PASS")

@@ -29,6 +29,14 @@ XLang 使用字符串的完整字节长度，内嵌 NUL 不会截断。底层按
 
 ## 验证
 
+2026-10-24：更新后的 Windows 发布版首次运行默认门禁时，分配故障
+测试将扫描硬编码为创建前 12 次、插入前 16 次；运行时分配次数变化后，
+这些点全部命中故障，误报“没有成功路径”。现在各扫描最多 128 点，
+找到故障与成功后提前结束，并给每个关键断言附诊断。修改后默认
+`test/check.ps1` 的严格 C、独立键集合、语言边界、分配故障、双语
+固定输出以及核心/公开范例 AOT 全部通过。旧 AOT 缺符号记录属于
+先前发布物；本次没有重跑 Linux sanitizer。
+
 Windows 聚焦快测：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/trie/test/check.ps1 -SkipAot`。它同次检查 C 独立键集合模型、包外 `insertNative` 访问拒绝、XLang 边界及 C/XLang 固定范例输出。去掉 `-SkipAot` 后，默认还构建运行无输出核心和公开范例 AOT，后者须匹配同一黄金输出；构建使用单次独占目录并在失败后清理。当前快测和核心 AOT 通过，完整范例仍缺共享 `xl6ValueDataSnapshotV1`，整包不签收发布级。
 
 从 `demo6` 目录运行：
