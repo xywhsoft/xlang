@@ -85,6 +85,12 @@ XZIP_EXPORT const char* xzip_last_error(void)
 	return xrtErrorMessage(xrtGetError());
 }
 
+XZIP_EXPORT bool xzip_last_error_is_memory(void)
+{
+	const xerror* pError = xrtGetError();
+	return pError != NULL && xrtErrorKind(pError) == XERR_MEMORY;
+}
+
 
 
 XZIP_EXPORT void* xzip_archive_create(int iMethod, int iLevel,

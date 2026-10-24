@@ -1,11 +1,11 @@
 # zip
 
-2026-10-24：更新后的 Windows 发布版 `xl.exe` 跑通默认
-`test/check.ps1`，包括 C/XLang 边界、私有成员拒绝、C/XLang 范例及
-核心与范例 AOT。但 `dev/extlib_blockers/zip_error_dispatch.xl` 仍稳定
-复现原生 `IOError` 抢先于包装层 `ArchiveError` 抛出，退出码为 1；
-因此公开异常合同尚未签收。Linux 解压目标目录的并发替换风险也未因
-这次 Windows 门禁消失。旧 AOT 缺符号诊断是历史状态。
+2026-10-25：当前 Windows 发布版 `xl.exe` 的默认 `test/check.ps1`
+通过 C/XLang 边界、私有成员拒绝、双语范例及核心、边界、范例 AOT。
+原生布尔失败由包内包装层转换为 `ArchiveError`，内存故障仍为
+`MemoryError`；`dev/extlib_blockers/zip_error_dispatch.xl` 复验退出码为 0。
+这不是最终发布签收：包外私有内存构造器仍可调用，Linux 解压目标目录
+仍有并发替换风险。旧版 `cstring` 和 AOT 缺符号诊断仅作历史记录。
 
 基于 XRT ZIP/libzip 的内存及文件归档接口。`import zip` 后可用
 `create`、`open(Buffer)`、`open(path, mode)`；`ZipArchive` 提供增删条目、
@@ -52,7 +52,7 @@ C 配置使用 `xrtZipOptionsInit` 初始化。ZIP 实际使用输入、输出�
 
 - `powershell -ExecutionPolicy Bypass -File release/extlibs/zip/test/check.ps1 -SkipAot`
   验证包侧 C/XLang 和双语范例固定输出；去掉 `-SkipAot` 后依次
-  构建/运行核心 AOT、构建/运行带输出的 ZIP 范例 AOT，并核对输出。
+  构建/运行核心、边界及带输出的 ZIP 范例 AOT，并核对输出。
   门禁 AOT 产物使用本次独占的 `build/test` 子目录，退出时清理，
   不复用或覆盖旧的 `zip_aot_core.exe`。
 - `xl run examples/extlibs/zip.xl`
@@ -82,18 +82,12 @@ C 范例依赖 ZIP 封装、`_libzip` 和其传递依赖，必须由包运行器
 编译检查，并构建运行纯内存 `test/aot_core.xl`。在同一输入下，
 补齐 `zip`、`_libzip` 的实际 XRT 模块及 `_zlib` 的空模块清单后，
 此前 Windows AOT 从 4,039,680 缩至 1,175,040 字节；这不是完整 ZIP
-文件解压路径的 AOT 验收。当前发布构建的核心 AOT 又在
-`xl6NativeHandleTraceLeaf` 缺符号处失败，见
-`demo6/dev/extlib_blockers/native_handle_trace_aot.md`，先前体积与通过结果
-仅是当时构建的基线，不代表当前构建已验收。2026-10-20 默认门禁实测
-在核心 AOT 构建处退出；新增的完整范例 AOT 阶段尚未执行到，不能视为通过。
-
-XL AOT 边界测试当前缺少主线 `xl6ValueDataSnapshotV1` 符号，见
-`demo6/dev/extlib_blockers/text_snapshot_link.md`。未完成发布验收。
-2026-10-16 Linux/Windows 中央用例的危险路径负例应捕获包装层的
-`ArchiveError`，但 extern 原生错误先被运行时抛为 `IOError`，包装层的
-转换分支未执行；见 `dev/extlib_blockers/zip_error_dispatch.md`。
-包内 `test/boundaries.xl` 通过不代表这个异常合同已修复。包内部 XRT
+文件解压路径的 AOT 验收。2026-10-20 的构建曾被
+`xl6NativeHandleTraceLeaf` / `xl6ValueDataSnapshotV1` 缺符号阻断，
+2026-10-25 的发布版已通过默认包门禁的三个 AOT 目标。
+2026-10-16 的危险路径曾被原生 `IOError` 抢先抛出；当前包使用
+`@no_raise` 让包装层统一转换，并对内存故障单独保留 `MemoryError`。
+包内部 XRT
 模块宏改为条件定义，避免导入生成 C 时与 manifest 预定义重复。
 
 2026-10-18：Linux 最小用例先复现解压目标根目录本身是符号链接时，
@@ -112,11 +106,11 @@ Linux `test/check.sh` 的 C ASan/UBSan、XLang 对照及符号链接专项通过
 文件提取的 Writer 阶段现有写入、刷新、关闭及复合失败的 C 注入矩阵；
 不会让关闭故障覆盖之前的写入/刷新错误。该矩阵使用包内 Writer helper，
 尚未对真实文件句柄注入操作系统刷新/关闭失败，因此不能据此宣称磁盘
-事务清理已穷尽验证。完整 AOT 未运行；上述私有构造器、解压目录并发
-安全与主线异常分派阻断仍未解除。
+事务清理已穷尽验证。该段记录中的完整 AOT 和异常分派阻断已由
+2026-10-25 Windows 门禁解除；私有构造器及解压目录并发安全仍未解决。
 
 同日：Linux 负例先复现目标目录的父级为符号链接时仍向链接外写入；
 解压入口现于创建目录前逐级检查已有父路径，拒绝链接及非目录。
 Windows `-SkipAot` C/XLang 与双语门禁、Linux C ASan/UBSan、XLang 和
 符号链接专项均通过。此检查不锚定文件描述符，不能阻止检查后被并发
-替换的目录；私有构造器、异常分派和完整 AOT 阻断也保持未签收。
+替换的目录；私有构造器仍未签收。异常分派与 AOT 的当时阻断现已解除。

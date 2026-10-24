@@ -1,5 +1,9 @@
 import zip
 
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
 func main(...) as int
     zip.ZipArchive writer = zip.create()
     writer.add("你好.txt", "UTF-8 内容")
@@ -9,6 +13,34 @@ func main(...) as int
     writer.add("data.bin", binary, method="store", level=0)
     writer.setEntryComment("data.bin", "binary")
     assert writer.count == 2
+    string memoryName = "memory.txt"
+    bool memoryRejected = false
+    bool memoryTriggered = false
+    assert failAfter(uint64(0))
+    try
+        writer.add(memoryName, binary)
+    catch MemoryError error
+        memoryRejected = true
+    finally
+        memoryTriggered = failTriggered()
+        failClear()
+    end
+    assert memoryTriggered and memoryRejected and writer.count == 2, "ZIP memory failure classification"
+    for mode in range(7)
+        bool archiveRejected = false
+        try
+            if mode == 0 then writer.add("../escape.txt", "bad") end
+            if mode == 1 then writer.add("../escape.bin", binary) end
+            if mode == 2 then writer.addFile("../escape.txt", "missing.txt") end
+            if mode == 3 then writer.mkdir("../escape") end
+            if mode == 4 then writer.remove("missing.txt") end
+            if mode == 5 then writer.rename("missing.txt", "new.txt") end
+            if mode == 6 then writer.setEntryComment("missing.txt", "bad") end
+        catch ArchiveError error
+            archiveRejected = true
+        end
+        assert archiveRejected and writer.count == 2, "ZIP failures must use ArchiveError and preserve entries"
+    end
     assert writer.contains("你好.txt")
     assert not writer.contains("missing.txt")
 

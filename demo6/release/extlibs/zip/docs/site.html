@@ -75,8 +75,8 @@ int main(void)
     <pre><code>xl run extlibs/zip/test/boundaries.xl
 xl run examples/extlibs/zip.xl
 powershell -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package zip -Source release/extlibs/zip/test/test_zip.c</code></pre>
-    <p>包内 XLang 边界、C 包级测试及双语范例固定输出在当前 Windows 发行版通过；默认门禁还会构建并运行核心与带输出范例 AOT。当前核心 AOT 构建先被主线 <code>xl6NativeHandleTraceLeaf</code> 缺符号阻断，后续范例 AOT 尚未执行，其他边界仍有 <code>xl6ValueDataSnapshotV1</code> 缺符号。危险路径的原生错误会在包装层转换前被抛为 <code>IOError</code>，中央用例期待的 <code>ArchiveError</code> 合同尚未满足。不能视为最终发布签收。</p>
-    <p>自定义 C Writer 的流式条目输出区分内存故障和普通 I/O；文件提取的 Writer 阶段也有写入、刷新、关闭与复合失败的注入回归，保留最先失败阶段的错误类别。Windows 聚焦门禁、Linux C ASan/UBSan 与符号链接专项通过；真实文件句柄的操作系统刷新/关闭失败仍未注入。完整 AOT、包外私有构造器和并发修改目标目录的安全边界仍未签收。</p>
+    <p>当前 Windows 发布版的默认包门禁通过 C/XLang 边界、私有成员拒绝、双语范例，以及核心、边界、范例三个 AOT 目标。危险路径、缺失条目等失败由包装层抛出 <code>ArchiveError</code>；原生内存故障仍保留 <code>MemoryError</code>。旧版 AOT 缺符号和原生 <code>IOError</code> 抢先抛出的诊断已不适用于当前包。</p>
+    <p>自定义 C Writer 的流式条目输出区分内存故障和普通 I/O；文件提取的 Writer 阶段也有写入、刷新、关闭与复合失败的注入回归，保留最先失败阶段的错误类别。Linux C ASan/UBSan 与符号链接专项曾通过，但本次包更新尚未在 Linux XLang 发布版复验。真实文件句柄的操作系统刷新/关闭失败仍未注入；包外私有构造器和并发修改目标目录的安全边界仍未签收，不能视为最终发布签收。</p>
   </section>
 </main>
 <script src="../main.js"></script>

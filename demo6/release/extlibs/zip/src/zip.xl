@@ -1,4 +1,11 @@
-extern "xzip_last_error" func __zip_error() as string
+extern "xzip_last_error" @no_raise func __zip_error_text() as string
+extern "xzip_last_error_is_memory" @no_raise func __zip_memory_error() as bool
+
+// 原生内存失败仍是 MemoryError，其他 ZIP 错误由调用处转为 ArchiveError。
+func __zip_error() as string
+    if __zip_memory_error() then throw MemoryError __zip_error_text() end
+    return __zip_error_text()
+end
 
 func __zip_cstr(string value)
     if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
@@ -105,19 +112,19 @@ export class ZipArchive
     private extern "xzip_archive_directory_at" func directoryNative(int index) as bool
     private extern "xzip_archive_comment_at" func commentNative(int index) as point
     private extern "xzip_archive_read_at" func readNative(int index) as point
-    private extern "xzip_archive_add_text" func addTextNative(string name, cstring text,
+    private extern "xzip_archive_add_text" @no_raise func addTextNative(string name, cstring text,
         c_bool overwrite, c_int method, c_int level) as bool
-    private extern "xzip_archive_add" func addNative(string name, point data, c_size size,
+    private extern "xzip_archive_add" @no_raise func addNative(string name, point data, c_size size,
         c_bool overwrite, c_int method, c_int level) as bool
-    private extern "xzip_archive_add_file" func addFileNative(string name, string path,
+    private extern "xzip_archive_add_file" @no_raise func addFileNative(string name, string path,
         c_bool overwrite, c_int method, c_int level) as bool
-    private extern "xzip_archive_add_directory" func mkdirNative(string name) as bool
-    private extern "xzip_archive_delete" func removeNative(string name) as bool
-    private extern "xzip_archive_rename" func renameNative(string oldName, string newName) as bool
-    private extern "xzip_archive_set_comment" func setCommentNative(string comment) as bool
-    private extern "xzip_archive_set_entry_comment" func setEntryCommentNative(string name, string comment) as bool
-    private extern "xzip_archive_extract_all" func extractAllNative(string destination, c_bool overwrite) as bool
-    private extern "xzip_archive_close" func closeNative() as bool
+    private extern "xzip_archive_add_directory" @no_raise func mkdirNative(string name) as bool
+    private extern "xzip_archive_delete" @no_raise func removeNative(string name) as bool
+    private extern "xzip_archive_rename" @no_raise func renameNative(string oldName, string newName) as bool
+    private extern "xzip_archive_set_comment" @no_raise func setCommentNative(string comment) as bool
+    private extern "xzip_archive_set_entry_comment" @no_raise func setEntryCommentNative(string name, string comment) as bool
+    private extern "xzip_archive_extract_all" @no_raise func extractAllNative(string destination, c_bool overwrite) as bool
+    private extern "xzip_archive_close" @no_raise func closeNative() as bool
     private extern "xzip_archive_take_buffer" func takeBufferNative() as point
 
     get valid() as bool

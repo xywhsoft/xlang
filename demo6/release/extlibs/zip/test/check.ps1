@@ -64,6 +64,10 @@ try {
         Run 'XLang core AOT build' $xl @('build',
             'release/extlibs/zip/test/aot_core.xl', '-o', $output)
         Run 'XLang core AOT call' $output @() ''
+        $boundaryAot = Join-Path $work 'zip_aot_boundaries.exe'
+        Run 'XLang boundaries AOT build' $xl @('build',
+            'release/extlibs/zip/test/boundaries.xl', '-o', $boundaryAot)
+        Run 'XLang boundaries AOT' $boundaryAot @() 'zip boundaries: ok'
         $exampleAot = Join-Path $work 'zip_aot_example.exe'
         Run 'XLang example AOT build' $xl @('build',
             'release/examples/extlibs/zip.xl', '-o', $exampleAot)
