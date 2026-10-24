@@ -4,6 +4,26 @@
 #include "analysis/ast_clone.h"
 #define XLS_SEM_MEMO_BYTES (64u*1024u*1024u)
 #define XLS_SEM_KEY_BYTES (8u*1024u*1024u)
+static _Thread_local xls_sem_storage_control* xlsActiveStorage;
+size_t xlsFrontendSemStorageBudget(void)
+{return xlsActiveStorage ? xlsActiveStorage->budget-(size_t)xlsActiveStorage->work.chargedBytes : 64u*1024u*1024u;}
+void xlsFrontendSemStorageBegin(xls_sem_storage_control* control,size_t bytes)
+{
+    if(!control)return;
+    size_t available=xlsFrontendSemStorageBudget();if(bytes>available)bytes=available;
+    *control=(xls_sem_storage_control){.previous=xlsActiveStorage,.budget=bytes};xlsActiveStorage=control;
+}
+void xlsFrontendSemStorageEnd(xls_sem_storage_control* control,xls_sem_storage_work* work)
+{
+    if(work)*work=(xls_sem_storage_work){0};
+    if(!control || xlsActiveStorage!=control)return;
+    if(work)*work=control->work;
+    xlsActiveStorage=control->previous;
+    if(xlsActiveStorage){
+        xlsActiveStorage->work.nodes+=control->work.nodes;xlsActiveStorage->work.pages+=control->work.pages;
+        xlsActiveStorage->work.chargedBytes+=control->work.chargedBytes;xlsActiveStorage->work.heapFallbacks+=control->work.heapFallbacks;
+    }
+}
 typedef struct xls_sem_fact {
     unsigned flags;
     uint32 type,symbol,declared,target,compound;
@@ -327,8 +347,9 @@ static int xlsSemTypeTransform(const XL6_AstNode* in,XL6_AstNode* out,void* user
 static XL6_AstSource* xlsSemTypeSource(const XL6_AstSource* in,void* user)
 { xls_sem_type_copy* copy=user; return copy->options.targetSource(in,copy->options.user); }
 static int xlsSemCopyFactTypesWithCursor(xarray* facts,const xls_ast_clone_options* options,
-    xls_ast_cursor_source_policy policy,void* policyUser,size_t* bytes)
+    xls_ast_cursor_source_policy policy,void* policyUser,size_t* bytes,int pooled,int* attempted)
 {
+    if(attempted)*attempted=0;
     /* Borrow input type pointers only while gathering. Clear them before any
      * failure can make the caller destroy this output array. One clone owns
      * every copied type, sharing its source map across the whole function. */
@@ -345,8 +366,15 @@ static int xlsSemCopyFactTypesWithCursor(xarray* facts,const xls_ast_clone_optio
     if(!types.Count) { xrtArrayUnit(&types); xrtArrayUnit(&slots); return 1; }
     XL6_AstNode root={.kind=XL6_AST_MODULE,.children=(XL6_AstNode**)types.Data,.childCount=types.Count};
     xls_sem_type_copy copy={&root,*options};
-    XL6_AstNode* owned=options->bytes ? xlsAstCloneWithCursorSource(&root,&(xls_ast_clone_options){xlsSemTypeTransform,&copy,options->bytes,0,
-        options->targetSource ? xlsSemTypeSource : NULL},policy,policyUser,bytes) : NULL;
+    xls_ast_clone_options cloneOptions={xlsSemTypeTransform,&copy,options->bytes,0,options->targetSource ? xlsSemTypeSource : NULL};
+    XL6_AstNode* owned=NULL;int triedPool=0;
+    if(options->bytes && pooled && xlsActiveStorage){
+        size_t budget=xlsFrontendSemStorageBudget();xls_ast_pool_work work={0};
+        if(budget){triedPool=1;if(attempted)*attempted=1;owned=xlsAstClonePooled(&root,&cloneOptions,policy,policyUser,budget,&work,bytes);}
+        if(owned){xlsActiveStorage->work.nodes+=work.nodes;xlsActiveStorage->work.pages+=work.pages;xlsActiveStorage->work.chargedBytes+=work.bytes;}
+        else ++xlsActiveStorage->work.heapFallbacks;
+    }
+    if(options->bytes && !owned && !triedPool)owned=xlsAstCloneWithCursorSource(&root,&cloneOptions,policy,policyUser,bytes);
     int copied=owned!=NULL;
     if(owned) {
         for(size_t i=0;i<slots.Count;++i) {
@@ -357,7 +385,7 @@ static int xlsSemCopyFactTypesWithCursor(xarray* facts,const xls_ast_clone_optio
     xrtArrayUnit(&types); xrtArrayUnit(&slots); return copied;
 }
 static int xlsSemCopyFactTypes(xarray* facts,const xls_ast_clone_options* options,size_t* bytes)
-{return xlsSemCopyFactTypesWithCursor(facts,options,NULL,NULL,bytes);}
+{return xlsSemCopyFactTypesWithCursor(facts,options,NULL,NULL,bytes,0,NULL);}
 static int xlsSemCaptureFacts(const xarray* nodes,xarray* facts,size_t limit,size_t* bytes)
 {
     *bytes=0;
@@ -486,8 +514,19 @@ static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const
     /* Stage every owned type before touching the fresh tree. On resource or
      * coordinate failure the original checker sees its untouched input. */
     for(size_t i=0;i<staged.Count;++i) *(xls_sem_fact*)xrtArrayGet(&staged,i)=*(const xls_sem_fact*)xrtArrayConstGet(&entry->unit->facts,i);
-    if(!xlsSemCopyFactTypesWithCursor(&staged,&(xls_ast_clone_options){xlsSemApplyPosition,&apply,XLS_SEM_MEMO_BYTES,0,xlsSemApplySource},
-        xlsSemApplyCursorSource,&apply,&owned)) goto failed;
+    xls_ast_clone_options options={xlsSemApplyPosition,&apply,XLS_SEM_MEMO_BYTES,0,xlsSemApplySource};
+    xls_sem_apply original=apply;size_t positionsBefore=positions->Count;int attempted=0;
+    int copied=xlsSemCopyFactTypesWithCursor(&staged,&options,xlsSemApplyCursorSource,&apply,&owned,1,&attempted);
+    if(!copied && attempted){
+        /* Clone callbacks advance the coordinate cursor and staged positions.
+         * The failed tree already released its types/sources. Restore every
+         * callback state and borrow the original facts again before a heap
+         * retry;never continue from a partially consumed position table. */
+        apply=original;positions->Count=positionsBefore;
+        for(size_t i=0;i<staged.Count;++i)*(xls_sem_fact*)xrtArrayGet(&staged,i)=*(const xls_sem_fact*)xrtArrayConstGet(&entry->unit->facts,i);
+        copied=xlsSemCopyFactTypesWithCursor(&staged,&options,xlsSemApplyCursorSource,&apply,&owned,0,NULL);
+    }
+    if(!copied) goto failed;
     if(entry->positions.Count && entry->positions.Count!=apply.visited) goto failed;
     if(!apply.different) xrtArrayUnit(positions);
     for(size_t i=0;i<nodes->Count;++i) {
