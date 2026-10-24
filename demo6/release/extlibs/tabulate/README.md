@@ -23,6 +23,12 @@
 
 ## 范例与验证
 
+2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
+严格 C/ABI、边界及独立实例并发、XLang 事务与分配故障、私有原生
+入口拒绝、三条范例路径固定输出以及核心/公开范例 AOT 全部通过。
+先前的完整 AOT 缺符号记录只对应旧发布物；本次没有重跑 Linux
+sanitizer，Unicode 宽度仍遵守上文的有限估算合同。
+
 - XLang：`release/examples/extlibs/tabulate.xl`
 - 同输出 C：`release/extlibs/tabulate/examples/tabulate_c.c`
 
