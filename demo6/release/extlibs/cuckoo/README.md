@@ -24,6 +24,11 @@ seen.remove("session:abc123")
 
 ## 验证
 
+2026-10-25：当前 Windows 发布版默认门禁再次通过严格 C、语言边界、
+分配故障、私有入口拒绝、双语输出及核心/公开范例 AOT；WSL Linux
+门禁通过 C ASan/UBSan、高装载、语言边界/分配故障和 C/XLang 对照。
+Linux 语言侧使用尚未重建的 `release/xl`，独立 Linux EXE 未验收。
+
 2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
 严格 C、满桶/高装载与失败回滚、XLang 边界和分配故障、私有原生
 入口拒绝、C/XLang 同输出及核心/公开范例 AOT 均通过。此前完整
