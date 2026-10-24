@@ -1,0 +1,7 @@
+import blake3
+
+func main(...) as int
+    auto hasher = blake3.hasher()
+    println("ready")
+    return 0
+end
