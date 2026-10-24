@@ -90,7 +90,31 @@ try {
         $null = Run 'XLang core build' $xl @('build',
             'test/cases/extlib_sharedmem.xl', '-o', $aot)
         $null = Run 'XLang core AOT' $aot @()
+
+        $exampleAot = Join-Path $work 'sharedmem_example_xl.exe'
+        $null = Run 'XLang example build' $xl @('build',
+            'release/examples/extlibs/sharedmem.xl', '-o', $exampleAot)
+        $aotOutput = Run 'XLang example AOT' $exampleAot @()
+        if ($aotOutput -cne $cOutput) {
+            throw "C/XLang AOT example differs:`nC:`n$cOutput`nXL:`n$aotOutput"
+        }
+        Write-Host '[sharedmem] C/XLang AOT parity: PASS'
     }
+
+    # 私有原生构造器不能从包外接管任意指针；只做编译检查，绝不执行负例。
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $diagnostic = @(& $xl check 'release/extlibs/sharedmem/test/private_constructor_negative.xl' 2>&1 |
+            ForEach-Object { $_.ToString() }) -join "`n"
+        $code = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previous
+    }
+    if ($code -eq 0 -or -not $diagnostic.Contains('access')) {
+        throw "private native constructor was not rejected:`n$diagnostic"
+    }
+    Write-Host '[sharedmem] private native constructor: PASS'
 } finally {
     Pop-Location
     $resolvedParent = [IO.Path]::GetFullPath($workParent).TrimEnd('\') + '\'

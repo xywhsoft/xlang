@@ -1,0 +1,7 @@
+import sharedmem
+
+auto memory = sharedmem.create("xlang_sharedmem_aot_teardown_repro", 16)
+
+func main(...) as int
+    return 0
+end

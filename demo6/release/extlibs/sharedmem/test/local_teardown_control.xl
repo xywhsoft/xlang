@@ -1,0 +1,6 @@
+import sharedmem
+
+func main(...) as int
+    auto memory = sharedmem.create("xlang_sharedmem_aot_local_control", 16)
+    return 0
+end

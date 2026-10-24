@@ -1,5 +1,17 @@
 # sharedmem
 
+> 2026-10-24 当前 Windows 发布版复验：C 跨进程/分配、XLang 边界、
+> 私有成员负例、双语 JIT 与核心 AOT 通过。默认门禁新增公开范例
+> AOT 对照后，范例先输出正确结果，再于退出时报
+> `RuntimeError: operation is not valid in the current state`。
+> `test/global_teardown_repro.xl` JIT 通过、独立 EXE 失败；
+> `test/local_teardown_control.xl` 两条路径均通过，属已记录的
+> [顶层原生类退役问题](../../../dev/extlib_blockers/global_native_class_aot_fini.md)。
+> 另一个独立阻断是包外仍可调用 `private extern create(point)`：
+> `xl check test/private_constructor_negative.xl` 返回 `ok`。
+> 默认门禁现将这条只编译负例纳入最终签收检查，绝不执行它。
+> 本包不能据此前较窄的门禁通过记录签收发布级。
+
 `sharedmem` 提供 Windows/Linux 的命名共享内存。它保存原始字节，不隐式
 序列化对象，也不提供进程间锁。适合事先约定偏移、长度和同步方式的进程。
 
