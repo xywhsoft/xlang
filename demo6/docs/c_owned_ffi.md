@@ -28,7 +28,16 @@ end
 
 `cstring.take(pointer, releaser)` adopts a NUL-terminated UTF-8 allocation.
 It scans the byte length once; the producer guarantees the encoding and
-terminator. Embedded NUL terminates C text. `cbytes.take(pointer, length,
+terminator. Embedded NUL terminates this two-argument C text form.
+`cstring.take(pointer, byteLength, releaser)` adopts length-bearing UTF-8 text
+without a `strlen` scan and preserves embedded NULs. The producer supplies
+readable storage through `pointer[byteLength]` and valid UTF-8; adoption checks
+that final byte is NUL. Negative/overflowing lengths, null with positive length,
+and a missing final terminator fail and release the incoming allocation.
+The pointer is anchored before evaluating the length, including a throwing
+length expression. Ordinary text reads use the supplied length; legacy raw
+C-string consumers still have their own NUL-terminated C semantics.
+`cbytes.take(pointer, length,
 releaser)` adopts arbitrary bytes with an explicit nonnegative byte length.
 Unsigned C sizes (including `c_size` and `uint64`) are accepted; values above
 `INT64_MAX` fail through a checked conversion after the pointer is anchored.
@@ -77,7 +86,9 @@ the existing sequence rules. C text and C binary data are never interchangeable.
 
 Compiler specialization covers fixed positional/named arguments and default
 arguments of directly resolved functions, including async inputs and explicit and
-inferred generic instances. Signature keys include concrete types and have no
+inferred generic instances. Fixed prefixes of `...` and `***` readers also
+specialize without materializing their C-backed input; variadic elements keep
+the ordinary dynamic container boundary. Signature keys include concrete types and have no
 63-parameter mask limit. A C-backed default argument also selects the C input
 and result specialization when that default is used; explicit overrides do not
 evaluate it. Default evaluation order and exception cleanup are unchanged.
@@ -106,7 +117,16 @@ binding behavior and snapshot. Each product result converts independently
 after a single producer invocation. Direct calls through the original
 owner-returning signature still retain the C allocation without copying it;
 only the ordinary result boundary materializes. `task.spawn` also adapts
-stored `...` owner producers to ordinary Future results.
+stored `...` and `***` owner producers to ordinary Future results. Its fixed
+prefix is positional, followed by keyword arguments for `***`. The compiler
+builds and owns the final keyword dict before task submission, preserving
+left-to-right, single evaluation and exception cleanup. Duplicate keywords,
+missing fixed arguments and positional values in the dict tail are rejected.
+Result adaptation also recurses through returned callable results, so a
+factory returning `func() as cstring` can bind to
+`func() as func() as string`, enter `xcall`, or publish an ordinary callback
+through a Future. Each returned callback keeps the original parameter names,
+defaults and snapshot; callable input signatures are unchanged.
 An override returning a C marker adopts an ordinary base slot's result ABI;
 the body materializes on return. Slots explicitly returning C markers on both
 base and derived declarations keep their owner ABI. These rules are not a promise of
