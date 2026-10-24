@@ -508,3 +508,58 @@ verifier、删除负例或 Cgen 名称特判；证据根
 动态选择／CRL／恢复回调、TLS 传输／Future、票据／恢复、旧后端和旧测试
 迁移、完整发布产品及 P7 继续；不把此处 KeyUpdate 的正常功能通过当作完整
 TLS 或安全审计完成，历史 Windows 间歇诊断保持开放。
+
+## TLS 传输配置
+
+`TlsStreamOptions` 是后续受管理 TLS Stream／Listener／Dial 共用的不可变配置，
+不是旧 `TlsConfig` 的别名。可以单独构造，不会打开网络引擎或创建会话。
+
+```xl
+auto options = TlsStreamOptions()
+auto bounded = options.withTimeoutsMillis(10000, 5000).withAsyncLimits(1048576, 1024, 64)
+```
+
+五个只读属性为 `handshakeTimeoutMillis`、`closeTimeoutMillis`、`maxAsyncBytes`、
+`maxAsyncOperations`、`asyncBatch`。默认分别为 10000、5000、1048576、1024、64，
+与固定 XRT 快照的公开常量一致；验证另与真实 `xrtTlsStreamConfigInit` 比较，
+不复制底层初始化实现。两个 `with…` 方法返回独立配置，不修改来源对象。
+
+超时使用显式毫秒，-1 表示禁用，有限超时必须大于 0，换算为固定快照的微秒
+不得溢出。独立 XRT 的毫秒／For ABI 不因本批而升级或回退。字节上限必须为
+正且能装入原生 size_t，操作数和批次必须为正且能装入 uint32；不自行添加
+原生没有的“批次不得大于操作数”限制。这里是排队硬上限，不是预先分配
+相应大小的缓冲，也不能把超大合法配置理解为资源充足的保证。
+
+配置仅按值保存 `xtlsstreamconfig`，无引擎、会话、回调、语言值或借用存储，
+因此具有真正的叶节点拥有策略，可跨线程只读共享。创建、复制、装箱失败
+按 checked 错误返回并回滚。getter 为 pure／nonblocking，但保留错误合同；
+分配入口没有误标 no-raise。适配和校验驻留 runtime，Cgen 只发声明和调用。
+配置单独使用时必须裁掉 TLS Stream／Client／Server／Verify、TCP 和网络引擎。
+私有 ABI 头保持声明 SDK 的 `.h` 闭包，不引入实现用字段表。
+
+这不是 TLS 传输的完成证明。原生 TLS Stream／Listener／Dial 的真实持有边、
+静止检查、checked 退役、Future 和迁移仍待补齐；不能将它们当作配置叶节点。
+用户已授权必要原生接口及定点同步，不包含整体时间 ABI 更新。P6／P7、
+历史 Windows 间歇诊断与完整发布产品验收继续开放。
+
+### 传输配置批次验收
+
+首轮真实 Linux JIT 发现 ABI 头引用实现 `.inc`，违背声明 SDK 的头文件闭包。
+修复为独立声明头，并新增只复制真实 `.h` SDK 的 GCC／TCC 隔离编译门，
+没有放宽 SDK 规则、增加实现文件分发或绕过真实 JIT。失败目录完整保留。
+
+修复后重新冻结 8999 份输入，全源码 O2 Windows 1156／Linux 1155 TU。
+最终冻结上 Windows 51 个新增阶段加 72 回归、Linux 53 加 72，共 248 阶段
+通过。覆盖真实 JIT／module／独立 AOT、严格 C O0／O2、驻留 GCC O0／O2、
+TCC、Linux ASan／UBSan、6 个分配预算中的 3 个失败、2 个发布预算及真实
+目录 Hold／Claim／Restore，内存账本平衡。原生默认值对照调用真实后端 Init，
+而非测试复制体；独立驻留构建和 4 份语言裁剪计划都不引入 TLS／网络后端。
+
+9 个目标、3 个原生拥有结果、1 个资源策略通过；每端 O0／O2 均拒绝 70 个
+错误合同并检查 10 个模块／C／头零输出拒绝门。现有产品 ABI、CRT 数学及
+TLS 参数的 72 阶段回归分别通过。所有源／对象／产物哈希复核；Linux 5504
+份构建与测试产物另存归档并独立复核，原目录未删除。证据根为
+`F:/xlang-validation/five-groups-20261024/p6-tls-stream-options`。
+
+本批未改 XRT 核心、两边时间 ABI 或 Cgen，没有网络流量、安全专项或
+畸形密码材料测试。它只完成配置前置，不替代原生传输拥有权或发布验收。

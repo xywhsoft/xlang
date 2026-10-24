@@ -251,6 +251,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
 #include "xl6_tls_verifier_components.inc"
 #include "xl6_tls_role_context_components.inc"
 #include "xl6_tls_session_components.inc"
+#include "xl6_tls_stream_options_components.inc"
     {"src/runtime/xl6_der_value.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_ASN1_DER", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_der_value_domain.c", D(R(OWNERSHIP_CATALOG),R(DER_VALUE)), {NULL}},
     {"src/runtime/xl6_der_reader.c", D(R(NATIVE_HANDLE),R(DER_VALUE)), {"XRT_MODULE_ASN1_DER", "XRT_MODULE_VALUE", "XRT_MODULE_THREAD"}},
