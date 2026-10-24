@@ -1,5 +1,12 @@
 # ui.auto
 
+2026-10-24 当前 Windows 发布版默认包门禁通过：严格 C 范例检查、
+自建窗口的 C/XLang 同输出、定位边界、输入读取，以及 JIT/AOT
+两条路径的真实截图和文字像素验证；具名类型与公开范例 AOT 也
+构建运行成功。旧版 `xl6ValueDataSnapshotV1` 缺符号不再是当前阻断。
+这只验收自建窗口和公开组合层，不推断真实第三方应用的权限、
+DPI/多屏或远程会话稳定性。
+
 Windows 桌面自动化组合层，底层为 `uia`，截图依赖 `opencv`。通过
 `import ui.auto` 使用。定位器可按 automation ID、控件类、名称、
 控件类型或进程 ID 建立，再用 `within(locator, hwnd)` 限定窗口，
@@ -33,11 +40,9 @@ JSON 字段类型必须正确，且至少有
 powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/ui.auto/test/check.ps1 -SkipAot
 ```
 
-默认不带 `-SkipAot` 的门禁还须构建运行具名类型核心用例和公开范例 AOT，
-并将范例输出与 C/XLang JIT 对照；只有显式 `-SkipAot` 才跳过这两步。
-2026-10-24 聚焦门禁通过，默认门禁在核心 AOT 构建处准确报告共享
-`xl6ValueDataSnapshotV1` 缺符号并返回失败，本次独占测试目录已清理。
-因此以下成功路径仅是 C/JIT 调用层证据，不作完整发布级签收。
+默认不带 `-SkipAot` 的门禁还构建运行具名类型、公开范例、定位边界
+和截图四份 AOT；范例与 C/XLang JIT 对照，截图复用同一像素断言。
+只有显式 `-SkipAot` 才跳过 AOT。当前发布版结果见本页开头。
 
 对照 C 范例为 `examples/extlibs/ui_auto_c.c`，直接使用 `uia` 的 C API
 组合控件类、类型与进程条件，并与 XLang 范例一样完成输入、读取和按钮点击。
@@ -54,8 +59,7 @@ C 对照范例均可调用。OpenCV 在本包只验收公开调用链，其独�
 2026-10-17 自建窗口截图进一步核对目标区域小于父窗口，Windows 包级门禁
 通过；当前 Edit 控件返回自身 HWND，既有截图路径未发现整窗误存。
 
-尚未发布级签收：`uia` 明确限定在创建线程使用，不提供并行 UIA 上下文；
+平台范围仍有限：`uia` 明确限定在创建线程使用，不提供并行 UIA 上下文；
 真实桌面权限、DPI/多屏、远程会话、取消和长期事件处理仍需验证。
-当前 `xl.exe` 的 AOT 构建缺少 `xl6ValueDataSnapshotV1`，须由主线修复后复验。
 
 `test/boundaries.xl` 已登记为 `coverage.tests`；`ui.auto` 属于平台套件，通用目录门禁默认跳过，明确选择本包时才运行自建窗口边界。
