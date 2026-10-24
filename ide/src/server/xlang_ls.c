@@ -6,6 +6,7 @@
 #include "services/analysis_catalog.h"
 #include "platform/path.h"
 #include "analysis/worker.h"
+#include "protocol/signature_help.h"
 #include <windows.h>
 #include <shellapi.h>
 #include <stdio.h>
@@ -36,7 +37,13 @@ typedef struct server {
  unsigned long long completionGeneration,completionPendingGeneration;
  int completionPendingDocument,completionPendingEntry,completionPendingVersion,completionPendingLine,completionPendingCharacter;
  int completionContextDocument;
- xls_worker *analysis,*semanticAnalysis,*cursorAnalysis; native_request native[DOC_LIMIT]; size_t foldingLimit;
+ xide_language_check* signature; xvalue *signatureId,*signaturePendingId; char* signatureUri;
+ int signatureDocument,signatureVersion,signatureResponded,signaturePublished,signatureCancelled;
+ unsigned long long signatureGeneration,signaturePendingGeneration;
+ int signaturePendingDocument,signaturePendingEntry,signaturePendingVersion,signaturePendingLine,signaturePendingCharacter;
+ int signatureContextDocument;
+ unsigned signatureFlags;
+ xls_worker *analysis,*semanticAnalysis,*cursorAnalysis,*signatureAnalysis; native_request native[DOC_LIMIT]; size_t foldingLimit;
  xls_session_stats analysisStats; uint64_t analysisThread;
  semantic_request semantic[DOC_LIMIT]; unsigned long long semanticOrder; int checkForSemantic;
  xide_diagnostic_store* diagnostics; xide_diagnostic_query* diagnosticQuery; xide_diagnostic_publication* diagnosticPublication;
@@ -349,6 +356,77 @@ static void pollCompletion(server* s)
  }
  startCompletion(s);
 }
+static void signatureInvalidated(server* s,const char* reason)
+{
+ xvalue *out=xrtValueObject(),*p=xrtValueObject();
+ put(out,"jsonrpc",xrtValueString(sv("2.0"))); put(out,"method",xrtValueString(sv("xlang/signatureInvalidated")));
+ put(p,"queryId",xrtValueDeepClone(s->signatureId)); put(p,"uri",xrtValueString(sv(s->signatureUri))); put(p,"version",xrtValueInt(s->signatureVersion)); put(p,"reason",xrtValueString(sv(reason))); put(out,"params",p); sendMessage(s,out);
+}
+static void cancelSignature(server* s,int code,const char* reason,int pending)
+{
+ if(s->signature && !s->signatureCancelled) {
+  if(!s->signatureResponded) { response(s,s->signatureId,NULL,code,reason); s->signatureResponded=1; }
+  else if(s->signaturePublished) signatureInvalidated(s,reason);
+  s->signatureCancelled=1; xideLanguageCheckCancel(s->signature);
+ }
+ if(pending && s->signaturePendingId) { response(s,s->signaturePendingId,NULL,code,reason); xrtValueRelease(s->signaturePendingId); s->signaturePendingId=NULL; }
+}
+static void startSignature(server* s)
+{
+ if(s->signature || !s->signaturePendingId || s->shutdown) return;
+ int i=s->signaturePendingDocument,entry=s->signaturePendingEntry; document* d=&s->docs[i]; xide_model_error e={0};
+ if(!d->uri || !s->docs[entry].uri || s->signaturePendingGeneration!=s->generation || d->version!=s->signaturePendingVersion) { response(s,s->signaturePendingId,NULL,-32801,"Open-document cursor inputs changed before starting."); goto discard; }
+ char* uri=copy(d->uri);
+ if(!uri) { response(s,s->signaturePendingId,NULL,-32603,"Unable to retain cursor input identity."); goto discard; }
+ xide_language_analysis_options options={1,nativeWake,s};
+ if(s->catalog && s->docs[entry].binding<0){free(uri);response(s,s->signaturePendingId,NULL,-32602,"Signature query needs an unambiguous configured project.");goto discard;}
+ xls_analysis_document inputs[DOC_LIMIT];size_t count=0;
+ for(int j=0;j<DOC_LIMIT;++j)if(s->docs[j].uri){document* in=&s->docs[j];inputs[count++]=(xls_analysis_document){in->uri,in->path,in->content,in->identity,(uint64_t)((int64_t)in->version-INT_MIN)};}
+ s->signature=xideLanguageCheckStartSignature(s->catalog ? s->docs[entry].context : NULL,s->catalog!=NULL,s->cache,s->compiler,
+  s->catalog ? xlsContextSpec(s->docs[entry].context)->directory : s->directory,s->signatureAnalysis,inputs,count,
+  s->catalog ? d->uri : s->docs[entry].uri,d->path,s->signaturePendingLine,s->signaturePendingCharacter,s->signatureFlags,&options,&e);
+ if(!s->signature) { free(uri); response(s,s->signaturePendingId,NULL,-32603,*e.message ? e.message : "Unable to start cursor query."); goto discard; }
+ s->signatureUri=uri; s->signatureId=s->signaturePendingId; s->signaturePendingId=NULL;
+ s->signatureDocument=i;s->signatureContextDocument=entry; s->signatureVersion=d->version; s->signatureGeneration=s->generation;
+ s->signatureResponded=s->signaturePublished=s->signatureCancelled=0; return;
+discard: xrtValueRelease(s->signaturePendingId); s->signaturePendingId=NULL;
+}
+static void requestSignature(server* s,const xvalue* id,const xvalue* params)
+{
+ int i=find(s,string(get(get(params,"textDocument"),"uri"))),entry=i,line=0,character=0,version=i>=0 ? s->docs[i].version : 0;
+ const xvalue *requested=get(params,"version"),*entryDocument=get(params,"entryDocument"),*context=get(params,"context");
+ const char* requestName=string(id); if(requestName && strlen(requestName)>65535) { response(s,id,NULL,-32602,"Signature request ID exceeds 64 KiB."); return; }
+ if(entryDocument) entry=find(s,string(get(entryDocument,"uri")));
+ if(i<0 || entry<0 || (requested && !integer(requested,&version)) || version!=s->docs[i].version || !integer(get(get(params,"position"),"line"),&line) || !integer(get(get(params,"position"),"character"),&character) || !validPosition(&s->docs[i],line,character)) { response(s,id,NULL,-32602,"Signature requires an open xlang document, a current version and a valid UTF-16 scalar position."); return; }
+ if(i>=0 && xlsTextSize(s->docs[i].content)>=3 && !memcmp(s->docs[i].text,"\xef\xbb\xbf",3) && line==0 && character==0) { response(s,id,NULL,-32602,"Position precedes the source BOM."); return; }
+ if(!xlsSignatureHelpContextValid(context)){response(s,id,NULL,-32602,"Signature help context is invalid.");return;}
+ xvalue* captured=xrtValueDeepClone(id); if(!captured) { response(s,id,NULL,-32603,"Unable to retain signature request."); return; }
+ cancelSignature(s,-32800,"Cursor query superseded by a newer request.",1);
+ s->signaturePendingId=captured; s->signaturePendingDocument=i; s->signaturePendingEntry=entry; s->signaturePendingVersion=version; s->signaturePendingLine=line; s->signaturePendingCharacter=character; s->signaturePendingGeneration=s->generation;
+ startSignature(s);
+}
+static void pollSignature(server* s)
+{
+ if(s->signature) {
+  char error[512]={0}; enum xide_check_state state=xideLanguageCheckState(s->signature,error,sizeof(error));
+  if(!s->signatureCancelled && (s->signatureGeneration!=s->generation || !s->docs[s->signatureDocument].uri || s->docs[s->signatureDocument].version!=s->signatureVersion)) cancelSignature(s,-32801,"Cursor input set is no longer current.",0);
+  char guardError[512]={0};
+  if(!s->signatureCancelled && xideLanguageCheckGuardState(s->signature,guardError,sizeof(guardError))==XIDE_GUARD_INVALID) cancelSignature(s,-32801,*guardError ? guardError : "Cursor source guard invalidated.",0);
+  if(!s->signatureCancelled && !s->signatureResponded && state!=XIDE_CHECK_RUNNING) {
+   xvalue* result=xideLanguageCheckResult(s->signature);
+   if(state==XIDE_CHECK_READY && result && (xrtValueType(result)==XVALUE_NULL || ((!s->catalog || put(result,"analysisContext",configurationStamp(s,s->signatureContextDocument))) && put(result,"queryId",xrtValueDeepClone(s->signatureId))))) {
+    int empty=xrtValueType(result)==XVALUE_NULL;response(s,s->signatureId,result,0,NULL);result=NULL;s->signaturePublished=!empty;
+    if(empty){s->signatureCancelled=1;xideLanguageCheckCancel(s->signature);}
+   }
+   else { response(s,s->signatureId,NULL,state==XIDE_CHECK_CANCELLED ? -32800 : -32603,*error ? error : "Unable to obtain verified cursor facts."); s->signatureCancelled=1; xideLanguageCheckCancel(s->signature); }
+   xrtValueRelease(result); s->signatureResponded=1;
+  }
+  if(s->signatureCancelled && xideLanguageCheckWorkerFinished(s->signature)) {
+   xideLanguageCheckDestroy(s->signature); s->signature=NULL; xrtValueRelease(s->signatureId); s->signatureId=NULL; free(s->signatureUri); s->signatureUri=NULL; s->signatureCancelled=s->signatureResponded=s->signaturePublished=0;
+  }
+ }
+ startSignature(s);
+}
 static int receive(const xvalue* value,void* user)
 {
  server* s=user; message* m=calloc(1,sizeof(*m)); size_t n=0; char* encoded=xrtJsonStringify(value,false,&n); xrtFree(encoded);
@@ -381,11 +459,11 @@ static void documents(server* s,const char* method,const xvalue* params)
   unsigned char uriHash[32];
   if(!content || !name || !xlsInputStateUri(uri,uriHash)) { free(path); xlsTextRelease(content); free(name); goto invalid; }
   unsigned long long generation=++s->generation;
-  s->docs[i]=(document){.uri=name,.path=path,.text=xlsTextData(content),.content=content,.version=version,.generation=generation,.identity=generation};s->docs[i].context=bindAnalysis(s->catalog,path,&s->docs[i].binding); memcpy(s->docs[i].uriHash,uriHash,32); s->textBytes+=xlsTextSize(content);++s->inputSerial; cancelCompletion(s,-32801,"Open-document cursor input set changed.",1); if(s->check && s->snapshotMode) cancel(s,-32801,"Open-document snapshot set changed."); clearPublished(s); diagnosticInput(s,i,path,1); return;
+  s->docs[i]=(document){.uri=name,.path=path,.text=xlsTextData(content),.content=content,.version=version,.generation=generation,.identity=generation};s->docs[i].context=bindAnalysis(s->catalog,path,&s->docs[i].binding); memcpy(s->docs[i].uriHash,uriHash,32); s->textBytes+=xlsTextSize(content);++s->inputSerial; cancelCompletion(s,-32801,"Open-document cursor input set changed.",1);cancelSignature(s,-32801,"Open-document cursor input set changed.",1); if(s->check && s->snapshotMode) cancel(s,-32801,"Open-document snapshot set changed."); clearPublished(s); diagnosticInput(s,i,path,1); return;
  }
  if(i<0) goto invalid;
  document* d=&s->docs[i];
- if(!strcmp(method,"textDocument/didClose")) {++s->inputSerial; cancelNative(s,i,-32800,"Document closed."); cancelSemantic(s,i,-32800,"Document closed."); cancelCompletion(s,-32800,"Document closed.",1); if(s->check && (s->snapshotMode || s->checkDocument==i)) cancel(s,-32800,"Document closed."); if(s->pending==i) s->pending=-1; clearPublished(s); publish(s,d,NULL); ++s->generation; diagnosticInput(s,-1,d->path,1); clearDocument(s,i); s->diagnosticDue[i]=0; s->diagnosticFailed[i]=0; return; }
+ if(!strcmp(method,"textDocument/didClose")) {++s->inputSerial; cancelNative(s,i,-32800,"Document closed."); cancelSemantic(s,i,-32800,"Document closed."); cancelCompletion(s,-32800,"Document closed.",1);cancelSignature(s,-32800,"Document closed.",1); if(s->check && (s->snapshotMode || s->checkDocument==i)) cancel(s,-32800,"Document closed."); if(s->pending==i) s->pending=-1; clearPublished(s); publish(s,d,NULL); ++s->generation; diagnosticInput(s,-1,d->path,1); clearDocument(s,i); s->diagnosticDue[i]=0; s->diagnosticFailed[i]=0; return; }
  if(!strcmp(method,"textDocument/didChange")) {
   const xvalue* changes=get(params,"contentChanges"); int version=0;
   if(!integer(get(item,"version"),&version) || version<=d->version || !changes || xrtValueType(changes)!=XVALUE_ARRAY || xrtValueCount(changes)>1024) goto invalid;
@@ -409,7 +487,7 @@ static void documents(server* s,const char* method,const xvalue* params)
   if(!content) goto invalid;
   if(xlsTextSize(content)>TOTAL_LIMIT-(s->textBytes-xlsTextSize(d->content))) { xlsTextRelease(content); goto invalid; }
   if(s->check && (s->snapshotMode || s->checkDocument==i)) cancel(s,-32801,"Document content changed.");
-  cancelCompletion(s,-32801,"Open-document cursor content changed.",1);
+  cancelCompletion(s,-32801,"Open-document cursor content changed.",1);cancelSignature(s,-32801,"Open-document cursor content changed.",1);
   cancelNative(s,i,-32801,"Native analysis document changed.");
   cancelSemantic(s,i,-32801,"Semantic analysis document changed.");
   s->textBytes=s->textBytes-xlsTextSize(d->content)+xlsTextSize(content); xlsTextRelease(d->content); d->content=content; d->text=xlsTextData(content); d->version=version; d->generation=++s->generation;++s->inputSerial; clearPublished(s); publish(s,d,NULL); diagnosticInput(s,i,d->path,0); return;
@@ -418,7 +496,7 @@ static void documents(server* s,const char* method,const xvalue* params)
   const xvalue* supplied=get(params,"text"); const char* text=string(supplied); if(supplied && (!text || strcmp(text,d->text))) goto invalid;
   ++s->inputSerial;if(s->automaticDiagnostics) {
    ++s->generation; if(s->check && s->snapshotMode) cancel(s,-32801,"Saved inputs changed.");
-   cancelCompletion(s,-32801,"Saved input visibility changed.",1); clearPublished(s); diagnosticInput(s,i,d->path,0);
+   cancelCompletion(s,-32801,"Saved input visibility changed.",1);cancelSignature(s,-32801,"Saved input visibility changed.",1); clearPublished(s); diagnosticInput(s,i,d->path,0);
   } else if(s->checkOnSave) startCheck(s,i,NULL,0);
   return;
  }
@@ -534,7 +612,7 @@ static int configureAnalysis(server* s,const xvalue* value,xide_model_error* err
  if(!okay) {for(size_t i=0;i<DOC_LIMIT;++i) xlsContextRelease(contexts[i]);xideAnalysisCatalogDestroy(catalog);snprintf(error->message,sizeof(error->message),"Cannot prepare open-document analysis bindings.");return 0;}
  if(s->initialized) {
   ++s->generation;++s->inputSerial;s->pending=-1;
-  cancel(s,-32801,"Analysis configuration changed.");cancelSemantic(s,-1,-32801,"Analysis configuration changed.");cancelCompletion(s,-32801,"Analysis configuration changed.",1);clearPublished(s);
+  cancel(s,-32801,"Analysis configuration changed.");cancelSemantic(s,-1,-32801,"Analysis configuration changed.");cancelCompletion(s,-32801,"Analysis configuration changed.",1);cancelSignature(s,-32801,"Analysis configuration changed.",1);clearPublished(s);
   if(s->automaticDiagnostics) diagnosticResetState(s,NULL);
  }
  for(size_t i=0;i<DOC_LIMIT;++i) {xlsContextRelease(s->docs[i].context);s->docs[i].context=contexts[i];s->docs[i].binding=bindings[i];}
@@ -575,6 +653,7 @@ static void dispatch(server* s,const xvalue* message)
   const xvalue* options=get(params,"initializationOptions"); bool check=true; const xvalue* enabled=get(options,"checkOnSave"); if(enabled && !xrtValueGetBool(enabled,&check)) { response(s,id,NULL,-32602,"checkOnSave must be boolean."); return; }
   const xvalue* backendOption=get(options,"completionBackend"); const char* backend=string(backendOption);
   if(backendOption && (!backend || (strcmp(backend,"native") && strcmp(backend,"cli")))) { response(s,id,NULL,-32602,"completionBackend must be native or cli."); return; }
+  if(!xlsSignatureHelpCapabilities(get(params,"capabilities"),&s->signatureFlags)){response(s,id,NULL,-32602,"Invalid signature help capabilities.");return;}
   s->cliCompletion=backend && !strcmp(backend,"cli");
   const xvalue* diagnosticsOption=get(options,"diagnosticsBackend"); const char* diagnostics=string(diagnosticsOption);
   if(diagnosticsOption && (!diagnostics || (strcmp(diagnostics,"native") && strcmp(diagnostics,"cli")))) { response(s,id,NULL,-32602,"diagnosticsBackend must be native or cli."); return; }
@@ -629,12 +708,16 @@ static void dispatch(server* s,const xvalue* message)
   put(scope,"incrementalFunctionSemantics",xrtValueBool(!s->cliDiagnostics));
   put(scope,"savedDiagnosticsBackend",xrtValueString(sv("cli")));
   put(scope,"savedEntryDiagnostics",xrtValueBool(true)); put(scope,"unsavedDependencies",xrtValueBool(true)); put(scope,"snapshotDiagnostics",xrtValueBool(true)); put(scope,"snapshotDocumentFingerprint",xrtValueBool(true)); put(scope,"snapshotInputGuard",xrtValueString(sv("background-poll"))); put(scope,"cSemantics",xrtValueBool(false)); put(scope,"snapshotDefinition",xrtValueBool(true)); put(cap,"definitionProvider",xrtValueBool(true)); put(cap,"hoverProvider",xrtValueBool(true)); put(cap,"documentSymbolProvider",xrtValueBool(true)); xvalue *completion=xrtValueObject(),*triggers=xrtValueArray(),*dot=xrtValueString(sv(".")); xrtValueArrayAppend(triggers,dot); xrtValueRelease(dot); put(completion,"resolveProvider",xrtValueBool(false)); put(completion,"triggerCharacters",triggers); put(cap,"completionProvider",completion); put(scope,"cursorCompletion",xrtValueBool(true)); put(scope,"completionInputGuard",xrtValueString(sv("background-poll"))); put(scope,"snapshotHover",xrtValueBool(true)); put(scope,"snapshotDocumentSymbols",xrtValueBool(true)); put(cap,"experimental",scope); put(result,"capabilities",cap);
+  xvalue* signature=xrtValueObject();xvalue* signatureTriggers=xrtValueArray();xvalue* retriggers=xrtValueArray();
+  xvalue *open=xrtValueString(sv("(")),*comma=xrtValueString(sv(",")),*close=xrtValueString(sv(")"));
+  xrtValueArrayAppend(signatureTriggers,open);xrtValueArrayAppend(signatureTriggers,comma);xrtValueArrayAppend(retriggers,close);xrtValueRelease(open);xrtValueRelease(comma);xrtValueRelease(close);
+  put(signature,"triggerCharacters",signatureTriggers);put(signature,"retriggerCharacters",retriggers);put(cap,"signatureHelpProvider",signature);put(scope,"signatureInputGuard",xrtValueString(sv("background-poll")));
   put(cap,"documentHighlightProvider",xrtValueBool(true));
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.46"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.47"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
- if(!strcmp(method,"shutdown")) { if(id) { s->shutdown=1; s->pending=-1; diagnosticStop(s); cancelNative(s,-1,-32800,"Server shutting down."); clearPublished(s); cancel(s,-32800,"Server shutting down."); cancelSemantic(s,-1,-32800,"Server shutting down."); cancelCompletion(s,-32800,"Server shutting down.",1); response(s,id,NULL,0,NULL); } return; }
+ if(!strcmp(method,"shutdown")) { if(id) { s->shutdown=1; s->pending=-1; diagnosticStop(s); cancelNative(s,-1,-32800,"Server shutting down."); clearPublished(s); cancel(s,-32800,"Server shutting down."); cancelSemantic(s,-1,-32800,"Server shutting down."); cancelCompletion(s,-32800,"Server shutting down.",1);cancelSignature(s,-32800,"Server shutting down.",1); response(s,id,NULL,0,NULL); } return; }
  if(!strcmp(method,"initialized")) { if(id) response(s,id,NULL,-32600,"initialized must be a notification."); return; }
  if(!strcmp(method,"$/cancelRequest")) {
   if(id) response(s,id,NULL,-32600,"Cancellation must be a notification.");
@@ -646,6 +729,8 @@ static void dispatch(server* s,const xvalue* message)
    if(s->checkId && sameId(s->checkId,cancelledId)) cancel(s,-32800,"Request cancelled.");
    if(s->completionId && sameId(s->completionId,cancelledId)) cancelCompletion(s,-32800,"Request cancelled.",0);
    if(s->completionPendingId && sameId(s->completionPendingId,cancelledId)) { response(s,s->completionPendingId,NULL,-32800,"Request cancelled."); xrtValueRelease(s->completionPendingId); s->completionPendingId=NULL; }
+   if(s->signatureId && sameId(s->signatureId,cancelledId)) cancelSignature(s,-32800,"Request cancelled.",0);
+   if(s->signaturePendingId && sameId(s->signaturePendingId,cancelledId)) { response(s,s->signaturePendingId,NULL,-32800,"Request cancelled."); xrtValueRelease(s->signaturePendingId); s->signaturePendingId=NULL; }
   }
   return;
  }
@@ -654,6 +739,7 @@ static void dispatch(server* s,const xvalue* message)
  if(!strcmp(method,"xlang/diagnosticStats")) { if(id) diagnosticStats(s,id); return; }
  if(!strcmp(method,"xlang/inputState")) { if(id) inputState(s,id,params); return; }
  if(!strcmp(method,"workspace/didChangeWatchedFiles")) { if(id) response(s,id,NULL,-32600,"Watched file changes must be a notification."); else diagnosticWatched(s,params); return; }
+ if(!strcmp(method,"textDocument/signatureHelp")){if(id)requestSignature(s,id,params);return;}
  if(!strcmp(method,"textDocument/completion")) { if(id) requestCompletion(s,id,params); return; }
  if(!strcmp(method,"xlang/configureAnalysis") || !strcmp(method,"workspace/didChangeConfiguration")) {
   int standard=!strcmp(method,"workspace/didChangeConfiguration");xide_model_error error={0};
@@ -683,14 +769,15 @@ int main(void)
  if(argc!=3 || !argv || wcscmp(argv[1],L"--compiler")) { fputs("Usage: xlang-ls --compiler absolute-xl.exe\n",stderr); if(argv) LocalFree(argv); return 2; }
  char* compiler=utf8(argv[2]); LocalFree(argv); s.compiler=compiler ? xidePathResolveLexical(NULL,compiler) : NULL; free(compiler);
  wchar_t cwd[32768]; if(GetCurrentDirectoryW(32768,cwd)) s.directory=utf8(cwd);
- s.cache=xideToolchainsCreate(); s.analysis=xlsWorkerCreate(NULL,DOC_LIMIT); s.semanticAnalysis=xlsWorkerCreate(NULL,8); s.cursorAnalysis=xlsWorkerCreate(NULL,8); InitializeCriticalSection(&s.lock); s.event=CreateEventW(NULL,FALSE,FALSE,NULL);
- if(s.compiler && s.directory && s.cache && s.analysis && s.semanticAnalysis && s.cursorAnalysis && s.event) s.reader=CreateThread(NULL,0,reader,&s,0,NULL);
+ s.cache=xideToolchainsCreate(); s.analysis=xlsWorkerCreate(NULL,DOC_LIMIT); s.semanticAnalysis=xlsWorkerCreate(NULL,8); s.cursorAnalysis=xlsWorkerCreate(NULL,8); s.signatureAnalysis=xlsWorkerCreate(NULL,8); InitializeCriticalSection(&s.lock); s.event=CreateEventW(NULL,FALSE,FALSE,NULL);
+ if(s.compiler && s.directory && s.cache && s.analysis && s.semanticAnalysis && s.cursorAnalysis && s.signatureAnalysis && s.event) s.reader=CreateThread(NULL,0,reader,&s,0,NULL);
  if(s.reader) while(!s.exitRequested && !s.writeFailed) {
   EnterCriticalSection(&s.lock); message* m=s.head; if(m) { s.head=m->next; if(!s.head) s.tail=NULL; s.queueBytes-=m->size; --s.queueCount; s.queueInputs-=(size_t)m->input; } int eof=s.eof,failed=s.readFailed; LeaveCriticalSection(&s.lock);
   if(m) { dispatch(&s,m->value); xrtValueRelease(m->value); free(m); } else if(eof) { s.exitCode=failed ? 2 : 1; break; }
-  pollGuard(&s); pollCheck(&s); pollCompletion(&s); pollNative(&s); pollSemantic(&s); diagnosticPoll(&s);
+  pollGuard(&s); pollCheck(&s); pollCompletion(&s); pollSignature(&s); pollNative(&s); pollSemantic(&s); diagnosticPoll(&s);
   if(!m) {
-   HANDLE waits[4]={s.event}; DWORD count=1;
+   HANDLE waits[5]={s.event}; DWORD count=1;
+   if(s.signatureCancelled){HANDLE h=xideLanguageCheckWorkerSignal(s.signature);if(h)waits[count++]=h;}
    if(s.completionCancelled) { HANDLE h=xideLanguageCheckWorkerSignal(s.completion); if(h) waits[count++]=h; }
    if(s.guardCancelled) { HANDLE h=xideLanguageCheckWorkerSignal(s.guard); if(h) waits[count++]=h; }
    if(s.check) { HANDLE h=xideLanguageCheckWorkerSignal(s.check); if(h) waits[count++]=h; }
@@ -710,6 +797,7 @@ int main(void)
  for(size_t i=0;i<DOC_LIMIT;++i) if(s.semantic[i].id) releaseSemantic(&s.semantic[i]);
  diagnosticStop(&s); xideDiagnosticStoreDestroy(s.diagnostics); xrtValueRelease(s.diagnosticAnalysis);xrtValueRelease(s.diagnosticOverlayState);
  xlsWorkerDestroy(s.analysis);
+ xideLanguageCheckDestroy(s.signature);xrtValueRelease(s.signatureId);xrtValueRelease(s.signaturePendingId);free(s.signatureUri);xlsWorkerDestroy(s.signatureAnalysis);
  xideLanguageCheckDestroy(s.completion); xrtValueRelease(s.completionId); xrtValueRelease(s.completionPendingId); free(s.completionUri); xideLanguageCheckDestroy(s.check); xideLanguageCheckDestroy(s.guard); xlsWorkerDestroy(s.semanticAnalysis); xlsWorkerDestroy(s.cursorAnalysis); xrtValueRelease(s.guardId); free(s.guardUri); xrtValueRelease(s.checkId); xrtValueRelease(s.publishedGroups); xideToolchainsDestroy(s.cache);
  while(s.head) { message* m=s.head; s.head=m->next; xrtValueRelease(m->value); free(m); }
  for(int i=0;i<DOC_LIMIT;++i) clearDocument(&s,i);

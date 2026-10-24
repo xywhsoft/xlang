@@ -63,6 +63,13 @@ xide_language_check* xideLanguageCheckStartConfigured(xls_context* context,
  xide_model_error* error);
 /* Immutable context match, without disk work; caller keeps check alive. */
 int xideLanguageCheckMatchesContext(const xide_language_check* check,const xls_context* context);
+/* Independent native signature query. Mode/options are fixed before starting
+   the adapter thread. Configured roots may be unopened; trigger stays open. */
+xide_language_check* xideLanguageCheckStartSignature(xls_context* context,int configured,
+ xide_toolchains* cache,const char* compiler,const char* directory,xls_worker* actor,
+ const xls_analysis_document* documents,size_t count,const char* trigger,
+ const char* queryPath,int line,int character,unsigned flags,
+ const xide_language_analysis_options* options,xide_model_error* error);
 #endif
 
 /* Worker-only C ABI query: disk entry is allowed, open .xl overlays remain

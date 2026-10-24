@@ -14,6 +14,7 @@
 #ifdef XLS_COMPILER_XRT
 #include "analysis/semantic.h"
 #include "analysis/check.h"
+#include "protocol/signature_help.h"
 #include "analysis/frontend_internal.h"
 static int nativeCancelled(void* user);
 #endif
@@ -86,6 +87,25 @@ static xls_semantic_completion* retainedCompletion(xide_language_check* q,xide_m
 done:
  if(cancelled(q) || !result) { xlsQueryCancel(query); xlsSemanticCompletionDestroy(result); result=NULL; }
  xlsQueryDestroy(query); if(event) CloseHandle(event); return result;
+}
+static xls_signature_help* retainedSignature(xide_language_check* q,xide_model_error* e)
+{
+ xls_analysis_document documents[64];const char* target=NULL;
+ for(size_t i=0;i<q->snapshotCount;++i){documents[i]=(xls_analysis_document){q->snapshotKeys[i],q->snapshots[i].path,q->snapshotTexts[i],q->snapshotIdentities[i],(uint64_t)((int64_t)q->snapshots[i].version-INT_MIN)};if(xidePathLexicalEqual(q->queryPath,q->snapshots[i].path))target=q->snapshotKeys[i];}
+ HANDLE event=CreateEventW(NULL,FALSE,FALSE,NULL);
+ xls_query* query=event && target ? xlsWorkerSignatureInContext(q->semanticActor,q->context,documents,q->snapshotCount,q->semanticTarget,target,(size_t)q->queryOffset) : NULL;
+ xls_signature_help* result=NULL;
+ if(!query || !xlsQuerySetWake(query,nativeQueryWake,event)){fail(e,"Cannot submit retained signature analysis.");goto done;}
+ for(;;){
+  if(cancelled(q))break;
+  enum xls_query_state state=xlsQuerySignatureResult(query,&result,&q->signatureStats,&q->semanticThread,e->message,sizeof(e->message));
+  if(state==XLS_QUERY_READY)break;
+  if(state!=XLS_QUERY_PENDING){e->code=XIDE_MODEL_INVALID;break;}
+  HANDLE waits[2]={q->stopEvent,event};if(WaitForMultipleObjects(2,waits,FALSE,INFINITE)==WAIT_FAILED){fail(e,"Cannot wait for retained signature analysis.");break;}
+ }
+done:
+ if(cancelled(q) || !result){xlsQueryCancel(query);xlsSignatureRelease(result);result=NULL;}
+ xlsQueryDestroy(query);if(event)CloseHandle(event);return result;
 }
 static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_semantic_check** checked,xls_semantic_completion** completed,xide_model_error* e)
 {
@@ -438,6 +458,36 @@ static char* temporary(xide_model_error* e)
  if(!path) fail(e,"无法创建检查专用的 GUID 文件命名空间。");
  return path;
 }
+#ifdef XLS_COMPILER_XRT
+static int nativeSignatureRun(xide_language_check* q,xvalue** output,xide_model_error* e)
+{
+ xls_signature_help* signature=NULL;source_graph graph={0};char* json=NULL;xvalue *raw=NULL,*result=NULL;int okay=0;
+ for(size_t i=0;i<q->snapshotCount;++i)for(size_t j=0;j<i;++j)if(xidePathEqual(q->snapshots[i].path,q->snapshots[j].path))return fail(e,"Signature source paths resolve to the same file.");
+ signature=retainedSignature(q,e);if(!signature)goto done;
+ if(!xlsSignatureValidate(signature)){fail(e,"Signature inputs changed during analysis.");goto done;}
+ if(!xlsSignatureInfo(signature).available){
+  /* Empty results carry no semantic facts. Keep only the already captured
+     package guard; no fictional source/dependency proof is created. */
+  result=xrtValueNull();q->guardFiles=xrtValueArray();q->guardResolution=xrtValueObject();okay=result && q->guardFiles && q->guardResolution && !cancelled(q);goto done;
+ }
+ size_t size=0;json=xlsSignatureInputJson(signature,&size);if(!json)goto done;
+ raw=xrtJsonParse((xstrview){json,size});graph.completed=xlsSignatureRetain(signature);
+ if(!raw || !loadGraph(q,raw,&graph,e))goto done;
+ result=xlsSignatureHelpValue(signature,q->signatureFlags);if(!result)goto done;
+ xvalue* stats=xrtValueObject();xls_sem_work sem=xlsSemanticCompletionSemWork(signature);
+ int retained=stats && put(stats,"builds",xrtValueInt((int64)q->signatureStats.builds)) && put(stats,"cacheHits",xrtValueInt((int64)q->signatureStats.hits)) &&
+  put(stats,"indexBuilds",xrtValueInt((int64)q->signatureStats.indexBuilds)) && put(stats,"indexHits",xrtValueInt((int64)q->signatureStats.indexHits)) &&
+  put(stats,"workerThreadId",xrtValueInt((int64)q->semanticThread)) && put(stats,"captureThreadId",xrtValueInt((int64)q->captureThread)) &&
+  put(stats,"checked",xrtValueInt((int64)sem.checked)) && put(stats,"reused",xrtValueInt((int64)sem.reused));
+ if(retained){retained=put(result,"analysis",stats);stats=NULL;}xrtValueRelease(stats);
+ if(!retained || !put(result,"version",xrtValueInt(q->queryVersion)) || !xlsSignatureValidate(signature) || !validateGraph(q,&graph,e) || cancelled(q))goto done;
+ q->guardFiles=xrtValueDeepClone(get(get(raw,"sourceReport"),"files"));q->guardResolution=xrtValueDeepClone(get(raw,"resolutionReport"));
+ okay=q->guardFiles && q->guardResolution;
+done:
+ if(okay){*output=result;result=NULL;}
+ xlsSemanticStringFree(json);xrtValueRelease(raw);xrtValueRelease(result);clearGraph(&graph);xlsSignatureRelease(signature);return okay;
+}
+#endif
 int xideLanguageSnapshotRun(xide_language_check* q,xvalue** output,xide_model_error* e)
 {
  xide_toolchain_stamp stamp={0}; xide_toolchain_profile profile={0}; source_graph graph={0}; char *help=NULL,*json=NULL,*temp=NULL,*files[64]={0}; int indexed=0; xvalue *raw=NULL,*result=NULL;
@@ -452,6 +502,7 @@ int xideLanguageSnapshotRun(xide_language_check* q,xvalue** output,xide_model_er
  q->packagePathCaptured=1;
 #ifdef XLS_COMPILER_XRT
  if(q->nativeSemantic) {
+  if(q->signatureMode)return nativeSignatureRun(q,output,e);
   if(q->nativeBridge || !nativeAnalysis(q,&json,&code,&nativeCheck,&nativeCompletion,e)) goto done;
   indexed=q->queryPath==NULL;
   goto analysed;

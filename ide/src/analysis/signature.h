@@ -34,4 +34,8 @@ int xlsSignatureParameter(const xls_signature_help* result,size_t index,size_t p
 int xlsSignatureInputs(const xls_signature_help* result,xls_inputs* inputs);
 int xlsSignatureSource(const xls_signature_help* result,size_t index,xls_input_source* source);
 int xlsSignatureProbe(const xls_signature_help* result,size_t index,xls_input_probe* probe);
+/* Transitional guarded host adapter: original compiler source/resolution
+ * reports only, no CompletionList or signature facts. Requires a real captured
+ * input set. XRT-owned UTF-8; release with xlsSemanticStringFree. */
+char* xlsSignatureInputJson(xls_signature_help* result,size_t* size);
 #endif

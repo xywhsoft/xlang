@@ -220,7 +220,7 @@ static void diagnosticPoll(server* s)
    } else if(state==XIDE_DIAGNOSTIC_FAILED) {
     if(result.conflictPath) {
      ++s->generation; if(s->check && s->snapshotMode) cancel(s,-32801,"Observed diagnostic inputs changed.");
-     cancelCompletion(s,-32801,"Observed diagnostic inputs changed.",1); clearPublished(s);
+     cancelCompletion(s,-32801,"Observed diagnostic inputs changed.",1);cancelSignature(s,-32801,"Observed diagnostic inputs changed.",1); clearPublished(s);
      diagnosticInput(s,-1,result.conflictPath,0);
      if(root>=0 && s->docs[root].uri && s->docs[root].identity==identity) diagnosticSchedule(s,root,(unsigned)s->diagnosticDelay);
     } else if(kind==DIAGNOSTIC_PUT && root>=0 && s->docs[root].uri && s->docs[root].identity==identity) { diagnosticCheckFailed(s,root,-32603,result.error); s->diagnosticNeedsSnapshot=1; }
@@ -278,7 +278,7 @@ static void diagnosticWatched(server* s,const xvalue* params)
  if(count>INVALIDATION_LIMIT) {
   ++s->inputSerial;
   ++s->generation; if(s->check && s->snapshotMode) cancel(s,-32801,"Watched input set changed.");
-  cancelCompletion(s,-32801,"Watched input set changed.",1); clearPublished(s);
+  cancelCompletion(s,-32801,"Watched input set changed.",1);cancelSignature(s,-32801,"Watched input set changed.",1); clearPublished(s);
   diagnosticResetState(s,"Watched file changes exceeded their bound; resynchronizing open documents."); return;
  }
  char* paths[INVALIDATION_LIMIT]={0}; size_t bytes=0; int okay=1;
@@ -291,7 +291,7 @@ static void diagnosticWatched(server* s,const xvalue* params)
  if(okay) {
   ++s->inputSerial;
   ++s->generation; if(s->check && s->snapshotMode) cancel(s,-32801,"Watched input set changed.");
-  cancelCompletion(s,-32801,"Watched input set changed.",1); clearPublished(s);
+  cancelCompletion(s,-32801,"Watched input set changed.",1);cancelSignature(s,-32801,"Watched input set changed.",1); clearPublished(s);
   for(size_t i=0;i<count;++i) diagnosticInput(s,-1,paths[i],0);
  } else fputs("xlang-ls: rejected watched file changes.\n",stderr);
  for(size_t i=0;i<count;++i) free(paths[i]);

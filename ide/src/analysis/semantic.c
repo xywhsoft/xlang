@@ -309,6 +309,19 @@ static char* jsonLocked(xls_semantic_completion* r,size_t* size)
     if(!validateLocked(r)) { xrtFree(text); text=NULL; if(size) *size=0; }
     return text;
 }
+char* xlsSignatureInputJson(xls_signature_help* r,size_t* size)
+{
+    if(size)*size=0;
+    if(!r || !r->signature || !r->signature->hasSite || !xrtMutexLock(&r->lock))return NULL;
+    char* text=NULL;XL6_Output out;
+    if(validateLocked(r) && xl6OutputOpenMemory(&out)){
+        xl6DiagPrintJsonWithSources(&out,NULL,NULL,"signature",1,&r->report);
+        if(!xl6OutputHasFailed(&out))text=xl6OutputTakeMemoryText(&out,size);
+        xl6OutputDiscard(&out);
+    }
+    if((size && *size>12u*1024u*1024u) || !validateLocked(r)){xrtFree(text);text=NULL;if(size)*size=0;}
+    xrtMutexUnlock(&r->lock);return text;
+}
 char* xlsSemanticCompletionJson(xls_semantic_completion* r,size_t* size)
 {
     if(size) *size=0;
