@@ -83,3 +83,10 @@ Windows/Linux 包门禁均以 `-DNDEBUG` 编译运行；预处理确认独立
 Python zlib 样本的解压调用仍在。Windows 严格 C/XLang/双语门禁和
 Linux C ASan/UBSan/Python zlib 互通门禁通过。库实现与公开 API 未改，
 完整 AOT/XLIR 共享阻断仍在，不签收整包发布级。
+
+2026-10-24：使用当前发布版 `xl.exe` 不带 `-SkipAot` 运行 Windows
+包级门禁，严格 GCC、TCC C、XLang 主/进度/文件/分配用例、单文件
+C JIT/AOT、基础范例 C/XLang 对照及 XLang 基础范例 AOT 全部通过。
+Linux 门禁通过 C ASan/UBSan、Python zlib 互通和 XLang 双语对照。
+前述 AOT 缺符号是旧发布版的历史状态；本次未覆盖 Linux AOT、
+持续模糊测试或长期压力，不能把包级门禁扩大为这些范围的认证。

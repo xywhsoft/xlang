@@ -167,8 +167,9 @@ xl.exe run examples\extlibs\miniz.xl</pre></div></div>
       <li>一次性编解码的 XRT 分配失败、空输出、释放平衡与恢复；XLang 公开入口须抛 MemoryError</li>
       <li>流对象、一次性及文件流入口的选项 ABI 和 -1/11 级别拒绝；0..10 全部可往返</li>
     </ul>
+    <p>2026-10-24 当前 Windows 发布版通过完整包级门禁，包括基础范例 AOT；Linux 通过 C ASan/UBSan、Python zlib 互通和 XLang 双语对照。Linux AOT、长期压力及持续模糊测试不在此次验收范围。</p>
     <h3>运行测试</h3>
-    <div class="code-block"><div class="code-header"><span>终端（demo6 目录）</span></div><div class="code-body"><pre>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/miniz/test/check.ps1 -SkipAot
+    <div class="code-block"><div class="code-header"><span>终端（demo6 目录）</span></div><div class="code-body"><pre>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/miniz/test/check.ps1
 bash release/extlibs/miniz/test/check.sh</pre></div></div>
   </div>
 
