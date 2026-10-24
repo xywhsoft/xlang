@@ -21171,6 +21171,16 @@ XRT_API xnetstream* xrtNetStreamConnect(
 	ptr pData
 );
 
+/* Creation-time event ownership: installs the permanent descriptor BEFORE
+ * posting connect/start work, so even an immediate Open/Close sees its owner.
+ * Success consumes exactly one Data reference; failure consumes none. Event
+ * callbacks borrow it; Drop is deferred until the Worker callback stacks have
+ * returned, with the same replacement/close rules as SetEventsOwnedV1.
+ * Descriptor and callback code must remain resident. */
+XRT_API xnetstream* xrtNetStreamConnectOwnedV1(xnetengine* pEngine,
+	const xnetaddr* pRemote, uint64 iAffinity, const xnetstreamconfig* pConfig,
+	ptr pData, const xnetstreameventsownershipv1* pPolicy);
+
 
 
 #if defined(XRT_FEATURE_NET_TCP_DIAL)
