@@ -25,6 +25,11 @@ assert langdetect.script("Привет") == "Cyrillic"
 
 ## 验证
 
+2026-10-24：更新后的 Windows 发布版 `xl.exe` 跑通默认
+`test/check.ps1`：严格 C 语法、C/XLang 边界、公开双语范例、核心与
+完整范例 AOT 均通过。此前带输出 AOT 的共享缺符号阻断仅是旧发布物
+历史状态；这次没有重跑 Linux 门禁或扩大启发式识别范围。
+
 2026-10-22：Windows 包级脚本增加完整 AOT 发布门禁：默认构建运行无输出核心，再构建运行公开双语范例的 XLang AOT，并与 C 范例逐行比较；`-SkipAot` 仅做 C/JIT 聚焦快测。当前快测通过，默认门禁核心 AOT 通过、完整范例在共享 `xl6ValueDataSnapshotV1` 未解析处准确失败。每次构建使用独占目录，失败后也清理本次产物；不签收整包发布级。
 
 2026-10-22：C 红例复现补充平面的已分配汉字被漏计；按 Unicode 17 已分配区间补齐分类，保留区间间的未分配空洞。C 边界覆盖 B/C/E/I/G/H/J 与兼容区的端点及相邻空洞，XLang 边界覆盖补充汉字、未分配码位和 Latin 词边界；C/XLang 成对范例新增同一补充汉字样本。Windows 严格 C/XLang 双语门禁和 Linux C ASan/UBSan、XLang/双语门禁通过；完整 AOT 未复验，不签收整包发布级。

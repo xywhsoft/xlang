@@ -1,5 +1,12 @@
 # zip
 
+2026-10-24：更新后的 Windows 发布版 `xl.exe` 跑通默认
+`test/check.ps1`，包括 C/XLang 边界、私有成员拒绝、C/XLang 范例及
+核心与范例 AOT。但 `dev/extlib_blockers/zip_error_dispatch.xl` 仍稳定
+复现原生 `IOError` 抢先于包装层 `ArchiveError` 抛出，退出码为 1；
+因此公开异常合同尚未签收。Linux 解压目标目录的并发替换风险也未因
+这次 Windows 门禁消失。旧 AOT 缺符号诊断是历史状态。
+
 基于 XRT ZIP/libzip 的内存及文件归档接口。`import zip` 后可用
 `create`、`open(Buffer)`、`open(path, mode)`；`ZipArchive` 提供增删条目、
 读取、元数据、解压、关闭和 `finish()`。C API 见 `include/xrt_zip.h`。

@@ -109,3 +109,13 @@ XLang 用例在构造字典写出时终止；完整语言和 AOT 门禁未签收
 原生 `xv_build(xvalue*)` 在写出字段前要求 `XVALUE_OBJECT`，
 不能通过在 vCard 包内识别编译器私有 handle 来回避共享 ABI 问题。
 主线修复后应重跑此 JIT/EXE 最小复现与完整包级门禁。
+
+2026-10-24 补充 `rss`：`./release/xl.exe run
+release/extlibs/rss/test/aot_core.xl` 在合法字典与空数组调用
+`rss.buildRSS` 时退出 1，报告
+`ValueError: buildRSS expects a channel object and items array`。
+默认 `release/extlibs/rss/test/check.ps1` 的严格 C、C 边界及两组
+C 范例先通过，首个 XLang 边界同样失败。原生 `xrss_build_rss`
+入口要求 `XVALUE_OBJECT` 和 `XVALUE_ARRAY`，但语言声明为两个
+`var`；这是同一 foreign 容器合同的可观察失败，尚未单独确认
+内部物理根因。修复共享边界后需重跑 RSS 的 JIT、AOT 和双语门禁。

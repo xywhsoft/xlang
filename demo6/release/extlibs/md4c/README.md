@@ -21,6 +21,13 @@ Markdown 输入必须是合法 UTF-8；内存与文件入口都会在解析前�
 3,769,856 缩至 849,920 字节，执行通过。Linux 脚本只编译一次 XRT
 再分别链接测试和范例；Windows/Linux 包级内存与错误恢复门禁均通过。
 
+2026-10-24：使用更新后的 Windows 发布版 `xl.exe` 执行默认
+`test/check.ps1`，严格 C、C 边界、内存故障注入、直接运行 C 范例、
+XLang 边界、C/XLang 同输出及完整范例 AOT 均通过。三个 HTML 返回
+仍由 `takeCstr` 直接接管 XRT 分配，不需要为了新 `cstring` 语法重写；
+版本号与错误文本是借用结果，继续按借用合同复制。本次只签收该包的
+Windows 门禁，不把先前 Linux 结果冒充为本次复验。
+
 以下为历史验证记录，其中共享缺符号均指当时的旧发布二进制。
 
 2026-10-15：中央 `test/cases/extlib_md4c.xl` 现使用包内固定夹具，不再为测试写文件；缺失文件按公开 `IOError` 合同验证。中央 JIT 与包内非 AOT 门禁通过。中央带输出 AOT 当时仍缺共享 `xl6ValueDataSnapshotV1`，发布验收未完成。

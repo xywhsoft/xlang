@@ -1,5 +1,14 @@
 # rss
 
+2026-10-24：更新后的 Windows 发布版 `xl.exe` 下，默认
+`test/check.ps1` 的严格 C 语法、C 边界与两组 C 范例通过，首个
+XLang 边界在合法 `rss.buildRSS(channel, [])` 调用时报
+`ValueError: buildRSS expects a channel object and items array`。
+独立运行 `test/aot_core.xl` 也复现。原生入口要求 XRT 对象与数组，
+而语言 `var` 容器尚未在 foreign 边界投影为这两种 tag；详见
+`dev/extlib_blockers/foreign_var_container_projection.md`。本包
+不接触主线或识别编译器私有句柄；XLang/AOT 当前未签收。
+
 RSS 2.0 与 Atom 文本订阅格式的解析和生成。XML 语法由 `xml.dom` / Expat 处理；DTD 和外部实体禁用。范围是常用 feed 字段，不承诺 RSS 1.0、扩展命名空间、Atom XHTML 内容或日期规范化。
 
 解析器在读取 DOM 子节点、属性和根元素后归还 XML DOM 的保留引用；
