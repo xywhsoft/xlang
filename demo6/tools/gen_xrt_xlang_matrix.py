@@ -32,6 +32,11 @@ INLINE_FUNCTION = re.compile(
 # `struct xrtownershipref (*Ownership)(...)`; that type is not an API call.
 # Preserve ordinary calls (including dereferenced arguments) and unknown APIs.
 CALL = re.compile(r"\b(xrt[A-Za-z0-9_]*)\s*\((?!\s*\*\s*[A-Za-z_]\w*\s*\)\s*\()")
+# Resident role/operation tables bind API addresses without spelling a call.
+# Only known function symbols in aggregate initializers count here; strings,
+# comments, type declarators and unknown data identifiers are not witnesses.
+C_NONCODE = re.compile(r'//[^\n]*|/\*.*?\*/|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'', re.DOTALL)
+API_INITIALIZER = re.compile(r'(?:^|[,={])\s*(?:\.[A-Za-z_]\w*\s*=\s*)?&?\s*(xrt[A-Za-z0-9_]*)\s*(?=[,}])', re.MULTILINE)
 SYMBOL = re.compile(r"(?m)^\s*XL_XRT_SYMBOL\((xrt[A-Za-z0-9_]+)\)\s*$")
 STDLIB_BINDING = re.compile(
     r'\{"([^"]*)",\s*"([^"]+)",\s*"[^"]+",\s*"(xrt[A-Za-z0-9_]+)"'
@@ -199,18 +204,23 @@ def _source_files(root: Path) -> list[Path]:
     return sorted(set(paths))
 
 
+def _native_address_references(text: str, runtime_apis: set[str]) -> set[str]:
+    code = C_NONCODE.sub(" ", text)
+    return set(API_INITIALIZER.findall(code)) & runtime_apis
+
+
 def _source_references(
     root: Path,
     runtime_apis: set[str],
 ) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
-    """收集 xlang 对当前 API 及已迁出 API 的真实调用引用。"""
+    """收集调用及驻留操作表地址绑定；绑定不等于公开 API 已经验收。"""
 
     references: dict[str, set[str]] = defaultdict(set)
     missing: dict[str, set[str]] = defaultdict(set)
     for path in _source_files(root):
         relative = path.relative_to(root).as_posix()
         text = path.read_text(encoding="utf-8", errors="strict")
-        for name in set(CALL.findall(text)):
+        for name in set(CALL.findall(text)) | _native_address_references(text, runtime_apis):
             target = references if name in runtime_apis else missing
             target[name].add(relative)
     return (

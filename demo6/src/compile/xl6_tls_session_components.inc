@@ -6,3 +6,5 @@
     {"src/runtime/xl6_tls_session_buffer.c",D(R(TLS_SESSION_CORE),R(NET_BUFFER_CORE)),{NULL}},
     {"src/runtime/xl6_tls_session_output.c",D(R(TLS_SESSION_CORE)),{NULL}},
     {"src/runtime/xl6_ownership_domain_tls_session.c",D(R(OWNERSHIP_CATALOG),R(TLS_SESSION_CORE)),{NULL}},
+    {"src/runtime/xl6_tls_session_observe.c",D(R(TLS_SESSION_CORE)),{NULL}},
+    {"src/runtime/xl6_tls_session_certificate.c",D(R(TLS_SESSION_OBSERVE),R(X509_CERTIFICATE)),{NULL}},

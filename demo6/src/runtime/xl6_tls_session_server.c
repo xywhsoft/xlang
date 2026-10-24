@@ -1,4 +1,7 @@
 #include "xl6_tls_session_internal.h"
+static const XL6_TlsSessionRoleOpsV1 serverOperations={
+    xrtTlsServerDrive,xrtTlsServerKeyUpdate,NULL,NULL,xrtTlsServerName,xrtTlsServerCookie
+};
 void* xl6TlsSessionServerCreateV1(void* raw)
 {
     if(xrtGetError())return NULL;
@@ -8,5 +11,5 @@ void* xl6TlsSessionServerCreateV1(void* raw)
     xtlsserverconfig config;xrtTlsServerConfigInit(&config);config.Context=source->parameters;
     config.Identity=source->identity;config.RequireProtocol=source->requireProtocol;
     if(source->protocols){config.Protocols=source->protocols->views;config.ProtocolCount=source->protocols->count;}
-    return xl6TlsSessionTakeInternalV1(xrtTlsServerCreate(&config,NULL),xrtTlsServerDrive);
+    return xl6TlsSessionTakeInternalV1(xrtTlsServerCreate(&config,NULL),&serverOperations);
 }

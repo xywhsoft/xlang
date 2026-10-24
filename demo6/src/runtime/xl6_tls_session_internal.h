@@ -6,19 +6,29 @@
  * No raw native pointer escapes this private ABI. All sessions admitted by
  * the two role factories have no pool, external releaser or language callback;
  * future callback/transport producers must trace their own real owners. */
+/* Permanent resident operations selected by the creating role. Keeping native
+ * role entry points here lets shared observations avoid linking the opposite
+ * handshake implementation. NULL optional operations mean not that role. */
+typedef struct XL6_TlsSessionRoleOpsV1 {
+    xtlsresult (*drive)(xtlssession*);
+    xtlsresult (*keyUpdate)(xtlssession*,xtlskeyupdate);
+    size_t (*certificateCount)(const xtlssession*);
+    const xx509cert* (*certificate)(const xtlssession*,size_t);
+    bool (*serverName)(const xtlssession*,xbytesview*);
+    bool (*serverCookie)(const xtlssession*,uint64*);
+} XL6_TlsSessionRoleOpsV1;
 typedef struct XL6_TlsSessionV1 {
     volatile int32 refs;
     xatomic32 gate;
     xtlssession* native;
-    /* Permanent role-selected resident entry, never generated/user code. */
-    xtlsresult (*drive)(xtlssession*);
+    const XL6_TlsSessionRoleOpsV1* role;
     const void* claim;
     bool cleared;
 } XL6_TlsSessionV1;
 typedef struct XL6_TlsSessionScopeV1 { XL6_TlsSessionV1* owner; } XL6_TlsSessionScopeV1;
 /* Consumes a private, certified static-role session on every path. Never use
  * this factory to certify arbitrary C sessions or borrowed callback state. */
-XL6_TlsSessionV1* xl6TlsSessionTakeInternalV1(xtlssession*,xtlsresult (*)(xtlssession*));
+XL6_TlsSessionV1* xl6TlsSessionTakeInternalV1(xtlssession*,const XL6_TlsSessionRoleOpsV1*);
 bool xl6TlsSessionHoldInternalV1(const void*);
 void xl6TlsSessionDropInternalV1(const void*);
 bool xl6TlsSessionEnterInternalV1(XL6_TlsSessionV1*,bool,XL6_TlsSessionScopeV1*);
@@ -30,6 +40,8 @@ const XL6_NativeHandlePolicyV1* xl6TlsSessionHandlePolicyV1Get(void);
 void xl6TlsSessionDestroyV1(void*);
 void xl6TlsSessionDisposeV1(void*);
 bool xl6TlsSessionDisposedV1(void*);
+/* Native entry gate must already be held. */
+bool xl6TlsSessionPeerReadyInternalV1(const XL6_TlsSessionV1*);
 void* xl6TlsSessionClientCreateV1(void*,xstrview,int64_t,xstrview,int64_t);
 void* xl6TlsSessionServerCreateV1(void*);
 #endif

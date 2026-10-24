@@ -18,8 +18,9 @@ void fixtureSessionFeedBytes(xtlssession*,xnetbytes*);
 void fixtureSessionOpaque(xtlssession*,void*,xnetreleaseproc);
 static unsigned budgets,failed,published,constructors;
 static xtlsresult noDrive(xtlssession* native){(void)native;return XTLS_AGAIN;}
+static const XL6_TlsSessionRoleOpsV1 fixtureOperations={noDrive,NULL,NULL,NULL,NULL,NULL};
 static XL6_TlsSessionV1* make(void)
-{XL6_TlsSessionV1* self=xl6TlsSessionTakeInternalV1(fixtureSessionCreate(),noDrive);assert(self&&!xrtGetError());return self;}
+{XL6_TlsSessionV1* self=xl6TlsSessionTakeInternalV1(fixtureSessionCreate(),&fixtureOperations);assert(self&&!xrtGetError());return self;}
 static void balanced(xmemdebugsnapshot before)
 {
     xmemdebugsnapshot after;xrtClearError();xrtMemDebugSnapshot(&after);
@@ -144,15 +145,35 @@ static void construction(void)
     bool completed=false;
     for(unsigned budget=0;budget<32;++budget){
         xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);xtlssession* native=fixtureSessionCreate();unsigned deaths=fixtureSessionDestroyed();
-        assert(xrtMemDebugFailAfter(budget));XL6_TlsSessionV1* self=xl6TlsSessionTakeInternalV1(native,noDrive);
+        assert(xrtMemDebugFailAfter(budget));XL6_TlsSessionV1* self=xl6TlsSessionTakeInternalV1(native,&fixtureOperations);
         bool hit=xrtMemDebugFailTriggered();xrtMemDebugFailClear();constructors++;assert(hit?(!self&&xrtGetError()):(self&&!xrtGetError()));
         xrtClearError();xl6TlsSessionDestroyV1(self);assert(fixtureSessionDestroyed()==deaths+1);balanced(before);if(!hit){completed=true;break;}
     }assert(completed);
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);unsigned deaths=fixtureSessionDestroyed();
     assert(!xl6TlsSessionTakeInternalV1(fixtureSessionCreate(),NULL)&&xrtErrorKind(xrtGetError())==XERR_ARGUMENT);
     assert(fixtureSessionDestroyed()==deaths+1);xrtClearError();XL6_TlsSessionV1* self=make();
+    static const XL6_TlsSessionRoleOpsV1 missingDrive={0};
+    unsigned rejected=fixtureSessionDestroyed();
+    assert(!xl6TlsSessionTakeInternalV1(fixtureSessionCreate(),&missingDrive)&&xrtErrorKind(xrtGetError())==XERR_ARGUMENT);
+    assert(fixtureSessionDestroyed()==rejected+1);xrtClearError();
     xrtSetErrorKind(XERR_VALUE);const xerror* original=xrtGetError();assert(original);
     xl6TlsSessionDestroyV1(self);assert(xrtGetError()==original);balanced(before);
+}
+static void observations(void)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_TlsSessionV1* self=make();
+    assert(xl6TlsSessionPeerCertificateCountV1(self)==0&&!xrtGetError());
+    XL6_ProductBoolI64I64V1 alert=xl6TlsSessionPeerAlertV1(self);
+    assert(!alert.e0&&!alert.e1&&!alert.e2&&!xrtGetError());
+    assert(!xl6TlsSessionPeerCertificateAtV1(self,0)&&xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();
+    assert(!xl6TlsSessionServerNameV1(self)&&xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();
+    assert(!xl6TlsSessionServerCookieV1(self)&&xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();
+    assert(xl6TlsSessionKeyUpdateV1(self,true)==XTLS_ERROR&&xrtErrorKind(xrtGetError())==XERR_UNSUPPORTED);xrtClearError();
+    /* Every error entry releases its actual pin and gate. */
+    assert(self->refs==1&&!xrtAtomic32Load(&self->gate,XMEMORY_ACQUIRE));
+    xl6TlsSessionDisposeV1(self);
+    assert(!xl6TlsSessionPeerAlertV1(self).e0&&xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();
+    xl6TlsSessionDestroyV1(self);balanced(before);
 }
 static void emptyFailure(void)
 {
@@ -177,6 +198,6 @@ static void publication(void)
 }
 int main(void)
 {
-    assert(xrtMemDebugEnable(true));entries();graph();opaque();outputs();plaintextBatches();construction();failures(false);failures(true);emptyFailure();publication();
+    assert(xrtMemDebugEnable(true));entries();graph();opaque();outputs();plaintextBatches();construction();observations();failures(false);failures(true);emptyFailure();publication();
     assert(xrtMemDebugReset());printf("TLS managed session owners: %u output budgets; %u failures; %u publication budgets; %u construction budgets; active last-drop, Busy, graph finish, short takes and byte balance\n",budgets,failed,published,constructors);return 0;
 }

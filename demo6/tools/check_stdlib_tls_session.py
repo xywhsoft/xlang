@@ -16,6 +16,7 @@ def main():
     fixtureDir=out/'fixtures';fixtureDir.mkdir();cases,contract=language_fixtures(root,fixtureDir)
     cases += [root/'test/cases/stdlib_tls_session_product.xl']
     if (controls/'test/cases/cgen_owned_native_product.xl').exists():cases.append(controls/'test/cases/cgen_owned_native_product.xl')
+    if (controls/'test/cases/cgen_bool_scalar_product.xl').exists():cases.append(controls/'test/cases/cgen_bool_scalar_product.xl')
     contractSource=controls/'test/cases/xlir_tls_session_contract.c'
     paths=[Path(__file__),gcc,contractSource,root/'test/support/container_projection_artifact.c',root/'test/cases/stdlib_tls_session_product.xl',
         *[Path(sys.modules[n].__file__) for n in ['tls_session_fixtures','tls_role_context_fixtures','tls_identity_fixtures','tls_verifier_fixtures','x509_path_fixtures','x509_identity_fixtures','x509_identity_language_fixtures','check_key_format_wire']],
@@ -71,7 +72,10 @@ def main():
         'private':'func bad(TlsSession s)\n auto p=s.handle\nend\n',
         'legacy':'auto c=TlsConfig()\nauto s=c.session()\n',
         'raw':'point p=null\nauto s=TlsSession(p,true,p)\n',
-        'untyped-feed':'func bad(TlsSession s,Buffer b)\n s.feed(b)\nend\n'}
+        'untyped-feed':'func bad(TlsSession s,Buffer b)\n s.feed(b)\nend\n',
+        'key-update-type':'func bad(TlsSession s)\n s.keyUpdate(1)\nend\n',
+        'peer-index-type':'func bad(TlsSession s)\n auto c=s.peerCertificateAt("zero")\nend\n',
+        'narrow-triple':'extern "unregistered_narrow_bool_triple" func invalid() as (bool,int32,int)\n'}
     for name,text in negatives.items():
         source=out/('bad.'+name+'.xl');source.write_text(text);target=out/('bad.'+name+'.c')
         try:

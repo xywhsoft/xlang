@@ -1,0 +1,1 @@
+extern "unregistered_narrow_bool_triple" func invalid() as (bool,int32,int)

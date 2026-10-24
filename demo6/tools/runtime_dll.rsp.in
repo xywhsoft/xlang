@@ -609,6 +609,8 @@
     src\runtime\xl6_tls_session_input.c
     src\runtime\xl6_tls_session_buffer.c
     src\runtime\xl6_tls_session_output.c
+    src\runtime\xl6_tls_session_observe.c
+    src\runtime\xl6_tls_session_certificate.c
     src\runtime\xl6_ownership_domain_tls_session.c
     src\runtime\xl6_x509_store_domain.c
     src\runtime\xl6_x509_store_snapshot_domain.c

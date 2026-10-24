@@ -1,5 +1,8 @@
 #include "xl6_tls_session_internal.h"
 #include "xl6_buffer_internal.h"
+static const XL6_TlsSessionRoleOpsV1 clientOperations={
+    xrtTlsClientDrive,xrtTlsClientKeyUpdate,xrtTlsClientCertificateCount,xrtTlsClientCertificate,NULL,NULL
+};
 static bool name(xstrview* text,int64_t size)
 {
     xbytesview view={(const uint8*)text->Data,text->Size};
@@ -17,5 +20,5 @@ void* xl6TlsSessionClientCreateV1(void* raw,xstrview serverName,int64_t serverSi
     xtlsclientconfig config;xrtTlsClientConfigInit(&config);config.Context=source->parameters;
     config.Verifier=source->verifier.value;config.ServerName=serverName;config.VerifyName=verifyName;
     if(source->protocols){config.Protocols=source->protocols->views;config.ProtocolCount=source->protocols->count;}
-    return xl6TlsSessionTakeInternalV1(xrtTlsClientCreate(&config,NULL),xrtTlsClientDrive);
+    return xl6TlsSessionTakeInternalV1(xrtTlsClientCreate(&config,NULL),&clientOperations);
 }

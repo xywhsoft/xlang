@@ -67,4 +67,9 @@ struct xvalue;
  * Product copy/assignment/drop follows the exact bytes field's language ABI. */
 typedef struct XL6_ProductI64BytesV1 { int64_t e0; struct xvalue* e1; } XL6_ProductI64BytesV1;
 #endif
+#ifndef XL6_PRODUCT_ABI_BOOLI64I64_V1
+#define XL6_PRODUCT_ABI_BOOLI64I64_V1
+/* A presence flag followed by two independent signed 64-bit scalars. */
+typedef struct XL6_ProductBoolI64I64V1 { bool e0; int64_t e1; int64_t e2; } XL6_ProductBoolI64I64V1;
+#endif
 #endif

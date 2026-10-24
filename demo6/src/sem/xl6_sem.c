@@ -20405,7 +20405,8 @@ static int xl6SemIsInternalStdRuntimeExtern(const XL6_AstNode* node)
            strncmp(nameNode->text, prefix, strlen(prefix)) == 0;
 }
 
-/* The native product ABI is closed: three language signed 64-bit values or
+/* The native product ABI is closed: three language signed 64-bit values,
+ * bool followed by two language signed 64-bit values, or
  * two absolute times, bool followed by time/int/int32/uint32/uint64/bool,
  * or signed64 (including a nominal signed64 enum) followed by uint64 or owned bytes,
  * in declaration order. Resolve aliases here; Typed XLIR independently
@@ -20431,7 +20432,7 @@ static int xl6SemIsCAbiProductReturns(XL6_SemContext* ctx,
         const XL6_AstNode* type = xl6SemResolveAliasType(ctx, returns->children[i]);
         if (type == NULL || type->childCount != 0) return 0;
         if (returns->childCount == 3) {
-            if (!xl6TextEquals(type->text, "int") && !xl6TextEquals(type->text, "int64")) return 0;
+            if (!(boolFirst && i == 0) && !xl6TextEquals(type->text, "int") && !xl6TextEquals(type->text, "int64")) return 0;
         } else if (i == 0) {
             if (!boolFirst && !xl6TextEquals(type->text, "time")) return 0;
         } else if (!xl6TextEquals(type->text, "time") && !(boolFirst &&

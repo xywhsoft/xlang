@@ -8,7 +8,7 @@
 - xruntime 产品公共函数：3845，其中扩展自有 465。
 - 低层能力：3845 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：2416 个函数。其余 1429 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：2431 个函数。其余 1414 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -85,7 +85,7 @@
 | xrt | `include/xrt/spin.h` | 7 | 3 | 4 |
 | xrt | `include/xrt/stack.h` | 74 | 0 | 74 |
 | xrt | `include/xrt/string.h` | 85 | 50 | 35 |
-| xrt | `include/xrt/sync.h` | 48 | 31 | 17 |
+| xrt | `include/xrt/sync.h` | 48 | 42 | 6 |
 | xrt | `include/xrt/task.h` | 56 | 41 | 15 |
 | xrt | `include/xrt/task_net.h` | 15 | 8 | 7 |
 | xrt | `include/xrt/tcp.h` | 100 | 73 | 27 |
@@ -95,11 +95,11 @@
 | xrt | `include/xrt/thread.h` | 23 | 18 | 5 |
 | xrt | `include/xrt/time.h` | 58 | 46 | 12 |
 | xrt | `include/xrt/tls.h` | 140 | 8 | 132 |
-| xrt | `include/xrt/tls_client.h` | 10 | 7 | 3 |
+| xrt | `include/xrt/tls_client.h` | 10 | 8 | 2 |
 | xrt | `include/xrt/tls_identity.h` | 13 | 9 | 4 |
 | xrt | `include/xrt/tls_resume.h` | 7 | 2 | 5 |
-| xrt | `include/xrt/tls_server.h` | 9 | 6 | 3 |
-| xrt | `include/xrt/tls_session.h` | 30 | 22 | 8 |
+| xrt | `include/xrt/tls_server.h` | 9 | 8 | 1 |
+| xrt | `include/xrt/tls_session.h` | 30 | 23 | 7 |
 | xrt | `include/xrt/tls_stream.h` | 53 | 27 | 26 |
 | xrt | `include/xrt/tls_verify.h` | 11 | 8 | 3 |
 | xrt | `include/xrt/udp.h` | 95 | 72 | 23 |
