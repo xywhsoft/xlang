@@ -76,3 +76,15 @@ C、真实 Windows `argv` 往返、两种语言的公开范例，在中央 XLang
 在具名类型用例的此写出路径失败。`xnetrc_stringify_text(xvalue*)`
 最终要求 XRT 字典 tag；不要改写 Netrc 的合法构造语义来隐藏
 缺失的 foreign `var` 投影。主线修复后复跑最小 JIT/EXE 和完整包门禁。
+
+同日 `tar` 的当前 Windows 发布版复现数组侧：
+`./release/xl.exe run dev/extlib_blockers/tar_selected_names_projection.xl`
+在 `TarReader.extractSelected(output, ["one.txt"])` 报
+`TypeError: TAR extraction names must be an array<string>`；独立 EXE
+同样失败。最小源只创建一个普通条目并选择提取它，失败出口清理
+独占临时目录。原生 `xtar_reader_extract_selected` 检查
+`xrtValueType(pNames) == XVALUE_ARRAY`，语言声明却是
+`array<string> names`。包级严格 C/TAR 主用例与多份 C/XLang
+范例先通过，中央选择性提取范例首次走此路径时失败；完整 AOT
+未通过包门禁。此问题与 TAR 覆盖旧文件的非原子风险分别处理，
+主线投影修复后复跑最小 JIT/EXE 与完整包门禁。

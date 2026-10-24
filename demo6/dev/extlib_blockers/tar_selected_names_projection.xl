@@ -1,0 +1,15 @@
+import tar
+
+func main(...) as int
+    auto writer = tar.create()
+    writer.add("one.txt", "one")
+    auto reader = tar.open(writer.finish())
+    string output = dir.temp("", "tar-names-projection-", "")
+    try
+        reader.extractSelected(output, ["one.txt"])
+        assert file.readText(path.join(output, "one.txt")) == "one"
+    finally
+        assert dir.delete(output)
+    end
+    return 0
+end
