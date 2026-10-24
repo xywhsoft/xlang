@@ -1,4 +1,5 @@
 #include "analysis/signature_internal.h"
+#include "analysis/frontend_internal.h"
 #include <stdio.h>
 #include <string.h>
 #define XLS_SIGNATURE_BYTES (4u*1024u*1024u)
@@ -48,7 +49,11 @@ static xls_signature_help* createSignature(xls_context* context,const char* entr
     if(found<0){xlsSignatureDataDestroy(data);goto invalid;}
     data->hasSite=found>0 && !data->site.inComment && !data->site.embedded;
     if(found && data->site.embedded)data->error="signature query needs embedded expression recovery";
-    return xlsSemanticSignatureCreateInContext(context,entry,path,offset,inputs,count,data,cache,previous,memoEnabled,cancelled,user,error,capacity);
+    xls_semantic_completion* semantic=xlsSemanticSignatureCreateInContext(context,entry,path,offset,inputs,count,data,cache,xlsSignatureSemantic(previous),memoEnabled,cancelled,user,error,capacity);
+    if(!semantic)return NULL;
+    xls_signature_help* result=xrtCalloc(1,sizeof(*result));
+    if(!result){xlsSemanticCompletionDestroy(semantic);goto memory;}
+    xrtAtomic32Init(&result->references,1);result->semantic=semantic;result->offset=offset;result->site=data->site;return result;
 invalid:if(error && capacity)snprintf(error,capacity,"invalid signature input, target or UTF-8 cursor");return NULL;
 memory:if(error && capacity)snprintf(error,capacity,"cannot allocate signature query");return NULL;
 }
@@ -59,32 +64,55 @@ xls_signature_help* xlsSignatureCreateRetainedInContext(xls_context* context,con
     const xls_semantic_input* inputs,size_t count,xls_call_context* index,xls_entry_cache* cache,xls_signature_help* previous,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {return createSignature(context,entry,path,offset,inputs,count,index,cache,previous,1,cancelled,user,error,capacity);}
-xls_signature_help* xlsSignatureRetain(xls_signature_help* result){return xlsSemanticCompletionRetain(result);}
-void xlsSignatureRelease(xls_signature_help* result){xlsSemanticCompletionDestroy(result);}
+xls_semantic_completion* xlsSignatureSemantic(const xls_signature_help* result){return result ? result->semantic : NULL;}
+xls_signature_data* xlsSignatureData(const xls_signature_help* result){return xlsSemanticSignatureData(xlsSignatureSemantic(result));}
+xls_signature_help* xlsSignatureRetain(xls_signature_help* result){if(result)xrtAtomic32FetchAdd(&result->references,1,XMEMORY_RELAXED);return result;}
+void xlsSignatureRelease(xls_signature_help* result){if(result && xrtAtomic32FetchSub(&result->references,1,XMEMORY_ACQ_REL)==1){xlsSemanticCompletionDestroy(result->semantic);xrtFree(result);}}
+xls_signature_work xlsSignatureWork(const xls_signature_help* result){xls_sem_work work=xlsSemanticCompletionSemWork(xlsSignatureSemantic(result));return (xls_signature_work){work.checked,work.reused};}
 int xlsSignatureValidate(xls_signature_help* result)
 {
-    const xls_signature_data* data=xlsSemanticSignatureData(result);
-    return data && (!data->hasSite || xlsSemanticCompletionValidate(result));
+    const xls_signature_data* data=xlsSignatureData(result);
+    return data && (!data->hasSite || xlsSemanticCompletionValidate(xlsSignatureSemantic(result)));
 }
 xls_signature_info xlsSignatureInfo(const xls_signature_help* result)
 {
-    const xls_signature_data* data=xlsSemanticSignatureData(result);if(!data)return (xls_signature_info){.activeSignature=SIZE_MAX};
-    xls_completion_info info=xlsSemanticCompletionInfo(result);int available=data->hasSite && info.available && !data->error && data->records.Count;
-    return (xls_signature_info){data->path,data->error ? data->error : info.error,data->offset,available ? data->records.Count : 0,available ? data->active : SIZE_MAX,data->site.argument,available,data->projected};
+    const xls_signature_data* data=xlsSignatureData(result);if(!data)return (xls_signature_info){.activeSignature=SIZE_MAX};
+    xls_completion_info info=xlsSemanticCompletionInfo(xlsSignatureSemantic(result));int available=data->hasSite && info.available && !data->error && data->records.Count;
+    return (xls_signature_info){data->path,data->error ? data->error : info.error,result->offset,available ? data->records.Count : 0,available ? data->active : SIZE_MAX,result->site.argument,available,data->projected};
 }
 int xlsSignatureItem(const xls_signature_help* result,size_t index,xls_signature_item* item)
 {
     if(item)*item=(xls_signature_item){0};
     if(!item || index>=xlsSignatureInfo(result).count)return 0;
-    const xls_signature_record* r=xrtArrayConstGet(&xlsSemanticSignatureData(result)->records,index);
+    const xls_signature_record* r=xrtArrayConstGet(&xlsSignatureData(result)->records,index);
     *item=(xls_signature_item){r->label,r->documentation,r->count,r->active,r->symbol};return 1;
 }
 int xlsSignatureParameter(const xls_signature_help* result,size_t index,size_t parameter,xls_signature_parameter* value)
 {
     if(value)*value=(xls_signature_parameter){0};
     if(!value || index>=xlsSignatureInfo(result).count)return 0;
-    const xls_signature_record* r=xrtArrayConstGet(&xlsSemanticSignatureData(result)->records,index);if(parameter>=r->count)return 0;*value=r->parameters[parameter];return 1;
+    const xls_signature_record* r=xrtArrayConstGet(&xlsSignatureData(result)->records,index);if(parameter>=r->count)return 0;*value=r->parameters[parameter];return 1;
 }
-int xlsSignatureInputs(const xls_signature_help* r,xls_inputs* inputs){return xlsSemanticCompletionInputs(r,inputs);}
-int xlsSignatureSource(const xls_signature_help* r,size_t index,xls_input_source* source){return xlsSemanticCompletionSource(r,index,source);}
-int xlsSignatureProbe(const xls_signature_help* r,size_t index,xls_input_probe* probe){return xlsSemanticCompletionProbe(r,index,probe);}
+int xlsSignatureInputs(const xls_signature_help* r,xls_inputs* inputs){return xlsSemanticCompletionInputs(xlsSignatureSemantic(r),inputs);}
+int xlsSignatureSource(const xls_signature_help* r,size_t index,xls_input_source* source){return xlsSemanticCompletionSource(xlsSignatureSemantic(r),index,source);}
+int xlsSignatureProbe(const xls_signature_help* r,size_t index,xls_input_probe* probe){return xlsSemanticCompletionProbe(xlsSignatureSemantic(r),index,probe);}
+
+char* xlsSignatureInputJson(xls_signature_help* result,size_t* size){return xlsSemanticSignatureInputJson(xlsSignatureSemantic(result),size);}
+/* With identical inputs the projection skips the entire current argument.
+ * A closed, proven call and unchanged argument/name boundaries therefore share
+ * the same native semantic model, even across literal/whitespace boundaries. */
+xls_signature_help* xlsSignatureReposition(xls_signature_help* previous,size_t offset)
+{
+    if(!previous || !xlsSignatureInfo(previous).available)return NULL;
+    const xls_signature_data* data=xlsSignatureData(previous);xls_call_site next={0};
+    if(!data || xlsCallContextLookup(data->index,offset,&next)!=1)return NULL;
+    const xls_call_site* old=&previous->site;
+    if(!old->closed || !next.closed || !old->argumentKnown || !next.argumentKnown || old->inComment || next.inComment ||
+       old->embedded || next.embedded || old->sourceError || next.sourceError ||
+       old->calleeStart!=next.calleeStart || old->calleeEnd!=next.calleeEnd || old->nameStart!=next.nameStart || old->nameEnd!=next.nameEnd ||
+       old->argumentsStart!=next.argumentsStart || old->argumentsEnd!=next.argumentsEnd || old->argument!=next.argument ||
+       old->argumentStart!=next.argumentStart || old->namedStart!=next.namedStart || old->namedEnd!=next.namedEnd)return NULL;
+    if(!xlsSignatureValidate(previous))return NULL;
+    xls_signature_help* result=xrtCalloc(1,sizeof(*result));if(!result)return NULL;
+    xrtAtomic32Init(&result->references,1);result->semantic=xlsSemanticCompletionRetain(previous->semantic);result->offset=offset;result->site=next;return result;
+}

@@ -9,6 +9,7 @@
 static unsigned checks;
 #define CHECK(v) do{++checks;if(!(v)){fprintf(stderr,"analysis_signature_test:%d: %s\n",__LINE__,#v);return 0;}}while(0)
 static const char* functions="func plus(int left,string right=\"\") as int\n return left\nend\n";
+static int walkCaretSource(const char* source,size_t size,size_t start);
 static int one(const char* definitions,const char* body,const char* label,size_t parameter,int available)
 {
  const char* caret=strstr(body,"@caret@");CHECK(caret);xstrbuf text={0};CHECK(xrtStrBufAppendFormat(&text,"%sfunc main(...) as int\n%s",definitions,body));size_t prefix=strlen(definitions)+strlen("func main(...) as int\n");size_t offset=prefix+(size_t)(caret-body);
@@ -23,6 +24,7 @@ static int one(const char* definitions,const char* body,const char* label,size_t
   for(size_t i=0;i<item.parameters;++i){xls_signature_parameter p;CHECK(xlsSignatureParameter(result,info.activeSignature,i,&p) && p.labelStart<p.labelEnd && p.labelEnd<=strlen(item.label));}
   xls_inputs inputs;CHECK(xlsSignatureInputs(result,&inputs) && inputs.sources);int source=0;for(size_t i=0;i<inputs.sources;++i){xls_input_source captured;CHECK(xlsSignatureSource(result,i,&captured));if(captured.text && !strcmp(captured.path,path)){CHECK(captured.size==text.Size-bom && !memcmp(captured.text,text.Data+bom,text.Size-bom));source=1;}}CHECK(source);
  }
+ if(available)CHECK(walkCaretSource(text.Data,text.Size,prefix-bom));
  xlsSignatureRelease(result);xrtFree(path);xrtStrBufFree(&text);return 1;
 }
 static const XL6_AstNode* findCall(const XL6_AstNode* n,size_t open,const char* path)
@@ -35,35 +37,79 @@ static int originalOracle(const char* marked)
 {
  const char* caret=strstr(marked,"@caret@");CHECK(caret);char* source=xrtStrDup(marked);CHECK(source);size_t offset=(size_t)(caret-marked);memmove(source+offset,source+offset+7,strlen(source+offset+7)+1);char* path=xrtPathAbs("signature-oracle.xl");CHECK(path);xls_semantic_input input={path,source,strlen(source)};xls_signature_help* result=xlsSignatureCreateInContext(NULL,path,path,offset,&input,1,NULL,NULL,NULL,0);CHECK(result && xlsSignatureInfo(result).available);xls_signature_item item;CHECK(xlsSignatureItem(result,xlsSignatureInfo(result).activeSignature,&item));xls_semantic_check* full=xlsSemanticCheckCreate(path,&input,1,1,NULL,NULL,NULL,0);
  if(full && !xlsSemanticCheckInfo(full).accepted){for(size_t i=0;i<xlsSemanticCheckInfo(full).diagnostics;++i){xls_check_diagnostic d;if(xlsSemanticCheckDiagnostic(full,i,&d))fprintf(stderr,"oracle diagnostic: %s\n",d.message);}}
- CHECK(full && xlsSemanticCheckInfo(full).accepted);const XL6_AstNode* call=findCall(xlsSemanticCheckAst(full),xlsSemanticCompletionInfo(result).start,path);CHECK(call && call->semanticTargetSymbolId && item.symbol==call->semanticTargetSymbolId);xlsSemanticCheckDestroy(full);xlsSignatureRelease(result);xrtFree(path);xrtFree(source);return 1;
+ CHECK(full && xlsSemanticCheckInfo(full).accepted);const XL6_AstNode* call=findCall(xlsSemanticCheckAst(full),xlsSemanticCompletionInfo(xlsSignatureSemantic(result)).start,path);CHECK(call && call->semanticTargetSymbolId && item.symbol==call->semanticTargetSymbolId);xlsSemanticCheckDestroy(full);xlsSignatureRelease(result);xrtFree(path);xrtFree(source);return 1;
 }
 static int sameText(const char* a,const char* b){return a && b ? !strcmp(a,b) : a==b;}
 static int parity(xls_signature_help* a,xls_signature_help* b)
 {
- xls_signature_info x=xlsSignatureInfo(a),y=xlsSignatureInfo(b);CHECK(x.available==y.available && x.count==y.count && x.activeSignature==y.activeSignature && x.argument==y.argument && x.projected==y.projected);
+ xls_signature_info x=xlsSignatureInfo(a),y=xlsSignatureInfo(b);CHECK(x.offset==y.offset && sameText(x.path,y.path) && x.available==y.available && x.count==y.count && x.activeSignature==y.activeSignature && x.argument==y.argument && x.projected==y.projected);
  for(size_t i=0;i<x.count;++i){xls_signature_item left,right;CHECK(xlsSignatureItem(a,i,&left) && xlsSignatureItem(b,i,&right));CHECK(sameText(left.label,right.label) && sameText(left.documentation,right.documentation) && left.parameters==right.parameters && left.activeParameter==right.activeParameter && left.symbol==right.symbol);
   for(size_t j=0;j<left.parameters;++j){xls_signature_parameter p,q;CHECK(xlsSignatureParameter(a,i,j,&p) && xlsSignatureParameter(b,i,j,&q));CHECK(sameText(p.name,q.name) && p.labelStart==q.labelStart && p.labelEnd==q.labelEnd && p.optional==q.optional && p.variadic==q.variadic);}
  }
  return 1;
 }
+static uint64_t caretViews;
+static int walkCaretSource(const char* source,size_t size,size_t start)
+{
+ char* path=xrtPathAbs("signature-caret-walk.xl");CHECK(path);
+ xls_text* text=xlsTextCreate(source,size,8u*1024u*1024u,NULL);xls_signature_session* session=xlsSignatureSessionCreate(NULL);CHECK(text && session);
+ xls_analysis_document doc={"entry",path,text,71,1};xls_semantic_input input={path,source,size};size_t bom=size>=3 && !memcmp(source,"\xef\xbb\xbf",3) ? 3 : 0;
+ xls_signature_help *previous=NULL,*held=NULL,*heldView=NULL;size_t previousOffset=0,heldOffset=0,viewOffset=0;
+ /* Walk both ways: fresh parser/semantic results at every scalar boundary are
+    independent of the retained call-site/model reuse path. Includes nested
+    calls, commas, named prefixes, literals, comments and outside-call exits. */
+ for(unsigned reverse=0;reverse<2;++reverse)for(size_t n=start;n<=size-bom;++n){
+  size_t at=reverse ? size-bom-(n-start) : n;size_t raw=at+bom;
+  if(raw<size && (((unsigned char)source[raw]&0xc0)==0x80 || (raw && source[raw-1]=='\r' && source[raw]=='\n')))continue;
+  xls_signature_help* result=xlsSignatureSessionQueryInContext(session,NULL,&doc,1,"entry","entry",at,NULL,NULL,NULL,0);
+  xls_signature_help* fresh=xlsSignatureCreateInContext(NULL,path,path,at,&input,1,NULL,NULL,NULL,0);
+  if(!result || !fresh || !parity(result,fresh)){fprintf(stderr,"caret parity failed at %zu reverse=%u source=[%s]\n",at,reverse,source);CHECK(0);}
+  CHECK(xlsSignatureInfo(result).offset==at);
+  if(previous){CHECK(xlsSignatureInfo(previous).offset==previousOffset);if(previous!=result && xlsSignatureInfo(result).available && xlsSignatureSemantic(previous)==xlsSignatureSemantic(result)){
+   CHECK(previousOffset!=at);++caretViews;if(!heldView){heldView=xlsSignatureRetain(result);viewOffset=at;}
+  }}
+  if(!held && xlsSignatureInfo(result).available){held=xlsSignatureRetain(result);heldOffset=at;}
+  xlsSignatureRelease(previous);previous=result;previousOffset=at;xlsSignatureRelease(fresh);
+ }
+ xlsSignatureRelease(previous);xlsSignatureSessionDestroy(session);xlsTextRelease(text);
+ if(held){xls_signature_item item;CHECK(xlsSignatureValidate(held) && xlsSignatureInfo(held).offset==heldOffset && xlsSignatureItem(held,0,&item) && item.label && *item.label);}
+ if(heldView){xls_signature_item item;CHECK(xlsSignatureValidate(heldView) && xlsSignatureInfo(heldView).offset==viewOffset && xlsSignatureItem(heldView,0,&item) && item.label && *item.label);}
+ xlsSignatureRelease(held);xlsSignatureRelease(heldView);xrtFree(path);return 1;
+}
 static int session(void)
 {
  char* path=xrtPathAbs("signature-session.xl");CHECK(path);xls_signature_session* s=xlsSignatureSessionCreate(NULL);CHECK(s);xls_analysis_document doc={"entry",path,NULL,23,1};xls_signature_help* held=NULL;
  for(unsigned i=0;i<16;++i){xstrbuf source={0};for(unsigned j=0;j<24;++j)CHECK(xrtStrBufAppendFormat(&source,"func stable_%u(int value) as int\n int local=value+%u\n if local>0 then\n return local\n end\n return 0\nend\n",j,j));CHECK(xrtStrBufAppendFormat(&source,"%sfunc main(...) as int\n return plus(%u,\"%u\")\nend\n",functions,i,i));xlsTextRelease(doc.text);doc.text=xlsTextCreate(source.Data,source.Size,1024*1024,NULL);CHECK(doc.text);++doc.revision;size_t offset=(size_t)(strrchr(source.Data,'"')-source.Data);xls_signature_help* r=xlsSignatureSessionQueryInContext(s,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(r && xlsSignatureInfo(r).available);xls_semantic_input in={path,source.Data,source.Size};xls_signature_help* fresh=xlsSignatureCreateInContext(NULL,path,path,offset,&in,1,NULL,NULL,NULL,0);CHECK(fresh && parity(r,fresh));xlsSignatureRelease(fresh);
-  if(i)CHECK(xlsSemanticCompletionSemWork(r).reused>=24);
+  if(i)CHECK(xlsSignatureWork(r).reused>=24);
   xls_signature_stats stats;xlsSignatureSessionStats(s,&stats);CHECK(stats.builds==i+1 && stats.indexBuilds==i+1 && stats.hits==i);
   ++doc.revision;xls_signature_help* hit=xlsSignatureSessionQueryInContext(s,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(hit==r);xlsSignatureRelease(hit);
   if(!i)held=xlsSignatureRetain(r);
   xlsSignatureRelease(r);xrtStrBufFree(&source);
  }
  size_t offset=(size_t)(strrchr(xlsTextData(doc.text),'"')-xlsTextData(doc.text))-1;
- xls_signature_help* moved=xlsSignatureSessionQueryInContext(s,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(moved && xlsSignatureInfo(moved).available);xls_signature_stats stats;xlsSignatureSessionStats(s,&stats);CHECK(stats.indexHits==1 && stats.builds==17 && stats.indexBuilds==16);xlsSignatureRelease(moved);
- ++doc.identity;doc.revision=1;moved=xlsSignatureSessionQueryInContext(s,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(moved && !xlsSemanticCompletionSemWork(moved).reused);xlsSignatureRelease(moved);xlsSignatureSessionDestroy(s);xlsTextRelease(doc.text);CHECK(held && xlsSignatureValidate(held) && xlsSignatureInfo(held).available);xls_signature_item item;CHECK(xlsSignatureItem(held,0,&item) && strstr(item.label,"plus("));xlsSignatureRelease(held);xrtFree(path);return 1;
+ xls_signature_help* moved=xlsSignatureSessionQueryInContext(s,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(moved && xlsSignatureInfo(moved).available);xls_signature_stats stats;xlsSignatureSessionStats(s,&stats);CHECK(stats.indexHits==1 && stats.caretHits==1 && stats.builds==16 && stats.indexBuilds==16);xlsSignatureRelease(moved);
+ ++doc.identity;doc.revision=1;moved=xlsSignatureSessionQueryInContext(s,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(moved && !xlsSignatureWork(moved).reused);xlsSignatureRelease(moved);xlsSignatureSessionDestroy(s);xlsTextRelease(doc.text);CHECK(held && xlsSignatureValidate(held) && xlsSignatureInfo(held).available);xls_signature_item item;CHECK(xlsSignatureItem(held,0,&item) && strstr(item.label,"plus("));xlsSignatureRelease(held);xrtFree(path);return 1;
 }
 typedef struct cancel_state {unsigned calls,at;} cancel_state;
 static int cancelAt(void* user){cancel_state* c=user;return ++c->calls==c->at;}
+static int caretCancellationAndLifetime(void)
+{
+ const char* source="func target(string value) as int\n return 0\nend\nfunc main(...) as int\n return target(\"abcdef\")\nend\n";
+ char* path=xrtPathAbs("signature-caret-cancel.xl");xls_text* text=xlsTextCreate(source,strlen(source),1024,NULL);xls_signature_session* session=xlsSignatureSessionCreate(NULL);CHECK(path && text && session);
+ xls_analysis_document doc={"entry",path,text,101,1};size_t at=(size_t)(strstr(source,"abcdef")-source)+1;
+ xls_signature_help* initial=xlsSignatureSessionQueryInContext(session,NULL,&doc,1,"entry","entry",at,NULL,NULL,NULL,0);CHECK(initial && xlsSignatureInfo(initial).available);
+ cancel_state c={0};xls_signature_help* moved=xlsSignatureSessionQueryInContext(session,NULL,&doc,1,"entry","entry",at+1,cancelAt,&c,NULL,0);CHECK(moved && moved!=initial && xlsSignatureSemantic(moved)==xlsSignatureSemantic(initial));unsigned calls=c.calls;CHECK(calls>=2);xlsSignatureRelease(moved);
+ xls_signature_help* cached=xlsSignatureSessionQueryInContext(session,NULL,&doc,1,"entry","entry",at,NULL,NULL,NULL,0);CHECK(cached && cached!=initial && xlsSignatureInfo(initial).offset==at);
+ for(unsigned i=1;i<=calls;++i){c=(cancel_state){0,i};char error[160]={0};moved=xlsSignatureSessionQueryInContext(session,NULL,&doc,1,"entry","entry",at+1,cancelAt,&c,error,sizeof(error));CHECK(!moved && strstr(error,"cancel"));xls_signature_help* same=xlsSignatureSessionQueryInContext(session,NULL,&doc,1,"entry","entry",at,NULL,NULL,NULL,0);CHECK(same==cached && xlsSignatureInfo(same).offset==at);xlsSignatureRelease(same);}
+ xls_signature_stats stats;xlsSignatureSessionStats(session,&stats);CHECK(stats.builds==1 && stats.caretHits==2 && stats.indexHits==2);
+ for(unsigned i=0;i<10000;++i){size_t next=at+1+(i%2);moved=xlsSignatureSessionQueryInContext(session,NULL,&doc,1,"entry","entry",next,NULL,NULL,NULL,0);CHECK(moved && moved!=cached && xlsSignatureInfo(moved).offset==next && xlsSignatureInfo(cached).offset==(i ? at+1+((i-1)%2) : at) && xlsSignatureSemantic(moved)==xlsSignatureSemantic(initial));xlsSignatureRelease(cached);cached=moved;}
+ xlsSignatureSessionStats(session,&stats);CHECK(stats.builds==1 && stats.caretHits==10002 && stats.indexBuilds==1);
+ xlsSignatureSessionDestroy(session);xlsTextRelease(text);CHECK(xlsSignatureValidate(cached) && xlsSignatureInfo(initial).offset==at && xlsSignatureInfo(cached).offset==at+2);xls_signature_item item;CHECK(xlsSignatureItem(cached,0,&item) && strstr(item.label,"target(string value)"));
+ printf("Caret cancellation checkpoints=%u;10000flat-owner views preserve held offsets/lifetime\n",calls);xlsSignatureRelease(cached);xlsSignatureRelease(initial);xrtFree(path);return 1;
+}
 static int cancellation(void)
 {
+ CHECK(caretCancellationAndLifetime());
  char* path=xrtPathAbs("signature-cancel.xl");CHECK(path);const char* before="func target(int value) as int\n return value\nend\nfunc main(...) as int\n return target(7)\nend\n";xls_text* body=xlsTextCreate(before,strlen(before),1024,NULL);CHECK(body);xls_analysis_document doc={"entry",path,body,37,1};size_t offset=(size_t)(strstr(before,"target(7)")-before)+strlen("target(");xls_signature_session* s=xlsSignatureSessionCreate(NULL);CHECK(s);xls_signature_help* stable=xlsSignatureSessionQueryInContext(s,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(stable && xlsSignatureInfo(stable).available);
  xls_text_edit edit={.text="8",.length=1,.hasRange=1};CHECK(xlsTextPosition(body,offset,&edit.start) && xlsTextPosition(body,offset+1,&edit.end));xls_text* next=xlsTextApply(body,&edit,1,1024,NULL);CHECK(next);xls_analysis_document changed=doc;changed.text=next;changed.revision=2;cancel_state c={0};xls_signature_session* calibrate=xlsSignatureSessionCreate(NULL);CHECK(calibrate);xls_signature_help* seed=xlsSignatureSessionQueryInContext(calibrate,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(seed);xlsSignatureRelease(seed);xls_signature_help* result=xlsSignatureSessionQueryInContext(calibrate,NULL,&changed,1,"entry","entry",offset,cancelAt,&c,NULL,0);CHECK(result && xlsSignatureInfo(result).available && c.calls>20);unsigned calls=c.calls;xlsSignatureRelease(result);xlsSignatureSessionDestroy(calibrate);
  for(unsigned at=1;at<=calls;++at){c=(cancel_state){0,at};char error[256]={0};result=xlsSignatureSessionQueryInContext(s,NULL,&changed,1,"entry","entry",offset,cancelAt,&c,error,sizeof(error));if(result)fprintf(stderr,"unexpected signature cancellation result at=%u,total=%u\n",at,calls);CHECK(!result && strstr(error,"cancel"));xls_signature_help* same=xlsSignatureSessionQueryInContext(s,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(same==stable && xlsSignatureInfo(stable).available);xlsSignatureRelease(same);}
@@ -84,13 +130,14 @@ static int actor(void)
 static int diskInputs(void)
 {
  char relative[160];snprintf(relative,sizeof(relative),"build/signature-inputs-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());char* folder=xrtPathAbs(relative);char* entry=xrtPathJoin(folder,"main.xl");char* path=xrtPathJoin(folder,"helper.xl");char* project=xrtPathJoin(folder,"sample.xlp");CHECK(folder && entry && path && project && xrtDirCreateAll(folder));const char* entryBody="import helper\nfunc main(...) as int\n return helper.compute()\nend\n";CHECK(xrtFileWriteAtomic(entry,(xbytesview){(const unsigned char*)entryBody,strlen(entryBody)}));const char* body="func plus(int value) as int\n return value\nend\nexport func compute() as int\n return plus(7)\nend\n";xls_semantic_input input={path,body,strlen(body)};size_t offset=(size_t)(strstr(body,"plus(7)")-body)+strlen("plus(");xls_context_spec spec={.kind=XLS_CONTEXT_PROJECT,.project=project,.entry=entry,.directory=folder,.configuration="debug",.analysisProfile="fixture-linked-native",.targetKind="exe",.packagePath=""};xls_context* context=xlsContextCreate(&spec,1024*1024,NULL);CHECK(context);xls_signature_help* result=xlsSignatureCreateInContext(context,entry,path,offset,&input,1,NULL,NULL,NULL,0);CHECK(result && xlsSignatureInfo(result).available && xlsSignatureValidate(result));xls_signature_item item;CHECK(xlsSignatureItem(result,0,&item) && !strcmp(item.label,"plus(int value) as int"));const char* held=item.label;xls_inputs inputs;CHECK(xlsSignatureInputs(result,&inputs) && inputs.sources>=2 && inputs.probes);xlsContextRelease(context);
- const char* changed="// changed disk entry\nimport helper\nfunc main(...) as int\n return helper.compute()\nend\n";CHECK(xrtFileWriteAtomic(entry,(xbytesview){(const unsigned char*)changed,strlen(changed)}));CHECK(!xlsSignatureValidate(result) && !xlsSignatureInfo(result).available && !xlsSignatureInfo(result).count && !xlsSignatureItem(result,0,&item));CHECK(!strcmp(held,"plus(int value) as int"));CHECK(xrtFileWriteAtomic(entry,(xbytesview){(const unsigned char*)entryBody,strlen(entryBody)}) && !xlsSignatureValidate(result));xlsSignatureRelease(result);xrtFree(project);xrtFree(path);xrtFree(entry);xrtFree(folder);return 1;
+ xls_signature_help* view=xlsSignatureReposition(result,offset+1);CHECK(view && view!=result && xlsSignatureSemantic(view)==xlsSignatureSemantic(result) && xlsSignatureInfo(view).offset==offset+1 && xlsSignatureInfo(result).offset==offset);
+ const char* changed="// changed disk entry\nimport helper\nfunc main(...) as int\n return helper.compute()\nend\n";CHECK(xrtFileWriteAtomic(entry,(xbytesview){(const unsigned char*)changed,strlen(changed)}));CHECK(!xlsSignatureValidate(view) && !xlsSignatureInfo(view).available && !xlsSignatureItem(view,0,&item));CHECK(!xlsSignatureValidate(result) && !xlsSignatureInfo(result).available && !xlsSignatureInfo(result).count && !xlsSignatureItem(result,0,&item));CHECK(!strcmp(held,"plus(int value) as int"));CHECK(xrtFileWriteAtomic(entry,(xbytesview){(const unsigned char*)entryBody,strlen(entryBody)}) && !xlsSignatureValidate(result));xlsSignatureRelease(view);xlsSignatureRelease(result);xrtFree(project);xrtFree(path);xrtFree(entry);xrtFree(folder);return 1;
 }
 static int isolationAndBounds(void)
 {
  const char* plain="func main(...) as int\n int value=7\n return val\nend\n";char* path=xrtPathAbs("signature-isolation.xl");CHECK(path);xls_semantic_input input={path,plain,strlen(plain)};size_t offset=(size_t)(strstr(plain,"return val")-plain)+strlen("return val");xls_signature_data data={.hasSite=1};xls_signature_scope outer;XL6_CompletionQuery bound={.path=path,.offset=offset};xlsSignatureScopeBegin(&outer,&data,NULL,NULL);outer.query=&bound;
- xls_semantic_completion* completion=xlsSemanticCompletionCreate(path,path,offset,&input,1,NULL,NULL,NULL,0);CHECK(completion && xlsSemanticCompletionInfo(completion).available && xlsSemanticCompletionInfo(completion).count==1);CHECK(xlsSignatureScopeCurrent(&bound)==&outer && !xlsSignatureInfo(completion).available && !xlsSignatureValidate(completion));xlsSemanticCompletionDestroy(completion);
- const char* source="func apply(int value) as int\n return value\nend\nfunc main(...) as int\n return apply(7)\nend\n";input=(xls_semantic_input){path,source,strlen(source)};offset=(size_t)(strstr(source,"apply(7)")-source)+strlen("apply(");xls_signature_help* result=xlsSignatureCreateInContext(NULL,path,path,offset,&input,1,NULL,NULL,NULL,0);CHECK(result && xlsSignatureInfo(result).available && xlsSignatureScopeCurrent(&bound)==&outer);size_t bytes=77;CHECK(!xlsSemanticCompletionJson(result,&bytes) && !bytes && xlsSignatureInfo(result).available);xlsSignatureRelease(result);xlsSignatureScopeEnd(&outer);CHECK(!xlsSignatureScopeCurrent(&bound));
+ xls_semantic_completion* completion=xlsSemanticCompletionCreate(path,path,offset,&input,1,NULL,NULL,NULL,0);CHECK(completion && xlsSemanticCompletionInfo(completion).available && xlsSemanticCompletionInfo(completion).count==1);CHECK(xlsSignatureScopeCurrent(&bound)==&outer && !xlsSemanticSignatureData(completion));xlsSemanticCompletionDestroy(completion);
+ const char* source="func apply(int value) as int\n return value\nend\nfunc main(...) as int\n return apply(7)\nend\n";input=(xls_semantic_input){path,source,strlen(source)};offset=(size_t)(strstr(source,"apply(7)")-source)+strlen("apply(");xls_signature_help* result=xlsSignatureCreateInContext(NULL,path,path,offset,&input,1,NULL,NULL,NULL,0);CHECK(result && xlsSignatureInfo(result).available && xlsSignatureScopeCurrent(&bound)==&outer);size_t bytes=77;CHECK(!xlsSemanticCompletionJson(xlsSignatureSemantic(result),&bytes) && !bytes && xlsSignatureInfo(result).available);xlsSignatureRelease(result);xlsSignatureScopeEnd(&outer);CHECK(!xlsSignatureScopeCurrent(&bound));
  CHECK(!xlsSignatureCreateInContext(NULL,path,path,strlen(source)+1,&input,1,NULL,NULL,NULL,0));xls_semantic_input duplicate[2]={input,input};CHECK(!xlsSignatureCreateInContext(NULL,path,path,offset,duplicate,2,NULL,NULL,NULL,0));
  xstrbuf big={0};CHECK(xrtStrBufAppend(&big,(xstrview){"func excessive(",15}));for(unsigned i=0;i<129;++i)CHECK(xrtStrBufAppendFormat(&big,"%sint p%u",i ? "," : "",i));CHECK(xrtStrBufAppendFormat(&big,") as int\n return p0\nend\nfunc main(...) as int\n return excessive(0)\nend\n"));input=(xls_semantic_input){path,big.Data,big.Size};offset=(size_t)(strstr(big.Data,"excessive(0)")-big.Data)+strlen("excessive(");result=xlsSignatureCreateInContext(NULL,path,path,offset,&input,1,NULL,NULL,NULL,0);CHECK(result && !xlsSignatureInfo(result).available && xlsSignatureInfo(result).error && strstr(xlsSignatureInfo(result).error,"parameter limit"));xlsSignatureRelease(result);xrtStrBufFree(&big);xrtFree(path);return 1;
 }
@@ -129,4 +176,4 @@ static int run(void)
  CHECK(session());CHECK(cancellation());CHECK(actor());CHECK(diskInputs());CHECK(isolationAndBounds());
  return 1;
 }
-int main(void){if(!run())return 1;printf("analysis_signature_test passed: %u checks\n",checks);return 0;}
+int main(void){if(!run())return 1;printf("Same-argument immutable caret views=%llu\n",(unsigned long long)caretViews);printf("analysis_signature_test passed: %u checks\n",checks);return 0;}

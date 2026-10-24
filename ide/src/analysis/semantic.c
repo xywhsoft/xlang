@@ -309,7 +309,7 @@ static char* jsonLocked(xls_semantic_completion* r,size_t* size)
     if(!validateLocked(r)) { xrtFree(text); text=NULL; if(size) *size=0; }
     return text;
 }
-char* xlsSignatureInputJson(xls_signature_help* r,size_t* size)
+char* xlsSemanticSignatureInputJson(xls_semantic_completion* r,size_t* size)
 {
     if(size)*size=0;
     if(!r || !r->signature || !r->signature->hasSite || !xrtMutexLock(&r->lock))return NULL;
