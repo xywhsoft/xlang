@@ -1,13 +1,12 @@
 import geohash
 
-func checkOwnedResult()
-    cstring owned = geohash.encode(42.6, -5.6, 5)
-    string retained = owned
-    owned = geohash.east(retained)
-    assert retained == "ezs42" and owned == geohash.east(retained)
+func checkResultLifetime()
+    string retained = geohash.encode(42.6, -5.6, 5)
+    string next = geohash.east(retained)
+    assert retained == "ezs42" and next == geohash.east(retained)
 end
 
-checkOwnedResult()
+checkResultLifetime()
 assert geohash.encode(0.0, 0.0, 1) == "s"
 assert geohash.encode(42.6, -5.6, 5) == "ezs42"
 assert geohash.bbox("s") == "0,0,45,45"

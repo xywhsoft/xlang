@@ -54,14 +54,15 @@ try {
     $null = Run 'XLang boundaries' $xl @('run', 'release/extlibs/slugify/test/boundaries.xl')
     [IO.Directory]::CreateDirectory($work) | Out-Null
     $generated = Join-Path $work 'owned_text.c'
-    $null = Run 'owned-text cgen' $xl @('cgen',
+    $null = Run 'direct-text cgen' $xl @('cgen',
         'release/extlibs/slugify/test/boundaries.xl', '--emit', $generated)
-    $adoptions = [regex]::Matches([IO.File]::ReadAllText($generated),
-        '\bxl6CStringTakeV1\s*\(').Count
-    if ($adoptions -ne 1) {
-        throw "slugify return must use one direct C-owner adoption (got $adoptions)"
+    $generatedText = [IO.File]::ReadAllText($generated)
+    $adoptions = [regex]::Matches($generatedText,
+        '\bxl6_xrt_take_cstr\s*\(').Count
+    if ($adoptions -lt 2 -or $generatedText.Contains('xl6CStringCopyV1')) {
+        throw "slugify result must transfer the C allocation without copying"
     }
-    Write-Host '[slugify] owned-text codegen: PASS'
+    Write-Host '[slugify] direct string adoption: PASS'
     $xlOutput = Run 'XLang example' $xl @('run', 'release/examples/extlibs/slugify.xl')
     if ($cOutput -cne $xlOutput) {
         throw "C/XLang example output differs`nC: $cOutput`nXLang: $xlOutput"

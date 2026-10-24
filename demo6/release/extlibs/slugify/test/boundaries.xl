@@ -1,13 +1,12 @@
 import slugify
 
-func checkOwnedResult()
-    cstring owned = slugify.slugify("Café & 你好：😀")
-    string stable = owned
-    owned = slugify.slugify("another title")
-    assert stable == "cafe-and-你好" and owned == "another-title"
+func checkResultLifetime()
+    string stable = slugify.slugify("Café & 你好：😀")
+    string next = slugify.slugify("another title")
+    assert stable == "cafe-and-你好" and next == "another-title"
 end
 
-checkOwnedResult()
+checkResultLifetime()
 assert slugify.slugify("Café & 你好") == "cafe-and-你好"
 assert slugify.slugify("Ẁorld") == "world"
 assert slugify.slugify("ẁorld") == "world"
