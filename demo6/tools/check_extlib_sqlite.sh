@@ -2,8 +2,14 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
-work="$root/build/test/sqlite_linux_guard"
-mkdir -p "$work"
+tmp_root=$(realpath -m -- "${TMPDIR:-/tmp}")
+work=$(mktemp -d "$tmp_root/xlang-sqlite-XXXXXXXX")
+cleanup() {
+    case "$work" in
+        "$tmp_root"/xlang-sqlite-*) rm -rf -- "$work" ;;
+    esac
+}
+trap cleanup EXIT
 cc=${CC:-gcc}
 pkg=release/extlibs/sqlite
 mapfile -d '' inputs < <(find "$pkg" -type f \( -name '*.c' -o -name '*.h' -o -name '*.json' -o -name '*.xl' \) -print0 | sort -z)
