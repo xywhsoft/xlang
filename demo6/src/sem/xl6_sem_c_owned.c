@@ -567,11 +567,15 @@ static XL6_AstNode* xl6SemCOwnedAppendNode(XL6_AstNode* parent,XL6_AstNode* chil
 static int xl6SemCOwnedCallableResultCost(XL6_SemContext* ctx,const XL6_AstNode* expr,const XL6_AstNode* target)
 {
     target=xl6SemResolveAliasType(ctx,target);
+    int targetOptional=xl6SemNullableInnerType(target)!=NULL;
+    target=xl6SemCOwnedResolvedElement(ctx,target);
     if(!target || !xl6TextEquals(target->text,"function") || target->childCount!=2)return 0;
     XL6_AstNode* source=xl6SemInferAutoTypeNode(ctx,(XL6_AstNode*)expr);
-    int matches=source && xl6TextEquals(source->text,"function") && source->childCount==2 &&
-        xl6SemCallableTypeListEquals(ctx,source->children[0],target->children[0]) &&
-        xl6SemCOwnedResultListMatches(ctx,target->children[1],source->children[1]);
+    const XL6_AstNode* callable=xl6SemCOwnedResolvedElement(ctx,source);
+    int matches=source && (!xl6SemNullableInnerType(xl6SemResolveAliasType(ctx,source)) || targetOptional) &&
+        callable && xl6TextEquals(callable->text,"function") && callable->childCount==2 &&
+        xl6SemCallableTypeListEquals(ctx,callable->children[0],target->children[0]) &&
+        xl6SemCOwnedResultListMatches(ctx,target->children[1],callable->children[1]);
     xl6AstFree(source);return matches ? 10 : 0;
 }
 static int xl6SemCOwnedAdaptCallArguments(XL6_SemContext* ctx,XL6_AstNode* call,const XL6_AstNode* function)
@@ -585,10 +589,50 @@ static int xl6SemCOwnedAdaptCallArguments(XL6_SemContext* ctx,XL6_AstNode* call,
         if(position<0 || position>=fixed || argument->childCount!=1)continue;
         const XL6_AstNode* parameter=params->children[position];
         const XL6_AstNode* type=parameter->childCount ? xl6SemResolveAliasType(ctx,parameter->children[0]) : NULL;
-        if(type && xl6TextEquals(type->text,"function") &&
+        const XL6_AstNode* element=xl6SemCOwnedResolvedElement(ctx,type);
+        if(element && xl6TextEquals(element->text,"function") &&
            !xl6SemCOwnedAdaptCallableExpr(ctx,argument->children[0],type))return 0;
     }
     return 1;
+}
+/* Evaluate the nullable source once. Only its present branch creates the
+ * ordinary-result closure; normal flow narrowing feeds the existing adapter.
+ * The absent branch returns null without constructing an invocation target. */
+static int xl6SemCOwnedAdaptNullableCallableExpr(XL6_SemContext* ctx,XL6_AstNode* expr,
+    const XL6_AstNode* source,const XL6_AstNode* target)
+{
+    XL6_AstNode* replacement=xl6AstNew(XL6_AST_CALL,NULL);
+    XL6_AstNode* factory=xl6SemCOwnedAppendNode(replacement,xl6AstNew(XL6_AST_ANON_FUNC,NULL));
+    XL6_AstNode* arguments=xl6SemCOwnedAppendNode(replacement,xl6AstNew(XL6_AST_LIST,NULL));
+    XL6_AstNode* params=xl6SemCOwnedAppendNode(factory,xl6AstNew(XL6_AST_LIST,NULL));
+    XL6_AstNode* returns=xl6SemCOwnedAppendNode(factory,xl6AstNew(XL6_AST_RETURN_TYPES,NULL));
+    XL6_AstNode* body=xl6SemCOwnedAppendNode(factory,xl6AstNew(XL6_AST_BLOCK,NULL));
+    XL6_AstNode* parameter=xl6SemCOwnedAppendNode(params,xl6AstNewText(XL6_AST_PARAM,"__xl_c_owned_optional",21,NULL));
+    XL6_AstNode* branch=xl6SemCOwnedAppendNode(body,xl6AstNew(XL6_AST_IF,NULL));
+    XL6_AstNode* condition=xl6SemCOwnedAppendNode(branch,xl6AstNewText(XL6_AST_BINARY,"!=",2,NULL));
+    XL6_AstNode* present=xl6SemCOwnedAppendNode(branch,xl6AstNew(XL6_AST_BLOCK,NULL));
+    XL6_AstNode* alternatives=xl6SemCOwnedAppendNode(branch,xl6AstNew(XL6_AST_LIST,NULL));
+    XL6_AstNode* absent=xl6SemCOwnedAppendNode(branch,xl6AstNew(XL6_AST_BLOCK,NULL));
+    XL6_AstNode* value=xl6SemCOwnedAppendNode(present,xl6AstNew(XL6_AST_RETURN,NULL));
+    XL6_AstNode* missing=xl6SemCOwnedAppendNode(absent,xl6AstNew(XL6_AST_RETURN,NULL));
+    XL6_AstNode* argument=xl6SemCOwnedAppendNode(arguments,xl6AstNew(XL6_AST_ARG,NULL));
+    int ok=alternatives && value && missing &&
+        xl6SemCOwnedAppendNode(parameter,xl6SemCloneTypeNode(source)) &&
+        xl6SemCOwnedAppendNode(returns,xl6SemCloneTypeNode(target)) &&
+        xl6SemCOwnedAppendNode(condition,xl6AstNewText(XL6_AST_NAME,"__xl_c_owned_optional",21,NULL)) &&
+        xl6SemCOwnedAppendNode(condition,xl6AstNew(XL6_AST_NULL,NULL)) &&
+        xl6SemCOwnedAppendNode(value,xl6AstNewText(XL6_AST_NAME,"__xl_c_owned_optional",21,NULL)) &&
+        xl6SemCOwnedAppendNode(missing,xl6AstNew(XL6_AST_NULL,NULL)) &&
+        xl6SemCOwnedAppendNode(argument,xl6SemCOwnedClone(expr));
+    XL6_AstNode* old=ok ? xrtMalloc(sizeof(*old)) : NULL;
+    if(ok && !old)ok=0;
+    if(ok) {
+        replacement->line=expr->line;replacement->column=expr->column;xl6AstCopySource(replacement,expr);
+        ok=xl6SemAssignEntitySymbolIds(ctx,replacement) && xl6SemCheckExpr(ctx,replacement);
+    }
+    if(ok){*old=*expr;*expr=*replacement;xrtFree(replacement);xl6AstFree(old);}
+    else{xl6AstFree(replacement);xrtFree(old);}
+    return ok;
 }
 /* Convert a first-class callable only at an ordinary signature/erasure/Future
  * boundary. A factory snapshots the original expression exactly once, then
@@ -597,16 +641,32 @@ static int xl6SemCOwnedAdaptCallArguments(XL6_SemContext* ctx,XL6_AstNode* call,
 static int xl6SemCOwnedAdaptCallableExpr(XL6_SemContext* ctx,XL6_AstNode* expr,const XL6_AstNode* expected)
 {
     XL6_AstNode* source=xl6SemInferAutoTypeNode(ctx,expr);
-    if(!source || !xl6TextEquals(source->text,"function") || source->childCount!=2){xl6AstFree(source);return 1;}
+    const XL6_AstNode* callable=xl6SemCOwnedResolvedElement(ctx,source);
+    if(!callable || !xl6TextEquals(callable->text,"function") || callable->childCount!=2){xl6AstFree(source);return 1;}
+    int sourceOptional=xl6SemNullableInnerType(xl6SemResolveAliasType(ctx,source))!=NULL;
     expected=xl6SemResolveAliasType(ctx,expected);
-    XL6_AstNode* target=xl6SemCloneTypeNode(expected && expected->childCount==2 ? expected : source);
+    const XL6_AstNode* expectedElement=xl6SemCOwnedResolvedElement(ctx,expected);
+    XL6_AstNode* target=xl6SemCloneTypeNode(expectedElement && expectedElement->childCount==2 ? expected : source);
     if(!target){xl6AstFree(source);return 0;}
+    XL6_AstNode* targetElement=(XL6_AstNode*)xl6SemCOwnedResolvedElement(ctx,target);
     if(!expected || expected->childCount==0)
-        for(size_t r=0;r<target->children[1]->childCount;++r)
-            if(!xl6SemCOwnedOrdinaryResultType(ctx,&target->children[1]->children[r])){xl6AstFree(source);xl6AstFree(target);return 0;}
-    if(!xl6SemCallableTypeListEquals(ctx,source->children[0],target->children[0]) ||
-       !xl6SemCOwnedResultListMatches(ctx,target->children[1],source->children[1])) {
+        for(size_t r=0;r<targetElement->children[1]->childCount;++r)
+            if(!xl6SemCOwnedOrdinaryResultType(ctx,&targetElement->children[1]->children[r])){xl6AstFree(source);xl6AstFree(target);return 0;}
+    if((sourceOptional && !xl6SemNullableInnerType(target)) ||
+       !xl6SemCallableTypeListEquals(ctx,callable->children[0],targetElement->children[0]) ||
+       !xl6SemCOwnedResultListMatches(ctx,targetElement->children[1],callable->children[1])) {
         xl6AstFree(source);xl6AstFree(target);return 1;
+    }
+    if(sourceOptional) {
+        int ok=xl6SemCOwnedAdaptNullableCallableExpr(ctx,expr,source,target);
+        xl6AstFree(source);xl6AstFree(target);return ok;
+    }
+    /* A present source adapts to a present closure; the receiving optional
+     * declaration/return retains its existing nullable lift. */
+    if(targetElement!=target) {
+        XL6_AstNode* present=xl6SemCloneTypeNode(targetElement);
+        xl6AstFree(target);target=present;
+        if(!target){xl6AstFree(source);return 0;}
     }
     if(expr->kind==XL6_AST_NAME) {
         XL6_Symbol* binding=xl6ScopeFind(ctx->scope,expr->text);

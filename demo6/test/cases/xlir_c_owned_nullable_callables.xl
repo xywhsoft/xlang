@@ -1,0 +1,87 @@
+typedef MaybeTextReader = (func() as string)?
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+extern "c_owned_released" @no_raise func released() as int
+int invocations=0
+func maybeText(bool present) as (func() as cstring)?
+    if not present then return null end
+    auto value=cstring.take(nativeText(),nativeFree)
+    return func() as cstring
+        invocations+=1
+        return value
+    end
+end
+func maybeBytes(bool present) as (func() as cbytes)?
+    if not present then return null end
+    auto value=cbytes.take(nativeBytes(),4,nativeFree)
+    return func() as cbytes => value
+end
+func maybeVariadic(bool present,int base) as (func(int,***) as cstring)?
+    if not present then return null end
+    auto value=cstring.take(nativeText(),nativeFree)
+    return func(int first=base,***) as cstring => first==base ? value : "wrong"
+end
+func consume(MaybeTextReader callback) as string
+    if callback!=null then return callback() end
+    return "absent"
+end
+int evaluations=0
+func evaluated(bool present) as (func() as cstring)?
+    evaluations+=1
+    return maybeText(present)
+end
+func check()
+    auto source=maybeText(true)
+    if source!=null then assert original(source()) else assert false end
+    int before=released()
+    int callsBefore=invocations
+    MaybeTextReader adapted=source
+    assert released()==before and invocations==callsBefore
+    source=null
+    if adapted!=null then assert adapted()=="hello" else assert false end
+    assert consume(maybeText(true))=="hello" and consume(maybeText(false))=="absent"
+    MaybeTextReader absent=evaluated(false)
+    assert absent==null and evaluations==1
+    MaybeTextReader present=evaluated(true)
+    assert evaluations==2
+    if present!=null then assert present()=="hello" else assert false end
+    auto raw=maybeText
+    func(bool) as MaybeTextReader factory=raw
+    assert factory(false)==null
+    auto callback=factory(true)
+    if callback!=null then assert callback()=="hello" else assert false end
+    var erased=xcall(raw)
+    assert erased(false)==null and erased(true)()=="hello"
+    auto bytesSource=maybeBytes(true)
+    if bytesSource!=null then assert originalBytes(bytesSource()) else assert false end
+    (func() as bytes)? bytesReader=bytesSource
+    bytesSource=null
+    if bytesReader!=null then assert bytesReader()==b"\0\xff\x11*" else assert false end
+    auto rawBytes=maybeBytes
+    var erasedBytes=xcall(rawBytes)
+    assert erasedBytes(false)==null and erasedBytes(true)()==b"\0\xff\x11*"
+    auto variadic=maybeVariadic(true,19)
+    (func(int,***) as string)? variadicReader=variadic
+    variadic=null
+    if variadicReader!=null then
+        var dynamic=xcall(variadicReader)
+        assert dynamic()=="hello" and dynamic(first=19,answer=42)=="hello"
+    else
+        assert false
+    end
+end
+check()
+async func workers()
+    auto raw=maybeText
+    auto callback=await task.spawn(raw,true)
+    if callback!=null then assert callback()=="hello" else assert false end
+    assert await task.spawn(raw,false)==null
+    auto rawBytes=maybeBytes
+    auto bytesReader=await task.spawn(rawBytes,true)
+    if bytesReader!=null then assert bytesReader()==b"\0\xff\x11*" else assert false end
+    assert await task.spawn(rawBytes,false)==null
+end
+await workers()

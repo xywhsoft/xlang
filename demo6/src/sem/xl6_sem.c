@@ -3797,6 +3797,11 @@ static int xl6SemExprParamMatchCostEx(
     }
 
     exprType = xl6SemExprStaticTypeName(ctx, (XL6_AstNode*)expr);
+    /* Match optional callables before stripping the receiving nullable shell;
+     * the C result adapter must preserve absence as well as the signature. */
+    int callableConversion=xl6SemCOwnedCallableResultCost(ctx,expr,typeNode);
+    if(callableConversion)
+        return !reportError || xl6SemCOwnedAdaptCallableExpr(ctx,(XL6_AstNode*)expr,typeNode) ? callableConversion : -1;
     const XL6_AstNode* cInner=xl6SemNullableInnerType(typeNode);
     if(xl6COwnedBaseName(cInner ? cInner->text : targetType) || xl6COwnedBaseName(exprType) ||
         cInner) {
