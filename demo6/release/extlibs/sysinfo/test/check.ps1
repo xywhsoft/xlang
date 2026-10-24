@@ -73,14 +73,14 @@ try {
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/sysinfo/test/boundaries.xl')
         $null = Run 'XLang allocations' $xl @('run', 'extlibs/sysinfo/test/allocations.xl')
         $generated = Join-Path $work 'owned_text.c'
-        $null = Run 'owned-text cgen' $xl @('cgen',
+        $null = Run 'direct-text cgen' $xl @('cgen',
             'extlibs/sysinfo/test/boundaries.xl', '--emit', $generated)
         $generatedText = [IO.File]::ReadAllText($generated)
-        $adoptions = [regex]::Matches($generatedText, '\bxl6CStringTakeV1\s*\(').Count
-        if ($adoptions -ne 5 -or $generatedText.Contains('xl6_xrt_take_cstr(')) {
-            throw "sysinfo text results must use five direct C-owner adoptions (got $adoptions)"
+        $adoptions = [regex]::Matches($generatedText, '\bxl6_xrt_take_cstr\s*\(').Count
+        if ($adoptions -lt 6 -or $generatedText.Contains('xl6CStringCopyV1')) {
+            throw 'sysinfo text results must transfer C allocations without copying'
         }
-        Write-Host '[sysinfo] owned-text codegen: PASS'
+        Write-Host '[sysinfo] direct string adoption: PASS'
         $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/sysinfo/examples/basic.xl')
         if ($cOutput -cne $xlOutput) {
             throw 'C/XLang system information differs on the same machine'

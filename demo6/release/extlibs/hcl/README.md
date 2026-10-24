@@ -1,12 +1,9 @@
 # hcl
 
-2026-10-25：四个拥有型文本查询改为导出 `cstring`，由 `xrtFree` 回收，
-XLang 调用方仍可直接赋给 `string`。Windows 默认包门禁的严格 C、
-线程、语言边界与分配故障、C/XLang 同输出及四份 AOT 均通过；
-生成 C 的四条出口使用 `xl6CStringTakeV1`，不走旧的 `takeCstr` 桥接。
-Linux C ASan/UBSan 测试通过；当前 Linux `release/xl` 是不认识
-`cstring` 的旧产物，且重建前的能力矩阵快照检查未通过，
-因此这次修改的 Linux XLang/AOT 仍待新发布物复验。
+2026-10-25 所有权复核：四个文本查询返回普通 `string`，
+`takeCstr` 将 XRT 分配直接移交给结果。先前改为 `cstring` 后，
+调用方转成 `string` 反而复制文本，现已修正。Windows 包门禁核对
+生成 C 的直接移交及 C/XLang/AOT 行为。Linux 更新后的包仍待复验。
 
 2026-10-24 当前发布物复验：Windows 默认 `test/check.ps1` 的严格 C、
 线程、XLang 边界与分配、C/XLang 同输出，以及核心、边界、分配、
@@ -61,8 +58,8 @@ C 解析入口也会在顶层遍历前校验整份 HCL 文本的 UTF-8；引号�
 
 C 接口见 `include/hcl_native.h`。文本结果是**独立拥有型**内存，C 调用者
 必须以 `xrtFree` 释放；`NULL` 表示错误。XLang 的 `get`、`getRaw`、
-`blockLabel`、`blockLabelAt` 返回 `cstring`，直接接管原分配，
-可直接赋给普通 `string` 使用；离开生命周期时由运行时释放。
+`blockLabel`、`blockLabelAt` 返回普通 `string`，直接接管原分配，
+离开生命周期时由运行时释放。
 没有全局或线程局部复用结果槽。
 
 包级验证：
