@@ -1,9 +1,18 @@
 # redis
 
 `redis` 提供 RESP2 编解码和基于标准库 `TcpStream` 的单命令客户端。
-原生层不管理连接；C 可以直接使用长度感知的编解码接口，XL 再组合
-`tcp.connect`、`send`、`drain`、`recv` 完成命令调用。不包含连接池、
-自动重连、订阅模式或事务编排。
+原生层不管理连接；C 可以直接使用长度感知的编解码接口，XL 则持有
+`TcpStream`，由 `command` 组合 `send`、`wait`、`recv` 完成命令调用。
+不包含连接池、自动重连、订阅模式或事务编排。
+
+2026-10-24 当前 Windows 发布版复验：严格 C 编译、C 边界/分配故障/线程、
+XLang 编解码边界/分配故障均通过；现行 TCP API 的分包、NUL、错误回复、
+连接复用和期限用例在 JIT 与独立 EXE 中通过。完整 `test/check.ps1`
+仍未通过：旧 `command_loopback.xl` / `reuse_loopback.xl` 使用了已经撤销的
+文本 `recv`、`tcp.connect`、布尔 `send`、`drain` 写法，需迁移到
+`TcpListener`/`NetEngine`、`bytes`、`NetStatus`、`TcpWait` 后保留原边界
+覆盖重新运行。当前结果不构成包级发布签收；下文的历史门禁结果对应当时
+的发布物。
 
 ```xlang
 import redis
@@ -22,8 +31,8 @@ assert reply["value"]["value"] == "hello"
 回复类型为 `simple`、`error`、`integer`、`bulk`、`array` 或 `null`；
 数组元素仍是带 `type/value` 的对象。有效 UTF-8 的 bulk 值为
 `string`，非 UTF-8 的 bulk 值为 `bytes`；`rest` 也按同一规则返回。
-可使用 `decodeBytes(Buffer)`
-和 `isCompleteBytes(Buffer)` 解析原始字节，避免文本路径的编码限制。
+可使用 `decodeBytes(bytes)` / `decodeBytes(Buffer)` 和对应的
+`isCompleteBytes` 重载解析原始字节，避免文本路径的编码限制。
 `release/examples/extlibs/redis.xl` 与 `redis_c.c` 的成对范例先检查一条
 未收齐的二进制 bulk 回复，再解析含 `0xff` 的完整回复并逐字节核对，
 无需连接真实 Redis 服务。
@@ -35,7 +44,7 @@ assert reply["value"]["value"] == "hello"
 不会在解码层丢失字节；`command` 才将完整错误回复转换为包级异常。
 
 `command(stream, args, timeoutMs=5000, maxReplyBytes=67108864)` 在已有
-`TcpStream` 上发送**一条**命令并通过 `recvBytes` 读取**一条**回复。
+`TcpStream` 上发送**一条**命令并通过返回 `bytes` 的 `recv` 读取**一条**回复。
 超时以本次调用开始时刻计时，不会因服务端持续滴送小片段而延长；
 `timeoutMs` 必须为 1..2147483647，回复上限必须为 1..67108864 字节。
 参数在发送前校验，失败不消耗连接。底层接收超时按

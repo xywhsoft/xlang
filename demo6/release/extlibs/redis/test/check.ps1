@@ -43,6 +43,8 @@ try {
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/redis/test/boundaries.xl')
         $null = Run 'XLang allocation failures' $xl @('run',
             'extlibs/redis/test/allocations.xl')
+        $null = Run 'TCP current API' $xl @('run',
+            '../test/cases/xlir_extlib_redis_current_tcp.xl')
         $null = Run 'TCP fragmented/error/deadline' $xl @('run',
             'extlibs/redis/test/command_loopback.xl')
         $null = Run 'TCP reuse' $xl @('run', 'extlibs/redis/test/reuse_loopback.xl')
