@@ -132,6 +132,17 @@ int main(void)
     for(size_t i=0;i<4;++i){assert(xrtThreadWait(threads[i])==XWAIT_OK);xrtThreadDestroy(threads[i]);}
     assert(released==7 && xrtAtomic64Load(&c.Owner->References,XMEMORY_ACQUIRE)==1);
     xl6COwnedDropV1(&c);assert(released==8);
-    puts("C owned runtime: independent copies, binary NUL, empty, release-once and failed adoption passed");
+    const char embedded[]={'a',0,'b',0};
+    c=xl6CBytesTakeV1(allocation(embedded,sizeof(embedded)),0,release);
+    XL6_COwnedV1 sized={0};
+    assert(xl6CStringSizeTakeV1(c,3,&sized) && sized.Size==3 && sized.Data==c.Data);
+    copied=xl6CStringCopyV1(sized);
+    assert(copied.Data && copied.Size==3 && !memcmp(copied.Data,embedded,3));
+    xrtFree((void*)copied.Data);xl6COwnedDropV1(&sized);assert(released==9);
+    c=xl6CBytesTakeV1(allocation(text,sizeof(text)),0,release);
+    assert(!xl6CStringSizeTakeV1(c,1,&sized) && !sized.Data && released==10 && xrtGetError());
+    xrtClearError();
+    assert(xl6CStringSizeTakeV1((XL6_COwnedV1){0},0,&sized) && !sized.Data && !sized.Size);
+    puts("C owned runtime: independent copies, length-aware text, binary NUL, empty, release-once and failed adoption passed");
     return 0;
 }

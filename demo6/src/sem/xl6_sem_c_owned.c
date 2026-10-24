@@ -235,13 +235,13 @@ static int xl6SemCheckCOwnedTake(XL6_SemContext* ctx, XL6_AstNode* call)
         !receiver || receiver->kind != XL6_AST_NAME || !xl6COwnedBaseName(receiver->text)) return -1;
     int binary = xl6TextEquals(receiver->text,"cbytes");
     if(!xl6SemCallArgsArePositional(ctx,call,"C owner take requires positional arguments"))return 0;
-    size_t count = binary ? 3u : 2u;
-    if ((size_t)xl6SemCallArgCount(call) != count) {
+    size_t count=(size_t)xl6SemCallArgCount(call);
+    if ((binary && count!=3) || (!binary && count!=2 && count!=3)) {
         xl6SemErrorNode(ctx,call,"C owner take requires pointer, optional byte length, and named C releaser");
         return 0;
     }
     XL6_AstNode* pointer = xl6SemCallArgExprAt(call,0);
-    XL6_AstNode* length = binary ? xl6SemCallArgExprAt(call,1) : NULL;
+    XL6_AstNode* length = count==3 ? xl6SemCallArgExprAt(call,1) : NULL;
     XL6_AstNode* releaser = xl6SemCallArgExprAt(call,count-1);
     int ok = xl6SemCheckExpr(ctx,pointer);
     if (!xl6TextEquals(xl6SemExprStaticTypeName(ctx,pointer),"point") && pointer->kind!=XL6_AST_NULL) {
@@ -249,7 +249,7 @@ static int xl6SemCheckCOwnedTake(XL6_SemContext* ctx, XL6_AstNode* call)
     }
     if (length && (!xl6SemCheckExpr(ctx,length) ||
         !xl6SemIsIntegerTypeName(xl6SemExprStaticTypeName(ctx,length)))) {
-        xl6SemErrorNode(ctx,length,"C bytes length must be an integer"); ok=0;
+        xl6SemErrorNode(ctx,length,"C owner byte length must be an integer"); ok=0;
     }
     if(length && ok && !xl6SemCOwnedSignedLength(ctx,&call->children[1]->children[1]->children[0]))ok=0;
     XL6_AstNode* selected = NULL;

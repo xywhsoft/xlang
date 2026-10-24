@@ -1,0 +1,55 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_text_with_nul" @no_raise func nativeNul() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_released" @no_raise func released() as int
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+func check()
+    auto text=cstring.take(nativeNul(),c_size(3),nativeFree)
+    assert original(text) and text.length==3 and text[1]=='\0' and text[-1]=='b'
+    string copied=string(text)
+    assert copied=="a\0b" and not original(copied)
+    auto alias=text
+    text="replacement"
+    assert original(alias) and alias.length==3
+    auto empty=cstring.take(null,0,nativeFree)
+    assert empty.length==0
+end
+check()
+assert released()==1
+func invalid(int length)
+    bool caught=false
+    try
+        auto text=cstring.take(nativeText(),length,nativeFree)
+    catch ignored
+        caught=true
+    end
+    assert caught
+end
+invalid(-1)
+invalid(3)
+assert released()==3
+func overflow(uint64 length)
+    bool caught=false
+    try
+        auto text=cstring.take(nativeText(),length,nativeFree)
+    catch ignored
+        caught=true
+    end
+    assert caught
+end
+overflow(uint64(18446744073709551615))
+assert released()==4
+func failingLength() as int
+    throw "length failed"
+end
+func thrown()
+    bool caught=false
+    try
+        auto text=cstring.take(nativeText(),failingLength(),nativeFree)
+    catch ignored
+        caught=true
+    end
+    assert caught
+end
+thrown()
+assert released()==5

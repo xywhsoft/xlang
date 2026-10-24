@@ -42,7 +42,8 @@ XL6_IrCallErrorPhysicalAbi xl6IrCOwnedErrorPhysicalAbi(XL6_IrRuntimeOp op)
     if(op==XL6_IR_RUNTIME_CSTRING_COPY || op==XL6_IR_RUNTIME_CSTRING_SET_COPY || op==XL6_IR_RUNTIME_CBYTES_SET_COPY ||
         op==XL6_IR_RUNTIME_C_OWNED_COPY || op==XL6_IR_RUNTIME_CSTRING_TAKE ||
         op==XL6_IR_RUNTIME_CBYTES_TAKE || op==XL6_IR_RUNTIME_CBYTES_FROM_BYTES ||
-        op==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE || op==XL6_IR_RUNTIME_CSTRING_AT || op==XL6_IR_RUNTIME_CBYTES_AT)
+        op==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE || op==XL6_IR_RUNTIME_CSTRING_SIZE_TAKE ||
+        op==XL6_IR_RUNTIME_CSTRING_AT || op==XL6_IR_RUNTIME_CBYTES_AT)
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     if(op==XL6_IR_RUNTIME_CBYTES_FORMAT || op==XL6_IR_RUNTIME_CSTRING_BOX || op==XL6_IR_RUNTIME_CBYTES_COPY)
         return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
@@ -65,7 +66,7 @@ int xl6IrCOwnedTakeNodeCompatible(const XL6_IrModule* module,const XL6_IrNode* n
     const XL6_IrNode* args=node && node->childCount==2 ?
         xl6IrNodeGet(module,module->children[node->firstChild+1]) : NULL;
     if(!node || node->callKind!=XL6_SEM_CALL_C_OWNED_TAKE || (!xl6IrTypeIsCOwned(result) || result->kind!=XL6_IR_TYPE_BUILTIN) ||
-        !args || args->childCount!=(result->cAbi==XL6_IR_C_ABI_C_STRING ? 2u : 3u) ||
+        !args || (args->childCount!=3 && !(result->cAbi==XL6_IR_C_ABI_C_STRING && args->childCount==2)) ||
         !xl6IrCOwnedReleaser(module,node->targetSymbol)) return 0;
     return 1;
 }
@@ -153,19 +154,21 @@ int xl6IrCOwnedInstructionCompatible(const XL6_IrModule* module,const XL6_IrInst
             (!index || (key && xl6IrTypeGet(&module->types,key->type)->cAbi==XL6_IR_C_ABI_I64)) &&
             result->cAbi==(index && !binary ? XL6_IR_C_ABI_CHAR_U32 : XL6_IR_C_ABI_I64);
     }
-    if(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE) {
+    if(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE || ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_SIZE_TAKE) {
         const XL6_IrInstruction* length=ins->operandCount==2 ?
             xl6IrValueDefinition(module,module->operands[ins->firstOperand+1],NULL) : NULL;
         return !ins->targetSymbol && xl6IrTypeIsCOwned(source) && source->kind==XL6_IR_TYPE_BUILTIN &&
-            source->cAbi==XL6_IR_C_ABI_C_BYTES && ins->type==input->type &&
+            source->cAbi==(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE ? XL6_IR_C_ABI_C_BYTES : XL6_IR_C_ABI_C_STRING) && ins->type==input->type &&
             length && xl6IrTypeGet(&module->types,length->type)->cAbi==XL6_IR_C_ABI_I64;
     }
     if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_TAKE || ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_TAKE) {
-        int binary=ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_TAKE;
         const XL6_IrNode* origin=xl6IrNodeGet(module,ins->origin);
+        const XL6_IrNode* args=origin && origin->childCount==2 ?
+            xl6IrNodeGet(module,module->children[origin->firstChild+1]) : NULL;
         if(!xl6IrCOwnedTakeNodeCompatible(module,origin) || ins->targetSymbol!=origin->targetSymbol ||
             ins->type!=origin->storageType || !xl6IrTypeIsCOwned(result) ||
-            result->cAbi!=(binary ? XL6_IR_C_ABI_C_BYTES : XL6_IR_C_ABI_C_STRING) ||
+            !args || (ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_TAKE ?
+                result->cAbi!=XL6_IR_C_ABI_C_STRING || args->childCount!=2 : args->childCount!=3) ||
             ins->operandCount!=1 || source->cAbi!=XL6_IR_C_ABI_RAW_POINTER) return 0;
         return 1;
     }

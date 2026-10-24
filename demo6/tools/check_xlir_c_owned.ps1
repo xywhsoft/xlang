@@ -75,6 +75,7 @@ $generatedSources=@(
     'test/cases/xlir_c_owned_spawn_export.xl','test/cases/xlir_c_owned_methods.xl',
     'test/cases/xlir_c_owned_callable_results.xl','test/cases/xlir_c_owned_variadic_results.xl',
     'test/cases/xlir_c_owned_variadic_inputs.xl','test/cases/xlir_c_owned_nested_results.xl',
+    'test/cases/xlir_c_owned_text_length.xl',
     'test/cases/xlir_c_owned_globals.xl',
     'test/cases/xlir_c_owned_nullable.xl','test/cases/xlir_c_owned_nullable_boundaries.xl',
     'test/cases/xlir_c_owned_writes.xl','test/cases/xlir_c_owned_print.xl',
@@ -90,6 +91,9 @@ foreach ($source in $generatedSources) {
     }
     if($name -eq 'nullable' -and [IO.File]::ReadAllText($generated) -match 'xl6C(String|Bytes)CopyV1\(') {
         throw 'Typed nullable C reads materialized their input'
+    }
+    if($name -eq 'text_length' -and [IO.File]::ReadAllText($generated).Contains('xl6CStringTakeV1(')) {
+        throw 'Length-aware text adoption scanned for a NUL terminator'
     }
     if ($LASTEXITCODE) { throw "C owner $name compilation failed" }
     $linkArgs=@($flags)+@("-I$outputPath/include",$generated,'test/cases/xlir_c_owned_native.c')+

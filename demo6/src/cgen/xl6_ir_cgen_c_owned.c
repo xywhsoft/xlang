@@ -133,10 +133,11 @@ static int xl6IrCgenEmitCOwned(XL6_Output* out,const XL6_IrModule* module,
         else xl6OutputPrintf(out,"    size_t c_index_%u;\n    bool projection_ok_%u = xlir_sequence_index(v%u.Size, v%u, &c_index_%u);\n"
             "    if (projection_ok_%u) v%u = ((const unsigned char*)v%u.Data)[c_index_%u];\n",
             result,result,source,key,result,result,result,source,result);
-    } else if(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE) {
+    } else if(ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_SIZE_TAKE || ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_SIZE_TAKE) {
         xl6OutputPrintf(out,"    v%u = (XL6_COwnedV1){0};\n"
-            "    bool projection_ok_%u = xl6CBytesSizeTakeV1(v%u, v%u, &v%u);\n",
-            result,result,source,(unsigned)module->operands[ins->firstOperand+1],result);
+            "    bool projection_ok_%u = %s(v%u, v%u, &v%u);\n",
+            result,result,ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_SIZE_TAKE ? "xl6CStringSizeTakeV1" : "xl6CBytesSizeTakeV1",
+            source,(unsigned)module->operands[ins->firstOperand+1],result);
     } else if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_TAKE || ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_TAKE) {
         const XL6_IrCallTarget* releaser=xl6IrCallTargetGet(module,ins->targetSymbol);
         xl6OutputPrintf(out,"    extern void %s(void*);\n",releaser->cName);
