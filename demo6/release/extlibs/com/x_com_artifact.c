@@ -12,7 +12,9 @@
 #include "internal/com_ole.h"
 
 #ifdef __TINYC__
+HRESULT WINAPI CoInitializeEx(LPVOID reserved, DWORD mode);
 void WINAPI CoUninitialize(void);
+HRESULT WINAPI CLSIDFromProgID(LPCOLESTR progid, LPCLSID clsid);
 HRESULT WINAPI CoCreateInstance(REFCLSID clsid, IUnknown* outer,
 	DWORD context, REFIID iid, void** instance);
 #endif

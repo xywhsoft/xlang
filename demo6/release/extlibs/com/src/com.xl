@@ -46,7 +46,8 @@ export class ComObject extends object
 
 	destroy()
 		if x_com_is_null(self.handle) == 0 then
-			self.close()
+			// 析构只释放句柄，不能写回正在退役的对象。
+			x_com_release(self.handle)
 		end
 	end
 

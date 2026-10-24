@@ -44,8 +44,26 @@ early release. Raw `point` handles require an explicit `release()`. Always
 close handles even after a failed invocation. Low-level `point` values
 are raw native pointers; only pass valid `IDispatch*` values or the package's
 `missing()` sentinel as COM pointer arguments.
+The destructor releases the native handle without writing to the retiring
+XLang object. An explicit `close()` still clears the handle and makes later
+`valid()` return false.
 
 ## Verification
+
+2026-10-24: The deterministic `test/implicit_object_cleanup.xl` fixture
+reproduced exit code 3 after an otherwise successful `ComObject` use. With the
+destructor fix, both JIT and a standalone EXE print `com implicit cleanup: PASS`
+and exit 0; explicit `close()` remains covered in the same fixture. The
+package gate now runs this case before broader call tests. The embedded TCC
+declarations for `CLSIDFromProgID` and `CoInitializeEx` are explicit, so this
+translation unit no longer relies on implicit function declarations.
+
+The **full package gate still fails** at `test/boundaries.xl`: an XLang array
+passed to `x_com_invoke_array(xvalue*)` is rejected as `arguments must be an
+array`. C tests pass, but XLang invocation and C/XLang example parity are
+not currently signed off. This is the shared foreign-container ABI issue
+recorded in `dev/extlib_blockers/foreign_var_container_projection.md`; do not
+work around it by interpreting compiler-private handles inside this package.
 
 From `demo6`, run:
 

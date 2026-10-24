@@ -33,7 +33,7 @@ auto dictionary = com.ComObject("Scripting.Dictionary")
 dictionary.invoke("Add", array["key", "value"])
 println(dictionary.int("Count"))
 dictionary.close()</code></pre>
-    <p>范例需要系统提供对应 ProgID。句柄只能在创建它的线程调用和释放；ProgID 与成员名拒绝内嵌 NUL，值字符串可保留 NUL。C 结果所有权及线程限制见包内 README。最小无输出 AOT 已通过；完整 AOT 仍受共享运行时缺符号阻断。</p>
+    <p>范例需要系统提供对应 ProgID。句柄只能在创建它的线程调用和释放；ProgID 与成员名拒绝内嵌 NUL，值字符串可保留 NUL。隐式析构和显式关闭的确定性夹具已通过 JIT/AOT。当前完整门禁仍在 XLang 数组传入原生 COM 调用时失败；调用链尚未签收，详见包内 README。</p>
   </section>
 </main>
 </body>

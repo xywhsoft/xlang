@@ -1,0 +1,21 @@
+import com
+extern "x_com_test_object" func x_com_test_object() as point
+
+func useFixture()
+    auto dictionary = com.ComObject(com.attach(x_com_test_object()))
+    assert dictionary.valid()
+    assert dictionary.int("HasChild") == 0
+end
+
+func closeFixture()
+    auto dictionary = com.ComObject(com.attach(x_com_test_object()))
+    assert dictionary.close()
+    assert not dictionary.valid()
+end
+
+func main(...) as int
+    useFixture()
+    closeFixture()
+    println("com implicit cleanup: PASS")
+    return 0
+end

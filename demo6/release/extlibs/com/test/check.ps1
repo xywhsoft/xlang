@@ -56,6 +56,19 @@ try {
 
     Push-Location (Join-Path $root 'release')
     try {
+        $cleanupOutput = Run 'Implicit COM cleanup' $xl @('run',
+            'extlibs/com/test/implicit_object_cleanup.xl')
+        if ($cleanupOutput -cne 'com implicit cleanup: PASS') {
+            throw "Implicit COM cleanup output differs: $cleanupOutput"
+        }
+        if (-not $SkipAot) {
+            $cleanupExe = Join-Path $work 'implicit_object_cleanup.exe'
+            $null = Run 'Implicit COM cleanup AOT build' $xl @('build',
+                'extlibs/com/test/implicit_object_cleanup.xl', '-o', $cleanupExe)
+            if ((Run 'Implicit COM cleanup AOT' $cleanupExe @()) -cne $cleanupOutput) {
+                throw 'Implicit COM cleanup AOT output differs from JIT'
+            }
+        }
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/com/test/boundaries.xl')
         $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/com/examples/basic.xl')
         if ($cOutput -cne $xlOutput) {

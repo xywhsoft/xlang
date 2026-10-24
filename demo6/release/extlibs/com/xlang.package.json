@@ -29,7 +29,7 @@
     "dependencies":  [
 
                      ],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/real_server_object.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/implicit_object_cleanup.xl", "test/real_server_object.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",
