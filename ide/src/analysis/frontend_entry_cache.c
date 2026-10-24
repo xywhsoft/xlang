@@ -180,6 +180,15 @@ static int moduleParse(xls_entry_cache_scope* scope,const char* text,const char*
 int xlsFrontendEntryParse(const char* text,const char* path,XL6_ParseResult* result,XL6_CompletionQuery* query)
 {
     xls_entry_cache_scope* scope=current;
+    if(scope && scope->cursorSyntax && text && path && result && query && xl6CompletionTarget(query,path)) {
+        const xls_syntax* syntax=scope->cursorSyntax;const xls_text* source=xlsSyntaxText(syntax);
+        size_t skip=source && xlsTextSize(source)>=3 && !memcmp(xlsTextData(source),"\xef\xbb\xbf",3) ? 3 : 0;
+        if(source && !strcmp(path,xlsSyntaxPath(syntax)) && strlen(text)==xlsTextSize(source)-skip &&
+           !memcmp(text,xlsTextData(source)+skip,xlsTextSize(source)-skip) && xlsSyntaxCopyCursorParse(syntax,query,result)) {
+            scope->cursorApplied=1;result->diags.defaultFile=xl6AstSourcePath(result->root);return xlsSyntaxAccepted(syntax);
+        }
+        scope->cursorFailed=1;return 0;
+    }
     if(!scope || !scope->cache || !text || !path || !result || result->root || result->diags.count ||
        !scope->entry || (query && xl6CompletionTarget(query,path)))
         return xl6ParseSourceWithCompletion(text,path,result,query);

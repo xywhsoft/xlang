@@ -11,9 +11,10 @@ typedef struct xls_completion_stats {
 } xls_completion_stats;
 /* One owner, one retained exact cursor projection. Hits revalidate disk,
  * import candidates and observed environment; different inputs/cursors still
- * run the shared semantic query. Entry cursor queries can reuse immutable
- * syntax; imports and semantic checking still run afresh. Other query files
- * and failed cursor cache construction use the shared native query path,
+ * run the shared semantic query. Opened entry/import query files can reuse
+ * immutable cursor syntax,including project entries that are closed. Source
+ * loading/reporting,imports and semantic checking still run. Failed cursor
+ * cache construction/copy uses the original shared native query path,
  * counted by cursorFreshBuilds. An ordinary entry AST may now be reused by
  * that path; the result's EntryWork reports its actual parse/copy work.
  * Imports/semantics still rebuild. Returned reference outlives the session. */

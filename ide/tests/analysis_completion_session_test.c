@@ -35,6 +35,59 @@ static int parity(xls_semantic_completion* r,const xls_analysis_document* docs,s
     xlsSemanticStringFree(a); xlsSemanticStringFree(b); xlsSemanticCompletionDestroy(fresh); return 1;
 }
 static int stop(void* user) { (void)user; return 1; }
+static int parityContext(xls_semantic_completion* result,xls_context* context,const char* entry,
+    const xls_analysis_document* docs,size_t count,const char* path,size_t at)
+{
+    xls_semantic_input inputs[3];CHECK(count<=3);
+    for(size_t i=0;i<count;++i) inputs[i]=(xls_semantic_input){docs[i].path,xlsTextData(docs[i].text),xlsTextSize(docs[i].text)};
+    xls_semantic_completion* fresh=xlsSemanticCompletionCreateInContext(context,entry,path,at,inputs,count,NULL,NULL,NULL,0);
+    char *a=xlsSemanticCompletionJson(result,NULL),*b=xlsSemanticCompletionJson(fresh,NULL);
+    CHECK(result && fresh && a && b && !strcmp(a,b));xlsSemanticStringFree(a);xlsSemanticStringFree(b);xlsSemanticCompletionDestroy(fresh);return 1;
+}
+static int importedCursor(void)
+{
+    char relative[160];snprintf(relative,sizeof(relative),"build/imported-cursor-%llu",(unsigned long long)xrtClock());
+    char *directory=xrtPathAbs(relative),*entry=xrtPathJoin(directory,"main.xl"),*dep=xrtPathJoin(directory,"dep.xl"),*support=xrtPathJoin(directory,"support.xl");
+    const char* main="import dep\nfunc main(...) as int\n return dep.value()\nend\n";
+    const char* supportSource="export func number() as int\n return 7\nend\n";
+    CHECK(directory && entry && dep && support && xrtDirCreateAll(directory) && xrtFileWriteAtomic(entry,(xbytesview){(const unsigned char*)main,strlen(main)}));
+    xls_context_spec spec={.kind=XLS_CONTEXT_PROJECT,.project=directory,.entry=entry,.directory=directory,.configuration="debug",.analysisProfile="fixture-linked-native",.targetKind="exe"};xls_context* context=xlsContextCreate(&spec,1024*1024,NULL);CHECK(context);
+    xstrbuf prefix={0};CHECK(xrtStrBufAppend(&prefix,xrtStrView("\xef\xbb\xbfimport support\r\n")));
+    for(unsigned i=0;i<40;++i) CHECK(xrtStrBufAppendFormat(&prefix,"func helper_%u(int value) as int\r\n return value+1\r\nend\r\n",i));
+    for(unsigned opened=0;opened<2;++opened) {
+        xls_completion_session* session=xlsCompletionSessionCreate(NULL);CHECK(session);xls_semantic_completion* initial=NULL;
+        xls_analysis_document docs[3]={{.key="dep",.path=dep,.identity=5},{.key="support",.path=support,.text=body(supportSource),.identity=6,.revision=1},{.key="entry",.path=entry,.text=body(main),.identity=1,.revision=1}};CHECK(docs[1].text && docs[2].text);
+        size_t at=0,whole=0;
+        for(unsigned i=0;i<13;++i) {
+            xstrbuf source={0};CHECK(xrtStrBufAppend(&source,(xstrview){prefix.Data,prefix.Size}) && xrtStrBufAppendFormat(&source,"export func value() as int\r\n string 中文 = \"😀-%u\"\r\n int edited = %u\r\n auto member = support.number()\r\n return mem\r\nend\r\n",i,i));
+            xlsTextRelease(docs[0].text);docs[0].text=body(source.Data);docs[0].revision=i+1;CHECK(docs[0].text);at=offset(source.Data,"return mem");
+            char error[256];xls_semantic_completion* result=xlsCompletionSessionQueryInContext(session,context,docs,2+opened,opened ? "entry" : NULL,"dep",at,NULL,NULL,error,sizeof(error));
+            CHECK(result && has(result,"member") && xlsSemanticCompletionCursorSyntaxApplied(result) && parityContext(result,context,entry,docs,2+opened,dep,at));
+            xls_completion_stats stats;xlsCompletionSessionStats(session,&stats);
+            CHECK(stats.cursorFullParses==1 && stats.cursorFragmentParses==i && stats.cursorReusedDeclarations==41u*i && !stats.cursorFreshBuilds);
+            if(!i){whole=source.Size;initial=xlsSemanticCompletionRetain(result);}CHECK(stats.cursorParsedBytes<=whole+i*512u);
+            xlsSemanticCompletionDestroy(result);xrtStrBufFree(&source);
+        }
+        xlsTextRelease(docs[1].text);docs[1].text=body("export func number() as string\n return \"changed\"\nend\n");++docs[1].revision;CHECK(docs[1].text);
+        xls_semantic_completion* result=xlsCompletionSessionQueryInContext(session,context,docs,2+opened,opened ? "entry" : NULL,"dep",at,NULL,NULL,NULL,0);
+        CHECK(result && has(result,"member") && xlsSemanticCompletionCursorSyntaxApplied(result) && parityContext(result,context,entry,docs,2+opened,dep,at));
+        xls_completion_item item;int stringType=0;for(size_t i=0;i<xlsSemanticCompletionInfo(result).count;++i) if(xlsSemanticCompletionItem(result,i,&item) && !strcmp(item.label,"member")) stringType=item.detail && strstr(item.detail,"string");CHECK(stringType);
+        xls_completion_stats stats;xlsCompletionSessionStats(session,&stats);CHECK(stats.cursorSyntaxHits==1 && stats.cursorFullParses==1 && stats.cursorFragmentParses==12);xlsSemanticCompletionDestroy(result);
+        size_t helperAt=offset(xlsTextData(docs[0].text),"return val");result=xlsCompletionSessionQueryInContext(session,context,docs,2+opened,opened ? "entry" : NULL,"dep",helperAt,NULL,NULL,NULL,0);
+        CHECK(result && has(result,"value") && parityContext(result,context,entry,docs,2+opened,dep,helperAt));xlsSemanticCompletionDestroy(result);xlsCompletionSessionStats(session,&stats);CHECK(stats.cursorFullParses==2);
+        ++docs[0].identity;docs[0].revision=1;result=xlsCompletionSessionQueryInContext(session,context,docs,2+opened,opened ? "entry" : NULL,"dep",at,NULL,NULL,NULL,0);
+        CHECK(result && has(result,"member") && parityContext(result,context,entry,docs,2+opened,dep,at));xlsSemanticCompletionDestroy(result);xlsCompletionSessionStats(session,&stats);CHECK(stats.cursorFullParses==3 && !stats.cursorFreshBuilds);
+        xlsCompletionSessionDestroy(session);CHECK(initial && has(initial,"member") && xlsSemanticCompletionValidate(initial));xlsSemanticCompletionDestroy(initial);
+        for(unsigned i=0;i<3;++i)xlsTextRelease(docs[i].text);
+    }
+    /* Rejected imported projections own their error after syntax/input release. */
+    const char* rejected="export func value() as int\n int member = 7\n return mem\nend\n";xls_text* text=body(rejected);CHECK(text);size_t at=offset(rejected,"member = ");XL6_CompletionQuery projection={.path=dep,.offset=at};xls_parse_work work={0};xls_syntax* syntax=xlsSyntaxBuildCursor(dep,text,NULL,&projection,&work);CHECK(syntax && projection.error);xl6CompletionFree(&projection);
+    xls_semantic_input inputs[]={{entry,main,strlen(main)},{dep,rejected,strlen(rejected)}};xls_semantic_completion* result=xlsSemanticCompletionCreateParsedInContext(context,entry,dep,at,inputs,2,syntax,NULL,NULL,NULL,0);
+    CHECK(result && !xlsSemanticCompletionInfo(result).available && xlsSemanticCompletionCursorSyntaxApplied(result));
+    CHECK(!xlsSemanticCompletionCreateParsedInContext(context,entry,dep,at-1,inputs,2,syntax,NULL,NULL,NULL,0));xlsSyntaxRelease(syntax);xlsTextRelease(text);
+    CHECK(xlsSemanticCompletionInfo(result).error && strstr(xlsSemanticCompletionInfo(result).error,"identifier"));char* json=xlsSemanticCompletionJson(result,NULL);CHECK(json);xlsSemanticStringFree(json);xlsSemanticCompletionDestroy(result);
+    xrtStrBufFree(&prefix);xlsContextRelease(context);xrtFree(directory);xrtFree(entry);xrtFree(dep);xrtFree(support);return 1;
+}
 static int lateStop(void* user) { unsigned* calls=user; return ++*calls>=4; }
 static int externalInputs(void)
 {
@@ -240,7 +293,7 @@ static int run(void)
     CHECK(!xlsCompletionSessionQuery(s,docs,1,"entry","entry",scalar,NULL,NULL,NULL,0));
     xlsCompletionSessionDestroy(s); CHECK(!xlsCompletionSessionCreate(&(xls_session_limits){65,32,64}));
     xlsTextRelease(a); xlsTextRelease(same); xlsTextRelease(b); xlsTextRelease(imported); xlsTextRelease(dependencyBody); xlsTextRelease(u); xrtFree(path); xrtFree(dep);
-    CHECK(externalInputs()&&parsedEntry()&&incrementalEntry()&&cancellationSyntax()&&cloneFallback()); return 1;
+    CHECK(externalInputs()&&parsedEntry()&&incrementalEntry()&&cancellationSyntax()&&cloneFallback()&&importedCursor()); return 1;
 }
 int main(void)
 { if(!run()) return 1; printf("analysis_completion_session_test passed: %u checks; actual exact-query reuse, fresh JSON parity, atomic cancellation, revisions/identity/input-set/cursor and independent result lifetime.\n",checks); return 0; }

@@ -3,6 +3,7 @@
 #include "analysis/check_session.h"
 #include "analysis/ast_clone.h"
 #include "src/sem/xl6_sem.h"
+#include "src/sem/xl6_completion.h"
 #include "src/stdlib/xl6_stdlib.h"
 #include <xrt.h>
 #include <stdio.h>
@@ -28,12 +29,15 @@ static xls_syntax* fixtureFunction(const char* path,xls_text* text,const xls_syn
 {return operation() ? xlsSyntaxTryFunction(path,text,old,work) : NULL;}
 static int fixtureCopy(const xls_syntax* syntax,XL6_ParseResult* result)
 {return operation() && xlsSyntaxCopyParse(syntax,result);}
+static int fixtureCursorCopy(const xls_syntax* syntax,XL6_CompletionQuery* query,XL6_ParseResult* result)
+{return operation() && xlsSyntaxCopyCursorParse(syntax,query,result);}
 static int fixtureStorage(const xls_syntax* syntax,size_t limit,size_t* bytes)
 {return operation() && xlsSyntaxCacheBytes(syntax,limit,bytes);}
 #define xlsTextCreate fixtureText
 #define xlsSyntaxAdoptOrdinary fixtureAdopt
 #define xlsSyntaxTryFunction fixtureFunction
 #define xlsSyntaxCopyParse fixtureCopy
+#define xlsSyntaxCopyCursorParse fixtureCursorCopy
 #define xlsSyntaxCacheBytes fixtureStorage
 #define xrtMapInit fixtureMapInit
 #define xrtMapSetDrop fixtureMapDrop
@@ -63,6 +67,7 @@ static int fixtureStorage(const xls_syntax* syntax,size_t limit,size_t* bytes)
 #undef xlsSyntaxAdoptOrdinary
 #undef xlsSyntaxTryFunction
 #undef xlsSyntaxCopyParse
+#undef xlsSyntaxCopyCursorParse
 #undef xlsSyntaxCacheBytes
 #undef xrtMapInit
 #undef xrtMapSetDrop
@@ -401,4 +406,19 @@ static int moduleCheckIncremental(void)
     xlsCheckSessionDestroy(session);CHECK(initial && xlsSemanticCheckValidate(initial) && xlsSemanticCheckTypedIndex(initial));xlsSemanticCheckDestroy(initial);xlsContextRelease(context);
     xrtFree(directory);xrtFree(entry);xrtFree(helper);return 1;
 }
-int main(void) {if(!primitive() || !integrated() || !checkIntegrated() || !modulePrimitive() || !moduleIncremental() || !moduleCheckIncremental()) return 1;printf("analysis_entry_cache_test passed: %u checks; pre-semantic and actual module-function AST/fresh semantic/index/IR parity,bounded chunk generations,fault/nested/cancel ownership and old retained results\n",checks);return 0;}
+static int cursorScope(void)
+{
+    char *entry=xrtPathAbs("scope-cursor-entry.xl"),*path=xrtPathAbs("scope-cursor-module.xl");CHECK(entry && path);
+    const char* source="export func value() as int\n int member = 7\n return mem\nend\n";
+    size_t at=(size_t)(strstr(source,"return mem")-source)+strlen("return mem");xls_text* text=xlsTextCreate(source,strlen(source),1024*1024,NULL);CHECK(text);
+    XL6_CompletionQuery projection={.path=path,.offset=at};xls_parse_work work={0};xls_syntax* syntax=xlsSyntaxBuildCursor(path,text,NULL,&projection,&work);CHECK(syntax);xl6CompletionFree(&projection);
+    for(unsigned mode=0;mode<3;++mode) {
+        calls=failAt=0;xls_entry_cache* cache=privateCreate(1024*1024);CHECK(cache);calls=0;failAt=mode==1 ? 2 : 0;
+        xls_entry_cache_scope scope;privateBegin(&scope,cache,NULL,entry);scope.cursorSyntax=syntax;
+        XL6_ParseResult result;xl6ParseResultInit(&result);XL6_CompletionQuery query={.path=path,.offset=at};char changed[256];snprintf(changed,sizeof(changed),"%s",source);if(mode==2)strstr(changed,"= 7")[2]='8';
+        int okay=privateParse(changed,path,&result,&query);CHECK(mode ? !okay && scope.cursorFailed && !scope.cursorApplied && !result.root && !query.prefix : okay && scope.cursorApplied && !scope.cursorFailed && result.root && query.prefix);
+        privateEnd(&scope,0);xl6ParseResultFree(&result);xl6CompletionFree(&query);privateDestroy(cache);CHECK(!live);
+    }
+    failAt=0;xlsSyntaxRelease(syntax);xlsTextRelease(text);xrtFree(entry);xrtFree(path);return 1;
+}
+int main(void) {if(!primitive() || !integrated() || !checkIntegrated() || !modulePrimitive() || !moduleIncremental() || !moduleCheckIncremental() || !cursorScope()) return 1;printf("analysis_entry_cache_test passed: %u checks; pre-semantic and actual module-function AST/fresh semantic/index/IR parity,bounded chunk generations,fault/nested/cancel ownership and old retained results\n",checks);return 0;}

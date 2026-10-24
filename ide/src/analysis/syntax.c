@@ -291,6 +291,8 @@ xls_syntax* xlsSyntaxBuildCursor(const char* path,xls_text* text,const xls_synta
 }
 int xlsSyntaxAccepted(const xls_syntax* syntax) { return syntax && syntax->accepted; }
 int xlsSyntaxIsCursor(const xls_syntax* syntax) { return syntax && syntax->cursor; }
+int xlsSyntaxCursorMatches(const xls_syntax* syntax,const char* path,size_t offset)
+{return syntax && syntax->cursor && path && !strcmp(syntax->path,path) && syntax->cursorOffset==offset;}
 const char* xlsSyntaxPath(const xls_syntax* syntax) { return syntax ? syntax->path : NULL; }
 const xls_text* xlsSyntaxText(const xls_syntax* syntax) { return syntax ? syntax->text : NULL; }
 static XL6_AstNode* materialize(const xls_syntax* s)
