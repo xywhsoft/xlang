@@ -18,6 +18,9 @@ static inline bool xl6TlsIoArgumentV1(XL6_TlsIoKindV1 kind,int64_t argument)
 }
 XL6_EXECUTION_INTERNAL struct xfuture* xl6TlsIoSourceV1(XL6_TlsIoKindV1,void*,int64_t,xbytesview);
 XL6_EXECUTION_INTERNAL void* xl6TlsIoFuturePrepareV1(XL6_TlsIoKindV1,void*,int64_t,xbytesview);
+/* Private SEND capture only, before Start/Publish. The native gather-copy may
+ * complete first; no completion can read this slot before it is published. */
+XL6_EXECUTION_INTERNAL bool xl6TlsIoFutureSetSendSizeV1(void*,size_t);
 XL6_EXECUTION_INTERNAL struct xfuture* xl6TlsFutureFailV1(void*,struct xfuture*);
 XL6_EXECUTION_INTERNAL struct xfuture* xl6TlsFuturePublishV1(XL6_RuntimeServicesV1,void*,struct xfuture*);
 XL6_EXECUTION_INTERNAL bool xl6TlsIoMayWaitV1(XL6_ExecutionResourceV1*);

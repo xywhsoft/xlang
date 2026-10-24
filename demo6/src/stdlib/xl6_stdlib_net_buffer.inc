@@ -55,7 +55,8 @@ const char* xl6StdlibNetFrameResultSource=
     "    extern \"xl6Net" #Name "FramerAppendTextV1\" @nonblocking func append(string input, int size = -1)\n" \
     "    extern \"xl6Net" #Name "FramerAppendBytesV1\" @nonblocking func append(bytes input, int size = -1)\n" \
     "    extern \"xl6Net" #Name "FramerAppendBufferV1\" @nonblocking func append(Buffer input, int size = -1)\n" \
-    "    extern \"xl6Net" #Name "FramerAppendMoveV1\" @nonblocking func appendMove(NetBuffer input)\n"
+    "    extern \"xl6Net" #Name "FramerAppendMoveV1\" @nonblocking func appendMove(NetBuffer input)\n" \
+    "    extern \"xl6Net" #Name "FramerAppendRefV1\" @nonblocking func appendRef(NetBytes input, int size = -1, int offset = 0)\n"
 const char* xl6StdlibNetLineFramerSource=
     "class NetLineFramer\n    private native point handle\n"
     "    extern \"xl6NetLineFramerCreateTextV1\" @nonblocking create(string delimiter = \"\\n\", int maxPayload = 8192, bool includeDelimiter = false, int maxBufferedBytes = 67108864, int size = -1)\n"

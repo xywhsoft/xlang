@@ -58,3 +58,9 @@ void* xl6TlsIoFuturePrepareV1(XL6_TlsIoKindV1 kind,void* receiver,int64_t argume
     if(!c->receiver)return xl6TlsFutureFailV1(c,NULL);
     return c;
 }
+bool xl6TlsIoFutureSetSendSizeV1(void* raw,size_t count)
+{
+    Capture* capture=raw;
+    if(!capture||capture->kind!=XL6_TLS_IO_SEND_V1||count>INT64_MAX){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    capture->count=(int64_t)count;return true;
+}

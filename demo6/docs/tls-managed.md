@@ -907,3 +907,48 @@ Linux 原件保留并复制报告；未进行公网／DNS／网络安全性质�
 默认传输 facade 仍未切换；高级缓冲／向量／拥有字节操作、Dial／Proxy、
 动态回调、ticket／恢复、旧实现清退、跨组闭合与 P7 继续开放。本批不是
 当前整个工作区或发布 DLL／SO 的验收，不改变两边时间 ABI 或 XRT 算法。
+
+## TLS 驻留数据操作与 checked 边界
+
+新增 50 个物理入口：拥有式 `NetBytes` 接收 10 个，string／bytes／Buffer
+数组向量发送各 10 个，peek／consume／sendBound／ALPN protocol 的同步与
+异步入口 8 个，以及 Line／Length framer 的 `appendRef` 两个。此处仍通过
+真实用户类声明验收，不冒充默认 `TlsStream`／`TlsServer` 已迁移。
+
+向量数组和 Buffer 字段只固定到 XRT 完成入口 gather-copy 为止，异步队列
+不保存语言借用。size 按总字节数选择，-1 全部、超长截断、其余负值拒绝；
+复用现有 typed array／native class array admission，不按类名猜测布局。
+接收适配只增加原生 NetBytes 拥有引用，不再复制 payload；Future 的类结果
+继续使用真实 schema／CodeLease，没有原生占位对象。framer 引用追加复用
+NetBuffer 的拥有链，因此可在释放原 NetBytes 变量后继续解析。
+
+Worker 限定操作使用现有 TaskNet 的共享 Task frame、精确 Worker 亲和与
+真实接收者拥有句柄；不新增系统线程、独立调度器或生产用栈上命令。
+peek 返回独立 bytes；consume 精确消费非负数量；sendBound 是当时的估算，
+不预留后续容量；ALPN 是不透明 bytes，未协商时为空，不假定 UTF-8。
+同步入口在提交前拒绝等待自身 Engine 的 Worker。取消不回滚已发生的 I/O
+或 consume；原生 pull 模式不公开只对 push 回调有意义的 ReadMore。
+
+审阅补齐了异步 Worker 返回 NULL 时的显式 checked 失败传播。隔离单测
+使用正确类型的私有 source stub 返回“NULL 且无诊断”，只检查边界、不
+替换完整源码构建对象：旧入口确实丢失失败位，新入口四种操作均保留。
+Windows／Linux 的 GCC O0／O2 和 TCC 各自验证了旧失败／新通过。
+
+证据 `F:/xlang-validation/five-groups-20261025/p6-tls-data`。最终冻结 9119
+个 xlang 输入，双端 O2 全源码构建 1210／1209 TU，无对象覆盖。Windows
+122／Linux 125 个验收阶段通过；23 种组件闭包，139 个实际 TCC SDK
+原型绑定，JIT／module／严格 C／独立 AOT 与既有产品回归通过。
+14 次真实资源运行、28 个任务拥有图、252 个分配预算／168 次失败全部
+台账平衡，包含 select／IOCP／epoll、TCC、GCC 及 Linux ASan／UBSan。
+故障预算分别在调用线程和实际 TLS Worker 上启用，不能混淆线程局部注入。
+
+两种优化的 IR 合同均为 124 入口、15 拥有结果、2 策略、68 服务、1167
+次拒绝与 126 组 C／头文件输出门。修正前后生产文件仅 Worker 异步失败
+保护一处不同，独立 reader 逐文件确认；保留并重哈希不变的 IR 证据，
+当前版本重新运行完整源码、资源、语言 JIT／module／AOT、SDK 和产品
+回归，不重复跑未改动层。最终记录是 `verified-xlang-{windows,linux}.json`。
+
+默认 facade、其余高级公开面、Dial／Proxy、动态回调、ticket／恢复和旧
+TLS Cgen 清退继续开放，跨组闭合及真实发布／P7 尚未完成。无原生算法／
+时间 ABI 变更，无公网／DNS／网络安全性质专项；本批不代表整个工作区
+或发布 DLL／SO 已验收。
