@@ -7,11 +7,11 @@
 extern "C" {
 #endif
 
-/* 文本借用当前线程的结果槽；连续八次结果调用后可能失效。 */
-const char* xjwt_encode(const char* payload_json, const char* secret);
-const char* xjwt_decode(const char* token);
+/* 返回文本由调用方使用 xrtFree 释放；失败返回 NULL。 */
+char* xjwt_encode(const char* payload_json, const char* secret);
+char* xjwt_decode(const char* token);
 bool xjwt_verify(const char* token, const char* secret);
-const char* xjwt_header(const char* token);
+char* xjwt_header(const char* token);
 const char* xjwt_error(void);
 
 #ifdef __cplusplus

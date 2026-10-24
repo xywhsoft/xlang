@@ -1,7 +1,8 @@
-extern "xjwt_encode" func __jwt_encode(string payload_json, string secret) as string
-extern "xjwt_decode" func __jwt_decode(string token) as string
+extern "xjwt_encode_xl" func __jwt_encode(string payload_json, string secret) as point
+extern "xjwt_decode_xl" func __jwt_decode(string token) as point
 extern "xjwt_verify" func __jwt_verify(string token, string secret) as bool
-extern "xjwt_header" func __jwt_header(string token) as string
+extern "xjwt_header_xl" func __jwt_header(string token) as point
+extern "xrtFree" @no_raise func __jwt_free(point data)
 
 func __jwt_check_c_text(string value)
     if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
@@ -10,15 +11,15 @@ func __jwt_check_c_text(string value)
 end
 
 
-export func encode(string payload_json, string secret) as string
+export func encode(string payload_json, string secret) as cstring
     __jwt_check_c_text(payload_json)
     __jwt_check_c_text(secret)
-    return __jwt_encode(payload_json, secret)
+    return cstring.take(__jwt_encode(payload_json, secret), __jwt_free)
 end
 
-export func decode(string token) as string
+export func decode(string token) as cstring
     __jwt_check_c_text(token)
-    return __jwt_decode(token)
+    return cstring.take(__jwt_decode(token), __jwt_free)
 end
 
 export func verify(string token, string secret) as bool
@@ -27,7 +28,7 @@ export func verify(string token, string secret) as bool
     return __jwt_verify(token, secret)
 end
 
-export func header(string token) as string
+export func header(string token) as cstring
     __jwt_check_c_text(token)
-    return __jwt_header(token)
+    return cstring.take(__jwt_header(token), __jwt_free)
 end

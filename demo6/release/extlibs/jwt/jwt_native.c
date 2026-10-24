@@ -9,8 +9,6 @@
 #include "xrt.h"
 #include "include/jwt_native.h"
 
-#define XJWT_RESULT_SLOTS 8u
-
 typedef struct XJwtParts {
     const char* Header;
     size_t HeaderSize;
@@ -24,8 +22,6 @@ static const char g_xjwt_header[] = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
 
 typedef struct XJwtState {
     char Error[256];
-    xbuffer Results[XJWT_RESULT_SLOTS];
-    size_t ResultIndex;
 } XJwtState;
 
 static xonce g_xjwt_once = XRT_ONCE_INIT;
@@ -33,11 +29,7 @@ static xthreadkey* g_xjwt_key;
 
 static void xjwt_state_destroy(ptr data)
 {
-    XJwtState* state = (XJwtState*)data;
-    size_t i;
-    if (state == NULL) return;
-    for (i = 0u; i < XJWT_RESULT_SLOTS; ++i) xrtBufferUnit(&state->Results[i]);
-    xrtFree(state);
+    xrtFree(data);
 }
 
 static bool xjwt_key_create(ptr unused)
@@ -47,7 +39,7 @@ static bool xjwt_key_create(ptr unused)
     return g_xjwt_key != NULL;
 }
 
-/* TCC JIT 不依赖静态 TLS；线程退出时由 XRT 释放结果缓冲。 */
+/* TCC JIT 不依赖静态 TLS；线程退出时由 XRT 释放诊断状态。 */
 static XJwtState* xjwt_state_get(void)
 {
     XJwtState* state;
@@ -76,24 +68,6 @@ static void xjwt_set_error(const char* text)
     state->Error[size] = '\0';
 }
 
-static const char* xjwt_store(const void* data, size_t size)
-{
-    XJwtState* state = xjwt_state_get();
-    xbuffer* output;
-
-    if (state == NULL) return "";
-    output = &state->Results[state->ResultIndex++ % XJWT_RESULT_SLOTS];
-
-    xrtBufferClear(output);
-    if ( !xrtBufferAppend(output, (xbytesview){ (cbytes)data, size }) ||
-         !xrtBufferAppendByte(output, 0u) ) {
-        xrtBufferClear(output);
-        xjwt_set_error("out of memory");
-        return "";
-    }
-    return (const char*)output->Data;
-}
-
 static const xbase64config* xjwt_base64_config(void)
 {
     static const xbase64config config = {
@@ -103,7 +77,7 @@ static const xbase64config* xjwt_base64_config(void)
     return &config;
 }
 
-static bool xjwt_claims_valid(const char* text, size_t size)
+static bool xjwt_json_object_valid(const char* text, size_t size)
 {
     size_t i = 0u;
     while (i < size && (text[i] == ' ' || text[i] == '\t' ||
@@ -173,7 +147,7 @@ const char* xjwt_error(void)
     return state != NULL ? state->Error : "out of memory";
 }
 
-const char* xjwt_encode(const char* payload_json, const char* secret)
+char* xjwt_encode(const char* payload_json, const char* secret)
 {
     str header = NULL;
     str payload = NULL;
@@ -181,16 +155,16 @@ const char* xjwt_encode(const char* payload_json, const char* secret)
     xbuffer signing;
     xbuffer token;
     uint8 mac[XRT_SHA256_SIZE];
-    const char* result = "";
+    char* result = NULL;
 
-    if (payload_json == NULL || !xjwt_claims_valid(payload_json, strlen(payload_json)) ||
+    if (payload_json == NULL || !xjwt_json_object_valid(payload_json, strlen(payload_json)) ||
         secret == NULL || secret[0] == '\0') {
         xjwt_set_error("JWT claims must be a JSON object and secret must not be empty");
-        return "";
+        return NULL;
     }
-    if ( !xrtBufferInit(&signing) || !xrtBufferInit(&token) ) {
+    if (!xrtBufferInit(&signing) || !xrtBufferInit(&token)) {
         xjwt_set_error("out of memory");
-        return "";
+        return NULL;
     }
     xjwt_set_error("");
     header = xrtBase64EncodeNew(g_xjwt_header, sizeof(g_xjwt_header) - 1u, xjwt_base64_config());
@@ -207,12 +181,13 @@ const char* xjwt_encode(const char* payload_json, const char* secret)
     if ( signature == NULL ||
          !xrtBufferAppend(&token, xrtBufferView(&signing)) ||
          !xrtBufferAppendByte(&token, (uint8)'.') ||
-         !xrtBufferAppend(&token, (xbytesview){ (cbytes)signature, strlen(signature) }) ) {
+         !xrtBufferAppend(&token, (xbytesview){ (cbytes)signature, strlen(signature) }) ||
+         !xrtBufferAppendByte(&token, 0u) ) {
         xjwt_set_error("out of memory");
         goto cleanup;
     }
-    result = xjwt_store(token.Data, token.Size);
-    if ( result[0] != '\0' ) xjwt_set_error("");
+    result = (char*)xrtBufferTake(&token, NULL, NULL);
+    if (result != NULL) xjwt_set_error("");
 
 cleanup:
     xrtSecureZero(mac, sizeof(mac));
@@ -224,22 +199,20 @@ cleanup:
     return result;
 }
 
-const char* xjwt_decode(const char* token)
+char* xjwt_decode(const char* token)
 {
     XJwtParts parts;
     bytes payload = NULL;
     size_t payload_size = 0u;
-    const char* result;
-
     if ( !xjwt_split(token, &parts) ||
-         !xjwt_decode_segment(parts.Payload, parts.PayloadSize, &payload, &payload_size) ) {
+         !xjwt_decode_segment(parts.Payload, parts.PayloadSize, &payload, &payload_size) ||
+         !xjwt_json_object_valid((const char*)payload, payload_size) ) {
+        xrtFree(payload);
         xjwt_set_error("token is not a valid compact JWT");
-        return "";
+        return NULL;
     }
-    result = xjwt_store(payload, payload_size);
-    xrtFree(payload);
-    if ( result[0] != '\0' ) xjwt_set_error("");
-    return result;
+    xjwt_set_error("");
+    return (char*)payload;
 }
 
 bool xjwt_verify(const char* token, const char* secret)
@@ -257,7 +230,7 @@ bool xjwt_verify(const char* token, const char* secret)
     if ( secret == NULL || secret[0] == '\0' || !xjwt_split(token, &parts) ||
          !xjwt_is_hs256_header(&parts) ||
          !xjwt_decode_segment(parts.Payload, parts.PayloadSize, &payload, &payload_size) ||
-         !xjwt_claims_valid((const char*)payload, payload_size) ||
+         !xjwt_json_object_valid((const char*)payload, payload_size) ||
          !xjwt_decode_segment(parts.Signature, parts.SignatureSize, &signature, &signature_size) ||
          signature_size != sizeof(expected) ) {
         xjwt_set_error("token is not a canonical HS256 JWT");
@@ -278,20 +251,26 @@ cleanup:
     return valid;
 }
 
-const char* xjwt_header(const char* token)
+char* xjwt_header(const char* token)
 {
     XJwtParts parts;
     bytes header = NULL;
     size_t header_size = 0u;
-    const char* result;
-
     if ( !xjwt_split(token, &parts) ||
-         !xjwt_decode_segment(parts.Header, parts.HeaderSize, &header, &header_size) ) {
+         !xjwt_decode_segment(parts.Header, parts.HeaderSize, &header, &header_size) ||
+         !xjwt_json_object_valid((const char*)header, header_size) ) {
+        xrtFree(header);
         xjwt_set_error("token header is not valid Base64URL");
-        return "";
+        return NULL;
     }
-    result = xjwt_store(header, header_size);
-    xrtFree(header);
-    if ( result[0] != '\0' ) xjwt_set_error("");
-    return result;
+    xjwt_set_error("");
+    return (char*)header;
 }
+
+/* XLang point 的物理 ABI 是 void*；C 公开入口保持 char*。 */
+void* xjwt_encode_xl(const char* payload_json, const char* secret)
+{ return xjwt_encode(payload_json, secret); }
+void* xjwt_decode_xl(const char* token)
+{ return xjwt_decode(token); }
+void* xjwt_header_xl(const char* token)
+{ return xjwt_header(token); }
