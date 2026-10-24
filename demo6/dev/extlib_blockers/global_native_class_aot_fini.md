@@ -1,5 +1,14 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+2026-10-25 发布版复验：`release/xlc.dll` SHA-256 为
+`70A40D58A996B558B91A030799B82EC0C3EB7A88D258717A34FF1A6010B69BBA`。
+从 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File
+release/extlibs/lru/test/check.ps1`，严格 C、线程、XLang JIT、双语
+范例及边界 AOT 构建均通过；边界 EXE 打印
+`lru boundaries: PASS` 后在退出阶段抛
+`RuntimeError: operation is not valid in the current state`，退出 1。
+包级门禁仍未签收，不应通过搬移顶层对象掩盖问题。
+
 2026-10-25 当前 Windows 发布版复验：
 `release/xl.exe run dev/extlib_blockers/global_native_class_aot_fini.xl`
 打印 `ready` 并退出 0；同一文件以 `release/xl.exe build` 生成独立 EXE，
