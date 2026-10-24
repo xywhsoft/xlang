@@ -1,0 +1,34 @@
+extern "package_owned_text" @no_raise func allocateText() as point
+extern "package_owned_bytes" @no_raise func allocateBytes() as point
+extern "package_owned_free" @no_raise func drop(point data)
+extern "package_owned_original" @no_raise func original(cstring text) as bool
+extern "package_owned_original_bytes" @no_raise func originalBytes(cbytes data) as bool
+extern "package_owned_released" @no_raise func releasedNative() as int
+
+export func text(bool present = true) as cstring?
+    return present ? cstring.take(allocateText(), drop) : null
+end
+export func binary() as cbytes
+    return cbytes.take(allocateBytes(), 4, drop)
+end
+export func forward(string value) as cstring
+    return value
+end
+export func originalText(string value) as bool
+    return original(value)
+end
+export func originalData(bytes value) as bool
+    return originalBytes(value)
+end
+export func released() as int
+    return releasedNative()
+end
+
+export class Factory
+    static func makeText() as cstring
+        return cstring.take(allocateText(), drop)
+    end
+    func makeBytes() as cbytes
+        return cbytes.take(allocateBytes(), 4, drop)
+    end
+end
