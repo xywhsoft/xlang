@@ -150,7 +150,7 @@ xl.exe run examples\extlibs\lzma.xl</pre></div></div>
 
   <div class="ext-panel" id="panel-tests">
     <h2>测试覆盖</h2>
-    <p>聚焦测试：当前 Windows 发布物的包级门禁运行完整中央用例 JIT/AOT、C/XLang 范例对照及严格 GCC；Linux 包级门禁运行包内边界/文件用例、C 侧 ASan/UBSan 和 Python 标准库双向互通。Linux 发布物仍是旧构建，完整中央用例因旧 typed XLIR 错误未签收；重建时又在主线 X509 符号链接处停止。C 入口验证选项和资源限制结构的当前完整长度、版本及零保留字段；无效选项不开始读写流。C Reader/Writer 流接口验证成功往返与进度计数；XLang 文件接口验证回调、取消、拒绝覆盖和限额失败时保留原文件。非默认校验与滤镜由独立编码器生成验证，损坏的 CRC32/CRC64/SHA-256 块校验会被拒绝；CRC32 与 SHA-256 混合串联可解码，次流损坏时不返回首流明文。</p>
+    <p>聚焦测试：当前 Windows 发布物的包级门禁运行完整中央用例 JIT/AOT、C/XLang 范例对照、严格 GCC，以及 Python 标准库的标准 .xz 双向互通；Linux 包级门禁运行包内边界/文件用例、C 侧 ASan/UBSan 和同一份 Python 互通检查。Linux 发布物仍是旧构建，完整中央用例因旧 typed XLIR 错误未签收；重建时又在主线 X509 符号链接处停止。C 入口验证选项和资源限制结构的当前完整长度、版本及零保留字段；无效选项不开始读写流。C Reader/Writer 流接口验证成功往返与进度计数；XLang 文件接口验证回调、取消、拒绝覆盖和限额失败时保留原文件。非默认校验与滤镜由独立编码器生成验证，损坏的 CRC32/CRC64/SHA-256 块校验会被拒绝；CRC32 与 SHA-256 混合串联可解码，次流损坏时不返回首流明文。</p>
     <ul>
       <li>一次性二进制往返（含 NUL / 0xFF）</li>
       <li>流式往返 + members 计数 + finished</li>

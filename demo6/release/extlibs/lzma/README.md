@@ -1,5 +1,12 @@
 # lzma
 
+2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 完整通过。
+除严格 C、分配故障、XLang JIT/AOT 与双语范例外，门禁现直接编译
+`test/interop.c`，并调用 Python 标准库 `lzma.FORMAT_XZ` 验证双向
+互通、非默认校验/滤镜、串联流和损坏拒绝。此前仅 Linux 包级脚本
+执行这项独立格式检查；本轮没有重建 Linux 发布版，不能据此签收
+Linux 的完整语言/AOT 路径。
+
 本包使用 7-Zip 26.03 的公共领域 C 实现，输出和读取标准 XZ（`.xz`）流，
 提供 XLang/C 一次性、分段输入和文件接口。只支持 XZ，不读取旧 `.lzma` 流。
 编码器使用 LZMA2 和 CRC64；解码器校验容器结构与校验和，并支持串联流。
@@ -81,7 +88,8 @@ C/XLang 最小范例同输出。Linux 包级门禁以严格 GCC、ASan/UBSan 验
 由 Linux 包级门禁一并运行；成功或失败都会清理临时目录。
 当前 `release/xl.exe` 下，完整 `test/cases/extlib_lzma.xl` 的 JIT 与 AOT
 均已运行通过；中央用例使用独占系统临时目录及标准 `.xz` 后缀。
-Windows 包级脚本 `test/check.ps1` 将严格 GCC、C 边界、XLang
+Windows 包级脚本 `test/check.ps1` 将严格 GCC、C 边界、标准 `.xz`
+独立互通、XLang
 边界/文件/进度/中央用例、原生方法访问负例、C/XLang 同输出、核心
 与中央 AOT 合为一次验收；`-SkipAot` 仅供聚焦诊断，不作为发布签收。
 脚本使用独立临时构建目录，结束后核对绝对路径并清理。

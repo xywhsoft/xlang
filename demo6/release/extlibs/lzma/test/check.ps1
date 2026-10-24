@@ -76,6 +76,15 @@ try {
         'release/extlibs/lzma/test/test_allocations.c') + $sources + @(
         '-lws2_32', '-ladvapi32', '-liphlpapi', '-lm', '-o', $allocBinary))
     $null = Run 'GCC allocation failures' $allocBinary @()
+    $interopBinary = Join-Path $work 'interop.exe'
+    $null = Run 'GCC XZ interop build' $gcc (@(
+        '-std=c11', '-O2', '-DXRT_MODULE_ONCE',
+        '-Ilib/xrt', '-Ilib/xruntime', '-Irelease/extlibs/lzma/include',
+        'test/support/extlib_codec_runtime.c',
+        'release/extlibs/lzma/test/interop.c') + $sources + @(
+        '-lws2_32', '-ladvapi32', '-liphlpapi', '-lm', '-o', $interopBinary))
+    $null = Run 'standard XZ interop' 'python' @(
+        '-I', 'release/extlibs/lzma/test/interop.py', $interopBinary)
     foreach ($source in @(
         'release/extlibs/lzma/test/boundaries.xl',
         'release/extlibs/lzma/test/file_ops.xl',
