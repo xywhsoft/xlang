@@ -1,5 +1,16 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-25 `fix` 发布版复验：从 `demo6` 执行
+`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/fix/test/check.ps1`，
+严格 C 语法、XRT 编译、C 测试与 C 范例均通过；首个
+`test/cases/extlib_fix.xl` 在 `fix.build("FIX.4.4", fields)` 抛出
+`ValueError: FIX build needs a BeginString and an array of field objects`，
+门禁退出 1，未进入后续 XLang 边界与 AOT。相同发布版执行
+`release/xl.exe run dev/extlib_blockers/foreign_var_array_container.xl`
+仍报 `ValueError: input is not an array`。`fix` 的 C 接口要求
+`XVALUE_ARRAY`，故继续按本文件的共享 foreign `var` 投影问题处理；
+不能把 C 测试通过或旧版本 `-SkipAot` 通过当作整包发布验收。
+
 2026-10-25 发布版复验：`release/xlc.dll` SHA-256 为
 `70A40D58A996B558B91A030799B82EC0C3EB7A88D258717A34FF1A6010B69BBA`。
 从 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File
