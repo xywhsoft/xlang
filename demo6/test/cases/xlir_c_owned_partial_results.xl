@@ -1,0 +1,79 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+func pair() as (cstring,cbytes,int)
+    return cstring.take(nativeText(),nativeFree),cbytes.take(nativeBytes(),4,nativeFree),7
+end
+func factory() as func() as (cstring,cbytes,int)
+    return pair
+end
+func nested() as func() as func() as (cstring,cbytes,int)
+    return factory
+end
+func nullableFactory(bool present) as (func() as (cstring,cbytes,int))?
+    if present then return pair end
+    return null
+end
+func optionalPair(bool present) as (cstring?,cbytes?)
+    if not present then return null,null end
+    return cstring.take(nativeText(),nativeFree),cbytes.take(nativeBytes(),4,nativeFree)
+end
+func optionalFactory() as func(bool) as (cstring?,cbytes?)
+    return optionalPair
+end
+func consume(func() as func() as (string,cbytes,int) callback) as bool
+    auto text,data,number=callback()()
+    return text=="hello" and not original(text) and originalBytes(data) and number==7
+end
+func choose(func() as func() as (cstring,cbytes,int) callback) as int
+    return 1
+end
+func choose(func() as func() as (string,cbytes,int) callback) as int
+    return 2
+end
+int evaluations=0
+func evaluated() as func() as func() as (cstring,cbytes,int)
+    evaluations+=1
+    return factory
+end
+func check()
+    auto raw=factory
+    func() as func() as (string,cbytes,int) textOnly=raw
+    func() as func() as (cstring,bytes,int) bytesOnly=raw
+    assert choose(raw)==1 and choose(textOnly)==2
+    auto text,data,number=textOnly()()
+    assert text=="hello" and not original(text) and originalBytes(data) and number==7
+    auto originalText,copiedBytes,second=bytesOnly()()
+    assert original(originalText) and not originalBytes(copiedBytes) and second==7
+    func() as func() as (string,cbytes,int) named=factory
+    assert consume(named) and consume(raw) and consume(evaluated()) and evaluations==1
+    auto deeper=nested
+    func() as func() as func() as (cstring,bytes,int) deep=deeper
+    auto deepText,deepBytes,third=deep()()()
+    assert original(deepText) and not originalBytes(deepBytes) and third==7
+    auto maybe=nullableFactory(true)
+    (func() as (string,cbytes,int))? optional=maybe
+    maybe=null
+    if optional!=null then
+        auto first,second,last=optional()
+        assert not original(first) and originalBytes(second) and last==7
+    else
+        assert false
+    end
+    (func() as (string,cbytes,int))? missing=nullableFactory(false)
+    assert missing==null
+    auto rawOptional=optionalFactory
+    func() as func(bool) as (string?,cbytes?) optionalText=rawOptional
+    auto reader=optionalText()
+    auto absentText,absentBytes=reader(false)
+    assert absentText==null and absentBytes==null
+    auto presentText,presentBytes=reader(true)
+    if presentText!=null then assert presentText=="hello" else assert false end
+    if presentBytes!=null then assert originalBytes(presentBytes) else assert false end
+    var erased=xcall(textOnly)
+    auto ordinaryText,ordinaryBytes,ordinaryNumber=erased()()
+    assert ordinaryText=="hello" and ordinaryBytes==b"\0\xff\x11*" and ordinaryNumber==7
+end
+check()

@@ -18,7 +18,7 @@ function Invoke-ReleaseCheck([string]$Name,[string]$Program,[string[]]$StepArgum
 }
 Push-Location $root
 try {
-    foreach($name in @('variadic_results','variadic_inputs','nested_results','text_length','spawn_keywords','nullable_callables')) {
+    foreach($name in @('variadic_results','variadic_inputs','nested_results','text_length','spawn_keywords','nullable_callables','partial_results')) {
         $source="test/cases/xlir_c_owned_$name.xl"
         Invoke-ReleaseCheck "$name-check" $compiler @('check',$source)
         Invoke-ReleaseCheck "$name-jit" $compiler @('run',$source,'test/cases/xlir_c_owned_native.c','--backend','xlir')

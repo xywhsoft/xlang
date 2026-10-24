@@ -530,17 +530,43 @@ static XL6_AstNode* xl6SemCOwnedSpecializeMethod(XL6_SemContext* ctx,XL6_AstNode
 /* Callable and Future boundaries expose ordinary result ABIs. A distinct
  * language body lets normal return lowering copy and unwind transactionally;
  * never cast between the owner descriptor and the ordinary string pair. */
+/* Result covariance is pairwise, including inside a returned closure. Keep
+ * unchanged owner slots and invariant input signatures in their original ABI.
+ * Return -1 for an incompatible leaf, 0 for equality, 1 for an owner copy. */
+static int xl6SemCOwnedResultMatchDepth(XL6_SemContext* ctx,
+    const XL6_AstNode* target,const XL6_AstNode* source,unsigned depth)
+{
+    if(xl6SemTypeEquals(ctx,target,source))return 0;
+    if(!target || !source || depth>32)return -1;
+    target=xl6SemResolveAliasType(ctx,target);source=xl6SemResolveAliasType(ctx,source);
+    const XL6_AstNode* targetInner=xl6SemNullableInnerType(target);
+    const XL6_AstNode* sourceInner=xl6SemNullableInnerType(source);
+    if(targetInner || sourceInner)
+        return targetInner && sourceInner ? xl6SemCOwnedResultMatchDepth(ctx,targetInner,sourceInner,depth+1) : -1;
+    if(xl6TextEquals(target->text,"function") && xl6TextEquals(source->text,"function") &&
+       target->childCount==2 && source->childCount==2 &&
+       xl6SemCallableTypeListEquals(ctx,target->children[0],source->children[0])) {
+        const XL6_AstNode* targetResults=target->children[1],*sourceResults=source->children[1];
+        if(targetResults->childCount!=sourceResults->childCount)return -1;
+        int changed=0;
+        for(size_t r=0;r<sourceResults->childCount;++r) {
+            int match=xl6SemCOwnedResultMatchDepth(ctx,targetResults->children[r],sourceResults->children[r],depth+1);
+            if(match<0)return -1;
+            changed|=match;
+        }
+        return changed;
+    }
+    const char* base=xl6COwnedBaseName(source->text);
+    return base && xl6TextEquals(base,target->text) ? 1 : -1;
+}
 static int xl6SemCOwnedResultListMatches(XL6_SemContext* ctx,const XL6_AstNode* target,const XL6_AstNode* source)
 {
     if(!target || !source || target->childCount!=source->childCount)return 0;
     int changed=0;
     for(size_t r=0;r<source->childCount;++r) {
-        if(xl6SemTypeEquals(ctx,target->children[r],source->children[r]))continue;
-        XL6_AstNode* normalized=xl6SemCloneTypeNode(xl6SemResolveAliasType(ctx,source->children[r]));
-        if(!normalized)return 0;
-        if(xl6SemCOwnedResultHasOwner(ctx,normalized))changed=1;
-        int equal=xl6SemCOwnedOrdinaryResultType(ctx,&normalized) && xl6SemTypeEquals(ctx,target->children[r],normalized);
-        xl6AstFree(normalized);if(!equal)return 0;
+        int match=xl6SemCOwnedResultMatchDepth(ctx,target->children[r],source->children[r],0);
+        if(match<0)return 0;
+        changed|=match;
     }
     return changed;
 }
