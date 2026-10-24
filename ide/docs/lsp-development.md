@@ -4,7 +4,7 @@
 
 本期动态补全指基于当前未保存、不完整代码、作用域、接收对象类型及流分析实时查询候选。性能优先于扩展功能数量；协议能力仅在实现与验收完成后声明。
 
-最新功能切片为 M7a2b19a：完成参数提示所需的独立调用上下文索引，复用共享词法器与原解析器的泛型匹配器；识别当前实参、命名参数、嵌套／未闭合调用，重复定位无分配。13043项专项、50原生／592协议／16 IDE通过；紧凑索引一万行构建P95为20.475ms，十万行单文件仍未建立索引。本阶段尚未接入signatureHelp协议和IDE提示，服务仍0.46；语义签名／重载选择／原生容错投影与缓存接入继续，完整长期目标active，发布未覆盖。
+最新功能切片为 M7a2b19b：完成共享前端上的结构化语义签名、独立常驻签名会话与后台查询，支持未完成调用、重载、显式泛型、成员／构造器及函数值；21406项专项、51原生／592协议／16 IDE通过。当前只是参数提示语义核心，服务仍0.46，signatureHelp协议及IDE参数窗尚未启用，下一步优先接入。完整长期目标active；发布5241文件未覆盖。
 
 ## 架构与复用
 
@@ -1684,3 +1684,30 @@ owner由构造pin和实际池节点共同维持，失败／空森林结束后释
 实测为未插桩原生构造／定位，不是LSP或IDE显示耗时：每档／每变体5个独立进程交错运行；构造计时含lexer、scratch、索引，排除正文创建及进程启动；每个成功索引预热512次后计时100000次跨调用位置的定位及结果检查。小样本P95／P99均接近该轮最大值；批次分位不能作为单次查询分位。全token一万行与两版本十万行均未建立索引，分配／容量错误和失败耗时已保留，不能算规模验收通过。当前紧凑一万行完成存储与构建计费见原始样本；仍需按函数／不可变chunk分块、增量编辑失效与真实工作队列接入。
 
 接下来继续原生容错调用投影、语义参数／泛型／重载及函数值签名、上下文／源码证明和常驻签名查询，然后按[标准signatureHelp协议](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_signatureHelp)实现trigger／retrigger、可取消请求、参数标签与当前参数、无候选null，并接入IDE。最终仍需完整适用LSP、真正依赖／IR增量、IDE原位配置／异步准备、nativeC／resource／include／link、清单／反向源归属、完整UI／规模／RSS／冷尾／长时验收与发布。外部exe、纯C／XRT、未来opaque DLL边界及无DAP／运行态补全约束不变。发布5241文件保持原样；证据见build/lsp-next-20261022/m7a2b19a-build-location.json、m7a2b19a-result.json及call-context-native-timing-v2，长期目标active。
+
+
+## M7a2b19b：原生语义签名与常驻查询（服务仍0.46）
+
+analysis/signature.h提供opaque owner及结构化签名／参数／输入来源视图，使用编译器XRT和现有native结果所有权。签名模式与普通completion的缓存、会话及worker结果分开；错误getter／CompletionList JSON拒绝跨模式使用。scope绑定确切query指针，嵌套普通查询不继承模式，结束后恢复外层。签名数组及标签独立拥有，参数名／doc借用同一结果所持AST，释放顺序先模型后AST。
+
+原调用索引定位后，保留callee与此前完整实参，把当前实参投影为零宽占位token；闭合调用接回真实右括号，未闭合调用在光标后的原换行处添加派生闭合token并继续扫描。每个真实token须通过原始片段／长度／范围核验，重启Flex前将text指针绑定回原文。正文和来源报告不改。原EOF的旧len／range只在签名读取器中规范。scanner仅追加resume接口，位置推进调用原xl6AdvancePosition。原parser token尾部规则逐字节提取成单一finalizer，普通与签名读取共享泛型／nullable／匿名函数等规则；本阶段parser函数已改，不能沿用19a“原函数字节不变”的描述。冻结前端文件本身未写。
+
+语义检查实际到达目标CALL时捕获，核对左括号、源路径、query stamp及唯一到达。复用原scope／函数顺序／可调用类型／alias／成员可见性／继承／具体泛型类替换；函数值、返回函数表达式、下标值及__call__沿用原推断。参数类型来自AST，由原formatter显示，不解析显示字符串；固定／默认／命名／varargs／byval／byref／out／返回类型／doc／当前参数保留结构。最多256签名、每签名128参数、标签32KiB，模型实际容量计入4MiB，超界整体拒绝。
+
+此前完整实参用原cost／rank加法与候选顺序决定偏好；当前实参仍在编辑，这不是最终调用合法性判断。显式泛型用原约束和替换；推断泛型仍保留模板T。protocol receiver／部分内建转换签名／插值或匿名函数体内部／普遍缺失END恢复未完成。未闭合插值的lexer错误保留原literal helper的embedded标记，拒绝误用外层签名；保守空结果不计作这些形态已支持。
+
+signature_session捕获完整immutable输入／context／身份／entry／CWD；精确命中前验证实际disk和resolution。光标移动只在字节完全相同时共享索引，编辑后索引仍整份重建，但可复用函数语义事实。普通补全不会替换签名缓存。取消回调首次true锁存，之后不能提交结果；失败／取消保留旧batch。无调用返回有效空结果，但目前可能替换前个语义基线，完整持久世界待做。worker沿用actor／future／wake／cancel所有权。
+
+21406专项含完整标签及参数的fresh／retained对照、3例原编译器完整检查CALL.semanticTargetSymbolId对照、16次编辑／24个真实控制流helper复用、105个单次取消回调检查点旧结果保留、跨session／actor销毁持有、独立线程与通知／排队取消、普通补全及嵌套scope隔离、closed disk entry＋未保存import query、disk改变永久失效、BOM／CRLF／中文及参数超界。原13043调用索引、2306cursor／1073增量语法及全部AST／index／IR对照继续通过。原测试极小函数会被WorthMemo排除，只把夹具改成控制流函数，未放宽生产复用；取消编辑列改用原TextPosition。失败日志保留。
+
+1023冻结输入，123原生对象全部重编译，57个AST消费者同一AST17头、布局不变；core新增signature／signature_session共50成员，51原生夹具／52PE／53产物通过。28套592既有协议与16实际IDE／旧0.4回退／smoke通过。GUI路径预处理一致，105对象复用、零GUI编译／重链。初始化仍不声明signatureHelpProvider，不能把回归说成参数窗已接入。
+
+| 原生签名查询 | 全新查询 P50/P95/P99 ms | 常驻会话 P50/P95/P99 ms |
+| --- | --- | --- |
+| 数字编辑 | 51.575 / 60.587 / 89.624 | 44.785 / 51.113 / 55.460 |
+| 相同正文／光标 | 50.619 / 55.690 / 62.279 | 0.002 / 0.003 / 0.012 |
+| 同一实参内移动光标 | 50.090 / 55.677 / 72.799 | 38.416 / 44.833 / 61.561 |
+
+未插桩原生计时使用96混合helper、约3kLOC、BOM／CRLF与两个实际重载；fresh／retained以ABBA四个独立进程运行。每进程首请求单列，6预热后30数字编辑、30完全相同查询、30同实参光标移动，共360采样。计时含索引／解析／语义／来源捕获，排除正文创建、进程启动及结果验证；每次核对实际签名、偏好、参数、语义／索引／结果复用。这不是LSP往返、IDE显示、RSS、冷尾或完整规模验收；19a十万行64MiB索引不可用仍未解决，整体性能目标未达成。
+
+下一阶段优先标准signatureHelp与IDE XUI参数窗：独立前台管线、输入／配置／generation／取消／发布守卫、trigger／retrigger／context、UTF-16参数标签或字符串标签、无候选null及真实端到端检查。完整适用LSP、真正依赖／IR增量、清单／反向归属、IDE原位配置／异步准备、nativeC／resource／include／link、规模／UI／RSS／长时与最终发布继续。外部exe、纯C／编译器XRT、未来opaque DLL边界、无DAP／运行态补全不变。发布5241文件／SDK／冻结前端未改；证据build/lsp-next-20261022/m7a2b19b-result.json及signature-native-timing-v1，长期目标active。

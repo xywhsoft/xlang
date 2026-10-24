@@ -55,6 +55,7 @@ CORE_TESTS = ("analysis_completion_annotations_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ast_storage_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ast_materialize_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_call_context_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_signature_test", *CORE_TESTS)
 
 
 def sha(path: Path) -> str:
@@ -184,7 +185,7 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
              '        XL6_AstNode* child = root->children[i];\n'
              '        if ( child->kind == XL6_AST_FUNC || child->kind == XL6_AST_ASYNC_FUNC ) {')
     changes = {
-        '} XL6_SemContext;': '} XL6_SemContext;\n#include "analysis/frontend_context.h"\n#include "analysis/frontend_sem.inc"',
+        '} XL6_SemContext;': '    int xlsSignature;\n} XL6_SemContext;\n#include "analysis/frontend_context.h"\n#include "analysis/frontend_sem.inc"\n#include "analysis/signature_internal.h"\nstatic int xlsSemSignatureCaptureCall(XL6_SemContext*,XL6_AstNode*);\nstatic int xlsSemSignatureOffer(XL6_SemContext*,const XL6_AstNode*,const XL6_AstNode*,const char*);',
         'static int xl6SemCheckFunc(XL6_SemContext* ctx, XL6_AstNode* node)\n{':
             'static int xlsSemCheckFuncOriginal(XL6_SemContext* ctx, XL6_AstNode* node)\n{',
         begin: '    xlsSemMemoBegin(&ctx);\n' + begin,
@@ -260,6 +261,26 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         if source.count(old) != 1:
             raise ValueError('shared call candidate lifetime seam changed; audit: ' + old)
         source = source.replace(old, new)
+    # Signature mode is explicitly bound to this exact query. Ordinary checks
+    # and completion queries keep the original expression/member paths.
+    for old,new in {
+        '    ctx.completionQuery = query;': '    ctx.completionQuery = query;\n    ctx.xlsSignature = xlsSignatureScopeCurrent(query)!=NULL;',
+        'static int xl6SemCheckExprRaw(XL6_SemContext* ctx, XL6_AstNode* node)\n{': 'static int xl6SemCheckExprRaw(XL6_SemContext* ctx, XL6_AstNode* node)\n{\n    if(ctx->xlsSignature && node && node->kind==XL6_AST_CALL && xlsSemSignatureCaptureCall(ctx,node))return 0;',
+        'static int xl6SemCaptureCompletion(XL6_SemContext* ctx,XL6_AstNode* node)\n{': '#include "analysis/frontend_sem_signature.inc"\n\nstatic int xl6SemCaptureCompletion(XL6_SemContext* ctx,XL6_AstNode* node)\n{',
+    }.items():
+        if source.count(old)!=1:raise ValueError('shared signature seam changed: '+old)
+        source=source.replace(old,new)
+    start=source.index('static void xl6SemCompletionMembers(')
+    end=source.index('\n#include "analysis/frontend_sem_signature.inc"',start)
+    members=source[start:end]
+    for old,new in {
+        ' XL6_CompletionQuery* q=ctx->completionQuery;': ' XL6_CompletionQuery* q=ctx->completionQuery;\n xls_signature_scope* signature=ctx->xlsSignature ? xlsSignatureScopeCurrent(q) : NULL;',
+        '   name=field?member->text:xl6SemMemberName(member);if (!name) continue;': '   name=field?member->text:xl6SemMemberName(member);if (!name) continue;\n   if(signature && signature->targetName && strcmp(name,signature->targetName))continue;',
+        '   xl6CompletionAdd(q,name,field?"field":"method",member->semanticSymbolId,selection,xl6SemCompletionType(ctx,type));xl6AstFree(type);': '   if(signature)xlsSemSignatureOffer(ctx,member,type,name);\n   else xl6CompletionAdd(q,name,field?"field":"method",member->semanticSymbolId,selection,xl6SemCompletionType(ctx,type));\n   xl6AstFree(type);',
+    }.items():
+        if members.count(old)!=1:raise ValueError('shared signature member seam changed: '+old)
+        members=members.replace(old,new)
+    source=source[:start]+members+source[end:]
     # Final annotation rules stay byte-for-byte in the audited TU. Extract
     # their original invocation block once so eager and deferred paths call
     # exactly the same helpers with the same plan-region initialization.
@@ -369,18 +390,56 @@ def prepare_native_types(frontend: Path, output: Path) -> tuple[Path, Path, dict
 
 
 def prepare_native_parser(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
-    """Expose bounded structural call indexing using the original type matcher."""
+    """Share token finalization with an opt-in incomplete-call projection."""
     original = frontend / 'src/parser/xl6_parser_api.c'
     expected = '9bef77532acc35d8b7da1c4d801bcfb81221b2d99747d29609dfb9a54f0ba6f6'
     if sha(original) != expected:
-        raise ValueError('shared parser changed; audit virtual type matcher, token ownership and call-index adapter')
+        raise ValueError('shared parser changed; audit signature projection, token finalization and original type matcher')
+    source = original.read_text(encoding='utf8').replace('\r\n', '\n')
+    start = source.index('static int xl6ParserReadTokens(')
+    end = source.index('\n}\n\n/* Replace exactly one', start)
+    at = source.index('    /*\n     * EOF ', start)
+    tail = source[at:end]
+    assert tail.endswith('    return 1;')
+    helper = ('static int xlsParserFinishTokens(XL6_ParseTokenStream* stream, XL6_DiagList* diags)\n{\n'
+              '    XL6_Token token=stream->count ? stream->tokens[stream->count-1] : (XL6_Token){0};\n'
+              '    XL6_Token eofToken,separator;\n' + tail + '\n}\n\n')
+    reader = source[start:at].replace('    XL6_Token eofToken;\n    XL6_Token separator;\n', '')
+    source = source[:start] + helper + reader + '    return xlsParserFinishTokens(stream,diags);' + source[end:]
+    marker = 'static int xl6ParseSourceInternal('
+    assert source.count(marker) == 1
+    source = source.replace(marker, '#include "analysis/frontend_signature_parser.inc"\n\n' + marker)
+    for old, new in {
+        'ok = xl6ParserReadTokens(&lexer, &stream, &result->diags);': 'ok = xlsSignatureReadTokens(&lexer, &stream, &result->diags,source,query);',
+        'else if (ok) ok = xl6ParserCompletionToken(&stream, source, query);': 'else if (ok) ok = xlsSignatureCompletionToken(&stream, source, query);',
+    }.items():
+        assert source.count(old) == 1, old
+        source = source.replace(old,new)
     compiled = output / 'frontend/xl6_parser_api.c'
-    compiled.write_bytes(original.read_bytes() + b'\n#include "analysis/frontend_call_context.inc"\n')
+    compiled.write_text(source+'\n#include "analysis/frontend_call_context.inc"\n',encoding='utf8',newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=expected,
-        compiledSource=str(compiled), compiledSha256=sha(compiled), auditedSeams=1,
-        change='append opt-in bounded immutable structural call index; original parser functions unchanged',
-        originalFunctionsUnchanged=True, maximumIndexBytes=64*1024*1024,
-        maximumGenericProofTokens=512, maximumDelimiterDepth=256)
+        compiledSource=str(compiled), compiledSha256=sha(compiled), auditedSeams=5,
+        change='single original token finalizer; opt-in original-source signature projection; default lexer/parser rules retained',
+        originalFunctionsUnchanged=False, originalFinalizerRulesUnchanged=True,
+        originalFinalizerSha256=hashlib.sha256(tail.encode('utf8')).hexdigest(),
+        maximumIndexBytes=64*1024*1024, maximumGenericProofTokens=512, maximumDelimiterDepth=256)
+
+
+def prepare_native_lexer(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
+    original = frontend / 'src/lexer/xl6_lexer_gen.c'
+    expected = 'b6473ca60b800755e4bb3f993189040673a7c251c7af53163ad42e3d1a551fe1'
+    if sha(original) != expected:
+        raise ValueError('shared scanner changed; audit buffer lifetime,resume and original position advance')
+    literal = frontend / 'src/lexer/xl6_literal_span.h'
+    literal_sha = '3d1b3f3a71adaeb8d76910ece765f433e899190b2f153990feb9c7c6529e0db7'
+    if sha(literal) != literal_sha:
+        raise ValueError('shared literal spans changed; audit signature error/interpolation recovery')
+    compiled = output / 'frontend/xl6_lexer_gen.c'
+    compiled.write_bytes(original.read_bytes()+b'\n#include <limits.h>\n#include "analysis/frontend_signature_lexer.inc"\n')
+    return original,compiled,dict(source=str(original),sourceSha256=expected,
+        compiledSource=str(compiled),compiledSha256=sha(compiled),auditedSeams=1,
+        change='append scanner resume using original native position advance;original scanner unchanged',originalFunctionsUnchanged=True,
+        auditedDependencies={str(literal):literal_sha})
 
 
 def prepare_native_ast(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
@@ -437,7 +496,7 @@ def main() -> None:
     sources += [(ide / "src/protocol/input_state.c", True)]
     sources += [(ide / "src/protocol/diagnostic_paths.c", True)]
     sources += [(ide / path, True) for path in (
-        "src/analysis/frontend_ir_regions.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/input_view.c", "src/analysis/ast_storage.c", "src/analysis/ast_materialize.c", "src/analysis/ast_clone.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
+        "src/analysis/frontend_ir_regions.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/input_view.c", "src/analysis/ast_storage.c", "src/analysis/ast_materialize.c", "src/analysis/ast_clone.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/signature.c", "src/analysis/signature_session.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
@@ -461,6 +520,7 @@ def main() -> None:
         original_types, generated_types, types_overlay = prepare_native_types(frontend, output)
         original_ast, generated_ast, ast_overlay = prepare_native_ast(frontend, output)
         original_parser, generated_parser, parser_overlay = prepare_native_parser(frontend, output)
+        original_lexer, generated_lexer, lexer_overlay = prepare_native_lexer(frontend, output)
         context_overlays = derive_context_runtime(frontend, output)
         runtime_overlay = derive_process_runtime(frontend / 'lib/xrt/xrt.h', output / 'native_xrt/xrt.h')
     except ValueError as error:
@@ -472,6 +532,7 @@ def main() -> None:
     sources = [(generated_types if path == original_types else path, owned) for path, owned in sources]
     sources = [(generated_ast if path == original_ast else path, owned) for path, owned in sources]
     sources = [(generated_parser if path == original_parser else path, owned) for path, owned in sources]
+    sources = [(generated_lexer if path == original_lexer else path, owned) for path, owned in sources]
     scoped_sources = {Path(row['source']): Path(row['compiledSource']) for row in context_overlays}
     sources = [(scoped_sources.get(path, path), owned) for path, owned in sources]
     env = dict(os.environ)
@@ -505,8 +566,9 @@ def main() -> None:
         str(original_index): index_overlay["sourceSha256"], str(original_ir): ir_overlay["sourceSha256"],
         str(original_sem): sem_overlay["sourceSha256"], str(original_stdlib): stdlib_overlay["sourceSha256"],
         str(original_types): types_overlay["sourceSha256"]}, {}, [], {}
-    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, ast_overlay, parser_overlay, *context_overlays]
+    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, ast_overlay, parser_overlay, lexer_overlay, *context_overlays]
     inputs[str(original_parser)] = parser_overlay['sourceSha256']
+    inputs[str(original_lexer)] = lexer_overlay['sourceSha256']
     inputs.update({ast_overlay['source']:ast_overlay['sourceSha256'], ast_overlay['headerSource']:ast_overlay['headerSourceSha256'], ast_overlay['runtimeSource']:ast_overlay['runtimeSourceSha256']})
     inputs.update({row["source"]: row["sourceSha256"] for row in context_overlays})
     source_overlays.append(runtime_overlay)
@@ -562,7 +624,7 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_ir_regions","frontend_entry_cache","input_view", "text", "context", "frontend_context", "ast_storage", "ast_materialize", "ast_clone", "syntax", "session", "worker", "folding", "semantic", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_ir_regions","frontend_entry_cache","input_view", "text", "context", "frontend_context", "ast_storage", "ast_materialize", "ast_clone", "syntax", "session", "worker", "folding", "semantic", "signature", "signature_session", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         limited_index = output / "xl6_sem_index_limit.o"

@@ -3,6 +3,7 @@
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_entry_cache.h"
 #include "analysis/frontend_input_view.h"
+#include "analysis/signature_internal.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
 #include "src/stdlib/xl6_stdlib.h"
@@ -30,6 +31,7 @@ struct xls_semantic_completion {
     xls_sem_tail* tail;
     xls_sem_storage_work storageWork;
     xls_ast_materialize_work materializationWork;
+    xls_signature_data* signature;
 };
 static int absolute(const char* path)
 {
@@ -51,6 +53,7 @@ xls_semantic_completion* xlsSemanticCompletionRetain(xls_semantic_completion* r)
 void xlsSemanticCompletionDestroy(xls_semantic_completion* r)
 {
     if(!r || xrtAtomic32FetchSub(&r->references,1,XMEMORY_ACQ_REL)!=1) return;
+    xlsSignatureDataDestroy(r->signature);
     xl6CompletionFree(&r->query);
     xlsFrontendSemTailDestroy(r->tail);
     xl6ParseResultFree(&r->parse);
@@ -63,7 +66,7 @@ void xlsSemanticCompletionDestroy(xls_semantic_completion* r)
 static xls_semantic_completion* createBody(xls_context* context,const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     xls_semantic_completion* previous,int memoEnabled,
-    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+    int (*cancelled)(void*),void* user,char* error,size_t capacity,xls_signature_scope* signature)
 {
     xls_semantic_completion* r=NULL;
     if(error && capacity) *error=0;
@@ -73,6 +76,7 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
     if(stopped(cancelled,user)) { fail(error,capacity,"semantic completion cancelled"); return NULL; }
     r=xrtCalloc(1,sizeof(*r)); if(!r) { fail(error,capacity,"cannot allocate semantic completion"); return NULL; }
     xrtAtomic32Init(&r->references,1); xrtAtomic32Init(&r->invalid,0); r->context=xlsContextRetain(context);
+    if(signature){r->signature=signature->data;signature->adopted=1;}
     if(!xrtMutexInit(&r->lock)) goto invalid;
     r->lockInitialized=1;
     xl6ParseResultInit(&r->parse); xl6ImportDepsInit(&r->deps); xl6SourceReportInit(&r->report);
@@ -90,6 +94,7 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
     const XL6_SourceOverlayItem* entryInput=xl6SourceOverlayFind(&r->overlay,entry);
     if(!target || offset>target->size ||
        (offset<target->size && ((unsigned char)target->text[offset]&0xc0)==0x80)) goto invalid;
+    if(signature){signature->query=&r->query;if(!signature->data->hasSite)return r;}
     r->overlay.report=&r->report; r->overlay.completionQuery=&r->query; r->deps.sourceOverlay=&r->overlay;
     int okay;
     if(syntax) {
@@ -164,15 +169,18 @@ cancel:
 static xls_semantic_completion* create(xls_context* context,xls_entry_cache* cache,const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     xls_semantic_completion* previous,int memoEnabled,
-    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+    int (*cancelled)(void*),void* user,char* error,size_t capacity,xls_signature_data* signatureData)
 {
-    if(!xlsFrontendContextValid(context,entry,error,capacity)) return NULL;
+    if(!xlsFrontendContextValid(context,entry,error,capacity)){xlsSignatureDataDestroy(signatureData);return NULL;}
+    xls_signature_scope signature;
+    if(signatureData)xlsSignatureScopeBegin(&signature,signatureData,cancelled,user);
     xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
     xls_ast_materialize_scope materialization;
     xlsAstMaterializeBegin(&materialization,memoEnabled ? xlsAstMaterializeBudget() : 0);
     xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,cache,context,entry);
     entryScope.cursorSyntax=syntax;
-    xls_semantic_completion* result=createBody(context,entry,queryPath,offset,inputs,count,syntax,previous,memoEnabled,cancelled,user,error,capacity);
+    xls_semantic_completion* result=createBody(context,entry,queryPath,offset,inputs,count,syntax,previous,memoEnabled,cancelled,user,error,capacity,signatureData ? &signature : NULL);
+    if(signatureData){if(!signature.adopted)xlsSignatureDataDestroy(signatureData);xlsSignatureScopeEnd(&signature);if(signature.cancelObserved){xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"signature query cancelled");}}
     if(entryScope.cursorFailed) {xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"cannot own exact imported cursor syntax");}
     if(result && stopped(cancelled,user)) {xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"semantic completion cancelled");}
     int scoped=xlsFrontendContextEnd(&scope);
@@ -214,7 +222,7 @@ xls_sem_tail_work xlsSemanticCompletionTailWork(const xls_semantic_completion* r
 xls_semantic_completion* xlsSemanticCompletionCreateIncrementalInContext(xls_context* context,xls_entry_cache* cache,
     const char* entry,const char* queryPath,size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     xls_semantic_completion* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)
-{return create(context,cache,entry,queryPath,offset,inputs,count,syntax,previous,1,cancelled,user,error,capacity);}
+{return create(context,cache,entry,queryPath,offset,inputs,count,syntax,previous,1,cancelled,user,error,capacity,NULL);}
 int xlsSemanticCompletionInputs(const xls_semantic_completion* r,xls_inputs* out)
 { return xlsInputReportInputs(r && !invalid(r) ? &r->report : NULL,out); }
 int xlsSemanticCompletionSource(const xls_semantic_completion* r,size_t index,xls_input_source* out)
@@ -223,36 +231,36 @@ int xlsSemanticCompletionProbe(const xls_semantic_completion* r,size_t index,xls
 { return xlsInputReportProbe(r && !invalid(r) ? &r->report : NULL,index,out); }
 xls_semantic_completion* xlsSemanticCompletionCreateCachedInContext(xls_context* context,xls_entry_cache* cache,const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,int (*cancelled)(void*),void* user,char* error,size_t capacity)
-{ return create(context,cache,entry,queryPath,offset,inputs,count,NULL,NULL,0,cancelled,user,error,capacity); }
+{ return create(context,cache,entry,queryPath,offset,inputs,count,NULL,NULL,0,cancelled,user,error,capacity,NULL); }
 xls_semantic_completion* xlsSemanticCompletionCreateCachedParsedInContext(xls_context* context,xls_entry_cache* cache,
     const char* entry,const char* queryPath,size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
     if(!syntax) {fail(error,capacity,"cached parsed completion requires cursor syntax");return NULL;}
-    return create(context,cache,entry,queryPath,offset,inputs,count,syntax,NULL,0,cancelled,user,error,capacity);
+    return create(context,cache,entry,queryPath,offset,inputs,count,syntax,NULL,0,cancelled,user,error,capacity,NULL);
 }
 xls_semantic_completion* xlsSemanticCompletionCreateInContext(xls_context* context,const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,int (*cancelled)(void*),void* user,char* error,size_t capacity)
-{ return create(context,NULL,entry,queryPath,offset,inputs,count,NULL,NULL,0,cancelled,user,error,capacity); }
+{ return create(context,NULL,entry,queryPath,offset,inputs,count,NULL,NULL,0,cancelled,user,error,capacity,NULL); }
 xls_semantic_completion* xlsSemanticCompletionCreateParsedInContext(xls_context* context,const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
     if(!syntax) { fail(error,capacity,"parsed completion requires cursor syntax"); return NULL; }
-    return create(context,NULL,entry,queryPath,offset,inputs,count,syntax,NULL,0,cancelled,user,error,capacity);
+    return create(context,NULL,entry,queryPath,offset,inputs,count,syntax,NULL,0,cancelled,user,error,capacity,NULL);
 }
 const xls_context* xlsSemanticCompletionContext(const xls_semantic_completion* result)
 { return result ? result->context : NULL; }
 xls_semantic_completion* xlsSemanticCompletionCreate(const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
-{ return create(NULL,NULL,entry,queryPath,offset,inputs,count,NULL,NULL,0,cancelled,user,error,capacity); }
+{ return create(NULL,NULL,entry,queryPath,offset,inputs,count,NULL,NULL,0,cancelled,user,error,capacity,NULL); }
 xls_semantic_completion* xlsSemanticCompletionCreateParsed(const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
     if(!syntax) { fail(error,capacity,"parsed completion requires cursor syntax"); return NULL; }
-    return create(NULL,NULL,entry,queryPath,offset,inputs,count,syntax,NULL,0,cancelled,user,error,capacity);
+    return create(NULL,NULL,entry,queryPath,offset,inputs,count,syntax,NULL,0,cancelled,user,error,capacity,NULL);
 }
 xls_completion_info xlsSemanticCompletionInfo(const xls_semantic_completion* r)
 {
@@ -287,6 +295,7 @@ int xlsSemanticCompletionValidate(xls_semantic_completion* r)
 static char* jsonLocked(xls_semantic_completion* r,size_t* size)
 {
     if(size) *size=0;
+    if(r->signature)return NULL;
     if(!validateLocked(r)) return NULL;
     char* completion=xl6CompletionJson(&r->query,&r->report); if(!completion) return NULL;
     XL6_Output out; char* text=NULL;
@@ -307,3 +316,11 @@ char* xlsSemanticCompletionJson(xls_semantic_completion* r,size_t* size)
     char* text=jsonLocked(r,size); xrtMutexUnlock(&r->lock); return text;
 }
 void xlsSemanticStringFree(char* text) { xrtFree(text); }
+
+xls_signature_data* xlsSemanticSignatureData(const xls_semantic_completion* result)
+{return result ? result->signature : NULL;}
+xls_semantic_completion* xlsSemanticSignatureCreateInContext(xls_context* context,const char* entry,
+    const char* path,size_t offset,const xls_semantic_input* inputs,size_t count,xls_signature_data* data,
+    xls_entry_cache* cache,xls_semantic_completion* previous,int memoEnabled,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{return create(context,cache,entry,path,offset,inputs,count,NULL,previous && previous->signature ? previous : NULL,memoEnabled,cancelled,user,error,capacity,data);}

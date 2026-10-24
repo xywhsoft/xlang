@@ -4,6 +4,7 @@
 #include "analysis/folding.h"
 #include "analysis/check_session.h"
 #include "analysis/completion_session.h"
+#include "analysis/signature_session.h"
 
 typedef struct xls_worker xls_worker;
 typedef struct xls_query xls_query;
@@ -40,6 +41,10 @@ xls_query* xlsWorkerCompletion(xls_worker* worker,const xls_analysis_document* d
     size_t count,const char* entry,const char* queryKey,size_t offset);
 xls_query* xlsWorkerCompletionInContext(xls_worker* worker,xls_context* context,
     const xls_analysis_document* documents,size_t count,const char* entry,const char* queryKey,size_t offset);
+/* A separate retained signature session; ordinary completion/check state never
+ * aliases a signature projection. Prefer a foreground actor for these queries. */
+xls_query* xlsWorkerSignatureInContext(xls_worker* worker,xls_context* context,
+    const xls_analysis_document* documents,size_t count,const char* entry,const char* queryKey,size_t offset);
 void xlsQueryCancel(xls_query* query);
 /* Register once from the submitting owner. Wake can run on the completing
  * worker or synchronously if already ready; it must be short/thread-safe and
@@ -59,4 +64,6 @@ enum xls_query_state xlsQueryCheckResult(xls_query* query,xls_semantic_check** r
     xls_check_stats* stats,uint64_t* threadId,char* error,size_t capacity);
 enum xls_query_state xlsQueryCompletionResult(xls_query* query,xls_semantic_completion** result,
     xls_completion_stats* stats,uint64_t* threadId,char* error,size_t capacity);
+enum xls_query_state xlsQuerySignatureResult(xls_query* query,xls_signature_help** result,
+    xls_signature_stats* stats,uint64_t* threadId,char* error,size_t capacity);
 #endif
