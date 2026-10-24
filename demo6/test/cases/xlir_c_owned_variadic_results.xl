@@ -1,0 +1,84 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+func text(...) as cstring
+    assert arg.length==0 or (arg.length==3 and arg[0]==7 and arg[1]=="tail" and arg[2]==true)
+    return cstring.take(nativeText(),nativeFree)
+end
+func binary(int first,***) as cbytes
+    assert first==7
+    assert arg.length==0 or (arg.length==2 and arg["answer"]==42 and arg["label"]=="tail")
+    return cbytes.take(nativeBytes(),4,nativeFree)
+end
+func optional(bool present,...) as cstring?
+    return present ? text() : null
+end
+func product(***) as (cstring,cbytes,int)
+    assert arg.length==1 and arg["answer"]==42
+    return text(),binary(7),7
+end
+func consume(func(...) as string callback) as string
+    return callback(7,"tail",true)
+end
+int factoryCount=0
+func factory() as func(...) as cstring
+    factoryCount+=1
+    return text
+end
+func captured(string prefix) as func(...) as cstring
+    return func(...) as cstring => prefix+arg.length.toString()
+end
+func returned() as func(...) as string
+    auto raw=text
+    return raw
+end
+func check()
+    auto raw=text
+    auto data=binary
+    auto direct=raw(7,"tail",true)
+    auto directBytes=data(7,answer=42,label="tail")
+    assert original(direct) and originalBytes(directBytes)
+    func(...) as string adapted=raw
+    func(int,***) as bytes adaptedBytes=data
+    assert adapted()=="hello" and adapted(7,"tail",true)=="hello"
+    assert adaptedBytes(7)==b"\0\xff\x11*"
+    assert adaptedBytes(7,answer=42,label="tail")==b"\0\xff\x11*"
+    var erased=xcall(raw)
+    var erasedBytes=xcall(data)
+    assert erased()=="hello" and erased(7,"tail",true)=="hello"
+    assert erasedBytes(7)==b"\0\xff\x11*"
+    assert erasedBytes(7,answer=42,label="tail")==b"\0\xff\x11*"
+    assert consume(raw)=="hello" and returned()()=="hello"
+    func(...) as cstring explicitOwner=raw
+    auto stillOwned=explicitOwner()
+    assert original(stillOwned)
+    func(...) as string snapshot=raw
+    raw=func(...) as cstring => "replacement"
+    assert snapshot()=="hello" and raw()=="replacement"
+    func(...) as string once=factory()
+    assert factoryCount==1 and once()=="hello" and once()=="hello"
+    assert factoryCount==1
+    auto closure=captured("count=")
+    func(...) as string adaptedClosure=closure
+    assert adaptedClosure()=="count=0" and adaptedClosure(1,2)=="count=2"
+    var erasedClosure=xcall(closure)
+    assert erasedClosure(1,2,3)=="count=3"
+    auto optionalRaw=optional
+    var nullable=xcall(optionalRaw)
+    assert nullable(false)==null and nullable(true,1,2)=="hello"
+    auto productRaw=product
+    var many=xcall(productRaw)
+    auto first,second,number=many(answer=42)
+    assert first=="hello" and second==b"\0\xff\x11*" and number==7
+end
+check()
+async func workers()
+    auto raw=text
+    assert await task.spawn(raw)=="hello"
+    assert await task.spawn(raw,7,"tail",true)=="hello"
+    auto closure=captured("task=")
+    assert await task.spawn(closure,1,2)=="task=2"
+end
+await workers()

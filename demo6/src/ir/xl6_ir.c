@@ -9993,6 +9993,14 @@ static int xl6IrBuildFunctionValueCallSite(
             valid = 0;
             break;
         }
+        if(wrapper->flags==XL6_AST_FLAG_FORWARD_VARIADIC_PACK) {
+            if(wrapper->sourceKind!=XL6_AST_ARG || variadicAbi==XL6_IR_CALL_VARIADIC_NONE ||
+               i!=fixedParameterCount || args->childCount!=fixedParameterCount+1 || tailCount) {valid=0;break;}
+            size_t binding=fixedParameterCount+tailCount++;
+            expressions[binding]=module->children[wrapper->firstChild];
+            sources[binding]=XL6_IR_CALL_ARGUMENT_VARIADIC_PACK;
+            continue;
+        }
         if ( wrapper->sourceKind == XL6_AST_NAMED_ARG &&
              variadicAbi == XL6_IR_CALL_VARIADIC_DICT &&
              wrapper->text != NULL && wrapper->text[0] != '\0' ) {
@@ -10344,6 +10352,20 @@ static int xl6IrCallArgumentBindingIsExact(
             return binding->parameter == binding->evaluationIndex;
         return wrapper->sourceKind == XL6_AST_NAMED_ARG && parameter != NULL &&
             parameter->text != NULL && wrapper->text != NULL && strcmp(parameter->text, wrapper->text) == 0;
+    }
+    if(binding->source==XL6_IR_CALL_ARGUMENT_VARIADIC_PACK) {
+        const XL6_IrNode* callee=call->childCount ? xl6IrNodeGet(module,module->children[call->firstChild]) : NULL;
+        const XL6_IrType* signature=callee ? xl6IrTypeGet(&module->types,
+            callee->type!=XL6_IR_TYPE_INVALID ? callee->type : callee->storageType) : NULL;
+        const XL6_IrNode* pack=xl6IrNodeGet(module,binding->expression);
+        return site->callKind==XL6_SEM_CALL_FUNCTION_VALUE && signature && pack &&
+            (site->variadicAbi==XL6_IR_CALL_VARIADIC_ARRAY || site->variadicAbi==XL6_IR_CALL_VARIADIC_DICT) &&
+            signature->paramCount==site->fixedParameterCount+1 && signature->params && signature->parameterAbis &&
+            signature->parameterAbis[site->fixedParameterCount]==XL6_IR_PARAMETER_ABI_BORROW &&
+            pack->storageType==signature->params[site->fixedParameterCount] &&
+            site->argumentCount==signature->paramCount && binding->parameter==site->fixedParameterCount &&
+            binding->evaluationIndex==site->fixedParameterCount && wrapper->sourceKind==XL6_AST_ARG &&
+            wrapper->flags==XL6_AST_FLAG_FORWARD_VARIADIC_PACK;
     }
     if (wrapper->flags != 0) return 0;
     if (binding->source == XL6_IR_CALL_ARGUMENT_ARRAY_VARARG_ITEM ||
@@ -35821,7 +35843,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       (site->preparedGetter == XL6_IR_NODE_INVALID ||
                        argument + 1 != site->argumentCount || binding->expression != site->origin)) ||
                      binding->source < XL6_IR_CALL_ARGUMENT_EXPLICIT ||
-                     binding->source > XL6_IR_CALL_ARGUMENT_PROPERTY_UPDATE ||
+                     binding->source > XL6_IR_CALL_ARGUMENT_VARIADIC_PACK ||
                      (binding->source == XL6_IR_CALL_ARGUMENT_IMPLICIT_STRING
                          ? binding->expression != XL6_IR_NODE_INVALID
                          : binding->expression == XL6_IR_NODE_INVALID ||
@@ -35838,9 +35860,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      (argument >= site->fixedParameterCount &&
                       (binding->parameter != site->fixedParameterCount ||
                        (site->variadicAbi == XL6_IR_CALL_VARIADIC_ARRAY &&
-                        binding->source != XL6_IR_CALL_ARGUMENT_ARRAY_VARARG_ITEM) ||
+                        binding->source != XL6_IR_CALL_ARGUMENT_ARRAY_VARARG_ITEM &&
+                        binding->source != XL6_IR_CALL_ARGUMENT_VARIADIC_PACK) ||
                        (site->variadicAbi == XL6_IR_CALL_VARIADIC_DICT &&
-                        binding->source != XL6_IR_CALL_ARGUMENT_DICT_VARARG_ITEM) ||
+                        binding->source != XL6_IR_CALL_ARGUMENT_DICT_VARARG_ITEM &&
+                        binding->source != XL6_IR_CALL_ARGUMENT_VARIADIC_PACK) ||
                        (site->variadicAbi == XL6_IR_CALL_VARIADIC_C &&
                         binding->source != XL6_IR_CALL_ARGUMENT_C_VARARG_ITEM))) ||
                      (binding->source == XL6_IR_CALL_ARGUMENT_DICT_VARARG_ITEM ||
@@ -50134,6 +50158,7 @@ static const char* xl6IrCallArgumentSourceName(XL6_IrCallArgumentSource source)
     case XL6_IR_CALL_ARGUMENT_DEFAULT: return "default";
     case XL6_IR_CALL_ARGUMENT_ARRAY_VARARG_ITEM: return "array-vararg-item";
     case XL6_IR_CALL_ARGUMENT_DICT_VARARG_ITEM: return "dict-vararg-item";
+    case XL6_IR_CALL_ARGUMENT_VARIADIC_PACK: return "variadic-pack";
     case XL6_IR_CALL_ARGUMENT_C_VARARG_ITEM: return "c-vararg-item";
     case XL6_IR_CALL_ARGUMENT_IMPLICIT_STRING: return "implicit-string";
     case XL6_IR_CALL_ARGUMENT_PROPERTY_UPDATE: return "property-update";

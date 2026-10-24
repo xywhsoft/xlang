@@ -1,6 +1,8 @@
 extern "c_owned_text" @no_raise func nativeText() as point
 extern "c_owned_binary" @no_raise func nativeBytes() as point
 extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "owned_observe_array_pack" @no_raise func observeArray(array data)
+extern "owned_observe_dict_pack" @no_raise func observeDict(dict data)
 func text() as cstring
     return cstring.take(nativeText(),nativeFree)
 end
@@ -13,6 +15,33 @@ end
 func optional(bool present) as cstring?
     return present ? text() : null
 end
+func arrayText(...) as cstring
+    observeArray(arg)
+    return text()
+end
+func dictBytes(int first,***) as cbytes
+    observeDict(arg)
+    assert first==7
+    return data()
+end
+func arrayPair(...) as (cstring,cbytes,int)
+    observeArray(arg)
+    return pair()
+end
+func dictOptional(bool present,***) as cstring?
+    observeDict(arg)
+    return optional(present)
+end
+func arrayAdapter() as func(...) as string
+    auto raw=arrayText
+    return raw
+end
+func dictAdapter() as func(int,***) as bytes
+    auto raw=dictBytes
+    return raw
+end
+func(...) as string identityArray=arrayAdapter()
+func(int,***) as bytes identityDict=dictAdapter()
 class Base
     virtual func get() as string
         return "base"
@@ -39,8 +68,25 @@ export "owned_boundary_exercise" func exercise(int mode) as bool
     elseif mode==3
         var callback=xcall(optional)
         return callback(false)==null and callback(true)=="hello"
-    else
+    elseif mode==4
         Base object=Derived()
         return object.get()=="hello"
+    elseif mode==5
+        auto raw=arrayText
+        func(...) as string callback=raw
+        return callback(1,"tail",true)=="hello"
+    elseif mode==6
+        auto raw=dictBytes
+        var callback=xcall(raw)
+        return callback(7,answer=42,label="tail")==b"\0\xff\x11*"
+    elseif mode==7
+        auto raw=arrayPair
+        var callback=xcall(raw)
+        auto first,second,number=callback(1,"tail")
+        return first=="hello" and second==b"\0\xff\x11*" and number==7
+    else
+        auto raw=dictOptional
+        var callback=xcall(raw)
+        return callback(false,answer=42)==null and callback(true,label="tail")=="hello"
     end
 end

@@ -8740,6 +8740,22 @@ static int xl6SemCheckFunctionValueCall(
     hasArrayVararg = paramCount > 0 && xl6SemTypeIsArrayVararg(params->children[paramCount - 1]);
     hasDictVararg = paramCount > 0 && xl6SemTypeIsDictVararg(params->children[paramCount - 1]);
     fixedCount = (hasArrayVararg || hasDictVararg) ? paramCount - 1 : paramCount;
+    /* Synthetic result adapters already receive their variadic pack. Prove
+     * the whole physical signature instead of treating that pack as an item. */
+    for(size_t a=0;args && a<args->childCount;++a) {
+        if(!(args->children[a]->flags & XL6_AST_FLAG_FORWARD_VARIADIC_PACK))continue;
+        int valid=(hasArrayVararg || hasDictVararg) && args->childCount==paramCount && a==fixedCount;
+        for(size_t p=0;valid && p<paramCount;++p) {
+            XL6_AstNode* argument=args->children[p];
+            unsigned expected=p==fixedCount ? XL6_AST_FLAG_FORWARD_VARIADIC_PACK : 0;
+            if(argument->kind!=XL6_AST_ARG || argument->flags!=expected || argument->childCount!=1){valid=0;break;}
+            XL6_AstNode* actual=xl6SemInferAutoTypeNode(ctx,argument->children[0]);
+            valid=actual && xl6SemTypeEquals(ctx,actual,params->children[p]);
+            xl6AstFree(actual);
+        }
+        if(!valid)xl6SemErrorNode(ctx,call,"internal variadic pack forwarding requires one exact final pack and fixed arguments");
+        return valid;
+    }
     positionalIndex = 0;
     positionalArgCount = 0;
     seenNamed = 0;

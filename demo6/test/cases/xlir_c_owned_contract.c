@@ -56,6 +56,57 @@ static void checkStringResultContracts(XL6_IrModule* ir)
     }
 }
 
+static void checkVariadicPackContracts(XL6_IrModule* ir)
+{
+    unsigned rejected=0;
+    for(size_t s=0;s<ir->callSiteCount;++s) {
+        XL6_IrCallSite* site=&ir->callSites[s];
+        if(site->argumentCount!=site->fixedParameterCount+1)continue;
+        XL6_IrCallArgument* pack=&ir->callArguments[site->firstArgument+site->fixedParameterCount];
+        if(pack->source!=XL6_IR_CALL_ARGUMENT_VARIADIC_PACK)continue;
+        XL6_IrNode* expression=&ir->nodes[pack->expression-1];
+        XL6_IrNode* wrapper=&ir->nodes[expression->parent-1];
+        XL6_DiagList diags={0};
+#define REJECT_PACK_MUTATION(change,restore) do { change; \
+    assert(!xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags);++rejected; \
+    restore;assert(xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags); } while(0)
+        XL6_IrCallArgumentSource source=pack->source;
+        REJECT_PACK_MUTATION(pack->source=XL6_IR_CALL_ARGUMENT_ARRAY_VARARG_ITEM,pack->source=source);
+        REJECT_PACK_MUTATION(pack->source=XL6_IR_CALL_ARGUMENT_DICT_VARARG_ITEM,pack->source=source);
+        unsigned flags=wrapper->flags;
+        REJECT_PACK_MUTATION(wrapper->flags=0,wrapper->flags=flags);
+        REJECT_PACK_MUTATION(wrapper->flags|=XL6_AST_FLAG_BYVAL,wrapper->flags=flags);
+        XL6_IrTypeId type=expression->storageType;
+        REJECT_PACK_MUTATION(expression->storageType=XL6_IR_TYPE_INVALID,expression->storageType=type);
+        size_t parameter=pack->parameter,evaluation=pack->evaluationIndex;
+        REJECT_PACK_MUTATION(++pack->parameter,pack->parameter=parameter);
+        REJECT_PACK_MUTATION(++pack->evaluationIndex,pack->evaluationIndex=evaluation);
+        size_t count=site->argumentCount;
+        REJECT_PACK_MUTATION(--site->argumentCount,site->argumentCount=count);
+        XL6_IrCallVariadicAbi abi=site->variadicAbi;
+        REJECT_PACK_MUTATION(site->variadicAbi=XL6_IR_CALL_VARIADIC_NONE,site->variadicAbi=abi);
+#undef REJECT_PACK_MUTATION
+    }
+    if(rejected)printf("variadic pack contract: %u rejected mutations\n",rejected);
+}
+
+static void emitPackBindings(XL6_IrModule* ir,const char* generated)
+{
+    char path[4096];XL6_Output out;
+    snprintf(path,sizeof(path),"%s.bind.h",generated);
+    assert(xl6OutputOpenFile(&out,path));
+    for(size_t s=0;s<ir->storageCount;++s) {
+        const XL6_IrStorage* storage=&ir->storages[s];
+        const XL6_IrNode* declaration=xl6IrNodeGet(ir,storage->declaration);
+        if(storage->kind!=XL6_IR_STORAGE_GLOBAL || !declaration || !declaration->text)continue;
+        if(!strcmp(declaration->text,"identityArray"))
+            xl6OutputPrintf(&out,"#define OWNED_ARRAY_ADAPTER s%u\n",(unsigned)storage->symbol);
+        if(!strcmp(declaration->text,"identityDict"))
+            xl6OutputPrintf(&out,"#define OWNED_DICT_ADAPTER s%u\n",(unsigned)storage->symbol);
+    }
+    xl6OutputClose(&out);
+}
+
 int main(int argc,char** argv)
 {
     XL6_ParseResult parsed; XL6_IrModule ir; XL6_Output out;
@@ -71,13 +122,14 @@ int main(int argc,char** argv)
             if(xl6OutputOpenFile(&out,path)){xl6IrDumpModuleJson(&out,&ir);xl6OutputClose(&out);}
         }
     }
-    if(ok){checkSpanContracts(&ir);checkOptionalContracts(&ir);checkStringResultContracts(&ir);}
+    if(ok){checkSpanContracts(&ir);checkOptionalContracts(&ir);checkStringResultContracts(&ir);checkVariadicPackContracts(&ir);}
     if(ok && strcmp(argv[2],"check")) {
         ok=xl6OutputOpenFile(&out,argv[2]);
         if(ok) {
             ok=xl6IrCgenEmitC(&out,&ir,&parsed.diags);
             if(ok) xl6OutputPrintf(&out,"\nint main(void) { return xlir_module_init() ? 0 : 3; }\n");
             xl6OutputClose(&out);
+            if(ok)emitPackBindings(&ir,argv[2]);
         }
     }
     if(!ok) {

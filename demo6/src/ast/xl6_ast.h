@@ -130,6 +130,8 @@ typedef enum XL6_AstKind {
 #define XL6_AST_FLAG_C_OWNED_SPECIALIZATION 0x01000000u
 /* Extern-only, read-only xstrview/xbytesview physical parameter. */
 #define XL6_AST_FLAG_C_SPAN_PARAM 0x02000000u
+/* Compiler-only ARG: forward one already packed variadic container. */
+#define XL6_AST_FLAG_FORWARD_VARIADIC_PACK 0x04000000u
 #define XL6_AST_FLAG_INTERNAL_NULLABLE 0x40000000u
 /* 仅供语义规范化使用，源码不能构造该标记。 */
 #define XL6_AST_FLAG_CLASS_HANDLE 0x80000000u
