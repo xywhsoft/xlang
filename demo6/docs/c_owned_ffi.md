@@ -281,6 +281,27 @@ allocation-counter checks use the separate debug runtime lane. Acceptance
 records belong under `build/c-owned/`; this targeted check is not a claim that
 all repository-wide inventories and unrelated release gates are green.
 
+Nullable/partial-result follow-up acceptance
+(`build/c-owned/followup-final-acceptance.log`) passes 34 generated-C programs,
+35 C owner JIT/standalone EXE pairs, 21 ordinary JIT/EXE pairs without C owner
+headers, 21 negative declarations and 13 export checks. The source build uses
+1,190 translation units and verifies 2,373 unchanged inputs. All eight original
+failure repros also pass unchanged through source JIT. The new cases cover
+nullable callback absence/presence, single evaluation, delayed invocation,
+shared-owner lifetime, variadic defaults, erased/stored/worker factories,
+partial product conversion and exact-owner overload preference. Native pointer
+checks prove that unconverted result slots retain their C allocation. O0/O2
+boundary hosts each execute 1,920 allocation limits (296 failures and 1,624
+completions), with balanced foreign allocations and unchanged XRT live counts.
+The complete RuntimeOp/ownership contract gates still pass at both optimization
+levels. Mainline receipts are under `build/c-owned/followup-main-acceptance/`.
+The standard release build uses the reviewed isolated source snapshot and
+verifies 3,358 unchanged build inputs, preserving the existing shipping C header
+fix. All 36 release-gate steps pass against both staging and the published
+toolchain; source-package owner imports also pass published JIT and standalone
+EXE execution. Concurrent main-checkout TLS edits are excluded from this
+artifact snapshot. Receipts retain source/binary hashes and replacement backups.
+
 Completion acceptance (`build/c-owned/completion-final-acceptance.log`) uses a
 1,175-unit source build (`completion-public-current/build.json`, 2,355 unchanged
 inputs). All 32 generated-C programs, 33 C owner JIT/standalone EXE pairs,
