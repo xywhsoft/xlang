@@ -62,10 +62,12 @@ Windows 门禁独立编译严格 GCC 程序，验证 ASCII 与中文 UTF-8 名�
 现在还将单文件 C 范例的直接运行、直接构建后执行与 GCC/XLang 输出逐字比较。
 Linux GCC +
 ASan/UBSan 门禁也覆盖这些跨进程场景。`xl run` 的 C 测试只能覆盖当前
-进程，因为它运行在 `xl.exe` 内。去掉 `-SkipAot` 可重试完整构建；
-当前 XL AOT 构建仍缺少共享
-主线符号 `xl6ValueDataSnapshotV1`，详见
-`demo6/dev/extlib_blockers/text_snapshot_link.md`；暂不标记发布验收完成。
+进程，因为它运行在 `xl.exe` 内。默认门禁还会构建运行 XLang 范例 AOT；
+`-SkipAot` 只用于聚焦快测。
+2026-10-24 当前 Windows 发布物的默认门禁已通过，公开 XLang 范例
+AOT 构建及运行也通过；旧的 `xl6ValueDataSnapshotV1` 缺符号只属于
+历史发布物，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`。
+这仍不构成完整发布签收：下述深主目录和双上下文边界尚未解决。
 Windows 深 `USERPROFILE` 配合 128 字节名称还可能在 XRT 文件打开路径
 失败，短隔离目录通过；复现及主线修复建议见
 `demo6/dev/extlib_blockers/singleinstance_windows_long_home.md`。
