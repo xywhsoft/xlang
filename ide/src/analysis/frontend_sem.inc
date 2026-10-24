@@ -22,10 +22,16 @@ typedef struct xls_sem_raw {
     XL6_AstNode** children;
     size_t count;
 } xls_sem_raw;
+typedef struct xls_sem_cursor {
+    const char* path;
+    size_t start,end;
+} xls_sem_cursor;
 typedef struct xls_sem_unit {
     xatomic32 references;
     xarray facts;
     size_t bytes;
+    xls_sem_cursor cursor;
+    char* cursorPath;
 } xls_sem_unit;
 typedef struct xls_sem_position { XL6_AstRange range,token; int line,column; } xls_sem_position;
 typedef struct xls_sem_entry {
@@ -63,6 +69,7 @@ typedef struct xls_sem_build {
     xmap slots,sources;
     xls_sem_work work;
     xls_sem_moves moves;
+    xls_sem_cursor queryCursor;
     size_t cursor;
     int begun,enabled,compatible;
 } xls_sem_build;
@@ -100,12 +107,29 @@ static int xlsSemWorthMemo(const XL6_AstNode* node,size_t* nodes,size_t depth)
 }
 static int xlsSemCandidate(const XL6_AstNode* node)
 { size_t nodes=0; return xlsSemFunction(node) && xlsSemWorthMemo(node,&nodes,0); }
-static int xlsSemQueryNeutral(const XL6_AstNode* node,size_t depth)
+static int xlsSemCursorSource(const XL6_AstSource* source,const xls_sem_cursor* cursor)
+{
+    return source && source->completionQuery==1 && cursor->path && source->path &&
+        !strcmp(source->path,cursor->path) && source->completionStart==cursor->start && source->completionEnd==cursor->end;
+}
+static int xlsSemCursorOverlap(XL6_AstRange range,const xls_sem_cursor* cursor)
+{
+    if(!range.known) return 0;
+    if(range.endOffset<range.startOffset) return 1;
+    if(cursor->start==cursor->end) return range.startOffset<=cursor->start && cursor->start<range.endOffset;
+    if(range.startOffset==range.endOffset) return cursor->start<=range.startOffset && range.startOffset<cursor->end;
+    return range.startOffset<cursor->end && cursor->start<range.endOffset;
+}
+static int xlsSemQueryNeutral(const XL6_AstNode* node,size_t depth,const xls_sem_cursor* cursor)
 {
     if(!node) return 1;
-    if(depth>512 || (node->source && node->source->completionQuery)) return 0;
-    if(!xlsSemQueryNeutral(node->inferredType,depth+1) || !xlsSemQueryNeutral(node->semanticDeclaredType,depth+1)) return 0;
-    for(size_t i=0;i<node->childCount;++i) if(!xlsSemQueryNeutral(node->children[i],depth+1)) return 0;
+    if(depth>512 || (node->text && !strcmp(node->text,XL6_COMPLETION_MARKER))) return 0;
+    if(node->source && node->source->completionQuery && xlsSemFunction(node) &&
+       (!node->range.known || node->range.endOffset<=node->range.startOffset)) return 0;
+    if(node->source && node->source->completionQuery &&
+       (!xlsSemCursorSource(node->source,cursor) || xlsSemCursorOverlap(node->range,cursor) || xlsSemCursorOverlap(node->tokenRange,cursor))) return 0;
+    if(!xlsSemQueryNeutral(node->inferredType,depth+1,cursor) || !xlsSemQueryNeutral(node->semanticDeclaredType,depth+1,cursor)) return 0;
+    for(size_t i=0;i<node->childCount;++i) if(!xlsSemQueryNeutral(node->children[i],depth+1,cursor)) return 0;
     return 1;
 }
 typedef struct xls_sem_key_paths { xmap paths; size_t next,lastId; const char* last; } xls_sem_key_paths;
@@ -201,6 +225,13 @@ static void xlsSemMemoBegin(XL6_SemContext* ctx)
        m->context.Capacity>XLS_SEM_MEMO_BYTES-m->bytes) return;
     m->bytes+=m->context.Capacity;
     if(!xlsSemSourcePool(ctx->root,&build->sources,0)) return;
+    if(ctx->completionQuery && ctx->completionQuery->parsed==1 && ctx->completionQuery->replacement.known &&
+       ctx->completionQuery->replacement.endOffset>=ctx->completionQuery->replacement.startOffset) {
+        const XL6_CompletionQuery* query=ctx->completionQuery;
+        xls_sem_cursor cursor={query->path,query->replacement.startOffset,query->replacement.endOffset};
+        XL6_AstNode* const* pin=query->path ? xrtMapConstGet(&build->sources,(xbytesview){(const unsigned char*)query->path,strlen(query->path)}) : NULL;
+        if(pin && xlsSemCursorSource((*pin)->source,&cursor)) build->queryCursor=cursor;
+    }
     for(size_t i=0;i<ctx->root->childCount;++i) {
         const XL6_AstNode* node=ctx->root->children[i]; if(!xlsSemFunction(node)) continue;
         if(!xrtMapSet(&build->slots,(xbytesview){(const unsigned char*)&node,sizeof(node)},&i)) return;
@@ -280,7 +311,7 @@ static void xlsSemFactsFree(xarray* facts)
 static xls_sem_unit* xlsSemUnitRetain(xls_sem_unit* unit)
 { if(unit) xrtAtomic32FetchAdd(&unit->references,1,XMEMORY_RELAXED); return unit; }
 static void xlsSemUnitRelease(xls_sem_unit* unit)
-{ if(unit && xrtAtomic32FetchSub(&unit->references,1,XMEMORY_ACQ_REL)==1) { xlsSemFactsFree(&unit->facts); xrtFree(unit); } }
+{ if(unit && xrtAtomic32FetchSub(&unit->references,1,XMEMORY_ACQ_REL)==1) { xlsSemFactsFree(&unit->facts); xrtFree(unit->cursorPath); xrtFree(unit); } }
 typedef struct xls_sem_type_copy {
     const XL6_AstNode* root;
     xls_ast_clone_options options;
@@ -292,7 +323,8 @@ static int xlsSemTypeTransform(const XL6_AstNode* in,XL6_AstNode* out,void* user
 }
 static XL6_AstSource* xlsSemTypeSource(const XL6_AstSource* in,void* user)
 { xls_sem_type_copy* copy=user; return copy->options.targetSource(in,copy->options.user); }
-static int xlsSemCopyFactTypes(xarray* facts,const xls_ast_clone_options* options,size_t* bytes)
+static int xlsSemCopyFactTypesWithCursor(xarray* facts,const xls_ast_clone_options* options,
+    xls_ast_cursor_source_policy policy,void* policyUser,size_t* bytes)
 {
     /* Borrow input type pointers only while gathering. Clear them before any
      * failure can make the caller destroy this output array. One clone owns
@@ -310,8 +342,8 @@ static int xlsSemCopyFactTypes(xarray* facts,const xls_ast_clone_options* option
     if(!types.Count) { xrtArrayUnit(&types); xrtArrayUnit(&slots); return 1; }
     XL6_AstNode root={.kind=XL6_AST_MODULE,.children=(XL6_AstNode**)types.Data,.childCount=types.Count};
     xls_sem_type_copy copy={&root,*options};
-    XL6_AstNode* owned=options->bytes ? xlsAstClone(&root,&(xls_ast_clone_options){xlsSemTypeTransform,&copy,options->bytes,0,
-        options->targetSource ? xlsSemTypeSource : NULL},bytes) : NULL;
+    XL6_AstNode* owned=options->bytes ? xlsAstCloneWithCursorSource(&root,&(xls_ast_clone_options){xlsSemTypeTransform,&copy,options->bytes,0,
+        options->targetSource ? xlsSemTypeSource : NULL},policy,policyUser,bytes) : NULL;
     int copied=owned!=NULL;
     if(owned) {
         for(size_t i=0;i<slots.Count;++i) {
@@ -321,6 +353,8 @@ static int xlsSemCopyFactTypes(xarray* facts,const xls_ast_clone_options* option
     }
     xrtArrayUnit(&types); xrtArrayUnit(&slots); return copied;
 }
+static int xlsSemCopyFactTypes(xarray* facts,const xls_ast_clone_options* options,size_t* bytes)
+{return xlsSemCopyFactTypesWithCursor(facts,options,NULL,NULL,bytes);}
 static int xlsSemCaptureFacts(const xarray* nodes,xarray* facts,size_t limit,size_t* bytes)
 {
     *bytes=0;
@@ -345,6 +379,7 @@ typedef struct xls_sem_apply {
     const xarray* previous;
     xarray* positions;
     const xmap* sources;
+    xls_sem_cursor previousCursor,currentCursor;
     size_t visited;
     int different;
 } xls_sem_apply;
@@ -411,13 +446,24 @@ static XL6_AstSource* xlsSemApplySource(const XL6_AstSource* source,void* user)
 {
     xls_sem_apply* apply=user; if(!source->path) return NULL;
     XL6_AstNode* const* found=xrtMapConstGet(apply->sources,(xbytesview){(const unsigned char*)source->path,strlen(source->path)});
-    return found ? (*found)->source : NULL;
+    /* A cursor source cannot be silently copied with stale metadata when its
+     * current private destination is missing. The clone rejects a self target. */
+    return found ? (*found)->source : source->completionQuery ? (XL6_AstSource*)source : NULL;
 }
-static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const xls_sem_moves* moves,const xmap* sources,xarray* positions,const XL6_AstNode* function)
+static int xlsSemApplyCursorSource(const XL6_AstSource* in,const XL6_AstSource* target,void* user)
+{
+    const xls_sem_apply* apply=user;
+    return apply->previousCursor.path && apply->currentCursor.path &&
+        !strcmp(apply->previousCursor.path,apply->currentCursor.path) &&
+        xlsSemCursorSource(in,&apply->previousCursor) && xlsSemCursorSource(target,&apply->currentCursor);
+}
+static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const xls_sem_moves* moves,const xmap* sources,
+    xarray* positions,const XL6_AstNode* function,const xls_sem_cursor* cursor)
 {
     if(!entry->unit || entry->unit->facts.Count!=nodes->Count) return 0;
     xarray staged={0}; size_t owned=0;
-    xls_sem_apply apply={.moves=moves,.previous=&entry->positions,.positions=positions,.sources=sources};
+    xls_sem_apply apply={.moves=moves,.previous=&entry->positions,.positions=positions,.sources=sources,
+        .previousCursor=entry->unit->cursor,.currentCursor=*cursor};
     const char* path=xl6AstSourcePath(function);
     const xls_sem_move* move=path ? xrtMapConstGet(&moves->paths,(xbytesview){(const unsigned char*)path,strlen(path)}) : NULL;
     XL6_AstRange before=entry->lexicalRange,after=function->range;
@@ -437,7 +483,8 @@ static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const
     /* Stage every owned type before touching the fresh tree. On resource or
      * coordinate failure the original checker sees its untouched input. */
     for(size_t i=0;i<staged.Count;++i) *(xls_sem_fact*)xrtArrayGet(&staged,i)=*(const xls_sem_fact*)xrtArrayConstGet(&entry->unit->facts,i);
-    if(!xlsSemCopyFactTypes(&staged,&(xls_ast_clone_options){xlsSemApplyPosition,&apply,XLS_SEM_MEMO_BYTES,0,xlsSemApplySource},&owned)) goto failed;
+    if(!xlsSemCopyFactTypesWithCursor(&staged,&(xls_ast_clone_options){xlsSemApplyPosition,&apply,XLS_SEM_MEMO_BYTES,0,xlsSemApplySource},
+        xlsSemApplyCursorSource,&apply,&owned)) goto failed;
     if(entry->positions.Count && entry->positions.Count!=apply.visited) goto failed;
     if(!apply.different) xrtArrayUnit(positions);
     for(size_t i=0;i<nodes->Count;++i) {
@@ -470,10 +517,11 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     const xls_sem_entry* old=build->compatible ? xrtArrayConstGet(&build->baseline->entries,*slot) : NULL;
     entry->start=ctx->nextSymbolId; entry->typeStart=ctx->types.nextId;
     entry->lexicalRange=node->range;
-    /* The whole query source stays on the original path, including unchanged
-     * sibling functions. Old marker ranges are not safe source identities.
-     * Also decline facts whose resolved types borrow that source. */
-    if(!xlsSemCandidate(node) || (ctx->completionQuery && !xlsSemQueryNeutral(node,0))) {
+    /* The active projection/overlapping functions always use the checker.
+     * Other query-source functions require exact current source metadata and
+     * range/text exclusion; restoration binds old immutable marker metadata
+     * explicitly rather than weakening default AST source equality. */
+    if(!xlsSemCandidate(node) || (ctx->completionQuery && !xlsSemQueryNeutral(node,0,&build->queryCursor))) {
         if(old && (entry->start!=old->start || entry->typeStart!=old->typeStart)) build->compatible=0;
         ++build->work.checked; int okay=xlsSemCheckFuncOriginal(ctx,node); entry->end=ctx->nextSymbolId;
         entry->typeEnd=ctx->types.nextId;
@@ -492,7 +540,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     if(build->compatible && old && old->unit && old->unit->facts.Count && usable && ctx->queryTypeNodes<=65536u && ctx->queryTypeBytes<=4u*1024u*1024u &&
        xlsSemEqualKey(&entry->key,&old->key) &&
        old->typeNodes<=65536u-ctx->queryTypeNodes && old->typeBytes<=4u*1024u*1024u-ctx->queryTypeBytes) {
-        if(xlsSemApplyFacts(old,&raw,&build->moves,&build->sources,&entry->positions,node)) {
+        if(xlsSemApplyFacts(old,&raw,&build->moves,&build->sources,&entry->positions,node,&build->queryCursor)) {
             ctx->nextSymbolId=old->end; ctx->types.nextId=old->typeEnd;
             ctx->queryTypeNodes+=old->typeNodes; ctx->queryTypeBytes+=old->typeBytes;
             okay=reused=1; ++build->work.reused;
@@ -502,7 +550,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     entry->end=ctx->nextSymbolId; entry->typeNodes=ctx->queryTypeNodes-nodes; entry->typeBytes=ctx->queryTypeBytes-bytes;
     entry->typeEnd=ctx->types.nextId;
     if(old && (entry->end!=old->end || entry->typeEnd!=old->typeEnd)) build->compatible=0;
-    int neutral=!ctx->completionQuery || (xlsSemQueryNeutral(node,0) &&
+    int neutral=!ctx->completionQuery || (xlsSemQueryNeutral(node,0,&build->queryCursor) &&
         beforeQuery.reached==ctx->completionQuery->reached && beforeQuery.available==ctx->completionQuery->available &&
         beforeQuery.count==ctx->completionQuery->count && beforeQuery.error==ctx->completionQuery->error);
     if(okay && usable && neutral && (!ctx->diags || !ctx->diags->count) && xlsSemSameShape(node,&raw) && xlsSemGlobalState(ctx,&after) && xlsSemEqualKey(&state,&after) &&
@@ -519,8 +567,12 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
             xls_sem_unit* unit=xrtCalloc(1,sizeof(*unit));
             if(unit) {
                 xrtAtomic32Init(&unit->references,1);
-                if(xlsSemCaptureFacts(&raw,&unit->facts,XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit),&owned)) {
-                    unit->bytes=owned+sizeof(*unit);
+                size_t markerBytes=build->queryCursor.path ? strlen(build->queryCursor.path)+1 : 0;
+                if(markerBytes<=XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit)) unit->cursorPath=markerBytes ? xrtStrDup(build->queryCursor.path) : NULL;
+                unit->cursor=build->queryCursor;unit->cursor.path=unit->cursorPath;
+                if(markerBytes<=XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit) && (!markerBytes || unit->cursorPath) &&
+                   xlsSemCaptureFacts(&raw,&unit->facts,XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit)-markerBytes,&owned)) {
+                    unit->bytes=owned+sizeof(*unit)+markerBytes;
                     entry->unit=unit; m->bytes+=unit->bytes;
                 } else xlsSemUnitRelease(unit);
             }

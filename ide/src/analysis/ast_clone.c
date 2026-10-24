@@ -2,7 +2,13 @@
 #include <xrt.h>
 #include <string.h>
 
-typedef struct clone_context { xls_ast_clone_options options; xmap sources; size_t bytes; } clone_context;
+typedef struct clone_context {
+    xls_ast_clone_options options;
+    xmap sources;
+    size_t bytes;
+    xls_ast_cursor_source_policy cursorPolicy;
+    void* policyUser;
+} clone_context;
 static int charge(clone_context* c,size_t bytes)
 {
     if(bytes>SIZE_MAX-c->bytes || (c->options.bytes && bytes>c->options.bytes-c->bytes)) return 0;
@@ -20,8 +26,9 @@ static int source(clone_context* c,const XL6_AstSource* in,XL6_AstNode* out)
         XL6_AstSource* target=c->options.targetSource(in,c->options.user);
         if(target) {
             if(target==in || !target->references || !!target->path!=!!in->path ||
-               (in->path && strcmp(target->path,in->path)) || target->completionQuery!=in->completionQuery ||
-               target->completionStart!=in->completionStart || target->completionEnd!=in->completionEnd) return 0;
+               (in->path && strcmp(target->path,in->path)) || target->completionQuery!=in->completionQuery) return 0;
+            if((target->completionStart!=in->completionStart || target->completionEnd!=in->completionEnd) &&
+               (in->completionQuery!=1 || !c->cursorPolicy || !c->cursorPolicy(in,target,c->policyUser))) return 0;
             if(!xrtMapSet(&c->sources,key,&target)) return 0;
             out->source=target; ++target->references; return 1;
         }
@@ -62,12 +69,15 @@ static XL6_AstNode* clone(clone_context* c,const XL6_AstNode* in,size_t depth)
     return out;
 failed: xl6AstFree(out); return NULL;
 }
-XL6_AstNode* xlsAstClone(const XL6_AstNode* input,const xls_ast_clone_options* options,size_t* bytes)
+XL6_AstNode* xlsAstCloneWithCursorSource(const XL6_AstNode* input,const xls_ast_clone_options* options,
+    xls_ast_cursor_source_policy policy,void* user,size_t* bytes)
 {
     if(bytes) *bytes=0;
-    clone_context context={0}; if(options) context.options=*options;
+    clone_context context={.cursorPolicy=policy,.policyUser=user}; if(options) context.options=*options;
     if(!input || !xrtMapInit(&context.sources,sizeof(XL6_AstSource*))) return NULL;
     XL6_AstNode* root=clone(&context,input,0); xrtMapUnit(&context.sources);
     if(root && bytes) *bytes=context.bytes;
     return root;
 }
+XL6_AstNode* xlsAstClone(const XL6_AstNode* input,const xls_ast_clone_options* options,size_t* bytes)
+{return xlsAstCloneWithCursorSource(input,options,NULL,NULL,bytes);}

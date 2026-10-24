@@ -18,8 +18,9 @@ typedef struct xls_completion_stats {
  * counted by cursorFreshBuilds. An ordinary entry AST may now be reused by
  * that path; the result's EntryWork reports its actual parse/copy work.
  * Module prerequisites and final annotations still run. Query-neutral functions
- * in other sources may reuse bounded immutable semantic facts; the entire
- * query source and uncertain identities/coordinates use the original checker.
+ * may reuse bounded immutable semantic facts,including query-source siblings
+ * with exact old/current marker provenance and exclusion proofs. The active
+ * projection and uncertain identities/coordinates use the original checker.
  * Returned reference outlives the session. */
 xls_completion_session* xlsCompletionSessionCreate(const xls_session_limits* limits);
 void xlsCompletionSessionDestroy(xls_completion_session* session);

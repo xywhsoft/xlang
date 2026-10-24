@@ -31,6 +31,32 @@ static int reject(const XL6_AstNode* in,XL6_AstNode* out,void* user)
 { (void)in; (void)out; unsigned* count=user; return ++*count<5; }
 static XL6_AstSource* destination(const XL6_AstSource* in,void* user)
 { XL6_AstNode* node=user; return in->path && !strcmp(in->path,xl6AstSourcePath(node)) ? node->source : NULL; }
+typedef struct cursor_policy {int admit;unsigned calls;} cursor_policy;
+static int cursorPolicy(const XL6_AstSource* in,const XL6_AstSource* target,void* user)
+{cursor_policy* policy=user;++policy->calls;return policy->admit && in->completionStart==10 && in->completionEnd==13 && target->completionStart==20 && target->completionEnd==23;}
+static XL6_AstSource* alwaysDestination(const XL6_AstSource* in,void* user)
+{(void)in;return ((XL6_AstNode*)user)->source;}
+static int cursorSources(void)
+{
+ XL6_AstNode *input=xl6AstNew(XL6_AST_MODULE,NULL),*owner=xl6AstNew(XL6_AST_MODULE,NULL),*other=xl6AstNew(XL6_AST_MODULE,NULL);CHECK(input && owner && other);
+ CHECK(xl6AstSetSourceTree(input,"/cursor.xl") && xl6AstSetSourceTree(owner,"/cursor.xl") && xl6AstSetSourceTree(other,"/other.xl"));
+ input->source->completionQuery=owner->source->completionQuery=other->source->completionQuery=1;
+ input->source->completionStart=10;input->source->completionEnd=13;owner->source->completionStart=other->source->completionStart=20;owner->source->completionEnd=other->source->completionEnd=23;
+ xls_ast_clone_options options={.user=owner,.targetSource=alwaysDestination};cursor_policy policy={0};
+ CHECK(!xlsAstClone(input,&options,NULL));CHECK(!xlsAstCloneWithCursorSource(input,&options,NULL,NULL,NULL));
+ CHECK(!xlsAstCloneWithCursorSource(input,&options,cursorPolicy,&policy,NULL) && policy.calls==1);
+ CHECK(input->source->references==1 && owner->source->references==1);
+ policy.admit=1;XL6_AstNode* copy=xlsAstCloneWithCursorSource(input,&options,cursorPolicy,&policy,NULL);
+ CHECK(copy && copy->source==owner->source && copy->source->completionStart==20 && input->source->completionStart==10 && input->source->references==1);xl6AstFree(copy);CHECK(owner->source->references==1);
+ options.user=other;policy.calls=0;CHECK(!xlsAstCloneWithCursorSource(input,&options,cursorPolicy,&policy,NULL) && !policy.calls);
+ options.user=input;CHECK(!xlsAstCloneWithCursorSource(input,&options,cursorPolicy,&policy,NULL));
+ options.user=owner;owner->source->completionQuery=0;CHECK(!xlsAstCloneWithCursorSource(input,&options,cursorPolicy,&policy,NULL));
+ input->source->completionQuery=0;CHECK(!xlsAstCloneWithCursorSource(input,&options,cursorPolicy,&policy,NULL));
+ input->source->completionQuery=owner->source->completionQuery=1;owner->source->references=0;CHECK(!xlsAstCloneWithCursorSource(input,&options,cursorPolicy,&policy,NULL));owner->source->references=1;
+ owner->source->completionStart=10;owner->source->completionEnd=13;copy=xlsAstClone(input,&options,NULL);CHECK(copy && copy->source==owner->source);xl6AstFree(copy);
+ CHECK(input->source->references==1 && owner->source->references==1 && other->source->references==1);
+ xl6AstFree(input);xl6AstFree(owner);xl6AstFree(other);return 1;
+}
 typedef struct reader { const XL6_AstNode* root; unsigned failures; } reader;
 static int32 readCopies(void* user)
 {
@@ -44,6 +70,7 @@ static int32 readCopies(void* user)
 }
 static int run(void)
 {
+    CHECK(cursorSources());
     const char* source="#doc\ndesc:\n 文档😀\n#end\nfunc helper<T>(T value) as T\n return value\nend\nclass Box\n string value\nend\nfunc main(...) as int\n string 中文 = \"a\\0😀\"\n auto box = Box()\n int result = helper::<int>(7)\n return result\nend\n";
     XL6_ParseResult parsed; xl6ParseResultInit(&parsed);
     CHECK(xl6ParseSource(source,"/memory/入口😀.xl",&parsed) && parsed.root->childCount>=3);

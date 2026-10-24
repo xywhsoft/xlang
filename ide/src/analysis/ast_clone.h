@@ -17,4 +17,11 @@ typedef struct xls_ast_clone_options {
     xls_ast_source_target targetSource;
 } xls_ast_clone_options;
 XL6_AstNode* xlsAstClone(const XL6_AstNode* input,const xls_ast_clone_options* options,size_t* bytes);
+/* Explicit opt-in for cursor fact restoration only. The clone still requires
+ * different private destination ownership, identical source path and flags.
+ * ONLY a start/end difference with cursor flag=1 on both sides may be admitted;
+ * default cloning and the existing options layout stay unchanged. */
+typedef int (*xls_ast_cursor_source_policy)(const XL6_AstSource* input,const XL6_AstSource* target,void* user);
+XL6_AstNode* xlsAstCloneWithCursorSource(const XL6_AstNode* input,const xls_ast_clone_options* options,
+    xls_ast_cursor_source_policy policy,void* user,size_t* bytes);
 #endif
