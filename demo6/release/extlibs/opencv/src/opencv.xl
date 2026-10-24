@@ -158,7 +158,6 @@ class Image
 	destroy()
 		if self.handle != null then
 			opencv_release_native(self.handle)
-			self.handle = null
 		end
 	end
 end

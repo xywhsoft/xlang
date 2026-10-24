@@ -1,0 +1,8 @@
+import opencv
+
+func main(...) as int
+    auto image = opencv.imread("extlibs/opencv/test/fixture.ppm")
+    assert image.valid()
+    assert image.width() == 2 and image.height() == 2
+    return 0
+end
