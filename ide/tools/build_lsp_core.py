@@ -54,6 +54,7 @@ CORE_TESTS = ("analysis_cursor_source_memo_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_annotations_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ast_storage_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ast_materialize_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_call_context_test", *CORE_TESTS)
 
 
 def sha(path: Path) -> str:
@@ -367,6 +368,21 @@ def prepare_native_types(frontend: Path, output: Path) -> tuple[Path, Path, dict
         pointerBudgetBytes=8 * 1024 * 1024)
 
 
+def prepare_native_parser(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
+    """Expose bounded structural call indexing using the original type matcher."""
+    original = frontend / 'src/parser/xl6_parser_api.c'
+    expected = '9bef77532acc35d8b7da1c4d801bcfb81221b2d99747d29609dfb9a54f0ba6f6'
+    if sha(original) != expected:
+        raise ValueError('shared parser changed; audit virtual type matcher, token ownership and call-index adapter')
+    compiled = output / 'frontend/xl6_parser_api.c'
+    compiled.write_bytes(original.read_bytes() + b'\n#include "analysis/frontend_call_context.inc"\n')
+    return original, compiled, dict(source=str(original), sourceSha256=expected,
+        compiledSource=str(compiled), compiledSha256=sha(compiled), auditedSeams=1,
+        change='append opt-in bounded immutable structural call index; original parser functions unchanged',
+        originalFunctionsUnchanged=True, maximumIndexBytes=64*1024*1024,
+        maximumGenericProofTokens=512, maximumDelimiterDepth=256)
+
+
 def prepare_native_ast(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     """Private node-owner ABI; every native AST consumer must be rebuilt."""
     original = frontend / 'src/ast/xl6_ast.c'
@@ -444,6 +460,7 @@ def main() -> None:
         original_stdlib, generated_stdlib, stdlib_overlay = prepare_native_stdlib(frontend, output)
         original_types, generated_types, types_overlay = prepare_native_types(frontend, output)
         original_ast, generated_ast, ast_overlay = prepare_native_ast(frontend, output)
+        original_parser, generated_parser, parser_overlay = prepare_native_parser(frontend, output)
         context_overlays = derive_context_runtime(frontend, output)
         runtime_overlay = derive_process_runtime(frontend / 'lib/xrt/xrt.h', output / 'native_xrt/xrt.h')
     except ValueError as error:
@@ -454,6 +471,7 @@ def main() -> None:
     sources = [(generated_stdlib if path == original_stdlib else path, owned) for path, owned in sources]
     sources = [(generated_types if path == original_types else path, owned) for path, owned in sources]
     sources = [(generated_ast if path == original_ast else path, owned) for path, owned in sources]
+    sources = [(generated_parser if path == original_parser else path, owned) for path, owned in sources]
     scoped_sources = {Path(row['source']): Path(row['compiledSource']) for row in context_overlays}
     sources = [(scoped_sources.get(path, path), owned) for path, owned in sources]
     env = dict(os.environ)
@@ -487,7 +505,8 @@ def main() -> None:
         str(original_index): index_overlay["sourceSha256"], str(original_ir): ir_overlay["sourceSha256"],
         str(original_sem): sem_overlay["sourceSha256"], str(original_stdlib): stdlib_overlay["sourceSha256"],
         str(original_types): types_overlay["sourceSha256"]}, {}, [], {}
-    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, ast_overlay, *context_overlays]
+    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, ast_overlay, parser_overlay, *context_overlays]
+    inputs[str(original_parser)] = parser_overlay['sourceSha256']
     inputs.update({ast_overlay['source']:ast_overlay['sourceSha256'], ast_overlay['headerSource']:ast_overlay['headerSourceSha256'], ast_overlay['runtimeSource']:ast_overlay['runtimeSourceSha256']})
     inputs.update({row["source"]: row["sourceSha256"] for row in context_overlays})
     source_overlays.append(runtime_overlay)
