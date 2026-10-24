@@ -67,6 +67,19 @@ try {
         $null = Run 'XLang AOT build' $xl @('build', 'release/extlibs/zstd/examples/basic.xl', '-o', $aot)
         $aotOutput = Run 'XLang AOT example' $aot @()
         if ($aotOutput -cne $gccOutput) { throw 'XLang AOT output mismatch' }
+        foreach ($case in @(
+            @('wire_fixture', 'release/extlibs/zstd/test/wire_fixture.xl', ''),
+            @('concat_boundary', 'release/extlibs/zstd/test/concat_boundary.xl', ''),
+            @('file_ops', 'release/extlibs/zstd/test/file_ops.xl', 'zstd file operations: PASS'),
+            @('progress', 'test/cases/extlib_zstd_progress.xl', '')
+        )) {
+            $caseExe = Join-Path $work ("zstd_$($case[0]).exe")
+            $null = Run "XLang $($case[0]) AOT build" $xl @('build', $case[1], '-o', $caseExe)
+            $caseOutput = Run "XLang $($case[0]) AOT" $caseExe @()
+            if ($caseOutput -cne $case[2]) {
+                throw "unexpected XLang $($case[0]) AOT output: $caseOutput"
+            }
+        }
     }
     Write-Host 'zstd Windows package gate: PASS'
 } finally {

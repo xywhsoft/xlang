@@ -2,7 +2,7 @@ import zstd
 
 func main(...) as int
     // Node.js 24 内置 Zstd 生成的固定标准帧，明文含 UTF-8、NUL 和 0xff。
-    Buffer wire = codec.hexDecodeBytes("28b52ffd207bf50000b8e4bda0e5a5bd2068656c6c6f207a737464207c2000ff000100c2a59309")
+    Buffer wire = Buffer.fromHex("28b52ffd207bf50000b8e4bda0e5a5bd2068656c6c6f207a737464207c2000ff000100c2a59309")
     Buffer expected = Buffer()
     for i in range(6)
         expected.append("你好 hello zstd | ")

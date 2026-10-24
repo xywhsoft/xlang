@@ -1,5 +1,15 @@
 # zstd
 
+2026-10-24 当前 Windows 发布版默认包门禁通过：严格 GCC C、TCC
+单文件、固定标准帧、串联帧、文件/进度回调和双语基础范例；
+基础、固定帧、串联、文件、进度共五条 AOT 路径均构建运行成功。
+完整教学范例虽可构建独立 EXE，但 JIT/EXE 均在截断帧负例收到
+`IOError`，无法由承诺的 `CompressionError` 捕获；见
+`dev/extlib_blockers/zstd_finish_error_dispatch.md`。不能把包级基础门禁
+通过当成完整 API 的发布签收。
+Linux 本轮 C ASan/UBSan、文件和分配测试通过；旧 `release/xl` 在
+包导入处拒绝当前 `cstring` 声明，尚不能运行 Linux 语言门禁。
+
 内嵌 Zstandard 后端，公开 Buffer/string 一次性压缩、增量流式处理和文件接口。二进制结果始终是 `Buffer`；只有明确需要 UTF-8 文本时才使用 `decompressText`。
 
 ```xlang
@@ -31,7 +41,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Pack
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package zstd -Source release/extlibs/zstd/test/test_file.c
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package zstd -Source release/extlibs/zstd/examples/basic_c.c
 release/xl.exe run release/extlibs/zstd/examples/basic_c.c
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/zstd/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/zstd/test/check.ps1
 .\release\xl.exe run release/extlibs/zstd/examples/basic.xl
 cd release
 .\xl.exe run ..\test\cases\extlib_zstd_progress.xl
@@ -39,9 +49,11 @@ cd ..
 wsl bash release/extlibs/zstd/test/check.sh
 ```
 
-C 测试覆盖二进制往返、标准帧标识、截断、无效帧、输出限额、分段流，以及原生进度回调与取消。包内 `test/wire_fixture.xl` 已登记到 `coverage.tests`，并与 C 边界测试共用 Node.js 24 内置 Zstd（级别 3）独立编码的固定帧，验证含 UTF-8、NUL、0xff 的二进制解码和输出限额；运行门禁不依赖 Node.js。文件 ABI 的二进制往返和禁止覆盖由 `test/test_file.c` 验证；XLang 的文件压缩/解压、进度回调、取消后保留旧目标由 `extlib_zstd_progress.xl` 在独立临时目录验证。另有登记在 `coverage.tests` 的 `test/file_ops.xl`，直接检查文件往返和取消后的目标清理。最小 C/XLang 范例同输入、同输出；C 范例命名为 `basic_c.c`，避免被同名 XL 范例自动混编产生双 `main`。Linux 包级门禁同次运行 C 严格 GCC/ASan/UBSan、XLang 文件回调，并逐字节对照双语范例输出。完整教学范例 `release/examples/extlibs/zstd.xl` 在 Buffer 索引异或处仍遇到主线 XLIR physical-to-execution 错误，见 `demo6/dev/extlib_blockers/argon2_byteat_sub.md`；最小范例 AOT 当前缺少主线符号 `xl6ValueDataSnapshotV1`。本任务不修改主线，完整 AOT 仍未签收。
+C 测试覆盖二进制往返、标准帧标识、截断、无效帧、输出限额、分段流，以及原生进度回调与取消。包内 `test/wire_fixture.xl` 已登记到 `coverage.tests`，并与 C 边界测试共用 Node.js 24 内置 Zstd（级别 3）独立编码的固定帧，验证含 UTF-8、NUL、0xff 的二进制解码和输出限额；运行门禁不依赖 Node.js。文件 ABI 的二进制往返和禁止覆盖由 `test/test_file.c` 验证；XLang 的文件压缩/解压、进度回调、取消后保留旧目标由 `extlib_zstd_progress.xl` 在独立临时目录验证。另有登记在 `coverage.tests` 的 `test/file_ops.xl`，直接检查文件往返和取消后的目标清理。最小 C/XLang 范例同输入、同输出；C 范例命名为 `basic_c.c`，避免被同名 XL 范例自动混编产生双 `main`。Linux 包级脚本还覆盖语言回调与双语输出，但本轮旧 `release/xl` 在包导入时拒绝 `cstring`，语言阶段未完成。旧发布物的 Buffer 索引异或和 AOT 缺符号诊断见 `demo6/dev/extlib_blockers/argon2_byteat_sub.md`；本轮两个独立字节算术最小用例已通过，完整教学范例的 JIT/EXE 仍被上述异常类型阻断。
 
 可选的独立实现互通测试：在 `demo6` 目录运行 `python -m pip install --target build/test/zstd/python_oracle zstandard==0.25.0`，再运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/zstd/test/check_interop.ps1`。该测试让 XRT 与 Python Zstandard 双向解压对方的标准帧；测试桥显式放宽解压比限额以覆盖高压缩比样本，不改变产品默认值。Python 不是扩展库运行依赖。
+
+以下为历史验证记录；其中“当前阻断”只描述记录时使用的旧发布物。
 
 2026-10-18：四类选项 ABI 负例先复现后修复，另覆盖两类保留字段以及一次性、流对象和文件流入口。Windows 严格 GCC/C/XLang 与 Linux ASan/UBSan 联合门禁通过。随后包外原可调用 `updateNative(point,size)` 的两条负例先确认可达；12 个原生流成员私有化，负例纳入 Linux 门禁，Windows 最小流/固定帧用例及 Linux 联合门禁通过。完整教学范例和 AOT 主线阻断未变。
 

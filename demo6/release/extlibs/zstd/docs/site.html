@@ -20,7 +20,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / zstd</p><h1>zstd</h1>
     <p class="extlib-lead">Zstandard 二进制压缩、增量流和文件处理；同时提供 XLang 与 C 接口。</p>
-    <p>基础双语往返、C 文件 ABI、XLang 文件进度与取消、Python Zstandard 0.25.0 双向标准帧互通，以及 Linux sanitizer 门禁已通过。C 解压器在 finish 后拒绝新输入；这类错误的 XLang 公开异常转换仍受主线 extern 自动派发问题阻断。完整教学范例另被主线 XLIR 运算错误阻断，完整 AOT 尚未签收。</p>
+    <p>2026-10-24 当前 Windows 包级严格 C、基础双语往返、标准帧、串联帧、文件/进度，以及五条独立 EXE 的 AOT 路径均通过。完整教学范例可构建，但截断帧仍自动抛 <code>IOError</code>，没有交给包层转换为承诺的 <code>CompressionError</code>；因此完整 API 尚未签收。Linux C sanitizer 通过，旧 Linux 发布物的 <code>cstring</code> 语义无法导入当前包。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
@@ -35,7 +35,7 @@
 Buffer packed = zstd.compress("hello zstd")
 assert zstd.decompressText(packed) == "hello zstd"</code></pre>
     <p>包内 <code>examples/basic.xl</code> 与 <code>examples/basic_c.c</code> 同输入、同输出；C 范例可直接用 <code>xl run extlibs/zstd/examples/basic_c.c</code> 运行。C 调用方可直接包含 <code>include/xrt_zstd.h</code>，并负责释放返回的 xbuffer。C 流式接口的进度从 Reader 当前读取位置起算；无法同时取得总长和当前位置时不设置 <code>TOTAL_KNOWN</code>。C 编解码入口拒绝选项和资源限制结构的无效版本、长度及保留字段；无效选项不消费输入流。<code>iMaxEntries</code> 限制串联帧数，<code>iMaxItemBytes</code> 限制单帧原文大小；节点数、深度和未知标志不适用。资源限额、所有权及当前验收范围见包内 README。</p>
-    <p>包级 C 门禁还逐点注入 XRT 分配失败，检查一次性编解码的错误与释放平衡；此测试不覆盖上游库的内部 allocator。完整 XLang AOT 仍未签收。</p>
+    <p>包级 C 门禁还逐点注入 XRT 分配失败，检查一次性编解码的错误与释放平衡；此测试不覆盖上游库的内部 allocator。包级五条 Windows AOT 路径已通过；完整教学范例因上述异常派发边界未完成运行时验收。</p>
   </section>
 </main>
 <script src="../main.js"></script>
