@@ -11,6 +11,7 @@ def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('root','native-root','out'): parser.add_argument('--'+name,type=Path,required=True)
+    parser.add_argument('--optimization',choices=['O0','O2'],default='O0')
     args=parser.parse_args(); root,native,out=[getattr(args,name).resolve() for name in ('root','native_root','out')]
     assert os.name!='nt' and not out.exists()
     project=Path(__file__).resolve().parents[1]; cc=shutil.which('gcc'); assert cc
@@ -48,7 +49,7 @@ def main():
     rows=[]; objects=[]; headers=[]
     report={'Complete':False,'InputsUnchanged':False,'Inputs':inputs,'Objects':objects,'Headers':headers,
         'Sources':list(map(str,sources)),'Rows':rows,'SourceXrt':True,'RuntimeOnly':False,'EnableExeCompiler':1,
-        'SourceProductAcceptance':False,'ShippingLibraryAcceptance':False,'Scope':__doc__,'NativeRoot':str(native)}
+        'SourceProductAcceptance':False,'ShippingLibraryAcceptance':False,'Scope':__doc__,'NativeRoot':str(native),'Optimization':args.optimization}
     def save(): (out/'build.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def run(name,command):
         command=list(map(str,command)); result=subprocess.run(command,cwd=root,env=env,capture_output=True,timeout=240)
@@ -90,9 +91,10 @@ def main():
             target.parent.mkdir(parents=True,exist_ok=True); assert not target.exists()
             shutil.copy2(original,target); assert sha(target)==sha(original)
             headers.append({'Path':str(target),'Source':str(original),'Sha256':sha(target)})
-    flags=['-std=c11','-D_GNU_SOURCE','-Wall','-Wextra','-Werror','-O0','-DXL_STATIC_EMBED',
+    flags=['-std=c11','-D_GNU_SOURCE','-Wall','-Wextra','-Werror','-'+args.optimization,'-DXL_STATIC_EMBED',
         '-DXL_ENABLE_EXE_COMPILER=1','-DTCC_DISABLE_BUILTIN_VFS',
         '-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include'),'-I'+str(root/'lib/tcc')]
+    report['CompileFlags']=flags
     compat=['-Wno-unused-function','-Wno-unused-parameter','-Wno-unused-variable','-Wno-unused-label',
         '-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-Wno-pointer-sign','-Wno-format-truncation']
