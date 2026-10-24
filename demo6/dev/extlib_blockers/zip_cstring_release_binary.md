@@ -1,11 +1,11 @@
 # ZIP 导入与发布编译器的 cstring 识别
 
-最小复现：从 `demo6` 目录执行
+历史最小复现：从 `demo6` 目录执行
 `release/xl.exe check dev/extlib_blockers/zip_cstring_release_binary.xl`。
-当前发布版在 `release/extlibs/zip/src/zip.xl:108` 报
-`[sem] 未知类型: cstring`，尚未运行到 ZIP 的文本所有权移交路径。
+旧发布版曾在 `release/extlibs/zip/src/zip.xl:108` 报
+`[sem] 未知类型: cstring`。
 
 ZIP 包在该处声明 `cstring` 参数，用于把已知长度的文本传给原生入口；
-当前源码已包含 `cstring` 机制，但不能据此假定发布目录的 `xl.exe`
-与源码同步。应由主线构建/发布任务重建编译器并复验导入、JIT、AOT；
-普通扩展包任务不将参数退回不带长度的旧字符串 ABI，也不改主线。
+2026-10-25 复验：当前 Windows `release/xl.exe check` 通过；ZIP 默认
+`test/check.ps1` 的导入、JIT 及三个 AOT 目标也通过。此阻断已解除。
+Linux `release/xl` 仍是较早版本，本次没有在 Linux 复验新包。
