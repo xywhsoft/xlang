@@ -88,3 +88,13 @@ C、真实 Windows `argv` 往返、两种语言的公开范例，在中央 XLang
 范例先通过，中央选择性提取范例首次走此路径时失败；完整 AOT
 未通过包门禁。此问题与 TAR 覆盖旧文件的非原子风险分别处理，
 主线投影修复后复跑最小 JIT/EXE 与完整包门禁。
+
+同日 `graph` 的当前 Windows 发布版复现数组侧：
+`./release/xl.exe run dev/extlib_blockers/graph_var_array_projection.xl`
+用一条合法有向边调用 `graph.isDag(var edges)` 即报
+`ValueError: graph edges must be an array`；独立 EXE 也失败。
+`graph_native.c` 在解析任何行或执行算法前先要求
+`xrtValueType(input) == XVALUE_ARRAY`。默认专项门禁的严格 C、
+分配故障及线程测试均通过，首个 XLang 主用例即停止，后续
+语言、DLL 宿主复用、生成原型和 AOT 路径本轮均未验收。
+修复共享容器投影后须复跑本最小 JIT/EXE 及完整 `graph` 门禁。
