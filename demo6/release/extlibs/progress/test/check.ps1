@@ -80,6 +80,10 @@ try {
         $null = Run 'XLang boundaries build' $xl @('build',
             'release/extlibs/progress/test/boundaries.xl', '-o', $aot)
         $null = Run 'XLang boundaries AOT' $aot @()
+        $allocationAot = Join-Path $work 'progress_allocation_oom.exe'
+        $null = Run 'XLang allocation failures build' $xl @('build',
+            'release/extlibs/progress/test/allocation_oom.xl', '-o', $allocationAot)
+        $null = Run 'XLang allocation failures AOT' $allocationAot @()
         $exampleAot = Join-Path $work 'progress_example.exe'
         $null = Run 'XLang example build' $xl @('build',
             'release/examples/extlibs/progress.xl', '-o', $exampleAot)
