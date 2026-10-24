@@ -1,6 +1,24 @@
 import gettext
 
+func detachedText(bool found) as string
+    var catalog = gettext.parsePo("msgid \"hello\"\nmsgstr \"world\"\n")
+    if found then
+        return gettext.t(catalog, "hello")
+    end
+    string missing = "untranslated"
+    return gettext.t(catalog, missing)
+end
+
 func main(...) as int
+    // 借用的 C 指针转成 XLang 字符串后，结果不再依赖目录或原文的生命周期。
+    string translated = detachedText(true)
+    string fallback = detachedText(false)
+    for i in range(32)
+        gettext.parsePo("msgid \"other\"\nmsgstr \"another\"\n")
+    end
+    assert translated == "world", "translation survives catalog release"
+    assert fallback == "untranslated", "fallback survives source release"
+
     // 长译文和未命中回退均不得被固定缓冲区截断。
     string longText = ""
     for i in range(0, 2500)

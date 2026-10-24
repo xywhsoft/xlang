@@ -54,6 +54,10 @@ C 的 `xgt_load_mo` 使用 XRT 限额读取，同样最多接受 64 MiB；超限
 
 XLang 示例：`release/examples/extlibs/gettext.xl`。对应 C 示例：`release/extlibs/gettext/examples/gettext_c.c`。在 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/gettext/test/check.ps1` 可执行完整包级 C、XLang、双语输出及 AOT 验证。
 
+2026-10-25：边界测试新增目录及原文离开局部作用域后的译文/未命中回退保留验证，
+确保借用的 C 返回指针已转换成独立的 XLang 字符串。Windows 完整门禁通过；
+Linux C ASan/UBSan 通过，语言门禁仍由下述旧 Linux `xl` 的 `cbytes` 缺口阻断。
+
 2026-10-24 使用更新后的 Windows 发布版复验：默认包门禁完整通过，含
 严格 C、PO/MO 边界、分配故障、双语范例和公开范例 AOT。旧 Windows
 发布版的共享符号阻断已解除。Linux `check.sh` 先完成 C ASan/UBSan，
