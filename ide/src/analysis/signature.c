@@ -74,6 +74,7 @@ xls_signature_help* xlsSignatureRetain(xls_signature_help* result){if(result)xrt
 void xlsSignatureRelease(xls_signature_help* result){if(result && xrtAtomic32FetchSub(&result->references,1,XMEMORY_ACQ_REL)==1){xlsSemanticCompletionDestroy(result->semantic);xrtFree(result);}}
 xls_signature_work xlsSignatureWork(const xls_signature_help* result){xls_sem_work work=xlsSemanticCompletionSemWork(xlsSignatureSemantic(result));return (xls_signature_work){work.checked,work.reused};}
 xls_signature_parse_work xlsSignatureParseWork(const xls_signature_help* result){const xls_signature_data* data=xlsSignatureData(result);return data ? data->parseWork : (xls_signature_parse_work){0};}
+xls_signature_storage_work xlsSignatureStorageWork(const xls_signature_help* result){xls_sem_storage_work w=xlsSemanticCompletionStorageWork(xlsSignatureSemantic(result));return (xls_signature_storage_work){w.nodes,w.pages,w.chargedBytes,w.heapFallbacks};}
 int xlsSignatureValidate(xls_signature_help* result)
 {
     const xls_signature_data* data=xlsSignatureData(result);

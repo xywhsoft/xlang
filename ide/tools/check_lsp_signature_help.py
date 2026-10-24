@@ -48,7 +48,7 @@ def main():
                     automaticDiagnostics=False, checkOnSave=False)), 1)
                 reply, _ = client.reply(1)
                 init = reply['result']
-                assert init['serverInfo']['version'] == '0.49', init
+                assert init['serverInfo']['version'] == '0.50', init
                 assert init['capabilities']['signatureHelpProvider'] == dict(
                     triggerCharacters=['(', ','], retriggerCharacters=[')']), init
                 client.send('initialized', {})
@@ -136,7 +136,7 @@ def main():
                 done(f'{offsets}-nested-call-change-rechecks', analysis=result['analysis'])
                 # These are real source changes, not caret views. Require the
                 # native query-file parser to reuse untouched declarations.
-                stable = ''.join(f'func stable_{i}(int value) as int\n return value+{i}\nend\n' for i in range(24))
+                stable = ''.join(f'func stable_{i}(int value) as int\n if value>0 then\n return value+{i}\n end\n return 0\nend\n' for i in range(24))
                 for edit in range(5):
                     marked = '\ufeff'+stable+definitions+f'func main(...) as int\r\n int 中文={edit}\r\n return plus(中文,@"😀 {edit}")\r\nend\r\n'
                     result, body, at = request(marked)
@@ -147,6 +147,9 @@ def main():
                         assert analysis['signatureFullParses'] == 0 and analysis['signatureFragmentParses'] == 1, analysis
                         assert analysis['signatureReusedDeclarations'] == 25 and analysis['signatureParsedBytes'] < len(body.encode('utf8'))/4, analysis
                         assert analysis['signatureSyntaxFallbacks'] == 0, analysis
+                        assert analysis['reused'] >= 24 and analysis['signatureTypeNodes'] > 0, analysis
+                        assert analysis['signatureTypePages'] == 24 and 0 < analysis['signatureTypeBytes'] <= 64*1024*1024, analysis
+                        assert analysis['signatureTypeHeapFallbacks'] == 0, analysis
                     else:
                         assert analysis['signatureFullParses'] == 1, analysis
                     done(f'{offsets}-native-incremental-signature-{edit}', analysis=analysis)
