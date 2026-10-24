@@ -17,7 +17,7 @@ enum xide_action_id {
     XIDE_ACTION_EDITOR_CUT=80, XIDE_ACTION_EDITOR_COPY, XIDE_ACTION_EDITOR_PASTE, XIDE_ACTION_EDITOR_SELECT_ALL,
     XIDE_ACTION_EDITOR_INDENT, XIDE_ACTION_EDITOR_OUTDENT, XIDE_ACTION_EDITOR_COMMENT,
     XIDE_ACTION_SOURCE_DECLARATION=90, XIDE_ACTION_SOURCE_DOCUMENT,
-    XIDE_ACTION_BUILD_FILE, XIDE_ACTION_RUN_FILE
+    XIDE_ACTION_BUILD_FILE, XIDE_ACTION_RUN_FILE, XIDE_ACTION_SIGNATURE
 };
 enum xide_action_result { XIDE_ACTION_UNKNOWN=-1, XIDE_ACTION_DISABLED=0, XIDE_ACTION_DISPATCHED=1 };
 enum xide_shortcut_scope { XIDE_SHORTCUT_GLOBAL, XIDE_SHORTCUT_EDITOR, XIDE_SHORTCUT_WORKSPACE };
@@ -46,4 +46,5 @@ int xideActionsMenu(xide_app* app,xui_widget menu,const int* actions,size_t coun
 int xideActionsToolbar(xide_app* app,xui_widget toolbar,const int* actions,size_t count);
 int xideActionsButton(xide_app* app,xui_widget button,int action);
 int xideActionsBindEditor(xide_app* app,xui_widget editor);
+/* One action-registry path for a focused document's editor chords. */
 #endif

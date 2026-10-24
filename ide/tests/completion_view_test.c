@@ -65,7 +65,8 @@ static int waitFixtureDrop(fixture_retire* state)
 static int holdSync(xide_completion_view* v)
 {
  if(!v->pending || !v->wanted || !v->initialized || !cvretireSync(v)) return 0;
- v->pending=0;if(!cvbegin(v)) return 0;
+ /* The shared sync leaves both intentions pending until queue admission. */
+ if(!cvbegin(v)) return 0;
  xide_sync_input inputs[64];for(size_t i=0;i<v->inputCount;++i) inputs[i]=(xide_sync_input){v->inputs[i].uri,v->inputs[i].textValue,v->inputs[i].id,v->inputs[i].version};
  if(xideSyncPlannerSubmit(v->syncPlanner,v->syncToken,v->sync,inputs,v->inputCount)!=1) return 0;
  v->syncSubmitted=1;v->syncDeadline=0;uint64_t until=GetTickCount64()+10000;

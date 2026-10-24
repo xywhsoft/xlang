@@ -115,7 +115,7 @@ static int verify(void* user)
  CHECK(xrtFileWriteAtomic(icon,(xbytesview){ico,sizeof(ico)}));
  app.hidden=1; app.noSession=1; app.highDpi=1; app.dpiOverride=1.25f; app.settingsPath=settings;
  CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
- CHECK(xideActionCount()==73 && xideActionNamed("project.newResource")->id==39 && !xideActionQuery(&app,XIDE_ACTION_NEW_RESOURCE).enabled && xideWorkspaceCreate(&app.workspaceModel,"资源创建验收",&error));
+ CHECK(xideActionCount()==74 && xideActionNamed("project.newResource")->id==39 && !xideActionQuery(&app,XIDE_ACTION_NEW_RESOURCE).enabled && xideWorkspaceCreate(&app.workspaceModel,"资源创建验收",&error));
  CHECK(xideProjectCreate(&project,manifest,"C 与 xlang 新资源😀",entry,&error) && xideProjectAddFile(&project,native,"c",&error) && xideProjectSave(&project,NULL,&error) && xideWorkspaceAddProject(&app.workspaceModel,manifest,"alpha",&error)); xideProjectClear(&project);
  CHECK(xideProjectCreate(&project,beta,"独立启动项目",entry,&error) && xideProjectSave(&project,NULL,&error) && xideWorkspaceAddProject(&app.workspaceModel,beta,"beta",&error) && xideWorkspaceSetStartup(&app.workspaceModel,"beta",&error) && xideWorkspaceSaveAll(&app,workspace,&error) && xideWorkspaceViewSelectProject(&app,"alpha")); xideProjectClear(&project);
  xide_project* p=xideWorkspaceFindProject(&app.workspaceModel,"alpha"); CHECK(p && !p->resources.count && xideActionQuery(&app,XIDE_ACTION_NEW_RESOURCE).enabled && !xideActionQuery(&app,XIDE_ACTION_RESOURCES).enabled);

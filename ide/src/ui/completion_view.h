@@ -12,4 +12,9 @@ int xideCompletionViewCollect(xide_app* app,xui_widget editor,int offset,xui_cod
 int xideCompletionViewHasName(xide_app* app,xui_widget editor,const char* name);
 int xideCompletionViewInput(xide_app* app,xui_widget editor,const xui_code_input_event_t* event,xui_code_input_action_t* action);
 int xideCompletionViewBindEditor(xide_app* app,xui_widget editor);
+/* Shared native connection/document sync; independent signature request and
+   nonmodal XUI window. Force is the explicit parameter-info action. */
+void xideSignatureViewRequest(xide_app*,xui_widget,int offset,int force);
+int xideSignatureViewIsOpen(xide_app*);
+int xideSignatureViewAction(xide_app*,int);
 #endif

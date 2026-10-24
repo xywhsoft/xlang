@@ -3,6 +3,7 @@
 #include "ui/rename_view.h"
 #include "app/actions.h"
 #include "ui/c_completion_view.h"
+#include "ui/completion_view.h"
 #include "app/xide_app.h"
 #include "ui/editor_view.h"
 #include "services/ui_font.h"
@@ -22,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 enum requirement { WORKBENCH, WORKSPACE_VIEW, WORKSPACE, NEW_PROJECT, IMPORT_VIEW, PROJECT, AVAILABLE_PROJECT, REFERENCES, RESOURCES, NEW_RESOURCE, ADD_FILE, REMOVE_FILE, RENAME_SELECTED_FILE, MIGRATE_PROJECT, PROPERTIES,
-    DOCUMENTS, DOCUMENT, NAMED_DOCUMENT, RENAME_DOCUMENT, DIRTY_DOCUMENTS, UNDO, REDO, WRITABLE_DOCUMENT, SELECTED_TEXT, WRITABLE_SELECTION, NONEMPTY_DOCUMENT, LINE_COMMENT, COMPLETION, GOTO_VIEW, BUILD, RUN, BUILD_FILE, TEST, STOP, INPUT, TASK_VIEW, FONT_VIEW, RECOVERY_VIEW, CHANGES_VIEW, TOOLCHAIN_VIEW, SAVED_CHECK, CURRENT_CHECK, CANCEL_CHECK, DEFINITION, HOVER, SOURCE_DECLARATION, SOURCE_DOCUMENT };
+    DOCUMENTS, DOCUMENT, NAMED_DOCUMENT, RENAME_DOCUMENT, DIRTY_DOCUMENTS, UNDO, REDO, WRITABLE_DOCUMENT, SELECTED_TEXT, WRITABLE_SELECTION, NONEMPTY_DOCUMENT, LINE_COMMENT, COMPLETION, SIGNATURE, GOTO_VIEW, BUILD, RUN, BUILD_FILE, TEST, STOP, INPUT, TASK_VIEW, FONT_VIEW, RECOVERY_VIEW, CHANGES_VIEW, TOOLCHAIN_VIEW, SAVED_CHECK, CURRENT_CHECK, CANCEL_CHECK, DEFINITION, HOVER, SOURCE_DECLARATION, SOURCE_DOCUMENT };
 enum check_kind { NO_CHECK, THEME_CHECK, LANGUAGE_CHECK, STARTUP_CHECK };
 typedef struct action_def { xide_action_info info; enum requirement need; enum check_kind check; int (*execute)(xide_app*,int); } action_def;
 static int fontAction(xide_app* a,int id) { return id==XIDE_ACTION_UI_FONT ? xideFontViewOpenUi(a) : xideFontViewOpen(a); }
@@ -90,6 +91,7 @@ static const action_def definitions[]={
     E(XIDE_ACTION_EDITOR_REPLACE,"editor.replace","替换…","Ctrl+H",'H',XUI_MOD_CTRL,WRITABLE_DOCUMENT,XIDE_SHORTCUT_EDITOR,XUI_CODE_COMMAND_OPEN_REPLACE),
     A(XIDE_ACTION_EDITOR_GOTO,"editor.gotoLine","跳转到行…",NULL,"Ctrl+G",'G',XUI_MOD_CTRL,XIDE_SHORTCUT_EDITOR,XUI_CODE_COMMAND_GOTO_LINE,GOTO_VIEW,NO_CHECK,gotoAction),
     E(XIDE_ACTION_EDITOR_COMPLETE,"editor.complete","代码补全","Ctrl+Space",XUI_KEY_SPACE,XUI_MOD_CTRL,COMPLETION,XIDE_SHORTCUT_EDITOR,0),
+    A(XIDE_ACTION_SIGNATURE,"language.signatureHelp","参数提示",NULL,"Ctrl+Shift+Space",XUI_KEY_SPACE,XUI_MOD_CTRL|XUI_MOD_SHIFT,XIDE_SHORTCUT_EDITOR,0,SIGNATURE,NO_CHECK,xideSignatureViewAction),
     A(XIDE_ACTION_BUILD,"task.build","构建当前目标","构建","F7",XUI_KEY_F7,0,XIDE_SHORTCUT_GLOBAL,0,BUILD,NO_CHECK,xideTaskViewAction),
     A(XIDE_ACTION_RUN,"task.run","构建并运行当前目标","运行","F5",XUI_KEY_F5,0,XIDE_SHORTCUT_GLOBAL,0,RUN,NO_CHECK,xideTaskViewAction),
     A(XIDE_ACTION_BUILD_FILE,"task.buildFile","构建当前文件",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,BUILD_FILE,NO_CHECK,xideTaskViewAction),
@@ -173,6 +175,7 @@ xide_action_state xideActionQuery(xide_app* a,int id)
         state.enabled=writable && xuiCodeLanguageRegistryFind(xuiCodeEditGetLanguageRegistry(doc->editor),doc->language,&language)==XUI_OK && language.sLineComment && *language.sLineComment;
         state.reason="当前文档只读或当前语法没有行注释"; break;
     }
+    case SIGNATURE: state.enabled=writable && doc->path && !strcmp(doc->language,"xlang") && a->completionView && xideTaskViewCompiler(a);state.reason="请打开 xlang 源文件并选择编译器";break;
     case COMPLETION: state.enabled=writable && strcmp(doc->language,"text") && a->catalogView; state.reason="当前文档没有目录补全"; break;
     case BUILD: state.enabled=a->tasks && compiler && *compiler && (available || (!a->workspaceModel.projectCount && xideTaskViewCanBuildFile(a))); state.reason="请打开 C/xlang 文件或可用项目，并选择编译器"; break;
     case RUN: state.enabled=a->tasks && compiler && *compiler && ((startup && startup->available && !strcmp(startup->kind,"exe")) || (!a->workspaceModel.projectCount && xideTaskViewCanBuildFile(a))); state.reason="请打开 C/xlang 文件或配置可运行的启动项目，并选择编译器"; break;
