@@ -22,18 +22,13 @@ xls_semantic_index* xlsFrontendIndexCreate(const XL6_AstNode* root,
         b->root=root; b->report=report;
         if(!root || !report || !report->complete) failure="semantic index requires a complete checked source report";
         else {
-            size_t arenas=XL6_INDEX_NODES*(sizeof(*b->facts)+sizeof(*b->sources));
-            if(xl6IndexBudget(b,arenas+sizeof(*index)+1024)) {
-                b->facts=xrtCalloc(XL6_INDEX_NODES,sizeof(*b->facts));
-                b->sources=xrtCalloc(XL6_INDEX_NODES,sizeof(*b->sources));
-                if(b->facts && b->sources) {
+            if(xl6IndexBudget(b,sizeof(*index)+1024)) {
                     xls_type_alias_scope aliases;
                     xlsFrontendTypeAliasBegin(&aliases,root,8u*1024u*1024u);
                     XL6_IndexBuild* previous=xlsTypedIndexBuild; xlsTypedIndexBuild=b;
                     int okay=xl6IndexVisit(b,root,0,1); xlsTypedIndexBuild=previous;
                     xlsFrontendTypeAliasEnd(&aliases);
                     if(okay) return index;
-                }
             }
             if(b->error) failure=b->error;
         }

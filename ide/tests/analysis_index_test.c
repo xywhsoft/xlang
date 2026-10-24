@@ -1,5 +1,6 @@
 #include "analysis/check.h"
 #include "analysis/frontend_index.h"
+#include "analysis/frontend_internal.h"
 #include "analysis/frontend_types.h"
 #include "src/type/xl6_type_model.h"
 #include <xrt.h>
@@ -22,6 +23,21 @@ static int range(const xvalue* v,xls_index_range r)
     return number(get(v,"startOffset"),r.startOffset) && number(get(v,"endOffset"),r.endOffset) &&
         number(get(v,"startLine"),(unsigned)r.startLine) && number(get(v,"startColumn"),(unsigned)r.startColumn) &&
         number(get(v,"endLine"),(unsigned)r.endLine) && number(get(v,"endColumn"),(unsigned)r.endColumn);
+}
+static int preorder(const XL6_AstNode* ast,const xls_semantic_index* index,size_t* at,unsigned parent)
+{
+    xls_index_fact fact; size_t ordinal=(*at)++;
+    CHECK(xlsSemanticIndexFact(index,ordinal,&fact) && fact.id==ordinal+1 && fact.parent==parent);
+    CHECK(!strcmp(fact.kind,xl6AstKindName(ast->kind)) && fact.symbol==ast->semanticSymbolId &&
+        fact.declaredSymbol==ast->semanticDeclaredSymbolId && fact.targetSymbol==ast->semanticTargetSymbolId &&
+        fact.compoundOperatorSymbol==ast->semanticCompoundOperatorSymbolId && fact.typeId==ast->semanticTypeId && fact.typeAbi==ast->semanticTypeAbiId);
+    const XL6_AstNode* type=ast->semanticDeclaredType ? ast->semanticDeclaredType : ast->inferredType ? ast->inferredType : ast->kind==XL6_AST_TYPE ? ast : NULL;
+    CHECK(fact.typeOrigin==(type ? ast->semanticDeclaredType ? 1 : ast->inferredType ? 2 : 3 : 0));
+    CHECK(fact.typeObjectId==(type ? type->semanticTypeId : 0) && fact.typeObjectAbi==(type ? type->semanticTypeAbiId : 0));
+    CHECK(type ? fact.canonical && *fact.canonical : !fact.canonical);
+    if(fact.source && ast->range.known) CHECK(fact.range.known && fact.range.startOffset==ast->range.startOffset && fact.range.endOffset==ast->range.endOffset);
+    for(size_t i=0;i<ast->childCount;++i) CHECK(preorder(ast->children[i],index,at,fact.id));
+    return 1;
 }
 static int verify(xls_semantic_check* check)
 {
@@ -105,14 +121,29 @@ static int capacity(void)
     CHECK(!xlsSemanticCheckIndex(result) && xlsSemanticCheckInfo(result).accepted && xlsSemanticCheckTypedIndex(result)==index);
     printf("typed capacity facts=%zu, charged data=%zu bytes; legacy JSON allowance still rejects\n",count,budget);
     xlsSemanticCheckDestroy(result);
-    /* Fail during collection after a nonempty alias scope was entered, then
-     * prove that an unrelated canonical query is outside that failed scope. */
+    /* Grow beyond the old fixed arena. Every lexical node must still have a
+     * correctly ordered fact; larger indices cannot drop late declarations. */
     for(unsigned i=3000;i<6000;++i) CHECK(xrtStrBufAppendFormat(&source,
         "func helper_%u(int value) as int\n return value + 1\nend\n",i));
     CHECK(xrtStrBufAppendFormat(&source,"typedef Count = int\ntypedef Other = Count\n"));
     input=(xls_semantic_input){path,source.Data,source.Size};
     result=xlsSemanticCheckCreate(path,&input,1,1,NULL,NULL,error,sizeof(error));
-    CHECK(!result && strstr(error,"tree limit"));
+    CHECK(result && xlsSemanticCheckInfo(result).accepted && xlsSemanticIndexCount(xlsSemanticCheckTypedIndex(result))>65536);
+    const xls_semantic_index* larger=xlsSemanticCheckTypedIndex(result);
+    CHECK(xlsFrontendIndexBudgetUsed(larger)<32u*1024u*1024u && !xlsSemanticCheckIndex(result));
+    unsigned found=0;
+    for(size_t i=0;i<xlsSemanticIndexCount(larger);++i) {
+        xls_index_fact f; CHECK(xlsSemanticIndexFact(larger,i,&f) && f.id==i+1 && f.parent<f.id);
+        CHECK(f.source<=1 && f.selectionSource<=1);
+        if(f.declaredSymbol && f.selectionRange.known) {
+            size_t at=f.selectionRange.startOffset,end=f.selectionRange.endOffset;
+            CHECK(end>=at && end<=source.Size);
+            if(!strcmp(f.kind,"func") && end-at==strlen("helper_5999") && !memcmp(source.Data+at,"helper_5999",end-at)) ++found;
+        }
+    }
+    size_t visited=0; CHECK(found && preorder(xlsSemanticCheckAst(result),larger,&visited,0) && visited==xlsSemanticIndexCount(larger));
+    printf("expanded typed facts=%zu, charged data=%zu bytes, AST preorder fully verified\n",visited,xlsFrontendIndexBudgetUsed(larger));
+    xlsSemanticCheckDestroy(result);
     XL6_AstNode probe={0}; probe.kind=XL6_AST_TYPE; probe.text="int"; xlsFrontendTypeAliasReset();
     CHECK(xl6TypeResolveAlias(NULL,&probe)==&probe && !xlsFrontendTypeAliasWork().queries);
     xrtStrBufFree(&source); xrtFree(path); return 1;

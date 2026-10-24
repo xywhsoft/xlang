@@ -182,9 +182,10 @@ def main():
         done('incomplete-code-completion-is-independent-of-background-diagnostics');c.stop()
 
         c,folder=client('resource',dict(diagnosticDelay=0));entry=folder/'entry.xl'
-        oversized=''.join('func helper_%d(int value) as int\n return value + 1\nend\n'%i for i in range(6000))+'func main(...) as int\n return 0\nend\n'
+        from lsp_resource_case import index_byte_limit_source
+        oversized=index_byte_limit_source()
         opened(c,entry,oversized);stats=c.wait_for(lambda s:s['failedRoots']==1 and not s['checking'])
-        assert stats['submittedChecks']==1 and any('index exceeds tree limit' in v['message'] for v in c.logs),stats
+        assert stats['submittedChecks']==1 and any('index exceeds byte limit' in v['message'] for v in c.logs),stats
         operations=stats['completedOperations'];stats=c.wait_for(lambda s:s['completedOperations']>=operations+2)
         assert stats['submittedChecks']==1 and not stats['retainedRoots'],stats
         c.change(entry,good,2);stats=c.quiet();assert not stats['failedRoots'] and count(c,entry)==0 and stats['submittedChecks']==2,stats

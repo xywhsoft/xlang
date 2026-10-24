@@ -9,6 +9,7 @@
 #include <limits.h>
 #define NODE_LIMIT 65536u
 #define DEPTH_LIMIT 256u
+#define TYPED_DEFINITION_BYTES (64u*1024u*1024u)
 typedef struct point { int line,character; } point;
 typedef struct span { int source,startOffset,endOffset; point start,end; } span;
 typedef struct node { unsigned parent,depth,declared,target,typeId,declaredType,referencedType; uint64_t typeAbi; int call,kind,origin,typeSyntax,typeParams,typeConstraint,nameSyntax,genericType,memberSyntax; char *name,*header,*type; span full,token,selection; } node;
@@ -18,6 +19,26 @@ typedef struct endpoint { int source,offset,line,column; point* output; } endpoi
 typedef struct cursor_row { uint32_t source,sl,sc,el,ec,maximumLine,maximumCharacter,node; } cursor_row;
 typedef struct reference_row { uint32_t targetSource,targetStart,targetEnd,source,start,end,node; } reference_row;
 struct xide_semantic_definitions { node* nodes; size_t count,declCount,typeCount,sourceCount; declaration *declarations,*typeDeclarations; char** paths; size_t textBytes; xarray cursors,references;int lookupReady; };
+#ifdef XLS_COMPILER_XRT
+static int typedCapacity(size_t nodes,const xide_semantic_source* sources,size_t count)
+{
+ /* Bound owned data including temporary coordinate endpoints, worst-case
+    lookup capacities and the existing4MiB retained text allowance. Borrowed
+    source text and allocator overhead are separate,not process RSS. Cursor
+    indices reserve their high bit for selections. Check before allocating. */
+ size_t fixed=sizeof(xide_semantic_definitions)+count*sizeof(char*)+4u*1024u*1024u+8*(sizeof(cursor_row)+sizeof(reference_row));
+ const size_t per=sizeof(node)+2*sizeof(declaration)+6*sizeof(endpoint)+4*sizeof(cursor_row)+2*sizeof(reference_row);
+ if(nodes>=CURSOR_SELECTION || nodes+1>(TYPED_DEFINITION_BYTES-fixed)/per) return 0;
+ size_t used=fixed+(nodes+1)*per;
+ for(size_t i=0;i<count;++i) {
+  if(!sources[i].path) return 0;
+  size_t size=strlen(sources[i].path)+1;
+  if(size>TYPED_DEFINITION_BYTES-used) return 0;
+  used+=size;
+ }
+ return 1;
+}
+#endif
 static int buildLookup(xide_semantic_definitions* d);
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* get(const xvalue* o,const char* k) { return o && xrtValueType(o)==XVALUE_OBJECT ? xrtValueObjectGet(o,sv(k)) : NULL; }
@@ -166,6 +187,10 @@ static xide_semantic_definitions* definitionsCreate(const xvalue* index,
   if(!number(get(index,"schema"),&schema,1,1) || !equal(get(index,"scope"),"checked-compilation") || !xrtValueGetBool(get(index,"complete"),&complete) || !complete || !equal(get(index,"offsetEncoding"),"utf-8-after-bom") || !equal(get(index,"columnEncoding"),"unicode-scalar-1-based") || !equal(get(index,"rangeConvention"),"half-open") || !rows || xrtValueType(rows)!=XVALUE_ARRAY) goto invalid;
   nodeCount=xrtValueCount(rows);
  }
+#ifdef XLS_COMPILER_XRT
+ if(typed) { if(!typedCapacity(nodeCount,sources,count)) goto invalid; }
+ else
+#endif
  if(nodeCount>NODE_LIMIT) goto invalid;
  xide_semantic_definitions* d=calloc(1,sizeof(*d)); endpoint* ends=NULL;
  if(!d) goto invalid;
@@ -346,6 +371,10 @@ static int buildLookup(xide_semantic_definitions* d)
  if(!xrtArrayInit(&d->cursors,sizeof(cursor_row)))return 0;
  d->lookupReady=1;if(!xrtArrayInit(&d->references,sizeof(reference_row)))return 0;
  d->lookupReady=3;
+ if(!xrtArrayReserve(&d->cursors,d->count*2) || !xrtArrayReserve(&d->references,d->count))return 0;
+ /* Bundled XRT uses geometric reserve with a minimum8-slot allocation.
+    Account for that fixed allowance,including very small dependency roots. */
+ if(d->cursors.Capacity>d->count*4+8 || d->references.Capacity>d->count*2+8)return 0;
  for(size_t i=0;i<d->count;++i) {
   node* n=d->nodes+i;
   int hasSelection=n->declared || n->declaredType;
