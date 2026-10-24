@@ -26,7 +26,7 @@
     "dependencies":  [
 
                      ],
-    "coverage": { "mode": "suite", "tests": ["test/catalog_call.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/catalog_call.xl", "test/implicit_handles_cleanup.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",
