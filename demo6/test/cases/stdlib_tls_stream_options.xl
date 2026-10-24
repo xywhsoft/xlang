@@ -1,0 +1,45 @@
+auto original = TlsStreamOptions()
+assert original.handshakeTimeoutMillis == 10000 and original.closeTimeoutMillis == 5000
+assert original.maxAsyncBytes == 1048576 and original.maxAsyncOperations == 1024 and original.asyncBatch == 64
+auto timed = original.withTimeoutsMillis(123, 456)
+auto disabled = timed.withTimeoutsMillis(-1, -1)
+auto bounded = timed.withAsyncLimits(8192, 8, 16)
+assert original.handshakeTimeoutMillis == 10000 and timed.handshakeTimeoutMillis == 123
+assert timed.closeTimeoutMillis == 456 and timed.maxAsyncBytes == 1048576
+assert disabled.handshakeTimeoutMillis == -1 and disabled.closeTimeoutMillis == -1
+assert bounded.maxAsyncBytes == 8192 and bounded.maxAsyncOperations == 8 and bounded.asyncBatch == 16
+assert bounded.handshakeTimeoutMillis == 123 and bounded.closeTimeoutMillis == 456
+auto largest = original.withTimeoutsMillis(18446744073709551, 1).withAsyncLimits(uint64(18446744073709551615), 4294967295, 4294967295)
+assert largest.handshakeTimeoutMillis == 18446744073709551 and largest.closeTimeoutMillis == 1
+assert largest.maxAsyncBytes == uint64(18446744073709551615) and largest.maxAsyncOperations == 4294967295 and largest.asyncBatch == 4294967295
+int caught = 0
+for invalid in [0, -2, 18446744073709552]
+ try
+  auto bad = original.withTimeoutsMillis(invalid, 1)
+ catch RangeError expected
+  caught += 1
+ end
+ try
+  auto bad = original.withTimeoutsMillis(1, invalid)
+ catch RangeError expected
+  caught += 1
+ end
+end
+try
+ auto bad = original.withAsyncLimits(0, 1, 1)
+catch RangeError expected
+ caught += 1
+end
+for invalid in [0, -1, 4294967296]
+ try
+  auto bad = original.withAsyncLimits(1, invalid, 1)
+ catch RangeError expected
+  caught += 1
+ end
+ try
+  auto bad = original.withAsyncLimits(1, 1, invalid)
+ catch RangeError expected
+  caught += 1
+ end
+end
+assert caught == 13
