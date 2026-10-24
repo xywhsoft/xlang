@@ -6,4 +6,4 @@ auto stream = siphash128.hasher(key)
 stream.update(b"A\x00")
 stream.update("B")
 assert stream.digest().compare(one) == 0
-println(codec.hexEncodeBytes(one.data(), c_size(one.len())))
+println(one.hex(int(HexFlags.Upper)))

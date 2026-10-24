@@ -8,7 +8,7 @@ end
 func hashFile(string path, bool wide, (func(int, int, int) as bool)? callback = null) as string
     if wide then
         Buffer bytes = sha3.hashFileBytes(path, onProgress = callback)
-        return codec.hexEncodeBytes(bytes.data(), c_size(bytes.len()))
+        return bytes.hex(int(HexFlags.Upper))
     end
     return sha3.hashFileHex(path, onProgress = callback)
 end
@@ -45,7 +45,7 @@ func main(...) as int
             assert state.calls == 3 and state.last == string.byteLen(text)
             if wide then
                 Buffer bytes = sha3.hash256Bytes(text)
-                assert result == codec.hexEncodeBytes(bytes.data(), c_size(bytes.len()))
+                assert result == bytes.hex(int(HexFlags.Upper))
             else
                 assert result == sha3.hash256Hex(text)
             end

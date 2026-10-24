@@ -1,7 +1,7 @@
 import sha3
 
 func hex(Buffer data) as string
-    return codec.hexEncodeBytes(data.data(), c_size(data.len()))
+    return data.hex(int(HexFlags.Upper))
 end
 
 func main(...) as int
