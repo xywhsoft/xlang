@@ -95,6 +95,11 @@ adapter; the original callable expression is evaluated once and snapshotted.
 Named producers use a private body specialization. `xcall` performs the same
 adaptation before erasure, including product and nullable results. Overload
 resolution prefers an exact owner signature to a materializing conversion.
+For a stored variadic callable with owner results, bind its named producer to
+an ordinary result signature before storing/erasing it (for example,
+`func(...) as string callback = producer`). Arbitrary captured variadic
+callables do not yet have a pack-forwarding result adapter; this case is
+rejected rather than invoking an incompatible closure ABI.
 An override returning a C marker adopts an ordinary base slot's result ABI;
 the body materializes on return. Slots explicitly returning C markers on both
 base and derived declarations keep their owner ABI. These rules are not a promise of
@@ -134,6 +139,13 @@ readonly calls share that owner without copying its payload.
 Ordinary callback signatures, erased calls and Future results automatically
 materialize; callers need no explicit `string(...)` / `bytes(...)` conversion.
 Direct imported calls and owner-typed callbacks retain the original allocation.
+
+```xlang
+func() as cstring borrowed = readText  // callback results keep the C owner
+func() as string ordinary = readText  // copies automatically on invocation
+var erased = xcall(readText)          // ordinary callable result schema
+// await task.spawn(readText) also publishes an ordinary string Future payload
+```
 
 ```xlang
 extern "library_text" @no_raise func libraryText() as point
@@ -227,6 +239,22 @@ shipping builds without memory debug still run value and lifetime assertions;
 allocation-counter checks use the separate debug runtime lane. Acceptance
 records belong under `build/c-owned/`; this targeted check is not a claim that
 all repository-wide inventories and unrelated release gates are green.
+
+Boundary completion acceptance (`build/c-owned/boundaries-acceptance-complete.log`)
+uses a 1,156-unit source build (`boundaries-public-current/build.json`). It
+passes 27 generated-C programs, 28 C owner JIT/standalone EXE pairs, 14 ordinary
+JIT/EXE pairs without C owner headers, 13 negative declarations and all 13
+export checks. New pointer-identity cases cover aliases (including nullable
+aliases), product forwarding, exported worker inputs, instance/static/inherited
+and generic-class readers. Callable result cases cover ordinary and explicit
+owner signatures, overload preference, single evaluation/snapshot capture,
+nullable/product results, named variadic erasure, virtual overrides and Future
+results. O0/O2 boundary hosts each sweep 480 allocation limits: 47 failures and
+433 completions, with foreign allocations balanced and no XRT live growth.
+The ordinary callable-result contract rejects 197 IR mutations; O0/O2 hosts
+each pass 680 executions and 480 allocation faults with balanced allocation
+counts (`ordinary-result-current.log`). Owned string boxing transfers the
+ordinary allocation through `xrtValueStringTake` instead of copying it again.
 
 Export-result acceptance (`build/c-owned/export-results-acceptance4/results.json`)
 passes 13 checks against a 1,144-unit source build. Eight export recipes reject
