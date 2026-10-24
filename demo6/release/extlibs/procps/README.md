@@ -1,5 +1,11 @@
 # procps
 
+2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 全通过：
+公开 C 头与清单宏的严格 GCC 检查、C/XLang 边界、C 单文件
+与包运行器范例、XLang 范例固定输出，以及核心和公开范例的
+独立 EXE AOT 构建、执行及输出核对。下文共享 AOT 缺符号
+记录属于旧发布物；Linux 仍按其独立门禁验收。
+
 `procps` 查询操作系统现有进程，而 XRT 的 `process` 模块负责创建和管理
 本程序启动的子进程；两者用途不同。支持 Windows 和 Linux。
 
