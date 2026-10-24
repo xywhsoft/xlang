@@ -119,3 +119,14 @@ C 范例先通过，首个 XLang 边界同样失败。原生 `xrss_build_rss`
 入口要求 `XVALUE_OBJECT` 和 `XVALUE_ARRAY`，但语言声明为两个
 `var`；这是同一 foreign 容器合同的可观察失败，尚未单独确认
 内部物理根因。修复共享边界后需重跑 RSS 的 JIT、AOT 和双语门禁。
+
+同日 `ical` 复现对象侧：`./release/xl.exe run
+dev/extlib_blockers/ical_build_var_object_projection.xl` 先打印
+`native roundtrip: PASS`，证明 `ical.parse` 返回的 XRT 对象可被
+`ical.build` 正常处理；随后将只有合法 `prodid` 的语言字典交给
+`build`，报 `ValueError: invalid calendar fields or output exceeds 8 MiB`。
+`ical_build.c::xi_build` 的第一项检查要求 `XVALUE_OBJECT`，而
+`src/ical.xl` 的公开参数是 `var`。这与已登记的 foreign 对象投影
+故障同形；尚未证明内部根因完全相同。普通包任务不加入私有 handle
+识别或手工重建 XRT 对象；主线修复后复跑最小源、公开日历范例和
+完整包级 JIT/AOT 门禁。

@@ -1,0 +1,12 @@
+import ical
+
+func main(...) as int
+    string source = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//test//EN\r\nEND:VCALENDAR\r\n"
+    var nativeCalendar = ical.parse(source)
+    assert ical.build(nativeCalendar) != "", "native calendar roundtrip failed"
+    println("native roundtrip: PASS")
+
+    var languageCalendar = {"prodid": "-//test//EN"}
+    assert ical.build(languageCalendar) != "", "language calendar should build"
+    return 0
+end

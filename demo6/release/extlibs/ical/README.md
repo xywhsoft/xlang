@@ -1,5 +1,13 @@
 # ical
 
+2026-10-24：更新后的 Windows 发布版运行公开 XLang 范例时，合法
+日历字典在 `build` 首次调用处报 `ValueError`。最小对照证明同一
+`build` 能接受 `parse` 返回的 XRT 对象，却不能接受等价的语言字典；
+见 `dev/extlib_blockers/ical_build_var_object_projection.xl` 和
+`foreign_var_container_projection.md`。这是 foreign `var` 对象
+投影边界，未在包内加入私有句柄兼容；当前发布版的完整 XLang/AOT
+门禁尚未签收，下文旧门禁结果仅对应当时构建。
+
 `ical` 提供 iCalendar 2.0 的 **VEVENT/VTODO 常用字段值映射**，用于简单日程的读取与生成。`parse(text)` 返回 `{prodid, events, todos}`，其中事件、待办是对象数组；`build(calendar)` 生成独立的 UTF-8 文本。日期与规则仍是原始字符串，本库不计算时区、重复周期或提醒触发时间。
 
 ```xlang
