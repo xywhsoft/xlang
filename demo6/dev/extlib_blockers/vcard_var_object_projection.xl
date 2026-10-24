@@ -1,0 +1,12 @@
+import vcard
+
+func main(...) as int
+    var parsed = vcard.parse("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada\r\nEND:VCARD\r\n")
+    assert vcard.build(parsed).contains("FN:Ada")
+    println("parsed object: PASS")
+
+    var created = {"fn": "Ada"}
+    assert vcard.build(created).contains("FN:Ada")
+    println("language dict: PASS")
+    return 0
+end
