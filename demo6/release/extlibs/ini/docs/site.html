@@ -48,10 +48,10 @@ println(config.stringify())</code></pre>
   </section>
   <section id="verify">
     <h2>验证与边界</h2>
-    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ini/test/check.ps1 -SkipAot
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ini/test/check.ps1
 bash release/extlibs/ini/test/check.sh</code></pre>
     <p>C Reader 的输入限额从当前读取位置计算，不包含已跳过的前缀；只有 <code>Size</code> 而没有 <code>Tell</code> 的 Reader 由实际读取阶段执行限额。</p>
-    <p>Windows 严格 GCC、C/XLang 边界与双语同输出范例通过；Linux 包级门禁同时运行 C ASan/UBSan、内嵌 TCC C 用例、中央与包内 XLang 边界及双语范例逐字节对照。XRT <code>uint64</code> 限额与 XLang <code>uint64</code> 对齐，C 32 位深度参数使用 <code>c_uint</code>，避免 LP64 原型冲突。语言边界还验证中文路径的保存/加载往返及临时文件清理；文本和路径遇内嵌 NUL 会明确报错，负数资源限额也会拒绝。2026-10-21 补保存和流写入的分配故障回归：内存失败保留为 <code>MemoryError</code>，真实文件或流失败仍为 IO，旧线程错误不污染本次分类；两平台门禁通过。当前无输出 AOT 核心和独立 <code>Buffer</code> 最小复现均缺主线符号 <code>xl6NativeHandleTraceLeaf</code>；带输出范例还可能缺 <code>xl6ValueDataSnapshotV1</code>，尚未签收完整发布验收。</p>
+    <p>2026-10-24 使用更新后的 Windows 发布版复验，默认门禁通过严格 GCC、C/XLang 边界、双语同输出、边界 AOT 及公开文件范例 AOT；Linux 包级门禁通过 C ASan/UBSan、内嵌 TCC C 用例、中央和包内 XLang 边界及双语输出对照。旧版共享缺符号已解除。XRT <code>uint64</code> 限额与 XLang <code>uint64</code> 对齐，C 32 位深度参数使用 <code>c_uint</code>。语言边界还验证中文路径、内嵌 NUL、资源限额和分配失败恢复；限额与分配故障分开验证，不依赖固定分配次数。这是 ini 包级证据，不等于整个 xlang 发布版签收。</p>
   </section>
 </main>
 <script src="../main.js"></script>

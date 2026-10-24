@@ -80,6 +80,13 @@ try {
             $null = Run 'AOT boundaries build' $xl @('build',
                 'extlibs/ini/test/boundaries.xl', '-o', $exe)
             $null = Run 'AOT boundaries' $exe @()
+            $exampleExe = Join-Path $work 'example.exe'
+            $null = Run 'AOT example build' $xl @('build',
+                'examples/extlibs/ini.xl', '-o', $exampleExe)
+            $aotOutput = Run 'AOT example' $exampleExe @()
+            if ($aotOutput -cne $xlOutput) {
+                throw '[ini] AOT example output differs from C/XLang JIT'
+            }
         }
     } finally { Pop-Location }
 } finally {

@@ -76,23 +76,27 @@ OptionsInit 将倍率置零，显式设置这些字段会返回 `XRT_INI_ERROR_A
 在 `demo6` 目录运行定向验证：
 
 ```text
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ini/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ini/test/check.ps1
 bash release/extlibs/ini/test/check.sh
 ```
 
-Windows `-SkipAot` 门禁覆盖严格 GCC、C/XLang 边界与双语同输出范例。
+2026-10-24 使用更新后的 Windows 发布版复验，默认门禁通过严格 GCC、
+C/XLang 边界、双语同输出范例、边界 AOT 和公开文件范例 AOT；Linux
+C ASan/UBSan 与 XLang 双语门禁也通过。旧发布版的共享缺符号阻断已解除。
+语言限额负例不再依赖固定的第 14 次分配位置；超限错误与逐点分配
+故障分别验证，避免编译器调用路径变化使测试误报。
 `release/examples/extlibs/ini.xl` 和 `ini_c.c` 还在独占临时目录里成对展示
 `create`、`save`、`load` 的文件往返，并验证加载后的值；GCC、TCC 和
 XLang 输出一致，范例结束时删除该目录。
 门禁每次使用独占构建目录，失败和成功退出时只清理本次产物；不会复用
 旧 `build/test/ini_guard` 中的可执行文件。
 Linux 门禁使用 ASan/UBSan 验证 C 解析及文件路径边界，另以内嵌 TCC
-执行 C 用例，运行中央/包内 XLang 边界并逐字节核对双语范例。带输出的 XLang
-当前无输出 AOT 核心先缺 `xl6NativeHandleTraceLeaf`，独立 `Buffer`
-最小复现同错；带输出范例还可能受 `xl6ValueDataSnapshotV1` 阻断，
-不能据此宣称完整发布验收。
+执行 C 用例，运行中央/包内 XLang 边界并逐字节核对双语范例。
+这些是 ini 包级证据，不等于整个 xlang 发布版签收。
 包内 `test/boundaries.xl` 已登记到 `coverage.tests`，统一扩展库 smoke 可发现；
-2026-10-16 从 `demo6` 工作目录单独运行通过，不代表本轮重跑了 C/Linux/AOT 门禁。
+现已从 `demo6` 工作目录与默认包门禁一并复跑。
+
+以下为历史验证记录，其中缺符号描述均指当时的旧发布二进制。
 
 2026-10-17：修复 Linux LP64 导入 ABI：XRT `uint64` 参数使用 XLang
 `uint64`，原生 `uint32` 深度参数使用明确的 `c_uint`；此前 `c_ulonglong`
