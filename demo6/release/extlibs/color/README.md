@@ -100,20 +100,24 @@ bool ok = xcolor_hex(51, 102, 204, output, sizeof(output));
 C 范例以栈缓冲和显式条件检查所有调用；两平台门禁均用 `-DNDEBUG`
 构建执行，防止 Release 模式跳过颜色转换而打印未初始化结果。
 
-门禁：`tools/check_extlib_color.ps1` 与 `tools/check_extlib_color.sh`。当前完整
-AOT 缺共享符号时，可运行 `tools/check_extlib_color.ps1 -SkipAot`，继续验证
-Windows 侧 C/XL、ABI、DLL 复用和双语输出；默认模式仍要求 AOT 通过。
+门禁：`tools/check_extlib_color.ps1` 与 `tools/check_extlib_color.sh`。
+2026-10-24 使用更新后的 Windows 发布版复验，默认专项门禁完整通过，
+包括实际生成原型、语言边界与分配故障 AOT、双语范例 AOT、DLL 上下文复用
+和文档代码块。Linux C ASan/UBSan/float-cast、独立 oracle、线程与语言
+对照门禁也通过。旧共享文本快照缺符号已解除；脚本仍将结果标为
+`passed-scoped` 而非正式产品全量重建，不据此签收其他架构与性能要求。
 门禁覆盖独立数值/名称
 参照、缓冲边界、重叠输入输出、非有限数、零分配核心、结果寿命、故障注入、线程隔离、
 实际生成原型、JIT/AOT、DLL 上下文复用以及 C/xlang 固定输出。名称夹具来自 W3C，
 日常门禁不联网，也不从待测色表提取期望值。
 
 当前正式 `xl.exe` 运行 `test/allocations.xl` 已通过，不再把旧的共享异常清理
-阻断列为现存问题。Linux 门禁现在同次运行 C sanitizer/oracle、中央与包内
-XLang 边界及分配故障，并将双语范例与黄金输出对照。完整教学范例 AOT 仍
-等待共享文本快照符号修复；源码驱动借用正式 DLL 的 TCC core，不是正式
-产品全量重建。32 位/ARM、TSan 和长期性能尚未验证。
+阻断列为现存问题。Linux 门禁同次运行 C sanitizer/oracle、中央与包内
+XLang 边界及分配故障，并将双语范例与黄金输出对照。
+32 位/ARM、TSan 和长期性能尚未验证。
 完整执行证据与剩余边界记录在 `demo6/docs/扩展库Color限定交付_2026-09-28.md`。
+
+以下为历史验证记录，其中 AOT 阻断描述针对当时的旧发布版。
 
 2026-10-17：`tools/check_extlib_color.sh` 已在 Linux 跑通 C ASan/UBSan/
 float-cast、独立数值 oracle、线程测试、XLang 中央与包内边界、故障注入
