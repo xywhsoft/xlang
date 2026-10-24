@@ -5586,11 +5586,20 @@ typedef enum XL6_IrExportValueAbi {
  * and the private XLIR function label.  Lowering owns the fully resolved
  * linkage name, public parameter borrow/value modes, and return transfer;
  * Cgen only writes this already-verified adapter. */
+typedef enum XL6_IrExportResultBridgeAbi {
+    XL6_IR_EXPORT_RESULT_INVALID = 0,
+    XL6_IR_EXPORT_RESULT_DIRECT,
+    /* Only the C entry materializes compiler-private owners. Language calls
+     * retain the CallTarget's original result and ownership ABI. */
+    XL6_IR_EXPORT_RESULT_C_OWNED_COPY
+} XL6_IrExportResultBridgeAbi;
+
 typedef struct XL6_IrExport {
     XL6_SymbolId symbol;
     XL6_IrNodeId declaration;
     char* cName;
     XL6_IrTypeId returnType;
+    XL6_IrExportResultBridgeAbi resultBridgeAbi;
     XL6_IrExportReturnAbi returnAbi;
     XL6_IrExportValueAbi returnValueAbi;
     XL6_IrExportErrorAbi errorAbi;
@@ -7849,6 +7858,9 @@ const XL6_IrNativeHandleBind* xl6IrNativeHandleBindGet(
 const XL6_IrNativeHandleProject* xl6IrNativeHandleProjectGet(
     const XL6_IrModule* module, XL6_IrNodeId origin);
 XL6_IrExportValueAbi xl6IrExportValueAbiForType(const XL6_IrType* type);
+XL6_IrTypeId xl6IrTypeInternExportResult(XL6_IrModule* module, XL6_IrTypeId bodyType);
+XL6_IrExportResultBridgeAbi xl6IrExportResultBridgeForTypes(
+    const XL6_IrModule* module, XL6_IrTypeId bodyType, XL6_IrTypeId publicType);
 XL6_IrExportValueAbi xl6IrExportParameterValueAbiForType(
     const XL6_IrModule* module, XL6_IrTypeId type, XL6_IrParameterAbi abi);
 XL6_IrTypeId xl6IrExportCallbackSignatureType(const XL6_IrModule* module, XL6_IrTypeId type);

@@ -20380,8 +20380,9 @@ static int xl6SemCheckExportCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
                   !xl6SemIsCAbiEnumType(ctx, typeNode) &&
                   !xl6SemIsCAbiTypedContainerType(ctx, typeNode) &&
                   !xl6SemIsCAbiTaggedNullableScalar(ctx, typeNode) &&
+                   !xl6SemCOwnedTypeBase(typeNode) &&
                   (typeNode->childCount > 0 ||
-                   (!xl6SemIsCAbiReturnType(typeNode->text) && !xl6SemIsCAbiRecordType(ctx, typeNode)))) ) {
+                    (!xl6SemIsCAbiReturnType(typeNode->text) && !xl6SemIsCAbiRecordType(ctx, typeNode)))) ) {
                 xl6SemErrorNode(ctx, typeNode, "该返回类型不能直接进入第二阶段 C ABI export");
                 ok = 0;
             }

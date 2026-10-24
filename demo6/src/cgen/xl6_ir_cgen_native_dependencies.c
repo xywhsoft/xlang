@@ -32,6 +32,9 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
         for(size_t p=0;p<target->parameterCount;++p)
             if(xl6IrTypeIsCOwned(xl6IrTypeGet(&module->types,target->parameterTypes[p])))needs->needsCOwnedRuntime=1;
     }
+    for (size_t i=0;i<module->exportCount;++i)
+        if (module->exports[i].resultBridgeAbi==XL6_IR_EXPORT_RESULT_C_OWNED_COPY)
+            needs->needsCOwnedRuntime=1;
     if(needs->needsCOwnedRuntime) {
         needs->needsStringRuntime=1;
         needs->needsStringScalarRuntime=1;

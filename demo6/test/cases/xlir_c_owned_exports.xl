@@ -1,0 +1,63 @@
+extern "c_owned_text" @no_raise func nativeText() as point
+extern "c_owned_binary" @no_raise func nativeBytes() as point
+extern "c_owned_release" @no_raise func nativeFree(point data)
+extern "c_owned_text_is_original" @no_raise func original(string text) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes data) as bool
+extern "c_owned_released" @no_raise func released() as int
+
+export "owned_text" func makeText() as cstring
+    return cstring.take(nativeText(), nativeFree)
+end
+export "owned_bytes" func makeBytes() as cbytes
+    return cbytes.take(nativeBytes(), 4, nativeFree)
+end
+export "owned_optional_text" func maybeText(bool present) as cstring?
+    return present ? makeText() : null
+end
+export "owned_optional_bytes" func maybeBytes(bool present) as cbytes?
+    return present ? makeBytes() : null
+end
+export "owned_empty_text" func emptyText() as cstring?
+    return cstring.take(null, nativeFree)
+end
+export "owned_empty_bytes" func emptyBytes() as cbytes?
+    return cbytes.take(null, 0, nativeFree)
+end
+export "owned_pair" func makePair() as (array<int>, cstring, cbytes, int)
+    array<int> prefix = [1, 2]
+    return prefix, makeText(), makeBytes(), 42
+end
+export "owned_failure" func failText() as cstring
+    string held = makeText()
+    throw ValueError "export body failed"
+end
+
+func exercise()
+    int before = released()
+    string text = makeText()
+    string alias = text
+    bytes data = makeBytes()
+    bytes binaryAlias = data
+    assert original(text) and original(alias)
+    assert originalBytes(data) and originalBytes(binaryAlias)
+    assert released() == before
+    auto optionalText = maybeText(true)
+    auto optionalBytes = maybeBytes(true)
+    assert optionalText != null and original(optionalText)
+    assert optionalBytes != null and originalBytes(optionalBytes)
+    assert maybeText(false) == null and maybeBytes(false) == null
+    assert (emptyText() ?? "fallback") == ""
+    assert (emptyBytes() ?? b"fallback") == b""
+    auto prefix, first, second, number = makePair()
+    assert prefix[0] == 1 and prefix[1] == 2 and original(first) and originalBytes(second) and number == 42
+    assert first == "hello" and second == b"\0\xff\x11*"
+    bool caught = false
+    try
+        failText()
+    catch ValueError
+        caught = true
+    end
+    assert caught and released() == before + 1
+end
+exercise()
+assert released() == 7
