@@ -699,3 +699,40 @@ CancelWatch 三份真实信用，结果使用拥有 Stream payload。Prepare 等
 配置／IR／裁剪、产品回归及二十九个精确 SDK 符号的真实 TCC 绑定共 260
 阶段通过。输入、对象和产物哈希独立复核；Linux 原件保留，接受报告复制。
 仅普通显式本机回环和离线检查，没有公网／DNS／安全专项。
+
+## 原生 TLS Dial 拥有阶段与双时间 ABI 实测
+
+新增 `xrtTlsDialOwnedV1` 与八个图／策略入口，API 3419／3884。构造成功
+消费一个 Data 引用，失败消费零个。已有 owned TCP Dial 不安装借用的
+Stream 事件，完成后在所属 Worker 上 Attach 拥有式 TLS Stream。其永久
+pull／push 策略保留 Open-before-Done，交付只转移真实创建信用，后续
+Stream 上下文继续持有 Dial，覆盖 Session 所借用的全部配置。
+
+取消只在 Worker 上访问阶段槽，runtime、Timer、TCP Done 和回调帧都
+对应真实引用。构造线程与 Worker 的发布／runtime 转移由独立锁串行；
+Mutation 只排除 Freeze，不能替代互斥。Ready 等待实际终态、传输、期限
+和停止命令收敛；Clear 不运行用户代码，Finish 保留首次清理错误并支持
+重复检查，所有传递目标必须保持 pin 至全图物理收尾结束。
+
+固定快照仍使用原来的微秒／绝对 deadline 合同，原生仍是相对毫秒。
+代码按已声明的 ABI 构造期限，不做数值直传或强转。新增独立 pinned
+验收入口，用同一普通 Dial 图夹具和显式测试单位转换，在快照实现上
+实际验证超时／取消等行为，不以 SDK 类型绑定代替实际行为验证。
+
+证据 `F:/xlang-validation/five-groups-20261024/p6-tls-dial`。第一轮发现
+无符号字段校验和并发重复 runtime 转移，失败证据保留；修复后 Windows
+TCC 额外 30 次探测重复通过，仅记为探测。正式 r2 冻结原生 2344、xlang
+9013 输入。原生 Windows／Linux 456／608 编译运行步骤、33／44 次实际
+fixture 执行通过；固定快照另 9／12 阶段、6／8 次实际执行通过。新夹具
+在正式验收中累计 798 个闭合图／证明、1008 次拒绝、210 次持久清理
+错误、378 个分配预算中的 294 次失败，完整内存台账平衡。覆盖双 Worker、
+select／IOCP／epoll、模块化／单头、GCC O0／O2、TCC、Linux ASan／UBSan。
+
+两端全源码 O2 1156／1155 TU、配置／IR／裁剪、产品 ABI／数学／TLS 回归
+及三十八个精确 SDK 符号的真实 TCC 绑定，共 129／131 阶段通过。接受
+的输入、对象、产物与日志哈希独立复核；Linux 原件留在 WSL，报告复制。
+不改 Cgen 或两边时间 ABI，没有公网／DNS 查询／畸形数据／安全专项。
+
+旧借用 Dial、Proxy Dial 和 FutureBridgeWait 尚未因此拥有化。接下来仍
+需 Future 激活／拥有结果、Proxy、语言传输迁移、动态回调／恢复、旧
+后端清退和完整 P7；本批不是整个工作区、发布 DLL 或完整 TLS 验收。
