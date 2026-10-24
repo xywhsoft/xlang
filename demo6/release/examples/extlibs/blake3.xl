@@ -1,59 +1,61 @@
 import blake3
 
-// BLAKE3 的哈希、keyed hash 和 KDF；流式读取摘要不终结对象。
+func main(...) as int
+    // BLAKE3 的哈希、keyed hash 和 KDF；流式读取摘要不终结对象。
+    string sample = "hello xlang"
 
-string sample = "hello xlang"
+    // 一次性哈希（默认 32 字节 = 64 hex 字符）
+    println("BLAKE3: " + blake3.hashHex(sample))
+    println("BLAKE3 (64B): " + blake3.hashHex(sample, 64))
 
-// 一次性哈希（默认 32 字节 = 64 hex 字符）
-println("BLAKE3: " + blake3.hashHex(sample))
-println("BLAKE3 (64B): " + blake3.hashHex(sample, 64))
+    // MAC 模式（keyed hash，32 字节 key）
+    string keyStr = "0123456789abcdef0123456789abcdef"
+    Buffer key = Buffer()
+    key.append(keyStr)
+    println("BLAKE3 MAC: " + blake3.hashMacHex(sample, keyStr))
 
-// MAC 模式（keyed hash，32 字节 key）
-string keyStr = "0123456789abcdef0123456789abcdef"
-Buffer key = Buffer()
-key.append(keyStr)
-println("BLAKE3 MAC: " + blake3.hashMacHex(sample, keyStr))
+    // KDF 模式（密钥派生）
+    println("BLAKE3 KDF: " + blake3.hashKdfHex(key, "my app context"))
+    auto derived = blake3.deriveHasher("my app context")
+    derived.update(key)
+    assert derived.digestHex() == blake3.hashKdfHex(key, "my app context")
 
-// KDF 模式（密钥派生）
-println("BLAKE3 KDF: " + blake3.hashKdfHex(key, "my app context"))
-auto derived = blake3.deriveHasher("my app context")
-derived.update(key)
-assert derived.digestHex() == blake3.hashKdfHex(key, "my app context")
+    // 流式哈希器
+    auto hasher = blake3.hasher()
+    hasher.update("hello ")
+    hasher.update("xlang")
+    assert hasher.digestHex() == blake3.hashHex(sample), "blake3 streaming mismatch"
+    println("streaming inputBytes: " + string(hasher.inputBytes))
 
-// 流式哈希器
-auto hasher = blake3.hasher()
-hasher.update("hello ")
-hasher.update("xlang")
-assert hasher.digestHex() == blake3.hashHex(sample), "blake3 streaming mismatch"
-println("streaming inputBytes: " + string(hasher.inputBytes))
+    // reset 复位
+    hasher.reset()
+    hasher.update(sample)
+    assert hasher.digestHex() == blake3.hashHex(sample), "blake3 reset mismatch"
 
-// reset 复位
-hasher.reset()
-hasher.update(sample)
-assert hasher.digestHex() == blake3.hashHex(sample), "blake3 reset mismatch"
+    // Keyed 流式哈希器
+    auto khasher = blake3.keyedHasher(key)
+    khasher.update(sample)
+    assert khasher.digestHex() == blake3.hashMacHex(sample, keyStr), "blake3 keyed streaming mismatch"
 
-// Keyed 流式哈希器
-auto khasher = blake3.keyedHasher(key)
-khasher.update(sample)
-assert khasher.digestHex() == blake3.hashMacHex(sample, keyStr), "blake3 keyed streaming mismatch"
+    // clone 独立副本
+    auto h1 = blake3.hasher()
+    h1.update("hello")
+    auto h2 = h1.clone()
+    h1.update(" xlang")
+    h2.update(" world")
+    println("clone h1: " + h1.digestHex())
+    println("clone h2: " + h2.digestHex())
 
-// clone 独立副本
-auto h1 = blake3.hasher()
-h1.update("hello")
-auto h2 = h1.clone()
-h1.update(" xlang")
-h2.update(" world")
-println("clone h1: " + h1.digestHex())
-println("clone h2: " + h2.digestHex())
+    // 文件哈希
+    string work = dir.temp("", "xlang-blake3-example-", "")
+    try
+        string input = path.join(work, "blake3_sample.txt")
+        assert file.writeText(input, sample)
+        assert blake3.hashFileHex(input) == blake3.hashHex(sample), "blake3 file mismatch"
+    finally
+        assert dir.delete(work), "BLAKE3 example temporary directory must be removed"
+    end
 
-// 文件哈希
-string work = dir.temp("", "xlang-blake3-example-", "")
-try
-    string input = path.join(work, "blake3_sample.txt")
-    assert file.writeText(input, sample)
-    assert blake3.hashFileHex(input) == blake3.hashHex(sample), "blake3 file mismatch"
-finally
-    assert dir.delete(work), "BLAKE3 example temporary directory must be removed"
+    println("blake3 extlib ok")
+    return 0
 end
-
-println("blake3 extlib ok")

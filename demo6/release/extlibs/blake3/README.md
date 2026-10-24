@@ -241,3 +241,20 @@ Linux 门禁使用 `mktemp` 独占目录。Windows `-SkipAot` 的严格 C/JIT、
 门禁，以及 Linux 35 条官方向量、ASan/UBSan、线程与 XLang 门禁通过。
 库实现/API 未改，完整 AOT 和私有接管构造器的主线阻断仍在，
 不签收整包发布级。
+
+2026-10-24：修正锁定清单中 `blake3_impl.h` 的本地 SHA-256（原误填上游
+原件哈希）；逐行核对后差异仅为空行与行尾空格，不涉及算法。边界测试改用
+当前公开的 `Buffer.fromHex`，两份可执行范例改为显式 `main`。
+当前发布构建上的 Windows 默认专项门禁 47 项全通过，包括 35 组上游向量、
+严格 C 边界、23 个生成原型、C/XLang JIT 与 AOT、双语范例输出对照。
+先前的 `xl6NativeHandleTraceLeaf` AOT 缺符号在本次 BLAKE3 复测中不再出现。
+但包外仍可通过 `xl check` 调用私有接管构造器；顶层原生 hasher 在 AOT
+输出摘要后又报退出状态错误，见
+`demo6/dev/extlib_blockers/blake3_global_native_aot.md`。这两项主线边界
+修复并复验前，本包仍不签收完整发布级安全性。
+Linux C ASan/UBSan 四组包测试本次通过；Linux XLang 阶段因旧版
+`release/xl` 不认识 `cbytes` 而停下。尝试重建时先遇到 `build_linux.sh`
+的 CRLF 换行，使用仅去除行尾 CR 的临时副本后，又在 `libxl.so` 链接处
+发现主线 X509/TLS 源文件清单缺失，见
+`demo6/dev/extlib_blockers/linux_release_x509_sources.md`。
+因此本次不能声称 Linux 双语门禁通过，也不以 Windows 结果替代它。

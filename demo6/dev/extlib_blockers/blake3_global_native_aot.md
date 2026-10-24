@@ -1,0 +1,32 @@
+# 顶层原生 hasher 的 AOT 退出状态错误
+
+状态：blocked-upstream。普通扩展库任务不修改 XLang 主线。
+
+## 最小复现
+
+在 `demo6` 目录运行：
+
+```text
+release/xl.exe run release/extlibs/blake3/test/aot_global_hasher_repro.xl
+release/xl.exe build release/extlibs/blake3/test/aot_global_hasher_repro.xl -o build/blake3_global_repro.exe
+build/blake3_global_repro.exe
+```
+
+源程序只在顶层创建 hasher、追加 `abc` 并打印摘要。2026-10-24 的发布版
+`release/xl.exe` SHA-256 为
+`CCF98FF05BAAA71C1827EAA0C8B7A011A9A17EAB1AECD593CD89848D227C5A2B`。
+`xl run` 输出正确摘要并退出 0；`xl build` 成功，但生成的程序输出相同摘要后
+又报 `uncaught xlang error: RuntimeError: operation is not valid in the current state`，
+退出 1。该错误在用户代码完成后出现，不是摘要计算失败。
+
+对照：把 hasher 放在显式 `func main(...) as int` 的三组中央用例和两份
+教学范例中，完整 Windows 包门禁的 JIT/AOT 都通过。本次只证明顶层原生
+对象触发差异，尚未证明所有 class 或所有扩展包均受影响。
+
+## 修复与验收
+
+请主线检查 AOT 模块顶层执行、原生对象析构和运行时错误状态交接，
+确定是否在退出清理时留下/传播了状态错误。先以本文件的最小复现要求
+JIT/AOT 输出相同、退出码均为 0，再复跑 BLAKE3 完整门禁。
+教学范例使用显式 `main` 是可执行程序的正常写法，不是对此缺陷的修复；
+不能删除复现或据此宣称顶层写法已稳定。

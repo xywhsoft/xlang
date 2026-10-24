@@ -1,0 +1,5 @@
+import blake3
+
+auto hasher = blake3.hasher()
+hasher.update("abc")
+println(hasher.digestHex())

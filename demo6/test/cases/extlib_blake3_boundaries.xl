@@ -1,7 +1,7 @@
 import blake3
 
 func assertBytes(Buffer data, string hex)
-    Buffer expected = codec.hexDecodeBytes(hex)
+    Buffer expected = Buffer.fromHex(hex)
     assert data.len() == expected.len()
     for i in range(expected.len())
         assert data[i] == expected[i]

@@ -16,7 +16,10 @@
 其中 35 组向量同时记录 hash、keyed_hash、derive_key 的 131 字节输出。
 测试数据是从 0 开始的循环字节序列，字节 `i` 为 `i % 251`，不是全零数据。
 
-## 唯一本地上游补丁
+## 本地差异
+
+`third_party/blake3_impl.h` 与固定上游版本相比，仅增加空行并删除三处行尾空格；
+非空行的实际内容一致。清单分别记录上游原件和本地文件的 SHA-256，不能互换。
 
 `third_party/blake3.c` 中 `compress_chunks_parallel` 的局部数组改为零初始化：
 

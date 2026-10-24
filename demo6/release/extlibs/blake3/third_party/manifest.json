@@ -2,7 +2,7 @@
   "source": "https://github.com/BLAKE3-team/BLAKE3",
   "tag": "1.5.0",
   "commit": "5aa53f07f7188a569cadfc5daf1522972d9a9630",
-  "localPatch": "Initialize chunks_array to zero in blake3.c; deterministic portable build with GCC -Werror.",
+  "localPatch": "Initialize chunks_array to zero in blake3.c for GCC -Werror; blake3_impl.h differs from upstream only in blank lines and trailing whitespace.",
   "files": [
     {
       "path": "test/test_vectors.json",
@@ -14,7 +14,7 @@
       "path": "third_party/blake3_impl.h",
       "upstream": "c/blake3_impl.h",
       "upstreamSha256": "8F2DE31B1498A6A572DB2328D8D7E7A8DD904459C74A1C68B7FAE34405C518EC",
-      "sha256": "8F2DE31B1498A6A572DB2328D8D7E7A8DD904459C74A1C68B7FAE34405C518EC"
+      "sha256": "B54CF2CD6EDA4912BC91615147EE47A1B1A2004ED9555D42F0553BE6E79A3F0C"
     },
     {
       "path": "third_party/blake3_portable.c",
