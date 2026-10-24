@@ -140,3 +140,14 @@ dev/extlib_blockers/sitemap_build_var_array_projection.xl` 先打印
 要求 `XVALUE_ARRAY`，公开语言签名则为 `var`。仍需主线统一 foreign
 数组投影，不能在本包识别编译器内部 handle；修复后复跑此最小源、
 公开双语范例与默认包级 JIT/AOT 门禁。
+
+同日 `terraform_state` 复现对象侧：从 `demo6/release` 运行
+`./xl.exe run extlibs/terraform_state/test/literal_state.xl`，先确认
+同一 JSON 经 `parse()` 后可被 `version(var)` 查询，再把等价的
+XLang 字典传入该函数，报 `TypeError: Terraform state must be a
+JSON object`。原生 `xtf_state` 要求 XRT object；公开签名只声明
+`var`。`xl check` 通过，JIT 与独立 EXE 均在运行时失败。旧包级门禁
+的 C、JIT、AOT 对解析产物均通过，但未覆盖直接构造。新用例已登记
+包清单与默认门禁，使整包保持红色直至主线统一对象投影。修复后
+复跑最小用例及完整 `release/extlibs/terraform_state/test/check.ps1`；
+不要在包侧识别编译器私有句柄。
