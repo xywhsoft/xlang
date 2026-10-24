@@ -1,5 +1,11 @@
 # md4c
 
+2026-10-25 使用本日标准 `build.bat` 新生成的 Windows 发布版复验：
+默认 `test/check.ps1` 的严格 C、C 边界与分配故障、C/XLang 同输出、
+公开范例以及边界和范例的独立 EXE 构建运行均通过。三个 HTML 返回
+仍由 `takeCstr` 直接接管 XRT 分配，不因编译器支持 `cstring` 导出而
+改写已有的零拷贝路径。Linux 新发布物尚未完成构建，本次不签收其 AOT。
+
 基于随包携带的 md4c 0.5.2，将 CommonMark/GitHub 方言文本渲染为 HTML。`md4c.html(markdown)` 使用 CommonMark；`html_flags(markdown, parserFlags, rendererFlags)` 可选择 GitHub 方言、禁用原生 HTML、XHTML 输出等；`file_html(path, parserFlags, rendererFlags)` 读取 UTF-8 路径对应的 Markdown 文件。相关标志可通过 `github_flags`、`no_html_flag` 等函数取得。
 
 C 接口见 `md4c_native.h`：渲染函数返回调用方拥有的结果，用 `xrtFree` 释放；失败返回 `NULL`，可用线程内 `xmd4c_last_error()` 查错。XLang 包装层在失败时抛出异常；成功结果会被接管并释放，不占用全局轮换缓冲。文本和路径含内嵌 NUL 时，XLang 入口抛出 `ValueError`；文件内容含内嵌 NUL 时，C 返回 `NULL` 并说明原因，不静默截断。C 字符串入口无法表达内嵌 NUL 的完整输入，调用方须传入正常终止的字符串。
