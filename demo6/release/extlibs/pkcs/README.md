@@ -68,3 +68,11 @@ AlgorithmIdentifier、INTEGER 与 OCTET STRING 的结构和值；完整门禁通
 2026-10-22：C 端 `encodeOid`、`decodeOid`、`getContent` 和 `concat` 新增逐点分配故障扫描，核对内存错误、成功重试及活动分配数/字节数回到基线。Windows 严格 C/XLang 与双语范例、Linux C ASan/UBSan、OpenSSL 互通门禁通过；未发现包内泄漏，完整 AOT 仍待共享缺符号修复。
 
 2026-10-23：XLang 的 15 条非法输入用例改为按 `ValueError`/`TypeError` 明确捕获，发现奇数位及非 HEX 文本曾继承 XRT 通用 HEX 解码的协议错误、误映射为 `IOError`；本包只把 HEX 格式错误归为参数值错误，不覆盖内存故障。新增四条 DER 文本路径的 XLang 分配故障扫描，要求 `MemoryError`、正确结果与重试恢复，并纳入双平台门禁及清单。Windows 严格 C/XLang 与 Linux C ASan/UBSan、OpenSSL 互通门禁通过；完整 AOT 阻断不变。
+
+2026-10-24 当前 Windows 发布版复验：默认 `test/check.ps1` 全部通过，
+包括公开 C 头独立包含、严格 GCC、C/XLang DER 边界与内存故障、
+双语范例，以及语言边界和完整范例的 AOT 构建与运行。旧版
+`xl6ValueDataSnapshotV1` 缺符号在本次范围内不再复现。
+Linux OpenSSL/ASan/UBSan 门禁沿用前次记录，此次没有以重建后的
+Linux 发布物复验语言路径；本条不扩张为完整 PKCS 协议或跨平台
+发布认证。
