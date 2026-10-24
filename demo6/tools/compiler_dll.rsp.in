@@ -66,6 +66,17 @@
     src\runtime\xl6_ownership_domain_tls_dial_native.c
     src\runtime\xl6_ownership_domain_tls_dial_future_native.c
     src\runtime\xl6_ownership_domain_tls_dial_proxy_native.c
+    src\runtime\xl6_execution_tls_stream.c
+    src\runtime\xl6_execution_tls_listener.c
+    src\runtime\xl6_execution_tls_client.c
+    src\runtime\xl6_execution_tls_server.c
+    src\runtime\xl6_ownership_domain_execution_tls_stream.c
+    src\runtime\xl6_ownership_domain_execution_tls_listener.c
+    src\runtime\xl6_tls_stream_language.c
+    src\runtime\xl6_tls_listener_language.c
+    src\runtime\xl6_tls_stream_language_domain.c
+    src\runtime\xl6_tls_listener_language_domain.c
+
 
     src\runtime\xl6_execution_tcp_dial.c
     src\runtime\xl6_execution_tcp_dial_common.c
