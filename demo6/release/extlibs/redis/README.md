@@ -5,15 +5,14 @@
 `TcpStream`，由 `command` 组合 `send`、`wait`、`recv` 完成命令调用。
 不包含连接池、自动重连、订阅模式或事务编排。
 
-2026-10-24 当前 Windows 发布版复验：严格 C 编译、C 边界/分配故障/线程、
-XLang 编解码边界/分配故障均通过；现行 TCP API 的分包、NUL、错误回复、
-连接复用和期限用例在 JIT 与独立 EXE 中通过；包内
-`reuse_loopback.xl` 的 500 / 10000 次 JIT 往返及 500 次独立 EXE 也通过。
-完整 `test/check.ps1` 仍未通过：旧 `command_loopback.xl` 使用了已经撤销的
-文本 `recv`、`tcp.connect`、布尔 `send`、`drain` 写法，需迁移到
-`TcpListener`/`NetEngine`、`bytes`、`NetStatus`、`TcpWait` 后保留原边界
-覆盖重新运行。当前结果不构成包级发布签收；下文的历史门禁结果对应当时
-的发布物。
+2026-10-24 当前 Windows 发布版复验：默认 `test/check.ps1` 完整通过，
+包括严格 C、边界/分配故障/线程、XLang 边界/分配故障、现行 TCP API 的
+预检、分包、畸形回复、断线、限额和期限，以及核心、回环、公开范例的
+独立 EXE 构建与运行。C/XLang 双语范例逐字输出一致；另单跑同连接
+100000 次 JIT 请求通过。网络回环使用 `NetEngine`、`TcpListener`、
+`bytes`、`NetStatus` 和 `TcpWait` 的当前合同。此处是 Windows 离线包级
+签收，不代表真实 Redis 长时运行或当前 Linux 发布物的完整复验；
+下文旧链接阻断记录对应当时的发布物。
 
 ```xlang
 import redis
@@ -88,16 +87,18 @@ C 接口见 `include/redis_native.h`，输入 `xvalue*` 仅借用；
   压力测试由聚焦门禁单独运行。
 - `xl run extlibs/redis/test/command_loopback.xl` 在本机随机端口测试
   `TcpStream` 命令往返、分段回复、错误回复，以及持续滴送不完整回复时的
-  整次调用超时；还检查自定义短超时、回复字节限额与参数校验前置。
-  发送前的分配故障须抛 `MemoryError`，且不消耗连接；清除故障后同一连接
-  可正常执行命令。
-  畸形回复、超限和超时后验证旧流不再可发送。
+  整次调用超时；还检查自定义短超时和回复字节限额。
+  畸形回复、超限和超时后验证旧流不再处于 `open` 状态。
+- `xl run extlibs/redis/test/preflight_repro.xl` 单独检查非法期限、限额、
+  空命令均在发送前失败，且连接仍保持 `open`。分配故障由独立的
+  `test/allocations.xl` 和 C 故障门禁验证，不在活跃网络线程上启用
+  全局分配失败注入。
 - `test/check.ps1` 是不依赖真实服务的 Windows 包级门禁；普通模式包含
   C 边界/分配故障/线程、XL 边界与分配故障、TCP 回环和双语范例对照，
   并构建运行核心及完整范例 AOT，将后者输出与 C 范例对照。
   `-SkipAot` 只运行离线 C/JIT 快测，不表示发布签收。`-Stress` 另跑
   `test/reuse_loopback.xl` 的十万次同连接请求（每 17 次有一个 Redis
-  error 回复）；2026-10-13 本机 500、10,000、100,000 次均通过。
+  error 回复）；2026-10-24 本机 500、10,000、100,000 次均通过。
   这是协议与连接复用探针，不替代真实 Redis 的长时验收。
 - 包内 C/XLang 与中央 XLang 用例均固定空命令返回范围错误，随后 `PING` 编码恢复正常；
   不增加空命令兼容写法。

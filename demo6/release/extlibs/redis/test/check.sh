@@ -37,6 +37,7 @@ if [[ ${REDIS_LIVE:-0} == 1 ]]; then
 fi
 timeout 60s ./release/xl run release/extlibs/redis/test/boundaries.xl
 timeout 60s ./release/xl run release/extlibs/redis/test/allocations.xl
+timeout 60s ./release/xl run release/extlibs/redis/test/preflight_repro.xl
 timeout 60s ./release/xl run test/cases/extlib_redis.xl
 timeout 90s ./release/xl run release/extlibs/redis/test/command_loopback.xl
 timeout 60s ./release/xl run release/extlibs/redis/test/reuse_loopback.xl

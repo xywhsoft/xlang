@@ -43,11 +43,18 @@ try {
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/redis/test/boundaries.xl')
         $null = Run 'XLang allocation failures' $xl @('run',
             'extlibs/redis/test/allocations.xl')
+        $preflight = Run 'TCP preflight' $xl @('run',
+            'extlibs/redis/test/preflight_repro.xl')
         $null = Run 'TCP current API' $xl @('run',
             '../test/cases/xlir_extlib_redis_current_tcp.xl')
-        $null = Run 'TCP reuse' $xl @('run', 'extlibs/redis/test/reuse_loopback.xl')
-        $null = Run 'TCP fragmented/error/deadline' $xl @('run',
+        $reuseOutput = Run 'TCP reuse' $xl @('run', 'extlibs/redis/test/reuse_loopback.xl')
+        $commandOutput = Run 'TCP fragmented/error/deadline' $xl @('run',
             'extlibs/redis/test/command_loopback.xl')
+        if ($preflight -cne 'redis preflight: ok' -or
+            $reuseOutput -cne 'redis reuse loopback: 500' -or
+            $commandOutput -cne 'redis command loopback: ok') {
+            throw '[redis] TCP test output differs from fixed expectation'
+        }
         if ($Stress) {
             $null = Run 'TCP reuse 100000' $xl @('run',
                 'extlibs/redis/test/reuse_loopback.xl', '--', '100000')
@@ -59,6 +66,20 @@ try {
             $null = Run 'XLang core build' $xl @('build',
                 'extlibs/redis/test/aot_core.xl', '-o', $core)
             $null = Run 'XLang core AOT' $core @()
+            foreach ($case in @('preflight_repro', 'command_loopback', 'reuse_loopback')) {
+                $target = Join-Path $work "$case.exe"
+                $null = Run "TCP $case build" $xl @('build',
+                    "extlibs/redis/test/$case.xl", '-o', $target)
+                $output = Run "TCP $case AOT" $target @()
+                $expected = switch ($case) {
+                    'preflight_repro' { 'redis preflight: ok' }
+                    'command_loopback' { 'redis command loopback: ok' }
+                    'reuse_loopback' { 'redis reuse loopback: 500' }
+                }
+                if ($output -cne $expected) {
+                    throw "[redis] TCP $case AOT output differs from fixed expectation"
+                }
+            }
             $example = Join-Path $work 'redis_example.exe'
             $null = Run 'XLang example build' $xl @('build',
                 'examples/extlibs/redis.xl', '-o', $example)
