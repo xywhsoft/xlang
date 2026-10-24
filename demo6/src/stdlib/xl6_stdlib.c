@@ -1110,10 +1110,9 @@ static int xl6StdlibNeedsUdpConfigClass(const XL6_AstNode* root, const int* used
            xl6StdlibFuncUsed(used, "udp", "config");
 }
 
-static int xl6StdlibNeedsTlsSessionClass(const XL6_AstNode* root)
+static int xl6StdlibNeedsTlsLegacyConfigClass(const XL6_AstNode* root)
 {
     return xl6StdlibNodeUsesTypeName(root, "TlsConfig") ||
-           xl6StdlibNodeUsesTypeName(root, "TlsSession") ||
            xl6StdlibNodeUsesTypeName(root, "TlsResume") ||
            xl6StdlibNodeUsesTypeName(root, "TlsStream");
 }
@@ -1704,7 +1703,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsUdpClass;
     int needsUdpConfigClass;
     int needsNetRuntime;
-    int needsTlsSessionClass;
+    int needsTlsLegacyConfigClass,needsTlsManagedSession;
     int needsTlsStreamClass;
     int needsTlsServerClass;
     int needsHttp1Class;
@@ -1742,7 +1741,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsStringIterator, needsUtf8Validator, needsRegex, needsRegexSet, needsRegexBuffer;
     int needsPattern;
     int needsDateTime;
-    int needsVfs;
+    int needsVfs,needsX509PathIsland,needsX509Island;
     int needsConsoleSession, needsConsoleOptions;
     int ok;
 
@@ -1756,6 +1755,13 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         return 0;
     }
     xl6StdlibApplyDeps(used);
+    needsTlsManagedSession=xl6StdlibNodeUsesTypeName(root,"TlsSession")||
+        xl6StdlibNodeUsesTypeName(root,"TlsRole")||xl6StdlibNodeUsesTypeName(root,"TlsState")||
+        xl6StdlibNodeUsesTypeName(root,"TlsWait")||xl6StdlibNodeUsesTypeName(root,"TlsResult");
+    /* Both managed role constructors share the session declaration. Close
+     * its transitive declaration island once, before VFS and type injection;
+     * an unused declaration still does not select executable runtime code. */
+    needsX509PathIsland=needsTlsManagedSession||xl6StdlibUsesX509PathClasses(root);
     needsCoreClass = xl6StdlibNodeDefinesClass(root) ||
         xl6StdlibNodeUsesTypeName(root, "object") ||
         xl6StdlibNodeUsesTypeName(root, "DynamicFields");
@@ -1804,7 +1810,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root, "PackOptions") || xl6StdlibNodeUsesTypeName(root, "PackStats") ||
         xl6StdlibNodeUsesTypeName(root, "Vfs") || xl6StdlibNodeUsesTypeName(root, "MemoryFS") ||
         xl6StdlibNodeUsesTypeName(root, "DiskFS") || xl6StdlibNodeUsesTypeName(root, "PackFS") ||
-        xl6StdlibNodeUsesTypeName(root, "VfsMount") || xl6StdlibUsesX509PathClasses(root);
+        xl6StdlibNodeUsesTypeName(root, "VfsMount") || needsX509PathIsland;
     needsRandomBufferMethods = needsRandomClass &&
         (xl6StdlibNodeUsesMemberName(root, "fillBytes") ||
          xl6StdlibNodeUsesMemberName(root, "shuffleBuffer"));
@@ -1837,7 +1843,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsTlsServerClass ) {
         needsTlsStreamClass = 1;
     }
-	needsTlsSessionClass = xl6StdlibNeedsTlsSessionClass(root) ||
+	needsTlsLegacyConfigClass = xl6StdlibNeedsTlsLegacyConfigClass(root) ||
 		needsTlsStreamClass || needsTlsServerClass;
     needsTcpProxyDial=xl6StdlibNodeUsesMemberName(root,"dialProxy")||
         xl6StdlibNodeUsesMemberName(root,"dialProxyAsync")||
@@ -1861,7 +1867,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetLineFramer=xl6StdlibNodeUsesTypeName(root,"NetLineFramer");
     needsNetLengthFramer=xl6StdlibNodeUsesTypeName(root,"NetLengthFramer");
     needsNetFrameResult=needsNetLineFramer||needsNetLengthFramer||xl6StdlibNodeUsesTypeName(root,"NetFrameResult")||xl6StdlibNodeUsesTypeName(root,"NetFrameStatus");
-    needsNetBuffer=needsNetProxyHandshake||needsNetLineFramer||needsNetLengthFramer||xl6StdlibNodeUsesTypeName(root,"NetBuffer");
+    needsNetBuffer=needsTlsManagedSession||needsNetProxyHandshake||needsNetLineFramer||needsNetLengthFramer||xl6StdlibNodeUsesTypeName(root,"NetBuffer");
     needsNetResolverClass=needsNetDefaultResolver||xl6StdlibNodeUsesTypeName(root,"NetResolver")||
         xl6StdlibNodeUsesTypeName(root,"NetResolveOperation");
     needsNetResolverOptionsClass=needsNetResolverClass||xl6StdlibNodeUsesTypeName(root,"NetResolverOptions");
@@ -1980,11 +1986,12 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibFuncUsed(used, "compress", "encodeBuffer") || xl6StdlibFuncUsed(used, "compress", "decode") ||
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer");
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
-    needsTlsClientContext=xl6StdlibNodeUsesTypeName(root,"TlsClientContext");
-    needsTlsServerContext=xl6StdlibNodeUsesTypeName(root,"TlsServerContext");
+    needsTlsClientContext=needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsClientContext");
+    needsTlsServerContext=needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsServerContext");
     needsTlsIdentity = needsTlsServerContext || xl6StdlibNodeUsesTypeName(root,"TlsIdentity") || xl6StdlibNodeUsesTypeName(root,"TlsIdentityKind");
     needsTlsVerifier=needsTlsClientContext || xl6StdlibNodeUsesTypeName(root,"TlsVerifier");
     needsTlsVerificationPolicy=needsTlsVerifier || xl6StdlibNodeUsesTypeName(root,"TlsVerificationPolicy");
+    needsX509Island=needsTlsIdentity||needsTlsVerifier||xl6StdlibNeedsX509(root,used);
     needsTlsParameters=needsTlsClientContext || needsTlsServerContext || xl6StdlibNodeUsesTypeName(root,"TlsParameters") || xl6StdlibNodeUsesTypeName(root,"TlsPolicy") ||
         xl6StdlibNodeUsesTypeName(root,"TlsLimits") || xl6StdlibNodeUsesTypeName(root,"TlsVersion") ||
         xl6StdlibNodeUsesTypeName(root,"TlsCipherSuite") || xl6StdlibNodeUsesTypeName(root,"TlsGroup") ||
@@ -2003,9 +2010,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer") || needsRegexBuffer || xl6StdlibFuncUsed(used, "io", "writeFile") || (needsIoBuffer && (needsIoReader || needsIoWriter)) || needsRandomBufferMethods || xl6StdlibNeedsBufferClass(root, used) ||
         needsNetBytesClass ||
         needsTcpStreamClass || needsUdpClass ||
-        needsTlsSessionClass || needsHttp1Class || needsHttpDecoderClass ||
+        needsTlsLegacyConfigClass || needsHttp1Class || needsHttpDecoderClass ||
         needsWsFrameClass || needsWebSocketClass || needsFileClass ||
-        needsAsyncFileClass || needsCryptoClass || needsEd25519Class || needsLoggerClass || xl6StdlibUsesX509PathClasses(root);
+        needsAsyncFileClass || needsCryptoClass || needsEd25519Class || needsLoggerClass || needsX509PathIsland;
     needsTccClass = xl6StdlibNeedsTccClass(root, used);
     needsXlangClass = xl6StdlibNeedsXlangClass(root, used);
     if ( needsCryptoClass || needsFileClass ) {
@@ -2021,7 +2028,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsNetProxyClass || needsNetEngineClass || needsTcpStreamStatsClass ||
         needsTcpServerStats || needsTcpListenerStatsClass || needsTcpStreamClass || needsTcpListenerClass ||
         needsUdpStatsClass || needsUdpClass || needsUdpConfigClass ||
-        needsTlsSessionClass || needsTlsStreamClass || needsTlsServerClass ||
+        needsTlsLegacyConfigClass || needsTlsStreamClass || needsTlsServerClass ||
         needsHttp1Class || needsHttpDecoderClass || needsWsFrameClass ||
         needsWsHandshakeClass || needsWsUpgradeClass ||
         needsWebSocketConfigClass || needsWebSocketClass ||
@@ -2030,7 +2037,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsLoggerClass || needsTemplateClass ||
         needsCryptoClass || needsTccClass || needsXlangClass;
     if ( needsRandomClass || needsXidClass || needsBufferClass || needsNetRuntime ||
-         needsTlsSessionClass || needsHttp1Class || needsWsFrameClass ||
+         needsTlsLegacyConfigClass || needsHttp1Class || needsWsFrameClass ||
          needsWsHandshakeClass || needsWsUpgradeClass || needsWebSocketClass ||
          needsWebSocketConfigClass || needsFileClass ||
          needsJsonClass ||
@@ -2231,8 +2238,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsUdpConfigClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibUdpConfigClassSource);
     }
-    if ( needsTlsSessionClass ) {
-        xl6StdlibBuilderAppend(&builder, xl6StdlibTlsSessionClassSource);
+    if ( needsTlsLegacyConfigClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibTlsLegacyConfigClassSource);
     }
     if ( needsTlsStreamClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTlsStreamClassSource);
@@ -2301,7 +2308,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsCompress ) xl6StdlibBuilderAppend(&builder, xl6StdlibCompressOptionsSource);
     if ( needsDeflater ) xl6StdlibBuilderAppend(&builder, xl6StdlibDeflaterSource);
     if ( needsInflater ) xl6StdlibBuilderAppend(&builder, xl6StdlibInflaterSource);
-    if (xl6StdlibNeedsX509(root,used) || xl6StdlibNodeUsesTypeName(root, "DerValue") ||
+    if (needsX509Island || xl6StdlibNodeUsesTypeName(root, "DerValue") ||
         xl6StdlibNodeUsesTypeName(root, "DerReader") ||
         xl6StdlibNodeUsesTypeName(root, "DerBuilder") ||
         xl6StdlibNodeUsesTypeName(root, "PemBlock") ||
@@ -2341,7 +2348,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsCryptoClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibCryptoClassSource);
     }
-    if (xl6StdlibNeedsX509(root,used)) {
+    if (needsX509Island) {
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509EnumsSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509RecordsSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509SignatureInfoSource);
@@ -2357,11 +2364,11 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
             xl6StdlibBuilderAppend(&builder,xl6StdlibX509CrlPolicyEnumsSource);
         if(xl6StdlibUsesX509CrlPolicyClasses(root))
             xl6StdlibBuilderAppend(&builder,xl6StdlibX509CrlPolicySource);
-        if(xl6StdlibUsesX509PathClasses(root) || xl6StdlibNodeUsesTypeName(root,"X509PathFlags") ||
+        if(needsX509PathIsland || xl6StdlibNodeUsesTypeName(root,"X509PathFlags") ||
             xl6StdlibNodeUsesTypeName(root,"X509ValidationStatus") || xl6StdlibNodeUsesTypeName(root,"X509PathReason"))
             xl6StdlibBuilderAppend(&builder,xl6StdlibX509PathEnumsSource);
-        if(xl6StdlibUsesX509PathClasses(root))xl6StdlibBuilderAppend(&builder,xl6StdlibX509PathSource);
-        if(xl6StdlibUsesX509PathClasses(root))xl6StdlibBuilderAppend(&builder,xl6StdlibX509StoreSource);
+        if(needsX509PathIsland)xl6StdlibBuilderAppend(&builder,xl6StdlibX509PathSource);
+        if(needsX509PathIsland)xl6StdlibBuilderAppend(&builder,xl6StdlibX509StoreSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509DataSource);
     }
     if(needsTlsIdentity)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsIdentitySource);
@@ -2370,6 +2377,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if(needsTlsVerifier)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsVerifierSource);
     if(needsTlsClientContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsClientContextSource);
     if(needsTlsServerContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsServerContextSource);
+    if(needsTlsManagedSession)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsManagedSessionClassSource);
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||
         xl6StdlibFuncUsed(used,"crypto","x25519KeyPair") || xl6StdlibFuncUsed(used,"crypto","x448KeyPair"))
         xl6StdlibBuilderAppend(&builder,xl6StdlibXdhClassSource);

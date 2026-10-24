@@ -602,6 +602,14 @@
     src\runtime\xl6_tls_server_context_protocols.c
     src\runtime\xl6_tls_client_context_domain.c
     src\runtime\xl6_tls_server_context_domain.c
+    src\runtime\xl6_tls_session_core.c
+    src\runtime\xl6_tls_session_client.c
+    src\runtime\xl6_tls_session_server.c
+    src\runtime\xl6_tls_session_state.c
+    src\runtime\xl6_tls_session_input.c
+    src\runtime\xl6_tls_session_buffer.c
+    src\runtime\xl6_tls_session_output.c
+    src\runtime\xl6_ownership_domain_tls_session.c
     src\runtime\xl6_x509_store_domain.c
     src\runtime\xl6_x509_store_snapshot_domain.c
     src\runtime\xl6_x509_path_config.c

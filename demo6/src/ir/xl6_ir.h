@@ -606,7 +606,8 @@ typedef enum XL6_IrReleaseEffect {
 
 /* Closed native product profiles. Semantic types remain ordered tuple TypeIds;
  * this derived, verified representation fact only fixes the C value carrier.
- * NONE preserves compiler-private products, including managed elements. */
+ * NONE preserves compiler-private products. Managed profiles explicitly
+ * identify ownership; a foreign product is never assumed to be trivial. */
 typedef enum XL6_IrNativeProductAbi {
     XL6_IR_NATIVE_PRODUCT_NONE = 0,
     XL6_IR_NATIVE_PRODUCT_I64X3_V1,
@@ -617,7 +618,8 @@ typedef enum XL6_IrNativeProductAbi {
     XL6_IR_NATIVE_PRODUCT_BOOLBOOL_V1,
     XL6_IR_NATIVE_PRODUCT_BOOLI32_V1,
     XL6_IR_NATIVE_PRODUCT_BOOLU32_V1,
-    XL6_IR_NATIVE_PRODUCT_I64U64_V1
+    XL6_IR_NATIVE_PRODUCT_I64U64_V1,
+    XL6_IR_NATIVE_PRODUCT_I64BYTES_V1
 } XL6_IrNativeProductAbi;
 
 /* Exact resident slot/projection profile, independent of source spelling and
@@ -874,6 +876,7 @@ XL6_IrNativeProductAbi xl6IrNativeProductAbiForShape(const XL6_IrTypePool* pool,
 int xl6IrDeclarationAllowsForeignContract(XL6_AstKind sourceKind, unsigned int flags);
 const char* xl6IrNativeProductAbiCName(XL6_IrNativeProductAbi abi);
 const char* xl6IrNativeProductAbiGuard(XL6_IrNativeProductAbi abi);
+XL6_IrOwnershipAbi xl6IrNativeProductOwnershipAbi(XL6_IrNativeProductAbi abi);
 
 typedef enum XL6_IrNodeKind {
     XL6_IR_NODE_MODULE = 1,

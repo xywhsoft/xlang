@@ -1,0 +1,33 @@
+enum ProductState as int
+    ok = 0
+    other = 3
+end
+func pair(int status, bytes data) as (int, bytes)
+    data[0] = 120
+    return status, data
+end
+func typedPair(ProductState status, bytes data) as (ProductState, bytes)
+    return status, data
+end
+func failedPair(bytes data) as (int, bytes)
+    auto local = data
+    local[0] = 121
+    throw ValueError "ordinary product unwind"
+end
+bytes original = b"a\0b"
+func(int, bytes) as (int, bytes) indirect = pair
+auto status, result = indirect(3, original)
+assert status == 3 and original == b"a\0b" and result == b"x\0b"
+auto typed, detached = typedPair(ProductState.other, original)
+assert typed == ProductState.other and detached == original
+detached[0] = 90
+assert detached == b"Z\0b" and original == b"a\0b"
+bool caught = false
+try
+    auto ignoredStatus, ignoredData = failedPair(original)
+catch ValueError expected
+    caught = true
+end
+assert caught and original == b"a\0b"
+array<bytes> values = [result, detached]
+assert values[0] == b"x\0b" and values[1] == b"Z\0b"

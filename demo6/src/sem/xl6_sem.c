@@ -20407,11 +20407,11 @@ static int xl6SemIsInternalStdRuntimeExtern(const XL6_AstNode* node)
 
 /* The native product ABI is closed: three language signed 64-bit values or
  * two absolute times, bool followed by time/int/int32/uint32/uint64/bool,
- * or signed64 (including a nominal signed64 enum) followed by uint64,
+ * or signed64 (including a nominal signed64 enum) followed by uint64 or owned bytes,
  * in declaration order. Resolve aliases here; Typed XLIR independently
  * verifies the exact physical carrier, ownership and representation. C
  * integer aliases are deliberately not admitted based on host sizeof. */
-static int xl6SemIsCAbiPrimitiveProductReturns(XL6_SemContext* ctx,
+static int xl6SemIsCAbiProductReturns(XL6_SemContext* ctx,
     const XL6_AstNode* returns)
 {
     size_t i;
@@ -20424,7 +20424,7 @@ static int xl6SemIsCAbiPrimitiveProductReturns(XL6_SemContext* ctx,
             head=xl6SemResolveAliasType(ctx,info->decl->children[0]);
         const XL6_AstNode* tail=xl6SemResolveAliasType(ctx,returns->children[1]);
         if(head&&!head->childCount&&(xl6TextEquals(head->text,"int")||xl6TextEquals(head->text,"int64"))&&
-            tail&&!tail->childCount&&xl6TextEquals(tail->text,"uint64"))return 1;
+            tail&&!tail->childCount&&(xl6TextEquals(tail->text,"uint64")||xl6TextEquals(tail->text,"bytes")))return 1;
     }
     int boolFirst = first && xl6TextEquals(first->text, "bool");
     for (i = 0; i < returns->childCount; ++i) {
@@ -20548,9 +20548,9 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
 
     returns = node->childCount > 2 ? node->children[2] : NULL;
     if ( returns != NULL && returns->childCount > 1 &&
-         !xl6SemIsCAbiPrimitiveProductReturns(ctx, returns) ) {
+         !xl6SemIsCAbiProductReturns(ctx, returns) ) {
         xl6SemErrorNode(ctx, returns->children[1] != NULL ? returns->children[1] : returns,
-            "C ABI extern product requires a closed primitive product profile");
+            "C ABI extern product requires a closed native product profile");
         ok = 0;
     }
     if ( returns != NULL && returns->childCount == 1 ) {

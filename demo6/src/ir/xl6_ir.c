@@ -1452,6 +1452,19 @@ XL6_IrNativeProductAbi xl6IrNativeProductAbiForShape(const XL6_IrTypePool* pool,
     const XL6_IrType* first = xl6IrTypeGet(pool,type->params[0]);
     bool boolFirst = type->paramCount == 2 && first && first->cAbi == XL6_IR_C_ABI_BOOL;
     const XL6_IrType* second = xl6IrTypeGet(pool,type->params[1]);
+    /* Closed owned scalar/bytes pair. Layout does not authorize the enum
+     * vocabulary; the call contract checks that nominal identity separately.
+     * Reuse ordinary product move/copy/drop, not a library-specific carrier. */
+    if(type->paramCount==2&&first&&second&&first->cAbi==XL6_IR_C_ABI_I64&&
+       first->integerTarget==XL6_IR_INTEGER_TARGET_SIGNED_64&&
+       (first->kind==XL6_IR_TYPE_BUILTIN||first->kind==XL6_IR_TYPE_NUMERIC_ENUM)&&
+       second->kind==XL6_IR_TYPE_BUILTIN&&second->cAbi==XL6_IR_C_ABI_MANAGED_BYTES&&
+       second->integerTarget==XL6_IR_INTEGER_TARGET_INVALID&&
+       !first->paramCount&&!first->returnCount&&!second->paramCount&&!second->returnCount&&
+       first->collectionAbi==XL6_IR_COLLECTION_NONE&&second->collectionAbi==XL6_IR_COLLECTION_NONE&&
+       first->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL&&second->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED&&
+       first->nullAbi==XL6_IR_NULL_ABI_NONE&&second->nullAbi==xl6IrNullAbiFromCAbi(second->cAbi))
+        return XL6_IR_NATIVE_PRODUCT_I64BYTES_V1;
     /* Physical scalar pair only. Nominal enum vocabulary is independently
      * authorized by the resident call contract, never by this layout match. */
     if(type->paramCount==2&&first&&second&&first->cAbi==XL6_IR_C_ABI_I64&&
@@ -1500,7 +1513,8 @@ const char* xl6IrNativeProductAbiCName(XL6_IrNativeProductAbi abi)
     abi == XL6_IR_NATIVE_PRODUCT_BOOLBOOL_V1 ? "XL6_ProductBoolBoolV1" :
     abi == XL6_IR_NATIVE_PRODUCT_BOOLI32_V1 ? "XL6_ProductBoolI32V1" :
     abi == XL6_IR_NATIVE_PRODUCT_BOOLU32_V1 ? "XL6_ProductBoolU32V1" :
-    abi == XL6_IR_NATIVE_PRODUCT_I64U64_V1 ? "XL6_ProductI64U64V1" : NULL; }
+    abi == XL6_IR_NATIVE_PRODUCT_I64U64_V1 ? "XL6_ProductI64U64V1" :
+    abi == XL6_IR_NATIVE_PRODUCT_I64BYTES_V1 ? "XL6_ProductI64BytesV1" : NULL; }
 const char* xl6IrNativeProductAbiGuard(XL6_IrNativeProductAbi abi)
 { return abi == XL6_IR_NATIVE_PRODUCT_I64X3_V1 ? "XL6_PRODUCT_ABI_I64X3_V1" :
     abi == XL6_IR_NATIVE_PRODUCT_TIMEX2_V1 ? "XL6_PRODUCT_ABI_TIMEX2_V1" :
@@ -1510,7 +1524,13 @@ const char* xl6IrNativeProductAbiGuard(XL6_IrNativeProductAbi abi)
     abi == XL6_IR_NATIVE_PRODUCT_BOOLBOOL_V1 ? "XL6_PRODUCT_ABI_BOOLBOOL_V1" :
     abi == XL6_IR_NATIVE_PRODUCT_BOOLI32_V1 ? "XL6_PRODUCT_ABI_BOOLI32_V1" :
     abi == XL6_IR_NATIVE_PRODUCT_BOOLU32_V1 ? "XL6_PRODUCT_ABI_BOOLU32_V1" :
-    abi == XL6_IR_NATIVE_PRODUCT_I64U64_V1 ? "XL6_PRODUCT_ABI_I64U64_V1" : NULL; }
+    abi == XL6_IR_NATIVE_PRODUCT_I64U64_V1 ? "XL6_PRODUCT_ABI_I64U64_V1" :
+    abi == XL6_IR_NATIVE_PRODUCT_I64BYTES_V1 ? "XL6_PRODUCT_ABI_I64BYTES_V1" : NULL; }
+XL6_IrOwnershipAbi xl6IrNativeProductOwnershipAbi(XL6_IrNativeProductAbi abi)
+{
+    return abi==XL6_IR_NATIVE_PRODUCT_I64BYTES_V1?XL6_IR_OWNERSHIP_ABI_MANAGED:
+        xl6IrNativeProductAbiCName(abi)?XL6_IR_OWNERSHIP_ABI_TRIVIAL:XL6_IR_OWNERSHIP_ABI_INVALID;
+}
 
 /* Open generic products have no C carrier until specialization. Interning
  * must use the same derived ABI as representation finalization; assuming
