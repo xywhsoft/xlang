@@ -1,0 +1,11 @@
+func options(int base,***) as int
+    return base+arg.length
+end
+async func check()
+    auto callback=options
+    assert await task.spawn(callback,7)==7
+    assert await task.spawn(callback,7,answer=42,label="tail")==9
+    auto captured=func(***) as string => arg["label"]
+    assert await task.spawn(captured,label="retained")=="retained"
+end
+await check()

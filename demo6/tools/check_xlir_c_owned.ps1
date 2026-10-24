@@ -76,6 +76,7 @@ $generatedSources=@(
     'test/cases/xlir_c_owned_callable_results.xl','test/cases/xlir_c_owned_variadic_results.xl',
     'test/cases/xlir_c_owned_variadic_inputs.xl','test/cases/xlir_c_owned_nested_results.xl',
     'test/cases/xlir_c_owned_text_length.xl',
+    'test/cases/xlir_c_owned_spawn_keywords.xl',
     'test/cases/xlir_c_owned_globals.xl',
     'test/cases/xlir_c_owned_nullable.xl','test/cases/xlir_c_owned_nullable_boundaries.xl',
     'test/cases/xlir_c_owned_writes.xl','test/cases/xlir_c_owned_print.xl',
@@ -133,7 +134,11 @@ $negative = @(
     @{Name='field';Body="class Box`n cstring value`nend";Message='C markers are limited'},
     @{Name='nullable';Body="func probe()`n cstring? value`nend";Message='C markers are limited'},
     @{Name='alias';Body="typedef Alias = cstring";Message='C markers are limited'},
-    @{Name='binary-text';Body="func probe()`n cbytes value = cbytes.take(make(), 1, drop)`n string wrong = string(value)`nend";Message='matching base type'}
+    @{Name='binary-text';Body="func probe()`n cbytes value = cbytes.take(make(), 1, drop)`n string wrong = string(value)`nend";Message='matching base type'},
+    @{Name='text-length-type';Body="func probe()`n auto value=cstring.take(make(),true,drop)`nend";Message='byte length must be an integer'},
+    @{Name='task-keyword-duplicate';Body="func job(***) as int`n return 7`nend`nauto f=task.spawn(job,answer=1,answer=2)";Message='keyword argument is duplicated'},
+    @{Name='task-keyword-positional-tail';Body="func job(***) as int`n return 7`nend`nauto f=task.spawn(job,1)";Message='*** tail requires keyword'},
+    @{Name='task-keyword-missing-prefix';Body="func job(int first,***) as int`n return first`nend`nauto f=task.spawn(job)";Message='missing fixed arguments'}
 )
 foreach ($case in $negative) {
     $source = Join-Path $outputPath ('reject-' + $case.Name + '.xl')
@@ -172,7 +177,7 @@ if ($PublicDriver) {
         'xlir_managed_storage_inputs','cgen_base_method_static_dispatch','cgen_async_generator',
         'xlir_module_product_globals','stdlib_callable_variadic_array',
         'stdlib_runtime_callable_defaults','stdlib_runtime_callable_func_defaults',
-        'stdlib_runtime_callable_defaults_errors')
+        'stdlib_runtime_callable_defaults_errors','stdlib_task_spawn_keywords')
     foreach($name in $ordinarySources) {
         $source="test/cases/$name.xl"
         & $sourceDriver $source run "$outputPath/ordinary-jit-$name"

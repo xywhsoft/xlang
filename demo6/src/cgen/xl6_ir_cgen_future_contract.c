@@ -270,7 +270,8 @@ static int xl6IrCgenRuntimeTaskSpawnAbi(
          (instruction->callableErasureAbi !=
               XL6_IR_CALLABLE_ERASURE_FIXED &&
           instruction->callableErasureAbi !=
-              XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC) ||
+              XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC &&
+          instruction->callableErasureAbi != XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC) ||
          signature->paramCount + 1 != instruction->operandCount ||
          ((instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_VOID &&
            (signature->returnCount != 0 ||

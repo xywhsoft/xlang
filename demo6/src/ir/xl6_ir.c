@@ -11257,6 +11257,24 @@ int xl6IrCollectionRemoveSignatureCompatible(
         extent->cAbi == XL6_IR_C_ABI_I64 && extent->nullAbi == XL6_IR_NULL_ABI_NONE;
 }
 
+static int xl6IrIsTaskSpawnCallee(const XL6_IrModule*,const XL6_IrNode*);
+static int xl6IrTaskSpawnDictPackArgument(
+    const XL6_IrModule* module,const XL6_IrNode* call,size_t index,const XL6_IrNode* wrapper)
+{
+    const XL6_IrNode* args=xl6IrNodeGet(module,module->children[call->firstChild+1]);
+    const XL6_IrNode* callee=xl6IrNodeGet(module,module->children[call->firstChild]);
+    if(!args || !args->childCount || !xl6IrIsTaskSpawnCallee(module,callee))return 0;
+    const XL6_IrNode* first=xl6IrNodeGet(module,module->children[args->firstChild]);
+    const XL6_IrNode* value=first && first->childCount==1 ? xl6IrNodeGet(module,module->children[first->firstChild]) : NULL;
+    const XL6_IrType* signature=value ? xl6IrTypeGet(&module->types,value->storageType) : NULL;
+    const XL6_IrNode* pack=wrapper && wrapper->childCount==1 ? xl6IrNodeGet(module,module->children[wrapper->firstChild]) : NULL;
+    return signature && signature->kind==XL6_IR_TYPE_FUNCTION && signature->paramCount && signature->params &&
+        signature->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC &&
+        index==signature->paramCount && args->childCount==signature->paramCount+1 && pack &&
+        wrapper->sourceKind==XL6_AST_ARG && wrapper->flags==XL6_AST_FLAG_FORWARD_VARIADIC_PACK &&
+        pack->sourceKind==XL6_AST_TYPED_LITERAL && pack->storageType==signature->params[signature->paramCount-1];
+}
+
 static int xl6IrBuildIntrinsicPositionalOperands(
     const XL6_IrModule* module, const XL6_IrNode* call,
     XL6_IrNodeId** outOperands, size_t* operandCount)
@@ -11282,7 +11300,7 @@ static int xl6IrBuildIntrinsicPositionalOperands(
         const XL6_IrNode* wrapper = xl6IrNodeGet(
             module, module->children[args->firstChild + i]);
         if ( wrapper == NULL || wrapper->sourceKind != XL6_AST_ARG ||
-             wrapper->flags != 0 || wrapper->childCount != 1 ) {
+               (wrapper->flags != 0 && !xl6IrTaskSpawnDictPackArgument(module,call,i,wrapper)) || wrapper->childCount != 1 ) {
             xrtFree(operands);
             return 0;
         }
@@ -15864,6 +15882,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                 callable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
                 (callable->callableErasureAbi ==
                      XL6_IR_CALLABLE_ERASURE_FIXED ||
+                 callable->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC ||
                  arrayVariadic) &&
                 (!arrayVariadic
                      ? callable->paramCount + 1 == operandCount
@@ -38060,6 +38079,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             XL6_IR_OWNERSHIP_ABI_MANAGED &&
                         (callable->callableErasureAbi ==
                              XL6_IR_CALLABLE_ERASURE_FIXED ||
+                         callable->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC ||
                          arrayVariadic) &&
                         (!arrayVariadic
                              ? callable->paramCount + 1 ==
@@ -38110,6 +38130,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             xl6IrTaskSpawnArgumentCanBind(
                                 module, argument->type,
                                 callable->params[operandIndex]);
+                    }
+                    if(valid && callable->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC) {
+                        const XL6_IrNode* arguments=xl6IrNodeGet(module,module->children[call->firstChild+1]);
+                        const XL6_IrNode* wrapper=arguments && arguments->childCount ?
+                            xl6IrNodeGet(module,module->children[arguments->firstChild+arguments->childCount-1]) : NULL;
+                        valid=xl6IrTaskSpawnDictPackArgument(module,call,callable->paramCount,wrapper);
                     }
                     if ( valid && arrayVariadic ) {
                         const XL6_IrType* tail = xl6IrTypeGet(
@@ -45660,7 +45686,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             (instruction->callableErasureAbi ==
                                  XL6_IR_CALLABLE_ERASURE_FIXED ||
                              instruction->callableErasureAbi ==
-                                 XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC) &&
+                                 XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC ||
+                             instruction->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC) &&
                             callable->paramCount + 1 ==
                                 instruction->operandCount &&
                             publicPayload == instruction->payloadType &&

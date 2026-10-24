@@ -22,18 +22,22 @@ static int xl6SemCOwnedGlobalType(XL6_SemContext* ctx,XL6_AstNode* type)
 }
 /* Result covariance extends through returned callables. Their input signature
  * is unchanged; each returned closure gets its own ordinary-result adapter. */
-static int xl6SemCOwnedResultHasOwner(XL6_SemContext* ctx,const XL6_AstNode* type)
+static int xl6SemCOwnedResultHasOwnerDepth(XL6_SemContext* ctx,const XL6_AstNode* type,unsigned depth)
 {
+    if(depth>32)return 0;
     type=xl6SemCOwnedResolvedElement(ctx,type);
     if(!type)return 0;
     if(xl6COwnedBaseName(type->text))return 1;
     if(xl6TextEquals(type->text,"function") && type->childCount==2)
         for(size_t r=0;r<type->children[1]->childCount;++r)
-            if(xl6SemCOwnedResultHasOwner(ctx,type->children[1]->children[r]))return 1;
+            if(xl6SemCOwnedResultHasOwnerDepth(ctx,type->children[1]->children[r],depth+1))return 1;
     return 0;
 }
-static int xl6SemCOwnedOrdinaryResultType(XL6_SemContext* ctx,XL6_AstNode** place)
+static int xl6SemCOwnedResultHasOwner(XL6_SemContext* ctx,const XL6_AstNode* type)
+{ return xl6SemCOwnedResultHasOwnerDepth(ctx,type,0); }
+static int xl6SemCOwnedOrdinaryResultTypeDepth(XL6_SemContext* ctx,XL6_AstNode** place,unsigned depth)
 {
+    if(depth>32){xl6SemErrorNode(ctx,*place,"C-owned result adaptation exceeds callable nesting limit");return 0;}
     const XL6_AstNode* resolved=xl6SemResolveAliasType(ctx,*place);
     if(resolved!=*place) {
         XL6_AstNode* copy=xl6SemCloneTypeNode(resolved);
@@ -43,14 +47,16 @@ static int xl6SemCOwnedOrdinaryResultType(XL6_SemContext* ctx,XL6_AstNode** plac
     XL6_AstNode* type=*place;
     const XL6_AstNode* inner=xl6SemNullableInnerType(type);
     if(inner) {
-        if(!xl6SemCOwnedOrdinaryResultType(ctx,&type->children[0]->children[0]))return 0;
+        if(!xl6SemCOwnedOrdinaryResultTypeDepth(ctx,&type->children[0]->children[0],depth+1))return 0;
     } else if(xl6TextEquals(type->text,"function") && type->childCount==2) {
         for(size_t r=0;r<type->children[1]->childCount;++r)
-            if(!xl6SemCOwnedOrdinaryResultType(ctx,&type->children[1]->children[r]))return 0;
+            if(!xl6SemCOwnedOrdinaryResultTypeDepth(ctx,&type->children[1]->children[r],depth+1))return 0;
     } else return xl6SemCOwnedGlobalType(ctx,type);
     xl6SemBindInferredTypeIdentity(ctx,type);
     return 1;
 }
+static int xl6SemCOwnedOrdinaryResultType(XL6_SemContext* ctx,XL6_AstNode** place)
+{ return xl6SemCOwnedOrdinaryResultTypeDepth(ctx,place,0); }
 static int xl6SemCOwnedTypeMatchCost(const XL6_AstNode* actual,const XL6_AstNode* target)
 {
     if(!actual || !target)return -1;

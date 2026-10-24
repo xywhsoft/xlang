@@ -68,6 +68,20 @@ static void checkStringResultContracts(XL6_IrModule* ir)
 static void checkVariadicPackContracts(XL6_IrModule* ir)
 {
     unsigned rejected=0;
+    for(size_t i=0;i<ir->intrinsicCallCount;++i) {
+        const XL6_IrIntrinsicCall* intrinsic=&ir->intrinsicCalls[i];
+        if(intrinsic->kind!=XL6_IR_INTRINSIC_TASK_SPAWN || !intrinsic->operandCount)continue;
+        const XL6_IrType* signature=xl6IrTypeGet(&ir->types,ir->intrinsicOperands[intrinsic->firstOperand].type);
+        if(!signature || signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC)continue;
+        const XL6_IrNode* call=xl6IrNodeGet(ir,intrinsic->origin);
+        const XL6_IrNode* args=xl6IrNodeGet(ir,ir->children[call->firstChild+1]);
+        XL6_IrNode* pack=&ir->nodes[ir->children[args->firstChild+args->childCount-1]-1];
+        unsigned flags=pack->flags;XL6_DiagList diags={0};
+        pack->flags=0;
+        assert(!xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags);++rejected;
+        pack->flags=flags;
+        assert(xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags);
+    }
     for(size_t c=0;c<ir->closureTargetCount;++c) {
         XL6_IrClosureTarget* closure=&ir->closureTargets[c];
         if(!closure->forwardCallMetadata)continue;

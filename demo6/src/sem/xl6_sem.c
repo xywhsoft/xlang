@@ -13454,6 +13454,51 @@ static int xl6SemTypeCanBeFunctionResult(XL6_SemContext* ctx, const XL6_AstNode*
         xl6SemTypeCanCopy(ctx, type) || xl6SemTypeRequiresFreshValue(ctx, type);
 }
 
+/* Build the final dict<var> before submission. Fixed arguments remain
+ * positional; keyword values keep their textual order and evaluate once. */
+static int xl6SemPackTaskKeywords(XL6_SemContext* ctx,XL6_AstNode* call,size_t fixed)
+{
+    XL6_AstNode* args=call->children[1];
+    size_t first=fixed+1;
+    if(args->childCount<first){xl6SemErrorNode(ctx,call,"task.spawn is missing fixed arguments");return 0;}
+    for(size_t i=0;i<first;++i)
+        if(args->children[i]->kind!=XL6_AST_ARG || args->children[i]->flags) {
+            xl6SemErrorNode(ctx,args->children[i],"task.spawn fixed arguments must be positional");return 0;
+        }
+    if(args->childCount==first+1 && args->children[first]->kind==XL6_AST_ARG &&
+       args->children[first]->flags==XL6_AST_FLAG_FORWARD_VARIADIC_PACK)return 1;
+    for(size_t i=first;i<args->childCount;++i) {
+        XL6_AstNode* arg=args->children[i];
+        if(arg->kind!=XL6_AST_NAMED_ARG || !arg->text || arg->childCount!=1) {
+            xl6SemErrorNode(ctx,arg,"task.spawn *** tail requires keyword arguments");return 0;
+        }
+        for(size_t j=first;j<i;++j)if(!strcmp(arg->text,args->children[j]->text)) {
+            xl6SemErrorNode(ctx,arg,"task.spawn keyword argument is duplicated");return 0;
+        }
+    }
+    XL6_AstNode* wrapper=xl6AstNew(XL6_AST_ARG,NULL);
+    XL6_AstNode* pack=xl6SemCOwnedAppendNode(wrapper,xl6AstNewText(XL6_AST_TYPED_LITERAL,"dict",4,NULL));
+    XL6_AstNode* dict=xl6SemCOwnedAppendNode(pack,xl6AstNew(XL6_AST_DICT_LITERAL,NULL));
+    XL6_AstNode* type=xl6SemCOwnedAppendNode(pack,xl6AstNewText(XL6_AST_TYPE,"dict",4,NULL));
+    if(!dict || !type) {
+        xl6AstFree(wrapper);return 0;
+    }
+    wrapper->flags=XL6_AST_FLAG_FORWARD_VARIADIC_PACK;
+    for(size_t i=first;i<args->childCount;++i) {
+        XL6_AstNode* arg=args->children[i];
+        XL6_AstNode* pair=xl6SemCOwnedAppendNode(dict,xl6AstNew(XL6_AST_KEY_VALUE,NULL));
+        XL6_AstNode* key=xl6SemCOwnedAppendNode(pair,xl6AstNewText(XL6_AST_STRING,arg->text,strlen(arg->text),NULL));
+        if(!key || !xl6AstSetLiteralData(key,arg->text,strlen(arg->text))) {xl6AstFree(wrapper);return 0;}
+        key->literalDecoded=1;
+        if(!xl6SemCOwnedAppendNode(pair,arg->children[0])) {arg->children[0]=NULL;xl6AstFree(wrapper);return 0;}
+        arg->children[0]=NULL;
+    }
+    for(size_t i=first;i<args->childCount;++i)xl6AstFree(args->children[i]);
+    args->childCount=first;
+    if(!xl6SemCOwnedAppendNode(args,wrapper))return 0;
+    return xl6SemAssignEntitySymbolIds(ctx,pack) && xl6SemCheckExpr(ctx,pack);
+}
+
 static int xl6SemCheckTaskSpawnCall(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     XL6_AstNode* args;
@@ -13472,9 +13517,6 @@ static int xl6SemCheckTaskSpawnCall(XL6_SemContext* ctx, XL6_AstNode* node)
 
     if ( xl6SemCallArgCount(node) < 1 ) {
         xl6SemCountMismatchError(ctx, node, "task.spawn requires at least a func argument", 1, (size_t)xl6SemCallArgCount(node));
-        return 0;
-    }
-    if ( !xl6SemCallArgsArePositional(ctx, node, "task.spawn does not accept named arguments") ) {
         return 0;
     }
 
@@ -13509,11 +13551,11 @@ static int xl6SemCheckTaskSpawnCall(XL6_SemContext* ctx, XL6_AstNode* node)
     hasArrayVararg = paramCount > 0 && xl6SemTypeIsArrayVararg(params->children[paramCount - 1]);
     hasDictVararg = paramCount > 0 && xl6SemTypeIsDictVararg(params->children[paramCount - 1]);
     if ( hasDictVararg ) {
-        xl6SemErrorNode(ctx, fnExpr, "task.spawn does not support *** func values yet");
-        xl6AstFree(fnType);
-        return 0;
+        if(!xl6SemPackTaskKeywords(ctx,node,paramCount-1)){xl6AstFree(fnType);return 0;}
+    } else if(!xl6SemCallArgsArePositional(ctx,node,"task.spawn does not accept named arguments")) {
+        xl6AstFree(fnType);return 0;
     }
-    fixedCount = (hasArrayVararg || hasDictVararg) ? paramCount - 1 : paramCount;
+    fixedCount = hasArrayVararg ? paramCount - 1 : paramCount;
     /* task.spawn 读取的是 func 类型签名。签名中的 array<var> 只表示 ... 尾部，不是必填参数。 */
     requiredCount = fixedCount;
     actualCount = xl6SemCallArgCount(node) > 0 ? (size_t)xl6SemCallArgCount(node) - 1 : 0;
@@ -13540,7 +13582,10 @@ static int xl6SemCheckTaskSpawnCall(XL6_SemContext* ctx, XL6_AstNode* node)
             ok = 0;
             continue;
         }
-        if ( paramType != NULL && !xl6SemExprCanMatchParamType(ctx, argExpr, paramType) ) {
+        /* The synthetic dict literal has the canonical dict<var> type. The
+         * source signature spells its final slot with the *** marker. */
+        if ( paramType != NULL && !(hasDictVararg && i+1==paramCount) &&
+             !xl6SemExprCanMatchParamType(ctx, argExpr, paramType) ) {
             xl6SemTypeMismatchError(ctx, argExpr, "task.spawn argument type does not match func signature", paramType, xl6SemExprStaticTypeName(ctx, argExpr));
             ok = 0;
         }
