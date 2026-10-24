@@ -23,6 +23,7 @@ static void mapUnit(xmap* map)
 #define xlsSyntaxBuildCursor privateCursor
 #define xlsSyntaxAccepted privateAccepted
 #define xlsSyntaxIsCursor privateIsCursor
+#define xlsSyntaxCursorMatches privateCursorMatches
 #define xlsSyntaxPath privatePath
 #define xlsSyntaxText privateText
 #define xlsSyntaxCopyParse privateCopy
@@ -44,6 +45,7 @@ static void mapUnit(xmap* map)
 #undef xlsSyntaxBuildCursor
 #undef xlsSyntaxAccepted
 #undef xlsSyntaxIsCursor
+#undef xlsSyntaxCursorMatches
 #undef xlsSyntaxPath
 #undef xlsSyntaxText
 #undef xlsSyntaxCopyParse

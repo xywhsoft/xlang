@@ -13,7 +13,7 @@ struct xls_completion_session {
     const char* queryKey;
     size_t offset;
     xls_semantic_completion* result;
-    xls_syntax* entrySyntax;
+    xls_syntax* cursorSyntax;
     xls_entry_cache* entryCache;
     xls_completion_stats stats;
 };
@@ -23,7 +23,7 @@ xls_completion_session* xlsCompletionSessionCreate(const xls_session_limits* lim
     xls_completion_session* s=xrtCalloc(1,sizeof(*s)); if(s) s->limits=chosen; return s;
 }
 void xlsCompletionSessionDestroy(xls_completion_session* s)
-{ if(s) { xlsInputBatchDestroy(s->batch); xlsSyntaxRelease(s->entrySyntax); xlsSemanticCompletionDestroy(s->result); xlsEntryCacheDestroy(s->entryCache); xrtFree(s); } }
+{ if(s) { xlsInputBatchDestroy(s->batch); xlsSyntaxRelease(s->cursorSyntax); xlsSemanticCompletionDestroy(s->result); xlsEntryCacheDestroy(s->entryCache); xrtFree(s); } }
 void xlsCompletionSessionStats(const xls_completion_session* s,xls_completion_stats* stats)
 { if(stats) *stats=s ? s->stats : (xls_completion_stats){0}; }
 xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_session* s,xls_context* context,
@@ -36,7 +36,7 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
     if(!s) goto invalid;
     batch=xlsInputBatchCreateInContext(context,&s->limits,s->batch,documents,count,entryKey,cancelled,user,error,capacity);
     if(!batch) goto done;
-    const xls_analysis_document *entry=xlsInputBatchTarget(batch),*query=xlsInputBatchFind(batch,queryKey);
+    const xls_analysis_document* query=xlsInputBatchFind(batch,queryKey);
     if(!query) goto invalid;
     size_t bytes=xlsTextSize(query->text),bom=bytes>=3 && !memcmp(xlsTextData(query->text),"\xef\xbb\xbf",3) ? 3 : 0;
     if(offset>bytes-bom || (offset<bytes-bom && ((unsigned char)xlsTextData(query->text)[offset+bom]&0xc0)==0x80)) goto invalid;
@@ -47,24 +47,24 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
     else {
         xls_semantic_input inputs[64]; xlsInputBatchInputs(batch,inputs,64); ++s->stats.builds;
         if(!s->entryCache) s->entryCache=xlsEntryCacheCreate(32u*1024u*1024u);
-        if(entry && entry==query) {
-            const xls_analysis_document* old=xlsInputBatchTarget(s->batch);
-            const xls_syntax* previous=xlsFrontendContextsEqual(context,xlsInputBatchContext(s->batch)) && old && s->entrySyntax && s->queryKey && !strcmp(s->queryKey,old->key) &&
-                !strcmp(old->key,entry->key) && old->identity==entry->identity && !strcmp(old->path,entry->path) ? s->entrySyntax : NULL;
-            if(previous && s->offset==offset && xlsInputSameBody(old,entry)) {
-                syntax=xlsSyntaxRetain(s->entrySyntax); ++s->stats.cursorSyntaxHits;
+        {
+            const xls_analysis_document* old=xlsInputBatchFind(s->batch,queryKey);
+            const xls_syntax* previous=xlsFrontendContextsEqual(context,xlsInputBatchContext(s->batch)) && old && s->cursorSyntax && s->queryKey && !strcmp(s->queryKey,old->key) &&
+                !strcmp(old->key,query->key) && old->identity==query->identity && !strcmp(old->path,query->path) ? s->cursorSyntax : NULL;
+            if(previous && s->offset==offset && xlsInputSameBody(old,query)) {
+                syntax=xlsSyntaxRetain(s->cursorSyntax); ++s->stats.cursorSyntaxHits;
             } else {
-                char* path=xrtPathAbs(entry->path);
+                char* path=xrtPathAbs(query->path);
                 if(path) {
                     XL6_CompletionQuery projection={.path=path,.offset=offset}; xls_parse_work work={0};
-                    syntax=xlsSyntaxBuildCursor(path,entry->text,previous,&projection,&work);
+                    syntax=xlsSyntaxBuildCursor(path,query->text,previous,&projection,&work);
                     xl6CompletionFree(&projection); xrtFree(path);
                     s->stats.cursorFullParses+=work.full; s->stats.cursorFragmentParses+=work.fragments;
                     s->stats.cursorReusedDeclarations+=work.reused; s->stats.cursorParsedBytes+=work.bytes;
                 }
             }
             if(cancelled && cancelled(user)) goto cancel;
-            if(syntax) result=xlsSemanticCompletionCreateCachedParsedInContext(context,s->entryCache,entry->path,query->path,offset,inputs,count,syntax,cancelled,user,error,capacity);
+            if(syntax) result=xlsSemanticCompletionCreateCachedParsedInContext(context,s->entryCache,xlsInputBatchEntry(batch),query->path,offset,inputs,count,syntax,cancelled,user,error,capacity);
         }
         if(!result) {
             if(cancelled && cancelled(user)) goto cancel;
@@ -82,7 +82,7 @@ xls_semantic_completion* xlsCompletionSessionQueryInContext(xls_completion_sessi
     s->queryKey=query->key; s->offset=offset;
     xlsInputBatchDestroy(s->batch); s->batch=batch; batch=NULL;
     xlsSemanticCompletionDestroy(s->result); s->result=xlsSemanticCompletionRetain(result);
-    if(!equal) { xlsSyntaxRelease(s->entrySyntax); s->entrySyntax=syntax; syntax=NULL; }
+    if(!equal) { xlsSyntaxRelease(s->cursorSyntax); s->cursorSyntax=syntax; syntax=NULL; }
     s->stats.documents=count; s->stats.textBytes=xlsInputBatchBytes(s->batch); goto done;
 invalid: if(error && capacity) snprintf(error,capacity,"invalid completion batch, target or UTF-8 cursor"); goto done;
 cancel: if(error && capacity) snprintf(error,capacity,"completion session cancelled");
