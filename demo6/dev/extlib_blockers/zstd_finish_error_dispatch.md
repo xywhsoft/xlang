@@ -16,3 +16,12 @@
 负例停止；改抓父类 `IOError` 只能回避合同，不能算修复。可用已构建的
 当前源码驱动和 `XLANG_PACKAGE_PATH=release/extlibs` 运行该文件复现，
 修复后应同时跑两个最小文件及完整教学范例的 JIT/独立 EXE。
+
+2026-10-24 当前发布版复验：`release/xl.exe` SHA-256 为
+`CCF98FF05BAAA71C1827EAA0C8B7A011A9A17EAB1AECD593CD89848D227C5A2B`。
+`xl run dev/extlib_blockers/zstd_finish_error_dispatch.xl` 仍抛
+`RuntimeError: zstd decompressor already finished`、退出 1；
+`xl run dev/extlib_blockers/zstd_truncated_error_dispatch.xl` 仍抛
+`IOError: zstd stream is truncated or empty`、退出 1。应修复主线的
+`extern` 自动错误派发与包层转换合同，再复跑两条负例及完整范例；
+本任务暂不改 zstd 公开错误类型。
