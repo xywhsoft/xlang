@@ -4775,6 +4775,7 @@ static XL6_IrValueId xl6IrLowerCOwnedTake(XL6_IrLowerContext* ctx,XL6_IrNodeId o
     }
     const XL6_IrNode* args=xl6IrNodeGet(ctx->module,ctx->module->children[call->firstChild+1]);
     int binary=xl6IrTypeGet(&ctx->module->types,call->storageType)->cAbi==XL6_IR_C_ABI_C_BYTES;
+    int sized=args->childCount==3;
     XL6_IrNodeId pointer=ctx->module->children[args->firstChild];
     const XL6_IrNode* arg=xl6IrNodeGet(ctx->module,pointer);
     if(arg->sourceKind==XL6_AST_ARG && arg->childCount==1)
@@ -4783,8 +4784,8 @@ static XL6_IrValueId xl6IrLowerCOwnedTake(XL6_IrLowerContext* ctx,XL6_IrNodeId o
         xl6IrLowerFindTypeByCAbi(ctx->module,XL6_IR_C_ABI_RAW_POINTER));
     if(!raw)return XL6_IR_VALUE_INVALID;
     XL6_IrValueId owned=xl6IrLowerEmitRuntimeCall(ctx,origin,call->storageType,
-        binary ? XL6_IR_RUNTIME_CBYTES_TAKE : XL6_IR_RUNTIME_CSTRING_TAKE,&raw,1);
-    if(!binary || !owned)return owned;
+        sized ? XL6_IR_RUNTIME_CBYTES_TAKE : XL6_IR_RUNTIME_CSTRING_TAKE,&raw,1);
+    if(!sized || !owned)return owned;
     size_t anchorOwner=ctx->evaluationOwnerCount;
     XL6_IrValueId anchor=xl6IrLowerProtectOwnedBorrow(ctx,origin,owned);
     if(!anchor)return XL6_IR_VALUE_INVALID;
@@ -4803,7 +4804,8 @@ static XL6_IrValueId xl6IrLowerCOwnedTake(XL6_IrLowerContext* ctx,XL6_IrNodeId o
     memmove(&ctx->evaluationOwners[anchorOwner],&ctx->evaluationOwners[anchorOwner+1],
         (ctx->evaluationOwnerCount-anchorOwner-1)*sizeof(*ctx->evaluationOwners));
     --ctx->evaluationOwnerCount;
-    return xl6IrLowerEmitRuntimeCall(ctx,origin,call->storageType,XL6_IR_RUNTIME_CBYTES_SIZE_TAKE,values,2);
+    return xl6IrLowerEmitRuntimeCall(ctx,origin,call->storageType,
+        binary ? XL6_IR_RUNTIME_CBYTES_SIZE_TAKE : XL6_IR_RUNTIME_CSTRING_SIZE_TAKE,values,2);
 }
 
 static XL6_IrValueId xl6IrLowerCOwnedRead(XL6_IrLowerContext* ctx,XL6_IrNodeId origin,const XL6_IrNode* node)

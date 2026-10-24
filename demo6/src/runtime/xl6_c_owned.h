@@ -112,6 +112,17 @@ static inline bool xl6CBytesSizeTakeV1(XL6_COwnedV1 value,int64_t size,XL6_COwne
     *output=value;
     return true;
 }
+/* The producer supplies readable storage through data[size], valid UTF-8,
+ * and a final NUL. Embedded NULs are part of the length-bearing text. */
+static inline bool xl6CStringSizeTakeV1(XL6_COwnedV1 value,int64_t size,XL6_COwnedV1* output)
+{
+    *output=(XL6_COwnedV1){0};
+    if(size<0 || (uint64_t)size>=SIZE_MAX || (!value.Data && size) ||
+       (value.Data && ((const char*)value.Data)[(size_t)size]!='\0')) {
+        xl6COwnedDropV1(&value);xrtSetErrorKind(XERR_ARGUMENT);return false;
+    }
+    value.Size=(size_t)size;*output=value;return true;
+}
 
 static inline xbytesview xl6CBytesViewV1(XL6_COwnedV1 value)
 {

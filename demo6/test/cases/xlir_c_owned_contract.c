@@ -45,6 +45,15 @@ static void checkOptionalContracts(XL6_IrModule* ir)
 
 static void checkStringResultContracts(XL6_IrModule* ir)
 {
+    for(size_t i=0;i<ir->instructionCount;++i) {
+        XL6_IrInstruction* instruction=&ir->instructions[i];
+        if(instruction->runtimeOp!=XL6_IR_RUNTIME_CSTRING_SIZE_TAKE)continue;
+        XL6_DiagList diags={0};
+        instruction->runtimeOp=XL6_IR_RUNTIME_CBYTES_SIZE_TAKE;
+        assert(!xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags);
+        instruction->runtimeOp=XL6_IR_RUNTIME_CSTRING_SIZE_TAKE;
+        assert(xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags);
+    }
     for(size_t i=0;i<ir->callableBridgeResultCount;++i) {
         XL6_IrCallableBridgeResult* slot=&ir->callableBridgeResults[i];
         if(slot->encodeAbi!=XL6_IR_CALLABLE_BRIDGE_STRING_MOVE)continue;

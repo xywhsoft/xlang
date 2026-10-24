@@ -35,6 +35,9 @@ end
 func defaultCallback(int base) as func(int,***) as cbytes
     return func(int first=base,***) as cbytes => first==base ? data() : b"wrong"
 end
+func factory() as func() as cstring
+    return text
+end
 func arrayAdapter() as func(...) as string
     auto raw=arrayText
     return raw
@@ -91,9 +94,17 @@ export "owned_boundary_exercise" func exercise(int mode) as bool
         auto raw=dictOptional
         var callback=xcall(raw)
         return callback(false,answer=42)==null and callback(true,label="tail")=="hello"
-    else
+    elseif mode==9
         auto raw=defaultCallback(19)
         var callback=xcall(raw)
         return callback()==b"\0\xff\x11*" and callback(first=19,label="tail")==b"\0\xff\x11*"
+    elseif mode==10
+        auto raw=factory
+        var callback=xcall(raw)
+        return callback()()=="hello"
+    else
+        auto value=cstring.take(nativeText(),5,nativeFree)
+        var copied=value
+        return copied=="hello"
     end
 end

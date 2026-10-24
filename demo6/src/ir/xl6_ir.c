@@ -49492,6 +49492,7 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_CSTRING_BOX: return "cstring-box";
     case XL6_IR_RUNTIME_CBYTES_COPY: return "cbytes-copy";
     case XL6_IR_RUNTIME_CBYTES_SIZE_TAKE: return "cbytes-size-take";
+    case XL6_IR_RUNTIME_CSTRING_SIZE_TAKE: return "cstring-size-take";
     case XL6_IR_RUNTIME_CSTRING_LENGTH: return "cstring-length";
     case XL6_IR_RUNTIME_CBYTES_LENGTH: return "cbytes-length";
     case XL6_IR_RUNTIME_CSTRING_AT: return "cstring-at";
