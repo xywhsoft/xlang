@@ -1,0 +1,12 @@
+import sitemap
+
+func main(...) as int
+    string source = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"><url><loc>https://example.test/</loc></url></urlset>"
+    var nativeUrls = sitemap.parse(source)
+    assert sitemap.build(nativeUrls) != "", "native array roundtrip failed"
+    println("native roundtrip: PASS")
+
+    var languageUrls = [{"loc": "https://example.test/"}]
+    assert sitemap.build(languageUrls) != "", "language array should build"
+    return 0
+end

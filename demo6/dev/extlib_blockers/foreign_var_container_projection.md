@@ -130,3 +130,13 @@ dev/extlib_blockers/ical_build_var_object_projection.xl` 先打印
 故障同形；尚未证明内部根因完全相同。普通包任务不加入私有 handle
 识别或手工重建 XRT 对象；主线修复后复跑最小源、公开日历范例和
 完整包级 JIT/AOT 门禁。
+
+同日 `sitemap` 复现数组侧：`./release/xl.exe run
+dev/extlib_blockers/sitemap_build_var_array_projection.xl` 先打印
+`native roundtrip: PASS`，证明 `sitemap.parse` 返回的 XRT 数组可
+由 `build` 重新生成 XML；相同条目的语言数组传入 `build` 却报
+`ValueError: sitemap entries must be an array`。`xl check` 接受该源，
+当前发布版的独立 C 边界测试通过。`sitemap_xml.c::xsm_build_xml`
+要求 `XVALUE_ARRAY`，公开语言签名则为 `var`。仍需主线统一 foreign
+数组投影，不能在本包识别编译器内部 handle；修复后复跑此最小源、
+公开双语范例与默认包级 JIT/AOT 门禁。
