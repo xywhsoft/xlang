@@ -4,5 +4,6 @@
 /* Immutable by-value public configuration: no Engine, Session, callback,
  * language value or borrowed storage. Copy never starts a TLS/TCP service. */
 void* xl6TlsStreamOptionsCopyV1(const xtlsstreamconfig*);
+void xl6TlsStreamOptionsDefaultsV1(xtlsstreamconfig*);
 const XL6_NativeHandlePolicyV1* xl6TlsStreamOptionsHandlePolicyV1Get(void);
 #endif

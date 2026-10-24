@@ -11,6 +11,8 @@ typedef struct XL6_TlsStreamCreateOptionsV1 {
     XL6_ExecutionResourceV1* engine;
     xtlsstream* accepted; /* private, actual owned Listener/Dial result borrow */
     XL6_ExecutionResourceV1* accepting; /* prepared real accept, no submission yet */
+    XL6_ExecutionResourceV1* resolving; /* real Resolver parent for a prepared Dial */
+    bool dialing; /* preparation submits nothing */
     xtlsstream* (*Build)(xnetengine*,XL6_ExecutionResourceV1*,const xtlsstreamownershipv1*,const struct XL6_TlsStreamCreateOptionsV1*);
     const struct XL6_TlsClientConnectOptionsV1* client;
 } XL6_TlsStreamCreateOptionsV1;
@@ -19,12 +21,17 @@ typedef struct XL6_TlsListenerCreateOptionsV1 {
     const struct xtlslistenerconfig* config; /* static role, copied synchronously */
 } XL6_TlsListenerCreateOptionsV1;
 
+typedef enum XL6_TlsPendingKindV1 {
+    XL6_TLS_PENDING_NONE_V1,XL6_TLS_PENDING_ACCEPT_V1,XL6_TLS_PENDING_DIAL_V1
+} XL6_TlsPendingKindV1;
 typedef struct XL6_TlsStreamResourceV1 {
     XL6_ExecutionResourceV1 base;
-    XL6_ExecutionResourceV1 *parent,*accepting;
+    XL6_ExecutionResourceV1 *parent,*accepting,*resolving;
     xatomicptr native,pending;
     xatomic32 prepared;
+    XL6_TlsPendingKindV1 pendingKind; /* immutable after construction */
 } XL6_TlsStreamResourceV1;
+XL6_EXECUTION_INTERNAL bool xl6ExecutionTlsPromotePendingV1(XL6_ExecutionResourceV1*,XL6_TlsPendingKindV1);
 typedef struct XL6_TlsScopeV1 {
     XL6_ExecutionScopeV1 execution;
     xtlsstream* stream;

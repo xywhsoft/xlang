@@ -76,7 +76,10 @@ xfuture* xl6TlsWorkerSourceV1(void* receiver,int64_t argument,unsigned operation
     xnetstream* tcp=ok?xrtTlsStreamTransport(stream.stream):NULL;
     xnetworker* worker=tcp?xrtNetStreamWorker(tcp):NULL;
     if(ok&&!worker){xrtSetErrorKind(XERR_STATE);ok=false;}
-    if(ok)ok=xl6ExecutionResourceEnterV1(stream.engineOwner,true,&engine);
+    /* This is work on an already admitted child, not a new user Engine job.
+     * Keep its real Engine alive even after logical Close; native Stop still
+     * rejects publication. Arbitrary public Engine submissions remain closed. */
+    if(ok)ok=xl6ExecutionResourceEnterV1(stream.engineOwner,false,&engine);
     if(ok&&(!engine.engine||xrtNetWorkerEngine(worker)!=engine.engine)){xrtSetErrorKind(XERR_TYPE);ok=false;}
     if(ok)work=xl6TaskRuntimeV3Get()->Allocate(NULL,sizeof(*work),run,&layout);
     if(work){

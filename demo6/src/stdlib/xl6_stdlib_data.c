@@ -520,6 +520,7 @@ const char* xl6StdlibLengthFramerClassSource =
 
 #include "src/stdlib/xl6_stdlib_tls_session.inc"
 #include "src/stdlib/xl6_stdlib_tls_stream_options.inc"
+#include "src/stdlib/xl6_stdlib_tls_dial_options.inc"
 
 const char* xl6StdlibTlsLegacyConfigClassSource =
     "class TlsResume\n"

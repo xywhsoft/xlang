@@ -18,7 +18,7 @@ xfuture* xl6ExecutionTlsAcceptSourceForV1(Resource* base,Resource* expected)
     if(base->family!=xl6ExecutionTlsStreamFamilyV1Get())xrtSetErrorKind(XERR_TYPE);
     else{
         Stream* r=(Stream*)base;xfuture* pending=xrtAtomicPtrLoad(&r->pending,XMEMORY_ACQUIRE);
-        if(r->accepting!=expected)xrtSetErrorKind(XERR_STATE);
+        if(r->pendingKind!=XL6_TLS_PENDING_ACCEPT_V1||r->accepting!=expected)xrtSetErrorKind(XERR_STATE);
         else{
             if(!pending&&xrtAtomic32Load(&r->prepared,XMEMORY_ACQUIRE)){
                 XL6_TlsScopeV1 accepting={0};
@@ -38,24 +38,4 @@ xfuture* xl6ExecutionTlsAcceptSourceForV1(Resource* base,Resource* expected)
     xl6ExecutionResourceLeaveV1(&scope);return result;
 }
 bool xl6ExecutionTlsPromoteAcceptV1(Resource* base)
-{
-    XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionResourceControlV1(base,true,&scope))return false;
-    bool ok=false;
-    if(base->family!=xl6ExecutionTlsStreamFamilyV1Get())xrtSetErrorKind(XERR_TYPE);
-    else{
-        Stream* r=(Stream*)base;xfuture* pending=xrtAtomicPtrLoad(&r->pending,XMEMORY_ACQUIRE);
-        if(!r->accepting||!pending||xrtAtomicPtrLoad(&r->native,XMEMORY_ACQUIRE)||
-            xrtFutureState(pending)!=XFUTURE_RESOLVED)xrtSetErrorKind(XERR_STATE);
-        else{
-            xtlsstream* value=xrtFutureValue(pending);xtlsstream* owned=value?xrtTlsStreamRef(value):NULL;
-            if(!value)xrtSetErrorKind(XERR_STATE);
-            if(owned){
-                xrtownershipscope mutation={0};if(!xrtOwnershipMutationBegin(&mutation))abort();
-                xrtAtomicPtrStore(&r->native,owned,XMEMORY_RELEASE);xrtAtomicPtrStore(&r->pending,NULL,XMEMORY_RELEASE);
-                if(!xrtOwnershipScopeEnd(&mutation))abort();
-                xrtFutureDestroy(pending);xl6ExecutionTlsParentDropV1(&r->accepting);ok=true;
-            }
-        }
-    }
-    xl6ExecutionResourceLeaveV1(&scope);return ok;
-}
+{return xl6ExecutionTlsPromotePendingV1(base,XL6_TLS_PENDING_ACCEPT_V1);}

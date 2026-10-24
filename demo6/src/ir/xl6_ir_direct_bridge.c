@@ -303,6 +303,8 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_tls_transport_contracts.inc"
 #include "xl6_ir_tls_io_contracts.inc"
 #include "xl6_ir_tls_data_contracts.inc"
+#include "xl6_ir_tls_dial_options_contracts.inc"
+#include "xl6_ir_tls_dial_contracts.inc"
 #include "xl6_ir_compress_contracts.inc"
 #include "xl6_ir_template_contracts.inc"
     {"xl6Crc32StringV1",T,I,3,{U,S,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},

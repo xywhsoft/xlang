@@ -1854,7 +1854,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesMemberName(root,"dialProxyAsyncUntil")||
         xl6StdlibNodeUsesMemberName(root,"dialProxyAsyncUntilCancel");
     needsTcpProxyDialOptions=needsTcpProxyDial||xl6StdlibNodeUsesTypeName(root,"TcpProxyDialOptions");
-    needsTcpDialOptions=needsTcpProxyDialOptions||xl6StdlibNodeUsesTypeName(root,"TcpDialOptions");
+    needsTcpDialOptions=needsTcpProxyDialOptions||xl6StdlibNodeUsesTypeName(root,"TcpDialOptions")||
+        xl6StdlibNodeUsesTypeName(root,"TlsDialOptions");
     needsTcpServerClass=xl6StdlibNodeUsesTypeName(root,"TcpServer")||xl6StdlibFuncUsed(used,"tcp","server");
     needsTcpServerOptions=needsTcpServerClass||xl6StdlibNodeUsesTypeName(root,"TcpServerOptions")||xl6StdlibNodeUsesTypeName(root,"TcpServerMode");
     needsTcpServerStats=needsTcpServerClass||xl6StdlibNodeUsesTypeName(root,"TcpServerStats")||xl6StdlibNodeUsesTypeName(root,"TcpServerState");
@@ -2378,7 +2379,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if(needsTlsClientContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsClientContextSource);
     if(needsTlsServerContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsServerContextSource);
     if(needsTlsManagedSession)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsManagedSessionClassSource);
-    if(xl6StdlibNodeUsesTypeName(root,"TlsStreamOptions"))xl6StdlibBuilderAppend(&builder,xl6StdlibTlsStreamOptionsSource);
+    if(xl6StdlibNodeUsesTypeName(root,"TlsStreamOptions")||xl6StdlibNodeUsesTypeName(root,"TlsDialOptions"))
+        xl6StdlibBuilderAppend(&builder,xl6StdlibTlsStreamOptionsSource);
+    if(xl6StdlibNodeUsesTypeName(root,"TlsDialOptions"))xl6StdlibBuilderAppend(&builder,xl6StdlibTlsDialOptionsSource);
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||
         xl6StdlibFuncUsed(used,"crypto","x25519KeyPair") || xl6StdlibFuncUsed(used,"crypto","x448KeyPair"))
         xl6StdlibBuilderAppend(&builder,xl6StdlibXdhClassSource);
