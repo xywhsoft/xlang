@@ -75,7 +75,6 @@ export class Snapshot
     destroy()
         if self.handle != null then
             x_clipboard_snapshot_release(self.handle)
-            self.handle = null
         end
     end
 end

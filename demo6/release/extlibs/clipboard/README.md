@@ -42,7 +42,7 @@ C 对应入口是 `x_clipboard_snapshot()`、`x_clipboard_restore(handle)`、`x_
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/clipboard/test/check.ps1
 ```
 
-门禁用独立 Windows window station 运行写入测试，不修改交互桌面的剪贴板。`-SkipAot` 已通过严格 GCC、UTF-8/中文路径、文本和文件列表、NUL 截断拒绝及原值保持、120 字符中文格式名在 C 单项/列表/JSON 与 XLang 单项路径往返、注册格式原始字节快照往返、`CF_BITMAP`/`CF_ENHMETAFILE`/合成 `CF_METAFILEPICT` 快照与重复恢复、64 轮快照释放后 GDI 句柄数稳定、不支持格式失败、BMP 往返及畸形尺寸、XLang JIT 写入、26 个生成 C 原型与公开头一致性、C/XLang 基础与快照范例对照。测试专用 XRT 内存调试模块还逐点注入快照捕获故障，验证失败后原内容不变及恢复前分配失败不会清空剪贴板；发布清单不包含该模块。范例在 `examples/basic.*` 与 `examples/snapshot.*`。完整门禁当前在 XLang AOT 构建时报 `unresolved reference to 'xl6ValueDataSnapshotV1'`；最小复现与主线修复建议见 `demo6/dev/extlib_blockers/text_snapshot_link.md`，包内不复制运行时实现。
+门禁用独立 Windows window station 运行写入测试，不修改交互桌面的剪贴板。历史构建的 `-SkipAot` 曾通过严格 GCC、UTF-8/中文路径、文本和文件列表、NUL 截断拒绝及原值保持、120 字符中文格式名在 C 单项/列表/JSON 与 XLang 单项路径往返、注册格式原始字节快照往返、`CF_BITMAP`/`CF_ENHMETAFILE`/合成 `CF_METAFILEPICT` 快照与重复恢复、64 轮快照释放后 GDI 句柄数稳定、不支持格式失败、BMP 往返及畸形尺寸、XLang JIT 写入、26 个生成 C 原型与公开头一致性、C/XLang 基础与快照范例对照。测试专用 XRT 内存调试模块还逐点注入快照捕获故障，验证失败后原内容不变及恢复前分配失败不会清空剪贴板；发布清单不包含该模块。范例在 `examples/basic.*` 与 `examples/snapshot.*`。当前发布物的完整门禁状态见下方最新复核，不沿用旧 AOT 缺符号结论。
 
 两份 C 范例可直接使用 `xl run` 或 `xl build`，不必手动添加头路径、包源码和 Windows 链接库。`basic_c.c` 只读取能力与格式信息；`snapshot_c.c` 会改写剪贴板，务必在隔离桌面测试。包门禁使用独立 window station 分别运行 JIT 与构建产物，并验证恢复后的内容。
 
@@ -69,3 +69,11 @@ Windows 包门禁在独立 window station 中运行该完整公开范例，并�
 仍未签收。
 同日不带 `-SkipAot` 的默认门禁复验仍在首次 XLang AOT 构建报
 `xl6ValueDataSnapshotV1` 未解析；新纳入的公开范例在该步骤前已通过隔离验证。
+
+2026-10-24：`Snapshot.destroy` 原在释放原生快照后写 `self.handle = null`，
+导致有效快照在局部对象退出时抛 `RuntimeError`；隔离桌面最小用例先红后绿，
+JIT 与独立 AOT 均退出 0 且将剪贴板留为预期文本。显式 `release()` 仍会
+在对象有效期内清句柄。当前完整门禁的 C/只读/负例阶段通过，但
+`test/mutate.xl` 在 `set_files(array)` 处失败：生成 C 传入数组投影，
+原生入口要求 XRT `XVALUE_ARRAY`。见 `dev/extlib_blockers/foreign_var_container_projection.md`；
+包内不解析编译器私有 handle，整包未签收发布级。
