@@ -28,6 +28,8 @@ typedef struct xls_entry_cache_scope {
     xls_completion_entry_work work;
     xls_entry_parse_work moduleWork;
     xls_parse_work moduleSyntaxWork;
+    const xls_syntax* cursorSyntax;
+    int cursorApplied,cursorFailed;
     xmap pendingModules;
     size_t pendingModuleBytes;
     int pendingModulesReady;
@@ -39,7 +41,9 @@ typedef struct xls_entry_cache_scope {
 void xlsFrontendEntryBegin(xls_entry_cache_scope* scope,xls_entry_cache* cache,const xls_context* context,const char* entry);
 xls_completion_entry_work xlsFrontendEntryEnd(xls_entry_cache_scope* scope,int commit);
 /* Audited source-overlay adapter calls this after the ORIGINAL disk/overlay
- * report capture. Cursor targets always use the original cursor parser.
+ * report capture. A bound cursor projection must match exact loaded bytes,
+ * path and offset. A failed copy rejects this attempt so its owner can retry
+ * the original parser and accurately count that route.
  * A limit/copy/allocation failure falls back without shrinking the language. */
 int xlsFrontendEntryParse(const char* text,const char* path,XL6_ParseResult* result,struct XL6_CompletionQuery* query);
 #endif

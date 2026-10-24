@@ -29,11 +29,12 @@ struct XL6_CompletionQuery;
 xls_syntax* xlsSyntaxBuildCursor(const char* path,xls_text* text,const xls_syntax* previous,
     struct XL6_CompletionQuery* query,xls_parse_work* work);
 int xlsSyntaxIsCursor(const xls_syntax* syntax);
+int xlsSyntaxCursorMatches(const xls_syntax* syntax,const char* path,size_t offset);
 /* Query starts empty except matching path/offset; destination parse is empty.
  * Prefix is independently owned, error borrows syntax. Failure changes neither
  * output. Semantic results must copy the error before releasing syntax. */
 int xlsSyntaxCopyCursorParse(const xls_syntax* syntax,struct XL6_CompletionQuery* query,XL6_ParseResult* result);
-/* Exact entry cursor snapshot only. The result owns its mutable AST/query and
+/* Exact query cursor snapshot. The result owns its mutable AST/query and
  * never borrows prefix/error/source state from the syntax snapshot. */
 xls_semantic_completion* xlsSemanticCompletionCreateParsed(const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
@@ -47,10 +48,13 @@ struct xls_entry_cache;
 xls_semantic_completion* xlsSemanticCompletionCreateCachedInContext(xls_context* context,struct xls_entry_cache* cache,
     const char* entry,const char* queryPath,size_t offset,const xls_semantic_input* inputs,size_t count,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
-/* Retained cursor syntax for the entry; ordinary imports may use the cache. */
+/* Retained cursor syntax for the opened query, including an imported query
+ * with a closed entry. Imported projection use follows original source capture
+ * and requires exact bytes/path/offset. Ordinary sources may use the cache. */
 xls_semantic_completion* xlsSemanticCompletionCreateCachedParsedInContext(xls_context* context,struct xls_entry_cache* cache,
     const char* entry,const char* queryPath,size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
+int xlsSemanticCompletionCursorSyntaxApplied(const xls_semantic_completion* result);
 /* Private mutable copy for compiler semantic passes. Destination must be
  * empty/initialized. Diagnostics and sources are independently owned. */
 int xlsSyntaxCopyParse(const xls_syntax* syntax,XL6_ParseResult* result);

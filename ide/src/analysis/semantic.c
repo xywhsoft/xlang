@@ -23,6 +23,7 @@ struct xls_semantic_completion {
     char *path,*queryError;
     xls_completion_entry_work entryWork;
     xls_entry_parse_work moduleWork;
+    int cursorSyntaxApplied;
 };
 static int absolute(const char* path)
 {
@@ -78,20 +79,23 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
     }
     const XL6_SourceOverlayItem* target=xl6SourceOverlayFind(&r->overlay,r->path);
     const XL6_SourceOverlayItem* entryInput=xl6SourceOverlayFind(&r->overlay,entry);
-    if(!target || (syntax && !entryInput) || offset>target->size ||
+    if(!target || offset>target->size ||
        (offset<target->size && ((unsigned char)target->text[offset]&0xc0)==0x80)) goto invalid;
     r->overlay.report=&r->report; r->overlay.completionQuery=&r->query; r->deps.sourceOverlay=&r->overlay;
     int okay;
     if(syntax) {
         const xls_text* text=xlsSyntaxText(syntax); size_t skip=0;
         if(text && xlsTextSize(text)>=3 && !memcmp(xlsTextData(text),"\xef\xbb\xbf",3)) skip=3;
-        /* Snapshot and source report describe the same entry bytes. A parse
+        /* Snapshot and source report describe the same query bytes. A parse
          * for another cursor/mode/path is never substituted for this query. */
-        if(entryInput!=target || !text || !xlsSyntaxIsCursor(syntax) ||
+        if(!text || !xlsSyntaxCursorMatches(syntax,target->path,offset) ||
            strcmp(target->path,xlsSyntaxPath(syntax)) || target->size!=xlsTextSize(text)-skip ||
            memcmp(target->text,xlsTextData(text)+skip,target->size)) goto invalid;
+    }
+    if(syntax && entryInput==target) {
         if(!xl6SourceReportText(&r->report,target->path,target->text,target->size,"overlay") ||
            !xlsSyntaxCopyCursorParse(syntax,&r->query,&r->parse)) goto invalid;
+        r->cursorSyntaxApplied=1;
         if(r->query.error) {
             r->queryError=xrtStrDup(r->query.error); if(!r->queryError) goto invalid;
             r->query.error=r->queryError;
@@ -100,6 +104,12 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
     } else okay=xl6SourceOverlayParse(&r->overlay,entry,&r->parse);
     if(stopped(cancelled,user)) goto cancel;
     if(okay) okay=xl6ImportsExpandModule(r->parse.root,entry,&r->parse.diags,&r->deps);
+    /* An imported cursor copy may borrow its error from the retained syntax.
+     * The completion result must outlive that syntax and its owning session. */
+    if(r->query.error && !r->queryError) {
+        r->queryError=xrtStrDup(r->query.error);if(!r->queryError) goto invalid;
+        r->query.error=r->queryError;
+    }
     if(stopped(cancelled,user)) goto cancel;
     if(okay) okay=xl6StdlibExpandModule(r->parse.root,&r->parse.diags);
     if(stopped(cancelled,user)) goto cancel;
@@ -132,20 +142,24 @@ static xls_semantic_completion* create(xls_context* context,xls_entry_cache* cac
     if(!xlsFrontendContextValid(context,entry,error,capacity)) return NULL;
     xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
     xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,cache,context,entry);
+    entryScope.cursorSyntax=syntax;
     xls_semantic_completion* result=createBody(context,entry,queryPath,offset,inputs,count,syntax,cancelled,user,error,capacity);
+    if(entryScope.cursorFailed) {xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"cannot own exact imported cursor syntax");}
     if(result && stopped(cancelled,user)) {xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"semantic completion cancelled");}
     int scoped=xlsFrontendContextEnd(&scope);
     xls_completion_entry_work work=xlsFrontendEntryEnd(&entryScope,result && scoped);
     if(!scoped) {
         xlsSemanticCompletionDestroy(result); fail(error,capacity,(scope.failed&2) ? "cannot retain bounded completion namespace" : "cannot resolve native context path or package environment"); return NULL;
     }
-    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;}
+    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->cursorSyntaxApplied|=entryScope.cursorApplied;}
     return result;
 }
 xls_completion_entry_work xlsSemanticCompletionEntryWork(const xls_semantic_completion* result)
 { return result ? result->entryWork : (xls_completion_entry_work){0}; }
 xls_entry_parse_work xlsSemanticCompletionModuleWork(const xls_semantic_completion* result)
 { return result ? result->moduleWork : (xls_entry_parse_work){0}; }
+int xlsSemanticCompletionCursorSyntaxApplied(const xls_semantic_completion* result)
+{return result && result->cursorSyntaxApplied;}
 int xlsSemanticCompletionInputs(const xls_semantic_completion* r,xls_inputs* out)
 { return xlsInputReportInputs(r && !invalid(r) ? &r->report : NULL,out); }
 int xlsSemanticCompletionSource(const xls_semantic_completion* r,size_t index,xls_input_source* out)
