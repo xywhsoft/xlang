@@ -1,5 +1,12 @@
 # graph
 
+2026-10-24 当前 Windows 发布版复验：专项门禁的严格 C、分配故障与
+四线程测试通过；首个 XLang 用例在合法图数组进入 C 桥时报告
+`graph edges must be an array`。一条边的 JIT/独立 EXE 最小复现见
+`../../../dev/extlib_blockers/graph_var_array_projection.xl`，属已记录的
+foreign `var` 容器投影边界，不是图算法结果错误。本轮后续语言、DLL
+宿主复用、生成原型及 AOT 门禁未跑到，不能以历史通过记录签收。
+
 有向图的遍历、拓扑排序、连通分量和距离计算。使用 XRT map/array 存储实际节点和边，
 不预留最大容量的全局数组；九项语言函数与九个 C 入口共享同一套算法。
 

@@ -1,0 +1,7 @@
+import graph
+
+func main(...) as int
+    var edges = [["a", "b"]]
+    assert graph.isDag(edges)
+    return 0
+end
