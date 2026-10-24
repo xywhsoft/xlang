@@ -30,6 +30,12 @@
 
 ## 范例与验证
 
+2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
+严格 C ABI、边界与四线程、C 文件直接运行、中央/包内 XLang 边界、
+分配故障、双语同输出及核心/完整范例 AOT 均通过。旧的完整 AOT
+缺符号记录属于先前发布物；本次没有重跑 Linux sanitizer，也不
+扩大到包外的货币或物理单位系统。
+
 - XLang：`release/examples/extlibs/units.xl`
 - 同输出 C：`release/extlibs/units/examples/units_c.c`
 
