@@ -341,7 +341,19 @@ enum {
 static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call,XL6_AstNode* function,int options)
 {
     if((function->kind!=XL6_AST_FUNC && function->kind!=XL6_AST_EXPORT_FUNC && function->kind!=XL6_AST_ASYNC_FUNC) || xl6SemFuncIsGeneric(function) ||
-        call->childCount!=2 || call->children[0]->kind!=XL6_AST_NAME)return function;
+        call->childCount!=2 || (call->children[0]->kind!=XL6_AST_NAME && call->children[0]->kind!=XL6_AST_MEMBER))return function;
+    XL6_AstNode* owner=NULL;
+    XL6_AstNode* declarations=ctx->root;
+    if(call->children[0]->kind==XL6_AST_MEMBER) {
+        if(function->flags & (XL6_AST_FLAG_VIRTUAL|XL6_AST_FLAG_OVERRIDE))return function;
+        for(size_t c=0;c<ctx->root->childCount && !owner;++c) {
+            XL6_AstNode* candidate=ctx->root->children[c];
+            XL6_AstNode* body=candidate->kind==XL6_AST_CLASS && candidate->childCount>1 ? candidate->children[1] : NULL;
+            for(size_t m=0;body && m<body->childCount;++m)
+                if(body->children[m]==function){owner=candidate;declarations=body;break;}
+        }
+        if(!owner)return function;
+    }
     XL6_AstNode* params=function->childCount>1 ? function->children[1] : NULL;
     XL6_AstNode* args=call->children[1];
     if(!params || (size_t)xl6SemFixedParamCount(params)!=params->childCount)return function;
@@ -417,8 +429,8 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
     hash=xl6SemCOwnedSignatureHash(returns,hash);
     char name[96];snprintf(name,sizeof(name),"__xl_c_owned_%u_%llx",function->semanticSymbolId,(unsigned long long)hash);
     XL6_AstNode* specialized=NULL;
-    for(size_t i=0;i<ctx->root->childCount;++i) {
-        XL6_AstNode* candidate=ctx->root->children[i];
+    for(size_t i=0;i<declarations->childCount;++i) {
+        XL6_AstNode* candidate=declarations->children[i];
         if((candidate->kind==XL6_AST_FUNC || candidate->kind==XL6_AST_ASYNC_FUNC) && xl6TextEquals(xl6SemFuncName(candidate),name)){specialized=candidate;break;}
     }
     if(!specialized) {
@@ -427,15 +439,35 @@ static XL6_AstNode* xl6SemCOwnedSpecialize(XL6_SemContext* ctx,XL6_AstNode* call
         if(!xl6SemAssignEntitySymbolIds(ctx,specialized)){xl6AstFree(specialized);return NULL;}
         XL6_Scope* saved=ctx->scope;
         while(ctx->scope->parent)ctx->scope=ctx->scope->parent;
-        int declared=xl6SemDeclareGlobalFuncName(ctx,specialized->children[0]);ctx->scope=saved;
+        int declared=owner || xl6SemDeclareGlobalFuncName(ctx,specialized->children[0]);ctx->scope=saved;
         if(!declared){xl6AstFree(specialized);return NULL;}
-        xl6AstAddChild(ctx->root,specialized);
+        xl6AstAddChild(declarations,specialized);
+        if(owner) {
+            /* Recheck in the declaration's class/global scope, never the
+             * caller's local scope. Register first for recursive calls. */
+            XL6_AstNode* savedClass=ctx->currentClass;
+            const char* savedSelf=ctx->implicitSelfName;
+            XL6_TypeParamScope* savedTypes=ctx->typeParams;
+            int savedCreate=ctx->inClassCreate,savedLoop=ctx->loopDepth,
+                savedCatch=ctx->catchDepth,savedGenerator=ctx->generatorDepth;
+            XL6_TypeParamScope classTypes={owner->childCount>2 ? owner->children[2] : NULL,NULL};
+            while(ctx->scope->parent)ctx->scope=ctx->scope->parent;
+            ctx->currentClass=owner;ctx->implicitSelfName=(specialized->flags & XL6_AST_FLAG_STATIC) ? NULL : "self";
+            ctx->typeParams=&classTypes;ctx->inClassCreate=ctx->loopDepth=ctx->catchDepth=ctx->generatorDepth=0;
+            int checked=xl6SemCheckFunc(ctx,specialized);
+            ctx->scope=saved;ctx->currentClass=savedClass;ctx->implicitSelfName=savedSelf;
+            ctx->typeParams=savedTypes;ctx->inClassCreate=savedCreate;ctx->loopDepth=savedLoop;
+            ctx->catchDepth=savedCatch;ctx->generatorDepth=savedGenerator;
+            if(!checked){xl6AstFree(signature);return NULL;}
+        }
     }
     xl6AstFree(signature);
     xrtFree(call->children[0]->text);call->children[0]->text=xrtStrDup(name);
     xl6AstFree(call->inferredType);call->inferredType=NULL;
     return specialized;
 }
+static XL6_AstNode* xl6SemCOwnedSpecializeMethod(XL6_SemContext* ctx,XL6_AstNode* call,XL6_AstNode* method)
+{ return xl6SemCOwnedSpecialize(ctx,call,method,0); }
 /* Only a resolved function declaration may be specialized. A mutable callable
  * value keeps its signature and uses the ordinary worker argument boundary. */
 static int xl6SemCOwnedSpawn(XL6_SemContext* ctx,XL6_AstNode* call,XL6_AstNode* callable)
