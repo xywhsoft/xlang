@@ -1733,7 +1733,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsEd25519Class;
     int needsNistClass;
     int needsRsaPublicClass, needsRsaPrivateClass;
-    int needsTlsIdentity;
+    int needsTlsIdentity, needsTlsParameters;
     int needsTccClass;
     int needsXlangClass;
     int needsCoreClass;
@@ -1980,6 +1980,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer");
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
     needsTlsIdentity = xl6StdlibNodeUsesTypeName(root,"TlsIdentity") || xl6StdlibNodeUsesTypeName(root,"TlsIdentityKind");
+    needsTlsParameters=xl6StdlibNodeUsesTypeName(root,"TlsParameters") || xl6StdlibNodeUsesTypeName(root,"TlsPolicy") ||
+        xl6StdlibNodeUsesTypeName(root,"TlsLimits") || xl6StdlibNodeUsesTypeName(root,"TlsVersion") ||
+        xl6StdlibNodeUsesTypeName(root,"TlsCipherSuite") || xl6StdlibNodeUsesTypeName(root,"TlsGroup") ||
+        xl6StdlibNodeUsesTypeName(root,"TlsSignature") || xl6StdlibNodeUsesTypeName(root,"TlsKeySharePolicy");
     needsRsaPrivateClass = needsTlsIdentity || xl6StdlibNodeUsesTypeName(root,"RsaPrivateKey") || xl6StdlibFuncUsed(used,"cryptoAdvanced","rsaPrivate");
     needsRsaPublicClass = needsRsaPrivateClass || xl6StdlibNodeUsesTypeName(root,"RsaPublicKey") || xl6StdlibFuncUsed(used,"cryptoAdvanced","rsaPublic");
     needsNistClass = needsTlsIdentity || xl6StdlibNodeUsesTypeName(root,"P256Key") || xl6StdlibNodeUsesTypeName(root,"P384Key") ||
@@ -2356,6 +2360,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509DataSource);
     }
     if(needsTlsIdentity)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsIdentitySource);
+    if(needsTlsParameters)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsParametersSource);
     if (xl6StdlibNodeUsesTypeName(root,"X25519Key") || xl6StdlibNodeUsesTypeName(root,"X448Key") ||
         xl6StdlibFuncUsed(used,"crypto","x25519KeyPair") || xl6StdlibFuncUsed(used,"crypto","x448KeyPair"))
         xl6StdlibBuilderAppend(&builder,xl6StdlibXdhClassSource);

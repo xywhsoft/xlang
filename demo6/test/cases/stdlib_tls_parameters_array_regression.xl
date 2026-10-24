@@ -1,0 +1,3 @@
+array<string> pieces = ["a\0b", "c"]
+assert string.join(pieces, ":") == "a\0b:c"
+assert string.join(pieces, ":", -1, 2) == "a\0:c"

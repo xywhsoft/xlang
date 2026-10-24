@@ -1,0 +1,6 @@
+XL6_TLS_LIMIT(FeedLimit,feedLimit)
+XL6_TLS_LIMIT(SendLimit,sendLimit)
+XL6_TLS_LIMIT(PlainLimit,plainLimit)
+XL6_TLS_LIMIT(HandshakeLimit,handshakeLimit)
+XL6_TLS_LIMIT(RecordBudget,recordBudget)
+XL6_TLS_LIMIT(HandshakeBudget,handshakeBudget)

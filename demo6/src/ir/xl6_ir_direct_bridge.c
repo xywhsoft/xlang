@@ -60,6 +60,7 @@ static int xl6IrDirectNumericEnumMatches(const XL6_IrModule* module,
 #include "xl6_ir_x509_crl_policy_enums.inc"
 #include "xl6_ir_x509_path_enums.inc"
 #include "xl6_ir_tls_identity_enums.inc"
+#include "xl6_ir_tls_parameters_enums.inc"
 #include "xl6_ir_net_backend_enum.inc"
 #include "xl6_ir_net_engine_state_enum.inc"
 #include "xl6_ir_net_socket_enums.inc"
@@ -136,6 +137,7 @@ typedef struct XL6_IrDirectBridgeContract {
     const XL6_IrNumericEnumContract* resultEnum;
     const XL6_IrNumericEnumContract* parameterEnums[8];
     const XL6_IrNumericEnumContract* resultProductEnums[3];
+    const XL6_IrNumericEnumContract* parameterArrayItemEnums[8];
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -288,6 +290,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_x509_store_contracts.inc"
 #include "xl6_ir_x509_identity_contracts.inc"
 #include "xl6_ir_tls_identity_contracts.inc"
+#include "xl6_ir_tls_parameters_contracts.inc"
 #include "xl6_ir_compress_contracts.inc"
 #include "xl6_ir_template_contracts.inc"
     {"xl6Crc32StringV1",T,I,3,{U,S,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
@@ -1261,7 +1264,8 @@ static int xl6IrDirectBridgeResultResourceMatches(const XL6_IrModule* module,
 }
 
 static int xl6IrDirectBridgeCollectionMatches(const XL6_IrModule* module,
-    const XL6_IrType* type, XL6_IrCAbi itemAbi, XL6_IrCollectionAbi collection)
+    const XL6_IrType* type, XL6_IrCAbi itemAbi, XL6_IrCollectionAbi collection,
+    const XL6_IrNumericEnumContract* itemEnum)
 {
     const XL6_IrType* item = type && type->paramCount == 1 && type->params
         ? xl6IrTypeGet(&module->types, type->params[0]) : NULL;
@@ -1270,9 +1274,12 @@ static int xl6IrDirectBridgeCollectionMatches(const XL6_IrModule* module,
         type->collectionAbi != collection || type->returnCount != 0 ||
         type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
         type->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL || !item ||
-        item->kind != XL6_IR_TYPE_BUILTIN || item->paramCount != 0 ||
+        item->paramCount != 0 ||
         item->collectionAbi != XL6_IR_COLLECTION_NONE || item->returnCount != 0 ||
         item->cAbi != itemAbi) return 0;
+    if(itemEnum)return collection==XL6_IR_COLLECTION_ARRAY &&
+        xl6IrDirectNumericEnumMatches(module,type->params[0],itemEnum);
+    if(item->kind!=XL6_IR_TYPE_BUILTIN)return 0;
     if (itemAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR)
         return xl6IrSerializationBridgeDynamicValueType(item);
     if (itemAbi == XL6_IR_C_ABI_MANAGED_STRING)
@@ -1347,7 +1354,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     }
     if (contract->nativeArrayResultAbi) {
         if (!result || !result->typeValueId || result->paramCount != 1 || !result->params ||
-            !xl6IrDirectBridgeCollectionMatches(module, result, contract->resultArrayItemAbi, XL6_IR_COLLECTION_ARRAY)) return 0;
+            !xl6IrDirectBridgeCollectionMatches(module, result, contract->resultArrayItemAbi, XL6_IR_COLLECTION_ARRAY,NULL)) return 0;
         const XL6_IrType* item = xl6IrTypeGet(&module->types, result->params[0]);
         XL6_IrSequenceLayout expected = xl6IrSequenceLayoutForType(&module->types, result);
         if (!item || !item->typeValueId || expected.abi != XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2 ||
@@ -1434,7 +1441,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                     XL6_IR_INTEGER_TARGET_UNSIGNED_64))return 0;
         } else if (contract->resultArrayItemAbi) {
             if (!xl6IrDirectBridgeCollectionMatches(module, result, contract->resultArrayItemAbi,
-                contract->resultCollectionAbi ? contract->resultCollectionAbi : XL6_IR_COLLECTION_ARRAY)) return 0;
+                contract->resultCollectionAbi ? contract->resultCollectionAbi : XL6_IR_COLLECTION_ARRAY,NULL)) return 0;
         } else {
             if (result == NULL || result->kind != (contract->nullableResult ? XL6_IR_TYPE_NULLABLE : XL6_IR_TYPE_BUILTIN) ||
                 result->collectionAbi != XL6_IR_COLLECTION_NONE || result->returnCount != 0 ||
@@ -1603,7 +1610,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
             continue;
         }
         if (contract->parameterArrayItemAbis[i]) {
-            if (!xl6IrDirectBridgeCollectionMatches(module, type, contract->parameterArrayItemAbis[i], XL6_IR_COLLECTION_ARRAY) ||
+            if (!xl6IrDirectBridgeCollectionMatches(module, type, contract->parameterArrayItemAbis[i], XL6_IR_COLLECTION_ARRAY,contract->parameterArrayItemEnums[i]) ||
                 target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
                 target->parameterPhysicalFieldDeclarations[i] != XL6_IR_NODE_INVALID ||
                 !xl6IrBufferRuntimeBridgeParameterMatches(module, target, i, abi,

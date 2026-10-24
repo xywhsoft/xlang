@@ -1,0 +1,7 @@
+    {"src/runtime/xl6_tls_limits.c",D(R(TLS_VALUE),R(NATIVE_HANDLE)),{"XRT_MODULE_TLS_CONTEXT"}},
+    {"src/runtime/xl6_tls_policy.c",D(R(TLS_VALUE),R(NATIVE_HANDLE)),{"XRT_MODULE_TLS_CONTEXT"}},
+    {"src/runtime/xl6_tls_policy_preferences.c",D(R(TLS_POLICY),R(ARRAY_INPUT)),{NULL}},
+    {"src/runtime/xl6_tls_parameters.c",D(R(TLS_POLICY),R(TLS_LIMITS)),{"XRT_MODULE_TLS_CONTEXT"}},
+    {"src/runtime/xl6_tls_limits_domain.c",D(R(OWNERSHIP_CATALOG),R(TLS_LIMITS)),{NULL}},
+    {"src/runtime/xl6_tls_policy_domain.c",D(R(OWNERSHIP_CATALOG),R(TLS_POLICY)),{NULL}},
+    {"src/runtime/xl6_tls_parameters_domain.c",D(R(OWNERSHIP_CATALOG),R(TLS_PARAMETERS)),{NULL}},

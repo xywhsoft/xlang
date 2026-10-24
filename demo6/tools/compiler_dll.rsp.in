@@ -581,6 +581,13 @@
     src\runtime\xl6_tls_identity_p384.c
     src\runtime\xl6_tls_identity_ed25519.c
     src\runtime\xl6_tls_identity_domain.c
+    src\runtime\xl6_tls_limits.c
+    src\runtime\xl6_tls_policy.c
+    src\runtime\xl6_tls_policy_preferences.c
+    src\runtime\xl6_tls_parameters.c
+    src\runtime\xl6_tls_limits_domain.c
+    src\runtime\xl6_tls_policy_domain.c
+    src\runtime\xl6_tls_parameters_domain.c
     src\runtime\xl6_x509_store_domain.c
     src\runtime\xl6_x509_store_snapshot_domain.c
     src\runtime\xl6_x509_path_config.c

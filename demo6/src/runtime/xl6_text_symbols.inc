@@ -15,6 +15,7 @@ XL6_TEXT_EXPORT(xl6TextLowerV1, TEXT_VALUE)
 #include "xl6_x509_store_symbols.inc"
 #include "xl6_x509_identity_symbols.inc"
 #include "xl6_tls_identity_symbols.inc"
+#include "xl6_tls_parameters_symbols.inc"
 #include "xl6_compress_symbols.inc"
 #include "xl6_template_symbols.inc"
 XL6_TEXT_EXPORT(xl6CodecHexTextV1, CODEC_HEX)
@@ -391,6 +392,7 @@ XL6_TEXT_EXPORT(xl6ValueTryReadNativeScalarV1, NATIVE_SCALAR_VALUE)
 XL6_TEXT_EXPORT(xl6NativeScalarConvertV1, NATIVE_SCALAR_CONVERT)
 XL6_TEXT_EXPORT(xl6ValueConvertNativeScalarV2, VALUE_NATIVE_SCALAR_CONVERT)
 XL6_TEXT_EXPORT(xl6ArrayInputAcquireV1, ARRAY_INPUT)
+XL6_TEXT_EXPORT(xl6ArrayInputAcquireBoundedV1, ARRAY_INPUT)
 XL6_TEXT_EXPORT(xl6_xrt_fs_path_build, PATH_BUILD)
 XL6_TEXT_EXPORT(xl6ArrayInputReleaseV1, ARRAY_INPUT)
 XL6_TEXT_EXPORT(xl6ValueBoxNativeScalarV1, NATIVE_SCALAR_VALUE)
