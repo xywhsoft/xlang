@@ -124,3 +124,63 @@ Add 引入的二次方查重。握手接收／解析前的输入分配仍需上�
 证据根 `F:/xlang-validation/five-groups-20261024/p6-tls-verify-limits`。
 没有网络、安全专项、畸形密码学样本，也未更新发布产品。这三个原生 API
 尚不是新的语言级验证策略／上下文公开面；P6 其余步骤与 P7 继续开放。
+
+## 共用协议配置与参数快照
+
+`TlsLimits`、`TlsPolicy`、`TlsParameters` 已通过驻留接入，作为后续客户端／
+服务端选项和角色上下文的共用值。三个对象均不可变，可跨线程只读，没有
+可见 nativeHandle 或对调用者数组／对象的持久借用。
+
+```xlang
+array<TlsVersion> versions = [TlsVersion.v13]
+array<TlsCipherSuite> ciphers = [TlsCipherSuite.aes128GcmSha256]
+array<TlsGroup> groups = [TlsGroup.x25519, TlsGroup.p256]
+array<TlsSignature> signatures = [TlsSignature.ed25519, TlsSignature.ecdsaP256Sha256]
+auto policy = TlsPolicy.fromPreferences(versions, ciphers, groups, signatures,
+    TlsKeySharePolicy.preferReady)
+auto parameters = TlsParameters(policy, TlsLimits())
+```
+
+`TlsPolicy()` 保留 XRT 的完整默认排序和 preferReady 策略。
+`fromPreferences` 原子校验四个有序列表，不以连串 setter 产生暂时不一致的
+版本／套件组合；其 `keyShare` 参数默认 preferGroup，供自定义策略严格保持
+组偏好，调用者也可显式选择 preferReady 以优先已有 key share。五个精确
+数值枚举共 37 个成员来自一个声明／XLIR 共享清单；观察词汇不等于当前
+角色／裁剪后端都能执行，执行能力仍须在角色创建时验证。
+
+四个列表在读取和分配 detached 元素前检查固定数量上限，再由 XRT 校验
+完整策略；不截断、不保留数组槽位或语言回调。版本／套件／组／签名的
+count 和 at 读取原始顺序，结果保持各自枚举身份。共有 C 整数表示不能
+让 `array<TlsGroup>` 冒充 `array<TlsVersion>`。这一点通过通用私有桥接合同
+表达，不在 Cgen 按函数名推断。
+
+`TlsLimits` 的 feed／send／plain 默认各 262144 字节，handshake 默认
+1048576，record／handshake 驱动预算默认各 64。所有值检查 native 宽度、
+合法记录最小尺寸及握手线路上限；这里的 0 不是“无限”，非法值 checked
+拒绝。`TlsParameters()` 使用完整默认值，双参数构造把已有策略和限额
+复制进 XRT 的一次紧凑分配；构造本身不建立连接，也不预分配这些队列。
+`policy` 保留不可变原生引用，`limits` 返回独立副本，均能晚于来源对象释放。
+
+三个真实叶策略／拥有目录及对应静态登记齐全。25 个驻留目标、7 个拥有
+结果、4 个精确枚举数组合同、3 个句柄策略、210 项错误合同和 28 个零输出
+拒绝门通过。每个原生配置覆盖 16 个分配预算／10 个实际失败、6 个发布
+预算及三个目录的 Hold／Claim／Restore，临时值和内存账本平衡。
+
+本批共 148 阶段：Windows 73、Linux 75；包含实际 JIT／module／独立 AOT、
+生成 C 的严格 O0／O2、跨线程只读和 typed 容器、旧 string 数组／内嵌 NUL
+回归、四份实际裁剪计划及错误枚举数组源拒绝。驻留实现另用 GCC O0／O2、
+TCC 和 Linux ASan／UBSan；纯枚举不拉入 TLS，配置不拉入密码学／会话／
+传输。共享清单的全部 37 个枚举数值另与真实 XRT 常量逐项编译核对。
+源码驱动分别构建 1130／1129 TU，8893 稳定输入在两端一致，
+另列于阶段之外，不表示发布 DLL／SO／VFS 已验收。
+
+首轮公共 ABI 头引用未发布的内部 `.inc`，已改为自包含声明；原失败与修复
+源码保留。夹具的默认 key-share 预期更正为原生 preferReady，同一生产编译器
+已跑通更正的夹具；最终控制不改变生产源码／对象。早期未完成快照拷贝时的
+启动失败也保留，不计作产品或成功阶段。
+
+复查工具为 `tools/check_tls_parameters_owned.py` 与
+`tools/check_stdlib_tls_parameters.py --source-build <build.json> --out <新目录>`。
+证据根 `F:/xlang-validation/five-groups-20261024/p6-tls-parameters`。本批无网络
+或安全专项，未增加 Cgen 语义特判，未修改 XRT 或两边时间 ABI。分离角色
+选项／上下文、信任及 CRL／回调策略、会话、传输、恢复和 P7 仍待完成。

@@ -26,7 +26,7 @@ void xl6ArrayInputReleaseV1(XL6_ArrayInputV1* input)
     if(!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
     else xrtErrorFree(outcome.error);
 }
-bool xl6ArrayInputAcquireV1(const xvalue* source, XL6_ArrayInputV1* output)
+bool xl6ArrayInputAcquireBoundedV1(const xvalue* source, size_t maximum, XL6_ArrayInputV1* output)
 {
     if (!output || output->items || output->count) {
         xrtSetErrorKind(XERR_ARGUMENT); return false;
@@ -59,7 +59,7 @@ bool xl6ArrayInputAcquireV1(const xvalue* source, XL6_ArrayInputV1* output)
         count=xrtValueCount(wire);
     }
     XL6_ArrayInputV1 prepared={0}; bool ok=false;
-    if (count>INT64_MAX || count>SIZE_MAX/sizeof(*prepared.items)) {
+    if (count>maximum || count>INT64_MAX || count>SIZE_MAX/sizeof(*prepared.items)) {
         xrtSetErrorKind(XERR_RANGE); goto done;
     }
     prepared.items=count ? xrtMalloc(count*sizeof(*prepared.items)) : NULL;
@@ -87,3 +87,5 @@ done:
     if(!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return false; }
     *output=prepared; return true;
 }
+bool xl6ArrayInputAcquireV1(const xvalue* source, XL6_ArrayInputV1* output)
+{return xl6ArrayInputAcquireBoundedV1(source,SIZE_MAX,output);}

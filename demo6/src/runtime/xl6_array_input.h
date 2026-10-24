@@ -16,5 +16,8 @@ typedef struct XL6_ArrayInputV1 {
     size_t count;
 } XL6_ArrayInputV1;
 XL6_TEXT_API bool xl6ArrayInputAcquireV1(const xvalue*, XL6_ArrayInputV1*);
+/* Check a hard item quota before allocating detached element storage.
+ * SIZE_MAX is the legacy unlimited mode; zero permits only an empty array. */
+XL6_TEXT_API bool xl6ArrayInputAcquireBoundedV1(const xvalue*, size_t, XL6_ArrayInputV1*);
 XL6_TEXT_API void xl6ArrayInputReleaseV1(XL6_ArrayInputV1*);
 #endif

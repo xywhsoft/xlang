@@ -1,0 +1,39 @@
+func make() as TlsParameters
+ array<TlsVersion> versions = [TlsVersion.v13]
+ array<TlsCipherSuite> ciphers = [TlsCipherSuite.chacha20Poly1305Sha256, TlsCipherSuite.aes128GcmSha256]
+ array<TlsGroup> groups = [TlsGroup.x25519, TlsGroup.p256]
+ array<TlsSignature> signatures = [TlsSignature.ed25519, TlsSignature.ecdsaP256Sha256]
+ auto policy = TlsPolicy.fromPreferences(versions, ciphers, groups, signatures, TlsKeySharePolicy.preferReady)
+ versions[0] = TlsVersion.v12
+ assert policy.versionAt(0) == TlsVersion.v13
+ auto limits = TlsLimits(65536, 131072, 32768, 65536, 8, 9)
+ return TlsParameters(policy, limits)
+end
+auto defaults = TlsPolicy()
+assert defaults.versionCount == 2 and defaults.versionAt(0) == TlsVersion.v13
+assert defaults.cipherCount == 9 and defaults.groupCount == 4 and defaults.signatureCount == 14
+assert defaults.keySharePolicy == TlsKeySharePolicy.preferReady
+auto defaultParameters = TlsParameters()
+assert defaultParameters.limits.feedLimit == 262144
+auto value = make()
+auto policy = value.policy
+auto limits = value.limits
+assert policy.versionCount == 1 and policy.cipherCount == 2 and policy.groupCount == 2 and policy.signatureCount == 2
+assert policy.cipherAt(0) == TlsCipherSuite.chacha20Poly1305Sha256
+assert policy.groupAt(1) == TlsGroup.p256
+assert policy.signatureAt(0) == TlsSignature.ed25519
+assert policy.keySharePolicy == TlsKeySharePolicy.preferReady
+assert limits.feedLimit == 65536 and limits.sendLimit == 131072 and limits.plainLimit == 32768
+assert limits.handshakeLimit == 65536 and limits.recordBudget == 8 and limits.handshakeBudget == 9
+int caught = 0
+try
+ auto bad = TlsLimits(1)
+catch RangeError expected
+ caught += 1
+end
+try
+ auto bad = policy.versionAt(-1)
+catch RangeError expected
+ caught += 1
+end
+assert caught == 2

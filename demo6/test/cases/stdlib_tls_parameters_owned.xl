@@ -1,0 +1,11 @@
+func reader(TlsParameters parameters) as func() as int
+ return func() as int
+  if parameters.policy.versionAt(0) == TlsVersion.v13 and parameters.limits.recordBudget == 64 then return 0 end
+  return 1
+ end
+end
+array<TlsParameters> values = [TlsParameters()]
+auto first = thread(reader(values[0]))
+auto second = thread(reader(values[0]))
+assert first.waitTimeout(30000) and second.waitTimeout(30000)
+assert first.exitCode() == 0 and second.exitCode() == 0

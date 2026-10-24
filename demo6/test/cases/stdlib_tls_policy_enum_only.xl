@@ -1,0 +1,2 @@
+assert TlsVersion.v13 != TlsVersion.v12
+assert TlsCipherSuite.aes128GcmSha256 != TlsCipherSuite.aes256GcmSha384
