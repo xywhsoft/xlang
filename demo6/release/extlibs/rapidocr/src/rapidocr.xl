@@ -285,7 +285,6 @@ class RapidBoxGeometry
 	destroy()
 		if self.handle != null then
 			rapidocr_boxes_release_native(self.handle)
-			self.handle = null
 		end
 	end
 end
@@ -490,7 +489,6 @@ export class RapidOCROutput
 	destroy()
 		if self.handle != null then
 			rapidocr_output_release_native(self.handle)
-			self.handle = null
 		end
 	end
 
@@ -909,11 +907,9 @@ export class RapidOCREngine
 	destroy()
 		if self.handle != null then
 			rapidocr_release_native(self.handle)
-			self.handle = null
 		end
 		if self.charset_handle != null then
 			rapidocr_charset_release_native(self.charset_handle)
-			self.charset_handle = null
 		end
 		self.det_session.release()
 		self.cls_session.release()

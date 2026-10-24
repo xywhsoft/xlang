@@ -34,6 +34,7 @@
                              "abiVersion":  "1"
                          }
                      ],
+    "coverage": { "mode": "suite", "tests": ["test/real_inference.xl", "test/implicit_engine_cleanup.xl", "test/implicit_shim_cleanup.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

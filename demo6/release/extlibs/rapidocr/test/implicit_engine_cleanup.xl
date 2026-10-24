@@ -1,0 +1,13 @@
+import rapidocr
+
+func main(...) as int
+    string image = env.get("RAPIDOCR_TEST_IMAGE") ?? ""
+    assert image != "" and file.exists(image), "rapidocr test fixture is missing"
+    assert rapidocr.available()
+    auto engine = rapidocr.RapidOCR()
+    assert engine.valid()
+    auto result = engine.op_call(image)
+    assert result.ok(), result.error()
+    assert result.text() == "HELLO123"
+    return 0
+end

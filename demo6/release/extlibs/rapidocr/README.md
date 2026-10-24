@@ -62,16 +62,20 @@ C 端可用 `rapidocr_charset_open_native(path)` 读取拥有型字典句柄，�
 从 `demo6` 目录运行：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/rapidocr/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/rapidocr/test/check.ps1
 ```
 
 默认门禁生成固定 `HELLO 123` PNG，验证真实识别为 `HELLO123`、`text()`/JSON、缺图/缺模型、C `int` 越界、严格 GCC C 测试、独立检测框/识别解码边界与 C/XLang 后处理同输出。检测框测试验证连续结果互不覆写，256 框且超过旧 32 KiB 容量时不截断。OpenCV/ONNX 包的独立范例由各自门禁负责；`-Stress` 才运行后端 16 线程冷装载、3 次引擎创建、9 次真实识别、预热后的双引擎识别、XLang 双线程冷路径探针和双引擎冷启动真实识别。Windows 每次在 `build/test/rapidocr/run_<id>` 独占子目录生成图片和二进制并在退出时仅清理该目录；Linux C 门禁使用独占系统临时目录。既有 `build/test/rapidocr` 文件不被覆盖或清理。
 
-本轮路径负例先复现后修复；包级 `-SkipAot` 门禁与真实模型识别复跑通过。
+路径负例曾先复现后修复；当前默认门禁包含真实模型 JIT/AOT、完整测试
+桥接层 JIT/AOT 及双语后处理对照。
 测试专用完整桥接层还验证 C/XLang 成功调用、失败诊断、再次成功与结果释放；
 残缺桥接层在 Windows C/XLang 和 Linux C 中均被拒绝。这里验证的是包的
 ABI 转发和所有权，不替代真实桥接插件的算法与构建验收；后者由插件维护方负责。
-完整 AOT 在当前 `xl.exe` 上被主线缺少 `xl6ValueDataSnapshotV1` 阻断；本包不复制运行时或修改 xlang 主线。当前 C 公共入口仅承诺后处理，不宣称没有可选桥接 DLL 时能直接完成推理；本包还需 AOT 回归，模型精度与桥接内部问题交后端独立维护。
+旧构建曾在完整 AOT 链接处缺少 `xl6ValueDataSnapshotV1`；当前
+Windows 发布版默认门禁已构建并运行真实推理与隐式清理 AOT。
+当前 C 公共入口仅承诺后处理，不宣称没有可选桥接 DLL 时能直接完成
+推理；模型精度与桥接内部问题交后端独立维护。
 
 Linux 独立 C 后处理门禁可运行 `sh release/extlibs/rapidocr/test/check.sh`；它不包含 ONNX 模型推理与 XLang 验收。
 
@@ -82,3 +86,12 @@ C 测试使用测试程序所在目录保存字符表与 UTF-8 路径夹具。Wi
 后处理与真实 `HELLO123` 推理通过；Linux `test/check.sh` 的 C 公开调用
 通过，两边本次目录均已清理。未重跑 `-Stress`，也未将测试桥接层视为
 真实 C 端推理或插件内部验收；完整 AOT 的主线阻断仍未关闭。
+
+2026-10-24：`RapidOCREngine`、`RapidBoxGeometry` 和 `RapidOCROutput`
+的析构曾在原生资源释放后写退役对象字段。有效引擎直接退出、XLang
+流水线的检测框几何清理以及完整测试桥接的原生输出清理分别红绿验证；
+仅移除析构写回，显式 `release()` 仍在对象有效期内清句柄。
+默认 Windows 门禁现完整通过，包含真实图片 `HELLO123`、回退流水线、
+测试桥接、两条隐式清理 JIT/AOT 及 C/XLang 后处理对照。Linux C 门禁
+通过后处理与完整测试桥接调用；它不验证 Linux XLang 模型推理。
+过去记录的 AOT 缺符号只对应旧构建。桥接插件内部算法仍由其维护者负责。

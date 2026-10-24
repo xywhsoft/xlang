@@ -1,0 +1,9 @@
+import rapidocr
+
+func main(...) as int
+    auto engine = rapidocr.RapidOCR()
+    assert engine.valid()
+    auto output = engine.op_call("ok.png")
+    assert output.ok() and output.text() == "mock text"
+    return 0
+end

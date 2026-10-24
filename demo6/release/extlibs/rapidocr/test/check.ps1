@@ -89,6 +89,14 @@ try {
         try {
             $null = Run 'complete XLang shim call-through' $xl @('run',
                 'extlibs/rapidocr/test/complete_shim.xl')
+            $null = Run 'complete XLang shim implicit cleanup' $xl @('run',
+                'extlibs/rapidocr/test/implicit_shim_cleanup.xl')
+            if (!$SkipAot) {
+                $shimCleanup = Join-Path $work 'implicit_shim_cleanup.exe'
+                $null = Run 'complete shim cleanup AOT build' $xl @('build',
+                    'extlibs/rapidocr/test/implicit_shim_cleanup.xl', '-o', $shimCleanup)
+                $null = Run 'complete shim cleanup AOT' $shimCleanup @()
+            }
         } finally {
             Pop-Location
         }
@@ -120,6 +128,8 @@ try {
         $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/rapidocr/examples/postprocess.xl')
         if ($xlOutput -cne $cOutput) { throw 'C/XLang postprocess output differs' }
         $null = Run 'real model and failure paths' $xl @('run', 'extlibs/rapidocr/test/real_inference.xl')
+        $null = Run 'real model implicit cleanup' $xl @('run',
+            'extlibs/rapidocr/test/implicit_engine_cleanup.xl')
         if ($Stress) {
             $null = Run 'repeated inference' $xl @('run', 'extlibs/rapidocr/test/repeat_inference.xl')
             $null = Run 'parallel inference' $xl @('run', 'extlibs/rapidocr/test/parallel_inference.xl')
@@ -130,6 +140,10 @@ try {
             $aot = Join-Path $work 'real_inference.exe'
             $null = Run 'AOT build' $xl @('build', 'extlibs/rapidocr/test/real_inference.xl', '-o', $aot)
             $null = Run 'AOT inference' $aot @()
+            $cleanup = Join-Path $work 'implicit_engine_cleanup.exe'
+            $null = Run 'real model cleanup AOT build' $xl @('build',
+                'extlibs/rapidocr/test/implicit_engine_cleanup.xl', '-o', $cleanup)
+            $null = Run 'real model cleanup AOT' $cleanup @()
         }
     } finally {
         Pop-Location
