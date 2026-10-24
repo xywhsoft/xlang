@@ -21,6 +21,13 @@ Buffer pixels = image.pixels()
 接管句柄的 `StbImage(point)` 已声明私有，但当前编译器仍接受包外调用；
 见 `demo6/dev/extlib_blockers/stb_image_private_adopt_constructor.md`。
 主线修复前，本包不能签收完整发布级访问安全。
+2026-10-24 当前 Windows 发布版复验：严格 C、线程、XLang 边界与分配故障、
+C/XLang 双语输出，以及核心和公开范例独立 EXE 均通过；旧的 AOT 缺符号
+故障未复现。但仅编译负例
+`xl check release/extlibs/stb_image/test/private_adopt_constructor_negative.xl`
+仍返回 `ok`，现已列入默认门禁并使其明确失败。此文件只用于编译检查，
+绝不能执行。主线需在导出类的构造器重载解析中拒绝包外调用
+`private extern create(point)`，同时保留包内工厂接管；修复后重跑完整门禁。
 `pixels()` 返回独立的 `Buffer` 副本。`data()` 返回借用的原生指针，
 只在图像对象存活期间有效。`loadf`/`loadfBytes` 生成 32 位浮点通道；
 `loadBytes`/`loadfBytes` 读取内存图片。`info(path)` 返回
@@ -66,10 +73,10 @@ C 接口见 `include/stb_image_native.h`。C 调用者对返回的图像句柄�
 内部申请失败后成功恢复、却保留 `XERR_MEMORY` 的情况；成功返回路径
 已清理旧诊断。Windows 包级门禁、Linux ASan/UBSan 与双语范例通过。
 
-当前 Windows 默认门禁在中央核心 AOT 构建处因主线缺少
-`xl6NativeHandleTraceLeaf` 而非零退出，见
-`demo6/dev/extlib_blockers/native_handle_trace_aot.md`；带输出范例还可能
-遇到共享 `xl6ValueDataSnapshotV1` 缺符号。尚未完成完整 AOT 发布验收。
+历史阻断：旧发布物曾因缺少 `xl6NativeHandleTraceLeaf` 或
+`xl6ValueDataSnapshotV1` 无法完成 AOT，见
+`demo6/dev/extlib_blockers/native_handle_trace_aot.md`。当前 Windows 发布物
+已通过核心和公开范例 AOT；剩余发布阻断是私有句柄构造器访问控制。
 
 2026-10-17：Linux 包级门禁补正式 `release/xl` 的中央和包内 XLang 用例，
 以及 C/XLang 范例逐字节同输出检查；与 C ASan/UBSan 边界和线程测试

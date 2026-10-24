@@ -11,22 +11,26 @@ function Run([string]$label, [string]$program, [string[]]$arguments) {
     return $output
 }
 
-function RunNativeAccessNegative {
+function RunNativeAccessNegative([string]$source, [string[]]$members) {
     $prior = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        $lines = @(& $xl check 'release/extlibs/stb_image/test/private_native_status_negative.xl' 2>&1 |
+        $lines = @(& $xl check $source 2>&1 |
             ForEach-Object { $_.ToString() })
         $code = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $prior
     }
     $diagnostic = $lines -join "`n"
-    if ($code -eq 0 -or -not $diagnostic.Contains('validNative') -or
-        -not $diagnostic.Contains('floatNative') -or -not $diagnostic.Contains('access')) {
-        throw "Native status methods remain accessible: $diagnostic"
+    if ($code -eq 0 -or -not $diagnostic.Contains('access')) {
+        throw "Native class member remains accessible ($source): $diagnostic"
     }
-    Write-Host '[stb_image] Native status access: PASS'
+    foreach ($member in $members) {
+        if (-not $diagnostic.Contains($member)) {
+            throw "Native class access diagnostic omitted $member ($source): $diagnostic"
+        }
+    }
+    Write-Host "[stb_image] Native access $source`: PASS"
 }
 
 $work = $null
@@ -46,7 +50,8 @@ try {
         '-Source', 'release/examples/extlibs/stb_image_c.c')
     Run 'XLang boundaries' $xl @('run', 'release/extlibs/stb_image/test/boundaries.xl') | Out-Null
     Run 'XLang allocations' $xl @('run', 'release/extlibs/stb_image/test/allocations.xl') | Out-Null
-    RunNativeAccessNegative
+    RunNativeAccessNegative 'release/extlibs/stb_image/test/private_native_status_negative.xl' @('validNative', 'floatNative')
+    RunNativeAccessNegative 'release/extlibs/stb_image/test/private_adopt_constructor_negative.xl' @('StbImage')
     Push-Location (Join-Path $root 'release')
     try {
         $xlang = Run 'XLang example' $xl @('run', 'examples/extlibs/stb_image.xl')
