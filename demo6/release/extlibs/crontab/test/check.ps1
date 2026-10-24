@@ -40,8 +40,8 @@ try {
     Push-Location (Join-Path $root 'release')
     try {
         Run 'XLang base' $xl @('run', '../test/cases/extlib_crontab.xl') | Out-Null
-        Run 'XLang boundaries' $xl @('run', '../test/cases/extlib_crontab_boundaries.xl') | Out-Null
-        Run 'XLang allocation' $xl @('run', 'extlibs/crontab/test/allocations.xl') | Out-Null
+        $boundaries = Run 'XLang boundaries' $xl @('run', '../test/cases/extlib_crontab_boundaries.xl')
+        $allocation = Run 'XLang allocation' $xl @('run', 'extlibs/crontab/test/allocations.xl')
         $xlang = Run 'XLang example' $xl @('run', 'examples/extlibs/crontab.xl')
     } finally {
         Pop-Location
@@ -63,6 +63,18 @@ try {
             'release/examples/extlibs/crontab.xl', '-o', $example)
         if ((Run 'AOT example' $example @()) -cne $c) {
             throw 'crontab AOT example differs from C'
+        }
+        $boundaryExe = Join-Path $work 'aot_boundaries.exe'
+        $null = Run 'AOT boundaries build' $xl @('build',
+            'test/cases/extlib_crontab_boundaries.xl', '-o', $boundaryExe)
+        if ((Run 'AOT boundaries' $boundaryExe @()) -cne $boundaries) {
+            throw 'crontab AOT boundaries differ from JIT'
+        }
+        $allocationExe = Join-Path $work 'aot_allocation.exe'
+        $null = Run 'AOT allocation build' $xl @('build',
+            'release/extlibs/crontab/test/allocations.xl', '-o', $allocationExe)
+        if ((Run 'AOT allocation' $allocationExe @()) -cne $allocation) {
+            throw 'crontab AOT allocation differs from JIT'
         }
     }
 } finally {

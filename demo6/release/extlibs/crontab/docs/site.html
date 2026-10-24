@@ -31,7 +31,7 @@
     <pre><code>import crontab
 int nextRun = crontab.next("*/15 * * * *", 1700000000)
 println(nextRun)</code></pre>
-    <p>DOM 与 DOW 都不以 <code>*</code> 开头时采用 OR；任一字段以 <code>*</code> 开头时按实际位图取 AND，<code>*/2</code> 仍保留步长约束。Linux 固定时区测试覆盖纽约的一小时跳时、Lord Howe 的半小时跳时与重复分钟，以及历史秒级时差与标准时切换；这些边界同时运行 C 与 XLang 用例。<code>next</code> 返回本地整分钟，不要求 Unix 秒数为 60 的倍数。<code>describe</code> 的分配失败在 C 中保留 <code>XERR_MEMORY</code>，在 xlang 中抛 <code>MemoryError</code>，清除故障后可重试。Windows 默认门禁现在于核心后构建运行完整范例 AOT 并与同机 C 输出对照；实测核心通过、范例仍缺共享 <code>xl6ValueDataSnapshotV1</code>，不能签收完整 AOT。时区、8 年搜索边界及 C 接口见包内 README。</p>
+    <p>DOM 与 DOW 都不以 <code>*</code> 开头时采用 OR；任一字段以 <code>*</code> 开头时按实际位图取 AND，<code>*/2</code> 仍保留步长约束。Linux 固定时区测试覆盖纽约的一小时跳时、Lord Howe 的半小时跳时与重复分钟，以及历史秒级时差与标准时切换；这些边界同时运行 C 与 XLang 用例。<code>next</code> 返回本地整分钟，不要求 Unix 秒数为 60 的倍数。<code>describe</code> 的分配失败在 C 中保留 <code>XERR_MEMORY</code>，在 xlang 中抛 <code>MemoryError</code>，清除故障后可重试。2026-10-24 当前 Windows 发布版默认门禁通过 C/XLang 对照和核心、公开范例、边界、分配故障四份 AOT；Linux 时区证据仍以独立门禁为准。时区、8 年搜索边界及 C 接口见包内 README。</p>
   </section>
 </main>
 </body>

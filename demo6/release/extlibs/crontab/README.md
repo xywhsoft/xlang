@@ -1,5 +1,12 @@
 # crontab
 
+2026-10-24 当前 Windows 发布版默认包门禁通过：严格 C、远期时间
+边界、XLang 分配故障、双语范例，以及核心、公开范例、时间边界和
+分配故障四份独立 EXE 的 AOT 构建与执行。新增两份 AOT 用例与同次
+JIT 输出一致。旧 `xl6ValueDataSnapshotV1` 缺符号记录仅属先前
+发布物；Linux DST 和历史时区仍以独立门禁为准，不能从 Windows
+结果推断全部时区规则正确。
+
 五字段本地时间 cron：`minute hour day month weekday`。各字段支持 `*`、单个数字、范围 `N-M`、步长 `*/S` / `N/S` / `N-M/S` 和逗号列表。不支持秒、年份、英文月份/星期名或 `@daily` 等宏。分钟范围 0–59，小时 0–23，月内日 1–31，月份 1–12，星期 0–7（0 和 7 均为星期日）。表达式最长 1024 字节，拒绝第六字段、内嵌 NUL 和非法数字，不静默截断。
 
 ```xlang
@@ -54,7 +61,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Package crontab -Source release\extlibs\crontab\examples\crontab.c
 ```
 
-测试覆盖严格字段解析、内嵌 NUL、DOM/DOW 的 OR/AND 与步长位图、不可达日期、本地闰日和跨 2100 年的 8 年搜索窗口。远期可达规则仍按原路径搜索；不可达的月/日组合提前返回。Windows 严格 GCC、Linux ASan/UBSan、C/XL 范例逐行同输出和无输出 AOT 核心通过；完整带输出范例 AOT 仍受共享 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`。发布级验收暂不签收。
+测试覆盖严格字段解析、内嵌 NUL、DOM/DOW 的 OR/AND 与步长位图、不可达日期、本地闰日和跨 2100 年的 8 年搜索窗口。远期可达规则仍按原路径搜索；不可达的月/日组合提前返回。当前 Windows 默认门禁含严格 GCC、C/XL 范例逐行同输出及四份 AOT；Linux C ASan/UBSan 和时区测试由独立脚本验证。旧版共享链接阻断不适用于当前 Windows 发布物。
 
 Linux 可在 `demo6` 目录运行 `bash release/extlibs/crontab/test/check.sh`。脚本以严格 GCC、ASan/UBSan 复验 C 边界和跨 2100 年的远期闰日搜索；在安装了 IANA `America/New_York` 时区数据的环境下验证 2024 年春季不存在的 `02:30` 被跳过、秋季重复的 `01:30` 各触发一次。它还运行中央及包内 XLang 用例，并逐字节比较 C/XLang 范例输出。DST 测试仅证明该时区和这两次转换，不代表所有历史时区规则已验收。
 
