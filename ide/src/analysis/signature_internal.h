@@ -18,6 +18,7 @@ typedef struct xls_signature_data {
     char* path;const char* error;
     xls_call_site site;xarray records;
     int hasSite,projected;
+    xls_syntax* syntax;xls_signature_parse_work parseWork;
 } xls_signature_data;
 struct xls_signature_help {
     xatomic32 references;
@@ -58,5 +59,8 @@ xls_semantic_completion* xlsSemanticSignatureCreateInContext(xls_context* contex
 xls_signature_help* xlsSignatureCreateRetainedInContext(xls_context* context,const char* entry,const char* path,
     size_t offset,const xls_semantic_input* inputs,size_t count,xls_call_context* index,xls_entry_cache* cache,
     xls_signature_help* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity);
+/* Optional parse-only chunks. Original source capture precedes this hook;
+ * ordinary completion and signature modes cannot substitute for one another. */
+int xlsSignatureParseCached(const char* text,const char* path,XL6_ParseResult*,XL6_CompletionQuery*);
 int xlsFrontendLexerResume(XL6_Lexer* lexer,const char* source,size_t offset,int paren,int bracket,int brace);
 #endif

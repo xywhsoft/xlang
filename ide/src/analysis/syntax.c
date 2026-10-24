@@ -161,9 +161,9 @@ static int attachSource(const xls_syntax* s,XL6_AstNode* root)
     return 1;
 }
 static xls_syntax* incremental(const char* path,xls_text* text,const xls_syntax* old,
-    XL6_CompletionQuery* query,xls_parse_work* work)
+    XL6_CompletionQuery* query,xls_parse_work* work,int mode,xls_syntax_parse_fn parser,void* user)
 {
-    if(!old || !old->accepted || !old->incremental || old->cursor!=(query!=NULL) ||
+    if(!old || !old->accepted || !old->incremental || old->cursor!=(query ? mode : 0) ||
        strcmp(path,old->path) || bom(text)!=bom(old->text)) return NULL;
     xls_text_edit edit; if(xlsTextDiff(old->text,text,&edit)!=1) return NULL;
     size_t prefix=(size_t)(edit.text-xlsTextData(text)),newSize=xlsTextSize(text),oldSize=xlsTextSize(old->text),skip=bom(text);
@@ -190,7 +190,7 @@ static xls_syntax* incremental(const char* path,xls_text* text,const xls_syntax*
         XL6_CompletionQuery local={0}; local.path=path;
         if(query) local.offset=query->offset-p->offset;
         ++work->fragments; work->bytes+=length;
-        int okay=query ? xl6ParseSourceWithCompletion(fragment,path,&parsed,&local) : xl6ParseSource(fragment,path,&parsed);
+        int okay=query ? (parser ? parser(fragment,path,&parsed,&local,user) : xl6ParseSourceWithCompletion(fragment,path,&parsed,&local)) : xl6ParseSource(fragment,path,&parsed);
         xrtFree(fragment);
         XL6_AstNode* fresh=okay && parsed.root && parsed.root->childCount==1 ? parsed.root->children[0] : NULL;
         size_t freshHeader=0,freshEnd=0;
@@ -225,7 +225,7 @@ static xls_syntax* incremental(const char* path,xls_text* text,const xls_syntax*
             placement current={&localUnit,p->offset,0,0};
             if(local.parsed!=1 || !local.prefix || !location(text,p->offset,&current.line,&current.column) ||
                !mapRange(local.replacement,&current,&s->cursorRange)) goto failed;
-            s->cursor=1; s->cursorOffset=query->offset;
+            s->cursor=mode; s->cursorOffset=query->offset;
             s->cursorParsed=local.parsed; s->cursorPrefix=1;
             if(!attachSource(s,s->parse.root)) goto failed;
             query->prefix=local.prefix; local.prefix=NULL;
@@ -241,7 +241,7 @@ static xls_syntax* build(const char* path,xls_text* text,const xls_syntax* previ
     XL6_CompletionQuery* query,xls_parse_work* work)
 {
     if(!path || !*path || !text || !work) return NULL;
-    xls_syntax* s=incremental(path,text,previous,query,work); if(s) return s;
+    xls_syntax* s=incremental(path,text,previous,query,work,1,NULL,NULL); if(s) return s;
     s=allocate(path,text); if(!s) return NULL;
     ++work->full; work->bytes+=xlsTextSize(text);
     s->accepted=query ? xl6ParseSourceWithCompletion(xlsTextData(text),s->path,&s->parse,query) :
@@ -274,7 +274,7 @@ failed: xlsSyntaxRelease(s); return NULL;
 xls_syntax* xlsSyntaxTryFunction(const char* path,xls_text* text,const xls_syntax* previous,xls_parse_work* work)
 {
     if(!path || !*path || !text || !work || !previous || previous->cursor) return NULL;
-    return incremental(path,text,previous,NULL,work);
+    return incremental(path,text,previous,NULL,work,0,NULL,NULL);
 }
 static int emptyQuery(const XL6_CompletionQuery* query)
 {
@@ -293,7 +293,7 @@ xls_syntax* xlsSyntaxBuildCursor(const char* path,xls_text* text,const xls_synta
 int xlsSyntaxAccepted(const xls_syntax* syntax) { return syntax && syntax->accepted; }
 int xlsSyntaxIsCursor(const xls_syntax* syntax) { return syntax && syntax->cursor; }
 int xlsSyntaxCursorMatches(const xls_syntax* syntax,const char* path,size_t offset)
-{return syntax && syntax->cursor && path && !strcmp(syntax->path,path) && syntax->cursorOffset==offset;}
+{return syntax && syntax->cursor==1 && path && !strcmp(syntax->path,path) && syntax->cursorOffset==offset;}
 const char* xlsSyntaxPath(const xls_syntax* syntax) { return syntax ? syntax->path : NULL; }
 const xls_text* xlsSyntaxText(const xls_syntax* syntax) { return syntax ? syntax->text : NULL; }
 static XL6_AstNode* materialize(const xls_syntax* s,int compilerPrivate)
@@ -326,13 +326,14 @@ int xlsSyntaxCopyParse(const xls_syntax* s,XL6_ParseResult* result)
     xl6ParseResultFree(result); *result=copy; return 1;
 failed: xl6ParseResultFree(&copy); return 0;
 }
-int xlsSyntaxCopyCursorParse(const xls_syntax* s,XL6_CompletionQuery* query,XL6_ParseResult* result)
+static int copyProjected(const xls_syntax* s,XL6_CompletionQuery* query,XL6_ParseResult* result,int mode)
 {
-    if(!s || !s->cursor || s->cursorParsed!=1 || !emptyQuery(query) ||
+    if(!s || s->cursor!=mode || s->cursorParsed!=1 || !emptyQuery(query) ||
        query->offset!=s->cursorOffset || !xl6CompletionTarget(query,s->path) ||
        !result || result->root || result->diags.count) return 0;
     char* prefix=NULL;
-    if(s->cursorPrefix) {
+    if(s->cursorPrefix && mode==2){prefix=xrtStrDup("");if(!prefix)return 0;}
+    else if(s->cursorPrefix) {
         size_t size=xlsTextSize(s->text)-bom(s->text),start=s->cursorRange.startOffset;
         if(!s->cursorRange.known || start>query->offset || query->offset>s->cursorRange.endOffset ||
            s->cursorRange.endOffset>size) return 0;
@@ -345,6 +346,38 @@ int xlsSyntaxCopyCursorParse(const xls_syntax* s,XL6_CompletionQuery* query,XL6_
     query->prefix=prefix; query->error=s->cursorError;
     query->parsed=s->cursorParsed; query->replacement=s->cursorRange;
     return 1;
+}
+int xlsSyntaxCopyCursorParse(const xls_syntax* s,XL6_CompletionQuery* query,XL6_ParseResult* result)
+{return copyProjected(s,query,result,1);}
+int xlsSyntaxSignatureMatches(const xls_syntax* s,const char* path,size_t offset,size_t callOpen)
+{return s && s->cursor==2 && path && !strcmp(s->path,path) && s->cursorOffset==offset && s->cursorRange.known &&
+    s->cursorRange.startOffset==callOpen && callOpen<SIZE_MAX && s->cursorRange.endOffset==callOpen+1 && offset>=callOpen+1;}
+int xlsSyntaxCopySignatureParse(const xls_syntax* s,XL6_CompletionQuery* query,XL6_ParseResult* result,size_t callOpen)
+{return query && xlsSyntaxSignatureMatches(s,query->path,query->offset,callOpen) && copyProjected(s,query,result,2);}
+xls_syntax* xlsSyntaxTrySignatureFunction(const char* path,xls_text* text,const xls_syntax* previous,
+    XL6_CompletionQuery* query,xls_syntax_parse_fn parser,void* user,xls_parse_work* work)
+{
+    if(!path || !text || !previous || previous->cursor!=2 || !parser || !work || !emptyQuery(query) || !xl6CompletionTarget(query,path))return NULL;
+    return incremental(path,text,previous,query,work,2,parser,user);
+}
+xls_syntax* xlsSyntaxCaptureSignature(const char* path,xls_text* text,const XL6_AstNode* root,const XL6_CompletionQuery* query,size_t bytes)
+{
+    if(!path || !text || !root || !query || !xl6CompletionTarget(query,path) || query->parsed!=1 || query->error || !query->prefix || *query->prefix || !query->replacement.known ||
+       query->replacement.startOffset==SIZE_MAX || query->replacement.endOffset!=query->replacement.startOffset+1 || query->offset<query->replacement.endOffset ||
+       query->offset>xlsTextSize(text)-bom(text) || xlsTextData(text)[bom(text)+query->replacement.startOffset]!='(')return NULL;
+    xls_syntax* s=allocate(path,text);if(!s)return NULL;
+    xls_ast_clone_options options={.dropSources=1,.bytes=bytes};s->parse.root=xlsAstClone(root,&options,NULL);
+    s->accepted=1;s->cursor=2;s->cursorOffset=query->offset;s->cursorRange=query->replacement;s->cursorParsed=1;s->cursorPrefix=1;
+    size_t charge=0;
+    if(!s->parse.root || !attachSource(s,s->parse.root) || !decompose(s))goto failed;
+    for(size_t i=0;i<s->units.Count;++i){
+        syntax_unit* unit=((placement*)xrtArrayGet(&s->units,i))->unit;
+        if(!cacheTreeBytes(unit->node,bytes,&unit->storageBytes))goto failed;
+        unit->storageKnown=1;
+    }
+    if(!xlsSyntaxSignatureCacheBytes(s,bytes,&charge))goto failed;
+    return s;
+failed:xlsSyntaxRelease(s);return NULL;
 }
 const XL6_AstNode* xlsSyntaxAst(const xls_syntax* s)
 {

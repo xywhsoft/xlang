@@ -30,6 +30,11 @@ void xlsSignatureRelease(xls_signature_help* result);
 int xlsSignatureValidate(xls_signature_help* result);
 typedef struct xls_signature_work { uint64_t checked,reused; } xls_signature_work;
 xls_signature_work xlsSignatureWork(const xls_signature_help* result);
+/* Work creating the immutable model, also returned by cached/caret views.
+ * Counts query-file parse work only; cacheBytes charges the retained snapshot.
+ * A first full seed is not a fallback. Limits are completed-data, not RSS. */
+typedef struct xls_signature_parse_work { uint64_t full,fragments,reused,bytes,exactHits,cacheBytes,fallbacks; } xls_signature_parse_work;
+xls_signature_parse_work xlsSignatureParseWork(const xls_signature_help* result);
 xls_signature_info xlsSignatureInfo(const xls_signature_help* result);
 int xlsSignatureItem(const xls_signature_help* result,size_t index,xls_signature_item* item);
 int xlsSignatureParameter(const xls_signature_help* result,size_t index,size_t parameter,xls_signature_parameter* value);

@@ -36,10 +36,10 @@ static int cacheTreeBytes(const XL6_AstNode* node,size_t limit,size_t* bytes)
     int okay=xrtMapInit(&sources,sizeof(unsigned char)) && cacheNodeBytes(node,0,&sources,bytes,limit);
     xrtMapUnit(&sources); if(!okay) *bytes=0; return okay;
 }
-int xlsSyntaxCacheBytes(const xls_syntax* s,size_t limit,size_t* bytes)
+static int syntaxCacheBytes(const xls_syntax* s,size_t limit,size_t* bytes,int mode)
 {
     if(bytes) *bytes=0;
-    if(!s || !bytes || !s->accepted || s->cursor || s->parse.diags.count ||
+    if(!s || !bytes || !s->accepted || s->cursor!=mode || s->cursorError || s->parse.diags.count ||
        !s->view || s->view->root || s->units.Capacity>SIZE_MAX/sizeof(placement)) return 0;
     size_t total=sizeof(*s),text=xlsTextStorageBytes(s->text),tree=0;
     if(!text || !cacheAdd(&total,strlen(s->path)+1,limit) ||
@@ -53,3 +53,7 @@ int xlsSyntaxCacheBytes(const xls_syntax* s,size_t limit,size_t* bytes)
     }
     *bytes=total; return 1;
 }
+int xlsSyntaxCacheBytes(const xls_syntax* s,size_t limit,size_t* bytes)
+{return syntaxCacheBytes(s,limit,bytes,0);}
+int xlsSyntaxSignatureCacheBytes(const xls_syntax* s,size_t limit,size_t* bytes)
+{return syntaxCacheBytes(s,limit,bytes,2);}
