@@ -1,5 +1,11 @@
 # daemon
 
+2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 全通过：
+严格 C 与 PID 文件边界、XLang FFI、四条包外访问负例、C/XLang
+双语范例，以及公开范例的独立 EXE AOT 构建、运行与归一化
+PID 输出对照。下文共享 AOT 缺符号记录属于旧发布物；Linux
+验收仍以其独立门禁为准。
+
 跨平台的**前台服务**辅助包：进程 ID/存活查询、协作式停止请求，以及排他 PID 文件。此包不负责 Unix daemonize、Windows Service 注册或关闭其他进程。需要真正的系统服务生命周期时，由宿主/服务管理器负责启动、重启和退出通知。
 
 ## XLang
