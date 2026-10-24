@@ -47,13 +47,17 @@ buffer；vendored parser 的通用流输入未在本包承诺 Unicode 键名能�
 有限的上界值、超大十六进制整数和十进制指数。
 
 这次扩展修复了已知语法缺口，但并不把有限测试写成全规范证明。
-当前完整 AOT 还被共享运行时缺符号阻断，因此尚未最终签收发布级。
+2026-10-24 使用更新后的 Windows 发布版 `xl.exe` 复验，默认包门禁完整通过：
+严格 C、C/XLang 范例、边界与分配失败用例、核心及公开范例 AOT 均通过。
+Linux 包门禁的 C ASan/UBSan、XLang 用例及双语输出对照也通过。
+旧发布版的共享符号缺失不再是本包当前阻断；这不等于整个 xlang 发布版已签收。
 
 在 `demo6` 目录执行聚焦验证：
 
 ```powershell
 ./release/xl.exe run release/extlibs/json5/examples/json5_c.c
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/json5/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/json5/test/check.ps1
+bash release/extlibs/json5/test/check.sh
 ```
 
 `examples/json5.xl` 与 `examples/json5_c.c` 成对展示 `parse`、`valid`、
@@ -63,10 +67,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/json5/test/c
 C 范例包含包内解析器与原生桥实现，可由 `xl run` 单文件执行；正式包仍由
 清单分别编译源文件。
 
-去掉 `-SkipAot` 可检查完整 AOT；已有主线文本快照与容器索引缺符号，详见 `dev/extlib_blockers/`。C/XLang 对照范例位于 `examples/`。
+C/XLang 对照范例位于 `examples/`。以下共享缺符号描述属于旧发布版的历史记录。
 包 manifest 已声明原生桥实际使用的浮点/整数解析、字符串和值容器模块；
 同一 `test/aot_core.xl` 从 3,592,192 缩至 612,864 字节并运行通过。
-当前完整边界 AOT 首先缺共享 `xl6ValueDataSnapshotV1`，不据核心通过签收发布级别；此前索引缺符号的记录是旧构建快照，须在首个阻断解除后复验。
+旧版完整边界 AOT 曾缺共享 `xl6ValueDataSnapshotV1`，此前索引缺符号亦为旧构建快照；上述默认门禁已经完成复验。
 Linux C/XL 的 ASan/UBSan 专项门禁为 `bash release/extlibs/json5/test/check.sh`；
 它在隔离临时目录编译 C 测试和范例、运行中央与包内 XLang 用例，并逐字节
 比较双语范例输出。`test/boundaries.xl` 和 `test/allocations.xl` 已登记到包清单的 `coverage.tests`；在 `demo6` 目录运行
