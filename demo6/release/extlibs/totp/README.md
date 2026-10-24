@@ -57,3 +57,10 @@ Windows 可从 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypa
 2026-10-20：补 256 字符 Base32 密钥、`int64` 最大时间戳、9 位验证码及窗口 10 的固定向量，期望值由独立 Python HMAC-SHA1 计算；C/XLang 同时拒绝 257 字符密钥。Windows 严格 C/线程/语言门禁与 Linux ASan/UBSan、语言对照门禁通过。算法未改，完整带输出 AOT 的共享缺符号阻断仍在。
 
 同日 Windows 默认门禁补入中央核心和完整范例 AOT，产物只落在本次独占目录并于退出时清理。实测 C/JIT 快测与核心 AOT 通过；完整范例构建因共享 `xl6ValueDataSnapshotV1` 缺符号失败，AOT 输出对照尚未执行。完整发布形态仍未签收。
+
+2026-10-24 当前 Windows 发布版复测：默认 `test/check.ps1` 通过 C 边界、
+独立线程、XLang 边界和分配故障，并实际构建运行核心与完整范例 AOT，
+按固定 RFC 输出核对。旧版 `xl6ValueDataSnapshotV1` 缺符号在本次范围
+内不再出现。Linux 时钟故障注入、ASan/UBSan 和语言门禁沿用先前记录；
+此次没有用重建后的 Linux 发布版复验，不宣称 Linux AOT 或服务端
+限流、防重放已由本包实现。
