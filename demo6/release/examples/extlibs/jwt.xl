@@ -8,17 +8,17 @@ func main(...) as int
     auto secret = "super-secret-key"
 
     auto token = jwt.encode(payload, secret)
-    println("token: ", token)
+    println("token:", token)
 
     // Decode payload
-    println("payload: ", jwt.decode(token))
+    println("payload:", jwt.decode(token))
 
     // Read header
-    println("header: ", jwt.header(token))
+    println("header:", jwt.header(token))
 
     // Verify signature
-    println("verify (correct): ", jwt.verify(token, secret))
-    println("verify (wrong):   ", jwt.verify(token, "bad-key"))
+    println("verify (correct):", jwt.verify(token, secret))
+    println("verify (wrong):  ", jwt.verify(token, "bad-key"))
 
     println("jwt example: PASS")
     return 0

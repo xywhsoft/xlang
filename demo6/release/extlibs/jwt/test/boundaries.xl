@@ -1,0 +1,33 @@
+import jwt
+
+func main(...) as int
+    string token = jwt.encode("{\"sub\":\"xlang\"}", "secret")
+    assert jwt.verify(token, "secret")
+    assert jwt.decode(token) == "{\"sub\":\"xlang\"}"
+    assert not jwt.verify(token, "wrong")
+    assert jwt.encode("[1,2]", "secret") == ""
+    assert jwt.encode("{invalid}", "secret") == ""
+
+    // 签名正确也不能把非对象的 JSON 数组当成 JWT claims。
+    string arrayToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.WzEsMl0.Ha9RdPPxY2XSrcm8aE5F7mpFzEt5PMzBqV9GFvtbXLo"
+    assert not jwt.verify(arrayToken, "secret")
+
+    bool caught = false
+    try
+        jwt.verify(token + "\0suffix", "secret")
+    catch ValueError e
+        caught = true
+    end
+    assert caught
+
+    caught = false
+    try
+        jwt.encode("{\"sub\":\"x\"}", "secret\0suffix")
+    catch ValueError e
+        caught = true
+    end
+    assert caught
+
+    println("jwt boundaries: PASS")
+    return 0
+end
