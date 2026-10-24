@@ -1,0 +1,5 @@
+import xhttp.client
+
+func main(...) as int
+    return 0
+end
