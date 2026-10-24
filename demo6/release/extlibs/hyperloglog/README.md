@@ -28,6 +28,13 @@
 
 ## 验证与范例
 
+2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
+严格 C/ABI、大样本统计和合并对照、独立实例线程、XLang 边界、
+故障注入、公开类型与私有方法访问控制、双语固定输出，以及核心/
+公开范例 AOT 全部通过。旧的完整 AOT 共享缺符号属于先前发布物；
+本次未重跑 Linux sanitizer。结果仍是近似估计，不新增精确计数或
+跨版本持久化承诺。
+
 - XLang 范例：`release/examples/extlibs/hyperloglog.xl`
 - 同输出 C 范例：`release/extlibs/hyperloglog/examples/hyperloglog_c.c`
 - 边界：包内 `test/test_hyperloglog.c`、`test/test_threads.c`、`test/boundaries.xl`、`test/allocations.xl`，以及 `demo6/test/cases/extlib_hyperloglog.xl`
