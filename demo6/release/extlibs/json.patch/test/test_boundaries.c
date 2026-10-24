@@ -319,6 +319,18 @@ int main(void) {
     xrtClearError();
 
     CHECK(xjsonpatch_has(original, "/name"));
+    {
+        xvalue* pointer = xrtValueString((xstrview){"/name", 5});
+        xstrview text = {0};
+        CHECK(pointer && xjsonpatch_has_value(original, pointer));
+        item = xjsonpatch_get_value(original, pointer);
+        CHECK(item && xrtValueType(item) == XVALUE_STRING &&
+            xrtValueGetString(item, &text) && text.Size == 2 &&
+            memcmp(text.Data, "ok", 2) == 0 &&
+            !xjsonpatch_has_error());
+        xrtValueRelease(item);
+        xrtValueRelease(pointer);
+    }
     CHECK(!xjsonpatch_has(original, "/missing"));
     memset(long_key, 'x', 255);
     long_key[255] = '\0';

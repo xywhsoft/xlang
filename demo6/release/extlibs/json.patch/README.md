@@ -1,7 +1,14 @@
 # json.patch
 
+2026-10-25 当前 Windows 发布版复验：严格 C 边界、正常 `_value`
+指针入口以及两份 C 范例通过；XLang 字典传入原生 `xvalue*` 后，
+`has` 对存在键返回 `false`，`get` 报路径不存在。最小复现及
+容器投影边界分析见 `demo6/dev/extlib_blockers/json_patch_typed_dict_bridge.md`。
+默认包门禁在 XLang 边界退出 1，尚未执行完整 AOT；本包不能签收
+发布级。以下旧记录描述当时的发布物与实现，不代表当前门禁通过。
+
 此包提供 JSON Pointer、JSON Patch、JSON Merge Patch 的 XRT `xvalue` 操作。
-包级 C/XLang 验证已通过；**完整 AOT 仍被共享运行时缺符号阻断，尚未签收发布级**。指针、操作补丁和合并补丁分别以 [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901)、[RFC 6902](https://www.rfc-editor.org/rfc/rfc6902)、[RFC 7396](https://www.rfc-editor.org/rfc/rfc7396) 为依据。
+指针、操作补丁和合并补丁分别以 [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901)、[RFC 6902](https://www.rfc-editor.org/rfc/rfc6902)、[RFC 7396](https://www.rfc-editor.org/rfc/rfc7396) 为依据。
 
 包清单仅声明值图和 Unicode 两个直接 XRT 模块。C 测试宿主另启用 JSON
 读取与内存故障注入模块；它们不属于包的运行时依赖。裁剪测试宿主已通过

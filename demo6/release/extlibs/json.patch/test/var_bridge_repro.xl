@@ -1,0 +1,8 @@
+import json.patch
+
+func main(...) as int
+    var doc = {"a": 1}
+    assert doc["a"] == 1
+    assert json.patch.has(doc, "/a")
+    return 0
+end
