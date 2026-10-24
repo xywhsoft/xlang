@@ -91,3 +91,10 @@ Windows 严格 GCC 和 Linux ASan/UBSan 联合门禁均通过；XRT 注入器
 Windows/Linux 包门禁用 `-DNDEBUG` 编译运行；预处理确认压缩调用仍在。
 Windows 严格 C、XLang 与双语对照，以及 Linux C ASan/UBSan 门禁通过。
 库实现与公开 API 未改，完整 AOT/XLIR 共享阻断仍未解除，不签收整包发布级。
+
+2026-10-24：当前发布版 `xl.exe` 不带 `-SkipAot` 通过 Windows 包级
+门禁，包含严格 GCC/TCC C、XLang 主/进度/文件/分配用例、C/XLang
+基础范例同输出和 XLang 基础范例 AOT。Linux C ASan/UBSan 与
+XLang 双语门禁通过；另以 `python-snappy==0.7.3` 通过标准 framed
+stream 的双向互通。上述 XLIR/AOT 阻断是旧发布版历史状态；
+本次不代表 Linux AOT、上游 allocator 故障注入或长期压力已验收。

@@ -150,7 +150,7 @@ release\xl.exe run release\extlibs\snappy\examples\basic.c</pre></div></div>
 
   <div class="ext-panel" id="panel-tests">
     <h2>测试覆盖</h2>
-    <p>测试文件：<code>extlibs/snappy/test/file_ops.xl</code>、<code>extlibs/snappy/test/test_snappy.c</code>，以及中央 <code>test/cases/extlib_snappy.xl</code> 和 <code>extlib_snappy_progress.xl</code>。C 接口先校验选项和资源限制结构的版本、长度与保留字段，无效选项不会消费文件流输入；资源配置只接受有效限额，串联流成员数按 <code>iMaxEntries</code> 检查。Windows/Linux 包级门禁对照 GCC、包运行器、直接 <code>xl run</code> C 与 XLang 基础范例；Linux 同次运行 C ASan/UBSan。字节算术 XLIR 与完整 AOT 的主线阻断尚未解除。</p>
+    <p>测试文件：<code>extlibs/snappy/test/file_ops.xl</code>、<code>extlibs/snappy/test/test_snappy.c</code>，以及中央 <code>test/cases/extlib_snappy.xl</code> 和 <code>extlib_snappy_progress.xl</code>。C 接口先校验选项和资源限制结构的版本、长度与保留字段，无效选项不会消费文件流输入；资源配置只接受有效限额，串联流成员数按 <code>iMaxEntries</code> 检查。2026-10-24 当前 Windows 发布版通过包级门禁及基础范例 AOT，Linux 门禁通过 C ASan/UBSan 与双语对照；独立 Python Snappy 0.7.3 framed 互通亦通过。Linux AOT 与长期压力未在本次验收范围。</p>
     <p><code>test/test_allocations.c</code> 和 <code>test/allocations.xl</code> 验证 XRT 分配失败时的空结果、释放平衡、恢复和语言层 MemoryError 分类；不覆盖上游 Snappy 内部 allocator。</p>
     <ul>
       <li>一次性二进制往返（含 NUL / 0xFF）</li>
@@ -164,7 +164,7 @@ release\xl.exe run release\extlibs\snappy\examples\basic.c</pre></div></div>
       <li>可选 Python Snappy 0.7.3 双向 framed 互通：二进制、重复数据及跨 64 KiB 分块</li>
     </ul>
     <h3>运行测试</h3>
-    <div class="code-block"><div class="code-header"><span>终端（demo6 目录）</span></div><div class="code-body"><pre>./release/xl run release/extlibs/snappy/test/file_ops.xl
+    <div class="code-block"><div class="code-header"><span>终端（demo6 目录）</span></div><div class="code-body"><pre>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check.ps1
 bash release/extlibs/snappy/test/check.sh</pre></div></div>
   </div>
 
