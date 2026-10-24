@@ -1,5 +1,11 @@
 # semver
 
+2026-10-24 当前发布物复验：Windows 默认 `test/check.ps1` 的严格 C/ABI、
+XLang 边界与分配故障、C/XLang 固定输出及边界/分配/范例 AOT 均通过；
+Linux `test/check.sh` 的 C ASan/UBSan、XLang JIT 和双语输出通过。
+本轮未构建 Linux 独立 EXE，也未运行需要本地 node-semver 副本的
+可选外部 oracle；以下历史 AOT 阻断只描述当时的发布物。
+
 `semver` 是严格的 SemVer 2.0.0 解析与优先级比较库，并提供常用的依赖范围匹配。
 它不自动修正非法版本；需要去掉 `v`、`V`、`=` 前缀或首尾 ASCII 空白时显式调用 `clean`。
 
