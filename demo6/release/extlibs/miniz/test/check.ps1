@@ -63,6 +63,10 @@ try {
         '-DNDEBUG', 'release/extlibs/miniz/test/test_miniz.c') + $objects +
         $links + @('-o', $testBinary))
     $null = Run 'GCC C boundaries' $testBinary @()
+    $hex = Run 'GCC zlib sample' $testBinary @('--emit')
+    $null = Run 'Python zlib interop' 'python' @('-I', '-c',
+        'import sys,zlib; assert zlib.decompress(bytes.fromhex(sys.argv[1])) == bytes((97,98,99))',
+        $hex)
     $allocBinary = Join-Path $work 'test_allocations.exe'
     $null = Run 'GCC allocation build' $gcc ($flags + @(
         'release/extlibs/miniz/test/test_allocations.c') + $objects +

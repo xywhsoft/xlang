@@ -1,5 +1,12 @@
 # miniz
 
+2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 完整通过：
+严格 GCC、C/XLang 边界与分配故障、双语范例和独立 EXE AOT。
+门禁现要求 Python 标准库 `zlib` 解开本包 GCC 现场生成的流；
+反方向的 Python 固定流仍由 C 边界测试读取。下文“当前缺符号”
+是旧发布物的历史记录；本轮未重建 Linux 发布版，不据 Windows
+结果签收 Linux AOT。
+
 本包提供标准 [RFC 1950 zlib 流](https://www.rfc-editor.org/rfc/rfc1950.html) 的一次性、增量和文件接口。编解码复用 XRT 的 deflate/inflate；不再输出或读取旧的私有多块容器。
 
 ```xlang
@@ -21,7 +28,7 @@ assert miniz.decompressText(packed) == "hello miniz"
 二进制字节的载荷应保留为 `Buffer`，不要走文本便利入口。
 
 测试 `test/test_miniz.c` 覆盖 Python zlib 固定样本、分段输入、空流、损坏、截断、串联拒绝、输出限额，以及 XRT Reader/Writer 的二进制流往返和进度回调。`test/file_ops.xl` 覆盖文件往返、覆盖拒绝、取消清理和解压限额下的目标保护。Linux 使用 `bash release/extlibs/miniz/test/check.sh`，会运行 ASan/UBSan、Python zlib 反向解码和包内 XLang 文件测试；中央 XLang 用例见 `demo6/test/cases/extlib_miniz.xl`。
-Windows 在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/miniz/test/check.ps1 -SkipAot`：同次验证严格 GCC 独立构建、TCC C、私有成员负例、中央/文件 XLang 用例及 GCC C/TCC C/XLang 范例逐字输出。脚本使用每次独立的临时构建目录；去掉 `-SkipAot` 会额外尝试完整 AOT，当前仍受共享缺符号阻断。
+Windows 在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/miniz/test/check.ps1`：同次验证严格 GCC 独立构建、Python zlib 互通、TCC C、私有成员负例、中央/文件 XLang 用例、GCC C/TCC C/XLang 范例逐字输出和完整 AOT。脚本使用每次独立的临时构建目录；`-SkipAot` 仅供聚焦快测，不作为发布签收。
 
 包清单公开 `include/` 并声明所需的 XRT/XRuntime 模块。Windows 上可直接用
 `tools/run_extlib_c.ps1 -Package miniz -Source release/extlibs/miniz/examples/basic.c`
