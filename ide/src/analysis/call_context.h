@@ -7,6 +7,8 @@ typedef struct xls_call_site {
     size_t calleeStart,calleeEnd,nameStart,nameEnd;
     size_t argumentsStart,argumentsEnd,argument,namedStart,namedEnd;
     int closed,argumentKnown,inComment,inLiteral,embedded;
+    size_t argumentStart;
+    int sourceError;
 } xls_call_site;
 typedef struct xls_call_context_work {
     size_t tokens,calls,chargedBytes,constructionBytes,lexedBytes;
@@ -34,4 +36,8 @@ xls_call_context_work xlsCallContextWork(const xls_call_context* context);
  * embedded-language projection. nameStart==nameEnd for expression callees.
  * Views borrow the retained text. Separate readers can query concurrently. */
 int xlsCallContextLookup(const xls_call_context* context,size_t offset,xls_call_site* site);
+/* Explicit recovery candidate from the proven prefix before a lexer error in
+ * the current argument. sourceError marks that recovery is still required;
+ * never publish it as a semantic signature without native parser projection. */
+int xlsCallContextLookupRecovering(const xls_call_context* context,size_t offset,xls_call_site* site);
 #endif

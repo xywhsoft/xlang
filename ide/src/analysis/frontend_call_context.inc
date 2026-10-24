@@ -1,5 +1,6 @@
 /* Appended to the audited shared parser TU: reuse its exact type matcher. */
 #include "analysis/call_context.h"
+#include "src/lexer/xl6_literal_span.h"
 #define XLS_CALL_NONE SIZE_MAX
 #define XLS_CALL_DEPTH 256u
 #define XLS_CALL_TYPE_TOKENS 512u
@@ -7,7 +8,7 @@
  * original virtual matcher reads only kind/text/len from its borrowed window. */
 typedef struct xls_call_token {XL6_TokenKind kind;const char* text;size_t len,startOffset,endOffset;} xls_call_token;
 typedef struct xls_call_tokens {xls_call_token* tokens;size_t count,capacity;} xls_call_tokens;
-typedef struct xls_call_state {size_t call,argument,namedStart,namedEnd;int known,embedded;} xls_call_state;
+typedef struct xls_call_state {size_t call,argument,namedStart,namedEnd;int known,embedded;size_t begin;} xls_call_state;
 typedef struct xls_call_point {
     size_t start,end,commentStart,commentEnd;
     xls_call_state state;
@@ -21,6 +22,7 @@ typedef struct xls_call_expr {size_t start,nameStart,nameEnd;int tail;} xls_call
 typedef struct xls_call_level {
     XL6_TokenKind kind;size_t open,first,argument,namedStart,namedEnd,call;
     int known,embedded;
+    size_t begin;
 } xls_call_level;
 struct xls_call_context {
     xatomic32 references;xls_text* text;size_t bom,size,count,frameCount;
@@ -32,7 +34,7 @@ static int xlsCallCharge(size_t* total,size_t bytes,size_t limit)
 {if(*total>limit || bytes>limit-*total)return 0;*total+=bytes;return 1;}
 static xls_call_state xlsCallState(const xls_call_level* stack,size_t depth)
 {
-    while(depth){const xls_call_level* p=&stack[--depth];if(p->call!=XLS_CALL_NONE)return (xls_call_state){p->call,p->argument,p->namedStart,p->namedEnd,p->known,p->embedded};}
+    while(depth){const xls_call_level* p=&stack[--depth];if(p->call!=XLS_CALL_NONE)return (xls_call_state){p->call,p->argument,p->namedStart,p->namedEnd,p->known,p->embedded,p->begin};}
     return (xls_call_state){.call=XLS_CALL_NONE};
 }
 static int xlsCallContainer(const xls_call_token* token)
@@ -111,6 +113,7 @@ xls_call_context* xlsCallContextCreate(xls_text* text,size_t limit,int (*cancell
         previousEnd=point->end;
         point->literal=token->kind==XL6_TK_STRING || token->kind==XL6_TK_BYTES || token->kind==XL6_TK_CHAR || token->kind==XL6_TK_FSTRING || token->kind==XL6_TK_DOC;
         point->embedded=token->kind==XL6_TK_FSTRING;point->error=token->kind==XL6_TK_ERROR;
+        if(point->error){XL6_LiteralFrame literal;size_t content;if(xl6LiteralOpening(source,result->size,token->startOffset,&literal,&content)){point->literal=1;point->embedded=literal.interpolated!=0;}}
         if(i<skip){point->state=xlsCallState(stack,depth);continue;}
         int explicitType=token->kind==XL6_TK_LT && i && tokens.tokens[i-1].kind==XL6_TK_SCOPE;
         int containerType=token->kind==XL6_TK_LT && i && xlsCallContainer(&tokens.tokens[i-1]);
@@ -130,7 +133,7 @@ xls_call_context* xlsCallContextCreate(xls_text* text,size_t limit,int (*cancell
         }
         if(token->kind==XL6_TK_LPAREN || token->kind==XL6_TK_LBRACKET || token->kind==XL6_TK_SAFE_LBRACKET || token->kind==XL6_TK_LBRACE){
             if(depth==XLS_CALL_DEPTH){reason="call context nesting limit";goto failed;}
-            xls_call_level level={.kind=token->kind,.open=i,.first=i+1,.call=XLS_CALL_NONE,.known=1};
+            xls_call_level level={.kind=token->kind,.open=i,.first=i+1,.call=XLS_CALL_NONE,.known=1,.begin=token->endOffset};
             int declaration=i>=2 && (tokens.tokens[i-2].kind==XL6_KW_FUNC || tokens.tokens[i-2].kind==XL6_KW_GET || tokens.tokens[i-2].kind==XL6_KW_LET);
             if(token->kind==XL6_TK_LPAREN && i && expressions[i-1].tail && !declaration){
                 xls_call_expr callee=expressions[i-1];level.call=result->frameCount++;
@@ -148,7 +151,7 @@ xls_call_context* xlsCallContextCreate(xls_text* text,size_t limit,int (*cancell
                 expressions[i]=(xls_call_expr){.start=start,.tail=token->kind!=XL6_TK_RBRACE};
             }
         }else if(token->kind==XL6_TK_COMMA && depth && stack[depth-1].call!=XLS_CALL_NONE){
-            xls_call_level* level=&stack[depth-1];++level->argument;level->namedStart=level->namedEnd=0;level->first=i+1;
+            xls_call_level* level=&stack[depth-1];++level->argument;level->namedStart=level->namedEnd=0;level->first=i+1;level->begin=token->endOffset;
         }else if(token->kind==XL6_TK_ASSIGN && depth && stack[depth-1].call!=XLS_CALL_NONE){
             xls_call_level* level=&stack[depth-1];if(i && level->first==i-1 && tokens.tokens[i-1].kind==XL6_TK_IDENT){level->namedStart=tokens.tokens[i-1].startOffset;level->namedEnd=tokens.tokens[i-1].endOffset;}
         }else if(token->kind==XL6_KW_FUNC && depth){
@@ -173,7 +176,7 @@ failed:
     if(error && capacity)snprintf(error,capacity,"%s",reason);
     return NULL;
 }
-int xlsCallContextLookup(const xls_call_context* context,size_t offset,xls_call_site* site)
+static int xlsCallLookup(const xls_call_context* context,size_t offset,xls_call_site* site,int recovering)
 {
     if(site)*site=(xls_call_site){0};
     if(!context || !site || offset>context->size)return -1;
@@ -182,12 +185,17 @@ int xlsCallContextLookup(const xls_call_context* context,size_t offset,xls_call_
     size_t lo=0,hi=context->count;
     while(lo<hi){size_t mid=lo+(hi-lo)/2;if(context->points[mid].end<=offset)lo=mid+1;else hi=mid;}
     const xls_call_point* next=lo<context->count ? &context->points[lo] : NULL;
-    if(next && next->error && offset>=next->start)return 0;
-    if(!next && context->work.lexicalError)return 0;
+    int sourceError=(next && next->error && offset>=next->start) || (!next && context->work.lexicalError);
+    if(sourceError && !recovering)return 0;
     xls_call_state state=lo ? context->points[lo-1].state : (xls_call_state){.call=XLS_CALL_NONE};
     if(state.call==XLS_CALL_NONE || state.call>=context->frameCount)return 0;
     const xls_call_frame* frame=&context->frames[state.call];
-    *site=(xls_call_site){frame->start,frame->end,frame->nameStart,frame->nameEnd,frame->open,frame->close,state.argument,state.namedStart,state.namedEnd,frame->closed,state.known,0,0,state.embedded};
+    *site=(xls_call_site){frame->start,frame->end,frame->nameStart,frame->nameEnd,frame->open,frame->close,state.argument,state.namedStart,state.namedEnd,frame->closed,state.known,0,0,state.embedded,state.begin,sourceError};
     if(next){site->inComment=next->commentStart!=XLS_CALL_NONE && offset>=next->commentStart && offset<next->commentEnd;site->inLiteral=next->literal && offset>next->start;site->embedded|=site->inLiteral && next->embedded;}
+    else if(sourceError && context->count){const xls_call_point* last=&context->points[context->count-1];site->inLiteral=last->literal && offset>last->start;site->embedded|=site->inLiteral && last->embedded;}
     return 1;
 }
+int xlsCallContextLookup(const xls_call_context* c,size_t offset,xls_call_site* site)
+{return xlsCallLookup(c,offset,site,0);}
+int xlsCallContextLookupRecovering(const xls_call_context* c,size_t offset,xls_call_site* site)
+{return xlsCallLookup(c,offset,site,1);}
