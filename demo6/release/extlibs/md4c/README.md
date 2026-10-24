@@ -13,14 +13,17 @@ Markdown 输入必须是合法 UTF-8；内存与文件入口都会在解析前�
 
 渲染原始 HTML 默认允许；处理不可信内容时，必须按应用需求选择 `no_html_flag` 并另行审查链接与图片 URL。该标志不是完整 HTML 安全策略，也不是 HTML sanitizer。
 
-双语范例：`release/extlibs/md4c/examples/md4c.xl` 与 `md4c_c.c`。`release/examples/extlibs/md4c.xl` 使用只读测试夹具演示文件渲染，不产生输出文件。包级门禁：在 `demo6` 目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/md4c/test/check.ps1 -SkipAot`；不带 `-SkipAot` 时加测 AOT。Linux 运行 `bash release/extlibs/md4c/test/check.sh`。Windows 严格 GCC、C/XL 边界与双语同输出、Linux ASan/UBSan 及无输出边界 AOT 已通过。带输出范例 AOT 当前缺主线 `xl6ValueDataSnapshotV1`，见 `dev/extlib_blockers/text_snapshot_link.md`；完整发布验收尚未签收。
+双语范例：`release/extlibs/md4c/examples/md4c.xl` 与 `md4c_c.c`。`release/examples/extlibs/md4c.xl` 使用只读测试夹具演示文件渲染，不产生输出文件。包级门禁：在 `demo6` 目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/md4c/test/check.ps1`；Linux 运行 `bash release/extlibs/md4c/test/check.sh`。
+2026-10-24 使用更新后的 Windows 发布版复验：默认门禁的严格 GCC、C/XLang 边界、分配故障、双语 HTML 对照和公开范例 AOT 全部通过；Linux C ASan/UBSan、XLang 边界及同输出门禁通过。旧版 `xl6ValueDataSnapshotV1` 缺符号已解除；这是包级验证，不等于整个 xlang 发布版签收。
 `md4c_c.c` 自包含上游渲染器与包内桥接源码，可直接运行
 `xl run release/extlibs/md4c/examples/md4c_c.c`；正式包仍按清单分别编译。
 包 manifest 声明 XRT 缓冲、整文件读取和 UTF-8 校验模块；先前同一边界 AOT 从
 3,769,856 缩至 849,920 字节，执行通过。Linux 脚本只编译一次 XRT
 再分别链接测试和范例；Windows/Linux 包级内存与错误恢复门禁均通过。
 
-2026-10-15：中央 `test/cases/extlib_md4c.xl` 现使用包内固定夹具，不再为测试写文件；缺失文件按公开 `IOError` 合同验证。中央 JIT 与包内非 AOT 门禁通过。中央带输出 AOT 仍缺共享 `xl6ValueDataSnapshotV1`，发布验收未完成。
+以下为历史验证记录，其中共享缺符号均指当时的旧发布二进制。
+
+2026-10-15：中央 `test/cases/extlib_md4c.xl` 现使用包内固定夹具，不再为测试写文件；缺失文件按公开 `IOError` 合同验证。中央 JIT 与包内非 AOT 门禁通过。中央带输出 AOT 当时仍缺共享 `xl6ValueDataSnapshotV1`，发布验收未完成。
 
 2026-10-16：包内 `test/boundaries.xl` 与包级门禁统一以 `demo6` 为工作目录，
 固定夹具路径不再依赖从 `release` 启动；该用例已登记到 `coverage.tests`。

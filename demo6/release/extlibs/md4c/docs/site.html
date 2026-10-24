@@ -62,9 +62,9 @@ if (html != NULL) {
   <section id="verify">
     <h2>验证与边界</h2>
     <pre><code>xl run release/extlibs/md4c/examples/md4c_c.c
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/md4c/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/md4c/test/check.ps1
 bash release/extlibs/md4c/test/check.sh</code></pre>
-    <p>C 教学范例可单文件直跑；Linux 包级门禁同时覆盖 C ASan/UBSan、XLang 边界、直跑与严格 C 编译结果对照，以及 C/XLang HTML 逐字节对照。此前 Windows 严格 GCC、C/XLang 边界与双语同输出、无输出边界 AOT 已通过；本轮 Windows 总门禁在 GCC 重编 XRT 时遇本机内存不足，未重新签收。带输出范例的 AOT 仍受主线 <code>xl6ValueDataSnapshotV1</code> 缺符号阻断，尚未签收完整发布验收。</p>
+    <p>2026-10-24 使用更新后的 Windows 发布版复验，默认门禁的严格 GCC、C/XLang 边界、分配故障、双语 HTML 对照及公开范例 AOT 全部通过；旧版 <code>xl6ValueDataSnapshotV1</code> 缺符号已解除。Linux 门禁同时通过 C ASan/UBSan、XLang 边界、直跑与严格 C 编译结果对照，以及 C/XLang HTML 逐字节对照。C 教学范例可单文件直跑；这些是包级证据，不代表整个 xlang 发布版签收。</p>
   </section>
 </main>
 <script src="../main.js"></script>
