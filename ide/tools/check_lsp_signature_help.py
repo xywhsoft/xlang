@@ -48,7 +48,7 @@ def main():
                     automaticDiagnostics=False, checkOnSave=False)), 1)
                 reply, _ = client.reply(1)
                 init = reply['result']
-                assert init['serverInfo']['version'] == '0.48', init
+                assert init['serverInfo']['version'] == '0.49', init
                 assert init['capabilities']['signatureHelpProvider'] == dict(
                     triggerCharacters=['(', ','], retriggerCharacters=[')']), init
                 client.send('initialized', {})
@@ -134,6 +134,26 @@ def main():
                 assert result['analysis']['caretHits'] == previous['analysis']['caretHits'] and result['analysis']['builds'] > previous['analysis']['builds'], result
                 assert result['activeParameter'] == 1, result
                 done(f'{offsets}-nested-call-change-rechecks', analysis=result['analysis'])
+                # These are real source changes, not caret views. Require the
+                # native query-file parser to reuse untouched declarations.
+                stable = ''.join(f'func stable_{i}(int value) as int\n return value+{i}\nend\n' for i in range(24))
+                for edit in range(5):
+                    marked = '\ufeff'+stable+definitions+f'func main(...) as int\r\n int 中文={edit}\r\n return plus(中文,@"😀 {edit}")\r\nend\r\n'
+                    result, body, at = request(marked)
+                    analysis = result['analysis']
+                    assert result['signatures'][0]['label'] == 'plus(int left, string right = ...) as int' and result['activeParameter'] == 1, result
+                    assert 0 < analysis['signatureSyntaxCacheBytes'] <= 32*1024*1024, analysis
+                    if edit:
+                        assert analysis['signatureFullParses'] == 0 and analysis['signatureFragmentParses'] == 1, analysis
+                        assert analysis['signatureReusedDeclarations'] == 25 and analysis['signatureParsedBytes'] < len(body.encode('utf8'))/4, analysis
+                        assert analysis['signatureSyntaxFallbacks'] == 0, analysis
+                    else:
+                        assert analysis['signatureFullParses'] == 1, analysis
+                    done(f'{offsets}-native-incremental-signature-{edit}', analysis=analysis)
+                marked = body.replace('string right=""', 'string right="changed"')
+                result, body, at = request(marked, at=marked.index('😀'))
+                assert result['analysis']['signatureFullParses'] == 1 and result['analysis']['signatureSyntaxFallbacks'] == 1, result
+                done(f'{offsets}-signature-header-fallback', analysis=result['analysis'])
                 # Both foreground modes accept the same current input concurrently.
                 mixed = definitions+'func main(...) as int\n int completionLocal=7\n return plus(7, completionL)\nend\n'
                 version += 1
@@ -243,6 +263,25 @@ def main():
             assert reply['result']['signatures'][0]['label'] == 'target(int value) as int', reply
             assert reply['result']['analysis']['builds'] > view['analysis']['builds'], reply
             done('configured-disk-proof-rebuild')
+            prefix = body[:body.index(' return target(')]
+            for edit in range(3):
+                changed = prefix+f' int 中文={edit}\n return target(中文)\nend\n'
+                client.change(helper, changed, 8+edit)
+                at = changed.index('target(中文)')+7
+                query = 310+edit
+                client.send('textDocument/signatureHelp', dict(textDocument=dict(uri=helper.as_uri()), position=position(changed, at)), query)
+                reply, _ = client.reply(query)
+                result = reply['result']
+                analysis = result['analysis']
+                assert result['version'] == 8+edit and result['analysisContext']['epoch'] == 1, result
+                assert result['signatures'][0]['label'] == 'target(int value) as int' and not helper.exists(), result
+                assert analysis['signatureFullParses'] == 0 and analysis['signatureFragmentParses'] == 1 and analysis['signatureReusedDeclarations'] == 1, analysis
+                done(f'configured-unsaved-query-incremental-{edit}', analysis=analysis)
+                body = changed
+            entry.write_text(entry.read_text()+'// changed after incremental snapshot\n', encoding='utf8')
+            invalid = wait_message(client, lambda v: v.get('method') == 'xlang/signatureInvalidated' and v['params']['queryId'] == query)
+            protected[str(entry)] = sha(entry)
+            done('configured-incremental-snapshot-disk-invalidated', reason=invalid['params']['reason'])
         finally:
             client.stop()
             (directory/'transcript.json').write_text(json.dumps(client.transcript,ensure_ascii=False,indent=2),encoding='utf8')

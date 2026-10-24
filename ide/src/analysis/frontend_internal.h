@@ -30,6 +30,17 @@ struct XL6_CompletionQuery;
  * Previous cursor chunks are immutable; ordinary/cursor modes never mix. */
 xls_syntax* xlsSyntaxBuildCursor(const char* path,xls_text* text,const xls_syntax* previous,
     struct XL6_CompletionQuery* query,xls_parse_work* work);
+/* Signature projections have a distinct mode and the original call's LPAREN
+ * marker. Reuse the same function updater; the caller supplies the shared
+ * signature parser in local fragment coordinates. No second grammar. */
+typedef int (*xls_syntax_parse_fn)(const char*,const char*,XL6_ParseResult*,struct XL6_CompletionQuery*,void*);
+xls_syntax* xlsSyntaxTrySignatureFunction(const char* path,xls_text* text,const xls_syntax* previous,
+    struct XL6_CompletionQuery* query,xls_syntax_parse_fn parser,void* user,xls_parse_work* work);
+xls_syntax* xlsSyntaxCaptureSignature(const char* path,xls_text* text,const XL6_AstNode* root,
+    const struct XL6_CompletionQuery* query,size_t bytes);
+int xlsSyntaxSignatureMatches(const xls_syntax*,const char* path,size_t offset,size_t callOpen);
+int xlsSyntaxCopySignatureParse(const xls_syntax*,struct XL6_CompletionQuery*,XL6_ParseResult*,size_t callOpen);
+int xlsSyntaxSignatureCacheBytes(const xls_syntax*,size_t limit,size_t* bytes);
 int xlsSyntaxIsCursor(const xls_syntax* syntax);
 int xlsSyntaxCursorMatches(const xls_syntax* syntax,const char* path,size_t offset);
 /* Query starts empty except matching path/offset; destination parse is empty.

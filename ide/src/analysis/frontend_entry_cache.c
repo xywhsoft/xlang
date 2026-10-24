@@ -1,3 +1,4 @@
+#include "analysis/signature_internal.h"
 #include "analysis/frontend_entry_cache.h"
 #include "analysis/frontend_context.h"
 #include "analysis/ast_clone.h"
@@ -181,6 +182,8 @@ static int moduleParse(xls_entry_cache_scope* scope,const char* text,const char*
 int xlsFrontendEntryParse(const char* text,const char* path,XL6_ParseResult* result,XL6_CompletionQuery* query)
 {
     xls_entry_cache_scope* scope=current;
+    if(scope && scope->cache && query && path && xl6CompletionTarget(query,path) && xlsSignatureScopeCurrent(query))
+        return xlsSignatureParseCached(text,path,result,query);
     if(scope && scope->cursorSyntax && text && path && result && query && xl6CompletionTarget(query,path)) {
         const xls_syntax* syntax=scope->cursorSyntax;const xls_text* source=xlsSyntaxText(syntax);
         size_t skip=source && xlsTextSize(source)>=3 && !memcmp(xlsTextData(source),"\xef\xbb\xbf",3) ? 3 : 0;

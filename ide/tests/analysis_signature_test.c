@@ -78,9 +78,15 @@ static int walkCaretSource(const char* source,size_t size,size_t start)
 }
 static int session(void)
 {
- char* path=xrtPathAbs("signature-session.xl");CHECK(path);xls_signature_session* s=xlsSignatureSessionCreate(NULL);CHECK(s);xls_analysis_document doc={"entry",path,NULL,23,1};xls_signature_help* held=NULL;
+ char* path=xrtPathAbs("signature-session.xl");CHECK(path);
+ /* The stdio/IDE host uses forward slashes; XRT normalizes its model path. */
+ for(char* p=path;*p;++p)if(*p=='\\')*p='/';
+ xls_signature_session* s=xlsSignatureSessionCreate(NULL);CHECK(s);xls_analysis_document doc={"entry",path,NULL,23,1};xls_signature_help* held=NULL;
  for(unsigned i=0;i<16;++i){xstrbuf source={0};for(unsigned j=0;j<24;++j)CHECK(xrtStrBufAppendFormat(&source,"func stable_%u(int value) as int\n int local=value+%u\n if local>0 then\n return local\n end\n return 0\nend\n",j,j));CHECK(xrtStrBufAppendFormat(&source,"%sfunc main(...) as int\n return plus(%u,\"%u\")\nend\n",functions,i,i));xlsTextRelease(doc.text);doc.text=xlsTextCreate(source.Data,source.Size,1024*1024,NULL);CHECK(doc.text);++doc.revision;size_t offset=(size_t)(strrchr(source.Data,'"')-source.Data);xls_signature_help* r=xlsSignatureSessionQueryInContext(s,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(r && xlsSignatureInfo(r).available);xls_semantic_input in={path,source.Data,source.Size};xls_signature_help* fresh=xlsSignatureCreateInContext(NULL,path,path,offset,&in,1,NULL,NULL,NULL,0);CHECK(fresh && parity(r,fresh));xlsSignatureRelease(fresh);
-  if(i)CHECK(xlsSignatureWork(r).reused>=24);
+  xls_signature_parse_work parse=xlsSignatureParseWork(r);
+  if(i){CHECK(xlsSignatureWork(r).reused>=24);CHECK(!parse.full && parse.fragments==1 && parse.reused==25 && parse.bytes<source.Size/4);}
+  else CHECK(parse.full==1 && !parse.fragments && !parse.reused);
+  CHECK(parse.cacheBytes>0 && parse.cacheBytes<=32u*1024u*1024u);
   xls_signature_stats stats;xlsSignatureSessionStats(s,&stats);CHECK(stats.builds==i+1 && stats.indexBuilds==i+1 && stats.hits==i);
   ++doc.revision;xls_signature_help* hit=xlsSignatureSessionQueryInContext(s,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(hit==r);xlsSignatureRelease(hit);
   if(!i)held=xlsSignatureRetain(r);
@@ -89,6 +95,64 @@ static int session(void)
  size_t offset=(size_t)(strrchr(xlsTextData(doc.text),'"')-xlsTextData(doc.text))-1;
  xls_signature_help* moved=xlsSignatureSessionQueryInContext(s,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(moved && xlsSignatureInfo(moved).available);xls_signature_stats stats;xlsSignatureSessionStats(s,&stats);CHECK(stats.indexHits==1 && stats.caretHits==1 && stats.builds==16 && stats.indexBuilds==16);xlsSignatureRelease(moved);
  ++doc.identity;doc.revision=1;moved=xlsSignatureSessionQueryInContext(s,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(moved && !xlsSignatureWork(moved).reused);xlsSignatureRelease(moved);xlsSignatureSessionDestroy(s);xlsTextRelease(doc.text);CHECK(held && xlsSignatureValidate(held) && xlsSignatureInfo(held).available);xls_signature_item item;CHECK(xlsSignatureItem(held,0,&item) && strstr(item.label,"plus("));xlsSignatureRelease(held);xrtFree(path);return 1;
+}
+static int parseIncrementality(void)
+{
+ /* Every edited snapshot has a separate fresh-parser oracle. Exercise length,
+    line/scalar offsets, nested calls, edits outside the query function and
+    multiple-function edits. Header/class changes must use the original parser. */
+ const char* stable="func stable(int value) as int\r\n return value\r\nend\r\n";
+ const char* changed="func stable(int value) as int\r\n return value+1\r\nend\r\n";
+ const char* tails[]={
+  "func main(...) as int\r\n return plus(7,\"@a\")\r\nend\r\n",
+  "func main(...) as int\r\n int 中文=8\r\n\r\n return plus(中文,\"@😀 long\")\r\nend\r\n",
+  "func main(...) as int\r\n return plus(plus(1,\"inner\"),\"@outer\")\r\nend\r\n",
+  "func main(...) as int\r\n return plus(7,\"@a\")\r\nend\r\n",
+  "func main(...) as int\r\n return plus(7,@\r\nend\r\n",
+  "func main(...) as int\r\n return plus(7,\"un@finished\r\nend\r\n",
+  "func main(...) as int\r\n return plus(7,\"@repaired\")\r\nend\r\n",
+ };
+ char* path=xrtPathAbs("signature-parse-incremental.xl");char* otherPath=xrtPathAbs("signature-parse-other.xl");
+ xls_signature_session* session=xlsSignatureSessionCreate(NULL);CHECK(path && otherPath && session);
+ xls_analysis_document docs[2]={{"entry",path,NULL,53,1},{"other",otherPath,NULL,54,1}};
+ docs[1].text=xlsTextCreate("// other0\n",10,1024,NULL);CHECK(docs[1].text);
+ xls_signature_help* held=NULL;size_t oldCharge=0;
+ for(unsigned i=0;i<14;++i){
+  const char* header=i>=9 ? "func plus(int left,string right=\"new\") as int\n return left\nend\n" : functions;
+  const char* tail=i>=12 ? (i==12 ? "class Box\r\n func run() as int\r\n return plus(7,\"@class\")\r\n end\r\nend\r\n" : "class Box\r\n func run() as int\r\n return plus(8,\"@changed class\")\r\n end\r\nend\r\n") : tails[i<7 ? i : i==11 ? 1 : 0];
+  xstrbuf source={0};CHECK(xrtStrBufAppendFormat(&source,"\xef\xbb\xbf%s%s%sfunc trailing() as int\r\n return 0\r\nend\r\n",i>=8 ? changed : stable,header,tail));
+  size_t raw=(size_t)(strchr(source.Data,'@')-source.Data),offset=raw-3;memmove(source.Data+raw,source.Data+raw+1,source.Size-raw);--source.Size;
+  xlsTextRelease(docs[0].text);docs[0].text=xlsTextCreate(source.Data,source.Size,1024*1024,NULL);++docs[0].revision;CHECK(docs[0].text);
+  xls_signature_help* result=xlsSignatureSessionQueryInContext(session,NULL,docs,2,"entry","entry",offset,NULL,NULL,NULL,0);
+  xls_semantic_input inputs[2]={{path,source.Data,source.Size},{otherPath,xlsTextData(docs[1].text),xlsTextSize(docs[1].text)}};
+  xls_signature_help* fresh=xlsSignatureCreateInContext(NULL,path,path,offset,inputs,2,NULL,NULL,NULL,0);CHECK(result && fresh && parity(result,fresh) && xlsSignatureInfo(result).available);
+  xls_signature_parse_work work=xlsSignatureParseWork(result);
+  if(i>=1 && i<=3)CHECK(!work.full && work.fragments==1 && work.reused==3 && work.bytes<source.Size);
+  if(i==8 || i==9 || i>=12)CHECK(work.full==1 && work.fallbacks==1);
+  if(i==11)CHECK(!work.full && work.fragments==1 && work.reused==3);
+  CHECK(work.cacheBytes>0 && work.cacheBytes<=32u*1024u*1024u);
+  xls_inputs report;CHECK(xlsSignatureInputs(result,&report));int captured=0;
+  for(size_t j=0;j<report.sources;++j){xls_input_source item;CHECK(xlsSignatureSource(result,j,&item));if(!strcmp(item.path,path)){CHECK(item.size==source.Size-3 && !memcmp(item.text,source.Data+3,item.size));captured=1;}}
+  CHECK(captured);
+  if(!i){held=xlsSignatureRetain(result);oldCharge=work.cacheBytes;
+   const xls_syntax* syntax=xlsSignatureData(result)->syntax;CHECK(syntax && !xlsSyntaxCursorMatches(syntax,path,offset));
+   XL6_CompletionQuery q={.path=path,.offset=offset};XL6_ParseResult parsed;xl6ParseResultInit(&parsed);size_t charge=42;
+   CHECK(!xlsSyntaxCopyCursorParse(syntax,&q,&parsed) && !parsed.root && !q.prefix && !xlsSyntaxCacheBytes(syntax,SIZE_MAX,&charge) && !charge);
+   CHECK(!xlsSyntaxCopySignatureParse(syntax,&q,&parsed,0) && !parsed.root && !q.prefix);
+   size_t open=xlsSemanticCompletionInfo(xlsSignatureSemantic(result)).start;
+   CHECK(xlsSyntaxCopySignatureParse(syntax,&q,&parsed,open) && parsed.root && q.parsed==1 && q.prefix && !*q.prefix && q.replacement.startOffset==open);
+   CHECK(!xlsSyntaxCaptureSignature(path,docs[0].text,parsed.root,&q,1));xl6ParseResultFree(&parsed);xl6CompletionFree(&q);
+  }
+  if(i==10){ /* Changed non-query overlay forces analysis, not a caret view. */
+   xlsTextRelease(docs[1].text);docs[1].text=xlsTextCreate("// other1\n",10,1024,NULL);++docs[1].revision;CHECK(docs[1].text);
+   xls_signature_help* exact=xlsSignatureSessionQueryInContext(session,NULL,docs,2,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(exact && exact!=result && parity(exact,fresh));
+   xls_signature_parse_work hit=xlsSignatureParseWork(exact);CHECK(hit.exactHits==1 && !hit.full && !hit.fragments && !hit.bytes && hit.cacheBytes==work.cacheBytes);xlsSignatureRelease(exact);
+  }
+  xlsSignatureRelease(fresh);xlsSignatureRelease(result);xrtStrBufFree(&source);
+ }
+ xlsSignatureSessionDestroy(session);xlsTextRelease(docs[0].text);xlsTextRelease(docs[1].text);
+ CHECK(held && xlsSignatureValidate(held) && xlsSignatureParseWork(held).cacheBytes==oldCharge && xlsSignatureParseWork(held).full==1);
+ xls_signature_item item;CHECK(xlsSignatureItem(held,0,&item) && !strcmp(item.label,"plus(int left, string right = ...) as int"));xlsSignatureRelease(held);xrtFree(path);xrtFree(otherPath);return 1;
 }
 typedef struct cancel_state {unsigned calls,at;} cancel_state;
 static int cancelAt(void* user){cancel_state* c=user;return ++c->calls==c->at;}
@@ -173,7 +237,7 @@ static int run(void)
  CHECK(originalOracle("func choose(int value,int other) as int\n return value\nend\nfunc choose(string value,int other) as int\n return other\nend\nfunc main(...) as int\n return choose(\"x\",@caret@0)\nend\n"));
  CHECK(originalOracle("class Box\n func method(int value) as int\n return value\n end\nend\nfunc main(...) as int\n auto box=Box()\n return box.method(@caret@7)\nend\n"));
  CHECK(originalOracle("class Box\n create(int value)\n end\nend\nfunc main(...) as int\n auto box=Box(@caret@7)\n return 0\nend\n"));
- CHECK(session());CHECK(cancellation());CHECK(actor());CHECK(diskInputs());CHECK(isolationAndBounds());
+ CHECK(session());CHECK(parseIncrementality());CHECK(cancellation());CHECK(actor());CHECK(diskInputs());CHECK(isolationAndBounds());
  return 1;
 }
 int main(void){if(!run())return 1;printf("Same-argument immutable caret views=%llu\n",(unsigned long long)caretViews);printf("analysis_signature_test passed: %u checks\n",checks);return 0;}
