@@ -23,6 +23,13 @@ C API 见 `include/qr_native.h`。`_n` 接口显式接收 UTF-8 字节长度；�
 
 ## 范例与验证
 
+2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
+严格 C/ABI、C 边界、中央与包内 XLang JIT、C/XLang 同输出、核心、
+包内边界、中央用例和带输出范例 AOT 全部通过。旧的索引/文本快照
+缺符号记录属于先前发布物。本次本机 Python 环境缺少可选
+`zxingcpp`，未重跑独立扫码；此前十一组 ZXing 解码结果仍按其
+原验证时间记录，不能当成本次门禁的一部分。
+
 2026-10-22：半块 UTF-8 渲染改用已知的 1/3 字节长度，不再逐格扫描固定字符。C 边界测试按版本 1 矩阵逐格核对四种半块字符、静区、换行与末行；Windows 严格 C、XLang 边界/双语范例和无输出核心 AOT，以及 Linux C ASan/UBSan、XLang/双语门禁通过。完整带输出 AOT 的共享链接阻断未在本轮复验，不签收整包发布级。
 
 - Windows 包级门禁从 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/qr/test/check.ps1 -SkipAot`；去掉 `-SkipAot` 可检查全部 AOT 阶段并报告首个阻断。
