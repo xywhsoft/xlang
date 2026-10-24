@@ -1,5 +1,11 @@
 # shellwords
 
+2026-10-24 当前 Windows 发布版复验：严格 C、真实 Windows `argv`
+往返、C/XLang 公开范例均通过；默认门禁在中央 XLang 用例调用
+`join(var words)` 时失败。无关词法解析的最小复现与修复方向见
+`../../../dev/extlib_blockers/foreign_var_container_projection.md`。
+当前语言层完整门禁和 AOT 未验收，以下历史通过结果不能替代本轮签收。
+
 将命令行**词法文本**拆成参数，或把参数安全地编码为单个 shell 词。
 XLang 使用 `import shellwords`；C 使用 `include/xrt_shellwords.h`。
 本库不执行命令，不做变量展开、通配符、命令替换或文件访问。

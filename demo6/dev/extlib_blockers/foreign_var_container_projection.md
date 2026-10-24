@@ -57,3 +57,11 @@ JSON Patch 的 JIT/独立 EXE 公开范例。本普通包任务不改主线。
 包内另有不传数组的 `implicit_object_cleanup.xl`，JIT/EXE 均通过，
 故该 COM 调用阻断不能与对象析构问题混作一个故障。修复共享边界后应
 重跑 `release/extlibs/com/test/check.ps1` 的完整 JIT/AOT 和双语对照。
+
+同日 `shellwords` 的当前 Windows 发布版复现数组侧：
+`./release/xl.exe run dev/extlib_blockers/shellwords_var_array_projection.xl`
+退出 1，报 `ValueError: shellwords join requires an array`。最小源只调用
+`join(var words)`，词法拆分和引号解析均不参与。默认包门禁先通过严格
+C、真实 Windows `argv` 往返、两种语言的公开范例，在中央 XLang 用例
+调用 `join` 时失败。原生 `xsw_join` 要求 XRT 数组 tag；不在包里读取
+编译器私有句柄，修复共享 `var` 投影后复跑本最小文件和完整包门禁。

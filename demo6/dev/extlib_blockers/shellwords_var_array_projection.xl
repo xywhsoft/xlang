@@ -1,0 +1,7 @@
+import shellwords
+
+func main(...) as int
+    var words = ["alpha", "beta"]
+    println(shellwords.join(words))
+    return 0
+end
