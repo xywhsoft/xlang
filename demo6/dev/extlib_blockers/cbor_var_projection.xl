@@ -1,0 +1,8 @@
+import cbor
+
+func main(...) as int
+    assert cbor.toHex(cbor.encode(1)) == "01"
+    var values = [1]
+    assert cbor.toHex(cbor.encode(values)) == "8101"
+    return 0
+end
