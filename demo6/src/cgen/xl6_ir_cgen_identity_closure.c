@@ -732,18 +732,36 @@ static int xl6IrCgenEmitClosureMakeInstruction(
         if(nativeLayout)xl6OutputPrintf(out,", sizeof(*e%lu)",(unsigned long)instructionIndex);
         xl6OutputPrintf(out,"); v%u = NULL; } else {\n",(unsigned)instruction->result);
     }
+    if(target->forwardCallMetadata && target->callParameterCount) {
+        for(size_t p=0;p<target->callParameterCount;++p)
+            xl6OutputPrintf(out,
+                "        e%lu->forwarded_defaults[%lu]=(e%lu->c0 && e%lu->c0->call_parameter_count==%lu && e%lu->c0->call_parameter_defaults) ? e%lu->c0->call_parameter_defaults[%lu] : xlir_closure_call_defaults_%u[%lu];\n"
+                "        if(e%lu->forwarded_defaults[%lu].abi==%d) e%lu->forwarded_defaults[%lu].program=xlir_forward_default_%u_%lu;\n",
+                (unsigned long)instructionIndex,(unsigned long)p,(unsigned long)instructionIndex,
+                (unsigned long)instructionIndex,(unsigned long)target->callParameterCount,
+                (unsigned long)instructionIndex,(unsigned long)instructionIndex,(unsigned long)p,
+                (unsigned)target->targetSymbol,(unsigned long)p,(unsigned long)instructionIndex,(unsigned long)p,
+                (int)XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM,(unsigned long)instructionIndex,(unsigned long)p,
+                (unsigned)target->targetSymbol,(unsigned long)p);
+    }
     xl6OutputPrintf(out,
         "        v%u = %s((void (*)(void))xlir_closure_invoke_%u, NULL, e%lu, ",
         (unsigned int)instruction->result,nativeLayout ? "xlir_closure_new_v3" : "xlir_closure_new",(unsigned int)target->targetSymbol,
         (unsigned long)instructionIndex);
     if(nativeLayout)xl6OutputPrintf(out,"sizeof(*e%lu), ",(unsigned long)instructionIndex);
     xl6OutputPrintf(out,"&xlir_closure_layout_%u, ",(unsigned)target->targetSymbol);
-    if ( target->callParameterCount != 0 )
+    if(target->forwardCallMetadata && target->callParameterCount)
+        xl6OutputPrintf(out,"(e%lu->c0 && e%lu->c0->call_parameter_count==%lu ? e%lu->c0->call_parameter_names : NULL)",
+            (unsigned long)instructionIndex,(unsigned long)instructionIndex,(unsigned long)target->callParameterCount,
+            (unsigned long)instructionIndex);
+    else if ( target->callParameterCount != 0 )
         xl6OutputPrintf(out, "xlir_closure_call_names_%u",
                         (unsigned int)target->targetSymbol);
     else
         xl6OutputPuts("NULL", out);
-    if ( target->callParameterCount != 0 )
+    if(target->forwardCallMetadata && target->callParameterCount)
+        xl6OutputPrintf(out,", e%lu->forwarded_defaults",(unsigned long)instructionIndex);
+    else if ( target->callParameterCount != 0 )
         xl6OutputPrintf(out, ", xlir_closure_call_defaults_%u",
                         (unsigned int)target->targetSymbol);
     else

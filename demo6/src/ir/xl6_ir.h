@@ -4699,6 +4699,9 @@ typedef struct XL6_IrClosureTarget {
      * Literal/required entries are zero; descriptors belong to the value. */
     uint32* callParameterDefaultFunctions;
     size_t callParameterCount;
+    /* Result adapter: names/defaults belong to its sole retained closure
+     * capture. PROGRAM defaults must execute with that source environment. */
+    int forwardCallMetadata;
     size_t firstCapture;
     size_t captureCount;
 } XL6_IrClosureTarget;

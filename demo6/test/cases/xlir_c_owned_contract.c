@@ -59,6 +59,15 @@ static void checkStringResultContracts(XL6_IrModule* ir)
 static void checkVariadicPackContracts(XL6_IrModule* ir)
 {
     unsigned rejected=0;
+    for(size_t c=0;c<ir->closureTargetCount;++c) {
+        XL6_IrClosureTarget* closure=&ir->closureTargets[c];
+        if(!closure->forwardCallMetadata)continue;
+        XL6_DiagList diags={0};
+        closure->forwardCallMetadata=0;
+        assert(!xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags);++rejected;
+        closure->forwardCallMetadata=1;
+        assert(xl6IrVerifyModule(ir,&diags));xl6DiagFree(&diags);
+    }
     for(size_t s=0;s<ir->callSiteCount;++s) {
         XL6_IrCallSite* site=&ir->callSites[s];
         if(site->argumentCount!=site->fixedParameterCount+1)continue;
