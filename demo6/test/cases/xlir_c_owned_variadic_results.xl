@@ -19,6 +19,9 @@ func product(***) as (cstring,cbytes,int)
     assert arg.length==1 and arg["answer"]==42
     return text(),binary(7),7
 end
+func fixedProduct() as (cstring,cbytes,int)
+    return text(),binary(7),7
+end
 func consume(func(...) as string callback) as string
     return callback(7,"tail",true)
 end
@@ -87,6 +90,10 @@ func check()
     var many=xcall(productRaw)
     auto first,second,number=many(answer=42)
     assert first=="hello" and second==b"\0\xff\x11*" and number==7
+    auto fixed=fixedProduct
+    var erasedFixed=xcall(fixed)
+    auto fixedText,fixedBytes,fixedNumber=erasedFixed()
+    assert fixedText=="hello" and fixedBytes==b"\0\xff\x11*" and fixedNumber==7
 end
 check()
 async func workers()
