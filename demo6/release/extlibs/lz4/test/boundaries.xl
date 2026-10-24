@@ -12,6 +12,12 @@ func main(...) as int
     Buffer packed = lz4.compress(source)
     Buffer result = lz4.decompress(packed)
     assert result == source
+    // 文本入口按真实长度保留 NUL，不能改用 strlen 接管解压结果。
+    Buffer textWithNul = Buffer()
+    textWithNul.append("a")
+    textWithNul.appendByte(0)
+    textWithNul.append("b")
+    assert lz4.decompressText(lz4.compress(textWithNul)) == "a\0b"
     // 两包同时链接：Frame 内部的旧 xxHash 不得与公开 xxhash 包冲突。
     assert xxhash.hash64(result) == xxhash.hash64(source)
     assert packed[0] == 4 and packed[1] == 34 and packed[2] == 77 and packed[3] == 24
