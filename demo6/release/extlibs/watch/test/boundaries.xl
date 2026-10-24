@@ -55,13 +55,15 @@ func main(...) as int
         watch.Watcher pair = watch.create()
         assert pair.add(left) == 0 and pair.add(right) == 1
         assert file.writeText(left, "aa") and file.writeText(right, "bb")
-        string firstEvent = pair.poll()
+        cstring firstEvent = pair.poll()
+        string savedEvent = firstEvent
         assert firstEvent == "MODIFIED:" + left, "first changed path"
         // 左侧再次变化时，右侧的待处理事件不能被饿死。
         assert file.writeText(left, "aaa")
-        assert pair.poll() == "MODIFIED:" + right, "round-robin fairness"
+        firstEvent = pair.poll()
+        assert firstEvent == "MODIFIED:" + right, "round-robin fairness"
         assert pair.poll() == "MODIFIED:" + left, "repeated change is delivered"
-        assert firstEvent == "MODIFIED:" + left, "event remains owned after later polls"
+        assert savedEvent == "MODIFIED:" + left, "event remains owned after later polls"
     finally
         assert dir.delete(root), "watch boundary temporary directory must be removed"
     end

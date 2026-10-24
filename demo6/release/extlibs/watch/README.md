@@ -1,5 +1,13 @@
 # watch
 
+2026-10-25：`Watcher.poll()` 改为返回拥有型 `cstring`，直接接管
+`xwatch_poll` 的独立事件分配；调用方仍可赋给普通 `string`。
+`path()` 的 C 结果是借用指针，保持原有独立字符串语义，不参与这次接管。
+当前 Windows 默认包门禁的严格 C、目录竞态、语言边界与故障注入、
+双语范例和两份 AOT 均通过；生成 C 检查只有事件出口调用
+`xl6CStringTakeV1`，没有旧 `takeCstr` 桥接。Linux 语言侧仍待
+更新到识别 `cstring` 的发布物后复验。
+
 2026-10-24 当前发布物复验：Windows 默认 `test/check.ps1` 全部通过，
 包含严格 GCC、目录竞争、分配故障、C/XLang 双语固定输出、边界 AOT
 以及带输出范例 AOT。Linux `test/check.sh` 的 C ASan/UBSan、目录竞争、
@@ -23,7 +31,7 @@ XLang JIT 边界和双语输出也通过。旧版
 会重新取样一次，把变化作为缺失状态或事件处理；权限、内存等错误不被
 当作普通变化吞掉。连续变化超过这次有界重试时仍可能返回文件系统错误。
 
-原生 API 声明在 `watch_native.h`：`xwatch_poll` 返回的事件由调用方用 `xrtFree` 释放；`xwatch_path` 是借用路径，添加其他监视项或条目表扩容时仍有效，在删除对应项或销毁实例后失效。XLang 包装层将失败转为异常。底层路径、元数据、内存与目录枚举均使用 XRT，Windows 不走 ANSI 文件 API。
+原生 API 声明在 `watch_native.h`：`xwatch_poll` 返回的事件由 C 调用方用 `xrtFree` 释放；XLang 的 `poll()` 以 `cstring` 接管它。`xwatch_path` 是借用路径，添加其他监视项或条目表扩容时仍有效，在删除对应项或销毁实例后失效；XLang 的 `path()` 返回独立字符串。XLang 包装层将失败转为异常。底层路径、元数据、内存与目录枚举均使用 XRT，Windows 不走 ANSI 文件 API。
 包清单显式声明目录、路径与 64 位哈希三个 XRT 模块；同一无输出边界 AOT 在 Windows 上由 3,781,632 字节降至 881,664 字节，事件测试仍通过。编译时另行混编 C 源文件可能触发编译器的完整 XRT 路径。
 公开操作从本次调用开始清理本线程旧的 XRT 错误；成功调用不会继承上一次失败的诊断。`destroy` 不清错，避免析构时抹去调用方待处理的错误。
 XL 的 `add` 拒绝内嵌 NUL 的路径，`exists` 对该路径返回 `false`，
