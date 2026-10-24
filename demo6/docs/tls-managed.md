@@ -767,3 +767,43 @@ Linux 原件保留、报告复制；仅普通显式本机回环及离线检查�
 
 语言 TLS 传输 facade 迁移、动态回调／ticket／恢复、旧后端清退、跨组
 闭合和完整 P7 尚未完成；不能将本批等同整个工作区或发布产品验收。
+
+## TLS 原生拥有目录接线验收
+
+新增九个独立驻留 domain：TLS Stream／Stream Future、Listener／accept
+Future、Dial／Dial Future／Proxy，以及不强制选择 TCP Future 的 TCP／
+Proxy Dial 核心 domain。目录追加三个精确类型的 TLS 策略组，分别接收
+Stream 事件、Listener 事件和 Dial Done。Load 只登记常驻能力；Resolve
+只调用 XRT 的实际适配器，不猜回调、擦除指针数组或把未知对象认证为叶。
+引入新 domain 不改变旧 composite domain 的合同；重复准入须给出完全
+相同的 adapter／preparation／completion，不能以先匹配者覆盖冲突。
+
+八种实际闭包分别验证基础流、流 Future、监听、accept Future、直接拨号、
+拨号 Future、代理拨号及代理 Future。除居民 source／domain 列表外，还
+编译真正的 XRT selector，拒绝不需要的 Future／Listener／Proxy 后端。
+三组普通原生生命周期夹具改用真实 sealed catalog；只有夹具自身的 Data
+保留测试专用 domain，其余节点全部由生产 domain 准入。
+
+夹具明确消费取消节点的三态 completion：先完成普通 Finish，再推进 BUSY
+依赖。completion 只在真实图节点已 Hold／Claim 后登记；准入探测不授予
+生命周期，不保存失败快照中的临时节点。全图 pin 直到两类物理收尾结束
+才释放。并发 OOM 允许尝试次数变化，但必须满足用例数量、拒绝、持久
+错误、连续成功预算和完整内存台账的不变量。
+
+证据 `F:/xlang-validation/five-groups-20261024/p6-tls-native-catalog`。冻结
+原生 2348、xlang 9029 输入，生产源码始终不变；后续仅修订验收控制器，
+保留所有失败／被取代的记录，不重复全源码构建。最终 r3 目录检查在
+Windows／Linux 分别 71／80 步、18／24 次实际执行通过；累计 560 个
+循环图、924 次拒绝、168 次持久清理错误，1218 个预算中的 826 次分配
+失败，全部平衡。包含 GCC O0／O2、TCC、Linux ASan／UBSan、select／
+IOCP／epoll；两端各 16 次 selector 编译通过。
+
+全源码 O2 构建为 1165／1164 TU。JIT／module／AOT、配置／IR／裁剪、产品
+回归，以及十二个精确 SDK 原型的实际 TCC 绑定、目录构造和 checked
+drain，共 129／131 步通过。接受输入、对象、产物和日志哈希独立复核。
+没有修改原生算法、两边时间 ABI 或 Cgen；仅普通本机回环和离线检查。
+
+本批打通的是驻留拥有目录，不是语言传输 facade：旧 Cgen TLS 包装尚未
+删除。下一步须把 TlsStream／TlsServer／拨号接到真实 execution resource
+和角色上下文上，再迁移全部调用声明、动态回调／ticket／恢复并清退旧
+实现。完整 TLS、当前整个工作区、发布 DLL／SO 和 P7 仍未验收完成。
