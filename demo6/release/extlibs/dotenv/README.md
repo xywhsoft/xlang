@@ -59,7 +59,7 @@ XLang 的 `maxBytes` 必须为正数；C 的 `xrtDotenvParse/Load` 接受 0 作�
 ```powershell
 ./release/xl.exe run release/extlibs/dotenv/examples/basic.c
 ./release/xl.exe run release/examples/extlibs/dotenv.xl
-release/extlibs/dotenv/test/check.ps1 -SkipAot
+release/extlibs/dotenv/test/check.ps1
 bash release/extlibs/dotenv/test/check.sh
 ```
 
@@ -70,10 +70,15 @@ bash release/extlibs/dotenv/test/check.sh
 `XL_DEMO6_DOTENV_EXAMPLE` 在退出前恢复原值或移除，C/XLang 输出对照同一
 黄金文件。只有显式 `apply` 才会写入进程环境。
 
-发布验收去掉 `-SkipAot`。当前完整范例 AOT 的共享链接阻断见
-`dev/extlib_blockers/text_snapshot_link.md`；Linux 脚本需要 `release/xl`，检查 C 侧 XRT
+2026-10-24 使用更新后的 Windows 发布版 `xl.exe` 复验：默认 `check.ps1`
+完整通过，包括严格 C、C/XLang 范例、语言边界、中央用例和公开范例 AOT。
+Linux `check.sh` 也通过 C ASan/UBSan、语言用例及双语范例对照。
+此前的 `xl6ValueDataSnapshotV1` 缺符号记录仅描述旧发布二进制，现已解除。
+Linux 脚本需要 `release/xl`，检查 C 侧 XRT
 解析/环境边界、XLang 中央与包内边界，并将 C/XLang 范例同黄金输出逐字对照。
-包级 C/JIT 通过不等于完整发布签收。
+这两项包级门禁通过不代表整个 xlang 发布版已经签收。
+
+以下为历史验证记录；其中“当前阻断”均指当时的旧发布二进制。
 
 2026-10-24 编译器产物分层复验：现有 `release/xl.exe` 的默认包门禁仍在
 公开范例 AOT 链接时报缺少 `xl6ValueDataSnapshotV1`；同一包的

@@ -79,9 +79,9 @@ int main(void)
   </section>
   <section id="verify">
     <h2>验证状态</h2>
-    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/dotenv/test/check.ps1 -SkipAot
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/dotenv/test/check.ps1
 bash release/extlibs/dotenv/test/check.sh</code></pre>
-    <p>Windows 定向 C 测试、C/xlang 范例和 xlang 边界测试通过；解析输入先检查字节限额，再扫描内容。XRT 有序映射、分配失败矩阵与 <code>apply</code> 内存错误回归验证旧配置保留、进程环境不变和同对象恢复。2026-10-18 增补合法多行配置的截断与逐字节变异矩阵；这是定向边界测试，不是完整 fuzz。双语文件范例使用独占临时目录并清理，不覆盖工作目录中的现有文件；C 范例可直接 <code>xl run release/extlibs/dotenv/examples/basic.c</code>。范例同时展示同对象替换、默认保留与显式覆盖进程环境、清空配置，并在退出前恢复原环境值。Linux 包级门禁同时运行 C ASan/UBSan、XLang 中央与包内边界，并逐字核对 C/xlang 范例及黄金输出。当前默认 Windows 门禁已构建运行核心 AOT，但带输出范例仍缺共享符号 <code>xl6ValueDataSnapshotV1</code>，不能视为最终发布签收。</p>
+    <p>2026-10-24 使用更新后的 Windows 发布版 <code>xl.exe</code> 复验，完整默认门禁通过：严格 C 测试、C/xlang 范例、xlang 边界、中央用例及公开范例 AOT。旧发布版的 <code>xl6ValueDataSnapshotV1</code> 缺符号阻断已解除。Linux 包级门禁通过 C ASan/UBSan、XLang 用例和双语范例黄金输出对照。解析输入先检查字节限额，再扫描内容；分配失败矩阵验证旧配置保留、环境不变和同对象恢复。合法多行配置的截断与逐字节变异矩阵属于定向边界测试，不是完整 fuzz。双语文件范例使用独占临时目录并清理，不覆盖现有文件，C 范例可直接通过 <code>xl run</code> 运行。这是 dotenv 包级验证，不等同于整个 xlang 发布版签收。</p>
   </section>
 </main>
 <script src="../main.js"></script>
