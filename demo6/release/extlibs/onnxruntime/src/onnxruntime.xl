@@ -105,7 +105,6 @@ class SessionOptionsObject
 	destroy()
 		if self.handle != null then
 			ort_session_options_release_native(self.handle)
-			self.handle = null
 		end
 	end
 
@@ -238,7 +237,6 @@ class RunOptionsObject
 	destroy()
 		if self.handle != null then
 			ort_run_options_release_native(self.handle)
-			self.handle = null
 		end
 	end
 
@@ -301,7 +299,6 @@ class RunResult
 	destroy()
 		if self.handle != null then
 			ort_result_release_native(self.handle)
-			self.handle = null
 		end
 	end
 
@@ -356,7 +353,6 @@ class TensorObject
 	destroy()
 		if self.handle != null then
 			ort_tensor_release_native(self.handle)
-			self.handle = null
 		end
 	end
 
@@ -392,7 +388,6 @@ class IoBindingObject
 	destroy()
 		if self.handle != null then
 			ort_iobinding_release_native(self.handle)
-			self.handle = null
 		end
 	end
 
@@ -469,7 +464,6 @@ class InferenceSessionObject
 	destroy()
 		if self.handle != null then
 			ort_session_release_native(self.handle)
-			self.handle = null
 		end
 	end
 

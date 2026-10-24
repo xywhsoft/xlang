@@ -39,7 +39,7 @@ session.release()</code></pre>
     <h2 id="c-api">C</h2>
     <p>公开原型见 <code>include/onnxruntime.h</code>。会话、张量及结果句柄由对应 <code>release</code> 函数释放；后端返回的文本为借用结果。包内 <code>examples/model_info_c.c</code> 与 XLang 范例读取同一模型元数据；从发行目录可直接用 <code>xl run extlibs/onnxruntime/examples/model_info_c.c</code>，也可直接构建为 C 可执行文件。</p>
     <h2 id="verification">验证范围</h2>
-    <p>2026-10-20：当前 <code>xl.exe</code> 下，GCC 分离构建、C 单文件 JIT、C 单文件构建执行与 XLang 范例的真实模型元数据完全同输出；包级门禁还覆盖零张量 CPU 推理、残缺 DLL 拒绝、显式缺失路径与旧错误隔离及原生整数收窄。XLang 包装层拒绝传向 C 零结尾接口的内嵌 NUL 文本。同一真实模型的无输出 AOT 探针在 XRT 模块裁剪前后为 3,832,832 / 854,016 字节，两者均执行推理成功。示例模型只是测试资产；带文本输出的完整 AOT 仍受主线共享符号缺失阻断。桥接源码和算法矩阵由插件独立维护，不作为本调用层验收条件。</p>
+    <p>当前 Windows 包级门禁下，GCC 分离构建、C 单文件运行/构建与 XLang 范例的真实模型元数据同输出；零张量 CPU 推理、六类句柄隐式析构、UTF-8 DLL 路径、残缺 DLL 拒绝和原生整数收窄均覆盖 JIT/AOT 公开调用。XLang 包装层拒绝传向 C 零结尾接口的内嵌 NUL 文本。旧构建的带输出 AOT 缺符号在当前发布物中不再复现。示例模型只是测试资产；桥接源码和算法矩阵由插件独立维护，不作为本调用层验收条件。</p>
   </section>
 </main>
 </body>

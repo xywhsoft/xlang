@@ -28,6 +28,7 @@ struct xls_semantic_completion {
     xls_sem_work semanticWork;
     xls_sem_call_work callWork;
     xls_sem_tail* tail;
+    xls_sem_storage_work storageWork;
 };
 static int absolute(const char* path)
 {
@@ -129,6 +130,8 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
         if(!stem) goto invalid;
         snprintf(module,sizeof(module),"%s",*stem ? stem : "module"); xrtFree(stem);
         xls_sem_call_control calls;
+        xls_sem_storage_control storage;
+        xlsFrontendSemStorageBegin(&storage,xlsFrontendSemStorageBudget());
         xlsFrontendSemCallsBegin(&calls,xlsFrontendSemCallsBudget());
         if(memoEnabled) {
             int compatible=previous && previous->memo && !strcmp(previous->path,r->path) &&
@@ -143,6 +146,7 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
                 compatible ? &previous->report : NULL,compatible ? previous->memo : NULL,&r->memo,&r->semanticWork,&r->tail);
         } else xl6SemCheckModuleWithQuery(r->parse.root,&r->parse.diags,module,0,&r->query);
         xlsFrontendSemCallsEnd(&calls,&r->callWork);
+        xlsFrontendSemStorageEnd(&storage,&r->storageWork);
     }
     if(stopped(cancelled,user)) goto cancel;
     r->available=r->query.available && !r->query.error &&
@@ -186,6 +190,8 @@ xls_sem_work xlsSemanticCompletionSemWork(const xls_semantic_completion* result)
 {return result ? result->semanticWork : (xls_sem_work){0};}
 xls_sem_call_work xlsSemanticCompletionCallWork(const xls_semantic_completion* result)
 {return result ? result->callWork : (xls_sem_call_work){0};}
+xls_sem_storage_work xlsSemanticCompletionStorageWork(const xls_semantic_completion* result)
+{return result ? result->storageWork : (xls_sem_storage_work){0};}
 const XL6_AstNode* xlsSemanticCompletionAst(const xls_semantic_completion* result)
 {
     xls_semantic_completion* r=(xls_semantic_completion*)result;

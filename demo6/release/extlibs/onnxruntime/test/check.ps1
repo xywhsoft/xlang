@@ -96,12 +96,18 @@ try {
         throw "XLang public API example output differs: $publicOutput"
     }
     $null = Run 'XLang model inference JIT' $xl @('run', 'extlibs/onnxruntime/test/model_probe.xl')
+    $null = Run 'XLang implicit handle cleanup' $xl @('run',
+        'extlibs/onnxruntime/test/implicit_handles_cleanup.xl')
     $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/onnxruntime/examples/model_info.xl')
     if ($cOutput -cne $xlOutput -or $cOutput -cne $directOutput) {
         throw 'C/XLang model metadata differs'
     }
 
     if (!$SkipAot) {
+        $cleanup = Join-Path $work 'implicit_handles_cleanup.exe'
+        $null = Run 'implicit handle cleanup AOT build' $xl @('build',
+            'extlibs/onnxruntime/test/implicit_handles_cleanup.xl', '-o', $cleanup)
+        $null = Run 'implicit handle cleanup AOT' $cleanup @()
         $binary = Join-Path $work 'model_probe.exe'
         $null = Run 'XLang model inference AOT build' $xl @('build', 'extlibs/onnxruntime/test/model_probe.xl', '-o', $binary)
         $null = Run 'XLang model inference AOT' $binary @()
