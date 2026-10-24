@@ -9,11 +9,14 @@ typedef struct xls_check_stats {
     size_t documents,textBytes;
     uint64_t entryFullParses,entryFragmentParses,entryReusedDeclarations,entryParsedBytes,entrySyntaxHits;
     uint64_t semanticFunctionsChecked,semanticFunctionsReused,semanticContextHits,semanticMemoBytes;
+    uint64_t inputScopeHits;
 } xls_check_stats;
 /* One owner thread; retains one checked compilation and its immutable input
  * batch, bounded by the existing native check limits. No transport/GUI types.
- * A changed body/identity/path/input set/entry/index mode/working directory
- * rebuilds. Exact-input reuse still revalidates disk files, negative import
+ * Changed observed/entry bodies,identity,path,input set,entry,index mode or
+ * working directory rebuild. Original frontend lookup usage can prove that
+ * other body changes do not affect this result,inputScopeHits counts these
+ * hits. Overlay membership must remain identical. Reuse still validates disk files, negative import
  * candidates and observed package environment. Rebuilds reuse the immutable
  * entry syntax when possible, copying a private mutable tree for unchanged
  * full semantic/IR verification. Ordinary imports share the bounded parse aid;

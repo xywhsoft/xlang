@@ -149,10 +149,12 @@ static int parseIncrementality(void)
    CHECK(xlsSyntaxCopySignatureParse(syntax,&q,&parsed,open) && parsed.root && q.parsed==1 && q.prefix && !*q.prefix && q.replacement.startOffset==open);
    CHECK(!xlsSyntaxCaptureSignature(path,docs[0].text,parsed.root,&q,1));xl6ParseResultFree(&parsed);xl6CompletionFree(&q);
   }
-  if(i==10){ /* Changed non-query overlay forces analysis, not a caret view. */
+  if(i==10){ /* An unobserved overlay edit reuses the immutable model. */
+   xls_signature_stats before;xlsSignatureSessionStats(session,&before);
    xlsTextRelease(docs[1].text);docs[1].text=xlsTextCreate("// other1\n",10,1024,NULL);++docs[1].revision;CHECK(docs[1].text);
-   xls_signature_help* exact=xlsSignatureSessionQueryInContext(session,NULL,docs,2,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(exact && exact!=result && parity(exact,fresh));
-   xls_signature_parse_work hit=xlsSignatureParseWork(exact);CHECK(hit.exactHits==1 && !hit.full && !hit.fragments && !hit.bytes && hit.cacheBytes==work.cacheBytes);xlsSignatureRelease(exact);
+   xls_signature_help* exact=xlsSignatureSessionQueryInContext(session,NULL,docs,2,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(exact==result && parity(exact,fresh));
+   xls_signature_parse_work hit=xlsSignatureParseWork(exact);CHECK(hit.full==work.full && hit.fragments==work.fragments && hit.bytes==work.bytes && hit.exactHits==work.exactHits && hit.cacheBytes==work.cacheBytes);
+   xls_signature_stats after;xlsSignatureSessionStats(session,&after);CHECK(after.builds==before.builds && after.hits==before.hits+1 && after.inputScopeHits==before.inputScopeHits+1);xlsSignatureRelease(exact);
   }
   xlsSignatureRelease(fresh);xlsSignatureRelease(result);xrtStrBufFree(&source);
  }

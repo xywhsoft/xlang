@@ -8,9 +8,13 @@ typedef struct xls_completion_stats {
     size_t documents,textBytes;
     uint64_t cursorFullParses,cursorFragmentParses,cursorReusedDeclarations,cursorParsedBytes;
     uint64_t cursorSyntaxHits,cursorFreshBuilds;
+    uint64_t inputScopeHits;
 } xls_completion_stats;
 /* One owner, one retained exact cursor projection. Hits revalidate disk,
- * import candidates and observed environment; different inputs/cursors still
+ * import candidates and observed environment. Unobserved body changes may hit
+ * when the original lookup mask and unchanged overlay membership prove them
+ * irrelevant;entry/query bodies stay exact,inputScopeHits counts these hits.
+ * Other changed inputs/cursors still
  * run the shared semantic query. Opened entry/import query files can reuse
  * immutable cursor syntax,including project entries that are closed. Source
  * loading/reporting,imports and semantic checking still run. Failed cursor

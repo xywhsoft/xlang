@@ -22,11 +22,28 @@ def derive(frontend: Path, output: Path) -> list[dict]:
         source = '#include "analysis/frontend_context.h"\n' + source
         if original.stem == "xl6_source_overlay":
             source = '#include "analysis/frontend_entry_cache.h"\n' + source
+            source = '#include "analysis/frontend_input_usage.h"\n' + source
             old = 'xl6ParseSourceWithCompletion('
             if source.count(old) != 2:
                 raise ValueError("shared source overlay parse seams changed")
             source = source.replace(old, 'xlsFrontendEntryParse(')
-            seams = 4
+            # Observe the exact original Unicode/path matcher and resolver;
+            # no second path/search rule set. Resource failures conservatively
+            # disable dependency reuse, without changing ordinary lookup results.
+            for old, new in {
+                '    if (na <= 0 || nb <= 0) return 0;':
+                    '    if (na <= 0 || nb <= 0) return xlsFrontendInputUsageFailure(NULL);',
+                '        equal = CompareStringOrdinal(wa, -1, wb, -1, TRUE) == CSTR_EQUAL;\n    xrtFree(wa);':
+                    '        equal = CompareStringOrdinal(wa, -1, wb, -1, TRUE) == CSTR_EQUAL;\n    else xlsFrontendInputUsageFailure(NULL);\n    xrtFree(wa);',
+                '    if (!absolute) return NULL;':
+                    '    if (!absolute) { xlsFrontendInputUsageFailure(overlay); return NULL; }',
+                '    return index < overlay->count ? &overlay->items[index] : NULL;':
+                    '    if (index < overlay->count) xlsFrontendInputUsageRead(overlay,index);\n    return index < overlay->count ? &overlay->items[index] : NULL;',
+            }.items():
+                if source.count(old) != 1:
+                    raise ValueError("shared overlay read/failure observation seam changed: " + old)
+                source = source.replace(old, new, 1)
+            seams = 8
         elif original.stem == "xl6_source_report":
             old = '(char*)xrtEnvGet((str)"XLANG_PACKAGE_PATH")'
             if source.count(old) != 3 or source.count("xrtPathAbs(path)") != 3:
@@ -123,5 +140,5 @@ def derive(frontend: Path, output: Path) -> list[dict]:
         compiled.write_text(source, encoding="utf-8", newline="\n")
         rows.append(dict(source=str(original), sourceSha256=digest,
                          compiledSource=str(compiled), compiledSha256=hashlib.sha256(compiled.read_bytes()).hexdigest(),
-                         auditedSeams=seams, change=("optional bounded pre-import entry AST reuse; original source reporting and parser fallback retained" if original.stem == "xl6_source_overlay" else "request-owned directory/package inputs; original resolution/validation rules retained; default calls unchanged")))
+                         auditedSeams=seams, change=("bounded pre-import entry AST reuse and allocation-free observation of original overlay lookups; failed matching makes dependency usage unknown; source reporting,path rules and parser fallback retained" if original.stem == "xl6_source_overlay" else "request-owned directory/package inputs; original resolution/validation rules retained; default calls unchanged")))
     return rows

@@ -23,6 +23,13 @@ const char* xlsInputBatchDirectory(const xls_input_batch* batch);
 int xlsInputSameBody(const xls_analysis_document* a,const xls_analysis_document* b);
 /* Ignores input order and increasing revisions, after capture validation. */
 int xlsInputBatchEqual(const xls_input_batch* a,const xls_input_batch* b);
+/* For a complete original-frontend usage mask in a's document order. Input
+ * membership/keys/identities/paths/context/directory/entry must all agree.
+ * Entry and optional query bodies remain mandatory. Only unobserved body
+ * changes may be ignored. Remaps usage into b's order, including exact hits;
+ * revision validation and disk/probe validation are separate requirements. */
+int xlsInputBatchEqualUsed(const xls_input_batch* a,const xls_input_batch* b,
+    uint64_t used,const char* query,uint64_t* remapped);
 size_t xlsInputBatchInputs(const xls_input_batch* batch,xls_semantic_input* inputs,size_t capacity);
 size_t xlsInputBatchBytes(const xls_input_batch* batch);
 #endif

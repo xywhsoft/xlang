@@ -2,6 +2,7 @@
 #include "analysis/frontend_context.h"
 #include "analysis/frontend_entry_cache.h"
 #include "analysis/frontend_input_view.h"
+#include "analysis/frontend_input_usage.h"
 #include "analysis/frontend_index.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_sem.h"
@@ -31,6 +32,7 @@ struct xls_semantic_check {
     xls_parse_work moduleSyntaxWork;
     const char* phase;
     int accepted,captureIndex;
+    uint64_t usedInputs;int usageKnown;
 };
 static int stopped(int (*cancelled)(void*),void* user) { return cancelled && cancelled(user); }
 static void fail(char* error,size_t capacity,const char* message)
@@ -74,6 +76,7 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
         if(in->size>=3 && !memcmp(in->text,"\xef\xbb\xbf",3)) bom=3;
         if(!xl6SourceOverlaySet(&r->overlay,in->path,in->text+bom,in->size-bom)) goto invalid;
     }
+    xlsFrontendInputUsageBind(&r->overlay,r->overlay.count);
     r->overlay.report=&r->report; r->overlay.semanticIndex=captureIndex; r->deps.sourceOverlay=&r->overlay;
     r->phase="parse"; int okay;
     if(syntax) {
@@ -152,15 +155,23 @@ xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,x
     if(!xlsFrontendContextValid(context,entry,error,capacity)) return NULL;
     xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
     xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,cache,context,entry);
+    xls_input_usage_scope usage;xlsFrontendInputUsageBegin(&usage);
     xls_semantic_check* result=createBody(context,entry,inputs,count,captureIndex,syntax,previous,cache || syntax,cancelled,user,error,capacity);
+    uint64_t used=0;int known=xlsFrontendInputUsageEnd(&usage,&used);
     if(result && stopped(cancelled,user)) {xlsSemanticCheckDestroy(result);result=NULL;fail(error,capacity,"semantic check cancelled");}
     int scoped=xlsFrontendContextEnd(&scope);
     xls_entry_parse_work work=xlsFrontendEntryEnd(&entryScope,result && scoped);
     if(!scoped) {
         xlsSemanticCheckDestroy(result); fail(error,capacity,(scope.failed&2) ? "cannot retain bounded completion namespace" : "cannot resolve native context path or package environment"); return NULL;
     }
-    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->moduleSyntaxWork=entryScope.moduleSyntaxWork;}
+    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->moduleSyntaxWork=entryScope.moduleSyntaxWork;result->usedInputs=used;result->usageKnown=known && result->report.complete && result->report.count && result->overlay.count==count;}
     return result;
+}
+int xlsSemanticCheckInputUsage(const xls_semantic_check* result,uint64_t* used)
+{
+    if(used)*used=0;
+    if(!used || !result || invalid(result) || !result->usageKnown)return 0;
+    *used=result->usedInputs;return 1;
 }
 xls_semantic_check* xlsSemanticCheckCreateIncrementalInContext(xls_context* context,const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,

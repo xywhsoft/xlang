@@ -478,6 +478,7 @@ static int nativeSignatureRun(xide_language_check* q,xvalue** output,xide_model_
  xvalue* stats=xrtValueObject();xls_signature_work sem=xlsSignatureWork(signature);xls_signature_parse_work parse=xlsSignatureParseWork(signature);xls_signature_storage_work storage=xlsSignatureStorageWork(signature);
  int retained=stats && put(stats,"builds",xrtValueInt((int64)q->signatureStats.builds)) && put(stats,"cacheHits",xrtValueInt((int64)q->signatureStats.hits)) &&
   put(stats,"caretHits",xrtValueInt((int64)q->signatureStats.caretHits)) && put(stats,"indexBuilds",xrtValueInt((int64)q->signatureStats.indexBuilds)) && put(stats,"indexHits",xrtValueInt((int64)q->signatureStats.indexHits)) &&
+  put(stats,"inputScopeHits",xrtValueInt((int64)q->signatureStats.inputScopeHits)) &&
   put(stats,"workerThreadId",xrtValueInt((int64)q->semanticThread)) && put(stats,"captureThreadId",xrtValueInt((int64)q->captureThread)) &&
   put(stats,"checked",xrtValueInt((int64)sem.checked)) && put(stats,"reused",xrtValueInt((int64)sem.reused)) &&
   put(stats,"signatureFullParses",xrtValueInt((int64)parse.full)) && put(stats,"signatureFragmentParses",xrtValueInt((int64)parse.fragments)) &&
@@ -613,6 +614,7 @@ analysed:
   xvalue* stats=xrtValueObject();
   int okayStats=stats && put(stats,"builds",xrtValueInt((int64)q->completionStats.builds)) &&
    put(stats,"cacheHits",xrtValueInt((int64)q->completionStats.hits)) && put(stats,"invalidations",xrtValueInt((int64)q->completionStats.invalidations)) &&
+   put(stats,"inputScopeHits",xrtValueInt((int64)q->completionStats.inputScopeHits)) &&
    put(stats,"documents",xrtValueInt((int64)q->completionStats.documents)) && put(stats,"textBytes",xrtValueInt((int64)q->completionStats.textBytes)) &&
    put(stats,"workerThreadId",xrtValueInt((int64)q->semanticThread)) && put(stats,"captureThreadId",xrtValueInt((int64)q->captureThread)) &&
    put(stats,"adapterThreadId",xrtValueInt((int64)xrtThreadCurrentId())) &&
@@ -678,6 +680,7 @@ analysed:
   xvalue* stats=xrtValueObject();
   int okayStats=stats && put(stats,"builds",xrtValueInt((int64)q->semanticStats.builds)) && put(stats,"cacheHits",xrtValueInt((int64)q->semanticStats.hits)) &&
    put(stats,"invalidations",xrtValueInt((int64)q->semanticStats.invalidations)) && put(stats,"documents",xrtValueInt((int64)q->semanticStats.documents)) &&
+   put(stats,"inputScopeHits",xrtValueInt((int64)q->semanticStats.inputScopeHits)) &&
    put(stats,"textBytes",xrtValueInt((int64)q->semanticStats.textBytes)) && put(stats,"workerThreadId",xrtValueInt((int64)q->semanticThread)) &&
    put(stats,"captureThreadId",xrtValueInt((int64)q->captureThread)) && put(stats,"adapterThreadId",xrtValueInt((int64)xrtThreadCurrentId())) &&
    put(stats,"entryFullParses",xrtValueInt((int64)q->semanticStats.entryFullParses)) && put(stats,"entryFragmentParses",xrtValueInt((int64)q->semanticStats.entryFragmentParses)) &&
