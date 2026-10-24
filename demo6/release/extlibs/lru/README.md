@@ -1,5 +1,13 @@
 # lru
 
+2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，严格 C、
+原生边界与线程、中央/包内 XLang JIT、私有入口拒绝、C/XLang 同输出及
+边界 AOT 构建均通过。边界 EXE 先打印 `lru boundaries: PASS`，随后
+模块退出时抛 `RuntimeError: operation is not valid in the current state`
+并返回 1；测试在顶层持有多个 native-backed `LruCache`。这与已登记的
+顶层原生类退役风险同形，但不能只凭症状断定同根。发布级 AOT 未签收，
+详见 `dev/extlib_blockers/global_native_class_aot_fini.md`。
+
 字符串键/值的有界 LRU 与 LFU 内存缓存。XRT 映射负责键查找，双向链表记录访问次序；没有持久化、TTL、异步加载或跨进程共享。
 
 ## 行为合同
