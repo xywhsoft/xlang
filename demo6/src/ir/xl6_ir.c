@@ -40154,6 +40154,27 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              closure->firstCapture > module->closureCaptureCount ||
              closure->captureCount > module->closureCaptureCount - closure->firstCapture )
             return xl6IrDiag(diags, NULL, "XLIR closure target has no complete signature and body ABI");
+        if(closure->forwardCallMetadata!=
+           ((declaration->flags & XL6_AST_FLAG_C_OWNED_CALLABLE_ADAPTER)!=0))
+            return xl6IrDiag(diags,declaration,"XLIR result adapter lost its callable metadata source");
+        if(closure->forwardCallMetadata) {
+            const XL6_IrClosureCapture* source=closure->captureCount==1 ?
+                &module->closureCaptures[closure->firstCapture] : NULL;
+            const XL6_IrType* sourceType=source ? xl6IrTypeGet(&module->types,source->type) : NULL;
+            if(closure->kind!=XL6_IR_CLOSURE_TARGET_ANONYMOUS ||
+               declaration->sourceKind!=XL6_AST_ANON_FUNC || !source ||
+               source->abi!=XL6_IR_CLOSURE_CAPTURE_RETAIN_CLOSURE || !sourceType ||
+               sourceType->kind!=XL6_IR_TYPE_FUNCTION || sourceType->cAbi!=XL6_IR_C_ABI_CLOSURE_PTR ||
+               sourceType->paramCount!=signature->paramCount)
+                return xl6IrDiag(diags,declaration,"XLIR result adapter requires one retained source closure");
+            for(size_t p=0;p<signature->paramCount;++p)
+                if(!sourceType->params || !sourceType->parameterModes || !sourceType->parameterAbis ||
+                   !signature->params || !signature->parameterModes || !signature->parameterAbis ||
+                   sourceType->params[p]!=signature->params[p] ||
+                   sourceType->parameterModes[p]!=signature->parameterModes[p] ||
+                   sourceType->parameterAbis[p]!=signature->parameterAbis[p])
+                    return xl6IrDiag(diags,declaration,"XLIR result adapter changed its callable parameter ABI");
+        }
         expectedRawCallbackAbi = XL6_IR_CLOSURE_RAW_CALLBACK_NONE;
         if ( module->stage == XL6_IR_STAGE_LOWERED &&
              closure->captureCount == 0 && target != NULL &&

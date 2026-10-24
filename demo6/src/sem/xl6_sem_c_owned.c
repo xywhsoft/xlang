@@ -602,6 +602,7 @@ static int xl6SemCOwnedAdaptCallableExpr(XL6_SemContext* ctx,XL6_AstNode* expr,c
     int ok=arguments && parameter && adapterParams && adapterReturns && name && invokeArgs &&
         xl6SemCOwnedAppendNode(parameter,xl6SemCloneTypeNode(source)) &&
         xl6SemCOwnedAppendNode(returns,xl6SemCloneTypeNode(target));
+    if(adapter)adapter->flags|=XL6_AST_FLAG_C_OWNED_CALLABLE_ADAPTER;
     /* Destructure once so each owner result crosses its own normal return
      * conversion; a product value itself has no implicit owner-copy ABI. */
     if(ok && resultCount>1) {

@@ -14255,6 +14255,7 @@ static int xl6IrLowerRegisterModuleCallTargets(XL6_IrLowerContext* ctx)
         closure->targetSymbol = node->symbol;
         closure->adaptedTargetSymbol = 0;
         closure->signatureType = node->storageType;
+        closure->forwardCallMetadata=(node->flags & XL6_AST_FLAG_C_OWNED_CALLABLE_ADAPTER)!=0;
         closure->rawCallbackAbi = XL6_IR_CLOSURE_RAW_CALLBACK_NONE;
         closure->firstCapture = ctx->module->closureCaptureCount;
         closure->captureCount = 0;

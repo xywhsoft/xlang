@@ -39,6 +39,8 @@ static void checkPackIdentity(void)
                 assert(((bool(*)(void*,xvalue**,int64_t,xvalue*))dict->invoke)(
                     dict->environment,&result,7,expectedPack));
                 assert(result);
+                xbytesview view={0};assert(xrtValueGetBytes(result,&view));
+                assert(c_owned_binary_span_valid(view) && !c_owned_binary_span_original(view));
                 xrtValueRelease(result);
             } else {
                 xlir_string result={0};
@@ -60,7 +62,7 @@ int main(void)
     assert(xlir_module_init());
     checkPackIdentity();
     size_t failures=0,successes=0;
-    for(int mode=0;mode<9;++mode) {
+    for(int mode=0;mode<10;++mode) {
         xl6_foreign_error_scope entry={0};
         assert(xl6ForeignCallBegin(&entry));
         assert(owned_boundary_exercise(mode));

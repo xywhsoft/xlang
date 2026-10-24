@@ -200,7 +200,21 @@ static int xl6IrCgenEmitModuleDefinitions(
                                      "XLIR C emitter closure environment ownership ABI is unresolved");
             xl6OutputPrintf(out, "    %s c%lu;\n", cType, (unsigned long)capture);
         }
+        if(closure->forwardCallMetadata && closure->callParameterCount)
+            xl6OutputPrintf(out,"    xlir_call_default forwarded_defaults[%lu];\n",(unsigned long)closure->callParameterCount);
         xl6OutputPrintf(out, "} xlir_closure_env_%u;\n", (unsigned int)closure->targetSymbol);
+        if(closure->forwardCallMetadata)
+            for(size_t p=0;p<closure->callParameterCount;++p)
+                xl6OutputPrintf(out,
+                    "static bool xlir_forward_default_%u_%lu(void* environment, void* output, const void* const* prefix) {\n"
+                    "    xlir_closure* source=((xlir_closure_env_%u*)environment)->c0; XL6_ClosureScope scope={0};\n"
+                    "    if(!source || source->call_parameter_count!=%lu || !source->call_parameter_defaults || !source->call_parameter_defaults[%lu].program) {\n"
+                    "        xrtSetErrorTake(xlir_error_create(\"TypeError\",\"adapted callable default is unavailable\")); return false; }\n"
+                    "    xlir_closure_enter(&scope,source);\n"
+                    "    bool ok=source->call_parameter_defaults[%lu].program(source->environment,output,prefix);\n"
+                    "    xlir_closure_leave(&scope); return ok;\n}\n",
+                    (unsigned)closure->targetSymbol,(unsigned long)p,(unsigned)closure->targetSymbol,
+                    (unsigned long)closure->callParameterCount,(unsigned long)p,(unsigned long)p);
         /* Verified physical slots, not producer-owned lifecycle callbacks.
          * Resident code owns traversal, rollback and post-commit release. */
         xl6OutputPrintf(out,
