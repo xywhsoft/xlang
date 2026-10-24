@@ -119,3 +119,11 @@ C ASan/UBSan、XLang JIT/双语联合门禁通过。
 见 `demo6/dev/extlib_blockers/sha3_private_adopt_constructor.md`。
 默认 Windows 门禁首个 XLang AOT 仍缺 `xl6NativeHandleTraceLeaf`。
 两项主线阻断未解除，不签收整包发布级。
+
+2026-10-24 复测：当前 Windows 发布版的默认专项门禁 41 项全部通过，
+包括 C 边界、XLang JIT/AOT、拥有型文本返回、23 个生成原型及 C/XLang
+范例。此前 `xl6NativeHandleTraceLeaf` 未解析问题在本次 SHA3 AOT
+构建中不再出现。`private_adopt_constructor_negative.xl` 仅执行 `xl check`
+仍错误输出 `ok`、退出 0，故不能签收完整发布级访问安全，绝不运行
+该负例。Linux 联合门禁此次未能使用旧发布物复验；重建阻塞见
+`demo6/dev/extlib_blockers/linux_release_x509_sources.md`。
