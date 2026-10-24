@@ -1,5 +1,11 @@
 # linalg
 
+2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 全通过：
+严格 C、256 组固定整数向量所在的边界用例、XLang 边界与分配、
+C/XLang 三条范例路径固定输出，以及核心和公开范例的独立
+EXE AOT 构建、运行与输出核对。旧 `xl6ValueIndexReadCopyV1`
+缺符号记录属于历史发布物；本轮未重建 Linux 独立 EXE。
+
 `linalg` 是小型二维/三维向量和 2×2 矩阵工具，不是任意维 BLAS。
 XLang 使用普通 `float` 与多返回值，C 使用输出参数；两者计算路径相同。
 标量 `clamp`、角度/弧度转换已由 XRT `math` 标准库提供，包内不重复导出。
