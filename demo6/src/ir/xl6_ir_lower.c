@@ -13337,6 +13337,7 @@ static int xl6IrLowerRegisterExport(XL6_IrLowerContext* ctx, XL6_IrNodeId declar
     XL6_IrExport* exported;
     char* cName;
     XL6_IrExportReturnAbi returnAbi;
+    XL6_IrTypeId publicReturnType;
     size_t receiverOffset;
     size_t i;
     if ( node == NULL || node->kind != XL6_IR_NODE_FUNC_DECL ||
@@ -13367,9 +13368,12 @@ static int xl6IrLowerRegisterExport(XL6_IrLowerContext* ctx, XL6_IrNodeId declar
             return xl6IrLowerDiag(ctx, declaration,
                                   "XLIR export parameter has no exact public C ABI");
     }
-    if ( target->returnType == XL6_IR_TYPE_INVALID ) returnAbi = XL6_IR_EXPORT_RETURN_VOID;
+    publicReturnType = xl6IrTypeInternExportResult(module, target->returnType);
+    if (target->returnType && !publicReturnType)
+        return xl6IrLowerDiag(ctx, declaration, "XLIR export result cannot materialize its public carrier");
+    if ( publicReturnType == XL6_IR_TYPE_INVALID ) returnAbi = XL6_IR_EXPORT_RETURN_VOID;
     else {
-        const XL6_IrType* resultType = xl6IrTypeGet(&module->types, target->returnType);
+        const XL6_IrType* resultType = xl6IrTypeGet(&module->types, publicReturnType);
         if ( resultType == NULL )
             return xl6IrLowerDiag(ctx, declaration, "XLIR export has no canonical return transfer ABI");
         returnAbi = resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL
@@ -13390,15 +13394,16 @@ static int xl6IrLowerRegisterExport(XL6_IrLowerContext* ctx, XL6_IrNodeId declar
     exported->symbol = node->symbol;
     exported->declaration = declaration;
     exported->cName = cName;
-    exported->returnType = target->returnType;
+    exported->returnType = publicReturnType;
+    exported->resultBridgeAbi = xl6IrExportResultBridgeForTypes(module, target->returnType, publicReturnType);
     exported->returnAbi = returnAbi;
     exported->errorAbi = XL6_IR_EXPORT_ERROR_SHARED_SCOPE_TRANSACTION;
     exported->executionAbi = XL6_IR_EXPORT_EXECUTION_RESIDENT_CODE_SCOPE_V1;
     exported->bodyErrorAbi = target->errorAbi;
-    exported->returnValueAbi = target->returnType == XL6_IR_TYPE_INVALID
+    exported->returnValueAbi = publicReturnType == XL6_IR_TYPE_INVALID
         ? XL6_IR_EXPORT_VALUE_INVALID
         : xl6IrExportValueAbiForType(
-              xl6IrTypeGet(&module->types, target->returnType));
+              xl6IrTypeGet(&module->types, publicReturnType));
     if ( target->returnType != XL6_IR_TYPE_INVALID &&
          exported->returnValueAbi == XL6_IR_EXPORT_VALUE_INVALID ) {
         xrtFree(exported->cName);

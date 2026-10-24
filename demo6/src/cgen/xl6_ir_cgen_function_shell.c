@@ -306,6 +306,8 @@ static int xl6IrCgenEmitHostBindings(
     return !xl6OutputHasFailed(out);
 }
 
+#include "src/cgen/xl6_ir_cgen_export_result.c"
+
 static void xl6IrCgenEmitExportFailureReturn(
     XL6_Output* out, const XL6_IrExport* exported, const char* returnType)
 {
@@ -345,6 +347,7 @@ static int xl6IrCgenEmitExport(
     const char* returnType;
     const char* errorResultType;
     int mayRaise;
+    int materialize;
     int hasCallback = 0;
     size_t i;
     if ( exported == NULL || exported->cName == NULL || target == NULL ||
@@ -359,7 +362,8 @@ static int xl6IrCgenEmitExport(
         return xl6IrCgenDiag(diags, module, exported->declaration,
                              "XLIR C emitter does not support export return ABI");
     mayRaise = exported->bodyErrorAbi == XL6_IR_ERROR_ABI_MAY_RAISE;
-    errorResultType = mayRaise ? xl6IrCgenErrorResultType(module, exported->returnType) : NULL;
+    materialize = exported->resultBridgeAbi == XL6_IR_EXPORT_RESULT_C_OWNED_COPY;
+    errorResultType = mayRaise ? xl6IrCgenErrorResultType(module, target->returnType) : NULL;
     if ( mayRaise && errorResultType == NULL )
         return xl6IrCgenDiag(diags, module, exported->declaration,
                              "XLIR C emitter export error-result adapter ABI is unresolved");
@@ -378,6 +382,8 @@ static int xl6IrCgenEmitExport(
     if (exported->returnAbi != XL6_IR_EXPORT_RETURN_VOID)
         xl6OutputPrintf(out, "    %s pending_result = {0};\n",
             xl6IrCgenType(module, exported->returnType));
+    if (materialize)
+        xl6OutputPrintf(out, "    %s body_result = {0};\n", xl6IrCgenType(module, target->returnType));
     for ( i = 0; i < exported->parameterCount; ++i )
         if ( xl6IrExportValueAbiIsCallback(exported->parameterValueAbis[i]) )
             xl6OutputPrintf(out, "    xlir_closure* xlir_export_arg_%lu = NULL;\n", (unsigned long)i);
@@ -403,7 +409,7 @@ static int xl6IrCgenEmitExport(
     if ( mayRaise ) xl6OutputPrintf(out, "    %s result = xlir_fn_%u(", errorResultType,
                                     (unsigned int)target->symbol);
     else if ( exported->returnAbi != XL6_IR_EXPORT_RETURN_VOID ) {
-        xl6OutputPuts("    pending_result = ", out);
+        xl6OutputPuts(materialize ? "    body_result = " : "    pending_result = ", out);
         xl6OutputPrintf(out, "xlir_fn_%u(", (unsigned int)target->symbol);
     } else xl6OutputPrintf(out, "    xlir_fn_%u(", (unsigned int)target->symbol);
     for ( i = 0; i < exported->parameterCount; ++i ) {
@@ -421,11 +427,21 @@ static int xl6IrCgenEmitExport(
     xl6OutputPuts(");\n", out);
     if (mayRaise) {
         xl6OutputPuts("    if (!result.ok) xl6ErrorScopeCaptureFailure(&entry);\n", out);
-        if (exported->returnAbi != XL6_IR_EXPORT_RETURN_VOID)
+        if (materialize)
+            xl6OutputPuts("    else {\n    body_result = result.value;\n", out);
+        else if (exported->returnAbi != XL6_IR_EXPORT_RETURN_VOID)
             xl6OutputPuts("    else pending_result = result.value;\n", out);
+    }
+    if (materialize) {
+        if (!xl6IrCgenEmitExportResultMaterialize(out, module, target->returnType,
+                exported->returnType, "body_result", "pending_result"))
+            return xl6IrCgenDiag(diags, module, exported->declaration, "XLIR export result bridge is unresolved");
+        if (mayRaise) xl6OutputPuts("    }\n", out);
     }
     xl6OutputPuts("xlir_export_finish:\n", out);
     if ( hasCallback ) xl6IrCgenEmitExportCallbackCleanup(out, exported);
+    if (materialize && !xl6IrCgenEmitExportBodyResultDrop(out, module, target->returnType))
+        return xl6IrCgenDiag(diags, module, exported->declaration, "XLIR export body result has no release ABI");
     xl6OutputPuts(
         "    outcome = xl6ForeignCallEnd(&entry);\n"
         "    if (!outcome.ok) {\n", out);

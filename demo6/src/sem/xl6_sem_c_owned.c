@@ -276,7 +276,7 @@ static int xl6SemValidateCOwnedTypes(XL6_SemContext* ctx,XL6_AstNode* node,XL6_A
         }
     }
     if(node->kind==XL6_AST_EXTERN_FUNC || node->kind==XL6_AST_NATIVE_EXTERN_FUNC ||
-        node->kind==XL6_AST_NATIVE_EXTERN_SPECIAL || node->kind==XL6_AST_EXPORT_FUNC || node->kind==XL6_AST_ASYNC_FUNC ||
+        node->kind==XL6_AST_NATIVE_EXTERN_SPECIAL || node->kind==XL6_AST_ASYNC_FUNC ||
         (node->flags & XL6_AST_FLAG_ASYNC)) {
         const XL6_AstNode* returns=xl6SemCallableReturns(node);
         for(size_t r=0;returns && r<returns->childCount;++r)

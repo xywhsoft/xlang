@@ -231,10 +231,14 @@ static int xl6IrCgenProductDropDirectlyNeeded(
     /* Export transactions also own a pending result until cleanup commits.
      * That root requires the same recursive product drop dependency as an
      * explicit RELEASE instruction, even when the body only returns it. */
-    for (i = 0; i < module->exportCount; ++i)
+    for (i = 0; i < module->exportCount; ++i) {
+        const XL6_IrCallTarget* body = xl6IrCallTargetGet(module, module->exports[i].symbol);
+        if (module->exports[i].resultBridgeAbi == XL6_IR_EXPORT_RESULT_C_OWNED_COPY &&
+            body && body->returnType == type) return 1;
         if (module->exports[i].errorAbi == XL6_IR_EXPORT_ERROR_SHARED_SCOPE_TRANSACTION &&
             module->exports[i].returnAbi == XL6_IR_EXPORT_RETURN_OWNED &&
             module->exports[i].returnType == type) return 1;
+    }
     /* A forward runtime-callable adapter owns the whole result product until
      * transport commits, including the not-yet-boxed suffix on failure. */
     for ( i = 0; i < module->types.count; ++i ) {
@@ -367,7 +371,8 @@ static int xl6IrCgenEmitProductDrop(
         if ( release == NULL )
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                 "XLIR C emitter product element destructor ABI is unresolved");
-        if ( elementType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+        if ( xl6IrTypeIsCOwned(elementType) ||
+             elementType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
              elementType->cAbi == XL6_IR_C_ABI_NATIVE_VALUE )
             xl6OutputPrintf(out,
                 "    %s(value->e%lu); value->e%lu = (%s){0};\n",

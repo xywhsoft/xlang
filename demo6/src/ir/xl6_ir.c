@@ -22644,6 +22644,8 @@ XL6_IrExportValueAbi xl6IrExportValueAbiForType(const XL6_IrType* type)
     return XL6_IR_EXPORT_VALUE_TYPE_REPRESENTATION;
 }
 
+#include "src/ir/xl6_ir_export_result.c"
+
 static int xl6IrRawCCallbackTrivialValueType(const XL6_IrType* type);
 
 static int xl6IrExportCallbackManagedValueType(const XL6_IrType* type)
@@ -39158,7 +39160,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              declaration->sourceKind != XL6_AST_EXPORT_FUNC ||
              declaration->symbol != exported->symbol ||
              xl6IrFunctionBySymbol(module, exported->symbol) == NULL ||
-             exported->returnType != target->returnType ||
+             exported->resultBridgeAbi == XL6_IR_EXPORT_RESULT_INVALID ||
+             exported->resultBridgeAbi != xl6IrExportResultBridgeForTypes(
+                 module, target->returnType, exported->returnType) ||
              exported->errorAbi != XL6_IR_EXPORT_ERROR_SHARED_SCOPE_TRANSACTION ||
              exported->executionAbi != XL6_IR_EXPORT_EXECUTION_RESIDENT_CODE_SCOPE_V1 ||
              module->abi.codeOwnerAbi != XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT ||
@@ -52819,10 +52823,10 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_IrExport* exported = &module->exports[i];
         size_t parameter;
         xl6OutputPrintf(out,
-                        "    {\"id\":%lu,\"symbol\":%u,\"declaration\":%u,\"cName\":\"%s\",\"returnType\":%u,\"returnAbi\":%d,\"returnAbiName\":\"%s\",\"returnValueAbi\":\"%s\",\"errorAbi\":%d,\"bodyErrorAbi\":%d,\"executionAbi\":%d,\"parameterTypes\":[",
+                        "    {\"id\":%lu,\"symbol\":%u,\"declaration\":%u,\"cName\":\"%s\",\"returnType\":%u,\"resultBridgeAbi\":%d,\"returnAbi\":%d,\"returnAbiName\":\"%s\",\"returnValueAbi\":\"%s\",\"errorAbi\":%d,\"bodyErrorAbi\":%d,\"executionAbi\":%d,\"parameterTypes\":[",
                         (unsigned long)i, (unsigned int)exported->symbol,
                         (unsigned int)exported->declaration, exported->cName,
-                        (unsigned int)exported->returnType, (int)exported->returnAbi,
+                        (unsigned int)exported->returnType, (int)exported->resultBridgeAbi, (int)exported->returnAbi,
                         xl6IrExportReturnAbiName(exported->returnAbi),
                         xl6IrExportValueAbiName(exported->returnValueAbi),
                         (int)exported->errorAbi, (int)exported->bodyErrorAbi, (int)exported->executionAbi);
