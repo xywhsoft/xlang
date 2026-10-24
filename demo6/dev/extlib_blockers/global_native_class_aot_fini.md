@@ -1,5 +1,12 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+2026-10-25 当前 Windows 发布版复验：
+`release/xl.exe run dev/extlib_blockers/global_native_class_aot_fini.xl`
+打印 `ready` 并退出 0；同一文件以 `release/xl.exe build` 生成独立 EXE，
+运行时先打印 `ready`，随后报
+`RuntimeError: operation is not valid in the current state`，退出 1。
+此阻断尚未解除，不能以包内局部对象范例通过替代顶层对象生命周期验收。
+
 2026-10-24 使用当前源码构建的 `public_source.exe` 验证，不使用旧发布版。
 
 从 `demo6` 目录设置 `$env:XLANG_PACKAGE_PATH = (Resolve-Path release/extlibs).Path`，

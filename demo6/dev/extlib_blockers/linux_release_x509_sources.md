@@ -2,6 +2,14 @@
 
 状态：blocked-upstream。扩展库任务不修改主线构建脚本或运行时。
 
+2026-10-25 复验：在 WSL Ubuntu x86_64 使用新的独占构建目录，
+临时 LF 副本执行当前 `build_linux.sh`。四个 shipping profile 均报告
+852/852，TCC、XRT 与运行版/编译版 VFS 资源生成成功；`libxl.so`
+仍在链接阶段因下述 X509/TLS ownership-domain、路径和证书函数缺符号失败。
+原脚本直接运行仍在第 2 行因 CRLF 失败。临时脚本已清理，主线文件未改；
+`release/xl`、`libxlc.so` 仍是 10 月 7 日旧产物，不能用来签收当前
+扩展库的 Linux XLang/JIT/AOT 路径。
+
 ## 复现与观察
 
 2026-10-24，WSL Ubuntu x86_64；`demo6/release/xl` 和 `libxlc.so` 仍是
