@@ -3,13 +3,18 @@
 #include "analysis/text.h"
 #include "src/ast/xl6_ast.h"
 #include "src/diag/xl6_diag.h"
+#include "src/compile/xl6_source_report.h"
 typedef struct xls_sem_memo xls_sem_memo;
 typedef struct xls_sem_work { uint64_t checked,reused,contextHits,bytes; } xls_sem_work;
 /* Private opt-in around the unchanged compiler checker. Memo facts are
  * immutable, independently owned, and never a substitute for whole-module
- * declaration checks, final type/region annotation or typed IR verification. */
+ * declaration checks, final type/region annotation or typed IR verification.
+ * Reports borrow original captured source bytes for this call only. Changed
+ * source pairs use bounded temporary text indexes; memos retain neither a
+ * report, its text, nor an earlier result. Default fresh checks do not opt in. */
 int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* module,
-    int captureIndex,const char* path,xls_text* text,const xls_sem_memo* previous,
+    int captureIndex,const char* path,const XL6_SourceReport* sources,
+    const XL6_SourceReport* previousSources,const xls_sem_memo* previous,
     xls_sem_memo** result,xls_sem_work* work);
 void xlsFrontendSemMemoDestroy(xls_sem_memo* memo);
 typedef struct xls_sem_overload_work {

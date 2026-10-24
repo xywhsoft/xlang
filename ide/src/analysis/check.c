@@ -48,7 +48,7 @@ void xlsSemanticCheckDestroy(xls_semantic_check* r)
 }
 static xls_semantic_check* createBody(xls_context* context,const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
-    xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)
+    xls_semantic_check* previous,int memoEnabled,int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
     xls_semantic_check* r=NULL;
     if(error && capacity) *error=0;
@@ -98,22 +98,22 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
         char module[256]; char* stem=xrtPathStem(r->path); if(!stem) goto invalid;
         snprintf(module,sizeof(module),"%s",*stem ? stem : "module"); xrtFree(stem);
         r->phase="sem";
-        if(syntax) {
+        if(memoEnabled) {
             const xls_sem_memo* baseline=NULL;
             int compatible=previous && xlsFrontendContextsEqual(previous->context,context) && previous->memo && previous->captureIndex==captureIndex && !strcmp(previous->path,r->path) &&
                 previous->overlay.count==r->overlay.count && xlsSemanticCheckValidate(previous);
-            /* Changed imported overlays are not interchangeable merely
-             * because they have the same public spelling. This first slice
-             * retains entry-edit facts only; dependencies still recheck. */
+            /* The frontend compares every function/environment and maps
+             * coordinates against each report's original source bytes.
+             * Overlay membership still has to agree; disk/probe/environment
+             * validity is checked before borrowing any previous facts. */
             for(size_t i=0;compatible && i<r->overlay.count;++i) {
                 const XL6_SourceOverlayItem* current=&r->overlay.items[i];
                 const XL6_SourceOverlayItem* old=xl6SourceOverlayFind(&previous->overlay,current->path);
                 compatible=old && !strcmp(old->path,current->path);
-                if(compatible && strcmp(current->path,r->path)) compatible=old->size==current->size && !memcmp(old->text,current->text,current->size);
             }
             if(compatible) baseline=previous->memo;
             okay=xlsFrontendSemCheckMemo(r->parse.root,&r->parse.diags,module,captureIndex,r->path,
-                (xls_text*)xlsSyntaxText(syntax),baseline,&r->memo,&r->semanticWork);
+                &r->report,baseline ? &previous->report : NULL,baseline,&r->memo,&r->semanticWork);
         } else okay=xl6SemCheckModuleWithIndex(r->parse.root,&r->parse.diags,module,captureIndex);
     }
     if(stopped(cancelled,user)) goto cancel;
@@ -151,7 +151,7 @@ xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,x
     if(!xlsFrontendContextValid(context,entry,error,capacity)) return NULL;
     xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
     xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,cache,context,entry);
-    xls_semantic_check* result=createBody(context,entry,inputs,count,captureIndex,syntax,previous,cancelled,user,error,capacity);
+    xls_semantic_check* result=createBody(context,entry,inputs,count,captureIndex,syntax,previous,cache || syntax,cancelled,user,error,capacity);
     if(result && stopped(cancelled,user)) {xlsSemanticCheckDestroy(result);result=NULL;fail(error,capacity,"semantic check cancelled");}
     int scoped=xlsFrontendContextEnd(&scope);
     xls_entry_parse_work work=xlsFrontendEntryEnd(&entryScope,result && scoped);

@@ -17,7 +17,10 @@ typedef struct xls_check_stats {
  * candidates and observed package environment. Rebuilds reuse the immutable
  * entry syntax when possible, copying a private mutable tree for unchanged
  * full semantic/IR verification. Ordinary imports share the bounded parse aid;
- * their source capture and import expansion/semantic checks still run. */
+ * their source capture and import expansion still run. Compatible whole-module
+ * environments may reuse exact function facts across edited overlay members;
+ * changed bodies/IDs/types and uncertain coordinates use the original checker.
+ * Final annotations, typed index and IR verification still run. */
 xls_check_session* xlsCheckSessionCreate(const xls_session_limits* limits);
 void xlsCheckSessionDestroy(xls_check_session* session);
 /* Returned reference is independent of session replacement/destruction.
@@ -34,7 +37,7 @@ xls_semantic_check* xlsCheckSessionCheck(xls_check_session* session,
  * entry without a synthetic overlay; exact queries retain its checked result.
  * Rebuilds may copy a bounded ordinary pre-import disk entry AST after the
  * shared frontend recaptures its actual bytes and file proof. Imports and
- * semantic/IR checks still run. Entry syntax counters count session-built
+ * semantic/IR verification still runs. Entry syntax counters count session-built
  * overlay syntax only; xlsSemanticCheckEntryWork reports ordinary disk work.
  * Limit/allocation/copy failures use the original parser. */
 xls_semantic_check* xlsCheckSessionCheckInContext(xls_check_session* session,xls_context* context,

@@ -30,6 +30,7 @@ typedef struct xls_sem_unit {
 typedef struct xls_sem_position { XL6_AstRange range,token; int line,column; } xls_sem_position;
 typedef struct xls_sem_entry {
     xstrbuf key;
+    XL6_AstRange lexicalRange;
     xls_sem_unit* unit;
     xarray positions;
     XL6_SymbolId start,end;
@@ -38,7 +39,6 @@ typedef struct xls_sem_entry {
 } xls_sem_entry;
 struct xls_sem_memo {
     char* path;
-    xls_text* text;
     xstrbuf context;
     xarray entries;
     size_t bytes;
@@ -50,13 +50,19 @@ typedef struct xls_sem_move {
     int64_t delta;
     int changed;
 } xls_sem_move;
+typedef struct xls_sem_moves {
+    xmap paths;
+    xarray changedSources;
+    xls_sem_move only;
+    size_t changed;
+} xls_sem_moves;
 typedef struct xls_sem_build {
     struct xls_sem_build* previous;
     const xls_sem_memo* baseline;
     xls_sem_memo* memo;
     xmap slots,sources;
     xls_sem_work work;
-    xls_sem_move move;
+    xls_sem_moves moves;
     size_t cursor;
     int begun,enabled,compatible;
 } xls_sem_build;
@@ -322,13 +328,17 @@ static int xlsSemCaptureFacts(const xarray* nodes,xarray* facts,size_t limit,siz
 }
 
 typedef struct xls_sem_apply {
-    const xls_sem_move* move;
+    const xls_sem_moves* moves;
+    xls_sem_move anchor;
+    XL6_AstRange anchoredRange;
     const xarray* previous;
     xarray* positions;
     const xmap* sources;
     size_t visited;
     int different;
 } xls_sem_apply;
+static int xlsSemInsideRange(XL6_AstRange range,XL6_AstRange outer)
+{ return !range.known || (range.startOffset>=outer.startOffset && range.endOffset>=range.startOffset && range.endOffset<=outer.endOffset); }
 static int xlsSemSameRange(XL6_AstRange a,XL6_AstRange b)
 { return a.known==b.known && a.startOffset==b.startOffset && a.endOffset==b.endOffset && a.startLine==b.startLine && a.endLine==b.endLine && a.startColumn==b.startColumn && a.endColumn==b.endColumn; }
 static int xlsSemUnchangedUnlocated(const XL6_AstNode* node,const xls_sem_move* move)
@@ -363,8 +373,24 @@ static int xlsSemApplyPosition(const XL6_AstNode* in,XL6_AstNode* out,void* user
         positioned.range=old->range; positioned.tokenRange=old->token; positioned.line=old->line; positioned.column=old->column;
     }
     out->range=positioned.range; out->tokenRange=positioned.tokenRange; out->line=positioned.line; out->column=positioned.column;
-    if(!xl6AstSourcePath(&positioned) && !xlsSemUnchangedUnlocated(&positioned,apply->move)) return 0;
-    if(!xlsSemMoveNode(&positioned,out,(void*)apply->move)) return 0;
+    const char* path=xl6AstSourcePath(&positioned);
+    if(!path) {
+        /* An unlocated type can remain unchanged only when its coordinates
+         * precede every changed source's edit. Never guess which file owns
+         * it or relocate it using a coincidentally matching line number. */
+        if(apply->moves->changed==1 && !xlsSemUnchangedUnlocated(&positioned,&apply->moves->only)) return 0;
+        if(apply->moves->changed>1) for(size_t i=0;i<apply->moves->changedSources.Count;++i)
+            if(!xlsSemUnchangedUnlocated(&positioned,xrtArrayConstGet(&apply->moves->changedSources,i))) return 0;
+    } else {
+        const xls_sem_move* move=xrtMapConstGet(&apply->moves->paths,(xbytesview){(const unsigned char*)path,strlen(path)});
+        if(!move) { if(apply->moves->changed) return 0; }
+        else if(move->changed) {
+            if(apply->anchor.path && !strcmp(path,apply->anchor.path) &&
+               (positioned.range.known || positioned.tokenRange.known) &&
+               xlsSemInsideRange(positioned.range,apply->anchoredRange) && xlsSemInsideRange(positioned.tokenRange,apply->anchoredRange)) move=&apply->anchor;
+            if(!xlsSemMoveNode(&positioned,out,(void*)move)) return 0;
+        }
+    }
     xls_sem_position next={out->range,out->tokenRange,out->line,out->column};
     if(!xlsSemSameRange(in->range,next.range) || !xlsSemSameRange(in->tokenRange,next.token) || in->line!=next.line || in->column!=next.column) apply->different=1;
     ++apply->visited;
@@ -376,11 +402,26 @@ static XL6_AstSource* xlsSemApplySource(const XL6_AstSource* source,void* user)
     XL6_AstNode* const* found=xrtMapConstGet(apply->sources,(xbytesview){(const unsigned char*)source->path,strlen(source->path)});
     return found ? (*found)->source : NULL;
 }
-static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const xls_sem_move* move,const xmap* sources,xarray* positions)
+static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const xls_sem_moves* moves,const xmap* sources,xarray* positions,const XL6_AstNode* function)
 {
     if(!entry->unit || entry->unit->facts.Count!=nodes->Count) return 0;
     xarray staged={0}; size_t owned=0;
-    xls_sem_apply apply={move,&entry->positions,positions,sources,0,0};
+    xls_sem_apply apply={.moves=moves,.previous=&entry->positions,.positions=positions,.sources=sources};
+    const char* path=xl6AstSourcePath(function);
+    const xls_sem_move* move=path ? xrtMapConstGet(&moves->paths,(xbytesview){(const unsigned char*)path,strlen(path)}) : NULL;
+    XL6_AstRange before=entry->lexicalRange,after=function->range;
+    /* A single source diff can span several independent edits. Within an
+     * unchanged function, prove the complete original byte slice equal and
+     * use its current lexical range as a local coordinate anchor. References
+     * to types outside that function still need the ordinary source mapping. */
+    if(move && move->changed && before.known && after.known && before.endOffset>=before.startOffset && after.endOffset>=after.startOffset &&
+       before.endOffset<=xlsTextSize(move->oldText)-move->oldSkip && after.endOffset<=xlsTextSize(move->newText)-move->newSkip &&
+       before.endOffset-before.startOffset==after.endOffset-after.startOffset &&
+       !memcmp(xlsTextData(move->oldText)+move->oldSkip+before.startOffset,xlsTextData(move->newText)+move->newSkip+after.startOffset,before.endOffset-before.startOffset)) {
+        apply.anchor=*move; apply.anchoredRange=before;
+        apply.anchor.start=apply.anchor.end=before.startOffset+move->oldSkip;
+        apply.anchor.delta=(int64_t)(after.startOffset+move->newSkip)-(int64_t)apply.anchor.start;
+    }
     if(!xrtArrayInit(&staged,sizeof(xls_sem_fact)) || !xrtArrayResize(&staged,nodes->Count) || !xrtArrayInit(positions,sizeof(xls_sem_position))) goto failed;
     /* Stage every owned type before touching the fresh tree. On resource or
      * coordinate failure the original checker sees its untouched input. */
@@ -417,6 +458,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     xls_sem_entry* entry=xrtArrayGet(&m->entries,*slot);
     const xls_sem_entry* old=build->compatible ? xrtArrayConstGet(&build->baseline->entries,*slot) : NULL;
     entry->start=ctx->nextSymbolId; entry->typeStart=ctx->types.nextId;
+    entry->lexicalRange=node->range;
     if(!xlsSemCandidate(node)) {
         if(old && (entry->start!=old->start || entry->typeStart!=old->typeStart)) build->compatible=0;
         ++build->work.checked; int okay=xlsSemCheckFuncOriginal(ctx,node); entry->end=ctx->nextSymbolId;
@@ -435,7 +477,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     if(build->compatible && old && old->unit && old->unit->facts.Count && usable && ctx->queryTypeNodes<=65536u && ctx->queryTypeBytes<=4u*1024u*1024u &&
        xlsSemEqualKey(&entry->key,&old->key) &&
        old->typeNodes<=65536u-ctx->queryTypeNodes && old->typeBytes<=4u*1024u*1024u-ctx->queryTypeBytes) {
-        if(xlsSemApplyFacts(old,&raw,&build->move,&build->sources,&entry->positions)) {
+        if(xlsSemApplyFacts(old,&raw,&build->moves,&build->sources,&entry->positions,node)) {
             ctx->nextSymbolId=old->end; ctx->types.nextId=old->typeEnd;
             ctx->queryTypeNodes+=old->typeNodes; ctx->queryTypeBytes+=old->typeBytes;
             okay=reused=1; ++build->work.reused;
@@ -473,34 +515,82 @@ void xlsFrontendSemMemoDestroy(xls_sem_memo* memo)
 {
     if(!memo) return;
     for(size_t i=0;i<memo->entries.Count;++i) { xls_sem_entry* e=xrtArrayGet(&memo->entries,i); xrtStrBufFree(&e->key); xrtArrayUnit(&e->positions); xlsSemUnitRelease(e->unit); }
-    xrtArrayUnit(&memo->entries); xrtStrBufFree(&memo->context); xlsTextRelease(memo->text); xrtFree(memo->path); xrtFree(memo);
+    xrtArrayUnit(&memo->entries); xrtStrBufFree(&memo->context); xrtFree(memo->path); xrtFree(memo);
+}
+static void xlsSemMoveFree(xbytesview key,void* value,void* user)
+{
+    (void)key; (void)user; xls_sem_move* move=value;
+    xlsTextRelease((xls_text*)move->oldText); xlsTextRelease((xls_text*)move->newText);
+}
+static int xlsSemMovesBuild(xls_sem_moves* moves,const XL6_SourceReport* old,const XL6_SourceReport* current)
+{
+    /* Reports are already captured by the original source loader. Borrow
+     * unchanged bytes only during this call; allocate indexed text solely
+     * for changed files. No memo keeps an earlier check/report/text alive. */
+    if(!old || !current || !old->complete || !current->complete ||
+       old->count>XL6_SOURCE_REPORT_FILES || current->count>XL6_SOURCE_REPORT_FILES) return 0;
+    xmap paths={0}; size_t before=0,after=0,bytes=0;
+    int okay=xrtMapInit(&paths,sizeof(const XL6_SourceReportItem*)) &&
+        xrtMapInit(&moves->paths,sizeof(xls_sem_move)) && xrtMapSetDrop(&moves->paths,xlsSemMoveFree,NULL) &&
+        xrtArrayInit(&moves->changedSources,sizeof(xls_sem_move));
+    for(size_t i=0;okay && i<old->count;++i) {
+        const XL6_SourceReportItem* item=&old->items[i];
+        if(!(item->kind&XL6_SOURCE_REPORT_SOURCE)) continue;
+        xbytesview key={(const unsigned char*)item->path,strlen(item->path)};
+        okay=!xrtMapHas(&paths,key) && xrtMapSet(&paths,key,&item); ++before;
+    }
+    for(size_t i=0;okay && i<current->count;++i) {
+        const XL6_SourceReportItem* item=&current->items[i];
+        if(!(item->kind&XL6_SOURCE_REPORT_SOURCE)) continue;
+        xbytesview key={(const unsigned char*)item->path,strlen(item->path)};
+        const XL6_SourceReportItem* const* found=xrtMapConstGet(&paths,key);
+        if(!found || xrtMapHas(&moves->paths,key)) { okay=0; break; }
+        const XL6_SourceReportItem* previous=*found;
+        xls_sem_move move={.path=item->path}; ++after;
+        if(item->size!=previous->size || memcmp(item->text,previous->text,item->size)) {
+            /* 32 MiB normalized byte allowance for temporary changed-file
+             * pairs; XRT buckets and text line indexes are separate. This
+             * optimization may decline; the original checker still runs. */
+            const size_t limit=32u*1024u*1024u;
+            if(item->size>limit-bytes || previous->size>limit-bytes-item->size) { okay=0; break; }
+            bytes+=item->size+previous->size;
+            move.oldText=xlsTextCreate(previous->text,previous->size,XL6_SOURCE_REPORT_FILE_BYTES,NULL);
+            move.newText=xlsTextCreate(item->text,item->size,XL6_SOURCE_REPORT_FILE_BYTES,NULL);
+            xls_text_edit edit;
+            if(!move.oldText || !move.newText || xlsTextDiff(move.oldText,move.newText,&edit)!=1) {
+                xlsSemMoveFree(key,&move,NULL); okay=0; break;
+            }
+            move.changed=1; move.oldSkip=xlsSemBom(move.oldText); move.newSkip=xlsSemBom(move.newText);
+            move.start=(size_t)(edit.text-xlsTextData(move.newText));
+            move.end=previous->size-(item->size-move.start-edit.length);
+            move.delta=(int64_t)item->size-(int64_t)previous->size;
+            ++moves->changed; moves->only=move;
+        }
+        if(!xrtMapSet(&moves->paths,key,&move)) { xlsSemMoveFree(key,&move,NULL); okay=0; }
+        else if(move.changed && !xrtArrayPush(&moves->changedSources,&move)) okay=0;
+    }
+    xrtMapUnit(&paths); return okay && before==after;
 }
 int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* module,
-    int captureIndex,const char* path,xls_text* text,const xls_sem_memo* previous,xls_sem_memo** result,xls_sem_work* work)
+    int captureIndex,const char* path,const XL6_SourceReport* sources,
+    const XL6_SourceReport* previousSources,const xls_sem_memo* previous,xls_sem_memo** result,xls_sem_work* work)
 {
     if(result) *result=NULL;
     if(work) memset(work,0,sizeof(*work));
     xls_sem_build build={.previous=xlsActiveSemBuild,.baseline=previous};
-    xls_sem_memo* memo=path && text ? xrtCalloc(1,sizeof(*memo)) : NULL;
+    xls_sem_memo* memo=path && sources ? xrtCalloc(1,sizeof(*memo)) : NULL;
     if(memo) {
-        memo->path=xrtStrDup(path); memo->text=xlsTextRetain(text);
-        if(!memo->path || !text || !xrtArrayInit(&memo->entries,sizeof(xls_sem_entry)) || !xrtMapInit(&build.slots,sizeof(size_t)) ||
+        memo->path=xrtStrDup(path);
+        if(!memo->path || !xrtArrayInit(&memo->entries,sizeof(xls_sem_entry)) || !xrtMapInit(&build.slots,sizeof(size_t)) ||
            !xrtMapInit(&build.sources,sizeof(XL6_AstNode*)) || !xrtMapSetDrop(&build.sources,xlsSemSourceUnpin,NULL)) {
             xlsFrontendSemMemoDestroy(memo); memo=NULL;
         }
     }
     build.memo=memo; xlsActiveSemBuild=&build;
-    if(memo && previous) {
-        build.move=(xls_sem_move){.oldText=previous->text,.newText=text,.path=path,.oldSkip=xlsSemBom(previous->text),.newSkip=xlsSemBom(text)};
-        xls_text_edit edit; int changed=xlsTextDiff(previous->text,text,&edit);
-        if(changed>0) {
-            build.move.changed=1; build.move.start=(size_t)(edit.text-xlsTextData(text));
-            build.move.end=xlsTextSize(previous->text)-(xlsTextSize(text)-build.move.start-edit.length);
-            build.move.delta=(int64_t)xlsTextSize(text)-(int64_t)xlsTextSize(previous->text);
-        } else if(changed<0) build.baseline=NULL;
-    }
+    if(memo && previous && !xlsSemMovesBuild(&build.moves,previousSources,sources)) build.baseline=NULL;
     int okay=xl6SemCheckModuleWithQuery(root,diags,module,captureIndex,NULL);
     xlsActiveSemBuild=build.previous; xrtMapUnit(&build.slots); xrtMapUnit(&build.sources);
+    xrtMapUnit(&build.moves.paths); xrtArrayUnit(&build.moves.changedSources);
     build.work.bytes=memo && build.enabled ? memo->bytes : 0;
     if(work) *work=build.work;
     if(result && build.enabled) *result=memo; else xlsFrontendSemMemoDestroy(memo);
