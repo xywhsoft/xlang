@@ -1,5 +1,11 @@
 # roaring
 
+2026-10-25 Linux 发布物：包级 `test/check.sh` 现同次执行严格 C 与
+ASan/UBSan、XLang JIT 边界/分配故障、C/XLang 固定输出，以及核心和
+公开范例的独立 EXE AOT 构建运行；AOT 范例逐字节对照 C 输出，本轮
+全部通过。Windows 默认包门禁也已通过。下方同日“Linux 独立 EXE
+未验收”的文字均是加入此门禁前的历史记录，不再描述当前状态。
+
 2026-10-25 新 Windows 发布版：从 `demo6` 根目录执行默认
 `test/check.ps1`，严格 C、并交差和快照边界、XLang JIT/分配故障、
 双语输出及独立 EXE AOT 全通过。下方同日“根目录 VFS 头文件阻断”
