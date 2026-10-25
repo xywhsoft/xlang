@@ -24,10 +24,16 @@ assert ids.remove(65536)
 
 ## 验证
 
+2026-10-25：在 WSL 中运行现有 `test/check.sh` 全通过：严格 GCC、
+独立位图模型和分配故障回滚的 ASan/UBSan、XLang 边界与分配用例，
+以及 C 分离编译、C 单文件直跑和 XLang 范例的固定输出对照。
+本次使用现有 Linux `release/xl`，未重建 Linux 发布版，也未验收
+Linux 独立 EXE。
+
 2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
 严格 C、独立位图模型、分配故障回滚、XLang 边界、私有原生入口
 拒绝、双语固定输出及核心/公开范例 AOT 全部通过。旧的完整 AOT
-共享符号缺失只对应先前发布物；本次未重跑 Linux sanitizer。
+共享符号缺失只对应先前发布物；该次未重跑 Linux sanitizer。
 验收仍限于本包的 `uint32` 内存集合合同，不包含标准 Roaring
 二进制序列化或跨实现互通。
 
@@ -48,7 +54,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 bash release/extlibs/roaring/test/check.sh
 ```
 
-专项测试覆盖跨桶、`UINT32_MAX`、重复值、数组转位图、删除、复用，以及新桶/数组扩容/位图升级和降级收缩时的分配失败回滚。C 用例另以固定种子对照朴素位图，交错验证三桶的插入、删除、查询、计数及最小/最大值。Windows 严格 GCC、Linux ASan/UBSan、xlang JIT、双语同输出和无输出 AOT 核心均通过。带输出范例 AOT 仍受主线 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`；因此发布级验收尚未签收。
+专项测试覆盖跨桶、`UINT32_MAX`、重复值、数组转位图、删除、复用，以及新桶/数组扩容/位图升级和降级收缩时的分配失败回滚。C 用例另以固定种子对照朴素位图，交错验证三桶的插入、删除、查询、计数及最小/最大值。Windows 严格 GCC、Linux ASan/UBSan、xlang JIT、双语同输出和无输出 AOT 核心均通过。先前发布物的带输出范例 AOT 曾受主线 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`；当前 Windows AOT 结果见本节开头，Linux 独立 EXE 尚未验收。
 Windows 默认包门禁要求核心和公开 XLang 范例 AOT 均构建运行，范例输出
 须匹配固定预期；`-SkipAot` 只执行 C/JIT 聚焦测试。
 2026-10-15 新增满 65536 项单桶回归：逆序插入、重复插入、逐项删空、相邻桶保留及原位置重建均通过 Windows C 和 Linux ASan/UBSan；现有 XLang 边界用例复跑通过。完整 AOT 阻断未变。
