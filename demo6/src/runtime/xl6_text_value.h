@@ -43,6 +43,7 @@ struct xlir_closure;
 #include "xl6_tls_data_abi.h"
 #include "xl6_tls_dial_options_abi.h"
 #include "xl6_tls_dial_abi.h"
+#include "xl6_tls_metadata_abi.h"
 #include "xl6_execution_tls_dial.h"
 #include "xl6_tls_stream_options_abi.h"
 #include "xl6_codec_abi.h"

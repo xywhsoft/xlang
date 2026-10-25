@@ -36,6 +36,8 @@ const char* xl6StdlibTlsStreamClassSource=
     "    extern \"xl6TlsStreamPendingV1\" @nonblocking get pending() as uint64\n"
     "    extern \"xl6TlsStreamLocalV1\" @nonblocking func local() as NetAddress\n"
     "    extern \"xl6TlsStreamRemoteV1\" @nonblocking func remote() as NetAddress\n"
+    "    extern \"xl6TlsStreamSnapshotV1\" func info(int timeoutMillis = -1) as TlsConnectionInfo\n"
+    "    extern \"xl6TlsStreamSnapshotAsyncV1\" @nonblocking func infoAsync() as future<TlsConnectionInfo>\n"
     XL6_TLS_RECEIVE("xl6TlsStreamRecv","recv","bytes","maximum","65536")
     XL6_TLS_RECEIVE("xl6TlsStreamRecvOwned","recvOwned","NetBytes","maximum","65536")
     XL6_TLS_RECEIVE("xl6TlsStreamWait","wait","bool","condition","0")
@@ -96,6 +98,7 @@ const char* xl6StdlibTlsServerClassSource=
     "    extern \"xl6TlsListenerCloseV1\" @nonblocking func close()\n"
     "    extern \"xl6TlsListenerStateV1\" @nonblocking get state() as int\n"
     "    extern \"xl6TlsListenerLocalV1\" @nonblocking func local() as NetAddress\n"
+    "    extern \"xl6TlsListenerSnapshotV1\" @nonblocking func stats() as TlsServerStats\n"
     "    extern \"xl6TlsListenerAcceptV1\" func accept(int timeoutMillis = -1) as TlsStream\n"
     "    extern \"xl6TlsListenerAcceptCancelV1\" func acceptCancel(CancellationToken cancel, int timeoutMillis = -1) as TlsStream\n"
     "    extern \"xl6TlsListenerAcceptUntilV1\" func acceptUntil(uint64 deadline) as TlsStream\n"

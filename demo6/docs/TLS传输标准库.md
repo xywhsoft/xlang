@@ -106,12 +106,56 @@ int handshakes = 64`；两个队列预算必须是正数。`accept` 返回 `TlsS
 发送上界，`protocol` 返回拥有的 ALPN 字节串。它们均有 `Async` 版本；
 涉及会话／缓冲的操作在真实所属 Worker 上执行，不泄漏借用视图。
 
+## 连接信息和服务端统计
+
+```xlang
+auto info = await stream.infoAsync()
+// 同步版本：stream.info(timeoutMillis = -1)
+assert info.role == TlsRole.client
+if info.hasSelection then println(info.version) end
+auto negotiatedProtocol = info.protocol
+auto stats = server.stats()
+```
+
+`TlsConnectionInfo` 和 `TlsServerStats` 是受语言生命周期管理的不可变快照，
+没有裸指针构造或公开 native handle。快照可在原连接关闭后继续使用；
+读取属性不会再次访问原 Session。`infoAsync` 在连接所属 Worker 上采样，
+复用真实 Engine 的任务队列，不创建额外线程或异步结果映射回调。
+`info` 不允许在同一 Engine 的 Worker 上同步等待。两者均可能因资源、期限或分配失败报错。
+
+连接快照包含：
+
+- `role`、`state: TlsStreamState`、`sessionState: TlsState`、`ready`、
+  `hasSelection`、`version: TlsVersion`、`cipher: TlsCipherSuite`、`resumed`。
+  尚无协商结果时读取 `version`／`cipher` checked 报错，不伪造枚举值。
+  `ready` 仅表示采样时 `sessionState == TlsState.ready`；判断传输状态还应
+  检查 `state`，它不承诺后续网络操作一定成功。
+- `available`、`pending`、`asyncBytes`、`asyncCount`；这些是采样时刻的数量。
+- `protocol: bytes`、`serverName: bytes`；未收到 SNI 或无相应角色能力时为空。
+  字节值保留精确长度，不将协议数据隐式当作文本。
+- `hasServerCookie`／`serverCookie`、`hasPeerAlert`／`peerAlertLevel`／`peerAlertCode`。
+  可选值应先检查相应的 `has*`。
+- `hasError`、`errorKind`、`errorCode`、`errorDomain`、`errorOperation`、`errorMessage`。
+  错误文本也是副本，不保留内部 `xerror*`。
+- `peerCertificateCount`、`peerCertificateAt(index = 0): Certificate`；证书 DER
+  随快照复制，返回的 Certificate 独立拥有数据。握手未完成时不公开临时证书链，
+  越界 checked 报错。当前静态服务端不提供客户端证书认证，因而服务端链为空。
+
+统计快照包含 `state: TlsListenerState`、`handshakes`、`accepted`、`rejected`、
+`handshakeErrors`、`activeHandshakes`、`peakHandshakes`、`queuedAccepts`、
+`peakQueuedAccepts`、`acceptWaiters`。计数沿用 XRT 的并发原子观察语义，
+不是把多个计数冻结在同一时刻的事务性读数；快照创建后自身不再变化。
+
+快照访问器按内容值返回 bytes／string，不向语言暴露借用。内部私有的原始
+Stream 收养路径若未携带真实角色读取合同，采样 checked 返回 unsupported，
+不会猜测底层 Session 类型；默认标准库的创建、接受和拨号路径均安装此合同。
+
 ## 时间、错误和清理
 
 - 所有 `timeoutMillis` 相对参数使用毫秒，`-1` 表示无限等待。
 - `Until` 使用同一网络单调时钟的绝对期限。当前固定快照保持微秒合同；
   不可传 UTC 时间戳，也不能混用独立 XRT 新时间 ABI 的毫秒值。
-- 同步等待不允许阻塞连接所属 Worker；这种调用 checked 拒绝。
+- 同步等待不允许阻塞同一 Engine 的任何 Worker；这种调用 checked 拒绝。
 - 取消或超时不保证撤回已经发送的字节或已经交付的结果。
 - `close()` 请求有序关闭，`abort()` 请求中止；返回不表示所有子操作已退役。
 - 已经接受的操作持有真实 Engine／连接引用；逻辑 Engine.close 不伪造完成。
@@ -131,3 +175,7 @@ ABI，Cgen 只生成声明、类型化调用和语言清理，不生成 TLS 算�
 不能把新的 `TlsStream` 私有字段交给旧入口；本轮不把 WSS 验收算作通过。
 HTTP／WebSocket 的公开面仍属于各自未决策项，高级 TLS 剩余工作及发布联合
 验收也不会因为本页默认传输接口可用而自动标记完成。
+
+当前 `resumed` 观察器仍由 XRT 的可选 Client／Server Resume 模块提供；
+角色元数据的原生依赖粒度尚需在后续恢复票据和发布体积验收中压实，
+本轮不宣称 TLS 的最小链接体积已达标。

@@ -11,7 +11,7 @@ XL6_ExecutionResourceV1* xl6ExecutionTlsListenV1(XL6_ExecutionSourceV1* source,X
     xrtTlsServerConfigInit(&config.Tls);config.Tls.Context=context->parameters;config.Tls.Identity=context->identity;
     config.Tls.RequireProtocol=context->requireProtocol;
     if(context->protocols){config.Tls.Protocols=context->protocols->views;config.Tls.ProtocolCount=context->protocols->count;}
-    const XL6_TlsListenerCreateOptionsV1 tls={.engine=engine,.config=&config};
+    const XL6_TlsListenerCreateOptionsV1 tls={.engine=engine,.config=&config,.metadata=xl6TlsServerMetadataRoleV1Get()};
     const XL6_ExecutionCreateOptionsV1 create={.kind=XL6_EXECUTION_TLS_LISTENER_V1,.deferRollback=true,.value.tlsListener=&tls};
     return xl6ExecutionCreateInternalV1(source,xl6ExecutionTlsListenerFamilyV1Get(),&create);
 }

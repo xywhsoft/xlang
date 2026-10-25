@@ -29,6 +29,9 @@ typedef struct XL6_TaskFrameTargetV1 {
     const XL6_TaskFramePoolV1* poolBinding;
 } XL6_TaskFrameTargetV1;
 void* xl6TaskFrameAllocateInternalV1(const XL6_CodeOwner*,size_t,XL6_TaskRun,XL6_TaskDrop,XL6_CodeContextTrace);
+/* Call-only borrow from this actual active frame, never a hidden result pin.
+ * Native result factories must clone it into the independently owned result. */
+XL6_CodeLease* xl6TaskFrameCodeLeaseInternalV1(const void*);
 void xl6TaskFrameDiscardInternalV1(void*);
 struct xrtownershipref xl6TaskFrameOwnershipInternalV1(const void*);
 struct xfuture* xl6TaskFrameSubmitInternalV1(void*,struct xcancel*,XL6_FuturePayloadTrace,

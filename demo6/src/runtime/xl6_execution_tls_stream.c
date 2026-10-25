@@ -18,6 +18,7 @@ static bool create(Resource* base,const XL6_ExecutionCreateOptionsV1* options)
     if(!c||((c->accepted!=NULL)+(c->Build!=NULL)+(c->accepting!=NULL)+c->dialing!=1)||
         (c->resolving&&!c->dialing)){
         xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    r->metadata=c->metadata;
     XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionTlsEngineEnterV1(c->engine,&scope))return false;
     r->parent=xl6ExecutionResourceRetainV1(c->engine);xtlsstream* result=NULL;
     if(r->parent){
@@ -130,6 +131,7 @@ bool xl6ExecutionTlsStreamEnterV1(Resource* base,bool submit,XL6_TlsScopeV1* sco
     if(base->family!=xl6ExecutionTlsStreamFamilyV1Get()||base->kind!=XL6_EXECUTION_TLS_STREAM_V1){
         xl6ExecutionResourceLeaveV1(&scope->execution);xrtSetErrorKind(XERR_TYPE);return false;}
     scope->stream=native(base);scope->engineOwner=((Stream*)base)->parent;
+    scope->metadata=((Stream*)base)->metadata;
     if(!scope->stream){scope->engineOwner=NULL;xl6ExecutionResourceLeaveV1(&scope->execution);xrtSetErrorKind(XERR_STATE);return false;}
     return true;
 }
