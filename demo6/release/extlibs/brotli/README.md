@@ -134,6 +134,7 @@ Windows 门禁包含独立 GCC、C/xlang JIT/AOT、23 个真实生成原型、�
 完整教学范例的文件段使用 XRT 独占系统临时目录，并在异常路径清理；
 不再向固定的 `build/test/brotli-example` 写入文件。
 `test/wire_fixture.xl` 已登记到 `coverage.tests`，用 Node.js 内置 Brotli 产生的固定字节流检验二进制互通和输出限额。
+`test/error_dispatch.xl` 同样纳入覆盖，固定截断输入在一次性和流式接口均抛 `IOError`、完成后写入抛 `RuntimeError`，并验证失败后新对象仍可用。Windows 门禁在默认模式下同时运行该用例的 JIT 和独立 EXE；Linux 门禁运行 JIT。
 测试数量与输入哈希以 `build/test/brotli_guard/results.json` 等实际记录为准。
 当前主线 AOT 阻断期间，可运行 `tools/check_extlib_brotli.ps1 -SkipAot`
 完成严格 C、JIT、生成原型、文件事务和双语对照；默认模式仍执行全部 AOT，

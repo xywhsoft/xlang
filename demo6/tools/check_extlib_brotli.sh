@@ -76,6 +76,7 @@ if [[ ! -x "$xl" ]]; then
 fi
 timeout 90s "$xl" run test/cases/extlib_brotli.xl
 timeout 90s "$xl" run test/cases/extlib_brotli_progress.xl
+timeout 90s "$xl" run "$pkg/test/error_dispatch.xl"
 timeout 90s "$xl" run "$pkg/test/wire_fixture.xl"
 timeout 90s "$xl" run release/examples/extlibs/brotli.xl > "$work/full_xl.log"
 timeout 90s "$xl" run release/examples/extlibs/brotli_basic.xl > "$work/basic_xl.log"

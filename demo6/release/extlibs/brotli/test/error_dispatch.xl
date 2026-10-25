@@ -1,0 +1,42 @@
+import brotli
+
+func main(...) as int
+    Buffer packed = brotli.compress("abc")
+    Buffer truncated = Buffer()
+    for i in range(0, packed.len() - 1)
+        truncated.appendByte(packed[i])
+    end
+
+    // 破损流经原生错误映射为 IOError，不被包装层的后备异常覆盖。
+    bool rejected = false
+    try
+        brotli.decompress(truncated)
+    catch IOError error
+        rejected = true
+    end
+    assert rejected
+
+    auto decoder = brotli.decompressor()
+    decoder.update(truncated)
+    rejected = false
+    try
+        decoder.finish()
+    catch IOError error
+        rejected = true
+    end
+    assert rejected
+
+    // 完成后的状态错误仍然可捕获；前一次失败不污染新对象。
+    auto encoder = brotli.compressor()
+    encoder.update("abc")
+    encoder.finish()
+    rejected = false
+    try
+        encoder.update("late")
+    catch RuntimeError error
+        rejected = true
+    end
+    assert rejected
+    assert brotli.decompressText(brotli.compress("again")) == "again"
+    return 0
+end

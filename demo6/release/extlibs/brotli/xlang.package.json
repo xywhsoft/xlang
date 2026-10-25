@@ -62,7 +62,7 @@
     "dependencies":  [
 
                      ],
-    "coverage": { "mode": "suite", "tests": ["test/wire_fixture.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/wire_fixture.xl", "test/error_dispatch.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

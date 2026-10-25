@@ -100,6 +100,13 @@ try {
             $null = Check "$name-aot" $binary @()
         }
     }
+    $errorCase = 'release/extlibs/brotli/test/error_dispatch.xl'
+    $null = Check 'error-dispatch-jit' $xl @('run',$errorCase)
+    if (!$SkipAot) {
+        $errorBinary = Join-Path $work 'error-dispatch.exe'
+        $null = Check 'error-dispatch-build' $xl @('build',$errorCase,'-o',$errorBinary)
+        $null = Check 'error-dispatch-aot' $errorBinary @()
+    }
     $null = Check 'external-wire-fixture-xlang' $xl @('run','release/extlibs/brotli/test/wire_fixture.xl')
     $decls = @()
     foreach ($name in @('extlib_brotli','extlib_brotli_progress')) {
