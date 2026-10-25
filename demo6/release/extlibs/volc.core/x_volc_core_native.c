@@ -325,6 +325,57 @@ static char* xvolc_spec_get(const char* spec, const char* key)
 	return xvolc_strdup("");
 }
 
+/* spec 是逐行声明：拒绝未知字段和重复字段，避免静默丢失请求数据。 */
+enum {
+	XVOLC_SPEC_ACEP_REQUEST = 1u,
+	XVOLC_SPEC_ACEP_PREVIEW = 2u,
+	XVOLC_SPEC_STS_REQUEST = 4u,
+	XVOLC_SPEC_STS_PREVIEW = 8u,
+	XVOLC_SPEC_ALL = 15u
+};
+
+static int xvolc_spec_valid(const char* spec, unsigned variant)
+{
+	static const struct { const char* name; unsigned variants; } keys[] = {
+		{"action", XVOLC_SPEC_ACEP_REQUEST | XVOLC_SPEC_ACEP_PREVIEW},
+		{"version", XVOLC_SPEC_ACEP_REQUEST | XVOLC_SPEC_ACEP_PREVIEW},
+		{"access_key", XVOLC_SPEC_ALL}, {"secret_key", XVOLC_SPEC_ALL},
+		{"session_token", XVOLC_SPEC_ACEP_REQUEST | XVOLC_SPEC_ACEP_PREVIEW},
+		{"body", XVOLC_SPEC_ACEP_REQUEST | XVOLC_SPEC_ACEP_PREVIEW},
+		{"timeout_ms", XVOLC_SPEC_ACEP_REQUEST | XVOLC_SPEC_STS_REQUEST},
+		{"x_date", XVOLC_SPEC_ACEP_PREVIEW | XVOLC_SPEC_STS_PREVIEW},
+		{"role_trn", XVOLC_SPEC_STS_REQUEST | XVOLC_SPEC_STS_PREVIEW},
+		{"role_session_name", XVOLC_SPEC_STS_REQUEST | XVOLC_SPEC_STS_PREVIEW},
+		{"duration_seconds", XVOLC_SPEC_STS_REQUEST | XVOLC_SPEC_STS_PREVIEW}
+	};
+	const char* p = spec;
+	unsigned seen = 0u;
+	if ( p == NULL || *p == '\0' ) goto invalid;
+	while ( *p ) {
+		const char* end = strchr(p, '\n');
+		size_t length = end ? (size_t)(end - p) : strlen(p);
+		const char* equal;
+		size_t i;
+		if ( length && p[length - 1u] == '\r' ) --length;
+		equal = memchr(p, '=', length);
+		if ( equal == NULL || equal == p ) goto invalid;
+		for ( i = 0u; i < sizeof(keys) / sizeof(keys[0]); ++i ) {
+			if ( (keys[i].variants & variant) &&
+				strlen(keys[i].name) == (size_t)(equal - p) &&
+				memcmp(p, keys[i].name, (size_t)(equal - p)) == 0 ) break;
+		}
+		if ( i == sizeof(keys) / sizeof(keys[0]) || (seen & (1u << i)) ) goto invalid;
+		seen |= 1u << i;
+		if ( end == NULL ) break;
+		p = end + 1;
+	}
+	return 1;
+invalid:
+	xrtClearError();
+	xvolc_set_error("invalid spec");
+	return 0;
+}
+
 static void xvolc_hex_lower(const unsigned char* bytes, size_t len, char* out)
 {
 	static const char* hex = "0123456789abcdef";
@@ -1097,6 +1148,7 @@ const char* x_volc_core_request_acep_spec(const char* spec)
 		xvolc_set_error("out of memory");
 		goto done;
 	}
+	if ( !xvolc_spec_valid(spec, XVOLC_SPEC_ACEP_REQUEST) ) goto done;
 	if ( !xvolc_parse_spec_int(timeout_text, (int)XVOLC_DEFAULT_TIMEOUT_MS,
 		"invalid timeout_ms", &timeout_ms) ) goto done;
 	ret = x_volc_core_request("POST", "open.volcengineapi.com", "/", "ACEP", "cn-north-1",
@@ -1128,6 +1180,7 @@ const char* x_volc_core_sign_preview_acep_spec(const char* spec)
 		xvolc_set_error("out of memory");
 		goto done;
 	}
+	if ( !xvolc_spec_valid(spec, XVOLC_SPEC_ACEP_PREVIEW) ) goto done;
 	ret = x_volc_core_sign_preview("POST", "open.volcengineapi.com", "/", "ACEP", "cn-north-1",
 		action, version, access_key, secret_key, session_token, "application/json", "", body, x_date);
 done:
@@ -1156,6 +1209,7 @@ const char* x_volc_core_request_sts_spec(const char* spec)
 		xvolc_set_error("out of memory");
 		goto done;
 	}
+	if ( !xvolc_spec_valid(spec, XVOLC_SPEC_STS_REQUEST) ) goto done;
 	if ( !xvolc_parse_spec_int(duration_text, 3600,
 		"invalid duration_seconds", &duration_seconds) ||
 		!xvolc_parse_spec_int(timeout_text, (int)XVOLC_DEFAULT_TIMEOUT_MS,
@@ -1187,6 +1241,7 @@ const char* x_volc_core_sign_preview_sts_spec(const char* spec)
 		xvolc_set_error("out of memory");
 		goto done;
 	}
+	if ( !xvolc_spec_valid(spec, XVOLC_SPEC_STS_PREVIEW) ) goto done;
 	if ( !xvolc_parse_spec_int(duration_text, 3600,
 		"invalid duration_seconds", &duration_seconds) ) goto done;
 	ret = x_volc_core_sign_preview_sts(access_key, secret_key, role_trn, role_session_name,

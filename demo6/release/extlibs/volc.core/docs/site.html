@@ -30,7 +30,7 @@
     <h2>示例</h2>
     <pre><code>import volc.core
 string query = volc.core.canonical_query("ListApps", "2020-01-01", "Limit=10\nName=x lang")</code></pre>
-    <p>C 声明在 <code>include/volc_core_native.h</code>，离线范例在 <code>examples/signing.c</code>。显式日期须为有效的 <code>YYYYMMDDTHHMMSSZ</code>；省略时由 XRT 生成当前 UTC。<code>*_spec</code> 的时长/超时值只有省略或留空才使用默认值，显式值必须是完整且位于 C <code>int</code> 范围的十进制整数；错误值在发请求前拒绝。路径须是未编码、以 <code>/</code> 开头的绝对路径，签名与 URL 共用编码结果。直接进入规范请求或授权头的签名字段拒绝 CR/LF、TAB 等控制字符；请求体可包含换行。C 返回字符串由包持有，跨线程或长期保存前应复制；离线返回槽和诊断已按线程隔离，在线并发仍未验收。详细范围和复现命令见包内 README。</p>
+    <p>C 声明在 <code>include/volc_core_native.h</code>，离线范例在 <code>examples/signing.c</code>。显式日期须为有效的 <code>YYYYMMDDTHHMMSSZ</code>；省略时由 XRT 生成当前 UTC。<code>*_spec</code> 拒绝重复、未知、空白及无等号的声明行；逐行格式不能承载含换行的请求体，应改用定型请求函数。时长/超时值只有省略或留空才使用默认值，显式值必须是完整且位于 C <code>int</code> 范围的十进制整数；错误值在发请求前拒绝。路径须是未编码、以 <code>/</code> 开头的绝对路径，签名与 URL 共用编码结果。直接进入规范请求或授权头的签名字段拒绝 CR/LF、TAB 等控制字符；定型请求的请求体可包含换行。C 返回字符串由包持有，跨线程或长期保存前应复制；离线返回槽和诊断已按线程隔离，在线并发仍未验收。详细范围和复现命令见包内 README。</p>
   </section>
 </main>
 </body>

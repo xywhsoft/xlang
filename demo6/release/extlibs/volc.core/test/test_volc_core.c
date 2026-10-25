@@ -14,6 +14,7 @@ static void test_pair_allocation_failure(void);
 static void test_spec_allocation_failure(void);
 static void test_spec_crlf(void);
 static void test_spec_numbers(void);
+static void test_spec_fields(void);
 static void test_thread_isolation(void);
 static void test_buffer_bounds(void);
 static void test_large_result_transfer(void);
@@ -77,6 +78,7 @@ int main(void)
     test_spec_allocation_failure();
     test_spec_crlf();
     test_spec_numbers();
+    test_spec_fields();
     test_buffer_bounds();
     test_large_result_transfer();
     test_signed_fields();
@@ -222,22 +224,35 @@ static void test_spec_allocation_failure(void)
         "action=ListApps\nversion=2020-01-01\naccess_key=AKID\n"
         "secret_key=SECRET\nsession_token=\nbody={}\n"
         "x_date=20240102T030405Z\n";
+#ifndef XVOLC_OFFLINE_TEST
+    static const char acep_request_spec[] =
+        "action=ListApps\nversion=2020-01-01\naccess_key=AKID\n"
+        "secret_key=SECRET\nsession_token=\nbody={}\n"
+        "timeout_ms=30000\n";
+#endif
     static const char sts_spec[] =
         "access_key=AKID\nsecret_key=SECRET\n"
         "role_trn=trn:iam::123456789:role/demo\n"
         "role_session_name=demo-session\nduration_seconds=900\n"
         "x_date=20240102T030405Z\n";
+#ifndef XVOLC_OFFLINE_TEST
+    static const char sts_request_spec[] =
+        "access_key=AKID\nsecret_key=SECRET\n"
+        "role_trn=trn:iam::123456789:role/demo\n"
+        "role_session_name=demo-session\nduration_seconds=900\n"
+        "timeout_ms=30000\n";
+#endif
     static const struct {
         const char* (*call)(const char*);
         const char* spec;
         size_t fields;
     } cases[] = {
 #ifndef XVOLC_OFFLINE_TEST
-        {x_volc_core_request_acep_spec, acep_spec, 7},
+        {x_volc_core_request_acep_spec, acep_request_spec, 7},
 #endif
         {x_volc_core_sign_preview_acep_spec, acep_spec, 7},
 #ifndef XVOLC_OFFLINE_TEST
-        {x_volc_core_request_sts_spec, sts_spec, 6},
+        {x_volc_core_request_sts_spec, sts_request_spec, 6},
 #endif
         {x_volc_core_sign_preview_sts_spec, sts_spec, 6}
     };
@@ -337,6 +352,62 @@ static void test_spec_numbers(void)
         "role_session_name=demo-session\n"
         "duration_seconds=\nx_date=20240102T030405Z\n"),
         "DurationSeconds=3600") != NULL);
+    assert(x_volc_core_last_error()[0] == '\0' && xrtGetError() == NULL);
+}
+
+/* 重复、拼错或被换行切开的声明不能生成部分签名。 */
+static void test_spec_fields(void)
+{
+    static const char acep[] =
+        "action=ListApps\nversion=2020-01-01\naccess_key=AKID\n"
+        "secret_key=SECRET\nbody={}\nx_date=20240102T030405Z\n";
+    static const char sts[] =
+        "access_key=AKID\nsecret_key=SECRET\n"
+        "role_trn=trn:iam::123456789:role/demo\n"
+        "role_session_name=demo-session\nx_date=20240102T030405Z\n";
+    const char* invalid_acep[] = {
+        "action=First\naction=Second\nversion=2020-01-01\nbody={}\n",
+        "action=ListApps\nversoin=2020-01-01\nbody={}\n",
+        "action=ListApps\nbody={\n  \"x\": 1}\n",
+        "action=ListApps\nbody={}\n\nversion=2020-01-01\n"
+    };
+    size_t i;
+    for (i = 0; i < sizeof(invalid_acep) / sizeof(invalid_acep[0]); ++i) {
+        assert(strcmp(x_volc_core_sign_preview_acep_spec(invalid_acep[i]), "") == 0);
+        assert(strcmp(x_volc_core_last_error(), "invalid spec") == 0);
+    }
+    assert(strcmp(x_volc_core_sign_preview_sts_spec(
+        "role_trn=first\nrole_trn=second\n"), "") == 0);
+    assert(strcmp(x_volc_core_last_error(), "invalid spec") == 0);
+    assert(strcmp(x_volc_core_sign_preview_sts_spec(
+        "role_trn=first\ntimeout_ms=1\n"), "") == 0);
+    assert(strcmp(x_volc_core_last_error(), "invalid spec") == 0);
+    {
+        xtime ignored = 0;
+        assert(!xrtTimeParse(XRT_STR_LITERAL("bad"),
+            XRT_STR_LITERAL("%Y%m%dT%H%M%SZ"), &ignored));
+        assert(xrtGetError() != NULL);
+        assert(strcmp(x_volc_core_sign_preview_acep_spec(NULL), "") == 0);
+        assert(strcmp(x_volc_core_last_error(), "invalid spec") == 0);
+        assert(xrtGetError() == NULL);
+    }
+#ifdef _WIN32
+    assert(strcmp(x_volc_core_request_acep_spec(
+        "action=ListApps\nbody={}\nbody={\"x\":1}\n"), "") == 0);
+    assert(strcmp(x_volc_core_last_error(), "invalid spec") == 0);
+    assert(strcmp(x_volc_core_request_acep_spec(
+        "action=ListApps\nbody={}\nx_date=20240102T030405Z\n"), "") == 0);
+    assert(strcmp(x_volc_core_last_error(), "invalid spec") == 0);
+    assert(strcmp(x_volc_core_request_sts_spec(
+        "role_trn=demo\nrole_session_name=demo\nunknown=value\n"), "") == 0);
+    assert(strcmp(x_volc_core_last_error(), "invalid spec") == 0);
+#endif
+    assert(strstr(x_volc_core_sign_preview_acep_spec(acep), "authorization") != NULL);
+    assert(strstr(x_volc_core_sign_preview_acep_spec(
+        "action=ListApps\nversion=2020-01-01\naccess_key=AKID\n"
+        "secret_key=SECRET\nbody={\"k\":\"a=b\"}\n"
+        "x_date=20240102T030405Z\n"), "authorization") != NULL);
+    assert(strstr(x_volc_core_sign_preview_sts_spec(sts), "authorization") != NULL);
     assert(x_volc_core_last_error()[0] == '\0' && xrtGetError() == NULL);
 }
 

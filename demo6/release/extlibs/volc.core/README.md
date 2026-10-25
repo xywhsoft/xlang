@@ -28,8 +28,19 @@ string preview = volc.core.sign_preview_acep(
 `extra_pairs` 是逐行 `key=value` 文本，规范化时按键和值排序并对 UTF-8 字节做百分号编码。`x_date` 为空时使用 XRT 当前 UTC 时间；显式指定时必须是有效的 `YYYYMMDDTHHMMSSZ`，无效日期直接报错，不静默改用当前时间。预览返回含 `query`、`x_date`、`x_content_sha256`、`signed_headers`、`authorization` 的 JSON 字符串，不发网络请求。预览中的凭据只应使用测试值；真实授权头不应写入日志。
 
 `*_spec` 的逐行 `key=value` 声明接受 LF 或 CRLF；CRLF 的行尾 `\r`
-不会进入字段值。字段内部的控制字符仍按原规则拒绝。ACEP 和 STS
-离线预览的 LF/CRLF 同签名对照已纳入 Windows 与 Linux C 门禁。
+不会进入字段值。重复字段、未知字段、空行和不含 `=` 的行都报
+`invalid spec`，不再默默使用第一条或丢弃其余内容。请求入口只接受
+`timeout_ms`，预览入口只接受 `x_date`；其余字段按 ACEP/STS 各自声明。
+逐行格式不能表示含换行的字段值，尤其是格式化的 JSON 请求体；
+此时须使用已有的定型请求/签名函数，而不是把正文直接拼进 spec。
+签名字段中的控制字符仍按原规则拒绝。ACEP 和 STS 离线预览的
+LF/CRLF 同签名对照已纳入 Windows 与 Linux C 门禁。
+
+2026-10-25 C 红绿回归确认旧解析器会忽略重复、拼错及换行后游离的
+声明。现在四个入口共用严格字段表；失败返回空文本和 `invalid spec`，
+并清理旧 XRT 错误。Windows 严格 C、Linux C ASan/UBSan 离线门禁和
+下游 `volc.sts` 双平台 C 门禁均通过。这个 C 字符串接口本身不携带
+输入长度；XLang 的内嵌 NUL 边界、在线请求及完整导入仍待依赖链恢复后验收。
 
 `duration_seconds` 与 `timeout_ms` 只有省略或留空时才采用默认值
 （分别为 3600 秒和 30000 毫秒）；显式值必须是完整的十进制整数，
