@@ -11,4 +11,7 @@ XL6_TEXT_API xvalue* xl6ValueCloneGraphV1(const xvalue*);
  * provider component does not enlarge closed Array/List-only programs. */
 XL6_TEXT_API xvalue* xl6ValueCloneCollectionsV1(const xvalue*);
 XL6_TEXT_API xvalue* xl6ValueCloneSetGraphV1(const xvalue*);
+/* Borrowed language data to an independent XRT object/array graph. Explicit
+ * FFI data boundary; resource/callable channels retain their own contracts. */
+XL6_TEXT_API xvalue* xl6ForeignDataSnapshotV1(const xvalue*);
 #endif

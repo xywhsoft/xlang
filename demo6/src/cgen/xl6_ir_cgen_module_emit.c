@@ -21,6 +21,17 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
         xl6OutputPuts("#include <__xl_runtime/xl6_log.h>\n", out);
     if (needs.needsTextAdapterDeclarations)
         xl6OutputPuts("#include <__xl_runtime/xl6_text_value.h>\n", out);
+    /* SDK declarations follow the same resident component identity as linkage. */
+    {
+        int foreign=0,copy=0;
+        for(size_t t=0;t<module->callTargetCount;++t) {
+            XL6_ArtifactRuntimeId owner=xl6ArtifactRuntimeSymbolOwner(module->callTargets[t].cName);
+            foreign |= owner==XL6_ARTIFACT_FOREIGN_RESOURCE;
+            copy |= owner==XL6_ARTIFACT_VALUE_COPY_COLLECTIONS;
+        }
+        if(foreign)xl6OutputPuts("#include <__xl_runtime/xl6_foreign_resource.h>\n",out);
+        if(copy)xl6OutputPuts("#include <__xl_runtime/xl6_value_copy.h>\n",out);
+    }
     xl6IrCgenEmitPublicLinkage(out);
     xl6IrCgenEmitCodeOwnerBinding(out, module);
     if(module->abi.executionOwnershipAbi==XL6_IR_MODULE_EXECUTION_OWNERSHIP_RESIDENT_SOURCE_V1)
