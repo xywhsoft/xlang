@@ -104,6 +104,17 @@ int main(void)
         xrtClearError();xrtMemDebugSnapshot(&after);assert(after.LiveCount==before.LiveCount);
     }
     assert(failed && passed);
+    raw=allocate();owner=xl6ForeignResourceCreateV1(raw,releaser);assert(owner);
+    size_t cloneDrops=drops;xmemdebugsnapshot cloneBefore={0};xrtMemDebugSnapshot(&cloneBefore);
+    for(int64_t fault=0;fault<24;++fault){
+        assert(xrtMemDebugFailAfter(fault));xvalue* copy=xrtValueDeepClone(owner);
+        xrtMemDebugFailClear();xrtClearError();
+        assert(drops==cloneDrops && xl6ForeignResourcePointerV1(owner)==raw);
+        xrtValueRelease(copy);xrtClearError();
+        assert(drops==cloneDrops);xrtMemDebugSnapshot(&after);
+        assert(after.LiveCount==cloneBefore.LiveCount);
+    }
+    xrtValueRelease(owner);assert(drops==cloneDrops+1);
     raw=allocate();assert(!xl6ForeignResourceCreateV1(raw,xrtValueNull()));free(raw);xrtClearError();
     for(unsigned bad=0;bad<6;++bad){
         xrtparamdesc argument=parameter;

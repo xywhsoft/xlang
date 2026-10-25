@@ -1,4 +1,4 @@
-param([string]$Directory = '', [string]$PublicDriver = '', [string]$XrtObject = '')
+param([string]$Directory = '', [string]$PublicDriver = '', [string]$XrtObject = '', [string]$Compiler = '')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 if (!$Directory) { $Directory = Join-Path $root ('build/test/foreign_bridges_' + [guid]::NewGuid().ToString('N')) }
@@ -21,7 +21,12 @@ Push-Location $root
 try {
     $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
     $hostExe = Join-Path $work 'resource_host.exe'
-    $implementation = if ($XrtObject) { $XrtObject } else { 'tools/xrt_single_header_impl.c' }
+    $implementation = $XrtObject
+    if (!$implementation) {
+        $implementation = Join-Path $work 'xrt.o'
+        Run 'xrt_compile' $gcc @('-std=c11','-O0','-I.','-Irelease','-c',
+            'tools/xrt_single_header_impl.c','-o',$implementation)
+    }
     Run 'host_compile' $gcc @('-std=c11','-O0','-Wall','-Wextra','-Werror',
         '-ffunction-sections','-fdata-sections','-Wl,--gc-sections','-I.','-Irelease',
         'test/cases/xlir_foreign_resource_host.c','src/runtime/xl6_foreign_resource.c',
@@ -50,7 +55,7 @@ try {
         Run 'jit' $PublicDriver @($source,'run',($prefix + '_jit'),$native)
         Run 'aot_build' $PublicDriver @($source,'exe',$prefix,$native)
     } else {
-        $xl = Join-Path $root 'release/xl.exe'
+        $xl = if ($Compiler) { $Compiler } else { Join-Path $root 'release/xl.exe' }
         Run 'jit' $xl @('run',$source,$native,'--backend','xlir')
         Run 'aot_build' $xl @('build',$source,$native,'-o',($prefix + '.exe'),'--backend','xlir')
     }
