@@ -34,7 +34,7 @@ static bool create(Resource* base,const XL6_ExecutionCreateOptionsV1* options)
     if((c->selector.data&&(!c->selector.ops||!c->selector.ops->Ref||!c->selector.ops->Drop||
             !c->selector.ops->Ownership||!c->selector.ops->Select))||
         c->config->Tls.Select!=(c->selector.data?c->selector.ops->Select:NULL)||
-        c->config->Tls.SelectContext!=c->selector.data||c->config->Tls.Resume||c->config->Tls.ResumeContext){
+        c->config->Tls.SelectContext!=c->selector.data||c->config->Tls.Resume||c->config->Tls.ResumeOwnedV1||c->config->Tls.ResumeContext){
         xrtSetErrorKind(XERR_ARGUMENT);return false;}
     r->selector=xl6TlsSelectorRefV1(c->selector);
     XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionTlsEngineEnterV1(c->engine,&scope))return false;

@@ -29898,6 +29898,18 @@ typedef const xtlsresume* (*xtlsserverresumeproc)(
 
 
 
+/* 拥有式查找：调用前 *ppResume 为 NULL；true + NULL 表示缓存未命中，
+ * false 表示查找失败（诊断可为 NULL）。写入的独立引用在所有返回路径上
+ * 都转交框架，框架使用后或失败时恰好 release 一次。回调不得再释放它。
+ * 允许临时语言结果；不需要回调返回后的借用存活窗口。 */
+typedef bool (*xtlsserverresumeownedprocV1)(
+	ptr pContext,
+	const xtlsserverresumerequest* pRequest,
+	xtlsresume** ppResume
+);
+
+
+
 /* 创建期间借用配置；会话持有身份、深复制协议，两个回调上下文借用到首航结束。 */
 typedef struct xtlsserverconfig {
 	const xtlscontext* Context;
@@ -29910,6 +29922,8 @@ typedef struct xtlsserverconfig {
 	xtlsserverresumeproc Resume;
 	ptr ResumeContext;
 	uint32 ResumeAgeTolerance;
+	/* 与 Resume 互斥，共用 ResumeContext；结构布局变化需重编译 C 单元。 */
+	xtlsserverresumeownedprocV1 ResumeOwnedV1;
 } xtlsserverconfig;
 
 
