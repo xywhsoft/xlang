@@ -11,6 +11,7 @@
 #include "analysis/frontend_sem.h"
 #include "analysis/frontend_cancel.h"
 #include "analysis/frontend_ir_memo.h"
+#include "analysis/index_entities.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
 #include "src/stdlib/xl6_stdlib.h"
@@ -62,7 +63,7 @@ void xlsSemanticCheckDestroy(xls_semantic_check* r)
 }
 static xls_semantic_check* createBody(xls_context* context,const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
-    xls_semantic_check* previous,int memoEnabled,int (*cancelled)(void*),void* user,char* error,size_t capacity)
+    xls_semantic_check* previous,int memoEnabled,xls_module_graph_scope* moduleScope,int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
     xls_semantic_check* r=NULL;const xls_ir_result* irBaseline=NULL;
     if(error && capacity) *error=0;
@@ -128,6 +129,14 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
         } else okay=xl6SemCheckModuleWithIndex(r->parse.root,&r->parse.diags,module,captureIndex);
     }
     if(stopped(cancelled,user)) goto cancel;
+    /* Collect checked facts before raw IR so the optional cache can bind
+     * external identities to THIS compilation. Delay index resource errors
+     * until after original IR diagnostics;neither changes their precedence. */
+    char indexError[256]={0};
+    if(okay && captureIndex)r->typedIndex=xlsFrontendIndexCreate(r->parse.root,&r->report,indexError,sizeof(indexError));
+    r->modules=xlsModuleGraphEnd(moduleScope,&r->report);
+    xlsFrontendIndexAttachModules(r->typedIndex,r->modules);
+    if(stopped(cancelled,user)) goto cancel;
     if(okay) {
         r->phase="ir";
         if(memoEnabled){
@@ -135,7 +144,7 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
              * Keep attempts private;the original builder remains authoritative
              * for a failed attempt as well as the independent fresh API. */
             XL6_DiagList attempted;xl6DiagInit(&attempted);
-            r->cachedIr=xlsFrontendIrResultBuild(r->parse.root,&attempted,irBaseline,32u*1024u*1024u);
+            r->cachedIr=xlsFrontendIrResultBuildEntities(r->parse.root,&attempted,irBaseline,32u*1024u*1024u,xlsSemanticIndexEntities(r->typedIndex));
             okay=r->cachedIr && !attempted.count;
             if(!okay){xlsFrontendIrResultDestroy(r->cachedIr);r->cachedIr=NULL;}
             xl6DiagFree(&attempted);
@@ -145,8 +154,6 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
     if(stopped(cancelled,user)) goto cancel;
     r->accepted=okay && !r->parse.diags.count;
     if(r->accepted && captureIndex) {
-        char indexError[256]={0};
-        r->typedIndex=xlsFrontendIndexCreate(r->parse.root,&r->report,indexError,sizeof(indexError));
         if(!r->typedIndex) {
             /* An index budget/allocation failure is infrastructure failure,
              * never a diagnostic claiming that valid user code is wrong. */
@@ -154,6 +161,7 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
             xlsSemanticCheckDestroy(r); return NULL;
         }
     }
+    if(!r->accepted){xlsFrontendIndexDestroy(r->typedIndex);r->typedIndex=NULL;}
     if(stopped(cancelled,user)) goto cancel;
     if(!xlsSemanticCheckValidate(r)) {
         fail(error,capacity,"semantic check inputs are incomplete or changed");
@@ -179,12 +187,13 @@ xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,x
     xls_input_topology_scope topology;xlsInputTopologyBegin(&topology,(cache || syntax) ? 8u*1024u*1024u : 0);
     xls_module_graph_scope modules;xlsModuleGraphBegin(&modules,(cache || syntax) ? xlsModuleScopeCurrent() : NULL,context,8u*1024u*1024u);
     xls_frontend_cancel_scope cancellation;xlsFrontendCancelBegin(&cancellation,cancelled,user);
-    xls_semantic_check* result=createBody(context,entry,inputs,count,captureIndex,syntax,previous,cache || syntax,cancelled,user,error,capacity);
+    xls_semantic_check* result=createBody(context,entry,inputs,count,captureIndex,syntax,previous,cache || syntax,&modules,cancelled,user,error,capacity);
     uint64_t used=0;int known=xlsFrontendInputUsageEnd(&usage,&used);
     xls_input_topology* captured=xlsInputTopologyEnd(&topology);
     if(result && known)result->topology=captured;else xlsInputTopologyDestroy(captured);
-    xls_module_graph* graph=xlsModuleGraphEnd(&modules,result ? &result->report : NULL);
-    if(result){result->modules=graph;xlsFrontendIndexAttachModules(result->typedIndex,graph);}else xlsModuleGraphRelease(graph);
+    /* Early invalid/cancelled creation may leave the capture active. Ordinary
+     * success already ended it after semantics,before the read-only IR phase. */
+    xlsModuleGraphRelease(xlsModuleGraphEnd(&modules,NULL));
     if(result && stopped(cancelled,user)) {xlsSemanticCheckDestroy(result);result=NULL;fail(error,capacity,"semantic check cancelled");}
     xlsFrontendCancelEnd(&cancellation,NULL);
     int scoped=xlsFrontendContextEnd(&scope);

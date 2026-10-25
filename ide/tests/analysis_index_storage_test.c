@@ -59,7 +59,7 @@ static int ambiguousBindings(void)
   const xarray* rows=type ? &view.types : &view.symbols;
   CHECK(!xlsEntityFind(rows,1) && !xlsEntityFind(rows,2) && !xlsEntityFind(rows,3) && xlsEntityFind(rows,4)==104 && !xlsEntityFind(rows,0));
  }
- CHECK(view.ambiguous==6);xrtArrayUnit(&view.symbols);xrtArrayUnit(&view.types);xrtMapUnit(&build.symbols);xrtMapUnit(&build.types);xrtMapUnit(&build.badSymbols);xrtMapUnit(&build.badTypes);return 1;
+ CHECK(view.ambiguous==6);CHECK(xlsEntityReverseBuild(&view) && !xlsEntityViewNativeSymbol(&view,101) && !xlsEntityViewNativeSymbol(&view,102) && xlsEntityViewNativeSymbol(&view,104)==4);xrtArrayUnit(&view.reverseSymbols);xrtArrayUnit(&view.symbols);xrtArrayUnit(&view.types);xrtMapUnit(&build.symbols);xrtMapUnit(&build.types);xrtMapUnit(&build.badSymbols);xrtMapUnit(&build.badTypes);return 1;
 }
 static int run(void)
 {

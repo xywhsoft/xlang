@@ -46,7 +46,7 @@ CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/d
 HOST_TESTS += CLIENT_TESTS
 HOST_TESTS += ("diagnostic_reverse_fault_test",)
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
-CORE_TESTS = ("analysis_entity_binding_test", "analysis_entity_store_test", "analysis_module_graph_test", "analysis_input_topology_test", "analysis_module_store_test", "analysis_process_tree_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_entity_test", "analysis_entity_binding_test", "analysis_entity_store_test", "analysis_module_graph_test", "analysis_input_topology_test", "analysis_module_store_test", "analysis_process_tree_test", *CORE_TESTS)
 CORE_TESTS = ("diagnostic_paths_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_entry_cache_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_import_names_test", *CORE_TESTS)
@@ -71,7 +71,11 @@ CORE_TESTS = ("analysis_ir_memo_test", *CORE_TESTS)
 
 
 def sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(64 * 1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def prepare_native_index(frontend: Path, output: Path) -> tuple[Path, Path, dict]:

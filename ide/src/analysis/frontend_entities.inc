@@ -9,12 +9,12 @@
 #define XLS_ENTITY_KEY_BYTES 65536u
 #define XLS_ENTITY_VIEW_BYTES (16u*1024u*1024u)
 typedef struct xls_entity_binding {uint32_t native;uint64_t stable;int ambiguous;} xls_entity_binding;
-struct xls_entity_view {xatomic32 references;xls_entity_store* store;const xls_entity_domain* domain;xls_module_graph* modules;xarray symbols,types;size_t ambiguous,bytes;};
+struct xls_entity_view {xatomic32 references;xls_entity_store* store;const xls_entity_domain* domain;xls_module_graph* modules;xarray symbols,types,reverseSymbols;size_t ambiguous,bytes;};
 typedef struct xls_entity_scope {unsigned fact;const XL6_AstNode* node;uint64_t outer,children;int function,body,blocked;} xls_entity_scope;
 typedef struct xls_entity_build {xls_entity_view* view;xmap symbols,types,badSymbols,badTypes;size_t bindings;int failed;} xls_entity_build;
 xls_entity_view* xlsEntityViewRetain(xls_entity_view* view){if(view)xrtAtomic32FetchAdd(&view->references,1,XMEMORY_RELAXED);return view;}
 void xlsEntityViewRelease(xls_entity_view* view)
-{if(view && xrtAtomic32FetchSub(&view->references,1,XMEMORY_ACQ_REL)==1){xrtArrayUnit(&view->symbols);xrtArrayUnit(&view->types);xlsModuleGraphRelease(view->modules);xlsEntityStoreRelease(view->store);xrtFree(view);}}
+{if(view && xrtAtomic32FetchSub(&view->references,1,XMEMORY_ACQ_REL)==1){xrtArrayUnit(&view->symbols);xrtArrayUnit(&view->types);xrtArrayUnit(&view->reverseSymbols);xlsModuleGraphRelease(view->modules);xlsEntityStoreRelease(view->store);xrtFree(view);}}
 xls_entity_view_info xlsEntityViewInfo(const xls_entity_view* view)
 {return view ? (xls_entity_view_info){view->symbols.Count,view->types.Count,view->ambiguous,view->bytes,xlsEntityDomainIdentity(view->domain)} : (xls_entity_view_info){0};}
 const xls_entity_store* xlsEntityViewStore(const xls_entity_view* view){return view ? view->store : NULL;}
@@ -27,6 +27,13 @@ static uint64_t xlsEntityFind(const xarray* rows,uint32_t native)
  const xls_entity_binding* row=xrtArrayConstGet(rows,lo);return row && row->native==native && !row->ambiguous ? row->stable : 0;
 }
 uint64_t xlsEntityViewSymbol(const xls_entity_view* view,uint32_t symbol){return xlsEntityFind(view ? &view->symbols : NULL,symbol);}
+uint32_t xlsEntityViewNativeSymbol(const xls_entity_view* view,uint64_t identity)
+{
+ if(!view || !identity)return 0;
+ size_t lo=0,hi=view->reverseSymbols.Count;
+ while(lo<hi){size_t mid=lo+(hi-lo)/2;const xls_entity_binding* r=xrtArrayConstGet(&view->reverseSymbols,mid);if(r->stable<identity)lo=mid+1;else hi=mid;}
+ const xls_entity_binding* r=xrtArrayConstGet(&view->reverseSymbols,lo);return r && r->stable==identity && !r->ambiguous ? r->native : 0;
+}
 uint64_t xlsEntityViewType(const xls_entity_view* view,uint32_t type){return xlsEntityFind(view ? &view->types : NULL,type);}
 static int xlsEntityBytes(xstrbuf* out,const void* bytes,size_t size)
 {return out->Size<=XLS_ENTITY_KEY_BYTES && size<=XLS_ENTITY_KEY_BYTES-out->Size && (!size || xrtStrBufAppend(out,(xstrview){bytes,size}));}
@@ -97,6 +104,14 @@ static int xlsEntityBind(xls_entity_build* build,int type,uint32_t native,uint64
 }
 static int xlsEntityBindingCompare(const void* a,const void* b)
 {const xls_entity_binding *x=a,*y=b;return (x->native>y->native)-(x->native<y->native);}
+static int xlsEntityReverseCompare(const void* a,const void* b)
+{const xls_entity_binding *x=a,*y=b;return (x->stable>y->stable)-(x->stable<y->stable);}
+static int xlsEntityReverseBuild(xls_entity_view* view)
+{
+ if(!xrtArrayInit(&view->reverseSymbols,sizeof(xls_entity_binding)))return 0;
+ for(size_t i=0;i<view->symbols.Count;++i){const xls_entity_binding* r=xrtArrayConstGet(&view->symbols,i);if(!r->ambiguous && !xrtArrayPush(&view->reverseSymbols,r))return 0;}
+ return xrtArraySort(&view->reverseSymbols,xlsEntityReverseCompare);
+}
 static int xlsEntityFinishMap(xls_entity_build* build,int type)
 {
  xmap *map=type ? &build->types : &build->symbols,*bad=type ? &build->badTypes : &build->badSymbols;xarray* rows=type ? &build->view->types : &build->view->symbols;
@@ -135,8 +150,8 @@ static xls_entity_view* xlsIndexEntitiesBuild(const XL6_IndexBuild* b,xls_module
   if(xlsEntityCallable(n) || xlsEntityContainer(n)){current.function|=xlsEntityCallable(n);current.children=type ? type : value;if(!current.children)current.blocked=1;}
   scopes[depth++]=current;
  }
- if(okay)okay=xlsEntityFinishMap(&build,0) && xlsEntityFinishMap(&build,1);
- view->bytes=sizeof(*view)+(view->symbols.Capacity+view->types.Capacity)*sizeof(xls_entity_binding);
+ if(okay)okay=xlsEntityFinishMap(&build,0) && xlsEntityFinishMap(&build,1) && xlsEntityReverseBuild(view);
+ view->bytes=sizeof(*view)+(view->symbols.Capacity+view->types.Capacity+view->reverseSymbols.Capacity)*sizeof(xls_entity_binding);
  if(view->bytes>XLS_ENTITY_VIEW_BYTES)okay=0;
  xrtMapUnit(&build.symbols);xrtMapUnit(&build.types);xrtMapUnit(&build.badSymbols);xrtMapUnit(&build.badTypes);
  if(!okay){xlsEntityViewRelease(view);return NULL;}return view;
