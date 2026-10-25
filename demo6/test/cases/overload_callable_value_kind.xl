@@ -1,0 +1,45 @@
+class Item
+ int value=7
+end
+class Provider
+ Item stored=Item()
+ get item() as Item
+  return self.stored
+ end
+ get number() as int
+  return 42
+ end
+ get transform() as func(int) as int
+  return func(int value) as int
+   return value+1
+  end
+ end
+ func make() as Item
+  return self.stored
+ end
+end
+class Choice
+ int selected=0
+ create(int first,Item value)
+  self.selected=value.value+first
+ end
+ create(int first,func(string) as int value)
+  self.selected=-1
+ end
+end
+func choose(int value) as int
+ return value
+end
+func choose(func(string) as int value) as int
+ return -1
+end
+func invoke(func(int) as int value) as int
+ return value(9)
+end
+auto provider=Provider()
+assert Choice(1,provider.item).selected == 8
+assert Choice(2,provider.make()).selected == 9
+assert choose(provider.number) == 42
+assert invoke(provider.transform) == 10
+array<int> numbers=[41]
+assert choose(numbers[0]) == 41
