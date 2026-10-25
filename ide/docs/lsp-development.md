@@ -4,7 +4,7 @@
 
 本期动态补全指基于当前未保存、不完整代码、作用域、接收对象类型及流分析实时查询候选。性能优先于扩展功能数量；协议能力仅在实现与验收完成后声明。
 
-2026-10-26 当前最新切片 M7a2b37a，开发服务 0.70：检查后的声明／类型接口拥有独立版本，并接入真实 IR 依赖；完整源码及原语义／IR／发布证明保持。69 原生、41 套 1,056 协议、18 IDE 和完整独立对照通过。本阶段尚未跳过整模块语义分析。正常 0.69／0.70 ABBA 的 512 helper 样本：精确重复静态检查 P50／P95／P99 为 3.949 / 5.531 / 5.883→4.201 / 5.106 / 5.372 ms；无关文件开关后的静态检查为 6.464 / 79.185 / 82.780→6.561 / 96.300 / 103.800 ms。真实局部编辑后三方法总序列为 915.886 / 1259.080 / 1316.387→1077.934 / 1353.263 / 1368.287 ms，全局函数增删为 2010.066 / 2215.176 / 2249.031→1907.860 / 2290.226 / 2458.519 ms。只对这些路径和规模作结论；完整 IDE、十万行和持续输入的速度目标仍未验收。 长期任务 active，发布目录未改。
+2026-10-26 当前最新切片 M7a2b38a，开发服务 0.71：真实编译器声明查找形成正向／负向依赖，并用于函数语义复用。覆盖全局名称、调用／重载和类型注册表的当前完整声明；未知或不完整证明回退原检查器。70 原生、42 套 1,100 协议、18 IDE、64 完整独立对照和 96 标准导航输出通过。正常 0.70／0.71 ABBA 中，512 helper 连续无关函数头修改的静态检查 P95 为 1255.575→1058.079 ms；包含首次结构回退的混合阶段为 1255.575→1409.265 ms，全局增删亦有退化，整体性能目标尚未完成。长期任务 active，发布目录未改。
 
 ## 架构与复用
 
@@ -4268,3 +4268,37 @@ M35 曾误执行旧准备脚本覆盖一份 M34 preflight JSON，其历史例外
 全部观察到的 P95 回退（含 CPU）保留：topologySequenceSummary:96/nativeCpuMs P95 156.250→171.875 ms；topologySequenceSummary:512/ms P95 162.315→190.739 ms；topologySequenceSummary:512/nativeCpuMs P95 156.250→187.500 ms；dependency-editSequenceSummary:512/ms P95 1259.080→1353.263 ms；dependency-editSequenceSummary:512/nativeCpuMs P95 1234.375→1296.875 ms；global-declarationSequenceSummary:96/ms P95 364.968→397.500 ms；global-declarationSequenceSummary:512/ms P95 2215.176→2290.226 ms；global-declarationSequenceSummary:512/nativeCpuMs P95 2156.250→2296.875 ms；topologySummary:96/textDocument/completion/ms P95 42.075→43.321 ms；topologySummary:96/textDocument/signatureHelp/ms P95 40.922→46.481 ms；topologySummary:512/xlang/check/ms P95 79.185→96.300 ms；topologySummary:512/textDocument/completion/ms P95 40.128→47.016 ms；topologySummary:512/textDocument/completion/nativeCpuMs P95 31.250→46.875 ms；topologySummary:512/textDocument/signatureHelp/ms P95 41.224→48.662 ms；editSummary:96/textDocument/signatureHelp/ms P95 42.062→43.941 ms；editSummary:512/xlang/check/ms P95 742.499→809.371 ms；editSummary:512/xlang/check/nativeCpuMs P95 750.000→796.875 ms；editSummary:512/textDocument/completion/ms P95 242.321→298.799 ms；editSummary:512/textDocument/completion/nativeCpuMs P95 250.000→296.875 ms；globalSummary:512/xlang/check/ms P95 1283.449→1358.594 ms；globalSummary:512/xlang/check/nativeCpuMs P95 1265.625→1328.125 ms；globalSummary:512/textDocument/signatureHelp/ms P95 495.270→506.752 ms；coldSummary:96/xlang/check/ms P95 147.176→203.915 ms；coldSummary:96/xlang/check/nativeCpuMs P95 156.250→203.125 ms；coldSummary:96/textDocument/completion/ms P95 41.369→46.853 ms；coldSummary:512/xlang/check/ms P95 816.051→999.959 ms；coldSummary:512/xlang/check/nativeCpuMs P95 812.500→984.375 ms；coldSummary:512/textDocument/completion/ms P95 257.135→303.696 ms；coldSummary:512/textDocument/completion/nativeCpuMs P95 250.000→296.875 ms；coldSummary:512/textDocument/signatureHelp/ms P95 278.484→303.978 ms；coldSummary:512/textDocument/signatureHelp/nativeCpuMs P95 265.625→296.875 ms；hotSummary:512/textDocument/completion/ms P95 3.260→3.345 ms；GUI 96/0/maxFrameMs P95 13.409→13.840 ms；GUI 96/1/renderSubmittedMs P95 64.990→67.948 ms；GUI 96/2/renderSubmittedMs P95 9.942→11.199 ms；GUI 96/2/maxFrameMs P95 9.942→11.199 ms；GUI 96/2/guiCpuMs P95 46.875→62.500 ms；GUI 96/3/renderSubmittedMs P95 10.971→11.517 ms；GUI 96/3/maxFrameMs P95 10.971→11.517 ms；GUI 512/1/renderSubmittedMs P95 257.996→279.097 ms；GUI 512/3/renderSubmittedMs P95 9.637→10.223 ms；GUI 512/3/maxFrameMs P95 9.637→10.223 ms；GUI 512/3/guiCpuMs P95 46.875→62.500 ms。
 
 证据 build/lsp-next-20261022/m7a2b37a-result.json；外部 m7a2b37a-9fc3c1a0／component-v2。发布 5,241 文件未改，长期任务 active。接下来仍需真正持久模块 typed state、完整语义依赖／负向查找 read set、在原规则上减少真实编辑的语义／类型恢复／索引／IR／verifier 成本，以及全工程引用／rename／tokens／actions／format、静态检查／补全恢复、IDE 输入配置、全模型预算、十万行／并行／soak／最终发行。继续外部 C/compiler-XRT、未来 opaque xlc.dll，无 DAP／运行态补全。
+
+## M7a2b38a：真实声明依赖与函数语义复用（0.71）
+
+原检查器的全局名称、函数候选、函数值、显式泛型、异步回调及 copy／clone 遮蔽查询记录实际声明集合，空集合也是依赖。62 处类型注册表查询仍由原查找函数解析，并记录完整当前类型记录和声明。函数结束后重新核对，恢复前再次比较。合法 var 字段默认值从 int 变为 bool 时，类声明实时注解变化会拒绝相关缓存；编译器原本禁止 auto 类字段。
+
+新增路径只放宽“所有函数头必须完全相同”这一前提。非函数声明、全局状态和分配骨架、实际依赖、原函数键、类型分配区间、局部符号重定位、源码来源、AST 形状和当前输入／配置／epoch／发布检查仍然约束恢复。原完整上下文路径保留，递归导出可见性等未知读取明确回退；补全／参数提示暂不启用新路径。尚未实现完整语义查询数据库或检查后模块状态持久化。
+
+XRT 分配的字节、名称与数组由原子引用的不可变单元和上下文证明持有，不保留 AST／检查上下文／报告／旧检查对象借用。辅助上下文默认 8 MiB、单函数记录最多 1 MiB／256 名称，最终数组容量纳入计数；语义 memo 已知 64 MiB 包括这些保留数据。同步查找键缓存的 8 MiB 只计键容量，另有 map／名称／分配器和一个有界临时键开销。全进程和传递所有者预算仍待完成。
+
+262 项新增原生检查包括：19 函数的无关头修改只重查 2／复用 17；已用参数、重载默认值、候选集合变更重查；copy 负向查找被声明遮蔽后产生真实错误；实时类型变化、修复、0／1 字节及嵌套控制；会话关闭后四读者独立核对。原语义 1,291、光标来源 2,406 和取消 185 项通过。152 原生对象全部重建，74 AST17 消费者、59 归档成员、351 原生依赖、71 PE、72 输出；冻结 1,113 项输入。106 GUI 对象按实际依赖及受影响预处理 token 证明复用。
+
+42 套协议共 1,100 场景和 18 IDE 检查通过。96／512 helper 的 64 次独立对照逐字段比较完整 AST、类型索引、规范类型／范围、输入报告与 IR，另比较 96 个标准导航输出。96 helper 的无关头修改为检查 2／复用 98，已用 identity 参数变更为检查 52／复用 48。
+
+正常 0.70／0.71 产品 ABBA 测量覆盖首次、精确重复、无关文档拓扑、局部编辑、全局增删及无关函数头。测量期间暂停本任务构建、QA 和大规模哈希，不保证主机独占。包含服务 CPU／内存和实际 GUI 帧提交成本；十万行、持续输入、完整工程及显示扫描输出尚未验收，所有退化保留。
+
+| 512 helper 路径（P50／P95／P99，ms） | 0.70 | 0.71 |
+|---|---:|---:|
+| 首次静态检查 | 736.309 / 1138.744 / 1138.744 | 1049.258 / 1054.446 / 1054.446 |
+| 精确重复静态检查 | 3.627 / 3.816 / 3.985 | 3.591 / 3.901 / 4.013 |
+| 无关文件开关后的静态检查 | 6.048 / 79.493 / 82.820 | 4.872 / 78.287 / 79.599 |
+| 局部函数体编辑后的静态检查 | 638.445 / 714.077 / 953.523 | 569.441 / 640.459 / 652.155 |
+| 全局声明增删后的静态检查 | 1089.212 / 1197.439 / 1387.928 | 1396.406 / 1483.407 / 1534.649 |
+| 无关函数头修改后的静态检查 | 1189.248 / 1255.575 / 1261.335 | 948.976 / 1409.265 / 1512.247 |
+| 局部编辑后三方法序列 | 1043.198 / 1172.755 / 1510.402 | 924.956 / 1059.103 / 1067.435 |
+| 全局增删后三方法序列 | 1895.087 / 2047.883 / 2279.879 | 2184.750 / 2366.494 / 2493.315 |
+| 无关函数头后三方法序列 | 2078.838 / 2188.025 / 2261.191 | 1847.579 / 2257.273 / 2410.615 |
+| 连续无关函数头（22 样本） | 1189.248 / 1255.575 / 1261.335 | 948.893 / 1058.079 / 1159.429 |
+| 该阶段首次结构回退（2 样本） | 1129.070 / 1201.122 / 1201.122 | 1409.265 / 1512.247 / 1512.247 |
+
+无关函数头阶段的首个样本还移除了前一阶段新增的三个函数，导致真实声明数量／分配骨架变化，必须回退；另 22 个样本是连续单纯头修改，并验证实际复用。24 样本混合阶段及 2 个结构回退／22 个连续修改的分布全部保留，没有删除失败或慢样本。连续头修改受益，但全局增删 P95 为 1197.439→1483.407 ms，混合头阶段也退化，需继续优化捕获及整模块重建成本。
+
+三方法序列为静态检查、光标补全、参数提示依次完整往返；后两者仍有独立成本，不能用静态检查收益代替 IDE 总体验。完整分布、CPU／内存／GUI 及退化见阶段 `reads-performance-v1/result.json`，阶段拆分见 `performance-classification-v1.json`，总凭据为 `build/lsp-next-20261022/m7a2b38a-result.json`。
+
+继续采用外部 C／编译器 XRT 和未来 xlc.dll 不透明边界，未加入 DAP 或运行／调试态补全。后续减少真实编辑中的整 AST 克隆、索引／IR／验证成本，完成持久化语义模块、引用／重命名／tokens／代码操作／格式化、静态检查与容错、C／IDE 配置和完整预算／规模／交付验收。

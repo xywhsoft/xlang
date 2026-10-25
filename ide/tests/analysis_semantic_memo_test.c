@@ -190,14 +190,16 @@ static int multiSource(int diskEntry)
         CHECK(xlsSemanticCheckValidate(first)); xlsSemanticCheckDestroy(result);
     }
     /* A changed public signature changes the module environment. Original
-     * diagnostics must replace previously accepted facts. Repair then rechecks. */
+     * diagnostics replace accepted facts. Repair checks affected dependencies;
+     * complete observed reads may retain unrelated function facts. */
     CHECK(setBody(&docs[0],"export func compute(string value) as int\n return 0\nend\n"));
     xls_semantic_check* result=xlsCheckSessionCheckInContext(session,context,docs,count,target,1,NULL,NULL,NULL,0);
     CHECK(result && !xlsSemanticCheckInfo(result).accepted && freshInContext(result,context,entry,docs,count) && !xlsSemanticCheckWork(result).contextHits);
     xlsSemanticCheckDestroy(result);
     CHECK(setBody(&docs[0],"export func compute(int value) as int\n if value > 0 then\n return value\n end\n return 0\nend\n"));
     result=xlsCheckSessionCheckInContext(session,context,docs,count,target,1,NULL,NULL,NULL,0);
-    CHECK(result && xlsSemanticCheckInfo(result).accepted && freshInContext(result,context,entry,docs,count) && !xlsSemanticCheckWork(result).functionsReused);
+    CHECK(result && xlsSemanticCheckInfo(result).accepted && freshInContext(result,context,entry,docs,count) && !xlsSemanticCheckWork(result).contextHits);
+    CHECK(xlsSemanticCheckWork(result).functionsReused>0 && xlsSemanticCheckReads(result).contextHits && xlsSemanticCheckReads(result).reused==xlsSemanticCheckWork(result).functionsReused);
     xlsSemanticCheckDestroy(result);
     /* Reopening a member cannot reuse a previous document identity. */
     ++docs[0].identity; result=xlsCheckSessionCheckInContext(session,context,docs,count,target,1,NULL,NULL,NULL,0);
