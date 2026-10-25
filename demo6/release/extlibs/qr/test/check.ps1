@@ -86,6 +86,13 @@ try {
             if ($aotOutput -cne $cOutput) {
                 throw 'C/XLang AOT qr example outputs differ'
             }
+            $cTarget = Join-Path $work 'qr_c_example_aot.exe'
+            $null = Run 'C example build' $xl @('build',
+                'examples/extlibs/qr_c.c', '-o', $cTarget)
+            $cAotOutput = Run 'C example AOT' $cTarget @()
+            if ($cAotOutput -cne $cOutput) {
+                throw 'C example AOT qr output differs from GCC'
+            }
         }
     } finally {
         Pop-Location

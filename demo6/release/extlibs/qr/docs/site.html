@@ -31,7 +31,7 @@
 string image = qr.svg("你好，世界", "M", 4, 4)
 println(qr.version("HELLO WORLD"))</code></pre>
     <p>文本须为无 NUL 的合法 UTF-8。自定义文本格拒绝控制字符与行分隔符；不同终端的字符显示宽度由调用者负责。C 版本号和 SVG 数值参数使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。编码按整段选择单一模式；完整参数与验证见包内 README。</p>
-    <p>2026-10-25 使用独立 ZXing-C++ 3.1.1 扫码器读回当前 C 编码器的 11 组样本，包括中文和版本 40 容量边界；可用 <code>python release/extlibs/qr/test/check_decode.py</code> 复跑。当前新发布版的 XLang 包级运行受共享 TCC VFS 头文件路径问题阻断，独立扫码通过不代表本轮 XLang JIT/AOT 已签收。</p>
+    <p>2026-10-26 Windows 与 Linux 默认包门禁均通过：严格 C/ABI、Linux ASan/UBSan、语言 JIT、核心/边界/中央/公开范例独立 EXE，以及公开 C 范例的 GCC、<code>xl run</code>、<code>xl build</code> 输出对照。独立 ZXing-C++ 3.1.1 扫码器读回当前 C 编码器的 11 组样本，包括中文和版本 40 容量边界；可用 <code>python release/extlibs/qr/test/check_decode.py</code> 复跑，测试依赖不进入发布包。旧 VFS 阻断已不在当前版本复现。</p>
   </section>
 </main>
 </body>

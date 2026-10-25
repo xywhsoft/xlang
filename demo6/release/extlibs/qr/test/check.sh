@@ -28,4 +28,21 @@ timeout 90s ./release/xl run test/cases/extlib_qr.xl
 timeout 90s ./release/xl run release/extlibs/qr/test/boundaries.xl
 timeout 90s ./release/xl run release/examples/extlibs/qr.xl > "$work/xl.txt"
 diff -u "$work/c.txt" "$work/xl.txt"
-printf 'qr Linux C ASan/UBSan and XLang parity gate: PASS\n'
+timeout 120s ./release/xl build release/extlibs/qr/test/aot_core.xl \
+    -o "$work/qr_core_aot"
+timeout 45s "$work/qr_core_aot"
+timeout 120s ./release/xl build release/extlibs/qr/test/boundaries.xl \
+    -o "$work/qr_boundaries_aot"
+timeout 45s "$work/qr_boundaries_aot"
+timeout 120s ./release/xl build test/cases/extlib_qr.xl \
+    -o "$work/qr_central_aot"
+timeout 45s "$work/qr_central_aot"
+timeout 120s ./release/xl build release/examples/extlibs/qr.xl \
+    -o "$work/qr_xl_example_aot"
+timeout 45s "$work/qr_xl_example_aot" > "$work/xl_aot.txt"
+diff -u "$work/c.txt" "$work/xl_aot.txt"
+timeout 120s ./release/xl build release/examples/extlibs/qr_c.c \
+    -o "$work/qr_c_example_aot"
+timeout 45s "$work/qr_c_example_aot" > "$work/c_aot.txt"
+diff -u "$work/c.txt" "$work/c_aot.txt"
+printf 'qr Linux C ASan/UBSan and XLang JIT/AOT parity gate: PASS\n'
