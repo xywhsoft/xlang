@@ -51,4 +51,15 @@ fi
 timeout 90s "$xl" run release/examples/extlibs/dotenv.xl > "$work/example_xl.txt"
 diff -u release/extlibs/dotenv/examples/basic.expected.txt "$work/example_xl.txt"
 diff -u "$work/example.txt" "$work/example_xl.txt"
-printf 'dotenv Linux C ASan/UBSan and XLang parity gate: PASS\n'
+timeout 120s "$xl" build test/cases/extlib_dotenv.xl -o "$work/dotenv_core"
+timeout 90s "$work/dotenv_core"
+for name in limits apply_oom create_oom replace; do
+    timeout 120s "$xl" build "release/extlibs/dotenv/test/$name.xl" \
+        -o "$work/dotenv_$name"
+    timeout 90s "$work/dotenv_$name"
+done
+timeout 120s "$xl" build release/examples/extlibs/dotenv.xl \
+    -o "$work/dotenv_example"
+timeout 45s "$work/dotenv_example" > "$work/example_aot.txt"
+diff -u "$work/example.txt" "$work/example_aot.txt"
+printf 'dotenv Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

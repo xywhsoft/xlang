@@ -70,12 +70,14 @@ bash release/extlibs/dotenv/test/check.sh
 `XL_DEMO6_DOTENV_EXAMPLE` 在退出前恢复原值或移除，C/XLang 输出对照同一
 黄金文件。只有显式 `apply` 才会写入进程环境。
 
-2026-10-24 使用更新后的 Windows 发布版 `xl.exe` 复验：默认 `check.ps1`
+2026-10-25 使用当前 Windows 发布版 `xl.exe` 复验：默认 `check.ps1`
 完整通过，包括严格 C、C/XLang 范例、语言边界、中央用例和公开范例 AOT。
-Linux `check.sh` 也通过 C ASan/UBSan、语言用例及双语范例对照。
+Linux `check.sh` 也通过 C ASan/UBSan、语言 JIT、中央用例及四个包内
+边界程序的独立 EXE AOT、公开范例 AOT，以及 C/JIT/AOT 范例输出对照。
 此前的 `xl6ValueDataSnapshotV1` 缺符号记录仅描述旧发布二进制，现已解除。
 Linux 脚本需要 `release/xl`，检查 C 侧 XRT
-解析/环境边界、XLang 中央与包内边界，并将 C/XLang 范例同黄金输出逐字对照。
+解析/环境边界、XLang 中央与包内边界，构建运行六条独立 EXE 路径，
+并将 C/XLang 范例同黄金输出逐字对照。
 这两项包级门禁通过不代表整个 xlang 发布版已经签收。
 
 以下为历史验证记录；其中“当前阻断”均指当时的旧发布二进制。
