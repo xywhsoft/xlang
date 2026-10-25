@@ -9,7 +9,8 @@
 分配故障、线程、XLang 网络边界、三条 TCP 路径及双语范例的独立 EXE
 构建和运行。`test/check_live.sh --windows-xl` 在 WSL 自管理 Redis 上
 也通过 C/XLang 固定输出、二进制键值、错误后复用、断线重连与四连接
-各 50 轮。此模式现从 `release` 工作目录运行 `xl.exe`，避免测试脚本
+各 50 轮；同一 XLang 真实服务范例构建为独立 EXE 后，输出与 JIT
+逐字一致。此模式现从 `release` 工作目录运行 `xl.exe`，避免测试脚本
 触发已记录的根目录 VFS 头文件路径故障。Linux 现有 `release/xl`
 导入 `redis.xl` 时仍报未知类型 `cstring`，需重建 Linux 发布物后再验；
 上述 Windows 与跨 WSL 的通过不等于 Linux AOT 或长时耐久签收。

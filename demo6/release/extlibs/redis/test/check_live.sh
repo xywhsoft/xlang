@@ -17,10 +17,19 @@ fi
 
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-redis-live-XXXXXX")
 pid=
+binaryWork=
 cleanup() {
     if [[ -n $pid ]]; then
         kill "$pid" 2>/dev/null || true
         wait "$pid" 2>/dev/null || true
+    fi
+    if [[ -n $binaryWork ]]; then
+        case "$binaryWork" in
+            "$root/build/test"/redis-live-*) ;;
+            *) printf 'unexpected Redis build path: %s\n' "$binaryWork" >&2; return 1 ;;
+        esac
+        rm -f -- "$binaryWork/redis_live.exe"
+        rmdir -- "$binaryWork"
     fi
     rm -rf -- "$work"
 }
@@ -70,6 +79,12 @@ if [[ $mode == --windows-xl ]]; then
         printf 'Redis live example output differs from fixed expectation\n' >&2
         exit 1
     }
+    mkdir -p "$root/build/test"
+    binaryWork=$(mktemp -d "$root/build/test/redis-live-XXXXXX")
+    ./xl.exe build examples/extlibs/redis_live.xl -o \
+        "../build/test/$(basename "$binaryWork")/redis_live.exe"
+    "$binaryWork/redis_live.exe" | tr -d '\r' > "$work/example_aot.txt"
+    diff -u "$work/example_xl.txt" "$work/example_aot.txt"
     [[ $(./xl.exe run extlibs/redis/test/live_server.xl) == 'redis real server: ok' ]]
     [[ $(./xl.exe run extlibs/redis/test/live_server_c.c \
         extlibs/redis/redis_native.c | tr -d '\r') == 'redis real server C: ok' ]]
