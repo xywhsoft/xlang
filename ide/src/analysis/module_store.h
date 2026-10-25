@@ -47,4 +47,12 @@ typedef struct xls_module_scope {struct xls_module_scope* previous;xls_module_st
 void xlsModuleScopeBegin(xls_module_scope* scope,xls_module_store* store);
 void xlsModuleScopeEnd(xls_module_scope* scope);
 xls_module_store* xlsModuleScopeCurrent(void);
+struct xls_entity_store;
+/* Lazy independent external declaration registry. Returns one owned reference;
+ * NULL is an optional resource failure. Separate64MiB known-data quota,not
+ * included in ordinary syntax Stats.bytes. No compiler IDs are rewritten. */
+struct xls_entity_store* xlsModuleStoreEntities(xls_module_store* store);
+struct xls_entity_stats;
+/* Read existing registry stats without creating one. Returns1 if initialized. */
+int xlsModuleStoreEntityStats(xls_module_store* store,struct xls_entity_stats* stats);
 #endif

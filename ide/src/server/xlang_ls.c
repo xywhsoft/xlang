@@ -8,6 +8,7 @@
 #include "analysis/worker.h"
 #ifdef XLS_COMPILER_XRT
 #include "analysis/worker_modules.h"
+#include "analysis/entity_store.h"
 #endif
 #include "protocol/signature_help.h"
 #include <windows.h>
@@ -212,6 +213,11 @@ static void analysisStats(server* s,const xvalue* id)
  MODULE_STAT(lookups);MODULE_STAT(hits);MODULE_STAT(misses);MODULE_STAT(published);MODULE_STAT(deduplicated);MODULE_STAT(evictions);MODULE_STAT(declined);MODULE_STAT(modules);MODULE_STAT(versions);MODULE_STAT(bytes);MODULE_STAT(registryBytes);MODULE_STAT(limit);
 #undef MODULE_STAT
  put(result,"moduleStore",modules);
+ xls_entity_stats entities;xvalue* registry=xrtValueObject();put(registry,"enabled",xrtValueBool(xlsModuleStoreEntityStats(s->modules,&entities)));
+#define ENTITY_STAT(field) put(registry,#field,xrtValueInt((int64)entities.field))
+ ENTITY_STAT(domains);ENTITY_STAT(entities);ENTITY_STAT(bytes);ENTITY_STAT(limit);ENTITY_STAT(hits);ENTITY_STAT(admitted);ENTITY_STAT(declined);
+#undef ENTITY_STAT
+ put(result,"entityStore",registry);
 #endif
  response(s,id,result,0,NULL);
 }
@@ -727,7 +733,7 @@ static void dispatch(server* s,const xvalue* message)
   xrtValueArrayAppend(signatureTriggers,open);xrtValueArrayAppend(signatureTriggers,comma);xrtValueArrayAppend(retriggers,close);xrtValueRelease(open);xrtValueRelease(comma);xrtValueRelease(close);
   put(signature,"triggerCharacters",signatureTriggers);put(signature,"retriggerCharacters",retriggers);put(cap,"signatureHelpProvider",signature);put(scope,"signatureInputGuard",xrtValueString(sv("background-poll")));
   put(cap,"documentHighlightProvider",xrtValueBool(true));
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.66"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.67"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }

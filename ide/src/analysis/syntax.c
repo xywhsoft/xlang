@@ -129,7 +129,7 @@ static int decompose(xls_syntax* s)
     xrtFree(root->children); root->children=NULL; root->childCount=root->childCapacity=0;
     return 1;
 }
-static int functionHeader(const XL6_AstNode* node,size_t* header,size_t* end)
+int xlsSyntaxFunctionHeader(const XL6_AstNode* node,size_t* header,size_t* end)
 {
     if(node->kind!=XL6_AST_FUNC && node->kind!=XL6_AST_ASYNC_FUNC && node->kind!=XL6_AST_EXPORT_FUNC) return 0;
     const XL6_AstNode* body=NULL; *header=node->range.startOffset;
@@ -174,7 +174,7 @@ static xls_syntax* incremental(const char* path,xls_text* text,const xls_syntax*
     for(size_t i=0;i<old->units.Count;++i) {
         const placement* p=xrtArrayConstGet(&old->units,i); const syntax_unit* unit=p->unit;
         size_t header=0,end=0;
-        if(!functionHeader(unit->node,&header,&end)) continue;
+        if(!xlsSyntaxFunctionHeader(unit->node,&header,&end)) continue;
         header=p->offset+header-unit->offset; end=p->offset+end-unit->offset;
         if(prefix<header || oldEnd>end) continue;
         size_t length=(size_t)((int64_t)unit->size+delta);
@@ -195,7 +195,7 @@ static xls_syntax* incremental(const char* path,xls_text* text,const xls_syntax*
         XL6_AstNode* fresh=okay && parsed.root && parsed.root->childCount==1 ? parsed.root->children[0] : NULL;
         size_t freshHeader=0,freshEnd=0;
         if(!fresh || fresh->kind!=unit->node->kind || !fresh->range.known || fresh->range.startOffset || fresh->range.endOffset!=length ||
-           !functionHeader(fresh,&freshHeader,&freshEnd) || freshHeader!=header-p->offset) {
+           !xlsSyntaxFunctionHeader(fresh,&freshHeader,&freshEnd) || freshHeader!=header-p->offset) {
             xl6CompletionFree(&local); xl6ParseResultFree(&parsed); return NULL;
         }
         xls_syntax* s=allocate(path,text);
