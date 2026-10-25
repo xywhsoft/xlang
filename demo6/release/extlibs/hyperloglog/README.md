@@ -1,5 +1,14 @@
 # hyperloglog
 
+2026-10-26 发布物复验：Windows 默认门禁的 C/线程/JIT、私有入口
+负例、双语固定输出，以及中央/公开范例 AOT 已通过；新增顶层
+`test/boundaries.xl` AOT 在 Windows/Linux 都先打印 PASS，再于退出
+清理时报 `RuntimeError: operation is not valid in the current state`，
+退出 1。JIT 同文件正常。当前默认门禁故意保留这条失败路径，
+不签收整包发布级；共享主线问题及最小复现见
+`dev/extlib_blockers/global_native_class_aot_fini.md`。
+旧的文本快照缺符号已经不是当前阻断。
+
 `hyperloglog` 以约 `2^precision` 字节寄存器近似估计不同数据项的数量，不储存原始数据。它不是精确集合，`count()` 的结果可能偏高或偏低；`added` 记录本实例的 `add` 调用数及每次合并带来的源计数，包含重复项。使用 XRT 固定种子的 64 位哈希，寄存器秩只计算扣除索引后的剩余位。
 
 ## XLang API

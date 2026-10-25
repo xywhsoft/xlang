@@ -83,6 +83,22 @@ try {
         $aotLines = @(& $example)
         if ($LASTEXITCODE -ne 0) { throw 'hyperloglog example AOT run failed' }
         Confirm-Output 'XLang example AOT' $aotLines
+
+        foreach ($name in @('boundaries', 'named_type', 'allocations')) {
+            $source = "release/extlibs/hyperloglog/test/$name.xl"
+            $output = Join-Path $work "hyperloglog_$name.exe"
+            & $xl build $source -o $output
+            if ($LASTEXITCODE -ne 0) { throw "hyperloglog $name AOT build failed" }
+            & $output
+            if ($LASTEXITCODE -ne 0) { throw "hyperloglog $name AOT run failed" }
+        }
+
+        $cExample = Join-Path $work 'hyperloglog_c_example.exe'
+        & $xl build release/extlibs/hyperloglog/examples/hyperloglog_c.c -o $cExample
+        if ($LASTEXITCODE -ne 0) { throw 'hyperloglog C example AOT build failed' }
+        $cAotLines = @(& $cExample)
+        if ($LASTEXITCODE -ne 0) { throw 'hyperloglog C example AOT run failed' }
+        Confirm-Output 'C example AOT' $cAotLines
     }
 
     Write-Output $(if ($SkipAot) { 'hyperloglog Windows C/XLang focused gate: PASS' }

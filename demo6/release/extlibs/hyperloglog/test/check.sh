@@ -62,4 +62,20 @@ for method in add merge; do
 done
 timeout 90s "$xl" run release/examples/extlibs/hyperloglog.xl > "$work/hll_xl.txt"
 diff -u "$work/hll_c.txt" "$work/hll_xl.txt"
+timeout 120s "$xl" build test/cases/extlib_hyperloglog.xl \
+    -o "$work/hll_core_aot"
+timeout 45s "$work/hll_core_aot"
+for name in boundaries named_type allocations; do
+    timeout 120s "$xl" build "release/extlibs/hyperloglog/test/$name.xl" \
+        -o "$work/hll_${name}_aot"
+    timeout 45s "$work/hll_${name}_aot"
+done
+timeout 120s "$xl" build release/examples/extlibs/hyperloglog.xl \
+    -o "$work/hll_xl_example_aot"
+timeout 45s "$work/hll_xl_example_aot" > "$work/hll_xl_aot.txt"
+diff -u "$work/hll_c.txt" "$work/hll_xl_aot.txt"
+timeout 120s "$xl" build release/extlibs/hyperloglog/examples/hyperloglog_c.c \
+    -o "$work/hll_c_example_aot"
+timeout 45s "$work/hll_c_example_aot" > "$work/hll_c_aot.txt"
+diff -u "$work/hll_c.txt" "$work/hll_c_aot.txt"
 printf 'hyperloglog Linux C/XL ASan/UBSan gate: PASS\n'
