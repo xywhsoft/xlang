@@ -1,4 +1,14 @@
-# volc.phone 导入链被 xhttp.multipart 阻断
+# volc.phone 的 HTTP 导入链阻断
+
+2026-10-25 当前发布物更新：从 `demo6/release` 执行
+`xl.exe check ..\dev\extlib_blockers\volc_phone_import_chain.xl`，
+旧 `xhttp.multipart`/`cstring` 诊断已不复现；现于独立维护的
+`xhttp.client/src/xlang/xhttp_client.xl:889,903` 报 `create` 无匹配重载，
+并于 946、969 行报 `NetEngine.nativeHandle` 成员不可解析。
+`xl.exe check extlibs/volc.phone/src/phone.xl` 得到相同诊断，尚未进入
+`volc.phone` 自身语义。应由 HTTP 依赖的维护上下文按当前网络类签名
+修复并回归这两条导入路径；本普通扩展库任务继续跳过，不添加包内
+兼容回退。下文是旧发布物的故障历程，不代表当前首个诊断。
 
 最小复现：从 `demo6` 目录运行：
 
