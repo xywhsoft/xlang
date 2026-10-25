@@ -1,0 +1,20 @@
+import xacme
+
+auto config = xacme.CfConfig()
+config.ApiToken = "test-token"
+auto nativeOwner = xacme.DnsProvider.Cf(config)
+var state = {"calls": 0}
+func callback(string fqdn, string txt) as bool
+    state["calls"] = int(state["calls"]) + 1
+    return true
+end
+auto callbackOwner = xacme.DnsProvider.Custom("module-owned", callback, callback)
+
+func main(...) as int
+    assert nativeOwner.Validate()
+    assert callbackOwner.Add("_acme-challenge.example.test", "txt")
+    assert int(state["calls"]) == 1
+    // Live globals deliberately remain for the module ownership planner.
+    println("xacme globals ready for retirement")
+    return 0
+end

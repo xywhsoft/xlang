@@ -36,6 +36,7 @@ XL6_CODE_LEASE_API struct xvalue* xl6NativeHandleTakeV1(
 XL6_CODE_LEASE_API bool xl6NativeHandleTraceLeaf(const struct xvalue*,
     bool (*)(struct xrtownershipref, void*), void*);
 
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6AcmeHandlePolicyV1Get(void);
 /* Commands own text/config/duplicated OS capabilities; statuses own plain data.
  * Live Process is NOT a leaf: its shared wrapper owns one XRT process user
  * endpoint, which can own a shared Future, Promise and error. The native waiter

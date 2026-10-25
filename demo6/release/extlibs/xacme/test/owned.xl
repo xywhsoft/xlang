@@ -1,0 +1,24 @@
+import xacme
+
+func echo(string value) as string
+    return value
+end
+func main(...) as int
+    string root = env.get("XACME_MOCK_ROOT") ?? ""
+    string directory = env.get("XACME_MOCK_DIRECTORY") ?? ""
+    cstring account = xacme.Store.LoadAccount(root, directory)
+    assert string.byteLen(account) > 100
+    auto chain, key = xacme.Store.LoadGrant(root, "example.test")
+    assert string.byteLen(chain) > 500 and string.byteLen(key) > 100
+    string alias = echo(chain)
+    assert alias == chain
+    println(chain)
+    chain = "replaced"
+    assert string.byteLen(alias) > 500 and chain == "replaced"
+    assert not xacme.Store.NeedRenew(root, "example.test", 30)
+    var domains = xacme.Store.ListDomains(root, 16)
+    assert domains.length >= 1
+    assert xacme.CleanupPending() == 0
+    println("xacme owned PEM ok")
+    return 0
+end

@@ -17,6 +17,10 @@
     "wait-arithmetic.h": {
       "source": "include/xrt/wait.h (arithmetic only)",
       "sha256": "3117f3b90dc7d6c2c7a3787591148774ecc116f1506149a9ff0607e8fea4cb53"
+    },
+    "host-features.h": {
+      "source": "single/extlibs/xacme.h (feature guards only)",
+      "sha256": "618b07e81c7b4d5f2dddfc6278b09f2f8f68ad30f61377d2dfc6f09d9163fb96"
     }
   }
 }

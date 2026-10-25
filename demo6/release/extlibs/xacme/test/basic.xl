@@ -1,0 +1,35 @@
+import xacme
+
+func main(...) as int
+    println("xacme basic: registry")
+    assert xacme.DnsProvider.Count() == 5
+    assert xacme.DnsProvider.ProviderId(0) != ""
+    assert xacme.XACME_DNS_CAP_PROPAGATE == 1
+    auto account = xacme.AccountConfig()
+    auto config = xacme.ClientConfig()
+    assert account.DirectoryUrl == "" and config.TimeoutMs == 0
+    auto ali = xacme.AliConfig()
+    ali.AccessKeyId = "test-id"
+    ali.AccessKeySecret = "test-secret"
+    println("xacme basic: builtin")
+    auto provider = xacme.DnsProvider.Ali(ali)
+    assert provider.Validate() and provider.Id == "ali"
+    assert provider.Unit() and provider.Unit()
+    int calls = 0
+    auto add = func(string fqdn, string txt) as bool
+        assert fqdn == "_acme-challenge.test.local" and txt == "abc"
+        calls += 1
+        return true
+    end
+    println("xacme basic: callback")
+    auto custom = xacme.DnsProvider.Custom("test", add, add, add)
+    assert custom.Add("_acme-challenge.test.local", "abc")
+    assert custom.Remove("_acme-challenge.test.local", "abc")
+    assert custom.Propagate("_acme-challenge.test.local", "abc")
+    assert calls == 3 and custom.Caps == 1
+    assert custom.Unit()
+    assert xacme.CleanupPending() == 0
+    println("xacme basic ok")
+    return 0
+end
+
