@@ -89,6 +89,22 @@ int main(void)
             xrtBufferDestroy(bytes);
         }
         xrtClearError();
+
+        assert(xrtMemDebugFailAfter(i));
+        {
+            char* text = xshm_read_text(owner, 0, 3);
+            failed = xrtMemDebugFailTriggered();
+            xrtMemDebugFailClear();
+            if (text == NULL) {
+                assert(failed && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+                ++failures;
+            } else {
+                assert(!failed && memcmp(text, "A\0B", 3) == 0 && text[3] == '\0');
+                ++successes;
+                xrtFree(text);
+            }
+        }
+        xrtClearError();
     }
 
     {

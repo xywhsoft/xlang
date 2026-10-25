@@ -377,6 +377,30 @@ void* xshm_read(void* Handle, int64_t Offset, size_t Length)
     return Result;
 }
 
+void* xshm_read_text(void* Handle, int64_t Offset, size_t Length)
+{
+    xshm_handle* Shared = (xshm_handle*)Handle;
+    char* Text;
+    xrtClearError();
+    if (!xshm_range(Shared, Offset, Length)) return NULL;
+    Text = (char*)xrtMalloc(Length + 1u);
+    if (Text == NULL) {
+        xshm_error(XERR_MEMORY, "could not copy shared memory text");
+        return NULL;
+    }
+    /* 先复制快照，再验证；并发写入时不能直接验证可变映射。 */
+    if (Length != 0u)
+        memcpy(Text, Shared->Mapping + sizeof(xshm_header) + (size_t)Offset,
+            Length);
+    Text[Length] = '\0';
+    if (!xrtUtf8Valid((xstrview){Text, Length}, NULL)) {
+        xrtFree(Text);
+        xshm_error(XERR_VALUE, "shared memory text is not valid UTF-8");
+        return NULL;
+    }
+    return Text;
+}
+
 int xshm_write_int64(void* Handle, int64_t Offset, int64_t Value)
 {
     unsigned char Bytes[8];

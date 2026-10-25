@@ -2,6 +2,7 @@
 extern "xl6_xrt_last_error_text" func __shm_error() as string
 extern "xshm_create" func __shm_create(string name, int size) as point
 extern "xshm_open" func __shm_open(string name) as point
+extern "xrtFree" @no_raise func __shm_free(point data)
 
 func __shmCheckName(string name)
     if string.indexOf(name, "\0", false, string.byteLen(name), 1) >= 0 then
@@ -19,6 +20,7 @@ export class SharedMemory
     private extern "xshm_write_abi" func writeNative(int offset, point data, c_size length) as c_int
     private extern "xshm_write_text" func writeTextNative(int offset, cstring text) as c_int
     private extern "xshm_read" func readNative(int offset, c_size length) as point
+    private extern "xshm_read_text" func readTextNative(int offset, c_size length) as point
     private extern "xshm_write_int64" func writeIntNative(int offset, int value) as c_int
     private extern "xshm_read_int64_value" func readIntNative(int offset) as int
     private extern "xshm_zero" func zeroNative() as c_int
@@ -50,8 +52,11 @@ export class SharedMemory
         end
     end
 
-    func readText(int offset, int length) as string
-        return self.read(offset, length).text()
+    func readText(int offset, int length) as cstring
+        if length < 0 then throw RangeError "shared memory length is negative" end
+        point text = self.readTextNative(offset, c_size(length))
+        if text == null then throw RangeError __shm_error() end
+        return cstring.take(text, c_size(length), __shm_free)
     end
 
     func writeInt(int offset, int value)

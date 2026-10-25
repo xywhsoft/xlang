@@ -16,11 +16,23 @@ assert copy.len() == 3
 assert copy.byteAt(0) == 65
 assert copy.byteAt(1) == 0
 assert copy.byteAt(2) == 255
+bool badTextRejected = false
+try
+    peer.readText(0, 3)
+catch ValueError error
+    badTextRejected = true
+end
+assert badTextRejected
 
 peer.writeInt(16, -123456789)
 assert owner.readInt(16) == -123456789
 owner.writeText(32, "你好")
 assert peer.readText(32, 6) == "你好"
+string snapshot = peer.readText(32, 6)
+owner.writeText(32, "再见")
+assert snapshot == "你好"
+assert peer.readText(32, 6) == "再见"
+assert peer.readText(64, 0) == ""
 
 int failures = 0
 try

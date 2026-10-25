@@ -74,6 +74,7 @@ int main(int argc, char** argv)
     void* owner;
     void* peer;
     xbuffer* copy;
+    char* text;
     xbytesview view;
     int64_t value;
     int process_result;
@@ -130,6 +131,19 @@ int main(int argc, char** argv)
     view = xrtBufferView(copy);
     CHECK(view.Size == 3 && memcmp(view.Data, binary, 3) == 0);
     xrtBufferDestroy(copy);
+    CHECK(xshm_read_text(peer, 0, 3) == NULL);
+    CHECK(xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    CHECK(xshm_write(owner, 0, "A\0B", 3));
+    text = xshm_read_text(peer, 0, 3);
+    CHECK(text != NULL && memcmp(text, "A\0B", 3) == 0 && text[3] == '\0');
+    CHECK(xshm_write(owner, 0, "XYZ", 3));
+    CHECK(memcmp(text, "A\0B", 3) == 0);
+    xrtFree(text);
+    text = xshm_read_text(peer, 64, 0);
+    CHECK(text != NULL && text[0] == '\0');
+    xrtFree(text);
+    CHECK(xshm_read_text(peer, 64, 1) == NULL);
+    CHECK(xrtErrorKind(xrtGetError()) == XERR_RANGE);
     CHECK(!xshm_write(owner, -1, binary, 1));
     CHECK(!xshm_write(owner, 63, binary, 3));
     CHECK(!xshm_write(owner, 0, NULL, 1));

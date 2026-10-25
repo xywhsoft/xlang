@@ -22,6 +22,8 @@ int xshm_write(void* Shared, int64_t Offset, const void* Data, size_t Length);
 int xshm_write_abi(void* Shared, int64_t Offset, void* Data, size_t Length);
 /* 返回 xbuffer* 的独立副本，调用方用 xrtBufferDestroy 释放。 */
 void* xshm_read(void* Shared, int64_t Offset, size_t Length);
+/* 返回独立 UTF-8 副本；调用方用 xrtFree 释放，长度由调用方保留。 */
+void* xshm_read_text(void* Shared, int64_t Offset, size_t Length);
 int xshm_write_int64(void* Shared, int64_t Offset, int64_t Value);
 int xshm_read_int64(void* Shared, int64_t Offset, int64_t* Value);
 int64_t xshm_read_int64_value(void* Shared, int64_t Offset);

@@ -31,7 +31,10 @@ assert owner.readInt(16) == 42
 `writeInt`、`readInt` 和 `zero()`。`read` 返回独立副本；`writeInt/readInt`
 按固定小端序读写有符号 64 位整数。文本按 UTF-8 字节写入；
 `readText` 的长度也是**字节数**，不是字符数，也没有自动尾零协议。
-二进制数据包括 NUL 时请用 `Buffer`。
+它返回独立的 `cstring` 快照：原生层只复制一次并验证 UTF-8，语言层
+直接接管这块内存。合法 UTF-8 中的 NUL 会按显式长度保留；任意二进制
+数据仍请用 `Buffer`。C 的 `xshm_read_text` 返回值由调用方用 `xrtFree`
+释放，读取长度由调用方保留，尾部另有一个 NUL 方便常规 C 字符串使用。
 
 名称是 1 至 128 字节的有效 UTF-8，不能含 NUL、斜线、反斜线或控制字符。
 XLang 的 `create/open` 在进入 C ABI 前拒绝内嵌 NUL，不会意外访问前缀名称。
@@ -134,3 +137,11 @@ ASan/UBSan 门禁复跑通过。完整范例 AOT 阻断不变。
 Windows `-SkipAot` 的跨进程 C、分配故障、语言边界与双语门禁，以及
 Linux C ASan/UBSan、XLang 和双语门禁均通过。私有构造器访问控制及
 完整 AOT 的既有主线阻断仍未解除，整包不据此签收发布级。
+
+2026-10-25：`readText` 改为原生层单次复制、在独立快照上验证 UTF-8，
+再由 `cstring.take` 接管；C 和 XLang 均保留明确字节长度。新增无效 UTF-8、
+内嵌 NUL、空文本、越界、快照独立性与分配故障检查。Windows 严格 C
+跨进程/分配门禁、XLang 边界与分配用例、双语范例 JIT、核心 AOT 均通过。
+完整包脚本从仓库根目录运行时仍受主线 VFS 头文件查找问题阻断；从
+`release` 工作目录的定向 JIT/AOT 则通过。私有构造器与全局原生类退役
+问题仍使整包不能签收完整发布级。

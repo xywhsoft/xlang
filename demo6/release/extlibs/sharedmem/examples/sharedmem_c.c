@@ -17,19 +17,19 @@ int main(void)
     owner = xshm_create(name, 128);
     reader = owner != NULL ? xshm_open(xshm_name_of(owner)) : NULL;
     xbuffer* copy;
+    char* text;
     int64_t integer = 0;
     if (reader == NULL || !xshm_write(owner, 0, "hello", 5) ||
         !xshm_write_int64(reader, 16, 42) ||
         !xshm_write(owner, 32, binary, 3)) goto fail;
-    copy = (xbuffer*)xshm_read(reader, 0, 5);
-    if (copy == NULL || !xshm_read_int64(owner, 16, &integer)) {
-        xrtBufferDestroy(copy);
+    text = xshm_read_text(reader, 0, 5);
+    if (text == NULL || !xshm_read_int64(owner, 16, &integer)) {
+        xrtFree(text);
         goto fail;
     }
-    printf("text: %.*s\n", (int)xrtBufferView(copy).Size,
-        (const char*)xrtBufferView(copy).Data);
+    printf("text: %s\n", text);
     printf("integer: %lld\n", (long long)integer);
-    xrtBufferDestroy(copy);
+    xrtFree(text);
     copy = (xbuffer*)xshm_read(reader, 32, 3);
     if (copy == NULL) goto fail;
     printf("binary size: %lu\n", (unsigned long)xrtBufferView(copy).Size);
