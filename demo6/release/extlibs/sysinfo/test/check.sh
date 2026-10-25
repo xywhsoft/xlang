@@ -60,6 +60,7 @@ if [[ ! -x ./release/xl ]]; then
     printf 'sysinfo: Linux release/xl is missing\n' >&2
     exit 1
 fi
+printf '[sysinfo] XLang JIT gate\n'
 timeout 45s ./release/xl run release/extlibs/sysinfo/test/boundaries.xl
 timeout 45s ./release/xl run release/extlibs/sysinfo/test/allocations.xl
 timeout 45s ./release/xl run release/extlibs/sysinfo/examples/basic.xl > "$work/xl.txt"
@@ -74,4 +75,23 @@ for output in "$work/metrics_c.txt" "$work/metrics_xl.txt" "$work/metrics_c_dire
     grep -Eq '^usage: ([0-9]|[1-9][0-9]|100)$' "$output"
     grep -Eq '^uptime: [0-9]+$' "$output"
 done
-printf 'sysinfo Linux C ASan/UBSan and XLang parity gate: PASS\n'
+printf '[sysinfo] XLang AOT gate\n'
+for name in boundaries allocations; do
+    timeout 180s ./release/xl build "release/extlibs/sysinfo/test/$name.xl" \
+        -o "$work/sysinfo_$name"
+    timeout 45s "$work/sysinfo_$name" > "$work/$name.aot.txt"
+done
+grep -Fxq 'sysinfo allocations: PASS' "$work/allocations.aot.txt"
+timeout 180s ./release/xl build release/extlibs/sysinfo/examples/basic.xl \
+    -o "$work/sysinfo_basic"
+timeout 45s "$work/sysinfo_basic" > "$work/basic.aot.txt"
+diff -u "$work/c.txt" "$work/basic.aot.txt"
+timeout 180s ./release/xl build release/extlibs/sysinfo/examples/metrics.xl \
+    -o "$work/sysinfo_metrics"
+timeout 45s "$work/sysinfo_metrics" > "$work/metrics_aot.txt"
+output="$work/metrics_aot.txt"
+test "$(wc -l < "$output")" -eq 3
+grep -Eq '^available: [0-9]+$' "$output"
+grep -Eq '^usage: ([0-9]|[1-9][0-9]|100)$' "$output"
+grep -Eq '^uptime: [0-9]+$' "$output"
+printf 'sysinfo Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'
