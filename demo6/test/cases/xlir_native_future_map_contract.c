@@ -2,7 +2,7 @@
 #include "src/compile/xl6_artifact_runtime.h"
 int main(void)
 {
-    const char* fixtures[]={"stdlib_net_fast_path","stdlib_net_send_file","stdlib_tls_server_loopback",
+    const char* fixtures[]={"stdlib_net_fast_path","stdlib_net_send_file",
         "xlir_net_resolver_standalone","xlir_net_datagram_boundaries","xlir_net_buffer_command_lifetime"};
     const char* diagnostic="native Future mapper/code ownership ABI is unresolved";
     for(size_t fixture=0;fixture<sizeof(fixtures)/sizeof(*fixtures);++fixture){
@@ -46,8 +46,7 @@ int main(void)
     }
     {
         const XL6_IrRuntimeBridgeKind bridges[]={XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL,XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM,
-            XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER,XL6_IR_RUNTIME_BRIDGE_NET_TLS_DIAL,XL6_IR_RUNTIME_BRIDGE_NET_TLS_STREAM,
-            XL6_IR_RUNTIME_BRIDGE_NET_TLS_SERVER,XL6_IR_RUNTIME_BRIDGE_NET_RESOLVE_ASYNC,XL6_IR_RUNTIME_BRIDGE_NET_UDP_RECV_ASYNC};
+            XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER,XL6_IR_RUNTIME_BRIDGE_NET_RESOLVE_ASYNC,XL6_IR_RUNTIME_BRIDGE_NET_UDP_RECV_ASYNC};
         XL6_IrModule probe={0};XL6_IrCallTarget target={0};probe.callTargets=&target;probe.callTargetCount=1;
         target.cName="unrelated-c-symbol";
         for(size_t i=0;i<sizeof(bridges)/sizeof(*bridges);++i){
@@ -65,7 +64,7 @@ int main(void)
         ir.abi.nativeFutureMapAbi=XL6_IR_NATIVE_FUTURE_MAP_NONE;verify(&ir);
         xl6IrModuleFree(&ir);xl6ParseResultFree(&parse);
     }
-    assert(mutations==25);
-    puts("Native Future mapping IR: 6 real modules, 8 bridge identities, 25 IR/C/header-gated mutations, invalid artifact plans refused, deterministic C and exact resident dependencies");
+    assert(mutations==21);
+    puts("Native Future mapping IR: 5 legacy modules, 5 bridge identities, 21 IR/C/header-gated mutations, invalid artifact plans refused, deterministic C and exact resident dependencies");
     return 0;
 }

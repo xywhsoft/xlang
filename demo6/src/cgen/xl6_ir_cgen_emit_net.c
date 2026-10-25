@@ -372,20 +372,16 @@ static int xl6IrCgenEmitNetTcpRuntime(
         module, XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_FILE_TRANSFER, 1);
     component.tcpServer = xl6IrCgenNetHasBridge(
         module, XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER);
-    component.tlsStream = needs->needsNetTlsStreamRuntime;
-    component.bytes = component.tcpStream || component.tlsStream;
+    component.bytes = component.tcpStream;
     component.engine = component.tcpDial || component.tcpListen ||
-        component.tcpServer || needs->needsNetTlsDialRuntime ||
-        needs->needsNetTlsServerRuntime;
-    component.resolver = component.tcpDial || needs->needsNetTlsDialRuntime;
+        component.tcpServer;
+    component.resolver = component.tcpDial;
     component.future = component.tcpDial || component.tcpStream ||
         component.tcpServer;
     component.addressHelper = component.tcpListen || component.tcpStream ||
-        component.tcpServer || needs->needsNetTlsServerRuntime;
-    component.deadlineHelper = component.tcpDial || component.tcpServer ||
-        needs->needsNetTlsDialRuntime || needs->needsNetTlsServerRuntime;
-    component.stats = component.tcpStream || component.tcpServer ||
-        needs->needsNetTlsServerRuntime;
+        component.tcpServer;
+    component.deadlineHelper = component.tcpDial || component.tcpServer;
+    component.stats = component.tcpStream || component.tcpServer;
     needsStreamClass = component.tcpDial || component.tcpStream ||
         component.tcpServer;
     needsBytesClass = component.bytes;
@@ -408,10 +404,6 @@ static int xl6IrCgenEmitNetTcpRuntime(
         bytesType = xl6IrCgenNetDeclaredFutureClassPayload(
             module,
             XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_RECV_OWNED_BYTES_ASYNC);
-        if ( bytesType == XL6_IR_TYPE_INVALID )
-            bytesType = xl6IrCgenNetDeclaredFutureClassPayload(
-                module,
-                XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TLS_RECV_OWNED_BYTES_ASYNC);
         if ( bytesType == XL6_IR_TYPE_INVALID || bytesType == streamType )
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                 "XLIR reachable network stream has no unique NetBytes class type");
@@ -425,7 +417,7 @@ static int xl6IrCgenEmitNetTcpRuntime(
          !xl6IrCgenEmitNetClassWrapper(
              out, module, bytesType, "bytes", "xnetbytes",
              "xrtNetBytesRef", diags) ) return 0;
-    if ( component.future || needs->needsNetTlsStreamRuntime || needs->needsNetTlsDialRuntime || needs->needsNetTlsServerRuntime )
+    if ( component.future )
         xl6IrCgenEmitNetFutureAdapters(out, needsStreamClass, needsBytesClass);
     if (component.tcpVectors) {
         const XL6_IrClassField* field = xl6IrRuntimeNetBufferField(module);
@@ -447,124 +439,5 @@ static int xl6IrCgenEmitNetTcpRuntime(
     xl6OutputPuts(
         "#undef xl6ValueHandleData\n"
         "#undef xl6_xrt_string_dup\n\n", out);
-    return !xl6OutputHasFailed(out);
-}
-
-static void xl6IrCgenEmitNetTlsAdapters(
-    XL6_Output* out, int hasTransport, int hasServer)
-{
-    xl6OutputPuts("#include <stdarg.h>\n", out);
-    if ( hasTransport )
-        xl6OutputPuts(
-        "static void xlir_tls_future_destroy(xfuture* future) { xrtFutureDestroy(future); }\n"
-        "static bool xlir_tls_future_cancel(xfuture* future) { return future != NULL && xrtFutureCancel(future); }\n"
-        "static bool xlir_tls_future_wait(xfuture* future) { return future != NULL && xrtFutureWait(future) == 0 && xrtFutureState(future) == XFUTURE_RESOLVED; }\n"
-        "static bool xlir_tls_future_wait_for(xfuture* future, long long timeout_ms) { return future != NULL && xrtFutureWaitFor(future, timeout_ms < 0 ? UINT64_MAX : (uint64_t)timeout_ms * 1000u) == 0 && xrtFutureState(future) == XFUTURE_RESOLVED; }\n"
-        "static void* xlir_tls_future_value(xfuture* future) { return future != NULL ? xrtFutureValue(future) : NULL; }\n",
-        out);
-    xl6OutputPuts(
-        "static XL6_Function xlir_tls_function_copy_value(XL6_Function value) { if (value.retain != NULL && value.env != NULL) value.retain(value.env); return value; }\n"
-        "static void xlir_tls_function_release_value(XL6_Function value) { if (value.release != NULL && value.env != NULL) value.release(value.env); }\n"
-        "static xvalue* xlir_tls_function_call_var(XL6_Function function, int count, ...)\n"
-        "{ xvalue* arguments[1] = {0}; xvalue* result; va_list values; if (count != 1 || function.invoke_var == NULL) return xrtValueNull(); va_start(values, count); arguments[0] = va_arg(values, xvalue*); va_end(values); result = function.invoke_var(function.env, count, arguments); xrtValueRelease(arguments[0]); return result != NULL ? result : xrtValueNull(); }\n"
-        "static bool xlir_tls_value_object_set(xvalue* object, const char* key, size_t key_size, xvalue* value, bool take) { xstrview name = { key != NULL ? key : \"\", key_size != 0 ? key_size : (key != NULL ? strlen(key) : 0u) }; (void)take; return object != NULL && value != NULL && xrtValueObjectSetNew(object, name, value); }\n"
-        "static xvalue* xlir_tls_value_text_create(void* text, size_t size, bool take) { const char* value = text != NULL ? (const char*)text : \"\"; xvalue* result = xrtValueString((xstrview){ value, size != 0 ? size : strlen(value) }); if (take) xrtFree(text); return result; }\n"
-        "static bool xlir_tls_value_bool(const xvalue* value) { bool result = false; return value != NULL && xrtValueGetBool(value, &result) && result; }\n",
-        out);
-    if ( hasServer )
-        xl6OutputPuts(
-        "#ifndef XL6_NET_STATS_RUNTIME\n#define XL6_NET_STATS_RUNTIME\n"
-        "typedef struct xl6_net_stats_snapshot { size_t Count; uint64_t Values[34]; } xl6_net_stats_snapshot;\n"
-        "static xl6_net_stats_snapshot* xl6_net_stats_create(size_t count) { xl6_net_stats_snapshot* value = (xl6_net_stats_snapshot*)xrtCalloc(1u, sizeof(*value)); if (value != NULL) value->Count = count; return value; }\n"
-        "#endif\n",
-        out);
-}
-
-static int xl6IrCgenEmitNetTlsRuntime(
-    XL6_Output* out, const XL6_IrModule* module,
-    const XL6_IrCgenNeeds* needs, XL6_DiagList* diags)
-{
-    XL6_IrTypeId streamType;
-    int hasTransport;
-    if ( needs == NULL || !needs->needsNetTlsRuntime ) return 1;
-    hasTransport = needs->needsNetTlsStreamRuntime ||
-        needs->needsNetTlsDialRuntime || needs->needsNetTlsServerRuntime;
-    if (hasTransport && module->abi.nativeFutureMapAbi != XL6_IR_NATIVE_FUTURE_MAP_RESIDENT_EXCLUSIVE_V1)
-        return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR TLS native Future mapper ABI is unresolved");
-    if ( hasTransport ) {
-        streamType = xl6IrCgenNetReceiverClassType(
-            module, XL6_IR_RUNTIME_BRIDGE_NET_TLS_STREAM);
-        if ( streamType == XL6_IR_TYPE_INVALID )
-            streamType = xl6IrCgenNetFutureClassPayload(
-                module, XL6_IR_RUNTIME_BRIDGE_NET_TLS_DIAL);
-        if ( streamType == XL6_IR_TYPE_INVALID )
-            streamType = xl6IrCgenNetFutureClassPayload(
-                module, XL6_IR_RUNTIME_BRIDGE_NET_TLS_SERVER);
-        if ( streamType == XL6_IR_TYPE_INVALID ||
-             !xl6IrCgenEmitNetOwnedClassWrapper(
-                 out, module, streamType, "tls_stream", diags) ) return 0;
-    }
-    xl6IrCgenEmitNetTlsAdapters(
-        out, hasTransport, needs->needsNetTlsServerRuntime);
-    xl6OutputPuts(
-        "#define xl6FutureDestroy xlir_tls_future_destroy\n"
-        "#define xl6FutureCancel xlir_tls_future_cancel\n"
-        "#define xl6FutureWait xlir_tls_future_wait\n"
-        "#define xl6FutureWaitFor xlir_tls_future_wait_for\n"
-        "#define xl6FutureValue xlir_tls_future_value\n"
-        "#define xl6_function_copy_value xlir_tls_function_copy_value\n"
-        "#define xl6_function_release_value xlir_tls_function_release_value\n"
-        "#define xl6_function_call_var xlir_tls_function_call_var\n"
-        "#define xl6_xrt_value_object_set xlir_tls_value_object_set\n"
-        "#define xl6_xrt_value_text_create xlir_tls_value_text_create\n"
-        "#define xl6_xrt_value_bool xlir_tls_value_bool\n"
-        "#define xl6_xrt_string_dup xlir_net_string_dup\n"
-        "#define xl6ValueHandleData xlir_net_value_handle_data\n"
-        "#define xl6_xrt_tls_config_destroy xlir_tls_component_config_destroy\n"
-        "#define xl6_xrt_tls_session_destroy xlir_tls_component_session_destroy\n"
-        "#define xl6_xrt_tls_resume_destroy xlir_tls_component_resume_destroy\n"
-        "#define xl6_xrt_tls_stream_destroy xlir_tls_component_stream_destroy\n"
-        "#define xl6_xrt_tls_server_destroy xlir_tls_component_server_destroy\n",
-        out);
-    xl6CgenEmitTlsRuntime(
-        out,
-        needs->needsNetTlsStreamRuntime,
-        needs->needsNetTlsDialRuntime,
-        needs->needsNetTlsServerRuntime,
-        "xlir_net_tls_stream_borrow_handle",
-        "xlir_net_bytes_borrow_handle");
-    xl6OutputPuts(
-        "#undef xl6_xrt_tls_server_destroy\n"
-        "#undef xl6_xrt_tls_stream_destroy\n"
-        "#undef xl6_xrt_tls_resume_destroy\n"
-        "#undef xl6_xrt_tls_session_destroy\n"
-        "#undef xl6_xrt_tls_config_destroy\n"
-        "#undef xl6ValueHandleData\n"
-        "#undef xl6_xrt_string_dup\n"
-        "#undef xl6_xrt_value_bool\n"
-        "#undef xl6_xrt_value_text_create\n"
-        "#undef xl6_xrt_value_object_set\n"
-        "#undef xl6_function_call_var\n"
-        "#undef xl6_function_release_value\n"
-        "#undef xl6_function_copy_value\n"
-        "#undef xl6FutureValue\n"
-        "#undef xl6FutureWaitFor\n"
-        "#undef xl6FutureWait\n"
-        "#undef xl6FutureCancel\n"
-        "#undef xl6FutureDestroy\n"
-        "void xl6_xrt_tls_config_destroy(void* value) { (void)xlir_tls_component_config_destroy(value); }\n"
-        "void xl6_xrt_tls_session_destroy(void* value) { (void)xlir_tls_component_session_destroy(value); }\n"
-        "void xl6_xrt_tls_resume_destroy(void* value) { (void)xlir_tls_component_resume_destroy(value); }\n",
-        out);
-    if ( needs->needsNetTlsStreamRuntime || needs->needsNetTlsDialRuntime ||
-         needs->needsNetTlsServerRuntime )
-        xl6OutputPuts(
-            "void xl6_xrt_tls_stream_destroy(void* value) { (void)xlir_tls_component_stream_destroy(value); }\n",
-            out);
-    if ( needs->needsNetTlsServerRuntime )
-        xl6OutputPuts(
-            "void xl6_xrt_tls_server_destroy(void* value) { (void)xlir_tls_component_server_destroy(value); }\n",
-            out);
-    xl6OutputPuts("\n", out);
     return !xl6OutputHasFailed(out);
 }

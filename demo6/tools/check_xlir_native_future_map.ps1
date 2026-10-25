@@ -13,7 +13,7 @@ try {
         'test/cases/xlir_network_callback_code_owner.c','test/cases/xlir_network_callback_code_module.c',
         'test/cases/xlir_network_callback_code_unload.c','test/cases/xlir_continuation_owner_test.h',
         'test/cases/xlir_synthetic_owner_edit.h')
-    $fixtures=@('stdlib_net_fast_path','stdlib_net_send_file','stdlib_tls_server_loopback',
+    $fixtures=@('stdlib_net_fast_path','stdlib_net_send_file',
         'xlir_net_resolver_standalone','xlir_net_datagram_boundaries','xlir_net_buffer_command_lifetime')
     $files=Get-Item -LiteralPath (@($PSCommandPath,$Tcc,'C:/Windows/System32/ucrtbase.dll',(Get-Command gcc).Source)+
         $testSources+@($fixtures|ForEach-Object {"test/cases/$_.xl"}))
@@ -45,7 +45,7 @@ try {
     $contract="$outputPath/contract.exe"
     & gcc @flags -O0 test/cases/xlir_native_future_map_contract.c @objects @libs -o $contract *> "$contract.build.log"
     $build=$LASTEXITCODE;$run=$null
-    if(!$build){$run=Invoke-MapperProbe $contract @() '25 IR/C/header-gated mutations' 240000}
+    if(!$build){$run=Invoke-MapperProbe $contract @() '21 IR/C/header-gated mutations' 240000}
     $rows+=[pscustomobject]@{Name='IR-contract';Build=$build;Run=$run;Complete=(!$build-and$run.Complete)}
     Write-Output "IR contract build=$build run=$($run.Exit)"
     $residentSources=@('src/runtime/xl6_code_lease.c','src/runtime/xl6_ownership_plan.c','src/runtime/xl6_capture.c',
@@ -70,8 +70,7 @@ try {
     }
     $cases=@(
         @{Fixture='stdlib_net_fast_path';Kind='bool';Defines=@()},
-        @{Fixture='xlir_net_resolver_standalone';Kind='addresses';Defines=@('-DXLIR_NETWORK_RESOLVER')},
-        @{Fixture='stdlib_tls_server_loopback';Kind='tls-context';Defines=@('-DXLIR_NETWORK_TLS_CONTEXT')})
+        @{Fixture='xlir_net_resolver_standalone';Kind='addresses';Defines=@('-DXLIR_NETWORK_RESOLVER')})
     foreach($case in $cases){
         $prefix="$outputPath/$($case.Kind)"
         & $public.Driver "test/cases/$($case.Fixture).xl" emit $prefix *> "$prefix.emit.log"
@@ -79,13 +78,11 @@ try {
         if($emit){continue}
         foreach($suffix in @('c','h','json')){$inputs+=[pscustomobject]@{Path="$prefix.$suffix";Sha256=(Get-FileHash -LiteralPath "$prefix.$suffix").Hash}}
         $defines=@($case.Defines)+@((New-XlirCStringDefine 'XLIR_NETWORK_GENERATED_C' ($prefix+'.c').Replace('\','/')))
-        if($case.Kind-ne'tls-context'){
-            $exe="$prefix-owner.exe"
-            & gcc @flags -O0 @defines test/cases/xlir_network_callback_code_owner.c @objects @libs -o $exe *> "$exe.build.log"
-            $build=$LASTEXITCODE;$run=$null
-            if(!$build){$run=Invoke-MapperProbe $exe @() '"Complete":true'}
-            $rows+=[pscustomobject]@{Name="$($case.Kind)-owner";Build=$build;Run=$run;Complete=(!$build-and$run.Complete)}
-        }
+        $exe="$prefix-owner.exe"
+        & gcc @flags -O0 @defines test/cases/xlir_network_callback_code_owner.c @objects @libs -o $exe *> "$exe.build.log"
+        $build=$LASTEXITCODE;$run=$null
+        if(!$build){$run=Invoke-MapperProbe $exe @() '"Complete":true'}
+        $rows+=[pscustomobject]@{Name="$($case.Kind)-owner";Build=$build;Run=$run;Complete=(!$build-and$run.Complete)}
         foreach($level in @(0,2)){
             $exe="$prefix-unload-O$level.exe";$dll="$prefix-generated-O$level.dll";$import="$prefix-host-O$level.a"
             & gcc @flags "-O$level" test/cases/xlir_network_callback_code_unload.c @refreshed @otherObjects @libs "-Wl,--out-implib,$import" '-Wl,--export-all-symbols' -o $exe *> "$exe.build.log"
@@ -100,10 +97,10 @@ try {
         }
     }
     $unchanged=!@($inputs|Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash-ne$_.Sha256}).Count
-    $complete=$unchanged-and$rows.Count-eq12-and!@($rows|Where-Object {!$_.Complete}).Count-and
-        $generated.Count-eq3-and!@($generated|Where-Object Emit -ne 0).Count
+    $complete=$unchanged-and$rows.Count-eq10-and!@($rows|Where-Object {!$_.Complete}).Count-and
+        $generated.Count-eq2-and!@($generated|Where-Object Emit -ne 0).Count
     $report=[pscustomobject]@{Complete=$complete;Inputs=$inputs;InputsUnchanged=$unchanged;Results=$rows;Generated=$generated;
-        Scope='Verified native Future mapping ABI and plan dependencies; resident exclusive cancellation across GCC O0/O2 and TCC; unmodified generated TCP/resolver/TLS adapters in actual unloadable DLLs, four outcomes and separately retained class results after Close. Controlled real native values/source Promises; not engine ownership, live protocol teardown, whole-module collection or release/platform acceptance.'}
+        Scope='Legacy TCP/resolver native Future mapping ABI and plan dependencies; resident exclusive cancellation across GCC O0/O2 and TCC; generated adapters in actual unloadable DLLs, four outcomes and separately retained class results after Close. Managed TLS uses its dedicated resident ownership gates, not this retired TLS adapter. Not whole-module collection or release/platform acceptance.'}
     [IO.File]::WriteAllText("$outputPath/results.json",($report|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
     if(!$complete){throw 'Native mapper failures retained for grouped repair'}
 }finally{Pop-Location}

@@ -13,7 +13,7 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
         '-Wno-missing-field-initializers','-I.','-Ilib/xrt','-Ibuild/test')
     $results = @()
-    foreach ($fixture in @('stdlib_net_fast_path','stdlib_net_send_file','stdlib_tls_server_loopback')) {
+    foreach ($fixture in @('stdlib_net_fast_path','stdlib_net_send_file')) {
         $prefix = "build/test/xlir_network_wrapper_$fixture"
         $failure = $null
         try {
@@ -38,24 +38,6 @@ try {
             if (!$c.Contains('xlir_net_bytes_handle_drop') -or !$c.Contains('xl6_xrt_net_bytes_destroy(handle);') -or
                 !$c.Contains('if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);')) {
                 throw 'Network native ownership callback lost its exact destructor or outcome boundary'
-            }
-            if ($fixture -eq 'stdlib_tls_server_loopback') {
-                if (!$c.Contains('return xlir_net_tls_stream_borrow_handle(value);') -or
-                    !$c.Contains('return xlir_net_bytes_borrow_handle(value);')) {
-                    throw 'Shared TLS component lost its explicit class payload projections'
-                }
-                $byteFields = @($ir.classFields | Where-Object nativeDestroySymbol -eq $targets[0].symbol)
-                if ($byteFields.Count -ne 1) { throw 'No unique verified NetBytes field binding' }
-                # The JSON dump identifies the exact field but omits its name;
-                # copy the emitted C literal for this test-only borrowed sentinel.
-                $fieldLiteral = [regex]::Match($c, '(?s)static void\* xlir_net_bytes_borrow_handle\(.*?xrtStrView\(("(?:\\.|[^"\\])*")\)')
-                if (!$fieldLiteral.Success) { throw 'Missing emitted NetBytes field projection' }
-                $binding = '#define XLIR_TLS_BYTES_FIELD ' + $fieldLiteral.Groups[1].Value
-                [IO.File]::WriteAllText((Join-Path (Get-Location) "$prefix.binding.h"), $binding, [Text.UTF8Encoding]::new($false))
-                & gcc @strict -include "$prefix.c" -include "$prefix.binding.h" test/cases/xlir_tls_payload_projection_host.c release/xl.dll -lWs2_32 -lIPHLPAPI -lShell32 -o "$prefix.projection.exe"
-                if ($LASTEXITCODE -ne 0) { throw 'TLS projection strict C link failed' }
-                & "$prefix.projection.exe"
-                if ($LASTEXITCODE -ne 0) { throw 'TLS payload projection/allocation outcome gate failed' }
             }
         } catch { $failure = $_.Exception.Message }
         $results += [pscustomobject]@{ Fixture=$fixture; Passed=($null -eq $failure); Failure=$failure }

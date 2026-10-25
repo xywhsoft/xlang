@@ -12534,17 +12534,6 @@ static int xl6IrLowerResolveRuntimeBridge(
         }
         return 1;
     }
-    target->runtimeBridge = xl6IrRuntimeNetTlsBridgeKind(target->cName);
-    if ( target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ) {
-        if ( !xl6IrRuntimeNetTlsBridgeTargetMatches(ctx->module, target) ) {
-            char diagnostic[256];
-            (void)snprintf(diagnostic, sizeof(diagnostic),
-                "XLIR TLS runtime bridge '%s' has no exact component ABI",
-                target->cName);
-            return xl6IrLowerDiag(ctx, target->declaration, diagnostic);
-        }
-        return 1;
-    }
     if ( xl6IrRuntimeHttp1BridgeName(target->cName) ) {
         target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_HTTP1;
         if ( !xl6IrRuntimeHttp1BridgeTargetMatches(ctx->module, target) )

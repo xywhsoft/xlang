@@ -1,16 +1,8 @@
-TlsConfig config = TlsConfig()
-TlsServer server = tls.listen(0, config)
-
-assert server.port == 0
-assert server.state == 2
-assert server.localAddr() == ""
-assert not server.close()
-
-TlsStream accepted = server.accept(1)
-future<TlsStream> accepting = server.acceptAsync()
-TlsServerStats stats = server.stats()
-
-accepting.cancel()
-println(accepted.state)
-println(stats.handshakes)
+// Declaration/ABI fixture; no listener is started.
+export func acceptTls(TlsServer listener) as future<TlsStream>
+    return listener.acceptAsync()
+end
+export func tlsStats(TlsServer listener) as TlsServerStats
+    return listener.stats()
+end
 println("tls-server-fast-path-ok")

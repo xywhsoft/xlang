@@ -8,7 +8,7 @@
 - xruntime 产品公共函数：3899，其中扩展自有 465。
 - 低层能力：3899 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：2490 个函数。其余 1409 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：2477 个函数。其余 1422 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -72,7 +72,7 @@
 | xrt | `include/xrt/number.h` | 18 | 14 | 4 |
 | xrt | `include/xrt/path.h` | 32 | 29 | 3 |
 | xrt | `include/xrt/pattern.h` | 47 | 34 | 13 |
-| xrt | `include/xrt/pem.h` | 7 | 6 | 1 |
+| xrt | `include/xrt/pem.h` | 7 | 5 | 2 |
 | xrt | `include/xrt/pool.h` | 58 | 0 | 58 |
 | xrt | `include/xrt/process.h` | 40 | 29 | 11 |
 | xrt | `include/xrt/proxy.h` | 40 | 31 | 9 |
@@ -94,14 +94,14 @@
 | xrt | `include/xrt/template.h` | 32 | 25 | 7 |
 | xrt | `include/xrt/thread.h` | 23 | 18 | 5 |
 | xrt | `include/xrt/time.h` | 58 | 46 | 12 |
-| xrt | `include/xrt/tls.h` | 140 | 10 | 130 |
+| xrt | `include/xrt/tls.h` | 140 | 9 | 131 |
 | xrt | `include/xrt/tls_client.h` | 10 | 10 | 0 |
-| xrt | `include/xrt/tls_identity.h` | 13 | 9 | 4 |
+| xrt | `include/xrt/tls_identity.h` | 13 | 5 | 8 |
 | xrt | `include/xrt/tls_resume.h` | 7 | 6 | 1 |
 | xrt | `include/xrt/tls_server.h` | 10 | 10 | 0 |
-| xrt | `include/xrt/tls_session.h` | 30 | 23 | 7 |
-| xrt | `include/xrt/tls_stream.h` | 105 | 75 | 30 |
-| xrt | `include/xrt/tls_verify.h` | 11 | 8 | 3 |
+| xrt | `include/xrt/tls_session.h` | 30 | 22 | 8 |
+| xrt | `include/xrt/tls_stream.h` | 105 | 72 | 33 |
+| xrt | `include/xrt/tls_verify.h` | 11 | 6 | 5 |
 | xrt | `include/xrt/udp.h` | 95 | 72 | 23 |
 | xrt | `include/xrt/value.h` | 159 | 130 | 29 |
 | xrt | `include/xrt/vfs.h` | 31 | 23 | 8 |
@@ -109,7 +109,7 @@
 | xrt | `include/xrt/websocket.h` | 57 | 17 | 40 |
 | xrt | `include/xrt/websocket_stream.h` | 38 | 25 | 13 |
 | xrt | `include/xrt/websocket_upgrade.h` | 9 | 6 | 3 |
-| xrt | `include/xrt/x509.h` | 96 | 85 | 11 |
+| xrt | `include/xrt/x509.h` | 96 | 84 | 12 |
 | xrt | `include/xrt/xid.h` | 11 | 8 | 3 |
 | xrt | `include/xrt/xlon.h` | 36 | 35 | 1 |
 | xrt | `include/xrt/xlonl.h` | 12 | 11 | 1 |

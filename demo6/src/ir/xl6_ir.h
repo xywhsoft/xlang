@@ -4261,12 +4261,6 @@ typedef enum XL6_IrRuntimeBridgeKind {
     /* Compiler-owned TLS wrappers are split by the lifetime and payload ABI
      * they implement.  Cgen selects the shared TLS component from these
      * verified roles and never reconstructs ownership from C symbol text. */
-    XL6_IR_RUNTIME_BRIDGE_NET_TLS_CONFIG,
-    XL6_IR_RUNTIME_BRIDGE_NET_TLS_SESSION,
-    XL6_IR_RUNTIME_BRIDGE_NET_TLS_RESUME,
-    XL6_IR_RUNTIME_BRIDGE_NET_TLS_DIAL,
-    XL6_IR_RUNTIME_BRIDGE_NET_TLS_STREAM,
-    XL6_IR_RUNTIME_BRIDGE_NET_TLS_SERVER,
     /* Compiler-owned WebSocket wrappers are emitted as six dependency
      * components.  Lowering assigns the exact component identity from the
      * reserved declaration; Cgen consumes only these verified markers. */
@@ -4517,7 +4511,6 @@ typedef enum XL6_IrRuntimeBridgeOperation {
     XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE = 0,
     XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_FILE_TRANSFER,
     XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_RECV_OWNED_BYTES_ASYNC,
-    XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TLS_RECV_OWNED_BYTES_ASYNC,
     XL6_IR_RUNTIME_BRIDGE_OPERATION_RNG_CREATE,
     XL6_IR_RUNTIME_BRIDGE_OPERATION_RNG_CREATE_DEFAULT,
     XL6_IR_RUNTIME_BRIDGE_OPERATION_RNG_DESTROY,
@@ -7052,10 +7045,6 @@ XL6_IrRuntimeBridgeOperation xl6IrRuntimeBridgeOperationForName(
     const char* name);
 XL6_IrCallNativeArrayResultAbi xl6IrRuntimeDirectBridgeNativeArrayResultAbi(const char* name);
 int xl6IrRuntimeBridgeOperationTargetMatches(
-    const XL6_IrModule* module, const XL6_IrCallTarget* target);
-/* Resolve generated-program TLS declarations into exact component roles. */
-XL6_IrRuntimeBridgeKind xl6IrRuntimeNetTlsBridgeKind(const char* name);
-int xl6IrRuntimeNetTlsBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 /* Resolve and validate compiler-owned WebSocket component declarations once
  * while their complete semantic and physical call ABI is available. */

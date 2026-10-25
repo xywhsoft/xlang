@@ -21,7 +21,6 @@ typedef struct XL6_CgenNetNeeds {
     int tcpListenConfig;
     int udp;
     int udpBatch;
-    int tlsStream;
     int tlsDial;
     int tlsServer;
     int resolverAsync;
