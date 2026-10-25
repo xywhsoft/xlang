@@ -1663,3 +1663,24 @@ XRT mutex、侵入式 AVL、原子引用、map 和 array 管理数据；context 
 0.66／0.67 正常 archive 在 96／512 helper、七轮 overlay／identity／局部声明编辑及保留原版本上完成 32 轮独立完整 AST、native index 全字段／canonical／范围、报告和 IR 对照。大档 97,836–97,846 facts 逐一比较，实际改动两版均 check 2／reuse 513；0.67 还验证 current entity view、注册表在局部声明修改期间准入数量不增长。原 semantic／IR／parser／index collector／source loader／imports／package 生成正文保持。原型的夹具语法／链接问题和两处实际映射缺口均保留证据，后者分别以对称歧义证明、复用原函数头证明修复并在最终完整 producer 复验。
 
 证据 build/lsp-next-20261022/m7a2b34a-result.json；外部 m7a2b34a-b203b4d7／component-v1。发布 5,241 文件保持。继续外部 C/compiler XRT，未来 opaque xlc.dll，无 DAP／运行态补全。下一步把声明句柄与可证明的语义事实版本、依赖绑定和持久模块 typed state 接到真实消费者；补全／签名身份、完整包分组／未导入工程成员和全工程能力仍未完成。剩余适用 LSP、静态检查／恢复、IDE、全模型及暂存预算、100k／并行／soak／最终发行继续；整体 goal active，完整功能与性能目标尚未验收。
+
+
+## M7a2b35a：以当前声明绑定复用可重定位 IR 片段（0.68）
+
+0.68 将已验证的外部声明身份接入真实 raw IR 缓存。完整语义检查后先收集当前 typed index、完成原源模块图并建立逆向符号表，再构造 IR；原生成编译器、解析、检查、类型编号及全部最终 IR passes／verifier 正文保持。索引资源错误延迟到原 IR 诊断之后才报告，语义／源码错误不发布索引；原源输入、环境、拓扑和发布证明保持。
+
+不可变 unit 持有完整外部身份字典，编码区分原生 ID、已证明的局部 slot、外部声明 slot 三个域。当前完整 AST key 对已证明的命名符号归一化，所有未知符号、类型和 ABI 仍精确；函数片段通过声明身份定位，支持根函数数量和顺序变化。恢复时以当前 checked view 将外部句柄映射回当前编译器 ID，继续验证真实 symbol binding 的存在性／type／storage、完整原类型池前缀及完整归一化事实键；写入仅在全部可失败步骤成功后发布。不同 store 或配置 domain 即使数值恰好相同也不能混用，重复／未知定位保守拒绝。
+
+身份仍不是语义事实版本或新鲜度证明。此消费者复用的是经过完整当前事实键和依赖证明的 raw IR，不跳过最终 passes 和 verifier，也没有减少全局声明变化时完整语义函数检查。类／别名／全局变量等原 module environment 仍精确；不支持的 nominal／生成身份继续保留原编号约束。补全／签名尚未拥有对应 entity view，独立持久模块 typed state／语义 read set／全工程引用仍待完成；没有新增标准 capability。
+
+IR memo 保留当前 view，unit 字典仅拥有身份值及自身文本，不保留旧结果或 AST。view 的逆向表只保留唯一绑定，查询无分配／I/O。关闭原结果、工作者及调用方 store 后，IR owner 仍可被四读者并发完整序列化。已知 memo 32 MiB 计入 globals 数组容量，view 16 MiB 计入逆向符号表；成功建立的函数定位数组至多 1 MiB（失败扩容尝试的暂存内存另计）、单 unit 至多 65,536 外部符号。注册表／语法／图额度独立，map／分配器元数据、暂存转换、额外 owner 引用与整个 RSS 另计，全模型预算仍未完成。
+
+最终 component-v2 完整编译 147 对象，66 原生夹具／67 PE／68 outputs／72 AST17 消费者／58 core members；343 实际依赖，冻结 1,102 输入。新增 143 检查覆盖实际全局 SymbolId 移动、函数插入／删除、局部分配移动、原 binding 缺失和存在两种前向／后向全局调用、导入声明头／函数体变化、完整 fresh AST／index JSON／IR、异 store／配置 domain、零预算回退以及原所有者全关闭后的四读者。12,651 存储检查保留 26 独立分配故障门并验证逆向歧义拒绝；15,734 绑定检查及其四读者增加逆向查询验证。worker fault 为 13,047 检查／1,012 校准取消门；原 checker／IR／source／cancel 语义断言保持。
+
+39 协议套件 1,016 场景、18 实际 IDE／旧 0.4 回退及启动通过，新增 24 wire 场景覆盖未打开与已打开入口、函数增删、局部及导入改动、当前重映射导航、无关文件拓扑、错误恢复和配置隔离。冷构建原有 39 个可捕获片段、3 个因原类型前缀变化拒绝的片段；插入新函数继续复用全部 39 个，修改某一片段则重建该片段。106 GUI 对象按真实 .d、10 个 token 等价证明复用，35 程序保持。
+
+0.67／0.68 在 96／512 helper 上完成 48 轮独立完整 AST、native index 全字段／canonical／范围、输入报告和 IR 对照。包括原 32 轮拓扑／局部声明／保留原版本，以及 16 轮全局函数增删；后者旧版函数数量变化时 IR 复用为 0，新版至少复用 helper−1。原大档局部声明场景仍为 97,836–97,846 facts，语义 check 2／reuse 513。新增函数场景的完整事实数见原始 oracle，不能拿局部编辑数量范围概括全部场景。
+
+原型夹具漏 include／缺少公共 helper 必需的 marker 已修复，失败记录保留。初始 wire 预期 40 并非实际可捕获数量，已以冷构建的明确 39 captured／3 declined 为基准证明全部可捕获片段复用，原类型前缀条件未放宽。初次全量 producer 在依赖扫描／失败记录写出阶段出现 Python MemoryError，尚未编译对象；构建工具改为 64 KiB 分块哈希后，最终 v2 同一冻结全部编译与运行通过，没有事后改写产品 core。另有一次误用旧准备脚本覆盖上一阶段预检 JSON，原 expected hash／当前字节及差异均留档；20,750 份历史非 live 产物核验仅此一份元数据有变化，旧 receipt／产品／测试／性能证据未改写，不能宣称全部历史元数据保持原样。
+
+证据 build/lsp-next-20261022/m7a2b35a-result.json；外部 m7a2b35a-ed4ef110／component-v2。发布 5,241 文件保持。继续外部 C/compiler XRT、未来 opaque xlc.dll，无 DAP／运行态补全。继续持久模块 typed state／语义事实版本和 read set、减少全模型 clone/import/stdlib/index/IR/verifier 成本；剩余适用 LSP／静态分析／IDE、全模型预算、100k／并行／soak／最终发行尚未完成，goal active。

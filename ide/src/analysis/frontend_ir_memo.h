@@ -3,6 +3,7 @@
 #include "src/ir/xl6_ir.h"
 typedef struct xls_ir_memo xls_ir_memo;
 typedef struct xls_ir_result xls_ir_result;
+struct xls_entity_view;
 typedef struct xls_ir_memo_work {
     uint64_t checked,reused,captured,nodesReused,bytes,declined;
     uint64_t textNodes,textBytes,ownerBytes;
@@ -23,6 +24,11 @@ void xlsFrontendIrMemoDestroy(xls_ir_memo* memo);
  * failed or optional owner allocation failed;caller retains its oracle path. */
 xls_ir_result* xlsFrontendIrResultBuild(const XL6_AstNode* root,XL6_DiagList* diags,
     const xls_ir_result* previous,size_t bytes);
+/* Current checked owner supplies an optional retained namespace/binding view.
+ * Complete normalized AST/type-prefix/current-symbol dependency proofs still
+ * gate every raw fragment. This does not cache final passes or verification. */
+xls_ir_result* xlsFrontendIrResultBuildEntities(const XL6_AstNode* root,XL6_DiagList* diags,
+    const xls_ir_result* previous,size_t bytes,const struct xls_entity_view* entities);
 /* Optional ownership-index retained capacities only,max/default128KiB.
  * Zero disables borrowing. Decline/allocation failure uses ordinary owned
  * text. This is not the fixed owner,IR arena,model,transient or RSS budget. */

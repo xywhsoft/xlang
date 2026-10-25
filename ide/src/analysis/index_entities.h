@@ -27,5 +27,8 @@ const xls_module_graph* xlsEntityViewModules(const xls_entity_view* view);
  * a view outlives the checked AST/session/worker;it does not make those IDs
  * meaningful in another compilation or establish freshness of its old facts. */
 uint64_t xlsEntityViewSymbol(const xls_entity_view* view,uint32_t symbol);
+/* Unique current native binding,0 for missing/ambiguous IDs. The external ID
+ * must belong to this view's retained store/domain. No allocation or I/O. */
+uint32_t xlsEntityViewNativeSymbol(const xls_entity_view* view,uint64_t identity);
 uint64_t xlsEntityViewType(const xls_entity_view* view,uint32_t type);
 #endif
