@@ -6,8 +6,12 @@
 带默认值的 `string`。Windows 包门禁核对生成 C 的直接移交、
 C/XLang 范例及三份 AOT。节名/键名装入 `array<string>` 时，
 共享容器 lowering 仍创建字符串值副本；包内不另造私有绕行。
-Linux C ASan/UBSan、XLang JIT 与双语门禁已通过；独立 Linux AOT
-待新发布版复验。
+Linux C ASan/UBSan、XLang JIT 与双语门禁已通过；Windows 完整包门禁
+（严格 GCC、C/Python 互通、XLang JIT/cgen、三组 AOT）已通过。
+独立 Linux AOT 待新发布版复验。
+`test/interop.c` 与 `test/interop.py` 另外用 Python 标准库
+`configparser` 做双向格式互通：C 写出后由 Python 读取，Python
+写出后由 C 读取。范围限于双方共有的节、键、UTF-8 值和普通赋值语法。
 
 INI 配置解析与写入库。C 端公开 `xrtIni*` API；XLang 端提供 `Config` 类。
 支持节、注释、大小写选项、重复键检查、`${key}` / `${section.key}` 插值、

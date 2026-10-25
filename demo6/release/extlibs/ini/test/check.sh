@@ -18,6 +18,9 @@ timeout 90s "$work/test_ini"
 "$cc" "${flags[@]}" release/examples/extlibs/ini_c.c \
     release/extlibs/ini/test/xrt_runtime.c -lm -ldl -o "$work/ini_c"
 timeout 90s "$work/ini_c" > "$work/gcc_example.txt"
+"$cc" "${flags[@]}" release/extlibs/ini/test/interop.c \
+    release/extlibs/ini/test/xrt_runtime.c -lm -ldl -o "$work/ini_interop"
+timeout 90s python3 release/extlibs/ini/test/interop.py "$work/ini_interop"
 timeout 90s ./release/xl run release/extlibs/ini/test/test_ini.c
 timeout 90s ./release/xl run test/cases/extlib_ini.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/boundaries.xl

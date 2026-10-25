@@ -7,6 +7,8 @@ $workRoot = Join-Path $root 'build/test'
 $work = Join-Path $workRoot ('ini_guard_' + [guid]::NewGuid().ToString('N'))
 $xl = Join-Path $release 'xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$python = (Get-Command python -CommandType Application -ErrorAction Stop |
+    Select-Object -First 1).Source
 [void][IO.Directory]::CreateDirectory($work)
 
 function Run([string]$label, [string]$program, [string[]]$arguments) {
@@ -34,6 +36,13 @@ try {
         'release/examples/extlibs/ini_c.c', 'release/extlibs/ini/test/xrt_runtime.c',
         '-o', $cExampleExe, '-lws2_32', '-lbcrypt', '-lshlwapi', '-liphlpapi')
     $gccOutput = Run 'strict GCC C example' $cExampleExe @()
+    $interopExe = Join-Path $work 'ini_interop.exe'
+    $null = Run 'independent INI interoperability build' $gcc @('-std=c11', '-O2',
+        '-Wall', '-Wextra', '-Werror', '-Ilib/xrt', '-Irelease/extlibs/ini',
+        'release/extlibs/ini/test/interop.c', 'release/extlibs/ini/test/xrt_runtime.c',
+        '-o', $interopExe, '-lws2_32', '-lbcrypt', '-lshlwapi', '-liphlpapi')
+    $null = Run 'independent C/Python INI interoperability' $python @(
+        'release/extlibs/ini/test/interop.py', $interopExe)
     Push-Location $release
     try {
         $null = Run 'C boundaries' $xl @('run', 'extlibs/ini/test/test_ini.c',
