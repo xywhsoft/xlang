@@ -12,7 +12,7 @@ from check_language_definitions import position
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--server',type=Path,required=True);parser.add_argument('--baseline',type=Path,required=True);parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--baseline-version',choices=['0.53','0.54','0.55','0.56','0.57'],default='0.57')
+    parser.add_argument('--baseline-version',choices=['0.53','0.54','0.55','0.56','0.57','0.58'],default='0.58')
     args=parser.parse_args();server=args.server.resolve(strict=True);baseline=args.baseline.resolve(strict=True);out=args.output.resolve();out.mkdir(parents=True,exist_ok=False)
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
     body=source(16,0,True).split('export func compute(')[0]+('func choose(int left,string right) as int\r\n return left\r\nend\r\n'
@@ -45,7 +45,7 @@ def main():
                 cases.append(dict(method=method,variant=variant,target=index,version=version,analysis=a));return dict(a,memoTypes=types)
             try:
                 c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1)
-                init,_=c.reply(1);assert init['result']['serverInfo']['version']==(args.baseline_version if variant=='before' else '0.58');c.send('initialized',{})
+                init,_=c.reply(1);assert init['result']['serverInfo']['version']==(args.baseline_version if variant=='before' else '0.59');c.send('initialized',{})
                 for p in paths:c.open(p,body,1)
                 a=call(0);assert a['builds']==1
                 again=call(0);assert again['builds']==1 and again['cacheHits']==1 and again['memoTypes']==a['memoTypes']
@@ -56,12 +56,12 @@ def main():
                 again=call(1);assert again['builds']==2 and again['inputScopeHits']>0 and again['memoTypes']==b['memoTypes']
                 changed=call(0,edited,2);assert changed['builds']==3
                 reused=changed['semanticFunctionsReused'] if method=='xlang/check' else changed['lastBuildSemantics']['reused'] if method.endswith('completion') else changed['reused']
-                # Mixed call-bearing functions retain the original checker's
-                # conservative coordinate gates. Compare actual baseline work
-                # instead of assuming that every sibling can be restored.
+                # Explicit origins let the candidate restore the unchanged
+                # call-bearing siblings too. Active completion/signature
+                # functions still use the checker;all original gates remain.
                 assert reused>0,changed
                 if variant=='before':restored[method]=reused
-                else:assert reused==restored[method],(reused,restored[method])
+                else:assert reused==(16 if method=='xlang/check' else 15) and reused>restored[method],(reused,restored[method])
                 again=call(0,edited,2);assert again['builds']==3 and again['memoTypes']==changed['memoTypes']
                 again=call(1);assert again['builds']==3 and again['memoTypes']==b['memoTypes']
                 print(method,variant,'retained roots/current incremental restoration passed;reused',reused,flush=True)
