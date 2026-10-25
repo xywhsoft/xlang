@@ -7,10 +7,13 @@
 #include "../upstream/wait-arithmetic.h"
 static bool xlacmeTimeout(int64 ms, uint64* us)
 {
-    if (ms < -1 || ms > (int64)(UINT64_MAX / 1000)) {
+    if (ms < -1) {
         xrtSetErrorKind(XERR_ARGUMENT); return false;
     }
-    *us = ms == -1 ? 0 : (uint64)ms * 1000; return true;
+    /* Preserve positive/infinite distinction even beyond the host clock's
+     * finite microsecond range; never wrap a long budget into zero. */
+    *us = ms == -1 ? 0 : (uint64)ms > UINT64_MAX / 1000 ? UINT64_MAX : (uint64)ms * 1000;
+    return true;
 }
 static xwaitresult xlacmeFutureWait(xfuture* future, int64 ms)
 {

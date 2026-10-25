@@ -1,4 +1,5 @@
 import xacme
+extern "test_xacme_pointer" @no_raise func __Pointer(string value) as point
 
 func echo(string value) as string
     return value
@@ -10,8 +11,10 @@ func main(...) as int
     assert string.byteLen(account) > 100
     auto chain, key = xacme.Store.LoadGrant(root, "example.test")
     assert string.byteLen(chain) > 500 and string.byteLen(key) > 100
+    point original = __Pointer(chain)
     string alias = echo(chain)
-    assert alias == chain
+    assert alias == chain and __Pointer(alias) == original
+    assert __Pointer(echo(alias)) == original
     println(chain)
     chain = "replaced"
     assert string.byteLen(alias) > 500 and chain == "replaced"

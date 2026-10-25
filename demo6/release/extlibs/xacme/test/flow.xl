@@ -1,0 +1,47 @@
+import xacme
+extern "test_xacme_dns" func __Dns(string fqdn, string txt, bool add) as bool
+extern "test_xacme_ca" func __Ca() as point
+extern "test_xacme_rollover_key" func __Key() as point
+extern "xrtFree" @no_raise func __Free(point value)
+
+func main(...) as int
+    string root = env.get("XACME_LANGUAGE_ROOT") ?? ""
+    auto config = xacme.ClientConfig()
+    config.Account.DirectoryUrl = env.get("XACME_MOCK_DIRECTORY") ?? ""
+    config.Account.ContactEmail = "language@example.test"
+    config.CaPem = cstring.take(__Ca(), __Free)
+    config.TimeoutMs = 3000
+    config.IssueTimeoutMs = 10000
+    config.PropagateTimeoutMs = 3000
+    config.PropagateResolvers = [env.get("XACME_MOCK_RESOLVER") ?? ""]
+    auto add = func(string fqdn, string txt) as bool => __Dns(fqdn, txt, true)
+    auto remove = func(string fqdn, string txt) as bool => __Dns(fqdn, txt, false)
+    auto dns = xacme.DnsProvider.Custom("language-mock", add, remove)
+    auto client = xacme.Client.Create(config)
+    try
+        assert xacme.Store.SaveAccount(root, config.Account.DirectoryUrl, client.AccountPem())
+        auto chain, key = client.IssueEx(["example.test", "*.example.test"], dns, true)
+        assert string.byteLen(chain) > 500 and string.byteLen(key) > 100
+        auto storedChain, storedKey, first = client.IssueStored(["example.test", "*.example.test"], dns, root, 30)
+        assert first and string.byteLen(storedChain) > 500
+        auto againChain, againKey, second = client.IssueStored(["example.test", "*.example.test"], dns, root, 30)
+        assert not second and againChain == storedChain and againKey == storedKey
+        auto obtain = xacme.ObtainConfig()
+        obtain.Account = config.Account
+        obtain.CaPem = config.CaPem
+        obtain.StoreRoot = root
+        obtain.RenewalDays = 30
+        auto obtainedChain, obtainedKey, renewed = xacme.Obtain(obtain, ["example.test", "*.example.test"], dns)
+        assert not renewed and obtainedChain == storedChain and obtainedKey == storedKey
+        assert client.Revoke(storedChain)
+        assert client.Rollover(cstring.take(__Key(), __Free), root)
+        assert string.byteLen(client.AccountPem()) > 100
+        assert client.Deactivate()
+    finally
+        assert client.Cleanup()
+        assert dns.Unit()
+        assert xacme.CleanupPending(5000) == 0
+    end
+    println("xacme language mock flow ok")
+    return 0
+end
