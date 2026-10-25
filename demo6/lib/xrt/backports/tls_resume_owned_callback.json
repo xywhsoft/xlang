@@ -1,0 +1,87 @@
+{
+  "Schema": 1,
+  "Purpose": "Explicit owned Resume output closes the temporary language-result lifetime window",
+  "CanonicalCommit": "0db66af61db4ee02077387a2f8cee7ab9301a601",
+  "PreviousCanonicalCommit": "7db5e89bd833cacd0ab5dc8697407dc630a217c4",
+  "WholeSnapshotUpgrade": false,
+  "TimeAbiPreserved": true,
+  "ExistingFunctionSignaturesPreserved": true,
+  "PublicStructLayoutsPreserved": false,
+  "RebuildRequiredForCConsumers": true,
+  "PublicStructChanges": [
+    {
+      "Type": "xtlsserverconfig",
+      "Field": "ResumeOwnedV1",
+      "Contract": "Mutually exclusive with Resume; shared ResumeContext; consumes output on all paths"
+    }
+  ],
+  "ContainingPublicStructsAffected": [
+    "xtlslistenerconfig"
+  ],
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "0f2c9cf4efb8c8edc3a30e325e7826de21a4b4e2a5ccd748b48d0bc9203ecb76",
+      "AfterSha256": "2a9801012526348eb40b45221e08c4e895b5702cf06ae6cc64a1447de533497c"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "515b746e6d1e9f71acc9b2e66d4613b3d4b0f0186a434d3cef7e4ec664a1ea77",
+      "AfterSha256": "f1fbfe81775b78224f5c27c0d8503bf7568556193ad0b11815ac1552f71a5df0"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "0199cd2a67a65a22e2da1a3e74b91bb26cea5077b7962edf16b118d0d010a31e",
+      "AfterSha256": "e9bfc29216fd0becbea6e59bffbfbd187f9298914c476ce319a391d42642f44e"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "92920478fc969cfcfea7bc077ce401efb07a3e427b5d4cd90b95460d8ee9c529",
+      "AfterSha256": "2dafa6c355c9590c04db2caadbb87ae2cb6b2aa756593f4ecc08047ed263eb7f"
+    }
+  ],
+  "Sources": [
+    {
+      "Path": "include/xrt/tls_server.h",
+      "Sha256": "bc8d18baad2fd85b28c2275249680df3c1d9fe0dbbbb6582f37128730fe43042"
+    },
+    {
+      "Path": "src/internal/xrt_tls_server.h",
+      "Sha256": "91f7a8795918c8246fa2f38dbf6922dce83a885dd84bd67d81a8e1de3e069089"
+    },
+    {
+      "Path": "src/tls/server.c",
+      "Sha256": "f229062c3fc4ae2980195fbd67e80ed3d6e0d1aba6721c726bfb4d05cc60d343"
+    },
+    {
+      "Path": "src/tls/server_handshake.c",
+      "Sha256": "aa26c260b486002fc336d0e04b92db856df15e4da74d03b63b48c3963a8de7e4"
+    },
+    {
+      "Path": "src/tls/server_resume.c",
+      "Sha256": "39e876b07f44bff71aca3567abb002fc62459702d66d95d90686078b9538552d"
+    },
+    {
+      "Path": "src/tls/stream_listener.c",
+      "Sha256": "1574ecd6ae8fa75ddd404f2d876a9b2213c6d98570b2c6ea6ef0834a4846c302"
+    }
+  ],
+  "NewPublicFunctions": [],
+  "PreservedTimeContracts": [
+    "Embedded microseconds/Until and ticket-age millisecond conversion",
+    "Independent native milliseconds/For"
+  ],
+  "BehaviorChanges": [
+    "Explicit capability error when Resume lookup support is absent",
+    "Reject mixed borrowed/owned lookup configuration",
+    "Borrowed callbacks with pending error fail, not cache-miss fallback"
+  ],
+  "Stages": 324,
+  "NativeExecutions": 38,
+  "OomPrefixes": 1920,
+  "WholeNativeCatalogVerified": true,
+  "NetworkTraffic": false,
+  "SecurityTests": false,
+  "LanguageCallbackAccepted": false,
+  "ShippingAccepted": false
+}
