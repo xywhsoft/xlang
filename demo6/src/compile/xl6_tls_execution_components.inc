@@ -78,3 +78,4 @@
     {"src/runtime/xl6_ownership_domain_tls_server_stats.c",D(R(OWNERSHIP_CATALOG),R(TLS_SERVER_STATS)),{NULL}},
     {"src/runtime/xl6_tls_metadata_client.c",D(),{"XRT_MODULE_TLS_CLIENT"}},
     {"src/runtime/xl6_tls_metadata_server.c",D(),{"XRT_MODULE_TLS_SERVER"}},
+    {"src/runtime/xl6_tls_server_request.c",D(),{"XRT_MODULE_TLS_HELLO","XRT_MODULE_VALUE"}},
