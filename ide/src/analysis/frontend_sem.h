@@ -8,6 +8,10 @@
 #include "analysis/ast_intern.h"
 struct XL6_CompletionQuery;
 typedef struct xls_sem_memo xls_sem_memo;
+/* Exact non-coordinate AST identity for private raw IR fragments. Native
+ * process-local sparse scalar batches;ordinary semantic key bytes unchanged.
+ * Completion-source provenance is unsupported and declines caching. */
+int xlsFrontendIrAstKey(xstrbuf* key,const XL6_AstNode* node,int module);
 typedef struct xls_sem_storage_work { uint64_t nodes,pages,chargedBytes,heapFallbacks; } xls_sem_storage_work;
 typedef struct xls_sem_storage_control {
     struct xls_sem_storage_control* previous;size_t budget;xls_sem_storage_work work;

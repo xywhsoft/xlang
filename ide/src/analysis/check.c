@@ -1,4 +1,5 @@
 #include "analysis/check.h"
+#include "analysis/check_ir.h"
 #include "analysis/frontend_context.h"
 #include "analysis/frontend_entry_cache.h"
 #include "analysis/frontend_input_view.h"
@@ -7,6 +8,7 @@
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_sem.h"
 #include "analysis/frontend_cancel.h"
+#include "analysis/frontend_ir_memo.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
 #include "src/stdlib/xl6_stdlib.h"
@@ -25,6 +27,7 @@ struct xls_semantic_check {
     XL6_SourceReport report;
     XL6_SourceOverlay overlay;
     XL6_IrModule ir;
+    xls_ir_result* cachedIr;
     char *path,*index;
     xls_semantic_index* typedIndex;
     xls_sem_memo* memo;
@@ -47,7 +50,7 @@ void xlsSemanticCheckDestroy(xls_semantic_check* r)
 {
     if(!r || xrtAtomic32FetchSub(&r->references,1,XMEMORY_ACQ_REL)!=1) return;
     xrtFree(r->index); xlsFrontendIndexDestroy(r->typedIndex); xlsFrontendSemMemoDestroy(r->memo);
-    xl6IrModuleFree(&r->ir); xl6ParseResultFree(&r->parse);
+    xlsFrontendIrResultDestroy(r->cachedIr);xl6IrModuleFree(&r->ir); xl6ParseResultFree(&r->parse);
     xl6ImportDepsFree(&r->deps); xl6SourceOverlayClear(&r->overlay); xl6SourceReportFree(&r->report);
     xlsContextRelease(r->context); xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
 }
@@ -55,7 +58,7 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int memoEnabled,int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
-    xls_semantic_check* r=NULL;
+    xls_semantic_check* r=NULL;const xls_ir_result* irBaseline=NULL;
     if(error && capacity) *error=0;
     if(xlsSyntaxIsCursor(syntax)) { fail(error,capacity,"ordinary check cannot consume cursor syntax"); return NULL; }
     if(!entry || !xrtPathIsAbs(entry) || count>XL6_SOURCE_OVERLAY_FILES ||
@@ -117,13 +120,26 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
                 const XL6_SourceOverlayItem* old=xl6SourceOverlayFind(&previous->overlay,current->path);
                 compatible=old && !strcmp(old->path,current->path);
             }
-            if(compatible) baseline=previous->memo;
+            if(compatible) {baseline=previous->memo;irBaseline=previous->cachedIr;}
             okay=xlsFrontendSemCheckMemo(r->parse.root,&r->parse.diags,module,captureIndex,r->path,
                 &r->report,baseline ? &previous->report : NULL,baseline,&r->memo,&r->semanticWork);
         } else okay=xl6SemCheckModuleWithIndex(r->parse.root,&r->parse.diags,module,captureIndex);
     }
     if(stopped(cancelled,user)) goto cancel;
-    if(okay) { r->phase="ir"; okay=xl6IrBuildModuleFromAst(&r->ir,r->parse.root,&r->parse.diags); }
+    if(okay) {
+        r->phase="ir";
+        if(memoEnabled){
+            /* Optional fragment failures never invent source diagnostics.
+             * Keep attempts private;the original builder remains authoritative
+             * for a failed attempt as well as the independent fresh API. */
+            XL6_DiagList attempted;xl6DiagInit(&attempted);
+            r->cachedIr=xlsFrontendIrResultBuild(r->parse.root,&attempted,irBaseline,32u*1024u*1024u);
+            okay=r->cachedIr && !attempted.count;
+            if(!okay){xlsFrontendIrResultDestroy(r->cachedIr);r->cachedIr=NULL;}
+            xl6DiagFree(&attempted);
+            if(!okay && !stopped(cancelled,user))okay=xl6IrBuildModuleFromAst(&r->ir,r->parse.root,&r->parse.diags);
+        }else okay=xl6IrBuildModuleFromAst(&r->ir,r->parse.root,&r->parse.diags);
+    }
     if(stopped(cancelled,user)) goto cancel;
     r->accepted=okay && !r->parse.diags.count;
     if(r->accepted && captureIndex) {
@@ -210,15 +226,21 @@ xls_semantic_check* xlsSemanticCheckCreateParsed(const char* entry,
 xls_check_semantic_work xlsSemanticCheckWork(const xls_semantic_check* r)
 { return r ? (xls_check_semantic_work){r->semanticWork.checked,r->semanticWork.reused,r->semanticWork.contextHits,r->semanticWork.bytes} : (xls_check_semantic_work){0}; }
 const XL6_IrModule* xlsSemanticCheckIr(const xls_semantic_check* r)
-{ return r && !invalid(r) && r->accepted ? &r->ir : NULL; }
+{ return r && !invalid(r) && r->accepted ? (r->cachedIr ? xlsFrontendIrResultModule(r->cachedIr) : &r->ir) : NULL; }
+xls_check_ir_work xlsSemanticCheckIrWork(const xls_semantic_check* r)
+{
+    xls_ir_memo_work w=xlsFrontendIrResultWork(r ? r->cachedIr : NULL);
+    return (xls_check_ir_work){w.checked,w.reused,w.captured,w.nodesReused,w.bytes,w.declined,w.textNodes,w.textBytes,w.ownerBytes};
+}
 const XL6_AstNode* xlsSemanticCheckAst(const xls_semantic_check* r)
 { return r && !invalid(r) ? r->parse.root : NULL; }
 xls_check_info xlsSemanticCheckInfo(const xls_semantic_check* r)
 {
     if(!r) return (xls_check_info){0};
     int stale=invalid(r);
+    const XL6_IrModule* ir=r->cachedIr ? xlsFrontendIrResultModule(r->cachedIr) : &r->ir;
     return (xls_check_info){r->path,r->phase,stale ? "semantic inputs changed" : NULL,
-        r->parse.diags.count,r->ir.types.count,r->ir.nodeCount,r->accepted && !stale,
+        r->parse.diags.count,ir->types.count,ir->nodeCount,r->accepted && !stale,
         r->typedIndex && r->accepted && !stale};
 }
 int xlsSemanticCheckDiagnostic(const xls_semantic_check* r,size_t index,xls_check_diagnostic* out)

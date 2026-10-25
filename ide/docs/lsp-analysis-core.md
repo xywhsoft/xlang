@@ -1420,3 +1420,22 @@ xlsSemKeyBytes 只接收编码数字的局部数组、AST 文字／文档／显�
 下一次实验应首先审计已证明复用的 semantic unit owner 能否提供低成本身份，并独立证明捕获后所有变更：最终 type／ABI、region／ownership／exit 以及其他函数检查／特殊化的跨函数影响；必须持有 owner 防止地址复用，不能只比较指针。还需保持 type-pool、symbol effects、arena rebasing 与所有负向失效守卫。全局 pass 和 verifier 的依赖／ABI 契约、真正持久模块及语义 IR 仍未完成；不以本轮字节追加优化替代这些工作。
 
 外部 executable 与 compiler XRT 保持独立，未来 opaque xlc.dll，无 DAP／运行态补全。完整 goal active，发布目录未更新。
+
+
+## M7a2b24a：可持有的原始函数 IR 片段（0.57）
+
+analysis/frontend_ir_memo.h 提供 opaque xls_ir_result／xls_ir_memo。check session 只在原有 semantic baseline 的完整上下文、路径、captureIndex、文档集合／身份及 previousValidate 条件成立时借用旧 IR memo；结果创建来源由值类型 check_ir 工作统计暴露，exact／root／无关输入命中继续携带同一个模型来源。completion／signature 不创建或暴露该静态 IR 状态。独立 xlsSemanticCheckCreate 仍使用原 fresh builder，作为完整 typed IR 对照。
+
+捕获仅拦截根部直接 FUNC／ASYNC／EXPORT 的原始节点构造。键完整覆盖最终语义注解后的非坐标 AST／递归事实类型、非函数环境、精确类型池 before／after 内容及原构造器实际读取的外部符号 type／storage／存在性；重放所有内部符号槽写入效果。类型池可能原地更新 nominalSymbol，数量相同不足以证明身份。语义单元捕获后仍有类型／ABI、execution／ownership／region／exit 与跨函数专化效果，不能用其指针替代最终键。
+
+普通语义键格式不变，共用 20 个原标量的提取函数。IR 专用键以稀疏固定标量掩码、存在位和文本／文档／路径长度作为节点 envelope，保留完整精确类型树、字节和含 NUL 字面量；每次同步遍历的路径 map 使用 XRT 完整字节身份，4 项指针缓存只加速该不可变遍历，绝不作为跨版本身份。每 64 个访问节点观察协作取消。深度 512／8 MiB 键辅助限制只放弃缓存，不缩减可分析语言输入。
+
+片段保存本机固定宽度稀疏 IR words，清除文本指针和源码范围，规范化 unionField 的 SIZE_MAX。恢复先保留 unpublished module arena 容量，再按当前 AST 前序重绑范围、parent／children／NodeId 和内部符号引用。所有可失败操作成功后才公布节点计数／槽位；失败清理半成品，不变更可见语义。原模块全部 pass、统计和验证器仍执行。缓存尝试使用独立临时 DiagList；失败或诊断时丢弃尝试，由原 builder 给出权威结果，取消则保持取消，不把资源失败变成源码错误。
+
+opaque result 以不可变 memo unit.data 承载借用的 text／literalData，模块和新 memo 分别固定所需单元，不持有前一结果或整个 memo 链。XRT 数组存片段引用、位图标记借用节点；两者扩容先暂存，严格保留容量不超过默认／最大 128 KiB。超额、资源失败或显式设 0 时仅退回 owned 文本，函数 IR 仍可复用。module 私有 TLS owner 只在原两个节点文本 free 处识别本模块已标记字段；先释放原模块的其他 owned 数据，再释放片段引用。没有修改 compiler AST／IR 头布局、增加全局注册表或锁。
+
+raw memo 默认 32 MiB 是自身已知逻辑存储限制；owner 128 KiB 只计索引数组容量。固定 result 对象、IR module／AST／semantic 模型、临时键／解码、分配器、外部持有模型及进程 RSS 不在这些限制内。此前 64 MiB 输入会话预算也不覆盖这些模型。当前仍需整个模型预算和压力验收。
+
+native_ir_memo_overlay 对实际编译器 IR C／头摘要加守卫并只替换审计过的 seam。未取消时规则、普通 IR 所有权、完整 fresh API 和最终验证保持。524 项正常专项包含字面量／局部符号／类型变化、Unicode 坐标、复杂 closure／generator／try-finally／class／protocol／alias／enum／generic／erasure、NUL 文本、独立持有、销毁顺序、预算、取消及四线程。诊断专用构建另注入 33 个真实 XRT owner ArrayInit／Resize／Reserve 门，701 项完整 IR 和旧单元精确引用计数对照通过；它没有进入正常产品对象。
+
+限制：片段键保留绝对 execution region；只在前部函数增加不引入符号的嵌套 if，后部 region 变化就会重建，正常专项仅复用 3 个前缀，wire 专项仅 2 个。局部符号插入导致后续 ID／类型前缀变化也保持保守。后续可在证明词法与 fact-type 树 region 含义后做相对 region 身份并从当前 AST 恢复；不允许仅凭语义单元共享猜测安全。仍需持久语义 IR、模块依赖／ABI 契约及增量全局 pass／验证。阶段性能与证据边界见 lsp-development.md。
