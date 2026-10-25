@@ -1,5 +1,15 @@
 # snappy
 
+2026-10-25 文本返回更新：`decompressText() as cstring` 验证 UTF-8
+后直接接管解压缓冲，省去 `Buffer.text()` 的整份复制；终止字节
+扩容时仍可能发生一次 XRT 内部复制。有效文本的内嵌 NUL 按
+实际字节长度保留；非 UTF-8 数据应使用 `decompress() as Buffer`。
+C 回归覆盖指针身份、空文本、无效 UTF-8 和逐点分配失败。
+Windows 默认包门禁含新增 JIT/AOT 用例完整通过。Linux C ASan/
+UBSan 与分配测试通过，但旧 `release/xl` 不识别 `cstring`；须重建
+Linux 发布物再签收本次完整语言门禁。下段 Linux 通过记录是本次
+返回类型调整之前的基线。
+
 2026-10-25 复验：Windows 默认 `test/check.ps1` 完整通过，包含 C 边界、
 分配故障、中央/包内 XLang、文件与进度、三路 C/XLang 对照及独立 EXE。
 脚本在 `release` 工作目录运行语言阶段；从项目根目录直接运行当前

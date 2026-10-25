@@ -1,0 +1,21 @@
+import snappy
+
+func main(...) as int
+    assert snappy.decompressText(snappy.compress("")) == ""
+    assert snappy.decompressText(snappy.compress("你好 snappy")) == "你好 snappy"
+
+    string text = snappy.decompressText(snappy.compress("A\0B你好"))
+    assert text == "A\0B你好"
+    assert string.byteLen(text) == 9
+
+    Buffer invalid = Buffer()
+    invalid.appendByte(255)
+    bool rejected = false
+    try
+        snappy.decompressText(snappy.compress(invalid))
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    return 0
+end

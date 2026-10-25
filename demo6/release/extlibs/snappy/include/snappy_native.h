@@ -17,6 +17,10 @@ const char* xsnappy_last_error(void);
 void* xsnappy_compress(void* pData, size_t iSize, unsigned long long iMaxInput, unsigned long long iMaxOutput);
 void* xsnappy_compress_str(const char* sText, size_t iSize, unsigned long long iMaxInput, unsigned long long iMaxOutput);
 void* xsnappy_decompress(void* pData, size_t iSize, unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio);
+/* text_size 保留内嵌 NUL；text_take 移交 xrtFree 所有权。 */
+void* xsnappy_decompress_text(void* pData, size_t iSize, unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio);
+size_t xsnappy_text_size(void* pRaw);
+void* xsnappy_text_take(void* pRaw);
 int xsnappy_compress_file(const char* sSource, const char* sDestination, bool bOverwrite, unsigned long long iMaxInput, unsigned long long iMaxOutput, xvalue* pCallback);
 int xsnappy_decompress_file(const char* sSource, const char* sDestination, bool bOverwrite, unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio, xvalue* pCallback);
 void* xsnappy_compressor_create(unsigned long long iMaxInput, unsigned long long iMaxOutput);

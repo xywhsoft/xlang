@@ -96,6 +96,7 @@ try {
         '../test/cases/extlib_snappy_progress.xl',
         'extlibs/snappy/test/file_ops.xl',
         'extlibs/snappy/test/allocations.xl',
+        'extlibs/snappy/test/text_transfer.xl',
         'examples/extlibs/snappy.xl'
     )) {
         $null = Run "XLang $source" $xl @('run', $source)
@@ -121,6 +122,10 @@ try {
     Write-Host '[snappy] C/XLang example parity: PASS'
 
     if (-not $SkipAot) {
+        $textTarget = Join-Path $work 'snappy_text_transfer.exe'
+        $null = Run 'XLang text transfer AOT build' $xl @('build',
+            'extlibs/snappy/test/text_transfer.xl', '-o', $textTarget)
+        $null = Run 'XLang text transfer AOT' $textTarget @()
         $target = Join-Path $work 'snappy_basic.exe'
         $null = Run 'XLang AOT build' $xl @('build',
             'examples/extlibs/snappy_basic.xl', '-o', $target)

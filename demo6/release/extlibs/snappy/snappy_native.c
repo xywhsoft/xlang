@@ -13,6 +13,9 @@
 #ifndef XRT_MODULE_PATH
 #define XRT_MODULE_PATH
 #endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
 #ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #endif
@@ -224,6 +227,41 @@ XSNAPPY_EXPORT void* xsnappy_decompress(void* pData, size_t iSize, unsigned long
 		return NULL;
 	}
 	return pOutput;
+}
+
+/* 验证 UTF-8 并移交解压缓冲；仅终止字节可能导致扩容。 */
+XSNAPPY_EXPORT void* xsnappy_decompress_text(void* pData, size_t iSize,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio)
+{
+	xbuffer* pOutput = (xbuffer*)xsnappy_decompress(pData, iSize, iMaxInput, iMaxOutput, iMaxRatio);
+	if ( pOutput == NULL ) { return NULL; }
+	if ( !xrtUtf8Valid((xstrview){(const char*)pOutput->Data, pOutput->Size}, NULL) ) {
+		xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.snappy", 0,
+			"snappy decompressed text is not valid UTF-8");
+		xrtBufferDestroy(pOutput);
+		return NULL;
+	}
+	if ( !xrtBufferAppendByte(pOutput, 0) ) {
+		xrtBufferDestroy(pOutput);
+		return NULL;
+	}
+	return pOutput;
+}
+
+XSNAPPY_EXPORT size_t xsnappy_text_size(void* pRaw)
+{
+	const xbuffer* pOutput = (const xbuffer*)pRaw;
+	return pOutput != NULL && pOutput->Size != 0u ? pOutput->Size - 1u : 0u;
+}
+
+XSNAPPY_EXPORT void* xsnappy_text_take(void* pRaw)
+{
+	xbuffer* pOutput = (xbuffer*)pRaw;
+	void* pText;
+	if ( pOutput == NULL ) { return NULL; }
+	pText = xrtBufferTake(pOutput, NULL, NULL);
+	xrtBufferDestroy(pOutput);
+	return pText;
 }
 
 XSNAPPY_EXPORT int xsnappy_compress_file(const char* sSource, const char* sDestination, bool bOverwrite,

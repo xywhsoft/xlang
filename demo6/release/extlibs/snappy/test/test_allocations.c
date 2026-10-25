@@ -1,5 +1,7 @@
 #define XRT_MODULE_MEMORY_DEBUG
+#define XRT_MODULE_VALUE
 #include "../include/xrt_snappy.h"
+#include "../include/snappy_native.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -48,6 +50,73 @@ static int scan_failures(xbytesview plain, xbytesview packed, bool decode)
     return 0;
 }
 
+/* 文本转移不复制已解出的字节，失败后内存回到输入流基线。 */
+static int text_transfer(void)
+{
+    const unsigned char plain[] = {'A', 0, 'B', 0xe4, 0xbd, 0xa0, 0xe5, 0xa5, 0xbd};
+    const unsigned char invalid[] = {0xff};
+    xmemdebugsnapshot before, packedBefore, after;
+    xbuffer* packed = NULL;
+    void* raw;
+    void* expected;
+    char* text;
+    unsigned int index, rejected = 0, succeeded = 0;
+    xrtMemDebugSnapshot(&before);
+    CHECK(xrtSnappyCompress(plain, sizeof(plain), NULL, &packed, NULL));
+    xrtMemDebugSnapshot(&packedBefore);
+    raw = xsnappy_decompress_text(packed->Data, packed->Size, 1024, 1024, 1000);
+    CHECK(raw != NULL && xsnappy_text_size(raw) == sizeof(plain));
+    expected = ((xbuffer*)raw)->Data;
+    text = (char*)xsnappy_text_take(raw);
+    CHECK(text == expected && memcmp(text, plain, sizeof(plain)) == 0 && text[sizeof(plain)] == 0);
+    xrtFree(text);
+
+    for (index = 0; index < 128 && succeeded < 2; ++index) {
+        bool injected;
+        CHECK(xrtMemDebugFailAfter(index));
+        raw = xsnappy_decompress_text(packed->Data, packed->Size, 1024, 1024, 1000);
+        injected = xrtMemDebugFailTriggered();
+        xrtMemDebugFailClear();
+        if (injected) {
+            CHECK(raw == NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+            ++rejected;
+        } else {
+            CHECK(raw != NULL);
+            xrtFree(xsnappy_text_take(raw));
+            ++succeeded;
+        }
+        xrtClearError();
+        xrtMemDebugSnapshot(&after);
+        CHECK(after.LiveCount == packedBefore.LiveCount && after.LiveBytes == packedBefore.LiveBytes);
+        CHECK(after.InvalidFreeCount == packedBefore.InvalidFreeCount &&
+            after.DoubleFreeCount == packedBefore.DoubleFreeCount &&
+            after.OverflowCount == packedBefore.OverflowCount &&
+            after.UnderflowCount == packedBefore.UnderflowCount);
+    }
+    CHECK(rejected > 0 && succeeded == 2);
+    xrtBufferDestroy(packed);
+    xrtClearError();
+    xrtMemDebugSnapshot(&after);
+    CHECK(after.LiveCount == before.LiveCount && after.LiveBytes == before.LiveBytes);
+
+    CHECK(xrtSnappyCompress(invalid, sizeof(invalid), NULL, &packed, NULL));
+    CHECK(xsnappy_decompress_text(packed->Data, packed->Size, 1024, 1024, 1000) == NULL);
+    CHECK(xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    xrtBufferDestroy(packed);
+    xrtClearError();
+    CHECK(xrtSnappyCompress("", 0, NULL, &packed, NULL));
+    raw = xsnappy_decompress_text(packed->Data, packed->Size, 1024, 1024, 1000);
+    CHECK(raw != NULL && xsnappy_text_size(raw) == 0);
+    text = (char*)xsnappy_text_take(raw);
+    CHECK(text != NULL && text[0] == 0);
+    xrtFree(text);
+    xrtBufferDestroy(packed);
+    xrtClearError();
+    xrtMemDebugSnapshot(&after);
+    CHECK(after.LiveCount == before.LiveCount && after.LiveBytes == before.LiveBytes);
+    return 0;
+}
+
 int main(void)
 {
     unsigned char plain[4096];
@@ -60,6 +129,7 @@ int main(void)
     CHECK(scan_failures((xbytesview){plain, sizeof(plain)}, xrtBufferView(packed), false) == 0);
     CHECK(scan_failures((xbytesview){plain, sizeof(plain)}, xrtBufferView(packed), true) == 0);
     xrtBufferDestroy(packed);
+    CHECK(text_transfer() == 0);
     puts("snappy allocation failures: PASS");
     return 0;
 }
