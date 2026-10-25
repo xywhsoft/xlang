@@ -2,11 +2,17 @@
 extern "xl6_xrt_last_error_text" @no_raise func __zstd_error() as string
 extern "xzstd_last_error_is_memory" @no_raise func __zstd_memory_error() as bool
 extern "xzstd_last_error_is_range" @no_raise func __zstd_range_error() as bool
+extern "xzstd_last_error_is_value" @no_raise func __zstd_value_error() as bool
 extern "xzstd_version" func __zstd_version() as string
 extern "xzstd_compress" @no_raise func __zstd_compress(point data, c_size size, c_int level,
     c_ulonglong maxInput, c_ulonglong maxOutput) as point
 extern "xzstd_decompress" @no_raise func __zstd_decompress(point data, c_size size,
     c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xzstd_decompress_text" @no_raise func __zstd_decompress_text(point data, c_size size,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xzstd_text_size" @no_raise func __zstd_text_size(point result) as c_size
+extern "xzstd_text_take" @no_raise func __zstd_text_take(point result) as point
+extern "xrtFree" @no_raise func __zstd_free(point data)
 extern "xzstd_compress_file" func __zstd_compress_file(string source, string destination,
     c_int level, c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput,
     var onProgress) as c_int
@@ -119,8 +125,19 @@ export func decompress(Buffer data, int maxInput = 268435456,
 end
 
 export func decompressText(Buffer data, int maxInput = 268435456,
-    int maxOutput = 536870912, int maxRatio = 1000) as string
-    return decompress(data, maxInput, maxOutput, maxRatio).text()
+    int maxOutput = 536870912, int maxRatio = 1000) as cstring
+    __zstd_check_limit(maxInput, "maxInput")
+    __zstd_check_limit(maxOutput, "maxOutput")
+    __zstd_check_limit(maxRatio, "maxRatio")
+    if maxRatio > 4294967295 then throw RangeError "zstd maxRatio must fit uint32" end
+    point result = __zstd_decompress_text(data.data(), c_size(data.len()),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
+    if result == null then
+        if __zstd_value_error() then throw ValueError __zstd_error() end
+        throw CompressionError __zstd_failure()
+    end
+    c_size textSize = __zstd_text_size(result)
+    return cstring.take(__zstd_text_take(result), textSize, __zstd_free)
 end
 
 export func compressFile(string source, string destination, int level = ZSTD_DEFAULT_LEVEL,

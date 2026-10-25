@@ -49,6 +49,45 @@ static int scan_failures(xbytesview plain, xbytesview packed, bool decode)
     return 0;
 }
 
+static int scan_text_failures(void)
+{
+    xbuffer* packed = NULL;
+    xmemdebugsnapshot before, after;
+    unsigned int index, rejected = 0, succeeded = 0;
+    CHECK(xrtZstdCompress("hello", 5, NULL, &packed, NULL));
+    xrtMemDebugSnapshot(&before);
+    for (index = 0; index < 128u && succeeded < 2u; ++index) {
+        void* result;
+        bool injected;
+        CHECK(xrtMemDebugFailAfter(index));
+        result = xzstd_decompress_text(packed->Data, packed->Size,
+            268435456u, 536870912u, 1000u);
+        injected = xrtMemDebugFailTriggered();
+        xrtMemDebugFailClear();
+        if (injected) {
+            CHECK(result == NULL);
+            ++rejected;
+        } else {
+            char* text;
+            CHECK(result != NULL && xzstd_text_size(result) == 5);
+            text = (char*)xzstd_text_take(result);
+            CHECK(text != NULL && memcmp(text, "hello", 6) == 0);
+            xrtFree(text);
+            ++succeeded;
+        }
+        xrtClearError();
+        xrtMemDebugSnapshot(&after);
+        CHECK(after.LiveCount == before.LiveCount && after.LiveBytes == before.LiveBytes);
+        CHECK(after.InvalidFreeCount == before.InvalidFreeCount &&
+            after.DoubleFreeCount == before.DoubleFreeCount &&
+            after.OverflowCount == before.OverflowCount &&
+            after.UnderflowCount == before.UnderflowCount);
+    }
+    CHECK(rejected > 0u && succeeded == 2u);
+    xrtBufferDestroy(packed);
+    return 0;
+}
+
 int main(void)
 {
     unsigned char plain[4096];
@@ -60,6 +99,7 @@ int main(void)
     CHECK(xrtZstdCompress(plain, sizeof(plain), NULL, &packed, &error));
     CHECK(scan_failures((xbytesview){plain, sizeof(plain)}, xrtBufferView(packed), false) == 0);
     CHECK(scan_failures((xbytesview){plain, sizeof(plain)}, xrtBufferView(packed), true) == 0);
+    CHECK(scan_text_failures() == 0);
     /* 桥接错误分类只读当前线程错误，不把旧失败带入下一次调用。 */
     CHECK(!xzstd_last_error_is_memory());
     CHECK(xrtMemDebugFailAfter(0u));

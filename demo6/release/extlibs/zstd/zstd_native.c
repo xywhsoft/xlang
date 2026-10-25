@@ -13,6 +13,9 @@
 #ifndef XRT_MODULE_PATH
 #define XRT_MODULE_PATH
 #endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
 #ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #endif
@@ -201,6 +204,12 @@ XZSTD_EXPORT bool xzstd_last_error_is_range(void)
 	return pError != NULL && xrtErrorKind(pError) == XERR_RANGE;
 }
 
+XZSTD_EXPORT bool xzstd_last_error_is_value(void)
+{
+	const xerror* pError = xrtGetError();
+	return pError != NULL && xrtErrorKind(pError) == XERR_VALUE;
+}
+
 
 
 XZSTD_EXPORT void* xzstd_compress(void* pData, size_t iSize, int iLevel,
@@ -231,6 +240,42 @@ XZSTD_EXPORT void* xzstd_decompress(void* pData, size_t iSize, unsigned long lon
 		return NULL;
 	}
 	return pOutput;
+}
+
+
+/* 取走解压缓冲；追加末尾 NUL 仅在容量不足时需要 XRT 扩容。 */
+XZSTD_EXPORT void* xzstd_decompress_text(void* pData, size_t iSize,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio)
+{
+	xbuffer* pOutput = (xbuffer*)xzstd_decompress(pData, iSize, iMaxInput, iMaxOutput, iMaxRatio);
+	if ( pOutput == NULL ) { return NULL; }
+	if ( !xrtUtf8Valid((xstrview){(const char*)pOutput->Data, pOutput->Size}, NULL) ) {
+		xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.zstd", 0,
+			"zstd decompressed text is not valid UTF-8");
+		xrtBufferDestroy(pOutput);
+		return NULL;
+	}
+	if ( !xrtBufferAppendByte(pOutput, 0) ) {
+		xrtBufferDestroy(pOutput);
+		return NULL;
+	}
+	return pOutput;
+}
+
+XZSTD_EXPORT size_t xzstd_text_size(void* pHandle)
+{
+	const xbuffer* pOutput = (const xbuffer*)pHandle;
+	return pOutput != NULL && pOutput->Size != 0u ? pOutput->Size - 1u : 0u;
+}
+
+XZSTD_EXPORT void* xzstd_text_take(void* pHandle)
+{
+	xbuffer* pOutput = (xbuffer*)pHandle;
+	void* pText;
+	if ( pOutput == NULL ) { return NULL; }
+	pText = xrtBufferTake(pOutput, NULL, NULL);
+	xrtBufferDestroy(pOutput);
+	return pText;
 }
 
 XZSTD_EXPORT int xzstd_compress_file(const char* sSource, const char* sDestination, int iLevel,

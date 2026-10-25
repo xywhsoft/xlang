@@ -1,4 +1,5 @@
 #include "../include/xrt_zstd.h"
+#include "../include/zstd_native.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -341,6 +342,45 @@ static int test_invalid_options(void) {
     return 0;
 }
 
+static int test_text_take(void) {
+    const unsigned char content[] = {'A', 0, 'B', 0xe4, 0xbd, 0xa0};
+    const unsigned char invalid[] = {0xff};
+    xbuffer* packed = NULL;
+    void* result;
+    void* original;
+    char* text;
+    size_t length;
+
+    CHECK(xrtZstdCompress(content, sizeof(content), NULL, &packed, NULL));
+    result = xzstd_decompress_text(packed->Data, packed->Size,
+        268435456u, 536870912u, 1000u);
+    CHECK(result != NULL);
+    length = xzstd_text_size(result);
+    original = ((xbuffer*)result)->Data;
+    text = (char*)xzstd_text_take(result);
+    CHECK(text == original && length == sizeof(content));
+    CHECK(memcmp(text, content, length) == 0 && text[length] == '\0');
+    xrtFree(text);
+    xrtBufferDestroy(packed);
+
+    CHECK(xrtZstdCompress(NULL, 0, NULL, &packed, NULL));
+    result = xzstd_decompress_text(packed->Data, packed->Size,
+        268435456u, 536870912u, 1000u);
+    CHECK(result != NULL && xzstd_text_size(result) == 0u);
+    text = (char*)xzstd_text_take(result);
+    CHECK(text != NULL && text[0] == '\0');
+    xrtFree(text);
+    xrtBufferDestroy(packed);
+
+    CHECK(xrtZstdCompress(invalid, sizeof(invalid), NULL, &packed, NULL));
+    CHECK(xzstd_decompress_text(packed->Data, packed->Size,
+        268435456u, 536870912u, 1000u) == NULL);
+    CHECK(xzstd_last_error_is_value());
+    xrtClearError();
+    xrtBufferDestroy(packed);
+    return 0;
+}
+
 int main(void) {
     CHECK(test_invalid_options() == 0);
     CHECK(test_one_shot() == 0);
@@ -349,6 +389,7 @@ int main(void) {
     CHECK(test_frame_limits() == 0);
     CHECK(test_stream_progress() == 0);
     CHECK(test_seeked_stream_progress() == 0);
+    CHECK(test_text_take() == 0);
     puts("zstd C boundaries: PASS");
     return 0;
 }

@@ -6,7 +6,7 @@
 工作目录运行；这不代表项目根目录的共享 VFS 路径问题已修复。
 输出限额由 C 层报告 `XERR_RANGE`，XLang 现抛 `RangeError`；
 损坏帧和非法状态仍抛 `CompressionError`，分配失败为 `MemoryError`。
-WSL C ASan/UBSan 通过；现有 Linux `release/xl` 在导入时仍拒绝
+WSL `test/check.sh --c-only` 的 C ASan/UBSan 通过；现有 Linux `release/xl` 在导入时仍拒绝
 `string` 到 `cstring` 的实参转换，需重建 Linux 发布物后验收语言层。
 
 2026-10-25：一次性和流对象的显式结果检查入口使用 `@no_raise`，
@@ -40,6 +40,11 @@ assert zstd.decompressText(packed) == "hello zstd"
 ```
 
 `compress` 的默认级别为 3；`compressor(level)` 和 `decompressor()` 提供 `update`、`drain`、`finish`。压缩流须调用 `finish` 写出帧尾；解压流的 `finish` 会检查截断。`decompress` 可处理串联帧。文件接口使用 XRT reader/writer，并在目标目录创建临时文件，成功关闭后重命名；失败或取消会删除临时文件。源或目标路径含 NUL 时抛 `ValueError`，不访问截断后的前缀路径。文件进度回调返回 `false` 时取消操作。
+
+`decompressText` 校验 UTF-8 后取走 XRT 解压缓冲，保留内嵌 NUL，
+不再经 `Buffer.text()` 无条件复制。追加终止字节时若容量不足，XRT
+仍可能扩容。非法 UTF-8 抛 `ValueError`；普通解压错误仍按原有类别报告。
+XLang 内部返回 `cstring` 共享所有权，通过公开 C 导出时按普通字符串 ABI 转换。
 
 流对象的 `*Native` 成员仅供包内包装代码使用，导入方调用公开的 `update`、`drain`、`finish` 和属性。包级门禁以只编译负例验证原生入口不可访问，不执行伪造指针与长度的调用。
 

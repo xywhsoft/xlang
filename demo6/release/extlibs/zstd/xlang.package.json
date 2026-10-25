@@ -21,6 +21,7 @@
                                         "XRT_MODULE_FILE_TEMP",
                                         "XRT_MODULE_ERROR_FORMAT",
                                         "XRT_MODULE_PATH",
+                                        "XRT_MODULE_UNICODE",
                                         "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"
                                     ]
                  },

@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+mode=${1:-}
+if [[ -n $mode && $mode != --c-only ]]; then
+    printf 'usage: %s [--c-only]\n' "$0" >&2
+    exit 2
+fi
+
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)
 cd "$root"
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-zstd-XXXXXX")
@@ -12,19 +18,21 @@ flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 
-for kind in compressor decompressor; do
-    case="private_${kind}_negative"
-    if timeout 90s ./release/xl check "release/extlibs/zstd/test/$case.xl" > "$work/$case.txt" 2>&1; then
-        printf 'zstd: %s must be rejected\n' "$case" >&2
-        exit 1
-    fi
-    if ! grep -Fq 'updateNative' "$work/$case.txt" ||
-       ! grep -Fq 'access' "$work/$case.txt"; then
-        cat "$work/$case.txt" >&2
-        printf 'zstd: expected private-access diagnostic\n' >&2
-        exit 1
-    fi
-done
+if [[ $mode != --c-only ]]; then
+    for kind in compressor decompressor; do
+        case="private_${kind}_negative"
+        if timeout 90s ./release/xl check "release/extlibs/zstd/test/$case.xl" > "$work/$case.txt" 2>&1; then
+            printf 'zstd: %s must be rejected\n' "$case" >&2
+            exit 1
+        fi
+        if ! grep -Fq 'updateNative' "$work/$case.txt" ||
+           ! grep -Fq 'access' "$work/$case.txt"; then
+            cat "$work/$case.txt" >&2
+            printf 'zstd: expected private-access diagnostic\n' >&2
+            exit 1
+        fi
+    done
+fi
 
 "$cc" "${flags[@]}" -c test/support/extlib_codec_runtime.c -o "$work/runtime.o"
 "$cc" "${flags[@]}" -c release/extlibs/zstd/xrt_zstd.c -o "$work/core.o"
@@ -44,6 +52,10 @@ timeout 90s "$work/test_zstd"
 timeout 30s "$work/test_file"
 timeout 30s "$work/test_allocations"
 timeout 30s "$work/basic" > "$work/basic_c.txt"
+if [[ $mode == --c-only ]]; then
+    printf 'zstd Linux C ASan/UBSan gate: PASS\n'
+    exit 0
+fi
 timeout 90s ./release/xl run release/extlibs/zstd/examples/basic_c.c > "$work/basic_direct.txt"
 diff -u "$work/basic_c.txt" "$work/basic_direct.txt"
 timeout 90s ./release/xl run test/cases/extlib_zstd_progress.xl
