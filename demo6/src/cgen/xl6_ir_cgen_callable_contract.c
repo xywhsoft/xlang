@@ -4,7 +4,7 @@ static int xl6IrCgenPointActionSignature(const XL6_IrModule* module,XL6_IrTypeId
 {
     const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
     const XL6_IrCallableBridge* bridge=xl6IrCallableBridgeGet(module,id);
-    if(!type || !bridge || !type->typeValueId || type->paramCount!=1 ||
+    if(!type || !bridge || !type->typeValueId || type->paramCount!=1 || !type->params ||
        type->returnCount || bridge->erasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED)return 0;
     const XL6_IrType* parameter=xl6IrTypeGet(&module->types,type->params[0]);
     return parameter && parameter->cAbi==XL6_IR_C_ABI_RAW_POINTER;

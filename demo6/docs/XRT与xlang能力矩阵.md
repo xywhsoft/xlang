@@ -145,7 +145,7 @@
 | `extlibs/xruntime/include/xrt/runtime_type.h` | type identity, descriptors, registry, and protocols | kernel | direct | 60 | 27 | `test/cases/cgen_runtime_type_baseline.xl` |
 | `extlibs/xruntime/include/xrt/runtime_type_future.h` | future<T> runtime type identity | kernel | direct | 1 | 1 | `test/cases/cgen_future_task_wait.xl` |
 | `extlibs/xruntime/include/xrt/runtime_type_string.h` | stable language type names | kernel | direct | 2 | 2 | `test/cases/cgen_runtime_type_baseline.xl` |
-| `extlibs/xruntime/include/xrt/runtime_value.h` | var lifecycle, boxing, comparison, and cloning | kernel | direct | 28 | 14 | `test/cases/runtime_var_type_storage_matrix.xl` |
+| `extlibs/xruntime/include/xrt/runtime_value.h` | var lifecycle, boxing, comparison, and cloning | kernel | direct | 28 | 15 | `test/cases/runtime_var_type_storage_matrix.xl` |
 | `extlibs/xruntime/include/xrt/typed_array.h` | array<T> | language-type | direct | 34 | 28 | `test/cases/cgen_typed_container_functions.xl` |
 | `extlibs/xruntime/include/xrt/typed_dict.h` | dict<T> | language-type | direct | 30 | 22 | `test/cases/cgen_typed_container_functions.xl` |
 | `extlibs/xruntime/include/xrt/typed_list.h` | list<T> | language-type | direct | 30 | 23 | `test/cases/cgen_typed_container_functions.xl` |

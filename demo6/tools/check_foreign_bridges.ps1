@@ -29,6 +29,20 @@ try {
         'src/runtime/xl6_ownership_plan.c',
         $implementation,'-lWs2_32','-lAdvapi32','-lIphlpapi','-lm','-o',$hostExe)
     Run 'host_faults' $hostExe @()
+    $producer = Join-Path $work 'producer.dll'
+    $adapter = Join-Path $work 'adapter.dll'
+    foreach ($library in @($producer,$adapter)) {
+        Run ([IO.Path]::GetFileNameWithoutExtension($library) + '_build') $gcc @(
+            '-std=c11','-O2','-Wall','-Wextra','-Werror','-I.','-Irelease','-shared',
+            'test/cases/xlir_foreign_resource_module.c','-o',$library)
+    }
+    $moduleHost = Join-Path $work 'module_host.exe'
+    Run 'module_host_compile' $gcc @('-std=c11','-O2','-Wall','-Wextra','-Werror',
+        '-ffunction-sections','-fdata-sections','-Wl,--gc-sections','-I.','-Irelease',
+        'test/cases/xlir_foreign_resource_module_host.c','src/runtime/xl6_foreign_resource.c',
+        'src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_code_lease.c',
+        $implementation,'-lWs2_32','-lAdvapi32','-lIphlpapi','-lm','-o',$moduleHost)
+    Run 'module_lifetime' $moduleHost @($producer,$adapter)
     $source = 'test/cases/xlir_foreign_bridges.xl'
     $native = 'test/cases/xlir_foreign_bridges_native.c'
     $prefix = Join-Path $work 'bridges'
