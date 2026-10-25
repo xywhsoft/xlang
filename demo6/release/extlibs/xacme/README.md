@@ -4,6 +4,7 @@
 协议、JWS、TLS、五家 DNS provider、Store 和 Obtain 均直接使用上游实现。
 快照提交及校验值见 [source.json](upstream/source.json)，43 个公开函数的映射及
 38 个业务常量见 [api-map.json](api-map.json)。快照只包含 XACME，没有第二套 XRT 核心。
+快照比较和 SHA-256 使用 LF 规范化，避免 Windows Git 行尾转换造成误报。
 
 ```xl
 import xacme

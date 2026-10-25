@@ -1,6 +1,7 @@
 {
   "repository": "xrt",
   "revision": "2d1c55d77b879d8ef7081c7a6d2465f827e89325",
+  "normalization": "CRLF converted to LF before comparison and SHA-256",
   "files": {
     "xacme.h": {
       "source": "single/extlibs/xacme.h",
@@ -8,11 +9,11 @@
     },
     "xacme_decl.h": {
       "source": "single/extlibs/xacme_decl.h",
-      "sha256": "69717b8a1c0b6f0ab87e6a0c8986171673180332ba74d50ddb8abbd4cc2c612d"
+      "sha256": "2ecf9273c872d57ac3f2bb4a54a68a3084ebb1dd81a21970f7815a46a92c70e8"
     },
     "modules.json": {
       "source": "extlibs/xacme/config/modules.json",
-      "sha256": "4431b376c8b7d21a4df8cbc1cc629e2863ee886eab0e7809b6b5cf937a6fc642"
+      "sha256": "6c9a56b6c53a5d00581f226550add98844c11a48238f3417b1a56879279f3d2e"
     },
     "wait-arithmetic.h": {
       "source": "include/xrt/wait.h (arithmetic only)",
