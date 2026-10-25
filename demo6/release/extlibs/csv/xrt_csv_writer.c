@@ -171,7 +171,29 @@ static bool __xrtCsvWriterWrite(xrtcsvwriter* pWriter, uint32 iCount, const str*
 		return false;
 	}
 	for ( i = 0u; i < iCount; ++i ) {
-		size_t iLength = pFields[i] != NULL ? strlen((const char*)pFields[i]) : 0u;
+		size_t iLength;
+		uint64 iBudget = UINT64_MAX;
+		if ( pWriter->Dialect.tLimits.iMaxItemBytes != 0u &&
+			pWriter->Dialect.tLimits.iMaxItemBytes < iBudget ) {
+			iBudget = pWriter->Dialect.tLimits.iMaxItemBytes;
+		}
+		if ( pWriter->Dialect.tLimits.iMaxInputBytes != 0u ) {
+			uint64 iMaxInput = pWriter->Dialect.tLimits.iMaxInputBytes;
+			uint64 iRemaining;
+			if ( pWriter->InputBytes > iMaxInput ||
+				iInput > iMaxInput - pWriter->InputBytes ) {
+				__xrtCsvSetWriterError(pWriter, XRT_CSV_ERROR_LIMIT,
+					"CSV input exceeds the configured limit");
+				return false;
+			}
+			iRemaining = iMaxInput - pWriter->InputBytes - iInput;
+			if ( iRemaining < iBudget ) { iBudget = iRemaining; }
+		}
+		if ( !__xrtCsvFieldLength(pFields[i], iBudget, &iLength) ) {
+			__xrtCsvSetWriterError(pWriter, XRT_CSV_ERROR_LIMIT,
+				"oversized CSV field");
+			return false;
+		}
 		if ( pFields[i] != NULL && !xrtUtf8Valid((xstrview){ pFields[i], iLength }, NULL) ) {
 			__xrtCsvSetWriterError(pWriter, XRT_CSV_ERROR_FORMAT, "CSV field is not valid UTF-8");
 			return false;

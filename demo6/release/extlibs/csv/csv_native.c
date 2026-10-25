@@ -336,7 +336,8 @@ bool xcsv_writer_field(void* pValue, cstr sValue)
 {
 	xcsv_writer_handle* pHandle = (xcsv_writer_handle*)pValue;
 	str sCopy;
-	size_t iLength = sValue != NULL ? strlen(sValue) : 0u;
+	size_t iLength;
+	uint64 iBudget = UINT64_MAX;
 	const xrtresourcelimits* pLimits;
 	xrtClearError();
 	if ( pHandle != NULL && pHandle->Writer->Failed ) {
@@ -347,6 +348,24 @@ bool xcsv_writer_field(void* pValue, cstr sValue)
 		return false;
 	}
 	pLimits = &pHandle->Writer->Dialect.tLimits;
+	if ( pLimits->iMaxItemBytes != 0u && pLimits->iMaxItemBytes < iBudget ) {
+		iBudget = pLimits->iMaxItemBytes;
+	}
+	if ( pLimits->iMaxInputBytes != 0u ) {
+		uint64 iMaxInput = pLimits->iMaxInputBytes;
+		uint64 iRemaining;
+		if ( pHandle->Writer->InputBytes > iMaxInput ||
+			pHandle->RowBytes > iMaxInput - pHandle->Writer->InputBytes ) {
+			return xcsv_writer_failure(pHandle, XRT_CSV_ERROR_LIMIT,
+				"CSV row exceeds the configured limit");
+		}
+		iRemaining = iMaxInput - pHandle->Writer->InputBytes - pHandle->RowBytes;
+		if ( iRemaining < iBudget ) { iBudget = iRemaining; }
+	}
+	if ( !__xrtCsvFieldLength(sValue, iBudget, &iLength) ) {
+		return xcsv_writer_failure(pHandle, XRT_CSV_ERROR_LIMIT,
+			"CSV row exceeds the configured limit");
+	}
 	if ( (pLimits->iMaxItemBytes != 0u && iLength > pLimits->iMaxItemBytes) ||
 		(pLimits->iMaxNodes != 0u && pHandle->Writer->TotalFields + pHandle->Count >= pLimits->iMaxNodes) ||
 		pHandle->RowBytes > UINT64_MAX - iLength ||
@@ -369,7 +388,7 @@ bool xcsv_writer_field(void* pValue, cstr sValue)
 		pHandle->Fields = pFields;
 		pHandle->Capacity = (uint32)iCapacity;
 	}
-	sCopy = xrtStrDup(sValue != NULL ? sValue : "");
+	sCopy = xrtStrDupN(sValue != NULL ? sValue : "", iLength);
 	if ( sCopy == NULL ) {
 		return xcsv_writer_failure(pHandle, XRT_CSV_ERROR_MEMORY, "cannot copy CSV field");
 	}

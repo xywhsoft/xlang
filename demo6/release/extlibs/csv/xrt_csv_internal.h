@@ -57,6 +57,7 @@ struct xrtcsvwriter {
 };
 
 bool __xrtCsvCopyDialect(xrtcsvdialect* pOutput, const xrtcsvdialect* pInput);
+bool __xrtCsvFieldLength(cstr sValue, uint64 iLimit, size_t* pLength);
 void __xrtCsvSetReaderError(xrtcsvreader* pReader, int iCode, const char* sFormat, ...);
 void __xrtCsvSetWriterError(xrtcsvwriter* pWriter, int iCode, const char* sFormat, ...);
 bool __xrtCsvWriterWriteAll(xrtcsvwriter* pWriter, const void* pData, uint64 iSize);

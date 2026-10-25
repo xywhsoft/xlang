@@ -115,6 +115,8 @@ rows.close()</code></pre>
     xrtCsvReaderCreate/OpenMemory/OpenFile、Next/EOF/Error、Close/Destroy 负责读取；
     xrtCsvWriterCreate/CreateMemory/OpenFile、Write、Close/TakeBuffer、Error/Destroy 负责写入。
     方言必须通过 xrtCsvDialectInit 初始化；五项有效限额继承 XRT 默认值。
+    写入器有字段或累计输入配额时，超限字段只扫描至超过剩余配额的首字节；
+    达到配额边界的字段仍可写入。C 字段指针仍须指向有效的 NUL 结尾字符串。
     深度、压缩倍率、资源标志及保留字段必须为零，显式设置会在 reader/writer 创建时拒绝。</p>
     <p>C OpenMemory 借用内存，必须保持输入有效不变；行字段在下次 Next/Close/Destroy 后失效。
     takeOwnership=true 在创建失败时也消费传入流。创建可能返回带错误的非 NULL 对象，需检查 Error()->iCode。

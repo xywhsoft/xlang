@@ -27,6 +27,18 @@ XRT_API void xrtCsvErrorInit(xrtcsverror* pError)
 	memset(pError, 0, sizeof(*pError));
 }
 
+/* 有配额时只检查到超限的第一个字节；零结尾输入仍由调用方持有。 */
+bool __xrtCsvFieldLength(cstr sValue, uint64 iLimit, size_t* pLength)
+{
+	size_t i;
+	if ( sValue == NULL ) { *pLength = 0u; return true; }
+	if ( iLimit >= SIZE_MAX ) { *pLength = strlen(sValue); return true; }
+	for ( i = 0u; i <= (size_t)iLimit; ++i ) {
+		if ( sValue[i] == 0 ) { *pLength = i; return true; }
+	}
+	return false;
+}
+
 bool __xrtCsvCopyDialect(xrtcsvdialect* pOutput, const xrtcsvdialect* pInput)
 {
 	xrtCsvDialectInit(pOutput);

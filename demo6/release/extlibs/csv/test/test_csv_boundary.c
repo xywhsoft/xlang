@@ -145,6 +145,65 @@ static void take_text(void)
     xcsv_writer_destroy(writer);
 }
 
+static void writer_length_limits(void)
+{
+    char oversized[8193];
+    const str fields[] = { oversized };
+    const str exact[] = { "abcd" };
+    xrtcsvdialect dialect;
+    xrtcsvwriter* direct;
+    void* bridge;
+    xbuffer* output;
+    memset(oversized, 'x', sizeof(oversized) - 1u);
+    oversized[sizeof(oversized) - 1u] = 0;
+
+    xrtCsvDialectInit(&dialect);
+    dialect.tLimits.iMaxItemBytes = 4u;
+    direct = xrtCsvWriterCreateMemory(&dialect);
+    assert(direct && !xrtCsvWriterWrite(direct, 1u, fields));
+    assert(xrtCsvWriterError(direct)->iCode == XRT_CSV_ERROR_LIMIT);
+    assert(xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    xrtCsvWriterDestroy(direct);
+    dialect.tLimits.iMaxItemBytes = 0u;
+    dialect.tLimits.iMaxInputBytes = 4u;
+    direct = xrtCsvWriterCreateMemory(&dialect);
+    assert(direct && !xrtCsvWriterWrite(direct, 1u, fields));
+    assert(xrtCsvWriterError(direct)->iCode == XRT_CSV_ERROR_LIMIT);
+    xrtCsvWriterDestroy(direct);
+    direct = xrtCsvWriterCreateMemory(&dialect);
+    assert(direct && xrtCsvWriterWrite(direct, 1u, exact) &&
+        xrtCsvWriterClose(direct));
+    output = xrtCsvWriterTakeBuffer(direct);
+    assert(output && output->Size == 5u &&
+        memcmp(output->Data, "abcd\n", 5u) == 0);
+    xrtBufferDestroy(output);
+    xrtCsvWriterDestroy(direct);
+
+    bridge = xcsv_writer_create_memory(",", "\"", 0, false, false,
+        0u, 0u, 4u, 0u, 0u);
+    assert(bridge && xcsv_writer_begin(bridge));
+    assert(!xcsv_writer_field(bridge, oversized));
+    assert(xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    xcsv_writer_destroy(bridge);
+    bridge = xcsv_writer_create_memory(",", "\"", 0, false, false,
+        4u, 0u, 0u, 0u, 0u);
+    assert(bridge && xcsv_writer_begin(bridge) &&
+        xcsv_writer_field(bridge, "ab"));
+    assert(!xcsv_writer_field(bridge, "cde"));
+    assert(xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    xcsv_writer_destroy(bridge);
+    bridge = xcsv_writer_create_memory(",", "\"", 0, false, false,
+        4u, 0u, 0u, 0u, 0u);
+    assert(bridge && xcsv_writer_begin(bridge) &&
+        xcsv_writer_field(bridge, "ab") && xcsv_writer_field(bridge, "cd") &&
+        xcsv_writer_end(bridge));
+    output = xcsv_writer_take_buffer(bridge);
+    assert(output && output->Size == 6u &&
+        memcmp(output->Data, "ab,cd\n", 6u) == 0);
+    xrtBufferDestroy(output);
+    xcsv_writer_destroy(bridge);
+}
+
 static void dialect_length(void)
 {
     char unterminated[2] = {',', 'x'};
@@ -165,6 +224,7 @@ int main(int argc, char** argv)
     if (!strcmp(name, "all") || !strcmp(name, "nul")) nul_input();
     if (!strcmp(name, "all") || !strcmp(name, "pending-row")) pending_row();
     if (!strcmp(name, "all") || !strcmp(name, "take-text")) take_text();
+    if (!strcmp(name, "all") || !strcmp(name, "writer-length-limits")) writer_length_limits();
     if (!strcmp(name, "all") || !strcmp(name, "dialect-length")) dialect_length();
     xrtClearError();
     puts("csv boundaries: PASS");
