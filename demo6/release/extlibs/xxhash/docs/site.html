@@ -80,8 +80,8 @@ h.reset()</code></pre>
       负数或超宽种子在语义阶段拒绝；TCC 的系统头包含顺序也有回归检查。
       入口为 <code>tools/check_extlib_xxhash.ps1</code>、<code>tools/check_extlib_xxhash.sh</code> 与 <code>tools/check_extlib_linux_xl.sh xxhash</code>。
       2026-10-24 使用更新后的 Windows 发布版复验，默认门禁包含严格 C、独立向量、生成原型、双语输出及公开范例 AOT，全部通过；旧版共享缺符号阻断已解除。Linux 包门禁也通过 C ASan/UBSan、单文件直跑及 XLang JIT 对照。
-      <code>-SkipAot</code> 仅供开发时缩短反馈。当前结果不等同于 Linux XLang AOT 或全平台认证。当前不公开 XXH3/128 语言 API、
-      XXH32 流式对象，不宣称共享可变对象并发或性能已认证。</p>
+      <code>-SkipAot</code> 仅供开发时缩短反馈。当前不公开 XXH3/128 语言 API、XXH32 流式对象，不宣称共享可变对象并发或性能已认证。</p>
+    <p>2026-10-26 当前 Windows 默认门禁 44 项检查、19 个生成原型与 C/XLang JIT/AOT 通过；Linux C ASan/UBSan、私有入口/种子负例、七条独立 EXE AOT 及双语范例输出对照通过。两平台短时 x64 路径已验，32 位/ARM、长时压力与性能基准仍未覆盖。</p>
     <p>后端固定为 v0.8.3 commit <code>e626a72bc2321cd320e953a0ccf1584cad60f363</code>，
       BSD-2-Clause；来源、适配层和独立向量见包内 VENDOR.md。</p>
   </section>

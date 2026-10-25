@@ -121,7 +121,7 @@ C 对照范例的一次性哈希、增量更新及 reset 均显式执行；Windo
 - [负数种子拒绝](test/invalid_seed_negative.xl)、[32 位种子溢出拒绝](test/invalid_seed32_overflow.xl)：
   预期语义错误的负例，不能当作成功运行的范例。
 - `tools/check_extlib_xxhash.ps1`：严格 GCC、124 条独立向量、实际生成声明、JIT/AOT、双语输出；`-SkipAot` 仅供开发时缩短反馈。
-- `tools/check_extlib_xxhash.sh`：Linux 独立 C ASan/UBSan/泄漏检查与范例对照。
+- `tools/check_extlib_xxhash.sh`：Linux 独立 C ASan/UBSan、私有入口/种子负例、语言 JIT、七条独立 EXE AOT 与双语范例输出对照。
 - `bash tools/check_extlib_linux_xl.sh xxhash`：Linux XLang JIT 的普通、边界、文件进度用例及双语范例固定输出；不替代 C sanitizer 或 AOT 门禁。
 - `bash release/extlibs/xxhash/test/check.sh`：组合上述 Linux C/XLang 门禁，验证包内正例与原生入口访问负例。
 
@@ -131,6 +131,14 @@ C 对照范例的一次性哈希、增量更新及 reset 均显式执行；Windo
 Linux C ASan/UBSan 与 XLang JIT 联合门禁也通过。旧版共享 AOT 缺符号
 阻断已解除；Linux XLang AOT、XXH3/128 语言 API、32 位/ARM 仍不在
 本次验收范围内。
+
+2026-10-26 当前发布物复验：Windows 默认门禁报告 `passed`，44 项检查、
+19 个生成原型、124 条独立向量和 C/XLang JIT/AOT 均通过；单次运行
+使用独占构建目录并保留 JSON 报告。Linux C ASan/UBSan、私有入口及
+种子范围负例、中央/包内 JIT、七条独立 EXE AOT、C/JIT/AOT 基础
+范例与完整教学范例 JIT/AOT 输出对照通过。仅签收当前 Windows/
+Linux x64 的 XXH32/XXH64 短时门禁；XXH3/128 语言 API 未公开，
+32 位/ARM、长时压力与性能基准仍未验收。
 
 以下为历史验证记录，其中共享缺符号描述均指当时的旧发布版。
 2026-09-27 的专项覆盖 37 项 Windows 检查、全部 19 个实际生成的原生声明，
