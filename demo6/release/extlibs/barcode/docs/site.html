@@ -32,7 +32,7 @@
 var modules = barcode.upcA("12345678901")
 println(modules.length)  // 95
 println(barcode.upcAAscii("12345678901"))</code></pre>
-    <p>仅支持 EAN-13 与 UPC-A。95 位编码模块不含静区；SVG 另留 EAN-13 左 11X/右 7X、UPC-A 左右各 9X 的白色静区，画布宽 113X。合法输入下的分配失败报内存错误，失败后可重试；C 公开入口成功或正常查询后不残留上次错误。C/XLang 同功能范例的输出由包内门禁逐行对照；先前发布物的 AOT 核心与公开范例曾通过。当前发布物的默认门禁在首个 XLang 用例遇到共享 VFS 缺少 <code>include/xruntime_decl.h</code>，后续双语和 AOT 阶段未执行；<code>--skip-aot</code> 不能作为发布签收。输入、C 所有权、印刷范围和验证命令见包内 README。</p>
+    <p>仅支持 EAN-13 与 UPC-A。95 位编码模块不含静区；SVG 另留 EAN-13 左 11X/右 7X、UPC-A 左右各 9X 的白色静区，画布宽 113X。合法输入下的分配失败报内存错误，失败后可重试；C 公开入口成功或正常查询后不残留上次错误。C 测试用独立加权和参照覆盖全部十种校验位与 256 组固定数据，Linux ASan/UBSan、XLang JIT 和双语对照通过。先前发布物的 AOT 核心与公开范例曾通过。当前 Windows 发布物的默认门禁在首个 XLang 用例遇到共享 VFS 缺少 <code>include/xruntime_decl.h</code>，后续双语和 AOT 阶段未执行；<code>--skip-aot</code> 不能作为发布签收。输入、C 所有权、印刷范围和验证命令见包内 README。</p>
   </section>
 </main>
 </body>
