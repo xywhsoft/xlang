@@ -1,6 +1,6 @@
 #include "xl6_tls_session_internal.h"
 static const XL6_TlsSessionRoleOpsV1 serverOperations={
-    xrtTlsServerDrive,xrtTlsServerKeyUpdate,NULL,NULL,xrtTlsServerName,xrtTlsServerCookie
+    xrtTlsServerDrive,xrtTlsServerKeyUpdate,NULL,NULL,xrtTlsServerName,xrtTlsServerCookie,xrtTlsServerResumed
 };
 void* xl6TlsSessionServerCreateV1(void* raw)
 {

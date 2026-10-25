@@ -16,6 +16,7 @@ typedef struct XL6_TlsSessionRoleOpsV1 {
     const xx509cert* (*certificate)(const xtlssession*,size_t);
     bool (*serverName)(const xtlssession*,xbytesview*);
     bool (*serverCookie)(const xtlssession*,uint64*);
+    bool (*resumed)(const xtlssession*);
 } XL6_TlsSessionRoleOpsV1;
 typedef struct XL6_TlsSessionV1 {
     volatile int32 refs;

@@ -15,6 +15,7 @@ bool xl6TlsDialInputReadV1(xstrview host,int64_t size,int64_t port,const void* r
     if(!xl6TextSelect(&host,size))return false;
     xrtTlsClientConfigInit(&out->client);out->client.Context=client->parameters;out->client.Verifier=client->verifier.value;
     out->client.ServerName=server;out->client.VerifyName=verify;
+    out->client.Resume=client->resume.value;
     if(client->protocols){out->client.Protocols=client->protocols->views;out->client.ProtocolCount=client->protocols->count;}
     /* Family restricts the transport endpoint. Proxy target names must never
      * be constrained/resolved locally by the proxy endpoint's family. */

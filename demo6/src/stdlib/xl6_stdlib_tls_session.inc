@@ -17,6 +17,7 @@ const char* xl6StdlibTlsManagedSessionClassSource=
     "    extern \"xl6TlsSessionStateV1\" @nonblocking get state() as TlsState\n"
     "    extern \"xl6TlsSessionWaitV1\" @nonblocking get wait() as TlsWait\n"
     "    extern \"xl6TlsSessionReadyV1\" @nonblocking get ready() as bool\n"
+    "    extern \"xl6TlsSessionResumedV1\" @nonblocking get resumed() as bool\n"
     "    extern \"xl6TlsSessionVersionV1\" @nonblocking get version() as TlsVersion\n"
     "    extern \"xl6TlsSessionCipherV1\" @nonblocking get cipher() as TlsCipherSuite\n"
     "    extern \"xl6TlsSessionPendingInputV1\" @nonblocking get pendingInput() as uint64\n"

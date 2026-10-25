@@ -15,6 +15,7 @@
 {"xl6TlsSessionVersionV1",T,I,1,{V},SS,.resultEnum=&xl6IrTlsVersionContract,SF},
 {"xl6TlsSessionCipherV1",T,I,1,{V},SS,.resultEnum=&xl6IrTlsCipherSuiteContract,SF},
 {"xl6TlsSessionReadyV1",T,B,1,{V},SS,SF},
+{"xl6TlsSessionResumedV1",T,B,1,{V},SS,SF},
 {"xl6TlsSessionPendingInputV1",T,U,1,{V},SS,SF},
 {"xl6TlsSessionPendingCipherV1",T,U,1,{V},SS,SF},
 {"xl6TlsSessionPendingPlainV1",T,U,1,{V},SS,SF},
