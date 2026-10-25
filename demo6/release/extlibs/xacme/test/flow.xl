@@ -20,7 +20,11 @@ func main(...) as int
     auto client = xacme.Client.Create(config)
     try
         assert xacme.Store.SaveAccount(root, config.Account.DirectoryUrl, client.AccountPem())
-        auto chain, key = client.IssueEx(["example.test", "*.example.test"], dns, true)
+        auto chain, key = client.IssueEx(["example.test", "*.example.test",
+            "example.test", "*.example.test", "example.test", "*.example.test",
+            "example.test", "*.example.test", "example.test", "*.example.test",
+            "example.test", "*.example.test", "example.test", "*.example.test",
+            "example.test", "*.example.test", "example.test", "*.example.test"], dns, true)
         assert string.byteLen(chain) > 500 and string.byteLen(key) > 100
         auto storedChain, storedKey, first = client.IssueStored(["example.test", "*.example.test"], dns, root, 30)
         assert first and string.byteLen(storedChain) > 500
