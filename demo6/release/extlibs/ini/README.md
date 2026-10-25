@@ -9,6 +9,10 @@ C/XLang 范例及三份 AOT。节名/键名装入 `array<string>` 时，
 Linux C ASan/UBSan、XLang JIT 与双语门禁已通过；Windows 完整包门禁
 （严格 GCC、C/Python 互通、XLang JIT/cgen、三组 AOT）已通过。
 独立 Linux AOT 待新发布版复验。
+2026-10-25 在 WSL Ubuntu 运行 `test/check.sh`：C ASan/UBSan
+主测试、独立 Python `configparser` 双向互通、Linux `xl` 边界与
+C/XLang 范例输出对照均通过。使用的是现有 Linux `release/xl`，
+不是新构建的 Linux 发布物；独立 Linux AOT 仍未验收。
 上述 Windows 门禁在 `release` 工作目录运行 XLang 阶段；当前发布版从
 `demo6` 根目录直接运行同一文件仍因共享 TCC VFS 头文件查找失败，
 见 `dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。这不是 INI
