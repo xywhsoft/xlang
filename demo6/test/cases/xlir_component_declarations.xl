@@ -1,0 +1,8 @@
+// Only the extern call needs the Dict methods declaration component.
+extern "xl6DictValueRemoveV1" func erase(var receiver, string key) as bool
+
+var values = {}
+values["drop"] = 1
+assert erase(values, "drop")
+assert not erase(values, "drop")
+println("resident-component-declarations=ok")

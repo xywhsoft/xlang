@@ -350,7 +350,7 @@ static int testTextOutputAbi(void)
 {
     XL6_IrModule module;
     XL6_IrCallTarget target;
-    XL6_IrType stringType;
+    XL6_IrType types[2];
     XL6_IrTypeId parameter = 1;
     XL6_IrParameterAbi borrow = XL6_IR_PARAMETER_ABI_BORROW;
     XL6_IrCallParameterPhysicalAbi direct = XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;
@@ -360,13 +360,15 @@ static int testTextOutputAbi(void)
     size_t i;
     memset(&module, 0, sizeof(module));
     memset(&target, 0, sizeof(target));
-    memset(&stringType, 0, sizeof(stringType));
-    stringType.kind = XL6_IR_TYPE_BUILTIN;
-    stringType.cAbi = XL6_IR_C_ABI_MANAGED_STRING;
-    stringType.ownershipAbi = XL6_IR_OWNERSHIP_ABI_MANAGED;
-    stringType.nullAbi = XL6_IR_NULL_ABI_POINTER_SENTINEL;
-    module.types.items = &stringType;
-    module.types.count = 1;
+    memset(types, 0, sizeof(types));
+    types[0].kind = types[1].kind = XL6_IR_TYPE_BUILTIN;
+    types[0].cAbi = XL6_IR_C_ABI_MANAGED_STRING;
+    types[0].ownershipAbi = XL6_IR_OWNERSHIP_ABI_MANAGED;
+    types[0].nullAbi = XL6_IR_NULL_ABI_POINTER_SENTINEL;
+    types[1].cAbi = XL6_IR_C_ABI_C_BOOL;
+    types[1].ownershipAbi = XL6_IR_OWNERSHIP_ABI_TRIVIAL;
+    module.types.items = types;
+    module.types.count = 2;
     target.kind = XL6_IR_CALL_TARGET_EXTERN_C;
     target.resultPhysicalAbi = XL6_IR_CALL_RESULT_PHYSICAL_DIRECT;
     target.parameterCount = 1;
@@ -378,6 +380,7 @@ static int testTextOutputAbi(void)
     target.variadicAbi = XL6_IR_CALL_VARIADIC_NONE;
     target.errorAbi = XL6_IR_ERROR_ABI_NO_RAISE;
     target.errorPhysicalAbi = XL6_IR_CALL_ERROR_PHYSICAL_NONE;
+    target.returnType = 2;
     for (i = 0; i < 2; ++i) {
         target.cName = names[i];
         target.runtimeBridge = xl6IrRuntimeDirectBridgeKind(names[i]);
@@ -387,10 +390,10 @@ static int testTextOutputAbi(void)
         borrow = XL6_IR_PARAMETER_ABI_BORROW;
         target.returnType = 1;
         if (xl6IrRuntimeDirectBridgeTargetMatches(&module, &target)) return 0;
-        target.returnType = XL6_IR_TYPE_INVALID;
-        stringType.cAbi = XL6_IR_C_ABI_RAW_POINTER;
+        target.returnType = 2;
+        types[0].cAbi = XL6_IR_C_ABI_RAW_POINTER;
         if (xl6IrRuntimeDirectBridgeTargetMatches(&module, &target)) return 0;
-        stringType.cAbi = XL6_IR_C_ABI_MANAGED_STRING;
+        types[0].cAbi = XL6_IR_C_ABI_MANAGED_STRING;
         target.parameterCount = 2;
         if (xl6IrRuntimeDirectBridgeTargetMatches(&module, &target)) return 0;
         target.parameterCount = 1;
