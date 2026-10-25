@@ -1,5 +1,14 @@
 # barcode
 
+2026-10-25 再次使用当前发布物执行 Windows 默认 `test/check.py`：
+严格 C 语法检查通过，首个 XLang 中央用例从 `demo6` 根目录运行时
+因共享 TCC VFS 缺少 `include/xruntime_decl.h` 停止；后续边界、双语
+范例及 AOT 阶段未执行。同一中央用例从 `release` 目录运行通过，
+包内 C 边界测试通过。下方早先的完整通过记录只对应当时发布物，
+不能替代本次验收；见
+`../../../dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。
+包内不加头文件路径兼容层。
+
 EAN-13 与 UPC-A 条码编码。输入 12 位 EAN 数据或 11 位 UPC 数据时自动计算校验位；输入完整 13/12 位编码时严格校验。生成 95 个 0/1 模块，也可渲染为 ASCII 或不依赖外部文件的 SVG。本包不提供 UPC-E、Code 128、印刷尺寸认证或扫码识别。
 
 ```xlang
