@@ -10,9 +10,6 @@ static int xl6IrCgenEmitModuleOwnershipTrace(XL6_Output* out,
         "{\n    (void)context; if (visit == NULL) return false;\n", out);
     if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)
         xl6OutputPuts("    if (xlir_module_initializing) return false;\n", out);
-    if (module->abi.networkServiceAbi == XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1)
-        xl6OutputPuts("    if (!xl6NetworkServiceRuntimeV2Get()->Trace(\n"
-            "        &xlir_network_services, visit, context)) return false;\n", out);
     if(module->abi.executionOwnershipAbi==XL6_IR_MODULE_EXECUTION_OWNERSHIP_RESIDENT_SOURCE_V1)
         xl6OutputPuts("    if (xlir_execution_source != NULL &&\n"
             "        !visit(xl6ExecutionSourceOwnershipV1(xlir_execution_source), context)) return false;\n",out);

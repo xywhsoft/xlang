@@ -12512,28 +12512,6 @@ static int xl6IrLowerResolveRuntimeBridge(
                 "XLIR string runtime bridge has no exact parameter/result ABI");
         return 1;
     }
-    target->runtimeBridge = xl6IrRuntimeNetDatagramBridgeKind(target->cName);
-    if (target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE) {
-        target->errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
-        if (!xl6IrRuntimeNetDatagramBridgeTargetMatches(ctx->module, target)) {
-            char diagnostic[256];
-            (void)snprintf(diagnostic, sizeof(diagnostic),
-                "XLIR resolver/datagram bridge '%s' has no exact physical/ownership ABI", target->cName);
-            return xl6IrLowerDiag(ctx, target->declaration, diagnostic);
-        }
-        return 1;
-    }
-    target->runtimeBridge = xl6IrRuntimeNetTcpBridgeKind(target->cName);
-    if ( target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ) {
-        if ( !xl6IrRuntimeNetTcpBridgeTargetMatches(ctx->module, target) ) {
-            char diagnostic[256];
-            (void)snprintf(diagnostic, sizeof(diagnostic),
-                "XLIR TCP runtime bridge '%s' has no exact component ABI",
-                target->cName);
-            return xl6IrLowerDiag(ctx, target->declaration, diagnostic);
-        }
-        return 1;
-    }
     if ( xl6IrRuntimeHttp1BridgeName(target->cName) ) {
         target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_HTTP1;
         if ( !xl6IrRuntimeHttp1BridgeTargetMatches(ctx->module, target) )
@@ -14752,8 +14730,7 @@ static int xl6IrLowerPrecomputeCallTargetErrorAbis(XL6_IrLowerContext* ctx)
                      target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
                     target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE &&
                     xl6IrRuntimeDirectBridgeErrorPhysicalAbi(target->cName) != XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE &&
-                    !xl6IrRuntimeLogBridgeForeignScope(target->cName) &&
-                    !xl6IrRuntimeNetDatagramBridgeKindIs(target->runtimeBridge) ) {
+                    !xl6IrRuntimeLogBridgeForeignScope(target->cName) ) {
             target->errorPhysicalAbi =
                 XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR;
         } else if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||

@@ -272,24 +272,24 @@ release\xl.exe check test\cases\stdlib_net_fast_path.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_net_fast_path.xl --emit build\test\stdlib_net_fast_path.c
 if errorlevel 1 exit /b 1
-findstr /C:"xnetspan local[16]" build\test\stdlib_net_fast_path.c >nul
+findstr /C:"xl6TcpStreamSendVectorTextV1(" build\test\stdlib_net_fast_path.c >nul
 if errorlevel 1 (
-    echo stdlib_net_fast_path.c missing stack vector send path.
+    echo stdlib_net_fast_path.c missing resident typed TCP vector call.
     exit /b 1
 )
-findstr /C:"xnetdgramsend local[16]" build\test\stdlib_net_fast_path.c >nul
+findstr /C:"xl6UdpSendVectorTextV1(" build\test\stdlib_net_fast_path.c >nul
 if errorlevel 1 (
-    echo stdlib_net_fast_path.c missing stack UDP batch path.
+    echo stdlib_net_fast_path.c missing resident typed UDP vector call.
     exit /b 1
 )
-findstr /C:"xrtNetUdpSendBatch" build\test\stdlib_net_fast_path.c >nul
+findstr /C:"xl6UdpReceiveBatchAsyncV1(" build\test\stdlib_net_fast_path.c >nul
 if errorlevel 1 (
-    echo stdlib_net_fast_path.c missing XRT UDP batch call.
+    echo stdlib_net_fast_path.c missing resident UDP batch call.
     exit /b 1
 )
-findstr /C:"xl6_net_free_class_value" build\test\stdlib_net_fast_path.c >nul
+findstr /C:"xl6TcpStreamRecvOwnedStartV1(" build\test\stdlib_net_fast_path.c >nul
 if errorlevel 1 (
-    echo stdlib_net_fast_path.c missing owned async class cleanup.
+    echo stdlib_net_fast_path.c missing resident owned async receive.
     exit /b 1
 )
 release\xl.exe build test\cases\stdlib_net_fast_path.xl -o build\test\stdlib_net_fast_path.exe

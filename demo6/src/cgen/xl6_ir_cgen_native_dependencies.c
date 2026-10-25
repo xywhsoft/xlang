@@ -45,11 +45,6 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
      * construction or a library-specific call-site exception. */
     if (needs->needsXValueUnionRuntime) needs->needsXValueTypeIdentityRuntime=1;
     needs->needsDebugConsoleRuntime = options != NULL && options->debugMode;
-    needs->needsNetLifecycleRuntime=needs->needsNetTcpRuntime || needs->needsNetDatagramRuntime;
-    if (!!(needs->needsNetTcpRuntime || needs->needsNetDatagramRuntime) !=
-        (module->abi.networkServiceAbi == XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1))
-        return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,
-            "XLIR network service ABI disagrees with verified implementation dependencies");
     for(size_t b=0;b<module->callbackBoundaryCount;++b) {
         const XL6_IrCallbackBoundary* boundary=&module->callbackBoundaries[b];
         if(!xl6IrCgenInstructionIsReachable(module,boundary->instruction))continue;
@@ -62,8 +57,7 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
             xl6IrCgenOwnershipView(module->storages[i].moduleTraceAbi)!=NULL)
             needs->needsModuleOwnershipViews=1;
     if (module->abi.entryKind==XL6_IR_MODULE_ENTRY_XLANG_MAIN ||
-        (options && options->emitMainWrapper) || needs->needsNetTcpRuntime ||
-        needs->needsNetDatagramRuntime) {
+        (options && options->emitMainWrapper)) {
         needs->needsForeignErrorRuntime=1;
         needs->needsErrorRuntime=1;
     }
@@ -193,10 +187,6 @@ static int xl6IrCgenVisitNativeGroup(XL6_IrCgenNativeGroup group, uint64_t opera
         if (operations & (1u << (XL6_IR_RUNTIME_BRIDGE_XID_MAKE_MANY -
                 XL6_IR_RUNTIME_BRIDGE_XID_MAKE_STRING)))
             REQUIRE("XRT_MODULE_VALUE_COLLECTION");
-        break;
-    case XL6_IR_CGEN_NATIVE_TLS:
-        /* The selected TLS adapter exposes certificate-to-hex conversion. */
-        REQUIRE("XRT_MODULE_CODEC_HEX");
         break;
     case XL6_IR_CGEN_NATIVE_JSON_VALUE:
         if (operations & (XL6_CGEN_JSON_PARSE|XL6_CGEN_JSON_VALID)) REQUIRE("XRT_MODULE_JSON_READ");

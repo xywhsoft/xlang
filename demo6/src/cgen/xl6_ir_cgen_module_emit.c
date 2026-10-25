@@ -132,8 +132,6 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
             needs.needsWebSocketStreamConfigRuntime,
             needs.needsWebSocketStreamRuntime,
             needs.needsWebSocketStreamTlsRuntime);
-    if ( !xl6IrCgenEmitNetTcpRuntime(out, module, &needs, diags) ) return 0;
-    if ( !xl6IrCgenEmitNetDatagramRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitAsyncAndCallableRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitResourceRuntime(out, module, &needs, diags) ) return 0;
     /* Dynamic adapters consume physical bridge definitions, not normalized
@@ -149,7 +147,6 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
         options != NULL && options->emitScriptEntry,
         options != NULL && options->emitMainWrapper,
         needs.needsErrorRuntime,
-        module->abi.networkServiceAbi != XL6_IR_MODULE_NETWORK_SERVICE_NONE,
         options!=NULL ? options->entryContract : NULL,
         diags);
 }
