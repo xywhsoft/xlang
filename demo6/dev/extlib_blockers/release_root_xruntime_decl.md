@@ -2,6 +2,14 @@
 
 ## 状态：已复验解除
 
+本轮重新执行 `build.bat` 后，`xlc.dll` SHA-256 为
+`4293404D9EDECF6BEAFBBCC0FC382261AACFA4B2811B5FD044B8CA0155901E6D`。
+从 `demo6` 根目录运行 `roaring` 默认包门禁（含 C、XLang JIT、AOT）
+退出 0。另将三个发布二进制、`pinyin` 包及测试源复制到没有发布头文件的
+独立临时目录，JIT、构建和独立 EXE 均退出 0。旧错误不是此发布物的
+现行阻断；下方的头文件查找分析只描述旧二进制，不能据此推断新版仍需
+外部文件兜底。其他包仍须分别执行自己的发布门禁。
+
 2026-10-25 重建并更新主线的 Windows 标准发布物后，同一
 `extlib_roaring.xl` 从 `demo6` 和 `demo6/release` 两个工作目录运行均
 退出 0。验收结果保存在
@@ -10,7 +18,7 @@
 
 ## 复现
 
-当前 Windows 发布物中，`release/include/xruntime_decl.h` 文件存在。
+旧 Windows 发布物中，`release/include/xruntime_decl.h` 文件存在。
 在 `demo6` 目录运行：
 
 ```text

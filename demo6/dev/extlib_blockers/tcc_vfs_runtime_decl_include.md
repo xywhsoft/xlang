@@ -1,9 +1,22 @@
-# TCC VFS runtime header include mismatch (2026-10-25)
+# TCC VFS runtime header include mismatch (old release, 2026-10-25)
+
+## Current recheck
+
+After rebuilding the Windows release with `build.bat`, `xlc.dll` SHA-256 is
+`4293404D9EDECF6BEAFBBCC0FC382261AACFA4B2811B5FD044B8CA0155901E6D`.
+From the `demo6` root, the `pinyin`, `trie`, `units`, and `roaring` default
+Windows package gates now pass, including their JIT and independent EXE checks.
+An isolated directory containing only `xl.exe`, `xl.dll`, `xlc.dll`, the
+`pinyin` source package, and its test program also passed `xl run`, `xl build`,
+and execution of the built EXE. No `release/include` or other repository
+headers were copied there. The failure below belongs to the earlier release
+binary and is not a current blocker for these tested paths. This does not
+claim every embedded header path or package has been exhaustively checked.
 
 ## Reproduce
 
-The Windows release build (`demo6/build.bat`) completed successfully on
-2026-10-25. From `demo6` run:
+An earlier Windows release build (`demo6/build.bat`) completed successfully on
+2026-10-25. From `demo6` it reproduced with:
 
 ```text
 release\xl.exe run dev\extlib_blockers\tcc_vfs_runtime_decl_include.xl
