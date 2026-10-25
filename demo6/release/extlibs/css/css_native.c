@@ -44,13 +44,17 @@ static xcssinput xcss_input(cstr sText)
 {
     xcssinput Input;
 
-    Input.Data = sText != NULL ? sText : "";
-    Input.Size = strlen(Input.Data);
+    Input.Data = sText;
+    Input.Size = sText != NULL ? strlen(sText) : 0u;
     return Input;
 }
 
 static bool xcss_utf8(xcssinput Input)
 {
+    if (Input.Data == NULL) {
+        xcss_error(XERR_ARGUMENT, "CSS input pointer is null");
+        return false;
+    }
     if (xrtUtf8Valid((xstrview){Input.Data, Input.Size}, NULL)) return true;
     xcss_error(XERR_VALUE, "CSS text must be valid UTF-8");
     return false;

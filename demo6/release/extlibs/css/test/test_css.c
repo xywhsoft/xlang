@@ -266,6 +266,37 @@ int main(void)
     xrtFree(pLargeResult);
     xrtFree(pLarge);
 
+    /* NULL 不是空样式表，六个入口都须保留参数错误。 */
+    pLargeResult = xcss_get(NULL, "a", "color");
+    if (pLargeResult != NULL || xrtGetError() == NULL ||
+        xrtErrorKind(xrtGetError()) != XERR_ARGUMENT) {
+        xrtFree(pLargeResult);
+        return fail("get accepted null CSS input");
+    }
+    if (xcss_count_rules(NULL) != -1 || xrtGetError() == NULL ||
+        xrtErrorKind(xrtGetError()) != XERR_ARGUMENT)
+        return fail("countRules accepted null CSS input");
+    if (xcss_count_props(NULL, "a") != -1 || xrtGetError() == NULL ||
+        xrtErrorKind(xrtGetError()) != XERR_ARGUMENT)
+        return fail("countProps accepted null CSS input");
+    pLargeResult = xcss_selector_at(NULL, 0);
+    if (pLargeResult != NULL || xrtGetError() == NULL ||
+        xrtErrorKind(xrtGetError()) != XERR_ARGUMENT) {
+        xrtFree(pLargeResult);
+        return fail("selectorAt accepted null CSS input");
+    }
+    if (xcss_validate(NULL) || xrtGetError() == NULL ||
+        xrtErrorKind(xrtGetError()) != XERR_ARGUMENT)
+        return fail("validate accepted null CSS input");
+    pLargeResult = xcss_strip_comments(NULL);
+    if (pLargeResult != NULL || xrtGetError() == NULL ||
+        xrtErrorKind(xrtGetError()) != XERR_ARGUMENT) {
+        xrtFree(pLargeResult);
+        return fail("stripComments accepted null CSS input");
+    }
+    if (!xcss_validate("") || xcss_count_rules("") != 0 || xrtGetError() != NULL)
+        return fail("empty CSS input changed after null error");
+
     if (!xcss_validate(sCss) || xcss_count_rules(sCss) != 1 ||
         xcss_count_props(sCss, ".panel") != 2 ||
         !ownedEquals(xcss_selector_at(sCss, 0), ".card, .panel") ||
