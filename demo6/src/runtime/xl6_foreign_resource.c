@@ -31,13 +31,15 @@ static bool finalizeChecked(xvalue* object,void* data)
     (void)object;
     ForeignResource* resource=data;
     if(!resource->raw)return true;
-    /* Commit the once-only duty before invoking arbitrary language code. */
+    /* XRT has already disarmed this duty. Failure to establish either scope
+     * cannot be retried: continuing would permanently skip the releaser.
+     * Match the runtime's other terminal-cleanup invariant failures. */
     xrtownershipscope mutation={0};
-    if(!xrtOwnershipMutationBegin(&mutation))return false;
+    if(!xrtOwnershipMutationBegin(&mutation))abort();
     resource->raw=NULL;
     if(!xrtOwnershipScopeEnd(&mutation))abort();
     xl6_error_scope scope={0};
-    if(!xl6ErrorScopeBegin(&scope))return false;
+    if(!xl6ErrorScopeBegin(&scope))abort();
     xvalue* arguments[1]={resource->argument};
     xrtcallframe frame={.ArgumentCount=1,.Arguments=arguments};
     xrtcallresult result=XRT_CALL_RESULT_INIT;
