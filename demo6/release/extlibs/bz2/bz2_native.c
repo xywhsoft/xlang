@@ -7,6 +7,9 @@
 #ifndef XRT_MODULE_FILE_TEMP
 #define XRT_MODULE_FILE_TEMP
 #endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
 #ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #endif
@@ -66,6 +69,42 @@ void* xbz2_decompress(void* data, size_t size, bool small, unsigned long long ma
     bz2_options(&options, 9, 30, small, maxInput, maxOutput, ratio);
     return xrtBz2Decompress(data, size, &options, &output, NULL) ? output : NULL;
 }
+
+/* 验证 UTF-8 后移交解压缓冲；终止字节扩容时仍由 XRT 管理所有权。 */
+void* xbz2_decompress_text(void* data, size_t size, bool small,
+    unsigned long long maxInput, unsigned long long maxOutput, unsigned int ratio)
+{
+    xbuffer* output = (xbuffer*)xbz2_decompress(data, size, small, maxInput, maxOutput, ratio);
+    if (output == NULL) return NULL;
+    if (!xrtUtf8Valid((xstrview){(const char*)output->Data, output->Size}, NULL)) {
+        xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.bz2", 0,
+            "bz2 decompressed text is not valid UTF-8");
+        xrtBufferDestroy(output);
+        return NULL;
+    }
+    if (!xrtBufferAppendByte(output, 0)) {
+        xrtBufferDestroy(output);
+        return NULL;
+    }
+    return output;
+}
+
+size_t xbz2_text_size(void* raw)
+{
+    const xbuffer* output = (const xbuffer*)raw;
+    return output != NULL && output->Size != 0u ? output->Size - 1u : 0u;
+}
+
+void* xbz2_text_take(void* raw)
+{
+    xbuffer* output = (xbuffer*)raw;
+    void* text;
+    if (output == NULL) return NULL;
+    text = xrtBufferTake(output, NULL, NULL);
+    xrtBufferDestroy(output);
+    return text;
+}
+
 int xbz2_compress_file(const char* source, const char* dest, int level, bool overwrite,
     unsigned long long maxInput, unsigned long long maxOutput, xvalue* callback)
 {

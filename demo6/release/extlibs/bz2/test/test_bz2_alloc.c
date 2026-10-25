@@ -1,5 +1,7 @@
 #define XRT_MODULE_MEMORY_DEBUG
+#define XRT_MODULE_VALUE
 #include "../include/xrt_bz2.h"
+#include "../include/bz2_native.h"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -109,6 +111,61 @@ static unsigned int constructors(bool decode)
     return bad;
 }
 
+/* 文本结果直接接管解压缓冲，失败时也不能遗留 Buffer。 */
+static void text_transfer(void)
+{
+    const unsigned char plain[] = {'A', 0, 'B', 0xe4, 0xbd, 0xa0, 0xe5, 0xa5, 0xbd};
+    const unsigned char invalid[] = {0xff};
+    xmemdebugsnapshot before;
+    xbuffer* packed = NULL;
+    void* raw;
+    void* expected;
+    char* text;
+    unsigned int index, failuresSeen = 0, successes = 0;
+    xrtMemDebugSnapshot(&before);
+    assert(xrtBz2Compress(plain, sizeof(plain), NULL, &packed, NULL));
+    raw = xbz2_decompress_text(packed->Data, packed->Size, true, 1024, 1024, 1000);
+    assert(raw != NULL && xbz2_text_size(raw) == sizeof(plain));
+    expected = ((xbuffer*)raw)->Data;
+    text = (char*)xbz2_text_take(raw);
+    assert(text == expected && memcmp(text, plain, sizeof(plain)) == 0 && text[sizeof(plain)] == 0);
+    xrtFree(text);
+
+    for (index = 0; index < 128 && successes < 2; ++index) {
+        bool injected;
+        assert(xrtMemDebugFailAfter(index));
+        raw = xbz2_decompress_text(packed->Data, packed->Size, false, 1024, 1024, 1000);
+        injected = xrtMemDebugFailTriggered();
+        xrtMemDebugFailClear();
+        if (injected) {
+            assert(raw == NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+            ++failuresSeen;
+        } else {
+            assert(raw != NULL);
+            xrtFree(xbz2_text_take(raw));
+            ++successes;
+        }
+    }
+    assert(failuresSeen > 0 && successes == 2);
+    xrtBufferDestroy(packed);
+    unchanged(&before);
+
+    assert(xrtBz2Compress(invalid, sizeof(invalid), NULL, &packed, NULL));
+    assert(xbz2_decompress_text(packed->Data, packed->Size, false, 1024, 1024, 1000) == NULL);
+    assert(xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    xrtBufferDestroy(packed);
+    unchanged(&before);
+
+    assert(xrtBz2Compress("", 0, NULL, &packed, NULL));
+    raw = xbz2_decompress_text(packed->Data, packed->Size, false, 1024, 1024, 1000);
+    assert(raw != NULL && xbz2_text_size(raw) == 0);
+    text = (char*)xbz2_text_take(raw);
+    assert(text != NULL && text[0] == 0);
+    xrtFree(text);
+    xrtBufferDestroy(packed);
+    unchanged(&before);
+}
+
 int main(void)
 {
     unsigned char data[16384];
@@ -125,6 +182,7 @@ int main(void)
     drain_retry(xrtBufferView(packed), (xbytesview){data, sizeof(data)});
     xrtBufferDestroy(packed);
     unchanged(&before);
+    text_transfer();
     printf("bz2 allocation: rejected=%u, recovery and ownership passed\n", count);
     return 0;
 }

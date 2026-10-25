@@ -1,5 +1,14 @@
 # bz2
 
+2026-10-25 文本解压改为 `cstring` 接管 XRT 解压缓冲，不再经
+`Buffer.text()` 无条件复制一次。C 桥接层验证 UTF-8、追加终止字节，
+然后以实际字节长度移交所有权；保留内嵌 NUL，空文本和无效 UTF-8
+均有 C/XLang 专项测试，C 测试还覆盖指针身份及分配失败回收。
+Windows 严格 C、内存故障、Python 互通、文件事务已通过；本包
+`test/text_transfer.xl` 与中央 `extlib_bz2.xl` 的 JIT/AOT 均通过。
+项目根目录完整门禁仍被共享 VFS 的 `include/xruntime_decl.h`
+查找故障中断，不能据此签收本次完整门禁。
+
 2026-10-25 当前发布物复验：Windows 默认 `tools/check_extlib_bz2.ps1`
 完整通过，包含中央语言用例及进度回调的 JIT/AOT、23 个生成 C 原型、
 269 项独立 Python 互通、分配故障、文件事务和双语范例。WSL
@@ -45,7 +54,7 @@ assert bz2.decompressText(wire) == "leftright"
 | --- | --- |
 | `compress(Buffer|string data, int level=9, int maxInput=268435456, int maxOutput=536870912)` | 拥有型 `Buffer`；字符串按 UTF-8 字节数传入 |
 | `decompress(Buffer data, bool smallMemory=false, int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000)` | 拥有型 `Buffer` |
-| `decompressText(Buffer data, bool smallMemory=false, int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000)` | 解压后转为字符串；二进制内容使用 `decompress` |
+| `decompressText(Buffer data, bool smallMemory=false, int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000) as cstring` | 验证 UTF-8 后移交解压缓冲；二进制内容使用 `decompress` |
 | `compressFile(string source, string destination, int level=9, bool overwrite=true, int maxInput=268435456, int maxOutput=536870912, onProgress=null)` | 同步压缩文件，无返回值 |
 | `decompressFile(string source, string destination, bool smallMemory=false, bool overwrite=true, int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000, onProgress=null)` | 同步解压文件，无返回值 |
 | `compressor(int level=9, int workFactor=30, int maxInput=268435456, int maxOutput=536870912)` | `bz2.Bz2Compressor` |

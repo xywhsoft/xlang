@@ -18,6 +18,7 @@
             "XRT_MODULE_IO_BUFFER",
             "XRT_MODULE_IO_FILE",
             "XRT_MODULE_FILE_TEMP",
+            "XRT_MODULE_UNICODE",
             "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"
         ]
     },
@@ -30,7 +31,7 @@
             "abiVersion": "1"
         }
     ],
-    "coverage": { "mode": "suite", "tests": ["test/file_ops.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/file_ops.xl", "test/text_transfer.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",

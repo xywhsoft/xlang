@@ -1,0 +1,21 @@
+import bz2
+
+func main(...) as int
+    assert bz2.decompressText(bz2.compress("")) == ""
+    assert bz2.decompressText(bz2.compress("你好 bz2"), smallMemory = true) == "你好 bz2"
+
+    string text = bz2.decompressText(bz2.compress("A\0B你好"))
+    assert text == "A\0B你好"
+    assert string.byteLen(text) == 9
+
+    Buffer invalid = Buffer()
+    invalid.appendByte(255)
+    bool rejected = false
+    try
+        bz2.decompressText(bz2.compress(invalid))
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    return 0
+end
