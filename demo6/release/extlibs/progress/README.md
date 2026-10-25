@@ -1,5 +1,13 @@
 # progress
 
+2026-10-26 发布物复验：Windows 默认 `test/check.ps1` 与 Linux 默认
+`test/check.sh` 均退出 0。C 边界、Linux ASan/UBSan、语言边界与
+分配故障、私有入口拒绝、公开 XLang/C 范例及其独立 EXE 均通过；
+C 范例在 GCC、`xl run`、`xl build` 三条路径下与固定黄金输出一致。
+本轮只增强门禁，库实现、API 与主线未改。验收范围限本文的任务
+计数和单行文本渲染，不含终端自动绘制或跨进程进度管理。
+以下旧 AOT 缺符号记录均为历史状态。
+
 2026-10-24：当前 Windows 发布版默认 `test/check.ps1` 全通过：严格
 C/ABI、C 与 XLang 边界、分配故障、私有入口负例、固定双语输出，
 以及边界和公开范例的独立 EXE AOT 构建与执行。

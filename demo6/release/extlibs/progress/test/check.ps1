@@ -47,6 +47,11 @@ try {
         'release/examples/extlibs/progress_c.c', $runtime) +
         $links + @('-o', $example))
     $cOutput = Run 'C example' $example @()
+    $directC = Run 'C example xl run' $xl @('run',
+        'release/examples/extlibs/progress_c.c')
+    if ($directC -cne $cOutput) {
+        throw 'C example xl run differs from GCC'
+    }
 
     $null = Run 'XLang central boundaries' $xl @('run', 'test/cases/extlib_progress.xl')
     $null = Run 'XLang package boundaries' $xl @('run',
@@ -92,7 +97,15 @@ try {
             throw "AOT progress example differs from the fixed expected output"
         }
         Write-Host '[progress] AOT fixed output: PASS'
+        $cExampleAot = Join-Path $work 'progress_c_example.exe'
+        $null = Run 'C example AOT build' $xl @('build',
+            'release/examples/extlibs/progress_c.c', '-o', $cExampleAot)
+        if ((Run 'C example AOT' $cExampleAot @()) -cne $expected) {
+            throw 'C example AOT differs from the fixed expected output'
+        }
     }
+    Write-Host $(if ($SkipAot) { '[progress] Windows C/XLang quick gate: PASS (AOT skipped)' }
+        else { '[progress] Windows C/XLang/AOT gate: PASS' })
 } finally {
     Pop-Location
     $safeWork = [IO.Path]::GetFullPath($work)
