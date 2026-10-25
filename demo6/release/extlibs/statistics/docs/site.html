@@ -22,6 +22,7 @@
     <h1>statistics</h1>
     <p class="extlib-lead">对数值数组计算描述性统计、分位数和双变量关系。</p>
     <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+    <p>当前发布版的 C 边界与范例通过，但 XLang <code>statistics.count(var array)</code> 在外来数组投影处断言失败；下方语言示例尚未完成本轮验收，完整 AOT 阶段也未执行。</p>
   </header>
   <section id="start">
     <h2>快速开始</h2>
@@ -71,7 +72,7 @@ int main(void)
     <h2>验证状态</h2>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/statistics/test/check.ps1 -SkipAot
 bash release/extlibs/statistics/test/check.sh</code></pre>
-    <p>三份 C 范例可直接使用 <code>xl run release/extlibs/statistics/examples/statistics_c.c</code>、<code>xl run release/extlibs/statistics/examples/trend_c.c</code> 和 <code>xl run release/extlibs/statistics/examples/distribution_c.c</code> 运行；第三组展示众数、离散度、几何/调和平均数与协方差。Windows/Linux 门禁均将其输出与 GCC 编译运行及 XLang 范例逐字对照。Linux 门禁还运行 C ASan/UBSan、XLang 数值与分配边界。<code>count</code> 结果与 <code>histogram</code> 箱数使用跨平台 <code>int64_t</code> ABI，C 范例用 <code>PRId64</code> 可移植打印。极值方差、标准差、平均绝对偏差、次正规数求和/均值/插值、大数抵消、极小调和平均数及分配失败分类均有定向测试；另用 512 组有符号整数数组的独立模型对照聚合、分位数、众数与直方图。完整 AOT 的共享链接阻断未解除；尚未签收完整发布门禁。</p>
+    <p>三份 C 范例可直接使用 <code>xl run release/extlibs/statistics/examples/statistics_c.c</code>、<code>xl run release/extlibs/statistics/examples/trend_c.c</code> 和 <code>xl run release/extlibs/statistics/examples/distribution_c.c</code> 运行；第三组展示众数、离散度、几何/调和平均数与协方差。Windows/Linux 门禁设计为将其输出与 GCC 编译运行及 XLang 范例逐字对照；本轮 Windows 测试尚未走到双语对照。Linux 门禁还运行 C ASan/UBSan、XLang 数值与分配边界。<code>count</code> 结果与 <code>histogram</code> 箱数使用跨平台 <code>int64_t</code> ABI，C 范例用 <code>PRId64</code> 可移植打印。极值方差、标准差、平均绝对偏差、次正规数求和/均值/插值、大数抵消、极小调和平均数及分配失败分类均有定向测试；另用 512 组有符号整数数组的独立模型对照聚合、分位数、众数与直方图。当前语言数组投影失败，完整 AOT 未执行，尚未签收发布门禁。</p>
   </section>
 </main>
 <script src="../main.js"></script>
