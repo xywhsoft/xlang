@@ -3,6 +3,7 @@
 #include "analysis/frontend_sem.h"
 #include "analysis/ast_clone.h"
 #include "analysis/frontend_cancel.h"
+#include "analysis/index_entities.h"
 #define XLS_SEM_MEMO_BYTES (64u*1024u*1024u)
 #define XLS_SEM_KEY_BYTES (8u*1024u*1024u)
 static _Thread_local xls_sem_storage_control* xlsActiveStorage;
@@ -231,6 +232,7 @@ typedef struct xls_ir_key_paths {
     xmap paths;size_t next,recent,visited;xls_ir_path_slot slots[4];
     xls_ir_key_mode mode;uint32_t regionBase;
     const xls_lexical_symbols* symbols;
+    const xls_entity_view* entities;
 } xls_ir_key_paths;
 static int xlsIrKeyPath(xls_ir_key_paths* paths,const char* path,size_t* id,size_t* bytes,int* added)
 {
@@ -274,6 +276,13 @@ static int xlsIrKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int le
             if(local)envelope|=UINT64_C(1)<<(40+i-7);
         }
     }
+    if(paths->mode==XLS_IR_KEY_FUNCTION && paths->entities){
+        for(size_t i=7;i<=10;++i){
+            if(lexical && (envelope&(UINT64_C(1)<<(40+i-7))))continue;
+            uint64_t identity=xlsEntityViewSymbol(paths->entities,(XL6_SymbolId)fields[i]);
+            if(identity){fields[i]=identity;envelope|=UINT64_C(1)<<(44+i-7);}
+        }
+    }
     if(node->text)envelope|=UINT64_C(1)<<32;
     if(node->doc)envelope|=UINT64_C(1)<<33;
     if(node->literalData)envelope|=UINT64_C(1)<<34;
@@ -295,21 +304,23 @@ static int xlsIrKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int le
     }
     return 1;
 }
-static int xlsIrAstKey(xstrbuf* key,const XL6_AstNode* node,xls_ir_key_mode mode,const xls_lexical_symbols* symbols)
+static int xlsIrAstKey(xstrbuf* key,const XL6_AstNode* node,xls_ir_key_mode mode,const xls_lexical_symbols* symbols,const xls_entity_view* entities)
 {
     if(!key || mode<XLS_IR_KEY_EXACT || mode>XLS_IR_KEY_ENVIRONMENT || xlsFrontendCancelObserved())return 0;
     if(mode==XLS_IR_KEY_FUNCTION && (!xlsSemFunction(node) || !node->semanticRegionId))return 0;
-    xls_ir_key_paths paths={.mode=mode,.regionBase=mode==XLS_IR_KEY_FUNCTION ? node->semanticRegionId : 0,.symbols=symbols};
+    xls_ir_key_paths paths={.mode=mode,.regionBase=mode==XLS_IR_KEY_FUNCTION ? node->semanticRegionId : 0,.symbols=symbols,.entities=entities};
     if(!xrtMapInit(&paths.paths,sizeof(size_t)))return 0;
     int okay=xlsSemKeyNumber(key,mode) && xlsIrKeyNode(key,node,0,1,&paths);xrtMapUnit(&paths.paths);return okay;
 }
 int xlsFrontendIrAstKeySymbols(xstrbuf* key,const XL6_AstNode* node,const xls_lexical_symbols* symbols)
 {
-    return symbols && symbols->ready && symbols->root==node && xlsIrAstKey(key,node,XLS_IR_KEY_FUNCTION,symbols);
+    return symbols && symbols->ready && symbols->root==node && xlsIrAstKey(key,node,XLS_IR_KEY_FUNCTION,symbols,NULL);
 }
+int xlsFrontendIrAstKeyEntities(xstrbuf* key,const XL6_AstNode* node,const xls_lexical_symbols* symbols,const xls_entity_view* entities)
+{return symbols && symbols->ready && symbols->root==node && xlsIrAstKey(key,node,XLS_IR_KEY_FUNCTION,symbols,entities);}
 int xlsFrontendIrAstKey(xstrbuf* key,const XL6_AstNode* node,xls_ir_key_mode mode)
 {
-    if(mode!=XLS_IR_KEY_FUNCTION)return xlsIrAstKey(key,node,mode,NULL);
+    if(mode!=XLS_IR_KEY_FUNCTION)return xlsIrAstKey(key,node,mode,NULL,NULL);
     xls_lexical_symbols symbols={0};
     int okay=xlsLexicalSymbolsBuild(&symbols,node,XLS_LEXICAL_SYMBOL_BYTES) && xlsFrontendIrAstKeySymbols(key,node,&symbols);
     xlsLexicalSymbolsClear(&symbols);return okay;

@@ -22,7 +22,7 @@ static int selectedCall(const xls_semantic_check* check,uint32_t native,uint64_t
 }
 typedef struct entity_reader {const xls_entity_view* view;uint32_t native;uint64_t stable;int okay;} entity_reader;
 static int32 readEntities(void* user)
-{entity_reader* r=user;r->okay=1;for(size_t i=0;i<256;++i)if(xlsEntityViewSymbol(r->view,r->native)!=r->stable || !xlsEntityViewInfo(r->view).domain)r->okay=0;return 0;}
+{entity_reader* r=user;r->okay=1;for(size_t i=0;i<256;++i)if(xlsEntityViewSymbol(r->view,r->native)!=r->stable || xlsEntityViewNativeSymbol(r->view,r->stable)!=r->native || !xlsEntityViewInfo(r->view).domain)r->okay=0;return 0;}
 static int run(void)
 {
  char relative[128];snprintf(relative,sizeof(relative),"build/entity-binding-%llu",(unsigned long long)xrtClock());char* root=xrtPathAbs(relative);CHECK(root && xrtDirCreateAll(root));char *paths[]={xrtPathJoin(root,"main.xl"),xrtPathJoin(root,"dep.xl"),xrtPathJoin(root,"other.xl")},*project=xrtPathJoin(root,"sample.xlp");CHECK(paths[0] && paths[1] && paths[2] && project);

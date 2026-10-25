@@ -21,6 +21,12 @@ typedef enum xls_ir_key_mode {
  * Invalid/nonlocal function regions decline this optional cache key. */
 int xlsFrontendIrAstKey(xstrbuf* key,const XL6_AstNode* node,xls_ir_key_mode mode);
 int xlsFrontendIrAstKeySymbols(xstrbuf* key,const XL6_AstNode* node,const xls_lexical_symbols* symbols);
+struct xls_entity_view;
+/* Normalize only proven named symbol identities. Every unsupported scalar,
+ * type,ABI and fact subtree remains exact;local/global/native domains differ.
+ * Caller must separately prove equal entity store/domain before key reuse. */
+int xlsFrontendIrAstKeyEntities(xstrbuf* key,const XL6_AstNode* node,
+    const xls_lexical_symbols* symbols,const struct xls_entity_view* entities);
 typedef struct xls_sem_storage_work { uint64_t nodes,pages,chargedBytes,heapFallbacks; } xls_sem_storage_work;
 typedef struct xls_sem_storage_control {
     struct xls_sem_storage_control* previous;size_t budget;xls_sem_storage_work work;
