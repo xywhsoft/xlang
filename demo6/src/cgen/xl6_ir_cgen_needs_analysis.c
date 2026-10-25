@@ -72,12 +72,54 @@ static int xl6IrCgenAnalyzeSequenceRecipeNeeds(const XL6_IrModule* module,XL6_Ir
     }
     return 1;
 }
+/* Physical release support belongs to the carrier's closed ABI. A product
+ * returned by an exported function may need destruction even when no scalar
+ * RELEASE instruction of that member type occurs in its body. Follow the
+ * same emitted-product predicate as definitions/prototypes; do not select
+ * libraries from a source name or pull in every unused signature. */
+static int xl6IrCgenAnalyzeReleaseNeeds(
+    const XL6_IrModule* module,XL6_IrTypeId id,XL6_IrCgenNeeds* needs,size_t depth)
+{
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
+    if(!type || depth>module->types.count)return 0;
+    if(type->kind==XL6_IR_TYPE_TUPLE && type->cAbi==XL6_IR_C_ABI_PRODUCT) {
+        for(size_t n=0;n<type->paramCount;++n)
+            if(!xl6IrCgenAnalyzeReleaseNeeds(module,type->params[n],needs,depth+1))return 0;
+        return 1;
+    }
+    if(type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED)return 1;
+    switch(type->cAbi) {
+    case XL6_IR_C_ABI_MANAGED_STRING: needs->needsStringRuntime=1;return 1;
+    case XL6_IR_C_ABI_C_STRING:
+    case XL6_IR_C_ABI_C_BYTES: needs->needsCOwnedRuntime=1;return 1;
+    case XL6_IR_C_ABI_MANAGED_BYTES:
+        needs->needsBytesRuntime=needs->needsXValueRuntime=1;return 1;
+    case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: needs->needsXValueRuntime=1;return 1;
+    case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: needs->needsErrorRuntime=1;return 1;
+    case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: needs->needsFutureRuntime=1;return 1;
+    case XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR: needs->needsGeneratorRuntime=1;return 1;
+    case XL6_IR_C_ABI_CLOSURE_PTR: needs->needsClosureRuntime=1;return 1;
+    case XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR:
+        needs->needsXValueIteratorRuntime=needs->needsXValueRuntime=needs->needsRuntimeTrap=1;return 1;
+    case XL6_IR_C_ABI_NATIVE_VALUE: {
+        const XL6_IrNativeValuePlan* plan=xl6IrNativeValuePlanForType(type);
+        return plan && plan->dropSymbol;
+    }
+    default:return 0;
+    }
+}
+
 static int xl6IrCgenAnalyzePrimaryNeeds(
     const XL6_IrModule* module, XL6_IrCgenNeeds* needs,
     XL6_DiagList* diags)
 {
     size_t i;
     size_t parameter;
+    for(i=0;i<module->types.count;++i)
+        if(xl6IrCgenProductDropNeeded(module,(XL6_IrTypeId)(i+1)) &&
+            !xl6IrCgenAnalyzeReleaseNeeds(module,(XL6_IrTypeId)(i+1),needs,0))
+            return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,
+                "XLIR emitted product release support has no closed physical ABI");
     for (i = 0; i < module->callableBridgeCount; ++i) {
         const XL6_IrCallableBridge* bridge=&module->callableBridges[i];
         if (!xl6IrCgenRuntimeCallableAdapterNeeded(module,bridge->signatureType,0) &&

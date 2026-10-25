@@ -97,7 +97,7 @@ def main():
 
     layout=pin(controls/'tools/check_network_retirement_layout.py')
     attempt('retired-layout',lambda: run('retired-layout',[sys.executable,layout,'--root',root]))
-    units=['xlir_cgen','xlir_network_service_contract','xlir_native_future_map_contract',
+    units=['xlir_cgen','xlir_product_release_needs','xlir_network_service_contract','xlir_native_future_map_contract',
            'xlir_network_service_runtime','xlir_future_callback_queue_native']
     if windows: units.append('xlir_future_callback_exclusive')
     for name in units:
@@ -106,7 +106,13 @@ def main():
         for opt in ('O0','O2'):
             def unit(name=name,source=source,opt=opt):
                 binary=out/(name+'-'+opt+('.exe' if windows else ''))
-                run(name+'-'+opt+'-build',[cc,*flags,'-'+opt,source,*objects,runtime,*links,'-o',binary])
+                # The release-needs private unit includes the exact production
+                # Cgen implementation to exercise its static ABI analysis.
+                # Do not also link that same translation unit a second time.
+                dependencies=[row['Path'] for row in build['Objects'] if
+                    Path(row['Source']).name not in ('xlir_public_source_driver.c','xlir_public_source_linux_driver.c') and
+                    not (name=='xlir_product_release_needs' and Path(row['Source']).name=='xl6_ir_cgen.c')]
+                run(name+'-'+opt+'-build',[cc,*flags,'-'+opt,source,*dependencies,runtime,*links,'-o',binary])
                 run(name+'-'+opt+'-run',[binary])
             attempt(name+'-'+opt,unit)
     if not args.contracts_only:
