@@ -1,24 +1,29 @@
 # ini
 
-2026-10-26 发布版复核：`Config.get` 和 `Config.stringify` 返回
+2026-10-26 当前发布物：Windows 默认包门禁、Linux C ASan/UBSan
+与独立 Python `configparser` 双向互通均通过。两平台中央用例、
+边界及公开范例 JIT/AOT 通过；Linux 浮点核心/边界/中央/公开
+范例/C 范例五份独立 EXE 均运行成功，C/GCC/XLang 范例输出一致。
+Windows 从 `demo6` 根目录直接运行公开范例也成功，旧工作目录
+敏感 VFS 故障不再复现。未据此宣称 32 位、TSan 或长时压力完成。
+
+2026-10-26 文本所有权复核：`Config.get` 和 `Config.stringify` 返回
 普通 `string`，`takeCstr` 直接移交各自的 XRT 文本分配。先前
 `cstring` 转成 `string` 时反而复制，现已修正；`getOr` 仍返回
 带默认值的 `string`。Windows 包门禁核对生成 C 的直接移交、
-C/XLang 范例及三份 AOT。节名/键名装入 `array<string>` 时，
+C/XLang 范例及完整 AOT。节名/键名装入 `array<string>` 时，
 共享容器 lowering 仍创建字符串值副本；包内不另造私有绕行。
 Linux C ASan/UBSan、独立 C/Python `configparser` 双向互通、XLang JIT、
-浮点核心/边界/公开范例三份独立 EXE 及 C/XLang 范例逐字节对照均通过；
-Windows 完整包门禁（严格 GCC、C/Python 互通、XLang JIT/cgen、
-三组 AOT）此前已通过。
+浮点核心/边界/公开范例及 C/XLang 对照此前也已通过；本轮扩展
+中央与 C 范例 AOT 门禁。
 2026-10-25 在 WSL Ubuntu 运行 `test/check.sh`：C ASan/UBSan
 主测试、独立 Python `configparser` 双向互通、Linux `xl` 边界与
 C/XLang 范例输出对照均通过。使用的是现有 Linux `release/xl`，
 不是新构建的 Linux 发布物；当时独立 Linux AOT 尚未验收，
 已由上方 2026-10-26 的发布版门禁补齐。
-上述 Windows 门禁在 `release` 工作目录运行 XLang 阶段；当前发布版从
-`demo6` 根目录直接运行同一文件仍因共享 TCC VFS 头文件查找失败，
-见 `dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。这不是 INI
-解析或写入行为的验收通过项。
+上述 Windows 门禁在 `release` 工作目录运行 XLang 阶段；旧发布版从
+`demo6` 根目录运行时的共享 TCC VFS 头文件故障见
+`dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`，当前已不复现。
 `test/interop.c` 与 `test/interop.py` 另外用 Python 标准库
 `configparser` 做双向格式互通：C 写出后由 Python 读取，Python
 写出后由 C 读取。范围限于双方共有的节、键、UTF-8 值和普通赋值语法。

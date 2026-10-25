@@ -99,12 +99,23 @@ try {
             $null = Run 'AOT boundaries build' $xl @('build',
                 'extlibs/ini/test/boundaries.xl', '-o', $exe)
             $null = Run 'AOT boundaries' $exe @()
+            $sharedExe = Join-Path $work 'shared_suite.exe'
+            $null = Run 'AOT shared suite build' $xl @('build',
+                '../test/cases/extlib_ini.xl', '-o', $sharedExe)
+            $null = Run 'AOT shared suite' $sharedExe @()
             $exampleExe = Join-Path $work 'example.exe'
             $null = Run 'AOT example build' $xl @('build',
                 'examples/extlibs/ini.xl', '-o', $exampleExe)
             $aotOutput = Run 'AOT example' $exampleExe @()
             if ($aotOutput -cne $xlOutput) {
                 throw '[ini] AOT example output differs from C/XLang JIT'
+            }
+            $cExampleAot = Join-Path $work 'ini_c_aot.exe'
+            $null = Run 'AOT C example build' $xl @('build',
+                'examples/extlibs/ini_c.c', '-o', $cExampleAot)
+            $cAotOutput = Run 'AOT C example' $cExampleAot @()
+            if ($cAotOutput -cne $gccOutput) {
+                throw '[ini] AOT C example output differs from GCC'
             }
         }
     } finally { Pop-Location }

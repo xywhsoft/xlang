@@ -62,4 +62,11 @@ timeout 180s ./release/xl build release/examples/extlibs/ini.xl \
     -o "$work/ini_example"
 timeout 90s "$work/ini_example" > "$work/aot_example.txt"
 diff -u "$work/gcc_example.txt" "$work/aot_example.txt"
+timeout 180s ./release/xl build test/cases/extlib_ini.xl \
+    -o "$work/ini_shared"
+timeout 90s "$work/ini_shared"
+timeout 180s ./release/xl build release/examples/extlibs/ini_c.c \
+    -o "$work/ini_c_aot"
+timeout 90s "$work/ini_c_aot" > "$work/aot_c_example.txt"
+diff -u "$work/gcc_example.txt" "$work/aot_c_example.txt"
 printf 'ini Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'
