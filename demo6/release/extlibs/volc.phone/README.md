@@ -3,19 +3,20 @@
 2026-10-25 当前发布版已越过旧 `cstring` 未知类型诊断，但
 `xl check dev/extlib_blockers/volc_phone_import_chain.xl` 仍在
 `xhttp.client` 的 `TlsStream` 构造和 `NetEngine.nativeHandle()` 成员
-解析处失败。更基础的 `xl run examples/hello.xl` 还在 ownership
-catalog 初始化失败。该包仍不能进入 XLang 运行验收；复现和影响见
-`dev/extlib_blockers/ownership_catalog_startup_20261025.md`。
+解析处失败。重新构建的 Windows `xl.exe` 已能运行
+`examples/hello.xl`；全局 ownership catalog 故障不再是当前阻断。
+该包仍不能进入 XLang 运行验收。
 
 火山引擎云手机 ACEP 的 XLang 客户端草案，复用 `volc.core` 的签名和请求能力。当前提供请求体构造、资源/任务操作、响应查询及 `Client` / `Response` 类；`raw_spec` 和 `call_spec` 接收调用方编写的逐行声明。本包不再有原生 C 辅助函数，C 客户端能力不由此包提供。
 
 ## 当前状态
 
-**未达到发布验收，不应用于生产请求。** 2026-10-24 用现行
-`release/xl.exe` 检查 `import volc.phone`，首先在独立维护的
-`xhttp.body/src/xlang/xhttp_body.xl:59` 报未知类型 `cstring`，随后
-`xhttp.client` 也报同类错误；旧记录中的 `xhttp.multipart` / `appendBytes`
-不再是当前首个阻断。因此现有 XLang 范例、在线请求和 AOT 均未通过。复现：
+**未达到发布验收，不应用于生产请求。** 重新构建的 Windows
+`release/xl.exe` 检查 `import volc.phone`，当前首先在独立维护的
+`xhttp.client` 中报告 `TlsStream` 构造无匹配重载，以及
+`NetEngine.nativeHandle()` 成员不可解析。早先的 `cstring`、
+`xhttp.multipart` / `appendBytes` 诊断均是旧发布物记录。
+因此现有 XLang 范例、在线请求和 AOT 均未通过。复现：
 
 ```powershell
 cd demo6
