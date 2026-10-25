@@ -1,5 +1,20 @@
 # volc.core
 
+2026-10-25 从当前源码重建发布版后，旧 `cstring` 未知类型已不再是
+首个阻断。`xl check` 现在停在独立维护的 `xhttp.client`：
+`HttpResult.takeTls()` 的 `TlsStream(stream)` 无匹配构造，以及
+`HttpClient.open()` 调用 `NetEngine.nativeHandle()` 无匹配成员。
+此外新发布版连 `examples/hello.xl` 的 `xl run` 都在 ownership catalog
+初始化失败；详见 `dev/extlib_blockers/ownership_catalog_startup_20261025.md`。
+本包 C 离线门禁仍通过，但 XLang/在线路径不能据此签收。
+
+同日修复四个 `*_spec` 入口的字段提取失败路径：任何字段分配失败时，
+立即返回空文本，`last_error` 为 `out of memory`，并保留 XRT 的
+`XERR_MEMORY`；不会用缺失字段生成签名或继续发请求。Windows C
+门禁逐点注入 26 个字段分配失败；Linux 离线 ASan/UBSan 门禁覆盖
+两种签名预览的 13 个分配点，不链接在线 HTTP 请求路径。成功预览
+也在故障清除后复测。XLang 调用与真实在线请求仍受上面的主线阻断。
+
 火山引擎签名与请求的共享基础包。离线能力包括 SHA-256、HMAC-SHA256、规范化查询、JSON 字符串编码和签名预览；在线请求依赖 `xhttp.client`。`volc.phone` 与 `volc.sts` 复用本包。
 
 ```xlang

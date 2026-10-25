@@ -11,6 +11,7 @@
 
 #include "../include/volc_core_native.h"
 static void test_pair_allocation_failure(void);
+static void test_spec_allocation_failure(void);
 static void test_thread_isolation(void);
 static void test_buffer_bounds(void);
 static void test_large_result_transfer(void);
@@ -71,6 +72,7 @@ int main(void)
         xrtFree(static_copy);
     }
     test_pair_allocation_failure();
+    test_spec_allocation_failure();
     test_buffer_bounds();
     test_large_result_transfer();
     test_signed_fields();
@@ -207,6 +209,53 @@ static void test_pair_allocation_failure(void)
         }
         xvolc_pairs_free(pairs, count);
     }
+}
+
+/* 字段提取失败不能把缺失字段送进签名逻辑，伪造一份成功的请求。 */
+static void test_spec_allocation_failure(void)
+{
+    static const char acep_spec[] =
+        "action=ListApps\nversion=2020-01-01\naccess_key=AKID\n"
+        "secret_key=SECRET\nsession_token=\nbody={}\n"
+        "x_date=20240102T030405Z\n";
+    static const char sts_spec[] =
+        "access_key=AKID\nsecret_key=SECRET\n"
+        "role_trn=trn:iam::123456789:role/demo\n"
+        "role_session_name=demo-session\nduration_seconds=900\n"
+        "x_date=20240102T030405Z\n";
+    static const struct {
+        const char* (*call)(const char*);
+        const char* spec;
+        size_t fields;
+    } cases[] = {
+#ifndef XVOLC_OFFLINE_TEST
+        {x_volc_core_request_acep_spec, acep_spec, 7},
+#endif
+        {x_volc_core_sign_preview_acep_spec, acep_spec, 7},
+#ifndef XVOLC_OFFLINE_TEST
+        {x_volc_core_request_sts_spec, sts_spec, 6},
+#endif
+        {x_volc_core_sign_preview_sts_spec, sts_spec, 6}
+    };
+    size_t c, i;
+
+    for (c = 0; c < sizeof(cases) / sizeof(cases[0]); ++c) {
+        for (i = 0; i < cases[c].fields; ++i) {
+            const char* result;
+            assert(xrtMemDebugFailAfter(i));
+            result = cases[c].call(cases[c].spec);
+            assert(xrtMemDebugFailTriggered());
+            xrtMemDebugFailClear();
+            assert(strcmp(result, "") == 0);
+            assert(strcmp(x_volc_core_last_error(), "out of memory") == 0);
+            assert(xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+            xrtClearError();
+        }
+    }
+    assert(strstr(x_volc_core_sign_preview_acep_spec(acep_spec),
+        "\"authorization\"") != NULL);
+    assert(strstr(x_volc_core_sign_preview_sts_spec(sts_spec),
+        "\"authorization\"") != NULL);
 }
 
 typedef struct xvolc_test_thread {

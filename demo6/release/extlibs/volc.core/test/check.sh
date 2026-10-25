@@ -17,7 +17,7 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 
 "$cc" "${flags[@]}" -c release/extlibs/volc.core/test/xrt_runtime.c \
     -o "$work/xrt_runtime.o"
-"$cc" "${flags[@]}" -DNDEBUG \
+"$cc" "${flags[@]}" -DNDEBUG -DXVOLC_OFFLINE_TEST \
     release/extlibs/volc.core/test/test_volc_core.c "$work/xrt_runtime.o" \
     "${link[@]}" -o "$work/test_volc_core"
 timeout 90s "$work/test_volc_core" > "$work/test.out"

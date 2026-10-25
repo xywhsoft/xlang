@@ -1085,9 +1085,16 @@ const char* x_volc_core_request_acep_spec(const char* spec)
 	char* session_token = xvolc_spec_get(spec, "session_token");
 	char* body = xvolc_spec_get(spec, "body");
 	char* timeout_text = xvolc_spec_get(spec, "timeout_ms");
-	const char* ret = x_volc_core_request("POST", "open.volcengineapi.com", "/", "ACEP", "cn-north-1",
+	const char* ret = "";
+	if ( !action || !version || !access_key || !secret_key || !session_token ||
+		!body || !timeout_text ) {
+		xvolc_set_error("out of memory");
+		goto done;
+	}
+	ret = x_volc_core_request("POST", "open.volcengineapi.com", "/", "ACEP", "cn-north-1",
 		action, version, access_key, secret_key, session_token, "application/json", "", body,
 		xvolc_parse_int_default(timeout_text, (int)XVOLC_DEFAULT_TIMEOUT_MS));
+done:
 	if ( action ) xrtFree(action);
 	if ( version ) xrtFree(version);
 	if ( access_key ) xrtFree(access_key);
@@ -1107,8 +1114,15 @@ const char* x_volc_core_sign_preview_acep_spec(const char* spec)
 	char* session_token = xvolc_spec_get(spec, "session_token");
 	char* body = xvolc_spec_get(spec, "body");
 	char* x_date = xvolc_spec_get(spec, "x_date");
-	const char* ret = x_volc_core_sign_preview("POST", "open.volcengineapi.com", "/", "ACEP", "cn-north-1",
+	const char* ret = "";
+	if ( !action || !version || !access_key || !secret_key || !session_token ||
+		!body || !x_date ) {
+		xvolc_set_error("out of memory");
+		goto done;
+	}
+	ret = x_volc_core_sign_preview("POST", "open.volcengineapi.com", "/", "ACEP", "cn-north-1",
 		action, version, access_key, secret_key, session_token, "application/json", "", body, x_date);
+done:
 	if ( action ) xrtFree(action);
 	if ( version ) xrtFree(version);
 	if ( access_key ) xrtFree(access_key);
@@ -1127,9 +1141,16 @@ const char* x_volc_core_request_sts_spec(const char* spec)
 	char* role_session_name = xvolc_spec_get(spec, "role_session_name");
 	char* duration_text = xvolc_spec_get(spec, "duration_seconds");
 	char* timeout_text = xvolc_spec_get(spec, "timeout_ms");
-	const char* ret = x_volc_core_request_sts(access_key, secret_key, role_trn, role_session_name,
+	const char* ret = "";
+	if ( !access_key || !secret_key || !role_trn || !role_session_name ||
+		!duration_text || !timeout_text ) {
+		xvolc_set_error("out of memory");
+		goto done;
+	}
+	ret = x_volc_core_request_sts(access_key, secret_key, role_trn, role_session_name,
 		xvolc_parse_int_default(duration_text, 3600),
 		xvolc_parse_int_default(timeout_text, (int)XVOLC_DEFAULT_TIMEOUT_MS));
+done:
 	if ( access_key ) xrtFree(access_key);
 	if ( secret_key ) xrtFree(secret_key);
 	if ( role_trn ) xrtFree(role_trn);
@@ -1147,8 +1168,15 @@ const char* x_volc_core_sign_preview_sts_spec(const char* spec)
 	char* role_session_name = xvolc_spec_get(spec, "role_session_name");
 	char* duration_text = xvolc_spec_get(spec, "duration_seconds");
 	char* x_date = xvolc_spec_get(spec, "x_date");
-	const char* ret = x_volc_core_sign_preview_sts(access_key, secret_key, role_trn, role_session_name,
+	const char* ret = "";
+	if ( !access_key || !secret_key || !role_trn || !role_session_name ||
+		!duration_text || !x_date ) {
+		xvolc_set_error("out of memory");
+		goto done;
+	}
+	ret = x_volc_core_sign_preview_sts(access_key, secret_key, role_trn, role_session_name,
 		xvolc_parse_int_default(duration_text, 3600), x_date);
+done:
 	if ( access_key ) xrtFree(access_key);
 	if ( secret_key ) xrtFree(secret_key);
 	if ( role_trn ) xrtFree(role_trn);
