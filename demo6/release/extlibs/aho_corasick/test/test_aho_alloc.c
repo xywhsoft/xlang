@@ -30,6 +30,11 @@ static bool workload(void)
     if (!bytes) goto done;
     xrtBufferDestroy(bytes); bytes = xac_replace(ac, "ushers", 6, "*", 1);
     if (!bytes) goto done;
+    {
+        void* text = xac_buffer_take_text(bytes);
+        if (!text) goto done;
+        xrtFree(text);
+    }
     xrtBufferDestroy(bytes); bytes = xac_mask(ac, "ushers", 6, "*", 1);
     if (!bytes) goto done;
     xrtBufferDestroy(bytes); bytes = xac_highlight(ac, "ushers", 6, "<", 1, ">", 1);

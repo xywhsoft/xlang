@@ -441,13 +441,26 @@ XAHO_EXPORT int xac_output_append(
 
 
 
-/* 不分配、不改变含 NUL 的结果；可移交时由 XLang 接管底层 XRT 分配。 */
-XAHO_EXPORT void* xac_buffer_take_cstr(void* pOutput)
+/* 保留显式长度，给缓冲补尾零后将底层 XRT 分配移交给调用方。 */
+XAHO_EXPORT void* xac_buffer_take_text(void* pOutput)
 {
 	xbuffer* pBuffer = (xbuffer*)pOutput;
-	if ( pBuffer == NULL || pBuffer->Data == NULL ||
-		pBuffer->Size >= pBuffer->Capacity ||
-		memchr(pBuffer->Data, 0, pBuffer->Size) != NULL ) { return NULL; }
+	xrtClearError();
+	if ( pBuffer == NULL || pBuffer->Size == SIZE_MAX ) {
+		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.aho_corasick", 0,
+			"invalid output buffer");
+		return NULL;
+	}
+	if ( !xrtUtf8Valid((xstrview){(const char*)pBuffer->Data, pBuffer->Size}, NULL) ) {
+		xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.aho_corasick", 0,
+			"output text is not valid UTF-8");
+		return NULL;
+	}
+	if ( !xrtBufferReserve(pBuffer, pBuffer->Size + 1u) ) {
+		xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.aho_corasick", 0,
+			"could not terminate output text");
+		return NULL;
+	}
 	pBuffer->Data[pBuffer->Size] = 0;
 	return xrtBufferTake(pBuffer, NULL, NULL);
 }

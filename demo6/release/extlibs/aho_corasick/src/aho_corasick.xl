@@ -1,5 +1,6 @@
 extern "xac_last_error" func __aho_corasick_error() as string
-extern "xac_buffer_take_cstr" func __ac_buffer_take_cstr(point buffer) as point
+extern "xac_buffer_take_text" func __ac_buffer_take_text(point buffer) as point
+extern "xrtFree" @no_raise func __ac_free(point text)
 extern "xac_scan_begin" func __ac_scan_begin(point automaton,
     string text, c_size size) as point
 extern "xac_search_non_overlapping" func __ac_search_non_overlapping(
@@ -127,7 +128,8 @@ export class Scanner
                 if nativeStart < 0 or nativeEnd < 0 then
                     throw RuntimeError __aho_corasick_error()
                 end
-                Match item = Match(__ac_text_result(self.patternNative()),
+                string pattern = __ac_text_result(self.patternNative())
+                Match item = Match(pattern,
                     int(nativeStart), int(nativeEnd))
                 if not fn(item) then
                     return false
@@ -161,20 +163,22 @@ func __ac_match(ResultHandle result, int index) as Match
     if nativeStart < 0 or nativeEnd < 0 then
         throw RuntimeError __aho_corasick_error()
     end
-    return Match(__ac_text_result(result.patternNative(nativeIndex)),
+    string pattern = __ac_text_result(result.patternNative(nativeIndex))
+    return Match(pattern,
         int(nativeStart), int(nativeEnd))
 end
 
 
 
-// 无 NUL 的缓冲直接移交底层分配；含 NUL 的结果仍由长度感知路径复制。
-func __ac_buffer_text(Buffer result) as string
-    point text = __ac_buffer_take_cstr(result.handle)
-    if text != null then return __xl_runtime.takeCstr(text) end
-    return result.text()
+// 保留字节长度，含 NUL 和满容量的结果也能直接移交底层分配。
+func __ac_buffer_text(Buffer result) as cstring
+    c_size length = c_size(result.len())
+    point text = __ac_buffer_take_text(result.handle)
+    if text == null then throw RuntimeError __aho_corasick_error() end
+    return cstring.take(text, length, __ac_free)
 end
 
-func __ac_text_result(point result) as string
+func __ac_text_result(point result) as cstring
     if result == null then throw RuntimeError __aho_corasick_error() end
     return __ac_buffer_text(Buffer(result))
 end
@@ -228,7 +232,7 @@ export class Automaton
         return self.isBuiltNative() != 0
     end
 
-    func pattern(int index) as string
+    func pattern(int index) as cstring
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
@@ -332,7 +336,7 @@ export class Automaton
         return int(result)
     end
 
-    func replace(string text, string replacement) as string
+    func replace(string text, string replacement) as cstring
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
@@ -341,7 +345,7 @@ export class Automaton
             c_size(string.byteLen(replacement))))
     end
 
-    func replaceWith(string text, func(Match) as string fn) as string
+    func replaceWith(string text, func(Match) as string fn) as cstring
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
@@ -379,7 +383,7 @@ export class Automaton
         return __ac_buffer_text(output)
     end
 
-    func mask(string text, string mask = "*") as string
+    func mask(string text, string mask = "*") as cstring
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
@@ -389,7 +393,7 @@ export class Automaton
     end
 
     func highlight(string text, string openTag,
-        string closeTag) as string
+        string closeTag) as cstring
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
@@ -434,7 +438,8 @@ export class Automaton
             if nativeStart < 0 or nativeEnd < 0 then
                 throw RuntimeError __aho_corasick_error()
             end
-            Match item = Match(__ac_text_result(scan.patternNative()),
+            string pattern = __ac_text_result(scan.patternNative())
+            Match item = Match(pattern,
                 int(nativeStart), int(nativeEnd))
             if not fn(item) then
                 return false

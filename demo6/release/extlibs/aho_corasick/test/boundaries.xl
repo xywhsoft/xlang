@@ -134,10 +134,11 @@ func main(...) as int
     assert unicode.replaceWith("甲你好世界", func(Match m) as string => "!") == "甲!世界"
     assert unicode.mask("甲你好世界") == "甲***界"
 
-    // 普通文本移交底层缓冲；含零字节结果仍保留完整长度。
+    // 所有文本结果均移交底层缓冲，含零字节时仍保留完整长度。
     Automaton zeroByte = aho_corasick.create(["a"])
     assert zeroByte.replace("a\0b", "x") == "x\0b"
     assert zeroByte.replaceWith("a\0b", func(Match m) as string => "x") == "x\0b"
+    assert zeroByte.replace("", "x") == ""
     assert zeroByte.pattern(0) == "a"
     Automaton zeroPattern = aho_corasick.create(["a\0b"])
     assert zeroPattern.search("xa\0by")[0].pattern == "a\0b"

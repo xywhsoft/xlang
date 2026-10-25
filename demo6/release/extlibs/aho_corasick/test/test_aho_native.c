@@ -124,7 +124,7 @@ static void transforms(void)
     bytes_are(xac_mask(ac, "zab", 3, "#", 1), "z##", 3);
     xbuffer* plain = xac_replace(ac, "zab", 3, "*", 1);
     void* original = plain->Data;
-    char* taken = xac_buffer_take_cstr(plain);
+    char* taken = xac_buffer_take_text(plain);
     assert(taken == original && strcmp(taken, "z*") == 0);
     assert(plain->Data == NULL && plain->Size == 0);
     xrtFree(taken);
@@ -133,17 +133,36 @@ static void transforms(void)
     xbuffer* with_nul = xrtBufferCreate();
     xbytesview nul_text = { (const unsigned char*)"a\0b", 3 };
     assert(with_nul && xrtBufferAppend(with_nul, nul_text));
-    assert(xac_buffer_take_cstr(with_nul) == NULL);
-    assert(with_nul->Size == 3 && memcmp(with_nul->Data, "a\0b", 3) == 0);
+    taken = xac_buffer_take_text(with_nul);
+    assert(taken && memcmp(taken, "a\0b", 3) == 0 && taken[3] == 0);
+    assert(with_nul->Data == NULL && with_nul->Size == 0);
+    xrtFree(taken);
     xrtBufferDestroy(with_nul);
 
     bytes exact_data = xrtMalloc(3);
     assert(exact_data != NULL);
     memcpy(exact_data, "abc", 3);
     xbuffer* exact = xrtBufferCreateTake(&exact_data, 3, 3);
-    assert(exact && xac_buffer_take_cstr(exact) == NULL);
-    assert(exact->Size == 3 && memcmp(exact->Data, "abc", 3) == 0);
+    assert(exact);
+    taken = xac_buffer_take_text(exact);
+    assert(taken && strcmp(taken, "abc") == 0);
+    assert(exact->Data == NULL && exact->Size == 0);
+    xrtFree(taken);
     xrtBufferDestroy(exact);
+
+    xbuffer* empty = xrtBufferCreate();
+    assert(empty);
+    taken = xac_buffer_take_text(empty);
+    assert(taken && taken[0] == 0);
+    xrtFree(taken);
+    xrtBufferDestroy(empty);
+
+    xbuffer* invalid = xrtBufferCreate();
+    assert(invalid && xrtBufferAppendByte(invalid, 255));
+    assert(xac_buffer_take_text(invalid) == NULL); error_is(XERR_VALUE);
+    assert(invalid->Size == 1 && invalid->Data[0] == 255);
+    xrtBufferDestroy(invalid);
+    assert(xac_buffer_take_text(NULL) == NULL); error_is(XERR_ARGUMENT);
 
     assert(xac_highlight(ac, "zab", 3, "<", 1, ">", 1) == NULL); error_is(XERR_RANGE);
     assert(xac_replace(ac, "xxxxx", 5, "", 0) == NULL); error_is(XERR_RANGE);

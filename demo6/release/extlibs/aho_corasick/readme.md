@@ -58,10 +58,10 @@ xrtAhoDestroy(automaton);
 
 `build()` 在分配转移表和 BFS 队列成功后才修改 failure 状态。分配失败时自动机仍处于未构建状态，可直接重试，不会重复合并输出或留下半构建结构。
 
-XLang 的文本结果优先从原生 `Buffer` 直接移交已有 XRT 分配，避免再由
-`Buffer.text()` 复制整串。仅当结果无嵌入零字节且缓冲已有终止字节空间时
-使用此路径；含零字节或缺少可移交内存/终止空间时仍由长度感知的 `Buffer.text()`
-生成结果，原缓冲保持不变。这个优化不改变匹配器的字节语义。
+XLang 的文本结果保留明确字节长度，由 `cstring` 直接接管原生 `Buffer`
+底层分配，不再经 `Buffer.text()` 复制整串。含嵌入零字节的结果也走同一路径；
+容量恰好用满时只扩出尾零空间，分配或 UTF-8 校验失败不消耗原缓冲。
+这个优化不改变匹配器的字节语义；存入 `Match.pattern` 时仍需独立字符串。
 
 
 
@@ -143,7 +143,7 @@ words.build()
 | `valid` | `bool` | 原生句柄是否存在 |
 | `built` | `bool` | 是否已构建 |
 | `patternCount` | `int` | 模式数量 |
-| `pattern(index)` | `string` | 返回指定模式的独立字符串 |
+| `pattern(index)` | `cstring` | 返回指定模式的独立文本 |
 | `addPattern(pattern)` | - | 添加一个非空模式 |
 | `addPatterns(patterns)` | - | 顺序添加一组模式 |
 | `build()` | - | 构建不可变自动机 |
@@ -153,10 +153,10 @@ words.build()
 | `count(text)` | `int` | 不创建结果数组地计数 |
 | `scan(text, fn)` | `bool` | 即时回调；`false` 表示被回调停止 |
 | `scanner()` | `Scanner` | 创建跨分块扫描器 |
-| `replace(text, replacement)` | `string` | 合并重叠区间后固定替换 |
-| `replaceWith(text, fn)` | `string` | 左优先最长回调替换 |
-| `mask(text, mask = "*")` | `string` | 按 UTF-8 标量数量遮盖 |
-| `highlight(text, open, close)` | `string` | 包裹合并后的重叠区间 |
+| `replace(text, replacement)` | `cstring` | 合并重叠区间后固定替换 |
+| `replaceWith(text, fn)` | `cstring` | 左优先最长回调替换 |
+| `mask(text, mask = "*")` | `cstring` | 按 UTF-8 标量数量遮盖 |
+| `highlight(text, open, close)` | `cstring` | 包裹合并后的重叠区间 |
 
 ### Match
 
@@ -350,6 +350,11 @@ XRT 结构化错误：无效值、空模式、重复模式和无效 UTF-8 为 `V
 `test/boundaries.xl`：覆盖句柄寿命、状态与索引、回调异常/重入、输出预算、错误恢复、
 38 个分配失败点，以及四线程共享不可变自动机的 1000 次独立扫描。
 Linux 独立 C 的 ASan/UBSan/泄漏门禁也通过，包含两个 C 范例。
+
+2026-10-25：文本交接统一使用显式长度 `cstring`，C 用例覆盖含 NUL、空串、
+满容量缓冲、无效 UTF-8 和失败时原缓冲不变。Windows 严格 GCC 原生测试、
+38 个分配故障点、XLang JIT/AOT 边界及 C/XLang 基础范例输出通过；
+Scanner 私有构造器的主线权限问题仍是完整发布验收阻断。
 
 从 demo6 目录执行：
 

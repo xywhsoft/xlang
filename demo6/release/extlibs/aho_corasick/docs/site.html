@@ -70,7 +70,7 @@ assert ac.mask("ushers", "#") == "u#####"</code></pre>
       <tr><td><code>mask(text, mask = "*")</code></td><td>合并后按 UTF-8 标量数重复 mask，严格检查 UTF-8 和边界。</td></tr>
       <tr><td><code>highlight(text, openTag, closeTag)</code></td><td>包裹合并后的区间，不自动转义 HTML。</td></tr>
     </tbody></table>
-    <p>Match 提供 <code>pattern</code>、<code>start</code>、<code>endPos</code> 和
+    <p>pattern、replace、replaceWith、mask、highlight 返回带明确字节长度的独立 <code>cstring</code>；含 NUL 的文本也保留完整内容。Match 提供 <code>pattern</code>、<code>start</code>、<code>endPos</code> 和
     <code>length</code>；length 也是字节数。search 的起点排序与 scan 的发现顺序不同。</p>
 
     <h2 id="scanner">分块与暂停</h2>
@@ -109,7 +109,7 @@ int main(void)
     return ok &amp;&amp; found ? 0 : 1;
 }</code></pre>
     <p>C 还提供排序/非重叠结果集、计数、首项、统计、资源预检、字节遮盖与增量状态。
-    文本变换返回独立 XRT 分配字符串，由调用方 xrtFree；结果集与状态由对应 Destroy 释放。</p>
+    文本变换返回独立 <code>xbuffer</code>，由调用方 <code>xrtBufferDestroy</code> 释放；若经 <code>xac_buffer_take_text</code> 移交为带尾零的文本，则改由 <code>xrtFree</code> 释放。结果集与状态由对应 Destroy 释放。</p>
     <p>结果集和状态持有自动机引用，可以比调用方自己的自动机引用活得更久。
     借用的模式视图要求对应自动机仍存活。XLang 对象由其原生生命周期协议管理，
     不得把同一个 C 句柄重复交给拥有型对象接管。</p>

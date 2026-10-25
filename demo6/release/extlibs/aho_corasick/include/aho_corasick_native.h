@@ -42,7 +42,7 @@ XAHO_EXPORT int64 xac_count(void* handle, const char* text, size_t size);
 XAHO_EXPORT int xac_output_append(void* handle, void* output, const char* text,
     size_t size, size_t start, size_t count);
 /* 仅在原缓冲可容纳终止字节且内容无 NUL 时移交 Data；否则保持缓冲不变。 */
-XAHO_EXPORT void* xac_buffer_take_cstr(void* output);
+XAHO_EXPORT void* xac_buffer_take_text(void* output);
 XAHO_EXPORT void* xac_replace(void* handle, const char* text, size_t size,
     const char* replacement, size_t replacementSize);
 XAHO_EXPORT void* xac_mask(void* handle, const char* text, size_t size,
