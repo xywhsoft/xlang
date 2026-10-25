@@ -7,6 +7,8 @@
 通过记录不能替代当前发布物验收。见
 `../../../dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`；
 不在 XML 包内增加头文件路径兼容层。
+同轮 WSL 三包联合门禁通过 C ASan/UBSan、Linux XLang JIT 边界与
+分配故障及双语黄金输出；使用现有 `release/xl`，未验新版 Linux AOT。
 
 2026-10-24 当前发布物复验：Windows 三包联合默认门禁通过严格 C、
 XLang 边界/分配、私有入口负例、固定双语输出，以及 SAX/DOM/ElementTree
