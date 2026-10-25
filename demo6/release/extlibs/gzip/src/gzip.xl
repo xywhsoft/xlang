@@ -7,6 +7,11 @@ extern "xgzip_compress_str" func __gzip_compress_str(string data, c_size size, c
     c_uint mtime, c_ulonglong maxInput, c_ulonglong maxOutput) as point
 extern "xgzip_decompress" func __gzip_decompress(point data, c_size size,
     c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xgzip_decompress_text" func __gzip_decompress_text(point data, c_size size,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xgzip_text_size" @no_raise func __gzip_text_size(point result) as c_size
+extern "xgzip_text_take" @no_raise func __gzip_text_take(point result) as point
+extern "xrtFree" @no_raise func __gzip_free(point data)
 extern "xgzip_compress_file" func __gzip_compress_file(string source, string destination,
     c_int level, c_uint mtime, c_bool overwrite, c_ulonglong maxInput,
     c_ulonglong maxOutput, var onProgress) as c_int
@@ -105,8 +110,16 @@ export func decompress(Buffer data, int maxInput = 268435456,
 end
 
 export func decompressText(Buffer data, int maxInput = 268435456,
-    int maxOutput = 536870912, int maxRatio = 1000) as string
-    return decompress(data, maxInput, maxOutput, maxRatio).text()
+    int maxOutput = 536870912, int maxRatio = 1000) as cstring
+    __gzip_check_limit(maxInput, "maxInput")
+    __gzip_check_limit(maxOutput, "maxOutput")
+    __gzip_check_limit(maxRatio, "maxRatio")
+    __gzip_check_uint32(maxRatio, "maxRatio")
+    point result = __gzip_decompress_text(data.data(), c_size(data.len()),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
+    if result == null then throw CompressionError __gzip_error() end
+    c_size textSize = __gzip_text_size(result)
+    return cstring.take(__gzip_text_take(result), textSize, __gzip_free)
 end
 
 export func compressFile(string source, string destination, int level = -1,

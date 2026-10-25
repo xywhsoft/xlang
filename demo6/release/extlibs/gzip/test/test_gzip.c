@@ -1,4 +1,5 @@
 #include "../include/xrt_gzip.h"
+#include "../include/gzip_native.h"
 /* 测试操作位于断言中，发布配置也必须执行。 */
 #ifdef NDEBUG
 #undef NDEBUG
@@ -191,13 +192,53 @@ static void incremental(void)
     xrtBufferDestroy(packed);
 }
 
+static void owned_text(void)
+{
+    const unsigned char content[] = {'A', 0, 'B', 0xe4, 0xbd, 0xa0};
+    const unsigned char invalid[] = {0xff};
+    xbuffer* packed = NULL;
+    void* result;
+    void* original;
+    char* text;
+    size_t length;
+
+    assert(xrtGzipCompress(content, sizeof(content), NULL, &packed, NULL));
+    result = xgzip_decompress_text(packed->Data, packed->Size,
+        268435456u, 536870912u, 1000u);
+    assert(result != NULL);
+    length = xgzip_text_size(result);
+    original = ((xbuffer*)result)->Data;
+    text = (char*)xgzip_text_take(result);
+    assert(text == original && length == sizeof(content));
+    assert(memcmp(text, content, length) == 0 && text[length] == '\0');
+    xrtFree(text);
+    xrtBufferDestroy(packed);
+
+    assert(xrtGzipCompress(NULL, 0, NULL, &packed, NULL));
+    result = xgzip_decompress_text(packed->Data, packed->Size,
+        268435456u, 536870912u, 1000u);
+    assert(result != NULL && xgzip_text_size(result) == 0);
+    text = (char*)xgzip_text_take(result);
+    assert(text != NULL && text[0] == '\0');
+    xrtFree(text);
+    xrtBufferDestroy(packed);
+
+    assert(xrtGzipCompress(invalid, sizeof(invalid), NULL, &packed, NULL));
+    assert(xgzip_decompress_text(packed->Data, packed->Size,
+        268435456u, 536870912u, 1000u) == NULL);
+    assert(xrtGetError() != NULL);
+    xrtClearError();
+    xrtBufferDestroy(packed);
+}
+
 int main(void)
 {
     roundtrips();
     malformed();
     limits_and_arguments();
     incremental();
+    owned_text();
     xrtClearError();
-    puts("gzip C: roundtrip, malformed, limits, state and split boundaries passed");
+    puts("gzip C: roundtrip, malformed, limits, state, text ownership and split boundaries passed");
     return 0;
 }

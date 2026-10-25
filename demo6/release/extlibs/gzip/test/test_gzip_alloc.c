@@ -1,5 +1,6 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #include "../include/xrt_gzip.h"
+#include "../include/gzip_native.h"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -80,6 +81,39 @@ static void drain_retry(xbytesview packed, xbytesview plain)
     unchanged(&before);
 }
 
+static unsigned int text_failures(void)
+{
+    xbuffer* packed = NULL;
+    xmemdebugsnapshot before;
+    unsigned int index, rejected = 0, good = 0;
+    assert(xrtGzipCompress("hello", 5, NULL, &packed, NULL));
+    xrtMemDebugSnapshot(&before);
+    for (index = 0; index < 256 && good < 2; ++index) {
+        void* result;
+        bool injected;
+        assert(xrtMemDebugFailAfter(index));
+        result = xgzip_decompress_text(packed->Data, packed->Size,
+            268435456u, 536870912u, 1000u);
+        injected = xrtMemDebugFailTriggered();
+        xrtMemDebugFailClear();
+        if (injected) {
+            assert(result == NULL);
+            ++rejected;
+        } else {
+            char* text;
+            assert(result != NULL && xgzip_text_size(result) == 5);
+            text = (char*)xgzip_text_take(result);
+            assert(text != NULL && memcmp(text, "hello", 6) == 0);
+            xrtFree(text);
+            ++good;
+        }
+        unchanged(&before);
+    }
+    assert(rejected > 0 && good == 2);
+    xrtBufferDestroy(packed);
+    return rejected;
+}
+
 int main(void)
 {
     unsigned char data[16384];
@@ -94,6 +128,7 @@ int main(void)
     count += failures((xbytesview){data, sizeof(data)}, xrtBufferView(packed), true);
     drain_retry(xrtBufferView(packed), (xbytesview){data, sizeof(data)});
     xrtBufferDestroy(packed);
+    count += text_failures();
     unchanged(&before);
     printf("gzip allocation: rejected=%u, recovery and ownership passed\n", count);
     return 0;

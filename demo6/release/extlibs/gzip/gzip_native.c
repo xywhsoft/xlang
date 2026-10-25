@@ -13,6 +13,9 @@
 #ifndef XRT_MODULE_FILE_TEMP
 #define XRT_MODULE_FILE_TEMP
 #endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
 #ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #endif
@@ -129,6 +132,41 @@ void* xgzip_decompress(void* data, size_t size, unsigned long long maxInput,
     xbuffer* output = NULL;
     gzip_options(&options, -1, 0, maxInput, maxOutput, maxRatio);
     return xrtGzipDecompress(data, size, &options, &output, NULL) ? output : NULL;
+}
+
+/* 文本结果取走解压缓冲；容量不足时，追加终止字节可能触发 XRT 扩容。 */
+void* xgzip_decompress_text(void* data, size_t size, unsigned long long maxInput,
+    unsigned long long maxOutput, unsigned int maxRatio)
+{
+    xbuffer* output = (xbuffer*)xgzip_decompress(data, size, maxInput, maxOutput, maxRatio);
+    if (output == NULL) return NULL;
+    if (!xrtUtf8Valid((xstrview){(const char*)output->Data, output->Size}, NULL)) {
+        xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.gzip", 0,
+            "gzip decompressed text is not valid UTF-8");
+        xrtBufferDestroy(output);
+        return NULL;
+    }
+    if (!xrtBufferAppendByte(output, 0)) {
+        xrtBufferDestroy(output);
+        return NULL;
+    }
+    return output;
+}
+
+size_t xgzip_text_size(void* raw)
+{
+    const xbuffer* output = (const xbuffer*)raw;
+    return output != NULL && output->Size != 0u ? output->Size - 1u : 0u;
+}
+
+void* xgzip_text_take(void* raw)
+{
+    xbuffer* output = (xbuffer*)raw;
+    void* text;
+    if (output == NULL) return NULL;
+    text = xrtBufferTake(output, NULL, NULL);
+    xrtBufferDestroy(output);
+    return text;
 }
 
 int xgzip_compress_file(const char* source, const char* destination, int level,

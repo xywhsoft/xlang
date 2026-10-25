@@ -40,7 +40,13 @@ assert gzip.decompressText(stream) == "leftright"
 | --- | --- |
 | `compress(Buffer|string data, int level=-1, int mtime=0, int maxInput=268435456, int maxOutput=536870912)` | `Buffer` |
 | `decompress(Buffer data, int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000)` | `Buffer` |
-| `decompressText(Buffer data, int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000)` | 解压后按字符串读取；二进制内容使用 `decompress` |
+| `decompressText(Buffer data, int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000)` | 解压后校验 UTF-8 并接管文本缓冲；二进制内容使用 `decompress` |
+
+`decompressText` 取走 XRT 解压缓冲的有效载荷交给 `cstring`，
+不再经 `Buffer.text()` 无条件复制。追加末尾 NUL 时容量不足仍可能扩容。
+返回文本保留内嵌 NUL；
+非法 UTF-8 抛 `ValueError`。XLang 内部调用可共享该所有权，
+通过公开 C 导出调用时仍按普通字符串 ABI 转换。
 | `compressFile(string source, string destination, int level=-1, int mtime=0, bool overwrite=true, int maxInput=268435456, int maxOutput=536870912, onProgress=null)` | 同步文件压缩，无返回值 |
 | `decompressFile(string source, string destination, bool overwrite=true, int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000, onProgress=null)` | 同步文件解压，无返回值 |
 | `compressor(int level=-1, int mtime=0, int maxInput=268435456, int maxOutput=536870912)` | `gzip.GzipCompressor` |

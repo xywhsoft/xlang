@@ -38,5 +38,19 @@ func main(...) as int
     end
     assert rejected
     assert gzip.decompressText(gzip.compress("again")) == "again"
+    assert gzip.decompressText(gzip.compress("")) == ""
+    string text = gzip.decompressText(gzip.compress("A\0B你好"))
+    assert text == "A\0B你好"
+    assert string.byteLen(text) == 9
+
+    Buffer invalidText = Buffer()
+    invalidText.appendByte(255)
+    rejected = false
+    try
+        gzip.decompressText(gzip.compress(invalidText))
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
     return 0
 end

@@ -4,6 +4,7 @@
 #define XRT_MODULE_VALUE
 #endif
 #include "xrt.h"
+typedef struct xvalue xvalue;
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,6 +14,10 @@ extern "C" {
 void* xgzip_compress(void*, size_t, int, unsigned int, unsigned long long, unsigned long long);
 void* xgzip_compress_str(const char*, size_t, int, unsigned int, unsigned long long, unsigned long long);
 void* xgzip_decompress(void*, size_t, unsigned long long, unsigned long long, unsigned int);
+/* text_size 保留内嵌 NUL；text_take 销毁缓冲并移交 xrtFree 所有权。 */
+void* xgzip_decompress_text(void*, size_t, unsigned long long, unsigned long long, unsigned int);
+size_t xgzip_text_size(void*);
+void* xgzip_text_take(void*);
 int xgzip_compress_file(const char*, const char*, int, unsigned int, bool, unsigned long long, unsigned long long, xvalue*);
 int xgzip_decompress_file(const char*, const char*, bool, unsigned long long, unsigned long long, unsigned int, xvalue*);
 
