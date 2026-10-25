@@ -151,14 +151,23 @@ static char* copyText(xstrview v)
     if(!validText(v))return NULL;
     char* p=xrtMalloc(v.Size+1);if(p){if(v.Size)memcpy(p,v.Data,v.Size);p[v.Size]=0;}return p;
 }
+static cstr optionalText(cstr text){return text&&text[0]?text:NULL;}
 static bool arrayText(const xvalue* a,size_t i,xstrview* v)
 {return xrtValueGetString(xrtValueArrayGet(a,i),v)&&validText(*v);}
-static bool domains(const xvalue* a,xstrview out[16],size_t* count)
+typedef struct AcmeDomains {xstrview local[16];xstrview* data;size_t count;} AcmeDomains;
+static void domainsUnit(AcmeDomains* views)
+{if(views->data!=views->local)xrtFree(views->data);views->data=NULL;views->count=0;}
+static bool domains(const xvalue* a,AcmeDomains* views)
 {
-    if(!a||xrtValueType(a)!=XVALUE_ARRAY||(*count=xrtValueCount(a))>16||!*count){
+    if(!a||xrtValueType(a)!=XVALUE_ARRAY||!(views->count=xrtValueCount(a))){
         xrtSetErrorKind(XERR_ARGUMENT);return false;
     }
-    for(size_t i=0;i<*count;++i)if(!arrayText(a,i,&out[i]))return false;
+    if(views->count>SIZE_MAX/sizeof(xstrview)){xrtSetErrorKind(XERR_RANGE);return false;}
+    /* Upstream limits DISTINCT domains, not input entries. Preserve order and
+     * duplicates and let its own flow/store validation decide their meaning. */
+    views->data=views->count<=16?views->local:xrtMalloc(views->count*sizeof(xstrview));
+    if(!views->data)return false;
+    for(size_t i=0;i<views->count;++i)if(!arrayText(a,i,&views->data[i]))return false;
     return true;
 }
 void* xl6AcmeConfigCreateV1(const xvalue* text,const xvalue* resolvers,
@@ -254,11 +263,11 @@ void* xl6AcmeProviderCreateV1(int64_t kind,const xvalue* fields,void* raw)
     for(size_t i=0;i<count;++i)if(!arrayText(fields,i,&views[i])||!(values[i]=copyText(views[i])))goto done;
     o=newOwner(AC_PROVIDER);if(!o)goto done;o->providerKind=(int)kind;
     if(c->borrowed&&!(o->borrowed=xl6ExecutionResourceRetainV1(c->borrowed)))goto done;
-    if(kind==1&&count==3){xacmednaliconfig v;xrtAcmeDnsAliConfigInit(&v);v.sAccessKeyId=values[0];v.sAccessKeySecret=values[1];v.sEndpoint=values[2];ok=xrtAcmeDnsAli(&v,scope.engine,&o->provider);}
-    else if(kind==2&&count==2){xacmednscfconfig v;xrtAcmeDnsCfConfigInit(&v);v.sApiToken=values[0];v.sEndpoint=values[1];ok=xrtAcmeDnsCf(&v,scope.engine,&o->provider);}
-    else if(kind==3&&count==3){xacmednstencentconfig v;xrtAcmeDnsTencentConfigInit(&v);v.sSecretId=values[0];v.sSecretKey=values[1];v.sEndpoint=values[2];ok=xrtAcmeDnsTencent(&v,scope.engine,&o->provider);}
-    else if(kind==4&&count==4){xacmednsawsconfig v;xrtAcmeDnsAwsConfigInit(&v);v.sAccessKeyId=values[0];v.sSecretAccessKey=values[1];v.sRegion=values[2];v.sEndpoint=values[3];ok=xrtAcmeDnsAws(&v,scope.engine,&o->provider);}
-    else if(kind==5&&count==3){xacmednshuaaweiconfig v;xrtAcmeDnsHuaweiConfigInit(&v);v.sAccessKey=values[0];v.sSecretKey=values[1];v.sEndpoint=values[2];ok=xrtAcmeDnsHuawei(&v,scope.engine,&o->provider);}
+    if(kind==1&&count==3){xacmednaliconfig v;xrtAcmeDnsAliConfigInit(&v);v.sAccessKeyId=values[0];v.sAccessKeySecret=values[1];v.sEndpoint=optionalText(values[2]);ok=xrtAcmeDnsAli(&v,scope.engine,&o->provider);}
+    else if(kind==2&&count==2){xacmednscfconfig v;xrtAcmeDnsCfConfigInit(&v);v.sApiToken=values[0];v.sEndpoint=optionalText(values[1]);ok=xrtAcmeDnsCf(&v,scope.engine,&o->provider);}
+    else if(kind==3&&count==3){xacmednstencentconfig v;xrtAcmeDnsTencentConfigInit(&v);v.sSecretId=values[0];v.sSecretKey=values[1];v.sEndpoint=optionalText(values[2]);ok=xrtAcmeDnsTencent(&v,scope.engine,&o->provider);}
+    else if(kind==4&&count==4){xacmednsawsconfig v;xrtAcmeDnsAwsConfigInit(&v);v.sAccessKeyId=values[0];v.sSecretAccessKey=values[1];v.sRegion=values[2];v.sEndpoint=optionalText(values[3]);ok=xrtAcmeDnsAws(&v,scope.engine,&o->provider);}
+    else if(kind==5&&count==3){xacmednshuaaweiconfig v;xrtAcmeDnsHuaweiConfigInit(&v);v.sAccessKey=values[0];v.sSecretKey=values[1];v.sEndpoint=optionalText(values[2]);ok=xrtAcmeDnsHuawei(&v,scope.engine,&o->provider);}
     else xrtSetErrorKind(XERR_ARGUMENT);
 done:
     for(size_t i=0;i<4;++i){if(values[i])xrtSecureZero(values[i],strlen(values[i]));xrtFree(values[i]);}
@@ -305,13 +314,13 @@ xstrview xl6AcmeProviderRegistryIdV1(int64_t index)
 }
 void* xl6AcmeIssueV1(void* raw,const xvalue* names,void* dns,bool alternate,xstrview root,int64_t days,bool stored)
 {
-    AcmeOwner* o=raw;AcmeOwner* p=dns;XL6_ExecutionScopeV1 a={0},b={0};xstrview list[16];size_t count=0;
-    if(days<INT_MIN||days>INT_MAX||!validText(root)||!domains(names,list,&count)||!enter(o,AC_CLIENT,false,&a)){failed();return NULL;}
-    if(!enter(p,AC_PROVIDER,false,&b)){leave(o,&a);failed();return NULL;}
+    AcmeOwner* o=raw;AcmeOwner* p=dns;XL6_ExecutionScopeV1 a={0},b={0};AcmeDomains list={0};
+    if(days<INT_MIN||days>INT_MAX||!validText(root)||!domains(names,&list)||!enter(o,AC_CLIENT,false,&a)){domainsUnit(&list);failed();return NULL;}
+    if(!enter(p,AC_PROVIDER,false,&b)){leave(o,&a);domainsUnit(&list);failed();return NULL;}
     AcmeOwner* g=newOwner(AC_GRANT);const char* path=root.Data?root.Data:"";bool ok=false;
-    if(g)ok=stored?xrtAcmeClientIssueStored(o->client,list,count,&p->provider,path,(int)days,&g->grant,&g->renewed):
-        xrtAcmeClientIssueEx(o->client,list,count,&p->provider,alternate,&g->grant);
-    leave(p,&b);leave(o,&a);if(!ok){xl6AcmeDropV1(g);failed();return NULL;}return g;
+    if(g)ok=stored?xrtAcmeClientIssueStored(o->client,list.data,list.count,&p->provider,path,(int)days,&g->grant,&g->renewed):
+        xrtAcmeClientIssueEx(o->client,list.data,list.count,&p->provider,alternate,&g->grant);
+    domainsUnit(&list);leave(p,&b);leave(o,&a);if(!ok){xl6AcmeDropV1(g);failed();return NULL;}return g;
 }
 void* xl6AcmeGrantTakeV1(void* raw,bool key)
 {
@@ -376,17 +385,17 @@ done:xrtFree(items);if(!result)failed();return result;
 }
 void* xl6AcmeObtainV1(void* raw,const xvalue* names,void* dns,xstrview root,int64_t days)
 {
-    AcmeOwner* c=raw;AcmeOwner* p=dns;XL6_ExecutionScopeV1 a={0},b={0};xstrview list[16];size_t count=0;
-    if(days<INT_MIN||days>INT_MAX||!domains(names,list,&count)||!enter(c,AC_CONFIG,false,&a)){failed();return NULL;}
-    if(!enter(p,AC_PROVIDER,false,&b)){leave(c,&a);failed();return NULL;}
+    AcmeOwner* c=raw;AcmeOwner* p=dns;XL6_ExecutionScopeV1 a={0},b={0};AcmeDomains list={0};
+    if(days<INT_MIN||days>INT_MAX||!domains(names,&list)||!enter(c,AC_CONFIG,false,&a)){domainsUnit(&list);failed();return NULL;}
+    if(!enter(p,AC_PROVIDER,false,&b)){leave(c,&a);domainsUnit(&list);failed();return NULL;}
     xacmeaccountconfig account;xacmeclientconfig client;config(c,&account,&client,a.engine);
     xacmeobtainconfig v;xrtAcmeObtainConfigInit(&v);
     v.pAccount=&account;v.sCaPem=client.sCaPem;v.pBorrowedEngine=client.pBorrowedEngine;
     v.uTimeoutMs=client.uTimeoutMs;v.sPropagateResolvers=client.sPropagateResolvers;v.iPropagateResolverCount=client.iPropagateResolverCount;
     v.uPropagateTimeoutMs=client.uPropagateTimeoutMs;v.uIssueTimeoutMs=client.uIssueTimeoutMs;v.sCertKeyPem=client.sCertKeyPem;
     v.sStoreRoot=root.Data?root.Data:"";v.iRenewalDays=(int)days;
-    AcmeOwner* g=newOwner(AC_GRANT);bool ok=g&&validText(root)&&xrtAcmeObtain(&v,list,count,&p->provider,&g->grant,&g->renewed);
-    leave(p,&b);leave(c,&a);if(!ok){xl6AcmeDropV1(g);failed();return NULL;}return g;
+    AcmeOwner* g=newOwner(AC_GRANT);bool ok=g&&validText(root)&&xrtAcmeObtain(&v,list.data,list.count,&p->provider,&g->grant,&g->renewed);
+    domainsUnit(&list);leave(p,&b);leave(c,&a);if(!ok){xl6AcmeDropV1(g);failed();return NULL;}return g;
 }
 int64_t xl6AcmeCleanupPendingV1(int64_t timeout)
 {

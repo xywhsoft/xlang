@@ -69,7 +69,15 @@ static void mockFlow(void)
     assert(xl6AcmeStoreSaveV1(root,xrtStrView(directory),xrtStrView(account),xrtStrView(""),xrtStrView(""),0));
     xrtFree(account);
     const char* names[]={"example.test","*.example.test"};xvalue* domainsValue=strings(names,2);
-    AcmeOwner* issued=xl6AcmeIssueV1(client,domainsValue,provider,true,xrtStrView(""),0,false);assert(issued);
+    const char* repeated[40];for(size_t i=0;i<40;++i)repeated[i]=names[i%2];
+    xvalue* duplicates=strings(repeated,40);
+    xl6_error_scope allocationScope={0};assert(xl6ErrorScopeBegin(&allocationScope));
+    assert(xrtMemDebugFailAfter(0));
+    assert(!xl6AcmeIssueV1(client,duplicates,provider,false,xrtStrView(""),0,false));
+    assert(xrtMemDebugFailTriggered());xrtMemDebugFailClear();
+    xl6_error_result allocation=xl6ErrorScopeEnd(&allocationScope);assert(!allocation.ok);xrtErrorFree(allocation.error);
+    AcmeOwner* issued=xl6AcmeIssueV1(client,duplicates,provider,true,xrtStrView(""),0,false);assert(issued);
+    xrtValueRelease(duplicates);
     assert(issued->grant.sFullchainPem&&issued->grant.sKeyPem);xl6AcmeDropV1(issued);
     AcmeOwner* first=xl6AcmeIssueV1(client,domainsValue,provider,false,root,30,true);assert(first&&first->renewed);
     AcmeOwner* again=xl6AcmeIssueV1(client,domainsValue,provider,false,root,30,true);assert(again&&!again->renewed);
@@ -115,6 +123,12 @@ int main(void)
     const size_t counts[]={3,2,3,4,3};
     for(int i=0;i<5;++i){
         xvalue* v=strings(credentials[i],counts[i]);AcmeOwner* p=xl6AcmeProviderCreateV1(i+1,v,c);assert(p);
+        const char* endpoint=i==0?((xacmednsalicontext*)p->provider.pContext)->sEndpoint:
+            i==1?((xacmednscfcontext*)p->provider.pContext)->sEndpoint:
+            i==2?((xacmednstencentcontext*)p->provider.pContext)->sEndpoint:
+            i==3?((xacmednsawscontext*)p->provider.pContext)->sEndpoint:
+                ((xacmednshuaaweicontext*)p->provider.pContext)->sEndpoint;
+        assert(endpoint[0]); /* Empty XLang defaults must select C's NULL/default endpoint. */
         assert(xl6AcmeProviderValidateV1(p));outgoing=0;assert(trace(p,edges,&outgoing)&&outgoing==2);
         assert(xl6AcmeCleanupV1(p)&&xl6AcmeCleanupV1(p));xl6AcmeDropV1(p);xrtValueRelease(v);
     }
