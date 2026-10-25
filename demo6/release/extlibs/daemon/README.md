@@ -1,5 +1,11 @@
 # daemon
 
+2026-10-25 在 WSL 中运行现有 `test/check.sh` 全通过：严格 GCC、
+PID 文件与锁生命周期的 C ASan/UBSan、XLang FFI 边界、四条包外
+访问负例，以及归一化 PID 后的 C 分离编译、C 单文件直跑与
+XLang 范例输出对照。本次使用现有 Linux `release/xl`，未重建
+Linux 发布版或运行独立 EXE。
+
 2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 全通过：
 严格 C 与 PID 文件边界、XLang FFI、四条包外访问负例、C/XLang
 双语范例，以及公开范例的独立 EXE AOT 构建、运行与归一化
