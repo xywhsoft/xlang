@@ -32,7 +32,7 @@
 string cell = geohash.encode(42.6, -5.6, 5)
 println(cell)                 // ezs42
 println(geohash.east(cell))</code></pre>
-    <p>文本结果在 C API 中由 XRT 独立分配；成功调用不会继承前次失败的线程错误。encode、bbox 和邻格的分配故障与恢复均有 C/XLang 回归。bbox 的数字写出不受进程区域设置影响。全部 1、2 字符格子、12 字符端点及逗号小数点区域设置已有聚焦验证。当前 Windows 默认门禁的核心、公开范例与边界 AOT 均通过；Linux C ASan/UBSan 和 XLang JIT 双语门禁也通过，Linux 独立 EXE 本轮未验收。输入边界、极点规则和验证命令见包内 README。</p>
+    <p>文本结果在 C API 中由 XRT 独立分配；成功调用不会继承前次失败的线程错误。encode、bbox 和邻格的分配故障与恢复均有 C/XLang 回归。bbox 的数字写出不受进程区域设置影响。全部 1、2 字符格子、12 字符端点及逗号小数点区域设置已有聚焦验证。Windows 与 Linux 默认门禁均已验证严格 C、双语固定输出及 XLang/C 单文件范例独立 EXE；Linux C 边界与线程另经 ASan/UBSan。验收限网格编码、解码与四邻格，不代表完整地理信息能力；输入边界和验证命令见包内 README。</p>
   </section>
 </main>
 </body>
