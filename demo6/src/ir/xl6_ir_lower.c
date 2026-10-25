@@ -12404,7 +12404,7 @@ static int xl6IrLowerResolveRuntimeBridge(
     target->nativeServicesRequired=xl6IrRuntimeDirectBridgeServices(target->cName);
     if(!xl6IrRuntimeDirectBridgeContext(ctx->module,target,&target->nativeContextAbi,
             &target->nativeContextType,&target->nativeContextPayloadAbi))
-        return xl6IrLowerDiag(ctx,target->declaration,"XLIR native generic context requires an exact supported Future payload ABI");
+        return xl6IrLowerDiag(ctx,target->declaration,"XLIR native context requires an exact supported payload ABI");
     target->nativeHandlePolicyCName = xl6IrRuntimeNativeHandlePolicyForName(target->cName);
     target->nativeHandlePolicyAbi = target->nativeHandlePolicyCName != NULL
         ? XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 : XL6_IR_NATIVE_HANDLE_POLICY_NONE;

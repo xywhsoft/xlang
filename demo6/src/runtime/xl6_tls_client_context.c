@@ -9,8 +9,13 @@ void xl6TlsClientContextDestroyV1(void* raw)
 void* xl6TlsClientContextFromV1(xtlscontext* parameters,const XL6_TlsVerifierV1* verifier,XL6_TlsProtocolsV1* protocols)
 {return xl6TlsClientContextFromResumeV1(parameters,verifier,protocols,(XL6_TlsResumeOwnerV1){0});}
 void* xl6TlsClientContextFromResumeV1(xtlscontext* parameters,const XL6_TlsVerifierV1* verifier,XL6_TlsProtocolsV1* protocols,XL6_TlsResumeOwnerV1 resume)
+{return xl6TlsClientContextFromOptionsV1(parameters,verifier,protocols,resume,XL6_TLS_TICKET_CAPACITY_DEFAULT_V1,false);}
+void* xl6TlsClientContextFromOptionsV1(xtlscontext* parameters,const XL6_TlsVerifierV1* verifier,XL6_TlsProtocolsV1* protocols,
+    XL6_TlsResumeOwnerV1 resume,uint32_t capacity,bool required)
 {
     if(xrtGetError()){xrtFree(protocols);return NULL;}
+    if(capacity>XL6_TLS_TICKET_CAPACITY_MAX_V1||(required&&!resume.value)){
+        xrtFree(protocols);xl6TlsFailV1(XERR_ARGUMENT,"invalid TLS ticket capacity or required-resume configuration");return NULL;}
     if(!verifier || !verifier->value || !verifier->policy){
         xrtFree(protocols);xl6TlsFailV1(XERR_ARGUMENT,"TLS client context requires a trust verifier");return NULL;}
     if(resume.value&&(!resume.ops||!resume.ops->Ref||!resume.ops->Drop)){
@@ -23,6 +28,7 @@ void* xl6TlsClientContextFromResumeV1(xtlscontext* parameters,const XL6_TlsVerif
         self->resume=(XL6_TlsResumeOwnerV1){resume.ops->Ref(resume.value),resume.ops};
         if(!self->resume.value){xl6TlsOutcomeV1(false);xl6TlsClientContextDestroyV1(self);return NULL;}
     }
+    self->ticketCapacity=capacity;self->resumeRequired=required;
     return self;
 }
 static const XL6_TlsClientContextV1* checked(void* raw)
@@ -51,7 +57,7 @@ void* xl6TlsClientContextWithParametersV1(void* raw,void* parameters)
     if(!self)return NULL;
     if(!parameters){xl6TlsFailV1(XERR_ARGUMENT,"missing TLS parameters");return NULL;}
     if(!xl6TlsProtocolsCopyV1(self->protocols,&protocols))return NULL;
-    return xl6TlsClientContextFromResumeV1(parameters,&self->verifier,protocols,self->resume);
+    return xl6TlsClientContextFromOptionsV1(parameters,&self->verifier,protocols,self->resume,self->ticketCapacity,self->resumeRequired);
 }
 void* xl6TlsClientContextWithVerifierV1(void* raw,void* verifier)
 {
@@ -59,7 +65,7 @@ void* xl6TlsClientContextWithVerifierV1(void* raw,void* verifier)
     if(!self || !xl6TlsProtocolsCopyV1(self->protocols,&protocols))return NULL;
     /* An explicit trust rebind invalidates a credential authenticated under
      * the previous verifier, even when the caller supplies the same snapshot. */
-    return xl6TlsClientContextFromV1(self->parameters,verifier,protocols);
+    return xl6TlsClientContextFromOptionsV1(self->parameters,verifier,protocols,(XL6_TlsResumeOwnerV1){0},self->ticketCapacity,false);
 }
 bool xl6TlsClientContextHasResumeV1(void* raw)
 {const XL6_TlsClientContextV1* self=checked(raw);return self&&self->resume.value!=NULL;}
@@ -74,6 +80,10 @@ void* xl6TlsClientContextWithoutResumeV1(void* raw)
 {
     const XL6_TlsClientContextV1* self=checked(raw);XL6_TlsProtocolsV1* protocols=NULL;
     if(!self||!xl6TlsProtocolsCopyV1(self->protocols,&protocols))return NULL;
-    return xl6TlsClientContextFromV1(self->parameters,&self->verifier,protocols);
+    return xl6TlsClientContextFromOptionsV1(self->parameters,&self->verifier,protocols,(XL6_TlsResumeOwnerV1){0},self->ticketCapacity,false);
 }
+int64_t xl6TlsClientContextTicketCapacityV1(void* raw)
+{const XL6_TlsClientContextV1* self=checked(raw);return self?self->ticketCapacity:0;}
+bool xl6TlsClientContextResumeRequiredV1(void* raw)
+{const XL6_TlsClientContextV1* self=checked(raw);return self&&self->resumeRequired;}
 XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6TlsClientContextHandlePolicyV1Get,xl6TlsClientContextDestroyV1)

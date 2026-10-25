@@ -338,3 +338,16 @@ AOT 不依赖 xl/xlc 动态库。
 记录见 `F:/xlang-validation/five-groups-20261025/p6-tls-key-update/next.json`。
 这不能代替票据收发、其他后端的执行验收或 shipping DLL/VFS 联合验收；
 没有公网、外部 DNS、扫描、畸形密码或安全专项测试。
+
+### Session 票据与传输创建配置
+
+`TlsTicketResult` 及内存 Session 的票据签发、非阻塞弹出和计数接入见
+[TLS 恢复票据](TLS恢复票据.md#会话票据拥有式结果与客户端缓存配置)。
+结果使用通用 `CLASS_RESULT_V1 + VALUE_SLOT_V1` 精确合同，先完成语言
+结果分配再进行破坏式弹出，没有 Cgen 的票据包装函数或缓存结果。
+
+客户端 Context 的 `withRequiredResume()/withTicketCapacity()` 与只读
+`resumeRequired/ticketCapacity` 为不可变配置；Session、直接 Stream 和
+Dial 的原生创建都传递 `ResumeOnly/ResumeLimit`，不改变各自时间 ABI。
+本批传输层只接入上述创建配置，不能替代 Stream 所属 Worker 上的票据
+签发／弹出／统计、异步拥有结果及其专项验收。

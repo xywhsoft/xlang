@@ -15,6 +15,10 @@ const char* xl6StdlibTlsClientContextSource=
     "    extern \"xl6TlsClientContextWithoutResumeV1\" @pure @nonblocking func withoutResume() as TlsClientContext\n"
     "    extern \"xl6TlsClientContextHasResumeV1\" @pure @nonblocking get hasResume() as bool\n"
     "    extern \"xl6TlsClientContextResumeV1\" @pure @nonblocking get resume() as TlsResume?\n"
+    "    extern \"xl6TlsClientContextWithRequiredResumeV1\" @pure @nonblocking func withRequiredResume(TlsResume resume) as TlsClientContext\n"
+    "    extern \"xl6TlsClientContextWithTicketCapacityV1\" @pure @nonblocking func withTicketCapacity(int capacity) as TlsClientContext\n"
+    "    extern \"xl6TlsClientContextTicketCapacityV1\" @pure @nonblocking get ticketCapacity() as int\n"
+    "    extern \"xl6TlsClientContextResumeRequiredV1\" @pure @nonblocking get resumeRequired() as bool\n"
     "end\n";
 const char* xl6StdlibTlsServerContextSource=
     "class TlsServerContext\n"

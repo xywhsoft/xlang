@@ -8,6 +8,7 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTlsServerReque
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTlsServerChoiceV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTlsResumeV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTlsResumeRequestV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTlsTicketResultV1Get(void);
 /* Declaration-only SDK: no native registry .inc is required by this header. */
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainAtomicInt32V1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainAtomicUInt32V1Get(void);

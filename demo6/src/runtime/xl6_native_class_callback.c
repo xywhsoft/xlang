@@ -39,8 +39,13 @@ static bool copyName(xstrview* output,const char* input,size_t size)
 XL6_Closure* xl6NativeClassCallbackCreateV1(XL6_NativeClassCallbackContextV1 context,XL6_Closure* target)
 {
     if(xrtGetError())return NULL;
+    /* NativeClassCallbackPlan seals the unary typed invoke ABI. The optional
+     * call_parameter_count describes keyword/default metadata, not arity:
+     * typed adapters over erased bound methods deliberately have none. The
+     * supplied entry must remain the compiler's checked typed adapter, never
+     * an erased callable entry. Its actual coordinated owner is retained. */
     if(!context.resultIdentity||!validField(context.result)||!target||!target->invoke||
-        target->call_parameter_count!=1||!xl6ClosureOwnershipAdapterV1(xl6ClosureRuntimeV1Get()->Ownership(target))){
+        !xl6ClosureOwnershipAdapterV1(xl6ClosureRuntimeV1Get()->Ownership(target))){
         xrtSetErrorKind(XERR_TYPE);return NULL;
     }
     if(!xl6NativeClassResultContextValidV1(context.argument))return NULL;

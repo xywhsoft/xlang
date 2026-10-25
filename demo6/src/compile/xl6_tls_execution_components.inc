@@ -90,3 +90,8 @@
     {"src/runtime/xl6_tls_resume_lookup.c",D(R(TLS_SERVER_CONTEXT),R(TLS_RESUME_REQUEST),R(TLS_RESUME),R(NATIVE_CLASS_CALLBACK)),{"XRT_MODULE_TLS_SERVER_RESUME"}},
     {"src/runtime/xl6_ownership_domain_tls_resume_request.c",D(R(OWNERSHIP_CATALOG),R(TLS_RESUME_REQUEST)),{NULL}},
     {"src/runtime/xl6_tls_client_context_resume.c",D(R(TLS_CLIENT_CONTEXT),R(TLS_RESUME)),{"XRT_MODULE_TLS_CLIENT_RESUME"}},
+    {"src/runtime/xl6_tls_ticket_result.c",D(R(TLS_VALUE),R(TLS_RESUME),R(NATIVE_HANDLE)),{NULL}},
+    {"src/runtime/xl6_tls_ticket_result_prepare.c",D(R(TLS_TICKET_RESULT),R(NATIVE_CLASS_RESULT)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_tls_ticket_result.c",D(R(OWNERSHIP_CATALOG),R(TLS_TICKET_RESULT)),{NULL}},
+    {"src/runtime/xl6_tls_session_ticket_client.c",D(R(TLS_SESSION_CORE),R(TLS_TICKET_RESULT_PREPARE)),{"XRT_MODULE_TLS_CLIENT_RESUME"}},
+    {"src/runtime/xl6_tls_session_ticket_server.c",D(R(TLS_SESSION_CORE),R(TLS_TICKET_RESULT_PREPARE)),{"XRT_MODULE_TLS_SERVER_RESUME"}},
