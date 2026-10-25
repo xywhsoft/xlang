@@ -6,13 +6,13 @@ $work = [IO.Path]::GetFullPath($Directory)
 if (Test-Path -LiteralPath $work) { throw 'Choose a fresh verification directory' }
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $records = [Collections.Generic.List[object]]::new()
-function Run([string]$name, [string]$program, [string[]]$arguments) {
+function Run([string]$name, [string]$program, [string[]]$arguments, [int]$expectedExitCode = 0) {
     $previous = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
     try { $output = & $program @arguments 2>&1; $code = $LASTEXITCODE }
     finally { $ErrorActionPreference = $previous }
     [IO.File]::WriteAllText((Join-Path $work ($name + '.log')), ($output -join "`n"))
-    $records.Add([pscustomobject]@{ Name=$name; ExitCode=$code })
-    if ($code -ne 0) { throw "${name}: exit $code`n$($output -join "`n")" }
+    $records.Add([pscustomobject]@{ Name=$name; ExitCode=$code; ExpectedExitCode=$expectedExitCode })
+    if ($code -ne $expectedExitCode) { throw "${name}: exit $code, expected $expectedExitCode`n$($output -join "`n")" }
     Write-Host "[foreign bridges] ${name}: PASS"
 }
 $previousPackages = $env:XLANG_PACKAGE_PATH
@@ -34,6 +34,16 @@ try {
         'src/runtime/xl6_ownership_plan.c',
         $implementation,'-lWs2_32','-lAdvapi32','-lIphlpapi','-lm','-o',$hostExe)
     Run 'host_faults' $hostExe @()
+    $contextHost = Join-Path $work 'context_host.exe'
+    Run 'context_host_compile' $gcc @('-std=c11','-O2','-Wall','-Wextra','-Werror',
+        '-ffunction-sections','-fdata-sections','-Wl,--gc-sections','-I.','-Irelease',
+        'test/cases/xlir_foreign_resource_context_host.c','src/runtime/xl6_closure.c',
+        'src/runtime/xl6_cell.c','src/runtime/xl6_code_lease.c',
+        $implementation,'-lWs2_32','-lAdvapi32','-lIphlpapi','-lm','-o',$contextHost)
+    Run 'context_normal' $contextHost @('normal')
+    foreach ($fault in @('error','no-diagnostic','mutation')) {
+        Run ('context_' + $fault) $contextHost @($fault) 77
+    }
     $producer = Join-Path $work 'producer.dll'
     $adapter = Join-Path $work 'adapter.dll'
     foreach ($library in @($producer,$adapter)) {
