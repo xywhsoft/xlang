@@ -1,5 +1,13 @@
 # xml.etree
 
+2026-10-25 当前发布物入口复验：中央 ElementTree 用例从
+`demo6` 根目录运行时，在包代码执行前因共享 TCC VFS 缺少
+`include/xruntime_decl.h` 退出；从 `release` 目录运行通过。
+本轮未重跑三包联合默认门禁及 AOT，下方 2026-10-24 的通过记录
+只证明当时发布物。见
+`../../../dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`；
+不在 ElementTree 包内增加头文件路径兼容层。
+
 2026-10-24 当前发布物复验：Windows 三包联合默认门禁通过严格 C、
 XLang 边界/分配、私有入口负例、DOM/ElementTree 往返与固定双语输出，
 以及三包各自的边界、分配和范例 AOT；Linux 联合门禁通过 C ASan/UBSan、
