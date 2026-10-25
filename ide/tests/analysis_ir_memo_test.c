@@ -65,6 +65,43 @@ static int keyRegions(void)
     low.semanticTargetRegionId=0;CHECK(keys(&high,&low,XLS_IR_KEY_FUNCTION,0));
     return 1;
 }
+static int keySymbols(void)
+{
+    XL6_AstSource sourceA={.path="symbol-key.xl"},sourceB={.path="symbol-key.xl"},foreign={.path="foreign.xl"};
+    XL6_AstRange inner={.known=1,.startOffset=10,.endOffset=12},outer={.known=1,.startOffset=0,.endOffset=100};
+    XL6_AstNode declarationA={.kind=XL6_AST_NAME,.text="value",.source=&sourceA,.range=inner,.semanticSymbolId=21,.semanticDeclaredSymbolId=21};
+    XL6_AstNode declarationB=declarationA;declarationB.source=&sourceB;declarationB.semanticSymbolId=1021;declarationB.semanticDeclaredSymbolId=1021;
+    XL6_AstNode duplicateA=declarationA,duplicateB=declarationB;
+    XL6_AstNode useA={.kind=XL6_AST_NAME,.text="value",.source=&sourceA,.range=inner,.semanticSymbolId=21,.semanticTargetSymbolId=21};
+    XL6_AstNode useB=useA;useB.source=&sourceB;useB.semanticSymbolId=useB.semanticTargetSymbolId=1021;
+    XL6_AstNode nameA={.kind=XL6_AST_NAME,.text="function",.source=&sourceA,.range=inner,.semanticSymbolId=8,.semanticDeclaredSymbolId=8},nameB=nameA;
+    nameB.source=&sourceB;
+    XL6_AstNode *childrenA[]={&nameA,&declarationA,&duplicateA,&useA},*childrenB[]={&nameB,&declarationB,&duplicateB,&useB};
+    XL6_AstNode a={.kind=XL6_AST_FUNC,.source=&sourceA,.range=outer,.semanticSymbolId=7,.semanticDeclaredSymbolId=7,.semanticRegionId=1,.children=childrenA,.childCount=4},b=a;
+    b.source=&sourceB;b.children=childrenB;
+    CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,1));CHECK(keys(&a,&b,XLS_IR_KEY_EXACT,0));
+    xls_lexical_symbols symbols={0};CHECK(xlsLexicalSymbolsBuild(&symbols,&b,XLS_LEXICAL_SYMBOL_BYTES));
+    int local;CHECK(xlsLexicalSymbolKey(&symbols,1021,&local)==1 && local);
+    CHECK(xlsLexicalSymbolKey(&symbols,7,&local)==7 && !local);
+    CHECK(xlsLexicalSymbolKey(&symbols,8,&local)==8 && !local);
+    XL6_SymbolId id;CHECK(xlsLexicalSymbolResolve(&symbols,1,1,&id) && id==1021);
+    CHECK(xlsLexicalSymbolResolve(&symbols,UINT32_MAX,0,&id) && id==UINT32_MAX);
+    CHECK(!xlsLexicalSymbolResolve(&symbols,0,1,&id) && !xlsLexicalSymbolResolve(&symbols,3,1,&id));
+    CHECK(!xlsLexicalSymbolResolve(&symbols,1,2,&id));xlsLexicalSymbolsClear(&symbols);
+    CHECK(!xlsLexicalSymbolsBuild(&symbols,&b,1) && !symbols.ready && !symbols.order.Capacity && !symbols.sorted.Capacity);
+    useA.semanticTargetSymbolId=1;CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,0));useA.semanticTargetSymbolId=21;
+    useA.semanticCompoundOperatorSymbolId=500;useB.semanticCompoundOperatorSymbolId=501;
+    CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,0));useA.semanticCompoundOperatorSymbolId=useB.semanticCompoundOperatorSymbolId=0;
+    XL6_AstNode typeA={.kind=XL6_AST_TYPE,.text="int",.semanticSymbolId=21},typeB=typeA;typeB.semanticSymbolId=1021;
+    useA.inferredType=&typeA;useB.inferredType=&typeB;CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,0));useA.inferredType=useB.inferredType=NULL;
+    useA.semanticTypeId=80;useB.semanticTypeId=81;CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,0));useA.semanticTypeId=useB.semanticTypeId=0;
+    declarationB.source=&foreign;duplicateB.source=&foreign;CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,0));
+    declarationB.source=duplicateB.source=&sourceB;declarationB.range.known=duplicateB.range.known=0;
+    CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,0));declarationB.range=duplicateB.range=inner;
+    b.semanticSymbolId=b.semanticDeclaredSymbolId=8;CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,0));
+    b.semanticSymbolId=b.semanticDeclaredSymbolId=7;nameB.semanticSymbolId=nameB.semanticDeclaredSymbolId=9;CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,0));
+    return 1;
+}
 static char* body(unsigned edit)
 {
     xstrbuf b;xrtStrBufInit(&b);int okay=xrtStrBufAppend(&b,xrtStrView("\xef\xbb\xbf// 中文😀\r\nfunc identity(int value) as int\r\n return value\r\nend\r\n"));
@@ -91,6 +128,7 @@ static int incremental(const char* path)
     for(unsigned edit=1;edit<=6;++edit){
         char* text=body(edit);CHECK(text);xls_semantic_check* current=checked(path,text);CHECK(current && xlsSemanticCheckInfo(current).accepted);
         xls_ir_memo* next=NULL;CHECK(compare(current,memo,&next,32u*1024u*1024u,100));
+        if(edit==4)CHECK(lastWork.reused==14); /* local numbering moved;types did not */
         if(edit==6)CHECK(lastWork.reused==3); /* same count,different type-prefix values */
         xlsFrontendIrMemoDestroy(memo);memo=next;xlsSemanticCheckDestroy(current);xrtFree(text);
     }
@@ -290,7 +328,31 @@ static int sessionDefault(const char* path)
     }
     xlsCheckSessionDestroy(session);CHECK(xlsSemanticCheckValidate(held));char* actual=dump(xlsSemanticCheckIr(held));CHECK(actual);xrtFree(actual);xlsSemanticCheckDestroy(held);return 1;
 }
+static int symbolRebinding(const char* path)
+{
+    xls_semantic_check* models[4]={0};char* expected[4]={0};xls_ir_memo* base=NULL;
+    const char* tail="func identity(int value) as int\n return value\nend\nfunc unchanged(int value) as int\n int local=value\n if local>0 then\n int value=local+1\n local=value\n end\n return identity(local)\nend\nfunc forward(int value) as int\n return later(value)\nend\nfunc later(int value) as int\n return value\nend\n";
+    for(unsigned i=0;i<4;++i){
+        xstrbuf body={0};CHECK(xrtStrBufAppend(&body,xrtStrView("\xef\xbb\xbf// 中文😀\r\nfunc lead(int value) as int\n")));
+        for(unsigned j=0;j<i;++j)CHECK(xrtStrBufAppendFormat(&body," int local_%u=value+%u\n",j,j));
+        CHECK(xrtStrBufAppend(&body,xrtStrView(" return value\nend\n")) && xrtStrBufAppend(&body,xrtStrView(tail)));
+        models[i]=checked(path,body.Data);CHECK(models[i] && xlsSemanticCheckInfo(models[i]).accepted);xrtStrBufFree(&body);
+        expected[i]=dump(xlsSemanticCheckIr(models[i]));CHECK(expected[i]);
+    }
+    CHECK(compare(models[0],NULL,&base,32u*1024u*1024u,0));
+    reader readers[4];xthread* threads[4];
+    for(unsigned i=0;i<4;++i){readers[i]=(reader){xlsSemanticCheckAst(models[i]),base,expected[i],0};threads[i]=xrtThreadCreate(readThread,&readers[i],0);CHECK(threads[i]);}
+    for(unsigned i=0;i<4;++i){CHECK(xrtThreadWait(threads[i])==XWAIT_OK && readers[i].passed);xrtThreadDestroy(threads[i]);}
+    const unsigned versions[]={1,3,2,0,3,0};
+    for(size_t i=0;i<sizeof(versions)/sizeof(*versions);++i){
+        xls_ir_memo* next=NULL;CHECK(compare(models[versions[i]],base,&next,32u*1024u*1024u,1));
+        CHECK(lastWork.reused>=2);xlsFrontendIrMemoDestroy(base);base=next;
+    }
+    xlsFrontendIrMemoDestroy(base);
+    for(unsigned i=0;i<4;++i){CHECK(xlsSemanticCheckValidate(models[i]));char* actual=dump(xlsSemanticCheckIr(models[i]));CHECK(actual && !strcmp(actual,expected[i]));xrtFree(actual);xrtFree(expected[i]);xlsSemanticCheckDestroy(models[i]);}
+    return 1;
+}
 static int run(void)
-{char* path=xrtPathAbs("ir-memo-中文.xl");CHECK(path);CHECK(keyRegions() && incremental(path) && corpus(path) && bindings(path) && regionCorpus(path) && lifetime(path) && ownerLifetime(path) && sessionDefault(path));xrtFree(path);return 1;}
+{char* path=xrtPathAbs("ir-memo-中文.xl");CHECK(path);CHECK(keyRegions() && keySymbols() && incremental(path) && corpus(path) && bindings(path) && regionCorpus(path) && lifetime(path) && ownerLifetime(path) && sessionDefault(path) && symbolRebinding(path));xrtFree(path);return 1;}
 int main(void)
 {xrtAtomic32Init(&checks,0);if(!run())return 1;printf("analysis_ir_memo_test passed: %u checks;fresh complete XLIR parity,changed bodies,node/child rebasing,Unicode spans,type/binding fences,budget fallback,cancellation,held fragments and4threads.\n",xrtAtomic32Load(&checks,XMEMORY_RELAXED));return 0;}

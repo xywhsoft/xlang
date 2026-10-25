@@ -226,6 +226,7 @@ typedef struct xls_ir_path_slot {const char* path;size_t id;} xls_ir_path_slot;
 typedef struct xls_ir_key_paths {
     xmap paths;size_t next,recent,visited;xls_ir_path_slot slots[4];
     xls_ir_key_mode mode;uint32_t regionBase;
+    const xls_lexical_symbols* symbols;
 } xls_ir_key_paths;
 static int xlsIrKeyPath(xls_ir_key_paths* paths,const char* path,size_t* id,size_t* bytes,int* added)
 {
@@ -261,6 +262,14 @@ static int xlsIrKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int le
     fields[XLS_SEM_KEY_FIELDS]=textBytes;fields[XLS_SEM_KEY_FIELDS+1]=docBytes;
     fields[XLS_SEM_KEY_FIELDS+2]=id;fields[XLS_SEM_KEY_FIELDS+3]=pathBytes;
     uint64_t envelope=UINT64_C(1)<<63;
+    if(lexical && paths->mode==XLS_IR_KEY_FUNCTION){
+        /* Explicit declaration slots and absolute IDs are separate domains.
+         * Fact-type subtrees keep their complete original symbol identity. */
+        for(size_t i=7;i<=10;++i){
+            int local=0;fields[i]=xlsLexicalSymbolKey(paths->symbols,(XL6_SymbolId)fields[i],&local);
+            if(local)envelope|=UINT64_C(1)<<(40+i-7);
+        }
+    }
     if(node->text)envelope|=UINT64_C(1)<<32;
     if(node->doc)envelope|=UINT64_C(1)<<33;
     if(node->literalData)envelope|=UINT64_C(1)<<34;
@@ -282,13 +291,24 @@ static int xlsIrKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int le
     }
     return 1;
 }
-int xlsFrontendIrAstKey(xstrbuf* key,const XL6_AstNode* node,xls_ir_key_mode mode)
+static int xlsIrAstKey(xstrbuf* key,const XL6_AstNode* node,xls_ir_key_mode mode,const xls_lexical_symbols* symbols)
 {
     if(!key || mode<XLS_IR_KEY_EXACT || mode>XLS_IR_KEY_ENVIRONMENT || xlsFrontendCancelObserved())return 0;
     if(mode==XLS_IR_KEY_FUNCTION && (!xlsSemFunction(node) || !node->semanticRegionId))return 0;
-    xls_ir_key_paths paths={.mode=mode,.regionBase=mode==XLS_IR_KEY_FUNCTION ? node->semanticRegionId : 0};
+    xls_ir_key_paths paths={.mode=mode,.regionBase=mode==XLS_IR_KEY_FUNCTION ? node->semanticRegionId : 0,.symbols=symbols};
     if(!xrtMapInit(&paths.paths,sizeof(size_t)))return 0;
     int okay=xlsSemKeyNumber(key,mode) && xlsIrKeyNode(key,node,0,1,&paths);xrtMapUnit(&paths.paths);return okay;
+}
+int xlsFrontendIrAstKeySymbols(xstrbuf* key,const XL6_AstNode* node,const xls_lexical_symbols* symbols)
+{
+    return symbols && symbols->ready && symbols->root==node && xlsIrAstKey(key,node,XLS_IR_KEY_FUNCTION,symbols);
+}
+int xlsFrontendIrAstKey(xstrbuf* key,const XL6_AstNode* node,xls_ir_key_mode mode)
+{
+    if(mode!=XLS_IR_KEY_FUNCTION)return xlsIrAstKey(key,node,mode,NULL);
+    xls_lexical_symbols symbols={0};
+    int okay=xlsLexicalSymbolsBuild(&symbols,node,XLS_LEXICAL_SYMBOL_BYTES) && xlsFrontendIrAstKeySymbols(key,node,&symbols);
+    xlsLexicalSymbolsClear(&symbols);return okay;
 }
 static int xlsSemEqualKey(const xstrbuf* a,const xstrbuf* b)
 { return a->Size==b->Size && (!a->Size || !memcmp(a->Data,b->Data,a->Size)); }

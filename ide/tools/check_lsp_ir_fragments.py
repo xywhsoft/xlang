@@ -15,6 +15,7 @@ def source(edit=0):
         value='99999' if i==3 and edit==1 else str(i)
         body+=f'func helper_{i}(int value) as int\r\n int local = value + {value}\r\n if local > 0 then\r\n'
         if i==3 and edit==2:body+=' if local > 2\r\n local = local + 5\r\n end\r\n'
+        if i==3 and edit==3:body+=' int inserted = 3\r\n local = local + inserted\r\n'
         body+=' local = identity(local)+1\r\n'*12+' end\r\n return local\r\nend\r\n'
     body+='func choose(int left,string right) as int\r\n return left\r\nend\r\nfunc main(...) as int\r\n int doneLocal=choose(7,"hello")\r\n return doneLocal\r\nend\r\n'
     return body
@@ -48,7 +49,7 @@ def main():
             else:assert value['activeParameter']==1 and value['signatures'][value['activeSignature']]['label']=='choose(int left, string right) as int'
         cases.append(dict(method=method,target=index,version=version,analysis=analysis));return analysis
     try:
-        c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1);init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.61';c.send('initialized',{})
+        c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1);init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.62';c.send('initialized',{})
         original=source()
         for p in paths:c.open(p,original,1)
         a=call(0,original,1);cold=a['irFragments'];assert cold['captured']>0 and not cold['reused'] and not cold['textNodes']
@@ -68,8 +69,12 @@ def main():
         broken=regions.replace('int local = value + 3','int local = "wrong"',1);assert broken!=regions;c.change(paths[0],broken,6);call(0,broken,6,False)
         c.change(paths[0],literal,7);recovered=call(0,literal,7);assert recovered['irFragments']['captured']>0
         c.change(paths[0],original,8);restored=call(0,original,8);assert restored['irFragments']['reused']>0
+        local=source(3);c.change(paths[0],local,9);inserted=call(0,local,9)
+        assert inserted['irFragments']['reused']>=6 and inserted['irFragments']['textNodes']>0,inserted
+        c.change(paths[0],original,10);removed=call(0,original,10)
+        assert removed['irFragments']['reused']>=6 and removed['irFragments']['textNodes']>0,removed
         for method in ['textDocument/completion','textDocument/signatureHelp']:
-            call(0,original,8,method=method);call(0,original,8,method=method)
+            call(0,original,10,method=method);call(0,original,10,method=method)
         c.send('textDocument/didClose',dict(textDocument=dict(uri=paths[0].as_uri())))
         current=call(1,original,1);assert current['irFragments']['bytes']>0
         assert all(sha(p)==h for p,h in protected.items());report['status']='passed'
