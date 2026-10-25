@@ -70,12 +70,23 @@ try {
             $null = Run 'XLang boundaries build' $xl @('build',
                 'extlibs/css/test/boundaries.xl', '-o', $target)
             $null = Run 'XLang boundaries AOT' $target @()
+            $allocationsAot = Join-Path $work 'css_allocations.exe'
+            $null = Run 'XLang allocations build' $xl @('build',
+                'extlibs/css/test/allocations.xl', '-o', $allocationsAot)
+            $null = Run 'XLang allocations AOT' $allocationsAot @()
             $exampleAot = Join-Path $work 'css_xl_example.exe'
             $null = Run 'XLang example build' $xl @('build',
                 'examples/extlibs/css.xl', '-o', $exampleAot)
             $aotOutput = Run 'XLang example AOT' $exampleAot @()
             if ($aotOutput -cne $cOutput) {
                 throw 'XLang AOT CSS example differs from C'
+            }
+            $cExampleAot = Join-Path $work 'css_c_example.exe'
+            $null = Run 'C example build' $xl @('build',
+                'examples/extlibs/css_c.c', '-o', $cExampleAot)
+            $cAotOutput = Run 'C example AOT' $cExampleAot @()
+            if ($cAotOutput -cne $cOutput) {
+                throw 'C AOT CSS example differs from GCC'
             }
         }
     } finally {
