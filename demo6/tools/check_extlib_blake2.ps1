@@ -146,6 +146,17 @@ try {
         (!$SkipAot -and $cAot -cne $expectedOutput) -or $helperOutput -cne $expectedOutput) {
         throw 'C/xlang examples differ from the common golden output'
     }
+    # 导出类的私有句柄构造器不能被包外代码调用；只编译，不执行。
+    $privateCase = 'release/extlibs/blake2/test/private_adopt_constructor_negative.xl'
+    $privateResult = Invoke-ExtlibSmokeProcess $xl @('check',$privateCase) $Root 30
+    $privateRejected = $privateResult.status -eq 'fail' -and
+        ($privateResult.stdout + $privateResult.stderr) -match 'access|private'
+    $checks.Add([ordered]@{name='private-adopt-constructor';status=$(if ($privateRejected) { 'pass' } else { 'fail' });
+        exitCode=$privateResult.exitCode;stdout=$privateResult.stdout;stderr=$privateResult.stderr})
+    if (!$privateRejected) {
+        throw 'private native-handle constructor is callable outside blake2; see dev/extlib_blockers/blake2_private_adopt_constructor.md'
+    }
+    Write-Host '[blake2] private-adopt-constructor: PASS'
     foreach ($path in $hashes.Keys) {
         if ((Get-FileHash -LiteralPath (Join-Path $Root $path)).Hash -ne $hashes[$path]) { throw "Input changed: $path" }
     }

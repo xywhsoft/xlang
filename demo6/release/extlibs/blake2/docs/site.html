@@ -105,6 +105,7 @@ println(blake2.blake2bKeyedHex("你好 xlang", "密钥", 16))</code></pre>
     <p>2026-10-18：BLAKE2b/s 文件哈希的 Reader 关闭失败红绿负例、Windows 严格 C/JIT 与 Linux ASan/UBSan/XLang 双语联合门禁通过。当前完整 AOT 构建缺主线 <code>xl6NativeHandleTraceLeaf</code>，不签收发布级。</p>
     <p>2026-10-20：C 单文件范例的直接运行和生成可执行文件均通过固定输出；Windows 门禁可加 <code>-SkipAot</code> 独立检查 C/JIT，Linux ASan/UBSan 与 XLang 双语对照同次通过。完整 XLang AOT 和私有接管构造器访问边界仍待主线修复。</p>
     <p>同日 b/s keyed 类的公开构造改为 bytes 真实长度校验；两条伪造指针/长度负例现被 create 重载拒绝，C 与 XLang 正例、Windows 严格 C/JIT、Linux ASan/UBSan/双语门禁通过。私有 point 接管与完整 AOT 继续阻断发布签收。</p>
+    <p>2026-10-26 当前发布物的正例复验：Windows C/语言 JIT/AOT、216 条已知答案、分配故障、生成 ABI 与双语范例通过；Linux C ASan/UBSan、六条独立 EXE AOT 和输出对照通过，旧 AOT 缺符号不再复现。但包外仍能通过 <code>xl check</code> 调用四类哈希器的 <code>private extern create(point)</code>。默认包门禁现纳入只编译访问控制负例；该主线缺陷修复前，BLAKE2 不签收整包发布级，绝不执行危险负例。</p>
     <p>2026-10-21：完整教学范例的文件哈希改用独占临时目录并在 finally 清理；完整 XLang JIT 范例通过。Windows 门禁每次隔离本次工作目录，Linux 使用 mktemp；Windows -SkipAot 与 Linux C ASan/UBSan、XLang、双语对照通过。默认 Windows AOT 仍缺 xl6NativeHandleTraceLeaf，包外私有句柄构造器仍被 xl check 错误放行，不签收发布级。</p>
   </section>
 </main>

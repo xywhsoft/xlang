@@ -123,9 +123,16 @@ string digest = blake2.blake2bFileHex("data.bin", onProgress =
   逐字匹配 `release/examples/extlibs/blake2_basic.expected.txt`。
 - C 对照范例的哈希、clone/reset 与 HEX 编码不依赖 `assert` 副作用；Windows/Linux
   包门禁以 `-DNDEBUG` 构建并实际执行，再与同一黄金输出对照。
-- Windows 门禁：`tools/check_extlib_blake2.ps1`；当前共享 AOT 阻断期间可加 `-SkipAot` 单独复验 C/JIT。
-- Linux 联合门禁：`tools/check_extlib_blake2.sh`，同次运行 C ASan/UBSan、三组中央 XLang JIT 用例、一组包内向量用例及 C/XLang 范例逐字节对照。`bash tools/check_extlib_linux_xl.sh blake2` 仍可单独复跑中央语言用例；两者都不替代 AOT 门禁。
+- Windows 门禁：`tools/check_extlib_blake2.ps1`；`-SkipAot` 仅供聚焦快测，仍检查私有接管构造器，不能用于发布签收。
+- Linux 联合门禁：`tools/check_extlib_blake2.sh`，同次运行 C ASan/UBSan、三组中央 XLang 用例、包内向量及双语范例的 JIT/AOT，并检查私有接管构造器。`bash tools/check_extlib_linux_xl.sh blake2` 可单独复跑中央语言用例，但不替代包级门禁。
 - 包内 `test/vectors.xl` 已登记到 `coverage.tests`，独立检查 BLAKE2b/BLAKE2s 的默认及 keyed 可变长度已知答案。
+
+2026-10-26 当前发布版的正例复验：Windows 严格 C、216 条已知答案、
+分配故障、生成 ABI、三组中央用例及双语范例 JIT/AOT 均通过；Linux
+C ASan/UBSan、六条独立 EXE AOT 和双语输出对照也通过。旧 AOT
+缺符号已不复现。但包外 `private extern create(point)` 在两平台
+`xl check` 仍返回 `ok`；默认门禁现纳入这条只编译负例，并须在
+访问控制修复后才允许整包发布签收。绝不执行该危险负例。
 
 2026-09-27 Windows 固定输入门禁通过 36 项检查，包括 38 个实际生成的原生原型、
 C/xlang JIT/AOT/GCC、教学范例、共同黄金输出、216 条 Python hashlib 已知答案、
