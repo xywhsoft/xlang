@@ -1644,3 +1644,22 @@ XRT 引用计数、map 和数组管理数据。图显式保留 context 和 ID st
 0.65／0.66 正常 core archive 在 96／512 helper、七轮 overlay／identity／声明增删及保留原版本上完成 32 轮完整 AST、native index 全字段／canonical／范围、报告和 IR 对照。大档 97,836–97,846 条事实逐一比较；0.66 另验证真实导入边、完整项目 context、当前 source-to-module 绑定及 fresh 未启用图。两版实际改动都检查 2 个函数、复用 513 个函数。原 semantic／IR／parser／index collector／source loader 生成正文与 0.65 相同；imports 去除一条 include 和两条 observer 调用后逐字相同。
 
 证据 build/lsp-next-20261022/m7a2b33a-result.json，外部 m7a2b33a-ade11ce1／component-v1。外部 C/compiler XRT、未来 opaque xlc.dll，无 DAP／运行态补全。发布 5,241 文件保持；继续模块 typed model／稳定全局实体、剩余适用 LSP／静态分析／IDE、模型总预算、100k／并行／soak／最终发行。整体 goal active，完整性能与功能目标尚未验收。
+
+
+## M7a2b34a：跨检查的声明身份与当前原生绑定（0.67）
+
+0.67 增加 compiler XRT 持续声明注册表及 checked typed index 的不可变稀疏映射。完整项目／配置 context、同一模块 store 的精确逻辑模块 ID、词法所有者，以及可验证的声明头／树和 canonical type 构成二进制完整键；context 和键都以完整内容判等，哈希仅定位候选。当前引用通过编译器实际 SymbolId／TypeId 翻译，不按拼写重新绑定。原编译器 ID、解析／预声明／检查／IR、原输入证明和发布门均保持。
+
+外部身份仅描述同一 context／module／声明键下的声明句柄，不代表语义事实版本，不证明函数体、推导类型、依赖或当前输入未变。函数声明头复用已有增量语法器的 functionHeader 证明，私有导出改名后正文逐字相同。已验证的全局／成员、重载、泛型声明及函数头参数可以映射；函数体局部变量、生成／内建／不支持声明和不唯一绑定保留 0。一个 native ID 对应不同键，或多个 native ID 对应同一键时，对称拒绝所有歧义。签名变化可能获得新身份；恢复原键可复用旧身份。修改空白等声明键内容也可能分配新身份，不承诺任意重构保持 ID。
+
+XRT mutex、侵入式 AVL、原子引用、map 和 array 管理数据；context 完整比较及分配在注册表锁外，锁内仅复查与准入。模块 store 惰性拥有注册表，view 保留注册表和源模块图；没有从 store 回指 view／图的环。显式保留的 view 可脱离 AST、工作者和调用方 store 生存；其 native ID 只属于生成它的检查，查询无分配／I/O，保留快照不赋予新鲜度。检查索引目前拥有 view，补全／签名投影尚未建立对应 view；没有新增标准 LSP capability，analysisStats.entityStore 只提供诊断统计。
+
+默认注册表 1,024 context、262,144 身份、单键 64 KiB、已知数据 64 MiB；单 context 哈希桶最多比较 64 个候选，超限保守拒绝。当前 view 最多 65,536 symbol／type 绑定、已知数组 16 MiB，使用稀疏表而非为每条近十万 AST fact 附加大记录。与原语法 store 的 64 MiB、图的 8 MiB 分开计费；XRT 容器／分配器元数据、暂存转换和整个模型 RSS 另计，尚未形成全模型总预算。资源、额度或取消可放弃可选 view，不能改变语言诊断。身份准入在 store 生命周期内单调增长，取消后已准入身份可保留。
+
+最终 component-v1 完整构建 146 对象／65 原生夹具／66 PE／67 outputs／71 AST17 消费者／58 core members；342 实际依赖、冻结 1,100 输入。40 注册表检查覆盖强制 context 哈希碰撞（独立诊断编译副本）、完整含 NUL 键、上下文／模块隔离、小额度和四并发调用者；15,734 绑定检查覆盖三个 CHECK 工作者、真实 SymbolId 移动、导入次序／SourceId 变化、重载实际调用、类／泛型／方法／类类型参数、签名 int→string 后调用重载切换及恢复、局部遮蔽、配置隔离和脱离原所有者后的四读者。原索引存储 12,650 检查保留 26 独立分配失败恢复门并增加对称歧义证明。
+
+用最终正常 archive 另执行 15,860 检查，插入类型使实际 Local TypeId 66→67，而外部身份 12 保持；标准未配置单文件客户端的四个未保存版本始终一个 context／六个声明身份。38 协议套件 992 场景、18 实际 IDE／旧 0.4 回退和启动通过；106 GUI 对象按实际 .d 及 10 个 token 等价证明复用，35 程序保持。全部最终产品源和夹具来自同一冻结 v1；没有全量构建后改写产品 core。
+
+0.66／0.67 正常 archive 在 96／512 helper、七轮 overlay／identity／局部声明编辑及保留原版本上完成 32 轮独立完整 AST、native index 全字段／canonical／范围、报告和 IR 对照。大档 97,836–97,846 facts 逐一比较，实际改动两版均 check 2／reuse 513；0.67 还验证 current entity view、注册表在局部声明修改期间准入数量不增长。原 semantic／IR／parser／index collector／source loader／imports／package 生成正文保持。原型的夹具语法／链接问题和两处实际映射缺口均保留证据，后者分别以对称歧义证明、复用原函数头证明修复并在最终完整 producer 复验。
+
+证据 build/lsp-next-20261022/m7a2b34a-result.json；外部 m7a2b34a-b203b4d7／component-v1。发布 5,241 文件保持。继续外部 C/compiler XRT，未来 opaque xlc.dll，无 DAP／运行态补全。下一步把声明句柄与可证明的语义事实版本、依赖绑定和持久模块 typed state 接到真实消费者；补全／签名身份、完整包分组／未导入工程成员和全工程能力仍未完成。剩余适用 LSP、静态检查／恢复、IDE、全模型及暂存预算、100k／并行／soak／最终发行继续；整体 goal active，完整功能与性能目标尚未验收。
