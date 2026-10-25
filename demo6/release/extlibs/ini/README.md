@@ -1,18 +1,20 @@
 # ini
 
-2026-10-25 所有权复核：`Config.get` 和 `Config.stringify` 返回
+2026-10-26 发布版复核：`Config.get` 和 `Config.stringify` 返回
 普通 `string`，`takeCstr` 直接移交各自的 XRT 文本分配。先前
 `cstring` 转成 `string` 时反而复制，现已修正；`getOr` 仍返回
 带默认值的 `string`。Windows 包门禁核对生成 C 的直接移交、
 C/XLang 范例及三份 AOT。节名/键名装入 `array<string>` 时，
 共享容器 lowering 仍创建字符串值副本；包内不另造私有绕行。
-Linux C ASan/UBSan、XLang JIT 与双语门禁已通过；Windows 完整包门禁
-（严格 GCC、C/Python 互通、XLang JIT/cgen、三组 AOT）已通过。
-独立 Linux AOT 待新发布版复验。
+Linux C ASan/UBSan、独立 C/Python `configparser` 双向互通、XLang JIT、
+浮点核心/边界/公开范例三份独立 EXE 及 C/XLang 范例逐字节对照均通过；
+Windows 完整包门禁（严格 GCC、C/Python 互通、XLang JIT/cgen、
+三组 AOT）此前已通过。
 2026-10-25 在 WSL Ubuntu 运行 `test/check.sh`：C ASan/UBSan
 主测试、独立 Python `configparser` 双向互通、Linux `xl` 边界与
 C/XLang 范例输出对照均通过。使用的是现有 Linux `release/xl`，
-不是新构建的 Linux 发布物；独立 Linux AOT 仍未验收。
+不是新构建的 Linux 发布物；当时独立 Linux AOT 尚未验收，
+已由上方 2026-10-26 的发布版门禁补齐。
 上述 Windows 门禁在 `release` 工作目录运行 XLang 阶段；当前发布版从
 `demo6` 根目录直接运行同一文件仍因共享 TCC VFS 头文件查找失败，
 见 `dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。这不是 INI
