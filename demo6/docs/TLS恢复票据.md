@@ -79,3 +79,30 @@ Context、内存 Session、Listener 分别持有真实的回调拥有者，并�
 首次宿主验证漏用现行 `xl6_export_` 导出前缀；首轮保存请求也必须先建立持久状态基线。这两项仅修测试宿主，所有内存/失败断言保留。失败记录和旧控制源码已归档；重用两端各 120 项未变检查，单独重跑宿主的 6 项，最后重新核验全部源码、对象、控制工具、日志和产物哈希。记录为 `F:/xlang-validation/five-groups-20261025/p6-tls-resume-lookup/next.json`。
 
 仅有正常固定有效材料的内存握手和自建字面量 loopback Listener 生命周期，没有公网、外部 DNS、扫描、畸形密码材料专项或安全测试。未修改独立 XRT，未升级时间 ABI；本批不是客户端恢复配置、票据收发、shipping DLL/VFS 或跨组发布联合验收。
+
+## 客户端不可变恢复配置
+
+`TlsClientContext` 新增四个入口：
+
+```xlang
+context.withResume(TlsResume resume) as TlsClientContext
+context.withoutResume() as TlsClientContext
+context.hasResume as bool
+context.resume as TlsResume?
+```
+
+配置独立保留原生凭据引用；调用者释放临时 `TlsResume` 或原 Context，不会改变新快照。`resume` 返回新的拥有引用；未配置时返回 null，保留引用失败仍是 checked 错误，不能伪装成未配置。
+
+`withParameters()` 和 `withProtocols()` 保留凭据，由原生握手检查版本、密码套件、名称与 ALPN 等兼容性。`withoutResume()` 只清除新快照，不修改原对象。显式 `withVerifier()` 是信任重绑定，始终清除新快照的凭据，即使传入同一个 verifier；应用必须在新信任配置上显式重新绑定凭据。此规则避免无意间跨信任配置复用已认证的 PSK。
+
+同一配置用于内存 `TlsSession`、直接 `TlsStream` 和 `TlsStream.dialAsync()`；原生创建过程取得自己的引用，不借用语言 Context 或临时参数。凭据仅是不可变原生叶能力，不引入新的语言对象拥有边、模块回调或最后结果缓存。普通 Context 的创建、清理与 `hasResume` 不强行引入客户端恢复实现；实际 `withResume()` 才选择 `TLS_CLIENT_RESUME`。
+
+`TlsSession.resumed: bool` 通过创建角色的驻留操作表读取，未协商时为 false。此属性反映已选择的恢复状态，不独自证明握手或认证成功；仅在 `ready` 后将其用于连接结果判断。传输对象继续通过实际网络 Worker 上的 `info()/infoAsync()` 获取不可变 `TlsConnectionInfo.resumed` 快照。
+
+原生能力检查也已补齐：未编入 `TLS_CLIENT_RESUME` 时，无论 `ResumeOnly` 是否为 false，只要传入非空 `Resume` 都明确拒绝，不静默忽略。未配置恢复的 verified 客户端行为不变。本项无公开布局或函数签名变化，定点 backport 保留两边时间 ABI；记录见 `lib/xrt/backports/tls_client_resume_capability.json`。
+
+本节不代表新票据的发送/接收 API、传输 KeyUpdate 或跨组发布验收完成；现阶段只完成已有完整凭据的客户端绑定与正常恢复/完整握手路径。
+
+本批 Windows/Linux 各用完整固定源码构建实际编译器（1258/1257 个编译单元）。客户端配置、三条真实连接路径、XLIR 精确合同与拒绝、严格 GCC O0/O2、JIT/模块/独立 AOT、未使用能力裁剪及 Close 后清理共 142 步通过。分配失败检查共 1256 个有界前缀，覆盖配置创建/克隆/清除/信任重绑与全量拥有目录；内存快照平衡。AOT 不依赖 xl/xlc 动态库，Cgen 无新增实现体。
+
+原生未启用能力的单独前置验收共 242 步、20 次执行，覆盖模块化与 core/runtime/full 三种单头产品、GCC O0/O2 与 TCC。源码、工具、对象、日志及产物哈希在两端分别重新核验。记录为 `F:/xlang-validation/five-groups-20261025/p6-tls-client-resume/next.json`。只有正常有效材料的内存握手和自建字面量回环通信；无外部 DNS、公网、安全专项或畸形密码测试。这仍不是 shipping DLL/VFS 或发布联合验收。

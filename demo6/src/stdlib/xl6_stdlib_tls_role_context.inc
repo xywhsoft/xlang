@@ -11,6 +11,10 @@ const char* xl6StdlibTlsClientContextSource=
     "    extern \"xl6TlsClientContextProtocolCountV1\" @pure @nonblocking get protocolCount() as int\n"
     "    extern \"xl6TlsClientContextProtocolAtV1\" @pure @nonblocking func protocolAt(int index) as bytes\n"
     "    extern \"xl6TlsClientContextWithProtocolsV1\" @pure @nonblocking func withProtocols(array<bytes> protocols) as TlsClientContext\n"
+    "    extern \"xl6TlsClientContextWithResumeV1\" @pure @nonblocking func withResume(TlsResume resume) as TlsClientContext\n"
+    "    extern \"xl6TlsClientContextWithoutResumeV1\" @pure @nonblocking func withoutResume() as TlsClientContext\n"
+    "    extern \"xl6TlsClientContextHasResumeV1\" @pure @nonblocking get hasResume() as bool\n"
+    "    extern \"xl6TlsClientContextResumeV1\" @pure @nonblocking get resume() as TlsResume?\n"
     "end\n";
 const char* xl6StdlibTlsServerContextSource=
     "class TlsServerContext\n"

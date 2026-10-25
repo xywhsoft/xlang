@@ -13,6 +13,14 @@ QUERY(uint64_t,PendingInput,(uint64_t)xrtTlsSessionFeedSize(self->native))
 QUERY(uint64_t,PendingCipher,(uint64_t)xrtTlsSessionSendSize(self->native))
 QUERY(uint64_t,PendingPlain,(uint64_t)xrtTlsSessionPlainSize(self->native))
 #undef QUERY
+bool xl6TlsSessionResumedV1(void* raw)
+{
+    XL6_TlsSessionV1* self=raw;XL6_TlsSessionScopeV1 scope={0};bool result=false;
+    if(!xl6TlsSessionEnterInternalV1(self,true,&scope))return false;
+    if(!self->role->resumed)xl6TlsFailV1(XERR_UNSUPPORTED,"TLS session has no certified resumption observer");
+    else result=self->role->resumed(self->native);
+    xl6TlsSessionLeaveInternalV1(&scope);return result;
+}
 static int64_t selection(void* raw,bool cipher)
 {
     XL6_TlsSessionV1* self=raw;XL6_TlsSessionScopeV1 scope={0};

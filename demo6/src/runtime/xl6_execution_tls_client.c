@@ -14,6 +14,7 @@ static xtlsstream* build(xnetengine* engine,XL6_ExecutionResourceV1* data,
     const Client* c=options->client;xtlsclientconfig tls;xrtTlsClientConfigInit(&tls);
     tls.Context=c->context->parameters;tls.Verifier=c->context->verifier.value;
     tls.ServerName=c->serverName;tls.VerifyName=c->verifyName;
+    tls.Resume=c->context->resume.value;
     if(c->context->protocols){tls.Protocols=c->context->protocols->views;tls.ProtocolCount=c->context->protocols->count;}
     /* XRT constructs the static-role Session synchronously: names/ALPN are
      * copied, Context/Verifier are retained by the Session. No borrowed

@@ -261,3 +261,16 @@ Listener 捕获仍等待聚合 Data 引用退役后，在 checked Source 尾部�
 命中/未命中内存握手、Close 后调用及双回调清理。详见
 [TLS 恢复票据](TLS恢复票据.md)。客户端恢复配置、票据收发、传输 KeyUpdate
 和发布级联合验收仍未完成；本批不改变独立 XRT 或时间 ABI。
+
+### 后续接入：客户端不可变恢复配置
+
+`TlsClientContext.withResume()/withoutResume()`、`hasResume` 和 nullable
+`resume` 已接通内存 Session、直接 Stream 与 Dial 的真实原生配置。
+普通参数/ALPN 克隆保留凭据，显式信任重绑定清除新快照凭据；所有引用独立
+拥有。`TlsSession.resumed` 使用角色操作表，传输继续在实际 Worker 上生成
+`TlsConnectionInfo`，不从任意线程借用原生 Session。
+
+未启用客户端恢复模块时，原生 XRT 现在明确拒绝非空 Resume，不静默忽略；
+修复无公开布局/签名或时间 ABI 变化。详见
+[TLS 恢复票据](TLS恢复票据.md) 和定点 backport 记录。
+新票据收发、传输 KeyUpdate 与发布级联合验收仍待完成。

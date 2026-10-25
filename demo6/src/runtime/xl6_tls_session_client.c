@@ -1,7 +1,7 @@
 #include "xl6_tls_session_internal.h"
 #include "xl6_buffer_internal.h"
 static const XL6_TlsSessionRoleOpsV1 clientOperations={
-    xrtTlsClientDrive,xrtTlsClientKeyUpdate,xrtTlsClientCertificateCount,xrtTlsClientCertificate,NULL,NULL
+    xrtTlsClientDrive,xrtTlsClientKeyUpdate,xrtTlsClientCertificateCount,xrtTlsClientCertificate,NULL,NULL,xrtTlsClientResumed
 };
 static bool name(xstrview* text,int64_t size)
 {
@@ -19,6 +19,7 @@ void* xl6TlsSessionClientCreateV1(void* raw,xstrview serverName,int64_t serverSi
     if(!serverName.Size&&!verifyName.Size){xl6TlsFailV1(XERR_ARGUMENT,"TLS client session needs a verification name");return NULL;}
     xtlsclientconfig config;xrtTlsClientConfigInit(&config);config.Context=source->parameters;
     config.Verifier=source->verifier.value;config.ServerName=serverName;config.VerifyName=verifyName;
+    config.Resume=source->resume.value;
     if(source->protocols){config.Protocols=source->protocols->views;config.ProtocolCount=source->protocols->count;}
     return xl6TlsSessionTakeInternalV1(xrtTlsClientCreate(&config,NULL),&clientOperations);
 }

@@ -11,6 +11,7 @@ XL6_TEXT_API void* xl6TlsSessionServerCreateV1(void*);
 XL6_TEXT_API void xl6TlsSessionDestroyV1(void*);
 XL6_TEXT_API void xl6TlsSessionDisposeV1(void*);
 XL6_TEXT_API bool xl6TlsSessionDisposedV1(void*);
+XL6_TEXT_API bool xl6TlsSessionResumedV1(void*);
 XL6_TEXT_API int64_t xl6TlsSessionRoleV1(void*);
 XL6_TEXT_API int64_t xl6TlsSessionStateV1(void*);
 XL6_TEXT_API int64_t xl6TlsSessionVersionV1(void*);

@@ -1994,7 +1994,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
     needsTlsClientContext=needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsClientContext");
     needsTlsServerContext=needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsServerContext");
-    needsTlsResume=needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsResume");
+    needsTlsResume=needsTlsClientContext||needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsResume");
     needsTlsResumeRequest=needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsResumeRequest");
     needsTlsSelector=needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsServerRequest")||xl6StdlibNodeUsesTypeName(root,"TlsServerChoice");
     needsTlsIdentity = needsTlsSelector || xl6StdlibNodeUsesTypeName(root,"TlsIdentity") || xl6StdlibNodeUsesTypeName(root,"TlsIdentityKind");
