@@ -11,9 +11,16 @@ $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', '-Ilib/xrt',
 $links = @('-lWs2_32', '-lAdvapi32', '-lm')
 
 function Run([string]$name, [string]$program, [string[]]$arguments) {
-    $output = & $program @arguments 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "${name}: exit $LASTEXITCODE`n$($output -join "`n")"
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = @(& $program @arguments 2>&1 | ForEach-Object { $_.ToString() })
+        $code = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previous
+    }
+    if ($code -ne 0) {
+        throw "${name}: exit $code`n$($output -join "`n")"
     }
     Write-Host "[shellwords] ${name}: PASS"
     return ($output -join "`n").Replace("`r`n", "`n").TrimEnd("`n")

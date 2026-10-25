@@ -1,5 +1,17 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-26 新发布物复验 `shellwords`：Windows 默认包门禁的严格
+C、`CreateProcessW` 参数往返、C 范例单文件直跑与公开双语范例均
+通过；中央 `test/cases/extlib_shellwords.xl` 在
+`shellwords.join(var words)` 报
+`ValueError: shellwords join requires an array`，后续语言边界与 AOT
+未运行。最小源 `dev/extlib_blockers/shellwords_join_var_array_projection.xl`
+仅构造两个元素的语言数组并调用 `join`，在当前 Windows/Linux
+发布物上均可复现相同错误；C 原生
+范例的数组输入及 `join` 通过。修复应让语言 `var` 数组以完整
+`XVALUE_ARRAY` 投影到外部 `xvalue*`，而非在本包按私有句柄识别。
+修复后重跑最小源与双平台默认门禁，不能只检查 `quote`/`split`。
+
 2026-10-26 新发布物复验 `sitemap`：默认包门禁的 C 边界通过，
 `test/cases/extlib_sitemap.xl` 在构建语言数组时报告
 `ValueError: sitemap entries must be an array`。现有最小源

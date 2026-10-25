@@ -1,0 +1,4 @@
+import shellwords
+
+var words = ["one", "two words"]
+println(shellwords.join(words))

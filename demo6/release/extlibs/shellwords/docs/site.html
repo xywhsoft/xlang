@@ -49,7 +49,7 @@ println(shellwords.quoteWindows("a b\\"))</code></pre>
     <pre><code>xl run release/extlibs/shellwords/examples/basic.c
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/shellwords/test/check.ps1 -SkipAot
 bash release/extlibs/shellwords/test/check.sh</code></pre>
-    <p>C 教学范例可直接用 xl 单文件运行；<code>join</code> 将每个引用结果直接写入最终 XRT 缓冲区，不为每个参数另建临时字符串。2026-10-25 Windows 严格 C、分配故障、实际 <code>CreateProcessW</code> 参数往返及双语公开范例通过；Linux C ASan/UBSan、真实 <code>/bin/sh</code>、中央与包内 XLang 用例及双语对照通过。C 测试逐字节验证 ASCII 1–127 的 <code>split(quote(word))</code> 往返，并固定赋值词 <code>A=B</code>、<code>A+=B</code>、命令位置保留词和尾随冒号的词须整体引用。Windows 当前发布版的中央 <code>join(var words)</code> 仍受共享 foreign <code>var</code> 数组投影问题阻断，后续语言/AOT 尚未签收；不能将 Linux 门禁或 Windows 范例通过外推为 Windows 整包完成。此验证不覆盖 <code>cmd.exe</code> 或 PowerShell 转义。</p>
+    <p>C 教学范例可直接用 xl 单文件运行；<code>join</code> 将每个引用结果直接写入最终 XRT 缓冲区，不为每个参数另建临时字符串。Windows 严格 C、分配故障、实际 <code>CreateProcessW</code> 参数往返及双语公开范例通过；既有 Linux C ASan/UBSan 与真实 <code>/bin/sh</code> 对照也通过。C 测试逐字节验证 ASCII 1–127 的 <code>split(quote(word))</code> 往返。当前 Windows/Linux 发布物的最小 <code>join(var words)</code> 用例均受共享 foreign <code>var</code> 数组投影问题阻断；Windows 默认门禁在中央语言测试停下，后续边界/AOT 尚未签收。不能把 C 路径或既有 Linux 门禁通过外推为整包完成。此验证不覆盖 <code>cmd.exe</code> 或 PowerShell 转义。</p>
   </section>
 </main>
 <script src="../main.js"></script>

@@ -1,5 +1,14 @@
 # shellwords
 
+2026-10-26 当前发布物复验：Windows 默认 `test/check.ps1` 的 C 边界、
+真实 `argv`、C 单文件直跑及公开双语范例通过；中央
+`join(var words)` 仍报 `ValueError: shellwords join requires an array`。
+最小复现在当前 Windows/Linux 发布物均失败；共享修复边界见
+`../../../dev/extlib_blockers/foreign_var_container_projection.md`。
+门禁现按阶段显示该非零退出，整包保持未签收；不在本库中识别
+编译器私有数组句柄。下方 Linux 通过记录属于既有发布物，不能
+替代当前跨平台签收。
+
 2026-10-25：`join` 现在将每个参数的引用结果直接追加到最终 XRT
 缓冲区，不再逐项分配临时 quoted 字符串再复制；独立 `quote` 与
 `join` 共用同一编码核心。Windows 严格 C、逐点分配故障、实际
