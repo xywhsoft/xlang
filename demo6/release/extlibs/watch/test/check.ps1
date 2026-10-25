@@ -132,6 +132,20 @@ try {
         } finally {
             Pop-Location
         }
+        foreach ($entry in @(
+            @{ Name = 'cwd snapshot'; Source = $cwdSource },
+            @{ Name = 'allocations'; Source = $allocationSource }
+        )) {
+            $target = Join-Path $work ('watch_' + $entry.Name.Replace(' ', '_') + '.exe')
+            $null = Run "XLang $($entry.Name) build" $xl @('build',
+                $entry.Source, '-o', $target)
+            Push-Location $case
+            try {
+                $null = Run "XLang $($entry.Name) AOT" $target @()
+            } finally {
+                Pop-Location
+            }
+        }
     }
 
     Push-Location (Join-Path $root 'release')
@@ -141,7 +155,7 @@ try {
             throw "C/XLang watch example outputs differ:`nC:`n$cOutput`nXL:`n$xlOutput"
         }
         Write-Host '[watch] C/XLang parity: PASS'
-        $null = Run 'Public XLang example' $xl @('run', 'examples/extlibs/watch.xl')
+        $publicOutput = Run 'Public XLang example' $xl @('run', 'examples/extlibs/watch.xl')
         if (-not $SkipAot) {
             $exampleAot = Join-Path $work 'watch_xl_example.exe'
             $null = Run 'XLang example build' $xl @('build',
@@ -149,6 +163,25 @@ try {
             $aotOutput = Run 'XLang example AOT' $exampleAot @()
             if ($aotOutput -cne $cOutput) {
                 throw 'XLang AOT watch example differs from C'
+            }
+            $publicAot = Join-Path $work 'watch_public_example.exe'
+            $null = Run 'Public XLang example build' $xl @('build',
+                'examples/extlibs/watch.xl', '-o', $publicAot)
+            $publicAotOutput = Run 'Public XLang example AOT' $publicAot @()
+            if ($publicAotOutput -cne $publicOutput) {
+                throw 'public watch example AOT differs from JIT'
+            }
+            $cExampleAot = Join-Path $work 'watch_c_example.exe'
+            $null = Run 'C example build' $xl @('build',
+                'extlibs/watch/examples/watch_c.c', '-o', $cExampleAot)
+            Push-Location $root
+            try {
+                $cAotOutput = Run 'C example AOT' $cExampleAot @()
+            } finally {
+                Pop-Location
+            }
+            if ($cAotOutput -cne $cOutput) {
+                throw 'C watch example AOT differs from GCC'
             }
         }
     } finally {

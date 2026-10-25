@@ -1,5 +1,13 @@
 # watch
 
+2026-10-26 新发布物复验：Windows 默认 `test/check.ps1` 与 Linux
+`test/check.sh` 均通过。Windows 补齐工作目录快照、分配故障及公开
+XLang 范例 AOT；两平台新增 C 单文件范例 `xl build` 独立 EXE，
+与 GCC、TCC、XLang JIT/AOT 的固定事件输出一致。Linux 保留
+ASan/UBSan 和目录竞态夹具。C 范例 AOT 从 `demo6` 根目录运行，
+以符合其显式相对路径合同。签收范围仍是下述非递归元数据轮询，
+不保证还原两次轮询之间的所有中间变化。
+
 2026-10-25 所有权复核：`Watcher.poll()` 返回普通 `string`，
 `takeCstr` 直接接管 `xwatch_poll` 的独立事件分配。先前改为
 `cstring` 后转成 `string` 反而复制文本，现已修正。`path()` 的

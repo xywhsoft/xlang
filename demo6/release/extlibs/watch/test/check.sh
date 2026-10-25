@@ -55,4 +55,13 @@ timeout 120s ./release/xl build release/extlibs/watch/examples/watch.xl \
     -o "$work/watch_example_xl"
 (cd "$root/release" && timeout 45s "$work/watch_example_xl" > "$work/example_aot.txt")
 diff -u "$work/example.txt" "$work/example_aot.txt"
+timeout 120s ./release/xl build release/examples/extlibs/watch.xl \
+    -o "$work/watch_public_xl"
+(cd "$root/release" && timeout 45s "$work/watch_public_xl" > "$work/public_aot.txt")
+(cd "$root/release" && timeout 45s ./xl run examples/extlibs/watch.xl > "$work/public_jit.txt")
+diff -u "$work/public_jit.txt" "$work/public_aot.txt"
+timeout 120s ./release/xl build release/extlibs/watch/examples/watch_c.c \
+    -o "$work/watch_example_c_aot"
+timeout 45s "$work/watch_example_c_aot" > "$work/example_c_aot.txt"
+diff -u "$work/example.txt" "$work/example_c_aot.txt"
 printf 'watch Linux ASan/UBSan, XLang JIT/AOT and C/XLang parity gate: PASS\n'
