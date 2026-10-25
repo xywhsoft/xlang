@@ -274,3 +274,25 @@ Listener 捕获仍等待聚合 Data 引用退役后，在 checked Source 尾部�
 修复无公开布局/签名或时间 ABI 变化。详见
 [TLS 恢复票据](TLS恢复票据.md) 和定点 backport 记录。
 新票据收发、传输 KeyUpdate 与发布级联合验收仍待完成。
+
+### 后续前置：显式控制记录刷新
+
+XRT 新增 Worker 限定的 `xrtTlsStreamFlush()`，供排队后的票据、KeyUpdate
+等控制记录进入 TCP，不再通过发送空应用数据触发。它复用已有的块链转交、
+发送回调防重入与常规驱动：OK 只表示进入 TCP；AGAIN 保留密文并由正常
+传输事件继续推进，不能重复产生票据/密钥更新。空队列幂等且不分配。
+
+仅定点同步 Stream 公开声明与实现两个段，无新增对象布局、拥有边、回调
+或时间 ABI 变化。公共符号目录为 3899 项、426 个候选根；新符号精确归属
+`XRT_MODULE_TLS_STREAM`，不额外引入其他算法或模块。
+
+两端共 418 步、80 次执行，覆盖真实模块化和原生/core/runtime 单头、
+GCC O0/O2/TCC、四轮完整/恢复连接、票据轮换、双端 KeyUpdate 后数据往返、
+空刷新、错误 Worker/null 调用，以及正常有界队列背压。首轮夹具依赖新版
+内部等待助手，固定快照无该符号；只改为两端一致的公开单调秒计时后，
+完整重跑通过，未改运行库时间实现。失败记录保留。
+
+这是语言控制接口的原生前置验收，不是默认标准库票据/KeyUpdate API、
+shipping DLL/JIT/AOT 或跨组发布验收。无公网、外部 DNS、畸形密码专项或
+安全测试。见 `lib/xrt/backports/tls_stream_flush.json` 和
+`F:/xlang-validation/five-groups-20261025/p6-tls-stream-flush/next.json`。

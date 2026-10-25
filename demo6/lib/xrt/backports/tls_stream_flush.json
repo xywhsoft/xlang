@@ -1,0 +1,39 @@
+{
+  "Schema": 1,
+  "Purpose": "Explicitly publish queued TLS control records without an artificial application write",
+  "CanonicalCommit": "2ab07b1ac831f5e6edf3e44c070cd086cf1d6ef7",
+  "GuardedSections": ["include/xrt/tls_stream.h", "src/tls/stream.c"],
+  "WholeSnapshotUpgrade": false,
+  "PublicStructLayoutsPreserved": true,
+  "ExistingFunctionSignaturesPreserved": true,
+  "FunctionsAdded": ["xrtTlsStreamFlush"],
+  "TimeAbiPreserved": true,
+  "Consumers": {
+    "lib/xrt/xrt.h": {
+      "BeforeSha256": "973f51fbfb07eabce9b98e4631aa15707885f1842381b901e4baa7a74fe8a08f",
+      "AfterSha256": "9d3ae5f92012d8c0f2b48ff58641275161bab76703a823fd2fa63c7378aea849"
+    },
+    "lib/xruntime/xruntime.h": {
+      "BeforeSha256": "ea6081b87ff0a060ce4fff6e493f1998e57647612f23926a829d9a934a0f9ac7",
+      "AfterSha256": "e767f0e468d99b9beb84a9d993d47c82d49f25d77b73cf273088f29d81708cbd"
+    },
+    "release/include/xrt_decl.h": {
+      "BeforeSha256": "2e1f8a7584fafa82b77dfe487610e1041b4fe176fa9ac9657a61ee2a1e61bac2",
+      "AfterSha256": "3f0f13f67a47a298187e7b8db84e2bdfec2431c81b441033f7d0c3bc9baa50e5"
+    },
+    "release/include/xruntime_decl.h": {
+      "BeforeSha256": "6950176f37b11cbb1548781e5b93c1ce42aedca5efcb1907e92aed595b7c2166",
+      "AfterSha256": "b98222a6638a28db21c39f51059eb8e62bea1db7d937f2afc280a0a93c4b5b9d"
+    }
+  },
+  "Stages": 418,
+  "NativeExecutions": 80,
+  "WholeCatalogSymbols": 3899,
+  "CandidateRoots": 426,
+  "OrdinaryLiteralLoopbackOnly": true,
+  "ExternalNetworkTests": false,
+  "NetworkSecurityTests": false,
+  "MalformedCryptoTests": false,
+  "LanguageControlApiAccepted": false,
+  "ShippingAccepted": false
+}
