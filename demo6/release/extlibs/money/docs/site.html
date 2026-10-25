@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / money</p><h1>money</h1>
     <p class="extlib-lead">整数金额运算。</p>
     <p>精确比例、溢出检查、守恒均分与常见货币展示。</p>
+    <p>当前 Windows 发布版的 C 算术、主要 XLang 用例与核心 AOT 已通过；完整门禁在故障恢复测试中遇到外来数组与语言数组内容相同却比较为不等的问题，整包发布验收尚未通过。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
@@ -32,7 +33,7 @@
     <pre><code>import money
 int cents = money.scale(12345, 9, 10)
 println(money.format(cents, "USD"))  // $111.11</code></pre>
-    <p>金额不携带币种；正式财务比例计算优先使用 <code>scale</code>。成对的 C/XLang 订单范例覆盖全部公开入口，<code>rate</code> 只作浮点估算展示。比例允许负分母，按结果符号对绝对值四舍五入。XLang 算术越界抛 <code>RangeError</code>，无效参数抛 <code>ValueError</code>；合法参数的格式化或分摊若内存不足会报内存错误，C/XLang 均有故障及恢复测试。C 成功调用会清除前次失败的线程错误。C 范例可直接用 <code>xl run release/extlibs/money/examples/money.c</code> 运行；Windows 的 <code>test/check.ps1 -SkipAot</code> 验证 C/JIT，默认门禁还构建运行核心与完整范例 AOT。核心 AOT 已通过，带输出范例仍因共享缺符号使默认门禁失败，不能签收发布级。边界、所有权和验证命令见包内 README。</p>
+    <p>金额不携带币种；正式财务比例计算优先使用 <code>scale</code>。成对的 C/XLang 订单范例覆盖全部公开入口，<code>rate</code> 只作浮点估算展示。比例允许负分母，按结果符号对绝对值四舍五入。XLang 算术越界抛 <code>RangeError</code>，无效参数抛 <code>ValueError</code>；合法参数的格式化或分摊若内存不足会报内存错误，C/XLang 均有故障及恢复测试。C 成功调用会清除前次失败的线程错误。C 范例可直接用 <code>xl run release/extlibs/money/examples/money.c</code> 运行；Windows 的 <code>test/check.ps1 -SkipAot</code> 验证 C/JIT，默认门禁还构建运行核心与完整范例 AOT。当前默认门禁停在外来数组比较的语言边界，后续 AOT 阶段尚未签收。边界、所有权和验证命令见包内 README。</p>
   </section>
 </main>
 </body>

@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / json.patch</p><h1>json.patch</h1>
     <p class="extlib-lead">对 JSON 值应用指针、操作补丁与合并补丁。</p>
     <p>操作返回新文档，不修改原输入；支持 JSON Pointer、JSON Patch 与 JSON Merge Patch 的常用路径。</p>
+    <p>当前发布版的 C 边界已通过，但 XLang 字典传给原生 <code>xvalue*</code> 后，<code>has</code> 与 <code>get</code> 不能正确读取已有键。下方 XLang 示例是目标 API，完整语言与 AOT 门禁尚未签收。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
@@ -35,9 +36,9 @@ var changed = json.patch.apply(old,
 assert json.patch.get(changed, "/values/1") == 9</code></pre>
     <p><code>examples/workflow.xl</code> 与 <code>examples/workflow_c.c</code> 对照展示 test、copy、move、replace、add、remove，以及 merge、set、has、get；入门范例另展示 encodePointer。两份工作流都检查原文档不变。</p>
     <p><code>examples/basic_c.c</code> 和 <code>examples/workflow_c.c</code> 可直接使用 <code>xl run release/extlibs/json.patch/examples/basic_c.c</code> 等命令单文件运行，无需手动配置头文件和链接；Windows/Linux 包门禁会与严格 C 编译结果逐字比较。</p>
-    <p>输入应是 JSON 可表示的值；指针最多 32 段、解码后每段最多 255 字节。<code>encodePointer</code> 对超过该长度的键报错，转义后变长但原键未超限的路径仍可使用。复制失败保留 XRT 内存错误，不误报为无效补丁。C/XLang 测试另核对 RFC 6902 的 <code>/~01</code> 转义顺序及向 <code>/-</code> 插入整个数组。Linux 门禁运行 C ASan/UBSan、中央与包内 XLang 边界，并逐字比较入门和完整工作流两组双语范例。Windows 默认门禁在边界后还要执行两组范例 AOT 并与 C 对照；当前边界构建先被共享 <code>xl6ValueDataSnapshotV1</code> 缺符号阻断，新增阶段尚未执行到。C 结果所有权、根 remove 约定与验证命令见包内 README；完整 AOT 不签收。</p>
+    <p>输入应是 JSON 可表示的值；指针最多 32 段、解码后每段最多 255 字节。<code>encodePointer</code> 对超过该长度的键报错，转义后变长但原键未超限的路径仍可使用。复制失败保留 XRT 内存错误，不误报为无效补丁。C/XLang 测试另核对 RFC 6902 的 <code>/~01</code> 转义顺序及向 <code>/-</code> 插入整个数组。Linux 门禁包含 C ASan/UBSan、语言边界及双语范例；Windows 门禁还计划执行两组范例 AOT。当前 Windows 门禁在语言字典投影处退出，后续阶段未执行。C 结果所有权、根 remove 约定与验证命令见包内 README。</p>
     <p>C 的零终止 JSON Pointer 便利入口最多扫描 16,353 字节以判定 16,352 字节上限；超限输入直接报错，不先执行无界 <code>strlen</code>。恰好达到上限的合法路径及超限无终止字节缓冲均有 Windows/Linux 边界测试；C 调用方仍须提供在该范围内可读取的缓冲区。</p>
-    <p>补丁数组中的每一项必须是对象；非对象项统一报告无效补丁，输入文档保持不变。C/XLang 负例覆盖 <code>null</code>、数字、数组和字符串项。完整 AOT 仍受共享运行时缺符号阻断。</p>
+    <p>补丁数组中的每一项必须是对象；非对象项统一报告无效补丁，输入文档保持不变。C/XLang 负例覆盖 <code>null</code>、数字、数组和字符串项。当前发布版的完整 AOT 尚未执行到此阶段。</p>
   </section>
 </main>
 </body>
