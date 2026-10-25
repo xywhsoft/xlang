@@ -61,7 +61,7 @@ def main():
             clients.append(c)
             c.send('initialize', dict(capabilities={}, initializationOptions=options), 1)
             initialized, _ = c.reply(1)
-            assert initialized['result']['serverInfo']['version'] == '0.64', initialized
+            assert initialized['result']['serverInfo']['version'] == '0.65', initialized
             c.send('initialized', {})
             versions, bodies = {}, {}
             def opened(path, text, version=1):
@@ -140,29 +140,29 @@ def main():
             done('same-body-new-version-rebinds-current-envelope', analysis=stats)
             opened(another, '// new visible overlay')
             stats, _ = trio()
-            assert all(v['builds'] == 2 and v['inputScopeHits'] == 6 for v in stats), stats
-            done('open-membership-rebuilds', analysis=stats)
+            assert all(v['builds'] == 1 and v['inputScopeHits'] == 7 for v in stats), stats
+            done('open-unobserved-membership-retains-model', analysis=stats)
             c.send('textDocument/didClose', dict(textDocument=dict(uri=another.as_uri())))
             versions.pop(another); bodies.pop(another)
             stats, _ = trio()
-            assert all(v['builds'] == 3 and v['inputScopeHits'] == 6 for v in stats), stats
-            done('close-membership-rebuilds', analysis=stats)
+            assert all(v['builds'] == 1 and v['inputScopeHits'] == 8 for v in stats), stats
+            done('close-unobserved-membership-retains-model', analysis=stats)
             changed(helper, api.replace('return 7', 'return 8'))
             stats, _ = trio()
-            assert all(v['builds'] == 4 and v['inputScopeHits'] == 6 for v in stats), stats
+            assert all(v['builds'] == 2 and v['inputScopeHits'] == 8 for v in stats), stats
             done('actual-import-body-rebuilds-and-publishes-current-bytes', analysis=stats)
             c.send('textDocument/didClose', dict(textDocument=dict(uri=extra.as_uri())))
             versions.pop(extra); text = bodies.pop(extra)
             opened(extra, text, 1)
             stats, _ = trio()
-            assert all(v['builds'] == 5 and v['inputScopeHits'] == 6 for v in stats), stats
-            done('same-path-new-document-identity-rebuilds', analysis=stats)
+            assert all(v['builds'] == 2 and v['inputScopeHits'] == 9 for v in stats), stats
+            done('unobserved-reopened-identity-retains-model', analysis=stats)
             if configured:
                 epoch = 2
                 context['configuration'] = 'release'
                 call('xlang/configureAnalysis', packet(epoch))
                 stats, _ = trio()
-                assert all(v['builds'] == 6 and v['inputScopeHits'] == 6 for v in stats), stats
+                assert all(v['builds'] == 3 and v['inputScopeHits'] == 9 for v in stats), stats
                 done('configuration-change-rebuilds-and-current-epoch', analysis=stats)
             receipt()
             c.stop()

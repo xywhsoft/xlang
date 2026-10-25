@@ -21,6 +21,7 @@ def derive(frontend: Path, output: Path) -> list[dict]:
         source = raw.decode("utf-8").replace("\r\n", "\n")
         source = '#include "analysis/frontend_context.h"\n' + source
         if original.stem == "xl6_source_overlay":
+            source = '#include "analysis/input_topology.h"\n' + source
             source = '#include "analysis/frontend_entry_cache.h"\n' + source
             source = '#include "analysis/frontend_input_usage.h"\n' + source
             old = 'xl6ParseSourceWithCompletion('
@@ -43,7 +44,11 @@ def derive(frontend: Path, output: Path) -> list[dict]:
                 if source.count(old) != 1:
                     raise ValueError("shared overlay read/failure observation seam changed: " + old)
                 source = source.replace(old, new, 1)
-            seams = 8
+            old = '    index = xl6SourceOverlayIndex(overlay, absolute);\n    xrtFree(absolute);\n    if (index < overlay->count) xlsFrontendInputUsageRead(overlay,index);'
+            if source.count(old) != 1:
+                raise ValueError('original overlay lookup topology seam changed')
+            source = source.replace(old, '    xlsInputTopologyLookup(overlay,absolute);\n' + old, 1)
+            seams = 9
         elif original.stem == "xl6_source_report":
             old = '(char*)xrtEnvGet((str)"XLANG_PACKAGE_PATH")'
             if source.count(old) != 3 or source.count("xrtPathAbs(path)") != 3:
@@ -140,5 +145,5 @@ def derive(frontend: Path, output: Path) -> list[dict]:
         compiled.write_text(source, encoding="utf-8", newline="\n")
         rows.append(dict(source=str(original), sourceSha256=digest,
                          compiledSource=str(compiled), compiledSha256=hashlib.sha256(compiled.read_bytes()).hexdigest(),
-                         auditedSeams=seams, change=("bounded pre-import entry AST reuse and allocation-free observation of original overlay lookups; failed matching makes dependency usage unknown; source reporting,path rules and parser fallback retained" if original.stem == "xl6_source_overlay" else "request-owned directory/package inputs; original resolution/validation rules retained; default calls unchanged")))
+                         auditedSeams=seams, change=("bounded pre-import entry AST reuse,allocation-free usedmask andoptional persistent original hit/miss overlay topology;failed matching disablesproof;source reporting,path rules and parser fallback retained" if original.stem == "xl6_source_overlay" else "request-owned directory/package inputs; original resolution/validation rules retained; default calls unchanged")))
     return rows

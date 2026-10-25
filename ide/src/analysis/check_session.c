@@ -3,6 +3,7 @@
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_entry_cache.h"
 #include "analysis/input_batch.h"
+#include "analysis/input_topology.h"
 #include "analysis/session_state.h"
 #include <xrt.h>
 #include <stdio.h>
@@ -59,6 +60,8 @@ xls_semantic_check* xlsCheckSessionCheckWithHistory(xls_check_session* s,xls_con
     const char* entry=xlsInputBatchEntry(batch);
     uint64_t remapped=0;int ordinary=s->result && s->captureIndex==captureIndex && xlsInputBatchEqual(s->batch,batch);
     int used=s->result && s->captureIndex==captureIndex && s->usageKnown && xlsInputBatchEqualUsed(s->batch,batch,s->usedInputs,NULL,&remapped);
+    if(!used && s->result && s->captureIndex==captureIndex && s->usageKnown)
+        used=xlsInputBatchEqualTopology(s->batch,batch,s->usedInputs,NULL,xlsSemanticCheckTopology(s->result),&remapped);
     int equal=ordinary || used;
     xls_semantic_input inputs[64]; xlsInputBatchInputs(batch,inputs,64);
     if(equal && !xlsSemanticCheckValidate(s->result)) { equal=0; ++s->stats.invalidations; }

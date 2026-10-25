@@ -146,13 +146,13 @@ static int scopedSessions(void)
  xls_text* saved=docs[2].text;docs[2].text=text("// changed bytes at the old revision");CHECK(docs[2].text);results rejected=query(&s,docs,3);
  CHECK(!rejected.check && !rejected.completion && !rejected.signature && counts(&s,1,12));release(&rejected);xlsTextRelease(docs[2].text);docs[2].text=saved;
  CHECK(cancellation(&s,docs,&held));
- /* Overlay identity/membership changes always rebuild. */
- ++docs[2].identity;docs[2].revision=1;results r=query(&s,docs,3);CHECK(r.check!=held.check && r.completion!=held.completion && r.signature!=held.signature && parity(&r,docs,3));CHECK(counts(&s,2,13));release(&r);
+ /* Unobserved identity/membership changes retain the complete model. */
+ ++docs[2].identity;docs[2].revision=1;results r=query(&s,docs,3);CHECK(r.check==held.check && r.completion==held.completion && r.signature==held.signature && parity(&r,docs,3));CHECK(counts(&s,1,14));release(&r);
  const char* bad="export func value() as string\n return \"wrong type\"\nend\n";xlsTextRelease(docs[1].text);docs[1].text=text(bad);++docs[1].revision;CHECK(docs[1].text);
- r=query(&s,docs,3);CHECK(r.check && !xlsSemanticCheckInfo(r.check).accepted && parity(&r,docs,3));CHECK(counts(&s,3,13));release(&r);
- xlsTextRelease(docs[1].text);docs[1].text=text(api);++docs[1].revision;CHECK(docs[1].text);r=query(&s,docs,3);CHECK(r.check && xlsSemanticCheckInfo(r.check).accepted && parity(&r,docs,3));CHECK(counts(&s,4,13));release(&r);
- r=query(&s,docs,4);CHECK(r.check && parity(&r,docs,4));CHECK(counts(&s,5,13));release(&r);
- r=query(&s,docs,3);CHECK(r.check && parity(&r,docs,3));CHECK(counts(&s,6,13));release(&r);
+ r=query(&s,docs,3);CHECK(r.check && !xlsSemanticCheckInfo(r.check).accepted && parity(&r,docs,3));CHECK(counts(&s,2,14));release(&r);
+ xlsTextRelease(docs[1].text);docs[1].text=text(api);++docs[1].revision;CHECK(docs[1].text);r=query(&s,docs,3);CHECK(r.check && xlsSemanticCheckInfo(r.check).accepted && parity(&r,docs,3));CHECK(counts(&s,3,14));release(&r);
+ r=query(&s,docs,4);CHECK(r.check && parity(&r,docs,4));CHECK(counts(&s,3,15));release(&r);
+ r=query(&s,docs,3);CHECK(r.check && parity(&r,docs,3));CHECK(counts(&s,3,16));release(&r);
  xlsCheckSessionDestroy(s.check);xlsCompletionSessionDestroy(s.completion);xlsSignatureSessionDestroy(s.signature);
  CHECK(parity(&held,docs,3));release(&held);for(size_t i=0;i<4;++i)xlsTextRelease(docs[i].text);xrtFree(entry);xrtFree(dep);xrtFree(extra);xrtFree(other);xrtFree(root);return 1;
 }

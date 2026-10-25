@@ -1598,3 +1598,30 @@ XRT intrusive AVL／mutex／atomic／引用计数管理路径、两个最近发�
 以下 P95 回退保留：sequenceSummary:96 P95 221.044→279.317 ms；sequenceSummary:512 P95 1361.687→1368.903 ms；editSummary:96/xlang/check P95 136.864→184.515 ms；editSummary:96/textDocument/completion P95 46.273→48.767 ms；editSummary:96/textDocument/signatureHelp P95 46.656→51.477 ms；editSummary:512/xlang/check P95 795.087→833.145 ms；editSummary:512/textDocument/signatureHelp P95 265.852→284.838 ms；coldSummary:96/xlang/check P95 149.140→165.552 ms；coldSummary:512/xlang/check P95 978.415→1067.649 ms；hotSummary:96/textDocument/completion P95 2.216→2.335 ms；hotSummary:512/textDocument/signatureHelp P95 2.303→2.422 ms；GUI 96/3 P95 10.867→11.647 ms；GUI 512/0 P95 314.699→333.256 ms；GUI 512/1 P95 318.107→339.181 ms。
 
 证据 build/lsp-next-20261022/m7a2b31a-result.json，外部 m7a2b31a-f193d9c0／component-v2；v1 是相同产品 C 和二进制的原始 producer。下一步把普通模块身份接到现有 context／catalog／reverse-owner graph 的实际语义依赖上，推进持久语义模块／xlp 归属与稳定全局符号／类型，减少全模型克隆、import／stdlib、全量 index／IR pass／验证。继而完成剩余适用 LSP、静态检查／类型恢复、IDE 输入配置、native C／资源、整个模型及暂存预算、100k／并行／soak／最终发行。发布 5,241 文件保持，整体 goal active，性能与全部目标仍未验收。
+
+
+## M7a2b32a：持久输入查找证明与完整语义模型复用（0.65）
+
+0.65 在原 SourceOverlayFind 完成原 xrtPathAbs 后记录每一次实际查找，包括没有命中的路径。结果保留不可变的已查找集合；打开、关闭或重新识别的无关编辑器输入，只有其旧／新路径全部未曾被查询，才允许静态检查、补全及签名 session 复用完整语义模型。入口／查询及已读取 overlay 的身份、路径和内容仍须精确匹配，修订准入、上下文／工作目录、磁盘／探测／环境与当前结果发布证明保持。
+
+XRT map 暂存精确 UTF-8 查询标签，结束时转换为不可变排序键；Windows 使用原严格 UTF-8→UTF-16 和 CompareStringOrdinal 忽略大小写规则，其他平台精确比较。没有自行增加搜索顺序、物理别名或大小写规范化。每次资格检查还拒绝当前 overlay 中的原生等价重复路径，使用量位图按当前顺序重映射，覆盖第 64 位。查询失败、比较／分配失败、未知输入或超出限额只关闭此复用证明，回到原路径。
+
+默认已完成键集合与临时键计费各限 8 MiB，最多 65,536 个查询路径；map 容器、分配器、临时编码转换及整个模型 RSS 另计。immutable 集合随原结果引用计数生存，没有新的全局可变语义所有者，四个读者并发验证通过。零 overlay 的缓存函数基线目前保守拒绝；当前 IDE retained batch 至少有一个 overlay，未改变普通语言/API 的无 overlay 分析。
+
+完整模型命中后，session 当前 batch 与不可变模型持有的旧 overlay 成员可能不同。后续真实源码修改仅把同一缺席证明用于原函数 semantic／IR memo 的成员资格前置门；原函数内容、全局／类型／符号、坐标／来源、配置、取消、预算和完整 IR／verifier 规则仍执行。原 parser／semantic／IR 生成源码与 0.64 字节相同。该功能完成持久分析结果的一条复用边界，持续语义模块／xlp 归属、稳定全局符号／类型和跨模块增量 pass 尚未完成。
+
+正常原生 producer 共编译 141 个对象，62 夹具／63 PE／64 outputs／69 AST17 consumers／56 core members、331 实际依赖，冻结 1,088 输入。新增 387 topology 检查及既有 662 input-usage、1,368 completion-session 检查通过；覆盖真实命中／缺席、Unicode 原匹配、嵌套／禁用／失败作用域、0..255 小预算、四读者、2..64 个重排 overlay、无关 identity 变化、重复路径拒绝、实际依赖 identity／body 变化、三个原生 worker、旧结果独立生命周期和完整 fresh 结果对照。既有 1,289 semantic／2,406 cursor-source／939 IR memo／11,997 scan／185 cancel／12,995 worker fault 和 1,008 取消门保持。
+
+37 协议套件共 970 场景、18 实际 IDE／旧 0.4 回退通过；新增 14 个真实 wire 场景验证缺失 import、无关开关／重开、原负探测路径加入 overlay、实际依赖 overlay/disk 切换、磁盘原子替换和当前所有打开文档版本。106 GUI 对象依真实 .d 及 10 个受影响对象 token 对照证明复用，35 程序保持。
+
+正常 0.64／0.65 core archive 在 96／512 helper、七轮输入集合／identity／局部声明增删与保留原结果上完成 32 次独立完整 AST、native index 全字段／canonical／范围、报告及 IR 对照。大档比较 97,836–97,846 条事实；0.65 无关集合变更保留同一模型，随后的实际修改仍仅检查 2 个函数、复用 513 个函数。独立 fresh API 没有启用新缓存证明，未将容量受限的旧 JSON index 作为大档 oracle。
+
+初始 producer 的 141 个对象和 41 个成功夹具复用；一份旧 C 夹具将无关集合变更写成必须产生新指针，修订两条期望并补充 fresh 对照后，仅重编这一测试对象，执行余下 21 夹具。共 142 次编译尝试、141 个最终接受对象。后续 v3/v4 只迁移三个旧 Python 计数测试，保留候选、版本、诊断、实际依赖变更和重开检查；全部 C／header／实际 native 输入及产品二进制与 v2 相同。初次计数失败日志和各 producer 都保留，未重复编译产品。
+
+恢复脚本曾误把一条使用完全旧对象的链接输出指向基线；字节与原 SHA 一致，随后利用未受影响的 hardlink 恢复原文件对象和身份。审计、误指向命令及输出副本均保留，最终与父阶段 SHA／文件身份一致。之后所有链接和编译输出均先验证位于当前 native 目录；发布目录未受影响。
+
+512 helper 的无关输入开关后三方法总序列 P50／P95／P99：1416.267 / 1615.605 / 1628.225→92.214 / 237.987 / 240.735 ms；实际依赖声明编辑后的总序列为 1104.979 / 1199.912 / 1239.509→897.062 / 980.756 / 1010.540 ms。
+
+P95 回退保留：coldSummary:96/textDocument/signatureHelp P95 37.855→39.528 ms；coldSummary:512/textDocument/completion P95 236.782→238.334 ms；coldSummary:512/textDocument/signatureHelp P95 221.652→227.807 ms；hotSummary:96/textDocument/completion P95 2.415→2.483 ms；hotSummary:96/textDocument/signatureHelp P95 2.203→2.212 ms；hotSummary:512/textDocument/completion P95 2.736→2.800 ms；hotSummary:512/textDocument/signatureHelp P95 2.438→2.523 ms；GUI 96/0 P95 72.731→73.464 ms；GUI 96/1 P95 46.682→77.435 ms。
+
+证据 build/lsp-next-20261022/m7a2b32a-result.json，外部 m7a2b32a-2687faaf／component-v4；实际 native producer 位于 v2。外部 C/compiler XRT、未来 opaque xlc.dll，无 DAP／运行态补全。发布 5,241 文件保持；继续持久语义模块／xlp／全局身份、剩余适用 LSP／静态分析／IDE 与模型预算、100k／并行／soak／最终发行；整体 goal active，全部性能与功能目标尚未验收。
