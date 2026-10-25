@@ -60,22 +60,23 @@ fi
 if [[ $mode == --windows-xl ]]; then
     export REDIS_LIVE_PORT="$port"
     export WSLENV="${WSLENV:+$WSLENV:}REDIS_LIVE_PORT/w"
-    ./release/xl.exe run release/examples/extlibs/redis_live.xl |
+    cd "$root/release"
+    ./xl.exe run examples/extlibs/redis_live.xl |
         tr -d '\r' > "$work/example_xl.txt"
-    ./release/xl.exe run release/examples/extlibs/redis_live_c.c |
+    ./xl.exe run examples/extlibs/redis_live_c.c |
         tr -d '\r' > "$work/example_c.txt"
     diff -u "$work/example_c.txt" "$work/example_xl.txt"
     [[ $(<"$work/example_xl.txt") == $'PING: PONG\nGET: hello\nEXISTS: 1\nINCR: 1\nEXISTS after DEL: 0' ]] || {
         printf 'Redis live example output differs from fixed expectation\n' >&2
         exit 1
     }
-    [[ $(./release/xl.exe run release/extlibs/redis/test/live_server.xl) == 'redis real server: ok' ]]
-    [[ $(./release/xl.exe run release/extlibs/redis/test/live_server_c.c \
-        release/extlibs/redis/redis_native.c | tr -d '\r') == 'redis real server C: ok' ]]
-    [[ $(./release/xl.exe run release/extlibs/redis/test/concurrent_server.xl | tr -d '\r') == \
+    [[ $(./xl.exe run extlibs/redis/test/live_server.xl) == 'redis real server: ok' ]]
+    [[ $(./xl.exe run extlibs/redis/test/live_server_c.c \
+        extlibs/redis/redis_native.c | tr -d '\r') == 'redis real server C: ok' ]]
+    [[ $(./xl.exe run extlibs/redis/test/concurrent_server.xl | tr -d '\r') == \
         'redis concurrent server: 50 rounds ok' ]]
     if [[ ${REDIS_STRESS:-0} == 1 ]]; then
-        [[ $(./release/xl.exe run release/extlibs/redis/test/concurrent_server.xl -- 10000 |
+        [[ $(./xl.exe run extlibs/redis/test/concurrent_server.xl -- 10000 |
             tr -d '\r') == 'redis concurrent server: 10000 rounds ok' ]]
         printf 'redis Windows live stress (4 x 10000): PASS\n'
     fi
