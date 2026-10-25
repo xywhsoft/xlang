@@ -6,6 +6,7 @@
 #include "src/compile/xl6_source_report.h"
 #include "analysis/ast_storage.h"
 #include "analysis/ast_intern.h"
+#include "analysis/frontend_symbols.h"
 struct XL6_CompletionQuery;
 typedef struct xls_sem_memo xls_sem_memo;
 /* Exact non-coordinate AST identity for private raw IR fragments. Native
@@ -14,10 +15,12 @@ typedef struct xls_sem_memo xls_sem_memo;
 typedef enum xls_ir_key_mode {
     XLS_IR_KEY_EXACT,XLS_IR_KEY_MODULE,XLS_IR_KEY_FUNCTION,XLS_IR_KEY_ENVIRONMENT
 } xls_ir_key_mode;
-/* Only lexical function regions are relative;fact-type trees stay exact.
+/* Lexical function regions and proven local declarations are relative;
+ * fact-type trees and global/unproven symbols stay exact.
  * Environment mode ignores lexical regions unused by original type lookup.
  * Invalid/nonlocal function regions decline this optional cache key. */
 int xlsFrontendIrAstKey(xstrbuf* key,const XL6_AstNode* node,xls_ir_key_mode mode);
+int xlsFrontendIrAstKeySymbols(xstrbuf* key,const XL6_AstNode* node,const xls_lexical_symbols* symbols);
 typedef struct xls_sem_storage_work { uint64_t nodes,pages,chargedBytes,heapFallbacks; } xls_sem_storage_work;
 typedef struct xls_sem_storage_control {
     struct xls_sem_storage_control* previous;size_t budget;xls_sem_storage_work work;

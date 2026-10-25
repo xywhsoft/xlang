@@ -124,6 +124,10 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     type_sha = 'fdf35faa5dc2366a0625317d70cc82dbe8031762fcb7c81439e99a3a8de2a051'
     if sha(type_model) != type_sha:
         raise ValueError('shared alias/type model changed; audit raw IR environment region independence')
+    type_ids = frontend / 'src/type/xl6_type_id.h'
+    type_ids_sha = 'ae843f553ba8e4feda829a829c05fa5f524abafa2fc75946293f3abea012aca0'
+    if sha(type_ids) != type_ids_sha:
+        raise ValueError('shared symbol/type identity domains changed; audit tagged lexical symbol slots and exact fact types')
     source = body.decode('utf-8').replace('\r\n', '\n')
     changes = {
         '#include <wchar.h>': '#include <wchar.h>\n#include "analysis/frontend_ir.inc"',
@@ -185,7 +189,8 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         change='bounded nominal-declaration candidates, cleanup/plan/call-origin indexes and per-verification scope proofs; shared rules retained',
         rawFunctionRegions='lexical-relative keys with zero sentinel;current AST region/target rebinding;exact fact-type trees',
         initializerLookup='phase-local lazy nondecreasing declaration proof;lower-bound first match;original unordered/absent-scope fallback;no allocation or cached ABI results',
-        auditedDependencies={str(type_model):type_sha},
+        auditedDependencies={str(type_model):type_sha,str(type_ids):type_ids_sha},
+        lexicalSymbols='source/range-proven per-function declaration slots;separate entity/global NAME identities;tagged raw nodes/dependencies/writes bind current original IDs;fact types and type-pool prefix exact',
         cancellation='cooperative node/phase/verify points; partial child lists and owned incoming counts unwind through audited cleanup',
         auditedSeams=len(changes), indexBytes=16 * 1024 * 1024, planIndexBytes=8 * 1024 * 1024,
         scopeProofBytes=1024 * 1024, callIndexBytes=8 * 1024 * 1024, typeLookupBytes=8 * 1024 * 1024,
@@ -531,7 +536,7 @@ def main() -> None:
     sources += [(ide / "src/protocol/input_state.c", True)]
     sources += [(ide / "src/protocol/diagnostic_paths.c", True)]
     sources += [(ide / path, True) for path in (
-    "src/analysis/frontend_cancel.c", "src/analysis/frontend_ir_regions.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/input_view.c", "src/analysis/dependency_graph.c", "src/analysis/ast_storage.c", "src/analysis/ast_materialize.c", "src/analysis/ast_clone.c", "src/analysis/ast_intern.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/signature.c", "src/analysis/signature_session.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
+    "src/analysis/frontend_cancel.c", "src/analysis/frontend_ir_regions.c", "src/analysis/frontend_symbols.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/input_view.c", "src/analysis/dependency_graph.c", "src/analysis/ast_storage.c", "src/analysis/ast_materialize.c", "src/analysis/ast_clone.c", "src/analysis/ast_intern.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/signature.c", "src/analysis/signature_session.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
@@ -664,7 +669,7 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_cancel", "frontend_ir_regions","frontend_entry_cache","input_view", "dependency_graph", "text", "context", "frontend_context", "ast_storage", "ast_materialize", "ast_clone", "ast_intern", "syntax", "session", "worker", "folding", "semantic", "signature", "signature_session", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_cancel", "frontend_ir_regions","frontend_symbols","frontend_entry_cache","input_view", "dependency_graph", "text", "context", "frontend_context", "ast_storage", "ast_materialize", "ast_clone", "ast_intern", "syntax", "session", "worker", "folding", "semantic", "signature", "signature_session", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         limited_index = output / "xl6_sem_index_limit.o"
