@@ -5,6 +5,7 @@
 #include "analysis/frontend_types.h"
 #include "analysis/frontend_ir_regions.h"
 #include "analysis/frontend_cancel.h"
+#include "analysis/frontend_ir_plan_direct.h"
 #include "analysis/frontend_ir_initializers.inc"
 
 #define XLS_IR_SCAN_BYTES (16u*1024u*1024u)
@@ -19,9 +20,11 @@ typedef struct xls_ir_scan {
     size_t count;
     xarray all,routed;
     xarray plans,positions,scopeProof;
+    xls_ir_plan_direct directPlans;
     const XL6_IrExitPlan* planSource;
     const XL6_IrExitPlan* scopeSource;
     size_t planCount,planBudget;
+    size_t directPlanBudget;
     size_t scopeCount;
     int ready,topology,plansReady,plansAttempted,verifying,scopeAttempted,scopeReady;
     xls_ir_region_index regions;
@@ -262,6 +265,7 @@ static void xlsIrScanDone(xls_ir_scan* scan)
     xlsActiveIrScan=scan->previous; xrtArrayUnit(&scan->all); xrtArrayUnit(&scan->routed);
     xrtArrayUnit(&scan->plans); xrtArrayUnit(&scan->positions);
     xrtArrayUnit(&scan->scopeProof);
+    xlsIrPlanDirectClear(&scan->directPlans);
     xlsIrRegionClear(&scan->regions);
 }
 static size_t xlsIrScopeProofSlot(xls_ir_scan* scan,const XL6_IrModule* module,const XL6_IrExitPlan* plan)
@@ -315,8 +319,15 @@ static void xlsIrPlanScanInit(xls_ir_scan* scan,const XL6_IrModule* module,size_
      * Invalid origins remain present; the original verifier diagnoses them. */
     if(bytes>XLS_IR_PLAN_BYTES) bytes=XLS_IR_PLAN_BYTES;
     if(!bytes || !scan->topology || !module || module->exitPlanCount>module->exitPlanCapacity ||
-       (module->exitPlanCount && !module->exitPlans) ||
-       module->exitPlanCount>bytes/(2*(sizeof(xls_ir_plan_candidate)+sizeof(size_t)))) return;
+       (module->exitPlanCount && !module->exitPlans)) return;
+    size_t directBytes=scan->directPlanBudget<bytes ? scan->directPlanBudget : bytes;
+    if(xlsIrPlanDirectBuild(&scan->directPlans,module,directBytes)) {
+        scan->planSource=module->exitPlans;scan->planCount=module->exitPlanCount;scan->plansReady=1;
+        ++xlsIrPlanWork.indexes;++xlsIrPlanWork.directIndexes;xlsIrPlanWork.records+=module->exitPlanCount;
+        if(scan->directPlans.bytes>xlsIrPlanWork.peakBytes)xlsIrPlanWork.peakBytes=scan->directPlans.bytes;
+        return;
+    }
+    if(module->exitPlanCount>bytes/(2*(sizeof(xls_ir_plan_candidate)+sizeof(size_t)))) return;
     if(!xrtArrayInit(&scan->plans,sizeof(xls_ir_plan_candidate)) ||
        !xrtArrayInit(&scan->positions,sizeof(size_t)) ||
        !xrtArrayReserve(&scan->plans,module->exitPlanCount) ||
@@ -361,6 +372,11 @@ static size_t xlsIrFirstPlanCandidate(const XL6_IrModule* module,XL6_IrNodeId or
     xlsIrEnsurePlanScan(module);
     const xls_ir_scan* scan=xlsIrPlanScan(module);
     if(!scan) { if(limit) ++xlsIrPlanWork.linearVisits; return 0; }
+    if(scan->directPlans.heads.Data) {
+        ++xlsIrPlanWork.directQueries;size_t at=xlsIrPlanDirectFirst(&scan->directPlans,origin,limit);
+        if(at<limit)++xlsIrPlanWork.indexedVisits;
+        return at;
+    }
     size_t low=0,high=scan->plans.Count;
     while(low<high) {
         size_t mid=low+(high-low)/2;
@@ -376,6 +392,11 @@ static size_t xlsIrNextPlanCandidate(const XL6_IrModule* module,XL6_IrNodeId ori
     ++xlsIrPlanWork.queries;
     const xls_ir_scan* scan=xlsIrPlanScan(module);
     if(!scan) { if(current+1<limit) ++xlsIrPlanWork.linearVisits; return current+1; }
+    if(scan->directPlans.heads.Data) {
+        ++xlsIrPlanWork.directQueries;size_t at=xlsIrPlanDirectNext(&scan->directPlans,current,limit);
+        if(at<limit)++xlsIrPlanWork.indexedVisits;
+        return at;
+    }
     const size_t* position=xrtArrayConstGet(&scan->positions,current);
     const xls_ir_plan_candidate* candidate=position ? xrtArrayConstGet(&scan->plans,*position+1) : NULL;
     if(!candidate || candidate->origin!=origin || candidate->index>=limit) return limit;
@@ -417,19 +438,23 @@ int xlsFrontendIrRefreshRegionBudget(XL6_IrModule* module,size_t bytes)
     int okay=xlsIrRefreshExitPlansOriginal(module); xlsIrScanDone(&scan); xlsIrCallScanDone(&calls);
     xlsFrontendIrInitializerEnd(&initializers);return okay;
 }
-static int xlsIrVerifyBudgets(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes,size_t regionBytes)
+static int xlsIrVerifyBudgets(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes,size_t regionBytes,size_t directBytes)
 {
     xls_ir_initializer_scope initializers;xlsFrontendIrInitializerBegin(&initializers,module);
     initializers.allowed=0;
     xls_ir_call_scan calls; xlsIrCallScanBegin(&calls,module,bytes);
-    xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.planBudget=bytes; scan.regionBudget=regionBytes; scan.verifying=1; xlsActiveIrScan=&scan;
+    xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.planBudget=bytes; scan.directPlanBudget=directBytes; scan.regionBudget=regionBytes; scan.verifying=1; xlsActiveIrScan=&scan;
     int okay=xlsIrVerifyModuleOriginal(module,diags); xlsIrScanDone(&scan); xlsIrCallScanDone(&calls);
     xlsFrontendIrInitializerEnd(&initializers);return okay;
 }
 int xlsFrontendIrVerifyPlanBudget(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes)
-{ return xlsIrVerifyBudgets(module,diags,bytes,XLS_IR_REGION_BYTES); }
+{ return xlsIrVerifyBudgets(module,diags,bytes,XLS_IR_REGION_BYTES,bytes); }
 int xlsFrontendIrVerifyRegionBudget(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes)
-{ return xlsIrVerifyBudgets(module,diags,XLS_IR_PLAN_BYTES,bytes); }
+{ return xlsIrVerifyBudgets(module,diags,XLS_IR_PLAN_BYTES,bytes,XLS_IR_PLAN_BYTES); }
+/* Private resource/reference control;all other verifier budgets/rules stay
+ * fixed. Zero keeps the previous sorted plan index for independent A/B QA. */
+int xlsFrontendIrVerifyPlanDirectBudget(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes)
+{ return xlsIrVerifyBudgets(module,diags,XLS_IR_PLAN_BYTES,XLS_IR_REGION_BYTES,bytes); }
 int xl6IrVerifyModule(const XL6_IrModule* module,XL6_DiagList* diags)
 { return xlsFrontendIrVerifyPlanBudget(module,diags,XLS_IR_PLAN_BYTES); }
 void xlsFrontendIrScanReset(void) { memset(&xlsIrScanWork,0,sizeof(xlsIrScanWork)); }
