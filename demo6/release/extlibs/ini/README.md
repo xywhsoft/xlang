@@ -9,6 +9,10 @@ C/XLang 范例及三份 AOT。节名/键名装入 `array<string>` 时，
 Linux C ASan/UBSan、XLang JIT 与双语门禁已通过；Windows 完整包门禁
 （严格 GCC、C/Python 互通、XLang JIT/cgen、三组 AOT）已通过。
 独立 Linux AOT 待新发布版复验。
+上述 Windows 门禁在 `release` 工作目录运行 XLang 阶段；当前发布版从
+`demo6` 根目录直接运行同一文件仍因共享 TCC VFS 头文件查找失败，
+见 `dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。这不是 INI
+解析或写入行为的验收通过项。
 `test/interop.c` 与 `test/interop.py` 另外用 Python 标准库
 `configparser` 做双向格式互通：C 写出后由 Python 读取，Python
 写出后由 C 读取。范围限于双方共有的节、键、UTF-8 值和普通赋值语法。
