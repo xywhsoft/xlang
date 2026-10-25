@@ -52,9 +52,13 @@ C sanitizer、514 项系统 liblz4 互通、中央/边界/进度/范例 JIT 与
 旧版 `xl run` 均报同一条 XLIR 操作数路径诊断。基本/文件范例的其他路径当时可运行，
 完整包级验收彼时等待共享修复。
 
-`lzma` 在 `test/cases/extlib_lzma.xl:92` 和
+2026-10-26 当前 LZMA 的中央用例在 Windows/Linux 发布版 JIT 均退出 0；
+两平台默认门禁还通过 Python 标准 `.xz` 互通和九条独立 XLang EXE。
+下面的 LZMA 第 92 行诊断只对应旧发布物，不再是当前包级阻断。
+
+`lzma` 当时在 `test/cases/extlib_lzma.xl:92` 和
 `release/examples/extlibs/lzma.xl:77` 使用同形态的字节 XOR，
-更新文件 API 的 `Buffer.toBytes()` 调用后，测试仍被该 XLIR 诊断阻断。
+更新文件 API 的 `Buffer.toBytes()` 调用后，旧版测试仍被该 XLIR 诊断阻断。
 
 同一诊断已在更新文件 API 调用后的三个包级测试再次确认：
 
