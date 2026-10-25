@@ -108,3 +108,5 @@ context.resume as TlsResume?
 原生未启用能力的单独前置验收共 242 步、20 次执行，覆盖模块化与 core/runtime/full 三种单头产品、GCC O0/O2 与 TCC。源码、工具、对象、日志及产物哈希在两端分别重新核验。记录为 `F:/xlang-validation/five-groups-20261025/p6-tls-client-resume/next.json`。只有正常有效材料的内存握手和自建字面量回环通信；无外部 DNS、公网、安全专项或畸形密码测试。这仍不是 shipping DLL/VFS 或发布联合验收。
 
 后续已补齐 `xrtTlsStreamFlush()` 原生前置：可在所属 Worker 上显式转交排队的控制记录，票据后无需空应用写入；AGAIN 保留密文等待普通传输驱动，不能重复签发。两端模块化/单头 GCC O0/O2/TCC 共 418 步、80 次执行通过，含四轮票据轮换恢复和双端 KeyUpdate 后数据往返。定点 backport 仅涉及两个 Stream 段，保留时间 ABI、对象布局和独立拥有合同。详见 [TLS 传输标准库](TLS传输标准库.md)。默认语言票据收发、传输 KeyUpdate 及发布级联合验收仍未完成。
+
+该原生前置之后，默认 `TlsStream.keyUpdate()/keyUpdateAsync()` 已完成语言接入和两端 58 步实际源码验收。操作在连接所属 Worker 执行，保留独立拥有/checked 清理；异步结果为精确的 `future<TlsResult>`，并支持既有 `task.all`、动态装箱路径。使用通用 IR 枚举 Future 合同，没有 Cgen 专用实现，也不要求恢复票据模块。详见上述传输文档。票据发送/弹出及发布级联合验收仍未完成。

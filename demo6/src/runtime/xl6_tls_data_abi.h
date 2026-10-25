@@ -49,4 +49,6 @@ XL6_TEXT_API xvalue* xl6TlsStreamPeekV1(void*,int64_t,int64_t);
 XL6_TEXT_API int64_t xl6TlsStreamConsumeV1(void*,int64_t,int64_t);
 XL6_TEXT_API int64_t xl6TlsStreamSendBoundV1(void*,int64_t,int64_t);
 XL6_TEXT_API xvalue* xl6TlsStreamProtocolV1(void*,int64_t);
+XL6_TEXT_API xfuture* xl6TlsStreamKeyUpdateAsyncV1(void*,bool);
+XL6_TEXT_API int64_t xl6TlsStreamKeyUpdateV1(void*,bool,int64_t);
 #endif

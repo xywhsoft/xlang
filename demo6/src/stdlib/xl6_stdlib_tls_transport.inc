@@ -55,6 +55,8 @@ const char* xl6StdlibTlsStreamClassSource=
     "    extern \"xl6TlsStreamSendBoundAsyncV1\" @nonblocking func sendBoundAsync(int size) as future<int>\n"
     "    extern \"xl6TlsStreamProtocolV1\" func protocol(int timeoutMillis = -1) as bytes\n"
     "    extern \"xl6TlsStreamProtocolAsyncV1\" @nonblocking func protocolAsync() as future<bytes>\n"
+    "    extern \"xl6TlsStreamKeyUpdateV1\" func keyUpdate(bool requestPeer = false, int timeoutMillis = -1) as TlsResult\n"
+    "    extern \"xl6TlsStreamKeyUpdateAsyncV1\" @nonblocking func keyUpdateAsync(bool requestPeer = false) as future<TlsResult>\n"
     "    func waitOpen(int timeoutMillis = -1) as bool\n        return self.wait(0, timeoutMillis)\n    end\n"
     "    func waitReadable(int timeoutMillis = -1) as bool\n        return self.wait(1, timeoutMillis)\n    end\n"
     "    func waitWritable(int timeoutMillis = -1) as bool\n        return self.wait(2, timeoutMillis)\n    end\n"

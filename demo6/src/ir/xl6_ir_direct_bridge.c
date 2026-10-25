@@ -103,6 +103,9 @@ typedef struct XL6_IrDirectBridgeContract {
      * builtin. Its resident producer must publish this exact element ABI. */
     XL6_IrCAbi resultFutureElementAbi;
     XL6_IrAsyncResultAbi resultFutureAbi;
+    /* Seals Future<NumericEnum> to its full nominal/value contract, not just
+     * the integer payload shared with unrelated enums and ordinary int. */
+    const XL6_IrNumericEnumContract* resultFutureEnum;
     const char* nativeHandlePolicy;
     XL6_IrCallNativeArrayResultAbi nativeArrayResultAbi;
     XL6_IrCallErrorPhysicalAbi errorPhysicalAbi;
@@ -1487,7 +1490,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                result->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL ||
                result->collectionAbi!=XL6_IR_COLLECTION_NONE || result->returnCount ||
                result->paramCount!=1 || !result->params || result->params[0]!=target->nativeContextType)return 0;
-        } else if (contract->resultFutureElementAbi || contract->resultFutureAbi) {
+        } else if (contract->resultFutureElementAbi || contract->resultFutureAbi || contract->resultFutureEnum) {
             const XL6_IrType* element = result && result->paramCount == 1 && result->params
                 ? xl6IrTypeGet(&module->types, result->params[0]) : NULL;
             if (contract->result != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR || !result ||
@@ -1496,9 +1499,19 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
                 result->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
                 result->collectionAbi != XL6_IR_COLLECTION_NONE || result->returnCount ||
-                !element || element->kind != XL6_IR_TYPE_BUILTIN || element->paramCount || element->returnCount ||
+                !element || element->paramCount || element->returnCount ||
                 element->collectionAbi != XL6_IR_COLLECTION_NONE) return 0;
-            if(contract->resultFutureAbi){
+            if(contract->resultFutureEnum){
+                XL6_IrAsyncResultAbi payload=contract->resultFutureElementAbi==XL6_IR_C_ABI_I64?
+                    XL6_IR_ASYNC_RESULT_COPY_I64:contract->resultFutureElementAbi==XL6_IR_C_ABI_U64?
+                    XL6_IR_ASYNC_RESULT_COPY_U64:XL6_IR_ASYNC_RESULT_INVALID;
+                if(contract->resultFutureAbi||contract->nullableResult||
+                    contract->resultFutureElementAbi!=contract->resultFutureEnum->cAbi||
+                    !xl6IrDirectNumericEnumMatches(module,result->params[0],contract->resultFutureEnum)||
+                    payload==XL6_IR_ASYNC_RESULT_INVALID||
+                    xl6IrBuildAsyncResultAbi(module,result->params[0])!=payload)return 0;
+            }else if(element->kind!=XL6_IR_TYPE_BUILTIN)return 0;
+            else if(contract->resultFutureAbi){
                 /* A managed codec alone may describe several builtins. An
                  * explicit element C ABI additionally seals its logical
                  * family (for example bytes, not arbitrary xvalue). */
