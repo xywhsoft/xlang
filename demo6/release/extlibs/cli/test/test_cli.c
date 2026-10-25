@@ -551,6 +551,62 @@ cleanup:
 	return ok;
 }
 
+static bool test_option_override_and_terminator(void)
+{
+	xvalue* args = xrtValueArray();
+	xvalue* spec = xrtValueObject();
+	xvalue* options = xrtValueObject();
+	xvalue* defaults = xrtValueObject();
+	xvalue* flags = xrtValueArray();
+	xvalue* result = NULL;
+	xvalue* fields;
+	xstrview text;
+	bool accepted = false, verbose = true;
+	bool ok = false;
+	if (args == NULL || spec == NULL || options == NULL ||
+		defaults == NULL || flags == NULL ||
+		!add_text(args, "--output=first", 14u) ||
+		!add_text(args, "-osecond", 8u) ||
+		!add_text(args, "--output=", 9u) ||
+		!add_text(args, "--", 2u) ||
+		!add_text(args, "--output=ignored", 16u) ||
+		!add_text(args, "-v", 2u) ||
+		!xrtValueObjectSetNew(options, view("output"),
+			xrtValueString(view("o"))) ||
+		!xrtValueObjectSetNew(defaults, view("output"),
+			xrtValueString(view("fallback"))) ||
+		!add_text(flags, "v", 1u) ||
+		!xrtValueObjectSetTake(spec, view("options"), &options) ||
+		!xrtValueObjectSetTake(spec, view("defaults"), &defaults) ||
+		!xrtValueObjectSetTake(spec, view("flags"), &flags)) goto cleanup;
+	result = xcli_parse(args, spec);
+	fields = result != NULL ? xrtValueObjectGet(result, view("options")) : NULL;
+	if (fields == NULL ||
+		!xrtValueGetString(xrtValueObjectGet(fields, view("output")), &text) ||
+		text.Size != 0u) goto cleanup;
+	fields = xrtValueObjectGet(result, view("flags"));
+	if (fields == NULL ||
+		!xrtValueGetBool(xrtValueObjectGet(fields, view("v")), &verbose) ||
+		verbose) goto cleanup;
+	fields = xrtValueObjectGet(result, view("rest"));
+	if (fields == NULL || xrtValueCount(fields) != 2 ||
+		!xrtValueGetString(xrtValueArrayAt(fields, 0), &text) ||
+		text.Size != 16u ||
+		memcmp(text.Data, "--output=ignored", 16u) != 0 ||
+		!xrtValueGetString(xrtValueArrayAt(fields, 1), &text) ||
+		text.Size != 2u || memcmp(text.Data, "-v", 2u) != 0) goto cleanup;
+	ok = xrtValueGetBool(xrtValueObjectGet(result, view("ok")), &accepted) &&
+		accepted && xrtGetError() == NULL;
+cleanup:
+	xrtValueRelease(result);
+	xrtValueRelease(flags);
+	xrtValueRelease(defaults);
+	xrtValueRelease(options);
+	xrtValueRelease(spec);
+	xrtValueRelease(args);
+	return ok;
+}
+
 static bool test_invalid_default_value(xvalue* defaultValue)
 {
 	xvalue* args = xrtValueArray();
@@ -760,6 +816,10 @@ int main(void)
 	}
 	if ( !test_declared_default() ) {
 		fputs("cli rejected a declared option default\n", stderr);
+		return 1;
+	}
+	if ( !test_option_override_and_terminator() ) {
+		fputs("cli option override or -- terminator changed parsing\n", stderr);
 		return 1;
 	}
 	if ( !test_invalid_default_value(xrtValueInt(7)) ||
