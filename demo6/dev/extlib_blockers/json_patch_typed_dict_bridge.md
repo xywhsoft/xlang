@@ -43,3 +43,13 @@ JSON 序列化、逐字段复制或改变公开 API 规避。
 修复后重跑 `var_bridge_repro.xl`、中央用例和不带 `-SkipAot` 的
 `release/extlibs/json.patch/test/check.ps1`，并用新版 Linux 发布物
 跑包级门禁。当前整包发布级未签收。
+
+## 2026-10-26 当前发布版复验
+
+Windows `release/xl.exe` 与 Linux `release/xl` 从 `release` 目录运行
+`extlibs/json.patch/test/var_bridge_repro.xl` 均以断言失败退出 1。
+两平台运行中央 `test/cases/extlib_json_patch.xl` 均在首条
+`json.patch.has(doc, "/name")` 报 `AssertionError: has /name`；
+Linux 包门禁先通过 C ASan/UBSan 边界和两份 C 范例，在 XLang JIT
+阶段同样失败，未执行后续 AOT。包内没有加入句柄探测或序列化绕行；
+主线修复容器投影后须重新运行完整双平台门禁。
