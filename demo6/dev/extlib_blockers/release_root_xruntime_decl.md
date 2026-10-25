@@ -1,5 +1,13 @@
 # 发布版从 demo6 根目录运行缺少运行时声明头（2026-10-25）
 
+## 状态：已复验解除
+
+2026-10-25 重建并更新主线的 Windows 标准发布物后，同一
+`extlib_roaring.xl` 从 `demo6` 和 `demo6/release` 两个工作目录运行均
+退出 0。验收结果保存在
+`build/c-owned/foreign-bridge-main-acceptance-1/roaring-cwd-results.json`。
+该记录不再作为当前扩展库迁移阻断；以下保留旧发布物的复现信息。
+
 ## 复现
 
 当前 Windows 发布物中，`release/include/xruntime_decl.h` 文件存在。

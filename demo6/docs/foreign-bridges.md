@@ -57,3 +57,6 @@ Windows 标准 `build.bat` 也在独立发布目录完成，3510 项输入在构
 跨包原生源码使用发布目录的 `include/` SDK；独立验收目录也须包含该目录。
 物理源码检查确认 Windows/Linux 的 runtime/compiler 四种构建均精确提供
 854 个必需源，五项缺失、重复及未知特性的负向检查全部有效。
+
+改动合入主线后，Windows 和 Linux 发布物已同步到主线 `release/`，
+并在主线目录复验上述桥接的 JIT/AOT；Windows 资源故障及相关回归也通过。
