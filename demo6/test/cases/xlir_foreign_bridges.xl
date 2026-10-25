@@ -15,6 +15,7 @@ extern "foreign_bridge_clear" @no_raise func clear()
 extern "foreign_bridge_outstanding" func outstanding() as int
 
 class Owned
+    derive clone
     private var token
     create()
         point raw = allocate()
@@ -36,11 +37,18 @@ class Owned
     end
 end
 
+func cloneOwner() as Owned
+    auto original = Owned()
+    return clone(original)
+end
+
 auto globalOwner = Owned()
 assert globalOwner.value() == 42
 func check()
     auto localOwner = Owned()
     assert localOwner.value() == 42
+    auto clonedOwner = cloneOwner()
+    assert clonedOwner.value() == 42
     var input = {"items": [1, 2], "nested": {"message": "hello"}}
     var snapshot = data(input)
     assert checkData(snapshot)
@@ -51,7 +59,7 @@ func check()
     assert string(decoded["nested"]["message"]) == "hello"
 end
 check()
-assert released() == 1
+assert released() == 2
 func checkFailures()
     if !debug() then return end
     int fault = 0

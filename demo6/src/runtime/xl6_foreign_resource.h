@@ -8,7 +8,8 @@
  * On success ownership of raw transfers; on failure the caller still owns it.
  * Releaser accepts one point and returns no values. It executes once, before
  * graph clearing, while its captures and code are alive. NULL raw is refused.
- * Returned objects are private resource tokens, not mutable data objects. */
+ * Opaque tokens clone by sharing the one finalization owner. They are private
+ * resource handles, not mutable data objects or independently cloned raw data. */
 XL6_TEXT_API xvalue* xl6ForeignResourceCreateV1(void* raw,const xvalue* releaser);
 XL6_TEXT_API void* xl6ForeignResourcePointerV1(const xvalue* token);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainForeignResourceV1Get(void);

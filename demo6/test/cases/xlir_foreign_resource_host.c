@@ -21,6 +21,15 @@ int main(void)
     xvalue* alias=xrtValueRetain(owner);assert(alias);
     xrtValueRelease(owner);assert(drops==0);
     xrtValueRelease(alias);assert(drops==1 && !xrtGetError());
+    for(unsigned order=0;order<4;++order){
+        raw=allocate();size_t previous=drops;
+        owner=xl6ForeignResourceCreateV1(raw,releaser);assert(owner);
+        xvalue* copy=order<2 ? xrtValueClone(owner) : xrtValueDeepClone(owner);assert(copy);
+        xvalue* survivor=(order&1) ? owner : copy;
+        xrtValueRelease((order&1) ? copy : owner);assert(drops==previous);
+        assert(xl6ForeignResourcePointerV1(survivor)==raw);
+        xrtValueRelease(survivor);assert(drops==previous+1 && !xrtGetError());
+    }
     xmemdebugsnapshot before={0},after={0};xrtMemDebugSnapshot(&before);
     size_t failed=0,passed=0;
     for(int64_t fault=0;fault<32;++fault){
