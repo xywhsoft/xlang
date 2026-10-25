@@ -1,16 +1,22 @@
 # hcl
 
+2026-10-25 当前发布版复验：Windows 默认门禁的严格 C、线程、语言边界与
+核心/边界/分配/范例四条 AOT 路径通过；Linux `test/check.sh` 的 C
+ASan/UBSan、XLang JIT、相同四条独立 EXE AOT 及范例 C/XLang 输出对照
+通过。Linux 首次扩展门禁曾无诊断退出 1，随后带跟踪与原样复跑均通过；
+脚本新增阶段标记，若再次出现可定位停点。尚未把这次偶发退出归因于包实现。
+
 2026-10-25：C 入口不再将 `NULL` HCL 正文默认为合法空文档；
 `validate` 和各查询统一报告 `XERR_ARGUMENT`，真正的 `""` 保持有效。
 C 一致性负例覆盖校验、文本/计数查询和失败后恢复；Windows 默认包门禁
 的严格 C、线程、XLang 与四份 AOT 检查全部通过，Linux C ASan/UBSan、
-XLang JIT 与分配故障门禁通过。Linux 独立 AOT 仍待新版发布构建。
+XLang JIT 与分配故障门禁通过。该时点的 Linux AOT 空白由上段复验补齐。
 
 2026-10-25 所有权复核：四个文本查询返回普通 `string`，
 `takeCstr` 将 XRT 分配直接移交给结果。先前改为 `cstring` 后，
 调用方转成 `string` 反而复制文本，现已修正。Windows 包门禁核对
 生成 C 的直接移交及 C/XLang/AOT 行为。Linux C ASan/UBSan、
-XLang JIT 与双语门禁已通过；独立 Linux AOT 待新发布版复验。
+XLang JIT 与双语门禁已通过；当时尚未复验 Linux AOT，现已由上段补齐。
 
 2026-10-24 当前发布物复验：Windows 默认 `test/check.ps1` 的严格 C、
 线程、XLang 边界与分配、C/XLang 同输出，以及核心、边界、分配、
