@@ -26799,6 +26799,9 @@ typedef struct xtlsserverchoice {
 	const xtlsidentity* Identity;
 	size_t Protocol;
 	uint64 Cookie;
+	/* 框架私有的回调期身份引用，只由 SetIdentityV1 和框架管理。
+	 * 不可直接修改、复制或在回调返回后保存本结构。 */
+	xtlsidentity* IdentityOwnerV1;
 } xtlsserverchoice;
 
 
@@ -26858,6 +26861,15 @@ XRT_EXTERN_C_BEGIN
 
 /* 初始化默认上下文、无身份、无 ALPN 和无动态选择器的服务端配置。 */
 XRT_API void xrtTlsServerConfigInit(xtlsserverconfig* pConfig);
+
+/* 仅在 Select 回调中使用：独立 retain 身份，允许调用方随后立即释放
+ * 自己的引用。替换时释放前次设置的引用；回调成功或失败后，框架统一
+ * 释放最后的临时引用。失败保留原选择（旧身份析构报错时替换已提交）。
+ * 直接赋 Identity 仍是原有借用合同，不隐式转移引用。 */
+XRT_API bool xrtTlsServerChoiceSetIdentityV1(
+	xtlsserverchoice* pChoice,
+	const xtlsidentity* pIdentity
+);
 
 
 
@@ -162987,6 +162999,34 @@ bool __xrtTlsServerCause(cstr sOperation, cstr sMessage)
 
 
 
+/* 回调期选择结果拥有独立身份引用，消除临时返回对象销毁后的借用窗口。 */
+XRT_API bool xrtTlsServerChoiceSetIdentityV1(
+	xtlsserverchoice* pChoice,
+	const xtlsidentity* pIdentity
+)
+{
+	if ( xrtGetError() != NULL ) {
+		return false;
+	}
+	if ( (pChoice == NULL) || (pIdentity == NULL) ) {
+		return __xrtTlsServerError(
+			XERR_ARGUMENT, XTLS_ERROR_ARGUMENT, "set-server-choice-identity",
+			"TLS server choice or identity is null"
+		);
+	}
+	xtlsidentity* pOwned = xrtTlsIdentityRetain(pIdentity);
+	if ( pOwned == NULL ) {
+		return false;
+	}
+	xtlsidentity* pPrevious = pChoice->IdentityOwnerV1;
+	pChoice->IdentityOwnerV1 = pOwned;
+	pChoice->Identity = pOwned;
+	xrtTlsIdentityRelease(pPrevious);
+	return xrtGetError() == NULL;
+}
+
+
+
 /* 安全累加服务端角色尾部存储尺寸。 */
 static bool __xrtTlsServerAddSize(size_t* pSize, size_t iAdd)
 {
@@ -164591,6 +164631,7 @@ static bool __xrtTlsServerSelect(
 	xbytesview KeyShareData;
 	xbytesview ExtendedMasterSecret;
 	xtlsidentitytype IdentityType;
+	bool ChoiceAccepted = false;
 
 	memset(pSelection, 0, sizeof(*pSelection));
 	pSelection->Protocol = XTLS_SERVER_PROTOCOL_NONE;
@@ -164662,38 +164703,64 @@ static bool __xrtTlsServerSelect(
 		pState, pSelection->Protocols
 	);
 	Choice.Cookie = 0;
+	Choice.IdentityOwnerV1 = NULL;
 	Request.ServerName = pSelection->ServerName;
 	Request.Protocols = pSelection->Protocols;
 	if ( (pState->Select != NULL) && !pState->Select(
 		pState->SelectContext, &Request, &Choice
 	) ) {
-		return __xrtTlsServerError(
-			XERR_PROTOCOL, XTLS_ERROR_IDENTITY,
-			"select-server-flight",
-			"TLS server identity selector rejected the ClientHello"
-		);
+		/* A language/host callback's primary checked error must survive. */
+		if ( xrtGetError() == NULL ) {
+			(void)__xrtTlsServerError(
+				XERR_PROTOCOL, XTLS_ERROR_IDENTITY,
+				"select-server-flight",
+				"TLS server identity selector rejected the ClientHello"
+			);
+		}
+		goto choice_done;
+	}
+	if ( xrtGetError() != NULL ) {
+		goto choice_done;
 	}
 	if ( Choice.Identity == NULL ) {
-		return __xrtTlsServerError(
+		(void)__xrtTlsServerError(
 			XERR_PROTOCOL, XTLS_ERROR_IDENTITY,
 			"select-server-flight",
 			"TLS server did not select an identity"
 		);
+		goto choice_done;
 	}
 	if ( !__xrtTlsServerProtocolChoice(
 		pState, pSelection->Protocols, Choice.Protocol
 	) ) {
-		return false;
+		goto choice_done;
 	}
 	pSelection->Identity = xrtTlsIdentityRetain(Choice.Identity);
 	if ( pSelection->Identity == NULL ) {
-		return __xrtTlsServerCause(
+		(void)__xrtTlsServerCause(
 			"select-server-flight",
 			"TLS server could not retain the selected identity"
 		);
+		goto choice_done;
 	}
 	pSelection->Cookie = Choice.Cookie;
 	pSelection->Protocol = Choice.Protocol;
+	ChoiceAccepted = true;
+choice_done:
+	{
+		/* The selected identity has its own reference before the callback's
+		 * temporary owner ends. Refused/failed choices release it as well. */
+		xerror* pPrimary = xrtTakeError();
+		xrtTlsIdentityRelease(Choice.IdentityOwnerV1);
+		Choice.IdentityOwnerV1 = NULL;
+		if ( pPrimary != NULL ) {
+			xrtClearError();
+			xrtSetErrorTake(pPrimary);
+		}
+	}
+	if ( !ChoiceAccepted || (xrtGetError() != NULL) ) {
+		return false;
+	}
 	IdentityType = xrtTlsIdentityType(pSelection->Identity);
 	Result = xrtTlsCipherSelect(
 		Version, &pSelection->Hello.CipherSuites,
