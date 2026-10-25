@@ -30,6 +30,21 @@ also run successfully. This is a shared
 blocker for imports that reach the affected runtime header, not for every
 ordinary extension and not a `pinyin`, `netrc`, or `rtree` implementation error.
 
+The lookup also depends on the process working directory. With the same
+`release/xl.exe` build, these two commands have different outcomes:
+
+```text
+cd demo6
+release\xl.exe run test\cases\extlib_rtree.xl     # missing header
+cd demo6\release
+xl.exe run ..\test\cases\extlib_rtree.xl        # exit 0
+```
+
+`release\xl.exe run release\extlibs\ini\test\boundaries.xl` fails from
+`demo6` with the same header error, while the INI package gate changes its
+working directory to `release` and passes JIT and AOT. The package gate is
+valid for that directory only; this does not close the shared compiler bug.
+
 ## Boundary and likely cause
 
 The compiler VFS stamp contains `xruntime_decl.h` at
@@ -37,14 +52,16 @@ The compiler VFS stamp contains `xruntime_decl.h` at
 `src/runtime/xl6_tls_server_request.h` requests
 `include/xruntime_decl.h`. The generated `xl6_text_value.h` includes the TLS
 header, so a common package import reaches this path. The physical file
-`release/include/xruntime_decl.h` exists, but that does not satisfy the
-embedded-runtime lookup used here.
+`release/include/xruntime_decl.h` exists. Running from `release` can find
+that external fallback; running from its parent cannot. The embedded runtime
+therefore is not self-contained for this include.
 
 Fix the runtime header's include to use the canonical VFS location (or
 change the VFS layout and every dependent include consistently). Check the
 other newly embedded `xl6_*` headers for the same relative-include error;
 then rebuild both DLLs and rerun this minimal import plus representative
-package JIT/AOT gates. Do not add package-level include aliases or copies.
+package JIT/AOT gates from both the release directory and its parent. Do not
+add package-level include aliases or copies.
 
 The first build attempt also failed the resource snapshot check because a
 runtime header changed while packing. An immediate second build passed the
