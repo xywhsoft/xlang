@@ -58,6 +58,10 @@ func rejectReleaser(var callback)
     assert rejected and !adopted
 end
 
+func namedRelease(point value)
+    release(value)
+end
+
 func checkSignatures()
     auto missingArgument = func()
     end
@@ -78,6 +82,8 @@ func checkSignatures()
     callback()
     callback(value = allocate())
     assert calls == 2
+    var nativeOwner = resource(allocate(), xcall(release))
+    var namedOwner = resource(allocate(), xcall(namedRelease))
 end
 
 auto globalOwner = Owned()
