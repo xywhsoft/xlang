@@ -6,7 +6,11 @@
 
 范例分别位于 `release/extlibs/cString/examples/cString.xl` 和 `cString_c.c`。在 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/cString/test/check.ps1`，验证边界、双语输出和 AOT。
 Linux 可运行 `bash release/extlibs/cString/test/check.sh`；该门禁以
-ASan/UBSan 运行 C 边界和范例，再运行 XLang 边界与范例并逐字节比较输出。
+ASan/UBSan 运行 C 边界和范例，再运行 XLang JIT 与边界/范例两份独立
+EXE，并将 C、JIT、AOT 范例输出逐字节比较。
+2026-10-26 当前双平台发布版门禁均退出码 0。Linux 两份独立 EXE
+包含内嵌 NUL 与 UTF-8 字节边界；包本体仍只有 CRT `strlen` 声明，
+没有增加文本复制或原生包装。
 2026-10-24 使用更新后的 Windows 发布版 `xl.exe` 复验，默认包门禁全部通过，
 包括严格 C、C/XLang 同输出、边界和带输出范例 AOT。Linux C ASan/UBSan
 及 XLang 门禁也通过。旧版 `xl6ValueDataSnapshotV1` 缺符号已解除；

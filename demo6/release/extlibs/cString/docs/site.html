@@ -56,6 +56,7 @@ int main(void)
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/cString/test/check.ps1
 bash release/extlibs/cString/test/check.sh</code></pre>
     <p>2026-10-24 使用更新后的 Windows 发布版复验，默认包门禁全部通过：严格 GCC、C 与 XLang 边界、独立 C、<code>xl run</code> 直跑 C 和 XLang 三条范例路径逐字节同输出，以及带输出范例 AOT。Linux C ASan/UBSan 与 XLang 门禁也通过。旧版 <code>xl6ValueDataSnapshotV1</code> 缺符号已解除；这是 cString 包级验证，不代表整个 xlang 发布版签收。</p>
+    <p>2026-10-26 双平台发布版复核：Windows 默认门禁与 Linux C ASan/UBSan、XLang JIT、边界和范例两份独立 EXE 全通过；Linux C/JIT/AOT 范例输出逐字节一致。<code>length</code> 仍仅表示 CRT <code>strlen</code> 在首个 NUL 前的字节数，不代表 UTF-8 字符数。</p>
   </section>
 </main>
 <script src="../main.js"></script>
