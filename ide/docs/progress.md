@@ -2779,3 +2779,16 @@ $/cancelRequest／supersede／open／edit／close／配置／watched-files／诊
 P95 回退保留：coldSummary:96/textDocument/signatureHelp P95 37.855→39.528 ms；coldSummary:512/textDocument/completion P95 236.782→238.334 ms；coldSummary:512/textDocument/signatureHelp P95 221.652→227.807 ms；hotSummary:96/textDocument/completion P95 2.415→2.483 ms；hotSummary:96/textDocument/signatureHelp P95 2.203→2.212 ms；hotSummary:512/textDocument/completion P95 2.736→2.800 ms；hotSummary:512/textDocument/signatureHelp P95 2.438→2.523 ms；GUI 96/0 P95 72.731→73.464 ms；GUI 96/1 P95 46.682→77.435 ms。
 
 证据 build/lsp-next-20261022/m7a2b32a-result.json，外部 m7a2b32a-2687faaf／component-v4；实际 native producer 位于 v2。外部 C/compiler XRT、未来 opaque xlc.dll，无 DAP／运行态补全。发布 5,241 文件保持；继续持久语义模块／xlp／全局身份、剩余适用 LSP／静态分析／IDE 与模型预算、100k／并行／soak／最终发行；整体 goal active，全部性能与功能目标尚未验收。
+
+
+## M7a2b33a：源模块依赖、项目归属与语义索引绑定（0.66）
+
+0.66 在原导入器成功压入 activeSources 后，记录其真实源码父子边；在原根展开退出前确认成功。全部原解析、搜索、循环检测、命名空间重写和包处理正文保留。图节点关联共享普通模块存储中的持续逻辑路径 ID，以及原报告 SourceId、source／manifest／entry／明确成员标签角色；保留完整项目／配置 context。原生检查、补全、签名结果各自持有不可变快照，checked typed index 通过 O(1) 表把当前 SourceId 绑定到持续模块 ID。原编译器的 SymbolId、TypeId 和当前 SourceId 不改写。
+
+143 个对象在最终 component-v1 完整编译，63 原生夹具／64 PE／65 outputs／70 AST17 消费者／57 core members、336 实际依赖，冻结 1,093 输入。新增 490 检查包括真实菱形导入、导入次序变化后的源码编号重映射、三个工作者共享模块身份、项目配置隔离、未读成员、失败导入不产生部分图、小预算、嵌套禁用作用域、取消、四读者及独立生命周期；AST／结果与独立 fresh 路径匹配。
+
+512 helper 的无关输入开关后三方法总序列 P50／P95／P99：94.933 / 243.282 / 244.155→94.672 / 237.234 / 243.446 ms；实际依赖声明编辑后的总序列为 885.232 / 1081.388 / 1113.222→889.002 / 980.185 / 1071.978 ms。
+
+P95 回退保留：dependency-editSequenceSummary:96 P95 147.793→155.319 ms；topologySummary:512/xlang/check P95 158.890→159.158 ms；editSummary:96/xlang/check P95 87.359→94.455 ms；editSummary:96/textDocument/completion P95 30.652→34.425 ms；coldSummary:512/xlang/check P95 720.999→728.416 ms；coldSummary:512/textDocument/completion P95 226.683→229.010 ms；hotSummary:96/textDocument/completion P95 2.457→2.508 ms；hotSummary:512/xlang/check P95 89.272→89.749 ms；GUI 96/1 P95 93.567→94.456 ms；GUI 96/3 P95 10.678→11.009 ms；GUI 512/1 P95 264.610→276.536 ms；GUI 512/3 P95 13.670→13.720 ms。
+
+证据 build/lsp-next-20261022/m7a2b33a-result.json，外部 m7a2b33a-ade11ce1／component-v1。外部 C/compiler XRT、未来 opaque xlc.dll，无 DAP／运行态补全。发布 5,241 文件保持；继续模块 typed model／稳定全局实体、剩余适用 LSP／静态分析／IDE、模型总预算、100k／并行／soak／最终发行。整体 goal active，完整性能与功能目标尚未验收。
