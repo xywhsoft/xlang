@@ -29,7 +29,13 @@ static int64_t control(void* raw,unsigned operation)
     if(!xl6TlsSessionEnterInternalV1(self,true,&scope))return XTLS_ERROR;
     xtlsresult result=operation==0?self->role->drive(self->native):
         operation==1?xrtTlsSessionClose(self->native):xrtTlsSessionEof(self->native);
-    xl6TlsOutcomeV1(result!=XTLS_ERROR);xl6TlsSessionLeaveInternalV1(&scope);return result;
+    xl6TlsOutcomeV1(result!=XTLS_ERROR);
+    /* Select is borrowed only through the native first flight. On a terminal
+     * handshake state no future Drive can call it again; drop captures while
+     * the real Session entry gate still excludes graph observation. */
+    xtlsstate state=xrtTlsSessionState(self->native);
+    if(state==XTLS_STATE_READY||state==XTLS_STATE_FAILED)xl6TlsSelectorDropV1(&self->selector);
+    xl6TlsSessionLeaveInternalV1(&scope);return result;
 }
 int64_t xl6TlsSessionDriveV1(void* raw){return control(raw,0);}
 int64_t xl6TlsSessionCloseV1(void* raw){return control(raw,1);}

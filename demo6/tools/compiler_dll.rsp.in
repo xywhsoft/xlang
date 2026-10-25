@@ -109,6 +109,11 @@
     src\runtime\xl6_tls_metadata_client.c
     src\runtime\xl6_tls_metadata_server.c
     src\runtime\xl6_tls_server_request.c
+    src\runtime\xl6_tls_server_request_policy.c
+    src\runtime\xl6_tls_server_choice.c
+    src\runtime\xl6_tls_selector.c
+    src\runtime\xl6_ownership_domain_tls_server_request.c
+    src\runtime\xl6_ownership_domain_tls_server_choice.c
 
     src\runtime\xl6_execution_tls_dial.c
     src\runtime\xl6_execution_tls_dial_common.c
@@ -180,6 +185,7 @@
     src\runtime\xl6_udp_address.c
     src\runtime\xl6_udp_stats.c
     src\runtime\xl6_native_class_result.c
+    src\runtime\xl6_native_class_callback.c
     src\runtime\xl6_udp_future.c
     src\runtime\xl6_udp_future_interrupt.c
     src\runtime\xl6_udp_message.c

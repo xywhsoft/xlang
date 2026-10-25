@@ -79,3 +79,8 @@
     {"src/runtime/xl6_tls_metadata_client.c",D(),{"XRT_MODULE_TLS_CLIENT"}},
     {"src/runtime/xl6_tls_metadata_server.c",D(),{"XRT_MODULE_TLS_SERVER"}},
     {"src/runtime/xl6_tls_server_request.c",D(),{"XRT_MODULE_TLS_HELLO","XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_tls_server_request_policy.c",D(R(TLS_SERVER_REQUEST),R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_tls_server_choice.c",D(R(TLS_IDENTITY)),{NULL}},
+    {"src/runtime/xl6_tls_selector.c",D(R(TLS_SERVER_CONTEXT),R(TLS_SERVER_REQUEST_POLICY),R(TLS_SERVER_CHOICE),R(NATIVE_CLASS_CALLBACK)),{"XRT_MODULE_TLS_SERVER"}},
+    {"src/runtime/xl6_ownership_domain_tls_server_request.c",D(R(OWNERSHIP_CATALOG),R(TLS_SERVER_REQUEST_POLICY)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_tls_server_choice.c",D(R(OWNERSHIP_CATALOG),R(TLS_SERVER_CHOICE)),{NULL}},

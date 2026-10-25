@@ -1732,7 +1732,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsNistClass;
     int needsRsaPublicClass, needsRsaPrivateClass;
     int needsTlsIdentity, needsTlsParameters, needsTlsVerifier, needsTlsVerificationPolicy;
-    int needsTlsClientContext,needsTlsServerContext;
+    int needsTlsClientContext,needsTlsServerContext,needsTlsSelector;
     int needsTccClass;
     int needsXlangClass;
     int needsCoreClass;
@@ -1995,7 +1995,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
     needsTlsClientContext=needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsClientContext");
     needsTlsServerContext=needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsServerContext");
-    needsTlsIdentity = needsTlsServerContext || xl6StdlibNodeUsesTypeName(root,"TlsIdentity") || xl6StdlibNodeUsesTypeName(root,"TlsIdentityKind");
+    needsTlsSelector=needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsServerRequest")||xl6StdlibNodeUsesTypeName(root,"TlsServerChoice");
+    needsTlsIdentity = needsTlsSelector || xl6StdlibNodeUsesTypeName(root,"TlsIdentity") || xl6StdlibNodeUsesTypeName(root,"TlsIdentityKind");
     needsTlsVerifier=needsTlsClientContext || xl6StdlibNodeUsesTypeName(root,"TlsVerifier");
     needsTlsVerificationPolicy=needsTlsVerifier || xl6StdlibNodeUsesTypeName(root,"TlsVerificationPolicy");
     needsX509Island=needsTlsIdentity||needsTlsVerifier||xl6StdlibNeedsX509(root,used);
@@ -2388,6 +2389,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if(needsTlsVerificationPolicy)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsVerificationPolicySource);
     if(needsTlsVerifier)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsVerifierSource);
     if(needsTlsClientContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsClientContextSource);
+    if(needsTlsSelector)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsSelectorSource);
     if(needsTlsServerContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsServerContextSource);
     if(needsTlsManagedSession)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsManagedSessionClassSource);
     if(needsTlsStreamClass||xl6StdlibNodeUsesTypeName(root,"TlsStreamOptions")||xl6StdlibNodeUsesTypeName(root,"TlsDialOptions"))

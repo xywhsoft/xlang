@@ -6,8 +6,8 @@
 #define SW .resultProductAbi=XL6_IR_NATIVE_PRODUCT_I64U64_V1,.resultProductEnums={&xl6IrTlsResultContract}
 {"xl6TlsSessionClientCreateV1",T,V,5,{V,S,I,S,I},.parameterOwners={"xl6TlsClientContextDestroyV1"},.resultOwner=SD,SE},
 {"xl6TlsSessionServerCreateV1",T,V,1,{V},.parameterOwners={"xl6TlsServerContextDestroyV1"},.resultOwner=SD,SE},
-{"xl6TlsSessionDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},SS,.nativeHandlePolicy="xl6TlsSessionHandlePolicyV1Get",.noRaise=1,.nonblocking=1},
-{"xl6TlsSessionDisposeV1",T,XL6_IR_C_ABI_VOID,1,{V},SS,SF},
+{"xl6TlsSessionDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},SS,.nativeHandlePolicy="xl6TlsSessionHandlePolicyV1Get",SE},
+{"xl6TlsSessionDisposeV1",T,XL6_IR_C_ABI_VOID,1,{V},SS,SE},
 {"xl6TlsSessionDisposedV1",T,B,1,{V},SS,SF},
 {"xl6TlsSessionRoleV1",T,I,1,{V},SS,.resultEnum=&xl6IrTlsRoleContract,SF},
 {"xl6TlsSessionStateV1",T,I,1,{V},SS,.resultEnum=&xl6IrTlsStateContract,SF},
