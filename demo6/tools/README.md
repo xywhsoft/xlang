@@ -601,6 +601,7 @@ Representative and cross-cutting guards include:
 - `check_source_encoding.ps1`
 - `check_source_wiring.ps1`
 - `check_xlir_contract.ps1`
+- `check_xlir_guard_contracts.ps1`：对实际静态守卫做内存内反例检查；不修改生产文件，不代替正常编译守卫和语言／发布验收。
 - `check_xlir_cgen_determinism.ps1`
 - `check_xlir_cgen_runtime_matrix.ps1`
 - `check_xlir_intrinsic_calls.ps1`

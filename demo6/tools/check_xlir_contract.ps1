@@ -1145,14 +1145,20 @@ if ($dynamicRuntime -match 'typedef struct xrtcall(frame|result)' -or
     !(Read-Utf8 "src\cgen\xl6_ir_cgen_needs_model.c").Contains("needs->needsXCallRuntime ||")) {
     throw "Dynamic callable frames must use the public declaration ABI, not mirrored layouts"
 }
+$templateBoundary=(@(Get-ChildItem -LiteralPath (Join-Path $Root 'src/cgen') -File |
+    Where-Object {$_.Extension-in @('.c','.h','.inc')} |
+    ForEach-Object {Read-Utf8 ('src/cgen/'+$_.Name)}) -join "`n")
 if (!(Read-Utf8 "src\cgen\xl6_ir_cgen_emit_xvalue_core.c").Contains("typedef xbytesview xlir_bytes_view;") -or
-    (Read-Utf8 "src\cgen\xl6_ir_cgen_emit_template.c").Contains("typedef struct xtemplateconfig")) {
-    throw "Union bytes and template configuration must use public declaration types"
+    $templateBoundary.Contains("typedef struct xtemplateconfig") -or
+    !(Read-Utf8 'src/runtime/xl6_template_core.c').Contains('xrtTemplateConfigInit(config)') -or
+    !(Read-Utf8 'src/runtime/xl6_template_abi.h').Contains('xl6TemplateCreateV1(xstrview,const xvalue*,int64_t)') -or
+    !(Read-Utf8 'src/ir/xl6_ir_template_contracts.inc').Contains('xl6TemplateHandlePolicyV1Get') -or
+    (Test-Path -LiteralPath (Join-Path $Root 'src/cgen/xl6_ir_cgen_emit_template.c'))) {
+    throw "Union bytes and resident template configuration require canonical public types, exact declaration/owner contracts and no retired template emitter"
 }
-if (!(Read-Utf8 "src\cgen\xl6_ir_cgen_emit_xvalue_core.c").Contains("XVALUE_MERGE_REPLACE") -or
-    (Read-Utf8 "src\cgen\xl6_ir_cgen_emit_xvalue_core.c") -match
-        'extern bool xrtValue(?:IntMap|Object)Merge') {
-    throw "Collection merge policy must come from the public enum ABI"
+if (!(Read-Utf8 'src/runtime/xl6_dict_methods.c').Contains('XVALUE_MERGE_REPLACE') -or
+    $templateBoundary -match 'typedef\s+enum\s+xvaluemergepolicy|extern bool xrtValue(?:IntMap|Object)Merge') {
+    throw "Resident collection merge must use the public enum ABI; Cgen must not mirror its type or unchecked merge prototypes"
 }
 $sharedValue = Read-Utf8 "src\cgen\xl6_ir_cgen_shared_value.c"
 if (!$source.Contains("xl6IrCollectionReadRuntimeInstructionCompatible") -or
@@ -1163,11 +1169,24 @@ if (!$source.Contains("xl6IrCollectionReadRuntimeInstructionCompatible") -or
     !$directBridgeUnit.Contains("testCollectionReadAbi()")) {
     throw "Collection reads and same-TypeId retain must use verified shared continuation emission"
 }
-$cEmitter = Read-Utf8 "src\cgen\xl6_ir_cgen.c"
-foreach ( $include in [regex]::Matches(
-    $cEmitter, '#include "(?<path>src/cgen/xl6_ir_cgen[^\"]+\.c)"') ) {
-    $cEmitter += "`n" + (Read-Utf8 ($include.Groups["path"].Value -replace '/', '\'))
+# Follow the actual Cgen implementation closure, including mechanical queue /
+# tree leaves included by another Cgen fragment. Never append resident runtime
+# implementations to make a library-body expectation pass this boundary.
+$cEmitterPaths=[Collections.Generic.List[string]]::new()
+$cEmitterPaths.Add('src/cgen/xl6_ir_cgen.c')
+$cEmitterSeen=@{};$cEmitterPieces=[Collections.Generic.List[string]]::new()
+for($cEmitterIndex=0;$cEmitterIndex-lt$cEmitterPaths.Count;++$cEmitterIndex) {
+    $cEmitterPath=$cEmitterPaths[$cEmitterIndex]
+    if($cEmitterSeen.ContainsKey($cEmitterPath)){continue}
+    $cEmitterSeen[$cEmitterPath]=$true
+    $cEmitterPart=Read-Utf8 $cEmitterPath
+    $cEmitterPieces.Add($cEmitterPart)
+    foreach($include in [regex]::Matches($cEmitterPart,
+        '#include "(?<path>src/cgen/xl6_ir_cgen[^\"]+\.c)"')) {
+        $cEmitterPaths.Add($include.Groups['path'].Value)
+    }
 }
+$cEmitter=$cEmitterPieces -join "`n"
 $compileUnit = Read-Utf8 "src\compile\xl6_compile_unit.c"
 $api = Read-Utf8 "src\api\xl_api.c"
 $shell = Read-Utf8 "src\driver\xl6_xlc_shell.c"
@@ -2199,8 +2218,7 @@ foreach ( $required in @(
     "XL6_IR_RUNTIME_BRIDGE_STRING_INDEX_OF",
     "XL6_IR_RUNTIME_BRIDGE_JSON_PARSE",
     "XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE",
-    "XL6_IR_RUNTIME_BRIDGE_TEMPLATE", "XL6_IR_CALL_TARGET_EXTERN_C",
-    "XL6_IR_RUNTIME_BRIDGE_TEXT_CODEC",
+    "XL6_IR_CALL_TARGET_EXTERN_C",
     "XL6_IR_RUNTIME_BRIDGE_CRYPTO_TEXT_HASH",
     "XL6_IR_RUNTIME_BRIDGE_PATH_JOIN", "XL6_IR_RUNTIME_BRIDGE_FILE",
     "XL6_IR_RUNTIME_BRIDGE_LAST_ERROR_TEXT",
@@ -2239,17 +2257,13 @@ foreach ( $required in @(
     "target->errorAbi = xl6IrRuntimeStringBridgeErrorAbi(target->cName)",
     "xl6IrRuntimeStringBridgeTargetMatches(ctx->module, target)",
     "XLIR string runtime bridge has no exact parameter/result ABI",
-    "XLIR xvalue table-remove runtime bridge has no exact private helper ABI",
     "XLIR string-index-of runtime bridge has no exact private helper ABI",
     "XLIR JSON value runtime bridge has no exact parameter/result ABI",
     "XLIR direct runtime bridge has no exact declared ABI",
-    "XLIR DynamicFields runtime bridge has no exact private helper ABI",
-    "XLIR template runtime bridge has no exact borrowed native handle ABI",
     "xl6IrRuntimeDirectBridgeTargetMatches(ctx->module, target)",
     "XLIR File runtime bridge has no exact component ABI",
     "XLIR last-error-text runtime bridge has no exact owned-string ABI",
     "XLIR call target has no exact physical error ABI",
-    "XLIR text codec runtime bridge has no exact ABI",
     "XLIR crypto text-hash runtime bridge has no exact ABI",
     "XLIR path-join runtime bridge has no exact strings/rest/result ABI"
 ) ) {
@@ -2262,11 +2276,9 @@ foreach ( $required in @(
     "XLIR C emitter closure adapter role is unresolved",
     "target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_PRINT",
     "target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE",
-    "XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS",
     "xl6DictValueRemoveV1",
     "XL6_IR_RUNTIME_BRIDGE_JSON_PARSE",
-    "XL6_IR_RUNTIME_BRIDGE_TEMPLATE", "XL6_IR_CALL_TARGET_EXTERN_C",
-    "XL6_IR_RUNTIME_BRIDGE_TEXT_CODEC",
+    "XL6_IR_CALL_TARGET_EXTERN_C",
     "XL6_IR_RUNTIME_BRIDGE_CRYPTO_TEXT_HASH",
     "XL6_IR_RUNTIME_BRIDGE_PATH_JOIN", "XL6_IR_RUNTIME_BRIDGE_FILE",
     "XL6_IR_RUNTIME_BRIDGE_LAST_ERROR_TEXT",
@@ -2279,6 +2291,20 @@ foreach ( $required in @(
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR C emitter is missing mechanical named-adapter consumption: $required"
     }
+}
+# These former private helpers now use the ordinary declaration verifier.
+# Their exact effect, owner and borrowed-input facts stay in IR, not Cgen.
+$dictRemoveDeclaration=[regex]::Match($directBridge,'(?m)^\s*\{"xl6DictValueRemoveV1".*$').Value
+$codecDecodeDeclaration=[regex]::Match($directBridge,'(?m)^\s*\{"xl6CodecHexDecodeV1".*$').Value
+$dynamicDropDeclaration=[regex]::Match($directBridge,'(?m)^\s*\{"xl6_xrt_dynamic_fields_destroy".*$').Value
+if (!$dictRemoveDeclaration.Contains('T,B,2,{V,S}') -or
+    !$dictRemoveDeclaration.Contains('.parameterDynamicBorrows={1,0}') -or
+    !$codecDecodeDeclaration.Contains('T,Y,3,{S,I,I}') -or
+    !$codecDecodeDeclaration.Contains('.pure=1,.nonblocking=1') -or
+    !$dynamicDropDeclaration.Contains('.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}') -or
+    !$dynamicDropDeclaration.Contains('.nativeHandlePolicy="xl6DynamicFieldsHandlePolicyV1Get"') -or
+    !$dynamicDropDeclaration.Contains('XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE')) {
+    throw 'Resident named adapters need exact declared effects, input borrows, destruction owners and physical errors'
 }
 foreach ( $required in @(
     "cgen_function_adapter_dedupe", "cgen_named_function_argument",
@@ -2329,7 +2355,7 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE", "xrtValueArrayRemove",
-    "xrtValueIntMapRemove", "xrtValueSetRemove", "xrtValueObjectRemove"
+    "xrtValueIntMapRemove", "xl6SetValueRemoveV1", "xrtValueObjectRemove"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR Cgen is missing mechanical collection-member runtime emission: $required"
@@ -2394,7 +2420,7 @@ if ($algebraBody.Contains('XL6_IR_INSTR_RELEASE') -or
 foreach ( $required in @(
     "xl6IrCgenEmitCollectionAlgebraInstruction",
     "xl6IrCgenRuntimeCollectionAlgebraAbi",
-    "xrtValueArrayConcat", "xrtValueSetIsSubset"
+    "xl6ArrayConcatV1", "xl6SetValueAlgebraV1"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR Cgen is missing mechanical collection-algebra emission: $required"
@@ -2455,7 +2481,7 @@ foreach ( $required in @(
     "xl6ArrayResizeDefaultV1",
     "xl6ArrayMethodIndexOfV1",
     "xl6ArrayMethodReverseV1",
-    "xlir_xvalue_dynamic_collection_method"
+    "xl6DynamicCollectionCallTakeV1"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR Cgen is missing mechanical collection-method emission: $required"
@@ -2656,7 +2682,7 @@ foreach ( $required in @(
     "xl6IrLowerProjectBorrowedIndexResult",
     "XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_UNION_COPY",
     "XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_XVALUE_RETAIN",
-    "allowing the lookup itself to"
+    "XLIR borrowed safe-index result has no exact nullable projection ABI"
 ) ) {
     if ( ! $lower.Contains($required) ) {
         throw "XLIR safe-index exact projection lowering contract is incomplete: $required"
@@ -3561,7 +3587,7 @@ foreach ( $required in @(
     "XL6_IR_INSTR_ERROR_SET_TAKE",
     "XL6_IR_INSTR_RUNTIME_CALL",
     "XL6_IR_RUNTIME_STRING_DUP",
-    "xl6IrLowerCanonicalCStringLiteral",
+    "xl6IrCanonicalCStringLiteral",
     "xl6IrLowerEmitRuntimeDataCall",
     "XL6_IR_RUNTIME_STRING_FROM_UTF8", "XL6_IR_RUNTIME_BYTES_FROM_DATA",
     "XLIR managed string literal has no decoded UTF-8 payload",
@@ -3610,7 +3636,7 @@ foreach ( $required in @(
     "XLIR escaping throw lacks a precomputed function error ABI",
     "XLIR call completion has no explicit outcome and propagation CFG",
     "XLIR await requires an exact resolved future result ABI",
-    "XLIR await requires a resolved future storage, call, index or conditional result",
+    "XLIR await requires an exact resolved future result ABI",
     "XLIR await has no explicit success or failure CFG ABI",
     "XLIR async task ABI requires a result ownership ABI and explicit task-frame captures",
     "xl6IrParameterFrameTransfer",
@@ -3783,7 +3809,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "switch ( lhs->indexWriteAbi )",
     "XL6_IR_INDEX_WRITE_XVALUE_LIST_I64_SET_NEW",
-    "XL6_IR_RUNTIME_XVALUE_INT_MAP_SET_I64_NEW",
+    "XL6_IR_INDEX_WRITE_XVALUE_OBJECT_STRING_SET_NEW",
     "xl6IrLowerEmitCheckedIndexWrite", "XL6_IR_INSTR_ERROR_RAISE",
     "container index assignment failed", "RangeError",
     "XLIR index mutation has no resolved address and write ABI"
@@ -4202,7 +4228,7 @@ foreach ( $required in @(
     "xlir_xvalue_iterator_item_f64", "xlir_xvalue_iterator_item_string_copy",
     "xlir_xvalue_iterator_item_xvalue_retain",
     "xlir_xvalue_iterator_key_string_copy",
-    "xlir_xvalue_iterator_create_checked",
+    "xl6ValueIteratorRuntimeV2Get()->Create", "xl6IrCgenRuntimeCheckedIteratorCreateAbi",
     "xlir_xvalue_iterator_key_dynamic_xvalue",
     "xlir_xvalue_iterator_dynamic_logical_xvalue",
     "xlir_xvalue_iterator_destroy", "xrtValueIterAdvance"
@@ -4428,17 +4454,22 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "XL6_IR_RUNTIME_XVALUE_CONTAINS",
-    "xlir_xvalue_contains",
-    "if (valuesType == 11)",
-    "if (valuesType == 12)",
-    "if (valuesType == 4)",
-    "valuesType != 9 && valuesType != 10",
-    "xrtValueIterCreate",
-    "xrtValueEqual"
+    "xl6IrCgenCollectionContainsSymbol", "xl6ValueContainsV1",
+    "xl6_value_contains.h"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR C emitter is missing mechanical xvalue membership emission: $required"
     }
+}
+$membershipProvider=Read-Utf8 'src/runtime/xl6_value_contains.c'
+foreach($required in @('xl6ListErasedContainsV1','xl6SetErasedKeyV1','xl6DictErasedKeyV1',
+    'xl6ArrayMethodIndexOfV1','xl6ValueWireContainsV1','xl6ErrorScopeCaptureFailure','xl6ErrorScopePropagateFailure')) {
+    if(!$membershipProvider.Contains($required)) {
+        throw "Resident membership must preserve typed container dispatch and checked failures: $required"
+    }
+}
+if($cEmitter.Contains('if (valuesType == 11)') -or $cEmitter.Contains('xlir_xvalue_contains')) {
+    throw 'Container membership algorithms must not return to generated C'
 }
 foreach ( $required in @(
     "XL6_IR_RUNTIME_XVALUE_INDEX_GET_XVALUE_KEY",
@@ -4520,7 +4551,7 @@ foreach ( $required in @(
     "xlir_async_pool_submit",
     "xlir_async_pool_quiesce",
     "xl6TaskRuntimeV1Get()->PoolQuiesce",
-    "xlir_async_task_",
+    "xl6ContinuationFrameRuntimeV2Get()->Retire",
     "xlir_async_frame_",
     "XL6_FUTURE_PAYLOAD_XVALUE",
     "XL6_FUTURE_PAYLOAD_STRING",
@@ -4548,8 +4579,8 @@ foreach ( $required in @(
     "frame->f%lu",
     "XLIR C emitter async worker error-result ABI is unresolved",
     "target->asyncCompletionAbi",
-    "xlir_async_frame_retire_%u(frame, outcome)",
-    "outcome.ok = worker.ok;",
+    "xlir_async_machine_frame_retire_%u(frame, retired)",
+    "xl6ContinuationFrameFinishV1(frame, retired, &cancelled)", "if (!retired.ok)",
     "xrtFutureError(future)",
     "xl6PayloadObserveOutcome",
     "XLIR verified async machine produced no C program",
@@ -4571,7 +4602,7 @@ if ( ! $sem.Contains("case XL6_AST_ASSERT") -or
     throw "semantic analysis must assign assertions a resolved throw exit before XLIR lowering"
 }
 
-foreach ( $required in @("xl6IrCgenEmitC", "xl6IrCgenEmitHeader", "xl6IrCgenVerifyEmittable", "XL6_IR_STAGE_LOWERED", "XL6_IR_INSTR_BINARY", "XL6_IR_INSTR_VALUE", "XL6_IR_INSTR_DISCARD", "XL6_IR_INSTR_RUNTIME_CALL", "XL6_IR_INSTR_TRAP_IF_FALSE", "XL6_IR_INSTR_ERROR_RAISE", "XL6_IR_INSTR_ERROR_TAKE", "XL6_IR_INSTR_ERROR_SET_TAKE", "XL6_IR_INSTR_AWAIT", "XL6_IR_RUNTIME_STRING_DUP", "XL6_IR_RUNTIME_STRING_COPY", "XL6_IR_RUNTIME_STRING_CONCAT", "XL6_IR_RUNTIME_STRING_EQUAL", "XL6_IR_RUNTIME_XVALUE_I64", "XL6_IR_RUNTIME_XVALUE_STRING_COPY", "XL6_IR_RUNTIME_XVALUE_RETAIN", "XL6_IR_RUNTIME_XVALUE_COUNT", "XL6_IR_RUNTIME_XVALUE_ARRAY_NEW", "XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64", "XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_INTEGER", "XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_BOOL", "XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_F64", "XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY", "XL6_IR_RUNTIME_XVALUE_ARRAY_APPEND_NEW", "XL6_IR_RUNTIME_XVALUE_ARRAY_SET_I64_NEW", "XL6_IR_RUNTIME_XVALUE_INT_MAP_NEW", "XL6_IR_RUNTIME_XVALUE_INT_MAP_SET_I64_NEW", "XL6_IR_RUNTIME_XVALUE_SET_NEW", "XL6_IR_RUNTIME_XVALUE_SET_ADD_NEW", "XL6_IR_RUNTIME_XVALUE_OBJECT_NEW", "XL6_IR_RUNTIME_XVALUE_OBJECT_SET_LITERAL_NEW", "XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL", "XL6_IR_RUNTIME_XVALUE_OBJECT_GET_STRING", "XL6_IR_RUNTIME_XVALUE_OBJECT_SET_STRING_NEW", "XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_I64", "xlir_xvalue_object_get_literal_i64", "XL6_IR_PARAMETER_ABI_BORROW", "xrtStrDup", "xrtStrConcat", "xrtStrEqual", "xrtStrView", "xrtFree", "xrtValueInt", "xrtValueString", "xrtValueRetain", "xrtValueRelease", "xrtValueCount", "xrtValueArray", "xrtValueArrayAt", "xl6ArrayValueAppendTakeV1", "xl6ArrayReadStringV1", "xl6ArrayValueSetTakeV1", "xrtValueIntMap", "xrtValueIntMapSetNew", "xrtValueSet", "xrtValueSetAddNew", "xrtValueObject", "xrtValueObjectGet", "xrtValueObjectSetNew", "xl6ArrayReadI64V1", "xl6ArrayReadBoolV1", "xl6ArrayReadF64V1", "xlir_xvalue_object_get_literal_or_null", "xlir_xvalue_object_get_string_or_null", "xrtFutureDestroy", "xrtFutureWait", "xrtFutureValue", "xrtGetError", "xl6IrCgenEmitAwaitPayload", "abort", "xl6IrCgenOperator", "item->cAbi", "instruction->opcode", "instruction->immediateText", "xl6IrCgenFindFunction", "xl6IrCallTargetGet", "xl6IrCgenEmitExternPrototype", "xl6IrCgenEmitModuleEntry", "xl6IrCgenEmitExport", "XL6_IR_CALL_TARGET_EXTERN_C", "XL6_IR_MODULE_ENTRY_XLANG_MAIN", "xlang_main", "typedef struct xvalue xvalue;", "typedef struct xfuture xfuture;", "xlir_result_void", "xlir_module_init", "xrtTakeError", "xrtSetErrorTake", "xrtErrorFree", "xl6IrCgenErrorStateInstructionAbi", "xl6IrCgenEmitErrorStateInstruction", "XLIR error-state ownership ABI is unresolved", "XLIR C emitter export linkage ABI is unresolved", "XLIR C header export linkage ABI is unresolved", "XLIR module initializer return ABI is not defined", "XLIR C emitter runtime exception ABI is not implemented", "xl6IrCgenErrorProjectionAbi", "XLIR C emitter ownership runtime ABI is not implemented", "XLIR C emitter await result ABI is not implemented", "XLIR lowered cleanup action has no materialized ownership instruction", "XLIR constant has no canonical immediate payload", "XLIR value copy has no deterministic definition or merge target", "XLIR discard has no deterministic non-owning observation ABI", "XLIR void function return carries a value", "XLIR C emitter may-raise call has no result carrier ABI", "XLIR C emitter call target or argument ABI is unresolved", "XLIR C emitter runtime trap ABI is unresolved", "XLIR C emitter has no deterministic binary operator rule", "XLIR C emitter has no rule for this lowered instruction") ) {
+foreach ( $required in @("xl6IrCgenEmitC", "xl6IrCgenEmitHeader", "xl6IrCgenVerifyEmittable", "XL6_IR_STAGE_LOWERED", "XL6_IR_INSTR_BINARY", "XL6_IR_INSTR_VALUE", "XL6_IR_INSTR_DISCARD", "XL6_IR_INSTR_RUNTIME_CALL", "XL6_IR_INSTR_TRAP_IF_FALSE", "XL6_IR_INSTR_ERROR_RAISE", "XL6_IR_INSTR_ERROR_TAKE", "XL6_IR_INSTR_ERROR_SET_TAKE", "XL6_IR_INSTR_AWAIT", "XL6_IR_RUNTIME_STRING_DUP", "XL6_IR_RUNTIME_STRING_COPY", "XL6_IR_RUNTIME_STRING_CONCAT", "XL6_IR_RUNTIME_STRING_EQUAL", "XL6_IR_RUNTIME_XVALUE_I64", "XL6_IR_RUNTIME_XVALUE_STRING_COPY", "XL6_IR_RUNTIME_XVALUE_RETAIN", "XL6_IR_RUNTIME_XVALUE_COUNT", "XL6_IR_RUNTIME_XVALUE_ARRAY_NEW", "XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64", "XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_INTEGER", "XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_BOOL", "XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_F64", "XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY", "XL6_IR_RUNTIME_XVALUE_ARRAY_APPEND_NEW", "XL6_IR_RUNTIME_XVALUE_ARRAY_SET_I64_NEW", "XL6_IR_RUNTIME_XVALUE_INT_MAP_NEW", "XL6_IR_RUNTIME_XVALUE_INT_MAP_SET_I64_NEW", "XL6_IR_RUNTIME_XVALUE_SET_NEW", "XL6_IR_RUNTIME_XVALUE_SET_ADD_NEW", "XL6_IR_RUNTIME_XVALUE_OBJECT_NEW", "XL6_IR_RUNTIME_XVALUE_OBJECT_SET_LITERAL_NEW", "XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL", "XL6_IR_RUNTIME_XVALUE_OBJECT_GET_STRING", "XL6_IR_RUNTIME_XVALUE_OBJECT_SET_STRING_NEW", "XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_I64", "xlir_xvalue_object_get_literal_i64", "XL6_IR_PARAMETER_ABI_BORROW", "xrtStrDup", "xrtStrConcat", "xrtStrEqual", "xrtStrView", "xrtFree", "xrtValueInt", "xrtValueString", "xrtValueRetain", "xrtValueRelease", "xrtValueCount", "xrtValueArray", "xrtValueArrayAt", "xl6ArrayValueAppendTakeV1", "xl6ArrayReadStringV1", "xl6ArrayValueSetTakeV1", "xrtValueIntMap", "xrtValueIntMapSetNew", "xl6IrCgenEmitSetTargetCreate", "xl6SetValueAddTakeV1", "xrtValueObject", "xrtValueObjectGet", "xrtValueObjectSetNew", "xl6ArrayReadI64V1", "xl6ArrayReadBoolV1", "xl6ArrayReadF64V1", "xlir_xvalue_object_get_literal_or_null", "xlir_xvalue_object_get_string_or_null", "xrtFutureDestroy", "xrtFutureWait", "xrtFutureValue", "xrtGetError", "xl6IrCgenEmitAwaitPayload", "abort", "xl6IrCgenOperator", "item->cAbi", "instruction->opcode", "instruction->immediateText", "xl6IrCgenFindFunction", "xl6IrCallTargetGet", "xl6IrCgenEmitExternPrototype", "xl6IrCgenEmitModuleEntry", "xl6IrCgenEmitExport", "XL6_IR_CALL_TARGET_EXTERN_C", "XL6_IR_MODULE_ENTRY_XLANG_MAIN", "xlang_main", "typedef struct xvalue xvalue;", "typedef struct xfuture xfuture;", "xlir_result_void", "xlir_module_init", "xrtTakeError", "xrtSetErrorTake", "xrtErrorFree", "xl6IrCgenErrorStateInstructionAbi", "xl6IrCgenEmitErrorStateInstruction", "XLIR error-state ownership ABI is unresolved", "XLIR C emitter export linkage ABI is unresolved", "XLIR C header export linkage ABI is unresolved", "XLIR module initializer return ABI is not defined", "XLIR C emitter runtime exception ABI is not implemented", "xl6IrCgenErrorProjectionAbi", "XLIR C emitter ownership runtime ABI is not implemented", "XLIR C emitter await result ABI is not implemented", "XLIR lowered cleanup action has no materialized ownership instruction", "XLIR constant has no canonical immediate payload", "XLIR value copy has no deterministic definition or merge target", "XLIR discard has no deterministic non-owning observation ABI", "XLIR void function return carries a value", "XLIR C emitter may-raise call has no result carrier ABI", "XLIR C emitter call target or argument ABI is unresolved", "XLIR C emitter runtime trap ABI is unresolved", "XLIR C emitter has no deterministic binary operator rule", "XLIR C emitter has no rule for this lowered instruction") ) {
     if ( ! $cEmitter.Contains($required) -and
          ! ($required -eq "XLIR lowered cleanup action has no materialized ownership instruction" -and
             $source.Contains($required)) ) {
@@ -5555,7 +5586,7 @@ foreach ( $required in @(
     "XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND",
     "XL6_IR_CLASS_HASH_ABI_RUNTIME_DERIVED",
     "XL6_IR_CLASS_EQUALITY_ABI_RUNTIME_DERIVED",
-    "complete runtime hash/equality identity ABI"
+    "xl6IrLowerClassLayoutHasRuntimeIdentity(layout)"
 ) ) {
     if ( ! $lower.Contains($required) ) {
         throw "XLIR class value identity lowering contract is incomplete: $required"
@@ -5647,7 +5678,7 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "XL6_IR_RUNTIME_XVALUE_CLONE", "XL6_IR_RUNTIME_XVALUE_DEEP_CLONE",
-    "xrtValueClone", "xrtValueDeepClone"
+    "xl6ValueCloneV1", "xl6ValueDeepCloneV1"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) { throw "XLIR copy/clone C ABI contract is incomplete: $required" }
 }
@@ -5780,7 +5811,7 @@ foreach ( $required in @(
     "xlir_task_spawn_closure_abi.xl", 'kindName -eq "task-spawn"',
     'runtimeOpName -eq "task-spawn-closure"',
     "byte-for-byte deterministic", "-Werror",
-    "strict-C/runtime gate failed"
+    "XLIR task.spawn strict C build failed", "XLIR task.spawn strict C runtime failed"
 ) ) {
     if ( ! $taskSpawnClosureGate.Contains($required) ) {
         throw "XLIR task.spawn quality gate is incomplete: $required"
@@ -5903,7 +5934,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xl6IrLowerRuntimeChannelPayloadType", "xl6IrChannelReceiveSpecResource",
     "xl6IrChannelReceiveIntrinsicCompatible", "XL6_IR_RUNTIME_CHANNEL_CREATE",
-    "XL6_IR_RUNTIME_CHANNEL_SEND"
+    "xl6IrChannelSendSpecResource"
 ) ) {
     if ( ! $lower.Contains($required) ) {
         throw "XLIR channel resource lowering contract is incomplete: $required"
@@ -5911,7 +5942,8 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "xl6IrChannelInstructionCompatible", "xl6IrChannelReceiveInstructionPlan",
-    "xl6ChannelCreateTakeV1", "xl6ChannelReceiveV1", "XL6_ChannelStatusV1",
+    "xl6ChannelCreateTakeV1", "spec->nativeSymbol", "XL6_ChannelStatusV1",
+    "XL6_ChannelSlotV1", "channel_status == XL6_CHANNEL_OK_V1",
     "xl6ErrorScopeCaptureFailure", "xl6IrCgenEmitOwnedPlaceRelease"
 ) ) {
     if ( ! $channelNativeEmitter.Contains($required) ) {
@@ -5981,14 +6013,23 @@ foreach ( $required in @(
     "xl6IrCgenSyncRuntimeOpIs", "xl6IrCgenSyncRuntimeOpCreates",
     "xl6IrCgenSyncResourceAbi", "xl6IrCgenRuntimeSyncAbi",
     "xl6IrCgenEmitSyncRuntime", "needsSyncResourceRuntime",
-    "xlir_sync_handle_ops", "xrtRefRetain(&handle->refs)",
-    "xrtRefRelease(&handle->refs)", "xrtValueHandleTake",
-    "xrtValueTypeIdBind", "xrtValueGetHandle",
-    "handle->type_id != typeId", "handle->kind != kind"
+    "xl6MutexCreateV1", "xl6MutexUnlockV1", "xl6RWLockCreateV1"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR synchronization resource C boundary is incomplete: $required"
     }
+}
+$syncProvider=Read-Utf8 'src/runtime/xl6_sync.c'
+$syncHeader=Read-Utf8 'src/runtime/xl6_sync.h'
+if(!$syncProvider.Contains('owner->identity==identity && owner->kind==kind') -or
+    !$syncProvider.Contains('xrtRefRetain(&owner->refs)') -or
+    !$syncProvider.Contains('xrtRefRelease(&owner->refs)') -or
+    !$syncHeader.Contains('xl6SyncOwnershipAdapterV1') -or
+    !$syncHeader.Contains('xl6SyncRetirementSnapshotV1') -or
+    !$syncHeader.Contains('xl6SyncRetirementAcquireV1') -or
+    !$syncHeader.Contains('xl6SyncRetirementRetryV1') -or
+    $cEmitter.Contains('xlir_sync_handle_ops')) {
+    throw 'Resident synchronization requires exact kind/identity, real references and checked recovery; generated handle implementations are forbidden'
 }
 foreach ( $required in @(
     "cgen_sync.xl", '"mutex", "sem", "cond", "rwlock"',
@@ -6053,14 +6094,19 @@ foreach ( $required in @(
     "xl6IrCgenSpecialQueueTypeAbi",
     "xl6IrCgenRuntimeSpecialQueueAbi",
     "xl6IrCgenEmitSpecialQueueRuntime",
-    "xlir_special_queue_create", "xlir_special_queue_try_push",
-    "xlir_special_queue_pop", "xlir_special_queue_is_drained",
-    "xrtChannelDrain(handle->channel, xlir_channel_drain_item, handle)",
-    "xrtChannelCapacity", "xrtChannelReset"
+    "xl6IrCgenConcurrentQueuePrefix", "xl6IrCgenConcurrentQueueMethod",
+    "xl6SequenceSpscQueueCreateTakeV1", "xl6SequenceMpscQueueCreateTakeV1",
+    "xl6SequenceMpmcQueueCreateTakeV1", "xl6SequenceWaitQueueCreateTakeV1",
+    "PushV1", "PopV1", "ResetV1", "QueryV1"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR special queue C boundary is incomplete: $required"
     }
+}
+if(!(Read-Utf8 'src/runtime/xl6_concurrent_queue_abi.h').Contains('XL6_QueueArrayResultV2') -or
+    !(Read-Utf8 'src/runtime/xl6_concurrent_queue.h').Contains('xl6##Name##OwnershipAdapterV1') -or
+    $cEmitter -match 'xlir_special_queue_(?:create|try_push|pop)|xrtChannelDrain\(handle->channel') {
+    throw 'Concurrent queues require the public batch ABI and native ownership adapters, never generated channel fallback storage'
 }
 foreach ( $required in @(
     "stdlib_special_collections_concurrent.xl",
@@ -6170,7 +6216,7 @@ if ( ! $runtimeMatrix.Contains("xlir_stack_resource_abi.xl") ) {
 foreach ( $required in @(
     "XL6_IR_RUNTIME_RESOURCE_AVL_TREE",
     "XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE",
-    "XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_UPPER_BOUND_INTO",
+    "XL6_IR_RUNTIME_RESOURCE_OP_TREE_QUERY_##id",
     "XL6_IR_RUNTIME_AVL_TREE_CREATE", "XL6_IR_RUNTIME_AVL_TREE_CLONE",
     "runtimeResourceKeyType", "runtimeResourceKeyPayloadAbi",
     "runtimeResourceKeyOrderAbi", "initializerRuntimeResourceKeyType",
@@ -6179,6 +6225,12 @@ foreach ( $required in @(
     if ( ! $header.Contains($required) ) {
         throw "XLIR OrderedMap resource header contract is incomplete: $required"
     }
+}
+if(!$header.Contains('#include "../abi/xl6_tree_query_ops.inc"') -or
+    !(Read-Utf8 'src/abi/xl6_tree_query_ops.inc').Contains('XL6_TREE_QUERY_OP(UPPER_BOUND,') -or
+    !(Read-Utf8 'src/ir/xl6_ir_tree_query.c').Contains('xl6IrTreeQueryPlanBuild') -or
+    $header.Contains('XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_UPPER_BOUND_INTO')) {
+    throw 'OrderedMap queries require one closed owned-result vocabulary, not retired byref INTO operations'
 }
 foreach ( $required in @(
     "xl6IrRuntimeResourceOpIsAvlTree", "xl6IrRuntimeAvlKeyType",
@@ -6203,15 +6255,18 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "xl6IrCgenAvlRuntimeOpIs", "xl6IrCgenAvlRuntimeOpMayRaise",
-    "xl6IrCgenAvlKeyOrderAbi", "xl6IrCgenNativeValueTypeExpr",
+    "xl6IrAvlKeyOrderAbi(module,ownerId)", "xl6IrCgenNativeValueTypeExpr",
     "xl6IrCgenAvlTypeAbi", "xl6IrCgenRuntimeAvlAbi",
     "xl6IrCgenEmitAvlRuntime", "needsAvlTreeResourceRuntime",
-    "xlir_avl_handle_ops", "xlir_avl_create", "xlir_avl_get_or_take",
-    "xlir_avl_collect", "xrtTypedTreeCreate"
+    "xl6IrCgenEmitTreeLayout", "XL6_TreeLayoutV2", "xl6TreeCreateTakeV1",
+    "xl6TreeQueryV2", "xl6IrTreeQueryInstructionCompatible"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR OrderedMap mechanical C boundary is incomplete: $required"
     }
+}
+if($cEmitter -match 'xlir_avl_handle_ops|xlir_avl_create|xrtTypedTreeCreate') {
+    throw 'OrderedMap storage and traversal algorithms belong to the resident provider, not Cgen'
 }
 foreach ( $required in @(
     "xlir_avl_resource_abi.xl", "xlir_avl_class_default_abi.xl",
@@ -6339,7 +6394,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xl6IrCgenRuntimeClassConstructionCommitAbi",
     "xl6IrCgenEmitClassDestroyHelpers",
-    "xl6ClassRuntimeV2Get()->Create", "xl6ClassRuntimeV2Get()->CommitTake", "xl6ClassRuntimeV2Get()->BindIdentity",
+    "xl6ClassRuntimeV3Get()->Create", "xl6ClassRuntimeV3Get()->CommitTake", "xl6ClassRuntimeV3Get()->BindIdentityTake",
     "xlir_class_destroy_finalizer_t"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
@@ -6504,7 +6559,8 @@ if (!$header.Contains('moduleTraceAbi') -or !$source.Contains('xl6IrModuleStorag
 $moduleTrace = Read-Utf8 'src/cgen/xl6_ir_cgen_module_trace.c'
 if (!$moduleTrace.Contains('moduleTraceAbi') -or !$moduleTrace.Contains('xl6IrCgenOwnershipView') -or
     !$moduleTrace.Contains('explicit opaque global storage') -or
-    !$moduleTrace.Contains('xl6NetworkServiceRuntimeV2Get()->Trace') -or
+    !$moduleTrace.Contains('xl6ExecutionSourceOwnershipV1(xlir_execution_source)') -or
+    $moduleTrace.Contains('xlir_network_services') -or
     !(Read-Utf8 'src/runtime/xl6_ownership_domain_network.c').Contains('xrtNetEngineOwnershipAdapterV1') -or
     !(Read-Utf8 'src/runtime/xl6_ownership_domain_network.c').Contains('xrtNetResolverOwnershipAdapterV1') -or
     !(Read-Utf8 'src/api/xl_api.c').Contains('xl6OwnershipCatalogProbeV1')) {
