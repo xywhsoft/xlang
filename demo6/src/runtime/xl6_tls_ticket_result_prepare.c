@@ -1,4 +1,9 @@
 #include "xl6_tls_ticket_result.h"
+bool xl6TlsTicketResultRecipeV1(XL6_NativeClassResultContextV1 context)
+{
+    if(context.field.policy!=xl6TlsTicketResultHandlePolicyV1Get()){xrtSetErrorKind(XERR_TYPE);return false;}
+    return xl6NativeClassResultContextValidV1(context);
+}
 xvalue* xl6TlsTicketResultPrepareV1(XL6_NativeClassResultContextV1 context,XL6_CodeLease* lease,
     bool derived,XL6_TlsTicketResultV1** output)
 {

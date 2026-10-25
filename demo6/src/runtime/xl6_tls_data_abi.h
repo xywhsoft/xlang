@@ -1,6 +1,16 @@
 #ifndef XL6_TLS_DATA_ABI_H
 #define XL6_TLS_DATA_ABI_H
 #include "xl6_tls_io_abi.h"
+XL6_TEXT_API xfuture* xl6TlsStreamTryTakeTicketAsyncV1(XL6_NativeClassResultContextV1,void*);
+XL6_TEXT_API void xl6TlsStreamTryTakeTicketV1(XL6_NativeClassResultContextV1,void*,xvalue**);
+XL6_TEXT_API xfuture* xl6TlsStreamIssueNewTicketAsyncV1(XL6_NativeClassResultContextV1,void*);
+XL6_TEXT_API xfuture* xl6TlsStreamIssueTicketAsyncV1(XL6_NativeClassResultContextV1,void*,const xvalue*,int64_t,int64_t);
+XL6_TEXT_API void xl6TlsStreamIssueNewTicketV1(XL6_NativeClassResultContextV1,void*,xvalue**);
+XL6_TEXT_API void xl6TlsStreamIssueTicketV1(XL6_NativeClassResultContextV1,void*,const xvalue*,int64_t,int64_t,xvalue**);
+XL6_TEXT_API xfuture* xl6TlsStreamTicketCountAsyncV1(void*);
+XL6_TEXT_API xfuture* xl6TlsStreamDroppedTicketsAsyncV1(void*);
+XL6_TEXT_API int64_t xl6TlsStreamTicketCountV1(void*,int64_t);
+XL6_TEXT_API uint64_t xl6TlsStreamDroppedTicketsV1(void*,int64_t);
 XL6_TEXT_API xfuture* xl6TlsStreamRecvOwnedAsyncV1(XL6_RuntimeServicesV1 services,XL6_NativeClassResultContextV1 context,void* receiver,int64_t maximum);
 XL6_TEXT_API xfuture* xl6TlsStreamRecvOwnedAsyncCancelV1(XL6_RuntimeServicesV1 services,XL6_NativeClassResultContextV1 context,void* receiver,int64_t maximum,void* parent);
 XL6_TEXT_API xfuture* xl6TlsStreamRecvOwnedAsyncUntilV1(XL6_RuntimeServicesV1 services,XL6_NativeClassResultContextV1 context,void* receiver,int64_t maximum,uint64_t due);

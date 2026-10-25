@@ -351,3 +351,17 @@ AOT 不依赖 xl/xlc 动态库。
 Dial 的原生创建都传递 `ResumeOnly/ResumeLimit`，不改变各自时间 ABI。
 本批传输层只接入上述创建配置，不能替代 Stream 所属 Worker 上的票据
 签发／弹出／统计、异步拥有结果及其专项验收。
+
+### Worker 票据操作
+
+后续已接入 `TlsStream.tryTakeTicket()/tryTakeTicketAsync()`、两组同步／异步
+`issueTicket()`，以及计数和丢弃统计的同步／异步查询。结果复用只读
+`TlsTicketResult`；操作在实际所属 Worker 上执行，捕获真实拥有引用与
+CodeLease，先完成结果分配再进行破坏式操作。同步签发／弹出不提供超时
+重试入口；只读统计查询保留超时。晚到取消、提交生效点及 Flush 背压的
+处理详见 [TLS 恢复票据](TLS恢复票据.md#stream-票据操作)。
+
+两端实际源码构建和专项检查共 146 项、744 个分配失败前缀通过，包括
+Direct／Dial、动态调用／聚合、单向裁剪和模块关闭后才构造结果的生命周期。
+未增加 Cgen 实现体，未修改独立 XRT 或时间 ABI。本节不是旧 TLS 外观清理
+或跨组 shipping DLL/VFS/IDE 发布联合验收完成的声明。

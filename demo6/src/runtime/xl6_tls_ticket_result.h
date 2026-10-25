@@ -9,6 +9,7 @@ typedef struct XL6_TlsTicketResultV1 {xtlsresult status;xtlsresume* resume;} XL6
  * queue pop. The independent class owner keeps *result valid on success. */
 xvalue* xl6TlsTicketResultPrepareV1(XL6_NativeClassResultContextV1,XL6_CodeLease*,bool,XL6_TlsTicketResultV1**);
 bool xl6TlsTicketResultSetV1(XL6_TlsTicketResultV1*,xtlsresult,xtlsresume**);
+bool xl6TlsTicketResultRecipeV1(XL6_NativeClassResultContextV1);
 void xl6TlsTicketResultDestroyV1(void*);
 int64_t xl6TlsTicketResultStatusV1(const void*);
 void* xl6TlsTicketResultResumeV1(const void*);

@@ -185,3 +185,77 @@ typed array；仅将测试改为现行拥有式 `xl6ArrayValueReadCopyV1()` 并�
 没有外部通信、安全专项或畸形密码材料测试；未修改独立 XRT、时间 ABI
 或 Cgen。这是完整工作区的源码专项验收，不是 shipping DLL/VFS 或跨组
 发布联合验收。
+
+## Stream 票据操作
+
+传输对象将内存 Session 的同一凭据／结果模型带到真实连接所属 Worker：
+
+```xlang
+stream.tryTakeTicket() as TlsTicketResult
+stream.tryTakeTicketAsync() as future<TlsTicketResult>
+stream.issueTicket() as TlsTicketResult
+stream.issueTicket(bytes ticket, int lifetimeSeconds, int size = -1) as TlsTicketResult
+stream.issueTicketAsync() as future<TlsTicketResult>
+stream.issueTicketAsync(bytes ticket, int lifetimeSeconds, int size = -1) as future<TlsTicketResult>
+stream.ticketCount(int timeoutMillis = -1) as int
+stream.ticketCountAsync() as future<int>
+stream.droppedTickets(int timeoutMillis = -1) as uint64
+stream.droppedTicketsAsync() as future<uint64>
+```
+
+`tryTakeTicketAsync()` 是排队到实际 Worker 的一次非阻塞队列检查，不是等待
+未来票据到达；空队列返回 `wouldBlock/null`。同步版本等待该命令完成，不能
+在网络 Worker 内调用，Worker 回调与高并发代码使用异步版本。签发和弹出
+不提供同步超时重试参数，避免把已经生效的操作误读为“超时＝未发生”。
+只读统计查询可以超时。
+
+命令受理前取得真实 Stream／Engine 拥有引用，复制显式字节输入与字段名，
+通过真实 Task CodeLease 保护不可变类型 schema。不会把借用、临时输出对象
+或模块 factory 回调存进命令。到 Worker 后校验实际角色，完整构造 Future
+载荷、结果类及原生句柄字段，再进行破坏式弹出／签发。结果引用独立拥有；
+原始字符串／bytes 修改、临时 Context 释放和模块逻辑关闭不会制造悬挂视图。
+
+取消是协作请求：任务执行前与输出准备后检查取消，尚未生效时可取消；越过
+原生操作生效点后不再用晚到的取消请求覆盖成功。已受理的异步操作不会因为
+调用者丢弃 Future 而自动回滚。普通异常也不是通用事务回滚保证；不得把失败
+当作可以无条件重试签发／弹出的证据。
+
+签发成功后调用 XRT `StreamFlush` 交付控制记录。Producer 的 `AGAIN` 才表示
+本次未受理；Flush 的 `AGAIN` 仍返回已接受的 `ok`，由正常传输驱动处理背压，
+不能再次签发。其他传输失败保留 checked 错误边界，不伪装成可以盲目重试的
+`wouldBlock`。没有空应用写入的隐式刷新技巧。
+
+客户端接收、服务端签发、只读统计及同步等待是独立组件。统计／单向异步
+消费者不会为另一角色或同步等待拉入实现。Cgen 只使用通用 class-result
+和 Future ABI；没有票据包装函数体、语言占位对象或最后结果缓存。
+
+### Stream 专项验收
+
+Windows/Linux 分别从完整固定源码构建 1271/1270 个编译单元；两端合计
+146 项检查与 744 个有界分配失败前缀通过。包含 typed/lowered IR、严格
+GCC O0/O2、JIT/模块/独立 AOT、10 个精确目标和 48 项合同变异拒绝、五类
+错误声明，以及接收／签发／统计／空程序的独立裁剪。单向异步消费者不拉入
+另一角色或同步等待实现，统计消费者不拉入结果类构造器；AOT 无 xl/xlc
+动态库依赖。
+
+真实两个 Worker 的自建字面量回环连接覆盖同步／异步签发与弹出、动态
+Future 装箱、`task.all`、NUL 与长度截断、实际控制记录刷新、容量淘汰、
+Direct 与 Dial 的强制恢复和禁用缓存，以及错误角色和关闭后的 checked
+拒绝。宿主在真实 Worker 线程注入故障：每次执行 128 个前缀，覆盖静态与
+动态导出；失败时队列票据保留，成功结果独立拥有，内存快照平衡。模块
+关闭前已受理的命令在关闭后完成结果构造，证明使用了真实派生 CodeLease；
+最后结果释放后 checked 退役成功。
+
+初版测试写了当前不支持的 `export async func`，改为普通导出返回异步
+函数的 Future 后，未改变语言或生产实现。一次续跑中两端验收进程已结束，
+完整归档检查点，复用原先 57/47 项通过记录后接续缺失阶段；材料生成器的
+非确定性重生成被哈希检查拒绝，原始材料已从核验归档恢复，之后不再生成。
+另一个宿主用例误用结束语言生命周期的 `xlRunModuleMain`，仅改为持久
+`xlActivateModule` 后，重跑两端 O0/O2 编译／链接／执行。原记录与拒绝的
+材料版本保留。最终在两端分别重验源码、对象、输入、归档、控制器、日志
+和产物哈希。记录为
+`F:/xlang-validation/five-groups-20261025/p6-tls-transport-tickets/next.json`。
+
+本批未修改独立 XRT、时间 ABI 或 Cgen；没有外部 DNS、公网、扫描、畸形
+密码材料或安全专项测试。专项通过不代表旧外观已清理，也不代替五组功能
+的实际 shipping DLL/VFS/IDE 等发布联合验收。
