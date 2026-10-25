@@ -6,6 +6,9 @@
 #include "services/analysis_catalog.h"
 #include "platform/path.h"
 #include "analysis/worker.h"
+#ifdef XLS_COMPILER_XRT
+#include "analysis/worker_modules.h"
+#endif
 #include "protocol/signature_help.h"
 #include <windows.h>
 #include <shellapi.h>
@@ -58,6 +61,7 @@ typedef struct server {
  uint64_t diagnosticChecks,diagnosticOperations,diagnosticWorkerThread; size_t diagnosticRecords; char diagnosticError[512];
 #ifdef XLS_COMPILER_XRT
  xls_dependency_stats diagnosticGraph;uint64_t diagnosticGraphFallbacks;int diagnosticGraphIndexed;
+ xls_module_store* modules;
 #endif
  xide_analysis_catalog* catalog;int64 configurationEpoch;
 } server;
@@ -202,6 +206,13 @@ static void analysisStats(server* s,const xvalue* id)
  put(result,"reusedDeclarations",xrtValueInt((int64)s->analysisStats.reusedDeclarations)); put(result,"parsedBytes",xrtValueInt((int64)s->analysisStats.parsedBytes));
  put(result,"workerThreadId",xrtValueInt((int64)s->analysisThread)); put(result,"ownerThreadId",xrtValueInt((int64)xrtThreadCurrentId()));
  put(result,"queued",xrtValueInt((int64)load.queued)); put(result,"running",xrtValueInt((int64)load.running)); put(result,"submitted",xrtValueInt((int64)load.submitted)); put(result,"completed",xrtValueInt((int64)load.completed)); put(result,"rejected",xrtValueInt((int64)load.rejected));
+#ifdef XLS_COMPILER_XRT
+ xls_module_stats stats;xlsModuleStoreStats(s->modules,&stats);xvalue* modules=xrtValueObject();put(modules,"enabled",xrtValueBool(s->modules!=NULL));
+#define MODULE_STAT(field) put(modules,#field,xrtValueInt((int64)stats.field))
+ MODULE_STAT(lookups);MODULE_STAT(hits);MODULE_STAT(misses);MODULE_STAT(published);MODULE_STAT(deduplicated);MODULE_STAT(evictions);MODULE_STAT(declined);MODULE_STAT(modules);MODULE_STAT(versions);MODULE_STAT(bytes);MODULE_STAT(registryBytes);MODULE_STAT(limit);
+#undef MODULE_STAT
+ put(result,"moduleStore",modules);
+#endif
  response(s,id,result,0,NULL);
 }
 static void startCheck(server* s,int index,const xvalue* id,int snapshots)
@@ -716,7 +727,7 @@ static void dispatch(server* s,const xvalue* message)
   xrtValueArrayAppend(signatureTriggers,open);xrtValueArrayAppend(signatureTriggers,comma);xrtValueArrayAppend(retriggers,close);xrtValueRelease(open);xrtValueRelease(comma);xrtValueRelease(close);
   put(signature,"triggerCharacters",signatureTriggers);put(signature,"retriggerCharacters",retriggers);put(cap,"signatureHelpProvider",signature);put(scope,"signatureInputGuard",xrtValueString(sv("background-poll")));
   put(cap,"documentHighlightProvider",xrtValueBool(true));
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.63"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.64"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
@@ -772,7 +783,13 @@ int main(void)
  if(argc!=3 || !argv || wcscmp(argv[1],L"--compiler")) { fputs("Usage: xlang-ls --compiler absolute-xl.exe\n",stderr); if(argv) LocalFree(argv); return 2; }
  char* compiler=utf8(argv[2]); LocalFree(argv); s.compiler=compiler ? xidePathResolveLexical(NULL,compiler) : NULL; free(compiler);
  wchar_t cwd[32768]; if(GetCurrentDirectoryW(32768,cwd)) s.directory=utf8(cwd);
- s.cache=xideToolchainsCreate(); s.analysis=xlsWorkerCreate(NULL,DOC_LIMIT); s.semanticAnalysis=xlsWorkerCreate(NULL,8); s.cursorAnalysis=xlsWorkerCreate(NULL,8); s.signatureAnalysis=xlsWorkerCreate(NULL,8); InitializeCriticalSection(&s.lock); s.event=CreateEventW(NULL,FALSE,FALSE,NULL);
+ s.cache=xideToolchainsCreate(); s.analysis=xlsWorkerCreate(NULL,DOC_LIMIT);
+#ifdef XLS_COMPILER_XRT
+ s.modules=xlsModuleStoreCreate(NULL);s.semanticAnalysis=xlsWorkerCreateWithModules(NULL,8,NULL,s.modules);s.cursorAnalysis=xlsWorkerCreateWithModules(NULL,8,NULL,s.modules);s.signatureAnalysis=xlsWorkerCreateWithModules(NULL,8,NULL,s.modules);
+#else
+ s.semanticAnalysis=xlsWorkerCreate(NULL,8);s.cursorAnalysis=xlsWorkerCreate(NULL,8);s.signatureAnalysis=xlsWorkerCreate(NULL,8);
+#endif
+ InitializeCriticalSection(&s.lock); s.event=CreateEventW(NULL,FALSE,FALSE,NULL);
  if(s.compiler && s.directory && s.cache && s.analysis && s.semanticAnalysis && s.cursorAnalysis && s.signatureAnalysis && s.event) s.reader=CreateThread(NULL,0,reader,&s,0,NULL);
  if(s.reader) while(!s.exitRequested && !s.writeFailed) {
   EnterCriticalSection(&s.lock); message* m=s.head; if(m) { s.head=m->next; if(!s.head) s.tail=NULL; s.queueBytes-=m->size; --s.queueCount; s.queueInputs-=(size_t)m->input; } int eof=s.eof,failed=s.readFailed; LeaveCriticalSection(&s.lock);
@@ -802,6 +819,9 @@ int main(void)
  xlsWorkerDestroy(s.analysis);
  xideLanguageCheckDestroy(s.signature);xrtValueRelease(s.signatureId);xrtValueRelease(s.signaturePendingId);free(s.signatureUri);xlsWorkerDestroy(s.signatureAnalysis);
  xideLanguageCheckDestroy(s.completion); xrtValueRelease(s.completionId); xrtValueRelease(s.completionPendingId); free(s.completionUri); xideLanguageCheckDestroy(s.check); xideLanguageCheckDestroy(s.guard); xlsWorkerDestroy(s.semanticAnalysis); xlsWorkerDestroy(s.cursorAnalysis); xrtValueRelease(s.guardId); free(s.guardUri); xrtValueRelease(s.checkId); xrtValueRelease(s.publishedGroups); xideToolchainsDestroy(s.cache);
+#ifdef XLS_COMPILER_XRT
+ xlsModuleStoreRelease(s.modules);
+#endif
  while(s.head) { message* m=s.head; s.head=m->next; xrtValueRelease(m->value); free(m); }
  for(int i=0;i<DOC_LIMIT;++i) clearDocument(&s,i);
  xideAnalysisCatalogDestroy(s.catalog);
