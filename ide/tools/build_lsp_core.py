@@ -118,6 +118,10 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         raise ValueError('shared IR changed; audit cleanup/plan/call candidates, scope-proof purity and phase mutation boundaries')
     if sha(frontend / 'src/ir/xl6_ir.h') != 'ec58343edcf43d97aba95b94bc3fb3d3a163ec4fc593ae0b064a09c3eac4ff3a':
         raise ValueError('shared IR layout changed; audit raw node ownership and exact type-prefix fields')
+    type_model = frontend / 'src/type/xl6_type_model.c'
+    type_sha = 'fdf35faa5dc2366a0625317d70cc82dbe8031762fcb7c81439e99a3a8de2a051'
+    if sha(type_model) != type_sha:
+        raise ValueError('shared alias/type model changed; audit raw IR environment region independence')
     source = body.decode('utf-8').replace('\r\n', '\n')
     changes = {
         '#include <wchar.h>': '#include <wchar.h>\n#include "analysis/frontend_ir.inc"',
@@ -176,6 +180,8 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
         change='bounded nominal-declaration candidates, cleanup/plan/call-origin indexes and per-verification scope proofs; shared rules retained',
+        rawFunctionRegions='lexical-relative keys with zero sentinel;current AST region/target rebinding;exact fact-type trees',
+        auditedDependencies={str(type_model):type_sha},
         cancellation='cooperative node/phase/verify points; partial child lists and owned incoming counts unwind through audited cleanup',
         auditedSeams=len(changes), indexBytes=16 * 1024 * 1024, planIndexBytes=8 * 1024 * 1024,
         scopeProofBytes=1024 * 1024, callIndexBytes=8 * 1024 * 1024, typeLookupBytes=8 * 1024 * 1024,

@@ -223,7 +223,10 @@ static int xlsSemKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int m
  * node envelope once. Missing type trees are in the envelope;no repeated
  * tiny presence/length encodings or extra AST traversal are needed. */
 typedef struct xls_ir_path_slot {const char* path;size_t id;} xls_ir_path_slot;
-typedef struct xls_ir_key_paths {xmap paths;size_t next,recent,visited;xls_ir_path_slot slots[4];} xls_ir_key_paths;
+typedef struct xls_ir_key_paths {
+    xmap paths;size_t next,recent,visited;xls_ir_path_slot slots[4];
+    xls_ir_key_mode mode;uint32_t regionBase;
+} xls_ir_key_paths;
 static int xlsIrKeyPath(xls_ir_key_paths* paths,const char* path,size_t* id,size_t* bytes,int* added)
 {
     *id=*bytes=0;*added=0;if(!path)return 1;
@@ -235,13 +238,25 @@ static int xlsIrKeyPath(xls_ir_key_paths* paths,const char* path,size_t* id,size
     else{*id=++paths->next;*bytes=key.Size;*added=1;if(!xrtMapSet(&paths->paths,key,id))return 0;}
     paths->slots[paths->recent++%4]=(xls_ir_path_slot){path,*id};return 1;
 }
-static int xlsIrKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int module,xls_ir_key_paths* paths)
+static int xlsIrKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int lexical,xls_ir_key_paths* paths)
 {
     if(depth>512 || ((++paths->visited&63u)==0 && xlsFrontendCancelPoint(XLS_CANCEL_IR_NODE,1)))return 0;
     if(!node){uint64_t absent=0;return xlsSemKeyBytes(key,&absent,sizeof(absent));}
     if(node->source && node->source->completionQuery)return 0;
     uint64_t fields[XLS_SEM_KEY_FIELDS+4]={0},packed[1+XLS_SEM_KEY_FIELDS+4];
     xlsSemKeyScalars(node,fields);size_t id,pathBytes,textBytes=node->text ? strlen(node->text) : 0,docBytes=node->doc ? strlen(node->doc) : 0;int added;
+    if(lexical && (paths->mode==XLS_IR_KEY_FUNCTION || paths->mode==XLS_IR_KEY_ENVIRONMENT)){
+        /* Slots17/18 are the two explicitly listed execution-region fields
+         * in xlsSemKeyScalars. No other semantic annotation is normalized.
+         * Zero is an absent target,distinct from the callable's own region. */
+        for(size_t i=17;i<=18;++i){
+            if(paths->mode==XLS_IR_KEY_ENVIRONMENT)fields[i]=0;
+            else if(fields[i]){
+                if(fields[i]<paths->regionBase)return 0;
+                fields[i]=fields[i]-paths->regionBase+1;
+            }
+        }
+    }
     const char* path=xl6AstSourcePath(node);if(!xlsIrKeyPath(paths,path,&id,&pathBytes,&added))return 0;
     fields[XLS_SEM_KEY_FIELDS]=textBytes;fields[XLS_SEM_KEY_FIELDS+1]=docBytes;
     fields[XLS_SEM_KEY_FIELDS+2]=id;fields[XLS_SEM_KEY_FIELDS+3]=pathBytes;
@@ -262,16 +277,18 @@ static int xlsIrKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int mo
     if((node->inferredType && !xlsIrKeyNode(key,node->inferredType,depth+1,0,paths)) ||
        (node->semanticDeclaredType && !xlsIrKeyNode(key,node->semanticDeclaredType,depth+1,0,paths)))return 0;
     for(size_t i=0;i<node->childCount;++i){
-        const XL6_AstNode* child=module && depth==1 && xlsSemFunction(node) && i==3 ? NULL : node->children[i];
-        if(!xlsIrKeyNode(key,child,depth+1,module,paths))return 0;
+        const XL6_AstNode* child=paths->mode==XLS_IR_KEY_MODULE && depth==1 && xlsSemFunction(node) && i==3 ? NULL : node->children[i];
+        if(!xlsIrKeyNode(key,child,depth+1,lexical,paths))return 0;
     }
     return 1;
 }
-int xlsFrontendIrAstKey(xstrbuf* key,const XL6_AstNode* node,int module)
+int xlsFrontendIrAstKey(xstrbuf* key,const XL6_AstNode* node,xls_ir_key_mode mode)
 {
-    if(!key || (module!=0 && module!=1) || xlsFrontendCancelObserved())return 0;
-    xls_ir_key_paths paths={0};if(!xrtMapInit(&paths.paths,sizeof(size_t)))return 0;
-    int okay=xlsIrKeyNode(key,node,0,module,&paths);xrtMapUnit(&paths.paths);return okay;
+    if(!key || mode<XLS_IR_KEY_EXACT || mode>XLS_IR_KEY_ENVIRONMENT || xlsFrontendCancelObserved())return 0;
+    if(mode==XLS_IR_KEY_FUNCTION && (!xlsSemFunction(node) || !node->semanticRegionId))return 0;
+    xls_ir_key_paths paths={.mode=mode,.regionBase=mode==XLS_IR_KEY_FUNCTION ? node->semanticRegionId : 0};
+    if(!xrtMapInit(&paths.paths,sizeof(size_t)))return 0;
+    int okay=xlsSemKeyNumber(key,mode) && xlsIrKeyNode(key,node,0,1,&paths);xrtMapUnit(&paths.paths);return okay;
 }
 static int xlsSemEqualKey(const xstrbuf* a,const xstrbuf* b)
 { return a->Size==b->Size && (!a->Size || !memcmp(a->Data,b->Data,a->Size)); }

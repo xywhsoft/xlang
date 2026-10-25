@@ -2452,3 +2452,81 @@ owner-phase-v1（索引有界但 envelope 前）在两版都保留前一完整 I
 证据：build/lsp-next-20261022/m7a2b24a-result.json，外部 m7a2b24a-1803e871 下 component-v1／v2／v3、diagnostic-fixture-repair-v1、diagnostic-driver-target-repair-v1、owner-fault-v1／v2／v3、protocol-qa-v1、gui-qa-v1、native-probe-v1..v7、ir-phase-v1..v3、ir-owner-phase-v1／v2、performance-inputs-v1、switching-performance-v1。所有失败／不采用候选保留。
 
 完整 goal 保持 active：优先审计并实现 execution region 相对身份／当前 AST 重绑，增加前部无符号嵌套块改动后后部函数复用及完整 fresh IR 对照；继续模块依赖／xlp 清单反向归属、持久语义 IR 与增量 pass／验证、references／rename／tokens／重构／格式化等完整适用 LSP、不完整代码恢复／静态检查、IDE 配置与输入准备、native C／resource／include／link、整个模型预算、100k／并行／soak／最终发行。首版外部 C/compiler XRT，后续 opaque xlc.dll，无 DAP／调试或运行态补全。发布 5241 文件、无关共享 index 保持。
+
+
+## M7a2b25a：前部代码块变化后的 IR 复用（0.58）
+
+按函数基准规范化词法执行区域，在恢复时从当前完整 AST 读取实际 region／targetRegion；保留零哨兵、事实类型、所有其他精确身份和原始整模块 pass／验证器。非函数类型环境仅忽略已审计的词法 execution region，类型模型 C 新增显式摘要守卫。完整实现边界见 lsp-analysis-core.md 同阶段。
+
+1067 冻结输入、136 fresh native objects、60 正常夹具／61 PE／62 outputs／64 AST17 consumers／53 core members；analysis_ir_memo_test 803 checks（比前版增加 279），semantic memo 1064、cursor source memo 2100、signature 38749、ast intern 345、frontend cancel 166、worker cache 812、worker fault 12995 和 1008 个校准取消门保持。独立诊断 IR TU 无产品注入，在原 source 33 和新增块 source 35 个实际 owner 分配门上完成 1447 checks，逐门完整 fresh IR 和旧 unit 引用计数相等。
+
+35 协议套件 938 场景，ir-fragments 从 17 增至 19，覆盖新增／删除／再次新增块、两个根、exact／input-scope 来源、错误恢复和原前台方法；18 组真实 IDE／旧 0.4 回退／smoke 完整执行。106 个 GUI 对象按原真实 .d 闭包验证，10 个受包含变化影响的对象预处理 token 完全相同；35 程序保留。最终 component-v1 完成全部 native 生产者和协议／IDE 验证，之后产品没有变更或证据桥接修复。
+
+首个 native-probe-v1 完整 IR 对照和直接区域专项已通过，但会话专项错误地要求 IR reuse 不超过 semantic reuse。session-probe-v1 打印实际 raw=14／semantic=4 并通过完整当前 IR 对照；两层候选／失效规则不同，IR 能对重新语义分析的函数做安全复用。专项改为独立要求真实 IR=14，未改产品安全规则。native-probe-v2 完成 791 checks、3576 IR scan、1064 semantic memo；最后补充 12 个声明事实／跳转目标键断言后再执行最终完整 803 项生产者。全部失败和中间日志保留。
+
+性能对照为已接受 0.57 与最终 0.58，同一 stdio／GUI 夹具、96／512 helper、约 3k／16k 行 BOM／CRLF／Unicode、2 根、ABBA 四进程。576 热切换、288 普通字面量相关编辑、48 冷首次根查询，另增加 96 个真实 xlang/check 区域改动样本：在首个 helper 的已有 if 中交替插入 1／2 个不引入符号的嵌套块，每版每规模 24 次。每次检查真实当前版本、成功诊断、结果和 IR 片段计数；原版必须出现后缀失效，新版必须实际复用大量后续片段／只读文本。CPU／内存阶段包括新增 region-edit，共 80 组；32 条进程命令全部成功。
+
+区域编辑以下为 P50／P95／P99（ms），包含全文 didChange 和当前检查响应；它不是 IDE 渲染或单独 IR 阶段计时：
+
+| helper | 原 P50 / P95 / P99 | 新 P50 / P95 / P99 | 原→新实际 IR reuse 范围 |
+|---|---:|---:|---:|
+| 96 | 132.509 / 154.855 / 163.125 | 121.194 / 133.390 / 133.785 | 0..0→95..95 |
+| 512 | 884.790 / 995.140 / 996.885 | 839.180 / 921.831 / 930.248 | 0..0→511..511 |
+
+普通热／字面量编辑路径保持完整对照，每路径／版热 48 和编辑 24 样本；不从区域专项推导补全／签名收益：
+
+| 路径 | 原 P50 / P95 / P99 ms | 新 P50 / P95 / P99 ms |
+|---|---:|---:|
+| 热 96/2/xlang/check | 11.950 / 13.691 / 15.746 | 12.043 / 15.570 / 21.428 |
+| 热 96/2/textDocument/completion | 0.886 / 1.032 / 1.214 | 0.863 / 0.994 / 1.198 |
+| 热 96/2/textDocument/signatureHelp | 0.614 / 0.678 / 0.816 | 0.599 / 0.713 / 0.762 |
+| 热 512/2/xlang/check | 61.924 / 72.274 / 78.264 | 60.064 / 70.996 / 77.504 |
+| 热 512/2/textDocument/completion | 1.460 / 1.640 / 2.178 | 1.540 / 2.134 / 2.356 |
+| 热 512/2/textDocument/signatureHelp | 0.774 / 0.917 / 0.938 | 0.801 / 0.920 / 1.072 |
+| 字面量编辑 96/xlang/check | 109.457 / 120.619 / 122.918 | 103.055 / 123.206 / 123.385 |
+| 字面量编辑 96/textDocument/completion | 74.846 / 91.328 / 94.372 | 71.312 / 80.951 / 87.531 |
+| 字面量编辑 96/textDocument/signatureHelp | 86.714 / 103.630 / 104.597 | 83.867 / 97.298 / 99.519 |
+| 字面量编辑 512/xlang/check | 733.406 / 854.231 / 963.163 | 711.778 / 783.797 / 784.013 |
+| 字面量编辑 512/textDocument/completion | 418.746 / 471.348 / 484.810 | 409.136 / 462.291 / 473.636 |
+| 字面量编辑 512/textDocument/signatureHelp | 512.589 / 602.302 / 622.392 | 509.981 / 622.404 / 682.074 |
+
+实际 IDE 另测 320 个参数窗渲染提交帧、8 个冷初始化观察。仍是普通编辑的 0 逗号／1 手动编辑／2 精确重复／3 光标重触发模式，每规模／模式／版 20 帧；本阶段没有把新增区域编辑计作 GUI 帧。所有当前参数／重载／来源版本／选择／焦点／Escape／磁盘不变检查保持。
+
+| helper / 模式 | 原提交 P50 / P95 / P99 ms | 新提交 P50 / P95 / P99 ms | 原→新最大帧 P95 ms |
+|---|---:|---:|---:|
+| 96/0 | 70.728 / 89.162 / 89.954 | 61.159 / 88.966 / 90.740 | 12.178→14.734 |
+| 96/1 | 64.459 / 77.969 / 80.894 | 62.835 / 80.842 / 91.500 | 9.014→11.476 |
+| 96/2 | 7.658 / 9.569 / 10.365 | 7.714 / 9.649 / 10.705 | 9.569→9.649 |
+| 96/3 | 7.801 / 10.701 / 12.299 | 8.060 / 9.752 / 10.560 | 10.701→9.752 |
+| 512/0 | 262.901 / 318.681 / 327.329 | 245.792 / 312.336 / 325.281 | 42.692→36.942 |
+| 512/1 | 234.716 / 276.824 / 284.688 | 229.427 / 279.804 / 280.643 | 11.929→11.470 |
+| 512/2 | 7.538 / 10.198 / 13.153 | 8.126 / 10.588 / 12.000 | 10.198→10.588 |
+| 512/3 | 7.958 / 10.263 / 13.854 | 8.020 / 10.295 / 11.108 | 10.263→10.295 |
+
+每规模／方法／版冷请求 4 个，下面只给算术均值，全部 48 个原始值保留，不把少量冷样本当稳定分位或完整进程启动：
+
+| helper / 方法 | 原→新冷请求均值 ms |
+|---|---:|
+| 96 / xlang/check | 115.294→114.182 |
+| 96 / textDocument/completion | 61.654→58.890 |
+| 96 / textDocument/signatureHelp | 77.850→64.665 |
+| 512 / xlang/check | 710.832→697.716 |
+| 512 / textDocument/completion | 360.304→341.694 |
+| 512 / textDocument/signatureHelp | 409.026→406.820 |
+
+静态检查进程的 private MiB 观察为两根、每版两进程均值；完整 working set／peak working set、native CPU、各冷 GUI 值、逐帧输入／提交／最大帧值均在原报告，不是模型／RSS 限额：
+
+| helper / 阶段 | 原→新 private MiB |
+|---|---:|
+| 96 / after-cold-roots | 94.79→94.69 |
+| 96 / after-related-edits | 115.13→114.74 |
+| 96 / after-region-edits | 115.52→115.54 |
+| 512 / after-cold-roots | 460.24→460.14 |
+| 512 / after-related-edits | 561.60→561.43 |
+| 512 / after-region-edits | 563.20→565.32 |
+
+测量期间没有本任务的构建／QA／重哈希并行，未声称控制机器其他任务或独占环境。自动诊断关闭；stdio 与 GUI 分开，未覆盖物理显示、全项目、十万行、并行诊断或长时运行。所有路径和回退如实保留，整体性能目标未达成；真实后续函数 IR 重用也不能替代完整持久语义 IR／模块增量／全局验证增量。
+
+证据为 build/lsp-next-20261022/m7a2b25a-result.json，外部 m7a2b25a-b77983c3 下 region-source-audit-v1、native-probe-v1／v2、session-probe-v1、component-v1、owner-fault-v1、protocol-qa-v1、gui-qa-v1、performance-inputs-v1、switching-performance-v1。当前证据保护核对覆盖本阶段及实际消耗的原生／GUI 编译依赖、基线、来源／日志、发布清单和上一阶段 receipt；未消耗的历史原型／重复产物保持存放，不再把其全量累积重新哈希描述成本阶段测试。
+
+继续局部声明造成的符号／类型编号变化及稳定语义身份、模块／xlp 清单依赖与反向归属、持久语义 IR、增量 pass／验证、完整适用 references／rename／tokens／重构／格式化、不完整代码恢复／静态检查、IDE 输入准备和配置、native C／resource／include／link、模型总预算、100k／并行／soak／最终发行。外部 C/compiler XRT，后续 opaque xlc.dll，无 DAP／运行态或调试态补全，发布 5241 文件未改，完整长期 goal 保持 active。

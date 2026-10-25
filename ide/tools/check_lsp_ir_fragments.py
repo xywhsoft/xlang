@@ -48,7 +48,7 @@ def main():
             else:assert value['activeParameter']==1 and value['signatures'][value['activeSignature']]['label']=='choose(int left, string right) as int'
         cases.append(dict(method=method,target=index,version=version,analysis=analysis));return analysis
     try:
-        c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1);init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.57';c.send('initialized',{})
+        c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1);init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.58';c.send('initialized',{})
         original=source()
         for p in paths:c.open(p,original,1)
         a=call(0,original,1);cold=a['irFragments'];assert cold['captured']>0 and not cold['reused'] and not cold['textNodes']
@@ -60,13 +60,15 @@ def main():
         edited=call(0,literal,2);ir=edited['irFragments'];assert edited['builds']==3 and ir['reused']>0 and ir['nodesReused']>100 and ir['textNodes']>0 and ir['textBytes']>0
         assert call(0,literal,2)['irFragments']==ir
         regions=source(2);c.change(paths[0],regions,3);region=call(0,regions,3)
-        assert region['irFragments']['reused']==2 and region['semanticFunctionsReused']-edited['semanticFunctionsReused']>region['irFragments']['reused'],region
+        assert region['irFragments']['reused']==ir['reused'] and region['irFragments']['nodesReused']==ir['nodesReused'],region
         assert call(1,original,1)['irFragments']==b['irFragments']
-        broken=regions.replace('int local = value + 3','int local = "wrong"',1);assert broken!=regions;c.change(paths[0],broken,4);call(0,broken,4,False)
-        c.change(paths[0],literal,5);recovered=call(0,literal,5);assert recovered['irFragments']['captured']>0
-        c.change(paths[0],original,6);restored=call(0,original,6);assert restored['irFragments']['reused']>0
+        c.change(paths[0],original,4);removed=call(0,original,4);assert removed['irFragments']['reused']==ir['reused']
+        c.change(paths[0],regions,5);again=call(0,regions,5);assert again['irFragments']['reused']==ir['reused']
+        broken=regions.replace('int local = value + 3','int local = "wrong"',1);assert broken!=regions;c.change(paths[0],broken,6);call(0,broken,6,False)
+        c.change(paths[0],literal,7);recovered=call(0,literal,7);assert recovered['irFragments']['captured']>0
+        c.change(paths[0],original,8);restored=call(0,original,8);assert restored['irFragments']['reused']>0
         for method in ['textDocument/completion','textDocument/signatureHelp']:
-            call(0,original,6,method=method);call(0,original,6,method=method)
+            call(0,original,8,method=method);call(0,original,8,method=method)
         c.send('textDocument/didClose',dict(textDocument=dict(uri=paths[0].as_uri())))
         current=call(1,original,1);assert current['irFragments']['bytes']>0
         assert all(sha(p)==h for p,h in protected.items());report['status']='passed'
