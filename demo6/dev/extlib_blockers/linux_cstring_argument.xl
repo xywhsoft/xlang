@@ -1,0 +1,4 @@
+extern "strlen" func cLength(cstring text) as c_size
+
+string text = "abc"
+assert cLength(text) == c_size(3)
