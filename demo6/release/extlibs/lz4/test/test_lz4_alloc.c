@@ -1,5 +1,6 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #include "../include/xrt_lz4.h"
+#include "../include/lz4_native.h"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -109,6 +110,39 @@ static unsigned int constructors(bool decode)
     return bad;
 }
 
+static unsigned int text_failures(void)
+{
+    xbuffer* packed = NULL;
+    xmemdebugsnapshot before;
+    unsigned int index, bad = 0, good = 0;
+    assert(xrtLz4Compress("hello", 5, NULL, &packed, NULL));
+    xrtMemDebugSnapshot(&before);
+    for (index = 0; index < 256 && good < 2; ++index) {
+        void* result;
+        bool injected;
+        assert(xrtMemDebugFailAfter(index));
+        result = xlz4_decompress_text(packed->Data, packed->Size,
+            268435456u, 536870912u, 1000u);
+        injected = xrtMemDebugFailTriggered();
+        xrtMemDebugFailClear();
+        if (injected) {
+            assert(result == NULL);
+            ++bad;
+        } else {
+            char* text;
+            assert(result != NULL && xlz4_text_size(result) == 5);
+            text = xlz4_text_take(result);
+            assert(text != NULL && memcmp(text, "hello", 6) == 0);
+            xrtFree(text);
+            ++good;
+        }
+        unchanged(&before);
+    }
+    assert(bad > 0 && good == 2);
+    xrtBufferDestroy(packed);
+    return bad;
+}
+
 int main(void)
 {
     unsigned char data[16384];
@@ -124,6 +158,7 @@ int main(void)
     count += constructors(false) + constructors(true);
     drain_retry(xrtBufferView(packed), (xbytesview){data, sizeof(data)});
     xrtBufferDestroy(packed);
+    count += text_failures();
     unchanged(&before);
     printf("lz4 allocation: rejected=%u, recovery and ownership passed\n", count);
     return 0;

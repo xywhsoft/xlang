@@ -4,6 +4,7 @@
 #define XRT_MODULE_VALUE
 #endif
 #include "xrt.h"
+typedef struct xvalue xvalue;
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,6 +18,10 @@ const char* xlz4_last_error(void);
 void* xlz4_compress(void* pData, size_t iSize, int iAcceleration, unsigned long long iMaxInput, unsigned long long iMaxOutput);
 void* xlz4_compress_str(const char* sText, size_t iSize, int iAcceleration, unsigned long long iMaxInput, unsigned long long iMaxOutput);
 void* xlz4_decompress(void* pData, size_t iSize, unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio);
+/* text_size 保留内嵌 NUL；text_take 销毁缓冲并移交 xrtFree 所有权。 */
+void* xlz4_decompress_text(void*, size_t, unsigned long long, unsigned long long, unsigned int);
+size_t xlz4_text_size(void*);
+void* xlz4_text_take(void*);
 int xlz4_compress_file(const char* sSource, const char* sDestination, int iAcceleration, bool bOverwrite, unsigned long long iMaxInput, unsigned long long iMaxOutput, xvalue* pCallback);
 int xlz4_decompress_file(const char* sSource, const char* sDestination, bool bOverwrite, unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio, xvalue* pCallback);
 void* xlz4_compressor_create(int iAcceleration, unsigned long long iMaxInput, unsigned long long iMaxOutput);

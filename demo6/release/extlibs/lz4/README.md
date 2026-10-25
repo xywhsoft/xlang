@@ -20,9 +20,11 @@ wire.append(encoder.drain())
 assert lz4.decompressText(wire) == "leftright"
 ```
 
-任意二进制数据使用 Buffer，包括 NUL 和无效 UTF-8 字节。string 重载面向文本，
-长度通过 string.byteLen 传递；当前共享字符串桥对嵌入 NUL 的限制没有由本库解决。
-decompressText 使用 Buffer.text，不应将它用于任意二进制输出。
+任意二进制数据使用 Buffer，包括无效 UTF-8 字节。string 重载面向文本，
+长度通过 string.byteLen 传递，内嵌 NUL 不截断。
+`decompressText` 校验 UTF-8 后取走 XRT 解压缓冲，保留内嵌 NUL，
+不再经 `Buffer.text()` 无条件复制；追加末尾 NUL 时容量不足仍可能扩容。
+非法 UTF-8 抛 `ValueError`。通过公开 C 导出调用时按普通字符串 ABI 转换。
 
 ## xlang API
 
@@ -35,7 +37,7 @@ compress(Buffer|string data, int acceleration=1,
 decompress(Buffer data, int maxInput=268435456,
     int maxOutput=536870912, int maxRatio=1000) as Buffer
 decompressText(Buffer data, int maxInput=268435456,
-    int maxOutput=536870912, int maxRatio=1000) as string
+    int maxOutput=536870912, int maxRatio=1000) as cstring
 compressor(int acceleration=1, int maxInput=268435456,
     int maxOutput=536870912) as Lz4Compressor
 decompressor(int maxInput=268435456, int maxOutput=536870912,
@@ -196,3 +198,10 @@ GCC、线程、故障注入、文件事务及 514 项系统库互通均通过。
 ASan/UBSan、泄漏检测、独立互通及 C/XLang 双语对照。上面的 XLIR
 阻断是历史记录，不再代表当前 Windows 发布版；Linux XLang AOT、
 32 位、TSan、长期压力与性能基准仍未纳入本次验收。
+
+2026-10-25：`decompressText` 改为校验后移交缓冲给 `cstring`，
+补空文本、内嵌 NUL、非法 UTF-8、原址所有权和分配失败回归。
+Windows 独立 C 门禁及发布目录的 XLang JIT/EXE 通过；从项目根目录
+运行完整门禁仍被共享 VFS `include/xruntime_decl.h` 查找问题阻断。
+Linux C ASan/UBSan 与 514 项系统库互通通过；旧 Linux `release/xl`
+尚不识别 `cstring`，语言门禁需在重建发布物后复验。

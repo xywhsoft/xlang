@@ -47,6 +47,44 @@ static void clean_snapshot(const xmemdebugsnapshot* before)
     assert(before->OverflowCount == after.OverflowCount && before->UnderflowCount == after.UnderflowCount);
 }
 
+static void text_bridge(void)
+{
+    const unsigned char content[] = {'a', 0, 'b', 0xe4, 0xbd, 0xa0};
+    const unsigned char invalid[] = {0xff};
+    xbuffer* packed;
+    xbuffer* result;
+    void* original;
+    char* text;
+    size_t length;
+    packed = xlz4_compress((void*)content, sizeof(content), 1, 0, 0);
+    assert(packed);
+    result = xlz4_decompress_text(packed->Data, packed->Size, 0, 0, 0);
+    assert(result);
+    length = xlz4_text_size(result);
+    original = result->Data;
+    text = xlz4_text_take(result);
+    assert(text == original && length == sizeof(content));
+    assert(memcmp(text, content, length) == 0 && text[length] == 0);
+    xrtFree(text);
+    xrtBufferDestroy(packed);
+
+    packed = xlz4_compress(NULL, 0, 1, 0, 0);
+    assert(packed);
+    result = xlz4_decompress_text(packed->Data, packed->Size, 0, 0, 0);
+    assert(result && xlz4_text_size(result) == 0);
+    text = xlz4_text_take(result);
+    assert(text && text[0] == 0);
+    xrtFree(text);
+    xrtBufferDestroy(packed);
+
+    packed = xlz4_compress((void*)invalid, sizeof(invalid), 1, 0, 0);
+    assert(packed);
+    assert(xlz4_decompress_text(packed->Data, packed->Size, 0, 0, 0) == NULL);
+    assert(xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    xrtClearError();
+    xrtBufferDestroy(packed);
+}
+
 int main(int argc, char** argv)
 {
     static const uint8 content[] = "native progress";
@@ -59,6 +97,7 @@ int main(int argc, char** argv)
     unsigned int mode, i, bad = 0, good = 0;
     assert(argc == 2 && strlen(argv[1]) < 900);
     assert(xrtMemDebugEnable(true));
+    text_bridge();
     assert(xlz4_available() && strcmp(xlz4_version(), "1.10.0") == 0);
     assert(!xlz4_compressor_create(0, 0, 0) && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     assert(strstr(xlz4_last_error(), "acceleration") != NULL);

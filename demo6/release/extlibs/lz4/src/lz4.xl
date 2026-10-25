@@ -6,6 +6,12 @@ extern "xlz4_compress_str" func __lz4_compress_str(string data, c_size size, c_i
     c_ulonglong maxInput, c_ulonglong maxOutput) as point
 extern "xlz4_decompress" func __lz4_decompress(point data, c_size size,
     c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xlz4_decompress_text" func __lz4_decompress_text(point data, c_size size,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xlz4_text_size" @no_raise func __lz4_text_size(point result) as c_size
+extern "xlz4_text_take" @no_raise func __lz4_text_take(point result) as point
+extern "xrtFree" @no_raise func __lz4_free(point data)
+extern "xlz4_last_error" @no_raise func __lz4_error() as string
 extern "xlz4_compress_file" func __lz4_compress_file(string source, string destination,
     c_int acceleration, c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput,
     var onProgress) as c_int
@@ -94,8 +100,16 @@ export func decompress(Buffer data, int maxInput = 268435456,
 end
 
 export func decompressText(Buffer data, int maxInput = 268435456,
-    int maxOutput = 536870912, int maxRatio = 1000) as string
-    return decompress(data, maxInput, maxOutput, maxRatio).text()
+    int maxOutput = 536870912, int maxRatio = 1000) as cstring
+    __lz4_check_limit(maxInput, "maxInput")
+    __lz4_check_limit(maxOutput, "maxOutput")
+    __lz4_check_limit(maxRatio, "maxRatio")
+    if maxRatio > 4294967295 then throw RangeError "lz4 maxRatio must fit uint32" end
+    point result = __lz4_decompress_text(data.data(), c_size(data.len()),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
+    if result == null then throw CompressionError __lz4_error() end
+    c_size textSize = __lz4_text_size(result)
+    return cstring.take(__lz4_text_take(result), textSize, __lz4_free)
 end
 
 export func compressFile(string source, string destination,

@@ -1,6 +1,9 @@
 #ifndef XRT_MODULE_IO_BUFFER
 #define XRT_MODULE_IO_BUFFER
 #endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
 #ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #endif
@@ -75,6 +78,41 @@ void* xlz4_decompress(void* data, size_t size,
     xbuffer* output = NULL;
     lz4_options(&options, 1, maxInput, maxOutput, ratio);
     return xrtLz4Decompress(data, size, &options, &output, NULL) ? output : NULL;
+}
+
+/* 文本结果直接取走解压缓冲；末尾 NUL 可能触发 XRT 扩容。 */
+void* xlz4_decompress_text(void* data, size_t size,
+    unsigned long long maxInput, unsigned long long maxOutput, unsigned int ratio)
+{
+    xbuffer* output = (xbuffer*)xlz4_decompress(data, size, maxInput, maxOutput, ratio);
+    if (output == NULL) return NULL;
+    if (!xrtUtf8Valid((xstrview){(const char*)output->Data, output->Size}, NULL)) {
+        xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.lz4", 0,
+            "lz4 decompressed text is not valid UTF-8");
+        xrtBufferDestroy(output);
+        return NULL;
+    }
+    if (!xrtBufferAppendByte(output, 0)) {
+        xrtBufferDestroy(output);
+        return NULL;
+    }
+    return output;
+}
+
+size_t xlz4_text_size(void* raw)
+{
+    const xbuffer* output = (const xbuffer*)raw;
+    return output != NULL && output->Size != 0u ? output->Size - 1u : 0u;
+}
+
+void* xlz4_text_take(void* raw)
+{
+    xbuffer* output = (xbuffer*)raw;
+    void* text;
+    if (output == NULL) return NULL;
+    text = xrtBufferTake(output, NULL, NULL);
+    xrtBufferDestroy(output);
+    return text;
 }
 int xlz4_compress_file(const char* source, const char* destination, int acceleration,
     bool overwrite, unsigned long long maxInput, unsigned long long maxOutput, xvalue* callback)

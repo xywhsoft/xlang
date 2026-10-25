@@ -18,6 +18,16 @@ func main(...) as int
     textWithNul.appendByte(0)
     textWithNul.append("b")
     assert lz4.decompressText(lz4.compress(textWithNul)) == "a\0b"
+    assert lz4.decompressText(lz4.compress("")) == ""
+    Buffer invalidText = Buffer()
+    invalidText.appendByte(255)
+    bool invalidRejected = false
+    try
+        lz4.decompressText(lz4.compress(invalidText))
+    catch ValueError e
+        invalidRejected = true
+    end
+    assert invalidRejected
     // 两包同时链接：Frame 内部的旧 xxHash 不得与公开 xxhash 包冲突。
     assert xxhash.hash64(result) == xxhash.hash64(source)
     assert packed[0] == 4 and packed[1] == 34 and packed[2] == 77 and packed[3] == 24
