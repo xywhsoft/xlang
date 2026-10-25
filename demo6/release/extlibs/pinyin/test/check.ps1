@@ -3,7 +3,6 @@ param([switch]$SkipAot)
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
-$release = Join-Path $root 'release'
 $xl = Join-Path $root 'release/xl.exe'
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 $expected = [string]::Join("`n", (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'pinyin.expected.txt') -Encoding UTF8))
@@ -27,46 +26,41 @@ try {
     & $runner -Package pinyin -Source release/extlibs/pinyin/test/test_pinyin.c
     if ($LASTEXITCODE -ne 0) { throw 'pinyin C boundaries failed' }
 
+    foreach ($source in @('test/cases/extlib_pinyin.xl', 'release/extlibs/pinyin/test/boundaries.xl',
+        'release/extlibs/pinyin/test/allocations.xl')) {
+        & $xl run $source
+        if ($LASTEXITCODE -ne 0) { throw "pinyin XLang test failed: $source" }
+    }
+
+    $xlLines = @(& $xl run release/examples/extlibs/pinyin.xl)
+    if ($LASTEXITCODE -ne 0) { throw 'pinyin XLang example failed' }
+    Confirm-Output 'XLang example' $xlLines
+
     $cLines = @(& $runner -Package pinyin -Source release/examples/extlibs/pinyin_c.c)
     if ($LASTEXITCODE -ne 0) { throw 'pinyin C package example failed' }
     Confirm-Output 'C package example' $cLines
 
-    Push-Location $release
-    try {
-        foreach ($source in @('../test/cases/extlib_pinyin.xl', 'extlibs/pinyin/test/boundaries.xl',
-            'extlibs/pinyin/test/allocations.xl')) {
-            & $xl run $source
-            if ($LASTEXITCODE -ne 0) { throw "pinyin XLang test failed: $source" }
+    $direct = @(& $xl run release/examples/extlibs/pinyin_c.c)
+    if ($LASTEXITCODE -ne 0) { throw 'pinyin direct C example failed' }
+    Confirm-Output 'direct C example' $direct
+
+    if (-not $SkipAot) {
+        [IO.Directory]::CreateDirectory($work) | Out-Null
+        $core = Join-Path $work 'pinyin_core.exe'
+        & $xl build test/cases/extlib_pinyin.xl -o $core
+        if ($LASTEXITCODE -ne 0) { throw 'pinyin core AOT build failed' }
+        $coreLines = @(& $core)
+        if ($LASTEXITCODE -ne 0 -or $coreLines.Count -ne 0) {
+            throw 'pinyin core AOT result differs'
         }
-
-        $xlLines = @(& $xl run examples/extlibs/pinyin.xl)
-        if ($LASTEXITCODE -ne 0) { throw 'pinyin XLang example failed' }
-        Confirm-Output 'XLang example' $xlLines
-
-        $direct = @(& $xl run examples/extlibs/pinyin_c.c)
-        if ($LASTEXITCODE -ne 0) { throw 'pinyin direct C example failed' }
-        Confirm-Output 'direct C example' $direct
-
-        if (-not $SkipAot) {
-            [IO.Directory]::CreateDirectory($work) | Out-Null
-            $core = Join-Path $work 'pinyin_core.exe'
-            & $xl build ../test/cases/extlib_pinyin.xl -o $core
-            if ($LASTEXITCODE -ne 0) { throw 'pinyin core AOT build failed' }
-            $coreLines = @(& $core)
-            if ($LASTEXITCODE -ne 0 -or $coreLines.Count -ne 0) {
-                throw 'pinyin core AOT result differs'
-            }
-            Write-Output 'pinyin core AOT: PASS'
-            $example = Join-Path $work 'pinyin_example.exe'
-            & $xl build examples/extlibs/pinyin.xl -o $example
-            if ($LASTEXITCODE -ne 0) { throw 'pinyin example AOT build failed' }
-            $aotLines = @(& $example)
-            if ($LASTEXITCODE -ne 0) { throw 'pinyin example AOT failed' }
-            Confirm-Output 'XLang example AOT' $aotLines
-            Write-Output 'pinyin example AOT: PASS'
-        }
-    } finally {
-        Pop-Location
+        Write-Output 'pinyin core AOT: PASS'
+        $example = Join-Path $work 'pinyin_example.exe'
+        & $xl build release/examples/extlibs/pinyin.xl -o $example
+        if ($LASTEXITCODE -ne 0) { throw 'pinyin example AOT build failed' }
+        $aotLines = @(& $example)
+        if ($LASTEXITCODE -ne 0) { throw 'pinyin example AOT failed' }
+        Confirm-Output 'XLang example AOT' $aotLines
+        Write-Output 'pinyin example AOT: PASS'
     }
 
     Write-Output 'pinyin Windows C/XLang gate: PASS'
