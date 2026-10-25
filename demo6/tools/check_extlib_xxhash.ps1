@@ -5,7 +5,9 @@ $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
 $xl = Join-Path $Root 'release/xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
-$work = Join-Path $Root 'build/test/xxhash_guard'
+$workRoot = Join-Path $Root 'build/test/xxhash_guard'
+$runId = [guid]::NewGuid().ToString('N')
+$work = Join-Path $workRoot ('run_' + $runId)
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $utf8 = [Text.UTF8Encoding]::new($false)
 $checks = [Collections.Generic.List[object]]::new()
@@ -152,5 +154,16 @@ try {
     if (!$SkipAot) { $scope += ', Windows AOT' } else { $scope += '; AOT skipped' }
     $scope += '; not XXH3 language API, Linux XL AOT, 32-bit/ARM or performance certification'
     $report = [ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;scope=$scope;generatedPrototypes=$decls.Count;inputs=$hashes;checks=@($checks.ToArray())}
-    [IO.File]::WriteAllText((Join-Path $work 'results.json'),($report | ConvertTo-Json -Depth 8),$utf8)
+    try {
+        [IO.File]::WriteAllText((Join-Path $workRoot ('results_' + $runId + '.json')),
+            ($report | ConvertTo-Json -Depth 8),$utf8)
+    } finally {
+        $parentPath = [IO.Path]::GetFullPath($workRoot).TrimEnd('\') + '\'
+        $workPath = [IO.Path]::GetFullPath($work)
+        if (-not $workPath.StartsWith($parentPath,
+            [StringComparison]::OrdinalIgnoreCase)) {
+            throw "xxhash temporary work path escaped build/test: $workPath"
+        }
+        Remove-Item -LiteralPath $workPath -Recurse -Force
+    }
 }

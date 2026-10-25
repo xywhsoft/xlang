@@ -2,14 +2,19 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
-work="$root/build/test/xxhash_linux_guard"
-mkdir -p "$work"
+work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-xxhash-XXXXXX")
+trap 'rm -rf -- "$work"' EXIT
 cc=${CC:-gcc}
 pkg=release/extlibs/xxhash
 input_paths() {
     find "$pkg" -type f -print0
     printf '%s\0' .gitattributes lib/xrt/xrt.h lib/xruntime/xruntime.h \
         test/support/extlib_codec_runtime.c tools/check_extlib_xxhash.sh \
+        release/xl test/cases/extlib_xxhash.xl \
+        test/cases/extlib_xxhash_boundaries.xl \
+        test/cases/extlib_xxhash_progress.xl \
+        release/examples/extlibs/xxhash.xl \
+        release/examples/extlibs/xxhash_basic.xl \
         release/examples/extlibs/xxhash_basic.expected.txt
 }
 mapfile -d '' inputs < <(input_paths | sort -z)
@@ -35,7 +40,49 @@ done
 "$cc" "${flags[@]}" -DNDEBUG "$pkg/examples/basic.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/basic"
 timeout 30s "$work/basic" > "$work/basic.log"
 diff -u release/examples/extlibs/xxhash_basic.expected.txt "$work/basic.log"
+if [[ ! -x release/xl ]]; then
+    printf 'xxhash Linux xl runner is missing: release/xl\n' >&2
+    exit 1
+fi
+timeout 90s ./release/xl run "$pkg/examples/basic.c" > "$work/basic_direct.log"
+diff -u "$work/basic.log" "$work/basic_direct.log"
+for name in private_update_negative private_string_length_negative; do
+    if timeout 30s ./release/xl check "$pkg/test/$name.xl" > "$work/$name.log" 2>&1; then
+        printf 'xxhash private member escaped its class: %s\n' "$name" >&2
+        exit 1
+    fi
+    grep -Fq 'access' "$work/$name.log"
+done
+for name in invalid_seed_negative invalid_seed32_overflow; do
+    if timeout 30s ./release/xl check "$pkg/test/$name.xl" > "$work/$name.log" 2>&1; then
+        printf 'xxhash invalid seed accepted: %s\n' "$name" >&2
+        exit 1
+    fi
+    grep -Fq '[sem]' "$work/$name.log"
+done
+for name in extlib_xxhash extlib_xxhash_boundaries extlib_xxhash_progress; do
+    timeout 90s ./release/xl run "test/cases/$name.xl"
+done
+for name in seeded_boundaries stream_limit; do
+    timeout 90s ./release/xl run "$pkg/test/$name.xl"
+done
+timeout 90s ./release/xl run release/examples/extlibs/xxhash.xl > "$work/full_jit.log"
+timeout 90s ./release/xl run release/examples/extlibs/xxhash_basic.xl > "$work/basic_jit.log"
+diff -u "$work/basic.log" "$work/basic_jit.log"
+printf '[xxhash] XLang AOT gate\n'
+for name in extlib_xxhash extlib_xxhash_boundaries extlib_xxhash_progress seeded_boundaries stream_limit xxhash xxhash_basic; do
+    printf '[xxhash] AOT %s\n' "$name"
+    case "$name" in
+        extlib_*) source="test/cases/$name.xl" ;;
+        seeded_boundaries|stream_limit) source="$pkg/test/$name.xl" ;;
+        *) source="release/examples/extlibs/$name.xl" ;;
+    esac
+    timeout 180s ./release/xl build "$source" -o "$work/$name"
+    timeout 90s "$work/$name" > "$work/${name}_aot.log"
+done
+diff -u "$work/basic.log" "$work/xxhash_basic_aot.log"
+diff -u "$work/full_jit.log" "$work/xxhash_aot.log"
 mapfile -d '' after < <(input_paths | sort -z)
 sha256sum "${after[@]}" > "$work/inputs.after.sha256"
 diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"
-printf 'xxhash Linux C ASan/UBSan gate: PASS\n'
+printf 'xxhash Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'
