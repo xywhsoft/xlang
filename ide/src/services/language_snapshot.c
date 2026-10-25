@@ -81,6 +81,13 @@ static int semanticReadStats(xvalue* stats,const xls_semantic_check* check)
 #undef SEM_READ_FIELD
  if(okay){okay=put(stats,"semanticReads",value);value=NULL;}xrtValueRelease(value);return okay;
 }
+static int moduleSyntaxStats(xvalue* stats,const xls_semantic_check* check)
+{
+ xls_parse_work work=xlsSemanticCheckModuleParseWork(check);xvalue* value=xrtValueObject();
+ int okay=value && put(value,"full",xrtValueInt((int64)work.full)) && put(value,"fragments",xrtValueInt((int64)work.fragments)) &&
+  put(value,"reused",xrtValueInt((int64)work.reused)) && put(value,"bytes",xrtValueInt((int64)work.bytes));
+ if(okay){okay=put(stats,"lastBuildModuleSyntax",value);value=NULL;}xrtValueRelease(value);return okay;
+}
 static int entityInterfaceStats(xvalue* stats,const xls_semantic_check* check)
 {
  xls_entity_version_info info=xlsEntityViewVersions(xlsSemanticIndexEntities(xlsSemanticCheckTypedIndex(check)));xvalue* value=xrtValueObject();
@@ -737,7 +744,7 @@ analysed:
    put(stats,"semanticFunctionsChecked",xrtValueInt((int64)q->semanticStats.semanticFunctionsChecked)) &&
    put(stats,"semanticFunctionsReused",xrtValueInt((int64)q->semanticStats.semanticFunctionsReused)) &&
    put(stats,"semanticContextHits",xrtValueInt((int64)q->semanticStats.semanticContextHits)) &&
-   put(stats,"semanticMemoBytes",xrtValueInt((int64)q->semanticStats.semanticMemoBytes)) && sessionCacheStats(stats,q) && memoTypeStats(stats,xlsSemanticCheckMemoTypes(nativeCheck)) && irFragmentStats(stats,xlsSemanticCheckIrWork(nativeCheck)) && entityInterfaceStats(stats,nativeCheck) && semanticReadStats(stats,nativeCheck);
+   put(stats,"semanticMemoBytes",xrtValueInt((int64)q->semanticStats.semanticMemoBytes)) && sessionCacheStats(stats,q) && memoTypeStats(stats,xlsSemanticCheckMemoTypes(nativeCheck)) && irFragmentStats(stats,xlsSemanticCheckIrWork(nativeCheck)) && entityInterfaceStats(stats,nativeCheck) && semanticReadStats(stats,nativeCheck) && moduleSyntaxStats(stats,nativeCheck);
   xvalue* entryWork=xrtValueObject();
   okayStats=okayStats && entryWork && put(entryWork,"parsed",xrtValueInt((int64)q->entryParseWork.parsed)) &&
    put(entryWork,"reused",xrtValueInt((int64)q->entryParseWork.reused)) && put(entryWork,"declined",xrtValueInt((int64)q->entryParseWork.declined)) &&
