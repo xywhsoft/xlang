@@ -1,5 +1,12 @@
 # skiplist
 
+2026-10-25 复验：Windows 默认 `test/check.ps1` 的 C/ABI、随机源
+故障、有序模型、语言边界、私有入口、双语范例及核心/公开范例的
+独立 EXE 均通过。脚本在 `release` 工作目录运行语言阶段；项目
+根目录的共享 VFS 头文件查找故障仍未修复。Linux `test/check.sh`
+同次通过 C ASan/UBSan、熵源故障、语言用例和双语固定输出。
+本轮未重建 Linux 发布物或验收 Linux 独立 EXE。
+
 有序字符串键值表。`set` 插入或覆盖，`get` 支持缺省值，`contains`/`remove` 查询和删除，`keys()` 返回全部键，`range(start, finish)` 返回两端包含的 `{key, value}` 条目数组。`count` 与 `clear()` 管理总数和复用。逆序区间返回空数组，不静默截断结果。
 
 ```xlang
@@ -34,7 +41,7 @@ println(rows[0]["value"])
 公开范例 AOT 全部通过。先前带输出 AOT 的共享缺符号记录属于
 旧发布物；本次未重跑 Linux sanitizer，公开并发与复杂度合同不变。
 
-Windows 聚焦快测：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/skiplist/test/check.ps1 -SkipAot`。它同次检查 C 独立模型、包外 `setNative` 访问拒绝、XLang 边界与 C/XLang 固定范例输出。去掉 `-SkipAot` 后，默认还构建运行核心和公开范例 AOT，后者必须匹配同一黄金输出；每次使用并清理独占构建目录。当前快测和核心 AOT 通过，完整范例仍被共享 `xl6ValueDataSnapshotV1` 缺符号阻断，不签收整包发布级。
+Windows 聚焦快测：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/skiplist/test/check.ps1 -SkipAot`。它同次检查 C 独立模型、包外 `setNative` 访问拒绝、XLang 边界与 C/XLang 固定范例输出。去掉 `-SkipAot` 后，默认还构建运行核心和公开范例 AOT，后者必须匹配同一黄金输出；每次使用并清理独占构建目录。当前 Windows 默认门禁已通过；Linux 独立 EXE 仍需新发布物复验。
 
 从 `demo6` 目录运行：
 
