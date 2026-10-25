@@ -336,6 +336,7 @@ const char* xl6StdlibXidClassSource =
 #include "xl6_stdlib_tls_verifier.inc"
 #include "xl6_stdlib_tls_role_context.inc"
 #include "xl6_stdlib_tls_selector.inc"
+#include "xl6_stdlib_tls_resume.inc"
 #include "xl6_stdlib_x509_signature_verify_buffer.inc"
 
 #include "xl6_stdlib_net_address.inc"
@@ -524,13 +525,6 @@ const char* xl6StdlibLengthFramerClassSource =
 #include "src/stdlib/xl6_stdlib_tls_dial_options.inc"
 
 const char* xl6StdlibTlsLegacyConfigClassSource =
-    "class TlsResume\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_tls_resume_wrap\" create(point handle)\n"
-    "    extern \"xl6_xrt_tls_resume_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_tls_resume_native\" func nativeHandle() as point\n"
-    "end\n"
-    "\n"
     "class TlsConfig\n"
     "    native point handle\n"
     "    extern \"xl6_xrt_tls_config_create\" create()\n"

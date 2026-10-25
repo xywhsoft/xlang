@@ -1,0 +1,38 @@
+func makeResume(time issued) as TlsResume
+ return TlsResume.fromParts(TlsVersion.v13,TlsCipherSuite.aes128GcmSha256,
+  b"t\0\xff",b"01234567890123456789012345678901",issued,120,
+  uint64(4294967295),"localhost",b"x\0\xff",b"peer\0id",uint64(0))
+end
+auto issued=time.now()
+auto value=makeResume(issued)
+assert value.version == TlsVersion.v13
+assert value.cipher == TlsCipherSuite.aes128GcmSha256
+assert value.ticket == b"t\0\xff"
+assert value.exportSecret() == b"01234567890123456789012345678901"
+assert value.serverName == "localhost" and value.protocol == b"x\0\xff"
+assert value.peerIdentity == b"peer\0id" and value.lifetimeSeconds == 120
+assert value.ageAdd == uint64(4294967295) and value.maxEarlyData == uint64(0)
+assert value.issuedAt == issued and value.expiresAt > issued
+assert value.validAt(issued) and not value.validAt(value.expiresAt)
+assert value.ticketAge(issued) == uint64(4294967295)
+auto detached=value.ticket
+detached[0]=65
+assert value.ticket == b"t\0\xff"
+auto secret=value.exportSecret()
+secret[0]=65
+assert value.exportSecret() == b"01234567890123456789012345678901"
+auto alias=value
+assert alias.serverName == "localhost" and alias.ticket == b"t\0\xff"
+int caught=0
+try
+ auto unavailable=alias.ticketAge(alias.expiresAt)
+catch RuntimeError expected
+ caught+=1
+end
+try
+ auto invalid=TlsResume.fromParts(TlsVersion.v13,TlsCipherSuite.aes128GcmSha256,
+  b"ticket",b"01234567890123456789012345678901",issued,120,uint64(4294967296))
+catch RangeError expected
+ caught+=1
+end
+assert caught == 2
