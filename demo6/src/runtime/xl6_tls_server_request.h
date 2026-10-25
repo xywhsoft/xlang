@@ -1,6 +1,8 @@
 #ifndef XL6_TLS_SERVER_REQUEST_H
 #define XL6_TLS_SERVER_REQUEST_H
+#if !defined(XRT_SINGLE_HEADER) && !defined(XRUNTIME_DECLARATIONS_H)
 #include "include/xruntime_decl.h"
+#endif
 #include "xl6_runtime_export.h"
 
 /* Private producer ABI for the typed TLS selector. A native request is only

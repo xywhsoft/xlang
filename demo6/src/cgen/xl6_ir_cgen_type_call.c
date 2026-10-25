@@ -506,6 +506,23 @@ static int xl6IrCgenEmitNativeServices(XL6_Output* out,const XL6_IrCallTarget* t
 
 static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
+    if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1){
+        XL6_IrNativeClassCallbackPlan plan={0};
+        if(!xl6IrNativeClassCallbackPlanBuild(module,target,&plan))return 0;
+        const XL6_IrClassIdentityPlan* result=xl6IrClassIdentityPlanGet(module,plan.result);
+        if(!result)return 0;
+        xl6OutputPuts("(XL6_NativeClassCallbackContextV1){{{",out);
+        xl6IrCgenEmitCStringLiteral(out,plan.argumentField->name);
+        xl6OutputPrintf(out,", %lu, %s()}, %s, &xlir_native_result_schema_t%u}, {",
+            (unsigned long)strlen(plan.argumentField->name),plan.argumentField->nativeHandlePolicyCName,
+            module->abi.codeOwnerAbi==XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT?
+                "(xlir_code_owner.size != 0 ? &xlir_code_owner : NULL)":"NULL",(unsigned)plan.argument);
+        xl6IrCgenEmitCStringLiteral(out,plan.resultField->name);
+        xl6OutputPrintf(out,", %lu, %s()}, UINT64_C(0x%016llX)}",
+            (unsigned long)strlen(plan.resultField->name),plan.resultField->nativeHandlePolicyCName,
+            (unsigned long long)result->identity);
+        return !xl6OutputHasFailed(out);
+    }
     if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_NULLARY_VOID_ARRAY_V1){
         const XL6_IrType* array=xl6IrTypeGet(&module->types,target->nativeContextType);
         const XL6_IrType* callback=array&&array->paramCount==1&&array->params?xl6IrTypeGet(&module->types,array->params[0]):NULL;

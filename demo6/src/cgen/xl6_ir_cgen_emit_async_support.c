@@ -1,3 +1,12 @@
+static XL6_IrTypeId xl6IrCgenNativeResultSchemaType(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1)return target->nativeContextType;
+    if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1){
+        XL6_IrNativeClassCallbackPlan plan={0};
+        return xl6IrNativeClassCallbackPlanBuild(module,target,&plan)?plan.argument:XL6_IR_TYPE_INVALID;
+    }
+    return XL6_IR_TYPE_INVALID;
+}
 /* Closed enum-to-C mappings, not protocol selection. The independent IR
  * verifier has already fixed targets, modes and the complete field vector. */
 static const char* xl6IrCgenClassHashModeV3(XL6_IrClassHashAbi abi)
@@ -194,6 +203,14 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
     for(size_t targetIndex=0;targetIndex<module->callTargetCount;++targetIndex){
         const XL6_IrCallTarget* target=&module->callTargets[targetIndex];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1){
+            XL6_IrNativeClassCallbackPlan plan={0};
+            if(!xl6IrNativeClassCallbackPlanBuild(module,target,&plan))return 0;
+            xl6OutputPrintf(out,"extern const struct XL6_NativeHandlePolicyV1* %s(void);\n"
+                "extern const struct XL6_NativeHandlePolicyV1* %s(void);\n",
+                plan.argumentField->nativeHandlePolicyCName,plan.resultField->nativeHandlePolicyCName);
+            continue;
+        }
         const XL6_IrClassField* field=
             target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1?xl6IrNativeClassContextField(module,target):
             target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1?xl6IrNativeClassArrayContextField(module,target):
@@ -217,20 +234,19 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                 "XLIR class identity resident schema ABI is unresolved");
         for(size_t targetIndex=0;targetIndex<module->callTargetCount;++targetIndex){
             const XL6_IrCallTarget* target=&module->callTargets[targetIndex];
-            if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE||
-                target->nativeContextAbi!=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1)continue;
+            if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+            XL6_IrTypeId schemaType=xl6IrCgenNativeResultSchemaType(module,target);
+            if(!schemaType)continue;
             size_t prior=0;for(;prior<targetIndex;++prior)
                 if(module->callTargets[prior].reachability!=XL6_IR_REACHABILITY_UNREACHABLE&&
-                    module->callTargets[prior].nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1&&
-                    module->callTargets[prior].nativeContextType==target->nativeContextType)break;
+                    xl6IrCgenNativeResultSchemaType(module,&module->callTargets[prior])==schemaType)break;
             if(prior!=targetIndex)continue;
-            const XL6_IrClassIdentityPlan* identity=xl6IrClassIdentityPlanGet(module,target->nativeContextType);
-            const XL6_IrClassField* field=xl6IrNativeClassResultContextField(module,target);
-            if(!identity||!field||!field->nativeHandlePolicyCName)return 0;
+            const XL6_IrClassIdentityPlan* identity=xl6IrClassIdentityPlanGet(module,schemaType);
+            if(!identity)return 0;
             xl6OutputPrintf(out,"static const XL6_ClassIdentitySchemaV3 xlir_native_result_schema_t%u = {\n"
                 "    sizeof(XL6_ClassIdentitySchemaV3), UINT64_C(0x%016llX), %u,\n"
                 "    XL6_CLASS_IDENTITY_REFERENCE_V3, XL6_CLASS_IDENTITY_REFERENCE_V3, NULL, 0, {0}\n};\n\n",
-                (unsigned)target->nativeContextType,(unsigned long long)identity->identity,(unsigned)identity->runtimeTypeTag);
+                (unsigned)schemaType,(unsigned long long)identity->identity,(unsigned)identity->runtimeTypeTag);
         }
         for ( instructionIndex = 0;
               instructionIndex < module->instructionCount;

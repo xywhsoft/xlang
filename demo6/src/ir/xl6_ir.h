@@ -4155,7 +4155,8 @@ typedef enum XL6_IrCallNativeContextAbi {
     XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1,
     XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,
     XL6_IR_CALL_NATIVE_CONTEXT_NULLARY_VOID_ARRAY_V1,
-    XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1
+    XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1,
+    XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1
 } XL6_IrCallNativeContextAbi;
 
 /* Orthogonal to the immutable native descriptor shape. Only canonical
@@ -6989,6 +6990,11 @@ XL6_IrTypeId xl6IrNativeContextElementType(const XL6_IrModule*,const XL6_IrCallT
 const XL6_IrClassField* xl6IrNativeClassArrayContextField(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_IrClassField* xl6IrNativeClassContextField(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_IrClassField* xl6IrNativeClassResultContextField(const XL6_IrModule*,const XL6_IrCallTarget*);
+typedef struct XL6_IrNativeClassCallbackPlan {
+    XL6_IrTypeId signature,argument,result;
+    const XL6_IrClassField *argumentField,*resultField;
+} XL6_IrNativeClassCallbackPlan;
+int xl6IrNativeClassCallbackPlanBuild(const XL6_IrModule*,const XL6_IrCallTarget*,XL6_IrNativeClassCallbackPlan*);
 /* No implicit zero-field default can create an owned native resource. */
 int xl6IrTypeRequiresExplicitNativeInitialization(const struct XL6_IrModule*,XL6_IrTypeId);
 int xl6IrRuntimeDirectBridgeContext(const struct XL6_IrModule*,const XL6_IrCallTarget*,

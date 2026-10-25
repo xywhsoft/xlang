@@ -1,0 +1,16 @@
+const char* xl6StdlibTlsSelectorSource=
+    "class TlsServerRequest\n    private native point handle\n"
+    "    extern \"xl6TlsServerRequestDestroyV1\" @no_raise @nonblocking destroy()\n"
+    "    extern \"xl6TlsServerRequestNameV1\" @pure @nonblocking get serverName() as bytes\n"
+    "    extern \"xl6TlsServerRequestProtocolCountV1\" @pure @nonblocking get protocolCount() as int\n"
+    "    extern \"xl6TlsServerRequestProtocolAtV1\" @pure @nonblocking func protocolAt(int index) as bytes\n"
+    "end\n"
+    "class TlsServerChoice\n    private native point handle\n"
+    "    extern \"xl6TlsServerChoiceCreateV1\" @pure @nonblocking create(TlsIdentity identity, uint64 cookie = 0)\n"
+    "    extern \"xl6TlsServerChoiceDestroyV1\" @no_raise @nonblocking destroy()\n"
+    "    extern \"xl6TlsServerChoiceWithProtocolIndexV1\" @pure @nonblocking func withProtocolIndex(int index) as TlsServerChoice\n"
+    "    extern \"xl6TlsServerChoiceIdentityV1\" @pure @nonblocking get identity() as TlsIdentity\n"
+    "    extern \"xl6TlsServerChoiceCookieV1\" @pure @nonblocking get cookie() as uint64\n"
+    "    extern \"xl6TlsServerChoiceHasProtocolIndexV1\" @pure @nonblocking get hasProtocolIndex() as bool\n"
+    "    extern \"xl6TlsServerChoiceProtocolIndexV1\" @pure @nonblocking get protocolIndex() as int\n"
+    "end\n";

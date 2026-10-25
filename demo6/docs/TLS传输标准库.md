@@ -210,3 +210,12 @@ bytes 保存，保留 NUL 和非 UTF-8 字节，返回的 bytes 独立于请求�
 涉及其布局的 C 单元必须整体重编译；两边的时间 ABI 不变。本批普通固定
 证书的内存握手、生命周期和 OOM 单元不能替代类型化语言回调的拥有图、
 模块退役、JIT／AOT 或发布验收，默认语言服务端仍为静态身份。
+
+### 后续接入：类型化 Session 选择器
+
+上述两批是前置验收的历史状态。后续已实现默认标准库的
+`TlsServerRequest`、`TlsServerChoice` 和类型化 `TlsServerContext` 选择器，
+先接入内存 `TlsSession`；组合 `TlsListener` 的动态绑定仍待完成。
+精确 API、拥有图、效果与验收边界见
+[TLS 类型化服务端选择器](TLS类型化服务端选择器.md)。
+不能将 Session 的局部接入视为组合传输、票据恢复或发布封板完成。

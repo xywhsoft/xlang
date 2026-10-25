@@ -938,6 +938,8 @@ XL6_TEXT_EXPORT(xl6NativeClassResultPrepareV1,NATIVE_CLASS_RESULT)
 XL6_TEXT_EXPORT(xl6NativeClassResultContextValidV1,NATIVE_CLASS_RESULT)
 XL6_TEXT_EXPORT(xl6NativeClassResultPrepareFromLeaseV1,NATIVE_CLASS_RESULT)
 XL6_TEXT_EXPORT(xl6NativeClassResultCommitTakeV1,NATIVE_CLASS_RESULT)
+XL6_TEXT_EXPORT(xl6NativeClassCallbackCreateV1,NATIVE_CLASS_CALLBACK)
+XL6_TEXT_EXPORT(xl6NativeClassCallbackInvokeTakeV1,NATIVE_CLASS_CALLBACK)
 #include "xl6_tcp_server_symbols.inc"
 #include "xl6_tcp_proxy_symbols.inc"
 #include "xl6_tcp_data_symbols.inc"

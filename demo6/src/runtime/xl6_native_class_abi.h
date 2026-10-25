@@ -26,4 +26,13 @@ typedef struct XL6_NativeClassResultContextV1 {
     const struct XL6_CodeOwner* codeOwner;
     const struct XL6_ClassIdentitySchemaV3* schema;
 } XL6_NativeClassResultContextV1;
+/* Exact checked unary callback: owned native-class argument, optional owned
+ * native-class result. No generated invocation/factory pointer is carried.
+ * Both names/schema are call-only borrows; a retaining adapter must acquire
+ * the real argument.codeOwner lease and copy the two field-name byte keys. */
+typedef struct XL6_NativeClassCallbackContextV1 {
+    XL6_NativeClassResultContextV1 argument;
+    XL6_NativeClassFieldContextV1 result;
+    uint64_t resultIdentity;
+} XL6_NativeClassCallbackContextV1;
 #endif

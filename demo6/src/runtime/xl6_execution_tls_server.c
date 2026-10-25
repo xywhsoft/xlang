@@ -5,6 +5,9 @@ XL6_ExecutionResourceV1* xl6ExecutionTlsListenV1(XL6_ExecutionSourceV1* source,X
 {
     if(xrtGetError())return NULL;
     if(!context||!context->parameters||!context->identity){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    /* Transport binding is a separate owned admission. Never silently ignore
+     * a typed selector or smuggle its borrowed pointer into a native listener. */
+    if(context->selector.data){xrtSetErrorKind(XERR_UNSUPPORTED);return NULL;}
     xtlslistenerconfig config;if(options)config=*options;else xrtTlsListenerConfigInit(&config);
     /* Only the explicit immutable role context supplies authentication.
      * No caller's raw selector/resume callback is smuggled through options. */

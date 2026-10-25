@@ -15,7 +15,7 @@
 {"xl6TlsClientContextProtocolAtV1",T,Y,2,{V,I},.parameterOwners={TC},TG},
 {"xl6TlsServerContextDefaultV1",T,V,1,{V},.parameterOwners={TI},.resultOwner=TS,TG},
 {"xl6TlsServerContextCreateV1",T,V,2,{V,V},.parameterOwners={TP,TI},.resultOwner=TS,TG},
-{"xl6TlsServerContextDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={TS},.nativeHandlePolicy="xl6TlsServerContextHandlePolicyV1Get",.noRaise=1,.nonblocking=1},
+{"xl6TlsServerContextDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={TS},.nativeHandlePolicy="xl6TlsServerContextHandlePolicyV1Get",.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
 {"xl6TlsServerContextParametersV1",T,V,1,{V},.parameterOwners={TS},.resultOwner=TP,TG},
 {"xl6TlsServerContextIdentityV1",T,V,1,{V},.parameterOwners={TS},.resultOwner=TI,TG},
 {"xl6TlsServerContextWithParametersV1",T,V,2,{V,V},.parameterOwners={TS,TP},.resultOwner=TS,TG},
