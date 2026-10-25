@@ -2,6 +2,11 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`build_xlir_public_source_driver.ps1` stages compiler sources through the existing
+contained-relative-path helper, including Windows PowerShell 5. Its real 2,268-file
+mapping, byte equivalence and full current-source build are recorded in
+[source staging validation](../docs/source-driver-staging-2026-10-26.md).
+
 `check_network_public_shipping.py --root <ordinary-frozen-build> --build-report
 <build.shipping.json> --out <fresh-directory> [--jobs 2]` runs the 18-case
 `network_public_fixtures.json` batch on actual CLI/compiler/runtime products:
