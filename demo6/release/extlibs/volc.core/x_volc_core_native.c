@@ -311,6 +311,8 @@ static char* xvolc_spec_get(const char* spec, const char* key)
 	while ( *p ) {
 		const char* line_end = strchr(p, '\n');
 		size_t line_len = line_end ? (size_t)(line_end - p) : strlen(p);
+		/* CRLF 的 CR 属于分隔符，不属于声明值。 */
+		if ( line_len && p[line_len - 1u] == '\r' ) line_len -= 1u;
 		if ( line_len > key_len && memcmp(p, key, key_len) == 0 && p[key_len] == '=' ) {
 			return xvolc_strdup_n(p + key_len + 1u, line_len - key_len - 1u);
 		}

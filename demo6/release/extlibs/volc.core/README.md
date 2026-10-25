@@ -27,6 +27,10 @@ string preview = volc.core.sign_preview_acep(
 
 `extra_pairs` 是逐行 `key=value` 文本，规范化时按键和值排序并对 UTF-8 字节做百分号编码。`x_date` 为空时使用 XRT 当前 UTC 时间；显式指定时必须是有效的 `YYYYMMDDTHHMMSSZ`，无效日期直接报错，不静默改用当前时间。预览返回含 `query`、`x_date`、`x_content_sha256`、`signed_headers`、`authorization` 的 JSON 字符串，不发网络请求。预览中的凭据只应使用测试值；真实授权头不应写入日志。
 
+`*_spec` 的逐行 `key=value` 声明接受 LF 或 CRLF；CRLF 的行尾 `\r`
+不会进入字段值。字段内部的控制字符仍按原规则拒绝。ACEP 和 STS
+离线预览的 LF/CRLF 同签名对照已纳入 Windows 与 Linux C 门禁。
+
 直接拼入规范请求或授权头的方法、主机、路径、服务、区域、访问密钥 ID、会话令牌和内容类型不能包含 ASCII 控制字符（含 CR/LF、TAB 和 DEL）；路径报 `invalid path`，其余字段报 `invalid signed field`。请求体仍可包含换行，查询值由百分号编码路径处理。此校验不代替真实服务的凭据和请求参数验证。
 
 通用 `sign_preview` / `request` 的 `path` 是**未编码、以 `/` 开头**的绝对路径；空值按 `/` 处理。签名和请求 URL 共用按路径片段编码的结果，保留 `/`，将空格、非 ASCII 字节和已有 `%` 分别编码；调用方不要预先对路径做百分号编码。非绝对路径报 `invalid path`。此规则与[火山引擎官方 Go SDK 的规范 URI 处理](https://github.com/volcengine/volc-sdk-golang/blob/main/base/sign.go)一致；包内 C 测试固定了含空格和中文路径的完整签名向量。

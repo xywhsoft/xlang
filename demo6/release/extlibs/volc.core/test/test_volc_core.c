@@ -12,6 +12,7 @@
 #include "../include/volc_core_native.h"
 static void test_pair_allocation_failure(void);
 static void test_spec_allocation_failure(void);
+static void test_spec_crlf(void);
 static void test_thread_isolation(void);
 static void test_buffer_bounds(void);
 static void test_large_result_transfer(void);
@@ -73,6 +74,7 @@ int main(void)
     }
     test_pair_allocation_failure();
     test_spec_allocation_failure();
+    test_spec_crlf();
     test_buffer_bounds();
     test_large_result_transfer();
     test_signed_fields();
@@ -256,6 +258,37 @@ static void test_spec_allocation_failure(void)
         "\"authorization\"") != NULL);
     assert(strstr(x_volc_core_sign_preview_sts_spec(sts_spec),
         "\"authorization\"") != NULL);
+}
+
+/* Windows 文本文件的 CRLF 与 LF 不应改变同一份声明的签名。 */
+static void test_spec_crlf(void)
+{
+    static const char acep_lf[] =
+        "action=ListApps\nversion=2020-01-01\naccess_key=AKID\n"
+        "secret_key=SECRET\nsession_token=\nbody={}\n"
+        "x_date=20240102T030405Z\n";
+    static const char acep_crlf[] =
+        "action=ListApps\r\nversion=2020-01-01\r\naccess_key=AKID\r\n"
+        "secret_key=SECRET\r\nsession_token=\r\nbody={}\r\n"
+        "x_date=20240102T030405Z\r\n";
+    static const char sts_lf[] =
+        "access_key=AKID\nsecret_key=SECRET\n"
+        "role_trn=trn:iam::123456789:role/demo\n"
+        "role_session_name=demo-session\nduration_seconds=900\n"
+        "x_date=20240102T030405Z\n";
+    static const char sts_crlf[] =
+        "access_key=AKID\r\nsecret_key=SECRET\r\n"
+        "role_trn=trn:iam::123456789:role/demo\r\n"
+        "role_session_name=demo-session\r\nduration_seconds=900\r\n"
+        "x_date=20240102T030405Z\r\n";
+    const char* lf = x_volc_core_sign_preview_acep_spec(acep_lf);
+    const char* crlf = x_volc_core_sign_preview_acep_spec(acep_crlf);
+    assert(strstr(lf, "\"authorization\"") != NULL);
+    assert(strcmp(lf, crlf) == 0);
+    lf = x_volc_core_sign_preview_sts_spec(sts_lf);
+    crlf = x_volc_core_sign_preview_sts_spec(sts_crlf);
+    assert(strstr(lf, "\"authorization\"") != NULL);
+    assert(strcmp(lf, crlf) == 0);
 }
 
 typedef struct xvolc_test_thread {
