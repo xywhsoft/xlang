@@ -1,5 +1,13 @@
 # units
 
+2026-10-25 再次使用当前发布物执行 Windows 默认 `test/check.ps1`：
+严格 C/ABI、线程、C 范例和 C 文件直跑均通过；首个 XLang 中央用例
+因共享 TCC VFS 缺少 `include/xruntime_decl.h` 停止，后续语言和 AOT
+阶段未执行。本次不能沿用下方早先同日的完整通过结果签收当前发布物。
+最小复现与主线修复方向见
+`../../../dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`；包内不加
+头文件路径回退。
+
 `units` 将字节数、秒数和普通计数格式化为可读文本，并解析带单位的字节数与时长。为消除旧实现的二进制/十进制歧义，`bytes` 使用 IEC `KiB/MiB/GiB/TiB/PiB/EiB`（1024 进制），`bytesDecimal` 使用 SI `kB/MB/GB/TB/PB/EB`（1000 进制）。`parseBytes` 按同样的单位解析，大小写不敏感；裸数或 `B` 表示字节，**不再接受含义不明的单字母 `K/M/...`**。这是包在首版发布前的口径收紧。
 字节与计数的格式化结果固定使用点号小数，不受进程 `LC_NUMERIC` 影响；`parseBytes` 也只接受点号小数。
 单位后缀只使用 ASCII 字母，大小写折叠不受进程 `LC_CTYPE` 影响。

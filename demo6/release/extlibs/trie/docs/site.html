@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / trie</p><h1>trie</h1>
     <p class="extlib-lead">前缀字符串集合。</p>
     <p>查找、插入、删除和前缀词数；UTF-8 按字节保存，不做隐式归一化。</p>
+    <p>当前 Windows 发布物的默认门禁在首个 XLang 用例遇到共享 VFS 缺少 <code>include/xruntime_decl.h</code>；后续语言边界与 AOT 未执行，先前发布物的完整通过记录不能代替本次验收。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
@@ -33,7 +34,7 @@ trie.Trie words = trie.create()
 words.insert("你好")
 words.insert("你们")
 println(words.countPrefix("你"))  // 2</code></pre>
-    <p>C 接口支持明确长度的二进制键；两个计数结果使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。创建或插入遇到分配失败时，XLang 抛 <code>MemoryError</code>，已有键和计数保持。Windows <code>test/check.ps1 -SkipAot</code> 与 Linux <code>test/check.sh</code> 验证 C 独立模型、包外原生方法访问拒绝、XLang 故障边界和三路范例固定输出；Linux 另含 ASan/UBSan。Windows 默认门禁还要求核心与公开范例 AOT，后者目前受主线共享符号阻断。资源所有权和性能范围见包内 README。</p>
+    <p>C 接口支持明确长度的二进制键；两个计数结果使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。创建或插入遇到分配失败时，XLang 抛 <code>MemoryError</code>，已有键和计数保持。Windows <code>test/check.ps1 -SkipAot</code> 与 Linux <code>test/check.sh</code> 的完整设计覆盖 C 独立模型、包外原生方法访问拒绝、XLang 故障边界和三路范例固定输出；Linux 另含 ASan/UBSan。Windows 默认门禁还要求核心与公开范例 AOT；当前首先受共享 VFS 头路径阻断。资源所有权和性能范围见包内 README。</p>
   </section>
 </main>
 </body>

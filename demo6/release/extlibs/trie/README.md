@@ -1,5 +1,13 @@
 # trie
 
+2026-10-25 再次使用当前发布物执行 Windows 默认 `test/check.ps1`：
+首个中央 XLang 用例因共享 TCC VFS 缺少
+`include/xruntime_decl.h` 而停止，后续包级边界与 AOT 未执行。
+下方同日完整通过记录对应更早的发布物，不能替代这次验收。
+最小复现与主线修复方向见
+`../../../dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`；
+不在 trie 包中增加头文件映射。
+
 2026-10-25 当前包级复验：Windows 默认 `test/check.ps1` 全通过，
 包含严格 C/ABI、800 步独立键集合模型、XLang 边界及分配故障、
 C/XLang 固定输出，以及核心和公开范例的独立 EXE AOT。
