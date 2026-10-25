@@ -1,4 +1,5 @@
 #include "analysis/worker.h"
+#include "analysis/worker_modules.h"
 #include "analysis/frontend_context.h"
 #include "analysis/session_state.h"
 #include <xrt.h>
@@ -12,6 +13,7 @@ typedef struct semantic_session {
 } semantic_session;
 struct xls_worker {
     xtaskpool* pool;xls_session* session;xls_session_limits limits;
+    xls_module_store* modules;
     semantic_session cached[32];size_t cachedCount;xls_worker_cache_limits cacheLimits;xls_worker_cache_stats cacheStats;
     xls_input_batch* history[3];
     xls_check_stats checkTotals;xls_completion_stats completionTotals;xls_signature_stats signatureTotals;
@@ -54,7 +56,10 @@ static xtaskoutcome execute(xcancel* cancel,void* value,xtaskvalue* output)
 {
     query_input* input=value; xls_session* session=input->worker->session;
     if(xrtCancelRequested(cancel)) return XTASK_CANCELLED;
-    if(input->kind==QUERY_CHECK || input->kind==QUERY_COMPLETION || input->kind==QUERY_SIGNATURE) return executeSemantic(cancel,input,output);
+    if(input->kind==QUERY_CHECK || input->kind==QUERY_COMPLETION || input->kind==QUERY_SIGNATURE) {
+        xls_module_scope scope;xlsModuleScopeBegin(&scope,input->worker->modules);
+        xtaskoutcome outcome=executeSemantic(cancel,input,output);xlsModuleScopeEnd(&scope);return outcome;
+    }
     if(!xlsSessionPrune(session,live,input)) return XTASK_FAILED;
     update_context context={session,cancel,1}; xrtMapVisit(&input->documents,update,&context);
     if(xrtCancelRequested(cancel)) return XTASK_CANCELLED;
@@ -92,6 +97,9 @@ xls_worker* xlsWorkerCreateWithCache(const xls_session_limits* limits,size_t que
 }
 xls_worker* xlsWorkerCreate(const xls_session_limits* limits,size_t queueLimit)
 {return xlsWorkerCreateWithCache(limits,queueLimit,NULL);}
+xls_worker* xlsWorkerCreateWithModules(const xls_session_limits* limits,size_t queueLimit,
+    const xls_worker_cache_limits* cache,xls_module_store* store)
+{xls_worker* worker=xlsWorkerCreateWithCache(limits,queueLimit,cache);if(worker)worker->modules=xlsModuleStoreRetain(store);return worker;}
 void xlsWorkerDestroy(xls_worker* worker)
 {
     if(!worker) return;
@@ -99,6 +107,7 @@ void xlsWorkerDestroy(xls_worker* worker)
     xlsSessionDestroy(worker->session);
     for(size_t i=0;i<worker->cachedCount;++i)destroySemantic(&worker->cached[i]);
     for(size_t i=0;i<3;++i)xlsInputBatchDestroy(worker->history[i]);
+    xlsModuleStoreRelease(worker->modules);
     xrtFree(worker);
 }
 int xlsWorkerLoad(xls_worker* worker,xls_worker_load* load)

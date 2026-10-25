@@ -2753,3 +2753,16 @@ $/cancelRequest／supersede／open／edit／close／配置／watched-files／诊
 本轮 P95 回退也保留：editSummary:96/xlang/check P95 82.264→83.670 ms；editSummary:96/textDocument/signatureHelp P95 64.145→66.376 ms；editSummary:512/xlang/check P95 702.570→772.951 ms；regionSummary:512 P95 813.208→836.096 ms；steadyTrailingSummary:96/textDocument/completion P95 32.444→52.036 ms；rpcSummary:96/2/xlang/check P95 13.601→14.494 ms；rpcSummary:512/2/xlang/check P95 79.870→85.676 ms；rpcSummary:512/2/textDocument/completion P95 2.242→2.619 ms；GUI 96/2 P95 10.059→10.126 ms；GUI 512/1 P95 269.149→274.959 ms；GUI 512/2 P95 10.095→10.725 ms；GUI 512/3 P95 14.108→14.491 ms。
 
 证据 build/lsp-next-20261022/m7a2b30a-result.json，外部 m7a2b30a-4bffa57d／component-v2。下一步推进持久模块／xlp 归属和稳定全局符号／类型，减少准备、import／stdlib、全模型克隆和全量 index／IR pass／验证的重复成本；保留完整原规则和 fresh 对照，再继续剩余适用 LSP、静态检查／类型恢复、IDE 输入准备与配置、native C／资源、整个模型及暂存预算、100k／并行／soak／最终发行。发布 5241 文件保持，整体 goal active。
+
+
+## M7a2b31a：跨执行器的持续模块身份与共享普通语法（0.64）
+
+0.64 为逻辑模块路径建立持续身份及跨原生执行器共享的普通语法存储。完整检查、编辑态补全、签名帮助的工作者仍各自拥有语义 session／结果；原 SourceOverlay 的磁盘／未保存内容读取、报告捕获、依赖探测、配置与输入证明全部先运行。只有普通语法能进入共享存储，活动查询目标的 projection／marker 路径保持原有专用缓存，不能用普通模块语法替代。
+
+139 个 native 对象完整编译，61 夹具／62 PE／63 outputs／67 AST17 消费者／55 core members、328 个实际输入，冻结 1,084 输入。309 项新原生检查覆盖持续路径身份、两版本 LRU、快照脱离存储的生命周期、四个并发读取／发布线程、取消暂存、语法错误、资源不足原解析回退、三个真实工作者和配置隔离。共享原生工作者逐轮与独立 fresh 的完整 AST／IR／结果匹配。
+
+大档三方法总序列 P50／P95／P99：1235.776 / 1361.687 / 1410.982→1209.690 / 1368.903 / 1373.189 ms；服务进程 CPU 为 1218.750 / 1281.250 / 1343.750→1218.750 / 1359.375 / 1359.375 ms。
+
+以下 P95 回退保留：sequenceSummary:96 P95 221.044→279.317 ms；sequenceSummary:512 P95 1361.687→1368.903 ms；editSummary:96/xlang/check P95 136.864→184.515 ms；editSummary:96/textDocument/completion P95 46.273→48.767 ms；editSummary:96/textDocument/signatureHelp P95 46.656→51.477 ms；editSummary:512/xlang/check P95 795.087→833.145 ms；editSummary:512/textDocument/signatureHelp P95 265.852→284.838 ms；coldSummary:96/xlang/check P95 149.140→165.552 ms；coldSummary:512/xlang/check P95 978.415→1067.649 ms；hotSummary:96/textDocument/completion P95 2.216→2.335 ms；hotSummary:512/textDocument/signatureHelp P95 2.303→2.422 ms；GUI 96/3 P95 10.867→11.647 ms；GUI 512/0 P95 314.699→333.256 ms；GUI 512/1 P95 318.107→339.181 ms。
+
+证据 build/lsp-next-20261022/m7a2b31a-result.json，外部 m7a2b31a-f193d9c0／component-v2；v1 是相同产品 C 和二进制的原始 producer。下一步把普通模块身份接到现有 context／catalog／reverse-owner graph 的实际语义依赖上，推进持久语义模块／xlp 归属与稳定全局符号／类型，减少全模型克隆、import／stdlib、全量 index／IR pass／验证。继而完成剩余适用 LSP、静态检查／类型恢复、IDE 输入配置、native C／资源、整个模型及暂存预算、100k／并行／soak／最终发行。发布 5,241 文件保持，整体 goal active，性能与全部目标仍未验收。

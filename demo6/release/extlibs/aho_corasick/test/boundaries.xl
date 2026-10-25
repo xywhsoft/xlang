@@ -12,6 +12,11 @@ func escapedMatches() as array<Match>
     return ac.search("ushers")
 end
 
+func escapedText() as cstring
+    Automaton ac = aho_corasick.create(["a"])
+    return ac.replace("a\0你好", "x")
+end
+
 func main(...) as int
     array<Match> matches = escapedMatches()
     assert matches.length == 3 and matches[0].pattern == "she"
@@ -140,6 +145,11 @@ func main(...) as int
     assert zeroByte.replaceWith("a\0b", func(Match m) as string => "x") == "x\0b"
     assert zeroByte.replace("", "x") == ""
     assert zeroByte.pattern(0) == "a"
+    cstring ownedText = escapedText()
+    string savedText = ownedText
+    assert ownedText == "x\0你好" and string.byteLen(ownedText) == 8
+    ownedText = "changed"
+    assert savedText == "x\0你好" and string.byteLen(savedText) == 8
     Automaton zeroPattern = aho_corasick.create(["a\0b"])
     assert zeroPattern.search("xa\0by")[0].pattern == "a\0b"
     for i in range(100)

@@ -97,6 +97,58 @@ static int test_ean_parity(void) {
     return 0;
 }
 
+static int reference_check_digit(const char data[12]) {
+    int ordinary = 0, triple = 0;
+    for (int i = 0; i < 12; ++i) {
+        if (i & 1) triple += data[i] - '0';
+        else ordinary += data[i] - '0';
+    }
+    return (10 - (ordinary + 3 * triple) % 10) % 10;
+}
+
+static int test_checksum_matrix(void) {
+    char code[14];
+    unsigned state = 0x6B8B4567u;
+    unsigned seen = 0;
+    for (int sample = 0; sample < 256; ++sample) {
+        xvalue *short_code, *full_code;
+        if (sample < 10) {
+            /* 固定首组确保 0..9 每种校验位都进入测试。 */
+            memset(code, '0', 12);
+            code[11] = (char)('0' + sample);
+        } else {
+            for (int i = 0; i < 12; ++i) {
+                state = state * 1664525u + 1013904223u;
+                code[i] = (char)('0' + state % 10u);
+            }
+        }
+        int expected = reference_check_digit(code);
+        code[12] = (char)('0' + expected);
+        code[13] = '\0';
+        seen |= 1u << expected;
+        CHECK(xb_checksum_ean(code, 12) == expected);
+        CHECK(xb_validate_ean(code, 13));
+        code[12] = (char)('0' + (expected + 1) % 10);
+        CHECK(!xb_validate_ean(code, 13));
+        code[12] = (char)('0' + expected);
+        short_code = xb_ean13(code, 12);
+        full_code = xb_ean13(code, 13);
+        CHECK(same_modules(short_code, full_code));
+        if (sample < 10) {
+            xvalue *upc_short = xb_upc_a(code + 1, 11);
+            xvalue *upc_full = xb_upc_a(code + 1, 12);
+            CHECK(same_modules(short_code, upc_short));
+            CHECK(same_modules(short_code, upc_full));
+            xrtValueRelease(upc_short);
+            xrtValueRelease(upc_full);
+        }
+        xrtValueRelease(short_code);
+        xrtValueRelease(full_code);
+    }
+    CHECK(seen == 0x3FFu);
+    return 0;
+}
+
 static int test_rendering(void) {
     void *ascii = xb_ascii("4006381333931", 13, false);
     void *upc_ascii = xb_ascii("12345678901", 11, true);
@@ -188,7 +240,8 @@ static int test_error_recovery(void) {
 }
 
 int main(void) {
-    if (test_codes() || test_ean_parity() || test_rendering() || test_allocation_errors() ||
+    if (test_codes() || test_ean_parity() || test_checksum_matrix() ||
+        test_rendering() || test_allocation_errors() ||
         test_error_recovery()) return 1;
     puts("barcode C: PASS");
     return 0;
