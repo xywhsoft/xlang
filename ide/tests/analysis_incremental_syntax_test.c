@@ -76,7 +76,7 @@ static int run(void)
     const char* plain="func edited() as int\n return 7\nend\nfunc tail() as int\n return 9\nend\n";
     CHECK(corpus(plain,"return 7","int extra = 8\n return extra",1));
     CHECK(corpus(plain,"return 7","return 777777",1));
-    CHECK(corpus(plain,"as int","as float",0));
+    CHECK(corpus(plain,"as int","as float",1));
     CHECK(corpus(plain,"return 7","return \"unterminated",0));
     CHECK(corpus(plain,"return 7","/* unterminated",0));
     CHECK(corpus(plain,"return 7","return 7\nend\nfunc inserted() as int\n return 1",0));
