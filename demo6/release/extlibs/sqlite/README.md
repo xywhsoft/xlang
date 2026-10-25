@@ -1,5 +1,13 @@
 # SQLite
 
+2026-10-25 C 薄接口收紧：`open/open_v2` 的 `NULL` 文件名立即报告
+`XERR_ARGUMENT`；`exec` 的 `NULL` SQL 返回 `SQLITE_MISUSE`，不再作为
+成功的空操作；`prepare` 对 `NULL` SQL 明确报告参数错误。合法的空字符串
+仍交给 SQLite 按其自身语义处理，内存库继续显式使用 `:memory:`。
+Windows 37 项专项门禁（含 JIT/AOT 与 C/XLang 范例）及 Linux C
+ASan/UBSan、分配故障和线程门禁通过；新版 Linux XLang 发布构建仍受
+主线源清单链接缺项阻断，本次不签收那一路径。
+
 2026-10-25 当前 Windows 发布版专项门禁通过 37 项：严格 C、
 SQLite/XRT 分配故障、线程、XLang JIT 与独立 EXE AOT、生成原型
 及 45 个常量、C/XLang 成对范例。Linux 独立 C 门禁的 ASan/UBSan、

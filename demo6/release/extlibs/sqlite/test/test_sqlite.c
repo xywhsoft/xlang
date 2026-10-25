@@ -68,6 +68,10 @@ int main(void)
 
     /* 无句柄、参数范围和空操作必须是确定行为。 */
     CHECK(xsqlite3_exec_native(NULL, "select 1") == SQLITE_MISUSE);
+    CHECK(xsqlite3_open_native(NULL) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xsqlite3_open_v2_native(NULL, SQLITE_OPEN_READWRITE, NULL) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     CHECK(xsqlite3_step_native(NULL) == SQLITE_MISUSE);
     CHECK(xsqlite3_reset_native(NULL) == SQLITE_MISUSE);
     CHECK(xsqlite3_clear_bindings_native(NULL) == SQLITE_MISUSE);
@@ -91,6 +95,7 @@ int main(void)
 
     void* db = xsqlite3_open_native(":memory:");
     CHECK(db != NULL);
+    CHECK(xsqlite3_exec_native(db, NULL) == SQLITE_MISUSE);
     CHECK(xsqlite3_busy_timeout_native(db, 0) == SQLITE_OK);
     CHECK(xsqlite3_busy_timeout_native(db, -1) == SQLITE_MISUSE);
     CHECK(xsqlite3_exec_native(db, "create table t(id integer primary key,i integer,r real,s text,b blob,n text)") == SQLITE_OK);
@@ -200,6 +205,8 @@ int main(void)
 
     /* 错误 SQL、空 SQL、多语句与半成品清理。 */
     CHECK(xsqlite3_prepare_v2_native(NULL, "select 1") == NULL);
+    CHECK(xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xsqlite3_prepare_v2_native(db, NULL) == NULL);
     CHECK(xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     CHECK(xsqlite3_prepare_v2_native(db, "") == NULL);
     CHECK(xsqlite3_prepare_v2_native(db, "select 1; select 2") == NULL);

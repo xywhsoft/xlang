@@ -7,6 +7,7 @@ extern "C" {
 #endif
 
 /* SQLite 薄绑定的物理 ABI。句柄必须来自同一份 SQLite 库，释放后不得复用。 */
+/* 文件名和 SQL 的 NULL 指针无效；空字符串仍遵循 SQLite 自身语义。 */
 int xsqlite3_bind_blob_native(void* stmt, int index, void* data, size_t size);
 int xsqlite3_bind_text_bytes_native(void* stmt, int index, void* data, size_t size);
 void* xsqlite3_column_blob_native(void* stmt, int column);

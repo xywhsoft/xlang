@@ -73,7 +73,12 @@ XSQLITE_EXPORT void* xsqlite3_open_v2_native(const char* filename, int flags, co
 {
     sqlite3* db = NULL;
     xrtClearError();
-    int rc = sqlite3_open_v2(filename != NULL ? filename : "", &db, flags,
+    if (filename == NULL) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.sqlite", SQLITE_MISUSE,
+            "null sqlite filename");
+        return NULL;
+    }
+    int rc = sqlite3_open_v2(filename, &db, flags,
         vfs != NULL && vfs[0] != '\0' ? vfs : NULL);
     if (rc != SQLITE_OK) {
         xsqlite_error(db, rc);
@@ -90,8 +95,8 @@ XSQLITE_EXPORT void* xsqlite3_open_native(const char* filename)
 
 XSQLITE_EXPORT int xsqlite3_exec_native(void* db, const char* sql)
 {
-    if (db == NULL) return SQLITE_MISUSE;
-    return sqlite3_exec((sqlite3*)db, sql != NULL ? sql : "", NULL, NULL, NULL);
+    if (db == NULL || sql == NULL) return SQLITE_MISUSE;
+    return sqlite3_exec((sqlite3*)db, sql, NULL, NULL, NULL);
 }
 
 /* prepare 只接收一条语句；多条执行必须显式使用 exec，不能静默丢弃尾部 SQL。 */
@@ -106,7 +111,12 @@ XSQLITE_EXPORT void* xsqlite3_prepare_v2_native(void* handle, const char* sql)
         xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.sqlite", SQLITE_MISUSE, "null sqlite3 handle");
         return NULL;
     }
-    int rc = sqlite3_prepare_v2(db, sql != NULL ? sql : "", -1, &stmt, &tail);
+    if (sql == NULL) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.sqlite", SQLITE_MISUSE,
+            "null sqlite SQL statement");
+        return NULL;
+    }
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, &tail);
     if (rc != SQLITE_OK) {
         xsqlite_error(db, rc);
         return NULL;
