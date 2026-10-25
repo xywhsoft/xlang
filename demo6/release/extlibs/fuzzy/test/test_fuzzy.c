@@ -147,6 +147,24 @@ int main(void)
     CHECK(xfuzzy_levenshtein("你好", "你们") == 1);
     CHECK(xfuzzy_ratio("你好", "你们") == 50);
     CHECK(xfuzzy_ratio("", "") == 100);
+    /* 空指针不是空字符串；失败后正常调用应清除本次错误。 */
+    CHECK(xfuzzy_levenshtein(NULL, "") == -1);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xfuzzy_levenshtein("", NULL) == -1);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xfuzzy_ratio(NULL, "") == -1);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xfuzzy_ratio("", NULL) == -1);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xfuzzy_match(NULL, "") == -2);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xfuzzy_match("", NULL) == -2);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xfuzzy_best(NULL, "") == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xfuzzy_best("", NULL) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(xfuzzy_ratio("", "") == 100 && xrtGetError() == NULL);
     if (test_distance_reference()) return 1;
     if (test_best_reference()) return 1;
     CHECK(xfuzzy_match("fb", "foobar") >= 0);

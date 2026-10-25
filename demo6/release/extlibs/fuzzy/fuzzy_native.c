@@ -23,7 +23,10 @@ static bool xfuzzy_view(const char* text, size_t limit, const char* message,
     xstrview* output)
 {
     size_t size = 0u;
-    if (text == NULL) text = "";
+    if (text == NULL) {
+        xfuzzy_error(XERR_ARGUMENT, "text pointer is null");
+        return false;
+    }
     while (size <= limit && text[size] != '\0') ++size;
     if (size > limit) {
         xfuzzy_error(XERR_RANGE, message);
