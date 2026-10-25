@@ -37,8 +37,11 @@ SDK 声明位于 `xl6_foreign_resource.h`。
 ## 数据快照
 
 `xl6ForeignDataSnapshotV1(value)` 将语言数组及 List/Set/Dict 的数据图转换为
-普通 XRT 数据表示，供原生编码器或配置 API 使用。Array/List/Set 对应数组，
-Dict 对应对象；嵌套图使用同一份 XRT 遍历上下文。SDK 声明位于
+普通 XRT 数据表示，供原生编码器或配置 API 使用。Array/Set 对应数组，
+List 对应保留原整数键的 `XVALUE_INT_MAP`，Dict 对应对象；嵌套图使用
+同一份 XRT 遍历上下文。List 的负索引及稀疏索引不会被重排或补空，
+需要数组编码的 API 应使用显式序列投影，不能把整数键映射直接视为数组。
+SDK 声明位于
 `xl6_value_copy.h`。
 
 输入是借用值，结果是独立拥有的数据快照，须由调用方释放。C 端修改快照

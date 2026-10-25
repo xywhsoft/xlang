@@ -12,6 +12,7 @@ XL6_TEXT_API xvalue* xl6ValueCloneGraphV1(const xvalue*);
 XL6_TEXT_API xvalue* xl6ValueCloneCollectionsV1(const xvalue*);
 XL6_TEXT_API xvalue* xl6ValueCloneSetGraphV1(const xvalue*);
 /* Borrowed language data to an independent XRT object/array graph. Explicit
- * FFI data boundary; resource/callable channels retain their own contracts. */
+ * FFI data boundary: Array/Set -> Array, List -> IntMap preserving its sparse
+ * signed keys, Dict -> Object. Resource/callable channels keep their contracts. */
 XL6_TEXT_API xvalue* xl6ForeignDataSnapshotV1(const xvalue*);
 #endif
