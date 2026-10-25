@@ -12,6 +12,7 @@ from check_language_definitions import position
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--server',type=Path,required=True);parser.add_argument('--baseline',type=Path,required=True);parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--baseline-version',choices=['0.53','0.54'],default='0.54')
     args=parser.parse_args();server=args.server.resolve(strict=True);baseline=args.baseline.resolve(strict=True);out=args.output.resolve();out.mkdir(parents=True,exist_ok=False)
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
     body=source(16,0,True).split('export func compute(')[0]+('func choose(int left,string right) as int\r\n return left\r\nend\r\n'
@@ -36,7 +37,7 @@ def main():
                 assert 'error' not in reply,reply
                 value=reply['result'];a=value['analysis'];types=a.get('memoTypes',{})
                 assert value['version']==version and a['workerThreadId']!=a['captureThreadId']
-                if variant=='after' and method=='xlang/check':assert types['references']==types['uniqueRoots']+types['hits'] and types['hits']>types['uniqueRoots']>0 and types['treeBytes']>0 and types['keyBytes']>0 and types['peakKeyBytes']>0 and types['fallbacks']==0,types
+                if method=='xlang/check' and (variant=='after' or args.baseline_version=='0.54'):assert types['references']==types['uniqueRoots']+types['hits'] and types['hits']>types['uniqueRoots']>0 and types['treeBytes']>0 and types['keyBytes']>0 and types['peakKeyBytes']>0 and types['fallbacks']==0,types
                 else:assert 'memoTypes' not in a,a
                 if method=='xlang/check':assert value['ok'] and value['count']==0 and value['semanticDefinitions']
                 elif method.endswith('completion'):assert any(x['label']=='doneLocal' for x in value['items'])
@@ -44,7 +45,7 @@ def main():
                 cases.append(dict(method=method,variant=variant,target=index,version=version,analysis=a));return dict(a,memoTypes=types)
             try:
                 c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1)
-                init,_=c.reply(1);assert init['result']['serverInfo']['version']==('0.53' if variant=='before' else '0.54');c.send('initialized',{})
+                init,_=c.reply(1);assert init['result']['serverInfo']['version']==(args.baseline_version if variant=='before' else '0.55');c.send('initialized',{})
                 for p in paths:c.open(p,body,1)
                 a=call(0);assert a['builds']==1
                 again=call(0);assert again['builds']==1 and again['cacheHits']==1 and again['memoTypes']==a['memoTypes']

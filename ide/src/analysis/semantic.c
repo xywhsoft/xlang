@@ -4,6 +4,7 @@
 #include "analysis/frontend_entry_cache.h"
 #include "analysis/frontend_input_view.h"
 #include "analysis/frontend_input_usage.h"
+#include "analysis/frontend_cancel.h"
 #include "analysis/signature_internal.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
@@ -39,7 +40,8 @@ static int absolute(const char* path)
 {
     return path && *path && xrtPathIsAbs(path);
 }
-static int stopped(int (*cancelled)(void*),void* user) { return cancelled && cancelled(user); }
+static int stopped(int (*cancelled)(void*),void* user)
+{ return xlsFrontendCancelObserved() || (cancelled && cancelled(user)); }
 static void fail(char* error,size_t capacity,const char* message)
 { if(error && capacity) snprintf(error,capacity,"%s",message); }
 static int invalid(const xls_semantic_completion* r)
@@ -183,11 +185,13 @@ static xls_semantic_completion* create(xls_context* context,xls_entry_cache* cac
     xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,cache,context,entry);
     entryScope.cursorSyntax=syntax;
     xls_input_usage_scope usage;xlsFrontendInputUsageBegin(&usage);
+    xls_frontend_cancel_scope cancellation;xlsFrontendCancelBegin(&cancellation,cancelled,user);
     xls_semantic_completion* result=createBody(context,entry,queryPath,offset,inputs,count,syntax,previous,memoEnabled,cancelled,user,error,capacity,signatureData ? &signature : NULL);
     uint64_t used=0;int known=xlsFrontendInputUsageEnd(&usage,&used);
     if(signatureData){if(!signature.adopted)xlsSignatureDataDestroy(signatureData);xlsSignatureScopeEnd(&signature);if(signature.cancelObserved){xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"signature query cancelled");}}
     if(entryScope.cursorFailed) {xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"cannot own exact imported cursor syntax");}
     if(result && stopped(cancelled,user)) {xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"semantic completion cancelled");}
+    xlsFrontendCancelEnd(&cancellation,NULL);
     int scoped=xlsFrontendContextEnd(&scope);
     xls_completion_entry_work work=xlsFrontendEntryEnd(&entryScope,result && scoped);
     xls_ast_materialize_work materializationWork;xlsAstMaterializeEnd(&materialization,&materializationWork);

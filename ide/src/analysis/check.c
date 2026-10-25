@@ -6,6 +6,7 @@
 #include "analysis/frontend_index.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_sem.h"
+#include "analysis/frontend_cancel.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
 #include "src/stdlib/xl6_stdlib.h"
@@ -34,7 +35,8 @@ struct xls_semantic_check {
     int accepted,captureIndex;
     uint64_t usedInputs;int usageKnown;
 };
-static int stopped(int (*cancelled)(void*),void* user) { return cancelled && cancelled(user); }
+static int stopped(int (*cancelled)(void*),void* user)
+{ return xlsFrontendCancelObserved() || (cancelled && cancelled(user)); }
 static void fail(char* error,size_t capacity,const char* message)
 { if(error && capacity) snprintf(error,capacity,"%s",message); }
 static int invalid(const xls_semantic_check* r)
@@ -156,9 +158,11 @@ xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,x
     xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
     xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,cache,context,entry);
     xls_input_usage_scope usage;xlsFrontendInputUsageBegin(&usage);
+    xls_frontend_cancel_scope cancellation;xlsFrontendCancelBegin(&cancellation,cancelled,user);
     xls_semantic_check* result=createBody(context,entry,inputs,count,captureIndex,syntax,previous,cache || syntax,cancelled,user,error,capacity);
     uint64_t used=0;int known=xlsFrontendInputUsageEnd(&usage,&used);
     if(result && stopped(cancelled,user)) {xlsSemanticCheckDestroy(result);result=NULL;fail(error,capacity,"semantic check cancelled");}
+    xlsFrontendCancelEnd(&cancellation,NULL);
     int scoped=xlsFrontendContextEnd(&scope);
     xls_entry_parse_work work=xlsFrontendEntryEnd(&entryScope,result && scoped);
     if(!scoped) {

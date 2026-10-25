@@ -2,6 +2,7 @@
  * retains the original checker body and every language rule. */
 #include "analysis/frontend_sem.h"
 #include "analysis/ast_clone.h"
+#include "analysis/frontend_cancel.h"
 #define XLS_SEM_MEMO_BYTES (64u*1024u*1024u)
 #define XLS_SEM_KEY_BYTES (8u*1024u*1024u)
 static _Thread_local xls_sem_storage_control* xlsActiveStorage;
@@ -582,6 +583,7 @@ failed: xlsSemFactsFree(&staged); xrtArrayUnit(positions); return 0;
 }
 static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
 {
+    if(xlsFrontendCancelPoint(XLS_CANCEL_SEM_FUNCTION,1))return 0;
     xls_sem_build* build=xlsActiveSemBuild;
     size_t* slot=build && build->enabled ? xrtMapGet(&build->slots,(xbytesview){(const unsigned char*)&node,sizeof(node)}) : NULL;
     if(!slot || ctx->currentClass || ctx->currentFunction || ctx->typeParams || ctx->captureBoundary || ctx->currentReturns) {

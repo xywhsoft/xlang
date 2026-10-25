@@ -4,6 +4,7 @@
 #include "analysis/frontend_ir.h"
 #include "analysis/frontend_types.h"
 #include "analysis/frontend_ir_regions.h"
+#include "analysis/frontend_cancel.h"
 
 #define XLS_IR_SCAN_BYTES (16u*1024u*1024u)
 #define XLS_IR_PLAN_BYTES (8u*1024u*1024u)
