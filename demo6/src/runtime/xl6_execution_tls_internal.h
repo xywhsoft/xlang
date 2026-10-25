@@ -31,11 +31,14 @@ typedef struct XL6_TlsListenerCreateOptionsV1 {
 typedef enum XL6_TlsPendingKindV1 {
     XL6_TLS_PENDING_NONE_V1,XL6_TLS_PENDING_ACCEPT_V1,XL6_TLS_PENDING_DIAL_V1
 } XL6_TlsPendingKindV1;
+typedef enum XL6_TlsCloseModeV1 {
+    XL6_TLS_CLOSE_AUTOMATIC_V1,XL6_TLS_CLOSE_GRACEFUL_V1,XL6_TLS_CLOSE_ABORT_V1
+} XL6_TlsCloseModeV1;
 typedef struct XL6_TlsStreamResourceV1 {
     XL6_ExecutionResourceV1 base;
     XL6_ExecutionResourceV1 *parent,*accepting,*resolving;
     xatomicptr native,pending;
-    xatomic32 prepared;
+    xatomic32 prepared,closeMode;
     XL6_TlsPendingKindV1 pendingKind; /* immutable after construction */
     const XL6_TlsMetadataRoleV1* metadata; /* immutable, nonowning resident code */
 } XL6_TlsStreamResourceV1;

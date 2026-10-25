@@ -176,7 +176,11 @@ static xls_syntax* incremental(const char* path,xls_text* text,const xls_syntax*
         size_t header=0,end=0;
         if(!xlsSyntaxFunctionHeader(unit->node,&header,&end)) continue;
         header=p->offset+header-unit->offset; end=p->offset+end-unit->offset;
-        if(prefix<header || oldEnd>end) continue;
+        /* An ordinary complete function fragment may change its signature.
+         * Keep its first token and closing boundary inside the old item and
+         * require the original parser to consume exactly one same-kind item.
+         * Cursor projections retain their stronger unchanged-header proof. */
+        if(prefix<(query ? header : p->offset) || oldEnd>end || (!query && prefix==p->offset)) continue;
         size_t length=(size_t)((int64_t)unit->size+delta);
         if(p->offset>newSize-skip || length>newSize-skip-p->offset) return NULL;
         /* Only the edited cursor function may contain a marker in retained
@@ -195,7 +199,7 @@ static xls_syntax* incremental(const char* path,xls_text* text,const xls_syntax*
         XL6_AstNode* fresh=okay && parsed.root && parsed.root->childCount==1 ? parsed.root->children[0] : NULL;
         size_t freshHeader=0,freshEnd=0;
         if(!fresh || fresh->kind!=unit->node->kind || !fresh->range.known || fresh->range.startOffset || fresh->range.endOffset!=length ||
-           !xlsSyntaxFunctionHeader(fresh,&freshHeader,&freshEnd) || freshHeader!=header-p->offset) {
+           !xlsSyntaxFunctionHeader(fresh,&freshHeader,&freshEnd) || (query && freshHeader!=header-p->offset)) {
             xl6CompletionFree(&local); xl6ParseResultFree(&parsed); return NULL;
         }
         xls_syntax* s=allocate(path,text);

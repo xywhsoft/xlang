@@ -92,6 +92,9 @@ static int equal(const XL6_AstNode* a,const XL6_AstNode* b)
     if(!a || !b) return a==b;
     XL6_AstNode x=*a,y=*b;x.text=y.text=x.doc=y.doc=NULL;x.literalData=y.literalData=NULL;x.children=y.children=NULL;
     x.inferredType=y.inferredType=x.semanticDeclaredType=y.semanticDeclaredType=NULL;x.source=y.source=NULL;x.childCapacity=y.childCapacity=0;
+    /* Allocation ownership differs between pooled cached checks and fresh
+     * heap trees. All language/source fields below still compare exactly. */
+    x.xlsStorage=y.xlsStorage=NULL;
     if(memcmp(&x,&y,sizeof(x)) || !same(a->text,b->text) || !same(a->doc,b->doc) || !!a->literalData!=!!b->literalData ||
        (a->literalSize && memcmp(a->literalData,b->literalData,a->literalSize)) || !!a->source!=!!b->source ||
        (a->source && (!same(a->source->path,b->source->path) || a->source==b->source || a->source->completionQuery!=b->source->completionQuery ||

@@ -1,5 +1,22 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-26 新发布物复验 `sitemap`：默认包门禁的 C 边界通过，
+`test/cases/extlib_sitemap.xl` 在构建语言数组时报告
+`ValueError: sitemap entries must be an array`。现有最小源
+`dev/extlib_blockers/sitemap_build_var_array_projection.xl` 再次先输出
+`native roundtrip: PASS`，然后同样失败，证明原生解析结果可往返，
+而语言数组到 foreign `var` 的投影仍缺失。修复边界保持下文建议，
+包内不识别私有数组句柄；修复后须重跑最小源和完整双平台门禁。
+
+2026-10-26 重建发布版后复验 CBOR：`xlc.dll` SHA-256
+`C2163D747976C11394C7DDB563FCA1DF0076937CAE263CF2077501177A32CA78`。
+`release/xl.exe run dev/extlib_blockers/cbor_var_projection.xl` 仍退出 1，
+报告 `NotImplementedError: CBOR cannot encode this dynamic value type`。
+`release/extlibs/cbor/test/check.ps1` 的严格 C、边界、分配故障与 C 范例
+全过，首个 XLang 边界用例遇到同一错误，后续 AOT 未运行。
+新构建解除共享符号阻断，但没有解除 foreign `var` 容器投影问题；
+修复后须完整重跑包级 JIT/AOT，不在 CBOR 内识别私有句柄。
+
 2026-10-25 当前 Windows 发布版再次复验 `statistics`：默认
 `release/extlibs/statistics/test/check.ps1` 的严格 C、ABI、尺寸保护及
 三组 C 范例先通过，第一个 XLang 中央断言 `count([2,4,4,4,5,5,7,9]) == 8`

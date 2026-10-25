@@ -698,7 +698,7 @@ foreach ($entry in Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.txt
         })
     } else { @(Get-Item -LiteralPath $sourceRoot) }
     foreach ($source in $sourcesToStage) {
-        $suffix = if ($parts[0] -eq 'dir') { '/' + [IO.Path]::GetRelativePath($sourceRoot, $source.FullName) } else { '' }
+        $suffix = if ($parts[0] -eq 'dir') { '/' + (Get-XlirContainedRelativePath $sourceRoot $source.FullName) } else { '' }
         $target = Join-Path $batchPath ('include/' + $parts[1] + $suffix)
         New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
         if (Test-Path -LiteralPath $target) { throw "Duplicate private source target: $target" }

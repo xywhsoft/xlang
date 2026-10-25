@@ -1,0 +1,3 @@
+func importRaw(point address) as TlsStream
+    return TlsStream(address)
+end

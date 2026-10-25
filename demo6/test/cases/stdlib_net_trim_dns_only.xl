@@ -1,5 +1,5 @@
 func main(...) as int
-    NetAddress address = net.resolve("localhost", 80)
+    NetAddress address = net.resolve("127.0.0.1", 80)
     if address.port != 80 then
         return 1
     end

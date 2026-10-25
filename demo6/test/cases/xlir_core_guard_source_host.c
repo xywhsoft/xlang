@@ -28,7 +28,8 @@ int main(int argc, char** argv)
     if (!path(temporary,sizeof(temporary),argv[3],"compiler-temps")) return 2;
     XLC_ContextOptions options=xlcDefaultContextOptions();
     options.workDir=argv[1]; options.tempDir=temporary;
-    options.tccDllPath=argv[5]; options.tccLibPath=argv[6];
+    options.tccDllPath=strcmp(argv[5],"-")?argv[5]:NULL;
+    options.tccLibPath=strcmp(argv[6],"-")?argv[6]:NULL;
     XLC_Context* compiler=xlcCreateContext(&options);
     if (!compiler) return 3;
     int ok=phase(xlcAddIncludePath(compiler,argv[4]) && xlcAddSourceFile(compiler,argv[2]) &&
