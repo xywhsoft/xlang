@@ -12,9 +12,15 @@ static xvalue* strings(const char* const* items,size_t n)
 static size_t calls;
 static bool onDns(void* context,const xrtcallframe* frame,xrtcallresult* result)
 {
-    (void)context;xstrview f,t;assert(frame->ArgumentCount==2);
+    xstrview f,t;assert(frame->ArgumentCount==2);
     assert(xrtValueGetString(frame->Arguments[0],&f)&&xrtValueGetString(frame->Arguments[1],&t));
     assert(f.Size==26&&t.Size==3);++calls;
+    if(context){
+        AcmeOwner* self=*(AcmeOwner**)context;xl6_error_scope nested={0};assert(xl6ErrorScopeBegin(&nested));
+        (void)xl6AcmeProviderCapsV1(self);
+        xl6_error_result rejected=xl6ErrorScopeEnd(&nested);
+        assert(!rejected.ok&&xrtErrorKind(rejected.error)==XERR_STATE);xrtErrorFree(rejected.error);
+    }
     xvalue* answer=xrtValueBool(true);assert(answer);
     return xrtCallResultSetTake(result,0,&answer);
 }
@@ -103,6 +109,7 @@ int main(void)
     size_t outgoing=0;assert(trace(c,edges,&outgoing)&&outgoing==0);
     uint64 us=99;assert(xlacmeTimeout(2,&us)&&us==2000);
     assert(xlacmeTimeout(-1,&us)&&us==0);
+    assert(xlacmeTimeout(INT64_MAX,&us)&&us==UINT64_MAX);
     assert(!xlacmeTimeout(-2,&us));xrtClearError();
     const char* credentials[][4]={{"id","secret",""},{"token",""},{"id","secret",""},{"id","secret","region",""},{"id","secret",""}};
     const size_t counts[]={3,2,3,4,3};
@@ -113,12 +120,32 @@ int main(void)
     }
     assert(xl6AcmeProviderCountV1()==5);
     for(int i=0;i<5;++i){xstrview id=xl6AcmeProviderRegistryIdV1(i);assert(id.Size>0);xrtFree((void*)id.Data);}
+    /* Incomplete destruction must preserve the actual outer owner, even
+     * after its last language/native user reference is gone. */
+    xvalue* cfPending=strings(credentials[1],2);
+    AcmeOwner* delayed=xl6AcmeProviderCreateV1(2,cfPending,c);assert(delayed);
+    xacmehttp* transport=http(delayed);assert(transport&&transport->pEngine);
+    transport->uTimeoutMs=1;
+    xnetaddr local;assert(xrtNetAddrLoopback(&local,XNET_FAMILY_IPV4,0));
+    xnetudp* blocker=xrtNetUdpBind(transport->pEngine,&local,0,NULL,NULL,NULL);assert(blocker);
+    xl6_error_scope readinessScope={0};assert(xl6ErrorScopeBegin(&readinessScope));
+    assert(!xl6AcmeCleanupV1(delayed)&&delayed->provider.pContext);
+    xl6_error_result readiness=xl6ErrorScopeEnd(&readinessScope);assert(readiness.ok&&!readiness.error);
+    xl6AcmeDropV1(delayed);
+    double started=xrtTimer();assert(xl6ErrorScopeBegin(&readinessScope));
+    assert(xl6AcmeCleanupPendingV1(0)==1);
+    readiness=xl6ErrorScopeEnd(&readinessScope);assert(readiness.ok&&!readiness.error);
+    assert(xrtTimer()-started<0.5);
+    assert(xrtNetUdpClose(blocker));xrtNetUdpDestroy(blocker);xrtClearError();
+    assert(xl6AcmeCleanupPendingV1(3000)==0);xrtValueRelease(cfPending);xrtClearError();
     xrtparamdesc params[2]={{.Name={"fqdn",4},.Type=xrtTypeString()},{.Name={"txt",3},.Type=xrtTypeString()}};
     const xrttype* returns[]={xrtTypeBool()};
     xrtfunctionsig sig={.Name={"dns",3},.ParamCount=2,.Params=params,.ReturnCount=1,.ReturnTypes=returns};
-    xrtcallable* call=xrtCallableCreate(&sig,onDns,NULL,NULL);assert(call);
+    AcmeOwner* callbackSelf=NULL;
+    xrtcallable* call=xrtCallableCreate(&sig,onDns,&callbackSelf,NULL);assert(call);
     xvalue* cb=xrtValueCallableTake(&call);assert(cb);
     AcmeOwner* custom=xl6AcmeProviderCustomV1(xrtStrView("custom"),1,cb,cb,cb);assert(custom);
+    callbackSelf=custom;
     for(int i=0;i<3;++i)assert(xl6AcmeProviderCallV1(custom,i,xrtStrView("_acme-challenge.test.local"),xrtStrView("abc")));
     assert(calls==3);outgoing=0;assert(trace(custom,edges,&outgoing)&&outgoing==3);
     assert(xl6AcmeCleanupV1(custom));xl6AcmeDropV1(custom);xrtValueRelease(cb);

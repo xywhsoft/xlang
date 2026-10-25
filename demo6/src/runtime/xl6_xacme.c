@@ -84,6 +84,14 @@ static bool cleanup(AcmeOwner* o)
     }
     return true;
 }
+static bool cleanupProgress(AcmeOwner* o)
+{
+    /* Readiness is an explicit bool, not a diagnostic-only language failure.
+     * Keep an incoming diagnostic intact and consume this cleanup attempt's
+     * native timeout/error. Semantic callback failures keep their scope bit. */
+    xerror* previous=xrtTakeError();bool ready=cleanup(o);
+    xrtClearError();xrtSetErrorTake(previous);return ready;
+}
 static void freeOwner(AcmeOwner* o)
 {
     for(size_t i=0;i<7;++i){if(o->text[i]){xrtSecureZero(o->text[i],strlen(o->text[i]));xrtFree(o->text[i]);}}
@@ -96,7 +104,9 @@ static void freeOwner(AcmeOwner* o)
 void xl6AcmeDropV1(void* raw)
 {
     AcmeOwner* o=raw;if(!o)return;
-    if(xrtOwnershipRefRelease(&o->refs)!=0)return;
+    int32 remaining=xrtOwnershipRefRelease(&o->refs);
+    if(remaining<0)abort();
+    if(remaining)return;
     /* No language owner remains. On incomplete native cleanup an explicit
      * resident pending owner retains every dependency until CleanupPending. */
     if(!cleanup(o)){
@@ -108,13 +118,18 @@ void xl6AcmeDropV1(void* raw)
 static bool enter(AcmeOwner* o,AcmeKind kind,bool closing,XL6_ExecutionScopeV1* engine)
 {
     uint32 expected=0;xrtownershipscope s={0};mutationBegin(&s);
-    bool ok=o&&o->kind==kind&&!o->cleared&&!o->claim&&(!o->closing||closing)&&
+    /* Acquire the instance gate BEFORE reading mutable lifecycle fields.
+     * Mutation scopes exclude graph Freeze, but do not serialize two callers. */
+    bool acquired=o&&o->kind==kind&&
         xrtAtomic32CompareExchange(&o->busy,&expected,1,XMEMORY_ACQUIRE,XMEMORY_RELAXED);
+    bool ok=acquired&&!o->cleared&&!o->claim&&(closing||!o->closing);
+    if(acquired&&!ok)xrtAtomic32Store(&o->busy,0,XMEMORY_RELEASE);
     mutationEnd(&s);
     if(!ok){xrtSetErrorKind(XERR_STATE);return false;}
     if(!closing&&o->borrowed&&(!xl6ExecutionResourceEnterV1(o->borrowed,true,engine)||!engine->engine)){
         if(engine->resource)xl6ExecutionResourceLeaveV1(engine);
-        xrtAtomic32Store(&o->busy,0,XMEMORY_RELEASE);return false;
+        xrtownershipscope rollback={0};mutationBegin(&rollback);
+        xrtAtomic32Store(&o->busy,0,XMEMORY_RELEASE);mutationEnd(&rollback);return false;
     }
     return true;
 }
@@ -188,8 +203,8 @@ void* xl6AcmeClientCreateV1(void* raw)
     AcmeOwner* c=raw;XL6_ExecutionScopeV1 scope={0};
     if(!enter(c,AC_CONFIG,false,&scope)){failed();return NULL;}
     AcmeOwner* o=newOwner(AC_CLIENT);xacmeaccountconfig a;xacmeclientconfig v;
-    if(o){config(c,&a,&v,scope.engine);o->client=xrtAcmeClientCreate(&v);
-        if(c->borrowed)o->borrowed=xl6ExecutionResourceRetainV1(c->borrowed);}
+    if(o&&(!c->borrowed||(o->borrowed=xl6ExecutionResourceRetainV1(c->borrowed)))){
+        config(c,&a,&v,scope.engine);o->client=xrtAcmeClientCreate(&v);}
     leave(c,&scope);
     if(!o||!o->client){xl6AcmeDropV1(o);failed();return NULL;}return o;
 }
@@ -197,7 +212,7 @@ bool xl6AcmeCleanupV1(void* raw)
 {
     AcmeOwner* o=raw;XL6_ExecutionScopeV1 scope={0};
     if(!o||!enter(o,o->kind,true,&scope)){failed();return false;}
-    bool ok=cleanup(o);leave(o,&scope);return ok;
+    bool ok=cleanupProgress(o);leave(o,&scope);return ok;
 }
 void* xl6AcmeAccountPemV1(void* raw)
 {
@@ -238,13 +253,13 @@ void* xl6AcmeProviderCreateV1(int64_t kind,const xvalue* fields,void* raw)
     if(!fields||xrtValueType(fields)!=XVALUE_ARRAY||count>4||kind<1||kind>5){xrtSetErrorKind(XERR_ARGUMENT);goto done;}
     for(size_t i=0;i<count;++i)if(!arrayText(fields,i,&views[i])||!(values[i]=copyText(views[i])))goto done;
     o=newOwner(AC_PROVIDER);if(!o)goto done;o->providerKind=(int)kind;
+    if(c->borrowed&&!(o->borrowed=xl6ExecutionResourceRetainV1(c->borrowed)))goto done;
     if(kind==1&&count==3){xacmednaliconfig v;xrtAcmeDnsAliConfigInit(&v);v.sAccessKeyId=values[0];v.sAccessKeySecret=values[1];v.sEndpoint=values[2];ok=xrtAcmeDnsAli(&v,scope.engine,&o->provider);}
     else if(kind==2&&count==2){xacmednscfconfig v;xrtAcmeDnsCfConfigInit(&v);v.sApiToken=values[0];v.sEndpoint=values[1];ok=xrtAcmeDnsCf(&v,scope.engine,&o->provider);}
     else if(kind==3&&count==3){xacmednstencentconfig v;xrtAcmeDnsTencentConfigInit(&v);v.sSecretId=values[0];v.sSecretKey=values[1];v.sEndpoint=values[2];ok=xrtAcmeDnsTencent(&v,scope.engine,&o->provider);}
     else if(kind==4&&count==4){xacmednsawsconfig v;xrtAcmeDnsAwsConfigInit(&v);v.sAccessKeyId=values[0];v.sSecretAccessKey=values[1];v.sRegion=values[2];v.sEndpoint=values[3];ok=xrtAcmeDnsAws(&v,scope.engine,&o->provider);}
     else if(kind==5&&count==3){xacmednshuaaweiconfig v;xrtAcmeDnsHuaweiConfigInit(&v);v.sAccessKey=values[0];v.sSecretKey=values[1];v.sEndpoint=values[2];ok=xrtAcmeDnsHuawei(&v,scope.engine,&o->provider);}
     else xrtSetErrorKind(XERR_ARGUMENT);
-    if(c->borrowed)o->borrowed=xl6ExecutionResourceRetainV1(c->borrowed);
 done:
     for(size_t i=0;i<4;++i){if(values[i])xrtSecureZero(values[i],strlen(values[i]));xrtFree(values[i]);}
     leave(c,&scope);if(!ok){xl6AcmeDropV1(o);failed();return NULL;}return o;
@@ -265,14 +280,20 @@ bool xl6AcmeProviderCallV1(void* raw,int64_t operation,xstrview fqdn,xstrview tx
 }
 xstrview xl6AcmeProviderIdV1(void* raw)
 {
-    AcmeOwner* o=raw;const char* id=o&&o->kind==AC_PROVIDER?o->provider.sId:NULL;
-    if(!id){xrtSetErrorKind(XERR_TYPE);failed();return (xstrview){0};}
+    AcmeOwner* o=raw;XL6_ExecutionScopeV1 scope={0};
+    if(!enter(o,AC_PROVIDER,false,&scope)){failed();return (xstrview){0};}
+    const char* id=o->provider.sId;
     size_t n=strlen(id);char* copy=xrtStrDupView((xstrview){id,n});
+    leave(o,&scope);
     if(!copy)failed();
     return (xstrview){copy,copy?n:0};
 }
 int64_t xl6AcmeProviderCapsV1(void* raw)
-{AcmeOwner* o=raw;return o&&o->kind==AC_PROVIDER?o->provider.iCaps:0;}
+{
+    AcmeOwner* o=raw;XL6_ExecutionScopeV1 scope={0};
+    if(!enter(o,AC_PROVIDER,false,&scope)){failed();return 0;}
+    int64_t caps=o->provider.iCaps;leave(o,&scope);return caps;
+}
 int64_t xl6AcmeProviderCountV1(void){return (int64_t)xrtAcmeDnsProviderCount();}
 xstrview xl6AcmeProviderRegistryIdV1(int64_t index)
 {
@@ -378,13 +399,15 @@ int64_t xl6AcmeCleanupPendingV1(int64_t timeout)
             mutationBegin(&s);o->next=NULL;o->queued=false;mutationEnd(&s);
             xacmehttp* h=http(o);int64 saved=h?h->uTimeoutMs:0;
             if(h)h->uTimeoutMs=timeout==0?0:__xrtWaitRemaining(deadline);
-            if(cleanup(o)){
+            if(cleanupProgress(o)){
                 mutationBegin(&s);o->refs=0;mutationEnd(&s);freeOwner(o);
             }else{
                 h=http(o);if(h)h->uTimeoutMs=saved;
                 enqueue(o);++remaining;
             }}
-        size_t upstream=0;(void)xrtAcmeCleanupPending(0,&upstream);remaining+=upstream;
+        size_t upstream=0;xerror* previous=xrtTakeError();
+        (void)xrtAcmeCleanupPending(0,&upstream);xrtClearError();xrtSetErrorTake(previous);
+        remaining+=upstream;
         if(!remaining||timeout==0||__xrtWaitExpired(deadline))break;
         xrtSleep(1);
     }while(true);
