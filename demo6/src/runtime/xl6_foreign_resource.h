@@ -6,7 +6,9 @@
 /* Explicit leaf-payload contract: raw owns no hidden language/async graph
  * edges. The callable is an owned, traced dependency, never a raw callback.
  * On success ownership of raw transfers; on failure the caller still owns it.
- * Releaser accepts one point and returns no values. It executes once, before
+ * Releaser must carry a verified language point-action contract or an exact
+ * native XRT signature (one by-value pointer, no returns or variadics).
+ * It executes once, before
  * graph clearing, while its captures and code are alive. NULL raw is refused.
  * Opaque tokens clone by sharing the one finalization owner. They are private
  * resource handles, not mutable data objects or independently cloned raw data. */

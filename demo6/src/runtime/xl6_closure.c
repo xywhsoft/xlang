@@ -323,6 +323,11 @@ static void box_drop(void* data)
 static const xrtcallableownershipv1 box_ownership_policy = {
     sizeof(xrtcallableownershipv1), box_trace, box_drop
 };
+/* Same invocation and storage ABI; only compiler-certified point -> void
+ * boxes receive this immutable contract identity. */
+static const xrtcallableownershipv1 point_action_box_policy = {
+    sizeof(xrtcallableownershipv1), box_trace, box_drop
+};
 /* Legacy V1 closures remain callable/traceable, but do not have the
  * coordinated lifecycle protocol required by a managed detached producer.
  * Distinct permanent identity carries that fact without borrowing Box data. */
@@ -332,9 +337,15 @@ static const xrtcallableownershipv1 legacy_box_ownership_policy = {
 bool xl6ClosureBoxAdmittedV1(const xvalue* value)
 {
     xrtcallable* callable=value&&xrtValueIsCallable(value)?xrtValueGetCallable(value):NULL;
-    return xrtCallableAdmitsOwnershipPolicyV1(callable,&box_ownership_policy);
+    return xrtCallableAdmitsOwnershipPolicyV1(callable,&box_ownership_policy) ||
+        xrtCallableAdmitsOwnershipPolicyV1(callable,&point_action_box_policy);
 }
-static xvalue* xl6OwnershipBody_closure_box(const XL6_CodeOwner* owner, XL6_Closure* closure, XL6_ClosureBoxEntry entry, uint64_t typeId, bool erased)
+bool xl6ClosureBoxIsPointActionV1(const xvalue* value)
+{
+    xrtcallable* callable=value&&xrtValueIsCallable(value)?xrtValueGetCallable(value):NULL;
+    return xrtCallableAdmitsOwnershipPolicyV1(callable,&point_action_box_policy);
+}
+static xvalue* xl6OwnershipBody_closure_box(const XL6_CodeOwner* owner, XL6_Closure* closure, XL6_ClosureBoxEntry entry, uint64_t typeId, bool erased, bool pointAction)
 {
     XL6_CodeLease* lease = NULL; XL6_CodeLeaseAdmission admission;
     ClosureBox* box; xrtcallable* callable; xvalue* value = NULL; xerror* prior = xrtTakeError();
@@ -351,7 +362,7 @@ static xvalue* xl6OwnershipBody_closure_box(const XL6_CodeOwner* owner, XL6_Clos
     callable = xrtCallableCreate(NULL, box_invoke, box, box_drop);
     if (callable == NULL) { box_drop(box); goto done; }
     const xrtcallableownershipv1* policy=((const ClosureStorage*)closure)->coordinated
-        ? &box_ownership_policy : &legacy_box_ownership_policy;
+        ? (pointAction ? &point_action_box_policy : &box_ownership_policy) : &legacy_box_ownership_policy;
     if (!xrtCallableOwnershipBindV1(callable, policy)) {
         xerror* failure = xrtTakeError(); xrtCallableUnref(callable); xrtClearError(); xrtSetErrorTake(failure); goto done;
     }
@@ -366,11 +377,16 @@ done:
 }
 static xvalue* closure_box(const XL6_CodeOwner* owner, XL6_Closure* closure, XL6_ClosureBoxEntry entry, uint64_t typeId)
 {
-    XL6_OWNERSHIP_RETURN(xvalue*, xl6OwnershipBody_closure_box(owner, closure, entry, typeId, false));
+    XL6_OWNERSHIP_RETURN(xvalue*, xl6OwnershipBody_closure_box(owner, closure, entry, typeId, false, false));
 }
 xvalue* xl6ClosureBoxErasedV1(const XL6_CodeOwner* owner, XL6_Closure* closure, XL6_ClosureBoxEntry entry)
 {
-    XL6_OWNERSHIP_RETURN(xvalue*, xl6OwnershipBody_closure_box(owner, closure, entry, 0, true));
+    XL6_OWNERSHIP_RETURN(xvalue*, xl6OwnershipBody_closure_box(owner, closure, entry, 0, true, false));
+}
+xvalue* xl6ClosureBoxPointActionV1(const XL6_CodeOwner* owner, XL6_Closure* closure,
+    XL6_ClosureBoxEntry entry, uint64_t typeId)
+{
+    XL6_OWNERSHIP_RETURN(xvalue*,xl6OwnershipBody_closure_box(owner,closure,entry,typeId,false,true));
 }
 const XL6_ClosureRuntimeV1* xl6ClosureRuntimeV1Get(void)
 {
@@ -432,6 +448,7 @@ const xrtownershipadapterv1* xl6ClosureOwnershipAdapterV1(xrtownershipref ref)
     if (!ref.Data) return NULL;
     if (ref.Ops != &closure_ops) {
         const xrtownershipadapterv1* adapter=xrtCallableOwnershipAdapterV1(ref,&box_ownership_policy);
+        if(!adapter)adapter=xrtCallableOwnershipAdapterV1(ref,&point_action_box_policy);
         return adapter ? adapter : xrtCallableOwnershipAdapterV1(ref,&legacy_box_ownership_policy);
     }
     storage = ref.Data;

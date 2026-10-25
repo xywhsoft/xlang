@@ -191,7 +191,16 @@ static int xl6IrCgenEmitXValueOperationRuntime(
                 "extern char* xrtStrDupN(const char*, size_t);\n", out);
             /* Pure erased invocation and bound methods use XRT callables,
              * not native XLIR closures. Emit this bridge only when required. */
-            if (needs->needsClosureRuntime)
+            if (needs->needsClosureRuntime && xl6IrCgenHasPointActionSignature(module)) {
+                xl6OutputPuts("#define xlir_closure_to_xvalue_scalar(closure, entry, typeId) ((",out);
+                for(size_t at=0;at<module->types.count;++at) {
+                    XL6_IrTypeId id=(XL6_IrTypeId)(at+1);
+                    if(xl6IrCgenPointActionSignature(module,id))
+                        xl6OutputPrintf(out,"(typeId) == 0x%016llXULL || ",
+                            (unsigned long long)xl6IrTypeGet(&module->types,id)->typeValueId);
+                }
+                xl6OutputPuts("0) ? xl6ClosureBoxPointActionV1(xlir_closure_owner, (closure), (entry), (typeId)) : (xl6ClosureRuntimeV1Get()->Box)(xlir_closure_owner, (closure), (entry), (typeId)))\n",out);
+            } else if (needs->needsClosureRuntime)
                 xl6OutputPuts(
                 "#define xlir_closure_to_xvalue_scalar(closure, entry, typeId) (xl6ClosureRuntimeV1Get()->Box)(xlir_closure_owner, (closure), (entry), (typeId))\n", out);
             if ( needs->needsXValueClosureBridgeRuntime )

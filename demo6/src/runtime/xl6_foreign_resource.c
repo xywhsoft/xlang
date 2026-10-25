@@ -1,6 +1,7 @@
 #include "xl6_foreign_resource.h"
 #include "src/api/xl_foreign_error.h"
 #include "xl6_ownership_scope.h"
+#include "xl6_closure.h"
 #include <stdlib.h>
 
 typedef struct ForeignResource {
@@ -74,6 +75,14 @@ xvalue* xl6ForeignResourceCreateV1(void* raw,const xvalue* releaser)
 {
     if(!raw || !releaser || !xrtValueIsCallable(releaser)){
         xrtSetErrorKind(XERR_ARGUMENT);return NULL;
+    }
+    const xrtfunctionsig* signature=xrtValueCallableSignature(releaser);
+    if(!xl6ClosureBoxIsPointActionV1(releaser) && (!signature || signature->ParamCount!=1 || !signature->Params ||
+       signature->ReturnCount || signature->Flags || signature->Params[0].Flags ||
+       signature->Params[0].Mode==XRT_PARAM_BYREF || !signature->Params[0].Type ||
+       signature->Params[0].Type->Kind!=XRT_TYPE_POINTER ||
+       signature->Params[0].Type->Size!=sizeof(void*))){
+        xrtSetErrorKind(XERR_TYPE);return NULL;
     }
     ForeignResource* resource=xrtCalloc(1,sizeof(*resource));
     if(!resource)return NULL;

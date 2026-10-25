@@ -1,5 +1,21 @@
 static int xl6IrCgenDynamicMethodNeeded(const XL6_IrModule*,size_t);
 
+static int xl6IrCgenPointActionSignature(const XL6_IrModule* module,XL6_IrTypeId id)
+{
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
+    const XL6_IrCallableBridge* bridge=xl6IrCallableBridgeGet(module,id);
+    if(!type || !bridge || !type->typeValueId || type->paramCount!=1 ||
+       type->returnCount || bridge->erasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED)return 0;
+    const XL6_IrType* parameter=xl6IrTypeGet(&module->types,type->params[0]);
+    return parameter && parameter->cAbi==XL6_IR_C_ABI_RAW_POINTER;
+}
+static int xl6IrCgenHasPointActionSignature(const XL6_IrModule* module)
+{
+    for(size_t i=0;i<module->types.count;++i)
+        if(xl6IrCgenPointActionSignature(module,(XL6_IrTypeId)(i+1)))return 1;
+    return 0;
+}
+
 static int xl6IrCgenRuntimeCallableSignatureAbi(
     const XL6_IrModule* module, XL6_IrTypeId type)
 {

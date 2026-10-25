@@ -68,6 +68,12 @@ XL6_CODE_LEASE_API const XL6_ClosureRuntimeV1* xl6ClosureRuntimeV1Get(void);
  * Active invocations are legal; legacy V1/opaque closures are refused.
  * This is not a whole-graph lifecycle admission of all captured children. */
 XL6_CODE_LEASE_API bool xl6ClosureBoxAdmittedV1(const struct xvalue*);
+/* The compiler certifies exactly one positional point parameter and no
+ * returns/variadics. The resident contract identity adds no box storage and
+ * leaves the original language keyword/default binding behavior intact. */
+XL6_CODE_LEASE_API struct xvalue* xl6ClosureBoxPointActionV1(
+    const XL6_CodeOwner*, XL6_Closure*, XL6_ClosureBoxEntry, uint64_t);
+XL6_CODE_LEASE_API bool xl6ClosureBoxIsPointActionV1(const struct xvalue*);
 
 /* V2 replaces producer-owned trace/drop callbacks with a closed physical
  * capture layout. The immutable descriptor has the same lifetime as invoke;

@@ -302,6 +302,8 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
         !xlApiAddTccSymbol(s, "xl6PayloadObserveOutcome", (const void*)xl6PayloadObserveOutcome)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClosureRuntimeV1Get", (const void*)xl6ClosureRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClosureBoxAdmittedV1", (const void*)xl6ClosureBoxAdmittedV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ClosureBoxPointActionV1", (const void*)xl6ClosureBoxPointActionV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ClosureBoxIsPointActionV1", (const void*)xl6ClosureBoxIsPointActionV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClosureRuntimeV2Get", (const void*)xl6ClosureRuntimeV2Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClosureCreateEnvironmentV1", (const void*)xl6ClosureCreateEnvironmentV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClosureRuntimeV3Get", (const void*)xl6ClosureRuntimeV3Get)) return 0;
