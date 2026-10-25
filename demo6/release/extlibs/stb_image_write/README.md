@@ -1,5 +1,11 @@
 # stb_image_write
 
+2026-10-25 在 WSL 中运行现有 `test/check.sh` 全通过：严格 GCC、
+C 边界 ASan/UBSan、XLang 边界/分配故障/输出限额，以及 PNG、JPEG、
+BMP、TGA、HDR 五份 C/XLang 范例输出逐文件字节对照。本次语言用例
+使用现有 Linux `release/xl`；未重建 Linux 发布版或运行 Linux
+独立 EXE，不能据此签收 Linux AOT。
+
 2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 全通过：严格
 GCC、C/XLang 边界、分配故障与输出限额、核心及公开范例 AOT。
 C、XLang JIT 和独立 EXE 的 PNG/JPEG/BMP/TGA/HDR 五份输出逐文件
@@ -72,10 +78,11 @@ HDR 回调实现；JPEG 位缓冲使用无符号移位；最终 PNG 缓冲申请
   测试另覆盖 C 整数收窄及路径内嵌 NUL。Windows GCC `-Wall -Wextra -Werror`
   与 Linux ASan/UBSan 已通过。
 
-当前正式构建对普通 `Buffer` 的最小 AOT 已缺 `xl6NativeHandleTraceLeaf`，
-见 `demo6/dev/extlib_blockers/native_handle_trace_aot.md`；带输出程序还可能遇到
-共享 `xl6ValueDataSnapshotV1` 缺符号，见 `text_snapshot_link.md`。
-这些均不计为发布验收通过。
+先前发布物曾在普通 `Buffer` 的最小 AOT 缺少
+`xl6NativeHandleTraceLeaf`，见
+`demo6/dev/extlib_blockers/native_handle_trace_aot.md`；带输出程序也曾
+缺少共享 `xl6ValueDataSnapshotV1`，见 `text_snapshot_link.md`。
+当前 Windows AOT 结果见本页开头；Linux 独立 EXE 仍须另行验收。
 
 2026-10-15：中央 `test/cases/extlib_stb_image_write.xl` 删除已不存在的 `last_error()` 调用，改验当前 API 的无文件副作用负例；C 测试补失败后成功的错误状态回归并修复原生入口。清单显式声明 XRT Buffer/整文件模块。中央无输出 AOT 构建运行通过（714,240 字节），C/XL 边界、双语范例及新增 Linux ASan/UBSan 门禁通过；带输出完整 AOT 仍缺共享快照符号。
 
