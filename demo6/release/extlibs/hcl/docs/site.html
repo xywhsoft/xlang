@@ -19,7 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / hcl</p><h1>hcl</h1>
     <p class="extlib-lead">只读查询 HCL 的属性、块与标签；表达式保留原文。</p>
     <p>受限语法查询，不执行 Terraform 表达式，也不解析变量和 provider schema。HCL 正文、属性名和块类型含嵌入 NUL 时会拒绝，不会截断；整份正文须为有效 UTF-8。查询命中后仍会校验后续内容和块体，块及表达式括号最多嵌套 64 层；<code>()</code>、<code>[]</code>、<code>{}</code> 必须按顺序闭合。双引号中的真实换行无效，需使用 <code>\n</code> 转义；非法转义会报错，<code>\u</code>/<code>\U</code> 可解码为 UTF-8，解码结果含 NUL 时拒绝 C 字符串查询。</p>
-    <p>2026-10-25 当前发布版复验：Windows 严格 C、线程、XLang 与核心/边界/分配/范例四条独立 EXE 门禁通过；Linux C ASan/UBSan、XLang JIT、相同四条 AOT 路径及范例 C/XLang 输出对照通过。Linux 首次扩展门禁曾无诊断退出 1，随后带跟踪和原样复跑均通过；测试脚本现输出阶段标记以便再次发生时定位，尚未将偶发退出归因于包实现。</p>
+    <p>2026-10-26 当前发布版复验：Windows 严格 C、线程、XLang 与核心/边界/分配/范例四条独立 EXE 门禁通过；Linux C ASan/UBSan、XLang JIT 与同组 AOT 通过。新增公开 C 范例 <code>xl build</code> 独立 EXE，GCC、TCC、C AOT、XLang JIT/AOT 输出一致。Linux 早先一次无诊断退出尚无根因，故保持待稳定性签收；脚本已提供阶段标记以定位复发。</p>
     <p>HCL 正文最多 8 MiB UTF-8 字节；超过上限时所有查询和 <code>validate</code> 都在解析前报告 <code>RangeError</code>，C 侧报告 <code>XERR_RANGE</code>。属性声明和块头支持 <code>/* ... */</code> 行内注释，不会把注释两侧的标识符拼接；<code>get</code> 忽略值末尾注释，<code>getRaw</code> 保留原文。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>

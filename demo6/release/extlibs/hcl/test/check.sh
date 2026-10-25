@@ -50,4 +50,8 @@ timeout 120s "$xl" build release/examples/extlibs/hcl.xl \
     -o "$work/hcl_example_xl"
 timeout 45s "$work/hcl_example_xl" > "$work/hcl_aot.txt"
 diff -u "$work/hcl_c.txt" "$work/hcl_aot.txt"
+timeout 120s "$xl" build release/examples/extlibs/hcl_c.c \
+    -o "$work/hcl_example_c_aot"
+timeout 45s "$work/hcl_example_c_aot" > "$work/hcl_c_aot.txt"
+diff -u "$work/hcl_c.txt" "$work/hcl_c_aot.txt"
 printf 'hcl Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'
