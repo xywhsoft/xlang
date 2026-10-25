@@ -415,29 +415,34 @@ if not errorlevel 1 (
     echo stdlib_crypto.c unexpectedly imports the legacy private runtime header.
     exit /b 1
 )
-findstr /C:"void* xl6_xrt_sha512_hex" build\test\stdlib_crypto.c >nul
+findstr /C:"xl6CryptoSha512TextHexV1(" build\test\stdlib_crypto.c >nul
 if errorlevel 1 (
-    echo stdlib_crypto.c missing sha512 runtime helper.
+    echo stdlib_crypto.c missing resident sha512 call.
     exit /b 1
 )
-findstr /C:"void* xl6_xrt_sha256_stream_create" build\test\stdlib_crypto.c >nul
+findstr /C:"xl6CryptoSha256CreateV1(" build\test\stdlib_crypto.c >nul
 if errorlevel 1 (
-    echo stdlib_crypto.c missing sha256 stream runtime helper.
+    echo stdlib_crypto.c missing resident sha256 stream call.
     exit /b 1
 )
-findstr /C:"void* xl6_xrt_sha256_bytes" build\test\stdlib_crypto.c >nul
+findstr /C:"xl6CryptoSha256BufferV1(" build\test\stdlib_crypto.c >nul
 if errorlevel 1 (
-    echo stdlib_crypto.c missing binary sha256 runtime helper.
+    echo stdlib_crypto.c missing resident Buffer sha256 call.
     exit /b 1
 )
-findstr /C:"void* xl6_xrt_aes256_gcm_decrypt_bytes" build\test\stdlib_crypto.c >nul
+findstr /C:"xl6CryptoAesGcmOpenV1(" build\test\stdlib_crypto.c >nul
 if errorlevel 1 (
-    echo stdlib_crypto.c missing binary AEAD runtime helper.
+    echo stdlib_crypto.c missing resident AEAD open call.
     exit /b 1
 )
-findstr /C:"xvalue* xl6_xrt_ed25519_keypair" build\test\stdlib_crypto.c >nul
+findstr /C:"xl6CryptoEd25519GenerateV1(" build\test\stdlib_crypto.c >nul
 if errorlevel 1 (
-    echo stdlib_crypto.c missing ed25519 keypair runtime helper.
+    echo stdlib_crypto.c missing managed ed25519 key factory.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_sha" /C:"xl6_xrt_aes" /C:"xl6_xrt_chacha20" /C:"xl6_xrt_ed25519" build\test\stdlib_crypto.c >nul
+if not errorlevel 1 (
+    echo stdlib_crypto.c still uses a retired crypto wrapper.
     exit /b 1
 )
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/stdlib_crypto.c\" test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_crypto.exe

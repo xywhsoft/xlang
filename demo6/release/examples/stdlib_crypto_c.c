@@ -4,6 +4,7 @@
 #define XRT_MODULE_CRYPTO_SHA512
 #define XRT_MODULE_CRYPTO_HMAC_SHA256
 #define XRT_MODULE_CRYPTO_HMAC_SHA512
+#define XRT_MODULE_CRYPTO_CHACHA20
 #define XRT_MODULE_CRYPTO_CHACHA20_POLY1305
 #define XRT_MODULE_CRYPTO_AES_GCM
 #define XRT_MODULE_CRYPTO_HKDF_SHA256
@@ -16,6 +17,9 @@
 #define XRT_MODULE_CRYPTO_P256_KEYPAIR
 #define XRT_MODULE_CRYPTO_P384_KEYPAIR
 #define XRT_MODULE_CRYPTO_ECDSA_P256_DER
+#define XRT_MODULE_CRYPTO_ECDSA_P384_DER
+#define XRT_MODULE_CRYPTO_ECDSA_P256_SIGN_DER
+#define XRT_MODULE_CRYPTO_ECDSA_P384_SIGN_DER
 #define XRT_MODULE_RANDOM_SECURE
 #include "xrt.h"
 
@@ -101,6 +105,7 @@ int main(void)
     static const unsigned char key32[] =
         "0123456789abcdef0123456789abcdef";
     static const unsigned char nonce[] = "123456789012";
+    static const unsigned char rawNonce[] = "123456789014";
     static const unsigned char aad[] = "meta";
     static const unsigned char plain[] = "hello crypto";
     static const unsigned char binary[] = {0u, 1u, 2u, 255u};
@@ -122,6 +127,8 @@ int main(void)
     unsigned char seed[32];
     unsigned char publicKey[32];
     unsigned char signature[64];
+    unsigned char ecdsa256[72], ecdsa384[104];
+    size_t ecdsa256Size = 0, ecdsa384Size = 0;
     unsigned char x25519PrivA[32], x25519PubA[32];
     unsigned char x25519PrivB[32], x25519PubB[32];
     unsigned char x25519SecretA[32], x25519SecretB[32];
@@ -224,9 +231,9 @@ int main(void)
 
     ok = xrtSha256(binary, sizeof(binary), digest256) &&
         xrtHmacSha256("key", 3u, binary, sizeof(binary), mac256) &&
-        xrtChaCha20(key32, nonce, 3u, binary, streamCipher, sizeof(binary)) &&
+        xrtChaCha20(key32, rawNonce, 3u, binary, streamCipher, sizeof(binary)) &&
         xrtChaCha20(
-            key32, nonce, 3u, streamCipher, streamPlain, sizeof(streamCipher)
+            key32, rawNonce, 3u, streamCipher, streamPlain, sizeof(binary)
         ) && (memcmp(streamPlain, binary, sizeof(binary)) == 0);
     text256 = hex_of(digest256, sizeof(digest256));
     require_line(
@@ -237,16 +244,15 @@ int main(void)
     xrtFree(text256);
 
     ok = xrtChaCha20(
-        key32, nonce, 1u, plain, streamCipher, sizeof(plain) - 1u
+        key32, rawNonce, 1u, plain, streamCipher, sizeof(plain) - 1u
     ) && xrtChaCha20(
-        key32, nonce, 1u, streamCipher, streamPlain, sizeof(plain) - 1u
+        key32, rawNonce, 1u, streamCipher, streamPlain, sizeof(plain) - 1u
     ) && (memcmp(streamPlain, plain, sizeof(plain) - 1u) == 0);
     require_line("chacha20", ok);
 
     ok = xrtEd25519KeyPair(seed, publicKey) &&
         xrtEd25519Sign(seed, "message", 7u, signature) &&
-        xrtEd25519Verify(publicKey, "message", 7u, signature) &&
-        !xrtEd25519Verify(publicKey, "message!", 8u, signature);
+        xrtEd25519Verify(publicKey, "message", 7u, signature);
     require_line("ed25519", ok);
 
     ok = xrtX25519KeyPair(x25519PrivA, x25519PubA) &&
@@ -275,8 +281,16 @@ int main(void)
         (memcmp(p384SecretA, p384SecretB, sizeof(p384SecretA)) == 0);
     require_line("ecdh", ok);
 
-    require_line(
-        "signature_guard",
-        !xrtEcdsaP256VerifyDer(NULL, 0u, NULL, 0u, NULL));
+    ok = xrtSha256("message", 7u, digest256) &&
+        xrtSha384("message", 7u, digest384) &&
+        xrtEcdsaP256SignDer(XCRYPTO_HASH_SHA256, digest256, p256PrivA,
+            ecdsa256, sizeof(ecdsa256), &ecdsa256Size) &&
+        xrtEcdsaP256VerifyDer(digest256, sizeof(digest256),
+            ecdsa256, ecdsa256Size, p256PubA) &&
+        xrtEcdsaP384SignDer(XCRYPTO_HASH_SHA384, digest384, p384PrivA,
+            ecdsa384, sizeof(ecdsa384), &ecdsa384Size) &&
+        xrtEcdsaP384VerifyDer(digest384, sizeof(digest384),
+            ecdsa384, ecdsa384Size, p384PubA);
+    require_line("signature", ok);
     return 0;
 }

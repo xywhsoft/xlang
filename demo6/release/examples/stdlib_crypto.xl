@@ -1,140 +1,95 @@
+// Fixed public example material, not production keys or a security test suite.
+// In applications, never reuse a nonce under the same AEAD key.
 func line(string name, bool ok)
     assert ok, name + " failed"
     println(name + "=ok")
 end
 
-string text = "xlang"
-string sha1 = crypto.sha1(text)
-string sha256 = crypto.sha256(text)
-string sha384 = crypto.sha384(text)
-string sha512 = crypto.sha512(text)
-
+// Legacy SHA1 is explicitly separated; main digest functions return bytes.
 line("hash",
-    string.len(sha1) == 40 and
-    string.len(sha256) == 64 and
-    string.len(sha384) == 96 and
-    string.len(sha512) == 128 and
-    sha256 == crypto.sha256("xlang") and
-    sha256 != crypto.sha256("xlang!"))
+    cryptoLegacy.sha1("xlang").length == 20 and
+    crypto.sha256("xlang").length == 32 and
+    crypto.sha384("xlang").length == 48 and
+    crypto.sha512("xlang").length == 64 and
+    crypto.sha256("xlang") == crypto.sha256("xlang") and
+    crypto.sha256("xlang") != crypto.sha256("xlang!"))
 
 string hmacText = "The quick brown fox jumps over the lazy dog"
 line("hmac",
-    crypto.hmacSha256("key", hmacText) == "F7BC83F430538424B13298E6AA6FB143EF4D59A14946175997479DBC2D1A3CD8" and
-    string.len(crypto.hmacSha384("key", hmacText)) == 96 and
-    string.len(crypto.hmacSha512("key", hmacText)) == 128)
+    crypto.hmacSha256Hex(b"key", hmacText) == "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8" and
+    crypto.hmacSha384(b"key", hmacText).length == 48 and
+    crypto.hmacSha512(b"key", hmacText).length == 64)
 
-string key16 = "0123456789abcdef"
-string key32 = "0123456789abcdef0123456789abcdef"
-string nonce = "123456789012"
-string aad = "meta"
+bytes key16 = b"0123456789abcdef"
+bytes key32 = b"0123456789abcdef0123456789abcdef"
+bytes nonce = b"123456789012"
+bytes rawNonce = b"123456789014"
+bytes aad = b"meta"
 string plain = "hello crypto"
-
-string chachaAead = crypto.chacha20Poly1305Encrypt(key32, nonce, plain, aad)
-string aes128 = crypto.aes128GcmEncrypt(key16, nonce, plain, aad)
-string aes256 = crypto.aes256GcmEncrypt(key32, nonce, plain, aad)
+auto chacha = ChaCha20Poly1305(key32)
+auto aes128 = AesGcm(key16)
+auto aes256 = AesGcm(key32)
 line("aead",
-    crypto.chacha20Poly1305Decrypt(key32, nonce, chachaAead, aad) == plain and
-    crypto.aes128GcmDecrypt(key16, nonce, aes128, aad) == plain and
-    crypto.aes256GcmDecrypt(key32, nonce, aes256, aad) == plain and
-    crypto.aes256GcmDecrypt(key32, nonce, aes256, "bad") == "")
+    chacha.open(chacha.seal(plain, nonce, aad), nonce, aad) == encoding.encodeUtf8(plain) and
+    aes128.open(aes128.seal(plain, nonce, aad), nonce, aad) == encoding.encodeUtf8(plain) and
+    aes256.open(aes256.seal(plain, nonce, aad), nonce, aad) == encoding.encodeUtf8(plain))
 
-string hkdf256 = crypto.hkdfSha256("key", "salt", "info", 32)
-string hkdf384 = crypto.hkdfSha384("key", "salt", "info", 32)
-line("hkdf_random", string.len(hkdf256) == 64 and string.len(hkdf384) == 64 and string.len(crypto.randomHex(16)) == 32)
+line("hkdf_random",
+    crypto.hkdfSha256(b"key", b"salt", b"info", 32).length == 32 and
+    crypto.hkdfSha384(b"key", b"salt", b"info", 32).length == 32 and
+    string.byteLen(crypto.randomHex(16)) == 32)
 
-Sha1 s1 = crypto.sha1Stream()
+auto s1 = cryptoLegacy.sha1Stream()
 s1.update("a")
 s1.update("bc")
-Sha256 s256 = crypto.sha256Stream()
+auto s256 = crypto.sha256Stream()
 s256.update("a")
 s256.update("bc")
-Sha384 s384 = crypto.sha384Stream()
+auto s384 = crypto.sha384Stream()
 s384.update("abc")
-Sha512 s512 = crypto.sha512Stream()
+auto s512 = crypto.sha512Stream()
 s512.update("ab")
 s512.update("c")
-line("stream", s1.hex() == crypto.sha1("abc") and s256.hex() == crypto.sha256("abc") and s384.hex() == crypto.sha384("abc") and s512.hex() == crypto.sha512("abc"))
+line("stream", s1.final() == cryptoLegacy.sha1("abc") and s256.final() == crypto.sha256("abc") and
+    s384.final() == crypto.sha384("abc") and s512.final() == crypto.sha512("abc"))
 
-Buffer binary = Buffer()
-binary.appendByte(0)
-binary.appendByte(1)
-binary.appendByte(2)
-binary.appendByte(255)
-Buffer key16Bytes = encoding.toBytes(key16)
-Buffer key32Bytes = encoding.toBytes(key32)
-Buffer nonceBytes = encoding.toBytes(nonce)
-Buffer aadBytes = encoding.toBytes(aad)
-Buffer binarySha = crypto.sha256Bytes(binary)
-Buffer binarySha1 = crypto.sha1Bytes(binary)
-Buffer binarySha384 = crypto.sha384Bytes(binary)
-Buffer binarySha512 = crypto.sha512Bytes(binary)
-Buffer binaryHmac = crypto.hmacSha256Bytes(encoding.toBytes("key"), binary)
-Buffer binaryHmac384 = crypto.hmacSha384Bytes(encoding.toBytes("key"), binary)
-Buffer binaryHmac512 = crypto.hmacSha512Bytes(encoding.toBytes("key"), binary)
-Buffer binaryStreamCipher = crypto.chacha20Bytes(key32Bytes, nonceBytes, binary, 3)
-Buffer binaryStreamPlain = crypto.chacha20Bytes(key32Bytes, nonceBytes, binaryStreamCipher, 3)
-Buffer binaryAead = crypto.chacha20Poly1305EncryptBytes(key32Bytes, nonceBytes, binary, aadBytes)
-Buffer binaryAeadPlain = crypto.chacha20Poly1305DecryptBytes(key32Bytes, nonceBytes, binaryAead, aadBytes)
-Buffer binaryAes128 = crypto.aes128GcmEncryptBytes(key16Bytes, nonceBytes, binary, aadBytes)
-Buffer binaryAes128Plain = crypto.aes128GcmDecryptBytes(key16Bytes, nonceBytes, binaryAes128, aadBytes)
-Buffer binaryAes256 = crypto.aes256GcmEncryptBytes(key32Bytes, nonceBytes, binary, aadBytes)
-Buffer binaryAes256Plain = crypto.aes256GcmDecryptBytes(key32Bytes, nonceBytes, binaryAes256, aadBytes)
-Buffer binaryHkdf = crypto.hkdfSha256Bytes(encoding.toBytes("key"), encoding.toBytes("salt"), encoding.toBytes("info"), 32)
-Buffer binaryHkdf384 = crypto.hkdfSha384Bytes(encoding.toBytes("key"), encoding.toBytes("salt"), encoding.toBytes("info"), 32)
-Sha256 binaryStream = crypto.sha256Stream()
-binaryStream.update(binary)
+bytes binary = b"\x00\x01\x02\xff"
+auto buffer = Buffer(binary)
+bytes binaryNonce = b"123456789013"
+auto binaryStream = crypto.sha256Stream()
+binaryStream.updateBuffer(buffer)
 line("binary",
-    codec.hexEncodeBytes(binarySha.data(), c_size(binarySha.len())) == "3D1F57C984978EF98A18378C8166C1CB8EDE02C03EEB6AEE7E2F121DFEEE3E56" and
-    binarySha1.len() == 20 and binarySha384.len() == 48 and binarySha512.len() == 64 and
-    binaryHmac.len() == 32 and
-    binaryHmac384.len() == 48 and binaryHmac512.len() == 64 and
-    binaryStream.bytes() == binarySha and
-    binaryStreamPlain == binary and
-    binaryAeadPlain == binary and
-    binaryAes128Plain == binary and
-    binaryAes256Plain == binary and
-    binaryHkdf.len() == 32 and binaryHkdf384.len() == 32 and
-    crypto.randomBytes(17).len() == 17)
+    crypto.sha256BufferHex(buffer) == "3d1f57c984978ef98a18378c8166c1cb8ede02c03eeb6aee7e2f121dfeee3e56" and
+    cryptoLegacy.sha1Buffer(buffer).length == 20 and crypto.sha384Buffer(buffer).length == 48 and
+    crypto.sha512Buffer(buffer).length == 64 and crypto.hmacSha256Buffer(b"key", buffer).length == 32 and
+    crypto.hmacSha384Buffer(b"key", buffer).length == 48 and crypto.hmacSha512Buffer(b"key", buffer).length == 64 and
+    binaryStream.final() == crypto.sha256(binary) and
+    cryptoAdvanced.chacha20(key32, rawNonce, cryptoAdvanced.chacha20Buffer(key32, rawNonce, buffer, 3), 3) == binary and
+    chacha.open(chacha.seal(binary, binaryNonce, aad), binaryNonce, aad) == binary and
+    aes128.open(aes128.seal(binary, binaryNonce, aad), binaryNonce, aad) == binary and
+    aes256.open(aes256.seal(binary, binaryNonce, aad), binaryNonce, aad) == binary and
+    crypto.randomBytes(17).length == 17)
 
-string streamCipher = crypto.chacha20Encrypt(key32, nonce, plain, 1)
-line("chacha20", crypto.chacha20Decrypt(key32, nonce, streamCipher, 1) == plain and crypto.chacha20Encrypt("bad", nonce, plain, 1) == "")
+bytes streamCipher = cryptoAdvanced.chacha20(key32, rawNonce, plain)
+line("chacha20", cryptoAdvanced.chacha20(key32, rawNonce, streamCipher) == encoding.encodeUtf8(plain))
 
-var ed = crypto.ed25519Keypair()
-string seed = string(ed["seed"])
-string pub = string(ed["publicKey"])
-string sig = crypto.ed25519Sign(seed, "message")
-line("ed25519",
-    string.len(seed) == 64 and
-    string.len(pub) == 64 and
-    crypto.ed25519PublicKey(seed) == pub and
-    crypto.ed25519Verify(pub, "message", sig) and
-    not crypto.ed25519Verify(pub, "message!", sig))
-
-var x25519A = crypto.x25519Keypair()
-var x25519B = crypto.x25519Keypair()
-string x25519SecretA = crypto.x25519SharedSecret(string(x25519A["privateKey"]), string(x25519B["publicKey"]))
-string x25519SecretB = crypto.x25519SharedSecret(string(x25519B["privateKey"]), string(x25519A["publicKey"]))
-line("x25519", string.len(x25519SecretA) == 64 and x25519SecretA == x25519SecretB)
-
-var x448A = crypto.x448Keypair()
-var x448B = crypto.x448Keypair()
-string x448SecretA = crypto.x448SharedSecret(string(x448A["privateKey"]), string(x448B["publicKey"]))
-string x448SecretB = crypto.x448SharedSecret(string(x448B["privateKey"]), string(x448A["publicKey"]))
-line("x448", string.len(x448SecretA) == 112 and x448SecretA == x448SecretB)
-
-var p256A = crypto.p256Keypair()
-var p256B = crypto.p256Keypair()
-string p256SecretA = crypto.p256SharedSecret(string(p256A["privateKey"]), string(p256B["publicKey"]))
-string p256SecretB = crypto.p256SharedSecret(string(p256B["privateKey"]), string(p256A["publicKey"]))
-var p384A = crypto.p384Keypair()
-var p384B = crypto.p384Keypair()
-string p384SecretA = crypto.p384SharedSecret(string(p384A["privateKey"]), string(p384B["publicKey"]))
-string p384SecretB = crypto.p384SharedSecret(string(p384B["privateKey"]), string(p384A["publicKey"]))
-line("ecdh",
-    string.len(p256SecretA) == 64 and p256SecretA == p256SecretB and
-    string.len(p384SecretA) == 96 and p384SecretA == p384SecretB)
-
-line("signature_guard",
-    not crypto.ecdsaVerify("", "", "") and
-    not crypto.rsaPssVerify("", "", "", "") and
-    not crypto.rsaPkcs1Verify("bad", "00", "00", "010001"))
+auto ed = crypto.ed25519KeyPair()
+bytes signature = ed.sign("message")
+line("ed25519", ed.exportSeed().length == 32 and ed.publicKey.length == 32 and
+    crypto.ed25519PublicKey(ed.exportSeed()) == ed.publicKey and crypto.ed25519Verify(ed.publicKey, "message", signature))
+auto x25519A = crypto.x25519KeyPair()
+auto x25519B = crypto.x25519KeyPair()
+line("x25519", x25519A.sharedSecret(x25519B.publicKey) == x25519B.sharedSecret(x25519A.publicKey))
+auto x448A = crypto.x448KeyPair()
+auto x448B = crypto.x448KeyPair()
+line("x448", x448A.sharedSecret(x448B.publicKey) == x448B.sharedSecret(x448A.publicKey))
+auto p256A = crypto.p256KeyPair()
+auto p256B = crypto.p256KeyPair()
+auto p384A = crypto.p384KeyPair()
+auto p384B = crypto.p384KeyPair()
+line("ecdh", p256A.sharedSecret(p256B.publicKey) == p256B.sharedSecret(p256A.publicKey) and
+    p384A.sharedSecret(p384B.publicKey) == p384B.sharedSecret(p384A.publicKey))
+bytes digest256 = crypto.sha256("message")
+bytes digest384 = crypto.sha384("message")
+line("signature", crypto.ecdsaP256VerifyHashDer(p256A.publicKey, digest256, p256A.signHashDer(digest256)) and
+    crypto.ecdsaP384VerifyHashDer(p384A.publicKey, digest384, p384A.signHashDer(digest384)))

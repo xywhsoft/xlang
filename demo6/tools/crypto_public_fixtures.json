@@ -1,0 +1,12 @@
+{
+  "Cases": [
+    {"Name":"stdlib_crypto","Source":"test/cases/stdlib_crypto.xl","Negative":false},
+    {"Name":"stdlib_crypto_chacha20_values","Source":"test/cases/stdlib_crypto_chacha20_values.xl","Negative":false},
+    {"Name":"stdlib_crypto_chacha20_only","Source":"test/cases/stdlib_crypto_chacha20_only.xl","Negative":false},
+    {"Name":"stdlib_crypto_sha256_only","Source":"test/cases/stdlib_crypto_sha256_only.xl","Negative":false},
+    {"Name":"example_stdlib_crypto","Source":"release/examples/stdlib_crypto.xl","Negative":false},
+    {"Name":"bad_stdlib_crypto_chacha20_legacy","Source":"test/cases/bad_stdlib_crypto_chacha20_legacy.xl","Negative":true},
+    {"Name":"bad_stdlib_crypto_private_handle","Source":"test/cases/bad_stdlib_crypto_private_handle.xl","Negative":true}
+  ],
+  "Support": []
+}

@@ -1,8 +1,9 @@
-"""Original public network fixtures on ordinary, source-free CLI/DLL/SO products.
+"""Manifest-selected public fixtures on ordinary, source-free CLI/DLL/SO products.
 
 Only numeric address operations, local adapter metadata and self-owned literal
 loopback. No public DNS, scans, attack simulation or security campaigns.
-This is a network migration product gate, not complete five-group acceptance.
+Network cases are the default; explicit manifests also select TLS or ordinary
+crypto fixtures. This is a migration product gate, not five-group acceptance.
 """
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -15,7 +16,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('root','build-report','out'):parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--jobs',type=int,default=2)
-    parser.add_argument('--manifest',type=Path,help='Explicit ordinary network/TLS cases and .xl support; default network batch is unchanged')
+    parser.add_argument('--manifest',type=Path,help='Explicit ordinary fixtures and .xl support; default network batch is unchanged')
     args=parser.parse_args();root,out=args.root.resolve(),args.out.resolve()
     assert not out.exists() and args.jobs>0
     build=json.loads(args.build_report.read_text(encoding='utf-8-sig'))
