@@ -51,6 +51,8 @@ try {
         '-Irelease/extlibs/_libzip/third_party/libzip/lib',
         '-DXRT_MODULE_FILE_TEMP',
         'release/extlibs/_libzip/platform/zip_source_file_xrt.c')
+    Run 'Python/C ZIP interop' 'python' @(
+        'release/extlibs/zip/test/interop.py') 'zip Python/C interop: PASS'
     Run 'XLang boundary' $xl @('run', 'release/extlibs/zip/test/boundaries.xl')
     RunNegative 'Native member access' 'release/extlibs/zip/test/private_native_negative.xl' 'addNative'
     Run 'XLang example' $xl @('run', 'release/examples/extlibs/zip.xl') 'zip C/XL example: PASS'

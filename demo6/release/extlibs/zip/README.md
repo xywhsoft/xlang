@@ -1,5 +1,14 @@
 # zip
 
+2026-10-25 独立格式互通：新增 `test/interop.c` / `test/interop.py`，
+由 Python 标准库 `zipfile` 读取 C 创建的归档，再由 C 读取 Python 创建的
+归档。目录、UTF-8 文件名、DEFLATE/STORED、二进制正文及 CRC 均通过；
+篡改 STORED 正文后 C 端拒绝读取。`python -O` 仍执行全部检查。
+Windows 默认门禁把这项 C 侧验证放在 XLang 阶段之前。当前新构建的
+`xl.exe` 导入扩展包仍被共享 TCC VFS 头路径阻断，本次不据独立互通
+结果签收 XLang JIT/AOT；见
+`demo6/dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。
+
 2026-10-25：当前 Windows 发布版 `xl.exe` 的默认 `test/check.ps1`
 通过 C/XLang 边界、私有成员拒绝、双语范例及核心、边界、范例 AOT。
 原生布尔失败由包内包装层转换为 `ArchiveError`，内存故障仍为
@@ -50,6 +59,8 @@ C 配置使用 `xrtZipOptionsInit` 初始化。ZIP 实际使用输入、输出�
 
 验证：
 
+- `python release/extlibs/zip/test/interop.py` 独立验证 C/Python 双向 ZIP
+  线格式。只需 Python 标准库和现有 `xl.exe` 的 C 运行能力；测试不写文件。
 - `powershell -ExecutionPolicy Bypass -File release/extlibs/zip/test/check.ps1 -SkipAot`
   验证包侧 C/XLang 和双语范例固定输出；去掉 `-SkipAot` 后依次
   构建/运行核心、边界及带输出的 ZIP 范例 AOT，并核对输出。
