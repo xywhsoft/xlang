@@ -1407,3 +1407,16 @@ frontend_cancel.c/h 是不依赖协议、GUI、Windows 或 compiler AST 布局�
 普通输入保留原语言判断、全部语义注解及 typed IR 验证。取消是基础设施结果，不把半分析事实伪装成用户代码诊断。新 166 项真实阶段断言、完整 fresh JSON／IR、回调 true 一次、验证 arena 清理、嵌套／四线程和保留快照通过。全构建 135 对象／59 夹具／60 PE／61 outputs／63 AST17 消费者／53 核心归档成员；签名 38749，worker fault 12995 和 1008 个实际取消门；34 套协议 919 场景及 18 IDE 通过。最终 v2 仅修正新协议夹具的 shutdown 回复顺序；已完整执行的 v1 原生输入／二进制与 v2 相等，复用证据明确保存。
 
 576 热／288 编辑／48 冷 stdio、320 IDE 帧和 36 native 过期任务到新模型的原始对照见开发记录。native 定时包含旧分析退役和真实新文本模型，保留完成后才取消的样本；不是 stdio／GUI 取消时延。解析、导入、个别 helper、最终注解和模型销毁仍不可抢占，没有 wall-time 上限。真正模块／语义 IR 增量与完整长期目标继续；外部 C/XRT、未来 opaque xlc.dll、无 DAP，发布未改。
+
+
+## M7a2b23a：私有语义键的非重叠写入（0.56）
+
+xlsSemKeyBytes 只接收编码数字的局部数组、AST 文字／文档／显式长度字面量，或另一个独立 state buffer；没有自身子视图输入。先检查当前 Size 与原 8 MiB 上限，零长度不分配，容量不足时调用原 xrtStrBufReserve，然后复制、更新 Size 与终止符。继续由 XRT 管理容量、分配失败和释放，不增加容器、分配器、路径／类型规则或公开 ABI。字节格式与键比较保持；模块状态、语义／源码／坐标围栏、查询中立性、最终注解、完整 typed IR 和独立验证均执行。既有 64 MiB memo 逻辑预算与其他预算不变，均非模型或 RSS 上限。
+
+完整原生及 wire／IDE 回归见开发记录。额外诊断材料从真实模块两次接受的检查捕获 196 个键的前缀、512562 次真实追加和完整结果，逐键与原库追加路径对照字节、长度、终止符和容量；重放两版精确函数体，不在产品添加测试导出、计时器或诊断分支。捕获器与重放器仅是外部实验材料。
+
+本轮未采用 raw-function IR memo：它拦截原 AST→IR 构造器，在所有原模块 pass 和完整 verifier 之前捕获不可变片段；比较完整非坐标 AST、精确全类型池前缀、实际 symbol 读写依赖，恢复时重新绑定坐标及重定位 node／child／symbol。326 项真实断言覆盖复杂函数、含 NUL 字符串、相同类型数而不同内容、零／非零 symbol 前缀、取消重试及四线程；另通过 3576 IR scan、1064 semantic memo 回归。然而身份序列化和片段解码成本超过原构造，两个规模、两轮都更慢，代码已从工作树移除，不能以复用节点数宣称增量性能达标。
+
+下一次实验应首先审计已证明复用的 semantic unit owner 能否提供低成本身份，并独立证明捕获后所有变更：最终 type／ABI、region／ownership／exit 以及其他函数检查／特殊化的跨函数影响；必须持有 owner 防止地址复用，不能只比较指针。还需保持 type-pool、symbol effects、arena rebasing 与所有负向失效守卫。全局 pass 和 verifier 的依赖／ABI 契约、真正持久模块及语义 IR 仍未完成；不以本轮字节追加优化替代这些工作。
+
+外部 executable 与 compiler XRT 保持独立，未来 opaque xlc.dll，无 DAP／运行态补全。完整 goal active，发布目录未更新。

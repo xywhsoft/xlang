@@ -107,7 +107,16 @@ static _Thread_local xls_sem_build* xlsActiveSemBuild;
 static int xlsSemCheckFuncOriginal(XL6_SemContext*,XL6_AstNode*);
 
 static int xlsSemKeyBytes(xstrbuf* key,const void* data,size_t size)
-{ return size<=XLS_SEM_KEY_BYTES-key->Size && xrtStrBufAppend(key,(xstrview){data,size}); }
+{
+    /* Every source is a scalar stack buffer,AST-owned storage or independent state buffer;never a
+     * view into this private key. Keep XRT allocation/growth but avoid its
+     * general self-append alias checks for each tiny encoded field. */
+    if(key->Size>XLS_SEM_KEY_BYTES || size>XLS_SEM_KEY_BYTES-key->Size)return 0;
+    if(!size)return 1;
+    size_t end=key->Size+size;
+    if(end>key->Capacity && !xrtStrBufReserve(key,end))return 0;
+    memcpy(key->Data+key->Size,data,size);key->Size=end;key->Data[end]=0;return 1;
+}
 static int xlsSemKeyNumber(xstrbuf* key,uint64_t value)
 {
     unsigned char bytes[10]; size_t count=0;
