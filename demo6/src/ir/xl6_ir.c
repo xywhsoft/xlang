@@ -13667,6 +13667,17 @@ static int xl6IrBuildDynamicMethodEligible(
     if (name == NULL) return 0;
     declaringClass = xl6IrBuildEnclosingClass(module, declaration);
     if (declaringClass == layout->declaration) return 1;
+    /* Completeness visits every class/declaration pair. Establish membership
+     * in this ancestry before scanning declarations for hidden overloads;
+     * an unrelated class cannot contribute an inherited method. Keep the
+     * declaration identity (not a generic type-name approximation). */
+    while (current != NULL && depth++ <= module->classLayoutCount) {
+        if (current->declaration == declaringClass) break;
+        current = xl6IrBuildClassLayoutByType(module, current->baseType);
+    }
+    if (current == NULL || current->declaration != declaringClass) return 0;
+    current = layout;
+    depth = 0;
     /* Typed registry rows select inherited members for each concrete tag.
      * The emitter never traverses source ancestry or retries a base member. */
     while (current != NULL && depth++ <= module->classLayoutCount) {
