@@ -38,4 +38,12 @@ XL6_TEXT_API int64_t xl6TlsSessionKeyUpdateV1(void*,bool);
 XL6_TEXT_API XL6_ProductBoolI64I64V1 xl6TlsSessionPeerAlertV1(void*);
 XL6_TEXT_API xvalue* xl6TlsSessionServerNameV1(void*);
 XL6_TEXT_API uint64_t xl6TlsSessionServerCookieV1(void*);
+XL6_TEXT_API void xl6TlsTicketResultDestroyV1(void*);
+XL6_TEXT_API int64_t xl6TlsTicketResultStatusV1(const void*);
+XL6_TEXT_API void* xl6TlsTicketResultResumeV1(const void*);
+XL6_TEXT_API int64_t xl6TlsSessionTicketCountV1(void*);
+XL6_TEXT_API uint64_t xl6TlsSessionDroppedTicketsV1(void*);
+XL6_TEXT_API void xl6TlsSessionTryTakeTicketV1(XL6_NativeClassResultContextV1,void*,struct xvalue**);
+XL6_TEXT_API void xl6TlsSessionIssueNewTicketV1(XL6_NativeClassResultContextV1,void*,struct xvalue**);
+XL6_TEXT_API void xl6TlsSessionIssueTicketV1(XL6_NativeClassResultContextV1,void*,const struct xvalue*,int64_t,int64_t,struct xvalue**);
 #endif

@@ -20,6 +20,7 @@ void* xl6TlsSessionClientCreateV1(void* raw,xstrview serverName,int64_t serverSi
     xtlsclientconfig config;xrtTlsClientConfigInit(&config);config.Context=source->parameters;
     config.Verifier=source->verifier.value;config.ServerName=serverName;config.VerifyName=verifyName;
     config.Resume=source->resume.value;
+    config.ResumeLimit=source->ticketCapacity;config.ResumeOnly=source->resumeRequired;
     if(source->protocols){config.Protocols=source->protocols->views;config.ProtocolCount=source->protocols->count;}
     return xl6TlsSessionTakeInternalV1(xrtTlsClientCreate(&config,NULL),&clientOperations);
 }

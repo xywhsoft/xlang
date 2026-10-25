@@ -31,10 +31,11 @@ static bool callback(void* raw,xvalue** output,xvalue* argument)
     if(state->mode==5){*output=xrtValueInt(12);return *output!=NULL;}
     *output=xrtValueRetain(argument);return true;
 }
-static XL6_Closure* target(const XL6_CodeOwner* owner,State* state)
+static XL6_Closure* target(const XL6_CodeOwner* owner,State* state,bool metadata)
 {
     Environment* env=xrtMalloc(sizeof(*env));assert(env);env->state=state;
-    XL6_Closure* result=xl6ClosureRuntimeV2Get()->Create(owner,(void(*)(void))callback,NULL,env,&layout,names,NULL,1);
+    XL6_Closure* result=xl6ClosureRuntimeV2Get()->Create(owner,(void(*)(void))callback,NULL,env,&layout,
+        metadata?names:NULL,NULL,metadata?1:0);
     assert(result);return result;
 }
 static XL6_NativeClassCallbackContextV1 context(const XL6_CodeOwner* owner,const char* argument,const char* result)
@@ -54,11 +55,11 @@ static void balanced(const xmemdebugsnapshot* before)
     assert(after.AllocCount-before->AllocCount==after.FreeCount-before->FreeCount);
     assert(before->InvalidFreeCount==after.InvalidFreeCount&&before->DoubleFreeCount==after.DoubleFreeCount);
 }
-static void retainedAfterClose(unsigned mode)
+static void retainedAfterClose(unsigned mode,bool metadata)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
     Owner a={0},b={0};XL6_CodeOwner ownerA={sizeof(ownerA),&a,acquire,release},ownerB={sizeof(ownerB),&b,acquire,release};
-    State state={0};state.mode=mode;XL6_Closure* original=target(&ownerB,&state);
+    State state={0};state.mode=mode;XL6_Closure* original=target(&ownerB,&state,metadata);
     char argumentName[]="payload",resultName[]="payload";
     XL6_Closure* driver=xl6NativeClassCallbackCreateV1(context(&ownerA,argumentName,resultName),original);assert(driver);
     memset(argumentName,'x',7);memset(resultName,'y',7);
@@ -85,7 +86,7 @@ static void prefix(bool invoking,size_t point)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
     Owner a={0},b={0};XL6_CodeOwner ownerA={sizeof(ownerA),&a,acquire,release},ownerB={sizeof(ownerB),&b,acquire,release};
-    State state={0};XL6_Closure* original=target(&ownerB,&state),*driver=NULL;
+    State state={0};XL6_Closure* original=target(&ownerB,&state,true),*driver=NULL;
     XL6_NativeClassCallbackContextV1 recipe=context(&ownerA,"payload","payload");
     void* raw=NULL;xvalue* output=NULL;bool ok=false;
     if(invoking){driver=xl6NativeClassCallbackCreateV1(recipe,original);assert(driver);raw=request();assert(raw);}
@@ -103,8 +104,8 @@ static void prefix(bool invoking,size_t point)
 int main(void)
 {
     assert(xrtMemDebugEnable(true));xrtSetErrorKind(XERR_STATE);xrtClearError();
-    for(unsigned mode=0;mode<6;++mode)retainedAfterClose(mode);
+    for(unsigned metadata=0;metadata<2;++metadata)for(unsigned mode=0;mode<6;++mode)retainedAfterClose(mode,metadata!=0);
     for(unsigned operation=0;operation<2;++operation)for(size_t point=0;point<128;++point)prefix(operation!=0,point);
-    puts("native class callback: independent Close leases, owned arguments, first failures, 256 OOM prefixes: ok");
+    puts("native class callback: optional keyword metadata, independent Close leases, owned arguments, first failures, 256 OOM prefixes: ok");
     return 0;
 }

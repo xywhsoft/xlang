@@ -1761,7 +1761,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root,"TlsConnectionInfo")||xl6StdlibNodeUsesTypeName(root,"TlsServerStats")||
         xl6StdlibNodeUsesTypeName(root,"TlsStreamState")||xl6StdlibNodeUsesTypeName(root,"TlsListenerState");
     needsTlsManagedSession=needsTlsMetadata||
-        xl6StdlibNodeUsesTypeName(root,"TlsSession")||
+        xl6StdlibNodeUsesTypeName(root,"TlsSession")||xl6StdlibNodeUsesTypeName(root,"TlsTicketResult")||
         xl6StdlibNodeUsesTypeName(root,"TlsRole")||xl6StdlibNodeUsesTypeName(root,"TlsState")||
         xl6StdlibNodeUsesTypeName(root,"TlsWait")||xl6StdlibNodeUsesTypeName(root,"TlsResult");
     /* Both managed role constructors share the session declaration. Close
@@ -1994,7 +1994,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
     needsTlsClientContext=needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsClientContext");
     needsTlsServerContext=needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsServerContext");
-    needsTlsResume=needsTlsClientContext||needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsResume");
+    needsTlsResume=needsTlsClientContext||needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsResume")||xl6StdlibNodeUsesTypeName(root,"TlsTicketResult");
     needsTlsResumeRequest=needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsResumeRequest");
     needsTlsSelector=needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsServerRequest")||xl6StdlibNodeUsesTypeName(root,"TlsServerChoice");
     needsTlsIdentity = needsTlsSelector || xl6StdlibNodeUsesTypeName(root,"TlsIdentity") || xl6StdlibNodeUsesTypeName(root,"TlsIdentityKind");
@@ -2392,6 +2392,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if(needsTlsClientContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsClientContextSource);
     if(needsTlsResume)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsResumeSource);
     if(needsTlsResumeRequest)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsResumeRequestSource);
+    if(needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsTicketResult"))
+        xl6StdlibBuilderAppend(&builder,xl6StdlibTlsTicketResultSource);
     if(needsTlsSelector)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsSelectorSource);
     if(needsTlsServerContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsServerContextSource);
     if(needsTlsManagedSession)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsManagedSessionClassSource);

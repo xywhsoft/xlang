@@ -110,3 +110,78 @@ context.resume as TlsResume?
 后续已补齐 `xrtTlsStreamFlush()` 原生前置：可在所属 Worker 上显式转交排队的控制记录，票据后无需空应用写入；AGAIN 保留密文等待普通传输驱动，不能重复签发。两端模块化/单头 GCC O0/O2/TCC 共 418 步、80 次执行通过，含四轮票据轮换恢复和双端 KeyUpdate 后数据往返。定点 backport 仅涉及两个 Stream 段，保留时间 ABI、对象布局和独立拥有合同。详见 [TLS 传输标准库](TLS传输标准库.md)。默认语言票据收发、传输 KeyUpdate 及发布级联合验收仍未完成。
 
 该原生前置之后，默认 `TlsStream.keyUpdate()/keyUpdateAsync()` 已完成语言接入和两端 58 步实际源码验收。操作在连接所属 Worker 执行，保留独立拥有/checked 清理；异步结果为精确的 `future<TlsResult>`，并支持既有 `task.all`、动态装箱路径。使用通用 IR 枚举 Future 合同，没有 Cgen 专用实现，也不要求恢复票据模块。详见上述传输文档。票据发送/弹出及发布级联合验收仍未完成。
+
+## 会话票据：拥有式结果与客户端缓存配置
+
+本批新增公开面如下（源码联合验收结果见本节末尾）：
+
+```xlang
+// 只读、仅由运行时产生；无默认或裸指针构造。
+TlsTicketResult.status as TlsResult
+TlsTicketResult.resume as TlsResume?
+
+// 仅用于客户端 Session。
+client.ticketCount as int
+client.droppedTickets as uint64
+client.tryTakeTicket() as TlsTicketResult
+
+// 仅用于服务端 Session。
+server.issueTicket() as TlsTicketResult
+server.issueTicket(bytes ticket, int lifetimeSeconds, int size = -1) as TlsTicketResult
+
+clientContext.withRequiredResume(TlsResume resume) as TlsClientContext
+clientContext.withTicketCapacity(int capacity) as TlsClientContext
+clientContext.resumeRequired as bool
+clientContext.ticketCapacity as int
+```
+
+`tryTakeTicket()` 非阻塞地取出当前队列的一张凭据；空队列返回
+`wouldBlock` 与 null，成功返回 `ok` 与独立拥有的 `TlsResume`。它不等待
+未来票据，也不暗中驱动握手。结果类、原生记录和句柄字段全部在原生弹出前
+构造完成；之后仅转交原生引用，避免语言结果分配失败导致票据从队列丢失。
+静态调用与动态调用共享同一输出槽合同，没有“最后一次结果”缓存。
+
+服务端省略参数时使用 XRT 的安全随机票据与默认生命周期；显式票据接收
+完整 bytes（含 NUL），`size = -1` 使用全部字节，超长截断到实际长度，
+小于 -1 报错。`lifetimeSeconds` 转换为 uint32 前先检查范围；其他合法性
+继续由 XRT 决定。成功仅表示控制记录已进入会话密文队列；内存 Session
+调用者仍需通过 `takeCipher()/feed()/drive()` 交付，不伪装成对端已收到。
+返回凭据独立拥有，可由应用保留到服务端缓存中。
+
+缓存默认容量为 4，语言层显式允许 0—64。满载时由 XRT 淘汰最旧票据并
+增加丢弃计数；容量 0 禁用保存而非忽略接收和统计。配置不可变，
+`withParameters()/withProtocols()` 保留容量与强制恢复状态；
+`withoutResume()/withVerifier()` 清除强制恢复状态，保留缓存容量。
+普通 `withResume()` 允许原生的正常完整握手回退，`withRequiredResume()`
+则设置原生 ResumeOnly，不把未选择 PSK 静默当作强制恢复成功。
+Session、Stream 与 Dial 的创建都传递同一组原生配置。
+只读取这些配置属性不强行引入恢复实现；设置缓存容量或绑定恢复凭据才
+显式选择客户端恢复模块。仅使用结果类型／属性也不引入 Session 票据
+生产器或客户端／服务端恢复模块。
+
+本批还修正通用类型化回调的注册检查：闭包的可选参数名／默认值元数据
+数量不等于 invoke 参数个数。对象方法经精确类型转换后的回调没有这份
+元数据，但其单参数及可空结果 ABI 已由 XLIR 的 sealed callback plan
+验证；运行时仍验证真实闭包拥有者并持有真实 CodeLease，不调用 erased
+入口。错误参数数目、请求类型和返回类型继续在编译期拒绝。
+
+Session 票据不是 Stream 票据接口，不能将本节视为传输票据或最终发布验收
+已经完成；后续传输操作仍须在实际连接所属 Worker 上执行。
+
+本批 Windows/Linux 分别从固定完整源码构建实际编译器（1263/1262 个
+编译单元），共复核 124 项检查及 2280 个有界分配失败前缀：typed/lowered
+IR、严格 GCC O0/O2、JIT/模块/独立 AOT、11 个精确目标与 42 项合同变异
+拒绝、八类错误声明、未使用能力裁剪、全量拥有目录和通用回调 Close。
+真实静态／动态导出在弹出失败时保留队列票据；独立结果与凭据跨模块
+关闭后仍保持有效，最后引用释放后 checked 退役完成，内存快照平衡。
+
+首轮暴露对象方法类型化回调被可选元数据误拒绝，修正生产实现后重新
+冻结并完整构建两端源码。随后宿主用例误用普通 `xrtValueArrayGet()` 读取
+typed array；仅将测试改为现行拥有式 `xl6ArrayValueReadCopyV1()` 并对称
+释放引用，未改变生产实现或降低断言。保留原控制文件与失败记录，各端
+复用 56 项输入未变的通过项，重跑宿主 O0/O2 的六项编译／链接／执行，
+最后逐项重验完整源码、工具、对象、控制文件、日志与产物哈希。
+记录见 `F:/xlang-validation/five-groups-20261025/p6-tls-session-tickets/next.json`。
+没有外部通信、安全专项或畸形密码材料测试；未修改独立 XRT、时间 ABI
+或 Cgen。这是完整工作区的源码专项验收，不是 shipping DLL/VFS 或跨组
+发布联合验收。

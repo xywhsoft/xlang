@@ -115,6 +115,11 @@
     src\runtime\xl6_tls_resume_request.c
     src\runtime\xl6_tls_resume_lookup.c
     src\runtime\xl6_tls_client_context_resume.c
+    src\runtime\xl6_tls_ticket_result.c
+    src\runtime\xl6_tls_ticket_result_prepare.c
+    src\runtime\xl6_ownership_domain_tls_ticket_result.c
+    src\runtime\xl6_tls_session_ticket_client.c
+    src\runtime\xl6_tls_session_ticket_server.c
     src\runtime\xl6_ownership_domain_tls_resume_request.c
     src\runtime\xl6_ownership_domain_tls_resume.c
     src\runtime\xl6_tls_selector.c
