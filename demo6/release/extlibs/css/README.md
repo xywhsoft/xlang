@@ -42,17 +42,21 @@ C ABI 一致；C 输出计数可使用 `<inttypes.h>` 的 `PRId64`。
 
 包级验证：
 
+- 2026-10-25：当前 Linux 发布版的 `test/check.sh` 通过严格 C
+  ASan/UBSan、线程、XLang JIT，以及核心、边界、分配故障和公开范例的
+  四条独立 EXE AOT 路径；公开范例 AOT 与 C 输出逐字节一致。
+  这是包级验收，不等于完整 CSS 浏览器语义或整个 xlang 发布签收。
 - 2026-10-25：六个 C 文本入口不再将 `NULL` CSS 正文视作合法空样式表；
   它们按各自失败值返回并报告 `XERR_ARGUMENT`，真正的 `""` 仍有效。
   C 负例逐入口覆盖错误类别和失败后恢复。Windows 默认门禁的严格
   C/ABI、线程、XLang 与核心/边界/范例 AOT 全通过；Linux C
-  ASan/UBSan、线程、XLang 与双语对照通过。Linux 独立 AOT 仍待新版
-  发布构建复验。
+  ASan/UBSan、线程、XLang 与双语对照通过。当时尚未复验 Linux AOT，
+  现由上项门禁补齐。
 - 2026-10-25：NUL 校验原先返回同一份 `string`，生成代码为返回值
   复制整份 CSS/选择器/属性输入；现改成无返回值校验，原参数直接交给
   C 查询。公开函数的校验顺序、异常与结果不变。Windows 默认门禁及
-  Linux C ASan/UBSan、线程、XLang JIT 与双语门禁已通过；独立 Linux
-  AOT 待新发布版复验。
+  Linux C ASan/UBSan、线程、XLang JIT 与双语门禁已通过；该时点的
+  Linux AOT 空白已由上项门禁补齐。
 - 2026-10-25：C/XLang 红例确认扫描器原先分别计数 `()` 与 `[]`，
   因而接受 `([)]` 交叉闭合；现改用顺序栈。选择器、声明值、
   后续坏规则及 64/65 层临界值均有回归。当前 Windows 默认门禁的

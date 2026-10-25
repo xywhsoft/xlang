@@ -39,4 +39,13 @@ fi
     timeout 90s ./xl run examples/extlibs/css.xl > "$work/example_xl.txt"
 )
 diff -u "$work/example_c.txt" "$work/example_xl.txt"
-printf 'css Linux C ASan/UBSan and XLang parity gate: PASS\n'
+for name in aot_core boundaries allocations; do
+    timeout 120s release/xl build "release/extlibs/css/test/$name.xl" \
+        -o "$work/css_$name"
+    timeout 90s "$work/css_$name"
+done
+timeout 120s release/xl build release/examples/extlibs/css.xl \
+    -o "$work/css_example_xl"
+timeout 45s "$work/css_example_xl" > "$work/example_aot.txt"
+diff -u "$work/example_c.txt" "$work/example_aot.txt"
+printf 'css Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'
