@@ -61,9 +61,26 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'pinyin example AOT failed' }
         Confirm-Output 'XLang example AOT' $aotLines
         Write-Output 'pinyin example AOT: PASS'
+
+        foreach ($name in @('boundaries', 'allocations')) {
+            $source = "release/extlibs/pinyin/test/$name.xl"
+            $output = Join-Path $work "pinyin_$name.exe"
+            & $xl build $source -o $output
+            if ($LASTEXITCODE -ne 0) { throw "pinyin $name AOT build failed" }
+            & $output
+            if ($LASTEXITCODE -ne 0) { throw "pinyin $name AOT failed" }
+        }
+
+        $cExample = Join-Path $work 'pinyin_c_example.exe'
+        & $xl build release/examples/extlibs/pinyin_c.c -o $cExample
+        if ($LASTEXITCODE -ne 0) { throw 'pinyin C example AOT build failed' }
+        $cAotLines = @(& $cExample)
+        if ($LASTEXITCODE -ne 0) { throw 'pinyin C example AOT failed' }
+        Confirm-Output 'C example AOT' $cAotLines
     }
 
-    Write-Output 'pinyin Windows C/XLang gate: PASS'
+    Write-Output $(if ($SkipAot) { 'pinyin Windows C/XLang quick gate: PASS (AOT skipped)' }
+        else { 'pinyin Windows C/XLang/AOT gate: PASS' })
 } finally {
     Pop-Location
     $safeWork = [IO.Path]::GetFullPath($work)

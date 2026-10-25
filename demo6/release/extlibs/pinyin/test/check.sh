@@ -36,5 +36,25 @@ timeout 90s release/xl run test/cases/extlib_pinyin.xl
 timeout 90s release/xl run release/extlibs/pinyin/test/boundaries.xl
 timeout 90s release/xl run release/extlibs/pinyin/test/allocations.xl
 timeout 90s release/xl run release/examples/extlibs/pinyin.xl > "$work/pinyin_xl.txt"
-diff -u <(tr -d '\r' < "$work/pinyin_c.txt") "$work/pinyin_xl.txt"
+timeout 90s release/xl run release/examples/extlibs/pinyin_c.c \
+    > "$work/pinyin_direct_c.txt"
+diff -u release/extlibs/pinyin/test/pinyin.expected.txt "$work/pinyin_c.txt"
+diff -u "$work/pinyin_c.txt" "$work/pinyin_xl.txt"
+diff -u "$work/pinyin_c.txt" "$work/pinyin_direct_c.txt"
+timeout 120s release/xl build test/cases/extlib_pinyin.xl \
+    -o "$work/pinyin_core_aot"
+timeout 45s "$work/pinyin_core_aot"
+for name in boundaries allocations; do
+    timeout 120s release/xl build "release/extlibs/pinyin/test/$name.xl" \
+        -o "$work/pinyin_${name}_aot"
+    timeout 45s "$work/pinyin_${name}_aot"
+done
+timeout 120s release/xl build release/examples/extlibs/pinyin.xl \
+    -o "$work/pinyin_xl_example_aot"
+timeout 45s "$work/pinyin_xl_example_aot" > "$work/pinyin_xl_aot.txt"
+diff -u "$work/pinyin_c.txt" "$work/pinyin_xl_aot.txt"
+timeout 120s release/xl build release/examples/extlibs/pinyin_c.c \
+    -o "$work/pinyin_c_example_aot"
+timeout 45s "$work/pinyin_c_example_aot" > "$work/pinyin_c_aot.txt"
+diff -u "$work/pinyin_c.txt" "$work/pinyin_c_aot.txt"
 printf 'pinyin Linux C ASan/UBSan and XLang parity gate: PASS\n'

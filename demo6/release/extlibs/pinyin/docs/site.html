@@ -29,7 +29,7 @@
     <pre><code>import pinyin
 println(pinyin.convert("中国"))   // zhong guo
 println(pinyin.initials("中国"))  // zg</code></pre>
-    <p>输入须为合法 UTF-8，不能包含 NUL。C 函数返回的独立字符串用 <code>xrtFree</code> 释放。Windows 可运行 <code>release/extlibs/pinyin/test/check.ps1 -SkipAot</code>：C/XLang 边界和三条范例路径分别对照固定中文输出；默认模式还验证核心与带输出范例 AOT。当前核心通过，范例仍缺共享 <code>xl6ValueDataSnapshotV1</code>，不能签收完整发布。Linux ASan/UBSan 由包内 <code>test/check.sh</code> 验证；本包只提供固定小字表。</p>
+    <p>输入须为合法 UTF-8，不能包含 NUL。C 函数返回的独立字符串用 <code>xrtFree</code> 释放。当前 Windows/Linux 默认门禁均通过严格 C、Linux ASan/UBSan、语言边界与分配故障，以及中央/边界/分配/公开范例独立 EXE；C 单文件范例 AOT 与 GCC、TCC、XLang 的固定中文输出一致。旧共享链接缺符号不再复现。本包只提供 395 字固定小字表，不做多音字消歧或分词。</p>
   </section>
 </main>
 </body>
