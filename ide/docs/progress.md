@@ -2792,3 +2792,20 @@ P95 回退保留：coldSummary:96/textDocument/signatureHelp P95 37.855→39.528
 P95 回退保留：dependency-editSequenceSummary:96 P95 147.793→155.319 ms；topologySummary:512/xlang/check P95 158.890→159.158 ms；editSummary:96/xlang/check P95 87.359→94.455 ms；editSummary:96/textDocument/completion P95 30.652→34.425 ms；coldSummary:512/xlang/check P95 720.999→728.416 ms；coldSummary:512/textDocument/completion P95 226.683→229.010 ms；hotSummary:96/textDocument/completion P95 2.457→2.508 ms；hotSummary:512/xlang/check P95 89.272→89.749 ms；GUI 96/1 P95 93.567→94.456 ms；GUI 96/3 P95 10.678→11.009 ms；GUI 512/1 P95 264.610→276.536 ms；GUI 512/3 P95 13.670→13.720 ms。
 
 证据 build/lsp-next-20261022/m7a2b33a-result.json，外部 m7a2b33a-ade11ce1／component-v1。外部 C/compiler XRT、未来 opaque xlc.dll，无 DAP／运行态补全。发布 5,241 文件保持；继续模块 typed model／稳定全局实体、剩余适用 LSP／静态分析／IDE、模型总预算、100k／并行／soak／最终发行。整体 goal active，完整性能与功能目标尚未验收。
+
+
+## M7a2b34a：跨检查的声明身份与当前原生绑定（0.67）
+
+0.67 增加 compiler XRT 持续声明注册表及 checked typed index 的不可变稀疏映射。完整项目／配置 context、同一模块 store 的精确逻辑模块 ID、词法所有者，以及可验证的声明头／树和 canonical type 构成二进制完整键；context 和键都以完整内容判等，哈希仅定位候选。当前引用通过编译器实际 SymbolId／TypeId 翻译，不按拼写重新绑定。原编译器 ID、解析／预声明／检查／IR、原输入证明和发布门均保持。
+
+最终 component-v1 完整构建 146 对象／65 原生夹具／66 PE／67 outputs／71 AST17 消费者／58 core members；342 实际依赖、冻结 1,100 输入。40 注册表检查覆盖强制 context 哈希碰撞（独立诊断编译副本）、完整含 NUL 键、上下文／模块隔离、小额度和四并发调用者；15,734 绑定检查覆盖三个 CHECK 工作者、真实 SymbolId 移动、导入次序／SourceId 变化、重载实际调用、类／泛型／方法／类类型参数、签名 int→string 后调用重载切换及恢复、局部遮蔽、配置隔离和脱离原所有者后的四读者。原索引存储 12,650 检查保留 26 独立分配失败恢复门并增加对称歧义证明。
+
+512 helper 三方法总序列 P50／P95／P99：无关输入开关 109.352 / 270.744 / 311.038→107.769 / 258.577 / 300.804 ms；实际依赖代码改动 1085.160 / 1221.258 / 1437.020→1109.451 / 1343.258 / 1491.956 ms。此阶段增加声明身份基础设施，不宣称减少语义分析工作。
+
+正常 0.66／0.67 ABBA，96／512 helper、真实 2..64 overlay 开关、12 次实际依赖代码编辑、12 次精确热查询；保留 288 topology／288 编辑／288 热／24 冷方法、192 三方法序列、32 CPU／内存组、320 实际 GUI 帧及 8 冷 GUI。GUI 使用同一实际单文件 signature frame 控制夹具，不代表多模块 UI／scanout／100k／soak。计时期间没有自己的构建、QA 或重哈希，不宣称独占机器。
+
+第一轮 entity-performance-v1 在候选语义索引扩容时报分配失败，随后独立 PowerShell 启动也出现 System.OutOfMemoryException；故保留原失败数据，不纳入分位数。相同冻结产物／工作负载／断言在系统提交内存余量恢复后执行 v2，增加开始前资源检查和每次请求计时结束后的系统内存观察。v2 全部通过，观察到的系统提交内存最小余量 2768.566 MiB。没有据此证明全模型预算或内存压力可靠性完成；也不能单凭系统同时 OOM 排除所有产品内存问题。
+
+本轮 P95 回退全部保留：dependency-editSequenceSummary:512 P95 1221.258→1343.258 ms；topologySummary:96/textDocument/completion P95 40.133→40.502 ms；topologySummary:512/textDocument/signatureHelp P95 43.462→44.855 ms；editSummary:512/xlang/check P95 771.574→802.714 ms；editSummary:512/textDocument/signatureHelp P95 259.070→280.754 ms；coldSummary:512/xlang/check P95 785.383→842.232 ms；hotSummary:512/xlang/check P95 98.381→102.078 ms；hotSummary:512/textDocument/completion P95 3.002→3.110 ms；GUI 96/0/renderSubmittedMs P95 62.030→78.257 ms；GUI 96/0/maxFrameMs P95 13.472→17.150 ms；GUI 96/0/guiCpuMs P95 62.500→78.125 ms；GUI 96/1/renderSubmittedMs P95 49.811→52.905 ms；GUI 96/1/maxFrameMs P95 8.799→10.581 ms；GUI 96/2/renderSubmittedMs P95 9.887→10.591 ms；GUI 96/2/maxFrameMs P95 9.887→10.591 ms；GUI 96/3/renderSubmittedMs P95 7.714→8.666 ms；GUI 96/3/maxFrameMs P95 7.714→8.666 ms；GUI 512/1/renderSubmittedMs P95 332.138→346.463 ms。
+
+证据 build/lsp-next-20261022/m7a2b34a-result.json；外部 m7a2b34a-b203b4d7／component-v1。发布 5,241 文件保持。继续外部 C/compiler XRT，未来 opaque xlc.dll，无 DAP／运行态补全。下一步把声明句柄与可证明的语义事实版本、依赖绑定和持久模块 typed state 接到真实消费者；补全／签名身份、完整包分组／未导入工程成员和全工程能力仍未完成。剩余适用 LSP、静态检查／恢复、IDE、全模型及暂存预算、100k／并行／soak／最终发行继续；整体 goal active，完整功能与性能目标尚未验收。
