@@ -2,6 +2,14 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_network_public_shipping.py --manifest tools/crypto_public_fixtures.json`
+selects five ordinary crypto positives and two compile-time negatives (33 stages
+per OS) on rebuilt source-free products; the default network batch is unchanged.
+`check_xrt_external_api_matrix.py --out <fresh-report.json>` separately checks
+exact external declarations/providers/consumers without executing external APIs.
+See [crypto product migration](../docs/crypto-public-migration-2026-10-26.md) and
+[external API ownership](../docs/build-external-api-ownership.md).
+
 `check_stdlib_crypto_chacha20_source.py --root <frozen-root> --public <complete-cohort> --out <fresh-directory>`
 checks the resident raw primitive on a complete source cohort: ordinary fixed
 vectors, exact byte input, JIT/module/standalone AOT, strict C, closed IR and

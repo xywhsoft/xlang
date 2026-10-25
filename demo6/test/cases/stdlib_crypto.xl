@@ -1,202 +1,121 @@
-extern "expect_i64" func expect(int actual, int expected)
-extern "expect_str" func expectStr(string actual, string expected)
-
-// Crypto's existing Buffer inputs are raw UTF-8 bytes. Do not use the retired
-// encoding.toBytes facade or implicitly transcode these ASCII test vectors.
-func utf8Buffer(string text) as Buffer
-    Buffer result = Buffer()
-    assert result.append(text)
-    assert result.len() == string.byteLen(text)
-    return result
-end
-
-expectStr(crypto.sha1("abc"), "A9993E364706816ABA3E25717850C26C9CD0D89D")
-expectStr(crypto.sha256("abc"), "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD")
-expectStr(crypto.sha384("abc"), "CB00753F45A35E8BB5A03D699AC65007272C32AB0EDED1631A8B605A43FF5BED8086072BA1E7CC2358BAECA134C825A7")
-expectStr(crypto.sha512("abc"), "DDAF35A193617ABACC417349AE20413112E6FA4E89A97EA20A9EEEE64B55D39A2192992A274FC1A836BA3C23A3FEEBBD454D4423643CE80E2A9AC94FA54CA49F")
-
-expect(string.len(crypto.sha1("abc")), 40)
-expect(string.len(crypto.sha256("abc")), 64)
-expect(string.len(crypto.sha384("abc")), 96)
-expect(string.len(crypto.sha512("abc")), 128)
-
-assert crypto.sha256("") == "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855", "empty sha256 mismatch"
-assert crypto.sha256("xlang") == crypto.sha256("xlang"), "sha256 should be stable"
-assert crypto.sha256("xlang") != crypto.sha256("xlang!"), "sha256 should depend on bytes"
+// Ordinary crypto integration, fixed public material and valid operations only.
+// Detailed algorithms, checked errors and key formats have separate fixtures.
+assert cryptoLegacy.sha1Hex("abc") == "a9993e364706816aba3e25717850c26c9cd0d89d"
+assert crypto.sha256Hex("abc") == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+assert crypto.sha384Hex("abc") == "cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7"
+assert crypto.sha512Hex("abc") == "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f"
+assert crypto.sha256Hex("") == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+assert cryptoLegacy.sha1("abc").length == 20
+assert crypto.sha256("abc").length == 32
+assert crypto.sha384("abc").length == 48
+assert crypto.sha512("abc").length == 64
 
 string hmacText = "The quick brown fox jumps over the lazy dog"
-expectStr(crypto.hmacSha256("key", hmacText), "F7BC83F430538424B13298E6AA6FB143EF4D59A14946175997479DBC2D1A3CD8")
-expectStr(crypto.hmacSha384("key", hmacText), "D7F4727E2C0B39AE0F1E40CC96F60242D5B7801841CEA6FC592C5D3E1AE50700582A96CF35E1E554995FE4E03381C237")
-expectStr(crypto.hmacSha512("key", hmacText), "B42AF09057BAC1E2D41708E48A902E09B5FF7F12AB428A4FE86653C73DD248FB82F948A549F7B791A5B41915EE4D1EC3935357E4E2317250D0372AFA2EBEEB3A")
+assert crypto.hmacSha256Hex(b"key", hmacText) == "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8"
+assert crypto.hmacSha384Hex(b"key", hmacText) == "d7f4727e2c0b39ae0f1e40cc96f60242d5b7801841cea6fc592c5d3e1ae50700582a96cf35e1e554995fe4e03381c237"
+assert crypto.hmacSha512Hex(b"key", hmacText) == "b42af09057bac1e2d41708e48a902e09b5ff7f12ab428a4fe86653c73dd248fb82f948a549f7b791a5b41915ee4d1ec3935357e4e2317250d0372afa2ebeeb3a"
 
-string key16 = "0123456789abcdef"
-string key32 = "0123456789abcdef0123456789abcdef"
-string nonce = "123456789012"
-string aad = "meta"
+bytes key16 = b"0123456789abcdef"
+bytes key32 = b"0123456789abcdef0123456789abcdef"
+bytes nonce = b"123456789012"
+bytes rawNonce = b"123456789014"
+bytes aad = b"meta"
 string plain = "hello crypto"
+auto chacha = ChaCha20Poly1305(key32)
+auto aes128 = AesGcm(key16)
+auto aes256 = AesGcm(key32)
+bytes chachaCipher = chacha.seal(plain, nonce, aad)
+bytes aes128Cipher = aes128.seal(plain, nonce, aad)
+bytes aes256Cipher = aes256.seal(plain, nonce, aad)
+assert chachaCipher.length == string.byteLen(plain) + 16
+assert aes128Cipher.length == string.byteLen(plain) + 16
+assert aes256Cipher.length == string.byteLen(plain) + 16
+assert chacha.open(chachaCipher, nonce, aad) == encoding.encodeUtf8(plain)
+assert aes128.open(aes128Cipher, nonce, aad) == encoding.encodeUtf8(plain)
+assert aes256.open(aes256Cipher, nonce, aad) == encoding.encodeUtf8(plain)
 
-string chachaCipher = crypto.chacha20Poly1305Encrypt(key32, nonce, plain, aad)
-expect(string.len(chachaCipher), (string.byteLen(plain) + 16) * 2)
-expectStr(crypto.chacha20Poly1305Decrypt(key32, nonce, chachaCipher, aad), plain)
-expectStr(crypto.chacha20Poly1305Decrypt(key32, nonce, chachaCipher, "bad"), "")
-expectStr(crypto.chacha20Poly1305Encrypt("bad", nonce, plain, aad), "")
+bytes hkdf256 = crypto.hkdfSha256(b"key", b"salt", b"info", 32)
+bytes hkdf384 = crypto.hkdfSha384(b"key", b"salt", b"info", 48)
+assert hkdf256.length == 32 and hkdf384.length == 48
+assert hkdf256 == crypto.hkdfSha256(b"key", b"salt", b"info", 32)
+assert hkdf384 == crypto.hkdfSha384(b"key", b"salt", b"info", 48)
+assert crypto.hkdfSha256(b"key", b"salt", b"info", 0) == b""
+assert crypto.hkdfSha384(b"key", b"salt", b"info", 0) == b""
+assert string.byteLen(crypto.randomHex(16)) == 32
+assert crypto.randomHex(0) == ""
+assert crypto.randomBytes(17).length == 17
+assert crypto.randomBytes(0).length == 0
 
-string aes128Cipher = crypto.aes128GcmEncrypt(key16, nonce, plain, aad)
-expect(string.len(aes128Cipher), (string.byteLen(plain) + 16) * 2)
-expectStr(crypto.aes128GcmDecrypt(key16, nonce, aes128Cipher, aad), plain)
-expectStr(crypto.aes128GcmDecrypt(key16, nonce, aes128Cipher, "bad"), "")
-expectStr(crypto.aes128GcmEncrypt("bad", nonce, plain, aad), "")
+bytes binary = b"\x00\x01\x02\xff"
+auto buffer = Buffer(binary)
+assert cryptoLegacy.sha1Buffer(buffer) == cryptoLegacy.sha1(binary)
+assert crypto.sha256Buffer(buffer) == crypto.sha256(binary)
+assert crypto.sha384Buffer(buffer) == crypto.sha384(binary)
+assert crypto.sha512Buffer(buffer) == crypto.sha512(binary)
+assert crypto.sha256BufferHex(buffer) == "3d1f57c984978ef98a18378c8166c1cb8ede02c03eeb6aee7e2f121dfeee3e56"
+bytes binaryKey = b"k\0ey"
+assert crypto.hmacSha256BufferHex(binaryKey, buffer) == "ed8e5575104941f74e6529671b739d9da41ea7a01747e53ead88b999ee547360"
+assert crypto.hmacSha384Buffer(binaryKey, buffer).length == 48
+assert crypto.hmacSha512Buffer(binaryKey, buffer).length == 64
+assert cryptoAdvanced.chacha20(key32, rawNonce, cryptoAdvanced.chacha20Buffer(key32, rawNonce, buffer, 7), 7) == binary
 
-string aes256Cipher = crypto.aes256GcmEncrypt(key32, nonce, plain, aad)
-expect(string.len(aes256Cipher), (string.byteLen(plain) + 16) * 2)
-expectStr(crypto.aes256GcmDecrypt(key32, nonce, aes256Cipher, aad), plain)
-expectStr(crypto.aes256GcmDecrypt(key32, nonce, aes256Cipher, "bad"), "")
-expectStr(crypto.aes256GcmEncrypt("bad", nonce, plain, aad), "")
+// A different nonce for this second message under each fixed test key.
+bytes binaryNonce = b"123456789013"
+assert chacha.open(chacha.seal(binary, binaryNonce, aad), binaryNonce, aad) == binary
+assert aes128.open(aes128.seal(binary, binaryNonce, aad), binaryNonce, aad) == binary
+assert aes256.open(aes256.seal(binary, binaryNonce, aad), binaryNonce, aad) == binary
 
-string hkdf256 = crypto.hkdfSha256("key", "salt", "info", 32)
-string hkdf384 = crypto.hkdfSha384("key", "salt", "info", 32)
-expect(string.len(hkdf256), 64)
-expect(string.len(hkdf384), 64)
-expectStr(hkdf256, crypto.hkdfSha256("key", "salt", "info", 32))
-expectStr(hkdf384, crypto.hkdfSha384("key", "salt", "info", 32))
-expectStr(crypto.hkdfSha256("key", "salt", "info", 0), "")
-expectStr(crypto.hkdfSha384("key", "salt", "info", 0), "")
+auto s1 = cryptoLegacy.sha1Stream()
+s1.update("a")
+s1.update("bc")
+assert s1.hex() == cryptoLegacy.sha1Hex("abc")
+assert s1.hex() == cryptoLegacy.sha1Hex("abc")
+assert s1.final() == cryptoLegacy.sha1(b"abc")
+auto s256 = crypto.sha256Stream()
+s256.update("a")
+s256.update("bc")
+assert s256.hex() == crypto.sha256Hex("abc")
+assert s256.final() == crypto.sha256(b"abc")
+auto binaryStream = crypto.sha256Stream()
+binaryStream.updateBuffer(buffer)
+assert binaryStream.final() == crypto.sha256(binary)
+auto s384 = crypto.sha384Stream()
+s384.update("ab")
+s384.update("c")
+assert s384.hex() == crypto.sha384Hex("abc")
+auto s512 = crypto.sha512Stream()
+s512.update("abc")
+assert s512.hex() == crypto.sha512Hex("abc")
+bytes streamCipher = cryptoAdvanced.chacha20(key32, rawNonce, plain)
+assert streamCipher.length == string.byteLen(plain)
+assert cryptoAdvanced.chacha20(key32, rawNonce, streamCipher) == encoding.encodeUtf8(plain)
 
-expect(string.len(crypto.randomHex(16)), 32)
-expectStr(crypto.randomHex(0), "")
-
-Buffer binary = Buffer()
-binary.appendByte(0)
-binary.appendByte(1)
-binary.appendByte(2)
-binary.appendByte(255)
-
-Buffer binarySha1 = crypto.sha1Bytes(binary)
-Buffer binarySha256 = crypto.sha256Bytes(binary)
-Buffer binarySha384 = crypto.sha384Bytes(binary)
-Buffer binarySha512 = crypto.sha512Bytes(binary)
-expect(binarySha1.len(), 20)
-expect(binarySha256.len(), 32)
-expect(binarySha384.len(), 48)
-expect(binarySha512.len(), 64)
-expectStr(codec.hexEncodeBytes(binarySha256.data(), c_size(binarySha256.len())), "3D1F57C984978EF98A18378C8166C1CB8EDE02C03EEB6AEE7E2F121DFEEE3E56")
-
-Buffer binaryHmacKey = Buffer()
-binaryHmacKey.appendByte(107)
-binaryHmacKey.appendByte(0)
-binaryHmacKey.appendByte(101)
-binaryHmacKey.appendByte(121)
-Buffer binaryHmac256 = crypto.hmacSha256Bytes(binaryHmacKey, binary)
-Buffer binaryHmac384 = crypto.hmacSha384Bytes(binaryHmacKey, binary)
-Buffer binaryHmac512 = crypto.hmacSha512Bytes(binaryHmacKey, binary)
-expectStr(codec.hexEncodeBytes(binaryHmac256.data(), c_size(binaryHmac256.len())), "ED8E5575104941F74E6529671B739D9DA41EA7A01747E53EAD88B999EE547360")
-expect(binaryHmac384.len(), 48)
-expect(binaryHmac512.len(), 64)
-
-Buffer key16Bytes = utf8Buffer(key16)
-Buffer key32Bytes = utf8Buffer(key32)
-Buffer nonceBytes = utf8Buffer(nonce)
-Buffer aadBytes = utf8Buffer(aad)
-Buffer streamBinaryCipher = crypto.chacha20Bytes(key32Bytes, nonceBytes, binary, 7)
-Buffer streamBinaryPlain = crypto.chacha20Bytes(key32Bytes, nonceBytes, streamBinaryCipher, 7)
-assert streamBinaryPlain == binary, "binary chacha20 roundtrip failed"
-
-Buffer chachaBinaryCipher = crypto.chacha20Poly1305EncryptBytes(key32Bytes, nonceBytes, binary, aadBytes)
-Buffer chachaBinaryPlain = crypto.chacha20Poly1305DecryptBytes(key32Bytes, nonceBytes, chachaBinaryCipher, aadBytes)
-expect(chachaBinaryCipher.len(), binary.len() + 16)
-assert chachaBinaryPlain == binary, "binary chacha20-poly1305 roundtrip failed"
-
-Buffer aes128BinaryCipher = crypto.aes128GcmEncryptBytes(key16Bytes, nonceBytes, binary, aadBytes)
-Buffer aes128BinaryPlain = crypto.aes128GcmDecryptBytes(key16Bytes, nonceBytes, aes128BinaryCipher, aadBytes)
-expect(aes128BinaryCipher.len(), binary.len() + 16)
-assert aes128BinaryPlain == binary, "binary aes128-gcm roundtrip failed"
-
-Buffer aes256BinaryCipher = crypto.aes256GcmEncryptBytes(key32Bytes, nonceBytes, binary, aadBytes)
-Buffer aes256BinaryPlain = crypto.aes256GcmDecryptBytes(key32Bytes, nonceBytes, aes256BinaryCipher, aadBytes)
-expect(aes256BinaryCipher.len(), binary.len() + 16)
-assert aes256BinaryPlain == binary, "binary aes256-gcm roundtrip failed"
-aes256BinaryCipher[0] = aes256BinaryCipher[0] ^ 1
-expect(crypto.aes256GcmDecryptBytes(key32Bytes, nonceBytes, aes256BinaryCipher, aadBytes).len(), 0)
-
-Buffer hkdfKeyBytes = utf8Buffer("key")
-Buffer hkdfSaltBytes = utf8Buffer("salt")
-Buffer hkdfInfoBytes = utf8Buffer("info")
-Buffer hkdf256Bytes = crypto.hkdfSha256Bytes(hkdfKeyBytes, hkdfSaltBytes, hkdfInfoBytes, 32)
-Buffer hkdf384Bytes = crypto.hkdfSha384Bytes(hkdfKeyBytes, hkdfSaltBytes, hkdfInfoBytes, 48)
-expect(hkdf256Bytes.len(), 32)
-expect(hkdf384Bytes.len(), 48)
-assert hkdf256Bytes == crypto.hkdfSha256Bytes(hkdfKeyBytes, hkdfSaltBytes, hkdfInfoBytes, 32), "binary hkdf should be stable"
-expect(crypto.hkdfSha256Bytes(hkdfKeyBytes, hkdfSaltBytes, hkdfInfoBytes, 0).len(), 0)
-expect(crypto.randomBytes(17).length, 17)
-expect(crypto.randomBytes(0).length, 0)
-
-Sha1 sha1Stream = crypto.sha1Stream()
-assert sha1Stream.update("a"), "sha1 stream update failed"
-assert sha1Stream.update("bc"), "sha1 stream second update failed"
-expectStr(sha1Stream.hex(), crypto.sha1("abc"))
-expectStr(sha1Stream.hex(), crypto.sha1("abc"))
-assert sha1Stream.bytes() == crypto.sha1Bytes(utf8Buffer("abc")), "sha1 stream bytes mismatch"
-
-Sha256 sha256Stream = crypto.sha256Stream()
-assert sha256Stream.update("a"), "sha256 stream update failed"
-assert sha256Stream.update("bc"), "sha256 stream second update failed"
-expectStr(sha256Stream.hex(), crypto.sha256("abc"))
-expectStr(sha256Stream.hex(), crypto.sha256("abc"))
-
-Sha256 binaryStream = crypto.sha256Stream()
-assert binaryStream.update(binary), "binary sha256 stream update failed"
-assert binaryStream.bytes() == binarySha256, "binary sha256 stream digest mismatch"
-
-Sha384 sha384Stream = crypto.sha384Stream()
-assert sha384Stream.update("ab"), "sha384 stream update failed"
-assert sha384Stream.update("c"), "sha384 stream second update failed"
-expectStr(sha384Stream.hex(), crypto.sha384("abc"))
-
-Sha512 sha512Stream = crypto.sha512Stream()
-assert sha512Stream.update("abc"), "sha512 stream update failed"
-expectStr(sha512Stream.hex(), crypto.sha512("abc"))
-
-string chacha20Cipher = crypto.chacha20Encrypt(key32, nonce, plain, 1)
-expect(string.len(chacha20Cipher), string.byteLen(plain) * 2)
-expectStr(crypto.chacha20Decrypt(key32, nonce, chacha20Cipher, 1), plain)
-expectStr(crypto.chacha20Encrypt("bad", nonce, plain, 1), "")
-expectStr(crypto.chacha20Decrypt(key32, nonce, "bad", 1), "")
-
-auto edKey = crypto.ed25519KeyPair()
-bytes edSeed = edKey.exportSeed()
-bytes edPub = edKey.publicKey
-assert edSeed.length == 32
-assert edPub.length == 32
-assert crypto.ed25519PublicKey(edSeed) == edPub
-bytes edSig = crypto.ed25519Sign(edSeed, "message")
-assert edSig.length == 64
-assert crypto.ed25519Verify(edPub, "message", edSig), "ed25519 verify failed"
-assert not crypto.ed25519Verify(edPub, "message!", edSig), "ed25519 verify should reject modified text"
+auto ed = crypto.ed25519KeyPair()
+assert ed.exportSeed().length == 32 and ed.publicKey.length == 32
+assert crypto.ed25519PublicKey(ed.exportSeed()) == ed.publicKey
+bytes signature = ed.sign("message")
+assert signature.length == 64
+assert crypto.ed25519Verify(ed.publicKey, "message", signature)
+assert crypto.ed25519Sign(ed.exportSeed(), "message") == signature
 
 auto x25519A = crypto.x25519KeyPair()
 auto x25519B = crypto.x25519KeyPair()
-bytes x25519SecretA = x25519A.sharedSecret(x25519B.publicKey)
-bytes x25519SecretB = x25519B.sharedSecret(x25519A.publicKey)
-assert x25519SecretA == x25519SecretB
+assert x25519A.sharedSecret(x25519B.publicKey) == x25519B.sharedSecret(x25519A.publicKey)
 assert x25519A.exportPrivate().length == 32
-
 auto x448A = crypto.x448KeyPair()
 auto x448B = crypto.x448KeyPair()
-bytes x448SecretA = x448A.sharedSecret(x448B.publicKey)
-bytes x448SecretB = x448B.sharedSecret(x448A.publicKey)
-assert x448SecretA == x448SecretB
+assert x448A.sharedSecret(x448B.publicKey) == x448B.sharedSecret(x448A.publicKey)
 assert x448A.exportPrivate().length == 56
-
 auto p256A = crypto.p256KeyPair()
 auto p256B = crypto.p256KeyPair()
-assert p256A.exportPrivate().length == 32
-assert p256A.publicKey.length == 65
+assert p256A.exportPrivate().length == 32 and p256A.publicKey.length == 65
 assert p256A.sharedSecret(p256B.publicKey) == p256B.sharedSecret(p256A.publicKey)
-
 auto p384A = crypto.p384KeyPair()
 auto p384B = crypto.p384KeyPair()
-assert p384A.exportPrivate().length == 48
-assert p384A.publicKey.length == 97
+assert p384A.exportPrivate().length == 48 and p384A.publicKey.length == 97
 assert p384A.sharedSecret(p384B.publicKey) == p384B.sharedSecret(p384A.publicKey)
-
-// Managed RSA fixed vectors live in stdlib_crypto_rsa_values.xl.
+bytes digest256 = crypto.sha256("message")
+bytes digest384 = crypto.sha384("message")
+assert crypto.ecdsaP256VerifyHashDer(p256A.publicKey, digest256, p256A.signHashDer(digest256))
+assert crypto.ecdsaP384VerifyHashDer(p384A.publicKey, digest384, p384A.signHashDer(digest384))
+// Managed RSA fixed vectors remain in stdlib_crypto_rsa_values.xl.

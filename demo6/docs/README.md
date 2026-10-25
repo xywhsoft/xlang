@@ -6,6 +6,10 @@
 
 ## 当前权威设计
 
+- [密码学综合迁移与普通产品](crypto-public-migration-2026-10-26.md)：bytes／受管理接口、正常有效示例、双端实际 JIT／AOT、裁剪和双库分配失败复测；不代表五组总封板。
+
+- [构建能力矩阵的扩展归属](build-external-api-ownership.md)：精确声明／提供方／使用方隔离，不按前缀放行，不增加核心 ABI；静态检查不执行扩展 API。
+
 - [显式 ChaCha20 原语](crypto-chacha20-advanced.md)：清退断链 HEX 桥接，驻留 bytes 接口、精确材料／计数器／长度合同及普通双端原生和源码验收；最终普通产品封板另行完成。
 
 - [参数化守卫与统一合同编译 cohort](contract-cohort-2026-10-26.md)：完整源码归档取代部分前端清单，37 个合同构建和三项 C-owned worker 实测；74 项总门继续。
