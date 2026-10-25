@@ -21,6 +21,17 @@ func main(...) as int
     daily.add("page:/home")
     println("daily unique pages:", daily.count())
 
+    auto nextDay = hyperloglog.create(12)
+    nextDay.add("page:/home")
+    nextDay.add("page:/contact")
+    daily.merge(nextDay)
+    println("merged unique pages:", daily.count())
+    println("merged added calls:", daily.added)
+
+    daily.clear()
+    println("after clear unique pages:", daily.count())
+    println("after clear added:", daily.added)
+
     println("hyperloglog example: PASS")
     return 0
 end

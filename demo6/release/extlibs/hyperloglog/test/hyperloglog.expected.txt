@@ -2,4 +2,8 @@ precision: 14
 added: 10000
 estimated unique: 8038
 daily unique pages: 2
+merged unique pages: 3
+merged added calls: 5
+after clear unique pages: 0
+after clear added: 0
 hyperloglog example: PASS
