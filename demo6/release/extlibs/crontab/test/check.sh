@@ -43,4 +43,19 @@ timeout 90s "$xl" run release/examples/extlibs/crontab.xl > "$work/crontab_xl.tx
 timeout 90s "$xl" run release/extlibs/crontab/examples/crontab.c > "$work/crontab_direct_c.txt"
 diff -u "$work/crontab_c.txt" "$work/crontab_direct_c.txt"
 diff -u "$work/crontab_c.txt" "$work/crontab_xl.txt"
+for source in release/extlibs/crontab/test/aot_core.xl \
+              test/cases/extlib_crontab_boundaries.xl \
+              release/extlibs/crontab/test/allocations.xl; do
+    name=$(basename "$source" .xl)
+    timeout 120s "$xl" build "$source" -o "$work/${name}_aot"
+    timeout 45s "$work/${name}_aot"
+done
+timeout 120s "$xl" build release/examples/extlibs/crontab.xl \
+    -o "$work/crontab_xl_aot"
+timeout 45s "$work/crontab_xl_aot" > "$work/crontab_xl_aot.txt"
+diff -u "$work/crontab_c.txt" "$work/crontab_xl_aot.txt"
+timeout 120s "$xl" build release/extlibs/crontab/examples/crontab.c \
+    -o "$work/crontab_c_aot"
+timeout 45s "$work/crontab_c_aot" > "$work/crontab_c_aot.txt"
+diff -u "$work/crontab_c.txt" "$work/crontab_c_aot.txt"
 printf 'crontab Linux C/XL ASan/UBSan and DST gate: PASS\n'

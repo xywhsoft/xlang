@@ -76,7 +76,15 @@ try {
         if ((Run 'AOT allocation' $allocationExe @()) -cne $allocation) {
             throw 'crontab AOT allocation differs from JIT'
         }
+        $cExampleExe = Join-Path $work 'aot_c_example.exe'
+        $null = Run 'AOT C example build' $xl @('build',
+            'release/extlibs/crontab/examples/crontab.c', '-o', $cExampleExe)
+        if ((Run 'AOT C example' $cExampleExe @()) -cne $c) {
+            throw 'crontab C example AOT differs from GCC'
+        }
     }
+    Write-Host $(if ($SkipAot) { '[crontab] Windows C/XLang quick gate: PASS (AOT skipped)' }
+        else { '[crontab] Windows C/XLang/AOT gate: PASS' })
 } finally {
     Pop-Location
     $safeWork = [IO.Path]::GetFullPath($work)
