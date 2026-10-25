@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / tabulate</p><h1>tabulate</h1>
     <p class="extlib-lead">用单元格数组生成纯文本终端表格。</p>
-    <p>支持空单元格、逗号文本和常见中文列宽；单元格限定为单行文本，拒绝 U+00AD soft hyphen、U+2028/U+2029 行与段落分隔符、常见零宽及双向控制符，写入失败自动回滚。完整 AOT 发布验收仍受共享链接问题阻断。</p>
+    <p>支持空单元格、逗号文本和常见中文列宽；单元格限定为单行文本，拒绝 U+00AD soft hyphen、U+2028/U+2029 行与段落分隔符、常见零宽及双向控制符，写入失败自动回滚。当前 Windows 默认门禁的核心与公开范例独立 EXE 均通过。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>成员</th><th>用途</th></tr></thead><tbody>
@@ -33,7 +33,7 @@ tabulate.Table table = tabulate.create()
 table.setHeaders(["Name", "City"])
 table.addRow(["Alice", "北京, 中国"])
 println(table.render())</code></pre>
-    <p>这不是 CSV 解析器，也不承诺复杂 emoji 字素簇的精确终端宽度。C 行列计数使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。Windows/Linux 门禁验证 C 边界、XLang 分配故障、私有原生入口编译负例与双语范例固定输出；Linux 另有 C sanitizer。Windows 默认门禁还要求公开范例 AOT 构建运行并与固定输出一致，当前在共享缺符号处失败；<code>-SkipAot</code> 只验证 C/JIT。C 接口和资源上限见包内 README。</p>
+    <p>这不是 CSV 解析器，也不承诺复杂 emoji 字素簇的精确终端宽度。C 行列计数使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。Windows/Linux 门禁验证 C 边界、XLang 分配故障、私有原生入口编译负例与双语范例固定输出；Linux 另有 C sanitizer。当前 Windows 默认门禁还通过公开范例独立 EXE 的构建、运行及固定输出对照；<code>-SkipAot</code> 只验证 C/JIT。Linux 独立 EXE 尚未验收。C 接口和资源上限见包内 README。</p>
   </section>
 </main>
 </body>
