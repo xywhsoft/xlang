@@ -2374,3 +2374,81 @@ CPU 是整个服务进程所有线程的 GetProcessTimes，并非纯检查器计
 采用这一有直接局部证据的小优化，不宣称端到端全面加速。大文件补全相关编辑 P95 441.302→408.949 ms；小文件静态检查 96.322→103.272 ms，小文件手动提示显示 63.432→80.695 ms，大文件编辑后手动显示 P99 280.785→331.060 ms，完整结果均保留。精确重复／光标路径没有运行该新建键写入，但其观察值也报告，不把同机波动自动归因于本次修改。整体仍有数百毫秒编辑成本，不能用该局部写入结果抵消未完成的性能目标。
 
 全部转录／原始数值、冷请求、最大值、进程 CPU、private／working set、GUI frame 与命令保存在 switching-performance-v1/result.json；精确重放在 identity-append-replay-v3，未采用 IR 结论在 ir-reuse-decision-v1.json。自动诊断关闭；未覆盖完整大工程、十万行、所有输入风暴、并行／soak 或最终发行。下一步继续依赖／ABI 驱动的持久模块／语义 IR、整体模型预算、完整适用协议／类型恢复／静态检查、IDE 捕获／原位配置和 native C／resource／include／link。外部 C/XRT、未来 opaque xlc.dll，无 DAP／运行态补全；完整 goal active，发布 5241 文件未改。
+
+
+## M7a2b24a：原始函数 IR 与只读文本 owner（0.57）
+
+本阶段把 M23 未采用的逐节点克隆原型改成可持有片段，保持精确最终输入证明和整模块权威验证。第一次在正常 check session 实际启用函数原始 IR 复用；不是完整持久语义 IR 或增量全局验证，也没有增加尚未实现的 LSP 能力声明。实现／所有权／缓存边界见 lsp-analysis-core.md 同阶段。
+
+生产验证：1067 冻结文件，136 fresh native objects，60 正常夹具／61 PE／62 outputs／64 AST17 consumers／53 core members。新 analysis_ir_memo_test 524 checks，semantic memo 1064、cursor source memo 2100、signature 38749、ast intern 345、frontend cancel 166、worker cache 812、worker fault 12995 和 1008 个校准取消门通过。另一个诊断专用 compiler TU 对真实 owner 索引 XRT 分配门注入 33 次失败，701 checks，完整 fresh IR 和旧片段精确引用计数一致；不把它计入正常 60 夹具／136 对象。35 协议套件 936 场景（新增 ir-fragments 17）与 18 实际 IDE／旧服务回退通过，磁盘文件保持原样。
+
+106 个 GUI 产品对象按实际 .d 输入闭包复用，10 个受头包含变化影响的对象另证明预处理 C token 完全相同；35 程序保持。完整 native producer 在 component-v1 执行。诊断夹具最初发现 uint32 原子引用计数快照类型不符及原 compiler TU 的既有 warning，改 unsigned 快照并只对导入原 TU 局部屏蔽该既有 warning；v2 仅此诊断夹具／驱动修复，全部 318 条真实 native source/header 闭包和二进制一致。协议／IDE 在 v2 完整执行。故障程序 v2 本身已过 701／33，但 .d 默认 Windows 盘符目标使证据提取失败；v3 仅诊断驱动增加 GCC -MT ownerObject，故障构建／运行／证据提取全部通过。最终桥接保留 v2 QA 原报告摘要，将历史 working driver 项重绑为不可变 v2 驱动；全部 wire／GUI 工具没有调用或导入该诊断驱动。首次桥接设置脚本错误读取 native report 的 output 键，在报告／位置修改前停止，随后按实际 nativeBuild.path 完成；已启动故障进程继续等待到正常退出。没有把未重新执行的测试写成已重跑。
+
+原型保留：native-probe-v1 为批量标量键，v2 直接 unpublished arena 恢复，v3 固定宽度稀疏 raw words，v4 opaque 文本借用，v5 有界 owner 索引，v6 节点 envelope 键和 region 失效测试，v7 check session 接入。前三个隔离 IR 阶段完整构建平均值（96／512 helper，ms）依次为 29.074→31.464／241.772→245.408，33.121→36.922／273.235→293.333，30.488→31.268／265.458→260.574。没有采用其较慢中间版本。
+
+owner-phase-v1（索引有界但 envelope 前）在两版都保留前一完整 IR 的条件下，平均 build 28.219→27.877／232.415→226.536 ms。最终 owner-phase-v2 对原完整 builder 与新片段 owner 交替逐次顺序；语义准备和独立 fresh 完整 JSON oracle 在计时外，13 次相关字面量编辑、每规模 10 个热计入样本／版；单独计旧完整模型析构。它只是完整 IR 阶段，不能等同 stdio／IDE 整体分析：
+
+| helper | build 平均 ms 原→新 | 旧模型析构平均 ms 原→新 | 冷 IR build ms 原→新 | raw memo 已知逻辑 bytes |
+|---|---:|---:|---:|---:|
+| 96 | 28.2084→25.5843 | 1.0657→0.5709 | 24.549→28.558 | 4694103 |
+| 512 | 238.6702→216.6518 | 5.5010→2.9475 | 206.278→235.477 | 25266295 |
+
+热复用 95／511 函数、17970／97426 原始节点，借用文本 15050／81610 节点，60006／326238 bytes，owner 索引 3903／20313 bytes。IR build 约下降 9%，冷捕获和逻辑存储增加。两种规模所有行、32 MiB raw 预算和 128 KiB owner 容量之外的模型／临时／RSS 成本均不能隐去。
+
+最终完整 stdio／IDE 使用相同实际测量夹具包围已接受 0.56 与最终 0.57：96／512 helper，约 3k／16k 行 BOM／CRLF／Unicode，2 个分析根、ABBA 四进程。576 热切换／288 全文 didChange 后相关编辑／48 冷首次根请求，72 组分阶段 native CPU 观察，另 320 个实际参数窗帧、8 个冷 GUI 初始化观察。未与本任务构建／QA／重哈希并行；没有声称控制机器上其他活动或独占性能环境。全部 32 条测量命令成功，所有来源／版本／实际参数／焦点／Escape／磁盘不变断言保持；静态编辑路径另断言真实片段复用／文本借用及预算。冷请求不含完整进程启动；自动诊断关闭，未覆盖全项目、100k、并行、soak 或物理显示延迟。
+
+下表为每条路径每版的 P50／P95／P99（ms）。两版交替顺序、全部原始值保留；completion／signature 使用原前台语义路径，不能由静态 IR 收益推导其性能。先列热根复用，再列真实相关编辑：
+
+| 路径 | 原 P50 / P95 / P99 | 新 P50 / P95 / P99 |
+|---|---:|---:|
+| 热 96/2/xlang/check | 11.077 / 12.030 / 12.507 | 11.447 / 15.117 / 20.174 |
+| 热 96/2/textDocument/completion | 0.856 / 0.937 / 1.020 | 0.864 / 0.996 / 1.034 |
+| 热 96/2/textDocument/signatureHelp | 0.610 / 0.746 / 0.829 | 0.611 / 0.740 / 0.762 |
+| 热 512/2/xlang/check | 59.893 / 65.845 / 68.987 | 59.805 / 62.323 / 71.478 |
+| 热 512/2/textDocument/completion | 1.469 / 1.635 / 1.760 | 1.472 / 1.553 / 1.699 |
+| 热 512/2/textDocument/signatureHelp | 0.788 / 0.906 / 0.955 | 0.782 / 0.872 / 0.969 |
+| 编辑 96/xlang/check | 91.468 / 103.959 / 106.381 | 91.661 / 99.813 / 105.044 |
+| 编辑 96/textDocument/completion | 64.072 / 73.031 / 74.826 | 64.108 / 67.206 / 68.218 |
+| 编辑 96/textDocument/signatureHelp | 70.885 / 83.889 / 88.843 | 75.125 / 86.858 / 89.156 |
+| 编辑 512/xlang/check | 700.028 / 748.044 / 752.931 | 666.341 / 728.871 / 733.043 |
+| 编辑 512/textDocument/completion | 372.863 / 410.221 / 422.868 | 378.339 / 401.949 / 412.643 |
+| 编辑 512/textDocument/signatureHelp | 479.766 / 538.762 / 539.036 | 477.615 / 525.197 / 544.042 |
+
+实际 IDE 参数窗显示提交四种模式：0 逗号触发、1 改动后手动提示、2 精确重复、3 光标重触发，每规模／模式／版 20 帧。计时包含实际标签／光标／焦点与提示请求及渲染提交，不是物理显示时间。
+
+| helper / 模式 | 原提交 P50 / P95 / P99 ms | 新提交 P50 / P95 / P99 ms | 原→新最大帧 P95 ms |
+|---|---:|---:|---:|
+| 96/0 | 67.550 / 90.516 / 90.704 | 58.933 / 74.162 / 74.574 | 10.830→11.540 |
+| 96/1 | 61.529 / 78.542 / 79.591 | 61.555 / 63.767 / 76.200 | 7.696→8.329 |
+| 96/2 | 6.875 / 7.242 / 7.414 | 7.105 / 8.193 / 8.973 | 7.242→8.193 |
+| 96/3 | 7.144 / 7.881 / 8.833 | 7.505 / 9.326 / 9.891 | 7.881→9.326 |
+| 512/0 | 243.539 / 277.808 / 282.360 | 245.831 / 274.641 / 275.656 | 36.147→31.265 |
+| 512/1 | 232.339 / 263.840 / 275.048 | 228.556 / 295.960 / 309.621 | 9.715→10.956 |
+| 512/2 | 8.098 / 10.556 / 14.626 | 6.960 / 8.984 / 9.095 | 10.556→8.984 |
+| 512/3 | 7.924 / 9.738 / 12.644 | 7.967 / 12.035 / 13.073 | 9.738→12.035 |
+
+冷请求每规模／方法／版 4 个样本，以下为算术均值，完整原始 48 值保留，不把这些小样本当稳定分位：
+
+| helper / 方法 | 原→新冷请求均值 ms |
+|---|---:|
+| 96 / xlang/check | 94.307→99.724 |
+| 96 / textDocument/completion | 56.347→54.767 |
+| 96 / textDocument/signatureHelp | 59.003→62.488 |
+| 512 / xlang/check | 633.195→652.214 |
+| 512 / textDocument/completion | 313.852→319.559 |
+| 512 / textDocument/signatureHelp | 375.960→368.773 |
+
+进程 private／working set 是观察值而非模型预算，也不是峰值上限。静态检查两根的 private bytes 换算 MiB，按每版两进程均值：
+
+| helper / 阶段 | 原→新 private MiB |
+|---|---:|
+| 96 / after-cold-roots | 84.96→94.56 |
+| 96 / after-related-edits | 106.55→114.56 |
+| 512 / after-cold-roots | 411.53→460.27 |
+| 512 / after-related-edits | 517.12→562.04 |
+
+完整 memory／native CPU／冷 GUI／逐帧值见 switching-performance-v1/result.json。大文件相关编辑检查有所改善，但大文件手动提示尾延迟、部分热／小文件签名路径回退；内存和冷捕获也增加，整体性能目标仍未达成。当前采用该阶段是为保留可验证的真实函数 IR 复用与 owner 基础；后续需减少冷捕获／多份模型存储、无关重建、全局 pass、输入准备和前台事实 materialization，不能把局部约 9% 写成 IDE 整体提速。
+
+证据：build/lsp-next-20261022/m7a2b24a-result.json，外部 m7a2b24a-1803e871 下 component-v1／v2／v3、diagnostic-fixture-repair-v1、diagnostic-driver-target-repair-v1、owner-fault-v1／v2／v3、protocol-qa-v1、gui-qa-v1、native-probe-v1..v7、ir-phase-v1..v3、ir-owner-phase-v1／v2、performance-inputs-v1、switching-performance-v1。所有失败／不采用候选保留。
+
+完整 goal 保持 active：优先审计并实现 execution region 相对身份／当前 AST 重绑，增加前部无符号嵌套块改动后后部函数复用及完整 fresh IR 对照；继续模块依赖／xlp 清单反向归属、持久语义 IR 与增量 pass／验证、references／rename／tokens／重构／格式化等完整适用 LSP、不完整代码恢复／静态检查、IDE 配置与输入准备、native C／resource／include／link、整个模型预算、100k／并行／soak／最终发行。首版外部 C/compiler XRT，后续 opaque xlc.dll，无 DAP／调试或运行态补全。发布 5241 文件、无关共享 index 保持。

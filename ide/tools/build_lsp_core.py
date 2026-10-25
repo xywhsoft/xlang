@@ -16,6 +16,7 @@ import time
 from xrt_process_tree_overlay import derive as derive_process_runtime
 from native_context_overlay import derive as derive_context_runtime
 from native_cancellation_overlay import ir_cancellation, semantic_cancellation
+from native_ir_memo_overlay import derive as derive_ir_memo
 
 FRONTEND_SOURCES = (
     "src/lexer/xl6_token.c", "src/lexer/xl6_lexer_api.c", "src/lexer/xl6_lexer_gen.c",
@@ -64,6 +65,7 @@ CORE_TESTS = ("analysis_worker_cache_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_worker_cache_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ast_intern_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_frontend_cancel_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_memo_test", *CORE_TESTS)
 
 
 def sha(path: Path) -> str:
@@ -114,6 +116,8 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     body = original.read_bytes()
     if hashlib.sha256(body).hexdigest() != '6022b348ecb5ec0dc79eac881a4e51cb6dc227daa210f730bcdf27a191aad2d0':
         raise ValueError('shared IR changed; audit cleanup/plan/call candidates, scope-proof purity and phase mutation boundaries')
+    if sha(frontend / 'src/ir/xl6_ir.h') != 'ec58343edcf43d97aba95b94bc3fb3d3a163ec4fc593ae0b064a09c3eac4ff3a':
+        raise ValueError('shared IR layout changed; audit raw node ownership and exact type-prefix fields')
     source = body.decode('utf-8').replace('\r\n', '\n')
     changes = {
         '#include <wchar.h>': '#include <wchar.h>\n#include "analysis/frontend_ir.inc"',
@@ -167,6 +171,7 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         source = source.replace(old, new)
     compiled = output / 'frontend/xl6_ir.c'
     source = ir_cancellation(source)
+    source = derive_ir_memo(source)
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
@@ -583,6 +588,7 @@ def main() -> None:
         str(original_types): types_overlay["sourceSha256"]}, {}, [], {}
     source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, ast_overlay, parser_overlay, lexer_overlay, *context_overlays]
     inputs[str(Path(__file__).with_name('native_cancellation_overlay.py').resolve())] = sha(Path(__file__).with_name('native_cancellation_overlay.py'))
+    inputs[str(Path(__file__).with_name('native_ir_memo_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_memo_overlay.py'))
     inputs[str(original_parser)] = parser_overlay['sourceSha256']
     inputs[str(original_lexer)] = lexer_overlay['sourceSha256']
     inputs.update({ast_overlay['source']:ast_overlay['sourceSha256'], ast_overlay['headerSource']:ast_overlay['headerSourceSha256'], ast_overlay['runtimeSource']:ast_overlay['runtimeSourceSha256']})

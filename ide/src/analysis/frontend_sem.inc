@@ -171,6 +171,17 @@ static int xlsSemQueryNeutral(const XL6_AstNode* node,size_t depth,const xls_sem
     for(size_t i=0;i<node->childCount;++i) if(!xlsSemQueryNeutral(node->children[i],depth+1,cursor)) return 0;
     return 1;
 }
+#define XLS_SEM_KEY_FIELDS 20
+static inline void xlsSemKeyScalars(const XL6_AstNode* node,uint64_t* fields)
+{
+    uint64_t values[]={node->kind,node->flags,node->literalSize,node->literalScalar,node->literalDecoded,
+        node->semanticTypeId,node->semanticTypeAbiId,node->semanticSymbolId,node->semanticDeclaredSymbolId,
+        node->semanticTargetSymbolId,node->semanticCompoundOperatorSymbolId,node->semanticCallKind,node->semanticLvalueKind,
+        node->semanticOwnership,node->semanticExitKind,node->semanticScopeDepth,node->semanticTargetScopeDepth,
+        node->semanticRegionId,node->semanticTargetRegionId,node->childCount};
+    _Static_assert(sizeof(values)/sizeof(*values)==XLS_SEM_KEY_FIELDS,"audit complete AST scalar identity");
+    memcpy(fields,values,sizeof(values));
+}
 typedef struct xls_sem_key_paths { xmap paths; size_t next,lastId; const char* last; } xls_sem_key_paths;
 static int xlsSemKeySource(xstrbuf* key,const char* path,xls_sem_key_paths* paths)
 {
@@ -186,11 +197,7 @@ static int xlsSemKeyNodePaths(xstrbuf* key,const XL6_AstNode* node,size_t depth,
 {
     if(depth>512 || !xlsSemKeyNumber(key,node!=NULL)) return 0;
     if(!node) return 1;
-    uint64_t fields[]={node->kind,node->flags,node->literalSize,node->literalScalar,node->literalDecoded,
-        node->semanticTypeId,node->semanticTypeAbiId,node->semanticSymbolId,node->semanticDeclaredSymbolId,
-        node->semanticTargetSymbolId,node->semanticCompoundOperatorSymbolId,node->semanticCallKind,node->semanticLvalueKind,
-        node->semanticOwnership,node->semanticExitKind,node->semanticScopeDepth,node->semanticTargetScopeDepth,
-        node->semanticRegionId,node->semanticTargetRegionId,node->childCount};
+    uint64_t fields[XLS_SEM_KEY_FIELDS];xlsSemKeyScalars(node,fields);
     uint64_t present=0;
     for(size_t i=0;i<sizeof(fields)/sizeof(*fields);++i) if(fields[i]) present|=(uint64_t)1<<i;
     if(!xlsSemKeyNumber(key,present)) return 0;
@@ -211,6 +218,60 @@ static int xlsSemKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int m
 {
     xls_sem_key_paths paths={0}; if(!xrtMapInit(&paths.paths,sizeof(size_t))) return 0;
     int okay=xlsSemKeyNodePaths(key,node,depth,module,&paths); xrtMapUnit(&paths.paths); return okay;
+}
+/* IR keys retain the same complete non-coordinate facts,but pack each
+ * node envelope once. Missing type trees are in the envelope;no repeated
+ * tiny presence/length encodings or extra AST traversal are needed. */
+typedef struct xls_ir_path_slot {const char* path;size_t id;} xls_ir_path_slot;
+typedef struct xls_ir_key_paths {xmap paths;size_t next,recent,visited;xls_ir_path_slot slots[4];} xls_ir_key_paths;
+static int xlsIrKeyPath(xls_ir_key_paths* paths,const char* path,size_t* id,size_t* bytes,int* added)
+{
+    *id=*bytes=0;*added=0;if(!path)return 1;
+    /* Addresses accelerate only this synchronous read of immutable strings.
+     * Full path bytes still define the canonical dictionary identity. */
+    for(size_t i=0;i<4;++i)if(paths->slots[i].path==path){*id=paths->slots[i].id;return 1;}
+    xbytesview key={(const unsigned char*)path,strlen(path)};size_t* found=xrtMapGet(&paths->paths,key);
+    if(found)*id=*found;
+    else{*id=++paths->next;*bytes=key.Size;*added=1;if(!xrtMapSet(&paths->paths,key,id))return 0;}
+    paths->slots[paths->recent++%4]=(xls_ir_path_slot){path,*id};return 1;
+}
+static int xlsIrKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int module,xls_ir_key_paths* paths)
+{
+    if(depth>512 || ((++paths->visited&63u)==0 && xlsFrontendCancelPoint(XLS_CANCEL_IR_NODE,1)))return 0;
+    if(!node){uint64_t absent=0;return xlsSemKeyBytes(key,&absent,sizeof(absent));}
+    if(node->source && node->source->completionQuery)return 0;
+    uint64_t fields[XLS_SEM_KEY_FIELDS+4]={0},packed[1+XLS_SEM_KEY_FIELDS+4];
+    xlsSemKeyScalars(node,fields);size_t id,pathBytes,textBytes=node->text ? strlen(node->text) : 0,docBytes=node->doc ? strlen(node->doc) : 0;int added;
+    const char* path=xl6AstSourcePath(node);if(!xlsIrKeyPath(paths,path,&id,&pathBytes,&added))return 0;
+    fields[XLS_SEM_KEY_FIELDS]=textBytes;fields[XLS_SEM_KEY_FIELDS+1]=docBytes;
+    fields[XLS_SEM_KEY_FIELDS+2]=id;fields[XLS_SEM_KEY_FIELDS+3]=pathBytes;
+    uint64_t envelope=UINT64_C(1)<<63;
+    if(node->text)envelope|=UINT64_C(1)<<32;
+    if(node->doc)envelope|=UINT64_C(1)<<33;
+    if(node->literalData)envelope|=UINT64_C(1)<<34;
+    if(node->inferredType)envelope|=UINT64_C(1)<<35;
+    if(node->semanticDeclaredType)envelope|=UINT64_C(1)<<36;
+    if(added)envelope|=UINT64_C(1)<<37;
+    size_t count=1;
+    for(size_t i=0;i<sizeof(fields)/sizeof(*fields);++i)if(fields[i]){envelope|=UINT64_C(1)<<i;packed[count++]=fields[i];}
+    packed[0]=envelope;
+    if(!xlsSemKeyBytes(key,packed,count*sizeof(*packed)) ||
+       (textBytes && !xlsSemKeyBytes(key,node->text,textBytes)) || (docBytes && !xlsSemKeyBytes(key,node->doc,docBytes)) ||
+       (pathBytes && !xlsSemKeyBytes(key,path,pathBytes)) ||
+       (node->literalData && !xlsSemKeyBytes(key,node->literalData,node->literalSize)))return 0;
+    if((node->inferredType && !xlsIrKeyNode(key,node->inferredType,depth+1,0,paths)) ||
+       (node->semanticDeclaredType && !xlsIrKeyNode(key,node->semanticDeclaredType,depth+1,0,paths)))return 0;
+    for(size_t i=0;i<node->childCount;++i){
+        const XL6_AstNode* child=module && depth==1 && xlsSemFunction(node) && i==3 ? NULL : node->children[i];
+        if(!xlsIrKeyNode(key,child,depth+1,module,paths))return 0;
+    }
+    return 1;
+}
+int xlsFrontendIrAstKey(xstrbuf* key,const XL6_AstNode* node,int module)
+{
+    if(!key || (module!=0 && module!=1) || xlsFrontendCancelObserved())return 0;
+    xls_ir_key_paths paths={0};if(!xrtMapInit(&paths.paths,sizeof(size_t)))return 0;
+    int okay=xlsIrKeyNode(key,node,0,module,&paths);xrtMapUnit(&paths.paths);return okay;
 }
 static int xlsSemEqualKey(const xstrbuf* a,const xstrbuf* b)
 { return a->Size==b->Size && (!a->Size || !memcmp(a->Data,b->Data,a->Size)); }
