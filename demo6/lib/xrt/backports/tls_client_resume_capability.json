@@ -1,0 +1,37 @@
+{
+  "Schema": 1,
+  "Purpose": "Reject explicit client Resume configuration when the client-resume overlay is absent",
+  "CanonicalCommit": "183ba2e8df15e0baeaac0c46b3239040f06bd6e2",
+  "GuardedSections": [
+    "include/xrt/tls_client.h",
+    "src/tls/client.c"
+  ],
+  "WholeSnapshotUpgrade": false,
+  "PublicStructLayoutsPreserved": true,
+  "ExistingFunctionSignaturesPreserved": true,
+  "FunctionsAdded": 0,
+  "TimeAbiPreserved": true,
+  "Consumers": {
+    "lib/xrt/xrt.h": {
+      "BeforeSha256": "2a9801012526348eb40b45221e08c4e895b5702cf06ae6cc64a1447de533497c",
+      "AfterSha256": "973f51fbfb07eabce9b98e4631aa15707885f1842381b901e4baa7a74fe8a08f"
+    },
+    "lib/xruntime/xruntime.h": {
+      "BeforeSha256": "f1fbfe81775b78224f5c27c0d8503bf7568556193ad0b11815ac1552f71a5df0",
+      "AfterSha256": "ea6081b87ff0a060ce4fff6e493f1998e57647612f23926a829d9a934a0f9ac7"
+    },
+    "release/include/xrt_decl.h": {
+      "BeforeSha256": "e9bfc29216fd0becbea6e59bffbfbd187f9298914c476ce319a391d42642f44e",
+      "AfterSha256": "2e1f8a7584fafa82b77dfe487610e1041b4fe176fa9ac9657a61ee2a1e61bac2"
+    },
+    "release/include/xruntime_decl.h": {
+      "BeforeSha256": "2dafa6c355c9590c04db2caadbb87ae2cb6b2aa756593f4ecc08047ed263eb7f",
+      "AfterSha256": "6950176f37b11cbb1548781e5b93c1ce42aedca5efcb1907e92aed595b7c2166"
+    }
+  },
+  "Stages": 242,
+  "NativeExecutions": 20,
+  "NoHandshakeOrTraffic": true,
+  "LanguageClientBindingAccepted": false,
+  "ShippingAccepted": false
+}

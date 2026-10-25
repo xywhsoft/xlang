@@ -28588,7 +28588,8 @@ XRT_API void xrtTlsClientConfigInit(xtlsclientconfig* pConfig);
 
 
 
-/* 创建客户端会话；默认要求 Verifier，无验证器时必须启用 ResumeOnly。 */
+/* 创建客户端会话；默认要求 Verifier，无验证器时必须启用 ResumeOnly。
+ * 未启用 client_resume 时显式拒绝非空 Resume 或 ResumeOnly，不静默忽略。 */
 XRT_API xtlssession* xrtTlsClientCreate(
 	const xtlsclientconfig* pConfig,
 	xnetbufpool* pPool
