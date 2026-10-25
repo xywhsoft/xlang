@@ -20,9 +20,13 @@ The same error occurs with `release/extlibs/netrc/test/named_type.xl` and
 `test/cases/extlib_pinyin.xl`. It also occurs in
 `test/cases/extlib_rtree.xl` and
 `test/cases/xlir_c_owned_import_exports.xl` (with
-`XLANG_PACKAGE_PATH=test/fixtures;release/extlibs`). A plain script without
+`XLANG_PACKAGE_PATH=test/fixtures;release/extlibs`). On the same release,
+`test/cases/extlib_cli.xl` and the `tools/check_extlib_color.ps1` language
+stage fail at the same header; the color gate's strict C tests, threads, and
+independent named-color oracle pass before that point. A plain script without
 imports still runs. Other imports such as `release/examples/extlibs/slugify.xl`
-and `release/examples/extlibs/zip.xl` also run successfully. This is a shared
+and `release/examples/extlibs/zip.xl`, as well as the basic color example,
+also run successfully. This is a shared
 blocker for imports that reach the affected runtime header, not for every
 ordinary extension and not a `pinyin`, `netrc`, or `rtree` implementation error.
 
