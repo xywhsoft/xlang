@@ -19,6 +19,7 @@ from native_cancellation_overlay import ir_cancellation, semantic_cancellation
 from native_ir_memo_overlay import derive as derive_ir_memo
 from native_type_source_overlay import derive as derive_type_sources
 from native_initializer_overlay import derive as derive_initializer_index
+from native_parser_ownership_overlay import derive as derive_parser_ownership
 
 FRONTEND_SOURCES = (
     "src/lexer/xl6_token.c", "src/lexer/xl6_lexer_api.c", "src/lexer/xl6_lexer_gen.c",
@@ -58,7 +59,7 @@ CORE_TESTS = ("analysis_call_candidates_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_cursor_source_memo_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_annotations_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ast_storage_test", *CORE_TESTS)
-CORE_TESTS = ("analysis_ast_materialize_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_check_materialize_test", "analysis_ast_materialize_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_call_context_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_signature_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_input_usage_test", *CORE_TESTS)
@@ -593,6 +594,7 @@ def main() -> None:
         original_ast, generated_ast, ast_overlay = prepare_native_ast(frontend, output)
         original_parser, generated_parser, parser_overlay = prepare_native_parser(frontend, output)
         original_lexer, generated_lexer, lexer_overlay = prepare_native_lexer(frontend, output)
+        original_stack, generated_stack, stack_overlay = derive_parser_ownership(frontend, output)
         context_overlays = derive_context_runtime(frontend, output)
         runtime_overlay = derive_process_runtime(frontend / 'lib/xrt/xrt.h', output / 'native_xrt/xrt.h')
     except ValueError as error:
@@ -605,6 +607,7 @@ def main() -> None:
     sources = [(generated_ast if path == original_ast else path, owned) for path, owned in sources]
     sources = [(generated_parser if path == original_parser else path, owned) for path, owned in sources]
     sources = [(generated_lexer if path == original_lexer else path, owned) for path, owned in sources]
+    sources = [(generated_stack if path == original_stack else path, owned) for path, owned in sources]
     scoped_sources = {Path(row['source']): Path(row['compiledSource']) for row in context_overlays}
     sources = [(scoped_sources.get(path, path), owned) for path, owned in sources]
     env = dict(os.environ)
@@ -639,11 +642,13 @@ def main() -> None:
         str(original_index): index_overlay["sourceSha256"], str(original_ir): ir_overlay["sourceSha256"],
         str(original_sem): sem_overlay["sourceSha256"], str(original_stdlib): stdlib_overlay["sourceSha256"],
         str(original_types): types_overlay["sourceSha256"]}, {}, [], {}
-    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, ast_overlay, parser_overlay, lexer_overlay, *context_overlays]
+    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, ast_overlay, parser_overlay, lexer_overlay, stack_overlay, *context_overlays]
     inputs[str(Path(__file__).with_name('native_cancellation_overlay.py').resolve())] = sha(Path(__file__).with_name('native_cancellation_overlay.py'))
     inputs[str(Path(__file__).with_name('native_ir_memo_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_memo_overlay.py'))
     inputs[str(Path(__file__).with_name('native_type_source_overlay.py').resolve())] = sha(Path(__file__).with_name('native_type_source_overlay.py'))
     inputs[str(Path(__file__).with_name('native_initializer_overlay.py').resolve())] = sha(Path(__file__).with_name('native_initializer_overlay.py'))
+    inputs[str(Path(__file__).with_name('native_parser_ownership_overlay.py').resolve())] = sha(Path(__file__).with_name('native_parser_ownership_overlay.py'))
+    inputs.update({stack_overlay['source']:stack_overlay['sourceSha256'], stack_overlay['grammarSource']:stack_overlay['grammarSha256']})
     inputs[str(original_parser)] = parser_overlay['sourceSha256']
     inputs[str(original_lexer)] = lexer_overlay['sourceSha256']
     inputs.update({ast_overlay['source']:ast_overlay['sourceSha256'], ast_overlay['headerSource']:ast_overlay['headerSourceSha256'], ast_overlay['runtimeSource']:ast_overlay['runtimeSourceSha256']})

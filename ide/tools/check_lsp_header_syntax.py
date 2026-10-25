@@ -47,7 +47,7 @@ def main():
                     text=program(helpers,generation)
                     if not generation:c.open(dep,text,1)
                     else:c.change(dep,text,generation+1)
-                    r=check();a=r['analysis'];work=a['lastBuildModuleSyntax'];assert r['ok']==(generation!=5) and (r['count']==0)==(generation!=5),r
+                    r=check();a=r['analysis'];work=a['lastBuildModuleSyntax'];copied=a['lastBuildMaterialization'];assert copied['calls'] and copied['pooledCopies']==copied['calls'] and copied['nodes'] and not copied['heapCopies'] and not copied['poolFallbacks'];assert r['ok']==(generation!=5) and (r['count']==0)==(generation!=5),r
                     if generation in [1,2,3,4,6]:assert work['full']==0 and work['fragments']==1 and work['reused']==helpers+2 and work['bytes']<256,work
                     else:assert work['full']==1,work
                     if generation in [1,2,4]:assert a['semanticReads']['reused']>=helpers,a
