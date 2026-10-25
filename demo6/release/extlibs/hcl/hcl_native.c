@@ -58,10 +58,13 @@ static xhclinput xhcl_input(cstr sText)
 {
     xhclinput Input;
 
-    Input.Data = sText != NULL ? sText : "";
+    Input.Data = sText;
     /* C 字符串入口最多探测上限外一个字节，避免超大输入的无界扫描。 */
-    for (Input.Size = 0u; Input.Size <= XHCL_MAX_INPUT &&
-        Input.Data[Input.Size] != 0; ++Input.Size) {}
+    Input.Size = 0u;
+    if (sText != NULL) {
+        for (; Input.Size <= XHCL_MAX_INPUT &&
+            sText[Input.Size] != 0; ++Input.Size) {}
+    }
     Input.Depth = 0u;
     return Input;
 }
@@ -434,6 +437,10 @@ static bool xhcl_walk_scope(xhclinput Input, size_t Begin, size_t End,
 {
     size_t i = Begin;
 
+    if (Input.Data == NULL) {
+        xhcl_error(XERR_ARGUMENT, "HCL input pointer is null");
+        return false;
+    }
     if (Input.Size > XHCL_MAX_INPUT) {
         xhcl_error(XERR_RANGE, "HCL input exceeds 8 MiB");
         return false;

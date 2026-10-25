@@ -1,5 +1,11 @@
 # hcl
 
+2026-10-25：C 入口不再将 `NULL` HCL 正文默认为合法空文档；
+`validate` 和各查询统一报告 `XERR_ARGUMENT`，真正的 `""` 保持有效。
+C 一致性负例覆盖校验、文本/计数查询和失败后恢复；Windows 默认包门禁
+的严格 C、线程、XLang 与四份 AOT 检查全部通过，Linux C ASan/UBSan、
+XLang JIT 与分配故障门禁通过。Linux 独立 AOT 仍待新版发布构建。
+
 2026-10-25 所有权复核：四个文本查询返回普通 `string`，
 `takeCstr` 将 XRT 分配直接移交给结果。先前改为 `cstring` 后，
 调用方转成 `string` 反而复制文本，现已修正。Windows 包门禁核对

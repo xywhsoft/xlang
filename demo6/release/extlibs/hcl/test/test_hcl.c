@@ -215,6 +215,19 @@ int main(void)
     void* pLargeResult;
     int i;
 
+    // 缺失指针不是合法空文档；所有查询沿同一解析边界拒绝。
+    if (testDocumentConsistency(NULL, true) != 0 ||
+        xrtGetError() == NULL || xrtErrorKind(xrtGetError()) != XERR_ARGUMENT)
+        return fail("null HCL document must report argument error");
+    if (!xhcl_validate("") || xrtGetError() != NULL)
+        return fail("empty HCL document must remain valid");
+    if (xhcl_has(NULL, "name") || xrtGetError() == NULL ||
+        xrtErrorKind(xrtGetError()) != XERR_ARGUMENT)
+        return fail("null HCL document must not report a normal miss");
+    if (xhcl_count_attrs(NULL) != -1 || xrtGetError() == NULL ||
+        xrtErrorKind(xrtGetError()) != XERR_ARGUMENT)
+        return fail("null HCL document must not report zero attributes");
+
     if (testInputLimit() != 0) return 1;
 
     for (i = 0; i < 12; ++i) {

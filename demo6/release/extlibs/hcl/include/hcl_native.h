@@ -8,6 +8,7 @@
 extern "C" {
 #endif
 
+/* HCL 正文须为有效 C 字符串；NULL 报 XERR_ARGUMENT，"" 是合法空文档。 */
 /* 字符串结果归调用方所有，使用 xrtFree 释放；NULL 表示失败，检查 XRT 错误。 */
 void* xhcl_get(const char* hcl, const char* key);
 void* xhcl_get_raw(const char* hcl, const char* key);
