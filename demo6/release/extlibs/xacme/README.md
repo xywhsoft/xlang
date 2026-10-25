@@ -36,6 +36,7 @@ end
   `Account.Eab.Kid/Hmac` 对应 EAB。三个配置构造器的默认值与上游 Init 的全零语义一致。
 * `DnsProvider.Ali/Cf/Tencent/Aws/Huawei(config)` 创建内建 provider，每家均有对应配置类。
   `Add/Remove/Propagate/Validate/Id/Caps/Unit` 提供实例操作，`Count/ProviderId` 提供枚举。
+  Endpoint 为空时采用上游默认地址。域名列表保留条目顺序及重复项，16 个不同域名的限制由上游执行。
   Unit 释放本地上下文，不删除云端 TXT 记录。
 * `DnsProvider.Custom(id, add, remove[, propagate])` 接受 `func(string,string) as bool`。
   包内完成 xcall 绑定、异常传递和闭包追踪；提供传播回调时自动设置能力位。
@@ -83,3 +84,5 @@ python3 tools/check_xacme.py --directory build/xacme-check --xrt /path/to/xrt --
 门禁覆盖原生 OOM 回滚、借用引擎、未完成清理重试、指针转移、自定义回调、模拟签发与存储，
 以及基础调用、PEM 使用、保留全局资源和回调时的模块退役的 JIT/AOT 路径。
 刷新上游使用 `python tools/sync_xacme_upstream.py --xrt /path/to/xrt`，随后重新跑全部门禁。
+
+本轮源码验收记录见 [xacme_xrt_binding_acceptance.md](../../../docs/xacme_xrt_binding_acceptance.md)。
