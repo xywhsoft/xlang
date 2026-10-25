@@ -2,6 +2,12 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_network_public_shipping.py --manifest tools/tls_public_fixtures.json`
+uses the same ordinary-product gate for 10 TLS positives and two compile-time
+negatives (63 stages/OS). Explicit `.xl` support files retain relative imports;
+the default 18-case network batch remains 99 stages. Fixed valid material and
+self-owned literal loopback only. See [TLS close lifetime](../docs/tls-close-lifetime-2026-10-26.md).
+
 `build_xlir_public_source_driver.ps1` stages compiler sources through the existing
 contained-relative-path helper, including Windows PowerShell 5. Its real 2,268-file
 mapping, byte equivalence and full current-source build are recorded in

@@ -1,0 +1,44 @@
+import "../fixtures/tls_close_context.xl" as fixture
+
+func closedTlsSender(NetEngine engine, TlsServer listener, bytes payload) as TlsStream
+    auto client = TlsStream(engine, listener.local(), fixture.makeClient(), "localhost")
+    auto peer = listener.accept(10000)
+    assert client.waitOpen(10000)
+    assert client.send(payload, -1, 10000) == payload.length
+    client.close()
+    client.close()
+    return peer
+end
+
+func receiveTlsExact(TlsStream peer, int size) as bytes
+    bytes result = b""
+    while result.length < size
+        bytes part = peer.recv(size - result.length, 10000)
+        assert part.length > 0
+        result = result + part
+    end
+    return result
+end
+
+func tlsCloseLifetime(NetBackend backend)
+    auto engine = NetEngine(NetEngineOptions().withWorkers(2).withBackend(backend))
+    engine.start()
+    auto listener = TlsServer(engine, TcpListenOptions(NetAddress.loopback(4, 0)), fixture.makeServer())
+    bytes payload = encoding.encodeUtf8(string.repeat("tls\0:queued\r\n", 4096)) + b"\xff"
+    // The helper's client owner is gone before the first receive.
+    auto peer = closedTlsSender(engine, listener, payload)
+    assert receiveTlsExact(peer, payload.length) == payload
+    peer.close()
+    assert peer.waitClose(10000)
+    listener.close()
+    engine.close()
+    assert engine.wait(10000)
+end
+
+tlsCloseLifetime(NetBackend.select)
+if net.backendCompiled(NetBackend.iocp) then
+    tlsCloseLifetime(NetBackend.iocp)
+else
+    tlsCloseLifetime(NetBackend.epoll)
+end
+println("tls_close_before_destroy=ok")

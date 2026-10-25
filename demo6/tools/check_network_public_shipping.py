@@ -15,6 +15,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('root','build-report','out'):parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--jobs',type=int,default=2)
+    parser.add_argument('--manifest',type=Path,help='Explicit ordinary network/TLS cases and .xl support; default network batch is unchanged')
     args=parser.parse_args();root,out=args.root.resolve(),args.out.resolve()
     assert not out.exists() and args.jobs>0
     build=json.loads(args.build_report.read_text(encoding='utf-8-sig'))
@@ -24,12 +25,17 @@ def main():
     originals=[root/'release'/name for name in names]
     recorded={Path(row['Path']).resolve():row['Sha256'] for row in build['Products']}
     assert all(recorded.get(path)==sha(path) for path in originals)
-    manifest=controls/'tools/network_public_fixtures.json'
-    cases=json.loads(manifest.read_text(encoding='utf8'))['Cases']
-    assert len(cases)==18 and len({r['Name'] for r in cases})==18
+    manifest=args.manifest.resolve() if args.manifest else controls/'tools/network_public_fixtures.json'
+    selection=json.loads(manifest.read_text(encoding='utf-8-sig'));cases=selection['Cases']
+    assert cases and len({r['Name'] for r in cases})==len(cases)
+    if not args.manifest:assert len(cases)==18
+    support=selection.get('Support',[])
+    assert len(support)==len(set(support))
     for row in cases:
         assert re.fullmatch(r'[A-Za-z0-9_]+',row['Name']) and type(row['Negative']) is bool
-        assert (controls/row['Source']).resolve().is_relative_to(controls)
+    for relative in [r['Source'] for r in cases]+support:
+        source=(controls/relative).resolve()
+        assert source.is_relative_to(controls) and source.is_file() and source.suffix=='.xl'
     cc=Path(shutil.which('gcc')).resolve()
     vfs=root/'tools'/('tcc_vfs_manifest_win64_runtime.txt' if windows else 'tcc_vfs_manifest_linux_runtime.txt')
     directory=root/('build/tmp' if windows else 'build/linux')
@@ -46,8 +52,9 @@ def main():
     for r in declarations:
         destination=sdk/Path(r.virtual).relative_to('include');destination.parent.mkdir(parents=True,exist_ok=True)
         shutil.copy2(r.source,destination);pinned.update((r.source,destination))
-    for row in cases:
-        original=controls/row['Source'];copied=sources/(row['Name']+'.xl')
+    for relative in sorted({r['Source'] for r in cases}|set(support)):
+        original=controls/relative;copied=sources/relative
+        copied.parent.mkdir(parents=True,exist_ok=True)
         shutil.copy2(original,copied);pinned.update((original,copied))
     public_headers=list((root/'release/include').glob('*.h'));pinned.update(public_headers)
     report=dict(Complete=False,Rows=[],Failures=[],Products=[],Proofs=[],Inputs={str(p):sha(p) for p in sorted(pinned)},
@@ -77,7 +84,7 @@ def main():
     def check(row):
         name=row['Name'];negative=row['Negative'];directory=out/name;directory.mkdir()
         try:
-            text=run(name+'-host',[host,work,sources/(name+'.xl'),directory,sdk,isolated/names[1],'-','-',
+            text=run(name+'-host',[host,work,sources/row['Source'],directory,sdk,isolated/names[1],'-','-',
                 'negative' if negative else 'positive'])
             if negative:
                 assert 'core-host: checked-rejection' in text
@@ -97,7 +104,7 @@ def main():
                 run(name+'-aot-relocated',[binary])
                 imports=run(name+'-aot-imports',(['E:/software/w64devkit/bin/objdump.exe','-p',binary] if windows else ['readelf','-d',binary]))
                 assert not any(s in imports.lower() for s in ('xl.dll','xlc.dll','libxl.so','libxlc.so'))
-                run(name+'-cli',[isolated/names[0],'run',sources/(name+'.xl')])
+                run(name+'-cli',[isolated/names[0],'run',sources/row['Source']])
             with lock:report['Proofs'].append(dict(Name=name,Negative=negative));save()
         except Exception as error:
             with lock:report['Failures'].append(dict(Name=name,Error=repr(error)));save()

@@ -18,7 +18,7 @@ typedef struct Node {xrtownershipref ref;const xrtownershipadapterv1* adapter;co
 typedef struct Scene {XL6_ExecutionSourceV1* source;Resource *engine,*listener,*client,*peer;xfuture* pending;
     Node nodes[CAPACITY];size_t count;bool pinned,busy;} Scene;
 static XL6_OwnershipCatalog* catalog;
-static unsigned graphs,ordinary,scoped,budgets,failures,deferred;
+static unsigned graphs,ordinary,scoped,budgets,failures,deferred,graceful;
 static void balanced(xmemdebugsnapshot before)
 {
     xmemdebugsnapshot after;xrtMemDebugSnapshot(&after);
@@ -140,6 +140,75 @@ static void ordinaryDrop(Scene* s)
 {
     xrtFutureDestroy(s->pending);xl6ExecutionResourceReleaseV1(s->client);xl6ExecutionResourceReleaseV1(s->peer);xl6ExecutionResourceReleaseV1(s->listener);drain(&s->source);ordinary++;
 }
+typedef struct TlsCloseGate {xevent *entered,*resume;} TlsCloseGate;
+static void holdTlsWorker(xnetworker* worker,void* raw)
+{
+    (void)worker;TlsCloseGate* gate=raw;CHECK(xrtEventSet(gate->entered));
+    CHECK(xrtEventWaitFor(gate->resume,UINT64_C(10000000))==XWAIT_OK);
+}
+static void closeInspection(xrtownershipscope* scope)
+{
+    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
+    while(!xrtOwnershipFreezeTryBegin(scope)){CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+}
+static void gracefulLastOwner(xnetportbackend backend)
+{
+    xmemdebugsnapshot before;xrtClearError();xrtMemDebugSnapshot(&before);Scene s={0};create(&s,backend);
+    TlsCloseGate gate={xrtEventCreate(true,false),xrtEventCreate(true,false)};CHECK(gate.entered&&gate.resume);
+    XL6_TlsScopeV1 scope={0};CHECK(xl6ExecutionTlsStreamEnterV1(s.client,true,&scope));
+    xtlsstream* observer=xrtTlsStreamRef(scope.stream);CHECK(observer);
+    xnetstream* tcp=xrtTlsStreamTransport(scope.stream);CHECK(tcp);
+    xnetworker* worker=xrtNetStreamWorker(tcp);CHECK(worker);
+    uint32 index=xrtNetWorkerIndex(worker);xl6ExecutionTlsLeaveV1(&scope);
+    XL6_ExecutionScopeV1 engineScope={0};CHECK(xl6ExecutionResourceEnterV1(s.engine,false,&engineScope));
+    CHECK(xrtNetEnginePost(engineScope.engine,index,holdTlsWorker,&gate));xl6ExecutionResourceLeaveV1(&engineScope);
+    CHECK(xrtEventWaitFor(gate.entered,UINT64_C(10000000))==XWAIT_OK);
+    unsigned char payload[65536];for(size_t i=0;i<sizeof(payload);++i)payload[i]=(unsigned char)i;
+    CHECK(xl6ExecutionTlsStreamEnterV1(s.client,true,&scope));
+    xfuture* sent=xrtTlsStreamSendAsync(scope.stream,payload,sizeof(payload));CHECK(sent);
+    xl6ExecutionTlsLeaveV1(&scope);Resource* sender=s.client;
+    const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* preparation=NULL;
+    const xrtownershipfinishv1* finish=NULL;xrtownershipscope inspection={0};closeInspection(&inspection);
+    CHECK(xl6OwnershipCatalogProbeV1(xl6ExecutionResourceOwnershipV1(sender),catalog,&adapter,&preparation,&finish)==
+        XL6_OWNERSHIP_ADMISSION_ADMITTED&&adapter->Hold(sender));
+    uint64_t cycle=sender->cycle;CHECK(xrtOwnershipScopeEnd(&inspection));
+    CHECK(xl6ExecutionResourceCloseV1(sender)&&xl6ExecutionResourceCloseV1(sender));
+    xl6ExecutionResourceReleaseV1(sender);s.client=NULL;
+    /* A catalog inspection pin is not a language owner. The real retirement
+     * worker must observe owner zero before the queued send can progress. */
+    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
+    for(;;){
+        closeInspection(&inspection);bool attempted=sender->cycle!=cycle&&!sender->retiring;
+        CHECK(sender->owners==0&&sender->requested&&sender->source);
+        CHECK(xrtOwnershipScopeEnd(&inspection));if(attempted)break;
+        CHECK(!xrtDeadlineExpired(due));xrtThreadYield();
+    }
+    CHECK(xrtNetStreamState(tcp)!=XNET_STREAM_CLOSED);CHECK(xrtEventSet(gate.resume));
+    CHECK(xrtFutureWaitFor(sent,UINT64_C(10000000))==XWAIT_OK&&xrtFutureState(sent)==XFUTURE_RESOLVED);
+    xrtFutureDestroy(sent);size_t received=0;
+    while(received<sizeof(payload)){
+        CHECK(xl6ExecutionTlsStreamEnterV1(s.peer,true,&scope));
+        xfuture* read=xrtTlsStreamRecvAsync(scope.stream,8192);CHECK(read);xl6ExecutionTlsLeaveV1(&scope);
+        CHECK(xrtFutureWaitFor(read,UINT64_C(10000000))==XWAIT_OK&&xrtFutureState(read)==XFUTURE_RESOLVED);
+        xbytesview view=xrtNetBytesView(xrtFutureValue(read));
+        CHECK(view.Size&&view.Size<=sizeof(payload)-received&&!memcmp(view.Data,payload+received,view.Size));
+        received+=view.Size;xrtFutureDestroy(read);
+    }
+    due=xrtDeadlineAfter(UINT64_C(10000000));
+    while(xrtTlsStreamState(observer)!=XTLS_STREAM_CLOSED||xrtNetStreamState(tcp)!=XNET_STREAM_CLOSED){
+        CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+    xrtTlsStreamDestroy(observer);adapter->Drop(sender);
+    /* Join physical engine callback tails before destroying their event data. */
+    xl6ExecutionResourceReleaseV1(s.peer);xl6ExecutionResourceReleaseV1(s.listener);drain(&s.source);
+    xrtEventDestroy(gate.entered);xrtEventDestroy(gate.resume);balanced(before);++graceful;
+
+    xrtMemDebugSnapshot(&before);s=(Scene){0};create(&s,backend);
+    CHECK(xl6ExecutionResourceCloseV1(s.client)&&xl6ExecutionResourceCancelV1(s.client));
+    CHECK(xl6ExecutionResourceCloseV1(s.client));
+    CHECK(xrtAtomic32Load(&((XL6_TlsStreamResourceV1*)s.client)->closeMode,XMEMORY_ACQUIRE)==XL6_TLS_CLOSE_ABORT_V1);
+    xl6ExecutionResourceReleaseV1(s.client);xl6ExecutionResourceReleaseV1(s.peer);
+    xl6ExecutionResourceReleaseV1(s.listener);drain(&s.source);balanced(before);
+}
 static void construction(xnetportbackend backend)
 {
     unsigned success=0;
@@ -217,6 +286,6 @@ int main(int argc,char** argv)
             ordinaryDrop(&s);
         }balanced(before);
     }
-    construction(backend);publicationRace(backend);xl6OwnershipCatalogDestroyV1(catalog);CHECK(xrtMemDebugReset());
-    printf("managed TLS resources: graphs=%u ordinary=%u scoped-last-owner=%u deferred=%u budgets=%u failures=%u; real Data credits, parent owners, exact kinds, NUL roundtrip; balanced backend=%d\n",graphs,ordinary,scoped,deferred,budgets,failures,(int)backend);return 0;
+    gracefulLastOwner(backend);construction(backend);publicationRace(backend);xl6OwnershipCatalogDestroyV1(catalog);CHECK(xrtMemDebugReset());
+    printf("managed TLS resources: graphs=%u ordinary=%u scoped-last-owner=%u deferred=%u budgets=%u failures=%u; graceful-last-owner=%u abort-wins=1; real Data credits, parent owners, exact kinds, NUL roundtrip; balanced backend=%d\n",graphs,ordinary,scoped,deferred,budgets,failures,graceful,(int)backend);return 0;
 }

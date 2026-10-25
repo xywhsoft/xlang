@@ -1,0 +1,17 @@
+{
+  "Support": ["test/fixtures/tls_close_context.xl"],
+  "Cases": [
+    {"Name":"stdlib_tls_close_lifetime","Source":"test/cases/stdlib_tls_close_lifetime.xl","Negative":false},
+    {"Name":"stdlib_five_groups_joint","Source":"test/cases/stdlib_five_groups_joint.xl","Negative":false},
+    {"Name":"stdlib_tls_server_fast_path","Source":"test/cases/stdlib_tls_server_fast_path.xl","Negative":false},
+    {"Name":"stdlib_tls_server_loopback","Source":"test/cases/stdlib_tls_server_loopback.xl","Negative":false},
+    {"Name":"stdlib_tls_session","Source":"test/cases/stdlib_tls_session.xl","Negative":false},
+    {"Name":"stdlib_tls_session_pair","Source":"test/cases/stdlib_tls_session_pair.xl","Negative":false},
+    {"Name":"stdlib_tls_session_trim","Source":"test/cases/stdlib_tls_session_trim.xl","Negative":false},
+    {"Name":"stdlib_tls_stream_fast_path","Source":"test/cases/stdlib_tls_stream_fast_path.xl","Negative":false},
+    {"Name":"stdlib_tls_stream_options","Source":"test/cases/stdlib_tls_stream_options.xl","Negative":false},
+    {"Name":"stdlib_tls_stream_options_owned","Source":"test/cases/stdlib_tls_stream_options_owned.xl","Negative":false},
+    {"Name":"bad_stdlib_tls_raw_constructor","Source":"test/cases/bad_stdlib_tls_raw_constructor.xl","Negative":true},
+    {"Name":"bad_stdlib_tls_private_handle","Source":"test/cases/bad_stdlib_tls_private_handle.xl","Negative":true}
+  ]
+}
