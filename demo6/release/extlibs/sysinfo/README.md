@@ -1,10 +1,10 @@
 # sysinfo
 
-2026-10-25 所有权复核：五个文本查询返回普通 `string`，
+2026-10-25 发布版复核：五个文本查询返回普通 `string`，
 `takeCstr` 直接移交 XRT 分配。先前 `cstring` 返回转为 `string`
 会额外复制，现已修正。Windows 默认包门禁核对生成 C 的直接移交、
-双语范例及四份独立 EXE；Linux C ASan/UBSan、XLang JIT 与双语门禁
-已通过，独立 Linux AOT 待新发布版复验。
+双语范例及四份独立 EXE；Linux 包门禁也通过 C ASan/UBSan、
+XLang JIT、四份独立 EXE 和双语范例对照。
 
 `sysinfo` 提供 Windows/Linux 主机运行时信息：`osName`、`osVersion`、`arch`、
 `hostname`、`cpuName`、`cpuCount`、`memTotal`、`memAvailable`、
@@ -75,7 +75,9 @@ Windows/Linux 包门禁将这一路径与 GCC 编译运行、XLang 范例的输�
 在相邻调用间变化，门禁分别检查两种语言的输出格式和合法范围，不要求
 瞬时数值相同。两组范例合计覆盖全部 11 个公开查询。
 当前 Windows 严格 GCC、C/XLang 双语对照、边界与公开范例 AOT 通过；Linux 包级门禁
-同次运行严格 GCC、C ASan/UBSan、XLang 边界及双语范例逐字节对照。
+同次运行严格 GCC、C ASan/UBSan、XLang JIT、边界/分配故障/基础范例/动态指标
+四份独立 EXE。Linux 基础范例的 JIT/AOT 均与 C 输出逐字节一致；
+动态指标随时间变化，只检查格式和合法范围。
 带文本输出的范例 AOT 已在 2026-10-24 发布版通过；此前共享运行时
 `xl6ValueDataSnapshotV1` 缺符号的历史记录见 `dev/extlib_blockers/text_snapshot_link.md`。
 六个整数 C 结果统一使用 `int64_t`，与 XLang `int` 在 Linux LP64 上保持一致。
