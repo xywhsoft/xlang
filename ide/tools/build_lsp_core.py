@@ -15,6 +15,7 @@ import subprocess
 import time
 from xrt_process_tree_overlay import derive as derive_process_runtime
 from native_context_overlay import derive as derive_context_runtime
+from native_cancellation_overlay import ir_cancellation, semantic_cancellation
 
 FRONTEND_SOURCES = (
     "src/lexer/xl6_token.c", "src/lexer/xl6_lexer_api.c", "src/lexer/xl6_lexer_gen.c",
@@ -62,6 +63,7 @@ CORE_TESTS = ("analysis_dependency_graph_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_worker_cache_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_worker_cache_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ast_intern_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_frontend_cancel_test", *CORE_TESTS)
 
 
 def sha(path: Path) -> str:
@@ -164,10 +166,12 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
             raise ValueError('shared IR scan seam changed; audit its native overlay: ' + old)
         source = source.replace(old, new)
     compiled = output / 'frontend/xl6_ir.c'
+    source = ir_cancellation(source)
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
         change='bounded nominal-declaration candidates, cleanup/plan/call-origin indexes and per-verification scope proofs; shared rules retained',
+        cancellation='cooperative node/phase/verify points; partial child lists and owned incoming counts unwind through audited cleanup',
         auditedSeams=len(changes), indexBytes=16 * 1024 * 1024, planIndexBytes=8 * 1024 * 1024,
         scopeProofBytes=1024 * 1024, callIndexBytes=8 * 1024 * 1024, typeLookupBytes=8 * 1024 * 1024,
         regionIndexBytes=8 * 1024 * 1024)
@@ -304,10 +308,12 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
               tail.replace('&ctx', 'ctx') + '}\n#include "analysis/frontend_sem_tail.inc"\n\n')
     source = source.replace(seam, helper + seam)
     compiled = output / 'frontend/xl6_sem.c'
+    source = semantic_cancellation(source)
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
         change='bounded ordered conflict/completion and root-body call candidates,namespace/alias filters,exact-context function memos and private lazy cursor IR annotations;original predicates/diagnostics and full AST annotations retained on demand;ordinary/fresh eager unchanged',
+        cancellation='cooperative module/function/statement/expression points; ordinary scope/type/call-index cleanup retained',
         auditedSeams=len(changes)+len(conflict_changes)+len(completion_changes)+9, memoBytes=64 * 1024 * 1024,
         deferredRegistryBytes=8 * 1024 * 1024,
         overloadCandidateBytes=8 * 1024 * 1024,
@@ -504,7 +510,7 @@ def main() -> None:
     sources += [(ide / "src/protocol/input_state.c", True)]
     sources += [(ide / "src/protocol/diagnostic_paths.c", True)]
     sources += [(ide / path, True) for path in (
-        "src/analysis/frontend_ir_regions.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/input_view.c", "src/analysis/dependency_graph.c", "src/analysis/ast_storage.c", "src/analysis/ast_materialize.c", "src/analysis/ast_clone.c", "src/analysis/ast_intern.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/signature.c", "src/analysis/signature_session.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
+    "src/analysis/frontend_cancel.c", "src/analysis/frontend_ir_regions.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/input_view.c", "src/analysis/dependency_graph.c", "src/analysis/ast_storage.c", "src/analysis/ast_materialize.c", "src/analysis/ast_clone.c", "src/analysis/ast_intern.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/signature.c", "src/analysis/signature_session.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
@@ -576,6 +582,7 @@ def main() -> None:
         str(original_sem): sem_overlay["sourceSha256"], str(original_stdlib): stdlib_overlay["sourceSha256"],
         str(original_types): types_overlay["sourceSha256"]}, {}, [], {}
     source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, ast_overlay, parser_overlay, lexer_overlay, *context_overlays]
+    inputs[str(Path(__file__).with_name('native_cancellation_overlay.py').resolve())] = sha(Path(__file__).with_name('native_cancellation_overlay.py'))
     inputs[str(original_parser)] = parser_overlay['sourceSha256']
     inputs[str(original_lexer)] = lexer_overlay['sourceSha256']
     inputs.update({ast_overlay['source']:ast_overlay['sourceSha256'], ast_overlay['headerSource']:ast_overlay['headerSourceSha256'], ast_overlay['runtimeSource']:ast_overlay['runtimeSourceSha256']})
@@ -633,7 +640,7 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_ir_regions","frontend_entry_cache","input_view", "dependency_graph", "text", "context", "frontend_context", "ast_storage", "ast_materialize", "ast_clone", "ast_intern", "syntax", "session", "worker", "folding", "semantic", "signature", "signature_session", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_cancel", "frontend_ir_regions","frontend_entry_cache","input_view", "dependency_graph", "text", "context", "frontend_context", "ast_storage", "ast_materialize", "ast_clone", "ast_intern", "syntax", "session", "worker", "folding", "semantic", "signature", "signature_session", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         limited_index = output / "xl6_sem_index_limit.o"

@@ -47,7 +47,9 @@ xls_entry_parse_work xlsSemanticCheckModuleWork(const xls_semantic_check* result
  * 8 MiB/file, 32 MiB total. Inputs are borrowed only during the call; no code
  * generation, compiler process, DLL, global chdir or project execution.
  * Compile errors are valid results with accepted=0; infrastructure errors
- * and cancellation return NULL. Cancellation checks are phase-boundary only. */
+ * and cancellation return NULL. Cooperative checks also run at audited
+ * semantic function/statement/expression and IR build/verify boundaries;
+ * parser, imports and individual unchecked helpers remain non-preemptible. */
 xls_semantic_check* xlsSemanticCheckCreate(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);

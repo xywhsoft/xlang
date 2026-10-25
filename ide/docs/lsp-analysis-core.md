@@ -1396,3 +1396,14 @@ XRT map 保留精确字节键，批量紧凑标量加本次捕获的原路径字
 133 对象 fresh build／58 fixtures／59 PE／60 outputs／52 archive members／62 AST17 consumers。345 身份／预算／真实索引故障断言、400 并发独立 clone，1064 memo／2100 cursor／38727 signature 与 744 worker 取消门通过；33 套 907 协议（新增两版各24）、18 组 IDE 回归。106 GUI 实际依赖及 token 证明支撑 35 程序复用。1152 热／288 编辑／240 冷 stdio、160 标签／320 逗号手动光标帧、进程 CPU 和 private／working set 证据见 lsp-development.md 及 m7a2b21b-c2ed0cca。
 
 模块／IR 的真正持久增量和整体模型预算仍待后续，不将该内部表示优化当作完整 LSP／IDE 目标完成。外部 executable、future opaque xlc.dll、无 DAP／运行态补全；发布目录未改，goal active。
+
+
+## M7a2b22a：协作取消与私有前端清理（0.55）
+
+frontend_cancel.c/h 是不依赖协议、GUI、Windows 或 compiler AST 布局的私有 C scope。调用方传入原取消回调，实际 actor 使用现有 XRT token。TLS 指针按嵌套恢复，取消状态保持至该 scope 退出；没有回调且无父 scope 时保持零活动 scope。递归点共用 64 个工作点的轮询预算，模块／函数和 IR pass 边界强制检查。工作点计数私有，不添加到普通补全／签名响应。
+
+语义函数、语句／表达式和模块循环使用原正常返回及完整上下文清理；调用候选索引的激活标志防止初始化前跳到清理或重复释放。IR partial children 立即释放，再由原 module-free 释放 arena；验证器前四／持有 incoming 的两段／释放后的最后一个循环分别使用对应清理。check／completion 创建者检查锁存取消，退出 scope 后才提交上下文／解析辅助缓存，取消不会替换已接受会话事实。外部持有结果的引用、源／版本／配置守卫和最后 worker checkpoint 保持。
+
+普通输入保留原语言判断、全部语义注解及 typed IR 验证。取消是基础设施结果，不把半分析事实伪装成用户代码诊断。新 166 项真实阶段断言、完整 fresh JSON／IR、回调 true 一次、验证 arena 清理、嵌套／四线程和保留快照通过。全构建 135 对象／59 夹具／60 PE／61 outputs／63 AST17 消费者／53 核心归档成员；签名 38749，worker fault 12995 和 1008 个实际取消门；34 套协议 919 场景及 18 IDE 通过。最终 v2 仅修正新协议夹具的 shutdown 回复顺序；已完整执行的 v1 原生输入／二进制与 v2 相等，复用证据明确保存。
+
+576 热／288 编辑／48 冷 stdio、320 IDE 帧和 36 native 过期任务到新模型的原始对照见开发记录。native 定时包含旧分析退役和真实新文本模型，保留完成后才取消的样本；不是 stdio／GUI 取消时延。解析、导入、个别 helper、最终注解和模型销毁仍不可抢占，没有 wall-time 上限。真正模块／语义 IR 增量与完整长期目标继续；外部 C/XRT、未来 opaque xlc.dll、无 DAP，发布未改。
