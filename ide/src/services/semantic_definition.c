@@ -542,3 +542,6 @@ xvalue* xideSemanticDocumentSymbols(xide_semantic_definitions* d,const char* pat
  }
  free(items); if(!okay) { xrtValueRelease(out); return NULL; } return out;
 }
+#ifdef XLS_COMPILER_XRT
+#include "services/semantic_reference_shard.inc"
+#endif

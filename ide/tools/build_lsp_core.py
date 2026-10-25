@@ -69,7 +69,7 @@ CORE_TESTS = ("analysis_worker_cache_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ast_intern_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_frontend_cancel_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_memo_test", "analysis_projection_test", *CORE_TESTS)
-HOST_TESTS += ("navigation_cache_test",)
+HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test")
 
 
 def sha(path: Path) -> str:
@@ -724,7 +724,7 @@ def main() -> None:
                 extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
                           if Path(source).stem != "xlang_ls" and
                           not (name == "snapshot_report_test" and Path(source).stem == "language_snapshot") and
-                          not (name == "semantic_lookup_test" and Path(source).stem == "semantic_definition")]
+                          not (name in ("semantic_lookup_test", "semantic_reference_shard_test") and Path(source).stem == "semantic_definition")]
             if name in CLIENT_TESTS:
                 # The stream fixture privately owns its actor for deterministic
                 # gates. Other client fixtures need only the pure decoders.
