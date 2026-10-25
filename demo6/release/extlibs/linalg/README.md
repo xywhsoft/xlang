@@ -37,6 +37,12 @@ ia, ib, ic, id = linalg.inverse2(1.0, 2.0, 3.0, 4.0)
 中间差值溢出而误变成无穷大。
 `angle2` 在缩放后以 `atan2(|cross|, dot)` 计算 0 至 π 的无向夹角，
 保留近乎平行或反向向量约 `1e-8` 弧度的差异。
+求逆边界测试还覆盖元素为 `1e308`、原行列式超出 `double` 范围但
+逆矩阵有限的非对角矩阵；不能仅凭直接计算的行列式是否溢出判断可逆性。
+2026-10-25：这一边界的 C、XLang JIT 与独立 EXE 在 Windows 通过，
+Linux 包级 C ASan/UBSan、XLang 和双语门禁通过。Windows 根目录的
+整包门禁仍被共享 VFS 头文件查找问题阻断；从 `release` 目录运行的
+成功结果不替代该项发布验收。
 
 C 头文件为 `include/linalg_native.h`。XLang 多返回值所需的 `xvalue`
 桥接由包内实现；C 调用方直接使用 `_into`，避免额外装箱。函数均不保留

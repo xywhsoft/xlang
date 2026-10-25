@@ -61,6 +61,13 @@ int main(void)
     CHECK(xlin_inverse2_into(1e300, 0, 0, 1e-300, &a, &b, &c, &d));
     CHECK(fabs(a / 1e-300 - 1) < 1e-15 &&
         fabs(d / 1e300 - 1) < 1e-15 && b == 0 && c == 0);
+    /* 原矩阵的行列式超出 double 范围，逆矩阵仍应可表示。 */
+    CHECK(xlin_inverse2_into(1e308, 1e308, 1e308, -1e308,
+        &a, &b, &c, &d));
+    CHECK(fabs(a * 1e308 - 0.5) < 1e-15 &&
+        fabs(b * 1e308 - 0.5) < 1e-15 &&
+        fabs(c * 1e308 - 0.5) < 1e-15 &&
+        fabs(d * 1e308 + 0.5) < 1e-15);
     a = 123;
     b = 456;
     c = 789;

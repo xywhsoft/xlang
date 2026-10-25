@@ -16,6 +16,9 @@ func main(...) as int
     assert a ~= 1e8 and d ~= 1e8 and b == 0.0 and c == 0.0
     a, b, c, d = linalg.inverse2(1e300, 0.0, 0.0, 1e-300)
     assert a / 1e-300 ~= 1.0 and d / 1e300 ~= 1.0 and b == 0.0 and c == 0.0, "wide-scale inverse"
+    a, b, c, d = linalg.inverse2(1e308, 1e308, 1e308, -1e308)
+    assert a * 1e308 ~= 0.5 and b * 1e308 ~= 0.5
+    assert c * 1e308 ~= 0.5 and d * 1e308 ~= -0.5, "large mixed inverse"
     assert linalg.angle2(1e300, 0.0, 0.0, 1e300) ~= math.pi / 2.0
     assert linalg.angle2(1e-300, 0.0, 0.0, 1e-300) ~= math.pi / 2.0
     float smallAngle = linalg.angle2(1.0, 0.0, 1.0, 1e-8)
