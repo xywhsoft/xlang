@@ -36,11 +36,18 @@ static bool test_long_inline_value(void)
 		goto cleanup;
 	}
 	result = xcli_parse(args, spec);
+	parsed = xrtValueArrayAt(args, 0);
+	ok = parsed != NULL && xrtValueGetString(parsed, &value) &&
+		value.Size == 1033u && memcmp(value.Data, token, 1033u) == 0;
+	xrtValueRelease(args);
+	xrtValueRelease(spec);
+	args = NULL;
+	spec = NULL;
 	parsed = result != NULL ? xrtValueObjectGet(result,
 		view("options")) : NULL;
 	parsed = parsed != NULL ? xrtValueObjectGet(parsed,
 		view("output")) : NULL;
-	ok = parsed != NULL && xrtValueGetString(parsed, &value) &&
+	ok = ok && parsed != NULL && xrtValueGetString(parsed, &value) &&
 		value.Size == 1024u && memcmp(value.Data, token + 9u, 1024u) == 0;
 cleanup:
 	xrtValueRelease(result);

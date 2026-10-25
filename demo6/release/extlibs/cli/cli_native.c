@@ -41,31 +41,19 @@ static int xcli_set_bool(xvalue *obj, const char *key, int b) {
     return xcli_set(obj, key, xrtValueBool(b ? true : false));
 }
 
-static int xcli_set_str_view(xvalue *obj, xstrview key, const char *text) {
-    return xcli_set_view(obj, key, xcli_text(text));
+static int xcli_set_str_view(xvalue *obj, xstrview key, xstrview text) {
+    return xcli_set_view(obj, key, xrtValueString(text));
 }
 
 static int xcli_set_bool_view(xvalue *obj, xstrview key, int b) {
     return xcli_set_view(obj, key, xrtValueBool(b ? true : false));
 }
 
-/* 参数必须是无内嵌 NUL 的字符串，再复制为 C 字符串。 */
-static char *xcli_arg(xvalue *args, int64 index) {
+/* 输入数组在解析期间存活；只借用视图，不为每个参数分配副本。 */
+static bool xcli_arg_view(xvalue *args, int64 index, xstrview *out) {
     xvalue *value = xrtValueArrayAt(args, index);
-    xstrview text;
-    if (value == NULL || !xrtValueGetString(value, &text) ||
-        memchr(text.Data, '\0', text.Size) != NULL) {
-        return NULL;
-    }
-    {
-        char *copy = (char *)xrtMalloc(text.Size + 1);
-        if (copy == NULL) {
-            return NULL;
-        }
-        memcpy(copy, text.Data, text.Size);
-        copy[text.Size] = '\0';
-        return copy;
-    }
+    return value != NULL && xrtValueGetString(value, out) &&
+        (out->Size == 0 || memchr(out->Data, '\0', out->Size) == NULL);
 }
 
 /* 查找声明的旗标。 */
@@ -86,10 +74,6 @@ static int xcli_flags_has_view(xvalue *flags, xstrview name) {
         }
     }
     return 0;
-}
-
-static int xcli_flags_has(xvalue *flags, const char *name) {
-    return xcli_flags_has_view(flags, (xstrview){ name, strlen(name) });
 }
 
 /* 短名映射返回借用的长名称视图，声明对象在解析期间保持存活。 */
@@ -119,14 +103,6 @@ static int xcli_short_in(xvalue *mapping, char shortName,
         }
     }
     return 0;
-}
-
-static int xcli_is_flag(xvalue *flags, const char *name) {
-    return xcli_flags_has(flags, name);
-}
-
-static int xcli_is_option(xvalue *options, const char *name) {
-    return xcli_get(options, name) != NULL;
 }
 
 /* 名称必须是 UTF-8；Unicode 空白和控制字符会令命令行难以辨认。 */
@@ -270,9 +246,9 @@ static bool xcli_fail_result(xvalue *result, const char *message) {
 }
 
 static bool xcli_fail_long_result(xvalue *result, const char *prefix,
-    const char *name, const char *suffix) {
+    xstrview name, const char *suffix) {
     size_t prefixLen = strlen(prefix);
-    size_t nameLen = strlen(name);
+    size_t nameLen = name.Size;
     size_t suffixLen = strlen(suffix);
     size_t length;
     str message;
@@ -287,7 +263,7 @@ static bool xcli_fail_long_result(xvalue *result, const char *prefix,
     message = (str)xrtMalloc(length + 1u);
     if (message == NULL) return false;
     memcpy(message, prefix, prefixLen);
-    memcpy(message + prefixLen, name, nameLen);
+    if (nameLen != 0u) memcpy(message + prefixLen, name.Data, nameLen);
     memcpy(message + prefixLen + nameLen, suffix, suffixLen);
     message[length] = '\0';
     if (!xcli_set_bool(result, "ok", 0)) {
@@ -310,7 +286,6 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
     xvalue *optionsOut = NULL;
     xvalue *positionalOut = NULL;
     xvalue *restOut = NULL;
-    char *token = NULL;
     int64 i;
     int64 n;
     int noMoreOptions;
@@ -403,7 +378,8 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
             xvalue *value = xrtValueObjectAt(optionsSpec, oi, &key);
             if (value != NULL) {
                 if (xrtValueObjectGet(optionsOut, key) == NULL) {
-                    if (!xcli_set_str_view(optionsOut, key, "")) goto fail;
+                    if (!xcli_set_str_view(optionsOut, key,
+                        (xstrview){ "", 0 })) goto fail;
                 }
             }
         }
@@ -428,120 +404,98 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
     n = xrtValueCount(args);
 
     for (i = 0; i < n; ++i) {
-        token = xcli_arg(args, i);
-        if (token == NULL) {
-            if (xrtErrorKind(xrtGetError()) != XERR_MEMORY)
-                xcli_error("args entries must be strings without NUL");
+        xstrview token;
+        if (!xcli_arg_view(args, i, &token)) {
+            xcli_error("args entries must be strings without NUL");
             goto fail;
         }
-        if (noMoreOptions || token[0] != '-' || token[1] == '\0') {
+        if (noMoreOptions || token.Size == 0 || token.Data[0] != '-' ||
+            token.Size == 1) {
             /* 位置参数。 */
             if (positionalIndex < positionalCount) {
-                char *pname = xcli_arg(positionalSpec, positionalIndex);
-                if (pname == NULL) {
-                    if (xrtErrorKind(xrtGetError()) != XERR_MEMORY)
-                        xcli_error("positional names must be strings");
+                xstrview pname;
+                if (!xcli_arg_view(positionalSpec, positionalIndex, &pname)) {
+                    xcli_error("positional names must be strings");
                     goto fail;
                 }
-                if (!xcli_set_str(positionalOut, pname, token)) {
-                    xrtFree(pname);
-                    goto fail;
-                }
-                xrtFree(pname);
+                if (!xcli_set_str_view(positionalOut, pname, token)) goto fail;
                 positionalIndex++;
             } else {
-                if (!xrtValueArrayAppendNew(restOut, xcli_text(token))) goto fail;
+                if (!xrtValueArrayAppendNew(restOut, xrtValueString(token)))
+                    goto fail;
             }
-            xrtFree(token);
-            token = NULL;
             continue;
         }
-        if (strcmp(token, "--") == 0) {
+        if (token.Size == 2 && token.Data[1] == '-') {
             noMoreOptions = 1;
-            xrtFree(token);
-            token = NULL;
             continue;
         }
-        if (token[1] == '-') {
+        if (token.Data[1] == '-') {
             /* 长选项与等号内联值。 */
-            char *name = token + 2;
-            char *eq = strchr(name, '=');
-            const char *inlineValue = NULL;
-            int hasInline = 0;
+            xstrview name = { token.Data + 2, token.Size - 2 };
+            xstrview inlineValue;
+            const char *eq = memchr(name.Data, '=', name.Size);
+            int hasInline = eq != NULL;
             if (eq != NULL) {
-                inlineValue = eq + 1;
-                *eq = '\0';
-                hasInline = 1;
+                inlineValue = (xstrview){ eq + 1,
+                    name.Size - (size_t)(eq - name.Data) - 1u };
+                name.Size = (size_t)(eq - name.Data);
             }
-            if (xcli_is_option(optionsSpec, name)) {
+            if (optionsSpec != NULL && xrtValueObjectGet(optionsSpec, name)) {
                 if (hasInline) {
-                    if (!xcli_set_str(optionsOut, name, inlineValue)) goto fail;
+                    if (!xcli_set_str_view(optionsOut, name, inlineValue)) goto fail;
                 } else if (i + 1 < n) {
-                    char *next = xcli_arg(args, ++i);
-                    if (next == NULL) {
-                        if (xrtErrorKind(xrtGetError()) != XERR_MEMORY)
-                            xcli_error("option value must be a string");
+                    xstrview next;
+                    if (!xcli_arg_view(args, ++i, &next)) {
+                        xcli_error("option value must be a string");
                         goto fail;
                     }
-                    if (!xcli_set_str(optionsOut, name, next)) {
-                        xrtFree(next);
-                        goto fail;
-                    }
-                    xrtFree(next);
+                    if (!xcli_set_str_view(optionsOut, name, next)) goto fail;
                 } else {
                     if (!xcli_fail_long_result(result,
                         "missing value for --", name, "")) goto fail;
-                    xrtFree(token);
-                    token = NULL;
                     break;
                 }
-            } else if (xcli_is_flag(flagsSpec, name)) {
+            } else if (xcli_flags_has_view(flagsSpec, name)) {
                 if (hasInline) {
                     if (!xcli_fail_long_result(result, "flag --", name,
                         " does not take a value")) goto fail;
-                    xrtFree(token);
-                    token = NULL;
                     break;
                 }
-                if (!xcli_set_bool(flagsOut, name, 1)) goto fail;
+                if (!xcli_set_bool_view(flagsOut, name, 1)) goto fail;
             } else {
                 if (!xcli_fail_long_result(result,
                     "unknown option --", name, "")) goto fail;
-                xrtFree(token);
-                token = NULL;
                 break;
             }
-            xrtFree(token);
-            token = NULL;
             continue;
         }
         /* 短旗标组合与短选项附加值。 */
         {
-            char *p = token + 1;
+            size_t pos = 1u;
             int stop = 0;
-            while (!stop && *p != '\0') {
-                char letter = *p;
+            while (!stop && pos < token.Size) {
+                char letter = token.Data[pos];
                 if ((unsigned char)letter < 0x21 ||
                     (unsigned char)letter > 0x7e) {
                     if (!xcli_fail_result(result,
                         "short option must be printable ASCII")) goto fail;
                     stop = 2;
                 } else if (xcli_short_in(optionsSpec, letter, &longName)) {
-                    if (p[1] != '\0') {
-                        if (!xcli_set_str_view(optionsOut, longName, p + 1)) goto fail;
+                    if (pos + 1u < token.Size) {
+                        xstrview attached = { token.Data + pos + 1u,
+                            token.Size - pos - 1u };
+                        if (!xcli_set_str_view(optionsOut, longName, attached))
+                            goto fail;
                         stop = 1;
                     } else if (i + 1 < n) {
-                        char *next = xcli_arg(args, ++i);
-                        if (next == NULL) {
-                            if (xrtErrorKind(xrtGetError()) != XERR_MEMORY)
-                                xcli_error("option value must be a string");
+                        xstrview next;
+                        if (!xcli_arg_view(args, ++i, &next)) {
+                            xcli_error("option value must be a string");
                             goto fail;
                         }
-                        if (!xcli_set_str_view(optionsOut, longName, next)) {
-                            xrtFree(next);
+                        if (!xcli_set_str_view(optionsOut, longName, next))
                             goto fail;
-                        }
-                        xrtFree(next);
                         stop = 1;
                     } else {
                         char message[80];
@@ -553,11 +507,9 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
                 } else if (xcli_short_in(shortsSpec, letter, &longName)) {
                     if (!xcli_set_bool_view(flagsOut, longName, 1)) goto fail;
                 } else {
-                    char flagName[2];
-                    flagName[0] = letter;
-                    flagName[1] = '\0';
-                    if (xcli_is_flag(flagsSpec, flagName)) {
-                        if (!xcli_set_bool(flagsOut, flagName, 1)) goto fail;
+                    xstrview flagName = { &letter, 1u };
+                    if (xcli_flags_has_view(flagsSpec, flagName)) {
+                        if (!xcli_set_bool_view(flagsOut, flagName, 1)) goto fail;
                     } else {
                         char message[80];
                         snprintf(message, sizeof(message),
@@ -566,10 +518,8 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
                         stop = 2;
                     }
                 }
-                p++;
+                pos++;
             }
-            xrtFree(token);
-            token = NULL;
             if (stop == 2) break;
             continue;
         }
@@ -602,7 +552,6 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
     return result;
 
 fail:
-    xrtFree(token);
     xrtValueRelease(restOut);
     xrtValueRelease(positionalOut);
     xrtValueRelease(optionsOut);

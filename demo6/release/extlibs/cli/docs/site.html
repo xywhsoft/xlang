@@ -46,7 +46,7 @@ assert result["ok"] == true</code></pre>
     <h2>验证状态</h2>
     <pre><code>release/extlibs/cli/test/check_c.ps1
 bash release/extlibs/cli/test/check_c.sh</code></pre>
-    <p>C 边界和范例可独立验证；<code>extlibs/cli/examples/basic_c.c</code> 可直接 <code>xl run</code> 或 <code>xl build</code>。C/XL 范例采用不同文件名，避免 XLang 运行时自动引入同名 C 伴随源。当前发布版的 XLang 运行因主线缺少 <code>xl6_xrt_os_args</code> 而链接失败；双语运行与 AOT 尚未签收，不能将 C 侧通过视为整包发布验收。</p>
+    <p>C 边界和范例可独立验证；<code>extlibs/cli/examples/basic_c.c</code> 可直接 <code>xl run</code> 或 <code>xl build</code>。C 解析只借用输入字符串视图，不修改输入或逐参数分配临时副本；返回结果仍独立持有字符串。C/XL 范例采用不同文件名，避免 XLang 运行时自动引入同名 C 伴随源。当前发布版的 XLang 运行因主线缺少 <code>xl6_xrt_os_args</code> 而链接失败；双语运行与 AOT 尚未签收，不能将 C 侧通过视为整包发布验收。</p>
   </section>
 </main>
 <script src="../main.js"></script>
