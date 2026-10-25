@@ -22,4 +22,8 @@ XL6_TEXT_API int64_t xl6TlsServerContextProtocolCountV1(void*);
 XL6_TEXT_API xvalue* xl6TlsServerContextProtocolAtV1(void*,int64_t);
 XL6_TEXT_API bool xl6TlsServerContextRequiresProtocolV1(void*);
 XL6_TEXT_API void* xl6TlsServerContextWithProtocolsV1(void*,const xvalue*,bool);
+XL6_TEXT_API void* xl6TlsServerContextWithResumeLookupV1(XL6_NativeClassCallbackContextV1,void*,struct xlir_closure*,uint64_t);
+XL6_TEXT_API void* xl6TlsServerContextWithoutResumeLookupV1(void*);
+XL6_TEXT_API bool xl6TlsServerContextHasResumeLookupV1(void*);
+XL6_TEXT_API uint64_t xl6TlsServerContextResumeAgeToleranceV1(void*);
 #endif

@@ -249,3 +249,15 @@ Windows/Linux 各通过 162 步，共 324 步、38 次原生执行与 1920 个�
 详见 [TLS 恢复票据](TLS恢复票据.md)。两端源码验收共 84 步、1768 个分配
 失败前缀通过；角色配置、类型化查找回调与 Session/传输票据操作仍未完成，
 不能据此宣布恢复握手、传输 KeyUpdate 或整项长期任务完成。
+
+### 后续接入：服务端恢复查找拥有图
+
+`TlsResumeRequest` 与 `TlsServerContext.withResumeLookup()` 现已接入 Context、
+内存 Session 和组合 Listener。选择器与查找并存时，两条真实回调拥有边均
+保留；临时返回票据通过原生拥有式合同转交，未命中与 checked 失败严格区分。
+Listener 捕获仍等待聚合 Data 引用退役后，在 checked Source 尾部清理。
+
+两端有效覆盖共 252 步、1512 个有界分配前缀检查，含真实语言回调、正常
+命中/未命中内存握手、Close 后调用及双回调清理。详见
+[TLS 恢复票据](TLS恢复票据.md)。客户端恢复配置、票据收发、传输 KeyUpdate
+和发布级联合验收仍未完成；本批不改变独立 XRT 或时间 ABI。

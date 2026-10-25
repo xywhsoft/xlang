@@ -5,6 +5,7 @@ void xl6TlsServerContextDestroyV1(void* raw)
     xl6_error_scope cleanup={0};if(!xl6ErrorScopeBeginCleanup(&cleanup,false))abort();
     xrtTlsContextRelease(self->parameters);xrtTlsIdentityRelease(self->identity);
     xl6TlsSelectorDropV1(&self->selector);
+    xl6TlsResumeLookupDropV1(&self->resumeLookup);
     xrtFree(self->protocols);xrtFree(self);
     xl6_error_result result=xl6ErrorScopeEnd(&cleanup);
     if(!result.ok)xl6ErrorScopePropagateFailure(result);else xrtErrorFree(result.error);
@@ -12,6 +13,8 @@ void xl6TlsServerContextDestroyV1(void* raw)
 void* xl6TlsServerContextFromV1(xtlscontext* parameters,xtlsidentity* identity,XL6_TlsProtocolsV1* protocols,bool requireProtocol)
 {return xl6TlsServerContextFromSelectorV1(parameters,identity,protocols,requireProtocol,(XL6_TlsSelectorV1){0});}
 void* xl6TlsServerContextFromSelectorV1(xtlscontext* parameters,xtlsidentity* identity,XL6_TlsProtocolsV1* protocols,bool requireProtocol,XL6_TlsSelectorV1 selector)
+{return xl6TlsServerContextFromCallbacksV1(parameters,identity,protocols,requireProtocol,selector,(XL6_TlsResumeLookupV1){0},XTLS_SERVER_RESUME_AGE_TOLERANCE_DEFAULT);}
+void* xl6TlsServerContextFromCallbacksV1(xtlscontext* parameters,xtlsidentity* identity,XL6_TlsProtocolsV1* protocols,bool requireProtocol,XL6_TlsSelectorV1 selector,XL6_TlsResumeLookupV1 lookup,uint32 tolerance)
 {
     if(xrtGetError()){xrtFree(protocols);return NULL;}
     if((!identity&&!selector.data) || (requireProtocol && !protocols)){
@@ -22,6 +25,9 @@ void* xl6TlsServerContextFromSelectorV1(xtlscontext* parameters,xtlsidentity* id
     if(self->parameters&&identity)self->identity=xrtTlsIdentityRetain(identity);
     if(!self->parameters || (identity&&!self->identity)){xl6TlsServerContextDestroyV1(self);return NULL;}
     self->selector=xl6TlsSelectorRefV1(selector);
+    self->resumeLookup=xl6TlsResumeLookupRefV1(lookup);self->resumeAgeTolerance=tolerance;
+    if((selector.data&&!self->selector.data)||(lookup.data&&!self->resumeLookup.data)){
+        xl6TlsOutcomeV1(false);xl6TlsServerContextDestroyV1(self);return NULL;}
     return self;
 }
 static const XL6_TlsServerContextV1* checked(void* raw)
@@ -52,25 +58,36 @@ bool xl6TlsServerContextRequiresProtocolV1(void* raw)
 {const XL6_TlsServerContextV1* self=checked(raw);return self && self->requireProtocol;}
 bool xl6TlsServerContextHasSelectorV1(void* raw)
 {const XL6_TlsServerContextV1* self=checked(raw);return self&&self->selector.data!=NULL;}
+bool xl6TlsServerContextHasResumeLookupV1(void* raw)
+{const XL6_TlsServerContextV1* self=checked(raw);return self&&self->resumeLookup.data!=NULL;}
+uint64_t xl6TlsServerContextResumeAgeToleranceV1(void* raw)
+{const XL6_TlsServerContextV1* self=checked(raw);return self?self->resumeAgeTolerance:0;}
+void* xl6TlsServerContextWithoutResumeLookupV1(void* raw)
+{
+    const XL6_TlsServerContextV1* self=checked(raw);XL6_TlsProtocolsV1* protocols=NULL;
+    if(!self||!xl6TlsProtocolsCopyV1(self->protocols,&protocols))return NULL;
+    return xl6TlsServerContextFromSelectorV1(self->parameters,self->identity,protocols,self->requireProtocol,self->selector);
+}
 void* xl6TlsServerContextWithParametersV1(void* raw,void* parameters)
 {
     const XL6_TlsServerContextV1* self=checked(raw);XL6_TlsProtocolsV1* protocols=NULL;
     if(!self)return NULL;
     if(!parameters){xl6TlsFailV1(XERR_ARGUMENT,"missing TLS parameters");return NULL;}
     if(!xl6TlsProtocolsCopyV1(self->protocols,&protocols))return NULL;
-    return xl6TlsServerContextFromSelectorV1(parameters,self->identity,protocols,self->requireProtocol,self->selector);
+    return xl6TlsServerContextFromCallbacksV1(parameters,self->identity,protocols,self->requireProtocol,self->selector,self->resumeLookup,self->resumeAgeTolerance);
 }
 void* xl6TlsServerContextWithIdentityV1(void* raw,void* identity)
 {
     const XL6_TlsServerContextV1* self=checked(raw);XL6_TlsProtocolsV1* protocols=NULL;
     if(!self || !xl6TlsProtocolsCopyV1(self->protocols,&protocols))return NULL;
-    return xl6TlsServerContextFromSelectorV1(self->parameters,identity,protocols,self->requireProtocol,self->selector);
+    return xl6TlsServerContextFromCallbacksV1(self->parameters,identity,protocols,self->requireProtocol,self->selector,self->resumeLookup,self->resumeAgeTolerance);
 }
 static bool trace(const xvalue* value,xrtownershipvisitor visit,void* context)
 {
     void* raw=NULL;void* user=NULL;const xvaluehandleops* ops=NULL;
     if(!visit||!xrtValueGetHandle(value,&raw,&ops,&user)||!raw||user||ops!=xl6TlsServerContextHandlePolicyV1Get()->Ops)return false;
     const XL6_TlsServerContextV1* self=raw;
-    return !self->selector.data||visit(self->selector.ops->Ownership(self->selector.data),context);
+    return (!self->selector.data||visit(self->selector.ops->Ownership(self->selector.data),context))&&
+        (!self->resumeLookup.data||visit(self->resumeLookup.ops->Ownership(self->resumeLookup.data),context));
 }
 XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6TlsServerContextHandlePolicyV1Get,xl6TlsServerContextDestroyV1,trace)

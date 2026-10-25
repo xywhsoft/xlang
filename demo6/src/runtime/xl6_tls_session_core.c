@@ -12,13 +12,19 @@ static void destroyNative(xtlssession* native)
 XL6_TlsSessionV1* xl6TlsSessionTakeInternalV1(xtlssession* native,const XL6_TlsSessionRoleOpsV1* role)
 {return xl6TlsSessionTakeSelectorInternalV1(native,role,(XL6_TlsSelectorV1){0});}
 XL6_TlsSessionV1* xl6TlsSessionTakeSelectorInternalV1(xtlssession* native,const XL6_TlsSessionRoleOpsV1* role,XL6_TlsSelectorV1 selector)
+{return xl6TlsSessionTakeCallbacksInternalV1(native,role,selector,(XL6_TlsResumeLookupV1){0});}
+XL6_TlsSessionV1* xl6TlsSessionTakeCallbacksInternalV1(xtlssession* native,const XL6_TlsSessionRoleOpsV1* role,XL6_TlsSelectorV1 selector,XL6_TlsResumeLookupV1 lookup)
 {
     if(!native)return NULL;
     if(xrtGetError()){destroyNative(native);return NULL;}
     if(!role||!role->drive){xl6TlsFailV1(XERR_ARGUMENT,"TLS session needs permanent resident role operations");destroyNative(native);return NULL;}
     XL6_TlsSessionV1* self=xrtCalloc(1,sizeof(*self));
     if(!self){destroyNative(native);return NULL;}
-    self->refs=1;self->native=native;self->role=role;self->selector=xl6TlsSelectorRefV1(selector);return self;
+    self->refs=1;self->native=native;self->role=role;self->selector=xl6TlsSelectorRefV1(selector);
+    self->resumeLookup=xl6TlsResumeLookupRefV1(lookup);
+    if((selector.data&&!self->selector.data)||(lookup.data&&!self->resumeLookup.data)){
+        xl6TlsOutcomeV1(false);xl6TlsSessionDropInternalV1(self);return NULL;}
+    return self;
 }
 bool xl6TlsSessionHoldInternalV1(const void* raw)
 {
@@ -36,7 +42,7 @@ void xl6TlsSessionDropInternalV1(const void* raw)
     mutationEnd(&mutation);
     if(!remaining){
         if(xrtAtomic32Load(&self->gate,XMEMORY_ACQUIRE))abort();
-        destroyNative(self->native);xl6TlsSelectorDropV1(&self->selector);xrtFree(self);
+        destroyNative(self->native);xl6TlsSelectorDropV1(&self->selector);xl6TlsResumeLookupDropV1(&self->resumeLookup);xrtFree(self);
     }
 }
 bool xl6TlsSessionEnterInternalV1(XL6_TlsSessionV1* self,bool requireNative,XL6_TlsSessionScopeV1* scope)
@@ -74,6 +80,7 @@ void xl6TlsSessionDisposeV1(void* raw)
      * No graph callback may read the changing native buffer queues. */
     xtlssession* native=self->native;self->native=NULL;destroyNative(native);
     xl6TlsSelectorDropV1(&self->selector);
+    xl6TlsResumeLookupDropV1(&self->resumeLookup);
     xl6TlsSessionLeaveInternalV1(&scope);
 }
 bool xl6TlsSessionDisposedV1(void* raw)
@@ -95,7 +102,8 @@ static bool trace(const void* raw,xrtownershipvisitor visit,void* context)
     const XL6_TlsSessionV1* self=raw;size_t references;
     return visit&&count(self,&references)&&(!self->native||
         xrtTlsSessionBufferOwnershipTrace(self->native,visit,context))&&
-        (!self->selector.data||visit(self->selector.ops->Ownership(self->selector.data),context));
+        (!self->selector.data||visit(self->selector.ops->Ownership(self->selector.data),context))&&
+        (!self->resumeLookup.data||visit(self->resumeLookup.ops->Ownership(self->resumeLookup.data),context));
 }
 static const xrtownershipops ops={count,trace};
 xrtownershipref xl6TlsSessionOwnershipV1(const void* raw)
@@ -135,7 +143,7 @@ static bool finish(const void* raw,const void* token)
     xtlssession* native=self->native;self->native=NULL;mutationEnd(&mutation);
     /* All native queued owners remain pinned; destroy outside graph Freeze.
      * This disposes storage, it does not fabricate authenticated TLS closure. */
-    destroyNative(native);xl6TlsSelectorDropV1(&self->selector);return true;
+    destroyNative(native);xl6TlsSelectorDropV1(&self->selector);xl6TlsResumeLookupDropV1(&self->resumeLookup);return true;
 }
 static const xrtownershipadapterv1 adapter={sizeof(adapter),pin,xl6TlsSessionDropInternalV1,claim,restore,NULL,clear,finish};
 const xrtownershipadapterv1* xl6TlsSessionOwnershipAdapterV1(xrtownershipref ref)

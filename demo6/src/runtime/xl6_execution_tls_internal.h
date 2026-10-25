@@ -5,6 +5,7 @@
 #include "xl6_execution_tls.h"
 #include "xl6_tls_metadata_role.h"
 #include "xl6_tls_selector_owner.h"
+#include "xl6_tls_resume_lookup_owner.h"
 #include <stdlib.h>
 /* All builders are call-only, trusted resident functions. They consume the
  * supplied Data credit iff they return a native owned Stream; they never
@@ -24,6 +25,7 @@ typedef struct XL6_TlsListenerCreateOptionsV1 {
     const struct xtlslistenerconfig* config; /* copied synchronously */
     const XL6_TlsMetadataRoleV1* metadata;
     XL6_TlsSelectorV1 selector; /* call borrow; provider retains independently */
+    XL6_TlsResumeLookupV1 resumeLookup; /* independent typed callback owner */
 } XL6_TlsListenerCreateOptionsV1;
 
 typedef enum XL6_TlsPendingKindV1 {

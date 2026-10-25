@@ -1731,7 +1731,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsNistClass;
     int needsRsaPublicClass, needsRsaPrivateClass;
     int needsTlsIdentity, needsTlsParameters, needsTlsVerifier, needsTlsVerificationPolicy;
-    int needsTlsClientContext,needsTlsServerContext,needsTlsSelector,needsTlsResume;
+    int needsTlsClientContext,needsTlsServerContext,needsTlsSelector,needsTlsResume,needsTlsResumeRequest;
     int needsTccClass;
     int needsXlangClass;
     int needsCoreClass;
@@ -1992,9 +1992,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibFuncUsed(used, "compress", "encodeBuffer") || xl6StdlibFuncUsed(used, "compress", "decode") ||
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer");
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
-    needsTlsResume=xl6StdlibNodeUsesTypeName(root,"TlsResume");
     needsTlsClientContext=needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsClientContext");
     needsTlsServerContext=needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsServerContext");
+    needsTlsResume=needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsResume");
+    needsTlsResumeRequest=needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsResumeRequest");
     needsTlsSelector=needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsServerRequest")||xl6StdlibNodeUsesTypeName(root,"TlsServerChoice");
     needsTlsIdentity = needsTlsSelector || xl6StdlibNodeUsesTypeName(root,"TlsIdentity") || xl6StdlibNodeUsesTypeName(root,"TlsIdentityKind");
     needsTlsVerifier=needsTlsClientContext || xl6StdlibNodeUsesTypeName(root,"TlsVerifier");
@@ -2390,6 +2391,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if(needsTlsVerifier)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsVerifierSource);
     if(needsTlsClientContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsClientContextSource);
     if(needsTlsResume)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsResumeSource);
+    if(needsTlsResumeRequest)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsResumeRequestSource);
     if(needsTlsSelector)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsSelectorSource);
     if(needsTlsServerContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsServerContextSource);
     if(needsTlsManagedSession)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsManagedSessionClassSource);

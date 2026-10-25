@@ -307,6 +307,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_tls_metadata_contracts.inc"
 #include "xl6_ir_tls_selector_contracts.inc"
 #include "xl6_ir_tls_resume_contracts.inc"
+#include "xl6_ir_tls_resume_lookup_contracts.inc"
 #include "xl6_ir_tls_io_contracts.inc"
 #include "xl6_ir_tls_data_contracts.inc"
 #include "xl6_ir_tls_dial_options_contracts.inc"

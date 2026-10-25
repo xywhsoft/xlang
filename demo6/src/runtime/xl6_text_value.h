@@ -38,6 +38,7 @@ struct xlir_closure;
 #include "xl6_tls_verifier_abi.h"
 #include "xl6_tls_role_context_abi.h"
 #include "xl6_tls_resume_abi.h"
+#include "xl6_tls_resume_request.h"
 #include "xl6_tls_session_abi.h"
 #include "xl6_tls_transport_abi.h"
 #include "xl6_tls_io_abi.h"

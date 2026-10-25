@@ -30,6 +30,9 @@ static xrtownershipref ownership(const void* p){return (xrtownershipref){p,&owne
 static bool unusedSelect(ptr raw,const xtlsserverrequest* request,xtlsserverchoice* choice)
 {(void)raw;(void)request;(void)choice;assert(0);return false;}
 static const XL6_TlsSelectorOpsV1 selectorOps={retain,drop,ownership,unusedSelect};
+static bool unusedLookup(ptr raw,const xtlsserverresumerequest* request,xtlsresume** output)
+{(void)raw;(void)request;(void)output;assert(0);return false;}
+static const XL6_TlsResumeLookupOpsV1 lookupOps={retain,drop,ownership,unusedLookup};
 typedef struct Probe {Capture* capture;size_t edges;} Probe;
 static bool inspect(xrtownershipref ref,void* raw)
 {Probe* p=raw;if(ref.Ops==&ownershipOps){assert(ref.Data==p->capture);++p->edges;}return true;}
@@ -46,10 +49,11 @@ static void roundTrip(unsigned failure)
     XL6_ExecutionSourceV1* source=xl6ExecutionSourceCreateV1();assert(source);
     xnetengineconfig options;xrtNetEngineConfigInit(&options);options.Backend=XNET_PORT_SELECT;options.Workers=1;
     XL6_ExecutionResourceV1* engine=xl6ExecutionNetEngineCreateV1(source,&options);assert(engine&&xl6ExecutionNetEngineStartV1(engine));
-    XL6_TlsServerContextV1* context=xl6TlsServerContextFromSelectorV1(NULL,NULL,NULL,false,(XL6_TlsSelectorV1){&capture,&selectorOps});assert(context);
+    XL6_TlsServerContextV1* context=xl6TlsServerContextFromCallbacksV1(NULL,NULL,NULL,false,
+        (XL6_TlsSelectorV1){&capture,&selectorOps},(XL6_TlsResumeLookupV1){&capture,&lookupOps},10000);assert(context);
     xtlslistenerconfig config;xrtTlsListenerConfigInit(&config);assert(xrtNetAddrLoopback(&config.Listen.Address,XNET_FAMILY_IPV4,0));
     XL6_ExecutionResourceV1* listener=xl6ExecutionTlsListenV1(source,engine,context,&config);assert(listener);
-    xl6TlsServerContextDestroyV1(context);drop(&capture);assert(xrtAtomic32Load(&capture.refs,XMEMORY_ACQUIRE)==1);
+    xl6TlsServerContextDestroyV1(context);drop(&capture);assert(xrtAtomic32Load(&capture.refs,XMEMORY_ACQUIRE)==2);
     XL6_TlsScopeV1 scope={0};assert(xl6ExecutionTlsListenerEnterV1(listener,false,&scope));
     xtlslistener* held=xrtTlsListenerRef(scope.listener);assert(held);xl6ExecutionTlsLeaveV1(&scope);
     assert(xl6ExecutionResourceCloseV1(listener));xl6ExecutionResourceReleaseV1(listener);
@@ -68,7 +72,7 @@ static void roundTrip(unsigned failure)
         if(xrtOwnershipFreezeTryBegin(&frozen)){
             xrtownershipref ref=xl6ExecutionResourceOwnershipV1(listener);size_t references=0;
             if(ref.Ops->Count(ref.Data,&references)){
-                Probe probe={&capture,0};assert(references>=2&&ref.Ops->Trace(ref.Data,inspect,&probe)&&probe.edges==1);observed=true;
+                Probe probe={&capture,0};assert(references>=2&&ref.Ops->Trace(ref.Data,inspect,&probe)&&probe.edges==2);observed=true;
             }
             done(&frozen);
         }
@@ -92,5 +96,5 @@ int main(void)
 {
     assert(xrtMemDebugEnable(true));xrtSetErrorKind(XERR_STATE);xrtClearError();
     for(unsigned i=0;i<3;++i)roundTrip(i);
-    puts("TLS listener selector: aggregate Data lifetime, graph edge, deferred checked cleanup with/without diagnostic, balanced: ok");return 0;
+    puts("TLS listener selector: aggregate Data lifetime, two selector/resume graph edges, deferred checked cleanup with/without diagnostic, balanced: ok");return 0;
 }

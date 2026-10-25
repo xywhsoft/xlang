@@ -44,6 +44,6 @@ void* xl6TlsServerContextWithSelectorV1(XL6_NativeClassCallbackContextV1 context
     if(!self){xl6TlsFailV1(XERR_ARGUMENT,"missing TLS server context");return NULL;}
     if(!xl6TlsProtocolsCopyV1(self->protocols,&protocols))return NULL;
     XL6_Closure* driver=createDriver(context,callback);if(!driver){xrtFree(protocols);return NULL;}
-    void* result=xl6TlsServerContextFromSelectorV1(self->parameters,self->identity,protocols,self->requireProtocol,(XL6_TlsSelectorV1){driver,&operations});
+    void* result=xl6TlsServerContextFromCallbacksV1(self->parameters,self->identity,protocols,self->requireProtocol,(XL6_TlsSelectorV1){driver,&operations},self->resumeLookup,self->resumeAgeTolerance);
     drop(driver);return result;
 }
