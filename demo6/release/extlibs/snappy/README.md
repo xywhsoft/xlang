@@ -1,5 +1,12 @@
 # snappy
 
+2026-10-25 复验：Windows 默认 `test/check.ps1` 完整通过，包含 C 边界、
+分配故障、中央/包内 XLang、文件与进度、三路 C/XLang 对照及独立 EXE。
+脚本在 `release` 工作目录运行语言阶段；从项目根目录直接运行当前
+`xl.exe` 仍会遇到已记录的共享 VFS 头文件路径故障，未当作包修复。
+Linux `test/check.sh` 的 C ASan/UBSan、语言用例与双语输出通过；
+本轮未重建 Linux 发布物或构建 Linux 独立 EXE。
+
 标准 Snappy framed stream 压缩库，支持一次性、增量和文件流接口。输出的 `.sz` 可与遵循 [Google Snappy framing format](https://github.com/google/snappy/blob/main/framing_format.txt) 的工具互通；不接受旧的私有多块格式。
 
 ```xlang
@@ -19,7 +26,7 @@ C 侧直接调用 `xrtSnappyCompress` / `xrtSnappyDecompress`，示例见 `examp
 framing 没有结束标记，因此末尾 chunk 不完整会报错，但在完整 chunk 边界提前结束无法检测。校验采用 masked CRC32C。数据块原文上限 64 KiB；未知可跳过 chunk 会跳过，未知不可跳过 chunk 会拒绝。
 
 测试：`test/test_snappy.c` 覆盖固定格式样本、增量输入、资源上限、校验、截断、跳过 chunk 与串联流。`test/file_ops.xl` 覆盖 UTF-8 文件往返、进度回调、覆盖拒绝、取消清理与限额失败时的既有目标保护；中央 XLang 用例在 `demo6/test/cases/extlib_snappy.xl` 和 `extlib_snappy_progress.xl`。Linux 包级门禁同次运行 C ASan/UBSan、上述语言用例与 C/XLang 基础范例逐字节对照。
-Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check.ps1 -SkipAot`，同次检查严格 GCC 独立链接运行的 C 边界、TCC C 边界、私有成员负例、XLang 主用例/进度/文件操作，以及 GCC C、TCC C、XLang 三路固定输出。脚本使用每次独立的临时构建目录并清理本次产物；去掉 `-SkipAot` 还会尝试完整 AOT，当前仍受共享缺符号阻断。
+Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check.ps1 -SkipAot`，同次检查严格 GCC 独立链接运行的 C 边界、TCC C 边界、私有成员负例、XLang 主用例/进度/文件操作，以及 GCC C、TCC C、XLang 三路固定输出。脚本使用每次独立的临时构建目录并清理本次产物；不加 `-SkipAot` 时还会构建和运行独立 EXE。
 
 包清单现公开 `include/` 并声明六个直接 XRT/XRuntime 模块。
 `tools/run_extlib_c.ps1 -Package snappy -Source release/extlibs/snappy/examples/basic.c`
