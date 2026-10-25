@@ -2,6 +2,13 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`build_xlir_validation_driver.ps1 [-PublicDirectory <current-complete-cohort>]`
+uses one verified full-source archive for batch and single contracts; without a
+cohort it builds the ordinary source driver first. No partial frontend source list
+or provider substitution. `run_xlir_parameterized_guards.ps1` reuses its cohort and
+binds the three reviewed C-owned workers explicitly; 74 inventory entries are not
+a claim that all scenarios passed. See [contract cohort validation](../docs/contract-cohort-2026-10-26.md).
+
 `check_network_public_shipping.py --manifest tools/tls_public_fixtures.json`
 uses the same ordinary-product gate for 10 TLS positives and two compile-time
 negatives (63 stages/OS). Explicit `.xl` support files retain relative imports;

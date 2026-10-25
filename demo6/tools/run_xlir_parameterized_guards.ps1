@@ -30,6 +30,9 @@ $reviewedGuards = @(
     'check_xlir_await_status.ps1',
     'check_xlir_callable_admission.ps1',
     'check_xlir_callable_contextual.ps1',
+    'check_xlir_c_owned_boundary_fault.ps1',
+    'check_xlir_c_owned_exports.ps1',
+    'check_xlir_c_owned_globals_fault.ps1',
     'check_xlir_capture_ownership.ps1',
     'check_xlir_cell_storage.ps1',
     'check_xlir_class_callable_cycles.ps1',
@@ -155,6 +158,7 @@ $contractDirectory = [IO.Path]::GetFullPath((Join-Path $Root "build/test/xlir_pa
 $phaseOneDirectory = Join-Path $OutputRoot 'phase1'
 $phaseTwoDirectory = Join-Path $OutputRoot 'phase2'
 $contractSources = @(
+    'test/cases/xlir_c_owned_contract.c',
     'test/cases/xlir_async_cancel_watch_contract.c',
     'test/cases/xlir_async_dependency_cycle_contract.c',
     'test/cases/xlir_async_storage_contract.c',
@@ -204,6 +208,8 @@ foreach ($fixture in $fixtureInputs) {
 }
 
 $contractDrivers = @{
+    'check_xlir_c_owned_boundary_fault.ps1' = 'xlir_c_owned_contract.exe'
+    'check_xlir_c_owned_globals_fault.ps1' = 'xlir_c_owned_contract.exe'
     'check_xlir_async_cancel_wait.ps1' = 'xlir_async_cancel_watch_contract.exe'
     'check_xlir_async_dependency_cycles.ps1' = 'xlir_async_dependency_cycle_contract.exe'
     'check_xlir_async_storage.ps1' = 'xlir_async_storage_contract.exe'
@@ -241,6 +247,11 @@ function New-ScenarioGate([string]$Name, [string]$PhaseDirectory) {
             'ContractDirectory' { $arguments[$required] = $contractDirectory }
             'Directory' { $arguments[$required] = Join-Path $PhaseDirectory $slug }
             'SourceDriver' { $arguments[$required] = $sourceDriver }
+            'PublicDriver' { $arguments[$required] = $sourceDriver }
+            'Compiler' {
+                if (!$contractDrivers.ContainsKey($Name)) { throw "No reviewed compiler driver for $Name" }
+                $arguments[$required] = Join-Path $contractDirectory $contractDrivers[$Name]
+            }
             'ContractDriver' {
                 if (!$contractDrivers.ContainsKey($Name)) { throw "No reviewed contract driver for $Name" }
                 $arguments[$required] = Join-Path $contractDirectory $contractDrivers[$Name]
@@ -338,6 +349,7 @@ try {
     Invoke-CheckedScript (Join-Path $toolsDirectory 'build_xlir_validation_driver.ps1') @{
         BatchDrivers = $contractSources
         BatchDirectory = $contractDirectory
+        PublicDirectory = $publicDirectory
     }
     $sharedRuntimeDirectory = Join-Path $Root 'build/test/__xl_runtime'
     [IO.Directory]::CreateDirectory($sharedRuntimeDirectory) | Out-Null
