@@ -29,9 +29,14 @@ inputs=("${sources[@]}" "$argon"/include/*.h "$argon"/vendor/*.h "$argon"/vendor
         "$bloom"/include/*.h "$argon/test/test_argon2.c" "$bloom/test/test_bloom.c"
         "$argon/xlang.package.json" "$bloom/xlang.package.json"
         lib/xrt/xrt.h release/include/xrt_decl.h test/support/extlib_scalar_runtime.c
-        test/cases/extlib_argon2_bloom_alloc.c tools/check_extlib_argon2_bloom.sh)
+        test/cases/extlib_argon2_bloom_alloc.c tools/check_extlib_argon2_bloom.sh
+        release/xl "$argon/src/argon2.xl" "$bloom/src/bloom.xl"
+        "$bloom/test/nul_keys.xl")
 for name in argon2 bloom; do
-    inputs+=("release/examples/extlibs/${name}_c.c" "release/examples/extlibs/${name}_basic.expected.txt")
+    inputs+=("test/cases/extlib_$name.xl" "release/examples/extlibs/$name.xl"
+             "release/examples/extlibs/${name}_basic.xl"
+             "release/examples/extlibs/${name}_c.c"
+             "release/examples/extlibs/${name}_basic.expected.txt")
 done
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/include
        -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
@@ -63,6 +68,33 @@ done
 "$cc" "${flags[@]}" test/cases/extlib_argon2_bloom_alloc.c "${objects[@]}" \
     "$work/runtime.o" -lm -ldl -o "$work/allocation"
 timeout 30s "$work/allocation" 2>&1 | tee "$work/allocation.log"
+for name in argon2 bloom; do
+    c_example="release/examples/extlibs/${name}_c.c"
+    golden="release/examples/extlibs/${name}_basic.expected.txt"
+    timeout 90s ./release/xl run "$c_example" > "$work/$name-c-jit.log"
+    diff -u "$golden" "$work/$name-c-jit.log"
+    timeout 120s ./release/xl run "test/cases/extlib_$name.xl" > "$work/$name-central-jit.log"
+    timeout 120s ./release/xl run "release/examples/extlibs/${name}_basic.xl" > "$work/$name-basic-jit.log"
+    diff -u "$golden" "$work/$name-basic-jit.log"
+    timeout 180s ./release/xl run "release/examples/extlibs/$name.xl" > "$work/$name-tutorial-jit.log"
+
+    printf '[argon2/bloom] AOT %s\n' "$name"
+    for kind in central basic tutorial c; do
+        case "$kind" in
+            central) source="test/cases/extlib_$name.xl" ;;
+            basic) source="release/examples/extlibs/${name}_basic.xl" ;;
+            tutorial) source="release/examples/extlibs/$name.xl" ;;
+            c) source="$c_example" ;;
+        esac
+        timeout 180s ./release/xl build "$source" -o "$work/$name-$kind"
+        timeout 120s "$work/$name-$kind" > "$work/$name-$kind-aot.log"
+    done
+    diff -u "$golden" "$work/$name-basic-aot.log"
+    diff -u "$golden" "$work/$name-c-aot.log"
+done
+timeout 120s ./release/xl run "$bloom/test/nul_keys.xl"
+timeout 180s ./release/xl build "$bloom/test/nul_keys.xl" -o "$work/bloom-nul-keys"
+timeout 120s "$work/bloom-nul-keys"
 sha256sum "${inputs[@]}" > "$work/inputs.after.sha256"
 diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"
-printf 'Argon2/Bloom Linux C ASan/UBSan gate: PASS\n'
+printf 'Argon2/Bloom Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'
