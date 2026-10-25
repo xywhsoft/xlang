@@ -111,6 +111,8 @@
     src\runtime\xl6_tls_server_request.c
     src\runtime\xl6_tls_server_request_policy.c
     src\runtime\xl6_tls_server_choice.c
+    src\runtime\xl6_tls_resume.c
+    src\runtime\xl6_ownership_domain_tls_resume.c
     src\runtime\xl6_tls_selector.c
     src\runtime\xl6_ownership_domain_tls_server_request.c
     src\runtime\xl6_ownership_domain_tls_server_choice.c

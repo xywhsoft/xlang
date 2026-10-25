@@ -84,3 +84,5 @@
     {"src/runtime/xl6_tls_selector.c",D(R(TLS_SERVER_CONTEXT),R(TLS_SERVER_REQUEST_POLICY),R(TLS_SERVER_CHOICE),R(NATIVE_CLASS_CALLBACK)),{"XRT_MODULE_TLS_SERVER"}},
     {"src/runtime/xl6_ownership_domain_tls_server_request.c",D(R(OWNERSHIP_CATALOG),R(TLS_SERVER_REQUEST_POLICY)),{NULL}},
     {"src/runtime/xl6_ownership_domain_tls_server_choice.c",D(R(OWNERSHIP_CATALOG),R(TLS_SERVER_CHOICE)),{NULL}},
+    {"src/runtime/xl6_tls_resume.c",D(R(TLS_VALUE),R(NATIVE_HANDLE)),{"XRT_MODULE_TLS_RESUME"}},
+    {"src/runtime/xl6_ownership_domain_tls_resume.c",D(R(OWNERSHIP_CATALOG),R(TLS_RESUME)),{NULL}},

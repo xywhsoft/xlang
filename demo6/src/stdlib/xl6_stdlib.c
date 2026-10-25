@@ -1112,8 +1112,7 @@ static int xl6StdlibNeedsUdpConfigClass(const XL6_AstNode* root, const int* used
 
 static int xl6StdlibNeedsTlsLegacyConfigClass(const XL6_AstNode* root)
 {
-    return xl6StdlibNodeUsesTypeName(root, "TlsConfig") ||
-           xl6StdlibNodeUsesTypeName(root, "TlsResume");
+    return xl6StdlibNodeUsesTypeName(root, "TlsConfig");
 }
 
 static int xl6StdlibNeedsTlsStreamClass(const XL6_AstNode* root, const int* used)
@@ -1732,7 +1731,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsNistClass;
     int needsRsaPublicClass, needsRsaPrivateClass;
     int needsTlsIdentity, needsTlsParameters, needsTlsVerifier, needsTlsVerificationPolicy;
-    int needsTlsClientContext,needsTlsServerContext,needsTlsSelector;
+    int needsTlsClientContext,needsTlsServerContext,needsTlsSelector,needsTlsResume;
     int needsTccClass;
     int needsXlangClass;
     int needsCoreClass;
@@ -1993,6 +1992,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibFuncUsed(used, "compress", "encodeBuffer") || xl6StdlibFuncUsed(used, "compress", "decode") ||
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer");
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
+    needsTlsResume=xl6StdlibNodeUsesTypeName(root,"TlsResume");
     needsTlsClientContext=needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsClientContext");
     needsTlsServerContext=needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsServerContext");
     needsTlsSelector=needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsServerRequest")||xl6StdlibNodeUsesTypeName(root,"TlsServerChoice");
@@ -2000,7 +2000,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsTlsVerifier=needsTlsClientContext || xl6StdlibNodeUsesTypeName(root,"TlsVerifier");
     needsTlsVerificationPolicy=needsTlsVerifier || xl6StdlibNodeUsesTypeName(root,"TlsVerificationPolicy");
     needsX509Island=needsTlsIdentity||needsTlsVerifier||xl6StdlibNeedsX509(root,used);
-    needsTlsParameters=needsTlsClientContext || needsTlsServerContext || xl6StdlibNodeUsesTypeName(root,"TlsParameters") || xl6StdlibNodeUsesTypeName(root,"TlsPolicy") ||
+    needsTlsParameters=needsTlsResume || needsTlsClientContext || needsTlsServerContext || xl6StdlibNodeUsesTypeName(root,"TlsParameters") || xl6StdlibNodeUsesTypeName(root,"TlsPolicy") ||
         xl6StdlibNodeUsesTypeName(root,"TlsLimits") || xl6StdlibNodeUsesTypeName(root,"TlsVersion") ||
         xl6StdlibNodeUsesTypeName(root,"TlsCipherSuite") || xl6StdlibNodeUsesTypeName(root,"TlsGroup") ||
         xl6StdlibNodeUsesTypeName(root,"TlsSignature") || xl6StdlibNodeUsesTypeName(root,"TlsKeySharePolicy");
@@ -2389,6 +2389,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if(needsTlsVerificationPolicy)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsVerificationPolicySource);
     if(needsTlsVerifier)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsVerifierSource);
     if(needsTlsClientContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsClientContextSource);
+    if(needsTlsResume)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsResumeSource);
     if(needsTlsSelector)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsSelectorSource);
     if(needsTlsServerContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsServerContextSource);
     if(needsTlsManagedSession)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsManagedSessionClassSource);
