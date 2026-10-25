@@ -1,4 +1,10 @@
 /* Closed resident contracts; allocation-capable calls are never no-raise. */
+{"xl6CryptoChaCha20TextV1",T,Y,5,{Y,Y,S,I,I},.pure=1,.nonblocking=1},
+{"xl6CryptoChaCha20BytesV1",T,Y,5,{Y,Y,Y,I,I},.pure=1,.nonblocking=1},
+{"xl6CryptoChaCha20BufferV1",T,Y,5,{Y,Y,V,I,I},.parameterOwners={NULL,NULL,"xl6BufferDestroyV1"},.nonblocking=1},
+{"xl6CryptoChaCha20TextSpanV1",T,Y,5,{XL6_IR_C_ABI_C_BYTES,XL6_IR_C_ABI_C_BYTES,S,I,I},.pure=1,.nonblocking=1},
+{"xl6CryptoChaCha20BytesSpanV1",T,Y,5,{XL6_IR_C_ABI_C_BYTES,XL6_IR_C_ABI_C_BYTES,XL6_IR_C_ABI_C_BYTES,I,I},.pure=1,.nonblocking=1},
+{"xl6CryptoChaCha20BufferSpanV1",T,Y,5,{XL6_IR_C_ABI_C_BYTES,XL6_IR_C_ABI_C_BYTES,V,I,I},.parameterOwners={NULL,NULL,"xl6BufferDestroyV1"},.nonblocking=1},
 {"xl6CryptoRsaPublicCreateV1",T,V,2,{Y,Y},.resultOwner="xl6CryptoRsaPublicDestroyV1",.nonblocking=1},
 {"xl6CryptoRsaPublicDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6CryptoRsaPublicDestroyV1"},.nativeHandlePolicy="xl6CryptoRsaPublicHandlePolicyV1Get",.noRaise=1,.nonblocking=1},
 {"xl6CryptoRsaPublicModulusV1",T,Y,1,{V},.parameterOwners={"xl6CryptoRsaPublicDestroyV1"},.pure=1,.nonblocking=1},

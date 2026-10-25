@@ -1,5 +1,11 @@
 #ifndef XL6_CRYPTO_ABI_H
 #define XL6_CRYPTO_ABI_H
+XL6_TEXT_API xvalue* xl6CryptoChaCha20TextV1(const xvalue*,const xvalue*,xstrview,int64_t,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoChaCha20BytesV1(const xvalue*,const xvalue*,const xvalue*,int64_t,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoChaCha20BufferV1(const xvalue*,const xvalue*,void*,int64_t,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoChaCha20TextSpanV1(xbytesview,xbytesview,xstrview,int64_t,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoChaCha20BytesSpanV1(xbytesview,xbytesview,xbytesview,int64_t,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoChaCha20BufferSpanV1(xbytesview,xbytesview,void*,int64_t,int64_t);
 XL6_TEXT_API void* xl6CryptoRsaPublicCreateV1(const xvalue*,const xvalue*);
 XL6_TEXT_API void xl6CryptoRsaPublicDestroyV1(void*);
 XL6_TEXT_API xvalue* xl6CryptoRsaPublicModulusV1(void*);

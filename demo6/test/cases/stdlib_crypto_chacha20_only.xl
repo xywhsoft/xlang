@@ -1,0 +1,5 @@
+// No codec, AEAD, asymmetric crypto, X.509 or TLS dependency is required.
+bytes key = b"0123456789abcdef0123456789abcdef"
+bytes nonce = b"123456789012"
+auto cipher = cryptoAdvanced.chacha20(key, nonce, b"a\0b")
+assert cryptoAdvanced.chacha20(key, nonce, cipher) == b"a\0b"
