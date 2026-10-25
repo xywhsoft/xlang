@@ -1,5 +1,6 @@
 #include "analysis/signature_internal.h"
 #include "analysis/frontend_entry_cache.h"
+#include "analysis/module_store.h"
 #include "analysis/frontend_context.h"
 #include "analysis/ast_clone.h"
 #include "analysis/ast_materialize.h"
@@ -51,6 +52,17 @@ static void trimModules(xls_entry_cache* cache,size_t budget)
 }
 static void commitModules(xls_entry_cache_scope* scope)
 {
+    xls_module_store* shared=xlsModuleScopeCurrent();
+    if(shared){
+        if(scope->pendingModulesReady){
+            xmapiter iterator;if(!xrtMapIterBegin(&scope->pendingModules,&iterator))return;
+            xls_entry_cache_data** pending;
+            while((pending=xrtMapIterNext(&iterator,NULL))!=NULL)
+                if(!xlsModuleStorePublish(shared,(*pending)->path,(*pending)->syntax))++scope->moduleWork.declined;
+            xrtMapIterEnd(&iterator);
+        }
+        return;
+    }
     xls_entry_cache* cache=scope->cache;size_t budget=cache->limit-xlsEntryCacheBytes(cache);
     trimModules(cache,budget);
     if(!scope->pendingModulesReady) return;
@@ -136,8 +148,48 @@ static void stageModule(xls_entry_cache_scope* scope,const char* path,xls_entry_
     if(scope->pendingModulesReady && (xrtMapHas(&scope->pendingModules,key(path)) || xrtMapCount(&scope->pendingModules)<512) && xrtMapSet(&scope->pendingModules,key(path),&data)) scope->pendingModuleBytes=retained+data->bytes;
     else {releaseData(data);++scope->moduleWork.declined;}
 }
+static int sharedParse(xls_entry_cache_scope* scope,xls_module_store* store,const char* text,const char* path,
+    XL6_ParseResult* result,XL6_CompletionQuery* query,int entry)
+{
+    size_t length=strlen(text);int exact=0;xls_entry_parse_work* measured=entry ? &scope->work : &scope->moduleWork;
+    xls_module_snapshot* old=xlsModuleStoreAcquire(store,path,text,length,&exact);
+    if(exact){
+        if(xlsSyntaxCopyParse(xlsModuleSnapshotSyntax(old),result)){
+            result->diags.defaultFile=xl6AstSourcePath(result->root);++measured->reused;xlsModuleSnapshotRelease(old);return 1;
+        }
+        ++measured->declined;
+    }
+    xls_entry_cache_data** pending=scope->pendingModulesReady ? xrtMapGet(&scope->pendingModules,key(path)) : NULL;
+    size_t budget=scope->cache->limit,retained=scope->pendingModuleBytes-(pending ? (*pending)->bytes : 0);
+    xls_text* body=old ? xlsTextCreate(text,length,budget,NULL) : NULL;xls_parse_work work={0};
+    xls_syntax* syntax=body ? xlsSyntaxTryFunction(path,body,xlsModuleSnapshotSyntax(old),&work) : NULL;
+    if(!entry){scope->moduleSyntaxWork.fragments+=work.fragments;scope->moduleSyntaxWork.bytes+=work.bytes;}
+    if(syntax && xlsSyntaxCopyParse(syntax,result)){
+        result->diags.defaultFile=xl6AstSourcePath(result->root);++measured->parsed;
+        if(!entry)scope->moduleSyntaxWork.reused+=work.reused;
+        stageModule(scope,path,retained<budget ? captureSyntax(scope,path,syntax,budget-retained) : NULL,retained);
+        xlsSyntaxRelease(syntax);xlsTextRelease(body);xlsModuleSnapshotRelease(old);return 1;
+    }
+    xlsSyntaxRelease(syntax);xlsTextRelease(body);xlsModuleSnapshotRelease(old);
+    ++measured->parsed;if(!entry){++scope->moduleSyntaxWork.full;scope->moduleSyntaxWork.bytes+=length;}
+    int okay=xl6ParseSourceWithCompletion(text,path,result,query);
+    if(okay && result->root && !result->diags.count){
+        /* Same original parse and private compiler tree. The shared ordinary
+         * chunks own an independent clone;publication stays at EntryEnd. */
+        xls_entry_cache_data* copy=retained<budget ? capture(scope,text,path,length,result->root,budget-retained,strlen(path)+1) : NULL;
+        xls_entry_cache_data* data=NULL;
+        if(copy){
+            body=xlsTextCreate(text,length,budget,NULL);syntax=body ? xlsSyntaxAdoptOrdinary(path,body,&copy->root) : NULL;
+            data=syntax ? captureSyntax(scope,path,syntax,budget-retained) : NULL;
+            xlsSyntaxRelease(syntax);xlsTextRelease(body);releaseData(copy);
+        }
+        stageModule(scope,path,data,retained);
+    }
+    return okay;
+}
 static int moduleParse(xls_entry_cache_scope* scope,const char* text,const char* path,XL6_ParseResult* result,XL6_CompletionQuery* query)
 {
+    xls_module_store* shared=xlsModuleScopeCurrent();if(shared)return sharedParse(scope,shared,text,path,result,query,0);
     xls_entry_cache* cache=scope->cache;size_t length=strlen(text);
     xls_entry_cache_data** pending=scope->pendingModulesReady ? xrtMapGet(&scope->pendingModules,key(path)) : NULL;
     xls_entry_cache_data** stored=xrtMapGet(&cache->modules,key(path));
@@ -198,6 +250,7 @@ int xlsFrontendEntryParse(const char* text,const char* path,XL6_ParseResult* res
         return xl6ParseSourceWithCompletion(text,path,result,query);
     if(strcmp(path,scope->entry) && (!scope->canonicalEntry || strcmp(path,scope->canonicalEntry)))
         return moduleParse(scope,text,path,result,query);
+    xls_module_store* shared=xlsModuleScopeCurrent();if(shared)return sharedParse(scope,shared,text,path,result,query,1);
     size_t length=strlen(text);xls_entry_cache_data* old=scope->cache->data;
     if(matches(old,scope->context,text,path,length)) {
         if(copy(old,scope->cache->limit,result)) {++scope->work.reused;return 1;}

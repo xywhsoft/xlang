@@ -87,6 +87,11 @@ def main():
         assert 'error' not in reply, reply
         return reply['result']
 
+    def store(c):
+        value = call(c, 'xlang/analysisStats', {})['moduleStore']
+        assert value['enabled'] and 0 < value['registryBytes'] <= value['bytes'] <= value['limit'], value
+        return value
+
     def check(c, epoch, selected, accepted, version=7, imports=True):
         value = call(c, 'xlang/check', dict(textDocument=dict(uri=helper.as_uri()), version=version))
         assert value['ok'] == accepted and value['version'] == version, value
@@ -258,7 +263,7 @@ def main():
         second.open(helper, cursor, 1)
         value = query(second, cursor, 1, 1, 0, {'value', 'alpha'})
         work = value['analysis']['lastBuildEntryParse']
-        assert not value['entryOpen'] and work['parsed'] == 1 and work['reused'] == 0 and work['bytes'] > 0, value
+        assert not value['entryOpen'] and work['parsed'] == 1 and work['reused'] == 0 and work['bytes'] == 0 and store(second)['versions'] > 0, value
         for version in range(2, 18):
             edited = cursor+f'// actual member edit {version}\n'
             second.change(helper, edited, version)
@@ -284,14 +289,14 @@ def main():
         done('entry-identity-recaptures-proof-and-entry-body-change-reparses')
         call(second, 'xlang/configureAnalysis', packet(2, 1))
         value = query(second, edited, version, 2, 1, {'value', 'beta'})
-        assert value['analysis']['lastBuildEntryParse']['parsed'] == 1 and any(i['label'] == 'value' and i['detail'] == 'func() as string' for i in value['items']), value
+        assert value['analysis']['lastBuildEntryParse']['reused'] == 1 and not value['analysis']['lastBuildEntryParse']['parsed'] and any(i['label'] == 'value' and i['detail'] == 'func() as string' for i in value['items']), value
         done('entry-parse-context-change-keeps-real-package-types-and-declarations')
         again = query(second, edited, version, 2, 1, {'value', 'beta'})
         assert again['analysis']['builds'] == value['analysis']['builds'] and again['analysis']['cacheHits'] == value['analysis']['cacheHits']+1 and again['analysis']['lastBuildEntryParse'] == value['analysis']['lastBuildEntryParse'], again
         done('exact-result-hit-preserves-last-build-work-without-claiming-new-parse')
         second.open(entry, entry_text, 1)
         value = query(second, edited, version, 2, 1, {'value', 'beta'})
-        assert value['entryOpen'] and value['analysis']['lastBuildEntryParse']['parsed'] == 1 and value['analysis']['lastBuildEntryParse']['bytes'] > 0, value
+        assert value['entryOpen'] and value['analysis']['lastBuildEntryParse']['parsed'] == 1 and value['analysis']['lastBuildEntryParse']['bytes'] == 0 and store(second)['versions'] > 0, value
         builds = value['analysis']['builds']
         edited += '// changed member with opened entry\n'
         version += 1
@@ -301,7 +306,7 @@ def main():
         done('canonical-open-entry-also-reuses-ordinary-parse-after-member-edit')
         second.send('textDocument/didClose', dict(textDocument=dict(uri=entry.as_uri())))
         value = query(second, edited, version, 2, 1, {'value', 'beta'})
-        assert not value['entryOpen'] and value['analysis']['lastBuildEntryParse']['bytes'] > 0 and value['analysis']['builds'] == builds+2, value
+        assert not value['entryOpen'] and value['analysis']['lastBuildEntryParse']['bytes'] == 0 and store(second)['versions'] > 0 and value['analysis']['builds'] == builds+2, value
         done('closing-entry-restores-real-disk-proof-and-eligible-entry-cache')
         # Separate check actor: changed members must run semantics and IR anew,
         # while the unchanged closed entry may copy only its ordinary AST.
@@ -314,7 +319,7 @@ def main():
         third.open(helper, helper_text, 1)
         value = check(third, 1, 0, True, 1)
         work = value['analysis']['lastBuildEntryParse']
-        assert work['parsed'] == 1 and not work['reused'] and work['bytes'] > 0, value
+        assert work['parsed'] == 1 and not work['reused'] and work['bytes'] == 0 and store(third)['versions'] > 0, value
         for version in range(2, 18):
             edited = helper_text+f'// real checked member edit {version} 中文😀\n'
             third.change(helper, edited, version)
@@ -347,7 +352,7 @@ def main():
         finally:
             entry.write_bytes(original_entry)
         value = check(third, 1, 0, True, version)
-        assert value['analysis']['lastBuildEntryParse']['parsed'] == 1, value
+        assert value['analysis']['lastBuildEntryParse']['reused'] == 1 and not value['analysis']['lastBuildEntryParse']['parsed'], value
         done('static-check-entry-identity-body-and-syntax-errors-keep-real-proofs')
         original_api = api_paths[0].read_bytes()
         try:
@@ -359,20 +364,20 @@ def main():
         value = check(third, 1, 0, True, version)
         assert value['analysis']['lastBuildEntryParse']['reused'] == 1, value
         done('static-check-package-type-change-reruns-semantic-and-ir-validation')
-        assert value['analysis']['lastBuildModuleParse']['parsed'] == 1 and value['analysis']['lastBuildModuleParse']['reused'] == 1, value
-        done('changed-package-reparses-only-its-ordinary-tree-before-full-type-check')
+        assert value['analysis']['lastBuildModuleParse']['parsed'] == 0 and value['analysis']['lastBuildModuleParse']['reused'] == 2, value
+        done('restored-package-byte-match-reuses-ordinary-tree-before-full-type-check')
         call(third, 'xlang/configureAnalysis', packet(2, 1))
         value = check(third, 2, 1, False, version)
-        assert value['analysis']['lastBuildEntryParse']['parsed'] == 1 and not value['analysis']['lastBuildEntryParse']['reused'], value
-        assert value['analysis']['lastBuildModuleParse']['parsed'] == 2 and value['analysis']['lastBuildModuleParse']['reused'] == 0, value
+        assert value['analysis']['lastBuildEntryParse']['reused'] == 1 and not value['analysis']['lastBuildEntryParse']['parsed'], value
+        assert value['analysis']['lastBuildModuleParse']['parsed'] == 1 and value['analysis']['lastBuildModuleParse']['reused'] == 1, value
         before_return = value['analysis']
         call(third, 'xlang/configureAnalysis', packet(3, 0))
         value = check(third, 3, 0, True, version)
         assert value['analysis']['lastBuildEntryParse']['reused'] == 1 and not value['analysis']['lastBuildEntryParse']['parsed'], value
         assert value['analysis']['builds'] == before_return['builds'] and value['analysis']['cacheHits'] == before_return['cacheHits']+1 and value['analysis']['sessionCache']['hits'] == before_return['sessionCache']['hits']+1, value
         done('static-check-context-return-validates-and-reuses-original-root-model')
-        assert value['analysis']['lastBuildModuleParse']['parsed'] == 1 and value['analysis']['lastBuildModuleParse']['reused'] == 1, value
-        done('module-cache-full-context-isolation-preserves-current-imports')
+        assert value['analysis']['lastBuildModuleParse']['parsed'] == 0 and value['analysis']['lastBuildModuleParse']['reused'] == 2, value
+        done('raw-module-sharing-keeps-semantic-context-isolation-and-current-imports')
         third.open(entry, entry_text, 1)
         value = check(third, 3, 0, True, version)
         work = value['analysis']['lastBuildEntryParse']
@@ -387,9 +392,9 @@ def main():
         value = check(third, 3, 0, True, version)
         assert not value['entryOpen'] and value['analysis']['lastBuildEntryParse']['reused'] == 1, value
         done('static-check-open-entry-keeps-chunk-syntax-and-close-restores-disk-cache')
-        # The disk-root session retained its own old helper tree while the open
-        # root was edited. Reparse that helper;reuse only the unchanged package.
-        assert value['analysis']['lastBuildModuleParse']['parsed'] == 1 and value['analysis']['lastBuildModuleParse']['reused'] == 1, value
+        # The open-root worker has already published the current ordinary
+        # helper;the closed-root worker reuses it and still rechecks semantics.
+        assert value['analysis']['lastBuildModuleParse']['parsed'] == 0 and value['analysis']['lastBuildModuleParse']['reused'] == 2, value
         done('closing-entry-updates-retained-disk-root-helper-and-reuses-current-package')
         assert all(sha(p) == digest for p, digest in protected.items()) and not helper.exists() and not compiler.exists()
         done('unsaved-member-not-written-and-source-tools-unchanged')
