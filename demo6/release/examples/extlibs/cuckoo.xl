@@ -17,6 +17,12 @@ func main(...) as int
     println("after remove def456:", cf.contains("session:def456"))
     println("count:", cf.count)
 
+    cf.clear()
+    println("after clear count:", cf.count)
+    println("after clear abc123:", cf.contains("session:abc123"))
+    cf.add("session:reused")
+    println("after reuse:", cf.contains("session:reused"))
+
     println("cuckoo example: PASS")
     return 0
 end

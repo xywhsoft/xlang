@@ -1,0 +1,9 @@
+buckets: 4096
+contains abc123: true
+contains zzz999: false
+after remove def456: false
+count: 2
+after clear count: 0
+after clear abc123: false
+after reuse: true
+cuckoo example: PASS

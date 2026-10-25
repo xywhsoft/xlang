@@ -28,6 +28,14 @@ int main(void) {
     }
     printf("after remove def456: %s\n", xcuckoo_contains(filter, keys[1], strlen(keys[1])) ? "true" : "false");
     printf("count: %lld\n", (long long)xcuckoo_count(filter));
+    xcuckoo_clear(filter);
+    printf("after clear count: %lld\n", (long long)xcuckoo_count(filter));
+    printf("after clear abc123: %s\n", xcuckoo_contains(filter, keys[0], strlen(keys[0])) ? "true" : "false");
+    if (!xcuckoo_add(filter, "session:reused", 14)) {
+        xcuckoo_destroy(filter);
+        return 1;
+    }
+    printf("after reuse: %s\n", xcuckoo_contains(filter, "session:reused", 14) ? "true" : "false");
     xcuckoo_destroy(filter);
     puts("cuckoo example: PASS");
     return 0;

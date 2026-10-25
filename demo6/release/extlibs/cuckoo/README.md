@@ -28,6 +28,10 @@ seen.remove("session:abc123")
 分配故障、私有入口拒绝、双语输出及核心/公开范例 AOT；WSL Linux
 门禁通过 C ASan/UBSan、高装载、语言边界/分配故障和 C/XLang 对照。
 Linux 语言侧使用尚未重建的 `release/xl`，独立 Linux EXE 未验收。
+双语范例现展示删除、清空与复用，Windows/Linux 门禁均将其输出
+与独立的固定预期文件对照，而非仅比较两种实现彼此相同。
+
+以下是历史验证记录；其中旧发布物的 AOT 缺符号结论不代表当前状态。
 
 2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
 严格 C、满桶/高装载与失败回滚、XLang 边界和分配故障、私有原生

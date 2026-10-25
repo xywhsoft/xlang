@@ -27,6 +27,7 @@ timeout 90s "$work/test_cuckoo"
     release/extlibs/cuckoo/examples/cuckoo.c "$work/xrt_runtime.o" \
     -lm -ldl -o "$work/cuckoo_example"
 timeout 90s "$work/cuckoo_example" > "$work/c_example.txt"
+diff -u release/extlibs/cuckoo/examples/cuckoo.expected.txt "$work/c_example.txt"
 
 xl=release/xl
 if [[ ! -x "$xl" ]]; then

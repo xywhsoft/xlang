@@ -53,6 +53,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'cuckoo direct C example failed' }
     $xlOutput = & $xl run release/examples/extlibs/cuckoo.xl
     if ($LASTEXITCODE -ne 0) { throw 'cuckoo XLang example failed' }
+    $expected = [IO.File]::ReadAllText((Join-Path $root 'release/extlibs/cuckoo/examples/cuckoo.expected.txt')).Replace("`r`n", "`n").TrimEnd("`n")
+    if (($cOutput -join "`n") -cne $expected) {
+        throw 'cuckoo C example differs from expected output'
+    }
     if (($cOutput -join "`n") -cne ($xlOutput -join "`n")) {
         throw 'cuckoo C/XLang example output differs'
     }
@@ -70,8 +74,8 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'cuckoo example AOT build failed' }
         $aotOutput = & $exampleAot
         if ($LASTEXITCODE -ne 0 -or
-            ($aotOutput -join "`n") -cne ($cOutput -join "`n")) {
-            throw 'cuckoo example AOT differs from C'
+            ($aotOutput -join "`n") -cne $expected) {
+            throw 'cuckoo example AOT differs from expected output'
         }
     }
 
