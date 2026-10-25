@@ -119,7 +119,7 @@ static int xl6IrCgenEmitRuntimePrelude(
         if ( !xl6IrCgenEmitCallbackTypes(out, module, 0, diags) ) return 0;
         xl6OutputPuts("\n", out);
     }
-    if ( needs->needsLanguageFunctionRuntime || needs->needsNetTlsRuntime )
+    if ( needs->needsLanguageFunctionRuntime )
         xl6IrCgenEmitLanguageFunctionType(out);
     if ( needs->needsLanguageFunctionRuntime ) {
         xl6OutputPuts(

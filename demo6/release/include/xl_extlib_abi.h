@@ -14,10 +14,7 @@ struct xl6_call_result;
 struct xerror;
 struct xfuture;
 struct xvalue;
-struct xtlscontext;
-struct xtlsverifier;
 typedef struct xrttype xrttype;
-typedef struct XL6_TlsLease XL6_TlsLease;
 
 
 
@@ -135,37 +132,6 @@ bool xl6FutureLinkCancel(
 );
 
 void xl6FutureDestroy(struct xfuture* pFuture);
-
-
-
-/*
-	把可变 TlsConfig 快照为扩展库可持有的不可变租约。
-	租约拥有 TLS Context，并可为异步客户端创建独立共享 Verifier。
-*/
-XL6_TlsLease* xl6ExtlibTlsLeaseCreate(void* pConfig);
-
-
-
-/* 释放扩展库持有的一份 TLS 租约引用。 */
-void xl6ExtlibTlsLeaseRelease(XL6_TlsLease* pLease);
-
-
-
-/* 借用租约中的 TLS Context；返回值不得由扩展库释放。 */
-struct xtlscontext* xl6ExtlibTlsLeaseContext(XL6_TlsLease* pLease);
-
-
-
-/* 创建拥有租约引用的共享 Verifier；调用方负责释放返回值。 */
-struct xtlsverifier* xl6ExtlibTlsLeaseShareVerifier(XL6_TlsLease* pLease);
-
-
-
-/* XLang point 绑定使用的无类型租约适配；语义与上方强类型接口一致。 */
-void* xl6ExtlibTlsLeaseCreateHandle(void* pConfig);
-void xl6ExtlibTlsLeaseReleaseHandle(void* pLease);
-void* xl6ExtlibTlsLeaseContextHandle(void* pLease);
-void* xl6ExtlibTlsLeaseShareVerifierHandle(void* pLease);
 
 
 

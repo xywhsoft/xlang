@@ -9,7 +9,6 @@
 #include "src/cgen/xl6_cgen_structured_options.h"
 #include "src/cgen/xl6_cgen_net.h"
 #include "src/cgen/xl6_cgen_text_output.h"
-#include "src/cgen/xl6_cgen_tls.h"
 #include "src/cgen/xl6_cgen_websocket.h"
 #include "src/cgen/xl6_cgen_xlang.h"
 
@@ -26,6 +25,5 @@
 #include "src/cgen/xl6_cgen_http1.c"
 #include "src/cgen/xl6_cgen_net_transport.c"
 #include "src/cgen/xl6_cgen_net_datagram.c"
-#include "src/cgen/xl6_cgen_tls.c"
 #include "src/cgen/xl6_cgen_websocket.c"
 #include "src/cgen/xl6_cgen_xlang_runtime.c"

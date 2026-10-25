@@ -90,6 +90,23 @@ bool xl6_test_invoke_value(XL6_Function callback)
     return ok;
 }
 
+bool xl6_test_invoke_predicate(void* context, XL6_Function callback)
+{
+    xvalue* argument = xrtValueInt(17);
+    xvalue* result;
+    bool value = false;
+    bool ok;
+    if ( context != NULL || argument == NULL ) {
+        xrtValueRelease(argument);
+        return false;
+    }
+    result = xl6_test_invoke(callback, 1, &argument);
+    xrtValueRelease(argument);
+    ok = result != NULL && xrtValueGetBool(result, &value) && value;
+    xrtValueRelease(result);
+    return ok;
+}
+
 bool xl6_test_invoke_captured(XL6_Function callback)
 {
     xvalue* argument = xrtValueInt(11);

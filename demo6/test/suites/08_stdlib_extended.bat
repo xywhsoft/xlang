@@ -799,9 +799,9 @@ release\xl.exe check test\cases\stdlib_tls_stream_fast_path.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_tls_stream_fast_path.xl --emit build\test\stdlib_tls_stream_fast_path.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_tls_stream_send_bytes_async" build\test\stdlib_tls_stream_fast_path.c >nul
+findstr /C:"xl6TlsStreamSendBytesAsyncV1" build\test\stdlib_tls_stream_fast_path.c >nul
 if errorlevel 1 (
-    echo stdlib_tls_stream_fast_path.c missing TLS stream binary async bridge.
+    echo stdlib_tls_stream_fast_path.c missing managed TLS stream binary async declaration.
     exit /b 1
 )
 release\xl.exe build test\cases\stdlib_tls_stream_fast_path.xl -o build\test\stdlib_tls_stream_fast_path.exe
@@ -813,9 +813,9 @@ release\xl.exe check test\cases\stdlib_tls_server_fast_path.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_tls_server_fast_path.xl --emit build\test\stdlib_tls_server_fast_path.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_tls_server_accept_async" build\test\stdlib_tls_server_fast_path.c >nul
+findstr /C:"xl6TlsListenerAcceptAsyncV1" build\test\stdlib_tls_server_fast_path.c >nul
 if errorlevel 1 (
-    echo stdlib_tls_server_fast_path.c missing TLS server async accept bridge.
+    echo stdlib_tls_server_fast_path.c missing managed TLS listener async declaration.
     exit /b 1
 )
 release\xl.exe build test\cases\stdlib_tls_server_fast_path.xl -o build\test\stdlib_tls_server_fast_path.exe
@@ -1021,9 +1021,9 @@ findstr /C:"tls_session=ok" build\test\stdlib_tls_session.out.txt >nul
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_tls_session.xl --emit build\test\stdlib_tls_session.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_tls_session_create" build\test\stdlib_tls_session.c >nul
+findstr /C:"xl6TlsSessionClientCreateV1" build\test\stdlib_tls_session.c >nul
 if errorlevel 1 (
-    echo stdlib_tls_session.c missing raw TLS wrapper.
+    echo stdlib_tls_session.c missing managed TLS Session declaration.
     exit /b 1
 )
 release\xl.exe build test\cases\stdlib_tls_session.xl -o build\test\stdlib_tls_session.exe
@@ -1037,9 +1037,9 @@ release\xl.exe check test\cases\stdlib_tls_session_trim.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_tls_session_trim.xl --emit build\test\stdlib_tls_session_trim.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_tls_session_create" build\test\stdlib_tls_session_trim.c >nul
+findstr /C:"xl6TlsSessionClientCreateV1" build\test\stdlib_tls_session_trim.c >nul
 if errorlevel 1 (
-    echo stdlib_tls_session_trim.c missing raw TLS session wrapper.
+    echo stdlib_tls_session_trim.c missing managed TLS Session declaration.
     exit /b 1
 )
 for %%S in (xl6_xrt_net_engine_create xl6_xrt_tcp_stream_create xl6_xrt_tcp_client_create xl6_xrt_tcp_server_create xl6_xrt_udp_create xl6_xrt_tls_stream_create xl6_xrt_tls_server_create) do (
@@ -1069,11 +1069,9 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe run release\examples\stdlib_tls_session_pair.xl > build\test\stdlib_tls_session_pair_example.out.txt
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_tls_session_pair_c.c > build\test\stdlib_tls_session_pair_c_example.out.txt
-if errorlevel 1 exit /b 1
-fc build\test\stdlib_tls_session_pair_example.out.txt build\test\stdlib_tls_session_pair_c_example.out.txt >nul
+findstr /C:"tls_session_pair=ok" build\test\stdlib_tls_session_pair_example.out.txt >nul
 if errorlevel 1 (
-    echo raw TLS C/xlang example output mismatch.
+    echo managed TLS Session example did not complete.
     exit /b 1
 )
 
@@ -1282,7 +1280,7 @@ for %%S in (XRT_MODULE_WEBSOCKET_STREAM_TLS XRT_MODULE_TLS_STREAM_FUTURE xl6_xrt
 
 rem Fresh immutable compiler inputs shared by the three time acceptance gates.
 set "XL6_TIME_CONTRACT_DIR=build\test\stdlib_time_%RANDOM%_%RANDOM%"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\build_xlir_public_source_driver.ps1 -Directory "%XL6_TIME_CONTRACT_DIR%\compiler"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\build_xlir_public_source_driver.ps1 -Directory "%XL6_TIME_CONTRACT_DIR%\compiler" -Optimization O2
 if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_time_core.ps1 -PublicSourceDirectory "%XL6_TIME_CONTRACT_DIR%\compiler" -Directory "%XL6_TIME_CONTRACT_DIR%\core"
 if errorlevel 1 exit /b 1
@@ -1301,6 +1299,8 @@ if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_process_future_module.ps1 -PublicSourceDirectory "%XL6_TIME_CONTRACT_DIR%\compiler" -Directory "%XL6_TIME_CONTRACT_DIR%\process_future_module"
 if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_process_future_module.ps1 -PublicSourceDirectory "%XL6_TIME_CONTRACT_DIR%\compiler" -Directory "%XL6_TIME_CONTRACT_DIR%\process_future_module_globals" -GlobalNativeHandles
+if errorlevel 1 exit /b 1
+python tools\check_tls_retirement_source.py --root . --build "%XL6_TIME_CONTRACT_DIR%\compiler\build.json" --out "%XL6_TIME_CONTRACT_DIR%\tls_retirement"
 if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: extended standard library

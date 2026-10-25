@@ -45,9 +45,8 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
      * construction or a library-specific call-site exception. */
     if (needs->needsXValueUnionRuntime) needs->needsXValueTypeIdentityRuntime=1;
     needs->needsDebugConsoleRuntime = options != NULL && options->debugMode;
-    needs->needsNetLifecycleRuntime=needs->needsNetTcpRuntime || needs->needsNetTlsRuntime || needs->needsNetDatagramRuntime;
-    if (!!(needs->needsNetTcpRuntime || needs->needsNetDatagramRuntime ||
-            needs->needsNetTlsDialRuntime || needs->needsNetTlsServerRuntime) !=
+    needs->needsNetLifecycleRuntime=needs->needsNetTcpRuntime || needs->needsNetDatagramRuntime;
+    if (!!(needs->needsNetTcpRuntime || needs->needsNetDatagramRuntime) !=
         (module->abi.networkServiceAbi == XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1))
         return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,
             "XLIR network service ABI disagrees with verified implementation dependencies");
@@ -64,7 +63,7 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
             needs->needsModuleOwnershipViews=1;
     if (module->abi.entryKind==XL6_IR_MODULE_ENTRY_XLANG_MAIN ||
         (options && options->emitMainWrapper) || needs->needsNetTcpRuntime ||
-        needs->needsNetDatagramRuntime || needs->needsNetTlsDialRuntime || needs->needsNetTlsServerRuntime) {
+        needs->needsNetDatagramRuntime) {
         needs->needsForeignErrorRuntime=1;
         needs->needsErrorRuntime=1;
     }

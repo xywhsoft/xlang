@@ -263,7 +263,7 @@ void xl6CgenEmitNetBufferComponent(
     );
     }
 
-    if ( needs->tcpStream || needs->tlsStream ) {
+    if ( needs->tcpStream ) {
     xl6OutputPuts(
         "typedef const xnetbuf* (*xl6_net_buffer_view_proc)(void* transport);\n"
         "typedef size_t (*xl6_net_buffer_consume_proc)(void* transport, size_t size);\n\n"

@@ -216,7 +216,6 @@ extern const char* xl6StdlibTcpWaitSource;
 extern const char* xl6StdlibUdpStatsClassSource;
 extern const char* xl6StdlibUdpStateSource;
 extern const char* xl6StdlibUdpClassSource;
-extern const char* xl6StdlibTlsLegacyConfigClassSource;
 extern const char* xl6StdlibTlsManagedSessionClassSource;
 extern const char* xl6StdlibTlsStreamOptionsSource;
 extern const char* xl6StdlibTlsDialOptionsSource;

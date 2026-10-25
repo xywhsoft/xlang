@@ -516,7 +516,7 @@ if ($lower -notmatch 'xl6IrLowerOwnedReturnExpression\(ctx, id,\s*ctx->module->c
     throw 'Ordinary and deferred returns must share conversion followed by producer-based ownership at the normalized return TypeId, with runtime regression coverage'
 }
 $ownerAcquisition = [regex]::Match($lower,
-    '(?ms)^static XL6_IrValueId xl6IrLowerAcquireValueOwner\(.*?^\}').Value
+    '(?ms)^static XL6_IrValueId xl6IrLowerAcquireValueOwner\([^;{]*\)\s*\{.*?^\}').Value
 if ($ownerAcquisition -match 'valueCategory|sourceNode->ownership' -or
     !$ownerAcquisition.Contains('xl6IrLowerValueHasOwner')) {
     throw 'Storage snapshots must use the lowered producer contract, never frontend ownership hints'
@@ -2207,7 +2207,6 @@ foreach ( $required in @(
     "XL6_IrRuntimeBridgeOperation",
     "XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_FILE_TRANSFER",
     "XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_RECV_OWNED_BYTES_ASYNC",
-    "XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TLS_RECV_OWNED_BYTES_ASYNC",
     "XL6_IrCallErrorPhysicalAbi",
     "XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER",
     "XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR",
@@ -4777,11 +4776,20 @@ $retiredComponentAbiFiles = @(
     'src/cgen/xl6_cgen_http1.c',
     'src/cgen/xl6_cgen_json_stream.c',
     'src/cgen/xl6_cgen_serialization_callback.c',
-    'src/cgen/xl6_cgen_tls_stream.c',
     'src/cgen/xl6_cgen_websocket.c',
     'src/cgen/xl6_cgen_xlang_runtime.c',
     'src/cgen/xl6_cgen_xlon.c'
 )
+foreach ($retired in @('src/cgen/xl6_cgen_tls.c', 'src/cgen/xl6_cgen_tls_stream.c', 'src/cgen/xl6_cgen_tls.h')) {
+    if (Test-Path -LiteralPath (Join-Path $Root $retired)) {
+        throw "Retired TLS library-body emitter returned: $retired"
+    }
+}
+foreach ($path in @('src/stdlib/xl6_stdlib_data.c', 'src/cgen/xl6_ir_cgen_emit_net.c', 'src/ir/xl6_ir.h')) {
+    if ((Read-Utf8 $path) -match 'TlsLegacyConfig|NET_TLS_(?:CONFIG|SESSION|RESUME|DIAL|STREAM|SERVER)|xl6_xrt_tls_') {
+        throw "Retired raw TLS facade returned: $path"
+    }
+}
 foreach ($path in $retiredComponentAbiFiles) {
     $componentText = Read-Utf8 $path
     if ($componentText -match '\bxlirAbi\b|xl6TlsLegacyFutureSource|XL6_CGEN_TLS_FUTURE_LEGACY') {
@@ -5342,8 +5350,7 @@ if ( $cEmitter.Contains("strcmp(target->cName") -or
 foreach ( $required in @(
     "target->runtimeBridgeOperation",
     "XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_FILE_TRANSFER",
-    "XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_RECV_OWNED_BYTES_ASYNC",
-    "XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TLS_RECV_OWNED_BYTES_ASYNC"
+    "XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_RECV_OWNED_BYTES_ASYNC"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR network C emitter is missing verified runtime bridge operation metadata: $required"

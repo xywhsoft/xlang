@@ -20899,9 +20899,6 @@ XL6_IrNativeFutureMapAbi xl6IrModuleNativeFutureMapRequirement(const XL6_IrModul
         case XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL:
         case XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM:
         case XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER:
-        case XL6_IR_RUNTIME_BRIDGE_NET_TLS_DIAL:
-        case XL6_IR_RUNTIME_BRIDGE_NET_TLS_STREAM:
-        case XL6_IR_RUNTIME_BRIDGE_NET_TLS_SERVER:
         case XL6_IR_RUNTIME_BRIDGE_NET_RESOLVE_ASYNC:
         case XL6_IR_RUNTIME_BRIDGE_NET_UDP_RECV_ASYNC:
             return XL6_IR_NATIVE_FUTURE_MAP_RESIDENT_EXCLUSIVE_V1;
@@ -20929,9 +20926,7 @@ XL6_IrModuleNetworkServiceAbi xl6IrModuleNetworkServiceRequirement(const XL6_IrM
         if (target->reachability==XL6_IR_REACHABILITY_UNREACHABLE) continue;
         if (xl6IrRuntimeNetDatagramBridgeKindIs(target->runtimeBridge) ||
             (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL &&
-             target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER) ||
-            target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NET_TLS_DIAL ||
-            target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NET_TLS_SERVER)
+             target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER))
             return XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1;
     }
     return XL6_IR_MODULE_NETWORK_SERVICE_NONE;
@@ -31814,8 +31809,6 @@ XL6_IrRuntimeBridgeOperation xl6IrRuntimeBridgeOperationForName(
         return XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_FILE_TRANSFER;
     if ( strcmp(name, "xl6_xrt_tcp_stream_recv_owned_async") == 0 )
         return XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_RECV_OWNED_BYTES_ASYNC;
-    if ( strcmp(name, "xl6_xrt_tls_stream_recv_owned_async") == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TLS_RECV_OWNED_BYTES_ASYNC;
     return XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
 }
 
@@ -31882,10 +31875,6 @@ int xl6IrRuntimeBridgeOperationTargetMatches(
     if ( expected ==
              XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_RECV_OWNED_BYTES_ASYNC ) {
         if ( target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM )
-            return 0;
-    } else if ( expected ==
-                    XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TLS_RECV_OWNED_BYTES_ASYNC ) {
-        if ( target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NET_TLS_STREAM )
             return 0;
     } else {
         return 0;
@@ -31959,81 +31948,6 @@ int xl6IrRuntimeNetTcpBridgeTargetMatches(
               payload->cAbi != XL6_IR_C_ABI_C_BOOL) ) return 0;
     }
     return 1;
-}
-
-XL6_IrRuntimeBridgeKind xl6IrRuntimeNetTlsBridgeKind(const char* name)
-{
-    if ( name == NULL ) return XL6_IR_RUNTIME_BRIDGE_NONE;
-    if ( strncmp(name, "xl6_xrt_tls_config_",
-             sizeof("xl6_xrt_tls_config_") - 1) == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_NET_TLS_CONFIG;
-    if ( strncmp(name, "xl6_xrt_tls_session_",
-             sizeof("xl6_xrt_tls_session_") - 1) == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_NET_TLS_SESSION;
-    if ( strncmp(name, "xl6_xrt_tls_resume_",
-             sizeof("xl6_xrt_tls_resume_") - 1) == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_NET_TLS_RESUME;
-    if ( strcmp(name, "xl6_xrt_tls_connect") == 0 ||
-         strcmp(name, "xl6_xrt_tls_connect_async") == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_NET_TLS_DIAL;
-    if ( strncmp(name, "xl6_xrt_tls_stream_",
-             sizeof("xl6_xrt_tls_stream_") - 1) == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_NET_TLS_STREAM;
-    if ( strcmp(name, "xl6_xrt_tls_listen") == 0 ||
-         strncmp(name, "xl6_xrt_tls_server_",
-             sizeof("xl6_xrt_tls_server_") - 1) == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_NET_TLS_SERVER;
-    return XL6_IR_RUNTIME_BRIDGE_NONE;
-}
-
-int xl6IrRuntimeNetTlsBridgeTargetMatches(
-    const XL6_IrModule* module, const XL6_IrCallTarget* target)
-{
-    XL6_IrRuntimeBridgeKind expected;
-    const XL6_IrType* result;
-    size_t parameter;
-    if ( module == NULL || target == NULL || target->cName == NULL ||
-         !xl6IrRuntimeBridgeOperationTargetMatches(module, target) ) return 0;
-    expected = xl6IrRuntimeNetTlsBridgeKind(target->cName);
-    if ( expected == XL6_IR_RUNTIME_BRIDGE_NONE ||
-         target->runtimeBridge != expected ||
-         target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
-         (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
-          target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_NONE) ||
-         target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-         (target->parameterCount != 0 &&
-          (target->parameterTypes == NULL || target->parameterAbis == NULL ||
-           target->parameterPhysicalAbis == NULL ||
-           target->parameterConstraintAbis == NULL ||
-           target->parameterPhysicalFieldDeclarations == NULL)) ) return 0;
-    result = target->returnType == XL6_IR_TYPE_INVALID
-        ? NULL : xl6IrTypeGet(&module->types, target->returnType);
-    if ( target->returnType != XL6_IR_TYPE_INVALID && result == NULL ) return 0;
-    for ( parameter = 0; parameter < target->parameterCount; ++parameter )
-        if ( xl6IrTypeGet(&module->types, target->parameterTypes[parameter]) == NULL ||
-             target->parameterAbis[parameter] == XL6_IR_PARAMETER_ABI_INVALID ||
-             target->parameterPhysicalAbis[parameter] ==
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_INVALID ||
-             target->parameterConstraintAbis[parameter] >
-                 XL6_IR_CALL_PARAMETER_CONSTRAINT_RAW_CALLBACK_DIRECT_THUNK ) return 0;
-    if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C )
-        return target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-               target->resultPhysicalFieldDeclaration == XL6_IR_NODE_INVALID &&
-               target->resultPhysicalDestroySymbol == 0;
-    if ( target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY ) {
-        if ( target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-             target->resultPhysicalFieldDeclaration == XL6_IR_NODE_INVALID &&
-             target->resultPhysicalDestroySymbol == 0 ) return 1;
-        return result != NULL && result->kind == XL6_IR_TYPE_CLASS &&
-               result->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-               result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-               result->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
-               target->resultPhysicalAbi ==
-                   XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE &&
-               target->resultPhysicalFieldDeclaration != XL6_IR_NODE_INVALID &&
-               target->resultPhysicalDestroySymbol != 0;
-    }
-    return 0;
 }
 
 XL6_IrRuntimeBridgeKind xl6IrRuntimeWebSocketBridgeKind(const char* name)
@@ -32838,9 +32752,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
          xl6IrRuntimeNetTcpBridgeKind(target->cName) !=
              XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
     if ( target->cName != NULL &&
-         xl6IrRuntimeNetTlsBridgeKind(target->cName) !=
-             XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
-    if ( target->cName != NULL &&
          xl6IrRuntimeWebSocketBridgeKind(target->cName) !=
              XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
     if ( target->cName != NULL &&
@@ -32908,9 +32819,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
     if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL &&
          target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER )
         return xl6IrRuntimeNetTcpBridgeTargetMatches(module, target);
-    if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_NET_TLS_CONFIG &&
-         target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_NET_TLS_SERVER )
-        return xl6IrRuntimeNetTlsBridgeTargetMatches(module, target);
     if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_FRAME &&
          target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM_TLS )
         return xl6IrRuntimeWebSocketBridgeTargetMatches(module, target);
@@ -48737,12 +48645,6 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_NET_TCP_LISTEN: return "net-tcp-listen";
     case XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM: return "net-tcp-stream";
     case XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER: return "net-tcp-server";
-    case XL6_IR_RUNTIME_BRIDGE_NET_TLS_CONFIG: return "net-tls-config";
-    case XL6_IR_RUNTIME_BRIDGE_NET_TLS_SESSION: return "net-tls-session";
-    case XL6_IR_RUNTIME_BRIDGE_NET_TLS_RESUME: return "net-tls-resume";
-    case XL6_IR_RUNTIME_BRIDGE_NET_TLS_DIAL: return "net-tls-dial";
-    case XL6_IR_RUNTIME_BRIDGE_NET_TLS_STREAM: return "net-tls-stream";
-    case XL6_IR_RUNTIME_BRIDGE_NET_TLS_SERVER: return "net-tls-server";
     case XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_FRAME: return "websocket-frame";
     case XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_HANDSHAKE: return "websocket-handshake";
     case XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_UPGRADE: return "websocket-upgrade";
@@ -48770,8 +48672,6 @@ static const char* xl6IrRuntimeBridgeOperationName(
         return "net-tcp-file-transfer";
     case XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_RECV_OWNED_BYTES_ASYNC:
         return "net-tcp-recv-owned-bytes-async";
-    case XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TLS_RECV_OWNED_BYTES_ASYNC:
-        return "net-tls-recv-owned-bytes-async";
     default: return "invalid";
     }
 }

@@ -34,7 +34,7 @@ try {
         @($_.parameterPhysicalAbis) -contains "language-function-value"
     })
     $requiredLanguageTargets = @(
-        "xl6_xrt_tls_config_verify_callback",
+        "xl6_test_invoke_predicate",
         "xl6_test_invoke_void",
         "xl6_test_invoke_scalars",
         "xl6_test_invoke_string",
@@ -46,14 +46,14 @@ try {
             throw "XLIR extern function-value matrix lacks one exact target: $requiredTarget"
         }
     }
-    $tlsTarget = @($languageTargets | Where-Object {
-        $_.cName -eq "xl6_xrt_tls_config_verify_callback"
+    $predicateTarget = @($languageTargets | Where-Object {
+        $_.cName -eq "xl6_test_invoke_predicate"
     })[0]
     $languageParameter = [array]::IndexOf(
-        @($tlsTarget.parameterPhysicalAbis), "language-function-value")
+        @($predicateTarget.parameterPhysicalAbis), "language-function-value")
     if ( $languageParameter -ne 1 -or
-         @($tlsTarget.parameterAbis)[$languageParameter] -ne 2 ) {
-        throw "XLIR extern method callback lost its borrowed XL6_Function parameter contract"
+         @($predicateTarget.parameterAbis)[$languageParameter] -ne 2 ) {
+        throw "XLIR context-plus-callback lost its borrowed XL6_Function parameter contract"
     }
     foreach ( $target in $languageTargets ) {
         $parameterIndex = [array]::IndexOf(
@@ -68,8 +68,8 @@ try {
         $_.kindName -eq "raw-pointer-null-convert" -and
         $_.admissionName -eq "verified"
     })
-    if ( $pointerNull.Count -ne 1 ) {
-        throw "XLIR point(null) lacks one verified raw-pointer-null-convert intrinsic"
+    if ( $pointerNull.Count -ne 2 ) {
+        throw "XLIR point(null) lacks two verified raw-pointer-null-convert intrinsics"
     }
 
     & $xl cgen $source --backend xlir --emit $cPath
@@ -85,19 +85,15 @@ try {
         "xl6_test_invoke_scalars",
         "xl6_test_invoke_string",
         "xl6_test_invoke_captured",
-        "bool xl6_xrt_tls_config_verify_callback(void* handle, XL6_Function callback)"
+        "extern bool xl6_test_invoke_predicate(void*, XL6_Function)"
     ) ) {
         if ( ! $generated.Contains($required) ) {
             throw "XLIR foreign function-value generated C lacks verified ABI token: $required"
         }
     }
     if ( $generated -match
-         'xl6_xrt_tls_config_verify_callback\s*\([^,]+,\s*xlir_closure\s*\*' ) {
+         'xl6_test_invoke_predicate\s*\([^,]+,\s*xlir_closure\s*\*' ) {
         throw "XLIR extern function value leaked its internal closure pointer ABI"
-    }
-    if ( $generated.Contains(
-             "extern bool xl6_xrt_tls_config_verify_callback(void*, XL6_Function)") ) {
-        throw "XLIR component-supplied TLS callback retained a redundant extern declaration"
     }
     if ( $generated -notmatch
          '(?s)(v\d+)\s*=\s*NULL;.{0,400}xl6_test_point_is_null\(\1\);' ) {

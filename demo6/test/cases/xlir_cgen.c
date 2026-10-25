@@ -38,8 +38,7 @@ static int testRuntimeBridgeOperations(void)
         "xl6_xrt_tcp_stream_send_file_handle"
     };
     char* receiveNames[] = {
-        "xl6_xrt_tcp_stream_recv_owned_async",
-        "xl6_xrt_tls_stream_recv_owned_async"
+        "xl6_xrt_tcp_stream_recv_owned_async"
     };
     size_t i;
     memset(&module, 0, sizeof(module));
@@ -100,8 +99,7 @@ static int testRuntimeBridgeOperations(void)
     }
     for ( i = 0; i < sizeof(receiveNames) / sizeof(receiveNames[0]); ++i ) {
         target.cName = receiveNames[i];
-        target.runtimeBridge = i == 0 ? XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM
-                                     : XL6_IR_RUNTIME_BRIDGE_NET_TLS_STREAM;
+        target.runtimeBridge = XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM;
         target.runtimeBridgeOperation = xl6IrRuntimeBridgeOperationForName(target.cName);
         target.parameterCount = 2;
         target.returnType = 7;
@@ -193,7 +191,7 @@ static int testSerializationCallbackResultAbi(void)
         target.parameterCount = i == 0 ? 2 : 5;
         target.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         target.errorPhysicalAbi = XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER;
-        if (!xl6IrRuntimeSerializationBridgeHasCallbackResult(target.runtimeBridge) ||
+        if (!xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(target.runtimeBridge) ||
             !xl6IrRuntimeSerializationBridgeTargetMatches(&module, &target)) return 0;
         target.errorAbi = XL6_IR_ERROR_ABI_NO_RAISE;
         target.errorPhysicalAbi = XL6_IR_CALL_ERROR_PHYSICAL_NONE;
@@ -266,7 +264,7 @@ static int testErasedCollectionAbi(void)
     }
     if ( xl6IrCollectionElementType(&module, 5) != XL6_IR_TYPE_INVALID ||
          xl6IrCollectionElementType(&module, 9) != 6 ||
-         xl6IrCollectionBoxedElementType(&module, 9) != 9 ||
+         xl6IrCollectionBoxedElementType(&module, 9) != 5 ||
          !xl6IrTypedCollectionSignatureCompatible(&module,
              XL6_IR_TYPED_COLLECTION_POP, XL6_IR_COLLECTION_ARRAY,
              1, 5, NULL, 0) ||
@@ -302,11 +300,12 @@ static int testErasedCollectionAbi(void)
     if ( !xl6IrTypedCollectionRuntimeSignatureCompatible(&module,
              XL6_IR_TYPED_COLLECTION_INSERT, XL6_IR_COLLECTION_ARRAY,
              1, 7, operands, 2) ||
-         xl6IrTypedCollectionRuntimeSignatureCompatible(&module,
+         !xl6IrTypedCollectionRuntimeSignatureCompatible(&module,
              XL6_IR_TYPED_COLLECTION_INSERT, XL6_IR_COLLECTION_ARRAY,
              9, 7, operands, 2) ) return 0;
+    /* A scalar element is boxed as Value, never as its containing Array. */
     operands[1] = 9;
-    if ( !xl6IrTypedCollectionRuntimeSignatureCompatible(&module,
+    if ( xl6IrTypedCollectionRuntimeSignatureCompatible(&module,
              XL6_IR_TYPED_COLLECTION_INSERT, XL6_IR_COLLECTION_ARRAY,
              9, 7, operands, 2) ) return 0;
     types[0].kind = XL6_IR_TYPE_GENERIC_INSTANCE;
@@ -408,6 +407,12 @@ static int testTextOutputAbi(void)
 
 int main(void)
 {
+#if defined(XL6_IR_CGEN_RUNTIME_BRIDGE_CONTRACT_ONLY)
+    if (!testRuntimeBridgeOperations() || !testSerializationCallbackResultAbi() ||
+        !testErasedCollectionAbi()) return 1;
+    puts("XLIR runtime bridge, serialization carrier and erased collection contracts: ok");
+    return 0;
+#else
     XL6_IrModule ir;
     XL6_DiagList diags;
     XL6_Output out;
@@ -739,4 +744,5 @@ int main(void)
     if ( !ok ) return 1;
     puts("XLIR C emitter test ok");
     return 0;
+#endif
 }

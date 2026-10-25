@@ -1110,11 +1110,6 @@ static int xl6StdlibNeedsUdpConfigClass(const XL6_AstNode* root, const int* used
            xl6StdlibFuncUsed(used, "udp", "config");
 }
 
-static int xl6StdlibNeedsTlsLegacyConfigClass(const XL6_AstNode* root)
-{
-    return xl6StdlibNodeUsesTypeName(root, "TlsConfig");
-}
-
 static int xl6StdlibNeedsTlsStreamClass(const XL6_AstNode* root, const int* used)
 {
     size_t index;
@@ -1701,7 +1696,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsUdpClass;
     int needsUdpConfigClass;
     int needsNetRuntime;
-    int needsTlsLegacyConfigClass,needsTlsManagedSession,needsTlsMetadata;
+    int needsTlsManagedSession,needsTlsMetadata;
     int needsTlsStreamClass;
     int needsTlsServerClass;
     int needsHttp1Class;
@@ -1849,7 +1844,6 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsTlsServerClass ) {
         needsTlsStreamClass = 1;
     }
-	needsTlsLegacyConfigClass = xl6StdlibNeedsTlsLegacyConfigClass(root);
     needsTcpProxyDial=xl6StdlibNodeUsesMemberName(root,"dialProxy")||
         xl6StdlibNodeUsesMemberName(root,"dialProxyAsync")||
         xl6StdlibNodeUsesMemberName(root,"dialProxyCancel")||
@@ -2019,7 +2013,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer") || needsRegexBuffer || xl6StdlibFuncUsed(used, "io", "writeFile") || (needsIoBuffer && (needsIoReader || needsIoWriter)) || needsRandomBufferMethods || xl6StdlibNeedsBufferClass(root, used) ||
         needsNetBytesClass ||
         needsTcpStreamClass || needsUdpClass ||
-        needsTlsLegacyConfigClass || needsHttp1Class || needsHttpDecoderClass ||
+        needsHttp1Class || needsHttpDecoderClass ||
         needsWsFrameClass || needsWebSocketClass || needsFileClass ||
         needsAsyncFileClass || needsCryptoClass || needsEd25519Class || needsLoggerClass || needsX509PathIsland;
     needsTccClass = xl6StdlibNeedsTccClass(root, used);
@@ -2037,7 +2031,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsNetProxyClass || needsNetEngineClass || needsTcpStreamStatsClass ||
         needsTcpServerStats || needsTcpListenerStatsClass || needsTcpStreamClass || needsTcpListenerClass ||
         needsUdpStatsClass || needsUdpClass || needsUdpConfigClass ||
-        needsTlsLegacyConfigClass || needsTlsStreamClass || needsTlsServerClass ||
+        needsTlsStreamClass || needsTlsServerClass ||
         needsHttp1Class || needsHttpDecoderClass || needsWsFrameClass ||
         needsWsHandshakeClass || needsWsUpgradeClass ||
         needsWebSocketConfigClass || needsWebSocketClass ||
@@ -2046,7 +2040,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsLoggerClass || needsTemplateClass ||
         needsCryptoClass || needsTccClass || needsXlangClass;
     if ( needsRandomClass || needsXidClass || needsBufferClass || needsNetRuntime ||
-         needsTlsLegacyConfigClass || needsHttp1Class || needsWsFrameClass ||
+         needsHttp1Class || needsWsFrameClass ||
          needsWsHandshakeClass || needsWsUpgradeClass || needsWebSocketClass ||
          needsWebSocketConfigClass || needsFileClass ||
          needsJsonClass ||
@@ -2246,9 +2240,6 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if ( needsUdpConfigClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibUdpConfigClassSource);
-    }
-    if ( needsTlsLegacyConfigClass ) {
-        xl6StdlibBuilderAppend(&builder, xl6StdlibTlsLegacyConfigClassSource);
     }
     if ( needsTlsStreamClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTlsMetadataSource);

@@ -450,23 +450,6 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->needsXValueTypeIdentityRuntime = 1;
             needs->needsFutureRuntime = 1;
             needs->needsErrorRuntime = 1;
-        } else if ( target->runtimeBridge >=
-                        XL6_IR_RUNTIME_BRIDGE_NET_TLS_CONFIG &&
-                    target->runtimeBridge <=
-                        XL6_IR_RUNTIME_BRIDGE_NET_TLS_SERVER ) {
-            needs->needsNetTlsRuntime = 1;
-            needs->needsNetTlsStreamRuntime |=
-                target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NET_TLS_STREAM;
-            needs->needsNetTlsDialRuntime |=
-                target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NET_TLS_DIAL;
-            needs->needsNetTlsServerRuntime |=
-                target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NET_TLS_SERVER;
-            needs->needsXValueRuntime = 1;
-            needs->needsXValueObjectRuntime = 1;
-            needs->needsXValueClassRuntime = 1;
-            needs->needsXValueTypeIdentityRuntime = 1;
-            needs->needsFutureRuntime = 1;
-            needs->needsErrorRuntime = 1;
         } else if ( target->runtimeBridge ==
                         XL6_IR_RUNTIME_BRIDGE_HTTP1 ) {
             needs->needsHttp1Runtime = 1;

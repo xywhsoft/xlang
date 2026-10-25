@@ -2,7 +2,7 @@
 #include "src/compile/xl6_artifact_runtime.h"
 int main(void)
 {
-    const char* fixtures[]={"stdlib_net_fast_path","stdlib_net_send_file","stdlib_tls_server_loopback",
+    const char* fixtures[]={"stdlib_net_fast_path","stdlib_net_send_file",
         "xlir_net_resolver_standalone","xlir_net_datagram_boundaries","xlir_net_buffer_command_lifetime"};
     for(size_t n=0;n<sizeof(fixtures)/sizeof(*fixtures);++n){
         char path[180];XL6_ParseResult parse;XL6_IrModule ir;XL6_Output out;char* text;
@@ -45,14 +45,14 @@ int main(void)
         xl6IrModuleFree(&ir);xl6ParseResultFree(&parse);
     }
     XL6_IrModule probe={0};XL6_IrCallTarget target={0};probe.callTargets=&target;probe.callTargetCount=1;
-    target.cName="arbitrary-source-name";target.runtimeBridge=XL6_IR_RUNTIME_BRIDGE_NET_TLS_STREAM;
+    target.cName="arbitrary-source-name";target.runtimeBridge=XL6_IR_RUNTIME_BRIDGE_NONE;
     target.reachability=XL6_IR_REACHABILITY_TRANSITIVE;
     assert(xl6IrModuleNetworkServiceRequirement(&probe)==XL6_IR_MODULE_NETWORK_SERVICE_NONE);
-    target.runtimeBridge=XL6_IR_RUNTIME_BRIDGE_NET_TLS_DIAL;
+    target.runtimeBridge=XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL;
     assert(xl6IrModuleNetworkServiceRequirement(&probe)==XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1);
     target.reachability=XL6_IR_REACHABILITY_UNREACHABLE;
     assert(xl6IrModuleNetworkServiceRequirement(&probe)==XL6_IR_MODULE_NETWORK_SERVICE_NONE);
-    assert(mutations==54);
-    puts("Network service IR: 6 real modules, 54 IR/C/header-gated mutations, exact resident dependency and typed retirement contract");
+    assert(mutations==45);
+    puts("Network service IR: 5 legacy modules, 45 IR/C/header-gated mutations, exact resident dependency and typed retirement contract");
     return 0;
 }

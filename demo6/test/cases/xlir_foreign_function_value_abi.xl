@@ -4,6 +4,7 @@ extern "xl6_test_invoke_scalars" func invokeScalars(func(bool, int, uint64, type
 extern "xl6_test_invoke_string" func invokeString(func(var, string) as string callback) as bool
 extern "xl6_test_invoke_value" func invokeValue(func(var) as var callback) as bool
 extern "xl6_test_invoke_captured" func invokeCaptured(func(int) as bool callback) as bool
+extern "xl6_test_invoke_predicate" func invokePredicate(point context, func(var) as bool callback) as bool
 
 func truthy(var value) as bool
     return bool(value)
@@ -27,8 +28,13 @@ end
 int threshold = 10
 auto captured = func(int value) as bool => value > threshold
 
-TlsConfig callbackHost = TlsConfig()
-assert(callbackHost.verifyCallback(truthy))
+class CallbackHost
+    func apply(func(var) as bool callback) as bool
+        return invokePredicate(point(null), callback)
+    end
+end
+CallbackHost callbackHost = CallbackHost()
+assert(callbackHost.apply(truthy))
 assert(invokeVoid(observe))
 assert(invokeScalars(scalars))
 assert(invokeString(echo))

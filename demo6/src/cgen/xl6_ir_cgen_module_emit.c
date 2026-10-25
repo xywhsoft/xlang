@@ -133,7 +133,6 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
             needs.needsWebSocketStreamRuntime,
             needs.needsWebSocketStreamTlsRuntime);
     if ( !xl6IrCgenEmitNetTcpRuntime(out, module, &needs, diags) ) return 0;
-    if ( !xl6IrCgenEmitNetTlsRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitNetDatagramRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitAsyncAndCallableRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitResourceRuntime(out, module, &needs, diags) ) return 0;
