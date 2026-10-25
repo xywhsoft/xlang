@@ -1439,3 +1439,18 @@ raw memo 默认 32 MiB 是自身已知逻辑存储限制；owner 128 KiB 只计�
 native_ir_memo_overlay 对实际编译器 IR C／头摘要加守卫并只替换审计过的 seam。未取消时规则、普通 IR 所有权、完整 fresh API 和最终验证保持。524 项正常专项包含字面量／局部符号／类型变化、Unicode 坐标、复杂 closure／generator／try-finally／class／protocol／alias／enum／generic／erasure、NUL 文本、独立持有、销毁顺序、预算、取消及四线程。诊断专用构建另注入 33 个真实 XRT owner ArrayInit／Resize／Reserve 门，701 项完整 IR 和旧单元精确引用计数对照通过；它没有进入正常产品对象。
 
 限制：片段键保留绝对 execution region；只在前部函数增加不引入符号的嵌套 if，后部 region 变化就会重建，正常专项仅复用 3 个前缀，wire 专项仅 2 个。局部符号插入导致后续 ID／类型前缀变化也保持保守。后续可在证明词法与 fact-type 树 region 含义后做相对 region 身份并从当前 AST 恢复；不允许仅凭语义单元共享猜测安全。仍需持久语义 IR、模块依赖／ABI 契约及增量全局 pass／验证。阶段性能与证据边界见 lsp-development.md。
+
+
+## M7a2b25a：区域身份与当前执行计划重绑（0.58）
+
+原语义执行计划按模块顺序给 callable／block／loop／try 分配区域。前部新增不引入符号的块会改变后部绝对编号；此前原始 IR key 因而失效。IR key 增加明确的 exact／module／function／environment 模式前缀，普通 semantic memo 字节不变。function 模式只规范化词法节点的 semanticRegionId／semanticTargetRegionId：0 保持 0，非零编码为 region-base+1，base 为当前顶层函数非零区域。非零低于 base 或缺失函数基准时退回原构建；不是新的语言限制。保留 zero 与函数自身区域的区别，uint32 上界计算在 uint64 字段内进行。
+
+inferredType／semanticDeclaredType 及其所有 child 后代标为事实类型遍历，继续原完整非坐标精确身份，绝不按外层函数基准平移。scope／exit／ownership／symbol／ABI／类型与文字／含 NUL 字面量、形状和路径等字段均保持。该规则不信任语义 memo 单元指针，也不把“语义层重用了”作为 IR 的必要或充分条件；实际会出现语义复用 4、原始 IR 复用 14 的正确当前模型。
+
+当前原始 builder 对 AST execution region 的唯一直接读取，是给 raw node.region／targetRegion 赋值。恢复过程对每个匹配当前词法 AST 的节点重新执行这两个赋值，与既有 source span、parent／children／NodeId 重绑一起，在公布 arena 计数之前完成。类型池前后完整精确内容、实际外部符号存在／type／storage 依赖、内部写入和 XRT owner 生命周期规则保持；原整模块所有 pass、统计、完整验证器及独立 fresh API 保持。
+
+非函数 root 环境保留原过滤和完整注解，只省略词法 execution region。已审计名义声明查找及 alias／canonical type 解析只依赖类别、名称、type／symbol／ABI／flags／子类型等，不读取执行区域；事实类型树仍精确。类／协议／枚举位于前部函数之后的专项证明确实可复用后续函数，类属性字面量改变仍使整个环境失效。prepare_native_ir 显式校验／登记原 type-model C 摘要，配合既有 IR C／IR 头守卫；候选索引继续调用原选择规则。审计来源和摘要在 region-source-audit-v1.json。
+
+803 正常专项包括键层的深 inferred／declared 类型事实、retarget／零目标／max uint32／越界保守回退，以及真实源码的增减块／源码范围和 arena 平移、循环层级 break／continue、try-catch-finally／return、闭包／generator／泛型、后置 class／protocol／enum；完整最终 XLIR JSON 对照 fresh。保留 source／类型／符号变化、旧模型独立持有、取消和四线程验证。owner 诊断构建另覆盖相同正文 33 门和新增块 35 门的真实 XRT init／resize／reserve 失败，1447 checks，失败后当前完整 IR 与旧单元引用计数均正确。
+
+边界：这仍是当前完整语义 AST 上的原始函数 IR 片段。插入局部声明会改变后部符号编号或类型池，仍保守重建；类型事实的区域也不做推测性变换。模块依赖／清单反向归属、稳定语义身份、持久语义 IR、增量全局 pass／验证和整个模型预算仍待完成。32 MiB raw memo 与 128 KiB owner 索引仅是各自已知存储，不是 AST／IR／模型／暂存／RSS 上限。性能及实际 IDE 边界见 lsp-development.md 同阶段。

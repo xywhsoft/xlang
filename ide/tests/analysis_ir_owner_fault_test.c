@@ -36,37 +36,40 @@ static int xlsIrOwnerPrepare(XL6_IrModule* module,size_t nodes)
 #define main unusedNormalFixtureMain
 #include "analysis_ir_memo_test.c"
 #undef main
-static int faultRun(void)
+static int faultRun(unsigned edit)
 {
     char* path=xrtPathAbs("ir-owner-fault-中文.xl");char* text=body(0);CHECK(path && text);
     xls_semantic_check* source=checked(path,text);CHECK(source && xlsSemanticCheckInfo(source).accepted);
-    const XL6_AstNode* root=xlsSemanticCheckAst(source);char* expected=dump(xlsSemanticCheckIr(source));CHECK(expected);
+    const XL6_AstNode* root=xlsSemanticCheckAst(source);
     XL6_DiagList diags;xl6DiagInit(&diags);
     xls_ir_result* first=xlsFrontendIrResultBuild(root,&diags,NULL,32u*1024u*1024u);CHECK(first);
     xls_ir_result* baseline=xlsFrontendIrResultBuild(root,&diags,first,32u*1024u*1024u);CHECK(baseline && !diags.count);
     xlsFrontendIrResultDestroy(first);
+    char* changed=edit ? body(edit) : NULL;if(edit)CHECK(changed);
+    xls_semantic_check* target=edit ? checked(path,changed) : source;CHECK(target && xlsSemanticCheckInfo(target).accepted);
+    const XL6_AstNode* targetRoot=xlsSemanticCheckAst(target);char* expected=dump(xlsSemanticCheckIr(target));CHECK(expected);
     xarray references={0};CHECK(xrtArrayInit(&references,sizeof(uint32)) && xrtArrayResize(&references,baseline->memo->entries.Count));
     for(size_t i=0;i<references.Count;++i){
         const xls_ir_unit* unit=*(xls_ir_unit* const*)xrtArrayConstGet(&baseline->memo->entries,i);
         *(uint32*)xrtArrayGet(&references,i)=unit ? xrtAtomic32Load(&unit->references,XMEMORY_ACQUIRE) : 0;
     }
     ownerCalls=ownerFailAt=ownerHits=0;
-    xls_ir_result* normal=xlsFrontendIrResultBuild(root,&diags,baseline,32u*1024u*1024u);
+    xls_ir_result* normal=xlsFrontendIrResultBuild(targetRoot,&diags,baseline,32u*1024u*1024u);
     CHECK(normal && !diags.count && xlsFrontendIrResultWork(normal).textNodes);
     size_t operations=ownerCalls;CHECK(operations>16);xlsFrontendIrResultDestroy(normal);
     for(size_t fail=1;fail<=operations;++fail){
         ownerCalls=ownerHits=0;ownerFailAt=fail;
-        xls_ir_result* current=xlsFrontendIrResultBuild(root,&diags,baseline,32u*1024u*1024u);
+        xls_ir_result* current=xlsFrontendIrResultBuild(targetRoot,&diags,baseline,32u*1024u*1024u);
         CHECK(current && !diags.count && ownerHits==1);ownerFailAt=0;
-        xls_ir_memo_work work=xlsFrontendIrResultWork(current);CHECK(work.reused && work.ownerBytes<=128u*1024u);
+        xls_ir_memo_work work=xlsFrontendIrResultWork(current);CHECK(work.reused==(edit ? 14u : 15u) && work.ownerBytes<=128u*1024u);
         char* actual=dump(xlsFrontendIrResultModule(current));CHECK(actual && !strcmp(actual,expected));xrtFree(actual);xlsFrontendIrResultDestroy(current);
         for(size_t i=0;i<references.Count;++i){
             const xls_ir_unit* unit=*(xls_ir_unit* const*)xrtArrayConstGet(&baseline->memo->entries,i);
             CHECK((unit ? xrtAtomic32Load(&unit->references,XMEMORY_ACQUIRE) : 0)==*(const uint32*)xrtArrayConstGet(&references,i));
         }
     }
-    xrtArrayUnit(&references);xlsFrontendIrResultDestroy(baseline);xlsSemanticCheckDestroy(source);xl6DiagFree(&diags);xrtFree(expected);xrtFree(text);xrtFree(path);
-    printf("owner index fault gates=%zu; optional init/resize/reserve rollback,complete fresh IR parity andheld unit references\n",operations);return 1;
+    xrtArrayUnit(&references);xlsFrontendIrResultDestroy(baseline);if(edit)xlsSemanticCheckDestroy(target);xlsSemanticCheckDestroy(source);xl6DiagFree(&diags);xrtFree(changed);xrtFree(expected);xrtFree(text);xrtFree(path);
+    printf("owner index edit=%u fault gates=%zu; optional init/resize/reserve rollback,complete fresh IR parity andheld unit references\n",edit,operations);return 1;
 }
 int main(void)
-{xrtAtomic32Init(&checks,0);if(!faultRun())return 1;printf("analysis_ir_owner_fault_test passed: %u checks\n",xrtAtomic32Load(&checks,XMEMORY_RELAXED));return 0;}
+{xrtAtomic32Init(&checks,0);if(!faultRun(0) || !faultRun(7))return 1;printf("analysis_ir_owner_fault_test passed: %u checks\n",xrtAtomic32Load(&checks,XMEMORY_RELAXED));return 0;}

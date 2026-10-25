@@ -59,7 +59,9 @@ static int xlsIrMemoContext(const XL6_AstNode* root,xstrbuf* key,size_t limit)
         okay=declarations.Count<limit/sizeof(node) && xrtArrayPush(&declarations,&node);
     }
     XL6_AstNode filtered=*root;filtered.children=(XL6_AstNode**)declarations.Data;filtered.childCount=filtered.childCapacity=declarations.Count;
-    okay=okay && xlsFrontendIrAstKey(key,&filtered,0);xrtArrayUnit(&declarations);return okay;
+    /* Root nominal/alias lookups never consume execution-region numbers.
+     * Other final annotations and every fact-type subtree remain exact. */
+    okay=okay && xlsFrontendIrAstKey(key,&filtered,XLS_IR_KEY_ENVIRONMENT);xrtArrayUnit(&declarations);return okay;
 }
 /* Exact state of the original interner's input prefix. No new type identity
  * or equivalence:all scalar fields/strings/arrays are compared byte-exactly,
@@ -245,6 +247,10 @@ static int xlsIrMemoDecodePlace(const xls_ir_unit* unit,xls_ir_reader* reader,XL
     if(node->firstChild<unit->startChild || node->firstChild>unit->startChild+unit->children)return 0;
     node->firstChild=module->childCount+node->firstChild-unit->startChild;
     node->span.line=source->line;node->span.column=source->column;
+    /* Match the original raw builder's only execution-region reads. Region
+     * identity is lexical-relative,but actual module IDs always come from
+     * this complete current semantic AST,including nested exit targets. */
+    node->region=source->semanticRegionId;node->targetRegion=source->semanticTargetRegionId;
     for(size_t i=0;i<source->childCount;++i)
         if(!xlsIrMemoDecodePlace(unit,reader,module,source->children[i],at,touched,depth+1,borrow))return 0;
     return 1;
@@ -324,7 +330,7 @@ static XL6_IrNodeId xl6IrBuildAstNode(XL6_IrModule* module,const XL6_AstNode* ro
         return xlsIrBuildAstNodeOriginal(module,root,source,parent,childIndex,diags,okay);
     size_t limit=build->limit-build->memo->bytes;
     xstrbuf key={0},types={0};XL6_IrNodeId result=0;
-    int usable=limit>sizeof(xls_ir_unit) && xlsFrontendIrAstKey(&key,source,0) && key.Capacity<limit && xlsIrMemoTypes(&module->types,&types,limit-key.Capacity);
+    int usable=limit>sizeof(xls_ir_unit) && xlsFrontendIrAstKey(&key,source,XLS_IR_KEY_FUNCTION) && key.Capacity<limit && xlsIrMemoTypes(&module->types,&types,limit-key.Capacity);
     const xls_ir_unit* old=build->baseline ? *(xls_ir_unit* const*)xrtArrayConstGet(&build->baseline->entries,childIndex) : NULL;
     if(usable && old && old->bytes<=limit && xlsIrMemoEqual(&old->key,&key) && xlsIrMemoEqual(&old->types,&types)){
         result=xlsIrMemoRestore(old,module,source);

@@ -1,6 +1,7 @@
 #include "analysis/frontend_ir_memo.h"
 #include "analysis/frontend_cancel.h"
 #include "analysis/frontend_internal.h"
+#include "analysis/frontend_sem.h"
 #include "analysis/check.h"
 #include "analysis/check_ir.h"
 #include "analysis/check_session.h"
@@ -30,6 +31,39 @@ static int compare(xls_semantic_check* source,const xls_ir_memo* previous,xls_ir
     CHECK(expected && actual && !strcmp(expected,actual));
     if(reuse){printf("raw IR functions checked=%llu reused=%llu captured=%llu nodes=%llu bytes=%llu\n",(unsigned long long)work.checked,(unsigned long long)work.reused,(unsigned long long)work.captured,(unsigned long long)work.nodesReused,(unsigned long long)work.bytes);CHECK(work.reused>0 && work.nodesReused>=(uint64_t)reuse);}
     CHECK(work.bytes<=budget);xrtFree(expected);xrtFree(actual);xl6DiagFree(&diags);xl6IrModuleFree(&ir);return 1;
+}
+static int keys(const XL6_AstNode* a,const XL6_AstNode* b,xls_ir_key_mode mode,int equal)
+{
+    xstrbuf first={0},second={0};CHECK(xlsFrontendIrAstKey(&first,a,mode));CHECK(xlsFrontendIrAstKey(&second,b,mode));
+    CHECK((first.Size==second.Size && !memcmp(first.Data,second.Data,first.Size))==equal);
+    xrtStrBufFree(&first);xrtStrBufFree(&second);return 1;
+}
+static int keyRegions(void)
+{
+    XL6_AstNode deepA={.kind=XL6_AST_TYPE,.text="int",.semanticRegionId=7},deepB=deepA;
+    XL6_AstNode *factChildrenA[]={&deepA},*factChildrenB[]={&deepB};
+    XL6_AstNode factA={.kind=XL6_AST_TYPE,.text="int",.children=factChildrenA,.childCount=1,.semanticRegionId=3},factB=factA;
+    factB.children=factChildrenB;
+    XL6_AstNode leafA={.kind=XL6_AST_RETURN,.semanticRegionId=102,.semanticTargetRegionId=100},leafB=leafA;
+    leafB.semanticRegionId=202;leafB.semanticTargetRegionId=200;
+    XL6_AstNode *childrenA[]={&leafA},*childrenB[]={&leafB};
+    XL6_AstNode a={.kind=XL6_AST_FUNC,.children=childrenA,.childCount=1,.semanticRegionId=100,.inferredType=&factA},b=a;
+    b.children=childrenB;b.semanticRegionId=200;b.inferredType=&factB;
+    CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,1));CHECK(keys(&a,&b,XLS_IR_KEY_EXACT,0));CHECK(keys(&a,&b,XLS_IR_KEY_ENVIRONMENT,1));
+    leafB.semanticTargetRegionId=0;CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,0));leafB.semanticTargetRegionId=200;
+    leafB.semanticTargetRegionId=201;CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,0));leafB.semanticTargetRegionId=200;
+    deepB.semanticRegionId=8;CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,0));CHECK(keys(&a,&b,XLS_IR_KEY_ENVIRONMENT,0));deepB.semanticRegionId=7;
+    factB.semanticTargetRegionId=1;CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,0));CHECK(keys(&a,&b,XLS_IR_KEY_ENVIRONMENT,0));factB.semanticTargetRegionId=0;
+    leafB.flags=1;CHECK(keys(&a,&b,XLS_IR_KEY_ENVIRONMENT,0));leafB.flags=0;
+    a.semanticDeclaredType=&factA;b.semanticDeclaredType=&factB;b.inferredType=&factA;
+    deepB.semanticRegionId=8;CHECK(keys(&a,&b,XLS_IR_KEY_FUNCTION,0));CHECK(keys(&a,&b,XLS_IR_KEY_ENVIRONMENT,0));deepB.semanticRegionId=7;
+    xstrbuf bad={0};leafB.semanticRegionId=199;CHECK(!xlsFrontendIrAstKey(&bad,&b,XLS_IR_KEY_FUNCTION));xrtStrBufFree(&bad);
+    bad=(xstrbuf){0};leafB.semanticRegionId=202;leafB.semanticTargetRegionId=199;CHECK(!xlsFrontendIrAstKey(&bad,&b,XLS_IR_KEY_FUNCTION));xrtStrBufFree(&bad);
+    bad=(xstrbuf){0};leafB.semanticTargetRegionId=200;b.semanticRegionId=0;CHECK(!xlsFrontendIrAstKey(&bad,&b,XLS_IR_KEY_FUNCTION));xrtStrBufFree(&bad);
+    XL6_AstNode high={.kind=XL6_AST_FUNC,.semanticRegionId=UINT32_MAX},low={.kind=XL6_AST_FUNC,.semanticRegionId=1};
+    CHECK(keys(&high,&low,XLS_IR_KEY_FUNCTION,1));high.semanticTargetRegionId=UINT32_MAX;low.semanticTargetRegionId=1;CHECK(keys(&high,&low,XLS_IR_KEY_FUNCTION,1));
+    low.semanticTargetRegionId=0;CHECK(keys(&high,&low,XLS_IR_KEY_FUNCTION,0));
+    return 1;
 }
 static char* body(unsigned edit)
 {
@@ -62,7 +96,7 @@ static int incremental(const char* path)
     }
     xlsFrontendIrMemoDestroy(memo);memo=NULL;CHECK(compare(held,NULL,&memo,32u*1024u*1024u,0));
     char* regions=body(7);CHECK(regions);xls_semantic_check* changed=checked(path,regions);CHECK(changed && xlsSemanticCheckInfo(changed).accepted);
-    xls_ir_memo* moved=NULL;CHECK(compare(changed,memo,&moved,32u*1024u*1024u,1));CHECK(lastWork.reused==3);
+    xls_ir_memo* moved=NULL;CHECK(compare(changed,memo,&moved,32u*1024u*1024u,1));CHECK(lastWork.reused==14);
     xlsFrontendIrMemoDestroy(moved);xlsSemanticCheckDestroy(changed);xrtFree(regions);
     CHECK(xlsSemanticCheckValidate(held));
     for(unsigned budget=0;budget<4;++budget){xls_ir_memo* tiny=NULL;CHECK(compare(held,memo,&tiny,budget ? (size_t)1<<(budget*4) : 0,0));xlsFrontendIrMemoDestroy(tiny);}
@@ -106,6 +140,52 @@ static int bindings(const char* path)
     xls_ir_memo *first=NULL,*next=NULL;CHECK(compare(a,NULL,&first,32u*1024u*1024u,0));
     CHECK(compare(b,first,&next,32u*1024u*1024u,1));CHECK(lastWork.reused==1);
     xlsFrontendIrMemoDestroy(first);xlsFrontendIrMemoDestroy(next);xlsSemanticCheckDestroy(a);xlsSemanticCheckDestroy(b);return 1;
+}
+static int regionCorpus(const char* path)
+{
+    const char* tails[]={
+        "func loop(int count) as int\n while count > 0\n count = count - 1\n if count > 5\n continue\n end\n while count > 1\n break 2\n end\n break\n end\n return count\nend\n",
+        "func guarded() as int\n string outer = \"outer\"\n try\n string inner = \"inner\"\n return 7\n catch e\n string message = e.message\n return 8\n finally\n string final = \"final\"\n end\nend\n",
+        "func closure() as func() as int\n array values = [41]\n return func() as int\n return int(values[0])\n end\nend\n",
+        "func values(int count) as generator<string>\n string suffix = \"owned\"\n for i in range(count)\n string item = suffix + string(i)\n yield item\n end\nend\n",
+        "class Box\n string item = \"owned\"\n func value() as string\n string local = self.item\n return local\n end\nend\nfunc read(Box item) as string\n return item.value()\nend\n",
+        "protocol Named\n func name() as string\nend\ntypedef Count = int\nfunc named(Named item) as Count\n return 0\nend\n",
+        "func identity<T>(T value) as T\n return value\nend\nfunc run() as int\n return identity::<int>(7)\nend\n",
+        "enum Choice\n Some(string value)\n None\nend\nfunc chosen(Choice item) as string\n match item\n case Some(value)\n return value\n case None\n return \"empty\"\n end\nend\n"
+    };
+    for(size_t i=0;i<sizeof(tails)/sizeof(*tails);++i){
+        const char* last=!strncmp(tails[i],"func ",5) ? tails[i] : NULL;
+        for(const char* at=tails[i];(at=strstr(at,"\nfunc "))!=NULL;++at)last=at+1;
+        CHECK(last);const char* signature=strchr(last,'(');CHECK(signature);
+        xstrbuf source[2]={{0}};xls_semantic_check* model[2]={0};
+        for(size_t edit=0;edit<2;++edit){
+            CHECK(xrtStrBufAppend(&source[edit],xrtStrView("\xef\xbb\xbf// 中文😀\r\nfunc lead(int value) as int\n if value > 0\n")));
+            if(edit)CHECK(xrtStrBufAppend(&source[edit],xrtStrView(" if value > 2\n return value\n end\n")));
+            CHECK(xrtStrBufAppend(&source[edit],xrtStrView(" return value\n end\n return 0\nend\n")) &&
+                xrtStrBufAppend(&source[edit],xrtStrView(tails[i])) && xrtStrBufAppend(&source[edit],xrtStrView("\nfunc replica")) && xrtStrBufAppend(&source[edit],xrtStrView(signature)));
+            model[edit]=checked(path,source[edit].Data);CHECK(model[edit] && xlsSemanticCheckInfo(model[edit]).accepted);
+        }
+        xls_ir_memo *before=NULL,*after=NULL;CHECK(compare(model[0],NULL,&before,32u*1024u*1024u,0));uint64_t captured=lastWork.captured;
+        CHECK(captured>0 && compare(model[1],before,&after,32u*1024u*1024u,1));CHECK(lastWork.reused>0 && lastWork.reused+1>=captured);
+        uint64_t reused=lastWork.reused;XL6_DiagList diags;xl6DiagInit(&diags);
+        xls_ir_result* ownerBefore=xlsFrontendIrResultBuild(xlsSemanticCheckAst(model[0]),&diags,NULL,32u*1024u*1024u);CHECK(ownerBefore && !diags.count);
+        xls_ir_result* ownerAfter=xlsFrontendIrResultBuild(xlsSemanticCheckAst(model[1]),&diags,ownerBefore,32u*1024u*1024u);CHECK(ownerAfter && !diags.count);
+        CHECK(xlsFrontendIrResultWork(ownerAfter).reused==reused && xlsFrontendIrResultWork(ownerAfter).textNodes);
+        char* expected=dump(xlsSemanticCheckIr(model[1]));CHECK(expected);
+        /* Changing nominal context still invalidates every function unit.
+         * Only unused lexical execution IDs are omitted from that context. */
+        if(i==4){
+            char* word=strstr(source[1].Data,"owned");CHECK(word);memcpy(word,"bound",5);
+            xls_semantic_check* altered=checked(path,source[1].Data);CHECK(altered && xlsSemanticCheckInfo(altered).accepted);
+            xls_ir_memo* invalidated=NULL;CHECK(compare(altered,after,&invalidated,32u*1024u*1024u,0));CHECK(!lastWork.reused);
+            xlsFrontendIrMemoDestroy(invalidated);xlsSemanticCheckDestroy(altered);
+        }
+        xlsFrontendIrMemoDestroy(before);xlsFrontendIrMemoDestroy(after);xlsFrontendIrResultDestroy(ownerBefore);
+        for(size_t edit=0;edit<2;++edit){xlsSemanticCheckDestroy(model[edit]);xrtStrBufFree(&source[edit]);}
+        char* actual=dump(xlsFrontendIrResultModule(ownerAfter));CHECK(actual && !strcmp(actual,expected));
+        xrtFree(actual);xrtFree(expected);xlsFrontendIrResultDestroy(ownerAfter);xl6DiagFree(&diags);
+    }
+    return 1;
 }
 typedef struct reader {const XL6_AstNode* root;const xls_ir_memo* memo;const char* expected;int passed;} reader;
 static int32 readThread(void* user)
@@ -193,7 +273,12 @@ static int sessionDefault(const char* path)
         CHECK(work.bytes && work.bytes<=32u*1024u*1024u && work.ownerBytes<=128u*1024u);
         if(i==0)CHECK(work.captured && !work.reused && !work.textNodes);
         else CHECK(work.reused && work.nodesReused && work.textNodes && work.textBytes);
-        if(edits[i]==7)CHECK(work.reused==3 && xlsSemanticCheckWork(result).functionsReused>work.reused);
+        if(edits[i]==7){
+            /* These are independent caches;IR can reuse a function that the
+             * semantic memo rechecked. Full current facts prove its key. */
+            printf("session region edit:raw reused=%llu;semantic reused=%llu\n",(unsigned long long)work.reused,(unsigned long long)xlsSemanticCheckWork(result).functionsReused);
+            CHECK(work.reused==14);
+        }
         xls_semantic_check* fresh=checked(path,text);CHECK(fresh && xlsSemanticCheckInfo(fresh).accepted);
         xls_check_ir_work independent=xlsSemanticCheckIrWork(fresh);CHECK(!independent.bytes && !independent.reused && !independent.textNodes);
         char *expected=dump(xlsSemanticCheckIr(fresh)),*actual=dump(xlsSemanticCheckIr(result));CHECK(expected && actual && !strcmp(expected,actual));xrtFree(expected);xrtFree(actual);xlsSemanticCheckDestroy(fresh);
@@ -205,6 +290,6 @@ static int sessionDefault(const char* path)
     xlsCheckSessionDestroy(session);CHECK(xlsSemanticCheckValidate(held));char* actual=dump(xlsSemanticCheckIr(held));CHECK(actual);xrtFree(actual);xlsSemanticCheckDestroy(held);return 1;
 }
 static int run(void)
-{char* path=xrtPathAbs("ir-memo-中文.xl");CHECK(path);CHECK(incremental(path) && corpus(path) && bindings(path) && lifetime(path) && ownerLifetime(path) && sessionDefault(path));xrtFree(path);return 1;}
+{char* path=xrtPathAbs("ir-memo-中文.xl");CHECK(path);CHECK(keyRegions() && incremental(path) && corpus(path) && bindings(path) && regionCorpus(path) && lifetime(path) && ownerLifetime(path) && sessionDefault(path));xrtFree(path);return 1;}
 int main(void)
 {xrtAtomic32Init(&checks,0);if(!run())return 1;printf("analysis_ir_memo_test passed: %u checks;fresh complete XLIR parity,changed bodies,node/child rebasing,Unicode spans,type/binding fences,budget fallback,cancellation,held fragments and4threads.\n",xrtAtomic32Load(&checks,XMEMORY_RELAXED));return 0;}
