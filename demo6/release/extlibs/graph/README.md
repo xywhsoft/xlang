@@ -1,5 +1,12 @@
 # graph
 
+2026-10-26 当前发布版复验：
+`xl run dev/extlib_blockers/graph_var_array_projection.xl` 仍在合法
+`var` 边数组进入原生 `isDag` 时报告
+`ValueError: graph edges must be an array`。中央用例同形失败，
+因此先修共享 foreign `var` 数组投影，再复跑完整包门禁；
+旧 AOT 缺索引符号不是当前第一阻断。包本体不解释编译器私有句柄。
+
 2026-10-24 当前 Windows 发布版复验：专项门禁的严格 C、分配故障与
 四线程测试通过；首个 XLang 用例在合法图数组进入 C 桥时报告
 `graph edges must be an array`。一条边的 JIT/独立 EXE 最小复现见
