@@ -7,6 +7,7 @@
 #define XLS_IR_MEMO_BYTES (32u*1024u*1024u)
 typedef struct xls_ir_dependency {XL6_SymbolId symbol;XL6_IrNodeId binding;XL6_IrTypeId type,storage;int local;} xls_ir_dependency;
 typedef struct xls_ir_write {XL6_SymbolId symbol;XL6_IrNodeId binding;int local;} xls_ir_write;
+typedef struct xls_ir_global {uint64_t identity,version;} xls_ir_global;
 typedef struct xls_ir_unit {
     xatomic32 references;
     xstrbuf key,types,data;
@@ -159,13 +160,18 @@ static int xlsIrMemoSymbol(xls_ir_capture* capture,XL6_SymbolId symbol,XL6_Symbo
     uint64_t identity=xlsEntityViewSymbol(capture->entities,symbol);if(!identity)return 1;
     xbytesview bytes={(const unsigned char*)&identity,sizeof(identity)};uint32_t* old=xrtMapGet(&capture->globals,bytes);
     uint32_t slot=old ? *old : (uint32_t)capture->unit->globals.Count+1;
-    if(!old && (capture->unit->globals.Count>=65536 || !xrtArrayPush(&capture->unit->globals,&identity) || !xrtMapSet(&capture->globals,bytes,&slot)))return 0;
+    xls_ir_global value={identity,xlsEntityViewSymbolVersion(capture->entities,symbol)};
+    if(!old && (capture->unit->globals.Count>=65536 || !xrtArrayPush(&capture->unit->globals,&value) || !xrtMapSet(&capture->globals,bytes,&slot)))return 0;
     *key=slot;*kind=2;return 1;
 }
 static int xlsIrMemoResolve(const xls_ir_unit* unit,const xls_entity_view* entities,
     const xls_lexical_symbols* symbols,XL6_SymbolId key,int kind,XL6_SymbolId* symbol)
 {
-    if(kind==2){const uint64_t* id=key ? xrtArrayConstGet(&unit->globals,key-1) : NULL;*symbol=id ? xlsEntityViewNativeSymbol(entities,*id) : 0;return *symbol!=0;}
+    if(kind==2){const xls_ir_global* id=key ? xrtArrayConstGet(&unit->globals,key-1) : NULL;*symbol=id ? xlsEntityViewNativeSymbol(entities,id->identity) : 0;
+        uint64_t version=xlsEntityViewSymbolVersion(entities,*symbol);
+        /* Optional version absence falls back to every original complete AST,
+         * type-prefix and current binding proof. A proven mismatch must reject. */
+        return *symbol && (!id->version || !version || id->version==version);}
     return (kind==0 || kind==1) && xlsLexicalSymbolResolve(symbols,key,kind,symbol);
 }
 static int xlsIrFunctionCompare(const void* a,const void* b)
@@ -373,7 +379,7 @@ static int xlsIrMemoCapture(xls_ir_capture* capture,const XL6_IrModule* module,s
     }
     if(unit->children && !xlsIrMemoData(&unit->data,module->children+unit->startChild,unit->children*sizeof(*module->children),limit))return 0;
     unit->bytes=sizeof(*unit)+unit->key.Capacity+unit->types.Capacity+unit->data.Capacity+
-        unit->dependencies.Capacity*sizeof(xls_ir_dependency)+unit->writes.Capacity*sizeof(xls_ir_write)+unit->globals.Capacity*sizeof(uint64_t);
+        unit->dependencies.Capacity*sizeof(xls_ir_dependency)+unit->writes.Capacity*sizeof(xls_ir_write)+unit->globals.Capacity*sizeof(xls_ir_global);
     return unit->nodes && unit->bytes<=limit;
 }
 static XL6_IrNodeId xl6IrBuildAstNode(XL6_IrModule* module,const XL6_AstNode* root,const XL6_AstNode* source,
@@ -407,7 +413,7 @@ static XL6_IrNodeId xl6IrBuildAstNode(XL6_IrModule* module,const XL6_AstNode* ro
         unit->startNode=module->nodeCount;unit->startChild=module->childCount;unit->identity=identity;
         capture.okay=xrtArrayInit(&unit->dependencies,sizeof(xls_ir_dependency)) && xrtArrayInit(&unit->writes,sizeof(xls_ir_write)) &&
             xrtMapInit(&capture.dependencies,sizeof(size_t)) && xrtMapInit(&capture.writes,sizeof(size_t)) &&
-            xrtArrayInit(&unit->globals,sizeof(uint64_t)) && xrtMapInit(&capture.globals,sizeof(uint32_t));
+            xrtArrayInit(&unit->globals,sizeof(xls_ir_global)) && xrtMapInit(&capture.globals,sizeof(uint32_t));
         build->capture=&capture;
     }
     result=xlsIrBuildAstNodeOriginal(module,root,source,parent,childIndex,diags,okay);build->capture=NULL;
@@ -481,6 +487,23 @@ const XL6_IrModule* xlsFrontendIrResultModule(const xls_ir_result* result)
 {return result ? &result->module : NULL;}
 xls_ir_memo_work xlsFrontendIrResultWork(const xls_ir_result* result)
 {return result ? result->work : (xls_ir_memo_work){0};}
+static const xls_ir_unit* xlsIrResultFunction(const xls_ir_result* result,uint64_t function)
+{
+ if(!result || !result->memo || !function)return NULL;
+ const xls_ir_unit* found=NULL;
+ for(size_t i=0;i<result->memo->entries.Count;++i){const xls_ir_unit* const* p=xrtArrayConstGet(&result->memo->entries,i);
+  if(p && *p && (*p)->identity==function){if(found)return NULL;found=*p;}}
+ return found;
+}
+size_t xlsFrontendIrResultDependencies(const xls_ir_result* result,uint64_t function)
+{const xls_ir_unit* unit=xlsIrResultFunction(result,function);return unit ? unit->globals.Count : 0;}
+int xlsFrontendIrResultDependency(const xls_ir_result* result,uint64_t function,size_t at,xls_ir_declaration_dependency* out)
+{
+ if(out)*out=(xls_ir_declaration_dependency){0};
+ const xls_ir_unit* unit=xlsIrResultFunction(result,function);const xls_ir_global* row=unit ? xrtArrayConstGet(&unit->globals,at) : NULL;
+ if(!out || !row)return 0;
+ *out=(xls_ir_declaration_dependency){row->identity,row->version};return 1;
+}
 
 xls_ir_result* xlsFrontendIrResultBuild(const XL6_AstNode* root,XL6_DiagList* diags,
     const xls_ir_result* previous,size_t bytes)

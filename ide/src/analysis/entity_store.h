@@ -11,6 +11,8 @@ typedef struct xls_entity_stats {size_t domains,entities,bytes,limit;uint64_t hi
  * XRT-owned,thread-safe,monotonic IDs,never reused while this store lives.
  * Defaults1024domains/262144entities/64KiB perkey/64MiB known owned data;
  * allocator,transient/caller-owned data and whole-model RSS are separate.
+ * The checked interface-version adapter also interns disjoint tagged keys;
+ * Stats.entities counts all admitted identity/version records in this quota.
  * All allocations and complete context equality happen outside metadata locks.
  * Resource/limit failure returnsNULL/0 without affecting analysis diagnostics. */
 xls_entity_store* xlsEntityStoreCreate(const xls_entity_limits* limits);

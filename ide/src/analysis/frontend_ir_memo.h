@@ -36,5 +36,12 @@ xls_ir_result* xlsFrontendIrResultBuildWithStorage(const XL6_AstNode* root,XL6_D
     const xls_ir_result* previous,size_t bytes,size_t storageBytes);
 const XL6_IrModule* xlsFrontendIrResultModule(const xls_ir_result* result);
 xls_ir_memo_work xlsFrontendIrResultWork(const xls_ir_result* result);
+/* Conservative declaration dependencies of one actually captured raw function.
+ * Includes its global operands/writes as well as reads. Interface versions are
+ * optional(0); IDs need equal retained store/domain and never prove freshness.
+ * Returned values are copied;no AST/result borrow,no allocation or I/O. */
+typedef struct xls_ir_declaration_dependency {uint64_t declaration,version;} xls_ir_declaration_dependency;
+size_t xlsFrontendIrResultDependencies(const xls_ir_result* result,uint64_t function);
+int xlsFrontendIrResultDependency(const xls_ir_result* result,uint64_t function,size_t at,xls_ir_declaration_dependency* out);
 void xlsFrontendIrResultDestroy(xls_ir_result* result);
 #endif

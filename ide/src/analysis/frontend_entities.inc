@@ -9,12 +9,12 @@
 #define XLS_ENTITY_KEY_BYTES 65536u
 #define XLS_ENTITY_VIEW_BYTES (16u*1024u*1024u)
 typedef struct xls_entity_binding {uint32_t native;uint64_t stable;int ambiguous;} xls_entity_binding;
-struct xls_entity_view {xatomic32 references;xls_entity_store* store;const xls_entity_domain* domain;xls_module_graph* modules;xarray symbols,types,reverseSymbols;size_t ambiguous,bytes;};
+struct xls_entity_view {xatomic32 references;xls_entity_store* store;const xls_entity_domain* domain;xls_module_graph* modules;xarray symbols,types,reverseSymbols,versions;size_t ambiguous,bytes,versionDeclined,versionSymbols,versionTypes;};
 typedef struct xls_entity_scope {unsigned fact;const XL6_AstNode* node;uint64_t outer,children;int function,body,blocked;} xls_entity_scope;
 typedef struct xls_entity_build {xls_entity_view* view;xmap symbols,types,badSymbols,badTypes;size_t bindings;int failed;} xls_entity_build;
 xls_entity_view* xlsEntityViewRetain(xls_entity_view* view){if(view)xrtAtomic32FetchAdd(&view->references,1,XMEMORY_RELAXED);return view;}
 void xlsEntityViewRelease(xls_entity_view* view)
-{if(view && xrtAtomic32FetchSub(&view->references,1,XMEMORY_ACQ_REL)==1){xrtArrayUnit(&view->symbols);xrtArrayUnit(&view->types);xrtArrayUnit(&view->reverseSymbols);xlsModuleGraphRelease(view->modules);xlsEntityStoreRelease(view->store);xrtFree(view);}}
+{if(view && xrtAtomic32FetchSub(&view->references,1,XMEMORY_ACQ_REL)==1){xrtArrayUnit(&view->symbols);xrtArrayUnit(&view->types);xrtArrayUnit(&view->reverseSymbols);xrtArrayUnit(&view->versions);xlsModuleGraphRelease(view->modules);xlsEntityStoreRelease(view->store);xrtFree(view);}}
 xls_entity_view_info xlsEntityViewInfo(const xls_entity_view* view)
 {return view ? (xls_entity_view_info){view->symbols.Count,view->types.Count,view->ambiguous,view->bytes,xlsEntityDomainIdentity(view->domain)} : (xls_entity_view_info){0};}
 const xls_entity_store* xlsEntityViewStore(const xls_entity_view* view){return view ? view->store : NULL;}
@@ -126,6 +126,7 @@ static xls_context* xlsEntityContext(const XL6_IndexBuild* b,const xls_module_gr
  char* directory=entry ? xrtPathAbs(".") : NULL;if(!directory)return NULL;
  xls_context_spec spec={.kind=XLS_CONTEXT_XLANG,.entry=entry,.directory=directory,.analysisProfile="native-entity-index-v1",.targetKind="exe",.packagePath=b->report->packagePathObserved ? b->report->packagePath : NULL};xls_context* result=xlsContextCreate(&spec,16u*1024u*1024u,NULL);xrtFree(directory);return result;
 }
+#include "analysis/frontend_entity_versions.inc"
 static xls_entity_view* xlsIndexEntitiesBuild(const XL6_IndexBuild* b,xls_module_graph* graph)
 {
  if(!b || !graph)return NULL;
@@ -153,6 +154,7 @@ static xls_entity_view* xlsIndexEntitiesBuild(const XL6_IndexBuild* b,xls_module
  if(okay)okay=xlsEntityFinishMap(&build,0) && xlsEntityFinishMap(&build,1) && xlsEntityReverseBuild(view);
  view->bytes=sizeof(*view)+(view->symbols.Capacity+view->types.Capacity+view->reverseSymbols.Capacity)*sizeof(xls_entity_binding);
  if(view->bytes>XLS_ENTITY_VIEW_BYTES)okay=0;
+ if(okay)xlsEntityVersionsBuild(view,b);
  xrtMapUnit(&build.symbols);xrtMapUnit(&build.types);xrtMapUnit(&build.badSymbols);xrtMapUnit(&build.badTypes);
  if(!okay){xlsEntityViewRelease(view);return NULL;}return view;
 }
