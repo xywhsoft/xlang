@@ -2,18 +2,29 @@
  * adapter. Reuses its collector, limits, selection and type-domain rules. */
 #include "analysis/frontend_index.h"
 #include "analysis/index_modules.h"
+#include "analysis/index_entities.h"
 #include "analysis/frontend_types.h"
-struct xls_semantic_index { XL6_IndexBuild build;xls_module_graph* modules; };
+struct xls_semantic_index { XL6_IndexBuild build;xls_module_graph* modules;xls_entity_view* entities; };
+#include "analysis/frontend_entities.inc"
 
 void xlsFrontendIndexDestroy(xls_semantic_index* index)
 {
     if(!index) return;
     XL6_IndexBuild* b=&index->build;
     if(b->facts) for(size_t i=0;i<b->count;++i) xrtFree(b->facts[i].canonical);
-    xrtFree(b->facts); xrtFree(b->sources); xlsModuleGraphRelease(index->modules);xrtFree(index);
+    xrtFree(b->facts); xrtFree(b->sources); xlsEntityViewRelease(index->entities);xlsModuleGraphRelease(index->modules);xrtFree(index);
 }
 void xlsFrontendIndexAttachModules(xls_semantic_index* index,xls_module_graph* graph)
-{if(index){xls_module_graph* retained=xlsModuleGraphRetain(graph);xlsModuleGraphRelease(index->modules);index->modules=retained;}}
+{if(index){xls_module_graph* retained=xlsModuleGraphRetain(graph);xlsModuleGraphRelease(index->modules);index->modules=retained;xlsEntityViewRelease(index->entities);index->entities=xlsIndexEntitiesBuild(&index->build,graph);}}
+const xls_entity_view* xlsSemanticIndexEntities(const xls_semantic_index* index)
+{return index ? index->entities : NULL;}
+int xlsSemanticIndexEntityFact(const xls_semantic_index* index,size_t at,xls_entity_fact* out)
+{
+    if(out)*out=(xls_entity_fact){0};
+    if(!index || !out || at>=index->build.count)return 0;
+    const XL6_IndexFact* f=&index->build.facts[at];const XL6_AstNode* n=f->node;const xls_entity_view* v=index->entities;
+    *out=(xls_entity_fact){xlsEntityViewSymbol(v,n->semanticDeclaredSymbolId),xlsEntityViewSymbol(v,n->semanticSymbolId),xlsEntityViewSymbol(v,n->semanticTargetSymbolId),xlsEntityViewSymbol(v,n->semanticCompoundOperatorSymbolId),xlsEntityViewType(v,f->declaredType),xlsEntityViewType(v,f->referencedType),xlsEntityViewType(v,n->semanticTypeId),xlsEntityViewType(v,f->type ? f->type->semanticTypeId : 0)};return 1;
+}
 const xls_module_graph* xlsSemanticIndexModules(const xls_semantic_index* index)
 {return index ? index->modules : NULL;}
 uint64_t xlsSemanticIndexModuleIdentity(const xls_semantic_index* index,size_t source)

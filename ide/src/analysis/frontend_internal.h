@@ -9,6 +9,10 @@
 /* Compiler facts remain inside the analysis layer. Never mutate a published
  * parse tree; semantic passes require their own owned representation. */
 const XL6_AstNode* xlsSyntaxAst(const xls_syntax* syntax);
+/* Existing ordinary incrementality proof for a source-owned function header
+ * and body end. No parsing/allocation. Shared with external declaration keys,
+ * so normalized semantic type children do not invent a second header grammar. */
+int xlsSyntaxFunctionHeader(const XL6_AstNode* node,size_t* header,size_t* end);
 const XL6_IrModule* xlsSemanticCheckIr(const xls_semantic_check* result);
 const XL6_AstNode* xlsSemanticCheckAst(const xls_semantic_check* result);
 /* Immutable mask in the producing API's overlay order, captured by the

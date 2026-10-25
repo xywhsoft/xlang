@@ -47,6 +47,20 @@ static void objectFree(void* p)
 #undef xl6SemCBridgeMapJson
 static unsigned checks;
 #define CHECK(v) do { ++checks; if(!(v)) { fprintf(stderr,"analysis_index_storage_test:%d: %s\n",__LINE__,#v); return 0; } } while(0)
+static int ambiguousBindings(void)
+{
+ /* A native ID with two external keys must still contribute BOTH keys to the
+  * reverse collision proof. No second native ID may inherit either key. */
+ xls_entity_view view={0};xls_entity_build build={.view=&view};
+ CHECK(xrtArrayInit(&view.symbols,sizeof(xls_entity_binding)) && xrtArrayInit(&view.types,sizeof(xls_entity_binding)) && xrtMapInit(&build.symbols,sizeof(xls_entity_binding)) && xrtMapInit(&build.types,sizeof(xls_entity_binding)) && xrtMapInit(&build.badSymbols,sizeof(uint32_t)) && xrtMapInit(&build.badTypes,sizeof(uint32_t)));
+ for(int type=0;type<2;++type){
+  CHECK(xlsEntityBind(&build,type,1,101));CHECK(xlsEntityBind(&build,type,1,102));CHECK(xlsEntityBind(&build,type,2,102));CHECK(xlsEntityBind(&build,type,3,101));
+  CHECK(xlsEntityBind(&build,type,4,104) && xlsEntityBind(&build,type,4,104));CHECK(xlsEntityFinishMap(&build,type));
+  const xarray* rows=type ? &view.types : &view.symbols;
+  CHECK(!xlsEntityFind(rows,1) && !xlsEntityFind(rows,2) && !xlsEntityFind(rows,3) && xlsEntityFind(rows,4)==104 && !xlsEntityFind(rows,0));
+ }
+ CHECK(view.ambiguous==6);xrtArrayUnit(&view.symbols);xrtArrayUnit(&view.types);xrtMapUnit(&build.symbols);xrtMapUnit(&build.types);xrtMapUnit(&build.badSymbols);xrtMapUnit(&build.badTypes);return 1;
+}
 static int run(void)
 {
  char* path=xrtPathAbs("index-storage.xl"); CHECK(path);
@@ -82,4 +96,4 @@ static int run(void)
  printf("index arena allocation seams=%zu,all independently failed/recovered;no live owned blocks\n",used); return 1;
 }
 int main(void)
-{ if(!run()) return 1; printf("analysis_index_storage_test passed: %u checks; real collector growth,object/fact/source faults,cleanup,TLS restoration,depth and legacy JSON.\n",checks); return 0; }
+{ if(!run() || !ambiguousBindings()) return 1; printf("analysis_index_storage_test passed: %u checks; real collector growth,object/fact/source faults,cleanup,TLS restoration,depth,legacy JSON and symmetric ambiguous entity binding rejection.\n",checks); return 0; }

@@ -1,4 +1,5 @@
 #include "analysis/module_store.h"
+#include "analysis/entity_store.h"
 #include "analysis/frontend_internal.h"
 #include <xrt.h>
 #include <string.h>
@@ -16,6 +17,7 @@ struct xls_module_store {
     xatomic32 references;xmutex lock;xavl modules;xls_module_limits limits;
     xls_module_stats stats;xls_module_snapshot *first,*last;
     uint64_t nextModule,nextRevision;
+    xls_entity_store* entities;
 };
 static _Thread_local xls_module_scope* active;
 void xlsModuleScopeBegin(xls_module_scope* scope,xls_module_store* store)
@@ -90,7 +92,19 @@ void xlsModuleStoreRelease(xls_module_store* s)
     if(!s || xrtAtomic32FetchSub(&s->references,1,XMEMORY_ACQ_REL)!=1)return;
     xls_module_snapshot* garbage=NULL;while(s->last)retire(s,s->last,&garbage);releaseGarbage(garbage);
     while(s->modules.Root){module_record* record=(module_record*)s->modules.Root;xrtAVLRemove(&s->modules,record->path,compare,NULL);recordRelease(record);}
-    xrtMutexUnit(&s->lock);xrtFree(s);
+    xlsEntityStoreRelease(s->entities);xrtMutexUnit(&s->lock);xrtFree(s);
+}
+xls_entity_store* xlsModuleStoreEntities(xls_module_store* s)
+{
+    if(!s)return NULL;
+    xrtMutexLock(&s->lock);xls_entity_store* found=xlsEntityStoreRetain(s->entities);xrtMutexUnlock(&s->lock);if(found)return found;
+    xls_entity_store* fresh=xlsEntityStoreCreate(NULL);if(!fresh)return NULL;
+    xrtMutexLock(&s->lock);if(!s->entities){s->entities=fresh;fresh=NULL;}found=xlsEntityStoreRetain(s->entities);xrtMutexUnlock(&s->lock);xlsEntityStoreRelease(fresh);return found;
+}
+int xlsModuleStoreEntityStats(xls_module_store* s,xls_entity_stats* stats)
+{
+    xls_entity_store* found=NULL;if(s){xrtMutexLock(&s->lock);found=xlsEntityStoreRetain(s->entities);xrtMutexUnlock(&s->lock);}
+    int exists=found!=NULL;xlsEntityStoreStats(found,stats);xlsEntityStoreRelease(found);return exists;
 }
 uint64_t xlsModuleStoreIdentity(xls_module_store* s,const char* path)
 {module_record* record=ensure(s,path);uint64_t id=record ? record->id : 0;recordRelease(record);return id;}
