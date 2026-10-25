@@ -76,6 +76,22 @@ try {
         $aotLines = @(& $exampleExe)
         if ($LASTEXITCODE -ne 0) { throw 'trie AOT example failed' }
         Confirm-Output 'AOT example' $aotLines
+
+        foreach ($name in @('boundaries', 'allocations')) {
+            $source = "release/extlibs/trie/test/$name.xl"
+            $output = Join-Path $work "$name.exe"
+            & $xl build $source -o $output
+            if ($LASTEXITCODE -ne 0) { throw "trie $name AOT build failed" }
+            & $output
+            if ($LASTEXITCODE -ne 0) { throw "trie $name AOT failed" }
+        }
+
+        $cExampleExe = Join-Path $work 'c_example.exe'
+        & $xl build release/examples/extlibs/trie_c.c -o $cExampleExe
+        if ($LASTEXITCODE -ne 0) { throw 'trie C example AOT build failed' }
+        $cAotLines = @(& $cExampleExe)
+        if ($LASTEXITCODE -ne 0) { throw 'trie C example AOT failed' }
+        Confirm-Output 'C example AOT' $cAotLines
     }
 
     if ($SkipAot) {

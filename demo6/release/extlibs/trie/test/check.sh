@@ -44,4 +44,20 @@ diff -u "$work/c_example.txt" "$work/xl_example.txt"
 timeout 90s ./release/xl run release/examples/extlibs/trie_c.c \
     > "$work/c_direct.txt"
 diff -u "$work/c_example.txt" "$work/c_direct.txt"
+timeout 120s ./release/xl build test/cases/extlib_trie.xl \
+    -o "$work/trie_core_aot"
+timeout 45s "$work/trie_core_aot"
+for name in boundaries allocations; do
+    timeout 120s ./release/xl build "release/extlibs/trie/test/$name.xl" \
+        -o "$work/trie_${name}_aot"
+    timeout 45s "$work/trie_${name}_aot"
+done
+timeout 120s ./release/xl build release/examples/extlibs/trie.xl \
+    -o "$work/trie_xl_example_aot"
+timeout 45s "$work/trie_xl_example_aot" > "$work/xl_aot.txt"
+diff -u "$work/c_example.txt" "$work/xl_aot.txt"
+timeout 120s ./release/xl build release/examples/extlibs/trie_c.c \
+    -o "$work/trie_c_example_aot"
+timeout 45s "$work/trie_c_example_aot" > "$work/c_aot.txt"
+diff -u "$work/c_example.txt" "$work/c_aot.txt"
 printf 'trie Linux C ASan/UBSan and XLang parity gate: PASS\n'

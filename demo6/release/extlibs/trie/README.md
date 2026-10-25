@@ -1,5 +1,13 @@
 # trie
 
+2026-10-26 当前 Windows/Linux 发布物复验：默认 `test/check.ps1` 与
+`test/check.sh` 均退出 0。严格 C、Linux ASan/UBSan、独立键集合模型、
+深键和分配故障、包外原生访问拒绝，以及中央/边界/分配/公开范例
+独立 EXE 均通过；C 单文件范例 AOT 与 GCC、TCC、XLang 固定输出一致。
+本轮只增强门禁，原生实现与公开 API 未改。旧 VFS 缺头和 AOT 缺
+符号记录为历史状态；验收限本文的按字节前缀集合语义，不含 Unicode
+归一化、大小写折叠或同实例无锁并发写入。
+
 2026-10-25 新 Windows 发布版：从 `demo6` 根目录运行默认
 `test/check.ps1` 全通过，包含严格 C/ABI、独立键集合模型、XLang
 边界/分配故障、双语固定输出和核心/范例 AOT。下方同日的 VFS 缺头
