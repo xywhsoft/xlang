@@ -355,7 +355,6 @@ static int xl6IrCgenEmitModuleDefinitions(
                  module, &module->functions[i]) ) continue;
         if ( !xl6IrCgenEmitFunction(
                 out, module, &module->functions[i],
-                module->abi.networkServiceAbi != XL6_IR_MODULE_NETWORK_SERVICE_NONE,
                 options, diags) ) return 0;
     }
     if ( !xl6IrCgenEmitModuleEntry(out, module, diags) ) return 0;

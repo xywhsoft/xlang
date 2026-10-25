@@ -68,12 +68,8 @@ $reviewedGuards = @(
     'check_xlir_nullable_getter.ps1',
     'check_xlir_safe_index.ps1',
     'check_xlir_future_cancel_core.ps1',
-    'check_xlir_net_mapper.ps1',
     'check_xlir_network_lifetime.ps1',
-    'check_xlir_network_service_retirement.ps1',
     'check_xlir_network_service_runtime.ps1',
-    'check_xlir_network_service_steps.ps1',
-    'check_xlir_network_source_batch.ps1',
     'check_xlir_object_escape.ps1',
     'check_xlir_one_shot_lifetime.ps1',
     'check_xlir_one_shot_tcc.ps1',
@@ -198,8 +194,7 @@ $contractSources = @(
 )
 
 $fixtureInputs = @(
-    'test/cases/xlir_native_adapter_cases.json',
-    'test/cases/xlir_network_lifetime_cases.json'
+    'test/cases/xlir_native_adapter_cases.json'
 )
 foreach ($fixture in $fixtureInputs) {
     $fixturePath = Join-Path $Root $fixture
@@ -228,12 +223,9 @@ $contractDrivers = @{
     'check_xlir_terminal_source_runtime.ps1' = 'xlir_async_terminal_outcome_contract.exe'
 }
 $sourceDriver = [IO.Path]::GetFullPath((Join-Path $contractDirectory 'xlir_code_owner_binding_contract.exe'))
-$networkReport = Join-Path (Join-Path $phaseOneDirectory 'network-lifetime') 'results.json'
 $aggregateDirectory = Join-Path $phaseOneDirectory 'aggregate-dependencies'
 $dependentGuards = @(
-    'check_xlir_aggregate_strict_source.ps1',
-    'check_xlir_network_service_retirement.ps1',
-    'check_xlir_network_service_steps.ps1'
+    'check_xlir_aggregate_strict_source.ps1'
 )
 
 function New-ScenarioGate([string]$Name, [string]$PhaseDirectory) {
@@ -256,7 +248,6 @@ function New-ScenarioGate([string]$Name, [string]$PhaseDirectory) {
             'CellContractDriver' { $arguments[$required] = Join-Path $contractDirectory 'xlir_cell_cancel_race_contract.exe' }
             'IrContractDriver' { $arguments[$required] = Join-Path $contractDirectory 'xlir_module_ownership_contract.exe' }
             'NativeRoot' { $arguments[$required] = $NativeRoot }
-            'NetworkReport' { $arguments[$required] = $networkReport }
             'AggregateDirectory' { $arguments[$required] = $aggregateDirectory }
             'OutputDirectory' { $arguments[$required] = Join-Path $PhaseDirectory $slug }
             default { throw "No reviewed argument source for $Name -$required" }
@@ -378,13 +369,13 @@ try {
     Save-Report
 
     $blockedDependencies = @($phaseOneResult.Results | Where-Object {
-        $_.Gate -in @('check_xlir_aggregate_dependencies.ps1','check_xlir_network_lifetime.ps1') -and
+        $_.Gate -eq 'check_xlir_aggregate_dependencies.ps1' -and
         $_.Status -ne 'passed'
     })
     if ($blockedDependencies.Count) {
         throw "XLIR phase two blocked by failed producers: $($blockedDependencies.Gate -join ', ')"
     }
-    foreach ($dependency in @($networkReport, (Join-Path $aggregateDirectory 'results.json'))) {
+    foreach ($dependency in @((Join-Path $aggregateDirectory 'results.json'))) {
         if (!(Test-Path -LiteralPath $dependency -PathType Leaf)) { throw "XLIR scenario dependency missing: $dependency" }
     }
     $phaseTwoGates = @($dependentGuards | ForEach-Object { New-ScenarioGate $_ $phaseTwoDirectory })

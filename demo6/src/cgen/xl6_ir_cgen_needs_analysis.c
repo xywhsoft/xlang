@@ -1180,17 +1180,6 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         needs->needsBufferBridgeRuntime = 1;
         needs->needsErrorRuntime = 1;
     }
-    if ( needs->needsNetTcpRuntime || needs->needsNetDatagramRuntime ) {
-        needs->needsBufferBridgeRuntime = 1;
-        needs->needsStringRuntime = 1;
-        needs->needsStringViews = 1;
-        needs->needsXValueRuntime = 1;
-        needs->needsXValueObjectRuntime = 1;
-        needs->needsXValueClassRuntime = 1;
-        needs->needsXValueTypeIdentityRuntime = 1;
-        needs->needsFutureRuntime = 1;
-        needs->needsErrorRuntime = 1;
-    }
     for ( i = 0; i < module->protocolDispatchImplCount; ++i ) {
         const XL6_IrProtocolDispatchImpl* impl =
             &module->protocolDispatchImpls[i];

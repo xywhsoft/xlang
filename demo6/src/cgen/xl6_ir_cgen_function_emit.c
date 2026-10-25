@@ -21,7 +21,7 @@ static int xl6IrCgenEmitModuleFiniBoundary(XL6_Output* out, const XL6_IrModule* 
 
 static int xl6IrCgenEmitFunction(
     XL6_Output* out, const XL6_IrModule* module,
-    const XL6_IrFunction* function, int initializeNet,
+    const XL6_IrFunction* function,
     const XL6_IrCgenOptions* options, XL6_DiagList* diags)
 {
     size_t i;
@@ -69,9 +69,6 @@ static int xl6IrCgenEmitFunction(
             xl6OutputPuts("    if (xlir_module_initialized == 2) return 1;\n"
                            "    if (xlir_module_initialized != 0) return 0;\n", out);
         else xl6OutputPuts("    if (xlir_module_initialized) return 1;\n", out);
-        if (initializeNet)
-            xl6OutputPuts("    if (!xl6NetworkServiceRuntimeV2Get()->IsEmpty(&xlir_network_services)) {\n"
-                "        xrtSetErrorKind(XERR_STATE); return 0; }\n", out);
         if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)
             xl6OutputPuts("    xlir_continuation_executor = xl6ContinuationExecutorCreateFixedV1(XLIR_CONTINUATION_CAPACITY, XLIR_CONTINUATION_WORKERS);\n"
                 "    if (xlir_continuation_executor == NULL) return 0;\n", out);
@@ -85,13 +82,6 @@ static int xl6IrCgenEmitFunction(
             if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)
                 xl6OutputPuts("        xerror* pending = xrtTakeError(); if (!xlir_continuation_quiesce(true)) abort(); xrtSetErrorTake(pending);\n", out);
             xl6OutputPuts("        return 0; }\n", out);
-        }
-        if ( initializeNet ) {
-            xl6OutputPuts("    if (!xl6_net_runtime_init()) { xerror* pending = xrtTakeError();\n", out);
-            if (module->abi.taskPoolAbi != XL6_IR_MODULE_TASK_POOL_NONE) xl6OutputPuts("        xlir_async_pool_release();\n", out);
-            if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)
-                xl6OutputPuts("        if (!xlir_continuation_quiesce(true)) abort();\n", out);
-            xl6OutputPuts("        xrtSetErrorTake(pending); return 0; }\n", out);
         }
         if ( module->abi.finalizerFunction != 0 )
             xl6OutputPuts("    xlir_module_initialized = 1;\n", out);

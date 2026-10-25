@@ -731,17 +731,17 @@ release\xl.exe check test\cases\stdlib_net_send_file.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_net_send_file.xl --emit build\test\stdlib_net_send_file.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long xl6_xrt_tcp_stream_send_file_result(" build\test\stdlib_net_send_file.c >nul
+findstr /C:"xl6TcpStreamSendFileV1(" build\test\stdlib_net_send_file.c >nul
 if errorlevel 1 (
-    echo stdlib_net_send_file.c missing selected TCP file-transfer component.
+    echo stdlib_net_send_file.c missing resident TCP file-transfer call.
     exit /b 1
 )
-findstr /C:"xrtNetStreamSendFile" build\test\stdlib_net_send_file.c >nul
-if errorlevel 1 (
-    echo stdlib_net_send_file.c missing direct file send bridge.
+findstr /C:"xl6_xrt_tcp_stream_send_file" build\test\stdlib_net_send_file.c >nul
+if not errorlevel 1 (
+    echo stdlib_net_send_file.c unexpectedly contains retired file-send glue.
     exit /b 1
 )
-release\xl.exe cgen test\cases\stdlib_net_extended_io.xl --emit build\test\stdlib_net_extended_io_trim.c
+release\xl.exe cgen test\cases\stdlib_tcp_managed_sync.xl --emit build\test\stdlib_net_extended_io_trim.c
 if errorlevel 1 exit /b 1
 findstr /C:"XRT_MODULE_NET_TCP_FILE" build\test\stdlib_net_extended_io_trim.c >nul
 if not errorlevel 1 (

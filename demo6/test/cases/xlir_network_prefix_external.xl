@@ -1,0 +1,6 @@
+// An ordinary C symbol is not a runtime operation because of its spelling.
+extern "xl6_xrt_tcp_stream_user_hook" func userHook(int value) as int
+extern "xl6_xrt_net_runtime_stats" func userStats(int value) as int
+assert userHook(41) == 42
+assert userStats(40) == 42
+println("network prefix remains ordinary C: ok")

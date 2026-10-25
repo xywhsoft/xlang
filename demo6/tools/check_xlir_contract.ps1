@@ -2205,8 +2205,8 @@ foreach ( $required in @(
     "XL6_IR_RUNTIME_BRIDGE_PATH_JOIN", "XL6_IR_RUNTIME_BRIDGE_FILE",
     "XL6_IR_RUNTIME_BRIDGE_LAST_ERROR_TEXT",
     "XL6_IrRuntimeBridgeOperation",
-    "XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_FILE_TRANSFER",
-    "XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_RECV_OWNED_BYTES_ASYNC",
+    "XL6_IR_RUNTIME_BRIDGE_OPERATION_RNG_CREATE",
+    "XL6_IR_RUNTIME_BRIDGE_OPERATION_RNG_SEED",
     "XL6_IrCallErrorPhysicalAbi",
     "XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER",
     "XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR",
@@ -4654,15 +4654,15 @@ $retryableServices = Read-Utf8 'src/runtime/xl6_network_service.c'
 $ownershipPlanHeader = Read-Utf8 'src/runtime/xl6_ownership_plan.h'
 $ownershipPlanSource = Read-Utf8 'src/runtime/xl6_ownership_plan.c'
 $moduleTrace = Read-Utf8 'src/cgen/xl6_ir_cgen_module_trace.c'
-if (!$header.Contains('XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1') -or
+if ($header.Contains('XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1') -or
     !$header.Contains('XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4') -or
-    !$source.Contains('xl6IrModuleNetworkServiceRequirement(module)') -or
-    !$source.Contains('XLIR module network service ABI is unresolved') -or
+    $source.Contains('xl6IrModuleNetworkServiceRequirement(module)') -or
+    !$source.Contains('xl6IrModuleExecutionOwnershipRequirement(module)') -or
     !$cEmitter.Contains('xl_script_module_retirement_v4(void)') -or
     !(Read-Utf8 'src/cgen/xl6_ir_cgen_function_shell.c').Contains('xlir_script_module_retire_step(void)') -or
-    !$cEmitter.Contains('xl6NetworkServiceRuntimeV2Get()->Retire') -or
-    !$moduleTrace.Contains('xl6NetworkServiceRuntimeV2Get()->Trace') -or
-    $moduleTrace.IndexOf('xl6NetworkServiceRuntimeV2Get()->Trace') -gt $moduleTrace.IndexOf('xlir_module_initialized == 0') -or
+    !$cEmitter.Contains('xl6ExecutionModuleRetireV1') -or
+    !$moduleTrace.Contains('xl6ExecutionSourceOwnershipV1(xlir_execution_source)') -or
+    $moduleTrace.Contains('xlir_network_services') -or
     !$api.Contains('invalid module retirement V4 contract') -or
     !$api.Contains('xl6OwnershipPlanTryCreateV6') -or !$api.Contains('xl6OwnershipPlanFinishV2') -or
     !$api.Contains('retired == XL6_MODULE_RETIRE_BUSY') -or
@@ -4754,17 +4754,16 @@ foreach ( $required in @(
     }
 }
 if ( $cEmitter -match 'XL6_AstNode\s*\*' -or $cEmitter -match 'XL6_Hir' -or
-$cEmitter -match 'xl6Cgen(?!Emit(?:BufferRuntime|FileRuntime|NetTcpComponent|NetBufferComponent|NetTcpStatsComponent|NetDatagramComponent|TlsRuntime|Http1Runtime|HttpDecodeRuntime|WebSocketProtocolRuntime|Base64TextCodecRuntime|HexBytesCodecRuntime|Base64BytesCodecRuntime|TextOutputRuntime|DirRuntime|ProcessRunRuntime|JsonValueRuntime|JsonStreamRuntime|SerializationCallbackRuntime|StructuredOptionsRuntime|NativeVoidAbiBegin|NativeVoidAbiEnd|XlonRuntime)\b)' -or
+$cEmitter -match 'xl6Cgen(?!Emit(?:BufferRuntime|FileRuntime|Http1Runtime|HttpDecodeRuntime|WebSocketProtocolRuntime|Base64TextCodecRuntime|HexBytesCodecRuntime|Base64BytesCodecRuntime|TextOutputRuntime|DirRuntime|ProcessRunRuntime|JsonValueRuntime|JsonStreamRuntime|SerializationCallbackRuntime|StructuredOptionsRuntime|NativeVoidAbiBegin|NativeVoidAbiEnd|XlonRuntime)\b)' -or
      $cEmitter -match '\bxl6Sem(?!(?:CreateV1|CreateDefaultV1|WaitV1|TryWaitV1|WaitTimeoutV1|PostV1|PostMultipleV1)\b)' ) {
     throw "XLIR C emitter must not consume AST/HIR/semantic analysis or call legacy Cgen"
 }
-$datagramComponent = Read-Utf8 'src/cgen/xl6_cgen_net_datagram.c'
-if ($datagramComponent -match 'XL6_AstNode|XL6_Hir|XL6_CgenContext|xl6Sem|xl6CgenFindClass|xl6CgenNodeHasExternSymbol') {
-    throw 'Shared datagram provider must remain independent of AST, semantics and legacy Cgen'
-}
-foreach ($required in @('xl6CgenEmitNetDatagramComponent', 'xlir_datagram_buffer_borrow',
-    'bool xl6_xrt_udp_send_vec', 'void xl6_xrt_udp_destroy', 'int64_t xl6_xrt_udp_local_port')) {
-    if (!$datagramComponent.Contains($required)) { throw "Datagram provider contract missing: $required" }
+foreach ($retired in @('src/cgen/xl6_cgen_net.h','src/cgen/xl6_cgen_net_transport.c',
+    'src/cgen/xl6_cgen_net_datagram.c','src/cgen/xl6_ir_cgen_emit_net.c',
+    'src/cgen/xl6_ir_cgen_emit_net_datagram.c','src/ir/xl6_ir_net_datagram_bridge.c')) {
+    if (Test-Path -LiteralPath (Join-Path $Root $retired)) {
+        throw "Retired network library-body emitter returned: $retired"
+    }
 }
 if ( $cEmitter -notmatch 'xl6CgenEmitFileRuntime\s*\(\s*out,\s*xl6IrCgenNeedsXrtDeclarations\(&needs\)\s*\)' -or
      $cEmitter -notmatch 'xl6CgenEmitBufferRuntime\s*\(\s*out,\s*needs\.needsFileBridgeRuntime,\s*xl6IrCgenNeedsXrtDeclarations\(&needs\)\s*\)' ) {
@@ -4785,7 +4784,7 @@ foreach ($retired in @('src/cgen/xl6_cgen_tls.c', 'src/cgen/xl6_cgen_tls_stream.
         throw "Retired TLS library-body emitter returned: $retired"
     }
 }
-foreach ($path in @('src/stdlib/xl6_stdlib_data.c', 'src/cgen/xl6_ir_cgen_emit_net.c', 'src/ir/xl6_ir.h')) {
+foreach ($path in @('src/stdlib/xl6_stdlib_data.c', 'src/cgen/xl6_ir_cgen_module_emit.c', 'src/ir/xl6_ir.h')) {
     if ((Read-Utf8 $path) -match 'TlsLegacyConfig|NET_TLS_(?:CONFIG|SESSION|RESUME|DIAL|STREAM|SERVER)|xl6_xrt_tls_') {
         throw "Retired raw TLS facade returned: $path"
     }
@@ -4796,12 +4795,13 @@ foreach ($path in $retiredComponentAbiFiles) {
         throw "Retired backend ABI selection returned to the canonical runtime component: $path"
     }
 }
-$netTransportComponent = Read-Utf8 'src/cgen/xl6_cgen_net_transport.c'
-if ($netTransportComponent -match 'XL6_CGEN_NET_(?:TCP|BUFFER)_COMPONENT_IMPLEMENTATION|XL6_CgenContext|xl6CgenEmitNetBufferBridge' -or
-    !$netTransportComponent.Contains('void xl6CgenEmitNetTcpComponent(') -or
-    !$netTransportComponent.Contains('void xl6CgenEmitNetBufferComponent(') -or
-    !$netTransportComponent.Contains('void xl6CgenEmitNetTcpStatsComponent(')) {
-    throw 'Network runtime provider must contain only canonical XLIR component emitters'
+$networkNeeds = Read-Utf8 'src/cgen/xl6_ir_cgen_needs_call_targets.c'
+if (!$networkNeeds.Contains('xl6ArtifactRuntimeSymbolOwner(target->cName)') -or
+    !$source.Contains('target->nativeServicesRequired!=xl6IrRuntimeDirectBridgeServices(target->cName)') -or
+    !$source.Contains('context!=target->nativeContextAbi') -or
+    !$cEmitter.Contains('target->nativeServicesRequired') -or
+    ($header+$source+$lower+$cEmitter) -match 'networkServiceAbi|xlir_network_services|xl6_xrt_(?:tcp_|udp_|net_)') {
+    throw 'Network calls require verified native context/services and exact resident components, never retired name inference or module singletons'
 }
 $stringNameDataStart = $cEmitter.IndexOf("if ( needs->needsTypeIdToStringRuntime )")
 $stringNameDataEnd = $cEmitter.IndexOf(
@@ -5349,11 +5349,11 @@ if ( $cEmitter.Contains("strcmp(target->cName") -or
 }
 foreach ( $required in @(
     "target->runtimeBridgeOperation",
-    "XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_FILE_TRANSFER",
-    "XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_RECV_OWNED_BYTES_ASYNC"
+    "XL6_IR_RUNTIME_BRIDGE_OPERATION_RNG_CREATE",
+    "XL6_IR_RUNTIME_BRIDGE_OPERATION_SECURE_STRING"
 ) ) {
-    if ( ! $cEmitter.Contains($required) ) {
-        throw "XLIR network C emitter is missing verified runtime bridge operation metadata: $required"
+    if ( ! $networkNeeds.Contains($required) ) {
+        throw "XLIR scalar runtime selection is missing verified operation metadata: $required"
     }
 }
 foreach ( $forbidden in @(

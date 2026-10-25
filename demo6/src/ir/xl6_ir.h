@@ -4254,10 +4254,6 @@ typedef enum XL6_IrRuntimeBridgeKind {
     /* Public-XRT-backed TCP component split by semantic role.  These roles
      * also make asynchronous native payload adaptation explicit: dial/server
      * futures produce TcpStream, while stream futures may produce NetBytes. */
-    XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL,
-    XL6_IR_RUNTIME_BRIDGE_NET_TCP_LISTEN,
-    XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM,
-    XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER,
     /* Compiler-owned TLS wrappers are split by the lifetime and payload ABI
      * they implement.  Cgen selects the shared TLS component from these
      * verified roles and never reconstructs ownership from C symbol text. */
@@ -4480,15 +4476,6 @@ typedef enum XL6_IrRuntimeBridgeKind {
 #undef XL6_FS_OPERATION
     XL6_IR_RUNTIME_BRIDGE_FS_END,
     XL6_IR_RUNTIME_BRIDGE_STRING_REPEAT,
-    XL6_IR_RUNTIME_BRIDGE_NET_ADDRESS_LIST,
-    XL6_IR_RUNTIME_BRIDGE_NET_RESOLVE_ASYNC,
-    XL6_IR_RUNTIME_BRIDGE_NET_UDP_SOCKET,
-    XL6_IR_RUNTIME_BRIDGE_NET_UDP_PACKET,
-    XL6_IR_RUNTIME_BRIDGE_NET_UDP_BATCH,
-    XL6_IR_RUNTIME_BRIDGE_NET_UDP_RECV_ASYNC,
-    XL6_IR_RUNTIME_BRIDGE_NET_ENGINE_STATS,
-    XL6_IR_RUNTIME_BRIDGE_NET_RESOLVER_STATS,
-    XL6_IR_RUNTIME_BRIDGE_NET_UDP_STATS,
     /* Compiler-embedding helpers emitted by the selected backend component.
      * Their exact class-handle/string/xvalue ABI is fixed during lowering. */
     XL6_IR_RUNTIME_BRIDGE_XLANG,
@@ -4509,8 +4496,6 @@ typedef enum XL6_IrRuntimeBridgeKind {
  * verified again before any backend runs. */
 typedef enum XL6_IrRuntimeBridgeOperation {
     XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE = 0,
-    XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_FILE_TRANSFER,
-    XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_RECV_OWNED_BYTES_ASYNC,
     XL6_IR_RUNTIME_BRIDGE_OPERATION_RNG_CREATE,
     XL6_IR_RUNTIME_BRIDGE_OPERATION_RNG_CREATE_DEFAULT,
     XL6_IR_RUNTIME_BRIDGE_OPERATION_RNG_DESTROY,
@@ -5727,10 +5712,6 @@ typedef enum XL6_IrModuleRetirementAbi {
     XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4
 } XL6_IrModuleRetirementAbi;
 
-typedef enum XL6_IrModuleNetworkServiceAbi {
-    XL6_IR_MODULE_NETWORK_SERVICE_NONE = 0,
-    XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1
-} XL6_IrModuleNetworkServiceAbi;
 
 /* One physical closure ABI across ordinary functions, continuations, boxes
  * and native callback wrappers. Construction acquires/inherits code ownership
@@ -5911,7 +5892,6 @@ typedef struct XL6_IrModuleAbi {
     XL6_IrModuleTaskPoolOwnershipAbi taskPoolOwnershipAbi;
     XL6_IrFutureAggregateAbi futureAggregateAbi;
     XL6_IrNativeFutureMapAbi nativeFutureMapAbi;
-    XL6_IrModuleNetworkServiceAbi networkServiceAbi;
     XL6_IrModuleExecutionOwnershipAbi executionOwnershipAbi;
 } XL6_IrModuleAbi;
 
@@ -7025,22 +7005,7 @@ int xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(XL6_IrRuntimeBridgeKind
 XL6_IrErrorAbi xl6IrRuntimeSerializationBridgeErrorAbi(const char* name);
 int xl6IrRuntimeSerializationBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
-/* Resolve generated-program TCP declarations into exact component roles. */
-XL6_IrRuntimeBridgeKind xl6IrRuntimeNetTcpBridgeKind(const char* name);
-/* Closed resolver/datagram registry. Complete C and ownership signatures are
- * checked before assigning a component; names are not consumed by Cgen. */
-XL6_IrRuntimeBridgeKind xl6IrRuntimeNetDatagramBridgeKind(const char* name);
-const XL6_IrClassField* xl6IrRuntimeNetNativeField(const XL6_IrModule* module,
-    XL6_IrTypeId type, XL6_IrRuntimeBridgeKind destroyRole);
-const XL6_IrClassField* xl6IrRuntimeNetBufferField(const XL6_IrModule* module);
-int xl6IrRuntimeNetDatagramBridgeKindIs(XL6_IrRuntimeBridgeKind kind);
-int xl6IrRuntimeNetDatagramBridgeTargetMatches(
-    const XL6_IrModule* module, const XL6_IrCallTarget* target);
-int xl6IrRuntimeNetTcpBridgeTargetMatches(
-    const XL6_IrModule* module, const XL6_IrCallTarget* target);
-/* Resolve the exact operation inside a broad network bridge.  Lowering owns
- * name recognition; verification proves the stored operation and physical
- * payload ABI agree before Cgen consumes it. */
+/* Resolve a registered operation and independently verify its stored ABI. */
 XL6_IrRuntimeBridgeOperation xl6IrRuntimeBridgeOperationForName(
     const char* name);
 XL6_IrCallNativeArrayResultAbi xl6IrRuntimeDirectBridgeNativeArrayResultAbi(const char* name);
@@ -7837,7 +7802,6 @@ XL6_IrModuleTaskPoolOwnershipAbi xl6IrModuleTaskPoolOwnershipRequirement(const X
 XL6_IrModuleRetirementAbi xl6IrModuleRetirementRequirement(const XL6_IrModule* module);
 XL6_IrFutureAggregateAbi xl6IrModuleFutureAggregateRequirement(const XL6_IrModule* module);
 XL6_IrNativeFutureMapAbi xl6IrModuleNativeFutureMapRequirement(const XL6_IrModule* module);
-XL6_IrModuleNetworkServiceAbi xl6IrModuleNetworkServiceRequirement(const XL6_IrModule* module);
 int xl6IrModuleHasFinalizerWork(const XL6_IrModule* module);
 const XL6_IrCallTarget* xl6IrCallTargetGet(const XL6_IrModule* module, XL6_SymbolId symbol);
 XL6_IrCallResultConversionAbi xl6IrCallResultConversionForTarget(

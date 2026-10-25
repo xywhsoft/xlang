@@ -1,160 +1,47 @@
-func require(string name, bool condition)
-    assert condition, name
-    println(name + "=ok")
-end
-
-
-
-func testAbandonedAccept()
-    TcpServer server = tcp.listen(0)
-    future<TcpStream> accepted = server.acceptAsync()
-    TcpStream client = tcp.connect("127.0.0.1", int(server.port()), 8000)
-
-    require("abandoned_accept_started", accepted != null and client.remotePort() > 0)
-    time.sleep(20)
-    client.close()
-end
-
-
-
-func testAbandonedUdpReceive()
-    UdpSocket sender = udp.bind(0)
-    UdpSocket receiver = udp.bind(0)
-    future<UdpPacket> received = receiver.recvAsync()
-
-    require("abandoned_udp_started", received != null)
-    require("abandoned_udp_sent", sender.send("127.0.0.1", uint16(receiver.port()), "drop-result"))
-    time.sleep(20)
-end
-
-
-
-async func run() as int
-    require(
-        "net_family_constants",
-        net.familyAny == 0 and net.familyIPv4 == 4 and net.familyIPv6 == 6
-    )
-    require(
-        "net_result_constants",
-        net.resultError == -1 and net.resultOk == 0 and
-            net.resultAgain == 1 and net.resultClosed == 2 and
-            net.resultTruncated == 3 and net.resultTimeout == 4 and
-            net.resultCancelled == 5
-    )
-
-    NetAddressList addresses = net.resolveAll("localhost", 8080, net.familyAny)
-    require("resolve_all", addresses.count() > 0)
-    require("resolve_all_port", addresses.port(0) == 8080)
-
-    future<NetAddressList> resolving = net.resolveAsync("localhost", 8081, net.familyAny)
-    NetAddressList asyncAddresses = await resolving
-    require("resolve_async", asyncAddresses.count() > 0)
-    require("resolve_async_port", asyncAddresses.port(0) == 8081)
-    NetResolverStats resolverStats = net.resolverStats()
-    require("resolver_stats", resolverStats.submitted >= 1 and resolverStats.resolved >= 1)
-
-    TcpServer server = tcp.listen(0)
-    future<TcpStream> accepting = server.acceptAsync()
-    TcpStream client = tcp.connect("127.0.0.1", int(server.port()), 8000)
-    TcpStream peer = await accepting
-
-    future<NetBytes> receivingOwned = peer.recvBytesAsync()
-    require("tcp_result", client.sendResult("owned-async") == net.resultOk)
-    NetBytes asyncBytes = await receivingOwned
-    require("tcp_owned_async", asyncBytes.len() == 11 and asyncBytes.text() == "owned-async")
-
-    require("tcp_owned_send", client.sendResult("owned-sync") == net.resultOk)
-    NetBytes syncBytes = peer.recvOwned(8000)
-    require("tcp_owned_sync", syncBytes.len() == 10 and syncBytes.text() == "owned-sync")
-
-    Buffer first = Buffer()
-    Buffer second = Buffer()
-    first.append("vector-")
-    second.append("tcp")
-    array tcpParts = [first, second]
-    require("tcp_send_vec", client.sendVec(tcpParts))
-    require("tcp_send_vec_data", peer.recv(8000) == "vector-tcp")
-
-    Buffer moved = Buffer()
-    moved.append("move-tcp")
-    require("tcp_send_move", client.sendMove(moved))
-    require("tcp_move_detached", moved.len() == 0 and moved.capacity() == 0)
-    require("tcp_send_move_data", peer.recv(8000) == "move-tcp")
-    require("tcp_writable", client.writeLimit() > 0 and client.writable() > 0)
-    require("tcp_wait_writable", client.waitWritable(1000))
-    TcpStreamStats clientStats = client.stats()
-    TcpStreamStats peerStats = peer.stats()
-    TcpServerStats serverStats = server.stats()
-    require("tcp_stats_sent", clientStats.sentBytes >= 29)
-    require("tcp_stats_received", peerStats.receivedBytes >= 29)
-    require("tcp_server_stats", serverStats.accepted >= 1)
-    client.close()
-    peer.close()
-
-    UdpSocket sender = udp.bind(0)
-    UdpSocket receiver = udp.bind(0)
-    string host = "127.0.0.1"
-    uint16 port = uint16(receiver.port())
-
-    Buffer udpFirst = Buffer()
-    Buffer udpSecond = Buffer()
-    udpFirst.append("vector-")
-    udpSecond.append("udp")
-    array udpParts = [udpFirst, udpSecond]
-    require("udp_send_vec", sender.sendVec(host, port, udpParts))
-    UdpPacket vectorPacket = receiver.recv(8000)
-    require("udp_send_vec_data", vectorPacket.text() == "vector-udp" and not vectorPacket.truncated())
-
-    Buffer udpMoved = Buffer()
-    udpMoved.append("move-udp")
-    require("udp_send_move", sender.sendMove(host, port, udpMoved))
-    require("udp_move_detached", udpMoved.len() == 0 and udpMoved.capacity() == 0)
-    require("udp_send_move_data", receiver.recv(8000).text() == "move-udp")
-
-    Buffer batchOne = Buffer()
-    Buffer batchTwo = Buffer()
-    Buffer batchThree = Buffer()
-    batchOne.append("batch-1")
-    batchTwo.append("batch-2")
-    batchThree.append("batch-3")
-    array batchItems = [batchOne, batchTwo, batchThree]
-    require("udp_send_batch", sender.sendBatch(host, port, batchItems) == 3)
-    time.sleep(20)
-    UdpBatch batch = receiver.recvBatch(8, 8000)
-    require("udp_recv_batch", batch.count() == 3)
-    require("udp_recv_batch_one", batch.take(0).text() == "batch-1")
-    require("udp_recv_batch_two", batch.take(1).text() == "batch-2")
-    require("udp_recv_batch_three", batch.take(2).text() == "batch-3")
-
-    Buffer raw = Buffer()
-    raw.append("result")
-    require(
-        "udp_result",
-        sender.sendBytesResult(host, port, raw.data(), c_size(raw.len())) == net.resultOk
-    )
-    require("udp_result_data", receiver.recv(8000).text() == "result")
-    require("udp_writable", sender.waitWritable(c_size(8), 1000))
-    int drainRounds = 0
-    while sender.pendingSend() > 0 and drainRounds < 2500
-        time.sleep(2)
-        drainRounds += 1
+// Ordinary owned loopback: typed vectors, UDP batch and async owned results.
+async func exerciseFastPath() as int
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto accepting = listener.acceptAsync()
+    auto client = await tcp.connectAsync(engine, listener.localAddress())
+    auto server = await accepting
+    array<string> parts = ["a\0", "你", "z"]
+    auto receiving = server.recvOwnedAsync(6)
+    assert client.sendVector(parts) == NetStatus.ok
+    auto first = await receiving
+    bytes message = first.toBytes()
+    while message.length < 6
+        auto rest = await server.recvOwnedAsync(6 - message.length)
+        assert rest.length > 0
+        message = message + rest.toBytes()
     end
-    require("udp_queue_state", sender.pendingSend() == 0 and sender.queuedPackets() >= 0 and sender.queuedBytes() >= 0)
-    UdpStats senderStats = sender.stats()
-    UdpStats receiverStats = receiver.stats()
-    require("udp_stats_sent", senderStats.sentPackets >= 6 and senderStats.sendErrors == 0)
-    require("udp_stats_received", receiverStats.receivedPackets >= 6 and receiverStats.receiveErrors == 0)
+    assert message == b"a\0\xe4\xbd\xa0z"
 
-    NetEngineStats runtimeStats = net.stats()
-    require("runtime_stats", runtimeStats.workers > 0 and runtimeStats.liveObjects > 0)
-
-    testAbandonedAccept()
-    testAbandonedUdpReceive()
-    println("stdlib net fast path ok")
+    auto receiver = udp.bind(engine, NetAddress.loopback())
+    assert await receiver.waitAsync(UdpWait.open)
+    auto sender = udp.connect(engine, receiver.localAddress())
+    assert await sender.waitAsync(UdpWait.open)
+    auto pending = receiver.recvAsync()
+    assert sender.sendVector(parts, 5) == NetStatus.ok
+    auto packet = await pending
+    assert packet.bytes() == b"a\0\xe4\xbd\xa0"
+    auto batchFuture = receiver.recvBatchAsync(8)
+    assert sender.send(b"") == NetStatus.ok
+    auto batch = await batchFuture
+    assert batch.count == 1
+    auto empty = batch.take(0)
+    assert empty != null and (empty as UdpPacket).length == 0
+    assert batch.take(0) == null
+    sender.close()
+    receiver.close()
+    client.close()
+    server.close()
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    assert first.length > 0 and packet.length == 5
     return 0
 end
-
-
-
-int exitCode = await run()
-assert exitCode == 0
+assert await exerciseFastPath() == 0
+println("stdlib net fast path ok")

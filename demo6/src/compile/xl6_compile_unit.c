@@ -1171,7 +1171,6 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
             REQUIRE(R(FILE_ASYNC));
     if (module->abi.futureAggregateAbi != XL6_IR_FUTURE_AGGREGATE_NONE) REQUIRE(R(FUTURE_AGGREGATE));
     if (module->abi.nativeFutureMapAbi != XL6_IR_NATIVE_FUTURE_MAP_NONE) REQUIRE(R(FUTURE_CALLBACK),R(FUTURE_PAYLOAD));
-    if (module->abi.networkServiceAbi != XL6_IR_MODULE_NETWORK_SERVICE_NONE) REQUIRE(R(NETWORK_SERVICE));
     if (module->asyncMachineCount) REQUIRE(R(CONTINUATION_FRAME),R(FUTURE_PAYLOAD));
     if (module->generatorMachineCount) REQUIRE(R(GENERATOR));
     if (module->classLayoutCount) REQUIRE(R(CODE_FINALIZER));

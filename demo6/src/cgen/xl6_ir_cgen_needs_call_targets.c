@@ -438,19 +438,6 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
                         XL6_IR_RUNTIME_BRIDGE_FILE ) {
             needs->needsFileBridgeRuntime = 1;
             needs->needsErrorRuntime = 1;
-        } else if (xl6IrRuntimeNetDatagramBridgeKindIs(target->runtimeBridge)) {
-            needs->needsNetDatagramRuntime = 1;
-        } else if ( target->runtimeBridge >=
-                        XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL &&
-                    target->runtimeBridge <=
-                        XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER ) {
-            needs->needsNetTcpRuntime = 1;
-            needs->needsXValueRuntime = 1;
-            needs->needsXValueObjectRuntime = 1;
-            needs->needsXValueClassRuntime = 1;
-            needs->needsXValueTypeIdentityRuntime = 1;
-            needs->needsFutureRuntime = 1;
-            needs->needsErrorRuntime = 1;
         } else if ( target->runtimeBridge ==
                         XL6_IR_RUNTIME_BRIDGE_HTTP1 ) {
             needs->needsHttp1Runtime = 1;

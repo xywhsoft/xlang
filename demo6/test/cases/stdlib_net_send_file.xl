@@ -1,107 +1,26 @@
-func require(string name, bool condition)
-    if not condition then
-        println("FAILED: " + name)
-        assert false
-    end
+// File send keeps an independent native cursor and accepts exact byte ranges.
+auto engine = NetEngine(NetEngineOptions().withWorkers(1))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto sender = TcpStream(engine, listener.localAddress())
+auto receiver = listener.accept(5000)
+assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+auto input = File("", "xlang-net-send-file-", ".bin")
+assert input.write(b"prefix:a\0b:suffix") == 17
+uint64 position = input.pos
+assert sender.sendFile(input, uint64(7), 3) == NetStatus.ok
+assert input.pos == position
+assert input.close()
+bytes result = b""
+while result.length < 3
+    bytes part = receiver.recv(3 - result.length, 5000)
+    assert part.length > 0
+    result = result + part
 end
-
-
-
-func recvExact(TcpStream stream, int size, int timeoutMs = 8000) as string
-    string result = ""
-
-    while string.len(result) < size
-        string chunk = stream.recv(timeoutMs, size - string.len(result))
-        if chunk == "" then
-            break
-        end
-        result = result + chunk
-    end
-    return result
-end
-
-
-
-async func recvExactBytes(TcpStream stream, int size) as Buffer
-    Buffer result = Buffer()
-
-    result.reserve(size)
-    while result.len() < size
-        int remaining = size - result.len()
-        if remaining > 65536 then
-            remaining = 65536
-        end
-        NetBytes owned = await stream.recvBytesAsync(remaining)
-        if owned.len() == 0 then
-            break
-        end
-        result.append(owned.buffer())
-    end
-    return result
-end
-
-
-
-func sendOpenedRange(TcpStream stream, string path, int offset, int size) as bool
-    File opened = file.open(path)
-
-    require("file_handle", opened.nativeHandle() != null)
-    return stream.sendFileHandle(opened.nativeHandle(), offset, size)
-end
-
-
-
-async func run() as int
-    string fixture = "build/test/stdlib_net_send_file.bin"
-    string payload = "0123456789abcdefghijklmnopqrstuvwxyz" + string.repeat("0123456789abcdef", 70000)
-
-    file.delete(fixture)
-    require("fixture_write", file.writeText(fixture, payload))
-
-    TcpServer server = tcp.listen(0, "127.0.0.1", 32)
-    int port = int(server.port())
-    require("listen", port > 0)
-
-    future<TcpStream> accepted = server.acceptAsync()
-    TcpStream client = tcp.connect("127.0.0.1", port, 8000)
-    TcpStream peer = await accepted
-    require("connect", client.nativeHandle() != null and peer.nativeHandle() != null)
-
-    require("path_range_result", client.sendFileResult(fixture, 10, 8) == net.resultOk)
-    require("path_range_drain", client.waitDrain(8000))
-    require("path_range_data", recvExact(peer, 8) == "abcdefgh")
-
-    require("handle_range", sendOpenedRange(client, fixture, 18, 8))
-    require("handle_range_drain", client.waitDrain(8000))
-    require("handle_range_data", recvExact(peer, 8) == "ijklmnop")
-
-    require("path_remainder", client.sendFile(fixture, 34, 2, 8000))
-    require("path_remainder_drain", client.waitDrain(8000))
-    require("path_remainder_data", recvExact(peer, 2) == "yz")
-
-    require("zero_range", client.sendFileResult(fixture, 0, 0) == net.resultOk)
-    require("negative_offset", client.sendFileResult(fixture, -1, 1) == net.resultError)
-    require("past_end", client.sendFileResult(fixture, string.len(payload) + 1, 1) == net.resultError)
-
-    require("large_result_backpressure", client.sendFileResult(fixture) == net.resultAgain)
-    future<Buffer> largeReceived = recvExactBytes(peer, string.len(payload))
-    require("large_send", client.sendFile(fixture, 0, -1, 8000))
-    require("large_drain", client.waitDrain(8000))
-    Buffer large = await largeReceived
-    require("large_size", large.len() == string.len(payload))
-    require("large_prefix", large.byteAt(0) == 48 and large.byteAt(35) == 122)
-    require("large_suffix", large.byteAt(large.len() - 1) == 102)
-
-    client.close()
-    peer.close()
-    server.close()
-    file.delete(fixture)
-
-    println("stdlib net send file ok")
-    return 0
-end
-
-
-
-int exitCode = await run()
-assert exitCode == 0
+assert result == b"a\0b"
+sender.abort()
+receiver.abort()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("stdlib net send file ok")

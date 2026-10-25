@@ -51,9 +51,18 @@ def main():
         Scope=__doc__,Inputs=inputs,Rows=rows,Products=products,Catalog=[],ThreadLanguage=None,
         WaitQueueComplete=False,Full53Acceptance=False,ShippingArtifact=False,StandaloneImports=[])
     def run(name,command):
-        command=list(map(str,command)); result=subprocess.run(command,cwd=root,env=env,capture_output=True,timeout=300)
+        command=list(map(str,command)); actual=command
+        if windows and command[0]==cc:
+            # External immutable cohorts have over a thousand long object
+            # paths. Keep the real argument bytes without CreateProcess's
+            # command-line limit; GCC owns response-file parsing, not a shell.
+            response=out/(name+'.rsp')
+            response.write_text('\n'.join('"'+arg.replace('\\','/').replace('"','\\"')+'"'
+                                          for arg in command[1:])+'\n',encoding='utf-8')
+            product(response); actual=[cc,'@'+str(response)]
+        result=subprocess.run(actual,cwd=root,env=env,capture_output=True,timeout=300)
         log=out/(name+'.log'); log.write_bytes(result.stdout+result.stderr)
-        rows.append(dict(Name=name,Command=command,Exit=result.returncode,Log=str(log),LogSha256=sha(log)))
+        rows.append(dict(Name=name,Command=command,ActualCommand=actual,Exit=result.returncode,Log=str(log),LogSha256=sha(log)))
         assert result.returncode==0,(name,log.read_bytes()[-6000:])
         print(name+' verified',flush=True)
         return log.read_text(encoding='utf-8',errors='replace')

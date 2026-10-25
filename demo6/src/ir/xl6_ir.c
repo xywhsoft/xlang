@@ -20906,15 +20906,6 @@ XL6_IrNativeFutureMapAbi xl6IrModuleNativeFutureMapRequirement(const XL6_IrModul
         if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_FS_ASYNC_OPEN &&
             target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_FS_ASYNC_TREE_ENSURE)
             return XL6_IR_NATIVE_FUTURE_MAP_RESIDENT_EXCLUSIVE_V1;
-        switch (target->runtimeBridge) {
-        case XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL:
-        case XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM:
-        case XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER:
-        case XL6_IR_RUNTIME_BRIDGE_NET_RESOLVE_ASYNC:
-        case XL6_IR_RUNTIME_BRIDGE_NET_UDP_RECV_ASYNC:
-            return XL6_IR_NATIVE_FUTURE_MAP_RESIDENT_EXCLUSIVE_V1;
-        default: break;
-        }
     }
     return XL6_IR_NATIVE_FUTURE_MAP_NONE;
 }
@@ -20922,27 +20913,12 @@ XL6_IrNativeFutureMapAbi xl6IrModuleNativeFutureMapRequirement(const XL6_IrModul
 XL6_IrModuleRetirementAbi xl6IrModuleRetirementRequirement(const XL6_IrModule* module)
 {
     if(!module || module->abi.codeOwnerAbi!=XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT)return XL6_IR_MODULE_RETIREMENT_NONE;
-    return module->abi.networkServiceAbi!=XL6_IR_MODULE_NETWORK_SERVICE_NONE ||
-        module->abi.executorOwnershipAbi!=XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE ||
+    return module->abi.executorOwnershipAbi!=XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE ||
         module->abi.deadlineOwnershipAbi!=XL6_IR_MODULE_DEADLINE_OWNERSHIP_NONE ||
         module->abi.taskPoolOwnershipAbi!=XL6_IR_MODULE_TASK_POOL_OWNERSHIP_NONE
         || module->abi.executionOwnershipAbi!=XL6_IR_MODULE_EXECUTION_OWNERSHIP_NONE
         ? XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4 : XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2;
 }
-XL6_IrModuleNetworkServiceAbi xl6IrModuleNetworkServiceRequirement(const XL6_IrModule* module)
-{
-    if (!module || (module->callTargetCount && !module->callTargets)) return (XL6_IrModuleNetworkServiceAbi)-1;
-    for (size_t i=0;i<module->callTargetCount;++i) {
-        const XL6_IrCallTarget* target=&module->callTargets[i];
-        if (target->reachability==XL6_IR_REACHABILITY_UNREACHABLE) continue;
-        if (xl6IrRuntimeNetDatagramBridgeKindIs(target->runtimeBridge) ||
-            (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL &&
-             target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER))
-            return XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1;
-    }
-    return XL6_IR_MODULE_NETWORK_SERVICE_NONE;
-}
-
 static int xl6IrModuleOwnershipSymbolReserved(const char* name)
 {
     return name != NULL && (!strcmp(name, "xl_script_bind_code_owner") ||
@@ -20977,11 +20953,6 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
     const XL6_IrFunction* function;
     const XL6_IrInstruction* begin;
     size_t i, owners = 0, initializers = 0, finalizers = 0, cursor, end;
-    if (module->abi.networkServiceAbi != (module->stage == XL6_IR_STAGE_TYPED
-            ? XL6_IR_MODULE_NETWORK_SERVICE_NONE : xl6IrModuleNetworkServiceRequirement(module)) ||
-        (module->abi.networkServiceAbi != XL6_IR_MODULE_NETWORK_SERVICE_NONE &&
-         module->abi.networkServiceAbi != XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1))
-        return xl6IrDiag(diags, NULL, "XLIR module network service ABI is unresolved");
     /* Recompute from lowered lifecycle functions, not a cached capability or
      * a source name. Typed IR and lifecycle-free fragments have no binding. */
     if (module->abi.nativeFutureMapAbi != (module->stage == XL6_IR_STAGE_TYPED
@@ -27852,7 +27823,6 @@ int xl6IrRefreshReachability(XL6_IrModule* module)
             module->functions[module->abi.finalizerFunction-1].errorAbi =
                 xl6IrModuleHasFinalizerWork(module) ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
         module->abi.nativeFutureMapAbi=xl6IrModuleNativeFutureMapRequirement(module);
-        module->abi.networkServiceAbi=xl6IrModuleNetworkServiceRequirement(module);
         if (module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT)
             module->abi.retirementAbi=xl6IrModuleRetirementRequirement(module);
     }
@@ -31782,183 +31752,26 @@ int xl6IrRuntimeFileBridgeTargetMatches(
     return 0;
 }
 
-XL6_IrRuntimeBridgeKind xl6IrRuntimeNetTcpBridgeKind(const char* name)
-{
-    if ( name == NULL ) return XL6_IR_RUNTIME_BRIDGE_NONE;
-    if ( strcmp(name, "xl6_xrt_tcp_connect") == 0 ||
-         strcmp(name, "xl6_xrt_tcp_connect_async") == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL;
-    if ( strcmp(name, "xl6_xrt_tcp_listen") == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_NET_TCP_LISTEN;
-    if ( strncmp(name, "xl6_xrt_tcp_stream_",
-             sizeof("xl6_xrt_tcp_stream_") - 1) == 0 ||
-         strncmp(name, "xl6_xrt_net_stream_",
-             sizeof("xl6_xrt_net_stream_") - 1) == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM;
-    if ( strncmp(name, "xl6_xrt_tcp_listener_",
-             sizeof("xl6_xrt_tcp_listener_") - 1) == 0 ||
-         strncmp(name, "xl6_xrt_tcp_accept",
-             sizeof("xl6_xrt_tcp_accept") - 1) == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER;
-    return XL6_IR_RUNTIME_BRIDGE_NONE;
-}
-
 #include "src/ir/xl6_ir_random_bridge.c"
 
 XL6_IrRuntimeBridgeOperation xl6IrRuntimeBridgeOperationForName(
     const char* name)
 {
-    if ( name == NULL ) return XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
-    {
-        const XL6_IrRandomBridgeContract* contract = xl6IrRandomBridgeContract(name);
-        if (contract != NULL) return contract->operation;
-    }
-    if ( strcmp(name, "xl6_xrt_tcp_stream_send_file_result") == 0 ||
-         strcmp(name, "xl6_xrt_tcp_stream_send_file_handle_result") == 0 ||
-         strcmp(name, "xl6_xrt_tcp_stream_send_file") == 0 ||
-         strcmp(name, "xl6_xrt_tcp_stream_send_file_handle") == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_FILE_TRANSFER;
-    if ( strcmp(name, "xl6_xrt_tcp_stream_recv_owned_async") == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_RECV_OWNED_BYTES_ASYNC;
-    return XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
+    const XL6_IrRandomBridgeContract* contract =
+        name != NULL ? xl6IrRandomBridgeContract(name) : NULL;
+    return contract != NULL ? contract->operation : XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
 }
 
 int xl6IrRuntimeBridgeOperationTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target)
 {
-    XL6_IrRuntimeBridgeOperation expected;
-    const XL6_IrType* receiver;
-    const XL6_IrType* future;
-    const XL6_IrType* payload;
-    if ( module == NULL || target == NULL ) return 0;
-    expected = xl6IrRuntimeBridgeOperationForName(target->cName);
-    if ( target->runtimeBridgeOperation != expected ) return 0;
-    if ( expected == XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE ) return 1;
-    if (expected >= XL6_IR_RUNTIME_BRIDGE_OPERATION_RNG_CREATE) {
-        const XL6_IrRandomBridgeContract* contract = xl6IrRandomBridgeContract(target->cName);
-        return contract != NULL && xl6IrRandomBridgeTargetMatches(module, target, contract);
-    }
-    if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
-         target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-         target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
-         target->resultPhysicalFieldDeclaration != XL6_IR_NODE_INVALID ||
-         target->resultPhysicalDestroySymbol != 0 ||
-         !xl6IrBufferRuntimeBridgeParameterMatches(
-             module, target, 0, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR,
-             XL6_IR_PARAMETER_ABI_BORROW,
-             XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW) ||
-         target->parameterPhysicalFieldDeclarations == NULL ||
-         target->parameterPhysicalFieldDeclarations[0] ==
-             XL6_IR_NODE_INVALID ) return 0;
-    receiver = xl6IrTypeGet(&module->types, target->parameterTypes[0]);
-    if ( receiver == NULL || receiver->kind != XL6_IR_TYPE_CLASS ) return 0;
-    if ( expected == XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_FILE_TRANSFER ) {
-        const XL6_IrType* result = xl6IrTypeGet(
-            &module->types, target->returnType);
-        int handle = strcmp(target->cName,
-                "xl6_xrt_tcp_stream_send_file_handle_result") == 0 ||
-            strcmp(target->cName, "xl6_xrt_tcp_stream_send_file_handle") == 0;
-        int resultCode = strcmp(target->cName,
-                "xl6_xrt_tcp_stream_send_file_result") == 0 ||
-            strcmp(target->cName, "xl6_xrt_tcp_stream_send_file_handle_result") == 0;
-        size_t parameter;
-        if ( target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM ||
-             target->parameterCount != (resultCode ? 4u : 5u) ||
-             !xl6IrBufferRuntimeBridgeResultMatches(result,
-                 resultCode ? XL6_IR_C_ABI_I64 : XL6_IR_C_ABI_BOOL) ||
-             !xl6IrBufferRuntimeBridgeParameterMatches(
-                 module, target, 1,
-                 handle ? XL6_IR_C_ABI_RAW_POINTER : XL6_IR_C_ABI_MANAGED_STRING,
-                 handle ? XL6_IR_PARAMETER_ABI_VALUE : XL6_IR_PARAMETER_ABI_BORROW,
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ) return 0;
-        for ( parameter = 2; parameter < target->parameterCount; ++parameter )
-            if ( !xl6IrBufferRuntimeBridgeParameterMatches(
-                    module, target, parameter, XL6_IR_C_ABI_I64,
-                    XL6_IR_PARAMETER_ABI_VALUE,
-                    XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ) return 0;
-        return 1;
-    }
-    if ( target->parameterCount != 2 ||
-         !xl6IrBufferRuntimeBridgeParameterMatches(
-             module, target, 1, XL6_IR_C_ABI_C_SIZE,
-             XL6_IR_PARAMETER_ABI_VALUE,
-             XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ) return 0;
-    if ( expected ==
-             XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_RECV_OWNED_BYTES_ASYNC ) {
-        if ( target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM )
-            return 0;
-    } else {
-        return 0;
-    }
-    future = target->returnType == XL6_IR_TYPE_INVALID
-        ? NULL : xl6IrTypeGet(&module->types, target->returnType);
-    if ( future == NULL || future->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
-         future->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-         future->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
-         future->paramCount != 1 || future->params == NULL ) return 0;
-    payload = xl6IrTypeGet(&module->types, future->params[0]);
-    return payload != NULL && payload->kind == XL6_IR_TYPE_CLASS &&
-           payload->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-           payload->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-           payload->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL;
-}
-
-int xl6IrRuntimeNetTcpBridgeTargetMatches(
-    const XL6_IrModule* module, const XL6_IrCallTarget* target)
-{
-    XL6_IrRuntimeBridgeKind expected;
-    const XL6_IrType* result;
-    size_t parameter;
-    if ( module == NULL || target == NULL || target->cName == NULL ||
-         !xl6IrRuntimeBridgeOperationTargetMatches(module, target) ) return 0;
-    expected = xl6IrRuntimeNetTcpBridgeKind(target->cName);
-    if ( expected == XL6_IR_RUNTIME_BRIDGE_NONE ||
-         target->runtimeBridge != expected ||
-         target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
-         target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
-         (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
-          target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_NONE) ||
-         target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-         target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
-         target->resultPhysicalFieldDeclaration != XL6_IR_NODE_INVALID ||
-         target->resultPhysicalDestroySymbol != 0 ||
-         (target->parameterCount != 0 &&
-          (target->parameterTypes == NULL || target->parameterAbis == NULL ||
-           target->parameterPhysicalAbis == NULL ||
-           target->parameterConstraintAbis == NULL ||
-           target->parameterPhysicalFieldDeclarations == NULL)) ) return 0;
-    result = target->returnType == XL6_IR_TYPE_INVALID
-        ? NULL : xl6IrTypeGet(&module->types, target->returnType);
-    if ( target->returnType != XL6_IR_TYPE_INVALID && result == NULL ) return 0;
-    for ( parameter = 0; parameter < target->parameterCount; ++parameter ) {
-        const XL6_IrType* type = xl6IrTypeGet(
-            &module->types, target->parameterTypes[parameter]);
-        if ( type == NULL ||
-             target->parameterAbis[parameter] == XL6_IR_PARAMETER_ABI_INVALID ||
-             (target->parameterPhysicalAbis[parameter] !=
-                  XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT &&
-              target->parameterPhysicalAbis[parameter] !=
-                  XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW) ||
-             target->parameterConstraintAbis[parameter] !=
-                  XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
-             (target->parameterPhysicalAbis[parameter] ==
-                  XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW &&
-              (type->kind != XL6_IR_TYPE_CLASS ||
-               target->parameterPhysicalFieldDeclarations[parameter] ==
-                   XL6_IR_NODE_INVALID)) ) return 0;
-    }
-    if ( result != NULL &&
-         result->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ) {
-        const XL6_IrType* payload;
-        if ( result->paramCount != 1 || result->params == NULL ) return 0;
-        payload = xl6IrTypeGet(&module->types, result->params[0]);
-        if ( payload == NULL ||
-             (payload->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-              payload->cAbi != XL6_IR_C_ABI_MANAGED_STRING &&
-              payload->cAbi != XL6_IR_C_ABI_BOOL &&
-              payload->cAbi != XL6_IR_C_ABI_C_BOOL) ) return 0;
-    }
-    return 1;
+    const XL6_IrRandomBridgeContract* contract;
+    if (module == NULL || target == NULL) return 0;
+    contract = target->cName != NULL ? xl6IrRandomBridgeContract(target->cName) : NULL;
+    if (contract == NULL)
+        return target->runtimeBridgeOperation == XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
+    return target->runtimeBridgeOperation == contract->operation &&
+        xl6IrRandomBridgeTargetMatches(module, target, contract);
 }
 
 XL6_IrRuntimeBridgeKind xl6IrRuntimeWebSocketBridgeKind(const char* name)
@@ -32709,7 +32522,6 @@ int xl6IrRuntimeSerializationBridgeTargetMatches(
 #include "src/ir/xl6_ir_io_bridge.c"
 #include "src/ir/xl6_ir_log_bridge.c"
 #include "src/ir/xl6_ir_vfs_bridge.c"
-#include "src/ir/xl6_ir_net_datagram_bridge.c"
 #include "src/ir/xl6_ir_xlang_bridge.c"
 
 static int xl6IrRuntimeBridgeTargetMatches(
@@ -32760,9 +32572,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
          !(strcmp(target->cName, "xl6_xrt_file_open") == 0 &&
            target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) ) reserved = 1;
     if ( target->cName != NULL &&
-         xl6IrRuntimeNetTcpBridgeKind(target->cName) !=
-             XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
-    if ( target->cName != NULL &&
          xl6IrRuntimeWebSocketBridgeKind(target->cName) !=
              XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
     if ( target->cName != NULL &&
@@ -32779,7 +32588,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
              XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
     if (xl6IrRuntimeVfsBridgeKind(target->cName) != XL6_IR_RUNTIME_BRIDGE_NONE) reserved = 1;
     if (xl6IrRuntimeLogBridgeName(target->cName)) reserved = 1;
-    if (xl6IrRuntimeNetDatagramBridgeKind(target->cName) != XL6_IR_RUNTIME_BRIDGE_NONE) reserved = 1;
     if (xl6IrRuntimeXlangBridgeName(target->cName)) reserved = 1;
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ) return !reserved;
     if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_LOG)
@@ -32797,17 +32605,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
     if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_VFS_CREATE &&
         target->runtimeBridge < XL6_IR_RUNTIME_BRIDGE_FS_END)
         return xl6IrRuntimeVfsBridgeTargetMatches(module, target);
-    if (module->stage == XL6_IR_STAGE_LOWERED && target->reachability != XL6_IR_REACHABILITY_UNREACHABLE &&
-        target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM && target->parameterTypes != NULL) {
-        size_t p;
-        for (p = 0; p < target->parameterCount; ++p) {
-            const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[p]);
-            if (type != NULL && type->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
-                xl6IrRuntimeNetBufferField(module) == NULL) return 0;
-        }
-    }
-    if (xl6IrRuntimeNetDatagramBridgeKindIs(target->runtimeBridge))
-        return xl6IrRuntimeNetDatagramBridgeTargetMatches(module, target);
     /* Serialization factories report failures through the native error slot;
      * checked Writer methods use result carriers. The registry verifies both
      * physical forms, before the legacy scalar-bridge effect gate. */
@@ -32827,9 +32624,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
          (target->parameterCount != 0 && target->parameterAbis == NULL) ) return 0;
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_FILE )
         return xl6IrRuntimeFileBridgeTargetMatches(module, target);
-    if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL &&
-         target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER )
-        return xl6IrRuntimeNetTcpBridgeTargetMatches(module, target);
     if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_FRAME &&
          target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM_TLS )
         return xl6IrRuntimeWebSocketBridgeTargetMatches(module, target);
@@ -38759,8 +38553,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                   target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
                  ((target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ||
                    xl6IrRuntimeDirectBridgeErrorPhysicalAbi(target->cName) == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ||
-                   xl6IrRuntimeLogBridgeForeignScope(target->cName) ||
-                   xl6IrRuntimeNetDatagramBridgeKindIs(target->runtimeBridge))
+                   xl6IrRuntimeLogBridgeForeignScope(target->cName))
                     ? target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE
                     : xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(target->runtimeBridge)
                     ? target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER
@@ -48633,15 +48426,6 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_STRING_SLICE: return "string-slice";
     case XL6_IR_RUNTIME_BRIDGE_STRING_REPLACE: return "string-replace";
     case XL6_IR_RUNTIME_BRIDGE_STRING_REPEAT: return "string-repeat";
-    case XL6_IR_RUNTIME_BRIDGE_NET_ADDRESS_LIST: return "net-address-list";
-    case XL6_IR_RUNTIME_BRIDGE_NET_RESOLVE_ASYNC: return "net-resolve-async";
-    case XL6_IR_RUNTIME_BRIDGE_NET_UDP_SOCKET: return "net-udp-socket";
-    case XL6_IR_RUNTIME_BRIDGE_NET_UDP_PACKET: return "net-udp-packet";
-    case XL6_IR_RUNTIME_BRIDGE_NET_UDP_BATCH: return "net-udp-batch";
-    case XL6_IR_RUNTIME_BRIDGE_NET_UDP_RECV_ASYNC: return "net-udp-recv-async";
-    case XL6_IR_RUNTIME_BRIDGE_NET_ENGINE_STATS: return "net-engine-stats";
-    case XL6_IR_RUNTIME_BRIDGE_NET_RESOLVER_STATS: return "net-resolver-stats";
-    case XL6_IR_RUNTIME_BRIDGE_NET_UDP_STATS: return "net-udp-stats";
     case XL6_IR_RUNTIME_BRIDGE_XLANG: return "xlang";
     case XL6_IR_RUNTIME_BRIDGE_STRING_STARTS_WITH: return "string-starts-with";
     case XL6_IR_RUNTIME_BRIDGE_STRING_ENDS_WITH: return "string-ends-with";
@@ -48652,10 +48436,6 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_CRYPTO_TEXT_HASH: return "crypto-text-hash";
     case XL6_IR_RUNTIME_BRIDGE_PATH_JOIN: return "path-join";
     case XL6_IR_RUNTIME_BRIDGE_FILE: return "file";
-    case XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL: return "net-tcp-dial";
-    case XL6_IR_RUNTIME_BRIDGE_NET_TCP_LISTEN: return "net-tcp-listen";
-    case XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM: return "net-tcp-stream";
-    case XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER: return "net-tcp-server";
     case XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_FRAME: return "websocket-frame";
     case XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_HANDSHAKE: return "websocket-handshake";
     case XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_UPGRADE: return "websocket-upgrade";
@@ -48679,10 +48459,6 @@ static const char* xl6IrRuntimeBridgeOperationName(
             return xl6IrRandomBridgeContracts[i].name;
     switch ( operation ) {
     case XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE: return "none";
-    case XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_FILE_TRANSFER:
-        return "net-tcp-file-transfer";
-    case XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_RECV_OWNED_BYTES_ASYNC:
-        return "net-tcp-recv-owned-bytes-async";
     default: return "invalid";
     }
 }
@@ -51439,7 +51215,6 @@ void xl6IrDumpModuleText(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPrintf(out, "module-task-pool-ownership: %d\n", (int)module->abi.taskPoolOwnershipAbi);
     xl6OutputPrintf(out, "future-aggregate: %d\n", (int)module->abi.futureAggregateAbi);
     xl6OutputPrintf(out, "native-future-map: %d\n", (int)module->abi.nativeFutureMapAbi);
-    xl6OutputPrintf(out, "module-network-service: %d\n", (int)module->abi.networkServiceAbi);
     { size_t i; for (i = 0; i < module->asyncMachineCount; ++i) {
         xl6OutputPrintf(out, "async-execution %lu: %d\n", (unsigned long)i, (int)module->asyncMachines[i].executionAbi);
         xl6OutputPrintf(out, "async-ownership %lu: %d\n", (unsigned long)i, (int)module->asyncMachines[i].ownershipAbi); } }
@@ -51528,7 +51303,6 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPrintf(out, "  \"moduleTaskPoolOwnershipAbi\": %d,\n", (int)module->abi.taskPoolOwnershipAbi);
     xl6OutputPrintf(out, "  \"futureAggregateAbi\": %d,\n", (int)module->abi.futureAggregateAbi);
     xl6OutputPrintf(out, "  \"nativeFutureMapAbi\": %d,\n", (int)module->abi.nativeFutureMapAbi);
-    xl6OutputPrintf(out, "  \"moduleNetworkServiceAbi\": %d,\n", (int)module->abi.networkServiceAbi);
     xl6OutputPrintf(out, "  \"closureStorageAbi\": %d,\n", (int)module->abi.closureStorageAbi);
     xl6OutputPrintf(out, "  \"boundMethodStorageAbi\": %d,\n", (int)module->abi.boundMethodStorageAbi);
     xl6OutputPrintf(out, "  \"retirementAbi\": %d,\n", (int)module->abi.retirementAbi);

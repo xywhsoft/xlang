@@ -15,10 +15,11 @@ $block=[scriptblock]::Create($condition.Extent.Text)
 $allowed=@('xl6SemCreateV1','xl6SemCreateDefaultV1','xl6SemWaitV1','xl6SemTryWaitV1',
     'xl6SemWaitTimeoutV1','xl6SemPostV1','xl6SemPostMultipleV1','xl6CgenEmitBufferRuntime')
 $rejected=@('xl6SemCheckModule','xl6SemInferType','xl6SemUnknownFrontendOperation',
-    'XL6_AstNode *','XL6_HirModule','xl6CgenUnknownLegacyOperation')
+    'XL6_AstNode *','XL6_HirModule','xl6CgenUnknownLegacyOperation',
+    'xl6CgenEmitNetTcpComponent','xl6CgenEmitNetDatagramComponent','xl6CgenEmitTlsRuntime')
 foreach($text in $allowed+$rejected) {
     $cEmitter=$text; $failed=$false
     try { & $block } catch { $failed=$true }
     if ($failed -ne ($text -in $rejected)) { throw "Cgen isolation guard misclassified: $text" }
 }
-Write-Output 'Cgen isolation guard: 8 native calls accepted, 6 frontend/legacy shapes rejected'
+Write-Output 'Cgen isolation guard: 8 native calls accepted, 9 frontend/legacy shapes rejected'

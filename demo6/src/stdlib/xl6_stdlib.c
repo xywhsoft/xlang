@@ -1886,7 +1886,11 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetInterfaceClass = xl6StdlibNeedsNetInterfaceClass(root, used);
     needsNetBytesClass = xl6StdlibNodeUsesTypeName(root, "NetBytes") || xl6StdlibNodeUsesMemberName(root,"sendRef") ||
         xl6StdlibNodeUsesMemberName(root,"sendRefs");
-    needsNetBytesClass=needsNetBytesClass||xl6StdlibNodeUsesMemberName(root,"appendRef");
+    /* Framer declarations include appendRef(NetBytes) even when that member
+     * is not called. Complete their type closure before semantic checking;
+     * unused native implementations remain subject to ordinary pruning. */
+    needsNetBytesClass=needsNetBytesClass||needsNetLineFramer||needsNetLengthFramer||
+        xl6StdlibNodeUsesMemberName(root,"appendRef");
     needsNetBytesClass = needsNetBytesClass||xl6StdlibNodeUsesMemberName(root,"recvOwned")||
         xl6StdlibNodeUsesMemberName(root,"recvOwnedCancel")||xl6StdlibNodeUsesMemberName(root,"recvOwnedUntil")||
         xl6StdlibNodeUsesMemberName(root,"recvOwnedUntilCancel")||xl6StdlibNodeUsesMemberName(root,"recvOwnedAsync")||

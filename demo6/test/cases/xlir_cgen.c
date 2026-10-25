@@ -12,114 +12,24 @@ static XL6_AstNode* testType(const char* name, XL6_TypeId id, const char* abi)
 
 static int testRuntimeBridgeOperations(void)
 {
-    XL6_IrModule module;
-    XL6_IrCallTarget target;
-    XL6_IrType types[7];
-    XL6_IrTypeId payload = 1;
-    XL6_IrTypeId parameters[5] = {1, 5, 2, 2, 2};
-    XL6_IrParameterAbi ownership[5] = {
-        XL6_IR_PARAMETER_ABI_BORROW, XL6_IR_PARAMETER_ABI_BORROW,
-        XL6_IR_PARAMETER_ABI_VALUE, XL6_IR_PARAMETER_ABI_VALUE,
-        XL6_IR_PARAMETER_ABI_VALUE
+    const char* retired[] = {
+        "xl6_xrt_tcp_connect", "xl6_xrt_tcp_connect_async",
+        "xl6_xrt_tcp_stream_send_file_result", "xl6_xrt_tcp_stream_send_file_handle_result",
+        "xl6_xrt_tcp_stream_send_file", "xl6_xrt_tcp_stream_send_file_handle",
+        "xl6_xrt_tcp_stream_recv_owned_async", "xl6_xrt_net_runtime_stats",
+        "xl6_xrt_tcp_stream_user_hook"
     };
-    XL6_IrCallParameterPhysicalAbi physical[5] = {
-        XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW,
-        XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT,
-        XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT,
-        XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT,
-        XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT
-    };
-    XL6_IrCallParameterConstraintAbi constraints[5] = {0};
-    XL6_IrNodeId fields[5] = {1, 0, 0, 0, 0};
-    char* fileNames[] = {
-        "xl6_xrt_tcp_stream_send_file_result",
-        "xl6_xrt_tcp_stream_send_file_handle_result",
-        "xl6_xrt_tcp_stream_send_file",
-        "xl6_xrt_tcp_stream_send_file_handle"
-    };
-    char* receiveNames[] = {
-        "xl6_xrt_tcp_stream_recv_owned_async"
-    };
-    size_t i;
-    memset(&module, 0, sizeof(module));
-    memset(&target, 0, sizeof(target));
-    memset(types, 0, sizeof(types));
-    module.types.items = types;
-    module.types.count = sizeof(types) / sizeof(types[0]);
-    types[0].kind = XL6_IR_TYPE_CLASS;
-    types[0].cAbi = XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
-    types[0].ownershipAbi = XL6_IR_OWNERSHIP_ABI_MANAGED;
-    types[0].nullAbi = XL6_IR_NULL_ABI_XVALUE_SENTINEL;
-    types[1].cAbi = XL6_IR_C_ABI_I64;
-    types[2].cAbi = XL6_IR_C_ABI_BOOL;
-    types[3].cAbi = XL6_IR_C_ABI_RAW_POINTER;
-    types[3].nullAbi = XL6_IR_NULL_ABI_POINTER_SENTINEL;
-    types[4].cAbi = XL6_IR_C_ABI_MANAGED_STRING;
-    types[4].ownershipAbi = XL6_IR_OWNERSHIP_ABI_MANAGED;
-    types[4].nullAbi = XL6_IR_NULL_ABI_POINTER_SENTINEL;
-    types[5].cAbi = XL6_IR_C_ABI_C_SIZE;
-    for ( i = 1; i < 6; ++i )
-        if ( i != 4 ) types[i].ownershipAbi = XL6_IR_OWNERSHIP_ABI_TRIVIAL;
-    types[6].cAbi = XL6_IR_C_ABI_RUNTIME_FUTURE_PTR;
-    types[6].ownershipAbi = XL6_IR_OWNERSHIP_ABI_MANAGED;
-    types[6].nullAbi = XL6_IR_NULL_ABI_POINTER_SENTINEL;
-    types[6].params = &payload;
-    types[6].paramCount = 1;
-    target.kind = XL6_IR_CALL_TARGET_EXTERN_C;
-    target.errorAbi = XL6_IR_ERROR_ABI_NO_RAISE;
-    target.errorPhysicalAbi = XL6_IR_CALL_ERROR_PHYSICAL_NONE;
-    target.resultPhysicalAbi = XL6_IR_CALL_RESULT_PHYSICAL_DIRECT;
-    target.parameterTypes = parameters;
-    target.parameterAbis = ownership;
-    target.parameterPhysicalAbis = physical;
-    target.parameterConstraintAbis = constraints;
-    target.parameterPhysicalFieldDeclarations = fields;
-    target.runtimeBridge = XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM;
-    for ( i = 0; i < sizeof(fileNames) / sizeof(fileNames[0]); ++i ) {
-        XL6_IrTypeId savedParameter;
-        target.cName = fileNames[i];
+    XL6_IrModule module = {0};
+    XL6_IrCallTarget target = {0};
+    /* A former private spelling cannot confer a component or an operation
+     * on an ordinary C declaration. Registered RNG contracts remain exact. */
+    for (size_t i = 0; i < sizeof(retired) / sizeof(*retired); ++i) {
+        target.cName = (char*)retired[i];
         target.runtimeBridgeOperation = xl6IrRuntimeBridgeOperationForName(target.cName);
-        target.parameterCount = i < 2 ? 4 : 5;
-        target.returnType = i < 2 ? 2 : 3;
-        parameters[1] = i % 2 != 0 ? 4 : 5;
-        ownership[1] = i % 2 != 0 ? XL6_IR_PARAMETER_ABI_VALUE : XL6_IR_PARAMETER_ABI_BORROW;
-        if ( !xl6IrRuntimeNetTcpBridgeTargetMatches(&module, &target) ) return 0;
-        --target.parameterCount;
-        if ( xl6IrRuntimeNetTcpBridgeTargetMatches(&module, &target) ) return 0;
-        ++target.parameterCount;
-        savedParameter = parameters[1];
-        parameters[1] = 2;
-        if ( xl6IrRuntimeNetTcpBridgeTargetMatches(&module, &target) ) return 0;
-        parameters[1] = savedParameter;
-        target.returnType = i < 2 ? 3 : 2;
-        if ( xl6IrRuntimeNetTcpBridgeTargetMatches(&module, &target) ) return 0;
-        target.returnType = i < 2 ? 2 : 3;
-        target.runtimeBridgeOperation = XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
-        if ( xl6IrRuntimeNetTcpBridgeTargetMatches(&module, &target) ) return 0;
-    }
-    for ( i = 0; i < sizeof(receiveNames) / sizeof(receiveNames[0]); ++i ) {
-        target.cName = receiveNames[i];
-        target.runtimeBridge = XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM;
-        target.runtimeBridgeOperation = xl6IrRuntimeBridgeOperationForName(target.cName);
-        target.parameterCount = 2;
-        target.returnType = 7;
-        parameters[1] = 6;
-        ownership[1] = XL6_IR_PARAMETER_ABI_VALUE;
-        if ( !xl6IrRuntimeBridgeOperationTargetMatches(&module, &target) ) return 0;
-        payload = 2;
-        if ( xl6IrRuntimeBridgeOperationTargetMatches(&module, &target) ) return 0;
-        payload = 1;
-        parameters[1] = 2;
-        if ( xl6IrRuntimeBridgeOperationTargetMatches(&module, &target) ) return 0;
-        parameters[1] = 6;
-        physical[0] = XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;
-        if ( xl6IrRuntimeBridgeOperationTargetMatches(&module, &target) ) return 0;
-        physical[0] = XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW;
-        ownership[0] = XL6_IR_PARAMETER_ABI_VALUE;
-        if ( xl6IrRuntimeBridgeOperationTargetMatches(&module, &target) ) return 0;
-        ownership[0] = XL6_IR_PARAMETER_ABI_BORROW;
-        target.runtimeBridge = XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER;
-        if ( xl6IrRuntimeBridgeOperationTargetMatches(&module, &target) ) return 0;
+        if (target.runtimeBridgeOperation != XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE ||
+            !xl6IrRuntimeBridgeOperationTargetMatches(&module, &target)) return 0;
+        target.runtimeBridgeOperation = (XL6_IrRuntimeBridgeOperation)-1;
+        if (xl6IrRuntimeBridgeOperationTargetMatches(&module, &target)) return 0;
     }
     return 1;
 }
@@ -735,7 +645,7 @@ int main(void)
     if ( ok ) {
         XL6_IrRuntimeBridgeOperation saved = ir.callTargets[0].runtimeBridgeOperation;
         ir.callTargets[0].runtimeBridgeOperation =
-            XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_FILE_TRANSFER;
+            XL6_IR_RUNTIME_BRIDGE_OPERATION_RNG_CREATE;
         ok = !xl6IrVerifyModule(&ir, NULL);
         ir.callTargets[0].runtimeBridgeOperation = saved;
         ok = ok && xl6IrVerifyModule(&ir, NULL);

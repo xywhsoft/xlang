@@ -40,7 +40,6 @@ static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
          needs->needsXValueDynamicFieldRuntime ||
          needs->needsXValueUnionRuntime ||
          needs->needsCollectionAlgebraRuntime ||
-         needs->needsNetTcpRuntime || needs->needsNetDatagramRuntime ||
          needs->dirBridgeOperations != 0 ||
          needs->needsStringRepeatBridgeRuntime || needs->needsStringSplitBridgeRuntime || needs->needsStringSplitLinesRuntime ||
          needs->needsStringJoinBridgeRuntime ||

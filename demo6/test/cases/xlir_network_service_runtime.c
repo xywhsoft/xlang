@@ -96,7 +96,15 @@ static void worker(void)
     State s={0};assert(api->Initialize(&s.services));s.key=xrtThreadKeyCreate(tail);assert(s.key);
     xnetresolveop* op=xrtNetResolverResolve(s.services.resolver,"127.0.0.1",XNET_FAMILY_IPV4,resolved,&s);assert(op);
     wait_for(&s.entered);xnetresolver* resolver=s.services.resolver;rejected_init(&s.services);
-    size_t edges=0;assert(!trace_services(&s.services,true,&edges)&&edges>=1);
+    /* Another worker may briefly own the mutation gate. Retry admission, not
+     * the safety verdict: once a real root is visited, active callback state
+     * must still refuse an ownership snapshot. */
+    size_t edges=0; xdeadline inspection=xrtDeadlineAfter(5000000);
+    for (;;) {
+        bool readable=trace_services(&s.services,true,&edges);
+        if (edges) { assert(!readable); break; }
+        assert(!xrtDeadlineExpired(inspection)); xrtThreadYield();
+    }
     for(unsigned i=0;i<64;++i)assert(api->Retire(&s.services,false)==XL6_MODULE_RETIRE_BUSY && s.services.resolver==resolver);
     xrtAtomic32Store(&s.release,1,XMEMORY_RELEASE);wait_for(&s.tailEntered);
     for(unsigned i=0;i<64;++i)assert(api->Retire(&s.services,false)==XL6_MODULE_RETIRE_BUSY && s.services.resolver==resolver);

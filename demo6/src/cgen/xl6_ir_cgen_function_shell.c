@@ -116,13 +116,7 @@ static void xl6IrCgenEmitRetireSteps(XL6_Output* out, const XL6_IrModule* module
     if(module->abi.executionOwnershipAbi==XL6_IR_MODULE_EXECUTION_OWNERSHIP_RESIDENT_SOURCE_V1){
         xl6OutputPuts("    retired = xlir_module_initialized == 0\n"
             "        ? xl6ExecutionModuleRetireV1(&xlir_execution_source, wait) : XL6_MODULE_RETIRE_BUSY;\n",out);
-        if(module->abi.networkServiceAbi!=XL6_IR_MODULE_NETWORK_SERVICE_NONE)
-            xl6OutputPuts("    if (retired == XL6_MODULE_RETIRE_FAILED) xl6ErrorScopeCaptureFailure(&cleanup);\n"
-                "    if (xlir_module_initialized == 0 && xlir_execution_source == NULL)\n"
-                "        retired = xlir_net_runtime_retire(wait);\n",out);
-    }else xl6OutputPuts(module->abi.networkServiceAbi!=XL6_IR_MODULE_NETWORK_SERVICE_NONE
-        ? "    retired = xlir_module_initialized == 0 ? xlir_net_runtime_retire(wait) : XL6_MODULE_RETIRE_BUSY;\n"
-        : "    retired = xlir_module_initialized == 0 ? XL6_MODULE_RETIRE_READY : XL6_MODULE_RETIRE_BUSY;\n",out);
+    }else xl6OutputPuts("    retired = xlir_module_initialized == 0 ? XL6_MODULE_RETIRE_READY : XL6_MODULE_RETIRE_BUSY;\n",out);
     xl6OutputPuts(
         "    if (retired == XL6_MODULE_RETIRE_FAILED) xl6ErrorScopeCaptureFailure(&cleanup);\n"
         "    outcome = xl6ErrorScopeEnd(&cleanup); xrtSetErrorTake(outcome.error);\n"
@@ -141,7 +135,7 @@ static void xl6IrCgenEmitRetireSteps(XL6_Output* out, const XL6_IrModule* module
 static int xl6IrCgenEmitHostBindings(
     XL6_Output* out, const XL6_IrModule* module,
     int emitScriptEntry, int emitMainWrapper,
-    int emitErrorKind, int unitNet, const XL6_IrCgenEntryContractV1* entry, XL6_DiagList* diags)
+    int emitErrorKind, const XL6_IrCgenEntryContractV1* entry, XL6_DiagList* diags)
 {
     if ( module->abi.entryKind == XL6_IR_MODULE_ENTRY_NONE &&
          !emitScriptEntry ) return 1;
@@ -149,9 +143,6 @@ static int xl6IrCgenEmitHostBindings(
          module->abi.entryKind != XL6_IR_MODULE_ENTRY_XLANG_MAIN )
         return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                              "XLIR C emitter host entry ABI is unresolved");
-    if (unitNet && module->abi.retirementAbi != XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4)
-        return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
-            "XLIR network service requires explicit retryable retirement ABI");
     xl6OutputPuts(
         "#ifndef XLIR_XRT_DECLARATIONS\n"
         "typedef enum xconsolestream { XCONSOLE_STDOUT = 1, XCONSOLE_STDERR } xconsolestream;\n"
@@ -196,7 +187,7 @@ static int xl6IrCgenEmitHostBindings(
         xl6IrCgenEmitRetireSteps(out, module);
     } else {
     xl6OutputPuts("static int xlir_script_module_unit_checked(void)\n{\n", out);
-    if (xl6IrModuleHasFinalizerWork(module) || unitNet)
+    if (xl6IrModuleHasFinalizerWork(module))
         xl6OutputPuts("    xl6_error_scope cleanup = {0}; xl6_error_result outcome;\n", out);
     if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)
         xl6OutputPuts("    if (xlir_module_initializing || (xlir_module_initialized != 1 && xlir_module_initialized != 2)) return 1;\n", out);
@@ -205,11 +196,11 @@ static int xl6IrCgenEmitHostBindings(
          * invokes the IR finalizer directly on failure, while phase 1 is
          * still active. An external callback must not cancel that transaction. */
         xl6OutputPuts("    if (xlir_module_initialized != 2) return 1;\n", out);
-    if (xl6IrModuleHasFinalizerWork(module) || unitNet)
+    if (xl6IrModuleHasFinalizerWork(module))
         xl6OutputPuts("    if (!xl6ErrorScopeBeginCleanup(&cleanup, false)) abort();\n", out);
     if ( module->abi.finalizerFunction != 0 )
         xl6OutputPuts("    xlir_module_fini();\n", out);
-    if (xl6IrModuleHasFinalizerWork(module) || unitNet)
+    if (xl6IrModuleHasFinalizerWork(module))
         xl6OutputPuts("    outcome = xl6ErrorScopeEnd(&cleanup);\n"
             "    xrtSetErrorTake(outcome.error);\n    return outcome.ok;\n", out);
     else xl6OutputPuts("    return 1;\n", out);
@@ -218,7 +209,7 @@ static int xl6IrCgenEmitHostBindings(
     xl6IrCgenEmitHostActivityWrapper(out, module, "XLIR_C_API ", "int", "xl_script_module_unit_checked",
         "void", "xlir_script_module_unit_checked()");
     xl6OutputPuts("XLIR_C_API void xl_script_module_unit(void)\n{\n", out);
-    if (xl6IrModuleHasFinalizerWork(module) || unitNet)
+    if (xl6IrModuleHasFinalizerWork(module))
         xl6OutputPuts("    if (!xl_script_module_unit_checked())\n"
             "        xl6ErrorScopePropagateFailure((xl6_error_result){ false, xrtTakeError() });\n", out);
     else xl6OutputPuts("    (void)xl_script_module_unit_checked();\n", out);
