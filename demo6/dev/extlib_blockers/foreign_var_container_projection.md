@@ -1,5 +1,15 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-25 当前 Windows 发布版再次复验 `statistics`：默认
+`release/extlibs/statistics/test/check.ps1` 的严格 C、ABI、尺寸保护及
+三组 C 范例先通过，第一个 XLang 中央断言 `count([2,4,4,4,5,5,7,9]) == 8`
+却收到错误结果，门禁退出 1。更小的既有复现
+`release/xl.exe run dev/extlib_blockers/foreign_var_array_container.xl`
+退出 1，报 `ValueError: input is not an array`。原生 `xstat_count` 在
+非 `XVALUE_ARRAY` 时静默返回 0，`xstat_sum` 则显式报错；两者是同一
+投影问题的不同症状。主线修复后须重跑完整 Windows/Linux JIT/AOT 门禁，
+不能只复验原生 C 或 `count` 的单条断言。
+
 2026-10-25 CBOR 新发布版的独立最小复现：
 `release/xl.exe run dev/extlib_blockers/cbor_var_projection.xl` 与同源
 `xl build` 独立 EXE 均在 `cbor.encode(var values)` 抛
