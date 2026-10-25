@@ -1,5 +1,18 @@
 # Windows 发布版运行入口在 ownership catalog 初始化失败
 
+## 后续复验
+
+2026-10-25 再次从当前工作区运行 `demo6/build.bat`，完整生成
+`xl.dll`、`xlc.dll` 和 `xl.exe`。新发布物在 `demo6/release` 执行
+`./xl.exe run examples/hello.xl` 退出 0；
+`./xl.exe run examples/extlibs/toml.xl` 也正常输出并退出 0。
+因此本页记录的 ownership catalog 启动故障仅适用于下述旧发布物，
+不再作为当前 Windows 扩展库运行的共同阻断。它不证明全部包已通过：
+TOML 包级边界仍在 `stringify(var)` 报
+`TypeError: TOML document root must be a dict`，属于另记的
+foreign `var` 容器投影问题。Linux 新发布构建仍受
+`linux_release_link_20261025.md` 中的链接缺符号阻断。
+
 2026-10-25 在 `demo6` 执行 `build.bat` 成功，得到新的
 `release/xl.dll`、`release/xlc.dll` 和 `release/xl.exe`。构建前
 `tools/check_xrt_snapshot.ps1` 通过；能力矩阵按当前源码同步后再构建。
