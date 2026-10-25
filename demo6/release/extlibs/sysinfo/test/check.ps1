@@ -119,6 +119,18 @@ try {
                 'extlibs/sysinfo/examples/metrics.xl', '-o', $metricsAot)
             $aotMetrics = Run 'XLang metrics AOT' $metricsAot @()
             CheckMetrics 'XLang metrics AOT' $aotMetrics
+            $cExampleAot = Join-Path $work 'sysinfo_c_example.exe'
+            $null = Run 'C example build' $xl @('build',
+                'extlibs/sysinfo/examples/sysinfo_c.c', '-o', $cExampleAot)
+            $cAotOutput = Run 'C example AOT' $cExampleAot @()
+            if ($cAotOutput -cne $cOutput) {
+                throw 'C AOT system information differs from GCC'
+            }
+            $cMetricsAot = Join-Path $work 'sysinfo_c_metrics.exe'
+            $null = Run 'C metrics build' $xl @('build',
+                'extlibs/sysinfo/examples/metrics_c.c', '-o', $cMetricsAot)
+            $cAotMetrics = Run 'C metrics AOT' $cMetricsAot @()
+            CheckMetrics 'C metrics AOT' $cAotMetrics
         }
     } finally {
         Pop-Location

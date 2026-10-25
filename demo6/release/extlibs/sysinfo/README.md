@@ -1,5 +1,12 @@
 # sysinfo
 
+2026-10-26 新发布物复验：Windows 默认 `test/check.ps1` 与 Linux
+`test/check.sh` 均通过。两平台补齐 C 基础信息和动态指标范例的
+`xl build` 独立 EXE；基础信息与 GCC/XLang 同机输出一致，瞬时指标
+只按格式和范围验收。Linux 保留 ASan/UBSan 与异常系统文本夹具，
+Windows 生成 C 检查确认 `takeCstr` 直接接管文本。旧版带输出 AOT
+缺符号不再复现；验收范围为 Windows/Linux 主机信息 API。
+
 2026-10-25 发布版复核：五个文本查询返回普通 `string`，
 `takeCstr` 直接移交 XRT 分配。先前 `cstring` 返回转为 `string`
 会额外复制，现已修正。Windows 默认包门禁核对生成 C 的直接移交、
