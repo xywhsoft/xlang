@@ -1,0 +1,8 @@
+import fix
+
+func main(...) as int
+    var fields = [fix.field(35, "D")]
+    string message = fix.build("FIX.4.4", fields)
+    assert fix.validate(message)
+    return 0
+end

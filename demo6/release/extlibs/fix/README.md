@@ -1,5 +1,12 @@
 # fix
 
+2026-10-25 当前 Windows 发布物复验：C 原生测试通过，XLang 的单字段
+最小用例在 `check` 通过后，于 JIT 和独立 EXE 的 `build(var fields)`
+调用中报数组类型错误；完整语言边界用例在第一条同形调用停止。
+复现与主线修复方向见
+`../../../dev/extlib_blockers/fix_var_array_projection.md`。以下较早的
+语言/AOT 通过记录不代表当前发布物已通过完整包级门禁。
+
 `fix` 是 FIX 4.x 文本报文的**帧编解码器**，不是交易会话引擎。它自动生成
 `8=BeginString`、`9=BodyLength`、`10=CheckSum`，按传入顺序保留应用字段，
 也保留重复标签。它不连接交易所、不管理序号/重发，也不验证场所数据字典。
