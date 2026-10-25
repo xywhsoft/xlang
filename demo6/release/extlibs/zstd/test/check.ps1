@@ -56,6 +56,7 @@ try {
     Set-Location $release
     $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/zstd/examples/basic.xl')
     foreach ($case in @('../test/cases/extlib_zstd_progress.xl',
+        '../test/cases/extlib_zstd.xl',
         'extlibs/zstd/test/wire_fixture.xl',
         'extlibs/zstd/test/file_ops.xl',
         'extlibs/zstd/test/concat_boundary.xl',
@@ -80,7 +81,8 @@ try {
             @('concat_boundary', 'extlibs/zstd/test/concat_boundary.xl', ''),
             @('error_dispatch', 'extlibs/zstd/test/error_dispatch.xl', ''),
             @('file_ops', 'extlibs/zstd/test/file_ops.xl', 'zstd file operations: PASS'),
-            @('progress', '../test/cases/extlib_zstd_progress.xl', '')
+            @('progress', '../test/cases/extlib_zstd_progress.xl', ''),
+            @('central', '../test/cases/extlib_zstd.xl', '')
         )) {
             $caseExe = Join-Path $work ("zstd_$($case[0]).exe")
             $null = Run "XLang $($case[0]) AOT build" $xl @('build', $case[1], '-o', $caseExe)

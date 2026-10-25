@@ -58,13 +58,35 @@ if [[ $mode == --c-only ]]; then
 fi
 timeout 90s ./release/xl run release/extlibs/zstd/examples/basic_c.c > "$work/basic_direct.txt"
 diff -u "$work/basic_c.txt" "$work/basic_direct.txt"
+timeout 90s ./release/xl run test/cases/extlib_zstd.xl
 timeout 90s ./release/xl run test/cases/extlib_zstd_progress.xl
 timeout 90s ./release/xl run release/extlibs/zstd/test/wire_fixture.xl
-timeout 90s ./release/xl run release/extlibs/zstd/test/file_ops.xl
+timeout 90s ./release/xl run release/extlibs/zstd/test/file_ops.xl > "$work/file_ops_jit.txt"
 timeout 90s ./release/xl run release/extlibs/zstd/test/concat_boundary.xl
 timeout 90s ./release/xl run release/extlibs/zstd/test/error_dispatch.xl
 timeout 45s ./release/xl run release/extlibs/zstd/examples/basic.xl > "$work/basic_xl.txt"
 diff -u "$work/basic_c.txt" "$work/basic_xl.txt"
 timeout 90s ./release/xl run release/examples/extlibs/zstd.xl > "$work/teaching.txt"
 grep -Fq 'zstd example: PASS' "$work/teaching.txt"
-printf 'zstd Linux ASan/UBSan gate: PASS\n'
+printf '[zstd] XLang AOT gate\n'
+for name in central progress wire_fixture concat_boundary error_dispatch file_ops; do
+    printf '[zstd] AOT %s\n' "$name"
+    case "$name" in
+        central) source=test/cases/extlib_zstd.xl ;;
+        progress) source=test/cases/extlib_zstd_progress.xl ;;
+        *) source="release/extlibs/zstd/test/$name.xl" ;;
+    esac
+    timeout 180s ./release/xl build "$source" -o "$work/zstd_$name"
+    timeout 90s "$work/zstd_$name" > "$work/${name}_aot.txt"
+done
+diff -u "$work/file_ops_jit.txt" "$work/file_ops_aot.txt"
+for name in basic teaching; do
+    printf '[zstd] AOT example %s\n' "$name"
+    source=release/extlibs/zstd/examples/basic.xl
+    if [[ $name == teaching ]]; then source=release/examples/extlibs/zstd.xl; fi
+    timeout 180s ./release/xl build "$source" -o "$work/zstd_$name"
+    timeout 90s "$work/zstd_$name" > "$work/${name}_aot.txt"
+done
+diff -u "$work/basic_c.txt" "$work/basic_aot.txt"
+diff -u "$work/teaching.txt" "$work/teaching_aot.txt"
+printf 'zstd Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

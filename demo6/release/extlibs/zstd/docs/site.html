@@ -20,7 +20,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / zstd</p><h1>zstd</h1>
     <p class="extlib-lead">Zstandard 二进制压缩、增量流和文件处理；同时提供 XLang 与 C 接口。</p>
-    <p>2026-10-25：Windows 默认包门禁完整通过，覆盖严格 C、分配故障、C/TCC 双语范例，以及固定帧、串联帧、文件、进度、错误分类和教学范例的 JIT 与独立 EXE。输出限额抛 <code>RangeError</code>；损坏帧和非法状态抛 <code>CompressionError</code>，分配失败抛 <code>MemoryError</code>。文件回调保留原异常与取消语义。XLang 门禁从发布目录运行；项目根目录的共享 VFS 路径问题仍未修复。Linux C ASan/UBSan 通过，但现有 Linux 发布物不接受当前 <code>cstring</code> 调用，语言层尚未签收。</p>
+    <p>2026-10-26：Windows 默认包门禁及 Python Zstandard 双向标准帧互通通过；Linux C ASan/UBSan、语言 JIT、八条独立 EXE AOT 和 C/JIT/AOT 范例输出对照通过。Windows 从项目根目录直接运行基础范例也通过，旧 VFS 路径及 Linux <code>cstring</code> 阻断不再复现。输出限额抛 <code>RangeError</code>；损坏帧和非法状态抛 <code>CompressionError</code>，分配失败抛 <code>MemoryError</code>。文件回调保留原异常与取消语义。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
@@ -35,7 +35,7 @@
 Buffer packed = zstd.compress("hello zstd")
 assert zstd.decompressText(packed) == "hello zstd"</code></pre>
     <p>包内 <code>examples/basic.xl</code> 与 <code>examples/basic_c.c</code> 同输入、同输出；C 范例可直接用 <code>xl run extlibs/zstd/examples/basic_c.c</code> 运行。C 调用方可直接包含 <code>include/xrt_zstd.h</code>，并负责释放返回的 xbuffer。C 流式接口的进度从 Reader 当前读取位置起算；无法同时取得总长和当前位置时不设置 <code>TOTAL_KNOWN</code>。C 编解码入口拒绝选项和资源限制结构的无效版本、长度及保留字段；无效选项不消费输入流。<code>iMaxEntries</code> 限制串联帧数，<code>iMaxItemBytes</code> 限制单帧原文大小；节点数、深度和未知标志不适用。资源限额、所有权及当前验收范围见包内 README。</p>
-    <p>包级 C 门禁逐点注入 XRT 分配失败，检查一次性编解码的错误与释放平衡；此测试不覆盖上游库的内部 allocator。错误类型负例已纳入包清单，完整教学范例也进入 Windows JIT/AOT 门禁。跨平台语言验收仍需同步 Linux 发布物。</p>
+    <p>包级 C 门禁逐点注入 XRT 分配失败，检查一次性编解码的错误与释放平衡；此测试不覆盖上游库的内部 allocator。错误类型负例、中央用例和完整教学范例已进入 Windows/Linux JIT/AOT 门禁。短时门禁不替代 32 位、TSan 或长时间压力验证。</p>
   </section>
 </main>
 <script src="../main.js"></script>
