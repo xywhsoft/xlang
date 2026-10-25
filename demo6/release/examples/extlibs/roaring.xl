@@ -17,6 +17,8 @@ func main(...) as int
 
     rb.remove(20)
     println("after remove 20, count:", rb.count)
+    var ordered = rb.toArray()
+    println("ordered:", ordered[0], ordered[1], ordered[2])
 
     println("roaring example: PASS")
     return 0

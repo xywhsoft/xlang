@@ -90,3 +90,26 @@ assert caught and failTriggered()
 failClear()
 assert upgraded.count == 1025 and upgraded.contains(1024)
 assert upgraded.remove(1024) and upgraded.count == 1024
+
+roaring.RoaringBitmap snapshotSet = roaring.create()
+snapshotSet.add(7)
+snapshotSet.add(65536)
+snapshotSet.add(4294967295)
+int snapshotFailures = 0
+int snapshotSuccesses = 0
+for allocation in range(16)
+    bool snapshotCaught = false
+    assert failAfter(uint64(allocation))
+    try
+        var ordered = snapshotSet.toArray()
+        assert ordered.length == 3
+    catch MemoryError error
+        snapshotCaught = true
+    end
+    bool snapshotTriggered = failTriggered()
+    failClear()
+    assert snapshotCaught == snapshotTriggered
+    assert snapshotSet.count == 3 and snapshotSet.contains(4294967295)
+    if snapshotCaught then snapshotFailures += 1 else snapshotSuccesses += 1 end
+end
+assert snapshotFailures > 0 and snapshotSuccesses > 0
