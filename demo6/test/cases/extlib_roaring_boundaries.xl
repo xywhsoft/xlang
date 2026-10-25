@@ -4,6 +4,11 @@ func main(...) as int
     roaring.RoaringBitmap set = roaring.create()
     assert set.min == -1 and set.max == -1
     assert set.toArray().length == 0
+
+    roaring.RoaringBitmap other = roaring.create()
+    other.add(65535)
+    other.add(65536)
+    other.add(131072)
     set.add(0)
     set.add(65535)
     set.add(65536)
@@ -14,6 +19,15 @@ func main(...) as int
     assert ordered.length == 4
     assert ordered[0] == 0 and ordered[1] == 65535
     assert ordered[2] == 65536 and ordered[3] == 4294967295
+    roaring.RoaringBitmap united = set.unionWith(other)
+    roaring.RoaringBitmap common = set.intersectWith(other)
+    roaring.RoaringBitmap leftOnly = set.differenceWith(other)
+    assert united.count == 5 and united.contains(131072)
+    assert common.count == 2 and common.contains(65535) and common.contains(65536)
+    assert leftOnly.count == 2 and leftOnly.contains(0) and leftOnly.contains(4294967295)
+    assert set.count == 4 and other.count == 3
+    assert set.intersectWith(set).count == 4
+    assert set.differenceWith(set).count == 0
     assert set.remove(0) and not set.remove(0)
     assert set.min == 65535 and set.count == 3
 
