@@ -16,7 +16,18 @@ import sys
 IMPLEMENTATION_MARKERS = (
     "#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRUNTIME_IMPLEMENTATION_ONCE)",
     "#if defined(XRT_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION_ONCE)",
+    "#if defined(XACME_IMPLEMENTATION) && !defined(XACME_IMPLEMENTATION_ONCE)",
 )
+# Resident adapters may consume a separately packaged native product. Their
+# exact public declarations and providers are not part of the XRT ABI and must
+# not be counted as missing core symbols or admitted by a name-prefix waiver.
+EXTERNAL_API_PRODUCTS = {
+    "xacme": {
+        "declarations": "release/extlibs/xacme/upstream/xacme.h",
+        "provider": "release/extlibs/xacme/native/xacme_impl.c",
+        "consumers": ("src/runtime/xl6_xacme.c",),
+    },
+}
 PUBLIC_SECTION = re.compile(r"/\* public: ([^*\r\n]+?) \*/")
 FUNCTION = re.compile(
     r"\bXRT_API\s+[^;{}]*?\b(xrt[A-Za-z0-9_]*)\s*\([^;{}]*\)\s*;",
@@ -163,21 +174,32 @@ def _declaration_region(path: Path) -> str:
     return text[:min(positions)]
 
 
-def _api_headers(path: Path, pattern: re.Pattern[str] = FUNCTION) -> dict[str, str]:
+def _api_headers(path: Path, pattern: re.Pattern[str] = FUNCTION, *,
+    allow_identical_redeclarations: bool = False,
+) -> dict[str, str]:
     """将每个公共函数映射到其原始模块头。"""
 
     text = _declaration_region(path)
     sections = [(match.start(), match.group(1).strip()) for match in PUBLIC_SECTION.finditer(text)]
     positions = [position for position, _ in sections]
     result: dict[str, str] = {}
+    prototypes: dict[str, str] = {}
     for match in pattern.finditer(text):
         index = bisect_right(positions, match.start()) - 1
         if index < 0:
             raise ValueError(f"public API has no source section: {match.group(1)}")
         name = match.group(1)
+        header = sections[index][1]
+        prototype = re.sub(r"\s+", "", C_NONCODE.sub(" ", match.group(0)))
         if name in result:
+            # C permits an identical repeated declaration in one origin header.
+            # Core exports remain strict; conflicting types/origins still fail.
+            if (allow_identical_redeclarations and result[name] == header
+                    and prototypes[name] == prototype):
+                continue
             raise ValueError(f"duplicate public API declaration: {name}")
-        result[name] = sections[index][1]
+        result[name] = header
+        prototypes[name] = prototype
     return result
 
 
@@ -212,21 +234,68 @@ def _native_address_references(text: str, runtime_apis: set[str]) -> set[str]:
 def _source_references(
     root: Path,
     runtime_apis: set[str],
+    external_apis: set[str] | None = None,
 ) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
     """收集调用及驻留操作表地址绑定；绑定不等于公开 API 已经验收。"""
 
     references: dict[str, set[str]] = defaultdict(set)
     missing: dict[str, set[str]] = defaultdict(set)
+    known = runtime_apis | (external_apis or set())
     for path in _source_files(root):
         relative = path.relative_to(root).as_posix()
         text = path.read_text(encoding="utf-8", errors="strict")
-        for name in set(CALL.findall(text)) | _native_address_references(text, runtime_apis):
+        for name in set(CALL.findall(text)) | _native_address_references(text, known):
             target = references if name in runtime_apis else missing
             target[name].add(relative)
     return (
         {name: sorted(paths) for name, paths in references.items()},
         {name: sorted(paths) for name, paths in missing.items()},
     )
+
+
+def _external_api_catalog(root: Path, runtime_apis: set[str]) -> dict[str, dict[str, object]]:
+    """Resolve exact declarations of active external-product adapters."""
+
+    catalog: dict[str, dict[str, object]] = {}
+    for product, contract in EXTERNAL_API_PRODUCTS.items():
+        consumers = tuple(contract["consumers"])
+        if not any((root / path).is_file() for path in consumers):
+            continue
+        for path in (contract["declarations"], contract["provider"], *consumers):
+            if not (root / path).is_file():
+                raise ValueError(f"external API product {product} is missing: {path}")
+        declarations = _api_headers(root / contract["declarations"],
+            allow_identical_redeclarations=True)
+        if not declarations:
+            raise ValueError(f"external API product {product} has no declarations")
+        for name, header in declarations.items():
+            if name in runtime_apis or name in catalog:
+                raise ValueError(f"external API ownership collision: {name}")
+            catalog[name] = dict(product=product, header=header,
+                declarations=contract["declarations"], provider=contract["provider"],
+                consumers=consumers)
+    return catalog
+
+
+def _partition_external_references(
+    references: dict[str, list[str]], catalog: dict[str, dict[str, object]],
+) -> tuple[dict[str, list[str]], list[dict[str, object]]]:
+    """Keep unknown calls fail-closed and validate each external consumer."""
+
+    unresolved: dict[str, list[str]] = {}
+    external: list[dict[str, object]] = []
+    for name, paths in sorted(references.items()):
+        if name not in catalog:
+            unresolved[name] = paths
+            continue
+        contract = catalog[name]
+        unexpected = sorted(set(paths) - set(contract["consumers"]))
+        if unexpected:
+            raise ValueError(f"external API consumer mismatch: {name}: {unexpected}")
+        external.append(dict(name=name, product=contract["product"],
+            header=contract["header"], declarations=contract["declarations"],
+            provider=contract["provider"], references=paths))
+    return unresolved, external
 
 
 def _stdlib_bindings(root: Path) -> dict[str, list[str]]:
@@ -327,7 +396,11 @@ def _matrix(
     capabilities = _xruntime_capabilities(root, runtime_owned_headers)
 
     inline_headers = _api_headers(root / "lib" / "xruntime" / "xruntime.h", INLINE_FUNCTION)
-    references, missing_references = _source_references(root, runtime_apis | set(inline_headers))
+    external_catalog = _external_api_catalog(root, runtime_apis)
+    references, missing_references = _source_references(
+        root, runtime_apis | set(inline_headers), set(external_catalog))
+    missing_references, external_references = _partition_external_references(
+        missing_references, external_catalog)
     bindings = _stdlib_bindings(root)
     unknown_bindings = sorted(set(bindings) - runtime_apis)
     if unknown_bindings:
@@ -412,6 +485,7 @@ def _matrix(
             for header, contract in sorted(capabilities.items())
         ],
         "deferredApiCount": len(missing_references),
+        "externalProductReferences": external_references,
         "headerInlineReferences": [
             {"name": name, "header": inline_headers[name], "references": references[name],
              "lowLevelSymbol": False}
@@ -440,6 +514,7 @@ def _matrix(
         f"- xruntime 产品公共函数：{len(runtime_apis)}，其中扩展自有 {len(runtime_apis - core_apis)}。",
         f"- 低层能力：{len(symbols)} 个函数全部进入 TCC 符号面，可通过显式 `extern \"xrt...\"` 使用。",
         "- 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。",
+        f"- 显式扩展产品的 {len(external_references)} 项 API 引用单列于 `externalProductReferences`，核对真实公共声明、提供方和指定使用方，不增加核心 API／符号或延期数量；引用不代表功能验收。",
         f"- 语言内核或标准库已直接使用：{len(abstracted_apis)} 个函数。其余 {len(runtime_apis - abstracted_apis)} 个保留为低层能力，不视为功能丢失。",
         f"- 已迁出核心但尚待扩展库适配的旧引用：{len(missing_references)}，仅包含 xhttp={deferred_counts['xhttp']}、xws={deferred_counts['xws']}、xregex={deferred_counts['xregex']}。",
         "",
