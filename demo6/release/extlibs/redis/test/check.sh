@@ -56,4 +56,46 @@ if [[ ${REDIS_LIVE:-0} == 1 ]]; then
     fi
     printf 'redis live server C/XLang gate: PASS\n'
 fi
-printf 'redis Linux ASan/UBSan gate: PASS\n'
+timeout 120s ./release/xl build release/extlibs/redis/test/aot_core.xl \
+    -o "$work/redis_core"
+timeout 45s "$work/redis_core"
+printf '[redis] Linux core AOT: PASS\n'
+for name in preflight_repro command_loopback reuse_loopback; do
+    printf '[redis] Linux %s AOT build\n' "$name"
+    build_timeout=120s
+    if [[ $name == command_loopback || $name == reuse_loopback ]]; then
+        build_timeout=600s
+    fi
+    if timeout "$build_timeout" ./release/xl build "release/extlibs/redis/test/$name.xl" \
+        -o "$work/redis_$name"; then
+        :
+    else
+        status=$?
+        printf '[redis] Linux %s AOT build exited %s\n' "$name" "$status" >&2
+        exit "$status"
+    fi
+    if timeout 90s "$work/redis_$name" > "$work/$name.txt" \
+        2> "$work/$name.err"; then
+        printf '[redis] Linux %s AOT ran\n' "$name"
+    else
+        status=$?
+        cat "$work/$name.err" >&2
+        cat "$work/$name.txt" >&2
+        printf '[redis] Linux %s AOT exited %s\n' "$name" "$status" >&2
+        exit "$status"
+    fi
+done
+diff -u <(printf 'redis preflight: ok\n') "$work/preflight_repro.txt"
+diff -u <(printf 'redis command loopback: ok\n') "$work/command_loopback.txt"
+diff -u <(printf 'redis reuse loopback: 500\n') "$work/reuse_loopback.txt"
+timeout 240s ./release/xl build release/examples/extlibs/redis.xl \
+    -o "$work/redis_example"
+timeout 45s "$work/redis_example" > "$work/example_aot.txt"
+diff -u "$work/c.txt" "$work/example_aot.txt"
+if [[ ${REDIS_LIVE:-0} == 1 ]]; then
+    timeout 240s ./release/xl build release/examples/extlibs/redis_live.xl \
+        -o "$work/redis_live_example"
+    timeout 45s "$work/redis_live_example" > "$work/live_aot.txt"
+    diff -u "$work/live_c.txt" "$work/live_aot.txt"
+fi
+printf 'redis Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

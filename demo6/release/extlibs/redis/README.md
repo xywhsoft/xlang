@@ -11,9 +11,11 @@
 也通过 C/XLang 固定输出、二进制键值、错误后复用、断线重连与四连接
 各 50 轮；同一 XLang 真实服务范例构建为独立 EXE 后，输出与 JIT
 逐字一致。此模式现从 `release` 工作目录运行 `xl.exe`，避免测试脚本
-触发已记录的根目录 VFS 头文件路径故障。Linux 现有 `release/xl`
-导入 `redis.xl` 时仍报未知类型 `cstring`，需重建 Linux 发布物后再验；
-上述 Windows 与跨 WSL 的通过不等于 Linux AOT 或长时耐久签收。
+触发已记录的根目录 VFS 头文件路径故障。同日使用当前 Linux 发布版
+通过自管理 Redis 真服务门禁：严格 C ASan/UBSan、XLang JIT，核心、
+预检、回环、连接复用及离线/真服务范例的独立 EXE AOT 均通过；两份
+范例分别和 C 输出逐字一致。旧 Linux 发布物的 `cstring` 类型错误
+已解除；短时测试不等于长时耐久签收。
 
 2026-10-24 当前 Windows 发布版复验：默认 `test/check.ps1` 完整通过，
 包括严格 C、边界/分配故障/线程、XLang 边界/分配故障、现行 TCP API 的

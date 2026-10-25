@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / redis</p><h1>redis</h1>
     <p class="extlib-lead">RESP2 编解码与简洁的单命令客户端。</p>
-    <p>按字节长度处理回复，网络命令使用返回 bytes 的 TcpStream.recv；有效 UTF-8 bulk 为 string，其他 bulk 为 bytes。单次命令默认限时 5 秒、最多 64 MiB，两项均可按调用收紧或调整；回复节点最多十万个。不包含连接池、自动重连、Pub/Sub 或流水线调度。当前 Windows 离线包级门禁与独立 EXE 均通过；真实服务长时运行和当前 Linux 发布物仍需单独验收。</p>
+    <p>按字节长度处理回复，网络命令使用返回 bytes 的 TcpStream.recv；有效 UTF-8 bulk 为 string，其他 bulk 为 bytes。单次命令默认限时 5 秒、最多 64 MiB，两项均可按调用收紧或调整；回复节点最多十万个。不包含连接池、自动重连、Pub/Sub 或流水线调度。当前 Windows 离线包级门禁与独立 EXE、Linux 隔离真服务与独立 EXE 均通过；真实服务的长时耐久性仍需单独验收。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
@@ -44,7 +44,8 @@ assert binary["value"]["value"] == Buffer.fromHex("61ff62").toBytes()</code></pr
     <p>包含 <code>include/redis_native.h</code>。输入值仅借用；返回的 <code>xvalue*</code> 由调用方使用 <code>xrtValueRelease</code> 释放，<code>xr_encode_bytes</code> 返回的 Buffer 由调用方使用 <code>xrtBufferDestroy</code> 释放。查看包内 README 获取字节长度、错误与容量边界。</p>
     <p>真实服务双语示例为 <code>release/examples/extlibs/redis_live.xl</code> 与 <code>redis_live_c.c</code>，都执行 PING、SET、GET、EXISTS、INCR、DEL，并验证键删除后的不存在；C 示例使用增量帧检查器接收分片回复。单独运行默认连接 6379，也可设置 <code>REDIS_LIVE_PORT</code>。包内 <code>test/check_live.sh</code> 使用本次临时端口和进程 ID 校验启动自管理 Redis，不会接管已有服务；在 WSL 中加 <code>--windows-xl</code> 可用当前 Windows 发布版验证真实服务，<code>REDIS_STRESS=1</code> 另跑四连接各 10,000 轮。</p>
     <h2 id="verification">验证范围</h2>
-    <p>2026-10-24：当前 Windows 默认门禁通过严格 C、分配故障、线程、XLang 边界和本地 TCP 预检/分包/错误/断线/限额/超时/复用；核心、回环及公开范例的独立 EXE 均已构建运行，C/XLang 范例逐字输出一致。同连接十万次短时 JIT 回环也通过。当前 Windows <code>xl.exe</code> 还在 WSL 自管理 Redis 上通过真实调用、错误恢复、显式重连及四连接各 10,000 轮短时压力。数小时稳定性与当前 Linux 发布物不在这次签收范围内。</p>
+    <p>2026-10-24：当前 Windows 默认门禁通过严格 C、分配故障、线程、XLang 边界和本地 TCP 预检/分包/错误/断线/限额/超时/复用；核心、回环及公开范例的独立 EXE 均已构建运行，C/XLang 范例逐字输出一致。同连接十万次短时 JIT 回环也通过。当前 Windows <code>xl.exe</code> 还在 WSL 自管理 Redis 上通过真实调用、错误恢复、显式重连及四连接各 10,000 轮短时压力。这段是当时的验证记录，数小时稳定性不在签收范围内。</p>
+    <p>2026-10-25：使用当前 Linux 发布版，在脚本自管理的隔离 Redis 上通过严格 C ASan/UBSan、XLang JIT、核心/预检/回环/连接复用及离线/真服务范例独立 EXE AOT；两份 AOT 范例分别与 C 输出逐字节一致。复杂 TCP AOT 构建门禁保留有界限时和失败阶段诊断。短时真服务验证不等于数小时耐久签收。</p>
   </section>
 </main>
 </body>
