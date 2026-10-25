@@ -3,8 +3,9 @@
 2026-10-25 当前发布版复验：Windows 默认 `test/check.ps1` 全通过，
 覆盖严格 C、边界与分配故障、C/XLang 范例同输出，以及核心、边界、
 公开范例的独立 EXE AOT 构建运行。WSL `test/check.sh` 通过 C
-ASan/UBSan、XLang JIT 边界/分配故障与双语对照。此次没有用新版
-Linux 编译器构建独立 EXE，因此 Linux AOT 仍未验收。先前同日
+ASan/UBSan、XLang JIT 边界/分配故障与双语对照。使用当前 Linux
+发布版补跑核心、边界、公开范例的独立 EXE AOT 构建运行；公开范例
+的 AOT 输出与 C 范例逐字节一致。先前同日
 `cannot initialize module ownership policy catalog` 的运行入口故障
 不再复现；历史复现见
 `../../../dev/extlib_blockers/ownership_catalog_startup_20261025.md`。
@@ -81,8 +82,9 @@ C/XLang 对照范例位于 `examples/`。以下共享缺符号描述属于旧发
 同一 `test/aot_core.xl` 从 3,592,192 缩至 612,864 字节并运行通过。
 旧版完整边界 AOT 曾缺共享 `xl6ValueDataSnapshotV1`，此前索引缺符号亦为旧构建快照；上述默认门禁已经完成复验。
 Linux C/XL 的 ASan/UBSan 专项门禁为 `bash release/extlibs/json5/test/check.sh`；
-它在隔离临时目录编译 C 测试和范例、运行中央与包内 XLang 用例，并逐字节
-比较双语范例输出。`test/boundaries.xl` 和 `test/allocations.xl` 已登记到包清单的 `coverage.tests`；在 `demo6` 目录运行
+它在隔离临时目录编译 C 测试和范例、运行中央与包内 XLang 用例、构建运行
+核心/边界/公开范例的独立 EXE，并逐字节比较 JIT/AOT 与 C 范例输出。
+`test/boundaries.xl` 和 `test/allocations.xl` 已登记到包清单的 `coverage.tests`；在 `demo6` 目录运行
 `tools/smoke_extlib_catalog.ps1 -Package json5` 可与中央用例一同复验。
 另可指定本地官方 JSON5 2.2.3 源码目录，用 `-ReferenceDir` 运行可选的
 474 例固定解析结果对照，其中 286 例还比较解析后的 JSON 值；覆盖键名、数字、转义、注释及嵌套对象/数组组合。该步骤不参与普通构建和日常门禁。显式 Infinity/NaN 无法表示为标准 JSON，只核对解析结果；JS 可表示而 XRT UTF-8 字符串不能表示的孤立代理项，不纳入同结果矩阵，包内 C/XLang 负例仍要求拒绝。这些固定样本不代表完整规范认证。

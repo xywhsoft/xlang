@@ -34,4 +34,11 @@ timeout 90s "$xl" run release/extlibs/json5/test/boundaries.xl
 timeout 90s "$xl" run release/extlibs/json5/test/allocations.xl
 timeout 90s "$xl" run release/extlibs/json5/examples/json5.xl > "$work/json5_xl.txt"
 diff -u "$work/json5_c.txt" "$work/json5_xl.txt"
-printf 'json5 Linux C/XL ASan/UBSan gate: PASS\n'
+timeout 120s "$xl" build "$pkg/test/aot_core.xl" -o "$work/json5_core"
+timeout 45s "$work/json5_core"
+timeout 120s "$xl" build "$pkg/test/boundaries.xl" -o "$work/json5_boundaries"
+timeout 90s "$work/json5_boundaries"
+timeout 120s "$xl" build "$pkg/examples/json5.xl" -o "$work/json5_example"
+timeout 45s "$work/json5_example" > "$work/json5_aot.txt"
+diff -u "$work/json5_c.txt" "$work/json5_aot.txt"
+printf 'json5 Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'
