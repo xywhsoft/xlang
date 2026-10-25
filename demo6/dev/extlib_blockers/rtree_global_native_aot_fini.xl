@@ -1,0 +1,4 @@
+import rtree
+
+rtree.RTree tree = rtree.create()
+println("rtree ready")
