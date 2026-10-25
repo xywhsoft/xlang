@@ -26738,12 +26738,13 @@ XRT_API xtlsresult xrtTlsClientKeyUpdate(
 
 
 
-#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
-
-/* 返回服务端是否接受了本次创建时提供的恢复对象。 */
+/* 返回服务端是否接受了本次创建时提供的恢复对象。
+ * 这是基础角色查询；未编译恢复能力时，合法客户端会话返回 false。 */
 XRT_API bool xrtTlsClientResumed(const xtlssession* pSession);
 
 
+
+#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
 
 /* 返回等待调用方接管的恢复对象数量。 */
 XRT_API size_t xrtTlsClientResumeCount(const xtlssession* pSession);
@@ -27373,12 +27374,13 @@ XRT_API bool xrtTlsServerCookie(
 
 
 
-#if defined(XRT_FEATURE_TLS_SERVER_RESUME)
-
-/* 返回本次连接是否接受了客户端提供的 TLS 1.3 会话票据。 */
+/* 返回本次连接是否接受了客户端提供的 TLS 1.3 会话票据。
+ * 这是基础角色查询；未编译恢复能力时，合法服务端会话返回 false。 */
 XRT_API bool xrtTlsServerResumed(const xtlssession* pSession);
 
 
+
+#if defined(XRT_FEATURE_TLS_SERVER_RESUME)
 
 /* 用调用方票据签发 TLS 1.3 NewSessionTicket；TLS 1.2 会话返回不支持。 */
 XRT_API xtlsresult xrtTlsServerTicket(
@@ -158963,9 +158965,7 @@ XRT_API void xrtTlsClientConfigInit(xtlsclientconfig* pConfig)
 
 
 
-#if defined(XRT_FEATURE_TLS_CLIENT_VERIFY)
-
-/* 验证公共证书查询确实指向客户端会话。 */
+/* 验证公共角色查询确实指向完整的客户端私有状态。 */
 static xtlsclientstate* __xrtTlsClientQueryState(
 	const xtlssession* pSession,
 	cstr sOperation
@@ -158981,12 +158981,14 @@ static xtlsclientstate* __xrtTlsClientQueryState(
 		return NULL;
 	}
 	if ( (pSession->Role != XTLS_CLIENT) ||
-		(pSession->AllocationSize <= sizeof(*pSession)) ) {
+		(pSession->AllocationSize < sizeof(*pSession)) ||
+		(pSession->AllocationSize - sizeof(*pSession) <
+		 sizeof(xtlsclientstate)) ) {
 		(void)__xrtTlsClientError(
 			XERR_STATE,
 			XTLS_ERROR_STATE,
 			sOperation,
-			"TLS session is not a verified client"
+			"TLS session does not contain a client role state"
 		);
 		return NULL;
 	}
@@ -158994,6 +158996,27 @@ static xtlsclientstate* __xrtTlsClientQueryState(
 }
 
 
+
+/* 状态观察不应启用票据、PSK binder 或恢复握手实现。 */
+XRT_API bool xrtTlsClientResumed(const xtlssession* pSession)
+{
+	xtlsclientstate* pState = __xrtTlsClientQueryState(
+		pSession, "get-tls-client-resumed"
+	);
+
+	if ( pState == NULL ) {
+		return false;
+	}
+	#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+		return pState->Resumed;
+	#else
+		return false;
+	#endif
+}
+
+
+
+#if defined(XRT_FEATURE_TLS_CLIENT_VERIFY)
 
 /* 返回完整证书握手保留的对端证书数量。 */
 XRT_API size_t xrtTlsClientCertificateCount(
@@ -168578,6 +168601,41 @@ XRT_API bool xrtTlsServerCookie(
 	}
 	*pCookie = pState->Cookie;
 	return true;
+}
+
+
+
+/* 状态观察属于基础角色；关闭恢复实现时不需要任何票据依赖。 */
+XRT_API bool xrtTlsServerResumed(const xtlssession* pSession)
+{
+	if ( pSession == NULL ) {
+		return __xrtTlsServerError(
+			XERR_ARGUMENT, XTLS_ERROR_ARGUMENT,
+			"get-tls-server-resumed", "TLS server session is null"
+		);
+	}
+	if ( xrtTlsSessionRole(pSession) != XTLS_SERVER ) {
+		return __xrtTlsServerError(
+			XERR_ARGUMENT, XTLS_ERROR_ARGUMENT,
+			"get-tls-server-resumed", "TLS session is not a server"
+		);
+	}
+	if ( (pSession->AllocationSize < sizeof(*pSession)) ||
+		(pSession->AllocationSize - sizeof(*pSession) <
+		 sizeof(xtlsserverstate)) ) {
+		return __xrtTlsServerError(
+			XERR_STATE, XTLS_ERROR_STATE,
+			"get-tls-server-resumed", "TLS session does not contain a server role state"
+		);
+	}
+	#if defined(XRT_FEATURE_TLS_SERVER_RESUME)
+		const xtlsserverstate* pState =
+			(const xtlsserverstate*)(pSession + 1);
+
+		return pState->Resumed;
+	#else
+		return false;
+	#endif
 }
 
 
@@ -242112,18 +242170,6 @@ bool __xrtTlsClientResumePublish(
 
 
 
-/* 只有服务端在 ServerHello 中接受 identity 0 后才报告恢复成功。 */
-XRT_API bool xrtTlsClientResumed(const xtlssession* pSession)
-{
-	xtlsclientstate* pState = __xrtTlsClientResumeState(
-		pSession, "get-tls-client-resumed"
-	);
-
-	return (pState != NULL) && pState->Resumed;
-}
-
-
-
 /* 释放环中仍由会话拥有的全部恢复对象。 */
 void __xrtTlsClientResumeClear(xtlsclientstate* pState)
 {
@@ -242701,29 +242747,6 @@ XRT_API xtlsresult xrtTlsServerTicketNew(
 }
 
 
-
-/* 查询服务端握手是否接受了本次 ClientHello 中的票据。 */
-XRT_API bool xrtTlsServerResumed(const xtlssession* pSession)
-{
-	const xtlsserverstate* pState;
-
-	if ( pSession == NULL ) {
-		return __xrtTlsServerError(
-			XERR_ARGUMENT, XTLS_ERROR_ARGUMENT,
-			"get-tls-server-resumed", "TLS server session is null"
-		);
-	}
-	if ( xrtTlsSessionRole(pSession) != XTLS_SERVER ) {
-		return __xrtTlsServerError(
-			XERR_ARGUMENT, XTLS_ERROR_ARGUMENT,
-			"get-tls-server-resumed", "TLS session is not a server"
-		);
-	}
-	pState = (const xtlsserverstate*)__xrtTlsSessionRoleData(
-		(xtlssession*)pSession
-	);
-	return (pState != NULL) && pState->Resumed;
-}
 
 #endif
 #endif

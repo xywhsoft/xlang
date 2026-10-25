@@ -76,5 +76,5 @@
     {"src/runtime/xl6_tls_listener_stats.c",D(R(TLS_LISTENER_LANGUAGE),R(TLS_SERVER_STATS)),{NULL}},
     {"src/runtime/xl6_ownership_domain_tls_info.c",D(R(OWNERSHIP_CATALOG),R(TLS_INFO)),{NULL}},
     {"src/runtime/xl6_ownership_domain_tls_server_stats.c",D(R(OWNERSHIP_CATALOG),R(TLS_SERVER_STATS)),{NULL}},
-    {"src/runtime/xl6_tls_metadata_client.c",D(),{"XRT_MODULE_TLS_CLIENT","XRT_MODULE_TLS_CLIENT_RESUME"}},
-    {"src/runtime/xl6_tls_metadata_server.c",D(),{"XRT_MODULE_TLS_SERVER","XRT_MODULE_TLS_SERVER_RESUME"}},
+    {"src/runtime/xl6_tls_metadata_client.c",D(),{"XRT_MODULE_TLS_CLIENT"}},
+    {"src/runtime/xl6_tls_metadata_server.c",D(),{"XRT_MODULE_TLS_SERVER"}},

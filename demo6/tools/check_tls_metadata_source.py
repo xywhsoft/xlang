@@ -86,6 +86,8 @@ def main():
             assert not any(q in imports.lower() for q in ['xl.dll','xlc.dll','libxl.so','libxlc.so'])
             bundle=(Path(str(target)+'.temps')/'xl6_xrt_impl.c').read_text(encoding='utf8')
             assert '_MODULE_ALL' not in bundle
+            # Observing connection state must not enable ticket machinery.
+            assert not re.search(r'^\s*#\s*define\s+(?:XRT|XRUNTIME)_(?:MODULE|FEATURE)_TLS_(?:CLIENT|SERVER)_RESUME\b',bundle,re.M)
             if case==empty:assert not any(q in bundle for q in ['XRT_MODULE_TLS_', 'XRT_MODULE_NET_TCP','xl6_tls_info','xl6_tls_server_stats'])
         r['InputsUnchanged']=all(sha(q)==d for q,d in r['Inputs'].items()) and all(sha(q['Path'])==q['Sha256'].lower() for q in build['Inputs']+build['Objects']+build['Headers'])
         r['Products']=[dict(Path=str(q),Sha256=sha(q)) for q in out.rglob('*') if q.is_file() and q.name!='results.json']

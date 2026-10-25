@@ -1,0 +1,68 @@
+{
+  "Schema": 1,
+  "Purpose": "Base-role resumed observers do not enable optional resumption implementations",
+  "CanonicalCommit": "b65ba557ee7226caedc4f8dfa6ccc704596a24e0",
+  "PreviousCanonicalCommit": "803501226fd91ccbcbd39d2b52faccf593146a68",
+  "WholeSnapshotUpgrade": false,
+  "TimeAbiPreserved": true,
+  "ExistingFunctionSignaturesPreserved": true,
+  "PublicStructLayoutsPreserved": true,
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "c8adb2f6de41cc9172a2c266d1ac4bf47e998512fb20365776116b8ccd8494af",
+      "AfterSha256": "cee90ec001764c9a0895698a212dd1ac84db4d40fce94b407eb1fcf1dc20d71a"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "24e1fde32d327ffead02f7eed3acf81a50821718b92b7c71d968c8f357a6aa86",
+      "AfterSha256": "b455e5c22b445699ee18511c6a9fa3cc7507eb7198b0cfa31092c1132a637ea7"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "974000f054a2785f124260112e6a4d69cf2adf3467c6fde5adb8b0dd01dc5d47",
+      "AfterSha256": "1e253c22c4015c13614bd2f4fe094583ffa43d2b0b0e8e0133f523e46fc24181"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "0017f88faf707f41a6e47b49bd87a4f4115d06c01068e8694c87ff4c88d7ded1",
+      "AfterSha256": "f5d083618df208a69711f611d0516b720aeb1df02ed13345c65f00047fcbf950"
+    }
+  ],
+  "Sources": [
+    {
+      "Path": "include/xrt/tls_client.h",
+      "Sha256": "47a97607eb4e0fe1e01d54f0a8be20471a7cd8b3e8917db3183e6e13b137ecb0"
+    },
+    {
+      "Path": "include/xrt/tls_server.h",
+      "Sha256": "5f39b5032fe6b0ba8e9f2583ff7e0535b820e769d32c8fefff0700e07bac564c"
+    },
+    {
+      "Path": "src/tls/client.c",
+      "Sha256": "387b126a780db826c6a65ef89985594e2a0312f6d6035aca904d78df3dc49c9e"
+    },
+    {
+      "Path": "src/tls/client_resume.c",
+      "Sha256": "3a0fa348f259d0d757ab0cdd7bd4a7503f36cfc20c249057b056b5a329a02dd0"
+    },
+    {
+      "Path": "src/tls/server.c",
+      "Sha256": "e9c994b6a24184295c69ae2a31c3dbef45f2fab709f79203fe2d1a0ffb551637"
+    },
+    {
+      "Path": "src/tls/server_resume.c",
+      "Sha256": "df6695d6e57f916e6fb21681f6db83153939e972061c48974c37dff86ef1f7a6"
+    }
+  ],
+  "NativeEvidence": {
+    "F:\\xlang-validation\\five-groups-20261025\\p6-tls-observers\\unit-win-r5\\results.json": "05434c18161d9a3b46d9c7fd086f2d51571770fef34e517e06b4ecab500cbc14",
+    "/var/tmp/xlang-five-groups-20261025-p6-tls-observers-unit-r3/results.json": "8b8e06aea527bae9f6db452e6591a4e157f5cf65e91b618f68e0276a9a3f6065"
+  },
+  "PreservedContracts": [
+    "Embedded microseconds/Until",
+    "Independent native milliseconds/For",
+    "All unselected sections"
+  ],
+  "ValidationScope": "Windows/Linux GCC O0/O2 and TCC single products plus modular O2: real fresh role factories and balanced ownership; no handshake, transport or crypto campaign"
+}
