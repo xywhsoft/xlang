@@ -1,5 +1,14 @@
 # bz2
 
+2026-10-25 当前发布物复验：Windows 默认 `tools/check_extlib_bz2.ps1`
+完整通过，包含中央语言用例及进度回调的 JIT/AOT、23 个生成 C 原型、
+269 项独立 Python 互通、分配故障、文件事务和双语范例。WSL
+`tools/check_extlib_bz2.sh` 通过 C ASan/UBSan、同一互通集、文件路径
+及 XLang 文件用例。Windows 原有字节异或 XLIR 故障已不再复现；
+现有 Linux `release/xl` 运行 `test/cases/extlib_bz2.xl` 仍在第 68 行
+报 typed XLIR 运算符路径错误，故 Linux 完整语言及独立 EXE AOT
+尚未签收。需要同步重建 Linux 发布物后再验，不在本包绕过。
+
 > 2026-10-24 当前 Windows 发布版复验：默认
 > `tools/check_extlib_bz2.ps1` 完整通过。严格 C、分配故障、
 > Python bzip2 互通、文件事务、23 个实际生成原型、中央 XLang
@@ -10,7 +19,7 @@
 bzip2 字节流、增量编解码与事务文件接口。算法使用仓库内 `_bzip2` 的 bzip2 1.0.8，
 内存、Buffer、Reader/Writer、UTF-8 文件路径和结构化错误使用 XRT，不加载压缩 DLL。
 
-> 2026-10-14 当前发布物的文件 OOM 事务故障注入在独立 C、`xl run`、
+> 以下 2026-10-14 记录描述当时的发布物：文件 OOM 事务故障注入在独立 C、`xl run`、
 > `xl build` 产物以及 `xl.dll`/`xlc.dll` 的公开 `xlRunCSourceFiles` 宿主上均通过。
 > 完整 XLang 用例仍受已记录的 XLIR 字节运算问题阻断，不能把文件专项通过
 > 当作整个包已完成 RC 验收。

@@ -17,6 +17,14 @@
 
 ## 第二个触发面：bz2
 
+2026-10-25 平台复验：当前 Windows `release/xl.exe run
+test/cases/extlib_bz2.xl` 退出 0，默认 `tools/check_extlib_bz2.ps1`
+完整通过 JIT/AOT、C ABI、Python 互通和双语范例。现有 Linux
+`release/xl run test/cases/extlib_bz2.xl` 仍在第 68 行报相同 XLIR
+诊断；Linux C ASan/UBSan、独立互通和 XLang 文件路径门禁通过。
+Linux 语言发布物尚未重建，不能据此判定当前源码仍缺修复；
+先同步构建再重跑中央语言用例与 AOT。以下失败描述是历史记录。
+
 `xl run ../test/cases/extlib_bz2.xl` 在第 68 行
 `incremental[10] = incremental[10] ^ 1` 报同一条 typed XLIR 诊断。
 这说明问题不只限于 `string.byteAt`，还覆盖 `Buffer` 字节索引与 `int` 的

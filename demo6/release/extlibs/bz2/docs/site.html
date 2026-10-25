@@ -12,7 +12,7 @@
   <h1>bz2</h1>
   <p>bzip2 字节流、增量编解码、文件事务和进度回调。复用 bzip2 1.0.8 与 XRT，无额外压缩 DLL。</p>
   <h2>交付状态</h2>
-  <p>2026-10-24：当前 Windows 发布版通过 63 项完整专项检查，包括中央 XLang 用例 JIT/AOT、文件 OOM 事务、C/XL 双语范例和 269 项独立 Python bz2 互通；Linux C ASan/UBSan 与 XLang 文件对照门禁也通过。此前的 XLIR 字节运算错误属于旧发布版记录；Linux 完整 XLang AOT、长期压力和性能基准尚未验收。</p>
+  <p>2026-10-25：当前 Windows 发布版的默认专项门禁通过中央 XLang 用例 JIT/AOT、文件 OOM 事务、C/XL 双语范例、23 个生成 C 原型和 269 项独立 Python bz2 互通。Linux 门禁通过 C ASan/UBSan、同一互通集和 XLang 文件用例；现有 Linux <code>release/xl</code> 的中央语言用例仍在字节异或处报 typed XLIR 错误，完整 Linux 语言/AOT 尚未签收，须待 Linux 发布物重建后复验。长期压力和性能基准也不在本轮验收范围。</p>
   <h2>快速使用</h2>
   <pre><code>import bz2
 
