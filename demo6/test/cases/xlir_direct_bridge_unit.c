@@ -1,3 +1,14 @@
+/* Reject the ownership defect itself, not an unrelated stale effect field. */
+static int testRejectOwnedReadResult(const XL6_IrModule* module)
+{
+    XL6_DiagList diags = {0};
+    int valid = xl6IrVerifyOwnedReadResults(module, &diags), found = 0;
+    for (size_t i = 0; i < diags.count; ++i)
+        if (strstr(diags.items[i].message, "managed read is not an owned rvalue projection")) found = 1;
+    xl6DiagFree(&diags);
+    return !valid && found;
+}
+
 static int testOwnedReadResults(void)
 {
     XL6_IrModule module;
@@ -17,6 +28,8 @@ static int testOwnedReadResults(void)
     nodes[0].parent = 2;
     for (i = 0; i < sizeof(abis) / sizeof(abis[0]); ++i) {
         type.cAbi = abis[i];
+        nodes[0].evaluationErrorAbi = abis[i] == XL6_IR_C_ABI_MANAGED_STRING
+            ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_INVALID;
         for (j = 0; j < 2; ++j) {
             nodes[0].kind = j == 0 ? XL6_IR_NODE_MEMBER : XL6_IR_NODE_INDEX;
             for (k = 0; k < 2; ++k) {
@@ -26,16 +39,20 @@ static int testOwnedReadResults(void)
                 nodes[0].ownershipPlanned = 1;
                 if (!xl6IrVerifyOwnedReadResults(&module, NULL)) return 0;
                 nodes[0].ownership = XL6_IR_OWNERSHIP_BORROW;
-                if (xl6IrVerifyOwnedReadResults(&module, NULL)) return 0;
+                if (!testRejectOwnedReadResult(&module)) return 0;
                 nodes[0].ownership = XL6_IR_OWNERSHIP_MOVE;
                 nodes[0].valueCategory = XL6_IR_VALUE_LVALUE;
-                if (xl6IrVerifyOwnedReadResults(&module, NULL)) return 0;
+                if (!testRejectOwnedReadResult(&module)) return 0;
                 nodes[0].valueCategory = XL6_IR_VALUE_RVALUE;
                 nodes[0].ownershipPlanned = 0;
-                if (xl6IrVerifyOwnedReadResults(&module, NULL)) return 0;
+                if (!testRejectOwnedReadResult(&module)) return 0;
                 nodes[1].kind = XL6_IR_NODE_ASSIGN; nodes[1].childCount = 1;
+                nodes[1].evaluationErrorAbi = abis[i] == XL6_IR_C_ABI_MANAGED_STRING ||
+                    xl6IrTypeReleaseEffect(&module,1) == XL6_IR_RELEASE_EFFECT_MAY_RAISE
+                    ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_INVALID;
                 if (!xl6IrVerifyOwnedReadResults(&module, NULL)) return 0;
                 nodes[1].kind = XL6_IR_NODE_INVALID; nodes[1].childCount = 0;
+                nodes[1].evaluationErrorAbi = XL6_IR_ERROR_ABI_INVALID;
             }
         }
     }
@@ -45,25 +62,36 @@ static int testOwnedReadResults(void)
     if (!xl6IrVerifyOwnedReadResults(&module, NULL)) return 0;
     nodes[0].kind = XL6_IR_NODE_NAME; type.cAbi = XL6_IR_C_ABI_CLOSURE_PTR;
     nodes[0].namedCallableAbi = XL6_IR_NAMED_CALLABLE_CAPTURE_FREE_ADAPTER;
-    if (xl6IrVerifyOwnedReadResults(&module, NULL)) return 0;
+    /* Adapter materialization has a construction effect, independent of the
+     * ownership fields deliberately mutated below. */
+    if (!xl6IrRefreshConstructionAbis(&module)) return 0;
+    if (!testRejectOwnedReadResult(&module)) return 0;
     nodes[0].valueCategory = XL6_IR_VALUE_RVALUE;
     nodes[0].ownership = XL6_IR_OWNERSHIP_MOVE; nodes[0].ownershipPlanned = 1;
+    nodes[0].evaluationErrorAbi = xl6IrTypeReleaseEffect(&module,1) == XL6_IR_RELEASE_EFFECT_MAY_RAISE
+        ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_INVALID;
     if (!xl6IrVerifyOwnedReadResults(&module, NULL)) return 0;
     nodes[0].namedCallableAbi = XL6_IR_NAMED_CALLABLE_NONE;
+    if (!xl6IrRefreshConstructionAbis(&module)) return 0;
+    nodes[0].evaluationErrorAbi = XL6_IR_ERROR_ABI_INVALID;
     nodes[0].ownership = XL6_IR_OWNERSHIP_BORROW;
     nodes[0].valueCategory = XL6_IR_VALUE_LVALUE;
     if (!xl6IrVerifyOwnedReadResults(&module, NULL)) return 0;
     nodes[0].memberAbi = XL6_IR_MEMBER_ABI_CLASS_FIELD_CLOSURE;
-    if (xl6IrVerifyOwnedReadResults(&module, NULL)) return 0;
+    nodes[0].projectionErrorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
+    if (!testRejectOwnedReadResult(&module)) return 0;
     nodes[0].valueCategory = XL6_IR_VALUE_RVALUE;
     nodes[0].ownership = XL6_IR_OWNERSHIP_MOVE;
+    nodes[0].evaluationErrorAbi = xl6IrTypeReleaseEffect(&module,1) == XL6_IR_RELEASE_EFFECT_MAY_RAISE
+        ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_INVALID;
     if (!xl6IrVerifyOwnedReadResults(&module, NULL)) return 0;
     nodes[0].memberAbi = XL6_IR_MEMBER_ABI_NONE;
+    nodes[0].projectionErrorAbi = nodes[0].evaluationErrorAbi = XL6_IR_ERROR_ABI_INVALID;
     nodes[0].ownership = XL6_IR_OWNERSHIP_BORROW;
     nodes[0].valueCategory = XL6_IR_VALUE_LVALUE;
     nodes[0].kind = XL6_IR_NODE_INDEX; nodes[0].sourceKind = XL6_AST_INDEX;
     nodes[0].childCount = 2; type.cAbi = XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
-    if (xl6IrVerifyOwnedReadResults(&module, NULL)) return 0;
+    if (!testRejectOwnedReadResult(&module)) return 0;
     nodes[0].valueCategory = XL6_IR_VALUE_RVALUE;
     nodes[0].ownership = XL6_IR_OWNERSHIP_MOVE; nodes[0].ownershipPlanned = 1;
     return xl6IrVerifyOwnedReadResults(&module, NULL) &&
@@ -211,6 +239,7 @@ static int testCollectionReadAbi(void)
     types[0].nullAbi = XL6_IR_NULL_ABI_XVALUE_SENTINEL;
     types[1].cAbi = XL6_IR_C_ABI_I64;
     types[1].ownershipAbi = XL6_IR_OWNERSHIP_ABI_TRIVIAL;
+    types[1].integerTarget = XL6_IR_INTEGER_TARGET_SIGNED_64;
     module.types.items = types; module.types.count = 2;
     module.instructions = definitions; module.instructionCount = 2;
     module.operands = operands; module.operandCount = 2;

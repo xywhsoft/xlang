@@ -576,7 +576,7 @@ if (!(Read-Utf8 'test/cases/xlir_continuation_owner_test.h').Contains('xlir_synt
     !(Read-Utf8 'test/cases/xlir_owner_fault_runtime.h').Contains('xrtMemDebugFailTriggered')) {
     throw 'Synthetic IR arena edits and real allocation-fault checks must remain shared test infrastructure'
 }
-if (!(Read-Utf8 'src/cgen/xl6_ir_cgen_async_instruction.c').Contains('suspension->firstHandoffAction') -or
+if (!(Read-Utf8 'src/cgen/xl6_ir_cgen_async_machine.c').Contains('suspension->firstHandoffAction') -or
     (Read-Utf8 'src/cgen/xl6_ir_cgen_async_instruction.c').Contains('module->asyncLiveSlots') -or
     !$header.Contains('XL6_IR_ASYNC_FRAME_ACTION_HANDOFF_RESIDENT') -or
     !$source.Contains('"handoff-resident"')) {
@@ -585,7 +585,7 @@ if (!(Read-Utf8 'src/cgen/xl6_ir_cgen_async_instruction.c').Contains('suspension
 if (!$header.Contains('XL6_IR_ASYNC_FRAME_ACTION_ROLLBACK_HANDOFF_RESIDENT') -or
     !$header.Contains('setupFailureEntry') -or
     !$source.Contains('XLIR async setup failure has no exact failed-await entry') -or
-    !(Read-Utf8 'src/cgen/xl6_ir_cgen_async_instruction.c').Contains('suspension->firstRollbackAction') -or
+    !(Read-Utf8 'src/cgen/xl6_ir_cgen_async_machine.c').Contains('suspension->firstRollbackAction') -or
     !(Read-Utf8 'src/cgen/xl6_ir_cgen_async_contract.c').Contains('suspension->setupFailureEntry')) {
     throw 'Async setup failure must use a verified failed-await entry and explicit resident rollback'
 }
@@ -860,7 +860,7 @@ if (!$header.Contains('XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V3') -or
     !$asyncStorage.Contains('XL6_OWNERSHIP_RETURN_VOID(xrtFree(data))') -or
     $asyncFrameEmitter.Contains('xrtFree(frame);') -or $asyncInstructionEmitter.Contains('xrtFree(next);') -or
     !$asyncFrameEmitter.Contains('xlir_async_frame_allocate(sizeof(*frame), &xlir_async_machine_storage_') -or
-    !$asyncInstructionEmitter.Contains('xlir_async_frame_allocate(sizeof(*next), &xlir_async_machine_storage_') -or
+    !$asyncInstructionEmitter.Contains('next = xlir_async_machine_allocate_%u()') -or
     !$asyncFrameEmitter.Contains('XL6_ContinuationFrameLayoutV3') -or
     $asyncFrameEmitter.Contains('xlir_async_machine_frame_trace_') -or
     !(Read-Utf8 'src/runtime/xl6_continuation_frame.c').Contains('xl6ContinuationFrameOwnershipAdapterV1') -or
@@ -6483,7 +6483,9 @@ if (!(Read-Utf8 'src/cgen/xl6_ir_cgen_type_call.c').Contains('projection_ok_') -
 $finalizerRuntime = Read-Utf8 'src/runtime/xl6_code_finalizer.c'
 $nativeWrapper = [regex]::Match((Read-Utf8 'src/api/xl_api.c'),
     '(?s)static int xlBuildCSourceWrapperText\(.*?\n\}').Value
-if (!$nativeWrapper.Contains('#include <__xl_runtime/xruntime_decl.h>') -or $nativeWrapper.Contains('#include \"xrt.h\"')) {
+if (!$nativeWrapper.Contains('xl6OutputPuts(xlNativeCPreamble, &out)') -or
+    !(Read-Utf8 'src/api/xl_api.c').Contains('static const char xlNativeCPreamble[] = "#include <__xl_runtime/xruntime_decl.h>\n";') -or
+    $nativeWrapper.Contains('#include \"xrt.h\"')) {
     throw 'Native sidecars must start from the canonical declaration ABI, not preselected implementation guards'
 }
 foreach ($required in @('xrtValueObjectFinalizerBindOwned','code_finalizer_trace','code_finalizer_invoke',
@@ -6503,14 +6505,16 @@ $moduleTrace = Read-Utf8 'src/cgen/xl6_ir_cgen_module_trace.c'
 if (!$moduleTrace.Contains('moduleTraceAbi') -or !$moduleTrace.Contains('xl6IrCgenOwnershipView') -or
     !$moduleTrace.Contains('explicit opaque global storage') -or
     !$moduleTrace.Contains('xl6NetworkServiceRuntimeV2Get()->Trace') -or
-    !(Read-Utf8 'src/api/xl_api.c').Contains('xrtNetEngineOwnershipAdapterV1') -or
-    !(Read-Utf8 'src/api/xl_api.c').Contains('xrtNetResolverOwnershipAdapterV1')) {
+    !(Read-Utf8 'src/runtime/xl6_ownership_domain_network.c').Contains('xrtNetEngineOwnershipAdapterV1') -or
+    !(Read-Utf8 'src/runtime/xl6_ownership_domain_network.c').Contains('xrtNetResolverOwnershipAdapterV1') -or
+    !(Read-Utf8 'src/api/xl_api.c').Contains('xl6OwnershipCatalogProbeV1')) {
     throw 'Module tracing must consume explicit physical slots and refuse unknown owners'
 }
 foreach ($file in @('src/runtime/xl6_code_lease.c','src/runtime/xl6_continuation_queue.c','src/cgen/xl6_ir_cgen_code_owner.c')) {
     if (!(Read-Utf8 $file).Contains('xl6CodeOwnerGraphOps')) { throw "Code-owner graph capability is not propagated: $file" }
 }
-if (!(Read-Utf8 'src/api/xl_api.c').Contains('module->ownershipTrace == NULL') -or
+if (!(Read-Utf8 'src/api/xl_api.c').Contains('!candidate->ownershipTrace') -or
+    !(Read-Utf8 'src/api/xl_api.c').Contains('return XL6_OWNERSHIP_ADMISSION_REFUSED') -or
     !(Read-Utf8 'src/runtime/xl6_continuation_queue.c').Contains('successor->codeLease = predecessor->codeLease')) {
     throw 'Missing module descriptors must refuse inspection and successor ownership must transfer once'
 }
