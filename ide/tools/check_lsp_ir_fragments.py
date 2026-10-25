@@ -49,7 +49,7 @@ def main():
             else:assert value['activeParameter']==1 and value['signatures'][value['activeSignature']]['label']=='choose(int left, string right) as int'
         cases.append(dict(method=method,target=index,version=version,analysis=analysis));return analysis
     try:
-        c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1);init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.62';c.send('initialized',{})
+        c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1);init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.63';c.send('initialized',{})
         original=source()
         for p in paths:c.open(p,original,1)
         a=call(0,original,1);cold=a['irFragments'];assert cold['captured']>0 and not cold['reused'] and not cold['textNodes']
@@ -71,8 +71,10 @@ def main():
         c.change(paths[0],original,8);restored=call(0,original,8);assert restored['irFragments']['reused']>0
         local=source(3);c.change(paths[0],local,9);inserted=call(0,local,9)
         assert inserted['irFragments']['reused']>=6 and inserted['irFragments']['textNodes']>0,inserted
+        assert inserted['semanticFunctionsReused']-restored['semanticFunctionsReused']>=6,inserted
         c.change(paths[0],original,10);removed=call(0,original,10)
         assert removed['irFragments']['reused']>=6 and removed['irFragments']['textNodes']>0,removed
+        assert removed['semanticFunctionsReused']-inserted['semanticFunctionsReused']>=6,removed
         for method in ['textDocument/completion','textDocument/signatureHelp']:
             call(0,original,10,method=method);call(0,original,10,method=method)
         c.send('textDocument/didClose',dict(textDocument=dict(uri=paths[0].as_uri())))

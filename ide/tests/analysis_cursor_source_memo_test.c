@@ -67,6 +67,23 @@ static int scenario(unsigned mode)
   else {initial=xlsSemanticCompletionRetain(result);initialJson=xlsSemanticCompletionJson(initial,NULL);CHECK(initialJson);}
   char* retained=xlsSemanticCompletionJson(initial,NULL);CHECK(retained && !strcmp(retained,initialJson));xlsSemanticStringFree(retained);xlsSemanticCompletionDestroy(result);xrtStrBufFree(&source);
  }
+ /* An early sibling gains/removes declarations while the projected query
+  * stays in the trailing function. Both opened and closed-entry routes must
+  * bind current local IDs and preserve complete fresh marker/type facts. */
+ for(unsigned i=0;i<8;++i){
+  const char* base=start.Data;const char* point=strstr(base,"func helper_0(");CHECK(point);point=strstr(point," if local>0 then\r\n");CHECK(point);
+  xstrbuf changed={0};CHECK(xrtStrBufAppend(&changed,(xstrview){base,(size_t)(point-base)}));
+  for(unsigned j=0;j<1+i%3;++j)CHECK(xrtStrBufAppendFormat(&changed," int inserted_%u = local+%u\r\n",j,j));
+  /* Every source starts from the original fixed helper prefix;no cumulative
+   * additions or numeric offset chains are used by this test. */
+  const char* tail=strstr(start.Data,"func helper_0(");CHECK(tail);tail=strstr(tail," if local>0 then\r\n");CHECK(tail);
+  CHECK(xrtStrBufAppend(&changed,xrtStrView(tail)) && xrtStrBufAppend(&changed,xrtStrView(mode==2?"func main(...) as int\r\n":"export func compute(int value) as int\r\n")) &&
+   xrtStrBufAppend(&changed,xrtStrView(" int completionLocal = 7\r\n return completionLocal\r\nend\r\n")) && set(&docs[0],changed.Data));
+  offset=at(changed.Data,"return completionLocal",strlen("return completionLoc"));
+  xls_semantic_completion* r=xlsCompletionSessionQueryInContext(session,context,docs,count,target,"left",offset,NULL,NULL,NULL,0);CHECK(parity(r,context,actualEntry,docs,count,left,offset));
+  if(i)CHECK(xlsSemanticCompletionSemWork(r).reused>=helpers-1);
+  xlsSemanticCompletionDestroy(r);xrtStrBufFree(&changed);
+ }
  /* A previously memoized sibling becomes the active query; original source
   * is valid without the projection, so later functions still check normally. */
  const char* text=xlsTextData(docs[0].text),*helper=strstr(text,"func helper_7(");CHECK(helper);const char* selected=strstr(helper,"return local");CHECK(selected);offset=(size_t)(selected-text)+strlen("return loc")-3;++docs[0].revision;

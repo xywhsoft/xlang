@@ -1,5 +1,6 @@
 #include "analysis/check_session.h"
 #include "analysis/frontend_internal.h"
+#include "analysis/frontend_entry_cache.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
@@ -74,6 +75,56 @@ static char* source(unsigned value,int extra,int before)
     }
     if(!before) okay=okay && xrtStrBufAppendFormat(&body,main,value,extra ? " int extra = 1\r\n // changed line\r\n" : "");
     char* result=okay ? xrtStrDup(body.Data) : NULL; xrtStrBufFree(&body); return result;
+}
+static char* symbolSource(unsigned declarations,unsigned value)
+{
+    char* base=source(value,0,1);if(!base)return NULL;const char* at=strstr(base," return changed\r\n");
+    xstrbuf text={0};int okay=at && xrtStrBufAppend(&text,(xstrview){base,(size_t)(at-base)});
+    for(unsigned i=0;okay && i<declarations;++i)okay=xrtStrBufAppendFormat(&text," int inserted_%u = changed+%u\r\n",i,i);
+    okay=okay && xrtStrBufAppend(&text,xrtStrView(at));char* result=okay ? xrtStrDup(text.Data) : NULL;xrtStrBufFree(&text);xrtFree(base);return result;
+}
+typedef struct symbol_reader {const char* path;char* source;xls_semantic_check* previous;unsigned passed;} symbol_reader;
+static int32 symbolRead(void* user)
+{
+    symbol_reader* r=user;xls_analysis_document doc={"entry",r->path,NULL,900,1};
+    doc.text=xlsTextCreate(r->source,strlen(r->source),8u*1024u*1024u,NULL);CHECK(doc.text);
+    xls_entry_cache* cache=xlsEntryCacheCreate(32u*1024u*1024u);CHECK(cache);
+    xls_semantic_input input={r->path,r->source,strlen(r->source)};xls_sem_storage_control storage;xlsFrontendSemStorageBegin(&storage,0);
+    xls_semantic_check* result=xlsSemanticCheckCreateCachedInContext(NULL,cache,r->path,&input,1,1,NULL,r->previous,NULL,NULL,NULL,0);
+    xlsFrontendSemStorageEnd(&storage,NULL);CHECK(result && fresh(result,&doc,1));
+    CHECK(xlsSemanticCheckWork(result).functionsReused==60 && xlsSemanticCheckWork(result).functionsChecked==1);
+    xlsSemanticCheckDestroy(result);xlsEntryCacheDestroy(cache);xlsTextRelease(doc.text);r->passed=1;return 0;
+}
+static int symbolLineage(void)
+{
+    char* path=xrtPathAbs("memo-symbol-lineage-中文.xl");xls_check_session* session=xlsCheckSessionCreate(NULL);CHECK(path && session);
+    const unsigned counts[]={0,1,3,2,0,2,1,0,3,1,2,0};xls_analysis_document doc={"entry",path,NULL,900,0};
+    xls_semantic_check* held[4]={0};xls_analysis_document previous[4]={0};size_t kept=0;
+    for(unsigned i=0;i<sizeof(counts)/sizeof(*counts);++i){
+        char* body=symbolSource(counts[i],i);CHECK(body);xls_sem_storage_control storage;xlsFrontendSemStorageBegin(&storage,i%3 ? 64u*1024u*1024u : 0);
+        xls_semantic_check* result=update(session,&doc,1,body);xlsFrontendSemStorageEnd(&storage,NULL);CHECK(result && fresh(result,&doc,1));
+        if(i)CHECK(xlsSemanticCheckWork(result).functionsChecked==1 && xlsSemanticCheckWork(result).functionsReused==60);
+        if(i%3==0){CHECK(kept<4);held[kept]=xlsSemanticCheckRetain(result);previous[kept]=doc;previous[kept++].text=xlsTextRetain(doc.text);}
+        xlsSemanticCheckDestroy(result);xrtFree(body);
+    }
+    CHECK(kept==4);symbol_reader readers[4];xthread* threads[4];
+    for(unsigned i=0;i<4;++i){readers[i]=(symbol_reader){path,symbolSource(i,100+i),held[0],0};CHECK(readers[i].source);threads[i]=xrtThreadCreate(symbolRead,&readers[i],0);CHECK(threads[i]);}
+    for(unsigned i=0;i<4;++i){CHECK(xrtThreadWait(threads[i])==XWAIT_OK && readers[i].passed);xrtThreadDestroy(threads[i]);xrtFree(readers[i].source);CHECK(fresh(held[i],&previous[i],1));xlsSemanticCheckDestroy(held[i]);xlsTextRelease(previous[i].text);}
+    xlsTextRelease(doc.text);xlsCheckSessionDestroy(session);xrtFree(path);return 1;
+}
+static int symbolBarrier(void)
+{
+    char* path=xrtPathAbs("memo-symbol-class-boundary.xl");xls_check_session* session=xlsCheckSessionCreate(NULL);CHECK(path && session);xls_analysis_document doc={"entry",path,NULL,901,0};
+    for(unsigned i=0;i<3;++i){
+        xstrbuf source={0};CHECK(xrtStrBufAppend(&source,xrtStrView("func lead(int value) as int\n")));
+        if(i)CHECK(xrtStrBufAppend(&source,xrtStrView(" int inserted = value\n")));
+        CHECK(xrtStrBufAppendFormat(&source," if value > %u\n return value\n end\n return 0\nend\nclass Box\n int item\nend\nfunc read(Box value) as int\n return value.item\nend\nfunc stable(int value) as int\n if value > 0\n return value\n end\n return 0\nend\n",i));
+        xls_semantic_check* result=update(session,&doc,1,source.Data);CHECK(result && fresh(result,&doc,1));
+        if(i==1)CHECK(!xlsSemanticCheckWork(result).functionsReused);
+        if(i==2)CHECK(xlsSemanticCheckWork(result).functionsReused>=1);
+        xlsSemanticCheckDestroy(result);xrtStrBufFree(&source);
+    }
+    xlsTextRelease(doc.text);xlsCheckSessionDestroy(session);xrtFree(path);return 1;
 }
 static int corpus(const char* prefix,const char* edited,const char* replacement,size_t expectedChecks)
 {
@@ -203,7 +254,7 @@ static int run(void)
         xls_semantic_check* result=update(session,docs,1,body); CHECK(result && fresh(result,docs,1));
         xls_check_semantic_work work=xlsSemanticCheckWork(result);
         if(i==1 || i>=3) CHECK(work.functionsChecked==1 && work.functionsReused==60);
-        if(i==2) CHECK(work.functionsChecked==61 && !work.functionsReused); /* numbering changed; recheck suffix */
+        if(i==2) CHECK(work.functionsChecked==1 && work.functionsReused==60); /* actual local IDs rebound */
         xlsSemanticCheckDestroy(result); xrtFree(body);
     }
     xls_semantic_check* result=update(session,docs,1,"func helper() as int\n return 1\nend\nfunc main(...) as int\n return \"bad\"\nend\n");
@@ -240,7 +291,7 @@ static int run(void)
     reader readers[4]; xthread* threads[4];
     for(unsigned i=0;i<4;++i) { readers[i]=(reader){i,0}; threads[i]=xrtThreadCreate(parallel,&readers[i],0); CHECK(threads[i]); }
     for(unsigned i=0;i<4;++i) { CHECK(xrtThreadWait(threads[i])==XWAIT_OK && readers[i].passed); xrtThreadDestroy(threads[i]); }
-    CHECK(multiSource(0) && multiSource(1));
+    CHECK(multiSource(0) && multiSource(1) && symbolLineage() && symbolBarrier());
     return 1;
 }
 int main(void)

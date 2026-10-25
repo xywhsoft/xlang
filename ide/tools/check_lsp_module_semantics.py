@@ -129,6 +129,16 @@ def main():
                 repaired = checked(client, left, 13)
                 assert repaired['ok'] and not repaired['count'], repaired
                 done('signature-change-error-and-repair-use-original-checker')
+                at=bodies[0].index(' if local > 0 then\r\n')
+                local=bodies[0][:at]+' int inserted = local+1\r\n'+bodies[0][at:]
+                client.change(left,local,14)
+                inserted=checked(client,left,14)
+                assert inserted['ok'] and inserted['analysis']['semanticFunctionsReused']-repaired['analysis']['semanticFunctionsReused']>=6,inserted
+                done('member-local-insertion-rebinds-unchanged-function-facts',analysis=inserted['analysis'])
+                client.change(left,bodies[0],15)
+                repaired=checked(client,left,15)
+                assert repaired['ok'] and repaired['analysis']['semanticFunctionsReused']-inserted['analysis']['semanticFunctionsReused']>=6,repaired
+                done('member-local-removal-preserves-current-cross-member-facts',analysis=repaired['analysis'])
                 before = repaired['analysis']['semanticContextHits']
                 client.send('textDocument/didClose', dict(textDocument=dict(uri=left.as_uri())))
                 client.open(left, bodies[0], 1)
@@ -139,7 +149,7 @@ def main():
             finally:
                 client.stop()
                 assert client.process.returncode == 0
-        assert len(cases) == 12 and all(sha(p) == h for p, h in protected.items())
+        assert len(cases) == 16 and all(sha(p) == h for p, h in protected.items())
         report['status'] = 'passed'
     finally:
         (output/'result.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf8')

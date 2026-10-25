@@ -1536,3 +1536,34 @@ prepare_native_sem 除既有语义 C／类型注册表守卫外，显式审核�
 签名夹具本轮实际 39,471 项；其 worker 就绪轮询也调用 CHECK，因此总数随调度变化。夹具源文件和全部断言条件未修改，原始 producer／原型日志及源码计数审查保留。
 
 证据 build/lsp-next-20261022/m7a2b29a-result.json，外部 m7a2b29a-ea6543d5／component-v1。下一步处理 semantic memo 的编号区间与类型安全重放，并推进持久模块／xlp 归属、语义 IR／增量 pass／验证；随后继续剩余适用 LSP、静态检查／类型恢复、IDE 输入准备与配置、native C／资源、整个模型和暂存预算、100k／并行／soak／最终发行验收。发布 5241 文件保持，整体 goal active。
+
+
+## M7a2b30a：原生分配证明与语义缓存编号重放（0.63）
+
+前部函数增删局部声明时，编译器按检查顺序分配的后续符号编号会整体移动。0.63 在缓存恢复层记录原分配器的真实调用，以函数源码路径、已知且包含于函数的声明范围证明局部分配区间；原分配器正文、分配顺序、错误行为均不改。原生只有实体预分配和 scope 声明两处调用，模块预声明后才开始逐个函数检查；该边界的 symbolFloor 与完整上下文一起保留。
+
+不可变单元保存首次捕获的区间起点／终点和归属证明，每个当前视图保留自己的实际区间；从原始单元直接映射当前编号，不累加历代偏移。预声明编号精确保持；区间内编号须有真实原分配器的来源证明；其他动态编号拒绝。事实的 symbol／declared／target／compound 和克隆的 inferred／declared type 子树全部在私有暂存区验证并重新绑定，成功后才发布 AST 字段及分配器计数。克隆池失败重试会恢复完整回调状态；共享空间不足而重新捕获时，记录当前事实对应的当前起点，避免将已重绑定事实误标为旧来源。
+
+跨版本发生过编号变化的状态在本次模块检查中保持，后续偶然重新对齐不能消除它。类型起止计数仍精确，class／extern／type 等非函数边界保守停用后续恢复；IMPORT 已展开，原最后检查阶段跳过它，可以跨该只读节点。未知声明来源、非本地动态事实、类型／形状／坐标／查询状态／资源不成立均运行原检查器。完整模块类型／region 注解、IR pass、验证器和独立 fresh 路径全部保留。
+
+观察器只有栈上标量和 TLS，不分配新日志或符号数据库；保留 compiler XRT 的现有容器、类型森林、克隆池和所有权。64 MiB semantic memo、8 MiB key 等原局部预算仍按新结构大小计费，不代表整个模型或瞬时内存预算已完成。外部 C／compiler XRT、未来 opaque xlc.dll，无 DAP／运行态补全边界保持。本轮的局部分配证明也不等于持久模块／全局稳定符号及类型系统完成。
+
+首轮 component-v1 的完整回归和计时保留；普通编辑存在回退。审查发现 symbolsChanged 为 0 时仍进入无效果的四字段绑定循环；Bind 此时无条件成功且不读写编号。最终 component-v2 显式跳过这两类空循环，其他证明和失败门保持，再完整重建／回归／计时，没有源码桥接。
+
+最终 component-v2 冻结 1079 输入，137 个 native 对象完整重编，60 夹具／61 PE／62 outputs／65 AST17 消费者／54 core members、324 个实际 native 输入通过。1289 项 semantic memo 检查包括连续 12 轮 0／1／2／3 声明增删、保留旧版本、零克隆池和四线程共享同一旧结果的完整 fresh AST／index／IR 对照；class 边界及之后的原编号恢复也覆盖。2406 项 cursor-source 检查包含打开／关闭入口、导入查询及完整 marker／类型事实匹配。
+
+独立诊断 TU 包含同一生成的原生语义编译器，2040 项直接对照原分配器返回值和错误，覆盖未知／外国／范围外声明、编号溢出、永久失效、嵌套上下文和四线程 TLS。正常产品没有诊断开关。939 IR memo／11,997 IR scan／185 cancel／39,472 signature／12,995 worker fault 与 1008 实际取消门保持。签名夹具把 worker 就绪轮询也计入 CHECK，总数随调度变化，保留实际 producer 总数，不据此删改任何条件。
+
+35 协议套件 944 场景、18 实际 IDE／旧 0.4 回退通过。跨成员新增插入／移除场景各在打开／关闭入口执行；现有 IR 声明编辑同时断言真实语义复用。106 GUI 对象依真实 .d 和 10 个受影响对象的完整 C token 证明复用，35 程序保持。
+
+另外，未插桩的 0.62／0.63 正常 core archive 各执行两个档位的七轮声明编辑及保留原版本：共 32 次完整 AST、逐条 native index 全字段／canonical 字符串／三组范围、报告及 IR 对照。大档事实为 97,850–97,865 条，均完整匹配，未使用有规模上限的旧 JSON index 作为 oracle。0.63 大档编辑仅检查 4 个函数、复用 512；0.62 每轮检查 516、复用 0。这个对照验证正确性和实际工作量，未用于生产计时。
+
+大档 xlang/check 局部声明编辑 P50／P95／P99：1038.012 / 1081.275 / 1098.145→866.921 / 910.221 / 916.278 ms。
+
+大档 textDocument/completion 局部声明编辑 P50／P95／P99：560.689 / 591.826 / 621.932→390.454 / 441.770 / 444.953 ms。
+
+大档 textDocument/signatureHelp 局部声明编辑 P50／P95／P99：665.758 / 802.102 / 808.181→437.688 / 495.020 / 497.449 ms。
+
+本轮 P95 回退也保留：editSummary:96/xlang/check P95 82.264→83.670 ms；editSummary:96/textDocument/signatureHelp P95 64.145→66.376 ms；editSummary:512/xlang/check P95 702.570→772.951 ms；regionSummary:512 P95 813.208→836.096 ms；steadyTrailingSummary:96/textDocument/completion P95 32.444→52.036 ms；rpcSummary:96/2/xlang/check P95 13.601→14.494 ms；rpcSummary:512/2/xlang/check P95 79.870→85.676 ms；rpcSummary:512/2/textDocument/completion P95 2.242→2.619 ms；GUI 96/2 P95 10.059→10.126 ms；GUI 512/1 P95 269.149→274.959 ms；GUI 512/2 P95 10.095→10.725 ms；GUI 512/3 P95 14.108→14.491 ms。
+
+证据 build/lsp-next-20261022/m7a2b30a-result.json，外部 m7a2b30a-4bffa57d／component-v2。下一步推进持久模块／xlp 归属和稳定全局符号／类型，减少准备、import／stdlib、全模型克隆和全量 index／IR pass／验证的重复成本；保留完整原规则和 fresh 对照，再继续剩余适用 LSP、静态检查／类型恢复、IDE 输入准备与配置、native C／资源、整个模型及暂存预算、100k／并行／soak／最终发行。发布 5241 文件保持，整体 goal active。
