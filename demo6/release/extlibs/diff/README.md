@@ -1,5 +1,12 @@
 # diff
 
+2026-10-26 当前发布物复验：Windows 默认 `test/check.ps1` 与 Linux
+`test/check.sh` 均通过。两平台的 C 单文件范例 `xl build` 独立 EXE
+与 GCC、TCC、XLang JIT/AOT 固定输出一致；Linux 新增语言边界与
+公开范例 AOT，保留 C ASan/UBSan 与线程门禁。旧共享快照缺符号
+不再阻断完整范例。签收范围仅是下述有界行级 LCS，非 unified patch
+或大文件流式 diff。
+
 2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 通过严格 GCC、
 C 边界及线程、XLang 核心与边界、双语固定输出，并构建运行公开范例
 和包内边界两个独立 EXE；边界 AOT 输出固定为 `diff boundaries: PASS`。
