@@ -1,0 +1,22 @@
+{
+  "repository": "xrt",
+  "revision": "2d1c55d77b879d8ef7081c7a6d2465f827e89325",
+  "files": {
+    "xacme.h": {
+      "source": "single/extlibs/xacme.h",
+      "sha256": "b4175946829b1a31ef35fd3300225ec80b5db7db90bb7bb54e774a5ad45ef9c5"
+    },
+    "xacme_decl.h": {
+      "source": "single/extlibs/xacme_decl.h",
+      "sha256": "69717b8a1c0b6f0ab87e6a0c8986171673180332ba74d50ddb8abbd4cc2c612d"
+    },
+    "modules.json": {
+      "source": "extlibs/xacme/config/modules.json",
+      "sha256": "4431b376c8b7d21a4df8cbc1cc629e2863ee886eab0e7809b6b5cf937a6fc642"
+    },
+    "wait-arithmetic.h": {
+      "source": "include/xrt/wait.h (arithmetic only)",
+      "sha256": "3117f3b90dc7d6c2c7a3787591148774ecc116f1506149a9ff0607e8fea4cb53"
+    }
+  }
+}
