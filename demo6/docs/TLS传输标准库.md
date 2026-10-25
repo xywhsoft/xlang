@@ -1,14 +1,15 @@
 # TLS 传输标准库
 
 本页描述驻留运行时上的默认 `TlsStream`／`TlsServer` 接口，不代表 TLS
-全部任务已经封板。高级会话元数据、动态回调、恢复票据和最终发布验收仍
-单独推进。旧 `TlsConfig`、旧 WebSocket TLS 接管不是本页接口的一部分。
+全部任务已经封板。已提供不可变会话元数据和类型化服务端身份选择；
+恢复票据、传输 KeyUpdate 和最终发布验收仍单独推进。
+旧 `TlsConfig`、旧 WebSocket TLS 接管不是本页接口的一部分。
 
 ## 对象与配置
 
 - `NetEngine` 显式管理网络工作线程、后端和拥有图；不会为每次连接创建隐藏 Engine。
 - `TlsClientContext` 包含不可变参数、验证器、信任快照和 ALPN 配置。
-- `TlsServerContext` 包含不可变参数、身份和 ALPN 配置。它不能冒充客户端上下文。
+- `TlsServerContext` 包含不可变参数、静态身份或类型化身份选择器及 ALPN 配置。它不能冒充客户端上下文。
 - `TlsStreamOptions` 设置握手、关闭与异步资源预算。
 - `TlsDialOptions` 设置 Resolver/TCP 参数、TLS 参数、SNI 和验证名称。
 - `TlsStream` 是真实的受管理 TLS 连接，保持实际 Engine 的生命周期。
@@ -215,7 +216,7 @@ bytes 保存，保留 NUL 和非 UTF-8 字节，返回的 bytes 独立于请求�
 
 上述两批是前置验收的历史状态。后续已实现默认标准库的
 `TlsServerRequest`、`TlsServerChoice` 和类型化 `TlsServerContext` 选择器，
-先接入内存 `TlsSession`；组合 `TlsListener` 的动态绑定仍待完成。
+先接入内存 `TlsSession`，再接入组合 `TlsServer`／`tls.listen`。
 精确 API、拥有图、效果与验收边界见
 [TLS 类型化服务端选择器](TLS类型化服务端选择器.md)。
 不能将 Session 的局部接入视为组合传输、票据恢复或发布封板完成。
