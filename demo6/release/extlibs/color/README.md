@@ -93,9 +93,11 @@ bool ok = xcolor_hex(51, 102, 204, output, sizeof(output));
 2026-10-25：独立 oracle 新增 4101 组 `contrast` 亮度比及 4131 组
 `mix` 编码 RGB 插值对照，含短/长 alpha、端点、截断参数和固定种子颜色对；
 与原有转换和命名色合计 26552 项。Windows 严格 C/线程/oracle 均通过，
-随后语言阶段仍受已登记的根目录 VFS 头路径阻断；Linux C
-ASan/UBSan/float-cast、XLang JIT 与双语门禁全部通过。本轮未改颜色实现，
-不能据 Linux JIT 结果推断新版 Linux AOT 已签收。
+随后 Windows 语言阶段仍受已登记的根目录 VFS 头路径阻断；
+Linux C ASan/UBSan/float-cast、XLang JIT 与双语门禁全部通过。
+同日使用当前 Linux 发布版补跑边界、分配故障、基础范例和调色板范例的
+独立 EXE AOT，四条路径全部通过；基础范例与 C 黄金输出一致，调色板
+范例与 JIT 输出一致。本轮未改颜色实现。
 
 - `release/examples/extlibs/color_basic.xl` 与本包 `examples/basic.c` 覆盖全部 21 个 API，
   实现同一组颜色转换及黑/白前景选择，输出与固定的 expected 文件逐字比较。

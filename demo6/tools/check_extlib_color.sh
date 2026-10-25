@@ -51,7 +51,19 @@ timeout 90s release/xl run "$pkg/test/allocations.xl"
 timeout 90s release/xl run release/examples/extlibs/color_basic.xl > "$work/basic_xl.log"
 diff -u "$work/basic.log" "$work/basic_xl.log"
 timeout 90s release/xl run release/examples/extlibs/color.xl > "$work/palette_xl.log"
+for name in boundaries allocations; do
+    timeout 120s release/xl build "$pkg/test/$name.xl" -o "$work/color_$name"
+    timeout 90s "$work/color_$name"
+done
+timeout 120s release/xl build release/examples/extlibs/color_basic.xl \
+    -o "$work/color_basic_xl"
+timeout 45s "$work/color_basic_xl" > "$work/basic_aot.log"
+diff -u "$work/basic.log" "$work/basic_aot.log"
+timeout 120s release/xl build release/examples/extlibs/color.xl \
+    -o "$work/color_palette_xl"
+timeout 45s "$work/color_palette_xl" > "$work/palette_aot.log"
+diff -u "$work/palette_xl.log" "$work/palette_aot.log"
 if [[ -n "${COLOR_DECLARATIONS:-}" ]]; then "$cc" "${flags[@]}" -fsyntax-only "$COLOR_DECLARATIONS"; fi
 snapshot > "$work/inputs.after.sha256"
 diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"
-printf 'color Linux C ASan/UBSan/float-cast and XLang parity gate: PASS\n'
+printf 'color Linux C ASan/UBSan/float-cast, XLang JIT/AOT and parity gate: PASS\n'
