@@ -463,9 +463,9 @@ if not errorlevel 1 (
     echo stdlib_id_net.c unexpectedly imports the legacy private runtime header.
     exit /b 1
 )
-findstr /C:"xrtNetHostNameString(" build\test\stdlib_id_net.c >nul
+findstr /C:"xl6NetHostNameV1(" build\test\stdlib_id_net.c >nul
 if errorlevel 1 (
-    echo stdlib_id_net.c missing xrtNetHostNameString use.
+    echo stdlib_id_net.c missing resident host-name call.
     exit /b 1
 )
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/stdlib_id_net.c\" test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_id_net.exe
@@ -690,7 +690,7 @@ release\xl.exe check test\cases\stdlib_net_engine_trim.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_net_engine_trim.xl --emit build\test\stdlib_net_engine_trim.c
 if errorlevel 1 exit /b 1
-findstr /C:"extern void* xl6_xrt_net_engine_create(int64_t);" build\test\stdlib_net_engine_trim.c >nul
+findstr /C:"xl6NetEngineCreateWorkersV1(" build\test\stdlib_net_engine_trim.c >nul
 if errorlevel 1 (
     echo stdlib_net_engine_trim.c missing resolved network-engine factory ABI.
     exit /b 1
@@ -759,7 +759,7 @@ release\xl.exe check test\cases\stdlib_net_interfaces.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_net_interfaces.xl --emit build\test\stdlib_net_interfaces.c
 if errorlevel 1 exit /b 1
-findstr /C:"extern void* xl6_xrt_net_interfaces_create(void);" build\test\stdlib_net_interfaces.c >nul
+findstr /C:"xl6NetInterfacesCreateV1(" build\test\stdlib_net_interfaces.c >nul
 if errorlevel 1 (
     echo stdlib_net_interfaces.c missing resolved network-interface factory ABI.
     exit /b 1
@@ -769,12 +769,12 @@ if not errorlevel 1 (
     echo raw interface enumeration unexpectedly keeps interface text helpers.
     exit /b 1
 )
-findstr /C:"xl6_net_engine" build\test\stdlib_net_interfaces.c >nul
+findstr /C:"xl6NetEngineCreate" build\test\stdlib_net_interfaces.c >nul
 if not errorlevel 1 (
     echo raw interface enumeration unexpectedly creates a network engine.
     exit /b 1
 )
-findstr /C:"xl6_net_resolver" build\test\stdlib_net_interfaces.c >nul
+findstr /C:"xl6NetResolverCreate" build\test\stdlib_net_interfaces.c >nul
 if not errorlevel 1 (
     echo raw interface enumeration unexpectedly creates a DNS resolver.
     exit /b 1

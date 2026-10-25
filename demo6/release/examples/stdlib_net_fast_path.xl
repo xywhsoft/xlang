@@ -1,39 +1,18 @@
-func require(string name, bool condition)
-    assert condition, name
-end
-
-
-
+// Numeric resolution only; no name service or implicit engine singleton.
 async func run() as int
-    require(
-        "net families",
-        net.familyAny == 0 and net.familyIPv4 == 4 and net.familyIPv6 == 6
-    )
-    require(
-        "net results",
-        net.resultError == -1 and net.resultOk == 0 and
-            net.resultAgain == 1 and net.resultClosed == 2 and
-            net.resultTruncated == 3 and net.resultTimeout == 4 and
-            net.resultCancelled == 5
-    )
-
-    NetAddressList addresses = net.resolveAll("localhost", 8080, net.familyAny)
-    require("resolve all", addresses.count() > 0 and addresses.port(0) == 8080)
-
-    future<NetAddressList> resolving = net.resolveAsync("localhost", 8081, net.familyAny)
-    NetAddressList asyncAddresses = await resolving
-    require("resolve async", asyncAddresses.count() > 0 and asyncAddresses.port(0) == 8081)
-
-    NetResolverStats resolverStats = net.resolverStats()
-    NetEngineStats engineStats = net.stats()
-    require("resolver stats", resolverStats.submitted >= 1 and resolverStats.resolved >= 1)
-    require("engine stats", engineStats.workers > 0)
-
+    auto engine = net.engine(1)
+    engine.start()
+    auto addresses = net.resolveAll("127.0.0.1", 8080, 4)
+    assert addresses.count() == 1 and addresses.port(0) == 8080
+    auto asyncAddresses = await net.resolveAsync("127.0.0.1", 8081, 4)
+    assert asyncAddresses.count() == 1 and asyncAddresses.port(0) == 8081
+    auto resolverStats = net.resolverStats()
+    auto engineStats = net.stats(engine)
+    assert resolverStats.submitted >= 1 and resolverStats.resolved >= 1
+    assert engineStats.workers == 1
+    engine.close()
+    assert engine.wait(5000)
     println("net-fast-path=ok")
     return 0
 end
-
-
-
-int exitCode = await run()
-assert exitCode == 0
+assert await run() == 0

@@ -1,29 +1,27 @@
-async func run() as int
-    UdpSocket sender = udp.bind(0)
-    UdpSocket receiver = udp.bind(0)
-    uint16 port = uint16(receiver.port())
-    Buffer item = Buffer()
-    item.append("x")
-    array invalid = [item, "not a Buffer"]
-    assert not sender.sendVec("127.0.0.1", port, invalid)
-    assert sender.sendBatch("127.0.0.1", port, invalid) == 0
-    array many = [item,item,item,item,item,item,item,item,item,item,item,item,item,item,item,item,item]
-    future<UdpPacket> receiving = receiver.recvAsync()
-    assert sender.sendVec("127.0.0.1", port, many)
-    UdpPacket received = await receiving
-    assert received.text() == "xxxxxxxxxxxxxxxxx"
-    assert not received.truncated()
-    assert item.len() == 1
-    assert sender.sendBatch("127.0.0.1", port, many) == 17
-    int index = 0
-    while index < 17
-        UdpPacket packet = receiver.recv(8000)
-        assert packet.text() == "x"
-        index += 1
-    end
-    assert item.len() == 1
-    println("xlir datagram boundaries ok")
-    return 0
+// Seventeen typed segments cross the old sixteen-entry stack fast path.
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto receiver = udp.bind(engine, NetAddress.loopback())
+assert receiver.wait(UdpWait.open, 5000) == NetStatus.ok
+auto sender = udp.connect(engine, receiver.localAddress())
+assert sender.wait(UdpWait.open, 5000) == NetStatus.ok
+auto item = Buffer(b"x")
+array<Buffer> many = [item,item,item,item,item,item,item,item,item,item,item,item,item,item,item,item,item]
+auto receiving = receiver.recvAsync()
+assert sender.sendVector(many) == NetStatus.ok
+auto received = await receiving
+assert received.bytes() == b"xxxxxxxxxxxxxxxxx" and not received.truncated and item.length == 1
+auto message = UdpMessage(item)
+array<UdpMessage> messages = [message,message,message,message,message,message,message,message,message,message,message,message,message,message,message,message,message]
+auto progress = NetBatchProgress()
+auto status, count = sender.sendBatch(messages, progress)
+assert status == NetStatus.ok and count == 17 and progress.completedCount == 17
+for index in range(17)
+    assert receiver.recv(5000).bytes() == b"x"
 end
-int exitCode = await run()
-assert exitCode == 0
+assert item.length == 1
+sender.close()
+receiver.close()
+engine.close()
+assert engine.wait(5000)
+println("xlir datagram boundaries ok")

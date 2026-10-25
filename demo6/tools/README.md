@@ -2,6 +2,17 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_network_public_shipping.py --root <ordinary-frozen-build> --build-report
+<build.shipping.json> --out <fresh-directory> [--jobs 2]` runs the 18-case
+`network_public_fixtures.json` batch on actual CLI/compiler/runtime products:
+99 stages per OS, compile-once API IR/C/header/JIT/module/AOT/checked retirement,
+strict O0/O2 and relocated standalone output. Only numeric/self-owned loopback
+and local metadata; no public DNS/security tests or source-object replacement.
+`check_core_guard_language_source.py --manifest <cases.json>` accepts the same
+explicit case schema; without it the original 30-positive/4-negative core batch
+is unchanged. Source-cohort results are not ordinary product acceptance.
+See [network migration and close contract](../docs/network-public-migration-2026-10-26.md).
+
 `check_stdlib_crypto_asn1.py --root <fresh-demo6> --out <fresh-directory>` checks
 the first resident crypto/ASN.1/PEM subset against actual DLL/SO products:
 JIT, module relocation, standalone executables, GCC O0/O2, rejected ABI contracts,

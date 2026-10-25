@@ -1,5 +1,5 @@
 async func run() as int
-    future<NetAddressList> resolving = net.resolveAsync("localhost", 8123, net.familyAny)
+    future<NetAddressList> resolving = net.resolveAsync("127.0.0.1", 8123, net.familyIPv4)
     NetAddressList addresses = await resolving
     assert addresses.count() > 0
     assert addresses.port(0) == 8123

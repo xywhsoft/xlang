@@ -91,7 +91,7 @@ def main():
                     for backend,extra in (('select',[]),('native',['native'])):
                         text=run(name+'.'+backend,[binary,*extra],opt=='instrumented')
                         assert all(word in text for word in ('graphs=24 ordinary=3 abandoned=1 deferred=1',
-                            'allocation-budgets=80 failures=12','NUL roundtrip; balanced'))
+                            'allocation-budgets=80 failures=12','NUL roundtrip; balanced','graceful-last-owner=1 abort-wins=1'))
                 except Exception as error:failures.append(dict(Name=name,Error=repr(error)));save()
         domain=root/'src/runtime/xl6_ownership_domain_execution_tcp.c';body=domain.read_text(encoding='utf8')
         controls=[]
@@ -104,6 +104,9 @@ def main():
         wait='if(xrtFutureState(pending)==XFUTURE_PENDING)return XL6_MODULE_PREPARE_BUSY;'
         assert body.count(guard)==1 and body.count(wait)==1
         controls.append(('abandon-pending-accept',resource,body.replace(guard,'').replace(wait,'')))
+        draining='xrtAtomic32Load(&r->closeMode,XMEMORY_ACQUIRE)!=XL6_TCP_CLOSE_GRACEFUL_V1 &&\n        '
+        assert body.count(draining)==1
+        controls.append(('abort-explicit-close-on-last-owner',resource,body.replace(draining,'')))
         for name,original,body in controls:
             try:
                 mutant=out/(name+'.c');mutant.write_text(body,encoding='utf8');product(mutant)

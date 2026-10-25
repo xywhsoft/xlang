@@ -1,14 +1,21 @@
-TcpServer server = tcp.listen(0)
-int port = int(server.port())
-future<TcpStream> accepted = server.acceptAsync()
-TcpStream client = tcp.connect("127.0.0.1", port, 8000)
-TcpStream peer = await accepted
-
-assert client.send("a\0b")
-assert client.drain(8000)
-Buffer payload = peer.recvBytes(8000)
-assert payload.len() == 3
-assert payload[0] == 97 and payload[1] == 0 and payload[2] == 98
-
+// Explicit engine; exact owned bytes, no raw-pointer binary bridge.
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = tcp.listen(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto accepted = listener.acceptAsync()
+auto client = tcp.connect(engine, listener.localAddress())
+auto peer = await accepted
+assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+assert client.send("a\0b") == NetStatus.ok
+bytes payload = b""
+while payload.length < 3
+    auto chunk = await peer.recvAsync(3 - payload.length)
+    assert chunk.length > 0
+    payload = payload + chunk
+end
+assert payload == b"a\0b"
 client.close()
 peer.close()
+listener.close()
+engine.close()
+assert engine.wait(5000)
