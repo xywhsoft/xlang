@@ -32,11 +32,17 @@
 `added` 调用数；随后用 `clear` 验证两个计数复位。固定输出只对应这组
 确定输入，不把近似估计写成普遍的精确去重保证。
 
+2026-10-25：在 WSL 中运行现有 `test/check.sh` 全通过：严格 GCC、
+C 边界与独立实例线程测试的 ASan/UBSan、中央和包内 XLang 用例、
+分配故障、私有方法访问负例，以及 C 分离编译、C 单文件直跑与
+XLang 范例的固定输出对照。本次使用现有 Linux `release/xl` 运行
+脚本，没有重建 Linux 发布版或验收 Linux 独立 EXE。
+
 2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
 严格 C/ABI、大样本统计和合并对照、独立实例线程、XLang 边界、
 故障注入、公开类型与私有方法访问控制、双语固定输出，以及核心/
 公开范例 AOT 全部通过。旧的完整 AOT 共享缺符号属于先前发布物；
-本次未重跑 Linux sanitizer。结果仍是近似估计，不新增精确计数或
+该次未重跑 Linux sanitizer。结果仍是近似估计，不新增精确计数或
 跨版本持久化承诺。
 
 - XLang 范例：`release/examples/extlibs/hyperloglog.xl`
