@@ -97,7 +97,11 @@ try {
     $fileProbe = 'release/extlibs/bz2/test/test_bz2_files.c'
     $null = Check 'file-boundaries-jit' $xl (@('run',$fileProbe) + $sources + $vendorSources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','--',(Join-Path $work ('jit-files-'+[Guid]::NewGuid().ToString('N')))))
     $null = Check 'file-ops-jit' $xl @('run','release/extlibs/bz2/test/file_ops.xl')
+    $null = Check 'text-transfer-jit' $xl @('run','release/extlibs/bz2/test/text_transfer.xl')
     if (!$SkipAot) {
+        $textAot = Join-Path $work 'text-transfer-aot.exe'
+        $null = Check 'text-transfer-aot-build' $xl @('build','release/extlibs/bz2/test/text_transfer.xl','-o',$textAot)
+        $null = Check 'text-transfer-aot' $textAot @()
         $fileAot = Join-Path $work 'file-boundaries-aot.exe'
         $null = Check 'file-boundaries-aot-build' $xl (@('build',$fileProbe) + $sources + $vendorSources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','-o',$fileAot))
         $null = Check 'file-boundaries-aot' $fileAot @((Join-Path $work ('aot-files-'+[Guid]::NewGuid().ToString('N'))))
