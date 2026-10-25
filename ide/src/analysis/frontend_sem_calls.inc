@@ -68,6 +68,7 @@ static int xlsSemCallsReady(xls_sem_call_scope* scope,XL6_SemContext* context)
 }
 static size_t xlsSemCallFirst(XL6_SemContext* context,const char* name)
 {
+    xlsSemReadsName(context,name);
     xls_sem_call_scope* scope=xlsActiveCallScope;size_t first=0;
     if(xlsSemCallsReady(scope,context)) {
         size_t* found=xrtMapGet(&scope->heads,(xbytesview){(const unsigned char*)name,strlen(name)});
@@ -82,4 +83,20 @@ static size_t xlsSemCallNext(XL6_SemContext* context,size_t previous)
     size_t next=xlsSemCallsReady(scope,context) ? scope->index.next[previous] : previous+1;
     if(scope && scope->context==context && next<context->root->childCount)++scope->work.candidateVisits;
     return next;
+}
+static int xlsSemReadHeaderKey(XL6_SemContext* ctx,const char* name,xstrbuf* key,size_t* count)
+{
+    *count=0;if(!ctx || !ctx->root || !name)return 0;
+    xls_sem_call_scope* scope=xlsActiveCallScope;
+    if(!scope || scope->context!=ctx || scope->root!=ctx->root || scope->children!=ctx->root->children || scope->count!=ctx->root->childCount || scope->disabled)return 0;
+    int indexed=xlsSemCallsReady(scope,ctx);
+    /* A refused large auxiliary index must not create a new quadratic path. */
+    if(!indexed && ctx->root->childCount>=64)return 0;
+    size_t first=0;if(indexed){const size_t* at=xrtMapConstGet(&scope->heads,(xbytesview){(const unsigned char*)name,strlen(name)});first=at ? *at : ctx->root->childCount;}
+    for(size_t i=first;i<ctx->root->childCount;i=indexed ? scope->index.next[i] : i+1){
+        const XL6_AstNode* n=ctx->root->children[i];if(!xl6SemIsFuncDecl(n) || !xl6TextEquals(xl6SemFuncName(n),name))continue;
+        if(xlsFrontendCancelPoll() || !xlsSemKeyNode(key,n,1,1))return 0;
+        ++*count;
+    }
+    return 1;
 }

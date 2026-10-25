@@ -46,7 +46,7 @@ CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/d
 HOST_TESTS += CLIENT_TESTS
 HOST_TESTS += ("diagnostic_reverse_fault_test",)
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
-CORE_TESTS = ("analysis_ir_entity_test", "analysis_entity_versions_test", "analysis_entity_binding_test", "analysis_entity_store_test", "analysis_module_graph_test", "analysis_input_topology_test", "analysis_module_store_test", "analysis_process_tree_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_semantic_reads_test", "analysis_ir_entity_test", "analysis_entity_versions_test", "analysis_entity_binding_test", "analysis_entity_store_test", "analysis_module_graph_test", "analysis_input_topology_test", "analysis_module_store_test", "analysis_process_tree_test", *CORE_TESTS)
 CORE_TESTS = ("diagnostic_paths_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_entry_cache_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_import_names_test", *CORE_TESTS)
@@ -215,6 +215,10 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     registry_sha = 'a0c37403f28d8a29ac4589e1dd78344a0d5fa2c8051ba2ead0209b9e0a228583'
     if sha(registry) != registry_sha:
         raise ValueError('shared type registry changed; audit generic identity reservation replay')
+    registry_header = frontend / 'src/sem/xl6_type_registry.h'
+    registry_header_sha = 'f5967cce13c1d6051cf0c5c716e422e2865c69c5fd3451b39cbad95e642cd8a3'
+    if sha(registry_header) != registry_header_sha:
+        raise ValueError('shared type registry fields changed; audit complete observed type records')
     ast = frontend / 'src/ast/xl6_ast.c'
     ast_sha = 'adf07bc08b6e6949fe1bb6095e373d130df205535e9e2fa1662d2cc7b4c65035'
     if sha(ast) != ast_sha:
@@ -234,6 +238,26 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         if source.count(old) != 1:
             raise ValueError('shared semantic memo seam changed; audit: ' + old)
         source = source.replace(old, new)
+    # Observe actual global lookup results and every root-function lookup family.
+    # Original predicates/order/mutations stay in their original bodies.
+    old='static XL6_Symbol* xl6ScopeFindLocal(XL6_Scope* scope, const char* name)\n{'
+    if source.count(old)!=1:raise ValueError('semantic global-name observation seam changed')
+    source=source.replace(old,old.replace('xl6ScopeFindLocal','xlsSemScopeFindLocalOriginal'))
+    read_hooks={'xl6SemFindFunctionValueFunc':'name','xl6SemHasFunctionNamed':'name',
+        'xl6SemFindExplicitGenericFunc':'name',
+        'xl6SemResolveFutureNamedCallbackType':'callbackExpr ? callbackExpr->text : NULL'}
+    for name,arg in read_hooks.items():
+        import re
+        pattern=r'(static [^;{}]*\b'+name+r'\([^;{}]*\)\n\{)'
+        found=list(re.finditer(pattern,source))
+        if len(found)!=1:raise ValueError('semantic declaration read hook changed: '+name)
+        at=found[0].end();source=source[:at]+'\n    xlsSemReadsName(ctx,'+arg+');'+source[at:]
+    old='static int xl6SemCheckExportSymbolUnique(XL6_SemContext* ctx, XL6_AstNode* node)\n{'
+    if source.count(old)!=1:raise ValueError('semantic export visibility observation seam changed')
+    source=source.replace(old,old+'\n    xlsSemReadsUnknown(ctx);')
+    if source.count('xl6TypeRegistryFind(')!=62:
+        raise ValueError('semantic type lookup calls changed; audit declaration read coverage')
+    source=source.replace('xl6TypeRegistryFind(', 'xlsSemReadTypeFind(')
     start = source.index('static int xl6SemCheckOverloadConflicts(XL6_SemContext* ctx)\n{')
     end = source.index('\nstatic int xl6SemIsExternCDecl(', start)
     conflict = source[start:end]
@@ -343,14 +367,15 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
-        change='bounded ordered conflict/completion and root-body call candidates,namespace/alias filters,exact-context function memos and private lazy cursor IR annotations;original predicates/diagnostics and full AST annotations retained on demand;ordinary/fresh eager unchanged',
+        change='bounded ordered conflict/completion and root-body call candidates,namespace/alias filters,original full-context and observed-declaration function memos and private lazy cursor IR annotations;original predicates/diagnostics and full AST annotations retained on demand;ordinary/fresh eager unchanged',
         cancellation='cooperative module/function/statement/expression points; ordinary scope/type/call-index cleanup retained',
         symbolAllocations='observe original allocator unchanged;source/range-proven function interval,immutable origin,current scalar/type-fact staging;predeclared IDs exact,foreign dynamic/type/nonfunction boundaries decline',
-        auditedSeams=len(changes)+len(conflict_changes)+len(completion_changes)+9, memoBytes=64 * 1024 * 1024,
+        auditedSeams=len(changes)+len(conflict_changes)+len(completion_changes)+16, memoBytes=64 * 1024 * 1024,
         deferredRegistryBytes=8 * 1024 * 1024,
         overloadCandidateBytes=8 * 1024 * 1024,
         syntheticTypeOrigins='eight explicit at-node constructors retain original AST source/ranges;original type rules unchanged',
-        auditedDependencies={str(registry): registry_sha, str(ast): ast_sha})
+        observedTypeQueries=62,
+        auditedDependencies={str(registry): registry_sha, str(registry_header):registry_header_sha, str(ast): ast_sha})
 
 
 def prepare_native_stdlib(frontend: Path, output: Path) -> tuple[Path, Path, dict]:

@@ -15,6 +15,7 @@ const XL6_AstNode* xlsSyntaxAst(const xls_syntax* syntax);
 int xlsSyntaxFunctionHeader(const XL6_AstNode* node,size_t* header,size_t* end);
 const XL6_IrModule* xlsSemanticCheckIr(const xls_semantic_check* result);
 const XL6_AstNode* xlsSemanticCheckAst(const xls_semantic_check* result);
+xls_sem_read_work xlsSemanticCheckReads(const xls_semantic_check* result);
 /* Immutable mask in the producing API's overlay order, captured by the
  * original frontend's real lookups. Unknown/incomplete/invalid owners reject.
  * Private sessions additionally prove unchanged membership and mandatory

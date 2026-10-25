@@ -246,6 +246,8 @@ xls_semantic_check* xlsSemanticCheckCreateParsed(const char* entry,
 { return xlsSemanticCheckCreateIncremental(entry,inputs,count,captureIndex,syntax,NULL,cancelled,user,error,capacity); }
 xls_check_semantic_work xlsSemanticCheckWork(const xls_semantic_check* r)
 { return r ? (xls_check_semantic_work){r->semanticWork.checked,r->semanticWork.reused,r->semanticWork.contextHits,r->semanticWork.bytes} : (xls_check_semantic_work){0}; }
+xls_sem_read_work xlsSemanticCheckReads(const xls_semantic_check* r)
+{return r && !invalid(r) && r->accepted ? xlsFrontendSemMemoReads(r->memo) : (xls_sem_read_work){0};}
 const XL6_IrModule* xlsSemanticCheckIr(const xls_semantic_check* r)
 { return r && !invalid(r) && r->accepted ? (r->cachedIr ? xlsFrontendIrResultModule(r->cachedIr) : &r->ir) : NULL; }
 xls_check_ir_work xlsSemanticCheckIrWork(const xls_semantic_check* r)
