@@ -69,6 +69,31 @@ timeout 90s "$xl" run release/examples/extlibs/blake2.xl > "$work/full_xl.log"
 timeout 90s "$xl" run release/examples/extlibs/blake2_basic.xl > "$work/basic_xl.log"
 diff -u release/examples/extlibs/blake2_basic.expected.txt "$work/basic_xl.log"
 diff -u "$work/basic.log" "$work/basic_xl.log"
+printf '[blake2] XLang AOT gate\n'
+for name in extlib_blake2 extlib_blake2_boundaries extlib_blake2_progress vectors blake2 blake2_basic; do
+    printf '[blake2] AOT %s\n' "$name"
+    case "$name" in
+        extlib_*) source="test/cases/$name.xl" ;;
+        vectors) source="$pkg/test/vectors.xl" ;;
+        *) source="release/examples/extlibs/$name.xl" ;;
+    esac
+    timeout 180s "$xl" build "$source" -o "$work/$name"
+    timeout 90s "$work/$name" > "$work/${name}_aot.log"
+done
+diff -u "$work/full_xl.log" "$work/blake2_aot.log"
+diff -u "$work/basic.log" "$work/blake2_basic_aot.log"
+# 私有原生句柄接管构造器只能由包内使用；绝不运行此负例。
+private_case="$pkg/test/private_adopt_constructor_negative.xl"
+if timeout 30s "$xl" check "$private_case" > "$work/private_adopt.log" 2>&1; then
+    cat "$work/private_adopt.log" >&2
+    printf 'BLAKE2 private native-handle constructor is callable outside the package\n' >&2
+    exit 1
+fi
+if ! grep -Eiq 'access|private' "$work/private_adopt.log"; then
+    cat "$work/private_adopt.log" >&2
+    printf 'BLAKE2 expected an access-control diagnostic\n' >&2
+    exit 1
+fi
 sha256sum "${inputs[@]}" > "$work/inputs.after.sha256"
 diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"
-printf 'BLAKE2 Linux C ASan/UBSan and XLang parity gate: PASS\n'
+printf 'BLAKE2 Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'
