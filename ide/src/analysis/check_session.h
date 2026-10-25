@@ -22,7 +22,9 @@ typedef struct xls_check_stats {
  * full semantic/IR verification. Ordinary imports share the bounded parse aid;
  * their source capture and import expansion still run. Compatible whole-module
  * environments may reuse exact function facts across edited overlay members;
- * changed bodies/IDs/types and uncertain coordinates use the original checker.
+ * changed bodies/types,unproven IDs and uncertain coordinates use the original
+ * checker. Source-proven local allocation intervals can rebind current symbols
+ * in otherwise unchanged functions,with exact type/global context guards.
  * Final annotations, typed index and IR verification still run. */
 xls_check_session* xlsCheckSessionCreate(const xls_session_limits* limits);
 void xlsCheckSessionDestroy(xls_check_session* session);

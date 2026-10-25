@@ -219,6 +219,7 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
              '        XL6_AstNode* child = root->children[i];\n'
              '        if ( child->kind == XL6_AST_FUNC || child->kind == XL6_AST_ASYNC_FUNC ) {')
     changes = {
+        'static XL6_SymbolId xl6SemReserveSymbolId(\n': 'static XL6_SymbolId xlsSemReserveSymbolIdOriginal(\n',
         '} XL6_SemContext;': '    int xlsSignature;\n} XL6_SemContext;\n#include "analysis/frontend_context.h"\n#include "analysis/frontend_sem.inc"\n#include "analysis/signature_internal.h"\nstatic int xlsSemSignatureCaptureCall(XL6_SemContext*,XL6_AstNode*);\nstatic int xlsSemSignatureOffer(XL6_SemContext*,const XL6_AstNode*,const XL6_AstNode*,const char*);',
         'static int xl6SemCheckFunc(XL6_SemContext* ctx, XL6_AstNode* node)\n{':
             'static int xlsSemCheckFuncOriginal(XL6_SemContext* ctx, XL6_AstNode* node)\n{',
@@ -339,6 +340,7 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         compiledSource=str(compiled), compiledSha256=sha(compiled),
         change='bounded ordered conflict/completion and root-body call candidates,namespace/alias filters,exact-context function memos and private lazy cursor IR annotations;original predicates/diagnostics and full AST annotations retained on demand;ordinary/fresh eager unchanged',
         cancellation='cooperative module/function/statement/expression points; ordinary scope/type/call-index cleanup retained',
+        symbolAllocations='observe original allocator unchanged;source/range-proven function interval,immutable origin,current scalar/type-fact staging;predeclared IDs exact,foreign dynamic/type/nonfunction boundaries decline',
         auditedSeams=len(changes)+len(conflict_changes)+len(completion_changes)+9, memoBytes=64 * 1024 * 1024,
         deferredRegistryBytes=8 * 1024 * 1024,
         overloadCandidateBytes=8 * 1024 * 1024,

@@ -2736,3 +2736,20 @@ $/cancelRequest／supersede／open／edit／close／配置／watched-files／诊
 签名夹具本轮实际 39,471 项；其 worker 就绪轮询也调用 CHECK，因此总数随调度变化。夹具源文件和全部断言条件未修改，原始 producer／原型日志及源码计数审查保留。
 
 证据 build/lsp-next-20261022/m7a2b29a-result.json，外部 m7a2b29a-ea6543d5／component-v1。下一步处理 semantic memo 的编号区间与类型安全重放，并推进持久模块／xlp 归属、语义 IR／增量 pass／验证；随后继续剩余适用 LSP、静态检查／类型恢复、IDE 输入准备与配置、native C／资源、整个模型和暂存预算、100k／并行／soak／最终发行验收。发布 5241 文件保持，整体 goal active。
+
+
+## M7a2b30a：原生分配证明与语义缓存编号重放（0.63）
+
+前部函数增删局部声明时，编译器按检查顺序分配的后续符号编号会整体移动。0.63 在缓存恢复层记录原分配器的真实调用，以函数源码路径、已知且包含于函数的声明范围证明局部分配区间；原分配器正文、分配顺序、错误行为均不改。原生只有实体预分配和 scope 声明两处调用，模块预声明后才开始逐个函数检查；该边界的 symbolFloor 与完整上下文一起保留。
+
+首轮 component-v1 的完整回归和计时保留；普通编辑存在回退。审查发现 symbolsChanged 为 0 时仍进入无效果的四字段绑定循环；Bind 此时无条件成功且不读写编号。最终 component-v2 显式跳过这两类空循环，其他证明和失败门保持，再完整重建／回归／计时，没有源码桥接。
+
+大档 xlang/check 局部声明编辑 P50／P95／P99：1038.012 / 1081.275 / 1098.145→866.921 / 910.221 / 916.278 ms。
+
+大档 textDocument/completion 局部声明编辑 P50／P95／P99：560.689 / 591.826 / 621.932→390.454 / 441.770 / 444.953 ms。
+
+大档 textDocument/signatureHelp 局部声明编辑 P50／P95／P99：665.758 / 802.102 / 808.181→437.688 / 495.020 / 497.449 ms。
+
+本轮 P95 回退也保留：editSummary:96/xlang/check P95 82.264→83.670 ms；editSummary:96/textDocument/signatureHelp P95 64.145→66.376 ms；editSummary:512/xlang/check P95 702.570→772.951 ms；regionSummary:512 P95 813.208→836.096 ms；steadyTrailingSummary:96/textDocument/completion P95 32.444→52.036 ms；rpcSummary:96/2/xlang/check P95 13.601→14.494 ms；rpcSummary:512/2/xlang/check P95 79.870→85.676 ms；rpcSummary:512/2/textDocument/completion P95 2.242→2.619 ms；GUI 96/2 P95 10.059→10.126 ms；GUI 512/1 P95 269.149→274.959 ms；GUI 512/2 P95 10.095→10.725 ms；GUI 512/3 P95 14.108→14.491 ms。
+
+证据 build/lsp-next-20261022/m7a2b30a-result.json，外部 m7a2b30a-4bffa57d／component-v2。下一步推进持久模块／xlp 归属和稳定全局符号／类型，减少准备、import／stdlib、全模型克隆和全量 index／IR pass／验证的重复成本；保留完整原规则和 fresh 对照，再继续剩余适用 LSP、静态检查／类型恢复、IDE 输入准备与配置、native C／资源、整个模型及暂存预算、100k／并行／soak／最终发行。发布 5241 文件保持，整体 goal active。

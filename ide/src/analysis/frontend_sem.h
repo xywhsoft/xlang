@@ -46,6 +46,9 @@ typedef struct xls_sem_work { uint64_t checked,reused,contextHits,bytes; } xls_s
  * Reports borrow original captured source bytes for this call only. Changed
  * source pairs use bounded temporary text indexes; memos retain neither a
  * report, its text, nor an earlier result. Default fresh checks do not opt in. */
+/* Proven native local-allocation intervals can rebind current symbol facts;
+ * immutable units retain their original origin. Type identities,predeclared
+ * context,foreign dynamic facts and non-function boundaries stay guarded. */
 int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* module,
     int captureIndex,const char* path,const XL6_SourceReport* sources,
     const XL6_SourceReport* previousSources,const xls_sem_memo* previous,

@@ -25,6 +25,7 @@ void xlsFrontendSemStorageEnd(xls_sem_storage_control* control,xls_sem_storage_w
         xlsActiveStorage->work.chargedBytes+=control->work.chargedBytes;xlsActiveStorage->work.heapFallbacks+=control->work.heapFallbacks;
     }
 }
+#include "analysis/frontend_sem_symbols.inc"
 typedef struct xls_sem_fact {
     unsigned flags;
     uint32 type,symbol,declared,target,compound;
@@ -49,6 +50,7 @@ typedef struct xls_sem_cursor {
 } xls_sem_cursor;
 typedef struct xls_sem_unit {
     xatomic32 references;
+    xls_sem_symbol_span symbols; /* immutable allocation origin,not current view */
     xarray facts;
     size_t bytes;
     xls_sem_cursor cursor;
@@ -75,6 +77,7 @@ struct xls_sem_memo {
     xarray entries;
     size_t bytes;
     xls_ast_intern_work typeWork;
+    XL6_SymbolId symbolFloor;
 };
 typedef struct xls_sem_move {
     const xls_text *oldText,*newText;
@@ -100,7 +103,8 @@ typedef struct xls_sem_build {
     xls_sem_tail** deferred;
     const XL6_AstNode* deferredRoot;
     const XL6_CompletionQuery* deferredQuery;
-    size_t cursor;
+    size_t cursor,symbolCursor;
+    int symbolsSeen,symbolsShifted;
     int begun,enabled,compatible;
 } xls_sem_build;
 static _Thread_local xls_sem_build* xlsActiveSemBuild;
@@ -352,6 +356,7 @@ static void xlsSemMemoBegin(XL6_SemContext* ctx)
     for(size_t i=0;i<ctx->root->childCount && !candidate;++i) candidate=xlsSemCandidate(ctx->root->children[i]);
     if(!candidate) return;
     xls_sem_memo* m=build->memo;
+    m->symbolFloor=ctx->nextSymbolId;
     if(!xrtArrayResize(&m->entries,ctx->root->childCount) || m->entries.Capacity>XLS_SEM_MEMO_BYTES/sizeof(xls_sem_entry)) return;
     m->bytes=m->entries.Capacity*sizeof(xls_sem_entry);
     if(!xlsSemKeyText(&m->context,ctx->moduleName) || !xlsSemKeyNumber(&m->context,ctx->captureIndex) ||
@@ -560,6 +565,9 @@ typedef struct xls_sem_apply {
     xls_sem_cursor previousCursor,currentCursor;
     size_t visited;
     int different;
+    const xls_sem_symbol_span* symbols;
+    XL6_SymbolId symbolStart;
+    int symbolsChanged;
 } xls_sem_apply;
 static int xlsSemInsideRange(XL6_AstRange range,XL6_AstRange outer)
 { return !range.known || (range.startOffset>=outer.startOffset && range.endOffset>=range.startOffset && range.endOffset<=outer.endOffset); }
@@ -589,6 +597,10 @@ static int xlsSemUnchangedUnlocated(const XL6_AstNode* node,const xls_sem_move* 
 static int xlsSemApplyPosition(const XL6_AstNode* in,XL6_AstNode* out,void* user)
 {
     xls_sem_apply* apply=user; XL6_AstNode positioned=*in;
+    if(apply->symbolsChanged){
+        XL6_SymbolId* symbols[]={&out->semanticSymbolId,&out->semanticDeclaredSymbolId,&out->semanticTargetSymbolId,&out->semanticCompoundOperatorSymbolId};
+        for(size_t i=0;i<4;++i)if(!xlsSemSymbolsBind(apply->symbols,apply->symbolStart,1,symbols[i]))return 0;
+    }
     /* Most inferred primitive types have no coordinates. They cannot move,
      * so keep them out of the per-version coordinate table entirely. */
     if(!in->line && !in->column && !in->range.known && !in->tokenRange.known) return 1;
@@ -636,12 +648,13 @@ static int xlsSemApplyCursorSource(const XL6_AstSource* in,const XL6_AstSource* 
         xlsSemCursorSource(in,&apply->previousCursor) && xlsSemCursorSource(target,&apply->currentCursor);
 }
 static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const xls_sem_moves* moves,const xmap* sources,
-    xarray* positions,const XL6_AstNode* function,const xls_sem_cursor* cursor)
+    xarray* positions,const XL6_AstNode* function,const xls_sem_cursor* cursor,XL6_SymbolId symbolStart,int symbolsChanged)
 {
     if(!entry->unit || entry->unit->facts.Count!=nodes->Count) return 0;
     xarray staged={0}; size_t owned=0;
     xls_sem_apply apply={.moves=moves,.previous=&entry->positions,.positions=positions,.sources=sources,
-        .previousCursor=entry->unit->cursor,.currentCursor=*cursor};
+        .previousCursor=entry->unit->cursor,.currentCursor=*cursor,.symbols=&entry->unit->symbols,
+        .symbolStart=symbolStart,.symbolsChanged=symbolsChanged};
     const char* path=xl6AstSourcePath(function);
     const xls_sem_move* move=path ? xrtMapConstGet(&moves->paths,(xbytesview){(const unsigned char*)path,strlen(path)}) : NULL;
     XL6_AstRange before=entry->lexicalRange,after=function->range;
@@ -681,6 +694,12 @@ static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const
     if(!copied) goto failed;
     if(entry->positions.Count && entry->positions.Count!=apply.visited) goto failed;
     if(!apply.different) xrtArrayUnit(positions);
+    /* Resolve all scalar facts before publishing any fields. Types were
+     * cloned and rebound privately;shared unit origins never change. */
+    if(symbolsChanged)for(size_t i=0;i<staged.Count;++i){
+        xls_sem_fact* f=xrtArrayGet(&staged,i);XL6_SymbolId* symbols[]={&f->symbol,&f->declared,&f->target,&f->compound};
+        for(size_t j=0;j<4;++j)if(!xlsSemSymbolsBind(apply.symbols,symbolStart,1,symbols[j]))goto failed;
+    }
     for(size_t i=0;i<nodes->Count;++i) {
         XL6_AstNode* n=((const xls_sem_raw*)xrtArrayConstGet(nodes,i))->node; xls_sem_fact* f=xrtArrayGet(&staged,i);
         n->flags=f->flags; n->semanticTypeId=f->type; n->semanticTypeAbiId=f->abi; n->semanticSymbolId=f->symbol;
@@ -712,15 +731,26 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     const xls_sem_entry* old=build->compatible ? xrtArrayConstGet(&build->baseline->entries,*slot) : NULL;
     entry->start=ctx->nextSymbolId; entry->typeStart=ctx->types.nextId;
     entry->lexicalRange=node->range;
+    if(old && entry->start!=old->start)build->symbolsShifted=1;
+    if(build->compatible && build->symbolsShifted){
+        /* Non-function declarations can assign class/member/extern IDs.
+         * Never carry a shifted allocation context across that boundary.
+         * Imports are already expanded and skipped by this native phase. */
+        if(!build->symbolsSeen)build->compatible=0;
+        for(size_t i=build->symbolCursor;build->compatible && i<*slot;++i)
+            if(!xlsSemFunction(ctx->root->children[i]) && ctx->root->children[i]->kind!=XL6_AST_IMPORT)build->compatible=0;
+    }
+    build->symbolsSeen=1;build->symbolCursor=*slot+1;
     /* The active projection/overlapping functions always use the checker.
      * Other query-source functions require exact current source metadata and
      * range/text exclusion; restoration binds old immutable marker metadata
      * explicitly rather than weakening default AST source equality. */
     if(!xlsSemCandidate(node) || (ctx->completionQuery && !xlsSemQueryNeutral(node,0,&build->queryCursor))) {
-        if(old && (entry->start!=old->start || entry->typeStart!=old->typeStart)) build->compatible=0;
+        if(old && entry->typeStart!=old->typeStart) build->compatible=0;
         ++build->work.checked; int okay=xlsSemCheckFuncOriginal(ctx,node); entry->end=ctx->nextSymbolId;
         entry->typeEnd=ctx->types.nextId;
-        if(old && (entry->end!=old->end || entry->typeEnd!=old->typeEnd)) build->compatible=0;
+        if(old && entry->end!=old->end)build->symbolsShifted=1;
+        if(old && entry->typeEnd!=old->typeEnd)build->compatible=0;
         return okay;
     }
     size_t nodes=ctx->queryTypeNodes,bytes=ctx->queryTypeBytes; xstrbuf state={0},after={0}; xarray raw={0};
@@ -728,23 +758,30 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
         xlsSemKeyBytes(&entry->key,state.Data,state.Size) && xrtArrayInit(&raw,sizeof(xls_sem_raw)) && xlsSemRawNodes(node,&raw,0);
     int okay=0,reused=0;
     XL6_CompletionQuery beforeQuery={0}; if(ctx->completionQuery) beforeQuery=*ctx->completionQuery;
-    /* A change to earlier local allocation can renumber class fields and
-     * later contexts as well. Stop reuse for the remaining module, rather
-     * than treating a later coincidental counter match as proof of identity. */
-    if(old && (entry->start!=old->start || entry->typeStart!=old->typeStart)) build->compatible=0;
+    /* Type allocation identity remains exact. Proven local symbol intervals
+     * can move within a function-only run;foreign dynamic facts must reject. */
+    if(old && entry->typeStart!=old->typeStart)build->compatible=0;
+    XL6_SymbolId symbolEnd=0;
+    int symbolsChanged=old && old->unit && (build->symbolsShifted || entry->start!=old->unit->symbols.start);
     if(build->compatible && old && old->unit && old->unit->facts.Count && usable && ctx->queryTypeNodes<=65536u && ctx->queryTypeBytes<=4u*1024u*1024u &&
        xlsSemEqualKey(&entry->key,&old->key) &&
+       old->unit->symbols.floor==m->symbolFloor && xlsSemSymbolsLimit(&old->unit->symbols,entry->start,&symbolEnd) &&
+       old->end>=old->start && old->end-old->start==old->unit->symbols.end-old->unit->symbols.start &&
+       (!symbolsChanged || old->unit->symbols.local) &&
        old->typeNodes<=65536u-ctx->queryTypeNodes && old->typeBytes<=4u*1024u*1024u-ctx->queryTypeBytes) {
-        if(xlsSemApplyFacts(old,&raw,&build->moves,&build->sources,&entry->positions,node,&build->queryCursor)) {
-            ctx->nextSymbolId=old->end; ctx->types.nextId=old->typeEnd;
+        if(xlsSemApplyFacts(old,&raw,&build->moves,&build->sources,&entry->positions,node,&build->queryCursor,entry->start,symbolsChanged)) {
+            ctx->nextSymbolId=symbolEnd; ctx->types.nextId=old->typeEnd;
             ctx->queryTypeNodes+=old->typeNodes; ctx->queryTypeBytes+=old->typeBytes;
             okay=reused=1; ++build->work.reused;
         }
     }
-    if(!reused) { ++build->work.checked; okay=xlsSemCheckFuncOriginal(ctx,node); }
+    xls_sem_symbol_span symbols={0};
+    if(!reused) { xls_sem_symbol_scope scope;xlsSemSymbolsBegin(&scope,ctx,node,m->symbolFloor);
+        ++build->work.checked;okay=xlsSemCheckFuncOriginal(ctx,node);symbols=xlsSemSymbolsEnd(&scope,ctx); }
     entry->end=ctx->nextSymbolId; entry->typeNodes=ctx->queryTypeNodes-nodes; entry->typeBytes=ctx->queryTypeBytes-bytes;
     entry->typeEnd=ctx->types.nextId;
-    if(old && (entry->end!=old->end || entry->typeEnd!=old->typeEnd)) build->compatible=0;
+    if(old && entry->end!=old->end)build->symbolsShifted=1;
+    if(old && entry->typeEnd!=old->typeEnd)build->compatible=0;
     int neutral=!ctx->completionQuery || (xlsSemQueryNeutral(node,0,&build->queryCursor) &&
         beforeQuery.reached==ctx->completionQuery->reached && beforeQuery.available==ctx->completionQuery->available &&
         beforeQuery.count==ctx->completionQuery->count && beforeQuery.error==ctx->completionQuery->error);
@@ -762,6 +799,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
             xls_sem_unit* unit=xrtCalloc(1,sizeof(*unit));
             if(unit) {
                 xrtAtomic32Init(&unit->references,1);
+                unit->symbols=reused ? (xls_sem_symbol_span){entry->start,entry->end,m->symbolFloor,old->unit->symbols.local} : symbols;
                 size_t markerBytes=build->queryCursor.path ? strlen(build->queryCursor.path)+1 : 0;
                 char* marker=NULL;
                 if(markerBytes<=XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit)) marker=markerBytes ? xrtStrDup(build->queryCursor.path) : NULL;
