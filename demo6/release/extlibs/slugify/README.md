@@ -1,5 +1,12 @@
 # slugify
 
+2026-10-26 发布验收：当前 Windows 与 Linux 默认包门禁均退出 0。
+严格 C、Linux ASan/UBSan、线程、UTF-8/长度/分配故障边界、
+XLang JIT、核心/边界/公开语言范例独立 EXE 均通过；C 范例还分别
+用 GCC、`xl run`、`xl build` 验证并与语言范例逐字节同输出。
+Windows 生成 C 检查确认 XRT 文本由 `takeCstr` 直接接管，
+没有新增字符串复制。以下历史阻断记录不再代表当前发布版状态。
+
 2026-10-25 所有权复核：公开 `slugify.slugify` 返回普通 `string`，
 `takeCstr` 将 C 返回的 XRT 分配直接移交给结果，不复制文本。
 先前改为 `cstring` 后，转换回 `string` 反而需要复制；现已修正。

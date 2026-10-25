@@ -42,4 +42,20 @@ timeout 90s release/xl run test/cases/extlib_slugify.xl
 timeout 90s release/xl run release/extlibs/slugify/test/boundaries.xl
 timeout 30s release/xl run release/examples/extlibs/slugify.xl > "$work/example_xl.txt"
 diff -u "$work/example_c.txt" "$work/example_xl.txt"
-printf 'slugify Linux C ASan/UBSan, threads and XLang gate: PASS\n'
+timeout 120s release/xl build test/cases/extlib_slugify.xl \
+    -o "$work/slugify_core_aot"
+timeout 45s "$work/slugify_core_aot"
+timeout 120s release/xl build release/extlibs/slugify/test/boundaries.xl \
+    -o "$work/slugify_boundaries_aot"
+timeout 45s "$work/slugify_boundaries_aot" > "$work/boundaries_aot.txt"
+printf 'slugify boundaries: PASS\n' > "$work/boundaries_expected.txt"
+diff -u "$work/boundaries_expected.txt" "$work/boundaries_aot.txt"
+timeout 120s release/xl build release/examples/extlibs/slugify.xl \
+    -o "$work/slugify_example_aot"
+timeout 45s "$work/slugify_example_aot" > "$work/example_xl_aot.txt"
+diff -u "$work/example_c.txt" "$work/example_xl_aot.txt"
+timeout 120s release/xl build release/extlibs/slugify/examples/slugify_c.c \
+    -o "$work/slugify_c_aot"
+timeout 45s "$work/slugify_c_aot" > "$work/example_c_aot.txt"
+diff -u "$work/example_c.txt" "$work/example_c_aot.txt"
+printf 'slugify Linux C ASan/UBSan, threads and XLang JIT/AOT gate: PASS\n'

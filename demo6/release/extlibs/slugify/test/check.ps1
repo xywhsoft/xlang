@@ -88,6 +88,13 @@ try {
         if ($aotOutput -cne $cOutput) {
             throw 'C/XLang AOT example output differs'
         }
+        $cExample = Join-Path $work 'slugify_c_example.exe'
+        $null = Run 'C example build' $xl @('build',
+            'release/extlibs/slugify/examples/slugify_c.c', '-o', $cExample)
+        $cAotOutput = Run 'C example AOT' $cExample @()
+        if ($cAotOutput -cne $cOutput) {
+            throw 'C example AOT output differs from GCC example'
+        }
     }
 } finally {
     Pop-Location
