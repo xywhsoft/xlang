@@ -7,6 +7,7 @@ extern "foreign_bridge_create" func allocate() as point
 extern "foreign_bridge_destroy" @no_raise func release(point raw)
 extern "foreign_bridge_read" func read(point raw) as int
 extern "foreign_bridge_check_data" func checkData(var value) as bool
+extern "foreign_bridge_check_list" func checkList(var value) as bool
 extern "foreign_bridge_released" func released() as int
 
 extern "foreign_bridge_debug" func debug() as bool
@@ -90,6 +91,9 @@ func check()
     var snapshot = data(input)
     assert checkData(snapshot)
     assert int(input["items"][0]) == 1
+    list<int> sparse = [-9: 7, 4: 11]
+    assert checkList(data(sparse))
+    assert sparse[-9] == 7 and sparse[4] == 11
     Buffer packed = msgpack.encode(data(input))
     var decoded = msgpack.decode(packed)
     assert int(decoded["items"][1]) == 2

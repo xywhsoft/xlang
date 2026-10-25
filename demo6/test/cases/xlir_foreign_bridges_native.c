@@ -23,6 +23,13 @@ bool foreign_bridge_check_data(xvalue* value) {
     /* Snapshot changes must not mutate the language source. */
     return xrtValueArraySetNew(items,0,xrtValueInt(99));
 }
+bool foreign_bridge_check_list(xvalue* value) {
+    int64_t left=0,right=0;
+    return xrtValueType(value)==XVALUE_INT_MAP && xrtValueCount(value)==2 &&
+        xrtValueGetInt(xrtValueIntMapGet(value,-9),&left) && left==7 &&
+        xrtValueGetInt(xrtValueIntMapGet(value,4),&right) && right==11 &&
+        xrtValueIntMapSetNew(value,-9,xrtValueInt(99));
+}
 
 bool foreign_bridge_debug(void) {
     if(xrtMemDebugEnabled())return true;
