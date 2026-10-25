@@ -1,0 +1,2 @@
+assert 6 * 7 == 42
+println("resident-component-absent=ok")
