@@ -1,5 +1,14 @@
 # JSON5 扩展库
 
+2026-10-25 当前 Windows 发布版复验：`test/check.ps1 -SkipAot` 的严格
+C 边界、C 范例及 `xl run` 直接运行 C 范例均通过；随后第一个 XLang
+边界用例在模块创建前报 `cannot initialize module ownership policy catalog`。
+独立的 `xl check extlibs/json5/test/boundaries.xl` 返回 `ok`。
+这是全局运行入口故障，见
+`../../../dev/extlib_blockers/ownership_catalog_startup_20261025.md`。
+因此下文 2026-10-24 的完整门禁通过仅代表当时的发布物，**当前构建的
+XLang 与 AOT 路径未签收**；不要把 C 路径通过误记为整包发布级验收。
+
 `json5.parse(text)` 解析配置文本为 XLang `var`；`valid` 检查语法和本包数据约束，`getValue` 按点号路径返回原始类型，`get` 返回便于展示的字符串。
 
 ```xlang
