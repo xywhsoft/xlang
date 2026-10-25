@@ -8203,7 +8203,22 @@ static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNo
                                                    returns->children[0]->childCount > 1 ? returns->children[0]->children[1] : NULL);
         }
     }
-    return 1;
+    /* A property/index/member-call value is not automatically callable.
+     * Treating every other expression as a function creates false overload
+     * ties against its already-known scalar/class type. Method groups retain
+     * the existing erased var carrier and checked callable projection; known
+     * concrete callable values must match the complete signature instead.
+     * Keep unresolved expressions deferred for their primary diagnostics. */
+    XL6_AstNode* inferred=xl6SemInferAutoTypeNode(ctx,(XL6_AstNode*)expr);
+    const XL6_AstNode* concrete=xl6SemResolveAliasType(ctx,inferred);
+    int matches=1;
+    if(concrete&&concrete->text&&!xl6TextEquals(concrete->text,"var")){
+        matches=xl6TextEquals(concrete->text,"function")&&
+            (typeNode->childCount==0||xl6SemFunctionTypeMatchesParts(ctx,typeNode,
+                concrete->childCount>0?concrete->children[0]:NULL,
+                concrete->childCount>1?concrete->children[1]:NULL));
+    }
+    xl6AstFree(inferred);return matches;
 }
 
 static int xl6SemExprFunctionValueMatchAlreadyDiagnosed(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode)
