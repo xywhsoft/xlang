@@ -50,6 +50,30 @@ static int allocation_errors(void) {
     return 0;
 }
 
+static int malformed_utf8(void) {
+    static const struct {
+        const char *text;
+        size_t size;
+    } invalid[] = {
+        {"\x80", 1u},             /* 孤立续字节 */
+        {"\xe4\xb8", 2u},         /* 截断的三字节字符 */
+        {"\xf0\x9f\x98", 3u},     /* 截断的四字节字符 */
+        {"\xe2\x28\xa1", 3u},     /* 非法续字节 */
+        {"\xf4\x90\x80\x80", 4u}  /* 超过 Unicode 最大码点 */
+    };
+    size_t i;
+    for (i = 0u; i < sizeof(invalid) / sizeof(invalid[0]); ++i) {
+        void *result = xpinyin_convert_n(invalid[i].text, invalid[i].size);
+        CHECK(result == NULL && xrtGetError() != NULL &&
+            xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        result = xpinyin_initials_n(invalid[i].text, invalid[i].size);
+        CHECK(result == NULL && xrtGetError() != NULL &&
+            xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        CHECK(check_text("中国", "zhong guo", 0) && xrtGetError() == NULL);
+    }
+    return 0;
+}
+
 int main(void) {
     char *long_input = (char *)malloc(3 * 5000 + 1);
     char *long_result;
@@ -111,6 +135,7 @@ int main(void) {
     xrtClearError();
     CHECK(xpinyin_convert(NULL) == NULL);
     xrtClearError();
+    CHECK(malformed_utf8() == 0);
     CHECK(allocation_errors() == 0);
     puts("pinyin C boundaries: PASS");
     return 0;
