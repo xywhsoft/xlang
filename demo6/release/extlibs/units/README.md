@@ -1,6 +1,11 @@
 # units
 
-2026-10-25 再次使用当前发布物执行 Windows 默认 `test/check.ps1`：
+2026-10-25 新 Windows 发布版：从 `demo6` 根目录运行默认
+`test/check.ps1`，严格 C/ABI、线程、XLang 边界与分配故障、C/XLang
+同输出及核心/范例 AOT 全通过。下方同日 VFS 缺头失败是旧发布物
+记录，不再是当前 Windows 门禁结果；Linux 独立 AOT 尚未验收。
+
+2026-10-25 使用先前发布物执行 Windows 默认 `test/check.ps1`：
 严格 C/ABI、线程、C 范例和 C 文件直跑均通过；首个 XLang 中央用例
 因共享 TCC VFS 缺少 `include/xruntime_decl.h` 停止，后续语言和 AOT
 阶段未执行。本次不能沿用下方早先同日的完整通过结果签收当前发布物。

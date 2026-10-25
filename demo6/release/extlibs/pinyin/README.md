@@ -1,5 +1,11 @@
 # pinyin
 
+2026-10-25 新 Windows 发布版：从 `demo6` 根目录执行默认
+`test/check.ps1`，严格 C、XLang 边界/分配故障、双语固定输出与核心/范例
+AOT 全通过。另在只包含三个发布二进制、此包及测试源的独立临时目录
+验证 JIT、构建和独立 EXE，未依赖 `release/include`。下文同日 VFS
+缺头记录属于更早的发布物，不是当前门禁结果；Linux 独立 AOT 未验收。
+
 轻量 UTF-8 拼音转写扩展库。只收录约 400 个常用汉字的固定读音；不分词、不推断多音字、不标声调。未收录的字符（含生僻汉字与 emoji）保持原样，适合小型演示和固定词表场景，不适合姓名、地名或全文检索的准确读音判断。
 
 ```xlang
@@ -16,7 +22,7 @@ C API 见 `include/pinyin_native.h`。`xpinyin_convert[_n]` 与 `xpinyin_initial
 
 ## 范例与验证
 
-2026-10-25 当前发布版从 `demo6` 根目录运行中央 XLang 用例时，
+2026-10-25 先前发布版从 `demo6` 根目录运行中央 XLang 用例时，
 在包代码执行前报 `include/xruntime_decl.h` 未找到；同一发布版从
 `release` 目录运行和构建范例虽通过，却依赖外部头文件兜底，
 不能据此签收自包含发布版。包门禁保持根目录路径并正确报错；
@@ -26,7 +32,7 @@ C API 见 `include/pinyin_native.h`。`xpinyin_convert[_n]` 与 `xpinyin_initial
 2026-10-25：C 边界测试补齐孤立续字节、截断的三/四字节字符、
 非法续字节和超出 Unicode 范围的输入；两条显式长度入口均须报
 `XERR_VALUE`，随后正常调用须恢复。Windows 严格 C 用例、Linux
-C ASan/UBSan 与 XLang 包门禁通过；当前 Windows 发布版从 `release`
+C ASan/UBSan 与 XLang 包门禁通过；当时的 Windows 发布版从 `release`
 目录直跑 XLang 边界、分配故障和中文范例通过，但根目录门禁受上述
 共享 VFS 故障阻断。转换规则和字表均未改动。
 

@@ -1,5 +1,11 @@
 # roaring
 
+2026-10-25 新 Windows 发布版：从 `demo6` 根目录执行默认
+`test/check.ps1`，严格 C、并交差和快照边界、XLang JIT/分配故障、
+双语输出及独立 EXE AOT 全通过。下方同日“根目录 VFS 头文件阻断”
+只描述先前发布物，不再是本次门禁状态。Linux C ASan/UBSan 和
+XLang 门禁已过，仍未用新版 Linux 编译器验收独立 EXE。
+
 精确的 `uint32` 非负整数内存集合。按高 16 位分桶，桶内从有序数组按密度升级为位图；支持重复插入、删除、查询、计数、最小/最大值、升序快照、集合并交差及清空。适合整数 ID 去重与成员查询。此实现**没有** Roaring 格式序列化、run container 或磁盘持久化，不与其他 Roaring 实现交换二进制数据。
 
 ```xlang
@@ -36,9 +42,9 @@ assert ids.remove(65536)
 
 ## 验证
 
-2026-10-25：新增并、交、差的 C/XLang 接口与双语范例。C 固定边界和独立布尔模型覆盖数组+数组、位图+数组、数组+位图、位图+位图、跨桶、`UINT32_MAX`、输出别名与失败回滚；XLang 测试覆盖返回对象、输入不变及分配故障分类。Windows 严格 GCC、C 原生测试、从 `release` 目录运行的 XLang JIT、双语范例及公开范例独立 EXE 通过；Linux `test/check.sh` 通过 C ASan/UBSan、语言边界与分配用例、双语固定输出。Linux 仍使用现有发布物，未验收新 Linux 独立 EXE。根目录 VFS 头文件阻断仍按下文记录，默认 Windows 包门禁未签收。
+2026-10-25：新增并、交、差的 C/XLang 接口与双语范例。C 固定边界和独立布尔模型覆盖数组+数组、位图+数组、数组+位图、位图+位图、跨桶、`UINT32_MAX`、输出别名与失败回滚；XLang 测试覆盖返回对象、输入不变及分配故障分类。Windows 严格 GCC、C 原生测试、从 `release` 目录运行的 XLang JIT、双语范例及公开范例独立 EXE 通过；Linux `test/check.sh` 通过 C ASan/UBSan、语言边界与分配用例、双语固定输出。Linux 仍使用现有发布物，未验收新 Linux 独立 EXE。当时的根目录 VFS 头文件阻断仍按下文记录，旧发布物的默认 Windows 包门禁未签收。
 
-2026-10-25：新增升序快照 C/XLang 接口及双语范例。C 测试覆盖空集、跨桶与 `UINT32_MAX`、数组/位图两种桶、修改源集合后的快照独立性、空句柄和逐分配点故障回滚；XLang 边界及内存故障用例同步补齐。Windows 严格 GCC、C 原生测试、从 `release` 目录运行的 XLang JIT、公开范例 AOT 和双语范例输出均通过。Linux `test/check.sh` 也通过 C ASan/UBSan、XLang 边界/故障用例和双语范例对照；仍使用现有 Linux `release/xl`，不据此签收新版 Linux 发布物。当前 Windows 发布版从 `demo6` 根目录运行包级脚本时找不到 `include/xruntime_decl.h`；这是运行时 VFS/路径问题，见 `dev/extlib_blockers/release_root_xruntime_decl.md`，未据此宣称默认整包门禁通过。
+2026-10-25：新增升序快照 C/XLang 接口及双语范例。C 测试覆盖空集、跨桶与 `UINT32_MAX`、数组/位图两种桶、修改源集合后的快照独立性、空句柄和逐分配点故障回滚；XLang 边界及内存故障用例同步补齐。Windows 严格 GCC、C 原生测试、从 `release` 目录运行的 XLang JIT、公开范例 AOT 和双语范例输出均通过。Linux `test/check.sh` 也通过 C ASan/UBSan、XLang 边界/故障用例和双语范例对照；仍使用现有 Linux `release/xl`，不据此签收新版 Linux 发布物。先前 Windows 发布版从 `demo6` 根目录运行包级脚本时找不到 `include/xruntime_decl.h`；这是当时的运行时 VFS/路径问题，见 `dev/extlib_blockers/release_root_xruntime_decl.md`，当次未据此宣称默认整包门禁通过。
 
 2026-10-25：在 WSL 中运行现有 `test/check.sh` 全通过：严格 GCC、
 独立位图模型和分配故障回滚的 ASan/UBSan、XLang 边界与分配用例，

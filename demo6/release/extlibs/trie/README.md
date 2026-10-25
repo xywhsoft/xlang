@@ -1,6 +1,12 @@
 # trie
 
-2026-10-25 再次使用当前发布物执行 Windows 默认 `test/check.ps1`：
+2026-10-25 新 Windows 发布版：从 `demo6` 根目录运行默认
+`test/check.ps1` 全通过，包含严格 C/ABI、独立键集合模型、XLang
+边界/分配故障、双语固定输出和核心/范例 AOT。下方同日的 VFS 缺头
+记录来自先前发布物，不再作为当前 Windows 阻断；Linux 独立 AOT
+仍需单独验收。
+
+2026-10-25 使用先前发布物执行 Windows 默认 `test/check.ps1`：
 首个中央 XLang 用例因共享 TCC VFS 缺少
 `include/xruntime_decl.h` 而停止，后续包级边界与 AOT 未执行。
 下方同日完整通过记录对应更早的发布物，不能替代这次验收。
