@@ -1,0 +1,4 @@
+import xml.dom
+
+xml.dom.Node document = xml.dom.createDocument()
+assert document.valid

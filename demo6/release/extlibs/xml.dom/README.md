@@ -1,5 +1,13 @@
 # xml.dom
 
+2026-10-26 当前 Windows/Linux 三包联合默认门禁均退出 0：严格 C、
+Linux ASan/UBSan、中央/边界/分配 JIT 与 AOT、公开 C/XLang 范例
+独立 EXE 同输出、DOM/ElementTree 往返均通过。旧 VFS 头路径与
+共享快照缺符号不再复现。`Node` 仍不能在包外命名；导出前须收口
+原生指针构造器的访问控制，见
+`../../../dev/extlib_blockers/xml_public_class_visibility.md`。
+这项公开类型缺口修复前不签收完整包。
+
 2026-10-25 当前发布物入口复验：中央 DOM 用例从 `demo6` 根目录
 运行时，在包代码执行前因共享 TCC VFS 缺少
 `include/xruntime_decl.h` 退出；从 `release` 目录运行通过。

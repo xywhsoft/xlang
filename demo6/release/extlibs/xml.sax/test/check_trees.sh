@@ -31,6 +31,7 @@ if [[ ! -x "$xl" ]]; then
     exit 1
 fi
 for kind in sax dom etree; do
+    timeout 90s "$xl" run "test/cases/extlib_xml_$kind.xl"
     timeout 90s "$xl" run "release/extlibs/xml.$kind/test/boundaries.xl"
     timeout 90s "$xl" run "release/extlibs/xml.$kind/test/allocations.xl"
     if [[ $kind == dom ]]; then
@@ -72,4 +73,35 @@ for kind in sax dom etree; do
     diff -u "$work/${kind}_c.txt" "$work/${kind}_xl.txt"
 done
 timeout 90s "$xl" run test/cases/extlib_xml_tree_interop.xl
-printf 'XML SAX/trees Linux C ASan/UBSan and XLang golden gate: PASS\n'
+for kind in sax dom etree; do
+    for case in boundaries allocations; do
+        timeout 120s "$xl" build "release/extlibs/xml.$kind/test/$case.xl" \
+            -o "$work/${kind}_${case}_aot"
+        timeout 45s "$work/${kind}_${case}_aot" > "$work/${kind}_${case}_aot.txt"
+        if [[ $case == boundaries ]]; then
+            printf 'xml.%s boundaries: ok\n' "$kind" > "$work/expected.txt"
+        else
+            printf 'xml.%s allocation: PASS\n' "$kind" > "$work/expected.txt"
+        fi
+        diff -u "$work/expected.txt" "$work/${kind}_${case}_aot.txt"
+    done
+    timeout 120s "$xl" build "test/cases/extlib_xml_$kind.xl" \
+        -o "$work/${kind}_central_aot"
+    timeout 45s "$work/${kind}_central_aot"
+    for language in xl c; do
+        if [[ $language == xl ]]; then
+            source="release/examples/extlibs/xml_${kind}.xl"
+        else
+            source="release/examples/extlibs/xml_${kind}_c.c"
+        fi
+        timeout 120s "$xl" build "$source" \
+            -o "$work/${kind}_${language}_example_aot"
+        timeout 45s "$work/${kind}_${language}_example_aot" \
+            > "$work/${kind}_${language}_aot.txt"
+        diff -u "$work/${kind}_c.txt" "$work/${kind}_${language}_aot.txt"
+    done
+done
+timeout 120s "$xl" build test/cases/extlib_xml_tree_interop.xl \
+    -o "$work/xml_tree_interop_aot"
+timeout 45s "$work/xml_tree_interop_aot"
+printf 'XML SAX/trees Linux C ASan/UBSan and XLang JIT/AOT golden gate: PASS\n'

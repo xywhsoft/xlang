@@ -120,7 +120,22 @@ try {
             if ($aotOutput -cne $goldenByKind[$kind]) {
                 throw "xml.$kind AOT output differs from fixed output"
             }
+            $centralTarget = Join-Path $work "xml_${kind}_central_aot.exe"
+            $null = Run "$kind central AOT build" $xl @('build',
+                "test/cases/extlib_xml_$kind.xl", '-o', $centralTarget)
+            $null = Run "$kind central AOT" $centralTarget @()
+            $cTarget = Join-Path $work "xml_${kind}_c_aot.exe"
+            $null = Run "$kind C example AOT build" $xl @('build',
+                "release/examples/extlibs/xml_${kind}_c.c", '-o', $cTarget)
+            $cAotOutput = Run "$kind C example AOT" $cTarget @()
+            if ($cAotOutput -cne $goldenByKind[$kind]) {
+                throw "xml.$kind C example AOT output differs from fixed output"
+            }
         }
+        $interopTarget = Join-Path $work 'xml_tree_interop_aot.exe'
+        $null = Run 'DOM/ElementTree roundtrip AOT build' $xl @('build',
+            'test/cases/extlib_xml_tree_interop.xl', '-o', $interopTarget)
+        $null = Run 'DOM/ElementTree roundtrip AOT' $interopTarget @()
     }
 } finally {
     Pop-Location

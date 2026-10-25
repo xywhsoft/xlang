@@ -19,7 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / xml.sax</p><h1>xml.sax</h1>
     <p class="extlib-lead">按事件迭代或回调解析 XML。</p>
     <p>适合不需要构建完整文档树的输入；事件含类型、名称、文本、属性和位置信息。DTD 与外部实体默认拒绝。</p>
-    <p>当前发布物从项目根目录运行中央 SAX 用例时，因共享 VFS 缺少 <code>include/xruntime_decl.h</code> 在进入包代码前停止；从发布目录运行同一用例通过。本轮未重跑联合默认门禁或 AOT。</p>
+    <p>2026-10-26 当前 Windows/Linux 三包联合默认门禁均通过：严格 C、Linux ASan/UBSan、语言 JIT、中央/边界/分配与公开双语范例独立 EXE，以及 DOM/ElementTree 往返。旧 VFS 和共享快照缺失不再复现。<code>Reader</code> 尚不能在包外命名；原生句柄构造器的安全边界修复前，本包仍待签收。</p>
     <p>2026-10-24：Windows 三包联合门禁的 C/XLang 边界及 SAX/DOM/ElementTree 各自的边界、分配、范例独立 EXE 全部通过；Linux C ASan/UBSan 与 XLang JIT 双语门禁通过。Linux 独立 EXE 本轮未验收。下方旧缺符号记录只描述当时的发布物。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
@@ -39,7 +39,7 @@ end</code></pre>
     <p>XLang 显式解析限额必须为正；C 的 XRT 限额配置以 0 表示不限制，保留字段及未支持的资源策略标志必须为 0。DTD 与外部实体使用独立选项。设置有限上限时，单段文本或单个属性值超过单项上限、文本与属性值累计超过输出上限、或单个元素属性多于条目上限都会拒绝。文件路径含 NUL 时会拒绝；Reader 可以迭代或调用 next()。C push 解析接管 Reader 时，关闭失败按底层错误报告 MEMORY 或 IO；C pull 在拥有型 Reader 正常读到 EOF 时也先关闭，失败返回 ERROR，不伪装成 END。提前停止可调用 Reader.close() 或 C 的 xrtXmlSaxClose 检查关闭结果；借用 Reader 保持开放，void Destroy 仅作兜底释放。共享 Linux 门禁覆盖 SAX/DOM/ElementTree 的 C ASan/UBSan、XLang 边界和双语范例逐字对照。事件所有权、错误位置和验证命令见包内 README。</p>
     <p>2026-10-20 三包共用门禁增加固定 UTF-8 黄金输出；Windows 快速模式与 Linux ASan/UBSan 联合门禁通过。Windows 默认门禁还要逐包执行完整范例 AOT，当时在 SAX 构建处因共享 <code>xl6ValueDataSnapshotV1</code> 缺符号停止。构建目录每次独占并清理，该次 AOT 未签收。</p>
     <p>自定义 Reader 的读取或关闭回调报告内存故障时，SAX 现在保留 MEMORY 分类；普通流故障仍为 IO。push、pull、提前关闭的 C 回归先红后绿；Windows/Linux 三包聚焦门禁通过，完整 AOT 未在本轮验收。</p>
-    <p>C push 入口的空事件回调在读取前报告 ARGUMENT，传入的拥有型 Reader 仍释放；C pull 的 Next 对无效 Reader 报告 ARGUMENT，成功时清空调用方复用的错误结构。此前的 Windows/Linux 三包联合门禁通过；当前发布物的完整门禁仍待共享 VFS 头路径修复后复验。</p>
+    <p>C push 入口的空事件回调在读取前报告 ARGUMENT，传入的拥有型 Reader 仍释放；C pull 的 Next 对无效 Reader 报告 ARGUMENT，成功时清空调用方复用的错误结构。2026-10-26 双平台完整运行门禁通过；剩余的公开类型边界见包内 README。</p>
   </section>
 </main>
 </body>
