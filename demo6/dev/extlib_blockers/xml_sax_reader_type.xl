@@ -1,0 +1,4 @@
+import xml.sax
+
+xml.sax.Reader reader = xml.sax.reader("<root/>")
+reader.close()

@@ -1,0 +1,4 @@
+import xml.etree
+
+xml.etree.Element root = xml.etree.create("root")
+assert root.valid
