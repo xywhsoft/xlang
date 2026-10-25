@@ -15,6 +15,7 @@ static bool create(Resource* base,const XL6_ExecutionCreateOptionsV1* options)
     Stream* r=(Stream*)base;const XL6_TlsStreamCreateOptionsV1* c=options->value.tlsStream;
     xrtAtomicPtrInit(&r->native,NULL);
     xrtAtomicPtrInit(&r->pending,NULL);xrtAtomic32Init(&r->prepared,0);
+    xrtAtomic32Init(&r->closeMode,XL6_TLS_CLOSE_AUTOMATIC_V1);
     if(!c||((c->accepted!=NULL)+(c->Build!=NULL)+(c->accepting!=NULL)+c->dialing!=1)||
         (c->resolving&&!c->dialing)){
         xrtSetErrorKind(XERR_ARGUMENT);return false;}
@@ -83,7 +84,11 @@ static XL6_ModulePrepareResult retire(Resource* base)
         }
         return dispose(base)?XL6_MODULE_PREPARE_READY:XL6_MODULE_PREPARE_FAILED;
     }
-    if(!xrtTlsStreamAbort(stream))return XL6_MODULE_PREPARE_FAILED;
+    /* A successfully accepted Close owns native send draining/close_notify
+     * until the TLS AND TCP terminal state, even after owner zero. Unclosed
+     * automatic retirement and explicit Abort still cancel outstanding work. */
+    if(xrtAtomic32Load(&r->closeMode,XMEMORY_ACQUIRE)!=XL6_TLS_CLOSE_GRACEFUL_V1 &&
+        !xrtTlsStreamAbort(stream))return XL6_MODULE_PREPARE_FAILED;
     xtlsstreamstate state=xrtTlsStreamState(stream);xnetstream* tcp=xrtTlsStreamTransport(stream);
     if((state!=XTLS_STREAM_CLOSED&&state!=XTLS_STREAM_FAILED)||(tcp&&xrtNetStreamState(tcp)!=XNET_STREAM_CLOSED))return XL6_MODULE_PREPARE_BUSY;
     return dispose(base)?XL6_MODULE_PREPARE_READY:XL6_MODULE_PREPARE_FAILED;
@@ -103,12 +108,27 @@ static bool trace(const Resource* base,xrtownershipvisitor visit,void* context)
 }
 static bool closeStream(Resource* base)
 {
-    xtlsstream* s=native(base);if(s)return xrtTlsStreamClose(s);
+    xtlsstream* s=native(base);
+    if(s){
+        bool accepted=xrtTlsStreamClose(s);
+        if(accepted){
+            /* The caller scope pins retirement; a concurrent or earlier Abort
+             * must never be downgraded by a successful or repeated Close. */
+            uint32 expected=XL6_TLS_CLOSE_AUTOMATIC_V1;
+            (void)xrtAtomic32CompareExchange(&((Stream*)base)->closeMode,&expected,
+                XL6_TLS_CLOSE_GRACEFUL_V1,XMEMORY_RELEASE,XMEMORY_RELAXED);
+        }
+        return accepted;
+    }
     xfuture* pending=xrtAtomicPtrLoad(&((Stream*)base)->pending,XMEMORY_ACQUIRE);
     if(pending&&xrtFutureState(pending)==XFUTURE_PENDING)(void)xrtFutureCancel(pending);
     return true;
 }
-static bool cancelStream(Resource* base){xtlsstream* s=native(base);return s?xrtTlsStreamAbort(s):closeStream(base);}
+static bool cancelStream(Resource* base)
+{
+    xrtAtomic32Store(&((Stream*)base)->closeMode,XL6_TLS_CLOSE_ABORT_V1,XMEMORY_RELEASE);
+    xtlsstream* s=native(base);return s?xrtTlsStreamAbort(s):closeStream(base);
+}
 static bool present(const Resource* base)
 {const Stream* r=(const Stream*)base;return native(base)!=NULL||
     xrtAtomicPtrLoad(&r->pending,XMEMORY_ACQUIRE)!=NULL||xrtAtomic32Load(&r->prepared,XMEMORY_ACQUIRE)!=0;}
