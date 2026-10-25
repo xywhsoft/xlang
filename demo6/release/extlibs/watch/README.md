@@ -5,15 +5,16 @@
 `cstring` 后转成 `string` 反而复制文本，现已修正。`path()` 的
 C 结果是借用指针，保持原有独立字符串语义。Windows 包门禁核对
 生成 C 的直接移交、目录竞态、双语范例和两份 AOT；Linux C
-ASan/UBSan、目录竞态及 XLang JIT/双语门禁已通过，独立 Linux AOT
-待新发布版复验。
+ASan/UBSan、目录竞态及 XLang JIT/双语门禁已通过。使用当前 Linux
+发布版补跑边界、工作目录快照、分配故障和公开范例的独立 EXE AOT；
+四条路径均通过，范例 AOT 与 C 输出逐字节一致。
 
 2026-10-24 当前发布物复验：Windows 默认 `test/check.ps1` 全部通过，
 包含严格 GCC、目录竞争、分配故障、C/XLang 双语固定输出、边界 AOT
 以及带输出范例 AOT。Linux `test/check.sh` 的 C ASan/UBSan、目录竞争、
 XLang JIT 边界和双语输出也通过。旧版
 `xl6ValueDataSnapshotV1` 缺符号已不是当前 Windows 阻断；本轮没有
-用新 Linux 编译器构建并运行独立 EXE，不能外推为 Linux AOT 验收。
+用新 Linux 编译器构建并运行独立 EXE；这一历史空白已由上段门禁补齐。
 以下早期记录的“当前缺符号”均指当时的旧发布版。
 
 `Watcher` 轮询 UTF-8 路径元数据，可监视文件与目录。`add(path)` 返回稳定索引；`poll()` 每次返回一个 `CREATED:path`、`MODIFIED:path`、`DELETED:path` 事件，或在无变化时返回空串；`remove(index)` 释放该项，后续 `add` 可重用索引。监视时路径可以尚不存在，此时后续创建会产生事件。`watch.exists(path)` 可单独检查路径。

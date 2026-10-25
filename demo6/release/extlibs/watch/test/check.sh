@@ -46,4 +46,13 @@ if ! grep -Fq 'addNative' "$work/private_native.txt" ||
     printf 'watch: expected private-access diagnostic\n' >&2
     exit 1
 fi
-printf 'watch Linux ASan/UBSan and C/XLang parity gate: PASS\n'
+for name in boundaries cwd_snapshot allocations; do
+    timeout 120s ./release/xl build "release/extlibs/watch/test/$name.xl" \
+        -o "$work/watch_$name"
+    (cd "$work/case" && timeout 90s "$work/watch_$name")
+done
+timeout 120s ./release/xl build release/extlibs/watch/examples/watch.xl \
+    -o "$work/watch_example_xl"
+(cd "$root/release" && timeout 45s "$work/watch_example_xl" > "$work/example_aot.txt")
+diff -u "$work/example.txt" "$work/example_aot.txt"
+printf 'watch Linux ASan/UBSan, XLang JIT/AOT and C/XLang parity gate: PASS\n'
