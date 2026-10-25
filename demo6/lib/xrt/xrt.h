@@ -28097,6 +28097,19 @@ XRT_API xtlsresult xrtTlsStreamSendVec(
 
 
 /*
+	On the owning Worker, flush ciphertext already queued in an OPEN TLS
+	session (for example NewSessionTicket or KeyUpdate), without writing any
+	application data. OK means accepted by TCP, not delivered or drained.
+	AGAIN retains the ciphertext for the normal transport-driven retry; do
+	not repeat the operation that produced it. An empty queue is an allocation-
+	free, idempotent OK. CLOSED is terminal; other invalid states are errors.
+	This is a new public submission and cannot bypass an ownership claim.
+*/
+XRT_API xtlsresult xrtTlsStreamFlush(xtlsstream* pStream);
+
+
+
+/*
 	在所属 Worker 上返回一次明文发送产生的精确密文线路字节数。
 	结果包含记录头、显式 nonce、内层类型和认证标签，失败不修改 pBound。
 	pBound 不得与 Stream 或其 Session 对象存储重叠。
@@ -169249,6 +169262,53 @@ xtlsresult __xrtTlsStreamSendAccepted(xtlsstream* stream, const void* data, size
 	return __xrtTlsStreamSendSpans(stream, &span, 1, written, false);
 }
 #endif
+
+
+
+/* Publish queued control records without an artificial application write. */
+XRT_API xtlsresult xrtTlsStreamFlush(xtlsstream* pStream)
+{
+	xtlsstreamstate State;
+	xnetresult Result;
+
+	if ( !__xrtTlsStreamWorker(pStream, "flush-tls-stream") ) {
+		return XTLS_ERROR;
+	}
+	State = xrtTlsStreamState(pStream);
+	if ( State == XTLS_STREAM_CLOSED ) {
+		return XTLS_CLOSED;
+	}
+	if ( (State != XTLS_STREAM_OPEN) || pStream->Sending ) {
+		__xrtTlsStreamSetError(
+			XERR_STATE, XTLS_ERROR_STATE, "flush-tls-stream",
+			"TLS stream is not open for flushing or is already sending", NULL
+		);
+		return XTLS_ERROR;
+	}
+	if ( xrtTlsSessionSendSize(pStream->Session) == 0 ) {
+		return XTLS_OK;
+	}
+	/* Drain/Writable callbacks must not run inside the queue transfer. The
+	 * existing transport driver completes both notifications after this call. */
+	pStream->Sending = true;
+	pStream->DrainPending = true;
+	Result = __xrtTlsStreamFlush(pStream);
+	pStream->Sending = false;
+	if ( pStream->CloseEmitted ) {
+		return XTLS_CLOSED;
+	}
+	if ( (Result == XNET_RESULT_ERROR) || (Result == XNET_RESULT_CLOSED) ) {
+		__xrtTlsStreamFail(pStream);
+		return XTLS_ERROR;
+	}
+	if ( Result == XNET_RESULT_AGAIN ) {
+		pStream->WriteBlocked = true;
+	}
+	if ( pStream->DriveAgain || pStream->DrainPending ) {
+		__xrtTlsStreamScheduleDrive(pStream);
+	}
+	return Result == XNET_RESULT_AGAIN ? XTLS_AGAIN : XTLS_OK;
+}
 
 
 

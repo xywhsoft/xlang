@@ -30463,6 +30463,19 @@ XRT_API xtlsresult xrtTlsStreamSendVec(
 
 
 /*
+	On the owning Worker, flush ciphertext already queued in an OPEN TLS
+	session (for example NewSessionTicket or KeyUpdate), without writing any
+	application data. OK means accepted by TCP, not delivered or drained.
+	AGAIN retains the ciphertext for the normal transport-driven retry; do
+	not repeat the operation that produced it. An empty queue is an allocation-
+	free, idempotent OK. CLOSED is terminal; other invalid states are errors.
+	This is a new public submission and cannot bypass an ownership claim.
+*/
+XRT_API xtlsresult xrtTlsStreamFlush(xtlsstream* pStream);
+
+
+
+/*
 	在所属 Worker 上返回一次明文发送产生的精确密文线路字节数。
 	结果包含记录头、显式 nonce、内层类型和认证标签，失败不修改 pBound。
 	pBound 不得与 Stream 或其 Session 对象存储重叠。
