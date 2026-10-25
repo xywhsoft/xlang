@@ -631,6 +631,11 @@ static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const
      * to types outside that function still need the ordinary source mapping. */
     if(move && move->changed && before.known && after.known && before.endOffset>=before.startOffset && after.endOffset>=after.startOffset &&
        before.endOffset<=xlsTextSize(move->oldText)-move->oldSkip && after.endOffset<=xlsTextSize(move->newText)-move->newSkip &&
+       /* The ordinary mapping already preserves a function strictly inside
+        * the identical prefix. A local anchor would turn that no-op into
+        * repeated offset/line/scalar conversions. Keep ordinary per-type
+        * mapping here,including references outside the function. */
+       !(move->oldSkip==move->newSkip && before.endOffset+move->oldSkip<move->start) &&
        before.endOffset-before.startOffset==after.endOffset-after.startOffset &&
        !memcmp(xlsTextData(move->oldText)+move->oldSkip+before.startOffset,xlsTextData(move->newText)+move->newSkip+after.startOffset,before.endOffset-before.startOffset)) {
         apply.anchor=*move; apply.anchoredRange=before;

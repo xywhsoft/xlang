@@ -183,6 +183,50 @@ static int sameFullAst(const XL6_AstNode* a,const XL6_AstNode* b,int sources)
 }
 
 
+static int unchangedPrefixCoordinates(void)
+{
+ /* Trailing argument edits must preserve every retained type coordinate.
+    Equal-size prefixes with different line counts,independent edits across
+    helpers and BOM changes must still use the full relocation rules. */
+ char* path=xrtPathAbs("signature-prefix-中文.xl");CHECK(path);
+ xls_signature_help *held=NULL,*heldFresh=NULL;
+ const size_t budgets[]={0,64u*1024u*1024u};
+ for(unsigned b=0;b<2;++b){
+  xls_signature_session* session=xlsSignatureSessionCreate(NULL);CHECK(session);
+  xls_analysis_document doc={"entry",path,NULL,351+b,0};
+  for(unsigned i=0;i<12;++i){
+   char prefix[33];memset(prefix,' ',32);prefix[32]=0;
+   const char* lead=i==3 ? "// a\r\n// b\r\n" : i>=4 && i<=6 ? "// 中文😀\r\n// shift\r\n" : "// unchanged\r\n";
+   CHECK(strlen(lead)<32);memcpy(prefix,lead,strlen(lead));
+   xstrbuf source={0};CHECK(xrtStrBufAppendFormat(&source,"%s%s\r\n%s",i==7 ? "" : "\xef\xbb\xbf",prefix,functions));
+   for(unsigned j=0;j<16;++j)CHECK(xrtStrBufAppendFormat(&source,
+    "func stable_%u(int value) as int\r\n int local=plus(value,\"中文😀\")+%u\r\n if local>0 then\r\n return local\r\n end\r\n return 0\r\nend\r\n",j,j+(i==6 && !j)));
+   CHECK(xrtStrBufAppendFormat(&source,"func main(...) as int\r\n return plus(%u,\"%s\")\r\nend\r\n",i,i==2 ? "long 中文😀" : "中文😀"));
+   size_t bom=i==7 ? 0 : 3,offset=(size_t)(strrchr(source.Data,'"')-source.Data)-bom;
+   xlsTextRelease(doc.text);doc.text=xlsTextCreate(source.Data,source.Size,1024*1024,NULL);++doc.revision;CHECK(doc.text);
+   xls_sem_storage_control control;xlsFrontendSemStorageBegin(&control,budgets[b]);
+   xls_signature_help* result=xlsSignatureSessionQueryInContext(session,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);
+   xlsFrontendSemStorageEnd(&control,NULL);
+   xls_semantic_input in={path,source.Data,source.Size};
+   xls_signature_help* fresh=xlsSignatureCreateInContext(NULL,path,path,offset,&in,1,NULL,NULL,NULL,0);
+   CHECK(result && fresh && parity(result,fresh) && xlsSignatureInfo(result).available);
+   CHECK(sameFullAst(xlsSemanticCompletionAst(xlsSignatureSemantic(result)),xlsSemanticCompletionAst(xlsSignatureSemantic(fresh)),1));
+   /* Leading comment changes can change declaration documentation and
+      invalidate the complete environment. Assert reuse only for the
+      independently known stable declaration environments. */
+   if(i==1 || i==2 || i==5 || i==6 || i>=9){
+    if(xlsSignatureWork(result).reused<15)fprintf(stderr,"prefix revision=%u budget=%zu reused=%llu\n",i,budgets[b],(unsigned long long)xlsSignatureWork(result).reused);
+    CHECK(xlsSignatureWork(result).reused>=15);
+   }
+   if(!b && i==1){held=xlsSignatureRetain(result);heldFresh=xlsSignatureRetain(fresh);}
+   xlsSignatureRelease(result);xlsSignatureRelease(fresh);xrtStrBufFree(&source);
+  }
+  xlsSignatureSessionDestroy(session);xlsTextRelease(doc.text);
+ }
+ CHECK(held && heldFresh && xlsSignatureValidate(held) && parity(held,heldFresh));
+ CHECK(sameFullAst(xlsSemanticCompletionAst(xlsSignatureSemantic(held)),xlsSemanticCompletionAst(xlsSignatureSemantic(heldFresh)),1));
+ xlsSignatureRelease(held);xlsSignatureRelease(heldFresh);xrtFree(path);return 1;
+}
 typedef struct signature_ast_reader {xls_signature_help* result;const XL6_AstNode* expected;int okay;} signature_ast_reader;
 static int32 signatureAstRead(void* user)
 {
@@ -326,7 +370,7 @@ static int run(void)
  CHECK(originalOracle("func choose(int value,int other) as int\n return value\nend\nfunc choose(string value,int other) as int\n return other\nend\nfunc main(...) as int\n return choose(\"x\",@caret@0)\nend\n"));
  CHECK(originalOracle("class Box\n func method(int value) as int\n return value\n end\nend\nfunc main(...) as int\n auto box=Box()\n return box.method(@caret@7)\nend\n"));
  CHECK(originalOracle("class Box\n create(int value)\n end\nend\nfunc main(...) as int\n auto box=Box(@caret@7)\n return 0\nend\n"));
- CHECK(session());CHECK(parseIncrementality());CHECK(retainedFullAst());CHECK(cancellation());CHECK(actor());CHECK(diskInputs());CHECK(isolationAndBounds());
+ CHECK(session());CHECK(parseIncrementality());CHECK(unchangedPrefixCoordinates());CHECK(retainedFullAst());CHECK(cancellation());CHECK(actor());CHECK(diskInputs());CHECK(isolationAndBounds());
  return 1;
 }
 int main(void){if(!run())return 1;printf("Same-argument immutable caret views=%llu\n",(unsigned long long)caretViews);printf("analysis_signature_test passed: %u checks\n",checks);return 0;}

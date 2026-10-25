@@ -48,7 +48,7 @@ def main():
             else:assert value['activeParameter']==1 and value['signatures'][value['activeSignature']]['label']=='choose(int left, string right) as int'
         cases.append(dict(method=method,target=index,version=version,analysis=analysis));return analysis
     try:
-        c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1);init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.59';c.send('initialized',{})
+        c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1);init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.60';c.send('initialized',{})
         original=source()
         for p in paths:c.open(p,original,1)
         a=call(0,original,1);cold=a['irFragments'];assert cold['captured']>0 and not cold['reused'] and not cold['textNodes']
