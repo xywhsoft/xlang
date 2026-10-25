@@ -44,7 +44,7 @@ timeout 90s ./release/xl run release/extlibs/miniz/examples/basic.c > "$work/bas
 diff -u "$work/basic_c.txt" "$work/basic_direct.txt"
 timeout 90s ./release/xl run test/cases/extlib_miniz.xl
 timeout 90s ./release/xl run test/cases/extlib_miniz_progress.xl
-timeout 90s ./release/xl run release/extlibs/miniz/test/file_ops.xl
+timeout 90s ./release/xl run release/extlibs/miniz/test/file_ops.xl > "$work/file_ops_jit.txt"
 timeout 90s ./release/xl run release/examples/extlibs/miniz.xl > "$work/full_xl.txt"
 timeout 90s ./release/xl run release/extlibs/miniz/test/allocations.xl
 timeout 90s ./release/xl run release/extlibs/miniz/test/text_transfer.xl
@@ -52,4 +52,20 @@ timeout 90s ./release/xl run release/examples/extlibs/miniz_basic.xl > "$work/ba
 diff -u "$work/basic_c.txt" "$work/basic_xl.txt"
 hex=$(/usr/bin/timeout 30s "$work/test_miniz" --emit)
 python3 -c 'import sys,zlib; assert zlib.decompress(bytes.fromhex(sys.argv[1])) == b"abc"' "$hex"
-printf 'miniz Linux ASan/UBSan, Python zlib and XLang parity gate: PASS\n'
+printf '[miniz] XLang AOT gate\n'
+for name in central progress file_ops allocations text_transfer basic full; do
+    printf '[miniz] AOT %s\n' "$name"
+    case "$name" in
+        central) source=test/cases/extlib_miniz.xl ;;
+        progress) source=test/cases/extlib_miniz_progress.xl ;;
+        basic) source=release/examples/extlibs/miniz_basic.xl ;;
+        full) source=release/examples/extlibs/miniz.xl ;;
+        *) source="release/extlibs/miniz/test/$name.xl" ;;
+    esac
+    timeout 180s ./release/xl build "$source" -o "$work/miniz_$name"
+    timeout 90s "$work/miniz_$name" > "$work/${name}_aot.txt"
+done
+diff -u "$work/file_ops_jit.txt" "$work/file_ops_aot.txt"
+diff -u "$work/basic_c.txt" "$work/basic_aot.txt"
+diff -u "$work/full_xl.txt" "$work/full_aot.txt"
+printf 'miniz Linux C ASan/UBSan, Python zlib, XLang JIT/AOT and parity gate: PASS\n'

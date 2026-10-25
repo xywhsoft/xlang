@@ -1,19 +1,26 @@
 # miniz
 
-2026-10-25 文本解压现在返回拥有型 `cstring`，经 UTF-8 验证后
+2026-10-26 当前发布物：Windows 默认 `test/check.ps1` 退出 0，
+严格 C、Python 标准库 zlib 双向互通、分配故障、JIT/AOT 与 C/XLang
+范例输出一致。Linux `test/check.sh` 退出 0：C ASan/UBSan、
+Python zlib 互通、JIT、七条独立 EXE AOT 以及文件/基础/完整范例
+输出对照通过。旧 `cstring`、根目录 VFS 和 AOT 快照缺符号阻断
+在当前发布物不再复现。未据此宣称 32 位、TSan 或长时压力已验收。
+
+2026-10-25 历史记录：文本解压改为返回拥有型 `cstring`，经 UTF-8 验证后
 直接接管解压缓冲，不再由 `Buffer.text()` 无条件复制。明确字节长度
 保留文本中的内嵌 NUL；C 回归验证指针身份、空结果、坏 UTF-8、
 逐点分配失败和释放恢复，XLang 专项及中央用例 JIT/AOT 均通过。
-Windows 包门禁的严格 C、zlib 互通与分配阶段通过，随后受共享
-VFS `include/xruntime_decl.h` 查找故障中断；本次不签收完整门禁。
+当时 Windows 包门禁的严格 C、zlib 互通与分配阶段通过，随后受共享
+VFS `include/xruntime_decl.h` 查找故障中断；当时未签收完整门禁。
 Linux C ASan/UBSan 与新分配回归通过；旧 `release/xl` 不识别
-`cstring`，须重建 Linux 发布物后再签收语言阶段。
+`cstring`，当时尚未签收语言阶段。
 
-2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 完整通过：
+2026-10-24 当时 Windows 发布版默认 `test/check.ps1` 完整通过：
 严格 GCC、C/XLang 边界与分配故障、双语范例和独立 EXE AOT。
 门禁现要求 Python 标准库 `zlib` 解开本包 GCC 现场生成的流；
 反方向的 Python 固定流仍由 C 边界测试读取。下文“当前缺符号”
-是旧发布物的历史记录；本轮未重建 Linux 发布版，不据 Windows
+是旧发布物的历史记录；当时未重建 Linux 发布版，未据 Windows
 结果签收 Linux AOT。
 
 本包提供标准 [RFC 1950 zlib 流](https://www.rfc-editor.org/rfc/rfc1950.html) 的一次性、增量和文件接口。编解码复用 XRT 的 deflate/inflate；不再输出或读取旧的私有多块容器。
@@ -36,7 +43,7 @@ assert miniz.decompressText(packed) == "hello miniz"
 仅用于 UTF-8 文本，解压成功但内容含非法 UTF-8 时抛 `ValueError`。
 内嵌 NUL 按真实字节长度保留；任意非 UTF-8 二进制载荷仍应使用 `Buffer`。
 
-测试 `test/test_miniz.c` 覆盖 Python zlib 固定样本、分段输入、空流、损坏、截断、串联拒绝、输出限额，以及 XRT Reader/Writer 的二进制流往返和进度回调。`test/file_ops.xl` 覆盖文件往返、覆盖拒绝、取消清理和解压限额下的目标保护。Linux 使用 `bash release/extlibs/miniz/test/check.sh`，会运行 ASan/UBSan、Python zlib 反向解码和包内 XLang 文件测试；中央 XLang 用例见 `demo6/test/cases/extlib_miniz.xl`。
+测试 `test/test_miniz.c` 覆盖 Python zlib 固定样本、分段输入、空流、损坏、截断、串联拒绝、输出限额，以及 XRT Reader/Writer 的二进制流往返和进度回调。`test/file_ops.xl` 覆盖文件往返、覆盖拒绝、取消清理和解压限额下的目标保护。Linux 使用 `bash release/extlibs/miniz/test/check.sh`，运行 ASan/UBSan、Python zlib 反向解码、XLang JIT 和七条独立 EXE AOT；中央 XLang 用例见 `demo6/test/cases/extlib_miniz.xl`。
 Windows 在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/miniz/test/check.ps1`：同次验证严格 GCC 独立构建、Python zlib 互通、TCC C、私有成员负例、中央/文件 XLang 用例、GCC C/TCC C/XLang 范例逐字输出和完整 AOT。脚本使用每次独立的临时构建目录；`-SkipAot` 仅供聚焦快测，不作为发布签收。
 
 包清单公开 `include/` 并声明所需的 XRT/XRuntime 模块。Windows 上可直接用
@@ -47,10 +54,9 @@ Windows 在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File 
 `release/xl.exe run release/extlibs/miniz/examples/basic.c` 运行，或单独
 `xl build`；正式包仍按清单分离编译原生源码。
 
-当前 `xl.exe` 的 `Buffer` 单字节结果参与异或仍触发 XLIR 算术转换错误，
-最小复现见 `dev/extlib_blockers/argon2_byteat_sub.md`。包级用例用损坏帧头
-测试解码失败，不将绕开该表达式视为主线问题已解决。完整 AOT 仍缺
-`xl6ValueDataSnapshotV1`，发布级签收待主线修复后复验。
+旧发布物的 `Buffer` 单字节结果参与异或曾触发 XLIR 算术转换错误，
+最小复现见 `dev/extlib_blockers/argon2_byteat_sub.md`；完整 AOT 曾缺
+`xl6ValueDataSnapshotV1`。这些记录描述旧版本，不是当前门禁结果。
 
 2026-10-22 复验：中央 `extlib_miniz.xl` 已改用直接写入损坏帧头，
 `xl run` 成功；Windows `check.ps1 -SkipAot` 的 C 边界、语言用例与
