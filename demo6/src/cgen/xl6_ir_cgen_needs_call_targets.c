@@ -50,8 +50,6 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
                 needs->needsXValueUnionRuntime=1;needs->needsRuntimeTrap=1;
             }
         }
-        if(target->runtimeBridge==XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE && target->cName &&
-            strcmp(target->cName,"xl6DictValueRemoveV1")==0)needs->needsDictMethodsRuntime=1;
         if(target->asyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)
             needs->needsNativeFuturePayloadRuntime=1;
         if(target->kind==XL6_IR_CALL_TARGET_INTERNAL_ASYNC && target->asyncCaptureDestroyAbis)
@@ -66,8 +64,11 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
         /* A reached resident symbol needs the shared physical declarations
          * regardless of its language bridge family. Registry linkage, not a
          * VFS/FS symbol spelling or emitted adapter body, selects this header. */
-        if (xl6ArtifactRuntimeSymbolOwner(target->cName) != XL6_ARTIFACT_RUNTIME_COUNT)
+        XL6_ArtifactRuntimeId owner=xl6ArtifactRuntimeSymbolOwner(target->cName);
+        if (owner != XL6_ARTIFACT_RUNTIME_COUNT)
             needs->needsTextAdapterDeclarations = 1;
+        if (owner == XL6_ARTIFACT_DICT_METHODS)
+            needs->needsDictMethodsRuntime = 1;
         if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE) {
             needs->needsTextAdapterDeclarations = 1;
             needs->needsStringRuntime = 1;
