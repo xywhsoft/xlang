@@ -1,5 +1,20 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+2026-10-26 `hyperloglog` 新门禁复验：Windows 当前发布版的严格 C、
+线程、XLang JIT、私有入口负例、双语黄金输出，以及中央/公开范例
+AOT 已通过；新增 `release/extlibs/hyperloglog/test/boundaries.xl` AOT
+构建成功，运行打印 `hyperloglog boundaries: PASS`，随后在退出期报
+`RuntimeError: operation is not valid in the current state`，退出 1。
+从 `demo6` 运行 `release/xl.exe run release/extlibs/hyperloglog/test/boundaries.xl`
+正常退出；`release/xl.exe build` 同文件为独立 EXE 后则复现。
+Linux 发布版独立构建、运行同一文件也在打印 PASS 后报同错并退出 1；
+更新后的默认 `hyperloglog/test/check.sh` 完整门禁亦在此阶段退出 1，
+此前的 C ASan/UBSan、线程和 XLang JIT 阶段均通过。
+现行 Windows 发布版的本文件最小用例再次验证 JIT 退出 0、独立 EXE
+退出 1。症状与已有多包顶层对象案例一致，但未证明原生根因完全相同。
+主线修复后须重跑双平台 `hyperloglog/test/check.*` 默认门禁；不可把
+顶层对象挪到函数局部以掩盖退出清理边界。本普通扩展包任务不改主线。
+
 2026-10-25 发布版复验：`release/xlc.dll` SHA-256 为
 `70A40D58A996B558B91A030799B82EC0C3EB7A88D258717A34FF1A6010B69BBA`。
 从 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File
