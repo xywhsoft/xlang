@@ -1,5 +1,11 @@
 # gettext
 
+2026-10-25 新 Linux 发布物：此前 `cbytes` 声明处的导入错误已不再复现。
+包级 `test/check.sh` 现完整通过严格 C、ASan/UBSan、PO/MO 边界与
+大输入、XLang JIT/分配故障、双语范例，并新增边界与成对范例两份
+独立 EXE 的构建运行；范例 AOT 输出逐字节对照 C 结果。下文关于旧
+Linux `release/xl` 阻断的文字是历史记录，不再描述当前门禁状态。
+
 从 GNU PO 文本或 MO 二进制目录查询译文。目录本身是 XRT object；C 可直接调用 `gettext_native.h` 声明的函数，原有查询结果由调用方使用 `xrtFree` 释放，解析结果使用 `xrtValueRelease` 释放。
 `xgt_*_borrowed` 只在同步调用期间借用目录译文或传入的原文，不得释放返回指针；保留结果时必须保持目录及原文存活或自行复制。XLang 包装使用借用入口，直接形成语言字符串，省去原先 C 侧分配及第一次正文复制；C 的拥有型查询合同不变。
 PO/MO 解析时，译文片段直接从借用的解析视图构造独立 XRT 字符串值，
@@ -56,13 +62,13 @@ XLang 示例：`release/examples/extlibs/gettext.xl`。对应 C 示例：`releas
 
 2026-10-25：边界测试新增目录及原文离开局部作用域后的译文/未命中回退保留验证，
 确保借用的 C 返回指针已转换成独立的 XLang 字符串。Windows 完整门禁通过；
-Linux C ASan/UBSan 通过，语言门禁仍由下述旧 Linux `xl` 的 `cbytes` 缺口阻断。
+Linux C ASan/UBSan 通过；当次语言门禁受下述旧 Linux `xl` 的 `cbytes` 缺口阻断。
 
 2026-10-24 使用更新后的 Windows 发布版复验：默认包门禁完整通过，含
 严格 C、PO/MO 边界、分配故障、双语范例和公开范例 AOT。旧 Windows
 发布版的共享符号阻断已解除。Linux `check.sh` 先完成 C ASan/UBSan，
 随后现有 10 月 6 日的 `release/xl` 在 `src/gettext.xl` 的 `cbytes`
-声明处报“未知类型”；需重建 Linux 发布版后重跑完整语言门禁。
+声明处报“未知类型”；当时需重建 Linux 发布版后重跑完整语言门禁。
 这不构成 `gettext` 包源码的语法回退要求。
 
 以下为历史验证记录；共享缺符号的“当前”表述均指记录当时的旧发布版。

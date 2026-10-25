@@ -32,4 +32,11 @@ timeout 90s ./release/xl run release/extlibs/gettext/examples/gettext_c.c > "$wo
 diff -u "$work/example_c.txt" "$work/example_direct_c.txt"
 ( cd release && timeout 90s ./xl run extlibs/gettext/examples/gettext.xl ) > "$work/example_xl.txt"
 diff -u "$work/example_c.txt" "$work/example_xl.txt"
-printf 'gettext Linux C ASan/UBSan and XLang parity gate: PASS\n'
+timeout 120s ./release/xl build release/extlibs/gettext/test/boundaries.xl \
+    -o "$work/gettext_boundaries"
+timeout 90s "$work/gettext_boundaries"
+( cd release && timeout 120s ./xl build extlibs/gettext/examples/gettext.xl \
+    -o "$work/gettext_example" )
+( cd release && timeout 90s "$work/gettext_example" ) > "$work/example_aot.txt"
+diff -u "$work/example_c.txt" "$work/example_aot.txt"
+printf 'gettext Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'
