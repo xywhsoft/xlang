@@ -113,3 +113,25 @@ for allocation in range(16)
     if snapshotCaught then snapshotFailures += 1 else snapshotSuccesses += 1 end
 end
 assert snapshotFailures > 0 and snapshotSuccesses > 0
+
+roaring.RoaringBitmap right = roaring.create()
+right.add(7)
+right.add(42)
+int combineFailures = 0
+int combineSuccesses = 0
+for allocation in range(32)
+    bool combineCaught = false
+    assert failAfter(uint64(allocation))
+    try
+        roaring.RoaringBitmap merged = snapshotSet.unionWith(right)
+        assert merged.count == 4
+    catch MemoryError error
+        combineCaught = true
+    end
+    bool combineTriggered = failTriggered()
+    failClear()
+    assert combineCaught == combineTriggered
+    assert snapshotSet.count == 3 and right.count == 2
+    if combineCaught then combineFailures += 1 else combineSuccesses += 1 end
+end
+assert combineFailures > 0 and combineSuccesses > 0

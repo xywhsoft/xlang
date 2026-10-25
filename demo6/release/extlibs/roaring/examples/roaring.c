@@ -45,6 +45,35 @@ int main(void) {
             (long long)first, (long long)second, (long long)third);
     }
     xrtValueRelease(ordered);
+    {
+        void *other = xroaring_create();
+        void *combined = xroaring_create();
+        if (other == NULL || combined == NULL ||
+            !xroaring_add(other, 30) || !xroaring_add(other, 40) ||
+            !xroaring_combine_into(combined, set, other, 0)) {
+            xroaring_destroy(combined);
+            xroaring_destroy(other);
+            xroaring_destroy(set);
+            return 1;
+        }
+        printf("union count: %lld\n", (long long)xroaring_count(combined));
+        if (!xroaring_combine_into(combined, set, other, 1)) {
+            xroaring_destroy(combined);
+            xroaring_destroy(other);
+            xroaring_destroy(set);
+            return 1;
+        }
+        printf("intersection count: %lld\n", (long long)xroaring_count(combined));
+        if (!xroaring_combine_into(combined, set, other, 2)) {
+            xroaring_destroy(combined);
+            xroaring_destroy(other);
+            xroaring_destroy(set);
+            return 1;
+        }
+        printf("difference count: %lld\n", (long long)xroaring_count(combined));
+        xroaring_destroy(combined);
+        xroaring_destroy(other);
+    }
     puts("roaring example: PASS");
     xroaring_destroy(set);
     return 0;

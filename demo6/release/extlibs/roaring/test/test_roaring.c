@@ -234,6 +234,148 @@ static int test_snapshot_allocation_failure(void) {
     return 0;
 }
 
+static int test_combine(void) {
+    void *left = xroaring_create(), *right = xroaring_create();
+    void *result = xroaring_create();
+    static const int64_t united[] = {1, 2, 3, 4096, 65536, 131072, UINT32_MAX};
+    static const int64_t common[] = {2, 65536};
+    static const int64_t remaining[] = {1, 4096, UINT32_MAX};
+    int i;
+    CHECK(left && right && result);
+    CHECK(xroaring_add(left, 1) && xroaring_add(left, 2) &&
+        xroaring_add(left, 4096) && xroaring_add(left, 65536) &&
+        xroaring_add(left, UINT32_MAX));
+    CHECK(xroaring_add(right, 2) && xroaring_add(right, 3) &&
+        xroaring_add(right, 65536) && xroaring_add(right, 131072));
+    CHECK(xroaring_combine_into(result, left, right, 0));
+    CHECK(check_snapshot(result, united, 7) == 0);
+    CHECK(xroaring_combine_into(result, left, right, 1));
+    CHECK(check_snapshot(result, common, 2) == 0);
+    CHECK(xroaring_combine_into(result, left, right, 2));
+    CHECK(check_snapshot(result, remaining, 3) == 0);
+    CHECK(xroaring_count(left) == 5 && xroaring_count(right) == 4);
+
+    /* 输出与输入别名也必须在完整构造后原子替换。 */
+    CHECK(xroaring_combine_into(left, left, right, 0));
+    CHECK(check_snapshot(left, united, 7) == 0);
+    CHECK(xroaring_combine_into(right, left, right, 1));
+    CHECK(check_snapshot(right, (const int64_t[]){2, 3, 65536, 131072}, 4) == 0);
+    CHECK(xroaring_combine_into(result, left, left, 2));
+    CHECK(check_snapshot(result, NULL, 0) == 0);
+    CHECK(xroaring_combine_into(left, left, left, 2));
+    CHECK(check_snapshot(left, NULL, 0) == 0);
+    CHECK(!xroaring_combine_into(NULL, left, right, 0) &&
+        xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    CHECK(!xroaring_combine_into(result, left, right, 3) &&
+        xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+
+    xroaring_clear(left);
+    xroaring_clear(right);
+    for (i = 0; i < 5000; ++i) CHECK(xroaring_add(left, i));
+    for (i = 2500; i < 7500; ++i) CHECK(xroaring_add(right, i));
+    CHECK(xroaring_combine_into(result, left, right, 0));
+    CHECK(xroaring_count(result) == 7500 && xroaring_min(result) == 0 &&
+        xroaring_max(result) == 7499);
+    for (i = 0; i < 7500; ++i) CHECK(xroaring_contains(result, i));
+    CHECK(xroaring_combine_into(result, left, right, 1));
+    CHECK(xroaring_count(result) == 2500 && xroaring_min(result) == 2500 &&
+        xroaring_max(result) == 4999);
+    for (i = 0; i < 7500; ++i)
+        CHECK(xroaring_contains(result, i) == (i >= 2500 && i < 5000));
+    CHECK(xroaring_combine_into(result, left, right, 2));
+    CHECK(xroaring_count(result) == 2500 && xroaring_min(result) == 0 &&
+        xroaring_max(result) == 2499);
+    for (i = 0; i < 7500; ++i)
+        CHECK(xroaring_contains(result, i) == (i < 2500));
+    xroaring_destroy(result);
+    xroaring_destroy(right);
+    xroaring_destroy(left);
+    return 0;
+}
+
+static int test_combine_differential(void) {
+    static unsigned char members[2][3][10000];
+    static const uint16_t keys[3] = {0, 1, UINT16_MAX};
+    void *left = xroaring_create(), *right = xroaring_create();
+    void *result = xroaring_create();
+    int key, value, operation;
+    CHECK(left && right && result);
+    for (key = 0; key < 3; ++key) {
+        for (value = 0; value < 10000; ++value) {
+            int add_left = (key == 0 && value < 5000) ||
+                (key == 1 && value % 11 == 0) ||
+                (key == 2 && value < 6000);
+            int add_right = (key == 0 && value % 7 == 0) ||
+                (key == 1 && value >= 2500 && value < 7500) ||
+                (key == 2 && value >= 3000 && value < 9000);
+            int64_t number = ((int64_t)keys[key] << 16) | value;
+            if (add_left) CHECK(xroaring_add(left, number));
+            if (add_right) CHECK(xroaring_add(right, number));
+            members[0][key][value] = (unsigned char)add_left;
+            members[1][key][value] = (unsigned char)add_right;
+        }
+    }
+    for (operation = 0; operation < 3; ++operation) {
+        int64_t expected_count = 0;
+        CHECK(xroaring_combine_into(result, left, right, operation));
+        for (key = 0; key < 3; ++key) {
+            for (value = 0; value < 10000; ++value) {
+                int a = members[0][key][value] != 0;
+                int b = members[1][key][value] != 0;
+                int expected = operation == 0 ? (a || b) :
+                    operation == 1 ? (a && b) : (a && !b);
+                int64_t number = ((int64_t)keys[key] << 16) | value;
+                CHECK(xroaring_contains(result, number) == expected);
+                expected_count += expected;
+            }
+        }
+        CHECK(xroaring_count(result) == expected_count);
+    }
+    xroaring_destroy(result);
+    xroaring_destroy(right);
+    xroaring_destroy(left);
+    return 0;
+}
+
+static int test_combine_allocation_failure(void) {
+    void *left = xroaring_create(), *right = xroaring_create();
+    void *result = xroaring_create();
+    static const int64_t old[] = {999};
+    int i, failures = 0, successes = 0;
+    CHECK(left && right && result);
+    CHECK(xroaring_add(left, 1) && xroaring_add(left, 2));
+    CHECK(xroaring_add(right, 2) && xroaring_add(right, 3));
+    for (i = 0; i < 32; ++i) {
+        int combined;
+        xroaring_clear(result);
+        CHECK(xroaring_add(result, 999));
+        CHECK(xrtMemDebugFailAfter((unsigned)i));
+        combined = xroaring_combine_into(result, left, right, 0);
+        if (!combined) {
+            CHECK(xrtMemDebugFailTriggered() &&
+                xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+            ++failures;
+        } else {
+            CHECK(!xrtMemDebugFailTriggered() && xroaring_count(result) == 3);
+            ++successes;
+        }
+        xrtMemDebugFailClear();
+        if (!combined) CHECK(check_snapshot(result, old, 1) == 0);
+        CHECK(xroaring_count(left) == 2 && xroaring_count(right) == 2);
+    }
+    CHECK(failures > 0 && successes > 0);
+    CHECK(xrtMemDebugFailAfter(0u));
+    CHECK(!xroaring_combine_into(left, left, right, 0) &&
+        xrtMemDebugFailTriggered() &&
+        xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+    xrtMemDebugFailClear();
+    CHECK(check_snapshot(left, (const int64_t[]){1, 2}, 2) == 0);
+    xroaring_destroy(result);
+    xroaring_destroy(right);
+    xroaring_destroy(left);
+    return 0;
+}
+
 static uint32_t next_random(uint32_t *state) {
     *state ^= *state << 13;
     *state ^= *state >> 17;
@@ -302,6 +444,9 @@ int main(void) {
     CHECK(test_full_bucket_lifecycle() == 0);
     CHECK(test_error_recovery() == 0);
     CHECK(test_snapshot_allocation_failure() == 0);
+    CHECK(test_combine() == 0);
+    CHECK(test_combine_differential() == 0);
+    CHECK(test_combine_allocation_failure() == 0);
     CHECK(test_differential() == 0);
     return 0;
 }

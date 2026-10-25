@@ -59,6 +59,9 @@ try {
         'max: 1000000',
         'after remove 20, count: 3',
         'ordered: 10 30 1000000',
+        'union count: 4',
+        'intersection count: 1',
+        'difference count: 2',
         'roaring example: PASS'
     ) -join "`n"
     if (($cOutput -join "`n") -cne $expected -or

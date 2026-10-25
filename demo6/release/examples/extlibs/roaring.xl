@@ -20,6 +20,16 @@ func main(...) as int
     var ordered = rb.toArray()
     println("ordered:", ordered[0], ordered[1], ordered[2])
 
+    auto other = roaring.create()
+    other.add(30)
+    other.add(40)
+    auto merged = rb.unionWith(other)
+    auto common = rb.intersectWith(other)
+    auto remaining = rb.differenceWith(other)
+    println("union count:", merged.count)
+    println("intersection count:", common.count)
+    println("difference count:", remaining.count)
+
     println("roaring example: PASS")
     return 0
 end

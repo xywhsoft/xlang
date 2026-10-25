@@ -22,6 +22,9 @@ int64_t xroaring_min(void *handle);
 int64_t xroaring_max(void *handle);
 /* 返回由调用方 xrtValueRelease 的升序数组快照；失败返回 null 值并设置 XRT 错误。 */
 struct xvalue *xroaring_to_array(void *handle);
+/* 0=并集，1=交集，2=差集(left-right)；失败时 output 保持原样，可与输入别名。 */
+bool xroaring_combine_into(void *output, void *left,
+    void *right, int operation);
 
 #ifdef __cplusplus
 }

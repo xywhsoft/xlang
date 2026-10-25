@@ -1,6 +1,6 @@
 # roaring
 
-精确的 `uint32` 非负整数内存集合。按高 16 位分桶，桶内从有序数组按密度升级为位图；支持重复插入、删除、查询、计数、最小/最大值、升序快照及清空。适合整数 ID 去重与成员查询。此实现**没有** Roaring 格式序列化、run container、集合并交差或磁盘持久化，不与其他 Roaring 实现交换二进制数据。
+精确的 `uint32` 非负整数内存集合。按高 16 位分桶，桶内从有序数组按密度升级为位图；支持重复插入、删除、查询、计数、最小/最大值、升序快照、集合并交差及清空。适合整数 ID 去重与成员查询。此实现**没有** Roaring 格式序列化、run container 或磁盘持久化，不与其他 Roaring 实现交换二进制数据。
 
 ```xlang
 import roaring
@@ -11,12 +11,18 @@ assert ids.contains(65536)
 assert ids.count == 1
 var ordered = ids.toArray()
 assert ordered.length == 1 and ordered[0] == 65536
+roaring.RoaringBitmap other = roaring.create()
+other.add(42)
+roaring.RoaringBitmap both = ids.unionWith(other)
+assert both.count == 2 and ids.count == 1
 assert ids.remove(65536)
 ```
 
 取值范围为 `0..4294967295`，越界抛 `ValueError`。`add` 重复值不改变数量；`remove` 返回是否确实删除；空集合的 `min` / `max` 为 `-1`。桶从数组升为位图后，删除至 4096 项时降回有序数组；继续删减时逐级收缩容量，避免稀疏桶长期占用整张位图。创建、插入或删除期间的内存分配失败由原生调用桥接抛 `MemoryError`，失败的操作不改变集合。同一实例的并发访问需调用方同步。
 
 `toArray()` 返回独立的 `var` 数组快照，元素是按数值升序排列的整数；之后修改或销毁原集合不会改变快照。调用成本与元素数量成正比，并需为结果分配内存；内存不足抛 `MemoryError`，原集合保持不变。
+
+`unionWith(other)`、`intersectWith(other)`、`differenceWith(other)` 分别返回并集、交集与差集（当前集合减去 `other`）的新 `RoaringBitmap`。输入保持不变；允许同一实例与自身运算，空结果也是有效集合。归并按已有的升序桶和桶内元素执行，结果仍遵守 4096 项的数组/位图阈值。创建或归并分配失败抛 `MemoryError`，两个输入保持不变。
 
 ## C 接口
 
@@ -26,8 +32,11 @@ assert ids.remove(65536)
 `min` / `max` 返回 `-1` 但带错误，`clear` 也设置错误；这与合法空集合
 的 `count == 0`、`min/max == -1` 且无错误区分开。
 `xroaring_to_array` 返回 XRT `xvalue` 数组，调用方用 `xrtValueRelease` 释放。空集合返回空数组；空句柄返回 XRT null 值并设置 `XERR_ARGUMENT`；分配失败返回 XRT null 值并保留 `XERR_MEMORY`。该 API 需要 `XRT_MODULE_VALUE_CONTAINER`，包清单已声明。
+`xroaring_combine_into(output, left, right, operation)` 使用 0=并、1=交、2=差（`left-right`）。三个句柄可互相别名；先完整构造结果，成功后替换 `output`，失败时 `output` 与输入均保持原样。空句柄/无效操作码报告 `XERR_ARGUMENT`，内存不足报告 `XERR_MEMORY`。
 
 ## 验证
+
+2026-10-25：新增并、交、差的 C/XLang 接口与双语范例。C 固定边界和独立布尔模型覆盖数组+数组、位图+数组、数组+位图、位图+位图、跨桶、`UINT32_MAX`、输出别名与失败回滚；XLang 测试覆盖返回对象、输入不变及分配故障分类。Windows 严格 GCC、C 原生测试、从 `release` 目录运行的 XLang JIT、双语范例及公开范例独立 EXE 通过；Linux `test/check.sh` 通过 C ASan/UBSan、语言边界与分配用例、双语固定输出。Linux 仍使用现有发布物，未验收新 Linux 独立 EXE。根目录 VFS 头文件阻断仍按下文记录，默认 Windows 包门禁未签收。
 
 2026-10-25：新增升序快照 C/XLang 接口及双语范例。C 测试覆盖空集、跨桶与 `UINT32_MAX`、数组/位图两种桶、修改源集合后的快照独立性、空句柄和逐分配点故障回滚；XLang 边界及内存故障用例同步补齐。Windows 严格 GCC、C 原生测试、从 `release` 目录运行的 XLang JIT、公开范例 AOT 和双语范例输出均通过。Linux `test/check.sh` 也通过 C ASan/UBSan、XLang 边界/故障用例和双语范例对照；仍使用现有 Linux `release/xl`，不据此签收新版 Linux 发布物。当前 Windows 发布版从 `demo6` 根目录运行包级脚本时找不到 `include/xruntime_decl.h`；这是运行时 VFS/路径问题，见 `dev/extlib_blockers/release_root_xruntime_decl.md`，未据此宣称默认整包门禁通过。
 

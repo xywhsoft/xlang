@@ -387,3 +387,109 @@ failed:
     xrtValueRelease(result);
     return xrtValueNull();
 }
+
+/* ------------ 集合归并 ------------ */
+
+static int xr_next_value(const XRContainer *bucket, uint32_t *cursor,
+    uint16_t *value) {
+    if (bucket == NULL) return 0;
+    if (bucket->bitmap == NULL) {
+        if (*cursor >= bucket->count) return 0;
+        *value = bucket->array[(*cursor)++];
+        return 1;
+    }
+    while (*cursor < 65536u) {
+        uint32_t word = *cursor / 64u;
+        unsigned bit = *cursor & 63u;
+        uint64_t bits = bucket->bitmap[word] & (~UINT64_C(0) << bit);
+        if (bits != 0) {
+            while ((bits & (UINT64_C(1) << bit)) == 0) ++bit;
+            *value = (uint16_t)(word * 64u + bit);
+            *cursor = (uint32_t)*value + 1u;
+            return 1;
+        }
+        *cursor = (word + 1u) * 64u;
+    }
+    return 0;
+}
+
+static int xr_combine_bucket(XRBitmap *result, uint16_t key,
+    const XRContainer *left, const XRContainer *right, int operation) {
+    uint32_t li = 0, ri = 0;
+    uint16_t lv = 0, rv = 0;
+    int has_left = xr_next_value(left, &li, &lv);
+    int has_right = xr_next_value(right, &ri, &rv);
+    while (has_left || has_right) {
+        uint16_t value = 0;
+        int emit = 0, added;
+        if ((operation == 1 && (!has_left || !has_right)) ||
+            (operation == 2 && !has_left)) break;
+        if (!has_right || (has_left && lv < rv)) {
+            value = lv;
+            emit = operation != 1;
+            has_left = xr_next_value(left, &li, &lv);
+        } else if (!has_left || rv < lv) {
+            value = rv;
+            emit = operation == 0;
+            has_right = xr_next_value(right, &ri, &rv);
+        } else {
+            value = lv;
+            emit = operation != 2;
+            has_left = xr_next_value(left, &li, &lv);
+            has_right = xr_next_value(right, &ri, &rv);
+        }
+        if (!emit) continue;
+        if (result->count == 0 || result->items[result->count - 1].key != key) {
+            if (!xr_create_bucket(result, result->count, key)) return 0;
+        }
+        if (!xr_insert(result->items + result->count - 1, value, &added)) return 0;
+        result->total += (uint64_t)added;
+    }
+    return 1;
+}
+
+bool xroaring_combine_into(void *output, void *left,
+    void *right, int operation) {
+    XRBitmap *target = output;
+    const XRBitmap *a = left, *b = right;
+    XRBitmap *result;
+    size_t ai = 0, bi = 0;
+    xrtClearError();
+    if (target == NULL || a == NULL || b == NULL ||
+        operation < 0 || operation > 2) {
+        xr_fail(XERR_ARGUMENT, "invalid set or combine operation");
+        return false;
+    }
+    result = xroaring_create();
+    if (result == NULL) return false;
+    while (ai < a->count || bi < b->count) {
+        const XRContainer *left_bucket = NULL, *right_bucket = NULL;
+        uint16_t key;
+        if (bi >= b->count ||
+            (ai < a->count && a->items[ai].key < b->items[bi].key)) {
+            key = a->items[ai].key;
+            left_bucket = a->items + ai++;
+        } else if (ai >= a->count || b->items[bi].key < a->items[ai].key) {
+            key = b->items[bi].key;
+            right_bucket = b->items + bi++;
+        } else {
+            key = a->items[ai].key;
+            left_bucket = a->items + ai++;
+            right_bucket = b->items + bi++;
+        }
+        if ((operation == 1 && (left_bucket == NULL || right_bucket == NULL)) ||
+            (operation == 2 && left_bucket == NULL)) continue;
+        if (!xr_combine_bucket(result, key, left_bucket, right_bucket,
+            operation)) {
+            xroaring_destroy(result);
+            return false;
+        }
+    }
+    {
+        XRBitmap previous = *target;
+        *target = *result;
+        *result = previous;
+    }
+    xroaring_destroy(result);
+    return true;
+}

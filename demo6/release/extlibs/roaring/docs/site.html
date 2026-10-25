@@ -26,15 +26,19 @@
       <tr><td><code>add / contains / remove</code></td><td>插入、查询、删除整数</td></tr>
       <tr><td><code>count / min / max / clear</code></td><td>统计、范围与复用</td></tr>
       <tr><td><code>toArray()</code></td><td>生成独立的升序整数数组快照</td></tr>
+      <tr><td><code>unionWith / intersectWith / differenceWith</code></td><td>生成并集、交集、差集的新集合</td></tr>
     </tbody></table>
     <h2>范例</h2>
     <pre><code>import roaring
 roaring.RoaringBitmap ids = roaring.create()
 ids.add(65536)
 var ordered = ids.toArray()
-println(ordered[0])</code></pre>
-    <p>范围为 0..4294967295。没有 Roaring 二进制格式互操作或集合并交差；C 接口和验证范围见包内 README。</p>
-    <p><code>toArray()</code> 按数值升序返回独立快照；C 接口 <code>xroaring_to_array</code> 的结果由调用方用 <code>xrtValueRelease</code> 释放。C 侧空句柄返回参数错误，与合法空集合或成员未命中区分；成功调用会清除本线程旧的 XRT 错误。创建、插入、删除或快照分配失败抛 <code>MemoryError</code>，原集合不变。</p>
+roaring.RoaringBitmap other = roaring.create()
+other.add(42)
+roaring.RoaringBitmap both = ids.unionWith(other)
+println(both.count)</code></pre>
+    <p>范围为 0..4294967295。集合运算不修改输入，差集是左集合减右集合；没有 Roaring 二进制格式互操作。C 接口和验证范围见包内 README。</p>
+    <p><code>toArray()</code> 按数值升序返回独立快照；C 接口 <code>xroaring_to_array</code> 的结果由调用方用 <code>xrtValueRelease</code> 释放。集合归并使用 <code>xroaring_combine_into</code>，先构造结果再替换输出，允许句柄别名。C 侧空句柄返回参数错误，与合法空集合或成员未命中区分；分配失败抛 <code>MemoryError</code>，原集合不变。</p>
     <p>从 demo6 目录可直接运行 <code>xl run release/extlibs/roaring/examples/roaring.c</code>；Windows 包级 <code>test/check.ps1</code> 与 Linux <code>test/check.sh</code> 同时验证单文件 C、分离编译 C 和 XLang 范例的固定输出。当前 Windows 默认门禁的核心与公开范例独立 EXE 均通过；<code>-SkipAot</code> 仅作聚焦检查。Linux 独立 EXE 尚未用新版发布物验收。</p>
   </section>
 </main>
