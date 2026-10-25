@@ -6,7 +6,7 @@ $pkg='release/extlibs/color'
 $xl=Join-Path $Root 'release/xl.exe'
 $gcc=(Get-Command gcc -CommandType Application|Select-Object -First 1).Source
 $python=(Get-Command python -CommandType Application|Select-Object -First 1).Source
-$work=if($WorkDirectory){[IO.Path]::GetFullPath((Join-Path $Root $WorkDirectory))}else{Join-Path $Root 'build/test/color_guard'}
+$work=if($WorkDirectory){[IO.Path]::GetFullPath((Join-Path $Root $WorkDirectory))}else{Join-Path $Root ('build/test/color_guard/run_'+[guid]::NewGuid().ToString('N'))}
 [void][IO.Directory]::CreateDirectory($work)
 $utf8=[Text.UTF8Encoding]::new($false)
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
