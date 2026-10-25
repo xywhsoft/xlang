@@ -75,10 +75,21 @@ try {
         $testAot = Join-Path $work 'dotenv_xl_test.exe'
         $null = Run 'XLang test build' $xl @('build', 'test/cases/extlib_dotenv.xl', '-o', $testAot)
         $null = Run 'XLang test AOT' $testAot @()
+        foreach ($name in @('limits', 'apply_oom', 'create_oom', 'replace')) {
+            $source = "release/extlibs/dotenv/test/$name.xl"
+            $binary = Join-Path $work "dotenv_$name.exe"
+            $null = Run "$name AOT build" $xl @('build', $source, '-o', $binary)
+            $null = Run "$name AOT" $binary @()
+        }
         $exampleAot = Join-Path $work 'dotenv_xl_example.exe'
         $null = Run 'XLang example build' $xl @('build', 'release/examples/extlibs/dotenv.xl', '-o', $exampleAot)
         $aotOutput = Run 'XLang example AOT' $exampleAot @()
         if ($aotOutput -cne $golden) { throw 'XLang AOT output differs from golden file' }
+        $cExampleAot = Join-Path $work 'dotenv_c_example_aot.exe'
+        $null = Run 'C example AOT build' $xl @('build',
+            'release/extlibs/dotenv/examples/basic.c', '-o', $cExampleAot)
+        $cAotOutput = Run 'C example AOT' $cExampleAot @()
+        if ($cAotOutput -cne $golden) { throw 'C AOT output differs from golden file' }
     }
 } finally {
     Pop-Location

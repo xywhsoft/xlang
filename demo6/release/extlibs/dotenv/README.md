@@ -80,6 +80,14 @@ Linux 脚本需要 `release/xl`，检查 C 侧 XRT
 并将 C/XLang 范例同黄金输出逐字对照。
 这两项包级门禁通过不代表整个 xlang 发布版已经签收。
 
+2026-10-26 再次运行 Windows/Linux 默认门禁均通过。Windows 新增
+`limits`、`apply_oom`、`create_oom`、`replace` 四组独立 EXE，
+以及 C 教学范例通过 `xl build` 生成 EXE 并与黄金输出对照；
+Linux 保持 C ASan/UBSan、语言 JIT 与同组 AOT 全覆盖。
+这次使用的是现有发布版；尝试从更新后的工作树重建发布版时，
+主线 `XRT/xlang capability matrix is stale` 快照校验在编译前退出，
+故新二进制仍需待主线快照同步后重新验证。
+
 以下为历史验证记录；其中“当前阻断”均指当时的旧发布二进制。
 
 2026-10-24 编译器产物分层复验：现有 `release/xl.exe` 的默认包门禁仍在
