@@ -17,9 +17,14 @@ include/__xl_runtime/xl6_tls_server_request.h:3: error: include file 'include/xr
 ```
 
 The same error occurs with `release/extlibs/netrc/test/named_type.xl` and
-`test/cases/extlib_pinyin.xl`. A plain script without imports still runs.
-This blocks the XLang side of ordinary-extension release gates; it is not a
-`pinyin` or `netrc` implementation error.
+`test/cases/extlib_pinyin.xl`. It also occurs in
+`test/cases/extlib_rtree.xl` and
+`test/cases/xlir_c_owned_import_exports.xl` (with
+`XLANG_PACKAGE_PATH=test/fixtures;release/extlibs`). A plain script without
+imports still runs. Other imports such as `release/examples/extlibs/slugify.xl`
+and `release/examples/extlibs/zip.xl` also run successfully. This is a shared
+blocker for imports that reach the affected runtime header, not for every
+ordinary extension and not a `pinyin`, `netrc`, or `rtree` implementation error.
 
 ## Boundary and likely cause
 
