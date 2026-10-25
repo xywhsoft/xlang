@@ -59,7 +59,31 @@ timeout 90s ./release/xl run release/examples/extlibs/lzma.xl > "$work/full_xl.t
 timeout 90s ./release/xl run release/extlibs/lzma/test/allocations.xl
 timeout 90s ./release/xl run release/extlibs/lzma/test/text_transfer.xl
 timeout 90s ./release/xl run test/cases/extlib_lzma_progress.xl
+timeout 90s ./release/xl run test/cases/extlib_lzma.xl
 timeout 45s ./release/xl run release/extlibs/lzma/examples/basic.xl > "$work/basic_xl.txt"
 diff -u "$work/basic_c.txt" "$work/basic_xl.txt"
 python3 release/extlibs/lzma/test/interop.py "$work/interop"
-printf 'lzma Linux ASan/UBSan gate: PASS\n'
+printf '[lzma] XLang AOT gate\n'
+for name in aot_core boundaries file_ops allocations text_transfer; do
+    printf '[lzma] AOT %s\n' "$name"
+    timeout 180s ./release/xl build "release/extlibs/lzma/test/$name.xl" \
+        -o "$work/lzma_$name"
+    timeout 90s "$work/lzma_$name"
+done
+for name in central progress; do
+    printf '[lzma] AOT %s\n' "$name"
+    source=test/cases/extlib_lzma.xl
+    if [[ $name == progress ]]; then source=test/cases/extlib_lzma_progress.xl; fi
+    timeout 180s ./release/xl build "$source" -o "$work/lzma_$name"
+    timeout 90s "$work/lzma_$name"
+done
+for name in full basic; do
+    printf '[lzma] AOT example %s\n' "$name"
+    source=release/examples/extlibs/lzma.xl
+    if [[ $name == basic ]]; then source=release/extlibs/lzma/examples/basic.xl; fi
+    timeout 180s ./release/xl build "$source" -o "$work/lzma_$name"
+    timeout 90s "$work/lzma_$name" > "$work/${name}_aot.txt"
+done
+diff -u "$work/full_xl.txt" "$work/full_aot.txt"
+diff -u "$work/basic_c.txt" "$work/basic_aot.txt"
+printf 'lzma Linux C ASan/UBSan, Python XZ, XLang JIT/AOT and parity gate: PASS\n'

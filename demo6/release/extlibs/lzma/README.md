@@ -1,5 +1,14 @@
 # lzma
 
+2026-10-26 当前 Win/Linux x64 发布版的默认包门禁均退出 0。
+严格 C、ASan/UBSan、分配故障、Python 标准库 `lzma.FORMAT_XZ`
+双向互通、完整语言 JIT 及九条独立 XLang EXE AOT 全部通过；
+综合范例 JIT/AOT 同输出，基础范例 C/JIT/AOT 同输出。
+公开格式仍仅为标准 `.xz`，不提供旧 `.lzma` 或私有容器兼容。
+下方 2026-10-25 的 VFS、旧 Linux `cstring` 和 XLIR 记录均指
+当时发布物，不再是当前双平台阻断。32 位、TSan、长时压力与
+性能基准未由本轮证明。
+
 2026-10-25 `decompressText` 改为返回拥有型 `cstring`：验证 UTF-8 后
 取走原解压缓冲，避免 `Buffer.text()` 再复制整份明文。实际字节长度
 保留内嵌 NUL；C 测试覆盖指针身份、空结果、非法 UTF-8、分配失败

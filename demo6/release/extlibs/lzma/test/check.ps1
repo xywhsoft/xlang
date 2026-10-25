@@ -91,11 +91,12 @@ try {
         'release/extlibs/lzma/test/allocations.xl',
         'release/extlibs/lzma/test/text_transfer.xl',
         'test/cases/extlib_lzma_progress.xl',
-        'test/cases/extlib_lzma.xl',
-        'release/examples/extlibs/lzma.xl'
+        'test/cases/extlib_lzma.xl'
     )) {
         $null = Run "XLang $source" $xl @('run', $source)
     }
+    $fullOutput = Run 'XLang full example' $xl @('run',
+        'release/examples/extlibs/lzma.xl')
 
     $cOutput = Run-C 'C example' 'release/extlibs/lzma/examples/basic_c.c'
     $directSource = 'release/extlibs/lzma/examples/basic_c.c'
@@ -125,6 +126,26 @@ try {
         $null = Run 'central AOT build' $xl @('build',
             'test/cases/extlib_lzma.xl', '-o', $centralTarget)
         $null = Run 'central AOT run' $centralTarget @()
+        foreach ($name in @('boundaries', 'file_ops', 'allocations')) {
+            $source = "release/extlibs/lzma/test/$name.xl"
+            $exe = Join-Path $work "aot_$name.exe"
+            $null = Run "$name AOT build" $xl @('build', $source, '-o', $exe)
+            $null = Run "$name AOT run" $exe @()
+        }
+        $progressExe = Join-Path $work 'aot_progress.exe'
+        $null = Run 'progress AOT build' $xl @('build',
+            'test/cases/extlib_lzma_progress.xl', '-o', $progressExe)
+        $null = Run 'progress AOT run' $progressExe @()
+        $fullExe = Join-Path $work 'aot_full_example.exe'
+        $null = Run 'full example AOT build' $xl @('build',
+            'release/examples/extlibs/lzma.xl', '-o', $fullExe)
+        $fullAot = Run 'full example AOT run' $fullExe @()
+        if ($fullAot -cne $fullOutput) { throw 'full example JIT/AOT output differs' }
+        $basicExe = Join-Path $work 'aot_basic_example.exe'
+        $null = Run 'basic example AOT build' $xl @('build',
+            'release/extlibs/lzma/examples/basic.xl', '-o', $basicExe)
+        $basicAot = Run 'basic example AOT run' $basicExe @()
+        if ($basicAot -cne $cOutput) { throw 'basic example C/AOT output differs' }
     }
     Write-Host 'lzma Windows package gate: PASS'
 } finally {
