@@ -22,8 +22,11 @@ try {
     $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
     $hostExe = Join-Path $work 'resource_host.exe'
     $implementation = if ($XrtObject) { $XrtObject } else { 'tools/xrt_single_header_impl.c' }
-    Run 'host_compile' $gcc @('-std=c11','-O0','-Wall','-Wextra','-Werror','-I.','-Irelease',
+    Run 'host_compile' $gcc @('-std=c11','-O0','-Wall','-Wextra','-Werror',
+        '-ffunction-sections','-fdata-sections','-Wl,--gc-sections','-I.','-Irelease',
         'test/cases/xlir_foreign_resource_host.c','src/runtime/xl6_foreign_resource.c',
+        'src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_code_lease.c',
+        'src/runtime/xl6_ownership_plan.c',
         $implementation,'-lWs2_32','-lAdvapi32','-lIphlpapi','-lm','-o',$hostExe)
     Run 'host_faults' $hostExe @()
     $source = 'test/cases/xlir_foreign_bridges.xl'

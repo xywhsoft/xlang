@@ -552,6 +552,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             }
         }
     }
+    if(needs.needsClosureRuntime && xl6IrCgenHasPointActionSignature(module) &&
+       !visitor(context,"xl6ClosureBoxPointActionV1"))return 0;
     if((needs.namedValueOperations&1u) && !visitor(context,"xl6ValueNameReadCopyV1")) return 0;
     if((needs.namedValueOperations&2u) && !visitor(context,"xl6ValueNameSetTakeV1")) return 0;
     if (needs.structuredOptionsBridgeOperations && !xl6IrCgenVisitOptionsSymbols(visitor,context)) return 0;

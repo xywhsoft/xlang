@@ -42,6 +42,43 @@ func cloneOwner() as Owned
     return clone(original)
 end
 
+func rejectReleaser(var callback)
+    point raw = allocate()
+    bool adopted = false
+    bool rejected = false
+    try
+        var owner = resource(raw, callback)
+        adopted = true
+    catch error
+        rejected = true
+    finally
+        if !adopted then release(raw) end
+    end
+    assert rejected and !adopted
+end
+
+func checkSignatures()
+    auto missingArgument = func()
+    end
+    auto wrongArgument = func(int value)
+    end
+    auto wrongResult = func(point value) as int
+        return 1
+    end
+    rejectReleaser(xcall(missingArgument))
+    rejectReleaser(xcall(wrongArgument))
+    rejectReleaser(xcall(wrongResult))
+    int calls = 0
+    auto action = func(point value = null)
+        calls += 1
+        if value != null then release(value) end
+    end
+    var callback = xcall(action)
+    callback()
+    callback(value = allocate())
+    assert calls == 2
+end
+
 auto globalOwner = Owned()
 assert globalOwner.value() == 42
 func check()
@@ -60,6 +97,7 @@ func check()
 end
 check()
 assert released() == 2
+checkSignatures()
 func checkFailures()
     if !debug() then return end
     int fault = 0
