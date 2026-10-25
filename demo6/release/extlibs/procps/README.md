@@ -1,5 +1,11 @@
 # procps
 
+2026-10-25 在 WSL 中运行现有 `test/check.sh` 全通过：严格 GCC、
+C 边界 ASan/UBSan、长可执行路径、畸形 `/proc` 数据、非法 UTF-8
+进程名，以及 XLang 边界与 C/XLang 固定输出对照。本次语言用例
+使用现有 Linux `release/xl`；没有重建 Linux 发布版或运行其
+独立 EXE。
+
 2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 全通过：
 公开 C 头与清单宏的严格 GCC 检查、C/XLang 边界、C 单文件
 与包运行器范例、XLang 范例固定输出，以及核心和公开范例的
