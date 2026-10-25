@@ -1,6 +1,14 @@
 # pkcs
 
-2026-10-25 边界补测：OID `2.999.3` 的首个合并子标识符
+2026-10-25 当前 `xl.exe` 从 `demo6` 根目录运行默认包门禁：公开头、
+严格 GCC、C 边界与 C 范例通过；首个 XLang 范例在包代码执行前报
+`include/xruntime_decl.h` 未找到，后续语言与 AOT 门禁未运行。
+这是已记录的共享 VFS 头路径问题，最小复现和修复方向见
+`../../../dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。
+不能沿用下方先前发布物的通过记录签收当前发布版，也不在包内
+增加 include 映射或改变工作目录来掩盖故障。
+
+2026-10-25 先前发布物的边界补测：OID `2.999.3` 的首个合并子标识符
 `80 + 999 = 1079` 需要多字节 base-128 编码。C 与 XLang 均固定
 `0603883703` 的编解码，Linux 门禁另交给 OpenSSL 独立解析该 DER，
 避免仅凭本包自编自解判断互通。Windows 默认门禁的严格 C、语言
@@ -56,7 +64,7 @@ C 范例可直接 `xl run` 单文件运行；仅该路径在 TCC 下编入包内
 
 同日补 `wrapSequence`/`wrapSet` 构造阶段的分配故障注入：内存失败保留 `XERR_MEMORY`，只有 DER 内容不规范才报告 `XERR_VALUE`；故障清除后可继续调用。`bash release/extlibs/pkcs/test/check.sh` 在 Linux 运行本包严格 GCC 与 ASan/UBSan C 门禁，本轮通过。
 
-不加 `-SkipAot` 的 Windows 门禁还会构建并运行 XLang 边界与范例；当前构建在共享主线缺符号 `xl6ValueDataSnapshotV1` 处停止，**AOT 尚未通过验收**。修复主线链接依赖后应重跑完整门禁。阻断记录见 `dev/extlib_blockers/text_snapshot_link.md`。
+不加 `-SkipAot` 的 Windows 门禁还会构建并运行 XLang 边界与范例；较早发布物曾在共享符号 `xl6ValueDataSnapshotV1` 处停止，阻断记录见 `dev/extlib_blockers/text_snapshot_link.md`。当前发布物的首个失败点已变为页首所述 VFS 头路径，仍未完成 AOT 验收。
 2026-10-17 修复公开头在未预先启用 XRT value 模块时无法独立包含的问题；
 Windows/Linux 严格 C 门禁均固定无模块和显式模块两种编译方式，C/XLang
 边界、双语范例及 Linux ASan/UBSan 包级门禁复跑通过。AOT 阻断不变。
