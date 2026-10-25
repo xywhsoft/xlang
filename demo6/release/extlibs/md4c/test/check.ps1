@@ -69,12 +69,27 @@ try {
         $null = Run 'XLang boundaries build' $xl @('build',
             'release/extlibs/md4c/test/boundaries.xl', '-o', $target)
         $null = Run 'XLang boundaries AOT' $target @()
+        $allocationsAot = Join-Path $work 'md4c_xl_allocations.exe'
+        $null = Run 'XLang allocations build' $xl @('build',
+            'release/extlibs/md4c/test/allocations.xl', '-o', $allocationsAot)
+        $null = Run 'XLang allocations AOT' $allocationsAot @()
         $exampleAot = Join-Path $work 'md4c_xl_example.exe'
         $null = Run 'XLang example build' $xl @('build',
             'release/extlibs/md4c/examples/md4c.xl', '-o', $exampleAot)
         $aotOutput = Run 'XLang example AOT' $exampleAot @()
         if ($aotOutput -cne $cOutput) {
             throw 'XLang AOT md4c example differs from C'
+        }
+        $publicAot = Join-Path $work 'md4c_public_xl_example.exe'
+        $null = Run 'Public XLang example build' $xl @('build',
+            'release/examples/extlibs/md4c.xl', '-o', $publicAot)
+        $null = Run 'Public XLang example AOT' $publicAot @()
+        $cExampleAot = Join-Path $work 'md4c_c_example.exe'
+        $null = Run 'C example build' $xl @('build',
+            'release/extlibs/md4c/examples/md4c_c.c', '-o', $cExampleAot)
+        $cAotOutput = Run 'C example AOT' $cExampleAot @()
+        if ($cAotOutput -cne $cOutput) {
+            throw 'C AOT md4c example differs from GCC'
         }
     }
 } finally {

@@ -1,5 +1,13 @@
 # XLang 容器到 C var 的投影阻断
 
+2026-10-26 正式 `build.bat` 重建三件发布物后复验：
+`./release/xl.exe run release/extlibs/toml/test/root_argument_repro.xl`
+仍退出 1，报 `TypeError: TOML document root must be a dict`。
+默认 `release/extlibs/toml/test/check.ps1` 严格 C 语法及 C 边界通过，
+首个 XLang 边界用例失败，未进入 AOT。继续按下述共享 foreign `var`
+字典投影问题处理，不在 TOML 包内解读语言私有句柄；主线修复后
+先跑最小复现，再跑双平台完整包门禁。
+
 2026-10-24，更新后的 Windows 发布版 `xl.exe`。
 
 在 `demo6` 目录运行：

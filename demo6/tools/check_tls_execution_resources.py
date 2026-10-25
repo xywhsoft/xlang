@@ -21,19 +21,19 @@ def main():
     files.update(Path(m.__file__) for m in sys.modules.values() if getattr(m,'__file__',None) and Path(m.__file__).is_relative_to(root/'tools'))
     files.update(q for q in out.iterdir() if q.is_file())
     r=dict(Complete=False,Inputs={str(q):sha(q) for q in sorted(files)},Rows=[],Products=[],Failures=[],
-        OrdinaryLiteralLoopback=True,ExternalNetworkTests=False,NetworkSecurityTests=False,MalformedCryptoTests=False,ShippingAccepted=False,FullTlsAccepted=False,PublicLanguageApiAccepted=False)
+        OrdinaryLiteralLoopback=True,ExternalNetworkTests=False,NetworkSecurityTests=False,MalformedCryptoTests=False,ShippingAccepted=False,FullTlsAccepted=False,PublicLanguageApiAccepted=False,NegativeControls=[])
     def save():(out/'results.json').write_text(json.dumps(r,indent=2)+'\n',encoding='utf8')
     def product(q):r['Products'].append(dict(Path=str(q),Sha256=sha(q)));save()
     def write(q,text):q.write_text(text,encoding='utf8');product(q)
-    def run(name,command,instrumented=False):
+    def run(name,command,instrumented=False,reject=False):
         command=list(map(str,command));invocation=command
         if Path(command[0]) in compilers:
             rsp=out/(name+'.rsp');write(rsp,'\n'.join('"'+s.replace('\\','/').replace('"','\\"')+'"' for s in command[1:])+'\n');invocation=[command[0],'@'+str(rsp)]
         log=out/(name+'.log');start=time.monotonic();env=dict(os.environ)
         if instrumented:env.update(ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1')
         with log.open('wb') as f:code=subprocess.run(invocation,cwd=root,env=env,stdout=f,stderr=subprocess.STDOUT,timeout=240).returncode
-        row=dict(Name=name,Command=command,Exit=code,Log=str(log),Sha256=sha(log),Seconds=time.monotonic()-start);r['Rows'].append(row);save()
-        print(name,code,flush=True);assert not code,str(log);return log.read_text(encoding='utf8',errors='replace')
+        row=dict(Name=name,Command=command,Exit=code,Log=str(log),Sha256=sha(log),Seconds=time.monotonic()-start,ExpectedRejection=reject);r['Rows'].append(row);save()
+        print(name,code,flush=True);assert (code!=0 if reject else code==0),str(log);return log.read_text(encoding='utf8',errors='replace')
     def flags(cc,opt):return [cc,'-Wall','-Wextra','-Werror','-Wno-missing-field-initializers',*opt,*(['-std=c11'] if cc.stem!='tcc' else []),
         '-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include'),'-I'+str(out),*(['-D_GNU_SOURCE'] if os.name!='nt' else [])]
     try:
@@ -63,7 +63,23 @@ def main():
                     text=run(name+'.'+backend,[binary,*(['native'] if backend=='native' else [])],mode=='asan')
                     match=re.search(r'managed TLS resources: graphs=(\d+) ordinary=(\d+) scoped-last-owner=(\d+) deferred=(\d+) budgets=(\d+) failures=(\d+);.*balanced backend=(\d+)',text)
                     assert match,text;n=list(map(int,match.groups()));assert n[:4]==[4,2,1,1] and 0<n[5]<=n[4]-2<96
+                    assert 'graceful-last-owner=1 abort-wins=1' in text
                     r['Rows'][-1]['ObservedCounters']=n;save()
+        original=root/'src/runtime/xl6_execution_tls_stream.c';body=original.read_text(encoding='utf8')
+        draining='xrtAtomic32Load(&r->closeMode,XMEMORY_ACQUIRE)!=XL6_TLS_CLOSE_GRACEFUL_V1 &&\n        '
+        transition='''uint32 expected=XL6_TLS_CLOSE_AUTOMATIC_V1;
+            (void)xrtAtomic32CompareExchange(&((Stream*)base)->closeMode,&expected,
+                XL6_TLS_CLOSE_GRACEFUL_V1,XMEMORY_RELEASE,XMEMORY_RELAXED);'''
+        assert body.count(draining)==1 and body.count(transition)==1
+        controls=[('abort-explicit-close-on-last-owner',body.replace(draining,'')),
+                  ('close-overwrites-abort',body.replace(transition,
+                      'xrtAtomic32Store(&((Stream*)base)->closeMode,XL6_TLS_CLOSE_GRACEFUL_V1,XMEMORY_RELEASE);'))]
+        for name,changed in controls:
+            mutant=out/(name+'.c');write(mutant,changed);binary=out/(name+ext)
+            selected=[mutant if root/q==original else root/q for q in sources]
+            run(name+'.build',flags(gcc,['-O0'])+['-I'+str(root/'src/runtime'),
+                root/'test/support/tls_execution_resource.c',implementation,*selected,*libraries,'-o',binary]);product(binary)
+            run(name+'.refused',[binary],reject=True);r['NegativeControls'].append(name);save()
         r['InputsUnchanged']=all(sha(q)==d for q,d in r['Inputs'].items())
         r['ProductsUnchanged']=all(sha(q['Path'])==q['Sha256'] for q in r['Products'])
         r['LogsUnchanged']=all(sha(q['Log'])==q['Sha256'] for q in r['Rows'])

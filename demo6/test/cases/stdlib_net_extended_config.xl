@@ -1,52 +1,28 @@
-func require(string name, bool condition)
-    if not condition then
-        println("FAILED: " + name)
-        assert false
-    end
-end
+// Configuration and numeric address operations only; no external connection.
+auto address = NetAddress("127.0.0.1", 8080)
+assert address.text() == "127.0.0.1" and address.port == 8080 and address.family == 4
+auto resolved = net.resolve("127.0.0.1", 80)
+assert resolved.text() == "127.0.0.1" and resolved.port == 80
 
-func main(...) as int
-    // 纯网络类型也会生成 future 映射辅助函数；这里不使用 async 语法，
-    // 用来防止网络 runtime 漏注入异步前置声明。
-    NetAddress ipv4 = NetAddress("127.0.0.1", 8080)
-    require("address_text", ipv4.text() == "127.0.0.1")
-    require("address_port", ipv4.port == 8080)
-    require("address_family", ipv4.family != 0)
-
-    NetAddress resolved = net.resolve("localhost", 80)
-    require("resolve_localhost", resolved.text() != "")
-    require("resolve_port", resolved.port == 80)
-
-    NetProxy directProxy = net.proxy(net.proxyNone, "127.0.0.1", 0)
-    NetProxy proxy = net.proxy(net.proxySocks5, "127.0.0.1", 1080, "user", "pass")
-    NetProxy httpProxy = net.proxy(net.proxyHttpConnect, "127.0.0.1", 8080)
-    require("proxy_none", directProxy.type == net.proxyNone)
-    require("proxy_type", proxy.type == net.proxySocks5)
-    require("proxy_http", httpProxy.type == net.proxyHttpConnect)
-    require("proxy_port", proxy.port == 1080)
-    require("proxy_host", proxy.host() == "127.0.0.1")
-    require("proxy_user", proxy.user() == "user")
-
-    TcpConnectConfig connectConfig = tcp.connectConfig("127.0.0.1", 65535)
-    require("connect_timeout", connectConfig.timeout(100))
-    require("connect_watermarks", connectConfig.watermarks(4096, 1024))
-    require("connect_recv_limit", connectConfig.recvLimit(8192))
-    require("connect_proxy", connectConfig.proxy(proxy))
-
-    TcpListenConfig listenConfig = tcp.listenConfig(0, "127.0.0.1")
-    require("listen_backlog", listenConfig.backlog(16))
-    require("listen_watermarks", listenConfig.watermarks(4096, 1024))
-    require("listen_recv_limit", listenConfig.recvLimit(8192))
-
-    UdpConfig udpConfig = udp.config(0, "127.0.0.1")
-    require("udp_batch", udpConfig.recvBatch(8))
-    require("udp_queues", udpConfig.queueLimits(64, 64))
-
-    NetEngine engine = net.engine(1)
-    require("engine_start", engine.start())
-    require("engine_workers", engine.workerCount == 1)
-    engine.stop()
-
-    println("stdlib net extended config ok")
-    return 0
-end
+auto proxy = net.proxy(NetProxyType.socks5, "127.0.0.1", 1080, "user", "pass")
+auto http = net.proxy(NetProxyType.httpConnect, "127.0.0.1", 8080)
+assert proxy.type == NetProxyType.socks5 and http.type == NetProxyType.httpConnect
+assert proxy.port == 1080 and proxy.host() == "127.0.0.1" and proxy.username() == b"user"
+auto original = TcpStreamOptions()
+auto stream = original.withConnectTimeoutMillis(100).withWriteWatermarks(4096, 1024, 8192).withReadBuffer(1024, 8192)
+assert stream.connectTimeoutMillis == 100 and stream.writeHighWater == 4096 and stream.writeLowWater == 1024
+assert stream.readLimit == 8192 and original.readLimit != stream.readLimit
+auto dial = TcpDialOptions().withStreamOptions(stream)
+assert dial.streamOptions().connectTimeoutMillis == 100
+auto proxyDial = TcpProxyDialOptions().withTransportOptions(dial)
+assert proxyDial.transportOptions().streamOptions().readLimit == 8192
+auto listen = TcpListenOptions(NetAddress.loopback()).withBacklog(16).withStreamOptions(stream)
+assert listen.backlog == 16 and listen.streamOptions().writeHighWater == 4096
+auto udpConfig = udp.config().withReceive(8192, 2, 8).withReceiveQueue(64, 65536, UdpOverflow.error)
+assert udpConfig.receiveBatch == 8 and udpConfig.receiveQueueLimit == 64
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+assert engine.workerCount == 1 and engine.backend() == NetBackend.select
+engine.close()
+assert engine.wait(5000)
+println("stdlib net extended config ok")

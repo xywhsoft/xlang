@@ -1,102 +1,75 @@
-func requireLine(string name, bool ok)
-    assert ok, name
-    println(name + "=ok")
+// All endpoints are literal loopback and belong to this program.
+func readExact(TcpStream stream, int size) as bytes
+    bytes result = b""
+    while result.length < size
+        auto chunk = stream.recv(size - result.length, 5000)
+        assert chunk.length > 0
+        result = result + chunk
+    end
+    return result
 end
 
-TcpServer server = tcp.listen(0)
-int tcpPort = int(server.port())
-future<TcpStream> accepted = server.acceptAsync()
-TcpStream client = tcp.connect("127.0.0.1", tcpPort, 8000)
-TcpStream peer = await accepted
-
-future<string> received = peer.recvAsync()
-bool sent = client.send("ping")
-bool drained = client.drain(8000)
-string request = await received
-bool replied = peer.send("pong")
-bool replyDrained = peer.drain(3000)
-string reply = client.recv(8000)
-
-Buffer tcpBytes = Buffer()
-tcpBytes.appendByte(0)
-tcpBytes.appendByte(1)
-tcpBytes.appendByte(128)
-tcpBytes.appendByte(255)
-bool tcpBytesSent = client.sendBytes(tcpBytes.data(), c_size(tcpBytes.len()))
-bool tcpBytesDrained = client.drain(8000)
-Buffer tcpBytesRecv = peer.recvBytes(8000)
-
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = tcp.listen(engine, TcpListenOptions(NetAddress.loopback()))
+auto accepted = listener.acceptAsync()
+auto client = tcp.connect(engine, listener.localAddress())
+auto peer = await accepted
+assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+future<bytes> received = peer.recvAsync(4)
+assert client.send("ping") == NetStatus.ok
+bytes request = await received
+while request.length < 4
+    request = request + await peer.recvAsync(4 - request.length)
+end
+assert request == b"ping" and client.wait(TcpWait.drain, 5000) == NetStatus.ok
+assert peer.send("pong") == NetStatus.ok and readExact(client, 4) == b"pong"
+auto binary = Buffer(b"\x00\x01\x80\xFF")
+assert client.send(binary) == NetStatus.ok and readExact(peer, 4) == b"\x00\x01\x80\xFF"
+assert client.send("a\0b") == NetStatus.ok and readExact(peer, 3) == b"a\0b"
 client.close()
 peer.close()
+listener.close()
+println("tcp=ok")
 
-requireLine(
-    "tcp",
-    tcpPort > 0 and
-        sent and drained and request == "ping" and
-        replied and replyDrained and reply == "pong" and
-        tcpBytesSent and tcpBytesDrained and
-        tcpBytesRecv.len() == 4 and
-        tcpBytesRecv[0] == 0 and
-        tcpBytesRecv[1] == 1 and
-        tcpBytesRecv[2] == 128 and
-        tcpBytesRecv[3] == 255
-)
-
-TcpServer asyncServer = tcp.listen(0)
-int asyncPort = int(asyncServer.port())
-future<TcpStream> asyncAccepted = asyncServer.acceptAsync()
-future<TcpStream> asyncConnected = tcp.connectAsync("127.0.0.1", asyncPort, 8000)
-TcpStream asyncClient = await asyncConnected
-TcpStream asyncPeer = await asyncAccepted
-
-future<string> asyncReceived = asyncPeer.recvAsync()
-bool asyncSent = asyncClient.send("async")
-bool asyncDrained = await asyncClient.drainAsync()
-string asyncRequest = await asyncReceived
+auto asyncListener = TcpListener(engine, TcpListenOptions(NetAddress.loopback()))
+auto asyncAccepted = asyncListener.acceptAsync()
+auto asyncConnected = tcp.connectAsync(engine, asyncListener.localAddress())
+auto asyncClient = await asyncConnected
+auto asyncPeer = await asyncAccepted
+auto asyncReceived = asyncPeer.recvAsync(6)
+assert asyncClient.send("as\0ync") == NetStatus.ok
+assert await asyncClient.waitAsync(TcpWait.drain)
+bytes asyncRequest = await asyncReceived
+while asyncRequest.length < 6
+    asyncRequest = asyncRequest + await asyncPeer.recvAsync(6 - asyncRequest.length)
+end
+assert asyncRequest == b"as\0ync"
 asyncClient.close()
 asyncPeer.close()
+asyncListener.close()
+println("tcp_async=ok")
 
-requireLine("tcp_async", asyncPort > 0 and asyncSent and asyncDrained and asyncRequest == "async")
+auto left = udp.bind(engine, NetAddress.loopback())
+auto right = udp.bind(engine, NetAddress.loopback())
+assert left.wait(UdpWait.open, 5000) == NetStatus.ok and right.wait(UdpWait.open, 5000) == NetStatus.ok
+assert left.sendTo(right.localAddress(), "hello") == NetStatus.ok
+assert right.recv(5000).bytes() == b"hello"
+assert right.sendTo(left.localAddress(), "reply") == NetStatus.ok
+assert left.recv(5000).bytes() == b"reply"
+assert left.sendTo(right.localAddress(), binary) == NetStatus.ok
+assert right.recv(5000).bytes() == b"\x00\x01\x80\xFF"
+assert left.sendTo(right.localAddress(), "a\0b") == NetStatus.ok
+assert right.recv(5000).bytes() == b"a\0b"
+println("udp=ok")
 
-UdpSocket left = udp.bind(0)
-UdpSocket right = udp.bind(0)
-int leftPort = left.port()
-int rightPort = right.port()
-time.sleep(10)
-bool udpSent = left.send("127.0.0.1", uint16(rightPort), "hello")
-UdpPacket packet = right.recv(8000)
-bool udpReplySent = right.send("127.0.0.1", uint16(leftPort), "reply")
-UdpPacket replyPacket = left.recv(8000)
-
-Buffer udpBytes = Buffer()
-udpBytes.appendByte(0)
-udpBytes.appendByte(2)
-udpBytes.appendByte(127)
-udpBytes.appendByte(255)
-bool udpBytesSent = left.sendBytes("127.0.0.1", uint16(rightPort), udpBytes.data(), c_size(udpBytes.len()))
-UdpPacket bytesPacket = right.recv(8000)
-Buffer udpBytesRecv = bytesPacket.bytes()
-
-requireLine(
-    "udp",
-    leftPort > 0 and rightPort > 0 and
-        udpSent and packet.text() == "hello" and
-        udpReplySent and replyPacket.text() == "reply" and
-        udpBytesSent and
-        udpBytesRecv.len() == 4 and
-        udpBytesRecv[0] == 0 and
-        udpBytesRecv[1] == 2 and
-        udpBytesRecv[2] == 127 and
-        udpBytesRecv[3] == 255
-)
-
-UdpSocket asyncLeft = udp.bind(0)
-UdpSocket asyncRight = udp.bind(0)
-int asyncLeftPort = asyncLeft.port()
-int asyncRightPort = asyncRight.port()
-future<UdpPacket> packetFuture = asyncRight.recvAsync()
-time.sleep(10)
-bool asyncUdpSent = asyncLeft.send("127.0.0.1", uint16(asyncRightPort), "async-udp")
-UdpPacket asyncPacket = await packetFuture
-
-requireLine("udp_async", asyncLeftPort > 0 and asyncRightPort > 0 and asyncUdpSent and asyncPacket.text() == "async-udp")
+auto packetFuture = right.recvAsync()
+assert left.sendTo(right.localAddress(), "async-udp") == NetStatus.ok
+auto packet = await packetFuture
+assert packet.bytes() == b"async-udp"
+left.close()
+right.close()
+engine.close()
+assert engine.wait(5000)
+assert packet.bytes() == b"async-udp"
+println("udp_async=ok")

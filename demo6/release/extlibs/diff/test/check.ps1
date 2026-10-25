@@ -64,6 +64,12 @@ try {
             'diff boundaries: PASS') {
             throw 'diff XLang boundaries AOT output changed'
         }
+        $cExample = Join-Path $work 'diff_c_example.exe'
+        & $xl build release/extlibs/diff/examples/diff_c.c -o $cExample
+        if ($LASTEXITCODE -ne 0) { throw 'diff C example AOT build failed' }
+        $cAotLines = @(& $cExample)
+        if ($LASTEXITCODE -ne 0) { throw 'diff C example AOT failed' }
+        Confirm-Output 'C example AOT' $cAotLines
     }
 
     if ($SkipAot) {

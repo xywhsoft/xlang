@@ -1,74 +1,70 @@
-func require(string name, bool ok)
-    assert ok, name
-    println(name + "=ok")
+func receiveExact(TcpStream stream, int size) as bytes
+    bytes result = b""
+    while result.length < size
+        bytes chunk = stream.recv(size - result.length, 5000)
+        assert chunk.length > 0
+        result = result + chunk
+    end
+    return result
 end
 
 func acceptedFirstSend()
-    TcpServer server = tcp.listen(0, "127.0.0.1", 4)
-    TcpStream client = tcp.connect("127.0.0.1", int(server.port()), 3000)
-    TcpStream peer = server.accept(3000)
-
-    bool sent = peer.send("220 first\r\n")
-    bool drained = peer.drain(3000)
-    string received = client.recv(3000)
-    require("tcp_accepted_first_send", sent and drained and received == "220 first\r\n")
-
-	peer.close()
-	client.close()
-	require("tcp_listener_close", server.close())
-end
-
-func gracefulCloseKeepsPendingData()
-    TcpServer server = tcp.listen(0, "127.0.0.1", 4)
-    TcpStream client = tcp.connect("127.0.0.1", int(server.port()), 3000)
-    TcpStream peer = server.accept(3000)
-
-    string payload = string.repeat("0123456789abcdef", 4096)
-    bool sent = client.send(payload)
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback()).withBacklog(4))
+    auto client = TcpStream(engine, listener.localAddress())
+    auto peer = listener.accept(5000)
+    assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+    assert peer.send("220 first\r\n") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    assert receiveExact(client, 11) == b"220 first\r\n"
+    peer.close()
     client.close()
-
-    string received = ""
-    for attempt in range(0, 64)
-        string chunk = peer.recv(3000, 8192)
-        if string.byteLen(chunk) == 0 then
-            break
-        end
-        received += chunk
-        if string.byteLen(received) == string.byteLen(payload) then
-            break
-        end
-    end
-    require("tcp_graceful_close", sent and received == payload)
-    peer.close()
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("tcp_accepted_first_send=ok")
+    println("tcp_listener_close=ok")
 end
 
-func gracefulCloseSurvivesDestroy()
-    TcpServer server = tcp.listen(0, "127.0.0.1", 4)
-    TcpStream client = tcp.connect("127.0.0.1", int(server.port()), 3000)
-    TcpStream peer = server.accept(3000)
-    string payload = string.repeat("scope-close-", 4096)
-    bool sent = false
+func closedSender(NetEngine engine, TcpListener listener, string payload) as TcpStream
+    auto client = TcpStream(engine, listener.localAddress())
+    auto peer = listener.accept(5000)
+    assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+    assert client.send(payload) == NetStatus.ok
+    client.close()
+    // The sender's final language reference is destroyed on this return.
+    return peer
+end
 
-    if true then
-        sent = client.send(payload)
+func gracefulCloseKeepsPendingData(bool destroySender)
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback()).withBacklog(4))
+    string payload = string.repeat("scope-close-\0", 4096)
+    if destroySender then
+        auto peer = closedSender(engine, listener, payload)
+        assert receiveExact(peer, payload.length) == encoding.encodeUtf8(payload)
+        peer.close()
+    else
+        auto client = TcpStream(engine, listener.localAddress())
+        auto peer = listener.accept(5000)
+        assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+        assert client.send(payload) == NetStatus.ok
         client.close()
+        assert receiveExact(peer, payload.length) == encoding.encodeUtf8(payload)
+        peer.close()
     end
-
-    string received = ""
-    for attempt in range(0, 64)
-        string chunk = peer.recv(3000, 8192)
-        if string.byteLen(chunk) == 0 then
-            break
-        end
-        received += chunk
-        if string.byteLen(received) == string.byteLen(payload) then
-            break
-        end
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    if destroySender then
+        println("tcp_close_before_destroy=ok")
+    else
+        println("tcp_graceful_close=ok")
     end
-    require("tcp_close_before_destroy", sent and received == payload)
-    peer.close()
 end
 
 acceptedFirstSend()
-gracefulCloseKeepsPendingData()
-gracefulCloseSurvivesDestroy()
+gracefulCloseKeepsPendingData(false)
+gracefulCloseKeepsPendingData(true)

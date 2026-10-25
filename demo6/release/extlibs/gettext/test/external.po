@@ -1,0 +1,25 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: xlang-gettext-test 1.0\n"
+"PO-Revision-Date: 2026-10-26 00:00+0000\n"
+"Last-Translator: xlang test suite <test@example.invalid>\n"
+"Language-Team: zh_CN\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n==1?0:n==2?1:2;\n"
+
+msgctxt "menu"
+msgid "Open"
+msgstr "打开菜单"
+
+msgid "file"
+msgid_plural "files"
+msgstr[0] "一个文件"
+msgstr[1] "两个文件"
+msgstr[2] "多个文件"
+
+#, fuzzy
+msgid "Draft"
+msgstr "未审核"

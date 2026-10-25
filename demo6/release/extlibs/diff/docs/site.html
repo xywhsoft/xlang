@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / diff</p><h1>diff</h1>
     <p class="extlib-lead">中小文本的行级 LCS 差异。</p>
-    <p>保留长行和完整输出，超出明确预算时报错。Windows/Linux 门禁联合验证 C 边界与线程、XLang 边界及双语范例固定输出；Linux 另有 C sanitizer。当前 Windows 默认门禁还构建运行公开范例及语言边界的独立 EXE，分别核对黄金输出和固定通过标记；<code>-SkipAot</code> 仅用于 C/JIT 聚焦验证。旧版共享快照缺符号已不阻断本包的 Windows AOT。</p>
+    <p>保留长行和完整输出，超出明确预算时报错。2026-10-26 当前发布物的 Windows/Linux 默认门禁通过 C 边界与线程、Linux ASan/UBSan、XLang 边界、公开范例 AOT，以及新增 C 单文件范例独立 EXE；GCC、TCC、C AOT、XLang JIT/AOT 对固定输出一致。旧版共享快照缺符号已不阻断双平台 AOT。<code>-SkipAot</code> 仅用于 C/JIT 聚焦验证。本包是有界行级 LCS，不生成 unified patch，也不处理大文件流式 diff。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>

@@ -96,11 +96,12 @@ println(color.mix("#000", "#fff", 0.5))</code></pre>
 
     <h2 id="verification">验收范围</h2>
     <p>门禁检查 C 缓冲边界、输入输出重叠、非有限数、零分配核心、拥有结果的故障恢复，
-    四线程结果/错误隔离，独立数值和 148 个命名色参照，实际生成 C 原型、JIT/AOT、DLL 上下文及双语输出。独立参照现另核对 4101 组对比度和 4131 组 RGB 插值；Linux sanitizer 与双语门禁通过，当前 Windows 根目录语言门禁仍受共享 VFS 头路径阻断，不能据 C/oracle 通过签收完整发布门禁。</p>
+    四线程结果/错误隔离，独立数值和 148 个命名色参照，实际生成 C 原型、JIT/AOT、DLL 上下文及双语输出。独立参照现另核对 4101 组对比度和 4131 组 RGB 插值；先前 Windows 根目录的 VFS 头路径阻断只属旧发布物。</p>
     <p>2026-10-24 使用更新后的 Windows 发布版复验，默认专项门禁完整通过：实际生成原型、语言边界与分配故障 AOT、双语范例 AOT、DLL 上下文复用及文档代码块。旧共享文本快照缺符号已解除。脚本将结果标为包级限定验证，并非正式产品全量重建；此页不宣称全部发布形态已经准入。</p>
     <p>xlang 字符串入口已拒绝内嵌 NUL，不把有效前缀误判为完整颜色。Linux 门禁现同次覆盖 C sanitizer/oracle、XLang 边界及分配故障、双语范例逐字节对照；32 位/ARM、TSan 和长期性能仍待验收。
     Windows 使用 tools/check_extlib_color.ps1 默认入口验证完整 AOT；-SkipAot 仅用于开发时缩短反馈。
     Linux 执行入口：tools/check_extlib_color.sh。</p>
+    <p>2026-10-26 当前发布物的 Windows 默认门禁报告 <code>passed-scoped</code>：43 项检查通过、输入哈希未变。Linux 门禁通过 C ASan/UBSan/float-cast、四线程 8000 轮、26552 项独立 oracle、中央与包内边界及分配故障的语言 AOT，并新增 C 单文件范例 AOT；C/GCC、C/TCC、C/AOT 与 XLang 基础范例输出一致。两平台默认测试目录互不覆盖；Linux 默认临时目录退出清理，显式 <code>COLOR_WORK_DIR</code> 可保留证据。拥有型 C 文本结果由 <code>takeCstr</code> 直接接管。尚未重建整个 xlang 发布物，Windows 报告仍为 <code>releaseReady=false</code>；本页不外推 32 位/ARM、TSan 或长时性能。</p>
   </section>
 </main>
 <script src="../main.js"></script>

@@ -1,5 +1,12 @@
 # hcl
 
+2026-10-26 新发布物复验：Windows 默认 `test/check.ps1` 与 Linux
+`test/check.sh` 均通过；新增 C 范例 `xl build` 独立 EXE 后，GCC、
+TCC、C AOT 与 XLang JIT/AOT 输出一致。Linux 同时覆盖 ASan/UBSan，
+Windows 继续检查生成 C 的 `takeCstr` 直接接管路径。包内此前一次
+Linux 无诊断退出仍无根因，故本轮通过不抹除该稳定性风险；受限 HCL
+查询范围与非 Terraform 求值器的边界保持不变。
+
 2026-10-25 当前发布版复验：Windows 默认门禁的严格 C、线程、语言边界与
 核心/边界/分配/范例四条 AOT 路径通过；Linux `test/check.sh` 的 C
 ASan/UBSan、XLang JIT、相同四条独立 EXE AOT 及范例 C/XLang 输出对照

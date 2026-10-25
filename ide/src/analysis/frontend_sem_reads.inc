@@ -5,13 +5,30 @@ static const char* xl6SemFuncName(const XL6_AstNode*);
 static int xlsSemReadHeaderKey(XL6_SemContext*,const char*,xstrbuf*,size_t*);
 /* Separate namespaces: a global value/function query and a registry type
  * query with the same spelling are different original compiler reads. */
+#include "analysis/frontend_sem_read_values.h"
 typedef struct xls_sem_read {char* name;xstrbuf key;size_t count;int type;} xls_sem_read;
 struct xls_sem_reads {xarray items;size_t bytes;int complete;};
 struct xls_sem_read_context {xatomic32 references;xstrbuf key;size_t bytes;};
-typedef struct xls_sem_read_capture {struct xls_sem_read_capture* previous;XL6_SemContext* context;XL6_Scope* global;xls_sem_build* build;xls_sem_reads* reads;} xls_sem_read_capture;
+typedef struct xls_sem_read_capture {
+ struct xls_sem_read_capture* previous;XL6_SemContext* context;XL6_Scope* global;xls_sem_build* build;xls_sem_reads* reads;
+ xstrbuf scratch;uint64_t observations,typedComparisons,scratchReuses,scratchBytes;
+ xarray values;size_t valueStrings,valueBytes;int valuesReady;
+} xls_sem_read_capture;
 typedef struct xls_sem_read_cached {xstrbuf key;size_t count;uint64_t epoch;} xls_sem_read_cached;
 static _Thread_local xls_sem_read_capture* xlsActiveSemReads;
 static _Thread_local xls_sem_read_control* xlsActiveReadControl;
+static _Thread_local xls_sem_scratch_control* xlsActiveScratchControl;
+static _Thread_local xls_sem_value_control* xlsActiveValueControl;
+static int xlsSemValuesEnabled(void){return !xlsActiveValueControl || xlsActiveValueControl->enabled;}
+void xlsFrontendSemValuesBegin(xls_sem_value_control* c,int enabled)
+{if(c){*c=(xls_sem_value_control){xlsActiveValueControl,enabled && xlsSemValuesEnabled()};xlsActiveValueControl=c;}}
+void xlsFrontendSemValuesEnd(xls_sem_value_control* c)
+{if(c && xlsActiveValueControl==c)xlsActiveValueControl=c->previous;}
+static size_t xlsSemScratchBudget(void){return xlsActiveScratchControl ? xlsActiveScratchControl->bytes : XLS_SEM_KEY_BYTES;}
+void xlsFrontendSemScratchBegin(xls_sem_scratch_control* c,size_t bytes)
+{if(c){size_t limit=xlsSemScratchBudget();*c=(xls_sem_scratch_control){xlsActiveScratchControl,bytes<limit ? bytes : limit};xlsActiveScratchControl=c;}}
+void xlsFrontendSemScratchEnd(xls_sem_scratch_control* c)
+{if(c && xlsActiveScratchControl==c)xlsActiveScratchControl=c->previous;}
 static size_t xlsSemReadBudget(void){return xlsActiveReadControl ? xlsActiveReadControl->bytes : 8u*1024u*1024u;}
 void xlsFrontendSemReadsBegin(xls_sem_read_control* c,size_t bytes)
 {if(c){size_t limit=xlsSemReadBudget();*c=(xls_sem_read_control){xlsActiveReadControl,bytes<limit ? bytes : limit};xlsActiveReadControl=c;}}
@@ -91,25 +108,61 @@ static int xlsSemReadKey(XL6_SemContext* ctx,const char* name,int type,xstrbuf* 
 {return type ? xlsSemReadTypeKey(ctx,name,key,count) : xlsSemReadHeaderKey(ctx,name,key,count);}
 static void xlsSemReadsUnknown(XL6_SemContext* ctx)
 {(void)ctx;if(xlsActiveSemReads && xlsActiveSemReads->reads)xlsActiveSemReads->reads->complete=0;}
-static void xlsSemReadsObserve(XL6_SemContext* ctx,const char* name,int type)
+static void xlsSemReadValuesDrop(xls_sem_read_capture* c)
+{
+ for(size_t i=0;i<c->values.Count;++i)xlsSemReadValueUnit(xrtArrayGet(&c->values,i));
+ xrtArrayUnit(&c->values);c->valuesReady=0;c->valueStrings=0;
+}
+static void xlsSemReadValueRemember(xls_sem_read_capture* c,size_t slot,const XL6_TypeInfo* info)
+{
+ if(!c->valuesReady || (info && info->decl))return;
+ size_t limit=1024u*1024u,strings=info ? (info->name ? strlen(info->name)+1 : 0)+(info->abiName ? strlen(info->abiName)+1 : 0) : 0;
+ if(c->valueStrings>limit || strings>limit-c->valueStrings ||
+    !xrtArrayResize(&c->values,slot+1) || c->values.Capacity>limit/sizeof(xls_sem_read_value) ||
+    c->values.Capacity*sizeof(xls_sem_read_value)>limit-c->valueStrings-strings){xlsSemReadValuesDrop(c);return;}
+ xls_sem_read_value* value=xrtArrayGet(&c->values,slot);
+ if(!xlsSemReadValueInit(value,info)){xlsSemReadValuesDrop(c);return;}
+ c->valueStrings+=value->stringsBytes;size_t bytes=c->values.Capacity*sizeof(xls_sem_read_value)+c->valueStrings;
+ if(bytes>c->valueBytes)c->valueBytes=bytes;
+}
+static xstrbuf xlsSemReadScratchTake(xls_sem_read_capture* c)
+{
+ xstrbuf key=c->scratch;c->scratch=(xstrbuf){0};
+ if(key.Capacity)++c->scratchReuses;
+ key.Size=0;if(key.Data)key.Data[0]=0;return key;
+}
+static void xlsSemReadScratchReturn(xls_sem_read_capture* c,xstrbuf* key)
+{
+ if(key->Capacity && key->Capacity<=xlsSemScratchBudget()){
+  xrtStrBufFree(&c->scratch);c->scratch=*key;*key=(xstrbuf){0};
+  if(c->scratch.Capacity>c->scratchBytes)c->scratchBytes=c->scratch.Capacity;
+ }
+ xrtStrBufFree(key);
+}
+static void xlsSemReadsObserve(XL6_SemContext* ctx,const char* name,int type,const XL6_TypeInfo* actual)
 {
  xls_sem_read_capture* c=xlsActiveSemReads;if(!c || !c->reads || !c->reads->complete)return;
+ ++c->observations;
  xls_sem_reads* reads=c->reads;size_t n=name ? strlen(name) : 0;
  if(ctx!=c->context || !n || n>256 || reads->items.Count>=256){reads->complete=0;return;}
+ for(size_t i=0;i<reads->items.Count;++i){const xls_sem_read* r=xrtArrayConstGet(&reads->items,i);if(r->type==type && !strcmp(r->name,name)){
+   const xls_sem_read_value* value=type && i<c->values.Count ? xrtArrayConstGet(&c->values,i) : NULL;
+   if(value && value->ready){++c->typedComparisons;if(!xlsSemReadValueEqual(value,actual))reads->complete=0;return;}
+   xstrbuf key=xlsSemReadScratchTake(c);size_t count=0;
+   if(!xlsSemReadKey(ctx,name,type,&key,&count) || !xlsSemReadSame(r,&key,count))reads->complete=0;
+   xlsSemReadScratchReturn(c,&key);return;}}
  xstrbuf key={0};size_t count=0;
  if(!xlsSemReadKey(ctx,name,type,&key,&count)){reads->complete=0;xrtStrBufFree(&key);return;}
- for(size_t i=0;i<reads->items.Count;++i){const xls_sem_read* r=xrtArrayConstGet(&reads->items,i);if(r->type==type && !strcmp(r->name,name)){
-   if(!xlsSemReadSame(r,&key,count))reads->complete=0;
-   xrtStrBufFree(&key);return;}}
  size_t limit=xlsSemReadBudget();if(limit>1024u*1024u)limit=1024u*1024u;
- xls_sem_read next={NULL,key,count,type};next.name=xrtStrDup(name);
+ xls_sem_read next={.key=key,.count=count,.type=type};next.name=xrtStrDup(name);
  size_t added=sizeof(next)+n+1+key.Capacity;
  if(!next.name || reads->bytes>limit || added>limit-reads->bytes || !xrtArrayPush(&reads->items,&next)){
   xrtFree(next.name);xrtStrBufFree(&key);reads->complete=0;return;}
+ if(type)xlsSemReadValueRemember(c,reads->items.Count-1,actual);
  reads->bytes+=added;++c->build->memo->readWork.recorded;if(!count)++c->build->memo->readWork.negative;
 }
 static void xlsSemReadsName(XL6_SemContext* ctx,const char* name)
-{xlsSemReadsObserve(ctx,name,0);}
+{xlsSemReadsObserve(ctx,name,0,NULL);}
 /* The generated semantic TU routes every registry Find call here. The
  * original registry still resolves it; observe its complete current record
  * and declaration,including annotations changed while checking classes.
@@ -117,7 +170,7 @@ static void xlsSemReadsName(XL6_SemContext* ctx,const char* name)
 static const XL6_TypeInfo* xlsSemReadTypeFind(const XL6_TypeRegistry* registry,const char* name)
 {
  const XL6_TypeInfo* info=xl6TypeRegistryFind(registry,name);xls_sem_read_capture* c=xlsActiveSemReads;
- if(c){if(registry!=&c->context->types)xlsSemReadsUnknown(c->context);else xlsSemReadsObserve(c->context,name,1);}
+ if(c){if(registry!=&c->context->types)xlsSemReadsUnknown(c->context);else xlsSemReadsObserve(c->context,name,1,info);}
  return info;
 }
 static XL6_Symbol* xlsSemScopeFindLocalOriginal(XL6_Scope*,const char*);
@@ -131,15 +184,20 @@ static void xlsSemReadsStart(xls_sem_read_capture* c,xls_sem_build* build,XL6_Se
 {
  *c=(xls_sem_read_capture){.previous=xlsActiveSemReads,.context=ctx,.global=ctx->scope,.build=build};
  if(build->memo->readContext && !ctx->completionQuery){c->reads=xrtCalloc(1,sizeof(*c->reads));if(c->reads){c->reads->bytes=sizeof(*c->reads);c->reads->complete=xrtArrayInit(&c->reads->items,sizeof(xls_sem_read));}}
+ if(c->reads && c->reads->complete && xlsSemValuesEnabled())c->valuesReady=xrtArrayInit(&c->values,sizeof(xls_sem_read_value));
  xlsActiveSemReads=c;
 }
 static xls_sem_reads* xlsSemReadsFinish(xls_sem_read_capture* c)
 {
  xlsActiveSemReads=c->previous;xls_sem_reads* reads=c->reads;
- if(reads && reads->complete)for(size_t i=0;i<reads->items.Count;++i){const xls_sem_read* r=xrtArrayConstGet(&reads->items,i);xstrbuf current={0};size_t count=0;
-  int okay=xlsSemReadKey(c->context,r->name,r->type,&current,&count) && xlsSemReadSame(r,&current,count);xrtStrBufFree(&current);if(!okay){reads->complete=0;break;}}
+ if(reads && reads->complete)for(size_t i=0;i<reads->items.Count;++i){const xls_sem_read* r=xrtArrayConstGet(&reads->items,i);xstrbuf current=xlsSemReadScratchTake(c);size_t count=0;
+  int okay=xlsSemReadKey(c->context,r->name,r->type,&current,&count) && xlsSemReadSame(r,&current,count);xlsSemReadScratchReturn(c,&current);if(!okay){reads->complete=0;break;}}
  if(reads){reads->bytes-=reads->items.Count*sizeof(xls_sem_read);reads->bytes+=reads->items.Capacity*sizeof(xls_sem_read);
   size_t limit=xlsSemReadBudget();if(limit>1024u*1024u)limit=1024u*1024u;if(reads->bytes>limit)reads->complete=0;}
+ xrtStrBufFree(&c->scratch);xlsSemReadValuesDrop(c);xls_sem_read_work* work=&c->build->memo->readWork;
+ work->observations+=c->observations;work->typedComparisons+=c->typedComparisons;work->scratchReuses+=c->scratchReuses;
+ if(c->scratchBytes>work->scratchBytes)work->scratchBytes=c->scratchBytes;
+ if(c->valueBytes>work->valueBytes)work->valueBytes=c->valueBytes;
  xlsSemReadInvalidate(c->build);return reads;
 }
 static int xlsSemReadMatch(xls_sem_build* b,XL6_SemContext* ctx,const xls_sem_reads* reads,size_t slot)

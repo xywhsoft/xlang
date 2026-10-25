@@ -29,8 +29,18 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('root','public-directory','runtime','out'):parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--jobs',type=int,default=2)
+    parser.add_argument('--manifest',type=Path,help='Explicit original source cases; default remains the core contract batch')
     args=parser.parse_args();root,out=args.root.resolve(),args.out.resolve()
     assert not out.exists() and args.jobs>0
+    selected=[dict(Name=n,Source='test/cases/'+n+'.xl',Negative=negative)
+              for names,negative in ((CASES,False),(NEGATIVES,True)) for n in names]
+    if args.manifest:
+        selected=json.loads(args.manifest.read_text(encoding='utf-8-sig'))['Cases']
+    assert selected and len({row['Name'] for row in selected})==len(selected)
+    for row in selected:
+        assert re.fullmatch(r'[A-Za-z0-9_]+',row['Name']) and type(row['Negative']) is bool
+        source=(root/row['Source']).resolve()
+        assert source.is_relative_to(root) and source.is_file() and source.suffix=='.xl'
     manifest=args.public_directory.resolve()/'build.json'
     build=json.loads(manifest.read_text(encoding='utf-8-sig'))
     assert build['Complete'] and build['InputsUnchanged'] and build['SourceXrt'] and not build['RuntimeOnly']
@@ -40,6 +50,7 @@ def main():
     assert len(drivers)==1;compiled_root=drivers[0].parents[2]
     inputs={str(manifest):sha(manifest),str(Path(__file__).resolve()):sha(__file__),
             str(Path(sys.executable).resolve()):sha(sys.executable),str(cc):sha(cc)}
+    if args.manifest:inputs[str(args.manifest.resolve())]=sha(args.manifest)
     production=[]
     for row in build['Inputs']+build['Headers']+build['Objects']:
         p=Path(row['Path']).resolve();assert sha(p)==row['Sha256'].lower(),p
@@ -56,7 +67,7 @@ def main():
     sdk=Path(build['Driver']).parent/'include'
     host_source=root/'test/cases/xlir_core_guard_source_host.c'
     support=root/'test/fixtures/core_guard_assertions_support.xl'
-    files=[host_source,support,*[root/'test/cases'/(name+'.xl') for name in CASES+NEGATIVES],
+    files=[host_source,support,*[root/row['Source'] for row in selected],
            *sorted((root/'test/fixtures/core_guard_assertions').rglob('*'))]
     for p in files:
         if p.is_file():inputs[str(p)]=sha(p)
@@ -106,9 +117,10 @@ def main():
     try:
         run('host-build',[cc,*flags,'-O2',host_source,*objects,*links,'-o',host]);product(host)
     except Exception as error:failures.append(dict(Name='host-build',Error=repr(error)));save();return 1
-    def check(name,negative):
+    def check(row):
+        name,negative=row['Name'],row['Negative']
         try:
-            directory=out/name;directory.mkdir();source=root/'test/cases'/(name+'.xl')
+            directory=out/name;directory.mkdir();source=root/row['Source']
             helpers=str(support) if re.search(r'extern\s+"expect_(?:i64|str)"',source.read_text(encoding='utf-8-sig')) else '-'
             text=run(name+'-host',[host,root,source,directory,sdk,runtime,library,helpers,'negative' if negative else 'positive'])
             if negative:
@@ -132,11 +144,11 @@ def main():
         except Exception as error:
             with lock:failures.append(dict(Name=name,Error=repr(error)));save()
     with ThreadPoolExecutor(max_workers=args.jobs) as workers:
-        list(workers.map(lambda item:check(*item),[(n,False) for n in CASES]+[(n,True) for n in NEGATIVES]))
+        list(workers.map(check,selected))
     report['InputsUnchanged']=all(sha(p)==h for p,h in inputs.items())
     report['LogsUnchanged']=all(sha(row['Log'])==row['Sha256'] for row in rows)
     report['ProductsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in products)
-    report['ExpectedStages']=1+len(CASES)*4+len(NEGATIVES)
+    report['ExpectedStages']=1+sum(1 if row['Negative'] else 4 for row in selected)
     report['Complete']=not failures and report['InputsUnchanged'] and report['LogsUnchanged'] and report['ProductsUnchanged'] and len(rows)==report['ExpectedStages']
     save();print(json.dumps(dict(Complete=report['Complete'],Failures=failures)),flush=True)
     return 0 if report['Complete'] else 1

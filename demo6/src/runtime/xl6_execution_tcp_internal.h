@@ -19,6 +19,9 @@ typedef enum XL6_TcpPendingKindV1 {
     XL6_TCP_PENDING_NONE_V1,XL6_TCP_PENDING_ACCEPT_V1,XL6_TCP_PENDING_DIAL_V1,
     XL6_TCP_PENDING_SERVER_ACCEPT_V1
 } XL6_TcpPendingKindV1;
+typedef enum XL6_TcpCloseModeV1 {
+    XL6_TCP_CLOSE_AUTOMATIC_V1,XL6_TCP_CLOSE_GRACEFUL_V1,XL6_TCP_CLOSE_ABORT_V1
+} XL6_TcpCloseModeV1;
 /* Concrete resident extension, never part of the shared Resource/public ABI.
  * pendingKind is immutable after creation; pointer slots are guarded by the
  * Resource control/mutation protocol, not by borrowed callback aliases. */
@@ -26,7 +29,7 @@ typedef struct XL6_TcpStreamResourceV1 {
     XL6_ExecutionResourceV1 base;
     XL6_ExecutionResourceV1 *parent,*accepting,*resolving;
     xatomicptr native,pending;
-    xatomic32 prepared;
+    xatomic32 prepared,closeMode;
     XL6_TcpPendingKindV1 pendingKind;
 } XL6_TcpStreamResourceV1;
 XL6_EXECUTION_INTERNAL bool xl6ExecutionTcpPromotePendingInternalV1(

@@ -93,6 +93,14 @@ try {
             throw 'hcl AOT example failed or output differs from C'
         }
         Write-Output 'hcl AOT/C example parity: PASS'
+        $cExample = Join-Path $work 'c_example.exe'
+        & $xl build release/examples/extlibs/hcl_c.c -o $cExample
+        if ($LASTEXITCODE -ne 0) { throw 'hcl C example AOT build failed' }
+        $cAotOutput = & $cExample
+        if ($LASTEXITCODE -ne 0 -or ($cAotOutput -join "`n") -cne ($cOutput -join "`n")) {
+            throw 'hcl C example AOT failed or output differs from GCC'
+        }
+        Write-Output 'hcl C example AOT parity: PASS'
     }
     Write-Output 'hcl Windows C/XLang gate: PASS'
 } finally {

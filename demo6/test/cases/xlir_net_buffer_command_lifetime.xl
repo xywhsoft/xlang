@@ -1,27 +1,33 @@
-async func run() as int
-    TcpServer server = tcp.listen(0, "127.0.0.1", 8)
-    future<TcpStream> accepted = server.acceptAsync()
-    TcpStream client = tcp.connect("127.0.0.1", int(server.port()), 8000)
-    TcpStream peer = await accepted
-    assert client.send("peek-consume")
-    int remaining = 8000
-    while peer.available() < 12 and remaining > 0
-        time.sleep(1)
-        remaining = remaining - 1
-    end
-    assert peer.available() >= 12
-    Buffer prefix = peer.peek(4)
-    assert prefix.text() == "peek"
-    Buffer all = peer.peek()
-    assert all.text() == "peek-consume"
-    assert not peer.consume(13)
-    assert peer.consume(4)
-    assert peer.recv(8000) == "-consume"
-    client.close()
-    peer.close()
-    server.close()
-    return 0
+// Receive into an explicitly owned chain; never peek a Worker-only TCP view.
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback()))
+auto accepted = listener.acceptAsync()
+auto client = TcpStream(engine, listener.localAddress())
+auto peer = await accepted
+assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+assert client.send("peek-\0consume") == NetStatus.ok
+auto input = NetBuffer()
+while input.length < 13
+    assert await peer.recvIntoAsync(input, 13 - input.length) > 0
 end
-int exitCode = await run()
-assert exitCode == 0
+assert input.peek(0, 4) == b"peek"
+assert input.peek() == b"peek-\0consume"
+bool rejected = false
+try
+    input.peek(14)
+catch RangeError
+    rejected = true
+end
+assert rejected and input.length == 13
+client.close()
+peer.close()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+// Input and returned values outlive the transport and its worker.
+bytes held = input.peek()
+assert input.consume(5) == 5
+assert input.read() == b"\0consume" and input.length == 0
+assert held == b"peek-\0consume"
 println("xlir net buffer command lifetime ok")

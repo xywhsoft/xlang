@@ -37,6 +37,7 @@ struct xls_semantic_check {
     xls_sem_work semanticWork;
     xls_entry_parse_work entryWork,moduleWork;
     xls_parse_work moduleSyntaxWork;
+    xls_ast_materialize_work materializationWork;
     const char* phase;
     int accepted,captureIndex;
     uint64_t usedInputs;int usageKnown;
@@ -182,6 +183,8 @@ xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,x
 {
     if(!xlsFrontendContextValid(context,entry,error,capacity)) return NULL;
     xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
+    xls_ast_materialize_scope materialization;
+    xlsAstMaterializeBegin(&materialization,(cache || syntax) ? xlsAstMaterializeBudget() : 0);
     xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,cache,context,entry);
     xls_input_usage_scope usage;xlsFrontendInputUsageBegin(&usage);
     xls_input_topology_scope topology;xlsInputTopologyBegin(&topology,(cache || syntax) ? 8u*1024u*1024u : 0);
@@ -198,10 +201,11 @@ xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,x
     xlsFrontendCancelEnd(&cancellation,NULL);
     int scoped=xlsFrontendContextEnd(&scope);
     xls_entry_parse_work work=xlsFrontendEntryEnd(&entryScope,result && scoped);
+    xls_ast_materialize_work materializationWork;xlsAstMaterializeEnd(&materialization,&materializationWork);
     if(!scoped) {
         xlsSemanticCheckDestroy(result); fail(error,capacity,(scope.failed&2) ? "cannot retain bounded completion namespace" : "cannot resolve native context path or package environment"); return NULL;
     }
-    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->moduleSyntaxWork=entryScope.moduleSyntaxWork;result->usedInputs=used;result->usageKnown=known && result->report.complete && result->report.count && result->overlay.count==count;}
+    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->moduleSyntaxWork=entryScope.moduleSyntaxWork;result->materializationWork=materializationWork;result->usedInputs=used;result->usageKnown=known && result->report.complete && result->report.count && result->overlay.count==count;}
     return result;
 }
 int xlsSemanticCheckInputUsage(const xls_semantic_check* result,uint64_t* used)
@@ -224,6 +228,8 @@ xls_entry_parse_work xlsSemanticCheckModuleWork(const xls_semantic_check* result
 { return result ? result->moduleWork : (xls_entry_parse_work){0}; }
 xls_parse_work xlsSemanticCheckModuleParseWork(const xls_semantic_check* result)
 { return result ? result->moduleSyntaxWork : (xls_parse_work){0}; }
+xls_ast_materialize_work xlsSemanticCheckMaterializationWork(const xls_semantic_check* result)
+{ return result ? result->materializationWork : (xls_ast_materialize_work){0}; }
 xls_ast_intern_work xlsSemanticCheckMemoTypes(const xls_semantic_check* result)
 {return xlsFrontendSemMemoTypes(result ? result->memo : NULL);}
 xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,

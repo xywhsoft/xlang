@@ -64,7 +64,7 @@ if (html != NULL) {
     <pre><code>xl run release/extlibs/md4c/examples/md4c_c.c
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/md4c/test/check.ps1
 bash release/extlibs/md4c/test/check.sh</code></pre>
-    <p>2026-10-24 使用更新后的 Windows 发布版复验，默认门禁的严格 GCC、C/XLang 边界、分配故障、双语 HTML 对照及公开范例 AOT 全部通过；旧版 <code>xl6ValueDataSnapshotV1</code> 缺符号已解除。Linux 门禁同时通过 C ASan/UBSan、XLang 边界、直跑与严格 C 编译结果对照，以及 C/XLang HTML 逐字节对照。C 教学范例可单文件直跑；这些是包级证据，不代表整个 xlang 发布版签收。</p>
+    <p>2026-10-26 当前发布物的 Windows/Linux 默认门禁均通过：严格 C、Linux ASan/UBSan、XLang 边界/分配故障与公开范例 JIT/AOT，以及公开 C 单文件范例的 GCC、TCC、独立 EXE AOT 同输出。三个 HTML 返回由 XRT 分配、XLang 直接接管，不复制正文；旧版 <code>xl6ValueDataSnapshotV1</code> 缺符号已解除。<code>no_html_flag</code> 不是完整 HTML 安全净化策略。这些是包级证据，不代表整个 xlang 发布版签收。</p>
   </section>
 </main>
 <script src="../main.js"></script>

@@ -40,4 +40,16 @@ timeout 90s ./release/xl run release/extlibs/diff/test/boundaries.xl
 timeout 90s ./release/xl run release/examples/extlibs/diff.xl \
     > "$work/xl_example.txt"
 diff -u "$work/c_example.txt" "$work/xl_example.txt"
+timeout 120s ./release/xl build release/extlibs/diff/test/boundaries.xl \
+    -o "$work/diff_boundaries_aot"
+timeout 45s "$work/diff_boundaries_aot" > "$work/boundaries_aot.txt"
+grep -Fxq 'diff boundaries: PASS' "$work/boundaries_aot.txt"
+timeout 120s ./release/xl build release/examples/extlibs/diff.xl \
+    -o "$work/diff_example_xl_aot"
+timeout 45s "$work/diff_example_xl_aot" > "$work/xl_example_aot.txt"
+diff -u "$work/c_example.txt" "$work/xl_example_aot.txt"
+timeout 120s ./release/xl build release/extlibs/diff/examples/diff_c.c \
+    -o "$work/diff_example_c_aot"
+timeout 45s "$work/diff_example_c_aot" > "$work/c_example_aot.txt"
+diff -u "$work/c_example.txt" "$work/c_example_aot.txt"
 printf 'diff Linux C ASan/UBSan and XLang parity gate: PASS\n'

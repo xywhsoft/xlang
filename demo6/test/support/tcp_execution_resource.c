@@ -19,7 +19,7 @@ typedef struct Node {xrtownershipref ref;const xrtownershipadapterv1* adapter;
 typedef struct Graph {XL6_ExecutionSourceV1* source;Resource *engine,*listener,*client,*peer,*pending;
     Node nodes[CAPACITY];size_t count;bool pinned,busy;} Graph;
 static XL6_OwnershipCatalog* catalog;
-static unsigned graphs,ordinary,budgets,failures,abandoned,deferred;
+static unsigned graphs,ordinary,budgets,failures,abandoned,deferred,graceful;
 static void balanced(const xmemdebugsnapshot* before)
 {
     xmemdebugsnapshot after;xrtClearError();xrtMemDebugSnapshot(&after);
@@ -121,6 +121,72 @@ static void dropOrdinary(Graph* graph)
     for(;;){XL6_ExecutionRetireResultV1 result=xl6ExecutionSourceDestroyV1(&graph->source);CHECK(result.ok);
         if(result.ready)break;
         CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+}
+typedef struct CloseGate {xevent *entered,*resume;} CloseGate;
+static void holdWorker(xnetworker* worker,void* raw)
+{
+    (void)worker;CloseGate* gate=raw;
+    CHECK(xrtEventSet(gate->entered));
+    CHECK(xrtEventWaitFor(gate->resume,UINT64_C(5000000))==XWAIT_OK);
+}
+static void gracefulLastOwner(xnetportbackend backend)
+{
+    xmemdebugsnapshot before;xrtClearError();xrtMemDebugSnapshot(&before);
+    Graph graph={0};create(&graph,backend,true);
+    CloseGate gate={xrtEventCreate(true,false),xrtEventCreate(true,false)};
+    CHECK(gate.entered&&gate.resume);
+    XL6_ExecutionScopeV1 engineScope={0};
+    CHECK(xl6ExecutionResourceEnterV1(graph.engine,false,&engineScope));
+    CHECK(xrtNetEnginePost(engineScope.engine,0,holdWorker,&gate));
+    xl6ExecutionResourceLeaveV1(&engineScope);
+    CHECK(xrtEventWaitFor(gate.entered,UINT64_C(5000000))==XWAIT_OK);
+    unsigned char payload[65536];for(size_t i=0;i<sizeof(payload);++i)payload[i]=(unsigned char)i;
+    XL6_TcpScopeV1 scope={0};
+    CHECK(xl6ExecutionTcpEnterInternalV1(graph.client,XL6_EXECUTION_TCP_STREAM_V1,true,&scope));
+    xnetstream* observer=xrtNetStreamRef(scope.stream);CHECK(observer);
+    CHECK(xrtNetStreamSend(scope.stream,payload,sizeof(payload))==XNET_RESULT_OK);
+    xl6ExecutionTcpLeaveInternalV1(&scope);
+    Resource* sender=graph.client;
+    const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* preparation=NULL;
+    const xrtownershipfinishv1* finish=NULL;xrtownershipscope inspection={0};freeze(&inspection);
+    CHECK(xl6OwnershipCatalogProbeV1(xl6ExecutionResourceOwnershipV1(sender),catalog,&adapter,&preparation,&finish)==
+        XL6_OWNERSHIP_ADMISSION_ADMITTED&&adapter->Hold(sender));
+    uint64_t cycle=sender->cycle;CHECK(xrtOwnershipScopeEnd(&inspection));
+    CHECK(xl6ExecutionResourceCloseV1(sender)&&xl6ExecutionResourceCloseV1(sender));
+    CHECK(xrtAtomic32Load(&((XL6_TcpStreamResourceV1*)sender)->closeMode,XMEMORY_ACQUIRE)==XL6_TCP_CLOSE_GRACEFUL_V1);
+    xl6ExecutionResourceReleaseV1(sender);graph.client=NULL;
+    /* The actual retirement worker must attempt this ownerless resource
+     * before native I/O resumes. An inspection pin is NOT a language owner. */
+    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    for(;;){
+        freeze(&inspection);bool attempted=sender->cycle!=cycle&&!sender->retiring;
+        CHECK(sender->owners==0&&sender->requested&&sender->source);
+        CHECK(xrtOwnershipScopeEnd(&inspection));if(attempted)break;
+        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();
+    }
+    CHECK(xrtNetStreamState(observer)!=XNET_STREAM_CLOSED);
+    CHECK(xrtEventSet(gate.resume));
+    size_t received=0;
+    while(received<sizeof(payload)){
+        CHECK(xl6ExecutionTcpEnterInternalV1(graph.peer,XL6_EXECUTION_TCP_STREAM_V1,true,&scope));
+        xfuture* chunk=xrtNetStreamRecvAsync(scope.stream,8192);
+        xl6ExecutionTcpLeaveInternalV1(&scope);CHECK(chunk);
+        CHECK(xrtFutureWaitFor(chunk,UINT64_C(5000000))==XWAIT_OK&&xrtFutureState(chunk)==XFUTURE_RESOLVED);
+        xbytesview view=xrtNetBytesView(xrtFutureValue(chunk));
+        CHECK(view.Size&&view.Size<=sizeof(payload)-received&&memcmp(view.Data,payload+received,view.Size)==0);
+        received+=view.Size;xrtFutureDestroy(chunk);
+    }
+    until=xrtDeadlineAfter(UINT64_C(5000000));
+    while(xrtNetStreamState(observer)!=XNET_STREAM_CLOSED){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    xrtNetStreamDestroy(observer);adapter->Drop(sender);dropOrdinary(&graph);
+    // Native engine shutdown has joined the callback before releasing its events.
+    xrtEventDestroy(gate.entered);xrtEventDestroy(gate.resume);balanced(&before);++graceful;
+
+    xrtMemDebugSnapshot(&before);graph=(Graph){0};create(&graph,backend,false);
+    CHECK(xl6ExecutionResourceCloseV1(graph.client)&&xl6ExecutionResourceCancelV1(graph.client));
+    CHECK(xl6ExecutionResourceCloseV1(graph.client));
+    CHECK(xrtAtomic32Load(&((XL6_TcpStreamResourceV1*)graph.client)->closeMode,XMEMORY_ACQUIRE)==XL6_TCP_CLOSE_ABORT_V1);
+    dropOrdinary(&graph);balanced(&before);
 }
 static void collect(Graph* graph,unsigned order)
 {
@@ -271,8 +337,9 @@ int main(int argc,char** argv)
         balanced(&before);
     }
     abandonedAccept(backend);deferredAccept(backend);construction(backend);CHECK(failures>0&&failures<budgets);
+    gracefulLastOwner(backend);
     xl6OwnershipCatalogDestroyV1(catalog);CHECK(xrtMemDebugReset());
-    printf("managed TCP resources: graphs=%u ordinary=%u abandoned=%u deferred=%u allocation-budgets=%u failures=%u; parent owners, exact scoped kinds, NUL roundtrip; balanced backend=%d\n",
-        graphs,ordinary,abandoned,deferred,budgets,failures,(int)backend);
+    printf("managed TCP resources: graphs=%u ordinary=%u abandoned=%u deferred=%u allocation-budgets=%u failures=%u; parent owners, exact scoped kinds, NUL roundtrip; balanced backend=%d graceful-last-owner=%u abort-wins=1\n",
+        graphs,ordinary,abandoned,deferred,budgets,failures,(int)backend,graceful);
     return 0;
 }

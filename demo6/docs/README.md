@@ -6,6 +6,12 @@
 
 ## 当前权威设计
 
+- [TLS 显式关闭与最后引用](tls-close-lifetime-2026-10-26.md)：复用 native 发送排空／协议关闭，43 原生阶段、双端 406 新普通产品阶段及 checked 退役；五组总门继续。
+
+- [PowerShell 5 源码部署前置](source-driver-staging-2026-10-26.md)：复用受限相对路径助手、2,268 文件等价部署、当前源码完整构建及两版正常 XLIR 守卫。
+
+- [网络旧用例迁移与显式关闭](network-public-migration-2026-10-26.md)：显式 Close 的 last-owner 合同、旧 fixture／BAT 迁移和双端新普通产品验收；TLS 对应路径及五组总门继续。
+
 - [核心契约守卫与产品析构依赖](core-contract-guards-2026-10-26.md)：旧生成实现断言迁移、闭合 ABI 析构依赖及双端 304 阶段源码验收；发布总门继续。
 
 - [C 字符串和二进制生命周期载体](c_owned_ffi.md)：`cstring` / `cbytes` 的同步局部接管、只读借用、普通值复制边界与释放合同。

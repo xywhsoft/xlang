@@ -62,7 +62,7 @@ int main(void)
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sysinfo/test/check.ps1
 bash release/extlibs/sysinfo/test/check.sh</code></pre>
     <p>2026-10-24 发布版：Windows 默认门禁的严格 C、XLang 边界与双语范例，以及带输出的公开范例 AOT 均通过。旧的 <code>xl6ValueDataSnapshotV1</code> 缺符号问题只属于历史发布物；当时 Linux 已通过 C ASan/UBSan 与 XLang JIT 对照，AOT 尚未验收。</p>
-    <p>2026-10-25 发布版复核：Windows 默认门禁通过 C、XLang 与四份独立 EXE；普通字符串直接接管 XRT 分配。Linux 包级门禁也通过 C ASan/UBSan、XLang JIT、边界/分配/基础范例/动态指标四份独立 EXE；基础范例 C/JIT/AOT 输出逐字节一致，动态指标按合法范围验收。</p>
+    <p>2026-10-26 新发布物复核：Windows/Linux 默认门禁均通过严格 C、XLang 边界、分配故障与四份语言独立 EXE；新增两个 C 单文件范例的 <code>xl build</code> 独立 EXE。基础信息与 GCC/XLang 同机输出一致，瞬时动态指标按格式和合法范围验收。Linux 含 ASan/UBSan 与异常系统文本夹具；普通字符串由 XLang 直接接管 XRT 分配，不复制正文。旧版带输出 AOT 缺符号不再复现。</p>
     <p>2026-10-19 复跑：C 范例可直接使用 <code>xl run release/extlibs/sysinfo/examples/sysinfo_c.c</code> 运行；Windows/Linux 包门禁将其与 GCC 编译运行、XLang 范例的同机输出对照。Windows 包级脚本每次使用独占构建目录，退出后只清理本次产物，不与并行门禁共用对象。六个整数 C 结果统一为 <code>int64_t</code>，与 XLang <code>int</code> 的 LP64 ABI 一致。Linux 内存可用量以前后两次系统快照对照；链接器夹具还验证不可读、负数、尾部垃圾及整数溢出时的降级，以及非 UTF-8 系统文本降级。Windows 伪注册表夹具验证首次分配失败及恢复。本机未覆盖多处理器组硬件。</p>
   </section>
 </main>

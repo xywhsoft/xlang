@@ -46,7 +46,10 @@ typedef struct xls_sem_tail_control { struct xls_sem_tail_control* previous;size
 void xlsFrontendSemTailBegin(xls_sem_tail_control* control,size_t bytes);
 void xlsFrontendSemTailEnd(xls_sem_tail_control* control);
 typedef struct xls_sem_work { uint64_t checked,reused,contextHits,bytes; } xls_sem_work;
-typedef struct xls_sem_read_work {uint64_t contexts,contextHits,recorded,negative,matched,rejected,reused,bytes;} xls_sem_read_work;
+typedef struct xls_sem_read_work {
+    uint64_t contexts,contextHits,recorded,negative,matched,rejected,reused,bytes;
+    uint64_t observations,typedComparisons,scratchReuses,scratchBytes,valueBytes;
+} xls_sem_read_work;
 /* Real compiler declaration-lookup observations,not a complete semantic query
  * database. All original non-function/allocation/type/source/restore proofs
  * still apply. Header snapshots include live semantic facts;negative queries
@@ -55,6 +58,17 @@ xls_sem_read_work xlsFrontendSemMemoReads(const xls_sem_memo* memo);
 typedef struct xls_sem_read_control {struct xls_sem_read_control* previous;size_t bytes;} xls_sem_read_control;
 void xlsFrontendSemReadsBegin(xls_sem_read_control* control,size_t bytes);
 void xlsFrontendSemReadsEnd(xls_sem_read_control* control);
+/* Optional transient buffer retention,not proof admission. Zero retains no
+ * scratch bytes and runs every serialized comparison through fresh buffers.
+ * Nested scopes can only reduce the 8 MiB retention allowance. */
+typedef struct xls_sem_scratch_control {struct xls_sem_scratch_control* previous;size_t bytes;} xls_sem_scratch_control;
+void xlsFrontendSemScratchBegin(xls_sem_scratch_control* control,size_t bytes);
+void xlsFrontendSemScratchEnd(xls_sem_scratch_control* control);
+typedef struct xls_sem_value_control {struct xls_sem_value_control* previous;int enabled;} xls_sem_value_control;
+/* Private verification fallback: serialized comparisons remain authoritative
+ * and always validate each distinct snapshot after the function finishes. */
+void xlsFrontendSemValuesBegin(xls_sem_value_control* control,int enabled);
+void xlsFrontendSemValuesEnd(xls_sem_value_control* control);
 /* Private opt-in around the unchanged compiler checker. Memo facts are
  * immutable, independently owned, and never a substitute for whole-module
  * declaration checks, final type/region annotation or typed IR verification.

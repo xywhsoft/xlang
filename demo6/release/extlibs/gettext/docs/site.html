@@ -67,7 +67,7 @@ int main(void)
     <h2>验证状态</h2>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/gettext/test/check.ps1
 bash release/extlibs/gettext/test/check.sh</code></pre>
-    <p>2026-10-24 使用更新后的 Windows 发布版复验，默认包门禁完整通过：严格 GCC、C/XLang 边界、分配故障、双语范例和公开范例 AOT；旧版共享缺符号已解除。Linux 本轮 C ASan/UBSan 先通过，现有旧版 <code>release/xl</code> 随后在 <code>cbytes</code> 声明处报未知类型，完整 Linux 语言门禁须待发布二进制重建后复验。包 C 源文件只依赖公开 XRT 头文件；PO/MO 解析和查询均有内存错误、恢复及无效 UTF-8 负例。</p>
+    <p>2026-10-26 当前 Windows/Linux 包级门禁均通过：严格 C、Linux ASan/UBSan、中央/重复键/边界/分配故障/输入限额的 XLang JIT 与独立 EXE AOT、双语成对范例、公开范例以及 C 单文件范例 AOT。C/GCC、C/TCC、C/AOT 与 XLang 成对范例输出一致；C AOT 从 demo6 根目录运行以读取同一 MO 夹具。Linux 有 GNU <code>msgfmt</code> 时，默认门禁另从 <code>test/external.po</code> 生成标准 MO，并由 sanitizer C、XLang JIT 和 AOT 共同读取；缺工具明确跳过。旧版 <code>cbytes</code> 与缺符号错误已不再阻断当前发布物。本页只覆盖已声明的 UTF-8 PO/MO 子集，不宣称完整 GNU gettext 等价；新主线发布物重建后仍须复验。</p>
   </section>
 </main>
 <script src="../main.js"></script>

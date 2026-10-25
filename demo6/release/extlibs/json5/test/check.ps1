@@ -73,18 +73,36 @@ try {
         $null = Run 'XLang core build' $xl @('build',
             'extlibs/json5/test/aot_core.xl', '-o', $core)
         $null = Run 'XLang core AOT' $core @()
-        $null = Run 'Public XLang example' $xl @('run', 'examples/extlibs/json5.xl')
+        $publicOutput = Run 'Public XLang example' $xl @('run', 'examples/extlibs/json5.xl')
         if (-not $SkipAot) {
             $testAot = Join-Path $work 'json5_xl_boundaries.exe'
             $null = Run 'XLang boundaries build' $xl @('build',
                 'extlibs/json5/test/boundaries.xl', '-o', $testAot)
             $null = Run 'XLang boundaries AOT' $testAot @()
+            $allocAot = Join-Path $work 'json5_xl_allocations.exe'
+            $null = Run 'XLang allocations build' $xl @('build',
+                'extlibs/json5/test/allocations.xl', '-o', $allocAot)
+            $null = Run 'XLang allocations AOT' $allocAot @()
             $exampleAot = Join-Path $work 'json5_xl_example.exe'
             $null = Run 'XLang example build' $xl @('build',
                 'extlibs/json5/examples/json5.xl', '-o', $exampleAot)
             $aotOutput = Run 'XLang example AOT' $exampleAot @()
             if ($aotOutput -cne $cOutput) {
                 throw 'XLang AOT JSON5 example differs from C'
+            }
+            $publicAot = Join-Path $work 'json5_public_example.exe'
+            $null = Run 'Public XLang example build' $xl @('build',
+                'examples/extlibs/json5.xl', '-o', $publicAot)
+            $publicAotOutput = Run 'Public XLang example AOT' $publicAot @()
+            if ($publicAotOutput -cne $publicOutput) {
+                throw 'public JSON5 example AOT differs from JIT'
+            }
+            $cExampleAot = Join-Path $work 'json5_c_example.exe'
+            $null = Run 'C example build' $xl @('build',
+                'extlibs/json5/examples/json5_c.c', '-o', $cExampleAot)
+            $cAotOutput = Run 'C example AOT' $cExampleAot @()
+            if ($cAotOutput -cne $cOutput) {
+                throw 'C JSON5 example AOT differs from GCC'
             }
         }
     } finally {

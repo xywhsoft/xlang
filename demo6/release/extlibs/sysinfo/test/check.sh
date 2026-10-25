@@ -94,4 +94,16 @@ test "$(wc -l < "$output")" -eq 3
 grep -Eq '^available: [0-9]+$' "$output"
 grep -Eq '^usage: ([0-9]|[1-9][0-9]|100)$' "$output"
 grep -Eq '^uptime: [0-9]+$' "$output"
+timeout 180s ./release/xl build release/extlibs/sysinfo/examples/sysinfo_c.c \
+    -o "$work/sysinfo_c_aot"
+timeout 45s "$work/sysinfo_c_aot" > "$work/c_aot.txt"
+diff -u "$work/c.txt" "$work/c_aot.txt"
+timeout 180s ./release/xl build release/extlibs/sysinfo/examples/metrics_c.c \
+    -o "$work/sysinfo_metrics_c_aot"
+timeout 45s "$work/sysinfo_metrics_c_aot" > "$work/metrics_c_aot.txt"
+output="$work/metrics_c_aot.txt"
+test "$(wc -l < "$output")" -eq 3
+grep -Eq '^available: [0-9]+$' "$output"
+grep -Eq '^usage: ([0-9]|[1-9][0-9]|100)$' "$output"
+grep -Eq '^uptime: [0-9]+$' "$output"
 printf 'sysinfo Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

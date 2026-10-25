@@ -1,5 +1,12 @@
 # md4c
 
+2026-10-26 新发布物复验：Windows 默认 `test/check.ps1` 和 Linux
+`test/check.sh` 均通过；严格 C、Linux ASan/UBSan、语言边界与分配故障
+JIT/AOT、公开 XLang 范例 AOT 及 C 单文件范例 AOT 都已覆盖。C 范例
+经 GCC、TCC 和 `xl build` 运行的 HTML 逐字节一致。渲染结果仍由
+`takeCstr` 直接接管 XRT 分配，无需改写为 `cstring`。这仅签收文中
+MD4C 渲染能力，不把 `no_html_flag` 当成完整 HTML 净化策略。
+
 2026-10-25 使用本日标准 `build.bat` 新生成的 Windows 发布版复验：
 默认 `test/check.ps1` 的严格 C、C 边界与分配故障、C/XLang 同输出、
 公开范例以及边界和范例的独立 EXE 构建运行均通过。三个 HTML 返回

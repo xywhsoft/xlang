@@ -1,0 +1,3 @@
+func readRaw(TlsStream stream) as point
+    return stream.handle
+end

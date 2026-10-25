@@ -1,5 +1,12 @@
 # JSON5 扩展库
 
+2026-10-26 新发布物复验：Windows 默认 `test/check.ps1` 与 Linux
+`test/check.sh` 均通过。两平台补齐分配故障、公开 XLang 范例及 C
+单文件范例的独立 EXE AOT；C/GCC、TCC、C AOT 与 XLang JIT/AOT
+输出一致，Linux 保留 ASan/UBSan。旧共享索引符号阻断不再复现。
+签收范围为下述解析、路径、Unicode 和限额合同；474 项官方参考
+实现固定样本对照是历史定向证据，不等于完整规范认证。
+
 2026-10-25 当前发布版复验：Windows 默认 `test/check.ps1` 全通过，
 覆盖严格 C、边界与分配故障、C/XLang 范例同输出，以及核心、边界、
 公开范例的独立 EXE AOT 构建运行。WSL `test/check.sh` 通过 C

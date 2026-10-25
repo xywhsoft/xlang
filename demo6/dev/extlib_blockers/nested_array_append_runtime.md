@@ -1,5 +1,12 @@
 # 嵌套类型化数组 append 运行时报类型错误
 
+2026-10-26 重建发布版复验：`tools/check_extlib_csv.ps1` 先通过
+严格 C、分配/文件事务/线程与 454 项 Python 互通，然后中央 XLang JIT
+在同一嵌套数组写入处报 `TypeError: value has an incompatible type`。
+独立 `release/xl.exe run dev/extlib_blockers/csv_nested_array_value.xl`
+仍可复现；公开 `release/examples/extlibs/csv.xl` 正常，说明失败面
+在类型化嵌套元素的写入路径，不在一般 CSV 解析或文本输出。
+
 2026-10-24 Windows 发布版最小复现：
 
 ```powershell

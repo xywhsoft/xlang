@@ -48,4 +48,8 @@ timeout 120s release/xl build release/examples/extlibs/css.xl \
     -o "$work/css_example_xl"
 timeout 45s "$work/css_example_xl" > "$work/example_aot.txt"
 diff -u "$work/example_c.txt" "$work/example_aot.txt"
+timeout 120s release/xl build release/examples/extlibs/css_c.c \
+    -o "$work/css_example_c_aot"
+timeout 45s "$work/css_example_c_aot" > "$work/example_c_aot.txt"
+diff -u "$work/example_c.txt" "$work/example_c_aot.txt"
 printf 'css Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'
