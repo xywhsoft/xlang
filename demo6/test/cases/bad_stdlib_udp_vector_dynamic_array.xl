@@ -1,0 +1,4 @@
+func invalid(UdpSocket socket)
+    array parts = [Buffer(b"x"), "not a Buffer"]
+    socket.sendVector(parts)
+end

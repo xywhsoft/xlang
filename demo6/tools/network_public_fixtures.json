@@ -1,0 +1,22 @@
+{
+  "Cases": [
+    {"Name":"cgen_tcp_string_embedded_nul","Source":"test/cases/cgen_tcp_string_embedded_nul.xl","Negative":false},
+    {"Name":"stdlib_net_engine_trim","Source":"test/cases/stdlib_net_engine_trim.xl","Negative":false},
+    {"Name":"stdlib_net_extended_config","Source":"test/cases/stdlib_net_extended_config.xl","Negative":false},
+    {"Name":"stdlib_net_extended_io","Source":"test/cases/stdlib_net_extended_io.xl","Negative":false},
+    {"Name":"stdlib_tcp_lifecycle","Source":"test/cases/stdlib_tcp_lifecycle.xl","Negative":false},
+    {"Name":"stdlib_net_tcp_udp","Source":"test/cases/stdlib_net_tcp_udp.xl","Negative":false},
+    {"Name":"xlir_net_buffer_command_lifetime","Source":"test/cases/xlir_net_buffer_command_lifetime.xl","Negative":false},
+    {"Name":"xlir_net_datagram_boundaries","Source":"test/cases/xlir_net_datagram_boundaries.xl","Negative":false},
+    {"Name":"stdlib_net_trim_dns_only","Source":"test/cases/stdlib_net_trim_dns_only.xl","Negative":false},
+    {"Name":"xlir_net_resolver_standalone","Source":"test/cases/xlir_net_resolver_standalone.xl","Negative":false},
+    {"Name":"stdlib_net_resolver_default","Source":"test/cases/stdlib_net_resolver_default.xl","Negative":false},
+    {"Name":"stdlib_net_fast_path","Source":"test/cases/stdlib_net_fast_path.xl","Negative":false},
+    {"Name":"example_net_tcp_udp","Source":"release/examples/stdlib_net_tcp_udp.xl","Negative":false},
+    {"Name":"example_net_fast_path","Source":"release/examples/stdlib_net_fast_path.xl","Negative":false},
+    {"Name":"example_id_net","Source":"release/examples/stdlib_id_net.xl","Negative":false},
+    {"Name":"example_net_interfaces","Source":"release/examples/stdlib_net_interfaces.xl","Negative":false},
+    {"Name":"bad_stdlib_udp_vector_dynamic_array","Source":"test/cases/bad_stdlib_udp_vector_dynamic_array.xl","Negative":true},
+    {"Name":"bad_stdlib_udp_batch_dynamic_array","Source":"test/cases/bad_stdlib_udp_batch_dynamic_array.xl","Negative":true}
+  ]
+}

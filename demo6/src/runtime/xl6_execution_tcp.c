@@ -29,6 +29,7 @@ static bool streamCreate(Resource* base,const XL6_ExecutionCreateOptionsV1* opti
     xrtAtomicPtrInit(&r->native,NULL);
     xrtAtomicPtrInit(&r->pending,NULL);
     xrtAtomic32Init(&r->prepared,0);
+    xrtAtomic32Init(&r->closeMode,XL6_TCP_CLOSE_AUTOMATIC_V1);
     if(!c||(!c->accepted&&!c->accepting&&!c->remote&&!c->dialing)){
         xrtSetErrorKind(XERR_ARGUMENT);return false;}
     XL6_ExecutionScopeV1 scope={0};if(!engineEnter(c->engine,&scope))return false;
@@ -93,9 +94,10 @@ static bool listenerRollback(Resource* base)
     Listener* r=(Listener*)base;xnetlistener* native=xrtAtomicPtrExchange(&r->native,NULL,XMEMORY_ACQ_REL);
     if(native){(void)xrtNetListenerClose(native);xrtNetListenerDestroy(native);}parentDrop(&r->parent);return true;
 }
-/* Last-owner cleanup does not promise delivery or implicitly flush forever.
- * Explicit Close drains; callers wait for that boundary before losing owners
- * when delivery matters. Automatic retirement aborts remaining stream work. */
+/* An accepted explicit Close owns its draining operation through the native
+ * terminal state, even after the last language owner disappears. Unclosed
+ * automatic cleanup and explicit Abort still cancel outstanding work. The
+ * registry retains the real resource/parent while retirement reports BUSY. */
 static XL6_ModulePrepareResult streamRetire(Resource* base)
 {
     Stream* r=(Stream*)base;xnetstream* native=stream(base);
@@ -107,7 +109,8 @@ static XL6_ModulePrepareResult streamRetire(Resource* base)
         }
         return streamRollback(base)?XL6_MODULE_PREPARE_READY:XL6_MODULE_PREPARE_FAILED;
     }
-    if(!xrtNetStreamAbort(native))return XL6_MODULE_PREPARE_FAILED;
+    if(xrtAtomic32Load(&r->closeMode,XMEMORY_ACQUIRE)!=XL6_TCP_CLOSE_GRACEFUL_V1 &&
+        !xrtNetStreamAbort(native))return XL6_MODULE_PREPARE_FAILED;
     if(xrtNetStreamState(native)!=XNET_STREAM_CLOSED)return XL6_MODULE_PREPARE_BUSY;
     return streamRollback(base)?XL6_MODULE_PREPARE_READY:XL6_MODULE_PREPARE_FAILED;
 }
@@ -156,13 +159,27 @@ static bool listenerTrace(const Resource* base,xrtownershipvisitor visit,void* c
 }
 static bool streamClose(Resource* base)
 {
-    xnetstream* s=stream(base);if(s)return xrtNetStreamClose(s);
+    xnetstream* s=stream(base);
+    if(s){
+        bool accepted=xrtNetStreamClose(s);
+        if(accepted){
+            /* Call scopes pin retirement; concurrent Abort must win and a
+             * repeated Close must never turn an abort back into a drain. */
+            uint32 expected=XL6_TCP_CLOSE_AUTOMATIC_V1;
+            (void)xrtAtomic32CompareExchange(&((Stream*)base)->closeMode,&expected,
+                XL6_TCP_CLOSE_GRACEFUL_V1,XMEMORY_RELEASE,XMEMORY_RELAXED);
+        }
+        return accepted;
+    }
     xfuture* pending=xrtAtomicPtrLoad(&((Stream*)base)->pending,XMEMORY_ACQUIRE);
     if(pending&&xrtFutureState(pending)==XFUTURE_PENDING)(void)xrtFutureCancel(pending);
     return true;
 }
 static bool streamCancel(Resource* base)
-{xnetstream* s=stream(base);return s?xrtNetStreamAbort(s):streamClose(base);}
+{
+    xrtAtomic32Store(&((Stream*)base)->closeMode,XL6_TCP_CLOSE_ABORT_V1,XMEMORY_RELEASE);
+    xnetstream* s=stream(base);return s?xrtNetStreamAbort(s):streamClose(base);
+}
 static bool listenerClose(Resource* base){xnetlistener* l=listener(base);return !l||xrtNetListenerClose(l);}
 static bool streamPresent(const Resource* r)
 {return stream(r)!=NULL||xrtAtomicPtrLoad(&((const Stream*)r)->pending,XMEMORY_ACQUIRE)!=NULL||

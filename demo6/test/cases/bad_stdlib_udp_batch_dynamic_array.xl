@@ -1,0 +1,4 @@
+func invalid(UdpSocket socket)
+    array messages = [UdpMessage(b"x"), "not a message"]
+    socket.sendBatch(messages, NetBatchProgress())
+end

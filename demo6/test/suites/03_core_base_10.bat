@@ -145,9 +145,9 @@ release\xl.exe check test\cases\stdlib_net_trim_dns_only.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_net_trim_dns_only.xl --emit build\test\stdlib_net_trim_dns_only.c
 if errorlevel 1 exit /b 1
-findstr /C:"static bool xl6_net_address_parse" build\test\stdlib_net_trim_dns_only.c >nul
+findstr /C:"xl6NetResolveAddressV1(" build\test\stdlib_net_trim_dns_only.c >nul
 if errorlevel 1 (
-    echo stdlib_net_trim_dns_only.c missing address helper.
+    echo stdlib_net_trim_dns_only.c missing resident address-resolution call.
     exit /b 1
 )
 findstr /C:"xl6_net_deadline" build\test\stdlib_net_trim_dns_only.c >nul
@@ -174,70 +174,19 @@ release\xl.exe check test\cases\stdlib_net_tcp_udp.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_net_tcp_udp.xl --emit build\test\stdlib_net_tcp_udp.c
 if errorlevel 1 exit /b 1
-findstr /C:"typedef struct XL_Class_TcpStream" build\test\stdlib_net_tcp_udp.c >nul
-if errorlevel 1 (
-    echo stdlib_net_tcp_udp.c missing TcpStream class bridge.
-    exit /b 1
+for %%S in (xl6TcpListenerCreateV1 xl6TcpStreamCreateDefaultV1 xl6TcpStreamRecvAsyncV1 xl6UdpBindDefaultV1 xl6UdpSendToBufferV1 xl6UdpPacketBytesV1) do (
+    findstr /C:"%%S(" build\test\stdlib_net_tcp_udp.c >nul
+    if errorlevel 1 (
+        echo stdlib_net_tcp_udp.c missing resident call %%S.
+        exit /b 1
+    )
 )
-findstr /C:"xnetstream* xrtNetConnect" build\test\stdlib_net_tcp_udp.c >nul
-if not errorlevel 1 (
-    echo stdlib_net_tcp_udp.c duplicates the XRT connect declaration.
-    exit /b 1
-)
-findstr /C:"return xrtNetConnect(xl6_net_engine, xl6_net_resolver, host, port" build\test\stdlib_net_tcp_udp.c >nul
-if errorlevel 1 (
-    echo stdlib_net_tcp_udp.c missing the current XRT connect call.
-    exit /b 1
-)
-findstr /C:"xnetudp* xrtNetUdpBind" build\test\stdlib_net_tcp_udp.c >nul
-if not errorlevel 1 (
-    echo stdlib_net_tcp_udp.c duplicates the XRT UDP bind declaration.
-    exit /b 1
-)
-findstr /C:"return xrtNetUdpBind(xl6_net_engine, &address" build\test\stdlib_net_tcp_udp.c >nul
-if errorlevel 1 (
-    echo stdlib_net_tcp_udp.c missing the current XRT UDP bind call.
-    exit /b 1
-)
-findstr /C:"static bool xl6_net_runtime_wait_objects" build\test\stdlib_net_tcp_udp.c >nul
-if errorlevel 1 (
-    echo stdlib_net_tcp_udp.c missing bounded network shutdown wait.
-    exit /b 1
-)
-findstr /C:"xrtNetTcpConnect" build\test\stdlib_net_tcp_udp.c >nul
-if not errorlevel 1 (
-    echo stdlib_net_tcp_udp.c still contains the removed TCP compatibility API.
-    exit /b 1
-)
-findstr /C:"xrtNetUdpRecvAsync" build\test\stdlib_net_tcp_udp.c >nul
-if not errorlevel 1 (
-    echo stdlib_net_tcp_udp.c still contains the removed UDP compatibility API.
-    exit /b 1
-)
-findstr /C:"void* xl6_xrt_tcp_stream_recv_buffer" build\test\stdlib_net_tcp_udp.c >nul
-if errorlevel 1 (
-    echo stdlib_net_tcp_udp.c missing TCP binary buffer bridge.
-    exit /b 1
-)
-findstr /C:"void* xl6_xrt_udp_packet_buffer" build\test\stdlib_net_tcp_udp.c >nul
-if errorlevel 1 (
-    echo stdlib_net_tcp_udp.c missing UDP packet buffer bridge.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_tls_session_create" build\test\stdlib_net_tcp_udp.c >nul
-if not errorlevel 1 (
-    echo stdlib_net_tcp_udp.c unexpectedly contains raw TLS wrappers.
-    exit /b 1
-)
-findstr /C:"#define XL_RUNTIME_NEED_TYPED_CONTAINER 1" build\test\stdlib_net_tcp_udp.c >nul
-if not errorlevel 1 (
-    echo stdlib_net_tcp_udp.c unexpectedly enables typed containers.
-    exit /b 1
-)
-findstr /R /C:"xl6TypedArray" /C:"xl6TypedList" /C:"xl6TypedSet" /C:"xl6TypedDict" build\test\stdlib_net_tcp_udp.c >nul
-if not errorlevel 1 (
-    echo stdlib_net_tcp_udp.c unexpectedly contains typed-container helpers.
-    exit /b 1
+for %%S in (xl6_xrt_tcp_ xl6_xrt_udp_ xl6_xrt_tls_session_create) do (
+    findstr /C:"%%S" build\test\stdlib_net_tcp_udp.c >nul
+    if not errorlevel 1 (
+        echo stdlib_net_tcp_udp.c contains retired generated glue %%S.
+        exit /b 1
+    )
 )
 release\xl.exe build test\cases\stdlib_net_tcp_udp.xl -o build\test\stdlib_net_tcp_udp.exe
 if errorlevel 1 exit /b 1
@@ -247,20 +196,12 @@ release\xl.exe check test\cases\stdlib_tcp_lifecycle.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_tcp_lifecycle.xl --emit build\test\stdlib_tcp_lifecycle.c
 if errorlevel 1 exit /b 1
-findstr /C:"server = __xl_std_tcp_listen" build\test\stdlib_tcp_lifecycle.c >nul
-if errorlevel 1 (
-    echo stdlib_tcp_lifecycle.c missing direct TcpServer return binding.
-    exit /b 1
-)
-findstr /C:"client = __xl_std_tcp_connect" build\test\stdlib_tcp_lifecycle.c >nul
-if errorlevel 1 (
-    echo stdlib_tcp_lifecycle.c missing direct TcpStream return binding.
-    exit /b 1
-)
-findstr /C:"xl_class_TcpStream__close(((XL_Class_TcpStream*)xl6_class_data(client" build\test\stdlib_tcp_lifecycle.c >nul
-if errorlevel 1 (
-    echo stdlib_tcp_lifecycle.c missing graceful close call.
-    exit /b 1
+for %%S in (xl6TcpListenerCreateV1 xl6TcpStreamCreateDefaultV1 xl6TcpStreamCloseV1) do (
+    findstr /C:"%%S(" build\test\stdlib_tcp_lifecycle.c >nul
+    if errorlevel 1 (
+        echo stdlib_tcp_lifecycle.c missing resident lifecycle call %%S.
+        exit /b 1
+    )
 )
 release\xl.exe build test\cases\stdlib_tcp_lifecycle.xl -o build\test\stdlib_tcp_lifecycle.exe
 if errorlevel 1 exit /b 1
