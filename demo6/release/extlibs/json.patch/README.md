@@ -1,10 +1,10 @@
 # json.patch
 
-2026-10-25 当前 Windows 发布版复验：严格 C 边界、正常 `_value`
+2026-10-26 当前 Windows/Linux 发布版复验：严格 C 边界、正常 `_value`
 指针入口以及两份 C 范例通过；XLang 字典传入原生 `xvalue*` 后，
 `has` 对存在键返回 `false`，`get` 报路径不存在。最小复现及
 容器投影边界分析见 `demo6/dev/extlib_blockers/json_patch_typed_dict_bridge.md`。
-默认包门禁在 XLang 边界退出 1，尚未执行完整 AOT；本包不能签收
+两平台包门禁在 XLang 边界退出 1，尚未执行完整 AOT；本包不能签收
 发布级。以下旧记录描述当时的发布物与实现，不代表当前门禁通过。
 
 此包提供 JSON Pointer、JSON Patch、JSON Merge Patch 的 XRT `xvalue` 操作。

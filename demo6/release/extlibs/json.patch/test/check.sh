@@ -18,6 +18,7 @@ if [[ ! -x "$xl" ]]; then
     exit 1
 fi
 
+printf '[json.patch] C sanitizer gate\n'
 "$cc" "${flags[@]}" -c release/extlibs/json.patch/test/xrt_runtime.c \
     -o "$work/runtime.o"
 "$cc" "${flags[@]}" -c release/extlibs/json.patch/json_patch_native.c \
@@ -39,6 +40,7 @@ diff -u "$work/workflow_c.txt" "$work/workflow_direct_c.txt"
 diff -u "$work/basic_c.txt" "$work/basic_direct_c.txt"
 test "$(cat "$work/workflow_c.txt")" = 'json.patch workflow: ok'
 
+printf '[json.patch] XLang JIT gate\n'
 timeout 90s "$xl" run test/cases/extlib_json_patch.xl
 timeout 90s "$xl" run release/extlibs/json.patch/test/boundaries.xl
 timeout 90s "$xl" run release/extlibs/json.patch/test/allocations.xl
