@@ -76,6 +76,8 @@ static int semanticReadStats(xvalue* stats,const xls_semantic_check* check)
 #define SEM_READ_FIELD(field) okay=okay && put(value,#field,xrtValueInt((int64)work.field))
  SEM_READ_FIELD(contexts);SEM_READ_FIELD(contextHits);SEM_READ_FIELD(recorded);SEM_READ_FIELD(negative);
  SEM_READ_FIELD(matched);SEM_READ_FIELD(rejected);SEM_READ_FIELD(reused);SEM_READ_FIELD(bytes);
+ SEM_READ_FIELD(observations);SEM_READ_FIELD(typedComparisons);SEM_READ_FIELD(scratchReuses);SEM_READ_FIELD(scratchBytes);
+ SEM_READ_FIELD(valueBytes);
 #undef SEM_READ_FIELD
  if(okay){okay=put(stats,"semanticReads",value);value=NULL;}xrtValueRelease(value);return okay;
 }

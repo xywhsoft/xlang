@@ -44,12 +44,13 @@ def main():
                 return r
             try:
                 c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1)
-                init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.71';c.send('initialized',{})
+                init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.72';c.send('initialized',{})
                 for v in range(10):
                     text=source(helpers,v)
                     if not v:c.open(path,text,1)
                     else:c.change(path,text,v+1)
                     r=check(path,v+1);a=r['analysis'];reads=a['semanticReads'];assert r['ok']==(v!=7) and (r['count']==0)==(v!=7),r
+                    if v==0:assert reads['observations']>1000 and reads['typedComparisons']>1000 and reads['scratchReuses']>0 and 0<reads['scratchBytes']<=8*1024*1024 and 0<reads['valueBytes']<=1024*1024,reads
                     if v in [1,5,9]:assert reads['contextHits'] and reads['reused']>=helpers and reads['matched'],reads
                     if v in [2,4]:assert reads['contextHits'] and reads['rejected']>=helpers,reads
                     if v==3:assert not reads['contextHits'] and not reads['reused'],reads
