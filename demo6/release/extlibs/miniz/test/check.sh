@@ -47,6 +47,7 @@ timeout 90s ./release/xl run test/cases/extlib_miniz_progress.xl
 timeout 90s ./release/xl run release/extlibs/miniz/test/file_ops.xl
 timeout 90s ./release/xl run release/examples/extlibs/miniz.xl > "$work/full_xl.txt"
 timeout 90s ./release/xl run release/extlibs/miniz/test/allocations.xl
+timeout 90s ./release/xl run release/extlibs/miniz/test/text_transfer.xl
 timeout 90s ./release/xl run release/examples/extlibs/miniz_basic.xl > "$work/basic_xl.txt"
 diff -u "$work/basic_c.txt" "$work/basic_xl.txt"
 hex=$(/usr/bin/timeout 30s "$work/test_miniz" --emit)

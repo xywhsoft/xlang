@@ -1,5 +1,14 @@
 # miniz
 
+2026-10-25 文本解压现在返回拥有型 `cstring`，经 UTF-8 验证后
+直接接管解压缓冲，不再由 `Buffer.text()` 无条件复制。明确字节长度
+保留文本中的内嵌 NUL；C 回归验证指针身份、空结果、坏 UTF-8、
+逐点分配失败和释放恢复，XLang 专项及中央用例 JIT/AOT 均通过。
+Windows 包门禁的严格 C、zlib 互通与分配阶段通过，随后受共享
+VFS `include/xruntime_decl.h` 查找故障中断；本次不签收完整门禁。
+Linux C ASan/UBSan 与新分配回归通过；旧 `release/xl` 不识别
+`cstring`，须重建 Linux 发布物后再签收语言阶段。
+
 2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 完整通过：
 严格 GCC、C/XLang 边界与分配故障、双语范例和独立 EXE AOT。
 门禁现要求 Python 标准库 `zlib` 解开本包 GCC 现场生成的流；
@@ -23,9 +32,9 @@ assert miniz.decompressText(packed) == "hello miniz"
 文件接口的源或目标路径含 NUL 时抛 `ValueError`，不访问截断后的前缀路径。
 
 配置中的输入、输出和解压倍率上限仍有效。编码级别为 0..10，默认 6。损坏的 Adler-32、截断、尾部数据和私有旧格式均被拒绝。压缩流不提供加密认证，不应用于验证发送方身份。
-`decompress` 返回二进制安全的 `Buffer`；`decompressText` 仅用于 UTF-8
-明文，解压成功但内容含非法 UTF-8 时抛 `ValueError`。含 NUL 或任意
-二进制字节的载荷应保留为 `Buffer`，不要走文本便利入口。
+`decompress` 返回二进制安全的 `Buffer`；`decompressText` 返回 `cstring`，
+仅用于 UTF-8 文本，解压成功但内容含非法 UTF-8 时抛 `ValueError`。
+内嵌 NUL 按真实字节长度保留；任意非 UTF-8 二进制载荷仍应使用 `Buffer`。
 
 测试 `test/test_miniz.c` 覆盖 Python zlib 固定样本、分段输入、空流、损坏、截断、串联拒绝、输出限额，以及 XRT Reader/Writer 的二进制流往返和进度回调。`test/file_ops.xl` 覆盖文件往返、覆盖拒绝、取消清理和解压限额下的目标保护。Linux 使用 `bash release/extlibs/miniz/test/check.sh`，会运行 ASan/UBSan、Python zlib 反向解码和包内 XLang 文件测试；中央 XLang 用例见 `demo6/test/cases/extlib_miniz.xl`。
 Windows 在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/miniz/test/check.ps1`：同次验证严格 GCC 独立构建、Python zlib 互通、TCC C、私有成员负例、中央/文件 XLang 用例、GCC C/TCC C/XLang 范例逐字输出和完整 AOT。脚本使用每次独立的临时构建目录；`-SkipAot` 仅供聚焦快测，不作为发布签收。

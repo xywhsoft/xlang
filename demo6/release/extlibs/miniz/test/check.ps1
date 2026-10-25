@@ -97,6 +97,7 @@ try {
         'test/cases/extlib_miniz_progress.xl',
         'release/extlibs/miniz/test/file_ops.xl',
         'release/extlibs/miniz/test/allocations.xl',
+        'release/extlibs/miniz/test/text_transfer.xl',
         'release/examples/extlibs/miniz.xl'
     )) {
         $null = Run "XLang $source" $xl @('run', $source)
@@ -123,6 +124,10 @@ try {
     Write-Host '[miniz] C/XLang example parity: PASS'
 
     if (-not $SkipAot) {
+        $textTarget = Join-Path $work 'miniz_text_transfer.exe'
+        $null = Run 'XLang text transfer AOT build' $xl @('build',
+            'release/extlibs/miniz/test/text_transfer.xl', '-o', $textTarget)
+        $null = Run 'XLang text transfer AOT' $textTarget @()
         $target = Join-Path $work 'miniz_basic.exe'
         $null = Run 'XLang AOT build' $xl @('build',
             'release/examples/extlibs/miniz_basic.xl', '-o', $target)

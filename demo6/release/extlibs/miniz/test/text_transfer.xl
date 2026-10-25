@@ -1,0 +1,21 @@
+import miniz
+
+func main(...) as int
+    assert miniz.decompressText(miniz.compress("")) == ""
+    assert miniz.decompressText(miniz.compress("你好 miniz")) == "你好 miniz"
+
+    string text = miniz.decompressText(miniz.compress("A\0B你好"))
+    assert text == "A\0B你好"
+    assert string.byteLen(text) == 9
+
+    Buffer invalid = Buffer()
+    invalid.appendByte(255)
+    bool rejected = false
+    try
+        miniz.decompressText(miniz.compress(invalid))
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    return 0
+end

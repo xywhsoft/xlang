@@ -13,6 +13,9 @@
 #ifndef XRT_MODULE_PATH
 #define XRT_MODULE_PATH
 #endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
 #ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #endif
@@ -224,6 +227,41 @@ XMINIZ_EXPORT void* xminiz_decompress(void* pData, size_t iSize, unsigned long l
 		return NULL;
 	}
 	return pOutput;
+}
+
+/* 文本结果验证后移交原缓冲，避免 Buffer.text 再复制一份。 */
+XMINIZ_EXPORT void* xminiz_decompress_text(void* pData, size_t iSize,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio)
+{
+	xbuffer* pOutput = (xbuffer*)xminiz_decompress(pData, iSize, iMaxInput, iMaxOutput, iMaxRatio);
+	if ( pOutput == NULL ) { return NULL; }
+	if ( !xrtUtf8Valid((xstrview){(const char*)pOutput->Data, pOutput->Size}, NULL) ) {
+		xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.miniz", 0,
+			"miniz decompressed text is not valid UTF-8");
+		xrtBufferDestroy(pOutput);
+		return NULL;
+	}
+	if ( !xrtBufferAppendByte(pOutput, 0) ) {
+		xrtBufferDestroy(pOutput);
+		return NULL;
+	}
+	return pOutput;
+}
+
+XMINIZ_EXPORT size_t xminiz_text_size(void* pRaw)
+{
+	const xbuffer* pOutput = (const xbuffer*)pRaw;
+	return pOutput != NULL && pOutput->Size != 0u ? pOutput->Size - 1u : 0u;
+}
+
+XMINIZ_EXPORT void* xminiz_text_take(void* pRaw)
+{
+	xbuffer* pOutput = (xbuffer*)pRaw;
+	void* pText;
+	if ( pOutput == NULL ) { return NULL; }
+	pText = xrtBufferTake(pOutput, NULL, NULL);
+	xrtBufferDestroy(pOutput);
+	return pText;
 }
 
 XMINIZ_EXPORT int xminiz_compress_file(const char* sSource, const char* sDestination, int iLevel,

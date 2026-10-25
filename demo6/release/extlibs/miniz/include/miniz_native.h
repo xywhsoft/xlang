@@ -17,6 +17,10 @@ const char* xminiz_last_error(void);
 void* xminiz_compress(void* pData, size_t iSize, int iLevel, unsigned long long iMaxInput, unsigned long long iMaxOutput);
 void* xminiz_compress_str(const char* sText, size_t iSize, int iLevel, unsigned long long iMaxInput, unsigned long long iMaxOutput);
 void* xminiz_decompress(void* pData, size_t iSize, unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio);
+/* text_size 保留内嵌 NUL；text_take 移交 xrtFree 所有权。 */
+void* xminiz_decompress_text(void* pData, size_t iSize, unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio);
+size_t xminiz_text_size(void* pRaw);
+void* xminiz_text_take(void* pRaw);
 int xminiz_compress_file(const char* sSource, const char* sDestination, int iLevel, bool bOverwrite, unsigned long long iMaxInput, unsigned long long iMaxOutput, xvalue* pCallback);
 int xminiz_decompress_file(const char* sSource, const char* sDestination, bool bOverwrite, unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio, xvalue* pCallback);
 void* xminiz_compressor_create(int iLevel, unsigned long long iMaxInput, unsigned long long iMaxOutput);

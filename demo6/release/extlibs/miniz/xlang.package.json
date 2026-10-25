@@ -22,6 +22,7 @@
                                         "XRT_MODULE_FILE_TEMP",
                                         "XRT_MODULE_ERROR_FORMAT",
                                         "XRT_MODULE_PATH",
+                                        "XRT_MODULE_UNICODE",
                                         "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"
                                     ]
                  },
@@ -34,7 +35,7 @@
     "dependencies":  [
 
                      ],
-    "coverage": { "mode": "suite", "tests": ["test/file_ops.xl", "test/allocations.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/file_ops.xl", "test/allocations.xl", "test/text_transfer.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",
