@@ -1,5 +1,12 @@
 # volc.phone
 
+2026-10-25 当前发布版已越过旧 `cstring` 未知类型诊断，但
+`xl check dev/extlib_blockers/volc_phone_import_chain.xl` 仍在
+`xhttp.client` 的 `TlsStream` 构造和 `NetEngine.nativeHandle()` 成员
+解析处失败。更基础的 `xl run examples/hello.xl` 还在 ownership
+catalog 初始化失败。该包仍不能进入 XLang 运行验收；复现和影响见
+`dev/extlib_blockers/ownership_catalog_startup_20261025.md`。
+
 火山引擎云手机 ACEP 的 XLang 客户端草案，复用 `volc.core` 的签名和请求能力。当前提供请求体构造、资源/任务操作、响应查询及 `Client` / `Response` 类；`raw_spec` 和 `call_spec` 接收调用方编写的逐行声明。本包不再有原生 C 辅助函数，C 客户端能力不由此包提供。
 
 ## 当前状态
