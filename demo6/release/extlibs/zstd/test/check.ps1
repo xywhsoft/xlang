@@ -56,8 +56,14 @@ try {
     foreach ($case in @('test/cases/extlib_zstd_progress.xl',
         'release/extlibs/zstd/test/wire_fixture.xl',
         'release/extlibs/zstd/test/file_ops.xl',
-        'release/extlibs/zstd/test/concat_boundary.xl')) {
+        'release/extlibs/zstd/test/concat_boundary.xl',
+        'release/extlibs/zstd/test/error_dispatch.xl')) {
         $null = Run "XLang $case" $xl @('run', $case)
+    }
+    $teachingOutput = Run 'XLang teaching example' $xl @('run',
+        'release/examples/extlibs/zstd.xl')
+    if (-not $teachingOutput.Contains('zstd example: PASS')) {
+        throw 'zstd teaching example did not reach completion'
     }
     if ($gccOutput -cne 'zstd round trip: hello zstd' -or
         $gccOutput -cne $directOutput -or $gccOutput -cne $builtOutput -or
@@ -70,6 +76,7 @@ try {
         foreach ($case in @(
             @('wire_fixture', 'release/extlibs/zstd/test/wire_fixture.xl', ''),
             @('concat_boundary', 'release/extlibs/zstd/test/concat_boundary.xl', ''),
+            @('error_dispatch', 'release/extlibs/zstd/test/error_dispatch.xl', ''),
             @('file_ops', 'release/extlibs/zstd/test/file_ops.xl', 'zstd file operations: PASS'),
             @('progress', 'test/cases/extlib_zstd_progress.xl', '')
         )) {
@@ -79,6 +86,13 @@ try {
             if ($caseOutput -cne $case[2]) {
                 throw "unexpected XLang $($case[0]) AOT output: $caseOutput"
             }
+        }
+        $teachingExe = Join-Path $work 'zstd_teaching.exe'
+        $null = Run 'XLang teaching AOT build' $xl @('build',
+            'release/examples/extlibs/zstd.xl', '-o', $teachingExe)
+        $teachingAot = Run 'XLang teaching AOT' $teachingExe @()
+        if (-not $teachingAot.Contains('zstd example: PASS')) {
+            throw 'zstd teaching AOT did not reach completion'
         }
     }
     Write-Host 'zstd Windows package gate: PASS'

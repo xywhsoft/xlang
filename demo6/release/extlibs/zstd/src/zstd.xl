@@ -1,9 +1,10 @@
 // zstd 的压缩结果和输入统一使用 Buffer，避免二进制数据经过字符串转换。
-extern "xl6_xrt_last_error_text" func __zstd_error() as string
+extern "xl6_xrt_last_error_text" @no_raise func __zstd_error() as string
+extern "xzstd_last_error_is_memory" @no_raise func __zstd_memory_error() as bool
 extern "xzstd_version" func __zstd_version() as string
-extern "xzstd_compress" func __zstd_compress(point data, c_size size, c_int level,
+extern "xzstd_compress" @no_raise func __zstd_compress(point data, c_size size, c_int level,
     c_ulonglong maxInput, c_ulonglong maxOutput) as point
-extern "xzstd_decompress" func __zstd_decompress(point data, c_size size,
+extern "xzstd_decompress" @no_raise func __zstd_decompress(point data, c_size size,
     c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
 extern "xzstd_compress_file" func __zstd_compress_file(string source, string destination,
     c_int level, c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput,
@@ -36,6 +37,12 @@ func __zstd_check_limit(int value, string name)
     if value <= 0 then
         throw ValueError name + " must be greater than zero"
     end
+end
+
+// 原生失败由包装层分类；真正的分配失败仍保持 MemoryError。
+func __zstd_failure() as string
+    if __zstd_memory_error() then throw MemoryError __zstd_error() end
+    return __zstd_error()
 end
 
 func __zstd_file_path(string value)
@@ -77,7 +84,7 @@ export func compress(Buffer data, int level = ZSTD_DEFAULT_LEVEL,
     point result = __zstd_compress(data.data(), c_size(data.len()), c_int(level),
         c_ulonglong(maxInput), c_ulonglong(maxOutput))
     if result == null then
-        throw CompressionError __zstd_error()
+        throw CompressionError __zstd_failure()
     end
     return Buffer(result)
 end
@@ -89,7 +96,7 @@ export func compress(string text, int level = ZSTD_DEFAULT_LEVEL,
     __zstd_check_limit(maxOutput, "maxOutput")
     point result = __zstd_compress_text(text, c_int(level),
         c_ulonglong(maxInput), c_ulonglong(maxOutput))
-    if result == null then throw CompressionError __zstd_error() end
+    if result == null then throw CompressionError __zstd_failure() end
     return Buffer(result)
 end
 
@@ -104,7 +111,7 @@ export func decompress(Buffer data, int maxInput = 268435456,
     point result = __zstd_decompress(data.data(), c_size(data.len()),
         c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
     if result == null then
-        throw CompressionError __zstd_error()
+        throw CompressionError __zstd_failure()
     end
     return Buffer(result)
 end
@@ -160,10 +167,10 @@ export class ZstdCompressor
     native point handle
     extern "xzstd_compressor_create" create(c_int level, c_ulonglong maxInput, c_ulonglong maxOutput)
     extern "xzstd_compressor_destroy" destroy()
-    private extern "xzstd_compressor_update" func updateNative(point data, c_size size) as bool
-    private extern "xzstd_compressor_update_text" func updateTextNative(cstring text) as bool
-    private extern "xzstd_compressor_finish" func finishNative() as bool
-    private extern "xzstd_compressor_drain" func drainNative() as point
+    private extern "xzstd_compressor_update" @no_raise func updateNative(point data, c_size size) as bool
+    private extern "xzstd_compressor_update_text" @no_raise func updateTextNative(cstring text) as bool
+    private extern "xzstd_compressor_finish" @no_raise func finishNative() as bool
+    private extern "xzstd_compressor_drain" @no_raise func drainNative() as point
     private extern "xzstd_compressor_input_bytes" func inputBytesNative() as c_ulonglong
     private extern "xzstd_compressor_output_bytes" func outputBytesNative() as c_ulonglong
 
@@ -183,13 +190,13 @@ export class ZstdCompressor
 
     func update(Buffer data)
         if not self.updateNative(data.data(), c_size(data.len())) then
-            throw CompressionError __zstd_error()
+            throw CompressionError __zstd_failure()
         end
     end
 
     func update(string text)
         if not self.updateTextNative(text) then
-            throw CompressionError __zstd_error()
+            throw CompressionError __zstd_failure()
         end
     end
 
@@ -197,7 +204,7 @@ export class ZstdCompressor
     func drain() as Buffer
         point result = self.drainNative()
         if result == null then
-            throw CompressionError __zstd_error()
+            throw CompressionError __zstd_failure()
         end
         return Buffer(result)
     end
@@ -205,7 +212,7 @@ export class ZstdCompressor
     // 封存压缩流（写入帧尾部校验）。返回后 drain() 可取走最后的压缩字节。
     func finish() as bool
         if not self.finishNative() then
-            throw CompressionError __zstd_error()
+            throw CompressionError __zstd_failure()
         end
         return true
     end
@@ -219,9 +226,9 @@ export class ZstdDecompressor
     native point handle
     extern "xzstd_decompressor_create" create(c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio)
     extern "xzstd_decompressor_destroy" destroy()
-    private extern "xzstd_decompressor_update" func updateNative(point data, c_size size) as bool
-    private extern "xzstd_decompressor_finish" func finishNative() as bool
-    private extern "xzstd_decompressor_drain" func drainNative() as point
+    private extern "xzstd_decompressor_update" @no_raise func updateNative(point data, c_size size) as bool
+    private extern "xzstd_decompressor_finish" @no_raise func finishNative() as bool
+    private extern "xzstd_decompressor_drain" @no_raise func drainNative() as point
     private extern "xzstd_decompressor_input_bytes" func inputBytesNative() as c_ulonglong
     private extern "xzstd_decompressor_output_bytes" func outputBytesNative() as c_ulonglong
     private extern "xzstd_decompressor_finished" func finishedNative() as bool
@@ -253,7 +260,7 @@ export class ZstdDecompressor
 
     func update(Buffer data)
         if not self.updateNative(data.data(), c_size(data.len())) then
-            throw CompressionError __zstd_error()
+            throw CompressionError __zstd_failure()
         end
     end
 
@@ -261,7 +268,7 @@ export class ZstdDecompressor
     func drain() as Buffer
         point result = self.drainNative()
         if result == null then
-            throw CompressionError __zstd_error()
+            throw CompressionError __zstd_failure()
         end
         return Buffer(result)
     end
@@ -269,7 +276,7 @@ export class ZstdDecompressor
     // 校验流已完整结束；流被截断或为空时抛出 CompressionError。
     func finish() as bool
         if not self.finishNative() then
-            throw CompressionError __zstd_error()
+            throw CompressionError __zstd_failure()
         end
         return true
     end
@@ -285,7 +292,7 @@ export func compressor(int level = ZSTD_DEFAULT_LEVEL,
     ZstdCompressor result = ZstdCompressor(c_int(level),
         c_ulonglong(maxInput), c_ulonglong(maxOutput))
     if not result.valid then
-        throw CompressionError __zstd_error()
+        throw CompressionError __zstd_failure()
     end
     return result
 end
@@ -301,10 +308,10 @@ export func decompressor(int maxInput = 268435456, int maxOutput = 536870912,
     ZstdDecompressor result = ZstdDecompressor(c_ulonglong(maxInput),
         c_ulonglong(maxOutput), c_uint(maxRatio))
     if not result.valid then
-        throw CompressionError __zstd_error()
+        throw CompressionError __zstd_failure()
     end
     return result
 end
 
-extern "xzstd_compress_text" func __zstd_compress_text(cstring text, c_int level,
+extern "xzstd_compress_text" @no_raise func __zstd_compress_text(cstring text, c_int level,
     c_ulonglong maxInput, c_ulonglong maxOutput) as point

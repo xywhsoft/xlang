@@ -1,5 +1,7 @@
 #define XRT_MODULE_MEMORY_DEBUG
+#define XRT_MODULE_VALUE
 #include "../include/xrt_zstd.h"
+#include "../include/zstd_native.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -58,6 +60,15 @@ int main(void)
     CHECK(xrtZstdCompress(plain, sizeof(plain), NULL, &packed, &error));
     CHECK(scan_failures((xbytesview){plain, sizeof(plain)}, xrtBufferView(packed), false) == 0);
     CHECK(scan_failures((xbytesview){plain, sizeof(plain)}, xrtBufferView(packed), true) == 0);
+    /* 桥接错误分类只读当前线程错误，不把旧失败带入下一次调用。 */
+    CHECK(!xzstd_last_error_is_memory());
+    CHECK(xrtMemDebugFailAfter(0u));
+    CHECK(xzstd_compress(plain, sizeof(plain), 3, 0u, 0u) == NULL);
+    CHECK(xrtMemDebugFailTriggered());
+    xrtMemDebugFailClear();
+    CHECK(xzstd_last_error_is_memory());
+    xrtClearError();
+    CHECK(!xzstd_last_error_is_memory());
     xrtBufferDestroy(packed);
     puts("zstd allocation failures: PASS");
     return 0;

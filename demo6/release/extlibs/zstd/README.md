@@ -1,12 +1,23 @@
 # zstd
 
+2026-10-25：一次性和流对象的显式结果检查入口使用 `@no_raise`，
+由包层把格式/状态错误转成 `CompressionError`，分配失败仍是
+`MemoryError`。完成后再次 `update`、截断帧一次性解压及流式
+`finish` 已在包内负例中验证；完整教学范例的 JIT 和独立 EXE
+从 `release` 工作目录均运行到 `zstd example: PASS`。文件入口保留
+原生自动派发，以免吞掉进度回调自身抛出的异常；`CancelledError`
+和回调原异常复验通过。默认 Windows 包门禁的严格 C、分配故障、
+C/TCC 范例通过，但从 `demo6` 根目录运行 XLang 阶段仍受共享
+VFS `include/xruntime_decl.h` 查找问题阻断，整包发布级尚未签收。
+详见 `dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。
+
 2026-10-24 当前 Windows 发布版默认包门禁通过：严格 GCC C、TCC
 单文件、固定标准帧、串联帧、文件/进度回调和双语基础范例；
 基础、固定帧、串联、文件、进度共五条 AOT 路径均构建运行成功。
-完整教学范例虽可构建独立 EXE，但 JIT/EXE 均在截断帧负例收到
+该次完整教学范例虽可构建独立 EXE，但 JIT/EXE 均在截断帧负例收到
 `IOError`，无法由承诺的 `CompressionError` 捕获；见
 `dev/extlib_blockers/zstd_finish_error_dispatch.md`。不能把包级基础门禁
-通过当成完整 API 的发布签收。
+通过当成当时完整 API 的发布签收。
 Linux 本轮 C ASan/UBSan、文件和分配测试通过；旧 `release/xl` 在
 包导入处拒绝当前 `cstring` 声明，尚不能运行 Linux 语言门禁。
 

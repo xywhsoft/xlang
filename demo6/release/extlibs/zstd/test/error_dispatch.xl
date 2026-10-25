@@ -1,0 +1,53 @@
+import zstd
+
+func main(...) as int
+    Buffer packed = zstd.compress("abc")
+
+    // 流完成后再次写入必须由公开包装层抛出压缩异常。
+    auto decoder = zstd.decompressor()
+    decoder.update(packed)
+    decoder.finish()
+    bool rejected = false
+    try
+        decoder.update(packed)
+    catch CompressionError e
+        rejected = true
+    end
+    assert rejected
+
+    auto encoder = zstd.compressor()
+    encoder.update("abc")
+    encoder.finish()
+    rejected = false
+    try
+        encoder.update("more")
+    catch CompressionError e
+        rejected = true
+    end
+    assert rejected
+
+    // 一次性解码与流完成都不能让原生 IOError 抢先越过包装层。
+    Buffer truncated = Buffer()
+    for i in range(0, packed.len() - 1)
+        truncated.appendByte(packed[i])
+    end
+    rejected = false
+    try
+        zstd.decompress(truncated)
+    catch CompressionError e
+        rejected = true
+    end
+    assert rejected
+
+    auto incomplete = zstd.decompressor()
+    incomplete.update(truncated)
+    rejected = false
+    try
+        incomplete.finish()
+    catch CompressionError e
+        rejected = true
+    end
+    assert rejected
+
+    return 0
+end
