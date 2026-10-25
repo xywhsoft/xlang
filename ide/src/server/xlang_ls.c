@@ -716,7 +716,7 @@ static void dispatch(server* s,const xvalue* message)
   xrtValueArrayAppend(signatureTriggers,open);xrtValueArrayAppend(signatureTriggers,comma);xrtValueArrayAppend(retriggers,close);xrtValueRelease(open);xrtValueRelease(comma);xrtValueRelease(close);
   put(signature,"triggerCharacters",signatureTriggers);put(signature,"retriggerCharacters",retriggers);put(cap,"signatureHelpProvider",signature);put(scope,"signatureInputGuard",xrtValueString(sv("background-poll")));
   put(cap,"documentHighlightProvider",xrtValueBool(true));
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.58"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.59"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }

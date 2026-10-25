@@ -218,10 +218,10 @@ static int run(void)
     xlsTextRelease(docs[1].text); const char* changed="export func value() as int\n return 8\nend\n";
     docs[1].text=xlsTextCreate(changed,strlen(changed),1024,NULL); ++docs[1].revision;
     result=xlsCheckSessionCheck(session,docs,2,"entry",1,NULL,NULL,NULL,0);
-    /* The module environment survives a body-only dependency edit. This
-     * tiny value is below the memo gate; its member call is normalized by
-     * the original checker, so both still take the original function path. */
-    CHECK(result && fresh(result,docs,2) && xlsSemanticCheckWork(result).contextHits==1 && xlsSemanticCheckWork(result).functionsChecked==2); xlsSemanticCheckDestroy(result);
+    /* The tiny exported value still uses the checker. Its unchanged caller
+     * has explicit inferred-type origins and restores current facts across
+     * the dependency edit,including the original namespace normalization. */
+    CHECK(result && fresh(result,docs,2) && xlsSemanticCheckWork(result).contextHits==1 && xlsSemanticCheckWork(result).functionsChecked==1 && xlsSemanticCheckWork(result).functionsReused==1); xlsSemanticCheckDestroy(result);
     xlsCheckSessionStats(session,&stats); CHECK(stats.semanticFunctionsReused>=180 && stats.semanticContextHits>=4);
     xlsCheckSessionDestroy(session); xlsTextRelease(docs[0].text); xlsTextRelease(docs[1].text); xrtFree(path); xrtFree(dep);
     const char* initial="func main(...) as int\n return 7\nend\n",*next="func main(...) as int\n return 8\nend\n";

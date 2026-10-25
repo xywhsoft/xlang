@@ -1454,3 +1454,20 @@ inferredType／semanticDeclaredType 及其所有 child 后代标为事实类型�
 803 正常专项包括键层的深 inferred／declared 类型事实、retarget／零目标／max uint32／越界保守回退，以及真实源码的增减块／源码范围和 arena 平移、循环层级 break／continue、try-catch-finally／return、闭包／generator／泛型、后置 class／protocol／enum；完整最终 XLIR JSON 对照 fresh。保留 source／类型／符号变化、旧模型独立持有、取消和四线程验证。owner 诊断构建另覆盖相同正文 33 门和新增块 35 门的真实 XRT init／resize／reserve 失败，1447 checks，失败后当前完整 IR 与旧单元引用计数均正确。
 
 边界：这仍是当前完整语义 AST 上的原始函数 IR 片段。插入局部声明会改变后部符号编号或类型池，仍保守重建；类型事实的区域也不做推测性变换。模块依赖／清单反向归属、稳定语义身份、持久语义 IR、增量全局 pass／验证和整个模型预算仍待完成。32 MiB raw memo 与 128 KiB owner 索引仅是各自已知存储，不是 AST／IR／模型／暂存／RSS 上限。性能及实际 IDE 边界见 lsp-development.md 同阶段。
+
+
+## M7a2b26a：明确来源的推导类型（0.59）
+
+trace-v1／v2 对真实 retained 会话保留原所有判断，只记录失败位置。后续 helper 的键相同、类型／符号前后编号相同、compatible／usable／typeRoom 均成立，但 xlsSemApplyPosition 拒绝缺少文件／范围且位于编辑之后的 function 类型。这个拒绝是正确的：行列号不能证明文件归属。修复在原始构造点补足已存在的 at 节点信息，不改恢复器的保守规则。
+
+native_type_source_overlay 按明确函数定义边界给八个已传入 at 的构造器增加 xl6AstCopySource：NewNullableType、TupleTypeFromReturns、NewGenericUnaryType、FunctionTypeFromCallableParts、NewFutureCallbackType、NewGenericContainerType、OwnedSimpleType、OwnedCurrentClassType。at 的行列号仍按原赋值；source、range、tokenRange 使用共享 AST API，并由原引用计数释放。参数／返回值等子类型保留各自定义来源，不把整个类型树盖上调用文件。NULL／无来源 at 仍无来源；其他尚无明确来源的类型继续原保守重查。
+
+prepare_native_sem 除既有语义 C／类型注册表守卫外，显式审核原 AST C 摘要，记录新增 Python 生成工具的输入摘要。新生成 C 与对已接受生成 C 应用八处来源添加后的内容精确相同；类型／ABI／重载／变量／所有权／异常等原规则分支不变，AST17 头布局和全部已知缓存／资源／来源／游标／取消判断不变。没有额外常驻表、平台 API 或自建数据容器，保留未来 opaque xlc.dll 组织方式。
+
+类型 AST 的来源／范围现在有意比 0.58 完整，不能声称全部新旧 AST 元数据字节相同。验证分两层：新版本真实增量／fresh 完整 AST、索引、IR、JSON 一致；另用完全相同诊断 TU，链接已接受原生库与当前库并导入各自准确生成的语义 C，执行旧 345／新 372 检查。八构造器覆盖普通来源、游标来源、无来源及 NULL，检查原 source／child definition source、引用计数恢复和 origin 销毁后的持有。14 个真实程序的完整语言报告和完整 IR 各自 byte equality，包含闭包、异常、生成器、class／protocol／enum、别名／泛型、callable／erasure、NUL／Unicode、源码错误和导入。
+
+诊断程序使用同一工作和 executable 目录，使默认包候选相同；不删减或归一化 JSON 字段来获得相等。导入原 compiler TU 的既有警告仅在该 include 上局部处理，夹具自身仍严格检查。源码路径的 UTF-8 例子用 C 字符串构造，避开测试程序 Windows narrow argv 转码；正式 LS 的 UTF-8 JSON 来源验证及 IDE Unicode 回归保持。
+
+当前可安全恢复更多函数：IR 专项的相同区域编辑由 semantic=4 增至 16，raw IR 仍 14；独立缓存仍不要求命中数相等。body-only 依赖改动中的 tiny export 仍检查，其未改调用者现在可恢复，完整当前 AST／IR 保持原 namespace normalization。所有 active cursor 函数继续原 checker。旧未知来源的保守失败仍保留，不以同一行／同一文件名的巧合替代真实 provenance。
+
+这仍不是完整持久语义 IR。新增局部声明导致的符号／类型编号变化、未覆盖构造方式的来源、原整模块 pass／验证、模型总预算、十万行及并行／soak 仍待完成。实际 GUI 的末尾参数改动在 0.58 已能复用所有辅助函数，本阶段该路径有尾延迟回退；下一阶段应先测量事实克隆／坐标及来源处理的真实成本，不从 stdio 前部编辑收益推导 GUI 收益。完整测量见 lsp-development.md。

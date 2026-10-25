@@ -17,6 +17,7 @@ from xrt_process_tree_overlay import derive as derive_process_runtime
 from native_context_overlay import derive as derive_context_runtime
 from native_cancellation_overlay import ir_cancellation, semantic_cancellation
 from native_ir_memo_overlay import derive as derive_ir_memo
+from native_type_source_overlay import derive as derive_type_sources
 
 FRONTEND_SOURCES = (
     "src/lexer/xl6_token.c", "src/lexer/xl6_lexer_api.c", "src/lexer/xl6_lexer_gen.c",
@@ -201,6 +202,10 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     registry_sha = 'a0c37403f28d8a29ac4589e1dd78344a0d5fa2c8051ba2ead0209b9e0a228583'
     if sha(registry) != registry_sha:
         raise ValueError('shared type registry changed; audit generic identity reservation replay')
+    ast = frontend / 'src/ast/xl6_ast.c'
+    ast_sha = 'adf07bc08b6e6949fe1bb6095e373d130df205535e9e2fa1662d2cc7b4c65035'
+    if sha(ast) != ast_sha:
+        raise ValueError('shared AST source/range ownership changed; audit synthetic type origins')
     source = body.decode('utf-8').replace('\r\n', '\n')
     begin = ('    for ( i = 0; i < root->childCount; ++i ) {\n'
              '        XL6_AstNode* child = root->children[i];\n'
@@ -320,6 +325,7 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     source = source.replace(seam, helper + seam)
     compiled = output / 'frontend/xl6_sem.c'
     source = semantic_cancellation(source)
+    source = derive_type_sources(source)
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
@@ -328,7 +334,8 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         auditedSeams=len(changes)+len(conflict_changes)+len(completion_changes)+9, memoBytes=64 * 1024 * 1024,
         deferredRegistryBytes=8 * 1024 * 1024,
         overloadCandidateBytes=8 * 1024 * 1024,
-        auditedDependencies={str(registry): registry_sha})
+        syntheticTypeOrigins='eight explicit at-node constructors retain original AST source/ranges;original type rules unchanged',
+        auditedDependencies={str(registry): registry_sha, str(ast): ast_sha})
 
 
 def prepare_native_stdlib(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
@@ -595,6 +602,7 @@ def main() -> None:
     source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, ast_overlay, parser_overlay, lexer_overlay, *context_overlays]
     inputs[str(Path(__file__).with_name('native_cancellation_overlay.py').resolve())] = sha(Path(__file__).with_name('native_cancellation_overlay.py'))
     inputs[str(Path(__file__).with_name('native_ir_memo_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_memo_overlay.py'))
+    inputs[str(Path(__file__).with_name('native_type_source_overlay.py').resolve())] = sha(Path(__file__).with_name('native_type_source_overlay.py'))
     inputs[str(original_parser)] = parser_overlay['sourceSha256']
     inputs[str(original_lexer)] = lexer_overlay['sourceSha256']
     inputs.update({ast_overlay['source']:ast_overlay['sourceSha256'], ast_overlay['headerSource']:ast_overlay['headerSourceSha256'], ast_overlay['runtimeSource']:ast_overlay['runtimeSourceSha256']})

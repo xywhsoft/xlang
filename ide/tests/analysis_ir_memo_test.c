@@ -278,6 +278,7 @@ static int sessionDefault(const char* path)
              * semantic memo rechecked. Full current facts prove its key. */
             printf("session region edit:raw reused=%llu;semantic reused=%llu\n",(unsigned long long)work.reused,(unsigned long long)xlsSemanticCheckWork(result).functionsReused);
             CHECK(work.reused==14);
+            CHECK(xlsSemanticCheckWork(result).functionsReused==16);
         }
         xls_semantic_check* fresh=checked(path,text);CHECK(fresh && xlsSemanticCheckInfo(fresh).accepted);
         xls_check_ir_work independent=xlsSemanticCheckIrWork(fresh);CHECK(!independent.bytes && !independent.reused && !independent.textNodes);

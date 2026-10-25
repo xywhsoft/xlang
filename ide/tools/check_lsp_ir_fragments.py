@@ -48,7 +48,7 @@ def main():
             else:assert value['activeParameter']==1 and value['signatures'][value['activeSignature']]['label']=='choose(int left, string right) as int'
         cases.append(dict(method=method,target=index,version=version,analysis=analysis));return analysis
     try:
-        c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1);init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.58';c.send('initialized',{})
+        c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1);init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.59';c.send('initialized',{})
         original=source()
         for p in paths:c.open(p,original,1)
         a=call(0,original,1);cold=a['irFragments'];assert cold['captured']>0 and not cold['reused'] and not cold['textNodes']
@@ -61,6 +61,7 @@ def main():
         assert call(0,literal,2)['irFragments']==ir
         regions=source(2);c.change(paths[0],regions,3);region=call(0,regions,3)
         assert region['irFragments']['reused']==ir['reused'] and region['irFragments']['nodesReused']==ir['nodesReused'],region
+        assert region['semanticFunctionsReused']-edited['semanticFunctionsReused']==8,region
         assert call(1,original,1)['irFragments']==b['irFragments']
         c.change(paths[0],original,4);removed=call(0,original,4);assert removed['irFragments']['reused']==ir['reused']
         c.change(paths[0],regions,5);again=call(0,regions,5);assert again['irFragments']['reused']==ir['reused']

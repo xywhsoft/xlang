@@ -2530,3 +2530,92 @@ owner-phase-v1（索引有界但 envelope 前）在两版都保留前一完整 I
 证据为 build/lsp-next-20261022/m7a2b25a-result.json，外部 m7a2b25a-b77983c3 下 region-source-audit-v1、native-probe-v1／v2、session-probe-v1、component-v1、owner-fault-v1、protocol-qa-v1、gui-qa-v1、performance-inputs-v1、switching-performance-v1。当前证据保护核对覆盖本阶段及实际消耗的原生／GUI 编译依赖、基线、来源／日志、发布清单和上一阶段 receipt；未消耗的历史原型／重复产物保持存放，不再把其全量累积重新哈希描述成本阶段测试。
 
 继续局部声明造成的符号／类型编号变化及稳定语义身份、模块／xlp 清单依赖与反向归属、持久语义 IR、增量 pass／验证、完整适用 references／rename／tokens／重构／格式化、不完整代码恢复／静态检查、IDE 输入准备和配置、native C／resource／include／link、模型总预算、100k／并行／soak／最终发行。外部 C/compiler XRT，后续 opaque xlc.dll，无 DAP／运行态或调试态补全，发布 5241 文件未改，完整长期 goal 保持 active。
+
+
+## M7a2b26a：类型来源与相关编辑语义恢复（0.59）
+
+八个原 synthetic at-node 构造器通过既有 AST source/range 引用 API 保留实际来源，解除原本正确的“不能移动无来源坐标”拒绝。恢复规则、语义键格式／比较、上下文与类型／符号前缀、预算、游标及取消均不放宽；完整原整模块 IR pass／验证器保留。普通新旧类型规则／完整语言输出用独立 0.58 对照证明；新旧 AST 来源元数据的差异是本阶段的明确修复。
+
+1070 冻结输入、136 fresh native objects、60 正常夹具／61 PE／62 outputs／64 AST17 consumers／53 core members、319 实际 native 输入。804 IR checks（新增固定要求语义复用 16）、1064 semantic memo、2100 cursor-source、38749 signature、166 frontend cancel、812 worker cache、12995 worker fault 和 1008 个实际取消门通过。另一个 owner 诊断构建 1447 checks，原正文 33／区域改动 35 个 XRT 分配门；原输入／持有模型、源码、资源失败和四线程验证保持。
+
+type-origins-v1 为独立语义诊断 TU：八原构造器、四来源模式和生命周期，旧库 345／当前 372 checks；14 完整语言报告及 14 完整 typed IR 逐字节相同，连实际依赖候选报告也不做过滤。函数、子参数／返回类型分属调用处和定义处的来源明确区分；未知／NULL 来源不凭坐标猜测。诊断编译器 TU 没有生产注入。type-source-audit-v1 记录原 C／AST API 守卫及新 C 恰为旧 C 加八处 CopySource 的证明。
+
+中间证据保留：trace-v1 证明失效不在键／编号／预算，trace-v2 给出无来源 function 类型的调用行列；native-probe-v1 的 IR／scan 通过，但旧 semantic memo 测试仍要求导入调用者重查，实际已变为 checked1/reused1 且 fresh AST／IR 一致。修正严格计数后 native-probe-v2 通过上述核心专项。类型诊断初版仅遇导入原 TU 的 unused-but-set 警告，局部处理；之后 Windows narrow argv 的中文路径导致测试 overlay 参数无效，改用 C UTF-8 来源例子及 ASCII 参数；随后发现新旧 executable 目录不同使一个默认包 probe 路径不同，工作／exe 目录对齐后 type-origins-probe-v5 完成全部严格比较，没有忽略字段。
+
+完整 native 生产者在 component-v1。首轮 protocol-qa-v1 到 memo-types 时，旧比较假定新旧复用数相等，实际为 7→16；校准探测显示静态 16、前台补全／签名 15，原 0.58 均 7。最终 component-v2 只修正该未参与 native 编译的工具断言，改为精确更高数量；全部 native 源／头闭包及二进制 byte-identical，wire-fixture-repair-v1 记录。最终 35 套 938 场景及 18 IDE／旧 0.4 回退在 v2 完整重跑；诊断原 v1 与当前 runtime 相同，没有声称 v2 再执行 native producer。106 个 GUI 对象依实际 .d 和 10 个受影响对象的预处理 token 证明复用，35 程序保持。
+
+端到端对照包围接受的 0.58 与最终 0.59，同一夹具、两根、96／512 helper、约 3k／16k 行 BOM／CRLF／Unicode、ABBA 四进程。576 热、288 普通前部字面量编辑、96 前部 1／2 个嵌套块交替、48 首次根查询，32 命令全部通过；80 组 CPU／private／working-set 观察。计数按每次真实编辑的差值记录，避免用累计命中数假装当前工作。相关编辑仍全量 didChange，但语义事实与原始 IR 可以复用。
+
+| helper / 服务 | 普通编辑原→新实际 semantic reuse 范围 |
+|---|---:|
+| 96 / xlang/check | 48..48→96..96 |
+| 96 / textDocument/completion | 47..47→95..95 |
+| 96 / textDocument/signatureHelp | 47..47→95..95 |
+| 512 / xlang/check | 256..256→512..512 |
+| 512 / textDocument/completion | 255..255→511..511 |
+| 512 / textDocument/signatureHelp | 255..255→511..511 |
+
+完整普通路径每版每项热 48／编辑 24 样本，下面全部为 P50／P95／P99（ms）：
+
+| 路径 | 原 P50 / P95 / P99 | 新 P50 / P95 / P99 |
+|---|---:|---:|
+| 热 96/2/xlang/check | 11.452 / 12.851 / 16.149 | 11.763 / 15.484 / 16.825 |
+| 热 96/2/textDocument/completion | 0.877 / 1.130 / 1.213 | 0.876 / 1.052 / 1.142 |
+| 热 96/2/textDocument/signatureHelp | 0.631 / 0.743 / 1.037 | 0.620 / 0.724 / 0.834 |
+| 热 512/2/xlang/check | 60.847 / 73.127 / 80.738 | 64.086 / 79.102 / 79.837 |
+| 热 512/2/textDocument/completion | 1.430 / 1.580 / 1.901 | 1.470 / 1.668 / 1.676 |
+| 热 512/2/textDocument/signatureHelp | 0.796 / 0.909 / 0.949 | 0.799 / 1.009 / 1.056 |
+| 前部字面量编辑 96/xlang/check | 93.123 / 114.139 / 125.507 | 76.132 / 88.426 / 91.816 |
+| 前部字面量编辑 96/textDocument/completion | 68.660 / 83.303 / 94.554 | 54.135 / 65.247 / 68.821 |
+| 前部字面量编辑 96/textDocument/signatureHelp | 84.749 / 94.368 / 114.385 | 61.263 / 72.735 / 77.293 |
+| 前部字面量编辑 512/xlang/check | 722.931 / 789.382 / 800.861 | 607.981 / 698.507 / 812.769 |
+| 前部字面量编辑 512/textDocument/completion | 386.880 / 413.482 / 415.793 | 272.683 / 293.817 / 300.124 |
+| 前部字面量编辑 512/textDocument/signatureHelp | 491.570 / 552.131 / 556.432 | 333.882 / 356.492 / 361.887 |
+
+区域改动每规模／版 24 样本。两版均已具备上阶段 raw IR region rebinding，原始片段复用均为 95／511；本阶段改善语义恢复，不能再次宣称“IR 从 0 提至全部”：
+
+| helper | 原 P50 / P95 / P99 ms | 新 P50 / P95 / P99 ms | 原→新实际 semantic reuse 范围 |
+|---|---:|---:|---:|
+| 96 | 103.416 / 114.104 / 135.636 | 88.702 / 105.921 / 110.872 | 48..48→96..96 |
+| 512 | 833.983 / 880.800 / 946.909 | 696.336 / 868.232 / 871.118 | 256..256→512..512 |
+
+实际 IDE 320 帧／8 冷初始化观察，仍是 0 逗号／1 编辑后手动／2 精确重复／3 光标重触发，每规模／模式／版 20 帧，保持当前版本／参数／选择／焦点／Escape／磁盘不变。夹具实际编辑末尾 main 的调用参数，和上述 stdio 改首部 helper 不同；两版在 GUI 的编辑模式都已实际复用 96／512 个辅助函数，因此该路径不能享受“避免重查更多函数”的收益。显示提交测得回退，如实保留；尚未证明来源克隆／坐标／字典处理等哪部分贡献多少，后续先测量再优化。
+
+| helper / 模式 | 原提交 P50 / P95 / P99 ms | 新提交 P50 / P95 / P99 ms | 原→新最大帧 P95 ms |
+|---|---:|---:|---:|
+| 96/0 | 59.066 / 74.857 / 87.888 | 73.129 / 77.412 / 89.454 | 10.365→10.679 |
+| 96/1 | 46.282 / 78.008 / 78.413 | 59.753 / 79.768 / 105.668 | 8.401→9.828 |
+| 96/2 | 6.770 / 7.843 / 8.213 | 6.501 / 7.552 / 7.686 | 7.843→7.552 |
+| 96/3 | 7.027 / 8.406 / 9.471 | 7.380 / 10.033 / 10.551 | 8.406→10.033 |
+| 512/0 | 214.286 / 248.945 / 260.913 | 241.398 / 279.064 / 281.182 | 31.671→30.427 |
+| 512/1 | 200.583 / 233.214 / 233.500 | 214.170 / 234.552 / 234.633 | 10.090→8.982 |
+| 512/2 | 7.051 / 10.333 / 11.457 | 6.949 / 7.998 / 8.433 | 10.333→7.998 |
+| 512/3 | 7.793 / 9.158 / 9.357 | 7.508 / 11.693 / 13.009 | 9.158→11.693 |
+
+冷请求每规模／方法／版仅 4 个，以下算术均值不是稳定分位，也不含完整进程启动：
+
+| helper / 方法 | 原→新冷请求均值 ms |
+|---|---:|
+| 96 / xlang/check | 107.366→106.324 |
+| 96 / textDocument/completion | 61.563→65.764 |
+| 96 / textDocument/signatureHelp | 69.133→68.493 |
+| 512 / xlang/check | 698.151→798.552 |
+| 512 / textDocument/completion | 324.862→321.574 |
+| 512 / textDocument/signatureHelp | 384.310→377.083 |
+
+静态检查 private MiB 按每版两进程均值，两根；完整 working／peak working set、CPU、逐帧及冷 GUI 值在报告中。这是观察值，现有输入／memo／owner 预算都不是全模型或 RSS 限额：
+
+| helper / 阶段 | 原→新 private MiB |
+|---|---:|
+| 96 / after-cold-roots | 94.67→94.82 |
+| 96 / after-related-edits | 114.92→111.37 |
+| 96 / after-region-edits | 115.72→114.13 |
+| 512 / after-cold-roots | 460.38→459.92 |
+| 512 / after-related-edits | 561.92→546.15 |
+| 512 / after-region-edits | 565.75→558.39 |
+
+测量期间没有本任务构建／QA／重哈希并行，未声称排除机器其他工作。自动诊断关闭，不是物理显示、全项目／十万行／并行／soak 验收。后端相关编辑的总体收益明确，但大文件普通检查 P99、部分热路径、GUI、冷静态检查等存在回退；新增真实来源本身是正确性／增量基础，当前 checkpoint 不等于整体体验验收通过。
+
+证据 build/lsp-next-20261022/m7a2b26a-result.json、外部 m7a2b26a-ac4a3ecb 下 type-source-audit-v1、trace-v1／v2、native-probe-v1／v2、semantic-count-v1、type-origins-probe-v1..v5、component-v1／v2、wire-fixture-repair-v1、memo-types-probe-v1、owner-fault-v1、type-origins-v1、protocol-qa-v1／v2、gui-qa-v2、performance-inputs-v1、switching-performance-v1。保护本阶段和实际消耗的依赖／基线／上一 receipt／发布清单，未使用的历史产物继续保留，不重复声称全部重哈希。
+
+下一阶段优先分析末尾参数编辑时已命中的事实恢复开销，以及冷类型事实捕获。可审计每函数内只读来源／move 查找的重复成本，但尚无这部分瓶颈的测量证明，不能跳过源码／坐标／游标检查或放宽类型身份。继续完整模块／xlp 清单与反向归属、稳定符号／类型身份、持久语义 IR／增量全局 pass／验证、完整适用 LSP／静态检查／不完整代码、IDE 配置与输入准备、native C／资源、模型总预算、100k／并行／soak／最终发行。外部 C/compiler XRT、后续 opaque xlc.dll、无 DAP／调试或运行态补全；发布 5241 文件保持，完整 goal active。
