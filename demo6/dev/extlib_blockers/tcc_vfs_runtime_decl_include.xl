@@ -1,0 +1,6 @@
+import pinyin
+
+func main(...) as int
+    assert pinyin.convert("中国") == "zhong guo"
+    return 0
+end
