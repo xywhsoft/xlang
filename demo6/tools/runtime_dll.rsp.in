@@ -108,6 +108,7 @@
     src\runtime\xl6_ownership_domain_tls_server_stats.c
     src\runtime\xl6_tls_metadata_client.c
     src\runtime\xl6_tls_metadata_server.c
+    src\runtime\xl6_tls_server_request.c
 
     src\runtime\xl6_execution_tls_dial.c
     src\runtime\xl6_execution_tls_dial_common.c
