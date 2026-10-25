@@ -42,4 +42,23 @@ timeout 90s ./release/xl run release/extlibs/geohash/test/boundaries.xl
 timeout 90s ./release/xl run release/extlibs/geohash/test/allocations.xl
 timeout 90s ./release/xl run release/examples/extlibs/geohash.xl > "$work/xl.txt"
 diff -u release/extlibs/geohash/examples/geohash.expected.txt "$work/xl.txt"
+timeout 120s ./release/xl build test/cases/extlib_geohash.xl \
+    -o "$work/geohash_core_aot"
+timeout 45s "$work/geohash_core_aot" > "$work/core_aot.txt"
+test ! -s "$work/core_aot.txt"
+timeout 120s ./release/xl build release/extlibs/geohash/test/boundaries.xl \
+    -o "$work/geohash_boundaries_aot"
+timeout 45s "$work/geohash_boundaries_aot" > "$work/boundaries_aot.txt"
+printf 'geohash boundaries: PASS\n' | diff -u - "$work/boundaries_aot.txt"
+timeout 120s ./release/xl build release/extlibs/geohash/test/allocations.xl \
+    -o "$work/geohash_allocations_aot"
+timeout 45s "$work/geohash_allocations_aot"
+timeout 120s ./release/xl build release/examples/extlibs/geohash.xl \
+    -o "$work/geohash_example_xl_aot"
+timeout 45s "$work/geohash_example_xl_aot" > "$work/xl_aot.txt"
+diff -u release/extlibs/geohash/examples/geohash.expected.txt "$work/xl_aot.txt"
+timeout 120s ./release/xl build release/extlibs/geohash/examples/geohash_c.c \
+    -o "$work/geohash_example_c_aot"
+timeout 45s "$work/geohash_example_c_aot" > "$work/c_aot.txt"
+diff -u release/extlibs/geohash/examples/geohash.expected.txt "$work/c_aot.txt"
 printf 'geohash Linux C ASan/UBSan and XLang parity gate: PASS\n'

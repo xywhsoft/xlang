@@ -89,6 +89,18 @@ try {
         if ((Run 'boundaries AOT run' $boundaries @()) -cne $boundariesOutput) {
             throw 'boundaries AOT output differs from JIT'
         }
+
+        $allocations = Join-Path $work 'allocations.exe'
+        $null = Run 'allocations AOT build' $xl @('build',
+            'release/extlibs/geohash/test/allocations.xl', '-o', $allocations)
+        $null = Run 'allocations AOT run' $allocations @()
+
+        $cExample = Join-Path $work 'c_example.exe'
+        $null = Run 'C example AOT build' $xl @('build',
+            'release/extlibs/geohash/examples/geohash_c.c', '-o', $cExample)
+        if ((Run 'C example AOT run' $cExample @()) -cne $golden) {
+            throw 'C example AOT output differs from fixed golden output'
+        }
     }
     if ($SkipAot) {
         Write-Host '[geohash] Windows C/XLang quick gate: PASS (AOT skipped)'

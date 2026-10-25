@@ -1,10 +1,20 @@
 # geohash
 
+2026-10-26 发布物复验：Windows 默认 `test/check.ps1` 和 Linux 默认
+`test/check.sh` 均退出 0。两平台验证严格 C、线程、语言边界、
+分配故障、固定双语输出，以及中央用例、边界、分配和公开范例的
+独立 EXE；C 单文件范例也由 `xl build` 生成 EXE，输出与 GCC、
+XLang 范例及固定黄金文件一致。Linux C 边界与线程继续使用
+ASan/UBSan。本轮只完善门禁，算法、API 与主线未改。
+验收范围是本文所述 1..12 字符网格编码、解码和四邻格规则，
+不代表完整地理信息系统或全部编码空间的穷举证明。
+以下早期 AOT 缺符号记录均为历史状态。
+
 2026-10-25 所有权复核：`encode`、`bbox` 和四个邻居查询返回
 普通 `string`，由 `takeCstr` 直接移交 C 端 XRT 分配，不复制文本。
 先前 `cstring` 返回转为 `string` 时反而复制，现已修正；Windows 包门禁
 核对生成 C 的直接移交及 C/JIT/AOT 行为。Linux C ASan/UBSan、
-线程、XLang JIT 与双语门禁已通过，独立 AOT 待复验。
+线程、XLang JIT 与双语门禁已通过；独立 AOT 复验见上。
 
 2026-10-24 当前发布物复验：Windows 默认 `test/check.ps1` 的严格 GCC、
 C/XLang 边界、分配故障、固定黄金输出以及核心、范例、边界三项 AOT
