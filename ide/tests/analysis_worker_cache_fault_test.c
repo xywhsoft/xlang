@@ -25,6 +25,7 @@ static bool faultRequested(const xcancel* cancel)
 #define xlsWorkerCreateWithModules faultWorkerCreateWithModules
 #define xlsWorkerDestroy faultWorkerDestroy
 #define xlsWorkerLoad faultWorkerLoad
+#define xlsWorkerProjectionStore faultWorkerProjectionStore
 #define xlsWorkerSyntax faultWorkerSyntax
 #define xlsWorkerFolding faultWorkerFolding
 #define xlsWorkerCheck faultWorkerCheck

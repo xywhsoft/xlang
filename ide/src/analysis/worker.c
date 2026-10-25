@@ -2,6 +2,7 @@
 #include "analysis/worker_modules.h"
 #include "analysis/frontend_context.h"
 #include "analysis/session_state.h"
+#include "analysis/projection.h"
 #include <xrt.h>
 #include <string.h>
 #include <stdio.h>
@@ -14,6 +15,7 @@ typedef struct semantic_session {
 struct xls_worker {
     xtaskpool* pool;xls_session* session;xls_session_limits limits;
     xls_module_store* modules;
+    xls_projection_store* projections;
     semantic_session cached[32];size_t cachedCount;xls_worker_cache_limits cacheLimits;xls_worker_cache_stats cacheStats;
     xls_input_batch* history[3];
     xls_check_stats checkTotals;xls_completion_stats completionTotals;xls_signature_stats signatureTotals;
@@ -93,6 +95,7 @@ xls_worker* xlsWorkerCreateWithCache(const xls_session_limits* limits,size_t que
     xtaskpoolconfig config={.Threads=1,.QueueLimit=queueLimit ? queueLimit : 64};
     if(worker->session) worker->pool=xrtTaskPoolCreate(&config);
     if(!worker->pool) { xlsWorkerDestroy(worker); return NULL; }
+    worker->projections=xlsProjectionStoreCreate(XLS_PROJECTION_STORE_BYTES);
     return worker;
 }
 xls_worker* xlsWorkerCreate(const xls_session_limits* limits,size_t queueLimit)
@@ -104,6 +107,7 @@ void xlsWorkerDestroy(xls_worker* worker)
 {
     if(!worker) return;
     if(worker->pool) { xrtTaskPoolCancel(worker->pool); xrtTaskPoolDestroy(worker->pool); }
+    xlsProjectionStoreDestroy(worker->projections);
     xlsSessionDestroy(worker->session);
     for(size_t i=0;i<worker->cachedCount;++i)destroySemantic(&worker->cached[i]);
     for(size_t i=0;i<3;++i)xlsInputBatchDestroy(worker->history[i]);
@@ -117,6 +121,7 @@ int xlsWorkerLoad(xls_worker* worker,xls_worker_load* load)
     if(!worker || !xrtTaskPoolGet(worker->pool,&stats)) return 0;
     *load=(xls_worker_load){stats.Queued,stats.Running,stats.Submitted,stats.Completed,stats.Cancelled,stats.Rejected}; return 1;
 }
+xls_projection_store* xlsWorkerProjectionStore(xls_worker* worker){return worker ? worker->projections : NULL;}
 static xls_query* submit(xls_worker* worker,xls_context* context,const xls_analysis_document* documents,size_t count,const char* target,enum query_kind kind,size_t rangeLimit,const char* queryKey,size_t offset)
 {
     if(!worker || !documents || !count || count>worker->limits.documents ||

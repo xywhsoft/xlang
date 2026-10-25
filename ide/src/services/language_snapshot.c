@@ -630,7 +630,7 @@ analysed:
    xide_semantic_source sources[512];
    for(size_t i=0;i<graph.count;++i) { int64 kind=0; xrtValueGetInt(get(graph.items[i].report,"kind"),&kind); sources[i]=(xide_semantic_source){graph.items[i].path,graph.items[i].original,(int)kind,graph.items[i].overlay>=0 && strlen(q->snapshots[graph.items[i].overlay].text)>=3 && !memcmp(q->snapshots[graph.items[i].overlay].text,"\xef\xbb\xbf",3) ? 1 : 0}; }
 #ifdef XLS_COMPILER_XRT
-   if(nativeCheck) q->definitions=xideSemanticDefinitionsCreateTyped(xlsSemanticCheckTypedIndex(nativeCheck),sources,graph.count,e);
+   if(nativeCheck) q->definitions=xideSemanticDefinitionsAcquireTyped(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,&q->navigationProjection,&q->navigationWork,e);
    else
 #endif
    q->definitions=xideSemanticDefinitionsCreate(index,sources,graph.count,e);
@@ -733,6 +733,11 @@ analysed:
   xrtValueRelease(moduleWork);
   if(!okayStats) { xrtValueRelease(stats); goto done; }
   if(!put(result,"analysis",stats)) goto done;
+ }
+ if(nativeCheck && retainedNative(q)) {
+  xvalue* stats=get(result,"analysis"),*navigation=xrtValueObject();xls_projection_stats cached;xlsProjectionStoreStats(xlsWorkerProjectionStore(q->semanticActor),&cached);
+  int valid=stats && navigation && put(navigation,"builds",xrtValueInt(q->navigationWork.built)) && put(navigation,"cacheHits",xrtValueInt(q->navigationWork.hit)) && put(navigation,"bytes",xrtValueInt((int64)q->navigationWork.bytes)) && put(navigation,"residentBytes",xrtValueInt((int64)cached.bytes)) && put(navigation,"limit",xrtValueInt((int64)cached.limit));
+  if(!valid){xrtValueRelease(navigation);goto done;}if(!put(stats,"navigation",navigation))goto done;
  }
  if(nativeCheck && !xlsSemanticCheckValidate(nativeCheck)) { fail(e,"原生分析的输入在发布前已改变。"); goto done; }
  if(q->configuredEntry && (!put(result,"retainedEntry",xrtValueBool(retainedNative(q))) ||

@@ -261,6 +261,48 @@ xide_semantic_definitions* xideSemanticDefinitionsCreate(const xvalue* index,con
 #ifdef XLS_COMPILER_XRT
 xide_semantic_definitions* xideSemanticDefinitionsCreateTyped(const xls_semantic_index* index,const xide_semantic_source* sources,size_t count,xide_model_error* error)
 { return definitionsCreate(NULL,index,sources,count,error); }
+static size_t navigationBytes(const xide_semantic_definitions* d)
+{
+ size_t bytes=sizeof(*d)+d->sourceCount*sizeof(char*)+(d->count+1)*(sizeof(node)+2*sizeof(declaration))+d->textBytes;
+ for(size_t i=0;i<d->sourceCount;++i)bytes+=strlen(d->paths[i])+1;
+ return bytes+d->cursors.Capacity*sizeof(cursor_row)+d->references.Capacity*sizeof(reference_row);
+}
+static void destroyNavigation(void* value){xideSemanticDefinitionsDestroy(value);}
+static int navigationAppend(xstrbuf* key,const void* data,size_t bytes)
+{return key->Size<=XLS_PROJECTION_KEY_BYTES && bytes<=XLS_PROJECTION_KEY_BYTES-key->Size && xrtStrBufAppend(key,(xstrview){data,bytes});}
+/* -1: source/check mismatch;0: optional key admission declined;1: full key.
+ * Continue source validation after key allocation failure;never turn a failed
+ * cache attempt into permission to accept different source bytes/positions. */
+static int navigationKey(xls_semantic_check* check,const xide_semantic_source* sources,size_t count,xstrbuf* key,int wanted)
+{
+ xls_inputs inputs;if(!check || !sources || !count || count>512 || !xlsSemanticCheckInputs(check,&inputs) || inputs.sources!=count)return -1;
+ const uint64_t version[]={UINT64_C(0x786c734e617601),count};int okay=wanted && navigationAppend(key,version,sizeof(version));
+ for(size_t i=0;i<count;++i){
+  xls_input_source row;if(!xlsSemanticCheckSource(check,i,&row) || !row.path || !row.text || !sources[i].path || !sources[i].text || sources[i].kind!=row.kind || (sources[i].utf16Prefix!=0 && sources[i].utf16Prefix!=1) || !xidePathLexicalEqual(row.path,sources[i].path))return -1;
+  if(row.text!=sources[i].text && (strlen(sources[i].text)!=row.size || memcmp(row.text,sources[i].text,row.size)))return -1;
+  if(okay){size_t bytes=strlen(sources[i].path);uint64_t fields[]={bytes,(unsigned)sources[i].kind,(unsigned)sources[i].utf16Prefix};okay=navigationAppend(key,fields,sizeof(fields)) && navigationAppend(key,sources[i].path,bytes);}
+ }
+ return okay ? 1 : 0;
+}
+xide_semantic_definitions* xideSemanticDefinitionsAcquireTyped(xls_projection_store* cache,
+ xls_semantic_check* check,const xide_semantic_source* sources,size_t count,xls_projection** lease,xide_navigation_work* work,xide_model_error* error)
+{
+ if(lease)*lease=NULL;
+ if(work)*work=(xide_navigation_work){0};
+ xstrbuf key={0};
+ int ready=navigationKey(check,sources,count,&key,cache && lease);
+ if(ready<0){if(error){error->code=XIDE_MODEL_INVALID;snprintf(error->message,sizeof(error->message),"Native navigation sources do not match their checked owner.");}xrtStrBufFree(&key);return NULL;}
+ xls_projection* p=ready ? xlsProjectionAcquire(cache,check,key.Data,key.Size) : NULL;
+ xide_semantic_definitions* d=p ? xlsProjectionValue(p) : xideSemanticDefinitionsCreateTyped(xlsSemanticCheckTypedIndex(check),sources,count,error);
+ if(!d){xrtStrBufFree(&key);return NULL;}
+ if(work){work->built=p==NULL;work->hit=p!=NULL;work->bytes=navigationBytes(d);}
+ if(!p && ready){p=xlsProjectionCreate(check,key.Data,key.Size,d,navigationBytes(d),destroyNavigation);if(p){p=xlsProjectionPublish(cache,p);d=xlsProjectionValue(p);}}
+ if(lease)*lease=p;
+ if(work)work->bytes=navigationBytes(d);
+ xrtStrBufFree(&key);return d;
+}
+void xideSemanticDefinitionsReleaseTyped(xide_semantic_definitions* d,xls_projection* lease)
+{if(lease)xlsProjectionRelease(lease);else xideSemanticDefinitionsDestroy(d);}
 #endif
 static int comparePoint(point a,point b) { return a.line!=b.line ? (a.line>b.line)-(a.line<b.line) : (a.character>b.character)-(a.character<b.character); }
 static int contains(const span* s,int source,point p) { return s->source==source && comparePoint(s->start,p)<=0 && comparePoint(p,s->end)<0; }
