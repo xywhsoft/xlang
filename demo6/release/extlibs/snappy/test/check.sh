@@ -47,10 +47,26 @@ diff -u <(printf 'hello snappy\n') "$work/basic_c.txt"
 diff -u "$work/basic_c.txt" "$work/basic_direct.txt"
 timeout 90s ./release/xl run test/cases/extlib_snappy.xl
 timeout 90s ./release/xl run test/cases/extlib_snappy_progress.xl
-timeout 90s ./release/xl run release/extlibs/snappy/test/file_ops.xl
+timeout 90s ./release/xl run release/extlibs/snappy/test/file_ops.xl > "$work/file_ops_jit.txt"
 timeout 90s ./release/xl run release/extlibs/snappy/test/allocations.xl
 timeout 90s ./release/xl run release/extlibs/snappy/test/text_transfer.xl
 timeout 90s ./release/xl run release/examples/extlibs/snappy.xl > "$work/full_xl.txt"
 timeout 90s ./release/xl run release/examples/extlibs/snappy_basic.xl > "$work/basic_xl.txt"
 diff -u "$work/basic_c.txt" "$work/basic_xl.txt"
-printf 'snappy Linux C ASan/UBSan and XLang parity gate: PASS\n'
+printf '[snappy] XLang AOT gate\n'
+for name in central progress file_ops allocations text_transfer basic full; do
+    printf '[snappy] AOT %s\n' "$name"
+    case "$name" in
+        central) source=test/cases/extlib_snappy.xl ;;
+        progress) source=test/cases/extlib_snappy_progress.xl ;;
+        basic) source=release/examples/extlibs/snappy_basic.xl ;;
+        full) source=release/examples/extlibs/snappy.xl ;;
+        *) source="release/extlibs/snappy/test/$name.xl" ;;
+    esac
+    timeout 180s ./release/xl build "$source" -o "$work/snappy_$name"
+    timeout 90s "$work/snappy_$name" > "$work/${name}_aot.txt"
+done
+diff -u "$work/file_ops_jit.txt" "$work/file_ops_aot.txt"
+diff -u "$work/basic_c.txt" "$work/basic_aot.txt"
+diff -u "$work/full_xl.txt" "$work/full_aot.txt"
+printf 'snappy Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

@@ -150,7 +150,7 @@ release\xl.exe run release\extlibs\snappy\examples\basic.c</pre></div></div>
 
   <div class="ext-panel" id="panel-tests">
     <h2>测试覆盖</h2>
-    <p>测试文件：<code>extlibs/snappy/test/file_ops.xl</code>、<code>extlibs/snappy/test/test_snappy.c</code>，以及中央 <code>test/cases/extlib_snappy.xl</code> 和 <code>extlib_snappy_progress.xl</code>。C 接口先校验选项和资源限制结构的版本、长度与保留字段，无效选项不会消费文件流输入；资源配置只接受有效限额，串联流成员数按 <code>iMaxEntries</code> 检查。2026-10-25 Windows 默认门禁从发布目录运行语言阶段，C 边界、分配故障、XLang、双语范例及独立 EXE 均通过；Linux C ASan/UBSan、语言与双语门禁也通过。项目根目录 VFS 路径问题不属于本包修复；独立 Python Snappy 0.7.3 framed 互通已通过，Linux AOT 与长期压力尚未验收。</p>
+    <p>测试文件：<code>extlibs/snappy/test/file_ops.xl</code>、<code>extlibs/snappy/test/test_snappy.c</code>，以及中央 <code>test/cases/extlib_snappy.xl</code> 和 <code>extlib_snappy_progress.xl</code>。C 接口先校验选项和资源限制结构的版本、长度与保留字段，无效选项不会消费文件流输入；资源配置只接受有效限额，串联流成员数按 <code>iMaxEntries</code> 检查。2026-10-26 当前 Windows 默认包门禁、Python Snappy 0.7.3 framed 双向互通，以及 Linux C ASan/UBSan、语言 JIT/七条独立 EXE AOT 和双语输出对照通过。旧项目根目录 VFS 和 Linux <code>cstring</code> 阻断不再复现；32 位、TSan 与长期压力尚未验收。</p>
     <p><code>test/test_allocations.c</code> 和 <code>test/allocations.xl</code> 验证 XRT 分配失败时的空结果、释放平衡、恢复和语言层 MemoryError 分类；不覆盖上游 Snappy 内部 allocator。</p>
     <ul>
       <li>一次性二进制往返（含 NUL / 0xFF）</li>

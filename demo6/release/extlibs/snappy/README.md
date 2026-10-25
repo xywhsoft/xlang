@@ -1,21 +1,29 @@
 # snappy
 
-2026-10-25 文本返回更新：`decompressText() as cstring` 验证 UTF-8
+2026-10-26 当前发布物：Windows 默认 `test/check.ps1` 和独立
+`test/check_interop.ps1` 均退出 0；严格 C、分配故障、Python Snappy
+0.7.3 标准 framed stream 双向互通、语言 JIT/AOT 与 C/XLang 范例
+对照通过。Linux `test/check.sh` 退出 0：C ASan/UBSan、中央和包内
+语言 JIT、七条独立 EXE AOT，以及文件/基础/教学范例输出对照。
+Windows 从 `demo6` 根目录直接运行基础范例也通过。旧 Linux
+`cstring`、根目录 VFS 和 AOT 快照缺符号阻断不再复现；32 位、
+TSan、长时压力与持续模糊测试尚未验收。
+
+2026-10-25 历史记录：文本返回更新。`decompressText() as cstring` 验证 UTF-8
 后直接接管解压缓冲，省去 `Buffer.text()` 的整份复制；终止字节
 扩容时仍可能发生一次 XRT 内部复制。有效文本的内嵌 NUL 按
 实际字节长度保留；非 UTF-8 数据应使用 `decompress() as Buffer`。
 C 回归覆盖指针身份、空文本、无效 UTF-8 和逐点分配失败。
-Windows 默认包门禁含新增 JIT/AOT 用例完整通过。Linux C ASan/
-UBSan 与分配测试通过，但旧 `release/xl` 不识别 `cstring`；须重建
-Linux 发布物再签收本次完整语言门禁。下段 Linux 通过记录是本次
-返回类型调整之前的基线。
+当时 Windows 默认包门禁含新增 JIT/AOT 用例通过。Linux C ASan/
+UBSan 与分配测试通过，但旧 `release/xl` 不识别 `cstring`；当时
+尚未签收完整语言门禁。
 
-2026-10-25 复验：Windows 默认 `test/check.ps1` 完整通过，包含 C 边界、
+2026-10-25 当时复验：Windows 默认 `test/check.ps1` 完整通过，包含 C 边界、
 分配故障、中央/包内 XLang、文件与进度、三路 C/XLang 对照及独立 EXE。
-脚本在 `release` 工作目录运行语言阶段；从项目根目录直接运行当前
-`xl.exe` 仍会遇到已记录的共享 VFS 头文件路径故障，未当作包修复。
+脚本在 `release` 工作目录运行语言阶段；从项目根目录直接运行当时
+`xl.exe` 会遇到已记录的共享 VFS 头文件路径故障，未当作包修复。
 Linux `test/check.sh` 的 C ASan/UBSan、语言用例与双语输出通过；
-本轮未重建 Linux 发布物或构建 Linux 独立 EXE。
+当时未重建 Linux 发布物或构建 Linux 独立 EXE。
 
 标准 Snappy framed stream 压缩库，支持一次性、增量和文件流接口。输出的 `.sz` 可与遵循 [Google Snappy framing format](https://github.com/google/snappy/blob/main/framing_format.txt) 的工具互通；不接受旧的私有多块格式。
 
@@ -35,7 +43,7 @@ C 侧直接调用 `xrtSnappyCompress` / `xrtSnappyDecompress`，示例见 `examp
 
 framing 没有结束标记，因此末尾 chunk 不完整会报错，但在完整 chunk 边界提前结束无法检测。校验采用 masked CRC32C。数据块原文上限 64 KiB；未知可跳过 chunk 会跳过，未知不可跳过 chunk 会拒绝。
 
-测试：`test/test_snappy.c` 覆盖固定格式样本、增量输入、资源上限、校验、截断、跳过 chunk 与串联流。`test/file_ops.xl` 覆盖 UTF-8 文件往返、进度回调、覆盖拒绝、取消清理与限额失败时的既有目标保护；中央 XLang 用例在 `demo6/test/cases/extlib_snappy.xl` 和 `extlib_snappy_progress.xl`。Linux 包级门禁同次运行 C ASan/UBSan、上述语言用例与 C/XLang 基础范例逐字节对照。
+测试：`test/test_snappy.c` 覆盖固定格式样本、增量输入、资源上限、校验、截断、跳过 chunk 与串联流。`test/file_ops.xl` 覆盖 UTF-8 文件往返、进度回调、覆盖拒绝、取消清理与限额失败时的既有目标保护；中央 XLang 用例在 `demo6/test/cases/extlib_snappy.xl` 和 `extlib_snappy_progress.xl`。Linux 包级门禁同次运行 C ASan/UBSan、上述语言用例的 JIT/七条独立 EXE AOT 与 C/XLang 基础范例逐字节对照。
 Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check.ps1 -SkipAot`，同次检查严格 GCC 独立链接运行的 C 边界、TCC C 边界、私有成员负例、XLang 主用例/进度/文件操作，以及 GCC C、TCC C、XLang 三路固定输出。脚本使用每次独立的临时构建目录并清理本次产物；不加 `-SkipAot` 时还会构建和运行独立 EXE。
 
 包清单现公开 `include/` 并声明六个直接 XRT/XRuntime 模块。
@@ -44,9 +52,9 @@ Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -Fi
 Windows 严格 GCC 构建及运行通过。裁剪运行时对象为 292,981 字节，
 不是最终 `xl build` 应用体积。包内未使用的 varint 长度函数已移除。
 
-当前 `xl.exe` 的 Buffer 单字节异或仍有共享 XLIR 诊断，最小复现见
-`dev/extlib_blockers/argon2_byteat_sub.md`；本包用非法 chunk 测损坏路径，
-不把它视为主线修复。完整 AOT 仍缺 `xl6ValueDataSnapshotV1`，未签收。
+旧发布物的 Buffer 单字节异或曾有共享 XLIR 诊断，最小复现见
+`dev/extlib_blockers/argon2_byteat_sub.md`；完整 AOT 曾缺
+`xl6ValueDataSnapshotV1`。这些记录描述旧版本，不是当前门禁结果。
 
 2026-10-22 复验：中央 `extlib_snappy.xl` 已改用直接写入损坏字节，
 `xl run` 成功；Windows `check.ps1 -SkipAot` 的 C 边界、语言用例与

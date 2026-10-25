@@ -1,6 +1,8 @@
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
-$work = Join-Path $root 'build/test/snappy'
+$workParent = Join-Path $root 'build/test/snappy'
+[void][IO.Directory]::CreateDirectory($workParent)
+$work = Join-Path $workParent ('run_' + [guid]::NewGuid().ToString('N'))
 $binary = Join-Path $work 'interop.exe'
 [void][IO.Directory]::CreateDirectory($work)
 
@@ -20,7 +22,7 @@ try {
 
     $previousPythonPath = $env:PYTHONPATH
     try {
-        $oracle = Join-Path $work 'python_oracle'
+        $oracle = Join-Path $workParent 'python_oracle'
         if (Test-Path -LiteralPath (Join-Path $oracle 'snappy')) {
             $env:PYTHONPATH = $oracle + [IO.Path]::PathSeparator + $previousPythonPath
         }
@@ -31,4 +33,11 @@ try {
     }
 } finally {
     Pop-Location
+    $safeParent = [IO.Path]::GetFullPath($workParent).TrimEnd('\') + '\'
+    $safeWork = [IO.Path]::GetFullPath($work)
+    if (-not $safeWork.StartsWith($safeParent, [StringComparison]::OrdinalIgnoreCase) -or
+        -not [IO.Path]::GetFileName($safeWork).StartsWith('run_')) {
+        throw 'refusing to remove a directory outside the Snappy test root'
+    }
+    Remove-Item -LiteralPath $safeWork -Recurse -Force
 }
