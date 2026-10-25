@@ -1,0 +1,42 @@
+import gzip
+
+func main(...) as int
+    Buffer packed = gzip.compress("abc")
+    Buffer truncated = Buffer()
+    for i in range(0, packed.len() - 1)
+        truncated.appendByte(packed[i])
+    end
+
+    // 一次性和流式解码都保留原生的截断错误类别。
+    bool rejected = false
+    try
+        gzip.decompress(truncated)
+    catch IOError error
+        rejected = true
+    end
+    assert rejected
+
+    auto decoder = gzip.decompressor()
+    decoder.update(truncated)
+    rejected = false
+    try
+        decoder.finish()
+    catch IOError error
+        rejected = true
+    end
+    assert rejected
+
+    // 已完成的流不可重新写入，失败后新对象仍可正常工作。
+    auto encoder = gzip.compressor()
+    encoder.update("abc")
+    encoder.finish()
+    rejected = false
+    try
+        encoder.update("late")
+    catch RuntimeError error
+        rejected = true
+    end
+    assert rejected
+    assert gzip.decompressText(gzip.compress("again")) == "again"
+    return 0
+end

@@ -120,6 +120,11 @@ try {
         $null = Check "$name-build" $xl @('build',$case,'-o',$binary)
         $null = Check "$name-aot" $binary @()
     }
+    $errorCase = 'release/extlibs/gzip/test/error_dispatch.xl'
+    $errorBinary = Join-Path $work 'error-dispatch.exe'
+    $null = Check 'error-dispatch-jit' $xl @('run',$errorCase)
+    $null = Check 'error-dispatch-build' $xl @('build',$errorCase,'-o',$errorBinary)
+    $null = Check 'error-dispatch-aot' $errorBinary @()
     $decls = @()
     foreach ($name in @('extlib_gzip','extlib_gzip_progress')) {
         $module = Join-Path $work "$name.c"

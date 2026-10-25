@@ -12,7 +12,10 @@ input_paths() {
     find "$pkg" -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_codec_runtime.c \
         test/cases/extlib_codec_file_allocation.c tools/check_extlib_gzip.sh \
-        tools/check_extlib_gzip_interop.py release/examples/extlibs/gzip_basic.expected.txt
+        tools/check_extlib_gzip_interop.py release/xl \
+        test/cases/extlib_gzip.xl test/cases/extlib_gzip_progress.xl \
+        release/examples/extlibs/gzip_basic.xl release/examples/extlibs/gzip_basic.expected.txt \
+        release/examples/extlibs/gzip_c.c
     if [[ -n ${XRT_INCLUDE:-} ]]; then printf '%s\0' "$XRT_INCLUDE/xrt.h" "$XRT_INCLUDE/xruntime.h"; fi
 }
 mapfile -d '' inputs < <(input_paths | sort -zu)
@@ -31,7 +34,7 @@ finish_gate() {
     sha256sum "${after[@]}" > "$work/inputs.after.sha256"
     if ! diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"; then result=125; fi
     printf '%s\n' "$result" > "$work/exit-code.txt"
-    if [[ $result == 0 ]]; then printf 'Gzip Linux C ASan/UBSan and XLang file gate: PASS\n'; fi
+    if [[ $result == 0 ]]; then printf 'Gzip Linux C ASan/UBSan and XLang gate: PASS\n'; fi
     exit "$result"
 }
 trap finish_gate EXIT
@@ -70,3 +73,9 @@ diff -u "$work/central-expected.log" "$work/central-direct.log"
 "$cc" "${flags[@]}" -DNDEBUG -Itest/cases "$pkg/test/file_allocation_dll.c" "${objects[@]}" -lm -ldl -o "$work/file-allocation"
 timeout 90s "$work/file-allocation" "$work/files-$$" 2>&1 | tee "$work/file-allocation.log"
 timeout 90s ./release/xl run "$pkg/test/file_ops.xl"
+timeout 90s ./release/xl run "$pkg/test/error_dispatch.xl"
+timeout 90s ./release/xl run test/cases/extlib_gzip_progress.xl
+timeout 90s ./release/xl run release/examples/extlibs/gzip_basic.xl > "$work/basic-xl.log"
+diff -u release/examples/extlibs/gzip_basic.expected.txt "$work/basic-xl.log"
+diff -u "$work/basic.log" "$work/basic-xl.log"
+timeout 90s ./release/xl run test/cases/extlib_gzip.xl

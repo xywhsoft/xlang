@@ -9,6 +9,17 @@
 > `release/xl` 运行完整语言用例仍在第 49 行报 typed XLIR 错误；
 > Linux 完整语言门禁尚未签收，需重建 Linux 发布版再验证。
 
+2026-10-25：包内新增 `test/error_dispatch.xl`，固定截断输入在一次性与
+流式解码均抛 `IOError`，完成后写入抛 `RuntimeError`，失败后新对象仍
+可用。当前 Windows 发布版 JIT/独立 EXE 与现有 Linux 发布版 JIT 均通过。
+Windows 当前 `xl.exe` 从 `release` 目录可运行中央用例；从 `demo6` 根目录
+运行包级脚本时仍先遇到共享 VFS 头路径故障
+`include/xruntime_decl.h not found`，因此此次未重签默认 Windows 门禁。
+Linux 联合门禁现继续运行进度用例、该异常用例和 C/XLang 基础范例黄金
+输出，再运行完整中央语言用例；现有 Linux `release/xl` 在已记录的
+typed XLIR 第 49 行失败，因此门禁正确返回非零，不把前半段通过
+当作整包验收。
+
 ## xlang
 
 ```xlang
@@ -129,9 +140,10 @@ C 基础范例的压缩、解压、流式与截断检查使用显式条件和统
 ## 验证
 
 在 demo6 根目录运行 `powershell -File tools/check_extlib_gzip.ps1`，需要 GCC 与
-Python 3 在 PATH 中。Linux C 与 XLang 文件验证为 `bash tools/check_extlib_gzip.sh`。
-包内 `test/file_ops.xl` 已登记到 `coverage.tests`，覆盖 UTF-8 文件往返、进度回调、
-禁止覆盖、取消清理及解压超限时保护原目标文件。
+Python 3 在 PATH 中。Linux 联合门禁为 `bash tools/check_extlib_gzip.sh`。
+包内 `test/file_ops.xl` 和 `test/error_dispatch.xl` 已登记到 `coverage.tests`；
+前者覆盖 UTF-8 文件往返、进度回调、禁止覆盖、取消清理及解压超限时保护
+原目标文件，后者固定异常类别与失败后恢复。
 当前发布 DLL 的文件事务专项可单独运行
 `powershell -File tools/check_extlib_codec_dll_file.ps1 -Package gzip`；
 它使用 `test/support/extlib_codec_dll_host.c` 经公开 API 执行同一份 C 故障夹具。
