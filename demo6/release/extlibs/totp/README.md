@@ -1,5 +1,13 @@
 # totp
 
+2026-10-26 当前 Windows/Linux 发布物复验：默认 `test/check.ps1` 与
+`test/check.sh` 均退出 0。严格 C、Linux ASan/UBSan、RFC 向量、
+线程、时钟故障注入、语言中央/边界/分配/公开范例独立 EXE，以及
+新增 C 单文件范例 AOT 全通过；GCC、TCC、XLang 输出与固定 RFC
+预期一致。本轮只完善门禁，HMAC、API 与主线未改。验收限本文的
+HMAC-SHA1 HOTP/TOTP 合同，不包含限流、重放防护或密钥存储。
+下方共享 AOT 缺符号记录均为历史状态。
+
 2026-10-24 发布版复验：Windows 默认包门禁通过严格 C、线程、
 XLang 边界和分配故障、固定 RFC 双语输出，以及核心、公开范例、
 边界、分配故障四份独立 EXE 的 AOT 构建与执行；JIT/AOT 用例输出

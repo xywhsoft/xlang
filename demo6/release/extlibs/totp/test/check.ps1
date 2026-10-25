@@ -83,9 +83,15 @@ try {
                 throw "totp $case AOT output differs from JIT"
             }
         }
+        $cExample = Join-Path $work 'totp_c_example.exe'
+        $null = Run-Aot 'totp C example build' $xl @('build',
+            'release/extlibs/totp/examples/totp_c.c', '-o', $cExample)
+        $cAotLines = @(Run-Aot 'totp C example AOT' $cExample @())
+        Confirm-Output 'C example AOT' $cAotLines
     }
 
-    Write-Output 'totp Windows C/XLang gate: PASS'
+    Write-Output $(if ($SkipAot) { 'totp Windows C/XLang quick gate: PASS (AOT skipped)' }
+        else { 'totp Windows C/XLang/AOT gate: PASS' })
 } finally {
     Pop-Location
     if (Test-Path -LiteralPath $work -PathType Container) {

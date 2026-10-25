@@ -41,4 +41,20 @@ timeout 45s ./release/xl run release/extlibs/totp/test/allocations.xl
 timeout 45s ./release/xl run release/examples/extlibs/totp.xl \
     > "$work/xl_example.txt"
 diff -u "$work/c_example.txt" "$work/xl_example.txt"
+timeout 120s ./release/xl build test/cases/extlib_totp.xl \
+    -o "$work/totp_core_aot"
+timeout 45s "$work/totp_core_aot"
+for name in boundaries allocations; do
+    timeout 120s ./release/xl build "release/extlibs/totp/test/$name.xl" \
+        -o "$work/totp_${name}_aot"
+    timeout 45s "$work/totp_${name}_aot"
+done
+timeout 120s ./release/xl build release/examples/extlibs/totp.xl \
+    -o "$work/totp_xl_example_aot"
+timeout 45s "$work/totp_xl_example_aot" > "$work/xl_aot.txt"
+diff -u "$work/c_example.txt" "$work/xl_aot.txt"
+timeout 120s ./release/xl build release/extlibs/totp/examples/totp_c.c \
+    -o "$work/totp_c_example_aot"
+timeout 45s "$work/totp_c_example_aot" > "$work/c_aot.txt"
+diff -u "$work/c_example.txt" "$work/c_aot.txt"
 printf 'totp Linux C ASan/UBSan and XLang parity gate: PASS\n'
