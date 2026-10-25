@@ -365,6 +365,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6ForeignDataSnapshotV1",T,V,1,{V},.parameterDynamicBorrows={1}},
     {"xl6ForeignResourceCreateV1",T,V,2,{XL6_IR_C_ABI_RAW_POINTER,V},.parameterDynamicBorrows={0,1}},
     {"xl6ForeignResourcePointerV1",T,XL6_IR_C_ABI_RAW_POINTER,1,{V},.parameterDynamicBorrows={1}},
+#include "xl6_ir_xacme_bridge.inc"
     {"xl6BufferCreateV1",T,V,0,{0},.resultOwner="xl6BufferDestroyV1"},
     {"xl6BufferCreateReserveV1",T,V,1,{I},.resultOwner="xl6BufferDestroyV1"},
     {"xl6BufferAdoptV1",T,V,1,{XL6_IR_C_ABI_RAW_POINTER},.resultOwner="xl6BufferDestroyV1"},

@@ -40,6 +40,8 @@ XL6_OWNERSHIP_POLICY_GROUPS(XL6_DECLARE_POLICY)
 #undef XL6_DECLARE_POLICY
 
 typedef struct XL6_OwnershipCatalog XL6_OwnershipCatalog;
+struct XL6_OwnershipDomainV1;
+XL6_CODE_LEASE_API const struct XL6_OwnershipDomainV1* xl6OwnershipDomainXacmeV1Get(void);
 /* Independent exact-identity capability to recognize a valid native
  * transition. BUSY does not grant Count/Trace or lifecycle admission.
  * Frozen, read-only, resident, no callbacks/allocations/reference changes. */

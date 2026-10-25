@@ -61,6 +61,7 @@ struct xlir_closure;
 #include "xl6_tcp_options_abi.h"
 #include "xl6_udp_config_abi.h"
 #include "xl6_udp_abi.h"
+#include "xl6_xacme_abi.h"
 #include "xl6_udp_future_abi.h"
 #include "xl6_udp_transfer_abi.h"
 #include "xl6_native_class_result.h"
