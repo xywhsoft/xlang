@@ -1202,26 +1202,6 @@ static const XL6_StdlibParam xl6StdRuntimeStringEdgeParams[] = {
     {"c_bool", "ignoreCase"}
 };
 
-static const XL6_StdlibParam xl6StdRuntimeCryptoChacha20Params[] = {
-    {"string", "key"},
-    {"c_size", "keySize"},
-    {"string", "nonce"},
-    {"c_size", "nonceSize"},
-    {"string", "text"},
-    {"c_size", "textSize"},
-    {"c_uint", "counter"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeCryptoChacha20BytesParams[] = {
-    {"point", "key"},
-    {"c_size", "keySize"},
-    {"point", "nonce"},
-    {"c_size", "nonceSize"},
-    {"point", "data"},
-    {"c_size", "dataSize"},
-    {"c_uint", "counter"}
-};
-
 
 
 
@@ -3447,36 +3427,6 @@ static const char xl6StdCryptoFillRandomBytesBody[] =
     "    if not __xl_std_xrt_secure_fill_buffer(target.nativeHandle()) then throw RuntimeError \"secure random buffer fill failed\" end\n"
     "end\n";
 
-static const char xl6StdCryptoChaCha20EncryptBody[] =
-    "func __xl_std_crypto_chacha20_encrypt(string key, string nonce, string text, int counter = 1) as string\n"
-    "    if counter < 0 then\n"
-    "        return \"\"\n"
-    "    end\n"
-    "    c_size __xl_size_key = __xl_std_xrt_string_byte_len(key)\n"
-    "    c_size __xl_size_nonce = __xl_std_xrt_string_byte_len(nonce)\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_chacha20_encrypt_hex(key, __xl_size_key, nonce, __xl_size_nonce, text, __xl_size_text, c_uint(counter)))\n"
-    "end\n";
-
-static const char xl6StdCryptoChaCha20DecryptBody[] =
-    "func __xl_std_crypto_chacha20_decrypt(string key, string nonce, string cipherHex, int counter = 1) as string\n"
-    "    if counter < 0 then\n"
-    "        return \"\"\n"
-    "    end\n"
-    "    c_size __xl_size_key = __xl_std_xrt_string_byte_len(key)\n"
-    "    c_size __xl_size_nonce = __xl_std_xrt_string_byte_len(nonce)\n"
-    "    c_size __xl_size_cipherHex = __xl_std_xrt_string_byte_len(cipherHex)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_chacha20_decrypt_text(key, __xl_size_key, nonce, __xl_size_nonce, cipherHex, __xl_size_cipherHex, c_uint(counter)))\n"
-    "end\n";
-
-static const char xl6StdCryptoChaCha20BytesBody[] =
-    "func __xl_std_crypto_chacha20_bytes(Buffer key, Buffer nonce, Buffer data, int counter = 1) as Buffer\n"
-    "    if counter < 0 then\n"
-    "        return Buffer()\n"
-    "    end\n"
-    "    return Buffer(point(__xl_std_runtime_chacha20_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), c_uint(counter))))\n"
-    "end\n";
-
 static const char xl6StdCryptoRandomBytesBody[] =
     "func __xl_std_crypto_random_bytes(int count) as bytes\n"
     "    if count < 0 then throw RangeError \"secure random byte count is invalid\" end\n"
@@ -4019,9 +3969,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "fileReadBytes", "__xl_std_runtime_file_read_bytes", "xl6_xrt_buffer_file_read_bytes", xl6StdPathUnaryParams, 1, "point", NULL},
     {"__xl_runtime", "fileWriteBytes", "__xl_std_runtime_file_write_bytes", "xl6_xrt_buffer_file_write_bytes", xl6StdRuntimeFileWriteBytesParams, 3, "c_bool", NULL},
     {"__xl_runtime", "fileAppendBytes", "__xl_std_runtime_file_append_bytes", "xl6_xrt_buffer_file_append_bytes", xl6StdRuntimeFileWriteBytesParams, 3, "c_bool", NULL},
-    {"__xl_runtime", "chacha20EncryptHex", "__xl_std_runtime_chacha20_encrypt_hex", "xl6_xrt_chacha20_encrypt_hex", xl6StdRuntimeCryptoChacha20Params, 7, "point", NULL},
-    {"__xl_runtime", "chacha20DecryptText", "__xl_std_runtime_chacha20_decrypt_text", "xl6_xrt_chacha20_decrypt_text", xl6StdRuntimeCryptoChacha20Params, 7, "point", NULL},
-    {"__xl_runtime", "chacha20Bytes", "__xl_std_runtime_chacha20_bytes", "xl6_xrt_chacha20_bytes", xl6StdRuntimeCryptoChacha20BytesParams, 7, "point", NULL},
     {"__xl_runtime", "logDefault", "__xl_std_runtime_log_default", "xl6LogDefaultV1", NULL, 0, "point", NULL},
     {"__xl_runtime", "logReleaseDefault", "__xl_std_runtime_log_release_default", "xl6LogReleaseDefaultV1", xl6StdLogSetDefaultParams, 1, "bool", NULL},
     {"__xl_runtime", "logTextValidate", "__xl_std_runtime_log_text_validate", "xl6LogTextValidateV1", xl6StdLogTextValidateParams, 3, "bool", NULL},
@@ -4759,8 +4706,9 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"siphash", "hash64", "__xl_std_siphash64", NULL, NULL, 0, "uint64", xl6StdSipHash64BytesBody},
     {"siphash", "hash64Buffer", "__xl_std_siphash64_buffer", NULL, NULL, 0, "uint64", xl6StdSipHash64BufferBody},
     {"siphash", "hasher", "__xl_std_siphasher64", NULL, NULL, 0, "SipHasher64", xl6StdSipHasher64Body},
-    {"crypto", "chacha20Encrypt", "__xl_std_crypto_chacha20_encrypt", NULL, NULL, 0, "string", xl6StdCryptoChaCha20EncryptBody},
-    {"crypto", "chacha20Decrypt", "__xl_std_crypto_chacha20_decrypt", NULL, NULL, 0, "string", xl6StdCryptoChaCha20DecryptBody},
+    {"cryptoAdvanced", "chacha20", "__xl_std_cryptoAdvanced_chacha20", NULL, NULL, 0, "bytes", xl6StdResidentChaCha20Text},
+    {"cryptoAdvanced", "chacha20", "__xl_std_cryptoAdvanced_chacha20", NULL, NULL, 0, "bytes", xl6StdResidentChaCha20Bytes},
+    {"cryptoAdvanced", "chacha20Buffer", "__xl_std_cryptoAdvanced_chacha20Buffer", NULL, NULL, 0, "bytes", xl6StdResidentChaCha20Buffer},
     {"cryptoLegacy", "md5", "__xl_std_cryptoLegacy_md5", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoMd5TextV1},
     {"cryptoLegacy", "md5Hex", "__xl_std_cryptoLegacy_md5Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoMd5TextHexV1},
     {"cryptoLegacy", "md5", "__xl_std_cryptoLegacy_md5", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoMd5BytesV1},
@@ -4856,7 +4804,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"crypto", "randomHex", "__xl_std_crypto_random_hex", NULL, NULL, 0, "string", xl6StdCryptoRandomHexBody},
     {"crypto", "randomString", "__xl_std_crypto_random_string", NULL, NULL, 0, "string", xl6StdCryptoRandomStringBody},
     {"crypto", "fillRandomBytes", "__xl_std_crypto_fill_random_bytes", NULL, NULL, 0, "", xl6StdCryptoFillRandomBytesBody},
-    {"crypto", "chacha20Bytes", "__xl_std_crypto_chacha20_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoChaCha20BytesBody},
     {"crypto", "randomBytes", "__xl_std_crypto_random_bytes", NULL, NULL, 0, "bytes", xl6StdCryptoRandomBytesBody},
     {"crypto", "p256KeyPair", "__xl_std_crypto_p256KeyPair", NULL, NULL, 0, "P256Key", xl6StdResidentxl6CryptoP256GenerateV1},
     {"crypto", "p256PublicKey", "__xl_std_crypto_p256PublicKey", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoP256PublicFromPrivateV1},

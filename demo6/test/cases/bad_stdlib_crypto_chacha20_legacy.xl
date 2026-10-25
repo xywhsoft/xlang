@@ -1,0 +1,2 @@
+// Retired HEX/C-string bridge must fail during name resolution, not linking.
+crypto.chacha20Encrypt("0123456789abcdef0123456789abcdef", "123456789012", "abc")

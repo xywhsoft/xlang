@@ -185,6 +185,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_crypto_aes_gcm.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_CRYPTO_AES_GCM", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_crypto_aes_gcm_domain.c", D(R(OWNERSHIP_CATALOG),R(CRYPTO_AES_GCM)), {NULL}},
     {"src/runtime/xl6_crypto_chacha_aead.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_CRYPTO_CHACHA20_POLY1305", "XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_crypto_chacha20.c", D(), {"XRT_MODULE_CRYPTO_CHACHA20", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_crypto_chacha_aead_domain.c", D(R(OWNERSHIP_CATALOG),R(CRYPTO_CHACHA_AEAD)), {NULL}},
     {"src/runtime/xl6_crypto_x25519.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_CRYPTO_X25519", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_crypto_x25519_domain.c", D(R(OWNERSHIP_CATALOG),R(CRYPTO_X25519)), {NULL}},

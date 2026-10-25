@@ -2,6 +2,12 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_crypto_chacha20_source.py --root <frozen-root> --public <complete-cohort> --out <fresh-directory>`
+checks the resident raw primitive on a complete source cohort: ordinary fixed
+vectors, exact byte input, JIT/module/standalone AOT, strict C, closed IR and
+pruning. This is not shipping or security acceptance; see
+[the advanced ChaCha20 contract](../docs/crypto-chacha20-advanced.md).
+
 `build_xlir_validation_driver.ps1 [-PublicDirectory <current-complete-cohort>]`
 uses one verified full-source archive for batch and single contracts; without a
 cohort it builds the ordinary source driver first. No partial frontend source list

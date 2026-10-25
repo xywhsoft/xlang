@@ -1,4 +1,13 @@
 /* Resident, value-facing crypto declarations. Weak hashes are explicit legacy. */
+static const char xl6StdResidentChaCha20Text[] =
+    "extern \"xl6CryptoChaCha20TextV1\" @pure @nonblocking func __xl_std_cryptoAdvanced_chacha20(bytes key, bytes nonce, string data, int counter = 1, int size = -1) as bytes\n"
+    "extern \"xl6CryptoChaCha20TextSpanV1\" @pure @nonblocking func __xl_std_cryptoAdvanced_chacha20(cbytes key, cbytes nonce, string data, int counter = 1, int size = -1) as bytes\n";
+static const char xl6StdResidentChaCha20Bytes[] =
+    "extern \"xl6CryptoChaCha20BytesV1\" @pure @nonblocking func __xl_std_cryptoAdvanced_chacha20(bytes key, bytes nonce, bytes data, int counter = 1, int size = -1) as bytes\n"
+    "extern \"xl6CryptoChaCha20BytesSpanV1\" @pure @nonblocking func __xl_std_cryptoAdvanced_chacha20(cbytes key, cbytes nonce, cbytes data, int counter = 1, int size = -1) as bytes\n";
+static const char xl6StdResidentChaCha20Buffer[] =
+    "extern \"xl6CryptoChaCha20BufferV1\" @nonblocking func __xl_std_cryptoAdvanced_chacha20Buffer(bytes key, bytes nonce, Buffer data, int counter = 1, int size = -1) as bytes\n"
+    "extern \"xl6CryptoChaCha20BufferSpanV1\" @nonblocking func __xl_std_cryptoAdvanced_chacha20Buffer(cbytes key, cbytes nonce, Buffer data, int counter = 1, int size = -1) as bytes\n";
 static const char xl6StdResidentxl6CryptoMd5TextV1[] =
     "extern \"xl6CryptoMd5TextV1\" @nonblocking @pure func __xl_std_cryptoLegacy_md5(string data, int size = -1) as bytes\n";
 static const char xl6StdResidentxl6CryptoMd5TextHexV1[] =

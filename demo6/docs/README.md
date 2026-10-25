@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [显式 ChaCha20 原语](crypto-chacha20-advanced.md)：清退断链 HEX 桥接，驻留 bytes 接口、精确材料／计数器／长度合同及普通双端原生和源码验收；最终普通产品封板另行完成。
+
 - [参数化守卫与统一合同编译 cohort](contract-cohort-2026-10-26.md)：完整源码归档取代部分前端清单，37 个合同构建和三项 C-owned worker 实测；74 项总门继续。
 
 - [TLS 显式关闭与最后引用](tls-close-lifetime-2026-10-26.md)：复用 native 发送排空／协议关闭，43 原生阶段、双端 406 新普通产品阶段及 checked 退役；五组总门继续。
