@@ -30,4 +30,8 @@ timeout 120s ./release/xl build release/extlibs/cString/examples/cString.xl \
     -o "$work/cstring_example"
 timeout 45s "$work/cstring_example" > "$work/aot.txt"
 diff -u "$work/c.txt" "$work/aot.txt"
+timeout 120s ./release/xl build release/extlibs/cString/examples/cString_c.c \
+    -o "$work/cstring_c_example"
+timeout 45s "$work/cstring_c_example" > "$work/c_aot.txt"
+diff -u "$work/c.txt" "$work/c_aot.txt"
 printf 'cString Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

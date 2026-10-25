@@ -55,6 +55,13 @@ try {
             if ($aotOutput -cne $cOutput) {
                 throw 'XLang AOT cString example differs from C'
             }
+            $cExampleAot = Join-Path $work 'cString_c_example_aot.exe'
+            $null = Run 'C example build' $xl @('build',
+                'extlibs/cString/examples/cString_c.c', '-o', $cExampleAot)
+            $cAotOutput = Run 'C example AOT' $cExampleAot @()
+            if ($cAotOutput -cne $cOutput) {
+                throw 'C AOT cString example differs from GCC C'
+            }
         }
     } finally {
         Pop-Location

@@ -11,6 +11,10 @@ EXE，并将 C、JIT、AOT 范例输出逐字节比较。
 2026-10-26 当前双平台发布版门禁均退出码 0。Linux 两份独立 EXE
 包含内嵌 NUL 与 UTF-8 字节边界；包本体仍只有 CRT `strlen` 声明，
 没有增加文本复制或原生包装。
+同日新增 C 单文件范例的 Windows/Linux 独立 EXE AOT：GCC、TCC、
+C AOT 和 XLang JIT/AOT 输出一致。本包不返回拥有型 C 字符串，
+因此与 `cstring` 所有权接管无关。此结果使用现有发布版；更新后的
+工作树重建新发布版被主线能力矩阵快照校验挡住，尚待复验。
 2026-10-24 使用更新后的 Windows 发布版 `xl.exe` 复验，默认包门禁全部通过，
 包括严格 C、C/XLang 同输出、边界和带输出范例 AOT。Linux C ASan/UBSan
 及 XLang 门禁也通过。旧版 `xl6ValueDataSnapshotV1` 缺符号已解除；
