@@ -93,3 +93,9 @@ C ASan/UBSan、线程、XLang 联合门禁通过。完整带输出 AOT 的共享
 `user-at-example-com`。中央与包内 XLang 断言已同步；Windows 严格
 C/线程/双语快测和 Linux C ASan/UBSan、线程、XLang 联合门禁通过。
 完整 AOT 仍受共享 `xl6ValueDataSnapshotV1` 缺符号阻断。
+
+2026-10-25：用新发布版重跑默认 Windows 包门禁，严格 C、线程与 C
+范例通过；从 `demo6` 根目录运行中央 XLang 用例时，先遇到共享
+TCC VFS 的 `include/xruntime_decl.h` 查找错误，尚未走到 AOT。
+此前的文本快照缺符号结论不能代表当前首个失败点，详见
+`dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。本次不签收发布门禁。

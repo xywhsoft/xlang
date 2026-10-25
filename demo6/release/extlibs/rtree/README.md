@@ -20,6 +20,13 @@ C API 见 `include/rtree_native.h`。句柄由 `xrtree_destroy` 释放，`xrtree
 
 ## 范例与验证
 
+2026-10-25：同一新发布版从 `release` 工作目录运行中央 XLang
+用例通过，但从 `demo6` 根目录执行默认 Windows 包门禁时，C 查询
+oracle 与分裂回归通过，中央 XLang 用例先报共享 VFS 头文件
+`include/xruntime_decl.h` 不存在。因此本轮未进入 AOT，也不覆盖
+2026-10-24 的历史通过结果；见
+`dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。
+
 2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
 严格 C/ABI、2048 项暴力查询参照、极端矩形分裂选种、XLang 边界
 和故障注入、私有原生入口拒绝、三条范例路径固定输出，以及核心/
