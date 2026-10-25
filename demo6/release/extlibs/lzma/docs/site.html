@@ -43,6 +43,7 @@
     <div class="extlib-badges"><span class="extlib-badge">v1.0.0</span><span class="extlib-badge hot">C 混编</span><span class="extlib-badge">0 依赖</span><span class="extlib-badge">ABI 1</span></div>
     <p class="extlib-lead">基于 7-Zip SDK 的标准 .xz 编解码，提供一次性内存、分段输入和文件流式 C/XLang API。</p>
     <p>默认输出标准 XZ <code>.xz</code> 流（LZMA2 + CRC64），可与通用工具交换；解码还验证 CRC32、SHA-256、无校验、Delta 与 x86 BCJ 滤镜的外部样本。支持串联流及 4 字节对齐的零填充，拒绝不完整填充和尾随垃圾；不读取旧 <code>.lzma</code> 流。无校验流不检测内容损坏；CRC64 也不是内容认证。</p>
+    <p>2026-10-25 文本解压已通过拥有型 <code>cstring</code> 接管原解压缓冲；Windows 严格 C、标准 .xz 互通及语言 JIT/AOT 专项通过。完整 Windows 包脚本仍被项目根目录的共享 VFS 头路径问题挡住；Linux C ASan/UBSan 通过，但旧 Linux <code>release/xl</code> 不识别 <code>cstring</code>，语言阶段须待发布物重建后验收。</p>
   </div>
 
   <div class="ext-tabs" id="extTabs">
@@ -150,7 +151,7 @@ xl.exe run examples\extlibs\lzma.xl</pre></div></div>
 
   <div class="ext-panel" id="panel-tests">
     <h2>测试覆盖</h2>
-    <p>聚焦测试：当前 Windows 发布物的包级门禁运行完整中央用例 JIT/AOT、C/XLang 范例对照、严格 GCC，以及 Python 标准库的标准 .xz 双向互通；Linux 包级门禁运行包内边界/文件用例、C 侧 ASan/UBSan 和同一份 Python 互通检查。Linux 发布物仍是旧构建，完整中央用例因旧 typed XLIR 错误未签收；重建时又在主线 X509 符号链接处停止。C 入口验证选项和资源限制结构的当前完整长度、版本及零保留字段；无效选项不开始读写流。C Reader/Writer 流接口验证成功往返与进度计数；XLang 文件接口验证回调、取消、拒绝覆盖和限额失败时保留原文件。非默认校验与滤镜由独立编码器生成验证，损坏的 CRC32/CRC64/SHA-256 块校验会被拒绝；CRC32 与 SHA-256 混合串联可解码，次流损坏时不返回首流明文。</p>
+    <p>聚焦测试：Windows 当前发布物的严格 C、Python 标准库 .xz 双向互通及语言 JIT/AOT 专项通过；完整包脚本的 XLang 阶段仍受共享 VFS 头路径问题阻断。Linux C ASan/UBSan 与分配故障回归通过，现有 Linux 编译器不识别新 <code>cstring</code>，不能把 C 通过当作语言验收。C 入口验证选项和资源限制结构的当前完整长度、版本及零保留字段；无效选项不开始读写流。C Reader/Writer 流接口验证成功往返与进度计数；XLang 文件接口验证回调、取消、拒绝覆盖和限额失败时保留原文件。非默认校验与滤镜由独立编码器生成验证，损坏的 CRC32/CRC64/SHA-256 块校验会被拒绝；CRC32 与 SHA-256 混合串联可解码，次流损坏时不返回首流明文。</p>
     <ul>
       <li>一次性二进制往返（含 NUL / 0xFF）</li>
       <li>流式往返 + members 计数 + finished</li>

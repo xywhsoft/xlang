@@ -32,6 +32,7 @@
     <p><a href="../extlibs.html">扩展库</a> / csv</p>
     <div class="extlib-title-row"><h1>csv</h1><span class="extlib-cat-badge">数据格式</span></div>
     <p class="extlib-lead">基于 XRT 的 UTF-8 CSV/TSV 读写。按行处理大文件，按表头读写字典，显式提交文件输出。</p>
+    <p>2026-10-24 当前 Windows 发布版的 C 测试及 Python CSV 互通通过，但完整 XLang 门禁在 <code>array&lt;array&lt;string&gt;&gt;.append(array[...])</code> 处遇到共享运行时 <code>TypeError</code>，尚未进入本包 AOT 验收。最小复现和修复方向见包内 README；下方较早的通过记录不能替代当前发布签收。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="quickstart">
     <h2 id="quickstart">内存表格</h2>
