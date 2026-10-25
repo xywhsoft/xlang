@@ -4,7 +4,7 @@
 
 本期动态补全指基于当前未保存、不完整代码、作用域、接收对象类型及流分析实时查询候选。性能优先于扩展功能数量；协议能力仅在实现与验收完成后声明。
 
-2026-10-26 当前最新切片 M7a2b36a，开发服务 0.69：重复静态检查复用当前保留模型的不可变导航表，完整当前源码／发布证明保持。68 原生、40 套 1,044 协议、18 IDE 回归及完整独立对照通过。正常 0.68／0.69 ABBA 的 512 helper 样本：精确重复静态检查 P50／P95／P99 为 95.731 / 114.737 / 115.939→3.918 / 5.759 / 5.797 ms；无关文件开关后的静态检查为 97.910 / 181.691 / 184.711→5.009 / 97.208 / 108.010 ms。真实局部编辑后三方法总序列为 1242.254 / 1458.454 / 1471.757→1134.610 / 1389.090 / 1401.084 ms，全局函数增删为 2315.072 / 3086.318 / 3559.571→2197.774 / 2675.971 / 2726.222 ms。只对这些路径和规模作结论；完整 IDE、十万行和持续输入的速度目标仍未验收。 长期任务 active，发布目录未改。
+2026-10-26 当前最新切片 M7a2b37a，开发服务 0.70：检查后的声明／类型接口拥有独立版本，并接入真实 IR 依赖；完整源码及原语义／IR／发布证明保持。69 原生、41 套 1,056 协议、18 IDE 和完整独立对照通过。本阶段尚未跳过整模块语义分析。正常 0.69／0.70 ABBA 的 512 helper 样本：精确重复静态检查 P50／P95／P99 为 3.949 / 5.531 / 5.883→4.201 / 5.106 / 5.372 ms；无关文件开关后的静态检查为 6.464 / 79.185 / 82.780→6.561 / 96.300 / 103.800 ms。真实局部编辑后三方法总序列为 915.886 / 1259.080 / 1316.387→1077.934 / 1353.263 / 1368.287 ms，全局函数增删为 2010.066 / 2215.176 / 2249.031→1907.860 / 2290.226 / 2458.519 ms。只对这些路径和规模作结论；完整 IDE、十万行和持续输入的速度目标仍未验收。 长期任务 active，发布目录未改。
 
 ## 架构与复用
 
@@ -4061,3 +4061,210 @@ payload 独立拥有全部事实／字符串／坐标／查询索引，不借用
 全部观察到的 P95 回退（含 CPU）保留：dependency-editSequenceSummary:96/ms P95 208.839→222.631 ms；dependency-editSequenceSummary:96/nativeCpuMs P95 203.125→218.750 ms；topologySummary:96/textDocument/completion/ms P95 46.961→49.571 ms；topologySummary:96/textDocument/signatureHelp/ms P95 50.918→54.159 ms；topologySummary:96/textDocument/signatureHelp/nativeCpuMs P95 46.875→62.500 ms；topologySummary:512/textDocument/completion/ms P95 43.064→47.397 ms；topologySummary:512/textDocument/signatureHelp/ms P95 41.103→41.653 ms；editSummary:96/xlang/check/ms P95 123.367→133.547 ms；editSummary:96/textDocument/signatureHelp/ms P95 45.528→46.137 ms；coldSummary:96/textDocument/completion/ms P95 51.220→53.624 ms；coldSummary:96/textDocument/signatureHelp/ms P95 49.145→50.921 ms；coldSummary:96/textDocument/signatureHelp/nativeCpuMs P95 46.875→62.500 ms；coldSummary:512/xlang/check/ms P95 870.139→981.459 ms；coldSummary:512/xlang/check/nativeCpuMs P95 875.000→984.375 ms；coldSummary:512/textDocument/completion/ms P95 320.139→388.409 ms；coldSummary:512/textDocument/completion/nativeCpuMs P95 328.125→359.375 ms；coldSummary:512/textDocument/signatureHelp/ms P95 304.505→305.465 ms；coldSummary:512/textDocument/signatureHelp/nativeCpuMs P95 265.625→296.875 ms；hotSummary:512/textDocument/signatureHelp/nativeCpuMs P95 0.000→15.625 ms；GUI 96/1/renderSubmittedMs P95 53.465→62.132 ms；GUI 96/2/renderSubmittedMs P95 9.060→9.950 ms；GUI 96/2/maxFrameMs P95 9.060→9.950 ms；GUI 96/3/renderSubmittedMs P95 10.518→11.366 ms；GUI 96/3/maxFrameMs P95 10.518→11.366 ms；GUI 512/0/renderSubmittedMs P95 319.794→326.491 ms；GUI 512/0/guiCpuMs P95 171.875→203.125 ms；GUI 512/2/renderSubmittedMs P95 9.916→10.624 ms；GUI 512/2/maxFrameMs P95 9.916→10.624 ms；GUI 512/3/renderSubmittedMs P95 10.323→11.428 ms；GUI 512/3/maxFrameMs P95 10.323→11.428 ms。
 
 证据 build/lsp-next-20261022/m7a2b36a-result.json；外部 m7a2b36a-a7d681f8／component-v1。发布 5,241 文件未改。长期任务 active：继续持久模块 typed state／语义事实版本和 read set、依赖传播及真实编辑成本减少，全工程引用／rename／tokens／actions／format、静态检查／补全恢复、IDE 配置、整体预算与十万行／并行／soak／最终交付。保持外部 C/compiler-XRT、未来 opaque xlc.dll；无 DAP／运行态补全。
+
+
+## M7a2b37a：检查后的声明接口版本与真实 IR 依赖（0.70）
+
+0.70 为检查后的声明接口增加独立版本，值／类型两个编号域分别管理；复用现有 C/compiler-XRT entity registry，以完整 store／module／context、声明身份和完整二进制 typed header 建立不可变记录。内容恢复时可恢复原版本 token；它不是编辑版本或当前源权威。完整键比较建立相等，不靠名称／摘要／恰好相同的数字。
+
+接口描述包含 kind／flags／text、显式长度的 decoded literal（保留 NUL）、已证明的当前符号／类型／目标／复合操作符身份、ABI、call／lvalue／ownership／exit、完整 inferred／declared type 子树和 header children。未知／生成 ID 保持原生精确值。仅 callable 的 BLOCK 正文、坐标、文档和执行区域编号排除；成员声明、默认参数和类型 header 保留。它不是完整函数体事实版本，也不覆盖全部语义 read set、负向查找或传递依赖。现有 declaration key 在部分 header／类型布局变化时本身也会改变，不能声称所有类型 UID 对布局变化保持稳定。
+
+编译器只对重载组第一个 NAME 写入组绑定，后续重载可能 NAME IDs 都是 0。适配层在同一原编译器词法 parent 和完整展开名称中枚举候选，以已经证明且不歧义的实际组绑定为锚；全部重载各贡献一个 typed header。此处只枚举声明集合，不按名字伪造任何引用绑定。冲突或不可证明的组保守不给版本。
+
+真实 raw IR unit 的 global operand 字典改为不可变的 declaration／interface-version 二元组；含读、写和编码 operand 的保守依赖，可按函数查询复制值。恢复时已证明的当前接口版本不同就拒绝旧片段，记录缺失则继续原完整归一化 AST、类型池前缀和实际当前 binding 证明。没有移除任何原 source report／overlay／磁盘／导入候选／包环境／配置 epoch／当前发布规则，原编译器及全部最终 IR passes／verifier 保持。版本表由 view 独立拥有，registry 复制完整 header，无 AST／报告／旧结果借用；IR memo 保留原 namespace。共享 unit 最初记录的版本 0 在后续 view 重新开启版本时仍为 0，直到该 unit 自身重建；禁止修改共享数据来改写其来源。
+
+默认暂存 key／record admission 为 8 MiB，单次有界 key 构造、map／分配器元数据另计；每 key 使用原 64 KiB 上限。完整版本键共享原 64 MiB／262,144 记录 registry，Stats.entities 现在包含 declaration identity 和 interface version 两类带标签记录。view 的版本数组仍计入原 16 MiB，IR global 二元组按实际 16 字节计入原 32 MiB；暂存、传递所有者和整个 RSS 不属于这些局部额度。禁用／容量或分配拒绝返回可选版本 0，原语言诊断和原完整证明回退保持。analysis.entityInterfaces 仅报告本次保留 check 的 symbols／types／bytes／declined；不是新的标准 capability，也不改变 IDE 的源码守卫。
+
+最终 component-v2 同一冻结完整编译 151 对象，69 原生夹具／70 PE／71 outputs／59 core members／73 AST17 消费者、349 原生实际依赖、1,110 输入；初次 v1 完整构建／QA／测量后，将查询中的接口计数遍历移到构建阶段，使 getter 为 O(1)；最终 v2 全部重编译和验收后 C 未改。v1 产品、首轮性能和文档草稿独立保留。八个生成编译器主体，以及原 semantic／check-session／语法和工作者正文保持；check.c 仅增加只读依赖 API。106 GUI 对象按实际 .d 和 13 份预处理 token 等价证明复用，35 程序。41 协议套件 1,056 场景、18 实际 IDE／旧服务回退与启动全部通过。
+
+新增 364 原生检查验证完整接口、重载／默认参数／成员／函数体／坐标／全局编号移动，0／1 字节／嵌套禁用，配置 domain，关闭原所有者后的四读者，以及实际 IR 依赖。改变未选重载的默认参数后，版本路径 checked 8／reused 0，对照的版本禁用路径 checked 3／reused 5；两者完整 fresh AST／native index JSON／IR 一致，直接证明真实消费者执行了拒绝与原完整证明回退。它增加的是接口依赖约束，不意味着减少整模块语义检查。既有 143 IR entity、15,734 binding、12,651 storage／26 分配门、13,047 worker fault／1,012 门，以及 39 projection／135 payload 全释放、22,982 navigation 对照继续通过。
+
+12 个新增真实 wire 场景覆盖磁盘／已打开入口、精确复用、函数体与重载默认参数修改、语义错误及恢复，校验当前版本／context／接口快照和导航 guard。96／512 helper 的 48 轮完整独立 AST、native index 全字段／canonical／范围、输入报告及 IR 对照通过；另在相同路径的独立 0.69／0.70 进程比较 24 个冷热／无变化／拓扑／局部／全局当前代次的 96 份完整定义／悬停／高亮／大纲 JSON。大档候选必须实际产生非零接口版本，不能以可选容量回退冒充该能力验收。
+
+原型中发现并保留的失败记录：错误假设存在 IndexJson API 与 cleanup 缩进，已按真实借用 Index API 修复；导入函数实际使用编译器展开名称；第一个 IR caller 因原类型前缀变化不能捕获，测试加入明确前置函数后验证后续目标，不放宽原条件；后续重载 NAME 为 0 的实际反例促成完整候选收集修复；类型布局可能同时改变原 type UID，及重新开启版本后复用的不可变 unit 仍保留旧 0，均按实际语义断言。最终 selective v15 的 364 专项和三组旧夹具通过，完整 producer 独立再验证。一次辅助 scaling C probe 用了不存在的 xbytes／错误 FileReadAll 签名，仅编译失败，不能作为验收；实际完整大档 oracle／wire／基准另行证明捕获。
+
+M35 曾误执行旧准备脚本覆盖一份 M34 preflight JSON，其历史例外继续由父 receipt 保留。本轮所有旧 helper／产物只读，未执行旧脚本、改写旧 receipt 或伪造原字节，不宣称全部历史元数据原样；新资源 helper 只输出。
+
+正常 0.69／0.70 ABBA 的 512 helper 样本：精确重复静态检查 P50／P95／P99 为 3.949 / 5.531 / 5.883→4.201 / 5.106 / 5.372 ms；无关文件开关后的静态检查为 6.464 / 79.185 / 82.780→6.561 / 96.300 / 103.800 ms。真实局部编辑后三方法总序列为 915.886 / 1259.080 / 1316.387→1077.934 / 1353.263 / 1368.287 ms，全局函数增删为 2010.066 / 2215.176 / 2249.031→1907.860 / 2290.226 / 2458.519 ms。只对这些路径和规模作结论；完整 IDE、十万行和持续输入的速度目标仍未验收。
+
+正常未插桩 0.69／0.70 ABBA：288 topology／288 局部编辑／288 全局函数增删／288 精确热／24 冷方法样本、288 三方法序列、40 CPU／内存组、320 实际 GUI 帧与 8 冷 GUI。两版均已具有外部声明 IR 和精确导航投影；候选每个 check 必须实际记录接口版本，同时保留原 nav hit／rebuild、真实增量和当前 source／版本／配置断言。计时期间没有自己的构建／QA／重哈希，不宣称独占机器；系统内存观察在请求计时之后，最小观察提交余量 8464.336 MiB。GUI 是原单文件签名帧控制，不代表本轮多模块导航显示或完整 IDE 性能。新增版本会有捕获／存储与保守失效成本，以下全部量化结果与回退一并保留，不能把建立接口层当作整体提速。
+
+### topologySequenceSummary（P50／P95／P99，ms）
+
+| helper／方法／成本 | 0.69 | 0.70 |
+|---|---:|---:|
+| 96/ms | 8.716 / 170.232 / 182.893 | 8.905 / 167.014 / 191.755 |
+| 96/nativeCpuMs | 15.625 / 156.250 / 187.500 | 15.625 / 171.875 / 187.500 |
+| 512/ms | 11.139 / 162.315 / 167.501 | 12.452 / 190.739 / 198.617 |
+| 512/nativeCpuMs | 15.625 / 156.250 / 171.875 | 15.625 / 187.500 / 203.125 |
+
+### dependency-editSequenceSummary（P50／P95／P99，ms）
+
+| helper／方法／成本 | 0.69 | 0.70 |
+|---|---:|---:|
+| 96/ms | 166.408 / 229.356 / 234.415 | 166.736 / 181.501 / 182.213 |
+| 96/nativeCpuMs | 171.875 / 218.750 / 218.750 | 156.250 / 187.500 / 187.500 |
+| 512/ms | 915.886 / 1259.080 / 1316.387 | 1077.934 / 1353.263 / 1368.287 |
+| 512/nativeCpuMs | 906.250 / 1234.375 / 1250.000 | 1078.125 / 1296.875 / 1343.750 |
+
+### global-declarationSequenceSummary（P50／P95／P99，ms）
+
+| helper／方法／成本 | 0.69 | 0.70 |
+|---|---:|---:|
+| 96/ms | 315.105 / 364.968 / 410.424 | 312.310 / 397.500 / 397.524 |
+| 96/nativeCpuMs | 312.500 / 375.000 / 390.625 | 296.875 / 375.000 / 406.250 |
+| 512/ms | 2010.066 / 2215.176 / 2249.031 | 1907.860 / 2290.226 / 2458.519 |
+| 512/nativeCpuMs | 2000.000 / 2156.250 / 2250.000 | 1906.250 / 2296.875 / 2406.250 |
+
+### topologySummary（P50／P95／P99，ms）
+
+| helper／方法／成本 | 0.69 | 0.70 |
+|---|---:|---:|
+| 96/xlang/check/ms | 4.394 / 83.465 / 93.443 | 3.362 / 82.838 / 89.614 |
+| 96/xlang/check/nativeCpuMs | 0.000 / 78.125 / 93.750 | 0.000 / 78.125 / 78.125 |
+| 96/textDocument/completion/ms | 2.172 / 42.075 / 46.900 | 2.139 / 43.321 / 51.837 |
+| 96/textDocument/completion/nativeCpuMs | 0.000 / 46.875 / 46.875 | 0.000 / 46.875 / 62.500 |
+| 96/textDocument/signatureHelp/ms | 2.208 / 40.922 / 52.332 | 2.159 / 46.481 / 48.415 |
+| 96/textDocument/signatureHelp/nativeCpuMs | 0.000 / 46.875 / 46.875 | 0.000 / 46.875 / 46.875 |
+| 512/xlang/check/ms | 6.464 / 79.185 / 82.780 | 6.561 / 96.300 / 103.800 |
+| 512/xlang/check/nativeCpuMs | 15.625 / 93.750 / 93.750 | 15.625 / 93.750 / 109.375 |
+| 512/textDocument/completion/ms | 2.606 / 40.128 / 42.003 | 2.821 / 47.016 / 55.374 |
+| 512/textDocument/completion/nativeCpuMs | 0.000 / 31.250 / 31.250 | 0.000 / 46.875 / 46.875 |
+| 512/textDocument/signatureHelp/ms | 2.101 / 41.224 / 44.843 | 2.684 / 48.662 / 53.145 |
+| 512/textDocument/signatureHelp/nativeCpuMs | 0.000 / 46.875 / 46.875 | 0.000 / 46.875 / 62.500 |
+
+### editSummary（P50／P95／P99，ms）
+
+| helper／方法／成本 | 0.69 | 0.70 |
+|---|---:|---:|
+| 96/xlang/check/ms | 97.672 / 124.736 / 150.463 | 97.816 / 109.308 / 111.255 |
+| 96/xlang/check/nativeCpuMs | 93.750 / 125.000 / 140.625 | 93.750 / 109.375 / 109.375 |
+| 96/textDocument/completion/ms | 32.493 / 46.842 / 51.459 | 31.768 / 45.238 / 45.453 |
+| 96/textDocument/completion/nativeCpuMs | 31.250 / 46.875 / 46.875 | 31.250 / 46.875 / 46.875 |
+| 96/textDocument/signatureHelp/ms | 34.321 / 42.062 / 52.154 | 33.346 / 43.941 / 46.650 |
+| 96/textDocument/signatureHelp/nativeCpuMs | 31.250 / 46.875 / 46.875 | 31.250 / 46.875 / 46.875 |
+| 512/xlang/check/ms | 573.135 / 742.499 / 760.385 | 658.183 / 809.371 / 810.890 |
+| 512/xlang/check/nativeCpuMs | 578.125 / 750.000 / 750.000 | 656.250 / 796.875 / 812.500 |
+| 512/textDocument/completion/ms | 169.994 / 242.321 / 258.415 | 197.801 / 298.799 / 305.978 |
+| 512/textDocument/completion/nativeCpuMs | 171.875 / 250.000 / 250.000 | 187.500 / 296.875 / 312.500 |
+| 512/textDocument/signatureHelp/ms | 168.835 / 320.245 / 411.970 | 198.527 / 279.218 / 318.638 |
+| 512/textDocument/signatureHelp/nativeCpuMs | 171.875 / 328.125 / 343.750 | 187.500 / 281.250 / 281.250 |
+
+### globalSummary（P50／P95／P99，ms）
+
+| helper／方法／成本 | 0.69 | 0.70 |
+|---|---:|---:|
+| 96/xlang/check/ms | 173.242 / 214.507 / 214.823 | 172.023 / 212.976 / 267.634 |
+| 96/xlang/check/nativeCpuMs | 171.875 / 218.750 / 250.000 | 171.875 / 218.750 / 281.250 |
+| 96/textDocument/completion/ms | 69.269 / 91.440 / 107.457 | 68.048 / 79.617 / 90.598 |
+| 96/textDocument/completion/nativeCpuMs | 62.500 / 93.750 / 93.750 | 62.500 / 78.125 / 78.125 |
+| 96/textDocument/signatureHelp/ms | 68.926 / 87.027 / 98.950 | 68.626 / 84.104 / 104.712 |
+| 96/textDocument/signatureHelp/nativeCpuMs | 62.500 / 93.750 / 93.750 | 62.500 / 78.125 / 78.125 |
+| 512/xlang/check/ms | 1137.703 / 1283.449 / 1341.598 | 1096.975 / 1358.594 / 1451.492 |
+| 512/xlang/check/nativeCpuMs | 1140.625 / 1265.625 / 1281.250 | 1093.750 / 1328.125 / 1406.250 |
+| 512/textDocument/completion/ms | 422.590 / 517.140 / 535.582 | 402.192 / 492.418 / 507.502 |
+| 512/textDocument/completion/nativeCpuMs | 406.250 / 515.625 / 546.875 | 406.250 / 500.000 / 500.000 |
+| 512/textDocument/signatureHelp/ms | 425.185 / 495.270 / 519.219 | 405.915 / 506.752 / 514.194 |
+| 512/textDocument/signatureHelp/nativeCpuMs | 421.875 / 500.000 / 515.625 | 406.250 / 500.000 / 500.000 |
+
+### coldSummary（P50／P95／P99，ms）
+
+| helper／方法／成本 | 0.69 | 0.70 |
+|---|---:|---:|
+| 96/xlang/check/ms | 138.103 / 147.176 / 147.176 | 129.593 / 203.915 / 203.915 |
+| 96/xlang/check/nativeCpuMs | 140.625 / 156.250 / 156.250 | 125.000 / 203.125 / 203.125 |
+| 96/textDocument/completion/ms | 41.346 / 41.369 / 41.369 | 41.456 / 46.853 / 46.853 |
+| 96/textDocument/completion/nativeCpuMs | 31.250 / 46.875 / 46.875 | 46.875 / 46.875 / 46.875 |
+| 96/textDocument/signatureHelp/ms | 40.500 / 45.911 / 45.911 | 41.210 / 41.641 / 41.641 |
+| 96/textDocument/signatureHelp/nativeCpuMs | 31.250 / 46.875 / 46.875 | 31.250 / 46.875 / 46.875 |
+| 512/xlang/check/ms | 809.435 / 816.051 / 816.051 | 837.394 / 999.959 / 999.959 |
+| 512/xlang/check/nativeCpuMs | 812.500 / 812.500 / 812.500 | 812.500 / 984.375 / 984.375 |
+| 512/textDocument/completion/ms | 231.403 / 257.135 / 257.135 | 232.247 / 303.696 / 303.696 |
+| 512/textDocument/completion/nativeCpuMs | 234.375 / 250.000 / 250.000 | 234.375 / 296.875 / 296.875 |
+| 512/textDocument/signatureHelp/ms | 225.317 / 278.484 / 278.484 | 239.833 / 303.978 / 303.978 |
+| 512/textDocument/signatureHelp/nativeCpuMs | 218.750 / 265.625 / 265.625 | 250.000 / 296.875 / 296.875 |
+
+### hotSummary（P50／P95／P99，ms）
+
+| helper／方法／成本 | 0.69 | 0.70 |
+|---|---:|---:|
+| 96/xlang/check/ms | 3.561 / 5.222 / 5.488 | 2.357 / 2.856 / 2.927 |
+| 96/xlang/check/nativeCpuMs | 0.000 / 15.625 / 15.625 | 0.000 / 15.625 / 15.625 |
+| 96/textDocument/completion/ms | 2.615 / 5.150 / 6.178 | 1.994 / 2.413 / 2.937 |
+| 96/textDocument/completion/nativeCpuMs | 0.000 / 15.625 / 15.625 | 0.000 / 15.625 / 15.625 |
+| 96/textDocument/signatureHelp/ms | 2.514 / 4.513 / 4.847 | 1.965 / 2.334 / 3.184 |
+| 96/textDocument/signatureHelp/nativeCpuMs | 0.000 / 15.625 / 15.625 | 0.000 / 15.625 / 15.625 |
+| 512/xlang/check/ms | 3.949 / 5.531 / 5.883 | 4.201 / 5.106 / 5.372 |
+| 512/xlang/check/nativeCpuMs | 0.000 / 15.625 / 15.625 | 0.000 / 15.625 / 15.625 |
+| 512/textDocument/completion/ms | 2.349 / 3.260 / 3.492 | 2.387 / 3.345 / 3.377 |
+| 512/textDocument/completion/nativeCpuMs | 0.000 / 15.625 / 15.625 | 0.000 / 15.625 / 15.625 |
+| 512/textDocument/signatureHelp/ms | 2.326 / 3.199 / 4.518 | 2.374 / 3.084 / 3.178 |
+| 512/textDocument/signatureHelp/nativeCpuMs | 0.000 / 15.625 / 15.625 | 0.000 / 15.625 / 15.625 |
+
+### 实际 GUI 帧成本（P50／P95／P99，ms）
+
+| helper／mode／成本 | 0.69 | 0.70 |
+|---|---:|---:|
+| 96/0/renderSubmittedMs | 62.774 / 65.590 / 66.493 | 60.266 / 64.568 / 64.673 |
+| 96/0/maxFrameMs | 12.332 / 13.409 / 13.486 | 11.314 / 13.840 / 15.070 |
+| 96/0/guiCpuMs | 31.250 / 125.000 / 140.625 | 15.625 / 62.500 / 109.375 |
+| 96/1/renderSubmittedMs | 50.303 / 64.990 / 69.344 | 51.611 / 67.948 / 68.049 |
+| 96/1/maxFrameMs | 8.889 / 11.650 / 12.093 | 9.151 / 10.854 / 12.812 |
+| 96/1/guiCpuMs | 31.250 / 78.125 / 78.125 | 15.625 / 78.125 / 93.750 |
+| 96/2/renderSubmittedMs | 6.931 / 9.942 / 10.700 | 8.476 / 11.199 / 11.241 |
+| 96/2/maxFrameMs | 6.931 / 9.942 / 10.700 | 8.476 / 11.199 / 11.241 |
+| 96/2/guiCpuMs | 0.000 / 46.875 / 62.500 | 15.625 / 62.500 / 62.500 |
+| 96/3/renderSubmittedMs | 8.151 / 10.971 / 11.315 | 9.304 / 11.517 / 13.812 |
+| 96/3/maxFrameMs | 8.151 / 10.971 / 11.315 | 9.304 / 11.517 / 13.812 |
+| 96/3/guiCpuMs | 0.000 / 46.875 / 62.500 | 0.000 / 31.250 / 46.875 |
+| 512/0/renderSubmittedMs | 239.701 / 279.139 / 286.427 | 226.849 / 260.152 / 266.069 |
+| 512/0/maxFrameMs | 30.649 / 37.173 / 39.985 | 28.087 / 32.399 / 33.820 |
+| 512/0/guiCpuMs | 109.375 / 171.875 / 203.125 | 109.375 / 140.625 / 140.625 |
+| 512/1/renderSubmittedMs | 215.708 / 257.996 / 281.959 | 181.748 / 279.097 / 279.861 |
+| 512/1/maxFrameMs | 8.873 / 11.358 / 15.179 | 8.793 / 11.317 / 12.574 |
+| 512/1/guiCpuMs | 93.750 / 156.250 / 187.500 | 78.125 / 156.250 / 171.875 |
+| 512/2/renderSubmittedMs | 7.559 / 9.641 / 14.521 | 6.974 / 8.874 / 12.650 |
+| 512/2/maxFrameMs | 7.559 / 9.641 / 14.521 | 6.974 / 8.874 / 12.650 |
+| 512/2/guiCpuMs | 15.625 / 31.250 / 46.875 | 0.000 / 31.250 / 31.250 |
+| 512/3/renderSubmittedMs | 7.469 / 9.637 / 10.187 | 8.305 / 10.223 / 11.465 |
+| 512/3/maxFrameMs | 7.469 / 9.637 / 10.187 | 8.305 / 10.223 / 11.465 |
+| 512/3/guiCpuMs | 15.625 / 46.875 / 62.500 | 15.625 / 62.500 / 78.125 |
+
+### 服务内存观察均值（MiB）
+
+| helper／阶段／成本 | 0.69 | 0.70 |
+|---|---:|---:|
+| 96/cold/PrivateUsage | 93.707 | 94.523 |
+| 96/cold/WorkingSetSize | 92.412 | 93.346 |
+| 96/cold/PeakWorkingSetSize | 92.416 | 93.350 |
+| 96/topology/PrivateUsage | 94.430 | 95.311 |
+| 96/topology/WorkingSetSize | 94.738 | 95.695 |
+| 96/topology/PeakWorkingSetSize | 94.746 | 95.701 |
+| 96/edits/PrivateUsage | 132.777 | 133.943 |
+| 96/edits/WorkingSetSize | 128.996 | 130.295 |
+| 96/edits/PeakWorkingSetSize | 145.443 | 147.131 |
+| 96/hot/PrivateUsage | 132.855 | 133.984 |
+| 96/hot/WorkingSetSize | 129.000 | 130.330 |
+| 96/hot/PeakWorkingSetSize | 145.443 | 147.131 |
+| 96/globals/PrivateUsage | 135.816 | 137.744 |
+| 96/globals/WorkingSetSize | 136.516 | 138.496 |
+| 96/globals/PeakWorkingSetSize | 149.945 | 150.984 |
+| 512/cold/PrivateUsage | 465.752 | 470.174 |
+| 512/cold/WorkingSetSize | 441.582 | 445.932 |
+| 512/cold/PeakWorkingSetSize | 441.586 | 445.936 |
+| 512/topology/PrivateUsage | 466.732 | 471.166 |
+| 512/topology/WorkingSetSize | 442.471 | 446.941 |
+| 512/topology/PeakWorkingSetSize | 442.477 | 446.951 |
+| 512/edits/PrivateUsage | 655.393 | 662.916 |
+| 512/edits/WorkingSetSize | 627.910 | 634.988 |
+| 512/edits/PeakWorkingSetSize | 702.322 | 705.547 |
+| 512/hot/PrivateUsage | 655.404 | 662.922 |
+| 512/hot/WorkingSetSize | 627.922 | 634.994 |
+| 512/hot/PeakWorkingSetSize | 702.322 | 705.547 |
+| 512/globals/PrivateUsage | 668.100 | 676.248 |
+| 512/globals/WorkingSetSize | 642.410 | 650.451 |
+| 512/globals/PeakWorkingSetSize | 708.145 | 716.717 |
+
+全部观察到的 P95 回退（含 CPU）保留：topologySequenceSummary:96/nativeCpuMs P95 156.250→171.875 ms；topologySequenceSummary:512/ms P95 162.315→190.739 ms；topologySequenceSummary:512/nativeCpuMs P95 156.250→187.500 ms；dependency-editSequenceSummary:512/ms P95 1259.080→1353.263 ms；dependency-editSequenceSummary:512/nativeCpuMs P95 1234.375→1296.875 ms；global-declarationSequenceSummary:96/ms P95 364.968→397.500 ms；global-declarationSequenceSummary:512/ms P95 2215.176→2290.226 ms；global-declarationSequenceSummary:512/nativeCpuMs P95 2156.250→2296.875 ms；topologySummary:96/textDocument/completion/ms P95 42.075→43.321 ms；topologySummary:96/textDocument/signatureHelp/ms P95 40.922→46.481 ms；topologySummary:512/xlang/check/ms P95 79.185→96.300 ms；topologySummary:512/textDocument/completion/ms P95 40.128→47.016 ms；topologySummary:512/textDocument/completion/nativeCpuMs P95 31.250→46.875 ms；topologySummary:512/textDocument/signatureHelp/ms P95 41.224→48.662 ms；editSummary:96/textDocument/signatureHelp/ms P95 42.062→43.941 ms；editSummary:512/xlang/check/ms P95 742.499→809.371 ms；editSummary:512/xlang/check/nativeCpuMs P95 750.000→796.875 ms；editSummary:512/textDocument/completion/ms P95 242.321→298.799 ms；editSummary:512/textDocument/completion/nativeCpuMs P95 250.000→296.875 ms；globalSummary:512/xlang/check/ms P95 1283.449→1358.594 ms；globalSummary:512/xlang/check/nativeCpuMs P95 1265.625→1328.125 ms；globalSummary:512/textDocument/signatureHelp/ms P95 495.270→506.752 ms；coldSummary:96/xlang/check/ms P95 147.176→203.915 ms；coldSummary:96/xlang/check/nativeCpuMs P95 156.250→203.125 ms；coldSummary:96/textDocument/completion/ms P95 41.369→46.853 ms；coldSummary:512/xlang/check/ms P95 816.051→999.959 ms；coldSummary:512/xlang/check/nativeCpuMs P95 812.500→984.375 ms；coldSummary:512/textDocument/completion/ms P95 257.135→303.696 ms；coldSummary:512/textDocument/completion/nativeCpuMs P95 250.000→296.875 ms；coldSummary:512/textDocument/signatureHelp/ms P95 278.484→303.978 ms；coldSummary:512/textDocument/signatureHelp/nativeCpuMs P95 265.625→296.875 ms；hotSummary:512/textDocument/completion/ms P95 3.260→3.345 ms；GUI 96/0/maxFrameMs P95 13.409→13.840 ms；GUI 96/1/renderSubmittedMs P95 64.990→67.948 ms；GUI 96/2/renderSubmittedMs P95 9.942→11.199 ms；GUI 96/2/maxFrameMs P95 9.942→11.199 ms；GUI 96/2/guiCpuMs P95 46.875→62.500 ms；GUI 96/3/renderSubmittedMs P95 10.971→11.517 ms；GUI 96/3/maxFrameMs P95 10.971→11.517 ms；GUI 512/1/renderSubmittedMs P95 257.996→279.097 ms；GUI 512/3/renderSubmittedMs P95 9.637→10.223 ms；GUI 512/3/maxFrameMs P95 9.637→10.223 ms；GUI 512/3/guiCpuMs P95 46.875→62.500 ms。
+
+证据 build/lsp-next-20261022/m7a2b37a-result.json；外部 m7a2b37a-9fc3c1a0／component-v2。发布 5,241 文件未改，长期任务 active。接下来仍需真正持久模块 typed state、完整语义依赖／负向查找 read set、在原规则上减少真实编辑的语义／类型恢复／索引／IR／verifier 成本，以及全工程引用／rename／tokens／actions／format、静态检查／补全恢复、IDE 输入配置、全模型预算、十万行／并行／soak／最终发行。继续外部 C/compiler-XRT、未来 opaque xlc.dll，无 DAP／运行态补全。

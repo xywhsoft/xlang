@@ -15,6 +15,7 @@
 #include "analysis/semantic.h"
 #include "analysis/check.h"
 #include "analysis/check_ir.h"
+#include "analysis/index_entities.h"
 #include "protocol/signature_help.h"
 #include "analysis/frontend_internal.h"
 static int nativeCancelled(void* user);
@@ -68,6 +69,13 @@ static int irFragmentStats(xvalue* stats,xls_check_ir_work work)
  IR_FRAGMENT_FIELD(bytes);IR_FRAGMENT_FIELD(declined);IR_FRAGMENT_FIELD(textNodes);IR_FRAGMENT_FIELD(textBytes);IR_FRAGMENT_FIELD(ownerBytes);
 #undef IR_FRAGMENT_FIELD
  if(okay){okay=put(stats,"irFragments",value);value=NULL;}xrtValueRelease(value);return okay;
+}
+static int entityInterfaceStats(xvalue* stats,const xls_semantic_check* check)
+{
+ xls_entity_version_info info=xlsEntityViewVersions(xlsSemanticIndexEntities(xlsSemanticCheckTypedIndex(check)));xvalue* value=xrtValueObject();
+ int okay=value && put(value,"symbols",xrtValueInt((int64)info.symbols)) && put(value,"types",xrtValueInt((int64)info.types)) &&
+  put(value,"bytes",xrtValueInt((int64)info.bytes)) && put(value,"declined",xrtValueInt((int64)info.declined));
+ if(okay){okay=put(stats,"entityInterfaces",value);value=NULL;}xrtValueRelease(value);return okay;
 }
 static xls_semantic_check* retainedCheck(xide_language_check* q,xide_model_error* e)
 {
@@ -718,7 +726,7 @@ analysed:
    put(stats,"semanticFunctionsChecked",xrtValueInt((int64)q->semanticStats.semanticFunctionsChecked)) &&
    put(stats,"semanticFunctionsReused",xrtValueInt((int64)q->semanticStats.semanticFunctionsReused)) &&
    put(stats,"semanticContextHits",xrtValueInt((int64)q->semanticStats.semanticContextHits)) &&
-   put(stats,"semanticMemoBytes",xrtValueInt((int64)q->semanticStats.semanticMemoBytes)) && sessionCacheStats(stats,q) && memoTypeStats(stats,xlsSemanticCheckMemoTypes(nativeCheck)) && irFragmentStats(stats,xlsSemanticCheckIrWork(nativeCheck));
+   put(stats,"semanticMemoBytes",xrtValueInt((int64)q->semanticStats.semanticMemoBytes)) && sessionCacheStats(stats,q) && memoTypeStats(stats,xlsSemanticCheckMemoTypes(nativeCheck)) && irFragmentStats(stats,xlsSemanticCheckIrWork(nativeCheck)) && entityInterfaceStats(stats,nativeCheck);
   xvalue* entryWork=xrtValueObject();
   okayStats=okayStats && entryWork && put(entryWork,"parsed",xrtValueInt((int64)q->entryParseWork.parsed)) &&
    put(entryWork,"reused",xrtValueInt((int64)q->entryParseWork.reused)) && put(entryWork,"declined",xrtValueInt((int64)q->entryParseWork.declined)) &&

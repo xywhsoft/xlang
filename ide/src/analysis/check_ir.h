@@ -9,4 +9,7 @@ typedef struct xls_check_ir_work {
     uint64_t textNodes,textBytes,ownerBytes;
 } xls_check_ir_work;
 xls_check_ir_work xlsSemanticCheckIrWork(const xls_semantic_check* result);
+typedef struct xls_check_ir_dependency {uint64_t declaration,version;} xls_check_ir_dependency;
+size_t xlsSemanticCheckIrDependencies(const xls_semantic_check* result,uint64_t function);
+int xlsSemanticCheckIrDependency(const xls_semantic_check* result,uint64_t function,size_t at,xls_check_ir_dependency* out);
 #endif

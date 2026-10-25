@@ -1,6 +1,6 @@
 # LSP 常驻分析核心
 
-2026-10-26 当前最新切片 M7a2b36a，开发服务 0.69：重复静态检查复用当前保留模型的不可变导航表，完整当前源码／发布证明保持。68 原生、40 套 1,044 协议、18 IDE 回归及完整独立对照通过。正常 0.68／0.69 ABBA 的 512 helper 样本：精确重复静态检查 P50／P95／P99 为 95.731 / 114.737 / 115.939→3.918 / 5.759 / 5.797 ms；无关文件开关后的静态检查为 97.910 / 181.691 / 184.711→5.009 / 97.208 / 108.010 ms。真实局部编辑后三方法总序列为 1242.254 / 1458.454 / 1471.757→1134.610 / 1389.090 / 1401.084 ms，全局函数增删为 2315.072 / 3086.318 / 3559.571→2197.774 / 2675.971 / 2726.222 ms。只对这些路径和规模作结论；完整 IDE、十万行和持续输入的速度目标仍未验收。 长期任务 active，发布目录未改。
+2026-10-26 当前最新切片 M7a2b37a，开发服务 0.70：检查后的声明／类型接口拥有独立版本，并接入真实 IR 依赖；完整源码及原语义／IR／发布证明保持。69 原生、41 套 1,056 协议、18 IDE 和完整独立对照通过。本阶段尚未跳过整模块语义分析。正常 0.69／0.70 ABBA 的 512 helper 样本：精确重复静态检查 P50／P95／P99 为 3.949 / 5.531 / 5.883→4.201 / 5.106 / 5.372 ms；无关文件开关后的静态检查为 6.464 / 79.185 / 82.780→6.561 / 96.300 / 103.800 ms。真实局部编辑后三方法总序列为 915.886 / 1259.080 / 1316.387→1077.934 / 1353.263 / 1368.287 ms，全局函数增删为 2010.066 / 2215.176 / 2249.031→1907.860 / 2290.226 / 2458.519 ms。只对这些路径和规模作结论；完整 IDE、十万行和持续输入的速度目标仍未验收。 长期任务 active，发布目录未改。
 
 M3a／M3b 已实现独立 C 分析会话、XRT 后台工作线程和外部 `xlang-ls.exe` 的运行时接入；首个常驻协议查询为结构化折叠范围。M3c 开始接入共享语义前端，当前发布目录保持原版本。没有向 `xlc.dll` 添加新代码，也没有新增 DAP 或运行态补全。
 
@@ -1709,3 +1709,28 @@ payload 独立拥有全部事实／字符串／坐标／查询索引，不借用
 上阶段误执行旧资源准备 helper 覆盖一份 M34 preflight JSON 的历史例外继续保留于父 receipt。本轮旧 helper／产物只读，不改历史 receipt、不伪造原字节、不宣称历史元数据全部原样；新的资源 helper 仅输出。
 
 证据 build/lsp-next-20261022/m7a2b36a-result.json；外部 m7a2b36a-a7d681f8／component-v1。发布 5,241 文件未改。长期任务 active：继续持久模块 typed state／语义事实版本和 read set、依赖传播及真实编辑成本减少，全工程引用／rename／tokens／actions／format、静态检查／补全恢复、IDE 配置、整体预算与十万行／并行／soak／最终交付。保持外部 C/compiler-XRT、未来 opaque xlc.dll；无 DAP／运行态补全。
+
+
+## M7a2b37a：检查后的声明接口版本与真实 IR 依赖（0.70）
+
+0.70 为检查后的声明接口增加独立版本，值／类型两个编号域分别管理；复用现有 C/compiler-XRT entity registry，以完整 store／module／context、声明身份和完整二进制 typed header 建立不可变记录。内容恢复时可恢复原版本 token；它不是编辑版本或当前源权威。完整键比较建立相等，不靠名称／摘要／恰好相同的数字。
+
+接口描述包含 kind／flags／text、显式长度的 decoded literal（保留 NUL）、已证明的当前符号／类型／目标／复合操作符身份、ABI、call／lvalue／ownership／exit、完整 inferred／declared type 子树和 header children。未知／生成 ID 保持原生精确值。仅 callable 的 BLOCK 正文、坐标、文档和执行区域编号排除；成员声明、默认参数和类型 header 保留。它不是完整函数体事实版本，也不覆盖全部语义 read set、负向查找或传递依赖。现有 declaration key 在部分 header／类型布局变化时本身也会改变，不能声称所有类型 UID 对布局变化保持稳定。
+
+编译器只对重载组第一个 NAME 写入组绑定，后续重载可能 NAME IDs 都是 0。适配层在同一原编译器词法 parent 和完整展开名称中枚举候选，以已经证明且不歧义的实际组绑定为锚；全部重载各贡献一个 typed header。此处只枚举声明集合，不按名字伪造任何引用绑定。冲突或不可证明的组保守不给版本。
+
+真实 raw IR unit 的 global operand 字典改为不可变的 declaration／interface-version 二元组；含读、写和编码 operand 的保守依赖，可按函数查询复制值。恢复时已证明的当前接口版本不同就拒绝旧片段，记录缺失则继续原完整归一化 AST、类型池前缀和实际当前 binding 证明。没有移除任何原 source report／overlay／磁盘／导入候选／包环境／配置 epoch／当前发布规则，原编译器及全部最终 IR passes／verifier 保持。版本表由 view 独立拥有，registry 复制完整 header，无 AST／报告／旧结果借用；IR memo 保留原 namespace。共享 unit 最初记录的版本 0 在后续 view 重新开启版本时仍为 0，直到该 unit 自身重建；禁止修改共享数据来改写其来源。
+
+默认暂存 key／record admission 为 8 MiB，单次有界 key 构造、map／分配器元数据另计；每 key 使用原 64 KiB 上限。完整版本键共享原 64 MiB／262,144 记录 registry，Stats.entities 现在包含 declaration identity 和 interface version 两类带标签记录。view 的版本数组仍计入原 16 MiB，IR global 二元组按实际 16 字节计入原 32 MiB；暂存、传递所有者和整个 RSS 不属于这些局部额度。禁用／容量或分配拒绝返回可选版本 0，原语言诊断和原完整证明回退保持。analysis.entityInterfaces 仅报告本次保留 check 的 symbols／types／bytes／declined；不是新的标准 capability，也不改变 IDE 的源码守卫。
+
+最终 component-v2 同一冻结完整编译 151 对象，69 原生夹具／70 PE／71 outputs／59 core members／73 AST17 消费者、349 原生实际依赖、1,110 输入；初次 v1 完整构建／QA／测量后，将查询中的接口计数遍历移到构建阶段，使 getter 为 O(1)；最终 v2 全部重编译和验收后 C 未改。v1 产品、首轮性能和文档草稿独立保留。八个生成编译器主体，以及原 semantic／check-session／语法和工作者正文保持；check.c 仅增加只读依赖 API。106 GUI 对象按实际 .d 和 13 份预处理 token 等价证明复用，35 程序。41 协议套件 1,056 场景、18 实际 IDE／旧服务回退与启动全部通过。
+
+新增 364 原生检查验证完整接口、重载／默认参数／成员／函数体／坐标／全局编号移动，0／1 字节／嵌套禁用，配置 domain，关闭原所有者后的四读者，以及实际 IR 依赖。改变未选重载的默认参数后，版本路径 checked 8／reused 0，对照的版本禁用路径 checked 3／reused 5；两者完整 fresh AST／native index JSON／IR 一致，直接证明真实消费者执行了拒绝与原完整证明回退。它增加的是接口依赖约束，不意味着减少整模块语义检查。既有 143 IR entity、15,734 binding、12,651 storage／26 分配门、13,047 worker fault／1,012 门，以及 39 projection／135 payload 全释放、22,982 navigation 对照继续通过。
+
+12 个新增真实 wire 场景覆盖磁盘／已打开入口、精确复用、函数体与重载默认参数修改、语义错误及恢复，校验当前版本／context／接口快照和导航 guard。96／512 helper 的 48 轮完整独立 AST、native index 全字段／canonical／范围、输入报告及 IR 对照通过；另在相同路径的独立 0.69／0.70 进程比较 24 个冷热／无变化／拓扑／局部／全局当前代次的 96 份完整定义／悬停／高亮／大纲 JSON。大档候选必须实际产生非零接口版本，不能以可选容量回退冒充该能力验收。
+
+原型中发现并保留的失败记录：错误假设存在 IndexJson API 与 cleanup 缩进，已按真实借用 Index API 修复；导入函数实际使用编译器展开名称；第一个 IR caller 因原类型前缀变化不能捕获，测试加入明确前置函数后验证后续目标，不放宽原条件；后续重载 NAME 为 0 的实际反例促成完整候选收集修复；类型布局可能同时改变原 type UID，及重新开启版本后复用的不可变 unit 仍保留旧 0，均按实际语义断言。最终 selective v15 的 364 专项和三组旧夹具通过，完整 producer 独立再验证。一次辅助 scaling C probe 用了不存在的 xbytes／错误 FileReadAll 签名，仅编译失败，不能作为验收；实际完整大档 oracle／wire／基准另行证明捕获。
+
+M35 曾误执行旧准备脚本覆盖一份 M34 preflight JSON，其历史例外继续由父 receipt 保留。本轮所有旧 helper／产物只读，未执行旧脚本、改写旧 receipt 或伪造原字节，不宣称全部历史元数据原样；新资源 helper 只输出。
+
+证据 build/lsp-next-20261022/m7a2b37a-result.json；外部 m7a2b37a-9fc3c1a0／component-v2。发布 5,241 文件未改，长期任务 active。接下来仍需真正持久模块 typed state、完整语义依赖／负向查找 read set、在原规则上减少真实编辑的语义／类型恢复／索引／IR／verifier 成本，以及全工程引用／rename／tokens／actions／format、静态检查／补全恢复、IDE 输入配置、全模型预算、十万行／并行／soak／最终发行。继续外部 C/compiler-XRT、未来 opaque xlc.dll，无 DAP／运行态补全。

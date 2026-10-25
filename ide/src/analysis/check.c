@@ -253,6 +253,15 @@ xls_check_ir_work xlsSemanticCheckIrWork(const xls_semantic_check* r)
     xls_ir_memo_work w=xlsFrontendIrResultWork(r ? r->cachedIr : NULL);
     return (xls_check_ir_work){w.checked,w.reused,w.captured,w.nodesReused,w.bytes,w.declined,w.textNodes,w.textBytes,w.ownerBytes};
 }
+size_t xlsSemanticCheckIrDependencies(const xls_semantic_check* r,uint64_t function)
+{return r && !invalid(r) && r->accepted ? xlsFrontendIrResultDependencies(r->cachedIr,function) : 0;}
+int xlsSemanticCheckIrDependency(const xls_semantic_check* r,uint64_t function,size_t at,xls_check_ir_dependency* out)
+{
+    if(out)*out=(xls_check_ir_dependency){0};
+    xls_ir_declaration_dependency row;
+    if(!out || !r || invalid(r) || !r->accepted || !xlsFrontendIrResultDependency(r->cachedIr,function,at,&row))return 0;
+    *out=(xls_check_ir_dependency){row.declaration,row.version};return 1;
+}
 const XL6_AstNode* xlsSemanticCheckAst(const xls_semantic_check* r)
 { return r && !invalid(r) ? r->parse.root : NULL; }
 xls_check_info xlsSemanticCheckInfo(const xls_semantic_check* r)
