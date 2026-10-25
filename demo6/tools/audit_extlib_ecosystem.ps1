@@ -74,7 +74,7 @@ $existingHardeningNames = @(
     "stb_image", "stb_image_resize2", "stb_image_write", "stb_truetype", "xfeat", "xbot", "xge", "xge_shape_ex"
 )
 $platformNames = @(
-    "acme", "canbus", "clickhouse", "clip", "coap", "com", "daemon", "docker", "enet",
+    "canbus", "clickhouse", "clip", "coap", "com", "daemon", "docker", "enet",
     "etcd", "ftp", "git", "gpio", "ldap", "libusb",
     "mdns", "minio", "modbus", "mqtt", "nanomsg", "nats", "neo4j", "nsq", "ntp",
     "op", "opentelemetry", "passkey", "pcap", "portaudio", "procps", "prometheus", "redis", "rtmp",
