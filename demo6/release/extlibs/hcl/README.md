@@ -1,5 +1,11 @@
 # hcl
 
+2026-10-26 当前发布物再次复验：Windows 默认门禁退出 0；Linux 默认
+门禁连续两次退出 0，均覆盖 C ASan/UBSan、XLang JIT/AOT、分配故障
+与 C/XLang 范例逐字节对照。包按下述受限查询合同签收。历史上一次
+Linux 无诊断退出没有复现，也没有查明根因；门禁保留阶段标记，
+若再出现须重新定位，不将其解释为已证明不存在。
+
 2026-10-26 新发布物复验：Windows 默认 `test/check.ps1` 与 Linux
 `test/check.sh` 均通过；新增 C 范例 `xl build` 独立 EXE 后，GCC、
 TCC、C AOT 与 XLang JIT/AOT 输出一致。Linux 同时覆盖 ASan/UBSan，
