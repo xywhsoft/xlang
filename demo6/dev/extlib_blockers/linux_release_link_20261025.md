@@ -1,5 +1,15 @@
 # 2026-10-25 Linux 发布构建阻断
 
+## 状态：已修复并完成标准构建
+
+2026-10-25 主线增加 shell 脚本 LF 规则，并让 Linux 与 Windows 共用
+经过校验的物理源码清单。WSL 标准 `bash build_linux.sh` 已完整生成
+`libxl.so`、`libxlc.so` 和 `xl`；hello、资源桥接 JIT/AOT 以及 GCC O2
+资源故障测试通过。构建与验收日志位于实现工作树的
+`build/c-owned/linux-shared-sources-20261025-3.log` 和
+`build/c-owned/foreign-bridges-linux-acceptance-1.log`。
+以下保留修复前的复现；各扩展包仍须用新发布物重跑自己的发布门禁。
+
 普通扩展库的 Linux 发布版复验需要当前源码构建的 `release/xl`。
 本任务不修改 xlang 主线；以下是 WSL Ubuntu x86_64/glibc 上的复现。
 
