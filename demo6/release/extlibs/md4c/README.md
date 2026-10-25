@@ -4,7 +4,9 @@
 默认 `test/check.ps1` 的严格 C、C 边界与分配故障、C/XLang 同输出、
 公开范例以及边界和范例的独立 EXE 构建运行均通过。三个 HTML 返回
 仍由 `takeCstr` 直接接管 XRT 分配，不因编译器支持 `cstring` 导出而
-改写已有的零拷贝路径。Linux 新发布物尚未完成构建，本次不签收其 AOT。
+改写已有的零拷贝路径。使用当前 Linux 发布版补跑 `test/check.sh`：
+C ASan/UBSan、XLang JIT、边界与范例的独立 EXE AOT 均通过，范例
+HTML 在 C、JIT、AOT 三条路径上逐字节一致。
 
 基于随包携带的 md4c 0.5.2，将 CommonMark/GitHub 方言文本渲染为 HTML。`md4c.html(markdown)` 使用 CommonMark；`html_flags(markdown, parserFlags, rendererFlags)` 可选择 GitHub 方言、禁用原生 HTML、XHTML 输出等；`file_html(path, parserFlags, rendererFlags)` 读取 UTF-8 路径对应的 Markdown 文件。相关标志可通过 `github_flags`、`no_html_flag` 等函数取得。
 
@@ -25,7 +27,8 @@ Markdown 输入必须是合法 UTF-8；内存与文件入口都会在解析前�
 `xl run release/extlibs/md4c/examples/md4c_c.c`；正式包仍按清单分别编译。
 包 manifest 声明 XRT 缓冲、整文件读取和 UTF-8 校验模块；先前同一边界 AOT 从
 3,769,856 缩至 849,920 字节，执行通过。Linux 脚本只编译一次 XRT
-再分别链接测试和范例；Windows/Linux 包级内存与错误恢复门禁均通过。
+再分别链接测试和范例，并构建运行边界与范例 AOT；Windows/Linux
+包级内存与错误恢复门禁均通过。
 
 2026-10-24：使用更新后的 Windows 发布版 `xl.exe` 执行默认
 `test/check.ps1`，严格 C、C 边界、内存故障注入、直接运行 C 范例、

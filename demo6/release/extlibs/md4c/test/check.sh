@@ -43,4 +43,11 @@ timeout 90s ./release/xl run release/extlibs/md4c/test/allocations.xl
 timeout 90s ./release/xl run test/cases/extlib_md4c.xl
 timeout 90s ./release/xl run release/extlibs/md4c/examples/md4c.xl > "$work/example_xl.html"
 diff -u "$work/example.html" "$work/example_xl.html"
-printf 'md4c Linux C ASan/UBSan and XLang parity gate: PASS\n'
+timeout 120s ./release/xl build release/extlibs/md4c/test/boundaries.xl \
+    -o "$work/md4c_boundaries"
+timeout 90s "$work/md4c_boundaries"
+timeout 120s ./release/xl build release/extlibs/md4c/examples/md4c.xl \
+    -o "$work/md4c_example_xl"
+timeout 45s "$work/md4c_example_xl" > "$work/example_aot.html"
+diff -u "$work/example.html" "$work/example_aot.html"
+printf 'md4c Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'
