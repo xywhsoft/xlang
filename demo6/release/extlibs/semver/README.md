@@ -1,5 +1,12 @@
 # semver
 
+2026-10-26 Windows/Linux 默认包门禁再次通过；两侧新增中央语言用例和
+C 单文件范例的独立 EXE AOT，C/GCC、C/TCC、C/AOT 与 XLang
+JIT/AOT 均逐字节匹配同一黄金输出。三个 C 字符串结果由
+`takeCstr` 直接接管 XRT 分配，无需为使用 `cstring` 再复制正文。
+本次使用现有发布版；从更新后的工作树重建新发布版仍被主线
+`XRT/xlang capability matrix is stale` 快照校验阻断，须同步后复跑。
+
 2026-10-25 新 Linux 发布物：包级 `test/check.sh` 已纳入边界、分配
 故障与公开范例三份独立 EXE 的构建运行；范例 AOT 还与固定黄金文件及
 C 输出逐字节比较。本轮完整门禁通过，包含严格 C、ASan/UBSan、

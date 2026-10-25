@@ -67,6 +67,10 @@ try {
         Write-Host '[semver] C/XLang golden: PASS'
 
         if (-not $SkipAot) {
+            $centralAot = Join-Path $work 'semver_central.exe'
+            $null = Run 'XLang central build' $xl @('build',
+                '../test/cases/extlib_semver.xl', '-o', $centralAot)
+            $null = Run 'XLang central AOT' $centralAot @()
             $target = Join-Path $work 'semver_xl_test.exe'
             $null = Run 'XLang boundaries build' $xl @('build',
                 'extlibs/semver/test/boundaries.xl', '-o', $target)
@@ -81,6 +85,13 @@ try {
             $aotOutput = Run 'XLang example AOT' $exampleAot @()
             if ($aotOutput -cne $golden) {
                 throw 'XLang AOT example differs from the common golden file'
+            }
+            $cExampleAot = Join-Path $work 'semver_c_example.exe'
+            $null = Run 'C example build' $xl @('build',
+                'extlibs/semver/examples/semver_c.c', '-o', $cExampleAot)
+            $cAotOutput = Run 'C example AOT' $cExampleAot @()
+            if ($cAotOutput -cne $golden) {
+                throw 'C AOT example differs from the common golden file'
             }
         }
     } finally {
