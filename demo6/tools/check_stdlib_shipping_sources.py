@@ -7,13 +7,14 @@ old build-directory objects or filename glob may satisfy a required provider.
 from collections import Counter
 from pathlib import Path
 import argparse,hashlib,json,re
+from runtime_sources import source_names
 
 OBJECT=re.compile(r'^"%XL6_RELEASE_CC%"[^\n]* -c ([^\n]+\.c) -o "%XL6_BUILD_TMP%\\([A-Za-z0-9_]+\.o)"\s*$',re.M)
 SOURCE=re.compile(r'\b((?:src|lib|tools)[\\/][^\s"]+\.c)')
 LABELS={'runtime':'echo Building DEMO6 xl.dll runtime...',
         'compiler':'echo Building DEMO6 xlc.dll compiler runtime...'}
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
-def inspect(root,batch=None,linux=None,unit=None):
+def inspect(root,batch=None,linux=None,unit=None,linux_sources=None):
     unit=(root/'src/compile/xl6_compile_unit.c').read_text(encoding='utf-8-sig') if unit is None else unit
     body=unit.split('xl6ArtifactComponents[] = {',1)[1].split('\n};',1)[0]
     native_headers=[root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h']
@@ -54,8 +55,10 @@ def inspect(root,batch=None,linux=None,unit=None):
             assert '"%XL6_RELEASE_CC%"' in text,(kind,'Missing explicit DLL link invocation')
         direct=[p.replace('\\','/') for p in SOURCE.findall(text)]
         profile('windows-'+kind,shared+direct)
-    block=re.search(r'^RUNTIME_SOURCES=\(\n(.*?)^\)',linux,re.M|re.S);assert block,'Missing Linux runtime source array'
-    direct=re.findall(r'"\$ROOT/([^"\n]+\.c)"',block.group(1));assert direct
+    assert '"$ROOT/tools/runtime_sources.py" --root "$ROOT"' in linux, 'Missing shared Linux source manifest'
+    assert 'mapfile -t RUNTIME_SOURCES <<< "$RUNTIME_SOURCE_TEXT"' in linux, 'Missing Linux source array'
+    direct=source_names(root) if linux_sources is None else linux_sources
+    inputs.extend((root/'tools/runtime_sources.py',root/'tools/runtime_dll.rsp.in'))
     assert linux.count('"${RUNTIME_SOURCES[@]}"')>=2,'Both Linux products must consume the runtime source array'
     profile('linux-runtime',direct);profile('linux-compiler',direct)
     assert all((root/p).is_file() for p in expected),'Registry source missing'
@@ -77,8 +80,8 @@ def main():
     try:rejected,_,_=inspect(root,batch=duplicate);caught=any(e['Source']==source and e['Kind']=='duplicate' for e in rejected)
     except AssertionError:caught=True
     controls.append(dict(Name='duplicate-explicit-provider',Rejected=caught))
-    changed=linux.replace('"$ROOT/'+source+'"','',1);assert changed!=linux
-    rejected,_,_=inspect(root,linux=changed)
+    direct=source_names(root);assert source in direct
+    rejected,_,_=inspect(root,linux_sources=[p for p in direct if p!=source])
     controls.append(dict(Name='missing-linux-provider',Rejected=any(e['Profile'].startswith('linux-') and e['Source']==source for e in rejected)))
     unit=(root/'src/compile/xl6_compile_unit.c').read_text(encoding='utf-8-sig')
     changed=unit.replace('"XRUNTIME_MODULE_RUNTIME_VALUE_FUTURE"','"XRT_MODULE_MISSING_REQUIRED_TEST_V1"',1);assert changed!=unit

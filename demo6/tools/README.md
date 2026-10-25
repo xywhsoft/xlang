@@ -1166,3 +1166,5 @@ This boundary batch does not complete Array carrier migration or the 53-module g
 - `check_stdlib_dict_native.py`：真实 XRT typed_dict 驻留底座，精确文本键、完整值域、独立快照、拥有型输出与重叠拒绝、重复／自引用及 Future 边、checked 退役和边界失败；O0/O2 各 14 条完整分配失败前缀、四个已编译破坏实现拒绝，可选 Linux ASan/UBSan。不是语言 Dict 载体、宿主卸载或发布总验收。
 
 - `check_stdlib_channel_native.py`：复用 XRT 缓冲／会合 channel 的常驻拥有值底座，精确状态与 nullable presence、独立准入、空结果槽、操作 pin、循环图退役、首错与并发关闭；双端严格 O0/O2、完整分配失败前缀和四个已编译错误实现，Linux 独立闭包可选 ASan/UBSan。不是公开 Channel／WaitQueue 接线、发布 DLL 或全部 53 模块验收。
+
+`runtime_sources.py` reads the shared physical runtime translation units from `runtime_dll.rsp.in`; Linux release builds consume this list, including source bundles, instead of maintaining a second list.
