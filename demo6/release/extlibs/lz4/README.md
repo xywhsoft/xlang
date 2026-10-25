@@ -146,6 +146,13 @@ Linux 门禁将单文件运行结果与严格 GCC 分离编译结果逐字比较
 Linux C sanitizer、XLang 边界/文件进度与双语输出门禁：`bash tools/check_extlib_lz4.sh`，当前独立参照路径为
 `/usr/lib/x86_64-linux-gnu/liblz4.so.1`。普通 Windows 门禁不带 -Interop 时仍运行
 C/XL 边界、JIT/AOT、原型和双语范例，但不能据此宣称独立互操作已验证。
+2026-10-26 当前发布版复验：Windows `tools/check_extlib_lz4.ps1 -Interop`
+完整退出 0，报告 `outcome=passed`、69 项检查、输入无变化；Linux
+`tools/check_extlib_lz4.sh` 完整退出 0。两平台均覆盖六组 C 边界和
+514 项系统 liblz4 互通；Linux 额外覆盖中央、包内边界、进度回调及
+综合/基础/文件范例的 JIT/AOT，基础与文件范例同 C 输出一致。
+这确认旧 typed XLIR 字节运算阻断已不影响当前 Win/Linux x64 发布版；
+32 位、TSan、长时压力和性能基准未由本轮证明。
 文件范例排他创建 XRT 临时目录并在结束时清理，不会覆盖工作目录中的同名文件；
 中央 XLang 文件范例也已使用 `dir.temp` 和 `finally`，不再写入固定的
 `build/test/lz4-files-example`；文件写入失败会立即报错。
@@ -205,3 +212,6 @@ Windows 独立 C 门禁及发布目录的 XLang JIT/EXE 通过；从项目根目
 运行完整门禁仍被共享 VFS `include/xruntime_decl.h` 查找问题阻断。
 Linux C ASan/UBSan 与 514 项系统库互通通过；旧 Linux `release/xl`
 尚不识别 `cstring`，语言门禁需在重建发布物后复验。
+
+上述旧发布物与临时阻断的记录保留作为历史；当前验收状态以上方
+2026-10-26 的双平台完整门禁为准。
