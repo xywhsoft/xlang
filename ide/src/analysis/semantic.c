@@ -5,6 +5,7 @@
 #include "analysis/frontend_input_view.h"
 #include "analysis/frontend_input_usage.h"
 #include "analysis/input_topology.h"
+#include "analysis/frontend_module_graph.h"
 #include "analysis/frontend_cancel.h"
 #include "analysis/signature_internal.h"
 #include "src/parser/xl6_parser_api.h"
@@ -37,6 +38,7 @@ struct xls_semantic_completion {
     xls_signature_data* signature;
     uint64_t usedInputs;int usageKnown;
     xls_input_topology* topology;
+    xls_module_graph* modules;
 };
 static int absolute(const char* path)
 {
@@ -61,6 +63,7 @@ void xlsSemanticCompletionDestroy(xls_semantic_completion* r)
     if(!r || xrtAtomic32FetchSub(&r->references,1,XMEMORY_ACQ_REL)!=1) return;
     xlsSignatureDataDestroy(r->signature);
     xlsInputTopologyDestroy(r->topology);
+    xlsModuleGraphRelease(r->modules);
     xl6CompletionFree(&r->query);
     xlsFrontendSemTailDestroy(r->tail);
     xl6ParseResultFree(&r->parse);
@@ -184,11 +187,14 @@ static xls_semantic_completion* create(xls_context* context,xls_entry_cache* cac
     entryScope.cursorSyntax=syntax;
     xls_input_usage_scope usage;xlsFrontendInputUsageBegin(&usage);
     xls_input_topology_scope topology;xlsInputTopologyBegin(&topology,memoEnabled ? 8u*1024u*1024u : 0);
+    xls_module_graph_scope modules;xlsModuleGraphBegin(&modules,memoEnabled ? xlsModuleScopeCurrent() : NULL,context,8u*1024u*1024u);
     xls_frontend_cancel_scope cancellation;xlsFrontendCancelBegin(&cancellation,cancelled,user);
     xls_semantic_completion* result=createBody(context,entry,queryPath,offset,inputs,count,syntax,previous,memoEnabled,cancelled,user,error,capacity,signatureData ? &signature : NULL);
     uint64_t used=0;int known=xlsFrontendInputUsageEnd(&usage,&used);
     xls_input_topology* captured=xlsInputTopologyEnd(&topology);
     if(result && known)result->topology=captured;else xlsInputTopologyDestroy(captured);
+    xls_module_graph* graph=xlsModuleGraphEnd(&modules,result ? &result->report : NULL);
+    if(result)result->modules=graph;else xlsModuleGraphRelease(graph);
     if(signatureData){if(!signature.adopted)xlsSignatureDataDestroy(signatureData);xlsSignatureScopeEnd(&signature);if(signature.cancelObserved){xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"signature query cancelled");}}
     if(entryScope.cursorFailed) {xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"cannot own exact imported cursor syntax");}
     if(result && stopped(cancelled,user)) {xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"semantic completion cancelled");}
@@ -210,6 +216,8 @@ int xlsSemanticCompletionInputUsage(const xls_semantic_completion* result,uint64
 }
 const xls_input_topology* xlsSemanticCompletionTopology(const xls_semantic_completion* result)
 {return result && !invalid(result) && result->usageKnown ? result->topology : NULL;}
+const xls_module_graph* xlsSemanticCompletionModules(const xls_semantic_completion* result)
+{return result && !invalid(result) ? result->modules : NULL;}
 xls_completion_entry_work xlsSemanticCompletionEntryWork(const xls_semantic_completion* result)
 { return result ? result->entryWork : (xls_completion_entry_work){0}; }
 xls_entry_parse_work xlsSemanticCompletionModuleWork(const xls_semantic_completion* result)

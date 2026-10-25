@@ -75,6 +75,16 @@ def derive(frontend: Path, output: Path) -> list[dict]:
             source = source.replace(marker, wrapper + marker, 1)
             seams = 3
         elif original.stem == "xl6_imports":
+            source = '#include "analysis/frontend_module_graph.h"\n' + source
+            for old, new in {
+                '        activeSourcePushed = 1;':
+                    '        activeSourcePushed = 1;\n        xlsModuleGraphImport(deps->activeSources.items,deps->activeSources.count);',
+                '    if ( activeSourcePushed ) {\n        xl6ImportsStringListPop(&deps->activeSources);':
+                    '    if ( activeSourcePushed ) {\n        xlsModuleGraphExpanded(deps->activeSources.items,deps->activeSources.count,ok);\n        xl6ImportsStringListPop(&deps->activeSources);',
+            }.items():
+                if source.count(old) != 1:
+                    raise ValueError('original import module dependency observation seam changed: ' + old)
+                source = source.replace(old,new,1)
             source = '#include "src/sem/xl6_completion.h"\n' + source
             source = '#include "analysis/frontend_import_names.h"\n' + source
             shape = '    size_t count;\n} XL6_ImportNameMap;'
@@ -113,7 +123,7 @@ def derive(frontend: Path, output: Path) -> list[dict]:
                 '    if (!nsInfo->isPrivate && xlsImportsNamespaceCursor(node)) {\n'
                 '        int okay=xlsImportsCaptureNamespace(node,symbols,ns); xrtFree(ns); return okay;\n'
                 '    }\n' + old, 1)
-            seams = 16
+            seams = 18
         else:
             old = 'int xl6CompletionAdd(XL6_CompletionQuery* q,'
             marker = 'void xl6CompletionFree(XL6_CompletionQuery* q)\n{'

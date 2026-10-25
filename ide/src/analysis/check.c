@@ -5,6 +5,7 @@
 #include "analysis/frontend_input_view.h"
 #include "analysis/frontend_input_usage.h"
 #include "analysis/input_topology.h"
+#include "analysis/frontend_module_graph.h"
 #include "analysis/frontend_index.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_sem.h"
@@ -39,6 +40,7 @@ struct xls_semantic_check {
     int accepted,captureIndex;
     uint64_t usedInputs;int usageKnown;
     xls_input_topology* topology;
+    xls_module_graph* modules;
 };
 static int stopped(int (*cancelled)(void*),void* user)
 { return xlsFrontendCancelObserved() || (cancelled && cancelled(user)); }
@@ -53,6 +55,7 @@ void xlsSemanticCheckDestroy(xls_semantic_check* r)
     if(!r || xrtAtomic32FetchSub(&r->references,1,XMEMORY_ACQ_REL)!=1) return;
     xrtFree(r->index); xlsFrontendIndexDestroy(r->typedIndex); xlsFrontendSemMemoDestroy(r->memo);
     xlsInputTopologyDestroy(r->topology);
+    xlsModuleGraphRelease(r->modules);
     xlsFrontendIrResultDestroy(r->cachedIr);xl6IrModuleFree(&r->ir); xl6ParseResultFree(&r->parse);
     xl6ImportDepsFree(&r->deps); xl6SourceOverlayClear(&r->overlay); xl6SourceReportFree(&r->report);
     xlsContextRelease(r->context); xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
@@ -174,11 +177,14 @@ xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,x
     xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,cache,context,entry);
     xls_input_usage_scope usage;xlsFrontendInputUsageBegin(&usage);
     xls_input_topology_scope topology;xlsInputTopologyBegin(&topology,(cache || syntax) ? 8u*1024u*1024u : 0);
+    xls_module_graph_scope modules;xlsModuleGraphBegin(&modules,(cache || syntax) ? xlsModuleScopeCurrent() : NULL,context,8u*1024u*1024u);
     xls_frontend_cancel_scope cancellation;xlsFrontendCancelBegin(&cancellation,cancelled,user);
     xls_semantic_check* result=createBody(context,entry,inputs,count,captureIndex,syntax,previous,cache || syntax,cancelled,user,error,capacity);
     uint64_t used=0;int known=xlsFrontendInputUsageEnd(&usage,&used);
     xls_input_topology* captured=xlsInputTopologyEnd(&topology);
     if(result && known)result->topology=captured;else xlsInputTopologyDestroy(captured);
+    xls_module_graph* graph=xlsModuleGraphEnd(&modules,result ? &result->report : NULL);
+    if(result){result->modules=graph;xlsFrontendIndexAttachModules(result->typedIndex,graph);}else xlsModuleGraphRelease(graph);
     if(result && stopped(cancelled,user)) {xlsSemanticCheckDestroy(result);result=NULL;fail(error,capacity,"semantic check cancelled");}
     xlsFrontendCancelEnd(&cancellation,NULL);
     int scoped=xlsFrontendContextEnd(&scope);
@@ -197,6 +203,8 @@ int xlsSemanticCheckInputUsage(const xls_semantic_check* result,uint64_t* used)
 }
 const xls_input_topology* xlsSemanticCheckTopology(const xls_semantic_check* result)
 {return result && !invalid(result) && result->usageKnown ? result->topology : NULL;}
+const xls_module_graph* xlsSemanticCheckModules(const xls_semantic_check* result)
+{return result && !invalid(result) ? result->modules : NULL;}
 xls_semantic_check* xlsSemanticCheckCreateIncrementalInContext(xls_context* context,const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)

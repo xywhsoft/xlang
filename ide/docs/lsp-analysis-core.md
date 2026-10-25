@@ -1625,3 +1625,22 @@ XRT map 暂存精确 UTF-8 查询标签，结束时转换为不可变排序键�
 P95 回退保留：coldSummary:96/textDocument/signatureHelp P95 37.855→39.528 ms；coldSummary:512/textDocument/completion P95 236.782→238.334 ms；coldSummary:512/textDocument/signatureHelp P95 221.652→227.807 ms；hotSummary:96/textDocument/completion P95 2.415→2.483 ms；hotSummary:96/textDocument/signatureHelp P95 2.203→2.212 ms；hotSummary:512/textDocument/completion P95 2.736→2.800 ms；hotSummary:512/textDocument/signatureHelp P95 2.438→2.523 ms；GUI 96/0 P95 72.731→73.464 ms；GUI 96/1 P95 46.682→77.435 ms。
 
 证据 build/lsp-next-20261022/m7a2b32a-result.json，外部 m7a2b32a-2687faaf／component-v4；实际 native producer 位于 v2。外部 C/compiler XRT、未来 opaque xlc.dll，无 DAP／运行态补全。发布 5,241 文件保持；继续持久语义模块／xlp／全局身份、剩余适用 LSP／静态分析／IDE 与模型预算、100k／并行／soak／最终发行；整体 goal active，全部性能与功能目标尚未验收。
+
+
+## M7a2b33a：源模块依赖、项目归属与语义索引绑定（0.66）
+
+0.66 在原导入器成功压入 activeSources 后，记录其真实源码父子边；在原根展开退出前确认成功。全部原解析、搜索、循环检测、命名空间重写和包处理正文保留。图节点关联共享普通模块存储中的持续逻辑路径 ID，以及原报告 SourceId、source／manifest／entry／明确成员标签角色；保留完整项目／配置 context。原生检查、补全、签名结果各自持有不可变快照，checked typed index 通过 O(1) 表把当前 SourceId 绑定到持续模块 ID。原编译器的 SymbolId、TypeId 和当前 SourceId 不改写。
+
+XRT 引用计数、map 和数组管理数据。图显式保留 context 和 ID store，typed index 另保留图引用；没有从 store 回指图的环。独立保留图可脱离原结果、工作者和 store 调用方生存。ID 仅在同一 store 内有效，Store accessor 暴露该命名空间；仍是精确 UTF-8 逻辑标签，不合并物理别名。成员角色按提供的精确标签标记，项目选择／歧义的原 catalog 判定保持。未读取的配置成员不会全部加入身份注册表。
+
+默认 8 MiB 已知暂存／完成数据限制、65,536 节点和 262,144 条去重边；包含路径副本、实际数组容量、暂存键数据及完整 context 计费，XRT 容器／分配器元数据、临时转换和整个模型 RSS 另计。原展开未完成、报告不完整、资源／额度不足或取消均不提供可用图，不改变语言诊断；身份准入单调增长，取消后可保留已经准入的身份。独立 fresh API 不开启该捕获。
+
+图的边表示实际展开的源码关系；manifest 节点来自原完整输入报告，负探测及环境校验仍由现有输入证明持有。它尚未表达包中多源码的完整语义分组、所有未导入工程成员或全局稳定声明／类型；不能拿该图替换原 reverse-owner／磁盘／probe／拓扑／配置及发布校验。尚未缓存独立的模块 typed model，也没有新增标准 LSP capability。
+
+143 个对象在最终 component-v1 完整编译，63 原生夹具／64 PE／65 outputs／70 AST17 消费者／57 core members、336 实际依赖，冻结 1,093 输入。新增 490 检查包括真实菱形导入、导入次序变化后的源码编号重映射、三个工作者共享模块身份、项目配置隔离、未读成员、失败导入不产生部分图、小预算、嵌套禁用作用域、取消、四读者及独立生命周期；AST／结果与独立 fresh 路径匹配。
+
+既有 387 topology／662 input-usage／1,368 completion-session／309 module-store／1,289 semantic／2,406 cursor-source／939 IR memo／11,997 scan／185 cancel／12,995 worker fault 和 1,008 取消门保持。37 协议套件 970 场景、18 实际 IDE／旧 0.4 回退与启动通过；106 GUI 对象依真实 .d 和 10 个 token 对照证明复用，35 程序保持。最终产品 C、测试和全部运行均来自同一冻结 v1；初始原型的夹具编译问题及一次误选旧 archive 参数均保留，修复只影响原型测试／helper，没有基线输出改写。
+
+0.65／0.66 正常 core archive 在 96／512 helper、七轮 overlay／identity／声明增删及保留原版本上完成 32 轮完整 AST、native index 全字段／canonical／范围、报告和 IR 对照。大档 97,836–97,846 条事实逐一比较；0.66 另验证真实导入边、完整项目 context、当前 source-to-module 绑定及 fresh 未启用图。两版实际改动都检查 2 个函数、复用 513 个函数。原 semantic／IR／parser／index collector／source loader 生成正文与 0.65 相同；imports 去除一条 include 和两条 observer 调用后逐字相同。
+
+证据 build/lsp-next-20261022/m7a2b33a-result.json，外部 m7a2b33a-ade11ce1／component-v1。外部 C/compiler XRT、未来 opaque xlc.dll，无 DAP／运行态补全。发布 5,241 文件保持；继续模块 typed model／稳定全局实体、剩余适用 LSP／静态分析／IDE、模型总预算、100k／并行／soak／最终发行。整体 goal active，完整性能与功能目标尚未验收。

@@ -1,16 +1,23 @@
 /* Included only after the immutable shared sem_index.c by the checked build
  * adapter. Reuses its collector, limits, selection and type-domain rules. */
 #include "analysis/frontend_index.h"
+#include "analysis/index_modules.h"
 #include "analysis/frontend_types.h"
-struct xls_semantic_index { XL6_IndexBuild build; };
+struct xls_semantic_index { XL6_IndexBuild build;xls_module_graph* modules; };
 
 void xlsFrontendIndexDestroy(xls_semantic_index* index)
 {
     if(!index) return;
     XL6_IndexBuild* b=&index->build;
     if(b->facts) for(size_t i=0;i<b->count;++i) xrtFree(b->facts[i].canonical);
-    xrtFree(b->facts); xrtFree(b->sources); xrtFree(index);
+    xrtFree(b->facts); xrtFree(b->sources); xlsModuleGraphRelease(index->modules);xrtFree(index);
 }
+void xlsFrontendIndexAttachModules(xls_semantic_index* index,xls_module_graph* graph)
+{if(index){xls_module_graph* retained=xlsModuleGraphRetain(graph);xlsModuleGraphRelease(index->modules);index->modules=retained;}}
+const xls_module_graph* xlsSemanticIndexModules(const xls_semantic_index* index)
+{return index ? index->modules : NULL;}
+uint64_t xlsSemanticIndexModuleIdentity(const xls_semantic_index* index,size_t source)
+{return xlsModuleGraphSource(index ? index->modules : NULL,source);}
 xls_semantic_index* xlsFrontendIndexCreate(const XL6_AstNode* root,
     const XL6_SourceReport* report,char* error,size_t capacity)
 {
