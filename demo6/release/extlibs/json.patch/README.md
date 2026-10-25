@@ -62,6 +62,17 @@ assert json.patch.get(old, "/values/1") == 2
 包内 `test/test_boundaries.c`、`test/boundaries.xl` 覆盖数组插入、根路径、
 内嵌 NUL、长路径与畸形 UTF-8、同数组双向移动、复合值逻辑相等、
 补丁原子性、合并深度、旧错误污染及复制失败的错误分类。
+独立 `test/check_oracle.ps1` 用固定种子构造 160 组 JSON 文档差分，
+再加入 move/copy/test/数组追加 4 组明确操作；用
+`python-json-patch 1.35` 计算预期结果，同严格 GCC 构建的 C 包逐值比较。
+它不依赖 XLang 导入，也不替代下述语言与 AOT 门禁。首次运行先安装
+仅用于测试的依赖（安装目录不进入发布包）：
+
+```powershell
+python -m pip install --target build/test/json_patch_oracle_deps jsonpatch==1.35
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/json.patch/test/check_oracle.ps1
+```
+
 分配故障扫描还覆盖同数组 `move`、对象 `copy` 和 `test` 的结构相等比较，
 检查原文档不变、内存错误类别与释放平衡；比较期间的分配失败不得误报
 为补丁条件不匹配。
