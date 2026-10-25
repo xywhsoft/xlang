@@ -34,6 +34,8 @@
 #include "src/runtime/xl6_network_service.h"
 #include "src/runtime/xl6_log.h"
 #include "src/runtime/xl6_text_value.h"
+#include "src/runtime/xl6_foreign_resource.h"
+#include "src/runtime/xl6_value_copy.h"
 #include "xl_cancellation_retirement.h"
 #include "src/runtime/xl6_stack.h"
 #include "src/runtime/xl6_stack_erased.h"

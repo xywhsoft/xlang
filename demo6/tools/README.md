@@ -1168,3 +1168,5 @@ This boundary batch does not complete Array carrier migration or the 53-module g
 - `check_stdlib_channel_native.py`：复用 XRT 缓冲／会合 channel 的常驻拥有值底座，精确状态与 nullable presence、独立准入、空结果槽、操作 pin、循环图退役、首错与并发关闭；双端严格 O0/O2、完整分配失败前缀和四个已编译错误实现，Linux 独立闭包可选 ASan/UBSan。不是公开 Channel／WaitQueue 接线、发布 DLL 或全部 53 模块验收。
 
 `runtime_sources.py` reads the shared physical runtime translation units from `runtime_dll.rsp.in`; Linux release builds consume this list, including source bundles, instead of maintaining a second list.
+
+`check_foreign_bridges.ps1` verifies shared C resource ownership and native data snapshots, including allocation failures and JIT/AOT cleanup.

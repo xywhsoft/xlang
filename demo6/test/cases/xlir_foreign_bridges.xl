@@ -1,0 +1,71 @@
+import msgpack
+
+extern "xl6ForeignResourceCreateV1" func resource(point raw, var releaser) as var
+extern "xl6ForeignResourcePointerV1" func pointer(var owner) as point
+extern "xl6ForeignDataSnapshotV1" func data(var source) as var
+extern "foreign_bridge_create" func allocate() as point
+extern "foreign_bridge_destroy" @no_raise func release(point raw)
+extern "foreign_bridge_read" func read(point raw) as int
+extern "foreign_bridge_check_data" func checkData(var value) as bool
+extern "foreign_bridge_released" func released() as int
+
+extern "foreign_bridge_debug" func debug() as bool
+extern "foreign_bridge_fail" @no_raise func fail(int after)
+extern "foreign_bridge_clear" @no_raise func clear()
+extern "foreign_bridge_outstanding" func outstanding() as int
+
+class Owned
+    private var token
+    create()
+        point raw = allocate()
+        bool adopted = false
+        try
+            int expected = 42
+            auto drop = func(point value)
+                assert read(value) == expected
+                release(value)
+            end
+            self.token = resource(raw, xcall(drop))
+            adopted = true
+        finally
+            if !adopted then release(raw) end
+        end
+    end
+    func value() as int
+        return read(pointer(self.token))
+    end
+end
+
+auto globalOwner = Owned()
+assert globalOwner.value() == 42
+func check()
+    auto localOwner = Owned()
+    assert localOwner.value() == 42
+    var input = {"items": [1, 2], "nested": {"message": "hello"}}
+    var snapshot = data(input)
+    assert checkData(snapshot)
+    assert int(input["items"][0]) == 1
+    Buffer packed = msgpack.encode(data(input))
+    var decoded = msgpack.decode(packed)
+    assert int(decoded["items"][1]) == 2
+    assert string(decoded["nested"]["message"]) == "hello"
+end
+check()
+assert released() == 1
+func checkFailures()
+    if !debug() then return end
+    int fault = 0
+    while fault < 64
+        fail(fault)
+        try
+            auto candidate = Owned()
+        catch error
+        finally
+            clear()
+        end
+        assert outstanding() == 1
+        fault += 1
+    end
+end
+checkFailures()
+println("foreign bridges: PASS")

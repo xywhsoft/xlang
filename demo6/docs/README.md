@@ -425,3 +425,5 @@ batch 和强引用拥有图仍待完成，不能视为 Stack 或全部 53 模块
 - [List 与 Array 恢复](stdlib53-b151-list-recursive-restore.md)：私有混合类型链事务。
 - [类字段共享恢复](stdlib53-b152-class-shared-restore.md)：类字段与容器复用恢复事务。
 - [Nullable 恢复错误](stdlib53-b153-nullable-restore.md)：数据拒绝和运行失败的分离。
+
+- [C 扩展的资源和数据桥接](foreign-bridges.md)

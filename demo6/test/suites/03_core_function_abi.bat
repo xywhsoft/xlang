@@ -341,5 +341,8 @@ if not errorlevel 1 (
 findstr /C:"XLIR raw C callback argument has no verified direct-thunk provenance or propagated parameter contract" build\test\xlir_c_callback_capture_invalid.err.txt >nul
 if errorlevel 1 exit /b 1
 
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_foreign_bridges.ps1
+if errorlevel 1 exit /b 1
+
 echo DEMO6 suite ok: typed func, XCall and C callback ABI
 exit /b 0

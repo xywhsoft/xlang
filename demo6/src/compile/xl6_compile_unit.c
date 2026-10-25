@@ -947,7 +947,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_task_net.c",D(R(TASK_FRAME),R(OWNERSHIP_DOMAIN_NET_ENGINE_NATIVE)),{"XRT_MODULE_TASK_NET"}},
     {"src/runtime/xl6_ownership_domain_task_net.c",D(R(OWNERSHIP_CATALOG),R(TASK_NET),R(OWNERSHIP_DOMAIN_TASK),R(OWNERSHIP_DOMAIN_NET_ENGINE_NATIVE)),{NULL}},
     {"src/runtime/xl6_task_result_closure.c",D(R(TASK_FRAME),R(FUTURE_VALUE),R(CLOSURE)),{NULL}},
-    {"src/runtime/xl6_task_net_language.c",D(R(EXECUTION_NET_ENGINE),R(TASK_NET),R(TASK_RESULT_CLOSURE)),{NULL}}
+    {"src/runtime/xl6_task_net_language.c",D(R(EXECUTION_NET_ENGINE),R(TASK_NET),R(TASK_RESULT_CLOSURE)),{NULL}},
+    {"src/runtime/xl6_foreign_resource.c", D(R(FOREIGN_ERROR),R(OWNERSHIP_CATALOG)),
+        {"XRT_MODULE_VALUE_CONTAINER","XRUNTIME_MODULE_RUNTIME_CALL","XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"}},
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
