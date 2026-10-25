@@ -53,6 +53,23 @@ static void finalize(xvalue* object,void* data)
 static const xvalueobjectownershipv1 policy={sizeof(policy),finalize,emptyTrace,
     emptyRelease,trace,release,finalizeChecked};
 
+/* The finalization duty belongs to one shared keeper, never to a cloned
+ * object shell. Every opaque token copy owns that same keeper. */
+static bool cloneToken(void* keeper,void** output,void* user)
+{
+    (void)user;
+    *output=xrtValueRetain(keeper);return *output!=NULL;
+}
+static void dropToken(void* keeper,void* user)
+{ (void)user;xrtValueRelease(keeper); }
+static const xvaluehandleops tokenOps={cloneToken,dropToken,NULL,NULL};
+static bool traceToken(const xvalue* token,xrtownershipvisitor visit,void* context)
+{
+    void* keeper=NULL;void* user=NULL;const xvaluehandleops* ops=NULL;
+    return visit && xrtValueGetHandle(token,&keeper,&ops,&user) &&
+        ops==&tokenOps && !user && keeper && visit(xrtValueOwnership(keeper),context);
+}
+
 xvalue* xl6ForeignResourceCreateV1(void* raw,const xvalue* releaser)
 {
     if(!raw || !releaser || !xrtValueIsCallable(releaser)){
@@ -76,6 +93,13 @@ xvalue* xl6ForeignResourceCreateV1(void* raw,const xvalue* releaser)
        !xrtValueObjectFinalizerCommit(token)){
         xrtValueRelease(token);return NULL;
     }
+    void* keeper=token;
+    token=xrtValueHandleTake(&keeper,&tokenOps,NULL);
+    xrtValueRelease(keeper);
+    if(!token)return NULL;
+    if(!xrtValueHandleOwnershipBindPhased(token,traceToken)){
+        xrtValueRelease(token);return NULL;
+    }
     resource->raw=raw;
     return token;
 }
@@ -88,15 +112,20 @@ static bool pointer(const xvalueobjectreadv1* view,const xvalueobjectreadv1* unu
 }
 void* xl6ForeignResourcePointerV1(const xvalue* token)
 {
+    void* keeper=NULL;void* user=NULL;const xvaluehandleops* ops=NULL;
+    if(!xrtValueGetHandle(token,&keeper,&ops,&user))return NULL;
+    if(ops!=&tokenOps || user || !keeper){xrtSetErrorKind(XERR_TYPE);return NULL;}
     void* raw=NULL;
-    return xrtValueObjectReadV1(token,NULL,&policy,pointer,&raw) ? raw : NULL;
+    return xrtValueObjectReadV1(keeper,NULL,&policy,pointer,&raw) ? raw : NULL;
 }
 static bool resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
     const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
     const XL6_OwnershipFinishV1** completion)
 {
     (void)policies;(void)preparation;(void)completion;
-    *adapter=xrtValueObjectOwnershipAdapterV1(ref,&policy);return *adapter!=NULL;
+    *adapter=xrtValueObjectOwnershipAdapterV1(ref,&policy);
+    if(!*adapter)*adapter=xrtValueHandleOwnershipAdapterV1(ref,&tokenOps,traceToken);
+    return *adapter!=NULL;
 }
 const XL6_OwnershipDomainV1* xl6OwnershipDomainForeignResourceV1Get(void)
 {
