@@ -1,7 +1,7 @@
 #include "xl6_execution_tls_internal.h"
 #include <stdlib.h>
 typedef XL6_ExecutionResourceV1 Resource;
-typedef struct Listener {Resource base;Resource* parent;xatomicptr native;} Listener;
+typedef struct Listener {Resource base;Resource* parent;xatomicptr native;const XL6_TlsMetadataRoleV1* metadata;} Listener;
 _Static_assert(offsetof(Listener,base)==0,"TLS resource base must be first");
 static xtlslistener* native(const Resource* r)
 {return xrtAtomicPtrLoad(&((const Listener*)r)->native,XMEMORY_ACQUIRE);}
@@ -15,6 +15,7 @@ static bool create(Resource* base,const XL6_ExecutionCreateOptionsV1* options)
     Listener* r=(Listener*)base;const XL6_TlsListenerCreateOptionsV1* c=options->value.tlsListener;
     xrtAtomicPtrInit(&r->native,NULL);
     if(!c||!c->config){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    r->metadata=c->metadata;
     /* This provider certifies static role contexts only. Dynamic selectors
      * need their own owned capture/trace integration, never borrowed aliases. */
     if(c->config->Tls.Select||c->config->Tls.SelectContext||c->config->Tls.Resume||c->config->Tls.ResumeContext){
@@ -63,6 +64,7 @@ bool xl6ExecutionTlsListenerEnterV1(Resource* base,bool submit,XL6_TlsScopeV1* s
     if(base->family!=xl6ExecutionTlsListenerFamilyV1Get()||base->kind!=XL6_EXECUTION_TLS_LISTENER_V1){
         xl6ExecutionResourceLeaveV1(&scope->execution);xrtSetErrorKind(XERR_TYPE);return false;}
     scope->listener=native(base);scope->engineOwner=((Listener*)base)->parent;
+    scope->metadata=((Listener*)base)->metadata;
     if(!scope->listener){scope->engineOwner=NULL;xl6ExecutionResourceLeaveV1(&scope->execution);xrtSetErrorKind(XERR_STATE);return false;}
     return true;
 }

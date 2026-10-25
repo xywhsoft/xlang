@@ -44,6 +44,8 @@ static void error_set(xerrkind kind,const char* name,const char* message)
 }
 static TaskFrame* frame_header(const void* data)
 { return data?(TaskFrame*)((unsigned char*)data - offsetof(TaskFrame,data)):NULL; }
+XL6_CodeLease* xl6TaskFrameCodeLeaseInternalV1(const void* data)
+{const TaskFrame* frame=frame_header(data);return frame?frame->lease:NULL;}
 /* Mutation admission stabilizes inspection; it does NOT serialize concurrent
  * writers. Job, submitter and Watch references also need this physical lock. */
 static void frame_mutation_begin(TaskFrame* frame,xrtownershipscope* mutation)

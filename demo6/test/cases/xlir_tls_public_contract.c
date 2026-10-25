@@ -47,7 +47,7 @@ int main(int argc,char** argv)
         }
 #undef REFUSE
     }
-    assert(targets==164&&policies==2&&services>60&&contexts>30&&refusals>900);
+    assert(targets==167&&policies==2&&services>60&&contexts>30&&refusals>900);
     assert(xl6IrVerifyModule(module,NULL));
     printf("public TLS XLIR: %zu targets; %zu services; %zu contexts; %zu policies; %zu signature refusals\n",
         targets,services,contexts,policies,refusals);

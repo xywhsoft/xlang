@@ -219,6 +219,7 @@ extern const char* xl6StdlibTlsDialOptionsSource;
 extern const char* xl6StdlibTlsStreamClassSource;
 extern const char* xl6StdlibTlsStreamDialSource;
 extern const char* xl6StdlibTlsServerClassSource;
+extern const char* xl6StdlibTlsMetadataSource;
 extern const char* xl6StdlibHttp1ClassSource;
 extern const char* xl6StdlibHttpDecoderClassSource;
 extern const char* xl6StdlibWsFrameClassSource;

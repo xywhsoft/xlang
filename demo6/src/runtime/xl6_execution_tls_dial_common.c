@@ -14,7 +14,7 @@ Resource* xl6ExecutionTlsPrepareDialV1(XL6_ExecutionSourceV1* source,Resource* e
     XL6_ExecutionScopeV1 network={0},resolving={0};Resource* result=NULL;
     if(!xl6ExecutionTlsEngineEnterV1(engine,&network))return NULL;
     if(resolverEnter(resolver,&resolving)){
-        const XL6_TlsStreamCreateOptionsV1 tls={.engine=engine,.resolving=resolver,.dialing=true};
+        const XL6_TlsStreamCreateOptionsV1 tls={.engine=engine,.resolving=resolver,.dialing=true,.metadata=xl6TlsClientMetadataRoleV1Get()};
         const XL6_ExecutionCreateOptionsV1 options={.kind=XL6_EXECUTION_TLS_STREAM_V1,.value.tlsStream=&tls};
         result=xl6ExecutionCreateInternalV1(source,xl6ExecutionTlsStreamFamilyV1Get(),&options);
         xl6ExecutionResourceLeaveV1(&resolving);

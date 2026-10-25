@@ -3,6 +3,7 @@
 #include "xl6_execution_resource_internal.h"
 #include "xl6_execution_net_engine.h"
 #include "xl6_execution_tls.h"
+#include "xl6_tls_metadata_role.h"
 #include <stdlib.h>
 /* All builders are call-only, trusted resident functions. They consume the
  * supplied Data credit iff they return a native owned Stream; they never
@@ -13,12 +14,14 @@ typedef struct XL6_TlsStreamCreateOptionsV1 {
     XL6_ExecutionResourceV1* accepting; /* prepared real accept, no submission yet */
     XL6_ExecutionResourceV1* resolving; /* real Resolver parent for a prepared Dial */
     bool dialing; /* preparation submits nothing */
+    const XL6_TlsMetadataRoleV1* metadata; /* permanent actual creator's role */
     xtlsstream* (*Build)(xnetengine*,XL6_ExecutionResourceV1*,const xtlsstreamownershipv1*,const struct XL6_TlsStreamCreateOptionsV1*);
     const struct XL6_TlsClientConnectOptionsV1* client;
 } XL6_TlsStreamCreateOptionsV1;
 typedef struct XL6_TlsListenerCreateOptionsV1 {
     XL6_ExecutionResourceV1* engine;
     const struct xtlslistenerconfig* config; /* static role, copied synchronously */
+    const XL6_TlsMetadataRoleV1* metadata;
 } XL6_TlsListenerCreateOptionsV1;
 
 typedef enum XL6_TlsPendingKindV1 {
@@ -30,6 +33,7 @@ typedef struct XL6_TlsStreamResourceV1 {
     xatomicptr native,pending;
     xatomic32 prepared;
     XL6_TlsPendingKindV1 pendingKind; /* immutable after construction */
+    const XL6_TlsMetadataRoleV1* metadata; /* immutable, nonowning resident code */
 } XL6_TlsStreamResourceV1;
 XL6_EXECUTION_INTERNAL bool xl6ExecutionTlsPromotePendingV1(XL6_ExecutionResourceV1*,XL6_TlsPendingKindV1);
 typedef struct XL6_TlsScopeV1 {
@@ -37,11 +41,12 @@ typedef struct XL6_TlsScopeV1 {
     xtlsstream* stream;
     struct xtlslistener* listener;
     XL6_ExecutionResourceV1* engineOwner; /* scoped borrow only */
+    const XL6_TlsMetadataRoleV1* metadata;
 } XL6_TlsScopeV1;
 XL6_EXECUTION_INTERNAL bool xl6ExecutionTlsStreamEnterV1(XL6_ExecutionResourceV1*,bool,XL6_TlsScopeV1*);
 XL6_EXECUTION_INTERNAL bool xl6ExecutionTlsListenerEnterV1(XL6_ExecutionResourceV1*,bool,XL6_TlsScopeV1*);
 static inline void xl6ExecutionTlsLeaveV1(XL6_TlsScopeV1* scope)
-{xl6ExecutionResourceLeaveV1(&scope->execution);scope->stream=NULL;scope->listener=NULL;scope->engineOwner=NULL;}
+{xl6ExecutionResourceLeaveV1(&scope->execution);scope->stream=NULL;scope->listener=NULL;scope->engineOwner=NULL;scope->metadata=NULL;}
 static inline void xl6ExecutionTlsParentDropV1(XL6_ExecutionResourceV1** slot)
 {
     xrtownershipscope mutation={0};if(!xrtOwnershipMutationBegin(&mutation))abort();

@@ -1702,7 +1702,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsUdpClass;
     int needsUdpConfigClass;
     int needsNetRuntime;
-    int needsTlsLegacyConfigClass,needsTlsManagedSession;
+    int needsTlsLegacyConfigClass,needsTlsManagedSession,needsTlsMetadata;
     int needsTlsStreamClass;
     int needsTlsServerClass;
     int needsHttp1Class;
@@ -1758,7 +1758,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
      * dependencies. Declaring a transport never selects a legacy runtime. */
     needsTlsStreamClass=xl6StdlibNeedsTlsStreamClass(root,used);
     needsTlsServerClass=xl6StdlibNeedsTlsServerClass(root,used);
-    needsTlsManagedSession=needsTlsStreamClass||needsTlsServerClass||
+    needsTlsMetadata=needsTlsStreamClass||needsTlsServerClass||
+        xl6StdlibNodeUsesTypeName(root,"TlsConnectionInfo")||xl6StdlibNodeUsesTypeName(root,"TlsServerStats")||
+        xl6StdlibNodeUsesTypeName(root,"TlsStreamState")||xl6StdlibNodeUsesTypeName(root,"TlsListenerState");
+    needsTlsManagedSession=needsTlsMetadata||
         xl6StdlibNodeUsesTypeName(root,"TlsSession")||
         xl6StdlibNodeUsesTypeName(root,"TlsRole")||xl6StdlibNodeUsesTypeName(root,"TlsState")||
         xl6StdlibNodeUsesTypeName(root,"TlsWait")||xl6StdlibNodeUsesTypeName(root,"TlsResult");
@@ -2246,6 +2249,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder, xl6StdlibTlsLegacyConfigClassSource);
     }
     if ( needsTlsStreamClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibTlsMetadataSource);
         xl6StdlibBuilderAppend(&builder, xl6StdlibTlsStreamClassSource);
         xl6StdlibBuilderAppend(&builder, xl6StdlibTlsStreamDialSource);
         xl6StdlibBuilderAppend(&builder, "end\n");
@@ -2253,6 +2257,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsTlsServerClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTlsServerClassSource);
     }
+    if(needsTlsMetadata&&!needsTlsStreamClass)
+        xl6StdlibBuilderAppend(&builder,xl6StdlibTlsMetadataSource);
     if ( needsHttp1Class ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibHttp1ClassSource);
     }

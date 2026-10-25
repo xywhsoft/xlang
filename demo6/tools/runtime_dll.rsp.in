@@ -97,6 +97,18 @@
     src\runtime\xl6_tls_worker.c
     src\runtime\xl6_tls_worker_async.c
     src\runtime\xl6_tls_worker_blocking.c
+    src\runtime\xl6_tls_info.c
+    src\runtime\xl6_tls_info_build.c
+    src\runtime\xl6_tls_info_task.c
+    src\runtime\xl6_tls_info_blocking.c
+    src\runtime\xl6_tls_info_certificate.c
+    src\runtime\xl6_tls_server_stats.c
+    src\runtime\xl6_tls_listener_stats.c
+    src\runtime\xl6_ownership_domain_tls_info.c
+    src\runtime\xl6_ownership_domain_tls_server_stats.c
+    src\runtime\xl6_tls_metadata_client.c
+    src\runtime\xl6_tls_metadata_server.c
+
     src\runtime\xl6_execution_tls_dial.c
     src\runtime\xl6_execution_tls_dial_common.c
     src\runtime\xl6_execution_tls_promote.c

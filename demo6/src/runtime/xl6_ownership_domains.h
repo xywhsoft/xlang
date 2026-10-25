@@ -2,6 +2,8 @@
 #define XL6_OWNERSHIP_DOMAINS_H
 #include "xl6_ownership_catalog.h"
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTlsDialOptionsV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTlsInfoV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTlsServerStatsV1Get(void);
 /* Declaration-only SDK: no native registry .inc is required by this header. */
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainAtomicInt32V1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainAtomicUInt32V1Get(void);

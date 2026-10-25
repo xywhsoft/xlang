@@ -567,6 +567,7 @@ const char* xl6StdlibTlsLegacyConfigClassSource =
     "end\n";
 
 #include "src/stdlib/xl6_stdlib_tls_transport.inc"
+#include "src/stdlib/xl6_stdlib_tls_metadata.inc"
 
 const char* xl6StdlibHttp1ClassSource =
     "extern \"xl6_xrt_http1_request_head\" func __xl_http1_request_head(string method, string target, string fields) as point\n"

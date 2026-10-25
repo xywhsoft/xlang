@@ -81,7 +81,7 @@ def main():
             obj=out/('contract.'+opt+'.o');binary=out/('contract.'+opt+('.exe' if os.name=='nt' else ''))
             run('contract.'+opt+'.compile',[gcc,*flags,'-DXL_STATIC_EMBED','-'+opt,'-c',contract,'-o',obj])
             run('contract.'+opt+'.link',[gcc,*objects,obj,runtime,*libraries,'-o',binary])
-            assert 'public TLS XLIR: 164 targets;' in run('contract.'+opt+'.run',[binary,empty])
+            assert 'public TLS XLIR: 167 targets;' in run('contract.'+opt+'.run',[binary,empty])
         for index,case in enumerate(cases):
             label=str(index)+'.'+case.stem;c=out/(label+'.c')
             for mode in ['run','module']:run(label+'.'+mode,[driver,case,mode,out/(label+'.'+mode)])

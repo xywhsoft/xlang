@@ -29,7 +29,7 @@ XL6_ExecutionResourceV1* xl6ExecutionTlsConnectV1(XL6_ExecutionSourceV1* source,
         (!serverName.Data&&serverName.Size)||(!verifyName.Data&&verifyName.Size)||(!serverName.Size&&!verifyName.Size)){
         xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
     const Client client={remote,worker,context,serverName,verifyName,stream,tcp};
-    const XL6_TlsStreamCreateOptionsV1 tls={.engine=engine,.Build=build,.client=&client};
+    const XL6_TlsStreamCreateOptionsV1 tls={.engine=engine,.Build=build,.client=&client,.metadata=xl6TlsClientMetadataRoleV1Get()};
     const XL6_ExecutionCreateOptionsV1 options={.kind=XL6_EXECUTION_TLS_STREAM_V1,.deferRollback=true,.value.tlsStream=&tls};
     return xl6ExecutionCreateInternalV1(source,xl6ExecutionTlsStreamFamilyV1Get(),&options);
 }

@@ -5,7 +5,7 @@ typedef XL6_TlsStreamResourceV1 Stream;
 Resource* xl6ExecutionTlsPrepareAcceptV1(XL6_ExecutionSourceV1* source,Resource* receiver)
 {
     XL6_TlsScopeV1 scope={0};if(!xl6ExecutionTlsListenerEnterV1(receiver,true,&scope))return NULL;
-    const XL6_TlsStreamCreateOptionsV1 tls={.engine=scope.engineOwner,.accepting=receiver};
+    const XL6_TlsStreamCreateOptionsV1 tls={.engine=scope.engineOwner,.accepting=receiver,.metadata=scope.metadata};
     const XL6_ExecutionCreateOptionsV1 options={.kind=XL6_EXECUTION_TLS_STREAM_V1,.deferRollback=true,.value.tlsStream=&tls};
     Resource* result=xl6ExecutionCreateInternalV1(source,xl6ExecutionTlsStreamFamilyV1Get(),&options);
     xl6ExecutionTlsLeaveV1(&scope);return result;
