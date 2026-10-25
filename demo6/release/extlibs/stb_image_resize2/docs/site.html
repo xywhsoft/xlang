@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / stb_image_resize2</p><h1>stb_image_resize2</h1>
     <p class="extlib-lead">用 Buffer 缩放 uint8 图片，支持 sRGB 与 linear 模式。</p>
-    <p>输入、输出各限 64 MiB；2 通道按灰度+alpha、4 通道按 RGBA 缩放。XLang 入口在传给 C 前拒绝尺寸及步长整数回绕。C/XL 包级测试、Windows GCC 和 Linux ASan/UBSan 已通过；XL AOT 仍需共享运行时缺符号问题解除。</p>
+    <p>输入、输出各限 64 MiB；2 通道按灰度+alpha、4 通道按 RGBA 缩放。XLang 入口在传给 C 前拒绝尺寸及步长整数回绕。当前 Windows 默认门禁的核心与公开范例独立 EXE 均通过；Linux C ASan/UBSan、XLang JIT 与双语范例对照通过，Linux 独立 EXE 尚未验收。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
@@ -34,7 +34,7 @@ Buffer small = stb_image_resize2.resize(image.pixels(),
     image.width(), image.height(), 4, 320, 240)</code></pre>
     <h2 id="c-api">C</h2>
     <p>包含 <code>include/stb_image_resize2_native.h</code>。<code>xstbir_resize</code> 返回的 <code>xbuffer*</code> 由调用方以 <code>xrtBufferDestroy</code> 释放；输入像素仅借用。</p>
-    <p>Windows 可从 demo6 目录运行 <code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_resize2/test/check.ps1</code>，联合验证 C 边界、XLang 用例与双语范例的固定输出。灰度+alpha 的透明白/不透明黑缩放另核对固定像素值，C 与 XLang 均覆盖 sRGB 和 linear；Linux ASan/UBSan 门禁见包内 README。完整 XL AOT 仍待共享运行时缺符号问题解除。</p>
+    <p>Windows 可从 demo6 目录运行 <code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_resize2/test/check.ps1</code>，联合验证 C 边界、XLang 用例与双语范例的固定输出。灰度+alpha 的透明白/不透明黑缩放另核对固定像素值，C 与 XLang 均覆盖 sRGB 和 linear；Linux ASan/UBSan 门禁见包内 README。</p>
   </section>
 </main>
 </body>

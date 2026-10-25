@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / stb_image_write</p><h1>stb_image_write</h1>
     <p class="extlib-lead">从 Buffer 编码 PNG、JPEG、BMP、TGA、HDR，或经 XRT 写入 UTF-8 文件路径。</p>
-    <p>像素上限 64 MiB，输出上限 128 MiB；编码结果超限报告范围错误，实际分配失败报告内存错误，不返回部分图片。XLang 入口拒绝 C 整数回绕及写盘路径内嵌 NUL；文件写出使用 XRT 原子替换，失败保留已有目标。C/XL 包级测试、Windows GCC 和 Linux ASan/UBSan 已通过；当前普通 Buffer 最小 AOT 仍缺共享运行时符号。</p>
+    <p>像素上限 64 MiB，输出上限 128 MiB；编码结果超限报告范围错误，实际分配失败报告内存错误，不返回部分图片。XLang 入口拒绝 C 整数回绕及写盘路径内嵌 NUL；文件写出使用 XRT 原子替换，失败保留已有目标。Windows 默认门禁的核心与公开范例独立 EXE 均通过；Linux C ASan/UBSan、XLang JIT 与双语文件对照通过，Linux 独立 EXE 尚未验收。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
@@ -36,7 +36,7 @@ Buffer png = stb_image_write.encodePng(image.pixels(),
     image.width(), image.height(), image.channels())</code></pre>
     <h2 id="c-api">C</h2>
     <p>包含 <code>include/stb_image_write_native.h</code>。<code>xstbiw_encode</code> 返回调用方用 <code>xrtBufferDestroy</code> 释放的 <code>xbuffer*</code>；像素指针仅借用。详情见包内 README 与 C/XL 对照范例。</p>
-    <p>Linux 包级门禁 <code>bash release/extlibs/stb_image_write/test/check.sh</code> 同次验证 C ASan/UBSan、XLang 参数与路径边界、64 MiB 输入下的编码输出限额及 C/XLang 范例一致性。完整 AOT 仍受共享运行时缺符号阻断。</p>
+    <p>Linux 包级门禁 <code>bash release/extlibs/stb_image_write/test/check.sh</code> 同次验证 C ASan/UBSan、XLang 参数与路径边界、64 MiB 输入下的编码输出限额及 C/XLang 范例一致性；该门禁不构建 Linux 独立 EXE。</p>
     <p>Windows 可从 demo6 目录运行 <code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_write/test/check.ps1</code>，联合验证严格 GCC、C/XLang 边界、输出限额专项与双语范例。</p>
   </section>
 </main>
