@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# C sanitizer 与独立 XLang 文件用例；完整语言回归仍受共享 XLIR 问题阻断。
+# C sanitizer 与独立 XLang 文件用例；当前 Linux release/xl 的完整语言回归仍受 XLIR 问题阻断。
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
 work=${BZ2_TEST_WORK:-"$root/build/test/bz2_linux_guard"}
