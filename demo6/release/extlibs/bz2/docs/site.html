@@ -13,6 +13,7 @@
   <p>bzip2 字节流、增量编解码、文件事务和进度回调。复用 bzip2 1.0.8 与 XRT，无额外压缩 DLL。</p>
   <h2>交付状态</h2>
   <p>2026-10-25：当前 Windows 发布版的默认专项门禁通过中央 XLang 用例 JIT/AOT、文件 OOM 事务、C/XL 双语范例、23 个生成 C 原型和 269 项独立 Python bz2 互通。Linux 门禁通过 C ASan/UBSan、同一互通集和 XLang 文件用例；现有 Linux <code>release/xl</code> 的中央语言用例仍在字节异或处报 typed XLIR 错误，完整 Linux 语言/AOT 尚未签收，须待 Linux 发布物重建后复验。长期压力和性能基准也不在本轮验收范围。</p>
+  <p>2026-10-26：当前 Win/Linux x64 发布版的完整包门禁均通过。Windows 报告 66 项检查与 26 个生成 C 原型；Linux 通过 C ASan/UBSan、269 项 Python 标准 bz2 互通，以及中央、进度、文件操作、文本交付、综合/基础/文件范例七份独立 XLang EXE。基础和文件范例与 C 输出一致，文本交付覆盖空串、中文、内嵌 NUL 与非法 UTF-8。上段 Linux XLIR 诊断属于旧发布物；32 位、TSan、长时压力和性能基准仍未验收。</p>
   <h2>快速使用</h2>
   <pre><code>import bz2
 
@@ -49,7 +50,7 @@ wire.append(encoder.drain())</code></pre>
   <p><code>xrt_bz2.h</code> 提供版本化 options/error、一次性 Buffer、增量对象、Reader/Writer、文件事务及 <code>xrtprogressproc</code>。C 可直接使用，不依赖 xlang；只链接一份 XRT/xruntime 与 bzip2。C 只使用输入、输出和解压倍率限额；OptionsInit 清零无关的单项、条目、节点、深度字段，显式设置这些字段或 iFlags 会报参数错误。有效限额为零时关闭对应限制，XL 便捷接口要求正数。</p>
   <h2>范例与验证</h2>
   <p>发行目录：<code>examples/extlibs/bz2.xl</code>、<code>bz2_basic.xl</code>、<code>bz2_files.xl</code>。C 对照位于 <code>extlibs/bz2/examples/basic.c</code> 和 <code>files.c</code>，均可直接 <code>xl run</code> 或 <code>xl build</code>，两组使用相同输入与黄金输出。</p>
-  <p>源码门禁：<code>tools/check_extlib_bz2.ps1</code>、<code>tools/check_extlib_bz2.sh</code>；覆盖 23 个生成原型、269 项 Python bz2 互通、分配失败、IO/回调/状态边界、文件提交竞争及双语 JIT/AOT。中央 XLang 文件范例以独占系统临时目录运行、按字节校验解压内容，Linux 门禁将它与 C 文件范例及固定黄金输出对照；包内 <code>test/file_ops.xl</code> 另覆盖 UTF-8 往返、低内存解码、进度、取消和失败目标保护。Windows 门禁现可不带 <code>-SkipAot</code> 完整通过。</p>
+  <p>源码门禁：<code>tools/check_extlib_bz2.ps1</code>、<code>tools/check_extlib_bz2.sh</code>；覆盖 26 个生成原型、269 项 Python bz2 互通、分配失败、IO/回调/状态边界、文件提交竞争及双语 JIT/AOT。中央 XLang 文件范例以独占系统临时目录运行、按字节校验解压内容，Linux 门禁将它与 C 文件范例及固定黄金输出对照；包内 <code>test/file_ops.xl</code> 另覆盖 UTF-8 往返、低内存解码、进度、取消和失败目标保护。<code>test/text_transfer.xl</code> 已进入双平台 JIT/AOT 默认门禁。</p>
   <p>完整签名、所有权和复验方式见包内 README.md。官网页描述的是已实现范围和已知限制，不承诺未验证的共享对象并发、性能或断电持久性。</p>
 </main>
 </body>

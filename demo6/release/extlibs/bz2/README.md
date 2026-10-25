@@ -1,5 +1,14 @@
 # bz2
 
+2026-10-26 当前 Win/Linux x64 发布版的完整包门禁均退出 0。
+Windows 报告 `outcome=passed`、66 项检查、输入无变化；Linux 同次
+通过 C ASan/UBSan、269 项 Python 标准 bz2 互通，以及中央、进度、
+文件操作、文本交付和综合/基础/文件范例七份独立 XLang EXE。
+基础与文件范例的 C/JIT/AOT 输出一致；`text_transfer.xl` 固定覆盖
+空文本、中文、内嵌 NUL 和非法 UTF-8。下面 2026-10-25 对旧 Linux
+发布物的 XLIR/VFS 诊断保留为历史，不再表示本包当前阻断。
+32 位、TSan、长时压力和性能基准仍未由本轮证明。
+
 2026-10-25 文本解压改为 `cstring` 接管 XRT 解压缓冲，不再经
 `Buffer.text()` 无条件复制一次。C 桥接层验证 UTF-8、追加终止字节，
 然后以实际字节长度移交所有权；保留内嵌 NUL，空文本和无效 UTF-8

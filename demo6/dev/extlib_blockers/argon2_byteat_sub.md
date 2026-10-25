@@ -17,6 +17,12 @@
 
 ## 第二个触发面：bz2
 
+2026-10-26 当前 Linux 发布版运行中央用例退出 0；完整包门禁通过
+C ASan/UBSan、269 项 Python 标准 bz2 互通和七份独立 XLang EXE，
+包括此前未进入默认门禁的文本交付边界。Windows 默认门禁同时通过
+66 项检查。以下 Linux 第 68 行 XLIR 失败仅对应旧发布物，不再作为
+当前 BZip2 包级阻断。
+
 2026-10-25 平台复验：当前 Windows `release/xl.exe run
 test/cases/extlib_bz2.xl` 退出 0，默认 `tools/check_extlib_bz2.ps1`
 完整通过 JIT/AOT、C ABI、Python 互通和双语范例。现有 Linux
