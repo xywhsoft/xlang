@@ -5,6 +5,7 @@
 #include "analysis/frontend_types.h"
 #include "analysis/frontend_ir_regions.h"
 #include "analysis/frontend_cancel.h"
+#include "analysis/frontend_ir_initializers.inc"
 
 #define XLS_IR_SCAN_BYTES (16u*1024u*1024u)
 #define XLS_IR_PLAN_BYTES (8u*1024u*1024u)
@@ -410,15 +411,20 @@ int xl6IrRefreshExitPlans(XL6_IrModule* module)
 { return xlsFrontendIrRefreshRegionBudget(module,XLS_IR_REGION_BYTES); }
 int xlsFrontendIrRefreshRegionBudget(XL6_IrModule* module,size_t bytes)
 {
+    xls_ir_initializer_scope initializers;xlsFrontendIrInitializerBegin(&initializers,module);
     xls_ir_call_scan calls; xlsIrCallScanBegin(&calls,module,XLS_IR_CALL_BYTES);
     xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.regionBudget=bytes; xlsActiveIrScan=&scan;
-    int okay=xlsIrRefreshExitPlansOriginal(module); xlsIrScanDone(&scan); xlsIrCallScanDone(&calls); return okay;
+    int okay=xlsIrRefreshExitPlansOriginal(module); xlsIrScanDone(&scan); xlsIrCallScanDone(&calls);
+    xlsFrontendIrInitializerEnd(&initializers);return okay;
 }
 static int xlsIrVerifyBudgets(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes,size_t regionBytes)
 {
+    xls_ir_initializer_scope initializers;xlsFrontendIrInitializerBegin(&initializers,module);
+    initializers.allowed=0;
     xls_ir_call_scan calls; xlsIrCallScanBegin(&calls,module,bytes);
     xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.planBudget=bytes; scan.regionBudget=regionBytes; scan.verifying=1; xlsActiveIrScan=&scan;
-    int okay=xlsIrVerifyModuleOriginal(module,diags); xlsIrScanDone(&scan); xlsIrCallScanDone(&calls); return okay;
+    int okay=xlsIrVerifyModuleOriginal(module,diags); xlsIrScanDone(&scan); xlsIrCallScanDone(&calls);
+    xlsFrontendIrInitializerEnd(&initializers);return okay;
 }
 int xlsFrontendIrVerifyPlanBudget(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes)
 { return xlsIrVerifyBudgets(module,diags,bytes,XLS_IR_REGION_BYTES); }
@@ -434,13 +440,17 @@ void xlsFrontendIrScopeProofReset(void) { memset(&xlsIrScopeWork,0,sizeof(xlsIrS
 xls_ir_scope_proof_work xlsFrontendIrScopeProofWork(void) { return xlsIrScopeWork; }
 int xlsFrontendIrReferenceRefresh(XL6_IrModule* module)
 {
+    xls_ir_initializer_scope* oldInitializers=xlsActiveInitializers;xlsActiveInitializers=NULL;
     xls_ir_call_scan* previousCalls=xlsActiveCallScan; xlsActiveCallScan=NULL;
     xls_ir_scan* prior=xlsActiveIrScan; xlsActiveIrScan=NULL;
-    int okay=xlsIrRefreshExitPlansOriginal(module); xlsActiveIrScan=prior; xlsActiveCallScan=previousCalls; return okay;
+    int okay=xlsIrRefreshExitPlansOriginal(module); xlsActiveIrScan=prior; xlsActiveCallScan=previousCalls;
+    xlsActiveInitializers=oldInitializers;return okay;
 }
 int xlsFrontendIrReferenceVerify(const XL6_IrModule* module,XL6_DiagList* diags)
 {
+    xls_ir_initializer_scope* oldInitializers=xlsActiveInitializers;xlsActiveInitializers=NULL;
     xls_ir_call_scan* previousCalls=xlsActiveCallScan; xlsActiveCallScan=NULL;
     xls_ir_scan* prior=xlsActiveIrScan; xlsActiveIrScan=NULL;
-    int okay=xlsIrVerifyModuleOriginal(module,diags); xlsActiveIrScan=prior; xlsActiveCallScan=previousCalls; return okay;
+    int okay=xlsIrVerifyModuleOriginal(module,diags); xlsActiveIrScan=prior; xlsActiveCallScan=previousCalls;
+    xlsActiveInitializers=oldInitializers;return okay;
 }

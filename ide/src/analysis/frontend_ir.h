@@ -1,6 +1,22 @@
 #ifndef XLANG_ANALYSIS_FRONTEND_IR_H
 #define XLANG_ANALYSIS_FRONTEND_IR_H
 #include "src/ir/xl6_ir.h"
+/* Private synchronous scope:the caller keeps declaration keys immutable.
+ * Read-only phases prove nondecreasing keys once,then use a lower bound so
+ * duplicate declarations retain the original first-match semantics. */
+typedef struct xls_ir_initializer_scope {
+    struct xls_ir_initializer_scope* previous;
+    const XL6_IrModule* module;
+    const XL6_IrValueInitializer* source;
+    size_t count;
+    int attempted,ready,allowed;
+} xls_ir_initializer_scope;
+typedef struct xls_ir_initializer_work {uint64_t indexes,queries,indexedQueries,linearQueries,proofRecords,probes;} xls_ir_initializer_work;
+void xlsFrontendIrInitializerBegin(xls_ir_initializer_scope* scope,const XL6_IrModule* module);
+void xlsFrontendIrInitializerEnd(xls_ir_initializer_scope* scope);
+void xlsFrontendIrInitializerReset(void);
+xls_ir_initializer_work xlsFrontendIrInitializerWork(void);
+int xlsFrontendIrInitializerActive(void);
 /* Private attribution/reference boundary. The host has no mode switch and
  * links only the indexed shared compiler entry points. Counters are per
  * calling thread, not protocol-wide or a semantic-incrementality claim. */

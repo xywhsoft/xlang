@@ -72,6 +72,7 @@ static int ordinary(const char* path,const char* body)
             xls_semantic_check* cancelled=xlsSemanticCheckCreate(path,&input,1,1,predicate,&t,error,sizeof(error));
             if(cancelled || !t.fired)fprintf(stderr,"cancel kind=%u at=%llu observed=%llu error=%s\n",kind,(unsigned long long)at,(unsigned long long)t.observed,error);
             CHECK(!cancelled && t.fired && strstr(error,"cancelled") && !xlsActiveFrontendCancel);
+            CHECK(!xlsFrontendIrInitializerActive());
             CHECK(xlsSemanticCheckValidate(baseline));
             unsigned calls=0;xls_semantic_check* retry=xlsSemanticCheckCreate(path,&input,1,1,never,&calls,error,sizeof(error));
             CHECK(retry && xlsSemanticCheckInfo(retry).accepted && calls);
@@ -85,7 +86,15 @@ static int ordinary(const char* path,const char* body)
         trigger t={.kind=XLS_CANCEL_IR_VERIFY,.after=loop*nodes+65,.once=1};
         xls_semantic_check* cancelled=xlsSemanticCheckCreate(path,&input,1,1,predicate,&t,error,sizeof(error));
         CHECK(!cancelled && t.fired && strstr(error,"cancelled") && !xlsActiveFrontendCancel);
+        CHECK(!xlsFrontendIrInitializerActive());
     }
+    /* The statistics loop is after the 27 IR transformation phases and
+       before verification. Its cancellation must pop the borrowed table
+       scope before freeing the module or returning to a later request. */
+    trigger statistics={.kind=XLS_CANCEL_IR_PHASE,.after=32,.once=1};
+    xls_semantic_check* interrupted=xlsSemanticCheckCreate(path,&input,1,1,predicate,&statistics,error,sizeof(error));
+    CHECK(!interrupted && statistics.fired && strstr(error,"cancelled") && statistics.observed>=32);
+    CHECK(!xlsFrontendIrInitializerActive() && !xlsActiveFrontendCancel);
     char* held=irJson(xlsSemanticCheckIr(baseline));CHECK(held && !strcmp(held,ir));xrtFree(held);
     xlsSemanticCheckDestroy(baseline);xrtFree(json);xrtFree(ir);return 1;
 }
@@ -117,7 +126,7 @@ static int32 runReader(void* user)
     r->okay=!cancelled && t.fired && strstr(error,"cancelled") && !xlsActiveFrontendCancel;
     xlsSemanticCheckDestroy(cancelled);
     xls_semantic_check* retry=xlsSemanticCheckCreate(r->path,&input,1,0,NULL,NULL,error,sizeof(error));
-    r->okay=r->okay && retry && xlsSemanticCheckInfo(retry).accepted;xlsSemanticCheckDestroy(retry);return 0;
+    r->okay=r->okay && retry && xlsSemanticCheckInfo(retry).accepted && !xlsFrontendIrInitializerActive();xlsSemanticCheckDestroy(retry);return 0;
 }
 static int all(void)
 {
@@ -127,7 +136,7 @@ static int all(void)
     reader readers[4];xthread* threads[4];
     for(unsigned i=0;i<4;++i){readers[i]=(reader){path,body,0};threads[i]=xrtThreadCreate(runReader,&readers[i],0);CHECK(threads[i]);}
     for(unsigned i=0;i<4;++i){CHECK(xrtThreadWait(threads[i])==XWAIT_OK && readers[i].okay);xrtThreadDestroy(threads[i]);}
-    CHECK(!xlsActiveFrontendCancel);xrtFree(path);xrtFree(body);
+    CHECK(!xlsActiveFrontendCancel && !xlsFrontendIrInitializerActive());xrtFree(path);xrtFree(body);
     return 1;
 }
 int main(void)

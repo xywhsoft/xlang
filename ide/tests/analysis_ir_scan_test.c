@@ -6,6 +6,7 @@
 #include "src/type/xl6_type_model.h"
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 
 static xatomic32 checks,checkedBoundaries;
 #define CHECK(value) do { xrtAtomic32FetchAdd(&checks,1,XMEMORY_RELAXED); if(!(value)) { fprintf(stderr,"analysis_ir_scan_test:%d: %s\n",__LINE__,#value); return 0; } } while(0)
@@ -29,6 +30,19 @@ static int compareVerify(XL6_IrModule* ir,int accepted)
     int a=xl6IrVerifyModule(ir,&indexed),b=xlsFrontendIrReferenceVerify(ir,&reference);
     CHECK(a==b && (accepted<0 || a==accepted) && sameDiagnostics(&indexed,&reference));
     xl6DiagFree(&indexed); xl6DiagFree(&reference); return 1;
+}
+static int initializerValidationFence(XL6_IrModule* ir)
+{
+    if(!ir->valueInitializerCount)return 1;
+    XL6_IrErrorAbi saved=ir->valueInitializers[0].errorAbi;
+    ir->valueInitializers[0].errorAbi=(XL6_IrErrorAbi)INT_MAX;
+    xlsFrontendIrInitializerReset();CHECK(compareVerify(ir,0));
+    xls_ir_initializer_work work=xlsFrontendIrInitializerWork();
+    CHECK(!work.indexes && !work.proofRecords && !xlsFrontendIrInitializerActive());
+    ir->valueInitializers[0].errorAbi=saved;
+    xlsFrontendIrInitializerReset();CHECK(compareVerify(ir,1));
+    work=xlsFrontendIrInitializerWork();CHECK(work.indexes==1 && work.proofRecords==ir->valueInitializerCount);
+    return 1;
 }
 static int compareRegions(XL6_IrModule* ir,int large)
 {
@@ -171,6 +185,7 @@ static int corpus(const char* source,int large)
     CHECK(!planReference.indexes && !planReference.indexedVisits && planReference.linearVisits);
     char* expected=dump(&ir);
     CHECK(expected && !strcmp(actual,expected)); xrtFree(actual); xrtFree(expected);
+    CHECK(initializerValidationFence(&ir));
     CHECK(compareVerify(&ir,1) && compareScopeProof(&ir,large) && compareConversions(&ir,0) && compareRegions(&ir,large));
     if(ir.callSiteCount) {
         size_t count=ir.callSiteCount,capacity=ir.callSiteCapacity;
@@ -244,8 +259,77 @@ static int corpus(const char* source,int large)
 typedef struct reader { const char* source; int passed; } reader;
 static int32 readThread(void* user)
 { reader* item=user; item->passed=aliasScopes() && corpus(item->source,0); return 0; }
+static const XL6_IrValueInitializer* initializerReference(const XL6_IrModule* module,XL6_IrNodeId id)
+{
+    xls_ir_initializer_scope disabled;xlsFrontendIrInitializerBegin(&disabled,NULL);
+    const XL6_IrValueInitializer* result=xl6IrValueInitializerGet(module,id);
+    xlsFrontendIrInitializerEnd(&disabled);return result;
+}
+static int initializerLookups(void)
+{
+    XL6_IrNode nodes[8]={0};for(size_t i=0;i<8;++i)nodes[i].kind=XL6_IR_NODE_NAME;
+    XL6_IrValueInitializer values[7]={0},other[7]={0};
+    const XL6_IrNodeId declarations[]={0,2,2,4,6,8,UINT32_MAX};
+    for(size_t i=0;i<7;++i){values[i].declaration=declarations[i];values[i].errorAbi=i==2 || i==3 ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;}
+    memcpy(other,values,sizeof(values));
+    XL6_IrModule module={.nodes=nodes,.nodeCount=8,.nodeCapacity=8,.valueInitializers=values,.valueInitializerCount=7,.valueInitializerCapacity=7};
+    CHECK(!xl6IrValueInitializerGet(NULL,1));
+    for(unsigned mode=0;mode<5;++mode){
+        if(mode==1){XL6_IrValueInitializer temporary=values[1];values[1]=values[3];values[3]=temporary;}
+        if(mode==2)memcpy(values,other,sizeof(values));
+        module.valueInitializerCount=mode==3 ? 0 : 7;
+        module.valueInitializerCapacity=mode==4 ? 6 : 7;
+        xlsFrontendIrInitializerReset();xls_ir_initializer_scope scope;xlsFrontendIrInitializerBegin(&scope,&module);
+        for(XL6_IrNodeId id=0;id<=8;++id){
+            const XL6_IrValueInitializer* expected=initializerReference(&module,id);
+            CHECK(xl6IrValueInitializerGet(&module,id)==expected);
+            int wanted=expected && expected->errorAbi==XL6_IR_ERROR_ABI_MAY_RAISE;
+            CHECK(xl6IrNodeRequiresThrowExitPlan(&module,id)==wanted);
+        }
+        CHECK(xl6IrValueInitializerGet(&module,UINT32_MAX)==initializerReference(&module,UINT32_MAX));
+        xls_ir_initializer_work work=xlsFrontendIrInitializerWork();
+        CHECK(work.queries==work.indexedQueries+work.linearQueries);
+        if(mode==1 || mode==4)CHECK(!work.indexes && !work.indexedQueries && work.linearQueries && work.proofRecords<7);
+        else CHECK(work.indexes==1 && work.indexedQueries && work.proofRecords==module.valueInitializerCount);
+        if(mode==2){
+            CHECK(!xl6IrNodeRequiresThrowExitPlan(&module,2));
+            values[1].errorAbi=XL6_IR_ERROR_ABI_MAY_RAISE;
+            CHECK(xl6IrNodeRequiresThrowExitPlan(&module,2));
+            values[1].errorAbi=XL6_IR_ERROR_ABI_NO_RAISE;
+        }
+        xlsFrontendIrInitializerEnd(&scope);
+        xlsFrontendIrInitializerReset();CHECK(xl6IrValueInitializerGet(&module,4)==initializerReference(&module,4));
+        work=xlsFrontendIrInitializerWork();CHECK(!work.indexes && !work.indexedQueries && work.linearQueries==2);
+    }
+    module.valueInitializerCount=module.valueInitializerCapacity=7;
+    xls_ir_initializer_scope outer,inner;xlsFrontendIrInitializerBegin(&outer,&module);
+    CHECK(xl6IrValueInitializerGet(&module,4)==&values[3]);
+    XL6_IrModule second=module;second.valueInitializers=other;
+    xlsFrontendIrInitializerBegin(&inner,&second);CHECK(xl6IrValueInitializerGet(&second,4)==&other[3]);
+    CHECK(xl6IrValueInitializerGet(&module,4)==&values[3]);xlsFrontendIrInitializerEnd(&inner);
+    CHECK(xl6IrValueInitializerGet(&module,4)==&values[3]);
+    --module.valueInitializerCount;CHECK(xl6IrValueInitializerGet(&module,4)==initializerReference(&module,4));
+    ++module.valueInitializerCount;xlsFrontendIrInitializerReset();CHECK(xl6IrValueInitializerGet(&module,4)==&values[3]);
+    CHECK(!xlsFrontendIrInitializerWork().indexedQueries);xlsFrontendIrInitializerEnd(&outer);
+    xlsFrontendIrInitializerBegin(&outer,&module);CHECK(xl6IrValueInitializerGet(&module,4)==&values[3]);
+    module.valueInitializers=other;CHECK(xl6IrValueInitializerGet(&module,4)==&other[3]);
+    module.valueInitializers=values;xlsFrontendIrInitializerReset();CHECK(xl6IrValueInitializerGet(&module,4)==&values[3]);
+    CHECK(!xlsFrontendIrInitializerWork().indexedQueries);xlsFrontendIrInitializerEnd(&outer);
+    /* Actual absent-key probes exercise the former nodes x initializers
+       scan,without allocating another table or changing its first match. */
+    XL6_IrValueInitializer* large=xrtCalloc(4096,sizeof(*large));CHECK(large);
+    for(size_t i=0;i<4096;++i)large[i].declaration=(XL6_IrNodeId)(i*2+2);
+    module.valueInitializers=large;module.valueInitializerCount=module.valueInitializerCapacity=4096;
+    xlsFrontendIrInitializerReset();xlsFrontendIrInitializerBegin(&outer,&module);
+    for(XL6_IrNodeId id=1;id<8193;++id)CHECK(xl6IrValueInitializerGet(&module,id)==(id%2 ? NULL : &large[id/2-1]));
+    xlsFrontendIrInitializerEnd(&outer);xls_ir_initializer_work work=xlsFrontendIrInitializerWork();
+    CHECK(work.indexes==1 && work.proofRecords==4096 && work.indexedQueries==8192 && !work.linearQueries && work.probes<8192*15u);
+    printf("IR initializer probes=%llu;8192queries/4096records,first-match andlive ABI preserved\n",(unsigned long long)work.probes);
+    xrtFree(large);return 1;
+}
 static int run(void)
 {
+    CHECK(initializerLookups());
     CHECK(aliasScopes());
     const char* sources[]={
         "func main(...) as int\n int value = 7\n return value\nend\n",
