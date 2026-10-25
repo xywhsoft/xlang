@@ -53,14 +53,24 @@ try {
     }
 
     $null = Run 'XLang existing test' $xl @('run', 'test/cases/extlib_gettext.xl')
+    $null = Run 'XLang duplicate keys' $xl @('run', 'release/extlibs/gettext/test/duplicates.xl')
     $null = Run 'XLang boundaries' $xl @('run', 'release/extlibs/gettext/test/boundaries.xl')
     $null = Run 'XLang allocations' $xl @('run', 'release/extlibs/gettext/test/allocations.xl')
     $null = Run 'XLang input limits' $xl @('run', 'release/extlibs/gettext/test/input_limits.xl')
     if (-not $SkipAot) {
-        $target = Join-Path $work 'gettext_xl_test.exe'
-        $null = Run 'XLang boundaries build' $xl @('build',
-            'release/extlibs/gettext/test/boundaries.xl', '-o', $target)
-        $null = Run 'XLang boundaries AOT' $target @()
+        $cases = @(
+            @('central', 'test/cases/extlib_gettext.xl'),
+            @('duplicates', 'release/extlibs/gettext/test/duplicates.xl'),
+            @('boundaries', 'release/extlibs/gettext/test/boundaries.xl'),
+            @('allocations', 'release/extlibs/gettext/test/allocations.xl'),
+            @('input_limits', 'release/extlibs/gettext/test/input_limits.xl')
+        )
+        foreach ($case in $cases) {
+            $name = $case[0]
+            $target = Join-Path $work "gettext_$name.exe"
+            $null = Run "XLang $name build" $xl @('build', $case[1], '-o', $target)
+            $null = Run "XLang $name AOT" $target @()
+        }
     }
 
     Push-Location (Join-Path $root 'release')
@@ -70,7 +80,7 @@ try {
             throw "C/XLang gettext example outputs differ:`nC:`n$cOutput`nXL:`n$xlOutput"
         }
         Write-Host '[gettext] C/XLang parity: PASS'
-        $null = Run 'Public XLang example' $xl @('run', 'examples/extlibs/gettext.xl')
+        $publicOutput = Run 'Public XLang example' $xl @('run', 'examples/extlibs/gettext.xl')
 
         if (-not $SkipAot) {
             $exampleAot = Join-Path $work 'gettext_xl_example.exe'
@@ -79,6 +89,25 @@ try {
             $aotOutput = Run 'XLang example AOT' $exampleAot @()
             if ($aotOutput -cne $cOutput) {
                 throw 'XLang AOT gettext example differs from C'
+            }
+            $publicAot = Join-Path $work 'gettext_public_example.exe'
+            $null = Run 'Public XLang example build' $xl @('build',
+                'examples/extlibs/gettext.xl', '-o', $publicAot)
+            $publicAotOutput = Run 'Public XLang example AOT' $publicAot @()
+            if ($publicAotOutput -cne $publicOutput) {
+                throw 'public XLang AOT gettext example differs from JIT'
+            }
+            $cExampleAot = Join-Path $work 'gettext_c_example.exe'
+            $null = Run 'C example build' $xl @('build',
+                'extlibs/gettext/examples/gettext_c.c', '-o', $cExampleAot)
+            Push-Location $root
+            try {
+                $cAotOutput = Run 'C example AOT' $cExampleAot @()
+            } finally {
+                Pop-Location
+            }
+            if ($cAotOutput -cne $cOutput) {
+                throw 'C AOT gettext example differs from GCC'
             }
         }
     } finally {

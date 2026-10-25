@@ -1,5 +1,16 @@
 # gettext
 
+2026-10-26 当前 Windows/Linux 包门禁均退出 0：严格 C、Linux
+ASan/UBSan、中央/重复键/边界/分配故障/输入限额用例 JIT 与独立
+EXE AOT、双语成对范例和公开范例 AOT 全通过。C 单文件范例也由
+`xl build` 生成 EXE，必须从 `demo6` 根目录运行以读取同一 MO 夹具；
+其输出与 GCC、TCC 和 XLang 成对范例一致。Linux 有 `msgfmt` 时，
+默认门禁还用 GNU 工具从 `test/external.po` 生成真实 MO，由
+sanitizer C、XLang JIT/AOT 共同读取；无工具时明确输出 SKIP。
+旧 Linux `cbytes` 和 AOT 缺符号记录仅描述当时发布物。
+本轮验收只覆盖下述 UTF-8 PO/MO 子集，不代表全部 GNU gettext 特性
+或整个 xlang 发布版已签收；更新后的主线发布物仍需重建复验。
+
 2026-10-25 新 Linux 发布物：此前 `cbytes` 声明处的导入错误已不再复现。
 包级 `test/check.sh` 现完整通过严格 C、ASan/UBSan、PO/MO 边界与
 大输入、XLang JIT/分配故障、双语范例，并新增边界与成对范例两份
