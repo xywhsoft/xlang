@@ -1,5 +1,11 @@
 # stb_image_resize2
 
+2026-10-25 在 WSL 中运行现有 `test/check.sh` 全通过：严格 GCC、
+C 边界 ASan/UBSan、XLang 边界与分配故障、C/XLang 三路范例的
+固定输出对照。本次语言用例使用现有 Linux `release/xl`；没有
+重建 Linux 发布版或运行 Linux 独立 EXE，因此不计作 Linux AOT
+验收。
+
 2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 全通过：严格
 GCC、C/XLang 边界与分配故障、三路双语范例固定输出，以及中央
 用例和公开图片范例的独立 EXE AOT 构建、执行及结果对照。
