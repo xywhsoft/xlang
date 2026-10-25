@@ -68,15 +68,15 @@ def main():
         complete(c,text,'return res',3,['result'],4,17,owner=owner)
         done('changed-body-recomputes')
         c.open(extra,'func extra() as int\n return 0\nend\n',1)
-        r,_=complete(c,text,'return res',3,['result'],5,17,owner=owner);assert r['analysis']['documents']==2
+        r,_=complete(c,text,'return res',3,['result'],4,18,owner=owner);assert r['analysis']['documents']==2 and r['analysis']['inputScopeHits']==1
         c.send('textDocument/didClose',dict(textDocument=dict(uri=extra.as_uri())))
-        r,_=complete(c,text,'return res',3,['result'],6,17,owner=owner);assert r['analysis']['documents']==1
-        done('open-document-set-add-remove-recomputes')
+        r,_=complete(c,text,'return res',3,['result'],4,19,owner=owner);assert r['analysis']['documents']==1 and r['analysis']['inputScopeHits']==2
+        done('unconsulted-open-document-add-remove-retains-complete-model')
         c.send('textDocument/didClose',dict(textDocument=dict(uri=entry.as_uri())));c.open(entry,text,1)
-        complete(c,text,'return res',1,['result'],7,17,owner=owner)
+        complete(c,text,'return res',1,['result'],5,19,owner=owner)
         done('close-reopen-new-identity-recomputes')
         request+=1;c.send('textDocument/completion',params(text,'return res',0),request);reply,_=c.reply(request);assert reply['error']['code']==-32602,reply
-        complete(c,text,'return res',1,['result'],7,18,owner=owner)
+        complete(c,text,'return res',1,['result'],5,20,owner=owner)
         done('stale-version-rejection-preserves-cache');c.stop()
 
         imported='import dep\nfunc main(...) as int\n return dep.value()\nend\n'

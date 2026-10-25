@@ -1,6 +1,7 @@
 #include "analysis/signature_session.h"
 #include "analysis/signature_internal.h"
 #include "analysis/input_batch.h"
+#include "analysis/input_topology.h"
 #include "analysis/session_state.h"
 #include "analysis/frontend_context.h"
 #include "analysis/frontend_internal.h"
@@ -50,6 +51,8 @@ xls_signature_help* xlsSignatureSessionQueryWithHistory(xls_signature_session* s
        (offset && offset<bytes-bom && xlsTextData(query->text)[offset+bom-1]=='\r' && xlsTextData(query->text)[offset+bom]=='\n'))goto invalid;
     uint64_t remapped=0;int ordinary=s->result && xlsInputBatchEqual(s->batch,batch);
     int used=s->result && s->usageKnown && xlsInputBatchEqualUsed(s->batch,batch,s->usedInputs,queryKey,&remapped);
+    if(!used && s->result && s->usageKnown)
+        used=xlsInputBatchEqualTopology(s->batch,batch,s->usedInputs,queryKey,xlsSemanticCompletionTopology(xlsSignatureSemantic(s->result)),&remapped);
     int caret=0;int equal=s->result && s->offset==offset && !strcmp(s->queryKey,query->key) && (ordinary || used);
     if(equal && !xlsSignatureValidate(s->result)){equal=0;++s->stats.invalidations;}
     if(cancelled && cancelled(user))goto cancel;

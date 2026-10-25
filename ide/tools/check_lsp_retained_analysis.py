@@ -98,25 +98,25 @@ def main():
         assert r['analysis']['entryFullParses'] == 1 and r['analysis']['entryFragmentParses'] == 2, r
         extra = root / 'extra.xl'
         c.open(extra, dependency, 1)
-        r, _ = check(c, 4, 4)
+        r, _ = check(c, 4, 3)
         assert r['analysis']['documents'] == 2, r
-        assert r['analysis']['entrySyntaxHits'] == 1 and r['analysis']['entryFullParses'] == 1, r
+        assert r['analysis']['entrySyntaxHits'] == 0 and r['analysis']['entryFullParses'] == 1 and r['analysis']['inputScopeHits'] == 1, r
         c.send('textDocument/didClose', dict(textDocument=dict(uri=extra.as_uri())))
-        r, _ = check(c, 4, 5)
-        assert r['analysis']['entrySyntaxHits'] == 2, r
-        done('complete-input-set-add-and-close-invalidate')
+        r, _ = check(c, 4, 3)
+        assert r['analysis']['entrySyntaxHits'] == 0 and r['analysis']['inputScopeHits'] == 2, r
+        done('unconsulted-input-set-add-and-close-retain-complete-model')
         c.change(entry, imported, 5)
         c.open(dep, dependency, 7)
-        r, _ = check(c, 5, 6)
+        r, _ = check(c, 5, 4)
         assert r['analysis']['entryFullParses'] == 2, r
         c.change(dep, bad, 8)
-        r, _ = check(c, 5, 7, 1)
+        r, _ = check(c, 5, 5, 1)
         assert Path(r['diagnostics'][0]['file']).resolve() == dep, r
-        assert r['analysis']['entrySyntaxHits'] == 3 and r['analysis']['entryFullParses'] == 2, r
+        assert r['analysis']['entrySyntaxHits'] == 1 and r['analysis']['entryFullParses'] == 2, r
         c.change(dep, dependency, 9)
-        check(c, 5, 8)
+        check(c, 5, 6)
         c.change(dep, dependency, 10)
-        r, _ = check(c, 5, 8)
+        r, _ = check(c, 5, 6)
         assert next(d for d in r['documents'] if Path(d['path']).resolve() == dep)['version'] == 10, r
         done('unsaved-dependency-body-rebuild-and-same-body-version-rebind')
         c.stop()

@@ -1,6 +1,7 @@
 #include "analysis/completion_session.h"
 #include "analysis/frontend_context.h"
 #include "analysis/input_batch.h"
+#include "analysis/input_topology.h"
 #include "analysis/session_state.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_entry_cache.h"
@@ -60,6 +61,8 @@ xls_semantic_completion* xlsCompletionSessionQueryWithHistory(xls_completion_ses
     if(offset>bytes-bom || (offset<bytes-bom && ((unsigned char)xlsTextData(query->text)[offset+bom]&0xc0)==0x80)) goto invalid;
     uint64_t remapped=0;int ordinary=s->result && xlsInputBatchEqual(s->batch,batch);
     int used=s->result && s->usageKnown && xlsInputBatchEqualUsed(s->batch,batch,s->usedInputs,queryKey,&remapped);
+    if(!used && s->result && s->usageKnown)
+        used=xlsInputBatchEqualTopology(s->batch,batch,s->usedInputs,queryKey,xlsSemanticCompletionTopology(s->result),&remapped);
     int equal=s->result && s->offset==offset && !strcmp(s->queryKey,query->key) && (ordinary || used);
     if(equal && !xlsSemanticCompletionValidate(s->result)) { equal=0; ++s->stats.invalidations; }
     if(cancelled && cancelled(user)) goto cancel;

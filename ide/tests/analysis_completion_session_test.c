@@ -113,9 +113,9 @@ static int externalInputs(void)
     CHECK(r && r!=first && has(r,"member") && !xlsSemanticCompletionValidate(first) && parity(r,docs,1,"entry","entry",at));
     xls_completion_stats stats; xlsCompletionSessionStats(s,&stats); CHECK(stats.builds==2 && stats.hits==1 && stats.invalidations==1);
     xlsSemanticCompletionDestroy(first); first=r;
-    r=query(s,docs,2,"entry","entry",at); CHECK(r && r!=first && has(r,"member") && parity(r,docs,2,"entry","entry",at));
+    r=query(s,docs,2,"entry","entry",at); CHECK(r && r==first && has(r,"member") && parity(r,docs,2,"entry","entry",at));
     xlsSemanticCompletionDestroy(first); first=r;
-    r=query(s,docs,1,"entry","entry",at); CHECK(r && r!=first && has(r,"member")); xlsSemanticCompletionDestroy(first); first=r;
+    r=query(s,docs,1,"entry","entry",at); CHECK(r && r==first && has(r,"member") && parity(r,docs,1,"entry","entry",at)); xlsSemanticCompletionDestroy(first); first=r;
     docs[0].key="renamed";
     r=query(s,docs,1,"renamed","renamed",at); CHECK(r && r!=first && parity(r,docs,1,"renamed","renamed",at));
     xlsSemanticCompletionDestroy(first); first=r;

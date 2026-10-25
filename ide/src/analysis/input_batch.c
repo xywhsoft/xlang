@@ -1,5 +1,6 @@
 #include "analysis/input_batch.h"
 #include "analysis/frontend_context.h"
+#include "analysis/input_topology.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
@@ -126,6 +127,33 @@ int xlsInputBatchEqual(const xls_input_batch* a,const xls_input_batch* b)
 {return equalBatch(a,b,0,1,NULL,NULL);}
 int xlsInputBatchEqualUsed(const xls_input_batch* a,const xls_input_batch* b,uint64_t used,const char* query,uint64_t* remapped)
 {return remapped && equalBatch(a,b,used,0,query,remapped);}
+int xlsInputBatchEqualTopology(const xls_input_batch* a,const xls_input_batch* b,uint64_t used,const char* query,
+    const xls_input_topology* topology,uint64_t* remapped)
+{
+    if(remapped)*remapped=0;
+    if(!remapped || !topology || !a || !b || !xlsFrontendContextsEqual(a->context,b->context) ||
+       strcmp(a->directory,b->directory) || (a->count<64 && used>>a->count))return 0;
+    const xls_analysis_document *at=xlsInputBatchTarget(a),*bt=xlsInputBatchTarget(b);
+    if((at!=NULL)!=(bt!=NULL) || (at && strcmp(at->key,bt->key)))return 0;
+    if(query && (!xlsInputBatchFind(a,query) || !xlsInputBatchFind(b,query)))return 0;
+    const char* changed[128];size_t changes=0;uint64_t mapped=0;
+    for(size_t i=0;i<a->count;++i){
+        const xls_analysis_document* old=&a->documents[i];const size_t* index=xrtMapConstGet(&b->keys,key(old->key));
+        const xls_analysis_document* now=index ? &b->documents[*index] : NULL;
+        int observed=(used&(UINT64_C(1)<<i))!=0,required=observed || old==at || (query && !strcmp(old->key,query));
+        int same=now && old->identity==now->identity && !strcmp(old->path,now->path);
+        if(required && (!same || !xlsInputSameBody(old,now)))return 0;
+        if(observed)mapped|=UINT64_C(1)<<*index;
+        if(!same)changed[changes++]=old->path;
+    }
+    const char* current[64];
+    for(size_t i=0;i<b->count;++i){
+        const xls_analysis_document* now=&b->documents[i];const xls_analysis_document* old=xlsInputBatchFind(a,now->key);current[i]=now->path;
+        if(!old || old->identity!=now->identity || strcmp(old->path,now->path))changed[changes++]=now->path;
+    }
+    if(!xlsInputTopologyAdmits(topology,changed,changes,current,b->count))return 0;
+    *remapped=mapped;return 1;
+}
 size_t xlsInputBatchInputs(const xls_input_batch* b,xls_semantic_input* inputs,size_t capacity)
 {
     if(!b || !inputs || b->count>capacity) return 0;
