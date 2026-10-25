@@ -90,10 +90,20 @@ bool ok = xcolor_hex(51, 102, 204, output, sizeof(output));
 
 ## 双语范例与测试
 
+2026-10-26 当前发布物复验：Windows 默认门禁 `passed-scoped`，43 项
+检查通过、输入哈希不变；Linux 严格 C ASan/UBSan/float-cast、四线程
+8000 轮、26552 项独立 oracle 与语言 JIT/AOT 全通过。Linux 门禁新增
+中央语言用例和 C 单文件范例的独立 EXE；后者与 GCC C、TCC C 及
+XLang 基础范例逐字节同输出。两平台的测试目录现在默认独占，Linux
+默认临时产物退出时清理；显式 `COLOR_WORK_DIR` 可保留验证证据。
+八个拥有型 C 文本结果继续由语言层 `takeCstr` 直接接管，不增加复制。
+本轮未重建整个 xlang 发布物，脚本仍明确标记 `releaseReady=false`；
+32 位/ARM、TSan 与长时性能也不在此次包级签收范围。
+
 2026-10-25：独立 oracle 新增 4101 组 `contrast` 亮度比及 4131 组
 `mix` 编码 RGB 插值对照，含短/长 alpha、端点、截断参数和固定种子颜色对；
 与原有转换和命名色合计 26552 项。Windows 严格 C/线程/oracle 均通过，
-随后 Windows 语言阶段仍受已登记的根目录 VFS 头路径阻断；
+当日 Windows 语言阶段曾受根目录 VFS 头路径阻断；当前发布物已通过；
 Linux C ASan/UBSan/float-cast、XLang JIT 与双语门禁全部通过。
 同日使用当前 Linux 发布版补跑边界、分配故障、基础范例和调色板范例的
 独立 EXE AOT，四条路径全部通过；基础范例与 C 黄金输出一致，调色板

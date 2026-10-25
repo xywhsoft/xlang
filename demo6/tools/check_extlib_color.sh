@@ -2,7 +2,12 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
-work=${COLOR_WORK_DIR:-"$root/build/test/color_linux_guard"}
+if [[ -n "${COLOR_WORK_DIR:-}" ]]; then
+    work=$COLOR_WORK_DIR
+else
+    work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-color-XXXXXX")
+    trap 'rm -rf -- "$work"' EXIT
+fi
 mkdir -p "$work"
 pkg=release/extlibs/color
 cc=${CC:-gcc}
@@ -51,6 +56,9 @@ timeout 90s release/xl run "$pkg/test/allocations.xl"
 timeout 90s release/xl run release/examples/extlibs/color_basic.xl > "$work/basic_xl.log"
 diff -u "$work/basic.log" "$work/basic_xl.log"
 timeout 90s release/xl run release/examples/extlibs/color.xl > "$work/palette_xl.log"
+timeout 120s release/xl build test/cases/extlib_color.xl \
+    -o "$work/color_central_xl"
+timeout 90s "$work/color_central_xl"
 for name in boundaries allocations; do
     timeout 120s release/xl build "$pkg/test/$name.xl" -o "$work/color_$name"
     timeout 90s "$work/color_$name"
@@ -63,6 +71,10 @@ timeout 120s release/xl build release/examples/extlibs/color.xl \
     -o "$work/color_palette_xl"
 timeout 45s "$work/color_palette_xl" > "$work/palette_aot.log"
 diff -u "$work/palette_xl.log" "$work/palette_aot.log"
+timeout 120s release/xl build "$pkg/examples/basic.c" \
+    -o "$work/color_basic_c_aot"
+timeout 45s "$work/color_basic_c_aot" > "$work/basic_c_aot.log"
+diff -u "$work/basic.log" "$work/basic_c_aot.log"
 if [[ -n "${COLOR_DECLARATIONS:-}" ]]; then "$cc" "${flags[@]}" -fsyntax-only "$COLOR_DECLARATIONS"; fi
 snapshot > "$work/inputs.after.sha256"
 diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"
