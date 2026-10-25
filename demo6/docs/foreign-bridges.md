@@ -50,3 +50,10 @@ EXE 全通过。C 资源测试覆盖 32 个分配前缀（5 个拒绝、27 个�
 带捕获释放器的顶层资源正常退役，MessagePack 嵌套数据往返及快照隔离通过。
 WSL 标准 `build_linux.sh` 成功生成两个共享库和 CLI，hello、同一语言用例
 JIT/AOT，以及 GCC O2 的同一 C 故障测试通过。
+
+Windows 标准 `build.bat` 也在独立发布目录完成，3510 项输入在构建期间
+没有变化。实际 `xl.exe` / `xlc.dll` 的桥接用例、普通函数值、动态 callable、
+既有 C owner 及跨包 `cstring/cbytes` 均通过 JIT、AOT 和独立 EXE 验证。
+跨包原生源码使用发布目录的 `include/` SDK；独立验收目录也须包含该目录。
+物理源码检查确认 Windows/Linux 的 runtime/compiler 四种构建均精确提供
+854 个必需源，五项缺失、重复及未知特性的负向检查全部有效。
