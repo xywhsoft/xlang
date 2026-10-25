@@ -1,5 +1,14 @@
 # shellwords
 
+2026-10-25：`join` 现在将每个参数的引用结果直接追加到最终 XRT
+缓冲区，不再逐项分配临时 quoted 字符串再复制；独立 `quote` 与
+`join` 共用同一编码核心。Windows 严格 C、逐点分配故障、实际
+`CreateProcessW` 参数往返和 C/XLang 公开范例通过；Linux C
+ASan/UBSan、真实 `/bin/sh` 与语言门禁通过。Windows 默认门禁
+在中央 `join(var words)` 报 `ValueError: shellwords join requires an array`，
+与已记录的 [foreign var 容器投影问题](../../../dev/extlib_blockers/foreign_var_container_projection.md)
+同形；后续语言与 AOT 未运行，不能签收 Windows 整包发布级。
+
 2026-10-24 当前 Windows 发布版复验：严格 C、真实 Windows `argv`
 往返、C/XLang 公开范例均通过；默认门禁在中央 XLang 用例调用
 `join(var words)` 时失败。无关词法解析的最小复现与修复方向见
@@ -54,7 +63,7 @@ POSIX C 接口按参数字节处理，不要求有效 UTF-8：除 NUL 外，非 
 `bash release/extlibs/shellwords/test/check.sh`；
 `test/boundaries.xl` 与 `test/allocations.xl` 已登记到 `coverage.tests`，可用
 `tools/smoke_extlib_catalog.ps1 -Package shellwords` 连同原主用例复验。
-开发期间可用 `-SkipAot` 跳过当前主线的 AOT 链接缺符号问题。门禁包含
+开发期间可用 `-SkipAot` 聚焦 C/JIT；它不代表整包验收。门禁包含
 独立 GCC C 用例、已有及新增 XLang 边界、双语范例和 AOT 构建/执行。
 Windows GCC 与 Linux ASan/UBSan 的 C 边界及双语范例均已验证；C 测试
 逐字节检查 ASCII 1–127 的 `split(quote(word))` 往返；C/XLang 还覆盖

@@ -130,15 +130,11 @@ static bool __xswReserved(const char* sWord, size_t iSize)
 	return false;
 }
 
-static str __xswQuote(const char* sWord, size_t iSize)
+static bool __xswAppendQuoted(xbuffer* pOutput, const char* sWord, size_t iSize)
 {
-	xbuffer* pOutput;
 	size_t i;
 	bool bSafe;
 	bool bName;
-	str sResult = NULL;
-	pOutput = xrtBufferCreate();
-	if ( pOutput == NULL ) { return NULL; }
 	bSafe = iSize != 0u && sWord[iSize - 1u] != ':' &&
 		!__xswReserved(sWord, iSize);
 	bName = iSize != 0u &&
@@ -160,24 +156,33 @@ static str __xswQuote(const char* sWord, size_t iSize)
 	if ( bSafe ) {
 		if ( !xrtBufferAppend(pOutput, (xbytesview){
 			(cbytes)sWord, iSize }) ) {
-			goto cleanup;
+			return false;
 		}
 	} else {
-		if ( !xrtBufferAppendByte(pOutput, '\'') ) { goto cleanup; }
+		if ( !xrtBufferAppendByte(pOutput, '\'') ) { return false; }
 		for ( i = 0u; i < iSize; ++i ) {
 			if ( sWord[i] == '\'' ) {
 				if ( !xrtBufferAppend(pOutput, (xbytesview){
 					(cbytes)"'\\''", 4u }) ) {
-					goto cleanup;
+					return false;
 				}
 			} else if ( !xrtBufferAppendByte(pOutput, (uint8)sWord[i]) ) {
-				goto cleanup;
+				return false;
 			}
 		}
-		if ( !xrtBufferAppendByte(pOutput, '\'') ) { goto cleanup; }
+		if ( !xrtBufferAppendByte(pOutput, '\'') ) { return false; }
 	}
-	sResult = __xswTake(pOutput);
-cleanup:
+	return true;
+}
+
+static str __xswQuote(const char* sWord, size_t iSize)
+{
+	xbuffer* pOutput = xrtBufferCreate();
+	str sResult = NULL;
+	if ( pOutput == NULL ) { return NULL; }
+	if ( __xswAppendQuoted(pOutput, sWord, iSize) ) {
+		sResult = __xswTake(pOutput);
+	}
 	xrtBufferDestroy(pOutput);
 	return sResult;
 }
@@ -253,21 +258,15 @@ str xrtShellwordsJoin(const xvalue* pWords)
 	for ( i = 0u; i < xrtValueCount(pWords); ++i ) {
 		xstrview Text;
 		xvalue* pValue = xrtValueArrayGet(pWords, i);
-		str sQuoted;
 		if ( !xrtValueGetString(pValue, &Text) ||
 			memchr(Text.Data, 0, Text.Size) != NULL ) {
 			__xswError("shellwords join entries must be strings without NUL");
 			goto cleanup;
 		}
-		sQuoted = __xswQuote(Text.Data, Text.Size);
-		if ( sQuoted == NULL ) { goto cleanup; }
 		if ( (i != 0u && !xrtBufferAppendByte(pOutput, ' ')) ||
-			!xrtBufferAppend(pOutput, (xbytesview){
-				(cbytes)sQuoted, strlen(sQuoted) }) ) {
-			xrtFree(sQuoted);
+			!__xswAppendQuoted(pOutput, Text.Data, Text.Size) ) {
 			goto cleanup;
 		}
-		xrtFree(sQuoted);
 	}
 	sResult = __xswTake(pOutput);
 cleanup:

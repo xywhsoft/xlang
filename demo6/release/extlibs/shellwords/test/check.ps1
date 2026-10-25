@@ -50,15 +50,14 @@ try {
     if ($directCOutput -cne $cOutput) {
         throw 'direct C example output differs'
     }
-    $xlOutput = Run 'XLang example' $xl @('run', 'release/examples/extlibs/shellwords.xl')
-    $goldenPath = Join-Path $root 'release/extlibs/shellwords/examples/basic.expected.txt'
-    $golden = [IO.File]::ReadAllText($goldenPath).Replace("`r`n", "`n").TrimEnd("`n")
-    if ($cOutput -cne $golden -or $xlOutput -cne $golden) {
-        throw 'C/XLang example output differs from the common golden file'
-    }
-
     Push-Location (Join-Path $root 'release')
     try {
+        $xlOutput = Run 'XLang example' $xl @('run', 'examples/extlibs/shellwords.xl')
+        $goldenPath = Join-Path $root 'release/extlibs/shellwords/examples/basic.expected.txt'
+        $golden = [IO.File]::ReadAllText($goldenPath).Replace("`r`n", "`n").TrimEnd("`n")
+        if ($cOutput -cne $golden -or $xlOutput -cne $golden) {
+            throw 'C/XLang example output differs from the common golden file'
+        }
         $null = Run 'XLang existing test' $xl @('run', '../test/cases/extlib_shellwords.xl')
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/shellwords/test/boundaries.xl')
         $null = Run 'XLang allocation failures' $xl @('run', 'extlibs/shellwords/test/allocations.xl')
