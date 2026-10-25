@@ -1,6 +1,7 @@
 # TLS 类型化服务端选择器
 
-本批将服务端身份选择接入 `TlsSession`（sans-I/O），复用 XRT 的握手与身份实现。
+服务端身份选择接入 `TlsSession`（sans-I/O）及组合 `TlsServer`／`tls.listen`，
+复用 XRT 的握手与身份实现。
 这不是 TLS、五组标准库或发布产物的整体验收。原生暂存身份交接所需的
 `xrtTlsServerChoiceSetIdentityV1` 已在前一批定点同步；本批不改变两边时间 ABI。
 
@@ -57,10 +58,23 @@ Cgen 只提供静态类 schema、真实代码拥有者及字段/策略元数据�
 
 ## 当前边界与后续
 
-此批只接受内存中的 `TlsSession` 选择器。`TlsListener`/dial 组合对象的动态
-选择器绑定尚未接入，传入选择器会明确拒绝，不能静默退回静态身份。
-下一批需以组合对象原生拥有图、静止检查及 checked 退役合同完成绑定；
-不能借用源上下文或只延长回调指针寿命。
+`TlsServer`／`tls.listen` 使用同一 `TlsServerContext` 选择器，不借用源上下文：
+组合 Listener 自己保留闭包，原生 Listener 的 aggregate Data 信用保留驻留资源，
+各待握手记录再保留原生 Listener。原始上下文和局部身份变量可在构造后销毁。
+Listener 选择器同步运行于实际 Engine 工作线程；不同连接可能并发调用同一个
+选择器，捕获的可变状态需自行同步，不存在隐含全局串行锁或注册线程事件泵。
+不要在选择器中执行阻塞工作；应预先构建所需的身份与路由数据。
+
+`close()` 或 CLOSED 状态不是释放捕获的证明。普通退役先解除原生 creator，
+等待最后一个真实原生 Data 信用释放，再由原有 checked Source 控制尾部清理
+捕获与 Engine 父引用。Data 的释放线程只发布完成信号，不执行用户析构；
+即便清理失败没有可分配的诊断，Source 的失败状态也必须保留并报告。
+完整拥有图已认证静止且 Clear 后的 Finish 则允许相反释放顺序：此时不可能再
+调用借用的选择器，各自实际 pin 保证物理对象仍存活。不存在悬挂回调指针。
+
+Listener 的普通语言析构仍是非阻塞请求退役，不在调用线程执行捕获析构。
+不能把它与可能同步释放捕获的上下文或 Session 析构混为一谈。
+原生裸 Select 别名和未拥有的 Resume 回调仍被拒绝，不由指针形状推断拥有权。
 
 票据/恢复、组合传输 KeyUpdate 和双平台 shipping DLL/VFS/嵌入资源整体验收
 仍属长期任务，不得由本批局部结果替代。
@@ -86,3 +100,22 @@ Cgen 只提供静态类 schema、真实代码拥有者及字段/策略元数据�
 并独立复核全部输入、日志和产物哈希。
 证据位于 `F:/xlang-validation/five-groups-20261025/p6-tls-selector/next.json`；
 它只接受本批 Session 选择器，明确不接受 Listener 动态绑定或 shipping。
+
+后续 Listener 批次使用 `tools/check_tls_listener_selector_source.py`：
+`xlir_tls_listener_selector_owned.c` 以真实额外原生引用验证 Data 延迟尾部、
+精确图边、独立清理线程以及有／无诊断的 checked 失败；语言用例验证三次常规
+自建 loopback 握手、服务端 ALPN 索引与 cookie、脱离后的请求寿命及真实循环引用
+退役。还保留静态身份元数据回归和空声明裁剪，不把缩窄的动态用例替代它们。
+`xlir_tls_listener_selector_plan.c` 直接检查四份实际 Lowered XLIR 的可执行产物
+计划，分别证明动态选择器驻留源被选中、静态身份不引入它们、空声明不引入
+Listener。驻留单元分别编译，不能通过在 `xl6_xrt_impl.c` 中搜索驻留文件名
+来证明这一点；该文件只用于检查原生模块范围和 ALL 开关。
+Listener 批次的最终验收状态另见其独立证据报告，不更改前批的历史验收范围。
+
+2026-10-25 Listener 批次在 Windows/Linux 各通过 52 步，共 104 步；
+包含真实延迟 Data 持有、两类清理失败、四个产物依赖计划、严格生成 C、
+JIT／模块／独立 AOT、静态身份回归与空声明裁剪，并独立复核输入、日志、
+对象和产物哈希。源码编译器分别来自 1252/1251 个实际编译单元。
+证据：`F:/xlang-validation/five-groups-20261025/p6-tls-listener-selector/next.json`。
+本批不修改 XRT 算法、Cgen 或两边时间 ABI，也不接受票据恢复、传输 KeyUpdate
+或 shipping 封板。测试仅使用离线证书、自建 literal loopback 和普通生命周期检查。
