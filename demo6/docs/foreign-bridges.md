@@ -43,3 +43,10 @@ Windows 执行 `tools/check_foreign_bridges.ps1`，覆盖 C 接管失败、逐�
 故障、别名释放、语言局部及全局 class、嵌套容器快照，以及 JIT/AOT。
 测试目录独占且保留日志。`xcall` 是正式的显式回调装箱方式，无需开放隐式
 `function -> var`。
+
+2026-10-25 源码验收：Windows 公共源码驱动的 C、JIT、AOT 构建和独立
+EXE 全通过。C 资源测试覆盖 32 个分配前缀（5 个拒绝、27 个成功），
+每次存活数恢复基线；语言构造覆盖 64 个故障前缀，原生资源全部平衡。
+带捕获释放器的顶层资源正常退役，MessagePack 嵌套数据往返及快照隔离通过。
+WSL 标准 `build_linux.sh` 成功生成两个共享库和 CLI，hello、同一语言用例
+JIT/AOT，以及 GCC O2 的同一 C 故障测试通过。
