@@ -1,3 +1,7 @@
+#ifndef XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_VALUE_CONTAINER
+#endif
+
 #ifdef __TINYC__
 #include "../roaring_native.c"
 #else
@@ -5,6 +9,7 @@
 #endif
 
 #include <stdio.h>
+#include "xrt.h"
 
 int main(void) {
     void *set = xroaring_create();
@@ -21,6 +26,25 @@ int main(void) {
     printf("max: %lld\n", (long long)xroaring_max(set));
     xroaring_remove(set, 20);
     printf("after remove 20, count: %lld\n", (long long)xroaring_count(set));
+    xvalue *ordered = xroaring_to_array(set);
+    if (ordered == NULL || xrtValueType(ordered) != XVALUE_ARRAY ||
+        xrtValueCount(ordered) != 3) {
+        xroaring_destroy(set);
+        return 1;
+    }
+    {
+        int64 first, second, third;
+        if (!xrtValueGetInt(xrtValueArrayGet(ordered, 0), &first) ||
+            !xrtValueGetInt(xrtValueArrayGet(ordered, 1), &second) ||
+            !xrtValueGetInt(xrtValueArrayGet(ordered, 2), &third)) {
+            xrtValueRelease(ordered);
+            xroaring_destroy(set);
+            return 1;
+        }
+        printf("ordered: %lld %lld %lld\n",
+            (long long)first, (long long)second, (long long)third);
+    }
+    xrtValueRelease(ordered);
     puts("roaring example: PASS");
     xroaring_destroy(set);
     return 0;

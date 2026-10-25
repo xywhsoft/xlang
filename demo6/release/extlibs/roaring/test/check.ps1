@@ -58,6 +58,7 @@ try {
         'min: 10',
         'max: 1000000',
         'after remove 20, count: 3',
+        'ordered: 10 30 1000000',
         'roaring example: PASS'
     ) -join "`n"
     if (($cOutput -join "`n") -cne $expected -or

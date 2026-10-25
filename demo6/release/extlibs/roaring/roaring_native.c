@@ -4,6 +4,9 @@
 #include <limits.h>
 #include <string.h>
 
+#ifndef XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_VALUE_CONTAINER
+#endif
 #include "xrt.h"
 
 #define XR_ARRAY_LIMIT 4096u
@@ -341,3 +344,46 @@ static int64_t xr_extreme(void *handle, int maximum) {
 
 int64_t xroaring_min(void *handle) { return xr_extreme(handle, 0); }
 int64_t xroaring_max(void *handle) { return xr_extreme(handle, 1); }
+
+/* ------------ 升序快照 ------------ */
+
+struct xvalue *xroaring_to_array(void *handle) {
+    const XRBitmap *set = handle;
+    xvalue *result;
+    size_t i;
+    xrtClearError();
+    if (set == NULL) {
+        xr_fail(XERR_ARGUMENT, "set is null");
+        return xrtValueNull();
+    }
+    result = xrtValueArray();
+    if (result == NULL) return xrtValueNull();
+    for (i = 0; i < set->count; ++i) {
+        const XRContainer *bucket = set->items + i;
+        uint32_t prefix = (uint32_t)bucket->key << 16;
+        if (bucket->bitmap == NULL) {
+            uint32_t j;
+            for (j = 0; j < bucket->count; ++j) {
+                if (!xrtValueArrayAppendNew(result,
+                    xrtValueInt((int64_t)(prefix | bucket->array[j])))) goto failed;
+            }
+        } else {
+            uint32_t word;
+            for (word = 0; word < XR_BITMAP_WORDS; ++word) {
+                uint64_t bits = bucket->bitmap[word];
+                unsigned bit;
+                if (bits == 0) continue;
+                for (bit = 0; bit < 64u; ++bit) {
+                    if ((bits & (UINT64_C(1) << bit)) != 0 &&
+                        !xrtValueArrayAppendNew(result,
+                            xrtValueInt((int64_t)(prefix | (word * 64u + bit)))))
+                        goto failed;
+                }
+            }
+        }
+    }
+    return result;
+failed:
+    xrtValueRelease(result);
+    return xrtValueNull();
+}

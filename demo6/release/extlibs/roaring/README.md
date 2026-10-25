@@ -1,6 +1,6 @@
 # roaring
 
-精确的 `uint32` 非负整数内存集合。按高 16 位分桶，桶内从有序数组按密度升级为位图；支持重复插入、删除、查询、计数、最小/最大值及清空。适合整数 ID 去重与成员查询。此实现**没有** Roaring 格式序列化、run container、集合并交差或磁盘持久化，不与其他 Roaring 实现交换二进制数据。
+精确的 `uint32` 非负整数内存集合。按高 16 位分桶，桶内从有序数组按密度升级为位图；支持重复插入、删除、查询、计数、最小/最大值、升序快照及清空。适合整数 ID 去重与成员查询。此实现**没有** Roaring 格式序列化、run container、集合并交差或磁盘持久化，不与其他 Roaring 实现交换二进制数据。
 
 ```xlang
 import roaring
@@ -9,10 +9,14 @@ roaring.RoaringBitmap ids = roaring.create()
 ids.add(65536)
 assert ids.contains(65536)
 assert ids.count == 1
+var ordered = ids.toArray()
+assert ordered.length == 1 and ordered[0] == 65536
 assert ids.remove(65536)
 ```
 
 取值范围为 `0..4294967295`，越界抛 `ValueError`。`add` 重复值不改变数量；`remove` 返回是否确实删除；空集合的 `min` / `max` 为 `-1`。桶从数组升为位图后，删除至 4096 项时降回有序数组；继续删减时逐级收缩容量，避免稀疏桶长期占用整张位图。创建、插入或删除期间的内存分配失败由原生调用桥接抛 `MemoryError`，失败的操作不改变集合。同一实例的并发访问需调用方同步。
+
+`toArray()` 返回独立的 `var` 数组快照，元素是按数值升序排列的整数；之后修改或销毁原集合不会改变快照。调用成本与元素数量成正比，并需为结果分配内存；内存不足抛 `MemoryError`，原集合保持不变。
 
 ## C 接口
 
@@ -21,8 +25,11 @@ assert ids.remove(65536)
 `false` 且无错误。空句柄则报告 `XERR_ARGUMENT`：`count` 返回 `-1`，
 `min` / `max` 返回 `-1` 但带错误，`clear` 也设置错误；这与合法空集合
 的 `count == 0`、`min/max == -1` 且无错误区分开。
+`xroaring_to_array` 返回 XRT `xvalue` 数组，调用方用 `xrtValueRelease` 释放。空集合返回空数组；空句柄返回 XRT null 值并设置 `XERR_ARGUMENT`；分配失败返回 XRT null 值并保留 `XERR_MEMORY`。该 API 需要 `XRT_MODULE_VALUE_CONTAINER`，包清单已声明。
 
 ## 验证
+
+2026-10-25：新增升序快照 C/XLang 接口及双语范例。C 测试覆盖空集、跨桶与 `UINT32_MAX`、数组/位图两种桶、修改源集合后的快照独立性、空句柄和逐分配点故障回滚；XLang 边界及内存故障用例同步补齐。Windows 严格 GCC、C 原生测试、从 `release` 目录运行的 XLang JIT、公开范例 AOT 和双语范例输出均通过。Linux `test/check.sh` 也通过 C ASan/UBSan、XLang 边界/故障用例和双语范例对照；仍使用现有 Linux `release/xl`，不据此签收新版 Linux 发布物。当前 Windows 发布版从 `demo6` 根目录运行包级脚本时找不到 `include/xruntime_decl.h`；这是运行时 VFS/路径问题，见 `dev/extlib_blockers/release_root_xruntime_decl.md`，未据此宣称默认整包门禁通过。
 
 2026-10-25：在 WSL 中运行现有 `test/check.sh` 全通过：严格 GCC、
 独立位图模型和分配故障回滚的 ASan/UBSan、XLang 边界与分配用例，

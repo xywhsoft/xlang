@@ -9,7 +9,7 @@
         "includeDirs": ["include"],
         "cSources": ["roaring_native.c"],
         "xlSources": ["src/roaring.xl"],
-        "xrtModules": []
+        "xrtModules": ["XRT_MODULE_VALUE_CONTAINER"]
     },
     "links": [],
     "loadlibs": [],

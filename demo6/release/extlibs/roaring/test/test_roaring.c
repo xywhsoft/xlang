@@ -1,4 +1,5 @@
 #define XRT_MODULE_MEMORY_DEBUG
+#define XRT_MODULE_VALUE_CONTAINER
 #include "roaring_native.h"
 #include "xrt.h"
 
@@ -9,13 +10,31 @@
     return 1; \
 } } while (0)
 
+static int check_snapshot(void *set, const int64_t *expected, size_t count) {
+    xvalue *values = xroaring_to_array(set);
+    size_t i;
+    CHECK(values != NULL && xrtValueType(values) == XVALUE_ARRAY);
+    CHECK(xrtValueCount(values) == count);
+    for (i = 0; i < count; ++i) {
+        int64 actual;
+        CHECK(xrtValueGetInt(xrtValueArrayGet(values, i), &actual));
+        CHECK(actual == expected[i]);
+    }
+    xrtValueRelease(values);
+    return 0;
+}
+
 static int test_domain_and_order(void) {
     void *set = xroaring_create();
+    static const int64_t initial[] = {0, 65535, 65536, UINT32_MAX};
+    static const int64_t remaining[] = {65535, 65536};
     CHECK(set != NULL && xroaring_count(set) == 0);
+    CHECK(check_snapshot(set, NULL, 0) == 0);
     CHECK(xroaring_min(set) == -1 && xroaring_max(set) == -1);
     CHECK(xroaring_add(set, 0) && xroaring_add(set, UINT32_MAX));
     CHECK(xroaring_add(set, 65535) && xroaring_add(set, 65536));
     CHECK(xroaring_add(set, 65536) && xroaring_count(set) == 4);
+    CHECK(check_snapshot(set, initial, 4) == 0);
     CHECK(xroaring_min(set) == 0 && xroaring_max(set) == UINT32_MAX);
     CHECK(xroaring_contains(set, 65535) && xroaring_contains(set, UINT32_MAX));
     CHECK(!xroaring_remove(set, 123) && xroaring_remove(set, 0));
@@ -25,6 +44,7 @@ static int test_domain_and_order(void) {
     CHECK(xrtGetError());
     CHECK(!xroaring_contains(set, 123) && xrtGetError() == NULL);
     CHECK(xroaring_count(set) == 2);
+    CHECK(check_snapshot(set, remaining, 2) == 0);
     xrtClearError();
     xroaring_clear(set);
     CHECK(xroaring_count(set) == 0 && xroaring_min(set) == -1);
@@ -35,6 +55,7 @@ static int test_domain_and_order(void) {
 
 static int test_bitmap_and_failures(void) {
     void *set = xroaring_create();
+    xvalue *snapshot;
     int i;
     CHECK(set != NULL);
     for (i = 4095; i >= 0; --i) CHECK(xroaring_add(set, i));
@@ -47,9 +68,26 @@ static int test_bitmap_and_failures(void) {
     CHECK(xroaring_count(set) == 4096 && !xroaring_contains(set, 4096));
     for (i = 4096; i < 5000; ++i) CHECK(xroaring_add(set, i));
     CHECK(xroaring_count(set) == 5000);
+    snapshot = xroaring_to_array(set);
+    CHECK(snapshot != NULL && xrtValueCount(snapshot) == 5000);
+    for (i = 0; i < 5000; ++i) {
+        int64 actual;
+        CHECK(xrtValueGetInt(xrtValueArrayGet(snapshot, (size_t)i), &actual));
+        CHECK(actual == i);
+    }
     for (i = 0; i < 5000; ++i) CHECK(xroaring_contains(set, i));
     for (i = 1; i < 5000; i += 2) CHECK(xroaring_remove(set, i));
     CHECK(xroaring_count(set) == 2500 && xroaring_max(set) == 4998);
+    CHECK(xrtValueCount(snapshot) == 5000);
+    xrtValueRelease(snapshot);
+    snapshot = xroaring_to_array(set);
+    CHECK(snapshot != NULL && xrtValueCount(snapshot) == 2500);
+    for (i = 0; i < 2500; ++i) {
+        int64 actual;
+        CHECK(xrtValueGetInt(xrtValueArrayGet(snapshot, (size_t)i), &actual));
+        CHECK(actual == i * 2);
+    }
+    xrtValueRelease(snapshot);
     for (i = 0; i < 5000; ++i) CHECK(xroaring_contains(set, i) == (i % 2 == 0));
     CHECK(xrtMemDebugFailAfter(0u));
     CHECK(!xroaring_add(set, 65536));
@@ -140,7 +178,11 @@ static int test_full_bucket_lifecycle(void) {
 
 static int test_error_recovery(void) {
     void *set;
+    xvalue *values;
     xrtClearError();
+    values = xroaring_to_array(NULL);
+    CHECK(values != NULL && xrtValueType(values) == XVALUE_NULL &&
+        xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     CHECK(!xroaring_add(NULL, 1) && xrtGetError());
     set = xroaring_create();
     CHECK(set && xrtGetError() == NULL);
@@ -150,6 +192,7 @@ static int test_error_recovery(void) {
     CHECK(!xroaring_remove(set, 1) && xrtGetError() == NULL);
     CHECK(xroaring_count(NULL) == -1 && xrtGetError());
     CHECK(xroaring_count(set) == 0 && xrtGetError() == NULL);
+    CHECK(check_snapshot(set, NULL, 0) == 0 && xrtGetError() == NULL);
     CHECK(xroaring_min(NULL) == -1 && xrtGetError());
     CHECK(xroaring_min(set) == -1 && xrtGetError() == NULL);
     CHECK(xroaring_max(NULL) == -1 && xrtGetError());
@@ -158,6 +201,35 @@ static int test_error_recovery(void) {
     CHECK(xrtGetError());
     xroaring_clear(set);
     CHECK(xroaring_count(set) == 0 && xrtGetError() == NULL);
+    xroaring_destroy(set);
+    return 0;
+}
+
+static int test_snapshot_allocation_failure(void) {
+    void *set = xroaring_create();
+    static const int64_t expected[] = {7, 65536, UINT32_MAX};
+    int i, failures = 0, successes = 0;
+    CHECK(set != NULL);
+    for (i = 0; i < 3; ++i) CHECK(xroaring_add(set, expected[i]));
+    for (i = 0; i < 16; ++i) {
+        xvalue *values;
+        CHECK(xrtMemDebugFailAfter((unsigned)i));
+        values = xroaring_to_array(set);
+        if (xrtMemDebugFailTriggered()) {
+            CHECK(values != NULL && xrtValueType(values) == XVALUE_NULL);
+            CHECK(xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+            ++failures;
+        } else {
+            CHECK(values != NULL && xrtValueType(values) == XVALUE_ARRAY);
+            CHECK(xrtValueCount(values) == 3);
+            ++successes;
+        }
+        xrtValueRelease(values);
+        xrtMemDebugFailClear();
+        CHECK(xroaring_count(set) == 3);
+        CHECK(check_snapshot(set, expected, 3) == 0);
+    }
+    CHECK(failures > 0 && successes > 0);
     xroaring_destroy(set);
     return 0;
 }
@@ -229,6 +301,7 @@ int main(void) {
     CHECK(test_compaction_failure() == 0);
     CHECK(test_full_bucket_lifecycle() == 0);
     CHECK(test_error_recovery() == 0);
+    CHECK(test_snapshot_allocation_failure() == 0);
     CHECK(test_differential() == 0);
     return 0;
 }

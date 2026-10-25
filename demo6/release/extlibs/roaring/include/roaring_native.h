@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+struct xvalue;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -18,6 +20,8 @@ int64_t xroaring_count(void *handle);
 void xroaring_clear(void *handle);
 int64_t xroaring_min(void *handle);
 int64_t xroaring_max(void *handle);
+/* 返回由调用方 xrtValueRelease 的升序数组快照；失败返回 null 值并设置 XRT 错误。 */
+struct xvalue *xroaring_to_array(void *handle);
 
 #ifdef __cplusplus
 }

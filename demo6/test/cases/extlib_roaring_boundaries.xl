@@ -3,12 +3,17 @@ import roaring
 func main(...) as int
     roaring.RoaringBitmap set = roaring.create()
     assert set.min == -1 and set.max == -1
+    assert set.toArray().length == 0
     set.add(0)
     set.add(65535)
     set.add(65536)
     set.add(4294967295)
     set.add(65536)
     assert set.count == 4 and set.max == 4294967295
+    var ordered = set.toArray()
+    assert ordered.length == 4
+    assert ordered[0] == 0 and ordered[1] == 65535
+    assert ordered[2] == 65536 and ordered[3] == 4294967295
     assert set.remove(0) and not set.remove(0)
     assert set.min == 65535 and set.count == 3
 
@@ -32,6 +37,14 @@ func main(...) as int
     assert set.count == 4097 and set.contains(4096)
     assert set.remove(4096) and not set.contains(4096)
     assert set.count == 4096 and set.max == 4095
+    var dense = set.toArray()
+    assert dense.length == 4096
+    for i in range(4096)
+        assert dense[i] == i
+    end
+    set.clear()
+    assert dense.length == 4096 and dense[4095] == 4095
+    assert set.toArray().length == 0
     println("roaring boundaries: PASS")
     return 0
 end
