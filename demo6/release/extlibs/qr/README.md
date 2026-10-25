@@ -23,6 +23,13 @@ C API 见 `include/qr_native.h`。`_n` 接口显式接收 UTF-8 字节长度；�
 
 ## 范例与验证
 
+2026-10-25：使用当前包源码重新严格编译 C 编码器，并由独立
+ZXing-C++ 3.1.1 扫码器读回 11 组矩阵；中文、补充平面字符、
+2953 字节 byte 模式与 7089 位数字边界均通过，2954 字节 byte 模式
+输入被拒绝。新 `test/check_decode.py` 将编译、扫码和临时产物清理
+收为一条可复跑命令；本轮没有借此签收当前受 VFS 头文件阻断的
+XLang JIT/AOT 路径。
+
 2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
 严格 C/ABI、C 边界、中央与包内 XLang JIT、C/XLang 同输出、核心、
 包内边界、中央用例和带输出范例 AOT 全部通过。旧的索引/文本快照
@@ -38,6 +45,7 @@ C API 见 `include/qr_native.h`。`_n` 接口显式接收 UTF-8 字节长度；�
 - `release/extlibs/qr/test/test_qr.c` 与 `test/boundaries.xl` 覆盖格式、所有权、超长、无效输入和大矩阵。
 - `test/aot_core.xl` 只覆盖无输出的公开 `version` 路径，用于在完整 AOT 受主线阻断时验证本包的依赖裁剪；不代替矩阵或渲染的 AOT 验收。
 - `test/dump_matrix.c` 与 `test/verify_decode.py` 使用独立 ZXing 解码生成矩阵；此附加验证需要测试环境安装 `numpy`、`zxing-cpp`，不是运行时依赖。覆盖 v1、中文、长文本与 v40 的 7089 位数字。
+- 安装上述测试依赖后，在 `demo6` 目录运行 `python release/extlibs/qr/test/check_decode.py`；脚本以严格 GCC 编译当前 C 源，在独占临时目录执行扫码测试，不写入发布目录。
 
 2026-10-12：Windows 严格 GCC、Linux ASan/UBSan、C/XLang 边界、双语同输出与独立扫码通过。当时的无输出边界 AOT 曾通过；当前发布版必须按下方复核结果重新验收。
 
