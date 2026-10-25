@@ -29165,6 +29165,9 @@ typedef struct xtlsserverchoice {
 	const xtlsidentity* Identity;
 	size_t Protocol;
 	uint64 Cookie;
+	/* 框架私有的回调期身份引用，只由 SetIdentityV1 和框架管理。
+	 * 不可直接修改、复制或在回调返回后保存本结构。 */
+	xtlsidentity* IdentityOwnerV1;
 } xtlsserverchoice;
 
 
@@ -29224,6 +29227,15 @@ XRT_EXTERN_C_BEGIN
 
 /* 初始化默认上下文、无身份、无 ALPN 和无动态选择器的服务端配置。 */
 XRT_API void xrtTlsServerConfigInit(xtlsserverconfig* pConfig);
+
+/* 仅在 Select 回调中使用：独立 retain 身份，允许调用方随后立即释放
+ * 自己的引用。替换时释放前次设置的引用；回调成功或失败后，框架统一
+ * 释放最后的临时引用。失败保留原选择（旧身份析构报错时替换已提交）。
+ * 直接赋 Identity 仍是原有借用合同，不隐式转移引用。 */
+XRT_API bool xrtTlsServerChoiceSetIdentityV1(
+	xtlsserverchoice* pChoice,
+	const xtlsidentity* pIdentity
+);
 
 
 

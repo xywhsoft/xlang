@@ -1,0 +1,63 @@
+{
+  "Schema": 1,
+  "Purpose": "A callback-scoped native identity owner closes the temporary selector result lifetime gap",
+  "CanonicalCommit": "7db5e89bd833cacd0ab5dc8697407dc630a217c4",
+  "PreviousCanonicalCommit": "b65ba557ee7226caedc4f8dfa6ccc704596a24e0",
+  "WholeSnapshotUpgrade": false,
+  "TimeAbiPreserved": true,
+  "ExistingFunctionSignaturesPreserved": true,
+  "PublicStructLayoutsPreserved": false,
+  "PublicStructChanges": [
+    {
+      "Type": "xtlsserverchoice",
+      "Field": "IdentityOwnerV1",
+      "Ownership": "Framework-private independent callback-scope credit"
+    }
+  ],
+  "RebuildRequiredForCConsumers": true,
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "cee90ec001764c9a0895698a212dd1ac84db4d40fce94b407eb1fcf1dc20d71a",
+      "AfterSha256": "0f2c9cf4efb8c8edc3a30e325e7826de21a4b4e2a5ccd748b48d0bc9203ecb76"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "b455e5c22b445699ee18511c6a9fa3cc7507eb7198b0cfa31092c1132a637ea7",
+      "AfterSha256": "515b746e6d1e9f71acc9b2e66d4613b3d4b0f0186a434d3cef7e4ec664a1ea77"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "1e253c22c4015c13614bd2f4fe094583ffa43d2b0b0e8e0133f523e46fc24181",
+      "AfterSha256": "0199cd2a67a65a22e2da1a3e74b91bb26cea5077b7962edf16b118d0d010a31e"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "f5d083618df208a69711f611d0516b720aeb1df02ed13345c65f00047fcbf950",
+      "AfterSha256": "92920478fc969cfcfea7bc077ce401efb07a3e427b5d4cd90b95460d8ee9c529"
+    }
+  ],
+  "Sources": [
+    {
+      "Path": "include/xrt/tls_server.h",
+      "Sha256": "bd13a633c6036e629ba33a7a67718c37780f1a78c787ccd7a28fee51c8f75978"
+    },
+    {
+      "Path": "src/tls/server.c",
+      "Sha256": "66c705ee1c307d8961309bcad6033ef4c85d8bb4861fc0abbf38b149f61152d2"
+    },
+    {
+      "Path": "src/tls/server_handshake.c",
+      "Sha256": "c4d282f5162f99fe82583b94142dbbea83d3f18d10eba665cbd2a9827dec1148"
+    }
+  ],
+  "NewPublicFunctions": [
+    "xrtTlsServerChoiceSetIdentityV1"
+  ],
+  "PreservedTimeContracts": [
+    "Embedded microseconds/Until",
+    "Independent native milliseconds/For"
+  ],
+  "LanguageCallbackAccepted": false,
+  "ShippingAccepted": false
+}
