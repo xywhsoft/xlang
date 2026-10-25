@@ -36,10 +36,15 @@ Linux 语言发布物尚未重建，不能据此判定当前源码仍缺修复�
 仍于 `test/cases/extlib_bz2.xl:68:39` 报相同 XLIR 诊断并以非零状态退出。
 包内文件范例的类型与临时目录问题已单独修复；它们不解释此共享错误。
 
-`lz4` 也有相同触发面：`test/cases/extlib_lz4.xl:92` 与
+2026-10-26 当前发布版复验：LZ4 的 Windows 完整 69 项门禁和 Linux
+C sanitizer、514 项系统 liblz4 互通、中央/边界/进度/范例 JIT 与
+独立 EXE AOT 均退出 0；下面的 LZ4 诊断只描述旧发布物，不再作为
+当前 LZ4 包级阻断。
+
+`lz4` 当时也有相同触发面：`test/cases/extlib_lz4.xl:92` 与
 `release/examples/extlibs/lz4.xl:78` 都使用 `Buffer` 字节索引 XOR 255，
-当前 `xl run` 均报同一条 XLIR 操作数路径诊断。基本/文件范例的其他路径可运行，
-但完整包级验收仍等待共享修复。
+旧版 `xl run` 均报同一条 XLIR 操作数路径诊断。基本/文件范例的其他路径当时可运行，
+完整包级验收彼时等待共享修复。
 
 `lzma` 在 `test/cases/extlib_lzma.xl:92` 和
 `release/examples/extlibs/lzma.xl:77` 使用同形态的字节 XOR，

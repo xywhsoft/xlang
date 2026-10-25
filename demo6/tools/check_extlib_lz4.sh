@@ -12,7 +12,8 @@ input_paths() {
     find "$pkg" -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_codec_runtime.c \
         tools/check_extlib_lz4.sh tools/check_extlib_lz4_interop.py release/xl \
-        test/cases/extlib_lz4_progress.xl release/examples/extlibs/lz4_basic.xl \
+        test/cases/extlib_lz4.xl test/cases/extlib_lz4_progress.xl \
+        release/examples/extlibs/lz4.xl release/examples/extlibs/lz4_basic.xl \
         release/examples/extlibs/lz4_files.xl \
         release/examples/extlibs/lz4_basic.expected.txt release/examples/extlibs/lz4_files.expected.txt
 }
@@ -30,7 +31,7 @@ finish_gate() {
     sha256sum "${after[@]}" > "$work/inputs.after.sha256"
     if ! diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"; then result=125; fi
     printf '%s\n' "$result" > "$work/exit-code.txt"
-    if [[ $result == 0 ]]; then printf 'LZ4 Linux C ASan/UBSan and XLang parity gate: PASS\n'; fi
+    if [[ $result == 0 ]]; then printf 'LZ4 Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'; fi
     exit "$result"
 }
 trap finish_gate EXIT
@@ -85,4 +86,28 @@ for name in basic files; do
     timeout 90s ./release/xl run "release/examples/extlibs/lz4_$name.xl" > "$work/example-xl-$name.log"
     diff -u "release/examples/extlibs/lz4_$name.expected.txt" "$work/example-xl-$name.log"
     diff -u "$work/example-$name.log" "$work/example-xl-$name.log"
+done
+printf '[lz4] XLang JIT/AOT gate\n'
+timeout 90s ./release/xl run test/cases/extlib_lz4.xl
+timeout 90s ./release/xl run release/examples/extlibs/lz4.xl > "$work/example-xl-full.log"
+for name in central boundaries progress; do
+    printf '[lz4] AOT %s\n' "$name"
+    case "$name" in
+        central) source=test/cases/extlib_lz4.xl ;;
+        boundaries) source="$pkg/test/boundaries.xl" ;;
+        progress) source=test/cases/extlib_lz4_progress.xl ;;
+    esac
+    timeout 180s ./release/xl build "$source" -o "$work/lz4-$name-aot"
+    timeout 90s "$work/lz4-$name-aot"
+done
+for name in full basic files; do
+    printf '[lz4] AOT example %s\n' "$name"
+    source=release/examples/extlibs/lz4.xl
+    if [[ $name != full ]]; then source="release/examples/extlibs/lz4_$name.xl"; fi
+    timeout 180s ./release/xl build "$source" -o "$work/lz4-$name-aot"
+    timeout 90s "$work/lz4-$name-aot" > "$work/example-xl-$name-aot.log"
+    diff -u "$work/example-xl-$name.log" "$work/example-xl-$name-aot.log"
+    if [[ $name != full ]]; then
+        diff -u "$work/example-$name.log" "$work/example-xl-$name-aot.log"
+    fi
 done
