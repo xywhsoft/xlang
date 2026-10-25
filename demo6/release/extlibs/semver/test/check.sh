@@ -39,4 +39,15 @@ timeout 45s ./release/xl run release/extlibs/semver/test/allocations.xl
 timeout 45s ./release/xl run release/extlibs/semver/examples/basic.xl > "$work/xl.txt"
 diff -u release/extlibs/semver/examples/basic.expected.txt "$work/xl.txt"
 diff -u "$work/example.txt" "$work/xl.txt"
-printf 'semver Linux C ASan/UBSan and XLang parity gate: PASS\n'
+timeout 120s ./release/xl build release/extlibs/semver/test/boundaries.xl \
+    -o "$work/semver_boundaries"
+timeout 45s "$work/semver_boundaries"
+timeout 120s ./release/xl build release/extlibs/semver/test/allocations.xl \
+    -o "$work/semver_allocations"
+timeout 45s "$work/semver_allocations"
+timeout 120s ./release/xl build release/extlibs/semver/examples/basic.xl \
+    -o "$work/semver_example"
+timeout 45s "$work/semver_example" > "$work/xl_aot.txt"
+diff -u release/extlibs/semver/examples/basic.expected.txt "$work/xl_aot.txt"
+diff -u "$work/example.txt" "$work/xl_aot.txt"
+printf 'semver Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

@@ -1,5 +1,11 @@
 # semver
 
+2026-10-25 新 Linux 发布物：包级 `test/check.sh` 已纳入边界、分配
+故障与公开范例三份独立 EXE 的构建运行；范例 AOT 还与固定黄金文件及
+C 输出逐字节比较。本轮完整门禁通过，包含严格 C、ASan/UBSan、
+XLang JIT 和双语对照。下文“Linux 独立 EXE 未验收”是扩充门禁前的
+历史状态，不再描述当前发布物；覆盖范围仍限于本包承诺的语法子集。
+
 2026-10-24 当前发布物复验：Windows 默认 `test/check.ps1` 的严格 C/ABI、
 XLang 边界与分配故障、C/XLang 固定输出及边界/分配/范例 AOT 均通过；
 Linux `test/check.sh` 的 C ASan/UBSan、XLang JIT 和双语输出通过。
