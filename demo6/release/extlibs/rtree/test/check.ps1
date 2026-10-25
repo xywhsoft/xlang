@@ -81,6 +81,22 @@ try {
         $aotLines = @(& $exampleExe)
         if ($LASTEXITCODE -ne 0) { throw 'rtree AOT example failed' }
         Confirm-Output 'AOT example' $aotLines
+
+        foreach ($name in @('boundaries', 'allocations')) {
+            $source = "release/extlibs/rtree/test/$name.xl"
+            $output = Join-Path $work "$name.exe"
+            & $xl build $source -o $output
+            if ($LASTEXITCODE -ne 0) { throw "rtree $name AOT build failed" }
+            & $output
+            if ($LASTEXITCODE -ne 0) { throw "rtree $name AOT failed" }
+        }
+
+        $cExampleExe = Join-Path $work 'c_example.exe'
+        & $xl build release/examples/extlibs/rtree_c.c -o $cExampleExe
+        if ($LASTEXITCODE -ne 0) { throw 'rtree C example AOT build failed' }
+        $cAotLines = @(& $cExampleExe)
+        if ($LASTEXITCODE -ne 0) { throw 'rtree C example AOT failed' }
+        Confirm-Output 'C example AOT' $cAotLines
     }
 
     if ($SkipAot) {

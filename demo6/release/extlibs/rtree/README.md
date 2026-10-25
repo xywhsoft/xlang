@@ -20,6 +20,15 @@ C API 见 `include/rtree_native.h`。句柄由 `xrtree_destroy` 释放，`xrtree
 
 ## 范例与验证
 
+2026-10-26：当前发布版已越过旧的 `xl6ValueDataSnapshotV1` 缺符号点。
+Windows 默认门禁的严格 C、查询 oracle、语言边界 AOT 通过，
+但 `allocations.xl` 独立 EXE 在退出清理阶段抛运行时状态错误；
+Linux native/narrow 两档 C oracle 与分裂回归通过，默认门禁
+也在新增语言 AOT 阶段失败。最小 `rtree_global_native_aot_fini.xl`
+证实顶层原生对象在双平台 `xl run` 正常、独立 EXE 打印后失败，
+详见 `dev/extlib_blockers/global_native_class_aot_fini.md`。
+本包仍未达到发布签收条件；保留顶层对象用例，等待主线修复。
+
 2026-10-25：同一新发布版从 `release` 工作目录运行中央 XLang
 用例通过，但从 `demo6` 根目录执行默认 Windows 包门禁时，C 查询
 oracle 与分裂回归通过，中央 XLang 用例先报共享 VFS 头文件
@@ -38,7 +47,7 @@ oracle 与分裂回归通过，中央 XLang 用例先报共享 VFS 头文件
 
 在 `demo6` 目录可运行 `tools/smoke_extlib_catalog.ps1 -Package rtree`；Linux C/XL sanitizer 门禁为 `bash release/extlibs/rtree/test/check.sh`。它同时编译运行公开 C 范例、运行中央与包内 XLang 用例，并逐字节比较两种语言的范例输出；`xl run release/examples/extlibs/rtree_c.c` 也可直接运行。
 
-Windows 聚焦快测为 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/rtree/test/check.ps1 -SkipAot`，同次验证 C 查询参照、包外原生方法访问拒绝、XLang 边界及三条范例路径的固定输出。不带 `-SkipAot` 时，默认还构建运行无输出核心和公开范例 AOT；后者必须匹配同一固定输出。构建使用单次独占目录，失败后也清理。当前快测和核心 AOT 通过，完整范例构建仍缺共享 `xl6ValueDataSnapshotV1`，所以默认发布门禁如实失败。
+Windows 聚焦快测为 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/rtree/test/check.ps1 -SkipAot`，同次验证 C 查询参照、包外原生方法访问拒绝、XLang 边界及三条范例路径的固定输出。不带 `-SkipAot` 时，默认还构建运行核心、边界、分配故障、公开 XLang/C 范例的独立 EXE，并核对范例固定输出。构建使用单次独占目录，失败后也清理。当前默认门禁在分配故障 AOT 的顶层对象退出清理处失败，不可据快测签收。
 
 2026-10-12：Windows 严格 GCC、Linux ASan/UBSan、C/XLang 边界、双语同输出及无输出边界 AOT 通过。2026-10-13 补原生创建的首、次分配故障与失败后恢复测试，复跑 C 查询 oracle、XLang 边界和双语范例。2026-10-14 修复合法极值坐标在窄 `long double` 目标上使面积溢出、分裂复制错误 ID 的问题；面积启发式限幅到有限 `DBL_MAX`，不限制可插入坐标。C 回归逐一核对全部 ID，`test/check.sh` 在支持时额外用 `-mlong-double-64` 运行严格 GCC/ASan/UBSan。带输出范例 AOT 仍受共享 `xl6ValueDataSnapshotV1` 缺符号阻断；发布验收未完成，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`。
 

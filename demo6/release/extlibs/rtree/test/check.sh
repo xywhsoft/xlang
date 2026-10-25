@@ -64,4 +64,20 @@ diff -u "$work/rtree_c.txt" "$work/rtree_xl.txt"
 timeout 90s "$xl" run release/examples/extlibs/rtree_c.c \
     > "$work/rtree_direct.txt"
 diff -u "$work/rtree_c.txt" "$work/rtree_direct.txt"
+timeout 120s "$xl" build test/cases/extlib_rtree.xl \
+    -o "$work/rtree_core_aot"
+timeout 45s "$work/rtree_core_aot"
+for name in boundaries allocations; do
+    timeout 120s "$xl" build "release/extlibs/rtree/test/$name.xl" \
+        -o "$work/rtree_${name}_aot"
+    timeout 45s "$work/rtree_${name}_aot"
+done
+timeout 120s "$xl" build release/examples/extlibs/rtree.xl \
+    -o "$work/rtree_xl_example_aot"
+timeout 45s "$work/rtree_xl_example_aot" > "$work/rtree_xl_aot.txt"
+diff -u "$work/rtree_c.txt" "$work/rtree_xl_aot.txt"
+timeout 120s "$xl" build release/examples/extlibs/rtree_c.c \
+    -o "$work/rtree_c_example_aot"
+timeout 45s "$work/rtree_c_example_aot" > "$work/rtree_c_aot.txt"
+diff -u "$work/rtree_c.txt" "$work/rtree_c_aot.txt"
 printf 'rtree Linux C/XL %s ASan/UBSan gate: PASS\n' "${modes[*]}"

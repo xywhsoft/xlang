@@ -84,3 +84,17 @@ release/extlibs/lru/test/check.ps1`，严格 C、线程、XLang JIT、双语
 同文件 JIT 正常退出。此用例还涵盖跨线程恢复拒绝，不能把快照
 移到局部来掩盖退出期故障；修复主线后重跑默认包门禁。此处只确认
 可观察症状，尚未证明与哈希器、缓存类的内部根因完全相同。
+
+2026-10-26 `rtree` 最小复现见 `rtree_global_native_aot_fini.xl`：
+顶层仅创建一个 `rtree.RTree` 并打印 `rtree ready`。当前 Windows 和
+Linux 发布版 `xl run` 均打印后正常退出；同文件 `xl build` 的独立
+EXE 均先打印相同内容，再抛
+`RuntimeError: operation is not valid in the current state` 并退出 1。
+Windows 默认 `rtree/test/check.ps1` 已越过严格 C、查询 oracle、
+边界 AOT，在 `allocations.xl` 独立 EXE 的退役阶段失败；Linux 默认
+`test/check.sh` 通过 native/narrow 两档 C oracle 与分裂回归后亦
+在新增语言 AOT 阶段失败。旧的文本快照缺符号不再是本轮阻断。
+这些只是同症状证据，不能在未跟踪析构调用前断言与其他包同根。
+主线应检查顶层 native-backed class 对象的所有权、模块退役顺序与
+错误作用域，并以这个最小文件和两平台默认包门禁作回归；不要把
+测试对象挪入函数局部来掩盖问题。本扩展包任务不修改主线。
