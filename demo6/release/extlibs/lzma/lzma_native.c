@@ -13,6 +13,9 @@
 #ifndef XRT_MODULE_PATH
 #define XRT_MODULE_PATH
 #endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
 #ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #endif
@@ -230,6 +233,41 @@ XLZMA_EXPORT void* xlzma_decompress(void* pData, size_t iSize, unsigned long lon
 		return NULL;
 	}
 	return pOutput;
+}
+
+/* UTF-8 验证后将解压结果移交给字符串，避免再复制整份文本。 */
+XLZMA_EXPORT void* xlzma_decompress_text(void* pData, size_t iSize,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio)
+{
+	xbuffer* pOutput = (xbuffer*)xlzma_decompress(pData, iSize, iMaxInput, iMaxOutput, iMaxRatio);
+	if ( pOutput == NULL ) { return NULL; }
+	if ( !xrtUtf8Valid((xstrview){(const char*)pOutput->Data, pOutput->Size}, NULL) ) {
+		xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.lzma", 0,
+			"lzma decompressed text is not valid UTF-8");
+		xrtBufferDestroy(pOutput);
+		return NULL;
+	}
+	if ( !xrtBufferAppendByte(pOutput, 0) ) {
+		xrtBufferDestroy(pOutput);
+		return NULL;
+	}
+	return pOutput;
+}
+
+XLZMA_EXPORT size_t xlzma_text_size(void* pRaw)
+{
+	const xbuffer* pOutput = (const xbuffer*)pRaw;
+	return pOutput != NULL && pOutput->Size != 0u ? pOutput->Size - 1u : 0u;
+}
+
+XLZMA_EXPORT void* xlzma_text_take(void* pRaw)
+{
+	xbuffer* pOutput = (xbuffer*)pRaw;
+	void* pText;
+	if ( pOutput == NULL ) { return NULL; }
+	pText = xrtBufferTake(pOutput, NULL, NULL);
+	xrtBufferDestroy(pOutput);
+	return pText;
 }
 
 XLZMA_EXPORT int xlzma_compress_file(const char* sSource, const char* sDestination, int iLevel,

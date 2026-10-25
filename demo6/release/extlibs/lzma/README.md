@@ -1,5 +1,13 @@
 # lzma
 
+2026-10-25 `decompressText` 改为返回拥有型 `cstring`：验证 UTF-8 后
+取走原解压缓冲，避免 `Buffer.text()` 再复制整份明文。实际字节长度
+保留内嵌 NUL；C 测试覆盖指针身份、空结果、非法 UTF-8、分配失败
+和释放恢复。Windows 严格 C、标准 `.xz` 互通、专项与中央用例
+JIT/AOT 均通过；完整包脚本的 XLang 阶段仍被共享 VFS 头文件
+查找故障中断。Linux C ASan/UBSan 与分配回归通过，但旧 `release/xl`
+不识别 `cstring`，须重建发布物后再签收语言阶段。
+
 2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 完整通过。
 除严格 C、分配故障、XLang JIT/AOT 与双语范例外，门禁现直接编译
 `test/interop.c`，并调用 Python 标准库 `lzma.FORMAT_XZ` 验证双向
@@ -21,6 +29,10 @@ import lzma
 Buffer packed = lzma.compress("hello lzma")
 assert lzma.decompressText(packed) == "hello lzma"
 ```
+
+二进制解压使用 `decompress() as Buffer`；`decompressText() as cstring`
+只接受有效 UTF-8，非法文本抛 `ValueError`，有效文本中的内嵌 NUL
+按真实长度保留。末尾 NUL 的追加在容量不足时可能触发一次扩容。
 
 C 调用方包含 `include/xrt_lzma.h`，使用 `xrtLzmaCompress` / `xrtLzmaDecompress`；
 成功返回的 `xbuffer*` 由调用方以 `xrtBufferDestroy` 释放。流式接口借用 XRT

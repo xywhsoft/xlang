@@ -39,6 +39,7 @@
                          "XRT_MODULE_IO_FILE",
                          "XRT_MODULE_ONCE",
                          "XRT_MODULE_PATH",
+                         "XRT_MODULE_UNICODE",
                          "XRT_MODULE_VALUE",
                          "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"
                      ],
@@ -60,7 +61,8 @@
                      "tests":  [
                                    "test/boundaries.xl",
                                    "test/file_ops.xl",
-                                   "test/allocations.xl"
+                                   "test/allocations.xl",
+                                   "test/text_transfer.xl"
                                ]
                  },
     "native":  {

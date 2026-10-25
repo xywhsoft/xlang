@@ -17,6 +17,10 @@ const char* xlzma_last_error(void);
 void* xlzma_compress(void* pData, size_t iSize, int iLevel, unsigned long long iMaxInput, unsigned long long iMaxOutput);
 void* xlzma_compress_str(const char* sText, size_t iSize, int iLevel, unsigned long long iMaxInput, unsigned long long iMaxOutput);
 void* xlzma_decompress(void* pData, size_t iSize, unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio);
+/* text_size 保留内嵌 NUL；text_take 移交 xrtFree 所有权。 */
+void* xlzma_decompress_text(void* pData, size_t iSize, unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio);
+size_t xlzma_text_size(void* pRaw);
+void* xlzma_text_take(void* pRaw);
 int xlzma_compress_file(const char* sSource, const char* sDestination, int iLevel, bool bOverwrite, unsigned long long iMaxInput, unsigned long long iMaxOutput, xvalue* pCallback);
 int xlzma_decompress_file(const char* sSource, const char* sDestination, bool bOverwrite, unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio, xvalue* pCallback);
 void* xlzma_compressor_create(int iLevel, unsigned long long iMaxInput, unsigned long long iMaxOutput);

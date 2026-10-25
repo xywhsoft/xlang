@@ -1,0 +1,21 @@
+import lzma
+
+func main(...) as int
+    assert lzma.decompressText(lzma.compress("")) == ""
+    assert lzma.decompressText(lzma.compress("你好 lzma")) == "你好 lzma"
+
+    string text = lzma.decompressText(lzma.compress("A\0B你好"))
+    assert text == "A\0B你好"
+    assert string.byteLen(text) == 9
+
+    Buffer invalid = Buffer()
+    invalid.appendByte(255)
+    bool rejected = false
+    try
+        lzma.decompressText(lzma.compress(invalid))
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    return 0
+end

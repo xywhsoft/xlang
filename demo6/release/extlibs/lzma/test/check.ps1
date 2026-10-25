@@ -89,6 +89,7 @@ try {
         'release/extlibs/lzma/test/boundaries.xl',
         'release/extlibs/lzma/test/file_ops.xl',
         'release/extlibs/lzma/test/allocations.xl',
+        'release/extlibs/lzma/test/text_transfer.xl',
         'test/cases/extlib_lzma_progress.xl',
         'test/cases/extlib_lzma.xl',
         'release/examples/extlibs/lzma.xl'
@@ -112,6 +113,10 @@ try {
     Write-Host '[lzma] C/XLang example parity: PASS'
 
     if (-not $SkipAot) {
+        $textTarget = Join-Path $work 'text_transfer.exe'
+        $null = Run 'text transfer AOT build' $xl @('build',
+            'release/extlibs/lzma/test/text_transfer.xl', '-o', $textTarget)
+        $null = Run 'text transfer AOT run' $textTarget @()
         $target = Join-Path $work 'aot_core.exe'
         $null = Run 'core AOT build' $xl @('build',
             'release/extlibs/lzma/test/aot_core.xl', '-o', $target)

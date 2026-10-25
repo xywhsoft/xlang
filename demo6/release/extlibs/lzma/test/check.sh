@@ -57,6 +57,7 @@ timeout 90s ./release/xl run release/extlibs/lzma/test/boundaries.xl
 timeout 90s ./release/xl run release/extlibs/lzma/test/file_ops.xl
 timeout 90s ./release/xl run release/examples/extlibs/lzma.xl > "$work/full_xl.txt"
 timeout 90s ./release/xl run release/extlibs/lzma/test/allocations.xl
+timeout 90s ./release/xl run release/extlibs/lzma/test/text_transfer.xl
 timeout 90s ./release/xl run test/cases/extlib_lzma_progress.xl
 timeout 45s ./release/xl run release/extlibs/lzma/examples/basic.xl > "$work/basic_xl.txt"
 diff -u "$work/basic_c.txt" "$work/basic_xl.txt"
