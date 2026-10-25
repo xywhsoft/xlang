@@ -4,8 +4,14 @@ set -euo pipefail
 # 独立 C 验证；使用仓库固定快照，所有后端分配同样接受 ASan/UBSan 检查。
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
-work=${BROTLI_TEST_WORK:-"$root/build/test/brotli_linux_guard"}
-mkdir -p "$work"
+if [[ -n ${BROTLI_TEST_WORK:-} ]]; then
+    work=$BROTLI_TEST_WORK
+    mkdir -p "$work"
+else
+    work_root="$root/build/test/brotli_linux_guard"
+    mkdir -p "$work_root"
+    work=$(mktemp -d "$work_root/run_XXXXXX")
+fi
 cc=${CC:-gcc}
 pkg=release/extlibs/brotli
 sources=("$pkg/xrt_brotli.c" "$pkg/brotli_native.c" "$pkg"/third_party/{common,dec,enc}/*.c)
@@ -34,7 +40,7 @@ finish_gate() {
     sha256sum "${after[@]}" > "$work/inputs.after.sha256"
     if ! diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"; then result=125; fi
     printf '%s\n' "$result" > "$work/exit-code.txt"
-    if [[ $result == 0 ]]; then printf 'Brotli Linux C ASan/UBSan and XLang parity gate: PASS\n'; fi
+    if [[ $result == 0 ]]; then printf 'Brotli Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'; fi
     exit "$result"
 }
 trap finish_gate EXIT
@@ -82,3 +88,20 @@ timeout 90s "$xl" run release/examples/extlibs/brotli.xl > "$work/full_xl.log"
 timeout 90s "$xl" run release/examples/extlibs/brotli_basic.xl > "$work/basic_xl.log"
 diff -u release/examples/extlibs/brotli_basic.expected.txt "$work/basic_xl.log"
 diff -u "$work/basic.log" "$work/basic_xl.log"
+printf '[brotli] XLang AOT gate\n'
+for name in extlib_brotli extlib_brotli_progress error_dispatch wire_fixture brotli brotli_basic; do
+    printf '[brotli] AOT %s\n' "$name"
+    case "$name" in
+        extlib_*) source="test/cases/$name.xl" ;;
+        error_dispatch|wire_fixture) source="$pkg/test/$name.xl" ;;
+        *) source="release/examples/extlibs/$name.xl" ;;
+    esac
+    timeout 180s "$xl" build "$source" -o "$work/$name"
+    timeout 90s "$work/$name" > "$work/${name}_aot.log"
+done
+diff -u "$work/full_xl.log" "$work/brotli_aot.log"
+diff -u "$work/basic.log" "$work/brotli_basic_aot.log"
+printf '[brotli] C file allocation AOT\n'
+timeout 180s "$xl" build "$pkg/test/file_allocation.c" "${sources[@]}" \
+    --inc-path lib/xrt --inc-path lib/xruntime -o "$work/file-allocation-aot"
+timeout 90s "$work/file-allocation-aot" "$work/aot-files-$$" > "$work/file-allocation-aot.log"

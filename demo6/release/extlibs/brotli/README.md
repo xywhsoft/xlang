@@ -133,16 +133,23 @@ Windows/Linux 包门禁以 `-DNDEBUG` 构建并执行范例，对照同一黄金
 
 Windows 门禁包含独立 GCC、C/xlang JIT/AOT、23 个真实生成原型、回调/事务文件、
 教学范例、同输出对照及逐分配点故障注入。Linux 使用
-`bash tools/check_extlib_brotli.sh` 同次运行 C ASan/UBSan、两组中央 XLang JIT 用例、包内独立线格式样本、
-教学范例与 C/XLang 基础范例逐字节黄金输出对照；不代表 Linux AOT 已验收。
+`bash tools/check_extlib_brotli.sh` 同次运行 C ASan/UBSan、中央和包内
+XLang JIT、六条独立 EXE AOT、C 文件分配故障 AOT，以及教学范例和
+C/XLang 基础范例逐字节黄金输出对照。
 完整教学范例的文件段使用 XRT 独占系统临时目录，并在异常路径清理；
 不再向固定的 `build/test/brotli-example` 写入文件。
 `test/wire_fixture.xl` 已登记到 `coverage.tests`，用 Node.js 内置 Brotli 产生的固定字节流检验二进制互通和输出限额。
 `test/error_dispatch.xl` 同样纳入覆盖，固定截断输入在一次性和流式接口均抛 `IOError`、完成后写入抛 `RuntimeError`，并验证失败后新对象仍可用。Windows 门禁在默认模式下同时运行该用例的 JIT 和独立 EXE；Linux 门禁运行 JIT。
 测试数量与输入哈希以 `build/test/brotli_guard/results.json` 等实际记录为准。
-当前主线 AOT 阻断期间，可运行 `tools/check_extlib_brotli.ps1 -SkipAot`
-完成严格 C、JIT、生成原型、文件事务和双语对照；默认模式仍执行全部 AOT，
-聚焦模式不能作为整包发布签收。
+`tools/check_extlib_brotli.ps1 -SkipAot` 仅供聚焦快测；默认模式执行
+全部 AOT，聚焦模式不能作为整包发布签收。
+
+2026-10-26 当前发布物：Windows 门禁报告 `passed`，73 项检查、
+23 个生成原型、严格 C、分配故障、C/XLang JIT/AOT、文件事务与
+双语范例通过，输入快照无变化。Linux C ASan/UBSan、语言 JIT/
+六条独立 EXE AOT、C 文件分配故障 AOT 与范例输出对照通过。
+旧 AOT 缺符号不再复现；本项签收当前 Windows/Linux x64 短时
+发布候选门禁，不代表 32 位/ARM、TSan、长时压力和性能基准完成。
 
 后端配置补丁仅在 `third_party/enc/memory.h`：强制使用上游 CLEANUP_ON_OOM 路径，
 拒绝 EXIT_ON_OOM，防止库在内存不足时直接退出宿主。更新 vendor 时必须保留并重测。

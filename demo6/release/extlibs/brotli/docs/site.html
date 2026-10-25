@@ -93,7 +93,8 @@ output.append(encoder.drain())</code></pre>
     <p>2026-09-27 的固定输入专项包含 60 项 Windows 检查：独立 GCC、C/xlang JIT/AOT、
     23 个实际生成原型、回调取消与异常、文件原子性、双语范例、109 次分配故障。
     Linux 联合门禁同次通过 C ASan/UBSan 与泄漏检查、两组 XLang JIT 用例及 C/XLang 基础范例逐字节黄金输出对照；不代表 Linux AOT 已验收。</p>
-    <p>2026-10-24 当前 Windows 发布版通过 70 项完整包级检查，包括中央 XLang 用例 JIT/AOT、文件故障夹具 JIT/AOT 和综合范例；Linux C ASan/UBSan、泄漏检查及双语门禁通过。此前 AOT 缺符号属于旧发布物记录；Linux XLang AOT、Windows ARM、长期压力和性能基准尚未验收。</p>
+    <p>2026-10-24 当时 Windows 发布版通过 70 项包级检查，包括中央 XLang 用例 JIT/AOT、文件故障夹具 JIT/AOT 和综合范例；Linux C ASan/UBSan、泄漏检查及双语门禁通过。此前 AOT 缺符号属于旧发布物记录。</p>
+    <p>2026-10-26 当前 Windows 门禁报告 <code>passed</code>，73 项检查、23 个生成原型，严格 C、分配故障、C/XLang JIT/AOT 和双语范例均通过。Linux C ASan/UBSan、六条独立 XLang EXE AOT、C 文件分配故障 AOT 与输出对照通过；默认构建目录按运行隔离。32 位/ARM、TSan、长期压力和性能基准尚未验收。</p>
     <p>门禁为 <code>tools/check_extlib_brotli.ps1</code> 和 <code>tools/check_extlib_brotli.sh</code>。
     尚未覆盖 Windows ARM、全部外部解码器和生产负载性能。后端必须保留 CLEANUP_ON_OOM 配置，
     不能在内存不足时退出宿主进程。</p>
