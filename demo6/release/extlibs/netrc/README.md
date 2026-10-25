@@ -1,5 +1,14 @@
 # netrc
 
+2026-10-26 当前发布物复验：Windows 默认包门禁的严格 C、TLS、
+双语范例、UTF-8 文件保存与 Python `.netrc` 互通，以及语言边界
+均通过；具名类型用例在直接用语言字典构造 `Netrc` 时报告
+`ConfigError: netrc document must be a dict`。既有最小复现于当前
+Windows/Linux 发布物均失败，见
+`../../../dev/extlib_blockers/foreign_var_container_projection.md`。
+后续分配与 AOT 门禁未执行，整包未签收；不在包侧识别私有句柄。
+下方旧共享链接缺符号仅为历史状态。
+
 2026-10-24 当前 Windows 发布版复验：严格 C/原生边界、C/XLang 范例、
 UTF-8 文件往返与 Python `.netrc` 互通均通过；默认门禁在具名类型
 用例的语言字典 `stringify()` 处失败。JIT 与独立 EXE 的最小复现见

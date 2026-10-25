@@ -51,7 +51,7 @@ println(auth["login"])</code></pre>
     <h2>验证与边界</h2>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/netrc/test/check.ps1 -SkipAot
 bash release/extlibs/netrc/test/check.sh</code></pre>
-    <p>Windows C/XLang 边界与双语同输出、Linux C ASan/UBSan 和原生文件系统 <code>0600</code> 权限用例通过；Linux 脚本也运行中央与包内 XLang 边界，并将双语范例与黄金输出逐字对照。原生入口的 64 位无符号参数与 XRT 的 <code>uint64</code> ABI 一致。C/XLang 资源限额中，显式 <code>0</code> 表示不限；省略 XLang 参数使用签名默认上限。<code>parse(string)</code> 直接传入 UTF-8 数据及字节长度，不额外建立 XLang Buffer 副本；原生层先检查输入限额，并完整拒绝内嵌 NUL。负限额会被拒绝；路径或注释（包括 <code>macdef</code> 标题注释）中的 NUL 也会被拒绝。非空 Reader 正常解析。C 的空 writer、空/缺失路径在序列化前报参数错误。流式写入或刷新发生内存错误时报告 <code>MEMORY</code>，普通 I/O 错误报告 <code>IO</code>；保存阶段分配失败也报告 <code>MEMORY</code> 且保持旧文件。POSIX 保存采用同目录私有临时文件并替换；Windows 仍依赖目标目录 ACL。完整 AOT 因主线 <code>xl6ValueDataSnapshotV1</code> 缺符号尚未签收。</p>
+    <p>Windows C/XLang 边界与双语同输出、Linux C ASan/UBSan 和原生文件系统 <code>0600</code> 权限用例通过；原生入口的 64 位无符号参数与 XRT 的 <code>uint64</code> ABI 一致。<code>parse(string)</code> 直接传入 UTF-8 数据及字节长度；原生层检查输入限额并拒绝内嵌 NUL。流式写入或刷新发生内存错误时报告 <code>MEMORY</code>，普通 I/O 错误报告 <code>IO</code>；保存阶段分配失败保持旧文件。POSIX 保存采用同目录私有临时文件并替换；Windows 仍依赖目标目录 ACL。当前 Windows/Linux 发布物的最小用例均在语言字典直接构造 <code>Netrc</code> 时失败，属于共享 <code>var</code> 字典投影阻断；Windows 默认门禁此前的 C、UTF-8 文件与 Python 互通通过，但后续分配/AOT 未执行。完整状态和复现见包内 README。</p>
   </section>
 </main>
 <script src="../main.js"></script>

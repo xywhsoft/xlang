@@ -1,5 +1,16 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-26 新发布物复验 `netrc`：Windows 默认包门禁的严格 C、
+原生边界、TLS、C/XLang 公开范例、UTF-8 文件往返与 Python
+`.netrc` 互通，以及中央/包内语言边界均通过；具名类型用例
+`netrc.Netrc({"hosts": {}, "macros": {}})` 报
+`ConfigError: netrc document must be a dict`，后续分配与 AOT 未运行。
+现有最小源 `dev/extlib_blockers/netrc_constructor_literal.xl` 在当前
+Windows/Linux 发布物均先通过 `netrc.parse("")` 对照，再于语言
+字典直接构造处失败。修复应让语言字典传入 `var` 形参时保留完整
+字典类型与嵌套内容；不能在 netrc 包内识别编译器私有句柄。
+主线修复后须重跑最小源和双平台默认门禁，包括独立 EXE。
+
 2026-10-26 新发布物复验 `shellwords`：Windows 默认包门禁的严格
 C、`CreateProcessW` 参数往返、C 范例单文件直跑与公开双语范例均
 通过；中央 `test/cases/extlib_shellwords.xl` 在
