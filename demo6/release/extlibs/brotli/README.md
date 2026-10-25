@@ -32,7 +32,11 @@ output.append(encoder.drain())
 | `version()` | 后端版本字符串 |
 | `compress(Buffer|string, quality=11, window=22, mode=0, maxInput=268435456, maxOutput=536870912)` | 压缩 Buffer；文本按 UTF-8 字节长度处理 |
 | `decompress(Buffer, maxInput=268435456, maxOutput=536870912, maxRatio=1000)` | 解压 Buffer |
-| `decompressText(Buffer, maxInput=268435456, maxOutput=536870912, maxRatio=1000)` | 将解压结果按字符串接口读取；任意二进制用 Buffer |
+| `decompressText(Buffer, maxInput=268435456, maxOutput=536870912, maxRatio=1000)` | 校验 UTF-8 并接管文本缓冲；任意二进制用 Buffer |
+
+`decompressText` 保留内嵌 NUL，以 `cstring` 接管 XRT 解压缓冲，
+不再经 `Buffer.text()` 无条件复制；追加末尾 NUL 时容量不足仍可能扩容。
+非法 UTF-8 抛 `ValueError`。通过公开 C 导出调用时按普通字符串 ABI 转换。
 | `compressFile(source, destination, quality=11, window=22, mode=0, overwrite=true, maxInput=268435456, maxOutput=536870912, onProgress=null)` | 压缩到目标文件 |
 | `decompressFile(source, destination, overwrite=true, maxInput=268435456, maxOutput=536870912, maxRatio=1000, onProgress=null)` | 解压到目标文件 |
 | `compressor(quality=11, window=22, mode=0, maxInput=268435456, maxOutput=536870912)` | `BrotliCompressor` |
@@ -179,3 +183,10 @@ JIT/AOT、23 个生成原型、C/XL 范例、109 个分配故障点和文件事�
 Linux C ASan/UBSan、泄漏检查、固定流与双语门禁也通过。旧 AOT
 缺符号是历史发布物状态；Linux XLang AOT、Windows ARM、长期压力
 和性能基准仍未在本轮验收。
+
+2026-10-25：`decompressText` 改为校验 UTF-8 后将解压缓冲交给
+`cstring`，补空文本、内嵌 NUL、非法 UTF-8、原址所有权和分配失败
+回归。Windows 严格 C、分配注入，以及发布目录的 XLang JIT/EXE
+通过；完整根目录门禁仍受共享 VFS `include/xruntime_decl.h` 查找问题
+阻断。Linux C ASan/UBSan 与文件事务通过；旧 Linux `release/xl`
+尚不识别 `cstring`，语言阶段需重建后复验。

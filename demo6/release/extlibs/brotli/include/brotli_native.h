@@ -5,6 +5,7 @@
 #define XRT_MODULE_VALUE
 #endif
 #include "xrt.h"
+typedef struct xvalue xvalue;
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,6 +18,10 @@ const char* xbrotli_last_error(void);
 void* xbrotli_compress(void*, size_t, int, int, int, unsigned long long, unsigned long long);
 void* xbrotli_compress_str(const char*, size_t, int, int, int, unsigned long long, unsigned long long);
 void* xbrotli_decompress(void*, size_t, unsigned long long, unsigned long long, unsigned int);
+/* text_size 保留内嵌 NUL；text_take 销毁缓冲并移交 xrtFree 所有权。 */
+void* xbrotli_decompress_text(void*, size_t, unsigned long long, unsigned long long, unsigned int);
+size_t xbrotli_text_size(void*);
+void* xbrotli_text_take(void*);
 int xbrotli_compress_file(const char*, const char*, int, int, int, bool,
     unsigned long long, unsigned long long, xvalue*);
 int xbrotli_decompress_file(const char*, const char*, bool,

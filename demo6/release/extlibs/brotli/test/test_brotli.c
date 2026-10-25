@@ -1,4 +1,5 @@
 #include "../include/xrt_brotli.h"
+#include "../include/brotli_native.h"
 #include "../third_party/include/brotli/encode.h"
 #include "../third_party/include/brotli/decode.h"
 /* 测试操作位于断言中，发布配置也必须执行。 */
@@ -272,6 +273,45 @@ static void streams(void)
     xrtBufferDestroy(packed);
 }
 
+static void owned_text(void)
+{
+    const unsigned char content[] = {'A', 0, 'B', 0xe4, 0xbd, 0xa0};
+    const unsigned char invalid[] = {0xff};
+    xbuffer* packed = NULL;
+    xbuffer* result;
+    void* original;
+    char* text;
+    size_t length;
+
+    packed = xbrotli_compress((void*)content, sizeof(content), 4, 22, 0, 0, 0);
+    assert(packed);
+    result = xbrotli_decompress_text(packed->Data, packed->Size, 0, 0, 0);
+    assert(result);
+    length = xbrotli_text_size(result);
+    original = result->Data;
+    text = xbrotli_text_take(result);
+    assert(text == original && length == sizeof(content));
+    assert(memcmp(text, content, length) == 0 && text[length] == 0);
+    xrtFree(text);
+    xrtBufferDestroy(packed);
+
+    packed = xbrotli_compress(NULL, 0, 4, 22, 0, 0, 0);
+    assert(packed);
+    result = xbrotli_decompress_text(packed->Data, packed->Size, 0, 0, 0);
+    assert(result && xbrotli_text_size(result) == 0);
+    text = xbrotli_text_take(result);
+    assert(text && text[0] == 0);
+    xrtFree(text);
+    xrtBufferDestroy(packed);
+
+    packed = xbrotli_compress((void*)invalid, sizeof(invalid), 4, 22, 0, 0, 0);
+    assert(packed);
+    assert(xbrotli_decompress_text(packed->Data, packed->Size, 0, 0, 0) == NULL);
+    assert(xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    xrtClearError();
+    xrtBufferDestroy(packed);
+}
+
 int main(void)
 {
     static const size_t sizes[] = {0, 1, 2, 7, 255, 65535, 65536, 65537, 131101};
@@ -288,6 +328,7 @@ int main(void)
     incremental_encode();
     limits_and_members();
     streams();
+    owned_text();
     xrtFree(data);
     xrtClearError();
     puts("brotli C: interoperability, splits, limits, states, streams passed");

@@ -7,6 +7,11 @@ extern "xbrotli_compress_str" func __brotli_compress_str(string data, c_size siz
     c_int window, c_int mode, c_ulonglong maxInput, c_ulonglong maxOutput) as point
 extern "xbrotli_decompress" func __brotli_decompress(point data, c_size size,
     c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xbrotli_decompress_text" func __brotli_decompress_text(point data, c_size size,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xbrotli_text_size" @no_raise func __brotli_text_size(point result) as c_size
+extern "xbrotli_text_take" @no_raise func __brotli_text_take(point result) as point
+extern "xrtFree" @no_raise func __brotli_free(point data)
 extern "xbrotli_compress_file" func __brotli_compress_file(string source, string destination,
     c_int quality, c_int window, c_int mode, c_bool overwrite,
     c_ulonglong maxInput, c_ulonglong maxOutput, var onProgress) as c_int
@@ -140,8 +145,15 @@ export func decompress(Buffer data, int maxInput = 268435456,
 end
 
 export func decompressText(Buffer data, int maxInput = 268435456,
-    int maxOutput = 536870912, int maxRatio = 1000) as string
-    return decompress(data, maxInput, maxOutput, maxRatio).text()
+    int maxOutput = 536870912, int maxRatio = 1000) as cstring
+    __brotli_check_limit(maxInput, "maxInput")
+    __brotli_check_limit(maxOutput, "maxOutput")
+    __brotli_check_ratio(maxRatio)
+    point result = __brotli_decompress_text(data.data(), c_size(data.len()),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
+    if result == null then throw CompressionError __brotli_error() end
+    c_size textSize = __brotli_text_size(result)
+    return cstring.take(__brotli_text_take(result), textSize, __brotli_free)
 end
 
 export func compressFile(string source, string destination,

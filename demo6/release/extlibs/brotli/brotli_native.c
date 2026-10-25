@@ -14,6 +14,9 @@
 #ifndef XRT_MODULE_TEMP_MEMORY
 #define XRT_MODULE_TEMP_MEMORY
 #endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
 #ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #endif
@@ -229,6 +232,42 @@ XBROTLI_EXPORT void* xbrotli_decompress(void* pData, size_t iSize, unsigned long
 		return NULL;
 	}
 	return pOutput;
+}
+
+
+/* 解压文本取走 XRT 缓冲；追加末尾 NUL 时容量不足可能扩容。 */
+XBROTLI_EXPORT void* xbrotli_decompress_text(void* pData, size_t iSize,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio)
+{
+	xbuffer* pOutput = (xbuffer*)xbrotli_decompress(pData, iSize, iMaxInput, iMaxOutput, iMaxRatio);
+	if ( pOutput == NULL ) { return NULL; }
+	if ( !xrtUtf8Valid((xstrview){(const char*)pOutput->Data, pOutput->Size}, NULL) ) {
+		xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.brotli", 0,
+			"brotli decompressed text is not valid UTF-8");
+		xrtBufferDestroy(pOutput);
+		return NULL;
+	}
+	if ( !xrtBufferAppendByte(pOutput, 0) ) {
+		xrtBufferDestroy(pOutput);
+		return NULL;
+	}
+	return pOutput;
+}
+
+XBROTLI_EXPORT size_t xbrotli_text_size(void* pHandle)
+{
+	const xbuffer* pOutput = (const xbuffer*)pHandle;
+	return pOutput != NULL && pOutput->Size != 0u ? pOutput->Size - 1u : 0u;
+}
+
+XBROTLI_EXPORT void* xbrotli_text_take(void* pHandle)
+{
+	xbuffer* pOutput = (xbuffer*)pHandle;
+	void* pText;
+	if ( pOutput == NULL ) { return NULL; }
+	pText = xrtBufferTake(pOutput, NULL, NULL);
+	xrtBufferDestroy(pOutput);
+	return pText;
 }
 
 XBROTLI_EXPORT int xbrotli_compress_file(cstr sSource, cstr sDestination, int iQuality,
