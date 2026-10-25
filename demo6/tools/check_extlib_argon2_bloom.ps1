@@ -32,6 +32,7 @@ foreach ($name in @('argon2','bloom')) {
         "release/examples/extlibs/${name}_basic.xl","release/examples/extlibs/${name}_c.c",
         "release/examples/extlibs/${name}_basic.expected.txt")
 }
+$paths += 'release/extlibs/bloom/test/nul_keys.xl'
 foreach ($path in @($paths | Sort-Object -Unique)) {
     $hashes[$path] = (Get-FileHash -LiteralPath (Join-Path $Root $path)).Hash
 }
@@ -126,6 +127,11 @@ try {
     foreach ($name in @('argon2','bloom')) {
         $null = Check "$name-tutorial" $xl @('run',"release/examples/extlibs/$name.xl") 180
     }
+    $nulKeys = 'release/extlibs/bloom/test/nul_keys.xl'
+    $null = Check 'bloom-nul-keys-jit' $xl @('run',$nulKeys)
+    $nulBinary = Join-Path $work 'bloom-nul-keys.exe'
+    $null = Check 'bloom-nul-keys-build' $xl @('build',$nulKeys,'-o',$nulBinary)
+    $null = Check 'bloom-nul-keys-aot' $nulBinary @()
     foreach ($path in $hashes.Keys) {
         if ((Get-FileHash -LiteralPath (Join-Path $Root $path)).Hash -ne $hashes[$path]) { throw "Input changed: $path" }
     }

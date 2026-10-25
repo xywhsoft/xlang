@@ -56,8 +56,10 @@ assert restored.contains("beta")
 
 `examples/extlibs/bloom.xl` 覆盖语言 API；`bloom_basic.xl` 与 `bloom_c.c` 是四行
 同结果范例。专项门禁 `tools/check_extlib_argon2_bloom.ps1` 校验所有生成原型、
-C/xlang JIT/AOT、序列化破坏、尺寸和分配故障；当前完整 AOT 在主线
-`xl6ValueDataSnapshotV1` 缺符号处停止，不能把此前的门禁结果视为现版通过。
+C/xlang JIT/AOT、序列化破坏、尺寸、分配故障及内嵌 NUL 键。
+2026-10-26 当前 Windows 门禁报告 `passed`、47 项检查；Linux
+C ASan/UBSan、中央和范例 JIT/AOT 及 NUL 键 JIT/AOT 均通过。
+旧 `xl6ValueDataSnapshotV1` 缺符号只描述早期发布物。
 结果以每次保存的哈希与输出为准。
 固定键集的普通版与计数版误判率、无漏判和旧格式拒绝已进入 C 回归；
 普通版的 512 位分块探针在目标 1%/0.1%/0.01% 时分别测到约 1.3%/0.3%/0.09%，
@@ -85,12 +87,12 @@ Windows GCC 链接时另加 `-lWs2_32 -lAdvapi32 -lIphlpapi`，输出可改为
 `test/aot_core.xl` 在 Windows 下由 3,635,200 缩至 660,992 字节，
 构建和运行通过。可从 `demo6` 运行
 `xl build release/extlibs/bloom/test/aot_core.xl -o build/test/bloom_aot_core.exe`
-再执行产物。完整 `test/cases/extlib_bloom.xl` 的 AOT 构建目前仍缺主线
-`xl6ValueDataSnapshotV1`，此核心用例不代替完整发布验收。
+再执行产物。当前完整 `test/cases/extlib_bloom.xl` 的 AOT 已进入
+双平台联合门禁，不再以这个最小核心用例代替完整验收。
 
 2026-10-20：包内 `test/nul_keys.xl` 先复现 XLang 把 `"a\0b"` 键截成
 `"a"`，再固定普通/计数版的单条与批量增查、计数版删除，以及状态文本
 内嵌 NUL 的拒绝。该用例登记到包清单；Windows 当前 `xl.exe` 的包级
 smoke 2/2、C 回归、C/XLang 基础范例，Linux 两组 XLang 用例均通过。
-此项为候选包维护，不计入正式优先级清单的 100 包完成数；完整 AOT
-仍受上述主线符号阻断，不能据此签收发布级。
+此项为候选包维护，不计入正式优先级清单的 100 包完成数；
+2026-10-20 的记录仅描述当时的回归范围，不代表当前 AOT 仍被阻断。

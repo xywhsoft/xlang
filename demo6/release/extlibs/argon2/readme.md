@@ -1,13 +1,22 @@
 # argon2
 
-2026-10-25：当前 Windows 发布版已运行 `tools/check_extlib_argon2_bloom.ps1`：
+2026-10-26 当前发布物：Windows `tools/check_extlib_argon2_bloom.ps1`
+报告 `passed`，47 项检查，严格 C/生成原型、RFC 向量、分配故障、
+语言 JIT/AOT 与双语固定输出通过。Linux 同一联合门禁退出 0：
+C ASan/UBSan、固定向量、分配故障、Argon2/Bloom 各四条独立 EXE
+AOT，以及 Bloom NUL 键 JIT/AOT 通过。Argon2 的自动随机盐输出
+不做跨运行文本比较。这里只签收当前 Windows/Linux x64 短时路径；
+实际生产成本仍需按部署机器和并发量标定，32 位/ARM、TSan、
+长时间压力及独立密码学审计不在本次证明范围。
+
+2026-10-25 历史记录：当时 Windows 发布版运行 `tools/check_extlib_argon2_bloom.ps1`：
 严格 C/生成原型、RFC 向量、分配故障、XLang 完整语言用例、C/XLang
 固定输出及两种独立 EXE 的 AOT 构建与执行均通过。先前的
 `uint8` 与 `int` 混合算术 XLIR 最小复现现退出 0；语言用例中的内嵌
 NUL 密码、盐、secret 和 ad 往返也已在 JIT/AOT 实跑。
 Linux `tools/check_extlib_argon2_bloom.sh` 的 C ASan/UBSan、固定向量、
-范例与分配故障通过；本轮未用重建的 Linux xlang 执行语言/AOT 门禁。
-下面保留旧构建的失败记录作追溯，不代表当前 Windows 发布版仍被阻断。
+范例与分配故障通过；当时未用重建的 Linux xlang 执行语言/AOT 门禁。
+下面保留旧构建的失败记录作追溯，不代表当前发布版仍被阻断。
 
 官方 Argon2 参考实现的 xlang/C 包，内存、临时字符串、安全随机数和错误槽复用 XRT。
 支持 Argon2d、Argon2i、Argon2id，默认 Argon2id。当前后端按顺序处理各 lane；

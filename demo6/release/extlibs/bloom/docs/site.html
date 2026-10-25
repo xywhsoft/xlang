@@ -72,6 +72,7 @@
     <h2>当前合同与验证</h2>
     <p>2026-09-26 原生 ABI、结构化错误与尺寸检查更新。公开 C 声明为 <code>include/bloom.h</code>，
     专项门禁为 <code>tools/check_extlib_argon2_bloom.ps1</code>，具体结果以保存的构建哈希为准。</p>
+    <p>2026-10-26 当前 Windows 联合门禁报告 <code>passed</code>、47 项检查；Linux C ASan/UBSan、中央与双语范例 JIT/AOT、内嵌 NUL 键 JIT/AOT 均通过。旧 AOT 缺符号不再复现。Bloom 由独立候选包维护，不计入普通扩展库 100 包完成数；同一可变对象的并发访问和跨架构持久化仍未验收。</p>
     <ul>
       <li>fpRate 必须严格处于 (0,1)，NaN、无穷及非法边界抛 ValueError，不再隐式替换成默认值。</li>
       <li>不可表示的容量抛 RangeError；真实分配失败保留 MemoryError，不伪装成损坏数据。</li>
