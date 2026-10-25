@@ -15,6 +15,7 @@ bool xzstd_available(void);
 const char* xzstd_version(void);
 const char* xzstd_last_error(void);
 bool xzstd_last_error_is_memory(void);
+bool xzstd_last_error_is_range(void);
 void* xzstd_compress(void* pData, size_t iSize, int iLevel, unsigned long long iMaxInput, unsigned long long iMaxOutput);
 void* xzstd_decompress(void* pData, size_t iSize, unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio);
 int xzstd_compress_file(const char* sSource, const char* sDestination, int iLevel, bool bOverwrite, unsigned long long iMaxInput, unsigned long long iMaxOutput, xvalue* pCallback);

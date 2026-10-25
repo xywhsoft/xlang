@@ -69,6 +69,12 @@ int main(void)
     CHECK(xzstd_last_error_is_memory());
     xrtClearError();
     CHECK(!xzstd_last_error_is_memory());
+    CHECK(!xzstd_last_error_is_range());
+    CHECK(xzstd_decompress(packed->Data, packed->Size, 0u, 1u, 1000u) == NULL);
+    CHECK(xzstd_last_error_is_range());
+    CHECK(!xzstd_last_error_is_memory());
+    xrtClearError();
+    CHECK(!xzstd_last_error_is_range());
     xrtBufferDestroy(packed);
     puts("zstd allocation failures: PASS");
     return 0;

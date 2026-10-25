@@ -2,6 +2,7 @@ param([switch]$SkipAot)
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
+$release = Join-Path $root 'release'
 $xl = Join-Path $root 'release/xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
 $work = Join-Path ([IO.Path]::GetTempPath()) ('xlang-zstd-' + [Guid]::NewGuid().ToString('N'))
@@ -52,16 +53,17 @@ try {
     $directExe = Join-Path $work 'basic-tcc.exe'
     $null = Run 'TCC single-file build' $xl @('build', $source, '-o', $directExe)
     $builtOutput = Run 'TCC single-file executable' $directExe @()
-    $xlOutput = Run 'XLang example' $xl @('run', 'release/extlibs/zstd/examples/basic.xl')
-    foreach ($case in @('test/cases/extlib_zstd_progress.xl',
-        'release/extlibs/zstd/test/wire_fixture.xl',
-        'release/extlibs/zstd/test/file_ops.xl',
-        'release/extlibs/zstd/test/concat_boundary.xl',
-        'release/extlibs/zstd/test/error_dispatch.xl')) {
+    Set-Location $release
+    $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/zstd/examples/basic.xl')
+    foreach ($case in @('../test/cases/extlib_zstd_progress.xl',
+        'extlibs/zstd/test/wire_fixture.xl',
+        'extlibs/zstd/test/file_ops.xl',
+        'extlibs/zstd/test/concat_boundary.xl',
+        'extlibs/zstd/test/error_dispatch.xl')) {
         $null = Run "XLang $case" $xl @('run', $case)
     }
     $teachingOutput = Run 'XLang teaching example' $xl @('run',
-        'release/examples/extlibs/zstd.xl')
+        'examples/extlibs/zstd.xl')
     if (-not $teachingOutput.Contains('zstd example: PASS')) {
         throw 'zstd teaching example did not reach completion'
     }
@@ -70,15 +72,15 @@ try {
         $gccOutput -cne $xlOutput) { throw 'C/XLang example output mismatch' }
     if (-not $SkipAot) {
         $aot = Join-Path $work 'basic-xl.exe'
-        $null = Run 'XLang AOT build' $xl @('build', 'release/extlibs/zstd/examples/basic.xl', '-o', $aot)
+        $null = Run 'XLang AOT build' $xl @('build', 'extlibs/zstd/examples/basic.xl', '-o', $aot)
         $aotOutput = Run 'XLang AOT example' $aot @()
         if ($aotOutput -cne $gccOutput) { throw 'XLang AOT output mismatch' }
         foreach ($case in @(
-            @('wire_fixture', 'release/extlibs/zstd/test/wire_fixture.xl', ''),
-            @('concat_boundary', 'release/extlibs/zstd/test/concat_boundary.xl', ''),
-            @('error_dispatch', 'release/extlibs/zstd/test/error_dispatch.xl', ''),
-            @('file_ops', 'release/extlibs/zstd/test/file_ops.xl', 'zstd file operations: PASS'),
-            @('progress', 'test/cases/extlib_zstd_progress.xl', '')
+            @('wire_fixture', 'extlibs/zstd/test/wire_fixture.xl', ''),
+            @('concat_boundary', 'extlibs/zstd/test/concat_boundary.xl', ''),
+            @('error_dispatch', 'extlibs/zstd/test/error_dispatch.xl', ''),
+            @('file_ops', 'extlibs/zstd/test/file_ops.xl', 'zstd file operations: PASS'),
+            @('progress', '../test/cases/extlib_zstd_progress.xl', '')
         )) {
             $caseExe = Join-Path $work ("zstd_$($case[0]).exe")
             $null = Run "XLang $($case[0]) AOT build" $xl @('build', $case[1], '-o', $caseExe)
@@ -89,7 +91,7 @@ try {
         }
         $teachingExe = Join-Path $work 'zstd_teaching.exe'
         $null = Run 'XLang teaching AOT build' $xl @('build',
-            'release/examples/extlibs/zstd.xl', '-o', $teachingExe)
+            'examples/extlibs/zstd.xl', '-o', $teachingExe)
         $teachingAot = Run 'XLang teaching AOT' $teachingExe @()
         if (-not $teachingAot.Contains('zstd example: PASS')) {
             throw 'zstd teaching AOT did not reach completion'

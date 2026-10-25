@@ -1,5 +1,14 @@
 # zstd
 
+2026-10-25 当前 Windows 发布版默认 `test/check.ps1` 完整通过：严格 C、
+分配故障、C/TCC 双语范例、固定标准帧、串联帧、文件、进度、错误分类
+与教学范例的 JIT 和独立 EXE 均通过。包门禁的 XLang 阶段从 `release`
+工作目录运行；这不代表项目根目录的共享 VFS 路径问题已修复。
+输出限额由 C 层报告 `XERR_RANGE`，XLang 现抛 `RangeError`；
+损坏帧和非法状态仍抛 `CompressionError`，分配失败为 `MemoryError`。
+WSL C ASan/UBSan 通过；现有 Linux `release/xl` 在导入时仍拒绝
+`string` 到 `cstring` 的实参转换，需重建 Linux 发布物后验收语言层。
+
 2026-10-25：一次性和流对象的显式结果检查入口使用 `@no_raise`，
 由包层把格式/状态错误转成 `CompressionError`，分配失败仍是
 `MemoryError`。完成后再次 `update`、截断帧一次性解压及流式

@@ -195,6 +195,12 @@ XZSTD_EXPORT bool xzstd_last_error_is_memory(void)
 	return pError != NULL && xrtErrorKind(pError) == XERR_MEMORY;
 }
 
+XZSTD_EXPORT bool xzstd_last_error_is_range(void)
+{
+	const xerror* pError = xrtGetError();
+	return pError != NULL && xrtErrorKind(pError) == XERR_RANGE;
+}
+
 
 
 XZSTD_EXPORT void* xzstd_compress(void* pData, size_t iSize, int iLevel,

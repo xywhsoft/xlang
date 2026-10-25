@@ -1,6 +1,7 @@
 // zstd 的压缩结果和输入统一使用 Buffer，避免二进制数据经过字符串转换。
 extern "xl6_xrt_last_error_text" @no_raise func __zstd_error() as string
 extern "xzstd_last_error_is_memory" @no_raise func __zstd_memory_error() as bool
+extern "xzstd_last_error_is_range" @no_raise func __zstd_range_error() as bool
 extern "xzstd_version" func __zstd_version() as string
 extern "xzstd_compress" @no_raise func __zstd_compress(point data, c_size size, c_int level,
     c_ulonglong maxInput, c_ulonglong maxOutput) as point
@@ -42,6 +43,7 @@ end
 // 原生失败由包装层分类；真正的分配失败仍保持 MemoryError。
 func __zstd_failure() as string
     if __zstd_memory_error() then throw MemoryError __zstd_error() end
+    if __zstd_range_error() then throw RangeError __zstd_error() end
     return __zstd_error()
 end
 
