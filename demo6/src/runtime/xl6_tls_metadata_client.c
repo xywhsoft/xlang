@@ -2,6 +2,6 @@
 const XL6_TlsMetadataRoleV1* xl6TlsClientMetadataRoleV1Get(void)
 {
     static const XL6_TlsMetadataRoleV1 role={XTLS_CLIENT,xrtTlsClientResumed,
-        xrtTlsClientCertificateCount,xrtTlsClientCertificate,NULL,NULL};
+        xrtTlsClientCertificateCount,xrtTlsClientCertificate,NULL,NULL,xrtTlsClientKeyUpdate};
     return &role;
 }

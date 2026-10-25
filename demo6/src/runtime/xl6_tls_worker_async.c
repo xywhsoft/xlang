@@ -13,3 +13,5 @@ xfuture* xl6TlsStreamSendBoundAsyncV1(void* receiver,int64_t count)
 {return checkedSource(receiver,count,XL6_TLS_WORKER_SEND_BOUND_V1);}
 xfuture* xl6TlsStreamProtocolAsyncV1(void* receiver)
 {return checkedSource(receiver,0,XL6_TLS_WORKER_PROTOCOL_V1);}
+xfuture* xl6TlsStreamKeyUpdateAsyncV1(void* receiver,bool requestPeer)
+{return checkedSource(receiver,requestPeer?1:0,XL6_TLS_WORKER_KEY_UPDATE_V1);}

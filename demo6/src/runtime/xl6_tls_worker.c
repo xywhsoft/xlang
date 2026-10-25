@@ -31,7 +31,7 @@ static XL6_TaskOutcome run(xcancel* cancel,void* raw,XL6_TaskResult* output)
     void *receiver=NULL,*user=NULL;const xvaluehandleops* ops=NULL;
     if(!xrtValueGetHandle(work->receiver,&receiver,&ops,&user)||!receiver||user||ops!=xl6TlsStreamHandlePolicyV1Get()->Ops){
         xrtSetErrorKind(XERR_TYPE);return XL6_TASK_FAILED;}
-    XL6_TlsScopeV1 scope={0};if(!xl6ExecutionTlsStreamEnterV1(receiver,work->operation==XL6_TLS_WORKER_CONSUME_V1,&scope))return XL6_TASK_FAILED;
+    XL6_TlsScopeV1 scope={0};if(!xl6ExecutionTlsStreamEnterV1(receiver,xl6TlsWorkerMutatesV1(work->operation),&scope))return XL6_TASK_FAILED;
     xnetstream* tcp=xrtTlsStreamTransport(scope.stream);xnetworker* worker=tcp?xrtNetStreamWorker(tcp):NULL;
     bool ok=worker&&xrtNetEngineCurrent(xrtNetWorkerEngine(worker))==worker;
     if(!ok)xrtSetErrorKind(XERR_STATE);
@@ -60,6 +60,23 @@ static XL6_TaskOutcome run(xcancel* cancel,void* raw,XL6_TaskResult* output)
             if(ok)*(int64_t*)box=(int64_t)count;
             break;
         }
+        case XL6_TLS_WORKER_KEY_UPDATE_V1:{
+            xtlssession* session=xrtTlsStreamSession(scope.stream);
+            if(!session||!scope.metadata||!scope.metadata->KeyUpdate||
+                xrtTlsSessionRole(session)!=scope.metadata->role){
+                xrtSetErrorKind(XERR_TYPE);ok=false;break;
+            }
+            xtlsresult status=scope.metadata->KeyUpdate(session,work->argument?
+                XTLS_KEY_UPDATE_REQUESTED:XTLS_KEY_UPDATE_NOT_REQUESTED);
+            if(status==XTLS_OK){
+                xtlsresult flushed=xrtTlsStreamFlush(scope.stream);
+                /* Once produced, a control record is accepted even when TCP
+                 * is backpressured: its normal driver owns the retry. Never
+                 * invite callers to repeat an already committed key update. */
+                if(flushed!=XTLS_OK&&flushed!=XTLS_AGAIN)status=flushed;
+            }
+            *(int64_t*)box=status;ok=status!=XTLS_ERROR&&!xrtGetError();break;
+        }
         default:xrtSetErrorKind(XERR_ARGUMENT);ok=false;break;
         }
     }
@@ -68,11 +85,12 @@ static XL6_TaskOutcome run(xcancel* cancel,void* raw,XL6_TaskResult* output)
 }
 xfuture* xl6TlsWorkerSourceV1(void* receiver,int64_t argument,unsigned operation)
 {
-    if(operation>XL6_TLS_WORKER_PROTOCOL_V1||argument<(operation==XL6_TLS_WORKER_PEEK_V1?-1:0)||
+    if(operation>XL6_TLS_WORKER_KEY_UPDATE_V1||argument<(operation==XL6_TLS_WORKER_PEEK_V1?-1:0)||
+        (operation==XL6_TLS_WORKER_KEY_UPDATE_V1&&argument>1)||
         (argument>=0&&(uint64_t)argument>SIZE_MAX)){xrtSetErrorKind(XERR_RANGE);return NULL;}
     xl6_error_scope errors={0};if(!xl6ErrorScopeBegin(&errors))return NULL;
     XL6_TlsScopeV1 stream={0};XL6_ExecutionScopeV1 engine={0};Work* work=NULL;xfuture* result=NULL;
-    bool ok=xl6ExecutionTlsStreamEnterV1(receiver,operation==XL6_TLS_WORKER_CONSUME_V1,&stream);
+    bool ok=xl6ExecutionTlsStreamEnterV1(receiver,xl6TlsWorkerMutatesV1(operation),&stream);
     xnetstream* tcp=ok?xrtTlsStreamTransport(stream.stream):NULL;
     xnetworker* worker=tcp?xrtNetStreamWorker(tcp):NULL;
     if(ok&&!worker){xrtSetErrorKind(XERR_STATE);ok=false;}

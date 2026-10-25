@@ -296,3 +296,45 @@ GCC O0/O2/TCC、四轮完整/恢复连接、票据轮换、双端 KeyUpdate 后�
 shipping DLL/JIT/AOT 或跨组发布验收。无公网、外部 DNS、畸形密码专项或
 安全测试。见 `lib/xrt/backports/tls_stream_flush.json` 和
 `F:/xlang-validation/five-groups-20261025/p6-tls-stream-flush/next.json`。
+
+### 语言传输 KeyUpdate
+
+```xlang
+stream.keyUpdate(bool requestPeer = false, int timeoutMillis = -1) as TlsResult
+stream.keyUpdateAsync(bool requestPeer = false) as future<TlsResult>
+```
+
+两种形式都通过现有拥有式 TaskNet 激活在连接的实际网络 Worker 上运行；
+同步形式等待结果，禁止从同一 Engine Worker 上阻塞等待。任务只捕获真实
+Stream 句柄，不借用可变 Session，不新建等待线程，不使用默认 Worker 猜测。
+原生操作由创建角色安装的永久驻留操作表选择，并核对实际 Session 角色。
+
+默认更新本端发送密钥；`requestPeer=true` 额外请求对端更新其发送密钥。
+版本、握手状态及发送容量检查仍复用 XRT。原生拒绝是 checked 失败，而非
+正常返回 `TlsResult.error`；异步调用通过 Future 传播失败。
+
+成功产生控制记录后立即调用显式 Flush。此时 TCP 背压不会把已提交的更新
+改报 wouldBlock：密文仍由普通传输驱动继续发送，结果为 ok，调用者不能重复
+产生同一次更新。只有原生生产阶段尚未受理时才可返回 wouldBlock。完成不等于
+对端收到或 TCP 已排空，需要时另用 `drain()/drainAsync()`。取消或超时不能
+撤销已经执行的协议更新；取消前尚未运行的任务不执行更新。
+
+`future<TlsResult>` 以通用 IR 的精确枚举 Future 合同接入：检查完整枚举
+身份、成员、整数表示及复制载体，不允许换成 `future<int>` 或其他枚举。
+原有 builtin Future 合同继续严格区分；没有增加 Cgen 的 TLS 专用实现。
+异步多返回值的既有限制不变。
+
+Windows/Linux 分别从完整固定源码构建 1258/1257 个编译单元，共 58 步
+专项检查通过：typed/lowered XLIR、严格 GCC O0/O2、JIT、模块、独立 AOT、
+两个精确目标/八项合同变异拒绝、三项错误声明，以及真实空程序裁剪。
+两个 Worker 的自建字面量 loopback/select 连接覆盖双端同步/异步更新、
+`task.all` 和动态装箱的精确枚举、更新后的二进制数据往返、既有 Worker
+方法与关闭后 checked 拒绝。新能力不依赖客户端/服务端恢复票据模块；
+AOT 不依赖 xl/xlc 动态库。
+
+源码、构建、工具、对象、日志和产物哈希已在两端分别复核。最初消费者在
+冻结进程结束前过早启动，解包/构建明确失败；保留局部目录和记录，等待同一
+冻结进程成功结束后使用完整档案和新路径完成两端构建，未为此改变生产代码。
+记录见 `F:/xlang-validation/five-groups-20261025/p6-tls-key-update/next.json`。
+这不能代替票据收发、其他后端的执行验收或 shipping DLL/VFS 联合验收；
+没有公网、外部 DNS、扫描、畸形密码或安全专项测试。
