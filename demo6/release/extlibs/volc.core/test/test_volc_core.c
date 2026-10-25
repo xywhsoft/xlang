@@ -13,6 +13,7 @@
 static void test_pair_allocation_failure(void);
 static void test_spec_allocation_failure(void);
 static void test_spec_crlf(void);
+static void test_spec_numbers(void);
 static void test_thread_isolation(void);
 static void test_buffer_bounds(void);
 static void test_large_result_transfer(void);
@@ -75,6 +76,7 @@ int main(void)
     test_pair_allocation_failure();
     test_spec_allocation_failure();
     test_spec_crlf();
+    test_spec_numbers();
     test_buffer_bounds();
     test_large_result_transfer();
     test_signed_fields();
@@ -289,6 +291,53 @@ static void test_spec_crlf(void)
     crlf = x_volc_core_sign_preview_sts_spec(sts_crlf);
     assert(strstr(lf, "\"authorization\"") != NULL);
     assert(strcmp(lf, crlf) == 0);
+}
+
+/* 数字声明写错时不能悄悄改用默认时长或截断到 int 边界。 */
+static void test_spec_numbers(void)
+{
+    static const char prefix[] =
+        "access_key=AKID\nsecret_key=SECRET\n"
+        "role_trn=trn:iam::123456789:role/demo\n"
+        "role_session_name=demo-session\n";
+    static const char* invalid[] = {"bad", "900x", " 900", "2147483648", "-2147483649"};
+    char spec[512];
+    size_t i;
+    for (i = 0; i < sizeof(invalid) / sizeof(invalid[0]); ++i) {
+        int n = snprintf(spec, sizeof(spec), "%sduration_seconds=%s\n"
+            "x_date=20240102T030405Z\n", prefix, invalid[i]);
+        assert(n > 0 && (size_t)n < sizeof(spec));
+        assert(strcmp(x_volc_core_sign_preview_sts_spec(spec), "") == 0);
+        assert(strcmp(x_volc_core_last_error(), "invalid duration_seconds") == 0);
+        assert(xrtGetError() == NULL);
+    }
+#ifdef _WIN32
+    /* Linux 离线宿主故意不链接 HTTP 请求路径。 */
+    assert(strcmp(x_volc_core_request_acep_spec(
+        "action=ListApps\nversion=2020-01-01\naccess_key=AKID\n"
+        "secret_key=SECRET\nbody={}\ntimeout_ms=bad\n"), "") == 0);
+    assert(strcmp(x_volc_core_last_error(), "invalid timeout_ms") == 0);
+    assert(xrtGetError() == NULL);
+    assert(strcmp(x_volc_core_request_sts_spec(
+        "access_key=AKID\nsecret_key=SECRET\n"
+        "role_trn=trn:iam::123456789:role/demo\n"
+        "role_session_name=demo-session\nduration_seconds=bad\n"), "") == 0);
+    assert(strcmp(x_volc_core_last_error(), "invalid duration_seconds") == 0);
+    assert(strcmp(x_volc_core_request_sts_spec(
+        "access_key=AKID\nsecret_key=SECRET\n"
+        "role_trn=trn:iam::123456789:role/demo\n"
+        "role_session_name=demo-session\nduration_seconds=900\n"
+        "timeout_ms=2147483648\n"), "") == 0);
+    assert(strcmp(x_volc_core_last_error(), "invalid timeout_ms") == 0);
+    assert(xrtGetError() == NULL);
+#endif
+    assert(strstr(x_volc_core_sign_preview_sts_spec(
+        "access_key=AKID\nsecret_key=SECRET\n"
+        "role_trn=trn:iam::123456789:role/demo\n"
+        "role_session_name=demo-session\n"
+        "duration_seconds=\nx_date=20240102T030405Z\n"),
+        "DurationSeconds=3600") != NULL);
+    assert(x_volc_core_last_error()[0] == '\0' && xrtGetError() == NULL);
 }
 
 typedef struct xvolc_test_thread {

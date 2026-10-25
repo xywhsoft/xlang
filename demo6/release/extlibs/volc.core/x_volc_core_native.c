@@ -1,4 +1,3 @@
-#include <ctype.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -15,6 +14,9 @@
 #endif
 #ifndef XRT_MODULE_TIME_TEXT
 #define XRT_MODULE_TIME_TEXT
+#endif
+#ifndef XRT_MODULE_NUMBER_INTEGER
+#define XRT_MODULE_NUMBER_INTEGER
 #endif
 #include "xrt.h"
 #include "include/volc_core_native.h"
@@ -276,31 +278,32 @@ static char* xvolc_strdup(const char* text)
 	return xvolc_strdup_n(text ? text : "", text ? strlen(text) : 0u);
 }
 
-static int xvolc_parse_int_default(const char* text, int default_value)
+static int xvolc_parse_spec_int(const char* text, int default_value,
+	const char* error_text, int* result)
 {
-	char* end;
-	long value;
+	int64 value;
 
 	if ( text == NULL || text[0] == '\0' ) {
-		return default_value;
+		*result = default_value;
+		return 1;
 	}
-	value = strtol(text, &end, 10);
-	if ( end == text ) {
-		return default_value;
-	}
-	while ( *end != '\0' ) {
-		if ( !isspace((unsigned char)*end) ) {
-			return default_value;
+	xrtClearError();
+	if ( !xrtIntParse((xstrview){text, strlen(text)}, 10u, 0u, &value) ) {
+		const xerror* error = xrtGetError();
+		if ( error && xrtErrorKind(error) == XERR_MEMORY ) {
+			xvolc_set_error("out of memory");
+		} else {
+			xrtClearError();
+			xvolc_set_error(error_text);
 		}
-		end += 1;
+		return 0;
 	}
-	if ( value > (long)INT_MAX ) {
-		return INT_MAX;
+	if ( value < INT_MIN || value > INT_MAX ) {
+		xvolc_set_error(error_text);
+		return 0;
 	}
-	if ( value < (long)INT_MIN ) {
-		return INT_MIN;
-	}
-	return (int)value;
+	*result = (int)value;
+	return 1;
 }
 
 static char* xvolc_spec_get(const char* spec, const char* key)
@@ -1087,15 +1090,18 @@ const char* x_volc_core_request_acep_spec(const char* spec)
 	char* session_token = xvolc_spec_get(spec, "session_token");
 	char* body = xvolc_spec_get(spec, "body");
 	char* timeout_text = xvolc_spec_get(spec, "timeout_ms");
+	int timeout_ms;
 	const char* ret = "";
 	if ( !action || !version || !access_key || !secret_key || !session_token ||
 		!body || !timeout_text ) {
 		xvolc_set_error("out of memory");
 		goto done;
 	}
+	if ( !xvolc_parse_spec_int(timeout_text, (int)XVOLC_DEFAULT_TIMEOUT_MS,
+		"invalid timeout_ms", &timeout_ms) ) goto done;
 	ret = x_volc_core_request("POST", "open.volcengineapi.com", "/", "ACEP", "cn-north-1",
 		action, version, access_key, secret_key, session_token, "application/json", "", body,
-		xvolc_parse_int_default(timeout_text, (int)XVOLC_DEFAULT_TIMEOUT_MS));
+		timeout_ms);
 done:
 	if ( action ) xrtFree(action);
 	if ( version ) xrtFree(version);
@@ -1143,15 +1149,19 @@ const char* x_volc_core_request_sts_spec(const char* spec)
 	char* role_session_name = xvolc_spec_get(spec, "role_session_name");
 	char* duration_text = xvolc_spec_get(spec, "duration_seconds");
 	char* timeout_text = xvolc_spec_get(spec, "timeout_ms");
+	int duration_seconds, timeout_ms;
 	const char* ret = "";
 	if ( !access_key || !secret_key || !role_trn || !role_session_name ||
 		!duration_text || !timeout_text ) {
 		xvolc_set_error("out of memory");
 		goto done;
 	}
+	if ( !xvolc_parse_spec_int(duration_text, 3600,
+		"invalid duration_seconds", &duration_seconds) ||
+		!xvolc_parse_spec_int(timeout_text, (int)XVOLC_DEFAULT_TIMEOUT_MS,
+		"invalid timeout_ms", &timeout_ms) ) goto done;
 	ret = x_volc_core_request_sts(access_key, secret_key, role_trn, role_session_name,
-		xvolc_parse_int_default(duration_text, 3600),
-		xvolc_parse_int_default(timeout_text, (int)XVOLC_DEFAULT_TIMEOUT_MS));
+		duration_seconds, timeout_ms);
 done:
 	if ( access_key ) xrtFree(access_key);
 	if ( secret_key ) xrtFree(secret_key);
@@ -1170,14 +1180,17 @@ const char* x_volc_core_sign_preview_sts_spec(const char* spec)
 	char* role_session_name = xvolc_spec_get(spec, "role_session_name");
 	char* duration_text = xvolc_spec_get(spec, "duration_seconds");
 	char* x_date = xvolc_spec_get(spec, "x_date");
+	int duration_seconds;
 	const char* ret = "";
 	if ( !access_key || !secret_key || !role_trn || !role_session_name ||
 		!duration_text || !x_date ) {
 		xvolc_set_error("out of memory");
 		goto done;
 	}
+	if ( !xvolc_parse_spec_int(duration_text, 3600,
+		"invalid duration_seconds", &duration_seconds) ) goto done;
 	ret = x_volc_core_sign_preview_sts(access_key, secret_key, role_trn, role_session_name,
-		xvolc_parse_int_default(duration_text, 3600), x_date);
+		duration_seconds, x_date);
 done:
 	if ( access_key ) xrtFree(access_key);
 	if ( secret_key ) xrtFree(secret_key);

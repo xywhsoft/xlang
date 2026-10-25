@@ -35,6 +35,15 @@ int main(void)
     if (from_spec == NULL || strcmp(direct, from_spec) != 0)
         return fail("direct/spec preview mismatch");
 
+    if (strcmp(x_volc_core_sign_preview_sts_spec(
+            "access_key=AKID\nsecret_key=SECRET\n"
+            "role_trn=trn:iam::123456789:role/demo\n"
+            "role_session_name=demo-session\nduration_seconds=bad\n"
+            "x_date=20240102T030405Z\n"), "") != 0 ||
+        strcmp(x_volc_core_last_error(), "invalid duration_seconds") != 0 ||
+        xrtGetError() != NULL)
+        return fail("invalid numeric spec must not use default duration");
+
     if (strcmp(x_volc_core_sign_preview_sts(
             "AKID", "SECRET", role, "demo-session", 900,
             "20240230T030405Z"), "") != 0 ||

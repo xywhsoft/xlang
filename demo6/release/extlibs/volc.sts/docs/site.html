@@ -29,7 +29,7 @@
     <h2>示例</h2>
     <pre><code>import volc.sts
 string preview = volc.sts.preview_assume_role("AKID", "SECRET", "123456789", "demo", "demo-session", 900, "20240102T030405Z")</code></pre>
-    <p>直参入口直接传递字段，角色 TRN 与会话名中的换行会在发送前拒绝；自行编写的 <code>*_spec</code> 声明文本没有值转义。C 对照见 <code>examples/assume_role.c</code>；Windows 严格 GCC/C 门禁见 <code>test/check.ps1</code>，Linux ASan/UBSan 见 <code>test/check.sh</code>。使用固定测试凭据，不发送请求。XLang 导入仍被独立维护的 <code>xhttp.multipart</code> 阻断；响应助手不是结构化 JSON 解析器。详细限制和待验收项见包内 README。</p>
+    <p>直参入口直接传递字段，角色 TRN 与会话名中的换行会在发送前拒绝；自行编写的 <code>*_spec</code> 声明文本没有值转义。声明中的时长/超时只有省略或留空才取默认值，显式坏数字在签名或发送前拒绝。C 对照见 <code>examples/assume_role.c</code>；Windows 严格 GCC/C 门禁见 <code>test/check.ps1</code>，Linux ASan/UBSan 见 <code>test/check.sh</code>。使用固定测试凭据，不发送请求。XLang 导入仍被独立维护的 <code>xhttp.client</code> 阻断，发布版脚本运行还受 ownership catalog 初始化故障阻断；响应助手不是结构化 JSON 解析器。详细限制和待验收项见包内 README。</p>
   </section>
 </main>
 </body>

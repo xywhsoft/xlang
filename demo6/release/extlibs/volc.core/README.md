@@ -31,6 +31,16 @@ string preview = volc.core.sign_preview_acep(
 不会进入字段值。字段内部的控制字符仍按原规则拒绝。ACEP 和 STS
 离线预览的 LF/CRLF 同签名对照已纳入 Windows 与 Linux C 门禁。
 
+`duration_seconds` 与 `timeout_ms` 只有省略或留空时才采用默认值
+（分别为 3600 秒和 30000 毫秒）；显式值必须是完整的十进制整数，
+且位于 C `int` 范围内。错误文本或越界值返回空结果，并在
+`last_error` 中报告 `invalid duration_seconds` / `invalid timeout_ms`，
+不会截断数值、悄悄改用默认值，也不会继续发送请求。合法 `spec`
+仍沿用原来的签名和请求语义。2026-10-25 C 红绿回归覆盖畸形、空白、
+超界与缺省；Windows 严格 C、Linux ASan/UBSan 离线门禁及下游
+`volc.sts` 双平台 C 门禁通过。XLang 导入和真实在线路径仍受上述
+主线阻断，尚未完成发布验收。
+
 直接拼入规范请求或授权头的方法、主机、路径、服务、区域、访问密钥 ID、会话令牌和内容类型不能包含 ASCII 控制字符（含 CR/LF、TAB 和 DEL）；路径报 `invalid path`，其余字段报 `invalid signed field`。请求体仍可包含换行，查询值由百分号编码路径处理。此校验不代替真实服务的凭据和请求参数验证。
 
 通用 `sign_preview` / `request` 的 `path` 是**未编码、以 `/` 开头**的绝对路径；空值按 `/` 处理。签名和请求 URL 共用按路径片段编码的结果，保留 `/`，将空格、非 ASCII 字节和已有 `%` 分别编码；调用方不要预先对路径做百分号编码。非绝对路径报 `invalid path`。此规则与[火山引擎官方 Go SDK 的规范 URI 处理](https://github.com/volcengine/volc-sdk-golang/blob/main/base/sign.go)一致；包内 C 测试固定了含空格和中文路径的完整签名向量。

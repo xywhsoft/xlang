@@ -18,6 +18,10 @@ string preview = volc.sts.preview_assume_role(
 直参接口直接调用 `volc.core` 的定型 STS 入口，不再把值重新拼成声明文本；
 角色 TRN 和会话名中的 CR/LF 在发请求或签名前拒绝，避免生成额外查询项。
 `*_spec` 入口仍是调用方自行编写的逐行声明，不适合拼接未经验证的值。
+`duration_seconds` 省略或留空时为 3600；显式填写的非十进制或超出
+C `int` 范围的值会在签名前返回空结果，`last_error()` 为
+`invalid duration_seconds`，不会默默使用默认时长。在线 `timeout_ms`
+遵循 `volc.core` 相同的严格解析规则；错误值在发请求前拒绝。
 `json_string_field`、`credentials_json` 等响应助手目前按文本切分 JSON，
 不能正确处理转义引号、嵌套同名字段等一般 JSON 响应；完成结构化解析和
 离线响应测试前，不应将它们用于不可信响应。
@@ -43,6 +47,8 @@ Linux 可运行 `bash release/extlibs/volc.sts/test/check.sh`，以 ASan/UBSan
 启用完整 XRT 模块，链接时丢弃未用代码；测试宿主不在包 manifest 中，
 不增加发布产物的代码量。
 直参签名和请求入口的换行拒绝、失败后成功预览的恢复已进入 C 边界门禁；
+2026-10-25 增补非法 `duration_seconds` 的离线 C 负例，Windows 严格
+C 与 Linux ASan/UBSan 门禁通过；当前没有以此签收真实在线请求。
 XLang 直参包装改为直接调用定型入口，尚待依赖导入恢复后运行验证。
 2026-10-24 用现行 `release/xl.exe check release/examples/extlibs/volc_sts.xl`
 复验，首先在独立维护的 `xhttp.body/src/xlang/xhttp_body.xl:59` 报未知
