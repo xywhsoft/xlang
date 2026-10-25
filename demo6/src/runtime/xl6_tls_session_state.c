@@ -34,7 +34,8 @@ static int64_t control(void* raw,unsigned operation)
      * handshake state no future Drive can call it again; drop captures while
      * the real Session entry gate still excludes graph observation. */
     xtlsstate state=xrtTlsSessionState(self->native);
-    if(state==XTLS_STATE_READY||state==XTLS_STATE_FAILED)xl6TlsSelectorDropV1(&self->selector);
+    if(state==XTLS_STATE_READY||state==XTLS_STATE_FAILED){
+        xl6TlsSelectorDropV1(&self->selector);xl6TlsResumeLookupDropV1(&self->resumeLookup);}
     xl6TlsSessionLeaveInternalV1(&scope);return result;
 }
 int64_t xl6TlsSessionDriveV1(void* raw){return control(raw,0);}

@@ -3,7 +3,7 @@
 typedef XL6_ExecutionResourceV1 Resource;
 typedef struct Listener {
     Resource base;Resource* parent;xatomicptr native;xatomic32 dataHeld;
-    const XL6_TlsMetadataRoleV1* metadata;XL6_TlsSelectorV1 selector;
+    const XL6_TlsMetadataRoleV1* metadata;XL6_TlsSelectorV1 selector;XL6_TlsResumeLookupV1 resumeLookup;
 } Listener;
 _Static_assert(offsetof(Listener,base)==0,"TLS resource base must be first");
 static xtlslistener* native(const Resource* r)
@@ -29,14 +29,20 @@ static bool create(Resource* base,const XL6_ExecutionCreateOptionsV1* options)
     xrtAtomic32Init(&r->dataHeld,0);
     if(!c||!c->config){xrtSetErrorKind(XERR_ARGUMENT);return false;}
     r->metadata=c->metadata;
-    /* Only the explicitly owning typed producer may provide Select. Native
-     * config aliases and resumption callbacks are not admitted by inference. */
+    /* Only explicitly owning typed producers may provide these callbacks.
+     * Borrowed/native aliases are never admitted by inference. */
     if((c->selector.data&&(!c->selector.ops||!c->selector.ops->Ref||!c->selector.ops->Drop||
             !c->selector.ops->Ownership||!c->selector.ops->Select))||
         c->config->Tls.Select!=(c->selector.data?c->selector.ops->Select:NULL)||
-        c->config->Tls.SelectContext!=c->selector.data||c->config->Tls.Resume||c->config->Tls.ResumeOwnedV1||c->config->Tls.ResumeContext){
+        c->config->Tls.SelectContext!=c->selector.data||c->config->Tls.Resume||
+        (c->resumeLookup.data&&(!c->resumeLookup.ops||!c->resumeLookup.ops->Ref||!c->resumeLookup.ops->Drop||
+            !c->resumeLookup.ops->Ownership||!c->resumeLookup.ops->Lookup))||
+        c->config->Tls.ResumeOwnedV1!=(c->resumeLookup.data?c->resumeLookup.ops->Lookup:NULL)||
+        c->config->Tls.ResumeContext!=c->resumeLookup.data){
         xrtSetErrorKind(XERR_ARGUMENT);return false;}
     r->selector=xl6TlsSelectorRefV1(c->selector);
+    r->resumeLookup=xl6TlsResumeLookupRefV1(c->resumeLookup);
+    if((c->selector.data&&!r->selector.data)||(c->resumeLookup.data&&!r->resumeLookup.data))return false;
     XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionTlsEngineEnterV1(c->engine,&scope))return false;
     r->parent=xl6ExecutionResourceRetainV1(c->engine);xtlslistener* result=NULL;
     if(r->parent&&xl6ExecutionResourceNativePinV1(base)){
@@ -56,7 +62,7 @@ static void detachNative(Resource* base)
 static bool dispose(Resource* base)
 {
     Listener* r=(Listener*)base;detachNative(base);
-    xl6ExecutionTlsParentDropV1(&r->parent);xl6TlsSelectorDropV1(&r->selector);return true;
+    xl6ExecutionTlsParentDropV1(&r->parent);xl6TlsSelectorDropV1(&r->selector);xl6TlsResumeLookupDropV1(&r->resumeLookup);return true;
 }
 static bool rollback(Resource* base)
 {return native(base)||xrtAtomic32Load(&((Listener*)base)->dataHeld,XMEMORY_ACQUIRE)?false:dispose(base);}
@@ -79,13 +85,14 @@ static XL6_ModulePrepareResult retire(Resource* base)
  * certified quiescence and Cleared every node, so no borrowed selector can run
  * even when native/Data pins are released in the opposite Finish order. */
 static void drop(Resource* base)
-{const Listener* r=(const Listener*)base;if(native(base)||r->parent||r->selector.data||xrtAtomic32Load(&r->dataHeld,XMEMORY_ACQUIRE))abort();}
+{const Listener* r=(const Listener*)base;if(native(base)||r->parent||r->selector.data||r->resumeLookup.data||xrtAtomic32Load(&r->dataHeld,XMEMORY_ACQUIRE))abort();}
 static bool trace(const Resource* base,xrtownershipvisitor visit,void* context)
 {
     const Listener* r=(const Listener*)base;xtlslistener* listener=native(base);
     return (!listener||visit(xrtTlsListenerOwnership(listener),context))&&
         (!r->parent||visit(xl6ExecutionResourceOwnershipV1(r->parent),context))&&
-        (!r->selector.data||visit(r->selector.ops->Ownership(r->selector.data),context));
+        (!r->selector.data||visit(r->selector.ops->Ownership(r->selector.data),context))&&
+        (!r->resumeLookup.data||visit(r->resumeLookup.ops->Ownership(r->resumeLookup.data),context));
 }
 static bool closeListener(Resource* base){xtlslistener* l=native(base);return !l||xrtTlsListenerClose(l);}
 static bool present(const Resource* base){return native(base)!=NULL;}

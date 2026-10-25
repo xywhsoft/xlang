@@ -4,6 +4,8 @@
 
 本阶段只完成凭据对象：角色配置、服务端类型化查找回调、Session/传输层签发与接收仍待接入。不能把下面的对象验收等同于 TLS 恢复握手或发布封板已完成。
 
+这是凭据对象批次的历史边界。后续服务端类型化查找已接入，见下文；客户端恢复配置、票据签发/接收和传输 KeyUpdate 仍未完成。
+
 ## 公开合同
 
 高级恢复入口为：
@@ -47,3 +49,33 @@ TlsResume.fromParts(TlsVersion version, TlsCipherSuite cipher,
 Windows/Linux 各 42 步，共 84 步，包括声明与 XLIR、严格 GCC O0/O2、JIT、模块、独立 AOT、精确合同拒绝、真实裁剪计划、全量拥有目录唯一性及回滚。构造/导出/装箱共 1536 个分配失败前缀，完整目录共 232 个，总计 1768 个；内存快照平衡。
 
 验证没有网络流量、外部 DNS、扫描、畸形密码材料专项或安全测试。记录位于 `F:/xlang-validation/five-groups-20261025/p6-tls-resume-language/next.json`。首次空程序对照因验证脚本把同名生成 C 放在语言文件旁而触发正常伴随 C 接入，失败证据保留；输入和产物分目录后完整重跑通过，未改编译器来规避它。
+
+## 服务端类型化查找
+
+`TlsServerContext` 新增：
+
+```xlang
+context.withResumeLookup(func(TlsResumeRequest) as TlsResume? lookup,
+                         uint64 ageToleranceMillis = 10000) as TlsServerContext
+context.withoutResumeLookup() as TlsServerContext
+context.hasResumeLookup as bool
+context.resumeAgeToleranceMillis as uint64
+```
+
+这些方法创建不可变快照，不修改原 Context，也不取消已创建的 Session/Listener。普通参数、身份、ALPN 和选择器克隆均保留查找配置；`withoutResumeLookup()` 只移除新快照的查找，并恢复默认容差。容差单位为毫秒，允许 0（严格匹配）；超出 uint32 范围 checked 拒绝，不截断。
+
+`TlsResumeRequest` 只能由驻留运行时产生，无裸指针或默认构造入口。只读属性为 `serverName: bytes`、`protocolCount: int`、`ticket: bytes`、`age: uint64`，以及 `protocolAt(int): bytes`。`age` 是线路上的 uint32 混淆毫秒年龄，不是 xlang `time`。完整 SNI、ALPN 和票据由请求对象独立复制；属性和方法再次返回拥有副本。没有短生命周期视图泄漏到语言层。
+
+查找返回 null 表示缓存未命中，继续正常完整认证握手；抛错或资源失败是 checked 失败，不能当作未命中。返回临时 `TlsResume.fromParts(...)` 有效：驻留适配在语言临时结果释放前 retain 原生凭据，通过 `ResumeOwnedV1` 转交；框架按已有原生合同消费所有输出路径。不需要线程局部最后结果缓存或隐藏临时租约。
+
+Context、内存 Session、Listener 分别持有真实的回调拥有者，并在图中枚举。Session 达到 Ready/Failed 后释放捕获；Listener 必须等原生聚合 Data 引用退役，才在 Source 的 checked 清理尾部释放，不能在原生 drop 线程上任意析构捕获。选择器和查找可同时存在，两条边均计数和追踪。
+
+回调是同步函数。内存 Session 在调用线程执行；Listener 在实际 Engine 工作线程执行，多个连接可能并发，捕获的可变状态需由应用同步。应使用预先准备的缓存，不在固定工作线程上执行阻塞 I/O 或等待同一执行器。已有回调的真实代码租约允许其在模块 Close 后完成，不开放新的外部注册，也不靠借用 CodeOwner 保活。
+
+本批两端从实际固定源码构建（Windows 1257、Linux 1256 个编译单元）。有效覆盖各 126 步、合计 252 步；分配前缀检查各 756 个、合计 1512 个，包括真实 TCC 语言回调的临时结果、命中/未命中内存握手、抛错、Close 后调用、分配失败不能变成缓存未命中，以及双回调拥有图、延迟 checked 释放和完整目录。
+
+静态 Context 和空程序的真实裁剪计划排除恢复查找模块；Cgen 没有新增实现体。全批同时发现并修复了通用语义重载问题：已知非函数属性值不能匹配函数形参；具体 callable 属性检查完整签名，现有方法组/动态 callable 投影规则保持不变。新增回归和四项既有 callable 回归均通过。
+
+首次宿主验证漏用现行 `xl6_export_` 导出前缀；首轮保存请求也必须先建立持久状态基线。这两项仅修测试宿主，所有内存/失败断言保留。失败记录和旧控制源码已归档；重用两端各 120 项未变检查，单独重跑宿主的 6 项，最后重新核验全部源码、对象、控制工具、日志和产物哈希。记录为 `F:/xlang-validation/five-groups-20261025/p6-tls-resume-lookup/next.json`。
+
+仅有正常固定有效材料的内存握手和自建字面量 loopback Listener 生命周期，没有公网、外部 DNS、扫描、畸形密码材料专项或安全测试。未修改独立 XRT，未升级时间 ABI；本批不是客户端恢复配置、票据收发、shipping DLL/VFS 或跨组发布联合验收。

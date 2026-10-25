@@ -23,6 +23,7 @@ typedef struct XL6_TlsSessionV1 {
     xtlssession* native;
     const XL6_TlsSessionRoleOpsV1* role;
     XL6_TlsSelectorV1 selector;
+    XL6_TlsResumeLookupV1 resumeLookup;
     const void* claim;
     bool cleared;
 } XL6_TlsSessionV1;
@@ -31,6 +32,7 @@ typedef struct XL6_TlsSessionScopeV1 { XL6_TlsSessionV1* owner; } XL6_TlsSession
  * this factory to certify arbitrary C sessions or borrowed callback state. */
 XL6_TlsSessionV1* xl6TlsSessionTakeInternalV1(xtlssession*,const XL6_TlsSessionRoleOpsV1*);
 XL6_TlsSessionV1* xl6TlsSessionTakeSelectorInternalV1(xtlssession*,const XL6_TlsSessionRoleOpsV1*,XL6_TlsSelectorV1);
+XL6_TlsSessionV1* xl6TlsSessionTakeCallbacksInternalV1(xtlssession*,const XL6_TlsSessionRoleOpsV1*,XL6_TlsSelectorV1,XL6_TlsResumeLookupV1);
 bool xl6TlsSessionHoldInternalV1(const void*);
 void xl6TlsSessionDropInternalV1(const void*);
 bool xl6TlsSessionEnterInternalV1(XL6_TlsSessionV1*,bool,XL6_TlsSessionScopeV1*);
