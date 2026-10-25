@@ -338,7 +338,13 @@ void xideLanguageCheckDestroy(xide_language_check* q)
 #ifdef XLS_COMPILER_XRT
  free(q->semanticTarget); xlsContextRelease(q->context);
 #endif
- free(q->snapshots); if(q->stopEvent) CloseHandle(q->stopEvent); xrtValueRelease(q->guardFiles); xrtValueRelease(q->guardResolution); xideSemanticDefinitionsDestroy(q->definitions); free(q->queryPath); free(q->packagePath); free(q->compiler); free(q->directory); free(q->path); free(q->text); xrtValueRelease(q->result); DeleteCriticalSection(&q->lock); free(q);
+ free(q->snapshots); if(q->stopEvent) CloseHandle(q->stopEvent); xrtValueRelease(q->guardFiles); xrtValueRelease(q->guardResolution);
+#ifdef XLS_COMPILER_XRT
+ xideSemanticDefinitionsReleaseTyped(q->definitions,q->navigationProjection);
+#else
+ xideSemanticDefinitionsDestroy(q->definitions);
+#endif
+ free(q->queryPath); free(q->packagePath); free(q->compiler); free(q->directory); free(q->path); free(q->text); xrtValueRelease(q->result); DeleteCriticalSection(&q->lock); free(q);
 }
 
 static xide_language_check* createSnapshots(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,int diskEntry,xide_model_error* e)

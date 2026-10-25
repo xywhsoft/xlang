@@ -16,9 +16,21 @@ int xideSemanticRangesToLsp(const xide_semantic_source* sources,size_t count,xid
 xide_semantic_definitions* xideSemanticDefinitionsCreate(const xvalue* index,const xide_semantic_source* sources,size_t count,xide_model_error* error);
 #ifdef XLS_COMPILER_XRT
 #include "analysis/index.h"
+#include "analysis/projection.h"
 /* Borrows the checked native facts only during construction. The returned
  * navigation table owns all paths, text and UTF-16 ranges independently. */
 xide_semantic_definitions* xideSemanticDefinitionsCreateTyped(const xls_semantic_index* index,const xide_semantic_source* sources,size_t count,xide_model_error* error);
+typedef struct xide_navigation_work {int built,hit;size_t bytes;} xide_navigation_work;
+/* Optional worker-local sharing of one independently owned immutable table.
+ * Exact check owner + complete path/kind/BOM key and original source bytes are
+ * required. This does not validate current disk/environment/publication.
+ * Continue the original input and publication gates. With a non-NULL lease,
+ * release via ReleaseTyped;otherwise the table is ordinarily owned. Optional
+ * key/cache allocation/quota failure uses the original constructor. */
+xide_semantic_definitions* xideSemanticDefinitionsAcquireTyped(xls_projection_store* cache,
+    xls_semantic_check* check,const xide_semantic_source* sources,size_t count,
+    xls_projection** lease,xide_navigation_work* work,xide_model_error* error);
+void xideSemanticDefinitionsReleaseTyped(xide_semantic_definitions* definitions,xls_projection* lease);
 #endif
 void xideSemanticDefinitionsDestroy(xide_semantic_definitions* definitions);
 /* Returns a Location or JSON null. Explicit type facts can resolve a unique

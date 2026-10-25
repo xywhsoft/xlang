@@ -1,5 +1,7 @@
 # xlang IDE 实施进度
 
+2026-10-26 当前最新切片 M7a2b36a，开发服务 0.69：重复静态检查复用当前保留模型的不可变导航表，完整当前源码／发布证明保持。68 原生、40 套 1,044 协议、18 IDE 回归及完整独立对照通过。正常 0.68／0.69 ABBA 的 512 helper 样本：精确重复静态检查 P50／P95／P99 为 95.731 / 114.737 / 115.939→3.918 / 5.759 / 5.797 ms；无关文件开关后的静态检查为 97.910 / 181.691 / 184.711→5.009 / 97.208 / 108.010 ms。真实局部编辑后三方法总序列为 1242.254 / 1458.454 / 1471.757→1134.610 / 1389.090 / 1401.084 ms，全局函数增删为 2315.072 / 3086.318 / 3559.571→2197.774 / 2675.971 / 2726.222 ms。只对这些路径和规模作结论；完整 IDE、十万行和持续输入的速度目标仍未验收。 长期任务 active，发布目录未改。
+
 2026-10-25 最新功能切片 M7a2b22a 将开发服务升至 0.55：过期任务可在语义函数／语句／表达式及 IR 构建／验证内部协作取消，用原有资源清理路径退出，保留已接受模型、输入历史和来源守卫。59 原生夹具、34 套 919 协议场景及 18 组 IDE 回归通过。普通分析开销与取消后新模型返回分开测量，全部原始结果见本节。解析／导入、个别检查器辅助函数和模型销毁仍不可抢占；真正模块／语义 IR 增量、完整协议、整体速度和资源目标继续，长期任务 active，发布目录未改。
 
 2026-10-25 最新功能切片 M7a2b21b 将开发服务升至 0.54：静态检查的每个函数 memo 单元内共享完全相同的不可变类型树，恢复编译器私有树时仍独立复制；保留完整词法／语义／来源／光标标记身份及资源失败回退。58 原生夹具、33 套 907 协议场景和 18 组 IDE 回归通过。八个约 16000 行独立根的静态检查服务私有内存观察最大值为 1704.63→1550.57 MiB；冷热响应、相关编辑、CPU 和真实 IDE 帧全部另测并保留。仍需真正模块／语义 IR 增量、完整协议和整体资源预算，长期任务 active，发布 5241 文件未改。
@@ -2826,3 +2828,14 @@ P95 回退保留：dependency-editSequenceSummary:96 P95 147.793→155.319 ms；
 本轮 P95 回退全部保留：topologySequenceSummary:96 P95 173.651→176.904 ms；dependency-editSequenceSummary:512 P95 1035.451→1372.323 ms；topologySummary:96/xlang/check P95 92.301→96.134 ms；topologySummary:512/textDocument/completion P95 40.074→40.134 ms；editSummary:512/xlang/check P95 653.390→786.134 ms；editSummary:512/textDocument/completion P95 193.637→245.320 ms；editSummary:512/textDocument/signatureHelp P95 212.280→260.187 ms；coldSummary:96/xlang/check P95 116.021→125.247 ms；coldSummary:512/xlang/check P95 739.777→764.861 ms；hotSummary:96/textDocument/signatureHelp P95 2.217→2.303 ms；hotSummary:512/xlang/check P95 88.196→113.998 ms；hotSummary:512/textDocument/completion P95 2.745→3.424 ms；hotSummary:512/textDocument/signatureHelp P95 2.474→3.032 ms；globalSummary:96/xlang/check P95 172.841→190.546 ms；globalSummary:96/textDocument/completion P95 66.013→77.006 ms；globalSummary:96/textDocument/signatureHelp P95 63.267→75.349 ms；globalSummary:512/textDocument/completion P95 465.074→503.591 ms；globalSummary:512/textDocument/signatureHelp P95 475.784→521.459 ms；global-declarationSequenceSummary:96 P95 297.993→325.497 ms；global-declarationSequenceSummary:512 P95 2091.334→2112.480 ms；GUI 96/0/renderSubmittedMs P95 62.529→62.778 ms；GUI 96/0/maxFrameMs P95 11.649→11.710 ms；GUI 96/1/renderSubmittedMs P95 50.676→66.802 ms；GUI 96/1/maxFrameMs P95 7.889→8.837 ms；GUI 96/1/guiCpuMs P95 62.500→78.125 ms；GUI 96/2/renderSubmittedMs P95 7.953→8.848 ms；GUI 96/2/maxFrameMs P95 7.953→8.848 ms；GUI 512/0/renderSubmittedMs P95 277.107→294.037 ms；GUI 512/1/renderSubmittedMs P95 231.451→263.400 ms；GUI 512/1/maxFrameMs P95 9.769→11.409 ms；GUI 512/2/renderSubmittedMs P95 9.675→12.028 ms；GUI 512/2/maxFrameMs P95 9.675→12.028 ms；GUI 512/2/guiCpuMs P95 15.625→46.875 ms；GUI 512/3/renderSubmittedMs P95 8.876→10.711 ms；GUI 512/3/maxFrameMs P95 8.876→10.711 ms；GUI 512/3/guiCpuMs P95 46.875→62.500 ms。
 
 证据 build/lsp-next-20261022/m7a2b35a-result.json；外部 m7a2b35a-ed4ef110／component-v2。发布 5,241 文件保持。继续外部 C/compiler XRT、未来 opaque xlc.dll，无 DAP／运行态补全。继续持久模块 typed state／语义事实版本和 read set、减少全模型 clone/import/stdlib/index/IR/verifier 成本；剩余适用 LSP／静态分析／IDE、全模型预算、100k／并行／soak／最终发行尚未完成，goal active。
+
+
+## M7a2b36a：复用当前分析结果的不可变导航表（0.69）
+
+正常 0.68／0.69 ABBA 的 512 helper 样本：精确重复静态检查 P50／P95／P99 为 95.731 / 114.737 / 115.939→3.918 / 5.759 / 5.797 ms；无关文件开关后的静态检查为 97.910 / 181.691 / 184.711→5.009 / 97.208 / 108.010 ms。真实局部编辑后三方法总序列为 1242.254 / 1458.454 / 1471.757→1134.610 / 1389.090 / 1401.084 ms，全局函数增删为 2315.072 / 3086.318 / 3559.571→2197.774 / 2675.971 / 2726.222 ms。只对这些路径和规模作结论；完整 IDE、十万行和持续输入的速度目标仍未验收。
+
+同一冻结 component-v1 完整编译 150 对象，68 原生夹具／69 PE／70 outputs／59 core members／72 AST17 消费者、347 依赖、1,107 输入。八个生成编译器主体及 checker／session／IR／语法正文不变。106 GUI 对象按真实 .d 和 13 个预处理 token 等价证明复用，35 程序。40 协议套件 1,044 场景及 18 实际 IDE／旧服务回退和启动通过。
+
+正常未插桩 ABBA：288 topology／288 局部编辑／288 全局函数增删／288 精确热／24 冷方法样本、288 三方法序列、40 CPU／内存组、320 实际 GUI 帧与 8 冷 GUI。候选热／无关拓扑要求 nav builds=0／hit=1，真实编辑 builds=1／hit=0；每样本校验当前版本／配置／真实语义结果及原复用证明。计时期间没有自己的构建／QA／重哈希，不宣称独占机器；系统内存观察在请求计时后进行，最小观察提交余量 8643.012 MiB。GUI 为原单文件签名帧控制，不代表本轮多模块导航显示或完整 IDE 性能。
+
+证据 build/lsp-next-20261022/m7a2b36a-result.json；外部 m7a2b36a-a7d681f8／component-v1。发布 5,241 文件未改。长期任务 active：继续持久模块 typed state／语义事实版本和 read set、依赖传播及真实编辑成本减少，全工程引用／rename／tokens／actions／format、静态检查／补全恢复、IDE 配置、整体预算与十万行／并行／soak／最终交付。保持外部 C/compiler-XRT、未来 opaque xlc.dll；无 DAP／运行态补全。

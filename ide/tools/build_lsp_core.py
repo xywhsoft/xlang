@@ -67,7 +67,8 @@ CORE_TESTS = ("analysis_worker_cache_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_worker_cache_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ast_intern_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_frontend_cancel_test", *CORE_TESTS)
-CORE_TESTS = ("analysis_ir_memo_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_memo_test", "analysis_projection_test", *CORE_TESTS)
+HOST_TESTS += ("navigation_cache_test",)
 
 
 def sha(path: Path) -> str:
@@ -542,7 +543,7 @@ def main() -> None:
     sources += [(ide / "src/protocol/input_state.c", True)]
     sources += [(ide / "src/protocol/diagnostic_paths.c", True)]
     sources += [(ide / path, True) for path in (
-    "src/analysis/frontend_cancel.c", "src/analysis/frontend_ir_regions.c", "src/analysis/frontend_symbols.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/module_store.c", "src/analysis/entity_store.c", "src/analysis/module_graph.c", "src/analysis/input_view.c", "src/analysis/input_topology.c", "src/analysis/dependency_graph.c", "src/analysis/ast_storage.c", "src/analysis/ast_materialize.c", "src/analysis/ast_clone.c", "src/analysis/ast_intern.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/signature.c", "src/analysis/signature_session.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
+    "src/analysis/frontend_cancel.c", "src/analysis/frontend_ir_regions.c", "src/analysis/frontend_symbols.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/module_store.c", "src/analysis/entity_store.c", "src/analysis/module_graph.c", "src/analysis/input_view.c", "src/analysis/input_topology.c", "src/analysis/dependency_graph.c", "src/analysis/ast_storage.c", "src/analysis/ast_materialize.c", "src/analysis/ast_clone.c", "src/analysis/ast_intern.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/projection.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/signature.c", "src/analysis/signature_session.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/check_session.c", "src/analysis/completion_session.c",
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
@@ -675,7 +676,7 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_cancel", "frontend_ir_regions","frontend_symbols","frontend_entry_cache","module_store","entity_store","module_graph","input_view", "input_topology", "dependency_graph", "text", "context", "frontend_context", "ast_storage", "ast_materialize", "ast_clone", "ast_intern", "syntax", "session", "worker", "folding", "semantic", "signature", "signature_session", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_cancel", "frontend_ir_regions","frontend_symbols","frontend_entry_cache","module_store","entity_store","module_graph","input_view", "input_topology", "dependency_graph", "text", "context", "frontend_context", "ast_storage", "ast_materialize", "ast_clone", "ast_intern", "syntax", "session", "worker", "projection", "folding", "semantic", "signature", "signature_session", "check", "input_batch", "check_session", "completion_session", "input_state", "diagnostic_paths"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         limited_index = output / "xl6_sem_index_limit.o"

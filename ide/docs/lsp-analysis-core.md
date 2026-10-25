@@ -1,5 +1,7 @@
 # LSP 常驻分析核心
 
+2026-10-26 当前最新切片 M7a2b36a，开发服务 0.69：重复静态检查复用当前保留模型的不可变导航表，完整当前源码／发布证明保持。68 原生、40 套 1,044 协议、18 IDE 回归及完整独立对照通过。正常 0.68／0.69 ABBA 的 512 helper 样本：精确重复静态检查 P50／P95／P99 为 95.731 / 114.737 / 115.939→3.918 / 5.759 / 5.797 ms；无关文件开关后的静态检查为 97.910 / 181.691 / 184.711→5.009 / 97.208 / 108.010 ms。真实局部编辑后三方法总序列为 1242.254 / 1458.454 / 1471.757→1134.610 / 1389.090 / 1401.084 ms，全局函数增删为 2315.072 / 3086.318 / 3559.571→2197.774 / 2675.971 / 2726.222 ms。只对这些路径和规模作结论；完整 IDE、十万行和持续输入的速度目标仍未验收。 长期任务 active，发布目录未改。
+
 M3a／M3b 已实现独立 C 分析会话、XRT 后台工作线程和外部 `xlang-ls.exe` 的运行时接入；首个常驻协议查询为结构化折叠范围。M3c 开始接入共享语义前端，当前发布目录保持原版本。没有向 `xlc.dll` 添加新代码，也没有新增 DAP 或运行态补全。
 
 ## 资产与构建
@@ -1684,3 +1686,26 @@ IR memo 保留当前 view，unit 字典仅拥有身份值及自身文本，不�
 原型夹具漏 include／缺少公共 helper 必需的 marker 已修复，失败记录保留。初始 wire 预期 40 并非实际可捕获数量，已以冷构建的明确 39 captured／3 declined 为基准证明全部可捕获片段复用，原类型前缀条件未放宽。初次全量 producer 在依赖扫描／失败记录写出阶段出现 Python MemoryError，尚未编译对象；构建工具改为 64 KiB 分块哈希后，最终 v2 同一冻结全部编译与运行通过，没有事后改写产品 core。另有一次误用旧准备脚本覆盖上一阶段预检 JSON，原 expected hash／当前字节及差异均留档；20,750 份历史非 live 产物核验仅此一份元数据有变化，旧 receipt／产品／测试／性能证据未改写，不能宣称全部历史元数据保持原样。
 
 证据 build/lsp-next-20261022/m7a2b35a-result.json；外部 m7a2b35a-ed4ef110／component-v2。发布 5,241 文件保持。继续外部 C/compiler XRT、未来 opaque xlc.dll，无 DAP／运行态补全。继续持久模块 typed state／语义事实版本和 read set、减少全模型 clone/import/stdlib/index/IR/verifier 成本；剩余适用 LSP／静态分析／IDE、全模型预算、100k／并行／soak／最终发行尚未完成，goal active。
+
+
+## M7a2b36a：复用当前分析结果的不可变导航表（0.69）
+
+前一版已使用不含完整索引的原生 ReportJson。诊断 profile 定位到重复 typed 导航表构造：512 helper 的精确模型命中仍需约 76–78 ms。0.69 新增 C/compiler-XRT 不透明 projection 核心，由 worker 可选持有一份导航表；原 typed 构造器和定义／悬停／大纲／高亮／引用算法保持。诊断插桩不进入正常产品。
+
+仅同一保留 check 所有者和完整二进制 key 可命中；key 逐项保存实际路径、kind、BOM 坐标前缀。每次 acquire 先验证全部当前源数量／kind／路径／完整正文；完全相同不可变正文指针可直接证明相等。可选 key 分配／额度失败后仍完成所有源验证。缓存不代替 source report、磁盘／导入候选、包环境、输入版本／身份、配置 epoch、发布及发布后守卫。不同 check 即使源码相同也不共用，不使用名称／摘要／UID 替代新鲜度。
+
+payload 独立拥有全部事实／字符串／坐标／查询索引，不借用 AST、不保留 check／worker／store；wrapper 独立保留 check。快照持有原子引用 lease，可跨 worker／store 关闭继续只读查询与释放。锁仅覆盖 resident 元数据，分配／I/O／析构在锁外；竞争发布返回 winner，重复发布同 handle 仍消耗传入引用。可选创建／限额拒绝回退到原独立表或未缓存 lease。
+
+仅一份 resident，默认 66 MiB 计入已知实际导航分配容量、wrapper、完整 key；key ≤1 MiB、value ≤64 MiB，原 typed 构造器 64 MiB 防线保持。额外保留 check 的传递内存、分配器元数据、暂存及 RSS 不在该额度，完整分析预算未完成。analysis.navigation 的 builds／cacheHits 是本次 adapter 的实际构造／命中，bytes／residentBytes／limit 为已知存储，原 semantic provenance 不改。
+
+同一冻结 component-v1 完整编译 150 对象，68 原生夹具／69 PE／70 outputs／59 core members／72 AST17 消费者、347 依赖、1,107 输入。八个生成编译器主体及 checker／session／IR／语法正文不变。106 GUI 对象按真实 .d 和 13 个预处理 token 等价证明复用，35 程序。40 协议套件 1,044 场景及 18 实际 IDE／旧服务回退和启动通过。
+
+39 项投影专项显式验证 135 payload 全部释放，含完整 NUL key、不同 owner、同 handle、四发布者、额度拒绝、析构重入、关闭后 lease。22,982 项导航专项在全部有效 UTF-8 端点逐项对照原 typed 构造器的定义／悬停／大纲／高亮／引用；覆盖 BOM／CRLF／Unicode／astral／导入／重载／泛型／别名／遮蔽、正文／路径伪造拒绝、不同 check、禁用／限额回退和原所有者关闭后的四读者。worker 失败测试保留 13,047 检查／1,012 门。
+
+28 wire 场景覆盖磁盘／打开入口、精确／无变化版本／无关开关命中，真实修改／BOM／重开／配置重建，错误与恢复。96／512 helper 的 48 轮完整独立 AST、native index 全字段／canonical／范围、输入报告和 IR 对照通过；两版均已拥有外部声明 IR 复用，不能以 0.67 零复用作为本轮基线。另比较相同路径的独立 0.68／0.69 进程，24 个冷热／无变化／拓扑／局部／全局当前版本的 96 份完整定义／悬停／高亮／大纲 JSON 一致。
+
+初期诊断 profile v2 的 cc1 OOM 记录保留，v3 成功。原型 v1 的导航程序误链接旧 analysis_index_view_test main，旧 banner 不算新测试；v2 明确正确 main 验证通过。重复同 handle 发布引用消耗已在完整构建前修复，以 135 创建／释放断言防回归。wire v1／v2 的 disk 分支误向关闭入口发标准请求，修正为该分支当前打开的依赖文档，opened 分支仍验证导入；v3 与冻结 QA 通过。失败记录保留。
+
+上阶段误执行旧资源准备 helper 覆盖一份 M34 preflight JSON 的历史例外继续保留于父 receipt。本轮旧 helper／产物只读，不改历史 receipt、不伪造原字节、不宣称历史元数据全部原样；新的资源 helper 仅输出。
+
+证据 build/lsp-next-20261022/m7a2b36a-result.json；外部 m7a2b36a-a7d681f8／component-v1。发布 5,241 文件未改。长期任务 active：继续持久模块 typed state／语义事实版本和 read set、依赖传播及真实编辑成本减少，全工程引用／rename／tokens／actions／format、静态检查／补全恢复、IDE 配置、整体预算与十万行／并行／soak／最终交付。保持外部 C/compiler-XRT、未来 opaque xlc.dll；无 DAP／运行态补全。
