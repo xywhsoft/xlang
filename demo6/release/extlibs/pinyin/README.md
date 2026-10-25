@@ -19,9 +19,10 @@ C API 见 `include/pinyin_native.h`。`xpinyin_convert[_n]` 与 `xpinyin_initial
 2026-10-25：C 边界测试补齐孤立续字节、截断的三/四字节字符、
 非法续字节和超出 Unicode 范围的输入；两条显式长度入口均须报
 `XERR_VALUE`，随后正常调用须恢复。Windows 严格 C 用例、Linux
-C ASan/UBSan 与 XLang 包门禁通过；当前 Windows 发布版从 `release`
-目录直跑 XLang 边界、分配故障和中文范例通过。本次未重跑 Windows
-全量 AOT 门禁，转换规则和字表均未改动。
+C ASan/UBSan 与 XLang 包门禁通过。Windows 包门禁现从 `release`
+目录运行 `xl`，C 编译仍从项目根目录运行；当前发布版的默认门禁已通过
+XLang 边界、分配故障、中文范例及核心/公开范例 AOT。转换规则和字表
+均未改动。
 
 2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
 严格 GCC、C/XLang 边界、两条入口的分配故障、双语固定中文输出，
