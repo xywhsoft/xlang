@@ -10,6 +10,9 @@
 Windows 全包门禁通过。Linux C ASan/UBSan、格式互通及新增 XLang
 JIT/独立 EXE 用例通过；随后旧 `boundaries.xl` 在 180 秒阶段限时内
 超时，故本次 Linux 全包门禁未完成，不能按完整跨平台验收报告。
+2026-10-27 进一步定位：Linux `check`、IR、cgen 很快完成，但 `run`
+和 `build` 在后续阶段超时；较小的文本用例也受影响。当前只确认
+阶段边界，未证明根因，详见 `../../../dev/extlib_blockers/zip_linux_tcc_stage_timeout.md`。
 
 2026-10-26：当前 Windows/Linux 发布物的功能门禁均退出 0。
 两平台覆盖 C 边界、语言 JIT/AOT、私有成员负例及公开 C/XLang 范例；

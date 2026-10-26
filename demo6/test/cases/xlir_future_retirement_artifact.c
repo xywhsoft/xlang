@@ -3,7 +3,19 @@
 typedef struct FutureEscapeHooks { void (*capture)(xvalue*); void (*dropped)(int64_t); } FutureEscapeHooks;
 static FutureEscapeHooks future_escape_hooks;
 __declspec(dllexport) void future_escape_bind(const FutureEscapeHooks* hooks) { future_escape_hooks = *hooks; }
-__declspec(dllexport) bool future_escape_join(void) { return xlir_async_pool_quiesce(); }
+__declspec(dllexport) bool future_escape_join(void)
+{
+    /* The fixture has finished submitting roots. Unlike the removed blocking
+     * pool, checked executor teardown refuses still-running logical work.
+     * Drain accepted work explicitly, including physical release tails, before
+     * asking the generated module to consume its executor owner. */
+    xdeadline limit = xrtDeadlineAfter(5000000);
+    while (!xl6ContinuationExecutorIsIdle(xlir_continuation_executor)) {
+        if (xrtDeadlineExpired(limit)) return false;
+        xrtThreadYield();
+    }
+    return xlir_continuation_quiesce(true);
+}
 void future_escape_capture(xvalue* value) { future_escape_hooks.capture(value); }
 void future_escape_dropped(int64_t id) { future_escape_hooks.dropped(id); }
 /* The language deliberately rejects async functions declared as Future<T>.
