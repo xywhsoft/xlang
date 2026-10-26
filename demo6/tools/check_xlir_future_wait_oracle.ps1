@@ -1,6 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,[string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -17,14 +18,14 @@ try {
     New-Item -ItemType Directory -Path $out|Out-Null
     $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation')
-    $includes=@('-I.','-Irelease','-DXL_STATIC_EMBED');$libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
+    $includes=@('-I.','-Irelease','-Irelease/include','-DXL_STATIC_EMBED');$libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
     $marker='Future wait oracle: 66064 exhaustive graphs, 197648 root decisions, ordered duplicates, ALL/ANY open alternatives and feeders; 96-node/768-edge growth, 16 allocation budgets, 8 exact failures; memory balanced'
     $lanes=@()
     foreach($compiler in @('gcc-O0','gcc-O2','tcc')){
         $binary="$out/oracle-$compiler.exe"
-        if($compiler-eq'tcc'){& $Tcc -std=c11 @includes $case @resident tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$binary.build.log"}
-        else{& gcc @strict "-$($compiler.Substring(4))" @includes $case @resident $runtime[0].Path @libs -o $binary *> "$binary.build.log"}
-        $build=$LASTEXITCODE;$run=$null;$complete=$false
+        if($compiler-eq'tcc'){$build=Invoke-XlirNativeToLog $Tcc (@('-std=c11')+$includes+@($case)+$resident+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$binary.build.log"}
+        else{$build=Invoke-XlirGccToLog ($strict+@("-$($compiler.Substring(4))")+$includes+@($case)+$resident+@($runtime[0].Path)+$libs+@('-o',$binary)) "$binary.build.log"}
+        $run=$null;$complete=$false
         if($build-eq0){
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$binary.out.log" -RedirectStandardError "$binary.err.log"
             $null = $process.Handle

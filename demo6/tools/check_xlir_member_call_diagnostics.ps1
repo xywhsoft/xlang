@@ -1,6 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -17,10 +18,10 @@ try {
     $objects=@($public.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
     $flags=@('-std=c11','-O0','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-pointer-sign','-Wno-format-truncation',
-        '-Wno-missing-field-initializers','-DXL_STATIC_EMBED','-I.','-Irelease','-Ilib/tcc')
+        '-Wno-missing-field-initializers','-DXL_STATIC_EMBED','-I.','-Irelease','-Irelease/include','-Ilib/tcc')
     $libs=@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
-    & gcc @flags test/cases/xlir_member_call_diagnostic_contract.c @objects @libs -o "$outputPath/contract.exe" *> "$outputPath/build.log"
-    $build=$LASTEXITCODE;$run=$null;$cases=@();$summary=$null
+    $build=Invoke-XlirGccToLog ($flags+@('test/cases/xlir_member_call_diagnostic_contract.c')+$objects+$libs+@('-o',"$outputPath/contract.exe")) "$outputPath/build.log"
+    $run=$null;$cases=@();$summary=$null
     if($build-eq0){
         & "$outputPath/contract.exe" 1> "$outputPath/contract.log" 2> "$outputPath/contract.err.log"
         $run=$LASTEXITCODE
@@ -34,8 +35,7 @@ try {
     $emit=$LASTEXITCODE;$strict=$null
     if($emit-eq0){
         $includes=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
-        & gcc @flags "-I$includes" -c "$outputPath/positive.c" -o "$outputPath/positive.o" *> "$outputPath/positive-strict.log"
-        $strict=$LASTEXITCODE
+        $strict=Invoke-XlirGccToLog ($flags+@("-I$includes",'-c',"$outputPath/positive.c",'-o',"$outputPath/positive.o")) "$outputPath/positive-strict.log"
     }
     & $driver test/cases/xlir_member_call_resolution.xl run "$outputPath/positive" *> "$outputPath/positive-run.log"
     $positiveRun=$LASTEXITCODE

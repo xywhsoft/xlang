@@ -60,28 +60,28 @@ $process=Start-Process -FilePath $build.Driver -ArgumentList @("test/cases/$name
         if (!(Test-Path $first) -or !(Test-Path $repeat) -or (Get-FileHash $first).Hash -ne (Get-FileHash $repeat).Hash) { $deterministic=$false }
     }}
     $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
-    $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-I.',"-I$includePath","-I$outputPath")
+    $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-I.','-Irelease/include',"-I$includePath","-I$outputPath")
     $libs=@('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32')
     $hostFlags=@('-Irelease','-Ilib/tcc','-DJOINT_SOURCE_XRT','-ffunction-sections','-fdata-sections',
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-pointer-sign',
         '-Wno-format-truncation','-Wno-missing-field-initializers',
-        (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/')))
+        (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/') -RawArgument))
     $embedded=@('xl_api.o','xl_api_path.o','xl6_console.o','xlir_public_source_driver.o')
     $dependencies=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -notin $embedded} | ForEach-Object Path)
     $lanes=@()
     foreach ($level in @(0,2)) {
         $first="$outputPath/copy-A-O$level.dll"; $second="$outputPath/copy-B-O$level.dll"
-        & gcc @strict "-O$level" -shared test/cases/xlir_class_copy_storage_dll.c -o $first *> "$outputPath/dll-O$level.log"
-        if ($LASTEXITCODE -ne 0) { throw 'Class copy DLL build failed' }
+        $dllBuild=Invoke-XlirGccToLog ($strict+@("-O$level",'-shared','test/cases/xlir_class_copy_storage_dll.c','-o',$first)) "$outputPath/dll-O$level.log"
+        if ($dllBuild -ne 0) { throw 'Class copy DLL build failed' }
         Copy-Item -LiteralPath $first -Destination $second
         foreach ($kind in @('native','language-tcc')) {
             $lane="$outputPath/$kind-O$level"
             if ($kind -eq 'native') {
-                & gcc @strict "-O$level" test/cases/xlir_class_copy_storage_contract.c src/runtime/xl6_code_finalizer.c src/runtime/xl6_code_lease.c $runtime[0].Path @libs -o "$lane.exe" *> "$lane.build.log"
+                $buildExit=Invoke-XlirGccToLog ($strict+@("-O$level",'test/cases/xlir_class_copy_storage_contract.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_code_lease.c',$runtime[0].Path)+$libs+@('-o',"$lane.exe")) "$lane.build.log"
             } else {
-                & gcc @strict @hostFlags "-O$level" test/cases/xlir_class_copy_storage_tcc_host.c @dependencies release/xl.dll '-Wl,--gc-sections' @libs -o "$lane.exe" *> "$lane.build.log"
+                $buildExit=Invoke-XlirGccToLog ($strict+$hostFlags+@("-O$level",'test/cases/xlir_class_copy_storage_tcc_host.c')+$dependencies+@('release/xl.dll','-Wl,--gc-sections')+$libs+@('-o',"$lane.exe")) "$lane.build.log"
             }
-            $buildExit=$LASTEXITCODE; $runExit=$null; $complete=$false
+            $runExit=$null; $complete=$false
             if ($buildExit -eq 0) {
                 $options=@{FilePath="$lane.exe";WindowStyle='Hidden';PassThru=$true;WorkingDirectory=$rootPath;
                     RedirectStandardOutput="$lane.out.log";RedirectStandardError="$lane.err.log"}

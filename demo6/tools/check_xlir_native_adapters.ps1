@@ -22,12 +22,10 @@ try {
     $objects=@($public.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
     $flags=@('-std=c11','-O0','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-pointer-sign','-Wno-format-truncation',
-        '-Wno-missing-field-initializers','-DXL_STATIC_EMBED','-I.','-Irelease','-Ilib/tcc')
+        '-Wno-missing-field-initializers','-DXL_STATIC_EMBED','-I.','-Irelease','-Irelease/include','-Ilib/tcc')
     $libs=@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
-    & gcc @flags src/driver/xl6_xlc_shell.c @objects @libs -o "$outputPath/xl.exe" *> "$outputPath/cli-build.log"
-    $cliBuild=$LASTEXITCODE
-    & gcc @flags test/cases/xlir_artifact_runtime_contract.c @objects @libs -o "$outputPath/contract.exe" *> "$outputPath/contract-build.log"
-    $contractBuild=$LASTEXITCODE
+    $cliBuild=Invoke-XlirGccToLog ($flags+@('src/driver/xl6_xlc_shell.c')+$objects+$libs+@('-o',"$outputPath/xl.exe")) "$outputPath/cli-build.log"
+    $contractBuild=Invoke-XlirGccToLog ($flags+@('test/cases/xlir_artifact_runtime_contract.c')+$objects+$libs+@('-o',"$outputPath/contract.exe")) "$outputPath/contract-build.log"
     $boundaryErrors=@()
     $dependencySource=Get-Content -LiteralPath 'src/cgen/xl6_ir_cgen_native_dependencies.c' -Raw
     if($dependencySource-match 'XL6_Ast|strstr\(|ScanGenerated|ScanNode'){$boundaryErrors+='Native selector uses a source/text inference path'}
@@ -56,10 +54,8 @@ try {
         if($cgen-eq0-and$planExit-eq0){
             $plan=Get-Content -LiteralPath "$prefix.plan.log"|Where-Object {$_-match '^\{"Fixture"'}|ConvertFrom-Json
             $sources=@($plan.Sources)
-            & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"
-            $nativeBuild=$LASTEXITCODE
-            & gcc @flags "-I$includes" -c "$prefix.c" -o "$prefix.generated.o" *> "$prefix.generated-build.log"
-            $generatedBuild=$LASTEXITCODE
+            $nativeBuild=Invoke-XlirGccToLog ($flags+@("-I$includes",'-Ilib/xruntime','-c',"$prefix.native.c",'-o',"$prefix.native.o")) "$prefix.native-build.log"
+            $generatedBuild=Invoke-XlirGccToLog ($flags+@("-I$includes",'-c',"$prefix.c",'-o',"$prefix.generated.o")) "$prefix.generated-build.log"
             if($nativeBuild-eq0-and$generatedBuild-eq0){
                 $defined=@(& nm -g --defined-only "$prefix.native.o"|ForEach-Object {if($_-match '\b[TRD] (xrt\w+)$'){$Matches[1]}})
                 $required=@(& nm -u "$prefix.generated.o" "$prefix.native.o"|ForEach-Object {if($_-match '\bU (xrt\w+)$'){$Matches[1]}})
@@ -70,8 +66,8 @@ try {
                             # Some public API providers are unity-included in the
                             # host. Compile their standalone artifact source.
                             $provider="$outputPath/$name.resident.o"
-                            & gcc @flags -c $source -o $provider *> "$outputPath/$name.resident.log"
-                            if($LASTEXITCODE-ne0){throw "Cannot compile actual resident provider $source"}
+                            $providerExit=Invoke-XlirGccToLog ($flags+@('-c',$source,'-o',$provider)) "$outputPath/$name.resident.log"
+                            if($providerExit-ne0){throw "Cannot compile actual resident provider $source"}
                             $residentObjects[$name]=$provider
                         }
                         $residentUndefined[$name]=@(& nm -u $residentObjects[$name]|ForEach-Object {if($_-match '\bU (xrt\w+)$'){$Matches[1]}})
@@ -89,9 +85,8 @@ try {
     $boxingBuild=$null;$boxingRun=$null
     $boxingC="$outputPath/xlir_dynamic_operand_transaction.c"
     if(Test-Path -LiteralPath $boxingC){
-        $generatedDefine=New-XlirCStringDefine 'XLIR_BOXING_GENERATED_C' $boxingC.Replace('\','/')
-        & gcc @flags "-I$includes" $generatedDefine test/cases/xlir_dynamic_operand_transaction_host.c @objects @libs -o "$outputPath/boxing-runtime.exe" *> "$outputPath/boxing-runtime-build.log"
-        $boxingBuild=$LASTEXITCODE
+        $generatedDefine=New-XlirCStringDefine 'XLIR_BOXING_GENERATED_C' $boxingC.Replace('\','/') -RawArgument
+        $boxingBuild=Invoke-XlirGccToLog ($flags+@("-I$includes",$generatedDefine,'test/cases/xlir_dynamic_operand_transaction_host.c')+$objects+$libs+@('-o',"$outputPath/boxing-runtime.exe")) "$outputPath/boxing-runtime-build.log"
         if($boxingBuild-eq0){
             & "$outputPath/boxing-runtime.exe" 1> "$outputPath/boxing-runtime.log" 2> "$outputPath/boxing-runtime.err.log"
             $boxingRun=$LASTEXITCODE

@@ -31,13 +31,13 @@ try {
     & $ContractDriver test/cases/xlir_module_ownership.xl "$prefix.c" "$prefix.h" "$prefix.json" --script *> "$outputPath/emit.log"
     if($LASTEXITCODE){throw 'Cycle artifact emission failed'}
     $rows=@();$libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
-    $flags=@('-std=c11','-Wall','-Wextra','-Werror','-I.')
+    $flags=@('-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease/include')
     $resident=@('src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_code_lease.c','src/runtime/xl6_ownership_plan.c')
     foreach($lane in @('gcc-O0','gcc-O2','tcc')){
         $name="layout-$lane";$binary="$outputPath/$name.exe"
-        if($lane -eq 'tcc'){& $Tcc -std=c11 -Wall -Werror -I. test/cases/xlir_closure_layout_plan_runtime.c @resident tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/$name.build.log"}
-        else{& gcc @flags "-$($lane.Substring(4))" test/cases/xlir_closure_layout_plan_runtime.c @resident $runtime[0].Path @libs -o $binary *> "$outputPath/$name.build.log"}
-        $buildExit=$LASTEXITCODE;$run=$null;$complete=$false
+        if($lane -eq 'tcc'){$buildExit=Invoke-XlirNativeToLog $Tcc (@('-std=c11','-Wall','-Werror','-I.','test/cases/xlir_closure_layout_plan_runtime.c')+$resident+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"}
+        else{$buildExit=Invoke-XlirGccToLog ($flags+@("-$($lane.Substring(4))",'test/cases/xlir_closure_layout_plan_runtime.c')+$resident+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"}
+        $run=$null;$complete=$false
         if(!$buildExit){
             & $binary *> "$outputPath/$name.run.log";$run=$LASTEXITCODE
             $complete=$run -eq 0 -and [bool](Select-String -LiteralPath "$outputPath/$name.run.log" -Pattern '^Resident layout plans: 400 .* 496 physical owners freed; 500 value bridges with 200 faults; .* zero live delta$' -Quiet)
@@ -49,11 +49,11 @@ try {
     $dependencies=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -notin $excluded} | ForEach-Object Path)
     $hostFlags=$flags+@('-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-pointer-sign',
         '-Wno-format-truncation','-Wno-missing-field-initializers','-Irelease','-Ilib/tcc',"-I$outputPath",'-DJOINT_SOURCE_XRT',
-        (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/')))
+        (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/') -RawArgument))
     foreach($level in @(0,2)){
         $name="module-O$level";$binary="$outputPath/$name.exe"
-        & gcc @hostFlags "-O$level" test/cases/xlir_module_cycle_transactions.c @dependencies release/xl.dll @libs -o $binary *> "$outputPath/$name.build.log"
-        $buildExit=$LASTEXITCODE;$run=$null;$complete=$false
+        $buildExit=Invoke-XlirGccToLog ($hostFlags+@("-O$level",'test/cases/xlir_module_cycle_transactions.c')+$dependencies+@('release/xl.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
+        $run=$null;$complete=$false
         if(!$buildExit){
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
             $null = $process.Handle

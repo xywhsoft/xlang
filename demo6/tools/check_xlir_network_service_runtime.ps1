@@ -2,6 +2,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [ValidateRange(1,3600)][int]$RunTimeoutSeconds=180)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -24,13 +25,13 @@ try {
         $binary="$outputPath/$name.exe";$timer=[Diagnostics.Stopwatch]::StartNew()
         if($name-eq'ir-contract'){
             $objects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
-            & $gcc -std=c11 -O0 -Wall -Wextra -Werror -Wno-unused-function -DXL_STATIC_EMBED -I. $sources[1] @objects release/xl.dll @libs -o $binary *> "$outputPath/$name.build.log"
+            $buildExit=Invoke-XlirGccToLog (@('-std=c11','-O0','-Wall','-Wextra','-Werror','-Wno-unused-function','-DXL_STATIC_EMBED','-I.','-Irelease','-Irelease/include',$sources[1])+$objects+@('release/xl.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         } elseif($name-eq'tcc'){
-            & $tcc -std=c11 -Wall -Werror -I. $sources[0] src/runtime/xl6_network_service.c tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/$name.build.log"
+            $buildExit=Invoke-XlirNativeToLog $tcc (@('-std=c11','-Wall','-Werror','-I.','-Irelease','-Irelease/include',$sources[0],'src/runtime/xl6_network_service.c','tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         } else {
-            & $gcc -std=c11 "-$($name.Substring(4))" -Wall -Wextra -Werror -I. $sources[0] src/runtime/xl6_network_service.c $runtime[0].Path @libs -o $binary *> "$outputPath/$name.build.log"
+            $buildExit=Invoke-XlirGccToLog (@('-std=c11',"-$($name.Substring(4))",'-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include',$sources[0],'src/runtime/xl6_network_service.c',$runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         }
-        $buildExit=$LASTEXITCODE;$run=$null
+        $run=$null
         if(!$buildExit){
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -WorkingDirectory $rootPath -PassThru -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
             $null = $process.Handle

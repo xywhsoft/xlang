@@ -3,6 +3,7 @@ param([Parameter(Mandatory=$true)][string]$PublicSourceDirectory,
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 . "$root/tools/extlib_smoke_process.ps1"
+. "$root/tools/xlir_native_process.ps1"
 Push-Location $root
 try {
     $public=(Resolve-Path -LiteralPath $PublicSourceDirectory).Path
@@ -27,7 +28,8 @@ try {
     $rows=[Collections.Generic.List[object]]::new();$utf8=[Text.UTF8Encoding]::new($false)
     $child="$work/child.exe"
     function Check($name,$program,[string[]]$arguments,[string]$reject='') {
-        $result=Invoke-ExtlibSmokeProcess $program $arguments $root 120 @{XL6_PROCESS_CHILD=$child}
+        $result=if($program -eq 'gcc'){Invoke-XlirGccToLog $arguments "$work/$name.compiler.log" -PassThru -TimeoutSeconds 120}
+            else{Invoke-ExtlibSmokeProcess $program $arguments $root 120 @{XL6_PROCESS_CHILD=$child}}
         $rows.Add([ordered]@{Name=$name;Program=$program;Arguments=$arguments;Result=$result})
         [IO.File]::WriteAllText("$work/$name.log",$result.stdout+$result.stderr,$utf8)
         if($reject){if($result.status-ne'fail'-or$result.exitCode-ne1-or$result.stderr-notmatch$reject){throw "$name rejection mismatch"}}
@@ -38,7 +40,7 @@ try {
     try {
         $flags=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-label','-Wno-unused-variable',
             '-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
-            '-Wno-pointer-sign','-Wno-format-truncation',"-I$public/include",'-I.','-Irelease')
+            '-Wno-pointer-sign','-Wno-format-truncation',"-I$public/include",'-I.','-Irelease','-Irelease/include')
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         $compilerObjects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
         $nativeObjects=@($build.Sources|Where-Object {$_-like'src/runtime/*'-or$_-eq'tools/xrt_single_header_impl.c'-or$_-eq'src/api/xl_task_group_bridge.c'}|
