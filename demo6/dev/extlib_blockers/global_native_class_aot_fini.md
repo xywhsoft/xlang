@@ -1,5 +1,15 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+2026-10-26 `daemon` 追加独立最小路径：包内
+`release/extlibs/daemon/test/top_level.xl` 在顶层持有
+`daemon.create("top-level")`，Windows/Linux JIT 均打印
+`daemon top-level: PASS` 后退出 0；两平台独立 EXE 均打印同一行，
+随后报 `RuntimeError: operation is not valid in the current state` 并
+退出 1。默认包门禁先通过严格 C、FFI/中央边界及 C/XLang 双语
+AOT，再在该退出边界报红。该类只在包内命名，由公开工厂返回；
+不能因包外不能命名类型就忽略顶层对象持有。主线应检查模块退役期
+原生析构和错误作用域；修复后重跑两平台默认门禁，不移动顶层用例。
+
 2026-10-26 `skiplist` 加入同症状回归：Windows 当前发布版
 `release/extlibs/skiplist/test/check.ps1` 先通过 C/ABI、JIT、双语输出、
 核心及 C/XLang 公开范例 AOT，再在顶层分配故障用例 AOT 退出时报

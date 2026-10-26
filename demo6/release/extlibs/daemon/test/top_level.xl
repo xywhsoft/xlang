@@ -1,0 +1,5 @@
+import daemon
+
+auto service = daemon.create("top-level")
+assert service.valid
+println("daemon top-level: PASS")

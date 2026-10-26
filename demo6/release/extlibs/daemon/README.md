@@ -1,5 +1,12 @@
 # daemon
 
+2026-10-26 当前 Windows/Linux 默认门禁暂不签收发布级：严格 C、
+Linux ASan/UBSan、中央/FFI 边界 JIT 与 AOT、C/XLang 公开范例
+独立 EXE 均通过，且规范化后的 PID 输出匹配固定黄金文件。
+`test/top_level.xl` 的 JIT 正常，独立 EXE 在打印 PASS 后于退出期
+报运行时状态错误；见 `dev/extlib_blockers/global_native_class_aot_fini.md`。
+该红项保留在两平台默认门禁，不通过搬移对象规避。
+
 2026-10-25 在 WSL 中运行现有 `test/check.sh` 全通过：严格 GCC、
 PID 文件与锁生命周期的 C ASan/UBSan、XLang FFI 边界、四条包外
 访问负例，以及归一化 PID 后的 C 分离编译、C 单文件直跑与

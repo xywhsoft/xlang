@@ -38,6 +38,7 @@ if [[ ! -x release/xl ]]; then
 fi
 timeout 120s release/xl run test/cases/extlib_daemon.xl
 timeout 120s release/xl run release/extlibs/daemon/test/ffi_boundaries.xl
+timeout 120s release/xl run release/extlibs/daemon/test/top_level.xl
 for negative in private_native_negative private_status_negative private_getter_negative unexported_constructor_negative; do
     if timeout 30s release/xl check "release/extlibs/daemon/test/$negative.xl" \
         > "$work/$negative.txt" 2>&1; then
@@ -55,4 +56,29 @@ sed -E 's/ pid=[0-9]+$/ pid=<pid>/' "$work/daemon_xl.txt" > "$work/daemon_xl_nor
 sed -E 's/ pid=[0-9]+$/ pid=<pid>/' "$work/daemon_direct.txt" > "$work/daemon_direct_normalized.txt"
 diff -u "$work/daemon_c_normalized.txt" "$work/daemon_xl_normalized.txt"
 diff -u "$work/daemon_c_normalized.txt" "$work/daemon_direct_normalized.txt"
-printf 'daemon Linux C ASan/UBSan and XLang parity gate: PASS\n'
+diff -u release/extlibs/daemon/test/daemon.expected.txt \
+    "$work/daemon_c_normalized.txt"
+for source in test/cases/extlib_daemon.xl \
+    release/extlibs/daemon/test/ffi_boundaries.xl; do
+    name=$(basename "$source" .xl)
+    timeout 120s release/xl build "$source" -o "$work/$name"
+    timeout 120s "$work/$name"
+done
+timeout 120s release/xl build release/examples/extlibs/daemon.xl \
+    -o "$work/daemon_xl"
+timeout 120s "$work/daemon_xl" > "$work/daemon_xl_aot.txt"
+sed -E 's/ pid=[0-9]+$/ pid=<pid>/' "$work/daemon_xl_aot.txt" \
+    > "$work/daemon_xl_aot_normalized.txt"
+diff -u release/extlibs/daemon/test/daemon.expected.txt \
+    "$work/daemon_xl_aot_normalized.txt"
+timeout 120s release/xl build release/examples/extlibs/daemon_c.c \
+    -o "$work/daemon_c_aot"
+timeout 120s "$work/daemon_c_aot" > "$work/daemon_c_aot.txt"
+sed -E 's/ pid=[0-9]+$/ pid=<pid>/' "$work/daemon_c_aot.txt" \
+    > "$work/daemon_c_aot_normalized.txt"
+diff -u release/extlibs/daemon/test/daemon.expected.txt \
+    "$work/daemon_c_aot_normalized.txt"
+timeout 120s release/xl build release/extlibs/daemon/test/top_level.xl \
+    -o "$work/top_level"
+timeout 120s "$work/top_level"
+printf 'daemon Linux C ASan/UBSan and bilingual AOT gate: PASS\n'
