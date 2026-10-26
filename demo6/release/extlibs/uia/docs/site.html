@@ -54,7 +54,7 @@ uia.shutdown()</code></pre>
     <pre><code>xl run examples/extlibs/uia_quick.xl
 xl run examples/extlibs/uia_quick_c.c extlibs/uia/x_uia_artifact.c --link user32 --link ole32 --link oleaut32
 powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/uia/test/check.ps1 -StrictC</code></pre>
-    <p>2026-10-26 Windows <code>-StrictC</code> 门禁通过自建窗口的 C/JIT、五类有效句柄隐式释放 JIT/AOT、显式释放、原生组合条件、文本入口内嵌 NUL 拒绝、跨线程拒绝、事件短轮次压力与双语同输出。具名 XLang 函数通过 <code>poll_callback</code> 接收真实焦点事件，事件 JSON 与返回值在 JIT/AOT 两条路径均已核对；这是主动轮询后的函数调用，不是事件线程直接调用 XLang。构造 9,001 字符 BSTR 的转换层、9,000 字符快照属性和超过旧 64 KiB 的 JSON 均通过 C 回归；自建 Windows 控件的 UIA 属性只返回 4,096 字节，不能作为第三方控件超长属性端到端验收。定位器仍采用定长字段和最多 16 层的类路径；超长字段、超限路径、文本或数值属性读取失败及关键遍历失败均返回错误。默认门禁中核心、完整公开范例和配对范例 AOT 全部构建运行并核对输出；旧构建的共享符号阻断不再复现。UIA 上下文限定在创建线程使用；真实应用的权限、DPI、远程会话及 Windows 版本矩阵仍需验证。</p>
+    <p>2026-10-26 Windows <code>-StrictC</code> 门禁通过自建窗口的 C/JIT、五类有效句柄隐式释放 JIT/AOT、显式释放、原生组合条件、文本入口内嵌 NUL 拒绝、跨线程拒绝、事件短轮次压力与双语同输出。具名 XLang 函数通过 <code>poll_callback</code> 接收真实焦点事件，事件 JSON 与返回值在 JIT/AOT 两条路径均已核对；空队列不调用回调，回调抛错后事件句柄仍可释放。这是主动轮询后的函数调用，不是事件线程直接调用 XLang。构造 9,001 字符 BSTR 的转换层、9,000 字符快照属性和超过旧 64 KiB 的 JSON 均通过 C 回归；自建 Windows 控件的 UIA 属性只返回 4,096 字节，不能作为第三方控件超长属性端到端验收。定位器仍采用定长字段和最多 16 层的类路径；超长字段、超限路径、文本或数值属性读取失败及关键遍历失败均返回错误。默认门禁中核心、完整公开范例和配对范例 AOT 全部构建运行并核对输出；旧构建的共享符号阻断不再复现。UIA 上下文限定在创建线程使用；真实应用的权限、DPI、远程会话及 Windows 版本矩阵仍需验证。</p>
   </section>
 </main>
 <script src="../main.js"></script>
