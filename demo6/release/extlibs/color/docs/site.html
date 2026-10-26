@@ -84,8 +84,8 @@ println(color.mix("#000", "#fff", 0.5))</code></pre>
     <p>C 核心结果不用释放，各线程使用自己的缓冲；没有共享可变缓存，正常路径不分配。
     NULL/零容量输出设置 XERR_ARGUMENT，容量不足设置 XERR_RANGE；非法颜色正常返回 false 和空串。
     每次公开调用清除旧 XRT 错误。输入是借用的 NUL 结尾文本，不保留指针。</p>
-    <p>仅 color_native.h 的 *_text 桥返回需 xrtFree 的独立字符串，NULL 表示分配失败；
-    xlang 已由 takeCstr 接管。普通 C 用户只链接 color_core.c 和所需 XRT，不需要语言编译器。</p>
+    <p>仅 color_native.h 的 *_text 桥返回需 xrtFree 的独立 <code>char*</code>，NULL 表示分配失败；
+    xlang 以 <code>@owned string</code> 直接接管。普通 C 用户只链接 color_core.c 和所需 XRT，不需要语言编译器。</p>
 
     <h2 id="examples">双语范例</h2>
     <p>发行目录运行 xl run examples/extlibs/color_basic.xl；C 对照为 extlibs/color/examples/basic.c。
@@ -101,7 +101,8 @@ println(color.mix("#000", "#fff", 0.5))</code></pre>
     <p>xlang 字符串入口已拒绝内嵌 NUL，不把有效前缀误判为完整颜色。Linux 门禁现同次覆盖 C sanitizer/oracle、XLang 边界及分配故障、双语范例逐字节对照；32 位/ARM、TSan 和长期性能仍待验收。
     Windows 使用 tools/check_extlib_color.ps1 默认入口验证完整 AOT；-SkipAot 仅用于开发时缩短反馈。
     Linux 执行入口：tools/check_extlib_color.sh。</p>
-    <p>2026-10-26 完整重建 Windows <code>xl.exe</code>/<code>xl.dll</code>/<code>xlc.dll</code> 与 Linux <code>xl</code>/<code>libxl.so</code>/<code>libxlc.so</code> 后复验：Windows 默认门禁报告 <code>passed-scoped</code>，43 项检查通过、输入哈希未变。Linux 门禁通过 C ASan/UBSan/float-cast、四线程 8000 轮、26552 项独立 oracle、中央与包内边界及分配故障的语言 AOT，以及 C 单文件范例 AOT；C/GCC、C/TCC、C/AOT 与 XLang 基础范例输出一致。两平台默认测试目录互不覆盖；Linux 默认临时目录退出清理，显式 <code>COLOR_WORK_DIR</code> 可保留证据。拥有型 C 文本结果由 <code>takeCstr</code> 直接接管。本包在上述 Windows/Linux x64 范围签收。脚本仍标记 <code>releaseReady=false</code>，因为它不运行全产品回归，不代表产品发布准入；此页也不外推 32 位/ARM、TSan 或长时性能。</p>
+    <p>2026-10-26 完整重建 Windows <code>xl.exe</code>/<code>xl.dll</code>/<code>xlc.dll</code> 与 Linux <code>xl</code>/<code>libxl.so</code>/<code>libxlc.so</code> 后复验：Windows 默认门禁报告 <code>passed-scoped</code>，43 项检查通过、输入哈希未变。Linux 门禁通过 C ASan/UBSan/float-cast、四线程 8000 轮、26552 项独立 oracle、中央与包内边界及分配故障的语言 AOT，以及 C 单文件范例 AOT；C/GCC、C/TCC、C/AOT 与 XLang 基础范例输出一致。两平台默认测试目录互不覆盖；Linux 默认临时目录退出清理，显式 <code>COLOR_WORK_DIR</code> 可保留证据。当时拥有型 C 文本由 <code>takeCstr</code> 接管。本包在上述 Windows/Linux x64 范围签收。脚本仍标记 <code>releaseReady=false</code>，因为它不运行全产品回归，不代表产品发布准入；此页也不外推 32 位/ARM、TSan 或长时性能。</p>
+    <p>2026-10-27：八个文本入口改为 <code>char*</code> 与 <code>@owned string</code> 直接接管；现有 Windows 完整专项门禁、Linux C ASan/UBSan 与语言 JIT/AOT 门禁再次通过。生成 C 直接保存原指针、扫描一次长度并按原合同处理失败，不再经过包内 <code>point</code> 转发；这不等于整个调用链零成本。</p>
   </section>
 </main>
 <script src="../main.js"></script>

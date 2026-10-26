@@ -1,5 +1,13 @@
 # color
 
+2026-10-27：八个独立 XRT 文本结果改由 `@owned string` 直接接管，
+C 原型明确返回 `char*`；语言包装保留输入 NUL 检查和原有空结果语义，
+不再经过 `point`/`takeCstr` 转发。Windows 默认专项门禁完整通过严格 C、
+独立 oracle、21 个生成原型、JIT/AOT、双语范例及 DLL 宿主复用；
+Linux 包级门禁通过 C ASan/UBSan、线程、语言 JIT/AOT 和同输出范例。
+生成 C 的原生调用直接填入字符串数据指针，仍需一次长度扫描；
+本次只消除中间转发，不宣称整个函数调用与手写 C 等速。
+
 十六进制 RGB/RGBA、HSV/HSL 转换、命名色和对比度工具。C 核心只写调用者缓冲；
 xlang 结果独立拥有。没有共享可变颜色缓存，数值查询和 C 核心正常路径不分配。
 
@@ -83,7 +91,7 @@ bool ok = xcolor_hex(51, 102, 204, output, sizeof(output));
 - NULL 输出或零容量设置 XERR_ARGUMENT；容量不足设置 XERR_RANGE，非零容量时输出置空。
 - 输出足够大时允许与输入缓冲重叠。各线程使用自己的输出缓冲，库不共享可变结果。
 - C 核心无需释放结果。仅 `include/color_native.h` 中的 `*_text` 语言适配入口
-  返回 XRT 拥有的文本指针，C 使用者须 `xrtFree`，xlang 则由 takeCstr 接管。
+  返回 XRT 拥有的 `char*`，C 使用者须 `xrtFree`，xlang 通过 `@owned` 直接接管。
   这些入口的 NULL 表示分配失败，不是非法颜色的空结果。
 
 不需要调用语言桥时，只链接 C 核心即可，不必把 xlang 编译器带入 C 程序。
@@ -97,7 +105,8 @@ bool ok = xcolor_hex(51, 102, 204, output, sizeof(output));
 中央语言用例和 C 单文件范例的独立 EXE；后者与 GCC C、TCC C 及
 XLang 基础范例逐字节同输出。两平台的测试目录现在默认独占，Linux
 默认临时产物退出时清理；显式 `COLOR_WORK_DIR` 可保留验证证据。
-八个拥有型 C 文本结果继续由语言层 `takeCstr` 直接接管，不增加复制。
+这次复验时，八个拥有型 C 文本结果仍由语言层 `takeCstr` 直接接管，
+不增加复制；2026-10-27 的直接接管迁移见文首。
 本包在上述 Windows/Linux x64 范围签收。脚本仍明确标记
 `releaseReady=false`：它只运行 color 专项门禁，不代表整个产品的回归
 或发布准入。32 位/ARM、TSan 与长时性能不在此次包级签收范围。

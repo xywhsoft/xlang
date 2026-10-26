@@ -118,6 +118,15 @@ try {
     $abi=Join-Path $work 'abi.c'
     [IO.File]::WriteAllText($abi,"#include `"color_native.h`"`n"+($decls -join "`n"),$utf8)
     $null=Check 'generated-21-prototypes' $gcc ($flags+@('-fsyntax-only',$abi))
+    $generated=[IO.File]::ReadAllText((Join-Path $work 'color.c'))
+    foreach($name in @('hex_text','hex_a_text','normalize_text','from_hsv_text',
+        'from_hsl_text','mix_text','from_name_text','to_name_text')){
+        if($generated -notmatch "(?m)\.Data\s*=\s*xcolor_$name\s*\("){
+            throw "Owned color result was not captured directly: xcolor_$name"
+        }
+    }
+    $checks.Add([ordered]@{name='owned-direct-cgen';result=[ordered]@{status='pass'}})
+    Write-Host '[color] owned-direct-cgen: pass'
     $example="$pkg/examples/basic.c"; $exe=Join-Path $work 'example-c.exe'
     $null=Check 'example-c-build' $gcc ($flags+@('-DNDEBUG',$example,$runtime,'-lws2_32','-ladvapi32','-lm','-o',$exe))
     $native=Check 'example-c' $exe @()
