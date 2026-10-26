@@ -1,5 +1,14 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-26 当前发布物的 `bson` Windows 默认门禁先通过严格 C、
+原生边界和 C 范例，随后首个 XLang 字典编码报
+`ValueError: bson: encode requires a table (var dict)`。
+`dev/extlib_blockers/bson_encode_var_dict_projection.xl` 仅构造语言
+字典，先确认 `type(document) == dict`，再调用 `bson.encode`；
+Windows/Linux `xl run` 均退出 1 并报同错。修复应在共享 foreign
+`var`/`xvalue*` 投影中保留字典类型、嵌套值和所有权，不在 BSON
+包内识别编译器私有句柄；修复后重跑两平台默认门禁和独立 EXE。
+
 2026-10-26 当前发布物复验 `srt`：Windows 默认
 `release/extlibs/srt/test/check.ps1` 的严格 C、C 边界及 C 范例通过，
 中央 `test/cases/extlib_srt.xl` 在 `srt.build(var made)` 报

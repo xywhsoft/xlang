@@ -1,5 +1,12 @@
 # BSON 扩展库
 
+2026-10-26 当前 Windows 发布版默认包门禁在严格 C、边界及 C 范例
+通过后，首个 XLang 字典编码报 `bson: encode requires a table (var dict)`；
+最小复现在 Windows/Linux 均失败，见
+`dev/extlib_blockers/bson_encode_var_dict_projection.xl`。当前首要阻断是
+共享 foreign `var` 字典投影，不是下面旧发布物的 AOT 缺符号；
+不在包内绕过，整包尚未签收发布级。
+
 `bson` 将 XLang 的 `var` 字典编码为 BSON 文档，也能解码 BSON 文档或连续文档流。C 调用方可直接使用 `bson_native.h` 中的 `xvalue*` 接口。
 
 ```xlang

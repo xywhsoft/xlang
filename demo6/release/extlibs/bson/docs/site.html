@@ -69,7 +69,7 @@ int main(void)
     <h2>验证状态</h2>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/bson/test/check.ps1 -SkipAot</code></pre>
     <p>2026-10-21 保存链路新增 C/XLang 逐点分配故障回归：编码或原子写入失败保留内存错误及已有文件，清除故障后可保存并读回。Windows 严格 GCC、C/XLang 和核心 AOT 快测与 Linux C ASan/UBSan、XLang 联合门禁通过；完整 AOT 共享阻断未变。</p>
-    <p>当前 Windows/Linux C 与 XLang 边界、双语输出对照和核心 AOT 通过；两平台包级门禁还运行编解码、连续文档流和中文临时路径集成测试，Linux 同时运行 C ASan/UBSan 并逐字节核对 GCC、TCC 和 XLang 范例。2026-10-18 新增由合法嵌套文档出发的截断和逐字节替换矩阵，检查深层解析成功与拒绝路径的结果和错误状态；这是固定边界测试，不是完整 fuzz 认证。公开 C 头直接使用 XRT <code>xvalue</code>，整数结果为 <code>int64_t</code>，可从项目根目录和发布目录导入。嵌套解码、连续文档 decodeAll、编码与拼接的逐点分配故障和恢复回归已通过；decodeAll 创建结果数组失败时立即返回，不再以空句柄错误覆盖内存错误。完整 AOT 在共享运行时符号 <code>xl6ValueIndexReadCopyV1</code> 处阻断，未签收发布级完整门禁。</p>
+    <p>2026-10-26 当前 Windows 发布版默认门禁先通过严格 C、原生边界和 C 范例，但语言字典传入 <code>encode(var)</code> 时报告 <code>bson: encode requires a table (var dict)</code>；Windows/Linux 最小复现均失败。当前首要阻断是共享 foreign var 字典投影，完整语言与 AOT 尚未验收，不签收发布级。旧 AOT 缺符号属于历史发布物状态。公开 C 头直接使用 XRT <code>xvalue</code>，整数结果为 <code>int64_t</code>；包内固定畸形文档与分配故障测试的范围见 README。</p>
     <p>NUL 路径负例使用独占系统临时目录，不再覆盖或删除固定 <code>build/test</code> 文件。2026-10-20 Windows 聚焦门禁及 Linux C ASan/UBSan、XLang 门禁复跑通过；完整带输出 AOT 的共享阻断不变。</p>
     <p>2026-10-21：C 边界测试的原子保存失败与超大文件限额用例改用门禁传入的独占工作目录，不再写删固定 <code>build/test/bson_guard</code> 文件。Windows -SkipAot 的严格 C、XLang、双语范例和核心 AOT，以及 Linux C ASan/UBSan、XLang 联合门禁通过；旧固定目录保留。完整带输出 AOT 仍受共享主线缺符号阻断，不签收整包发布级。</p>
   </section>
