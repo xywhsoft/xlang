@@ -1,4 +1,16 @@
-# ZIP Linux 内嵌 TCC 阶段超时（待定位）
+# ZIP Linux 内嵌 TCC 阶段超时（门禁环境已收口）
+
+2026-10-27 后续定位：确认当时没有其他编译进程后，同一
+`text_transfer.xl` 在 WSL 的 `/mnt/d` 上完成需 130.93 秒
+（用户态 11.85 秒、系统态 14.05 秒），将 `xl`、`libxlc.so` 和
+`zip`/`_libzip`/`_zlib` 原样复制到 WSL `/tmp` 后仅需 9.01 秒
+（用户态 7.81 秒、系统态 1.09 秒）；保持 `release/` 层级的
+原生副本需 9.50 秒。证据支持挂载盘 I/O 是此前阶段超时的主因，
+不支持将其判定为 ZIP 算法错误或编译器死锁。包级 Linux 门禁现仅
+将 XLang JIT/AOT 阶段搬到一次性原生文件系统副本；同一测试清单
+完整退出 0，包括 C ASan/UBSan、Python 格式互通、双语 AOT 和
+符号链接边界。此项门禁超时已解除；ZIP 私有构造器与并发提取的
+独立安全阻断仍未解决。
 
 2026-10-27 在 WSL 中从 `/mnt/d/GIT/x-lang/demo6` 运行现有 Linux
 `release/xl`。`zip/test/boundaries.xl` 的 `xl check` 约 1.9 秒通过，

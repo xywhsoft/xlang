@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-RELEASE_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../../.." && pwd)
+RELEASE_DIR=${XL_ZIP_RELEASE_DIR:-$(CDPATH= cd -- "$(dirname -- "$0")/../../.." && pwd)}
 TEST_DIR=$(mktemp -d "${TMPDIR:-/tmp}/xlang-zip-link.XXXXXX")
 trap 'rm -rf -- "$TEST_DIR"' EXIT HUP INT TERM
 

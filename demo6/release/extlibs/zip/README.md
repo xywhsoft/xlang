@@ -1,5 +1,13 @@
 # zip
 
+2026-10-27 Linux 门禁环境收口：无并行构建时，同一 `text_transfer.xl`
+在 WSL 的 Windows 挂载盘约 131 秒，在 WSL 原生 `/tmp` 副本约 9 秒。
+`test/check.sh` 仍从包清单编译 C 并执行原有边界/互通测试，仅将 XLang
+JIT/AOT 放到一次性原生文件系统副本；完整 Linux 门禁现退出 0，
+包含 Python 互通、C ASan/UBSan、双语 AOT 和符号链接边界。正式包与
+依赖清单没有改动，独立运行的包外私有构造器及并发提取安全阻断仍在，
+整包尚不签收发布级。下方同日的 180 秒超时是本次调整前的记录。
+
 2026-10-27：`ZipArchive.readText(name)` 现返回带长度的 `cstring`，
 直接接管原生读取缓冲的 XRT 分配；内嵌 NUL 不截断，关闭归档后结果仍独立有效。
 读取文本要求有效 UTF-8，无效字节抛 `ArchiveError`；任意二进制继续使用

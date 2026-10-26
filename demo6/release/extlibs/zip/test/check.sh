@@ -71,10 +71,25 @@ gcc "${flags[@]}" "${objects[@]}" "$work/interop.o" -lm -ldl -pthread \
 XL_ZIP_INTEROP_RUNNER="$work/interop_zip" \
     ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
     python3 release/extlibs/zip/test/interop.py
+
+# 内嵌 TCC 需逐个读取 libzip 源文件；WSL 挂载盘的元数据访问会放大耗时。
+stage="$work/stage"
+mkdir -p "$stage/release/extlibs" "$stage/release/examples/extlibs"
+cp -a release/xl release/libxlc.so "$stage/release/"
+cp -a release/extlibs/zip release/extlibs/_libzip release/extlibs/_zlib \
+    "$stage/release/extlibs/"
+cp -a release/examples/extlibs/zip.xl release/examples/extlibs/zip_c.c \
+    "$stage/release/examples/extlibs/"
+run_xl() {
+    local limit=$1
+    shift
+    ( cd "$stage" && timeout "$limit" ./release/xl "$@" )
+}
+
 printf '[zip] XLang text transfer\n'
-timeout 180s ./release/xl run release/extlibs/zip/test/text_transfer.xl
+run_xl 180s run release/extlibs/zip/test/text_transfer.xl
 printf '[zip] XLang boundary\n'
-if timeout 180s ./release/xl run release/extlibs/zip/test/boundaries.xl \
+if run_xl 180s run release/extlibs/zip/test/boundaries.xl \
     > "$work/boundary_jit.txt" 2>&1; then
     cat "$work/boundary_jit.txt"
 else
@@ -84,7 +99,7 @@ else
     exit "$status"
 fi
 printf '[zip] XLang example\n'
-if timeout 180s ./release/xl run release/examples/extlibs/zip.xl \
+if run_xl 180s run release/examples/extlibs/zip.xl \
     > "$work/xl.txt" 2> "$work/xl_error.txt"; then
     :
 else
@@ -98,7 +113,7 @@ printf 'zip C/XL example: PASS\n' > "$work/expected.txt"
 cmp "$work/expected.txt" "$work/c.txt"
 cmp "$work/expected.txt" "$work/xl.txt"
 printf '[zip] private native access\n'
-if timeout 90s ./release/xl check \
+if run_xl 90s check \
     release/extlibs/zip/test/private_native_negative.xl \
     > "$work/private_native.txt" 2>&1; then
     printf 'zip native add must be private\n' >&2
@@ -114,7 +129,7 @@ for source in \
     release/examples/extlibs/zip.xl; do
     name=$(basename "$source" .xl)
     printf '[zip] build %s\n' "$name"
-    timeout 240s ./release/xl build "$source" -o "$work/$name"
+    run_xl 240s build "$source" -o "$work/$name"
     timeout 30s "$work/$name" > "$work/$name.txt"
 done
 test ! -s "$work/aot_core.txt"
@@ -123,10 +138,10 @@ printf 'zip boundaries: ok\n' > "$work/boundaries_expected.txt"
 cmp "$work/boundaries_expected.txt" "$work/boundaries.txt"
 cmp "$work/expected.txt" "$work/zip.txt"
 printf '[zip] build C example\n'
-timeout 240s ./release/xl build release/extlibs/zip/test/c_aot_import.xl \
+run_xl 240s build release/extlibs/zip/test/c_aot_import.xl \
     release/examples/extlibs/zip_c.c -o "$work/zip_c"
 timeout 30s "$work/zip_c" > "$work/zip_c.txt"
 cmp "$work/expected.txt" "$work/zip_c.txt"
 printf '[zip] symlink boundary\n'
-bash release/extlibs/zip/test/check_symlink.sh
+XL_ZIP_RELEASE_DIR="$stage/release" bash release/extlibs/zip/test/check_symlink.sh
 printf 'zip Linux C ASan/UBSan, Python interop and bilingual AOT: PASS\n'
