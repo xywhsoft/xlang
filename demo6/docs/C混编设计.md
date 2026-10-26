@@ -237,7 +237,7 @@ xxx_destroy(a.handle);
 - `int` / `int8` / `uint8` / `int16` / `uint16` / `int32` / `uint32` / `int64` / `uint64`
 - `float` / `float32` / `float64`
 - C ABI 专用类型：`c_char` / `c_schar` / `c_uchar` / `c_short` / `c_ushort` / `c_int` / `c_uint` / `c_long` / `c_ulong` / `c_longlong` / `c_ulonglong` / `c_size` / `c_ssize` / `c_ptrdiff` / `c_intptr` / `c_uintptr` / `c_bool` / `c_float` / `c_double` / `c_wchar`
-- `string` 参数与 C UTF-8 只读字符串指针互转，xlang 导出到 C 时第一阶段不直接返回 `string`
+- `string` 参数与 C UTF-8 只读字符串指针互转；普通语言函数可导出拥有的 Data/Size。C 自有 `char*` 返回可用 [`@owned`](extern-owned-string.md) 直接接管为普通 string，须由当前 XRT 分配且能用 xrtFree 释放。
 - `point` -> C 黑盒指针
 - 普通 class、泛型 class 实例和 native-backed class -> C `xvalue`；`byref/out` class -> C `xvalue*`
 

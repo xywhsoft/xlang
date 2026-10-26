@@ -385,6 +385,11 @@ xlang class    -> C xvalue
 `string` 获得空字符串。xlang 导出函数若返回 `string`，公开 C 头使用
 `xlir_string` 双字段返回值及其拥有权合同，而不是退化为 `const char*`。
 
+`extern ... @owned ... as string/string?` 使用独立的 `owned-string-take`
+返回合同：C 原型仍为 `char*`，原指针直接构成普通 Data/Size，释放器固定为
+当前 XRT 的 xrtFree。它的非可空 NULL 是失败，可空 NULL 是正常空缺；失败
+先释放返回分配再传播错误，不读取失败载荷。详见 [完整合同](extern-owned-string.md)。
+
 从 xlang 向传统 C `const char*` 传参必须经过显式 CString 边界检查：
 含内嵌 NUL 的值不得静默截断；需要原始字节的接口应改为指针加长度或
 `xstrview`。当前编译器生成的通用 `extern C` 直接调用仍只投影 `.Data`，
