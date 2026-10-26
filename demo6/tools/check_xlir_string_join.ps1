@@ -34,7 +34,9 @@ foreach ($file in $artifact.Files) {
         (Get-FileHash -LiteralPath $file.Path).Hash -ne $file.Sha256) { throw "Staged source changed: $($file.Path)" }
 }
 if (!$WorkDirectory) { $WorkDirectory = 'build/test/string-join-' + (Get-Date -Format 'yyyyMMdd-HHmmss') }
-$work = [IO.Path]::GetFullPath((Join-Path $Root $WorkDirectory))
+$work = [IO.Path]::GetFullPath($(if ([IO.Path]::IsPathRooted($WorkDirectory)) {
+    $WorkDirectory
+} else { Join-Path $Root $WorkDirectory }))
 if (Test-Path -LiteralPath $work) { throw 'Choose a fresh gate directory' }
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $gcc = (Get-Command gcc.exe -ErrorAction Stop).Source
