@@ -1,17 +1,17 @@
 import clipboard
 
 func main(...) as int
-    assert clipboard.get_text() == "before"
+    assert clipboard.get_text() == "before", "initial isolated clipboard text"
     auto saved = clipboard.snapshot()
-    assert saved.valid()
-    assert clipboard.set_text("temporary")
-    assert saved.restore()
-    assert clipboard.get_text() == "before"
-    assert saved.release()
+    assert saved.valid(), "snapshot handle"
+    assert clipboard.set_text("temporary"), "temporary text write"
+    assert saved.restore(), "snapshot restore"
+    assert clipboard.get_text() == "before", "restored clipboard text"
+    assert saved.release(), "snapshot release"
     int formatId = clipboard.register_format("xlang.clipboard.test")
-    assert formatId > 0
-    assert clipboard.format_name(formatId) == "xlang.clipboard.test"
-    assert not clipboard.is_format_available(formatId)
+    assert formatId > 0, "register format"
+    assert clipboard.format_name(formatId) == "xlang.clipboard.test", "format name"
+    assert not clipboard.is_format_available(formatId), "format absent"
     string longName = ""
     int nameIndex = 0
     while nameIndex < 120
@@ -19,24 +19,24 @@ func main(...) as int
         nameIndex += 1
     end
     int longFormatId = clipboard.register_format(longName)
-    assert longFormatId > 0
-    assert clipboard.format_name(longFormatId) == longName
-    assert clipboard.set_file("C:\\测试\\one.txt")
-    assert clipboard.has_files()
-    assert clipboard.get_file() == "C:\\测试\\one.txt"
+    assert longFormatId > 0, "register long format"
+    assert clipboard.format_name(longFormatId) == longName, "long format name"
+    assert clipboard.set_file("C:\\测试\\one.txt"), "single file write"
+    assert clipboard.has_files(), "single file available"
+    assert clipboard.get_file() == "C:\\测试\\one.txt", "single file read"
     array files = ["C:\\测试\\one.txt", "C:\\测试\\two.txt"]
-    assert clipboard.set_files(files)
-    assert clipboard.get_files().length == 2
-    assert clipboard.get_file() == "C:\\测试\\one.txt"
-    assert clipboard.set_text("after")
-    assert clipboard.get_text() == "after"
-    assert clipboard.set_text("中文 hello")
+    assert clipboard.set_files(files), "file list write"
+    assert clipboard.get_files().length == 2, "file list read"
+    assert clipboard.get_file() == "C:\\测试\\one.txt", "first file read"
+    assert clipboard.set_text("after"), "text after files"
+    assert clipboard.get_text() == "after", "read text after files"
+    assert clipboard.set_text("中文 hello"), "UTF-8 text write"
     string previousText = clipboard.get_text()
-    assert clipboard.set_text("new text")
-    assert clipboard.get_text() == "new text"
-    assert previousText == "中文 hello"
-    assert clipboard.set_text("after")
-    assert string.indexOf("a\0b", "\0", false, 3, 1) == 1
+    assert clipboard.set_text("new text"), "new text write"
+    assert clipboard.get_text() == "new text", "new text read"
+    assert previousText == "中文 hello", "previous text lifetime"
+    assert clipboard.set_text("after"), "final text write"
+    assert string.indexOf("a\0b", "\0", false, 3, 1) == 1, "NUL test precondition"
     bool rejected = false
     try
         clipboard.set_text("left\0right")

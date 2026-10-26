@@ -26,7 +26,7 @@
     "dependencies":  [
 
                      ],
-    "coverage": {"mode": "suite", "tests": ["test/readonly.xl", "test/mutate.xl", "test/implicit_snapshot_cleanup.xl"]},
+    "coverage": {"mode": "suite", "tests": ["test/readonly.xl", "test/mutate.xl", "test/implicit_snapshot_cleanup.xl", "test/file_list_projection.xl"]},
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

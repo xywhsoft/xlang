@@ -1,0 +1,13 @@
+import clipboard
+
+func main(...) as int
+    assert clipboard.set_text("after")
+    array paths = ["C:\\测试\\one.txt", "C:\\测试\\two.txt"]
+    assert type(paths) == array
+    bool written = clipboard.set_files(paths)
+    if not written then println(clipboard.last_error()) end
+    assert written, "language array file list write"
+    assert clipboard.get_files().length == 2, "language array file list read"
+    assert clipboard.set_text("after")
+    return 0
+end

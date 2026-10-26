@@ -1,5 +1,13 @@
 # clipboard 扩展库
 
+2026-10-26 当前 Windows 默认门禁暂不签收发布级。严格 C、隔离
+图形快照、C 范例直跑/独立 EXE 和只读语言用例先通过；隔离的
+`test/file_list_projection.xl` 将合法语言数组传给 `set_files`
+却返回 false 和 `clipboard: invalid input or data`，而同形 C
+数组可成功写入。`array` 与 `var` 外部声明均已试验，不能在包
+内靠改签名修复；见 `dev/extlib_blockers/foreign_var_container_projection.md`。
+旧 AOT 缺符号属历史记录，当前门禁尚未走到完整 AOT 阶段。
+
 Windows 剪贴板的 UTF-8 文本、文件列表、BMP 图片与格式元数据接口。此包只在 Windows 上构建；没有提供 Linux/macOS 的占位后端。
 
 ```xlang

@@ -75,6 +75,8 @@ try {
         $null = Run 'XLang thread state' $xl @('run', 'extlibs/clipboard/test/state_smoke.xl')
         $null = Run 'isolated implicit snapshot cleanup' $runner @($xl,
             'extlibs/clipboard/test/implicit_snapshot_cleanup.xl', $release)
+        $null = Run 'isolated file-list projection' $runner @($xl,
+            'extlibs/clipboard/test/file_list_projection.xl', $release)
         $null = Run 'isolated XLang mutation' $runner @($xl, 'extlibs/clipboard/test/mutate.xl', $release)
         $null = Run 'isolated C snapshot example' $runner @($snapshotC, '-', $release, '--binary')
         $null = Run 'isolated C snapshot direct xl run' $runner @($xl,
