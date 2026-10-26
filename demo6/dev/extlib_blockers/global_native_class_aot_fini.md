@@ -1,5 +1,15 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+2026-10-26 `consistent_hash` 的 Windows 默认门禁通过严格 C、线程、
+语言 JIT、核心及公开 C/XLang 范例 AOT，随后顶层环对象边界 EXE
+打印 `consistent_hash boundaries: PASS`，在退出期报
+`RuntimeError: operation is not valid in the current state`，退出 1。
+Linux 包级 `test/check.sh` 现也构建核心、C/XLang 范例及顶层边界
+独立 EXE：C ASan/UBSan、语言 JIT 与前三条 AOT 均通过，最后一条
+同样打印 PASS 后报该错误，默认门禁退出 1。对应的 `boundaries.xl`
+在两平台 JIT 均退出 0。此症状与其他包同形，但仍须由主线定位真正
+根因；本任务不在包侧更改析构顺序或搬移顶层对象。
+
 2026-10-26 `daemon` 追加独立最小路径：包内
 `release/extlibs/daemon/test/top_level.xl` 在顶层持有
 `daemon.create("top-level")`，Windows/Linux JIT 均打印
