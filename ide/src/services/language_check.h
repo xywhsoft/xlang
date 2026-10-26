@@ -78,6 +78,9 @@ int xideLanguageCheckCaptureReferences(xide_language_check* check,xide_reference
  * work;navigation counts describe this capture. No JSON,hashing or I/O. */
 int xideLanguageCheckReferenceWork(xide_language_check* check,xls_check_stats* work,
  xls_worker_cache_stats* sessions,xide_navigation_work* navigation);
+/* Actual process-local semantic worker ID for a verified reference capture.
+ * Zero when unavailable;not a source identity or a freshness proof. */
+uint64_t xideLanguageCheckReferenceThread(xide_language_check* check);
 /* Worker-only compact document proof from a verified captured source. Reuses
  * diagnostic newline/hash/origin conventions;disk report is borrowed during
  * construction. Overlay BOM is restored for editor UTF-16/text identity. */
