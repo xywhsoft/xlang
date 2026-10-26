@@ -7,6 +7,8 @@
 #define main unused_async_main
 #include "xlir_one_shot_tcc_host.c"
 #undef main
+#include "src/runtime/xl6_array_erased.h"
+#include "src/runtime/xl6_array_value_read.h"
 
 typedef struct EscapeHooks {
     void (*capture)(xvalue*);
@@ -20,9 +22,14 @@ static void capture_escape(xvalue* value)
     /* Mode 3 drops the outer container before the retirement test: retaining
      * only the envelope must never be mistaken for retaining its extracted child. */
     if (selected == 8) {
-        escaped = xrtValueClone(value); /* independent COW shell, shared backing */
+        /* Language arrays now use typed native storage, not a wire ARRAY.
+         * Clone through its actual resident contract, preserving the element
+         * ownership/schema rather than retaining an opaque handle shell. */
+        escaped = xl6ValueCloneV1(value);
         assert(escaped != value);
-    } else escaped = xrtValueRetain(selected == 3 || selected == 9 ? xrtValueArrayGet(value, 0) : value);
+    } else if (selected == 3 || selected == 9) {
+        escaped = xl6ArrayValueReadCopyV1(value, 0); /* owned, not a borrowed slot */
+    } else escaped = xrtValueRetain(value);
     assert(escaped && xrtGetError() == NULL);
 }
 static void drop_escape(int64_t id)
@@ -40,7 +47,13 @@ static void call_escape(void)
     xrtCallResultClear(&result); assert(xrtGetError() == NULL);
 }
 static bool escape_admit(xrtownershipref ref,void* unused)
-{ (void)unused; return xlModuleResolveOwnership(ref,NULL)!=NULL; }
+{
+    (void)unused;
+    const XL6_OwnershipAdapterV1* lifecycle=NULL;
+    const xrtownershippreparationv1* preparation=NULL;
+    const XL6_OwnershipFinishV1* completion=NULL;
+    return xlModuleResolveOwnershipV3(ref,module,&lifecycle,&preparation,&completion);
+}
 static bool escape_external_owner(void)
 {
     xrtownershipscope freeze={0}; xrtownershipsnapshot* graph=NULL; xrtownershipnode observed;
