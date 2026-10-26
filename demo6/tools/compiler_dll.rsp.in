@@ -452,6 +452,14 @@
     src\runtime\xl6_crypto_hkdf_sha512.c
     src\runtime\xl6_crypto_equal.c
     src\runtime\xl6_crypto_aes_gcm.c
+    src\runtime\xl6_crypto_aes_block.c
+    src\runtime\xl6_crypto_aes_block_buffer.c
+    src\runtime\xl6_crypto_poly1305_buffer.c
+    src\runtime\xl6_crypto_poly1305_stream_buffer.c
+    src\runtime\xl6_crypto_aes_block_domain.c
+    src\runtime\xl6_crypto_poly1305.c
+    src\runtime\xl6_crypto_poly1305_stream.c
+    src\runtime\xl6_crypto_poly1305_domain.c
     src\runtime\xl6_crypto_aes_gcm_domain.c
     src\runtime\xl6_crypto_chacha_aead.c
     src\runtime\xl6_crypto_chacha20.c

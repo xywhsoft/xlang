@@ -1,5 +1,30 @@
 #ifndef XL6_CRYPTO_ABI_H
 #define XL6_CRYPTO_ABI_H
+XL6_TEXT_API void* xl6CryptoAesBlockCreateV1(const xvalue*);
+XL6_TEXT_API void* xl6CryptoAesBlockCreateSpanV1(xbytesview);
+XL6_TEXT_API void xl6CryptoAesBlockDestroyV1(void*);
+XL6_TEXT_API xvalue* xl6CryptoAesBlockEncryptV1(void*,const xvalue*);
+XL6_TEXT_API xvalue* xl6CryptoAesBlockDecryptV1(void*,const xvalue*);
+XL6_TEXT_API xvalue* xl6CryptoAesBlockEncryptSpanV1(void*,xbytesview);
+XL6_TEXT_API xvalue* xl6CryptoAesBlockDecryptSpanV1(void*,xbytesview);
+XL6_TEXT_API xvalue* xl6CryptoAesBlockEncryptBufferV1(void*,void*);
+XL6_TEXT_API xvalue* xl6CryptoAesBlockDecryptBufferV1(void*,void*);
+XL6_TEXT_API xvalue* xl6CryptoPoly1305TextV1(const xvalue*,xstrview,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoPoly1305BytesV1(const xvalue*,const xvalue*,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoPoly1305BufferV1(const xvalue*,void*,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoPoly1305TextSpanV1(xbytesview,xstrview,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoPoly1305BytesSpanV1(xbytesview,xbytesview,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoPoly1305BufferSpanV1(xbytesview,void*,int64_t);
+XL6_TEXT_API void* xl6CryptoPoly1305CreateV1(const xvalue*);
+XL6_TEXT_API void* xl6CryptoPoly1305CreateSpanV1(xbytesview);
+XL6_TEXT_API void xl6CryptoPoly1305DestroyV1(void*);
+XL6_TEXT_API void xl6CryptoPoly1305ResetV1(void*,const xvalue*);
+XL6_TEXT_API void xl6CryptoPoly1305ResetSpanV1(void*,xbytesview);
+XL6_TEXT_API void xl6CryptoPoly1305UpdateTextV1(void*,xstrview,int64_t);
+XL6_TEXT_API void xl6CryptoPoly1305UpdateBytesV1(void*,const xvalue*,int64_t);
+XL6_TEXT_API void xl6CryptoPoly1305UpdateBytesSpanV1(void*,xbytesview,int64_t);
+XL6_TEXT_API void xl6CryptoPoly1305UpdateBufferV1(void*,void*,int64_t);
+XL6_TEXT_API xvalue* xl6CryptoPoly1305FinalV1(void*);
 XL6_TEXT_API xvalue* xl6CryptoChaCha20TextV1(const xvalue*,const xvalue*,xstrview,int64_t,int64_t);
 XL6_TEXT_API xvalue* xl6CryptoChaCha20BytesV1(const xvalue*,const xvalue*,const xvalue*,int64_t,int64_t);
 XL6_TEXT_API xvalue* xl6CryptoChaCha20BufferV1(const xvalue*,const xvalue*,void*,int64_t,int64_t);

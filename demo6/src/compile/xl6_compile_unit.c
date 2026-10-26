@@ -959,6 +959,14 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         R(OWNERSHIP_DOMAIN_TLS_STREAM_NATIVE),R(OWNERSHIP_DOMAIN_TLS_STREAM_FUTURE_NATIVE),
         R(OWNERSHIP_DOMAIN_TLS_DIAL_NATIVE),R(OWNERSHIP_DOMAIN_TLS_DIAL_FUTURE_NATIVE)),
         {"XRT_MODULE_ALL","XRUNTIME_MODULE_RUNTIME_CALL","XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"}},
+    {"src/runtime/xl6_crypto_aes_block.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_CRYPTO_AES","XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_crypto_aes_block_domain.c",D(R(OWNERSHIP_CATALOG),R(CRYPTO_AES_BLOCK)),{NULL}},
+    {"src/runtime/xl6_crypto_poly1305.c",D(),{"XRT_MODULE_CRYPTO_POLY1305","XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_crypto_poly1305_stream.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_CRYPTO_POLY1305","XRT_MODULE_VALUE","XRT_MODULE_THREAD"}},
+    {"src/runtime/xl6_crypto_poly1305_domain.c",D(R(OWNERSHIP_CATALOG),R(CRYPTO_POLY1305_STREAM)),{NULL}},
+    {"src/runtime/xl6_crypto_aes_block_buffer.c",D(R(CRYPTO_AES_BLOCK)),{"XRT_MODULE_BUFFER"}},
+    {"src/runtime/xl6_crypto_poly1305_buffer.c",D(),{"XRT_MODULE_CRYPTO_POLY1305","XRT_MODULE_VALUE","XRT_MODULE_BUFFER"}},
+    {"src/runtime/xl6_crypto_poly1305_stream_buffer.c",D(R(CRYPTO_POLY1305_STREAM)),{"XRT_MODULE_BUFFER"}},
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

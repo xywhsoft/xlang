@@ -1722,6 +1722,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsTemplateEngine, needsTemplateFile, needsTemplateVfs, needsTemplateBuffer, needsTemplateWriter;
     int needsCompress, needsDeflater, needsInflater;
     int needsCryptoClass;
+    int needsCryptoAdvancedClass;
     int needsEd25519Class;
     int needsNistClass;
     int needsRsaPublicClass, needsRsaPrivateClass;
@@ -1992,6 +1993,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibFuncUsed(used, "compress", "encodeBuffer") || xl6StdlibFuncUsed(used, "compress", "decode") ||
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer");
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
+    needsCryptoAdvancedClass = xl6StdlibNodeUsesTypeName(root,"AesBlockCipher") ||
+        xl6StdlibNodeUsesTypeName(root,"Poly1305") ||
+        xl6StdlibFuncUsed(used,"cryptoAdvanced","aes") ||
+        xl6StdlibFuncUsed(used,"cryptoAdvanced","poly1305Stream");
     needsTlsClientContext=needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsClientContext");
     needsTlsServerContext=needsTlsManagedSession||xl6StdlibNodeUsesTypeName(root,"TlsServerContext");
     needsTlsResume=needsTlsClientContext||needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsResume")||xl6StdlibNodeUsesTypeName(root,"TlsTicketResult");
@@ -2023,7 +2028,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsTcpStreamClass || needsUdpClass ||
         needsHttp1Class || needsHttpDecoderClass ||
         needsWsFrameClass || needsWebSocketClass || needsFileClass ||
-        needsAsyncFileClass || needsCryptoClass || needsEd25519Class || needsLoggerClass || needsX509PathIsland;
+        needsAsyncFileClass || needsCryptoClass || needsCryptoAdvancedClass || needsEd25519Class || needsLoggerClass || needsX509PathIsland;
     needsTccClass = xl6StdlibNeedsTccClass(root, used);
     needsXlangClass = xl6StdlibNeedsXlangClass(root, used);
     if ( needsCryptoClass || needsFileClass ) {
@@ -2360,6 +2365,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if ( needsCryptoClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibCryptoClassSource);
+    }
+    if (needsCryptoAdvancedClass) {
+        xl6StdlibBuilderAppend(&builder,xl6StdlibCryptoAdvancedClassSource);
     }
     if (needsX509Island) {
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509EnumsSource);

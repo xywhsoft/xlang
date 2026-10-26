@@ -168,7 +168,9 @@ def self_test(data: dict, fixtures: dict, root: Path) -> int:
     check("decision claims completion", lambda d: d["Decisions"][0].__setitem__("State", "complete"))
     check("unknown decision module", lambda d: d["Decisions"][0].__setitem__("Modules", ["not_approved"]))
     check("empty decision", lambda d: d["Decisions"][0].__setitem__("Decision", " "))
-    check("approved question still open", lambda d: d["OpenQuestions"][0].__setitem__("Id", d["Decisions"][0]["Id"]))
+    check("approved question still open", lambda d: d["OpenQuestions"].append({
+        "Id":d["Decisions"][0]["Id"],"Modules":d["Decisions"][0]["Modules"],
+        "State":"awaiting-api-scope-confirmation","Question":"Already approved decision"}))
     return len(mutations)
 
 
