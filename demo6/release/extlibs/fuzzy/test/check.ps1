@@ -49,7 +49,17 @@ try {
     $null = Run 'XLang central' $xl @('run', 'test/cases/extlib_fuzzy.xl')
     $xlOutput = Run 'XLang example' $xl @('run',
         'release/examples/extlibs/fuzzy.xl')
-    if ($cOutput -cne $directOutput -or $cOutput -cne $xlOutput) {
+    $expected = @(
+        'levenshtein(kitten, sitting): 3',
+        'ratio(hello, hallo): 80',
+        'score(fb, foobar): 7',
+        'isMatch(xyz, foobar): false',
+        'best(pc, ...): lib/parser.c',
+        'best(abc, ...): abc',
+        'fuzzy example: PASS'
+    ) -join "`n"
+    if ($cOutput -cne $expected -or $cOutput -cne $directOutput -or
+        $cOutput -cne $xlOutput) {
         throw '[fuzzy] C runner, single-file C, and XLang example output differs'
     }
     Write-Host '[fuzzy] C/XLang example parity: PASS'
@@ -61,11 +71,23 @@ try {
         if ((Run 'core AOT' $aot @()) -cne '') {
             throw '[fuzzy] core AOT produced unexpected output'
         }
+        foreach ($case in @('boundaries', 'allocations')) {
+            $caseExe = Join-Path $work "$case.exe"
+            $null = Run "$case AOT build" $xl @('build',
+                "release/extlibs/fuzzy/test/$case.xl", '-o', $caseExe)
+            $null = Run "$case AOT" $caseExe @()
+        }
         $example = Join-Path $work 'example.exe'
         $null = Run 'example AOT build' $xl @('build',
             'release/examples/extlibs/fuzzy.xl', '-o', $example)
         if ((Run 'example AOT' $example @()) -cne $cOutput) {
             throw '[fuzzy] example AOT and C output differs'
+        }
+        $cExample = Join-Path $work 'c_example.exe'
+        $null = Run 'C example AOT build' $xl @('build',
+            'release/extlibs/fuzzy/examples/fuzzy_c.c', '-o', $cExample)
+        if ((Run 'C example AOT' $cExample @()) -cne $expected) {
+            throw '[fuzzy] C example AOT differs from fixed output'
         }
         Write-Host '[fuzzy] AOT/C example parity: PASS'
     }

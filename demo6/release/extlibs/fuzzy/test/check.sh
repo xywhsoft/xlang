@@ -46,4 +46,19 @@ timeout 30s "$xl" run release/extlibs/fuzzy/examples/fuzzy_c.c > "$work/example_
 timeout 90s "$xl" run release/examples/extlibs/fuzzy.xl > "$work/example_xl.txt"
 diff -u "$work/example_c.txt" "$work/example_direct.txt"
 diff -u "$work/example_c.txt" "$work/example_xl.txt"
-printf 'fuzzy Linux C ASan/UBSan and XLang parity gate: PASS\n'
+printf 'levenshtein(kitten, sitting): 3\nratio(hello, hallo): 80\nscore(fb, foobar): 7\nisMatch(xyz, foobar): false\nbest(pc, ...): lib/parser.c\nbest(abc, ...): abc\nfuzzy example: PASS\n' > "$work/expected.txt"
+diff -u "$work/expected.txt" "$work/example_c.txt"
+
+timeout 90s "$xl" build test/cases/extlib_fuzzy.xl -o "$work/fuzzy_core"
+timeout 30s "$work/fuzzy_core"
+for case_name in boundaries allocations; do
+    timeout 90s "$xl" build "release/extlibs/fuzzy/test/$case_name.xl" -o "$work/fuzzy_$case_name"
+    timeout 30s "$work/fuzzy_$case_name"
+done
+timeout 90s "$xl" build release/examples/extlibs/fuzzy.xl -o "$work/fuzzy_xl_aot"
+timeout 30s "$work/fuzzy_xl_aot" > "$work/xl_aot.txt"
+diff -u "$work/expected.txt" "$work/xl_aot.txt"
+timeout 90s "$xl" build release/extlibs/fuzzy/examples/fuzzy_c.c -o "$work/fuzzy_c_aot"
+timeout 30s "$work/fuzzy_c_aot" > "$work/c_aot.txt"
+diff -u "$work/expected.txt" "$work/c_aot.txt"
+printf 'fuzzy Linux C ASan/UBSan, fixed output and bilingual AOT gate: PASS\n'

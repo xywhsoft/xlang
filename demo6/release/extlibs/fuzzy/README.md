@@ -1,5 +1,13 @@
 # fuzzy
 
+2026-10-26：当前 Windows/Linux 发布物的默认包门禁均通过。固定范例输出同时核对
+GCC、TCC 单文件、XLang JIT，以及独立 C/XLang EXE；核心、边界和分配故障
+用例也分别以独立 EXE 执行。Linux 另通过 C ASan/UBSan 和四线程回归。
+旧日期记录的共享 AOT 缺符号仅描述当时发布物，不是当前阻断。此验收限于
+包内声明的 UTF-8 标量语义和输入规模，不代表完整 Unicode 大小写折叠、
+规范化、字素簇距离或长期性能保证。范例的具体评分数字只是输出回归，
+公开排序契约仍以 `score`/`best` 的相对次序为准。
+
 2026-10-25：C 的四条文本入口不再把 `NULL` 当作合法空字符串，
 统一返回各自失败值并报告 `XERR_ARGUMENT`；合法 `""` 仍保持原语义。
 C 负例覆盖每个参数位置及失败后的错误清除。Windows 默认包门禁的
@@ -44,7 +52,7 @@ C/线程/XLang/双语门禁和 Linux C ASan/UBSan、线程、双语门禁通过�
 - 同输出 C：`release/extlibs/fuzzy/examples/fuzzy_c.c`，可直接用 `xl run` 单文件执行；正式 C 构建仍独立链接 `fuzzy_native.c`。
 - 边界：包内 `test/test_fuzzy.c`、`test/test_threads.c`、`test/boundaries.xl`，以及 `demo6/test/cases/extlib_fuzzy.xl`
 
-在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/fuzzy/test/check.ps1`，一次复验严格 C、三个现有 C 测试、XLang 边界、双语同输出、无输出核心 AOT 及带输出范例 AOT/C 对照；`-SkipAot` 只运行 C/JIT 聚焦门禁。Linux 对应入口为 `bash release/extlibs/fuzzy/test/check.sh`，包含 C ASan/UBSan 和四线程回归。需要单独定位时，可在 `demo6/release` 运行 `xl run extlibs/fuzzy/test/boundaries.xl`。
+在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/fuzzy/test/check.ps1`，一次复验严格 C、三个现有 C 测试、XLang 边界、固定双语输出，以及核心、边界、分配故障和双语范例的独立 EXE；`-SkipAot` 只运行 C/JIT 聚焦门禁。Linux 对应入口为 `bash release/extlibs/fuzzy/test/check.sh`，另含 C ASan/UBSan、四线程及同样的独立 EXE 检查。需要单独定位时，可在 `demo6/release` 运行 `xl run extlibs/fuzzy/test/boundaries.xl`。
 
 2026-10-22：Windows 默认门禁加入完整范例 AOT 构建、运行及 C 输出比较；两个 AOT 产物放在本次独占目录，成功或失败均清理。`-SkipAot` 严格 C、C/XLang 范例与语言边界通过，默认门禁核心 AOT 通过；完整范例构建仍因共享 `xl6ValueDataSnapshotV1` 缺符号而失败，新增的运行/输出比较尚未执行，整包不能签收发布级。
 
