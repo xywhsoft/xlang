@@ -1,5 +1,11 @@
 # volc.sts
 
+2026-10-26 当前发布版检查 `examples/extlibs/volc_sts.xl`，
+首先在独立维护的 `xhttp.client` 报构造器、
+`NetEngine.nativeHandle()` 和 `TlsConfig` 解析错误。离线 C
+签名预览门禁仍不能代替 XLang 导入、在线请求或 AOT 验收；
+共享复现与修复边界见 `../../../dev/extlib_blockers/volc_phone_import_chain.md`。
+
 `volc.sts` 通过 `volc.core` 提供 AssumeRole 请求和签名预览。预览只计算
 `Action=AssumeRole`、查询参数和授权头，不发网络请求；示例使用固定日期与假凭据。
 在线 `assume_role*` 才连接云服务，当前没有完成 mock/沙箱与真实凭据验收。
