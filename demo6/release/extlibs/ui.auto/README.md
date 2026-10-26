@@ -50,6 +50,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/ui.auto/test/check.p
 
 对照 C 范例为 `examples/extlibs/ui_auto_c.c`，直接使用 `uia` 的 C API
 组合控件类、类型与进程条件，并与 XLang 范例一样完成输入、读取和按钮点击。
+`extlibs/ui.auto/examples/screenshot_c.c` 则只调用 `uia`、`opencv` 的公开 C API，
+截取目标控件、保存 PNG 并回读验证尺寸；包级门禁同时检查截图中的文字像素。
 包级门禁以严格 GCC 检查 C 范例，并逐行比较两份范例的输出。
 包级门禁覆盖自建窗口上的成功/缺失/错误进程定位、生成的定位器
 JSON 往返、类路径往返与相互矛盾的筛选条件、输入读取与含固定文字
