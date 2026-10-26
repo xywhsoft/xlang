@@ -165,7 +165,7 @@ export class Client
     private extern "xl6AcmeClientCreateV1" create(__Config config)
     extern "xl6AcmeDropV1" @no_raise destroy()
     extern "xl6AcmeCleanupV1" func Cleanup() as bool
-    private extern "xl6AcmeAccountPemV1" func AccountPemNative() as point
+    extern "xl6AcmeAccountPemV1" @owned func AccountPem() as string
     private extern "xl6AcmeIssueV1" func IssueNative(var domains, DnsProvider dns, bool alternate, string root, int days, bool stored) as __Grant
     private extern "xl6AcmeClientControlV1" func Control(int operation, string text, string root, int reason) as bool
     static func Create(ClientConfig config) as Client
@@ -175,9 +175,6 @@ export class Client
         auto c = __Build(config)
         __Engine(c, engine)
         return Client(c)
-    end
-    func AccountPem() as cstring
-        return cstring.take(self.AccountPemNative(), __Free)
     end
     func Issue(array<string> domains, DnsProvider dns) as (cstring,cstring)
         return __Pair(self.IssueNative(__Data(domains), dns, false, "", 0, false))
@@ -202,18 +199,12 @@ export class Store
     static func SaveAccount(string root, string directory, string pem) as bool
         return __Save(root, directory, pem, "", "", 0)
     end
-    static func LoadAccount(string root, string directory) as cstring
-        return cstring.take(__Load(root, directory, 0), __Free)
-    end
+    static extern "xrtAcmeStoreLoadAccount" @owned func LoadAccount(string root, string directory) as string
     static func SaveCert(string root, string domain, string chain, string directory) as bool
         return __Save(root, domain, chain, "", directory, 1)
     end
-    static func LoadCert(string root, string domain) as cstring
-        return cstring.take(__Load(root, domain, 1), __Free)
-    end
-    static func LoadCertCa(string root, string domain) as cstring
-        return cstring.take(__Load(root, domain, 2), __Free)
-    end
+    static extern "xrtAcmeStoreLoadCert" @owned func LoadCert(string root, string domain) as string
+    static extern "xrtAcmeStoreLoadCertCa" @owned func LoadCertCa(string root, string domain) as string
     static func SaveGrant(string root, string domain, string chain, string key, string directory = "") as bool
         return __Save(root, domain, chain, key, directory, 2)
     end
@@ -280,4 +271,3 @@ export const int XACME_STORE_ERROR_ARGUMENT = 1
 export const int XACME_STORE_ERROR_IO = 2
 export const int XACME_STORE_ERROR_NOT_FOUND = 3
 export const int XACME_STORE_ERROR_PARSE = 4
-

@@ -7,7 +7,7 @@ end
 func main(...) as int
     string root = env.get("XACME_MOCK_ROOT") ?? ""
     string directory = env.get("XACME_MOCK_DIRECTORY") ?? ""
-    cstring account = xacme.Store.LoadAccount(root, directory)
+    string account = xacme.Store.LoadAccount(root, directory)
     assert string.byteLen(account) > 100
     auto chain, key = xacme.Store.LoadGrant(root, "example.test")
     assert string.byteLen(chain) > 500 and string.byteLen(key) > 100

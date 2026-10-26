@@ -50,7 +50,10 @@ end
   适配器保留真实运行时拥有者，并在每次调用期间建立引擎使用域。引擎显式 close 后，
   新操作拒绝访问，清理仍可继续；不接受无生命周期保证的裸 point。
 
-`AccountPem/LoadAccount/LoadCert/LoadCertCa` 返回 cstring；Issue、IssueEx、LoadGrant 返回
+`AccountPem/LoadAccount/LoadCert/LoadCertCa` 通过 `@owned` 直接接管为普通 string。
+三个 Store 读取方法直接声明上游 C 函数；AccountPem 保留必要的资源检查入口。
+接管不复制载荷、不分配 C owner；之后遵循普通 string 的值语义。
+Issue、IssueEx、LoadGrant 返回
 `(cstring,cstring)`；IssueStored 和 Obtain 返回 `(cstring,cstring,bool)`。产物通过 xrtFree
 接管，原指针不会为返回、typed 局部别名、只读比较或输出而复制。双结果使用临时原生拥有者，
 任一接管步骤失败时仍会释放其余产物。写入、var、容器和类字段按语言既定规则物化。
@@ -87,3 +90,5 @@ python3 tools/check_xacme.py --directory build/xacme-check --xrt /path/to/xrt --
 刷新上游使用 `python tools/sync_xacme_upstream.py --xrt /path/to/xrt`，随后重新跑全部门禁。
 
 本轮源码验收记录见 [xacme_xrt_binding_acceptance.md](../../../docs/xacme_xrt_binding_acceptance.md)。
+
+独立的本地只读范例见 [examples/README.md](examples/README.md)。

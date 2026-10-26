@@ -1,0 +1,18 @@
+import xacme
+
+// Read an existing local account. No CA request or DNS change is performed.
+// Set XACME_STORE_ROOT and XACME_DIRECTORY to the values used when saving it.
+func main(...) as int
+    string root=env.get("XACME_STORE_ROOT") ?? ""
+    string directory=env.get("XACME_DIRECTORY") ?? xacme.XACME_DIRECTORY_LE_STAGING
+    assert root!=""
+
+    // LoadAccount is an @owned declaration of xrtAcmeStoreLoadAccount.
+    // The returned allocation becomes an ordinary string without copying.
+    string pem=xacme.Store.LoadAccount(root,directory)
+    assert string.byteLen(pem)>0
+    // Do not print account private-key material in examples or test logs.
+    println("Account PEM bytes: ",string.byteLen(pem))
+    // The local string releases its allocation automatically on return.
+    return 0
+end

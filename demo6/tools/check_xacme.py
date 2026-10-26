@@ -38,7 +38,7 @@ def main():
     parser.add_argument('--reuse-native',type=Path,help='An already built native executable; receipt records reuse explicitly')
     parser.add_argument('--cc',default='gcc')
     parser.add_argument('--source-head',help='Explicit revision for WSL reading a Windows-managed Git worktree')
-    parser.add_argument('--cases',nargs='+',choices=['basic','owned','retirement','flow'],default=['basic','owned','retirement','flow'])
+    parser.add_argument('--cases',nargs='+',choices=['basic','owned','retirement','flow','read_account'],default=['basic','owned','retirement','flow','read_account'])
     args=parser.parse_args();work=args.directory.resolve()
     work.mkdir(parents=True,exist_ok=False);records=[];inputs={}
     env=os.environ.copy();env['XLANG_PACKAGE_PATH']=str(ROOT/'release/extlibs')
@@ -76,7 +76,8 @@ def main():
         line=server.stdout.readline();info=json.loads(line)
         env.update(XACME_MOCK_DIRECTORY=info['directory'],XACME_MOCK_CA=info['ca_pem'],
             XACME_MOCK_CHALL=f"http://127.0.0.1:{info['chall']}",XACME_MOCK_RESOLVER=f"127.0.0.1:{info['dns']}",
-            XACME_MOCK_ROOT=str(work/'mock/store'))
+            XACME_MOCK_ROOT=str(work/'mock/store'),XACME_STORE_ROOT=str(work/'mock/store'),
+            XACME_DIRECTORY=info['directory'])
         run('native-mock',[native])
         # Independent consumer of the committed Store result, not the adapter.
         from cryptography import x509
@@ -92,7 +93,7 @@ def main():
         if args.driver or args.cli:
             driver=(args.driver or args.cli).resolve()
             for case in args.cases:
-                source=ROOT/f'release/extlibs/xacme/test/{case}.xl'
+                source=ROOT/f'release/extlibs/xacme/{"examples" if case=="read_account" else "test"}/{case}.xl'
                 sidecars=[ROOT/'test/cases/xlir_xacme_owned_probe.c'] if case=='owned' else [ROOT/'test/cases/xlir_xacme_mock_dns.c'] if case=='flow' else []
                 mode='module' if case=='retirement' else 'run'
                 env['XACME_LANGUAGE_ROOT']=str(work/'mock/language-jit')

@@ -3,7 +3,7 @@
     {"xl6AcmeClientCreateV1",T,V,1,{V},.resultOwner="xl6AcmeDropV1",.parameterOwners={"xl6AcmeDropV1"},.parameterDynamicBorrows={0},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
     {"xl6AcmeDropV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6AcmeDropV1"},.parameterDynamicBorrows={0},.noRaise=1,.nativeHandlePolicy="xl6AcmeHandlePolicyV1Get"},
     {"xl6AcmeCleanupV1",T,B,1,{V},.parameterOwners={"xl6AcmeDropV1"},.parameterDynamicBorrows={0},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6AcmeAccountPemV1",T,XL6_IR_C_ABI_RAW_POINTER,1,{V},.parameterOwners={"xl6AcmeDropV1"},.parameterDynamicBorrows={0},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+    {"xl6AcmeAccountPemV1",T,XL6_IR_C_ABI_RAW_POINTER,1,{V},.ownedStringResult=1,.parameterOwners={"xl6AcmeDropV1"},.parameterDynamicBorrows={0},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
     {"xl6AcmeProviderCustomV1",T,V,5,{S,I,V,V,V},.resultOwner="xl6AcmeDropV1",.parameterOwners={NULL,NULL,NULL,NULL,NULL},.parameterDynamicBorrows={0,0,1,1,1},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
     {"xl6AcmeProviderCreateV1",T,V,3,{I,V,V},.resultOwner="xl6AcmeDropV1",.parameterOwners={NULL,NULL,"xl6AcmeDropV1"},.parameterDynamicBorrows={0,1,0},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
     {"xl6AcmeProviderValidateV1",T,B,1,{V},.parameterOwners={"xl6AcmeDropV1"},.parameterDynamicBorrows={0},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
