@@ -259,3 +259,5 @@ Array/Stack 父门接线；pop/take、resize 默认值、动态分派及整个�
 `test/cases/stdlib_array_resize_only.xl` 用于真实 artifact 组件裁剪。
 Array/Stack 父门接入新 native 子门，Stack 父门同时接入语言子门。
 pop/take、动态分派和全部 Array source carrier 切换仍需后续完成。
+
+自有字符串专项：`extern_c_variadic_text.xl` 配合 `extern_c_variadic_text_host.c` 覆盖 no_raise 实参准备与 C 默认提升；`extern_owned_string_public.xl`、`extern_owned_string_public_host.c`、`extern_owned_string_public_consumer.c.in` 由 `tools/check_extern_owned_string_public.py` 验证独立 C 头文件及 120 个 OOM 前缀。

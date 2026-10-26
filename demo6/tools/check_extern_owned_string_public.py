@@ -1,0 +1,116 @@
+"""Compile a genuinely independent C consumer of the emitted owned-string API.
+
+--runtime-build accepts the Windows public source driver's build.json or a
+Linux source compiler's result.json. Every compiler/runtime input and object
+is hash-verified. The consumer is never an xlang sidecar; generated C, native
+producers and the consumer are separate GCC translation units.
+"""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    compiler = parser.add_mutually_exclusive_group(required=True)
+    compiler.add_argument('--driver', type=Path)
+    compiler.add_argument('--cli', type=Path)
+    parser.add_argument('--runtime-build', type=Path, required=True)
+    parser.add_argument('--directory', type=Path, required=True)
+    args = parser.parse_args()
+    binary = (args.driver or args.cli).resolve()
+    receipt = args.runtime_build.resolve()
+    build = json.loads(receipt.read_text(encoding='utf-8-sig'))
+    inputs = {receipt: sha(receipt), binary: sha(binary), Path(__file__).resolve(): sha(__file__)}
+    if 'Inputs' in build:
+        assert build['Complete'] and build['InputsUnchanged'] and build['SourceXrt']
+        for row in build['Inputs'] + build['Objects'] + build['Headers']:
+            assert sha(row['Path']).lower() == row['Sha256'].lower(), row['Path']
+            inputs[Path(row['Path'])] = sha(row['Path'])
+        assert sha(binary).lower() == build['DriverSha256'].lower()
+        links = [row['Path'] for row in build['Objects']
+                 if Path(row['Path']).name not in ('xlir_public_source_driver.o', 'xlir_public_source_linux_driver.o')]
+        tool_runtime = receipt.parent / 'xl.dll'
+        if not tool_runtime.exists(): tool_runtime = ROOT / 'release/xl.dll'
+        links += [str(tool_runtime), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
+        includes = [ROOT, ROOT/'release', ROOT/'release/include', receipt.parent/'include']
+    else:
+        assert os.name != 'nt' and build['complete']
+        for path, digest in build['inputs'].items():
+            assert sha(path) == digest, path
+            inputs[Path(path)] = digest
+        for row in build['objects']:
+            assert sha(row['object']) == row['sha256'], row['object']
+            inputs[Path(row['object'])] = row['sha256']
+        tool_runtime = binary.parent/'libxlc.so'
+        assert sha(tool_runtime) == build['compilerSha256']
+        links = [str(tool_runtime), '-Wl,-rpath,'+str(tool_runtime.parent), '-pthread', '-ldl', '-lm']
+        includes = [ROOT, ROOT/'release', ROOT/'release/include']
+    inputs[tool_runtime] = sha(tool_runtime)
+    cc = shutil.which('gcc')
+    assert cc
+    inputs[Path(cc)] = sha(cc)
+    work = args.directory.resolve()
+    work.mkdir(parents=True, exist_ok=False)
+    if os.name == 'nt': shutil.copy2(tool_runtime, work/'xl.dll')
+    source = ROOT/'test/cases/extern_owned_string_public.xl'
+    native = [ROOT/'test/cases/extern_owned_string_host.c', ROOT/'test/cases/extern_owned_string_public_host.c']
+    template = ROOT/'test/cases/extern_owned_string_public_consumer.c.in'
+    for path in [source, *native, template]: inputs[path] = sha(path)
+    checks = []
+
+    def run(name, command):
+        result = subprocess.run(list(map(str, command)), cwd=ROOT, capture_output=True, timeout=300)
+        data = result.stdout + result.stderr
+        (work/(name+'.log')).write_bytes(data)
+        checks.append({'name': name, 'exitCode': result.returncode})
+        assert result.returncode == 0, name+'\n'+data[-6000:].decode(errors='replace')
+        print(name+': PASS', flush=True)
+        return data.decode(errors='replace')
+
+    prefix = work/'owned-public'
+    run('emit', [binary, 'cgen', source, *native, '--emit', str(prefix)+'.c', '--emit-header', str(prefix)+'.h',
+                 '--inc-path', ROOT/'release/include'] if args.cli else [binary, source, 'emit', prefix, *native])
+    header = prefix.with_suffix('.h').read_text(encoding='utf-8-sig')
+    pair_type = re.search(r'XLIR_C_API\s+(\w+)\s+owned_public_pair\(', header)
+    assert pair_type, 'actual public header did not declare the product export'
+    consumer = work/'consumer.c'
+    consumer.write_text(template.read_text().replace('@PAIR_TYPE@', pair_type[1]), encoding='utf-8')
+    flags = ['-std=c11', '-DXL_STATIC_EMBED', *['-I'+str(path) for path in includes]]
+    if os.name != 'nt': flags += ['-D_GNU_SOURCE']
+    for optimization in ('O0', 'O2'):
+        objects = []
+        for index, unit in enumerate([prefix.with_suffix('.c'), *native, consumer]):
+            obj = work/(optimization+'-'+str(index)+'.o')
+            strict = ['-Wall', '-Wextra', '-Werror'] if unit == consumer else []
+            run(optimization+'-compile-'+str(index), [cc, *flags, *strict, '-'+optimization, '-c', unit, '-o', obj])
+            objects.append(obj)
+        output = work/(optimization+('.exe' if os.name == 'nt' else ''))
+        # A response file keeps the full verified object closure out of shell
+        # command-length limits. It is GCC syntax, never shell-interpreted.
+        response = work/(optimization+'-link.rsp')
+        response.write_text('\n'.join('"'+str(value).replace('\\', '/')+'"' for value in
+            [*objects, *links, '-o', output]), encoding='utf-8')
+        run(optimization+'-link', [cc, '@'+str(response)])
+        assert '120 OOM prefixes balanced' in run(optimization+'-run', [output])
+    assert all(sha(path) == digest for path, digest in inputs.items()), 'source or runtime changed during gate'
+    (work/'result.json').write_text(json.dumps({'complete': True, 'platform': sys.platform,
+        'independentTranslationUnit': True, 'checks': checks,
+        'inputs': {str(path): digest for path, digest in inputs.items()},
+        'products': {str(path): sha(path) for path in [prefix.with_suffix('.c'), prefix.with_suffix('.h'), consumer]}},
+        indent=2), encoding='utf-8')
+
+
+if __name__ == '__main__': main()

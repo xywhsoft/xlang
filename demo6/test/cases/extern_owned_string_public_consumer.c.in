@@ -1,0 +1,59 @@
+/* This translation unit sees ONLY the actual emitted public header. It is
+ * compiled by GCC directly, never passed to the xlang C-sidecar injector. */
+#include "owned-public.h"
+#include <stdio.h>
+extern bool owned_original(const char*);
+
+static bool call(unsigned kind, bool present, bool* success)
+{
+    xl6_foreign_error_scope scope = {0};
+    if (!xl6ForeignCallBegin(&scope)) return false;
+    xlir_string value = {0};
+    int64_t number = 42;
+    if (kind == 0) value = owned_public_optional(present);
+    else if (kind == 1) {
+        @PAIR_TYPE@ pair = owned_public_pair(present);
+        value = pair.e0; number = pair.e1;
+    } else if (kind == 2) value = owned_public_required();
+    else if (kind == 3) value = owned_public_failed();
+    else value = owned_public_silent_failure();
+    xl6_foreign_error_result outcome = xl6ForeignCallEnd(&scope);
+    *success = outcome.ok;
+    bool valid;
+    if (!outcome.ok) valid = !value.Data && !value.Size;
+    else if (kind >= 3) valid = false;
+    else if (kind == 2 || present)
+        valid = number == 42 && value.Data && value.Size == 10 && owned_original(value.Data);
+    else valid = number == 42 && !value.Data && !value.Size;
+    xrtFree((void*)value.Data);
+    xrtErrorFree(outcome.error);
+    return valid;
+}
+
+int main(void)
+{
+    bool success = false;
+    for (unsigned kind = 0; kind < 5; ++kind) {
+        if (!call(kind, true, &success) || success != (kind < 3)) return 1;
+        if (kind < 2 && (!call(kind, false, &success) || !success)) return 2;
+    }
+    if (!xrtMemDebugEnabled() && !xrtMemDebugEnable(true)) return 3;
+    unsigned accepted = 0, rejected = 0;
+    /* Warmed module; inject every allocation prefix on nullable, product,
+     * required string and both producer-failure paths independently. */
+    for (unsigned kind = 0; kind < 5; ++kind) {
+        for (unsigned prefix = 0; prefix < 24; ++prefix) {
+            xmemdebugsnapshot before = {0}, after = {0};
+            xrtMemDebugSnapshot(&before);
+            if (!xrtMemDebugFailAfter(prefix)) return 4;
+            bool valid = call(kind, true, &success);
+            xrtMemDebugFailClear(); xrtClearError();
+            xrtMemDebugSnapshot(&after);
+            if (!valid || before.LiveCount != after.LiveCount) return 5;
+            if (success) ++accepted; else ++rejected;
+        }
+    }
+    if (!accepted || !rejected) return 6;
+    puts("independent C header: nullable/pair/string/failure and 120 OOM prefixes balanced");
+    return 0;
+}

@@ -14,6 +14,8 @@ def main():
     compiler=p.add_mutually_exclusive_group(required=True)
     compiler.add_argument('--driver',type=Path)
     compiler.add_argument('--cli',type=Path)
+    p.add_argument('--runtime-build',type=Path,
+        help='Verified source runtime receipt for the independent C consumer gate')
     args=p.parse_args();work=args.directory.resolve();work.mkdir(parents=True,exist_ok=False)
     binary=(args.driver or args.cli).resolve();checks=[]
     env=os.environ.copy();env['XLANG_PACKAGE_PATH']=os.pathsep.join([str(ROOT/'test/fixtures'),str(ROOT/'release/extlibs')])
@@ -35,6 +37,7 @@ def main():
         ('cstring-regression','test/cases/xlir_c_owned_basic.xl',['test/cases/xlir_c_owned_native.c'],[]),
         ('cstring-package-regression','test/cases/xlir_c_owned_import_exports.xl',[],[]),
         ('ordinary-string-export-regression','test/cases/sem_export_string_return.xl',[],[]),
+        ('C-variadic-no-raise-text','test/cases/extern_c_variadic_text.xl',['test/cases/extern_c_variadic_text_host.c'],['variadic_text']),
     ]
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     inputs=[ROOT/source for _,source,_,_ in cases]+[ROOT/path for _,_,paths,_ in cases for path in paths]
@@ -58,8 +61,8 @@ def main():
         if symbols:assert 'xl6CStringTakeV1' not in generated and 'XL6_COwnerV1' not in generated
         if case=='extern_owned_string':assert 'xlir_string_from_cstr(owned_borrowed(' in generated,'borrowed default changed'
         if case=='extern_owned_string_export':
-            # Compile and run a C consumer against the actual emitted
-            # public header, rather than guessing the export ABI.
+            # Reentrant C sidecar integration. The compiler injects an ABI
+            # header here; independent-header coverage is a separate gate.
             consumer=work/'export-consumer.c'
             consumer.write_text('#include "'+Path(str(emit)+'.h').as_posix()+'"\n'+
                 'extern bool owned_original(const char*);\n'
@@ -102,9 +105,16 @@ def main():
         run('reject-'+name,[binary,'cgen',source,'--emit',work/('reject-'+name+'.c')] if args.cli else [binary,source,'emit',work/('reject-'+name)],False,message)
     run('reject-raw-C-callback-string',[binary,'check',ROOT/'test/cases/sem_c_callback_string_return_invalid.xl']
         if args.cli else [binary,ROOT/'test/cases/sem_c_callback_string_return_invalid.xl','emit',work/'reject-callback'],False)
+    receipt=args.runtime_build or (binary.parent/'build.json' if args.driver else None)
+    if receipt:
+        run('independent-C-public-header',[sys.executable,ROOT/'tools/check_extern_owned_string_public.py',
+            '--cli' if args.cli else '--driver',binary,'--runtime-build',receipt,
+            '--directory',work/'independent-C'])
+    else:
+        print('independent C gate not run: source runtime receipt required via --runtime-build',flush=True)
     assert all(sha(ROOT/f)==digest for f,digest in snapshot.items()),'Test inputs changed'
     (work/'result.json').write_text(json.dumps({'complete':True,'platform':sys.platform,'compiler':str(binary),
-        'compilerSha256':sha(binary),'checks':checks,'inputs':snapshot},indent=2),encoding='utf-8')
+        'compilerSha256':sha(binary),'independentCConsumer':bool(receipt),'checks':checks,'inputs':snapshot},indent=2),encoding='utf-8')
     print('extern owned string checks complete',flush=True)
 
 if __name__=='__main__':main()
