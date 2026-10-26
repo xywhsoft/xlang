@@ -101,7 +101,7 @@ println(color.mix("#000", "#fff", 0.5))</code></pre>
     <p>xlang 字符串入口已拒绝内嵌 NUL，不把有效前缀误判为完整颜色。Linux 门禁现同次覆盖 C sanitizer/oracle、XLang 边界及分配故障、双语范例逐字节对照；32 位/ARM、TSan 和长期性能仍待验收。
     Windows 使用 tools/check_extlib_color.ps1 默认入口验证完整 AOT；-SkipAot 仅用于开发时缩短反馈。
     Linux 执行入口：tools/check_extlib_color.sh。</p>
-    <p>2026-10-26 当前发布物的 Windows 默认门禁报告 <code>passed-scoped</code>：43 项检查通过、输入哈希未变。Linux 门禁通过 C ASan/UBSan/float-cast、四线程 8000 轮、26552 项独立 oracle、中央与包内边界及分配故障的语言 AOT，并新增 C 单文件范例 AOT；C/GCC、C/TCC、C/AOT 与 XLang 基础范例输出一致。两平台默认测试目录互不覆盖；Linux 默认临时目录退出清理，显式 <code>COLOR_WORK_DIR</code> 可保留证据。拥有型 C 文本结果由 <code>takeCstr</code> 直接接管。尚未重建整个 xlang 发布物，Windows 报告仍为 <code>releaseReady=false</code>；本页不外推 32 位/ARM、TSan 或长时性能。</p>
+    <p>2026-10-26 完整重建 Windows <code>xl.exe</code>/<code>xl.dll</code>/<code>xlc.dll</code> 与 Linux <code>xl</code>/<code>libxl.so</code>/<code>libxlc.so</code> 后复验：Windows 默认门禁报告 <code>passed-scoped</code>，43 项检查通过、输入哈希未变。Linux 门禁通过 C ASan/UBSan/float-cast、四线程 8000 轮、26552 项独立 oracle、中央与包内边界及分配故障的语言 AOT，以及 C 单文件范例 AOT；C/GCC、C/TCC、C/AOT 与 XLang 基础范例输出一致。两平台默认测试目录互不覆盖；Linux 默认临时目录退出清理，显式 <code>COLOR_WORK_DIR</code> 可保留证据。拥有型 C 文本结果由 <code>takeCstr</code> 直接接管。本包在上述 Windows/Linux x64 范围签收。脚本仍标记 <code>releaseReady=false</code>，因为它不运行全产品回归，不代表产品发布准入；此页也不外推 32 位/ARM、TSan 或长时性能。</p>
   </section>
 </main>
 <script src="../main.js"></script>

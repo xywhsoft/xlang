@@ -90,15 +90,17 @@ bool ok = xcolor_hex(51, 102, 204, output, sizeof(output));
 
 ## 双语范例与测试
 
-2026-10-26 当前发布物复验：Windows 默认门禁 `passed-scoped`，43 项
-检查通过、输入哈希不变；Linux 严格 C ASan/UBSan/float-cast、四线程
+2026-10-26 完整重建 Windows `xl.exe`/`xl.dll`/`xlc.dll` 和 Linux
+`xl`/`libxl.so`/`libxlc.so` 后复验：Windows 默认门禁 `passed-scoped`，
+43 项检查通过、输入哈希不变；Linux 严格 C ASan/UBSan/float-cast、四线程
 8000 轮、26552 项独立 oracle 与语言 JIT/AOT 全通过。Linux 门禁新增
 中央语言用例和 C 单文件范例的独立 EXE；后者与 GCC C、TCC C 及
 XLang 基础范例逐字节同输出。两平台的测试目录现在默认独占，Linux
 默认临时产物退出时清理；显式 `COLOR_WORK_DIR` 可保留验证证据。
 八个拥有型 C 文本结果继续由语言层 `takeCstr` 直接接管，不增加复制。
-本轮未重建整个 xlang 发布物，脚本仍明确标记 `releaseReady=false`；
-32 位/ARM、TSan 与长时性能也不在此次包级签收范围。
+本包在上述 Windows/Linux x64 范围签收。脚本仍明确标记
+`releaseReady=false`：它只运行 color 专项门禁，不代表整个产品的回归
+或发布准入。32 位/ARM、TSan 与长时性能不在此次包级签收范围。
 
 2026-10-25：独立 oracle 新增 4101 组 `contrast` 亮度比及 4131 组
 `mix` 编码 RGB 插值对照，含短/长 alpha、端点、截断参数和固定种子颜色对；
