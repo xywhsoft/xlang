@@ -56,6 +56,17 @@ try {
         $directOutput = Run 'single-file C example' $xl @('run',
             'extlibs/ansi/examples/ansi_c.c')
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/ansi/test/boundaries.xl')
+        $null = Run 'XLang allocations' $xl @('run', 'extlibs/ansi/test/allocations.xl')
+        $generated = Join-Path $work 'owned_text.c'
+        $null = Run 'owned-text cgen' $xl @('cgen',
+            'extlibs/ansi/test/allocations.xl', '--emit', $generated)
+        $generatedText = [IO.File]::ReadAllText($generated)
+        foreach ($name in @('reset', 'bold', 'fg256', 'fg_true', 'strip')) {
+            if ($generatedText -notmatch "(?m)\.Data\s*=\s*xansi_$name\s*\(") {
+                throw "owned ANSI result was not captured directly: xansi_$name"
+            }
+        }
+        Write-Host '[ansi] owned string adoption: PASS'
         $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/ansi/examples/ansi.xl')
         if ($cOutput -cne $directOutput -or $cOutput -cne $xlOutput) {
             throw "ANSI example outputs differ:`nC:`n$cOutput`nDirect:`n$directOutput`nXL:`n$xlOutput"
@@ -74,6 +85,10 @@ try {
             $null = Run 'XLang boundaries build' $xl @('build',
                 'extlibs/ansi/test/boundaries.xl', '-o', $target)
             $null = Run 'XLang boundaries AOT' $target @()
+            $allocAot = Join-Path $work 'ansi_allocations.exe'
+            $null = Run 'XLang allocations build' $xl @('build',
+                'extlibs/ansi/test/allocations.xl', '-o', $allocAot)
+            $null = Run 'XLang allocations AOT' $allocAot @()
             $cAot = Join-Path $work 'ansi_c_example.exe'
             $null = Run 'C example AOT build' $xl @('build',
                 'extlibs/ansi/examples/ansi_c.c', '-o', $cAot)

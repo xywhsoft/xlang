@@ -64,6 +64,13 @@ int main(void)
 
     CHECK(xansi_fg("x", 0) == NULL);
     CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    CHECK(xansi_bold("\xff") == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    CHECK(xansi_fg("\xff", 31) == NULL);
+    CHECK(xansi_bg256("\xff", 17) == NULL);
+    CHECK(xansi_fg_true("\xff", 1, 2, 3) == NULL);
+    CHECK(same(xansi_bold("ok"), "\x1b[1mok\x1b[0m"));
+    CHECK(xrtGetError() == NULL);
     CHECK(xansi_bg256("x", 256) == NULL);
     CHECK(xansi_fg_true("x", 1, 2, -1) == NULL);
     CHECK(xansi_column(0) == NULL);

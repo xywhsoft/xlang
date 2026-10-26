@@ -21,7 +21,7 @@ static void xansi_error(const char* message)
     xrtSetErrorInfo(XERR_VALUE, XANSI_DOMAIN, 0, message);
 }
 
-static void* xansi_copy(const char* text)
+static char* xansi_copy(const char* text)
 {
     xrtClearError();
     return xrtStrDup(text);
@@ -30,6 +30,14 @@ static void* xansi_copy(const char* text)
 static const char* xansi_text(const char* text)
 {
     return text != NULL ? text : "";
+}
+
+static bool xansi_valid_text(const char* text)
+{
+    text = xansi_text(text);
+    if (xrtUtf8Valid((xstrview){text, strlen(text)}, NULL)) return true;
+    xansi_error("text must be valid UTF-8");
+    return false;
 }
 
 /* 双向控制符会改变终端文本的可见顺序，不能作为安全标题或列宽输入。 */
@@ -45,30 +53,33 @@ static bool xansi_line_break(uint32 scalar)
     return scalar == 0x2028u || scalar == 0x2029u;
 }
 
-static void* xansi_wrap(const char* text, const char* code)
+static char* xansi_wrap(const char* text, const char* code)
 {
     xrtClearError();
+    if (!xansi_valid_text(text)) return NULL;
     return xrtFormat("\x1b[%sm%s\x1b[0m", code, xansi_text(text));
 }
 
-static void* xansi_color(const char* text, int64_t code)
+static char* xansi_color(const char* text, int64_t code)
 {
     xrtClearError();
+    if (!xansi_valid_text(text)) return NULL;
     return xrtFormat("\x1b[%lldm%s\x1b[0m", (long long)code, xansi_text(text));
 }
 
-static void* xansi_palette(const char* text, int foreground, int64_t index)
+static char* xansi_palette(const char* text, int foreground, int64_t index)
 {
     xrtClearError();
     if (index < 0 || index > 255) {
         xansi_error("palette index must be 0..255");
         return NULL;
     }
+    if (!xansi_valid_text(text)) return NULL;
     return xrtFormat("\x1b[%d;5;%lldm%s\x1b[0m", foreground ? 38 : 48,
         (long long)index, xansi_text(text));
 }
 
-static void* xansi_rgb(const char* text, int foreground,
+static char* xansi_rgb(const char* text, int foreground,
     int64_t red, int64_t green, int64_t blue)
 {
     xrtClearError();
@@ -77,12 +88,13 @@ static void* xansi_rgb(const char* text, int foreground,
         xansi_error("RGB channel must be 0..255");
         return NULL;
     }
+    if (!xansi_valid_text(text)) return NULL;
     return xrtFormat("\x1b[%d;2;%lld;%lld;%lldm%s\x1b[0m",
         foreground ? 38 : 48, (long long)red, (long long)green,
         (long long)blue, xansi_text(text));
 }
 
-static void* xansi_move(char direction, int64_t count)
+static char* xansi_move(char direction, int64_t count)
 {
     xrtClearError();
     if (count < 1) {
@@ -92,17 +104,17 @@ static void* xansi_move(char direction, int64_t count)
     return xrtFormat("\x1b[%lld%c", (long long)count, direction);
 }
 
-void* xansi_reset(void) { return xansi_copy("\x1b[0m"); }
-void* xansi_bold(const char* text) { return xansi_wrap(text, "1"); }
-void* xansi_dim(const char* text) { return xansi_wrap(text, "2"); }
-void* xansi_italic(const char* text) { return xansi_wrap(text, "3"); }
-void* xansi_underline(const char* text) { return xansi_wrap(text, "4"); }
-void* xansi_blink(const char* text) { return xansi_wrap(text, "5"); }
-void* xansi_inverse(const char* text) { return xansi_wrap(text, "7"); }
-void* xansi_hidden(const char* text) { return xansi_wrap(text, "8"); }
-void* xansi_strike(const char* text) { return xansi_wrap(text, "9"); }
+char* xansi_reset(void) { return xansi_copy("\x1b[0m"); }
+char* xansi_bold(const char* text) { return xansi_wrap(text, "1"); }
+char* xansi_dim(const char* text) { return xansi_wrap(text, "2"); }
+char* xansi_italic(const char* text) { return xansi_wrap(text, "3"); }
+char* xansi_underline(const char* text) { return xansi_wrap(text, "4"); }
+char* xansi_blink(const char* text) { return xansi_wrap(text, "5"); }
+char* xansi_inverse(const char* text) { return xansi_wrap(text, "7"); }
+char* xansi_hidden(const char* text) { return xansi_wrap(text, "8"); }
+char* xansi_strike(const char* text) { return xansi_wrap(text, "9"); }
 
-void* xansi_fg(const char* text, int64_t code)
+char* xansi_fg(const char* text, int64_t code)
 {
     if (!((code >= 30 && code <= 37) || (code >= 90 && code <= 97))) {
         xansi_error("foreground SGR code must be 30..37 or 90..97");
@@ -111,7 +123,7 @@ void* xansi_fg(const char* text, int64_t code)
     return xansi_color(text, code);
 }
 
-void* xansi_bg(const char* text, int64_t code)
+char* xansi_bg(const char* text, int64_t code)
 {
     if (!((code >= 40 && code <= 47) || (code >= 100 && code <= 107))) {
         xansi_error("background SGR code must be 40..47 or 100..107");
@@ -120,30 +132,30 @@ void* xansi_bg(const char* text, int64_t code)
     return xansi_color(text, code);
 }
 
-void* xansi_fg256(const char* text, int64_t index)
+char* xansi_fg256(const char* text, int64_t index)
 { return xansi_palette(text, 1, index); }
-void* xansi_bg256(const char* text, int64_t index)
+char* xansi_bg256(const char* text, int64_t index)
 { return xansi_palette(text, 0, index); }
-void* xansi_fg_true(const char* text, int64_t r, int64_t g, int64_t b)
+char* xansi_fg_true(const char* text, int64_t r, int64_t g, int64_t b)
 { return xansi_rgb(text, 1, r, g, b); }
-void* xansi_bg_true(const char* text, int64_t r, int64_t g, int64_t b)
+char* xansi_bg_true(const char* text, int64_t r, int64_t g, int64_t b)
 { return xansi_rgb(text, 0, r, g, b); }
 
-void* xansi_up(int64_t count) { return xansi_move('A', count); }
-void* xansi_down(int64_t count) { return xansi_move('B', count); }
-void* xansi_right(int64_t count) { return xansi_move('C', count); }
-void* xansi_left(int64_t count) { return xansi_move('D', count); }
-void* xansi_next_line(int64_t count) { return xansi_move('E', count); }
-void* xansi_prev_line(int64_t count) { return xansi_move('F', count); }
-void* xansi_column(int64_t column) { return xansi_move('G', column); }
+char* xansi_up(int64_t count) { return xansi_move('A', count); }
+char* xansi_down(int64_t count) { return xansi_move('B', count); }
+char* xansi_right(int64_t count) { return xansi_move('C', count); }
+char* xansi_left(int64_t count) { return xansi_move('D', count); }
+char* xansi_next_line(int64_t count) { return xansi_move('E', count); }
+char* xansi_prev_line(int64_t count) { return xansi_move('F', count); }
+char* xansi_column(int64_t column) { return xansi_move('G', column); }
 
-void* xansi_clear_screen(void) { return xansi_copy("\x1b[2J"); }
-void* xansi_clear_line(void) { return xansi_copy("\x1b[2K"); }
-void* xansi_clear_to_end(void) { return xansi_copy("\x1b[K"); }
-void* xansi_hide_cursor(void) { return xansi_copy("\x1b[?25l"); }
-void* xansi_show_cursor(void) { return xansi_copy("\x1b[?25h"); }
+char* xansi_clear_screen(void) { return xansi_copy("\x1b[2J"); }
+char* xansi_clear_line(void) { return xansi_copy("\x1b[2K"); }
+char* xansi_clear_to_end(void) { return xansi_copy("\x1b[K"); }
+char* xansi_hide_cursor(void) { return xansi_copy("\x1b[?25l"); }
+char* xansi_show_cursor(void) { return xansi_copy("\x1b[?25h"); }
 
-void* xansi_title(const char* text)
+char* xansi_title(const char* text)
 {
     size_t i = 0u, size;
     xrtClearError();
@@ -216,7 +228,7 @@ static bool xansi_escape(const char* text, size_t size, size_t* consumed)
     return false;
 }
 
-void* xansi_strip(const char* text)
+char* xansi_strip(const char* text)
 {
     size_t size, read = 0u, written = 0u;
     char* result;

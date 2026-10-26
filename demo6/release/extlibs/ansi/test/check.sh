@@ -31,6 +31,7 @@ timeout 90s "$work/test_threads"
 timeout 30s "$work/ansi_example" > "$work/c.txt"
 timeout 90s ./release/xl run test/cases/extlib_ansi.xl
 timeout 90s ./release/xl run release/extlibs/ansi/test/boundaries.xl
+timeout 90s ./release/xl run release/extlibs/ansi/test/allocations.xl
 timeout 30s ./release/xl run release/extlibs/ansi/examples/ansi_c.c > "$work/direct.txt"
 timeout 90s ./release/xl run release/extlibs/ansi/examples/ansi.xl > "$work/xl.txt"
 diff -u "$work/c.txt" "$work/direct.txt"
@@ -41,6 +42,8 @@ timeout 30s "$work/ansi_xl_aot" > "$work/xl_aot.txt"
 diff -u "$work/c.txt" "$work/xl_aot.txt"
 timeout 90s ./release/xl build release/extlibs/ansi/test/boundaries.xl -o "$work/ansi_boundaries_aot"
 timeout 30s "$work/ansi_boundaries_aot"
+timeout 90s ./release/xl build release/extlibs/ansi/test/allocations.xl -o "$work/ansi_allocations_aot"
+timeout 30s "$work/ansi_allocations_aot"
 timeout 90s ./release/xl build release/extlibs/ansi/examples/ansi_c.c -o "$work/ansi_c_aot"
 timeout 30s "$work/ansi_c_aot" > "$work/c_aot.txt"
 diff -u "$work/c.txt" "$work/c_aot.txt"
