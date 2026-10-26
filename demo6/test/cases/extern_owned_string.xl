@@ -1,0 +1,120 @@
+extern "owned_verify" @no_raise func verify(bool value, int line) as bool
+extern "owned_text" @owned func text() as string
+extern "owned_empty" @owned func empty() as string
+extern "owned_null" @owned func missing() as string
+extern "owned_failed" @owned func failed() as string
+extern "owned_failed_without_diagnostic" @owned func failedWithoutDiagnostic() as string
+extern "owned_optional" @owned @no_raise func optional() as string?
+extern "owned_original" @no_raise func original(string value) as bool
+extern "owned_original_value" @no_raise func originalValue(var value) as bool
+extern "owned_reset" @no_raise func reset()
+extern "owned_one_allocation" @no_raise func oneAllocation(string value) as bool
+extern "owned_frees" @no_raise func frees() as int
+extern "owned_allocations" @no_raise func allocations() as int
+extern "owned_borrowed" func borrowed() as string
+
+func direct()
+    reset()
+    string value=text()
+    // Includes the producer allocation: admission must allocate nothing.
+    assert verify(oneAllocation(value), 20)
+    assert verify(original(value), 18)
+end
+
+func check()
+    string warm=text()
+    assert verify(warm=="owned text", 24)
+    direct()
+    assert verify(frees()==1, 26)
+    assert verify(optional()==null, 27)
+    reset()
+    string zero=empty()
+    assert verify(oneAllocation(zero), 30)
+    assert verify(zero=="", 31)
+    zero="replacement"
+    assert verify(frees()>=1, 32)
+    assert verify(borrowed()=="borrowed", 33)
+
+    func() as string stored=text
+    auto inferred=text
+    assert verify(original(stored()) and original(inferred()), 37)
+    auto dynamic=xcall(text)
+    var result=dynamic()
+    // Dynamic boxing retains ordinary string conversion rules, including
+    // XRT ValueStringTake resizing; it is outside the direct-call fast path.
+    assert verify(result=="owned text", 40)
+
+    int i=0
+    while i<4
+        bool caught=false
+        try
+            if i==0
+                string value=missing()
+            elseif i==1
+                string value=failed()
+            elseif i==2
+                string value=failedWithoutDiagnostic()
+            else
+                text()
+                assert false
+            end
+        catch error
+            caught=true
+        end
+        assert verify(caught, 59)
+        i+=1
+    end
+    reset()
+    try
+        string value=failed()
+    catch error
+    end
+    assert verify(frees()>=1, 67)
+    reset()
+    text() // Discarding a result still owns its cleanup.
+    assert verify(frees()==1, 70)
+end
+
+protocol TextApi
+    func Text() as string
+    func Optional() as string?
+    func Failed() as string
+end
+class NativeText
+    private native point handle
+    extern "owned_open" @no_raise create()
+    extern "owned_member" @owned func Text() as string
+    extern "owned_member_null" @owned @no_raise func Optional() as string?
+    extern "owned_member_failed" @owned func Failed() as string
+    extern "owned_member_get" @owned get Value() as string
+end
+
+func methods()
+    auto object=NativeText()
+    assert verify(original(object.Text()) and original(object.Value), 84)
+    func() as string bound=object.Text
+    // Bound methods use the existing erased method carrier and ordinary
+    // string unboxing. Verify ownership safety, without claiming zero copy.
+    assert verify(bound()=="owned text", 86)
+    TextApi protocolView=object
+    assert verify(original(protocolView.Text()), 87)
+    assert verify(protocolView.Optional()==null, 88)
+    var erased=object
+    var value=erased.Text()
+    assert verify(value=="owned text", 89)
+    assert verify(object.Optional()==null and erased.Optional()==null, 90)
+    bool caught=false
+    try
+        erased.Failed()
+    catch error
+        caught=true
+    end
+    assert verify(caught, 97)
+end
+
+func main(...) as int
+    check()
+    methods()
+    println("extern owned string: direct, callable, dynamic, nullable, cleanup ok")
+    return 0
+end
