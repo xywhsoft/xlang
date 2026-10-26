@@ -7,7 +7,8 @@ bool xl6TlsVerificationPolicyInitV1(XL6_TlsVerificationPolicyV1* policy)
     if(!policy)return xl6TlsFailV1(XERR_ARGUMENT,"missing TLS verification policy output");
     xtlsverifylimits limits;xrtTlsVerifyLimitsInit(&limits);*policy=(XL6_TlsVerificationPolicyV1){0};
 #define XL6_TLS_VERIFY_LIMIT(Field,Name) if(limits.Field>INT64_MAX)return xl6TlsFailV1(XERR_RANGE,"native TLS budget exceeds language integer range");policy->limits.Field=(int64_t)limits.Field;
-#include "xl6_tls_verification_policy_fields.inc"
+#include "xl6_tls_verification_policy_fields.h"
+XL6_TLS_VERIFICATION_POLICY_FIELDS()
 #undef XL6_TLS_VERIFY_LIMIT
     return true;
 }
@@ -26,7 +27,8 @@ void* xl6TlsVerifierCreatePoliciesInternalV1(void* rawTrust,const XL6_TlsVerific
     XL6_TlsVerifierContextV1* context=xl6TlsVerifierContextCreatePoliciesV1(policy,callback,revocation);if(!context)return NULL;
     xtlsverifylimits limits;
 #define XL6_TLS_VERIFY_LIMIT(Field,Name) limits.Field=(size_t)policy->limits.Field;
-#include "xl6_tls_verification_policy_fields.inc"
+#include "xl6_tls_verification_policy_fields.h"
+XL6_TLS_VERIFICATION_POLICY_FIELDS()
 #undef XL6_TLS_VERIFY_LIMIT
     xtlsverifierconfig config;xrtTlsVerifierConfigInit(&config);config.Store=trust->value;
     const xtlsverifiercontextownershipv1* ownership=xl6TlsVerifierContextNativePolicyV1Get();

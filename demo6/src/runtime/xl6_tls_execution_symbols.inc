@@ -223,7 +223,8 @@ XL6_TEXT_EXPORT(xl6OwnershipDomainTlsServerStatsV1Get,OWNERSHIP_DOMAIN_TLS_SERVE
 #define XL6_TLS_INFO_BYTES(Field,Name) XL6_TLS_INFO_ENUM(Field,Name,bytes)
 #define XL6_TLS_INFO_TEXT(Field,Name) XL6_TLS_INFO_ENUM(Field,Name,string)
 #define XL6_TLS_STATS_UINT(Field,Name) XL6_TEXT_EXPORT(xl6TlsServerStats##Field##V1,TLS_SERVER_STATS)
-#include "xl6_tls_metadata_fields.inc"
+#include "xl6_tls_metadata_fields.h"
+XL6_TLS_METADATA_FIELDS()
 #undef XL6_TLS_INFO_ENUM
 #undef XL6_TLS_INFO_INT
 #undef XL6_TLS_INFO_UINT

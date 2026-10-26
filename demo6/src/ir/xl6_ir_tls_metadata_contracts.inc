@@ -19,7 +19,8 @@
 #define XL6_TLS_INFO_BYTES(Field,Name) {"xl6TlsInfo" #Field "V1",T,Y,1,{V},TMG(TMI)},
 #define XL6_TLS_INFO_TEXT(Field,Name) {"xl6TlsInfo" #Field "V1",T,S,1,{V},TMG(TMI)},
 #define XL6_TLS_STATS_UINT(Field,Name) {"xl6TlsServerStats" #Field "V1",T,U,1,{V},TMG(TMS)},
-#include "src/runtime/xl6_tls_metadata_fields.inc"
+#include "src/runtime/xl6_tls_metadata_fields.h"
+XL6_TLS_METADATA_FIELDS()
 #undef XL6_TLS_INFO_ENUM
 #undef XL6_TLS_INFO_INT
 #undef XL6_TLS_INFO_UINT

@@ -5,7 +5,8 @@
  * verifier implementation just to make its feature-gated type visible. */
 typedef struct XL6_TlsVerificationLimitsV1 {
 #define XL6_TLS_VERIFY_LIMIT(Field,Name) int64_t Field;
-#include "xl6_tls_verification_policy_fields.inc"
+#include "xl6_tls_verification_policy_fields.h"
+XL6_TLS_VERIFICATION_POLICY_FIELDS()
 #undef XL6_TLS_VERIFY_LIMIT
 } XL6_TlsVerificationLimitsV1;
 typedef struct XL6_TlsVerificationPolicyV1 {

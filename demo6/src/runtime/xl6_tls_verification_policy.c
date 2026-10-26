@@ -4,7 +4,8 @@ void* xl6TlsVerificationPolicyCopyV1(const XL6_TlsVerificationPolicyV1* policy)
     if(xrtGetError())return NULL;
     if(!policy){xl6TlsFailV1(XERR_ARGUMENT,"missing TLS verification policy");return NULL;}
 #define XL6_TLS_VERIFY_LIMIT(Field,Name) if(policy->limits.Field<0 || (uint64_t)policy->limits.Field>SIZE_MAX){xl6TlsFailV1(XERR_RANGE,"TLS verification budget exceeds its native range");return NULL;}
-#include "xl6_tls_verification_policy_fields.inc"
+#include "xl6_tls_verification_policy_fields.h"
+XL6_TLS_VERIFICATION_POLICY_FIELDS()
 #undef XL6_TLS_VERIFY_LIMIT
     XL6_TlsVerificationPolicyV1* copy=xrtMalloc(sizeof(*copy));if(copy)*copy=*policy;return copy;
 }
@@ -27,7 +28,8 @@ static const XL6_TlsVerificationPolicyV1* checked(void* raw)
     return raw;
 }
 #define XL6_TLS_VERIFY_LIMIT(Field,Name) int64_t xl6TlsVerificationPolicy##Field##V1(void* raw){const XL6_TlsVerificationPolicyV1* p=checked(raw);return p?(int64_t)p->limits.Field:0;}
-#include "xl6_tls_verification_policy_fields.inc"
+#include "xl6_tls_verification_policy_fields.h"
+XL6_TLS_VERIFICATION_POLICY_FIELDS()
 #undef XL6_TLS_VERIFY_LIMIT
 bool xl6TlsVerificationPolicyAllowsSha1V1(void* raw)
 {const XL6_TlsVerificationPolicyV1* p=checked(raw);return p && p->allowSha1;}
