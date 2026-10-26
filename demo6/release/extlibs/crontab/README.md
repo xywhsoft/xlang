@@ -1,6 +1,16 @@
 # crontab
 
-2026-10-26 当前发布物复验：Windows 默认 `test/check.ps1` 与 Linux
+2026-10-26 源码级更新：`xcron_describe` 的 C 返回类型明确为 `char*`，
+XLang 外部声明以 `@owned ... as string` 直接接管同一 XRT 堆内存，
+删去仅负责 `point` 转交的包装分支。生成 C 代码直接保存指针并扫描
+一次长度；普通字符串后续操作仍遵守原有值语义。
+Windows 严格 C/边界/长时域/C 范例通过；当前源码编成的公共驱动
+运行中央、边界、分配故障与公开范例，后面三项的独立 EXE 也通过，
+公开范例输出与 C 路径及 C 单文件独立 EXE 一致。现有 `release/xl.exe` 不认识 `@owned`，
+新发布构建被 XRT/xruntime 快照失配挡住，**新版尚待发布物与 Linux
+完整门禁复验**。以下双平台签收对应迁移前的发布物。
+
+此前 2026-10-26 发布物复验：Windows 默认 `test/check.ps1` 与 Linux
 默认 `test/check.sh` 均退出 0。两平台验证 C/XLang 范例同输出、
 语言核心/边界/分配/公开范例独立 EXE，并新增 C 单文件范例 AOT
 与 GCC 输出对照；Linux C 边界、远期日期、纽约及 Lord Howe DST
@@ -41,7 +51,7 @@ C 构建与 XLang 范例逐字输出一致。
 
 ## C 接口
 
-`include/crontab_native.h` 中各入口传入表达式指针和真实字节长度，不使用 `strtok` 或共享静态状态。时间分解使用 XRT 的 `xrtTimeFromUnix` / `xrtTimeLocal`，查询按本地时区运行。`xcron_describe` 返回 XRT 分配的独立内存，由调用方用 `xrtFree` 释放。`xcron_matches` / `xcron_is_valid` 返回 C `bool`，与 XLang extern ABI 对齐。
+`include/crontab_native.h` 中各入口传入表达式指针和真实字节长度，不使用 `strtok` 或共享静态状态。时间分解使用 XRT 的 `xrtTimeFromUnix` / `xrtTimeLocal`，查询按本地时区运行。`xcron_describe` 返回 XRT 分配的独立 `char*`；C 调用方用 `xrtFree` 释放，XLang 的 `@owned` 声明直接接管。`xcron_matches` / `xcron_is_valid` 返回 C `bool`，与 XLang extern ABI 对齐。
 四个公开 C 入口均在调用开始时清除本线程旧的 XRT 错误；成功及按合同返回的正常未匹配结果不会带上一次调用的错误状态。
 `describe` 分配失败时 C 返回 `NULL` 并保留 `XERR_MEMORY`，XLang 抛
 `MemoryError`；清除故障后，同一表达式可正常生成描述，包括非法表达式的

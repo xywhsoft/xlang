@@ -139,17 +139,17 @@ static int test_next_reference(void) {
 }
 
 static int test_description(void) {
-    void *first = xcron_describe("* * * * *", TEXT_SIZE("* * * * *"));
-    void *second = xcron_describe("0 12 * * 1-5", TEXT_SIZE("0 12 * * 1-5"));
-    void *stepped = xcron_describe("*/5 * * * *", TEXT_SIZE("*/5 * * * *"));
-    void *bad = xcron_describe("bad", TEXT_SIZE("bad"));
+    char *first = xcron_describe("* * * * *", TEXT_SIZE("* * * * *"));
+    char *second = xcron_describe("0 12 * * 1-5", TEXT_SIZE("0 12 * * 1-5"));
+    char *stepped = xcron_describe("*/5 * * * *", TEXT_SIZE("*/5 * * * *"));
+    char *bad = xcron_describe("bad", TEXT_SIZE("bad"));
     CHECK(first != NULL && second != NULL && stepped != NULL && bad != NULL);
-    CHECK(strcmp((const char *)first, "every minute") == 0);
-    CHECK(strstr((const char *)second, "minute=0") != NULL);
-    CHECK(strstr((const char *)second, "weekday=1-5") != NULL);
-    CHECK(strstr((const char *)stepped, "minute=*/5") != NULL);
-    CHECK(strcmp((const char *)bad, "invalid") == 0);
-    CHECK(strcmp((const char *)first, "every minute") == 0);
+    CHECK(strcmp(first, "every minute") == 0);
+    CHECK(strstr(second, "minute=0") != NULL);
+    CHECK(strstr(second, "weekday=1-5") != NULL);
+    CHECK(strstr(stepped, "minute=*/5") != NULL);
+    CHECK(strcmp(bad, "invalid") == 0);
+    CHECK(strcmp(first, "every minute") == 0);
     xrtFree(first);
     xrtFree(second);
     xrtFree(stepped);
@@ -159,7 +159,7 @@ static int test_description(void) {
 
 static int test_error_recovery(void) {
     const char rule[] = "* * * * *";
-    void *description;
+    char *description;
     xrtSetErrorInfo(XERR_VALUE, "test", 0, "previous failure");
     CHECK(xcron_is_valid(rule, TEXT_SIZE(rule)) && xrtGetError() == NULL);
     xrtSetErrorInfo(XERR_VALUE, "test", 0, "previous failure");
@@ -180,7 +180,7 @@ static int test_description_allocation(void) {
     size_t i;
     for (i = 0; i < sizeof(inputs) / sizeof(inputs[0]); ++i) {
         const char *text = inputs[i];
-        void *result;
+        char *result;
         CHECK(xrtMemDebugFailAfter(0u));
         CHECK(xcron_describe(text, strlen(text)) == NULL &&
             xrtMemDebugFailTriggered() && xrtGetError() != NULL &&
@@ -188,7 +188,7 @@ static int test_description_allocation(void) {
         xrtMemDebugFailClear();
         result = xcron_describe(text, strlen(text));
         CHECK(result != NULL && xrtGetError() == NULL);
-        CHECK(strcmp((const char *)result, i == 0 ? "every minute" : "invalid") == 0);
+        CHECK(strcmp(result, i == 0 ? "every minute" : "invalid") == 0);
         xrtFree(result);
     }
     return 0;

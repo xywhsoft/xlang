@@ -1,6 +1,6 @@
 extern "xcron_matches" func __cron_matches(string expr, c_size length, int timestamp) as bool
 extern "xcron_next" func __cron_next(string expr, c_size length, int fromTimestamp) as int
-extern "xcron_describe" func __cron_describe(string expr, c_size length) as point
+extern "xcron_describe" @owned func __cron_describe(string expr, c_size length) as string
 extern "xcron_is_valid" func __cron_is_valid(string expr, c_size length) as bool
 
 
@@ -14,11 +14,7 @@ export func next(string expr, int fromTimestamp) as int
 end
 
 export func describe(string expr) as string
-    point result = __cron_describe(expr, c_size(string.byteLen(expr)))
-    if result == null then
-        throw MemoryError "crontab: cannot create description"
-    end
-    return __xl_runtime.takeCstr(result)
+    return __cron_describe(expr, c_size(string.byteLen(expr)))
 end
 
 export func isValid(string expr) as bool

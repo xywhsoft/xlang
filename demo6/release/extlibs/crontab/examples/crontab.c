@@ -12,7 +12,7 @@ int main(void) {
     const char steppedDay[] = "0 9 */2 * 1";
     const char invalid[] = "bad";
     int64_t quarter = xcron_next(quarterHour, sizeof(quarterHour) - 1, base);
-    void *description = xcron_describe(fiveMinute, sizeof(fiveMinute) - 1);
+    char *description = xcron_describe(fiveMinute, sizeof(fiveMinute) - 1);
     if (description == NULL) return 1;
     if (quarter < 0 || !xcron_matches(quarterHour, sizeof(quarterHour) - 1, quarter)) {
         xrtFree(description);
@@ -31,7 +31,7 @@ int main(void) {
     puts("matches '*/15 * * * *' at next: true");
     printf("next '0 9 */2 * 1' from %lld : %lld\n", (long long)base,
         (long long)xcron_next(steppedDay, sizeof(steppedDay) - 1, base));
-    printf("describe '*/5 * * * *': %s\n", (const char *)description);
+    printf("describe '*/5 * * * *': %s\n", description);
     xrtFree(description);
     puts("crontab example: PASS");
     return 0;
