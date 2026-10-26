@@ -143,7 +143,8 @@ def self_test(data: dict, fixtures: dict, root: Path) -> int:
     check("wrong group", lambda d: d["Modules"][0].__setitem__("Group", "network"))
     check("unknown profile", lambda d: d["Modules"][0].__setitem__("Profile", "not_defined"))
     check("invented acceptance status", lambda d: d["Modules"][0].__setitem__("Review", "complete"))
-    check("unreviewed role claimed", lambda d: d["Modules"][-1].__setitem__("Disposition", "public-type"))
+    reviewed = next(i for i, row in enumerate(data["Modules"]) if row["Review"] == "role-reviewed")
+    check("unreviewed role claimed", lambda d: d["Modules"][reviewed].__setitem__("Review", "pending"))
     first = next(iter(data["Profiles"]))
     check("unknown case", lambda d: d["Profiles"][first].__setitem__("NormalProductCases", ["not_defined"]))
     check("missing witness", lambda d: d["Profiles"][first].__setitem__("SourceWitnesses", ["not_present.c"]))
@@ -158,7 +159,8 @@ def main() -> int:
     parser.add_argument("--roles", type=Path, default=root / "tools/five_groups_module_roles.json")
     parser.add_argument("--fixtures", type=Path, nargs="+", default=[
         root / "tools/concurrency_public_fixtures.json", root / "tools/crypto_surface_public_fixtures.json",
-        root / "tools/x509_public_fixtures.json", root / "tools/x509_policy_public_fixtures.json"])
+        root / "tools/x509_public_fixtures.json", root / "tools/x509_policy_public_fixtures.json",
+        root / "tools/network_surface_public_fixtures.json"])
     parser.add_argument("--report", type=Path)
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()

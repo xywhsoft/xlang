@@ -1,0 +1,52 @@
+// Ordinary positioned file I/O on our own unique temporary path; no shared fixture.
+async func exerciseFile(string path)
+    NetBackend backend = NetBackend.ioUring
+    if net.backendCompiled(NetBackend.iocp) then backend = NetBackend.iocp end
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(backend))
+    engine.start()
+    try
+        auto stream = NetFile(engine, path, 15)
+        bytes original = b"a\0b"
+        auto writing = stream.writeAt(0, original, 99)
+        original[0] = 122
+        assert await writing == 3
+        assert await stream.writeAt(3, "你\0z", 4) == 4
+        auto source = Buffer(b"x\0y")
+        auto pending = stream.writeBufferAt(7, source, 99)
+        source.clear()
+        assert await pending == 3
+        auto token = CancellationSource()
+        assert await stream.writeAtCancel(0, b"a", token.token) == 1
+        assert await stream.writeAtCancel(1, "\0", token.token) == 1
+        source.append(b"x\0y")
+        assert await stream.writeBufferAtCancel(7, source, token.token) == 3
+        auto reading = stream.readAt(0, 100)
+        bytes first = await reading
+        assert first == b"a\0b\xe4\xbd\xa0\0x\0y"
+        first[0] = 122
+        assert await reading == b"a\0b\xe4\xbd\xa0\0x\0y"
+        assert await stream.readAtCancel(0, 10, token.token) == b"a\0b\xe4\xbd\xa0\0x\0y"
+        assert (await stream.readAt(10, 3)).length == 0
+        assert (await stream.readAt(0, 0)).length == 0
+        assert await stream.writeAt(0, b"", 0) == 0
+        auto closing = stream.close()
+        auto same = stream.close()
+        await closing
+        await same
+        await closing
+    finally
+        engine.close()
+        assert engine.wait(10000)
+    end
+end
+
+auto temporary = file.temp("", "xlang-net-public-", ".bin")
+string path = temporary.tempPath
+try
+    assert temporary.keep() and temporary.close()
+    await exerciseFile(path)
+finally
+    temporary.close()
+    if file.exists(path) then assert file.delete(path) end
+end
+println("NetFile: owned unique path, snapshots, NUL, repeated Future and physical close")
