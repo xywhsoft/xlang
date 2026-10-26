@@ -53,6 +53,18 @@ try {
         & $coreExe
         if ($LASTEXITCODE -ne 0) { throw 'langdetect AOT core failed' }
 
+        foreach ($case in @(
+            'test/cases/extlib_langdetect.xl',
+            'test/cases/extlib_langdetect_boundaries.xl',
+            'release/extlibs/langdetect/test/analysis_boundaries.xl'
+        )) {
+            $caseExe = Join-Path $work (([IO.Path]::GetFileNameWithoutExtension($case)) + '.exe')
+            & $xl build $case -o $caseExe
+            if ($LASTEXITCODE -ne 0) { throw "langdetect AOT build failed: $case" }
+            & $caseExe
+            if ($LASTEXITCODE -ne 0) { throw "langdetect AOT failed: $case" }
+        }
+
         $exampleExe = Join-Path $work 'example.exe'
         & $xl build release/examples/extlibs/langdetect.xl -o $exampleExe
         if ($LASTEXITCODE -ne 0) { throw 'langdetect AOT example build failed' }
@@ -60,6 +72,13 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'langdetect AOT example failed' }
         if (($aotOutput -join "`n") -cne ($cOutput -join "`n")) {
             throw 'langdetect AOT/C example output differs'
+        }
+        $cExe = Join-Path $work 'c_example.exe'
+        & $xl build release/extlibs/langdetect/examples/langdetect.c -o $cExe
+        if ($LASTEXITCODE -ne 0) { throw 'langdetect C AOT example build failed' }
+        $cAotOutput = & $cExe
+        if ($LASTEXITCODE -ne 0 -or ($cAotOutput -join "`n") -cne ($cOutput -join "`n")) {
+            throw 'langdetect C AOT example differs'
         }
     }
 

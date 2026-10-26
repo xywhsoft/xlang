@@ -25,6 +25,12 @@ assert langdetect.script("Привет") == "Cyrillic"
 
 ## 验证
 
+2026-10-26：当前 Windows/Linux 发布物的默认包门禁均退出 0，覆盖严格 C、
+Linux ASan/UBSan、语言中央与边界 JIT/AOT、核心独立 EXE，以及公开
+C/XLang 范例的 JIT/AOT 同输出。旧日期的共享 AOT 缺符号仅描述当时发布物，
+不再是当前阻断。验收仅限本包列出的脚本范围和词表启发式；
+`confidence` 不是概率，也不代表广泛自然语言识别准确率。
+
 2026-10-24：更新后的 Windows 发布版 `xl.exe` 跑通默认
 `test/check.ps1`：严格 C 语法、C/XLang 边界、公开双语范例、核心与
 完整范例 AOT 均通过。此前带输出 AOT 的共享缺符号阻断仅是旧发布物
@@ -57,9 +63,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 
 Linux/WSL 从 `demo6` 目录运行 `bash release/extlibs/langdetect/test/check.sh`，
 用严格 GCC 与 ASan/UBSan 复验 C 边界和范例，并通过 `release/xl` 运行
-XLang 包内边界、双语范例逐字对照。
+XLang 包内边界、双语范例逐字对照及独立 C/XLang EXE。
 
-边界测试覆盖 UTF-8、内嵌 NUL、混合脚本、无证据返回值和 1 MiB 限额；Windows 严格 GCC、Linux ASan/UBSan、C/XL 范例与无输出 AOT 核心通过。不加 `-SkipAot` 会执行完整 Windows 发布门禁；当前带输出范例 AOT 被共享 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`，发布级验收暂不签收。
+边界测试覆盖 UTF-8、内嵌 NUL、混合脚本、无证据返回值和 1 MiB 限额；Windows 严格 GCC、Linux ASan/UBSan、C/XL 范例及独立 EXE 均通过。不加 `-SkipAot` 会执行完整 Windows 发布门禁；旧发布物的 `xl6ValueDataSnapshotV1` 缺符号记录见 `demo6/dev/extlib_blockers/text_snapshot_link.md`。
 
 2026-10-15：补 `isValidUtf8` 成功/失败后清除旧错误的 C 红绿回归、空指针诊断和 XLang 捕获后恢复用例；C/XLang 范例调整为同输入同输出并逐行核对。显式声明 Unicode 模块后，同一核心 AOT 从 3,556,352 降至 565,248 字节，构建运行通过；Windows C/XLang 与包内 Linux sanitizer 门禁通过。完整 AOT 阻断不变。
 

@@ -38,4 +38,19 @@ diff -u "$work/example_c.txt" "$work/example_xl.txt"
 timeout 90s "$xl" run release/extlibs/langdetect/examples/langdetect.c \
     > "$work/direct_c.txt"
 diff -u "$work/example_c.txt" "$work/direct_c.txt"
-printf 'langdetect Linux C ASan/UBSan and XLang parity gate: PASS\n'
+for source in \
+    release/extlibs/langdetect/test/aot_core.xl \
+    test/cases/extlib_langdetect.xl \
+    test/cases/extlib_langdetect_boundaries.xl \
+    release/extlibs/langdetect/test/analysis_boundaries.xl; do
+    name=$(basename "$source" .xl)
+    timeout 90s "$xl" build "$source" -o "$work/$name"
+    timeout 30s "$work/$name"
+done
+timeout 90s "$xl" build release/examples/extlibs/langdetect.xl -o "$work/xlang_example"
+timeout 30s "$work/xlang_example" > "$work/xlang_aot.txt"
+diff -u "$work/example_c.txt" "$work/xlang_aot.txt"
+timeout 90s "$xl" build release/extlibs/langdetect/examples/langdetect.c -o "$work/c_example"
+timeout 30s "$work/c_example" > "$work/c_aot.txt"
+diff -u "$work/example_c.txt" "$work/c_aot.txt"
+printf 'langdetect Linux C ASan/UBSan and bilingual AOT gate: PASS\n'
