@@ -1725,7 +1725,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsEd25519Class;
     int needsNistClass;
     int needsRsaPublicClass, needsRsaPrivateClass;
-    int needsTlsIdentity, needsTlsParameters, needsTlsVerifier, needsTlsVerificationPolicy;
+    int needsTlsIdentity, needsTlsParameters, needsTlsVerifier, needsTlsVerificationPolicy, needsTlsVerifiedPeer;
     int needsTlsClientContext,needsTlsServerContext,needsTlsSelector,needsTlsResume,needsTlsResumeRequest;
     int needsTccClass;
     int needsXlangClass;
@@ -1997,8 +1997,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsTlsSelector=needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsServerRequest")||xl6StdlibNodeUsesTypeName(root,"TlsServerChoice");
     needsTlsIdentity = needsTlsSelector || xl6StdlibNodeUsesTypeName(root,"TlsIdentity") || xl6StdlibNodeUsesTypeName(root,"TlsIdentityKind");
     needsTlsVerifier=needsTlsClientContext || xl6StdlibNodeUsesTypeName(root,"TlsVerifier");
+    needsTlsVerifiedPeer=needsTlsVerifier||xl6StdlibNodeUsesTypeName(root,"TlsVerifiedPeer");
     needsTlsVerificationPolicy=needsTlsVerifier || xl6StdlibNodeUsesTypeName(root,"TlsVerificationPolicy");
-    needsX509Island=needsTlsIdentity||needsTlsVerifier||xl6StdlibNeedsX509(root,used);
+    needsX509Island=needsTlsIdentity||needsTlsVerifiedPeer||xl6StdlibNeedsX509(root,used);
     needsTlsParameters=needsTlsResume || needsTlsClientContext || needsTlsServerContext || xl6StdlibNodeUsesTypeName(root,"TlsParameters") || xl6StdlibNodeUsesTypeName(root,"TlsPolicy") ||
         xl6StdlibNodeUsesTypeName(root,"TlsLimits") || xl6StdlibNodeUsesTypeName(root,"TlsVersion") ||
         xl6StdlibNodeUsesTypeName(root,"TlsCipherSuite") || xl6StdlibNodeUsesTypeName(root,"TlsGroup") ||
@@ -2383,6 +2384,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if(needsTlsIdentity)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsIdentitySource);
     if(needsTlsParameters)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsParametersSource);
     if(needsTlsVerificationPolicy)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsVerificationPolicySource);
+    if(needsTlsManagedSession||needsTlsVerifiedPeer)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsSessionEnumsSource);
+    if(needsTlsVerifiedPeer)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsVerifiedPeerSource);
     if(needsTlsVerifier)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsVerifierSource);
     if(needsTlsClientContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsClientContextSource);
     if(needsTlsResume)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsResumeSource);

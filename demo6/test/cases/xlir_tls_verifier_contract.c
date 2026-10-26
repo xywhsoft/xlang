@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-static size_t targets,owned,arrays,handles,refusals,outputs;
+static size_t targets,owned,arrays,handles,refusals,outputs,callbacks;
 static void refuse(XL6_IrModule* module,XL6_IrCallTarget* target)
 {
     refusals++;if(target){assert(!xl6IrRuntimeDirectBridgeTargetMatches(module,target));return;}
@@ -28,9 +28,15 @@ int main(int argc,char** argv)
         XL6_IrCallTarget* target=&module->callTargets[i];const char* name=target->cName;
         if(!name || (strncmp(name,"xl6TlsVerificationPolicy",strlen("xl6TlsVerificationPolicy")) && strncmp(name,"xl6TlsVerifier",strlen("xl6TlsVerifier"))))continue;
         targets++;assert(xl6IrRuntimeDirectBridgeTargetMatches(module,target));XL6_IrCallTarget saved=*target;
+        if(!strcmp(name,"xl6TlsVerifierCreateCallbackV1")){
+            XL6_IrNativeClassCallbackPlan plan={0};callbacks++;
+            assert(saved.nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_PREDICATE_V1&&
+                xl6IrNativeClassCallbackPlanBuild(module,target,&plan)&&plan.argumentField&&!plan.resultField);
+        }
 #define BAD(Field,Value) do{target->Field=(Value);refuse(module,target);*target=saved;}while(0)
         BAD(effectAbi,saved.effectAbi==XL6_IR_CALL_EFFECT_PURE?XL6_IR_CALL_EFFECT_CONSERVATIVE:XL6_IR_CALL_EFFECT_PURE);
-        BAD(executionBoundaryAbi,XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK);
+        BAD(executionBoundaryAbi,saved.executionBoundaryAbi==XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK?
+            XL6_IR_CALL_EXECUTION_FOREIGN_NONBLOCKING:XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK);
         BAD(returnType,saved.returnType==integer?boolean:integer);BAD(parameterCount,saved.parameterCount+1);
         BAD(nativeContextAbi,saved.nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_NONE?XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1:XL6_IR_CALL_NATIVE_CONTEXT_NONE);
         if(saved.errorPhysicalAbi!=XL6_IR_CALL_ERROR_PHYSICAL_NONE)BAD(errorPhysicalAbi,XL6_IR_CALL_ERROR_PHYSICAL_NONE);
@@ -49,7 +55,8 @@ int main(int argc,char** argv)
         assert(xl6IrVerifyModule(module,NULL));
 #undef BAD
     }
-    assert(targets==19 && owned==6 && arrays==2 && handles==2 && refusals>150);
+    fprintf(stderr,"TLS verifier observed: %zu targets; %zu owned; %zu arrays; %zu policies; %zu refusals\n",targets,owned,arrays,handles,refusals);
+    assert(targets==20 && owned==7 && arrays==2 && handles==2 && callbacks==1 && refusals>150);
     printf("TLS verifier XLIR: %zu targets; %zu owned; %zu exact certificate arrays; %zu policies; %zu rejected contracts; %zu output gates\n",targets,owned,arrays,handles,refusals,outputs);
     xl6CompileUnitFree(&unit);return 0;
 }

@@ -716,6 +716,9 @@
     src\runtime\xl6_tls_verification_policy.c
     src\runtime\xl6_tls_verifier.c
     src\runtime\xl6_tls_verifier_context.c
+    src\runtime\xl6_tls_verified_peer.c
+    src\runtime\xl6_tls_peer_policy.c
+    src\runtime\xl6_ownership_domain_tls_verified_peer.c
     src\runtime\xl6_tls_verifier_create.c
     src\runtime\xl6_tls_verifier_verify.c
     src\runtime\xl6_tls_verification_policy_domain.c

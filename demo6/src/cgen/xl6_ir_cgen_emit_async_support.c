@@ -1,7 +1,7 @@
 static XL6_IrTypeId xl6IrCgenNativeResultSchemaType(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1)return target->nativeContextType;
-    if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1){
+    if(xl6IrNativeContextIsClassCallback(target->nativeContextAbi)){
         XL6_IrNativeClassCallbackPlan plan={0};
         return xl6IrNativeClassCallbackPlanBuild(module,target,&plan)?plan.argument:XL6_IR_TYPE_INVALID;
     }
@@ -203,12 +203,13 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
     for(size_t targetIndex=0;targetIndex<module->callTargetCount;++targetIndex){
         const XL6_IrCallTarget* target=&module->callTargets[targetIndex];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
-        if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1){
+        if(xl6IrNativeContextIsClassCallback(target->nativeContextAbi)){
             XL6_IrNativeClassCallbackPlan plan={0};
             if(!xl6IrNativeClassCallbackPlanBuild(module,target,&plan))return 0;
-            xl6OutputPrintf(out,"extern const struct XL6_NativeHandlePolicyV1* %s(void);\n"
-                "extern const struct XL6_NativeHandlePolicyV1* %s(void);\n",
-                plan.argumentField->nativeHandlePolicyCName,plan.resultField->nativeHandlePolicyCName);
+            xl6OutputPrintf(out,"extern const struct XL6_NativeHandlePolicyV1* %s(void);\n",
+                plan.argumentField->nativeHandlePolicyCName);
+            if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1)
+                xl6OutputPrintf(out,"extern const struct XL6_NativeHandlePolicyV1* %s(void);\n",plan.resultField->nativeHandlePolicyCName);
             continue;
         }
         const XL6_IrClassField* field=

@@ -1,4 +1,4 @@
-const char* xl6StdlibTlsManagedSessionClassSource=
+const char* xl6StdlibTlsSessionEnumsSource=
 #define XL6_TLS_ENUM_BEGIN(Type,Id,Count) "enum " #Type " as int\n"
 #define XL6_TLS_ENUM_ITEM(Name,Value) "    " #Name " = " #Value "\n"
 #define XL6_TLS_ENUM_END(Type,Id,Count) "end\n"
@@ -6,6 +6,8 @@ const char* xl6StdlibTlsManagedSessionClassSource=
 #undef XL6_TLS_ENUM_BEGIN
 #undef XL6_TLS_ENUM_ITEM
 #undef XL6_TLS_ENUM_END
+    ;
+const char* xl6StdlibTlsManagedSessionClassSource=
     "class TlsSession\n"
     "    private native point handle\n"
     "    extern \"xl6TlsSessionClientCreateV1\" create(TlsClientContext context, string serverName, int size = -1, string verifyName = \"\", int verifySize = -1)\n"

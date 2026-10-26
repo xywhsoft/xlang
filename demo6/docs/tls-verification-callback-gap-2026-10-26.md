@@ -1,8 +1,11 @@
 # TLS 验证／撤销回调的实际剩余与拥有数据底座
 
-## 确认的功能缺口
+## 初始功能缺口基线
 
-本轮逐模块核对发现 `tls_verify` 仍有实质接入工作，不只是缺测试：
+初始逐模块核对发现 `tls_verify` 有以下实质接入缺口。后续已交付
+[原生拥有权与消费者图](tls-verifier-consumer-ownership-2026-10-26.md)，并接入
+[拥有式 peer／附加谓词](tls-peer-policy-2026-10-26.md)；下面保留原始基线，
+不再把其中已修项目描述为当前缺陷。CRL 与恢复策略绑定仍未交付：
 
 - `xl6_stdlib_tls_verifier.inc` 只公开默认信任库／策略构造及离线 verifyServer／
   verifyClient，没有 CRL 提供者或附加验证回调。
@@ -34,8 +37,8 @@ Verifier 时，完整语言拥有边必须继续可见；活动调用及失败�
 ## 本批实现：私有拥有快照
 
 2026-10-26 后续已完成原生 Verifier 拥有权前置与六节点定点同步，见
-[交付和精确验证边界](tls-verifier-native-ownership-2026-10-26.md)。语言包装
-尚未使用拥有式构造；本节及上文列出的真实回调／CRL 缺口仍不能据此关闭。
+[交付和精确验证边界](tls-verifier-native-ownership-2026-10-26.md)。语言默认
+工厂和实际消费者图已在后续批次迁移；附加谓词本批接线不代表 CRL 缺口关闭。
 
 新增 `xl6_tls_verified_peer_packet.c/.h`，供后续原生验证成功后的策略／CRL
 回调生产端使用。当前没有公开语言构造、借用 API、注册符号或 Cgen 特判，
