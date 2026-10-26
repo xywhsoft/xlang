@@ -1,5 +1,11 @@
 # slugify
 
+2026-10-27 所有权收口：`xsl_slugify` 的 C 原型现在明确为拥有型
+`char*`；XLang `@owned string?` 在调用点直接接管 XRT 分配，删除
+`point` / `takeCstr` 转发。空结果与原有异常边界保持不变。生成 C
+门禁检查原生指针直接进入字符串存储，且没有复制或二次接管；
+接管仍需一次 `strlen` 获取长度，不宣称整条转换链零开销。
+
 2026-10-26 发布验收：当前 Windows 与 Linux 默认包门禁均退出 0。
 严格 C、Linux ASan/UBSan、线程、UTF-8/长度/分配故障边界、
 XLang JIT、核心/边界/公开语言范例独立 EXE 均通过；C 范例还分别

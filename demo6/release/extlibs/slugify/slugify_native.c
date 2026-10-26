@@ -146,12 +146,12 @@ static bool xsl_cjk(uint32 scalar)
         (scalar >= 0xac00u && scalar <= 0xd7afu);
 }
 
-void* xsl_slugify(const char* text, long long length)
+char* xsl_slugify(const char* text, long long length)
 {
     xbuffer output;
     size_t position = 0u;
     bool separator = false;
-    void* result = NULL;
+    char* result = NULL;
     xrtClearError();
     if (!xsl_input(text, length)) return NULL;
     if (!xrtBufferInit(&output)) return NULL;
@@ -193,7 +193,7 @@ void* xsl_slugify(const char* text, long long length)
         position += read;
     }
     if (!xrtBufferAppendByte(&output, '\0')) goto done;
-    result = xrtBufferTake(&output, NULL, NULL);
+    result = (char*)xrtBufferTake(&output, NULL, NULL);
 done:
     xrtBufferUnit(&output);
     return result;

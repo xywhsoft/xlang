@@ -57,10 +57,11 @@ try {
     $null = Run 'direct-text cgen' $xl @('cgen',
         'release/extlibs/slugify/test/boundaries.xl', '--emit', $generated)
     $generatedText = [IO.File]::ReadAllText($generated)
-    $adoptions = [regex]::Matches($generatedText,
-        '\bxl6_xrt_take_cstr\s*\(').Count
-    if ($adoptions -lt 2 -or $generatedText.Contains('xl6CStringCopyV1')) {
-        throw "slugify result must transfer the C allocation without copying"
+    $direct = [regex]::Matches($generatedText,
+        '\bv\d+\.Data\s*=\s*xsl_slugify\s*\(').Count
+    if ($direct -lt 1 -or $generatedText.Contains('xl6_xrt_take_cstr(') -or
+        $generatedText.Contains('xl6CStringCopyV1')) {
+        throw 'slugify result must adopt the native C string directly'
     }
     Write-Host '[slugify] direct string adoption: PASS'
     $xlOutput = Run 'XLang example' $xl @('run', 'release/examples/extlibs/slugify.xl')
