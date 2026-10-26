@@ -63,6 +63,11 @@ def main(skip_aot):
                 "release/examples/extlibs/barcode.xl", "-o", str(example))
             if run("AOT example", str(example)) != expected:
                 raise AssertionError("barcode AOT example output differs from fixed output")
+            c_example = Path(work) / "aot_c_example.exe"
+            run("C AOT example build", str(XL), "build",
+                "release/extlibs/barcode/examples/barcode.c", "-o", str(c_example))
+            if run("C AOT example", str(c_example)) != expected:
+                raise AssertionError("barcode C AOT example output differs from fixed output")
 
 
 if __name__ == "__main__":

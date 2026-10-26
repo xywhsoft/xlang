@@ -39,4 +39,13 @@ expected=release/extlibs/barcode/examples/barcode.expected.txt
 diff -u "$expected" "$work/c.out"
 diff -u "$expected" "$work/direct_c.out"
 diff -u "$expected" "$work/xlang.out"
-printf 'barcode Linux C ASan/UBSan, XLang JIT and bilingual gate: PASS\n'
+
+timeout 90s "$xl" build release/extlibs/barcode/test/aot_core.xl -o "$work/barcode_core"
+timeout 30s "$work/barcode_core"
+timeout 90s "$xl" build release/examples/extlibs/barcode.xl -o "$work/barcode_xl_aot"
+timeout 30s "$work/barcode_xl_aot" > "$work/xlang_aot.out"
+diff -u "$expected" "$work/xlang_aot.out"
+timeout 90s "$xl" build release/extlibs/barcode/examples/barcode.c -o "$work/barcode_c_aot"
+timeout 30s "$work/barcode_c_aot" > "$work/c_aot.out"
+diff -u "$expected" "$work/c_aot.out"
+printf 'barcode Linux C ASan/UBSan, XLang JIT and bilingual AOT gate: PASS\n'
