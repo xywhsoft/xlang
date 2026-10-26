@@ -3,7 +3,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [string]$Tcc = 'E:/software/tcc/tcc.exe')
 $ErrorActionPreference = 'Stop'
-$outputPath = [IO.Path]::GetFullPath((Join-Path (Get-Location) $Directory))
+$outputPath = if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directory) }
+    else { [IO.Path]::GetFullPath((Join-Path (Get-Location) $Directory)) }
 if (Test-Path -LiteralPath $outputPath) { throw 'Use a new evidence directory' }
 $manifest = Get-Content (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
 if (!$manifest.SourceXrt) { throw 'Current source XRT is required' }

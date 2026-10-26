@@ -2,7 +2,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$AggregateDirectory,
     [Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference='Stop'
-$outputPath=[IO.Path]::GetFullPath((Join-Path (Get-Location) $Directory))
+$outputPath=if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directory) }
+    else { [IO.Path]::GetFullPath((Join-Path (Get-Location) $Directory)) }
 if (Test-Path -LiteralPath $outputPath) { throw 'Use a new strict aggregate directory' }
 $build=Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
 $aggregate=Get-Content -LiteralPath (Join-Path $AggregateDirectory 'results.json') -Raw | ConvertFrom-Json
