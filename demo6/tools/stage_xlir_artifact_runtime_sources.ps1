@@ -6,6 +6,30 @@ $destination = (Resolve-Path $Directory).Path
 $manifestPath = Join-Path $destination 'build.json'
 $build = Get-Content $manifestPath -Raw | ConvertFrom-Json
 if ((Get-FileHash $build.Driver).Hash -ne $build.DriverSha256) { throw 'Compiler binary changed' }
+function Get-StagedFileHash([string]$Path) {
+    # File.Move publishes complete bytes, but a concurrent reader can still
+    # encounter the mover's transient Windows sharing handle. Permit rename
+    # sharing and retry only native sharing/lock violations, never a hash
+    # mismatch, missing file, permission error or other publication failure.
+    $deadline = [DateTime]::UtcNow.AddSeconds(5)
+    while ($true) {
+        $stream = $null
+        $algorithm = $null
+        try {
+            $stream = [IO.File]::Open($Path, [IO.FileMode]::Open,
+                [IO.FileAccess]::Read, ([IO.FileShare]::Read -bor [IO.FileShare]::Delete))
+            $algorithm = [Security.Cryptography.SHA256]::Create()
+            return [BitConverter]::ToString($algorithm.ComputeHash($stream)).Replace('-', '')
+        } catch [IO.IOException] {
+            $errorCode = $_.Exception.HResult -band 0xffff
+            if ($errorCode -notin @(32,33) -or [DateTime]::UtcNow -ge $deadline) { throw }
+            Start-Sleep -Milliseconds 10
+        } finally {
+            if ($null -ne $algorithm) { $algorithm.Dispose() }
+            if ($null -ne $stream) { $stream.Dispose() }
+        }
+    }
+}
 $stageManifest=Join-Path $destination 'artifact_sources.json'
 $mappingHash=(Get-FileHash tools/tcc_vfs_manifest_win64_xlc.txt).Hash
 $stageHash=(Get-FileHash $PSCommandPath).Hash
@@ -21,7 +45,7 @@ function Stage-File([string]$source, [string]$relative) {
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
     $hash = (Get-FileHash -LiteralPath $source).Hash
     if (Test-Path -LiteralPath $target) {
-        if ((Get-FileHash -LiteralPath $target).Hash -ne $hash) {
+        if ((Get-StagedFileHash $target) -ne $hash) {
             throw "Published staged file changed; use a fresh source directory: $target"
         }
     } else {
@@ -33,10 +57,10 @@ function Stage-File([string]$source, [string]$relative) {
             Copy-Item -LiteralPath $source -Destination $temporary
             if ((Get-FileHash -LiteralPath $temporary).Hash -ne $hash) { throw "Source changed during staging: $source" }
             try { [IO.File]::Move($temporary,$target) }
-            catch { if (!(Test-Path -LiteralPath $target) -or (Get-FileHash -LiteralPath $target).Hash -ne $hash) { throw } }
+            catch { if (!(Test-Path -LiteralPath $target) -or (Get-StagedFileHash $target) -ne $hash) { throw } }
         } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary } }
     }
-    if ((Get-FileHash -LiteralPath $target).Hash -ne $hash) { throw "Staging mismatch: $source" }
+    if ((Get-StagedFileHash $target) -ne $hash) { throw "Staging mismatch: $source" }
     [pscustomobject]@{Source=$source;Path=$target;Sha256=$hash}
 }
 # Materialize the compiler-relative development layout already understood by
