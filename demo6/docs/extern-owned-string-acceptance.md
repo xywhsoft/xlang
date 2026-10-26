@@ -195,3 +195,11 @@ task.all 的结果数组和元素装箱仍有既有成本；本轮不是整条�
 性能测量。全局 test-wiring 仍报告既有 x509_public 登记、dynamic/primitive
 前缀及过期 stdlib_xson 引用，新增用例没有登记缺项；不宣称全仓总门通过。
 本轮不替换主工作区发布二进制，正式使用须正常重建。
+
+合并时继续同步主线 `ac4b1ced5`。相对验收候选，唯一变化的编译输入是另一
+线程 `b00919e2d` 的 xl6_xacme.c 局部数组初始化兼容性修复；本轮语义、IR、
+Cgen 和任务运行时输入均未变化。额外运行 check_xacme_c_initialization.py：
+GCC O0/O2/Os 的旧、新及显式诊断行号对照共九次编译通过，三组对照对象
+逐字节相等；嵌入式 TCC 的旧版失败、新版成功控制也通过。证据为
+merge-xacme-43/results.json。这是合并差异的 C 编译控制，不冒称已验收
+ACME 业务或整个主线发布产品。
