@@ -4,3 +4,7 @@ extern "owned_optional" @owned @no_raise func optional() as string?
 export "owned_forward_optional" func Optional() as string?
     return optional()
 end
+
+func main(...) as int
+    return 0
+end
