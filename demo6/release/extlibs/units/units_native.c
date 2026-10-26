@@ -2,6 +2,9 @@
 #ifndef XRT_MODULE_NUMBER_FORMAT
 #define XRT_MODULE_NUMBER_FORMAT
 #endif
+#ifndef XRT_MODULE_STRING
+#define XRT_MODULE_STRING
+#endif
 #include "xrt.h"
 #include "include/units_native.h"
 #include <math.h>
@@ -15,14 +18,6 @@
 static void xu_error(const char* message)
 {
     xrtSetErrorInfo(XERR_VALUE, XU_DOMAIN, 0, message);
-}
-
-static void* xu_copy(const char* text)
-{
-    size_t length = strlen(text) + 1u;
-    char* result = (char*)xrtMalloc(length);
-    if (result != NULL) memcpy(result, text, length);
-    return result;
 }
 
 static bool xu_valid(double value, double limit)
@@ -63,7 +58,7 @@ static bool xu_shown_reaches(double value, int digits,
     return true;
 }
 
-static void* xu_format_bytes(double value, double scale, const char* const* names)
+static char* xu_format_bytes(double value, double scale, const char* const* names)
 {
     char text[96];
     char number[64];
@@ -92,17 +87,17 @@ static void* xu_format_bytes(double value, double scale, const char* const* name
         xu_error("formatted byte size exceeds output limit");
         return NULL;
     }
-    return xu_copy(text);
+    return xrtStrDup(text);
 }
 
-void* xu_bytes(double value)
+char* xu_bytes(double value)
 {
     static const char* const names[] =
         {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
     return xu_format_bytes(value, 1024.0, names);
 }
 
-void* xu_bytes_decimal(double value)
+char* xu_bytes_decimal(double value)
 {
     static const char* const names[] =
         {"B", "kB", "MB", "GB", "TB", "PB", "EB"};
@@ -194,7 +189,7 @@ bad:
     return NAN;
 }
 
-static void* xu_format_duration(double seconds, bool short_style)
+static char* xu_format_duration(double seconds, bool short_style)
 {
     char text[96];
     unsigned long long rounded, days, hours, minutes, rest;
@@ -233,14 +228,14 @@ static void* xu_format_duration(double seconds, bool short_style)
 #undef XU_PART
     }
     if (length < 0 || (size_t)length >= sizeof(text)) goto overflow;
-    return xu_copy(text);
+    return xrtStrDup(text);
 overflow:
     xu_error("formatted duration exceeds output limit");
     return NULL;
 }
 
-void* xu_duration(double seconds) { return xu_format_duration(seconds, false); }
-void* xu_duration_short(double seconds) { return xu_format_duration(seconds, true); }
+char* xu_duration(double seconds) { return xu_format_duration(seconds, false); }
+char* xu_duration_short(double seconds) { return xu_format_duration(seconds, true); }
 
 double xu_parse_duration(const char* text, long long length)
 {
@@ -277,7 +272,7 @@ bad:
     return NAN;
 }
 
-void* xu_count(double value)
+char* xu_count(double value)
 {
     static const char* const suffixes[] = {"", "K", "M", "B", "T"};
     static const double factors[] = {1.0, 1e3, 1e6, 1e9, 1e12};
@@ -306,7 +301,7 @@ void* xu_count(double value)
         xu_error("formatted count exceeds output limit");
         return NULL;
     }
-    return xu_copy(text);
+    return xrtStrDup(text);
 }
 
 int xu_is_pow2(int64_t value)

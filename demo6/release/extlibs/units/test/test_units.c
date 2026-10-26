@@ -109,7 +109,7 @@ static int test_suffix_locale(void)
 /* 格式化分配失败必须保留内存错误，清除注入后五条入口都能继续使用。 */
 static int test_allocation_failure(void)
 {
-    void* (*formats[])(double) = {
+    char* (*formats[])(double) = {
         xu_bytes, xu_bytes_decimal, xu_duration, xu_duration_short, xu_count
     };
     const char* expected[] = {

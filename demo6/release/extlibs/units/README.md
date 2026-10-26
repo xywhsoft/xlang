@@ -1,5 +1,13 @@
 # units
 
+2026-10-27 字符串所有权收口：五条格式化函数的 C 原型明确为
+拥有型 `char*`，XLang 用 `@owned string?` 直接接管，去掉
+`point` / `takeCstr` 中转。原生结果复制统一调用 XRT 的
+`xrtStrDup`，不再保留本包自己的复制实现；manifest 显式声明
+`XRT_MODULE_STRING`。生成 C 和 ABI 门禁分别固定直接接管及
+返回类型，接管仍需一次 `strlen`。Windows 独立核心 EXE 从
+842,752 增至 847,872 字节（增加 5,120 字节）。
+
 2026-10-26 完整重建 Windows/Linux 发布物后，本包在两平台 x64
 包级范围签收：默认门禁通过严格 C/ABI、Linux ASan/UBSan、线程、
 语言边界与分配故障、C/XLang 固定输出，以及核心、XLang 范例和

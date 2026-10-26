@@ -59,6 +59,20 @@ try {
         'release/extlibs/units/test/boundaries.xl')
     $null = Run 'XLang allocation failures' $xl @('run',
         'release/extlibs/units/test/allocations.xl')
+    $generated = Join-Path $work 'owned_text.c'
+    $null = Run 'direct-text cgen' $xl @('cgen',
+        'release/extlibs/units/test/boundaries.xl', '--emit', $generated)
+    $generatedText = [IO.File]::ReadAllText($generated)
+    foreach ($name in @('xu_bytes', 'xu_bytes_decimal', 'xu_duration',
+        'xu_duration_short', 'xu_count')) {
+        if ($generatedText -cnotmatch "\bv\d+\.Data\s*=\s*$name\s*\(") {
+            throw "$name must adopt the native C string directly"
+        }
+    }
+    if ($generatedText.Contains('xl6_xrt_take_cstr(') -or
+        $generatedText.Contains('xl6CStringCopyV1')) {
+        throw 'units must not copy or re-adopt native text'
+    }
     $xlOutput = Run 'XLang example' $xl @('run',
         'release/examples/extlibs/units.xl')
     if ($cOutput -cne $xlOutput) {

@@ -7,11 +7,11 @@ extern "C" {
 #endif
 
 /* 文本由 XRT 独立分配，调用方使用 xrtFree；非法参数返回 NULL。 */
-void* xu_bytes(double value);
-void* xu_bytes_decimal(double value);
-void* xu_duration(double seconds);
-void* xu_duration_short(double seconds);
-void* xu_count(double value);
+char* xu_bytes(double value);
+char* xu_bytes_decimal(double value);
+char* xu_duration(double seconds);
+char* xu_duration_short(double seconds);
+char* xu_count(double value);
 
 /* 解析失败返回 NaN，同时设置 XRT 错误。 */
 double xu_parse_bytes(const char* text, long long length);
