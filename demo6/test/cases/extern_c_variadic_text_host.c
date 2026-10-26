@@ -87,3 +87,10 @@ int variadic_scalar_failed(int mode, ...)
 {
     (void)mode; xrtSetErrorKind(XERR_RANGE); return 123;
 }
+void variadic_reset_stats(void) { xrtMemStatsEnable(true); xrtMemStatsReset(); }
+bool variadic_one_allocation(const char* text)
+{
+    xmemstats stats={0}; xrtMemStatsGet(&stats);
+    return text==last && stats.MallocCalls==1 && stats.CallocCalls==0 &&
+        stats.ReallocCalls==0 && stats.MemDupCalls==0 && stats.FreeCalls==0;
+}

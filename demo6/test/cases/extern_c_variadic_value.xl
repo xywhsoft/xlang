@@ -13,6 +13,8 @@ extern "variadic_live" @no_raise func live() as int
 extern "variadic_fail_after" @no_raise func failAfter(int count)
 extern "variadic_clear_failure" @no_raise func clearFailure()
 extern "variadic_scalar_failed" func scalarFailed(c_int mode,c_vararg) as c_int
+extern "variadic_reset_stats" @no_raise func resetStats()
+extern "variadic_one_allocation" @no_raise func oneAllocation(string value) as bool
 
 // A structural native variadic signature can cross an ordinary function
 // boundary. C tail values stay typed until the final C call site.
@@ -25,7 +27,11 @@ func check(string input)
     assert optional(c_int(0))==null
     auto producer=required
     auto alias=producer
+    resetStats()
     auto value=producer(c_int(1),input,c_short(7),float32(2.5))
+    // The callable was created above. This measures producer + admission:
+    // one producer malloc, no owner/boxing/copy allocation at the call site.
+    assert oneAllocation(value)
     assert value==input and original(value)
     producer=borrowed
     assert producer(c_int(1),input)=="borrowed"
