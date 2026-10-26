@@ -25883,6 +25883,21 @@ typedef struct xtlsverifierconfig {
 	bool AllowSha1;
 } xtlsverifierconfig;
 
+/* Resident authority for the ONE Context reference adopted by an owned
+ * verifier. Every callback must equal the corresponding config slot. Ops
+ * identifies that same physical Context node, not a flattened set of values.
+ * Policy, Ops and callback code remain immutable/resident until every native
+ * consumer and collector pin releases the verifier. Drop runs once OUTSIDE
+ * ownership mutation/freeze. Legacy Create contexts remain graph-opaque. */
+typedef struct xtlsverifiercontextownershipv1 {
+	size_t size;
+	xtlsverifyproc Verify;
+	xtlsverifypolicyproc Policy;
+	xtlsverifytimeproc Time;
+	xtlsverifyreleaseproc Drop;
+	const xrtownershipops* Ops;
+} xtlsverifiercontextownershipv1;
+
 
 /* Explicit resource limits. Zero disables that particular limit. Legacy
  * verifier/peer entry points remain unlimited; Init supplies bounded defaults.
@@ -25922,6 +25937,35 @@ XRT_API xtlsverifier* xrtTlsVerifierCreate(
 XRT_API xtlsverifier* xrtTlsVerifierCreateLimited(
 	const xtlsverifierconfig* pConfig,
 	const xtlsverifylimits* pLimits
+);
+
+/* Config, Limits and Policy are required. Success consumes exactly ONE
+ * Context reference; failure consumes none and invokes no callback/Drop.
+ * This does not change trust/identity rules or grant a language callback API.
+ * Normal verification pins the actual verifier and marks its whole call busy,
+ * including the clock, verification, policy and cleanup tails. */
+XRT_API xtlsverifier* xrtTlsVerifierCreateOwnedV1(
+	const xtlsverifierconfig* pConfig,
+	const xtlsverifylimits* pLimits,
+	const xtlsverifiercontextownershipv1* pPolicy
+);
+
+/* Read under the complete graph's freeze. Admission requires the exact
+ * registered resident policy identity BEFORE its fields are followed. Opaque
+ * legacy verifiers, active calls, unknown policies and cleared nodes refuse
+ * admission, leaving the preparation output unchanged. Claim quarantines new
+ * verification calls; Restore reopens them. Clear only marks the node, and
+ * Finish drops the actual Context and unique trust store outside freeze.
+ * A failed cleanup is retained and reported on retry, never repeated. Native
+ * Context/Session/Stream owners must also report EACH actual verifier slot;
+ * these functions alone do not certify a complete consumer graph. */
+XRT_API xrtownershipref xrtTlsVerifierOwnership(const xtlsverifier* pVerifier);
+XRT_API const xrtownershipquiescencev1* xrtTlsVerifierOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtTlsVerifierOwnershipAdapterV1(
+	xrtownershipref Reference,
+	const xtlsverifiercontextownershipv1* const* pPolicies,
+	size_t iPolicyCount,
+	const xrtownershippreparationv1** ppPreparation
 );
 
 
@@ -182664,6 +182708,13 @@ struct xtlsverifier {
 	bool AllowSha1;
 	bool Limited;
 	xtlsverifylimits Limits;
+	const xtlsverifiercontextownershipv1* OwnershipPolicy;
+	xatomicptr OwnershipClaim;
+	xatomic32 OwnershipActive;
+	bool OwnershipCleared;
+	bool OwnershipFinishing;
+	bool OwnershipFinished;
+	xerror* OwnershipFinishError;
 };
 
 
@@ -183122,6 +183173,30 @@ XRT_API xtlsverifier* xrtTlsVerifierCreateLimited(
 	return __xrtTlsVerifierCreate(pConfig, pLimits);
 }
 
+XRT_API xtlsverifier* xrtTlsVerifierCreateOwnedV1(
+	const xtlsverifierconfig* pConfig,
+	const xtlsverifylimits* pLimits,
+	const xtlsverifiercontextownershipv1* pPolicy
+)
+{
+	if (!pConfig || !pLimits || !pPolicy || pPolicy->size != sizeof(*pPolicy) ||
+		!pConfig->Context || !pPolicy->Drop || !pPolicy->Ops ||
+		!pPolicy->Ops->Count || !pPolicy->Ops->Trace ||
+		pConfig->Verify != pPolicy->Verify || pConfig->Policy != pPolicy->Policy ||
+		pConfig->Time != pPolicy->Time || pConfig->Release != pPolicy->Drop) {
+		(void)__xrtTlsVerifyError(XERR_ARGUMENT, "create-owned-tls-verifier",
+			"TLS verifier needs an exact resident context ownership policy");
+		return NULL;
+	}
+	xtlsverifier* pVerifier = __xrtTlsVerifierCreate(pConfig, pLimits);
+	if (pVerifier) {
+		pVerifier->OwnershipPolicy = pPolicy;
+		xrtAtomicPtrInit(&pVerifier->OwnershipClaim, NULL);
+		xrtAtomic32Init(&pVerifier->OwnershipActive, 0);
+	}
+	return pVerifier;
+}
+
 
 
 /* 增加不可变验证器引用。 */
@@ -183136,7 +183211,12 @@ XRT_API xtlsverifier* xrtTlsVerifierRetain(
 		);
 		return NULL;
 	}
-	if ( xrtRefRetain((volatile int32*)&pVerifier->RefCount) < 0 ) {
+	xrtownershipscope Mutation = {0};
+	if (pVerifier->OwnershipPolicy && !xrtOwnershipMutationBegin(&Mutation)) return NULL;
+	bool bHeld = !pVerifier->OwnershipCleared &&
+		xrtRefRetain((volatile int32*)&pVerifier->RefCount) >= 0;
+	if (pVerifier->OwnershipPolicy && !xrtOwnershipScopeEnd(&Mutation)) abort();
+	if ( !bHeld ) {
 		(void)__xrtTlsVerifyError(
 			XERR_STATE, "retain-tls-verifier",
 			"TLS verifier reference is invalid"
@@ -183151,14 +183231,21 @@ XRT_API xtlsverifier* xrtTlsVerifierRetain(
 /* 释放最后一个验证器引用、信任快照和自定义上下文。 */
 XRT_API void xrtTlsVerifierRelease(xtlsverifier* pVerifier)
 {
-	if ( (pVerifier == NULL) ||
-		(xrtRefRelease(&pVerifier->RefCount) != 0) ) {
-		return;
-	}
+	if (!pVerifier) return;
+	xrtownershipscope Mutation = {0};
+	if (pVerifier->OwnershipPolicy && !xrtOwnershipMutationBegin(&Mutation)) abort();
+	bool bLast = xrtRefRelease(&pVerifier->RefCount) == 0;
+	if (bLast && pVerifier->OwnershipPolicy &&
+		(xrtAtomic32Load(&pVerifier->OwnershipActive, XMEMORY_ACQUIRE) ||
+		pVerifier->OwnershipFinishing)) abort();
+	if (bLast && pVerifier->OwnershipPolicy) pVerifier->OwnershipFinishing = true;
+	if (pVerifier->OwnershipPolicy && !xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (!bLast) return;
 	if ( pVerifier->Release != NULL ) {
 		pVerifier->Release(pVerifier->Context);
 	}
 	xrtX509StoreFree(pVerifier->Store);
+	xrtErrorFree(pVerifier->OwnershipFinishError);
 	memset(pVerifier, 0, sizeof(*pVerifier));
 	xrtFree(pVerifier);
 }
@@ -183166,7 +183253,7 @@ XRT_API void xrtTlsVerifierRelease(xtlsverifier* pVerifier)
 
 
 /* 执行自定义或默认信任决策。 */
-XRT_API bool xrtTlsVerifierVerify(
+static bool __xrtTlsVerifierVerify(
 	const xtlsverifier* pVerifier,
 	xtlsrole Role,
 	xstrview Name,
@@ -183242,6 +183329,179 @@ XRT_API bool xrtTlsVerifierVerify(
 		XERR_VALUE, "run-tls-verifier",
 		"TLS custom verifier returned an invalid decision"
 	);
+}
+
+/* Hold an actual verifier reference across ALL caller code, not just Policy.
+ * A callback may release its original public reference; it cannot destroy the
+ * currently executing verifier or make its Context disappear mid-call. */
+XRT_API bool xrtTlsVerifierVerify(
+	const xtlsverifier* pVerifier, xtlsrole Role, xstrview Name,
+	const xx509cert* pCertificates, size_t iCertificateCount
+)
+{
+	if (!pVerifier || !pVerifier->OwnershipPolicy)
+		return __xrtTlsVerifierVerify(pVerifier, Role, Name, pCertificates, iCertificateCount);
+	xtlsverifier* pMutable = (xtlsverifier*)pVerifier;
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) return false;
+	uint32 iActive = xrtAtomic32Load(&pVerifier->OwnershipActive, XMEMORY_ACQUIRE);
+	bool bEntered = false;
+	if (!pVerifier->OwnershipCleared &&
+		!xrtAtomicPtrLoad(&pVerifier->OwnershipClaim, XMEMORY_ACQUIRE)) {
+		while (iActive < UINT32_MAX) {
+			uint32 iExpected = iActive;
+			if (xrtAtomic32CompareExchange(&pMutable->OwnershipActive, &iExpected,
+				iActive + 1, XMEMORY_ACQ_REL, XMEMORY_ACQUIRE)) {
+				bEntered = xrtRefRetain(&pMutable->RefCount) >= 0;
+				if (!bEntered) xrtAtomic32FetchSub(&pMutable->OwnershipActive, 1, XMEMORY_ACQ_REL);
+				break;
+			}
+			iActive = iExpected;
+		}
+	}
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (!bEntered) return __xrtTlsVerifyError(XERR_STATE, "run-tls-verifier",
+		"TLS verifier is claimed, cleared or has exhausted active references");
+	bool bResult = __xrtTlsVerifierVerify(pVerifier, Role, Name, pCertificates, iCertificateCount);
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	if (!xrtAtomic32FetchSub(&pMutable->OwnershipActive, 1, XMEMORY_ACQ_REL)) abort();
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	xrtTlsVerifierRelease(pMutable);
+	return bResult;
+}
+
+static bool __xrtTlsVerifierOwnershipBusy(const void* pData)
+{
+	const xtlsverifier* pVerifier = pData;
+	return pVerifier && (xrtAtomic32Load(&pVerifier->OwnershipActive, XMEMORY_ACQUIRE) ||
+		pVerifier->OwnershipFinishing);
+}
+static bool __xrtTlsVerifierOwnershipCount(const void* pData, size_t* pCount)
+{
+	const xtlsverifier* pVerifier = pData;
+	if (!pVerifier || !pCount || !pVerifier->OwnershipPolicy ||
+		!pVerifier->Context || pVerifier->OwnershipCleared ||
+		__xrtTlsVerifierOwnershipBusy(pVerifier)) return false;
+	int32 iRefs = __xrtAtomicRefLoad(&pVerifier->RefCount);
+	if (iRefs <= 0) return false;
+	*pCount = (size_t)iRefs;
+	return true;
+}
+static bool __xrtTlsVerifierOwnershipTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{
+	const xtlsverifier* pVerifier = pData; size_t iCount;
+	return pVisit && __xrtTlsVerifierOwnershipCount(pVerifier, &iCount) &&
+		pVisit((xrtownershipref){pVerifier->Context, pVerifier->OwnershipPolicy->Ops}, pContext);
+}
+static const xrtownershipops __xrtTlsVerifierOwnershipOps = {
+	__xrtTlsVerifierOwnershipCount, __xrtTlsVerifierOwnershipTrace
+};
+XRT_API xrtownershipref xrtTlsVerifierOwnership(const xtlsverifier* pVerifier)
+{ return (xrtownershipref){pVerifier, pVerifier ? &__xrtTlsVerifierOwnershipOps : NULL}; }
+XRT_API const xrtownershipquiescencev1* xrtTlsVerifierOwnershipQuiescenceV1Get(void)
+{
+	static const xrtownershipquiescencev1 Policy = {
+		sizeof(Policy), &__xrtTlsVerifierOwnershipOps, __xrtTlsVerifierOwnershipBusy
+	};
+	return &Policy;
+}
+static bool __xrtTlsVerifierOwnershipHold(const void* pData)
+{ return xrtTlsVerifierRetain(pData) != NULL; }
+static void __xrtTlsVerifierOwnershipDrop(const void* pData)
+{ xrtTlsVerifierRelease((xtlsverifier*)pData); }
+static bool __xrtTlsVerifierOwnershipClaim(const void* pData, const void* pToken)
+{
+	xtlsverifier* pVerifier = (xtlsverifier*)pData; size_t iCount;
+	ptr pOld = xrtAtomicPtrLoad(&pVerifier->OwnershipClaim, XMEMORY_ACQUIRE);
+	if (!pToken || (pOld && pOld != pToken) ||
+		!__xrtTlsVerifierOwnershipCount(pVerifier, &iCount)) return false;
+	xrtAtomicPtrStore(&pVerifier->OwnershipClaim, (ptr)pToken, XMEMORY_RELEASE);
+	return true;
+}
+static void __xrtTlsVerifierOwnershipRestore(const void* pData, const void* pToken)
+{
+	xtlsverifier* pVerifier = (xtlsverifier*)pData;
+	if (!pToken || pVerifier->OwnershipCleared ||
+		xrtAtomicPtrLoad(&pVerifier->OwnershipClaim, XMEMORY_ACQUIRE) != pToken) abort();
+	xrtAtomicPtrStore(&pVerifier->OwnershipClaim, NULL, XMEMORY_RELEASE);
+}
+static bool __xrtTlsVerifierOwnershipReady(const void* pData)
+{
+	size_t iCount;
+	return __xrtTlsVerifierOwnershipCount(pData, &iCount);
+}
+static xrtownershipprepareresult __xrtTlsVerifierOwnershipPrepare(const void* pData, const void* pToken)
+{
+	const xtlsverifier* pVerifier = pData; xrtownershipscope Freeze = {0};
+	if (!xrtOwnershipFreezeTryBegin(&Freeze)) return XRT_OWNERSHIP_PREPARE_BUSY;
+	bool bReady = pVerifier && pToken &&
+		xrtAtomicPtrLoad(&pVerifier->OwnershipClaim, XMEMORY_ACQUIRE) == pToken &&
+		__xrtTlsVerifierOwnershipReady(pVerifier);
+	if (!xrtOwnershipScopeEnd(&Freeze)) abort();
+	return bReady ? XRT_OWNERSHIP_PREPARE_READY : XRT_OWNERSHIP_PREPARE_BUSY;
+}
+static void __xrtTlsVerifierOwnershipClear(const void* pData, const void* pToken)
+{
+	xtlsverifier* pVerifier = (xtlsverifier*)pData;
+	if (!pToken || xrtAtomicPtrLoad(&pVerifier->OwnershipClaim, XMEMORY_ACQUIRE) != pToken ||
+		!__xrtTlsVerifierOwnershipReady(pVerifier)) abort();
+	pVerifier->OwnershipCleared = true;
+}
+static bool __xrtTlsVerifierOwnershipFinish(const void* pData, const void* pToken)
+{
+	xtlsverifier* pVerifier = (xtlsverifier*)pData; xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) return false;
+	if (!pToken || xrtAtomicPtrLoad(&pVerifier->OwnershipClaim, XMEMORY_ACQUIRE) != pToken ||
+		!pVerifier->OwnershipCleared) abort();
+	if (pVerifier->OwnershipFinishing) {
+		if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+		return false;
+	}
+	if (pVerifier->OwnershipFinished) {
+		xerror* pFailure = pVerifier->OwnershipFinishError;
+		if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+		if (pFailure && !xrtGetError()) xrtSetError(pFailure);
+		return pFailure == NULL;
+	}
+	pVerifier->OwnershipFinishing = true;
+	ptr pContext = pVerifier->Context; pVerifier->Context = NULL;
+	xtlsverifyreleaseproc pDrop = pVerifier->Release; pVerifier->Release = NULL;
+	xx509store* pStore = pVerifier->Store; pVerifier->Store = NULL;
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	xerror* pBefore = xrtTakeError();
+	pDrop(pContext);
+	xrtX509StoreFree(pStore);
+	xerror* pFailure = xrtTakeError();
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	pVerifier->OwnershipFinishError = pFailure;
+	pVerifier->OwnershipFinishing = false; pVerifier->OwnershipFinished = true;
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (pBefore) xrtSetErrorTake(pBefore);
+	else if (pFailure) xrtSetError(pFailure);
+	return pFailure == NULL;
+}
+XRT_API const xrtownershipadapterv1* xrtTlsVerifierOwnershipAdapterV1(
+	xrtownershipref Reference, const xtlsverifiercontextownershipv1* const* pPolicies,
+	size_t iPolicyCount, const xrtownershippreparationv1** ppPreparation
+)
+{
+	static const xrtownershipadapterv1 Adapter = {sizeof(Adapter), __xrtTlsVerifierOwnershipHold,
+		__xrtTlsVerifierOwnershipDrop, __xrtTlsVerifierOwnershipClaim, __xrtTlsVerifierOwnershipRestore,
+		NULL, __xrtTlsVerifierOwnershipClear, __xrtTlsVerifierOwnershipFinish};
+	static const xrtownershippreparationv1 Preparation = {sizeof(Preparation), &Adapter,
+		__xrtTlsVerifierOwnershipReady, __xrtTlsVerifierOwnershipPrepare};
+	if (!ppPreparation || Reference.Ops != &__xrtTlsVerifierOwnershipOps || !Reference.Data ||
+		(iPolicyCount && !pPolicies) || __xrtTlsVerifierOwnershipBusy(Reference.Data)) return NULL;
+	const xtlsverifier* pVerifier = Reference.Data; bool bKnown = false;
+	for (size_t i = 0; i < iPolicyCount; ++i) {
+		if (pPolicies[i] && pPolicies[i] == pVerifier->OwnershipPolicy) { bKnown = true; break; }
+	}
+	if (!bKnown) return NULL;
+	const xtlsverifiercontextownershipv1* pPolicy = pVerifier->OwnershipPolicy;
+	if (pPolicy->size != sizeof(*pPolicy) || !pPolicy->Drop || !pPolicy->Ops ||
+		!pPolicy->Ops->Count || !pPolicy->Ops->Trace || !__xrtTlsVerifierOwnershipReady(pVerifier)) return NULL;
+	*ppPreparation = &Preparation;
+	return &Adapter;
 }
 
 
